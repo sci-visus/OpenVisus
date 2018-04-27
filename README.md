@@ -49,13 +49,11 @@ Table of content:
 
 [MacOSX compilation](#macosx-compilation)
 
-[Ubuntu 16.04 compilation](#ubuntu-1604-compilation)
+[Ubuntu 16.04 compilation](#ubuntu-compilation)
 
-[OpenSUSE Leap compilation](#opensuse-leap-compilation)
+[OpenSUSE Leap compilation](#opensuse-compilation)
 
 [mod_visus](#mod_visus)
-
-[Using ViSUS library in an external application](#using-visus-library-in-an-external-application)
 	
 ## Windows compilation
 
@@ -134,7 +132,7 @@ To test if it's working::
 	PYTHONPATH=$(pwd)/Release
 	python3 -c "from visuspy import *"
 
-## Ubuntu 16.04 compilation
+## Ubuntu compilation
 
 Install prerequisites (assuming you are using python 3.x)::
 
@@ -166,7 +164,7 @@ To test if it's working::
 	PYTHONPATH=$(pwd)
 	python3 -c "from visuspy import *"
 
-## OpenSUSE Leap compilation
+## OpenSUSE compilation
 
 Install prerequisites (assuming you are using python 3.x)::
 
@@ -205,7 +203,4 @@ To test if it's working::
 
 see Docker/README.md
 	
-## Using ViSUS library in an external application 
 
-Please see docs/tutorials/README.md
-IMPORTANT: you need to have Visus INSTALL-ed somewhere
