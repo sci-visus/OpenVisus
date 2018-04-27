@@ -1,0 +1,49 @@
+(*) set your azure PASSWORD
+
+AZURE_PASSWORD=...type_your_password...
+
+(*) set your DATASET_NAME you want to copy from mod_visus to azure
+
+DATASET_NAME=2kbit1
+
+(*) set your visus binary
+
+CONVERT=build/win64/Debug/visus.exe
+  
+(*) create the container on Azure:
+
+$CONVERT create-container http://visus.blob.core.windows.net/$DATASET_NAME?password=$AZURE_PASSWORD
+
+(*) copy the visus.idx file from mod_visus to azure
+
+$CONVERT copy-blob \
+  "http://atlantis.sci.utah.edu/mod_visus?dataset=$DATASET_NAME&compression=zip&action=readdataset" \
+  "http://visus.blob.core.windows.net/$DATASET_NAME/visus.idx?password=$AZURE_PASSWORD"
+
+(*) create an xml file to copy blocks from mod_visus to azure
+
+cat > copy_blocks.xml <<EOF
+<convert>
+  <source url="http://atlantis.sci.utah.edu/mod_visus?dataset=$DATASET_NAME&amp;compression=zip&amp;action=readdataset" />
+  <destination url="http://visus.blob.core.windows.net/$DATASET_NAME/visus.idx?password=$AZURE_PASSWORD" >
+    <access type="CloudStorageAccess" url="http://visus.blob.core.windows.net/$DATASET_NAME?password=$AZURE_PASSWORD" compression=zip verbose="1" />
+  </destination>
+</convert>
+EOF
+sed -i "s/&/&amp;/g" copy_blocks.xml 
+
+(*) execute the copy of blocks
+
+$CONVERT copy-dataset copy_blocks.xml
+
+
+
+
+
+
+
+         
+
+
+
+

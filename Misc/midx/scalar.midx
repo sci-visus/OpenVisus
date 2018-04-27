@@ -1,0 +1,3 @@
+<dataset typename='IdxMultipleDataset'>
+  <dataset url='file://$(CurrentFileDirectory)/scalarA/visus.idx' name= 'A'  />
+</dataset>

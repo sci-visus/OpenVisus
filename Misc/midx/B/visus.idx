@@ -1,0 +1,21 @@
+(version)
+6
+(logic_to_physic)
+1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+(box)
+0 2047 0 1023 0 0 0 0 0 0
+(fields)
+temperature uint8[3] compressed format(0) 
++ pressure uint8[3] compressed format(0) 
+(bits)
+V001010101010101010101
+(bitsperblock)
+16
+(blocksperfile)
+32
+(interleave block)
+0
+(time)
+0 9 time%02d/
+(filename_template)
+./visus/%02x.bin

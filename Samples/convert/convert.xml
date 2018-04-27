@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+
+<convert>
+
+	<source url='file:///c:/free/visus_dataset/rome/visus.idx' from='0' to='134217728' step='65536' full='65536' >
+		<access type='disk' chmod='r' url='file:///c:/free/visus_dataset/rome/visus.idx' />
+	</source>
+
+	<destination url='file:///c:/free/visus_dataset/rome6k/visus.idx' from='0' to='134217728' step='2048' full='2048' >
+	
+		<access type='multiplex'>
+				
+			<access type='filter'>
+				<condition from='0' to='3481600' />
+				<condition from='0' to='134217728' step='8192' full='2048' />
+				<access type='disk' url='file:///c:/free/visus_dataset/rome6k/device1/visus.idx' />
+			</access>
+			
+			<access type='filter'>
+				<condition from='0'    to='3481600' />
+				<condition from='2048' to='134217728' step='8192' full='2048' />
+				<access type='disk' url='file:///c:/free/visus_dataset/rome6k/device2/visus.idx' />
+			</access>
+			
+			<access type='filter'>
+				<condition from='0'    to='3481600' />
+				<condition from='4096' to='134217728' step='8192' full='2048' />
+				<access type='disk' url='file:///c:/free/visus_dataset/rome6k/device3/visus.idx' />
+			</access>
+			
+			<access type='filter'>
+				<condition from='0'    to='3481600' />
+				<condition from='6144' to='134217728' step='8192' full='2048' />
+				<access type='disk' url='file:///c:/free/visus_dataset/rome6k/device4/visus.idx' />
+			</access>
+			
+		</access>
+	
+	</destination>
+	
+</convert>

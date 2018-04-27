@@ -1,0 +1,40 @@
+FROM ubuntu:16.04
+
+RUN set -x \
+	&& apt-get update \
+	&& apt-get install -y \
+    libpng-dev \
+    libssl-dev \
+    libcurl4-openssl-dev \
+	zlib1g-dev \
+	libfreeimage-dev \
+    cmake \
+    gcc \
+    g++ \
+    apache2-dev \
+    apache2 \
+    swig \ 
+    python3-dev \  
+    python3-numpy \  
+    gobjc++ \
+    git
+
+COPY visus.tar.gz /visus/visus.tar.gz
+
+WORKDIR /visus
+
+RUN tar xzf visus.tar.gz 
+
+WORKDIR build
+
+RUN cmake ../ \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DVISUS_GUI=0 \   
+    -DVISUS_SERVER_CONFIG_FILE=/visus/config/server.config \
+    -DVISUS_CACHE_PATH=/visus/cache \
+    -DVISUS_LOG_FILE=/visus/visus.log 
+    
+RUN make -j4
+  
+RUN make install
+

@@ -1,0 +1,93 @@
+
+language: cpp
+
+sudo: false
+
+notifications:
+  email: false
+  
+matrix:
+
+  include:
+
+    - os: osx
+      osx_image: xcode9.1
+      compiler: clang
+      env: COMPILER=clang++ BUILD_TYPE=Release
+
+    - os: linux
+      dist: trusty
+      env: COMPILER=g++-4 BUILD_TYPE=Release 
+      addons: 
+        apt:
+          packages: g++-4
+          sources:
+            - ubuntu-toolchain-r-test
+      
+  exclude:
+
+    - os: osx
+      osx_image: xcode9.1
+      compiler: clang
+      env: COMPILER=clang++ BUILD_TYPE=Debug
+
+    - os: linux
+      dist: trusty
+      env: COMPILER=g++-4 BUILD_TYPE=Debug
+      addons: 
+        apt:
+          packages: g++-4
+          sources:
+            - ubuntu-toolchain-r-test
+
+install:
+
+    # (linux) install linux dependencies
+    - |
+      if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
+        sudo apt-get -qy update
+        sudo apt-get -qy install swig3.0 git cmake 
+        sudo apt-get -qy install liblz4-dev libtinyxml-dev libfreeimage-dev libcurl4-openssl-dev libssl-dev uuid-dev 
+        sudo apt-get -qy install qt5-default qttools5-dev-tools libx11-xcb1 python3 python3-pip
+        sudo pip3 install numpy
+      fi     
+      
+    # (linux) install qt 5.9.1
+    - |
+      if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
+        sudo add-apt-repository ppa:beineri/opt-qt591-trusty -y; 
+        sudo apt-get update -qq
+        sudo apt-get install -qq qt59base
+        source /opt/qt59/bin/qt59-env.sh
+      fi     
+
+    # (linux) Download and install recent cmake
+    - |
+      if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then
+        CMAKE_URL="http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
+        mkdir -p ${TRAVIS_BUILD_DIR}/deps/cmake
+        travis_retry wget --no-check-certificate --quiet -O - ${CMAKE_URL} | tar --strip-components=1 -xz -C ${TRAVIS_BUILD_DIR}/deps/cmake
+        export PATH=${TRAVIS_BUILD_DIR}/deps/cmake/bin:${PATH}
+      fi
+      
+    # (osx) brew install dependencies
+    - | 
+      if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then 
+        brew install swig qt5 lz4 tinyxml zlib  curl freeimage 
+        brew upgrade python # from 2 -> 3
+        pip3 install numpy
+        gem install xcpretty # this is to solve logs too long
+      fi    
+
+script:
+    - cd "${TRAVIS_BUILD_DIR}"
+    - mkdir build && cd build
+    - if   [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then cmake ../                                                     ; fi
+    - if   [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then cmake --build ./ --target all            --config $BUILD_TYPE ; fi
+    - if   [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then cmake --build ./ --target test           --config $BUILD_TYPE ; fi
+    
+    - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then                     cmake -GXcode  -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DQt5_DIR=/usr/local/opt/qt/lib/cmake/Qt5 .. ; fi
+    - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then set -o pipefail &&  cmake --build ./ --target ALL_BUILD      --config $BUILD_TYPE | xcpretty -c ; fi
+    - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then                     cmake --build ./ --target RUN_TESTS      --config $BUILD_TYPE               ; fi
+
+

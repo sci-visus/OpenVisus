@@ -1,0 +1,18 @@
+(version)
+6
+(logic_to_physic)
+1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1
+(box)
+0 255 0 255 0 0 0 0 0 0
+(fields)
+data float64 format(0) 
+(bits)
+V0101010101010101
+(bitsperblock)
+10
+(blocksperfile)
+64
+(interleave block)
+0
+(filename_template)
+./visus/%02x.bin

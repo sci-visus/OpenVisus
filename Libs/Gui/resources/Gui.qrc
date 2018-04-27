@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+<qresource>
+  <file>GLCommon.glsl</file>
+  <file>GLPhongShader.glsl</file> 
+</qresource>
+</RCC>

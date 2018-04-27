@@ -1,0 +1,19 @@
+(version)
+6
+(box)
+0 2047 0 1023 0 0 0 0 0 0
+(fields)
+temperature uint8 compressed format(0) default_value(0) 
++ pressure uint8 compressed format(0) default_value(0) 
+(bits)
+V001010101010101010101
+(bitsperblock)
+16
+(blocksperfile)
+32
+(interleave block)
+0
+(time)
+0 9 time%02d/
+(filename_template)
+./visus/%02x.bin

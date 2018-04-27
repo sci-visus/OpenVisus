@@ -1,0 +1,10 @@
+*.swp
+*.DS_Store
+*.pyc
+visusviewer.log.txt
+temp/
+build/
+install/
+x64/
+tags
+
