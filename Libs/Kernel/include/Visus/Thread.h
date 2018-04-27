@@ -50,6 +50,7 @@ For support : support@visus.net
 #include <set>
 #include <deque>
 #include <map>
+#include <functional>
 
 namespace Visus {
 
