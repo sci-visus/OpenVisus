@@ -168,9 +168,9 @@ To test if it's working::
 
 Install prerequisites (assuming you are using python 3.x)::
 
-  sudo zypper refresh      # (OPTIONAL)
-  sudo zypper -n update    # (OPTIONAL)
-  sudo zypper -n patch     # (OPTIONAL)
+	sudo zypper refresh      # (OPTIONAL)
+	sudo zypper -n update    # (OPTIONAL)
+	sudo zypper -n patch     # (OPTIONAL)
 	sudo zypper -n in -t pattern devel_basis
 	sudo zypper -n in cmake git swig 
 	sudo zypper -n in python3 python3-pip python3-devel 
