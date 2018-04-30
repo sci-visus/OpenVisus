@@ -53,7 +53,7 @@ Table of content:
 
 [OpenSUSE Leap compilation](#opensuse-compilation)
 
-[Use OpenVisus as submodule]($use-openvisus-as-submodule)
+[Use OpenVisus as submodule](#use-openvisus-as-submodule)
 
 [mod_visus](#mod_visus)
 	
