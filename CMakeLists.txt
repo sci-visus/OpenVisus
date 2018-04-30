@@ -48,7 +48,7 @@ add_subdirectory(Libs)
 add_subdirectory(Executable)
 
 # only if I'm compiling OpenVisus not as submodule...
-if (CMAKE_SOURCE_DIR EQUAL CMAKE_CURRENT_SOURCE_DIR)
+if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 
 	# samples
 	add_subdirectory(Samples)
