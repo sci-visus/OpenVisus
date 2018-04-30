@@ -5,7 +5,7 @@ Compile mod_visus:
 ```
 BUILDNAME=visus-build                      # BUILD is never pushed to dockerhub
 cd <path/to/directory/containing/this/file>
-tar --directory=../../ -c -z -f visus.tar.gz CMake libs src docs resources Copyrights CMakeLists.txt 
+tar --directory=../../ -c -z -f visus.tar.gz CMake libs src docs resources Copyrights CMakeLists.txt .git
 dos2unix httpd-foreground.sh # fix git problem 
 docker build -t $BUILDNAME -f Dockerfile.build .
 CONTAINER_ID=$(docker create $BUILDNAME)

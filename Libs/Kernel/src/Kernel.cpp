@@ -312,6 +312,19 @@ static void InitKnownPaths()
   }
 #endif
 
+  // Allow override of VisusUserDirectory
+  {
+    Path user_directory = KnownPaths::VisusUserDirectory;
+
+#ifdef VISUS_USER_PATH
+    user_directory = Path(String(VISUS_USER_PATH));
+#endif
+
+    KnownPaths::VisusUserDirectory = user_directory;
+  }
+
+  // Allow override of VisusCachesDirectory
+
   {
     Path cache_directory = KnownPaths::VisusUserDirectory.getChild("cached_files");
 

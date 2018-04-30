@@ -1,5 +1,7 @@
 FROM ubuntu:16.04
 
+ARG python_version=python3
+
 RUN set -x \
 	&& apt-get update \
 	&& apt-get install -y \
@@ -14,8 +16,8 @@ RUN set -x \
     apache2-dev \
     apache2 \
     swig \ 
-    python3-dev \  
-    python3-numpy \  
+    ${python_version}-dev \  
+    ${python_version}-numpy \  
     gobjc++ \
     git
 
@@ -29,7 +31,7 @@ WORKDIR build
 
 RUN cmake ../ \
     -DCMAKE_BUILD_TYPE=Release \
-    -DVISUS_GUI=0 \   
+    -DVISUS_GUI=0 \
     -DVISUS_SERVER_CONFIG_FILE=/visus/config/server.config \
     -DVISUS_CACHE_PATH=/visus/cache \
     -DVISUS_LOG_FILE=/visus/visus.log 

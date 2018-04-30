@@ -43,6 +43,7 @@ For support : support@visus.net
 #include <Visus/DirectoryIterator.h>
 #include <Visus/DatasetFilter.h>
 #include <Visus/VisusConfig.h>
+#include <Visus/OnDemandAccess.h>
 
 #ifdef WIN32
 #pragma warning(disable:4996) // 'sprintf': This function or variable may be unsafe
@@ -963,6 +964,10 @@ SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuer
   //IdxMandelbrotAccess
   if (type=="idxmandelbrotaccess")
     return std::make_shared<IdxMandelbrotAccess>(this, config);
+
+  //ondemandaccess
+  if (type=="ondemandaccess")
+    return std::make_shared<OnDemandAccess>(this, config);
 
   return Dataset::createAccess(config, bForBlockQuery);
 }

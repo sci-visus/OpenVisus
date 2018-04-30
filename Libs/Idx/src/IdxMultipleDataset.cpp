@@ -1176,7 +1176,10 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     setIdxFile(IDXFILE);
     return true;
   }
-
+  
+  if (childs.size() == 1)
+    IDXFILE.time_template = (std::dynamic_pointer_cast<IdxDataset>(first))->idxfile.time_template;
+ 
   //union of all timesteps
   for (auto it : childs)
     IDXFILE.timesteps.addTimesteps(it.second.dataset->getTimesteps());

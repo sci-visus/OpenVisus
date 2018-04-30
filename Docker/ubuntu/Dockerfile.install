@@ -1,15 +1,17 @@
 FROM ubuntu:16.04
 
+ARG python_version=python3
+
 RUN set -x \
   && apt-get update \
   && apt-get install -y --no-install-recommends \
     libpng-dev \
     libssl-dev \
     libcurl4-openssl-dev \
-	zlib1g-dev \
-	libfreeimage-dev \
-    python3-dev \
-    python3-numpy \
+    zlib1g-dev \
+    libfreeimage-dev \
+    ${python_version}-dev \
+    ${python_version}-numpy \
     libcurl3 \
     curl \
     apache2
@@ -27,7 +29,7 @@ ADD server.config        /visus/config/server.config
 ADD dataset.tar.gz       /visus
 
 WORKDIR /usr/local/visus
-RUN python3 setup.py install
+RUN ${python_version} setup.py install
 
 WORKDIR /visus
 RUN chmod a+x /usr/local/bin/httpd-foreground.sh \
