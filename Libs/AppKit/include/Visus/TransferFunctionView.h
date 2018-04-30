@@ -688,7 +688,7 @@ public:
   class Widgets
   {
   public:
-    QLineEdit*  size=nullptr;
+    QLineEdit*  nsamples=nullptr;
     struct 
     {
       struct 
@@ -719,7 +719,7 @@ public:
   }
 
   //bindModel
-  virtual void bindModel(TransferFunction* model) override
+  virtual void bindModel(TransferFunction* value) override
   {
     if (this->model)
     {
@@ -727,23 +727,41 @@ public:
       widgets = Widgets();
     }
 
-    View<ModelClass>::bindModel(model);
+    View<ModelClass>::bindModel(value);
 
     if (this->model)
     {
       QFormLayout* layout = new QFormLayout();
+
+      auto normalization = model->getInputNormalization();
       
-      layout->addRow("Num samples", widgets.size = GuiFactory::CreateIntegerTextBoxWidget(0,[this](int nsamples){
+      layout->addRow("Num samples", widgets.nsamples = GuiFactory::CreateIntegerTextBoxWidget((int)model->size(),[this](int nsamples){
         this->model->resize(nsamples);
       }));
 
       std::vector<String> options={"Use Array Range","Compute Overall Range","Compute Range Per Component","Use Custom Range"};
-      layout->addRow("Normalization mode", widgets.input.normalization.mode              = GuiFactory::CreateComboBox(options[0],options,[this](String value) {refreshInputNormalization();}));
-      layout->addRow("Custom Range from" , widgets.input.normalization.custom_range.from = GuiFactory::CreateDoubleTextBoxWidget(0,[this](double value){refreshInputNormalization();}));
-      layout->addRow("Custom Range to" , widgets.input.normalization.custom_range.to     = GuiFactory::CreateDoubleTextBoxWidget(0,[this](double value){refreshInputNormalization();}));
+      layout->addRow("Normalization mode", widgets.input.normalization.mode = GuiFactory::CreateComboBox(options[0],options,[this](String value) {
+        auto normalization = model->getInputNormalization();
+        normalization.mode = (ComputeRange::Mode)widgets.input.normalization.mode->currentIndex();
+        model->setInputNormalization(normalization);
+      }));
+      
+      layout->addRow("Custom Range from" , widgets.input.normalization.custom_range.from = GuiFactory::CreateDoubleTextBoxWidget(normalization.custom_range.from,[this](double value){
+        auto normalization = model->getInputNormalization();
+        normalization.custom_range.from = cdouble(widgets.input.normalization.custom_range.from->text());
+        model->setInputNormalization(normalization);
+      }));
+      widgets.input.normalization.custom_range.from->setEnabled(normalization.mode == ComputeRange::UseCustom);
+
+      layout->addRow("Custom Range to" , widgets.input.normalization.custom_range.to = GuiFactory::CreateDoubleTextBoxWidget(normalization.custom_range.to,[this](double value){
+        auto normalization = model->getInputNormalization();
+        normalization.custom_range.to = cdouble(widgets.input.normalization.custom_range.to->text());
+        model->setInputNormalization(normalization);
+      }));
+      widgets.input.normalization.custom_range.to->setEnabled(normalization.mode == ComputeRange::UseCustom);
 
       setLayout(layout);
-      refreshGui();
+      //refreshGui();
     }
   }
 
@@ -752,30 +770,19 @@ private:
   //refreshGui
   void refreshGui()
   {
-    widgets.size->setText(cstring(model->size()).c_str());
-    widgets.input.normalization.mode->setCurrentIndex(model->getInputNormalization().mode);
-    widgets.input.normalization.custom_range.from->setText(cstring(model->getInputNormalization().custom_range.from).c_str());
-    widgets.input.normalization.custom_range.to->setText(cstring(model->getInputNormalization().custom_range.to).c_str());
-    widgets.input.normalization.custom_range.from->setEnabled(model->getInputNormalization().mode==ComputeRange::UseCustom);
-    widgets.input.normalization.custom_range.to->setEnabled  (model->getInputNormalization().mode==ComputeRange::UseCustom);
-
+    auto normalization = model->getInputNormalization();
+    widgets.nsamples->setText(cstring(model->size()).c_str());
+    widgets.input.normalization.mode->setCurrentIndex(normalization.mode);
+    widgets.input.normalization.custom_range.from->setText(cstring(normalization.custom_range.from).c_str());
+    widgets.input.normalization.custom_range.to->setText(cstring(normalization.custom_range.to).c_str());
+    widgets.input.normalization.custom_range.from->setEnabled(normalization.mode==ComputeRange::UseCustom);
+    widgets.input.normalization.custom_range.to->setEnabled  (normalization.mode==ComputeRange::UseCustom);
   }
 
   //modelChanged
   virtual void modelChanged() override {
     refreshGui();
   }
-
-  //refreshInputNormalization
-  void refreshInputNormalization() 
-  {
-    TransferFunction::InputNormalization normalization;
-    normalization.mode              = (ComputeRange::Mode)widgets.input.normalization.mode->currentIndex();
-    normalization.custom_range.from = cdouble(widgets.input.normalization.custom_range.from->text());
-    normalization.custom_range.to   = cdouble(widgets.input.normalization.custom_range.to->text());
-    this->model->setInputNormalization(normalization);
-  }
-
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -811,7 +818,7 @@ public:
   }
 
   //bindModel
-  virtual void bindModel(TransferFunction* model) override
+  virtual void bindModel(TransferFunction* value) override
   {
     if (this->model)
     {
@@ -819,36 +826,36 @@ public:
       widgets = Widgets();
     }
 
-    View<ModelClass>::bindModel(model);
+    View<ModelClass>::bindModel(value);
 
     if (this->model)
     {
       QFormLayout* layout = new QFormLayout();
 
-      layout->addRow("Number functions", widgets.nfunctions= GuiFactory::CreateIntegerTextBoxWidget(0,[this](int value){
+      layout->addRow("Number functions", widgets.nfunctions= GuiFactory::CreateIntegerTextBoxWidget(model->getNumberOfFunctions(),[this](int value){
           this->model->setNumberOfFunctions(value);
       }));
 
-      layout->addRow("Output dtype", widgets.dtype = GuiFactory::CreateComboBox("Uint8",{"Uint8","Float32","Float64"},[this](String s){
+      layout->addRow("Output dtype", widgets.dtype = GuiFactory::CreateComboBox(model->getOutputDType().toString().c_str(),{"Uint8","Float32","Float64"},[this](String s){
           DType value=DType::fromString(s);
           this->model->setOutputDType(value); 
           update();
       }));
 
-      layout->addRow("Range from", widgets.range_from = GuiFactory::CreateDoubleTextBoxWidget(0,[this,model](double value){
+      layout->addRow("Range from", widgets.range_from = GuiFactory::CreateDoubleTextBoxWidget(model->getOutputRange().from,[this](double value){
           this->model->setOutputRange(Range(value,model->getOutputRange().to,0));
       }));
 
-      layout->addRow("Range to", widgets.range_to = GuiFactory::CreateDoubleTextBoxWidget(0,[this,model](double value){
+      layout->addRow("Range to", widgets.range_to = GuiFactory::CreateDoubleTextBoxWidget(model->getOutputRange().to,[this](double value){
           this->model->setOutputRange(Range(model->getOutputRange().from,value,0));
         }));
 
-      layout->addRow("Attenuation",widgets.attenuation=GuiFactory::CreateDoubleSliderWidget(0,Range(0,1,0),[this](double value){
+      layout->addRow("Attenuation",widgets.attenuation=GuiFactory::CreateDoubleSliderWidget(model->getAttenuation(),Range(0,1,0),[this](double value){
         this->model->setAttenuation(value);
       }));
 
       setLayout(layout);
-      refreshGui();
+      //refreshGui();
     }
   }
 

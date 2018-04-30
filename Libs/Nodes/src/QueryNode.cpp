@@ -43,6 +43,9 @@ For support : support@visus.net
 
 namespace Visus {
 
+bool QueryNode::bDisableFindQUeryIntersectionWithDatasetBox = false;
+
+
 ///////////////////////////////////////////////////////////////////////////
 class QueryNode::MyJob : public NodeJob
 {
@@ -241,7 +244,8 @@ bool QueryNode::processInput()
     }
 
     //find intersection with dataset box
-    position=Position::shrink(Position(dataset->getBox()).withoutTransformation().getBox(),MatrixMap(Matrix::identity()),position);
+    if (!bDisableFindQUeryIntersectionWithDatasetBox)
+      position=Position::shrink(Position(dataset->getBox()).withoutTransformation().getBox(),MatrixMap(Matrix::identity()),position);
 
     if (!position.valid()) 
     {

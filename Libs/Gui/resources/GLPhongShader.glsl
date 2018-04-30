@@ -144,25 +144,22 @@ void main()
   #if TEXTURE_ENABLED
   {
     vec4 tex_color=texture2D(u_sampler, v_texcoord.st);
-      
-    //GL_MODULATE (ATI seems to have problems with defines)
-    if (u_sampler_envmode==0x2100)
-    {
-      if      (u_sampler_format==  0x1906) color.a    = color.a   * tex_color.a;   //GL_ALPHA
-      else if (u_sampler_format == 0x1909) color.rgb  = color.rgb * tex_color.rgb; //GL_LUMINANCE
-      else if (u_sampler_format == 0x1907) color.rgb  = color.rgb * tex_color.rgb; //GL_RGB
-      else if (u_sampler_format==  0x1908) color      = color     * tex_color;     //GL_RGBA
-      //else if (u_sampler_format==0x190A) color      = color     * tex_color.rgb;   GL_LUMINANCE_ALPHA
-    }
+    
     //GL_REPLACE
-    else if (u_sampler_envmode==0x1E01)
-    {
-    	if      (u_sampler_format == 0x1906) color.a   = tex_color.a;    //GL_ALPHA
-    	else if (u_sampler_format == 0x1909) color.rgb = tex_color.rgb;  //GL_LUMINANCE
-    	else if (u_sampler_format == 0x1907) color.rgb = tex_color.rgb;  //GL_RGB
-    	else if (u_sampler_format == 0x1908) color     = tex_color;      //GL_RGBA
-    	//else if (u_sampler_format==0x190A) color     = tex_color;        GL_LUMINANCE_ALPHA
-    }
+    if (u_sampler_envmode==0x1E01)
+      color=vec4(1,1,1,1);
+      
+		//assume GL_MODULATE
+    if      (u_sampler_format == 0x1906) color.a    = color.a   * tex_color.a;   // GL_ALPHA
+    else if (u_sampler_format == 0x1907) color.rgb  = color.rgb * tex_color.rgb; // GL_RGB
+    else if (u_sampler_format == 0x1908) color      = color     * tex_color;     // GL_RGBA
+    else if (u_sampler_format == 0x1909) color.rgb  = color.rgb * tex_color.rgb; // GL_LUMINANCE
+    #if 0 
+    else if (u_sampler_format == 0x190A) color      = color     * tex_color.rgb; // GL_LUMINANCE_ALPHA (does not compile)
+    #endif
+    else if (u_sampler_format == 0x8815) color.rgb  = color.rgb * tex_color.rgb; // GL_RGB32F
+    else if (u_sampler_format == 0x8814) color      = color     * tex_color;     // GL_RGBA32F
+   
     color = clamp(color,0.0,1.0);
   }
   #endif  
