@@ -17,19 +17,13 @@ endif()
 
 PROJECT(ViSUS)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake)
+include(CMake/VisusMacros.cmake)
+SetupCMake()
 
 include(FindPackageHandleStandardArgs)
 
-# enable parallel building
-set(CMAKE_NUM_PROCS 8)          
 
-# use folders to organize projects                           
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)       
-
-# save libraries and binaries in the same directory        
-set(EXECUTABLE_OUTPUT_PATH  ${CMAKE_BINARY_DIR})           
-set(LIBRARY_OUTPUT_PATH     ${CMAKE_BINARY_DIR})
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake)
 
 # shared/static linking
 option(BUILD_SHARED_LIBS "Build the shared library" TRUE)  
@@ -41,12 +35,7 @@ IF (VISUS_GUI)
   find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL PrintSupport REQUIRED)
 endif()
 
-include(VisusMacros)
-
-SetupCompiler()
-SetupOpenMP()
-
-if (EXISTS ${CMAKE_SOURCE_DIR}/ExternalLibs/python27)
+if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/ExternalLibs/python27)
   set(NUMPY_FOUND 0)
 else()
   find_package(PythonInterp 3 REQUIRED)
@@ -57,21 +46,25 @@ endif()
 add_subdirectory(ExternalLibs)
 add_subdirectory(Libs)
 add_subdirectory(Executable)
-add_subdirectory(Samples)
 
-# ///////////////////////////////////////////////////
-enable_testing()
+# only if I'm compiling OpenVisus not as submodule...
+if (CMAKE_SOURCE_DIR EQUAL CMAKE_CURRENT_SOURCE_DIR)
 
-AddPythonTest(VisusTestPyDataflow ${CMAKE_SOURCE_DIR}/Samples/python/Dataflow.py)
-AddPythonTest(VisusTestPyArray  ${CMAKE_SOURCE_DIR}/Samples/python/Array.py)
-AddPythonTest(VisusTestPyIdx    ${CMAKE_SOURCE_DIR}/Samples/python/Idx.py)
+	# samples
+	add_subdirectory(Samples)
 
-add_test(NAME VisusTestIdx WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} COMMAND visus --test-idx --max-seconds 300)
+	# testing
+	enable_testing()
+	AddPythonTest(VisusTestPyDataflow ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Dataflow.py ${CMAKE_CURRENT_SOURCE_DIR})
+	AddPythonTest(VisusTestPyArray    ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Array.py    ${CMAKE_CURRENT_SOURCE_DIR})
+	AddPythonTest(VisusTestPyIdx      ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py      ${CMAKE_CURRENT_SOURCE_DIR})
+	add_test(NAME VisusTestIdx WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} COMMAND visus --test-idx --max-seconds 300)
+	
+	# external app
+	AddExternalApp(external_simple_query ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query ${CMAKE_BINARY_DIR}/Samples/simple_query "")
 
-# ///////////////////////////////////////////////////
-AddExternalApp(external_simple_query Samples/simple_query "")
+	if (VISUS_GUI)
+		AddExternalApp(external_simple_viewer2d ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_viewer2d ${CMAKE_BINARY_DIR}/Samples/simple_viewer2d "-DQt5_DIR='${Qt5_DIR}'")
+	endif()
 
-if (VISUS_GUI)
-	AddExternalApp(external_simple_viewer2d Samples/simple_viewer2d "-DQt5_DIR='${Qt5_DIR}'")
 endif()
-

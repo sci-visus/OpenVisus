@@ -53,6 +53,8 @@ Table of content:
 
 [OpenSUSE Leap compilation](#opensuse-compilation)
 
+[Use OpenVisus as submodule]($use-openvisus-as-submodule)
+
 [mod_visus](#mod_visus)
 	
 ## Windows compilation
@@ -202,6 +204,25 @@ To test if it's working::
 	python3 -c "from visuspy import *"
 
 
+## Use OpenVisus as submodule
+
+In your repository::
+
+	git submodule add https://github.com/sci-visus/OpenVisus
+	
+Create a CMakeLists.txt with the following content::
+
+	CMAKE_MINIMUM_REQUIRED(VERSION 3.1) 
+
+	project(YourProjectName)
+
+	include(OpenVisus/CMake/VisusMacros.cmake)
+	SetupCMake()
+	add_subdirectory(OpenVisus)
+	...your code...
+	target_link_libraries(your_executable VisusAppKit) # or whatever you need
+
+	
 ## mod_visus 
 
 see Docker/README.md
