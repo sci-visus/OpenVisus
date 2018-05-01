@@ -1,11 +1,21 @@
 
 # //////////////////////////////////////////////////////////////////////////
-macro(SetupCompiler)
+macro(SetupCMake)
 
 	set(CMAKE_CXX_STANDARD 11)
 
 	# this is important for python extension too!
 	SET(CMAKE_DEBUG_POSTFIX "_d")
+	
+	# enable parallel building
+	set(CMAKE_NUM_PROCS 8)          
+
+	# use folders to organize projects                           
+	set_property(GLOBAL PROPERTY USE_FOLDERS ON)    
+
+	# save libraries and binaries in the same directory        
+	set(EXECUTABLE_OUTPUT_PATH  ${CMAKE_BINARY_DIR})           
+	set(LIBRARY_OUTPUT_PATH     ${CMAKE_BINARY_DIR})	
 
 	if (WIN32)
 
@@ -65,21 +75,19 @@ macro(SetupCompiler)
 
 	endif()
 
-endmacro()
-
-# //////////////////////////////////////////////////////////////////////////
-macro(SetupOpenMP)
-
 	find_package(OpenMP)
 	if (OpenMP_FOUND)
 		set(CMAKE_C_FLAGS          "${CMAKE_C_FLAGS}          ${OpenMP_C_FLAGS}")
 		set(CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS}        ${OpenMP_CXX_FLAGS}")
 		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-	endif()
+	endif()	
+	
 endmacro()
 
+
+
 # //////////////////////////////////////////////////////////////////////////
-macro(AddExternalApp name dir extra_args)
+macro(AddExternalApp name SourceDir BinaryDir extra_args)
 
 	if (WIN32 OR APPLE)
 	  set(CMAKE_GENERATOR_ARGUMENT -G"${CMAKE_GENERATOR}")
@@ -88,38 +96,19 @@ macro(AddExternalApp name dir extra_args)
 	endif()
 
 	add_custom_target(${name} 
-		COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${CMAKE_SOURCE_DIR}/${dir}"  -B"${CMAKE_BINARY_DIR}/${dir}"  -DVisus_DIR="${CMAKE_INSTALL_PREFIX}/lib/cmake/visus" ${extra_args}
-		COMMAND "${CMAKE_COMMAND}"  --build "${CMAKE_BINARY_DIR}/${dir}" --config ${CMAKE_BUILD_TYPE})
+		COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DVisus_DIR="${CMAKE_INSTALL_PREFIX}/lib/cmake/visus" ${extra_args}
+		COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/" --config ${CMAKE_BUILD_TYPE})
 	set_target_properties(${name} PROPERTIES FOLDER CMakeTargets/)
 
 endmacro()
 
 # ///////////////////////////////////////////////////
-macro(AddVisusSwigLibrary Name)
+macro(AddVisusSwigLibrary Name SwigFile)
 
 	set(NamePy ${Name}Py)
 
-	set(SwigFile ${CMAKE_SOURCE_DIR}/Libs/Swig/${NamePy}.i)
-
 	#prevents rebuild every time make is called
 	set_property(SOURCE ${SwigFile} PROPERTY SWIG_MODULE_NAME ${NamePy})
-
-	set(CMAKE_SWIG_FLAGS "")
-	set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
-
-	set(SWIG_FLAGS "")
-	set(SWIG_FLAGS "${SWIG_FLAGS};-threads")
-	set(SWIG_FLAGS "${SWIG_FLAGS};-extranative")
-	set(SWIG_FLAGS "${SWIG_FLAGS};-DNUMPY_FOUND=${NUMPY_FOUND}")
-	set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_SOURCE_DIR}/Libs")
-	set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_SOURCE_DIR}/Libs/Kernel/include")
-	set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_SOURCE_DIR}/Libs/Dataflow/include")
-	set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_SOURCE_DIR}/Libs/Db/include")
-	set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_SOURCE_DIR}/Libs/Idx/include")
-	set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_SOURCE_DIR}/Libs/Gui/include")
-	set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_SOURCE_DIR}/Libs/Nodes/include")
-	set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_SOURCE_DIR}/Libs/GuiNodes/include")
-	set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_SOURCE_DIR}/Libs/AppKit/include")
 
 	set_source_files_properties(${SwigFile} PROPERTIES CPLUSPLUS ON)
 	set_source_files_properties(${SwigFile} PROPERTIES SWIG_FLAGS  "${SWIG_FLAGS}")
@@ -161,9 +150,9 @@ endmacro()
 
 
 # //////////////////////////////////////////////////////////////////////////
-macro(AddPythonTest Name FileName)
+macro(AddPythonTest Name FileName WorkingDirectory)
 
-	add_test(NAME ${Name} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} COMMAND $<TARGET_FILE:python> ${FileName})
+	add_test(NAME ${Name} WORKING_DIRECTORY WorkingDirectory COMMAND $<TARGET_FILE:python> ${FileName})
 
 	if (WIN32 OR APPLE)
 		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")

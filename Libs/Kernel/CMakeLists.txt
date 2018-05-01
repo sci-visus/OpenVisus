@@ -184,7 +184,7 @@ else()
 	file(GLOB Sources include/Visus/*.h src/*.cpp)
 endif()
 
-file(GLOB PythonScriptSource ${CMAKE_SOURCE_DIR}/Executable/python/*.py)
+file(GLOB PythonScriptSource ${CMAKE_CURRENT_SOURCE_DIR}/../../Executable/python/*.py)
 set(Sources ${Sources} ${PythonScriptSource})
 source_group("" FILES ${PythonScriptSource})
 
@@ -202,7 +202,7 @@ target_compile_definitions(VisusKernel PRIVATE VISUS_BUILDING_VISUSKERNEL=1)
 
 target_include_directories(VisusKernel PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-target_include_directories(VisusKernel PRIVATE ${CMAKE_SOURCE_DIR}/ExternalLibs/dtl/include)
+target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/dtl/include)
 
 #  zlib
 if (TARGET zlib)
@@ -246,7 +246,7 @@ if (TARGET ssl)
 	target_link_libraries(VisusKernel PRIVATE crypto ssl)
 else()
 	if (UNIX)
-		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMake/FixFindOpenSSL)
+		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/FixFindOpenSSL)
 	endif()
 	find_package(OpenSSL REQUIRED)
 	target_include_directories(VisusKernel PRIVATE ${OPENSSL_INCLUDE_DIR})
