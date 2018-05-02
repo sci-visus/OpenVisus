@@ -843,16 +843,20 @@ void IdxMultipleDataset::addChild(IdxMultipleDataset::Child value)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-String IdxMultipleDataset::getInputName(String name, String fieldname)
+String IdxMultipleDataset::getInputName(String dataset_name, String fieldname,bool bIsVarName)
 {
   std::ostringstream out;
   out << "input";
-  if (PythonEngine::isGoodVariableName(name))
-    out << "." << name;
+  if (PythonEngine::isGoodVariableName(dataset_name))
+    out << "." << dataset_name;
   else
-    out << "['" << name << "']";
+    out << "['" << dataset_name << "']";
 
-  if (PythonEngine::isGoodVariableName(fieldname))
+  if (bIsVarName)
+  {
+    out << "[" << fieldname << "]";
+  }
+  else if (PythonEngine::isGoodVariableName(fieldname))
   {
     out << "." << fieldname;
   }
@@ -875,9 +879,19 @@ Field IdxMultipleDataset::createField(String operation_name)
 {
   std::ostringstream out;
   int D = 0;
+
+  //special case when all childs have the same default field
+  bool bIsVarName = true;
+  auto first_fieldname = childs.begin()->second.dataset->getDefaultField().name;
+  for (auto it : childs)
+    bIsVarName = bIsVarName && (first_fieldname ==it.second.dataset->getDefaultField().name);
+
+  if (bIsVarName)
+    out << "sub_field='"<< first_fieldname <<"'" << std::endl;
+
   for (auto it : childs)
   {
-    out << "f" << D << "=" + getInputName(it.first, it.second.dataset->getDefaultField().name) << std::endl;
+    out << "f" << D << "=" <<getInputName(it.first, bIsVarName? "sub_field" : it.second.dataset->getDefaultField().name, bIsVarName)<< std::endl;
     D++;
   }
 

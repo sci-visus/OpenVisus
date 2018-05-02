@@ -134,7 +134,7 @@ public:
 private:
 
   //getInputName
-  String getInputName(String name, String fieldname);
+  String getInputName(String name, String fieldname,bool bIsVarName=false);
 
   //createField
   Field createField(String operation_name);
