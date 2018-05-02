@@ -9,7 +9,7 @@ make
 cd .. && rm zlib-1.2.11.tar.gz
 
 # LZ4_INCLUDE_DIR=ExternalLibs/lz4-1.8.1.2/lib
-# LZ4_LIBRARY=ExternalLibs/lz4-1.8.1.2/lib/libl.so
+# LZ4_LIBRARY=ExternalLibs/lz4-1.8.1.2/lib/liblz4.so
 wget https://github.com/lz4/lz4/archive/v1.8.1.2.tar.gz
 tar xvzf v1.8.1.2.tar.gz  
 cd lz4-1.8.1.2
