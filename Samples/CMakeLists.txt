@@ -8,9 +8,10 @@ endmacro()
 AddSample(simple_query)
 target_link_libraries(simple_query PUBLIC VisusIdx VisusDb VisusKernel)
 
-AddSample(simple_viewer2d)
-target_link_libraries(simple_viewer2d PUBLIC VisusAppKit VisusKernel)
-
+if (VISUS_GUI)
+	AddSample(simple_viewer2d)
+	target_link_libraries(simple_viewer2d PUBLIC VisusAppKit VisusKernel)
+endif()
 
 
 
