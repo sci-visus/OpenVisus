@@ -208,7 +208,7 @@ target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../..
 if (TARGET zlib)
 	target_link_libraries(VisusKernel PRIVATE  zlib)
 else()
-	find_package(ZLIB REQUIRED)
+	FindZLib()
 	target_include_directories(VisusKernel PRIVATE ${ZLIB_INCLUDE_DIRS})
 	target_link_libraries(VisusKernel PRIVATE  ${ZLIB_LIBRARIES})	
 endif()
@@ -217,7 +217,7 @@ endif()
 if (TARGET lz4)
 	target_link_libraries(VisusKernel PRIVATE lz4)
 else()
-	find_package(LZ4 REQUIRED)
+	FindLZ4()
 	target_include_directories(VisusKernel PRIVATE ${LZ4_INCLUDE_DIR})
 	target_link_libraries(VisusKernel PRIVATE  ${LZ4_LIBRARY})		
 endif()
@@ -226,7 +226,7 @@ endif()
 if (TARGET tinyxml)
 	target_link_libraries(VisusKernel PRIVATE  tinyxml)
 else()
-	find_package(TinyXML REQUIRED)
+	FindTinyXml()
 	target_include_directories(VisusKernel PRIVATE ${TinyXML_INCLUDE_DIRS})
 	target_link_libraries(VisusKernel PRIVATE  ${TinyXML_LIBRARIES})			
 endif()
@@ -235,34 +235,31 @@ endif()
 if (TARGET FreeImage)
 	target_link_libraries(VisusKernel PRIVATE FreeImage)
 else()
-	find_package(FreeImage REQUIRED)
-	FixWin32FindPackageFreeImage()
+	FindFreeImage()
 	target_include_directories(VisusKernel PRIVATE ${FREEIMAGE_INCLUDE_DIRS})
 	target_link_libraries(VisusKernel PRIVATE  ${FREEIMAGE_LIBRARIES})
-endif()
-
-#  OpenSSL
-if (TARGET ssl)
-	target_link_libraries(VisusKernel PRIVATE crypto ssl)
-else()
-	if (UNIX)
-		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/FixFindOpenSSL)
-	endif()
-	find_package(OpenSSL REQUIRED)
-	target_include_directories(VisusKernel PRIVATE ${OPENSSL_INCLUDE_DIR})
-	target_link_libraries(VisusKernel PRIVATE  ${OPENSSL_SSL_LIBRARY})
-	target_link_libraries(VisusKernel PRIVATE  ${OPENSSL_CRYPTO_LIBRARY})
 endif()
 
 # curl
 if (TARGET curl)
 	target_link_libraries(VisusKernel PRIVATE curl)
 else()
-	find_package(CURL REQUIRED)
-	FixWin32FindPackageCurl()
+	FindCurl()
 	target_include_directories(VisusKernel PRIVATE ${CURL_INCLUDE_DIR})
 	target_link_libraries(VisusKernel PRIVATE  ${CURL_LIBRARIES})
 endif()
+
+#  OpenSSL
+if (TARGET ssl)
+	target_link_libraries(VisusKernel PRIVATE crypto ssl)
+else()
+	FindOpenSSL()
+	target_include_directories(VisusKernel PRIVATE ${OPENSSL_INCLUDE_DIR})
+	target_link_libraries(VisusKernel PRIVATE  ${OPENSSL_SSL_LIBRARY})
+	target_link_libraries(VisusKernel PRIVATE  ${OPENSSL_CRYPTO_LIBRARY})
+endif()
+
+
 
 # python 
 if (TARGET python27)
@@ -286,9 +283,6 @@ else()
 	target_link_libraries(VisusKernel PUBLIC  pthread)
 
 endif()
-
-
-
 
 
 

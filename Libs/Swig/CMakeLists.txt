@@ -1,4 +1,6 @@
-find_package(SWIG REQUIRED)
+
+FindSwig()
+
 include(${SWIG_USE_FILE})
 
 # command to generate swigpyrun.h
