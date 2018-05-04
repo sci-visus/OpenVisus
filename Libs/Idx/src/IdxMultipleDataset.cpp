@@ -948,7 +948,20 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
       url = StringUtils::replaceAll(url, "$(port)", cstring(URL.getPort()));
   }
 
-  child.dataset = Dataset::loadDataset(url);
+  //if mosaic all datasets are the same
+  if (this->bMosaic && !childs.empty())
+  {
+    auto first = std::dynamic_pointer_cast<IdxDataset>(childs.begin()->second.dataset);
+    auto other = first->cloneForMosaic();
+    other->url = url;
+    child.dataset = other;
+  }
+  else
+  {
+    child.dataset = Dataset::loadDataset(url);
+  }
+
+  
   if (!child.dataset) {
     VisusAssert(false);
     return;

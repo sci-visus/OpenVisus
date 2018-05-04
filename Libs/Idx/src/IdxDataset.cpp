@@ -988,6 +988,20 @@ bool IdxDataset::openFromUrl(Url url)
 }
 
 
+////////////////////////////////////////////////////////////
+SharedPtr<IdxDataset> IdxDataset::cloneForMosaic() const
+{
+  SharedPtr<IdxDataset> ret = std::make_shared<IdxDataset>();
+
+  ret->BaseDataset::operator=(*this);
+
+  ret->idxfile = this->idxfile;
+  ret->hzaddress_conversion_boxquery = this->hzaddress_conversion_boxquery;
+  ret->hzaddress_conversion_pointquery = this->hzaddress_conversion_pointquery;
+
+  return ret;
+}
+
 
 ////////////////////////////////////////////////////////////
 void IdxDataset::setIdxFile(IdxFile value)

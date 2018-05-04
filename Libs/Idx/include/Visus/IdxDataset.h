@@ -105,6 +105,9 @@ public:
   //setIdxFile
   void setIdxFile(IdxFile value);
 
+  //special function for mosaic idx
+  SharedPtr<IdxDataset> cloneForMosaic() const;
+
 public:
 
   //openFromUrl
@@ -162,7 +165,6 @@ private:
 
   //executePointQuery
   bool executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<Query> query) ;
-
 
 };
 
