@@ -105,6 +105,8 @@ ADD  apache2.tgz          /visus/
 RUN  chown -R www-data    /visus
 ADD  start_server.sh      /visus
 
+RUN a2enmod cgid
+
 RUN  cd /etc/apache2 \
      && sed -i "s#Include ports.conf#Include /tmp/apache2/ports.conf#" apache2.conf \
      && echo "IncludeOptional /tmp/apache2/sites-enabled/*.conf" >> apache2.conf \
