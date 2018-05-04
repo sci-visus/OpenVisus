@@ -3,24 +3,21 @@ FROM ubuntu:16.04 as ubuntu-build
 ENV PATH /usr/local/anaconda2/bin:$PATH
 
 RUN set -x \
-	  && apt-get update \
-	  && apt-get install -y \
-    libpng-dev \
+    && apt-get update \
+    && apt-get install -y \
     libssl-dev \
-    libcurl4-openssl-dev \
-	  zlib1g-dev \
-	  libfreeimage-dev \
+    libcurl4-gnutls-dev \
+    libfreeimage-dev \
     cmake \
-    gcc \
-    g++ \
+    build-essential \
     apache2-dev \
-    apache2 \
+    apache2 \	
     swig \ 
-    gobjc++ \
     git \
-    libcurl3 \
-    curl \
-    dos2unix
+    dos2unix \
+    liblz4-dev \
+    libtinyxml-dev \
+	uuid-dev
 
 RUN apt-get install -y \
     wget \
@@ -48,7 +45,7 @@ WORKDIR build
 RUN cmake ../ \
     -DCMAKE_BUILD_TYPE=Release \
     -DVISUS_GUI=0 \
-	  -DVISUS_INTERNAL_PYTHON=0 \    
+	-DPYTHON_VERSION=2 \
     -DVISUS_DEFAULT_CONFIG_FILE="/visus/config/visus.config" \
     -DVISUS_SERVER_CONFIG_FILE=/visus/config/server.config \
     -DAPACHE_INCLUDE_DIR=/usr/include/apache2 \
@@ -59,13 +56,11 @@ RUN cmake ../ \
     -DVISUS_LOG_FILE=/visus/visus.log \
     -DCMAKE_INSTALL_PREFIX=/usr/local/visus
     
-RUN make -j4
-  
-RUN make install
+RUN cmake --build . --target all
 
 FROM ubuntu:16.04 
 
-COPY --from=ubuntu-build /usr/local/visus /usr/local/visus
+COPY --from=ubuntu-build /visus/build /usr/local/visus
 
 ENV PATH /usr/local/anaconda2/bin:$PATH
 ENV PYTHONPATH /usr/local/visus/:$PYTHONPATH
@@ -74,11 +69,11 @@ ENV LD_LIBRARY_PATH /usr/local/anaconda2/lib/:$LD_LIBRARY_PATH
 RUN set -x \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-    libpng-dev \
     libssl-dev \
-    libcurl4-openssl-dev \
-    zlib1g-dev \
+    libcurl4-gnutls-dev \
     libfreeimage-dev \
+	liblz4-dev \
+	libtinyxml-dev \
     libcurl3 \
     curl \
     apache2 \
@@ -86,7 +81,8 @@ RUN set -x \
     wget \
     bzip2 \
     ca-certificates \
-    libglib2.0-0
+    libglib2.0-0 \
+    patchelf
 
 RUN wget --quiet https://repo.continuum.io/miniconda/Miniconda2-4.4.10-Linux-x86_64.sh -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p /usr/local/anaconda2 && \
@@ -118,6 +114,8 @@ RUN  cd /etc/apache2 \
      && unzip master.zip \
      && rm master.zip \
      && mv visus_javascript-master webviewer
+	 
+ADD webviewer/config.js /visus/webviewer
 
 RUN chmod a+x /usr/local/visus/*.so \
   && chown www-data /visus \
@@ -131,6 +129,17 @@ WORKDIR /usr/local/visus
 RUN python setup.py install
 
 WORKDIR /visus
+RUN patchelf --set-rpath /usr/local/visus/ /usr/local/visus/libVisusDataflow.so \
+    && patchelf --set-rpath /usr/local/visus/ /usr/local/visus/libVisusDb.so \
+    && patchelf --set-rpath /usr/local/visus/ /usr/local/visus/libVisusIdx.so \
+    && patchelf --set-rpath /usr/local/visus/ /usr/local/visus/libVisusKernel.so \
+    && patchelf --set-rpath /usr/local/visus/ /usr/local/visus/libVisusNodes.so \
+    && patchelf --set-rpath /usr/local/visus/ /usr/local/visus/libmod_visus.so \
+	&& patchelf --set-rpath /usr/local/visus/ /usr/local/visus/_VisusDataflowPy.so \
+    && patchelf --set-rpath /usr/local/visus/ /usr/local/visus/_VisusDbPy.so \
+    && patchelf --set-rpath /usr/local/visus/ /usr/local/visus/_VisusIdxPy.so \
+    && patchelf --set-rpath /usr/local/visus/ /usr/local/visus/_VisusKernelPy.so \
+    && patchelf --set-rpath /usr/local/visus/ /usr/local/visus/_VisusNodesPy.so
 
 EXPOSE 80
 CMD ["/visus/start_server.sh"]

@@ -5,7 +5,7 @@ Compile ViSUS:
 ```
 BUILDNAME=visus-anaconda                      # BUILD is never pushed to dockerhub
 cd <path/to/directory/containing/this/file>
-tar --directory=../../ -c -z -f visus.tar.gz CMake libs src docs resources Copyrights CMakeLists.txt .git
+tar --directory=../../ -c -z -f visus.tar.gz CMake Libs Executable ExternalLibs Copyrights Samples Misc CMakeLists.txt .git
 dos2unix start_server.sh # fix git problem
 dos2unix envvars # fix git problem
 

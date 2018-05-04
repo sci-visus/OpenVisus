@@ -35,11 +35,13 @@ IF (VISUS_GUI)
   find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL PrintSupport REQUIRED)
 endif()
 
+option(PYTHON_VERSION "Python version" 3)  
+
 if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/ExternalLibs/python27)
   set(NUMPY_FOUND 0)
 else()
-  find_package(PythonInterp 3 REQUIRED)
-  find_package(PythonLibs   3 REQUIRED)
+  find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
+  find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
   find_package(NumPy) # better to have it
 endif()
 
