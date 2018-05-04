@@ -311,7 +311,7 @@ endmacro()
 # ///////////////////////////////////////////////////////////////////////
 macro(FindTinyXml)
 	find_package(TinyXML)
-	if (NOT TINYXML_FOUND)
+	if (NOT TinyXML_FOUND)
 		set(TINYXML_BUILD_DIR    ${CMAKE_BINARY_DIR}/tinyxml)
 		SET(TinyXML_INCLUDE_DIRS ${TINYXML_BUILD_DIR})
 		SET(TinyXML_LIBRARIES    ${TINYXML_BUILD_DIR}/libtinyxml.a) 
