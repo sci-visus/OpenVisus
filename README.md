@@ -116,7 +116,9 @@ Install brew and OpenVisus prerequisites::
 
 Run xcode command line tools:
 
-	sudo xcode-select --install 
+	sudo xcode-select --install
+	# if command line tools do not work, type the following:
+	# sudo xcode-select --reset
 
 
 Compile OpenVisus. From a prompt::
