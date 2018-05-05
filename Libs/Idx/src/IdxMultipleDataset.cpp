@@ -1191,7 +1191,20 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   if (bMosaic)
   {
-    IDXFILE.bitmask = DatasetBitmask(DatasetBitmask::guess(IDXFILE.box.p2).toString() + first->getBitmask().toString().substr(1));
+    //i need the final right part to be as the child
+    auto BITMASK = DatasetBitmask::guess(IDXFILE.box.p2);
+    auto bitmask = first->getBitmask();
+
+    NdPoint DIMS = BITMASK.getPow2Dims();
+    NdPoint dims = first->getBitmask().getPow2Dims();
+    
+    auto left  = DatasetBitmask::guess(DIMS.innerDiv(dims)).toString();
+    auto right = bitmask.toString().substr(1);
+    BITMASK = DatasetBitmask(left + right);
+    VisusReleaseAssert(BITMASK.getPow2Dims()==DIMS);
+    VisusReleaseAssert(StringUtils::endsWith(BITMASK.toString(), right));
+
+    IDXFILE.bitmask = BITMASK;
     IDXFILE.timesteps = first->getTimesteps();
     IDXFILE.fields = first->getFields();
     IDXFILE.bitsperblock = first->getDefaultBitsPerBlock();

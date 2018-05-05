@@ -146,6 +146,7 @@ bool BaseQuery::allocateBufferIfNeeded()
     VisusAssert(buffer.dtype==field.dtype);
     VisusAssert(buffer.c_size()==getByteSize());
   }
+
   return true;
 }
 

@@ -39,6 +39,7 @@ For support : support@visus.net
 #include <Visus/IdxMosaicAccess.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/VisusConfig.h>
+#include <Visus/ApplicationStats.h>
 
 namespace Visus {
 
@@ -77,9 +78,7 @@ SharedPtr<Access> IdxMosaicAccess::getChildAccess(Child& child)
     config.inheritAttributeFrom(this->CONFIG);
     child.access = child.dataset->createAccess(config,/*bForBlockQuery*/true);
   }
-
   return child.access;
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -113,20 +112,22 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
   NdPoint dims = first->getBox().p2;
 
   bool bBlockTotallyInsideSingle = (BLOCK >= ((BigInt)1 << NBITS));
+
   if (!bBlockTotallyInsideSingle)
   {
+    auto t1 = Time::now();
+
     //row major
     QUERY->buffer.layout = "";
 
-    for (auto it : childs)
-    {
-      auto index = it.first;
-      auto vf    = it.second.dataset;
-      auto offset = index.innerMultiply(dims);
-      auto access = getChildAccess(it.second);
+    DatasetBitmask BITMASK = VF->idxfile.bitmask;
+    HzOrder HZORDER(BITMASK, VF->getMaxResolution());
 
-      DatasetBitmask BITMASK = VF->idxfile.bitmask;
-      HzOrder HZORDER(BITMASK, VF->getMaxResolution());
+    for (auto& it : childs)
+    {
+      auto vf     = it.second.dataset;
+      auto offset = it.first.innerMultiply(dims);
+      auto access = getChildAccess(it.second);
 
       auto query = std::make_shared<Query>(vf.get(), 'r');
       query->time = QUERY->time;
@@ -138,25 +139,31 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
       if (access->isReading() || access->isWriting())
         access->endIO();
 
-      if (!vf->beginQuery(query) || (!vf->executeQuery(access, query)))
+      if (!vf->beginQuery(query))
         continue;
 
-      auto pixel_p1 =      NdPoint(pdim);
-      auto pixel_p2 = query->buffer.dims;
+      if (!query->allocateBufferIfNeeded())
+        continue;
 
-      auto logic_p1 = query->logic_box.pixelToLogic(pixel_p1); 
-      auto logic_p2 = query->logic_box.pixelToLogic(pixel_p2); 
+      if (!vf->executeQuery(access, query))
+        continue;
 
-      auto LOGIC_P1 = logic_p1 + offset;
-      auto LOGIC_P2 = logic_p2 + offset;
-
-      auto PIXEL_P1 = QUERY->logic_box.logicToPixel(LOGIC_P1);
-      auto PIXEL_p2 = QUERY->logic_box.logicToPixel(LOGIC_P2);
+      auto pixel_p1 =      NdPoint(pdim); auto logic_p1 = query->logic_box.pixelToLogic(pixel_p1); auto LOGIC_P1 = logic_p1 + offset; auto PIXEL_P1 = QUERY->logic_box.logicToPixel(LOGIC_P1);
+      auto pixel_p2 = query->buffer.dims; auto logic_p2 = query->logic_box.pixelToLogic(pixel_p2); auto LOGIC_P2 = logic_p2 + offset; auto PIXEL_p2 = QUERY->logic_box.logicToPixel(LOGIC_P2);
 
       ArrayUtils::insert(
-        QUERY->buffer, PIXEL_P1, PIXEL_p2, NdPoint::one(pdim), 
+        QUERY->buffer, PIXEL_P1, PIXEL_p2, NdPoint::one(pdim),
         query->buffer, pixel_p1, pixel_p2, NdPoint::one(pdim),
         QUERY->aborted);
+
+    }
+
+    if (bool bPrintStats = false)
+    {
+      auto stats = ApplicationStats::io.readValues(true);
+      VisusInfo() << "!!! BLOCK " << BLOCK << " inside " << (bBlockTotallyInsideSingle ? "yes" : "no")
+        << " nopen(" << stats.nopen << ") rbytes(" << StringUtils::getStringFromByteSize(stats.rbytes) << ")  wbytes(" << StringUtils::getStringFromByteSize(stats.wbytes) << ")"
+        << " msec(" << t1.elapsedMsec() << ")";
     }
 
     return QUERY->aborted() ? readFailed(QUERY) : readOk(QUERY);
@@ -170,7 +177,7 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
       p1   [D] = QUERY->logic_box.p1[D] % dims[D];
     }
 
-    auto it = childs.find(index);
+    auto& it = childs.find(index);
     if (it==childs.end())
       return readFailed(QUERY);
 
