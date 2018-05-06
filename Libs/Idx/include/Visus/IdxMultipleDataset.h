@@ -61,6 +61,7 @@ public:
     String             origin;
     Matrix             M; //transformation matrix up <- dw
     SharedPtr<Dataset> dataset;
+    String filename_template;
   };
 
   //bMosaic

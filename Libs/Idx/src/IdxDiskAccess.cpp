@@ -210,6 +210,15 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
   this->bitsperblock = idxfile.bitsperblock;
   this->verbose = config.readInt("verbose", 0);
 
+  //special case for caching stuff (example range="0 2048" means that all block >=0 && block<2048 will pass throught)
+  auto block_range=config.readString("range");
+  if (!block_range.empty())
+  {
+    std::istringstream parse(block_range);
+    parse >> this->block_range.from;
+    parse >> this->block_range.to;
+  }
+
   //set this only if you know what you are doing (example visus convert with only one process)
   this->bDisableWriteLocks = 
     config.readBool("disable_write_locks") == true ||
@@ -503,6 +512,18 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
 {
   VisusAssert(isReading());
 
+  BigInt blockid = query->getBlockNumber(bitsperblock);
+
+  if (verbose)
+    VisusInfo() << "got request to read block blockid(" << blockid << ")";
+
+  if (block_range.to>0 && !(blockid >= block_range.from && blockid < block_range.to))
+  {    
+    if (verbose)
+      VisusInfo() << "IdxDiskAccess::read blockid(" << blockid << ") failed because out of range";
+    return readFailed(query);
+  }
+
   if (bool bAsyncRead = async_read && !isWriting()) {
 
     async_read->asyncRun([this, query](int) {
@@ -535,9 +556,6 @@ void IdxDiskAccess::readBlockInCurrentThread(SharedPtr<BlockQuery> query)
 
     return readFailed(query);
   };
-
-  if (verbose)
-    VisusInfo() << "got request to read block blockid(" << blockid << ")";
 
   //check that the current block and file descriptor is correct
   if (blockid < 0)
@@ -665,27 +683,35 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
   VisusAssert(isWriting());
 
+  BigInt blockid = query->getBlockNumber(bitsperblock);
+
+  if (verbose)
+    VisusInfo() << "got request to write block blockid(" << blockid << ")";
+
+  if (block_range.to>0 && !(blockid >= block_range.from && blockid < block_range.to))
+  {
+    if (verbose)
+      VisusInfo() << "IdxDiskAccess::write blockid(" << blockid << ") failed because out of range";
+    return writeFailed(query);
+  }
+
   if (bDisableIO)
   {
     writeOk(query);
     return;
   }
 
-  BigInt blockid = query->getBlockNumber(bitsperblock);
+  acquireWriteLock(query);
 
   auto failed = [&](String reason) {
 
     if (verbose)
-      VisusInfo() << "IdxDiskAccess::write blockid(" << blockid << ")  failed "<<reason;
+      VisusInfo() << "IdxDiskAccess::write blockid(" << blockid << ")  failed " << reason;
 
     releaseWriteLock(query);
     return writeFailed(query);
   };
 
-  if (verbose)
-    VisusInfo() << "got request to write block blockid(" << blockid << ")";
-
-  acquireWriteLock(query);
 
   if (idxfile.version < 6)
   {

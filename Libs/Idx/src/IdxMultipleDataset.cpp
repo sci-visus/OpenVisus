@@ -755,7 +755,7 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////
 SharedPtr<Access> IdxMultipleDataset::createMosaicAccess(StringTree config)
 {
-  auto ret = std::make_shared<IdxMosaicAccess>(this, config);
+  auto mosaic_access = std::make_shared<IdxMosaicAccess>(this, config);
   auto first = childs.begin()->second.dataset;
   auto dims = first->getBox().p2;
   int  pdim = first->getPointDim();
@@ -767,9 +767,9 @@ SharedPtr<Access> IdxMultipleDataset::createMosaicAccess(StringTree config)
     auto index = NdPoint(pdim);
     for (int D = 0; D < pdim; D++)
       index[D] = ((NdPoint::coord_t)vt[D]) / dims[D];
-    ret->addChild(index, child_dataset);
+    mosaic_access->addChild(index, child_dataset);
   }
-  return ret;
+  return mosaic_access;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -816,6 +816,13 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
   //IdxMultipleAccess
   if (type == "idxmultipleaccess" || type == "midx" || type == "multipleaccess")
     return std::make_shared<IdxMultipleAccess>(this, config);
+
+
+  if (type == "idxmosaicaccess")
+  {
+    VisusReleaseAssert(bMosaic);
+    return std::make_shared<IdxMosaicAccess>(this, config);
+  }
 
   return IdxDataset::createAccess(config, bForBlockQuery);
 }
@@ -926,34 +933,51 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
   //replace some alias
   auto URL = this->url;
 
-  String CurrentFileDirectory = URL.isFile() ? Path(URL.getPath()).getParent().toString() : "";
+  auto fixPath = [&](String url) {
+    String CurrentFileDirectory = URL.isFile() ? Path(URL.getPath()).getParent().toString() : "";
 
-  if (URL.isFile() && !CurrentFileDirectory.empty())
-  {
-    if (Url(url).isFile() && StringUtils::startsWith(Url(url).getPath(), "./"))
-      url = CurrentFileDirectory + Url(url).getPath().substr(1);
+    if (URL.isFile() && !CurrentFileDirectory.empty())
+    {
+      if (Url(url).isFile() && StringUtils::startsWith(Url(url).getPath(), "./"))
+        url = CurrentFileDirectory + Url(url).getPath().substr(1);
 
-    if (StringUtils::contains(url, "$(CurrentFileDirectory)"))
-      url = StringUtils::replaceAll(url, "$(CurrentFileDirectory)", CurrentFileDirectory);
-  }
-  else if (URL.isRemote())
-  {
-    if (StringUtils::contains(url, "$(protocol)"))
-      url = StringUtils::replaceAll(url, "$(protocol)", URL.getProtocol());
+      if (StringUtils::contains(url, "$(CurrentFileDirectory)"))
+        url = StringUtils::replaceAll(url, "$(CurrentFileDirectory)", CurrentFileDirectory);
+    }
+    else if (URL.isRemote())
+    {
+      if (StringUtils::contains(url, "$(protocol)"))
+        url = StringUtils::replaceAll(url, "$(protocol)", URL.getProtocol());
 
-    if (StringUtils::contains(url, "$(hostname)"))
-      url = StringUtils::replaceAll(url, "$(hostname)", URL.getHostname());
+      if (StringUtils::contains(url, "$(hostname)"))
+        url = StringUtils::replaceAll(url, "$(hostname)", URL.getHostname());
 
-    if (StringUtils::contains(url, "$(port)"))
-      url = StringUtils::replaceAll(url, "$(port)", cstring(URL.getPort()));
-  }
+      if (StringUtils::contains(url, "$(port)"))
+        url = StringUtils::replaceAll(url, "$(port)", cstring(URL.getPort()));
+    }
 
-  //if mosaic all datasets are the same
+    return url;
+  };
+
+  url=fixPath(url);
+
+  //if mosaic all datasets are the same, I just need to know the IDX filename template
   if (this->bMosaic && !childs.empty())
   {
     auto first = std::dynamic_pointer_cast<IdxDataset>(childs.begin()->second.dataset);
-    auto other = first->cloneForMosaic();
+    auto other = std::dynamic_pointer_cast<IdxDataset>(first->cloneForMosaic());
+    VisusReleaseAssert(first);
+    VisusReleaseAssert(other);
+
+    //all the idx files are the same except for the IDX path
+    child.filename_template=istream.readInline("filename_template");
+
+    VisusReleaseAssert(!child.filename_template.empty());
+    child.filename_template = fixPath(child.filename_template);
+
     other->url = url;
+    other->idxfile.filename_template = child.filename_template;
+    other->idxfile.validate(url); VisusAssert(other->idxfile.valid());
     child.dataset = other;
   }
   else
@@ -961,9 +985,8 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
     child.dataset = Dataset::loadDataset(url);
   }
 
-  
   if (!child.dataset) {
-    VisusAssert(false);
+    VisusReleaseAssert(false);
     return;
   }
 
@@ -1214,6 +1237,9 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
     VisusInfo() << "MIDX idxfile is the following" << std::endl << IDXFILE.toString();
     setIdxFile(IDXFILE);
+
+    //updateBody();
+
     return true;
   }
   
@@ -1267,18 +1293,34 @@ void IdxMultipleDataset::updateBody(bool bSave)
   ObjectStream ostream(stree, 'w');
   ostream.writeInline("typename", "IdxMultipleDataset");
   ostream.writeInline("box", this->idxfile.box.toOldFormatString());
+  ostream.writeInline("mosaic",bMosaic?"true":"false");
 
-  for (auto it : childs)
+  for (const auto& it : childs)
   {
     ostream.pushContext("dataset");
     ostream.writeInline("name", it.second.name);
     ostream.writeInline("color", it.second.color.toString());
-    ostream.writeInline("origin", it.second.origin);
+
     ostream.writeInline("url", it.second.dataset->getUrl().toString());
 
-    ostream.pushContext("M");
-    ostream.writeInline("value", it.second.M.toString());
-    ostream.popContext("M");
+    if (!it.second.origin.empty())
+      ostream.writeInline("origin", it.second.origin);
+
+    if (!it.second.filename_template.empty())
+      ostream.writeInline("filename_template", it.second.filename_template);
+
+
+    auto M = it.second.M;
+    if (M.dropW() == Matrix3::identity())
+    {
+      ostream.writeInline("offset", M.getColumn(3).dropW().toString());
+    }
+    else
+    {
+      ostream.pushContext("M");
+      ostream.writeInline("value", it.second.M.toString());
+      ostream.popContext("M");
+    }
 
     ostream.popContext("dataset");
   }

@@ -95,7 +95,7 @@ private:
   std::map<NdPoint, Child, NdPoint::Compare > childs;
 
   //getChildAccess
-  SharedPtr<Access> getChildAccess(Child& child);
+  SharedPtr<Access> getChildAccess(const Child& child) const;
 
 };
 

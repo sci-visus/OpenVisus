@@ -99,6 +99,13 @@ private:
   //re-entrant file lock
   std::map<String, int> file_locks;
 
+  struct
+  {
+    BigInt from = 0;
+    BigInt to   = 0;
+  }
+  block_range;
+
   //bDisableWriteLocks (to speed up writing with only one writer)
   bool bDisableWriteLocks =false;
 

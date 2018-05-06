@@ -70,15 +70,14 @@ IdxMosaicAccess::~IdxMosaicAccess()
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<Access> IdxMosaicAccess::getChildAccess(Child& child)
+SharedPtr<Access> IdxMosaicAccess::getChildAccess(const Child& child) const
 {
-  if (!child.access)
-  {
-    auto config=child.dataset->getDefaultAccessConfig();
-    config.inheritAttributeFrom(this->CONFIG);
-    child.access = child.dataset->createAccess(config,/*bForBlockQuery*/true);
-  }
-  return child.access;
+  if (child.access)
+    return child.access;
+
+  auto ret = child.dataset->createAccess(StringTree(),/*bForBlockQuery*/true);
+  const_cast<Child&>(child).access = ret;
+  return ret;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -89,7 +88,7 @@ void IdxMosaicAccess::beginIO(String mode) {
 ///////////////////////////////////////////////////////////////////////////////////////
 void IdxMosaicAccess::endIO() 
 {
-  for (auto it : childs)
+  for (const auto& it : childs)
   {
     auto access = it.second.access;
     if (access && (access->isReading() || access->isWriting()))
@@ -123,7 +122,7 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
     DatasetBitmask BITMASK = VF->idxfile.bitmask;
     HzOrder HZORDER(BITMASK, VF->getMaxResolution());
 
-    for (auto& it : childs)
+    for (const auto& it : childs)
     {
       auto vf     = it.second.dataset;
       auto offset = it.first.innerMultiply(dims);
@@ -177,7 +176,7 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
       p1   [D] = QUERY->logic_box.p1[D] % dims[D];
     }
 
-    auto& it = childs.find(index);
+    auto it = childs.find(index);
     if (it==childs.end())
       return readFailed(QUERY);
 
