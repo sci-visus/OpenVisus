@@ -1,9 +1,5 @@
 
 
-if (DEFINED VISUS_SERVER_CONFIG_FILE)
-  add_definitions(-DVISUS_SERVER_CONFIG_FILE="${VISUS_SERVER_CONFIG_FILE}")
-endif()
-
 if (WIN32)
 
 	add_library(mod_visus mod_visus.cpp)

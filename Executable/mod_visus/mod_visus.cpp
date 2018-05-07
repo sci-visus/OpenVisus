@@ -533,20 +533,9 @@ public:
 
     ApplicationInfo::server_mode=true;
 
-    //write to apache file
-    Log::filename="/dev/null";
-    Log::redirect=[this](const Log::Message& msg) {
-      writeLog((StringUtils::format()<<msg.file<<" ("<<msg.line<<") "<<msg.content).str());
-    };
-
     static int narg=1;
     static const char *argv[]={"mod_visus"};
     SetCommandLine(narg,argv);
-
-#if defined(VISUS_SERVER_CONFIG_FILE)
-    VisusConfig::filename = String(VISUS_SERVER_CONFIG_FILE);
-#endif
-
     IdxModule::attach();
     this->configureDatasets();    
   }

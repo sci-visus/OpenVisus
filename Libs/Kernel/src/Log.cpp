@@ -37,6 +37,7 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/Log.h>
+#include <Visus/Thread.h>
 
 #include <iostream>
 #include <cctype>
@@ -44,6 +45,9 @@ For support : support@visus.net
 
 #if WIN32
 #include <Windows.h>
+#include <process.h>
+#else
+#include <unistd.h>
 #endif
 
 namespace Visus {
@@ -58,15 +62,23 @@ String Log::Message::toString() const {
   std::ostringstream out;
   out
     <<std::setfill('0')
-    <<std::setw(2)<<(time.getYear()-2000)<<"."
-    <<std::setw(2)<<(time.getMonth()+1)<<"."
-    <<std::setw(2)<<(time.getDayOfMonth())<<"|"
+    <<"["
+    //<<std::setw(2)<<(time.getYear()-2000)<<"."
+    //<<std::setw(2)<<(time.getMonth()+1)<<"."
+    //<<std::setw(2)<<(time.getDayOfMonth())<<"|"
     <<std::setw(2)<<(time.getHours())<<"."
     <<std::setw(2)<<(time.getMinutes())<<"."
     <<std::setw(2)<<(time.getSeconds())<<"."
-    <<std::setw(3)<<(time.getMilliseconds());
-  
-  out<<" "<<file<<"("<<line<<") "<<content<<std::endl;
+    <<std::setw(3)<<(time.getMilliseconds())
+    <<"]" ;
+
+#if WIN32
+  int pid = _getpid();
+#else
+  int pid = getpid();
+#endif
+
+  out<<" ["<<file<<": "<<line<<"] [pid "<< pid<< ":tid "<<Thread::getThreadId() <<"] "<<content<<std::endl;
   return out.str();
 }
 

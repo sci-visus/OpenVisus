@@ -145,7 +145,7 @@ class VISUS_KERNEL_API KnownPaths
 public:
 
   // The visus user's folder
-  static Path VisusUserDirectory ;  
+  static Path VisusHome;
 
   // The visus cache folder
   static Path VisusCachesDirectory;  

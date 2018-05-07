@@ -63,8 +63,6 @@ public:
   static String              platform_name;
   static bool                server_mode;
 
-  static bool                is_running_inside_python_exe;
-
 private:
 
   //constructor

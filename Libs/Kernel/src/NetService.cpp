@@ -62,7 +62,7 @@ CaCertFile::CaCertFile()
 {
   //Downloading up-to-date cacert.pem file from cURL website
 
-  String local_filename = KnownPaths::VisusUserDirectory.getChild("cacert.pem");
+  String local_filename = KnownPaths::VisusHome.getChild("cacert.pem");
   String remote_filename = "https://curl.haxx.se/ca/cacert.pem";
 
 #if WIN32

@@ -193,14 +193,11 @@ public:
   //convertToString
   static String convertToString(PyObject* value);
 
+  //addSysPath
+  void addSysPath(String value);
+
   //fixPath
-  static String fixPath(String value) {
-#if WIN32
-    return StringUtils::replaceAll(value, "/", "\\\\");
-#else
-    return StringUtils::replaceAll(value, "\\\\", "/");
-#endif
-  }
+  static String fixPath(String value);
 
 private:
 

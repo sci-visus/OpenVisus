@@ -46,18 +46,12 @@ RUN tar xzf visus.tar.gz
 WORKDIR build
 
 RUN cmake ../ \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DVISUS_GUI=0 \
-	  -DVISUS_INTERNAL_PYTHON=0 \    
-    -DVISUS_DEFAULT_CONFIG_FILE="/visus/config/visus.config" \
-    -DVISUS_SERVER_CONFIG_FILE=/visus/config/server.config \
+    -DVISUS_GUI=0 \ 
+	-DVISUS_HOME="/visus"
     -DAPACHE_INCLUDE_DIR=/usr/include/apache2 \
     -DPYTHON_EXECUTABLE=`which python` \
     -DPYTHON_LIBRARY=/usr/local/anaconda2/lib/libpython2.7.so \
-    -DPYTHON_INCLUDE_DIR=/usr/local/anaconda2/include/python2.7 \
-    -DVISUS_CACHE_PATH=/visus/cache \
-    -DVISUS_LOG_FILE=/visus/visus.log \
-    -DCMAKE_INSTALL_PREFIX=/usr/local/visus
+    -DPYTHON_INCLUDE_DIR=/usr/local/anaconda2/include/python2.7 
     
 RUN make -j4
   

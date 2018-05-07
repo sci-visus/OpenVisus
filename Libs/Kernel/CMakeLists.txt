@@ -3,16 +3,12 @@
 FindGitRevision()
 add_definitions(-DGIT_REVISION=\"${GIT_REVISION}\")
 
-if (DEFINED VISUS_CACHE_PATH)
-	add_definitions(-DVISUS_CACHE_PATH="${VISUS_CACHE_PATH}")
+if (DEFINED VISUS_HOME)
+ 	add_definitions(-DVISUS_HOME="${VISUS_HOME}")
 endif()
 
-if (DEFINED VISUS_DEFAULT_CONFIG_FILE)
-	add_definitions(-DVISUS_DEFAULT_CONFIG_FILE="${VISUS_DEFAULT_CONFIG_FILE}")
-endif()
-
-if (DEFINED VISUS_LOG_FILE)
-	add_definitions(-DVISUS_LOG_FILE="${VISUS_LOG_FILE}")
+if (DEFINED VISUS_PYTHON_SYS_PATH)
+ 	add_definitions(-DVISUS_PYTHON_SYS_PATH="${VISUS_PYTHON_SYS_PATH}")
 endif()
 
 set(UpLevelSources

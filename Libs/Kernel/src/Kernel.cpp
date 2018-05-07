@@ -168,10 +168,6 @@ const char** Private::CommandLine::argv ;
 ///////////////////////////////////////////////////////////////////////////////
 void ParseCommandLine()
 {
-#ifdef VISUS_DEFAULT_CONFIG_FILE
-  VisusConfig::filename = String(VISUS_DEFAULT_CONFIG_FILE);
-#endif
-
   int argn = Private::CommandLine::argn;
   const char** argv = Private::CommandLine::argv;
 
@@ -268,7 +264,7 @@ static void InitKnownPaths()
 
     dest[0] = 0;
     SHGetSpecialFolderPath(0, dest, CSIDL_PERSONAL, FALSE);
-    KnownPaths::VisusUserDirectory = Path(dest).getChild("visus");
+    KnownPaths::VisusHome = Path(dest).getChild("visus");
     HINSTANCE moduleHandle = (HINSTANCE)GetModuleHandle(ApplicationInfo::args.empty() ? nullptr : ApplicationInfo::args[0].c_str());
 
     dest[0] = 0;
@@ -284,13 +280,13 @@ static void InitKnownPaths()
     const char* homedir = getenv("HOME");
     if (homedir != 0)
     {
-      KnownPaths::VisusUserDirectory = Path(homedir).getChild("visus");
+      KnownPaths::VisusHome = Path(homedir).getChild("visus");
     }
     else
     {
       struct passwd* const pw = getpwuid(getuid());
       if (pw != 0)
-        KnownPaths::VisusUserDirectory = Path(pw->pw_dir).getChild("visus");
+        KnownPaths::VisusHome = Path(pw->pw_dir).getChild("visus");
     }
 
     char buffer[2048];
@@ -312,52 +308,35 @@ static void InitKnownPaths()
   }
 #endif
 
-  // Allow override of VisusUserDirectory
-  {
-    Path user_directory = KnownPaths::VisusUserDirectory;
-
-#ifdef VISUS_USER_PATH
-    user_directory = Path(String(VISUS_USER_PATH));
+  // Allow override of VisusHome
+#ifdef VISUS_HOME
+    KnownPaths::VisusHome = Path(String(VISUS_HOME));
 #endif
 
-    KnownPaths::VisusUserDirectory = user_directory;
-  }
-
-  // Allow override of VisusCachesDirectory
-
-  {
-    Path cache_directory = KnownPaths::VisusUserDirectory.getChild("cached_files");
-
-#ifdef VISUS_CACHE_PATH
-    cache_directory = Path(String(VISUS_CACHE_PATH));
-#endif
-
-    KnownPaths::VisusCachesDirectory = cache_directory;
-  }
+  KnownPaths::VisusCachesDirectory = KnownPaths::VisusHome.getChild("cache");
 }
   
 ///////////////////////////////////////////////////////////
+static bool TryVisusConfig(String value)
+{
+  if (value.empty())
+    return false;
+
+  bool bOk=FileUtils::existsFile(value);
+  VisusInfo() << "VisusConfig::filename value(" << value << ") ok(" << ( bOk ? "YES" : "NO") << ")";
+  if (!bOk)
+    return false;
+
+  VisusConfig::filename = Path(value);
+  return true;
+}
+
+///////////////////////////////////////////////////////////
 static void InitVisusConfig()
 {
-  //open config filename
-  for (auto maybe :
-  {
-    Path(VisusConfig::filename),
-    KnownPaths::CurrentWorkingDirectory.getChild("visus.config"),
-    KnownPaths::VisusUserDirectory.getChild("visus.config"),
-    KnownPaths::CurrentApplicationFile.getParent().getChild("visus.config")
-  })
-  {
-    if (!maybe.empty())
-    {
-      VisusInfo() << "VisusConfig::filename   path(" << maybe.toString() << ") ok(" << (FileUtils::existsFile(maybe) ? "YES" : "NO") << ")";
-      if (FileUtils::existsFile(maybe))
-      {
-        VisusConfig::filename = maybe.toString();
-        break;
-      }
-    }
-  }
+  TryVisusConfig(VisusConfig::filename) ||
+  TryVisusConfig(KnownPaths::CurrentWorkingDirectory.getChild("visus.config")) ||
+  TryVisusConfig(KnownPaths::VisusHome.getChild("visus.config"));
 }
 
 //////////////////////////////////////////////////////
@@ -389,13 +368,7 @@ static void InitLogFile()
   {
     //open log
     if (Log::filename.empty())
-    {
-#if defined(VISUS_LOG_FILE)
-      Log::filename = String(VISUS_LOG_FILE);
-#else
-      Log::filename = KnownPaths::VisusUserDirectory.toString() + "/visus.log";
-#endif
-    }
+      Log::filename = KnownPaths::VisusHome.toString() + "/visus.log";
 
     FileUtils::createDirectory(Path(Log::filename).getParent());
     Log::file.open(Log::filename.c_str(), std::ios::out | std::ios::app);
@@ -426,14 +399,8 @@ void KernelModule::attach()
   InitLogFile();
   InitVisusConfig();
 
-  ApplicationInfo::is_running_inside_python_exe =
-    ApplicationInfo::args.empty() ||
-    ApplicationInfo::args[0].empty() ||
-    ApplicationInfo::args[0]=="__main__";
 
-  //if inside python, then the PyMain is doing all the initialization
-  if (!ApplicationInfo::is_running_inside_python_exe)
-    InitPython();
+  InitPython();
 
   //print out infos
   if (bool bCopyright=false)
@@ -479,7 +446,7 @@ void KernelModule::attach()
   }
 
   VisusInfo() << "git_revision            " << ApplicationInfo::git_revision;
-  VisusInfo() << "VisusUserDirectory      " << KnownPaths::VisusUserDirectory.toString();
+  VisusInfo() << "VisusHome               " << KnownPaths::VisusHome.toString();
   VisusInfo() << "VisusCacheDirectory     " << KnownPaths::VisusCachesDirectory.toString();
   VisusInfo() << "CurrentApplicationFile  " << KnownPaths::CurrentApplicationFile.toString();
   VisusInfo() << "CurrentWorkingDirectory " << KnownPaths::CurrentWorkingDirectory.toString();

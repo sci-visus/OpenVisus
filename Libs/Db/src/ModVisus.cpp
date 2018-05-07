@@ -132,12 +132,13 @@ private:
   //getDatasetBody
   String getDatasetBody(SharedPtr<Dataset> dataset)
   {
-    String dataset_body=dataset->getDatasetBody();
+    String dataset_body= StringUtils::trim(dataset->getDatasetBody());
 
     if (dataset_body.empty())
       return dataset->getUrl().toString();
 
     //special case for IdxMultipleDataset, I need to remap urls
+    if (bool bMaybeXml=StringUtils::startsWith(dataset_body,"<"))
     {
       StringTree stree;
       if (stree.loadFromXml(dataset_body)) 

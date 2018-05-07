@@ -878,7 +878,7 @@ bool Viewer::takeSnapshot(bool bOnlyCanvas,String filename)
   {
     for (int I=0;;I++)
     {
-      filename = KnownPaths::VisusUserDirectory.getChild(StringUtils::format() << "visus_snapshot." << std::setfill('0') << std::setw(3) << cstring(I) << ".png");
+      filename = KnownPaths::VisusHome.getChild(StringUtils::format() << "visus_snapshot." << std::setfill('0') << std::setw(3) << cstring(I) << ".png");
       if (!FileUtils::existsFile(filename))
         break;
     }

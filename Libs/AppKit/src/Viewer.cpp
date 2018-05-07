@@ -287,7 +287,7 @@ void Viewer::enableSaveSession()
 {
   save_session_timer.reset(new QTimer());
   
-  String filename = VisusConfig::readString("Configuration/VisusViewer/SaveSession/filename", KnownPaths::VisusUserDirectory.getChild("viewer_session.xml"));
+  String filename = VisusConfig::readString("Configuration/VisusViewer/SaveSession/filename", KnownPaths::VisusHome.getChild("viewer_session.xml"));
   
   int every_sec    =cint(VisusConfig::readString("Configuration/VisusViewer/SaveSession/sec","60")); //1 min!
 
@@ -788,7 +788,7 @@ void Viewer::reloadVisusConfig(bool bChooseAFile)
 {
   if (bChooseAFile)
   {
-    static String last_dir(KnownPaths::VisusUserDirectory.toString());
+    static String last_dir(KnownPaths::VisusHome.toString());
     String filename=cstring(QFileDialog::getOpenFileName(nullptr,"Choose a file to open...",last_dir.c_str(),"*"));
     if (filename.empty()) return;
     last_dir=Path(filename).getParent();
@@ -983,7 +983,7 @@ bool Viewer::saveFile(String url,bool bSaveHistory,bool bShowDialogs)
 {
   if (url.empty() && bShowDialogs)
   {
-    static String last_dir(KnownPaths::VisusUserDirectory.toString());
+    static String last_dir(KnownPaths::VisusHome.toString());
     url=cstring(QFileDialog::getSaveFileName(nullptr,"Choose a file to save...",last_dir.c_str(),"*.xml"));
     if (url.empty()) return false;
     last_dir=Path(url).getParent();
@@ -1274,7 +1274,7 @@ bool Viewer::saveScene(String url, bool bShowDialogs)
 {
   if (url.empty() && bShowDialogs)
   {
-    static String last_dir(KnownPaths::VisusUserDirectory.toString());
+    static String last_dir(KnownPaths::VisusHome.toString());
     url=cstring(QFileDialog::getSaveFileName(nullptr,"Choose a file to save...",last_dir.c_str(),"*.scn"));
     if (url.empty()) return false;
     last_dir=Path(url).getParent();
