@@ -155,7 +155,7 @@ Install numpy::
 
 Compile OpenVisus::
 
-	git clone git@github.com:sci-visus/OpenVisus.git
+	git clone https://github.com/sci-visus/OpenVisus
 	cd OpenVisus
 	mkdir build 
 	cd build
@@ -181,10 +181,6 @@ Install prerequisites (assuming you are using python 3.x)::
 	sudo zypper -n in zlib-devel liblz4-devel libtinyxml-devel libuuid-devel freeimage-devel libcurl-devel libopenssl-devel glu-devel 
 	sudo zypper -n in libQt5Concurrent-devel libQt5Network-devel \libQt5Test-devel libQt5OpenGL-devel libQt5PrintSupport-devel
 
-If you want to build Apache plugin::
-
-	sudo zypper -n in apache2 apache2-devel
-
 Install numpy::
 
 	sudo pip3 install --upgrade pip
@@ -192,7 +188,7 @@ Install numpy::
 
 Compile OpenVisus:
 
-	git clone git@github.com:sci-visus/OpenVisus.git
+	git clone https://github.com/sci-visus/OpenVisus
 	cd OpenVisus
 	mkdir build 
 	cd build
@@ -204,6 +200,73 @@ To test if it's working::
 
 	PYTHONPATH=$(pwd)
 	python3 -c "from visuspy import *"
+	
+	
+### mod_visus
+
+```
+sudo /bin/bash
+git clone https://github.com/sci-visus/OpenVisus /home/visus
+set VISUS_HOME=/home/visus
+sudo zypper -n in apache2 apache2-devel
+mkdir build
+cd build
+cmake ../ -DVISUS_GUI=0 -DVISUS_HOME=$VISUS_HOME -DVISUS_PYTHON_SYS_PATH=$(pwd)
+
+cat <<EOF > /etc/apache2/conf.d/000-default.conf
+<VirtualHost *:80>
+  ServerAdmin scrgiorgio@gmail.com
+  DocumentRoot /srv/www
+  <Directory /srv/www>
+    Options Indexes FollowSymLinks MultiViews
+    AllowOverride All
+    <IfModule !mod_access_compat.c>
+      Require all granted
+    </IfModule>
+    <IfModule mod_access_compat.c>
+      Order allow,deny
+      Allow from all
+    </IfModule>
+  </Directory> 
+  <Location /mod_visus>
+    SetHandler visus
+    DirectorySlash Off
+  </Location>
+  ErrorLog /var/log/apache2/error.log
+  CustomLog /var/log/apache2/access.log combined 
+</VirtualHost>
+EOF
+
+echo "LoadModule visus_module /usr/lib64/apache2-prefork/mod_visus.so" >> /etc/apache2/loadmodule.conf
+ln -s /home/visus/build/libmod_visus.so  /url/lib64/apache2-prefork/mod_visus.so
+
+a2enmod visus 
+
+cat <<EOF >  /usr/local/bin/httpd-foreground.sh
+#!/bin/bash
+set -e 
+rm -f /run/httpd.pid
+mkdir -p /var/log/apache2
+rm -f /var/log/apache2/error.log $VISUS_HOME/visus.log
+exec /usr/sbin/httpd -DFOREGROUND
+EOF
+
+chmod a+x /usr/local/bin/httpd-foreground.sh 
+
+cat <<EOF >  $VISUS_HOME/visus.configh
+<?xml version="1.0" ?>
+<visus>
+  <dataset name='cat' url='file:///home/visus/Misc/dataset/cat/visus.idx' permissions='public'/>
+</visus>
+EOF
+
+chown -R wwwrun  $VISUS_HOME
+chmod -R a+rX  $VISUS_HOME 
+
+```
+
+
+
 
 
 ## Use OpenVisus as submodule
