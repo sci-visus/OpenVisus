@@ -22,7 +22,6 @@ SetupCMake()
 
 include(FindPackageHandleStandardArgs)
 
-
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake)
 
 # shared/static linking
@@ -35,18 +34,7 @@ IF (VISUS_GUI)
 	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL PrintSupport REQUIRED)
 endif()
 
-if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/ExternalLibs/python27)
-  	set(NUMPY_FOUND 0)
-elseif(DEFINED PYTHON_VERSION)
-	 # this is for anaconda/python 2.7 installations
-	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
-	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
-	find_package(NumPy) # better to have it
-else()
-	find_package(PythonInterp 3 REQUIRED)
-	find_package(PythonLibs   3 REQUIRED)
-	find_package(NumPy) # better to have it
-endif()
+FindPython()
 
 add_subdirectory(ExternalLibs)
 add_subdirectory(Libs)

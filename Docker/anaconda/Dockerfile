@@ -4,30 +4,39 @@ FROM ubuntu:16.04
 RUN set -x \
 	&& apt-get update \
 	&& apt-get install -y \
-		cmake git swig bzip2 ca-certificates \
+		cmake git swig bzip2 ca-certificates curl \
 		build-essential \
 		apache2 apache2-dev 
 
 # install miniconda
-ENV PATH $PATH:/usr/local/anaconda2/bin:
-ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/anaconda2/lib/:
 RUN set -x \
 	&& curl -o /tmp/miniconda.sh  "https://repo.continuum.io/miniconda/Miniconda2-4.4.10-Linux-x86_64.sh" \
-    	&& /bin/bash /tmp/miniconda.sh -b -p /usr/local/anaconda2 \
-    	&& rm /tmp/miniconda.sh \
-	&& conda update -n base conda \
-	&& conda install -c conda-forge numpy
+	&& /bin/bash /tmp/miniconda.sh -b -p /usr/local/anaconda2 \
+	&& rm /tmp/miniconda.sh \
+	&& /usr/local/anaconda2/bin/conda update  -y -n base conda \
+	&& /usr/local/anaconda2/bin/conda install -y -c conda-forge numpy
 
 # compile OpenVisus
 ENV VISUS_HOME /home/visus
-ENV PYTHONPATH /home/visus/build:$PYTHONPATH # not sure this is necessary
+# ENV PYTHONPATH /home/visus/build:$PYTHONPATH 
 RUN echo "force clone 4" > /dev/null
 RUN git clone https://github.com/sci-visus/OpenVisus $VISUS_HOME
 RUN mkdir -p $VISUS_HOME/build
 WORKDIR $VISUS_HOME/build 
-RUN cmake ../ -DVISUS_GUI=0 -DVISUS_HOME=$VISUS_HOME -DVISUS_PYTHON_SYS_PATH=$(pwd) -DPYTHON_VERSION=2 \
-	-DVISUS_INTERNAL_ZLIB=1 -VISUS_INTERNAL_LZ4=1 -DVISUS_INTERNAL_TINYXML=1 -DVISUS_INTERNAL_FREEIMAGE=1 \
-	-DVISUS_INTERNAL_OPENSSL=1 -DVISUS_INTERNAL_CURL=1 -DVISUS_INTERNAL_SWIG=1
+RUN cmake ../ -DVISUS_GUI=0 \
+	-DVISUS_HOME=$VISUS_HOME \
+	-DVISUS_PYTHON_SYS_PATH=$(pwd) \
+	-DVISUS_INTERNAL_ZLIB=1 \
+	-DVISUS_INTERNAL_LZ4=1 \
+	-DVISUS_INTERNAL_TINYXML=1 \
+	-DVISUS_INTERNAL_FREEIMAGE=1 \
+	-DVISUS_INTERNAL_OPENSSL=1 \
+	-DVISUS_INTERNAL_CURL=1 \
+	-DVISUS_INTERNAL_SWIG=1 \
+	-DPYTHON_VERSION=2 \
+	-DPYTHON_EXECUTABLE=/usr/local/anaconda2/bin/python2.7 \
+	-DPYTHON_LIBRARIES=/usr/local/anaconda2/lib/libpython2.7.so \
+	-DPYTHON_INCLUDE_DIRS=/usr/local/anaconda2/include/python2.7 
 RUN make
 
 # configure apache
