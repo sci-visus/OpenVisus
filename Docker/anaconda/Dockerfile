@@ -18,8 +18,7 @@ RUN set -x \
 
 # compile OpenVisus
 ENV VISUS_HOME /home/visus
-# ENV PYTHONPATH /home/visus/build:$PYTHONPATH 
-RUN echo "force clone 4" > /dev/null
+RUN echo "force clone 5" > /dev/null
 RUN git clone https://github.com/sci-visus/OpenVisus $VISUS_HOME
 RUN mkdir -p $VISUS_HOME/build
 WORKDIR $VISUS_HOME/build 
