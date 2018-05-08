@@ -13,25 +13,31 @@ RUN pip3 install numpy
 ENV VISUS_HOME /home/visus
 
 # compile OpenVisus
+RUN echo "force clone 1" > /dev/null
 RUN git clone https://github.com/sci-visus/OpenVisus $VISUS_HOME
 RUN mkdir -p $VISUS_HOME/build
 WORKDIR $VISUS_HOME/build 
 RUN cmake ../ -DVISUS_GUI=0 -DVISUS_HOME=$VISUS_HOME -DVISUS_PYTHON_SYS_PATH=$(pwd)
 RUN make
 
-# add a sample dataset
-ADD ./files/visus.config    $VISUS_HOME/visus.config
-ADD ../../Misc/dataset/cat  $VISUS_HOME/datasets/cat
-
-# configure and run apache
+# configure apache
 ADD ./files/000-default.conf     /etc/apache2/sites-enabled/000-default.conf
 ADD ./files/httpd-foreground.sh  /usr/local/bin/httpd-foreground.sh
 ADD ./files/visus.load           /etc/apache2/mods-available/visus.load
 RUN chmod a+x /usr/local/bin/httpd-foreground.sh 
-RUN chown -R www-data $VISUS_HOME
-RUN chmod -R a+rX  $VISUS_HOME  
 RUN a2enmod headers
 RUN a2enmod visus 
+
+# how to run apache
 EXPOSE 80
 CMD ["/usr/local/bin/httpd-foreground.sh"]
+
+# add a sample dataset
+RUN mkdir $VISUS_HOME/datasets
+RUN cp -R /home/visus/Misc/dataset/cat $VISUS_HOME/datasets/cat
+ADD ./files/visus.config    $VISUS_HOME/visus.config
+RUN chown -R www-data $VISUS_HOME
+RUN chmod -R a+rX  $VISUS_HOME 
+
+
   
