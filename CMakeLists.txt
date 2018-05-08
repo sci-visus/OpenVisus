@@ -32,19 +32,20 @@ option(BUILD_SHARED_LIBS "Build the shared library" TRUE)
 option(VISUS_GUI "Enable gui" TRUE)  
 
 IF (VISUS_GUI)
-  find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL PrintSupport REQUIRED)
+	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL PrintSupport REQUIRED)
 endif()
 
 if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/ExternalLibs/python27)
-  set(NUMPY_FOUND 0)
-elif(PYTHON_VERSION) # this is for anaconda/python 2.7 installations
-  find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
-  find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
-  find_package(NumPy) # better to have it
+  	set(NUMPY_FOUND 0)
+elseif(DEFINED PYTHON_VERSION)
+	 # this is for anaconda/python 2.7 installations
+	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
+	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
+	find_package(NumPy) # better to have it
 else()
-  find_package(PythonInterp 3 REQUIRED)
-  find_package(PythonLibs   3 REQUIRED)
-  find_package(NumPy) # better to have it
+	find_package(PythonInterp 3 REQUIRED)
+	find_package(PythonLibs   3 REQUIRED)
+	find_package(NumPy) # better to have it
 endif()
 
 add_subdirectory(ExternalLibs)
