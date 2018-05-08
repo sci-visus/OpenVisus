@@ -258,61 +258,74 @@ static void InitNetwork()
 ///////////////////////////////////////////////////////////
 static void InitKnownPaths()
 {
-#if WIN32
+  std::vector<char> _mem_(2048, 0);
+
+  auto buff = &_mem_[0];
+  auto buff_size = (int)_mem_.size() - 1;
+
+  //VisusHome
   {
-    CHAR dest[2048];
+    // Allow override of VisusHome
+    #ifdef VISUS_HOME
+    {
+      KnownPaths::VisusHome = Path(String(VISUS_HOME));
+    }
+    #else
+    {
+      #if WIN32
+      {
+        SHGetSpecialFolderPath(0, buff, CSIDL_PERSONAL, FALSE);
+        KnownPaths::VisusHome = Path(buff).getChild("visus");
+      }
+      #else
+        if (auto homedir = getenv("HOME"))
+          KnownPaths::VisusHome = Path(homedir).getChild("visus");
 
-    dest[0] = 0;
-    SHGetSpecialFolderPath(0, dest, CSIDL_PERSONAL, FALSE);
-    KnownPaths::VisusHome = Path(dest).getChild("visus");
-    HINSTANCE moduleHandle = (HINSTANCE)GetModuleHandle(ApplicationInfo::args.empty() ? nullptr : ApplicationInfo::args[0].c_str());
-
-    dest[0] = 0;
-    GetModuleFileName(moduleHandle, dest, 2048);
-    KnownPaths::CurrentApplicationFile = Path(dest);
-
-    dest[0] = 0;
-    GetCurrentDirectory(2048, dest);
-    KnownPaths::CurrentWorkingDirectory = Path(dest);
+        else if (auto pw = getpwuid(getuid()))
+          KnownPaths::VisusHome = Path(pw->pw_dir).getChild("visus");
+      }
+      #endif
+    }
+    #endif  
   }
-#else
+
+  //Current application file
   {
-    const char* homedir = getenv("HOME");
-    if (homedir != 0)
+    #if WIN32
     {
-      KnownPaths::VisusHome = Path(homedir).getChild("visus");
+      auto first_arg = ApplicationInfo::args.empty() ? nullptr : ApplicationInfo::args[0].c_str();
+      GetModuleFileName((HINSTANCE)GetModuleHandle(first_arg), buff, buff_size);
+      KnownPaths::CurrentApplicationFile = Path(buff);
     }
-    else
+    #elif __APPLE__
     {
-      struct passwd* const pw = getpwuid(getuid());
-      if (pw != 0)
-        KnownPaths::VisusHome = Path(pw->pw_dir).getChild("visus");
+      int size = buff_size;
+      if (_NSGetExecutablePath(buff, &size) == 0)
+        KnownPaths::CurrentApplicationFile = Path(buff);
     }
-
-    char buffer[2048];
-    memset(buffer, 0, sizeof(buffer));
-    
-#if __APPLE__
-    
-    uint32_t size = sizeof(buffer);
-    if (_NSGetExecutablePath(buffer, &size)== 0)
-      KnownPaths::CurrentApplicationFile = Path(buffer);
-    
-#else
-    int len = readlink("/proc/self/exe", buffer, sizeof(buffer)-1);
-    KnownPaths::CurrentApplicationFile = Path(buffer);
-#endif
-    
-    char* cwd = getcwd(buffer, 2047);
-    KnownPaths::CurrentWorkingDirectory = Path(cwd);
+    #else
+    {
+      readlink("/proc/self/exe", buff, buff_size);
+      KnownPaths::CurrentApplicationFile = Path(buff);
+    }
+    #endif
   }
-#endif
 
-  // Allow override of VisusHome
-#ifdef VISUS_HOME
-    KnownPaths::VisusHome = Path(String(VISUS_HOME));
-#endif
+  //CurrentWorkingDirectory
+  {     
+    #if WIN32
+    {
+      GetCurrentDirectory(buff_size, buff);
+      KnownPaths::CurrentWorkingDirectory = Path(buff);
+    }
+    #else
+    {
+      KnownPaths::CurrentWorkingDirectory = Path(getcwd(buff, buff_size);
+    }
+    #endif
+  }
 
+  //VisusCachesDirectory
   KnownPaths::VisusCachesDirectory = KnownPaths::VisusHome.getChild("cache");
 }
   
