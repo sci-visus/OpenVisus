@@ -23,7 +23,7 @@ RUN make
 # configure apache
 ADD ./files/000-default.conf     /etc/apache2/sites-enabled/000-default.conf
 ADD ./files/httpd-foreground.sh  /usr/local/bin/httpd-foreground.sh
-ADD ./files/visus.load           /etc/apache2/mods-available/visus.load
+echo "LoadModule visus_module /home/visus/build/libmod_visus.so" > /etc/apache2/mods-available/visus.load
 RUN chmod a+x /usr/local/bin/httpd-foreground.sh 
 RUN a2enmod headers
 RUN a2enmod visus 
