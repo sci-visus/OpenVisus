@@ -1,1 +1,0 @@
-LoadModule visus_module /usr/local/visus/libmod_visus.so 

@@ -1,30 +1,20 @@
-Compilation of ViSUS
------------------------------------
 
-Compile ViSUS:
-```
-BUILDNAME=visus-anaconda                      # BUILD is never pushed to dockerhub
-cd <path/to/directory/containing/this/file>
-tar --directory=../../ -c -z -f visus.tar.gz CMake libs src docs resources Copyrights CMakeLists.txt .git
-dos2unix start_server.sh # fix git problem
-dos2unix envvars # fix git problem
+TO compile Docker:
 
-docker build -t $BUILDNAME -f Dockerfile .
-```
+	docker build -t mod_visus-ubuntu-miniconda .
 
-Commit image to dockerhub:
-```
-USER=<your dockerhub username>
-docker tag mod_visus $USER/visus
-docker push $USER/visus
-```
+To run Docker after compilation:
 
-Run it:
-```
-docker run -it --rm -p 8080:80 visus-anaconda
-```
+	docker run -it --rm -p 8080:80 mod_visus-ubuntu-miniconda 
 
-in another shell you can test it:
-```
-curl -v "http://$(docker-machine ip):8080/mod_visus?action=readdataset&dataset=cat"
-```
+If you want to debug the docker container:
+
+	docker run -it --rm -p 8080:80 --entrypoint=/bin/bash mod_visus-ubuntu-miniconda
+	/usr/local/bin/httpd-foreground.sh
+
+To test docker container, in another terminal:
+
+	curl -v "http://0.0.0.0:8080/mod_visus?action=readdataset&dataset=cat"
+
+
+
