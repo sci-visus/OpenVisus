@@ -6,12 +6,11 @@ RUN set -x \
 	&& apt-get install -y \
 		cmake git swig bzip2 ca-certificates \
 		build-essential \
-		liblz4-dev libtinyxml-dev libfreeimage-dev libcurl4-openssl-dev libssl-dev uuid-dev \
 		apache2 apache2-dev 
 
 # install miniconda
-ENV PATH            /usr/local/anaconda2/bin:$PATH
-ENV LD_LIBRARY_PATH /usr/local/anaconda2/lib/:$LD_LIBRARY_PATH
+ENV PATH $PATH:/usr/local/anaconda2/bin:
+ENV LD_LIBRARY_PATH $LD_LIBRARY_PATH:/usr/local/anaconda2/lib/:
 RUN set -x \
 	&& curl -o /tmp/miniconda.sh  "https://repo.continuum.io/miniconda/Miniconda2-4.4.10-Linux-x86_64.sh" \
     	&& /bin/bash /tmp/miniconda.sh -b -p /usr/local/anaconda2 \
@@ -26,7 +25,9 @@ RUN echo "force clone 4" > /dev/null
 RUN git clone https://github.com/sci-visus/OpenVisus $VISUS_HOME
 RUN mkdir -p $VISUS_HOME/build
 WORKDIR $VISUS_HOME/build 
-RUN cmake ../ -DVISUS_GUI=0 -DVISUS_HOME=$VISUS_HOME -DVISUS_PYTHON_SYS_PATH=$(pwd) -DPYTHON_VERSION=2
+RUN cmake ../ -DVISUS_GUI=0 -DVISUS_HOME=$VISUS_HOME -DVISUS_PYTHON_SYS_PATH=$(pwd) -DPYTHON_VERSION=2 \
+	-DVISUS_INTERNAL_ZLIB=1 -VISUS_INTERNAL_LZ4=1 -DVISUS_INTERNAL_TINYXML=1 -DVISUS_INTERNAL_FREEIMAGE=1 \
+	-DVISUS_INTERNAL_OPENSSL=1 -DVISUS_INTERNAL_CURL=1 -DVISUS_INTERNAL_SWIG=1
 RUN make
 
 # configure apache

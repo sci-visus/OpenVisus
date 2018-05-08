@@ -273,8 +273,12 @@ endmacro()
 
 # ///////////////////////////////////////////////////////////////////////
 macro(FindZLib)
-	find_package(ZLIB)
-	if (NOT ZLIB_FOUND)
+
+	if (NOT DEFINED VISUS_INTERNAL_ZLIB)
+		find_package(ZLIB)
+	endif()
+
+	if (VISUS_INTERNAL_ZLIB OR NOT ZLIB_FOUND)
 		set(ZLIB_BUILD_DIR    ${CMAKE_BINARY_DIR}/zlib-1.2.11)
 		SET(ZLIB_INCLUDE_DIRS ${ZLIB_BUILD_DIR})
 		SET(ZLIB_LIBRARIES    ${ZLIB_BUILD_DIR}/libz.a)  
@@ -291,8 +295,12 @@ endmacro()
 
 # ///////////////////////////////////////////////////////////////////////
 macro(FindLZ4)
-	find_package(LZ4)
-	if (NOT LZ4_FOUND)
+
+	if (NOT DEFINED VISUS_INTERNAL_LZ4)
+		find_package(LZ4)
+	endif()
+
+	if (VISUS_INTERNAL_LZ4 OR NOT LZ4_FOUND)
 		set(LZ4_BUILD_DIR   ${CMAKE_BINARY_DIR}/lz4-1.8.1.2)
 		SET(LZ4_INCLUDE_DIR ${LZ4_BUILD_DIR}/lib)
 		SET(LZ4_LIBRARY     ${LZ4_BUILD_DIR}/liblz4.so)  
@@ -310,8 +318,12 @@ endmacro()
 
 # ///////////////////////////////////////////////////////////////////////
 macro(FindTinyXml)
-	find_package(TinyXML)
-	if (NOT TinyXML_FOUND)
+
+	if (NOT DEFINED VISUS_INTERNAL_TINYXML)
+		find_package(TinyXML)
+	endif()
+
+	if (VISUS_INTERNAL_TINYXML OR NOT TinyXML_FOUND)
 		set(TINYXML_BUILD_DIR    ${CMAKE_BINARY_DIR}/tinyxml)
 		SET(TinyXML_INCLUDE_DIRS ${TINYXML_BUILD_DIR})
 		SET(TinyXML_LIBRARIES    ${TINYXML_BUILD_DIR}/libtinyxml.a) 
@@ -332,8 +344,12 @@ endmacro()
 
 # ///////////////////////////////////////////////////////////////////////
 macro(FindFreeImage)
-	find_package(FreeImage)
-	if (NOT FREEIMAGE_FOUND)
+
+	if (NOT DEFINED VISUS_INTERNAL_FREEIMAGE)
+		find_package(FreeImage)
+	endif()
+
+	if (VISUS_INTERNAL_FREEIMAGE OR NOT FREEIMAGE_FOUND)
 		set(FREEIMAGE_BUILD_DIR    ${CMAKE_BINARY_DIR}/FreeImage)
 		SET(FREEIMAGE_INCLUDE_DIRS ${FREEIMAGE_BUILD_DIR}/Dist)
 		SET(FREEIMAGE_LIBRARIES    ${FREEIMAGE_BUILD_DIR}/Dist/libfreeimage-3.16.0.so)
@@ -349,11 +365,15 @@ endmacro()
 
 # ///////////////////////////////////////////////////////////////////////
 macro(FindOpenSSL)
-	if (UNIX)
-		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/FixFindOpenSSL)
+
+	if (NOT DEFINED VISUS_INTERNAL_OPENSSL)
+		if (UNIX)
+			set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/FixFindOpenSSL)
+		endif()
+		find_package(OpenSSL)
 	endif()
-	find_package(OpenSSL)
-	if (NOT OPENSSL_FOUND)
+
+	if (VISUS_INTERNAL_OPENSSL OR NOT OPENSSL_FOUND)
 		set(OPENSSL_BUILD_DIR      ${CMAKE_BINARY_DIR}/openssl-1.0.2d)
 		SET(OPENSSL_INCLUDE_DIR    ${OPENSSL_BUILD_DIR}/include)
 		SET(OPENSSL_SSL_LIBRARY    ${OPENSSL_BUILD_DIR}/libssl.so)
@@ -370,8 +390,11 @@ endmacro()
 
 # ///////////////////////////////////////////////////////////////////////
 macro(FindCurl)
-	find_package(CURL REQUIRED)
-	if (NOT CURL_FOUND)
+	if (NOT DEFINED VISUS_INTERNAL_CURL)
+		find_package(CURL)
+	endif()
+
+	if (VISUS_INTERNAL_CURL OR NOT CURL_FOUND)
 		set(CURL_BUILD_DIR    ${CMAKE_BINARY_DIR}/curl-7.59.0)
 		SET(CURL_INCLUDE_DIRS ${CURL_BUILD_DIR}/lib)
 		SET(CURL_LIBRARIES    ${CURL_BUILD_DIR}/lib/.libs/libcurl.so)
@@ -388,8 +411,12 @@ endmacro()
 
 # ///////////////////////////////////////////////////////////////////////
 macro(FindSwig)
-	find_package(SWIG)
-	if (NOT SWIG_FOUND)
+
+	if (NOT DEFINED VISUS_INTERNAL_SWIG)
+		find_package(SWIG)
+	endif()
+	
+	if (VISUS_INTERNAL_SWIG OR NOT SWIG_FOUND)
 		SET(SWIG_BUILD_DIR   ${CMAKE_BINARY_DIR}/swig-3.0.12)
 		SET(SWIG_EXECUTABLE  ${SWIG_BUILD_DIR}/install/bin/swig)
 		SET(SWIG_DIR         ${SWIG_BUILD_DIR}/install/share/swig/3.0.12)
@@ -406,4 +433,5 @@ macro(FindSwig)
 		find_package(SWIG REQUIRED)
 	endif()
 endmacro()
+
 
