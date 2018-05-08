@@ -305,7 +305,8 @@ static void InitKnownPaths()
     }
     #else
     {
-      readlink("/proc/self/exe", buff, buff_size);
+      int len=readlink("/proc/self/exe", buff, buff_size);
+      if (len != -1)  buff[len] = 0;
       KnownPaths::CurrentApplicationFile = Path(buff);
     }
     #endif
@@ -320,7 +321,7 @@ static void InitKnownPaths()
     }
     #else
     {
-      KnownPaths::CurrentWorkingDirectory = Path(getcwd(buff, buff_size);
+      KnownPaths::CurrentWorkingDirectory = Path(getcwd(buff, buff_size));
     }
     #endif
   }
