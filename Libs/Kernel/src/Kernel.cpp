@@ -278,7 +278,8 @@ static void InitKnownPaths()
         KnownPaths::VisusHome = Path(buff).getChild("visus");
       }
       #else
-        if (auto homedir = getenv("HOME"))
+      {
+	if (auto homedir = getenv("HOME"))
           KnownPaths::VisusHome = Path(homedir).getChild("visus");
 
         else if (auto pw = getpwuid(getuid()))
