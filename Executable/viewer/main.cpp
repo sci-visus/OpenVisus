@@ -159,7 +159,6 @@ int main(int argn,const char* argv[])
     return 0;
   }
 
-
   std::vector<String> args=ApplicationInfo::args;
   for (int I=1;I<(int)args.size();I++)
   {

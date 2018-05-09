@@ -938,7 +938,7 @@ ModVisus::~ModVisus()
 ////////////////////////////////////////////////////////////////////////////////
 bool ModVisus::configureDatasets()
 {
-  writeLog("ModVisus::configureDatasets()...");
+  VisusInfo()<<"ModVisus::configureDatasets()...";
 
   if (VisusConfig::needReload())
     VisusConfig::reload();
@@ -952,9 +952,9 @@ bool ModVisus::configureDatasets()
   #endif
 
   VisusInfo()<<"/mod_visus?action=list\n"<<datasets->getList(PublicDatasets::XmlFormat);
-  writeLog("done ModVisus::configureDatasets()");
+  VisusInfo()<<"done ModVisus::configureDatasets()";
   VisusInfo()<<"/mod_visus?action=list\n"<<scenes->getList(PublicScenes::XmlFormat);
-  writeLog("done ModVisus::configureScenes()");
+  VisusInfo()<<"done ModVisus::configureScenes()";
   return true;
 }
 

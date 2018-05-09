@@ -174,13 +174,6 @@ void ParseCommandLine()
   // parse command line
   for (int I = 0; I < argn; I++)
   {
-    //let the user specify the where the visus.log is
-    if (argv[I] == String("--visus-log") && I < (argn - 1))
-    {
-      Log::filename = argv[++I];
-      continue;
-    }
-
     if (argv[I] == String("--visus-config") && I < (argn - 1))
     {
       VisusConfig::filename = argv[++I];
@@ -289,6 +282,8 @@ static void InitKnownPaths()
     #endif  
   }
 
+  FileUtils::createDirectory(KnownPaths::VisusHome);
+
   //Current application file
   {
     #if WIN32
@@ -375,19 +370,6 @@ static void InitApplicationInfo()
 #endif
 }
 
-//////////////////////////////////////////////////////
-static void InitLogFile()
-{
-  if (Log::filename != "/dev/null")
-  {
-    //open log
-    if (Log::filename.empty())
-      Log::filename = KnownPaths::VisusHome.toString() + "/visus.log";
-
-    FileUtils::createDirectory(Path(Log::filename).getParent());
-    Log::file.open(Log::filename.c_str(), std::ios::out | std::ios::app);
-  }
-}
 
 bool KernelModule::bAttached = false;
 
@@ -410,7 +392,6 @@ void KernelModule::attach()
   InitNetwork();
   InitApplicationInfo();
   InitKnownPaths();
-  InitLogFile();
   InitVisusConfig();
 
 
@@ -464,7 +445,6 @@ void KernelModule::attach()
   VisusInfo() << "VisusCacheDirectory     " << KnownPaths::VisusCachesDirectory.toString();
   VisusInfo() << "CurrentApplicationFile  " << KnownPaths::CurrentApplicationFile.toString();
   VisusInfo() << "CurrentWorkingDirectory " << KnownPaths::CurrentWorkingDirectory.toString();
-  VisusInfo() << "Log filename            " << Log::filename;
 
   ObjectFactory::allocSingleton();
   ArrayPlugins::allocSingleton();
@@ -537,8 +517,6 @@ void KernelModule::detach()
   CaCertFile::releaseSingleton();
 
   ShutdownPython();
-
-  Log::file.close();
 
   curl_global_cleanup();
 

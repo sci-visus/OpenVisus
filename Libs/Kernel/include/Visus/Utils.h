@@ -439,6 +439,9 @@ namespace Utils
   //LLtoUTM
   VISUS_KERNEL_API void LLtoUTM(const double Lat, const double Long, double &UTMNorthing, double &UTMEasting);
 
+  //getPid
+  VISUS_KERNEL_API int getPid();
+
 }; //end class
 
 //////////////////////////////////////////////////////

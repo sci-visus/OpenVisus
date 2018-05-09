@@ -53,6 +53,13 @@ For support : support@visus.net
 #include <signal.h>
 #endif
 
+#if WIN32
+#include <Windows.h>
+#include <process.h>
+#else
+#include <unistd.h>
+#endif
+
 namespace Visus {
   
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -69,6 +76,15 @@ String Utils::safe_strerror(int err)
   return String(buf);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////
+int Utils::getPid()
+{
+#if WIN32
+  return _getpid();
+#else
+  return = getpid();
+#endif
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 void Utils::breakInDebugger()
