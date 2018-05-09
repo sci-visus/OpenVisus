@@ -88,7 +88,7 @@ Compile OpenVisus. From a prompt::
 	cd c:\
 	mkdir projects
 	cd projects
-	git clone git@github.com:sci-visus/OpenVisus.git
+	git clone https://github.com/sci-visus/OpenVisus
 	cd OpenVisus
 	mkdir build
 	cd build
@@ -123,7 +123,7 @@ Run xcode command line tools:
 
 Compile OpenVisus. From a prompt::
 
-	git clone git@github.com:sci-visus/OpenVisus.git
+	git clone https://github.com/sci-visus/OpenVisus
 	cd OpenVisus
 	mkdir build
 	cd build
@@ -201,8 +201,29 @@ To test if it's working::
 	PYTHONPATH=$(pwd)
 	python3 -c "from visuspy import *"
 	
+## Use OpenVisus as submodule
+
+In your repository::
+
+	git submodule add https://github.com/sci-visus/OpenVisus
 	
-### mod_visus
+Create a CMakeLists.txt with the following content::
+
+	CMAKE_MINIMUM_REQUIRED(VERSION 3.1) 
+
+	project(YourProjectName)
+
+	include(OpenVisus/CMake/VisusMacros.cmake)
+	SetupCMake()
+	add_subdirectory(OpenVisus)
+	...your code...
+	target_link_libraries(your_executable VisusAppKit) # or whatever you need
+
+	
+
+## mod_visus
+
+### Ubuntu
 
 Most of the command needs root access:
 
@@ -214,7 +235,98 @@ Install apache dependencies and set up where visus will be:
 
 ```
 export VISUS_HOME=/home/visus
-sudo zypper -n in apache2 apache2-devel
+apt-get install -y apache2 apache2-devel
+```
+
+Clone and compile visus:
+
+```
+git clone https://github.com/sci-visus/OpenVisus $VISUS_HOME
+cd $VISUS_HOME
+mkdir build
+cd build
+cmake ../ -DVISUS_GUI=0 -DVISUS_HOME=$VISUS_HOME -DVISUS_PYTHON_SYS_PATH=$(pwd)
+make -j 4
+```
+
+Setup apache for mod_visus: 
+
+```
+APACHE_EMAIL=youremail@here.com
+cat <<EOF > /etc/apache2/sites-enabled/000-default.conf
+<VirtualHost *:80>
+  ServerAdmin $APACHE_EMAIL
+  DocumentRoot /var/www
+  <Directory /var/www>
+    Options Indexes FollowSymLinks MultiViews
+    AllowOverride All
+    Order allow,deny
+    Allow from all
+  </Directory> 
+  <Location /mod_visus>
+    SetHandler visus
+    DirectorySlash Off
+    Header set Access-Control-Allow-Origin "*"
+  </Location>
+</VirtualHost>
+EOF
+
+echo "LoadModule visus_module /home/visus/build/libmod_visus.so" > /etc/apache2/mods-available/visus.load
+a2enmod visus 
+```
+
+Add a dataset:
+
+```
+cat <<EOF >  $VISUS_HOME/visus.config
+<?xml version="1.0" ?>
+<visus>
+  <dataset name='cat' url='file://$VISUS_HOME/Misc/dataset/cat/visus.idx' permissions='public'/>
+</visus>
+EOF
+```
+
+Finally start apache:
+
+```
+chown -R www-data   $VISUS_HOME
+chmod -R a+rX    $VISUS_HOME
+systemctl stop apache2
+rm -f /var/log/apache2/error.log 
+systemctl start apache2
+more /var/log/apache2/error.log # check logs 
+```
+
+If you want to start apache in the foreground:
+
+```
+stop apache2
+rm -f /usr/local/apache2/logs/httpd.pid
+source /etc/apache2/envvars
+mkdir -p $APACHE_RUN_DIR $APACHE_LOCK_DIR $APACHE_LOG_DIR
+rm -f /var/log/apache2/error.log 
+exec /usr/sbin/apache2 -DFOREGROUND
+```
+
+To test it, in another terminal:
+
+```
+curl -v "http://localhost/mod_visus?action=readdataset&dataset=cat"
+```
+
+### OpenSuse
+
+Most of the command needs root access:
+
+```
+sudo /bin/bash
+```
+
+Install apache dependencies and set up where visus will be:
+
+```
+export VISUS_HOME=/home/visus
+zypper -n in apache2 apache2-devel
 ```
 
 Clone and compile visus:
@@ -293,27 +405,5 @@ To test it, in another terminal:
 curl -v "http://localhost/mod_visus?action=readdataset&dataset=cat"
 ```
 
-## Use OpenVisus as submodule
-
-In your repository::
-
-	git submodule add https://github.com/sci-visus/OpenVisus
-	
-Create a CMakeLists.txt with the following content::
-
-	CMAKE_MINIMUM_REQUIRED(VERSION 3.1) 
-
-	project(YourProjectName)
-
-	include(OpenVisus/CMake/VisusMacros.cmake)
-	SetupCMake()
-	add_subdirectory(OpenVisus)
-	...your code...
-	target_link_libraries(your_executable VisusAppKit) # or whatever you need
-
-	
-## mod_visus 
-
-see Docker/README.md
 	
 
