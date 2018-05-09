@@ -321,9 +321,6 @@ static void InitKnownPaths()
     }
     #endif
   }
-
-  //VisusCachesDirectory
-  KnownPaths::VisusCachesDirectory = KnownPaths::VisusHome.getChild("cache");
 }
   
 ///////////////////////////////////////////////////////////
@@ -443,7 +440,6 @@ void KernelModule::attach()
 
   VisusInfo() << "git_revision            " << ApplicationInfo::git_revision;
   VisusInfo() << "VisusHome               " << KnownPaths::VisusHome.toString();
-  VisusInfo() << "VisusCacheDirectory     " << KnownPaths::VisusCachesDirectory.toString();
   VisusInfo() << "CurrentApplicationFile  " << KnownPaths::CurrentApplicationFile.toString();
   VisusInfo() << "CurrentWorkingDirectory " << KnownPaths::CurrentWorkingDirectory.toString();
 

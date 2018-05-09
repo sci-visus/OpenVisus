@@ -42,7 +42,6 @@ For support : support@visus.net
 namespace Visus {
 
 Path KnownPaths::VisusHome;
-Path KnownPaths::VisusCachesDirectory   ; 
 Path KnownPaths::CurrentApplicationFile ;
 Path KnownPaths::CurrentWorkingDirectory;
 
@@ -84,7 +83,6 @@ const String Path::normalizePath(String path)
     path=StringUtils::replaceAll(path,"$(VisusHome)"              ,KnownPaths::VisusHome.path);
     path=StringUtils::replaceAll(path,"$(CurrentApplicationFile)" ,KnownPaths::CurrentApplicationFile .path);
     path=StringUtils::replaceAll(path,"$(CurrentWorkingDirectory)",KnownPaths::CurrentWorkingDirectory.path);
-    path=StringUtils::replaceAll(path,"$(VisusCachesDirectory)"   ,KnownPaths::VisusCachesDirectory   .path);
   }
 
   //don't want window separators

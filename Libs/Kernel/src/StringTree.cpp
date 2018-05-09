@@ -448,8 +448,7 @@ public:
   {
     std::map<String,StringTree*> templates;
     StringMap      aliases;
-    aliases.setValue("VisusHome"              , KnownPaths::VisusHome              .toString());
-    aliases.setValue("VisusCacheDirectory"    , KnownPaths::VisusCachesDirectory   .toString());
+    aliases.setValue("VisusHome"              , KnownPaths::VisusHome                  .toString());
     aliases.setValue("CurrentApplicationFile" , KnownPaths::CurrentApplicationFile .toString());
     aliases.setValue("CurrentWorkingDirectory", KnownPaths::CurrentWorkingDirectory.toString());
 
