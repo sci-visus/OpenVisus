@@ -139,19 +139,20 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////////////////
 Viewer::Viewer(String title) : QMainWindow()
 {
-  connect(this, &Viewer::postFlushMessages, this, &Viewer::internalFlushMessages, Qt::QueuedConnection);
-
-  Log::redirect = [this](const Log::Message& msg) {
+  RedirectLog=[this](const String& msg) {
     {
-      ScopedLock lock(messages_lock);
-      messages.push_back(msg);
-    }
+      ScopedLock lock(log.lock);
+      log.messages.push_back(msg);
+    };
 
     //I can be here in different thread
     //see //see http://stackoverflow.com/questions/37222069/start-qtimer-from-another-class
     emit postFlushMessages();
   };
 
+  connect(this, &Viewer::postFlushMessages, this, &Viewer::internalFlushMessages, Qt::QueuedConnection);
+
+  this->log.fstream.open(KnownPaths::VisusHome.getChild("visus." + Time::now().getFormattedLocalTime()+ ".log"));
 
   setWindowTitle(title.c_str());
 
@@ -220,6 +221,8 @@ Viewer::Viewer(String title) : QMainWindow()
 Viewer::~Viewer()
 {
   VisusInfo() << "destroying VisusViewer";
+
+  RedirectLog = nullptr;
   
   setDataflow(nullptr);
   
@@ -227,44 +230,29 @@ Viewer::~Viewer()
   //I will deallocate it (causing a segmentation fault)
   for (auto logo : logos)
     logo->tex->releasePimpl(false);
-
-  Log::redirect = nullptr;
 }
 
 ////////////////////////////////////////////////////////////
 void Viewer::internalFlushMessages()
 {
   auto log = this->getLog();
+
   if (!log)
     return;
 
-  std::vector<Log::Message> messages;
+  std::vector<String> messages;
   {
-    ScopedLock lock(messages_lock);
-    messages = this->messages;
-    this->messages.clear();
-  };
+    ScopedLock lock(this->log.lock);
+    messages = this->log.messages;
+    this->log.messages.clear();
+  }
 
   for (auto msg : messages)
   {
-    log->moveCursor(QTextCursor::End);
-    log->setTextColor(QColor(100, 0, 0));
-    log->insertPlainText((StringUtils::format()
-      << std::setfill('0')
-      << std::setw(2) << msg.time.getHours()
-      << std::setw(2) << msg.time.getMinutes()
-      << std::setw(2) << msg.time.getSeconds()
-      << std::setw(3) << msg.time.getMilliseconds()
-      << " ").str().c_str());
-
-    log->moveCursor(QTextCursor::End);
-    log->setTextColor(QColor(0, 100, 0));
-    log->insertPlainText((StringUtils::format() << msg.file << " (" << msg.line << ") ").str().c_str());
-
+    this->log.fstream << msg;
     log->moveCursor(QTextCursor::End);
     log->setTextColor(QColor(0, 0, 0));
-    log->insertPlainText((StringUtils::format() << msg.content << "\r\n").str().c_str());
-
+    log->insertPlainText(msg.c_str());
     log->moveCursor(QTextCursor::End);
   }
 }

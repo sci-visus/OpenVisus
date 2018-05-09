@@ -49,89 +49,41 @@ For support : support@visus.net
 namespace Visus {
 
 /////////////////////////////////////////////////////////////////
-#if SWIG
-class VISUS_KERNEL_API Log
-{
-public:
-  static void printMessage(String s);
-
-private:
-  Log();
-};
-
-#else
-
-class VISUS_KERNEL_API Log  
+class VISUS_KERNEL_API LogFormattedMessage 
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(Log)
-
-  enum Level
-  {
-    Error=1, 
-    Warning, 
-    Info, 
-    Debug
-  };
-
-  class Message
-  {
-  public:
-    String file;
-    int    line=0;
-    int    level=Debug;
-    Time   time;
-    String content;
-
-    //toString
-    String toString() const;
-
-  };
-
-  static String filename;
-  static std::ofstream file;
-  static std::function<void(const Message& msg)> redirect;
+  String file;
+  int    line = 0;
+  String level;
+  Time   time;
 
   //constructor
-  Log(String file, int line,int level);
+  LogFormattedMessage(String file_ = "", int line_ = 0, String level_ = "");
 
   //destructor
-  ~Log();
+  ~LogFormattedMessage();
 
-  //get
-  std::ostringstream& get() {
+  //get_stream
+  std::ostringstream& get_stream() {
     return out;
-  }
-  
-  //printMessage
-  static void printMessage(const Message& msg);
-
-  //printMessage
-  static void printMessage(String s) {
-    Message msg;
-    msg.file = "";
-    msg.line = -1;
-    msg.level = Info;
-    msg.content = s;
-    msg.time = Time::now();
-    return printMessage(msg);
   }
 
 private:
 
+#if !SWIG
   std::ostringstream out;
-
-  Message msg;
-
+#endif
 };
 
-#define VisusError()    (Visus::Log(__FILE__,__LINE__,Visus::Log::Error  ).get())
-#define VisusWarning()  (Visus::Log(__FILE__,__LINE__,Visus::Log::Warning).get())
-#define VisusInfo()     (Visus::Log(__FILE__,__LINE__,Visus::Log::Info   ).get()) 
-#define VisusDebug()    (Visus::Log(__FILE__,__LINE__,Visus::Log::Debug  ).get())
+#define VisusError()    (Visus::LogFormattedMessage(__FILE__,__LINE__,"error"  ).get_stream())
+#define VisusWarning()  (Visus::LogFormattedMessage(__FILE__,__LINE__,"warning").get_stream())
+#define VisusInfo()     (Visus::LogFormattedMessage(__FILE__,__LINE__,"info"   ).get_stream()) 
+#define VisusDebug()    (Visus::LogFormattedMessage(__FILE__,__LINE__,"debug"  ).get_stream())
 
-#endif //SWIG
+#if !SWIG
+extern VISUS_KERNEL_API std::function<void(const String& msg)> RedirectLog;
+#endif
 
 } //namespace Visus
 
