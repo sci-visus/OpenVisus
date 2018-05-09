@@ -524,7 +524,7 @@ public:
     VisusInfo() << "FixDatasetRange starting...";
 
     String filename = args[1];
-    auto vf = std::dynamic_pointer_cast<IdxDataset>(Dataset::loadDataset(filename));
+    auto vf = IdxDataset::loadDataset(filename);
     if (!vf)
       ThrowException(StringUtils::format() << "failed to read IDX dataset (Dataset::loadDataset(" << filename << ") failed)");
 
@@ -1989,7 +1989,7 @@ public:
     bool bOk= midx->createIdxFile(idx_filename, Field("DATA", midx->getFieldByName(fieldname).dtype, "rowmajor"));
     VisusReleaseAssert(bOk);
 
-    auto idx = std::dynamic_pointer_cast<IdxDataset>(Dataset::loadDataset(idx_filename));
+    auto idx = IdxDataset::loadDataset(idx_filename);
     auto idx_access = idx->createAccess();
 
     auto tiles = midx->generateTiles(TileSize);

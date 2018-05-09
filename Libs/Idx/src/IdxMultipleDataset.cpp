@@ -957,25 +957,25 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
   //if mosaic all datasets are the same, I just need to know the IDX filename template
   if (this->bMosaic && !childs.empty())
   {
-    auto first = std::dynamic_pointer_cast<IdxDataset>(childs.begin()->second.dataset);
-    auto other = std::dynamic_pointer_cast<IdxDataset>(first->cloneForMosaic());
+    auto first = childs.begin()->second.dataset;
+    auto other = first->cloneForMosaic();
     VisusReleaseAssert(first);
     VisusReleaseAssert(other);
 
     //all the idx files are the same except for the IDX path
-    child.filename_template=istream.readInline("filename_template");
+    child.mosaic_filename_template=istream.readInline("filename_template");
 
-    VisusReleaseAssert(!child.filename_template.empty());
-    child.filename_template = fixPath(child.filename_template);
+    VisusReleaseAssert(!child.mosaic_filename_template.empty());
+    child.mosaic_filename_template = fixPath(child.mosaic_filename_template);
 
     other->url = url;
-    other->idxfile.filename_template = child.filename_template;
+    other->idxfile.filename_template = child.mosaic_filename_template;
     other->idxfile.validate(url); VisusAssert(other->idxfile.valid());
     child.dataset = other;
   }
   else
   {
-    child.dataset = Dataset::loadDataset(url);
+    child.dataset = IdxDataset::loadDataset(url);
   }
 
   if (!child.dataset) {
@@ -1237,7 +1237,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   }
   
   if (childs.size() == 1)
-    IDXFILE.time_template = (std::dynamic_pointer_cast<IdxDataset>(first))->idxfile.time_template;
+    IDXFILE.time_template = first->idxfile.time_template;
  
   //union of all timesteps
   for (auto it : childs)
@@ -1299,8 +1299,8 @@ void IdxMultipleDataset::updateBody(bool bSave)
     if (!it.second.origin.empty())
       ostream.writeInline("origin", it.second.origin);
 
-    if (!it.second.filename_template.empty())
-      ostream.writeInline("filename_template", it.second.filename_template);
+    if (!it.second.mosaic_filename_template.empty())
+      ostream.writeInline("filename_template", it.second.mosaic_filename_template);
 
 
     auto M = it.second.M;

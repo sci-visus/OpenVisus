@@ -62,7 +62,6 @@ IdxMosaicAccess::~IdxMosaicAccess()
 {
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////////////
 SharedPtr<Access> IdxMosaicAccess::getChildAccess(const Child& child) const
 {
@@ -106,8 +105,46 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
 
   bool bBlockTotallyInsideSingle = (BLOCK >= ((BigInt)1 << NBITS));
 
-  if (!bBlockTotallyInsideSingle)
+  if (bBlockTotallyInsideSingle)
   {
+    //forward the block read to a single child
+    NdPoint p1, index = NdPoint::one(pdim);
+    for (int D = 0; D < VISUS_NDPOINT_DIM; D++) {
+      index[D] = QUERY->logic_box.p1[D] / dims[D];
+      p1[D] = QUERY->logic_box.p1[D] % dims[D];
+    }
+
+    auto it = childs.find(index);
+    if (it == childs.end())
+      return readFailed(QUERY);
+
+    auto vf = it->second.dataset;
+    VisusAssert(vf);
+
+    auto hzfrom = HzOrder(vf->idxfile.bitmask, vf->getMaxResolution()).getAddress(p1);
+
+    auto block_query = std::make_shared<BlockQuery>(QUERY->field, QUERY->time, hzfrom, hzfrom + ((BigInt)1 << bitsperblock), QUERY->aborted);
+
+    auto access = getChildAccess(it->second);
+
+    if (!access->isReading())
+      access->beginIO(this->getMode());
+
+    //TODO: should I keep track of running queries in order to wait for them in the destructor?
+    block_query->future.when_ready([this, QUERY, block_query]() {
+
+      if (block_query->getStatus() != QueryOk)
+        return readFailed(QUERY); //failed
+
+      QUERY->buffer = block_query->buffer;
+      return readOk(QUERY);
+    });
+
+    vf->readBlock(access, block_query);
+  }
+  else
+  {
+    //THIS IS GOING TO BE SLOW: i need to compose coarse blocks by executing "normal" query and merging them
     auto t1 = Time::now();
 
     //row major
@@ -148,7 +185,6 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
         QUERY->buffer, PIXEL_P1, PIXEL_p2, NdPoint::one(pdim),
         query->buffer, pixel_p1, pixel_p2, NdPoint::one(pdim),
         QUERY->aborted);
-
     }
 
     if (bool bPrintStats = false)
@@ -161,48 +197,13 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
 
     return QUERY->aborted() ? readFailed(QUERY) : readOk(QUERY);
   }
-  else
-  {
-    //forward the block read to a single child
-    NdPoint p1, index = NdPoint::one(pdim);
-    for (int D = 0; D < VISUS_NDPOINT_DIM; D++) {
-      index[D] = QUERY->logic_box.p1[D] / dims[D];
-      p1   [D] = QUERY->logic_box.p1[D] % dims[D];
-    }
-
-    auto it = childs.find(index);
-    if (it==childs.end())
-      return readFailed(QUERY);
-
-    auto vf = it->second.dataset;
-    VisusAssert(vf);
-
-    auto hzfrom = HzOrder(vf->idxfile.bitmask, vf->getMaxResolution()).getAddress(p1);
-
-    auto query = std::make_shared<BlockQuery>(QUERY->field, QUERY->time, hzfrom, hzfrom + ((BigInt)1 << bitsperblock), QUERY->aborted);
-
-    auto access = getChildAccess(it->second);
-
-    if (!access->isReading())
-      access->beginIO(this->getMode());
-
-    //TODO: should I keep track of running queries in order to wait for them in the destructor?
-    query->future.when_ready([this, QUERY, query]() {
-
-      if (query->getStatus() != QueryOk)
-        return readFailed(QUERY); //failed
-
-      QUERY->buffer = query->buffer;
-      return readOk(QUERY);
-    });
-
-    vf->readBlock(access, query);
-  }
+  
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
 void IdxMosaicAccess::writeBlock(SharedPtr<BlockQuery> QUERY)
 {
+  //not supported!
   VisusAssert(isWriting());
   VisusAssert(false);
   return writeFailed(QUERY);
