@@ -167,7 +167,6 @@ int main(int argn,const char* argv[])
       VisusInfo()<<std::endl
         <<"visusviewer help:"<<std::endl
         <<"   --visus-config <path>                                                  - path to visus.config"<<std::endl
-        <<"   --visus-log <path>                                                     - where to write log"<<std::endl
         <<"   --open <url>                                                           - opens the specified url or .idx volume"<<std::endl
         <<"   --server [http]                                                        - starts a standalone ViSUS Server on port 10000"<<std::endl
         <<"   --fullscseen                                                           - starts in fullscreen mode"<<std::endl

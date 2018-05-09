@@ -270,10 +270,9 @@ Finally start apache:
 
 ```
 chown -R wwwrun  $VISUS_HOME
-chmod -R u+rwX  $VISUS_HOME # dangerous!
-chmod -R a+rX   $VISUS_HOME
+chmod -R a+rX    $VISUS_HOME
 systemctl stop apache2
-rm -f /var/log/apache2/error_log $VISUS_HOME/visus.log
+rm -f /var/log/apache2/error_log 
 systemctl start apache2
 more /var/log/apache2/error_log # see 
 ```
@@ -284,7 +283,7 @@ If you want to start apache in the foreground:
 systemctl stop apache2
 rm -f /run/httpd.pid
 mkdir -p /var/log/apache2
-rm -f /var/log/apache2/error_log $VISUS_HOME/visus.log
+rm -f /var/log/apache2/error_log 
 /usr/sbin/httpd -DFOREGROUND
 ```
 

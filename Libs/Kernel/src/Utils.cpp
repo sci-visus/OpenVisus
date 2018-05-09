@@ -82,7 +82,7 @@ int Utils::getPid()
 #if WIN32
   return _getpid();
 #else
-  return = getpid();
+  return getpid();
 #endif
 }
 
