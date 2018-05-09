@@ -170,16 +170,16 @@ To test if it's working::
 
 ## OpenSUSE compilation
 
-Install prerequisites (assuming you are using python 3.x)::
+Install prerequisites::
 
 	sudo zypper refresh      # (OPTIONAL)
 	sudo zypper -n update    # (OPTIONAL)
 	sudo zypper -n patch     # (OPTIONAL)
-	sudo zypper -n in -t pattern devel_basis
-	sudo zypper -n in cmake git swig 
-	sudo zypper -n in python3 python3-pip python3-devel 
-	sudo zypper -n in zlib-devel liblz4-devel libtinyxml-devel libuuid-devel freeimage-devel libcurl-devel libopenssl-devel glu-devel 
-	sudo zypper -n in libQt5Concurrent-devel libQt5Network-devel \libQt5Test-devel libQt5OpenGL-devel libQt5PrintSupport-devel
+	sudo zypper -n in -t pattern devel_basis \
+		cmake git swig curl \
+		python3 python3-pip python3-devel \
+		zlib-devel liblz4-devel libtinyxml-devel libuuid-devel freeimage-devel libcurl-devel libopenssl-devel glu-devel \
+		libQt5Concurrent-devel libQt5Network-devel \libQt5Test-devel libQt5OpenGL-devel libQt5PrintSupport-devel
 
 Install numpy::
 
@@ -204,18 +204,37 @@ To test if it's working::
 	
 ### mod_visus
 
+Most of the command needs root access:
+
 ```
 sudo /bin/bash
-git clone https://github.com/sci-visus/OpenVisus /home/visus
-set VISUS_HOME=/home/visus
+```
+
+Install apache dependencies and set up where visus will be:
+
+```
+export VISUS_HOME=/home/visus
 sudo zypper -n in apache2 apache2-devel
+```
+
+Clone and compile visus:
+
+```
+git clone https://github.com/sci-visus/OpenVisus $VISUS_HOME
+cd $VISUS_HOME
 mkdir build
 cd build
 cmake ../ -DVISUS_GUI=0 -DVISUS_HOME=$VISUS_HOME -DVISUS_PYTHON_SYS_PATH=$(pwd)
+make -j 4
+```
 
+Setup apache for mod_visus: 
+
+```
+APACHE_EMAIL=youremail@here.com
 cat <<EOF > /etc/apache2/conf.d/000-default.conf
 <VirtualHost *:80>
-  ServerAdmin scrgiorgio@gmail.com
+  ServerAdmin $APACHE_EMAIL
   DocumentRoot /srv/www
   <Directory /srv/www>
     Options Indexes FollowSymLinks MultiViews
@@ -232,42 +251,48 @@ cat <<EOF > /etc/apache2/conf.d/000-default.conf
     SetHandler visus
     DirectorySlash Off
   </Location>
-  ErrorLog /var/log/apache2/error.log
-  CustomLog /var/log/apache2/access.log combined 
 </VirtualHost>
 EOF
 
 echo "LoadModule visus_module /usr/lib64/apache2-prefork/mod_visus.so" >> /etc/apache2/loadmodule.conf
-ln -s /home/visus/build/libmod_visus.so  /url/lib64/apache2-prefork/mod_visus.so
-
+ln -s $VISUS_HOME/build/libmod_visus.so  /usr/lib64/apache2-prefork/mod_visus.so
 a2enmod visus 
 
-cat <<EOF >  /usr/local/bin/httpd-foreground.sh
-#!/bin/bash
-set -e 
-rm -f /run/httpd.pid
-mkdir -p /var/log/apache2
-rm -f /var/log/apache2/error.log $VISUS_HOME/visus.log
-exec /usr/sbin/httpd -DFOREGROUND
-EOF
-
-chmod a+x /usr/local/bin/httpd-foreground.sh 
-
-cat <<EOF >  $VISUS_HOME/visus.configh
+cat <<EOF >  $VISUS_HOME/visus.config
 <?xml version="1.0" ?>
 <visus>
-  <dataset name='cat' url='file:///home/visus/Misc/dataset/cat/visus.idx' permissions='public'/>
+  <dataset name='cat' url='file://$VISUS_HOME/Misc/dataset/cat/visus.idx' permissions='public'/>
 </visus>
 EOF
-
-chown -R wwwrun  $VISUS_HOME
-chmod -R a+rX  $VISUS_HOME 
-
 ```
 
+Finally start apache:
 
+```
+chown -R wwwrun  $VISUS_HOME
+chmod -R u+rwX  $VISUS_HOME # dangerous!
+chmod -R a+rX   $VISUS_HOME
+systemctl stop apache2
+rm -f /var/log/apache2/error_log $VISUS_HOME/visus.log
+systemctl start apache2
+more /var/log/apache2/error_log # see 
+```
 
+If you want to start apache in the foreground:
 
+```
+systemctl stop apache2
+rm -f /run/httpd.pid
+mkdir -p /var/log/apache2
+rm -f /var/log/apache2/error_log $VISUS_HOME/visus.log
+/usr/sbin/httpd -DFOREGROUND
+```
+
+To test it, in another terminal:
+
+```
+curl -v "http://localhost/mod_visus?action=readdataset&dataset=cat"
+```
 
 ## Use OpenVisus as submodule
 
