@@ -200,15 +200,14 @@ public:
   {
     std::ostringstream out;
     out 
-      << " [--port value] [--type (http)]" << std::endl
-      << "Example: " << " --port 10000 --type http";
+      << " [--port value]" << std::endl
+      << "Example: " << " --port 10000 ";
     return out.str();
   }
 
   //exec
   virtual Array exec(Array data,std::vector<String> args) override
   {
-    NetServer::Type type=NetServer::Http;
     int    port=10000;
 
     for (int I=1;I<(int)args.size();I++)
@@ -216,18 +215,6 @@ public:
       if (args[I]=="--port" || args[I]=="-p") 
       {
         port=cint(args[++I]);
-      }
-      else if (args[I]=="--type" || args[I]=="-t")
-      {
-        String stype=args[++I];
-        if (stype=="http")
-        {
-          type=NetServer::Http;
-        }
-        else
-        {
-          throwInvalidArgument(stype, args);
-        }
       }
       else
       {
@@ -238,7 +225,7 @@ public:
     auto modvisus=std::make_shared<ModVisus>();
     modvisus->configureDatasets();
   
-    auto netserver=std::make_shared<NetServer>(port,type);
+    auto netserver=std::make_shared<NetServer>(port);
     netserver->addModule(modvisus);
     netserver->runInThisThread();
 
@@ -287,10 +274,7 @@ public:
     for (auto url : urls)
       VisusInfo() << "  " << url;
 
-    auto net = std::make_shared<NetService>();
-    net->setNumberOfConnections(nconnections);
-    net->setVerbose(0);
-    net->startNetService();
+    auto net = std::make_shared<NetService>(nconnections,false);
 
     Time t1 = Time::now();
 

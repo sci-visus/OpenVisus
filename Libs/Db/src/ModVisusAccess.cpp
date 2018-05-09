@@ -44,8 +44,8 @@ namespace Visus {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_) 
+  : NetworkAccess("ModVisusAccess", dataset, config_)
 {
-  initializeNetworkAccess(this, "ModVisusAccess", dataset, config_);
   num_queries_per_request=cint(this->config.readString("num_queries_per_request","1"));
   VisusAssert(num_queries_per_request > 0);
 }

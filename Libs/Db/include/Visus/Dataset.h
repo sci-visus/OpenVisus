@@ -61,20 +61,22 @@ public:
 
   //NOTE: I can copy the base inforation
 
-  Url                    url;
-  String                 dataset_body;
-  DatasetBitmask         bitmask;
-  int                    default_bitsperblock = 0;
-  NdBox                  box;
-  DatasetTimesteps       timesteps;
-  String                 default_scene;
+  Url                     url;
+  String                  dataset_body;
+  DatasetBitmask          bitmask;
+  int                     default_bitsperblock = 0;
+  NdBox                   box;
+  DatasetTimesteps        timesteps;
+  String                  default_scene;
 
-  StringTree             config;
-  SharedPtr<RamAccess>   ram_access;
-  int                    kdquery_mode = KdQueryMode::NotSpecified;
+  StringTree              config;
+  SharedPtr<RamAccess>    ram_access;
+  int                     kdquery_mode = KdQueryMode::NotSpecified;
 
-  std::vector<Field>     fields;
+  std::vector<Field>      fields;
   std::map<String, Field> find_field;
+
+  bool                    bServerMode = false;
 
 };
 

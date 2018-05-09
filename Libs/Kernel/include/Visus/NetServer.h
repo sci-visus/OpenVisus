@@ -90,21 +90,12 @@ public:
 
   };
 
-  enum Type
-  {
-    Http
-  };
 
   //constructor
-  NetServer(int port,Type type=Http);
+  NetServer(int port);
 
   //destructor
   virtual ~NetServer();
-
-  //getType
-  Type getType() const {
-    return type;
-  }
 
   //addModule
   void addModule(SharedPtr<NetServerModule> value) {
@@ -125,7 +116,6 @@ protected:
 
   Pimpl* pimpl;
   int    port;
-  Type   type;
 
 }; //end class
 

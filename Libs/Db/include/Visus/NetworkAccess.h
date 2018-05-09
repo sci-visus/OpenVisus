@@ -48,24 +48,23 @@ namespace Visus {
 class Dataset;
 
   ///////////////////////////////////////////////////////////////////////////////////////
-class VISUS_DB_API IsNetworkAccess
+class VISUS_DB_API NetworkAccess : public Access
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(IsNetworkAccess)
+  VISUS_NON_COPYABLE_CLASS(NetworkAccess)
 
   StringTree             config;
   SharedPtr<NetService>  netservice;
   Url                    url;
   String                 compression;
-  bool                   async = true;
 
   //constructor
-  IsNetworkAccess() {
-  }
+  NetworkAccess(String name, Dataset* dataset, StringTree config);
 
   //initializeNetworkAccess
-  void initializeNetworkAccess(Access* access, String name, Dataset* dataset, StringTree config);
+  virtual ~NetworkAccess() {
+  }
 
 };
 

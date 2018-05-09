@@ -192,7 +192,7 @@ int main(int argn,const char* argv[])
   UniquePtr<Rectangle2d> split_ortho;
 
   String open_filename=Dataset::getDefaultDatasetInVisusConfig();
-  String server_type;
+  bool bStartServer=false;
   bool bFullScreen=false;
   int x=0,y=0,width=0,height=0;
 
@@ -204,8 +204,7 @@ int main(int argn,const char* argv[])
     }
     else if (args[I]=="--server") 
     {
-      server_type=args[++I];
-      VisusAssert(server_type=="http");
+      bStartServer = true;
     }
     else if (args[I]=="--fullscreen")
     {
@@ -263,13 +262,12 @@ int main(int argn,const char* argv[])
     viewer->openFile(open_filename);
 
   SharedPtr<NetServer> server;
-  if (!server_type.empty())
+  if (bStartServer)
   {
     //mixing client and server mode for debugging purpouses
-    //ApplicationInfo::server_mode=true; 
     auto modvisus=std::make_shared<ModVisus>();
     modvisus->configureDatasets();
-    server=std::make_shared<NetServer>(10000,NetServer::Http);
+    server=std::make_shared<NetServer>(10000);
     server->addModule(modvisus);
     server->runInBackground();
   }

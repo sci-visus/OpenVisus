@@ -80,15 +80,8 @@ public:
       }
     }
 
-#if 1
-    int nthreads =
-      CONFIG.hasValue("nthreads") ?
-      CONFIG.readInt("nthreads") :
-      ApplicationInfo::server_mode ? 0 : 3;
-
-    if (nthreads)
+    if (int nthreads= VF->bServerMode ? 0 : 3)
       this->thread_pool = std::make_shared<ThreadPool>("IdxMultipleAccess Worker",nthreads);
-#endif
   }
 
   //destructor
@@ -626,7 +619,7 @@ public:
       ScopedReleaseGil release_gil;
 
       //this can run in parallel
-      if (ApplicationInfo::server_mode)
+      if (VF->bServerMode)
       {
         for (auto it : VF->childs)
         {

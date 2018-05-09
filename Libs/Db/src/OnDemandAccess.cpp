@@ -60,7 +60,6 @@ For support : support@visus.net
 
 #endif
 
-
 namespace Visus {
 
 ////////////////////////////////////////////////////////////////////////////
@@ -70,9 +69,8 @@ public:
 
   SharedPtr<NetService> netservice;
 
-
   //constructor
-  OnDemandAccessExternalPimpl(OnDemandAccess* owner, StringTree config = StringTree())
+  OnDemandAccessExternalPimpl(OnDemandAccess* owner, Dataset* dataset, StringTree config = StringTree())
     : OnDemandAccess::Pimpl(owner)
   {
     if (config.empty())
@@ -81,9 +79,8 @@ public:
         config = *default_config;
     }
 
-    this->netservice = std::make_shared<NetService>();
-    this->netservice->setConfig(config);
-    this->netservice->startNetService();
+    int nconnections = dataset->bServerMode ? 0 : config.readInt("nconnections", 8);
+    this->netservice = std::make_shared<NetService>(nconnections);
   }
 
   //destructor
@@ -228,8 +225,6 @@ public:
   }
 
 };
-
-
 
 ////////////////////////////////////////////////////////////////////////////
 class OnDemandAccessGoogleMapsPimpl : public OnDemandAccess::Pimpl
@@ -486,7 +481,7 @@ OnDemandAccess::OnDemandAccess(Dataset* dataset, StringTree config)
     break;
 
   case Type::External:
-    this->pimpl = new OnDemandAccessExternalPimpl(this);
+    this->pimpl = new OnDemandAccessExternalPimpl(this,dataset);
     break;
 
   case Type::ApplyFilter:

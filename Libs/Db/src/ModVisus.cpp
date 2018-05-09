@@ -401,7 +401,8 @@ private:
     if (map.find(public_name)!=map.end())
       VisusWarning()<<"Dataset name("<<public_name<<") already exists, overwriting it";
 
-    this->map[public_dataset->getName()]=public_dataset;
+    public_dataset->getDataset()->bServerMode = true;
+    this->map[public_name]=public_dataset;
 
     StringTree* list_child=list.addChild(StringTree("dataset"));
     list_child->attributes=public_dataset->getDataset()->getConfig().attributes; //for example kdquery=true could be maintained!
@@ -799,7 +800,7 @@ private:
     }
   }
   
-  //recursiveAddPublicDataset
+  //recursiveAddPublicScene
   void recursiveAddPublicScene(ScopedWriteLock& write_lock,StringTree& list,SharedPtr<PublicScene> public_scene)
   {
     String public_name=public_scene->getName();

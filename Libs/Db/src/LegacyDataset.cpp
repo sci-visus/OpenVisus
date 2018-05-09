@@ -43,7 +43,7 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////////////////
-class LegacyAccess : public Access, public IsNetworkAccess
+class LegacyAccess : public NetworkAccess
 {
 public:
 
@@ -51,9 +51,7 @@ public:
 
   //constructor
   LegacyAccess(LegacyDataset* dataset_,StringTree config=StringTree()) 
-    : dataset(dataset_) {
-
-    initializeNetworkAccess(this, "LegacyAccess", dataset_, config);
+    : NetworkAccess("LegacyAccess", dataset_, config), dataset(dataset_) {
   }
 
   //destructor

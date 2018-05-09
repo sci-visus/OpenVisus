@@ -156,12 +156,6 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
   if (!dataset->valid())
     ThrowException("IdxDataset not valid");
 
-  if (config.empty())
-  {
-    if (StringTree* default_config=VisusConfig::findChildWithName("Configuration/IdxDiskAccess"))
-      config=*default_config;
-  }
-
   String chmod=config.readString("chmod","rw");
   auto idxfile=dataset->idxfile;
 
@@ -235,16 +229,9 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
 
   headers.resize(file_header_size, __FILE__, __LINE__);
 
-  bool bDisableAsyncRead =
-    ApplicationInfo::server_mode ||
-    config.readBool("idx_disk_access_disable_threads",false) ||
-    std::find(ApplicationInfo::args.begin(), ApplicationInfo::args.end(), "--idx-disk-access-disable-threads") != ApplicationInfo::args.end();
-
-  if (!bDisableAsyncRead)
-  {
-    int nthreads = 1; // important! number of threads must be 1
+  // important!number of threads must be <=1 
+  if (int nthreads = dataset->bServerMode ? 0 : 1)
     async_read = std::make_shared<ThreadPool>("IdxDiskAccess Thread", nthreads);
-  }
 
   if (verbose)
     VisusInfo()<<"IdxDisk Access created url("<<url.toString()<<")";

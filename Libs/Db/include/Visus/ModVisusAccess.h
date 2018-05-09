@@ -47,7 +47,7 @@ namespace Visus {
 class Dataset;
 
   ///////////////////////////////////////////////////////////////////////////////////////
-class VISUS_DB_API ModVisusAccess : public Access, public IsNetworkAccess
+class VISUS_DB_API ModVisusAccess : public NetworkAccess
 {
 public:
 

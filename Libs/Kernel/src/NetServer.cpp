@@ -172,12 +172,9 @@ public:
 
 
 ///////////////////////////////////////////////////////////////
-NetServer::NetServer(int port_,Type type_) : port(port_),type(type_)
+NetServer::NetServer(int port_) : port(port_)
 {
-  if (type==Http)
-    pimpl=new HttpNetServer(port);
-  else
-    ThrowException("internal error");
+  pimpl=new HttpNetServer(port);
 }
 
 

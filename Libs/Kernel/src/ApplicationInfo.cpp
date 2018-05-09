@@ -46,7 +46,6 @@ Time                     ApplicationInfo::start;
 bool                     ApplicationInfo::debug = false;
 String                   ApplicationInfo::git_revision;
 String                   ApplicationInfo::platform_name;
-bool                     ApplicationInfo::server_mode = false;
 
 } //namespace Visus
 

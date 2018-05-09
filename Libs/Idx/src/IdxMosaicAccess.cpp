@@ -50,12 +50,6 @@ IdxMosaicAccess::IdxMosaicAccess(IdxDataset* VF_, StringTree CONFIG)
   if (!VF->valid())
     ThrowException("IdxDataset not valid");
 
-  if (CONFIG.empty())
-  {
-    if (StringTree* DEFAULT_CONFIG = VisusConfig::findChildWithName("Configuration/IdxMosaicAccess"))
-      CONFIG = *DEFAULT_CONFIG;
-  }
-
   this->name = CONFIG.readString("name", "IdxMosaicAccess");
   this->CONFIG = CONFIG;
   this->can_read  = StringUtils::find(CONFIG.readString("chmod", "rw"), "r") >= 0;

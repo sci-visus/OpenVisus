@@ -44,8 +44,8 @@ namespace Visus {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config) 
+  : NetworkAccess("CloudStorageAccess", dataset, config)
 {
-  initializeNetworkAccess(this, "CloudStorageAccess", dataset, config);
   this->cloud_storage.reset(CloudStorage::createInstance(url)); 
   VisusAssert(this->cloud_storage);
 }
