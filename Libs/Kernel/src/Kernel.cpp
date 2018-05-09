@@ -294,8 +294,8 @@ static void InitKnownPaths()
     }
     #elif __APPLE__
     {
-      int size = buff_size;
-      if (_NSGetExecutablePath(buff, &size) == 0)
+      uint32_t bufsize = buff_size;
+      if (_NSGetExecutablePath((char*)buff, &bufsize) == 0)
         KnownPaths::CurrentApplicationFile = Path(buff);
     }
     #else
