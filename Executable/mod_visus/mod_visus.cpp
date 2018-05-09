@@ -159,7 +159,6 @@ public:
 
     ApplicationInfo::server_mode = true;
     VisusConfig::filename = "/inetpub/wwwroot/visus/visus.config";
-    //Log::filename="/inetpub/wwwroot/visus/visus.log";
 
     static int argn = 1;
     static const char* argv[] = { "mod_visus.dll" };
