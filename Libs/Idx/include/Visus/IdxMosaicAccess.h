@@ -56,25 +56,12 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(IdxMosaicAccess)
 
-  class VISUS_IDX_API Child
-  {
-  public:
-    SharedPtr<IdxDataset> dataset;
-    SharedPtr<Access>     access;
-    Child(SharedPtr<IdxDataset> dataset_=SharedPtr<IdxDataset>()) : dataset(dataset_) {}
-  };
 
   //constructor
   IdxMosaicAccess(IdxMultipleDataset* VF, StringTree CONFIG = StringTree());
 
   //destructor
   virtual ~IdxMosaicAccess();
-
-  //addChild
-  void addChild(NdPoint index, SharedPtr<IdxDataset> vf) {
-    VisusAssert(!childs.count(index) && vf);
-    childs[index] = Child(vf);
-  }
 
   //beginIO
   virtual void beginIO(String mode) override;
@@ -89,6 +76,13 @@ public:
   virtual void writeBlock(SharedPtr<BlockQuery> QUERY) override;
 
 private:
+
+  class VISUS_IDX_API Child
+  {
+  public:
+    SharedPtr<IdxDataset> dataset;
+    SharedPtr<Access>     access;
+  };
 
   IdxMultipleDataset * VF;
   StringTree CONFIG;

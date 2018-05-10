@@ -57,6 +57,22 @@ IdxMosaicAccess::IdxMosaicAccess(IdxMultipleDataset* VF_, StringTree CONFIG)
   this->can_read  = StringUtils::find(CONFIG.readString("chmod", "rw"), "r") >= 0;
   this->can_write = StringUtils::find(CONFIG.readString("chmod", "rw"), "w") >= 0;
   this->bitsperblock = VF->getDefaultBitsPerBlock();
+
+  auto first = VF->childs.begin()->second.dataset;
+  auto dims = first->getBox().p2;
+  int  pdim = first->getPointDim();
+
+  for (auto it : VF->childs)
+  {
+    auto vf = std::dynamic_pointer_cast<IdxDataset>(it.second.dataset); VisusAssert(vf);
+    auto offset = it.second.M.getColumn(3).dropW();
+    auto index = NdPoint(pdim);
+    for (int D = 0; D < pdim; D++)
+      index[D] = ((NdPoint::coord_t)offset[D]) / dims[D];
+
+    VisusAssert(!this->childs.count(index));
+    this->childs[index].dataset=vf;
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -202,7 +218,6 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
 
     return QUERY->aborted() ? readFailed(QUERY) : readOk(QUERY);
   }
-  
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

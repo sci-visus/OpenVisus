@@ -146,9 +146,6 @@ private:
   //parseDatasets
   void parseDatasets(ObjectStream& istream,Matrix4 T);
 
-  //createMosaicAccess
-  SharedPtr<Access> createMosaicAccess(StringTree config);
-
   //removeAliases
   String removeAliases(String url);
 

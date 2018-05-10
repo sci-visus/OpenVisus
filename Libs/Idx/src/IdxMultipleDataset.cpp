@@ -747,25 +747,7 @@ public:
 
 };
 
-///////////////////////////////////////////////////////////////////////////////////
-SharedPtr<Access> IdxMultipleDataset::createMosaicAccess(StringTree config)
-{
-  auto mosaic_access = std::make_shared<IdxMosaicAccess>(this, config);
-  auto first = childs.begin()->second.dataset;
-  auto dims = first->getBox().p2;
-  int  pdim = first->getPointDim();
-  for (auto it : this->childs)
-  {
-    auto child_dataset = std::dynamic_pointer_cast<IdxDataset>(it.second.dataset);
-    VisusAssert(child_dataset);
-    auto vt = it.second.M.getColumn(3).dropW();
-    auto index = NdPoint(pdim);
-    for (int D = 0; D < pdim; D++)
-      index[D] = ((NdPoint::coord_t)vt[D]) / dims[D];
-    mosaic_access->addChild(index, child_dataset);
-  }
-  return mosaic_access;
-}
+
 
 ///////////////////////////////////////////////////////////////////////////////////
 SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForBlockQuery)
@@ -776,7 +758,7 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
     config = getDefaultAccessConfig();
 
   //consider I can have thousands of childs (NOTE: this attribute should be "inherited" from child)
-  config.writeBool("idx_disk_access_disable_threads", true); 
+  config.writeBool("disable_async", true); 
 
   String type = StringUtils::toLower(config.readString("type"));
 
@@ -788,7 +770,7 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
     if (url.isFile())
     {
       if (bMosaic)
-        return createMosaicAccess(config);
+        return std::make_shared<IdxMosaicAccess>(this,config);
       else
         return std::make_shared<IdxMultipleAccess>(this, config);
     }
@@ -805,19 +787,16 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
   }
 
   //IdxMosaicAccess
-  if (bMosaic && (config.empty() || type.empty() || type == "idxmosaicaccess"))
-    return createMosaicAccess(config);
-
-  //IdxMultipleAccess
-  if (type == "idxmultipleaccess" || type == "midx" || type == "multipleaccess")
-    return std::make_shared<IdxMultipleAccess>(this, config);
-
-
-  if (type == "idxmosaicaccess")
+  if (type == "idxmosaicaccess" || (bMosaic && (config.empty() || type.empty())))
   {
     VisusReleaseAssert(bMosaic);
     return std::make_shared<IdxMosaicAccess>(this, config);
   }
+    
+
+  //IdxMultipleAccess
+  if (type == "idxmultipleaccess" || type == "midx" || type == "multipleaccess")
+    return std::make_shared<IdxMultipleAccess>(this, config);
 
   return IdxDataset::createAccess(config, bForBlockQuery);
 }
