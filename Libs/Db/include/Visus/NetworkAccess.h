@@ -54,17 +54,24 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(NetworkAccess)
 
-  StringTree             config;
-  SharedPtr<NetService>  netservice;
-  Url                    url;
-  String                 compression;
-
   //constructor
   NetworkAccess(String name, Dataset* dataset, StringTree config);
 
   //initializeNetworkAccess
   virtual ~NetworkAccess() {
   }
+
+protected:
+
+  StringTree             config;
+  Url                    url;
+  String                 compression;
+
+  struct
+  {
+    SharedPtr<NetService>  netservice;
+  }
+  async;
 
 };
 

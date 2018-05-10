@@ -61,7 +61,9 @@ NetworkAccess::NetworkAccess(String name,Dataset* dataset,StringTree config_)
   bool disable_async = config.readBool("disable_async", dataset->bServerMode);
 
   if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
-    this->netservice = std::make_shared<NetService>(nconnections);
+    this->async.netservice = std::make_shared<NetService>(nconnections);
+
+  //VisusInfo() << "NetworkAccess created url(" << url.toString() << ") async(" << (async.netservice ? "yes" : "no") << ")";
 }
 
 } //namespace Visus 

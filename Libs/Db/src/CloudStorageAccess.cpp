@@ -123,9 +123,9 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
   };
 
   
-  if (bool bAsync=netservice?true:false)
+  if (bool bAsync= this->async.netservice?true:false)
   {
-    auto future_response=netservice->asyncNetworkIO(request);
+    auto future_response= this->async.netservice->asyncNetworkIO(request);
     future_response.when_ready([this, future_response, query,gotNetResponse]() {
       gotNetResponse(future_response.get());
     });
@@ -170,9 +170,9 @@ void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
     return writeOk(query);
   };
 
-  if (netservice)
+  if (bool bAsync= this->async.netservice? true:false)
   {
-    auto future_response=netservice->asyncNetworkIO(request);
+    auto future_response= this->async.netservice->asyncNetworkIO(request);
     future_response.when_ready([this, future_response, query,gotNetResponse]()  {
       gotNetResponse(future_response.get());
     });

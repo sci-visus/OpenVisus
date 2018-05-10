@@ -122,9 +122,9 @@ public:
       query->future.get_promise()->set_value(true);
     };
 
-    if (bool bAsync=netservice?true:false)
+    if (bool bAsync=this->async.netservice?true:false)
     {
-      auto future_response=netservice->asyncNetworkIO(request);
+      auto future_response= this->async.netservice->asyncNetworkIO(request);
       future_response.when_ready([this, future_response, query,gotNetResponse]() {
         gotNetResponse(future_response.get());
       });

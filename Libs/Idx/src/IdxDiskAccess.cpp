@@ -329,7 +329,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
   }
 
   if (bVerbose)
-    VisusInfo()<<"IdxDiskAccess created url("<<url.toString()<<")";
+    VisusInfo()<<"IdxDiskAccess created url("<<url.toString()<<") async("<<(async.tpool?"yes":"no")<<")";
 }
 
 ////////////////////////////////////////////////////////////////////
