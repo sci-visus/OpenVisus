@@ -168,6 +168,8 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
     //THIS IS GOING TO BE SLOW: i need to compose coarse blocks by executing "normal" query and merging them
     auto t1 = Time::now();
 
+    VisusInfo()<<"IdxMosaicAccess is composing block "<<BLOCK<<" (slow)";
+
     //row major
     QUERY->buffer.layout = "";
 
