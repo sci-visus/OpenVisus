@@ -79,8 +79,10 @@ public:
         config = *default_config;
     }
 
-    int nconnections = dataset->bServerMode ? 0 : config.readInt("nconnections", 8);
-    this->netservice = std::make_shared<NetService>(nconnections);
+    bool disable_async = config.readBool("disable_async", dataset->bServerMode);
+
+    if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
+      this->netservice = std::make_shared<NetService>(nconnections);
   }
 
   //destructor
@@ -178,13 +180,24 @@ public:
 
       NetRequest request(url);
       request.aborted = query->aborted;
-      auto future_response = netservice->asyncNetworkIO(request);
-      future_response.when_ready([this, future_response, query]() {
-        auto response = future_response.get();
+
+      if (netservice)
+      {
+        auto future_response = netservice->asyncNetworkIO(request);
+        future_response.when_ready([this, future_response, query]() {
+          auto response = future_response.get();
+
+          // As noted above, this stage always returns query failed. Third layer of multiplex will get data
+          owner->readFailed(query);
+        });
+      }
+      else
+      {
+        NetService::getNetResponse(request);
 
         // As noted above, this stage always returns query failed. Third layer of multiplex will get data
         owner->readFailed(query);
-      });
+      }
     }
     else
     {
@@ -463,7 +476,7 @@ OnDemandAccess::OnDemandAccess(Dataset* dataset, StringTree config)
   this->bitsperblock = dataset->getDefaultBitsPerBlock();
 
   //you can use a thread pool or not (default: no)
-  if (int nthreads = cint(VisusConfig::readString("Configuration/OnDemandAccess/nthreads", "0")))
+  if (int nthreads = cint(config.readString("nthreads", "0")))
     this->thread_pool=std::make_shared<ThreadPool>("OnDemandAccess Worker",nthreads);
 
   switch (this->type)

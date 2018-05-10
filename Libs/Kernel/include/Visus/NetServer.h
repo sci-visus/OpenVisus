@@ -70,52 +70,33 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(NetServer)
 
-  //_________________________________________________________
-  class Pimpl
-  {
-  public:
-
-    //destructor
-    virtual ~Pimpl()
-    {}
-
-    //addModule
-    virtual void addModule(SharedPtr<NetServerModule> value)=0;
-
-    //runInThisThread
-    virtual void runInThisThread()=0;
-
-    //runInBackground
-    virtual void runInBackground()=0;
-
-  };
-
-
   //constructor
-  NetServer(int port);
+  NetServer(int port, SharedPtr<NetServerModule> module, int nthreads = 8);
 
   //destructor
   virtual ~NetServer();
 
-  //addModule
-  void addModule(SharedPtr<NetServerModule> value) {
-    pimpl->addModule(value);
-  }
-
   //runInThisThread
-  void runInThisThread() {
-    pimpl->runInThisThread();
-  }
+  void runInThisThread();
 
   //runInBackground
   void runInBackground() {
-    pimpl->runInBackground();
+    this->thread = Thread::start("HttpNetServer Thread", [this]() {
+      runInThisThread();
+    });
   }
 
 protected:
 
-  Pimpl* pimpl;
-  int    port;
+  int                        port;
+  int                        nthreads;
+  int                        verbose;
+  SharedPtr<NetServerModule> module;
+  SharedPtr<std::thread>     thread;
+  bool                       bExitThread = false;
+
+  //writeResponse
+  bool writeResponse(NetSocket* client, NetResponse response);
 
 }; //end class
 

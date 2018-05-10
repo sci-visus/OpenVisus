@@ -41,148 +41,103 @@ For support : support@visus.net
 #include <Visus/ApplicationInfo.h>
 #include <Visus/Log.h>
 
-
 namespace Visus {
-
-///////////////////////////////////////////////////////
-class HttpNetServer : public NetServer::Pimpl
-{
-public:
-
-  int                        port;
-  int                        verbose;
-  SharedPtr<NetServerModule> module;
-  SharedPtr<std::thread>     thread;
-  bool                       bExitThread=false;
-  
-  //constructor
-  HttpNetServer(int port_) : port(port_)
-  {
-    this->verbose = cint(VisusConfig::readString("Configuration/NetServer/verbose",ApplicationInfo::debug?"1":"0"));
-  }
-
-  //destructor
-  ~HttpNetServer()
-  {
-    if (thread && thread->joinable())
-    {
-      //could be that the thread is stuck in server->accept
-      auto client=std::make_shared<NetSocket>();
-      client->connect("http://127.0.0.1:"+cstring(port));
-      bExitThread=true;
-      Thread::join(thread);
-    }
-  }
-
-  //addModule
-  virtual void addModule(SharedPtr<NetServerModule> value) override
-  {
-    VisusAssert(!this->module);
-    this->module=value;
-  }
-
-  //runInThisThread
-  virtual void runInThisThread() override
-  {
-    VisusAssert(this->module);
-    this->entryProc();
-  
-  }
-
-  //runInBackground
-  virtual void runInBackground() override
-  {
-    VisusAssert(this->module);
-    this->thread=Thread::start("HttpNetServer Thread",[this](){
-      entryProc();
-    });
-  }
-
-  //writeResponse
-  bool writeResponse(NetSocket* client,NetResponse response)
-  {
-    response.setHeader("Connection","Close");//in this debug version I don't keep the connections alive!
-    response.setHeader("NetServer","Visus debugging server");//just as double check
-    response.setHeader("Access-Control-Allow-Origin","*");//accept connections from localhost
-    client->sendResponse(response);
-    client->shutdownSend();
-    return true;
-  }
-
-  //entryProc
-  void entryProc() 
-  {
-    String url="http://127.0.0.1:"+cstring(port);
-
-    auto server=std::make_shared<NetSocket>();
-    if (!server->bind(url))
-    {
-      VisusError() << "NetServer::entryProc bind on port("<<port<<") failed";
-      return;
-    }
-
-    auto thread_pool=std::make_shared<ThreadPool>("HttpServer Worker",64);
-
-    //loop accept connections/handle operation
-    while (!bExitThread)
-    {
-      if (auto client=server->acceptConnection())
-      {
-        thread_pool->asyncRun([this,client](int worker)
-        {
-          if (bExitThread)
-          {
-            //maybe the client closed the connection
-            writeResponse(client.get(), NetResponse(HttpStatus::STATUS_INTERNAL_SERVER_ERROR));
-          }
-          else
-          {
-            NetRequest request = client->receiveRequest();
-            if (!request.valid())
-            {
-              writeResponse(client.get(), NetResponse(HttpStatus::STATUS_BAD_REQUEST));
-            }
-            else
-            {
-              NetResponse response = module->handleRequest(request);
-              bool bWrote = writeResponse(client.get(), response);
-              if (verbose)
-              {
-                if (response.isSuccessful())
-                {
-                  if (!bWrote)
-                    VisusInfo() << "Error writing the netresponse to the client, maybe he just dropped the request?";
-                  else
-                    VisusInfo() << "Wrote netresponse to the client";
-                }
-                else
-                {
-                  if (verbose)
-                    VisusInfo() << "!response.isSuccessful()... skipping it";
-                }
-              }
-            }
-          }
-        });
-      }
-    }
-    thread_pool.reset();
-  }
-};
 
 
 ///////////////////////////////////////////////////////////////
-NetServer::NetServer(int port_) : port(port_)
+NetServer::NetServer(int port_, SharedPtr<NetServerModule> module_,int nthreads_) : port(port_), module(module_),nthreads(nthreads_)
 {
-  pimpl=new HttpNetServer(port);
+  this->verbose = cint(VisusConfig::readString("Configuration/NetServer/verbose", ApplicationInfo::debug ? "1" : "0"));
 }
 
 
 ///////////////////////////////////////////////////////////////
 NetServer::~NetServer()
 {
-  if (pimpl) 
-    delete pimpl;
+  if (thread && thread->joinable())
+  {
+    //could be that the thread is stuck in server->accept
+    auto client = std::make_shared<NetSocket>();
+    client->connect("http://127.0.0.1:" + cstring(port));
+    this->bExitThread = true;
+    Thread::join(thread);
+  }
 }
+
+
+///////////////////////////////////////////////////////////////
+bool NetServer::writeResponse(NetSocket* client, NetResponse response)
+{
+  response.setHeader("Connection", "Close");//in this debug version I don't keep the connections alive!
+  response.setHeader("NetServer", "Visus debugging server");//just as double check
+  response.setHeader("Access-Control-Allow-Origin", "*");//accept connections from localhost
+  client->sendResponse(response);
+  client->shutdownSend();
+  return true;
+}
+
+
+///////////////////////////////////////////////////////////////
+void NetServer::runInThisThread()
+{
+  VisusAssert(this->module);
+
+  String url = "http://127.0.0.1:" + cstring(port);
+
+  auto server = std::make_shared<NetSocket>();
+  if (!server->bind(url))
+  {
+    VisusError() << "NetServer::entryProc bind on port(" << port << ") failed";
+    return;
+  }
+
+  auto thread_pool = std::make_shared<ThreadPool>("HttpServer Worker", nthreads);
+
+  //loop accept connections/handle operation
+  while (!bExitThread)
+  {
+    if (auto client = server->acceptConnection())
+    {
+      thread_pool->asyncRun([this, client](int worker)
+      {
+        if (bExitThread)
+        {
+          //maybe the client closed the connection
+          writeResponse(client.get(), NetResponse(HttpStatus::STATUS_INTERNAL_SERVER_ERROR));
+        }
+        else
+        {
+          NetRequest request = client->receiveRequest();
+          if (!request.valid())
+          {
+            writeResponse(client.get(), NetResponse(HttpStatus::STATUS_BAD_REQUEST));
+          }
+          else
+          {
+            NetResponse response = module->handleRequest(request);
+            bool bWrote = writeResponse(client.get(), response);
+            if (verbose)
+            {
+              if (response.isSuccessful())
+              {
+                if (!bWrote)
+                  VisusInfo() << "Error writing the netresponse to the client, maybe he just dropped the request?";
+                else
+                  VisusInfo() << "Wrote netresponse to the client";
+              }
+              else
+              {
+                if (verbose)
+                  VisusInfo() << "!response.isSuccessful()... skipping it";
+              }
+            }
+          }
+        }
+      });
+    }
+  }
+  thread_pool.reset();
+}
+
 
 } //namespace Visus

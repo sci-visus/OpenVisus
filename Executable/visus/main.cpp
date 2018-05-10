@@ -225,8 +225,7 @@ public:
     auto modvisus=std::make_shared<ModVisus>();
     modvisus->configureDatasets();
   
-    auto netserver=std::make_shared<NetServer>(port);
-    netserver->addModule(modvisus);
+    auto netserver=std::make_shared<NetServer>(port, modvisus);
     netserver->runInThisThread();
 
     return data;

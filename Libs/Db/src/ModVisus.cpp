@@ -74,12 +74,14 @@ public:
   }
 
   //getName
-  const String& getName() const
-  {return name;}
+  const String& getName() const {
+    return name;
+  }
 
   //getUrl
-  const String& getUrl() const
-  {return url;}
+  const String& getUrl() const {
+    return url;
+  }
 
   //getDataset
   SharedPtr<Dataset> getDataset() const
@@ -89,8 +91,7 @@ public:
   }
 
   //getDatasetBody
-  String getDatasetBody() const
-  {
+  String getDatasetBody() const {
     ScopedReadLock lock(const_cast<PublicDataset*>(this)->dataset_lock);
     return dataset_body;
   }
@@ -120,7 +121,6 @@ private:
 
   VISUS_NON_COPYABLE_CLASS(PublicDataset)
 
-  
   String             name;
   String             url;
   String             url_template;
@@ -947,15 +947,10 @@ bool ModVisus::configureDatasets()
   datasets->configureDatasets(VisusConfig::storage);
   scenes->configureScenes(VisusConfig::storage);
 
-  this->verbose = cint(VisusConfig::readString("Configuration/ModVisus/verbose"));
-  #ifdef _DEBUG
-  this->verbose = std::max(verbose,1);
-  #endif
-
   VisusInfo()<<"/mod_visus?action=list\n"<<datasets->getList(PublicDatasets::XmlFormat);
-  VisusInfo()<<"done ModVisus::configureDatasets()";
-  VisusInfo()<<"/mod_visus?action=list\n"<<scenes->getList(PublicScenes::XmlFormat);
-  VisusInfo()<<"done ModVisus::configureScenes()";
+
+  VisusInfo()<<"/mod_visus?action=list_scenes\n"<<scenes->getList(PublicScenes::XmlFormat);
+
   return true;
 }
 
@@ -1477,8 +1472,6 @@ NetResponse ModVisus::handleRequest(NetRequest request)
       }
     }
   }
-  
-  VisusInfo() << "request is " << request.getTextBody();
 
   String action=request.url.getParam("action");
 

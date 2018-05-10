@@ -58,7 +58,9 @@ NetworkAccess::NetworkAccess(String name,Dataset* dataset,StringTree config_)
 
   this->config.writeString("url", url.toString());
 
-  if (int nconnections = dataset->bServerMode ? 0 : config.readInt("nconnections", 8))
+  bool disable_async = config.readBool("disable_async", dataset->bServerMode);
+
+  if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
     this->netservice = std::make_shared<NetService>(nconnections);
 }
 

@@ -80,7 +80,8 @@ public:
       }
     }
 
-    if (int nthreads= VF->bServerMode ? 0 : 3)
+    bool disable_async = CONFIG.readBool("disable_async", VF->bServerMode);
+    if (int nthreads= disable_async ? 0 : 3)
       this->thread_pool = std::make_shared<ThreadPool>("IdxMultipleAccess Worker",nthreads);
   }
 
@@ -182,7 +183,7 @@ public:
   Query*                   QUERY;
   SharedPtr<Access>        ACCESS;
 
-  SharedPtr<PythonEngine>  engine = std::make_shared<PythonEngine>();
+  SharedPtr<PythonEngine>  engine = std::make_shared<PythonEngine>(false);
   Aborted                  aborted;
 
   struct
@@ -619,7 +620,8 @@ public:
       ScopedReleaseGil release_gil;
 
       //this can run in parallel
-      if (VF->bServerMode)
+      bool bRunInParallel = VF->bServerMode? false:true;
+      if (!bRunInParallel)
       {
         for (auto it : VF->childs)
         {
@@ -906,6 +908,38 @@ Field IdxMultipleDataset::createField(String operation_name)
   return ret;
 };
 
+////////////////////////////////////////////////////////////////////////////////////
+String IdxMultipleDataset::removeAliases(String url)
+{
+  //replace some alias
+  auto URL = this->url;
+
+  String CurrentFileDirectory = URL.isFile() ? Path(URL.getPath()).getParent().toString() : "";
+
+  if (URL.isFile() && !CurrentFileDirectory.empty())
+  {
+    if (Url(url).isFile() && StringUtils::startsWith(Url(url).getPath(), "./"))
+      url = CurrentFileDirectory + Url(url).getPath().substr(1);
+
+    if (StringUtils::contains(url, "$(CurrentFileDirectory)"))
+      url = StringUtils::replaceAll(url, "$(CurrentFileDirectory)", CurrentFileDirectory);
+  }
+  else if (URL.isRemote())
+  {
+    if (StringUtils::contains(url, "$(protocol)"))
+      url = StringUtils::replaceAll(url, "$(protocol)", URL.getProtocol());
+
+    if (StringUtils::contains(url, "$(hostname)"))
+      url = StringUtils::replaceAll(url, "$(hostname)", URL.getHostname());
+
+    if (StringUtils::contains(url, "$(port)"))
+      url = StringUtils::replaceAll(url, "$(port)", cstring(URL.getPort()));
+  }
+
+  return url;
+};
+
+
 ///////////////////////////////////////////////////////////
 void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
 {
@@ -918,44 +952,16 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
   child.name = StringUtils::trim(istream.readInline("name", istream.readInline("id"))); VisusAssert(!child.name.empty());
   child.color = Color::parseFromString(istream.readInline("color"));
   child.origin = istream.readInline("origin");
+  child.filename_template = istream.readInline("filename_template");
 
   //override name if exist
   if (this->childs.find(child.name) != this->childs.end())
     child.name = "_generated_name_"+cstring((int)this->childs.size());
 
-  //replace some alias
-  auto URL = this->url;
-
-  auto fixPath = [&](String url) {
-    String CurrentFileDirectory = URL.isFile() ? Path(URL.getPath()).getParent().toString() : "";
-
-    if (URL.isFile() && !CurrentFileDirectory.empty())
-    {
-      if (Url(url).isFile() && StringUtils::startsWith(Url(url).getPath(), "./"))
-        url = CurrentFileDirectory + Url(url).getPath().substr(1);
-
-      if (StringUtils::contains(url, "$(CurrentFileDirectory)"))
-        url = StringUtils::replaceAll(url, "$(CurrentFileDirectory)", CurrentFileDirectory);
-    }
-    else if (URL.isRemote())
-    {
-      if (StringUtils::contains(url, "$(protocol)"))
-        url = StringUtils::replaceAll(url, "$(protocol)", URL.getProtocol());
-
-      if (StringUtils::contains(url, "$(hostname)"))
-        url = StringUtils::replaceAll(url, "$(hostname)", URL.getHostname());
-
-      if (StringUtils::contains(url, "$(port)"))
-        url = StringUtils::replaceAll(url, "$(port)", cstring(URL.getPort()));
-    }
-
-    return url;
-  };
-
-  url=fixPath(url);
+  url= removeAliases(url);
 
   //if mosaic all datasets are the same, I just need to know the IDX filename template
-  if (this->bMosaic && !childs.empty())
+  if (this->bMosaic && !childs.empty() && !child.filename_template.empty())
   {
     auto first = childs.begin()->second.dataset;
     auto other = first->cloneForMosaic();
@@ -963,13 +969,13 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
     VisusReleaseAssert(other);
 
     //all the idx files are the same except for the IDX path
-    child.mosaic_filename_template=istream.readInline("filename_template");
+    child.filename_template =istream.readInline("filename_template");
 
-    VisusReleaseAssert(!child.mosaic_filename_template.empty());
-    child.mosaic_filename_template = fixPath(child.mosaic_filename_template);
+    VisusReleaseAssert(!child.filename_template.empty());
+    child.filename_template = removeAliases(child.filename_template);
 
     other->url = url;
-    other->idxfile.filename_template = child.mosaic_filename_template;
+    other->idxfile.filename_template = child.filename_template;
     other->idxfile.validate(url); VisusAssert(other->idxfile.valid());
     child.dataset = other;
   }
@@ -1232,7 +1238,6 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     setIdxFile(IDXFILE);
 
     //updateBody();
-
     return true;
   }
   
@@ -1299,9 +1304,11 @@ void IdxMultipleDataset::updateBody(bool bSave)
     if (!it.second.origin.empty())
       ostream.writeInline("origin", it.second.origin);
 
-    if (!it.second.mosaic_filename_template.empty())
-      ostream.writeInline("filename_template", it.second.mosaic_filename_template);
-
+    if (!it.second.filename_template.empty())
+    {
+      VisusAssert(bMosaic);
+      ostream.writeInline("filename_template", it.second.filename_template);
+    }
 
     auto M = it.second.M;
     if (M.dropW() == Matrix3::identity())

@@ -60,7 +60,7 @@ public:
     Color                 color;
     String                origin;
     Matrix                M; //transformation matrix up <- dw
-    String                mosaic_filename_template;
+    String                filename_template;
     SharedPtr<IdxDataset> dataset;
   };
 
@@ -148,6 +148,9 @@ private:
 
   //createMosaicAccess
   SharedPtr<Access> createMosaicAccess(StringTree config);
+
+  //removeAliases
+  String removeAliases(String url);
 
 };
 

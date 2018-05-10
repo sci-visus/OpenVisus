@@ -204,7 +204,7 @@ void PythonEngine::addSysPath(String value) {
 }
 
   ///////////////////////////////////////////////////////////////////////////
-PythonEngine::PythonEngine()
+PythonEngine::PythonEngine(bool bVerbose)
 {
   ScopedAcquireGil acquire_gil;
 
@@ -212,7 +212,9 @@ PythonEngine::PythonEngine()
 
   this->module  = PyImport_AddModule(module_name.c_str()); 
   if (!module) {
-    VisusInfo()<<"PyImport_AddModule(\""<< module_name<<"\") failed";
+
+    if (bVerbose)
+      VisusInfo()<<"PyImport_AddModule(\""<< module_name<<"\") failed";
     VisusAssert(false);
   }
 
@@ -224,18 +226,22 @@ PythonEngine::PythonEngine()
   auto addSysPath=[&](String value) {
     value=fixPath(value);
     auto cmd="import sys; sys.path.append('" + value+ "')";
-    VisusInfo()<<cmd;
+
+    if (bVerbose)
+      VisusInfo()<<cmd;
     execCode(cmd);
   };
 
   //add the directory of the executable
   if (runningInsidePyMain())
   {
-    VisusInfo() << "Visus is running inside PyMain";
+    if (bVerbose)
+      VisusInfo() << "Visus is running inside PyMain";
   }
   else
   {
-    VisusInfo() << "Visus is NOT running inside PyMain";
+    if (bVerbose)
+      VisusInfo() << "Visus is NOT running inside PyMain";
 
     //try to find visus.py in the same directory where the app is 
     //example: <name>.app/Contents/MacOS/<name>
@@ -250,9 +256,13 @@ PythonEngine::PythonEngine()
     addSysPath(VISUS_PYTHON_SYS_PATH);
   #endif
 
-  VisusInfo() << "Trying to import visuspy...";
+    if (bVerbose)
+    VisusInfo() << "Trying to import visuspy...";
+
   execCode("from visuspy import *");
-  VisusInfo() << "...imported visuspy";
+
+  if (bVerbose)
+    VisusInfo() << "...imported visuspy";
 
   swig_type_aborted = SWIG_TypeQuery("Visus::Aborted *");
   VisusAssert(swig_type_aborted);

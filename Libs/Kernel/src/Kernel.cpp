@@ -491,7 +491,7 @@ void KernelModule::attach()
 
   //this is to make sure PythonEngine works
   {
-    auto engine = std::make_shared<PythonEngine>();
+    auto engine = std::make_shared<PythonEngine>(true);
     {
       ScopedAcquireGil acquire_gil;
       engine->execCode("print('PythonEngine is working fine')");

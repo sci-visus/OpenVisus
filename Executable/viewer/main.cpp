@@ -267,8 +267,7 @@ int main(int argn,const char* argv[])
     //mixing client and server mode for debugging purpouses
     auto modvisus=std::make_shared<ModVisus>();
     modvisus->configureDatasets();
-    server=std::make_shared<NetServer>(10000);
-    server->addModule(modvisus);
+    server=std::make_shared<NetServer>(10000, modvisus);
     server->runInBackground();
   }
 

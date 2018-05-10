@@ -37,16 +37,18 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/IdxMosaicAccess.h>
-#include <Visus/IdxDataset.h>
+#include <Visus/IdxMultipleDataset.h>
 #include <Visus/VisusConfig.h>
 #include <Visus/ApplicationStats.h>
 
 namespace Visus {
 
 ///////////////////////////////////////////////////////////////////////////////////////
-IdxMosaicAccess::IdxMosaicAccess(IdxDataset* VF_, StringTree CONFIG)
+IdxMosaicAccess::IdxMosaicAccess(IdxMultipleDataset* VF_, StringTree CONFIG)
   : VF(VF_)
 {
+  VisusReleaseAssert(VF->bMosaic);
+
   if (!VF->valid())
     ThrowException("IdxDataset not valid");
 
@@ -68,7 +70,10 @@ SharedPtr<Access> IdxMosaicAccess::getChildAccess(const Child& child) const
   if (child.access)
     return child.access;
 
-  auto ret = child.dataset->createAccess(StringTree(),/*bForBlockQuery*/true);
+  //with thousansands of childs I don't want to create ThreadPool or NetService
+  auto config = StringTree();
+  config.writeBool("disable_async",true); 
+  auto ret = child.dataset->createAccess(config,/*bForBlockQuery*/true);
   const_cast<Child&>(child).access = ret;
   return ret;
 }

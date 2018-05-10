@@ -47,6 +47,7 @@ namespace Visus {
 
 //predeclaration
 class IdxDataset;
+class IdxMultipleDataset;
 
 //////////////////////////////////////////////////////
 class VISUS_IDX_API IdxMosaicAccess : public Access
@@ -64,7 +65,7 @@ public:
   };
 
   //constructor
-  IdxMosaicAccess(IdxDataset* VF, StringTree CONFIG = StringTree());
+  IdxMosaicAccess(IdxMultipleDataset* VF, StringTree CONFIG = StringTree());
 
   //destructor
   virtual ~IdxMosaicAccess();
@@ -89,7 +90,7 @@ public:
 
 private:
 
-  IdxDataset* VF;
+  IdxMultipleDataset * VF;
   StringTree CONFIG;
 
   std::map<NdPoint, Child, NdPoint::Compare > childs;
