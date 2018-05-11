@@ -515,12 +515,18 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
   if (bVerbose)
     VisusInfo() << "got request to read block blockid(" << blockid << ")";
 
-  if (block_range.to>0 && !(blockid >= block_range.from && blockid < block_range.to))
+  if (block_range.to>0 )
   {    
     if (bVerbose)
       VisusInfo() << "IdxDiskAccess::read blockid(" << blockid << ") failed because out of range";
 
-    return readFailed(query);
+    if (!(blockid >= block_range.from && blockid < block_range.to))
+      return readFailed(query);
+    else
+    {
+      query->buffer.fillWithValue(query->field.default_value);
+      return readOk(query);
+    }
   }
 
   if (bDisableIO)

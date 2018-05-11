@@ -1168,27 +1168,34 @@ public:
     auto access=dataset->createAccessForBlockQuery();
 
     auto block_query = std::make_shared<BlockQuery>(field, time, block_id *(((Int64)1) << access->bitsperblock), (block_id + 1)*(((Int64)1) << access->bitsperblock), Aborted());
+    ApplicationStats::io.readValues(true);
 
+    auto t1 = Time::now();
+
+    Array ret;
     if (bWriting)
     {
-      VisusInfo() << "Writing block(" << block_id << ")";
       access->beginWrite();
       bool bOk = dataset->writeBlockAndWait(access, block_query);
       access->endWrite();
       if (!bOk)
         ThrowException("Failed to write block");
-      return data;
+      ret=data;
     }
     else
     {
-      VisusInfo() << "Reading block(" << block_id << ")";
       access->beginRead();
       bool bOk = dataset->readBlockAndWait(access, block_query);
       access->endRead();
       if (!bOk)
         ThrowException("Failed to write block");
-      return block_query->buffer;
+      ret=block_query->buffer;
     }
+
+
+    auto stats=ApplicationStats::io.readValues(true);
+    VisusInfo() << (bWriting?"Wrote":"Read")<< " block("<<block_id<< ") in msec(" << t1.elapsedMsec() << ") nopen(" << stats.nopen << ") rbytes(" << StringUtils::getStringFromByteSize(stats.rbytes) << ") wbytes(" << StringUtils::getStringFromByteSize(stats.wbytes) << ")";
+    return ret;
   }
 
 private:
