@@ -580,8 +580,6 @@ void IdxDiskAccess::readBlockInCurrentThread(FileIO& file,SharedPtr<BlockQuery> 
   if (!file.open(filename, file_mode))
     return failed("cannot open file");
 
-  VisusAssert(file.file);
-
   //block header
   BlockHeader block_header;
 
