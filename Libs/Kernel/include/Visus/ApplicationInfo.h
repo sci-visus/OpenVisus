@@ -61,7 +61,6 @@ public:
   static bool                debug;
   static String              git_revision;
   static String              platform_name;
-  static bool                server_mode;
 
 private:
 

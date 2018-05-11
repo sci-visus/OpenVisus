@@ -295,8 +295,8 @@ static void InitKnownPaths()
     }
     #elif __APPLE__
     {
-      int size = buff_size;
-      if (_NSGetExecutablePath(buff, &size) == 0)
+      uint32_t bufsize = buff_size;
+      if (_NSGetExecutablePath((char*)buff, &bufsize) == 0)
         KnownPaths::CurrentApplicationFile = Path(buff);
     }
     #else
@@ -321,9 +321,6 @@ static void InitKnownPaths()
     }
     #endif
   }
-
-  //VisusCachesDirectory
-  KnownPaths::VisusCachesDirectory = KnownPaths::VisusHome.getChild("cache");
 }
   
 ///////////////////////////////////////////////////////////
@@ -443,7 +440,6 @@ void KernelModule::attach()
 
   VisusInfo() << "git_revision            " << ApplicationInfo::git_revision;
   VisusInfo() << "VisusHome               " << KnownPaths::VisusHome.toString();
-  VisusInfo() << "VisusCacheDirectory     " << KnownPaths::VisusCachesDirectory.toString();
   VisusInfo() << "CurrentApplicationFile  " << KnownPaths::CurrentApplicationFile.toString();
   VisusInfo() << "CurrentWorkingDirectory " << KnownPaths::CurrentWorkingDirectory.toString();
 
@@ -495,7 +491,7 @@ void KernelModule::attach()
 
   //this is to make sure PythonEngine works
   {
-    auto engine = std::make_shared<PythonEngine>();
+    auto engine = std::make_shared<PythonEngine>(true);
     {
       ScopedAcquireGil acquire_gil;
       engine->execCode("print('PythonEngine is working fine')");

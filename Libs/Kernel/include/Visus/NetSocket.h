@@ -96,17 +96,11 @@ public:
   
   };
 
-
-  enum Type
-  {
-    Bsd
-  };
+  //constructor
+  NetSocket();
 
   //constructor
-  NetSocket(Type type=Bsd, SharedPtr<NetSocket> share_context_with = SharedPtr<NetSocket>());
-
-  //constructor
-  NetSocket(Type type_, Pimpl* VISUS_DISOWN(pimpl_)) : pimpl(pimpl_), type(type_){
+  NetSocket(Pimpl* VISUS_DISOWN(pimpl_)) : pimpl(pimpl_){
   }
 
   //destructor
@@ -117,23 +111,6 @@ public:
   //getPimpl
   virtual Pimpl* getPimpl() const {
     return pimpl;
-  }
-
-  //guessTypeFromProtocol
-  static Type guessTypeFromProtocol(String protocol) {
-    
-    protocol=StringUtils::toLower(protocol);
-
-    if (protocol=="http" || protocol=="https")
-      return NetSocket::Bsd;
-
-    return NetSocket::Bsd;
-  
-  }
-
-  //getType
-  Type getType() const {
-    return type;
   }
 
   //shutdownSend
@@ -184,7 +161,6 @@ public:
 private:
 
   Pimpl* pimpl;
-  Type type;
 
 };
 

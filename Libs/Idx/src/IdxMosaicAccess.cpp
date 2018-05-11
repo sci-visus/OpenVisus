@@ -37,30 +37,42 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/IdxMosaicAccess.h>
-#include <Visus/IdxDataset.h>
+#include <Visus/IdxMultipleDataset.h>
 #include <Visus/VisusConfig.h>
 #include <Visus/ApplicationStats.h>
 
 namespace Visus {
 
 ///////////////////////////////////////////////////////////////////////////////////////
-IdxMosaicAccess::IdxMosaicAccess(IdxDataset* VF_, StringTree CONFIG)
+IdxMosaicAccess::IdxMosaicAccess(IdxMultipleDataset* VF_, StringTree CONFIG)
   : VF(VF_)
 {
+  VisusReleaseAssert(VF->bMosaic);
+
   if (!VF->valid())
     ThrowException("IdxDataset not valid");
-
-  if (CONFIG.empty())
-  {
-    if (StringTree* DEFAULT_CONFIG = VisusConfig::findChildWithName("Configuration/IdxMosaicAccess"))
-      CONFIG = *DEFAULT_CONFIG;
-  }
 
   this->name = CONFIG.readString("name", "IdxMosaicAccess");
   this->CONFIG = CONFIG;
   this->can_read  = StringUtils::find(CONFIG.readString("chmod", "rw"), "r") >= 0;
   this->can_write = StringUtils::find(CONFIG.readString("chmod", "rw"), "w") >= 0;
   this->bitsperblock = VF->getDefaultBitsPerBlock();
+
+  auto first = VF->childs.begin()->second.dataset;
+  auto dims = first->getBox().p2;
+  int  pdim = first->getPointDim();
+
+  for (auto it : VF->childs)
+  {
+    auto vf = std::dynamic_pointer_cast<IdxDataset>(it.second.dataset); VisusAssert(vf);
+    auto offset = it.second.M.getColumn(3).dropW();
+    auto index = NdPoint(pdim);
+    for (int D = 0; D < pdim; D++)
+      index[D] = ((NdPoint::coord_t)offset[D]) / dims[D];
+
+    VisusAssert(!this->childs.count(index));
+    this->childs[index].dataset=vf;
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -68,14 +80,16 @@ IdxMosaicAccess::~IdxMosaicAccess()
 {
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////////////
 SharedPtr<Access> IdxMosaicAccess::getChildAccess(const Child& child) const
 {
   if (child.access)
     return child.access;
 
-  auto ret = child.dataset->createAccess(StringTree(),/*bForBlockQuery*/true);
+  //with thousansands of childs I don't want to create ThreadPool or NetService
+  auto config = StringTree();
+  config.writeBool("disable_async",true); 
+  auto ret = child.dataset->createAccess(config,/*bForBlockQuery*/true);
   const_cast<Child&>(child).access = ret;
   return ret;
 }
@@ -112,9 +126,49 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
 
   bool bBlockTotallyInsideSingle = (BLOCK >= ((BigInt)1 << NBITS));
 
-  if (!bBlockTotallyInsideSingle)
+  if (bBlockTotallyInsideSingle)
   {
+    //forward the block read to a single child
+    NdPoint p1, index = NdPoint::one(pdim);
+    for (int D = 0; D < VISUS_NDPOINT_DIM; D++) {
+      index[D] = QUERY->logic_box.p1[D] / dims[D];
+      p1[D] = QUERY->logic_box.p1[D] % dims[D];
+    }
+
+    auto it = childs.find(index);
+    if (it == childs.end())
+      return readFailed(QUERY);
+
+    auto vf = it->second.dataset;
+    VisusAssert(vf);
+
+    auto hzfrom = HzOrder(vf->idxfile.bitmask, vf->getMaxResolution()).getAddress(p1);
+
+    auto block_query = std::make_shared<BlockQuery>(QUERY->field, QUERY->time, hzfrom, hzfrom + ((BigInt)1 << bitsperblock), QUERY->aborted);
+
+    auto access = getChildAccess(it->second);
+
+    if (!access->isReading())
+      access->beginIO(this->getMode());
+
+    //TODO: should I keep track of running queries in order to wait for them in the destructor?
+    block_query->future.when_ready([this, QUERY, block_query]() {
+
+      if (block_query->getStatus() != QueryOk)
+        return readFailed(QUERY); //failed
+
+      QUERY->buffer = block_query->buffer;
+      return readOk(QUERY);
+    });
+
+    vf->readBlock(access, block_query);
+  }
+  else
+  {
+    //THIS IS GOING TO BE SLOW: i need to compose coarse blocks by executing "normal" query and merging them
     auto t1 = Time::now();
+
+    VisusInfo()<<"IdxMosaicAccess is composing block "<<BLOCK<<" (slow)";
 
     //row major
     QUERY->buffer.layout = "";
@@ -154,7 +208,6 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
         QUERY->buffer, PIXEL_P1, PIXEL_p2, NdPoint::one(pdim),
         query->buffer, pixel_p1, pixel_p2, NdPoint::one(pdim),
         QUERY->aborted);
-
     }
 
     if (bool bPrintStats = false)
@@ -167,48 +220,12 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
 
     return QUERY->aborted() ? readFailed(QUERY) : readOk(QUERY);
   }
-  else
-  {
-    //forward the block read to a single child
-    NdPoint p1, index = NdPoint::one(pdim);
-    for (int D = 0; D < VISUS_NDPOINT_DIM; D++) {
-      index[D] = QUERY->logic_box.p1[D] / dims[D];
-      p1   [D] = QUERY->logic_box.p1[D] % dims[D];
-    }
-
-    auto it = childs.find(index);
-    if (it==childs.end())
-      return readFailed(QUERY);
-
-    auto vf = it->second.dataset;
-    VisusAssert(vf);
-
-    auto hzfrom = HzOrder(vf->idxfile.bitmask, vf->getMaxResolution()).getAddress(p1);
-
-    auto query = std::make_shared<BlockQuery>(QUERY->field, QUERY->time, hzfrom, hzfrom + ((BigInt)1 << bitsperblock), QUERY->aborted);
-
-    auto access = getChildAccess(it->second);
-
-    if (!access->isReading())
-      access->beginIO(this->getMode());
-
-    //TODO: should I keep track of running queries in order to wait for them in the destructor?
-    query->future.when_ready([this, QUERY, query]() {
-
-      if (query->getStatus() != QueryOk)
-        return readFailed(QUERY); //failed
-
-      QUERY->buffer = query->buffer;
-      return readOk(QUERY);
-    });
-
-    vf->readBlock(access, query);
-  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
 void IdxMosaicAccess::writeBlock(SharedPtr<BlockQuery> QUERY)
 {
+  //not supported!
   VisusAssert(isWriting());
   VisusAssert(false);
   return writeFailed(QUERY);

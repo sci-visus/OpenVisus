@@ -1957,7 +1957,7 @@ SharedPtr<IdxDataset> IdxDataset::create(String filename, Array data, IdxFile id
     return SharedPtr<IdxDataset>();
   }
 
-  auto vf = std::dynamic_pointer_cast<IdxDataset>(Dataset::loadDataset(filename));
+  auto vf = IdxDataset::loadDataset(filename);
   if (!vf)
   {
     VisusError() << "Dataset::loadDataset(" << filename << ") failed";

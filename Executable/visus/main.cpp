@@ -200,15 +200,14 @@ public:
   {
     std::ostringstream out;
     out 
-      << " [--port value] [--type (http)]" << std::endl
-      << "Example: " << " --port 10000 --type http";
+      << " [--port value]" << std::endl
+      << "Example: " << " --port 10000 ";
     return out.str();
   }
 
   //exec
   virtual Array exec(Array data,std::vector<String> args) override
   {
-    NetServer::Type type=NetServer::Http;
     int    port=10000;
 
     for (int I=1;I<(int)args.size();I++)
@@ -216,18 +215,6 @@ public:
       if (args[I]=="--port" || args[I]=="-p") 
       {
         port=cint(args[++I]);
-      }
-      else if (args[I]=="--type" || args[I]=="-t")
-      {
-        String stype=args[++I];
-        if (stype=="http")
-        {
-          type=NetServer::Http;
-        }
-        else
-        {
-          throwInvalidArgument(stype, args);
-        }
       }
       else
       {
@@ -238,8 +225,7 @@ public:
     auto modvisus=std::make_shared<ModVisus>();
     modvisus->configureDatasets();
   
-    auto netserver=std::make_shared<NetServer>(port,type);
-    netserver->addModule(modvisus);
+    auto netserver=std::make_shared<NetServer>(port, modvisus);
     netserver->runInThisThread();
 
     return data;
@@ -287,10 +273,7 @@ public:
     for (auto url : urls)
       VisusInfo() << "  " << url;
 
-    auto net = std::make_shared<NetService>();
-    net->setNumberOfConnections(nconnections);
-    net->setVerbose(0);
-    net->startNetService();
+    auto net = std::make_shared<NetService>(nconnections,false);
 
     Time t1 = Time::now();
 
@@ -540,7 +523,7 @@ public:
     VisusInfo() << "FixDatasetRange starting...";
 
     String filename = args[1];
-    auto vf = std::dynamic_pointer_cast<IdxDataset>(Dataset::loadDataset(filename));
+    auto vf = IdxDataset::loadDataset(filename);
     if (!vf)
       ThrowException(StringUtils::format() << "failed to read IDX dataset (Dataset::loadDataset(" << filename << ") failed)");
 
@@ -1185,27 +1168,34 @@ public:
     auto access=dataset->createAccessForBlockQuery();
 
     auto block_query = std::make_shared<BlockQuery>(field, time, block_id *(((Int64)1) << access->bitsperblock), (block_id + 1)*(((Int64)1) << access->bitsperblock), Aborted());
+    ApplicationStats::io.readValues(true);
 
+    auto t1 = Time::now();
+
+    Array ret;
     if (bWriting)
     {
-      VisusInfo() << "Writing block(" << block_id << ")";
       access->beginWrite();
       bool bOk = dataset->writeBlockAndWait(access, block_query);
       access->endWrite();
       if (!bOk)
         ThrowException("Failed to write block");
-      return data;
+      ret=data;
     }
     else
     {
-      VisusInfo() << "Reading block(" << block_id << ")";
       access->beginRead();
       bool bOk = dataset->readBlockAndWait(access, block_query);
       access->endRead();
       if (!bOk)
         ThrowException("Failed to write block");
-      return block_query->buffer;
+      ret=block_query->buffer;
     }
+
+
+    auto stats=ApplicationStats::io.readValues(true);
+    VisusInfo() << (bWriting?"Wrote":"Read")<< " block("<<block_id<< ") in msec(" << t1.elapsedMsec() << ") nopen(" << stats.nopen << ") rbytes(" << StringUtils::getStringFromByteSize(stats.rbytes) << ") wbytes(" << StringUtils::getStringFromByteSize(stats.wbytes) << ")";
+    return ret;
   }
 
 private:
@@ -2005,7 +1995,7 @@ public:
     bool bOk= midx->createIdxFile(idx_filename, Field("DATA", midx->getFieldByName(fieldname).dtype, "rowmajor"));
     VisusReleaseAssert(bOk);
 
-    auto idx = std::dynamic_pointer_cast<IdxDataset>(Dataset::loadDataset(idx_filename));
+    auto idx = IdxDataset::loadDataset(idx_filename);
     auto idx_access = idx->createAccess();
 
     auto tiles = midx->generateTiles(TileSize);

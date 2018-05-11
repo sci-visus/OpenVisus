@@ -80,15 +80,9 @@ public:
       }
     }
 
-#if 1
-    int nthreads =
-      CONFIG.hasValue("nthreads") ?
-      CONFIG.readInt("nthreads") :
-      ApplicationInfo::server_mode ? 0 : 3;
-
-    if (nthreads)
+    bool disable_async = CONFIG.readBool("disable_async", VF->bServerMode);
+    if (int nthreads= disable_async ? 0 : 3)
       this->thread_pool = std::make_shared<ThreadPool>("IdxMultipleAccess Worker",nthreads);
-#endif
   }
 
   //destructor
@@ -189,7 +183,7 @@ public:
   Query*                   QUERY;
   SharedPtr<Access>        ACCESS;
 
-  SharedPtr<PythonEngine>  engine = std::make_shared<PythonEngine>();
+  SharedPtr<PythonEngine>  engine = std::make_shared<PythonEngine>(false);
   Aborted                  aborted;
 
   struct
@@ -626,7 +620,8 @@ public:
       ScopedReleaseGil release_gil;
 
       //this can run in parallel
-      if (ApplicationInfo::server_mode)
+      bool bRunInParallel = VF->bServerMode? false:true;
+      if (!bRunInParallel)
       {
         for (auto it : VF->childs)
         {
@@ -752,25 +747,7 @@ public:
 
 };
 
-///////////////////////////////////////////////////////////////////////////////////
-SharedPtr<Access> IdxMultipleDataset::createMosaicAccess(StringTree config)
-{
-  auto mosaic_access = std::make_shared<IdxMosaicAccess>(this, config);
-  auto first = childs.begin()->second.dataset;
-  auto dims = first->getBox().p2;
-  int  pdim = first->getPointDim();
-  for (auto it : this->childs)
-  {
-    auto child_dataset = std::dynamic_pointer_cast<IdxDataset>(it.second.dataset);
-    VisusAssert(child_dataset);
-    auto vt = it.second.M.getColumn(3).dropW();
-    auto index = NdPoint(pdim);
-    for (int D = 0; D < pdim; D++)
-      index[D] = ((NdPoint::coord_t)vt[D]) / dims[D];
-    mosaic_access->addChild(index, child_dataset);
-  }
-  return mosaic_access;
-}
+
 
 ///////////////////////////////////////////////////////////////////////////////////
 SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForBlockQuery)
@@ -781,7 +758,7 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
     config = getDefaultAccessConfig();
 
   //consider I can have thousands of childs (NOTE: this attribute should be "inherited" from child)
-  config.writeBool("idx_disk_access_disable_threads", true); 
+  config.writeBool("disable_async", true); 
 
   String type = StringUtils::toLower(config.readString("type"));
 
@@ -793,7 +770,7 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
     if (url.isFile())
     {
       if (bMosaic)
-        return createMosaicAccess(config);
+        return std::make_shared<IdxMosaicAccess>(this,config);
       else
         return std::make_shared<IdxMultipleAccess>(this, config);
     }
@@ -810,19 +787,16 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
   }
 
   //IdxMosaicAccess
-  if (bMosaic && (config.empty() || type.empty() || type == "idxmosaicaccess"))
-    return createMosaicAccess(config);
-
-  //IdxMultipleAccess
-  if (type == "idxmultipleaccess" || type == "midx" || type == "multipleaccess")
-    return std::make_shared<IdxMultipleAccess>(this, config);
-
-
-  if (type == "idxmosaicaccess")
+  if (type == "idxmosaicaccess" || (bMosaic && (config.empty() || type.empty())))
   {
     VisusReleaseAssert(bMosaic);
     return std::make_shared<IdxMosaicAccess>(this, config);
   }
+    
+
+  //IdxMultipleAccess
+  if (type == "idxmultipleaccess" || type == "midx" || type == "multipleaccess")
+    return std::make_shared<IdxMultipleAccess>(this, config);
 
   return IdxDataset::createAccess(config, bForBlockQuery);
 }
@@ -913,6 +887,38 @@ Field IdxMultipleDataset::createField(String operation_name)
   return ret;
 };
 
+////////////////////////////////////////////////////////////////////////////////////
+String IdxMultipleDataset::removeAliases(String url)
+{
+  //replace some alias
+  auto URL = this->url;
+
+  String CurrentFileDirectory = URL.isFile() ? Path(URL.getPath()).getParent().toString() : "";
+
+  if (URL.isFile() && !CurrentFileDirectory.empty())
+  {
+    if (Url(url).isFile() && StringUtils::startsWith(Url(url).getPath(), "./"))
+      url = CurrentFileDirectory + Url(url).getPath().substr(1);
+
+    if (StringUtils::contains(url, "$(CurrentFileDirectory)"))
+      url = StringUtils::replaceAll(url, "$(CurrentFileDirectory)", CurrentFileDirectory);
+  }
+  else if (URL.isRemote())
+  {
+    if (StringUtils::contains(url, "$(protocol)"))
+      url = StringUtils::replaceAll(url, "$(protocol)", URL.getProtocol());
+
+    if (StringUtils::contains(url, "$(hostname)"))
+      url = StringUtils::replaceAll(url, "$(hostname)", URL.getHostname());
+
+    if (StringUtils::contains(url, "$(port)"))
+      url = StringUtils::replaceAll(url, "$(port)", cstring(URL.getPort()));
+  }
+
+  return url;
+};
+
+
 ///////////////////////////////////////////////////////////
 void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
 {
@@ -925,55 +931,27 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
   child.name = StringUtils::trim(istream.readInline("name", istream.readInline("id"))); VisusAssert(!child.name.empty());
   child.color = Color::parseFromString(istream.readInline("color"));
   child.origin = istream.readInline("origin");
+  child.filename_template = istream.readInline("filename_template");
 
   //override name if exist
   if (this->childs.find(child.name) != this->childs.end())
     child.name = "_generated_name_"+cstring((int)this->childs.size());
 
-  //replace some alias
-  auto URL = this->url;
-
-  auto fixPath = [&](String url) {
-    String CurrentFileDirectory = URL.isFile() ? Path(URL.getPath()).getParent().toString() : "";
-
-    if (URL.isFile() && !CurrentFileDirectory.empty())
-    {
-      if (Url(url).isFile() && StringUtils::startsWith(Url(url).getPath(), "./"))
-        url = CurrentFileDirectory + Url(url).getPath().substr(1);
-
-      if (StringUtils::contains(url, "$(CurrentFileDirectory)"))
-        url = StringUtils::replaceAll(url, "$(CurrentFileDirectory)", CurrentFileDirectory);
-    }
-    else if (URL.isRemote())
-    {
-      if (StringUtils::contains(url, "$(protocol)"))
-        url = StringUtils::replaceAll(url, "$(protocol)", URL.getProtocol());
-
-      if (StringUtils::contains(url, "$(hostname)"))
-        url = StringUtils::replaceAll(url, "$(hostname)", URL.getHostname());
-
-      if (StringUtils::contains(url, "$(port)"))
-        url = StringUtils::replaceAll(url, "$(port)", cstring(URL.getPort()));
-    }
-
-    return url;
-  };
-
-  url=fixPath(url);
+  url= removeAliases(url);
 
   //if mosaic all datasets are the same, I just need to know the IDX filename template
-  if (this->bMosaic && !childs.empty())
+  if (this->bMosaic && !childs.empty() && !child.filename_template.empty())
   {
-    auto first = std::dynamic_pointer_cast<IdxDataset>(childs.begin()->second.dataset);
-    auto other = std::dynamic_pointer_cast<IdxDataset>(first->cloneForMosaic());
+    auto first = childs.begin()->second.dataset;
+    auto other = first->cloneForMosaic();
     VisusReleaseAssert(first);
     VisusReleaseAssert(other);
 
     //all the idx files are the same except for the IDX path
-    child.filename_template=istream.readInline("filename_template");
+    child.filename_template =istream.readInline("filename_template");
 
     VisusReleaseAssert(!child.filename_template.empty());
-    child.filename_template = fixPath(child.filename_template);
+    child.filename_template = removeAliases(child.filename_template);
 
     other->url = url;
     other->idxfile.filename_template = child.filename_template;
@@ -982,7 +960,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
   }
   else
   {
-    child.dataset = Dataset::loadDataset(url);
+    child.dataset = IdxDataset::loadDataset(url);
   }
 
   if (!child.dataset) {
@@ -1239,12 +1217,11 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     setIdxFile(IDXFILE);
 
     //updateBody();
-
     return true;
   }
   
   if (childs.size() == 1)
-    IDXFILE.time_template = (std::dynamic_pointer_cast<IdxDataset>(first))->idxfile.time_template;
+    IDXFILE.time_template = first->idxfile.time_template;
  
   //union of all timesteps
   for (auto it : childs)
@@ -1307,8 +1284,10 @@ void IdxMultipleDataset::updateBody(bool bSave)
       ostream.writeInline("origin", it.second.origin);
 
     if (!it.second.filename_template.empty())
+    {
+      VisusAssert(bMosaic);
       ostream.writeInline("filename_template", it.second.filename_template);
-
+    }
 
     auto M = it.second.M;
     if (M.dropW() == Matrix3::identity())

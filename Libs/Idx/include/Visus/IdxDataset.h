@@ -72,6 +72,11 @@ public:
   //destructor
   virtual ~IdxDataset();
 
+  //loadDataset
+  static SharedPtr<IdxDataset> loadDataset(String url) {
+    return std::dynamic_pointer_cast<IdxDataset>(Dataset::loadDataset(url));
+  }
+
   //tryRemoveLockAndCorruptedBinaryFiles
   static void tryRemoveLockAndCorruptedBinaryFiles(String directory = "");
 

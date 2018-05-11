@@ -92,7 +92,7 @@ public:
   typedef std::function<PyObject*(PyObject*, PyObject*)> Function;
 
   //constructor
-  PythonEngine();
+  PythonEngine(bool bVerbose=false);
 
   //destructor
   virtual ~PythonEngine();

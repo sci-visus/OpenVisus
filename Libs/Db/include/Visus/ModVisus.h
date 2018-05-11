@@ -71,7 +71,6 @@ private:
   class PublicDatasets;
   class PublicScenes;
 
-  int verbose;
   SharedPtr<PublicDatasets> datasets;
   SharedPtr<PublicScenes>   scenes;
 

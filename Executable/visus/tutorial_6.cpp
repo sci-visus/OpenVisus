@@ -43,7 +43,7 @@ For support : support@visus.net
 using namespace Visus;
 
 //////////////////////////////////////////////////////////////////////////////////////
-static SharedPtr<Dataset> createDatasetFromImage(String filename,Array img,DType in_dtype,NdPoint offset,int bitsperblock,String default_layout,String filter)
+static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DType in_dtype,NdPoint offset,int bitsperblock,String default_layout,String filter)
 {
   int NS=img.dtype.ncomponents();DType Sdtype=img.dtype.get(0);
   int ND=in_dtype .ncomponents();DType Ddtype=in_dtype.get(0);
@@ -68,7 +68,7 @@ static SharedPtr<Dataset> createDatasetFromImage(String filename,Array img,DType
   idxfile.bitsperblock=bitsperblock;
   VisusReleaseAssert(idxfile.save(filename));
 
-  auto dataset=std::dynamic_pointer_cast<IdxDataset>(Dataset::loadDataset(filename));
+  auto dataset=IdxDataset::loadDataset(filename);
   VisusReleaseAssert(dataset && dataset->valid());
 
   auto access=dataset->createAccess();
@@ -333,7 +333,6 @@ void Tutorial_6(String default_layout)
         break;
     }
 
-    if (auto vf=std::dynamic_pointer_cast<IdxDataset>(dataset))
-      vf->removeFiles();
+    dataset->removeFiles();
   }
 }

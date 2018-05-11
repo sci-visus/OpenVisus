@@ -43,7 +43,7 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////////////////
-class LegacyAccess : public Access, public IsNetworkAccess
+class LegacyAccess : public NetworkAccess
 {
 public:
 
@@ -51,9 +51,7 @@ public:
 
   //constructor
   LegacyAccess(LegacyDataset* dataset_,StringTree config=StringTree()) 
-    : dataset(dataset_) {
-
-    initializeNetworkAccess(this, "LegacyAccess", dataset_, config);
+    : NetworkAccess("LegacyAccess", dataset_, config), dataset(dataset_) {
   }
 
   //destructor
@@ -124,9 +122,9 @@ public:
       query->future.get_promise()->set_value(true);
     };
 
-    if (bool bAsync=netservice?true:false)
+    if (bool bAsync=this->async.netservice?true:false)
     {
-      auto future_response=netservice->asyncNetworkIO(request);
+      auto future_response= this->async.netservice->asyncNetworkIO(request);
       future_response.when_ready([this, future_response, query,gotNetResponse]() {
         gotNetResponse(future_response.get());
       });

@@ -48,7 +48,7 @@ namespace Visus {
 class Dataset;
 
   ///////////////////////////////////////////////////////////////////////////////////////
-class VISUS_DB_API CloudStorageAccess : public Access, public IsNetworkAccess
+class VISUS_DB_API CloudStorageAccess : public NetworkAccess
 {
 public:
 

@@ -199,7 +199,7 @@ public:
     pimpl->configureOptions("Configuration/NetSocket/accept");
 
     VisusInfo() << "NetSocket accepted new connection";
-    return std::make_shared<NetSocket>(NetSocket::Bsd,pimpl.release());
+    return std::make_shared<NetSocket>(pimpl.release());
   }
 
   //sendRequest
@@ -439,17 +439,9 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////
-NetSocket::NetSocket(Type type_,SharedPtr<NetSocket> share_context_with) : type(type_)
+NetSocket::NetSocket() 
 {
-  if (type==Bsd)
-  {
-    VisusAssert(!share_context_with);
-    this->pimpl=new BSDNetSocketPimpl();
-  }
-  else
-  {
-    ThrowException("internal error");
-  }
+  this->pimpl=new BSDNetSocketPimpl();
 }
 
 

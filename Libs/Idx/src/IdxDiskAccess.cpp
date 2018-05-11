@@ -56,7 +56,6 @@ For support : support@visus.net
 #include <netinet/in.h>
 #endif
 
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -129,7 +128,6 @@ enum CompressionType
   CompressionMask = 0x0f
 };
 
-
 //total 10*int32 (40 bytes per block header)
 const int V6BlockHeaderSize = (10 * sizeof(Int32));
 
@@ -138,7 +136,6 @@ const int V6FileHeaderSize = 40;
 
 //row major
 const int V6FormatRowMajor = 0x10;
-
 
 //////////////////////////////////////////////////////////////////////
 class BlockHeader
@@ -151,16 +148,104 @@ public:
 
 
 ////////////////////////////////////////////////////////////////////
+bool IdxDiskAccess::FileIO::open(String filename, String mode)
+{
+  VisusReleaseAssert(!mode.empty());
+
+  //useless code, already opened in the desired mode
+  if (filename == this->getFilename() && mode == this->getMode())
+    return true;
+
+  if (isOpen())
+    close("need to openFile");
+
+  if (owner->bVerbose)
+    VisusInfo() << "Opening file(" << filename << ") mode(" << mode << ")";
+
+  bool bWriting = StringUtils::contains(mode, "w");
+
+  //already exist
+  if (bool bOpened = bWriting ? File::openReadWriteBinary(filename.c_str()) : File::openReadBinary(filename.c_str()))
+  {
+    if (!File::read(headers.c_ptr(), headers.c_size()))
+    {
+      close("cannot read headers");
+      return false;
+    }
+
+    auto ptr = (Int32*)(headers.c_ptr());
+    for (int I = 0, Tot = (int)headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
+      ptr[I] = ntohl(ptr[I]);
+
+    return true;
+  }
+
+  //cannot read the file
+  if (!bWriting)
+  {
+    close("Cannot open file(" + filename + ")");
+    return false;
+  }
+
+  //create a new file and fill up the headers
+  if (!File::createAndOpenReadWriteBinary(filename))
+  {
+    //should not fail here!
+    VisusAssert(false);
+    close("Cannot create file(" + filename + ")");
+    FileUtils::removeFile(filename);
+    return false;
+  }
+
+  //write an empty header
+  headers.fill(0);
+  if (!File::write(headers.c_ptr(), headers.c_size()))
+  {
+    //should not fail here!
+    VisusAssert(false);
+    close("Cannot write zero headers file(" + filename + ")");
+    FileUtils::removeFile(filename);
+    return false;
+  }
+
+  return true;
+}
+
+
+
+////////////////////////////////////////////////////////////////////
+void IdxDiskAccess::FileIO::close(String reason)
+{
+  if (!isOpen())
+    return;
+
+  if (owner->bVerbose)
+    VisusInfo() << "Closing file(" << this->getFilename() << ") mode(" << this->getMode() << ") reason(" << reason << ")";
+
+  //need to write the headers
+  if (this->canWrite())
+  {
+    auto ptr = (Int32*)(this->headers.c_ptr());
+    for (int I = 0, Tot = (int)headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
+      ptr[I] = htonl(ptr[I]);
+
+    if (!this->seekAndWrite(0, headers.c_size(), headers.c_ptr()))
+    {
+      VisusAssert(false);
+      if (owner->bVerbose)
+        VisusInfo() << "cannot write headers";
+    }
+  }
+
+  File::close();
+}
+
+////////////////////////////////////////////////////////////////////
 IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config) 
+  : sync(this),async(this)
 {
   if (!dataset->valid())
     ThrowException("IdxDataset not valid");
-
-  if (config.empty())
-  {
-    if (StringTree* default_config=VisusConfig::findChildWithName("Configuration/IdxDiskAccess"))
-      config=*default_config;
-  }
 
   String chmod=config.readString("chmod","rw");
   auto idxfile=dataset->idxfile;
@@ -208,7 +293,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
   this->can_read = StringUtils::find(chmod, "r") >= 0;
   this->can_write = StringUtils::find(chmod, "w") >= 0;
   this->bitsperblock = idxfile.bitsperblock;
-  this->verbose = config.readInt("verbose", 0);
+  this->bVerbose = config.readInt("verbose", 0);
 
   //special case for caching stuff (example range="0 2048" means that all block >=0 && block<2048 will pass throught)
   auto block_range=config.readString("range");
@@ -233,28 +318,29 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
   else
     file_header_size = V6FileHeaderSize + ((int)idxfile.fields.size())*idxfile.blocksperfile*V6BlockHeaderSize;
 
-  headers.resize(file_header_size, __FILE__, __LINE__);
+  sync.headers.resize(file_header_size, __FILE__, __LINE__);
 
-  bool bDisableAsyncRead =
-    ApplicationInfo::server_mode ||
-    config.readBool("idx_disk_access_disable_threads",false) ||
-    std::find(ApplicationInfo::args.begin(), ApplicationInfo::args.end(), "--idx-disk-access-disable-threads") != ApplicationInfo::args.end();
-
-  if (!bDisableAsyncRead)
+  // important!number of threads must be <=1 
+  bool disable_async = config.readBool("disable_async", dataset->bServerMode);
+  if (int nthreads = disable_async ? 0 : 1)
   {
-    int nthreads = 1; // important! number of threads must be 1
-    async_read = std::make_shared<ThreadPool>("IdxDiskAccess Thread", nthreads);
+    async.tpool = std::make_shared<ThreadPool>("IdxDiskAccess Thread", nthreads);
+    async.headers.resize(file_header_size, __FILE__, __LINE__);
   }
 
-  if (verbose)
-    VisusInfo()<<"IdxDisk Access created url("<<url.toString()<<")";
+  if (bVerbose)
+    VisusInfo()<<"IdxDiskAccess created url("<<url.toString()<<") async("<<(async.tpool?"yes":"no")<<")";
 }
 
 ////////////////////////////////////////////////////////////////////
 IdxDiskAccess::~IdxDiskAccess()
 {
-  async_read.reset();
-  closeFile();
+  if (bVerbose)
+    VisusInfo()<<"IdxDiskAccess destroyed";
+
+  VisusReleaseAssert(!isReading() && !isWriting());
+  async.destroy();
+  sync.destroy();
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -382,108 +468,20 @@ String IdxDiskAccess::getFilename(Field field,double time,BigInt blockid) const
   return String(filename + N - S);
 }
 
-
 ////////////////////////////////////////////////////////////////////
-bool IdxDiskAccess::openFile(String filename)
+Int64 IdxDiskAccess::getBlockPositionInFile(BigInt nblock) const
 {
-  //openFailed
-  auto openFailed = [&]() {
-    this->closeFile();
-    return false;
-  };
-
-  //useless code, already opened in the desired mode
-  if (file && filename == file->getFilename() && getMode() == file->getMode())
-    return true;
-
-  closeFile();
-
-  if (verbose)
-    VisusInfo() << "Opening file(" << filename << ") " << getMode() << " mode";
-  
-  this->file = std::make_shared<File>();
-
-  //already exist
-  if (bool bOpened = isWriting() ? file->openReadWriteBinary(filename.c_str()) : file->openReadBinary(filename.c_str()))
-  {
-    if (!file->read(headers.c_ptr(), headers.c_size()))
-    {
-      if (verbose)
-        VisusInfo() << "cannot read headers";
-      return openFailed();
-    }
-
-    auto ptr = (Int32*)(headers.c_ptr());
-    for (int I = 0, Tot = (int)headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
-      ptr[I] = ntohl(ptr[I]);
-
-    return true;
-  }
-
-  //cannot read the file
-  if (!isWriting())
-  {
-    if (verbose)
-      VisusInfo() << "Cannot open file(" << filename << ")";
-    return openFailed();
-  }
-
-  //create a new file and fill up the headers
-  if (!file->createAndOpenReadWriteBinary(filename))
-  {
-    //should not fail here!
-    VisusAssert(false);
-    if (verbose)
-      VisusInfo() << "Cannot create file(" << filename << ")";
-    return openFailed();
-  }
-
-  //write an empty header
-  headers.fill(0);
-  if (!file->write(headers.c_ptr(), headers.c_size()))
-  {
-    //should not fail here!
-    VisusAssert(false);
-
-    if (verbose)
-      VisusInfo() << "Cannot write zero headers file(" << filename << ")";
-
-    file->close();
-    FileUtils::removeFile(filename);
-    return openFailed();
-  }
-
-  return true;
+  VisusAssert(nblock >= 0);
+  return cint64((nblock / std::max(1, idxfile.block_interleaving)) % idxfile.blocksperfile);
 }
 
-
 ////////////////////////////////////////////////////////////////////
-void IdxDiskAccess::closeFile()
+BigInt IdxDiskAccess::getFirstBlockInFile(BigInt nblock) const
 {
-  if (!file)
-    return;
-
-  if (verbose)
-    VisusInfo() << "Closing file(" << file->getFilename() << ") " << file->getMode();
-
-  //need to write the headers
-  if (file->canWrite())
-  {
-    auto ptr = (Int32*)(headers.c_ptr());
-    for (int I = 0, Tot = (int)headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
-      ptr[I] = htonl(ptr[I]);
-
-    if (!file->seekAndWrite(0, headers.c_size(), headers.c_ptr()))
-    {
-      VisusAssert(false);
-      if (verbose)
-        VisusInfo() << "cannot write headers";
-    }
-  }
-
-  file.reset();
-
+  if (nblock < 0) return -1;
+  return nblock - std::max(1, idxfile.block_interleaving)*getBlockPositionInFile(nblock);
 }
+
 
 ////////////////////////////////////////////////////////////////////
 void IdxDiskAccess::beginIO(String mode) {
@@ -493,15 +491,15 @@ void IdxDiskAccess::beginIO(String mode) {
 ////////////////////////////////////////////////////////////////////
 void IdxDiskAccess::endIO() {
 
-  if (bool bAsyncRead = async_read && !isWriting())
+  if (bool bAsyncRead = !isWriting() && async.tpool)
   {
-    async_read->asyncRun([this](int) {
-      closeFile(); //go in queue...
+    async.tpool->asyncRun([this](int) {
+      async.close("posted endIO"); //go in queue...
     });
   }
   else
   {
-    closeFile();
+    sync.close("endIO");
   }
 
   Access::endIO();
@@ -514,44 +512,53 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
 
   BigInt blockid = query->getBlockNumber(bitsperblock);
 
-  if (verbose)
+  if (bVerbose)
     VisusInfo() << "got request to read block blockid(" << blockid << ")";
 
-  if (block_range.to>0 && !(blockid >= block_range.from && blockid < block_range.to))
+  if (block_range.to>0 )
   {    
-    if (verbose)
+    if (bVerbose)
       VisusInfo() << "IdxDiskAccess::read blockid(" << blockid << ") failed because out of range";
-    return readFailed(query);
+
+    if (!(blockid >= block_range.from && blockid < block_range.to))
+      return readFailed(query);
+    else
+    {
+      query->buffer.fillWithValue(query->field.default_value);
+      return readOk(query);
+    }
   }
 
-  if (bool bAsyncRead = async_read && !isWriting()) {
-
-    async_read->asyncRun([this, query](int) {
-      readBlockInCurrentThread(query);
-    });
-  }
-  else
-  {
-    readBlockInCurrentThread(query);
-  }
-}
-
-////////////////////////////////////////////////////////////////////
-void IdxDiskAccess::readBlockInCurrentThread(SharedPtr<BlockQuery> query)
-{
   if (bDisableIO)
   {
     query->buffer.fillWithValue(query->field.default_value);
     query->buffer.layout = query->field.default_layout;
-    readOk(query);
-    return;
+    return readOk(query);
   }
 
+  String file_mode = isWriting()? "rw" : "r"; // for writing I need to read headers too
+
+  if (bool bAsyncRead= !isWriting() && async.tpool)
+  {
+    async.tpool->asyncRun([this, query, file_mode](int) {
+      readBlockInCurrentThread(async,query, file_mode);
+    });
+  }
+  else
+  {
+    readBlockInCurrentThread(sync, query, file_mode);
+  }
+}
+
+
+////////////////////////////////////////////////////////////////////
+void IdxDiskAccess::readBlockInCurrentThread(FileIO& file,SharedPtr<BlockQuery> query, String file_mode)
+{
   BigInt blockid = query->getBlockNumber(bitsperblock);
 
   auto failed = [&](String reason) {
 
-    if (verbose)
+    if (bVerbose)
       VisusInfo() << "IdxDiskAccess::read blockid(" << blockid << ") failed " << reason;
 
     return readFailed(query);
@@ -570,17 +577,15 @@ void IdxDiskAccess::readBlockInCurrentThread(SharedPtr<BlockQuery> query)
   //try to open the existing file
   String filename = getFilename(query->field, query->time, blockid);
 
-  if (!openFile(filename))
+  if (!file.open(filename, file_mode))
     return failed("cannot open file");
-
-  VisusAssert(file);
 
   //block header
   BlockHeader block_header;
 
   if (idxfile.version == 6)
   {
-    Int32* ptr = (Int32*)(headers.c_ptr()
+    Int32* ptr = (Int32*)(file.headers.c_ptr()
       + V6FileHeaderSize
       + (cint(query->field.index)*idxfile.blocksperfile + getBlockPositionInFile(blockid))*V6BlockHeaderSize);
 
@@ -591,7 +596,7 @@ void IdxDiskAccess::readBlockInCurrentThread(SharedPtr<BlockQuery> query)
   }
   else
   {
-    Int32* ptr = (Int32*)(headers.c_ptr()
+    Int32* ptr = (Int32*)(file.headers.c_ptr()
       + ((idxfile.version == 1) ? 0 : 16)
       + (cint(query->field.index)*idxfile.blocksperfile + getBlockPositionInFile(blockid))*(3 * sizeof(Int32)));
 
@@ -600,7 +605,7 @@ void IdxDiskAccess::readBlockInCurrentThread(SharedPtr<BlockQuery> query)
     block_header.flags = (idxfile.version <= 2) ? (ptr[2] ? 1 : 0) : ptr[2];
   }
 
-  if (verbose)
+  if (bVerbose)
     VisusInfo() << "Block header contains the following: block_offset(" << block_header.offset << ") block_size(" << block_header.size << ") block_flags(" << block_header.flags << ")";
 
   if (!block_header.offset || !block_header.size)
@@ -630,13 +635,13 @@ void IdxDiskAccess::readBlockInCurrentThread(SharedPtr<BlockQuery> query)
   if (!encoded->resize(block_header.size, __FILE__, __LINE__))
     return failed(StringUtils::format()<< "cannot resize block block_size(" << block_header.size << ")");
 
-  if (verbose)
+  if (bVerbose)
     VisusInfo() << "Reading buffer: file->seekAndRead block_offset(" << block_header.offset << ") encoded->c_size(" << encoded->c_size() << ")";
 
-  if (!file->seekAndRead(block_header.offset, encoded->c_size(), encoded->c_ptr()))
+  if (!file.seekAndRead(block_header.offset, encoded->c_size(), encoded->c_ptr()))
     return failed("cannot seekAndRead encoded buffer");
 
-  if (verbose)
+  if (bVerbose)
     VisusInfo() << "Decoding buffer";
 
   auto decoded = ArrayUtils::decodeArray(compression, query->nsamples, query->field.dtype, encoded);
@@ -656,7 +661,7 @@ void IdxDiskAccess::readBlockInCurrentThread(SharedPtr<BlockQuery> query)
   //for very old file I need to swap endian notation for FLOAT32
   if (idxfile.version <= 2 && query->field.dtype.isVectorOf(DTypes::FLOAT32))
   {
-    if (verbose)
+    if (bVerbose)
       VisusInfo() << "Swapping endian notation for Float32 type";
 
     auto ptr = query->buffer.c_ptr<Float32*>();
@@ -668,10 +673,10 @@ void IdxDiskAccess::readBlockInCurrentThread(SharedPtr<BlockQuery> query)
     }
   }
 
-  if (verbose)
+  if (bVerbose)
     VisusInfo() << "Read block(" << cstring(blockid) << ") from file(" << filename << ") ok";
 
-  if (verbose)
+  if (bVerbose)
     VisusInfo() << "IdxDiskAccess::read blockid(" << query->getBlockNumber(bitsperblock) << ") ok";
 
   readOk(query);
@@ -685,33 +690,38 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
 
   BigInt blockid = query->getBlockNumber(bitsperblock);
 
-  if (verbose)
+  if (bVerbose)
     VisusInfo() << "got request to write block blockid(" << blockid << ")";
 
   if (block_range.to>0 && !(blockid >= block_range.from && blockid < block_range.to))
   {
-    if (verbose)
+    if (bVerbose)
       VisusInfo() << "IdxDiskAccess::write blockid(" << blockid << ") failed because out of range";
+
     return writeFailed(query);
   }
 
   if (bDisableIO)
-  {
-    writeOk(query);
-    return;
-  }
+    return writeOk(query);
+
+  writeBlockInCurrentThread(sync, query, "rw"); //I need to read headers too
+}
+
+////////////////////////////////////////////////////////////////////
+void IdxDiskAccess::writeBlockInCurrentThread(FileIO& file,SharedPtr<BlockQuery> query,String file_mode)
+{
+  BigInt blockid = query->getBlockNumber(bitsperblock);
 
   acquireWriteLock(query);
 
   auto failed = [&](String reason) {
 
-    if (verbose)
+    if (bVerbose)
       VisusInfo() << "IdxDiskAccess::write blockid(" << blockid << ")  failed " << reason;
 
     releaseWriteLock(query);
     return writeFailed(query);
   };
-
 
   if (idxfile.version < 6)
   {
@@ -764,13 +774,13 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
 
   String filename = getFilename(query->field, query->time, blockid);
 
-  if (!openFile(filename))
+  if (!file.open(filename, file_mode))
     return failed("cannot open file");
 
   //block header
   BlockHeader ondisk;
 
-  Int32* ptr = (Int32*)(headers.c_ptr()
+  Int32* ptr = (Int32*)(file.headers.c_ptr()
     + V6FileHeaderSize
     + cint(query->field.index)*idxfile.blocksperfile*V6BlockHeaderSize
     + getBlockPositionInFile(query->getBlockNumber(idxfile.bitsperblock))*V6BlockHeaderSize);
@@ -788,7 +798,7 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   }
   else
   {
-    block_offset = file->seek(0, SEEK_END);
+    block_offset = file.seek(0, SEEK_END);
     if (block_offset <= 0)
     {
       VisusAssert(false);
@@ -800,7 +810,7 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   VisusAssert(encoded->c_size() && block_offset);
 
   //finally write to the disk
-  if (!file->seekAndWrite(block_offset, encoded->c_size(), encoded->c_ptr()))
+  if (!file.seekAndWrite(block_offset, encoded->c_size(), encoded->c_ptr()))
   {
     VisusAssert(false);
     return failed("Failed to write block for version V6,file.seekAndWrite failed");
@@ -812,7 +822,7 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   ptr[4] = (int)encoded->c_size();
   ptr[5] = block_flags;
 
-  if (verbose)
+  if (bVerbose)
     VisusInfo() << "IdxDiskAccess::write blockid(" << query->getBlockNumber(bitsperblock) << ") ok";
 
   releaseWriteLock(query);
@@ -833,7 +843,7 @@ void IdxDiskAccess::acquireWriteLock(SharedPtr<BlockQuery> query)
   {
     FileUtils::lock(filename);
 
-    if (verbose)
+    if (bVerbose)
       VisusInfo() << "Locked file " << filename;
   }
 }
@@ -851,7 +861,7 @@ void IdxDiskAccess::releaseWriteLock(SharedPtr<BlockQuery> query)
     file_locks.erase(filename);
     FileUtils::unlock(filename);
 
-    if (verbose)
+    if (bVerbose)
       VisusInfo() << "Unlocked file " << filename;
   }
 }

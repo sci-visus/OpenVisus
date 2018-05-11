@@ -45,33 +45,25 @@ For support : support@visus.net
 namespace Visus {
 
 ///////////////////////////////////////////////////////////////////////////////////////
-void IsNetworkAccess::initializeNetworkAccess(Access* access, String name,Dataset* dataset,StringTree config_)
+NetworkAccess::NetworkAccess(String name,Dataset* dataset,StringTree config_)
 {
   this->config = config_;
 
-  if (config.empty())
-  {
-    if (auto default_config=VisusConfig::findChildWithName("Configuration/"+ name))
-      config=*default_config;
-  }
-
-  access->name = name;
-  access->can_read     = StringUtils::find(config.readString("chmod", "rw"), "r") >= 0;
-  access->can_write    = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
-  access->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(access->bitsperblock>0);
-
+  this->name = name;
+  this->can_read     = StringUtils::find(config.readString("chmod", "rw"), "r") >= 0;
+  this->can_write    = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
+  this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
   this->url                  = config.readString("url",dataset->getUrl().toString()); VisusAssert(url.valid());
   this->compression          = config.readString("compression",url.getParam("compression","zip"));
-  this->async                = config.hasValue("nconnections")? (config.readInt("nconnections")>0) : (ApplicationInfo::server_mode?false:true);
 
-  this->config.writeString("url",url.toString());
+  this->config.writeString("url", url.toString());
 
-  if (this->async)
-  {
-    this->netservice = std::make_shared<NetService>();
-    this->netservice->setConfig(config);
-    this->netservice->startNetService();
-  }
+  bool disable_async = config.readBool("disable_async", dataset->bServerMode);
+
+  if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
+    this->async.netservice = std::make_shared<NetService>(nconnections);
+
+  //VisusInfo() << "NetworkAccess created url(" << url.toString() << ") async(" << (async.netservice ? "yes" : "no") << ")";
 }
 
 } //namespace Visus 

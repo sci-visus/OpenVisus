@@ -70,18 +70,9 @@ public:
   bool                          verbose=false;
   StringTree                    config;
   
-
   //constructor
   KdQueryJob(Node* node_,int mode_, StringTree config = StringTree()) : node(node_), mode(mode_)
   {
-    VisusAssert(!ApplicationInfo::server_mode);
-
-    if (config.empty())
-    {
-      if (StringTree* default_config = VisusConfig::findChildWithName("Configuration/KdQueryNodeJob"))
-        config = *default_config;
-    }
-
     this->config = config;
     this->verbose = cbool(this->config.readString("verbose", "0"));
   }
@@ -381,16 +372,11 @@ public:
 
     //read blocks
     if (mode == KdQueryMode::UseBlockQuery)
-    {
       access->beginRead();
-    }
+
     //execute remote queries in async way
     else if (mode == KdQueryMode::UseQuery  && !access && dataset->getUrl().isRemote())
-    {
-      netservice = std::make_shared<NetService>();
-      netservice->setConfig(this->config);
-      netservice->startNetService();
-    }
+      netservice = std::make_shared<NetService>(8);
 
     std::deque<KdArrayNode*> bfs;
     bfs.push_back(kdarray->root.get());

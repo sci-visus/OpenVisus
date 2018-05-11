@@ -157,7 +157,6 @@ public:
     // Open a handle to the Event Viewer.
     g_hEventLog = RegisterEventSource(NULL, "IISADMIN");
 
-    ApplicationInfo::server_mode = true;
     VisusConfig::filename = "/inetpub/wwwroot/visus/visus.config";
 
     static int argn = 1;
@@ -611,8 +610,6 @@ public:
     RedirectLog=[this](const String& msg) {
       ap_log_perror(APLOG_MARK, APLOG_NOTICE, 0, NULL, "%s", msg.c_str());
     };
-
-    ApplicationInfo::server_mode=true;
 
     static int narg=1;
     static const char *argv[]={"mod_visus"};
