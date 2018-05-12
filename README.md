@@ -112,7 +112,6 @@ Install brew and OpenVisus prerequisites::
 	ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 	brew install git cmake swig qt5 lz4 tinyxml zlib openssl curl freeimage python3
 	pip3 install numpy
-	
 
 Run xcode command line tools:
 
