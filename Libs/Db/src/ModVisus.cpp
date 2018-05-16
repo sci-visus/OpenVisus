@@ -1406,10 +1406,10 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
     else
     {
       if (palette_min != palette_max)
-        tf.setInputNormalization(TransferFunction::InputNormalization(ComputeRange::UseCustom,Range(palette_min,palette_max,0)));
+        tf.input_normalization=TransferFunction::InputNormalization(ComputeRange::UseCustom,Range(palette_min,palette_max,0));
 
       if (!palette_interp.empty())
-        tf.setInterpolation(palette_interp);
+        tf.interpolation.set(palette_interp);
 
       buffer=tf.applyToArray(buffer);
       if (!buffer)

@@ -54,9 +54,10 @@ public:
   VISUS_CLASS(InterpolationMode)
 
   enum Type {
-    DEFAULT,
-    FLAT,
-    INVERTED};
+    Default,
+    Flat,
+    Inverted
+  };
 
   //InterpolationMode
   InterpolationMode()  {
@@ -67,9 +68,9 @@ public:
   {
     switch (type)
     {
-      case FLAT    : return "Flat";
-      case INVERTED: return "Inverted";
-      case DEFAULT :
+      case Flat    : return "Flat";
+      case Inverted: return "Inverted";
+      case Default :
       default      : return "Default";
     }
   }
@@ -77,9 +78,9 @@ public:
   //set
   void set(const String &name)
   {
-    if      (name=="Default") type=DEFAULT;
-    else if (name=="Flat") type=FLAT;
-    else if (name=="Inverted") type=INVERTED;
+    if      (name=="Default" ) type=Default;
+    else if (name=="Flat"    ) type=Flat;
+    else if (name=="Inverted") type=Inverted;
   }
 
   //get
@@ -87,9 +88,14 @@ public:
     return type; 
   }
 
+  //getValues
+  static std::vector<String> getValues(){
+    return { "Default" ,"Flat","Inverted" };
+  }
+
 private:
 
-  Type type=DEFAULT;
+  Type type=Default;
 
 };
 
@@ -137,10 +143,10 @@ public:
   }
 
   //getColor
-  Color getColor(double alpha,InterpolationMode::Type type=InterpolationMode::DEFAULT);
+  Color getColor(double alpha,InterpolationMode::Type type=InterpolationMode::Default);
 
   //convertToArray
-  void convertToArray(Array& dst,int nsamples,InterpolationMode::Type type=InterpolationMode::DEFAULT);
+  void convertToArray(Array& dst,int nsamples,InterpolationMode::Type type=InterpolationMode::Default);
 
   //writeToObjectStream
   void writeToObjectStream(ObjectStream& ostream);
@@ -152,124 +158,136 @@ public:
 
 
 ////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API SingleTransferFunction 
-{
-public:
-
-  VISUS_CLASS(SingleTransferFunction)
-
-  String  name;
-  Color   color;
-  std::vector<double> values;
-
-  //constructor (identity function)
-  SingleTransferFunction(String name_ = "", Color color_ = Colors::Black, int nsamples = 256): name(name_),color(color_)
-  {
-    for (int I=0;I<nsamples;I++)
-      values.push_back(I/(double)(nsamples-1));
-  }
-
-  //destructor
-  virtual ~SingleTransferFunction() {
-  }
-
-  //size
-  inline int size() const {
-    return (int)values.size();
-  }
-
-  //resize
-  void resize(int value)
-  {
-    if (value==this->size())
-      return;
-
-    std::vector<double> values(value);
-    for (int I=0;I<value;I++)
-    {
-      double alpha=I/(double)(value-1);
-      values[I]=this->getValue(alpha);
-    }
-
-    this->values=values;
-  }
-
-  //getValue (x must be in range [0,1])
-  double getValue(double x) const
-  {
-    int N=size();
-    if (!N) {
-      VisusAssert(false);
-      return 0;
-    }
-
-    x=Utils::clamp(x*(N-1),0.0,N-1.0);
-
-    int i_x1=Utils::clamp((int)std::floor(x),0,N-1);
-    int i_x2=Utils::clamp((int)std::ceil (x),0,N-1);
-
-    if (i_x1==i_x2) 
-    {
-      return values[(int)i_x1];
-    }
-    else
-    {
-      double alpha=(i_x2-x)/(double)(i_x2-i_x1);
-      double beta =1-alpha;
-      return alpha*values[i_x1] + beta*values[i_x2];
-    }
-  }
-
-  //setValue (x and y in range [0,1])
-  void setValue(double x1, double y1, double x2, double y2)
-  {
-    if (x2<x1) 
-    {
-      std::swap(x1,x2);
-      std::swap(y1,y2);
-    }
-
-    int N=(int)size();
-    x1=Utils::clamp(x1,0.0,1.0); y1=Utils::clamp(y1,0.0,1.0); int i_x1=Utils::clamp((int)(round(x1*(N-1))),0,N-1);
-    x2=Utils::clamp(x2,0.0,1.0); y2=Utils::clamp(y2,0.0,1.0); int i_x2=Utils::clamp((int)(round(x2*(N-1))),0,N-1);
-
-    this->values[i_x1] = y1;
-    this->values[i_x2] = y2;
-
-    //interpolate
-    for (int K = i_x1 + 1; K < i_x2; K++)
-    {
-      float beta  = (K - i_x1) / (float)(i_x2 - i_x1);
-      float alpha = (1 - beta);
-      values[K] = alpha*values[i_x1] + beta*values[i_x2];
-    }
-  }
-
-  //setValue (x and y in range [0,1])
-  void setValue(double x, double y) {
-    setValue(x, y, x, y);
-  }
-
-public:
-
-  //writeToObjectStream
-  void writeToObjectStream(ObjectStream& ostream) ;
-
-  //readFromObjectStream
-  void readFromObjectStream(ObjectStream& istream) ;
-
-
-};
-
-////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API TransferFunction : public Model
 {
 public:
 
   VISUS_NON_COPYABLE_CLASS(TransferFunction)
 
-  typedef SingleTransferFunction Function;
   typedef ComputeRange InputNormalization;
+
+  //________________________________________________________________
+  class VISUS_KERNEL_API Single
+  {
+  public:
+
+    VISUS_CLASS(Single)
+
+    String              name;
+    Color               color;
+    std::vector<double> values;
+
+    //constructor (identity function)
+    Single(int nsamples = 256) 
+    {
+      for (int I = 0; I<nsamples; I++)
+        values.push_back(I / (double)(nsamples - 1));
+    }
+
+    //constructor (identity function)
+    Single(String name , Color color = Colors::Black, int nsamples = 256) : Single(nsamples)
+    {
+      this->name = name;
+      this->color = color;
+    }
+
+    //destructor
+    virtual ~Single() {
+    }
+
+    //size
+    inline int size() const {
+      return (int)values.size();
+    }
+
+    //resize
+    void resize(int value)
+    {
+      if (value == this->size()) return;
+      std::vector<double> values(value);
+      for (int I = 0; I<value; I++) 
+        values[I] = this->getValue(I / (double)(value - 1));
+      this->values = values;
+    }
+
+    //getValue (x must be in range [0,1])
+    double getValue(double x) const
+    {
+      int N = size();
+      if (!N) {
+        VisusAssert(false);
+        return 0;
+      }
+
+      x = Utils::clamp(x*(N - 1), 0.0, N - 1.0);
+
+      int i_x1 = Utils::clamp((int)std::floor(x), 0, N - 1);
+      int i_x2 = Utils::clamp((int)std::ceil(x), 0, N - 1);
+
+      if (i_x1 == i_x2)
+      {
+        return values[(int)i_x1];
+      }
+      else
+      {
+        double alpha = (i_x2 - x) / (double)(i_x2 - i_x1);
+        double beta = 1 - alpha;
+        return alpha * values[i_x1] + beta * values[i_x2];
+      }
+    }
+
+    //setValue (x and y in range [0,1])
+    void setValue(double x1, double y1, double x2, double y2)
+    {
+      if (x2<x1)  {std::swap(x1, x2); std::swap(y1, y2);}
+      int N = (int)size();
+      x1 = Utils::clamp(x1, 0.0, 1.0); y1 = Utils::clamp(y1, 0.0, 1.0); int i_x1 = Utils::clamp((int)(round(x1*(N - 1))), 0, N - 1);
+      x2 = Utils::clamp(x2, 0.0, 1.0); y2 = Utils::clamp(y2, 0.0, 1.0); int i_x2 = Utils::clamp((int)(round(x2*(N - 1))), 0, N - 1);
+      this->values[i_x1] = y1;
+      this->values[i_x2] = y2;
+      //interpolate
+      for (int K = i_x1 + 1; K < i_x2; K++)
+      {
+        float beta = (K - i_x1) / (float)(i_x2 - i_x1);
+        float alpha = (1 - beta);
+        values[K] = alpha * values[i_x1] + beta * values[i_x2];
+      }
+    }
+
+    //setValue (x and y in range [0,1])
+    void setValue(double x, double y) {
+      setValue(x, y, x, y);
+    }
+
+  public:
+
+    //writeToObjectStream
+    void writeToObjectStream(ObjectStream& ostream);
+
+    //readFromObjectStream
+    void readFromObjectStream(ObjectStream& istream);
+
+  };
+
+  String default_name;
+
+  //see https://github.com/sci-visus/visus-issues/issues/260
+  double attenuation = 0.0;
+
+  //interpolation
+  InterpolationMode interpolation;
+
+  //input_normalization
+  InputNormalization input_normalization;
+
+  //what is the output (this must be atomic)
+  DType output_dtype = DTypes::UINT8;
+
+  //how to map the range [0,1] to some user range
+  Range output_range = Range(0, 255, 1);
+
+  //functions
+  std::vector< SharedPtr<Single> > functions;
 
   //constructor
   TransferFunction(String default_name = "") {
@@ -281,82 +299,35 @@ public:
   virtual ~TransferFunction() {
   }
 
-  //getInputNormalization
-  InputNormalization getInputNormalization() const {
-    return input.normalization;
-  }
-
-  //setInputNormalization
-  void setInputNormalization(InputNormalization value);
-
-  //getAttenuation
-  double getAttenuation() const {
-    return attenuation;
-  }
-
-  //setAttenuation
-  void setAttenuation(double value);
-
-  //getOutputDType
-  DType getOutputDType() const {
-    return output.dtype;
-  }
-
-  //setOutputDType
-  void setOutputDType(DType value);
-
-  //getOutputRange
-  const Range& getOutputRange() const {
-    return output.range;
-  }
-
-  //setOutputRange
-  void setOutputRange(Range value);
-
   //size
   int size() const {
     return functions.empty() ? 0 : functions[0]->size();
   }
 
-  //resize
-  void resize(int value);
-
-  //getFunctions
-  const std::vector< SharedPtr<Function> >& getFunctions() const {
-    return functions;
-  }
-
-  //getNumberOfFunctions
-  inline int getNumberOfFunctions() const {
-    return (int)functions.size();
-  }
-
   //setNumberOfFunctions
-  void setNumberOfFunctions(int value);
-
-  //getFunction
-  inline SharedPtr<Function> getFunction(int index) const {
-    return functions[index];
-  }
-
-  //addFunction
-  void addFunction(SharedPtr<Function> fn)
+  void setNumberOfFunctions(int value)
   {
-    if (!functions.empty() && functions.back()->size() != fn->size())
-      ThrowException("wrong function size");
+    value = std::max(1, value);
+    if (value == functions.size()) return;
 
     beginUpdate();
-    functions.push_back(fn);
+    {
+      while (functions.size() < value)
+      {
+        auto single = functions.empty()? std::make_shared<Single>() : std::make_shared<Single>(size());
+        single->name = guessFunctionName();
+        single->color = guessFunctionColor();
+        functions.push_back(single);
+      }
+
+      while (functions.size()>value)
+        functions.pop_back();
+    }
     endUpdate();
   }
 
   //getDefaults
   static std::vector<String> getDefaults();
-
-  //getDefaultName
-  String getDefaultName() const {
-    return default_name;
-  }
 
   //setDefault
   bool setDefault(String default_name);
@@ -364,30 +335,15 @@ public:
   //setNotDefault
   void setNotDefault();
 
-  //getInterpolationTypes
-  static std::vector<String> getInterpolationTypes()
-  {
-    std::vector<String> ret;
-    ret.push_back("Default");
-    ret.push_back("Flat");
-    ret.push_back("Inverted");
-    return ret;
-  }
+  //copyFrom
+  static void copy(TransferFunction& dst, const TransferFunction& src);
 
-  //getInterpolationName
-  String getInterpolationName() const {
-    return interpolation.toString();
-  }
+public:
 
-  //setInterpolation
-  void setInterpolation(String name)
-  {
-    beginUpdate();
-    interpolation.set(name); 
-    if (!default_name.empty()) 
-      setDefault(default_name);
-    endUpdate();
-  }
+  //applyToArray
+  Array applyToArray(Array src, Aborted aborted = Aborted());
+
+public:
 
   //setFromArray
   bool setFromArray(Array src, String default_name);
@@ -400,14 +356,6 @@ public:
 
   //exportTransferFunction
   bool exportTransferFunction(String filename);
-
-  //applyToArray
-  Array applyToArray(Array src, Aborted aborted = Aborted());
-
-  //copyFrom
-  static void copy(TransferFunction& dst, const TransferFunction& src);
-
-public:
 
   //writeToObjectStream
   virtual void writeToObjectStream(ObjectStream& ostream) override;
@@ -422,31 +370,6 @@ public:
   virtual void readFromSceneObjectStream(ObjectStream& istream) override;
 
 private:
-
-  InterpolationMode  interpolation;
-
-  String default_name;
-
-  //see https://github.com/sci-visus/visus-issues/issues/260
-  double attenuation = 0.0;  
-
-  struct
-  {
-    InputNormalization normalization;
-  }
-  input;
-
-  struct
-  {
-    //what is the output (this must be atomic)
-    DType dtype = DTypes::UINT8; 
-
-     //how to map the range [0,1] to some user range
-    Range range = Range(0, 255,1);
-  }
-  output;
-  
-  std::vector< SharedPtr<Function> > functions;
 
   //guessFunctionName
   String guessFunctionName();

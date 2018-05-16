@@ -121,7 +121,7 @@ bool RenderArrayNode::processInput()
     if (palette)
     {
       for (int C=0;C<std::min(4,ncomponents);C++)
-        vs_t[C]=palette->getInputNormalization().doCompute(*data,C).getScaleTranslate();
+        vs_t[C]=palette->input_normalization.doCompute(*data,C).getScaleTranslate();
     }
     else
     {

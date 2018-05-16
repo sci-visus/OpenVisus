@@ -109,7 +109,7 @@ bool KdRenderArrayNode::processInput()
 
       if (!dtype.isVectorOf(DTypes::UINT8))
       {
-        auto input_normalization=palette? palette->getInputNormalization(): TransferFunction::InputNormalization();
+        auto input_normalization=palette? palette->input_normalization : TransferFunction::InputNormalization();
         for (int I=0;I<std::min(4,dtype.ncomponents());I++)
         {
           //NOTE if I had to compute the dynamic range I will use only root data

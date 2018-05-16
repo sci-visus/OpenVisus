@@ -81,11 +81,11 @@ Color RGBAColorMap::getColor(double alpha,InterpolationMode::Type type)
       
     if (p0.x<=x && x<=p1.x)
     {
-      if (type==InterpolationMode::FLAT) 
+      if (type==InterpolationMode::Flat) 
         return p0.color;
 
       alpha=(x-p0.x)/(p1.x-p0.x);
-      if (type==InterpolationMode::INVERTED)
+      if (type==InterpolationMode::Inverted)
         alpha=1-alpha;
 
       Color c0=p0.color.toCieLab();
@@ -162,6 +162,43 @@ void RGBAColorMap::readFromObjectStream(ObjectStream& istream)
 }
 
 
+
+/////////////////////////////////////////////////////////////////////
+void TransferFunction::Single::writeToObjectStream(ObjectStream& ostream)
+{
+  ostream.write("name", name);
+  ostream.write("color", color.toString());
+
+  ostream.pushContext("values");
+  {
+    std::ostringstream out;
+    for (int I = 0; I<(int)values.size(); I++)
+    {
+      if (I % 16 == 0) out << std::endl;
+      out << values[I] << " ";
+    }
+    ostream.writeText(out.str());
+  }
+  ostream.popContext("values");
+}
+
+/////////////////////////////////////////////////////////////////////
+void TransferFunction::Single::readFromObjectStream(ObjectStream& istream)
+{
+  name = istream.read("name");
+  color = Color::parseFromString(istream.read("color"));
+
+  this->values.clear();
+  istream.pushContext("values");
+  {
+    std::istringstream in(istream.readText());
+    double value; while (in >> value)
+      values.push_back(value);
+  }
+  istream.popContext("values");
+}
+
+
 ////////////////////////////////////////////////////////////////////
 void TransferFunction::copy(TransferFunction& dst,const TransferFunction& src)
 {
@@ -170,78 +207,23 @@ void TransferFunction::copy(TransferFunction& dst,const TransferFunction& src)
 
   dst.beginUpdate();
   {
-    dst.input.normalization=src.input.normalization;
-    dst.output.dtype=src.output.dtype;
-    dst.output.range=src.output.range;
+    dst.input_normalization=src.input_normalization;
+    dst.output_dtype=src.output_dtype;
+    dst.output_range=src.output_range;
     dst.default_name=src.default_name;
     dst.attenuation=src.attenuation;
 
     dst.functions.clear();
-    for (auto fn : src.getFunctions())
-      dst.functions.push_back(std::make_shared<Function>(*fn));
+    for (auto fn : src.functions)
+      dst.functions.push_back(std::make_shared<Single>(*fn));
   }
   dst.endUpdate();
 }
 
 /////////////////////////////////////////////////////////////////////
-void TransferFunction::setInputNormalization(InputNormalization value)
-{
-  beginUpdate();
-  this->input.normalization=value;
-  endUpdate();
-}
-
-/////////////////////////////////////////////////////////////////////
-void TransferFunction::setAttenuation(double value)
-{
-  if (this->attenuation==value)
-    return;
-
-  beginUpdate();
-  this->attenuation=value;
-  endUpdate();
-}
-
-/////////////////////////////////////////////////////////////////////
-void TransferFunction::setOutputDType(DType value)
-{
-  if (this->output.dtype==value)
-    return;
-
-  beginUpdate();
-  this->output.dtype=value;
-  output.range=output.dtype==DTypes::UINT8? Range(0,255,1) : Range(0,1,0);
-  endUpdate();
-}
-
-/////////////////////////////////////////////////////////////////////
-void TransferFunction::setOutputRange(Range value)
-{
-  if (this->output.range.from==value.from && this->output.range.to==value.to)
-    return;
- 
-  beginUpdate();
-  this->output.range=value;
-  endUpdate();
-}
-
-
-/////////////////////////////////////////////////////////////////////
-void TransferFunction::resize(int value)
-{
-  if (size()==value || !value || !getNumberOfFunctions())
-    return;
-
-  beginUpdate();
-  for (auto fn : getFunctions())
-    fn->resize(value);
-  endUpdate();
-}
-
-/////////////////////////////////////////////////////////////////////
 String TransferFunction::guessFunctionName()
 {
-  int N=getNumberOfFunctions();
+  int N= (int)functions.size();
   switch (N)
   {
     case 0:return "Red"  ;
@@ -255,7 +237,7 @@ String TransferFunction::guessFunctionName()
 /////////////////////////////////////////////////////////////////////
 Color TransferFunction::guessFunctionColor()
 {
-  int N=getNumberOfFunctions();
+  int N= (int)functions.size();
   switch (N)
   {
     case 0:return Colors::Red;
@@ -267,28 +249,10 @@ Color TransferFunction::guessFunctionColor()
 }
 
 
-////////////////////////////////////////////////////////////////////
-void TransferFunction::setNumberOfFunctions(int value)
-{
-  value=std::max(1,value);
-  int nsamples=size() ;
-
-  beginUpdate();
-  {
-    while (getNumberOfFunctions()<value)
-      functions.push_back(std::make_shared<SingleTransferFunction>(guessFunctionName(),guessFunctionColor(),nsamples));
-      
-    while (getNumberOfFunctions()>value)
-      functions.pop_back();
-  }
-  endUpdate();
-}
-
-
 /////////////////////////////////////////////////////////////////////
 Array TransferFunction::convertToArray() const
 {
-  int nfun =(int)getNumberOfFunctions();
+  int nfun =(int)functions.size();
   if (!nfun)
     return Array();
 
@@ -308,17 +272,17 @@ Array TransferFunction::convertToArray() const
       alpha[F]=1.0-attenuation;
   }
 
-  double vs=output.range.delta();
-  double vt=output.range.from;
+  double vs=output_range.delta();
+  double vt=output_range.from;
 
-  if (output.dtype==DTypes::UINT8)
+  if (output_dtype==DTypes::UINT8)
   {
     if (!ret.resize(nsamples,DType(nfun,DTypes::UINT8),__FILE__,__LINE__)) 
       return Array();
 
     for (int F=0;F<nfun;F++)
     {
-      auto fn=getFunction(F);
+      auto fn=functions[F];
       GetComponentSamples<Uint8> write(ret,F);
       for (int I=0;I<nsamples;I++)
         write[I]=(Uint8)((alpha[F]*fn->values[I])*vs+vt);
@@ -331,7 +295,7 @@ Array TransferFunction::convertToArray() const
 
     for (int F=0;F<nfun;F++)
     {
-      auto fn=getFunction(F);
+      auto fn=functions[F];
       GetComponentSamples<Float32> write(ret,F);
       for (int I=0;I<nsamples;I++)
         write[I]=(Float32)((alpha[F]*fn->values[I])*vs+vt);
@@ -367,24 +331,24 @@ bool TransferFunction::importTransferFunction(String url)
   beginUpdate();
   {
     this->functions.clear();
-    this->functions.push_back(std::make_shared<SingleTransferFunction>("Red"  ,Colors::Red  ,size));
-    this->functions.push_back(std::make_shared<SingleTransferFunction>("Green",Colors::Green,size));
-    this->functions.push_back(std::make_shared<SingleTransferFunction>("Blue" ,Colors::Blue ,size));
-    this->functions.push_back(std::make_shared<SingleTransferFunction>("Alpha",Colors::Gray ,size));
+    this->functions.push_back(std::make_shared<Single>("Red"  ,Colors::Red  ,size));
+    this->functions.push_back(std::make_shared<Single>("Green",Colors::Green,size));
+    this->functions.push_back(std::make_shared<Single>("Blue" ,Colors::Blue ,size));
+    this->functions.push_back(std::make_shared<Single>("Alpha",Colors::Gray ,size));
 
     double N=size-1.0;
     for (int I=0;I<size;I++)
     {
       std::istringstream istream(lines[I]);
-      for (auto fn : getFunctions())
+      for (auto fn : functions)
       {
         int value;istream>>value;
         fn->values[I]=value/N;
       }
     }
 
-    this->output.dtype=DTypes::UINT8;
-    this->output.range=Range(0,255,1);
+    this->output_dtype=DTypes::UINT8;
+    this->output_range=Range(0,255,1);
     this->attenuation=0.0;
   }
   endUpdate();
@@ -404,7 +368,7 @@ bool TransferFunction::exportTransferFunction(String filename="")
   out<<nsamples<<std::endl;
   for (int I=0;I<nsamples;I++)
   {
-    for (auto fn : getFunctions())
+    for (auto fn : functions)
       out<<(int)(fn->values[I]*(nsamples-1))<<" ";
     out<<std::endl;
   }
@@ -427,8 +391,13 @@ bool TransferFunction::setFromArray(Array src,String default_name)
   beginUpdate();
   {
     functions.clear();
-    for (int F=0;F<nfunctions;F++) 
-      addFunction(std::make_shared<SingleTransferFunction>(guessFunctionName(),guessFunctionColor(),N));
+    for (int F = 0; F < nfunctions; F++)
+    {
+      auto single = std::make_shared<Single>(N);
+      single->name = guessFunctionName();
+      single->color = guessFunctionColor();
+      functions.push_back(single);
+    }
   
     if (src.dtype.isVectorOf(DTypes::UINT8)) 
     {
@@ -436,7 +405,7 @@ bool TransferFunction::setFromArray(Array src,String default_name)
       for (int I=0;I<N;I++)
       {
         for (int F=0;F<nfunctions;F++)
-          getFunction(F)->values[I]=(*SRC++)/255.0;
+          functions[F]->values[I]=(*SRC++)/255.0;
       }
 
       this->default_name=default_name;
@@ -447,7 +416,7 @@ bool TransferFunction::setFromArray(Array src,String default_name)
       for (int I=0;I<N;I++)
       {
         for (int F=0;F<nfunctions;F++)
-          getFunction(F)->values[I]=(*SRC++);
+          functions[F]->values[I]=(*SRC++);
       }
 
       this->default_name=default_name;
@@ -458,7 +427,7 @@ bool TransferFunction::setFromArray(Array src,String default_name)
       for (int I=0;I<N;I++)
       {
         for (int F=0;F<nfunctions;F++)
-          getFunction(F)->values[I]=(*SRC++);
+          functions[F]->values[I]=(*SRC++);
       }
 
       this->default_name=default_name;
@@ -474,7 +443,6 @@ bool TransferFunction::setFromArray(Array src,String default_name)
 }
 
 
-
 /////////////////////////////////////////////////////////////////////
 template <typename SrcType>
 struct ExecuteProcessingInnerOp
@@ -482,7 +450,7 @@ struct ExecuteProcessingInnerOp
   template <typename DstType>
   bool execute(TransferFunction& tf, Array& dst, Array src, Aborted aborted)
   {
-    int num_fn = (int)tf.getNumberOfFunctions();
+    int num_fn = (int)tf.functions.size();
     if (!num_fn)
       return false;
 
@@ -490,7 +458,7 @@ struct ExecuteProcessingInnerOp
     if (!src_ncomponents)
       return false;
 
-    DType dst_dtype = tf.getOutputDType();
+    DType dst_dtype = tf.output_dtype;
     if (!(dst_dtype == DTypes::UINT8 || dst_dtype == DTypes::FLOAT32 || dst_dtype == DTypes::FLOAT64))
     {
       VisusAssert(false);
@@ -521,15 +489,15 @@ struct ExecuteProcessingInnerOp
 
     for (int I = 0; I < dst_ncomponents; I++)
     {
-      auto fn = tf.getFunction(std::min(I, num_fn-1));
-      auto dst_write = GetComponentSamples<DstType>(dst, I);
-      auto src_read  = GetComponentSamples<SrcType>(src, std::min(I, src_ncomponents-1));
+      auto F = Utils::clamp(I, 0, num_fn          - 1); auto FUN = tf.functions[F];
+      auto D = Utils::clamp(I, 0, dst_ncomponents - 1); auto DST = GetComponentSamples<DstType>(dst, D);
+      auto S = Utils::clamp(I, 0, src_ncomponents - 1); auto SRC = GetComponentSamples<SrcType>(src, S);
 
-      dst.dtype=dst.dtype.withDTypeRange(tf.getOutputRange(),I);
+      dst.dtype=dst.dtype.withDTypeRange(tf.output_range,I);
 
-      auto  vs_t = tf.getInputNormalization().doCompute(src, src_read.C,aborted).getScaleTranslate();
+      auto  vs_t = tf.input_normalization.doCompute(src, SRC.C, aborted).getScaleTranslate();
 
-      Range dst_range = tf.getOutputRange();
+      Range dst_range = tf.output_range;
 
       double src_vs = vs_t.first;
       double src_vt = vs_t.second;
@@ -542,9 +510,9 @@ struct ExecuteProcessingInnerOp
         if (aborted())
           return false;
 
-        double x = src_vs*src_read[I] + src_vt;
-        double y = fn->getValue(x);
-        dst_write[I] = (DstType)(dst_vs*y + dst_vt);
+        double x = src_vs* SRC[I] + src_vt;
+        double y = FUN->getValue(x);
+        DST[I] = (DstType)(dst_vs*y + dst_vt);
       }
     }
 
@@ -559,7 +527,7 @@ struct ExecuteProcessingOp
   template <typename SrcType>
   bool execute(TransferFunction& tf, Array& dst, Array src, Aborted aborted) {
     ExecuteProcessingInnerOp<SrcType> op;
-    return ExecuteOnCppSamples(op, tf.getOutputDType(), tf, dst, src, aborted);
+    return ExecuteOnCppSamples(op, tf.output_dtype, tf, dst, src, aborted);
   }
 };
 
@@ -569,41 +537,6 @@ Array TransferFunction::applyToArray(Array src,Aborted aborted)
   Array dst;
   ExecuteProcessingOp op;
   return ExecuteOnCppSamples(op,src.dtype,*this,dst,src,aborted)? dst : Array();
-}
-
-/////////////////////////////////////////////////////////////////////
-void SingleTransferFunction::writeToObjectStream(ObjectStream& ostream)
-{
-  ostream.write("name",name);
-  ostream.write("color",color.toString());
-
-  ostream.pushContext("values");
-  {
-    std::ostringstream out;
-    for (int I=0;I<(int)values.size();I++) 
-    {
-      if (I % 16==0) out<<std::endl;
-      out<<values[I]<<" ";
-    }
-    ostream.writeText(out.str());
-  }
-  ostream.popContext("values");
-}
-
-/////////////////////////////////////////////////////////////////////
-void SingleTransferFunction::readFromObjectStream(ObjectStream& istream)
-{
-  name=istream.read("name");
-  color=Color::parseFromString(istream.read("color"));
-
-  this->values.clear();
-  istream.pushContext("values");
-  {
-    std::istringstream in(istream.readText());
-    double value;while (in>>value)
-      values.push_back(value);
-  }
-  istream.popContext("values");
 }
 
 
@@ -619,11 +552,11 @@ void TransferFunction::writeToObjectStream(ObjectStream& ostream)
 
   ostream.pushContext("input");
   {
-    ostream.writeInline("mode",cstring(input.normalization.mode));
-    if (input.normalization.custom_range.delta()>0)
+    ostream.writeInline("mode",cstring(input_normalization.mode));
+    if (input_normalization.custom_range.delta()>0)
     {
       ostream.pushContext("custom_range");
-      input.normalization.custom_range.writeToObjectStream(ostream);
+      input_normalization.custom_range.writeToObjectStream(ostream);
       ostream.popContext("custom_range");
     }
   }
@@ -631,16 +564,16 @@ void TransferFunction::writeToObjectStream(ObjectStream& ostream)
 
   ostream.pushContext("output");
   {
-    ostream.writeInline("dtype",output.dtype.toString());
+    ostream.writeInline("dtype",output_dtype.toString());
     ostream.pushContext("range");
-    output.range.writeToObjectStream(ostream);
+    output_range.writeToObjectStream(ostream);
     ostream.popContext("range");
   }
   ostream.popContext("output");
 
   if (!bDefault)
   {
-    for (auto fn : getFunctions())
+    for (auto fn : functions)
     {
       ostream.pushContext("function");
       fn->writeToObjectStream(ostream);
@@ -662,10 +595,10 @@ void TransferFunction::readFromObjectStream(ObjectStream& istream)
 
   if (istream.pushContext("input"))
   {
-    input.normalization.mode=(ComputeRange::Mode)cint(istream.readInline("input.normalization"));
+    input_normalization.mode=(ComputeRange::Mode)cint(istream.readInline("input.normalization"));
     if (istream.pushContext("custom_range"))
     {
-      input.normalization.custom_range.readFromObjectStream(istream);
+      input_normalization.custom_range.readFromObjectStream(istream);
       istream.popContext("custom_range");
     }
     istream.popContext("input");
@@ -673,11 +606,11 @@ void TransferFunction::readFromObjectStream(ObjectStream& istream)
 
   if (istream.pushContext("output"))
   {
-    output.dtype=DType::fromString(istream.readInline("dtype"));
+    output_dtype=DType::fromString(istream.readInline("dtype"));
 
     if (istream.pushContext("range"))
     {
-      output.range.readFromObjectStream(istream);
+      output_range.readFromObjectStream(istream);
       istream.popContext("range");
     }
     istream.popContext("output");
@@ -692,10 +625,10 @@ void TransferFunction::readFromObjectStream(ObjectStream& istream)
     setNotDefault();
     while (istream.pushContext("function"))
     {
-      auto fn= std::make_shared<SingleTransferFunction>();
-      fn->readFromObjectStream(istream);
+      auto single = std::make_shared<Single>();
+      single->readFromObjectStream(istream);
       istream.popContext("function");
-      addFunction(fn);
+      functions.push_back(single);
     }
   }
 }
@@ -708,14 +641,14 @@ void TransferFunction::writeToSceneObjectStream(ObjectStream& ostream)
   
   ostream.pushContext("output");
   {
-    ostream.writeInline("dtype",output.dtype.toString());
+    ostream.writeInline("dtype",output_dtype.toString());
     ostream.pushContext("range");
-    output.range.writeToObjectStream(ostream);
+    output_range.writeToObjectStream(ostream);
     ostream.popContext("range");
   }
   ostream.popContext("output");
   
-  for (auto fn : getFunctions())
+  for (auto fn : functions)
   {
     ostream.pushContext("function");
     fn->writeToObjectStream(ostream);
@@ -737,10 +670,10 @@ void TransferFunction::readFromSceneObjectStream(ObjectStream& istream)
   
   if (istream.pushContext("input"))
   {
-    input.normalization.mode=(ComputeRange::Mode)cint(istream.readInline("input.normalization"));
+    input_normalization.mode=(ComputeRange::Mode)cint(istream.readInline("input.normalization"));
     if (istream.pushContext("custom_range"))
     {
-      input.normalization.custom_range.readFromObjectStream(istream);
+      input_normalization.custom_range.readFromObjectStream(istream);
       istream.popContext("custom_range");
     }
     istream.popContext("input");
@@ -748,11 +681,11 @@ void TransferFunction::readFromSceneObjectStream(ObjectStream& istream)
   
   if (istream.pushContext("output"))
   {
-    output.dtype=DType::fromString(istream.readInline("dtype"));
+    output_dtype=DType::fromString(istream.readInline("dtype"));
     
     if (istream.pushContext("range"))
     {
-      output.range.readFromObjectStream(istream);
+      output_range.readFromObjectStream(istream);
       istream.popContext("range");
     }
     istream.popContext("output");
@@ -767,10 +700,10 @@ void TransferFunction::readFromSceneObjectStream(ObjectStream& istream)
     setNotDefault();
     while (istream.pushContext("function"))
     {
-      auto fn= std::make_shared<SingleTransferFunction>();
-      fn->readFromObjectStream(istream);
+      auto single= std::make_shared<Single>();
+      single->readFromObjectStream(istream);
       istream.popContext("function");
-      addFunction(fn);
+      functions.push_back(single);
     }
   }
 }

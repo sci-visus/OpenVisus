@@ -816,10 +816,10 @@ bool TransferFunction::setDefault(String default_name)
     beginUpdate();
     const int N=256;
     functions.clear();
-    addFunction(std::make_shared<SingleTransferFunction>("Red"  ,Colors::Red   ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Green",Colors::Green ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Blue" ,Colors::Blue  ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Alpha",Colors::Gray  ,N));
+    functions.push_back(std::make_shared<Single>("Red"  ,Colors::Red   ,N));
+    functions.push_back(std::make_shared<Single>("Green",Colors::Green ,N));
+    functions.push_back(std::make_shared<Single>("Blue" ,Colors::Blue  ,N));
+    functions.push_back(std::make_shared<Single>("Alpha",Colors::Gray  ,N));
 
     for (int I=0;I<N;I++)
     {
@@ -839,10 +839,10 @@ bool TransferFunction::setDefault(String default_name)
     beginUpdate();
     const int N=256;
     functions.clear();
-    addFunction(std::make_shared<SingleTransferFunction>("Red"  ,Colors::Red   ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Green",Colors::Green ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Blue" ,Colors::Blue  ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Alpha",Colors::Gray  ,N));
+    functions.push_back(std::make_shared<Single>("Red"  ,Colors::Red   ,N));
+    functions.push_back(std::make_shared<Single>("Green",Colors::Green ,N));
+    functions.push_back(std::make_shared<Single>("Blue" ,Colors::Blue  ,N));
+    functions.push_back(std::make_shared<Single>("Alpha",Colors::Gray  ,N));
     for (int I=0;I<N;I++)
     {
       double alpha=I/(N-1.0);
@@ -861,10 +861,10 @@ bool TransferFunction::setDefault(String default_name)
     beginUpdate();
     const int N=256;
     functions.clear();
-    addFunction(std::make_shared<SingleTransferFunction>("Red"  ,Colors::Red   ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Green",Colors::Green ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Blue" ,Colors::Blue  ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Alpha",Colors::Gray  ,N));
+    functions.push_back(std::make_shared<Single>("Red"  ,Colors::Red   ,N));
+    functions.push_back(std::make_shared<Single>("Green",Colors::Green ,N));
+    functions.push_back(std::make_shared<Single>("Blue" ,Colors::Blue  ,N));
+    functions.push_back(std::make_shared<Single>("Alpha",Colors::Gray  ,N));
     for (int I=0;I<N;I++)
     {
       double alpha=I/(N-1.0);

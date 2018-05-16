@@ -125,7 +125,7 @@ private:
     VisusAssert(model);
     this->img.reset();
 
-    int nfunctions = (int)model->getNumberOfFunctions();
+    int nfunctions = (int)model->functions.size();
     if (!(nfunctions>=1 && nfunctions<=4))
       return;
 
@@ -133,14 +133,14 @@ private:
     if (!nsamples)
       return;
 
-    double attenuation=model->getAttenuation();
+    double attenuation=model->attenuation;
 
-    std::vector<double>* R=(nfunctions>=1)? &model->getFunction(0)->values : nullptr;
-    std::vector<double>* G=(nfunctions>=2)? &model->getFunction(1)->values : nullptr;
-    std::vector<double>* B=(nfunctions>=3)? &model->getFunction(2)->values : nullptr;
+    std::vector<double>* R=(nfunctions>=1)? &model->functions[0]->values : nullptr;
+    std::vector<double>* G=(nfunctions>=2)? &model->functions[1]->values : nullptr;
+    std::vector<double>* B=(nfunctions>=3)? &model->functions[2]->values : nullptr;
     std::vector<double>* A=nullptr;
-    if (nfunctions==2 && bShowCheckedBoard) A=&model->getFunction(1)->values;
-    if (nfunctions==4 && bShowCheckedBoard) A=&model->getFunction(3)->values;
+    if (nfunctions==2 && bShowCheckedBoard) A=&model->functions[1]->values; //Gray Alpha
+    if (nfunctions==4 && bShowCheckedBoard) A=&model->functions[3]->values; //RGBA
 
     this->img.reset(new QImage(nsamples,1,QImage::Format_ARGB32));
     for (int x=0; x<nsamples; x++)
@@ -213,9 +213,9 @@ public:
     {
       auto layout = new QHBoxLayout();
 
-      for (int F = 0,nfunctions = model->getNumberOfFunctions(); F < (int)nfunctions; F++)
+      for (int F = 0,nfunctions = (int)model->functions.size(); F < (int)nfunctions; F++)
       {
-        auto checkbox=GuiFactory::CreateCheckBox(F==nfunctions-1?true:false,model->getFunction(F)->name.c_str(),[this,F](int) {checkBoxClicked(F);});
+        auto checkbox=GuiFactory::CreateCheckBox(F==nfunctions-1?true:false,model->functions[F]->name.c_str(),[this,F](int) {checkBoxClicked(F);});
         layout->addWidget(checkbox);
         checkboxes.push_back(checkbox);
       }
@@ -225,10 +225,10 @@ public:
   }
 
   //isSelected
-  bool isSelected(SingleTransferFunction* fn) 
+  bool isSelected(TransferFunction::Single* fn)
   {
     int F=0; 
-    for (auto it : model->getFunctions()) 
+    for (auto it : model->functions) 
     {
       if (it.get()==fn)
         return checkboxes[F]->isChecked();
@@ -267,7 +267,7 @@ private:
   virtual void modelChanged() override 
   {
     std::vector<String> fn_names;
-    for (auto fn : model->getFunctions())
+    for (auto fn : model->functions)
       fn_names.push_back(fn->name);
 
     std::vector<String> check_names;
@@ -340,7 +340,7 @@ public:
   virtual void mousePressEvent(QMouseEvent* evt) override 
   {
     // painting functions
-    if (model && evt->button()==Qt::LeftButton && model->getNumberOfFunctions())
+    if (model && evt->button()==Qt::LeftButton && model->functions.size())
     { 
       model->beginUpdate();
 
@@ -353,7 +353,7 @@ public:
       dragging->start(500);
 
       auto pos=QUtils::convert<Point2d>(unproject(evt->pos()));
-      for (auto fn : model->getFunctions()) {
+      for (auto fn : model->functions) {
         if (selection->isSelected(fn.get()))
           fn->setValue(pos.x,pos.y);
       }
@@ -375,7 +375,7 @@ public:
     if (dragging)
     {
       auto pos=QUtils::convert<Point2d>(unproject(evt->pos()));
-      for (auto fn : model->getFunctions()) {
+      for (auto fn : model->functions) {
         if (selection->isSelected(fn.get()))
           fn->setValue(last_pos.x,last_pos.y,pos.x,pos.y);
       }
@@ -417,11 +417,11 @@ public:
     renderBackground(painter);
     renderGrid(painter);
 
-    int nvalues=(int)model->getFunction(0)->values.size();
+    int nvalues=(int)model->size();
 
     if (bool bRenderFunctions=true)
     {
-      for (auto fn : model->getFunctions())
+      for (auto fn : model->functions)
       {
         std::vector<QPointF> points(nvalues);
 
@@ -627,10 +627,10 @@ private:
       {
         this->model->beginUpdate();
         this->model->setFromArray(src,"");
-        this->model->setOutputDType(isFloatRange? DTypes::FLOAT32_RGBA : DTypes::UINT8_RGBA);
-        this->model->setAttenuation(attenuation);
+        this->model->output_dtype=isFloatRange? DTypes::FLOAT32_RGBA : DTypes::UINT8_RGBA;
+        this->model->attenuation=attenuation;
         if (useColorVarMax || useColorVarMin)
-          this->model->setInputNormalization(TransferFunction::InputNormalization(ComputeRange::UseCustom,Range(colorVarMin, colorVarMax,0)));
+          this->model->input_normalization=TransferFunction::InputNormalization(ComputeRange::UseCustom,Range(colorVarMin, colorVarMax,0));
         this->model->endUpdate();
       }
       return;
@@ -733,30 +733,39 @@ public:
     {
       QFormLayout* layout = new QFormLayout();
 
-      auto normalization = model->getInputNormalization();
+      auto normalization = model->input_normalization;
       
       layout->addRow("Num samples", widgets.nsamples = GuiFactory::CreateIntegerTextBoxWidget((int)model->size(),[this](int nsamples){
-        this->model->resize(nsamples);
+        model->beginUpdate();
+        for (auto fn : model->functions)
+          fn->resize(nsamples);
+        model->endUpdate();
       }));
 
       std::vector<String> options={"Use Array Range","Compute Overall Range","Compute Range Per Component","Use Custom Range"};
       layout->addRow("Normalization mode", widgets.input.normalization.mode = GuiFactory::CreateComboBox(options[0],options,[this](String value) {
-        auto normalization = model->getInputNormalization();
+        auto normalization = model->input_normalization;
         normalization.mode = (ComputeRange::Mode)widgets.input.normalization.mode->currentIndex();
-        model->setInputNormalization(normalization);
+        model->beginUpdate();
+        model->input_normalization=normalization;
+        model->endUpdate();
       }));
       
       layout->addRow("Custom Range from" , widgets.input.normalization.custom_range.from = GuiFactory::CreateDoubleTextBoxWidget(normalization.custom_range.from,[this](double value){
-        auto normalization = model->getInputNormalization();
+        auto normalization = model->input_normalization;
         normalization.custom_range.from = cdouble(widgets.input.normalization.custom_range.from->text());
-        model->setInputNormalization(normalization);
+        model->beginUpdate();
+        model->input_normalization=normalization;
+        model->endUpdate();
       }));
       widgets.input.normalization.custom_range.from->setEnabled(normalization.mode == ComputeRange::UseCustom);
 
       layout->addRow("Custom Range to" , widgets.input.normalization.custom_range.to = GuiFactory::CreateDoubleTextBoxWidget(normalization.custom_range.to,[this](double value){
-        auto normalization = model->getInputNormalization();
+        auto normalization = model->input_normalization;
         normalization.custom_range.to = cdouble(widgets.input.normalization.custom_range.to->text());
-        model->setInputNormalization(normalization);
+        model->beginUpdate();
+        model->input_normalization = normalization;
+        model->endUpdate();
       }));
       widgets.input.normalization.custom_range.to->setEnabled(normalization.mode == ComputeRange::UseCustom);
 
@@ -770,7 +779,7 @@ private:
   //refreshGui
   void refreshGui()
   {
-    auto normalization = model->getInputNormalization();
+    auto normalization = model->input_normalization;
     widgets.nsamples->setText(cstring(model->size()).c_str());
     widgets.input.normalization.mode->setCurrentIndex(normalization.mode);
     widgets.input.normalization.custom_range.from->setText(cstring(normalization.custom_range.from).c_str());
@@ -832,26 +841,35 @@ public:
     {
       QFormLayout* layout = new QFormLayout();
 
-      layout->addRow("Number functions", widgets.nfunctions= GuiFactory::CreateIntegerTextBoxWidget(model->getNumberOfFunctions(),[this](int value){
+      layout->addRow("Number functions", widgets.nfunctions= GuiFactory::CreateIntegerTextBoxWidget((int)model->functions.size(),[this](int value){
           this->model->setNumberOfFunctions(value);
       }));
 
-      layout->addRow("Output dtype", widgets.dtype = GuiFactory::CreateComboBox(model->getOutputDType().toString().c_str(),{"Uint8","Float32","Float64"},[this](String s){
+      layout->addRow("Output dtype", widgets.dtype = GuiFactory::CreateComboBox(model->output_dtype.toString().c_str(),{"Uint8","Float32","Float64"},[this](String s){
           DType value=DType::fromString(s);
-          this->model->setOutputDType(value); 
+          this->model->beginUpdate();
+          this->model->output_dtype=value;
+          this->model->endUpdate();
           update();
       }));
 
-      layout->addRow("Range from", widgets.range_from = GuiFactory::CreateDoubleTextBoxWidget(model->getOutputRange().from,[this](double value){
-          this->model->setOutputRange(Range(value,model->getOutputRange().to,0));
+      layout->addRow("Range from", widgets.range_from = GuiFactory::CreateDoubleTextBoxWidget(model->output_range.from,[this](double value){
+
+        this->model->beginUpdate();
+          this->model->output_range=Range(value,model->output_range.to,0);
+          this->model->endUpdate();
       }));
 
-      layout->addRow("Range to", widgets.range_to = GuiFactory::CreateDoubleTextBoxWidget(model->getOutputRange().to,[this](double value){
-          this->model->setOutputRange(Range(model->getOutputRange().from,value,0));
+      layout->addRow("Range to", widgets.range_to = GuiFactory::CreateDoubleTextBoxWidget(model->output_range.to,[this](double value){
+        this->model->beginUpdate();
+          this->model->output_range = Range(model->output_range.from,value,0);
+          this->model->endUpdate();
         }));
 
-      layout->addRow("Attenuation",widgets.attenuation=GuiFactory::CreateDoubleSliderWidget(model->getAttenuation(),Range(0,1,0),[this](double value){
-        this->model->setAttenuation(value);
+      layout->addRow("Attenuation",widgets.attenuation=GuiFactory::CreateDoubleSliderWidget(model->attenuation,Range(0,1,0),[this](double value){
+        this->model->beginUpdate();
+        this->model->attenuation=value;
+        this->model->endUpdate();
       }));
 
       setLayout(layout);
@@ -864,11 +882,11 @@ private:
   //refreshGui
   void refreshGui()
   {
-    widgets.nfunctions->setText(cstring(model->getNumberOfFunctions()).c_str());
-    widgets.dtype->setCurrentText(model->getOutputDType().toString().c_str());
-    widgets.range_from->setText(cstring(model->getOutputRange().from).c_str());
-    widgets.range_to->setText(cstring(model->getOutputRange().to).c_str());
-    widgets.attenuation->setValue(model->getAttenuation());
+    widgets.nfunctions->setText(cstring((int)model->functions.size()).c_str());
+    widgets.dtype->setCurrentText(model->output_dtype.toString().c_str());
+    widgets.range_from->setText(cstring(model->output_range.from).c_str());
+    widgets.range_to->setText(cstring(model->output_range.to).c_str());
+    widgets.attenuation->setValue(model->attenuation);
   }
 
   //modelChanged
@@ -946,16 +964,19 @@ public:
           auto combo=GuiFactory::CreateComboBox(TransferFunction::getDefaults()[0],TransferFunction::getDefaults(),[this](String name){
             this->model->setDefault(name);
           });
-          combo->setCurrentText(this->model->getDefaultName().c_str()); 
+          combo->setCurrentText(this->model->default_name.c_str()); 
           row->addWidget(widgets.default_palette=combo);
         }
 
         row->addWidget(new QLabel("Interpolation"));
         {
-          auto combo = GuiFactory::CreateComboBox(TransferFunction::getInterpolationTypes()[0], TransferFunction::getInterpolationTypes(), [this](String type) {
-            this->model->setInterpolation(type);
+          auto values = InterpolationMode::getValues();
+          auto combo = GuiFactory::CreateComboBox(values[0], values, [this](String type) {
+            this->model->beginUpdate();
+            this->model->interpolation.set(type);
+            this->model->endUpdate();
           });
-          combo->setCurrentText(this->model->getInterpolationName().c_str());
+          combo->setCurrentText(this->model->interpolation.toString().c_str());
           row->addWidget(widgets.default_interpolation = combo);
         }
 

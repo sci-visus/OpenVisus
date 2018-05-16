@@ -124,7 +124,7 @@ bool PaletteNode::processInput()
   if (views.empty())
     return false;
 
-  addNodeJob(std::make_shared<ComputeStatsJob>(this,*data,palette->getInputNormalization()));
+  addNodeJob(std::make_shared<ComputeStatsJob>(this,*data,palette->input_normalization));
   return true;
 }
 

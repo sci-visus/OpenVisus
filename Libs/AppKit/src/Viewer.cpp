@@ -2728,6 +2728,7 @@ CpuPaletteNode* Viewer::addCpuTransferFunctionNode(Node* parent,Node* data_provi
       if (auto last_data=std::dynamic_pointer_cast<Array>(last_published->value))
         num_functions=last_data->dtype.ncomponents();
     }
+
     transfer_node->getTransferFunction()->setNumberOfFunctions(num_functions);
   }
 
