@@ -744,28 +744,16 @@ public:
 
       std::vector<String> options={"Use Array Range","Compute Overall Range","Compute Range Per Component","Use Custom Range"};
       layout->addRow("Normalization mode", widgets.input.normalization.mode = GuiFactory::CreateComboBox(options[0],options,[this](String value) {
-        auto normalization = model->input_normalization;
-        normalization.mode = (ComputeRange::Mode)widgets.input.normalization.mode->currentIndex();
-        model->beginUpdate();
-        model->input_normalization=normalization;
-        model->endUpdate();
+        updateInputNormalization();
       }));
       
       layout->addRow("Custom Range from" , widgets.input.normalization.custom_range.from = GuiFactory::CreateDoubleTextBoxWidget(normalization.custom_range.from,[this](double value){
-        auto normalization = model->input_normalization;
-        normalization.custom_range.from = cdouble(widgets.input.normalization.custom_range.from->text());
-        model->beginUpdate();
-        model->input_normalization=normalization;
-        model->endUpdate();
+        updateInputNormalization();
       }));
       widgets.input.normalization.custom_range.from->setEnabled(normalization.mode == ComputeRange::UseCustom);
 
       layout->addRow("Custom Range to" , widgets.input.normalization.custom_range.to = GuiFactory::CreateDoubleTextBoxWidget(normalization.custom_range.to,[this](double value){
-        auto normalization = model->input_normalization;
-        normalization.custom_range.to = cdouble(widgets.input.normalization.custom_range.to->text());
-        model->beginUpdate();
-        model->input_normalization = normalization;
-        model->endUpdate();
+        updateInputNormalization();
       }));
       widgets.input.normalization.custom_range.to->setEnabled(normalization.mode == ComputeRange::UseCustom);
 
@@ -776,16 +764,31 @@ public:
 
 private:
 
+  //updateInputNormalization
+  void updateInputNormalization()
+  {
+    auto value = model->input_normalization;
+    value.mode = (ComputeRange::Mode)widgets.input.normalization.mode->currentIndex();
+    value.custom_range.from = cdouble(widgets.input.normalization.custom_range.from->text());
+    value.custom_range.to = cdouble(widgets.input.normalization.custom_range.to->text());
+    value.custom_range.step = model->output_dtype.isDecimal() ? 0.0 : 1.0;
+    model->beginUpdate();
+    model->input_normalization = value;
+    model->endUpdate();
+  }
+
   //refreshGui
   void refreshGui()
   {
     auto normalization = model->input_normalization;
     widgets.nsamples->setText(cstring(model->size()).c_str());
     widgets.input.normalization.mode->setCurrentIndex(normalization.mode);
-    widgets.input.normalization.custom_range.from->setText(cstring(normalization.custom_range.from).c_str());
-    widgets.input.normalization.custom_range.to->setText(cstring(normalization.custom_range.to).c_str());
-    widgets.input.normalization.custom_range.from->setEnabled(normalization.mode==ComputeRange::UseCustom);
-    widgets.input.normalization.custom_range.to->setEnabled  (normalization.mode==ComputeRange::UseCustom);
+
+    auto& dst = widgets.input.normalization.custom_range;
+    dst.from->setText(cstring(normalization.custom_range.from).c_str());
+    dst.to->setText(cstring(normalization.custom_range.to).c_str());
+    dst.from->setEnabled(normalization.mode==ComputeRange::UseCustom);
+    dst.to->setEnabled  (normalization.mode==ComputeRange::UseCustom);
   }
 
   //modelChanged
@@ -926,6 +929,8 @@ public:
 
   Widgets widgets;
 
+  int show_rows=0x0ffff;
+
   //default constructor
   TransferFunctionView(TransferFunction* model=nullptr) {
     if (model)
@@ -953,9 +958,11 @@ public:
       QVBoxLayout* layout=new QVBoxLayout();
       
       //color bar
-      layout->addWidget(widgets.colorbar=new TransferFunctionColorBarView(this->model));
+      if (show_rows & 0x1)
+        layout->addWidget(widgets.colorbar=new TransferFunctionColorBarView(this->model));
 
       //second row (list of palettes, Show alpha, import, export)
+      if (show_rows & 0x02)
       {
         auto row=(new QHBoxLayout());
 
@@ -980,7 +987,9 @@ public:
           row->addWidget(widgets.default_interpolation = combo);
         }
 
-        row->addWidget(widgets.show_checkboard=GuiFactory::CreateCheckBox(true,"Show alpha",[this](int value){showCheckboard(value);}));
+        row->addWidget(widgets.show_checkboard=GuiFactory::CreateCheckBox(true,"Show alpha",[this](int value){
+          setShowCheckboard(value);
+        }));
 
         row->addWidget(widgets.btImport=GuiFactory::CreateButton("Import",[this](bool){
           importTransferFunction();
@@ -993,16 +1002,22 @@ public:
         layout->addLayout(row);
       }
 
-      layout->addWidget(widgets.selection=new TransferFunctionSelectedFunctionsView(this->model));
-      layout->addWidget(widgets.canvas=new TransferFunctionCanvasView(this->model,widgets.selection));
+      if (show_rows & 0x04)
+        layout->addWidget(widgets.selection=new TransferFunctionSelectedFunctionsView(this->model));
+
+      if (show_rows & 0x08)
+        layout->addWidget(widgets.canvas=new TransferFunctionCanvasView(this->model,widgets.selection));
       
       //text output
-      QTabWidget* tabs=new QTabWidget();
-      tabs->addTab(widgets.input=new TransferFunctionInputView(this->model),"INPUT");
-      tabs->addTab(widgets.output=new TransferFunctionOutputView(this->model),"OUTPUT");
-      tabs->addTab(widgets.statistics=new ArrayStatisticsView(),"STATISTICS");
-      tabs->addTab(widgets.text=new TransferFunctionTextEditView(this->model),"TEXT");
-      layout->addWidget(tabs);
+      if (show_rows & 0x10)
+      {
+        QTabWidget* tabs = new QTabWidget();
+        tabs->addTab(widgets.input = new TransferFunctionInputView(this->model), "INPUT");
+        tabs->addTab(widgets.output = new TransferFunctionOutputView(this->model), "OUTPUT");
+        tabs->addTab(widgets.statistics = new ArrayStatisticsView(), "STATISTICS");
+        tabs->addTab(widgets.text = new TransferFunctionTextEditView(this->model), "TEXT");
+        layout->addWidget(tabs);
+      }
 
       setLayout(layout);
     }
@@ -1034,8 +1049,9 @@ public:
     }
   }
 
-  //showCheckboard
-  void showCheckboard(int value) {
+
+  //setShowCheckboard
+  void setShowCheckboard(int value) {
     widgets.colorbar->showCheckboard(value?true:false);
     update();
   }

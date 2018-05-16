@@ -62,6 +62,10 @@ public:
   virtual ~DataflowListener(){
   }
 
+  //dataflowMessageHasBeenPublished
+  virtual void dataflowMessageHasBeenPublished(SharedPtr<DataflowMessage> msg) {
+  }
+
   //dataflowBeingDestroyed
   virtual void dataflowBeingDestroyed() {
   }

@@ -267,8 +267,11 @@ bool Dataflow::dispatchPublishedMessages()
       sender->messageHasBeenPublished(*msg);
     }
 
+    for (auto listener : listeners)
+      listener->dataflowMessageHasBeenPublished(msg);
+
     //I promised to sign it in Dataflow::publish
-    if (SharedPtr<ReturnReceipt> return_receipt=msg->getReturnReceipt())
+    if (auto return_receipt=msg->getReturnReceipt())
       return_receipt->addSignature(this);
   }
   
@@ -289,10 +292,14 @@ bool Dataflow::dispatchPublishedMessages()
 bool Dataflow::publish(SharedPtr<DataflowMessage> msg)
 {
   //I need the lock, I can be in any thread here
-  ScopedLock lock(published_lock);
-  published.push_back(msg);
-  if (auto return_receipt = msg->getReturnReceipt())
-    return_receipt->needSignature(this);
+  {
+    ScopedLock lock(published_lock);
+    published.push_back(msg);
+
+    if (auto return_receipt = msg->getReturnReceipt())
+      return_receipt->needSignature(this);
+  }
+
   return true;
 }
 

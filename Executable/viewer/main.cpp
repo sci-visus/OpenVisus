@@ -124,40 +124,8 @@ int main(int argn,const char* argv[])
   using namespace Visus;
 
   SetCommandLine(argn, argv);
-
   GuiModule::createApplication();
-
   AppKitModule::attach();
-
-  if (bool bDebugPaletteView=false)
-  {
-    Array img(256,256,DTypes::UINT8_RGB);
-
-    auto ptr=img.c_ptr();
-    for (int J=0;J<256;J++)
-    for (int I=0;I<256;I++,ptr+=3)
-    {
-      double x=2*(I/256.0)-1.0;
-      double y=2*(J/256.0)-1;
-      ptr[0]=(int)(255*(x*x+y*y));
-      ptr[1]=rand() % 256;
-      ptr[2]=rand() % 256;
-    }
-
-    auto palette=new Palette();
-    palette->setDefault("GrayTransparent");
-
-    Statistics stats;
-    Statistics::compute(stats,img);
-
-    auto view=new PaletteView();
-    view->bindModel(palette);
-    view->setStatistics(stats);
-    view->show();
-    QApplication::exec();
-    AppKitModule::detach();
-    return 0;
-  }
 
   std::vector<String> args=ApplicationInfo::args;
   for (int I=1;I<(int)args.size();I++)

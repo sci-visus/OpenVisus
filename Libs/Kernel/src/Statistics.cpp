@@ -38,6 +38,7 @@ For support : support@visus.net
 
 
 #include <Visus/Statistics.h>
+#include <Visus/Log.h>
 
 namespace Visus {
 
