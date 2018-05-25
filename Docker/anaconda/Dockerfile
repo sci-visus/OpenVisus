@@ -4,9 +4,9 @@ FROM ubuntu:16.04
 RUN set -x \
 	&& apt-get update \
 	&& apt-get install -y \
-		cmake git swig bzip2 ca-certificates curl \
-		build-essential \
-		apache2 apache2-dev 
+	cmake git swig bzip2 ca-certificates curl \
+	build-essential \
+	apache2 apache2-dev
 
 # install miniconda
 RUN set -x \
@@ -38,6 +38,12 @@ RUN cmake ../ -DVISUS_GUI=0 \
 	-DPYTHON_INCLUDE_DIRS=/usr/local/anaconda2/include/python2.7 
 RUN make
 
+# setup visuspy
+ENV PATH /usr/local/anaconda2/bin:$PATH
+ENV PYTHONPATH $VISUS_HOME/build/:$PYTHONPATH
+ENV LD_LIBRARY_PATH /usr/local/anaconda2/lib/:$LD_LIBRARY_PATH
+RUN python setup.py install
+
 # configure apache
 ADD ./files/000-default.conf     /etc/apache2/sites-enabled/000-default.conf
 ADD ./files/httpd-foreground.sh  /usr/local/bin/httpd-foreground.sh
@@ -45,7 +51,19 @@ RUN echo "LoadModule visus_module /home/visus/build/libmod_visus.so" > /etc/apac
 RUN chmod a+x /usr/local/bin/httpd-foreground.sh 
 RUN a2enmod headers 
 RUN a2enmod visus
-# todo (?) add visus javascript viewer? 
+
+# install webviewer
+RUN git clone https://github.com/sci-visus/visus_javascript $VISUS_HOME/webviewer
+ADD ./files/webviewer.conf  /etc/apache2/sites-enabled/webviewer.conf
+ADD ./files/.htpasswd       $VISUS_HOME/.htpasswd
+RUN  rm                     /etc/apache2/sites-enabled/000-default.conf
+
+# download certificate
+RUN mkdir -p /var/www/visus && \
+    cd /var/www/visus && \
+    curl --remote-name --time-cond cacert.pem https://curl.haxx.se/ca/cacert.pem && \
+    chown -R www-data .
+
 EXPOSE 80
 CMD ["/usr/local/bin/httpd-foreground.sh"]
 
