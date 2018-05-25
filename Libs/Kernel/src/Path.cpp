@@ -41,8 +41,7 @@ For support : support@visus.net
 
 namespace Visus {
 
-Path KnownPaths::VisusUserDirectory     ; 
-Path KnownPaths::VisusCachesDirectory   ; 
+Path KnownPaths::VisusHome;
 Path KnownPaths::CurrentApplicationFile ;
 Path KnownPaths::CurrentWorkingDirectory;
 
@@ -81,10 +80,9 @@ const String Path::normalizePath(String path)
   //replace alias
   if (StringUtils::find(path,"$(")>=0)
   {
-    path=StringUtils::replaceAll(path,"$(VisusUserDirectory)"     ,KnownPaths::VisusUserDirectory     .path);
+    path=StringUtils::replaceAll(path,"$(VisusHome)"              ,KnownPaths::VisusHome.path);
     path=StringUtils::replaceAll(path,"$(CurrentApplicationFile)" ,KnownPaths::CurrentApplicationFile .path);
     path=StringUtils::replaceAll(path,"$(CurrentWorkingDirectory)",KnownPaths::CurrentWorkingDirectory.path);
-    path=StringUtils::replaceAll(path,"$(VisusCachesDirectory)"   ,KnownPaths::VisusCachesDirectory   .path);
   }
 
   //don't want window separators
@@ -95,9 +93,9 @@ const String Path::normalizePath(String path)
   if (StringUtils::startsWith(path,"./") || StringUtils::startsWith(path,"../"))
     path=KnownPaths::CurrentWorkingDirectory.path + "/" + path;
 
-  // example [~/something] -> VisusUserDirectory/something
+  // example [~/something] -> VisusHome/something
   if (StringUtils::startsWith(path,"~"))
-    path=KnownPaths::VisusUserDirectory.path + path.substr(1);
+    path=KnownPaths::VisusHome.path + path.substr(1);
 
   //example [c:/something/] -> [c:/something]
   if (StringUtils::endsWith(path,"/") && path!="/") 

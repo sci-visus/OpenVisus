@@ -130,12 +130,9 @@ void Tutorial_Tiling(String default_layout)
   idxfile.blocksperfile=1;
   VisusReleaseAssert(idxfile.save(filename));
 
-  auto vf=std::dynamic_pointer_cast<IdxDataset>(Dataset::loadDataset(filename));
+  auto vf=IdxDataset::loadDataset(filename);
   VisusReleaseAssert(vf && vf->valid());
 
   TilingExample(vf.get());
-
-  //auto vf=std::dynamic_pointer_cast<IdxDataset>(Dataset::loadDataset(Url("file://C:/visus_dataset/rome")));
-  //TilingExample(vf.get());
 }
 

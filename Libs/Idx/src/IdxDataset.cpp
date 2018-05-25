@@ -238,18 +238,20 @@ public:
   IdxBoxQueryHzAddressConversion()  {
   }
 
-  //construcvtor
-  IdxBoxQueryHzAddressConversion(IdxBoxQueryHzAddressConversion& principal, const DatasetBitmask& bitmask, int new_maxh)
+  //createConversion
+  SharedPtr<IdxBoxQueryHzAddressConversion> createConversion(const DatasetBitmask& bitmask, int new_maxh)
   {
-    int old_maxh = (int)principal.levels.size() - 1;
+    int old_maxh = (int)this->levels.size() - 1;
     if (new_maxh > old_maxh)
     {
-      principal.levels.resize(new_maxh + 1);
+      this->levels.resize(new_maxh + 1);
       for (int H = old_maxh + 1; H <= new_maxh; H++)
-        principal.levels[H] = std::make_shared<Level>(bitmask, H);
+        this->levels[H] = std::make_shared<Level>(bitmask, H);
     }
 
-    this->levels=principal.levels;
+    auto ret = std::make_shared<IdxBoxQueryHzAddressConversion>();
+    ret->levels= this->levels;
+    return ret;
   }
 
 };
@@ -277,7 +279,7 @@ public:
   
     for (int D=0;D<pdim;D++)
     {
-      Int64 dim=Utils::getPowerOf2(vf->getBox().p2[D]); //TODO: if vf->box.p1!=0???
+      Int64 dim= bitmask.getPow2Dims()[D]; 
 
       this->loc[D]=new std::pair<BigInt,Int32>[dim];
 
@@ -343,7 +345,7 @@ public:
     if (!query->address_conversion)
     {
       ScopedLock lock(query->address_conversion_lock);
-      query->address_conversion = std::make_shared<IdxBoxQueryHzAddressConversion>(*vf->hzaddress_conversion_boxquery, bitmask,max_resolution);
+      query->address_conversion = vf->hzaddress_conversion_boxquery->createConversion(bitmask,max_resolution);
     }
 
     int              numused=0;
@@ -987,6 +989,20 @@ bool IdxDataset::openFromUrl(Url url)
   return true;
 }
 
+
+////////////////////////////////////////////////////////////
+SharedPtr<IdxDataset> IdxDataset::cloneForMosaic() const
+{
+  SharedPtr<IdxDataset> ret = std::make_shared<IdxDataset>();
+
+  ret->BaseDataset::operator=(*this);
+
+  ret->idxfile = this->idxfile;
+  ret->hzaddress_conversion_boxquery = this->hzaddress_conversion_boxquery;
+  ret->hzaddress_conversion_pointquery = this->hzaddress_conversion_pointquery;
+
+  return ret;
+}
 
 
 ////////////////////////////////////////////////////////////
@@ -1941,7 +1957,7 @@ SharedPtr<IdxDataset> IdxDataset::create(String filename, Array data, IdxFile id
     return SharedPtr<IdxDataset>();
   }
 
-  auto vf = std::dynamic_pointer_cast<IdxDataset>(Dataset::loadDataset(filename));
+  auto vf = IdxDataset::loadDataset(filename);
   if (!vf)
   {
     VisusError() << "Dataset::loadDataset(" << filename << ") failed";

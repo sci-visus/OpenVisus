@@ -61,18 +61,6 @@ static std::set<String> ReservedWords =
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::ScopedAcquireGil() 
 {
-  //I remember the following code was useful for something... but it crashes with internal python
-#if 0
-  if (Thread::isMainThread()) 
-  {
-    if (ApplicationInfo::is_running_inside_python_exe)
-      return;
-
-    PyEval_RestoreThread(PythonEngine::mainThreadState);
-    return;
-  }
-#endif
-  
   state = PyGILState_Ensure();
 }
 
@@ -80,18 +68,6 @@ ScopedAcquireGil::ScopedAcquireGil()
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::~ScopedAcquireGil()
 {
-//I remember the following code was useful for something... but it crashes with internal
-#if 0
-  if (Thread::isMainThread()) 
-  {
-    if (ApplicationInfo::is_running_inside_python_exe)
-      return;
-
-    PythonEngine::mainThreadState = PyEval_SaveThread();
-    return;
-  }
-#endif
-
   PyGILState_Release(state);
 }
 
@@ -125,11 +101,20 @@ bool PythonEngine::isGoodVariableName(String name)
   return true;
 };
 
+///////////////////////////////////////////////////////////////////////////
+static bool runningInsidePyMain() {
+  const auto& args = ApplicationInfo::args;
+  return args.empty() || args[0].empty() || args[0] == "__main__";
+}
+
 
 ///////////////////////////////////////////////////////////////////////////
 void InitPython()
 {
-  VisusInfo() << "Initializing python...";
+  if (runningInsidePyMain())
+    return;
+
+    VisusInfo() << "Initializing python...";
 
   Py_VerboseFlag = 0;
   auto& args = ApplicationInfo::args;
@@ -181,7 +166,7 @@ void InitPython()
 ///////////////////////////////////////////////////////////////////////////
 void ShutdownPython()
 {
-  if (ApplicationInfo::is_running_inside_python_exe)
+  if (runningInsidePyMain())
     return;
 
   VisusInfo() << "Shutting down python...";
@@ -201,9 +186,25 @@ void PythonEngine::decrRef(PyObject* value) {
   Py_DECREF(value);
 }
 
+////////////////////////////////////////////////////////////////////////////////////
+String PythonEngine::fixPath(String value) {
+#if WIN32
+  return StringUtils::replaceAll(value, "/", "\\\\");
+#else
+  return StringUtils::replaceAll(value, "\\\\", "/");
+#endif
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+void PythonEngine::addSysPath(String value) {
+  value = fixPath(value);
+  auto cmd = "import sys; sys.path.append('" + value + "')";
+  VisusInfo() << cmd;
+  execCode(cmd);
+}
 
   ///////////////////////////////////////////////////////////////////////////
-PythonEngine::PythonEngine()
+PythonEngine::PythonEngine(bool bVerbose)
 {
   ScopedAcquireGil acquire_gil;
 
@@ -211,7 +212,9 @@ PythonEngine::PythonEngine()
 
   this->module  = PyImport_AddModule(module_name.c_str()); 
   if (!module) {
-    VisusInfo()<<"PyImport_AddModule(\""<< module_name<<"\") failed";
+
+    if (bVerbose)
+      VisusInfo()<<"PyImport_AddModule(\""<< module_name<<"\") failed";
     VisusAssert(false);
   }
 
@@ -220,26 +223,46 @@ PythonEngine::PythonEngine()
   auto builtins = PyEval_GetBuiltins(); VisusAssert(builtins);
   PyDict_SetItemString(this->globals, "__builtins__", builtins);
 
+  auto addSysPath=[&](String value) {
+    value=fixPath(value);
+    auto cmd="import sys; sys.path.append('" + value+ "')";
+
+    if (bVerbose)
+      VisusInfo()<<cmd;
+    execCode(cmd);
+  };
+
   //add the directory of the executable
-  if (!ApplicationInfo::is_running_inside_python_exe)
+  if (runningInsidePyMain())
   {
-    auto addSysPath=[&](String value) {
-      value=fixPath(value);
-      auto cmd="import sys; sys.path.append('" + value+ "')";
-      //VisusInfo()<<cmd;
-      execCode(cmd);
-    };
-    
+    if (bVerbose)
+      VisusInfo() << "Visus is running inside PyMain";
+  }
+  else
+  {
+    if (bVerbose)
+      VisusInfo() << "Visus is NOT running inside PyMain";
+
     //try to find visus.py in the same directory where the app is 
     //example: <name>.app/Contents/MacOS/<name>
-#if __APPLE__
-    addSysPath(KnownPaths::CurrentApplicationFile.getParent().getParent().getParent().getParent().toString());
-#else
-    addSysPath(KnownPaths::CurrentApplicationFile.getParent().toString());
-#endif
+    #if __APPLE__
+      addSysPath(KnownPaths::CurrentApplicationFile.getParent().getParent().getParent().getParent().toString());
+    #else
+      addSysPath(KnownPaths::CurrentApplicationFile.getParent().toString());
+    #endif
   }
 
+  #if defined(VISUS_PYTHON_SYS_PATH)
+    addSysPath(VISUS_PYTHON_SYS_PATH);
+  #endif
+
+    if (bVerbose)
+    VisusInfo() << "Trying to import visuspy...";
+
   execCode("from visuspy import *");
+
+  if (bVerbose)
+    VisusInfo() << "...imported visuspy";
 
   swig_type_aborted = SWIG_TypeQuery("Visus::Aborted *");
   VisusAssert(swig_type_aborted);

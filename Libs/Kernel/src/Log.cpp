@@ -37,6 +37,8 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/Log.h>
+#include <Visus/Thread.h>
+#include <Visus/Utils.h>
 
 #include <iostream>
 #include <cctype>
@@ -48,68 +50,48 @@ For support : support@visus.net
 
 namespace Visus {
 
-String Log::filename;
-std::ofstream Log::file;
-std::function<void(const Log::Message& msg)> Log::redirect;
+std::function<void(const String& msg)> RedirectLog;
 
-////////////////////////////////////////////////////////////////////
-String Log::Message::toString() const {
+//////////////////////////////////////////////////////////////////////////
+LogFormattedMessage::LogFormattedMessage(String file_, int line_, String level_)
+  : file(file_), line(line_), level(level_), time(Time::now())
+{
+  if (!file.empty())
+  {
+    this->file = this->file.substr(this->file.find_last_of("/\\") + 1);
+    this->file = this->file.substr(0, this->file.find_last_of('.'));
+  }
 
-  std::ostringstream out;
   out
-    <<std::setfill('0')
-    <<std::setw(2)<<(time.getYear()-2000)<<"."
-    <<std::setw(2)<<(time.getMonth()+1)<<"."
-    <<std::setw(2)<<(time.getDayOfMonth())<<"|"
-    <<std::setw(2)<<(time.getHours())<<"."
-    <<std::setw(2)<<(time.getMinutes())<<"."
-    <<std::setw(2)<<(time.getSeconds())<<"."
-    <<std::setw(3)<<(time.getMilliseconds());
-  
-  out<<" "<<file<<"("<<line<<") "<<content<<std::endl;
-  return out.str();
+    << "[" << file << ": " << line << "] [pid " << Utils::getPid() << ":tid " << Thread::getThreadId() << "] "
+    << std::setfill('0')
+    << "["
+    //<<std::setw(2)<<(time.getYear()-2000)<<"."
+    //<<std::setw(2)<<(time.getMonth()+1)<<"."
+    //<<std::setw(2)<<(time.getDayOfMonth())<<"|"
+    << std::setw(2) << (time.getHours()) << "."
+    << std::setw(2) << (time.getMinutes()) << "."
+    << std::setw(2) << (time.getSeconds()) << "."
+    << std::setw(3) << (time.getMilliseconds())
+    << "] ";
 }
 
-////////////////////////////////////////////////////////////////////
-Log::Log(String file, int line,int level) 
+//////////////////////////////////////////////////////////////////////////
+LogFormattedMessage::~LogFormattedMessage()
 {
-  msg.file=file;
-  msg.line=line;
-  msg.level=level;
-  msg.time=Time::now();
+  out << std::endl;
 
-  msg.file = msg.file.substr(msg.file.find_last_of("/\\") + 1);
-  msg.file = msg.file.substr(0, msg.file.find_last_of('.'));
-}
+  String msg = out.str();
 
-////////////////////////////////////////////////////////////////////
-Log::~Log()
-{
-  msg.content=out.str();
-  Log::printMessage(msg);
-}
-
-////////////////////////////////////////////////////////////////////
-void Log::printMessage(const Message& msg)
-{
-  auto s = msg.toString();
-  std::cout << s;
-
-  //output to Visual studio console
 #if WIN32
-  OutputDebugStringA(s.c_str());
-#endif  
+  OutputDebugStringA(msg.c_str());
+#endif
 
-  //print to file
-  if (Log::file.is_open())
-    Log::file << s;
+  std::cout << msg;
 
-  //let know to the outside
-  if (Log::redirect)
-    Log::redirect(msg);
-
+  if (RedirectLog)
+    RedirectLog(msg);
 }
-
 
 } //namespace Visus
 

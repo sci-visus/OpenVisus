@@ -51,249 +51,328 @@ For support : support@visus.net
 
 using namespace Visus;
 
-///////////////////////////////////////////////////////////////////////////
-class VisusHttpModuleFactory: public IHttpModuleFactory 
+std::vector<String> request_headers = std::vector<String>({
+  "CacheControl",
+  "Connection",
+  "Date",
+  "KeepAlive",
+  "Pragma",
+  "Trailer",
+  "TransferEncoding",
+  "Upgrade",
+  "Via",
+  "Warning",
+  "Allow",
+  "ContentLength",
+  "ContentType",
+  "ContentEncoding",
+  "ContentLanguage",
+  "ContentLocation",
+  "ContentMd5",
+  "ContentRange",
+  "Expires",
+  "LastModified",
+  "Accept",
+  "AcceptCharset",
+  "AcceptEncoding",
+  "AcceptLanguage",
+  "Authorization",
+  "Cookie",
+  "Expect",
+  "From",
+  "Host",
+  "IfMatch",
+  "IfModifiedSince",
+  "IfNoneMatch",
+  "IfRange",
+  "IfUnmodifiedSince",
+  "MaxForwards",
+  "ProxyAuthorization",
+  "Referer",
+  "Range",
+  "Te",
+  "Translate",
+  "UserAgent"
+  });
+
+std::map<String, _HTTP_HEADER_ID> response_headers = std::map<String, _HTTP_HEADER_ID>({
+  { "CacheControl",HttpHeaderCacheControl },
+  { "Connection",HttpHeaderConnection },
+  { "Date",HttpHeaderDate },
+  { "KeepAlive",HttpHeaderKeepAlive },
+  { "Pragma",HttpHeaderPragma },
+  { "Trailer",HttpHeaderTrailer },
+  { "TransferEncoding",HttpHeaderTransferEncoding },
+  { "Upgrade",HttpHeaderUpgrade },
+  { "Via",HttpHeaderVia },
+  { "Warning",HttpHeaderWarning },
+  { "Allow",HttpHeaderAllow },
+  { "ContentLength",HttpHeaderContentLength },
+  { "ContentType",HttpHeaderContentType },
+  { "ContentEncoding",HttpHeaderContentEncoding },
+  { "ContentLanguage",HttpHeaderContentLanguage },
+  { "ContentLocation",HttpHeaderContentLocation },
+  { "ContentMd5",HttpHeaderContentMd5 },
+  { "ContentRange",HttpHeaderContentRange },
+  { "Expires",HttpHeaderExpires },
+  { "LastModified",HttpHeaderLastModified },
+  { "AcceptRanges",HttpHeaderAcceptRanges },
+  { "Age",HttpHeaderAge },
+  { "Etag",HttpHeaderEtag },
+  { "Location",HttpHeaderLocation },
+  { "ProxyAuthenticate",HttpHeaderProxyAuthenticate },
+  { "RetryAfter",HttpHeaderRetryAfter },
+  { "Server",HttpHeaderServer },
+  { "SetCookie",HttpHeaderSetCookie },
+  { "Vary",HttpHeaderVary },
+  { "WwwAuthenticate",HttpHeaderWwwAuthenticate }
+});
+
+
+// Create a global handle for the Event Viewer.
+HANDLE g_hEventLog;
+ModVisus* mod_visus=nullptr;
+
+/////////////////////////////////////////////////////////////////////
+BOOL WriteEventViewerLog(LPCSTR szBuffer[], WORD wNumStrings)
+{
+  // Test whether the handle for the Event Viewer is open.
+  if (NULL != g_hEventLog)
+  {
+    // Write any strings to the Event Viewer and return.
+    return ReportEvent(g_hEventLog, EVENTLOG_INFORMATION_TYPE, 0, 0, NULL, wNumStrings, 0, szBuffer, NULL);
+  }
+
+  return FALSE;
+}
+
+////////////////////////////////////////////////////
+class MyGlobalModule : public CGlobalModule
 {
 public:
 
-  //____________________________________________________________________
-  class VisusCHttpModule: public CHttpModule 
-  {
-  public:
-  
-    ModVisus* mod_visus;
-
-    std::vector<String> request_headers=std::vector<String>({
-      "CacheControl",
-      "Connection",
-      "Date",
-      "KeepAlive",
-      "Pragma",
-      "Trailer",
-      "TransferEncoding",
-      "Upgrade",
-      "Via",
-      "Warning",
-      "Allow",
-      "ContentLength",
-      "ContentType",
-      "ContentEncoding",
-      "ContentLanguage",
-      "ContentLocation",
-      "ContentMd5",
-      "ContentRange",
-      "Expires",
-      "LastModified",
-      "Accept",
-      "AcceptCharset",
-      "AcceptEncoding",
-      "AcceptLanguage",
-      "Authorization",
-      "Cookie",
-      "Expect",
-      "From",
-      "Host",
-      "IfMatch",
-      "IfModifiedSince",
-      "IfNoneMatch",
-      "IfRange",
-      "IfUnmodifiedSince",
-      "MaxForwards",
-      "ProxyAuthorization",
-      "Referer",
-      "Range",
-      "Te",
-      "Translate",
-      "UserAgent"
-    });
-
-    std::map<String,_HTTP_HEADER_ID> response_headers=std::map<String,_HTTP_HEADER_ID>(
-    {
-      {"CacheControl",HttpHeaderCacheControl},
-      {"Connection",HttpHeaderConnection},
-      {"Date",HttpHeaderDate},
-      {"KeepAlive",HttpHeaderKeepAlive},
-      {"Pragma",HttpHeaderPragma},
-      {"Trailer",HttpHeaderTrailer},
-      {"TransferEncoding",HttpHeaderTransferEncoding},
-      {"Upgrade",HttpHeaderUpgrade},
-      {"Via",HttpHeaderVia},
-      {"Warning",HttpHeaderWarning},
-      {"Allow",HttpHeaderAllow},
-      {"ContentLength",HttpHeaderContentLength},
-      {"ContentType",HttpHeaderContentType},
-      {"ContentEncoding",HttpHeaderContentEncoding},
-      {"ContentLanguage",HttpHeaderContentLanguage},
-      {"ContentLocation",HttpHeaderContentLocation},
-      {"ContentMd5",HttpHeaderContentMd5},
-      {"ContentRange",HttpHeaderContentRange},
-      {"Expires",HttpHeaderExpires},
-      {"LastModified",HttpHeaderLastModified},
-      {"AcceptRanges",HttpHeaderAcceptRanges},
-      {"Age",HttpHeaderAge},
-      {"Etag",HttpHeaderEtag},
-      {"Location",HttpHeaderLocation},
-      {"ProxyAuthenticate",HttpHeaderProxyAuthenticate},
-      {"RetryAfter",HttpHeaderRetryAfter},
-      {"Server",HttpHeaderServer},
-      {"SetCookie",HttpHeaderSetCookie},
-      {"Vary",HttpHeaderVary},
-      {"WwwAuthenticate",HttpHeaderWwwAuthenticate}
-    });
-
-   
-    //constructor
-    VisusCHttpModule(ModVisus* mod_visus_) : mod_visus(mod_visus_) {
-    }
-  
-    //OnAcquireRequestState
-    virtual REQUEST_NOTIFICATION_STATUS OnAcquireRequestState(IN IHttpContext *pHttpContext, IN OUT IHttpEventProvider*) override 
-    {
-      //if you want to debug
-      #if 1
-      VisusAssert(false); 
-      #endif
-
-      // Retrieve a pointer to the request.
-      IHttpRequest * iis_request_ = pHttpContext->GetRequest();
-      if (iis_request_ == NULL)
-        return RQ_NOTIFICATION_CONTINUE;
-  
-      HTTP_REQUEST *iis_request = iis_request_->GetRawHttpRequest();
-  
-      String iis_raw_url(iis_request->pRawUrl);
-  
-      //filter addresses
-      if (!StringUtils::startsWith(iis_raw_url, "/mod_visus"))
-        return RQ_NOTIFICATION_CONTINUE;
-  
-      //convert url
-      NetRequest visus_request("http://localhost" + iis_raw_url);
-  
-      //convert known headers
-      for (int i = 0; i < HttpHeaderRequestMaximum; i++)
-      {
-        HTTP_KNOWN_HEADER *hdr = &iis_request->Headers.KnownHeaders[i];
-        if (hdr->RawValueLength != 0)
-        {
-          String key = request_headers[i];
-          String value = String(hdr->pRawValue, hdr->RawValueLength);
-          visus_request.setHeader(key, value);
-        }
-      }
-  
-      //convert unknown headers
-      for (int I = 0; I < iis_request->Headers.UnknownHeaderCount; I++)
-      {
-        String key(iis_request->Headers.pUnknownHeaders[I].pName, iis_request->Headers.pUnknownHeaders[I].NameLength);
-        String value(iis_request->Headers.pUnknownHeaders[I].pRawValue, iis_request->Headers.pUnknownHeaders[I].RawValueLength);
-        visus_request.setHeader(key, value);
-      }
-  
-      NetResponse response = mod_visus->handleRequest(visus_request);
-  
-      IHttpResponse * iis_response = pHttpContext->GetResponse();
-      iis_response->Clear();
-      iis_response->SetStatus(response.status, response.getErrorMessage().c_str());
-  
-      for (const auto& header : response.headers)
-      {
-        String key = header.first;
-        String val = header.second;
-
-        auto it=response_headers.find(key);
-        if (it!=response_headers.end())
-          iis_response->SetHeader(it->second, val.c_str(), (USHORT)val.size(), TRUE);
-        else                               
-          iis_response->SetHeader(key.c_str(), val.c_str(), (USHORT)val.size(), TRUE);
-      }
-  
-      //write response body
-      if (response.body && response.body->c_size())
-      {
-        HTTP_DATA_CHUNK dataChunk;
-        dataChunk.DataChunkType = HttpDataChunkFromMemory;
-        dataChunk.FromMemory.pBuffer = response.body->c_ptr();
-        dataChunk.FromMemory.BufferLength = (ULONG)response.body->c_size();
-        DWORD nbytes_sent;
-        iis_response->WriteEntityChunks(&dataChunk,/*nchuncks*/1,/*fAsync*/FALSE,/*fMoreData*/FALSE, &nbytes_sent);
-      }
-  
-      return RQ_NOTIFICATION_FINISH_REQUEST;
-    }
-  
-  };
- 
-
-  ModVisus* mod_visus;
-  
   //constructor
-  VisusHttpModuleFactory(ModVisus* mod_visus_) : mod_visus(mod_visus_) {
-    VisusInfo()<<"IISVIsus::IISVIsus";
+  MyGlobalModule()
+  {
+    // Open a handle to the Event Viewer.
+    g_hEventLog = RegisterEventSource(NULL, "IISADMIN");
+
+    VisusConfig::filename = "/inetpub/wwwroot/visus/visus.config";
+
+    static int argn = 1;
+    static const char* argv[] = { "mod_visus.dll" };
+    SetCommandLine(argn, argv);
+    IdxModule::attach();
+
+    RedirectLog = [](const String& msg)
+    {
+      LPCSTR szBuffer[1] = { msg.c_str() };
+      WriteEventViewerLog(szBuffer, 1);
+    };
+
+    mod_visus = new ModVisus();
+    mod_visus->configureDatasets();
   }
 
   //destructor
-  virtual ~VisusHttpModuleFactory(){
-    VisusInfo()<<"IISVIsus::~IISVIsus";
+  ~MyGlobalModule()
+  {
+    delete mod_visus;
+
+    RedirectLog = nullptr;
+
+    // Test whether the handle for the Event Viewer is open.
+    if (NULL != g_hEventLog)
+    {
+      DeregisterEventSource(g_hEventLog);
+      g_hEventLog = NULL;
+    }
   }
 
-  //GetHttpModule
-  virtual HRESULT GetHttpModule(OUT CHttpModule **ppModule, IN IModuleAllocator *) override
+  //OnGlobalPreBeginRequest
+  virtual GLOBAL_NOTIFICATION_STATUS OnGlobalPreBeginRequest(IN IPreBeginRequestProvider * pProvider) override
   {
-    VisusInfo()<<"IISVIsus::GetHttpModule";
+    UNREFERENCED_PARAMETER(pProvider);
 
-    HRESULT hr = S_OK;
+    // Create an array of strings.
+    LPCSTR szBuffer[2] = { "MyGlobalModule","OnGlobalPreBeginRequest" };
 
-    if (ppModule==NULL) 
-      return HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER);
+    // Write the strings to the Event Viewer.
+    WriteEventViewerLog(szBuffer, 2);
 
-    (*ppModule) = new VisusCHttpModule(mod_visus);
-    return S_OK;
+    // Return processing to the pipeline.
+    return GL_NOTIFICATION_CONTINUE;
   }
 
   //Terminate
-  virtual void Terminate() override {
-    VisusInfo()<<"IISVIsus:::Terminate";
+  virtual VOID Terminate() override
+  {
+    // Remove the class from memory.
+    delete this;
   }
 
 };
 
-
-/////////////////////////////////////////////////////////////////////
-extern "C" __declspec(dllexport) 
-HRESULT __stdcall RegisterModule(DWORD dwServerVersion, IHttpModuleRegistrationInfo *pModuleInfo, IHttpServer *pHttpServer)
+///////////////////////////////////////////////////////////////////////////////
+class MyHttpModule  : public CHttpModule
 {
-  if (pModuleInfo== NULL || pHttpServer==NULL) 
-    return HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER);
+public:
 
-  // Global module context id
-  static PVOID  g_pModuleContext=NULL;
-  g_pModuleContext = pModuleInfo->GetId();
+  //OnAcquireRequestState
+  virtual REQUEST_NOTIFICATION_STATUS OnBeginRequest(IN IHttpContext * pHttpContext,IN IHttpEventProvider * pProvider) override
+  {
+    //if you want to debug
+    #if 1
+    VisusAssert(false);
+    #endif
 
-  // Global server instance
-  static IHttpServer *g_pHttpServer=NULL;
-  g_pHttpServer = pHttpServer;
+    // Retrieve a pointer to the request.
+    auto iis_request_ = pHttpContext->GetRequest();
+    if (iis_request_ == nullptr)
+      return RQ_NOTIFICATION_CONTINUE;
 
-  ApplicationInfo::server_mode=true;
-  VisusConfig::filename="/inetpub/wwwroot/visus/visus.config";
-  Log::filename="/inetpub/wwwroot/visus/visus.log";
+    auto iis_request = iis_request_->GetRawHttpRequest();
 
-  static int argn=1;
-  static const char* argv[]={"mod_visus.dll"}; 
-  SetCommandLine(argn,argv);
-  IdxModule::attach();
+    String iis_raw_url(iis_request->pRawUrl);
 
-  //todo: detach???
+    //filter addresses
+    if (!StringUtils::startsWith(iis_raw_url, "/mod_visus"))
+      return RQ_NOTIFICATION_CONTINUE;
 
-  static ModVisus* mod_visus=nullptr;
-  mod_visus=new ModVisus();
-  mod_visus->configureDatasets();
+    //convert url
+    NetRequest visus_request("http://localhost" + iis_raw_url);
 
-  //visus_http_module_factory
-  static VisusHttpModuleFactory *http_module_factory=nullptr;
-  http_module_factory = new VisusHttpModuleFactory(mod_visus);
-  pModuleInfo->SetRequestNotifications(http_module_factory, RQ_ACQUIRE_REQUEST_STATE, 0);
+    //convert known headers
+    for (int i = 0; i < HttpHeaderRequestMaximum; i++)
+    {
+      auto hdr = &iis_request->Headers.KnownHeaders[i];
+      if (hdr->RawValueLength != 0)
+      {
+        String key = request_headers[i];
+        String value = String(hdr->pRawValue, hdr->RawValueLength);
+        visus_request.setHeader(key, value);
+      }
+    }
 
+    //convert unknown headers
+    for (int I = 0; I < iis_request->Headers.UnknownHeaderCount; I++)
+    {
+      String key(iis_request->Headers.pUnknownHeaders[I].pName, iis_request->Headers.pUnknownHeaders[I].NameLength);
+      String value(iis_request->Headers.pUnknownHeaders[I].pRawValue, iis_request->Headers.pUnknownHeaders[I].RawValueLength);
+      visus_request.setHeader(key, value);
+    }
+
+    NetResponse response = mod_visus->handleRequest(visus_request);
+
+    IHttpResponse * iis_response = pHttpContext->GetResponse();
+    iis_response->Clear();
+    iis_response->SetStatus(response.status, response.getErrorMessage().c_str());
+
+    for (const auto& header : response.headers)
+    {
+      String key = header.first;
+      String val = header.second;
+
+      auto it = response_headers.find(key);
+      if (it != response_headers.end())
+        iis_response->SetHeader(it->second, val.c_str(), (USHORT)val.size(), TRUE);
+      else
+        iis_response->SetHeader(key.c_str(), val.c_str(), (USHORT)val.size(), TRUE);
+    }
+
+    //write response body
+    if (response.body && response.body->c_size())
+    {
+      HTTP_DATA_CHUNK dataChunk;
+      dataChunk.DataChunkType = HttpDataChunkFromMemory;
+      dataChunk.FromMemory.pBuffer = response.body->c_ptr();
+      dataChunk.FromMemory.BufferLength = (ULONG)response.body->c_size();
+      DWORD nbytes_sent;
+      iis_response->WriteEntityChunks(&dataChunk,/*nchuncks*/1,/*fAsync*/FALSE,/*fMoreData*/FALSE, &nbytes_sent);
+    }
+
+    return RQ_NOTIFICATION_FINISH_REQUEST;
+  }
+};
+
+/////////////////////////////////////////////////////////////////////////
+class MyHttpModuleFactory : public IHttpModuleFactory
+{
+public:
+
+  //GetHttpModule
+  virtual HRESULT GetHttpModule(OUT CHttpModule ** ppModule,IN IModuleAllocator * ) override
+  {
+    VisusInfo() << "GetHttpModule";
+
+    // Create a new instance.
+    MyHttpModule * pModule = new MyHttpModule;
+
+    // Test for an error.
+    if (!pModule)
+    {
+      // Return an error if the factory cannot create the instance.
+      return HRESULT_FROM_WIN32(ERROR_NOT_ENOUGH_MEMORY);
+    }
+    else
+    {
+      // Return a pointer to the module.
+      *ppModule = pModule;
+      pModule = NULL;
+      // Return a success status.
+      return S_OK;
+    }
+  }
+
+  //Terminate
+  virtual void Terminate() override
+  {
+    VisusInfo() << "Terminate";
+    delete this;
+  }
+};
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+extern "C" __declspec(dllexport)  HRESULT __stdcall RegisterModule(DWORD ,IHttpModuleRegistrationInfo * pModuleInfo,IHttpServer * )
+{
+  // Set the request notifications.
+  HRESULT hr = pModuleInfo->SetRequestNotifications(new MyHttpModuleFactory,RQ_BEGIN_REQUEST, 0);
+
+  // Test for an error and exit if necessary.
+  if (FAILED(hr))
+    return hr;
+
+  // Set the request priority.
+  hr = pModuleInfo->SetPriorityForRequestNotification(RQ_BEGIN_REQUEST, PRIORITY_ALIAS_MEDIUM);
+
+  // Test for an error and exit if necessary.
+  if (FAILED(hr))
+    return hr;
+
+  // Create an instance of the global module class.
+  MyGlobalModule * pGlobalModule = new MyGlobalModule;
+
+  // Test for an error.
+  if (NULL == pGlobalModule)
+    return HRESULT_FROM_WIN32(ERROR_NOT_ENOUGH_MEMORY);
+
+  // Set the global notifications.
+  hr = pModuleInfo->SetGlobalNotifications(pGlobalModule, GL_PRE_BEGIN_REQUEST);
+
+  // Test for an error and exit if necessary.
+  if (FAILED(hr))
+    return hr;
+
+  // Set the global priority.
+  hr = pModuleInfo->SetPriorityForGlobalNotification(GL_PRE_BEGIN_REQUEST, PRIORITY_ALIAS_LOW);
+
+  // Test for an error and exit if necessary.
+  if (FAILED(hr))
+    return hr;
+
+  // Return a success status;`
   return S_OK;
 }
 
@@ -516,37 +595,25 @@ class ApacheModVisus : public ModVisus
 public:
   
   //constructor
-  ApacheModVisus() : pid(0) {
-    this->ApacheModVisus::writeLog("ApacheModVisus::ApacheModVisus");
+  ApacheModVisus() {
   }
   
   //destructor
   ~ApacheModVisus() {
-    this->ApacheModVisus::writeLog("ApacheModVisus::~ApacheModVisus");
   }
 
   //initialiseInCurrentProcess (to call only after the process has been forked)
   void initialiseInCurrentProcess()
   {
-    this->pid=getpid();
-    writeLog("void ApacheModVisus::initialiseInCurrentProcess()");
+    VisusInfo()<<"initialiseInCurrentProcess";
 
-    ApplicationInfo::server_mode=true;
-
-    //write to apache file
-    Log::filename="/dev/null";
-    Log::redirect=[this](const Log::Message& msg) {
-      writeLog((StringUtils::format()<<msg.file<<" ("<<msg.line<<") "<<msg.content).str());
+    RedirectLog=[this](const String& msg) {
+      ap_log_perror(APLOG_MARK, APLOG_NOTICE, 0, NULL, "%s", msg.c_str());
     };
 
     static int narg=1;
     static const char *argv[]={"mod_visus"};
     SetCommandLine(narg,argv);
-
-#if defined(VISUS_SERVER_CONFIG_FILE)
-    VisusConfig::filename = String(VISUS_SERVER_CONFIG_FILE);
-#endif
-
     IdxModule::attach();
     this->configureDatasets();    
   }
@@ -554,20 +621,11 @@ public:
   //shutdownInCurrentProcess
   void shutdownInCurrentProcess()
   {
-    writeLog("void ApacheModVisus::shutdownInCurrentProcess()");
+    VisusInfo() << "shutdownInCurrentProcess";
     IdxModule::detach();
-    this->pid = 0;
+    RedirectLog=nullptr;
   }
 
-  // writeLog
-  virtual void writeLog(const String& msg) override
-  {
-    ap_log_perror(APLOG_MARK,APLOG_NOTICE,0,NULL,"%s",msg.c_str());
-  }
-
-private:
-  
-  int pid;
 
 };
 
@@ -705,7 +763,7 @@ static int MyHookRequest(request_rec *apache_request)
       if (it!=mime_types.end()) 
         content_type=it->first.c_str();
       else
-        (*module)->writeLog("MIME TYPE NOT FOUND "+temp+"! please add it as soon as possible");
+        VisusInfo()<<"MIME TYPE NOT FOUND "<<temp << "! please add it as soon as possible";
     }
     else if (key=="Content-Length")
       ap_set_content_length(apache_request,cint(val)); 

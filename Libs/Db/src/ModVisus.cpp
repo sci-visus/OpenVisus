@@ -74,12 +74,14 @@ public:
   }
 
   //getName
-  const String& getName() const
-  {return name;}
+  const String& getName() const {
+    return name;
+  }
 
   //getUrl
-  const String& getUrl() const
-  {return url;}
+  const String& getUrl() const {
+    return url;
+  }
 
   //getDataset
   SharedPtr<Dataset> getDataset() const
@@ -89,8 +91,7 @@ public:
   }
 
   //getDatasetBody
-  String getDatasetBody() const
-  {
+  String getDatasetBody() const {
     ScopedReadLock lock(const_cast<PublicDataset*>(this)->dataset_lock);
     return dataset_body;
   }
@@ -120,7 +121,6 @@ private:
 
   VISUS_NON_COPYABLE_CLASS(PublicDataset)
 
-  
   String             name;
   String             url;
   String             url_template;
@@ -132,12 +132,13 @@ private:
   //getDatasetBody
   String getDatasetBody(SharedPtr<Dataset> dataset)
   {
-    String dataset_body=dataset->getDatasetBody();
+    String dataset_body= StringUtils::trim(dataset->getDatasetBody());
 
     if (dataset_body.empty())
       return dataset->getUrl().toString();
 
     //special case for IdxMultipleDataset, I need to remap urls
+    if (bool bMaybeXml=StringUtils::startsWith(dataset_body,"<"))
     {
       StringTree stree;
       if (stree.loadFromXml(dataset_body)) 
@@ -400,7 +401,8 @@ private:
     if (map.find(public_name)!=map.end())
       VisusWarning()<<"Dataset name("<<public_name<<") already exists, overwriting it";
 
-    this->map[public_dataset->getName()]=public_dataset;
+    public_dataset->getDataset()->bServerMode = true;
+    this->map[public_name]=public_dataset;
 
     StringTree* list_child=list.addChild(StringTree("dataset"));
     list_child->attributes=public_dataset->getDataset()->getConfig().attributes; //for example kdquery=true could be maintained!
@@ -798,7 +800,7 @@ private:
     }
   }
   
-  //recursiveAddPublicDataset
+  //recursiveAddPublicScene
   void recursiveAddPublicScene(ScopedWriteLock& write_lock,StringTree& list,SharedPtr<PublicScene> public_scene)
   {
     String public_name=public_scene->getName();
@@ -937,7 +939,7 @@ ModVisus::~ModVisus()
 ////////////////////////////////////////////////////////////////////////////////
 bool ModVisus::configureDatasets()
 {
-  writeLog("ModVisus::configureDatasets()...");
+  VisusInfo()<<"ModVisus::configureDatasets()...";
 
   if (VisusConfig::needReload())
     VisusConfig::reload();
@@ -945,15 +947,10 @@ bool ModVisus::configureDatasets()
   datasets->configureDatasets(VisusConfig::storage);
   scenes->configureScenes(VisusConfig::storage);
 
-  this->verbose = cint(VisusConfig::readString("Configuration/ModVisus/verbose"));
-  #ifdef _DEBUG
-  this->verbose = std::max(verbose,1);
-  #endif
-
   VisusInfo()<<"/mod_visus?action=list\n"<<datasets->getList(PublicDatasets::XmlFormat);
-  writeLog("done ModVisus::configureDatasets()");
-  VisusInfo()<<"/mod_visus?action=list\n"<<scenes->getList(PublicScenes::XmlFormat);
-  writeLog("done ModVisus::configureScenes()");
+
+  VisusInfo()<<"/mod_visus?action=list_scenes\n"<<scenes->getList(PublicScenes::XmlFormat);
+
   return true;
 }
 
@@ -1475,8 +1472,6 @@ NetResponse ModVisus::handleRequest(NetRequest request)
       }
     }
   }
-  
-  VisusInfo() << "request is " << request.getTextBody();
 
   String action=request.url.getParam("action");
 

@@ -122,35 +122,10 @@ public:
   };
 
   //constructor
-  NetService();
+  NetService(int nconnections,bool bVerbose=1);
 
   //destructor
   virtual ~NetService();
-
-  //setNumberOfConnections
-  void setNumberOfConnections(int value) {
-    VisusAssert(!pimpl);
-    this->nconnections=value;
-  }
-
-  //setSocketType
-  void setSocketType(NetSocket::Type value) {
-    VisusAssert(!pimpl);
-    this->type=value;
-  }
-
-  //setMinWaitTime
-  void setMinWaitTime(int value) {
-    VisusAssert(!pimpl);
-    this->min_wait_time=value;
-  }
-
-
-  //setNumberOfConnections
-  void setMaxConnectionsPerSec(int value) {
-    VisusAssert(!pimpl);
-    this->max_connections_per_sec=value;
-  }
 
   //setSocketType
   void setVerbose(int value) {
@@ -169,20 +144,6 @@ public:
     this->connect_timeout=value;
   }
 
-  //setConfig
-  void setConfig(StringTree config) 
-  {
-    setSocketType(NetSocket::Bsd);
-    setMinWaitTime(config.readInt("min_wait_time", min_wait_time));
-    setNumberOfConnections(config.readInt("nconnections",nconnections));
-    setMaxConnectionsPerSec(config.readInt("max_connections_per_sec",max_connections_per_sec));  
-    setVerbose(config.readInt("verbose", verbose));
-  }
-
-
-  //startNetService
-  void startNetService();
-
   //asyncNetworkIO
   Future<NetResponse> asyncNetworkIO(NetRequest request) {
     return asyncNetworkIO(std::make_shared<NetRequest>(request));
@@ -197,8 +158,7 @@ private:
   typedef std::list< std::pair< SharedPtr<NetRequest> , Promise<NetResponse> > > Waiting;
 
   int                          nconnections = 8;
-  NetSocket::Type              type = NetSocket::Bsd;
-  int                          min_wait_time = 300;
+  int                          min_wait_time = 10;
   int                          max_connections_per_sec = 0;
   int                          connect_timeout = 10; //in seconds (explanation in CONNECTTIMEOUT)
   int                          verbose = 1;

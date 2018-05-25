@@ -168,23 +168,12 @@ const char** Private::CommandLine::argv ;
 ///////////////////////////////////////////////////////////////////////////////
 void ParseCommandLine()
 {
-#ifdef VISUS_DEFAULT_CONFIG_FILE
-  VisusConfig::filename = String(VISUS_DEFAULT_CONFIG_FILE);
-#endif
-
   int argn = Private::CommandLine::argn;
   const char** argv = Private::CommandLine::argv;
 
   // parse command line
   for (int I = 0; I < argn; I++)
   {
-    //let the user specify the where the visus.log is
-    if (argv[I] == String("--visus-log") && I < (argn - 1))
-    {
-      Log::filename = argv[++I];
-      continue;
-    }
-
     if (argv[I] == String("--visus-config") && I < (argn - 1))
     {
       VisusConfig::filename = argv[++I];
@@ -262,102 +251,99 @@ static void InitNetwork()
 ///////////////////////////////////////////////////////////
 static void InitKnownPaths()
 {
-#if WIN32
+  std::vector<char> _mem_(2048, 0);
+
+  auto buff = &_mem_[0];
+  auto buff_size = (int)_mem_.size() - 1;
+
+  //VisusHome
   {
-    CHAR dest[2048];
-
-    dest[0] = 0;
-    SHGetSpecialFolderPath(0, dest, CSIDL_PERSONAL, FALSE);
-    KnownPaths::VisusUserDirectory = Path(dest).getChild("visus");
-    HINSTANCE moduleHandle = (HINSTANCE)GetModuleHandle(ApplicationInfo::args.empty() ? nullptr : ApplicationInfo::args[0].c_str());
-
-    dest[0] = 0;
-    GetModuleFileName(moduleHandle, dest, 2048);
-    KnownPaths::CurrentApplicationFile = Path(dest);
-
-    dest[0] = 0;
-    GetCurrentDirectory(2048, dest);
-    KnownPaths::CurrentWorkingDirectory = Path(dest);
-  }
-#else
-  {
-    const char* homedir = getenv("HOME");
-    if (homedir != 0)
+    // Allow override of VisusHome
+    #ifdef VISUS_HOME
     {
-      KnownPaths::VisusUserDirectory = Path(homedir).getChild("visus");
+      KnownPaths::VisusHome = Path(String(VISUS_HOME));
     }
-    else
+    #else
     {
-      struct passwd* const pw = getpwuid(getuid());
-      if (pw != 0)
-        KnownPaths::VisusUserDirectory = Path(pw->pw_dir).getChild("visus");
+      #if WIN32
+      {
+        SHGetSpecialFolderPath(0, buff, CSIDL_PERSONAL, FALSE);
+        KnownPaths::VisusHome = Path(buff).getChild("visus");
+      }
+      #else
+      {
+	if (auto homedir = getenv("HOME"))
+          KnownPaths::VisusHome = Path(homedir).getChild("visus");
+
+        else if (auto pw = getpwuid(getuid()))
+          KnownPaths::VisusHome = Path(pw->pw_dir).getChild("visus");
+      }
+      #endif
     }
-
-    char buffer[2048];
-    memset(buffer, 0, sizeof(buffer));
-    
-#if __APPLE__
-    
-    uint32_t size = sizeof(buffer);
-    if (_NSGetExecutablePath(buffer, &size)== 0)
-      KnownPaths::CurrentApplicationFile = Path(buffer);
-    
-#else
-    int len = readlink("/proc/self/exe", buffer, sizeof(buffer)-1);
-    KnownPaths::CurrentApplicationFile = Path(buffer);
-#endif
-    
-    char* cwd = getcwd(buffer, 2047);
-    KnownPaths::CurrentWorkingDirectory = Path(cwd);
-  }
-#endif
-
-  // Allow override of VisusUserDirectory
-  {
-    Path user_directory = KnownPaths::VisusUserDirectory;
-
-#ifdef VISUS_USER_PATH
-    user_directory = Path(String(VISUS_USER_PATH));
-#endif
-
-    KnownPaths::VisusUserDirectory = user_directory;
+    #endif  
   }
 
-  // Allow override of VisusCachesDirectory
+  FileUtils::createDirectory(KnownPaths::VisusHome);
 
+  //Current application file
   {
-    Path cache_directory = KnownPaths::VisusUserDirectory.getChild("cached_files");
+    #if WIN32
+    {
+      auto first_arg = ApplicationInfo::args.empty() ? nullptr : ApplicationInfo::args[0].c_str();
+      GetModuleFileName((HINSTANCE)GetModuleHandle(first_arg), buff, buff_size);
+      KnownPaths::CurrentApplicationFile = Path(buff);
+    }
+    #elif __APPLE__
+    {
+      uint32_t bufsize = buff_size;
+      if (_NSGetExecutablePath((char*)buff, &bufsize) == 0)
+        KnownPaths::CurrentApplicationFile = Path(buff);
+    }
+    #else
+    {
+      int len=readlink("/proc/self/exe", buff, buff_size);
+      if (len != -1)  buff[len] = 0;
+      KnownPaths::CurrentApplicationFile = Path(buff);
+    }
+    #endif
+  }
 
-#ifdef VISUS_CACHE_PATH
-    cache_directory = Path(String(VISUS_CACHE_PATH));
-#endif
-
-    KnownPaths::VisusCachesDirectory = cache_directory;
+  //CurrentWorkingDirectory
+  {     
+    #if WIN32
+    {
+      GetCurrentDirectory(buff_size, buff);
+      KnownPaths::CurrentWorkingDirectory = Path(buff);
+    }
+    #else
+    {
+      KnownPaths::CurrentWorkingDirectory = Path(getcwd(buff, buff_size));
+    }
+    #endif
   }
 }
   
 ///////////////////////////////////////////////////////////
+static bool TryVisusConfig(String value)
+{
+  if (value.empty())
+    return false;
+
+  bool bOk=FileUtils::existsFile(value);
+  VisusInfo() << "VisusConfig::filename value(" << value << ") ok(" << ( bOk ? "YES" : "NO") << ")";
+  if (!bOk)
+    return false;
+
+  VisusConfig::filename = Path(value);
+  return true;
+}
+
+///////////////////////////////////////////////////////////
 static void InitVisusConfig()
 {
-  //open config filename
-  for (auto maybe :
-  {
-    Path(VisusConfig::filename),
-    KnownPaths::CurrentWorkingDirectory.getChild("visus.config"),
-    KnownPaths::VisusUserDirectory.getChild("visus.config"),
-    KnownPaths::CurrentApplicationFile.getParent().getChild("visus.config")
-  })
-  {
-    if (!maybe.empty())
-    {
-      VisusInfo() << "VisusConfig::filename   path(" << maybe.toString() << ") ok(" << (FileUtils::existsFile(maybe) ? "YES" : "NO") << ")";
-      if (FileUtils::existsFile(maybe))
-      {
-        VisusConfig::filename = maybe.toString();
-        break;
-      }
-    }
-  }
+  TryVisusConfig(VisusConfig::filename) ||
+  TryVisusConfig(KnownPaths::CurrentWorkingDirectory.getChild("visus.config")) ||
+  TryVisusConfig(KnownPaths::VisusHome.getChild("visus.config"));
 }
 
 //////////////////////////////////////////////////////
@@ -382,25 +368,6 @@ static void InitApplicationInfo()
 #endif
 }
 
-//////////////////////////////////////////////////////
-static void InitLogFile()
-{
-  if (Log::filename != "/dev/null")
-  {
-    //open log
-    if (Log::filename.empty())
-    {
-#if defined(VISUS_LOG_FILE)
-      Log::filename = String(VISUS_LOG_FILE);
-#else
-      Log::filename = KnownPaths::VisusUserDirectory.toString() + "/visus.log";
-#endif
-    }
-
-    FileUtils::createDirectory(Path(Log::filename).getParent());
-    Log::file.open(Log::filename.c_str(), std::ios::out | std::ios::app);
-  }
-}
 
 bool KernelModule::bAttached = false;
 
@@ -423,17 +390,10 @@ void KernelModule::attach()
   InitNetwork();
   InitApplicationInfo();
   InitKnownPaths();
-  InitLogFile();
   InitVisusConfig();
 
-  ApplicationInfo::is_running_inside_python_exe =
-    ApplicationInfo::args.empty() ||
-    ApplicationInfo::args[0].empty() ||
-    ApplicationInfo::args[0]=="__main__";
 
-  //if inside python, then the PyMain is doing all the initialization
-  if (!ApplicationInfo::is_running_inside_python_exe)
-    InitPython();
+  InitPython();
 
   //print out infos
   if (bool bCopyright=false)
@@ -479,11 +439,9 @@ void KernelModule::attach()
   }
 
   VisusInfo() << "git_revision            " << ApplicationInfo::git_revision;
-  VisusInfo() << "VisusUserDirectory      " << KnownPaths::VisusUserDirectory.toString();
-  VisusInfo() << "VisusCacheDirectory     " << KnownPaths::VisusCachesDirectory.toString();
+  VisusInfo() << "VisusHome               " << KnownPaths::VisusHome.toString();
   VisusInfo() << "CurrentApplicationFile  " << KnownPaths::CurrentApplicationFile.toString();
   VisusInfo() << "CurrentWorkingDirectory " << KnownPaths::CurrentWorkingDirectory.toString();
-  VisusInfo() << "Log filename            " << Log::filename;
 
   ObjectFactory::allocSingleton();
   ArrayPlugins::allocSingleton();
@@ -533,7 +491,7 @@ void KernelModule::attach()
 
   //this is to make sure PythonEngine works
   {
-    auto engine = std::make_shared<PythonEngine>();
+    auto engine = std::make_shared<PythonEngine>(true);
     {
       ScopedAcquireGil acquire_gil;
       engine->execCode("print('PythonEngine is working fine')");
@@ -556,8 +514,6 @@ void KernelModule::detach()
   CaCertFile::releaseSingleton();
 
   ShutdownPython();
-
-  Log::file.close();
 
   curl_global_cleanup();
 

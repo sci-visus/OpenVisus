@@ -42,6 +42,8 @@ DisableAllWarnings()
 # add_subdirectory(dtl)
 #add_subdirectory(ttmath)
 
+
+
 if (${CMAKE_CURRENT_SOURCE_DIR}/tinyxml)
 	add_subdirectory(tinyxml)
 endif()
@@ -69,5 +71,6 @@ endif()
 if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/python27)
 	add_subdirectory(python27)
 endif()
+
 
 

@@ -62,7 +62,7 @@ CaCertFile::CaCertFile()
 {
   //Downloading up-to-date cacert.pem file from cURL website
 
-  String local_filename = KnownPaths::VisusUserDirectory.getChild("cacert.pem");
+  String local_filename = KnownPaths::VisusHome.getChild("cacert.pem");
   String remote_filename = "https://curl.haxx.se/ca/cacert.pem";
 
 #if WIN32
@@ -364,8 +364,14 @@ public:
 
 
 /////////////////////////////////////////////////////////////////////////////
-NetService::NetService()
+NetService::NetService(int nconnections_,bool bVerbose) 
+  : nconnections(nconnections_),verbose(bVerbose)
 {
+  this->pimpl = new CurlNetService(this);
+
+  thread = Thread::start("Net Service Thread", [this]() {
+    entryProc();
+  });
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -381,20 +387,6 @@ NetService::~NetService()
   }
 }
 
-/////////////////////////////////////////////////////////////////////////////
-void NetService::startNetService()
-{
-  VisusAssert(!pimpl);
-
-  if (type == NetSocket::Bsd)
-    this->pimpl = new CurlNetService(this);
-  else
-    ThrowException("internal error");
-
-  thread=Thread::start("Net Service Thread",[this](){
-    entryProc();
-  });
-}
 
 /////////////////////////////////////////////////////////////////////////////
 Future<NetResponse> NetService::asyncNetworkIO(SharedPtr<NetRequest> request)
@@ -591,10 +583,7 @@ void NetService::entryProc()
 ///////////////////////////////////////////////////////////////////////////////////////////////
 NetResponse NetService::getNetResponse(NetRequest request)
 {
-  auto netservice=std::make_shared<NetService>();
-  netservice->setNumberOfConnections(1);
-  netservice->setSocketType(NetSocket::guessTypeFromProtocol(request.url.getProtocol()));
-  netservice->startNetService();
+  auto netservice=std::make_shared<NetService>(1);
 
   NetResponse response=netservice->asyncNetworkIO(request).get();
 

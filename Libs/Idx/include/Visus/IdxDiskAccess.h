@@ -58,9 +58,6 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(IdxDiskAccess)
 
-  int       verbose = 0;
-  IdxFile   idxfile;
-
   //constructor
   IdxDiskAccess(IdxDataset* dataset, StringTree config = StringTree());
 
@@ -90,14 +87,47 @@ public:
 
 private:
 
-  //file
-  SharedPtr<File> file;
+  //async_read
+  class FileIO : public File
+  {
+  public:
+    IdxDiskAccess *       owner;
+    SharedPtr<ThreadPool> tpool;
+    HeapMemory            headers;
 
-  //header
-  HeapMemory headers;
+    //constructor
+    FileIO(IdxDiskAccess* owner_) : owner(owner_) {
+    }
+
+    //destructor
+    ~FileIO() {
+      destroy();
+    }
+
+    //destroy
+    void destroy() {
+      tpool.reset();
+      VisusReleaseAssert(!File::isOpen());
+    }
+
+    //open
+    bool open(String filename, String mode);
+
+    //close
+    void close(String reason);
+
+  };
+
+  FileIO sync;
+  FileIO async;
+
+  int       bVerbose = 0;
+  IdxFile   idxfile;
 
   //re-entrant file lock
   std::map<String, int> file_locks;
+
+  struct {BigInt from = 0, to = 0;} block_range;
 
   //bDisableWriteLocks (to speed up writing with only one writer)
   bool bDisableWriteLocks =false;
@@ -105,31 +135,17 @@ private:
   //bDisableIO (for debugging)
   bool bDisableIO = false;
 
-  //async_read
-  SharedPtr<ThreadPool> async_read;
-
   //getBlockPositionInFile
-  Int64 getBlockPositionInFile(BigInt nblock) const
-  {
-    VisusAssert(nblock >= 0);
-    return cint64((nblock / std::max(1, idxfile.block_interleaving)) % idxfile.blocksperfile);
-  }
+  Int64 getBlockPositionInFile(BigInt nblock) const;
 
   //getFirstBlockInFile
-  BigInt getFirstBlockInFile(BigInt nblock) const
-  {
-    if (nblock < 0) return -1;
-    return nblock - std::max(1, idxfile.block_interleaving)*getBlockPositionInFile(nblock);
-  }
+  BigInt getFirstBlockInFile(BigInt nblock) const;
 
-  //openFile
-  bool openFile(String filename);
-
-  //closeFile
-  void closeFile();
+  //writeBlockInCurrentThread 
+  void writeBlockInCurrentThread(FileIO& file, SharedPtr<BlockQuery> query, String mode);
 
   //readBlockInCurrentThread 
-  void readBlockInCurrentThread(SharedPtr<BlockQuery> query);
+  void readBlockInCurrentThread(FileIO& file,SharedPtr<BlockQuery> query, String mode);
 
 }; 
 

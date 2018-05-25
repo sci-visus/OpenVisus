@@ -124,6 +124,7 @@ public:
     return (idx < 0) ? "" : filename.substr(idx);
   }
 
+
 private:
 
   //internal path
@@ -144,10 +145,7 @@ class VISUS_KERNEL_API KnownPaths
 public:
 
   // The visus user's folder
-  static Path VisusUserDirectory ;  
-
-  // The visus cache folder
-  static Path VisusCachesDirectory;  
+  static Path VisusHome;
 
   // Returns this application's location
   static Path CurrentApplicationFile;  

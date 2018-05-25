@@ -56,11 +56,12 @@ public:
   class VISUS_IDX_API Child
   {
   public:
-    String             name;
-    Color              color;
-    String             origin;
-    Matrix             M; //transformation matrix up <- dw
-    SharedPtr<Dataset> dataset;
+    String                name;
+    Color                 color;
+    String                origin;
+    Matrix                M; //transformation matrix up <- dw
+    String                filename_template;
+    SharedPtr<IdxDataset> dataset;
   };
 
   //bMosaic
@@ -134,7 +135,7 @@ public:
 private:
 
   //getInputName
-  String getInputName(String name, String fieldname);
+  String getInputName(String name, String fieldname,bool bIsVarName=false);
 
   //createField
   Field createField(String operation_name);
@@ -145,8 +146,8 @@ private:
   //parseDatasets
   void parseDatasets(ObjectStream& istream,Matrix4 T);
 
-  //createMosaicAccess
-  SharedPtr<Access> createMosaicAccess(StringTree config);
+  //removeAliases
+  String removeAliases(String url);
 
 };
 

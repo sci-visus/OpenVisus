@@ -245,7 +245,6 @@ void Node::addNodeJob(SharedPtr<NodeJob> job)
   //create a thread for the jobs
   if (!thread_pool)
   {
-    VisusAssert(!ApplicationInfo::server_mode); //what to do if I'm a server?
     thread_pool=std::make_shared<ThreadPool>(name + " " + "Worker",1);
   }
 

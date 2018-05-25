@@ -212,7 +212,8 @@ public:
 ///////////////////////////////////////////////////////////////////////
 ScriptingNode::ScriptingNode(String name)  : Node(name)
 {
-  engine = std::make_shared<PythonEngine>();
+  engine = std::make_shared<PythonEngine>(false);
+
   addInputPort("data");
   addOutputPort("data");
 

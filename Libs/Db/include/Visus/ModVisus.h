@@ -63,10 +63,6 @@ public:
   //configureDatasets
   bool configureDatasets();
 
-  //writeLog (messages redirected to Apache log or IIs Log)
-  virtual void writeLog(const String& msg)
-  {VisusInfo()<<msg;}
-
   //main request handler
   virtual NetResponse handleRequest(NetRequest request) override;
 
@@ -75,7 +71,6 @@ private:
   class PublicDatasets;
   class PublicScenes;
 
-  int verbose;
   SharedPtr<PublicDatasets> datasets;
   SharedPtr<PublicScenes>   scenes;
 

@@ -44,8 +44,8 @@ namespace Visus {
 
 ///////////////////////////////////////////////////////////////////////////////////////
 ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_) 
+  : NetworkAccess("ModVisusAccess", dataset, config_)
 {
-  initializeNetworkAccess(this, "ModVisusAccess", dataset, config_);
   num_queries_per_request=cint(this->config.readString("num_queries_per_request","1"));
   VisusAssert(num_queries_per_request > 0);
 }
@@ -153,9 +153,9 @@ void ModVisusAccess::flushBatch()
   auto request=NetRequest(url);
   request.aborted=batch[0]->aborted;
 
-  if (bool bAsync=netservice?true:false)
+  if (bool bAsync= this->async.netservice?true:false)
   {
-    auto FUTURE_RESPONSE=netservice->asyncNetworkIO(request);
+    auto FUTURE_RESPONSE= this->async.netservice->asyncNetworkIO(request);
     FUTURE_RESPONSE.when_ready([this, FUTURE_RESPONSE,batch]() {
       onNetResponse(FUTURE_RESPONSE.get(),batch);
     });

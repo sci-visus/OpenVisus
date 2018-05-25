@@ -269,3 +269,186 @@ macro(DisablePythonDebug)
 		
 	endif()	
 endmacro()
+
+# ///////////////////////////////////////////////////////////////////////
+macro(FindPython)
+
+	if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/ExternalLibs/python27)
+		set(NUMPY_FOUND 0)
+	elseif(DEFINED PYTHON_VERSION)
+		 # this is for anaconda/python 2.7 installations
+		find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
+		find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
+		find_package(NumPy) # better to have it
+	else()
+		find_package(PythonInterp 3 REQUIRED)
+		find_package(PythonLibs   3 REQUIRED)
+		find_package(NumPy) # better to have it
+	endif()
+
+endmacro()
+
+# ///////////////////////////////////////////////////////////////////////
+macro(FindZLib)
+
+	if (NOT DEFINED VISUS_INTERNAL_ZLIB)
+		find_package(ZLIB)
+	endif()
+
+	if (VISUS_INTERNAL_ZLIB OR NOT ZLIB_FOUND)
+		set(ZLIB_BUILD_DIR    ${CMAKE_BINARY_DIR}/zlib-1.2.11)
+		SET(ZLIB_INCLUDE_DIRS ${ZLIB_BUILD_DIR})
+		SET(ZLIB_LIBRARIES    ${ZLIB_BUILD_DIR}/libz.a)  
+		if (NOT EXISTS ${ZLIB_LIBRARIES})
+			MESSAGE("Downloading and compiling zlib...")
+			file(DOWNLOAD https://zlib.net/zlib-1.2.11.tar.gz ${CMAKE_BINARY_DIR}/zlib-1.2.11.tar.gz)
+			execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf zlib-1.2.11.tar.gz WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+			execute_process(COMMAND cmake . -DCMAKE_POSITION_INDEPENDENT_CODE=1    WORKING_DIRECTORY ${ZLIB_BUILD_DIR})
+			execute_process(COMMAND make                                           WORKING_DIRECTORY ${ZLIB_BUILD_DIR})
+		endif()
+	endif()
+endmacro()
+  
+
+# ///////////////////////////////////////////////////////////////////////
+macro(FindLZ4)
+
+	if (NOT DEFINED VISUS_INTERNAL_LZ4)
+		find_package(LZ4)
+	endif()
+
+	if (VISUS_INTERNAL_LZ4 OR NOT LZ4_FOUND)
+		set(LZ4_BUILD_DIR   ${CMAKE_BINARY_DIR}/lz4-1.8.1.2)
+		SET(LZ4_INCLUDE_DIR ${LZ4_BUILD_DIR}/lib)
+		SET(LZ4_LIBRARY     ${LZ4_BUILD_DIR}/liblz4.so)  
+		if (NOT EXISTS ${LZ4_LIBRARY})
+			MESSAGE("Downloading and compiling lz4...")
+			file(DOWNLOAD https://github.com/lz4/lz4/archive/v1.8.1.2.tar.gz ${CMAKE_BINARY_DIR}/lz4-1.8.1.2.tar.gz)
+			execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf lz4-1.8.1.2.tar.gz WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+			execute_process(COMMAND cmake contrib/cmake_unofficial WORKING_DIRECTORY ${LZ4_BUILD_DIR})
+			execute_process(COMMAND make                           WORKING_DIRECTORY ${LZ4_BUILD_DIR})
+		endif()
+	endif()
+
+endmacro()
+  
+
+# ///////////////////////////////////////////////////////////////////////
+macro(FindTinyXml)
+
+	if (NOT DEFINED VISUS_INTERNAL_TINYXML)
+		find_package(TinyXML)
+	endif()
+
+	if (VISUS_INTERNAL_TINYXML OR NOT TinyXML_FOUND)
+		set(TINYXML_BUILD_DIR    ${CMAKE_BINARY_DIR}/tinyxml)
+		SET(TinyXML_INCLUDE_DIRS ${TINYXML_BUILD_DIR})
+		SET(TinyXML_LIBRARIES    ${TINYXML_BUILD_DIR}/libtinyxml.a) 
+		if (NOT EXISTS ${TinyXML_LIBRARIES})
+			MESSAGE("Downloading and compiling tinyxml...")
+			file(DOWNLOAD https://downloads.sourceforge.net/project/tinyxml/tinyxml/2.6.2/tinyxml_2_6_2.zip ${CMAKE_BINARY_DIR}/tinyxml_2_6_2.zip)
+			execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf tinyxml_2_6_2.zip                                                   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}) 
+			execute_process(COMMAND g++ -c -Wall -Wno-unknown-pragmas -Wno-format -O3 -fPIC   tinyxml.cpp -o tinyxml.o              WORKING_DIRECTORY ${TINYXML_BUILD_DIR})
+			execute_process(COMMAND g++ -c -Wall -Wno-unknown-pragmas -Wno-format -O3 -fPIC   tinyxmlparser.cpp -o tinyxmlparser.o  WORKING_DIRECTORY ${TINYXML_BUILD_DIR})
+			execute_process(COMMAND g++ -c -Wall -Wno-unknown-pragmas -Wno-format -O3 -fPIC   xmltest.cpp -o xmltest.o              WORKING_DIRECTORY ${TINYXML_BUILD_DIR})
+			execute_process(COMMAND g++ -c -Wall -Wno-unknown-pragmas -Wno-format -O3 -fPIC   tinyxmlerror.cpp -o tinyxmlerror.o    WORKING_DIRECTORY ${TINYXML_BUILD_DIR})
+			execute_process(COMMAND g++ -c -Wall -Wno-unknown-pragmas -Wno-format -O3 -fPIC   tinystr.cpp -o tinystr.o              WORKING_DIRECTORY ${TINYXML_BUILD_DIR})
+			execute_process(COMMAND ar rcs libtinyxml.a tinyxml.o tinyxmlparser.o xmltest.o tinyxmlerror.o tinystr.o                WORKING_DIRECTORY ${TINYXML_BUILD_DIR})
+		endif()
+	endif()
+
+endmacro()
+
+# ///////////////////////////////////////////////////////////////////////
+macro(FindFreeImage)
+
+	if (NOT DEFINED VISUS_INTERNAL_FREEIMAGE)
+		find_package(FreeImage)
+	endif()
+
+	if (VISUS_INTERNAL_FREEIMAGE OR NOT FREEIMAGE_FOUND)
+		set(FREEIMAGE_BUILD_DIR    ${CMAKE_BINARY_DIR}/FreeImage)
+		SET(FREEIMAGE_INCLUDE_DIRS ${FREEIMAGE_BUILD_DIR}/Dist)
+		SET(FREEIMAGE_LIBRARIES    ${FREEIMAGE_BUILD_DIR}/Dist/libfreeimage.a)
+		if (NOT EXISTS ${FREEIMAGE_LIBRARIES})
+			MESSAGE("Downloading and compiling FreeImage...")
+			file(DOWNLOAD https://sourceforge.net/projects/freeimage/files/Source%20Distribution/3.16.0/FreeImage3160.zip ${CMAKE_BINARY_DIR}/FreeImage3160.zip)
+			execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf FreeImage3160.zip WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+			execute_process(COMMAND make                                          WORKING_DIRECTORY ${FREEIMAGE_BUILD_DIR})
+		endif()
+	endif()
+	FixWin32FindPackageFreeImage()
+endmacro()
+
+# ///////////////////////////////////////////////////////////////////////
+macro(FindOpenSSL)
+
+	if (NOT DEFINED VISUS_INTERNAL_OPENSSL)
+		if (UNIX)
+			set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/FixFindOpenSSL)
+		endif()
+		find_package(OpenSSL)
+	endif()
+
+	if (VISUS_INTERNAL_OPENSSL OR NOT OPENSSL_FOUND)
+		set(OPENSSL_BUILD_DIR      ${CMAKE_BINARY_DIR}/openssl-1.0.2d)
+		SET(OPENSSL_INCLUDE_DIR    ${OPENSSL_BUILD_DIR}/include)
+		SET(OPENSSL_SSL_LIBRARY    ${OPENSSL_BUILD_DIR}/libssl.so)
+		SET(OPENSSL_CRYPTO_LIBRARY ${OPENSSL_BUILD_DIR}/libcrypto.so)
+		if (NOT EXISTS ${OPENSSL_SSL_LIBRARY})
+			MESSAGE("Downloading and compiling openssl...")
+			file(DOWNLOAD http://sourceforge.net/projects/openssl/files/openssl-1.0.2d-fips-2.0.10/openssl-1.0.2d-src.tar.gz ${CMAKE_BINARY_DIR}/openssl-1.0.2d-src.tar.gz)
+			execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf openssl-1.0.2d-src.tar.gz WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+			execute_process(COMMAND ./config shared                                       WORKING_DIRECTORY ${OPENSSL_BUILD_DIR})
+			execute_process(COMMAND make                                                  WORKING_DIRECTORY ${OPENSSL_BUILD_DIR})
+		endif()
+	endif()
+endmacro()
+
+# ///////////////////////////////////////////////////////////////////////
+macro(FindCurl)
+	if (NOT DEFINED VISUS_INTERNAL_CURL)
+		find_package(CURL)
+	endif()
+
+	if (VISUS_INTERNAL_CURL OR NOT CURL_FOUND)
+		set(CURL_BUILD_DIR    ${CMAKE_BINARY_DIR}/curl-7.59.0)
+		SET(CURL_INCLUDE_DIR  ${CURL_BUILD_DIR}/include)
+		SET(CURL_LIBRARIES    ${CURL_BUILD_DIR}/lib/.libs/libcurl.so)
+		if (NOT EXISTS ${CURL_LIBRARIES})
+			MESSAGE("Downloading and compiling curl...")
+			file(DOWNLOAD https://curl.haxx.se/download/curl-7.59.0.tar.gz ${CMAKE_BINARY_DIR}/curl-7.59.0.tar.gz)
+			execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf curl-7.59.0.tar.gz WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+			execute_process(COMMAND ./configure                                    WORKING_DIRECTORY ${CURL_BUILD_DIR})
+			execute_process(COMMAND make                                           WORKING_DIRECTORY ${CURL_BUILD_DIR})
+		endif()
+	endif()
+	FixWin32FindPackageCurl()
+endmacro()
+
+# ///////////////////////////////////////////////////////////////////////
+macro(FindSwig)
+
+	if (NOT DEFINED VISUS_INTERNAL_SWIG)
+		find_package(SWIG)
+	endif()
+	
+	if (VISUS_INTERNAL_SWIG OR NOT SWIG_FOUND)
+		SET(SWIG_BUILD_DIR   ${CMAKE_BINARY_DIR}/swig-3.0.12)
+		SET(SWIG_EXECUTABLE  ${SWIG_BUILD_DIR}/install/bin/swig)
+		SET(SWIG_DIR         ${SWIG_BUILD_DIR}/install/share/swig/3.0.12)
+		if (NOT EXISTS ${SWIG_EXECUTABLE})
+			MESSAGE("Downloading and compiling swig...")
+			file(DOWNLOAD https://downloads.sourceforge.net/project/swig/swig/swig-3.0.12/swig-3.0.12.tar.gz ${CMAKE_BINARY_DIR}/swig-3.0.12.tar.gz)
+			execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf swig-3.0.12.tar.gz  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+			file(DOWNLOAD https://sourceforge.net/projects/pcre/files/pcre/8.42/pcre-8.42.tar.gz ${SWIG_BUILD_DIR}/pcre-8.42.tar.gz)
+			execute_process(COMMAND ./Tools/pcre-build.sh                           WORKING_DIRECTORY ${SWIG_BUILD_DIR})
+			execute_process(COMMAND ./configure --prefix=${SWIG_BUILD_DIR}/install  WORKING_DIRECTORY ${SWIG_BUILD_DIR})
+			execute_process(COMMAND make                                            WORKING_DIRECTORY ${SWIG_BUILD_DIR})
+			execute_process(COMMAND make install                                    WORKING_DIRECTORY ${SWIG_BUILD_DIR})
+		endif()
+		find_package(SWIG REQUIRED)
+	endif()
+endmacro()
+
+

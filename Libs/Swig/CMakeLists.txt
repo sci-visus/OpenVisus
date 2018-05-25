@@ -1,4 +1,6 @@
-find_package(SWIG REQUIRED)
+
+FindSwig()
+
 include(${SWIG_USE_FILE})
 
 # command to generate swigpyrun.h
@@ -11,7 +13,11 @@ set(CMAKE_SWIG_FLAGS "")
 set(SWIG_FLAGS "")
 set(SWIG_FLAGS "${SWIG_FLAGS};-threads")
 set(SWIG_FLAGS "${SWIG_FLAGS};-extranative")
-set(SWIG_FLAGS "${SWIG_FLAGS};-DNUMPY_FOUND=1")
+if(${NUMPY_FOUND})
+	set(SWIG_FLAGS "${SWIG_FLAGS};-DNUMPY_FOUND=1")
+else()
+	set(SWIG_FLAGS "${SWIG_FLAGS};-DNUMPY_FOUND=0")
+endif()
 set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/..")
 set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
 set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include")

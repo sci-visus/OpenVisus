@@ -54,17 +54,41 @@ namespace Visus {
 //predeclaration
 class RamAccess;
 
+////////////////////////////////////////////////////////
+class VISUS_DB_API BaseDataset : public Object
+{
+public:
 
+  //NOTE: I can copy the base inforation
+
+  Url                     url;
+  String                  dataset_body;
+  DatasetBitmask          bitmask;
+  int                     default_bitsperblock = 0;
+  NdBox                   box;
+  DatasetTimesteps        timesteps;
+  String                  default_scene;
+
+  StringTree              config;
+  SharedPtr<RamAccess>    ram_access;
+  int                     kdquery_mode = KdQueryMode::NotSpecified;
+
+  std::vector<Field>      fields;
+  std::map<String, Field> find_field;
+
+  bool                    bServerMode = false;
+
+};
 
 ////////////////////////////////////////////////////////
-class VISUS_DB_API Dataset : public Object
+class VISUS_DB_API Dataset : public BaseDataset
 {
 public:
 
   VISUS_NON_COPYABLE_CLASS(Dataset)
 
-    //______________________________________________
-    class VISUS_DB_API Info
+  //______________________________________________
+  class VISUS_DB_API Info
   {
   public:
     String     name;
@@ -319,6 +343,20 @@ public:
 
 public:
 
+  //addField
+  void addField(String name, Field field) {
+    fields.push_back(field);
+    find_field[name] = field;
+  }
+
+  //addField
+  void addField(Field field) {
+    addField(field.name, field);
+  }
+
+  //executePureRemoteQuery
+  bool executePureRemoteQuery(SharedPtr<Query> query);
+
   //generateTiles (useful for conversion)
   std::vector<NdBox> generateTiles(int TileSize) const;
 
@@ -346,36 +384,9 @@ public:
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override;
 
-protected:
+private:
 
-  Url                    url;
-  String                 dataset_body;
-  DatasetBitmask         bitmask;
-  int                    default_bitsperblock = 0;
-  NdBox                  box;
-  DatasetTimesteps       timesteps;
-  String                 default_scene;
-
-  StringTree             config;
-  SharedPtr<RamAccess>   ram_access;
-  int                    kdquery_mode=KdQueryMode::NotSpecified;
-
-  std::vector<Field>     fields;
-  std::map<String,Field> find_field;
-
-  //addField
-  void addField(String name,Field field) {
-    fields.push_back(field);
-    find_field[name]=field;
-  }
-
-  //addField
-  void addField(Field field) {
-    addField(field.name,field);
-  }
-
-  //executePureRemoteQuery
-  bool executePureRemoteQuery(SharedPtr<Query> query);
+  //DO NOT ADD VARIABLE here... add to BaseDataset which is copy-able
 
 };
 

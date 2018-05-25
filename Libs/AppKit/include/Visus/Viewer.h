@@ -171,8 +171,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(Viewer)
 
-  //constructor
-  Viewer(String title="Visus Viewer");
+    //constructor
+    Viewer(String title = "Visus Viewer");
 
   //destructor
   virtual ~Viewer();
@@ -186,12 +186,12 @@ public:
 #endif
 
   //getModel
-  Dataflow* getDataflow(){
+  Dataflow* getDataflow() {
     return dataflow.get();
   }
 
   //getNodes
-  const ScopedVector<Node>& getNodes() const{
+  const ScopedVector<Node>& getNodes() const {
     return dataflow->getNodes();
   }
 
@@ -202,7 +202,7 @@ public:
 
   //findNode
   template <class ClassName>
-  ClassName* findNode(const String& uuid) const{
+  ClassName* findNode(const String& uuid) const {
     return dynamic_cast<ClassName*>(findNode(uuid));
   }
 
@@ -210,7 +210,7 @@ public:
   template <class ClassName>
   ClassName* findNode() const
   {
-    for (auto node : getNodes()){
+    for (auto node : getNodes()) {
       if (const ClassName* ret = dynamic_cast<const ClassName*>(node))
         return const_cast<ClassName*>(ret);
     }
@@ -256,54 +256,54 @@ public:
   void endFreeTransform();
 
   //getNodeBoundsInAnotherSpace
-  Position getNodeBoundsInAnotherSpace(Node* dst,Node* src) const;
+  Position getNodeBoundsInAnotherSpace(Node* dst, Node* src) const;
 
   //getQueryBoundsInDatasetSpace
   Position getQueryBoundsInDatasetSpace(QueryNode* query_node) const;
 
   //computeNodeFrustum
-  Frustum computeNodeFrustum(Frustum frustum,Node* node) const;
+  Frustum computeNodeFrustum(Frustum frustum, Node* node) const;
 
   //New
   void New();
 
   //setName
-  void setName(Node* node,String value);
+  void setName(Node* node, String value);
 
   //setHidden
-  void setHidden(Node* node,bool value);
+  void setHidden(Node* node, bool value);
 
   //addNode
-  void addNode(Node* parent,Node* VISUS_DISOWN(node),int index=-1);
-  
+  void addNode(Node* parent, Node* VISUS_DISOWN(node), int index = -1);
+
   //addNode
   void addNode(Node* VISUS_DISOWN(node)) {
-    addNode(nullptr,node);
+    addNode(nullptr, node);
   }
 
   //removeNode
   void removeNode(Node* node);
 
   //moveNode
-  void moveNode(Node* dst,Node* src,int index=-1);
+  void moveNode(Node* dst, Node* src, int index = -1);
 
   //connectPorts
-  void connectPorts(Node* from,String oport_name,String iport_name,Node* to);
+  void connectPorts(Node* from, String oport_name, String iport_name, Node* to);
 
   //connectPorts
-  void connectPorts(Node* from,String port_name,Node* to) {
-    connectPorts(from,port_name,port_name,to);
+  void connectPorts(Node* from, String port_name, Node* to) {
+    connectPorts(from, port_name, port_name, to);
   }
 
   //connectPorts
-  void connectPorts(Node* from,Node* to)
+  void connectPorts(Node* from, Node* to)
   {
-    if (from->outputs.size()==1) {connectPorts(from,from->getFirstOutputPort()->getName(),to);return;}
-    if (to  ->inputs .size()==1) {connectPorts(from,to  ->getFirstInputPort ()->getName(),to);return;}
-    VisusAssert(false);  
+    if (from->outputs.size() == 1) { connectPorts(from, from->getFirstOutputPort()->getName(), to); return; }
+    if (to->inputs.size() == 1) { connectPorts(from, to->getFirstInputPort()->getName(), to); return; }
+    VisusAssert(false);
   }
   //disconnectPorts
-  void disconnectPorts(Node* from,String oport_name,String iport_name,Node* to);
+  void disconnectPorts(Node* from, String oport_name, String iport_name, Node* to);
 
   //autoConnectPorts
   void autoConnectPorts();
@@ -317,84 +317,84 @@ public:
   void setFastRendering(bool value);
 
   //reloadVisusConfig
-  void reloadVisusConfig(bool bChooseAFile=false);
+  void reloadVisusConfig(bool bChooseAFile = false);
 
   //setPreferences
   void setPreferences(Preferences value);
 
   //openFile
-  bool openFile(String url,Node* parent=nullptr,bool bShowUrlDialogIfNeeded=false);
+  bool openFile(String url, Node* parent = nullptr, bool bShowUrlDialogIfNeeded = false);
 
   //saveFile
-  bool saveFile(String filename,bool bSaveHistory=false,bool bShowDialogs=true);
-  
+  bool saveFile(String filename, bool bSaveHistory = false, bool bShowDialogs = true);
+
   //openScene
-  bool openScene(String url,Node* parent=nullptr,bool bShowUrlDialogIfNeeded=false);
-  
+  bool openScene(String url, Node* parent = nullptr, bool bShowUrlDialogIfNeeded = false);
+
   //saveScene
-  bool saveScene(String filename,bool bShowDialogs=true);
+  bool saveScene(String filename, bool bShowDialogs = true);
 
   //takeSnapshot
-  bool takeSnapshot(bool bOnlyCanvas=false,String filename="");
+  bool takeSnapshot(bool bOnlyCanvas = false, String filename = "");
 
   //editNode
-  void editNode(Node* node=nullptr);
+  void editNode(Node* node = nullptr);
 
   //setDataflow
   void setDataflow(SharedPtr<Dataflow> dataflow);
 
   //getGLCamera
   SharedPtr<GLCamera> getGLCamera() const {
-     return widgets.glcanvas? widgets.glcanvas->glcamera : nullptr;
+    return widgets.glcanvas ? widgets.glcanvas->glcamera : nullptr;
   }
 
   //refreshData
-  void refreshData(Node* node=nullptr);
+  void refreshData(Node* node = nullptr);
 
   //addGLCameraNode
-  GLCameraNode* addGLCameraNode(SharedPtr<GLCamera> glcamera,Node* parent=nullptr);
+  GLCameraNode* addGLCameraNode(SharedPtr<GLCamera> glcamera, Node* parent = nullptr);
 
   //guessGLCameraPosition
-  void guessGLCameraPosition(int ref_=-1) ;
+  void guessGLCameraPosition(int ref_ = -1);
 
   //mirrorGLCamera
-  void mirrorGLCamera(int ref=0);
+  void mirrorGLCamera(int ref = 0);
 
   //addGroupNode
-  Node* addGroupNode(Node* parent,String name="");
+  Node* addGroupNode(Node* parent, String name = "");
 
   //addModelViewNode
-  ModelViewNode* addModelViewNode(Node* parent,bool bInsert=false);
+  ModelViewNode* addModelViewNode(Node* parent, bool bInsert = false);
 
   //addDatasetNode
-  DatasetNode* addDatasetNode(SharedPtr<Dataset> dataset,Node* parent=nullptr) ;
+  DatasetNode* addDatasetNode(SharedPtr<Dataset> dataset, Node* parent = nullptr);
 
   //addQueryNode
-  QueryNode* addQueryNode(Node* parent,DatasetNode* dataset_node,String name="",int dim=0,String fieldname="",int access_id=0,String rendertype="");
+  QueryNode* addQueryNode(Node* parent, DatasetNode* dataset_node, String name = "", int dim = 0, String fieldname = "", int access_id = 0, String rendertype = "");
 
   //addKdQueryNode
-  KdQueryNode* addKdQueryNode(Node* parent,DatasetNode* dataset_node,String name="",String fieldname="",int access_id=0) ;
+  KdQueryNode* addKdQueryNode(Node* parent, DatasetNode* dataset_node, String name = "", String fieldname = "", int access_id = 0);
 
   //addIsoContourNode
-  IsoContourNode* addIsoContourNode(Node* parent,Node* data_provider=nullptr,double isovalue=0.0) ;
+  IsoContourNode* addIsoContourNode(Node* parent, Node* data_provider = nullptr, double isovalue = 0.0);
 
   //addRenderArrayNode
-  RenderArrayNode* addRenderArrayNode(Node* parent,Node* data_provider=nullptr,String default_palette="") ;
+  RenderArrayNode* addRenderArrayNode(Node* parent, Node* data_provider = nullptr, String default_palette = "");
 
   //addKdRenderArrayNode
-  KdRenderArrayNode* addKdRenderArrayNode(Node* parent,Node* data_provider=nullptr) ;
+  KdRenderArrayNode* addKdRenderArrayNode(Node* parent, Node* data_provider = nullptr);
 
   //addScriptingNode
-  ScriptingNode* addScriptingNode(Node* parent,Node* data_provider=nullptr) ;
+  ScriptingNode* addScriptingNode(Node* parent, Node* data_provider = nullptr);
 
   //addCpuTransferFunctionNode
-  CpuPaletteNode* addCpuTransferFunctionNode(Node* parent,Node* data_provider=nullptr);
+  CpuPaletteNode* addCpuTransferFunctionNode(Node* parent, Node* data_provider = nullptr);
 
   //addPaletteNode
-  PaletteNode* addPaletteNode(Node* parent,String palette="GrayOpaque") ;
+  PaletteNode* addPaletteNode(Node* parent, String palette = "GrayOpaque");
 
   //addStatisticsNode
-  StatisticsNode* addStatisticsNode(Node* parent,Node* data_provider=nullptr)  ;
+  StatisticsNode* addStatisticsNode(Node* parent, Node* data_provider = nullptr);
 
   //getWorldDimension
   int getWorldDimension() const;
@@ -403,7 +403,7 @@ public:
   Box3d getWorldBoundingBox() const;
 
   //getNodeBounds
-  Position getNodeBounds(Node* node,bool bRecursive=false) const;
+  Position getNodeBounds(Node* node, bool bRecursive = false) const;
 
   //getGLCanvas
   GLCanvas* getGLCanvas() {
@@ -411,17 +411,17 @@ public:
   }
 
   //getTreeView
-  DataflowTreeView* getTreeView() const{
+  DataflowTreeView* getTreeView() const {
     return widgets.treeview;
   }
 
   //getFrameView
-  DataflowFrameView* getFrameView() const{
+  DataflowFrameView* getFrameView() const {
     return widgets.frameview;
   }
 
   //getLog
-  QTextEdit* getLog() const{
+  QTextEdit* getLog() const {
     return widgets.log;
   }
 
@@ -434,7 +434,7 @@ public:
   void postRedisplay();
 
   //addDockWidget
-  void addDockWidget(String name,QWidget* widget);
+  void addDockWidget(String name, QWidget* widget);
 
   //addDockWidget
   void addDockWidget(Qt::DockWidgetArea area, QDockWidget *dockwidget) {
@@ -458,7 +458,7 @@ public:
   bool addNetRcv(int port);
 
   //addNetSnd
-  bool addNetSnd(String out_url,Rectangle2d split_ortho=Rectangle2d(0,0,1,1),Rectangle2d screen_bounds=Rectangle2d(),double fix_aspect_ratio=0);
+  bool addNetSnd(String out_url, Rectangle2d split_ortho = Rectangle2d(0, 0, 1, 1), Rectangle2d screen_bounds = Rectangle2d(), double fix_aspect_ratio = 0);
 
   //getPlugins
   Plugins& getPlugins() {
@@ -493,7 +493,7 @@ private:
   {
   public:
 
-    QMenu*       file_menu = nullptr;
+    QMenu * file_menu = nullptr;
     struct
     {
       QCheckBox*   check = nullptr;
@@ -568,7 +568,7 @@ private:
       //addMenu
       QToolButton* addMenu(QIcon icon, String name, QMenu* menu)
       {
-        auto button = createButton(icon, name+" ");
+        auto button = createButton(icon, name + " ");
         button->setMenu(menu);
         button->setPopupMode(QToolButton::InstantPopup);
         addWidget(button);
@@ -613,7 +613,7 @@ private:
   };
 
   //________________________________________________________
-  class Logo 
+  class Logo
   {
   public:
     String   filename;
@@ -628,18 +628,18 @@ private:
   {
   public:
 
-    QIcon world=QIcon(":/world.png");
-    QIcon camera=QIcon(":/camera.png");
-    QIcon clock=QIcon(":/clock.png");
-    QIcon cpu=QIcon(":/cpu.png");
-    QIcon dataset=QIcon(":/database.png");
-    QIcon gear=QIcon(":/gear.png");
-    QIcon paint=QIcon(":/paint.png");
-    QIcon statistics=QIcon(":/statistics.png");
-    QIcon document=QIcon(":/document.png");
-    QIcon group=QIcon(":/group.png");
-    QIcon palette=QIcon(":/palette.png");
-    QIcon brush=QIcon(":/brush.png");
+    QIcon world = QIcon(":/world.png");
+    QIcon camera = QIcon(":/camera.png");
+    QIcon clock = QIcon(":/clock.png");
+    QIcon cpu = QIcon(":/cpu.png");
+    QIcon dataset = QIcon(":/database.png");
+    QIcon gear = QIcon(":/gear.png");
+    QIcon paint = QIcon(":/paint.png");
+    QIcon statistics = QIcon(":/statistics.png");
+    QIcon document = QIcon(":/document.png");
+    QIcon group = QIcon(":/group.png");
+    QIcon palette = QIcon(":/palette.png");
+    QIcon brush = QIcon(":/brush.png");
 
     //constructor
     Icons() {
@@ -663,9 +663,9 @@ private:
   class Running
   {
   public:
-    bool   value=false;
+    bool   value = false;
     Time   t1;
-    double enlapsed=0;
+    double enlapsed = 0;
   };
 
   //________________________________________________
@@ -673,61 +673,61 @@ private:
   {
   public:
 
-    QAction* New=nullptr;
-    QAction* OpenFile=nullptr;
-    QAction* AddFile=nullptr;
-    QAction* SaveFile=nullptr;
-    QAction* SaveFileAs=nullptr;
-    QAction* SaveSceneAs=nullptr;
-    QAction* SaveHistoryAs=nullptr;
-    QAction* OpenUrl=nullptr;
-    QAction* AddUrl=nullptr;
-    QAction* ReloadVisusConfig=nullptr;
-    QAction* Close=nullptr;
+    QAction * New = nullptr;
+    QAction* OpenFile = nullptr;
+    QAction* AddFile = nullptr;
+    QAction* SaveFile = nullptr;
+    QAction* SaveFileAs = nullptr;
+    QAction* SaveSceneAs = nullptr;
+    QAction* SaveHistoryAs = nullptr;
+    QAction* OpenUrl = nullptr;
+    QAction* AddUrl = nullptr;
+    QAction* ReloadVisusConfig = nullptr;
+    QAction* Close = nullptr;
 
-    QAction* RefreshData=nullptr;
-    QAction* DropProcessing=nullptr;
-    QAction* WindowSnapShot=nullptr;
-    QAction* CanvasSnapShot=nullptr;
-    QAction* MirrorX=nullptr;
-    QAction* MirrorY=nullptr;
-    QAction* FitBest=nullptr;
-    QAction* CameraX=nullptr;
-    QAction* CameraY=nullptr;
-    QAction* CameraZ=nullptr;
+    QAction* RefreshData = nullptr;
+    QAction* DropProcessing = nullptr;
+    QAction* WindowSnapShot = nullptr;
+    QAction* CanvasSnapShot = nullptr;
+    QAction* MirrorX = nullptr;
+    QAction* MirrorY = nullptr;
+    QAction* FitBest = nullptr;
+    QAction* CameraX = nullptr;
+    QAction* CameraY = nullptr;
+    QAction* CameraZ = nullptr;
 
-    QAction* EditNode=nullptr;
-    QAction* RemoveNode=nullptr;
-    QAction* RenameNode=nullptr;
-    QAction* ShowHideNode=nullptr;
-    QAction* Undo=nullptr;
-    QAction* Redo=nullptr;
-    QAction* Deselect=nullptr;
+    QAction* EditNode = nullptr;
+    QAction* RemoveNode = nullptr;
+    QAction* RenameNode = nullptr;
+    QAction* ShowHideNode = nullptr;
+    QAction* Undo = nullptr;
+    QAction* Redo = nullptr;
+    QAction* Deselect = nullptr;
 
-    QAction* AddGroup=nullptr;
-    QAction* AddTransform=nullptr;
-    QAction* InsertTransform=nullptr;
-    QAction* AddSlice=nullptr;
-    QAction* AddVolume=nullptr;
-    QAction* AddIsoContour=nullptr;
-    QAction* AddKdQuery=nullptr;
-    QAction* AddRender=nullptr;
-    QAction* AddKdRender=nullptr;
-    QAction* AddScripting=nullptr;
-    QAction* AddStatistics=nullptr;
-    QAction* AddCpuTransferFunction=nullptr;
+    QAction* AddGroup = nullptr;
+    QAction* AddTransform = nullptr;
+    QAction* InsertTransform = nullptr;
+    QAction* AddSlice = nullptr;
+    QAction* AddVolume = nullptr;
+    QAction* AddIsoContour = nullptr;
+    QAction* AddKdQuery = nullptr;
+    QAction* AddRender = nullptr;
+    QAction* AddKdRender = nullptr;
+    QAction* AddScripting = nullptr;
+    QAction* AddStatistics = nullptr;
+    QAction* AddCpuTransferFunction = nullptr;
 
-    QAction* ShowLicences=nullptr;
+    QAction* ShowLicences = nullptr;
 
   };
-  
+
   //________________________________________________
   class Widgets
   {
   public:
 
     //permantent
-    ToolBar*                             toolbar = nullptr;
+    ToolBar * toolbar = nullptr;
     QTextEdit*                           log = nullptr;
 
     //non permanent
@@ -738,12 +738,12 @@ private:
   };
 
   //________________________________________________
-  class NetConnection 
+  class NetConnection
   {
   public:
 
-    SharedPtr<NetSocket>             socket=std::make_shared<NetSocket>();
-    bool                             bSend=true;
+    SharedPtr<NetSocket>             socket = std::make_shared<NetSocket>();
+    bool                             bSend = true;
     String                           url;
     std::ofstream                    log;
 
@@ -751,18 +751,18 @@ private:
 
     CriticalSection                  requests_lock;
     std::vector<NetRequest>          requests;
-    int                              request_id=0;
+    int                              request_id = 0;
 
-    Rectangle2d                      split_ortho=Rectangle2d(0,0,1,1);
-    double                           fix_aspect_ratio=0;
+    Rectangle2d                      split_ortho = Rectangle2d(0, 0, 1, 1);
+    double                           fix_aspect_ratio = 0;
 
     SharedPtr<std::thread>           thread;
-    bool                             bExitThread=false;
+    bool                             bExitThread = false;
 
     //destructor
     virtual ~NetConnection()
     {
-      bExitThread=true;
+      bExitThread = true;
       if (thread && thread->joinable()) {
         this->socket->close();
         Thread::join(thread);
@@ -793,10 +793,13 @@ private:
   Color                                 background_color;
   AutoRefresh                           auto_refresh;
 
-  CriticalSection                       messages_lock;
-  std::vector<Log::Message>             messages;
-
-
+  struct
+  {
+    CriticalSection                       lock;
+    std::vector<String>                   messages;
+    std::ofstream                         fstream;
+  }
+  log;
 
   //internalFlushMessages
   void internalFlushMessages();

@@ -22,7 +22,6 @@ SetupCMake()
 
 include(FindPackageHandleStandardArgs)
 
-
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake)
 
 # shared/static linking
@@ -32,18 +31,11 @@ option(BUILD_SHARED_LIBS "Build the shared library" TRUE)
 option(VISUS_GUI "Enable gui" TRUE)  
 
 IF (VISUS_GUI)
-  find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL PrintSupport REQUIRED)
+	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL PrintSupport REQUIRED)
 endif()
 
-option(PYTHON_VERSION "Python version" 3)  
+FindPython()
 
-if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/ExternalLibs/python27)
-  set(NUMPY_FOUND 0)
-else()
-  find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
-  find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
-  find_package(NumPy) # better to have it
-endif()
 
 add_subdirectory(ExternalLibs)
 add_subdirectory(Libs)
