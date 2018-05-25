@@ -103,7 +103,10 @@ private:
   //newStatsAvailable
   virtual void newStatsAvailable(const Statistics& value) override {
     if (widgets.palette)
-      widgets.palette->setStatistics(value);
+    {
+      widgets.palette->setInputStatistics(value);
+      widgets.palette->setOutputStatistics(value);
+    }
   }
 
 };

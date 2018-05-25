@@ -48,7 +48,6 @@ For support : support@visus.net
 #include <QString>
 #include <QColor>
 #include <QRect>
-#include <QImage>
 #include <QPainter>
 
 namespace Visus {

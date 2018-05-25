@@ -60,7 +60,7 @@ void GLCanvas::initializeGL() {
 }
 
 /////////////////////////////////////////////////////////////////////////////
-int GLCanvas::FlushGLErrors(bool bAssert,bool bVerbose)
+int GLCanvas::FlushGLErrors(bool bVerbose)
 {
   int nerrors=0;
 
@@ -96,9 +96,6 @@ int GLCanvas::FlushGLErrors(bool bAssert,bool bVerbose)
       String error_str=getGLErrorMessage(glerr);
       VisusInfo()<<"glGetError returned "<<glerr<<" ("<<error_str<<")";
     }
-
-    if (bAssert)
-      VisusAssert(false);
   }
 
   return nerrors;
@@ -129,18 +126,23 @@ void GLCanvas::updateGLScene()
 /////////////////////////////////////////////////////////////////////////////
 void GLCanvas::setShader(GLShader* value,bool bForce) {
 
-  if (!bForce && value==getShader()) return;
+  if (!bForce && value==getShader()) 
+    return;
+ 
   this->shader=value;
+  
   if (value)
   {
     int shader_id=shader->getId(); VisusAssert(shader_id<glprograms.size());
     program=glprograms[shader_id];
+
     if (!program)
       program=glprograms[shader_id]=std::make_shared<GLProgram>(this,*shader);
 
     program->bind();
     setProjection(getProjection(),/*bForce*/true);
     setModelview (getModelview (),/*bForce*/true);
+    setClippingBoxIfNeeded();
   }
   else
   {
@@ -170,25 +172,23 @@ void GLCanvas::setUniformMatrix(const GLUniform& uniform,const Matrix4& T)
   glUniformMatrix4fv(location,1,false,fv); 
 }
 
-/////////////////////////////////////////////////////////////////////////////
-void GLCanvas::setUniformClippingBox(GLShader& shader,const Box3d& box) {
-  const Matrix& Ti=getModelview().invert();
-  setUniformPlane(shader.u_clippingbox_plane[0],Plane(+1.0,  0.0, 0.0, -box.p1.x)*Ti);
-  setUniformPlane(shader.u_clippingbox_plane[1],Plane(-1.0,  0.0, 0.0, +box.p2.x)*Ti);
-  setUniformPlane(shader.u_clippingbox_plane[2],Plane( 0.0, +1.0, 0.0, -box.p1.y)*Ti);
-  setUniformPlane(shader.u_clippingbox_plane[3],Plane( 0.0, -1.0, 0.0, +box.p2.y)*Ti);
-  setUniformPlane(shader.u_clippingbox_plane[4],Plane( 0.0,  0.0,+1.0, -box.p1.z)*Ti);
-  setUniformPlane(shader.u_clippingbox_plane[5],Plane( 0.0,  0.0,-1.0, +box.p2.z)*Ti);   
-}
+
 
 /////////////////////////////////////////////////////////////////////////////
-void GLCanvas::setUniformClippingBox(GLShader& shader,const Position& position) 
-{
-  Matrix save_modelview=getModelview();
-  multModelview(position.getTransformation());
-  setUniformClippingBox(shader,position.getBox());
-  loadModelview(save_modelview);
+void GLCanvas::setClippingBoxIfNeeded() {
+
+  if (shader && shader->u_clippingbox_plane[0].id > 0 && !clipping_box.empty())
+  {
+    auto planes = clipping_box.top();
+    setUniformPlane(shader->u_clippingbox_plane[0], planes[0]);
+    setUniformPlane(shader->u_clippingbox_plane[1], planes[1]);
+    setUniformPlane(shader->u_clippingbox_plane[2], planes[2]);
+    setUniformPlane(shader->u_clippingbox_plane[3], planes[3]);
+    setUniformPlane(shader->u_clippingbox_plane[4], planes[4]);
+    setUniformPlane(shader->u_clippingbox_plane[5], planes[5]);
+  }
 }
+
 
 /////////////////////////////////////////////////////////////////////////////
 void GLCanvas::setUniformMaterial(GLShader& shader,const GLMaterial& material) 
@@ -489,10 +489,10 @@ void GLCanvas::setTexture(int slot,GLSampler* sampler,SharedPtr<GLTexture> textu
 
   setUniform(sampler->u_sampler,slot);
   setUniform(sampler->u_sampler_dims ,Point3d((double)texture->dims.x,(double)texture->dims.y,(double)texture->dims.z));
-  setUniform(sampler->u_sampler_format ,(int)texture->textureFormat);
   setUniform(sampler->u_sampler_vs,texture->vs);
   setUniform(sampler->u_sampler_vt,texture->vt);
   setUniform(sampler->u_sampler_envmode,texture->envmode);
+  setUniform(sampler->u_sampler_ncomponents, texture->dtype.ncomponents());
 }
 
 /////////////////////////////////////////////////////////////////////////////

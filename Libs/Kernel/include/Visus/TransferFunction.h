@@ -164,8 +164,6 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(TransferFunction)
 
-  typedef ComputeRange InputNormalization;
-
   //________________________________________________________________
   class VISUS_KERNEL_API Single
   {
@@ -277,8 +275,8 @@ public:
   //interpolation
   InterpolationMode interpolation;
 
-  //input_normalization
-  InputNormalization input_normalization;
+  //input_range
+  ComputeRange input_range;
 
   //what is the output (this must be atomic)
   DType output_dtype = DTypes::UINT8;
@@ -304,27 +302,11 @@ public:
     return functions.empty() ? 0 : functions[0]->size();
   }
 
+  //addFunction
+  SharedPtr<Single> addFunction(String name, Color color, int nsamples = 256);
+
   //setNumberOfFunctions
-  void setNumberOfFunctions(int value)
-  {
-    value = std::max(1, value);
-    if (value == functions.size()) return;
-
-    beginUpdate();
-    {
-      while (functions.size() < value)
-      {
-        auto single = functions.empty()? std::make_shared<Single>() : std::make_shared<Single>(size());
-        single->name = guessFunctionName();
-        single->color = guessFunctionColor();
-        functions.push_back(single);
-      }
-
-      while (functions.size()>value)
-        functions.pop_back();
-    }
-    endUpdate();
-  }
+  void setNumberOfFunctions(int value, std::vector<String> names = { "R","G","B","A" }, std::vector<Color> colors = { Colors::Red,Colors::Green,Colors::Blue,Colors::Gray });
 
   //getDefaults
   static std::vector<String> getDefaults();
@@ -346,7 +328,7 @@ public:
 public:
 
   //setFromArray
-  bool setFromArray(Array src, String default_name);
+  bool setFromArray(Array src, String default_name, std::vector<String> names = {"R","G","B","A"}, std::vector<Color> colors = { Colors::Red,Colors::Green,Colors::Blue,Colors::Gray });
 
   //convertToArray
   Array convertToArray() const;
@@ -368,14 +350,6 @@ public:
   
   //readFromObjectStream
   virtual void readFromSceneObjectStream(ObjectStream& istream) override;
-
-private:
-
-  //guessFunctionName
-  String guessFunctionName();
-
-  //guessFunctionColor
-  Color guessFunctionColor();
 
 };
 

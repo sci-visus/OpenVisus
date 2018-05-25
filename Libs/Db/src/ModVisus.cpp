@@ -1359,13 +1359,6 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   {
     Matrix  map     =  Matrix(request.url.getParam("matrix"));
     Box3d   box     =  Box3d::parseFromString(request.url.getParam("box"));
-
-    if (request.url.hasParam("nsamples"))
-    {
-      NdPoint nsamples = NdPoint::parseDims(request.url.getParam("nsamples"));
-      query->desired_nsamples=nsamples;
-    }
-
     query->position=(Position(map,box));
   }
   else
@@ -1406,7 +1399,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
     else
     {
       if (palette_min != palette_max)
-        tf.input_normalization=TransferFunction::InputNormalization(ComputeRange::UseCustom,Range(palette_min,palette_max,0));
+        tf.input_range= ComputeRange::createCustom(palette_min,palette_max);
 
       if (!palette_interp.empty())
         tf.interpolation.set(palette_interp);

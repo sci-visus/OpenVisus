@@ -58,9 +58,8 @@ public:
   //runJob
   virtual void runJob() override
   {
-    auto stats=std::make_shared<Statistics>();
-    if (Statistics::compute(*stats,data,compute_range,256,aborted))
-      node->publish(std::map<String, SharedPtr<Object> >({{"statistics",stats}}));
+    if (auto stats = Statistics::compute(data, compute_range, 256, aborted))
+      node->publish(std::map<String, SharedPtr<Object> >({{"statistics",std::make_shared<Statistics>(stats)}}));
   }
 };
 
@@ -124,7 +123,7 @@ bool PaletteNode::processInput()
   if (views.empty())
     return false;
 
-  addNodeJob(std::make_shared<ComputeStatsJob>(this,*data,palette->input_normalization));
+  addNodeJob(std::make_shared<ComputeStatsJob>(this,*data,palette->input_range));
   return true;
 }
 

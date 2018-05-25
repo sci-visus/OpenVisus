@@ -23,8 +23,8 @@ uniform vec4         u_color;
 
 #if TEXTURE_ENABLED
   uniform sampler2D  u_sampler;
-  uniform int        u_sampler_format;
-  uniform int        u_sampler_envmode; 
+  uniform int        u_sampler_envmode;
+  uniform int        u_sampler_ncomponents;
 #endif
 
 #if COLOR_ATTRIBUTE_ENABLED
@@ -96,7 +96,7 @@ void main()
 {
   CLIPPINGBOX_FRAGMENT_SHADER()
   
-  vec4 color = u_color;
+  vec4 frag_color = u_color;
   
   #if LIGHTING_ENABLED
   {
@@ -106,7 +106,7 @@ void main()
 
   	if(gl_FrontFacing)
   	{
-  	  color  = u_frontmaterial_ambient;
+      frag_color = u_frontmaterial_ambient;
   	  //float NdotL = max(dot(N,L),0.0);
   	  float NdotL = abs(dot(N,L));
   	  if (NdotL>0.0)
@@ -114,13 +114,13 @@ void main()
   	    vec3 R = reflect(-L, N);
   	    //float NdotHV = max(0.0,dot(R, E));
   	    float NdotHV = abs(dot(R, E));
-  		  color += u_frontmaterial_diffuse * NdotL;	
-  		  color += u_frontmaterial_specular * pow(NdotHV,u_frontmaterial_shininess);
+        frag_color += u_frontmaterial_diffuse * NdotL;
+        frag_color += u_frontmaterial_specular * pow(NdotHV,u_frontmaterial_shininess);
   		}
   	}
   	else
   	{
-  	  color  = u_backmaterial_ambient;
+      frag_color = u_backmaterial_ambient;
   	  //float NdotL = max(dot(-N,L),0.0);
   	  float NdotL = abs(dot(-N,L));
   	  if (NdotL>0.0)
@@ -128,8 +128,8 @@ void main()
         vec3 R = reflect(-L, -N);
         //float NdotHV=max(0.0,dot(R, E));
         float NdotHV=abs(dot(R, E));
-    		color += u_backmaterial_diffuse * NdotL;	
-    	  color += u_backmaterial_specular * pow(NdotHV,u_backmaterial_shininess);	 
+        frag_color += u_backmaterial_diffuse * NdotL;
+        frag_color += u_backmaterial_specular * pow(NdotHV,u_backmaterial_shininess);
     	}
   	}
   }
@@ -137,7 +137,7 @@ void main()
 
   #if COLOR_ATTRIBUTE_ENABLED
   {
-    color=v_color;
+    frag_color =v_color;
   }
   #endif
 
@@ -146,25 +146,20 @@ void main()
     vec4 tex_color=texture2D(u_sampler, v_texcoord.st);
     
     //GL_REPLACE
-    if (u_sampler_envmode==0x1E01)
-      color=vec4(1,1,1,1);
-      
-		//assume GL_MODULATE
-    if      (u_sampler_format == 0x1906) color.a    = color.a   * tex_color.a;   // GL_ALPHA
-    else if (u_sampler_format == 0x1907) color.rgb  = color.rgb * tex_color.rgb; // GL_RGB
-    else if (u_sampler_format == 0x1908) color      = color     * tex_color;     // GL_RGBA
-    else if (u_sampler_format == 0x1909) color.rgb  = color.rgb * tex_color.rgb; // GL_LUMINANCE
-    #if 0 
-    else if (u_sampler_format == 0x190A) color      = color     * tex_color.rgb; // GL_LUMINANCE_ALPHA (does not compile)
-    #endif
-    else if (u_sampler_format == 0x8815) color.rgb  = color.rgb * tex_color.rgb; // GL_RGB32F
-    else if (u_sampler_format == 0x8814) color      = color     * tex_color;     // GL_RGBA32F
-   
-    color = clamp(color,0.0,1.0);
+    if (u_sampler_envmode == 0x1E01)
+      frag_color.rgba = vec4(1.0, 1.0, 1.0, 1.0);
+    
+    //modulate
+    if      (u_sampler_ncomponents==1) { frag_color.rgb *= vec3(tex_color.r, tex_color.r, tex_color.r);                             } //R
+    else if (u_sampler_ncomponents==2) { frag_color.rgb *= vec3(tex_color.r, tex_color.r, tex_color.r); frag_color.a *= tex_color.g;} //RG
+    else if (u_sampler_ncomponents==3) { frag_color.rgb *= tex_color.rgb;                                                           } //RGB
+    else if (u_sampler_ncomponents==4) { frag_color.rgb *= tex_color.rgb;                               frag_color.a *= tex_color.a;} //RGBA
+
+    frag_color = clamp(frag_color,0.0,1.0);
   }
   #endif  
   
-  gl_FragColor = color;
+  gl_FragColor = frag_color;
 }
 #endif
 

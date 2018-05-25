@@ -198,6 +198,41 @@ void TransferFunction::Single::readFromObjectStream(ObjectStream& istream)
   istream.popContext("values");
 }
 
+////////////////////////////////////////////////////////////////////
+SharedPtr<TransferFunction::Single> TransferFunction::addFunction(String name, Color color, int nsamples) 
+{
+  auto ret = functions.empty() ? std::make_shared<Single>(nsamples) : std::make_shared<Single>(size());
+  ret->name = name;
+  ret->color = color;
+
+  beginUpdate();
+  functions.push_back(ret);
+  endUpdate();
+
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////
+void TransferFunction::setNumberOfFunctions(int value,std::vector<String> names,std::vector<Color> colors)
+{
+  value = std::max(1, value);
+  if (value == functions.size()) return;
+
+  beginUpdate();
+  {
+    while (functions.size() < value)
+    {
+      auto single = functions.empty() ? std::make_shared<Single>() : std::make_shared<Single>(size());
+      single->name =  functions.size()<names.size() ? names[functions.size()] : cstring((int)functions.size());
+      single->color = functions.size()<colors.size() ? colors[functions.size()] : Color::random();
+      functions.push_back(single);
+    }
+
+    while (functions.size()>value)
+      functions.pop_back();
+  }
+  endUpdate();
+}
 
 ////////////////////////////////////////////////////////////////////
 void TransferFunction::copy(TransferFunction& dst,const TransferFunction& src)
@@ -207,7 +242,7 @@ void TransferFunction::copy(TransferFunction& dst,const TransferFunction& src)
 
   dst.beginUpdate();
   {
-    dst.input_normalization=src.input_normalization;
+    dst.input_range=src.input_range;
     dst.output_dtype=src.output_dtype;
     dst.output_range=src.output_range;
     dst.default_name=src.default_name;
@@ -220,33 +255,7 @@ void TransferFunction::copy(TransferFunction& dst,const TransferFunction& src)
   dst.endUpdate();
 }
 
-/////////////////////////////////////////////////////////////////////
-String TransferFunction::guessFunctionName()
-{
-  int N= (int)functions.size();
-  switch (N)
-  {
-    case 0:return "Red"  ;
-    case 1:return "Green";
-    case 2:return "Blue" ;
-    case 3:return "Alpha";
-    default:return cstring(N);
-  }
-}
 
-/////////////////////////////////////////////////////////////////////
-Color TransferFunction::guessFunctionColor()
-{
-  int N= (int)functions.size();
-  switch (N)
-  {
-    case 0:return Colors::Red;
-    case 1:return Colors::Green;
-    case 2:return Colors::Blue;
-    case 3:return Colors::Gray;
-    default:return Color::random();
-  }
-}
 
 
 /////////////////////////////////////////////////////////////////////
@@ -320,9 +329,9 @@ bool TransferFunction::importTransferFunction(String url)
     return false;
   }
   
-  int size=cint(lines[0]);
+  int nsamples=cint(lines[0]);
   lines.erase(lines.begin());
-  if (lines.size()!=size) 
+  if (lines.size()!= nsamples)
   {
     VisusWarning()<<"content is of incorrect length";
     return false;
@@ -331,13 +340,13 @@ bool TransferFunction::importTransferFunction(String url)
   beginUpdate();
   {
     this->functions.clear();
-    this->functions.push_back(std::make_shared<Single>("Red"  ,Colors::Red  ,size));
-    this->functions.push_back(std::make_shared<Single>("Green",Colors::Green,size));
-    this->functions.push_back(std::make_shared<Single>("Blue" ,Colors::Blue ,size));
-    this->functions.push_back(std::make_shared<Single>("Alpha",Colors::Gray ,size));
+    addFunction("Red"  ,Colors::Red  , nsamples);
+    addFunction("Green",Colors::Green, nsamples);
+    addFunction("Blue" ,Colors::Blue , nsamples);
+    addFunction("Alpha",Colors::Gray , nsamples);
 
-    double N=size-1.0;
-    for (int I=0;I<size;I++)
+    double N= nsamples -1.0;
+    for (int I=0;I<nsamples;I++)
     {
       std::istringstream istream(lines[I]);
       for (auto fn : functions)
@@ -383,7 +392,7 @@ bool TransferFunction::exportTransferFunction(String filename="")
 }
 
 /////////////////////////////////////////////////////////////////////
-bool TransferFunction::setFromArray(Array src,String default_name)
+bool TransferFunction::setFromArray(Array src,String default_name,std::vector<String> names,std::vector<Color> colors)
 {
   int nfunctions =src.dtype.ncomponents();
   int N          =(int)src.dims[0];
@@ -394,8 +403,8 @@ bool TransferFunction::setFromArray(Array src,String default_name)
     for (int F = 0; F < nfunctions; F++)
     {
       auto single = std::make_shared<Single>(N);
-      single->name = guessFunctionName();
-      single->color = guessFunctionColor();
+      single->name  = functions.size()<names.size() ? names[functions.size()] : cstring((int)functions.size());
+      single->color = functions.size()<colors.size() ? colors[functions.size()] : Color::random();
       functions.push_back(single);
     }
   
@@ -494,8 +503,7 @@ struct ExecuteProcessingInnerOp
       auto S = Utils::clamp(I, 0, src_ncomponents - 1); auto SRC = GetComponentSamples<SrcType>(src, S);
 
       dst.dtype=dst.dtype.withDTypeRange(tf.output_range,I);
-
-      auto  vs_t = tf.input_normalization.doCompute(src, SRC.C, aborted).getScaleTranslate();
+      auto  vs_t = tf.input_range.doCompute(src, SRC.C, aborted).getScaleTranslate();
 
       Range dst_range = tf.output_range;
 
@@ -534,6 +542,9 @@ struct ExecuteProcessingOp
 
 Array TransferFunction::applyToArray(Array src,Aborted aborted)
 {
+  if (!src)
+    return src;
+
   Array dst;
   ExecuteProcessingOp op;
   return ExecuteOnCppSamples(op,src.dtype,*this,dst,src,aborted)? dst : Array();
@@ -552,11 +563,11 @@ void TransferFunction::writeToObjectStream(ObjectStream& ostream)
 
   ostream.pushContext("input");
   {
-    ostream.writeInline("mode",cstring(input_normalization.mode));
-    if (input_normalization.custom_range.delta()>0)
+    ostream.writeInline("mode",cstring(input_range.mode));
+    if (input_range.custom_range.delta()>0)
     {
       ostream.pushContext("custom_range");
-      input_normalization.custom_range.writeToObjectStream(ostream);
+      input_range.custom_range.writeToObjectStream(ostream);
       ostream.popContext("custom_range");
     }
   }
@@ -595,10 +606,10 @@ void TransferFunction::readFromObjectStream(ObjectStream& istream)
 
   if (istream.pushContext("input"))
   {
-    input_normalization.mode=(ComputeRange::Mode)cint(istream.readInline("input.normalization"));
+    input_range.mode=(ComputeRange::Mode)cint(istream.readInline("input.normalization"));
     if (istream.pushContext("custom_range"))
     {
-      input_normalization.custom_range.readFromObjectStream(istream);
+      input_range.custom_range.readFromObjectStream(istream);
       istream.popContext("custom_range");
     }
     istream.popContext("input");
@@ -670,10 +681,10 @@ void TransferFunction::readFromSceneObjectStream(ObjectStream& istream)
   
   if (istream.pushContext("input"))
   {
-    input_normalization.mode=(ComputeRange::Mode)cint(istream.readInline("input.normalization"));
+    input_range.mode=(ComputeRange::Mode)cint(istream.readInline("input.normalization"));
     if (istream.pushContext("custom_range"))
     {
-      input_normalization.custom_range.readFromObjectStream(istream);
+      input_range.custom_range.readFromObjectStream(istream);
       istream.popContext("custom_range");
     }
     istream.popContext("input");

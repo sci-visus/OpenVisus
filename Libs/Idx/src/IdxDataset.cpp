@@ -232,27 +232,33 @@ public:
     }
   };
 
+  DatasetBitmask bitmask;
   std::vector< SharedPtr<Level> > levels;
   
   //constructor
-  IdxBoxQueryHzAddressConversion()  {
-  }
-
-  //createConversion
-  SharedPtr<IdxBoxQueryHzAddressConversion> createConversion(const DatasetBitmask& bitmask, int new_maxh)
+  IdxBoxQueryHzAddressConversion(const DatasetBitmask& bitmask_) : bitmask(bitmask_)  
   {
-    int old_maxh = (int)this->levels.size() - 1;
-    if (new_maxh > old_maxh)
-    {
-      this->levels.resize(new_maxh + 1);
-      for (int H = old_maxh + 1; H <= new_maxh; H++)
-        this->levels[H] = std::make_shared<Level>(bitmask, H);
-    }
-
-    auto ret = std::make_shared<IdxBoxQueryHzAddressConversion>();
-    ret->levels= this->levels;
-    return ret;
+    int maxh = bitmask.getMaxResolution();
+    while (maxh >= this->levels.size())
+      addLevel();
   }
+
+
+  //createCloneConversion
+  IdxBoxQueryHzAddressConversion(const IdxBoxQueryHzAddressConversion& other,int maxh) 
+  {
+    this->bitmask = other.bitmask;
+    this->levels = other.levels;
+
+    while (maxh>=this->levels.size())
+      addLevel();
+  }
+
+  //addLevel
+  void addLevel() {
+    this->levels.push_back(std::make_shared<Level>(bitmask, (int)this->levels.size()));
+  }
+
 
 };
 
@@ -345,7 +351,7 @@ public:
     if (!query->address_conversion)
     {
       ScopedLock lock(query->address_conversion_lock);
-      query->address_conversion = vf->hzaddress_conversion_boxquery->createConversion(bitmask,max_resolution);
+      query->address_conversion = std::make_shared<IdxBoxQueryHzAddressConversion>(*vf->hzaddress_conversion_boxquery,max_resolution);
     }
 
     int              numused=0;
@@ -385,8 +391,10 @@ public:
       NdBox box=Lbox.alignBox(user_box);
       if (!box.isFullDim())
         continue;
-
-      const auto& fllevel = *std::dynamic_pointer_cast<IdxBoxQueryHzAddressConversion>(query->address_conversion)->levels[H];
+     
+      auto conv = std::dynamic_pointer_cast<IdxBoxQueryHzAddressConversion>(query->address_conversion);
+      VisusAssert(conv->levels[H]);
+      const auto& fllevel = *(conv->levels[H]);
       int cachable = std::min(fllevel.num,samplesperblock);
     
       //i need this to "split" the fast loop in two chunks
@@ -1027,7 +1035,7 @@ void IdxDataset::setIdxFile(IdxFile value)
   for (auto field : value.fields)
     addField(field);
 
-  this->hzaddress_conversion_boxquery=std::make_shared<IdxBoxQueryHzAddressConversion>();
+  this->hzaddress_conversion_boxquery=std::make_shared<IdxBoxQueryHzAddressConversion>(this->bitmask);
 
   //create the loc-cache only for 3d data, in 2d I know I'm not going to use it!
   //instead in 3d I will use it a lot (consider a slice in odd position)
@@ -1296,7 +1304,7 @@ NdPoint IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frust
 /////////////////////////////////////////////////////////////////////////
 bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
 {
-  int end_resolution=query->getEndResolution();
+  int end_resolution = query->getEndResolution();
   if (end_resolution<0)
     return false;
 
@@ -1314,10 +1322,7 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
     return false;
   }
 
-  //just in case the user specified what is the actual resolution...
-  NdPoint nsamples=query->desired_nsamples;
-  if (nsamples==NdPoint())
-    nsamples=guessPointQueryNumberOfSamples(position,query->viewdep,end_resolution);
+  auto nsamples=guessPointQueryNumberOfSamples(position,query->viewdep,end_resolution);
 
   //no samples or overflow
   if (nsamples.innerProduct()<=0)

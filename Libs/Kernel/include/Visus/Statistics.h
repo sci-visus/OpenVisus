@@ -73,12 +73,17 @@ public:
   Statistics() {
   }
 
-  //compute
-  static bool compute(Statistics& stats,Array src,ComputeRange compute_range,int histogram_nbins=256,Aborted aborted=Aborted());
+  //operator bool
+  operator bool() const {
+    return !components.empty();
+  }
 
   //compute
-  static bool compute(Statistics& stats,Array src,Aborted aborted=Aborted()) {
-    return compute(stats,src,ComputeRange(ComputeRange::PerComponent),256,aborted);
+  static Statistics compute(Array src,ComputeRange histogram_range,int histogram_nbins=256,Aborted aborted=Aborted());
+
+  //compute
+  static Statistics compute(Array src,Aborted aborted=Aborted()) {
+    return compute(src,ComputeRange(ComputeRange::PerComponentRange),256,aborted);
   }
 
 };

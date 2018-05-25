@@ -138,6 +138,7 @@ set(ArraySources
 	./include/Visus/Range.h
 	./include/Visus/Statistics.h
 	./include/Visus/Histogram.h
+	./include/Visus/TransferFunction.h
 	./src/DType.cpp
 	./src/Array.cpp
 	./src/KdArray.cpp
@@ -148,12 +149,12 @@ set(ArraySources
 	./src/ArrayPluginFreeimage.cpp
 	./src/ArrayPluginRawArray.cpp
 	./src/Statistics.cpp
-	./src/Histogram.cpp)
+	./src/Histogram.cpp
+	./src/TransferFunction.cpp
+	./src/TransferFunction.Defaults.cpp	
+	)
 
 set(MiscSources 
-	./include/Visus/TransferFunction.h
-	./src/TransferFunction.cpp
-	./src/TransferFunction.Defaults.cpp
 	./include/Visus/PointCloud.h
 	./include/Visus/Graph.h
 	./include/Visus/UnionFind.h

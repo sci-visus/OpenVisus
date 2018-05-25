@@ -65,15 +65,15 @@ public:
   {
   public:
 
-    QTabWidget*    tabs = nullptr;
-    QLabel*        dtype = nullptr;
-    QLabel*        dims = nullptr;
+    QTabWidget* tabs = nullptr;
 
     //for each component of the array...
-    class Component
+    class Tab
     {
     public:
+
       QLabel*        dtype = nullptr;
+      QLabel*        dims = nullptr;
       QLabel*        array_range = nullptr;
       QLabel*        computed_range = nullptr;
       QLabel*        average = nullptr;
@@ -81,9 +81,60 @@ public:
       QLabel*        variance = nullptr;
       QLabel*        standard_deviation = nullptr;
       HistogramView* histogram = nullptr;
+
+      //createLayout
+      QWidget* createWidget()
+      {
+        auto hlayout = new QHBoxLayout();
+
+        {
+          auto form = new QFormLayout();
+          form->addRow("DType", this->dtype = new QLabel(""));
+          form->addRow("Dims", this->dims = new QLabel(""));
+          form->addRow("Array Range", this->array_range = new QLabel(""));
+          form->addRow("Computed Range", this->computed_range = new QLabel(""));
+          hlayout->addLayout(form);
+        }
+
+        {
+          auto form = new QFormLayout();
+          form->addRow("Average", this->average = new QLabel(""));
+          form->addRow("Median", this->median = new QLabel(""));
+          form->addRow("Variance", this->variance = new QLabel(""));
+          form->addRow("Standard deviation", this->standard_deviation = new QLabel(""));
+          hlayout->addLayout(form);
+        }
+
+        auto vlayout = new QVBoxLayout();
+        vlayout->addLayout(hlayout);
+        vlayout->addWidget(this->histogram = new HistogramView(), 1);
+
+        auto frame = new QFrame();
+        frame->setLayout(vlayout);
+        return frame;
+      }
+
+      //formatRange
+      static String formatRange(Range value) {
+        return StringUtils::format() << "[" << value.from << " , " << value.to << "]";
+      }
+
+      //refresh
+      void refresh(const Statistics::Component& src)
+      {
+        this->dtype->setText(src.dtype.toString().c_str());
+        this->dims->setText(src.dims.toString().c_str());
+        this->array_range->setText(formatRange(src.array_range).c_str());
+        this->computed_range->setText(formatRange(src.computed_range).c_str());
+        this->average->setText(std::to_string(src.average).c_str());
+        this->median->setText(std::to_string(src.median).c_str());
+        this->variance->setText(std::to_string(src.variance).c_str());
+        this->standard_deviation->setText(std::to_string(src.standard_deviation).c_str());
+        this->histogram->setHistogram(src.histogram);
+      }
     };
 
-    std::vector<Component> components;
+    std::vector<Tab> components;
   };
 
   Widgets widgets;
@@ -91,20 +142,11 @@ public:
   //constructor
   ArrayStatisticsView()
   {
+    setMinimumSize(QSize(100, 80));
+
     auto vlayout = new QVBoxLayout();
-
-    {
-      auto form = new QFormLayout();
-      form->addRow("DType", widgets.dtype = new QLabel(""));
-      form->addRow("Dims", widgets.dims = new QLabel(""));
-      vlayout->addLayout(form);
-    }
-
-    {
-      widgets.tabs = new QTabWidget();
-      vlayout->addWidget(widgets.tabs, 1);
-    }
-
+    widgets.tabs = new QTabWidget();
+    vlayout->addWidget(widgets.tabs, 1);
     setLayout(vlayout);
   }
 
@@ -112,62 +154,33 @@ public:
   virtual ~ArrayStatisticsView() {
   }
 
-  //setStatistics
-  void setStatistics(const Statistics& value) 
+  //setNumberOfTabs
+  void setNumberOfTabs(int N)
   {
-    int ncomponents = (int)value.components.size();
-    widgets.components.resize(ncomponents);
+    widgets.components.resize(N);
 
-    while (widgets.tabs->count() > ncomponents)
+    while (widgets.tabs->count() > N)
     {
       int C = widgets.tabs->count() - 1;
       widgets.tabs->removeTab(C);
     }
 
-    while (widgets.tabs->count() < ncomponents)
+    while (widgets.tabs->count() < N)
     {
-      int   C   = widgets.tabs->count();
-      
-      auto&       dst = widgets.components[C];
-      const auto& src = value.components[C];
-
-      auto vlayout = new QVBoxLayout();
-
-      {
-        auto form = new QFormLayout();
-        form->addRow("DType", dst.dtype = new QLabel(""));
-        form->addRow("Array Range", dst.array_range = new QLabel(""));
-        form->addRow("Computed Range", dst.computed_range = new QLabel(""));
-        form->addRow("Average", dst.average = new QLabel(""));
-        form->addRow("Median", dst.median = new QLabel(""));
-        form->addRow("Variance", dst.variance = new QLabel(""));
-        form->addRow("Standard deviation", dst.standard_deviation = new QLabel(""));
-        vlayout->addLayout(form);
-      }
-
-      vlayout->addWidget(dst.histogram = new HistogramView(), 1);
-
-      auto frame = new QFrame();
-      frame->setLayout(vlayout);
-      widgets.tabs->addTab(frame, cstring(C).c_str());
+      int   C = widgets.tabs->count();
+      auto widget = widgets.components[C].createWidget();
+      widgets.tabs->addTab(widget, cstring(C).c_str());
     }
+  }
 
-    widgets.dtype->setText(value.dtype.toString().c_str());
-    widgets.dims->setText(value.dims.toString().c_str());
+  //setStatistics
+  void setStatistics(const Statistics& value) 
+  {
+    int N = (int)value.components.size();
+    setNumberOfTabs(N);
 
-    for (int C = 0; C < ncomponents; C++)
-    {
-      auto& dst = this->widgets.components[C];
-      const auto& src = value.components[C];
-      dst.dtype->setText(src.dtype.toString().c_str());
-      dst.array_range->setText(src.array_range.toString().c_str());
-      dst.computed_range->setText(src.computed_range.toString().c_str());
-      dst.average->setText(std::to_string(src.average).c_str());
-      dst.median->setText(std::to_string(src.median).c_str());
-      dst.variance->setText(std::to_string(src.variance).c_str());
-      dst.standard_deviation->setText(std::to_string(src.standard_deviation).c_str());
-      dst.histogram->setHistogram(src.histogram);
-    }
+    for (int C = 0; C < N; C++)
+      this->widgets.components[C].refresh(value.components[C]);
   }
 
 };

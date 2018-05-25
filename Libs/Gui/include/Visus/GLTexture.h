@@ -64,21 +64,14 @@ public:
   Point4d                       vs       = Point4d(1,1,1,1);
   Point4d                       vt       = Point4d(0,0,0,0);
 
-  QOpenGLTexture::PixelType     sourceType    = QOpenGLTexture::NoPixelType;
-  QOpenGLTexture::PixelFormat   sourceFormat  = QOpenGLTexture::NoSourceFormat;
-  QOpenGLTexture::TextureFormat textureFormat = QOpenGLTexture::NoFormat;
-
   //constructor
   GLTexture(Array src);
 
   //constructor
-  GLTexture(SharedPtr<QImage> src);
+  GLTexture(QImage src);
 
   //destructor
   virtual ~GLTexture();
-
-  //releasePimpl
-  void releasePimpl(bool bDeleteGLTexture);
   
   //width
   int width() const {return dims.x;}
@@ -101,17 +94,13 @@ private:
 
   struct
   {
-    SharedPtr<Array>     array;
-    SharedPtr<QImage>    image;
+    Array  array;
+    QImage image;
   }
   upload;
 
-  class Pimpl;
+  unsigned int texture_id=0;
 
-  Pimpl* pimpl=nullptr;
-
-  //init
-  void init(int width, int height, int depth, DType dtype);
 
 };
 

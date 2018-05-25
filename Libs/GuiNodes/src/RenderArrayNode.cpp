@@ -85,7 +85,7 @@ bool RenderArrayNode::processInput()
     palette.reset();
 
   //request to flush all
-  if (!data || !data->dims.innerProduct())
+  if (!data || !data->dims.innerProduct() || !data->dtype.valid())
   {
     this->return_receipt.reset();
     this->data=Array();
@@ -121,16 +121,16 @@ bool RenderArrayNode::processInput()
     if (palette)
     {
       for (int C=0;C<std::min(4,ncomponents);C++)
-        vs_t[C]=palette->input_normalization.doCompute(*data,C).getScaleTranslate();
+        vs_t[C]=palette->input_range.doCompute(*data,C).getScaleTranslate();
     }
     else
     {
       //create a default input normalization
-      TransferFunction::InputNormalization input_normalization;
-      vs_t[0] = ncomponents>=1? input_normalization.doCompute(*data,0).getScaleTranslate() : std::make_pair(1.0,0.0);
-      vs_t[1] = ncomponents>=3? input_normalization.doCompute(*data,1).getScaleTranslate() : vs_t[0];
-      vs_t[2] = ncomponents>=3? input_normalization.doCompute(*data,2).getScaleTranslate() : vs_t[0];
-      vs_t[3] = ncomponents>=4? input_normalization.doCompute(*data,3).getScaleTranslate() : vs_t[3];
+      ComputeRange input_range;
+      vs_t[0] = ncomponents>=1? input_range.doCompute(*data,0).getScaleTranslate() : std::make_pair(1.0,0.0);
+      vs_t[1] = ncomponents>=3? input_range.doCompute(*data,1).getScaleTranslate() : vs_t[0];
+      vs_t[2] = ncomponents>=3? input_range.doCompute(*data,2).getScaleTranslate() : vs_t[0];
+      vs_t[3] = ncomponents>=4? input_range.doCompute(*data,3).getScaleTranslate() : vs_t[3];
     }
   }
 
@@ -170,8 +170,6 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   this->return_receipt.reset();
 
   //need to upload a new palette?
-  bool bHasAlpha    = data.dtype.ncomponents()==4;
-  bool bEnableBlend = palette_texture || bHasAlpha;
   bool b3D          = data.getDepth()>1;
 
   //if you want to see what's going on...
@@ -189,8 +187,8 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   config.texture_nchannels              = data.dtype.ncomponents();
   config.palette_enabled                = palette_texture?true:false;
   config.lighting_enabled               = lightingEnabled();
-  config.clippingbox_enabled            = b3D && (data.clipping.valid() || useViewDirection());
-  config.discard_if_zero_alpha          = bEnableBlend;
+  config.clippingbox_enabled            = gl.hasClippingBox() || (data.clipping.valid() || useViewDirection());
+  config.discard_if_zero_alpha          = true;
 
   RenderArrayNodeShader* shader=RenderArrayNodeShader::getSingleton(config);
   gl.setShader(shader);
@@ -204,8 +202,8 @@ void RenderArrayNode::glRender(GLCanvas& gl)
     gl.setUniformLight(*shader,Point4d(pos,1.0));
   }
 
-  if (b3D && data.clipping.valid())
-    gl.setUniformClippingBox(*shader, data.clipping);
+  if (data.clipping.valid())
+    gl.pushClippingBox(data.clipping);
 
   //in 3d I render the box (0,0,0)x(1,1,1)
   //in 2d I render the box (0,0)  x(1,1)
@@ -228,12 +226,12 @@ void RenderArrayNode::glRender(GLCanvas& gl)
     }
   }
 
-  gl.pushBlend(bEnableBlend);
+  gl.pushBlend(true);
   gl.pushDepthMask(shader->config.texture_dim==3?false:true);
 
   shader->setTexture(gl,data_texture);
 
-  double palette_opacity = 1.0;
+  double opacity = this->opacity;
 
   if (b3D)
   {
@@ -248,19 +246,24 @@ void RenderArrayNode::glRender(GLCanvas& gl)
 
     //see https://github.com/sci-visus/visus/issues/99
     if (bFastRendering && nslices > max_nslices) {
-      palette_opacity = nslices/(double)max_nslices;
+      opacity *= nslices/(double)max_nslices;
       nslices = max_nslices;
     }
 
     if (shader->config.palette_enabled && palette_texture)
-      shader->setPalette(gl, palette_texture, palette_opacity);
+      shader->setPalette(gl, palette_texture);
+
+    shader->setOpacity(gl, opacity);
 
     if (useViewDirection())
     {
       if (!data.clipping.valid())
-        gl.setUniformClippingBox(*shader, Box3d(Point3d(0,0,0),Point3d(1,1,1)));
+        gl.pushClippingBox(Box3d(Point3d(0,0,0),Point3d(1,1,1)));
 
       gl.glRenderMesh(GLMesh::ViewDependentUnitVolume(gl.getFrustum(), nslices));
+
+      if (!data.clipping.valid())
+        gl.popClippingBox();
     }
     else
       gl.glRenderMesh(GLMesh::AxisAlignedUnitVolume(gl.getFrustum(),nslices));
@@ -268,7 +271,9 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   else
   {
     if (shader->config.palette_enabled && palette_texture)
-      shader->setPalette(gl, palette_texture, palette_opacity);
+      shader->setPalette(gl, palette_texture);
+
+    shader->setOpacity(gl, opacity);
 
     gl.glRenderMesh(GLMesh::Quad(Point2d(0,0),Point2d(1,1),/*bNormal*/shader->config.lighting_enabled,/*bTexCoord*/true));
   }
@@ -276,6 +281,9 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   gl.popDepthMask();
   gl.popBlend();
   gl.popModelview();
+
+  if (data.clipping.valid())
+    gl.popClippingBox();
 }
 
 

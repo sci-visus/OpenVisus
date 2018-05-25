@@ -125,7 +125,6 @@ public:
   MergeMode                  merge_mode=InsertSamples;
   Position                   position;
   Frustum                    viewdep;
-  NdPoint                    desired_nsamples;
   Position                   clipping;
   std::function<void(Array)> incrementalPublish;
 

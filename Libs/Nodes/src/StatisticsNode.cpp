@@ -56,12 +56,11 @@ public:
   //runJob
   virtual void runJob() override
   {
-    auto stats=std::make_shared<Statistics>();
     Time t1=Time::now();
-    if (Statistics::compute(*stats,data,aborted))
+    if (auto stats=Statistics::compute(data,aborted))
     {
       VisusInfo()<<"Computed statistics done in "<<t1.elapsedMsec();
-      node->publish(std::map<String, SharedPtr<Object> >({{"statistics",stats}}));
+      node->publish(std::map<String, SharedPtr<Object> >({{"statistics",std::make_shared<Statistics>(stats)}}));
     }
   }
 };
