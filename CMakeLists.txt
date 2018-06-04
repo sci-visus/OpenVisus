@@ -32,6 +32,9 @@ option(VISUS_GUI "Enable gui" TRUE)
 
 IF (VISUS_GUI)
 	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL PrintSupport REQUIRED)
+  if (WIN32)
+    string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
+  endif()
 endif()
 
 FindPython()
