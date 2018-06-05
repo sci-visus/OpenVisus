@@ -156,7 +156,14 @@ GLuint GLTexture::textureId()
   };
 
   int target = this->target();
+
+#ifdef WIN32
   glCreateTextures(target, 1, &texture_id);
+#else
+  glGenTextures(1, &texture_id);
+  glBindTexture(target, texture_id);
+#endif
+  
   if (!texture_id)
     return Error();
 
@@ -180,16 +187,32 @@ GLuint GLTexture::textureId()
 
   if (target == QOpenGLTexture::Target3D)
   {
+#ifdef WIN32
     glTextureStorage3D(texture_id, 1, textureFormat, dims[0], dims[1], dims[2]);
     glTextureSubImage3D(texture_id, 0, 0, 0, 0, dims[0], dims[1], dims[2], sourceFormat, sourceType, pixels);
+#else
+    glTexImage3D (target, 0, textureFormat, dims[0], dims[1], dims[2], 0, sourceFormat, sourceType, pixels);
+    glTexSubImage3D(target, 0, 0, 0, 0, dims[0], dims[1], dims[2], sourceFormat, sourceType, pixels);
+#endif
   }
-  else
+    else
   {
+#ifdef WIN32
     glTextureStorage2D(texture_id, 1, textureFormat, dims[0], dims[1]);
     glTextureSubImage2D(texture_id, 0, 0, 0, dims[0], dims[1], sourceFormat, sourceType, pixels);
+#else
+    glTexImage2D(target, 0, textureFormat, dims[0], dims[1], 0, sourceFormat, sourceType, pixels);
+    glTexSubImage2D(target, 0, 0, 0, dims[0], dims[1], sourceFormat, sourceType, pixels);
+#endif
+    
   }
 
+#ifdef WIN32
   glGenerateTextureMipmap(texture_id);
+#else
+  glGenerateMipmap(target);
+#endif
+  
   glPixelStorei(GL_UNPACK_ALIGNMENT, originalAlignment);
 
   if (GLCanvas::FlushGLErrors(true))
