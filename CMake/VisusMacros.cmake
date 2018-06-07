@@ -87,7 +87,7 @@ endmacro()
 
 
 # //////////////////////////////////////////////////////////////////////////
-macro(AddExternalApp name SourceDir BinaryDir extra_args)
+macro(AddExternalApp name SourceDir BinaryDir)
 
 	if (WIN32 OR APPLE)
 	  set(CMAKE_GENERATOR_ARGUMENT -G"${CMAKE_GENERATOR}")
@@ -96,9 +96,65 @@ macro(AddExternalApp name SourceDir BinaryDir extra_args)
 	endif()
 
 	add_custom_target(${name} 
-		COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DVisus_DIR="${CMAKE_INSTALL_PREFIX}/lib/cmake/visus" ${extra_args}
+		COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DQt5_DIR="${Qt5_DIR}"
 		COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/" --config ${CMAKE_BUILD_TYPE})
 	set_target_properties(${name} PROPERTIES FOLDER CMakeTargets/)
+
+endmacro()
+
+
+# ///////////////////////////////////////////////////
+macro(InstallVisusLibrary Name)
+
+	if (NOT VISUS_IS_SUBMODULE)
+
+		install(TARGETS ${Name} 
+			LIBRARY       DESTINATION bin
+			RUNTIME       DESTINATION bin 
+			BUNDLE        DESTINATION bin
+			#ARCHIVE       DESTINATION lib
+			#PUBLIC_HEADER DESTINATION include 
+			)
+
+		#if (WIN32)
+		#	install(FILES $<TARGET_PDB_FILE:${Name}> DESTINATION lib OPTIONAL)
+		#endif()
+
+		if (WIN32)
+			# pass
+		elseif (APPLE)
+			# you can check the rpath by "otool -l <filename> | grep -i -A2 rpath" or "otool -L <filename"
+			# set_target_properties(${Name} PROPERTIES INSTALL_RPATH "@loader_path")
+		else()
+			# you can check with ldd -l <filename>
+			# set_target_properties(${Name} PROPERTIES INSTALL_RPATH "$ORIGIN:$$ORIGIN")
+		endif()
+	endif()
+
+endmacro()
+
+# ///////////////////////////////////////////////////
+macro(InstallVisusExecutable Name)
+
+	if (NOT VISUS_IS_SUBMODULE)
+
+		install(TARGETS ${Name} 
+			BUNDLE DESTINATION  bin
+			RUNTIME DESTINATION bin)
+
+		#if (WIN32)
+		#	install(FILES $<TARGET_PDB_FILE:${Name}> DESTINATION lib OPTIONAL)
+		#endif()
+
+		if (WIN32)
+		# pass
+			elseif (APPLE)
+			# you can check the rpath by "otool -l <filename> | grep -i -A2 rpath" or "otool -L <filename"
+			# set_target_properties(${Name} PROPERTIES INSTALL_RPATH "@loader_path/../../../")
+		else()
+			# set_target_properties(${Name} PROPERTIES INSTALL_RPATH "$ORIGIN:$$ORIGIN")
+		endif()
+	endif()
 
 endmacro()
 
@@ -119,15 +175,17 @@ macro(AddVisusSwigLibrary Name SwigFile)
 		swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
 	endif()
 
+	swig_link_libraries(${NamePy} PUBLIC ${Name})
+
+	InstallVisusLibrary(_${NamePy})
+
 	target_include_directories(_${NamePy} PUBLIC ${PYTHON_INCLUDE_DIRS})
 
 	target_compile_definitions(_${NamePy} PRIVATE NUMPY_FOUND=${NUMPY_FOUND})
 
 	if (NUMPY_FOUND)
-		target_include_directories(_${NamePy} PRIVATE ${PYTHON_NUMPY_INCLUDE_DIR})
+		target_include_directories(_${NamePy} PRIVATE ${NUMPY_INCLUDE_DIR})
 	endif()
-
-	swig_link_libraries(${NamePy} PUBLIC ${Name})
 
 	# anaconda is statically linking python library inside its executable, so I cannot link in order to avoid duplicated symbols
 	# see https://groups.google.com/a/continuum.io/forum/#!topic/anaconda/057P4uNWyCU
@@ -226,49 +284,6 @@ macro(DisableAllWarnings)
 endmacro()
 
 
-# ///////////////////////////////////////////////////////////////////////
-macro(DisablePythonDebug)
-
-	set(SWIG_PYTHON_INTERPRETER_NO_DEBUG 1)
-	target_compile_definitions(VisusKernel PUBLIC SWIG_PYTHON_INTERPRETER_NO_DEBUG=1)
-
-	list(LENGTH PYTHON_LIBRARY _len_)
-	if(NOT _len_ EQUAL 1)
-	
-		# example optimized;C:/Python36/libs/python36.lib;debug;C:/Python36/libs/python36_d.lib
-		if (NOT _len_ EQUAL 4)
-			message(FATAL_ERROR "Internal error cannot extract debug optimized libraries")
-		endif()
-		
-		list(GET PYTHON_LIBRARY 0 item0)
-		list(GET PYTHON_LIBRARY 1 item1)
-		list(GET PYTHON_LIBRARY 2 item2)
-		list(GET PYTHON_LIBRARY 3 item3)
-		
-		if ((item0 STREQUAL "optimized") AND (item2 STREQUAL "debug"))
-			set(PYTHON_LIBRARY ${item1} CACHE STRING "" FORCE)
-		elseif ((item0 STREQUAL "debug") AND (item2 STREQUAL "optimized"))
-			set(PYTHON_LIBRARY ${item3} CACHE STRING "" FORCE)
-		else()
-			message(FATAL_ERROR "Internal error cannot extract debug optimized libraries")
-		endif()
-		
-		set(PYTHON_LIBRARIES ${PYTHON_LIBRARY})
-		
-		if (DEFINED PYTHON_DEBUG_LIBRARY)
-			unset(PYTHON_DEBUG_LIBRARY CACHE)
-			unset(PYTHON_DEBUG_LIBRARY)	
-			set(PYTHON_DEBUG_LIBRARY ${PYTHON_LIBRARY})
-		endif()
-		
-		if (DEFINED PYTHON_LIBRARY_DEBUG)
-			unset(PYTHON_LIBRARY_DEBUG CACHE)
-			unset(PYTHON_LIBRARY_DEBUG)		
-			set(PYTHON_LIBRARY_DEBUG ${PYTHON_LIBRARY})
-		endif()
-		
-	endif()	
-endmacro()
 
 # ///////////////////////////////////////////////////////////////////////
 macro(FindPython)
@@ -452,3 +467,85 @@ macro(FindSwig)
 endmacro()
 
 
+# ///////////////////////////////////////////////////
+macro(AddVisusLibrary Name)
+    add_library(${Name} "${ARGN}")
+	string(TOUPPER ${Name} __upper_case__name__)
+	target_compile_definitions(${Name}  PRIVATE VISUS_BUILDING_${__upper_case__name__}=1)
+	target_include_directories(${Name}  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+	file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/~${Name}.path.tmp" CONTENT "$<TARGET_FILE:${Name}>")
+	InstallVisusLibrary(${Name})
+endmacro()
+
+# ///////////////////////////////////////////////////
+macro(AddVisusExecutable Name)
+    add_executable(${Name} "${ARGN}")
+	set_target_properties(${Name} PROPERTIES FOLDER Executable/)
+    set_target_properties(${Name} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+	file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/~${Name}.path.tmp" CONTENT "$<TARGET_FILE:${Name}>")
+	InstallVisusExecutable(${Name})
+endmacro()
+
+
+
+# ///////////////////////////////////////////////////
+macro(InstallQtDlls target)
+
+	# https://blog.quickmediasolutions.com/2017/11/24/using-windeployqt-with-cpack.html
+	install(CODE "
+		file(READ \"${CMAKE_CURRENT_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/~${target}.path.tmp\" __target_full_path__)
+		execute_process(
+			COMMAND ${CMAKE_COMMAND} -E env PATH=\"${QtBinPath}\" \"${DEPLOYQT}\" --dry-run --no-compiler-runtime --list mapping \${__target_full_path__}
+				WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX} OUTPUT_VARIABLE __output__ OUTPUT_STRIP_TRAILING_WHITESPACE)
+			separate_arguments(__list_of_dlls__ WINDOWS_COMMAND \${__output__})
+			while(__list_of_dlls__)
+				list(GET __list_of_dlls__ 0 __src__)
+				list(GET __list_of_dlls__ 1 __dst__)
+				get_filename_component(__dst__ \${__dst__} DIRECTORY)
+				set(__dst__ ${CMAKE_INSTALL_PREFIX}/bin/\${__dst__})
+				FILE(INSTALL \${__src__} DESTINATION \${__dst__})
+				list(REMOVE_AT __list_of_dlls__ 0 1)
+			endwhile() 
+		")
+endmacro()
+
+
+# ///////////////////////////////////////////////////
+macro(InstallBuildFiles Pattern Destination)
+	install(CODE "
+		file(READ \"${CMAKE_CURRENT_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/~VisusKernel.path.tmp\" __target_full_path__)
+		get_filename_component(__target_directory__ \${__target_full_path__} DIRECTORY)
+		FILE(GLOB __files__ \${__target_directory__}/${Pattern})
+		FILE(INSTALL \${__files__} DESTINATION ${CMAKE_INSTALL_PREFIX}/${Destination})
+	")
+endmacro()
+
+# ///////////////////////////////////////////////////
+macro(InstallVisus)
+
+	install(DIRECTORY Copyrights  DESTINATION ./)
+	install(DIRECTORY Samples     DESTINATION ./)
+	install(FILES     LICENSE     DESTINATION ./)
+	install(FILES     README.md   DESTINATION ./)
+	install(DIRECTORY datasets    DESTINATION ./)
+
+	InstallBuildFiles(*.py ./)
+
+	# in windows I need to copy vcpkg dlls
+	if (WIN32)
+
+		InstallBuildFiles(*.dll ./bin)
+		
+		# Do not pack vc++ redist 
+		SET(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
+
+		include(InstallRequiredSystemLibraries)
+	endif()
+
+	if (VISUS_GUI)
+		InstallQtDlls(visusviewer)
+		file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/visusviewer.$<CONFIG>.bat" CONTENT "cd /d %~dp0\nset PYTHONPATH=./;%PYTHONPATH%\nbin\\$<TARGET_FILE_NAME:visusviewer> --visus-config datasets/visus.config\npause\n")
+		install(CODE "FILE(INSTALL ${CMAKE_BINARY_DIR}/visusviewer.\${CMAKE_INSTALL_CONFIG_NAME}.bat DESTINATION ${CMAKE_INSTALL_PREFIX})")
+	endif()
+
+endmacro()

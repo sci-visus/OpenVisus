@@ -65,7 +65,11 @@ You may want to check "*Download debugging symbols*" and "*Download debugging li
 Install numpy::
 
 	pip3 install numpy
+  
+Install PyQt5:
 
+  pip3 install PyQt5==5.9.2
+  
 Install [Qt5](http://download.qt.io/official_releases/qt/5.9/5.9.2/qt-opensource-windows-x86-5.9.2.exe) 
 
 Install chocolatey. From an Administrator Prompt::
@@ -104,6 +108,10 @@ Compile OpenVisus. From a prompt::
 	%CMAKE% --build . --target ALL_BUILD --config Release
 	%CMAKE% --build . --target RUN_TESTS --config Release 
 
+To test if it's working::
+
+  SET PYTHONPATH=C:\projects\OpenVisus\build\Release
+  c:\Python36\python.exe -c "from visuspy import *" # add -vv if you want very verbose output
 
 ## MacOSX compilation
 
@@ -280,7 +288,7 @@ Add a dataset:
 cat <<EOF >  $VISUS_HOME/visus.config
 <?xml version="1.0" ?>
 <visus>
-  <dataset name='cat' url='file://$VISUS_HOME/Misc/dataset/cat/visus.idx' permissions='public'/>
+  <dataset name='cat' url='file://$VISUS_HOME/datasets/cat/visus.idx' permissions='public'/>
 </visus>
 EOF
 ```
@@ -372,7 +380,7 @@ a2enmod visus
 cat <<EOF >  $VISUS_HOME/visus.config
 <?xml version="1.0" ?>
 <visus>
-  <dataset name='cat' url='file://$VISUS_HOME/Misc/dataset/cat/visus.idx' permissions='public'/>
+  <dataset name='cat' url='file://$VISUS_HOME/datasets/cat/visus.idx' permissions='public'/>
 </visus>
 EOF
 ```

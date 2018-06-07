@@ -271,10 +271,13 @@ ENABLE_SHARED_PTR(StringTree)
 
 %pythoncode %{
 
+try:
+  import numpy  
+  NUMPY_FOUND=True
+except ImportError:
+  NUMPY_FOUND=False
+
 # here I'm sharing the heap memory, so I need to make sure that if one gets destroyed it won't crash (see __keep_in_memory__)
-
-import numpy
-
 def convertToNumPyArray(visus_value):
 
   # see https://docs.scipy.org/doc/numpy-1.10.1/user/basics.subclassing.html 

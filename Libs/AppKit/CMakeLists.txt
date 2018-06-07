@@ -46,9 +46,6 @@ source_group("View" FILES ${ViewSources})
 
 file(GLOB Sources include/Visus/*.h src/*.cpp resources/*.glsl resources/*.qrc)
 
-add_library(VisusAppKit ${Sources})
-target_compile_definitions(VisusAppKit  PRIVATE VISUS_BUILDING_VISUSAPPKIT=1)
-target_include_directories(VisusAppKit  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+AddVisusLibrary(VisusAppKit ${Sources})
 target_link_libraries(VisusAppKit PUBLIC VisusNodes VisusGuiNodes)
-
 

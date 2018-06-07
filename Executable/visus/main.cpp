@@ -1930,7 +1930,7 @@ public:
     StringMap blob_metadata,check_blob_metadata;
     blob_metadata.setValue("example-meta-data","visus-meta-data");
 
-    auto blob=Utils::loadBinaryDocument("Misc/cat_gray.png");
+    auto blob=Utils::loadBinaryDocument("datasets/cat/gray.png");
     VisusReleaseAssert(blob);
 
     String container_name="testing-cloud-storage";

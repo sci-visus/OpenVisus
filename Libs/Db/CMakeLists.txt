@@ -64,9 +64,5 @@ source_group("Query"    FILES ${QuerySources})
 
 file(GLOB Sources include/Visus/*.h src/*.cpp)
 
-add_library(VisusDb ${Sources})
-target_compile_definitions(VisusDb PRIVATE VISUS_BUILDING_VISUSDB=1)
-target_include_directories(VisusDb  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+AddVisusLibrary(VisusDb ${Sources})
 target_link_libraries(VisusDb PUBLIC VisusKernel)
-
-

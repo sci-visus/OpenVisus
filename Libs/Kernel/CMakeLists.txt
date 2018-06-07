@@ -189,15 +189,11 @@ file(GLOB RootDocs ../../CMakeLists.txt ../../.*.yml ./../README.md ../../CMake/
 set(Sources ${Sources} ${RootDocs})
 source_group("" FILES ${RootDocs})
 
-add_library(VisusKernel ${Sources})
+AddVisusLibrary(VisusKernel ${Sources})
 
 foreach( _it_ ${PythonScriptSource})
     add_custom_command(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${_it_} $<TARGET_FILE_DIR:VisusKernel>)
 endforeach()
-
-target_compile_definitions(VisusKernel PRIVATE VISUS_BUILDING_VISUSKERNEL=1)
-
-target_include_directories(VisusKernel PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/dtl/include)
 
@@ -256,15 +252,12 @@ else()
 	target_link_libraries(VisusKernel PRIVATE  ${OPENSSL_CRYPTO_LIBRARY})
 endif()
 
-
-
 # python 
 if (TARGET python27)
 	target_link_libraries(VisusKernel PUBLIC python27)
 else()
 	target_include_directories(VisusKernel PUBLIC  ${PYTHON_INCLUDE_DIRS})
 	target_link_libraries(VisusKernel      PUBLIC  ${PYTHON_LIBRARIES})
-	#DisablePythonDebug()
 endif()
 
 if(WIN32)
@@ -280,8 +273,6 @@ else()
 	target_link_libraries(VisusKernel PUBLIC  pthread)
 
 endif()
-
-
 
 
 

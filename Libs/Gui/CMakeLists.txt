@@ -7,9 +7,7 @@ file(GLOB Sources include/Visus/*.h src/*.cpp resources/*.glsl resources/*.qrc)
 
 source_group("" FILES ${Sources})
 
-add_library(VisusGui ${Sources})
-target_compile_definitions(VisusGui PRIVATE VISUS_BUILDING_VISUSGUI=1)
-target_include_directories(VisusGui  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+AddVisusLibrary(VisusGui ${Sources})
 
 target_link_libraries(VisusGui PUBLIC VisusKernel)
 target_link_libraries(VisusGui PUBLIC Qt5::Core Qt5::Widgets Qt5::Gui Qt5::OpenGL)
@@ -21,5 +19,3 @@ elseif (APPLE)
 else() 
 	target_link_libraries(VisusGui PUBLIC GL GLU X11)
 endif()
-
-
