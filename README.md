@@ -110,8 +110,10 @@ Compile OpenVisus. From a prompt::
 
 To test if it's working::
 
-  SET PYTHONPATH=C:\projects\OpenVisus\build\Release
-  c:\Python36\python.exe -c "from visuspy import *" # add -vv if you want very verbose output
+	SET PYTHONPATH=C:\projects\OpenVisus\build\Release
+	REM use python_d.exe if you are using the Debug version
+	REM add -vv if you want very verbose output
+	c:\Python36\python.exe -c "from visuspy import *" 
 
 ## MacOSX compilation
 
