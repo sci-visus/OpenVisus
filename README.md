@@ -142,7 +142,7 @@ Compile OpenVisus. From a prompt::
 
 To test if it's working::
 
-	PYTHONPATH=$(pwd)/Release
+	export PYTHONPATH=$(pwd)/Release
 	python3 -c "from visuspy import *"
 
 ## Ubuntu compilation

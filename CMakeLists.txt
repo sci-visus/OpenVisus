@@ -59,7 +59,12 @@ IF (VISUS_GUI)
   
   if (WIN32)
     find_program(DEPLOYQT windeployqt.exe HINTS "${QtBinPath}")
+  elseif(APPLE)
+    find_program(DEPLOYQT macdeployqt     HINTS "${QtBinPath}")
+  else()
+
   endif()
+
 
 endif()
 
@@ -68,7 +73,7 @@ FindPython()
 add_subdirectory(Libs)
 add_subdirectory(Executable)
 
-# only if I'm compiling OpenVisus not as submodule...
+# *** samples and external apps ***
 if (NOT VISUS_IS_SUBMODULE)
 
 	# samples
@@ -91,4 +96,9 @@ if (NOT VISUS_IS_SUBMODULE)
 endif()
 
 
-InstallVisus()
+# *** install ***
+if (NOT VISUS_IS_SUBMODULE)
+	InstallVisus()
+	add_subdirectory(CMake) # PostInstallVisus
+endif()
+
