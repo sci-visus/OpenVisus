@@ -50,7 +50,9 @@ macro(SetupCMake)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-reorder")
 
 		# very disappointing problems with cmake/rpath/qt deploy, doing by myself
-		# you can check the rpath by "otool -l <filename> | grep -i -A2 rpath" or "otool -L filename"
+		# you can check the rpath by 
+		#   otool -l filename | grep -i -A2 rpath
+		#   otool -L filename
     	set(CMAKE_MACOSX_RPATH OFF)
     	set(CMAKE_SKIP_RPATH ON)
     	set(CMAKE_SKIP_INSTALL_RPATH ON)
@@ -491,19 +493,6 @@ macro(AddVisusExecutable Name)
 endmacro()
 
 
-
-# ///////////////////////////////////////////////////
-macro(DeployQt target)
-
-#	install(CODE "
-#		file(READ \"${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/~${target}.path.tmp\" __target_full_path__)
-#		get_filename_component(__cmd_filename__ \"\${__target_full_path__}\" NAME)
-#		MESSAGE(STATUS \"${DEPLOYQT} ${CMAKE_INSTALL_PREFIX}/bin/\${__cmd_filename__}.app -always-overwrite\")
-#		execute_process(COMMAND ${CMAKE_COMMAND} -E env PATH=\"${QtBinPath}\" \"${DEPLOYQT}\" \"${CMAKE_INSTALL_PREFIX}/bin/\${__cmd_filename__}.app\" -always-overwrite)
-#	")
-endmacro()
-
-
 # ///////////////////////////////////////////////////
 macro(InstallBuildFiles Pattern Destination)
 	install(CODE "
@@ -513,6 +502,7 @@ macro(InstallBuildFiles Pattern Destination)
 		FILE(INSTALL \${__files__} DESTINATION ${CMAKE_INSTALL_PREFIX}/${Destination})
 	")
 endmacro()
+
 
 
 # ///////////////////////////////////////////////////
@@ -539,31 +529,23 @@ macro(InstallVisus)
 	endif()
 
 	if (VISUS_GUI)
-		DeployQt(visusviewer)
-
-		set(PERMISSIONS OWNER_EXECUTE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ)
 
 	    if (WIN32)
-			  file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/visusviewer.$<CONFIG>.bat" CONTENT "
-cd /d %~dp0
-set PYTHONPATH=./;%PYTHONPATH%
-bin\\$<TARGET_FILE_NAME:visusviewer> --visus-config datasets/visus.config
-pause")
-			  install(CODE "FILE(INSTALL ${CMAKE_BINARY_DIR}/visusviewer.\${CMAKE_INSTALL_CONFIG_NAME}.bat DESTINATION ${CMAKE_INSTALL_PREFIX} PERMISSIONS ${PERMISSIONS})")
-	     
-	     elseif(APPLE)
-			file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/visusviewer.$<CONFIG>.command" CONTENT "
-cd $(dirname \"${0}\")
-find ./visuscache -name '*.lock' -exec rm -rf {} \; 2>/dev/null
-export QT_PLUGIN_PATH=$(pwd)/bin/PlugIns
-export PYTHONPATH=$(pwd)
-./bin/visusviewer.app/Contents/MacOS/visusviewer --visus-config datasets/visus.config")
+	    	set(__ext__ ".bat")
+	    elseif(APPLE)
+	     	set(__ext__ ".command")
+	    else()
+	     	set(__ext__ ".sh")
+	    endif()
 
-			  install(CODE "FILE(INSTALL ${CMAKE_BINARY_DIR}/visusviewer.\${CMAKE_INSTALL_CONFIG_NAME}.command DESTINATION ${CMAKE_INSTALL_PREFIX} PERMISSIONS ${PERMISSIONS})")
+    	file(READ "${CMAKE_SOURCE_DIR}/CMake/visusviewer${__ext__}" __content__)
+		file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/visusviewer.$<CONFIG>${__ext__}" CONTENT "${__content__}")
+		install(CODE "
+			FILE(INSTALL ${CMAKE_BINARY_DIR}/visusviewer.\${CMAKE_INSTALL_CONFIG_NAME}${__ext__} 
+			DESTINATION ${CMAKE_INSTALL_PREFIX} 
+			PERMISSIONS OWNER_EXECUTE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ)
+		")
 
-
-	     else()
-	     endif()
 	endif()
 
 endmacro()
@@ -571,10 +553,10 @@ endmacro()
 
 # ///////////////////////////////////////////////////
 macro(PostInstallVisus)
- 	if (NOT WIN32)
-    	install(CODE "
-    		message(STATUS \"Executing post_install.py ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/CMake/post_install.py \")
-    		execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_SOURCE_DIR}/CMake/post_install.py\" WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
-    	")
- 	endif()
+	install(CODE "
+		message(STATUS \"Executing post_install.py ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/CMake/post_install.py \")
+		execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_SOURCE_DIR}/CMake/post_install.py\" WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
+	")
 endmacro()
+
+

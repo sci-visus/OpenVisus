@@ -15,6 +15,10 @@ if (POLICY CMP0022)
   cmake_policy(SET CMP0022  NEW) 
 endif()
 
+if(POLICY CMP0068)
+  cmake_policy(SET CMP0068 NEW)
+endif()
+
 PROJECT(ViSUS)
 
 include(CMake/VisusMacros.cmake)
@@ -65,7 +69,6 @@ IF (VISUS_GUI)
 
   endif()
 
-
 endif()
 
 FindPython()
@@ -84,6 +87,7 @@ if (NOT VISUS_IS_SUBMODULE)
 	AddPythonTest(VisusTestPyDataflow ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Dataflow.py ${CMAKE_CURRENT_SOURCE_DIR})
 	AddPythonTest(VisusTestPyArray    ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Array.py    ${CMAKE_CURRENT_SOURCE_DIR})
 	AddPythonTest(VisusTestPyIdx      ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py      ${CMAKE_CURRENT_SOURCE_DIR})
+
 	add_test(NAME VisusTestIdx WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} COMMAND visus --test-idx --max-seconds 300)
 	
 	# external app
