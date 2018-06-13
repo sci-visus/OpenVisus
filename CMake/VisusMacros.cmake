@@ -41,6 +41,9 @@ macro(SetupCMake)
 		set(CMAKE_MODULE_LINKER_FLAGS_RELEASE "${CMAKE_MODULE_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
 		set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
 
+		
+	    set(terminal_extension ".bat")
+
 	elseif (APPLE)
 
 		# force executable to bundle
@@ -56,6 +59,8 @@ macro(SetupCMake)
     	set(CMAKE_MACOSX_RPATH OFF)
     	set(CMAKE_SKIP_RPATH ON)
     	set(CMAKE_SKIP_INSTALL_RPATH ON)
+
+		set(terminal_extension ".command")
 
 	else ()
 
@@ -79,6 +84,8 @@ macro(SetupCMake)
 		include_directories("/usr/local/include")
 		include_directories("/usr/include")
 
+		set(terminal_extension ".sh")
+
 	endif()
 
 	find_package(OpenMP)
@@ -89,7 +96,6 @@ macro(SetupCMake)
 	endif()	
 	
 endmacro()
-
 
 
 # //////////////////////////////////////////////////////////////////////////
@@ -144,21 +150,12 @@ endmacro()
 macro(InstallVisusExecutable Name)
 
 	if (NOT VISUS_IS_SUBMODULE)
-
 		install(TARGETS ${Name} 
 			BUNDLE DESTINATION  bin
 			RUNTIME DESTINATION bin)
 
-		#if (WIN32)
-		#	install(FILES $<TARGET_PDB_FILE:${Name}> DESTINATION lib OPTIONAL)
-		#endif()
-
 		if (WIN32)
-			# pass
-		elseif (APPLE)
-			# pass
-		else()
-			# set_target_properties(${Name} PROPERTIES INSTALL_RPATH "$ORIGIN:$$ORIGIN")
+			install(FILES $<TARGET_PDB_FILE:${Name}> DESTINATION lib OPTIONAL)
 		endif()
 	endif()
 
@@ -504,7 +501,6 @@ macro(InstallBuildFiles Pattern Destination)
 endmacro()
 
 
-
 # ///////////////////////////////////////////////////
 macro(InstallVisus)
 
@@ -530,18 +526,11 @@ macro(InstallVisus)
 
 	if (VISUS_GUI)
 
-	    if (WIN32)
-	    	set(__ext__ ".bat")
-	    elseif(APPLE)
-	     	set(__ext__ ".command")
-	    else()
-	     	set(__ext__ ".sh")
-	    endif()
-
-    	file(READ "${CMAKE_SOURCE_DIR}/CMake/visusviewer${__ext__}" __content__)
-		file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/visusviewer.$<CONFIG>${__ext__}" CONTENT "${__content__}")
+		# generate script to launch visusviewer
+    	file(READ "${CMAKE_SOURCE_DIR}/CMake/visusviewer${terminal_extension}" __content__)
+		file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/visusviewer.$<CONFIG>${terminal_extension}" CONTENT "${__content__}")
 		install(CODE "
-			FILE(INSTALL ${CMAKE_BINARY_DIR}/visusviewer.\${CMAKE_INSTALL_CONFIG_NAME}${__ext__} 
+			FILE(INSTALL ${CMAKE_BINARY_DIR}/visusviewer.\${CMAKE_INSTALL_CONFIG_NAME}${terminal_extension} 
 			DESTINATION ${CMAKE_INSTALL_PREFIX} 
 			PERMISSIONS OWNER_EXECUTE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ)
 		")
@@ -550,12 +539,11 @@ macro(InstallVisus)
 
 endmacro()
 
-
 # ///////////////////////////////////////////////////
 macro(PostInstallVisus)
 	install(CODE "
-		message(STATUS \"Executing post_install.py ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/CMake/post_install.py \")
-		execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_SOURCE_DIR}/CMake/post_install.py\" WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
+		message(STATUS \"Executing post_install.py ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/CMake/post_install.py ${Qt5_DIR} ${DEPLOYQT}\")
+		execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_SOURCE_DIR}/CMake/post_install.py\" \"${Qt5_DIR}\" \"${DEPLOYQT}\" WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
 	")
 endmacro()
 
