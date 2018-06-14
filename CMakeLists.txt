@@ -84,11 +84,11 @@ if (NOT VISUS_IS_SUBMODULE)
 
 	# testing
 	enable_testing()
-	AddPythonTest(VisusTestPyDataflow ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Dataflow.py ${CMAKE_CURRENT_SOURCE_DIR})
-	AddPythonTest(VisusTestPyArray    ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Array.py    ${CMAKE_CURRENT_SOURCE_DIR})
-	AddPythonTest(VisusTestPyIdx      ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py      ${CMAKE_CURRENT_SOURCE_DIR})
 
-	add_test(NAME VisusTestIdx WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} COMMAND visus --test-idx --max-seconds 300)
+   AddCTest(VisusTestPyDataflow ${PYTHON_EXECUTABLE}  ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/Samples/python/Dataflow.py)
+   AddCTest(VisusTestPyArray    ${PYTHON_EXECUTABLE}  ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/Samples/python/Array.py)
+   AddCTest(VisusTestPyIdx      ${PYTHON_EXECUTABLE}  ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/Samples/python/Idx.py)
+	AddCTest(VisusTestIdx        $<TARGET_FILE:python> ${CMAKE_SOURCE_DIR} --test-idx --max-seconds 300)
 	
 	# external app
 	AddExternalApp(external_simple_query ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query ${CMAKE_BINARY_DIR}/Samples/simple_query)

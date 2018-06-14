@@ -203,11 +203,10 @@ macro(AddVisusSwigLibrary Name SwigFile)
 
 	target_include_directories(_${NamePy} PUBLIC ${PYTHON_INCLUDE_DIRS})
 
-	target_compile_definitions(_${NamePy} PRIVATE NUMPY_FOUND=${NUMPY_FOUND})
-
-	if (NUMPY_FOUND)
-		target_include_directories(_${NamePy} PRIVATE ${NUMPY_INCLUDE_DIR})
-	endif()
+   if (NUMPY_FOUND)
+	  target_compile_definitions(_${NamePy} PRIVATE NUMPY_FOUND=1)
+     target_include_directories(_${NamePy} PRIVATE ${NUMPY_INCLUDE_DIR})
+   endif()
 
 	# anaconda is statically linking python library inside its executable, so I cannot link in order to avoid duplicated symbols
 	# see https://groups.google.com/a/continuum.io/forum/#!topic/anaconda/057P4uNWyCU
@@ -228,19 +227,6 @@ macro(AddVisusSwigLibrary Name SwigFile)
 
 endmacro()
 
-
-# //////////////////////////////////////////////////////////////////////////
-macro(AddPythonTest Name FileName WorkingDirectory)
-
-	add_test(NAME ${Name} WORKING_DIRECTORY WorkingDirectory COMMAND $<TARGET_FILE:python> ${FileName})
-
-	if (WIN32 OR APPLE)
-		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
-	else()
-		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR}")
-	endif()
-
-endmacro()
 
 # //////////////////////////////////////////////////////////////////////////
 macro(FindGitRevision)
@@ -310,9 +296,7 @@ endmacro()
 # ///////////////////////////////////////////////////////////////////////
 macro(FindPython)
 
-	if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/ExternalLibs/python27)
-		set(NUMPY_FOUND 0)
-	elseif(DEFINED PYTHON_VERSION)
+	if(DEFINED PYTHON_VERSION)
 		 # this is for anaconda/python 2.7 installations
 		find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 		find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
@@ -324,6 +308,24 @@ macro(FindPython)
 	endif()
 
 endmacro()
+
+# //////////////////////////////////////////////////////////////////////////
+macro(AddCTest Name Command WorkingDirectory Args)
+
+	add_test(NAME ${Name} WORKING_DIRECTORY ${WorkingDirectory} COMMAND ${Command} ${ARGN})
+
+	if (WIN32)
+		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
+   elseif(APPLE)
+      set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
+	else()
+		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR};LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}")
+	endif()
+
+endmacro()
+
+
+
 
 # ///////////////////////////////////////////////////////////////////////
 macro(FindZLib)

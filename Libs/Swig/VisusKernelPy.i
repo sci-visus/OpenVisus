@@ -304,7 +304,7 @@ def convertToVisusArray(numpy_value):
   return visus_value
 %}
 
-#endif 
+#endif //NUMPY_FOUND
 
 %include <Visus/Color.h>
 
