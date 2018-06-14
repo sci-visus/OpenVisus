@@ -50,17 +50,14 @@ option(VISUS_GUI "Enable gui" TRUE)
 IF (VISUS_GUI)
 
 	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL PrintSupport REQUIRED)
+
 	if (WIN32)
 		string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
 	endif()
+  
 	get_target_property(QMakeLocation Qt5::qmake IMPORTED_LOCATION)
 	get_filename_component(QtBinPath "${QMakeLocation}" DIRECTORY)
 
-	execute_process(COMMAND ${QMakeLocation} -query QT_INSTALL_PLUGINS  OUTPUT_VARIABLE QT_INSTALL_PLUGINS OUTPUT_STRIP_TRAILING_WHITESPACE)
-	if(NOT EXISTS ${QT_INSTALL_PLUGINS})
-		message(FATAL_ERROR "Failed to detect QT_INSTALL_PLUGINS")
-	endif()
-  
   if (WIN32)
     find_program(DEPLOYQT windeployqt.exe HINTS "${QtBinPath}")
   elseif(APPLE)
