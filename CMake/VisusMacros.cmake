@@ -310,9 +310,9 @@ macro(FindPython)
 endmacro()
 
 # //////////////////////////////////////////////////////////////////////////
-macro(AddCTest Name Command WorkingDirectory Args)
+macro(AddCTest Name Command WorkingDirectory)
 
-	add_test(NAME ${Name} WORKING_DIRECTORY ${WorkingDirectory} COMMAND ${Command} ${ARGN})
+	add_test(NAME ${Name} WORKING_DIRECTORY "${WorkingDirectory}" COMMAND "${Command}" ${ARGN})
 
 	if (WIN32)
 		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
