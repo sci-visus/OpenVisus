@@ -105,13 +105,18 @@ Compile OpenVisus. From a prompt::
 		..
 	%CMAKE% --build . --target ALL_BUILD --config Release
 	%CMAKE% --build . --target RUN_TESTS --config Release 
+	REM OPTIONAL
+	REM %CMAKE% --build . --target INSTALL --config Release 
 
 To test if it's working::
 
+	REM change path accordingly
 	SET PYTHONPATH=C:\projects\OpenVisus\build\Release
+	SET PATH=c:\python36;C:\Qt\Qt5.9.2\5.9.2\msvc2017_64\bin
+	.\Release\visusviewer.exe
 	REM use python_d.exe if you are using the Debug version
 	REM add -vv if you want very verbose output
-	c:\Python36\python.exe -c "from visuspy import *" 
+	c:\Python36\python.exe -c "from visuspy import *; print('visuspy is working')"
 
 ## MacOSX compilation
 
@@ -143,7 +148,7 @@ Compile OpenVisus. From a prompt::
 To test if it's working::
 
 	export PYTHONPATH=$(pwd)/Release
-	python3 -c "from visuspy import *"
+	python3 -c "from visuspy import *; print('visuspy is working')"
 
 ## Linux compilation
 

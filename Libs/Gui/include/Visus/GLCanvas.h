@@ -281,14 +281,14 @@ public:
   void pushClippingBox(const Box3d& box)
   {
     const Matrix& Ti = getModelview().invert();
-    std::array<Plane, 6> planes({
+    std::array<Plane, 6> planes={
       Plane(+1.0, 0.0, 0.0, -box.p1.x)*Ti,
       Plane(-1.0, 0.0, 0.0, +box.p2.x)*Ti,
       Plane(0.0, +1.0, 0.0, -box.p1.y)*Ti,
       Plane(0.0, -1.0, 0.0, +box.p2.y)*Ti,
       Plane(0.0, 0.0, +1.0, -box.p1.z)*Ti,
       Plane(0.0, 0.0, -1.0, +box.p2.z)*Ti
-      });
+    };
     clipping_box.push(planes);
     setClippingBoxIfNeeded();
   }
