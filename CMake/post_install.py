@@ -29,6 +29,17 @@ def copyDirectory(src,dst):
 
   print("Copying",src,dst)
   shutil.copytree(src, dst + "/")
+  
+# /////////////////////////////////////////////////////////////////
+def copyFileIfExist(src,dst):
+    if existFile(src):
+        executeCommand(["cp",src,dst])    
+    
+# ////////////////////////////////////////////////////
+def copyDirectoryIfExist(src,dst):
+    if existDirectory(dst):
+        return copyDirectory(src,dst)
+    
 
 qt_dir,qt_deploy=getArg(1),getArg(2)
 
@@ -50,11 +61,14 @@ if platform.system()=="Linux":
 
 	# copy qt libs
 	for lib in ("libQt5OpenGL.so.5","libQt5Widgets.so.5","libQt5Gui.so.5","libQt5Core.so.5","libQt5Svg.so.5","libQt5PrintSupport.so.5"):
-		executeCommand(["cp","/usr/lib/x86_64-linux-gnu/"+lib,"bin/"])
+		copyFileIfExist("/usr/lib/x86_64-linux-gnu/"+lib,"bin/")
+		copyFileIfExist("/usr/lib64/"+lib,"bin/")       
 
 	# copy qt plugins
 	for plugin in ("iconengines","imageformats","platforms","printsupport"):
-		copyDirectory("/usr/lib/x86_64-linux-gnu/qt5/plugins/"+plugin,"bin/plugins/"+plugin)
+		copyDirectoryIfExist("/usr/lib/x86_64-linux-gnu/qt5/plugins/"+plugin,"bin/plugins/"+plugin)
+		copyDirectoryIfExist("/usr/lib64/qt5/plugins/"+plugin,"bin/plugins/"+plugin)
+		
 
 	sys.exit(0)
 
