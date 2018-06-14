@@ -138,7 +138,9 @@ Compile OpenVisus. From a prompt::
 	cd build
 	cmake -GXcode -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DQt5_DIR=/usr/local/opt/qt/lib/cmake/Qt5 .. 
 	cmake --build . --target ALL_BUILD --config Release
-	cmake --build . --target RUN_TESTS --config Release 
+	# optional
+	# cmake --build . --target RUN_TESTS --config Release 
+	# cmake --build . --target INSTALL   --config Release
 
 To test if it's working::
 
@@ -170,9 +172,9 @@ Compile OpenVisus::
 	cd build
 	cmake ../
 	cmake --build . --target all 
-	cmake --build . --target test
 	# optional
-	cmake --build . --target install
+	# cmake --build . --target test
+	# cmake --build . --target install
 
 To test if it's working::
 
@@ -189,7 +191,7 @@ Install prerequisites::
 	sudo zypper -n update    # (OPTIONAL)
 	sudo zypper -n patch     # (OPTIONAL)
 	sudo zypper -n in -t pattern devel_basis \
-		cmake git swig curl \
+		cmake git swig curl cmake-gui \
 		python3 python3-pip python3-devel \
 		zlib-devel liblz4-devel libtinyxml-devel libuuid-devel freeimage-devel libcurl-devel libopenssl-devel glu-devel \
 		libQt5Concurrent-devel libQt5Network-devel \libQt5Test-devel libQt5OpenGL-devel libQt5PrintSupport-devel
@@ -206,13 +208,17 @@ Compile OpenVisus:
 	mkdir build 
 	cd build
 	cmake ../
-	cmake --build . --target all 
-	cmake --build . --target test
+	cmake --build . --target all
+	# optional
+	# cmake --build . --target test
+	# cmake --build . --target install
 
 To test if it's working::
 
-	PYTHONPATH=$(pwd)
-	python3 -c "from visuspy import *"
+	export LD_LIBRARY_PATH=$(pwd)
+	export PYTHONPATH=$(pwd)
+	./visusviewer
+	python3 -c "from visuspy import *; print('visuspy is working')"
 	
 ## Use OpenVisus as submodule
 
