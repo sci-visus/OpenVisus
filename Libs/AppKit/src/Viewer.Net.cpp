@@ -153,7 +153,7 @@ bool Viewer::addNetRcv(int port)
   #else
       if (auto update_glcamera=dynamic_cast<UpdateGLCamera*>(action.get()))
       {
-        GLCameraNode* glcamera_node=viewer->getModel()->findNode<GLCameraNode>(update_glcamera->glcamera_node);VisusAssert(glcamera_node);
+        auto glcamera_node=dynamic_cast<GLCameraNode*>(viewer->findNodeByUUID(update_glcamera->glcamera_node));VisusAssert(glcamera_node);
         update_glcamera->action->redo(viewer->getModel());
         glcamera->setOrthoParams(update_glcamera->ortho_params);
       }
