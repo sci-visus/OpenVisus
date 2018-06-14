@@ -49,9 +49,7 @@ Table of content:
 
 [MacOSX compilation](#macosx-compilation)
 
-[Ubuntu 16.04 compilation](#ubuntu-compilation)
-
-[OpenSUSE Leap compilation](#opensuse-compilation)
+[Linux compilation](#linux-compilation)
 
 [Use OpenVisus as submodule](#use-openvisus-as-submodule)
 
@@ -147,45 +145,21 @@ To test if it's working::
 	export PYTHONPATH=$(pwd)/Release
 	python3 -c "from visuspy import *"
 
-## Ubuntu compilation
+## Linux compilation
 
-Install prerequisites (assuming you are using python 3.x)::
+Install prerequisites (assuming you are using python 3.x).
+
+For Ubuntu 16.04::
+OpenSUSE Leap::
 
 	sudo apt install -y liblz4-dev libtinyxml-dev cmake git build-essential swig libfreeimage-dev \
 		libcurl4-openssl-dev libssl-dev uuid-dev python3 python3-pip \
 		qt5-default qttools5-dev-tools
 
-If you want to build Apache plugin::
-
+	# If you want to build Apache plugin::
 	sudo apt install -y apache2 apache2-dev
-
-Install numpy::
-
-	sudo pip3 install --upgrade pip
-	sudo pip3 install numpy
-
-Compile OpenVisus::
-
-	git clone https://github.com/sci-visus/OpenVisus
-	cd OpenVisus
-	mkdir build 
-	cd build
-	cmake ../
-	cmake --build . --target all 
-	# optional
-	# cmake --build . --target test
-	# cmake --build . --target install
-
-To test if it's working::
-
-	export LD_LIBRARY_PATH=$(pwd)
-	export PYTHONPATH=$(pwd)
-	./visusviewer
-	python3 -c "from visuspy import *; print('visuspy is working')"
-
-## OpenSUSE compilation
-
-Install prerequisites::
+	
+For OpenSuse Leap::
 
 	sudo zypper refresh      # (OPTIONAL)
 	sudo zypper -n update    # (OPTIONAL)
@@ -201,14 +175,14 @@ Install numpy::
 	sudo pip3 install --upgrade pip
 	sudo pip3 install numpy
 
-Compile OpenVisus:
+Compile OpenVisus::
 
 	git clone https://github.com/sci-visus/OpenVisus
 	cd OpenVisus
 	mkdir build 
 	cd build
 	cmake ../
-	cmake --build . --target all
+	cmake --build . --target all 
 	# optional
 	# cmake --build . --target test
 	# cmake --build . --target install
