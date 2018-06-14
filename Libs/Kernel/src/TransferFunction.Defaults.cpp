@@ -816,10 +816,10 @@ bool TransferFunction::setDefault(String default_name)
     beginUpdate();
     const int N=256;
     functions.clear();
-    addFunction(std::make_shared<SingleTransferFunction>("Red"  ,Colors::Red   ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Green",Colors::Green ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Blue" ,Colors::Blue  ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Alpha",Colors::Gray  ,N));
+    addFunction("Red"  ,Colors::Red   ,N);
+    addFunction("Green",Colors::Green ,N);
+    addFunction("Blue" ,Colors::Blue  ,N);
+    addFunction("Alpha",Colors::Gray  ,N);
 
     for (int I=0;I<N;I++)
     {
@@ -839,10 +839,10 @@ bool TransferFunction::setDefault(String default_name)
     beginUpdate();
     const int N=256;
     functions.clear();
-    addFunction(std::make_shared<SingleTransferFunction>("Red"  ,Colors::Red   ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Green",Colors::Green ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Blue" ,Colors::Blue  ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Alpha",Colors::Gray  ,N));
+    addFunction("Red"  ,Colors::Red   ,N);
+    addFunction("Green",Colors::Green ,N);
+    addFunction("Blue" ,Colors::Blue  ,N);
+    addFunction("Alpha",Colors::Gray  ,N);
     for (int I=0;I<N;I++)
     {
       double alpha=I/(N-1.0);
@@ -861,10 +861,10 @@ bool TransferFunction::setDefault(String default_name)
     beginUpdate();
     const int N=256;
     functions.clear();
-    addFunction(std::make_shared<SingleTransferFunction>("Red"  ,Colors::Red   ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Green",Colors::Green ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Blue" ,Colors::Blue  ,N));
-    addFunction(std::make_shared<SingleTransferFunction>("Alpha",Colors::Gray  ,N));
+    addFunction("Red"  ,Colors::Red   ,N);
+    addFunction("Green",Colors::Green ,N);
+    addFunction("Blue" ,Colors::Blue  ,N);
+    addFunction("Alpha",Colors::Gray  ,N);
     for (int I=0;I<N;I++)
     {
       double alpha=I/(N-1.0);
@@ -879,17 +879,25 @@ bool TransferFunction::setDefault(String default_name)
     return true;
   }
 
-  if (default_name=="banded"    )  {beginUpdate(); Array src(256,DTypes::UINT8_RGBA,SharedPtr<HeapMemory>(HeapMemory::createUnmanaged(banded_data    ,sizeof(banded_data    ))));setFromArray(src,default_name);endUpdate();return true;}
-  if (default_name=="bry"       )  {beginUpdate(); Array src(256,DTypes::UINT8_RGBA,SharedPtr<HeapMemory>(HeapMemory::createUnmanaged(bry_data       ,sizeof(bry_data       ))));setFromArray(src,default_name);endUpdate();return true;}
-  if (default_name=="bgry"      )  {beginUpdate(); Array src(256,DTypes::UINT8_RGBA,SharedPtr<HeapMemory>(HeapMemory::createUnmanaged(bgry_data      ,sizeof(bgry_data      ))));setFromArray(src,default_name);endUpdate();return true;}
-  if (default_name=="gamma"     )  {beginUpdate(); Array src(256,DTypes::UINT8_RGBA,SharedPtr<HeapMemory>(HeapMemory::createUnmanaged(gamma_data     ,sizeof(gamma_data     ))));setFromArray(src,default_name);endUpdate();return true;}
-  if (default_name=="hot1"      )  {beginUpdate(); Array src(256,DTypes::UINT8_RGBA,SharedPtr<HeapMemory>(HeapMemory::createUnmanaged(hot1_data      ,sizeof(hot1_data      ))));setFromArray(src,default_name);endUpdate();return true;}
-  if (default_name=="hot2"      )  {beginUpdate(); Array src(256,DTypes::UINT8_RGBA,SharedPtr<HeapMemory>(HeapMemory::createUnmanaged(hot2_data      ,sizeof(hot2_data      ))));setFromArray(src,default_name);endUpdate();return true;}
-  if (default_name=="ice"       )  {beginUpdate(); Array src(256,DTypes::UINT8_RGBA,SharedPtr<HeapMemory>(HeapMemory::createUnmanaged(ice_data       ,sizeof(ice_data       ))));setFromArray(src,default_name);endUpdate();return true;}
-  if (default_name=="lighthues" )  {beginUpdate(); Array src(256,DTypes::UINT8_RGBA,SharedPtr<HeapMemory>(HeapMemory::createUnmanaged(lighthues_data ,sizeof(lighthues_data ))));setFromArray(src,default_name);endUpdate();return true;}
-  if (default_name=="rich"      )  {beginUpdate(); Array src(256,DTypes::UINT8_RGBA,SharedPtr<HeapMemory>(HeapMemory::createUnmanaged(rich_data      ,sizeof(rich_data      ))));setFromArray(src,default_name);endUpdate();return true;}
-  if (default_name=="smoothrich")  {beginUpdate(); Array src(256,DTypes::UINT8_RGBA,SharedPtr<HeapMemory>(HeapMemory::createUnmanaged(smoothrich_data,sizeof(smoothrich_data))));setFromArray(src,default_name);endUpdate();return true;}
-  if (default_name=="lut16"     )  {beginUpdate(); Array src(256,DTypes::UINT8_RGBA,SharedPtr<HeapMemory>(HeapMemory::createUnmanaged(lut16_data     ,sizeof(lut16_data     ))));setFromArray(src,default_name);endUpdate();return true;}
+  auto setRGBA = [&](unsigned char* buffer,size_t buffer_size) {
+    beginUpdate(); 
+    Array src(256, DTypes::UINT8_RGBA, SharedPtr<HeapMemory>(HeapMemory::createUnmanaged(buffer, buffer_size)));
+    setFromArray(src, default_name); 
+    endUpdate(); 
+    return true;
+  };
+
+  if (default_name=="banded"    )  return setRGBA(banded_data    ,sizeof(banded_data));
+  if (default_name=="bry"       )  return setRGBA(bry_data       ,sizeof(bry_data));
+  if (default_name=="bgry"      )  return setRGBA(bgry_data      ,sizeof(bgry_data));
+  if (default_name=="gamma"     )  return setRGBA(gamma_data     ,sizeof(gamma_data));
+  if (default_name=="hot1"      )  return setRGBA(hot1_data      ,sizeof(hot1_data));
+  if (default_name=="hot2"      )  return setRGBA(hot2_data      ,sizeof(hot2_data));
+  if (default_name=="ice"       )  return setRGBA(ice_data       ,sizeof(ice_data));
+  if (default_name=="lighthues" )  return setRGBA(lighthues_data ,sizeof(lighthues_data));
+  if (default_name=="rich"      )  return setRGBA(rich_data      ,sizeof(rich_data));
+  if (default_name=="smoothrich")  return setRGBA(smoothrich_data,sizeof(smoothrich_data));
+  if (default_name=="lut16"     )  return setRGBA(lut16_data     ,sizeof(lut16_data));
   
   //colormaps
   for (auto it : RGBAColorMaps::values)

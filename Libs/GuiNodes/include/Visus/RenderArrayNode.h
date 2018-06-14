@@ -110,7 +110,7 @@ public:
 
     u_sampler = addSampler("u_sampler");
     u_palette_sampler = addSampler("u_palette_sampler");
-    u_palette_opacity = addUniform("u_palette_opacity");
+    u_opacity = addUniform("u_opacity");
   }
 
   //destructor
@@ -128,18 +128,23 @@ public:
   }
 
   //setPaletteTexture 
-  void setPalette(GLCanvas& gl, SharedPtr<GLTexture> value, double opacity)
+  void setPalette(GLCanvas& gl, SharedPtr<GLTexture> value)
   {
     VisusAssert(config.palette_enabled);
     gl.setTexture(1, u_palette_sampler, value);
-    gl.setUniform(u_palette_opacity, (float)opacity);
+    
+  }
+
+  //setOpacity
+  void setOpacity(GLCanvas& gl, double value) {
+    gl.setUniform(u_opacity, (float)value);
   }
 
 private:
 
   GLSampler u_sampler;
   GLSampler u_palette_sampler;
-  GLUniform u_palette_opacity;
+  GLUniform u_opacity;
 
 };
 
@@ -154,6 +159,9 @@ public:
 
   //(run time) fast rendering
   bool bFastRendering=false;
+
+  //(run time) opacity
+  double opacity = 1.0;
 
   //constructor
   RenderArrayNode(String name="");

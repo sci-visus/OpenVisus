@@ -127,6 +127,13 @@ public:
   //nextQuery
   virtual bool nextQuery(SharedPtr<Query> QUERY) override;
 
+  //sameLogicSpace
+  bool sameLogicSpace(Child& child) const
+  {
+    auto vf = child.dataset;
+    return child.M.isIdentity() && this->getBox() == vf->getBox() && this->getBitmask() == vf->getBitmask();
+  }
+
 public:
 
   //createIdxFile
@@ -148,6 +155,7 @@ private:
 
   //removeAliases
   String removeAliases(String url);
+
 
 };
 

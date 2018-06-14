@@ -1,0 +1,21 @@
+<dataset typename='IdxMultipleDataset'>
+  <dataset url='file://$(CurrentFileDirectory)/first.midx'  name='first'  />
+  <dataset url='file://$(CurrentFileDirectory)/second.midx' name='second' />
+</dataset>
+
+<!-- 
+Add this to your visus.config
+<dataset url="file://./datasets/midx/midxofmidx.midx">
+  <access name="DefaultAccess" type="MultipleAccess" >
+    <first type="multiplex">
+      <access type="DiskAccess" chmod='rw'  dir="./cached" compression="zip" nsamples="256 256" />
+      <access name="MultipleAccess" type="midx">
+         <A type='disk' chmod='r' url='file://./datasets/midx/A/visus.idx' />
+         <B type='disk' chmod='r' url='file://./datasets/midx/B/visus.idx' />
+         <C type='disk' chmod='r' url='file://./datasets/midx/C/visus.idx' />
+         <D type='disk' chmod='r' url='file://./datasets/midx/D/visus.idx' />
+      </access> 
+    </first>
+  </access> 
+</dataset>  
+-->

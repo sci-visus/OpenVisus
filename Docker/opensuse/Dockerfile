@@ -25,7 +25,7 @@ RUN zypper --non-interactive in nano
 
 # configure apache ()
 ADD ./files/000-default.conf /etc/apache2/conf.d/000-default.conf
-RUN echo "LoadModule visus_module /home/visus/build/libmod_visus.so" >> /etc/apache2/loadmodule.conf
+RUN echo "LoadModule visus_module $VISUS_HOME/build/libmod_visus.so" >> /etc/apache2/loadmodule.conf
 RUN a2enmod visus 
 ADD ./files/httpd-foreground.sh  /usr/local/bin/httpd-foreground.sh
 RUN chmod a+x /usr/local/bin/httpd-foreground.sh 
@@ -36,8 +36,6 @@ EXPOSE 80
 CMD ["/usr/local/bin/httpd-foreground.sh"]
 
 # add a sample dataset
-RUN mkdir $VISUS_HOME/datasets
-RUN cp -R /home/visus/Misc/dataset/cat $VISUS_HOME/datasets/cat
 ADD ./files/visus.config    $VISUS_HOME/visus.config
 RUN chown -R wwwrun  $VISUS_HOME
 RUN chmod -R a+rX  $VISUS_HOME 

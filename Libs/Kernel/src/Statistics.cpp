@@ -38,6 +38,7 @@ For support : support@visus.net
 
 
 #include <Visus/Statistics.h>
+#include <Visus/Log.h>
 
 namespace Visus {
 
@@ -100,7 +101,7 @@ struct ComputeStatisticsOp
 
   //execute
   template<typename CppType>
-  bool execute(Statistics& stats,Array src, ComputeRange compute_range,int histogram_nbins,Aborted aborted)
+  bool execute(Statistics& stats,Array src, ComputeRange histogram_range,int histogram_nbins,Aborted aborted)
   {
     if (aborted())
       return false;
@@ -144,8 +145,7 @@ struct ComputeStatisticsOp
       single.standard_deviation = running_stats.StandardDeviation();
       single.median             =(double)compute_median[nsamples/2];
 
-      auto histogram_range = compute_range.doCompute(src,C,aborted);
-      if (!Histogram::compute(single.histogram,src,C,histogram_range,histogram_nbins,aborted))
+      if (!Histogram::compute(single.histogram,src,C, histogram_range.doCompute(src, C, aborted),histogram_nbins,aborted))
         return false;
     }
 
@@ -153,10 +153,14 @@ struct ComputeStatisticsOp
   }
 };
 
-bool Statistics::compute(Statistics& stats,Array src, ComputeRange compute_range,int histogram_nbins,Aborted aborted)
+Statistics Statistics::compute(Array src, ComputeRange histogram_range,int histogram_nbins,Aborted aborted)
 {
   ComputeStatisticsOp op;
-  return ExecuteOnCppSamples(op,src.dtype,stats, src, compute_range,histogram_nbins,aborted);
+
+  Statistics stats;
+  if (!ExecuteOnCppSamples(op, src.dtype, stats, src, histogram_range, histogram_nbins, aborted))
+    return Statistics();
+  return stats;
 }
 
 } //namespace Visus

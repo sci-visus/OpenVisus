@@ -120,6 +120,8 @@ GLShader::GLShader(String filename_) : filename(filename_),id(GLSHADER_ID()++)
 {
   this->source=QUtils::LoadTextFileFromResources(this->filename);
 
+  //VisusInfo() << this->source;
+
   VisusAssert(!this->source.empty());
 
   addDefine("VISUS_OPENGL_ES"       ,cstring(VISUS_OPENGL_ES));
@@ -183,8 +185,8 @@ GLSampler GLShader::addSampler(String key) {
   ret.u_sampler_dims=addUniform(key+"_dims");  
   ret.u_sampler_vs=addUniform(key+"_vs"); 
   ret.u_sampler_vt=addUniform(key+"_vt"); 
-  ret.u_sampler_format=addUniform(key+"_format"); 
-  ret.u_sampler_envmode=addUniform(key+"_envmode"); 
+  ret.u_sampler_envmode=addUniform(key+"_envmode");
+  ret.u_sampler_ncomponents = addUniform(key + "_ncomponents");
   return ret;
 }
 

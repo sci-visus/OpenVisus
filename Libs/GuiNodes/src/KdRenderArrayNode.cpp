@@ -109,11 +109,11 @@ bool KdRenderArrayNode::processInput()
 
       if (!dtype.isVectorOf(DTypes::UINT8))
       {
-        auto input_normalization=palette? palette->getInputNormalization(): TransferFunction::InputNormalization();
+        auto input_range=palette? palette->input_range : ComputeRange();
         for (int I=0;I<std::min(4,dtype.ncomponents());I++)
         {
           //NOTE if I had to compute the dynamic range I will use only root data
-          auto vs_t=input_normalization.doCompute(kdarray->root->displaydata,I).getScaleTranslate();
+          auto vs_t=input_range.doCompute(kdarray->root->displaydata,I).getScaleTranslate();
           vs[I]=vs_t.first;
           vt[I]=vs_t.second; 
         }
@@ -170,20 +170,18 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
   auto  dtype     = kdarray->root->displaydata.dtype;
   bool  bHasAlpha = dtype==DTypes::UINT8_RGBA;
   bool  bBlend    = palette_texture || bHasAlpha;
- 
+
   KdRenderArrayNodeShader::Config config;
   config.texture_dim                 = kdarray->getDataDim();
   config.texture_nchannels           = kdarray->root->displaydata.dtype.ncomponents();
   config.palette_enabled             = palette_texture?true:false;
-  config.clippingbox_enabled         = kdarray->clipping.valid();
+  config.clippingbox_enabled         = kdarray->clipping.valid() || gl.hasClippingBox();
   config.discard_if_zero_alpha       = bBlend? true : false;
   KdRenderArrayNodeShader* shader=KdRenderArrayNodeShader::getSingleton(config);
   gl.setShader(shader);
 
-  //clipping
-  if (config.clippingbox_enabled)
-    gl.setUniformClippingBox(*shader,kdarray->clipping);
-
+  if (kdarray->clipping.valid())
+    gl.pushClippingBox(kdarray->clipping);
 
   gl.pushModelview();
 
@@ -268,6 +266,9 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
   gl.popDepthTest();
   gl.popBlend();
   gl.popModelview();
+
+  if (kdarray->clipping.valid())
+    gl.popClippingBox();
 }
 
 } //namespace Visus

@@ -82,6 +82,11 @@ public:
     return this->description;
   }
 
+  //isDecimal
+  bool isDecimal() const {
+    return decimal ? true : false;
+  }
+
   //operator==
   bool operator==(DType other) const {
     return this->num==other.num && this->unsign==other.unsign && this->decimal==other.decimal && this->bitsize==other.bitsize;

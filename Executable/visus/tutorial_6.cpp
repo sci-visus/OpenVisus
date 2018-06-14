@@ -229,7 +229,7 @@ void Tutorial_6(String default_layout)
     DType dtype(ncomponents,Discrete?DTypes::UINT8:DTypes::FLOAT64);
 
     //read the data
-    String img_filename=GrayScale? "Misc/cat_gray.png" :"Misc/cat_rgb.png";
+    String img_filename=GrayScale? "datasets/cat/gray.png" :"datasets/cat/rgb.png";
 
     Array src_image=ArrayUtils::loadImage(img_filename);
     VisusReleaseAssert(src_image);

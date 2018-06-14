@@ -49,9 +49,7 @@ Table of content:
 
 [MacOSX compilation](#macosx-compilation)
 
-[Ubuntu 16.04 compilation](#ubuntu-compilation)
-
-[OpenSUSE Leap compilation](#opensuse-compilation)
+[Linux compilation](#linux-compilation)
 
 [Use OpenVisus as submodule](#use-openvisus-as-submodule)
 
@@ -65,7 +63,11 @@ You may want to check "*Download debugging symbols*" and "*Download debugging li
 Install numpy::
 
 	pip3 install numpy
+  
+Install PyQt5:
 
+  pip3 install PyQt5==5.9.2
+  
 Install [Qt5](http://download.qt.io/official_releases/qt/5.9/5.9.2/qt-opensource-windows-x86-5.9.2.exe) 
 
 Install chocolatey. From an Administrator Prompt::
@@ -103,7 +105,18 @@ Compile OpenVisus. From a prompt::
 		..
 	%CMAKE% --build . --target ALL_BUILD --config Release
 	%CMAKE% --build . --target RUN_TESTS --config Release 
+	REM OPTIONAL
+	REM %CMAKE% --build . --target INSTALL --config Release 
 
+To test if it's working::
+
+	REM change path accordingly
+	SET PYTHONPATH=C:\projects\OpenVisus\build\Release
+	SET PATH=c:\python36;C:\Qt\Qt5.9.2\5.9.2\msvc2017_64\bin
+	.\Release\visusviewer.exe
+	REM use python_d.exe if you are using the Debug version
+	REM add -vv if you want very verbose output
+	c:\Python36\python.exe -c "from visuspy import *; print('visuspy is working')"
 
 ## MacOSX compilation
 
@@ -112,7 +125,6 @@ Install brew and OpenVisus prerequisites::
 	ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 	brew install git cmake swig qt5 lz4 tinyxml zlib openssl curl freeimage python3
 	pip3 install numpy
-	
 
 Run xcode command line tools:
 
@@ -129,24 +141,39 @@ Compile OpenVisus. From a prompt::
 	cd build
 	cmake -GXcode -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DQt5_DIR=/usr/local/opt/qt/lib/cmake/Qt5 .. 
 	cmake --build . --target ALL_BUILD --config Release
-	cmake --build . --target RUN_TESTS --config Release 
+	# optional
+	# cmake --build . --target RUN_TESTS --config Release 
+	# cmake --build . --target INSTALL   --config Release
 
 To test if it's working::
 
-	PYTHONPATH=$(pwd)/Release
-	python3 -c "from visuspy import *"
+	export PYTHONPATH=$(pwd)/Release
+	python3 -c "from visuspy import *; print('visuspy is working')"
 
-## Ubuntu compilation
+## Linux compilation
 
-Install prerequisites (assuming you are using python 3.x)::
+Install prerequisites (assuming you are using python 3.x).
+
+For Ubuntu 16.04::
+OpenSUSE Leap::
 
 	sudo apt install -y liblz4-dev libtinyxml-dev cmake git build-essential swig libfreeimage-dev \
 		libcurl4-openssl-dev libssl-dev uuid-dev python3 python3-pip \
 		qt5-default qttools5-dev-tools
 
-If you want to build Apache plugin::
-
+	# If you want to build Apache plugin::
 	sudo apt install -y apache2 apache2-dev
+	
+For OpenSuse Leap::
+
+	sudo zypper refresh      # (OPTIONAL)
+	sudo zypper -n update    # (OPTIONAL)
+	sudo zypper -n patch     # (OPTIONAL)
+	sudo zypper -n in -t pattern devel_basis \
+		cmake git swig curl cmake-gui \
+		python3 python3-pip python3-devel \
+		zlib-devel liblz4-devel libtinyxml-devel libuuid-devel freeimage-devel libcurl-devel libopenssl-devel glu-devel \
+		libQt5Concurrent-devel libQt5Network-devel \libQt5Test-devel libQt5OpenGL-devel libQt5PrintSupport-devel
 
 Install numpy::
 
@@ -161,45 +188,16 @@ Compile OpenVisus::
 	cd build
 	cmake ../
 	cmake --build . --target all 
-	cmake --build . --target test
+	# optional
+	# cmake --build . --target test
+	# cmake --build . --target install
 
 To test if it's working::
 
-	PYTHONPATH=$(pwd)
-	python3 -c "from visuspy import *"
-
-## OpenSUSE compilation
-
-Install prerequisites::
-
-	sudo zypper refresh      # (OPTIONAL)
-	sudo zypper -n update    # (OPTIONAL)
-	sudo zypper -n patch     # (OPTIONAL)
-	sudo zypper -n in -t pattern devel_basis \
-		cmake git swig curl \
-		python3 python3-pip python3-devel \
-		zlib-devel liblz4-devel libtinyxml-devel libuuid-devel freeimage-devel libcurl-devel libopenssl-devel glu-devel \
-		libQt5Concurrent-devel libQt5Network-devel \libQt5Test-devel libQt5OpenGL-devel libQt5PrintSupport-devel
-
-Install numpy::
-
-	sudo pip3 install --upgrade pip
-	sudo pip3 install numpy
-
-Compile OpenVisus:
-
-	git clone https://github.com/sci-visus/OpenVisus
-	cd OpenVisus
-	mkdir build 
-	cd build
-	cmake ../
-	cmake --build . --target all 
-	cmake --build . --target test
-
-To test if it's working::
-
-	PYTHONPATH=$(pwd)
-	python3 -c "from visuspy import *"
+	export LD_LIBRARY_PATH=$(pwd)
+	export PYTHONPATH=$(pwd)
+	./visusviewer
+	python3 -c "from visuspy import *; print('visuspy is working')"
 	
 ## Use OpenVisus as submodule
 
@@ -281,7 +279,7 @@ Add a dataset:
 cat <<EOF >  $VISUS_HOME/visus.config
 <?xml version="1.0" ?>
 <visus>
-  <dataset name='cat' url='file://$VISUS_HOME/Misc/dataset/cat/visus.idx' permissions='public'/>
+  <dataset name='cat' url='file://$VISUS_HOME/datasets/cat/visus.idx' permissions='public'/>
 </visus>
 EOF
 ```
@@ -373,7 +371,7 @@ a2enmod visus
 cat <<EOF >  $VISUS_HOME/visus.config
 <?xml version="1.0" ?>
 <visus>
-  <dataset name='cat' url='file://$VISUS_HOME/Misc/dataset/cat/visus.idx' permissions='public'/>
+  <dataset name='cat' url='file://$VISUS_HOME/datasets/cat/visus.idx' permissions='public'/>
 </visus>
 EOF
 ```

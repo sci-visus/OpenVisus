@@ -10,7 +10,7 @@ from PyQt5.QtGui     import *
 
 # I 'm using Qt libraries coming from PyQt5 (important to use EXACTLY THE SAME VERSION)
 if sys.platform == 'win32':
-  addPath(os.path.dirname(PyQt5.__file__) + "/Qt/bin")
+  addEnvPath(os.path.dirname(PyQt5.__file__) + "/Qt/bin")
 
 from VisusKernelPy   import *
 from VisusDataflowPy import *

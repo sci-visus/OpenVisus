@@ -169,8 +169,8 @@ Viewer::Viewer(String title) : QMainWindow()
       if (filename.empty())
         return SharedPtr<Logo>();
 
-      auto img = std::make_shared<QImage>(filename.c_str());
-      if (img->isNull()) {
+      auto img = QImage(filename.c_str());
+      if (img.isNull()) {
         VisusInfo() << "Failed to load image " << filename;
         return SharedPtr<Logo>();
       }
@@ -225,11 +225,6 @@ Viewer::~Viewer()
   RedirectLog = nullptr;
   
   setDataflow(nullptr);
-  
-  //this cause a memory leak, but solve a bug of Qt deallocating QOpenGLTexture by itself before
-  //I will deallocate it (causing a segmentation fault)
-  for (auto logo : logos)
-    logo->tex->releasePimpl(false);
 }
 
 ////////////////////////////////////////////////////////////
@@ -2728,6 +2723,7 @@ CpuPaletteNode* Viewer::addCpuTransferFunctionNode(Node* parent,Node* data_provi
       if (auto last_data=std::dynamic_pointer_cast<Array>(last_published->value))
         num_functions=last_data->dtype.ncomponents();
     }
+
     transfer_node->getTransferFunction()->setNumberOfFunctions(num_functions);
   }
 

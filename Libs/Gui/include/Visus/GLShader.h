@@ -165,8 +165,8 @@ public:
 
   GLUniform u_sampler;
   GLUniform u_sampler_dims;
-  GLUniform u_sampler_format;
   GLUniform u_sampler_envmode;
+  GLUniform u_sampler_ncomponents;
   GLUniform u_sampler_vs;
   GLUniform u_sampler_vt;
 

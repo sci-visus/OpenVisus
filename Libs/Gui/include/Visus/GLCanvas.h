@@ -203,7 +203,7 @@ public:
   virtual ~GLCanvas();
 
   //FlushGLErrors
-  static int FlushGLErrors(bool bAssert=false,bool bVerbose=false);
+  static int FlushGLErrors(bool bVerbose=false);
 
 signals:
 
@@ -277,11 +277,42 @@ public:
   //setUniformMatrix
   void setUniformMatrix(const GLUniform& uniform,const Matrix4& T);
 
-  //setUniformClippingBox
-  void setUniformClippingBox(GLShader& shader,const Box3d& box);
+  //pushClippingBox
+  void pushClippingBox(const Box3d& box)
+  {
+    const Matrix& Ti = getModelview().invert();
+    std::array<Plane, 6> planes={
+      Plane(+1.0, 0.0, 0.0, -box.p1.x)*Ti,
+      Plane(-1.0, 0.0, 0.0, +box.p2.x)*Ti,
+      Plane(0.0, +1.0, 0.0, -box.p1.y)*Ti,
+      Plane(0.0, -1.0, 0.0, +box.p2.y)*Ti,
+      Plane(0.0, 0.0, +1.0, -box.p1.z)*Ti,
+      Plane(0.0, 0.0, -1.0, +box.p2.z)*Ti
+    };
+    clipping_box.push(planes);
+    setClippingBoxIfNeeded();
+  }
 
-  //setUniformClippingBox
-  void setUniformClippingBox(GLShader& shader,const Position& position);
+  //pushClippingBox
+  void pushClippingBox(const Position& position)
+  {
+    Matrix save_modelview = getModelview();
+    multModelview(position.getTransformation());
+    pushClippingBox(position.getBox());
+    loadModelview(save_modelview);
+  }
+
+  //popClippingBox
+  void popClippingBox()
+  {
+    clipping_box.pop();
+    setClippingBoxIfNeeded();
+  }
+
+  //hasClippingBox
+  bool hasClippingBox() const {
+    return !clipping_box.empty();
+  }
 
   //setUniformMaterial
   void setUniformMaterial(GLShader& shader,const GLMaterial& material) ;
@@ -517,6 +548,7 @@ private:
   std::stack<bool>        depthmask;
   std::stack<int>         depthfunc;
   std::stack<int>         cullface;
+  std::stack< std::array<Plane,6> > clipping_box;
 
   std::vector< std::function<void(QPainter&)> > glrender_text;
 
@@ -591,6 +623,8 @@ private:
     emit glWheelEvent(&glEvt);
   }
 
+  //setClippingBoxIfNeeded
+  void setClippingBoxIfNeeded();
 
 };
 

@@ -292,54 +292,54 @@ private:
     widgets.saveButton = new QPushButton("Save");
     
     connect(widgets.saveButton, &QPushButton::clicked, [this,dataset,time_node]()
-            {
-              int res_value=this->widgets.resolution->value();
-              
-              auto access=dataset->createAccess();
-              auto query=std::make_shared<Query>(dataset.get(),'r');
-              query->field=widgets.selected_field;
-              query->position=this->model->getQueryPosition();
-              query->time=time_node->getCurrentTime();
-              query->end_resolutions.push_back(res_value);
-              VisusReleaseAssert(dataset->beginQuery(query));
-              
-              VisusInfo() << "position "<<query->position.toString();
-              
-              unsigned char* buffer=(unsigned char*)query->buffer.c_ptr();
-              //read data
-              VisusReleaseAssert(dataset->executeQuery(access,query));
-          
-              File data_file;
-              
-              std::stringstream filename;
-              filename<<widgets.fileEdit->text().toStdString();
-              for(int I=0; I<dataset->getPointDim(); I++)
-                filename<<"_"<<query->nsamples[I];
-              filename<<query->field.dtype.toString();
-              filename<<"_t_"<<query->time;
-              filename<<"_f_"<<query->field.name;
-              filename<<".raw";
-              
-              if (data_file.createAndOpenReadWriteBinary(filename.str().c_str()))
-              {
-                if (!data_file.write(query->buffer.c_ptr(),query->buffer.c_size()))
-                {
-                  VisusWarning()<<"write error on file "<<filename.str();
-                  return false;
-                }
-                
-              }
-              else
-              {
-                VisusWarning()<<"file.open("<<filename.str()<<",\"rb\") failed";
-              }
-              
-              QMessageBox::information(nullptr,"Success", "Data saved on disk");
-              
-              VisusInfo() << "Wrote data size "<< query->buffer.c_size() << " in raw file " << filename.str();
-              
-              return true;
-            });
+    {
+      int res_value = this->widgets.resolution->value();
+
+      auto access = dataset->createAccess();
+      auto query = std::make_shared<Query>(dataset.get(), 'r');
+      query->field = widgets.selected_field;
+      query->position = this->model->getQueryPosition();
+      query->time = time_node->getCurrentTime();
+      query->end_resolutions.push_back(res_value);
+      VisusReleaseAssert(dataset->beginQuery(query));
+
+      VisusInfo() << "position " << query->position.toString();
+
+      unsigned char* buffer = (unsigned char*)query->buffer.c_ptr();
+      //read data
+      VisusReleaseAssert(dataset->executeQuery(access, query));
+
+      File data_file;
+
+      std::stringstream filename;
+      filename << widgets.fileEdit->text().toStdString();
+      for (int I = 0; I < dataset->getPointDim(); I++)
+        filename << "_" << query->nsamples[I];
+      filename << query->field.dtype.toString();
+      filename << "_t_" << query->time;
+      filename << "_f_" << query->field.name;
+      filename << ".raw";
+
+      if (data_file.createAndOpenReadWriteBinary(filename.str().c_str()))
+      {
+        if (!data_file.write(query->buffer.c_ptr(), query->buffer.c_size()))
+        {
+          VisusWarning() << "write error on file " << filename.str();
+          return false;
+        }
+
+      }
+      else
+      {
+        VisusWarning() << "file.open(" << filename.str() << ",\"rb\") failed";
+      }
+
+      QMessageBox::information(nullptr, "Success", "Data saved on disk");
+
+      VisusInfo() << "Wrote data size " << query->buffer.c_size() << " in raw file " << filename.str();
+
+      return true;
+    });
 
     widgets.formatComboBox=new QComboBox();
     widgets.formatComboBox->addItem("RAW");

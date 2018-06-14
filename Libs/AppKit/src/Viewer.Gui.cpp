@@ -308,12 +308,14 @@ void Viewer::createActions()
 
   addAction(actions.Undo=GuiFactory::CreateAction("Undo",this, QIcon(":/undo.png"), [this]() {
     undo(); 
+    refreshActions();
   }));
   actions.Undo->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Z));
   actions.Undo->setToolTip("Undo [CTRL+Z]");
 
   addAction(actions.Redo=GuiFactory::CreateAction("Redo",this, QIcon(":/redo.png"), [this]() {
     redo(); 
+    refreshActions();
   }));
   actions.Redo->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_Y));
   actions.Redo->setToolTip("Redo [CTRL+Y]");

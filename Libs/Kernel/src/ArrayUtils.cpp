@@ -107,7 +107,7 @@ bool Array::setComponent(int C, Array src, Aborted aborted)
   {
     VisusAssert(aborted());
     if (!aborted())
-      VisusWarning() << "cannot copy, dtype or dims not compatible!";
+      VisusWarning()<<"cannot copy, dtype or dims not compatible!";
     return false;
   }
 
@@ -902,25 +902,23 @@ Array ArrayUtils::cast(Array src, DType dtype, Aborted aborted)
 }
 
 /////////////////////////////////////////////////////////////////////
-template <typename DTYPE, typename STYPE>
-Array SqrtArray(Array src, DType Ddtype, Aborted& aborted)
+template <typename CppType>
+Array SqrtArray(Array src, Aborted& aborted)
 {
-  VisusAssert(src.dtype.ncomponents() == Ddtype.ncomponents());
   int ncomponents = src.dtype.ncomponents();
 
   Array dst;
-  if (!dst.resize(src.dims, Ddtype, __FILE__, __LINE__))
+  if (!dst.resize(src.dims, src.dtype, __FILE__, __LINE__))
     return Array();
-
   dst.shareProperties(src);
 
-  DTYPE* dst_p = (DTYPE*)dst.c_ptr();
-  STYPE* src_p = (STYPE*)src.c_ptr();
+  CppType* dst_p = (CppType*)dst.c_ptr();
+  CppType* src_p = (CppType*)src.c_ptr();
   Int64 tot = src.getTotalNumberOfSamples()*ncomponents;
   for (Int64 I = 0; I < tot; I++)
   {
     if (aborted()) return Array();
-    dst_p[I] = (DTYPE)sqrt(src_p[I]);
+    dst_p[I] = (CppType)sqrt(src_p[I]);
   }
   return dst;
 }
@@ -930,176 +928,200 @@ Array ArrayUtils::sqrt(Array src, Aborted aborted)
   if (!src)
     return Array();
 
-  if (src.dtype.isVectorOf(DTypes::FLOAT64))
-    return SqrtArray<Float64, Float64>(src, src.dtype, aborted);
-
   if (src.dtype.isVectorOf(DTypes::FLOAT32))
-    return SqrtArray<Float32, Float32>(src, src.dtype, aborted);
+    return SqrtArray<Float32>(src, aborted);
+
+  if (src.dtype.isVectorOf(DTypes::FLOAT64))
+    return SqrtArray<Float64>(src, aborted);
 
   return sqrt(cast(src, DType(src.dtype.ncomponents(), DTypes::FLOAT32), aborted), aborted);
 }
 
 /////////////////////////////////////////////////////////////////////
-template <typename Dtype, typename Stype>
-Array AddArray(Array src, Dtype value, DType Ddtype, Aborted& aborted)
+template <typename CppType>
+Array AddArray(Array src, CppType value, Aborted& aborted)
 {
-  VisusAssert(src.dtype.ncomponents() == Ddtype.ncomponents());
   int ncomponents = src.dtype.ncomponents();
 
   Array dst;
-  if (!dst.resize(src.dims, Ddtype, __FILE__, __LINE__))
+  if (!dst.resize(src.dims, src.dtype, __FILE__, __LINE__))
     return Array();
 
   dst.shareProperties(src);
 
-  Dtype* dst_p = (Dtype*)dst.c_ptr();
-  Stype* src_p = (Stype*)src.c_ptr();
+  CppType* dst_p = (CppType*)dst.c_ptr();
+  CppType* src_p = (CppType*)src.c_ptr();
   Int64 tot = src.getTotalNumberOfSamples()*ncomponents;
   for (Int64 I = 0; I < tot; I++)
   {
     if (aborted()) return Array();
-    dst_p[I] = (Dtype)(src_p[I] + value);
+    dst_p[I] = (CppType)(src_p[I] + value);
   }
   return dst;
 }
 
-Array ArrayUtils::add(Array src, Float64 coeff, Aborted aborted)
+Array ArrayUtils::add(Array src, double coeff, Aborted aborted)
 {
   if (!src)
     return Array();
-
-  if (src.dtype.isVectorOf(DTypes::FLOAT64))
-    return AddArray<Float64, Float64>(src, (Float64)coeff, src.dtype, aborted);
-
-  return add(cast(src, DType(src.dtype.ncomponents(), DTypes::FLOAT64), aborted), coeff, aborted);
-}
-
-/////////////////////////////////////////////////////////////////////
-template <typename Dtype, typename Stype>
-Array SubArray(Array src, Dtype value, DType Ddtype, Aborted& aborted)
-{
-  VisusAssert(src.dtype.ncomponents() == Ddtype.ncomponents());
-  int ncomponents = src.dtype.ncomponents();
-
-  Array dst;
-  if (!dst.resize(src.dims, Ddtype, __FILE__, __LINE__))
-    return Array();
-
-  dst.shareProperties(src);
-
-  Dtype* dst_p = (Dtype*)dst.c_ptr();
-  Stype* src_p = (Stype*)src.c_ptr();
-  Int64 tot = src.getTotalNumberOfSamples()*ncomponents;
-  for (Int64 I = 0; I < tot; I++)
-  {
-    if (aborted()) return Array();
-    dst_p[I] = (Dtype)(src_p[I] - value);
-  }
-  return dst;
-}
-
-Array ArrayUtils::sub(Array src, Float64 coeff, Aborted aborted)
-{
-  if (!src)
-    return Array();
-
-  if (src.dtype.isVectorOf(DTypes::FLOAT64))
-    return SubArray<Float64, Float64>(src, (Float64)coeff, src.dtype, aborted);
-
-  return sub(cast(src, DType(src.dtype.ncomponents(), DTypes::FLOAT64), aborted), coeff, aborted);
-}
-
-/////////////////////////////////////////////////////////////////////
-template <typename Dtype, typename Stype>
-Array MulArray(Array src, Dtype coeff, DType Ddtype, Aborted& aborted)
-{
-  VisusAssert(src.dtype.ncomponents() == Ddtype.ncomponents());
-  int ncomponents = src.dtype.ncomponents();
-
-  Array dst;
-  if (!dst.resize(src.dims, Ddtype, __FILE__, __LINE__))
-    return Array();
-
-  dst.shareProperties(src);
-
-  Dtype* dst_p = (Dtype*)dst.c_ptr();
-  Stype* src_p = (Stype*)src.c_ptr();
-  Int64 tot = src.getTotalNumberOfSamples()*ncomponents;
-  for (Int64 I = 0; I < tot; I++)
-  {
-    if (aborted()) return Array();
-    dst_p[I] = (Dtype)(coeff*src_p[I]);
-  }
-  return dst;
-}
-
-Array ArrayUtils::mul(Array src, Float32 coeff, Aborted aborted)
-{
-  if (!src)
-    return Array();
-
-  if (src.dtype.isVectorOf(DTypes::FLOAT64))
-    return MulArray<Float64, Float64>(src, coeff, src.dtype, aborted);
 
   if (src.dtype.isVectorOf(DTypes::FLOAT32))
-    return MulArray<Float32, Float32>(src, coeff, src.dtype, aborted);
+    return AddArray<Float32>(src, (Float32)coeff, aborted);
+
+  if (src.dtype.isVectorOf(DTypes::FLOAT64))
+    return AddArray<Float64>(src, (Float64)coeff, aborted);
+
+  return add(cast(src, DType(src.dtype.ncomponents(), DTypes::FLOAT32), aborted), coeff, aborted);
+}
+
+/////////////////////////////////////////////////////////////////////
+template <typename CppType>
+Array SubArrayAndValue(Array a, CppType b, Aborted& aborted)
+{
+  int ncomponents = a.dtype.ncomponents();
+
+  Array dst;
+  if (!dst.resize(a.dims, a.dtype, __FILE__, __LINE__))
+    return Array();
+  dst.shareProperties(a);
+
+  CppType* dst_p = (CppType*)dst.c_ptr();
+  CppType* src_p = (CppType*)a.c_ptr();
+  Int64 tot = a.getTotalNumberOfSamples()*ncomponents;
+  for (Int64 I = 0; I < tot; I++)
+  {
+    if (aborted()) return Array();
+    dst_p[I] = (CppType)(src_p[I] - b);
+  }
+  return dst;
+}
+
+Array ArrayUtils::sub(Array src, double coeff, Aborted aborted)
+{
+  if (!src)
+    return Array();
+
+  if (src.dtype.isVectorOf(DTypes::FLOAT32))
+    return SubArrayAndValue<Float32>(src, (Float32)coeff, aborted);
+
+  if (src.dtype.isVectorOf(DTypes::FLOAT64))
+    return SubArrayAndValue<Float64>(src, (Float64)coeff, aborted);
+
+  return sub(cast(src, DType(src.dtype.ncomponents(), DTypes::FLOAT32), aborted), coeff, aborted);
+}
+
+
+/////////////////////////////////////////////////////////////////////
+template <typename CppType>
+Array SubNumberAndArray(CppType num, Array src, Aborted& aborted)
+{
+  int ncomponents = src.dtype.ncomponents();
+
+  Array dst;
+  if (!dst.resize(src.dims, src.dtype, __FILE__, __LINE__))
+    return Array();
+  dst.shareProperties(src);
+
+  CppType* DST = (CppType*)dst.c_ptr();
+  CppType* SRC = (CppType*)src.c_ptr();
+  for (Int64 I = 0, tot = src.getTotalNumberOfSamples()*ncomponents; I < tot; I++)
+  {
+    if (aborted()) 
+      return Array();
+
+    DST[I] = (CppType)(num - SRC[I]);
+  }
+  return dst;
+}
+
+
+Array ArrayUtils::sub(double a, Array b, Aborted aborted)
+{
+  if (!b)
+    return Array();
+
+  if (b.dtype.isVectorOf(DTypes::FLOAT32))
+    return SubNumberAndArray<Float32>((Float32)a, b, aborted);
+
+  if (b.dtype.isVectorOf(DTypes::FLOAT64))
+    return SubNumberAndArray<Float64>((Float64)a, b, aborted);
+
+  return sub(a,cast(b, DType(b.dtype.ncomponents(), DTypes::FLOAT32), aborted), aborted);
+}
+
+
+/////////////////////////////////////////////////////////////////////
+template <typename CppType>
+Array MulArray(Array src, CppType coeff, Aborted& aborted)
+{
+  int ncomponents = src.dtype.ncomponents();
+
+  Array dst;
+  if (!dst.resize(src.dims, src.dtype, __FILE__, __LINE__))
+    return Array();
+
+  dst.shareProperties(src);
+
+  CppType* dst_p = (CppType*)dst.c_ptr();
+  CppType* src_p = (CppType*)src.c_ptr();
+  Int64 tot = src.getTotalNumberOfSamples()*ncomponents;
+  for (Int64 I = 0; I < tot; I++)
+  {
+    if (aborted()) return Array();
+    dst_p[I] = (CppType)(coeff*src_p[I]);
+  }
+  return dst;
+}
+
+Array ArrayUtils::mul(Array src, double coeff, Aborted aborted)
+{
+  if (!src)
+    return Array();
+
+  if (src.dtype.isVectorOf(DTypes::FLOAT32))
+    return MulArray<Float32> (src, (Float32)coeff, aborted);
+
+  if (src.dtype.isVectorOf(DTypes::FLOAT64))
+    return MulArray<Float64>(src, (Float64)coeff, aborted);
 
   return mul(cast(src, DType(src.dtype.ncomponents(), DTypes::FLOAT32), aborted), coeff, aborted);
 }
 
-Array ArrayUtils::mul(Array src, Float64 coeff, Aborted aborted)
-{
-  if (!src)
-    return Array();
 
-  if (src.dtype.isVectorOf(DTypes::FLOAT64))
-    return MulArray<Float64, Float64>(src, (Float64)coeff, src.dtype, aborted);
-
-  return mul(cast(src, DType(src.dtype.ncomponents(), DTypes::FLOAT64), aborted), coeff, aborted);
-}
 
 /////////////////////////////////////////////////////////////////////
-template <typename Dtype, typename Stype>
-Array DivArray(Dtype coeff, Array src, DType Ddtype, Aborted& aborted)
+template <typename CppType>
+Array DivArray(CppType coeff, Array src, Aborted& aborted)
 {
-  VisusAssert(src.dtype.ncomponents() == Ddtype.ncomponents());
   int ncomponents = src.dtype.ncomponents();
 
   Array dst;
-  if (!dst.resize(src.dims, Ddtype, __FILE__, __LINE__))
+  if (!dst.resize(src.dims, src.dtype, __FILE__, __LINE__))
     return Array();
-
   dst.shareProperties(src);
 
-  Dtype* dst_p = (Dtype*)dst.c_ptr();
-  Stype* src_p = (Stype*)src.c_ptr();
+  CppType* dst_p = (CppType*)dst.c_ptr();
+  CppType* src_p = (CppType*)src.c_ptr();
   Int64 tot = src.getTotalNumberOfSamples()*ncomponents;
   for (Int64 I = 0; I < tot; I++)
   {
     if (aborted()) return Array();
-    dst_p[I] = (Dtype)(coeff / src_p[I]);
+    dst_p[I] = (CppType)(coeff / src_p[I]);
   }
   return dst;
 }
 
-Array ArrayUtils::div(Float32 coeff, Array src, Aborted aborted)
+Array ArrayUtils::div(double coeff, Array src, Aborted aborted)
 {
-  if (src.dtype.isVectorOf(DTypes::FLOAT64))
-    return DivArray<Float64, Float64>(coeff, src, src.dtype, aborted);
-
   if (src.dtype.isVectorOf(DTypes::FLOAT32))
-    return DivArray<Float32, Float32>(coeff, src, src.dtype, aborted);
+    return DivArray<Float32>((Float32)coeff, src, aborted);
+
+  if (src.dtype.isVectorOf(DTypes::FLOAT64))
+    return DivArray<Float64>((Float64)coeff, src, aborted);
 
   return div(coeff, cast(src, DType(src.dtype.ncomponents(), DTypes::FLOAT32), aborted), aborted);
 }
 
-Array ArrayUtils::div(Float64 coeff, Array src, Aborted aborted)
-{
-  if (src.dtype.isVectorOf(DTypes::FLOAT64))
-    return DivArray<Float64, Float64>((Float64)coeff, src, src.dtype, aborted);
-
-  return div(coeff, cast(src, DType(src.dtype.ncomponents(), DTypes::FLOAT64), aborted), aborted);
-}
 
 ////////////////////////////////////////////////////////
 class ResampleArraySamples 
@@ -1204,19 +1226,19 @@ Range ComputeRange::doCompute(Array src, int C,Aborted aborted)
   if (!(C >= 0 && C < src.dtype.ncomponents()))
     return Range::invalid();
 
-  if (mode==UseCustom)
+  if (mode==UseCustomRange)
     return custom_range;
 
-  if (mode==UseArray)
+  if (mode==UseArrayRange)
   {
     Range ret = src.dtype.getDTypeRange(C);
     if (ret.delta()>0)
       return ret;
 
-    mode=PerComponent;
+    mode=PerComponentRange;
   }
 
-  if (mode==PerComponent)
+  if (mode==PerComponentRange)
   {
     Range ret;
     ComputeRangeOp op;
@@ -1224,11 +1246,11 @@ Range ComputeRange::doCompute(Array src, int C,Aborted aborted)
     return ret;
   }
 
-  if (mode==ComputeOverall)
+  if (mode==ComputeOverallRange)
   {
     Range ret=Range::invalid();
     for (int C = 0; C < src.dtype.ncomponents(); C++)
-      ret = ret.getUnion(ComputeRange(PerComponent).doCompute(src,C,aborted));
+      ret = ret.getUnion(ComputeRange(PerComponentRange).doCompute(src,C,aborted));
     return ret;
   }
 

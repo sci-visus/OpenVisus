@@ -17,6 +17,33 @@ macro(SetupCMake)
 	set(EXECUTABLE_OUTPUT_PATH  ${CMAKE_BINARY_DIR})           
 	set(LIBRARY_OUTPUT_PATH     ${CMAKE_BINARY_DIR})	
 
+   if (NOT WIN32)
+      
+      set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE CACHE BOOL "" FORCE)
+	   set(CMAKE_SKIP_BUILD_RPATH         TRUE  CACHE BOOL "" FORCE)
+    	set(CMAKE_SKIP_RPATH               TRUE  CACHE BOOL "" FORCE)
+    	set(CMAKE_SKIP_INSTALL_RPATH       TRUE  CACHE BOOL "" FORCE)
+
+		mark_as_advanced(CMAKE_BUILD_WITH_INSTALL_RPATH)
+		mark_as_advanced(CMAKE_SKIP_BUILD_RPATH)
+		mark_as_advanced(CMAKE_SKIP_RPATH)
+		mark_as_advanced(CMAKE_SKIP_INSTALL_RPATH)
+
+      if (APPLE)
+			# NOT USING qt deploy because it's kind of unusable
+			# you can check the rpath by 
+			#   otool -l filename | grep -i -A2 rpath
+			#   otool -L filename
+		 	set(CMAKE_MACOSX_RPATH FALSE CACHE BOOL "" FORCE)
+			mark_as_advanced(CMAKE_MACOSX_RPATH)
+      else()
+         # check dependencies
+         # ldd filename
+
+      endif()
+
+	endif()
+
 	if (WIN32)
 
 		# enable parallel building
@@ -41,15 +68,17 @@ macro(SetupCMake)
 		set(CMAKE_MODULE_LINKER_FLAGS_RELEASE "${CMAKE_MODULE_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
 		set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
 
-	elseif (APPLE)
+	    set(terminal_extension ".bat")
 
-		set(CMAKE_MACOSX_RPATH 1)
+	elseif (APPLE)
 
 		# force executable to bundle
 		set(CMAKE_MACOSX_BUNDLE YES)
 
 		# suppress some warnings
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-reorder")
+
+		set(terminal_extension ".command")
 
 	else ()
 
@@ -65,13 +94,16 @@ macro(SetupCMake)
 		# enable 64 bit file support (see http://learn-from-the-guru.blogspot.it/2008/02/large-file-support-in-linux-for-cc.html)
 		add_definitions(-D_FILE_OFFSET_BITS=64)
 
-		# -Wno-attributes to suppress spurious "type attributes ignored after type is already defined" messages see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
+		# -Wno-attributes to suppress spurious "type attributes ignored after type is already defined" messages 
+      # see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
 		set(CMAKE_C_FLAGS    "${CMAKE_C_FLAGS}   -fPIC -Wno-attributes")
 		set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fPIC -Wno-attributes")
 
 		# add usual include directories
 		include_directories("/usr/local/include")
 		include_directories("/usr/include")
+
+		set(terminal_extension ".sh")
 
 	endif()
 
@@ -85,9 +117,8 @@ macro(SetupCMake)
 endmacro()
 
 
-
 # //////////////////////////////////////////////////////////////////////////
-macro(AddExternalApp name SourceDir BinaryDir extra_args)
+macro(AddExternalApp name SourceDir BinaryDir)
 
 	if (WIN32 OR APPLE)
 	  set(CMAKE_GENERATOR_ARGUMENT -G"${CMAKE_GENERATOR}")
@@ -96,9 +127,56 @@ macro(AddExternalApp name SourceDir BinaryDir extra_args)
 	endif()
 
 	add_custom_target(${name} 
-		COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DVisus_DIR="${CMAKE_INSTALL_PREFIX}/lib/cmake/visus" ${extra_args}
+		COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DQt5_DIR="${Qt5_DIR}"
 		COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/" --config ${CMAKE_BUILD_TYPE})
 	set_target_properties(${name} PROPERTIES FOLDER CMakeTargets/)
+
+endmacro()
+
+
+# ///////////////////////////////////////////////////
+macro(InstallVisusLibrary Name)
+
+	if (NOT VISUS_IS_SUBMODULE)
+
+		install(TARGETS ${Name} 
+			LIBRARY       DESTINATION bin
+			RUNTIME       DESTINATION bin 
+			BUNDLE        DESTINATION bin
+			ARCHIVE       DESTINATION lib
+			PUBLIC_HEADER DESTINATION include 
+		)
+
+		if (WIN32)
+			install(FILES $<TARGET_PDB_FILE:${Name}> DESTINATION lib OPTIONAL)
+		endif()
+
+		if (WIN32)
+			# pass
+		elseif (APPLE)
+			# pass
+		else()
+			# you can check with ldd -l <filename>
+			# set_target_properties(${Name} PROPERTIES INSTALL_RPATH "$ORIGIN:$$ORIGIN")
+		endif()
+	endif()
+
+endmacro()
+
+
+
+# ///////////////////////////////////////////////////
+macro(InstallVisusExecutable Name)
+
+	if (NOT VISUS_IS_SUBMODULE)
+		install(TARGETS ${Name} 
+			BUNDLE DESTINATION  bin
+			RUNTIME DESTINATION bin)
+
+		if (WIN32)
+			install(FILES $<TARGET_PDB_FILE:${Name}> DESTINATION lib OPTIONAL)
+		endif()
+	endif()
 
 endmacro()
 
@@ -119,15 +197,16 @@ macro(AddVisusSwigLibrary Name SwigFile)
 		swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
 	endif()
 
+	swig_link_libraries(${NamePy} PUBLIC ${Name})
+
+	InstallVisusLibrary(_${NamePy})
+
 	target_include_directories(_${NamePy} PUBLIC ${PYTHON_INCLUDE_DIRS})
 
-	target_compile_definitions(_${NamePy} PRIVATE NUMPY_FOUND=${NUMPY_FOUND})
-
-	if (NUMPY_FOUND)
-		target_include_directories(_${NamePy} PRIVATE ${PYTHON_NUMPY_INCLUDE_DIR})
-	endif()
-
-	swig_link_libraries(${NamePy} PUBLIC ${Name})
+   if (NUMPY_FOUND)
+	  target_compile_definitions(_${NamePy} PRIVATE NUMPY_FOUND=1)
+     target_include_directories(_${NamePy} PRIVATE ${NUMPY_INCLUDE_DIR})
+   endif()
 
 	# anaconda is statically linking python library inside its executable, so I cannot link in order to avoid duplicated symbols
 	# see https://groups.google.com/a/continuum.io/forum/#!topic/anaconda/057P4uNWyCU
@@ -148,19 +227,6 @@ macro(AddVisusSwigLibrary Name SwigFile)
 
 endmacro()
 
-
-# //////////////////////////////////////////////////////////////////////////
-macro(AddPythonTest Name FileName WorkingDirectory)
-
-	add_test(NAME ${Name} WORKING_DIRECTORY WorkingDirectory COMMAND $<TARGET_FILE:python> ${FileName})
-
-	if (WIN32 OR APPLE)
-		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
-	else()
-		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR}")
-	endif()
-
-endmacro()
 
 # //////////////////////////////////////////////////////////////////////////
 macro(FindGitRevision)
@@ -226,56 +292,11 @@ macro(DisableAllWarnings)
 endmacro()
 
 
-# ///////////////////////////////////////////////////////////////////////
-macro(DisablePythonDebug)
-
-	set(SWIG_PYTHON_INTERPRETER_NO_DEBUG 1)
-	target_compile_definitions(VisusKernel PUBLIC SWIG_PYTHON_INTERPRETER_NO_DEBUG=1)
-
-	list(LENGTH PYTHON_LIBRARY _len_)
-	if(NOT _len_ EQUAL 1)
-	
-		# example optimized;C:/Python36/libs/python36.lib;debug;C:/Python36/libs/python36_d.lib
-		if (NOT _len_ EQUAL 4)
-			message(FATAL_ERROR "Internal error cannot extract debug optimized libraries")
-		endif()
-		
-		list(GET PYTHON_LIBRARY 0 item0)
-		list(GET PYTHON_LIBRARY 1 item1)
-		list(GET PYTHON_LIBRARY 2 item2)
-		list(GET PYTHON_LIBRARY 3 item3)
-		
-		if ((item0 STREQUAL "optimized") AND (item2 STREQUAL "debug"))
-			set(PYTHON_LIBRARY ${item1} CACHE STRING "" FORCE)
-		elseif ((item0 STREQUAL "debug") AND (item2 STREQUAL "optimized"))
-			set(PYTHON_LIBRARY ${item3} CACHE STRING "" FORCE)
-		else()
-			message(FATAL_ERROR "Internal error cannot extract debug optimized libraries")
-		endif()
-		
-		set(PYTHON_LIBRARIES ${PYTHON_LIBRARY})
-		
-		if (DEFINED PYTHON_DEBUG_LIBRARY)
-			unset(PYTHON_DEBUG_LIBRARY CACHE)
-			unset(PYTHON_DEBUG_LIBRARY)	
-			set(PYTHON_DEBUG_LIBRARY ${PYTHON_LIBRARY})
-		endif()
-		
-		if (DEFINED PYTHON_LIBRARY_DEBUG)
-			unset(PYTHON_LIBRARY_DEBUG CACHE)
-			unset(PYTHON_LIBRARY_DEBUG)		
-			set(PYTHON_LIBRARY_DEBUG ${PYTHON_LIBRARY})
-		endif()
-		
-	endif()	
-endmacro()
 
 # ///////////////////////////////////////////////////////////////////////
 macro(FindPython)
 
-	if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/ExternalLibs/python27)
-		set(NUMPY_FOUND 0)
-	elseif(DEFINED PYTHON_VERSION)
+	if(DEFINED PYTHON_VERSION)
 		 # this is for anaconda/python 2.7 installations
 		find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 		find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
@@ -287,6 +308,24 @@ macro(FindPython)
 	endif()
 
 endmacro()
+
+# //////////////////////////////////////////////////////////////////////////
+macro(AddCTest Name Command WorkingDirectory)
+
+	add_test(NAME ${Name} WORKING_DIRECTORY "${WorkingDirectory}" COMMAND "${Command}" ${ARGN})
+
+	if (WIN32)
+		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
+   elseif(APPLE)
+      set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
+	else()
+		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR};LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}")
+	endif()
+
+endmacro()
+
+
+
 
 # ///////////////////////////////////////////////////////////////////////
 macro(FindZLib)
@@ -300,7 +339,7 @@ macro(FindZLib)
 		SET(ZLIB_INCLUDE_DIRS ${ZLIB_BUILD_DIR})
 		SET(ZLIB_LIBRARIES    ${ZLIB_BUILD_DIR}/libz.a)  
 		if (NOT EXISTS ${ZLIB_LIBRARIES})
-			MESSAGE("Downloading and compiling zlib...")
+			MESSAGE(STATUS "Downloading and compiling zlib...")
 			file(DOWNLOAD https://zlib.net/zlib-1.2.11.tar.gz ${CMAKE_BINARY_DIR}/zlib-1.2.11.tar.gz)
 			execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf zlib-1.2.11.tar.gz WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 			execute_process(COMMAND cmake . -DCMAKE_POSITION_INDEPENDENT_CODE=1    WORKING_DIRECTORY ${ZLIB_BUILD_DIR})
@@ -322,7 +361,7 @@ macro(FindLZ4)
 		SET(LZ4_INCLUDE_DIR ${LZ4_BUILD_DIR}/lib)
 		SET(LZ4_LIBRARY     ${LZ4_BUILD_DIR}/liblz4.so)  
 		if (NOT EXISTS ${LZ4_LIBRARY})
-			MESSAGE("Downloading and compiling lz4...")
+			MESSAGE(STATUS "Downloading and compiling lz4...")
 			file(DOWNLOAD https://github.com/lz4/lz4/archive/v1.8.1.2.tar.gz ${CMAKE_BINARY_DIR}/lz4-1.8.1.2.tar.gz)
 			execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf lz4-1.8.1.2.tar.gz WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 			execute_process(COMMAND cmake contrib/cmake_unofficial WORKING_DIRECTORY ${LZ4_BUILD_DIR})
@@ -345,7 +384,7 @@ macro(FindTinyXml)
 		SET(TinyXML_INCLUDE_DIRS ${TINYXML_BUILD_DIR})
 		SET(TinyXML_LIBRARIES    ${TINYXML_BUILD_DIR}/libtinyxml.a) 
 		if (NOT EXISTS ${TinyXML_LIBRARIES})
-			MESSAGE("Downloading and compiling tinyxml...")
+			MESSAGE(STATUS "Downloading and compiling tinyxml...")
 			file(DOWNLOAD https://downloads.sourceforge.net/project/tinyxml/tinyxml/2.6.2/tinyxml_2_6_2.zip ${CMAKE_BINARY_DIR}/tinyxml_2_6_2.zip)
 			execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf tinyxml_2_6_2.zip                                                   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}) 
 			execute_process(COMMAND g++ -c -Wall -Wno-unknown-pragmas -Wno-format -O3 -fPIC   tinyxml.cpp -o tinyxml.o              WORKING_DIRECTORY ${TINYXML_BUILD_DIR})
@@ -371,7 +410,7 @@ macro(FindFreeImage)
 		SET(FREEIMAGE_INCLUDE_DIRS ${FREEIMAGE_BUILD_DIR}/Dist)
 		SET(FREEIMAGE_LIBRARIES    ${FREEIMAGE_BUILD_DIR}/Dist/libfreeimage.a)
 		if (NOT EXISTS ${FREEIMAGE_LIBRARIES})
-			MESSAGE("Downloading and compiling FreeImage...")
+			MESSAGE(STATUS "Downloading and compiling FreeImage...")
 			file(DOWNLOAD https://sourceforge.net/projects/freeimage/files/Source%20Distribution/3.16.0/FreeImage3160.zip ${CMAKE_BINARY_DIR}/FreeImage3160.zip)
 			execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf FreeImage3160.zip WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 			execute_process(COMMAND make                                          WORKING_DIRECTORY ${FREEIMAGE_BUILD_DIR})
@@ -396,7 +435,7 @@ macro(FindOpenSSL)
 		SET(OPENSSL_SSL_LIBRARY    ${OPENSSL_BUILD_DIR}/libssl.so)
 		SET(OPENSSL_CRYPTO_LIBRARY ${OPENSSL_BUILD_DIR}/libcrypto.so)
 		if (NOT EXISTS ${OPENSSL_SSL_LIBRARY})
-			MESSAGE("Downloading and compiling openssl...")
+			MESSAGE(STATUS "Downloading and compiling openssl...")
 			file(DOWNLOAD http://sourceforge.net/projects/openssl/files/openssl-1.0.2d-fips-2.0.10/openssl-1.0.2d-src.tar.gz ${CMAKE_BINARY_DIR}/openssl-1.0.2d-src.tar.gz)
 			execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf openssl-1.0.2d-src.tar.gz WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 			execute_process(COMMAND ./config shared                                       WORKING_DIRECTORY ${OPENSSL_BUILD_DIR})
@@ -416,7 +455,7 @@ macro(FindCurl)
 		SET(CURL_INCLUDE_DIR  ${CURL_BUILD_DIR}/include)
 		SET(CURL_LIBRARIES    ${CURL_BUILD_DIR}/lib/.libs/libcurl.so)
 		if (NOT EXISTS ${CURL_LIBRARIES})
-			MESSAGE("Downloading and compiling curl...")
+			MESSAGE(STATUS "Downloading and compiling curl...")
 			file(DOWNLOAD https://curl.haxx.se/download/curl-7.59.0.tar.gz ${CMAKE_BINARY_DIR}/curl-7.59.0.tar.gz)
 			execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf curl-7.59.0.tar.gz WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 			execute_process(COMMAND ./configure                                    WORKING_DIRECTORY ${CURL_BUILD_DIR})
@@ -438,7 +477,7 @@ macro(FindSwig)
 		SET(SWIG_EXECUTABLE  ${SWIG_BUILD_DIR}/install/bin/swig)
 		SET(SWIG_DIR         ${SWIG_BUILD_DIR}/install/share/swig/3.0.12)
 		if (NOT EXISTS ${SWIG_EXECUTABLE})
-			MESSAGE("Downloading and compiling swig...")
+			MESSAGE(STATUS "Downloading and compiling swig...")
 			file(DOWNLOAD https://downloads.sourceforge.net/project/swig/swig/swig-3.0.12/swig-3.0.12.tar.gz ${CMAKE_BINARY_DIR}/swig-3.0.12.tar.gz)
 			execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf swig-3.0.12.tar.gz  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 			file(DOWNLOAD https://sourceforge.net/projects/pcre/files/pcre/8.42/pcre-8.42.tar.gz ${SWIG_BUILD_DIR}/pcre-8.42.tar.gz)
@@ -449,6 +488,84 @@ macro(FindSwig)
 		endif()
 		find_package(SWIG REQUIRED)
 	endif()
+endmacro()
+
+
+# ///////////////////////////////////////////////////
+macro(AddVisusLibrary Name)
+    add_library(${Name} ${ARGN})
+	string(TOUPPER ${Name} __upper_case__name__)
+	target_compile_definitions(${Name}  PRIVATE VISUS_BUILDING_${__upper_case__name__}=1)
+	target_include_directories(${Name}  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+	file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/$<CONFIG>/~${Name}.path.tmp" CONTENT "$<TARGET_FILE:${Name}>")
+	InstallVisusLibrary(${Name})
+endmacro()
+
+# ///////////////////////////////////////////////////
+macro(AddVisusExecutable Name)
+    add_executable(${Name} ${ARGN})
+	set_target_properties(${Name} PROPERTIES FOLDER Executable/)
+    set_target_properties(${Name} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})  
+	file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/$<CONFIG>/~${Name}.path.tmp" CONTENT "$<TARGET_FILE:${Name}>")
+	InstallVisusExecutable(${Name})
+endmacro()
+
+
+# ///////////////////////////////////////////////////
+macro(InstallBuildFiles Pattern Destination)
+	install(CODE "
+		file(READ \"${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/~VisusKernel.path.tmp\" __target_full_path__)
+		get_filename_component(__target_directory__ \${__target_full_path__} DIRECTORY)
+		FILE(GLOB __files__ \${__target_directory__}/${Pattern})
+		FILE(INSTALL \${__files__} DESTINATION ${CMAKE_INSTALL_PREFIX}/${Destination})
+	")
+endmacro()
+
+
+# ///////////////////////////////////////////////////
+macro(InstallVisus)
+
+	install(DIRECTORY Copyrights  DESTINATION .)
+	install(DIRECTORY Samples     DESTINATION .)
+	install(FILES     LICENSE     DESTINATION .)
+	install(FILES     README.md   DESTINATION .)
+	install(DIRECTORY datasets    DESTINATION .)
+
+	InstallBuildFiles(*.py .)
+
+	# in windows I need to copy vcpkg dlls
+	if (WIN32)
+
+		InstallBuildFiles(*.dll ./bin)
+		
+		# Do not pack vc++ redist 
+		SET(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
+
+		include(InstallRequiredSystemLibraries)
+
+	endif()
+
+	if (VISUS_GUI)
+
+		# generate script to launch visusviewer
+    	file(READ "${CMAKE_SOURCE_DIR}/CMake/visusviewer${terminal_extension}" __content__)
+		file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/visusviewer.$<CONFIG>${terminal_extension}" CONTENT "${__content__}")
+		install(CODE "
+			FILE(INSTALL ${CMAKE_BINARY_DIR}/visusviewer.\${CMAKE_INSTALL_CONFIG_NAME}${terminal_extension} 
+			DESTINATION ${CMAKE_INSTALL_PREFIX} 
+			PERMISSIONS OWNER_EXECUTE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ)
+		")
+
+	endif()
+
+endmacro()
+
+# ///////////////////////////////////////////////////
+macro(PostInstallVisus)
+	install(CODE "
+		message(STATUS \"Executing post_install.py ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/CMake/post_install.py ${Qt5_DIR} ${DEPLOYQT}\")
+		execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_SOURCE_DIR}/CMake/post_install.py\" \"${Qt5_DIR}\" \"${DEPLOYQT}\" WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
+	")
 endmacro()
 
 

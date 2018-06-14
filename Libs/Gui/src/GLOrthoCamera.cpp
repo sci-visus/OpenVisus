@@ -134,9 +134,11 @@ void GLOrthoCamera::glMouseMoveEvent(QMouseEvent* evt)
     double vs = 1.0/sqrt(a*a + b*b);
 
     beginUpdate();
-    scale(vs,center);
-    translate(-Point2d(tx, ty));
-    rotate(-atan2(b, a));
+    {
+      scale(vs, center);
+      translate(-Point2d(tx, ty));
+      rotate(-atan2(b, a));
+    }
     endUpdate();
 
     evt->accept();
@@ -152,7 +154,11 @@ void GLOrthoCamera::glMouseMoveEvent(QMouseEvent* evt)
     Point2d t1 = map.unprojectPoint(convertTo<Point2d>(p1)).dropZ();
     Point2d T1 = map.unprojectPoint(convertTo<Point2d>(p2)).dropZ();
 
-    translate(t1 - T1);
+    beginUpdate();
+    {
+      translate(t1 - T1);
+    }
+    endUpdate();
 
     evt->accept();
     return;

@@ -1,22 +1,21 @@
 import sys,os
 
-this_dir=os.path.dirname(os.path.abspath(__file__))
-
-for it in ["."]:
-  dir=os.path.join(this_dir,it)
-  if (not dir in sys.path) and (os.path.exists(dir)):
-    sys.path.append(dir)
-    
-# fixPathSeparators
-def fixPathSeparators(path):
-  return path.replace("\\", "/") if sys.platform=="win32" else path.replace("/", "\\") 
-
 # addSysPath
 def addSysPath(path): 
-  sys.path.append(fixPathSeparators(path))
+  path=os.path.abspath(path)
+  print("Adding sys path "+path)
+  sys.path.append(path)
 
-# addPath
-def addPath(path):
-  os.environ['PATH'] = fixPathSeparators(path) + ";" + os.environ['PATH']
+# addEnvPath
+def addEnvPath(path):
+  path=os.path.abspath(path)
+  print("Adding env path "+path)
+  os.environ['PATH'] = path + ";" + os.environ['PATH']
 
+for it in ["." , "./bin"]:
+  dir=os.path.join(os.path.dirname(os.path.abspath(__file__)),it)
+  if (not dir in sys.path) and (os.path.exists(dir)):
+    addSysPath(dir)
+    addEnvPath(dir)
+    
 from VisusKernelPy import *

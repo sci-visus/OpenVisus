@@ -7,6 +7,7 @@ uniform vec3           u_sampler_dims;
 uniform vec3           u_render_scale;
 uniform vec4           u_sampler_vs;
 uniform vec4           u_sampler_vt;
+uniform float          u_opacity;
   
 #if TEXTURE_DIM==3
   uniform sampler3D    u_sampler;
@@ -20,12 +21,9 @@ uniform vec4           u_sampler_vt;
 
 #if PALETTE_ENABLED
   uniform sampler2D    u_palette_sampler;
-  uniform float        u_palette_opacity;
   
   vec4 PALETTE(float value) {
-    vec4 ret=texture2D(u_palette_sampler,vec2(value,0));
-    ret.a*=u_palette_opacity;
-    return ret;
+    return texture2D(u_palette_sampler, vec2(value, 0));
   }    
 #endif
 
@@ -149,40 +147,40 @@ void main()
 {
   CLIPPINGBOX_FRAGMENT_SHADER()
 
-  vec4 color=TEXTURE(v_texcoord);
+  vec4 frag_color =TEXTURE(v_texcoord);
   
   #if PALETTE_ENABLED
     #if TEXTURE_NCHANNELS==1
-      color=PALETTE(color.r);
+      frag_color=PALETTE(frag_color.r);
     #elif TEXTURE_NCHANNELS==2
-      color.rgb=PALETTE(color.r).rgb;
-      color.a  =PALETTE(color.a).a;
+      frag_color.rgb=PALETTE(frag_color.r).rgb;
+      frag_color.a  =PALETTE(frag_color.a).a;
     #elif TEXTURE_NCHANNELS==3
-      color.r=PALETTE(color.r).r;
-      color.g=PALETTE(color.g).g;
-      color.b=PALETTE(color.b).b;
-      color.a=1.0;
+      frag_color.r=PALETTE(frag_color.r).r;
+      frag_color.g=PALETTE(frag_color.g).g;
+      frag_color.b=PALETTE(frag_color.b).b;
+      frag_color.a=1.0;
     #elif TEXTURE_NCHANNELS==4
-      color.r=PALETTE(color.r).r;
-      color.g=PALETTE(color.g).g;
-      color.b=PALETTE(color.b).b;
-      color.a=PALETTE(color.a).a;
+      frag_color.r=PALETTE(frag_color.r).r;
+      frag_color.g=PALETTE(frag_color.g).g;
+      frag_color.b=PALETTE(frag_color.b).b;
+      frag_color.a=PALETTE(frag_color.a).a;
     #endif
   #endif
 
   #if LIGHTING_ENABLED
     vec4 lighting_color = computeLightingColor(v_texcoord);
-    color.rgb = color.rgb * lighting_color.rgb; //scrgiorgio: it was color.rgb += color.rgb * lighting_color.rgb; BUT i think it was wrong
+    frag_color.rgb = frag_color.rgb * lighting_color.rgb; //scrgiorgio: it was frag_color.rgb += frag_color.rgb * lighting_color.rgb; BUT i think it was wrong
   #endif
 
-  vec4 frag_color = color;
+  frag_color.a *= u_opacity;
 
   #if DISCARD_IF_ZERO_ALPHA
-  	if (color.a<=0.0)
+  	if (frag_color.a<=0.0)
       discard;
   #endif
 
-  gl_FragColor=color;
+  gl_FragColor=frag_color;
 }
 
 #endif //FRAGMENT_SHADER

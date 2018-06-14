@@ -81,6 +81,11 @@ public:
     }
 
     bool disable_async = CONFIG.readBool("disable_async", VF->bServerMode);
+
+    //TODO: special case when I can use the blocks
+    //if (VF->childs.size() == 1 && VF->sameLogicSpace(VF->childs[0]))
+    //  ;
+
     if (int nthreads= disable_async ? 0 : 3)
       this->thread_pool = std::make_shared<ThreadPool>("IdxMultipleAccess Worker",nthreads);
   }
@@ -371,13 +376,14 @@ public:
     query->time = QUERY->time;
     query->field = field;
 
-    if (bool bSameLogicSpace = M.isIdentity() && VF->getBox() == vf->getBox() && VF->getBitmask() == vf->getBitmask())
+    if (VF->sameLogicSpace(child))
     {
       query->start_resolution = QUERY->start_resolution;
-      query->end_resolutions = QUERY->end_resolutions;
-      query->max_resolution = QUERY->max_resolution;
-      query->position = QUERY->position;
-      query->desired_nsamples = QUERY->nsamples;
+      query->end_resolutions  = QUERY->end_resolutions;
+      query->max_resolution   = QUERY->max_resolution;
+      query->position         = QUERY->position;
+      query->viewdep          = QUERY->viewdep;
+      query->clipping         = QUERY->clipping;
     }
     else
     {
@@ -416,13 +422,9 @@ public:
       query->position = Position(M.invert(), QUERY->position);
 
       //for "full" queries (i.e. not point query) I correct the position
-      if (bool bPointQuery = QUERY->position.getPointDim()<VF->getPointDim())
-        query->desired_nsamples = QUERY->nsamples;
-      else
-      {
+      bool bPointQuery = QUERY->position.getPointDim() < VF->getPointDim();
+      if (!bPointQuery)
         query->position = query->position.withoutTransformation().getNdBox().getIntersection(vf->getBox());
-        //VisusInfo() << "!!!! Down position of " << name << " is " << query->position.toString();
-      }
     }
 
     //skip this argument since returns empty array
@@ -534,7 +536,7 @@ public:
     // Tperspective := PIXEL <- pixel
     Matrix Tperspective;
 
-    if (bool bSameLogicSpace = M.isIdentity() && VF->getBox() == vf->getBox() && VF->getBitmask() == vf->getBitmask())
+    if (VF->sameLogicSpace(child))
     {
       VisusAssert(QUERY->position == query->position);
       Tperspective = Matrix::identity();
@@ -1111,7 +1113,6 @@ void IdxMultipleDataset::computeDefaultFields()
   //fields
   this->fields.clear();
   this->find_field.clear();
-
 
   addField(createField("ArrayUtils.average"));
   addField(createField("ArrayUtils.add"));

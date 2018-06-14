@@ -46,178 +46,86 @@ namespace Visus {
 
 
   ///////////////////////////////////////////////
-class GLTexture::Pimpl 
-{
-public:
-
-  QOpenGLTexture* tex;
-
-  //constructor
-  Pimpl(
-    QOpenGLTexture::Target target, 
-    int width, int height, int depth, 
-    QOpenGLTexture::TextureFormat textureFormat, 
-    QOpenGLTexture::PixelFormat sourceFormat, QOpenGLTexture::PixelType sourceType, 
-    const void* c_ptr) 
-  {
-    tex = new QOpenGLTexture(target);
-
-    if (!tex->create())
-    {
-      delete tex;
-      tex = nullptr;
-    }
-
-    GLint originalAlignment = 1;
-    glGetIntegerv(GL_UNPACK_ALIGNMENT, &originalAlignment);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-    tex->setSize(width, height, depth);
-    tex->setFormat(textureFormat);
-    tex->setMipLevels(1);
-    tex->allocateStorage();
-    tex->setData(sourceFormat, sourceType, c_ptr);
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, originalAlignment);
-  }
-
-  //destructor
-  ~Pimpl()
-  {
-    if (tex)
-      delete tex;
-  }
-
-  //textureId
-  GLuint textureId() const {
-    return tex ? tex->textureId() : 0;
-  }
-
-};
-
-
-
-  ///////////////////////////////////////////////
 GLTexture::GLTexture(Array src) 
 {
-  this->upload.array = std::make_shared<Array>(src);
-  init((int)src.getWidth(), (int)src.getHeight(), (int)src.getDepth(), src.dtype);
+  int ncomponents = src.dtype.ncomponents();
+
+  if (!(src.dtype.valid() && ncomponents >= 1 && ncomponents <= 4))
+  {
+    //VisusInfo() << "Failed to upload texture internal error";
+    //VisusAssert(false);
+    return;
+  }
+
+  this->upload.array = src;
+  this->dims = Point3i((int)src.getWidth(), (int)src.getHeight(), (int)src.getDepth());
+
+  if (src.dtype.isVectorOf(DTypes::UINT8))
+    this->dtype = DType(ncomponents, DTypes::UINT8);
+  else
+    this->dtype = DType(ncomponents, DTypes::FLOAT32);
 }
 
   ///////////////////////////////////////////////
-GLTexture::GLTexture(SharedPtr<QImage> src) 
+GLTexture::GLTexture(QImage src)
 {
-  src = std::make_shared<QImage>(src->mirrored());
-  src = std::make_shared<QImage>(src->convertToFormat(QImage::Format_RGBA8888));
+  src = src.mirrored();
+  src = src.convertToFormat(QImage::Format_RGBA8888);
   this->upload.image = src;
-  init((int)src->width(), (int)src->height(), 1, DTypes::UINT8_RGBA);
+  this->dims = Point3i((int)src.width(), (int)src.height(), 1);
+  this->dtype = DTypes::UINT8_RGBA;
 }
 
 ///////////////////////////////////////////////
 GLTexture::~GLTexture()
 {
-  releasePimpl(true);
-}
-
-  ///////////////////////////////////////////////
-void GLTexture::releasePimpl(bool bDeleteTexture)
-{
-  if (!this->pimpl)
+  if(!this->texture_id)
     return;
-  
-  auto pimpl = this->pimpl;
-  auto size  = this->dtype.getByteSize((Int64)this->dims.x*(Int64)this->dims.y*(Int64)this->dims.z);
-  this->pimpl=nullptr;
-    
-  if (auto do_with_context=GLDoWithContext::getSingleton())
+
+  auto texture_id = this->texture_id;
+  auto size = this->dtype.getByteSize((Int64)this->dims.x*(Int64)this->dims.y*(Int64)this->dims.z);
+  this->texture_id = 0;
+
+  if (auto do_with_context = GLDoWithContext::getSingleton())
   {
-    do_with_context->push_back([size, pimpl, bDeleteTexture]()
+    do_with_context->push_back([size, texture_id]()
     {
       GLInfo::getSingleton()->freeMemory(size);
-      if (bDeleteTexture)
-      	delete pimpl;
+      glDeleteTextures(1, &texture_id);
     });
   }
 }
 
-  
-///////////////////////////////////////////////
-void GLTexture::init(int width, int height, int depth, DType dtype)
-{
-  VisusAssert(dtype.valid());
-
-  int ncomponents = dtype.ncomponents();
-
-  this->dims = Point3i(width, height, depth);
-  this->dtype = dtype;
-
-  if (dtype.isVectorOf(DTypes::UINT8))
-  {
-    this->sourceType = QOpenGLTexture::UInt8;
-
-    switch (ncomponents)
-    {
-    case 1: sourceFormat = QOpenGLTexture::Luminance;      textureFormat = QOpenGLTexture::LuminanceFormat; break;
-    case 2: sourceFormat = QOpenGLTexture::LuminanceAlpha; textureFormat = QOpenGLTexture::LuminanceAlphaFormat; break;
-    case 3: sourceFormat = QOpenGLTexture::RGB;            textureFormat = QOpenGLTexture::RGBFormat; break;
-    case 4: sourceFormat = QOpenGLTexture::RGBA;           textureFormat = QOpenGLTexture::RGBAFormat; break;
-    default:VisusInfo() << "Failed to upload texture internal error"; VisusAssert(false); break;
-    }
-  }
-  //disabled Uint16 texturing... they seems broken, try http://atlantis.sci.utah.edu/mod_visus?dataset=MM336-001
-#if 0
-  else if (dtype.isVectorOf(DTypes::UINT16))
-  {
-    this->sourceType = QOpenGLTexture::UInt16;
-
-    switch (ncomponents)
-    {
-    case 1: sourceFormat = QOpenGLTexture::Luminance;      textureFormat = QOpenGLTexture::RGB16U; break; //missing LuminanceFormat16U???
-    case 2: sourceFormat = QOpenGLTexture::LuminanceAlpha; textureFormat = QOpenGLTexture::RGBA16U; break; //missing LuminanceAlphaFormat16U?
-    case 3: sourceFormat = QOpenGLTexture::RGB;            textureFormat = QOpenGLTexture::RGB16U; break;
-    case 4: sourceFormat = QOpenGLTexture::RGBA;           textureFormat = QOpenGLTexture::RGBA16U; break;
-    default: VisusInfo() << "Failed to upload texture internal error"; VisusAssert(false); break;
-    }
-  }
-#endif
-  else
-  {
-    this->sourceType = QOpenGLTexture::Float32;
-
-    //force texture to be FLOAT32 !
-    this->dtype = DType(ncomponents, DTypes::FLOAT32);
-
-    switch (ncomponents)
-    {
-    case 1: sourceFormat = QOpenGLTexture::Luminance;      textureFormat = QOpenGLTexture::RGB32F; break; //missing LuminanceFormat32F???
-    case 2: sourceFormat = QOpenGLTexture::LuminanceAlpha; textureFormat = QOpenGLTexture::RGBA32F; break; //missing LuminanceAlphaFormat32F???
-    case 3: sourceFormat = QOpenGLTexture::RGB;            textureFormat = QOpenGLTexture::RGB32F; break;
-    case 4: sourceFormat = QOpenGLTexture::RGBA;           textureFormat = QOpenGLTexture::RGBA32F; break;
-    default: VisusInfo() << "Failed to upload texture internal error"; VisusAssert(false); break;
-    }
-  }
-}
 
 ///////////////////////////////////////////////
 GLuint GLTexture::textureId() 
 {
-  if (pimpl)
-    return pimpl->textureId();
+  if (texture_id)
+    return texture_id;
 
   //already failed
-  if (!upload.array && !upload.image)
+  if (!upload.array && upload.image.width()==0)
     return 0;
 
   //try the upload only once
-  auto array = upload.array; upload.array.reset();
-  auto image = upload.image; upload.image.reset();
-
-  //cast needed
-  if (array && this->dtype != array->dtype)
+  auto array = upload.array; upload.array = Array();
+  auto image = upload.image; upload.image= QImage();
+  
+  const uchar* pixels = nullptr;
+  if (array)
   {
-    auto casted = ArrayUtils::cast(*array, this->dtype);
-    if (!casted) return 0;
-    array = std::make_shared<Array>(casted);
+    if (this->dtype != array.dtype)
+    {
+      auto casted = ArrayUtils::cast(array, this->dtype);
+      if (!casted) return 0;
+      array = casted;
+    }
+    pixels = (const uchar*)array.c_ptr();
+  }
+  else
+  {
+    pixels = image.constBits();
+    VisusReleaseAssert(pixels);
   }
 
   auto size = this->dtype.getByteSize((Int64)this->dims.x*(Int64)this->dims.y*(Int64)this->dims.z);
@@ -228,20 +136,88 @@ GLuint GLTexture::textureId()
     return 0;
   }
 
-  const uchar* c_ptr = array ? (const uchar*)array->c_ptr() : image->constBits();
+#ifdef WIN32
+  static auto glCreateTextures = (PFNGLCREATETEXTURESPROC)wglGetProcAddress("glCreateTextures");
+  static auto glTextureStorage2D = (PFNGLTEXTURESTORAGE2DPROC)wglGetProcAddress("glTextureStorage2D");
+  static auto glTextureSubImage2D = (PFNGLTEXTURESUBIMAGE2DPROC)wglGetProcAddress("glTextureSubImage2D");
+  static auto glTextureStorage3D = (PFNGLTEXTURESTORAGE3DPROC)wglGetProcAddress("glTextureStorage3D");
+  static auto glTextureSubImage3D = (PFNGLTEXTURESUBIMAGE3DPROC)wglGetProcAddress("glTextureSubImage3D");
+  static auto glTextureParameteri = (PFNGLTEXTUREPARAMETERIPROC)wglGetProcAddress("glTextureParameteri");
+  static auto glBindTextureUnit = (PFNGLBINDTEXTUREUNITPROC)wglGetProcAddress("glBindTextureUnit");
+  static auto glGenerateTextureMipmap = (PFNGLGENERATETEXTUREMIPMAPPROC)wglGetProcAddress("glGenerateTextureMipmap");
+#endif
 
-  this->pimpl = new Pimpl(this->target(),width(),height(),depth(),textureFormat,sourceFormat,sourceType,c_ptr);
-
-  auto ret = pimpl->textureId();
-  if (!ret)
-  {
+  auto Error = [&]() {
     VisusInfo() << "Failed to create texture";
-    delete pimpl;
-    pimpl = nullptr;
     GLInfo::getSingleton()->freeMemory(size);
+    if (texture_id)
+      glDeleteTextures(1, &texture_id);
+    return (texture_id = 0);
+  };
+
+  int target = this->target();
+
+#ifdef WIN32
+  glCreateTextures(target, 1, &texture_id);
+#else
+  glGenTextures(1, &texture_id);
+  glBindTexture(target, texture_id);
+#endif
+  
+  if (!texture_id)
+    return Error();
+
+  int ncomponents = this->dtype.ncomponents();
+  int textureFormat;
+
+  //TODO HERE! I'm wasting texture memory
+  if (dtype.isVectorOf(DTypes::UINT8))
+    textureFormat = (QOpenGLTexture::TextureFormat)std::vector<int>({ 0, GL_RGB8 ,GL_RGBA8  , GL_RGB8 ,GL_RGBA8   })[ncomponents];
+  else
+    textureFormat = (QOpenGLTexture::TextureFormat)std::vector<int>({ 0, GL_RGB32F ,GL_RGBA32F,GL_RGB32F,GL_RGBA32F })[ncomponents];
+
+  auto sourceFormat = std::vector<int>({ 0,GL_LUMINANCE,GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA })[ncomponents];
+  auto sourceType = dtype.isVectorOf(DTypes::UINT8) ? GL_UNSIGNED_BYTE : GL_FLOAT;
+
+  GLCanvas::FlushGLErrors(false);
+
+  GLint originalAlignment = 1;
+  glGetIntegerv(GL_UNPACK_ALIGNMENT, &originalAlignment);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+  if (target == QOpenGLTexture::Target3D)
+  {
+#ifdef WIN32
+    glTextureStorage3D(texture_id, 1, textureFormat, dims[0], dims[1], dims[2]);
+    glTextureSubImage3D(texture_id, 0, 0, 0, 0, dims[0], dims[1], dims[2], sourceFormat, sourceType, pixels);
+#else
+    glTexImage3D (target, 0, textureFormat, dims[0], dims[1], dims[2], 0, sourceFormat, sourceType, pixels);
+    glTexSubImage3D(target, 0, 0, 0, 0, dims[0], dims[1], dims[2], sourceFormat, sourceType, pixels);
+#endif
+  }
+    else
+  {
+#ifdef WIN32
+    glTextureStorage2D(texture_id, 1, textureFormat, dims[0], dims[1]);
+    glTextureSubImage2D(texture_id, 0, 0, 0, dims[0], dims[1], sourceFormat, sourceType, pixels);
+#else
+    glTexImage2D(target, 0, textureFormat, dims[0], dims[1], 0, sourceFormat, sourceType, pixels);
+    glTexSubImage2D(target, 0, 0, 0, dims[0], dims[1], sourceFormat, sourceType, pixels);
+#endif
   }
 
-  return ret;
+#ifdef WIN32
+  glGenerateTextureMipmap(texture_id);
+#elif __APPLE__
+  glGenerateMipmap(target);
+#endif
+  
+  glPixelStorei(GL_UNPACK_ALIGNMENT, originalAlignment);
+
+  if (GLCanvas::FlushGLErrors(true))
+    return Error();
+
+  return texture_id;
 }
 
 } //namespace

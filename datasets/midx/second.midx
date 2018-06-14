@@ -1,0 +1,6 @@
+<dataset typename='IdxMultipleDataset'>
+  <dataset url='file://$(CurrentFileDirectory)/A/visus.idx' name= 'A'  />
+  <dataset url='file://$(CurrentFileDirectory)/B/visus.idx' name= 'B'  />
+  <dataset url='file://$(CurrentFileDirectory)/C/visus.idx' name= 'C'  />
+  <dataset url='file://$(CurrentFileDirectory)/D/visus.idx' name= 'D'  />
+</dataset>

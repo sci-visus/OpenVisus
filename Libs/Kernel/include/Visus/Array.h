@@ -106,6 +106,14 @@ public:
     : Array(NdPoint::one(x, y,z), dtype, heap) {
   }
 
+  //constructor
+  Array(const std::vector<Array>& components)
+    : Array(components.empty()? NdPoint() : components[0].dims, components.empty() ? DType() : DType((int)components.size(),components[0].dtype))
+  {
+    for (int I = 0; I < (int)components.size(); I++)
+      setComponent(I, components[I]);
+  }
+
   //destructor
   virtual ~Array() {
   }
@@ -769,10 +777,10 @@ public:
   //how to map input data to [0,1]
   enum Mode
   {
-    UseArray,
-    PerComponent,
-    ComputeOverall,
-    UseCustom
+    UseArrayRange,
+    PerComponentRange,
+    ComputeOverallRange,
+    UseCustomRange
   };
 
   Mode mode;
@@ -781,8 +789,24 @@ public:
   Range custom_range; 
 
   //constructor
-  ComputeRange(Mode mode_=UseArray, Range custom_range_ = Range()) 
-    : mode(mode_), custom_range(custom_range_) {
+  ComputeRange(Mode mode_=UseArrayRange) : mode(mode_){
+  }
+
+  //createCustom
+  static ComputeRange createCustom(Range range) {
+    ComputeRange ret(UseCustomRange);
+    ret.custom_range = range;
+    return ret;
+  }
+
+  //createCustom
+  static ComputeRange createCustom(double A, double B) {
+    return createCustom(Range(A, B, 0));
+  }
+
+  //isCustom
+  bool isCustom() const {
+    return mode == UseCustomRange;
   }
 
   //doCompute
@@ -832,7 +856,7 @@ public:
  
   //computeRange
   static Range computeRange(Array src, int C, Aborted aborted = Aborted()) {
-    return ComputeRange(ComputeRange::PerComponent).doCompute(src,C,aborted);
+    return ComputeRange(ComputeRange::PerComponentRange).doCompute(src,C,aborted);
   }
 
   //interleave
@@ -901,32 +925,24 @@ public:
   }
 
   //add
-  static Array add(Array a, Float64 b, Aborted aborted = Aborted());
+  static Array add(Array a, double b, Aborted aborted = Aborted());
 
   //sub
-  static Array sub(Array a, Float64 b, Aborted aborted = Aborted());
+  static Array sub(double a, Array b,Aborted aborted = Aborted());
+
+  //sub
+  static Array sub(Array a, double b, Aborted aborted = Aborted());
 
   //mul
-  static Array mul(Array src, Float32 coeff, Aborted aborted = Aborted());
-
-  //mul
-  static Array mul(Array src, Float64 coeff, Aborted aborted = Aborted());
+  static Array mul(Array src, double coeff, Aborted aborted = Aborted());
 
   //div
-  static Array div(Array src, Float32 coeff, Aborted aborted = Aborted()) {
-    return mul(src, 1.0f / coeff, aborted);
-  }
-
-  //div
-  static Array div(Array src, Float64 coeff, Aborted aborted = Aborted()){
+  static Array div(Array src, double coeff, Aborted aborted = Aborted()){
     return mul(src, 1.0 / coeff, aborted);
   }
 
   //div
-  static Array div(Float32 coeff, Array src, Aborted aborted = Aborted());
-
-  //div
-  static Array div(Float64 coeff, Array src, Aborted aborted = Aborted());
+  static Array div(double coeff, Array src, Aborted aborted = Aborted());
 
   //resample
   static Array resample(NdPoint target_dims, const Array rbuffer, Aborted aborted = Aborted());
