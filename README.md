@@ -111,8 +111,8 @@ Compile OpenVisus. From a prompt::
 To test if it's working::
 
 	REM change path accordingly
-	SET PYTHONPATH=C:\projects\OpenVisus\build\Release
-	SET PATH=c:\python36;C:\Qt\Qt5.9.2\5.9.2\msvc2017_64\bin
+	SET PYTHONPATH=C:\projects\OpenVisus\build\Release;%PYTHONPATH%
+	SET PATH=c:\python36;C:\Qt\Qt5.9.2\5.9.2\msvc2017_64\bin;%PATH%
 	.\Release\visusviewer.exe
 	REM use python_d.exe if you are using the Debug version
 	REM add -vv if you want very verbose output
