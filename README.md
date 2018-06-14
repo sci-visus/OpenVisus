@@ -171,14 +171,14 @@ Compile OpenVisus::
 	cmake ../
 	cmake --build . --target all 
 	cmake --build . --target test
-   # optional
-   cmake --build . --target install
+	# optional
+	cmake --build . --target install
 
 To test if it's working::
 
-   export LD_LIBRARY_PATH=$(pwd)
+	export LD_LIBRARY_PATH=$(pwd)
 	export PYTHONPATH=$(pwd)
-   ./visusviewer
+	./visusviewer
 	python3 -c "from visuspy import *; print('visuspy is working')"
 
 ## OpenSUSE compilation
