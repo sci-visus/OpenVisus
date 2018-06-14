@@ -66,7 +66,7 @@ IF (VISUS_GUI)
   elseif(APPLE)
     find_program(DEPLOYQT macdeployqt     HINTS "${QtBinPath}")
   else()
-	# TODO
+	  # no official deploy for linux, only an unofficial one linuxdeployqt
   endif()
 
 endif()

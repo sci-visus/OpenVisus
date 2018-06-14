@@ -17,6 +17,33 @@ macro(SetupCMake)
 	set(EXECUTABLE_OUTPUT_PATH  ${CMAKE_BINARY_DIR})           
 	set(LIBRARY_OUTPUT_PATH     ${CMAKE_BINARY_DIR})	
 
+   if (NOT WIN32)
+      
+      set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE CACHE BOOL "" FORCE)
+	   set(CMAKE_SKIP_BUILD_RPATH         TRUE  CACHE BOOL "" FORCE)
+    	set(CMAKE_SKIP_RPATH               TRUE  CACHE BOOL "" FORCE)
+    	set(CMAKE_SKIP_INSTALL_RPATH       TRUE  CACHE BOOL "" FORCE)
+
+		mark_as_advanced(CMAKE_BUILD_WITH_INSTALL_RPATH)
+		mark_as_advanced(CMAKE_SKIP_BUILD_RPATH)
+		mark_as_advanced(CMAKE_SKIP_RPATH)
+		mark_as_advanced(CMAKE_SKIP_INSTALL_RPATH)
+
+      if (APPLE)
+			# NOT USING qt deploy because it's kind of unusable
+			# you can check the rpath by 
+			#   otool -l filename | grep -i -A2 rpath
+			#   otool -L filename
+		 	set(CMAKE_MACOSX_RPATH FALSE CACHE BOOL "" FORCE)
+			mark_as_advanced(CMAKE_MACOSX_RPATH)
+      else()
+         # check dependencies
+         # ldd filename
+
+      endif()
+
+	endif()
+
 	if (WIN32)
 
 		# enable parallel building
@@ -41,7 +68,6 @@ macro(SetupCMake)
 		set(CMAKE_MODULE_LINKER_FLAGS_RELEASE "${CMAKE_MODULE_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
 		set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
 
-		
 	    set(terminal_extension ".bat")
 
 	elseif (APPLE)
@@ -51,14 +77,6 @@ macro(SetupCMake)
 
 		# suppress some warnings
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-reorder")
-
-		# very disappointing problems with cmake/rpath/qt deploy, doing by myself
-		# you can check the rpath by 
-		#   otool -l filename | grep -i -A2 rpath
-		#   otool -L filename
-    	set(CMAKE_MACOSX_RPATH OFF)
-    	set(CMAKE_SKIP_RPATH ON)
-    	set(CMAKE_SKIP_INSTALL_RPATH ON)
 
 		set(terminal_extension ".command")
 
@@ -76,7 +94,8 @@ macro(SetupCMake)
 		# enable 64 bit file support (see http://learn-from-the-guru.blogspot.it/2008/02/large-file-support-in-linux-for-cc.html)
 		add_definitions(-D_FILE_OFFSET_BITS=64)
 
-		# -Wno-attributes to suppress spurious "type attributes ignored after type is already defined" messages see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
+		# -Wno-attributes to suppress spurious "type attributes ignored after type is already defined" messages 
+      # see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
 		set(CMAKE_C_FLAGS    "${CMAKE_C_FLAGS}   -fPIC -Wno-attributes")
 		set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fPIC -Wno-attributes")
 

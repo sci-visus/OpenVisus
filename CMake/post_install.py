@@ -32,14 +32,31 @@ def copyDirectory(src,dst):
 
 qt_dir,qt_deploy=getArg(1),getArg(2)
 
+print("sys.argv:",sys.argv)
+print("platform.system():",platform.system())
+print("qt_dir:",qt_dir)
+print("qt_deploy:",qt_deploy)
 
 # /////////////////////////////////////////////////////////////////
 if platform.system() =="Windows":
-
+  
   for app in glob.glob("./bin/*.exe"):
     executeCommand([qt_deploy,app])
 	
   sys.exit(0)
+
+# /////////////////////////////////////////////////////////////////
+if platform.system()=="Linux":
+
+	# copy qt libs
+	for lib in ("libQt5OpenGL.so.5","libQt5Widgets.so.5","libQt5Gui.so.5","libQt5Core.so.5","libQt5Svg.so.5","libQt5PrintSupport.so.5"):
+		executeCommand(["cp","/usr/lib/x86_64-linux-gnu/"+lib,"bin/"])
+
+	# copy qt plugins
+	for plugin in ("iconengines","imageformats","platforms","printsupport"):
+		copyDirectory("/usr/lib/x86_64-linux-gnu/qt5/plugins/"+plugin,"bin/plugins/"+plugin)
+
+	sys.exit(0)
 
 # /////////////////////////////////////////////////////////////////
 if platform.system()=="Darwin":
@@ -48,6 +65,7 @@ if platform.system()=="Darwin":
   otool="/usr/bin/install_name_tool"
   qt_frameworks=("QtOpenGL","QtWidgets","QtGui","QtCore","QtSvg","QtPrintSupport")
   qt_plugins=("iconengines","imageformats","platforms","printsupport")
+
   def qtFrameworkShortPath(prefix,name) : return prefix + "/" + name + ".framework"
   def qtFrameworkFullPath(prefix,name) : return qtFrameworkShortPath(prefix,name)+"/Versions/5/" + name
   def otoolAddRPath(dir,target): return executeCommand([otool,"-add_rpath",dir,target])

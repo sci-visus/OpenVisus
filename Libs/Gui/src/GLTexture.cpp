@@ -204,12 +204,11 @@ GLuint GLTexture::textureId()
     glTexImage2D(target, 0, textureFormat, dims[0], dims[1], 0, sourceFormat, sourceType, pixels);
     glTexSubImage2D(target, 0, 0, 0, dims[0], dims[1], sourceFormat, sourceType, pixels);
 #endif
-    
   }
 
 #ifdef WIN32
   glGenerateTextureMipmap(texture_id);
-#else
+#elif __APPLE__
   glGenerateMipmap(target);
 #endif
   

@@ -502,7 +502,10 @@ bool FileUtils::copyFile(String src_filename, String dst_filename, bool bFailIfE
 
   int size;
   while ((size = ::read(src, buffer, buffer_size)) > 0)
-    ::write(dst, buffer, size);
+  {
+    if (::write(dst, buffer, size)!=size)
+      return false;
+  }
 
   close(src);
   close(dst);
