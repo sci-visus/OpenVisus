@@ -1,7 +1,7 @@
 ```
 Copyright (c) 2010-2018 ViSUS L.L.C., 
 Scientific Computing and Imaging Institute of the University of Utah
-
+ 
 ViSUS L.L.C., 50 W. Broadway, Ste. 300, 84101-2044 Salt Lake City, UT
 University of Utah, 72 S Central Campus Dr, Room 3750, 84112 Salt Lake City, UT
  
