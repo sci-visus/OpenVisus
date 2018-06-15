@@ -4,7 +4,11 @@ language: cpp
 sudo: false
 
 notifications:
-  email: false
+  email:
+    recipients:
+      - scrgiorgio@gmail.com
+    on_success: always
+    on_failure: always 
   
 matrix:
 
@@ -94,8 +98,6 @@ script:
     - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then                     cmake --build ./ --target install   --config $BUILD_TYPE               ; fi
 
 
-before_deploy:
-    - echo "Deploying ${DEPLOY_FILENAME} to GitHub releases"
 
 deploy:
     provider: releases
@@ -106,4 +108,5 @@ deploy:
     on:
         repo: sci-visus/OpenVisus
         branch: scrgiorgio
+
 
