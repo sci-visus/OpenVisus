@@ -4,7 +4,11 @@ language: cpp
 sudo: false
 
 notifications:
-  email: false
+  email:
+    recipients:
+      - scrgiorgio@gmail.com
+    on_success: always
+    on_failure: always 
   
 matrix:
 
@@ -94,16 +98,14 @@ script:
     - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then                     cmake --build ./ --target INSTALL   --config $BUILD_TYPE               ; fi
 
 
-before_deploy:
-    - echo "Deploying ${DEPLOY_FILENAME} to GitHub releases"
 
 deploy:
-	provider: releases
-	api_key:
-		secure: udFydJ/YefKgym84aemlQ6AJc+zU/GEVAreCb9fvsoKneZt4eh5UeGCxH5UAbG4aN4sM7bFohWob2Eolwzqz/AWJNZbyZ+/JZMyLE5iI2tSG2WnOG4wWbAmr9VGN9FwceH32Dv7bW8RzYJQkAo01q7MHkURr6qRv122zxcncIPt+kYNPWN5U7Xkr/k2CtIvS21/e/KijOR36qrOQ5wwQQHIJl0CuiYqcbDCLSQ4vxai2hr9yIJD5GDzA49zK/DibJO9vi3dmjUX7QbyJAYRrpfJrwLDpQX4i319iJ85QKU0qrKMZGhpiDrUscerIGKcCgZRlAIV9rdwbVtMM0/8V15j3zudIB2hvA4S1t8l4QMge1iNycI8IConlPzAZXkSuwRM5iHvIG5TDgksbdu1mKRYOlPskMMxKItvE+OhpyrA12XeDFmxnAnavyFs0Ni5+YFO7q+xOuiQp1aAe/02O6j/cSgoKeEvH6j06o+HKpqDFYzuHMXBK3GZeOExoLqJ55dUJJoE/3AYdWsLpSYmRW0/SlYXIMkMYTMfuKW8Bgrfn5E7TZBTeKU1nxoBI63SaWP3e1/5ljjxd06WkW2XDPtb9WQxZk+4D6omqmhoeoeuplrbiXU7f713ERWNHsC8L9C8OS1mtICDGwP2WHSnxO+ZkMnO0uP4nrQSuolaGj4c=
-	skip_cleanup: true
-	file: "${DEPLOY_FILENAME}"
-	on:
-		repo: sci-visus/OpenVisus
-		branch: scrgiorgio
+  provider: releases
+  api_key:
+    secure: udFydJ/YefKgym84aemlQ6AJc+zU/GEVAreCb9fvsoKneZt4eh5UeGCxH5UAbG4aN4sM7bFohWob2Eolwzqz/AWJNZbyZ+/JZMyLE5iI2tSG2WnOG4wWbAmr9VGN9FwceH32Dv7bW8RzYJQkAo01q7MHkURr6qRv122zxcncIPt+kYNPWN5U7Xkr/k2CtIvS21/e/KijOR36qrOQ5wwQQHIJl0CuiYqcbDCLSQ4vxai2hr9yIJD5GDzA49zK/DibJO9vi3dmjUX7QbyJAYRrpfJrwLDpQX4i319iJ85QKU0qrKMZGhpiDrUscerIGKcCgZRlAIV9rdwbVtMM0/8V15j3zudIB2hvA4S1t8l4QMge1iNycI8IConlPzAZXkSuwRM5iHvIG5TDgksbdu1mKRYOlPskMMxKItvE+OhpyrA12XeDFmxnAnavyFs0Ni5+YFO7q+xOuiQp1aAe/02O6j/cSgoKeEvH6j06o+HKpqDFYzuHMXBK3GZeOExoLqJ55dUJJoE/3AYdWsLpSYmRW0/SlYXIMkMYTMfuKW8Bgrfn5E7TZBTeKU1nxoBI63SaWP3e1/5ljjxd06WkW2XDPtb9WQxZk+4D6omqmhoeoeuplrbiXU7f713ERWNHsC8L9C8OS1mtICDGwP2WHSnxO+ZkMnO0uP4nrQSuolaGj4c=
+  skip_cleanup: true
+  file: "${DEPLOY_FILENAME}"
+  on:
+    repo: sci-visus/OpenVisus
+    branch: scrgiorgio
 
