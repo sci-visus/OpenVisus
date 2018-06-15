@@ -5,6 +5,14 @@ os: Visual Studio 2017
 platform:
   - x64
   
+notifications:
+  - provider: Email
+    to:
+      - scrgiorgio@gmail.com
+    on_build_success: true
+    on_build_failure: true
+    on_build_status_changed: true  
+  
 environment:
   # update the vcpkg cache even if build fails
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
