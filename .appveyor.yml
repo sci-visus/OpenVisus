@@ -48,12 +48,8 @@ test: off
  
 deploy:
   - provider: GitHub
-    release: OpenVisus.Windows.$(appveyor_build_version)
-    artifact:  build\install\OpenVisus.Windows.zip
-    draft: false
-    prerelease: false
     auth_token:
-        secure: nwK8bGTRUynj+58b7E8Rgur5/0YvfIivBflFb5AaUrpC5BSTpcLbA4Ac+cCF6L4/
+      secure: nwK8bGTRUynj+58b7E8Rgur5/0YvfIivBflFb5AaUrpC5BSTpcLbA4Ac+cCF6L4/
+    artifact:  build/install/OpenVisus.Windows.zip
     on:
-     branch: scrgiorgio
-     appveyor_repo_tag: true
+      branch: scrgiorgio
