@@ -56,4 +56,4 @@ deploy:
         secure: nwK8bGTRUynj+58b7E8Rgur5/0YvfIivBflFb5AaUrpC5BSTpcLbA4Ac+cCF6L4/
     on:
      branch: scrgiorgio
-     appveyor_repo_tag: false
+     appveyor_repo_tag: true

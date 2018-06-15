@@ -17,11 +17,11 @@ matrix:
     - os: osx
       osx_image: xcode9.1
       compiler: clang
-      env: COMPILER=clang++ BUILD_TYPE=Release DEPLOY_FILENAME=OpenVisus.Darwin.tar.gz 
+      env: COMPILER=clang++ BUILD_TYPE=Release DEPLOY_FILENAME=build/install/OpenVisus.Darwin.tar.gz 
 
     - os: linux
       dist: trusty
-      env: COMPILER=g++-4 BUILD_TYPE=Release DEPLOY_FILENAME=OpenVisus.Linux.tar.gz
+      env: COMPILER=g++-4 BUILD_TYPE=Release DEPLOY_FILENAME=build/install/OpenVisus.Linux.tar.gz
       addons: 
         apt:
           packages: g++-4
@@ -33,11 +33,11 @@ matrix:
     - os: osx
       osx_image: xcode9.1
       compiler: clang
-      env: COMPILER=clang++ BUILD_TYPE=Debug DEPLOY_FILENAME=OpenVisus.Darwin.tar.gz
+      env: COMPILER=clang++ BUILD_TYPE=Debug DEPLOY_FILENAME=build/install/OpenVisus.Darwin.tar.gz
 
     - os: linux
       dist: trusty
-      env: COMPILER=g++-4 BUILD_TYPE=Debug DEPLOY_FILENAME=OpenVisus.Linux.tar.gz
+      env: COMPILER=g++-4 BUILD_TYPE=Debug DEPLOY_FILENAME=build/install/OpenVisus.Linux.tar.gz
       addons: 
         apt:
           packages: g++-4
@@ -97,8 +97,6 @@ script:
     - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then                     cmake --build ./ --target RUN_TESTS --config $BUILD_TYPE               ; fi
     - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then                     cmake --build ./ --target install   --config $BUILD_TYPE               ; fi
 
-
-
 deploy:
     provider: releases
     api_key:
@@ -107,6 +105,9 @@ deploy:
     file: "${DEPLOY_FILENAME}"
     on:
         repo: sci-visus/OpenVisus
-        branch: scrgiorgio
+        branches: 
+            only: 
+                - scrgiorgio     
+
 
 
