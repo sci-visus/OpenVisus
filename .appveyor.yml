@@ -49,7 +49,7 @@ test: off
 deploy:
   - provider: GitHub
     release: OpenVisus.Windows.$(appveyor_build_version)
-    artifact:  install/OpenVisus.Windows.zip
+    artifact:  build\install\OpenVisus.Windows.zip
     draft: false
     prerelease: false
     auth_token:
