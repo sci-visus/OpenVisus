@@ -13,11 +13,11 @@ matrix:
     - os: osx
       osx_image: xcode9.1
       compiler: clang
-      env: COMPILER=clang++ BUILD_TYPE=Release
+      env: COMPILER=clang++ BUILD_TYPE=Release DEPLOY_FILENAME=OpenVisus.Darwin.tar.gz
 
     - os: linux
       dist: trusty
-      env: COMPILER=g++-4 BUILD_TYPE=Release 
+      env: COMPILER=g++-4 BUILD_TYPE=Release DEPLOY_FILENAME=OpenVisus.Linux.tar.gz
       addons: 
         apt:
           packages: g++-4
@@ -29,11 +29,11 @@ matrix:
     - os: osx
       osx_image: xcode9.1
       compiler: clang
-      env: COMPILER=clang++ BUILD_TYPE=Debug
+      env: COMPILER=clang++ BUILD_TYPE=Debug DEPLOY_FILENAME=OpenVisus.Darwin.tar.gz
 
     - os: linux
       dist: trusty
-      env: COMPILER=g++-4 BUILD_TYPE=Debug
+      env: COMPILER=g++-4 BUILD_TYPE=Debug DEPLOY_FILENAME=OpenVisus.Linux.tar.gz
       addons: 
         apt:
           packages: g++-4
@@ -82,12 +82,28 @@ install:
 script:
     - cd "${TRAVIS_BUILD_DIR}"
     - mkdir build && cd build
+
     - if   [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then cmake ../                                                     ; fi
     - if   [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then cmake --build ./ --target all            --config $BUILD_TYPE ; fi
     - if   [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then cmake --build ./ --target test           --config $BUILD_TYPE ; fi
+    - if   [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then cmake --build ./ --target install        --config $BUILD_TYPE ; fi
     
     - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then                     cmake -GXcode  -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DQt5_DIR=/usr/local/opt/qt/lib/cmake/Qt5 .. ; fi
-    - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then set -o pipefail &&  cmake --build ./ --target ALL_BUILD      --config $BUILD_TYPE | xcpretty -c ; fi
-    - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then                     cmake --build ./ --target RUN_TESTS      --config $BUILD_TYPE               ; fi
+    - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then set -o pipefail &&  cmake --build ./ --target ALL_BUILD --config $BUILD_TYPE | xcpretty -c ; fi
+    - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then                     cmake --build ./ --target RUN_TESTS --config $BUILD_TYPE               ; fi
+    - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then                     cmake --build ./ --target INSTALL   --config $BUILD_TYPE               ; fi
 
+
+before_deploy:
+    - echo "Deploying ${DEPLOY_FILENAME} to GitHub releases"
+
+deploy:
+	provider: releases
+	api_key:
+		secure: udFydJ/YefKgym84aemlQ6AJc+zU/GEVAreCb9fvsoKneZt4eh5UeGCxH5UAbG4aN4sM7bFohWob2Eolwzqz/AWJNZbyZ+/JZMyLE5iI2tSG2WnOG4wWbAmr9VGN9FwceH32Dv7bW8RzYJQkAo01q7MHkURr6qRv122zxcncIPt+kYNPWN5U7Xkr/k2CtIvS21/e/KijOR36qrOQ5wwQQHIJl0CuiYqcbDCLSQ4vxai2hr9yIJD5GDzA49zK/DibJO9vi3dmjUX7QbyJAYRrpfJrwLDpQX4i319iJ85QKU0qrKMZGhpiDrUscerIGKcCgZRlAIV9rdwbVtMM0/8V15j3zudIB2hvA4S1t8l4QMge1iNycI8IConlPzAZXkSuwRM5iHvIG5TDgksbdu1mKRYOlPskMMxKItvE+OhpyrA12XeDFmxnAnavyFs0Ni5+YFO7q+xOuiQp1aAe/02O6j/cSgoKeEvH6j06o+HKpqDFYzuHMXBK3GZeOExoLqJ55dUJJoE/3AYdWsLpSYmRW0/SlYXIMkMYTMfuKW8Bgrfn5E7TZBTeKU1nxoBI63SaWP3e1/5ljjxd06WkW2XDPtb9WQxZk+4D6omqmhoeoeuplrbiXU7f713ERWNHsC8L9C8OS1mtICDGwP2WHSnxO+ZkMnO0uP4nrQSuolaGj4c=
+	skip_cleanup: true
+	file: "${DEPLOY_FILENAME}"
+	on:
+		repo: sci-visus/OpenVisus
+		branch: scrgiorgio
 

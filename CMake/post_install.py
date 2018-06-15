@@ -2,6 +2,11 @@ import os, sys, glob
 import subprocess
 import shutil
 import platform
+import tarfile
+
+
+WIN32=True if platform.system() == "Windows" else False
+APPLE=True if platform.system() == "Darwin"  else False
 
 # ////////////////////////////////////////////////////
 def getArg(index):
@@ -39,7 +44,18 @@ def copyFileIfExist(src,dst):
 def copyDirectoryIfExist(src,dst):
     if existDirectory(dst):
         return copyDirectory(src,dst)
-    
+
+# ////////////////////////////////////////////////////
+def deployToFile():
+
+	filename="OpenVisus."+ platform.system()
+	format="zip" if WIN32 else "gztar"
+	compress_dir="./"
+
+	print("shutil.make_archive('%s', '%s', '%s')" % (filename,format,compress_dir))
+	shutil.make_archive(filename, format, compress_dir)
+
+
 
 qt_dir,qt_deploy=getArg(1),getArg(2)
 
@@ -49,31 +65,14 @@ print("qt_dir:",qt_dir)
 print("qt_deploy:",qt_deploy)
 
 # /////////////////////////////////////////////////////////////////
-if platform.system() =="Windows":
+if WIN32:
   
   for app in glob.glob("./bin/*.exe"):
     executeCommand([qt_deploy,app])
-	
-  sys.exit(0)
 
+  
 # /////////////////////////////////////////////////////////////////
-if platform.system()=="Linux":
-
-	# copy qt libs
-	for lib in ("libQt5OpenGL.so.5","libQt5Widgets.so.5","libQt5Gui.so.5","libQt5Core.so.5","libQt5Svg.so.5","libQt5PrintSupport.so.5"):
-		copyFileIfExist("/usr/lib/x86_64-linux-gnu/"+lib,"bin/")
-		copyFileIfExist("/usr/lib64/"+lib,"bin/")       
-
-	# copy qt plugins
-	for plugin in ("iconengines","imageformats","platforms","printsupport"):
-		copyDirectoryIfExist("/usr/lib/x86_64-linux-gnu/qt5/plugins/"+plugin,"bin/plugins/"+plugin)
-		copyDirectoryIfExist("/usr/lib64/qt5/plugins/"+plugin,"bin/plugins/"+plugin)
-		
-
-	sys.exit(0)
-
-# /////////////////////////////////////////////////////////////////
-if platform.system()=="Darwin":
+elif APPLE:
 
   qt_dir=os.path.realpath(qt_dir+"/../../..")
   otool="/usr/bin/install_name_tool"
@@ -117,5 +116,21 @@ if platform.system()=="Darwin":
   for qt_plugin in qt_plugins:
   	copyDirectory(qt_dir + "/plugins/"+qt_plugin,"./bin/Plugins/"+qt_plugin)
 
-  sys.exit(0)
- 
+
+# /////////////////////////////////////////////////////////////////
+else:
+
+	# copy qt libs
+	for lib in ("libQt5OpenGL.so.5","libQt5Widgets.so.5","libQt5Gui.so.5","libQt5Core.so.5","libQt5Svg.so.5","libQt5PrintSupport.so.5"):
+		copyFileIfExist("/usr/lib/x86_64-linux-gnu/"+lib,"bin/")
+		copyFileIfExist("/usr/lib64/"+lib,"bin/")       
+
+	# copy qt plugins
+	for plugin in ("iconengines","imageformats","platforms","printsupport"):
+		copyDirectoryIfExist("/usr/lib/x86_64-linux-gnu/qt5/plugins/"+plugin,"bin/plugins/"+plugin)
+		copyDirectoryIfExist("/usr/lib64/qt5/plugins/"+plugin,"bin/plugins/"+plugin)
+		
+	
+deployToFile()
+
+
