@@ -105,9 +105,9 @@ deploy:
     file: "${DEPLOY_FILENAME}"
     on:
         repo: sci-visus/OpenVisus
-        branches: 
-            only: 
-                - scrgiorgio     
+        # if i try to filter on branch it does not work....
+        all_branches: true 
+  
 
 
 
