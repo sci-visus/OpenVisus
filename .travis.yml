@@ -104,9 +104,7 @@ deploy:
     skip_cleanup: true
     file: "${DEPLOY_FILENAME}"
     on:
-        repo: sci-visus/OpenVisus
-        # if i try to filter on branch it does not work....
-        all_branches: true 
+      tags: true
   
 
 
