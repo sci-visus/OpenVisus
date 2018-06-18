@@ -100,7 +100,7 @@ script:
 
     
 before_deploy:
-  - export DEPLOY_FILENAME=$(ls ${TRAVIS_BUILD}/build/install/OpenVisus.*.tar.gz) 
+  - export DEPLOY_FILENAME=$(ls ${TRAVIS_BUILD_DIR}/build/install/OpenVisus.*.tar.gz) 
   - echo "deploying $DEPLOY_FILENAME to GitHub releases"    
 
 deploy:
