@@ -99,14 +99,13 @@ script:
 
 
 deploy:
-    provider: releases
-    api_key:
-        secure: udFydJ/YefKgym84aemlQ6AJc+zU/GEVAreCb9fvsoKneZt4eh5UeGCxH5UAbG4aN4sM7bFohWob2Eolwzqz/AWJNZbyZ+/JZMyLE5iI2tSG2WnOG4wWbAmr9VGN9FwceH32Dv7bW8RzYJQkAo01q7MHkURr6qRv122zxcncIPt+kYNPWN5U7Xkr/k2CtIvS21/e/KijOR36qrOQ5wwQQHIJl0CuiYqcbDCLSQ4vxai2hr9yIJD5GDzA49zK/DibJO9vi3dmjUX7QbyJAYRrpfJrwLDpQX4i319iJ85QKU0qrKMZGhpiDrUscerIGKcCgZRlAIV9rdwbVtMM0/8V15j3zudIB2hvA4S1t8l4QMge1iNycI8IConlPzAZXkSuwRM5iHvIG5TDgksbdu1mKRYOlPskMMxKItvE+OhpyrA12XeDFmxnAnavyFs0Ni5+YFO7q+xOuiQp1aAe/02O6j/cSgoKeEvH6j06o+HKpqDFYzuHMXBK3GZeOExoLqJ55dUJJoE/3AYdWsLpSYmRW0/SlYXIMkMYTMfuKW8Bgrfn5E7TZBTeKU1nxoBI63SaWP3e1/5ljjxd06WkW2XDPtb9WQxZk+4D6omqmhoeoeuplrbiXU7f713ERWNHsC8L9C8OS1mtICDGwP2WHSnxO+ZkMnO0uP4nrQSuolaGj4c=
-    skip_cleanup: true
-    file: "${DEPLOY_FILENAME}"
-    on:
-      tags: true
-  
-
-
+  provider: releases
+  api_key:
+    secure: vvs+N/XwsigYj6pZIR0Lksg+FnA2M7bCy4aHj7at1nPOtX3ZHHdkSgIyd06awkiWSNg++fM6GIi7ewU+ftX9rGxgRFG5eWIKQyuHHPvNSIIcJe1cY7440Y6Kb2p58BFeGQxLJl0y3XlCObPW7yMoY7h9i6kTL6w7k3NkdWkFpdDaNXXEaGnzeoaM6u+iBmgAWgX9Ozlu+ogjFpw5b7QPtKgi1Bey/IbIeVWExuFnXsTJe3MDobdFvgJ0tewErnWAey3V8IXQzVMqdOIAl+xtu3RMmsdNymDAZpof31wFNLCr7BMmIg/O2QW1tnvNXuFX9Gpry5CKb7i0oxthiLyNTkh2sZQcAJcBdWJlP4LiSCBoJ2HuAc5XSqss8aXt/hHAzL3ICPtd6wVPlHEMK1+/EsC4WcO5X0ngzmGnn8eceIBFJiqYhI+c85GqUWPrFw+REKUsAwthMK0tNErruWZR1uubYnlyQYHpSaPdKie6o0aWK8Xit+GN3jkcqRrhQDwX3WFLxw2N07eh/f3vCD4m7GwRJfi5LXDuoLp3Qg5w23gi4ewp71v9oTZNT4K3vVEYuwzCyglppjyszQDvBAwxgxnWtSZh2nGEtwtDL5dRiIXehqfaK7mRKQ8iZwpQkuyTD+rsl45nTuNjeKYC3BLHd+NZhJI8qmcD6oykt+oxzjg=
+  file: ${DEPLOY_FILENAME}
+  skip_cleanup: true
+  on:
+    repo: sci-visus/OpenVisus
+    branch: scrgiorgio
+    tags: true
 
