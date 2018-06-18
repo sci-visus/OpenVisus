@@ -97,6 +97,7 @@ script:
     - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then                     cmake --build ./ --target RUN_TESTS --config $BUILD_TYPE               ; fi
     - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then                     cmake --build ./ --target install   --config $BUILD_TYPE               ; fi
 
+
 deploy:
     provider: releases
     api_key:
