@@ -97,7 +97,7 @@ script:
     - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then                     cmake --build ./ --target RUN_TESTS --config $BUILD_TYPE               ; fi
     - if   [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then                     cmake --build ./ --target install   --config $BUILD_TYPE               ; fi
 
-
+ 
     
 before_deploy:
   - export DEPLOY_FILENAME=$(ls ${TRAVIS_BUILD_DIR}/build/install/*.whl) 
