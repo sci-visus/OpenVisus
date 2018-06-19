@@ -47,7 +47,7 @@ build_script:
 test: off
 
 artifacts:
-    - path: '.\build\install\dist\visuspy-1.0.0-py3-none-win_amd64.whl'
+    - path: .\build\install\dist\*.whl
       name: visuspy.win_amd64
  
 deploy:

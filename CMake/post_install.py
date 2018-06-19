@@ -61,7 +61,7 @@ if platform.system() == "Windows":
   writeTextFile("visusviewer.bat","""
 cd /d %~dp0
 set PYTHONPATH=./;%PYTHONPATH%
-bin\visusviewer.exe --visus-config datasets/visus.config
+bin\\visusviewer.exe --visus-config datasets/visus.config
 pause
 """)
   
@@ -83,7 +83,7 @@ elif platform.system() == "Darwin":
 
   writeTextFile("visusviewer.command","""
 cd `dirname $0`
-find ./visuscache -name '*.lock' -exec rm -rf {} \; 2>/dev/null
+find ./visuscache -name '*.lock' -exec rm -rf {} \\; 2>/dev/null
 export QT_PLUGIN_PATH=$(pwd)/bin/Plugins
 export PYTHONPATH=$(pwd)
 ./bin/visusviewer.app/Contents/MacOS/visusviewer --visus-config datasets/visus.config
