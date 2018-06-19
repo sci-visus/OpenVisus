@@ -46,10 +46,14 @@ build_script:
 # test are already in cmake
 test: off
 
+artifacts:
+    - path: '.\build\install\dist\visuspy-1.0.0-py3-none-win_amd64.whl'
+      name: visuspy.win_amd64
+ 
 deploy:
   - provider: GitHub
     auth_token:
       secure: nwK8bGTRUynj+58b7E8Rgur5/0YvfIivBflFb5AaUrpC5BSTpcLbA4Ac+cCF6L4/
-    artifact: './build/install/dist/*'
+    artifact:  visuspy.win_amd64
     on:
       appveyor_repo_tag: true 
