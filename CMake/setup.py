@@ -1,5 +1,8 @@
 import os, sys, setuptools
 
+# example for installation
+# pip3 install dist\visuspy-1.0.0-py3-none-win_amd64.whl
+
 # ///////////////////////////////////////////////////////
 def findFiles(dir,ignore_directories=("build", "dist","visuspy.egg-info")):
   ret=[]
@@ -42,6 +45,6 @@ setuptools.setup(
   license = "BSD",
   install_requires=[
     'numpy', 
-    "PyQt5; python_version >= '5.9'",
+    # "PyQt5>='5.9'" removed because I'm having some problems with travis
   ],
 )
