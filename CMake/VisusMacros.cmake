@@ -553,7 +553,7 @@ macro(PostInstallVisus)
 		set(CREATE_WHEELS_ARGS --python-tag=cp36  --plat-name=win_amd64)
 
 	elseif(APPLE)
-    		set(CREATE_WHEELS_ARGS --python-tag=cp36  --plat-name=macosx_10_13_x86_64) # see .travis.yml osx_image https://docs.travis-ci.com/user/reference/osx/
+		set(CREATE_WHEELS_ARGS --python-tag=cp36  --plat-name=macosx_10_13_x86_64) # see .travis.yml osx_image https://docs.travis-ci.com/user/reference/osx/
 
 	else()
 		set(CREATE_WHEELS_ARGS --python-tag=cp36  --plat-name=linux_x86_64)
@@ -562,8 +562,9 @@ macro(PostInstallVisus)
 
 	install(CODE "
 		execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_SOURCE_DIR}/CMake/post_install.py\" \"${Qt5_DIR}\" \"${DEPLOYQT}\" WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
-		execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" setup.py bdist_wheel ${CREATE_WHEELS_ARGS} WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
+		execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" setup.py bdist_wheel ${CREATE_WHEELS_ARGS}                                   WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
 	")
+  
 endmacro()
 
 
