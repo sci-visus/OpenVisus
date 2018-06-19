@@ -17,12 +17,7 @@ environment:
   # update the vcpkg cache even if build fails
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
   
-# don't re-build for tags so that [publish binary] is not re-run
-# https://github.com/travis-ci/travis-ci/issues/1532
-branches:
-  except:
-    - /^v[0-9]/    
-  
+ 
 cache:
   - c:\Tools\vcpkg\installed  
   

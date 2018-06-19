@@ -9,12 +9,7 @@ notifications:
       - scrgiorgio@gmail.com
     on_success: always
     on_failure: always 
-    
-# don't re-build for tags so that [publish binary] is not re-run
-# https://github.com/travis-ci/travis-ci/issues/1532
-branches:
-  except:
-    - /^v[0-9]/    
+   
   
 matrix:
 
