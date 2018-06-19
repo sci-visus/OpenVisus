@@ -525,37 +525,23 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(InstallVisus)
 
-	install(DIRECTORY Copyrights  DESTINATION .)
-	install(DIRECTORY Samples     DESTINATION .)
-	install(FILES     LICENSE     DESTINATION .)
-	install(FILES     README.md   DESTINATION .)
-	install(DIRECTORY datasets    DESTINATION .)
-
-	InstallBuildFiles(*.py .)
+	install(FILES     LICENSE               DESTINATION .)
+	install(FILES     README.md             DESTINATION .)
+  install(FILES     CMake/__init__.py     DESTINATION .)
+  install(FILES     CMake/visuspy.py      DESTINATION .)
+  install(FILES     CMake/setup.py        DESTINATION .)
+	install(DIRECTORY Copyrights            DESTINATION .)
+	install(DIRECTORY Samples               DESTINATION .)
+	install(DIRECTORY datasets              DESTINATION .)
+  
+  # swig files
+  InstallBuildFiles(*.py .)
 
 	# in windows I need to copy vcpkg dlls
 	if (WIN32)
-
 		InstallBuildFiles(*.dll ./bin)
-		
-		# Do not pack vc++ redist 
 		SET(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
-
 		include(InstallRequiredSystemLibraries)
-
-	endif()
-
-	if (VISUS_GUI)
-
-		# generate script to launch visusviewer
-    	file(READ "${CMAKE_SOURCE_DIR}/CMake/visusviewer${terminal_extension}" __content__)
-		file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/visusviewer.$<CONFIG>${terminal_extension}" CONTENT "${__content__}")
-		install(CODE "
-			FILE(INSTALL ${CMAKE_BINARY_DIR}/visusviewer.\${CMAKE_INSTALL_CONFIG_NAME}${terminal_extension} 
-			DESTINATION ${CMAKE_INSTALL_PREFIX} 
-			PERMISSIONS OWNER_EXECUTE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ)
-		")
-
 	endif()
 
 endmacro()
@@ -563,8 +549,8 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(PostInstallVisus)
 	install(CODE "
-		message(STATUS \"Executing post_install.py ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/CMake/post_install.py ${Qt5_DIR} ${DEPLOYQT}\")
-		execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_SOURCE_DIR}/CMake/post_install.py\" \"${Qt5_DIR}\" \"${DEPLOYQT}\" WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
+		execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_SOURCE_DIR}/CMake/post_install.py\" \"${Qt5_DIR}\" \"${DEPLOYQT}\"        WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
+		execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" setup.py bdist_wheel --plat-name=win_amd64     WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
 	")
 endmacro()
 
