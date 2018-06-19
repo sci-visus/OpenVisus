@@ -54,6 +54,8 @@ Table of content:
 [Use OpenVisus as submodule](#use-openvisus-as-submodule)
 
 [mod_visus](#mod_visus)
+
+[Binary Distribution] (#binary-distribution)
 	
 ## Windows compilation
 
@@ -403,5 +405,21 @@ To test it, in another terminal:
 curl -v "http://localhost/mod_visus?action=readdataset&dataset=cat"
 ```
 
-	
+## Binary distribution
+
+OpenVisus automatically build on Travis and AppVeyor.
+If you want to create a new GitHub Release::
+
+  git commit -a -m "commit your code/version"
+  git config --global push.followTags true # the tag will be automatically pushed to origin
+  git tag -a "vx.yy" -m "vx.yy" # replace x,y with some numbers
+  git push
+  
+You can download the precompiled Python wheel file from GitHub release page.
+And then you can install the wheel typing for example::
+
+  # replace with the current wheel name
+  pip3 install visuspy-1.0.0-py3-none-win_amd64.whl
+
+
 

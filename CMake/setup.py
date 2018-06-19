@@ -1,7 +1,6 @@
 import os, sys, setuptools
 
-# example for installation
-# pip3 install dist\visuspy-1.0.0-py3-none-win_amd64.whl
+
 
 # ///////////////////////////////////////////////////////
 def findFiles(dir,ignore_directories=("build", "dist","visuspy.egg-info")):
