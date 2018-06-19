@@ -121,7 +121,7 @@ export PYTHONPATH=$(pwd)
   for qt_plugin in qt_plugins:
   	copyDirectory(qt_dir + "/plugins/"+qt_plugin,"./bin/Plugins/"+qt_plugin)
     
-  shutil.make_archive("OpenVisus.Darwin", "gztar", "./")	    
+  #shutil.make_archive("OpenVisus.Darwin", "gztar", "./")	    
 
 # /////////////////////////////////////////////////////////////////
 else:
@@ -146,7 +146,7 @@ find ./visuscache -name '*.lock' -delete
 		copyDirectoryIfExist("/usr/lib/x86_64-linux-gnu/qt5/plugins/"+plugin,"bin/plugins/"+plugin)
 		copyDirectoryIfExist("/usr/lib64/qt5/plugins/"+plugin,"bin/plugins/"+plugin)
 		
-	shutil.make_archive("OpenVisus.Linux", "gztar", "./")	
+	#shutil.make_archive("OpenVisus.Linux", "gztar", "./")	
   
 
 

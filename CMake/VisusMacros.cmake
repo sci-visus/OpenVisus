@@ -548,9 +548,17 @@ endmacro()
 
 # ///////////////////////////////////////////////////
 macro(PostInstallVisus)
+
+  if (WIN32)
+    set(PLAT_NAME win_amd64)
+  elseif(APPLE)
+    set(PLAT_NAME macosx_10_13_x86_64) # see .travis.yml osx_image https://docs.travis-ci.com/user/reference/osx/
+  else()
+  endif()
+
 	install(CODE "
 		execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_SOURCE_DIR}/CMake/post_install.py\" \"${Qt5_DIR}\" \"${DEPLOYQT}\"        WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
-		execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" setup.py bdist_wheel --plat-name=win_amd64     WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
+		execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" setup.py bdist_wheel --plat-name=${PLAT_NAME}     WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
 	")
 endmacro()
 
