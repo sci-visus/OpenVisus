@@ -60,9 +60,9 @@ Table of content:
 Install [Python 3.x](https://www.python.org/ftp/python/3.6.3/python-3.6.3-amd64.exe) 
 You may want to check "*Download debugging symbols*" and "*Download debugging libraries*" if you are planning to debug your code. 
 
-Install numpy::
+Install numpy and deploy packages::
 
-	pip3 install numpy
+	pip3 install numpy setuptools wheel
   
 Install PyQt5:
 
@@ -124,7 +124,7 @@ Install brew and OpenVisus prerequisites::
 
 	ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 	brew install git cmake swig qt5 lz4 tinyxml zlib openssl curl freeimage python3
-	pip3 install numpy
+	pip3 install numpy setuptools wheel
 
 Run xcode command line tools:
 
@@ -143,7 +143,7 @@ Compile OpenVisus. From a prompt::
 	cmake --build . --target ALL_BUILD --config Release
 	# optional
 	# cmake --build . --target RUN_TESTS --config Release 
-	# cmake --build . --target INSTALL   --config Release
+	# cmake --build . --target install   --config Release
 
 To test if it's working::
 
@@ -175,10 +175,10 @@ For OpenSuse Leap::
 		zlib-devel liblz4-devel libtinyxml-devel libuuid-devel freeimage-devel libcurl-devel libopenssl-devel glu-devel \
 		libQt5Concurrent-devel libQt5Network-devel \libQt5Test-devel libQt5OpenGL-devel libQt5PrintSupport-devel
 
-Install numpy::
+Install numpy and deploy depencencies::
 
 	sudo pip3 install --upgrade pip
-	sudo pip3 install numpy
+	sudo pip3 install numpy setuptools wheel
 
 Compile OpenVisus::
 

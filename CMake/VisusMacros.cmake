@@ -17,30 +17,30 @@ macro(SetupCMake)
 	set(EXECUTABLE_OUTPUT_PATH  ${CMAKE_BINARY_DIR})           
 	set(LIBRARY_OUTPUT_PATH     ${CMAKE_BINARY_DIR})	
 
-   if (NOT WIN32)
+	if (NOT WIN32)
       
-      set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE CACHE BOOL "" FORCE)
-	   set(CMAKE_SKIP_BUILD_RPATH         TRUE  CACHE BOOL "" FORCE)
-    	set(CMAKE_SKIP_RPATH               TRUE  CACHE BOOL "" FORCE)
-    	set(CMAKE_SKIP_INSTALL_RPATH       TRUE  CACHE BOOL "" FORCE)
+		set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE CACHE BOOL "" FORCE)
+		set(CMAKE_SKIP_BUILD_RPATH         TRUE  CACHE BOOL "" FORCE)
+		set(CMAKE_SKIP_RPATH               TRUE  CACHE BOOL "" FORCE)
+		set(CMAKE_SKIP_INSTALL_RPATH       TRUE  CACHE BOOL "" FORCE)
 
 		mark_as_advanced(CMAKE_BUILD_WITH_INSTALL_RPATH)
 		mark_as_advanced(CMAKE_SKIP_BUILD_RPATH)
 		mark_as_advanced(CMAKE_SKIP_RPATH)
 		mark_as_advanced(CMAKE_SKIP_INSTALL_RPATH)
 
-      if (APPLE)
+		if (APPLE)
 			# NOT USING qt deploy because it's kind of unusable
 			# you can check the rpath by 
 			#   otool -l filename | grep -i -A2 rpath
 			#   otool -L filename
 		 	set(CMAKE_MACOSX_RPATH FALSE CACHE BOOL "" FORCE)
 			mark_as_advanced(CMAKE_MACOSX_RPATH)
-      else()
-         # check dependencies
-         # ldd filename
+		else()
+			# check dependencies
+			# ldd filename
 
-      endif()
+		endif()
 
 	endif()
 
@@ -68,7 +68,7 @@ macro(SetupCMake)
 		set(CMAKE_MODULE_LINKER_FLAGS_RELEASE "${CMAKE_MODULE_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
 		set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
 
-	    set(terminal_extension ".bat")
+		set(terminal_extension ".bat")
 
 	elseif (APPLE)
 
@@ -95,7 +95,7 @@ macro(SetupCMake)
 		add_definitions(-D_FILE_OFFSET_BITS=64)
 
 		# -Wno-attributes to suppress spurious "type attributes ignored after type is already defined" messages 
-      # see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
+		# see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
 		set(CMAKE_C_FLAGS    "${CMAKE_C_FLAGS}   -fPIC -Wno-attributes")
 		set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fPIC -Wno-attributes")
 
@@ -121,9 +121,9 @@ endmacro()
 macro(AddExternalApp name SourceDir BinaryDir)
 
 	if (WIN32 OR APPLE)
-	  set(CMAKE_GENERATOR_ARGUMENT -G"${CMAKE_GENERATOR}")
+		set(CMAKE_GENERATOR_ARGUMENT -G"${CMAKE_GENERATOR}")
 	else()
-	  set(CMAKE_GENERATOR_ARGUMENT -G"\"${CMAKE_GENERATOR}\"")
+		set(CMAKE_GENERATOR_ARGUMENT -G"\"${CMAKE_GENERATOR}\"")
 	endif()
 
 	add_custom_target(${name} 
@@ -203,10 +203,10 @@ macro(AddVisusSwigLibrary Name SwigFile)
 
 	target_include_directories(_${NamePy} PUBLIC ${PYTHON_INCLUDE_DIRS})
 
-   if (NUMPY_FOUND)
-	  target_compile_definitions(_${NamePy} PRIVATE NUMPY_FOUND=1)
-     target_include_directories(_${NamePy} PRIVATE ${NUMPY_INCLUDE_DIR})
-   endif()
+	if (NUMPY_FOUND)
+		target_compile_definitions(_${NamePy} PRIVATE NUMPY_FOUND=1)
+		target_include_directories(_${NamePy} PRIVATE ${NUMPY_INCLUDE_DIR})
+	endif()
 
 	# anaconda is statically linking python library inside its executable, so I cannot link in order to avoid duplicated symbols
 	# see https://groups.google.com/a/continuum.io/forum/#!topic/anaconda/057P4uNWyCU
@@ -316,8 +316,8 @@ macro(AddCTest Name Command WorkingDirectory)
 
 	if (WIN32)
 		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
-   elseif(APPLE)
-      set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
+	elseif(APPLE)
+		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
 	else()
 		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR};LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}")
 	endif()
@@ -493,7 +493,7 @@ endmacro()
 
 # ///////////////////////////////////////////////////
 macro(AddVisusLibrary Name)
-    add_library(${Name} ${ARGN})
+	add_library(${Name} ${ARGN})
 	string(TOUPPER ${Name} __upper_case__name__)
 	target_compile_definitions(${Name}  PRIVATE VISUS_BUILDING_${__upper_case__name__}=1)
 	target_include_directories(${Name}  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
@@ -503,9 +503,9 @@ endmacro()
 
 # ///////////////////////////////////////////////////
 macro(AddVisusExecutable Name)
-    add_executable(${Name} ${ARGN})
+	add_executable(${Name} ${ARGN})
 	set_target_properties(${Name} PROPERTIES FOLDER Executable/)
-    set_target_properties(${Name} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})  
+	set_target_properties(${Name} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})  
 	file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/$<CONFIG>/~${Name}.path.tmp" CONTENT "$<TARGET_FILE:${Name}>")
 	InstallVisusExecutable(${Name})
 endmacro()
@@ -527,15 +527,15 @@ macro(InstallVisus)
 
 	install(FILES     LICENSE               DESTINATION .)
 	install(FILES     README.md             DESTINATION .)
-  install(FILES     CMake/__init__.py     DESTINATION .)
-  install(FILES     CMake/visuspy.py      DESTINATION .)
-  install(FILES     CMake/setup.py        DESTINATION .)
+	install(FILES     CMake/__init__.py     DESTINATION .)
+	install(FILES     CMake/visuspy.py      DESTINATION .)
+	install(FILES     CMake/setup.py        DESTINATION .)
 	install(DIRECTORY Copyrights            DESTINATION .)
 	install(DIRECTORY Samples               DESTINATION .)
 	install(DIRECTORY datasets              DESTINATION .)
   
-  # swig files
-  InstallBuildFiles(*.py .)
+	# swig files
+	InstallBuildFiles(*.py .)
 
 	# in windows I need to copy vcpkg dlls
 	if (WIN32)
@@ -549,12 +549,16 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(PostInstallVisus)
 
-  if (WIN32)
-    set(CREATE_WHEELS_ARGS --python-tag=cp36  --plat-name=win_amd64)
-  elseif(APPLE)
-    set(CREATE_WHEELS_ARGS --python-tag=cp36  --plat-name=macosx_10_13_x86_64) # see .travis.yml osx_image https://docs.travis-ci.com/user/reference/osx/
-  else()
-  endif()
+	if (WIN32)
+		set(CREATE_WHEELS_ARGS --python-tag=cp36  --plat-name=win_amd64)
+
+	elseif(APPLE)
+    		set(CREATE_WHEELS_ARGS --python-tag=cp36  --plat-name=macosx_10_13_x86_64) # see .travis.yml osx_image https://docs.travis-ci.com/user/reference/osx/
+
+	else()
+		set(CREATE_WHEELS_ARGS --python-tag=cp36  --plat-name=linux_x86_64)
+
+	endif()
 
 	install(CODE "
 		execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_SOURCE_DIR}/CMake/post_install.py\" \"${Qt5_DIR}\" \"${DEPLOYQT}\" WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
