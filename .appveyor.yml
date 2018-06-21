@@ -17,6 +17,7 @@ environment:
   # update the vcpkg cache even if build fails
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
   
+ 
 cache:
   - c:\Tools\vcpkg\installed  
   
@@ -37,23 +38,23 @@ build_script:
   - mkdir build 
   - cd build 
   - set PATH=C:\Python36-x64;C:\Python36-x64\Scripts;%PATH%
-  - pip install numpy
+  - pip install numpy setuptools wheel
   - cmake -G "Visual Studio 15 2017 Win64" -DCMAKE_TOOLCHAIN_FILE="c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET="x64-windows" -DQt5_DIR="C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5" ..
   - cmake --build . --target ALL_BUILD --config Release
   - cmake --build . --target RUN_TESTS --config Release 
   - cmake --build . --target INSTALL   --config Release 
-  
+   
 # test are already in cmake
 test: off
 
 artifacts:
-    - path: '.\build\install\OpenVisus.Windows.zip'
-      name: OpenVisus.Windows.zip
+    - path: .\build\install\dist\*.whl
+      name: visuspy.win_amd64
  
 deploy:
   - provider: GitHub
     auth_token:
       secure: nwK8bGTRUynj+58b7E8Rgur5/0YvfIivBflFb5AaUrpC5BSTpcLbA4Ac+cCF6L4/
-    artifact:  OpenVisus.Windows.zip
+    artifact: visuspy.win_amd64
     on:
       appveyor_repo_tag: true 

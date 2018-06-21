@@ -181,11 +181,19 @@ else()
 	file(GLOB Sources include/Visus/*.h src/*.cpp)
 endif()
 
-file(GLOB PythonScriptSource ${CMAKE_CURRENT_SOURCE_DIR}/../../Executable/python/*.py)
-set(Sources ${Sources} ${PythonScriptSource})
-source_group("" FILES ${PythonScriptSource})
+file(GLOB PythonScriptSource 
+  ../../CMake/__init__.py 
+  ../../CMake/visuspy.py)
 
-file(GLOB RootDocs ../../CMakeLists.txt ../../.*.yml ./../README.md ../../CMake/* ../../ExternalLibs/CMakeLists.txt)
+file(GLOB RootDocs 
+  ../../CMakeLists.txt 
+  ../../.*.yml 
+  ../../README.md 
+  ../../CMake/* 
+  ../../ExternalLibs/CMakeLists.txt 
+  ${PythonScriptSource}
+)
+
 set(Sources ${Sources} ${RootDocs})
 source_group("" FILES ${RootDocs})
 

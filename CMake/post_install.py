@@ -5,9 +5,6 @@ import platform
 import tarfile
 
 
-WIN32=True if platform.system() == "Windows" else False
-APPLE=True if platform.system() == "Darwin"  else False
-
 # ////////////////////////////////////////////////////
 def getArg(index):
   return str(sys.argv[index]) if len(sys.argv)>index else ""
@@ -44,18 +41,12 @@ def copyFileIfExist(src,dst):
 def copyDirectoryIfExist(src,dst):
     if existDirectory(dst):
         return copyDirectory(src,dst)
-
-# ////////////////////////////////////////////////////
-def deployToFile():
-
-	filename="OpenVisus."+ platform.system()
-	format="zip" if WIN32 else "gztar"
-	compress_dir="./"
-
-	print("shutil.make_archive('%s', '%s', '%s')" % (filename,format,compress_dir))
-	shutil.make_archive(filename, format, compress_dir)
-
-
+    
+# ////////////////////////////////////////////////////    
+def writeTextFile(filename,content):
+  file = open(filename,"w") 
+  file.write(content) 
+  file.close() 
 
 qt_dir,qt_deploy=getArg(1),getArg(2)
 
@@ -65,14 +56,20 @@ print("qt_dir:",qt_dir)
 print("qt_deploy:",qt_deploy)
 
 # /////////////////////////////////////////////////////////////////
-if WIN32:
+if platform.system() == "Windows":
+
+  writeTextFile("visusviewer.bat","""
+cd /d %~dp0
+set PYTHONPATH=./;%PYTHONPATH%
+bin\\visusviewer.exe --visus-config datasets/visus.config
+pause
+""")
   
   for app in glob.glob("./bin/*.exe"):
     executeCommand([qt_deploy,app])
-
   
 # /////////////////////////////////////////////////////////////////
-elif APPLE:
+elif platform.system() == "Darwin":
 
   qt_dir=os.path.realpath(qt_dir+"/../../..")
   otool="/usr/bin/install_name_tool"
@@ -84,6 +81,14 @@ elif APPLE:
   def otoolAddRPath(dir,target): return executeCommand([otool,"-add_rpath",dir,target])
   def otoolChange(old_path,new_path,target): return executeCommand([otool,"-change",old_path,new_path,target])
 
+  writeTextFile("visusviewer.command","""
+cd `dirname $0`
+find ./visuscache -name '*.lock' -exec rm -rf {} \\; 2>/dev/null
+export QT_PLUGIN_PATH=$(pwd)/bin/Plugins
+export PYTHONPATH=$(pwd)
+./bin/visusviewer.app/Contents/MacOS/visusviewer --visus-config datasets/visus.config
+""")
+  
   # fixing libs
   libs=glob.glob("./bin/*.dylib") + glob.glob("./bin/*.so") 
   for target in libs:
@@ -115,10 +120,21 @@ elif APPLE:
 
   for qt_plugin in qt_plugins:
   	copyDirectory(qt_dir + "/plugins/"+qt_plugin,"./bin/Plugins/"+qt_plugin)
-
+    
+  #shutil.make_archive("OpenVisus.Darwin", "gztar", "./")	    
 
 # /////////////////////////////////////////////////////////////////
 else:
+
+	writeTextFile("visusviewer.sh","""
+#!/bin/sh
+cd `dirname $0`
+export LD_LIBRARY_PATH=$PWD/bin
+export QT_PLUGIN_PATH=$PWD/bin/plugins
+export PYTHONPATH=$PWD
+find ./visuscache -name '*.lock' -delete
+./bin/visusviewer --config datasets/visus.config
+""")
 
 	# copy qt libs
 	for lib in ("libQt5OpenGL.so.5","libQt5Widgets.so.5","libQt5Gui.so.5","libQt5Core.so.5","libQt5Svg.so.5","libQt5PrintSupport.so.5"):
@@ -130,7 +146,7 @@ else:
 		copyDirectoryIfExist("/usr/lib/x86_64-linux-gnu/qt5/plugins/"+plugin,"bin/plugins/"+plugin)
 		copyDirectoryIfExist("/usr/lib64/qt5/plugins/"+plugin,"bin/plugins/"+plugin)
 		
-	
-deployToFile()
+	#shutil.make_archive("OpenVisus.Linux", "gztar", "./")	
+  
 
 
