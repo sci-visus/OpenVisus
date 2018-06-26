@@ -47,10 +47,12 @@ For support : support@visus.net
 #include <CoreFoundation/CFUUID.h>
 
 #else
-#include <uuid/uuid.h>
 
+#if HAS_UUID_H
+  #include <uuid/uuid.h>
 #endif
 
+#endif
 
 
 namespace Visus {
@@ -124,8 +126,15 @@ public:
   //create
   String create()
   {
+#if HAS_UUID_H
     uuid_t bytes;
     uuid_generate(bytes);
+#else
+    Uint8 bytes[16];
+    //this is not really a UUID... it is just a quick and dirty fix
+    for (int I=0;I<16;I++)
+      bytes[I]=(Uint8)rand();
+#endif
 
     std::ostringstream out;
     out << std::hex << std::setfill('0')
@@ -149,6 +158,7 @@ public:
       << std::setw(2) << (int)bytes[13]
       << std::setw(2) << (int)bytes[14]
       << std::setw(2) << (int)bytes[15];
+ 
 
     return out.str();
   }

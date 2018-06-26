@@ -1,5 +1,4 @@
 
-
 FindGitRevision()
 add_definitions(-DGIT_REVISION=\"${GIT_REVISION}\")
 
@@ -10,6 +9,20 @@ endif()
 if (DEFINED VISUS_PYTHON_SYS_PATH)
  	add_definitions(-DVISUS_PYTHON_SYS_PATH="${VISUS_PYTHON_SYS_PATH}")
 endif()
+
+if (NOT (WIN32 OR APPLE))
+
+  include(CheckIncludeFiles)
+  unset(HAS_UUID_H)
+  check_include_files(uuid/uuid.h HAS_UUID_H)
+
+  if (HAS_UUID_H)
+    add_definitions(-DHAS_UUID_H=1)
+   else()
+    add_definitions(-DHAS_UUID_H=0)
+  endif()
+endif()
+
 
 set(UpLevelSources
 	./include/Visus/Visus.h 
@@ -197,68 +210,39 @@ endforeach()
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/dtl/include)
 
-#  zlib
-if (TARGET zlib)
-	target_link_libraries(VisusKernel PRIVATE  zlib)
-else()
-	FindZLib()
-	target_include_directories(VisusKernel PRIVATE ${ZLIB_INCLUDE_DIRS})
-	target_link_libraries(VisusKernel PRIVATE  ${ZLIB_LIBRARIES})	
-endif()
+FindZLib()
+target_include_directories(VisusKernel PRIVATE ${ZLIB_INCLUDE_DIRS})
+target_link_libraries(VisusKernel PUBLIC ${ZLIB_LIBRARIES})	
 
 # lz4
-if (TARGET lz4)
-	target_link_libraries(VisusKernel PRIVATE lz4)
-else()
-	FindLZ4()
-	target_include_directories(VisusKernel PRIVATE ${LZ4_INCLUDE_DIR})
-	target_link_libraries(VisusKernel PRIVATE  ${LZ4_LIBRARY})		
-endif()
+FindLZ4()
+target_include_directories(VisusKernel PRIVATE ${LZ4_INCLUDE_DIR})
+target_link_libraries(VisusKernel PUBLIC ${LZ4_LIBRARY})		
 
 #  tinyxml
-if (TARGET tinyxml)
-	target_link_libraries(VisusKernel PRIVATE  tinyxml)
-else()
-	FindTinyXml()
-	target_include_directories(VisusKernel PRIVATE ${TinyXML_INCLUDE_DIRS})
-	target_link_libraries(VisusKernel PRIVATE  ${TinyXML_LIBRARIES})			
-endif()
+FindTinyXml()
+target_include_directories(VisusKernel PRIVATE ${TinyXML_INCLUDE_DIRS})
+target_link_libraries(VisusKernel PUBLIC ${TinyXML_LIBRARIES})			
 
 #  FreeImage
-if (TARGET FreeImage)
-	target_link_libraries(VisusKernel PRIVATE FreeImage)
-else()
-	FindFreeImage()
-	target_include_directories(VisusKernel PRIVATE ${FREEIMAGE_INCLUDE_DIRS})
-	target_link_libraries(VisusKernel PRIVATE  ${FREEIMAGE_LIBRARIES})
-endif()
+FindFreeImage()
+target_include_directories(VisusKernel PRIVATE ${FREEIMAGE_INCLUDE_DIRS})
+target_link_libraries(VisusKernel PUBLIC ${FREEIMAGE_LIBRARIES})
 
 # curl
-if (TARGET curl)
-	target_link_libraries(VisusKernel PRIVATE curl)
-else()
-	FindCurl()
-	target_include_directories(VisusKernel PRIVATE ${CURL_INCLUDE_DIR})
-	target_link_libraries(VisusKernel PRIVATE  ${CURL_LIBRARIES})
-endif()
+FindCurl()
+target_include_directories(VisusKernel PRIVATE ${CURL_INCLUDE_DIR})
+target_link_libraries(VisusKernel PUBLIC ${CURL_LIBRARIES})
 
 #  OpenSSL
-if (TARGET ssl)
-	target_link_libraries(VisusKernel PRIVATE crypto ssl)
-else()
-	FindOpenSSL()
-	target_include_directories(VisusKernel PRIVATE ${OPENSSL_INCLUDE_DIR})
-	target_link_libraries(VisusKernel PRIVATE  ${OPENSSL_SSL_LIBRARY})
-	target_link_libraries(VisusKernel PRIVATE  ${OPENSSL_CRYPTO_LIBRARY})
-endif()
+FindOpenSSL()
+target_include_directories(VisusKernel PRIVATE ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(VisusKernel PUBLIC ${OPENSSL_SSL_LIBRARY})
+target_link_libraries(VisusKernel PUBLIC ${OPENSSL_CRYPTO_LIBRARY})
 
 # python 
-if (TARGET python27)
-	target_link_libraries(VisusKernel PUBLIC python27)
-else()
-	target_include_directories(VisusKernel PUBLIC  ${PYTHON_INCLUDE_DIRS})
-	target_link_libraries(VisusKernel      PUBLIC  ${PYTHON_LIBRARIES})
-endif()
+target_include_directories(VisusKernel PUBLIC  ${PYTHON_INCLUDE_DIRS})
+target_link_libraries(VisusKernel      PUBLIC  ${PYTHON_LIBRARIES})
 
 if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
@@ -269,7 +253,10 @@ elseif(APPLE)
 		"-framework CoreAudio" "-framework CoreMIDI" "-framework QuartzCore" "-framework AudioToolbox")
 
 else()
-	target_link_libraries(VisusKernel PRIVATE dl rt uuid)
+	target_link_libraries(VisusKernel PUBLIC dl rt util)
+        if (HAS_UUID_H)
+          target_link_libraries(VisusKernel PUBLIC uuid)
+        endif()
 	target_link_libraries(VisusKernel PUBLIC  pthread)
 
 endif()

@@ -97,6 +97,16 @@ For support : support@visus.net
 
 #include <clocale>
 
+//this solve a problem of old Linux distribution (like Centos 5)
+#if __GNUC__ && !__APPLE__
+#include <arpa/inet.h>
+#include <byteswap.h>
+extern "C" uint32_t htole32(uint32_t x) { 
+  return bswap_32(htonl(x));
+}
+#endif
+
+
 namespace Visus {
 
 #if __APPLE__
@@ -109,6 +119,8 @@ void InitAutoReleasePool();
 void DestroyAutoReleasePool();
   
 #endif
+
+
 
 void InitPython();
 
