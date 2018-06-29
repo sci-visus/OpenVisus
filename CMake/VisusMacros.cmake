@@ -197,15 +197,15 @@ macro(AddVisusSwigLibrary Name SwigFile)
 		swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
 	endif()
 
-        target_link_libraries(${NamePy} PUBLIC ${Name})
+   target_link_libraries(_${NamePy} PUBLIC ${Name})
 
-	InstallVisusLibrary(${NamePy})
+	InstallVisusLibrary(_${NamePy})
 
-	target_include_directories(${NamePy} PUBLIC ${PYTHON_INCLUDE_DIRS})
+	target_include_directories(_${NamePy} PUBLIC ${PYTHON_INCLUDE_DIRS})
 
    if (NUMPY_FOUND)
-	  target_compile_definitions(${NamePy} PRIVATE NUMPY_FOUND=1)
-          target_include_directories(${NamePy} PRIVATE ${NUMPY_INCLUDE_DIR})
+	  target_compile_definitions(_${NamePy} PRIVATE NUMPY_FOUND=1)
+          target_include_directories(_${NamePy} PRIVATE ${NUMPY_INCLUDE_DIR})
    endif()
 
 	# anaconda is statically linking python library inside its executable, so I cannot link in order to avoid duplicated symbols
@@ -219,10 +219,10 @@ macro(AddVisusSwigLibrary Name SwigFile)
 		endif()
 	endif()
 
-	set_target_properties(${NamePy} PROPERTIES FOLDER Swig/)
+	set_target_properties(_${NamePy} PROPERTIES FOLDER Swig/)
 
 	if (NOT WIN32)
-		set_target_properties(${NamePy} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
+		set_target_properties(_${NamePy} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
 	endif()
 
 endmacro()
