@@ -195,20 +195,19 @@ public:
     return dataflow->getNodes();
   }
 
-  //findNode
-  Node* findNode(const String& uuid) const {
-    return dataflow->findNode(uuid);
+  //findNodeByUUID
+  Node* findNodeByUUID(const String& uuid) const {
+    return dataflow->findNodeByUUID(uuid);
   }
 
-  //findNode
-  template <class ClassName>
-  ClassName* findNode(const String& uuid) const {
-    return dynamic_cast<ClassName*>(findNode(uuid));
+  //findNodeByName
+  Node* findNodeByName(const String& name) const {
+    return dataflow->findNodeByName(name);
   }
 
-  //findNode
+  //findNodeByType
   template <class ClassName>
-  ClassName* findNode() const
+  ClassName* findNodeByType() const
   {
     for (auto node : getNodes()) {
       if (const ClassName* ret = dynamic_cast<const ClassName*>(node))

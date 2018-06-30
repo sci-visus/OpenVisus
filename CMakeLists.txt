@@ -33,15 +33,16 @@ option(BUILD_SHARED_LIBS "Build the shared library" TRUE)
 
 if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 	set(VISUS_IS_SUBMODULE 0)
+	set(CMAKE_FOLDER_PREFIX "")
 else()
 	set(VISUS_IS_SUBMODULE 1)
+	SET(CMAKE_FOLDER_PREFIX OpenVisus/)
 endif()
 
+
 # enable/disable install
-if (NOT VISUS_IS_SUBMODULE)
-	if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-	  set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
-	endif()
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
 endif()
 
 # enable/disable gui-stuff (i.e. Qt dependent)
@@ -68,10 +69,16 @@ IF (VISUS_GUI)
 
 endif()
 
-FindPython()
+# find Python
+set(PYTHON_VERSION 3)
+find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
+find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
+find_package(NumPy REQUIRED) 
 
 add_subdirectory(Libs)
 add_subdirectory(Executable)
+
+
 
 # *** samples and external apps ***
 if (NOT VISUS_IS_SUBMODULE)
@@ -98,10 +105,5 @@ if (NOT VISUS_IS_SUBMODULE)
 
 endif()
 
-
-# *** install ***
-if (NOT VISUS_IS_SUBMODULE)
-	InstallVisus()
-	add_subdirectory(CMake) # PostInstallVisus
-endif()
+InstallVisus()
 

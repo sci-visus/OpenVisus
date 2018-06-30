@@ -1,16 +1,12 @@
 
 import sys, os, sip
 
-from visuspy import *
+from OpenVisus import *
 
 import PyQt5
 from PyQt5.QtCore    import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui     import *
-
-# I 'm using Qt libraries coming from PyQt5 (important to use EXACTLY THE SAME VERSION)
-if sys.platform == 'win32':
-  addEnvPath(os.path.dirname(PyQt5.__file__) + "/Qt/bin")
 
 from VisusKernelPy   import *
 from VisusDataflowPy import *
@@ -33,7 +29,6 @@ class MyWidget(QWidget):
     self.setGeometry(300, 300, 250, 150)
     self.setWindowTitle('QCheckBox')
     self.show()
-    
 
 
 # ///////////////////////////////////////////////////////////
@@ -43,6 +38,7 @@ class MyPythonNode(PythonNode):
   def __init__(self):
     PythonNode.__init__(self)
     self.setName("MyPythonNode")
+    self.addInputPort("data")
     
   # getOsDependentTypeName
   def getOsDependentTypeName(self):
@@ -50,7 +46,6 @@ class MyPythonNode(PythonNode):
   
   # glRender
   def glRender(self, gl):
-    Log.printMessage("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Example of rendering")
     gl.pushFrustum()
     gl.setHud()
     gl.pushDepthTest(False)
@@ -62,55 +57,57 @@ class MyPythonNode(PythonNode):
     gl.popDepthTest()
     gl.popFrustum()
     
-    
   # processInput
   def processInput(self):
-    Log.printMessage("Example of processInput")
-    return _VisusDataflowPy.Node_processInput(self)
+    return PythonNode.processInput(self)
 
 # ///////////////////////////////////////////////////////////
-def main(app):
+def main():
 
   viewer=Viewer()
-  
   viewer.openFile("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1") 
-  world_box=viewer.getWorldBoundingBox()
-  Log.printMessage("world_box is " + world_box.toString())
-  
+
   # example of adding a PyQt5 widget
-  mywidget=MyWidget()
-  viewer.addDockWidget("MyWidget",convertToQWidget(mywidget))
-  
-  root=viewer.getRoot()
+  if True:
+    mywidget=MyWidget()
+    viewer.addDockWidget("MyWidget",convertToQWidget(mywidget))
   
   # example of adding a python node to the dataflow
-  pynode=MyPythonNode()
-  pynode.glSetRenderQueue(999)
-  pynode.setNodeBounds(Position(world_box))
-  viewer.addNode(root,pynode)
- 
-  retcode=app.exec_()
+  if True:
+    root=viewer.getRoot()
+    world_box=viewer.getWorldBoundingBox()
+    
+    pynode=MyPythonNode()
+    pynode.glSetRenderQueue(999)
+    pynode.setNodeBounds(Position(world_box))
+    viewer.addNode(root,pynode)
+    
+    # pynode will get the data from the query
+    query_node=viewer.findNodeByName("Volume 1")
+    viewer.connectPorts(query_node,"data","data",pynode)
+    
+  GuiModule.execApplication()
+  
   viewer=None
   
+# ///////////////////////////////////////////////////////////
+def forceGC():
   # try to destroy the viewer here...
   import gc
   gc.collect()
   gc.collect()
-  gc.collect()
-
-  return retcode
-  
-  
-
+  gc.collect() 
   
 # ///////////////////////////////////////////////////////////
-
 if __name__ == '__main__':
-  QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts)
-  app = QApplication(sys.argv)
+
   SetCommandLine("__main__")
+  GuiModule.createApplication()
   AppKitModule.attach()  
   VISUS_REGISTER_PYTHON_OBJECT_CLASS("MyPythonNode")
-  retcode=main(app)
+  
+  main()
+  forceGC()
+  
   AppKitModule.detach()
-  sys.exit(retcode)
+  sys.exit(0)

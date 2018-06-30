@@ -196,10 +196,11 @@ String PythonEngine::fixPath(String value) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-void PythonEngine::addSysPath(String value) {
+void PythonEngine::addSysPath(String value,bool bVerbose) {
   value = fixPath(value);
   auto cmd = "import sys; sys.path.append('" + value + "')";
-  VisusInfo() << cmd;
+  if (bVerbose)
+    VisusInfo() << cmd;
   execCode(cmd);
 }
 
@@ -223,15 +224,6 @@ PythonEngine::PythonEngine(bool bVerbose)
   auto builtins = PyEval_GetBuiltins(); VisusAssert(builtins);
   PyDict_SetItemString(this->globals, "__builtins__", builtins);
 
-  auto addSysPath=[&](String value) {
-    value=fixPath(value);
-    auto cmd="import sys; sys.path.append('" + value+ "')";
-
-    if (bVerbose)
-      VisusInfo()<<cmd;
-    execCode(cmd);
-  };
-
   //add the directory of the executable
   if (runningInsidePyMain())
   {
@@ -246,23 +238,23 @@ PythonEngine::PythonEngine(bool bVerbose)
     //try to find visus.py in the same directory where the app is 
     //example: <name>.app/Contents/MacOS/<name>
     #if __APPLE__
-      addSysPath(KnownPaths::CurrentApplicationFile.getParent().getParent().getParent().getParent().toString());
+      addSysPath(KnownPaths::CurrentApplicationFile.getParent().getParent().getParent().getParent().toString(),bVerbose);
     #else
-      addSysPath(KnownPaths::CurrentApplicationFile.getParent().toString());
+      addSysPath(KnownPaths::CurrentApplicationFile.getParent().toString(),bVerbose);
     #endif
   }
 
   #if defined(VISUS_PYTHON_SYS_PATH)
-    addSysPath(VISUS_PYTHON_SYS_PATH);
+    addSysPath(VISUS_PYTHON_SYS_PATH,bVerbose);
   #endif
 
     if (bVerbose)
-    VisusInfo() << "Trying to import visuspy...";
+    VisusInfo() << "Trying to import OpenVisus...";
 
-  execCode("from visuspy import *");
+  execCode("from OpenVisus import *");
 
   if (bVerbose)
-    VisusInfo() << "...imported visuspy";
+    VisusInfo() << "...imported OpenVisus";
 
   swig_type_aborted = SWIG_TypeQuery("Visus::Aborted *");
   VisusAssert(swig_type_aborted);
@@ -446,7 +438,7 @@ void PythonEngine::redirectOutputTo(std::function<void(String)> value)
   __redirect_output__ = getModuleAttr("__redirect_output__");
   VisusAssert(__redirect_output__);
 
-  addObjectMethod(__redirect_output__, "internalWrite", [this, value](PyObject*, PyObject* args)
+  addObjectMethod(__redirect_output__, "internalWrite", [value](PyObject*, PyObject* args)
   {
     VisusAssert(PyTuple_Check(args));
     for (int I = 0, N = (int)PyTuple_Size(args); I < N; I++) {

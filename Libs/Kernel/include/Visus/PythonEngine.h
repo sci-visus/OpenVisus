@@ -194,7 +194,7 @@ public:
   static String convertToString(PyObject* value);
 
   //addSysPath
-  void addSysPath(String value);
+  void addSysPath(String value,bool bVerbose=true);
 
   //fixPath
   static String fixPath(String value);

@@ -93,5 +93,6 @@ LogFormattedMessage::~LogFormattedMessage()
     RedirectLog(msg);
 }
 
+
 } //namespace Visus
 

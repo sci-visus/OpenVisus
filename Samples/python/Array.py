@@ -46,7 +46,7 @@ except ImportError:
 	print("numpy not available. cannot run this script")
 	sys.exit(0)
 
-from visuspy import *
+from OpenVisus import *
 
 # ////////////////////////////////////////////////////////////////////
 class MyTestCase(unittest.TestCase):

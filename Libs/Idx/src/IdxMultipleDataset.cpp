@@ -272,7 +272,7 @@ public:
   {
     auto ret = engine->evalCode("DynamicObject()");  //new reference
     VisusAssert(ret);
-    engine->addObjectMethod(ret, "forwardGetAttr", [this, getattr](PyObject*, PyObject* args) {
+    engine->addObjectMethod(ret, "forwardGetAttr", [getattr](PyObject*, PyObject* args) {
 
       VisusAssert(PyTuple_Check(args));
       VisusAssert(PyTuple_Size(args) == 1);

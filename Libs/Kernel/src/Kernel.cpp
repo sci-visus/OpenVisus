@@ -99,11 +99,14 @@ For support : support@visus.net
 
 //this solve a problem of old Linux distribution (like Centos 5)
 #if __GNUC__ && !__APPLE__
-#include <arpa/inet.h>
-#include <byteswap.h>
-extern "C" uint32_t htole32(uint32_t x) { 
-  return bswap_32(htonl(x));
-}
+	#include <arpa/inet.h>
+	#include <byteswap.h>
+
+	#ifndef htole32
+		extern "C" uint32_t htole32(uint32_t x) { 
+		  return bswap_32(htonl(x));
+		}
+	#endif
 #endif
 
 

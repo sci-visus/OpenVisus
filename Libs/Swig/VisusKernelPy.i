@@ -48,11 +48,15 @@ ENABLE_SHARED_PTR(StringTree)
 // NOTE Ignoring ScopedVector which should not be exposed:
 // Visus::ScopedVector::*(...VISUS_DISOWN....)
 
-#if NUMPY_FOUND
+
 %init %{
+
+#if !(WIN32 && _DEBUG)
   import_array();
-%}
 #endif
+
+%}
+
 
 %include <Visus/Visus.h>
 
@@ -191,7 +195,7 @@ ENABLE_SHARED_PTR(StringTree)
   %}
 };
 
-#if NUMPY_FOUND
+#if !(WIN32 && _DEBUG)
 
 //Array <-> numpy
 %extend Visus::Array 
@@ -273,9 +277,8 @@ ENABLE_SHARED_PTR(StringTree)
 
 try:
   import numpy  
-  NUMPY_FOUND=True
 except ImportError:
-  NUMPY_FOUND=False
+  pass
 
 # here I'm sharing the heap memory, so I need to make sure that if one gets destroyed it won't crash (see __keep_in_memory__)
 def convertToNumPyArray(visus_value):
@@ -304,7 +307,7 @@ def convertToVisusArray(numpy_value):
   return visus_value
 %}
 
-#endif //NUMPY_FOUND
+#endif
 
 %include <Visus/Color.h>
 

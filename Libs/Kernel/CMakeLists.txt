@@ -194,11 +194,19 @@ else()
 	file(GLOB Sources include/Visus/*.h src/*.cpp)
 endif()
 
-file(GLOB PythonScriptSource ${CMAKE_CURRENT_SOURCE_DIR}/../../Executable/python/*.py)
-set(Sources ${Sources} ${PythonScriptSource})
-source_group("" FILES ${PythonScriptSource})
+file(GLOB PythonScriptSource 
+  ../../CMake/__init__.py 
+  ../../CMake/OpenVisus.py)
 
-file(GLOB RootDocs ../../CMakeLists.txt ../../.*.yml ./../README.md ../../CMake/* ../../ExternalLibs/CMakeLists.txt)
+file(GLOB RootDocs 
+  ../../CMakeLists.txt 
+  ../../.*.yml 
+  ../../README.md 
+  ../../CMake/* 
+  ../../ExternalLibs/CMakeLists.txt 
+  ${PythonScriptSource}
+)
+
 set(Sources ${Sources} ${RootDocs})
 source_group("" FILES ${RootDocs})
 
@@ -210,32 +218,55 @@ endforeach()
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/dtl/include)
 
-FindZLib()
+find_package(ZLIB REQUIRED)
 target_include_directories(VisusKernel PRIVATE ${ZLIB_INCLUDE_DIRS})
 target_link_libraries(VisusKernel PUBLIC ${ZLIB_LIBRARIES})	
 
-# lz4
-FindLZ4()
+find_package(LZ4 REQUIRED)
 target_include_directories(VisusKernel PRIVATE ${LZ4_INCLUDE_DIR})
 target_link_libraries(VisusKernel PUBLIC ${LZ4_LIBRARY})		
 
-#  tinyxml
-FindTinyXml()
+find_package(TinyXML REQUIRED)
 target_include_directories(VisusKernel PRIVATE ${TinyXML_INCLUDE_DIRS})
 target_link_libraries(VisusKernel PUBLIC ${TinyXML_LIBRARIES})			
 
-#  FreeImage
-FindFreeImage()
+find_package(FreeImage REQUIRED)
+# see https://github.com/Microsoft/vcpkg/issues/2630
+if (WIN32)
+	FindVCPKGDir()
+	add_custom_command(TARGET VisusKernel POST_BUILD  COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_DIR}/bin/raw_r.dll $<TARGET_FILE_DIR:VisusKernel>)
+	add_custom_command(TARGET VisusKernel POST_BUILD  COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_DIR}/bin/lcms2.dll $<TARGET_FILE_DIR:VisusKernel>)
+endif()
 target_include_directories(VisusKernel PRIVATE ${FREEIMAGE_INCLUDE_DIRS})
 target_link_libraries(VisusKernel PUBLIC ${FREEIMAGE_LIBRARIES})
 
-# curl
-FindCurl()
+
+find_package(CURL REQUIRED)
+# see https://github.com/Microsoft/vcpkg/issues/1909
+if (WIN32)
+	list(LENGTH CURL_LIBRARIES _len_)
+	if (_len_ EQUAL 1)
+		unset(CURL_LIBRARY CACHE)
+		unset(CURL_LIBRARY)
+		unset(CURL_LIBRARIES CACHE)
+		unset(CURL_LIBRARIES)
+		FindVCPKGDir()
+		set(CURL_LIBRARIES "debug;${VCPKG_DIR}/debug/lib/libcurl.lib;optimized;${VCPKG_DIR}/lib/libcurl.lib")
+		mark_as_advanced(CURL_LIBRARIES)
+		add_custom_command(TARGET VisusKernel POST_BUILD 
+			COMMAND ${CMAKE_COMMAND} -E copy 
+				$<$<CONFIG:Debug>:${VCPKG_DIR}/debug/bin/libcurl-d.dll> 
+				$<$<NOT:$<CONFIG:Debug>>:${VCPKG_DIR}/bin/libcurl.dll> 
+				$<TARGET_FILE_DIR:VisusKernel>)
+	endif()
+endif()		
 target_include_directories(VisusKernel PRIVATE ${CURL_INCLUDE_DIR})
 target_link_libraries(VisusKernel PUBLIC ${CURL_LIBRARIES})
 
-#  OpenSSL
-FindOpenSSL()
+if (UNIX)
+	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/FixFindOpenSSL)
+endif()
+find_package(OpenSSL)
 target_include_directories(VisusKernel PRIVATE ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(VisusKernel PUBLIC ${OPENSSL_SSL_LIBRARY})
 target_link_libraries(VisusKernel PUBLIC ${OPENSSL_CRYPTO_LIBRARY})

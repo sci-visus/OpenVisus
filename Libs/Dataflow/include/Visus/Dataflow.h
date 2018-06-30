@@ -140,12 +140,22 @@ public:
     return nodes;
   }
 
-  //findNode
-  Node* findNode(const String& uuid) const
+  //findNodeByUUID
+  Node* findNodeByUUID(const String& uuid) const
   {
     if (uuid.empty()) return nullptr;
     auto it = uuids.find(uuid);
     return it == uuids.end() ? nullptr : it->second;
+  }
+
+  //findNodeByName
+  Node* findNodeByName(const String& name) const {
+    for (auto it : nodes)
+    {
+      if (it->getName() == name)
+        return it;
+    }
+    return nullptr;
   }
 
   //processInput

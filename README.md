@@ -1,7 +1,7 @@
 ```
 Copyright (c) 2010-2018 ViSUS L.L.C., 
 Scientific Computing and Imaging Institute of the University of Utah
-
+ 
 ViSUS L.L.C., 50 W. Broadway, Ste. 300, 84101-2044 Salt Lake City, UT
 University of Utah, 72 S Central Campus Dr, Room 3750, 84112 Salt Lake City, UT
  
@@ -45,6 +45,9 @@ For support: support@visus.net
 
 Table of content:
 
+
+[PIP Distribution](#pip-distribution)
+
 [Windows compilation](#windows-compilation)
 
 [MacOSX compilation](#macosx-compilation)
@@ -55,170 +58,273 @@ Table of content:
 
 [mod_visus](#mod_visus)
 	
+  
+## PIP distribution
+
+You can install OpenVisus in python using Pip (remove sudo for windows):
+
+```
+sudo -H pip3 install PyQt5==5.9
+sudo -H pip3 install OpenVisus
+# if you want to install a local OpenVisus PIP package
+# sudo -H pip3 install install/dist/*.whl
+```
+
+And test it using the following command. 
+IMPORTANT (!) you will have to add some environment variables (such as `LD_LIBRARY_PATH`). 
+The `OpenVisus.check()` will tell you exactly what to add at the beginning of the exception message.
+
+```
+python3 -c "import OpenVisus; OpenVisus.check()"
+```
+
+
+
+(For OpenVisus developers) If you want to upload a new PIP package to GitHub Release, you need to tag your code for Travis/AppVeyor:
+
+```
+git config --global push.followTags true 
+git commit -a -m "your message here"
+git tag -a "vN.X.Y" -m "vN.X.Y" # replace N,X,Y with some numbers
+git push
+```
+  
+(For OpenVisus developers) If you want to upload a new PIP package to the official PyPi repository, after the install step:
+
+```
+twine upload --repository-url https://upload.pypi.org/legacy/ install/dist/*.whl
+```
+  
 ## Windows compilation
 
 Install [Python 3.x](https://www.python.org/ftp/python/3.6.3/python-3.6.3-amd64.exe) 
 You may want to check "*Download debugging symbols*" and "*Download debugging libraries*" if you are planning to debug your code. 
 
-Install numpy::
+Install numpy and deploy packages:
 
-	pip3 install numpy
+```
+pip3 install numpy setuptools wheel twine
+```
   
 Install PyQt5:
 
-  pip3 install PyQt5==5.9.2
+```
+pip3 install PyQt5==5.9.2
+```
   
 Install [Qt5](http://download.qt.io/official_releases/qt/5.9/5.9.2/qt-opensource-windows-x86-5.9.2.exe) 
 
-Install chocolatey. From an Administrator Prompt::
+Install chocolatey. From an Administrator Prompt:
 
-	@"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"
-	choco install -y  -allow-empty-checksums git cmake swig
+```
+@"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"
+choco install -y  -allow-empty-checksums git cmake swig
+```
 
-Install Microsoft *vcpkg*. From an Prompt::
+Install Microsoft *vcpkg*. From an Prompt:
 
-	cd c:\
-	mkdir Tools
-	cd Tools
-	git clone https://github.com/Microsoft/vcpkg
-	cd vcpkg
-	.\bootstrap-vcpkg.bat
-	.\vcpkg install lz4:x64-windows tinyxml:x64-windows zlib:x64-windows openssl:x64-windows curl:x64-windows freeimage:x64-windows
+```
+cd c:\
+mkdir Tools
+cd Tools
+git clone https://github.com/Microsoft/vcpkg
+cd vcpkg
+.\bootstrap-vcpkg.bat
+.\vcpkg install lz4:x64-windows tinyxml:x64-windows zlib:x64-windows openssl:x64-windows curl:x64-windows freeimage:x64-windows
+```
 	
-Compile OpenVisus. From a prompt::
 
-	cd c:\
-	mkdir projects
-	cd projects
-	git clone https://github.com/sci-visus/OpenVisus
-	cd OpenVisus
-	mkdir build
-	cd build
-	set CMAKE="C:\Program Files\CMake\bin\cmake.exe"
-	%CMAKE% ^
-		-G "Visual Studio 15 2017 Win64" ^
-		-DCMAKE_TOOLCHAIN_FILE="c:/Tools/vcpkg/scripts/buildsystems/vcpkg.cmake" ^
-		-DVCPKG_TARGET_TRIPLET="x64-windows" ^
-		-DQt5_DIR="C:/Qt/Qt5.9.2/5.9.2/msvc2017_64/lib/cmake/Qt5" ^
-		-DGIT_CMD="C:\Program Files\Git\bin\git.exe" ^
-		-DSWIG_EXECUTABLE="C:\ProgramData\chocolatey\bin\swig.exe" ^
-		..
-	%CMAKE% --build . --target ALL_BUILD --config Release
-	%CMAKE% --build . --target RUN_TESTS --config Release 
-	REM OPTIONAL
-	REM %CMAKE% --build . --target INSTALL --config Release 
+Compile OpenVisus. From a prompt:
 
-To test if it's working::
+```
+REM check path here...
+set PYTHON_DIR=c:\Python36
+set PYTHON=%PYTHON_DIR%\python.exe
+set PIP=%PYTHON_DIR%\Scripts\pip.exe
+set CMAKE="C:\Program Files\CMake\bin\cmake.exe"
+set GENERATOR="Visual Studio 15 2017 Win64"
+set CONFIGURATION=RelWithDebInfo
+set TOOLCHAIN="c:\Tools\vcpkg\scripts\buildsystems\vcpkg.cmake"
+set TRIPLET="x64-windows"
+set QT5_DIR=C:\Qt\Qt5.9.2\5.9.2\msvc2017_64
+set SWIG="C:\ProgramData\chocolatey\bin\swig.exe"
+set WHEEL="install\dist\OpenVisus-1.0.1-cp36-none-win_amd64.whl"
 
-	REM change path accordingly
-	SET PYTHONPATH=C:\projects\OpenVisus\build\Release;%PYTHONPATH%
-	SET PATH=c:\python36;C:\Qt\Qt5.9.2\5.9.2\msvc2017_64\bin;%PATH%
-	.\Release\visusviewer.exe
-	REM use python_d.exe if you are using the Debug version
-	REM add -vv if you want very verbose output
-	c:\Python36\python.exe -c "from visuspy import *; print('visuspy is working')"
+cd c:\
+mkdir projects
+cd projects
+git clone https://github.com/sci-visus/OpenVisus
+cd OpenVisus
+mkdir build
+cd build
+
+%CMAKE% ^
+	-G %GENERATOR% ^
+	-DCMAKE_TOOLCHAIN_FILE=%TOOLCHAIN% ^
+	-DVCPKG_TARGET_TRIPLET=%TRIPLET% ^
+	-DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" ^
+	-DGIT_CMD="C:\Program Files\Git\bin\git.exe" ^
+	-DSWIG_EXECUTABLE=%SWIG% ^
+	..
+
+%CMAKE% --build . --target ALL_BUILD --config %CONFIGURATION%
+%CMAKE% --build . --target RUN_TESTS --config %CONFIGURATION%
+%CMAKE% --build . --target INSTALL   --config %CONFIGURATION% 
+```
+
+To test if visusviewer it's working:
+
+```
+SET PATH=%PATH%;%QT5_DIR%\bin;%PYTHON_DIR%
+SET PYTHONPATH=C:\projects\OpenVisus\build\%CONFIGURATION%
+
+REM OpenVisus EMBEDDING python 
+.\%CONFIGURATION%\visusviewer.exe 
+
+REM OpenVisus EXTENDING python 
+REM    use python_d.exe if you are using the Debug version
+REM    add -vv if you want very verbose output  
+%PYTHON% -c "import OpenVisus; OpenVisus.check()"
+```
+
 
 ## MacOSX compilation
 
-Install brew and OpenVisus prerequisites::
+Install brew and OpenVisus prerequisites:
 
-	ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-	brew install git cmake swig qt5 lz4 tinyxml zlib openssl curl freeimage python3
-	pip3 install numpy
+```
+ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+brew install git cmake swig qt5 lz4 tinyxml zlib openssl curl freeimage python3 # TODO! make sure qt5 is version 5.9.2!
+sudo pip3 -H install numpy setuptools wheel twine
+sudo pip3 -H install PyQt5==5.9.2
+```
 
 Run xcode command line tools:
 
-	sudo xcode-select --install
-	# if command line tools do not work, type the following:
-	# sudo xcode-select --reset
+```
+sudo xcode-select --install
+# if command line tools do not work, type the following:
+# sudo xcode-select --reset
+```
 
+Compile OpenVisus. From a prompt:
 
-Compile OpenVisus. From a prompt::
+```
+# check the path here...
+OPENSSL_ROOT_DIR=/usr/local/opt/openssl
+QT5_DIR=/usr/local/opt/qt
 
-	git clone https://github.com/sci-visus/OpenVisus
-	cd OpenVisus
-	mkdir build
-	cd build
-	cmake -GXcode -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DQt5_DIR=/usr/local/opt/qt/lib/cmake/Qt5 .. 
-	cmake --build . --target ALL_BUILD --config Release
-	# optional
-	# cmake --build . --target RUN_TESTS --config Release 
-	# cmake --build . --target INSTALL   --config Release
+git clone https://github.com/sci-visus/OpenVisus
+cd OpenVisus
+mkdir build
+cd build
+cmake -GXcode -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR -DQt5_DIR=$QT5_DIR/lib/cmake/Qt5 .. 
 
-To test if it's working::
+CONFIGURATION=RelWithDebInfo
+cmake --build . --target ALL_BUILD --config $CONFIGURATION -- -jobs 8
+cmake --build . --target RUN_TESTS --config $CONFIGURATION
+cmake --build . --target install   --config $CONFIGURATION
+```
+ 
+To test if it's working:
 
-	export PYTHONPATH=$(pwd)/Release
-	python3 -c "from visuspy import *; print('visuspy is working')"
+```
+export PYTHONPATH=$(pwd)/$CONFIGURATION
+export DYLD_FRAMEWORK_PATH=$DYLD_FRAMEWORK_PATH:$QT5_DIR/lib
+export QT_PLUGIN_PATH=$QT_PLUGIN_PATH:$QT5_DIR/plugins   
 
+# OpenVisus embedding python
+./$CONFIGURATION/visusviewer.app/Contents/MacOS/visusviewer         
+
+# OpenVisus extending python
+python3 -c "import OpenVisus; OpenVisus.check()"
+```
+
+      
 ## Linux compilation
 
 Install prerequisites (assuming you are using python 3.x).
 
-For Ubuntu 16.04::
-OpenSUSE Leap::
+For Ubuntu 16.04:
 
-	sudo apt install -y liblz4-dev libtinyxml-dev cmake git build-essential swig libfreeimage-dev \
-		libcurl4-openssl-dev libssl-dev uuid-dev python3 python3-pip \
-		qt5-default qttools5-dev-tools
-
-	# If you want to build Apache plugin::
-	sudo apt install -y apache2 apache2-dev
+```
+sudo apt install -y liblz4-dev libtinyxml-dev cmake git build-essential swig libfreeimage-dev \
+	libcurl4-openssl-dev libssl-dev uuid-dev python3 python3-pip \
+	qt5-default qttools5-dev-tools
+sudo apt install -y apache2 apache2-dev # (OPTIONAL) If you want to build Apache plugin
+```
 	
-For OpenSuse Leap::
+For OpenSuse Leap:
 
-	sudo zypper refresh      # (OPTIONAL)
-	sudo zypper -n update    # (OPTIONAL)
-	sudo zypper -n patch     # (OPTIONAL)
-	sudo zypper -n in -t pattern devel_basis \
-		cmake git swig curl cmake-gui \
-		python3 python3-pip python3-devel \
-		zlib-devel liblz4-devel libtinyxml-devel libuuid-devel freeimage-devel libcurl-devel libopenssl-devel glu-devel \
-		libQt5Concurrent-devel libQt5Network-devel \libQt5Test-devel libQt5OpenGL-devel libQt5PrintSupport-devel
+```
+sudo zypper refresh      # (OPTIONAL)
+sudo zypper -n update    # (OPTIONAL)
+sudo zypper -n patch     # (OPTIONAL)
+sudo zypper -n in -t pattern devel_basis \
+	cmake git swig curl cmake-gui \
+	python3 python3-pip python3-devel \
+	zlib-devel liblz4-devel libtinyxml-devel libuuid-devel freeimage-devel libcurl-devel libopenssl-devel glu-devel \
+	libQt5Concurrent-devel libQt5Network-devel \libQt5Test-devel libQt5OpenGL-devel libQt5PrintSupport-devel
+```
 
-Install numpy::
+Install numpy and deploy depencencies:
 
-	sudo pip3 install --upgrade pip
-	sudo pip3 install numpy
+```
+sudo pip3 install --upgrade pip
+sudo pip3 install numpy setuptools wheel twine
+```
 
-Compile OpenVisus::
+Compile OpenVisus:
 
-	git clone https://github.com/sci-visus/OpenVisus
-	cd OpenVisus
-	mkdir build 
-	cd build
-	cmake ../
-	cmake --build . --target all 
-	# optional
-	# cmake --build . --target test
-	# cmake --build . --target install
+```
+git clone https://github.com/sci-visus/OpenVisus
+cd OpenVisus
+mkdir build 
+cd build
+cmake ../
+CONFIGURATION=Release
+cmake --build . --target all      --config $CONFIGURATION  -- -j 4
+cmake --build . --target test     --config $CONFIGURATION 
+cmake --build . --target install  --config $CONFIGURATION 
+```
 
-To test if it's working::
+To test if it's working:
 
-	export LD_LIBRARY_PATH=$(pwd)
-	export PYTHONPATH=$(pwd)
-	./visusviewer
-	python3 -c "from visuspy import *; print('visuspy is working')"
-	
+```
+
+export PYTHONPATH=$(pwd)
+export LD_LIBRARY_PATH=$(pwd)
+
+# OpenVisus EMBEDDING python
+./visusviewer 
+
+# OpenVisus EXTENDING python
+python3 -c "import OpenVisus; OpenVisus.check()"
+```
+  
+  
 ## Use OpenVisus as submodule
 
-In your repository::
+In your repository:
 
-	git submodule add https://github.com/sci-visus/OpenVisus
+```
+git submodule add https://github.com/sci-visus/OpenVisus
+```
 	
-Create a CMakeLists.txt with the following content::
+Create a CMakeLists.txt with the following content:
 
-	CMAKE_MINIMUM_REQUIRED(VERSION 3.1) 
+```
+CMAKE_MINIMUM_REQUIRED(VERSION 3.1) 
 
-	project(YourProjectName)
+project(YourProjectName)
 
-	include(OpenVisus/CMake/VisusMacros.cmake)
-	SetupCMake()
-	add_subdirectory(OpenVisus)
-	...your code...
-	target_link_libraries(your_executable VisusAppKit) # or whatever you need
-
+include(OpenVisus/CMake/VisusMacros.cmake)
+SetupCMake()
+add_subdirectory(OpenVisus)
+...your code...
+target_link_libraries(your_executable VisusAppKit) # or whatever you need
+```
 	
-
 ## mod_visus
 
 ### Ubuntu
@@ -403,5 +509,6 @@ To test it, in another terminal:
 curl -v "http://localhost/mod_visus?action=readdataset&dataset=cat"
 ```
 
-	
+
+  
 

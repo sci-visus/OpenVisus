@@ -1,5 +1,5 @@
 
-FindSwig()
+find_package(SWIG REQUIRED)
 
 include(${SWIG_USE_FILE})
 
@@ -13,10 +13,6 @@ set(CMAKE_SWIG_FLAGS "")
 set(SWIG_FLAGS "")
 set(SWIG_FLAGS "${SWIG_FLAGS};-threads")
 set(SWIG_FLAGS "${SWIG_FLAGS};-extranative")
-
-if (NUMPY_FOUND)
-  set(SWIG_FLAGS "${SWIG_FLAGS};-DNUMPY_FOUND=1")
-endif()
 
 set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/..")
 set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")

@@ -65,9 +65,7 @@ For support : support@visus.net
 %include <std_map.i>
 %include <std_set.i> 
 
-#if NUMPY_FOUND
 %include <numpy.i>
-#endif
 
 namespace Visus {}
 %apply long long  { Visus::Int64 };

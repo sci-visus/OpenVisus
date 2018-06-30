@@ -44,7 +44,7 @@ import string
 import unittest
 import os
 
-from visuspy import *
+from OpenVisus import *
   
 from VisusKernelPy   import *
 from VisusDataflowPy import *  

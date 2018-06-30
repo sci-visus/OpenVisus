@@ -749,7 +749,7 @@ void Viewer::setDataflow(SharedPtr<Dataflow> value)
       }
     }
 
-    if (auto glcamera_node=findNode<GLCameraNode>())
+    if (auto glcamera_node= findNodeByType<GLCameraNode>())
       attachGLCamera(glcamera_node->getGLCamera());
 
     enableSaveSession();
@@ -1523,13 +1523,13 @@ public:
 
   //redo
   virtual void redo(Viewer* viewer) override {
-    Node* value    =viewer->findNode(this->value);
+    Node* value    =viewer->findNodeByUUID(this->value);
     viewer->setSelection(value);
   }
 
   //undo
   virtual void undo(Viewer* viewer) override {
-    Node* old_value=viewer->findNode(this->old_value);
+    Node* old_value=viewer->findNodeByUUID(this->old_value);
     viewer->setSelection(old_value);
   }
 
@@ -1637,14 +1637,14 @@ public:
   //redo
   virtual void redo(Viewer* viewer) override 
   {
-    auto node=viewer->findNode(this->node); VisusAssert(node);
+    auto node=viewer->findNodeByUUID(this->node); VisusAssert(node);
     diff.applyToTarget(node,true);
   }
 
   //undo
   virtual void undo(Viewer* viewer) override 
   {
-    auto node=viewer->findNode(this->node); VisusAssert(node);
+    auto node=viewer->findNodeByUUID(this->node); VisusAssert(node);
     diff.applyToTarget(node,false);
   }
 
@@ -1711,7 +1711,7 @@ public:
   //redo
   virtual void redo(Viewer* viewer) override 
   {
-    Node* parent=viewer->findNode(this->parent);
+    Node* parent=viewer->findNodeByUUID(this->parent);
     VisusAssert(encoded);
     auto node=dynamic_cast<Node*>(StringTreeEncoder().decode(encoded.get()));
     VisusAssert(node && node->getUUID()==this->node);
@@ -1722,7 +1722,7 @@ public:
   virtual void undo(Viewer* viewer) override 
   {
     VisusAssert(encoded);
-    Node* node=viewer->findNode(this->node);VisusAssert(node);
+    Node* node=viewer->findNodeByUUID(this->node);VisusAssert(node);
     viewer->removeNode(node);
   }
 
@@ -1825,7 +1825,7 @@ public:
   //redo
   virtual void redo(Viewer* viewer) override 
   {
-    Node* node=viewer->findNode(this->node); 
+    Node* node=viewer->findNodeByUUID(this->node);
     VisusAssert(node);
     viewer->removeNode(node); //this will create a new RemoveNode with encoded inside
   }
@@ -1836,7 +1836,7 @@ public:
     VisusAssert(encoded);
     auto node=dynamic_cast<Node*>(StringTreeEncoder().decode(encoded.get()));
     VisusAssert(node);
-    Node* parent=viewer->findNode(this->parent);
+    Node* parent=viewer->findNodeByUUID(this->parent);
     VisusAssert((this->parent.empty() && !parent) || (!this->parent.empty() && parent));
     viewer->addNode(parent,node,this->index);
   }
@@ -1946,15 +1946,15 @@ public:
 
   //redo
   virtual void redo(Viewer* viewer) override {
-    Node* src=viewer->findNode(this->src);
-    Node* dst=viewer->findNode(this->dst);
+    Node* src=viewer->findNodeByUUID(this->src);
+    Node* dst=viewer->findNodeByUUID(this->dst);
     viewer->moveNode(dst,src,index);
   }
 
   //undo
   virtual void undo(Viewer* viewer) override {
-    Node* src=viewer->findNode(this->src);
-    Node* old_dst=viewer->findNode(this->old_dst);
+    Node* src=viewer->findNodeByUUID(this->src);
+    Node* old_dst=viewer->findNodeByUUID(this->old_dst);
     viewer->moveNode(old_dst,src,old_index);
   }
 
@@ -2016,15 +2016,15 @@ public:
 
   //redo
   virtual void redo(Viewer* viewer) override {
-    Node* from=viewer->findNode(this->from);
-    Node* to  =viewer->findNode(this->to);
+    Node* from=viewer->findNodeByUUID(this->from);
+    Node* to  =viewer->findNodeByUUID(this->to);
     viewer->connectPorts(from,oport,iport,to);
   }
 
   //undo
   virtual void undo(Viewer* viewer) override {
-    Node* from=viewer->findNode(this->from);
-    Node* to  =viewer->findNode(this->to);
+    Node* from=viewer->findNodeByUUID(this->from);
+    Node* to  =viewer->findNodeByUUID(this->to);
     viewer->disconnectPorts(from,oport,iport,to);
   }
 
@@ -2085,15 +2085,15 @@ public:
 
   //redo
   virtual void redo(Viewer* viewer) override {
-    Node* from=viewer->findNode(this->from);
-    Node* to  =viewer->findNode(this->to);
+    Node* from=viewer->findNodeByUUID(this->from);
+    Node* to  =viewer->findNodeByUUID(this->to);
     viewer->disconnectPorts(from,oport,iport,to);
   }
 
   //undo
   virtual void undo(Viewer* viewer) override {
-    Node* from=viewer->findNode(this->from);
-    Node* to  =viewer->findNode(this->to);
+    Node* from=viewer->findNodeByUUID(this->from);
+    Node* to  =viewer->findNodeByUUID(this->to);
     viewer->connectPorts(from,oport,iport,to);
   }
 
@@ -2187,13 +2187,13 @@ public:
 
   //redo
   virtual void redo(Viewer* viewer) override {
-    auto node=viewer->findNode(this->node);
+    auto node=viewer->findNodeByUUID(this->node);
     viewer->refreshData(node);
   }
 
   //undo
   virtual void undo(Viewer* viewer) override{
-    auto node=viewer->findNode(this->node);
+    auto node=viewer->findNodeByUUID(this->node);
     viewer->refreshData(node);
   }
 
@@ -2401,7 +2401,7 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
 {
   if (!parent)
   {
-    parent=findNode<DatasetNode>();
+    parent=findNodeByType<DatasetNode>();
     if (!parent)
       parent=getRoot();
   }
@@ -2410,7 +2410,7 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
   {
     dataset_node=dynamic_cast<DatasetNode*>(parent);
     if (!dataset_node)
-      dataset_node=findNode<DatasetNode>();
+      dataset_node= findNodeByType<DatasetNode>();
   }
 
   VisusAssert(parent && dataset_node);
@@ -2525,7 +2525,7 @@ KdQueryNode* Viewer::addKdQueryNode(Node* parent,DatasetNode* dataset_node,Strin
 {
   if (!parent)
   {
-    parent=findNode<DatasetNode>();
+    parent= findNodeByType<DatasetNode>();
     if (!parent)
       parent=getRoot();
   }
@@ -2534,7 +2534,7 @@ KdQueryNode* Viewer::addKdQueryNode(Node* parent,DatasetNode* dataset_node,Strin
   {
     dataset_node=dynamic_cast<DatasetNode*>(parent);
     if (!dataset_node)
-      dataset_node=findNode<DatasetNode>();
+      dataset_node= findNodeByType<DatasetNode>();
   }
 
   VisusAssert(parent && dataset_node);

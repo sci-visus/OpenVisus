@@ -5,9 +5,22 @@ os: Visual Studio 2017
 platform:
   - x64
   
+notifications:
+  - provider: Email
+    to:
+      - scrgiorgio@gmail.com
+    on_build_success: true
+    on_build_failure: true
+    on_build_status_changed: true  
+  
 environment:
   # update the vcpkg cache even if build fails
   APPVEYOR_SAVE_CACHE_ON_ERROR: true
+  Configuration: RelWithDebInfo
+  GENERATOR: Visual Studio 15 2017 Win64
+  TOOLCHAIN: c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
+  TRIPLET: x64-windows
+  QT5_DIR: C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5
   
 cache:
   - c:\Tools\vcpkg\installed  
@@ -29,11 +42,25 @@ build_script:
   - mkdir build 
   - cd build 
   - set PATH=C:\Python36-x64;C:\Python36-x64\Scripts;%PATH%
-  - pip install numpy
-  - cmake -G "Visual Studio 15 2017 Win64" -DCMAKE_TOOLCHAIN_FILE="c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET="x64-windows" -DQt5_DIR="C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5" ..
-  - cmake --build . --target ALL_BUILD --config Release
-  - cmake --build . --target RUN_TESTS --config Release 
-
+  - pip install numpy setuptools wheel twine
+  - cmake -G "%GENERATOR%" -DCMAKE_TOOLCHAIN_FILE="%TOOLCHAIN%" -DVCPKG_TARGET_TRIPLET="%TRIPLET%" -DQt5_DIR="%QT5_DIR%" ..
+  - cmake --build . --target ALL_BUILD --config %Configuration%
+  - cmake --build . --target RUN_TESTS --config %Configuration% 
+  - cmake --build . --target INSTALL   --config %Configuration% 
+  - cd install
+  - python setup.py bdist_wheel --python-tag=cp36 --plat-name=win_amd64 
+  
 # test are already in cmake
 test: off
+
+artifacts:
+    - path: .\build\install\dist\*.whl
+      name: OpenVisus.win_amd64
  
+deploy:
+  - provider: GitHub
+    auth_token:
+      secure: nwK8bGTRUynj+58b7E8Rgur5/0YvfIivBflFb5AaUrpC5BSTpcLbA4Ac+cCF6L4/
+    artifact: OpenVisus.win_amd64
+    on:
+      appveyor_repo_tag: true 

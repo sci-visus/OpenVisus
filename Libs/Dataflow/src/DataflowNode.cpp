@@ -249,7 +249,7 @@ void Node::addNodeJob(SharedPtr<NodeJob> job)
   }
 
   async.pushRunning(job->done.get_future(),job);
-  thread_pool->asyncRun([this,job](int worker)
+  thread_pool->asyncRun([job](int worker)
   {
     if (!job->aborted())
       job->runJob();

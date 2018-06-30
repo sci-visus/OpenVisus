@@ -125,7 +125,7 @@ public:
     if (bool bAsync=this->async.netservice?true:false)
     {
       auto future_response= this->async.netservice->asyncNetworkIO(request);
-      future_response.when_ready([this, future_response, query,gotNetResponse]() {
+      future_response.when_ready([future_response, query,gotNetResponse]() {
         gotNetResponse(future_response.get());
       });
     }
