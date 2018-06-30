@@ -106,11 +106,11 @@ public:
       qslider->setMaximum(range.to);
       qslider->setSingleStep(range.step);
 
-      this->double_to_int = [this](double val) {
+      this->double_to_int = [](double val) {
         return (int)val;
       };
 
-      this->int_to_double = [this](int val) {
+      this->int_to_double = [](int val) {
         return (double)val;
       };
 

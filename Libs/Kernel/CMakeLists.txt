@@ -1,5 +1,4 @@
 
-
 FindGitRevision()
 add_definitions(-DGIT_REVISION=\"${GIT_REVISION}\")
 
@@ -10,6 +9,20 @@ endif()
 if (DEFINED VISUS_PYTHON_SYS_PATH)
  	add_definitions(-DVISUS_PYTHON_SYS_PATH="${VISUS_PYTHON_SYS_PATH}")
 endif()
+
+if (NOT (WIN32 OR APPLE))
+
+  include(CheckIncludeFiles)
+  unset(HAS_UUID_H)
+  check_include_files(uuid/uuid.h HAS_UUID_H)
+
+  if (HAS_UUID_H)
+    add_definitions(-DHAS_UUID_H=1)
+   else()
+    add_definitions(-DHAS_UUID_H=0)
+  endif()
+endif()
+
 
 set(UpLevelSources
 	./include/Visus/Visus.h 
@@ -183,7 +196,7 @@ endif()
 
 file(GLOB PythonScriptSource 
   ../../CMake/__init__.py 
-  ../../CMake/visuspy.py)
+  ../../CMake/OpenVisus.py)
 
 file(GLOB RootDocs 
   ../../CMakeLists.txt 
@@ -205,68 +218,62 @@ endforeach()
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/dtl/include)
 
-#  zlib
-if (TARGET zlib)
-	target_link_libraries(VisusKernel PRIVATE  zlib)
-else()
-	FindZLib()
-	target_include_directories(VisusKernel PRIVATE ${ZLIB_INCLUDE_DIRS})
-	target_link_libraries(VisusKernel PRIVATE  ${ZLIB_LIBRARIES})	
-endif()
+find_package(ZLIB REQUIRED)
+target_include_directories(VisusKernel PRIVATE ${ZLIB_INCLUDE_DIRS})
+target_link_libraries(VisusKernel PUBLIC ${ZLIB_LIBRARIES})	
 
-# lz4
-if (TARGET lz4)
-	target_link_libraries(VisusKernel PRIVATE lz4)
-else()
-	FindLZ4()
-	target_include_directories(VisusKernel PRIVATE ${LZ4_INCLUDE_DIR})
-	target_link_libraries(VisusKernel PRIVATE  ${LZ4_LIBRARY})		
-endif()
+find_package(LZ4 REQUIRED)
+target_include_directories(VisusKernel PRIVATE ${LZ4_INCLUDE_DIR})
+target_link_libraries(VisusKernel PUBLIC ${LZ4_LIBRARY})		
 
-#  tinyxml
-if (TARGET tinyxml)
-	target_link_libraries(VisusKernel PRIVATE  tinyxml)
-else()
-	FindTinyXml()
-	target_include_directories(VisusKernel PRIVATE ${TinyXML_INCLUDE_DIRS})
-	target_link_libraries(VisusKernel PRIVATE  ${TinyXML_LIBRARIES})			
-endif()
+find_package(TinyXML REQUIRED)
+target_include_directories(VisusKernel PRIVATE ${TinyXML_INCLUDE_DIRS})
+target_link_libraries(VisusKernel PUBLIC ${TinyXML_LIBRARIES})			
 
-#  FreeImage
-if (TARGET FreeImage)
-	target_link_libraries(VisusKernel PRIVATE FreeImage)
-else()
-	FindFreeImage()
-	target_include_directories(VisusKernel PRIVATE ${FREEIMAGE_INCLUDE_DIRS})
-	target_link_libraries(VisusKernel PRIVATE  ${FREEIMAGE_LIBRARIES})
+find_package(FreeImage REQUIRED)
+# see https://github.com/Microsoft/vcpkg/issues/2630
+if (WIN32)
+	FindVCPKGDir()
+	add_custom_command(TARGET VisusKernel POST_BUILD  COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_DIR}/bin/raw_r.dll $<TARGET_FILE_DIR:VisusKernel>)
+	add_custom_command(TARGET VisusKernel POST_BUILD  COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_DIR}/bin/lcms2.dll $<TARGET_FILE_DIR:VisusKernel>)
 endif()
+target_include_directories(VisusKernel PRIVATE ${FREEIMAGE_INCLUDE_DIRS})
+target_link_libraries(VisusKernel PUBLIC ${FREEIMAGE_LIBRARIES})
 
-# curl
-if (TARGET curl)
-	target_link_libraries(VisusKernel PRIVATE curl)
-else()
-	FindCurl()
-	target_include_directories(VisusKernel PRIVATE ${CURL_INCLUDE_DIR})
-	target_link_libraries(VisusKernel PRIVATE  ${CURL_LIBRARIES})
-endif()
 
-#  OpenSSL
-if (TARGET ssl)
-	target_link_libraries(VisusKernel PRIVATE crypto ssl)
-else()
-	FindOpenSSL()
-	target_include_directories(VisusKernel PRIVATE ${OPENSSL_INCLUDE_DIR})
-	target_link_libraries(VisusKernel PRIVATE  ${OPENSSL_SSL_LIBRARY})
-	target_link_libraries(VisusKernel PRIVATE  ${OPENSSL_CRYPTO_LIBRARY})
+find_package(CURL REQUIRED)
+# see https://github.com/Microsoft/vcpkg/issues/1909
+if (WIN32)
+	list(LENGTH CURL_LIBRARIES _len_)
+	if (_len_ EQUAL 1)
+		unset(CURL_LIBRARY CACHE)
+		unset(CURL_LIBRARY)
+		unset(CURL_LIBRARIES CACHE)
+		unset(CURL_LIBRARIES)
+		FindVCPKGDir()
+		set(CURL_LIBRARIES "debug;${VCPKG_DIR}/debug/lib/libcurl.lib;optimized;${VCPKG_DIR}/lib/libcurl.lib")
+		mark_as_advanced(CURL_LIBRARIES)
+		add_custom_command(TARGET VisusKernel POST_BUILD 
+			COMMAND ${CMAKE_COMMAND} -E copy 
+				$<$<CONFIG:Debug>:${VCPKG_DIR}/debug/bin/libcurl-d.dll> 
+				$<$<NOT:$<CONFIG:Debug>>:${VCPKG_DIR}/bin/libcurl.dll> 
+				$<TARGET_FILE_DIR:VisusKernel>)
+	endif()
+endif()		
+target_include_directories(VisusKernel PRIVATE ${CURL_INCLUDE_DIR})
+target_link_libraries(VisusKernel PUBLIC ${CURL_LIBRARIES})
+
+if (UNIX)
+	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/FixFindOpenSSL)
 endif()
+find_package(OpenSSL)
+target_include_directories(VisusKernel PRIVATE ${OPENSSL_INCLUDE_DIR})
+target_link_libraries(VisusKernel PUBLIC ${OPENSSL_SSL_LIBRARY})
+target_link_libraries(VisusKernel PUBLIC ${OPENSSL_CRYPTO_LIBRARY})
 
 # python 
-if (TARGET python27)
-	target_link_libraries(VisusKernel PUBLIC python27)
-else()
-	target_include_directories(VisusKernel PUBLIC  ${PYTHON_INCLUDE_DIRS})
-	target_link_libraries(VisusKernel      PUBLIC  ${PYTHON_LIBRARIES})
-endif()
+target_include_directories(VisusKernel PUBLIC  ${PYTHON_INCLUDE_DIRS})
+target_link_libraries(VisusKernel      PUBLIC  ${PYTHON_LIBRARIES})
 
 if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
@@ -277,7 +284,10 @@ elseif(APPLE)
 		"-framework CoreAudio" "-framework CoreMIDI" "-framework QuartzCore" "-framework AudioToolbox")
 
 else()
-	target_link_libraries(VisusKernel PRIVATE dl rt uuid)
+	target_link_libraries(VisusKernel PUBLIC dl rt util)
+        if (HAS_UUID_H)
+          target_link_libraries(VisusKernel PUBLIC uuid)
+        endif()
 	target_link_libraries(VisusKernel PUBLIC  pthread)
 
 endif()

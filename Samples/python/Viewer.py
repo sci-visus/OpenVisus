@@ -1,17 +1,12 @@
 
-import sys, os
-import sip
+import sys, os, sip
 
-from visuspy import *
+from OpenVisus import *
 
 import PyQt5
 from PyQt5.QtCore    import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui     import *
-
-# I 'm using Qt libraries coming from PyQt5 (important to use EXACTLY THE SAME VERSION)
-if sys.platform == 'win32':
-  addEnvPath(os.path.dirname(PyQt5.__file__) + "/Qt/bin")
 
 from VisusKernelPy   import *
 from VisusDataflowPy import *

@@ -4,7 +4,7 @@ if (WIN32)
 
 	add_library(mod_visus mod_visus.cpp)
 	target_link_libraries(mod_visus PUBLIC VisusIdx)
-	set_target_properties(mod_visus PROPERTIES FOLDER Executable/)
+	set_target_properties(mod_visus PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Executable/)
 
 else()
 
@@ -15,7 +15,7 @@ else()
 
 	add_library(mod_visus mod_visus.cpp)
 	target_link_libraries(mod_visus PUBLIC VisusIdx)
-	set_target_properties(mod_visus PROPERTIES FOLDER Executable/)
+	set_target_properties(mod_visus PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Executable/)
     
     string(REGEX REPLACE "([0-9]+).[0-9]+.[0-9]+" "\\1" APACHE_MAJOR_VERSION ${APACHE_VERSION} )
     string(REGEX REPLACE "[0-9]+.([0-9]+).[0-9]+" "\\1" APACHE_MINOR_VERSION ${APACHE_VERSION} )

@@ -38,7 +38,7 @@ RUN cmake ../ -DVISUS_GUI=0 \
 	-DPYTHON_INCLUDE_DIRS=/usr/local/anaconda2/include/python2.7 
 RUN make
 
-# setup visuspy
+# setup OpenVisus
 ENV PATH /usr/local/anaconda2/bin:$PATH
 ENV PYTHONPATH $VISUS_HOME/build/:$PYTHONPATH
 ENV LD_LIBRARY_PATH /usr/local/anaconda2/lib/:$LD_LIBRARY_PATH
