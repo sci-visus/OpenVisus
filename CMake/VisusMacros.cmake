@@ -139,7 +139,8 @@ endmacro()
 
 # ///////////////////////////////////////////////////
 macro(InstallVisusLibrary Name)
-
+ 
+    if (NOT VISUS_IS_SUBMODULE)
 	install(TARGETS ${Name} 
 		LIBRARY       DESTINATION bin
 		RUNTIME       DESTINATION bin 
@@ -151,6 +152,7 @@ macro(InstallVisusLibrary Name)
 	if (WIN32)
 		install(FILES $<TARGET_PDB_FILE:${Name}> DESTINATION bin OPTIONAL)
 	endif()
+	endif()
 
 endmacro()
 
@@ -159,12 +161,14 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(InstallVisusExecutable Name)
 
+    if (NOT VISUS_IS_SUBMODULE)
 	install(TARGETS ${Name} 
 		BUNDLE DESTINATION  bin
 		RUNTIME DESTINATION bin)
 
 	if (WIN32)
 		install(FILES $<TARGET_PDB_FILE:${Name}> DESTINATION bin OPTIONAL)
+	endif()
 	endif()
 
 endmacro()
@@ -330,6 +334,7 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(InstallVisus)
 
+    if (NOT VISUS_IS_SUBMODULE)
 	install(FILES     LICENSE                     DESTINATION .)
 	install(FILES     README.md                   DESTINATION .)
 	install(FILES     CMake/__init__.py           DESTINATION .)
@@ -360,6 +365,7 @@ macro(InstallVisus)
 		InstallBuildFiles(*.dll ./bin)
 		SET(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
 		include(InstallRequiredSystemLibraries)
+	endif()
 	endif()
 endmacro()
 
