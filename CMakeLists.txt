@@ -75,10 +75,12 @@ find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
 find_package(NumPy REQUIRED) 
 
+if (VISUS_SELF_CONTAINED)
+	add_subdirectory(ExternalLibs)
+endif()
+
 add_subdirectory(Libs)
 add_subdirectory(Executable)
-
-
 
 # *** samples and external apps ***
 if (NOT VISUS_IS_SUBMODULE)
