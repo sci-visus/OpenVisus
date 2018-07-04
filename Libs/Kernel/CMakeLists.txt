@@ -225,30 +225,36 @@ target_link_libraries(VisusKernel PUBLIC FreeImage)
 
 macro(AddWin32ImportedLibrary name include_dir debug_lib release_lib)
 	add_library(${name} SHARED IMPORTED GLOBAL)
-	set_target_properties(${name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/msvc2017_64/${include_dir}")
+	set_target_properties(${name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${include_dir}")
 	set_property(TARGET ${name} APPEND PROPERTY IMPORTED_CONFIGURATIONS "Debug;Release;RelWithDebInfo")
-	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_DEBUG           ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs//msvc2017_64/debug/lib/${debug_lib})
-	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELEASE         ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs//msvc2017_64/lib/${release_lib})    
-	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO  ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs//msvc2017_64/lib/${release_lib}) 
+	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_DEBUG           ${debug_lib})
+	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELEASE         ${release_lib})    
+	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO  ${release_lib}) 
 endmacro()
 
 macro(CopyWin32DllToBuild debug_dll release_dll)
 	ADD_CUSTOM_COMMAND(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy 
-		$<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/msvc2017_64/debug/bin/${debug_dll}>  
-		$<$<NOT:$<CONFIG:Debug>>:${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/msvc2017_64/bin/${release_dll}> 
+		         $<$<CONFIG:Debug>:${debug_dll}>  
+		$<$<NOT:$<CONFIG:Debug>>:${release_dll}> 
 		$<TARGET_FILE_DIR:VisusKernel>)
 endmacro()
 
 # openssl
 if (WIN32)
 
-	AddWin32ImportedLibrary(crypto include/openssl libeay32.lib libeay32.lib)
-	AddWin32ImportedLibrary(ssl    include/openssl ssleay32.lib ssleay32.lib)
+	AddWin32ImportedLibrary(crypto 
+		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/include 
+		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/debug/lib/libeay32.lib 
+		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/lib/libeay32.lib)
+		
+	AddWin32ImportedLibrary(ssl    
+		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/include 
+		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/debug/lib/ssleay32.lib 
+		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/lib/ssleay32.lib)
 
-	CopyWin32DllToBuild(zlibd1.dll   zlib1.dll)
-	CopyWin32DllToBuild(libeay32.dll libeay32.dll)
-	CopyWin32DllToBuild(libssh2.dll  libssh2.dll)
-	CopyWin32DllToBuild(ssleay32.dll ssleay32.dll)
+	CopyWin32DllToBuild(${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/debug/bin/libeay32.dll ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/bin/libeay32.dll)
+	CopyWin32DllToBuild(${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/debug/bin/libssh2.dll  ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/bin/libssh2.dll)
+	CopyWin32DllToBuild(${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/debug/bin/ssleay32.dll ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/bin/ssleay32.dll)
 
 	target_link_libraries(VisusKernel PUBLIC crypto)
 	target_link_libraries(VisusKernel PUBLIC ssl)	
@@ -263,9 +269,14 @@ endif()
 
 # curl
 if (WIN32)
-	AddWin32ImportedLibrary(curl include libcurl.lib libcurl.lib)
+	AddWin32ImportedLibrary(curl 
+		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/curl/win32/include 
+		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/curl/win32/debug/lib/libcurl.lib 
+		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/curl/win32/lib/libcurl.lib)
 
-	CopyWin32DllToBuild(libcurl-d.dll libcurl.dll)
+	
+	CopyWin32DllToBuild(${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/curl/win32/debug/bin/zlibd1.dll   ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/curl/win32/bin/zlib1.dll)
+	CopyWin32DllToBuild(${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/curl/win32/debug/bin/libcurl-d.dll ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/curl/win32/bin/libcurl.dll)
 	
 	target_link_libraries(VisusKernel PUBLIC curl)
 else()
