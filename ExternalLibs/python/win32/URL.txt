@@ -1,0 +1,3 @@
+https://www.python.org/ftp/python/3.6.4/python-3.6.4rc1-embed-amd64.zip
+
+Added include and libs
