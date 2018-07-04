@@ -213,7 +213,11 @@ macro(AddVisusSwigLibrary Name SwigFile)
 	InstallVisusLibrary(${_target_name_})
 
 	target_include_directories(${_target_name_} PUBLIC ${PYTHON_INCLUDE_DIRS})
-   target_include_directories(${_target_name_} PRIVATE ${NUMPY_INCLUDE_DIR})
+	
+	if (NUMPY_FOUND)
+   	target_include_directories(${_target_name_} PRIVATE ${NUMPY_INCLUDE_DIR})
+   	target_compile_definitions(${_target_name_} -DNUMPY_FOUND)
+   endif()
 
 	# anaconda is statically linking python library inside its executable, so I cannot link in order to avoid duplicated symbols
 	# see https://groups.google.com/a/continuum.io/forum/#!topic/anaconda/057P4uNWyCU

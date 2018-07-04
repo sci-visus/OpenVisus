@@ -70,10 +70,13 @@ IF (VISUS_GUI)
 endif()
 
 # find Python
-set(PYTHON_VERSION 3)
+if (NOT DEFINED PYTHON_VERSION)
+	set(PYTHON_VERSION 3)
+endif()
+
 find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
-find_package(NumPy REQUIRED) 
+find_package(NumPy QUIET) 
 
 
 add_subdirectory(ExternalLibs)

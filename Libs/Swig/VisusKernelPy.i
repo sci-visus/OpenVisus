@@ -51,7 +51,7 @@ ENABLE_SHARED_PTR(StringTree)
 
 %init %{
 
-#if !(WIN32 && _DEBUG)
+#if NUMPY_FOUND
   import_array();
 #endif
 
@@ -195,7 +195,7 @@ ENABLE_SHARED_PTR(StringTree)
   %}
 };
 
-#if !(WIN32 && _DEBUG)
+#if NUMPY_FOUND
 
 //Array <-> numpy
 %extend Visus::Array 

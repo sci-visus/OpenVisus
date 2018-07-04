@@ -14,6 +14,10 @@ set(SWIG_FLAGS "")
 set(SWIG_FLAGS "${SWIG_FLAGS};-threads")
 set(SWIG_FLAGS "${SWIG_FLAGS};-extranative")
 
+if (NUMPY_FOUND)
+	set(SWIG_FLAGS "${SWIG_FLAGS};-DNUMPY_FOUND")
+endif()
+
 set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/..")
 set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
 set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include")
