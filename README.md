@@ -121,35 +121,9 @@ Install chocolatey. From an Administrator Prompt:
 choco install -y  -allow-empty-checksums git cmake swig
 ```
 
-Install Microsoft *vcpkg*. From an Prompt:
-
-```
-cd c:\
-mkdir Tools
-cd Tools
-git clone https://github.com/Microsoft/vcpkg
-cd vcpkg
-.\bootstrap-vcpkg.bat
-.\vcpkg install lz4:x64-windows tinyxml:x64-windows zlib:x64-windows openssl:x64-windows curl:x64-windows freeimage:x64-windows
-```
-	
-
 Compile OpenVisus. From a prompt:
 
 ```
-REM check path here...
-set PYTHON_DIR=c:\Python36
-set PYTHON=%PYTHON_DIR%\python.exe
-set PIP=%PYTHON_DIR%\Scripts\pip.exe
-set CMAKE="C:\Program Files\CMake\bin\cmake.exe"
-set GENERATOR="Visual Studio 15 2017 Win64"
-set CONFIGURATION=RelWithDebInfo
-set TOOLCHAIN="c:\Tools\vcpkg\scripts\buildsystems\vcpkg.cmake"
-set TRIPLET="x64-windows"
-set QT5_DIR=C:\Qt\Qt5.9.2\5.9.2\msvc2017_64
-set SWIG="C:\ProgramData\chocolatey\bin\swig.exe"
-set WHEEL="install\dist\OpenVisus-1.0.1-cp36-none-win_amd64.whl"
-
 cd c:\
 mkdir projects
 cd projects
@@ -158,13 +132,13 @@ cd OpenVisus
 mkdir build
 cd build
 
+set CMAKE="C:\Program Files\CMake\bin\cmake.exe"
+set CONFIGURATION=RelWithDebInfo
 %CMAKE% ^
-	-G %GENERATOR% ^
-	-DCMAKE_TOOLCHAIN_FILE=%TOOLCHAIN% ^
-	-DVCPKG_TARGET_TRIPLET=%TRIPLET% ^
-	-DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" ^
+	-G "Visual Studio 15 2017 Win64" ^
+	-DQt5_DIR="C:\Qt\Qt5.9.2\5.9.2\msvc2017_64\lib\cmake\Qt5" ^
 	-DGIT_CMD="C:\Program Files\Git\bin\git.exe" ^
-	-DSWIG_EXECUTABLE=%SWIG% ^
+	-DSWIG_EXECUTABLE="C:\ProgramData\chocolatey\bin\swig.exe" ^
 	..
 
 %CMAKE% --build . --target ALL_BUILD --config %CONFIGURATION%
@@ -175,7 +149,7 @@ cd build
 To test if visusviewer it's working:
 
 ```
-SET PATH=%PATH%;%QT5_DIR%\bin;%PYTHON_DIR%
+SET PATH=%QT5_DIR%\bin;c:\Python36;%PATH%
 SET PYTHONPATH=C:\projects\OpenVisus\build\%CONFIGURATION%
 
 REM OpenVisus EMBEDDING python 
@@ -184,9 +158,8 @@ REM OpenVisus EMBEDDING python
 REM OpenVisus EXTENDING python 
 REM    use python_d.exe if you are using the Debug version
 REM    add -vv if you want very verbose output  
-%PYTHON% -c "import OpenVisus; OpenVisus.check()"
+c:\Python36\python.exe -c "import OpenVisus; OpenVisus.check()"
 ```
-
 
 ## MacOSX compilation
 
@@ -194,7 +167,7 @@ Install brew and OpenVisus prerequisites:
 
 ```
 ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew install git cmake swig qt5 lz4 tinyxml zlib openssl curl freeimage python3 # TODO! make sure qt5 is version 5.9.2!
+brew install git cmake swig qt5 openssl curl python3 # TODO! make sure qt5 is version 5.9.2!
 sudo pip3 -H install numpy setuptools wheel twine
 sudo pip3 -H install PyQt5==5.9.2
 ```
@@ -239,7 +212,6 @@ export QT_PLUGIN_PATH=$QT_PLUGIN_PATH:$QT5_DIR/plugins
 # OpenVisus extending python
 python3 -c "import OpenVisus; OpenVisus.check()"
 ```
-
       
 ## Linux compilation
 
@@ -248,7 +220,7 @@ Install prerequisites (assuming you are using python 3.x).
 For Ubuntu 16.04:
 
 ```
-sudo apt install -y liblz4-dev libtinyxml-dev cmake git build-essential swig libfreeimage-dev \
+sudo apt install -y cmake git build-essential swig \
 	libcurl4-openssl-dev libssl-dev uuid-dev python3 python3-pip \
 	qt5-default qttools5-dev-tools
 sudo apt install -y apache2 apache2-dev # (OPTIONAL) If you want to build Apache plugin
@@ -261,9 +233,9 @@ sudo zypper refresh      # (OPTIONAL)
 sudo zypper -n update    # (OPTIONAL)
 sudo zypper -n patch     # (OPTIONAL)
 sudo zypper -n in -t pattern devel_basis \
-	cmake git swig curl cmake-gui \
+	cmake cmake-gui git swig curl  \
 	python3 python3-pip python3-devel \
-	zlib-devel liblz4-devel libtinyxml-devel libuuid-devel freeimage-devel libcurl-devel libopenssl-devel glu-devel \
+	libuuid-devel libcurl-devel libopenssl-devel glu-devel \
 	libQt5Concurrent-devel libQt5Network-devel \libQt5Test-devel libQt5OpenGL-devel libQt5PrintSupport-devel
 ```
 
@@ -301,7 +273,7 @@ export LD_LIBRARY_PATH=$(pwd)
 # OpenVisus EXTENDING python
 python3 -c "import OpenVisus; OpenVisus.check()"
 ```
-  
+
   
 ## Use OpenVisus as submodule
 

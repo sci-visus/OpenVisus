@@ -1,6 +1,9 @@
 
-if (WIN32)
-  add_subdirectory(msvc2017_64)
-else()
-	message( FATAL_ERROR "VISUS_SELF_CONTAINED not supported")
-endif()
+add_subdirectory(zlib)
+add_subdirectory(lz4)
+add_subdirectory(tinyxml)
+add_subdirectory(FreeImage)
+
+
+
+

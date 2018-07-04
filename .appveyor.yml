@@ -14,17 +14,11 @@ notifications:
     on_build_status_changed: true  
   
 environment:
-  # update the vcpkg cache even if build fails
-  APPVEYOR_SAVE_CACHE_ON_ERROR: true
   Configuration: RelWithDebInfo
   GENERATOR: Visual Studio 15 2017 Win64
-  TOOLCHAIN: c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
-  TRIPLET: x64-windows
   QT5_DIR: C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5
   
-cache:
-  - c:\Tools\vcpkg\installed  
-  
+
 #if you need to debug uncomment these lines (see https://www.appveyor.com/docs/how-to/rdp-to-build-worker/)
 #init:
 #  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
@@ -34,8 +28,6 @@ cache:
 
 install:
   - choco install -y --allow-empty-checksums swig 
-  - cd c:\tools\vcpkg
-  - vcpkg install lz4:x64-windows tinyxml:x64-windows zlib:x64-windows openssl:x64-windows curl:x64-windows freeimage:x64-windows  
 
 build_script:
   - cd %APPVEYOR_BUILD_FOLDER%
@@ -43,7 +35,7 @@ build_script:
   - cd build 
   - set PATH=C:\Python36-x64;C:\Python36-x64\Scripts;%PATH%
   - pip install numpy setuptools wheel twine
-  - cmake -G "%GENERATOR%" -DCMAKE_TOOLCHAIN_FILE="%TOOLCHAIN%" -DVCPKG_TARGET_TRIPLET="%TRIPLET%" -DQt5_DIR="%QT5_DIR%" ..
+  - cmake -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%" ..
   - cmake --build . --target ALL_BUILD --config %Configuration%
   - cmake --build . --target RUN_TESTS --config %Configuration% 
   - cmake --build . --target INSTALL   --config %Configuration% 

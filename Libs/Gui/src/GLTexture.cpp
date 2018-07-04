@@ -45,8 +45,8 @@ For support : support@visus.net
 namespace Visus {
 
 
-  ///////////////////////////////////////////////
-GLTexture::GLTexture(Array src) 
+///////////////////////////////////////////////
+GLTexture::GLTexture(Array src)
 {
   int ncomponents = src.dtype.ncomponents();
 
@@ -66,7 +66,7 @@ GLTexture::GLTexture(Array src)
     this->dtype = DType(ncomponents, DTypes::FLOAT32);
 }
 
-  ///////////////////////////////////////////////
+///////////////////////////////////////////////
 GLTexture::GLTexture(QImage src)
 {
   src = src.mirrored();
@@ -79,7 +79,7 @@ GLTexture::GLTexture(QImage src)
 ///////////////////////////////////////////////
 GLTexture::~GLTexture()
 {
-  if(!this->texture_id)
+  if (!this->texture_id)
     return;
 
   auto texture_id = this->texture_id;
@@ -98,19 +98,19 @@ GLTexture::~GLTexture()
 
 
 ///////////////////////////////////////////////
-GLuint GLTexture::textureId() 
+GLuint GLTexture::textureId()
 {
   if (texture_id)
     return texture_id;
 
   //already failed
-  if (!upload.array && upload.image.width()==0)
+  if (!upload.array && upload.image.width() == 0)
     return 0;
 
   //try the upload only once
   auto array = upload.array; upload.array = Array();
-  auto image = upload.image; upload.image= QImage();
-  
+  auto image = upload.image; upload.image = QImage();
+
   const uchar* pixels = nullptr;
   if (array)
   {
@@ -136,16 +136,6 @@ GLuint GLTexture::textureId()
     return 0;
   }
 
-#ifdef WIN32
-  static auto glCreateTextures = (PFNGLCREATETEXTURESPROC)wglGetProcAddress("glCreateTextures");
-  static auto glTextureStorage2D = (PFNGLTEXTURESTORAGE2DPROC)wglGetProcAddress("glTextureStorage2D");
-  static auto glTextureSubImage2D = (PFNGLTEXTURESUBIMAGE2DPROC)wglGetProcAddress("glTextureSubImage2D");
-  static auto glTextureStorage3D = (PFNGLTEXTURESTORAGE3DPROC)wglGetProcAddress("glTextureStorage3D");
-  static auto glTextureSubImage3D = (PFNGLTEXTURESUBIMAGE3DPROC)wglGetProcAddress("glTextureSubImage3D");
-  static auto glTextureParameteri = (PFNGLTEXTUREPARAMETERIPROC)wglGetProcAddress("glTextureParameteri");
-  static auto glBindTextureUnit = (PFNGLBINDTEXTUREUNITPROC)wglGetProcAddress("glBindTextureUnit");
-  static auto glGenerateTextureMipmap = (PFNGLGENERATETEXTUREMIPMAPPROC)wglGetProcAddress("glGenerateTextureMipmap");
-#endif
 
   auto Error = [&]() {
     VisusInfo() << "Failed to create texture";
@@ -157,13 +147,9 @@ GLuint GLTexture::textureId()
 
   int target = this->target();
 
-#ifdef WIN32
-  glCreateTextures(target, 1, &texture_id);
-#else
   glGenTextures(1, &texture_id);
   glBindTexture(target, texture_id);
-#endif
-  
+
   if (!texture_id)
     return Error();
 
@@ -172,7 +158,7 @@ GLuint GLTexture::textureId()
 
   //TODO HERE! I'm wasting texture memory
   if (dtype.isVectorOf(DTypes::UINT8))
-    textureFormat = (QOpenGLTexture::TextureFormat)std::vector<int>({ 0, GL_RGB8 ,GL_RGBA8  , GL_RGB8 ,GL_RGBA8   })[ncomponents];
+    textureFormat = (QOpenGLTexture::TextureFormat)std::vector<int>({ 0, GL_RGB8 ,GL_RGBA8  , GL_RGB8 ,GL_RGBA8 })[ncomponents];
   else
     textureFormat = (QOpenGLTexture::TextureFormat)std::vector<int>({ 0, GL_RGB32F ,GL_RGBA32F,GL_RGB32F,GL_RGBA32F })[ncomponents];
 
@@ -187,31 +173,26 @@ GLuint GLTexture::textureId()
 
   if (target == QOpenGLTexture::Target3D)
   {
-#ifdef WIN32
-    glTextureStorage3D(texture_id, 1, textureFormat, dims[0], dims[1], dims[2]);
-    glTextureSubImage3D(texture_id, 0, 0, 0, 0, dims[0], dims[1], dims[2], sourceFormat, sourceType, pixels);
-#else
-    glTexImage3D (target, 0, textureFormat, dims[0], dims[1], dims[2], 0, sourceFormat, sourceType, pixels);
-    glTexSubImage3D(target, 0, 0, 0, 0, dims[0], dims[1], dims[2], sourceFormat, sourceType, pixels);
+#if WIN32
+    static auto glTexImage3D = (PFNGLTEXIMAGE3DPROC)wglGetProcAddress("glTexImage3D");
+    static auto glTexSubImage3D = (PFNGLTEXSUBIMAGE3DPROC)wglGetProcAddress("glTexSubImage3D");
+    VisusAssert(glTexImage3D);
+    VisusAssert(glTexSubImage3D);
 #endif
+
+    glTexImage3D(target, 0, textureFormat, dims[0], dims[1], dims[2], 0, sourceFormat, sourceType, pixels);
+    glTexSubImage3D(target, 0, 0, 0, 0, dims[0], dims[1], dims[2], sourceFormat, sourceType, pixels);
   }
-    else
+  else
   {
-#ifdef WIN32
-    glTextureStorage2D(texture_id, 1, textureFormat, dims[0], dims[1]);
-    glTextureSubImage2D(texture_id, 0, 0, 0, dims[0], dims[1], sourceFormat, sourceType, pixels);
-#else
     glTexImage2D(target, 0, textureFormat, dims[0], dims[1], 0, sourceFormat, sourceType, pixels);
     glTexSubImage2D(target, 0, 0, 0, dims[0], dims[1], sourceFormat, sourceType, pixels);
-#endif
   }
 
-#ifdef WIN32
-  glGenerateTextureMipmap(texture_id);
-#elif __APPLE__
+#if __APPLE__
   glGenerateMipmap(target);
 #endif
-  
+
   glPixelStorei(GL_UNPACK_ALIGNMENT, originalAlignment);
 
   if (GLCanvas::FlushGLErrors(true))

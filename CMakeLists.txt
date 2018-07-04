@@ -75,16 +75,8 @@ find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
 find_package(NumPy REQUIRED) 
 
-set(VISUS_SELF_CONTAINED 0)
-if (WIN32 AND NOT CMAKE_TOOLCHAIN_FILE)
-  set(VISUS_SELF_CONTAINED 1)
-  message("Compiling self contained OpenVisus")
-endif()
 
-if (VISUS_SELF_CONTAINED)
-	add_subdirectory(ExternalLibs)
-endif()
-
+add_subdirectory(ExternalLibs)
 add_subdirectory(Libs)
 add_subdirectory(Executable)
 
