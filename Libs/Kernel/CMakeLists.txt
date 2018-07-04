@@ -225,17 +225,17 @@ target_link_libraries(VisusKernel PUBLIC FreeImage)
 
 macro(AddWin32ImportedLibrary name include_dir debug_lib release_lib)
 	add_library(${name} SHARED IMPORTED GLOBAL)
-	set_target_properties(${name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/ExternalLibs/msvc2017_64/${include_dir}")
+	set_target_properties(${name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/msvc2017_64/${include_dir}")
 	set_property(TARGET ${name} APPEND PROPERTY IMPORTED_CONFIGURATIONS "Debug;Release;RelWithDebInfo")
-	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_DEBUG           ${CMAKE_SOURCE_DIR}/ExternalLibs//msvc2017_64/debug/lib/${debug_lib})
-	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELEASE         ${CMAKE_SOURCE_DIR}/ExternalLibs//msvc2017_64/lib/${release_lib})    
-	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO  ${CMAKE_SOURCE_DIR}/ExternalLibs//msvc2017_64/lib/${release_lib}) 
+	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_DEBUG           ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs//msvc2017_64/debug/lib/${debug_lib})
+	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELEASE         ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs//msvc2017_64/lib/${release_lib})    
+	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO  ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs//msvc2017_64/lib/${release_lib}) 
 endmacro()
 
 macro(CopyWin32DllToBuild debug_dll release_dll)
 	ADD_CUSTOM_COMMAND(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy 
-		$<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/ExternalLibs/msvc2017_64/debug/bin/${debug_dll}>  
-		$<$<NOT:$<CONFIG:Debug>>:${CMAKE_SOURCE_DIR}/ExternalLibs/msvc2017_64/bin/${release_dll}> 
+		$<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/msvc2017_64/debug/bin/${debug_dll}>  
+		$<$<NOT:$<CONFIG:Debug>>:${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/msvc2017_64/bin/${release_dll}> 
 		$<TARGET_FILE_DIR:VisusKernel>)
 endmacro()
 
