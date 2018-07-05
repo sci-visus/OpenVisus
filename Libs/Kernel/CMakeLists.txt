@@ -218,76 +218,56 @@ endforeach()
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/dtl/include)
 
-target_link_libraries(VisusKernel PUBLIC zlib)
-target_link_libraries(VisusKernel PUBLIC lz4)
-target_link_libraries(VisusKernel PUBLIC TinyXML)
-target_link_libraries(VisusKernel PUBLIC FreeImage)
+if (VISUS_INTERNAL_ZLIB)
+	target_link_libraries(VisusKernel PUBLIC zlib)
+else()
+	target_include_directories(VisusKernel PRIVATE ${ZLIB_INCLUDE_DIRS})
+	target_link_libraries(VisusKernel PUBLIC ${ZLIB_LIBRARIES})	
+endif()
 
-macro(AddWin32ImportedLibrary name include_dir debug_lib release_lib)
-	add_library(${name} SHARED IMPORTED GLOBAL)
-	set_target_properties(${name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${include_dir}")
-	set_property(TARGET ${name} APPEND PROPERTY IMPORTED_CONFIGURATIONS "Debug;Release;RelWithDebInfo")
-	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_DEBUG           ${debug_lib})
-	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELEASE         ${release_lib})    
-	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO  ${release_lib}) 
-endmacro()
+if (VISUS_INTERNAL_LZ4)
+	target_link_libraries(VisusKernel PUBLIC lz4)
+else()
+	target_include_directories(VisusKernel PRIVATE ${LZ4_INCLUDE_DIR})
+	target_link_libraries(VisusKernel PUBLIC ${LZ4_LIBRARY})
+endif()
 
-macro(CopyWin32DllToBuild debug_dll release_dll)
-	ADD_CUSTOM_COMMAND(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy 
-		         $<$<CONFIG:Debug>:${debug_dll}>  
-		$<$<NOT:$<CONFIG:Debug>>:${release_dll}> 
-		$<TARGET_FILE_DIR:VisusKernel>)
-endmacro()
+if (VISUS_INTERNAL_TINYXML)
+	target_link_libraries(VisusKernel PUBLIC TinyXML)
+else()
+	target_include_directories(VisusKernel PRIVATE ${TinyXML_INCLUDE_DIRS})
+	target_link_libraries(VisusKernel PUBLIC ${TinyXML_LIBRARIES})	
+endif()
 
-# openssl
-if (WIN32)
+if (VISUS_INTERNAL_FREEIMAGE)
+	target_link_libraries(VisusKernel PUBLIC FreeImage)
+else()
+	target_include_directories(VisusKernel PRIVATE ${FREEIMAGE_INCLUDE_DIRS})
+	target_link_libraries(VisusKernel PUBLIC ${FREEIMAGE_LIBRARIES})
+endif()
 
-	AddWin32ImportedLibrary(crypto 
-		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/include 
-		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/debug/lib/libeay32.lib 
-		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/lib/libeay32.lib)
-		
-	AddWin32ImportedLibrary(ssl    
-		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/include 
-		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/debug/lib/ssleay32.lib 
-		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/lib/ssleay32.lib)
-
-	CopyWin32DllToBuild(${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/debug/bin/libeay32.dll ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/bin/libeay32.dll)
-	CopyWin32DllToBuild(${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/debug/bin/libssh2.dll  ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/bin/libssh2.dll)
-	CopyWin32DllToBuild(${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/debug/bin/ssleay32.dll ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/openssl/win32/bin/ssleay32.dll)
-
+if (VISUS_INTERNAL_OPENSSL)
 	target_link_libraries(VisusKernel PUBLIC crypto)
 	target_link_libraries(VisusKernel PUBLIC ssl)	
-
 else()
-	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/CMake/FixFindOpenSSL)
-	find_package(OpenSSL)
 	target_include_directories(VisusKernel PRIVATE ${OPENSSL_INCLUDE_DIR})
 	target_link_libraries(VisusKernel PUBLIC ${OPENSSL_SSL_LIBRARY})
 	target_link_libraries(VisusKernel PUBLIC ${OPENSSL_CRYPTO_LIBRARY})
 endif()
 
-# curl
-if (WIN32)
-	AddWin32ImportedLibrary(curl 
-		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/curl/win32/include 
-		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/curl/win32/debug/lib/libcurl.lib 
-		${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/curl/win32/lib/libcurl.lib)
-
-	
-	CopyWin32DllToBuild(${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/curl/win32/debug/bin/zlibd1.dll   ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/curl/win32/bin/zlib1.dll)
-	CopyWin32DllToBuild(${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/curl/win32/debug/bin/libcurl-d.dll ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/curl/win32/bin/libcurl.dll)
-	
+if (VISUS_INTERNAL_CURL)
 	target_link_libraries(VisusKernel PUBLIC curl)
 else()
-	find_package(CURL REQUIRED)
 	target_include_directories(VisusKernel PRIVATE ${CURL_INCLUDE_DIR})
 	target_link_libraries(VisusKernel PUBLIC ${CURL_LIBRARIES})
 endif()
 
-# python 
-target_include_directories(VisusKernel PUBLIC  ${PYTHON_INCLUDE_DIRS})
-target_link_libraries(VisusKernel      PUBLIC  ${PYTHON_LIBRARIES})
+if (VISUS_INTERNAL_PYTHON)
+	target_link_libraries(VisusKernel PUBLIC python)
+else()
+	target_include_directories(VisusKernel PUBLIC  ${PYTHON_INCLUDE_DIRS})
+	target_link_libraries(VisusKernel      PUBLIC  ${PYTHON_LIBRARIES})
+endif()
 
 if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)

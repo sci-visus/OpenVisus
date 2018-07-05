@@ -136,6 +136,49 @@ macro(AddExternalApp name SourceDir BinaryDir)
 
 endmacro()
 
+# //////////////////////////////////////////////////////////////////////////
+macro(Win32AddImportedLibrary name include_dir debug_lib release_lib debug_dlls release_dlls)
+	add_library(${name} SHARED IMPORTED GLOBAL)
+	set_target_properties(${name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${include_dir}")
+	set_property(TARGET ${name} APPEND PROPERTY IMPORTED_CONFIGURATIONS "Debug;Release;RelWithDebInfo")
+	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_DEBUG           ${debug_lib})
+	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELEASE         ${release_lib})    
+	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO  ${release_lib}) 
+	
+	foreach(it ${debug_dlls})
+		file(COPY ${it} DESTINATION ${LIBRARY_OUTPUT_PATH}/Debug)
+	endforeach()
+	
+	foreach(it ${release_dlls})
+		file(COPY ${it} DESTINATION ${LIBRARY_OUTPUT_PATH}/RelWithDebInfo)
+		file(COPY ${it} DESTINATION ${LIBRARY_OUTPUT_PATH}/Release)
+	endforeach()	
+	
+endmacro()
+
+# //////////////////////////////////////////////////////////////////////////
+macro(Win32CopyDllToBuild target debug_dll release_dll)
+
+	ADD_CUSTOM_COMMAND(TARGET ${target} POST_BUILD COMMAND ${CMAKE_COMMAND}  -E 
+		$<$<CONFIG:Debug>:copy>  $<$<CONFIG:Debug>:${debug_dll}> $<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug>
+		$<$<CONFIG:Release>:echo>  $<$<CONFIG:Release>:"no command">
+		$<$<CONFIG:RelWithDebInfo>:echo> $<$<CONFIG:RelWithDebInfo>:"no command">
+	)
+		
+	ADD_CUSTOM_COMMAND(TARGET ${target} POST_BUILD COMMAND  ${CMAKE_COMMAND}  -E 
+		$<$<CONFIG:Debug>:echo>  $<$<CONFIG:Debug>:"no command">
+		$<$<CONFIG:Release>:copy> $<$<CONFIG:Release>:${release_dll}> $<$<CONFIG:Release>:${LIBRARY_OUTPUT_PATH}/Release>
+		$<$<CONFIG:RelWithDebInfo>:echo> $<$<CONFIG:RelWithDebInfo>:"no command">
+	)
+		
+	ADD_CUSTOM_COMMAND(TARGET ${target} POST_BUILD COMMAND  ${CMAKE_COMMAND}  -E 
+		$<$<CONFIG:Debug>:echo>  $<$<CONFIG:Debug>:"no command">
+		$<$<CONFIG:Release>:echo> $<$<CONFIG:Release>:"no command">
+		$<$<CONFIG:RelWithDebInfo>:copy> $<$<CONFIG:RelWithDebInfo>:${release_dll}> $<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo>
+	)		
+		
+endmacro()
+
 
 # ///////////////////////////////////////////////////
 macro(InstallVisusLibrary Name)
@@ -215,9 +258,13 @@ macro(AddVisusSwigLibrary Name SwigFile)
 	target_include_directories(${_target_name_} PUBLIC ${PYTHON_INCLUDE_DIRS})
 	
 	if (NUMPY_FOUND)
-   	target_include_directories(${_target_name_} PRIVATE ${NUMPY_INCLUDE_DIR})
-   	target_compile_definitions(${_target_name_} -DNUMPY_FOUND)
+   		target_include_directories(${_target_name_} PRIVATE ${NUMPY_INCLUDE_DIR})
+   		target_compile_definitions(${_target_name_} PRIVATE NUMPY_FOUND)
    endif()
+
+	if(WIN32)
+		target_compile_definitions(${_target_name_}  PRIVATE /W0)
+	endif()
 
 	# anaconda is statically linking python library inside its executable, so I cannot link in order to avoid duplicated symbols
 	# see https://groups.google.com/a/continuum.io/forum/#!topic/anaconda/057P4uNWyCU
@@ -294,7 +341,6 @@ macro(AddVisusLibrary Name)
 	string(TOUPPER ${Name} __upper_case__name__)
 	target_compile_definitions(${Name}  PRIVATE VISUS_BUILDING_${__upper_case__name__}=1)
 	target_include_directories(${Name}  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
-	file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/$<CONFIG>/~${Name}.path.tmp" CONTENT "$<TARGET_FILE:${Name}>")
 	if (WIN32)
 	 	set_target_properties(${Name}
 	      PROPERTIES
@@ -311,7 +357,6 @@ macro(AddVisusExecutable Name)
 	add_executable(${Name} ${ARGN})
 	set_target_properties(${Name} PROPERTIES FOLDER "${CMAKE_FOLDER_PREFIX}Executable/")
 	set_target_properties(${Name} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})  
-	file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/$<CONFIG>/~${Name}.path.tmp" CONTENT "$<TARGET_FILE:${Name}>")
 	if (WIN32)
 	 	set_target_properties(${Name}
 	      PROPERTIES
@@ -327,9 +372,7 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(InstallBuildFiles Pattern Destination)
 	install(CODE "
-		file(READ \"${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/~VisusKernel.path.tmp\" __target_full_path__)
-		get_filename_component(__target_directory__ \${__target_full_path__} DIRECTORY)
-		FILE(GLOB __files__ \${__target_directory__}/${Pattern})
+		FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern})
 		FILE(INSTALL \${__files__} DESTINATION ${CMAKE_INSTALL_PREFIX}/${Destination})
 	")
 endmacro()
@@ -365,7 +408,7 @@ macro(InstallVisus)
 	InstallBuildFiles(*.py .)
 
 	# in windows I need to copy vcpkg dlls
-	if (WIN32)
+	if (WIN32 AND CMAKE_TOOLCHAIN_FILE)
 		InstallBuildFiles(*.dll ./bin)
 		SET(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
 		include(InstallRequiredSystemLibraries)

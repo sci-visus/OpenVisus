@@ -51,7 +51,7 @@ ENABLE_SHARED_PTR(StringTree)
 
 %init %{
 
-#if NUMPY_FOUND
+#ifdef NUMPY_FOUND
   import_array();
 #endif
 
@@ -195,7 +195,7 @@ ENABLE_SHARED_PTR(StringTree)
   %}
 };
 
-#if NUMPY_FOUND
+#ifdef NUMPY_FOUND
 
 //Array <-> numpy
 %extend Visus::Array 

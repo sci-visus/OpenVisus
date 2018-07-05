@@ -65,7 +65,7 @@ For support : support@visus.net
 %include <std_map.i>
 %include <std_set.i> 
 
-#if NUMPY_FOUND
+#ifdef NUMPY_FOUND
 %include <numpy.i>
 #endif
 
