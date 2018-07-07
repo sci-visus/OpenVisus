@@ -114,7 +114,7 @@ pip3 install PyQt5==5.9.2
   
 Install [Qt5](http://download.qt.io/official_releases/qt/5.9/5.9.2/qt-opensource-windows-x86-5.9.2.exe) 
 
-Install chocolatey. From an Administrator Prompt:
+Install git, cmake and swig. The fastest way is to use `chocolatey` i.e from an Administrator Prompt:
 
 ```
 @"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"
@@ -134,9 +134,10 @@ cd build
 
 set CMAKE="C:\Program Files\CMake\bin\cmake.exe"
 set CONFIGURATION=RelWithDebInfo
+set QT5_DIR=C:\Qt\Qt5.9.2\5.9.2\msvc2017_64
 %CMAKE% ^
 	-G "Visual Studio 15 2017 Win64" ^
-	-DQt5_DIR="C:\Qt\Qt5.9.2\5.9.2\msvc2017_64\lib\cmake\Qt5" ^
+	-DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" ^
 	-DGIT_CMD="C:\Program Files\Git\bin\git.exe" ^
 	-DSWIG_EXECUTABLE="C:\ProgramData\chocolatey\bin\swig.exe" ^
 	..
@@ -163,35 +164,30 @@ c:\Python36\python.exe -c "import OpenVisus; OpenVisus.check()"
 
 ## MacOSX compilation
 
-Install brew and OpenVisus prerequisites:
-
-```
-ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew install git cmake swig qt5 openssl curl python3 # TODO! make sure qt5 is version 5.9.2!
-sudo pip3 -H install numpy setuptools wheel twine
-sudo pip3 -H install PyQt5==5.9.2
-```
-
-Run xcode command line tools:
+Install xcode (command line) brew and OpenVisus prerequisites:
 
 ```
 sudo xcode-select --install
 # if command line tools do not work, type the following:
 # sudo xcode-select --reset
+ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+brew install git cmake swig qt5 openssl python3 # TODO! make sure qt5 is version 5.9.2!
+sudo pip3 -H install numpy setuptools wheel twine PyQt5==5.9.2
 ```
+
 
 Compile OpenVisus. From a prompt:
 
 ```
-# check the path here...
-OPENSSL_ROOT_DIR=/usr/local/opt/openssl
 QT5_DIR=/usr/local/opt/qt
+export DYLD_FRAMEWORK_PATH=$DYLD_FRAMEWORK_PATH:$QT5_DIR/lib
+export QT_PLUGIN_PATH=$QT_PLUGIN_PATH:$QT5_DIR/plugins  
 
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-mkdir build
-cd build
-cmake -GXcode -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR -DQt5_DIR=$QT5_DIR/lib/cmake/Qt5 .. 
+mkdir build && cd build
+
+cmake -GXcode -DQt5_DIR=$QT5_DIR/lib/cmake/Qt5 .. 
 
 CONFIGURATION=RelWithDebInfo
 cmake --build . --target ALL_BUILD --config $CONFIGURATION -- -jobs 8
@@ -202,15 +198,11 @@ cmake --build . --target install   --config $CONFIGURATION
 To test if it's working:
 
 ```
-export PYTHONPATH=$(pwd)/$CONFIGURATION
-export DYLD_FRAMEWORK_PATH=$DYLD_FRAMEWORK_PATH:$QT5_DIR/lib
-export QT_PLUGIN_PATH=$QT_PLUGIN_PATH:$QT5_DIR/plugins   
-
 # OpenVisus embedding python
-./$CONFIGURATION/visusviewer.app/Contents/MacOS/visusviewer         
+PYTHONPATH=$(pwd)/$CONFIGURATION ./$CONFIGURATION/visusviewer.app/Contents/MacOS/visusviewer         
 
 # OpenVisus extending python
-python3 -c "import OpenVisus; OpenVisus.check()"
+PYTHONPATH=$(pwd)/$CONFIGURATION python3 -c "import OpenVisus; OpenVisus.check()"
 ```
       
 ## Linux compilation
@@ -221,21 +213,23 @@ For Ubuntu 16.04:
 
 ```
 sudo apt install -y cmake git build-essential swig \
-	libcurl4-openssl-dev libssl-dev uuid-dev python3 python3-pip \
+	libssl-dev uuid-dev \
+	python3 python3-pip \
 	qt5-default qttools5-dev-tools
-sudo apt install -y apache2 apache2-dev # (OPTIONAL) If you want to build Apache plugin
+	
+# OPTIONAL (If you want to build Apache plugin)
+# sudo apt install -y apache2 apache2-dev 
 ```
 	
 For OpenSuse Leap:
 
 ```
-sudo zypper refresh      # (OPTIONAL)
-sudo zypper -n update    # (OPTIONAL)
-sudo zypper -n patch     # (OPTIONAL)
+# OPTIONAL
+# sudo zypper refresh && sudo zypper -n update && sudo zypper -n patch     
 sudo zypper -n in -t pattern devel_basis \
 	cmake cmake-gui git swig curl  \
 	python3 python3-pip python3-devel \
-	libuuid-devel libcurl-devel libopenssl-devel glu-devel \
+	libuuid-devel libopenssl-devel glu-devel \
 	libQt5Concurrent-devel libQt5Network-devel \libQt5Test-devel libQt5OpenGL-devel libQt5PrintSupport-devel
 ```
 
@@ -251,27 +245,18 @@ Compile OpenVisus:
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-mkdir build 
-cd build
-cmake ../
-CONFIGURATION=Release
-cmake --build . --target all      --config $CONFIGURATION  -- -j 4
-cmake --build . --target test     --config $CONFIGURATION 
-cmake --build . --target install  --config $CONFIGURATION 
+mkdir build  && cd build
+cmake  -DCMAKE_BUILD_TYPE=RelWithDebugInfo ../   # -G "CodeBlocks - Unix Makefiles"  if you want to use an IDE
+cmake --build . --target all      -- -j 8
+cmake --build . --target test     
+cmake --build . --target install  
 ```
 
 To test if it's working:
 
 ```
-
-export PYTHONPATH=$(pwd)
-export LD_LIBRARY_PATH=$(pwd)
-
-# OpenVisus EMBEDDING python
-./visusviewer 
-
-# OpenVisus EXTENDING python
-python3 -c "import OpenVisus; OpenVisus.check()"
+LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) ./visusviewer 
+LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) python3 -c "import OpenVisus; OpenVisus.check()"
 ```
 
   

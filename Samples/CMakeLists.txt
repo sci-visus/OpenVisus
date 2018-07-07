@@ -1,7 +1,6 @@
 macro(AddSample Name)
 	file(GLOB Sources ${Name}/*.h ${Name}/*.cpp)
 	add_executable(${Name} ${Sources})
-	set_target_properties(${Name} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 	set_target_properties(${Name} PROPERTIES FOLDER Samples/)
 endmacro()
 

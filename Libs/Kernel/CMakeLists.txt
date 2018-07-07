@@ -203,7 +203,7 @@ file(GLOB RootDocs
   ../../.*.yml 
   ../../README.md 
   ../../CMake/* 
-  ../../ExternalLibs/CMakeLists.txt 
+  ../../InternalLibs/CMakeLists.txt 
   ${PythonScriptSource}
 )
 
@@ -216,50 +216,50 @@ foreach( _it_ ${PythonScriptSource})
     add_custom_command(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${_it_} $<TARGET_FILE_DIR:VisusKernel>)
 endforeach()
 
-target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs/dtl/include)
+target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/dtl/include)
 
 if (VISUS_INTERNAL_ZLIB)
-	target_link_libraries(VisusKernel PUBLIC zlib)
+	target_link_libraries(VisusKernel PRIVATE zlib)
 else()
 	target_include_directories(VisusKernel PRIVATE ${ZLIB_INCLUDE_DIRS})
-	target_link_libraries(VisusKernel PUBLIC ${ZLIB_LIBRARIES})	
+	target_link_libraries(VisusKernel      PUBLIC ${ZLIB_LIBRARIES})	
 endif()
 
 if (VISUS_INTERNAL_LZ4)
-	target_link_libraries(VisusKernel PUBLIC lz4)
+	target_link_libraries(VisusKernel PRIVATE lz4)
 else()
 	target_include_directories(VisusKernel PRIVATE ${LZ4_INCLUDE_DIR})
-	target_link_libraries(VisusKernel PUBLIC ${LZ4_LIBRARY})
+	target_link_libraries(VisusKernel      PUBLIC ${LZ4_LIBRARY})
 endif()
 
 if (VISUS_INTERNAL_TINYXML)
-	target_link_libraries(VisusKernel PUBLIC TinyXML)
+	target_link_libraries(VisusKernel PRIVATE TinyXML)
 else()
 	target_include_directories(VisusKernel PRIVATE ${TinyXML_INCLUDE_DIRS})
-	target_link_libraries(VisusKernel PUBLIC ${TinyXML_LIBRARIES})	
+	target_link_libraries(VisusKernel      PUBLIC ${TinyXML_LIBRARIES})	
 endif()
 
 if (VISUS_INTERNAL_FREEIMAGE)
-	target_link_libraries(VisusKernel PUBLIC FreeImage)
+	target_link_libraries(VisusKernel PRIVATE FreeImage)
 else()
 	target_include_directories(VisusKernel PRIVATE ${FREEIMAGE_INCLUDE_DIRS})
-	target_link_libraries(VisusKernel PUBLIC ${FREEIMAGE_LIBRARIES})
+	target_link_libraries(VisusKernel      PUBLIC ${FREEIMAGE_LIBRARIES})
 endif()
 
 if (VISUS_INTERNAL_OPENSSL)
-	target_link_libraries(VisusKernel PUBLIC crypto)
-	target_link_libraries(VisusKernel PUBLIC ssl)	
+	target_link_libraries(VisusKernel PRIVATE crypto)
+	target_link_libraries(VisusKernel PRIVATE ssl)	
 else()
 	target_include_directories(VisusKernel PRIVATE ${OPENSSL_INCLUDE_DIR})
-	target_link_libraries(VisusKernel PUBLIC ${OPENSSL_SSL_LIBRARY})
-	target_link_libraries(VisusKernel PUBLIC ${OPENSSL_CRYPTO_LIBRARY})
+	target_link_libraries(VisusKernel      PUBLIC ${OPENSSL_SSL_LIBRARY})
+	target_link_libraries(VisusKernel      PUBLIC ${OPENSSL_CRYPTO_LIBRARY})
 endif()
 
 if (VISUS_INTERNAL_CURL)
-	target_link_libraries(VisusKernel PUBLIC curl)
+	target_link_libraries(VisusKernel PRIVATE curl)
 else()
 	target_include_directories(VisusKernel PRIVATE ${CURL_INCLUDE_DIR})
-	target_link_libraries(VisusKernel PUBLIC ${CURL_LIBRARIES})
+	target_link_libraries(VisusKernel      PUBLIC ${CURL_LIBRARIES})
 endif()
 
 if (VISUS_INTERNAL_PYTHON)

@@ -50,11 +50,11 @@ ENABLE_SHARED_PTR(StringTree)
 
 
 %init %{
-
-#ifdef NUMPY_FOUND
-  import_array();
-#endif
-
+	#ifdef NUMPY_FOUND
+		#if WIN32 && (!defined(_DEBUG) || defined(SWIG_PYTHON_INTERPRETER_NO_DEBUG))
+			import_array();
+		#endif
+	#endif
 %}
 
 

@@ -4,9 +4,6 @@ macro(SetupCMake)
 
 	set(CMAKE_CXX_STANDARD 11)
 
-	# this is important for python extension too!
-	SET(CMAKE_DEBUG_POSTFIX "_d")
-	
 	# enable parallel building
 	set(CMAKE_NUM_PROCS 8)          
 
@@ -57,6 +54,10 @@ macro(SetupCMake)
 
 		# increse number of file descriptors
 		add_definitions(-DFD_SETSIZE=4096)
+
+		add_definitions(-D_CRT_SECURE_NO_WARNINGS )
+
+		add_definitions(-DWIN32_LEAN_AND_MEAN)
 
 		# Enable PDB generation for all release build configurations.
 		# VC++ compiler and linker options taken from this article:
@@ -245,12 +246,12 @@ macro(AddVisusSwigLibrary Name SwigFile)
 	if (WIN32)
 		set_target_properties(${_target_name_}
 	      PROPERTIES
-	      COMPILE_PDB_NAME_DEBUG          ${_target_name_}${CMAKE_DEBUG_POSTFIX}
+	      COMPILE_PDB_NAME_DEBUG          ${_target_name_}_d
 	      COMPILE_PDB_NAME_RELEASE        ${_target_name_}
 	      COMPILE_PDB_NAME_MINSIZEREL     ${_target_name_}
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${_target_name_})
 	endif()
-
+	
    target_link_libraries(${_target_name_} PUBLIC ${Name})
 
 	InstallVisusLibrary(${_target_name_})
@@ -263,6 +264,7 @@ macro(AddVisusSwigLibrary Name SwigFile)
    endif()
 
 	if(WIN32)
+		set_target_properties(${_target_name_} PROPERTIES DEBUG_POSTFIX  "_d")
 		target_compile_definitions(${_target_name_}  PRIVATE /W0)
 	endif()
 
@@ -344,7 +346,7 @@ macro(AddVisusLibrary Name)
 	if (WIN32)
 	 	set_target_properties(${Name}
 	      PROPERTIES
-	      COMPILE_PDB_NAME_DEBUG          ${Name}${CMAKE_DEBUG_POSTFIX}
+	      COMPILE_PDB_NAME_DEBUG          ${Name}
 	      COMPILE_PDB_NAME_RELEASE        ${Name}
 	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
@@ -356,11 +358,10 @@ endmacro()
 macro(AddVisusExecutable Name)
 	add_executable(${Name} ${ARGN})
 	set_target_properties(${Name} PROPERTIES FOLDER "${CMAKE_FOLDER_PREFIX}Executable/")
-	set_target_properties(${Name} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})  
 	if (WIN32)
 	 	set_target_properties(${Name}
 	      PROPERTIES
-	      COMPILE_PDB_NAME_DEBUG          ${Name}${CMAKE_DEBUG_POSTFIX}
+	      COMPILE_PDB_NAME_DEBUG          ${Name}
 	      COMPILE_PDB_NAME_RELEASE        ${Name}
 	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
