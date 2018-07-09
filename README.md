@@ -92,6 +92,9 @@ git push
 (For OpenVisus developers) If you want to upload a new PIP package to the official PyPi repository, after the install step:
 
 ```
+cd \path\to\install\directory
+# python setup.py install [--small]
+python setup.py bdist_wheel --python-tag=cp36 --plat-name=win_amd64 [--small]
 twine upload --repository-url https://upload.pypi.org/legacy/ install/dist/*.whl
 ```
   
