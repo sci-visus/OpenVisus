@@ -40,11 +40,7 @@ import sys
 import os
 import unittest
 
-try:
-	import numpy
-except ImportError:
-	print("numpy not available. cannot run this script")
-	sys.exit(0)
+import numpy
 
 from OpenVisus import *
 

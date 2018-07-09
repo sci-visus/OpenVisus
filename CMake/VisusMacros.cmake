@@ -339,37 +339,20 @@ macro(InstallVisusLibrary Name)
  
 	if (NOT VISUS_IS_SUBMODULE)
 	
-		install(TARGETS ${Name} 
-			CONFIGURATIONS DEBUG
-			LIBRARY       DESTINATION debug/bin
-			RUNTIME       DESTINATION debug/bin 
-			BUNDLE        DESTINATION debug/bin
-			ARCHIVE       DESTINATION debug/lib
-			PUBLIC_HEADER DESTINATION include 
-			)
-		
-		install(TARGETS ${Name} 
-			CONFIGURATIONS RELEASE
-			LIBRARY       DESTINATION bin
-			RUNTIME       DESTINATION bin 
-			BUNDLE        DESTINATION bin
-			ARCHIVE       DESTINATION lib
-			PUBLIC_HEADER DESTINATION include 
-			)		
-		
-		install(TARGETS ${Name} 
-			CONFIGURATIONS RELWITHDEBINFO
-			LIBRARY       DESTINATION bin
-			RUNTIME       DESTINATION bin 
-			BUNDLE        DESTINATION bin
-			ARCHIVE       DESTINATION lib
-			PUBLIC_HEADER DESTINATION include )			
-		
-
-		if (WIN32)
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS DEBUG          DESTINATION debug/bin )
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELEASE        DESTINATION bin       )
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELWITHDEBINFO DESTINATION bin       )
+		if (WIN32 OR APPLE)
+	
+			install(TARGETS ${Name}  CONFIGURATIONS DEBUG          LIBRARY DESTINATION debug/bin RUNTIME DESTINATION debug/bin BUNDLE DESTINATION debug/bin ARCHIVE DESTINATION debug/lib)
+			install(TARGETS ${Name}  CONFIGURATIONS RELEASE        LIBRARY DESTINATION bin       RUNTIME DESTINATION bin       BUNDLE DESTINATION bin       ARCHIVE DESTINATION lib)	
+			install(TARGETS ${Name}  CONFIGURATIONS RELWITHDEBINFO LIBRARY DESTINATION bin       RUNTIME DESTINATION bin       BUNDLE DESTINATION bin       ARCHIVE DESTINATION lib)
+						
+			if (WIN32)
+				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS DEBUG          DESTINATION debug/bin )
+				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELEASE        DESTINATION bin       )
+				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELWITHDEBINFO DESTINATION bin       )
+			endif()
+			
+		else()
+			install(TARGETS ${Name} LIBRARY DESTINATION bin RUNTIME DESTINATION bin BUNDLE DESTINATION bin ARCHIVE DESTINATION lib)
 		endif()
 	endif()
 
@@ -381,14 +364,20 @@ macro(InstallVisusExecutable Name)
 
 	if (NOT VISUS_IS_SUBMODULE)
 	
-		install(TARGETS ${Name} CONFIGURATIONS DEBUG          BUNDLE     DESTINATION  debug/bin RUNTIME    DESTINATION  debug/bin )		
-		install(TARGETS ${Name} CONFIGURATIONS RELEASE        BUNDLE     DESTINATION  bin       RUNTIME    DESTINATION  bin        )			
-		install(TARGETS ${Name} CONFIGURATIONS RELWITHDEBINFO BUNDLE     DESTINATION  bin       RUNTIME    DESTINATION  bin       )						
-
-		if (WIN32)
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  DEBUG          DESTINATION debug/bin )
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELEASE        DESTINATION bin       )
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELWITHDEBINFO DESTINATION bin       )
+		if (WIN32 OR APPLE)
+	
+			install(TARGETS ${Name} CONFIGURATIONS DEBUG          BUNDLE     DESTINATION  debug/bin RUNTIME    DESTINATION  debug/bin )		
+			install(TARGETS ${Name} CONFIGURATIONS RELEASE        BUNDLE     DESTINATION  bin       RUNTIME    DESTINATION  bin)			
+			install(TARGETS ${Name} CONFIGURATIONS RELWITHDEBINFO BUNDLE     DESTINATION  bin       RUNTIME    DESTINATION  bin)						
+	
+			if (WIN32)
+				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  DEBUG          DESTINATION debug/bin )
+				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELEASE        DESTINATION bin       )
+				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELWITHDEBINFO DESTINATION bin       )
+			endif()
+		else()
+			
+			install(TARGETS ${Name} BUNDLE DESTINATION  bin RUNTIME DESTINATION  bin)			
 		endif()
 	endif()
 
@@ -396,10 +385,18 @@ endmacro()
 
 # ///////////////////////////////////////////////////
 macro(InstallBuildFiles Pattern Destination)
-	install(CODE "
-		FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern})
-		FILE(INSTALL \${__files__} DESTINATION ${CMAKE_INSTALL_PREFIX}/${Destination})
-	")
+
+	if (WIN32 OR APPLE)
+		install(CODE "
+			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern})
+			FILE(INSTALL \${__files__} DESTINATION ${CMAKE_INSTALL_PREFIX}/${Destination})
+		")
+	else()
+		install(CODE "
+			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/${Pattern})
+			FILE(INSTALL \${__files__} DESTINATION ${CMAKE_INSTALL_PREFIX}/${Destination})
+		")
+	endif()
 endmacro()
 
 
@@ -433,14 +430,22 @@ macro(InstallVisus)
 			install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
 		endif()
 		
-		if (WIN32)
+		if (VISUS_GUI)
 		
-			if (VISUS_GUI)
-				get_filename_component(QT5_BIN_DIR ${Qt5_DIR}/../../../bin REALPATH  )
-				STRING(REGEX REPLACE "/" "\\\\" QT5_BIN_DIR ${QT5_BIN_DIR})
-				configure_file(${CMAKE_SOURCE_DIR}/CMake/visusviewer.bat.config ${CMAKE_BINARY_DIR}/visusviewer.bat)
-				install(FILES ${CMAKE_BINARY_DIR}/visusviewer.bat DESTINATION .)
+			if (WIN32)
+					get_filename_component(QT5_BIN_DIR ${Qt5_DIR}/../../../bin REALPATH  )
+					STRING(REGEX REPLACE "/" "\\\\" QT5_BIN_DIR ${QT5_BIN_DIR})
+					configure_file(${CMAKE_SOURCE_DIR}/CMake/visusviewer.bat.config ${CMAKE_BINARY_DIR}/visusviewer.bat)
+					install(FILES ${CMAKE_BINARY_DIR}/visusviewer.bat DESTINATION .)
+			elseif (APPLE)
+	
+			else()
+					get_property(QT5_SO_DIR TARGET Qt5::Core PROPERTY LOCATION)
+					get_filename_component(QT5_SO_DIR ${QT5_SO_DIR} DIRECTORY)
+					configure_file(${CMAKE_SOURCE_DIR}/CMake/visusviewer.sh.config ${CMAKE_BINARY_DIR}/visusviewer.sh)
+					install(FILES ${CMAKE_BINARY_DIR}/visusviewer.sh  PERMISSIONS OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
 			endif()
+			
 		endif()
 		
 	endif()
