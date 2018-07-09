@@ -194,27 +194,8 @@ else()
 	file(GLOB Sources include/Visus/*.h src/*.cpp)
 endif()
 
-file(GLOB PythonScriptSource 
-  ../../CMake/__init__.py 
-  ../../CMake/OpenVisus.py)
-
-file(GLOB RootDocs 
-  ../../CMakeLists.txt 
-  ../../.*.yml 
-  ../../README.md 
-  ../../CMake/* 
-  ../../InternalLibs/CMakeLists.txt 
-  ${PythonScriptSource}
-)
-
-set(Sources ${Sources} ${RootDocs})
-source_group("" FILES ${RootDocs})
 
 AddVisusLibrary(VisusKernel ${Sources})
-
-foreach( _it_ ${PythonScriptSource})
-    add_custom_command(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${_it_} $<TARGET_FILE_DIR:VisusKernel>)
-endforeach()
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/dtl/include)
 
@@ -286,3 +267,5 @@ else()
 
 endif()
 
+add_custom_command(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/CMake/__init__.py  $<TARGET_FILE_DIR:VisusKernel>)
+add_custom_command(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/CMake/OpenVisus.py $<TARGET_FILE_DIR:VisusKernel>)
