@@ -68,8 +68,6 @@ macro(SetupCMake)
 		set(CMAKE_MODULE_LINKER_FLAGS_RELEASE "${CMAKE_MODULE_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
 		set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
 
-		set(terminal_extension ".bat")
-
 	elseif (APPLE)
 
 		# force executable to bundle
@@ -77,8 +75,6 @@ macro(SetupCMake)
 
 		# suppress some warnings
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-reorder")
-
-		set(terminal_extension ".command")
 
 	else ()
 
@@ -102,8 +98,6 @@ macro(SetupCMake)
 		# add usual include directories
 		include_directories("/usr/local/include")
 		include_directories("/usr/include")
-
-		set(terminal_extension ".sh")
 
 	endif()
 
@@ -428,25 +422,29 @@ macro(InstallVisus)
 			install(DIRECTORY Libs/Gui/include/Visus         DESTINATION include/Gui)
 			install(DIRECTORY Libs/GuiNodes/include/Visus    DESTINATION include/GuiNodes)
 			install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
-		endif()
-		
-		if (VISUS_GUI)
-		
+			
 			if (WIN32)
+			
 					get_filename_component(QT5_BIN_DIR ${Qt5_DIR}/../../../bin REALPATH  )
 					STRING(REGEX REPLACE "/" "\\\\" QT5_BIN_DIR ${QT5_BIN_DIR})
 					configure_file(${CMAKE_SOURCE_DIR}/CMake/visusviewer.bat.config ${CMAKE_BINARY_DIR}/visusviewer.bat)
-					install(FILES ${CMAKE_BINARY_DIR}/visusviewer.bat DESTINATION .)
+					install(FILES ${CMAKE_BINARY_DIR}/visusviewer.bat PERMISSIONS OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
+					
 			elseif (APPLE)
+	
+					configure_file(${CMAKE_SOURCE_DIR}/CMake/visusviewer.command.config ${CMAKE_BINARY_DIR}/visusviewer.command)
+					install(FILES ${CMAKE_BINARY_DIR}/visusviewer.command PERMISSIONS  OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
 	
 			else()
 					get_property(QT5_SO_DIR TARGET Qt5::Core PROPERTY LOCATION)
 					get_filename_component(QT5_SO_DIR ${QT5_SO_DIR} DIRECTORY)
 					configure_file(${CMAKE_SOURCE_DIR}/CMake/visusviewer.sh.config ${CMAKE_BINARY_DIR}/visusviewer.sh)
-					install(FILES ${CMAKE_BINARY_DIR}/visusviewer.sh  PERMISSIONS OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
+					install(FILES ${CMAKE_BINARY_DIR}/visusviewer.sh PERMISSIONS  OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
 			endif()
+						
 			
 		endif()
+		
 		
 	endif()
 endmacro()

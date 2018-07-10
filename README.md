@@ -92,9 +92,9 @@ git push
 (For OpenVisus developers) If you want to upload a new PIP package to the official PyPi repository, after the install step:
 
 ```
-cd \path\to\install\directory
+cd install
 # python setup.py install [--small]
-python setup.py bdist_wheel --python-tag=cp36 --plat-name=win_amd64 [--small]
+python3 setup.py bdist_wheel  --python-tag=cp36 --plat-name=(win_amd64 | macosx_10_13_x86_64 | linux_x86_64) [--small]
 twine upload --repository-url https://upload.pypi.org/legacy/ install/dist/*.whl
 ```
   
@@ -182,15 +182,15 @@ sudo pip3 -H install numpy setuptools wheel twine PyQt5==5.9.2
 Compile OpenVisus. From a prompt:
 
 ```
-QT5_DIR=/usr/local/opt/qt
-export DYLD_FRAMEWORK_PATH=$DYLD_FRAMEWORK_PATH:$QT5_DIR/lib
-export QT_PLUGIN_PATH=$QT_PLUGIN_PATH:$QT5_DIR/plugins  
+export Qt5_DIR=/usr/local/opt/qt/lib/cmake/Qt5
+export DYLD_FRAMEWORK_PATH=$DYLD_FRAMEWORK_PATH:$Qt5_DIR/../../../lib
+export QT_PLUGIN_PATH=$QT_PLUGIN_PATH:$Qt5_DIR/../../../plugins  
 
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 mkdir build && cd build
 
-cmake -GXcode -DQt5_DIR=$QT5_DIR/lib/cmake/Qt5 .. 
+cmake -GXcode -DQt5_DIR=$Qt5_DIR .. 
 
 CONFIGURATION=RelWithDebInfo
 cmake --build . --target ALL_BUILD --config $CONFIGURATION -- -jobs 8
