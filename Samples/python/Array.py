@@ -49,14 +49,14 @@ class MyTestCase(unittest.TestCase):
 
   def testInt32Array(self):
     a = numpy.array( [[1,2,3],[4,5,6]] ,dtype=numpy.int32)
-    b=convertToVisusArray(a)  
+    b=a.toNumPy()  
     self.assertEqual(b.get().dtype.toString(),"int32")
     self.assertEqual(b.get().dims[0],3)
     self.assertEqual(b.get().dims[1],2)
 
   def testFloat32Array(self):
     a = numpy.array( [[[1],[2]],[[3],[4]],[[5],[6]]],dtype=numpy.float32)
-    b=convertToVisusArray(a)  
+    b=a.toNumPy()  
     self.assertEqual(b.get().dtype.toString(),"float32")
     self.assertEqual(b.get().dims[0],1)
     self.assertEqual(b.get().dims[1],2)
@@ -64,15 +64,13 @@ class MyTestCase(unittest.TestCase):
 
   def testFloat64Array(self):
     a = numpy.array( [[[1],[2]],[[3],[4]],[[5],[6]]],dtype=numpy.float64)
-    b=convertToVisusArray(a)  
+    b=a.toNumPy()  
     self.assertEqual(b.get().dtype.toString(),"float64")
     self.assertEqual(b.get().dims[0],1)
     self.assertEqual(b.get().dims[1],2)
     self.assertEqual(b.get().dims[2],3)
 
 # ////////////////////////////////////////////////////////
-
-
 if __name__ == '__main__':
   SetCommandLine("__main__")
   KernelModule.attach()

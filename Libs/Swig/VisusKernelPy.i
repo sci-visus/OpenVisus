@@ -152,77 +152,28 @@ ENABLE_SHARED_PTR(StringTree)
     return Visus::Array::fromVector<Visus::Float64>(dims, Visus::DTypes::FLOAT64, vector);
   }
 
-
-  %pythoncode %{
-   
-    def fromPyArray(array) :
-
-      def getDimensions(array):
-        if not type(array) is list: 
-          return []
-        else:
-          dims=getDimensions(array[0])
-          dims.append(len(array))
-          return dims
-
-      def flatten(array):
-        if not type(array) is list:
-          return [array]
-        ret=[]
-        for it in array:
-          ret.extend(flatten(it)) 
-        return ret
-
-      dims=getDimensions(array)
-      pdim=len(dims)
-      if   (pdim==1): dims=NdPoint.one(1).withX(dims[0])
-      elif (pdim==2): dims=NdPoint.one(dims[0],dims[1])
-      elif (pdim==3): dims=NdPoint.one(dims[0],dims[1],dims[2])
-      else: raise Exception("internal error")
-
-      vector=flatten(array)
-      if (len(vector)!=dims.innerProduct()):
-        raise Exception("wrong dimension")
-
-      if (isinstance(vector[0],int)):
-        return Array.fromVectorInt32(dims,vector)
-
-      if (isinstance(vector[0],float)):
-        return Array.fromVectorFloat64(dims,vector)
-
-      raise Exception("internal error")
-
-    fromPyArray = staticmethod(fromPyArray)
-
-    def __rmul__(self, v):
-      return self.__mul__(v)
-
-  %}
-};
-
 #ifdef NUMPY_FOUND
 
-//Array <-> numpy
-%extend Visus::Array 
-{
-  //do not use directly!
-  PyObject* internalConvertToNumPyArray() 
+  //toNumPy
+  PyObject* toNumPy() const
   {
     //in numpy the first dimension is the "upper dimension"
     //example:
     // a=array([[1,2,3],[4,5,6]])
     // print a.shape # return 2,3
     // print a[1,1]  # equivalent to print a[Y,X], return 5  
-    npy_intp shape[VISUS_NDPOINT_DIM+1]; int shape_dim=0;
+    npy_intp shape[VISUS_NDPOINT_DIM+1]; 
+	int shape_dim=0;
     for (int I=VISUS_NDPOINT_DIM-1;I>=0;I--) {
-    if ($self->dims[I]>1) 
-      shape[shape_dim++]=(npy_int)$self->dims[I];
+		if ($self->dims[I]>1) 
+		  shape[shape_dim++]=(npy_int)$self->dims[I];
     }
 
     int   ndtype        = $self->dtype.ncomponents();
     DType single_dtype  = $self->dtype.get(0);
     if (ndtype>1) shape[shape_dim++]=(npy_int)ndtype;
     int typenum;
+
     if      (single_dtype==(DTypes::UINT8  )) typenum=NPY_UINT8 ;
     else if (single_dtype==(DTypes::INT8   )) typenum=NPY_INT8  ;
     else if (single_dtype==(DTypes::UINT16 )) typenum=NPY_UINT16;
@@ -233,86 +184,73 @@ ENABLE_SHARED_PTR(StringTree)
     else if (single_dtype==(DTypes::INT64  )) typenum=NPY_INT64 ;
     else if (single_dtype==(DTypes::FLOAT32)) typenum=NPY_FLOAT ;
     else if (single_dtype==(DTypes::FLOAT64)) typenum=NPY_DOUBLE;
-    else {VisusInfo()<<"numpy type not supported "<<$self->dtype.toString();return NULL;}
-    return PyArray_SimpleNewFromData(shape_dim,shape,typenum,$self->c_ptr());
+    else {
+		VisusInfo()<<"numpy type not supported "<<$self->dtype.toString();
+		return nullptr;
+	}
+
+	auto numpy_array=PyArray_SimpleNew(shape_dim,shape,typenum);
+    if (!PyArray_ISCONTIGUOUS(numpy_array)) {
+      SWIG_SetErrorMsg(PyExc_NotImplementedError,"numpy array is null or not contiguous\n");
+      return nullptr;
+    }
+
+	memcpy(PyArray_DATA(numpy_array),$self->c_ptr(),$self->c_size());
+	return numpy_array;
   }
   
-
-  //do not use directly!
-  static SharedPtr<Visus::Array> internalConvertToVisusArray(PyObject* obj)
+  //fromNumPy
+  static Array fromNumPy(PyObject* obj)
   {
-    if (!((obj) && PyArray_Check((PyArrayObject *)obj))) {
+    if (!((obj) && PyArray_Check((PyArrayObject *)obj))) 
+	{
       SWIG_SetErrorMsg(PyExc_NotImplementedError,"input argument is not a numpy array\n");
-      return SharedPtr<Visus::Array>();
+      return Array();
     }
     
-    PyArrayObject* array = (PyArrayObject*) obj;
-    if (!PyArray_ISCONTIGUOUS(array)) {
+    PyArrayObject* numpy_array = (PyArrayObject*) obj;
+
+    if (!PyArray_ISCONTIGUOUS(numpy_array)) {
       SWIG_SetErrorMsg(PyExc_NotImplementedError,"numpy array is null or not contiguous\n");
-      return SharedPtr<Visus::Array>();
+      return Array();
     }
 
-    Uint8* c_ptr=(Uint8*)array->data;
+    Uint8* c_ptr=(Uint8*)numpy_array->data;
     
-    NdPoint dims=NdPoint::one(array->nd);
-    for (int I=0;I<array->nd;I++)
-      dims[I]=array->dimensions[array->nd-1-I];
+    NdPoint dims=NdPoint::one(numpy_array->nd);
+    for (int I=0;I<numpy_array->nd;I++)
+      dims[I]=numpy_array->dimensions[numpy_array->nd-1-I];
 
     DType dtype;
-    if      (PyArray_TYPE(array)==NPY_UINT8  ) dtype=(DTypes::UINT8  );
-    else if (PyArray_TYPE(array)==NPY_INT8   ) dtype=(DTypes::INT8   );
-    else if (PyArray_TYPE(array)==NPY_UINT16 ) dtype=(DTypes::UINT16 );
-    else if (PyArray_TYPE(array)==NPY_INT16  ) dtype=(DTypes::INT16  );
-    else if (PyArray_TYPE(array)==NPY_UINT32 ) dtype=(DTypes::UINT32 );
-    else if (PyArray_TYPE(array)==NPY_INT32  ) dtype=(DTypes::INT32  );
-    else if (PyArray_TYPE(array)==NPY_UINT64 ) dtype=(DTypes::UINT64 );
-    else if (PyArray_TYPE(array)==NPY_INT64  ) dtype=(DTypes::INT64  );
-    else if (PyArray_TYPE(array)==NPY_FLOAT  ) dtype=(DTypes::FLOAT32);
-    else if (PyArray_TYPE(array)==NPY_DOUBLE ) dtype=(DTypes::FLOAT64);
+    if      (PyArray_TYPE(numpy_array)==NPY_UINT8  ) dtype=(DTypes::UINT8  );
+    else if (PyArray_TYPE(numpy_array)==NPY_INT8   ) dtype=(DTypes::INT8   );
+    else if (PyArray_TYPE(numpy_array)==NPY_UINT16 ) dtype=(DTypes::UINT16 );
+    else if (PyArray_TYPE(numpy_array)==NPY_INT16  ) dtype=(DTypes::INT16  );
+    else if (PyArray_TYPE(numpy_array)==NPY_UINT32 ) dtype=(DTypes::UINT32 );
+    else if (PyArray_TYPE(numpy_array)==NPY_INT32  ) dtype=(DTypes::INT32  );
+    else if (PyArray_TYPE(numpy_array)==NPY_UINT64 ) dtype=(DTypes::UINT64 );
+    else if (PyArray_TYPE(numpy_array)==NPY_INT64  ) dtype=(DTypes::INT64  );
+    else if (PyArray_TYPE(numpy_array)==NPY_FLOAT  ) dtype=(DTypes::FLOAT32);
+    else if (PyArray_TYPE(numpy_array)==NPY_DOUBLE ) dtype=(DTypes::FLOAT64);
     else {
       SWIG_SetErrorMsg(PyExc_NotImplementedError,"cannot guess visus dtype from numpy array_type\n");
-      return SharedPtr<Visus::Array>();
+      return Array();
     }
 
-    return std::make_shared<Visus::Array>(dims,dtype,SharedPtr<HeapMemory>(HeapMemory::createUnmanaged(c_ptr,dtype.getByteSize(dims))));
+	Array ret(dims,dtype);
+	memcpy(ret.c_ptr(),PyArray_DATA(numpy_array),ret.c_size());
+    return ret;
   }
-}
-
-%pythoncode %{
-
-try:
-  import numpy  
-except ImportError:
-  pass
-
-# here I'm sharing the heap memory, so I need to make sure that if one gets destroyed it won't crash (see __keep_in_memory__)
-def convertToNumPyArray(visus_value):
-
-  # see https://docs.scipy.org/doc/numpy-1.10.1/user/basics.subclassing.html 
-  # section "Simple example - adding an extra attribute to ndarray""
-  class NumPyArrayWithKeepInMemory(numpy.ndarray):
-
-    def __new__(subtype, shape, dtype=float, buffer=None, offset=0,strides=None, order=None, __keep_in_memory__=None):
-
-      obj = numpy.ndarray.__new__(subtype, shape, dtype, buffer, offset, strides,order)
-      obj.__keep_in_memory__ = __keep_in_memory__
-      return obj
-
-    def __array_finalize__(self, obj):
-      if obj is None: return
-      self.__keep_in_memory__ = getattr(obj, '__keep_in_memory__', None)
-
-  numpy_value=visus_value.internalConvertToNumPyArray().view(NumPyArrayWithKeepInMemory)
-  numpy_value.__keep_in_memory__ = visus_value.heap 
-  return numpy_value
-
-def convertToVisusArray(numpy_value):
-  visus_value=Array.internalConvertToVisusArray(numpy_value)
-  visus_value.__keep_in_memory__=numpy_value 
-  return visus_value
-%}
 
 #endif
+
+  %pythoncode %{
+   
+    def __rmul__(self, v):
+      return self.__mul__(v)
+
+  %}
+};
 
 %include <Visus/Color.h>
 
