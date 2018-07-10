@@ -95,7 +95,7 @@ git push
 cd install
 # python setup.py install [--small]
 python3 setup.py bdist_wheel  --python-tag=cp36 --plat-name=(win_amd64 | macosx_10_13_x86_64 | linux_x86_64) [--small]
-twine upload --repository-url https://upload.pypi.org/legacy/ install/dist/*.whl
+twine upload --repository-url https://upload.pypi.org/legacy/ dist/*.whl
 ```
   
 ## Windows compilation
