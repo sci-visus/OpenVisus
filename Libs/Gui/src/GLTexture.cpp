@@ -173,25 +173,15 @@ GLuint GLTexture::textureId()
 
   if (target == QOpenGLTexture::Target3D)
   {
-#if WIN32
-    static auto glTexImage3D = (PFNGLTEXIMAGE3DPROC)wglGetProcAddress("glTexImage3D");
-    static auto glTexSubImage3D = (PFNGLTEXSUBIMAGE3DPROC)wglGetProcAddress("glTexSubImage3D");
-    VisusAssert(glTexImage3D);
-    VisusAssert(glTexSubImage3D);
-#endif
-
+  #if WIN32
+    static auto glTexImage3D = (PFNGLTEXIMAGE3DPROC)wglGetProcAddress("glTexImage3D"); VisusAssert(glTexImage3D);
+    #endif
     glTexImage3D(target, 0, textureFormat, dims[0], dims[1], dims[2], 0, sourceFormat, sourceType, pixels);
-    glTexSubImage3D(target, 0, 0, 0, 0, dims[0], dims[1], dims[2], sourceFormat, sourceType, pixels);
   }
   else
   {
     glTexImage2D(target, 0, textureFormat, dims[0], dims[1], 0, sourceFormat, sourceType, pixels);
-    glTexSubImage2D(target, 0, 0, 0, dims[0], dims[1], sourceFormat, sourceType, pixels);
   }
-
-#if __APPLE__
-  glGenerateMipmap(target);
-#endif
 
   glPixelStorei(GL_UNPACK_ALIGNMENT, originalAlignment);
 
