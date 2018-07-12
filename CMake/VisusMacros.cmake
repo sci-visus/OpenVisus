@@ -13,6 +13,33 @@ macro(SetupCMake)
 	# save libraries and binaries in the same directory        
 	set(EXECUTABLE_OUTPUT_PATH  ${CMAKE_BINARY_DIR})           
 	set(LIBRARY_OUTPUT_PATH     ${CMAKE_BINARY_DIR})	
+	
+	if (APPLE)
+			execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpmachine OUTPUT_VARIABLE MACHINE OUTPUT_STRIP_TRAILING_WHITESPACE)
+			string(REGEX REPLACE ".*-darwin([0-9]+).*" "\\1" _apple_ver "${MACHINE}")
+	
+			if (_apple_ver EQUAL "17")
+			  set(APPLE_OSX_VERSION 10.13)
+			elseif (_apple_ver EQUAL "16")
+			  set(APPLE_OSX_VERSION 10.12)
+			elseif (_apple_ver EQUAL "15")
+			  set(APPLE_OSX_VERSION 10_11_X 1 CACHE TYPE BOOL)
+			elseif (_apple_ver EQUAL "14")
+ 			  set(APPLE_OSX_VERSION 10_10_X 1 CACHE TYPE BOOL)
+			elseif (_apple_ver EQUAL "13")
+			  set(APPLE_OSX_VERSION 10_9_X 1 CACHE TYPE BOOL)
+			elseif (_apple_ver EQUAL "12")
+			  set(APPLE_OSX_VERSION 10_8_X 1 CACHE TYPE BOOL)
+			elseif (_apple_ver EQUAL "11")
+ 			  set(APPLE_OSX_VERSION 10_7_X 1 CACHE TYPE BOOL)
+			elseif (_apple_ver EQUAL "10")
+			  set(APPLE_OSX_VERSION 10_6_X 1 CACHE TYPE BOOL)
+			else()
+			  message(FATAL "Unknown osx version")
+			endif()
+        
+      message("APPLE_OSX_VERSION ${APPLE_OSX_VERSION}")			
+	endif()
 
 	if (NOT WIN32)
       
@@ -450,7 +477,7 @@ macro(InstallVisus)
 		if (WIN32)
 			set(WHEEL_PLAT_NAME win_amd64)
 		elseif (APPLE)
-			STRING(REPLACE "." "_" __osx_version ${CMAKE_OSX_DEPLOYMENT_TARGET}) # example 10.13 -> 10_13
+			STRING(REPLACE "." "_" __osx_version ${APPLE_OSX_VERSION}) # example 10.13 -> 10_13
 			set(WHEEL_PLAT_NAME macosx_${__osx_version}_x86_64) 
 		else()
 			set(WHEEL_PLAT_NAME linux_x86_64)
