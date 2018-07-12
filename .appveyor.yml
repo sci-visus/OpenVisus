@@ -48,13 +48,13 @@ build_script:
   - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
   - echo username=%PYPI_USERNAME%                    >> %USERPROFILE%\\.pypirc
   - echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc  
-  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing install/dist/*"  } 
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing %APPVEYOR_BUILD_FOLDER%/install/dist/*"  } 
   
 # test are already in cmake
 test: off
 
 artifacts:
-    - path: .\build\install\dist\*.whl
+    - path: %APPVEYOR_BUILD_FOLDER%\build\install\dist\*.whl
       name: OpenVisus.win_amd64
  
 deploy:
