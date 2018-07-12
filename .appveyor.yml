@@ -17,6 +17,9 @@ environment:
   Configuration: RelWithDebInfo
   GENERATOR: Visual Studio 15 2017 Win64
   QT5_DIR: C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5
+  PYPI_USERNAME: scrgiorgio
+  PYPI_PASSWORD:
+    secure: 6DHH80JPNRCtIYxWc/h88Q==
   
 
 #if you need to debug uncomment these lines (see https://www.appveyor.com/docs/how-to/rdp-to-build-worker/)
@@ -41,6 +44,13 @@ build_script:
   - cmake --build . --target INSTALL   --config %Configuration% 
   - cd install
   - python setup.py bdist_wheel --python-tag=cp36 --plat-name=win_amd64 
+  - echo [distutils]                                  > %USERPROFILE%\\.pypirc
+  - echo index-servers =                             >> %USERPROFILE%\\.pypirc
+  - echo     pypi                                    >> %USERPROFILE%\\.pypirc
+  - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
+  - echo username=%PYPI_USERNAME%                    >> %USERPROFILE%\\.pypirc
+  - echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc  
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing dist/*" 2>$null } Else { write-output "Not tagged, won't deploy to pypi"}
   
 # test are already in cmake
 test: off

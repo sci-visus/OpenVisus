@@ -27,22 +27,12 @@ matrix:
           packages: g++-4
           sources:
             - ubuntu-toolchain-r-test
-      
-  exclude:
+     
+env:
+  - PYPI_USERNAME=scrgiorgio
+  - PYPI_PASSWORD
+    	secure: GIR+8Q36ZyNmOObncTz+Q+U1YaSbiEs/PUocg5gK8vJRWsTdtw+d6I2wGikUR7DOzWtXpz8+Zn2IaE8QKOdlvT0JU/jUXmpLX3oa6nL7ZRTU/0XqeUgioKRMAWfoD75MK70uccBGd8Tb+M2QZbqgEiNIY3HLD4033msKz+ta2+M4gMD03oMtZXcC9xvpQhuPSlFMKMsifu7JFdTHNN4ZQIy6fynA5iB2BqNsee0VoBjmbubo4BTBZqlayYtU3b4HOClEjqcc8F0M/uzbyjziwPjR/xhfp+ga41UYML+drDP2WSibztwjhR1IBb//8vaiBHFJY8bfV5AbulpFeU5qncEZq2K1TYjUrr+vYbz/KCtC86fFcczDclBVATlnSoC+++SUinAC3Lxh9xSQjkGngertOjZbciGoF2Ijrz4GhWRFUhfwtzKWTCwOoQaB54qG3Tltt37XlJ8pisD/S7muA2petyeWiF57VNjdqqO4EJDfroCCGPFY++JbKZZumCDOLeMn88H5FMSBhmaLb7ixkDWEIuyZo20RVDtgItrZu9YB9+NUQZsAx3YUA/0dJqrVbZi9QS8QOEUzienF/SXNDM0guB6qJLwaQ8U6RUoWc19cj+TsnYh6nWkh5bfRFLKOronJuHc1o1sGn/fk8c9Oi3TpUTW2dFkVgoRU2UJoGyg=        
 
-    - os: osx
-      osx_image: xcode9.4
-      compiler: clang
-      env: COMPILER=clang++ BUILD_TYPE=Debug 
-
-    - os: linux
-      dist: trusty
-      env: COMPILER=g++-4 BUILD_TYPE=Debug
-      addons: 
-        apt:
-          packages: g++-4
-          sources:
-            - ubuntu-toolchain-r-test
 
 install:
 
@@ -103,7 +93,19 @@ script:
       	cmake --build ./                     --target install   --config $BUILD_TYPE 
       	cd install 
       	python3 setup.py bdist_wheel --python-tag=cp36 --plat-name=macosx_10_13_x86_64 
-      fi          
+      	 
+      fi   
+    - | 
+     	if [ -n "$TRAVIS_TAG" ]; then
+      	echo [distutils]                                 > $HOME/.pypirc
+      	echo index-servers =                            >> $HOME/.pypirc
+      	echo     pypi                                   >> $HOME/.pypirc
+      	echo [pypi]                                     >> $HOME/.pypirc
+      	echo username=$PYPI_USERNAME                    >> $HOME/.pypirc
+      	echo password=$PYPI_PASSWORD                    >> $HOME/.pypirc       	
+      	twine upload --skip-existing dist/*" 
+      fi  
+            
     
 before_deploy:
   - export DEPLOY_FILENAME=$(ls ${TRAVIS_BUILD_DIR}/build/install/dist/*.whl) 
@@ -119,4 +121,3 @@ deploy:
     repo: sci-visus/OpenVisus
     tags: true
     all_branches: true
-

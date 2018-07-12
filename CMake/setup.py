@@ -2,7 +2,7 @@ import os, sys, setuptools
 import shutil
 
 #increase this number for PIP
-VERSION="1.1.0"
+VERSION="1.2.1"
 this_dir="."
 
 bSmall = False
@@ -10,7 +10,6 @@ if '--small' in sys.argv:
 	index = sys.argv.index('--small')
 	sys.argv.pop(index)  
 	bSmall = True
-
 
 # findFilesInCurrentDirectory
 def findFilesInCurrentDirectory():
