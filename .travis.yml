@@ -65,10 +65,10 @@ install:
     # (osx) brew install dependencies
     - | 
       if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then 
-        brew install swig qt5   
-        brew upgrade python # from 2 -> 3
-        pip3 install numpy setuptools wheel twine
-        gem install xcpretty # this is to solve logs too long
+        sudo brew install swig qt5   
+        sudo brew upgrade python # from 2 -> 3
+        sudo pip3 install numpy setuptools wheel twine
+        sudo gem install xcpretty # this is to solve logs too long
       fi    
  
 script:
@@ -91,13 +91,13 @@ script:
       fi   
     - | 
       if [ -n "$TRAVIS_TAG" ]; then
-      	echo [distutils]                                 > $HOME/.pypirc
-      	echo index-servers =                            >> $HOME/.pypirc
-      	echo     pypi                                   >> $HOME/.pypirc
-      	echo [pypi]                                     >> $HOME/.pypirc
-      	echo username=$PYPI_USERNAME                    >> $HOME/.pypirc
-      	echo password=$PYPI_PASSWORD                    >> $HOME/.pypirc       	
-      	twine upload --skip-existing install/dist/* 
+      	echo "[distutils]                               "  > $HOME/.pypirc
+      	echo "index-servers =                           " >> $HOME/.pypirc
+      	echo "    pypi                                  " >> $HOME/.pypirc
+      	echo "[pypi]                                    " >> $HOME/.pypirc
+      	echo "username=$PYPI_USERNAME                   " >> $HOME/.pypirc
+      	echo "password=$PYPI_PASSWORD                   " >> $HOME/.pypirc       	
+      	twine upload --skip-existing ${TRAVIS_BUILD_DIR}/build/install/dist/* 
       fi  
 
 before_deploy:
