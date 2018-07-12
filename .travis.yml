@@ -103,7 +103,7 @@ script:
       	echo [pypi]                                     >> $HOME/.pypirc
       	echo username=$PYPI_USERNAME                    >> $HOME/.pypirc
       	echo password=$PYPI_PASSWORD                    >> $HOME/.pypirc       	
-      	twine upload --skip-existing dist/*" 
+      	twine upload --skip-existing dist/* 
       fi  
             
     
