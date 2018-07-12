@@ -33,22 +33,24 @@ install:
   - choco install -y --allow-empty-checksums swig 
 
 build_script:
-  - cd %APPVEYOR_BUILD_FOLDER%
-  - mkdir build 
-  - cd build 
-  - set PATH=C:\Python36-x64;C:\Python36-x64\Scripts;%PATH%
-  - pip3 install numpy setuptools wheel twine
-  - cmake -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%" ..
-  - cmake --build . --target ALL_BUILD --config %Configuration%
-  - cmake --build . --target RUN_TESTS --config %Configuration% 
-  - cmake --build . --target INSTALL   --config %Configuration% 
-  - echo [distutils]                                  > %USERPROFILE%\\.pypirc
-  - echo index-servers =                             >> %USERPROFILE%\\.pypirc
-  - echo     pypi                                    >> %USERPROFILE%\\.pypirc
-  - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
-  - echo username=%PYPI_USERNAME%                    >> %USERPROFILE%\\.pypirc
-  - echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc  
-  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing %APPVEYOR_BUILD_FOLDER%/install/dist/*"  } 
+	- cmd: |
+		cd %APPVEYOR_BUILD_FOLDER%
+		mkdir build 
+		cd build 
+		set PATH=C:\Python36-x64;C:\Python36-x64\Scripts;%PATH%
+		pip3 install numpy setuptools wheel twine
+		cmake -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%" ..
+		cmake --build . --target ALL_BUILD --config %Configuration%
+		cmake --build . --target RUN_TESTS --config %Configuration% 
+		cmake --build . --target INSTALL   --config %Configuration% 
+		echo [distutils]                                  > %USERPROFILE%\\.pypirc
+		echo index-servers =                             >> %USERPROFILE%\\.pypirc
+		echo     pypi                                    >> %USERPROFILE%\\.pypirc
+		echo [pypi]                                      >> %USERPROFILE%\\.pypirc
+		echo username=%PYPI_USERNAME%                    >> %USERPROFILE%\\.pypirc
+		echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc  
+	- ps: |
+		If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing %APPVEYOR_BUILD_FOLDER%/install/dist/*"  } 
   
 # test are already in cmake
 test: off
