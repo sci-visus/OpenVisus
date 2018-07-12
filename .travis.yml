@@ -29,9 +29,9 @@ matrix:
             - ubuntu-toolchain-r-test
      
 env:
+  global:
   - PYPI_USERNAME=scrgiorgio
   - secure: "dw4skDdmouA8B3t1d5/OuYjCAicaiRutwFa/dOeEUn69tvQuCWtmPF4HOeGq4S5YmVd5LuFLEwHgdnyeygoO1ixBNSYMwJudYrah3WJck7MiZlltordRi0wpiAvfVfz0uVHtcPosyea4is5r2/N10zbluTGAYkeHn4d7O/EgKKKmp4rCg+n4sZRoBH1i2T8ScVR0D9T5qZu7FBaohT45GNczYY8q05Uw50QMnqJJT2lbRqobdOFg0TkMIe/NiNta7ZATb+y2xs68j0YiEuoiWHMSuwPEvfpBUeImNu08ePOuN0YOp9mmH1hH2RcUptIergBp5BKQodlG2B+ZtWnQ7PPxXCR77F6luJo8t3nISiq97TXRDNlb67JVtb1vBQZyD+cW9TtNWmOrCcU5VmoB7KH6lcTV5eqS62u66K8ykMVp9HPadPN5AYpSvNWOKpdZf2yscKT+NtVmWcAH7s+vfzDbMiw7dP75jncpdWW4Y96ozole3w5tk3/lGNONJ6AGs/I7jFsOT8XXJMlgaCRGOCoVKz9ESu2FF/XT+dV/lhqt8aigltMFh77CapeSSA96DRsuNHLzDVWzqXUpTuKDq3GTiO8aKXs3cGwgVdWxYInLGhX+u6zTnpHubT4jCIcJQToQxyYHGVDMyT8VFCsrDXsb6VnGd+OmXgsZQ0zqaLk="        
-
 
 install:
 
