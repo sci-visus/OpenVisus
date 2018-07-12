@@ -50,7 +50,7 @@ build_script:
   - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
   - echo username=%PYPI_USERNAME%                    >> %USERPROFILE%\\.pypirc
   - echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc  
-  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing dist/*" 2>$null } Else { write-output "Not tagged, won't deploy to pypi"}
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing dist/*"  } 
   
 # test are already in cmake
 test: off

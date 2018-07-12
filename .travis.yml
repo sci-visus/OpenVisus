@@ -92,10 +92,9 @@ script:
       	cmake --build ./                     --target install   --config $BUILD_TYPE 
       	cd install 
       	python3 setup.py bdist_wheel --python-tag=cp36 --plat-name=macosx_10_13_x86_64 
-      	 
       fi   
     - | 
-     	if [ -n "$TRAVIS_TAG" ]; then
+      if [ -n "$TRAVIS_TAG" ]; then
       	echo [distutils]                                 > $HOME/.pypirc
       	echo index-servers =                            >> $HOME/.pypirc
       	echo     pypi                                   >> $HOME/.pypirc
@@ -104,8 +103,7 @@ script:
       	echo password=$PYPI_PASSWORD                    >> $HOME/.pypirc       	
       	twine upload --skip-existing dist/* 
       fi  
-            
-    
+
 before_deploy:
   - export DEPLOY_FILENAME=$(ls ${TRAVIS_BUILD_DIR}/build/install/dist/*.whl) 
   - echo "deploying $DEPLOY_FILENAME to GitHub releases"    
