@@ -54,7 +54,7 @@ build_script:
 test: off
 
 artifacts:
-    - path: %APPVEYOR_BUILD_FOLDER%\build\install\dist\*.whl
+    - path: .\build\install\dist\*.whl
       name: OpenVisus.win_amd64
  
 deploy:
