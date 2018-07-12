@@ -42,15 +42,13 @@ build_script:
   - cmake --build . --target ALL_BUILD --config %Configuration%
   - cmake --build . --target RUN_TESTS --config %Configuration% 
   - cmake --build . --target INSTALL   --config %Configuration% 
-  - cd install
-  - python setup.py bdist_wheel --python-tag=cp36 --plat-name=win_amd64 
   - echo [distutils]                                  > %USERPROFILE%\\.pypirc
   - echo index-servers =                             >> %USERPROFILE%\\.pypirc
   - echo     pypi                                    >> %USERPROFILE%\\.pypirc
   - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
   - echo username=%PYPI_USERNAME%                    >> %USERPROFILE%\\.pypirc
   - echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc  
-  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing dist/*"  } 
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing install/dist/*"  } 
   
 # test are already in cmake
 test: off

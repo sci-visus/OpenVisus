@@ -3,27 +3,19 @@ import shutil
 
 #increase this number for PIP
 VERSION="1.2.1"
-this_dir="."
 
-bSmall = False
-if '--small' in sys.argv:
-	index = sys.argv.index('--small')
-	sys.argv.pop(index)  
-	bSmall = True
+
+shutil.rmtree('./build', ignore_errors=True)
+shutil.rmtree('./dist', ignore_errors=True)
+shutil.rmtree('./OpenVisus.egg-info', ignore_errors=True)
+shutil.rmtree('./__pycache__', ignore_errors=True)
 
 # findFilesInCurrentDirectory
 def findFilesInCurrentDirectory():
 	ret=[]
-	for dirpath, __dirnames__, filenames in os.walk(this_dir):
+	for dirpath, __dirnames__, filenames in os.walk("."):
 	  for filename in filenames:
 	    file= os.path.abspath(os.path.join(dirpath, filename))
-	    first_dir=dirpath.replace("\\","/").split("/")
-	    first_dir=first_dir[1] if len(first_dir)>=2 else ""
-			
-		 # bSkip?
-	    if first_dir in ("build","dist","OpenVisus.egg-info","__pycache__") or (bSmall and first_dir=="debug") or (bSmall and file.endswith(".pdb")):
-	    	continue
-
 	    ret.append(file)
 	return ret
 

@@ -80,8 +80,6 @@ script:
       	cmake --build ./ --target all
       	cmake --build ./ --target test
       	cmake --build ./ --target install
-      	cd install 
-      	python3 setup.py bdist_wheel --python-tag=cp36  --plat-name=linux_x86_64 
       fi    
       
     - | 
@@ -89,9 +87,7 @@ script:
       	cmake -GXcode -DQt5_DIR=/usr/local/opt/qt/lib/cmake/Qt5 ..
       	set -o pipefail &&  cmake --build ./ --target ALL_BUILD --config $BUILD_TYPE | xcpretty -c
       	cmake --build ./                     --target RUN_TESTS --config $BUILD_TYPE
-      	cmake --build ./                     --target install   --config $BUILD_TYPE 
-      	cd install 
-      	python3 setup.py bdist_wheel --python-tag=cp36 --plat-name=macosx_10_13_x86_64 
+      	cmake --build ./                     --target install   --config $BUILD_TYPE
       fi   
     - | 
       if [ -n "$TRAVIS_TAG" ]; then
@@ -101,7 +97,7 @@ script:
       	echo [pypi]                                     >> $HOME/.pypirc
       	echo username=$PYPI_USERNAME                    >> $HOME/.pypirc
       	echo password=$PYPI_PASSWORD                    >> $HOME/.pypirc       	
-      	twine upload --skip-existing dist/* 
+      	twine upload --skip-existing install/dist/* 
       fi  
 
 before_deploy:

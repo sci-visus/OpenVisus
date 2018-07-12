@@ -445,7 +445,23 @@ macro(InstallVisus)
 			
 		endif()
 		
+		set(WHEEL_PYTHON_TAG "cp${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR}")
 		
+		if (WIN32)
+			set(WHEEL_PLAT_NAME win_amd64)
+		elseif (APPLE)
+			STRING(REGEX REPLACE "." "_" __osx_version ${CMAKE_OSX_DEPLOYMENT_TARGET}) # example 10.13 -> 10_13
+			set(WHEEL_PLAT_NAME macosx_${__osx_version}_x86_64) 
+		else()
+			set(WHEEL_PLAT_NAME linux_x86_64)
+		endif()
+
+		install(CODE "MESSAGE(\"${PYTHON_EXECUTABLE} setup.py bdist_wheel --python-tag=${WHEEL_PYTHON_TAG} --plat-name=${WHEEL_PLAT_NAME}\")")
+		install(CODE "EXECUTE_PROCESS(COMMAND  
+			${CMAKE_COMMAND} -E chdir ${CMAKE_INSTALL_PREFIX}
+			${PYTHON_EXECUTABLE} setup.py bdist_wheel --python-tag=${WHEEL_PYTHON_TAG} --plat-name=${WHEEL_PLAT_NAME}
+		)")
+
 	endif()
 endmacro()
 
