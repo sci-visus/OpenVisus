@@ -483,6 +483,7 @@ macro(InstallVisus)
 			set(WHEEL_PLAT_NAME linux_x86_64)
 		endif()
 
+		install(CODE "MESSAGE(\"Creating wheel...\")")
 		install(CODE "MESSAGE(\"${PYTHON_EXECUTABLE} setup.py bdist_wheel --python-tag=${WHEEL_PYTHON_TAG} --plat-name=${WHEEL_PLAT_NAME}\")")
 		install(CODE "EXECUTE_PROCESS(COMMAND  
 			${CMAKE_COMMAND} -E chdir ${CMAKE_INSTALL_PREFIX}

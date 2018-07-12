@@ -2,7 +2,7 @@ import os, sys, setuptools
 import shutil
 
 #increase this number for PIP
-VERSION="1.2.5"
+VERSION="1.2.666666"
 
 
 shutil.rmtree('./build', ignore_errors=True)
