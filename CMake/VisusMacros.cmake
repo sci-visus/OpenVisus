@@ -4,9 +4,6 @@ macro(SetupCMake)
 
 	set(CMAKE_CXX_STANDARD 11)
 
-	# this is important for python extension too!
-	SET(CMAKE_DEBUG_POSTFIX "_d")
-	
 	# enable parallel building
 	set(CMAKE_NUM_PROCS 8)          
 
@@ -39,7 +36,6 @@ macro(SetupCMake)
 		else()
 			# check dependencies
 			# ldd filename
-
 		endif()
 
 	endif()
@@ -58,6 +54,10 @@ macro(SetupCMake)
 		# increse number of file descriptors
 		add_definitions(-DFD_SETSIZE=4096)
 
+		add_definitions(-D_CRT_SECURE_NO_WARNINGS )
+
+		add_definitions(-DWIN32_LEAN_AND_MEAN)
+
 		# Enable PDB generation for all release build configurations.
 		# VC++ compiler and linker options taken from this article:
 		# see https://msdn.microsoft.com/en-us/library/fsk896zz.aspx
@@ -68,8 +68,6 @@ macro(SetupCMake)
 		set(CMAKE_MODULE_LINKER_FLAGS_RELEASE "${CMAKE_MODULE_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
 		set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG /OPT:REF /OPT:ICF /INCREMENTAL:NO")
 
-		set(terminal_extension ".bat")
-
 	elseif (APPLE)
 
 		# force executable to bundle
@@ -77,8 +75,6 @@ macro(SetupCMake)
 
 		# suppress some warnings
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-reorder")
-
-		set(terminal_extension ".command")
 
 	else ()
 
@@ -102,8 +98,6 @@ macro(SetupCMake)
 		# add usual include directories
 		include_directories("/usr/local/include")
 		include_directories("/usr/include")
-
-		set(terminal_extension ".sh")
 
 	endif()
 
@@ -136,38 +130,49 @@ macro(AddExternalApp name SourceDir BinaryDir)
 
 endmacro()
 
+# //////////////////////////////////////////////////////////////////////////
+macro(Win32AddImportedLibrary name include_dir debug_lib release_lib debug_dlls release_dlls)
+	add_library(${name} SHARED IMPORTED GLOBAL)
+	set_target_properties(${name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${include_dir}")
+	set_property(TARGET ${name} APPEND PROPERTY IMPORTED_CONFIGURATIONS "Debug;Release;RelWithDebInfo")
+	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_DEBUG           ${debug_lib})
+	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELEASE         ${release_lib})    
+	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO  ${release_lib}) 
+	
+	foreach(it ${debug_dlls})
+		file(COPY ${it} DESTINATION ${LIBRARY_OUTPUT_PATH}/Debug)
+	endforeach()
+	
+	foreach(it ${release_dlls})
+		file(COPY ${it} DESTINATION ${LIBRARY_OUTPUT_PATH}/RelWithDebInfo)
+		file(COPY ${it} DESTINATION ${LIBRARY_OUTPUT_PATH}/Release)
+	endforeach()	
+	
+endmacro()
 
-# ///////////////////////////////////////////////////
-macro(InstallVisusLibrary Name)
+# //////////////////////////////////////////////////////////////////////////
+macro(Win32CopyDllToBuild target debug_dll release_dll)
 
-	install(TARGETS ${Name} 
-		LIBRARY       DESTINATION bin
-		RUNTIME       DESTINATION bin 
-		BUNDLE        DESTINATION bin
-		ARCHIVE       DESTINATION lib
-		PUBLIC_HEADER DESTINATION include 
+	ADD_CUSTOM_COMMAND(TARGET ${target} POST_BUILD COMMAND ${CMAKE_COMMAND}  -E 
+		$<$<CONFIG:Debug>:copy>  $<$<CONFIG:Debug>:${debug_dll}> $<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug>
+		$<$<CONFIG:Release>:echo>  $<$<CONFIG:Release>:"no command">
+		$<$<CONFIG:RelWithDebInfo>:echo> $<$<CONFIG:RelWithDebInfo>:"no command">
 	)
-
-	if (WIN32)
-		install(FILES $<TARGET_PDB_FILE:${Name}> DESTINATION bin OPTIONAL)
-	endif()
-
+		
+	ADD_CUSTOM_COMMAND(TARGET ${target} POST_BUILD COMMAND  ${CMAKE_COMMAND}  -E 
+		$<$<CONFIG:Debug>:echo>  $<$<CONFIG:Debug>:"no command">
+		$<$<CONFIG:Release>:copy> $<$<CONFIG:Release>:${release_dll}> $<$<CONFIG:Release>:${LIBRARY_OUTPUT_PATH}/Release>
+		$<$<CONFIG:RelWithDebInfo>:echo> $<$<CONFIG:RelWithDebInfo>:"no command">
+	)
+		
+	ADD_CUSTOM_COMMAND(TARGET ${target} POST_BUILD COMMAND  ${CMAKE_COMMAND}  -E 
+		$<$<CONFIG:Debug>:echo>  $<$<CONFIG:Debug>:"no command">
+		$<$<CONFIG:Release>:echo> $<$<CONFIG:Release>:"no command">
+		$<$<CONFIG:RelWithDebInfo>:copy> $<$<CONFIG:RelWithDebInfo>:${release_dll}> $<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo>
+	)		
+		
 endmacro()
 
-
-
-# ///////////////////////////////////////////////////
-macro(InstallVisusExecutable Name)
-
-	install(TARGETS ${Name} 
-		BUNDLE DESTINATION  bin
-		RUNTIME DESTINATION bin)
-
-	if (WIN32)
-		install(FILES $<TARGET_PDB_FILE:${Name}> DESTINATION bin OPTIONAL)
-	endif()
-
-endmacro()
 
 # ///////////////////////////////////////////////////
 macro(AddVisusSwigLibrary Name SwigFile)
@@ -198,18 +203,27 @@ macro(AddVisusSwigLibrary Name SwigFile)
 	if (WIN32)
 		set_target_properties(${_target_name_}
 	      PROPERTIES
-	      COMPILE_PDB_NAME_DEBUG          ${_target_name_}${CMAKE_DEBUG_POSTFIX}
+	      COMPILE_PDB_NAME_DEBUG          ${_target_name_}_d
 	      COMPILE_PDB_NAME_RELEASE        ${_target_name_}
 	      COMPILE_PDB_NAME_MINSIZEREL     ${_target_name_}
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${_target_name_})
 	endif()
-
+	
    target_link_libraries(${_target_name_} PUBLIC ${Name})
 
 	InstallVisusLibrary(${_target_name_})
 
 	target_include_directories(${_target_name_} PUBLIC ${PYTHON_INCLUDE_DIRS})
-   target_include_directories(${_target_name_} PRIVATE ${NUMPY_INCLUDE_DIR})
+	
+	if (NUMPY_FOUND)
+   		target_include_directories(${_target_name_} PRIVATE ${NUMPY_INCLUDE_DIR})
+   		target_compile_definitions(${_target_name_} PRIVATE NUMPY_FOUND)
+   endif()
+
+	if(WIN32)
+		set_target_properties(${_target_name_} PROPERTIES DEBUG_POSTFIX  "_d")
+		target_compile_definitions(${_target_name_}  PRIVATE /W0)
+	endif()
 
 	# anaconda is statically linking python library inside its executable, so I cannot link in order to avoid duplicated symbols
 	# see https://groups.google.com/a/continuum.io/forum/#!topic/anaconda/057P4uNWyCU
@@ -286,11 +300,10 @@ macro(AddVisusLibrary Name)
 	string(TOUPPER ${Name} __upper_case__name__)
 	target_compile_definitions(${Name}  PRIVATE VISUS_BUILDING_${__upper_case__name__}=1)
 	target_include_directories(${Name}  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
-	file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/$<CONFIG>/~${Name}.path.tmp" CONTENT "$<TARGET_FILE:${Name}>")
 	if (WIN32)
 	 	set_target_properties(${Name}
 	      PROPERTIES
-	      COMPILE_PDB_NAME_DEBUG          ${Name}${CMAKE_DEBUG_POSTFIX}
+	      COMPILE_PDB_NAME_DEBUG          ${Name}
 	      COMPILE_PDB_NAME_RELEASE        ${Name}
 	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
@@ -302,12 +315,10 @@ endmacro()
 macro(AddVisusExecutable Name)
 	add_executable(${Name} ${ARGN})
 	set_target_properties(${Name} PROPERTIES FOLDER "${CMAKE_FOLDER_PREFIX}Executable/")
-	set_target_properties(${Name} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})  
-	file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/$<CONFIG>/~${Name}.path.tmp" CONTENT "$<TARGET_FILE:${Name}>")
 	if (WIN32)
 	 	set_target_properties(${Name}
 	      PROPERTIES
-	      COMPILE_PDB_NAME_DEBUG          ${Name}${CMAKE_DEBUG_POSTFIX}
+	      COMPILE_PDB_NAME_DEBUG          ${Name}
 	      COMPILE_PDB_NAME_RELEASE        ${Name}
 	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
@@ -316,50 +327,125 @@ macro(AddVisusExecutable Name)
 endmacro()
 
 
+
+# ///////////////////////////////////////////////////
+macro(InstallVisusLibrary Name)
+ 
+	if (NOT VISUS_IS_SUBMODULE)
+	
+		if (WIN32 OR APPLE)
+	
+			install(TARGETS ${Name}  CONFIGURATIONS DEBUG          LIBRARY DESTINATION debug/bin RUNTIME DESTINATION debug/bin BUNDLE DESTINATION debug/bin ARCHIVE DESTINATION debug/lib)
+			install(TARGETS ${Name}  CONFIGURATIONS RELEASE        LIBRARY DESTINATION bin       RUNTIME DESTINATION bin       BUNDLE DESTINATION bin       ARCHIVE DESTINATION lib)	
+			install(TARGETS ${Name}  CONFIGURATIONS RELWITHDEBINFO LIBRARY DESTINATION bin       RUNTIME DESTINATION bin       BUNDLE DESTINATION bin       ARCHIVE DESTINATION lib)
+						
+			if (WIN32)
+				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS DEBUG          DESTINATION debug/bin )
+				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELEASE        DESTINATION bin       )
+				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELWITHDEBINFO DESTINATION bin       )
+			endif()
+			
+		else()
+			install(TARGETS ${Name} LIBRARY DESTINATION bin RUNTIME DESTINATION bin BUNDLE DESTINATION bin ARCHIVE DESTINATION lib)
+		endif()
+	endif()
+
+endmacro()
+
+
+# ///////////////////////////////////////////////////
+macro(InstallVisusExecutable Name)
+
+	if (NOT VISUS_IS_SUBMODULE)
+	
+		if (WIN32 OR APPLE)
+	
+			install(TARGETS ${Name} CONFIGURATIONS DEBUG          BUNDLE     DESTINATION  debug/bin RUNTIME    DESTINATION  debug/bin )		
+			install(TARGETS ${Name} CONFIGURATIONS RELEASE        BUNDLE     DESTINATION  bin       RUNTIME    DESTINATION  bin)			
+			install(TARGETS ${Name} CONFIGURATIONS RELWITHDEBINFO BUNDLE     DESTINATION  bin       RUNTIME    DESTINATION  bin)						
+	
+			if (WIN32)
+				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  DEBUG          DESTINATION debug/bin )
+				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELEASE        DESTINATION bin       )
+				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELWITHDEBINFO DESTINATION bin       )
+			endif()
+		else()
+			
+			install(TARGETS ${Name} BUNDLE DESTINATION  bin RUNTIME DESTINATION  bin)			
+		endif()
+	endif()
+
+endmacro()
+
 # ///////////////////////////////////////////////////
 macro(InstallBuildFiles Pattern Destination)
-	install(CODE "
-		file(READ \"${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/~VisusKernel.path.tmp\" __target_full_path__)
-		get_filename_component(__target_directory__ \${__target_full_path__} DIRECTORY)
-		FILE(GLOB __files__ \${__target_directory__}/${Pattern})
-		FILE(INSTALL \${__files__} DESTINATION ${CMAKE_INSTALL_PREFIX}/${Destination})
-	")
+
+	if (WIN32 OR APPLE)
+		install(CODE "
+			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern})
+			FILE(INSTALL \${__files__} DESTINATION ${CMAKE_INSTALL_PREFIX}/${Destination})
+		")
+	else()
+		install(CODE "
+			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/${Pattern})
+			FILE(INSTALL \${__files__} DESTINATION ${CMAKE_INSTALL_PREFIX}/${Destination})
+		")
+	endif()
 endmacro()
 
 
 # ///////////////////////////////////////////////////
 macro(InstallVisus)
 
-	install(FILES     LICENSE                     DESTINATION .)
-	install(FILES     README.md                   DESTINATION .)
-	install(FILES     CMake/__init__.py           DESTINATION .)
-	install(FILES     CMake/OpenVisus.py          DESTINATION .)
-	install(FILES     CMake/setup.py              DESTINATION .)
-	install(FILES     CMake/OpenVisusConfig.cmake DESTINATION .)
-	install(DIRECTORY Copyrights                  DESTINATION .)
-	install(DIRECTORY Samples                     DESTINATION .)
-	install(DIRECTORY datasets                    DESTINATION .)
+	if (NOT VISUS_IS_SUBMODULE)
 	
-	install(DIRECTORY Libs/Kernel/include/Visus      DESTINATION include/Kernel/)
-	install(DIRECTORY Libs/Dataflow/include/Visus    DESTINATION include/Dataflow/)
-	install(DIRECTORY Libs/Db/include/Visus          DESTINATION include/Db/)
-	install(DIRECTORY Libs/Idx/include/Visus         DESTINATION include/Idx/)
-	install(DIRECTORY Libs/Nodes/include/Visus       DESTINATION include/Nodes)
-	
-	if (VISUS_GUI)
-		install(DIRECTORY Libs/Gui/include/Visus      DESTINATION include/Gui)
-		install(DIRECTORY Libs/GuiNodes/include/Visus DESTINATION include/GuiNodes)
-		install(DIRECTORY Libs/AppKit/include/Visus   DESTINATION include/AppKit)
-	endif()
+		install(FILES        LICENSE                        DESTINATION .)
+		install(FILES        README.md                      DESTINATION .)
+		install(FILES        CMake/__init__.py              DESTINATION .)
+		install(FILES        CMake/OpenVisus.py             DESTINATION .)
+		install(FILES        CMake/setup.py                 DESTINATION .)
+		install(FILES        CMake/OpenVisusConfig.cmake    DESTINATION .)
+		install(DIRECTORY    Copyrights                     DESTINATION .)
+		install(DIRECTORY    Samples                        DESTINATION .)
+		install(DIRECTORY    datasets                       DESTINATION .)
 		
-	# swig files
-	InstallBuildFiles(*.py .)
-
-	# in windows I need to copy vcpkg dlls
-	if (WIN32)
-		InstallBuildFiles(*.dll ./bin)
-		SET(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
-		include(InstallRequiredSystemLibraries)
+		install(DIRECTORY    Libs/Kernel/include/Visus      DESTINATION include/Kernel/)
+		install(DIRECTORY    Libs/Dataflow/include/Visus    DESTINATION include/Dataflow/)
+		install(DIRECTORY    Libs/Db/include/Visus          DESTINATION include/Db/)
+		install(DIRECTORY    Libs/Idx/include/Visus         DESTINATION include/Idx/)
+		install(DIRECTORY    Libs/Nodes/include/Visus       DESTINATION include/Nodes)
+		
+		# swig generated files 
+		InstallBuildFiles(*.py ./)
+		
+		if (VISUS_GUI)
+			install(DIRECTORY Libs/Gui/include/Visus         DESTINATION include/Gui)
+			install(DIRECTORY Libs/GuiNodes/include/Visus    DESTINATION include/GuiNodes)
+			install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
+			
+			if (WIN32)
+			
+					get_filename_component(QT5_BIN_DIR ${Qt5_DIR}/../../../bin REALPATH  )
+					STRING(REGEX REPLACE "/" "\\\\" QT5_BIN_DIR ${QT5_BIN_DIR})
+					configure_file(${CMAKE_SOURCE_DIR}/CMake/visusviewer.bat.config ${CMAKE_BINARY_DIR}/visusviewer.bat)
+					install(FILES ${CMAKE_BINARY_DIR}/visusviewer.bat PERMISSIONS OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
+					
+			elseif (APPLE)
+	
+					configure_file(${CMAKE_SOURCE_DIR}/CMake/visusviewer.command.config ${CMAKE_BINARY_DIR}/visusviewer.command)
+					install(FILES ${CMAKE_BINARY_DIR}/visusviewer.command PERMISSIONS  OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
+	
+			else()
+					get_property(QT5_SO_DIR TARGET Qt5::Core PROPERTY LOCATION)
+					get_filename_component(QT5_SO_DIR ${QT5_SO_DIR} DIRECTORY)
+					configure_file(${CMAKE_SOURCE_DIR}/CMake/visusviewer.sh.config ${CMAKE_BINARY_DIR}/visusviewer.sh)
+					install(FILES ${CMAKE_BINARY_DIR}/visusviewer.sh PERMISSIONS  OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
+			endif()
+						
+			
+		endif()
+		
+		
 	endif()
 endmacro()
 
