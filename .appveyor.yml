@@ -17,6 +17,11 @@ environment:
   CONFIGURATION: RelWithDebInfo
   GENERATOR: Visual Studio 15 2017 Win64
   QT5_DIR: C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5
+  
+matrix:
+  - PYTHON_DIR: "C:\\Python27-x64"
+  - PYTHON_DIR: "C:\\Python36-x64" 
+  - PYTHON_DIR: "C:\\Python37-x64" 
 
 
 #if you need to debug uncomment these lines (see https://www.appveyor.com/docs/how-to/rdp-to-build-worker/)
@@ -33,8 +38,8 @@ build_script:
   - cd %APPVEYOR_BUILD_FOLDER%
   - mkdir build 
   - cd build 
-  - set PATH=C:\Python36-x64;C:\Python36-x64\Scripts;%PATH%
-  - pip3 install numpy setuptools wheel twine
+  - set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%
+  - python -m pip install numpy setuptools wheel twine
   - cmake -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%" ..
   - cmake --build . --target ALL_BUILD --config %CONFIGURATION%
   - cmake --build . --target RUN_TESTS --config %CONFIGURATION% 
@@ -45,12 +50,12 @@ test: off
 
 artifacts:
     - path: .\build\install\dist\*.whl
-      name: OpenVisus.win_amd64
+      name: OpenVisusDeployToGitReleases
  
 deploy:
   - provider: GitHub
     auth_token:
       secure: nwK8bGTRUynj+58b7E8Rgur5/0YvfIivBflFb5AaUrpC5BSTpcLbA4Ac+cCF6L4/
-    artifact: OpenVisus.win_amd64
+    artifact: OpenVisusDeployToGitReleases
     on:
       appveyor_repo_tag: true 
