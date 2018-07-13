@@ -1,10 +1,6 @@
 version: '1.0.{build}'
 
-os: Visual Studio 2017
 
-platform:
-  - x64
-  
 notifications:
   - provider: Email
     to:
@@ -14,15 +10,23 @@ notifications:
     on_build_status_changed: true  
   
 environment:
-  CONFIGURATION: RelWithDebInfo
-  GENERATOR: Visual Studio 15 2017 Win64
-  QT5_DIR: C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5
-  
-matrix:
-  - PYTHON_DIR: "C:\\Python27-x64"
-  - PYTHON_DIR: "C:\\Python36-x64" 
-  - PYTHON_DIR: "C:\\Python37-x64" 
 
+  QT5_DIR: C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5
+  CONFIGURATION: RelWithDebInfo
+  matrix:
+    
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    	CMAKE_GENERATOR: Visual Studio 15 2017 Win64
+      PYTHON_DIR: "C:\\Python27-x64"
+     
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      CMAKE_GENERATOR: Visual Studio 15 2017 Win64
+      PYTHON_DIR: "C:\\Python36-x64"      
+    
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      CMAKE_GENERATOR: Visual Studio 15 2017 Win64
+      PYTHON_DIR: "C:\\Python37-x64" 
+            
 
 #if you need to debug uncomment these lines (see https://www.appveyor.com/docs/how-to/rdp-to-build-worker/)
 #init:
@@ -40,7 +44,7 @@ build_script:
   - cd build 
   - set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%
   - python -m pip install numpy setuptools wheel twine
-  - cmake -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%" ..
+  - cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" ..
   - cmake --build . --target ALL_BUILD --config %CONFIGURATION%
   - cmake --build . --target RUN_TESTS --config %CONFIGURATION% 
   - cmake --build . --target INSTALL   --config %CONFIGURATION% 
