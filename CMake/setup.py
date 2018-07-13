@@ -25,7 +25,7 @@ setuptools.setup(
   version=VERSION,
   url="https://github.com/sci-visus/OpenVisus",
   author="visus.net",
-  author_email="support@visus.net​",
+  author_email="support@visus.net",
   packages=["OpenVisus"],
   package_dir={"OpenVisus":'.'},
   package_data={"OpenVisus": findFilesInCurrentDirectory()},
