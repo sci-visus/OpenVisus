@@ -17,10 +17,7 @@ environment:
   Configuration: RelWithDebInfo
   GENERATOR: Visual Studio 15 2017 Win64
   QT5_DIR: C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5
-  PYPI_USERNAME: scrgiorgio
-  PYPI_PASSWORD:
-    secure: 6DHH80JPNRCtIYxWc/h88Q==
-  
+
 
 #if you need to debug uncomment these lines (see https://www.appveyor.com/docs/how-to/rdp-to-build-worker/)
 #init:
@@ -33,25 +30,17 @@ install:
   - choco install -y --allow-empty-checksums swig 
 
 build_script:
-	- cmd: |
-		cd %APPVEYOR_BUILD_FOLDER%
-		mkdir build 
-		cd build 
-		set PATH=C:\Python36-x64;C:\Python36-x64\Scripts;%PATH%
-		pip3 install numpy setuptools wheel twine
-		cmake -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%" ..
-		cmake --build . --target ALL_BUILD --config %Configuration%
-		cmake --build . --target RUN_TESTS --config %Configuration% 
-		cmake --build . --target INSTALL   --config %Configuration% 
-		echo [distutils]                                  > %USERPROFILE%\\.pypirc
-		echo index-servers =                             >> %USERPROFILE%\\.pypirc
-		echo     pypi                                    >> %USERPROFILE%\\.pypirc
-		echo [pypi]                                      >> %USERPROFILE%\\.pypirc
-		echo username=%PYPI_USERNAME%                    >> %USERPROFILE%\\.pypirc
-		echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc  
-	- ps: |
-		If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing %APPVEYOR_BUILD_FOLDER%/install/dist/*"  } 
-  
+  - cmd: |
+    cd %APPVEYOR_BUILD_FOLDER%
+    mkdir build 
+    cd build 
+    set PATH=C:\Python36-x64;C:\Python36-x64\Scripts;%PATH%
+    pip3 install numpy setuptools wheel twine
+    cmake -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%" ..
+    cmake --build . --target ALL_BUILD --config %Configuration%
+    cmake --build . --target RUN_TESTS --config %Configuration% 
+    cmake --build . --target INSTALL   --config %Configuration% 
+
 # test are already in cmake
 test: off
 

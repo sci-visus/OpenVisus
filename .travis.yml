@@ -9,62 +9,62 @@ notifications:
       - scrgiorgio@gmail.com
     on_success: always
     on_failure: always 
+    
+env:
+  global:
+  - PYPI_USERNAME=scrgiorgio
+  - BUILD_TYPE=Release     
    
 matrix:
 
   include:
 
     - os: osx
-      osx_image: xcode9.4
+      osx_image: xcode9.4 #10.13
+      compiler: clang
+      env: COMPILER=clang++ 
+      
+    - os: osx
+      osx_image: xcode9.2 # 10.12
       compiler: clang
       env: COMPILER=clang++ BUILD_TYPE=Release 
+      
 
     - os: linux
       dist: trusty
-      env: COMPILER=g++-4 BUILD_TYPE=Release 
+      env: COMPILER=g++-4 
       addons: 
         apt:
           packages: g++-4
           sources:
             - ubuntu-toolchain-r-test
      
-env:
-  global:
-  - PYPI_USERNAME=scrgiorgio
-  - secure: "dw4skDdmouA8B3t1d5/OuYjCAicaiRutwFa/dOeEUn69tvQuCWtmPF4HOeGq4S5YmVd5LuFLEwHgdnyeygoO1ixBNSYMwJudYrah3WJck7MiZlltordRi0wpiAvfVfz0uVHtcPosyea4is5r2/N10zbluTGAYkeHn4d7O/EgKKKmp4rCg+n4sZRoBH1i2T8ScVR0D9T5qZu7FBaohT45GNczYY8q05Uw50QMnqJJT2lbRqobdOFg0TkMIe/NiNta7ZATb+y2xs68j0YiEuoiWHMSuwPEvfpBUeImNu08ePOuN0YOp9mmH1hH2RcUptIergBp5BKQodlG2B+ZtWnQ7PPxXCR77F6luJo8t3nISiq97TXRDNlb67JVtb1vBQZyD+cW9TtNWmOrCcU5VmoB7KH6lcTV5eqS62u66K8ykMVp9HPadPN5AYpSvNWOKpdZf2yscKT+NtVmWcAH7s+vfzDbMiw7dP75jncpdWW4Y96ozole3w5tk3/lGNONJ6AGs/I7jFsOT8XXJMlgaCRGOCoVKz9ESu2FF/XT+dV/lhqt8aigltMFh77CapeSSA96DRsuNHLzDVWzqXUpTuKDq3GTiO8aKXs3cGwgVdWxYInLGhX+u6zTnpHubT4jCIcJQToQxyYHGVDMyT8VFCsrDXsb6VnGd+OmXgsZQ0zqaLk="        
-
+     
 install:
-
-    # (linux) install linux dependencies
     - |
       if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
+        #  install linux dependencies
         sudo apt-get -qy update
         sudo apt-get -qy install swig3.0 git cmake  libssl-dev uuid-dev  qt5-default qttools5-dev-tools libx11-xcb1 python3 python3-pip
         sudo pip3 install numpy setuptools wheel twine
         sudo python3 -m pip install --upgrade pip setuptools wheel
-      fi     
-      
-    # (linux) install qt 5.9.1
-    - |
-      if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
+        # install qt 5.9.1
         sudo add-apt-repository ppa:beineri/opt-qt591-trusty -y; 
         sudo apt-get update -qq
         sudo apt-get install -qq qt59base
-        source /opt/qt59/bin/qt59-env.sh
-      fi     
-
-    # (linux) Download and install recent cmake
-    - |
-      if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then
+        source /opt/qt59/bin/qt59-env.sh    
+        # Download and install recent cmake
         CMAKE_URL="http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
         mkdir -p ${TRAVIS_BUILD_DIR}/deps/cmake
         travis_retry wget --no-check-certificate --quiet -O - ${CMAKE_URL} | tar --strip-components=1 -xz -C ${TRAVIS_BUILD_DIR}/deps/cmake
-        export PATH=${TRAVIS_BUILD_DIR}/deps/cmake/bin:${PATH}
-      fi
+        export PATH=${TRAVIS_BUILD_DIR}/deps/cmake/bin:${PATH}            
+      fi     
       
-    # (osx) brew install dependencies
+    
+    # (osx)
     - | 
       if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then 
+        #  brew install dependencies
         brew install swig qt5   
         brew upgrade python # from 2 -> 3
         sudo pip3 install numpy setuptools wheel twine
@@ -89,16 +89,6 @@ script:
       	cmake --build ./                     --target RUN_TESTS --config $BUILD_TYPE
       	cmake --build ./                     --target install   --config $BUILD_TYPE
       fi   
-    - | 
-      if [[ -n "$TRAVIS_TAG" && "${TRAVIS_OS_NAME}" == "osx" ]] ; then
-      	echo "[distutils]                               "  > $HOME/.pypirc
-      	echo "index-servers =                           " >> $HOME/.pypirc
-      	echo "    pypi                                  " >> $HOME/.pypirc
-      	echo "[pypi]                                    " >> $HOME/.pypirc
-      	echo "username=$PYPI_USERNAME                   " >> $HOME/.pypirc
-      	echo "password=$PYPI_PASSWORD                   " >> $HOME/.pypirc      
-      	twine upload --skip-existing ${TRAVIS_BUILD_DIR}/build/install/dist/* 
-      fi  
 
 before_deploy:
   - export DEPLOY_FILENAME=$(ls ${TRAVIS_BUILD_DIR}/build/install/dist/*.whl) 
