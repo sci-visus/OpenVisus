@@ -16,13 +16,19 @@ environment:
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_GENERATOR: Visual Studio 15 2017 Win64
+      PYTHON_VERSION: 2.7
       PYTHON_DIR: "C:\\Python27-x64"
+      PYTHON_INCLUDE_DIRS: "C:\\Python27-x64\include"
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_GENERATOR: Visual Studio 15 2017 Win64
-      PYTHON_DIR: "C:\\Python36-x64"          
+      PYTHON_VERSION: 3.6
+      PYTHON_DIR: "C:\\Python36-x64"
+      PYTHON_INCLUDE_DIRS: "C:\\Python36-x64\include"          
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_GENERATOR: Visual Studio 15 2017 Win64
+      PYTHON_VERSION: 3.7
       PYTHON_DIR: "C:\\Python37-x64" 
+      PYTHON_INCLUDE_DIRS: "C:\\Python37-x64\include"
             
 
 #if you need to debug uncomment these lines (see https://www.appveyor.com/docs/how-to/rdp-to-build-worker/)
@@ -41,7 +47,7 @@ build_script:
   - cd build 
   - set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%
   - python -m pip install numpy setuptools wheel twine
-  - cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" ..
+  - cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYTHON_VERSION=%PYTHON_VERSION% -DPYTHON_INCLUDE_DIRS=%PYTHON_INCLUDE_DIRS% ../
   - cmake --build . --target ALL_BUILD --config %CONFIGURATION%
   - cmake --build . --target RUN_TESTS --config %CONFIGURATION% 
   - cmake --build . --target INSTALL   --config %CONFIGURATION% 
