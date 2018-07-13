@@ -14,7 +14,7 @@ notifications:
     on_build_status_changed: true  
   
 environment:
-  Configuration: RelWithDebInfo
+  CONFIGURATION: RelWithDebInfo
   GENERATOR: Visual Studio 15 2017 Win64
   QT5_DIR: C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5
 
@@ -36,9 +36,9 @@ build_script:
   - set PATH=C:\Python36-x64;C:\Python36-x64\Scripts;%PATH%
   - pip3 install numpy setuptools wheel twine
   - cmake -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%" ..
-  - cmake --build . --target ALL_BUILD --config %Configuration%
-  - cmake --build . --target RUN_TESTS --config %Configuration% 
-  - cmake --build . --target INSTALL   --config %Configuration% 
+  - cmake --build . --target ALL_BUILD --config %CONFIGURATION%
+  - cmake --build . --target RUN_TESTS --config %CONFIGURATION% 
+  - cmake --build . --target INSTALL   --config %CONFIGURATION% 
 
 # test are already in cmake
 test: off

@@ -20,13 +20,14 @@ cache:
   directories:
     - $HOME/.cache/pip
     - $HOME/.cache/pyenv   
+
    
 matrix:
 
   include:
 
 
-	  # ///////////////////////////////// osx 10.13
+    # ///////////////////////////////// osx 10.13
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
@@ -43,7 +44,7 @@ matrix:
       env: COMPILER=clang++ PYTHON_VERSION=2.7.15
       
       
-	  # ///////////////////////////////// osx 10.12
+    # ///////////////////////////////// osx 10.12
     - os: osx
       osx_image: xcode8.3
       compiler: clang
@@ -60,7 +61,7 @@ matrix:
       env: COMPILER=clang++ PYTHON_VERSION=2.7.15 
            
       
-	  # ///////////////////////////////// Ubuntu 14.04 
+    # ///////////////////////////////// Ubuntu 14.04 
     - os: linux
       dist: trusty
       env: COMPILER=g++-4 PYTHON_VERSION=3.7.0
