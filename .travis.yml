@@ -30,41 +30,41 @@ matrix:
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=3.7.0 
+      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=3.7.0 PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.7.0/bin/python  PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.7.0/include/python3.7m PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.so PYTHON_TAG=cp37
       
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=3.6.6 
+      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=3.6.6 PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.6/bin/python  PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.so PYTHON_TAG=cp36
 
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=2.7.15 
+      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=2.7.15 PYTHON_EXECUTABLE=$HOME/.pyenv/versions/2.7.15/bin/python  PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/2.7.15/include/python2.7 PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.so PYTHON_TAG=cp27
       
       
     # ///////////////////////////////// osx 10.12
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=3.7.0 
+      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=3.7.0 PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.7.0/bin/python  PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.7.0/include/python3.7m PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.so PYTHON_TAG=cp37
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=3.6.6 
+      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=3.6.6 PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.6/bin/python  PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.so PYTHON_TAG=cp36
 
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=2.7.15 
+      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=2.7.15 PYTHON_EXECUTABLE=$HOME/.pyenv/versions/2.7.15/bin/python  PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/2.7.15/include/python2.7 PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.so PYTHON_TAG=cp27
            
       
     # ///////////////////////////////// Ubuntu 14.04 
     
     - os: linux
       dist: trusty
-      env: COMPILER=g++-4 PYTHON_VERSION=3.7.0 
+      env: COMPILER=g++-4 PYTHON_VERSION=3.7.0 PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.7.0/bin/python  PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.7.0/include/python3.7m PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.so PYTHON_TAG=cp37
       addons: 
         apt:
           packages: g++-4
@@ -72,7 +72,7 @@ matrix:
           
     - os: linux
       dist: trusty
-      env: COMPILER=g++-4 PYTHON_VERSION=3.6.6 
+      env: COMPILER=g++-4 PYTHON_VERSION=3.6.6 PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.6/bin/python  PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.so PYTHON_TAG=cp36
       addons: 
         apt:
           packages: g++-4
@@ -80,7 +80,7 @@ matrix:
           
     - os: linux
       dist: trusty
-      env: COMPILER=g++-4 PYTHON_VERSION=2.7.15 
+      env: COMPILER=g++-4 PYTHON_VERSION=2.7.15 PYTHON_EXECUTABLE=$HOME/.pyenv/versions/2.7.15/bin/python  PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/2.7.15/include/python2.7 PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.so PYTHON_TAG=cp27
       addons: 
         apt:
           packages: g++-4
@@ -136,14 +136,6 @@ install:
       
     
 script:
-    - PYTHON_DIR=$HOME/.pyenv/versions/${PYTHON_VERSION}
-    - PYTHON_SHORT_VERSION=${PYTHON_VERSION:0:3}
-    - PYTHON_EXECUTABLE=${PYTHON_DIR}/bin/python 
-    - PYTHON_INCLUDE_DIR=${PYTHON_DIR}/include/python${PYTHON_SHORT_VERSION}m 
-    - PYTHON_LIBRARY=${PYTHON_DIR}/lib/libpython${PYTHON_SHORT_VERSION}m.so
-    - PYTHON_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}
-    - if [ ! -d "${PYTHON_INCLUDE_DIR}" ]; then PYTHON_INCLUDE_DIR=${PYTHON_DIR}/include/python${PYTHON_SHORT_VERSION} ; fi   
-    - if [ ! -d "${PYTHON_LIBRARY}"     ]; then PYTHON_LIBRARY=${PYTHON_DIR}/lib/libpython${PYTHON_SHORT_VERSION}.so   ; fi
     - cd "${TRAVIS_BUILD_DIR}"
     - mkdir build && cd build
     - |
