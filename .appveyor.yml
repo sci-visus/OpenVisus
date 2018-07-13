@@ -16,17 +16,17 @@ environment:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_GENERATOR: Visual Studio 15 2017 Win64
       PYTHON_VERSION: 2.7
-      PYTHON_TAG: cp27
+      PYTHON_TAG: "cp27"
       PYTHON_DIR: "C:\\Python27-x64"
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_GENERATOR: Visual Studio 15 2017 Win64
       PYTHON_VERSION: 3.6
-      PYTHON_TAG: cp36
+      PYTHON_TAG: "cp36"
       PYTHON_DIR: "C:\\Python36-x64"          
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_GENERATOR: Visual Studio 15 2017 Win64
       PYTHON_VERSION: 3.7
-      PYTHON_TAG: cp37
+      PYTHON_TAG: "cp37"
       PYTHON_DIR: "C:\\Python37-x64" 
             
 # 

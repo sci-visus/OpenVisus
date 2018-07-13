@@ -12,7 +12,6 @@ notifications:
     
 env:
   global:
-  - PYPI_USERNAME=scrgiorgio
   - BUILD_TYPE=RelWithDebInfo    
   
  
