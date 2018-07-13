@@ -64,7 +64,7 @@ matrix:
     
     - os: linux
       dist: trusty
-      env: COMPILER=g++-4 PYTHON_VERSION=3.6.6 PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.6/bin/python  PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.so PYTHON_TAG=cp36
+      env: COMPILER=g++-4 PYTHON_VERSION=3.6.3 PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.3/bin/python  PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.3/include/python3.6m PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.3/lib/libpython3.6m.so PYTHON_TAG=cp36
       addons: 
         apt:
           packages: g++-4
@@ -72,7 +72,7 @@ matrix:
           
     - os: linux
       dist: trusty
-      env: COMPILER=g++-4 PYTHON_VERSION=2.7.15 PYTHON_EXECUTABLE=$HOME/.pyenv/versions/2.7.15/bin/python  PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/2.7.15/include/python2.7 PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.so PYTHON_TAG=cp27
+      env: COMPILER=g++-4 PYTHON_VERSION=2.7.14 PYTHON_EXECUTABLE=$HOME/.pyenv/versions/2.7.14/bin/python  PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/2.7.14/include/python2.7 PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.14/lib/libpython2.7.so PYTHON_TAG=cp27
       addons: 
         apt:
           packages: g++-4
