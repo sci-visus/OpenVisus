@@ -64,14 +64,6 @@ matrix:
     
     - os: linux
       dist: trusty
-      env: COMPILER=g++-4 PYTHON_VERSION=3.7.0 PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.7.0/bin/python  PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.7.0/include/python3.7m PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.so PYTHON_TAG=cp37
-      addons: 
-        apt:
-          packages: g++-4
-          sources: [ubuntu-toolchain-r-test]
-          
-    - os: linux
-      dist: trusty
       env: COMPILER=g++-4 PYTHON_VERSION=3.6.6 PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.6/bin/python  PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.so PYTHON_TAG=cp36
       addons: 
         apt:
@@ -96,6 +88,7 @@ install:
         export PATH="$HOME/.pyenv/bin:$PATH"
         eval "$(pyenv init -)"
         eval "$(pyenv virtualenv-init -)"
+        pyenv install --list
         pyenv install $PYTHON_VERSION    
         pyenv global $PYTHON_VERSION
 
