@@ -84,7 +84,7 @@ install:
         eval "$(pyenv init -)"
         eval "$(pyenv virtualenv-init -)"
         pyenv install --list
-        pyenv install $PYTHON_VERSION    
+        pyenv install -s $PYTHON_VERSION    
         pyenv global $PYTHON_VERSION
 
     - | 
