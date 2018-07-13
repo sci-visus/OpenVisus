@@ -31,34 +31,34 @@ matrix:
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      env: COMPILER=clang++ PYTHON_VERSION=3.7.0 
+      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=3.7.0 
       
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: COMPILER=clang++ PYTHON_VERSION=3.6.6 
+      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=3.6.6 
 
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: COMPILER=clang++ PYTHON_VERSION=2.7.15 
+      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=2.7.15 
       
       
     # ///////////////////////////////// osx 10.12
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: COMPILER=clang++ PYTHON_VERSION=3.7.0 
+      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=3.7.0 
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: COMPILER=clang++ PYTHON_VERSION=3.6.6 
+      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=3.6.6 
 
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: COMPILER=clang++ PYTHON_VERSION=2.7.15 
+      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=2.7.15 
            
       
     # ///////////////////////////////// Ubuntu 14.04 
@@ -145,6 +145,7 @@ script:
       	cmake --build ./ --target all
       	cmake --build ./ --target test
       	cmake --build ./ --target install
+      	python setup.py bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=linux_x86_64
       fi    
       
     - | 
@@ -153,6 +154,7 @@ script:
       	set -o pipefail &&  cmake --build ./ --target ALL_BUILD --config $BUILD_TYPE | xcpretty -c
       	cmake --build ./                     --target RUN_TESTS --config $BUILD_TYPE
       	cmake --build ./                     --target install   --config $BUILD_TYPE
+      	python setup.py bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=macosx_${APPLE_OSX_VERSION:0:2}_${APPLE_OSX_VERSION:3:2}_x86_64
       fi   
 
 before_deploy:

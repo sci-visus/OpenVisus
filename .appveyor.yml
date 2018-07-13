@@ -12,7 +12,6 @@ notifications:
 environment:
 
   QT5_DIR: C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5
-  CONFIGURATION: RelWithDebInfo
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_GENERATOR: Visual Studio 15 2017 Win64
@@ -48,9 +47,12 @@ build_script:
   - set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%
   - python -m pip install numpy setuptools wheel twine
   - cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYTHON_VERSION=%PYTHON_VERSION% -DPYTHON_INCLUDE_DIRS=%PYTHON_INCLUDE_DIRS% ../
-  - cmake --build . --target ALL_BUILD --config %CONFIGURATION%
-  - cmake --build . --target RUN_TESTS --config %CONFIGURATION% 
-  - cmake --build . --target INSTALL   --config %CONFIGURATION% 
+  - cmake --build . --target ALL_BUILD --config RelWithDebInfo
+  - cmake --build . --target RUN_TESTS --config RelWithDebInfo
+  - cmake --build . --target INSTALL   --config RelWithDebInfo  
+  - cd install
+  - python setup.py bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=win_amd64
+ 
 
 # test are already in cmake
 test: off
