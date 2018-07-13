@@ -14,11 +14,6 @@ env:
   global:
   - BUILD_TYPE=RelWithDebInfo    
   
- 
-cache:
-  directories:
-    - $HOME/.cache/pip
-    - $HOME/.cache/pyenv   
 
    
 matrix:
