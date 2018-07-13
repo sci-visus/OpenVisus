@@ -146,11 +146,10 @@ script:
     - if [ ! -d "${PYTHON_LIBRARY}"     ]; then PYTHON_LIBRARY=${PYTHON_DIR}/lib/libpython${PYTHON_SHORT_VERSION}.so   ; fi
     - cd "${TRAVIS_BUILD_DIR}"
     - mkdir build && cd build
-    - CMAKE_ARGS=-DPYTHON_VERSION=$PYTHON_VERSION -DPYTHON_EXECUTABLE=$PYTHON_EXECUTABLE -DPYTHON_INCLUDE_DIR=$DPYTHON_INCLUDE_DIR -DPYTHON_LIBRARY=$DPYTHON_LIBRARY
     - |
       if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then  
       	PLAT_NAME=linux_x86_64
-      	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE  $CMAKE_ARGS ../
+      	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DPYTHON_VERSION=$PYTHON_VERSION -DPYTHON_EXECUTABLE=$PYTHON_EXECUTABLE -DPYTHON_INCLUDE_DIR=$DPYTHON_INCLUDE_DIR -DPYTHON_LIBRARY=$DPYTHON_LIBRARY ../
       	cmake --build ./ --target all
       	cmake --build ./ --target test
       	cmake --build ./ --target install
@@ -159,7 +158,7 @@ script:
     - | 
       if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then    
       	PLAT_NAME=macosx_${APPLE_OSX_VERSION:0:2}_${APPLE_OSX_VERSION:3:2}_x86_64  
-      	cmake -GXcode -DQt5_DIR=/usr/local/opt/qt/lib/cmake/Qt5 $CMAKE_ARGS ../
+      	cmake -GXcode -DQt5_DIR=/usr/local/opt/qt/lib/cmake/Qt5 -DPYTHON_VERSION=$PYTHON_VERSION -DPYTHON_EXECUTABLE=$PYTHON_EXECUTABLE -DPYTHON_INCLUDE_DIR=$DPYTHON_INCLUDE_DIR -DPYTHON_LIBRARY=$DPYTHON_LIBRARY ../
       	set -o pipefail &&  cmake --build ./ --target ALL_BUILD --config $BUILD_TYPE | xcpretty -c
       	cmake --build ./                     --target RUN_TESTS --config $BUILD_TYPE
       	cmake --build ./                     --target install   --config $BUILD_TYPE
