@@ -145,6 +145,7 @@ script:
       	cmake --build ./ --target all
       	cmake --build ./ --target test
       	cmake --build ./ --target install
+      	cd install
       	python setup.py bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=linux_x86_64
       fi    
       
@@ -154,6 +155,7 @@ script:
       	set -o pipefail &&  cmake --build ./ --target ALL_BUILD --config $BUILD_TYPE | xcpretty -c
       	cmake --build ./                     --target RUN_TESTS --config $BUILD_TYPE
       	cmake --build ./                     --target install   --config $BUILD_TYPE
+      	cd install
       	python setup.py bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=macosx_${APPLE_OSX_VERSION:0:2}_${APPLE_OSX_VERSION:3:2}_x86_64
       fi   
 
