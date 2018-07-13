@@ -30,16 +30,15 @@ install:
   - choco install -y --allow-empty-checksums swig 
 
 build_script:
-  - cmd: |
-    cd %APPVEYOR_BUILD_FOLDER%
-    mkdir build 
-    cd build 
-    set PATH=C:\Python36-x64;C:\Python36-x64\Scripts;%PATH%
-    pip3 install numpy setuptools wheel twine
-    cmake -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%" ..
-    cmake --build . --target ALL_BUILD --config %Configuration%
-    cmake --build . --target RUN_TESTS --config %Configuration% 
-    cmake --build . --target INSTALL   --config %Configuration% 
+  - cd %APPVEYOR_BUILD_FOLDER%
+  - mkdir build 
+  - cd build 
+  - set PATH=C:\Python36-x64;C:\Python36-x64\Scripts;%PATH%
+  - pip3 install numpy setuptools wheel twine
+  - cmake -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%" ..
+  - cmake --build . --target ALL_BUILD --config %Configuration%
+  - cmake --build . --target RUN_TESTS --config %Configuration% 
+  - cmake --build . --target INSTALL   --config %Configuration% 
 
 # test are already in cmake
 test: off
