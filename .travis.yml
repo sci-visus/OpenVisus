@@ -182,7 +182,7 @@ install:
       
         #  install linux dependencies
         
-        sudo add-apt-repository ppa:fkrull/deadsnakes
+        sudo add-apt-repository ppa:deadsnakes/ppa
         sudo apt-get -qy update
         sudo apt-get -qy install --allow-unauthenticated swig3.0 git cmake libssl-dev uuid-dev qt5-default qttools5-dev-tools libx11-xcb1 python${PYTHON_VERSION} python${PYTHON_VERSION}-dev
         sudo python -m pip install --upgrade pip
