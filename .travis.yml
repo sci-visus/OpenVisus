@@ -206,6 +206,7 @@ install:
 script:
     - cd "${TRAVIS_BUILD_DIR}"
     - mkdir build && cd build
+    - |     
       if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then   
         PLAT_NAME=linux_x86_64
         cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DPYTHON_VERSION=${PYTHON_VERSION} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR} -DPYTHON_LIBRARY=${PYTHON_LIBRARY} ../
