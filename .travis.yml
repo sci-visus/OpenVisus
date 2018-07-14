@@ -30,7 +30,7 @@ matrix:
         PYTHON_VERSION=3.7.0,
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.7.0/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.7.0/include/python3.7m,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.dylib,
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.a,
         PYTHON_TAG=cp37 
       ]
       
@@ -43,7 +43,7 @@ matrix:
         PYTHON_VERSION=3.6.6,
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.6/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.dylib,
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.a,
         PYTHON_TAG=cp36 
       ]      
 
@@ -56,7 +56,7 @@ matrix:
         PYTHON_VERSION=2.7.15,
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/2.7.15/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/2.7.15/include/python2.7,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.dylib,
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.a,
         PYTHON_TAG=cp27 
       ]        
       
@@ -71,7 +71,7 @@ matrix:
         PYTHON_VERSION=3.7.0,
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.7.0/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.7.0/include/python3.7m,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.dylib,
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.a,
         PYTHON_TAG=cp37 
       ]      
       
@@ -84,7 +84,7 @@ matrix:
         PYTHON_VERSION=3.6.6,
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.6/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.dylib,
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.a,
         PYTHON_TAG=cp36 
       ]    
 
@@ -97,7 +97,7 @@ matrix:
         PYTHON_VERSION=2.7.15,
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/2.7.15/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/2.7.15/include/python2.7,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.dylib,
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.a,
         PYTHON_TAG=cp27 
       ]    
            
@@ -165,8 +165,7 @@ install:
         eval "$(pyenv virtualenv-init -)"
         pyenv install --list
         pyenv install -s $PYTHON_VERSION    
-        pyenv local  $PYTHON_VERSION      
-        export PYTHON_CONFIGURE_OPTS="--enable-shared" 
+        pyenv local  $PYTHON_VERSION
       
         #  brew install dependencies
         brew install swig qt5 
