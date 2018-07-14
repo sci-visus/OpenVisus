@@ -24,41 +24,41 @@ matrix:
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=3.7.0 PYTHON_NAME_EXT=3.7m PYTHON_TAG=cp37
+      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=3.7.0 PYTHON_NAME_EXT=3.7m PYTHON_TAG=cp37 PYTHON_CONFIGURE_OPTS="--enable-shared"
       
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=3.6.6 PYTHON_NAME_EXT=3.6m PYTHON_TAG=cp36
+      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=3.6.6 PYTHON_NAME_EXT=3.6m PYTHON_TAG=cp36 PYTHON_CONFIGURE_OPTS="--enable-shared"
 
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=2.7.15 PYTHON_NAME_EXT=2.7 PYTHON_TAG=cp27
+      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=2.7.15 PYTHON_NAME_EXT=2.7 PYTHON_TAG=cp27 PYTHON_CONFIGURE_OPTS="--enable-shared"
       
       
     # ///////////////////////////////// osx 10.12
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=3.7.0 PYTHON_NAME_EXT=3.7m PYTHON_TAG=cp37
+      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=3.7.0 PYTHON_NAME_EXT=3.7m PYTHON_TAG=cp37 PYTHON_CONFIGURE_OPTS="--enable-shared"
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=3.6.6 PYTHON_NAME_EXT=3.6m PYTHON_TAG=cp36
+      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=3.6.6 PYTHON_NAME_EXT=3.6m PYTHON_TAG=cp36 PYTHON_CONFIGURE_OPTS="--enable-shared"
 
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=2.7.15 PYTHON_NAME_EXT=2.7 PYTHON_TAG=cp27
+      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=2.7.15 PYTHON_NAME_EXT=2.7 PYTHON_TAG=cp27 PYTHON_CONFIGURE_OPTS="--enable-shared"
            
       
     # ///////////////////////////////// Ubuntu 14.04 
     
     - os: linux
       dist: trusty
-      env: COMPILER=g++-4 PYTHON_VERSION=3.6.3 PYTHON_NAME_EXT=3.6m PYTHON_TAG=cp36
+      env: COMPILER=g++-4 PYTHON_VERSION=3.6.3 PYTHON_NAME_EXT=3.6m PYTHON_TAG=cp36 PYTHON_CONFIGURE_OPTS="--enable-shared"
       addons: 
         apt:
           packages: g++-4
@@ -66,7 +66,7 @@ matrix:
           
     - os: linux
       dist: trusty
-      env: COMPILER=g++-4 PYTHON_VERSION=2.7.14 PYTHON_NAME_EXT=2.7 PYTHON_TAG=cp27
+      env: COMPILER=g++-4 PYTHON_VERSION=2.7.14 PYTHON_NAME_EXT=2.7 PYTHON_TAG=cp27 PYTHON_CONFIGURE_OPTS="--enable-shared"
       addons: 
         apt:
           packages: g++-4
@@ -82,8 +82,8 @@ install:
         export PATH="$HOME/.pyenv/bin:$PATH"
         eval "$(pyenv init -)"
         eval "$(pyenv virtualenv-init -)"
-        #pyenv install --list
-        env PYTHON_CONFIGURE_OPTS="--enable-shared" pyenv install -s $PYTHON_VERSION    
+        pyenv install --list
+        pyenv install -s $PYTHON_VERSION    
         pyenv global $PYTHON_VERSION
 
     - | 
