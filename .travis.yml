@@ -1,7 +1,7 @@
 
 language: cpp
 
-sudo: required
+sudo: required	
 
 notifications:
   email:
@@ -24,58 +24,139 @@ matrix:
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=3.7.0 PYTHON_NAME_EXT=3.7m PYTHON_TAG=cp37 PYTHON_CONFIGURE_OPTS="--enable-shared"
+      env: [
+        APPLE_OSX_VERSION=10.13,
+        COMPILER=clang++,
+        PYTHON_VERSION=3.7.0,
+        PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.7.0/bin/python ,
+        PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.7.0/include/python3.7m,
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.dylib,
+        PYTHON_TAG=cp37 
+      ]
       
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=3.6.6 PYTHON_NAME_EXT=3.6m PYTHON_TAG=cp36 PYTHON_CONFIGURE_OPTS="--enable-shared"
+      env: [
+        APPLE_OSX_VERSION=10.13,
+        COMPILER=clang++,
+        PYTHON_VERSION=3.6.6,
+        PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.6/bin/python ,
+        PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m,
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.dylib,
+        PYTHON_TAG=cp36 
+      ]      
 
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: APPLE_OSX_VERSION=10.13 COMPILER=clang++ PYTHON_VERSION=2.7.15 PYTHON_NAME_EXT=2.7 PYTHON_TAG=cp27 PYTHON_CONFIGURE_OPTS="--enable-shared"
+      env: [
+        APPLE_OSX_VERSION=10.13,
+        COMPILER=clang++,
+        PYTHON_VERSION=2.7.15,
+        PYTHON_EXECUTABLE=$HOME/.pyenv/versions/2.7.15/bin/python ,
+        PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/2.7.15/include/python2.7,
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.dylib,
+        PYTHON_TAG=cp27 
+      ]        
       
       
     # ///////////////////////////////// osx 10.12
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=3.7.0 PYTHON_NAME_EXT=3.7m PYTHON_TAG=cp37 PYTHON_CONFIGURE_OPTS="--enable-shared"
+      env: [
+        APPLE_OSX_VERSION=10.12,
+        COMPILER=clang++,
+        PYTHON_VERSION=3.7.0,
+        PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.7.0/bin/python ,
+        PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.7.0/include/python3.7m,
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.dylib,
+        PYTHON_TAG=cp37 
+      ]      
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=3.6.6 PYTHON_NAME_EXT=3.6m PYTHON_TAG=cp36 PYTHON_CONFIGURE_OPTS="--enable-shared"
+      env: [
+        APPLE_OSX_VERSION=10.12,
+        COMPILER=clang++,
+        PYTHON_VERSION=3.6.6,
+        PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.6/bin/python ,
+        PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m,
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.dylib,
+        PYTHON_TAG=cp36 
+      ]    
 
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: APPLE_OSX_VERSION=10.12 COMPILER=clang++ PYTHON_VERSION=2.7.15 PYTHON_NAME_EXT=2.7 PYTHON_TAG=cp27 PYTHON_CONFIGURE_OPTS="--enable-shared"
+      env: [
+        APPLE_OSX_VERSION=10.12,
+        COMPILER=clang++,
+        PYTHON_VERSION=2.7.15,
+        PYTHON_EXECUTABLE=$HOME/.pyenv/versions/2.7.15/bin/python ,
+        PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/2.7.15/include/python2.7,
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.dylib,
+        PYTHON_TAG=cp27 
+      ]    
            
       
     # ///////////////////////////////// Ubuntu 14.04 
     
     - os: linux
       dist: trusty
-      env: COMPILER=g++-4 PYTHON_VERSION=3.6.3 PYTHON_NAME_EXT=3.6m PYTHON_TAG=cp36 PYTHON_CONFIGURE_OPTS="--enable-shared"
+      env: [
+         COMPILER=g++-4,
+         PYTHON_VERSION=3.6,
+         PYTHON_INCLUDE_DIR=/usr/include/python3.6m,
+         PYTHON_LIBRARY=/usr/lib/libpython3.6m.so,
+         PYTHON_EXECUTABLE=/usr/bin/python3.6,
+         PYTHON_TAG=cp36
+        ]    
       addons: 
         apt:
-          packages: g++-4
-          sources: [ubuntu-toolchain-r-test]
+          packages: ['g++-4', 'python3.6-dev']
+          sources: ['ubuntu-toolchain-r-test']
+          
+    
+    - os: linux
+      dist: trusty
+      env: [
+          COMPILER=g++-4,
+          PYTHON_VERSION=3.5,
+          PYTHON_INCLUDE_DIR=/usr/include/python3.5m,
+          PYTHON_LIBRARY=/usr/lib/libpython3.5m.so,
+          PYTHON_EXECUTABLE=/usr/bin/python3.5,
+          PYTHON_TAG=cp35
+        ]
+      addons: 
+        apt:
+          packages: ['g++-4', 'python3.5-dev']
+          sources: ['ubuntu-toolchain-r-test']
+                    
           
     - os: linux
       dist: trusty
-      env: COMPILER=g++-4 PYTHON_VERSION=2.7.14 PYTHON_NAME_EXT=2.7 PYTHON_TAG=cp27 PYTHON_CONFIGURE_OPTS="--enable-shared"
+      env: [
+          COMPILER=g++-4,
+          PYTHON_VERSION=2.7,
+          PYTHON_INCLUDE_DIR=/usr/include/python2.7,
+          PYTHON_LIBRARY=/usr/lib/libpython2.7.so,
+          PYTHON_EXECUTABLE=/usr/bin/python2.7,
+          PYTHON_TAG=cp27
+        ]
       addons: 
         apt:
-          packages: g++-4
-          sources: [ubuntu-toolchain-r-test]                    
+          packages: ['g++-4', 'libpython2.7']
+          sources: ['ubuntu-toolchain-r-test']                    
      
 install:
 
     - | 
-        # using pyenv to choose the right python version   	
+      if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then 
+      
+        # using pyenv to choose the right python version     
         curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer -O 
         chmod a+x pyenv-installer 
         ./pyenv-installer 
@@ -84,10 +165,8 @@ install:
         eval "$(pyenv virtualenv-init -)"
         pyenv install --list
         pyenv install -s $PYTHON_VERSION    
-        pyenv global $PYTHON_VERSION
-
-    - | 
-      if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then 
+        pyenv local  $PYTHON_VERSION      
+        export PYTHON_CONFIGURE_OPTS="--enable-shared" 
       
         #  brew install dependencies
         brew install swig qt5 
@@ -104,7 +183,7 @@ install:
       
         #  install linux dependencies
         sudo apt-get -qy update
-        sudo apt-get -qy install swig3.0 git cmake libssl-dev uuid-dev qt5-default qttools5-dev-tools libx11-xcb1 
+        sudo apt-get -qy install swig3.0 git cmake libssl-dev uuid-dev qt5-default qttools5-dev-tools libx11-xcb1  python-setuptools
         sudo python -m pip install --upgrade pip
         sudo python -m pip install numpy setuptools wheel twine
         
@@ -125,27 +204,26 @@ install:
 script:
     - cd "${TRAVIS_BUILD_DIR}"
     - mkdir build && cd build
-    - PYTHON_EXECUTABLE=$HOME/.pyenv/versions/${PYTHON_VERSION}/bin/python
-    - PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/${PYTHON_VERSION}/include/python${PYTHON_NAME_EXT}
-    - PYTHON_LIBRARY=$HOME/.pyenv/versions/${PYTHON_VERSION}/lib/libpython${PYTHON_NAME_EXT}
+    - CMAKE_OPTIONS=-DPYTHON_VERSION=${PYTHON_VERSION}
+    - CMAKE_OPTIONS+= -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} 
+    - CMAKE_OPTIONS+= -DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR}
+    - CMAKE_OPTIONS+= -DPYTHON_LIBRARY=${PYTHON_LIBRARY} 
     - |
-      if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then  
-      	PYTHON_LIBRARY=${PYTHON_LIBRARY}.so 
-      	PLAT_NAME=linux_x86_64
-      	cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DPYTHON_VERSION=${PYTHON_VERSION} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR} -DPYTHON_LIBRARY=${PYTHON_LIBRARY} ../
-      	cmake --build ./ --target all
-      	cmake --build ./ --target test
-      	cmake --build ./ --target install
+      if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then   
+        PLAT_NAME=linux_x86_64
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE $CMAKE_OPTIONS   ../
+        cmake --build ./ --target all
+        cmake --build ./ --target test
+        cmake --build ./ --target install
       fi    
-      
     - | 
       if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then   
-      	PYTHON_LIBRARY=${PYTHON_LIBRARY}.dylib 
-      	PLAT_NAME=macosx_${APPLE_OSX_VERSION:0:2}_${APPLE_OSX_VERSION:3:2}_x86_64  
-      	cmake -GXcode -DQt5_DIR=/usr/local/opt/qt/lib/cmake/Qt5 -DPYTHON_VERSION=${PYTHON_VERSION} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR} -DPYTHON_LIBRARY=${PYTHON_LIBRARY} ../
-      	set -o pipefail &&  cmake --build ./ --target ALL_BUILD --config $BUILD_TYPE | xcpretty -c
-      	cmake --build ./                     --target RUN_TESTS --config $BUILD_TYPE
-      	cmake --build ./                     --target install   --config $BUILD_TYPE
+        PLAT_NAME=macosx_${APPLE_OSX_VERSION:0:2}_${APPLE_OSX_VERSION:3:2}_x86_64  
+        CMAKE_OPTIONS+= -DQt5_DIR=/usr/local/opt/qt/lib/cmake/Qt5
+        cmake -GXcode $CMAKE_OPTIONS ../
+        set -o pipefail &&  cmake --build ./ --target ALL_BUILD --config $BUILD_TYPE | xcpretty -c
+        cmake --build ./                     --target RUN_TESTS --config $BUILD_TYPE
+        cmake --build ./                     --target install   --config $BUILD_TYPE
       fi 
     - cd install
     - python setup.py bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PLAT_NAME        
