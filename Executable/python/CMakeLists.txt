@@ -1,7 +1,7 @@
 
 
 file(GLOB Sources *.cpp *.h *.py)
-AddVisusExecutable(python ${Sources})
+AddExecutable(python ${Sources})
 
 if (TARGET python27)
 	target_link_libraries(python PUBLIC python27)

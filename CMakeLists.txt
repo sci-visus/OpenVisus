@@ -19,9 +19,9 @@ if(POLICY CMP0068)
   cmake_policy(SET CMP0068 NEW)
 endif()
 
-if (POLICY CMP0040)
-	cmake_policy(SET CMP0040 OLD)
-endif()
+#if (POLICY CMP0040)
+#	cmake_policy(SET CMP0040 OLD)
+#endif()
 
 PROJECT(ViSUS)
 
@@ -55,22 +55,16 @@ option(VISUS_GUI "Enable gui" TRUE)
 IF (VISUS_GUI)
 
 	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL PrintSupport REQUIRED)
+	
+	mark_as_advanced(Qt5Core_DIR)
+	mark_as_advanced(Qt5Gui_DIR)
+	mark_as_advanced(Qt5OpenGL_DIR)
+	mark_as_advanced(Qt5PrintSupport_DIR)
+	mark_as_advanced(Qt5Widgets_DIR)
 
 	if (WIN32)
 		string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
 	endif()
-  
-	get_target_property(QMakeLocation Qt5::qmake IMPORTED_LOCATION)
-	get_filename_component(QtBinPath "${QMakeLocation}" DIRECTORY)
-
-  if (WIN32)
-    find_program(DEPLOYQT windeployqt.exe HINTS "${QtBinPath}")
-  elseif(APPLE)
-    find_program(DEPLOYQT macdeployqt     HINTS "${QtBinPath}")
-  else()
-	  # no official deploy for linux, only an unofficial one linuxdeployqt
-  endif()
-
 endif()
 
 if (NOT DEFINED VISUS_INTERNAL_ZLIB)
@@ -155,6 +149,7 @@ add_subdirectory(InternalLibs)
 add_subdirectory(Libs)
 add_subdirectory(Executable)
 
+# //////////////////////////////////////////////////////////////
 # *** samples and external apps ***
 if (NOT VISUS_IS_SUBMODULE)
 
@@ -180,5 +175,54 @@ if (NOT VISUS_IS_SUBMODULE)
 
 endif()
 
-InstallVisus()
+# //////////////////////////////////////////////////////////////
+# *** install ***
+if (NOT VISUS_IS_SUBMODULE)
 
+	install(FILES        LICENSE                        DESTINATION .)
+	install(FILES        README.md                      DESTINATION .)
+	install(FILES        CMake/__init__.py              DESTINATION .)
+	install(FILES        CMake/OpenVisus.py             DESTINATION .)
+	install(FILES        CMake/setup.py                 DESTINATION .)
+	install(FILES        CMake/OpenVisusConfig.cmake    DESTINATION .)
+	install(DIRECTORY    Copyrights                     DESTINATION .)
+	install(DIRECTORY    Samples                        DESTINATION .)
+	install(DIRECTORY    datasets                       DESTINATION .)
+	
+	install(DIRECTORY    Libs/Kernel/include/Visus      DESTINATION include/Kernel/)
+	install(DIRECTORY    Libs/Dataflow/include/Visus    DESTINATION include/Dataflow/)
+	install(DIRECTORY    Libs/Db/include/Visus          DESTINATION include/Db/)
+	install(DIRECTORY    Libs/Idx/include/Visus         DESTINATION include/Idx/)
+	install(DIRECTORY    Libs/Nodes/include/Visus       DESTINATION include/Nodes)
+	
+	# swig generated files 
+	InstallBuildFiles(*.py ./)
+	
+	if (VISUS_GUI)
+		install(DIRECTORY Libs/Gui/include/Visus         DESTINATION include/Gui)
+		install(DIRECTORY Libs/GuiNodes/include/Visus    DESTINATION include/GuiNodes)
+		install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
+		
+		if (WIN32)
+		
+				get_filename_component(QT5_BIN_DIR ${Qt5_DIR}/../../../bin REALPATH  )
+				STRING(REGEX REPLACE "/" "\\\\" QT5_BIN_DIR ${QT5_BIN_DIR})
+				configure_file(${CMAKE_SOURCE_DIR}/CMake/visusviewer.bat.config ${CMAKE_BINARY_DIR}/visusviewer.bat)
+				install(FILES ${CMAKE_BINARY_DIR}/visusviewer.bat PERMISSIONS OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
+				
+		elseif (APPLE)
+
+				configure_file(${CMAKE_SOURCE_DIR}/CMake/visusviewer.command.config ${CMAKE_BINARY_DIR}/visusviewer.command)
+				install(FILES ${CMAKE_BINARY_DIR}/visusviewer.command PERMISSIONS  OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
+
+		else()
+				get_property(QT5_SO_DIR TARGET Qt5::Core PROPERTY LOCATION)
+				get_filename_component(QT5_SO_DIR ${QT5_SO_DIR} DIRECTORY)
+				configure_file(${CMAKE_SOURCE_DIR}/CMake/visusviewer.sh.config ${CMAKE_BINARY_DIR}/visusviewer.sh)
+				install(FILES ${CMAKE_BINARY_DIR}/visusviewer.sh PERMISSIONS  OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
+		endif()
+					
+		
+	endif()
+	
+endif()

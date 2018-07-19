@@ -64,5 +64,5 @@ source_group("Query"    FILES ${QuerySources})
 
 file(GLOB Sources include/Visus/*.h src/*.cpp)
 
-AddVisusLibrary(VisusDb ${Sources})
+AddLibrary(VisusDb ${Sources})
 target_link_libraries(VisusDb PUBLIC VisusKernel)

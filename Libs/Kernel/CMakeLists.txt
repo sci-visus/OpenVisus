@@ -195,7 +195,7 @@ else()
 endif()
 
 
-AddVisusLibrary(VisusKernel ${Sources})
+AddLibrary(VisusKernel ${Sources})
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/dtl/include)
 

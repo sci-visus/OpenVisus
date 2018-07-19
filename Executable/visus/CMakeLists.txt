@@ -1,6 +1,6 @@
 
 FILE(GLOB Sources *.h *.cpp)
-AddVisusExecutable(visus ${Sources})
+AddExecutable(visus ${Sources})
 target_link_libraries(visus PUBLIC VisusIdx)
 
 # make sure all swig wrappers are built
