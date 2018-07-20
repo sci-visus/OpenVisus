@@ -422,7 +422,7 @@ namespace Utils
     if (!stree.loadFromXml(content))
       return false;
 
-    if (stree.name != class_name)
+    if (StringUtils::toLower(stree.name) != StringUtils::toLower(class_name))
       return false;
     
     ObjectStream istream(stree, 'r');

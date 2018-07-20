@@ -932,8 +932,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
   child.M = T;
   child.name = StringUtils::trim(istream.readInline("name", istream.readInline("id"))); VisusAssert(!child.name.empty());
   child.color = Color::parseFromString(istream.readInline("color"));
-  child.origin = istream.readInline("origin");
-  child.filename_template = istream.readInline("filename_template");
+  child.mosaic_filename_template = istream.readInline("filename_template");
 
   //override name if exist
   if (this->childs.find(child.name) != this->childs.end())
@@ -942,7 +941,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
   url= removeAliases(url);
 
   //if mosaic all datasets are the same, I just need to know the IDX filename template
-  if (this->bMosaic && !childs.empty() && !child.filename_template.empty())
+  if (this->bMosaic && !childs.empty() && !child.mosaic_filename_template.empty())
   {
     auto first = childs.begin()->second.dataset;
     auto other = first->cloneForMosaic();
@@ -950,13 +949,13 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
     VisusReleaseAssert(other);
 
     //all the idx files are the same except for the IDX path
-    child.filename_template =istream.readInline("filename_template");
+    child.mosaic_filename_template =istream.readInline("filename_template");
 
-    VisusReleaseAssert(!child.filename_template.empty());
-    child.filename_template = removeAliases(child.filename_template);
+    VisusReleaseAssert(!child.mosaic_filename_template.empty());
+    child.mosaic_filename_template = removeAliases(child.mosaic_filename_template);
 
     other->url = url;
-    other->idxfile.filename_template = child.filename_template;
+    other->idxfile.filename_template = child.mosaic_filename_template;
     other->idxfile.validate(url); VisusAssert(other->idxfile.valid());
     child.dataset = other;
   }
@@ -1102,9 +1101,7 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream,Matrix4 T)
       parseDatasets(istream, T);
     }
     istream.popContext(name);
-
   }
-
 }
 
 ///////////////////////////////////////////////////////////
@@ -1217,7 +1214,6 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     VisusInfo() << "MIDX idxfile is the following" << std::endl << IDXFILE.toString();
     setIdxFile(IDXFILE);
 
-    //updateBody();
     return true;
   }
   
@@ -1264,53 +1260,6 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   return true;
 }
 
-///////////////////////////////////////////////////////////
-void IdxMultipleDataset::updateBody(bool bSave)
-{
-  StringTree stree("midx");
-  ObjectStream ostream(stree, 'w');
-  ostream.writeInline("typename", "IdxMultipleDataset");
-  ostream.writeInline("box", this->idxfile.box.toOldFormatString());
-  ostream.writeInline("mosaic",bMosaic?"true":"false");
-
-  for (const auto& it : childs)
-  {
-    ostream.pushContext("dataset");
-    ostream.writeInline("name", it.second.name);
-    ostream.writeInline("color", it.second.color.toString());
-
-    ostream.writeInline("url", it.second.dataset->getUrl().toString());
-
-    if (!it.second.origin.empty())
-      ostream.writeInline("origin", it.second.origin);
-
-    if (!it.second.filename_template.empty())
-    {
-      VisusAssert(bMosaic);
-      ostream.writeInline("filename_template", it.second.filename_template);
-    }
-
-    auto M = it.second.M;
-    if (M.dropW() == Matrix3::identity())
-    {
-      ostream.writeInline("offset", M.getColumn(3).dropW().toString());
-    }
-    else
-    {
-      ostream.pushContext("M");
-      ostream.writeInline("value", it.second.M.toString());
-      ostream.popContext("M");
-    }
-
-    ostream.popContext("dataset");
-  }
-
-  auto BODY = stree.toString();
-  setDatasetBody(BODY);
-
-  if (bSave)
-    Utils::saveTextDocument(this->getUrl().getPath(), BODY);
-}
 
 ////////////////////////////////////////////////////////////////////////
 std::map<String, SharedPtr<Dataset>> IdxMultipleDataset::getInnerDatasets() const

@@ -100,6 +100,9 @@ DType DTypes::FLOAT64_RGBA  =DType::fromString("float64[4]");
 //////////////////////////////////////////////////////////////////////////////
 DType DType::fromString(String s)
 {
+  if (s.empty())
+    return DType();
+
   s=StringUtils::toLower(s);
 
   int  I=0;

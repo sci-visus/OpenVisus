@@ -408,13 +408,18 @@ bool FileUtils::removeDirectory(Path path)
 }
 
 /////////////////////////////////////////////////////////////////////////
+bool FileUtils::touch(Path path)
+{
+  File file;
+  return file.createAndOpenReadWriteBinary(path.toString());
+}
+
+
+/////////////////////////////////////////////////////////////////////////
 void FileUtils::lock(Path path)
 {
   VisusAssert(!path.empty());
   String fullpath=path.toString();
-
-  //trying to make this operation as fast as possible
-  const bool bWritePid=false; 
 
 #if WIN32
   int pid = ::_getpid();
@@ -427,19 +432,15 @@ void FileUtils::lock(Path path)
   //let's try a little more
   Time T1=Time::now();
   Time last_info_time=T1;
-  bool bPrintOnReturn=false;
+  bool bVerboseReturn=false;
   for (int nattempt=0; ;nattempt++)
   {
     File file;
     if (file.createAndOpenReadWriteBinary(lock_filename))
     {
-      //write the pid
-      if (bWritePid) 
-        file.write((unsigned char*)&pid,sizeof(pid)); 
-
       file.close();
 
-      if (bPrintOnReturn) 
+      if (bVerboseReturn)
         VisusInfo()<<"[PID="<<pid<<"] got file lock "<<lock_filename;
 
       return;
@@ -450,7 +451,7 @@ void FileUtils::lock(Path path)
     {
       VisusInfo()<<"[PID="<<pid<<"] waiting for lock on "<<lock_filename;
       last_info_time=Time::now();
-      bPrintOnReturn=true;
+      bVerboseReturn =true;
     }
 
     Thread::yield();
@@ -472,6 +473,7 @@ void FileUtils::unlock(Path path)
     ThrowException(msg);
   }
 }
+
 
 
 /////////////////////////////////////////////////////////////////////////
