@@ -107,8 +107,13 @@ macro(SetupCMake)
 		  set(CMAKE_C_FLAGS          "${CMAKE_C_FLAGS}          ${OpenMP_C_FLAGS}")
 		  set(CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS}        ${OpenMP_CXX_FLAGS}")
 		  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+		  MESSAGE(STATUS "OpenMP found")
+	  else()
+	    MESSAGE(STATUS "OpenMP not found")
 	  endif()
-	endif()	
+	else()
+	  MESSAGE(STATUS "OpenMP disabled")
+	endif()
 	
 endmacro()
 
@@ -175,7 +180,25 @@ endmacro()
 
 
 # ///////////////////////////////////////////////////
-macro(AddVisusSwigLibrary Name SwigFile)
+macro(SetupSwig)
+
+  find_package(SWIG REQUIRED)
+  include(${SWIG_USE_FILE})
+  set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
+  set(CMAKE_SWIG_FLAGS "")
+  
+  set(SWIG_FLAGS "")
+  set(SWIG_FLAGS "${SWIG_FLAGS};-threads")
+  set(SWIG_FLAGS "${SWIG_FLAGS};-extranative")
+  
+  if (NUMPY_FOUND)
+  	set(SWIG_FLAGS "${SWIG_FLAGS};-DNUMPY_FOUND")
+  endif()
+
+endmacro()
+
+# ///////////////////////////////////////////////////
+macro(AddSwigLibrary Name SwigFile)
 
 	set(NamePy ${Name}Py)
 
@@ -190,7 +213,6 @@ macro(AddVisusSwigLibrary Name SwigFile)
 	else()
 		swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
 	endif()
-
 
 	if (TARGET _${NamePy})
 	  set(_target_name_ _${NamePy})
@@ -211,7 +233,7 @@ macro(AddVisusSwigLibrary Name SwigFile)
 	
    target_link_libraries(${_target_name_} PUBLIC ${Name})
 
-	InstallVisusLibrary(${_target_name_})
+	InstallLibrary(${_target_name_})
 
 	target_include_directories(${_target_name_} PUBLIC ${PYTHON_INCLUDE_DIRS})
 	
@@ -294,7 +316,7 @@ endmacro()
 
 
 # ///////////////////////////////////////////////////
-macro(AddVisusLibrary Name)
+macro(AddLibrary Name)
 	add_library(${Name} ${ARGN})
 	set_target_properties(${Name} PROPERTIES FOLDER "${CMAKE_FOLDER_PREFIX}")
 	string(TOUPPER ${Name} __upper_case__name__)
@@ -308,11 +330,11 @@ macro(AddVisusLibrary Name)
 	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
 	endif()
-	InstallVisusLibrary(${Name})
+	InstallLibrary(${Name})
 endmacro()
 
 # ///////////////////////////////////////////////////
-macro(AddVisusExecutable Name)
+macro(AddExecutable Name)
 	add_executable(${Name} ${ARGN})
 	set_target_properties(${Name} PROPERTIES FOLDER "${CMAKE_FOLDER_PREFIX}Executable/")
 	if (WIN32)
@@ -323,13 +345,13 @@ macro(AddVisusExecutable Name)
 	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
 	endif()
-	InstallVisusExecutable(${Name})
+	InstallExecutable(${Name})
 endmacro()
 
 
 
 # ///////////////////////////////////////////////////
-macro(InstallVisusLibrary Name)
+macro(InstallLibrary Name)
  
 	if (NOT VISUS_IS_SUBMODULE)
 	
@@ -354,7 +376,7 @@ endmacro()
 
 
 # ///////////////////////////////////////////////////
-macro(InstallVisusExecutable Name)
+macro(InstallExecutable Name)
 
 	if (NOT VISUS_IS_SUBMODULE)
 	
@@ -390,62 +412,6 @@ macro(InstallBuildFiles Pattern Destination)
 			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/${Pattern})
 			FILE(INSTALL \${__files__} DESTINATION ${CMAKE_INSTALL_PREFIX}/${Destination})
 		")
-	endif()
-endmacro()
-
-
-# ///////////////////////////////////////////////////
-macro(InstallVisus)
-
-	if (NOT VISUS_IS_SUBMODULE)
-	
-		install(FILES        LICENSE                        DESTINATION .)
-		install(FILES        README.md                      DESTINATION .)
-		install(FILES        CMake/__init__.py              DESTINATION .)
-		install(FILES        CMake/OpenVisus.py             DESTINATION .)
-		install(FILES        CMake/setup.py                 DESTINATION .)
-		install(FILES        CMake/OpenVisusConfig.cmake    DESTINATION .)
-		install(DIRECTORY    Copyrights                     DESTINATION .)
-		install(DIRECTORY    Samples                        DESTINATION .)
-		install(DIRECTORY    datasets                       DESTINATION .)
-		
-		install(DIRECTORY    Libs/Kernel/include/Visus      DESTINATION include/Kernel/)
-		install(DIRECTORY    Libs/Dataflow/include/Visus    DESTINATION include/Dataflow/)
-		install(DIRECTORY    Libs/Db/include/Visus          DESTINATION include/Db/)
-		install(DIRECTORY    Libs/Idx/include/Visus         DESTINATION include/Idx/)
-		install(DIRECTORY    Libs/Nodes/include/Visus       DESTINATION include/Nodes)
-		
-		# swig generated files 
-		InstallBuildFiles(*.py ./)
-		
-		if (VISUS_GUI)
-			install(DIRECTORY Libs/Gui/include/Visus         DESTINATION include/Gui)
-			install(DIRECTORY Libs/GuiNodes/include/Visus    DESTINATION include/GuiNodes)
-			install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
-			
-			if (WIN32)
-			
-					get_filename_component(QT5_BIN_DIR ${Qt5_DIR}/../../../bin REALPATH  )
-					STRING(REGEX REPLACE "/" "\\\\" QT5_BIN_DIR ${QT5_BIN_DIR})
-					configure_file(${CMAKE_SOURCE_DIR}/CMake/visusviewer.bat.config ${CMAKE_BINARY_DIR}/visusviewer.bat)
-					install(FILES ${CMAKE_BINARY_DIR}/visusviewer.bat PERMISSIONS OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
-					
-			elseif (APPLE)
-	
-					configure_file(${CMAKE_SOURCE_DIR}/CMake/visusviewer.command.config ${CMAKE_BINARY_DIR}/visusviewer.command)
-					install(FILES ${CMAKE_BINARY_DIR}/visusviewer.command PERMISSIONS  OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
-	
-			else()
-					get_property(QT5_SO_DIR TARGET Qt5::Core PROPERTY LOCATION)
-					get_filename_component(QT5_SO_DIR ${QT5_SO_DIR} DIRECTORY)
-					configure_file(${CMAKE_SOURCE_DIR}/CMake/visusviewer.sh.config ${CMAKE_BINARY_DIR}/visusviewer.sh)
-					install(FILES ${CMAKE_BINARY_DIR}/visusviewer.sh PERMISSIONS  OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
-			endif()
-						
-			
-		endif()
-		
-		
 	endif()
 endmacro()
 

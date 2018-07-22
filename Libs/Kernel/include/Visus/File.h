@@ -182,6 +182,9 @@ public:
   static void lock  (Path path);
   static void unlock(Path path);
 
+  //touch
+  static bool touch(Path path);
+
   //copyFile
   static bool copyFile(String src, String dst, bool bFailIfExist);
 

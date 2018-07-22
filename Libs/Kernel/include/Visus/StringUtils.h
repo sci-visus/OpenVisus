@@ -249,6 +249,16 @@ public:
   //join
   static String join(std::vector<String> v, String separator = " ", String prefix = "", String suffix = "");
 
+  //join
+  template <typename T>
+  static String join(std::vector<T> v, String separator = " ", String prefix = "", String suffix = "")
+  {
+    std::vector<String> tmp;
+    for (auto it : v)
+      tmp.push_back(cstring(it));
+    return join(tmp, separator, prefix, suffix);
+  }
+
   //combine
   static std::vector<String> combine(std::vector<String> a, String combinator, std::vector<String> b) {
 

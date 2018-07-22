@@ -4,7 +4,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 FILE(GLOB Sources *.cpp *.h)
-AddVisusExecutable(visusviewer ${Sources})
+AddExecutable(visusviewer ${Sources})
 target_link_libraries(visusviewer PUBLIC VisusAppKit)
 
 # make sure all swig wrappers are built
