@@ -1,10 +1,6 @@
 version: '1.0.{build}'
 
-os: Visual Studio 2017
 
-platform:
-  - x64
-  
 notifications:
   - provider: Email
     to:
@@ -14,14 +10,26 @@ notifications:
     on_build_status_changed: true  
   
 environment:
-  Configuration: RelWithDebInfo
-  GENERATOR: Visual Studio 15 2017 Win64
-  QT5_DIR: C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5
-  PYPI_USERNAME: scrgiorgio
-  PYPI_PASSWORD:
-    secure: 6DHH80JPNRCtIYxWc/h88Q==
-  
 
+  QT5_DIR: C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5
+  matrix:
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      CMAKE_GENERATOR: Visual Studio 15 2017 Win64
+      PYTHON_VERSION: 2.7
+      PYTHON_TAG: "cp27"
+      PYTHON_DIR: "C:\\Python27-x64"
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      CMAKE_GENERATOR: Visual Studio 15 2017 Win64
+      PYTHON_VERSION: 3.6
+      PYTHON_TAG: "cp36"
+      PYTHON_DIR: "C:\\Python36-x64"          
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      CMAKE_GENERATOR: Visual Studio 15 2017 Win64
+      PYTHON_VERSION: 3.7
+      PYTHON_TAG: "cp37"
+      PYTHON_DIR: "C:\\Python37-x64" 
+            
+# 
 #if you need to debug uncomment these lines (see https://www.appveyor.com/docs/how-to/rdp-to-build-worker/)
 #init:
 #  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
@@ -36,33 +44,27 @@ build_script:
   - cd %APPVEYOR_BUILD_FOLDER%
   - mkdir build 
   - cd build 
-  - set PATH=C:\Python36-x64;C:\Python36-x64\Scripts;%PATH%
-  - pip install numpy setuptools wheel twine
-  - cmake -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%" ..
-  - cmake --build . --target ALL_BUILD --config %Configuration%
-  - cmake --build . --target RUN_TESTS --config %Configuration% 
-  - cmake --build . --target INSTALL   --config %Configuration% 
+  - set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%
+  - python -m pip install numpy setuptools wheel twine
+  - cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYTHON_VERSION=%PYTHON_VERSION% -DPYTHON_EXECUTABLE=%PYTHON_DIR%/python.exe -DPYTHON_INCLUDE_DIR=%PYTHON_DIR%/include ../
+  - cmake --build . --target ALL_BUILD --config RelWithDebInfo
+  - cmake --build . --target RUN_TESTS --config RelWithDebInfo
+  - cmake --build . --target INSTALL   --config RelWithDebInfo  
   - cd install
-  - python setup.py bdist_wheel --python-tag=cp36 --plat-name=win_amd64 
-  - echo [distutils]                                  > %USERPROFILE%\\.pypirc
-  - echo index-servers =                             >> %USERPROFILE%\\.pypirc
-  - echo     pypi                                    >> %USERPROFILE%\\.pypirc
-  - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
-  - echo username=%PYPI_USERNAME%                    >> %USERPROFILE%\\.pypirc
-  - echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc  
-  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing dist/*"  } 
-  
+  - python setup.py bdist_wheel --python-tag=%PYTHON_TAG% --plat-name=win_amd64
+ 
+
 # test are already in cmake
 test: off
 
 artifacts:
     - path: .\build\install\dist\*.whl
-      name: OpenVisus.win_amd64
+      name: OpenVisusDeployToGitReleases
  
 deploy:
   - provider: GitHub
     auth_token:
       secure: nwK8bGTRUynj+58b7E8Rgur5/0YvfIivBflFb5AaUrpC5BSTpcLbA4Ac+cCF6L4/
-    artifact: OpenVisus.win_amd64
+    artifact: OpenVisusDeployToGitReleases
     on:
       appveyor_repo_tag: true 
