@@ -172,7 +172,7 @@ sudo xcode-select --install
 # sudo xcode-select --reset
 ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 brew install git cmake swig qt5 openssl python3 # TODO! make sure qt5 is version 5.9.2!
-sudo pip3 -H install numpy setuptools wheel twine PyQt5==5.9.2
+sudo pip3 install numpy setuptools wheel twine PyQt5==5.9.2
 ```
 
 
