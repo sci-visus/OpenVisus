@@ -79,7 +79,6 @@ WORKDIR $VISUS_HOME/build/install
 RUN ldd ./bin/libVisusKernel.so # informative
 RUN cp /usr/local/lib64/libcrypto* /usr/local/lib64/libssl.so* ./bin
 RUN for it in $(find bin/*); do patchelf --set-rpath '$ORIGIN' $it; patchelf --shrink-rpath $it; done
-RUN python3 setup.py bdist_wheel --python-tag=cp36 --plat-name=linux_x86_64
 	
 RUN set -x \	
 	&& WHEEL=$(find ./dist -iname "*.whl") \

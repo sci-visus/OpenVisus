@@ -57,17 +57,29 @@ Table of content:
 [Use OpenVisus as submodule](#use-openvisus-as-submodule)
 
 [mod_visus](#mod_visus)
+
+[Auto deploy] (#auto_deploy)
 	
   
 ## PIP distribution
 
-You can install OpenVisus in python using Pip (remove sudo for windows):
+You can install OpenVisus in python using Pip:
+
+in windows:
 
 ```
-sudo -H pip3 install PyQt5==5.9
-sudo -H pip3 install OpenVisus
-# if you want to install a local OpenVisus PIP package
-# sudo -H pip3 install install/dist/*.whl
+PIP=c:\python36\Scripts\pip.exe
+%PIP% install PyQt5==5.9 numpy
+%PIP% uninstall -y OpenVisus
+%PIP% install --no-cache-dir OpenVisus
+```
+
+in osx,linux:
+
+```
+sudo pip3 install PyQt5==5.9 numpy
+sudo pip3 uninstall -y OpenVisus
+sudo pip3 install --no-cache-dir OpenVisus
 ```
 
 And test it using the following command. 
@@ -80,23 +92,8 @@ python3 -c "import OpenVisus; OpenVisus.check()"
 
 
 
-(For OpenVisus developers) If you want to upload a new PIP package to GitHub Release, you need to tag your code for Travis/AppVeyor:
-
-```
-git config --global push.followTags true 
-git commit -a -m "your message here"
-git tag -a "vN.X.Y" -m "vN.X.Y" # replace N,X,Y with some numbers
-git push
-```
   
-(For OpenVisus developers) If you want to upload a new PIP package to the official PyPi repository, after the install step:
 
-```
-cd install
-# python setup.py install [--small]
-python3 setup.py bdist_wheel  --python-tag=cp36 --plat-name=(win_amd64 | macosx_10_13_x86_64 | linux_x86_64) [--small]
-twine upload --repository-url https://upload.pypi.org/legacy/ dist/*.whl
-```
   
 ## Windows compilation
 
@@ -175,7 +172,7 @@ sudo xcode-select --install
 # sudo xcode-select --reset
 ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 brew install git cmake swig qt5 openssl python3 # TODO! make sure qt5 is version 5.9.2!
-sudo pip3 -H install numpy setuptools wheel twine PyQt5==5.9.2
+sudo pip3 install numpy setuptools wheel twine PyQt5==5.9.2
 ```
 
 
@@ -469,6 +466,16 @@ To test it, in another terminal:
 curl -v "http://localhost/mod_visus?action=readdataset&dataset=cat"
 ```
 
+# Auto Deploy	
 
-  
+First of all, .
+
+To upload the wheel to GitHub Release and PyPi, edit the CMake/setup.py and change the VERSION number there. Then tag your code:
+
+```
+git config --global push.followTags true 
+git commit -a -m "your message here"
+git tag -a "vN.X.Y" -m "vN.X.Y" # replace N,X,Y with the same numbers from CMake/setup.py
+git push
+```
 
