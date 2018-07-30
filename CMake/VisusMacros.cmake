@@ -353,7 +353,7 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(InstallLibrary Name)
  
-	if (NOT VISUS_IS_SUBMODULE)
+	if (1)
 	
 		if (WIN32 OR APPLE)
 	
@@ -378,7 +378,7 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(InstallExecutable Name)
 
-	if (NOT VISUS_IS_SUBMODULE)
+	if (1)
 	
 		if (WIN32 OR APPLE)
 	
