@@ -198,6 +198,10 @@ if (True)
 	# swig generated files 
 	InstallBuildFiles(*.py ./)
 	
+	if (WIN32)
+	  InstallBuildFiles(*.dll ./bin)
+	endif()
+	
 	if (VISUS_GUI)
 	
 		install(DIRECTORY Libs/Gui/include/Visus         DESTINATION include/Gui)
