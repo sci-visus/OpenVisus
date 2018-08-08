@@ -41,6 +41,7 @@ For support : support@visus.net
 #include <Visus/Rectangle.h>
 #include <Visus/TransferFunctionView.h>
 #include <Visus/ArrayStatisticsView.h>
+#include <Visus/FieldNode.h>
 
 #include <QApplication>
 #include <QDesktopWidget>
@@ -163,6 +164,8 @@ int main(int argn,const char* argv[])
   bool bStartServer=false;
   bool bFullScreen=false;
   int x=0,y=0,width=0,height=0;
+  String fieldname;
+  bool bMinimal = false;
 
   for (int I=1;I<(int)args.size();I++)
   {
@@ -184,6 +187,14 @@ int main(int argn,const char* argv[])
       y     =cint(args[++I]);
       width =cint(args[++I]);
       height=cint(args[++I]);
+    }
+    else if (args[I]=="--fieldname")
+    {
+      fieldname = args[++I];
+    }
+    else if (args[I] == "--minimal")
+    {
+      bMinimal = true;
     }
     else if (args[I]=="--network-test-11")
     {
@@ -227,7 +238,23 @@ int main(int argn,const char* argv[])
   }
 
   if (!open_filename.empty())
+  {
     viewer->openFile(open_filename);
+
+    if (!fieldname.empty())
+    {
+      if (auto fieldnode = viewer->findNodeByType<FieldNode>())
+        fieldnode->setFieldName(fieldname);
+    }
+  }
+
+  if (bMinimal)
+  {
+    Viewer::Preferences preferences;
+    preferences.preferred_panels="";
+    preferences.bHideMenus = true;
+    viewer->setPreferences(preferences);
+  }
 
   SharedPtr<NetServer> server;
   if (bStartServer)

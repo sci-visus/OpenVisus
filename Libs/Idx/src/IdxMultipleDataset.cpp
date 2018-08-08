@@ -227,12 +227,9 @@ public:
         return doPublish(self, args);
       });
 
-      engine->addModuleFunction("voronoiBlend", [this](PyObject *self, PyObject *args) {return blendBuffers(self, args, BlendBuffers::VororoiBlend);});
+      engine->addModuleFunction("voronoi",      [this](PyObject *self, PyObject *args) {return blendBuffers(self, args, BlendBuffers::VororoiBlend); });
       engine->addModuleFunction("averageBlend", [this](PyObject *self, PyObject *args) {return blendBuffers(self, args, BlendBuffers::AverageBlend); });
       engine->addModuleFunction("noBlend"     , [this](PyObject *self, PyObject *args) {return blendBuffers(self, args, BlendBuffers::NoBlend); });
-
-      //backward compatibility
-      engine->addModuleFunction("findVoronoiSeams", [this](PyObject *self, PyObject *args) {return blendBuffers(self, args, BlendBuffers::VororoiBlend); });
     }
   }
 
@@ -1120,11 +1117,10 @@ void IdxMultipleDataset::computeDefaultFields()
   addField(createField("ArrayUtils.max"));
   addField(createField("ArrayUtils.standardDeviation"));
   addField(createField("ArrayUtils.median"));
-  addField(createField("findVoronoiSeams")); //backward compatible
 
   //note: this wont' work on old servers
+  addField(Field("output=voronoi()"));
   addField(Field("output=noBlend()"));
-  addField(Field("output=voronoiBlend()"));
   addField(Field("output=averageBlend()"));
 
   for (auto it : childs)

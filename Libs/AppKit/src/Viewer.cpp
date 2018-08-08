@@ -681,15 +681,17 @@ void Viewer::setDataflow(SharedPtr<Dataflow> value)
     this->widgets.glcanvas = nullptr;
 
     this->setCentralWidget(nullptr);
-    this->menuBar()->show();
     this->setStatusBar(new QStatusBar());
 
     //remove all dock widgets
     auto dock_widgets = findChildren<QDockWidget*>();
     for (auto dock_widget : dock_widgets)
     {
-      if (dock_widget->widget()==widgets.log)
+      if (dock_widget->widget() == widgets.log)
+      {
+        widgets.log->show();
         continue;
+      }
       
       removeDockWidget(dock_widget);
 
@@ -720,7 +722,11 @@ void Viewer::setDataflow(SharedPtr<Dataflow> value)
     this->dataflow->listeners.push_back(this);
 
     setWindowTitle(preferences.title.c_str());
-    preferences.bHideMenus? menuBar()->hide() : menuBar()->show();
+
+    if (preferences.bHideMenus)
+      widgets.toolbar->hide();
+    else
+      widgets.toolbar->show();
 
     if (preferences.screen_bounds.valid())
       setGeometry(QUtils::convert<QRect>(preferences.screen_bounds));
@@ -730,23 +736,23 @@ void Viewer::setDataflow(SharedPtr<Dataflow> value)
     //I want to show only the GLCanvas
     if (preferences.preferred_panels.empty())
     {
-      auto layout=new QVBoxLayout();
-      layout->addWidget(widgets.glcanvas);
-      this->setLayout(layout);
+      widgets.log->hide();
+      setCentralWidget(widgets.glcanvas);
     }
     else
     {
+      widgets.frameview = new DataflowFrameView(this->dataflow.get());
+      widgets.treeview = createTreeView();
+
       //central
       widgets.tabs=new QTabWidget();
       widgets.tabs->addTab(widgets.glcanvas,"GLCanvas");
-      widgets.tabs->addTab(widgets.frameview=new DataflowFrameView(this->dataflow.get()),"Dataflow");
+      widgets.tabs->addTab(widgets.frameview,"Dataflow");
       setCentralWidget(widgets.tabs);
 
-      {
-        auto dock = new QDockWidget("Explorer");
-        dock->setWidget(widgets.treeview=createTreeView());
-        addDockWidget(Qt::LeftDockWidgetArea, dock);
-      }
+      auto dock = new QDockWidget("Explorer");
+      dock->setWidget(widgets.treeview);
+      addDockWidget(Qt::LeftDockWidgetArea, dock);
     }
 
     if (auto glcamera_node= findNodeByType<GLCameraNode>())

@@ -110,14 +110,13 @@ void Viewer::setPreferences(Preferences value)
 ////////////////////////////////////////////////////////////
 void Viewer::createToolBar()
 {
-  auto& toolbar = widgets.toolbar;
-  toolbar=new ToolBar();
+  widgets.toolbar =new ToolBar();
 
   //MAIN tab
   {
-    auto tab=toolbar->addTab("MAIN");
+    auto tab= widgets.toolbar->addTab("MAIN");
 
-    tab->addBlueMenu(QIcon(), "File", toolbar->file_menu=GuiFactory::CreateMenu(this,{
+    tab->addBlueMenu(QIcon(), "File", widgets.toolbar->file_menu=GuiFactory::CreateMenu(this,{
       actions.New,
       actions.OpenFile,
       actions.AddFile,
@@ -142,20 +141,20 @@ void Viewer::createToolBar()
     tab->addAction(actions.Deselect);
 
     tab->addAction(actions.RefreshData);
-    tab->addWidget(toolbar->auto_refresh.check = GuiFactory::CreateCheckBox(false, "Auto refresh", [this](int value) {
+    tab->addWidget(widgets.toolbar->auto_refresh.check = GuiFactory::CreateCheckBox(false, "Auto refresh", [this](int value) {
       auto auto_refresh = getAutoRefresh();
       auto_refresh.bEnabled = value ? true : false;
       setAutoRefresh(auto_refresh);
 
     }));
-    tab->addWidget(toolbar->auto_refresh.msec = GuiFactory::CreateIntegerTextBoxWidget(0, [this](int value) {
+    tab->addWidget(widgets.toolbar->auto_refresh.msec = GuiFactory::CreateIntegerTextBoxWidget(0, [this](int value) {
       auto auto_refresh = getAutoRefresh();
       auto_refresh.msec = value ;
       setAutoRefresh(auto_refresh);
     }));
-    toolbar->auto_refresh.msec->setMaxLength(4);
-    toolbar->auto_refresh.msec->setMaximumWidth(50);
-    toolbar->auto_refresh.msec->setFixedWidth(50);
+    widgets.toolbar->auto_refresh.msec->setMaxLength(4);
+    widgets.toolbar->auto_refresh.msec->setMaximumWidth(50);
+    widgets.toolbar->auto_refresh.msec->setFixedWidth(50);
 
     tab->addAction(actions.DropProcessing);
 
@@ -189,13 +188,13 @@ void Viewer::createToolBar()
       actions.AddCpuTransferFunction
     })); 
 
-    toolbar->bookmarks_button=tab->addBlueMenu(QIcon(""), "Bookmarks", createBookmarks());
+    widgets.toolbar->bookmarks_button=tab->addBlueMenu(QIcon(""), "Bookmarks", createBookmarks());
 
     tab->addAction(actions.ShowLicences);
     tab->addStretch(1);
   }
 
-  addToolBar(toolbar);
+  addToolBar(widgets.toolbar);
 }
 
 ////////////////////////////////////////////////////////////
