@@ -309,6 +309,9 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
     config.readBool("disable_write_locks") == true ||
     std::find(ApplicationInfo::args.begin(), ApplicationInfo::args.end(), "--disable-write-locks") != ApplicationInfo::args.end();
 
+  //if (this->bDisableWriteLocks)
+  //  VisusInfo() << "IdxDiskAccess::IdxDiskAccess disabling write locsk. be careful";
+
   this->bDisableIO = config.readBool("disable_io")==true ||
     std::find(ApplicationInfo::args.begin(), ApplicationInfo::args.end(), "--idx-disk-access-disable-io") != ApplicationInfo::args.end();
 

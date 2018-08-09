@@ -649,8 +649,6 @@ public:
         #pragma omp parallel for 
         for (int I = 0; I<(int)queries.size(); I++)
         {
-          ConcurrencyVisualizer cv("OMP ComputeUpBuffer " + cstring(I));
-
           auto query = queries[I];
 
           executeDownQuery(query);
