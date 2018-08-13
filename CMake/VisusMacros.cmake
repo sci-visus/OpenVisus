@@ -270,7 +270,7 @@ macro(AddSwigLibrary Name SwigFile)
    endif()
 
 	if(WIN32)
-		set_target_properties(${_target_name_} PROPERTIES DEBUG_POSTFIX  "_d")
+	   set_target_properties(${_target_name_} PROPERTIES DEBUG_POSTFIX  "_d")
 		target_compile_definitions(${_target_name_}  PRIVATE /W0)
 	endif()
 
@@ -380,23 +380,20 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(InstallLibrary Name)
  
-	if (1)
-	
-		if (WIN32 OR APPLE)
-	
-			install(TARGETS ${Name}  CONFIGURATIONS DEBUG          LIBRARY DESTINATION debug/bin RUNTIME DESTINATION debug/bin BUNDLE DESTINATION debug/bin ARCHIVE DESTINATION debug/lib)
-			install(TARGETS ${Name}  CONFIGURATIONS RELEASE        LIBRARY DESTINATION bin       RUNTIME DESTINATION bin       BUNDLE DESTINATION bin       ARCHIVE DESTINATION lib)	
-			install(TARGETS ${Name}  CONFIGURATIONS RELWITHDEBINFO LIBRARY DESTINATION bin       RUNTIME DESTINATION bin       BUNDLE DESTINATION bin       ARCHIVE DESTINATION lib)
-						
-			if (WIN32)
-				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS DEBUG          DESTINATION debug/bin )
-				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELEASE        DESTINATION bin       )
-				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELWITHDEBINFO DESTINATION bin       )
-			endif()
-			
-		else()
-			install(TARGETS ${Name} LIBRARY DESTINATION bin RUNTIME DESTINATION bin BUNDLE DESTINATION bin ARCHIVE DESTINATION lib)
+	if (WIN32 OR APPLE)
+
+		install(TARGETS ${Name}  CONFIGURATIONS DEBUG          LIBRARY DESTINATION debug/bin RUNTIME DESTINATION debug/bin BUNDLE DESTINATION debug/bin ARCHIVE DESTINATION debug/lib)
+		install(TARGETS ${Name}  CONFIGURATIONS RELEASE        LIBRARY DESTINATION bin       RUNTIME DESTINATION bin       BUNDLE DESTINATION bin       ARCHIVE DESTINATION lib)	
+		install(TARGETS ${Name}  CONFIGURATIONS RELWITHDEBINFO LIBRARY DESTINATION bin       RUNTIME DESTINATION bin       BUNDLE DESTINATION bin       ARCHIVE DESTINATION lib)
+					
+		if (WIN32)
+			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS DEBUG          DESTINATION debug/bin )
+			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELEASE        DESTINATION bin       )
+			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELWITHDEBINFO DESTINATION bin       )
 		endif()
+		
+	else()
+		install(TARGETS ${Name} LIBRARY DESTINATION bin RUNTIME DESTINATION bin BUNDLE DESTINATION bin ARCHIVE DESTINATION lib)
 	endif()
 
 endmacro()
@@ -405,23 +402,20 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(InstallExecutable Name)
 
-	if (1)
-	
-		if (WIN32 OR APPLE)
-	
-			install(TARGETS ${Name} CONFIGURATIONS DEBUG          BUNDLE     DESTINATION  debug/bin RUNTIME    DESTINATION  debug/bin )		
-			install(TARGETS ${Name} CONFIGURATIONS RELEASE        BUNDLE     DESTINATION  bin       RUNTIME    DESTINATION  bin)			
-			install(TARGETS ${Name} CONFIGURATIONS RELWITHDEBINFO BUNDLE     DESTINATION  bin       RUNTIME    DESTINATION  bin)						
-	
-			if (WIN32)
-				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  DEBUG          DESTINATION debug/bin )
-				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELEASE        DESTINATION bin       )
-				install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELWITHDEBINFO DESTINATION bin       )
-			endif()
-		else()
-			
-			install(TARGETS ${Name} BUNDLE DESTINATION  bin RUNTIME DESTINATION  bin)			
+	if (WIN32 OR APPLE)
+
+		install(TARGETS ${Name} CONFIGURATIONS DEBUG          BUNDLE     DESTINATION  debug/bin RUNTIME    DESTINATION  debug/bin )		
+		install(TARGETS ${Name} CONFIGURATIONS RELEASE        BUNDLE     DESTINATION  bin       RUNTIME    DESTINATION  bin)			
+		install(TARGETS ${Name} CONFIGURATIONS RELWITHDEBINFO BUNDLE     DESTINATION  bin       RUNTIME    DESTINATION  bin)						
+
+		if (WIN32)
+			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  DEBUG          DESTINATION debug/bin )
+			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELEASE        DESTINATION bin       )
+			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELWITHDEBINFO DESTINATION bin       )
 		endif()
+	else()
+		
+		install(TARGETS ${Name} BUNDLE DESTINATION  bin RUNTIME DESTINATION  bin)			
 	endif()
 
 endmacro()

@@ -65,6 +65,18 @@ IF (VISUS_GUI)
 	if (WIN32)
 		string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
 	endif()
+	
+	if (WIN32)
+		set(QT5_BINARY_DIR "${Qt5_DIR}/../../../bin")
+		find_program(WINDEPLOYQT NAMES windeployqt PATHS "${QT5_BINARY_DIR}")
+		
+		if(NOT WINDEPLOYQT)
+			message(FATAL_ERROR "Could not find windeployqt")
+		endif()
+		
+		mark_as_advanced(WINDEPLOYQT)
+	endif()
+	
 endif()
 
 if (NOT DEFINED VISUS_INTERNAL_ZLIB)
@@ -226,7 +238,10 @@ if (True)
 				configure_file(${CMAKE_CURRENT_SOURCE_DIR}/CMake/visusviewer.sh.config ${CMAKE_BINARY_DIR}/visusviewer.sh)
 				install(FILES ${CMAKE_BINARY_DIR}/visusviewer.sh PERMISSIONS  OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
 		endif()	
-		
+				
 	endif()
+	
+	# Post install step
+	add_subdirectory(CMake)
 	
 endif()

@@ -42,6 +42,7 @@ For support : support@visus.net
 #include <Visus/TransferFunctionView.h>
 #include <Visus/ArrayStatisticsView.h>
 #include <Visus/FieldNode.h>
+#include <Visus/GLCameraNode.h>
 
 #include <QApplication>
 #include <QDesktopWidget>
@@ -139,14 +140,12 @@ int main(int argn,const char* argv[])
         <<"   --open <url>                                                           - opens the specified url or .idx volume"<<std::endl
         <<"   --server [http]                                                        - starts a standalone ViSUS Server on port 10000"<<std::endl
         <<"   --fullscseen                                                           - starts in fullscreen mode"<<std::endl
-        <<"   --bounds \"<x> <y> <width> <height>                                    - specify viewer windows size and location"<<std::endl
+        <<"   --geometry \"<x> <y> <width> <height>\"                                - specify viewer windows size and location"<<std::endl
+        <<"   --zoom-to \"x1 y1 x2 y2\"                                              - set glcamera ortho params" << std::endl
         <<"   --network-rcv <port>                                                   - run powerwall slave"<<std::endl
         <<"   --network-snd <slave_url> <split_ortho> <screen_bounds> <aspect_ratio> - add a slave to a powerwall master"<<std::endl
-        <<"   --split-ortho <split_ortho>                                            - for taking snapshots"<<std::endl
-        <<"   --network-test-11                                                      - internal use only"<<std::endl
-        <<"   --network-test-12                                                      - internal use only"<<std::endl
-        <<"   --network-test-14                                                      - internal use only"<<std::endl
-        <<"   --network-test-111                                                     - internal use only"<<std::endl
+        <<"   --split-ortho \"x y width height\"                                     - for taking snapshots"<<std::endl
+        <<"   --internal-network-test-(11|12|14|111)                                 - internal use only"<<std::endl
         <<std::endl
         <<std::endl;
 
@@ -158,12 +157,13 @@ int main(int argn,const char* argv[])
   UniquePtr<Viewer> viewer(new Viewer());
 
   typedef Visus::Rectangle2d Rectangle2d;
-  UniquePtr<Rectangle2d> split_ortho;
+  String arg_split_ortho;
+  String args_zoom_to;
 
   String open_filename=Dataset::getDefaultDatasetInVisusConfig();
   bool bStartServer=false;
   bool bFullScreen=false;
-  int x=0,y=0,width=0,height=0;
+  Rectangle2i geometry(0, 0, 0, 0);
   String fieldname;
   bool bMinimal = false;
 
@@ -181,12 +181,9 @@ int main(int argn,const char* argv[])
     {
       bFullScreen=true;
     }
-    else if (args[I]=="--bounds") 
+    else if (args[I]=="--geometry") 
     {
-      x     =cint(args[++I]);
-      y     =cint(args[++I]);
-      width =cint(args[++I]);
-      height=cint(args[++I]);
+      geometry=Rectangle2i(args[++I]);
     }
     else if (args[I]=="--fieldname")
     {
@@ -196,19 +193,19 @@ int main(int argn,const char* argv[])
     {
       bMinimal = true;
     }
-    else if (args[I]=="--network-test-11")
+    else if (args[I]=="--internal-network-test-11")
     {
       TestMasterAndSlave(viewer.get());
     }
-    else if (args[I]=="--network-test-12")
+    else if (args[I]=="--internal-network-test-12")
     {
       TestMasterAndTwoSlaves(viewer.get());
     }
-    else if (args[I]=="--network-test-14")
+    else if (args[I]=="--internal-network-test-14")
     {
       TestMasterAndFourSlaves(viewer.get());
     }
-    else if (args[I]=="--network-test-111") 
+    else if (args[I]=="--internal-network-test-111") 
     {
       TestMasterMiddleAndSlave(viewer.get());
     }
@@ -227,13 +224,16 @@ int main(int argn,const char* argv[])
     }
     else if (args[I]=="--split-ortho")
     {
-      split_ortho.reset(new Rectangle2d(args[++I]));
+      arg_split_ortho=args[++I];
     }
-    else
+    else if (args[I] == "--zoom-to")
     {
-      //default action is to open a file/url. This facilitates OS-initiated launch (e.g. opening a .idx)
-      if (!StringUtils::startsWith(args[I],"--"))
-        open_filename=args[I];
+      args_zoom_to = args[++I];
+    }
+    //last argment could be a filename. This facilitates OS-initiated launch (e.g. opening a .idx)
+    else if (I==(args.size()-1) && !StringUtils::startsWith(args[I], "--"))
+    {
+      open_filename = args[I];
     }
   }
 
@@ -269,23 +269,66 @@ int main(int argn,const char* argv[])
   if (bFullScreen)
     viewer->showFullScreen();
 
-  else if (width>0 && height>0)
-    viewer->setGeometry(x,y,width,height);
+  else if (geometry.width>0 && geometry.height>0)
+    viewer->setGeometry(geometry.x, geometry.y, geometry.width, geometry.height);
 
-  if (split_ortho)
+  if (!arg_split_ortho.empty())
   {
-    auto glcamera=viewer->getGLCamera(); VisusAssert(glcamera);
-    double W=glcamera->getViewport().width;
-    double H=glcamera->getViewport().height;
+    auto split_ortho=Rectangle2d(arg_split_ortho);
 
-    GLOrthoParams ortho_params=glcamera->getOrthoParams();
+    if (auto glcamera = viewer->getGLCamera())
+    {
+      double W = glcamera->getViewport().width;
+      double H = glcamera->getViewport().height;
 
-    double fix_aspect_ratio=W/H;
-    if (fix_aspect_ratio)
-      ortho_params.fixAspectRatio(fix_aspect_ratio);
+      GLOrthoParams ortho_params = glcamera->getOrthoParams();
 
-    ortho_params=ortho_params.split(*split_ortho);
-    glcamera->setOrthoParams(ortho_params);
+      double fix_aspect_ratio = W / H;
+      if (fix_aspect_ratio)
+        ortho_params.fixAspectRatio(fix_aspect_ratio);
+
+      ortho_params = ortho_params.split(split_ortho);
+      glcamera->setOrthoParams(ortho_params);
+    }
+  }
+
+  if (!args_zoom_to.empty())
+  {
+    auto world_box = viewer->getWorldBoundingBox();
+
+    if (auto glcamera = viewer->getGLCamera())
+    {
+      GLOrthoParams ortho_params = glcamera->getOrthoParams();
+
+      double x1 = 0, y1 = 0, x2 = 1.0, y2 = 1.0;
+      std::istringstream parse(args_zoom_to);
+      parse >> x1 >> y1 >> x2 >> y2;
+
+      auto p1 = world_box.getPoint(x1, y1, 0).dropZ();
+      auto p2 = world_box.getPoint(x2, y2, 0).dropZ();
+
+      ortho_params = GLOrthoParams(p1.x, p2.x, p1.y, p2.y, ortho_params.zNear, ortho_params.zFar);
+
+      VisusInfo() << std::fixed << "Setting"
+        << " ortho_params("
+        << ortho_params.left << " " << ortho_params.right << " "
+        << ortho_params.bottom << " " << ortho_params.top << " "
+        << ortho_params.zNear << " " << ortho_params.zFar << ")"
+        << " world_box("
+        << world_box.p1.x << " " << world_box.p1.y << " " << world_box.p1.z << " "
+        << world_box.p2.x << " " << world_box.p2.y << " " << world_box.p2.z << ")";
+
+
+      double W = glcamera->getViewport().width;
+      double H = glcamera->getViewport().height;
+      if (W && H)
+      {
+        double fix_aspect_ratio = W / H;
+        ortho_params.fixAspectRatio(fix_aspect_ratio);
+      }
+
+      glcamera->setOrthoParams(ortho_params);
+    }
   }
 
   GuiModule::execApplication();
