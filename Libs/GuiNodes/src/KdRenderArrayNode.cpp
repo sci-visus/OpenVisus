@@ -190,7 +190,7 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
   gl.pushDepthMask(config.texture_dim==3?false:true);
     
   if (config.palette_enabled)
-    shader->setPalette(gl,this->palette_texture);
+    shader->setPaletteTexture(gl,this->palette_texture);
 
   //decide how to render (along X Y or Z)
   Point3d viewpos,viewdir,viewup;

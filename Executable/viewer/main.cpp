@@ -138,7 +138,7 @@ int main(int argn,const char* argv[])
         <<"visusviewer help:"<<std::endl
         <<"   --visus-config <path>                                                  - path to visus.config"<<std::endl
         <<"   --open <url>                                                           - opens the specified url or .idx volume"<<std::endl
-        <<"   --server [http]                                                        - starts a standalone ViSUS Server on port 10000"<<std::endl
+        <<"   --server                                                               - starts a standalone ViSUS Server on port 10000"<<std::endl
         <<"   --fullscseen                                                           - starts in fullscreen mode"<<std::endl
         <<"   --geometry \"<x> <y> <width> <height>\"                                - specify viewer windows size and location"<<std::endl
         <<"   --zoom-to \"x1 y1 x2 y2\"                                              - set glcamera ortho params" << std::endl

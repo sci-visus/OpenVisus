@@ -98,7 +98,7 @@ GLTexture::~GLTexture()
 
 
 ///////////////////////////////////////////////
-GLuint GLTexture::textureId()
+GLuint GLTexture::textureId(GLCanvas& gl)
 {
   if (texture_id)
     return texture_id;
@@ -136,22 +136,7 @@ GLuint GLTexture::textureId()
     return 0;
   }
 
-
-  auto Error = [&]() {
-    VisusInfo() << "Failed to create texture";
-    GLInfo::getSingleton()->freeMemory(size);
-    if (texture_id)
-      glDeleteTextures(1, &texture_id);
-    return (texture_id = 0);
-  };
-
   int target = this->target();
-
-  glGenTextures(1, &texture_id);
-  glBindTexture(target, texture_id);
-
-  if (!texture_id)
-    return Error();
 
   int ncomponents = this->dtype.ncomponents();
   int textureFormat;
@@ -165,28 +150,54 @@ GLuint GLTexture::textureId()
   auto sourceFormat = std::vector<int>({ 0,GL_LUMINANCE,GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA })[ncomponents];
   auto sourceType = dtype.isVectorOf(DTypes::UINT8) ? GL_UNSIGNED_BYTE : GL_FLOAT;
 
-  GLCanvas::FlushGLErrors(false);
+  GLint save_active_texture;
+  gl.glGetIntegerv(GL_ACTIVE_TEXTURE, &save_active_texture);
 
-  GLint originalAlignment = 1;
-  glGetIntegerv(GL_UNPACK_ALIGNMENT, &originalAlignment);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  GLint save_original_alignment = 1;
+  gl.glGetIntegerv(GL_UNPACK_ALIGNMENT, &save_original_alignment);
 
-  if (target == QOpenGLTexture::Target3D)
+  gl.glGenTextures(1, &texture_id);
+
+  if (texture_id)
   {
-  #if WIN32
-    static auto glTexImage3D = (PFNGLTEXIMAGE3DPROC)wglGetProcAddress("glTexImage3D"); VisusAssert(glTexImage3D);
-    #endif
-    glTexImage3D(target, 0, textureFormat, dims[0], dims[1], dims[2], 0, sourceFormat, sourceType, pixels);
+    gl.flushGLErrors(false);
+
+    if(save_active_texture != GL_TEXTURE0)
+      gl.glActiveTexture(GL_TEXTURE0);
+
+    gl.glBindTexture(target, texture_id);
+
+    if (save_original_alignment != 1)
+      gl.glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    //seems important since I'm not using mipmaps
+    gl.glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    gl.glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    if (target == QOpenGLTexture::Target3D)
+      gl.glTexImage3D(target, 0, textureFormat, dims[0], dims[1], dims[2], 0, sourceFormat, sourceType, pixels);
+    else
+      gl.glTexImage2D(target, 0, textureFormat, dims[0], dims[1], 0, sourceFormat, sourceType, pixels);
   }
-  else
+
+  if (!texture_id || gl.flushGLErrors(true))
   {
-    glTexImage2D(target, 0, textureFormat, dims[0], dims[1], 0, sourceFormat, sourceType, pixels);
+    VisusInfo() << "Failed to create texture";
+
+    GLInfo::getSingleton()->freeMemory(size);
+
+    if (texture_id)
+    {
+      gl.glDeleteTextures(1, &texture_id);
+      texture_id = 0;
+    }
   }
 
-  glPixelStorei(GL_UNPACK_ALIGNMENT, originalAlignment);
+  if (save_original_alignment!=1)
+    gl.glPixelStorei(GL_UNPACK_ALIGNMENT, save_original_alignment);
 
-  if (GLCanvas::FlushGLErrors(true))
-    return Error();
+  if (save_active_texture!= GL_TEXTURE0)
+    gl.glActiveTexture(save_active_texture);
 
   return texture_id;
 }

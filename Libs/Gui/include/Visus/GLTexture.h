@@ -88,7 +88,7 @@ public:
   }
 
   //textureId (call only when you have a context)
-  GLuint textureId();
+  GLuint textureId(GLCanvas& gl);
 
 private:
 

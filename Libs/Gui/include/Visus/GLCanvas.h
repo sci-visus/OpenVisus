@@ -202,8 +202,8 @@ public:
   //destructor
   virtual ~GLCanvas();
 
-  //FlushGLErrors
-  static int FlushGLErrors(bool bVerbose=false);
+  //flushGLErrors
+  int flushGLErrors(bool bVerbose=false);
 
 signals:
 
@@ -508,15 +508,13 @@ public:
   
 public:
 
-  //setTexture
-  void setTexture(int slot,GLSampler* sampler,SharedPtr<GLTexture> texture);
+  //setTextureInSlot
+  void setTextureInSlot(int slot,GLSampler& sampler,SharedPtr<GLTexture> texture);
 
   //setTexture
-#if !SWIG
-  void setTexture(int slot,GLSampler& sampler,SharedPtr<GLTexture> value) {
-    setTexture(slot,&sampler,value);
+  void setTexture(GLSampler& sampler,SharedPtr<GLTexture> value) {
+    setTextureInSlot(0,sampler,value);
   }
-#endif
 
   //glRenderMesh
   void glRenderMesh(const GLMesh& mesh);

@@ -2644,7 +2644,7 @@ DatasetNode* Viewer::addDatasetNode(SharedPtr<Dataset> dataset,Node* parent)
     }
     else
     {
-      addQueryNode(dataset_node,dataset_node,"",/*2*/dataset->getPointDim(),"",0,rendertype);
+      addQueryNode(dataset_node, dataset_node, "",/*2*/dataset->getPointDim(), "", 0, rendertype);
     }
 
     this->refreshData();

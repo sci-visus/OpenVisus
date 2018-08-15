@@ -124,15 +124,14 @@ public:
 
   //setTexture
   void setTexture(GLCanvas& gl, SharedPtr<GLTexture> value) {
-    gl.setTexture(0, u_sampler, value);
+    gl.setTexture(u_sampler, value);
   }
 
   //setPaletteTexture 
-  void setPalette(GLCanvas& gl, SharedPtr<GLTexture> value)
+  void setPaletteTexture(GLCanvas& gl, SharedPtr<GLTexture> value)
   {
     VisusAssert(config.palette_enabled);
-    gl.setTexture(1, u_palette_sampler, value);
-    
+    gl.setTextureInSlot(1, u_palette_sampler, value);
   }
 
   //setOpacity

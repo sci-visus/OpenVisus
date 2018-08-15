@@ -80,7 +80,7 @@ void GLPhongShader::setUniformColor(GLCanvas& gl,const Color& color) {
 void GLPhongShader::setTexture(GLCanvas& gl,SharedPtr<GLTexture> texture) {
   if (!texture) return;
   VisusAssert(config.texture_enabled);
-  gl.setTexture(0,u_sampler,texture);
+  gl.setTexture(u_sampler,texture);
 }
 
 } //namespace
