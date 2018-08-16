@@ -468,14 +468,23 @@ curl -v "http://localhost/mod_visus?action=readdataset&dataset=cat"
 
 # Auto Deploy	
 
-First of all, .
-
-To upload the wheel to GitHub Release and PyPi, edit the CMake/setup.py and change the VERSION number there. Then tag your code:
+`.travis.yml` and `.appveyor.ymp` deploy automatically to `GitHub Releases` when the Git commit is tagged.
+To properly tag your commit, your first need to edit the CMake/setup.py and change the VERSION number. 
+Then tag your code in git:
 
 ```
 git config --global push.followTags true 
-git commit -a -m "your message here"
-git tag -a "vN.X.Y" -m "vN.X.Y" # replace N,X,Y with the same numbers from CMake/setup.py
+VERSION=N.X.Y # replace N,X,Y with the same numbers from CMake/setup.py
+git commit -a -m "N.X.Y" 
+git tag -a "N.X.Y" -m "N.X.Y" 
 git push
 ```
+
+If you want to upload the version to pypi, download the files from GitHub Releases and do:
+
+`
+twine upload --repository-url https://upload.pypi.org/legacy/ name-of-the-wheel.whl
+# USERNAME is scrgiorgio
+# PASSWORD you-should-know
+`
 
