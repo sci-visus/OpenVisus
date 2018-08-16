@@ -482,9 +482,9 @@ git push
 
 If you want to upload the version to pypi, download the files from GitHub Releases and do:
 
-`
-twine upload --repository-url https://upload.pypi.org/legacy/ name-of-the-wheel.whl
-# USERNAME is scrgiorgio
-# PASSWORD you-should-know
-`
+```
+twine upload --repository-url https://upload.pypi.org/legacy/name-of-the-wheel.whl
+#USERNAME is scrgiorgio
+#PASSWORD you-should-know
+```
 
