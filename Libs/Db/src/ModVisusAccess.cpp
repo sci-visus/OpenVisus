@@ -87,7 +87,7 @@ void ModVisusAccess::readBlock(SharedPtr<BlockQuery> query)
   batch.push_back(query);
 
   //reached the number of queries per batch?
-  if (num_queries_per_request >= batch.size())
+  if (batch.size() >= num_queries_per_request)
     flushBatch();
 }
 
