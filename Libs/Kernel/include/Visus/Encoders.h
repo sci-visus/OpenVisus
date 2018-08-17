@@ -222,8 +222,8 @@ private:
     addEncoder(""   ,std::make_shared<IdEncoder>());
     addEncoder("raw", std::make_shared<IdEncoder>());
     addEncoder("bin", std::make_shared<IdEncoder>());
-    addEncoder("zip", std::make_shared<ZipEncoder>());
     addEncoder("lz4", std::make_shared<LZ4Encoder>());
+    addEncoder("zip", std::make_shared<ZipEncoder>());
     addEncoder("png", std::make_shared<FreeImageEncoder>("png"));
     addEncoder("jpg", std::make_shared<FreeImageEncoder>("jpg"));
     addEncoder("tif", std::make_shared<FreeImageEncoder>("tif"));

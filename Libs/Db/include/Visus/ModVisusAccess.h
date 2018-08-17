@@ -40,14 +40,15 @@ For support : support@visus.net
 #define __VISUS_MODVISUS_ACCESS_H
 
 #include <Visus/Db.h>
-#include <Visus/NetworkAccess.h>
+#include <Visus/Access.h>
+#include <Visus/NetService.h>
 
 namespace Visus {
 
 class Dataset;
 
   ///////////////////////////////////////////////////////////////////////////////////////
-class VISUS_DB_API ModVisusAccess : public NetworkAccess
+class VISUS_DB_API ModVisusAccess : public Access
 {
 public:
 
@@ -89,6 +90,11 @@ public:
 private:
 
   typedef std::vector< SharedPtr<BlockQuery> > Batch;
+
+  StringTree             config;
+  Url                    url;
+  String                 compression;
+  SharedPtr<NetService>  netservice;
 
   Batch batch;
 

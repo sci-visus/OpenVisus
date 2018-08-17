@@ -55,13 +55,13 @@ bool NetMessage::setArrayBody(String compression,Array decoded)
   setHeader("visus-dtype"              , decoded.dtype.toString());
   setHeader("visus-layout"             , decoded.layout);
   setHeader("Content-Transfer-Encoding", "binary");
-  
-  if      (compression=="zip")           setContentType("application/zip");
-  else if (compression=="lz4")           setContentType("application/x-lz4");
-  else if (compression=="png")           setContentType("image/png");
-  else if (compression=="jpg")           setContentType("image/jpeg");
-  else if (compression=="tif")           setContentType("image/tiff");
-  else {VisusAssert(compression.empty());setContentType("application/octet-stream");}
+
+  if      (compression == "lz4")           setContentType("application/x-lz4");
+  else if (compression == "zip")           setContentType("application/zip");
+  else if (compression == "png")           setContentType("image/png");
+  else if (compression == "jpg")           setContentType("image/jpeg");
+  else if (compression == "tif")           setContentType("image/tiff");
+  else { VisusAssert(compression.empty()); setContentType("application/octet-stream"); }
 
   setContentLength(encoded->c_size());
 
@@ -93,8 +93,8 @@ Array NetMessage::getArrayBody() const
   if (!hasHeader("visus-compression") && !getContentType().empty())
   {
     auto content_type=this->getContentType();
-    if      (content_type=="application/zip")     compression="zip";
-    else if (content_type=="application/x-lz4")   compression="lz4";
+    if      (content_type == "application/x-lz4") compression = "lz4";
+    else if (content_type=="application/zip")     compression="zip";
     else if (content_type=="image/png")           compression="png";
     else if (content_type=="image/jpeg")          compression="jpg";
     else if (content_type=="image/tiff")          compression="tif";

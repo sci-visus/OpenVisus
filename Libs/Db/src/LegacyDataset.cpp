@@ -37,21 +37,39 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/LegacyDataset.h>
-#include <Visus/NetworkAccess.h>
+#include <Visus/Access.h>
+#include <Visus/NetService.h>
 
 
 namespace Visus {
 
 //////////////////////////////////////////////////////////////
-class LegacyAccess : public NetworkAccess
+class LegacyAccess : public Access
 {
 public:
 
   LegacyDataset* dataset;
 
+  StringTree             config;
+  Url                    url;
+  SharedPtr<NetService>  netservice;
+
   //constructor
-  LegacyAccess(LegacyDataset* dataset_,StringTree config=StringTree()) 
-    : NetworkAccess("LegacyAccess", dataset_, config), dataset(dataset_) {
+  LegacyAccess(LegacyDataset* dataset_,StringTree config_=StringTree()) 
+    : dataset(dataset_),config(config_) 
+  {
+    this->name = "LegacyAccess";
+    this->can_read = StringUtils::find(config.readString("chmod", "rw"), "r") >= 0;
+    this->can_write = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
+    this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
+    this->url = config.readString("url",dataset->getUrl().toString()); VisusAssert(url.valid());
+
+    this->config.writeString("url", url.toString());
+
+    bool disable_async = config.readBool("disable_async", dataset->bServerMode);
+
+    if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
+      this->netservice = std::make_shared<NetService>(nconnections);
   }
 
   //destructor
@@ -122,9 +140,9 @@ public:
       query->future.get_promise()->set_value(true);
     };
 
-    if (bool bAsync=this->async.netservice?true:false)
+    if (bool bAsync=this->netservice?true:false)
     {
-      auto future_response= this->async.netservice->asyncNetworkIO(request);
+      auto future_response= this->netservice->asyncNetworkIO(request);
       future_response.when_ready([future_response, query,gotNetResponse]() {
         gotNetResponse(future_response.get());
       });
@@ -144,7 +162,7 @@ public:
 
   //printStatistics
   virtual void printStatistics() override {
-    VisusInfo() << name << " hostname(" << url.getHostname() << ") port(" << url.getPort() << ") compression(" << compression << ") url(" << url.toString() << ")";
+    VisusInfo() << name << " hostname(" << url.getHostname() << ") port(" << url.getPort() << ") url(" << url.toString() << ")";
     Access::printStatistics();
   }
 

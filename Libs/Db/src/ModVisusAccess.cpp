@@ -38,15 +38,30 @@ For support : support@visus.net
 
 #include <Visus/ModVisusAccess.h>
 #include <Visus/Dataset.h>
+#include <Visus/NetService.h>
 
 namespace Visus {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
 ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_) 
-  : NetworkAccess("ModVisusAccess", dataset, config_)
+  : config(config_)
 {
-  num_queries_per_request=cint(this->config.readString("num_queries_per_request","1"));
+  this->name = "ModVisusAccess";
+  this->can_read = StringUtils::find(config.readString("chmod", "rw"), "r") >= 0;
+  this->can_write = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
+  this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
+  this->url = config.readString("url", dataset->getUrl().toString()); VisusAssert(url.valid());
+  this->compression = config.readString("compression", url.getParam("compression", "zip"));  //TODO: should I swith to lz4?
+
+  this->config.writeString("url", url.toString());
+
+  bool disable_async = config.readBool("disable_async", dataset->bServerMode);
+
+  if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
+    this->netservice = std::make_shared<NetService>(nconnections);
+
+  this->num_queries_per_request=cint(this->config.readString("num_queries_per_request","1"));
   VisusAssert(num_queries_per_request > 0);
 }
 
@@ -153,10 +168,10 @@ void ModVisusAccess::flushBatch()
   auto request=NetRequest(url);
   request.aborted=batch[0]->aborted;
 
-  if (bool bAsync= this->async.netservice?true:false)
+  if (bool bAsync= this->netservice?true:false)
   {
-    auto FUTURE_RESPONSE= this->async.netservice->asyncNetworkIO(request);
-    FUTURE_RESPONSE.when_ready([this, FUTURE_RESPONSE,batch]() {
+    auto FUTURE_RESPONSE= this->netservice->asyncNetworkIO(request);
+    FUTURE_RESPONSE.when_ready([this, FUTURE_RESPONSE, batch]() {
       onNetResponse(FUTURE_RESPONSE.get(),batch);
     });
   }

@@ -615,15 +615,15 @@ void IdxDiskAccess::readBlockInCurrentThread(FileIO& file,SharedPtr<BlockQuery> 
     return failed("the idx data seeems not stored in the file");
 
   String compression;
-  if (idxfile.version == 6)
+  if (idxfile.version>= 6)
   {
     switch (block_header.flags & CompressionMask)
     {
     case NoCompression:compression = ""; break;
+    case Lz4Compression:compression = "lz4"; break;
     case ZipCompression:compression = "zip"; break;
     case JpgCompression:compression = "jpg"; break;
     case PngCompression:compression = "png"; break;
-    case Lz4Compression:compression = "lz4"; break;
     default:
       VisusAssert(false);
       return failed("unknow compression");
@@ -769,11 +769,11 @@ void IdxDiskAccess::writeBlockInCurrentThread(FileIO& file,SharedPtr<BlockQuery>
     return failed("Failed to encode the data");
   }
 
-  if (compression.empty()) block_flags |= NoCompression;
+  if      (compression.empty())  block_flags |= NoCompression;
+  else if (compression == "lz4") block_flags |= Lz4Compression;
   else if (compression == "zip") block_flags |= ZipCompression;
   else if (compression == "jpg") block_flags |= JpgCompression;
   else if (compression == "png") block_flags |= PngCompression;
-  else if (compression == "lz4") block_flags |= Lz4Compression;
   else VisusAssert(false);
 
   String filename = getFilename(query->field, query->time, blockid);

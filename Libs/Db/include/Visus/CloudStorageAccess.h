@@ -40,15 +40,16 @@ For support : support@visus.net
 #define __VISUS_CLOUD_STORAGE_ACCESS_H
 
 #include <Visus/Db.h>
-#include <Visus/NetworkAccess.h>
+#include <Visus/Access.h>
 #include <Visus/CloudStorage.h>
+#include <Visus/NetService.h>
 
 namespace Visus {
 
 class Dataset;
 
   ///////////////////////////////////////////////////////////////////////////////////////
-class VISUS_DB_API CloudStorageAccess : public NetworkAccess
+class VISUS_DB_API CloudStorageAccess : public Access
 {
 public:
 
@@ -73,6 +74,11 @@ public:
   }
 
 private:
+
+  StringTree             config;
+  Url                    url;
+  String                 compression;
+  SharedPtr<NetService>  netservice;
 
   SharedPtr<CloudStorage> cloud_storage;
 

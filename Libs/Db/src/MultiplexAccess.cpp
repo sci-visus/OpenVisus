@@ -74,7 +74,7 @@ MultiplexAccess::MultiplexAccess(Dataset* dataset,StringTree config)
   //NOTE: 
   //I must use a thread because Access class are not thread-enabled
   //so I need to make sure that readBlock/writeBlock are called from the same thread 
-  //Counter-example: writeBlock for caching could happen in a diffeent thread (example async NetworkAccess)
+  //Counter-example: writeBlock for caching could happen in a diffeent thread 
 
   this->thread=Thread::start("Multiplex thread",[this]() {
     runInBackground();

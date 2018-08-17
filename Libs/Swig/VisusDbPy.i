@@ -9,7 +9,6 @@
 #include <Visus/Access.h>
 #include <Visus/ModVisusAccess.h>
 #include <Visus/DiskAccess.h>
-#include <Visus/NetworkAccess.h>
 #include <Visus/CloudStorageAccess.h>
 #include <Visus/FilterAccess.h>
 #include <Visus/MultiplexAccess.h>
@@ -49,7 +48,6 @@ ENABLE_SHARED_PTR(RamAccess)
 %include <Visus/Access.h>
 %include <Visus/ModVisusAccess.h>
 %include <Visus/DiskAccess.h>
-%include <Visus/NetworkAccess.h>
 %include <Visus/CloudStorageAccess.h>
 %include <Visus/FilterAccess.h>
 %include <Visus/MultiplexAccess.h>

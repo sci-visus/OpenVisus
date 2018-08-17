@@ -43,11 +43,24 @@ For support : support@visus.net
 namespace Visus {
 
 ///////////////////////////////////////////////////////////////////////////////////////
-CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config) 
-  : NetworkAccess("CloudStorageAccess", dataset, config)
+CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
+  : config(config_)
 {
+  this->name = "CloudStorageAccess";
+  this->can_read = StringUtils::find(config.readString("chmod", "rw"), "r") >= 0;
+  this->can_write = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
+  this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
+  this->url = config.readString("url", dataset->getUrl().toString()); VisusAssert(url.valid());
+  this->compression = config.readString("compression", url.getParam("compression", "lz4")); 
+
+  this->config.writeString("url", url.toString());
+
+  bool disable_async = config.readBool("disable_async", dataset->bServerMode);
+
+  if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
+    this->netservice = std::make_shared<NetService>(nconnections);
+
   this->cloud_storage.reset(CloudStorage::createInstance(url)); 
-  VisusAssert(this->cloud_storage);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -123,9 +136,9 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
   };
 
   
-  if (bool bAsync= this->async.netservice?true:false)
+  if (bool bAsync= this->netservice?true:false)
   {
-    auto future_response= this->async.netservice->asyncNetworkIO(request);
+    auto future_response= this->netservice->asyncNetworkIO(request);
     future_response.when_ready([future_response, query,gotNetResponse]() {
       gotNetResponse(future_response.get());
     });
@@ -170,9 +183,9 @@ void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
     return writeOk(query);
   };
 
-  if (bool bAsync= this->async.netservice? true:false)
+  if (bool bAsync= this->netservice? true:false)
   {
-    auto future_response= this->async.netservice->asyncNetworkIO(request);
+    auto future_response= this->netservice->asyncNetworkIO(request);
     future_response.when_ready([future_response, query,gotNetResponse]()  {
       gotNetResponse(future_response.get());
     });
