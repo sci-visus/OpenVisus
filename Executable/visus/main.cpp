@@ -75,7 +75,7 @@ public:
   {}
 
   //getHelp
-  virtual String getHelp()=0;
+  virtual String getHelp(std::vector<String> args)=0;
 
   //exec
   virtual Array exec(Array data,std::vector<String> args)=0;
@@ -89,10 +89,10 @@ class CreateIdx : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out<<args[0]
       << " <filename.idx>" << std::endl
       << "   [--box <NdBox>]" << std::endl
       << "   [--fields <string>]" << std::endl
@@ -108,7 +108,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() < 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
     String filename = args[1];
 
@@ -174,12 +174,12 @@ class StartVisusServer : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out <<args[0]
       << " [--port value]" << std::endl
-      << "Example: " << " --port 10000 ";
+      << "Example: " << args[0] << " --port 10000 ";
     return out.str();
   }
 
@@ -216,10 +216,10 @@ class ApplyFilters : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " <filename>" << std::endl
       << "   [--window-size <int>]" << std::endl
       << "   [--field <field>]" << std::endl
@@ -231,7 +231,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
     String filename = args[1];
 
@@ -295,10 +295,10 @@ class CopyDataset : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " <filename.xml> OR" << std::endl
       << " <src_dataset> <dst_dataset>" << std::endl;
     return out.str();
@@ -355,10 +355,11 @@ class CompressDataset : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out << " <dataset.xml> <compression>" << std::endl;
+    out << args[0]
+      << " <dataset.xml> <compression>" << std::endl;
     return out.str();
   }
 
@@ -366,7 +367,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 3)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed 3 arguments, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed 3 arguments");
 
     String url = args[1]; auto dataset = Dataset::loadDataset(url); 
     if (!dataset)  
@@ -389,10 +390,10 @@ class FixDatasetRange : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " <filename> " << std::endl
       << "   [--field <field>]" << std::endl
       << "   [--time <double>]" << std::endl
@@ -405,7 +406,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed filename, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed filename");
 
     VisusInfo() << "FixDatasetRange starting...";
 
@@ -567,12 +568,12 @@ class ConvertMidxToIdx : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out
+    out << args[0]
       << " <midx_filename> <idx_filename> [--tile-size value] [--field value]" << std::endl
-      << "Example: " << " D:/Google Drive sci.utah.edu/visus_dataset/slam/Alfalfa/visus.midx D:/Google Drive sci.utah.edu/visus_dataset/slam/Alfalfa/visus.idx";
+      << "Example: " << args[0] << " D:/Google Drive sci.utah.edu/visus_dataset/slam/Alfalfa/visus.midx D:/Google Drive sci.utah.edu/visus_dataset/slam/Alfalfa/visus.idx";
     return out.str();
   }
 
@@ -639,10 +640,10 @@ class ImportData : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " <filename> " << std::endl
       << "   [load_args]*" << std::endl;
     return out.str();
@@ -652,7 +653,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed filename, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed filename");
 
     String filename = args[1];
 
@@ -670,10 +671,11 @@ class ExportData : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out <<" <filename> [save_args]*" << std::endl;
+    out << args[0]
+      <<" <filename> [save_args]*" << std::endl;
     return out.str();
   }
 
@@ -681,7 +683,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
     String filename = args[1];
 
@@ -698,10 +700,10 @@ class PasteData : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " <filename> " << std::endl
       << "   [--source-box      <NdBox>]" << std::endl
       << "   [--destination-box <NdBox>]" << std::endl
@@ -713,7 +715,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0]<< " syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0]<< " syntax error");
 
     String filename = args[1];
 
@@ -756,12 +758,12 @@ class GetComponent : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " <expression>" << std::endl
-      << "Example: " << " 0";
+      << "Example: " << args[0] << " 0";
     return out.str();
   }
 
@@ -769,7 +771,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] << " syntax error");
 
     int C = cint(args[1]);
     return data.getComponent(C);
@@ -782,10 +784,11 @@ class Cast : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out <<" <dtype>" << std::endl;
+    out << args[0]
+      <<" <dtype>" << std::endl;
     return out.str();
   }
 
@@ -793,7 +796,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] << " syntax error");
 
     DType dtype = DType::fromString(args[1]);
     return ArrayUtils::cast(data, dtype);
@@ -806,10 +809,11 @@ class SmartCast : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out <<" <dtype>" << std::endl;
+    out << args[0]
+      <<" <dtype>" << std::endl;
     return out.str();
   }
 
@@ -817,7 +821,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] << " syntax error");
 
     DType dtype = DType::fromString(args[1]);
     return ArrayUtils::smartCast(data, dtype);
@@ -830,10 +834,10 @@ class ResizeData : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << "   [--dtype <DType>]" << std::endl
       << "   [--dims <NdPoint>]" << std::endl;
     return out.str();
@@ -843,7 +847,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] << " syntax error");
 
     DType   dtype = data.dtype;
     NdPoint dims = data.dims;
@@ -877,10 +881,11 @@ class CropData : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out << " <NdBox>" << std::endl;
+    out << args[0]
+      << " <NdBox>" << std::endl;
     return out.str();
   }
 
@@ -888,7 +893,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] << " syntax error");
 
     int pdim = data.getPointDim();
     String sbox = args[1];
@@ -907,10 +912,11 @@ class MirrorData : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out << " <int>" << std::endl;
+    out << args[0]
+      << " <int>" << std::endl;
     return out.str();
   }
 
@@ -918,7 +924,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
     int axis = cint(args[1]);
     if (axis<0)
@@ -934,12 +940,12 @@ class ComputeComponentRange : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " <expression>" << std::endl
-      << "Example: " << " 0";
+      << "Example: " << args[0] << " 0";
     return out.str();
   }
 
@@ -947,7 +953,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
     int C = cint(args[1]);
     Range range = ArrayUtils::computeRange(data, C);
@@ -963,10 +969,11 @@ class InterleaveData : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out << std::endl;
+    out << args[0]
+      << std::endl;
     return out.str();
   }
 
@@ -974,7 +981,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 1)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
     if (data.dtype.ncomponents()>1 && !Utils::isByteAligned(data.dtype.get(0).getBitSize()))
       ThrowException(StringUtils::format() << args[0] <<" request to --interleave but a sample is not byte aligned");
@@ -1002,10 +1009,11 @@ class PrintInfo : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out << " <filename>";
+    out << args[0]
+      << " <filename>";
     return out.str();
   }
 
@@ -1013,7 +1021,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
     String filename = args[1];
     StringTree info = ArrayUtils::statImage(filename);
@@ -1033,10 +1041,11 @@ class DumpData : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out << std::endl;
+    out << args[0]
+      << std::endl;
     return out.str();
   }
 
@@ -1044,7 +1053,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 1)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
     VisusInfo() << "Buffer dims(" << data.dims.toString() << ") dtype(" << data.dtype.toString() << ")";
 
@@ -1072,10 +1081,10 @@ public:
   }
   
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " <filename>" << std::endl
       << "   [--block <int>]" << std::endl
       << "   [--field <field>]" << std::endl
@@ -1087,7 +1096,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
     String url = args[1];
 
@@ -1175,12 +1184,12 @@ class CloudCreateContainer : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " <url>" << std::endl
-      << "Example: "  << " http://visus.blob.core.windows.net?password=XXXXX";
+      << "Example: " << args[0] << " http://visus.blob.core.windows.net?password=XXXXX";
     return out.str();
   }
 
@@ -1188,7 +1197,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
     String url = args[1];
     UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(url));
@@ -1207,12 +1216,12 @@ public:
 
    
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " <url>" << std::endl
-      << "Example: " << " http://visus.blob.core.windows.net/2kbit1?password=XXXXX";
+      << "Example: " << args[0] << " http://visus.blob.core.windows.net/2kbit1?password=XXXXX";
     return out.str();
   }
 
@@ -1220,7 +1229,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
     String url = args[1];
     UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(url));
@@ -1236,12 +1245,12 @@ class CloudListContainers : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " <filename>" << std::endl
-      << "Example: " << " http://visus.blob.core.windows.net?password=XXXXX";
+      << "Example: " << args[0] << " http://visus.blob.core.windows.net?password=XXXXX";
     return out.str();
   }
 
@@ -1249,7 +1258,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
     String url = args[1];
     UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(url));
@@ -1265,12 +1274,12 @@ class CloudCopyBlob : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " <url> <dst_url>" << std::endl
-      << "Example: " << " http://atlantis.sci.utah.edu/mod_visus?readdataset=2kbit1  http://visus.blob.core.windows.net/2kbit1/visus.idx?password=XXXXX";
+      << "Example: " << args[0] << " http://atlantis.sci.utah.edu/mod_visus?readdataset=2kbit1  http://visus.blob.core.windows.net/2kbit1/visus.idx?password=XXXXX";
     return out.str();
   }
 
@@ -1278,7 +1287,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 3)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
     String src_url = args[1];
     String dst_url = args[2];
@@ -1321,12 +1330,12 @@ class CloudListBlobs : public ConvertStep
 public:
   
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " <url>" << std::endl
-      << "Example: " << " http://visus.blob.core.windows.net/2kbit1?password=XXXXX";
+      << "Example: " << args[0] << " http://visus.blob.core.windows.net/2kbit1?password=XXXXX";
     return out.str();
   }
 
@@ -1334,7 +1343,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
     String url = args[1];
     UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(url));
@@ -1350,12 +1359,12 @@ class CloudDeleteBlob : public ConvertStep
 public:
   
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " <url>" << std::endl
-      << "Example: " << " http://visus.blob.core.windows.net/2kbit1/visus.idx?password=XXXXX";
+      << "Example: " << args[0] << " http://visus.blob.core.windows.net/2kbit1/visus.idx?password=XXXXX";
     return out.str();
   }
 
@@ -1363,7 +1372,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
     String url = args[1];
     UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(url));
@@ -1379,13 +1388,13 @@ class CloudSelfTest : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out
+    out << args[0]
       << " url" << std::endl
-      << "Example: " << " http://visus.s3.amazonaws.com?username=AKIAILLJI7ANO6Y2XJNA&password=XXXXXXXXX"
-      << "Example: " << " http://visus.blob.core.windows.net?password=XXXXXXXXXXXX";
+      << "Example: " << args[0] << " http://visus.s3.amazonaws.com?username=AKIAILLJI7ANO6Y2XJNA&password=XXXXXXXXX"
+      << "Example: " << args[0] << " http://visus.blob.core.windows.net?password=XXXXXXXXXXXX";
 
     return out.str();
   }
@@ -1427,18 +1436,19 @@ public:
 
 
 
+
 ///////////////////////////////////////////////////////////
 class TestEncoderSpeed : public ConvertStep
 {
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
-      << " compresion <dataset>" << std::endl
-      << "Example: " << " G:/visus_dataset/2kbit1/hzorder/visus.idx zip";
+    out<<args[0]
+      << " <dataset> <compression_algorithm>" << std::endl
+      << "Example: " << args[0]<< " F:/visus_dataset/2kbit1/hzorder/visus.idx zip";
     return out.str();
   }
 
@@ -1446,92 +1456,70 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 3)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
+      ThrowException(StringUtils::format() << args[0] << "  syntax error");
 
     String filename = args[1];
-    String compression = args[2];
     auto dataset = Dataset::loadDataset(filename);
 
+    String compression = args[2];
+
     if (!Encoders::getSingleton()->getEncoder(compression))
-      ThrowException(StringUtils::format() << args[0] <<"  failed to create encoder " << compression << "");
+      ThrowException(StringUtils::format() << args[0] << "  failed to create encoder " << compression << "");
 
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] <<"  failed to read dataset (Dataset::loadDataset(" << filename << ") failed)");
+      ThrowException(StringUtils::format() << args[0] << "  failed to read dataset (Dataset::loadDataset(" << filename << ") failed)");
 
-    auto access=dataset->createAccessForBlockQuery();
-    auto field = dataset->getDefaultField();
-    auto time = dataset->getDefaultTime();
+    auto access = dataset->createAccessForBlockQuery();
+    auto field  = dataset->getDefaultField();
+    auto time   = dataset->getDefaultTime();
 
+    Time T1 = Time::now(), t1;
     BigInt decoded_bytes = 0; double decode_sec = 0;
     BigInt encoded_bytes = 0; double encode_sec = 0;
-
-    BigInt block = 0;
-    BigInt nblocks = dataset->getTotalnumberOfBlocks();
-
-    auto printStatistics = [&]()
-    {
-      auto encoded_mb = encoded_bytes / (1024 * 1024);
-      auto decoded_mb = decoded_bytes / (1024 * 1024);
-      auto ratio = 100.0*(encoded_mb / (double)decoded_mb);
-
-      VisusInfo() << "Ratio " << ratio << "% block(" << block << "/" << nblocks << ")";
-      VisusInfo() << "Encoding MByte(" << encoded_mb << ") sec(" << encode_sec << ") MByte/sec(" << (encoded_mb / encode_sec) << ")";
-      VisusInfo() << "Decoding MByte(" << decoded_mb << ") sec(" << decode_sec << ") MByte/sec(" << (decoded_mb / decode_sec) << ")";
-      VisusInfo();
-    };
-
-    Time t1 = Time::now();
 
     Aborted aborted;
     access->beginRead();
 
-    for (block = 0; block<nblocks; block++)
-    {
-      if (t1.elapsedSec()>5)
-      {
-        printStatistics();
-        t1 = Time::now();
-      }
+    for (BigInt block_id = 0, nblocks = dataset->getTotalnumberOfBlocks(); ; block_id = (block_id + 1) % nblocks)
+    { 
+      auto read_block = std::make_shared<BlockQuery>(field, time, access->getStartAddress(block_id), access->getEndAddress(block_id), aborted);
 
-      auto read_block = std::make_shared<BlockQuery>(field, time, access->getStartAddress(block), access->getEndAddress(block), aborted);
-      
       if (!dataset->readBlockAndWait(access, read_block))
         continue;
 
-      auto decoded = read_block->buffer;
+      auto block = read_block->buffer;
 
-      SharedPtr<HeapMemory> encoded;
-
-      Time encode_t1 = Time::now();
-      {
-        encoded = ArrayUtils::encodeArray(compression, decoded);
-        if (!encoded)
-          ThrowException(StringUtils::format() << args[0] <<" failed to encode array, should not happen");
-      }
-      encode_sec += encode_t1.elapsedSec();
-
-      Array decoded2;
-
-      Time decode_t1 = Time::now();
-      {
-        decoded2 = ArrayUtils::decodeArray(compression, decoded.dims, decoded.dtype, encoded);
-
-        if (!decoded2)
-          ThrowException(StringUtils::format() << args[0] <<" failed to decode array, should not happen");
-      }
-      decode_sec += decode_t1.elapsedSec();
-
-      if (decoded.c_size() != decoded2.c_size() ||
-        memcmp(decoded.c_ptr(), decoded2.c_ptr(), decoded.c_size()) != 0)
-        ThrowException(StringUtils::format() << args[0] <<" encode/decode is not working at all");
-
+      t1 = Time::now();
+      auto encoded = ArrayUtils::encodeArray(compression, block); VisusReleaseAssert(encoded);
+      encode_sec += t1.elapsedSec();
       encoded_bytes += encoded->c_size();
+
+      t1 = Time::now();
+      auto decoded = ArrayUtils::decodeArray(compression, block.dims, block.dtype, encoded);VisusReleaseAssert(decoded);
+      decode_sec += t1.elapsedSec();
       decoded_bytes += decoded.c_size();
+
+      VisusReleaseAssert(block.c_size() == decoded.c_size());
+      VisusReleaseAssert(memcmp(block.c_ptr(), decoded.c_ptr(), block.c_size()) == 0);
+
+      if (T1.elapsedSec()>5)
+      {
+        auto encoded_mb = encoded_bytes / (1024 * 1024);
+        auto decoded_mb = decoded_bytes / (1024 * 1024);
+        auto ratio = 100.0*(encoded_mb / (double)decoded_mb);
+
+        VisusInfo() << "Ratio " << ratio <<"%";
+        VisusInfo() << "Encoding MByte(" << encoded_mb << ") sec(" << encode_sec << ") MByte/sec(" << (encoded_mb / encode_sec) << ")";
+        VisusInfo() << "Decoding MByte(" << decoded_mb << ") sec(" << decode_sec << ") MByte/sec(" << (decoded_mb / decode_sec) << ")";
+        VisusInfo();
+
+        T1 = Time::now();
+        //decoded_bytes = 0; decode_sec = 0;
+        //encoded_bytes = 0; encode_sec = 0;
+      }
     }
 
     access->endRead();
-
-    printStatistics();
 
     return data;
   }
@@ -1543,12 +1531,12 @@ class TestQuerySpeed : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " <filename> [--query-dim value]" << std::endl
-      << "Example: " << " C:/free/visus_dataset/2kbit1/zip/hzorder/visus.idx --query-dim 512";
+      << "Example: " << args[0] << " C:/free/visus_dataset/2kbit1/zip/hzorder/visus.idx --query-dim 512";
     return out.str();
   }
   
@@ -1641,11 +1629,12 @@ public:
   }
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out << " [--filename value] [--blocksize value] [--filesize value]" << std::endl;
-    out << "Example: " << " --filename example.idx --blocksize 64KB --filesize 1MB";
+    out << args[0]
+      << " [--filename value] [--blocksize value] [--filesize value]" << std::endl
+      << "Example: " << args[0] << " --filename example.idx --blocksize 64KB --filesize 1MB";
     return out.str();
   }
 
@@ -1733,12 +1722,12 @@ class IdxSelfTest : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out 
+    out << args[0]
       << " [--max-seconds value]" << std::endl
-      << "Example: " << " --max-seconds 300";
+      << "Example: " << args[0] << " --max-seconds 300";
     return out.str();
   }
 
@@ -1774,14 +1763,14 @@ public:
   */
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out
+    out << args[0]
       << " [--dims       <dimensions>]" << std::endl
       << " [--num-slabs  <value>]" << std::endl
       << " [--dtype      <dtype>]" << std::endl
-      << "Example: " << " --dims '512 512 512' --num-writes 128 --dtype int32";
+      << "Example: " << args[0] << " --dims '512 512 512' --num-writes 128 --dtype int32";
     return out.str();
   }
 
@@ -1922,12 +1911,12 @@ class TestNetworkSpeed : public ConvertStep
 public:
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out
+    out << args[0]
       << " [--c nconnections] [--n nrequests] (url)+" << std::endl
-      << "Example: " << " --c 8 -n 1000 http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled";
+      << "Example: " << args[0] << " --c 8 -n 1000 http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled";
     return out.str();
   }
 
@@ -2005,7 +1994,7 @@ public:
     addAction("copy-dataset", []() {return std::make_shared<CopyDataset>(); });
     addAction("compress-dataset", []() {return std::make_shared<CompressDataset>(); });
     addAction("apply-filters", []() {return std::make_shared<ApplyFilters>(); });
-    addAction("convert-midx-to-idx", []() {return std::make_shared<ConvertMidxToIdx>(); });
+    addAction("midx-to-idx", []() {return std::make_shared<ConvertMidxToIdx>(); });
     addAction("test-idx", []() {return std::make_shared<IdxSelfTest>(); });
 
     addAction("import", []() {return std::make_shared<ImportData>(); });
@@ -2049,10 +2038,10 @@ public:
   }
 
   //getHelp
-  virtual String getHelp() override
+  virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out << "Syntax: " << std::endl << ApplicationInfo::args[0] << std::endl;
+    out << args[0] << "Syntax: " << std::endl << std::endl;
     for (auto it : actions)
       out << "    " << it.first << std::endl;
     out << std::endl;
@@ -2066,7 +2055,7 @@ public:
   {
     if (args.size() == 1 || (args.size() == 2 && (args[1] == "help" || args[1] == "--help" || args[1] == "-h")))
     {
-      std::cout<<getHelp();
+      std::cout<<getHelp(args);
       return Array();
     }
 
@@ -2091,7 +2080,7 @@ public:
       {
         std::ostringstream error_msg;
         error_msg << "Wrong argument " << arg << std::endl;
-        error_msg << getHelp();
+        error_msg << getHelp(args);
         ThrowException(error_msg.str());
       }
 
@@ -2109,7 +2098,7 @@ public:
 
       if (args.size() == 2 && (args[1] == "help" || args[1] == "--help" || args[1] == "-h"))
       {
-        VisusInfo() << std::endl << args[0] << " " << name << " " << action->getHelp();
+        VisusInfo() << std::endl << args[0] << " " << name << " " << action->getHelp(args);
         return data;
       }
 

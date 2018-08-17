@@ -37,6 +37,7 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/IdxDataset.h>
+#include <Visus/Encoders.h>
 
 using namespace Visus;
 
@@ -348,7 +349,7 @@ void execTestIdx(int max_seconds)
           {
             Field field("myfield",DType(true,false,nbits));
             field.default_layout=rowmajor?"rowmajor":"hzorder";
-            field.default_compression=Utils::getRandInteger(0,1)?"zip":"";
+            field.default_compression=Utils::getRandInteger(0,1)? "lz4" :"";
             idxfile.fields.push_back(field);
           }
           VisusReleaseAssert(idxfile.save("./temp/temp.idx"));
@@ -383,7 +384,7 @@ void execTestIdx(int max_seconds)
       {
         Field field("myfield",DType(Utils::getRandInteger(1,4),GetRandomDType()));
         field.default_layout=Utils::getRandInteger(0,1)?"rowmajor":"hzorder";
-        field.default_compression=Utils::getRandInteger(0,1)?"zip":"";
+        field.default_compression=Utils::getRandInteger(0,1)? "lz4" :"";
         idxfile.fields.push_back(field);
       }
 

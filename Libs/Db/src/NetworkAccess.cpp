@@ -53,8 +53,8 @@ NetworkAccess::NetworkAccess(String name,Dataset* dataset,StringTree config_)
   this->can_read     = StringUtils::find(config.readString("chmod", "rw"), "r") >= 0;
   this->can_write    = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
   this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
-  this->url                  = config.readString("url",dataset->getUrl().toString()); VisusAssert(url.valid());
-  this->compression          = config.readString("compression",url.getParam("compression","zip"));
+  this->url          = config.readString("url",dataset->getUrl().toString()); VisusAssert(url.valid());
+  this->compression  = config.readString("compression",url.getParam("compression", "zip")); //todo: prefer lz4 even for network?
 
   this->config.writeString("url", url.toString());
 

@@ -41,7 +41,7 @@ $VISUS info temp/cat/rgb.idx
 # ///////////////////////////////////////////
 # For more control, explicitly create the idx volume
 # ///////////////////////////////////////////
-fields="scalar uint8 compressed + vector uint8[3] compressed"
+fields="scalar uint8 default_compression(lz4) + vector uint8[3] default_compression(lz4)"
 
 $VISUS create temp/test_formats.idx --box "0 511 0 511" --fields "$fields" --bitsperblock 12
 
@@ -75,7 +75,7 @@ $VISUS import temp/test_formats.idx --field vector --box "128 383   128 383"  ex
 # example of inplace pasting an image
 # ///////////////////////////////////////////
 
-$VISUS create temp/test_paste.idx --box "0 255 0 1023" --fields "DATA uint8[3] default_compression(zip)" --bitsperblock 12
+$VISUS create temp/test_paste.idx --box "0 255 0 1023" --fields "DATA uint8[3] default_compression(lz4)" --bitsperblock 12
 
 # show how several files can be "merged" together in import
 
@@ -95,7 +95,7 @@ $VISUS \
 # example of several timesteps
 # ///////////////////////////////////////////
 
-$VISUS create temp/test_timesteps.idx --box "0 255 0 255" --fields "scalar uint8 default_compression(zip)" --time 0 3 time%02d/
+$VISUS create temp/test_timesteps.idx --box "0 255 0 255" --fields "scalar uint8 default_compression(lz4)" --time 0 3 time%02d/
 
 $VISUS import $CAT_GRAY export temp/test_timesteps.idx --time 0 --box "0 255 0 255"
 $VISUS import $CAT_GRAY export temp/test_timesteps.idx --time 1 --box "0 255 0 255"

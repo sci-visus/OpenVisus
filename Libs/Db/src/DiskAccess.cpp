@@ -55,7 +55,7 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   this->can_write    = StringUtils::find(chmod,"w")>=0;
   this->path         = Path(config.readString("dir","./"));
   this->bitsperblock = default_bitsperblock;
-  this->compression_type  = config.readString("compression","zip");
+  this->compression_type  = config.readString("compression", "lz4");
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -148,7 +148,7 @@ void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
 
   String compression=this->compression_type;
 
-  auto decoded=ArrayUtils::decodeArray(compression,query->nsamples,query->field.dtype,encoded);
+  auto decoded=ArrayUtils::decodeArray(compression,query->nsamples,query->field.dtype, encoded);
   if (!decoded)
     return readFailed(query);
 

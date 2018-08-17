@@ -631,6 +631,7 @@ void IdxDiskAccess::readBlockInCurrentThread(FileIO& file,SharedPtr<BlockQuery> 
   }
   else
   {
+    //old idx version supports only zip
     compression = (block_header.flags & 1) ? "zip" : "";
   }
 

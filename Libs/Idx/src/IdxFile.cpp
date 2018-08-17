@@ -242,8 +242,8 @@ void IdxFile::validate(Url url)
     bool bRowMajor=field.default_layout.empty();
     if (!bRowMajor && Encoders::getSingleton()->getEncoder(field.default_compression)->isLossy())
     {
-      VisusWarning()<<"The field "<<field.name<<" has default_compression!=zip but !field.default_layout.empty()";
-      field.default_compression="zip";
+      VisusWarning()<<"The field "<<field.name<<" has a lossy default_compression with a non row-major layout, something is wrong";
+      field.default_compression= "lz4";
     }
   }
 
@@ -336,17 +336,20 @@ std::vector<Field> IdxFile::parseFields(String fields_content)
     //description
     field.description=parseRoundBracketArgument(sfield,"description");
 
-    //default_compression
+    //default_compression(algorithm)
     {
-      field.default_compression=parseRoundBracketArgument(sfield,"default_compression");
+      auto& compression = field.default_compression;
 
-      //backward compatible: compressed(...) | compressed
-      if (field.default_compression.empty())
+      compression =parseRoundBracketArgument(sfield,"default_compression");
+
+      if (compression.empty())
       {
-        field.default_compression=parseRoundBracketArgument(sfield,"compressed");
+        //compressed(algorithm)
+        compression =parseRoundBracketArgument(sfield,"compressed");
 
-        if (field.default_compression.empty() && StringUtils::contains(sfield,"compressed"))
-          field.default_compression="zip";
+        //compressed means lz4 (note: for old format this information won't be used since all the blocks are already written)
+        if (compression.empty() && StringUtils::contains(sfield,"compressed"))
+          compression = "lz4";
       }
     }
 
@@ -594,13 +597,13 @@ String IdxFile::toString() const
       out<<field.name<<" ";
       out<<field.dtype.toString()<<" ";
 
-      //compressed | compressed(...)  
+      //compression
       if (!field.default_compression.empty())
       {
-        if (field.default_compression=="zip")
-          out<<"compressed"<<" ";
+        if (version<6)
+          out<<"compressed"<<" "; //old format, compressed means zip
         else
-          out<<"compressed("<<field.default_compression<<")"<<" ";
+          out<<"default_compression("<<field.default_compression<<")"<<" ";
       }
 
       //format(...)

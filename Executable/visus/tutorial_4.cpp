@@ -37,6 +37,7 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/IdxDataset.h>
+#include <Visus/Encoders.h>
 
 using namespace Visus;
 
@@ -50,14 +51,14 @@ void Tutorial_4(String default_layout)
   //each sample is made of an unsigned int of 8 bit (i.e. unsigned char)
   {
     Field field("field",DTypes::UINT8);
-    field.default_compression="zip";
+    field.default_compression= "lz4";
     field.default_layout=default_layout;
     idxfile.fields.push_back(field);
   }
 
   {
     Field field("bitmask",DTypes::UINT1);
-    field.default_compression="zip";
+    field.default_compression= "lz4";
     field.default_layout=default_layout;
     idxfile.fields.push_back(field);
   }
