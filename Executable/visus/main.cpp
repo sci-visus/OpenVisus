@@ -64,7 +64,6 @@ using namespace Visus;
 
 void execTestIdx(int max_seconds);
 
-
 ///////////////////////////////////////////////////////////
 class ConvertStep
 {
@@ -81,29 +80,8 @@ public:
   //exec
   virtual Array exec(Array data,std::vector<String> args)=0;
 
-  //throwSyntaxError
-  void throwSyntaxError(std::vector<String> args)
-  {
-    std::ostringstream out;
-    out << "syntax error. Use ";
-    for (int I = 0; I<(int)args.size(); I++)
-      out << " " << args[I];
-    out << std::endl;
-    out << getHelp();
-    ThrowException(out.str());
-  }
-
-  //throwInvalidArgument
-  void throwInvalidArgument(String arg, std::vector<String> args)
-  {
-    std::ostringstream out;
-    out << "Invalid argument " << arg << std::endl;
-    out << getHelp();
-    ThrowException(out.str());
-  }
 
 };
-
 
 ///////////////////////////////////////////////////////////
 class CreateIdx : public ConvertStep
@@ -129,8 +107,8 @@ public:
   //exec
   virtual Array exec(Array data, std::vector<String> args) override
   {
-    if (args.size()<2)
-      throwSyntaxError(args);
+    if (args.size() < 2)
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     String filename = args[1];
 
@@ -176,7 +154,7 @@ public:
       }
       else
       {
-        //throwInvalidArgument(args[I],args);
+        //just ignore
       }
     }
 
@@ -191,7 +169,7 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////
-class VisusServer : public ConvertStep
+class StartVisusServer : public ConvertStep
 {
 public:
 
@@ -215,11 +193,10 @@ public:
       if (args[I]=="--port" || args[I]=="-p") 
       {
         port=cint(args[++I]);
+        continue;
       }
-      else
-      {
-        throwInvalidArgument(args[I], args);
-      }
+      
+      ThrowException(StringUtils::format() << args[0] <<"  Invalid argument " << args[I]);
     }
 
     auto modvisus=std::make_shared<ModVisus>();
@@ -231,76 +208,6 @@ public:
     return data;
   }
 
-};
-
-//////////////////////////////////////////////////////////////////////////////
-class Ab : public ConvertStep
-{
-public:
-
-  //getHelp
-  virtual String getHelp() override
-  {
-    std::ostringstream out;
-    out 
-      << " [--c nconnections] [--n nrequests] (url)+" << std::endl
-      << "Example: " << " --c 8 -n 1000 http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data,std::vector<String> args) override
-  {
-    int nconnections = 1;
-    int nrequests = 1;
-    std::vector<String> urls;
-
-    for (int I = 1; I < args.size(); I++)
-    {
-      if (args[I] == "-c")
-        nconnections = cint(args[++I]);
-
-      else if (args[I] == "-n")
-        nrequests = cint(args[++I]);
-
-      else
-        urls.push_back(args[I]);
-    }
-
-    VisusInfo() << "Concurrency " << nconnections;
-    VisusInfo() << "nrequest " << nrequests;
-    VisusInfo() << "urls";
-    for (auto url : urls)
-      VisusInfo() << "  " << url;
-
-    auto net = std::make_shared<NetService>(nconnections,false);
-
-    Time t1 = Time::now();
-
-    WaitAsync< Future<NetResponse>, int > async;
-    for (int Id = 0; Id < nrequests; Id++)
-      async.pushRunning(net->asyncNetworkIO(NetRequest(urls[Id % urls.size()])), Id);
-
-    for (int Id = 0; Id < nrequests; Id++)
-    {
-      if (async.popReady().first.get().status != HttpStatus::STATUS_OK)
-        VisusInfo() << "one request failed";
-
-      if (Id && (Id % 100) == 0)
-        VisusInfo() << "Done " << Id << " request";
-    }
-
-    auto sec = t1.elapsedSec();
-    auto stats = ApplicationStats::net.readValues(true);
-
-    VisusInfo() << "All done in " << sec << "sec";
-    VisusInfo()
-      << " Num request/sec " << double(nrequests) / sec << ") "
-      << " read  " << StringUtils::getStringFromByteSize(stats.rbytes) << " bytes/sec " << double(stats.rbytes) / (sec) << ") "
-      << " write " << StringUtils::getStringFromByteSize(stats.wbytes) << " bytes/sec " << double(stats.wbytes) / (sec) << ") ";
-
-    return data;
-  }
 };
 
 ///////////////////////////////////////////////////////////
@@ -324,13 +231,13 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     String filename = args[1];
 
     auto dataset = Dataset::loadDataset(filename);
     if (!dataset)
-      ThrowException(StringUtils::format() << "Dataset::loadDataset(" << filename << ") failed");
+      ThrowException(StringUtils::format() << args[0] <<"  Dataset::loadDataset(" << filename << ") failed");
 
     int window_size = 4096;
     double time = dataset->getDefaultTime();
@@ -346,24 +253,28 @@ public:
         window_size = cint(args[++I]);
 
         if (!Utils::isPowerOf2(window_size))
-          ThrowException("window size must be power of two");
+          ThrowException(StringUtils::format() << args[0] <<" window size must be power of two");
+
+        continue;
       }
-      else if (args[I] == "--field")
+
+      if (args[I] == "--field")
       {
         String fieldname = args[++I];
         field = dataset->getFieldByName(fieldname);
         if (!field.valid())
-          throwInvalidArgument(fieldname, args);
+          ThrowException(StringUtils::format() << args[0] <<"  Invalid --field " << fieldname);
+
+        continue;
       }
 
-      else if (args[I] == "--time")
+      if (args[I] == "--time")
       {
         time = cdouble(args[++I]);
+        continue;
       }
-      else
-      {
-        ThrowException(StringUtils::format() << "unknown argument: " << args[I]);
-      }
+      
+      ThrowException(StringUtils::format() << args[0] <<"  unknown argument: " << args[I]);
     }
 
     //the filter will be applied using this sliding window
@@ -396,68 +307,42 @@ public:
   //exec
   virtual Array exec(Array data, std::vector<String> args) override
   {
-    //xml file
-    if (args.size() == 2)
+   if (args.size() != 3)
+     ThrowException(StringUtils::format() << args[0]<< " syntax error, needed 2 arguments");
+
+
+    String Surl = args[1]; auto Svf = Dataset::loadDataset(Surl); 
+    String Durl = args[2]; auto Dvf = Dataset::loadDataset(Durl); 
+
+    if (!Svf)  
+      ThrowException(StringUtils::format() << args[0] <<"  Dataset::loadDataset(" << Surl << ") failed");
+
+    if (!Dvf)  
+      ThrowException(StringUtils::format() << args[0] <<"  Dataset::loadDataset(" << Durl << ") failed");
+
+    if (Svf->getTimesteps() != Dvf->getTimesteps())
+      ThrowException(StringUtils::format() << args[0] <<" Time range not compatible");
+
+    std::vector<double> timesteps = Svf->getTimesteps().asVector();
+
+    std::vector<Field> Sfields = Svf->getFields();
+    std::vector<Field> Dfields = Dvf->getFields();
+
+    if (Sfields.size() != Dfields.size())
+      ThrowException(StringUtils::format() << args[0] <<" Fieldnames not compatible");
+
+    auto Saccess = Svf->createAccessForBlockQuery();
+    auto Daccess = Dvf->createAccessForBlockQuery();
+
+    for (int time_id = 0; time_id<(int)timesteps.size(); time_id++)
     {
-      String xml_filename = args[1];
-      StringTree convert_params;
-      if (!convert_params.loadFromXml(Utils::loadTextDocument(xml_filename)))
-        ThrowException(StringUtils::format() << "xml file content is wrong " << xml_filename << " , cannot load file or xml content wrong");
-
-      StringTree* Stree = convert_params.findChildWithName("source"); if (!Stree) ThrowException(StringUtils::format() << "xml file content is wrong " << xml_filename << ", missing <source      url='...'>");
-      StringTree* Dtree = convert_params.findChildWithName("destination"); if (!Dtree) ThrowException(StringUtils::format() << "xml file content is wrong " << xml_filename << ", missing <destination url='...'>");
-
-      String Surl = Stree->readString("url"); auto Svf = Dataset::loadDataset(Surl); if (!Svf)  ThrowException(StringUtils::format() << "Dataset::loadDataset(" << Surl << ") failed");
-      String Durl = Dtree->readString("url"); auto Dvf = Dataset::loadDataset(Durl); if (!Dvf)  ThrowException(StringUtils::format() << "Dataset::loadDataset(" << Durl << ") failed");
-
-      Field Sfield = Svf->getFieldByName(Stree->readString("fieldname", Svf->getDefaultField().name));
-      Field Dfield = Dvf->getFieldByName(Dtree->readString("fieldname", Dvf->getDefaultField().name));
-
-      auto Saccess = Stree->findChildWithName("access") ? Svf->createAccess(*Stree->findChildWithName("access")) : Svf->createAccessForBlockQuery(); VisusAssert(Saccess);
-      auto Daccess = Dtree->findChildWithName("access") ? Dvf->createAccess(*Dtree->findChildWithName("access")) : Dvf->createAccessForBlockQuery(); VisusAssert(Daccess);
-
-      double Stime = cdouble(Stree->readString("time", cstring(Svf->getDefaultTime())));
-      double Dtime = cdouble(Dtree->readString("time", cstring(Dvf->getDefaultTime())));
-
-      Dataset::copyDataset(
-        Dvf.get(), Daccess, Dfield, Dtime,
-        Svf.get(), Saccess, Sfield, Stime);
-    }
-
-    //copy dataset. Example visus --copy /dataset/2kbit1/visus.idx /dataset/2kbit1_copy/visus.idx
-    else if (args.size() == 3)
-    {
-      String Surl = args[1]; auto Svf = Dataset::loadDataset(Surl); if (!Svf)  ThrowException(StringUtils::format() << "Dataset::loadDataset(" << Surl << ") failed");
-      String Durl = args[2]; auto Dvf = Dataset::loadDataset(Durl); if (!Dvf)  ThrowException(StringUtils::format() << "Dataset::loadDataset(" << Durl << ") failed");
-
-      if (Svf->getTimesteps() != Dvf->getTimesteps())
-        ThrowException("Time range not compatible");
-
-      std::vector<double> timesteps = Svf->getTimesteps().asVector();
-
-      std::vector<Field> Sfields = Svf->getFields();
-      std::vector<Field> Dfields = Dvf->getFields();
-
-      if (Sfields.size() != Dfields.size())
-        ThrowException("Fieldnames not compatible");
-
-      auto Saccess = Svf->createAccessForBlockQuery();
-      auto Daccess = Dvf->createAccessForBlockQuery();
-
-      for (int time_id = 0; time_id<(int)timesteps.size(); time_id++)
+      double timestep = timesteps[time_id];
+      for (int F = 0; F<(int)Sfields.size(); F++)
       {
-        double timestep = timesteps[time_id];
-        for (int F = 0; F<(int)Sfields.size(); F++)
-        {
-          Dataset::copyDataset(
-            Dvf.get(), Daccess, Dfields[F], timestep,
-            Svf.get(), Saccess, Sfields[F], timestep);
-        }
+        Dataset::copyDataset(
+          Dvf.get(), Daccess, Dfields[F], timestep,
+          Svf.get(), Saccess, Sfields[F], timestep);
       }
-    }
-    else
-    {
-      throwSyntaxError(args);
     }
 
     return data;
@@ -481,16 +366,18 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 3)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed 3 arguments, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
-    String url = args[1]; auto dataset = Dataset::loadDataset(url); if (!dataset)  ThrowException(StringUtils::format() << "Dataset::loadDataset(" << url << ") failed");
+    String url = args[1]; auto dataset = Dataset::loadDataset(url); 
+    if (!dataset)  
+      ThrowException(StringUtils::format() << args[0] <<"  Dataset::loadDataset(" << url << ") failed");
 
     String compression = args[2];
     if (!Encoders::getSingleton()->getEncoder(compression))
-      ThrowException(StringUtils::format() << "encoder(" << compression << ") does not exists");
+      ThrowException(StringUtils::format() << args[0] <<"  encoder(" << compression << ") does not exists");
 
     if (!dataset->compress(compression))
-      ThrowException("Compression failed");
+      ThrowException(StringUtils::format() << args[0] <<" Compression failed");
 
     return data;
   }
@@ -518,14 +405,14 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed filename, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     VisusInfo() << "FixDatasetRange starting...";
 
     String filename = args[1];
     auto vf = IdxDataset::loadDataset(filename);
     if (!vf)
-      ThrowException(StringUtils::format() << "failed to read IDX dataset (Dataset::loadDataset(" << filename << ") failed)");
+      ThrowException(StringUtils::format() << args[0] <<"  failed to read IDX dataset (Dataset::loadDataset(" << filename << ") failed)");
 
     auto idxfile = vf->idxfile;
 
@@ -536,7 +423,7 @@ public:
 
     auto access = vf->createAccessForBlockQuery();
     if (!access)
-      ThrowException("cannot create access (vf->createAccess() failed)");
+      ThrowException(StringUtils::format() << args[0] << " cannot create access (vf->createAccess() failed)");
 
     bool       filter_field = false; String field_filtered = "";
     bool       filter_time = false; double time_filtered = 0;
@@ -663,7 +550,7 @@ public:
 
     //finally save the file
     if (!idxfile.save(filename))
-      ThrowException(StringUtils::format() << "cannot save the FINAL min-max in IDX dataset (IdxFile::save(" << filename << ") failed)");
+      ThrowException(StringUtils::format() << args[0] <<"  cannot save the FINAL min-max in IDX dataset (IdxFile::save(" << filename << ") failed)");
 
     VisusInfo() << "done fixFieldsRange";
 
@@ -674,6 +561,76 @@ public:
   }
 };
 
+///////////////////////////////////////////////////////////////////////////////
+class ConvertMidxToIdx : public ConvertStep
+{
+public:
+
+  //getHelp
+  virtual String getHelp() override
+  {
+    std::ostringstream out;
+    out
+      << " <midx_filename> <idx_filename> [--tile-size value] [--field value]" << std::endl
+      << "Example: " << " D:/Google Drive sci.utah.edu/visus_dataset/slam/Alfalfa/visus.midx D:/Google Drive sci.utah.edu/visus_dataset/slam/Alfalfa/visus.idx";
+    return out.str();
+  }
+
+  //exec
+  virtual Array exec(Array data, std::vector<String> args) override
+  {
+    srand(0);
+
+    String midx_filename = args[1];
+    String idx_filename = args[2];
+    int TileSize = 4 * 1024;
+    String fieldname = "output=voronoiBlend()";
+
+    for (int I = 1; I < args.size(); I++)
+    {
+      if (args[I] == "--tile-size")
+        TileSize = cint(args[++I]);
+
+      else if (args[I] == "--field")
+        fieldname = args[++I];
+    }
+
+    auto midx = std::dynamic_pointer_cast<IdxMultipleDataset>(Dataset::loadDataset(midx_filename)); VisusReleaseAssert(midx);
+    auto midx_access = midx->createAccess();
+
+    bool bOk = midx->createIdxFile(idx_filename, Field("DATA", midx->getFieldByName(fieldname).dtype, "rowmajor"));
+    VisusReleaseAssert(bOk);
+
+    auto idx = IdxDataset::loadDataset(idx_filename);
+    auto idx_access = idx->createAccess();
+
+    auto tiles = midx->generateTiles(TileSize);
+
+    auto T1 = Time::now();
+    for (int TileId = 0; TileId<tiles.size(); TileId++)
+    {
+      auto tile = tiles[TileId];
+
+      auto t1 = Time::now();
+      auto buffer = midx->readMaxResolutionData(midx_access, tile);
+      int msec_read = (int)t1.elapsedMsec();
+      if (!buffer)
+        continue;
+
+      t1 = Time::now();
+      idx->writeMaxResolutionData(idx_access, tile, buffer);
+      int msec_write = (int)t1.elapsedMsec();
+
+      VisusInfo() << "done " << TileId << " of " << tiles.size() << " msec_read(" << msec_read << ") msec_write(" << msec_write << ")";
+
+      //ArrayUtils::saveImage(StringUtils::format() << "tile_" << TileId << ".png", read->buffer);
+    }
+
+    VisusInfo() << "ALL DONE IN " << T1.elapsedMsec();
+    return data;
+  }
+
+};
 
 
 ///////////////////////////////////////////////////////////
@@ -695,12 +652,14 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed filename, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     String filename = args[1];
+
     auto ret = ArrayUtils::loadImage(filename, args);
     if (!ret)
-      ThrowException(StringUtils::format() << "cannot load image " << filename);
+      ThrowException(StringUtils::format() << args[0] <<"  cannot load image " << filename);
+
     return ret;
   }
 };
@@ -722,12 +681,12 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     String filename = args[1];
 
     if (!ArrayUtils::saveImage(filename, data, args))
-      ThrowException(StringUtils::format() << "saveImage failed " << filename);
+      ThrowException(StringUtils::format() << args[0] <<"  saveImage failed " << filename);
 
     return data;
   }
@@ -754,13 +713,13 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0]<< " syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     String filename = args[1];
 
     Array to_paste = ArrayUtils::loadImage(filename, args);
     if (!to_paste)
-      ThrowException(StringUtils::format() << "Cannot load " << filename);
+      ThrowException(StringUtils::format() << args[0] <<"  Cannot load " << filename);
 
     int pdim = data.getPointDim();
 
@@ -785,7 +744,7 @@ public:
     }
 
     if (!ArrayUtils::paste(data, Dbox, to_paste, Sbox))
-      ThrowException("paste of image failed");
+      ThrowException(StringUtils::format() << args[0] <<" paste of image failed");
 
     return data;
   }
@@ -810,7 +769,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] << " syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     int C = cint(args[1]);
     return data.getComponent(C);
@@ -834,7 +793,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] << " syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     DType dtype = DType::fromString(args[1]);
     return ArrayUtils::cast(data, dtype);
@@ -858,7 +817,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] << " syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     DType dtype = DType::fromString(args[1]);
     return ArrayUtils::smartCast(data, dtype);
@@ -884,24 +843,29 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] << " syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     DType   dtype = data.dtype;
     NdPoint dims = data.dims;
     for (int I = 1; I<(int)args.size(); I++)
     {
       if (args[I] == "--dtype")
+      {
         dtype = DType::fromString(args[++I]);
+        continue;
+      }
 
-      else if (args[I] == "--dims")
+      if (args[I] == "--dims")
+      {
         dims = NdPoint::parseDims(args[++I]);
-
-      else
-        throwInvalidArgument(args[I], args);
+        continue;
+      }
+      
+      ThrowException(StringUtils::format() << args[0] << " Invalid arguments " << args[I]);
     }
 
     if (!data.resize(dims, dtype, __FILE__, __LINE__))
-      ThrowException("resize failed");
+      ThrowException(StringUtils::format() << args[0] << " resize failed");
 
     return data;
   }
@@ -924,14 +888,14 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] << " syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     int pdim = data.getPointDim();
     String sbox = args[1];
 
     NdBox box = NdBox::parseFromOldFormatString(pdim,sbox);
     if (!box.isFullDim())
-      throwInvalidArgument(sbox, args);
+      ThrowException(StringUtils::format() << args[0] <<"  Invalid box " << sbox);
 
     return ArrayUtils::crop(data, box);
   }
@@ -954,11 +918,11 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     int axis = cint(args[1]);
     if (axis<0)
-      throwInvalidArgument(args[1], args);
+      ThrowException(StringUtils::format() << args[0] <<"  Invalid axis " << args[1]);
 
     return ArrayUtils::mirror(data, axis);
   }
@@ -983,7 +947,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     int C = cint(args[1]);
     Range range = ArrayUtils::computeRange(data, C);
@@ -1010,10 +974,10 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 1)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     if (data.dtype.ncomponents()>1 && !Utils::isByteAligned(data.dtype.get(0).getBitSize()))
-      ThrowException("request to --interleave but a sample is not byte aligned");
+      ThrowException(StringUtils::format() << args[0] <<" request to --interleave but a sample is not byte aligned");
 
     //need to interleave (the input for example is RRRRR...GGGGG...BBBBB and I really need RGBRGBRGB)
     int ncomponents = data.dtype.ncomponents();
@@ -1049,12 +1013,12 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     String filename = args[1];
     StringTree info = ArrayUtils::statImage(filename);
     if (info.empty())
-      ThrowException(StringUtils::format() << "Could not open " << filename);
+      ThrowException(StringUtils::format() << args[0] <<"  Could not open " << filename);
 
     VisusInfo() << std::endl << info.toString();
 
@@ -1080,7 +1044,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 1)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     VisusInfo() << "Buffer dims(" << data.dims.toString() << ") dtype(" << data.dtype.toString() << ")";
 
@@ -1123,13 +1087,13 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     String url = args[1];
 
     auto dataset = Dataset::loadDataset(url);
     if (!dataset)
-      ThrowException(StringUtils::format() << "Dataset::loadDataset(" << url << ") failed");
+      ThrowException(StringUtils::format() << args[0] <<"  Dataset::loadDataset(" << url << ") failed");
 
     BigInt block_id = 0;
     Field  field = dataset->getDefaultField();
@@ -1142,25 +1106,25 @@ public:
         block_id = cbigint(args[++I]);
         continue;
       }
+
       if (args[I] == "--field")
       {
         String fieldname = args[++I];
         field = dataset->getFieldByName(fieldname);
         if (!field.valid())
-          ThrowException(StringUtils::format() << "specified field (" << fieldname << ") is wrong");
+          ThrowException(StringUtils::format() << args[0] <<"  specified field (" << fieldname << ") is wrong");
         continue;
       }
+
       if (args[I] == "--time")
       {
         double time = cdouble(args[++I]);
         if (!dataset->getTimesteps().containsTimestep(time))
-          ThrowException(StringUtils::format() << "specified time (" << time << ") is wrong");
+          ThrowException(StringUtils::format() << args[0] <<"  specified time (" << time << ") is wrong");
         continue;
       }
-      else
-      {
-        throwInvalidArgument(args[I], args);
-      }
+
+      ThrowException(StringUtils::format() << args[0] <<"  Invalid argument " << args[I]);
     }
 
     VisusInfo() << "url(" << url << ") block(" << block_id << ") field(" << field.name << ") time(" << time << ")";
@@ -1179,7 +1143,7 @@ public:
       bool bOk = dataset->writeBlockAndWait(access, block_query);
       access->endWrite();
       if (!bOk)
-        ThrowException("Failed to write block");
+        ThrowException(StringUtils::format() << args[0] <<" Failed to write block");
       ret=data;
     }
     else
@@ -1188,7 +1152,7 @@ public:
       bool bOk = dataset->readBlockAndWait(access, block_query);
       access->endRead();
       if (!bOk)
-        ThrowException("Failed to write block");
+        ThrowException(StringUtils::format() << args[0] <<" Failed to write block");
       ret=block_query->buffer;
     }
 
@@ -1204,8 +1168,9 @@ private:
 };
 
 
+
 ///////////////////////////////////////////////////////////
-class CreateContainer : public ConvertStep
+class CloudCreateContainer : public ConvertStep
 {
 public:
 
@@ -1223,18 +1188,20 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     String url = args[1];
     UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(url));
+
     if (!src_storage->createContainer(url))
-      ThrowException(StringUtils::format() << "cannot create the container " << url);
+      ThrowException(StringUtils::format() << args[0] <<"  cannot create the container " << url);
+    
     return data;
   }
 };
 
 ///////////////////////////////////////////////////////////
-class DeleteContainer : public ConvertStep
+class CloudDeleteContainer : public ConvertStep
 {
 public:
 
@@ -1253,18 +1220,18 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     String url = args[1];
     UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(url));
     if (!src_storage->deleteContainer(url))
-      ThrowException(StringUtils::format() << "cannot delete the container " << url);
+      ThrowException(StringUtils::format() << args[0] <<"  cannot delete the container " << url);
     return data;
   }
 };
 
 ///////////////////////////////////////////////////////////
-class ListContainers : public ConvertStep
+class CloudListContainers : public ConvertStep
 {
 public:
 
@@ -1282,7 +1249,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     String url = args[1];
     UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(url));
@@ -1293,7 +1260,7 @@ public:
 };
 
 ///////////////////////////////////////////////////////////
-class CopyBlob : public ConvertStep
+class CloudCopyBlob : public ConvertStep
 {
 public:
 
@@ -1311,7 +1278,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 3)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     String src_url = args[1];
     String dst_url = args[2];
@@ -1325,23 +1292,23 @@ public:
     {
       blob = src_storage->getBlob(src_url, metadata);
       if (!blob)
-        ThrowException(StringUtils::format() << "src_storage->getBlob(" << src_url << ") failed");
+        ThrowException(StringUtils::format() << args[0] <<"  src_storage->getBlob(" << src_url << ") failed");
     }
     else
     {
       blob = Utils::loadBinaryDocument(src_url);
       if (!blob)
-        ThrowException(StringUtils::format() << "Utils::loadBinaryDocument(" << src_url << ") failed");
+        ThrowException(StringUtils::format() << args[0] <<"  Utils::loadBinaryDocument(" << src_url << ") failed");
     }
 
     if (dst_storage)
     {
       if (!dst_storage->addBlob(dst_url, blob, metadata))
-        ThrowException(StringUtils::format() << "dst_storage->addBlob(" << src_url << ") failed");
+        ThrowException(StringUtils::format() << args[0] <<"  dst_storage->addBlob(" << src_url << ") failed");
     }
     else if (!Utils::saveBinaryDocument(dst_url, blob))
     {
-      ThrowException(StringUtils::format() << "Utils::saveBinaryDocument(" << dst_url << ") failed");
+      ThrowException(StringUtils::format() << args[0] <<"  Utils::saveBinaryDocument(" << dst_url << ") failed");
     }
 
     return data;
@@ -1349,7 +1316,7 @@ public:
 };
 
 ///////////////////////////////////////////////////////////
-class ListBlobs : public ConvertStep
+class CloudListBlobs : public ConvertStep
 {
 public:
   
@@ -1367,7 +1334,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     String url = args[1];
     UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(url));
@@ -1378,7 +1345,7 @@ public:
 };
 
 ///////////////////////////////////////////////////////////
-class DeleteBlob : public ConvertStep
+class CloudDeleteBlob : public ConvertStep
 {
 public:
   
@@ -1396,18 +1363,72 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     String url = args[1];
     UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(url));
     if (!src_storage->deleteBlob(url))
-      ThrowException(StringUtils::format() << "cannot delete blob " << url);
+      ThrowException(StringUtils::format() << args[0] <<"  cannot delete blob " << url);
     return data;
   }
 };
 
+//////////////////////////////////////////////////////////////////////////////
+class CloudSelfTest : public ConvertStep
+{
+public:
+
+  //getHelp
+  virtual String getHelp() override
+  {
+    std::ostringstream out;
+    out
+      << " url" << std::endl
+      << "Example: " << " http://visus.s3.amazonaws.com?username=AKIAILLJI7ANO6Y2XJNA&password=XXXXXXXXX"
+      << "Example: " << " http://visus.blob.core.windows.net?password=XXXXXXXXXXXX";
+
+    return out.str();
+  }
+
+  //exec
+  virtual Array exec(Array data, std::vector<String> args) override
+  {
+    Url url(args[1]);
+
+    if (!url.valid())
+      ThrowException(StringUtils::format() << args[0] << ", "<< args[1] << " is not a valid url");
+
+    StringMap blob_metadata, check_blob_metadata;
+    blob_metadata.setValue("example-meta-data", "visus-meta-data");
+
+    auto blob = Utils::loadBinaryDocument("datasets/cat/gray.png");
+    VisusReleaseAssert(blob);
+
+    String container_name = "testing-cloud-storage";
+
+    Url container_url = url; container_url.setPath(url.getPath() + "/" + container_name);
+    Url blob_url = container_url;     blob_url.setPath(url.getPath() + "/" + container_name + "/" + "visus.png");
+
+    UniquePtr<CloudStorage> cloud_storage(CloudStorage::createInstance(container_url));
+    VisusReleaseAssert(cloud_storage);
+    VisusReleaseAssert(cloud_storage->createContainer(container_url));
+    VisusReleaseAssert(cloud_storage->addBlob(blob_url, blob, blob_metadata));
+
+    auto check_blob = cloud_storage->getBlob(blob_url, check_blob_metadata);
+    VisusReleaseAssert(check_blob);
+    VisusReleaseAssert(blob->c_size() == check_blob->c_size() && memcmp(blob->c_ptr(), check_blob->c_ptr(), (size_t)blob->c_size()) == 0);
+    VisusReleaseAssert(check_blob_metadata.getValue("example-meta-data") == "visus-meta-data");
+    VisusReleaseAssert(cloud_storage->deleteBlob(blob_url));
+    VisusReleaseAssert(cloud_storage->deleteContainer(container_url));
+
+    return data;
+  }
+};
+
+
+
 ///////////////////////////////////////////////////////////
-class TestEncoder : public ConvertStep
+class TestEncoderSpeed : public ConvertStep
 {
 public:
 
@@ -1425,17 +1446,17 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 3)
-      throwSyntaxError(args);
+      ThrowException(StringUtils::format() << args[0] <<"  syntax error, got the following arguments:\n " << StringUtils::join(args,"\n"));
 
     String filename = args[1];
     String compression = args[2];
     auto dataset = Dataset::loadDataset(filename);
 
     if (!Encoders::getSingleton()->getEncoder(compression))
-      ThrowException(StringUtils::format() << "failed to create encoder " << compression << "");
+      ThrowException(StringUtils::format() << args[0] <<"  failed to create encoder " << compression << "");
 
     if (!dataset)
-      ThrowException(StringUtils::format() << "failed to read dataset (Dataset::loadDataset(" << filename << ") failed)");
+      ThrowException(StringUtils::format() << args[0] <<"  failed to read dataset (Dataset::loadDataset(" << filename << ") failed)");
 
     auto access=dataset->createAccessForBlockQuery();
     auto field = dataset->getDefaultField();
@@ -1485,7 +1506,7 @@ public:
       {
         encoded = ArrayUtils::encodeArray(compression, decoded);
         if (!encoded)
-          ThrowException("failed to encode array, should not happen");
+          ThrowException(StringUtils::format() << args[0] <<" failed to encode array, should not happen");
       }
       encode_sec += encode_t1.elapsedSec();
 
@@ -1496,13 +1517,13 @@ public:
         decoded2 = ArrayUtils::decodeArray(compression, decoded.dims, decoded.dtype, encoded);
 
         if (!decoded2)
-          ThrowException("failed to decode array, should not happen");
+          ThrowException(StringUtils::format() << args[0] <<" failed to decode array, should not happen");
       }
       decode_sec += decode_t1.elapsedSec();
 
       if (decoded.c_size() != decoded2.c_size() ||
         memcmp(decoded.c_ptr(), decoded2.c_ptr(), decoded.c_size()) != 0)
-        ThrowException("encode/decode is not working at all");
+        ThrowException(StringUtils::format() << args[0] <<" encode/decode is not working at all");
 
       encoded_bytes += encoded->c_size();
       decoded_bytes += decoded.c_size();
@@ -1526,19 +1547,40 @@ public:
   {
     std::ostringstream out;
     out 
-      << " [--filename value] [--query-dim value]" << std::endl
-      << "Example: " << " --filename C:/free/visus_dataset/2kbit1/zip/hzorder/visus.idx --query-dim 512";
+      << " <filename> [--query-dim value]" << std::endl
+      << "Example: " << " C:/free/visus_dataset/2kbit1/zip/hzorder/visus.idx --query-dim 512";
     return out.str();
   }
   
   //exec
-  void exec(String filename,int query_dim=512)
+  virtual Array exec(Array data,std::vector<String> args) override
   {
-    srand(0);
+    if (args.size() < 2)
+      ThrowException(StringUtils::format() << args[0] << " syntax error");
 
+    String filename = args[1];
     auto dataset = Dataset::loadDataset(filename);
     if (!dataset)
-      ThrowException(StringUtils::format() << "cannot loadDataset "<<filename);
+      ThrowException(StringUtils::format() << args[0] << "  cannot loadDataset " << filename);
+
+    int    query_dim=512;
+
+    for (int I=2;I<(int)args.size();I++)
+    {
+      if (args[I]=="--query-dim")
+      {
+        String s_query_dim = args[++I];
+
+        if (!StringUtils::tryParse(s_query_dim,query_dim) || query_dim<=0)
+          ThrowException(StringUtils::format() << args[0] <<"  Invalid --query-dim " << s_query_dim);
+
+        continue;
+      }
+
+      ThrowException(StringUtils::format() << args[0] <<" Invalid args "<<args[I]);
+    }
+
+    srand(0);
 
     VisusInfo() << "Testing query...";
 
@@ -1564,64 +1606,38 @@ public:
       VisusReleaseAssert(dataset->beginQuery(query));
       VisusReleaseAssert(dataset->executeQuery(access, query));
 
-      auto sec=t1.elapsedSec();
-      
-      auto stats = access? access->statistics : Access::Statistics();
-      auto io     = ApplicationStats::io.readValues(true);
+      auto sec = t1.elapsedSec();
 
-      VisusInfo()<<"sec("<<sec<<")"
-        <<"  box("<<ndbox.toString()<<") "
-        <<" access.rok("  <<stats.rok                    <<"/"<<((double)(stats.rok  )/sec)<<") "
-        <<" access.rfail("<<stats.rfail                  <<"/"<<((double)(stats.rfail)/sec)<<") "
-        <<" io.nopen("    <<io.nopen                     <<"/"<<((double)(io.nopen   )/sec)<<") "
-        <<" io.rbytes("   <<double(io.rbytes)/(1024*1024)<<"/"<<double(io.rbytes   )/(sec*1024*1024)<<") "
-        <<" io.wbytes("   <<double(io.wbytes)/(1024*1024)<<"/"<<double(io.wbytes   )/(sec*1024*1024)<<") ";
+      auto stats = access ? access->statistics : Access::Statistics();
+      auto io = ApplicationStats::io.readValues(true);
+
+      VisusInfo() << "sec(" << sec << ")"
+        << "  box(" << ndbox.toString() << ") "
+        << " access.rok(" << stats.rok << "/" << ((double)(stats.rok) / sec) << ") "
+        << " access.rfail(" << stats.rfail << "/" << ((double)(stats.rfail) / sec) << ") "
+        << " io.nopen(" << io.nopen << "/" << ((double)(io.nopen) / sec) << ") "
+        << " io.rbytes(" << double(io.rbytes) / (1024 * 1024) << "/" << double(io.rbytes) / (sec * 1024 * 1024) << ") "
+        << " io.wbytes(" << double(io.wbytes) / (1024 * 1024) << "/" << double(io.wbytes) / (sec * 1024 * 1024) << ") ";
     }
 
     VisusInfo() << "all done in " << T1.elapsedMsec();
-  }
-
-  //exec
-  virtual Array exec(Array data,std::vector<String> args) override
-  {
-    String filename="";
-    int    query_dim=512;
-
-    for (int I=1;I<(int)args.size();I++)
-    {
-      if (args[I]=="--filename") 
-      {
-        filename=args[++I];
-      }
-      else if (args[I]=="--query-dim")
-      {
-        if (!StringUtils::tryParse(args[++I],query_dim) || query_dim<=0)
-          throwInvalidArgument(args[I],args);
-      }
-      else
-      {
-        throwInvalidArgument(args[I], args);
-      }
-    }
-
-    exec(filename, query_dim);
     return data;
   }
 };
 
 //////////////////////////////////////////////////////////////////////////////
-class TestIO : public ConvertStep
+class TestFileReadWriteSpeed : public ConvertStep
 {
 public:
 
   bool bWriting;
 
   //constructor
-  TestIO(bool bWriting_) : bWriting(bWriting_) {
+  TestFileReadWriteSpeed(bool bWriting_) : bWriting(bWriting_) {
   }
 
   //destructor
-  virtual ~TestIO() {
+  virtual ~TestFileReadWriteSpeed() {
   }
 
   //getHelp
@@ -1658,7 +1674,7 @@ public:
 
       File file;
       if(!file.createOrTruncateAndWriteBinary(filename))
-        ThrowException(StringUtils::format()<<"TestWriteIO, file.open"<<filename<<",\"wb\") failed");
+        ThrowException(StringUtils::format() << args[0] <<" TestWriteIO, file.open"<<filename<<",\"wb\") failed");
 
       Array blockdata;
       bool bOk=blockdata.resize(blocksize,DTypes::UINT8,__FILE__,__LINE__);
@@ -1669,7 +1685,7 @@ public:
       for (nwritten=0;(nwritten+blocksize)<=filesize;nwritten+=blocksize)
       {
         if(!file.write(blockdata.c_ptr(),blocksize))
-          ThrowException(StringUtils::format()<<"TestWriteIO write(...) failed");
+          ThrowException(StringUtils::format() << args[0] <<" TestWriteIO write(...) failed");
       }
       file.close();
       double elapsed=t1.elapsedSec();
@@ -1682,7 +1698,7 @@ public:
     {
       File file;
       if(!file.openReadBinary(filename))
-        ThrowException(StringUtils::format()<<"file.openReadBinary("<<filename<<") failed");
+        ThrowException(StringUtils::format() << args[0] <<" file.openReadBinary("<<filename<<") failed");
 
       Array blockdata;
       bool bOk=blockdata.resize(blocksize,DTypes::UINT8,__FILE__,__LINE__);
@@ -1711,9 +1727,8 @@ public:
   }
 };
 
-
 //////////////////////////////////////////////////////////////////////////////
-class TestIdx : public ConvertStep
+class IdxSelfTest : public ConvertStep
 {
 public:
 
@@ -1743,7 +1758,7 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-class TestIdxMultipleWrites : public ConvertStep
+class TestIdxSlabSpeed : public ConvertStep
 {
 public:
 
@@ -1773,7 +1788,7 @@ public:
   //exec
   virtual Array exec(Array data, std::vector<String> args) override
   {
-    String filename = "./temp/TestIdxMultipleWrites/visus.idx";
+    String filename = "./temp/TestIdxSlabSpeed/visus.idx";
 
     auto dirname = Path(filename).getParent();
     if (FileUtils::existsDirectory(dirname))
@@ -1840,16 +1855,16 @@ public:
       NdBox slice_box = dataset->getBox().getZSlab(Z1,Z2);
 
       //prepare the write query
-      auto query = std::make_shared<Query>(dataset.get(), 'w');
-      query->position = slice_box;
-      VisusReleaseAssert(dataset->beginQuery(query));
+      auto write = std::make_shared<Query>(dataset.get(), 'w');
+      write->position = slice_box;
+      VisusReleaseAssert(dataset->beginQuery(write));
 
       int slab_num_samples = (int)(dims[0] * dims[1] * slices_per_slab);
-      VisusReleaseAssert(query->nsamples.innerProduct() == slab_num_samples);
+      VisusReleaseAssert(write->nsamples.innerProduct() == slab_num_samples);
 
       //fill the buffers with some fake data
       {
-        Array buffer(query->nsamples, query->field.dtype);
+        Array buffer(write->nsamples, write->field.dtype);
 
         VisusAssert(dtype == "int32");
         GetSamples<Int32> samples(buffer);
@@ -1857,12 +1872,12 @@ public:
         for (int I = 0; I < slab_num_samples; I++)
           samples[I] = sample_id++;
 
-        query->buffer = buffer;
+        write->buffer = buffer;
       }
 
       //execute the writing
       auto t1 = clock();
-      VisusReleaseAssert(dataset->executeQuery(access, query));
+      VisusReleaseAssert(dataset->executeQuery(access, write));
       auto t2 = clock();
       auto sec = (t2 - t1) / (float)CLOCKS_PER_SEC;
       SEC += sec;
@@ -1871,19 +1886,18 @@ public:
 
     VisusInfo()<<"Wrote all slabs in " << SEC << "sec";
 
-    //read and check
     if (bool bVerify=true)
     {
-      auto query = std::make_shared<Query>(dataset.get(), 'r');
-      query->position = dataset->getBox();
-      VisusReleaseAssert(dataset->beginQuery(query));
+      auto read = std::make_shared<Query>(dataset.get(), 'r');
+      read->position = dataset->getBox();
+      VisusReleaseAssert(dataset->beginQuery(read));
 
-      Array buffer(query->nsamples, query->field.dtype);
+      Array buffer(read->nsamples, read->field.dtype);
       buffer.fillWithValue(0);
-      query->buffer = buffer;
+      read->buffer = buffer;
 
       auto t1 = clock();
-      VisusReleaseAssert(dataset->executeQuery(access, query));
+      VisusReleaseAssert(dataset->executeQuery(access, read));
       auto t2 = clock();
       auto sec = (t2 - t1) / (float)CLOCKS_PER_SEC;
 
@@ -1903,60 +1917,7 @@ public:
 };
 
 //////////////////////////////////////////////////////////////////////////////
-class TestCloudStorage : public ConvertStep
-{
-public:
-
-  //getHelp
-  virtual String getHelp() override
-  {
-    std::ostringstream out;
-    out 
-      << " url" << std::endl
-      << "Example: " << " http://visus.s3.amazonaws.com?username=AKIAILLJI7ANO6Y2XJNA&password=XXXXXXXXX"
-      << "Example: " << " http://visus.blob.core.windows.net?password=XXXXXXXXXXXX";
-
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data,std::vector<String> args) override
-  {
-    Url url(args[1]);
-
-    if (!url.valid())
-      throwInvalidArgument(StringUtils::format()<<args[1]<<" is not a valid url",args);
-
-    StringMap blob_metadata,check_blob_metadata;
-    blob_metadata.setValue("example-meta-data","visus-meta-data");
-
-    auto blob=Utils::loadBinaryDocument("datasets/cat/gray.png");
-    VisusReleaseAssert(blob);
-
-    String container_name="testing-cloud-storage";
-
-    Url container_url     =url;container_url.setPath(url.getPath()+"/" + container_name);
-    Url blob_url=container_url;     blob_url.setPath(url.getPath()+"/" + container_name + "/"+"visus.png");
-
-    UniquePtr<CloudStorage> cloud_storage(CloudStorage::createInstance(container_url));
-    VisusReleaseAssert(cloud_storage);
-    VisusReleaseAssert(cloud_storage->createContainer(container_url));
-    VisusReleaseAssert(cloud_storage->addBlob(blob_url,blob,blob_metadata));
-
-    auto check_blob=cloud_storage->getBlob(blob_url,check_blob_metadata);
-    VisusReleaseAssert(check_blob);
-    VisusReleaseAssert(blob->c_size()==check_blob->c_size() && memcmp(blob->c_ptr(),check_blob->c_ptr(),(size_t)blob->c_size())==0);
-    VisusReleaseAssert(check_blob_metadata.getValue("example-meta-data")=="visus-meta-data");
-    VisusReleaseAssert(cloud_storage->deleteBlob(blob_url));
-    VisusReleaseAssert(cloud_storage->deleteContainer(container_url));
-
-    return data;
-  }
-};
-
-
-///////////////////////////////////////////////////////////////////////////////
-class ConvertMidxToIdx : public ConvertStep
+class TestNetworkSpeed : public ConvertStep
 {
 public:
 
@@ -1965,207 +1926,235 @@ public:
   {
     std::ostringstream out;
     out
-      << " <midx_filename> <idx_filename> [--tile-size value] [--field value]" << std::endl
-      << "Example: " << " D:/Google Drive sci.utah.edu/visus_dataset/slam/Alfalfa/visus.midx D:/Google Drive sci.utah.edu/visus_dataset/slam/Alfalfa/visus.idx";
+      << " [--c nconnections] [--n nrequests] (url)+" << std::endl
+      << "Example: " << " --c 8 -n 1000 http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled";
     return out.str();
   }
 
   //exec
   virtual Array exec(Array data, std::vector<String> args) override
   {
-    srand(0);
-
-    String midx_filename=args[1];
-    String idx_filename = args[2];
-    int TileSize = 4 * 1024;
-    String fieldname = "output=voronoiBlend()";
+    int nconnections = 1;
+    int nrequests = 1;
+    std::vector<String> urls;
 
     for (int I = 1; I < args.size(); I++)
     {
-      if (args[I] == "--tile-size")
-        TileSize = cint(args[++I]);
+      if (args[I] == "-c")
+        nconnections = cint(args[++I]);
 
-      else if (args[I] == "--field")
-        fieldname = args[++I];
+      else if (args[I] == "-n")
+        nrequests = cint(args[++I]);
+
+      else
+        urls.push_back(args[I]);
     }
 
-    auto midx  = std::dynamic_pointer_cast<IdxMultipleDataset>(Dataset::loadDataset(midx_filename)); VisusReleaseAssert(midx);
-    auto midx_access = midx->createAccess();
+    VisusInfo() << "Concurrency " << nconnections;
+    VisusInfo() << "nrequest " << nrequests;
+    VisusInfo() << "urls";
+    for (auto url : urls)
+      VisusInfo() << "  " << url;
 
-    bool bOk= midx->createIdxFile(idx_filename, Field("DATA", midx->getFieldByName(fieldname).dtype, "rowmajor"));
-    VisusReleaseAssert(bOk);
+    auto net = std::make_shared<NetService>(nconnections, false);
 
-    auto idx = IdxDataset::loadDataset(idx_filename);
-    auto idx_access = idx->createAccess();
+    Time t1 = Time::now();
 
-    auto tiles = midx->generateTiles(TileSize);
+    WaitAsync< Future<NetResponse>, int > async;
+    for (int Id = 0; Id < nrequests; Id++)
+      async.pushRunning(net->asyncNetworkIO(NetRequest(urls[Id % urls.size()])), Id);
 
-    auto T1 = Time::now();
-    for (int TileId=0;TileId<tiles.size();TileId++)
+    for (int Id = 0; Id < nrequests; Id++)
     {
-      auto tile = tiles[TileId];
+      if (async.popReady().first.get().status != HttpStatus::STATUS_OK)
+        VisusInfo() << "one request failed";
 
-      auto t1 = Time::now();
-      auto buffer= midx->readMaxResolutionData(midx_access, tile);
-      int msec_read = (int)t1.elapsedMsec();
-      if (!buffer)
-        continue;
-
-      t1 = Time::now();
-      idx->writeMaxResolutionData(idx_access, tile, buffer);
-      int msec_write = (int)t1.elapsedMsec();
-
-      VisusInfo() << "done " << TileId << " of " << tiles.size() << " msec_read(" << msec_read << ") msec_write(" << msec_write << ")";
-
-      //ArrayUtils::saveImage(StringUtils::format() << "tile_" << TileId << ".png", read->buffer);
+      if (Id && (Id % 100) == 0)
+        VisusInfo() << "Done " << Id << " request";
     }
 
-    VisusInfo() << "ALL DONE IN " << T1.elapsedMsec();
+    auto sec = t1.elapsedSec();
+    auto stats = ApplicationStats::net.readValues(true);
+
+    VisusInfo() << "All done in " << sec << "sec";
+    VisusInfo()
+      << " Num request/sec " << double(nrequests) / sec << ") "
+      << " read  " << StringUtils::getStringFromByteSize(stats.rbytes) << " bytes/sec " << double(stats.rbytes) / (sec) << ") "
+      << " write " << StringUtils::getStringFromByteSize(stats.wbytes) << " bytes/sec " << double(stats.wbytes) / (sec) << ") ";
+
     return data;
   }
+};
 
+
+using namespace Visus;
+
+//////////////////////////////////////////////////////////////////////////////
+class DoConvert : public ConvertStep
+{
+public:
+
+  std::map<String, std::function<SharedPtr<ConvertStep>()> > actions;
+
+  //constructor
+  DoConvert()
+  {
+    addAction("create", []() {return std::make_shared<CreateIdx>(); });
+    addAction("server", []() {return std::make_shared<StartVisusServer>();});
+    addAction("minmax", []() {return std::make_shared<FixDatasetRange>(); });
+    addAction("copy-dataset", []() {return std::make_shared<CopyDataset>(); });
+    addAction("compress-dataset", []() {return std::make_shared<CompressDataset>(); });
+    addAction("apply-filters", []() {return std::make_shared<ApplyFilters>(); });
+    addAction("convert-midx-to-idx", []() {return std::make_shared<ConvertMidxToIdx>(); });
+    addAction("test-idx", []() {return std::make_shared<IdxSelfTest>(); });
+
+    addAction("import", []() {return std::make_shared<ImportData>(); });
+    addAction("export", []() {return std::make_shared<ExportData>(); });
+    addAction("paste", []() {return std::make_shared<PasteData>(); });
+    addAction("cast", []() {return std::make_shared<Cast>(); });
+    addAction("smart-cast", []() {return std::make_shared<SmartCast>(); });
+    addAction("crop", []() {return std::make_shared<CropData>(); });
+    addAction("mirror", []() {return std::make_shared<MirrorData>(); });
+    addAction("compute-range", []() {return std::make_shared<ComputeComponentRange>(); });
+    addAction("info", []() {return std::make_shared<PrintInfo>(); });
+    addAction("interleave", []() {return std::make_shared<InterleaveData>(); });
+    addAction("resize", []() {return std::make_shared<ResizeData>(); });
+    addAction("get-component", []() {return std::make_shared<GetComponent>(); });
+    addAction("write-block", []() {return std::make_shared<ReadWriteBlock>(true); });
+    addAction("read-block", []() {return std::make_shared<ReadWriteBlock>(false); });
+    addAction("dump", []() {return std::make_shared<DumpData>(); });
+
+    //cloud
+    addAction("cloud-create-container", []() {return std::make_shared<CloudCreateContainer>(); });
+    addAction("cloud-delete-container", []() {return std::make_shared<CloudDeleteContainer>(); });
+    addAction("cloud-list-containers", []() {return std::make_shared<CloudListContainers>(); });
+    addAction("cloud-list-blobs", []() {return std::make_shared<CloudDeleteBlob>(); });
+    addAction("cloud-delete-blob", []() {return std::make_shared<CloudListBlobs>(); });
+    addAction("cloud-copy-blob", []() {return std::make_shared<CloudCopyBlob>(); });
+    addAction("cloud-self-test", []() {return std::make_shared<CloudSelfTest>(); });
+
+    //speed
+    addAction("test-query-speed", []() {return std::make_shared<TestQuerySpeed>(); });
+    addAction("test-file-write-speed", []() {return std::make_shared<TestFileReadWriteSpeed>(true); });
+    addAction("test-file-read-speed", []() {return std::make_shared<TestFileReadWriteSpeed>(false); });
+    addAction("test-encoder-speed", []() {return std::make_shared<TestEncoderSpeed>(); });
+    addAction("test-idx-slab-speed", []() {return std::make_shared<TestIdxSlabSpeed>(); });
+    addAction("test-network-speed", []() {return std::make_shared<TestNetworkSpeed>(); });
+  }
+
+  //addAction
+  void addAction(String name, std::function< SharedPtr<ConvertStep>()> fn)
+  {
+    actions[name] = fn;
+  }
+
+  //getHelp
+  virtual String getHelp() override
+  {
+    std::ostringstream out;
+    out << "Syntax: " << std::endl << ApplicationInfo::args[0] << std::endl;
+    for (auto it : actions)
+      out << "    " << it.first << std::endl;
+    out << std::endl;
+    out << "For specific help: " << ApplicationInfo::args[0] << " <action-name> help";
+    out << std::endl;
+    return out.str();
+  }
+
+  //exec
+  virtual Array exec(Array data, std::vector<String> args) override
+  {
+    if (args.size() == 1 || (args.size() == 2 && (args[1] == "help" || args[1] == "--help" || args[1] == "-h")))
+    {
+      std::cout<<getHelp();
+      return Array();
+    }
+
+    std::vector< std::vector<String> > parsed;
+
+    for (int I=1;I<(int)args.size();I++)
+    {
+      String arg=args[I];
+
+      String name = StringUtils::toLower(arg);
+      while (name[0] == '-')
+        name = name.substr(1);
+
+      //begin of a new command
+      if (actions.find(name) != actions.end())
+      {
+        parsed.push_back(std::vector<String>({ name }));
+        continue;
+      }
+
+      if (parsed.empty())
+      {
+        std::ostringstream error_msg;
+        error_msg << "Wrong argument " << arg << std::endl;
+        error_msg << getHelp();
+        ThrowException(error_msg.str());
+      }
+
+      parsed.back().push_back(arg);
+    }
+
+    for (auto args : parsed)
+    {
+      String name = args[0];
+
+      VisusInfo() << "// *** STEP "<< name<<" ***";
+      VisusInfo() << "Input dtype(" << data.dtype.toString() << ") " << "dims(" << data.dims.toString() << ") args("<<StringUtils::join(args," ")<<")";
+
+      auto action = actions[name]();
+
+      if (args.size() == 2 && (args[1] == "help" || args[1] == "--help" || args[1] == "-h"))
+      {
+        VisusInfo() << std::endl << args[0] << " " << name << " " << action->getHelp();
+        return data;
+      }
+
+      Time t1 = Time::now();
+      data = action->exec(data, args);
+      VisusInfo() << "STEP "<<name<<" done in " << t1.elapsedMsec() << "msec";
+    }
+
+    return data;
+  }
 };
 
 
 //////////////////////////////////////////////////////////////////////////////
 int main(int argn, const char* argv[])
 {
-  using namespace Visus;
-
   Time T1 = Time::now();
 
   SetCommandLine(argn, argv);
   IdxModule::attach();
 
+  Array data;
+  DoConvert convert;
+
+  if (ApplicationInfo::debug)
   {
-    DoAtExit do_at_exit([] {
-      IdxModule::detach(); 
-    });
-
-    std::map<String, SharedPtr<ConvertStep> > actions =
+    data = convert.exec(data, ApplicationInfo::args);
+  }
+  else
+  {
+    try
     {
-      {"create",std::make_shared<CreateIdx>()},
-
-      {"ab",std::make_shared<Ab>()},
-      {"server",std::make_shared<VisusServer>()},
-      {"minmax",std::make_shared<FixDatasetRange>()},
-      {"copy-dataset",std::make_shared<CopyDataset>()},
-      {"compress-dataset",std::make_shared<CompressDataset>()},
-      {"apply-filters",std::make_shared<ApplyFilters>()},
-
-      {"import",std::make_shared<ImportData>()},
-      {"export",std::make_shared<ExportData>()},
-      {"paste",std::make_shared<PasteData>()},
-      {"cast",std::make_shared<Cast>()},
-      {"smart-cast",std::make_shared<SmartCast>()},
-      {"crop",std::make_shared<CropData>()},
-      {"mirror",std::make_shared<MirrorData>()},
-      {"compute-range",std::make_shared<ComputeComponentRange>()},
-      {"info",std::make_shared<PrintInfo>()},
-      {"interleave",std::make_shared<InterleaveData>()},
-      {"resize",std::make_shared<ResizeData>()},
-      {"get-component",std::make_shared<GetComponent>()},
-      {"write-block",std::make_shared<ReadWriteBlock>(true)},
-      {"read-block",std::make_shared<ReadWriteBlock>(false)},
-      {"dump",std::make_shared<DumpData>()},
-
-      {"create-container",std::make_shared<CreateContainer>()},
-      {"delete-container",std::make_shared<DeleteContainer>()},
-      {"list-containers",std::make_shared<ListContainers>()},
-      {"list-blobs",std::make_shared<DeleteBlob>()},
-      {"delete-blob",std::make_shared<ListBlobs>()},
-      {"copy-blob",std::make_shared<CopyBlob>()},
-      {"convert-midx-to-idx",std::make_shared<ConvertMidxToIdx>() },
-
-      {"test-idx",std::make_shared<TestIdx>()},
-      {"test-query-speed",std::make_shared<TestQuerySpeed>()},
-      {"test-write-io",std::make_shared<TestIO>(true)},
-      {"test-read-io",std::make_shared<TestIO>(false)},
-      {"test-encoder",std::make_shared<TestEncoder>()},
-      {"test-cloud-storage",std::make_shared<TestCloudStorage>()},
-      {"test-idx-multiple-writes",std::make_shared<TestIdxMultipleWrites>()}
-    };
-
-    auto args = ApplicationInfo::args;
-
-    auto getHelp = [&]()
-    {
-      std::ostringstream out;
-      out << "Syntax: " << std::endl << args[0] << std::endl;
-      for (auto it : actions)
-        out << "    " << it.first << std::endl;
-      out << std::endl;
-      out << "For specific help: " << args[0] << " <action-name> help";
-      out << std::endl;
-      return out.str();
-    };
-
-
-    if (args.size() == 1 || (args.size() == 2 && (args[1] == "help" || args[1] == "--help")))
-    {
-      VisusInfo() << std::endl << getHelp();
-      return 0;
+      data = convert.exec(data, ApplicationInfo::args);
     }
-
-    Array data;
-
-    for (int I = 1; I < (int)args.size();)
+    catch (Exception& ex)
     {
-      String cmd = StringUtils::toLower(args[I++]);
-      if (StringUtils::startsWith(cmd, "--"))
-        cmd = cmd.substr(2);
-
-      VisusInfo() << "";
-      VisusInfo() << "[" << cmd << "] Got in input " << "dtype(" << data.dtype.toString() << ") " << "dims(" << data.dims.toString() << ")";
-
-      auto it = actions.find(cmd);
-      if (it == actions.end())
-      {
-        std::ostringstream out;
-        out << "Unknown action " << cmd << std::endl;
-        VisusInfo() << std::endl << getHelp();
-        return -1;
-      }
-
-      auto action = it->second;
-
-      //parse to the next command
-      std::vector<String> action_args;
-      action_args.push_back(cmd);
-
-      auto isMainArg = [&](String cmd) {
-        cmd = StringUtils::toLower(cmd);
-        if (StringUtils::startsWith(cmd, "--"))
-          cmd = cmd.substr(2);
-        return actions.find(cmd) != actions.end();
-      };
-
-      while (I < (int)args.size() && !isMainArg(args[I]))
-        action_args.push_back(args[I++]);
-
-      if (action_args.size() == 2 && (action_args[1] == "help" || action_args[1] == "--help"))
-      {
-        VisusInfo() << std::endl << args[0] << " " << cmd << " " << action->getHelp();
-        return 0;
-      }
-
-#ifdef _DEBUG
-         data = action->exec(data, action_args);
-#else
-      try
-      {
-        data = action->exec(data, action_args);
-      }
-      catch (Exception& ex)
-      {
-        VisusInfo() << "ERROR: " << ex.what();
-        return -1;
-      }
-#endif
+      VisusInfo() << "ERROR: " << ex.what();
+      IdxModule::detach();
+      return -1;
     }
-
-    VisusInfo() << "All done in " << T1.elapsedSec()<< " seconds";
-    return 0;
   }
 
+  VisusInfo() << "All done in " << T1.elapsedSec()<< " seconds";
+
+  IdxModule::detach();
+
+  return 0;
 }

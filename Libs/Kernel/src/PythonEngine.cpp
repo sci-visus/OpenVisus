@@ -169,11 +169,11 @@ void ShutdownPython()
   if (runningInsidePyMain())
     return;
 
-  VisusInfo() << "Shutting down python...";
+  //VisusInfo() << "Shutting down python...";
   PyEval_RestoreThread(PythonEngine::mainThreadState);
   Py_Finalize();
 
-  VisusInfo() << "Python shutting down done";
+  //VisusInfo() << "Python shutting down done";
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

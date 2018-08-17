@@ -138,43 +138,39 @@ void PrintDebugMessage(String value) {
   std::cout << value << std::endl;
 }
 
-//////////////////////////////////////////////////////////////////
-void DoStaticChecks()
-{
-  //check types
-  static_assert(sizeof(Int8) == 1 && sizeof(Uint8) == 1 && sizeof(char) == 1, "internal error");
-  static_assert(sizeof(Int16) == 2 && sizeof(Int16) == 2 && sizeof(short) == 2, "internal error");
-  static_assert(sizeof(Int32) == 4 && sizeof(Int32) == 4 && sizeof(int) == 4, "internal error");
-  static_assert(sizeof(Int64) == 8 && sizeof(Uint64) == 8, "internal error");
-  static_assert(sizeof(Float32) == 4 && sizeof(float) == 4, "internal error");
-  static_assert(sizeof(Float64) == 8 && sizeof(double) == 8, "internal error");
+//check types
+static_assert(sizeof(Int8) == 1 && sizeof(Uint8) == 1 && sizeof(char) == 1, "internal error");
+static_assert(sizeof(Int16) == 2 && sizeof(Int16) == 2 && sizeof(short) == 2, "internal error");
+static_assert(sizeof(Int32) == 4 && sizeof(Int32) == 4 && sizeof(int) == 4, "internal error");
+static_assert(sizeof(Int64) == 8 && sizeof(Uint64) == 8, "internal error");
+static_assert(sizeof(Float32) == 4 && sizeof(float) == 4, "internal error");
+static_assert(sizeof(Float64) == 8 && sizeof(double) == 8, "internal error");
 
 #pragma pack(push)
 #pragma pack(1) 
-  typedef struct { Int64 a[1];           Int8 b; }S009;
-  typedef struct { Int64 a[2];           Int8 b; }S017;
-  typedef struct { Int64 a[2]; Int32 b[1]; Int8 c; }S021;
-  typedef struct { Int64 a[4];           Int8 b; }S033;
-  typedef struct { Int64 a[4]; Int32 b[1]; Int8 c; }S037;
-  typedef struct { Int64 a[8]; Int8 b; }S065;
-  typedef struct { Int64 a[16]; Int8 b; }S129;
-  typedef struct { Int64 a[16]; Int32 b[1]; Int8 c; }S133;
+typedef struct { Int64 a[1];           Int8 b; }S009;
+typedef struct { Int64 a[2];           Int8 b; }S017;
+typedef struct { Int64 a[2]; Int32 b[1]; Int8 c; }S021;
+typedef struct { Int64 a[4];           Int8 b; }S033;
+typedef struct { Int64 a[4]; Int32 b[1]; Int8 c; }S037;
+typedef struct { Int64 a[8]; Int8 b; }S065;
+typedef struct { Int64 a[16]; Int8 b; }S129;
+typedef struct { Int64 a[16]; Int32 b[1]; Int8 c; }S133;
 #pragma pack(pop)
 
-  static_assert(sizeof(S009) == 9, "internal error");
-  static_assert(sizeof(S017) == 17, "internal error");
-  static_assert(sizeof(S021) == 21, "internal error");
-  static_assert(sizeof(S033) == 33, "internal error");
-  static_assert(sizeof(S037) == 37, "internal error");
-  static_assert(sizeof(S065) == 65, "internal error");
-  static_assert(sizeof(S129) == 129, "internal error");
-  static_assert(sizeof(S133) == 133, "internal error");
+static_assert(sizeof(S009) == 9, "internal error");
+static_assert(sizeof(S017) == 17, "internal error");
+static_assert(sizeof(S021) == 21, "internal error");
+static_assert(sizeof(S033) == 33, "internal error");
+static_assert(sizeof(S037) == 37, "internal error");
+static_assert(sizeof(S065) == 65, "internal error");
+static_assert(sizeof(S129) == 129, "internal error");
+static_assert(sizeof(S133) == 133, "internal error");
 
-  //check 64 bit file IO is enabled!
+//check 64 bit file IO is enabled!
 #if __GNUC__ && !__APPLE__
-  static_assert(sizeof(off_t) == 8, "internal error");
+static_assert(sizeof(off_t) == 8, "internal error");
 #endif
-}
 
 
 int          Private::CommandLine::argn=0;
@@ -361,38 +357,18 @@ static void InitVisusConfig()
   TryVisusConfig(KnownPaths::VisusHome.getChild("visus.config"));
 }
 
-//////////////////////////////////////////////////////
-static void InitApplicationInfo()
-{
-  ApplicationInfo::start = Time::now();
-
-#ifdef _DEBUG
-  ApplicationInfo::debug = true;
-#else
-  ApplicationInfo::debug = false;
-#endif
-
-  ApplicationInfo::git_revision = GIT_REVISION;
-
-#if WIN32
-  ApplicationInfo::platform_name = "win";
-#elif __APPLE__
-  ApplicationInfo::platform_name = "osx";
-#else
-  ApplicationInfo::platform_name = "unix";
-#endif
-}
-
 
 bool KernelModule::bAttached = false;
 
 //////////////////////////////////////////////////////
 void KernelModule::attach()
 {
-  if (bAttached)  return;
+  if (bAttached)  
+    return;
+  
   bAttached = true;
 
-  DoStaticChecks();
+  ApplicationInfo::start = Time::now();
 
 #if __APPLE__
   InitAutoReleasePool();
@@ -403,55 +379,10 @@ void KernelModule::attach()
   Thread::getMainThreadId() = std::this_thread::get_id();
 
   InitNetwork();
-  InitApplicationInfo();
+  
   InitKnownPaths();
   InitVisusConfig();
-
-
   InitPython();
-
-  //print out infos
-  if (bool bCopyright=false)
-  {
-    VisusInfo() << "\n" <<
-      "/*-----------------------------------------------------------------------------\n"
-      "Copyright(c) 2010 - 2018 ViSUS L.L.C.,                                         \n"
-      "Scientific Computing and Imaging Institute of the University of Utah           \n"
-      "                                                                               \n"
-      "ViSUS L.L.C., 50 W.Broadway, Ste. 300, 84101 - 2044 Salt Lake City, UT         \n"
-      "University of Utah, 72 S Central Campus Dr, Room 3750, 84112 Salt Lake City, UT\n"
-      "                                                                               \n"
-      "All rights reserved.                                                           \n"
-      "                                                                               \n"
-      "Redistribution and use in source and binary forms, with or without             \n"
-      "modification, are permitted provided that the following conditions are met :   \n"
-      "                                                                               \n"
-      "* Redistributions of source code must retain the above copyright notice, this  \n"
-      "list of conditions and the following disclaimer.                               \n"
-      "                                                                               \n"
-      "* Redistributions in binary form must reproduce the above copyright notice,    \n"
-      "this list of conditions and the following disclaimer in the documentation      \n"
-      "and/or other materials provided with the distribution.                         \n"
-      "                                                                               \n"
-      "* Neither the name of the copyright holder nor the names of its                \n"
-      "contributors may be used to endorse or promote products derived from           \n"
-      "this software without specific prior written permission.                       \n"
-      "                                                                               \n"
-      "THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 'AS IS    '\n"
-      "AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE      \n"
-      "IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE \n"
-      "DISCLAIMED.IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE    \n"
-      "FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL     \n"
-      "DAMAGES(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR      \n"
-      "SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER     \n"
-      "CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,  \n"
-      "OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE   \n"
-      "OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.           \n"
-      "                                                                               \n"
-      "For additional information about this project contact : pascucci@acm.org       \n"
-      "For support : support@visus.net                                                \n"
-      "-----------------------------------------------------------------------------*/\n";
-  }
 
   VisusInfo() << "git_revision            " << ApplicationInfo::git_revision;
   VisusInfo() << "VisusHome               " << KnownPaths::VisusHome.toString();
@@ -505,12 +436,10 @@ void KernelModule::attach()
   VISUS_REGISTER_OBJECT_CLASS(TransferFunction);
 
   //this is to make sure PythonEngine works
+  if (auto engine = std::make_shared<PythonEngine>(true) )
   {
-    auto engine = std::make_shared<PythonEngine>(true);
-    {
-      ScopedAcquireGil acquire_gil;
-      engine->execCode("print('PythonEngine is working fine')");
-    }
+    ScopedAcquireGil acquire_gil;
+    engine->execCode("print('PythonEngine is working fine')");
   }
 }
 

@@ -40,12 +40,27 @@ For support : support@visus.net
 
 namespace Visus {
 
-double                   ApplicationInfo::version = 0.0;
-std::vector<String>      ApplicationInfo::args;
-Time                     ApplicationInfo::start;
-bool                     ApplicationInfo::debug = false;
-String                   ApplicationInfo::git_revision;
-String                   ApplicationInfo::platform_name;
+double ApplicationInfo::version = 0.0;
+
+std::vector<String> ApplicationInfo::args;
+
+Time  ApplicationInfo::start;
+
+#ifdef _DEBUG
+bool ApplicationInfo::debug = true;
+#else
+bool ApplicationInfo::debug = false;
+#endif
+
+String ApplicationInfo::git_revision= GIT_REVISION;
+
+#if WIN32
+String ApplicationInfo::platform_name = "win";
+#elif __APPLE__
+String ApplicationInfo::platform_name = "osx";
+#else
+String ApplicationInfo::platform_name = "unix";
+#endif
 
 } //namespace Visus
 
