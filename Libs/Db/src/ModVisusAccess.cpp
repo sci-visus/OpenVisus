@@ -56,13 +56,27 @@ ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
 
   this->config.writeString("url", url.toString());
 
-  bool disable_async = config.readBool("disable_async", dataset->bServerMode);
+  this->num_queries_per_request = cint(this->config.readString("num_queries_per_request", "8"));
 
-  if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
+  if (num_queries_per_request>1)
+  {
+    Url url(this->url.getProtocol() + "://" + this->url.getHostname() + ":" + cstring(this->url.getPort()) + "/mod_visus");
+    url.setParam("action", "ping");
+
+    auto request = NetRequest(url);
+    auto response = NetService::getNetResponse(request);
+    bool bSupportAggregation = cbool(response.getHeader("block-query-support-aggregation", "0"));
+    if (!bSupportAggregation)
+      num_queries_per_request = 1;
+  }
+
+  bool disable_async = dataset->bServerMode || config.readBool("disable_async", false);
+  if (!disable_async)
+  {
+    int nconnections = config.readInt("nconnections", (num_queries_per_request == 1)? (8) : (2));
     this->netservice = std::make_shared<NetService>(nconnections);
+  }
 
-  this->num_queries_per_request=cint(this->config.readString("num_queries_per_request","1"));
-  VisusAssert(num_queries_per_request > 0);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -137,6 +151,8 @@ void ModVisusAccess::onNetResponse(NetResponse RESPONSE,Batch batch)
   for (int I=0;I<batch.size();I++)
     onNetResponse(responses[I],batch[I]);
 }
+
+
 
 //////////////////////////////////////////////////////////////////////////////////////
 void ModVisusAccess::flushBatch()

@@ -1500,8 +1500,11 @@ NetResponse ModVisus::handleRequest(NetRequest request)
   else if (action=="openseadragon")
     response=handleOpenSeaDragon(request);
 
-  else if (action=="ping")
-    response=NetResponse(HttpStatus::STATUS_OK);
+  else if (action == "ping")
+  {
+    response = NetResponse(HttpStatus::STATUS_OK);
+    response.setHeader("block-query-support-aggregation","1");
+  }
 
   else
     response=NetResponseError(HttpStatus::STATUS_NOT_FOUND,"unknown action(" + action + ")");
