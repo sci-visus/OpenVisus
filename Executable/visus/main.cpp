@@ -1576,7 +1576,8 @@ public:
     auto world_box = dataset->getBox();
 
     Time T1 = Time::now();
-    for (int Q = 0; Q < 10; Q++)
+    int nqueries = 0;
+    for (; T1.elapsedSec()<20;nqueries++)
     {
       Time t1 = Time::now();
 
@@ -1595,7 +1596,6 @@ public:
       VisusReleaseAssert(dataset->executeQuery(access, query));
 
       auto sec = t1.elapsedSec();
-
       auto stats = access ? access->statistics : Access::Statistics();
       auto io = ApplicationStats::io.readValues(true);
 
@@ -1608,7 +1608,8 @@ public:
         << " io.wbytes(" << double(io.wbytes) / (1024 * 1024) << "/" << double(io.wbytes) / (sec * 1024 * 1024) << ") ";
     }
 
-    VisusInfo() << "all done in " << T1.elapsedMsec();
+    auto SEC = T1.elapsedSec();
+    VisusInfo() << "all done in " << SEC<< " nqueries/sec("<<(nqueries/SEC)<<")";
     return data;
   }
 };
@@ -1645,16 +1646,27 @@ public:
     int blocksize=64*1024;
     int filesize=1*1024*1024*1024;
   
-    for (int I=0;I<(int)args.size();I++)
+    for (int I=1;I<(int)args.size();I++)
     {
-      if (args[I]=="--filename")
-        filename=args[++I];
+      if (args[I] == "--filename")
+      {
+        filename = args[++I];
+        continue;
+      }
 
-      else if (args[I]=="--blocksize")
-        blocksize=(int)StringUtils::getByteSizeFromString(args[++I]);
+      if (args[I] == "--blocksize")
+      {
+        blocksize = (int)StringUtils::getByteSizeFromString(args[++I]);
+        continue;
+      }
 
-      else if (args[I]=="--filesize")
-        filesize=(int)StringUtils::getByteSizeFromString(args[++I]);
+      if (args[I] == "--filesize")
+      {
+        filesize = (int)StringUtils::getByteSizeFromString(args[++I]);
+        continue;
+      }
+
+      ThrowException(StringUtils::format() << "wrong argument "<<args[I]);
     }
 
     if (bWriting)
@@ -1737,8 +1749,13 @@ public:
     int max_seconds=300; 
     for (int I=1;I<(int)args.size();I++)
     {
-      if (args[I]=="--max-seconds") 
-        max_seconds=cint(args[++I]);
+      if (args[I] == "--max-seconds")
+      {
+        max_seconds = cint(args[++I]);
+        continue;
+      }
+
+      ThrowException(StringUtils::format() << "wrong argument " << args[I]);
     }
 
     execTestIdx(max_seconds);
@@ -1752,14 +1769,11 @@ class TestIdxSlabSpeed : public ConvertStep
 public:
 
   //see https://github.com/sci-visus/visus/issues/126
-  /* Hana numbers:
-  
-
-  dims 512 x 512 x 512
-  num_slabs 128
-  dtype int32 
-
-  Wrote all slabs in  8.337sec
+  /* Hana numbers (NOTE hana is using row major):
+    dims 512 x 512 x 512
+    num_slabs 128
+    dtype int32 
+    Wrote all slabs in  8.337sec
   */
 
   //getHelp
@@ -1770,38 +1784,61 @@ public:
       << " [--dims       <dimensions>]" << std::endl
       << " [--num-slabs  <value>]" << std::endl
       << " [--dtype      <dtype>]" << std::endl
-      << "Example: " << args[0] << " --dims '512 512 512' --num-writes 128 --dtype int32";
+      << " [--rowmajor   | --hzorder]"<<std::endl 
+      << "Example: " << args[0] << " --dims \"512 512 512\" --num-slabs 128 --dtype int32";
     return out.str();
   }
 
   //exec
   virtual Array exec(Array data, std::vector<String> args) override
   {
-    String filename = "./temp/TestIdxSlabSpeed/visus.idx";
+    String filename = StringUtils::format()<<"./temp/TestIdxSlabSpeed/visus.idx";
 
     auto dirname = Path(filename).getParent();
     if (FileUtils::existsDirectory(dirname))
     {
-      VisusInfo() << "Please empty the directory " << dirname.toString();
+      ThrowException(StringUtils::format() << "Please empty the directory " << dirname.toString());
       return Array();
     }
 
     NdPoint dims            = NdPoint::one(512, 512, 512);
     int     num_slabs       = 128;
     String  dtype           = "int32";
+    String  layout   = "";
 
-    for (int I = 0; I<(int)args.size(); I++)
+    for (int I = 1; I<(int)args.size(); I++)
     {
       if (args[I] == "--dims")
+      {
         dims = NdPoint::parseDims(args[++I]);
-
-      else if (args[I] == "--num-slabs") {
-        num_slabs = cint(args[++I]);
-        VisusAssert((dims[2] % num_slabs) == 0);
+        continue;
       }
 
-      else if (args[I] == "--dtype")
+      if (args[I] == "--num-slabs") {
+        num_slabs = cint(args[++I]);
+        VisusReleaseAssert((dims[2] % num_slabs) == 0);
+        continue;
+      }
+
+      if (args[I] == "--dtype")
+      {
         dtype = args[++I];
+        continue;
+      }
+      
+      if (args[I] == "--rowmajor")
+      {
+        layout = "rowmajor";
+        continue;
+      }
+
+      if (args[I] == "--hzorder")
+      {
+        layout = "hzorder";
+        continue;
+      }
+
+      ThrowException(StringUtils::format()<<"Wrong argument "<<args[I]);
     }
 
     int slices_per_slab = (int)dims[2] / num_slabs;
@@ -1817,8 +1854,8 @@ public:
       idxfile.box = NdBox(NdPoint(3),dims);
       {
         Field field("myfield", DType::fromString(dtype));
-        field.default_compression = "";
-        field.default_layout = "1"; //ROW MAJOR as in hana
+        field.default_compression = ""; // no compression (in writing I should not use compression)
+        field.default_layout = layout; 
         idxfile.fields.push_back(field);
       }
       VisusReleaseAssert(idxfile.save(filename));
@@ -2053,7 +2090,7 @@ public:
   //exec
   virtual Array exec(Array data, std::vector<String> args) override
   {
-    if (args.size() == 1 || (args.size() == 2 && (args[1] == "help" || args[1] == "--help" || args[1] == "-h")))
+    if (args.size() <=1 || (args.size() == 2 && (args[1] == "help" || args[1] == "--help" || args[1] == "-h")))
     {
       std::cout<<getHelp(args);
       return Array();
@@ -2123,15 +2160,32 @@ int main(int argn, const char* argv[])
   Array data;
   DoConvert convert;
 
+
+  //ignores all starting arguments not in actions (they will be global arguments such as --disable-write-locks)
+  std::vector<String> args;
+  args.push_back(ApplicationInfo::args[0]);
+
+  for (auto it=ApplicationInfo::args.begin(); it!=ApplicationInfo::args.end();it++)
+  {
+    auto arg = *it;
+    if (convert.actions.find(arg) != convert.actions.end())
+    {
+      args.insert(args.end(), it, ApplicationInfo::args.end());
+      break;
+    }
+  }
+
+  //VisusInfo() << StringUtils::join(args);
+  
   if (ApplicationInfo::debug)
   {
-    data = convert.exec(data, ApplicationInfo::args);
+    data = convert.exec(data, args);
   }
   else
   {
     try
     {
-      data = convert.exec(data, ApplicationInfo::args);
+      data = convert.exec(data, args);
     }
     catch (Exception& ex)
     {
