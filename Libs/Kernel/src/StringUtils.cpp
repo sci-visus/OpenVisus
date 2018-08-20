@@ -60,15 +60,23 @@ For support : support@visus.net
 
 #include <openssl/opensslv.h>
 
-// OPENSSL_VERSION_NUMBER>= 1.1
-#if OPENSSL_VERSION_NUMBER>=0x10100000L
-	#define Create_HMAC_Context(_name_)   HMAC_CTX* _name_=HMAC_CTX_new()
-	#define Destroy_HMAC_Context(_name_)  HMAC_CTX_free(_name_);
-#else
-	#define Create_HMAC_Context(_name_)   HMAC_CTX* _name_=new HMAC_CTX();HMAC_CTX_init(_name_);
-	#define Destroy_HMAC_Context(_name_)  HMAC_CTX_cleanup(_name_); delete _name_;
-#endif
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
 
+static HMAC_CTX *HMAC_CTX_new() {
+  HMAC_CTX *tmp = (HMAC_CTX *)OPENSSL_malloc(sizeof(HMAC_CTX));
+  if (tmp)
+    HMAC_CTX_init(tmp);
+  return tmp;
+}
+
+static void HMAC_CTX_free(HMAC_CTX *ctx) {
+  if (ctx) {
+    HMAC_CTX_cleanup(ctx);
+    OPENSSL_free(ctx);
+  }
+}
+
+#endif //OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
 
 namespace Visus {
 
@@ -218,11 +226,11 @@ String StringUtils::sha256(String input,String key)
   char ret[EVP_MAX_MD_SIZE];
   unsigned int  size;
   
-	Create_HMAC_Context(ctx);
+  auto ctx = HMAC_CTX_new();
   HMAC_Init_ex(ctx, key.c_str(), (int)key.size(), EVP_sha256(), NULL);
   HMAC_Update(ctx, (const unsigned char*)input.c_str(), input.size());
   HMAC_Final(ctx, (unsigned char*)ret, &size);
-  Destroy_HMAC_Context(ctx);
+  HMAC_CTX_free(ctx);
 
   return String(ret,(size_t)size);
 }
@@ -233,11 +241,11 @@ String StringUtils::sha1(String input,String key)
   char ret[EVP_MAX_MD_SIZE];
   unsigned int size;
   
-  Create_HMAC_Context(ctx);
+  auto ctx = HMAC_CTX_new();
   HMAC_Init_ex(ctx, key.c_str(), (int)key.size(), EVP_sha1(), NULL);
   HMAC_Update(ctx, (const unsigned char*)input.c_str(), input.size());
   HMAC_Final(ctx, (unsigned char*)ret, &size);
-  Destroy_HMAC_Context(ctx);
+  HMAC_CTX_free(ctx);
   
   return String(ret,(size_t)size);
 }
