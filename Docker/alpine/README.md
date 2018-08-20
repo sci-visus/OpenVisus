@@ -45,12 +45,13 @@ Build Docker:
 
 ```
 docker build -t mod_visus-alpine .
+# docker run -it --entrypoint=/bin/sh alpine:3.7
+
 ```
 
 Run Docker:
 
 ```
-
 docker run $DOCKER_OPTS mod_visus-alpine 
 ```
 

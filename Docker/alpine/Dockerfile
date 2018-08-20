@@ -1,16 +1,14 @@
 FROM alpine:3.7
 
 RUN apk add --update alpine-sdk 
-RUN apk add cmake python3 python3-dev swig apache2 apache2-dev curl curl-dev zlib zlib-dev
+RUN apk add cmake python3 python3-dev swig apache2 apache2-dev curl curl-dev zlib zlib-dev git
 RUN pip3 install --upgrade pip
 RUN pip3 install numpy
 
 # compile OpenVisus (forcing clone) 
 ENV GIT_BRANCH master
 ADD https://api.github.com/repos/sci-visus/OpenVisus/git/refs/heads/$GIT_BRANCH version.json 
-RUN curl -L -o OpenVisus.zip http://github.com/sci-visus/OpenVisus/zipball/$GIT_BRANCH
-RUN unzip OpenVisus.zip 
-RUN mv sci-visus-OpenVisus*/ /home/visus
+RUN git clone -b$GIT_BRANCH https://github.com/sci-visus/OpenVisus.git /home/visus
 
 RUN mkdir -p /home/visus/build && \
 	cd /home/visus/build && \
@@ -28,10 +26,10 @@ RUN mkdir -p /home/visus/build && \
 	cmake --build . --target all -- -j 4
 
 # configure apache 
-RUN mkdir /etc/apache2/vhost.d 
+RUN mkdir /etc/apache2/vhosts.d
 RUN echo "LoadModule visus_module /home/visus/build/libmod_visus.so" >> /etc/apache2/httpd.conf 
-RUN echo "IncludeOptional /etc/apache2/vhost.d/*.conf"               >> /etc/apache2/httpd.conf 
-ADD 000-default.conf /etc/apache2/vhost.d/000-default.conf
+RUN echo "Include /etc/apache2/vhosts.d/*.conf" >> /etc/apache2/httpd.conf 
+ADD 000-default.conf /etc/apache2/vhosts.d/000-default.conf
 
 # setup visus.config to redirect to your visus.config
 RUN echo "<include url='/visus_datasets/visus.config' />" > /home/visus/visus.config
