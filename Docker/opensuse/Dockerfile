@@ -9,35 +9,36 @@ RUN zypper --non-interactive install  gcc-c++ cmake git swig  python3 python3-pi
 RUN pip3 install --upgrade pip
 RUN pip3 install numpy
 
-# compile OpenVisus (forcing clone)
-ENV VISUS_HOME /home/visus
+# compile OpenVisus (forcing clone) 
 ENV GIT_BRANCH master
 ADD https://api.github.com/repos/sci-visus/OpenVisus/git/refs/heads/$GIT_BRANCH version.json 
-RUN git clone -b$GIT_BRANCH https://github.com/sci-visus/OpenVisus.git $VISUS_HOME
-RUN mkdir -p $VISUS_HOME/build
-WORKDIR $VISUS_HOME/build 
-RUN cmake ../ -DVISUS_GUI=0 -DVISUS_HOME=$VISUS_HOME -DVISUS_PYTHON_SYS_PATH=$(pwd)
+RUN git clone -b$GIT_BRANCH https://github.com/sci-visus/OpenVisus.git /home/visus
+RUN mkdir -p /home/visus/build
+WORKDIR /home/visus/build 
+RUN cmake ../ -DVISUS_GUI=0 -DVISUS_HOME=/home/visus -DVISUS_PYTHON_SYS_PATH=$(pwd)
 RUN cmake --build . --target all -- -j 4
 
-# configure apache ()
+# configure apache 
 ADD 000-default.conf /etc/apache2/conf.d/000-default.conf
-RUN echo "LoadModule visus_module $VISUS_HOME/build/libmod_visus.so" >> /etc/apache2/loadmodule.conf
+RUN echo "LoadModule visus_module /home/visus/build/libmod_visus.so" >> /etc/apache2/loadmodule.conf
 RUN a2enmod visus 
 ADD httpd-foreground.sh  /usr/local/bin/httpd-foreground.sh
 RUN chmod a+x /usr/local/bin/httpd-foreground.sh 
-#  httpd -M
 
-# how to run apache
+# fix LD_LIBRARY_PATH problem
+RUN echo "/home/visus/build" >> /etc/ld.so.conf 
+RUN ldconfig
+
+# setup visus.config to redirect to your visus.config
+RUN echo "<include url='/visus_datasets/visus.config' />" > /home/visus/visus.config
+RUN chown -R wwwrun  /home/visus 
+RUN chmod -R a+rX    /home/visus 
+
+# run apache
 EXPOSE 80
 CMD ["/usr/local/bin/httpd-foreground.sh"]
 
-# add a sample dataset
-ADD visus.config    $VISUS_HOME/visus.config
-RUN chown -R wwwrun  $VISUS_HOME
-RUN chmod -R a+rX  $VISUS_HOME 
 
-# fix LD_LIBRARY_PATH problem
-RUN echo "$VISUS_HOME/build" >> /etc/ld.so.conf 
-RUN ldconfig
+
 
 
