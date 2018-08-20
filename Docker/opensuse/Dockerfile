@@ -36,6 +36,8 @@ ADD visus.config    $VISUS_HOME/visus.config
 RUN chown -R wwwrun  $VISUS_HOME
 RUN chmod -R a+rX  $VISUS_HOME 
 
+# fix LD_LIBRARY_PATH problem
+RUN echo "$VISUS_HOME/build" >> /etc/ld.so.conf 
+RUN ldconfig
 
 
-  
