@@ -2,10 +2,8 @@ FROM opensuse:42.3
 
 # install all packages
 RUN zypper --non-interactive update
-
 RUN zypper --non-interactive install --type pattern devel_basis
 RUN zypper --non-interactive install  gcc-c++ cmake git swig  python3 python3-pip python3-devel libuuid-devel libopenssl-devel apache2 apache2-devel
-    
 RUN pip3 install --upgrade pip
 RUN pip3 install numpy
 
