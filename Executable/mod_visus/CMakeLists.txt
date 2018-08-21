@@ -6,6 +6,8 @@ if (WIN32)
 	target_link_libraries(mod_visus PUBLIC VisusIdx)
 	set_target_properties(mod_visus PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Executable/)
 
+	InstallLibrary(mod_visus)
+
 else()
 
   find_package(APR    QUIET)
@@ -34,6 +36,8 @@ else()
     else()
 		target_include_directories(mod_visus PRIVATE  /usr/include/openssl  /usr/include/xmltok)   
     endif()
+
+	InstallLibrary(mod_visus)
     
   else()
     message(STATUS "Disabling mod_visus. APR or Apache missing")
