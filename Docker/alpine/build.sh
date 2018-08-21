@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # to try it step by step
 # docker run -it --entrypoint=/bin/sh alpine:3.7
@@ -15,10 +15,6 @@ fi
 
 if [ "$VISUS_HOME" = "" ]; then
 	VISUS_HOME=/home/visus
-fi
-
-if [ "$VISUS_DATASETS" = "" ]; then
-	VISUS_DATASETS=/visus_datasets
 fi
 
 # ////////////////////////////////////////////////

@@ -62,14 +62,14 @@ For support : support@visus.net
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
 
-static HMAC_CTX *HMAC_CTX_new() {
+inline HMAC_CTX *HMAC_CTX_new() {
   HMAC_CTX *tmp = (HMAC_CTX *)OPENSSL_malloc(sizeof(HMAC_CTX));
   if (tmp)
     HMAC_CTX_init(tmp);
   return tmp;
 }
 
-static void HMAC_CTX_free(HMAC_CTX *ctx) {
+inline void HMAC_CTX_free(HMAC_CTX *ctx) {
   if (ctx) {
     HMAC_CTX_cleanup(ctx);
     OPENSSL_free(ctx);
