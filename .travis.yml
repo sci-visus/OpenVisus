@@ -12,7 +12,9 @@ notifications:
     
 env:
   global:
-  - BUILD_TYPE=RelWithDebInfo    
+    - BUILD_TYPE=RelWithDebInfo 
+    - PYPI_USERNAME=scrgiorgio
+    - secure: EAZwSiQCFdTjcKDmHLFpWgX7WnGKwTtptkTvXYLcMPSUMxGymTCOTI1h8jjhxGig3k4Jni1X1gx9c8+LkcMd/yjbzDiOnIjCAVRc1hmCijAgu9j3G1ZMll4E38T7Iq6jE3/DZyb7pfK3X4NQopF/5uySIGeoH25CHwcNyr36k8Ba+qYtanPwTG1D+EVIago8qqL5yG5rslAf7Y69+zVbNa/JAUhow4fw0RAwVp+kgMC7Fj7iSMuN4NmS176VZEjD593zbiBgW+veEN0Z2MLD4vG7nq+w5u5JJYuz+Q4EiB5CCek5hhj17fJMWuAA23RZAlq4X/2oS5bKg/etHK5iVeM8ODKBX2bBHOxQoqwOaOVf0sEs5ranwVLR/77FrhFEECKAmkfFHwGGViWTvdE+F/7XqjLQK9Zm2f+T+rMHxrm1RknbXz271TNahqCHnMsmpaz98WbBHjdp2aQfU+nV/l6XLJnAf0R58ISiVdnDOy3BgQsiWIyxjZc6gRSwLg6EzAS2XlgQOmXhDo8lYoaepuK4OWvdIf+bqw0Y3b0uvrpHlAEpIG0tzzZw6ldq3CdvKD+46Vz+ZtEQBi0GBPy1Env1RHILzlkUwn6LSjVnKYY/TZxIi4ha73yo2BwJ1Q6hpdjVFgHJkEY3a72UCnOBIVnaalGv9lu/EjaixrnU6Nc=  
   
 
 matrix:
@@ -248,7 +250,6 @@ script:
 
 before_deploy:
   - export DEPLOY_FILENAME=$(ls ${TRAVIS_BUILD_DIR}/build/install/dist/*.whl) 
-  - echo "deploying $DEPLOY_FILENAME to GitHub releases"    
 
 deploy:
   provider: releases
@@ -260,3 +261,14 @@ deploy:
     repo: sci-visus/OpenVisus
     tags: true
     all_branches: true
+
+after_deploy:
+  - echo "[distutils]"                > $HOME/.pypirc
+  - echo "index-servers ="           >> $HOME/.pypirc
+  - echo "    pypi"                  >> $HOME/.pypirc
+  - echo "[pypi]"                    >> $HOME/.pypirc
+  - echo "username=$PYPI_USERNAME"   >> $HOME/.pypirc
+  - echo "password=$PYPI_PASSWORD"   >> $HOME/.pypirc
+  - if [ -n "$TRAVIS_TAG" ]; then twine upload --skip-existing $DEPLOY_FILENAME ; else echo "Not on a tag, won't deploy to pypi" ; fi
+
+

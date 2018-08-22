@@ -85,6 +85,4 @@ on_success:
   - del bin\*.pdb 
   - python setup.py bdist_wheel --python-tag=%PYTHON_TAG% --plat-name=win_amd64 
   - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing dist/*.whl" } Else { write-output "Not on a tag, won't deploy to pypi"}
-  - echo "Finished PyPi Deployment"
-
 
