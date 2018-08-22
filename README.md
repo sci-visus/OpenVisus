@@ -475,16 +475,9 @@ Then tag your code in git:
 ```
 git config --global push.followTags true 
 VERSION=N.X.Y # replace N,X,Y with the same numbers from CMake/setup.py
-git commit -a -m "N.X.Y" 
-git tag -a "N.X.Y" -m "N.X.Y" 
+git commit -a -m "$VERSION" 
+git tag -a "$VERSION" -m "$VERSION" 
 git push
 ```
 
-If you want to upload the version to pypi, download the files from GitHub Releases and do:
-
-```
-twine upload --repository-url https://upload.pypi.org/legacy/ *.whl
-#USERNAME is scrgiorgio
-#PASSWORD you-should-know
-```
 

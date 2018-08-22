@@ -71,7 +71,7 @@ deploy:
     on:
       appveyor_repo_tag: true 
 
-# Deploy to PyPI if is a  tagged release on master
+# Deploy to PyPI if is a  tagged release 
 on_success:
   - echo [distutils]                > %USERPROFILE%\\.pypirc
   - echo index-servers =           >> %USERPROFILE%\\.pypirc
@@ -84,7 +84,7 @@ on_success:
   - set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%  
   - del bin\*.pdb 
   - python setup.py bdist_wheel --python-tag=%PYTHON_TAG% --plat-name=win_amd64 
-  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true" -And $env:APPVEYOR_REPO_BRANCH -eq "master") { Invoke-Expression "twine upload --skip-existing dist/*.whl" } Else { write-output "Not on a tag on master, won't deploy to pypi"}
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing dist/*.whl" } Else { write-output "Not on a tag, won't deploy to pypi"}
   - echo "Finished PyPi Deployment"
 
 
