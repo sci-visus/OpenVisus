@@ -12,6 +12,9 @@ notifications:
 environment:
 
   QT5_DIR: C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5
+  PYPI_USERNAME: scrgiorgio
+  PYPI_PASSWORD:
+    secure: 6DHH80JPNRCtIYxWc/h88Q==    
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_GENERATOR: Visual Studio 15 2017 Win64
@@ -28,7 +31,7 @@ environment:
       PYTHON_VERSION: 3.7
       PYTHON_TAG: "cp37"
       PYTHON_DIR: "C:\\Python37-x64" 
-            
+  
 # 
 #if you need to debug uncomment these lines (see https://www.appveyor.com/docs/how-to/rdp-to-build-worker/)
 #init:
@@ -52,7 +55,6 @@ build_script:
   - cmake --build . --target INSTALL   --config RelWithDebInfo  
   - cd install
   - python setup.py bdist_wheel --python-tag=%PYTHON_TAG% --plat-name=win_amd64
- 
 
 # test are already in cmake
 test: off
@@ -68,3 +70,21 @@ deploy:
     artifact: OpenVisusDeployToGitReleases
     on:
       appveyor_repo_tag: true 
+
+# Deploy to PyPI if is a  tagged release on master
+on_success:
+  - echo [distutils]                > %USERPROFILE%\\.pypirc
+  - echo index-servers =           >> %USERPROFILE%\\.pypirc
+  - echo     pypi                  >> %USERPROFILE%\\.pypirc
+  - echo [pypi]                    >> %USERPROFILE%\\.pypirc
+  - echo username=%PYPI_USERNAME%  >> %USERPROFILE%\\.pypirc
+  - echo password=%PYPI_PASSWORD%  >> %USERPROFILE%\\.pypirc
+  - set HOME=%USERPROFILE%
+  - cd %APPVEYOR_BUILD_FOLDER%\build\install
+  - set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%  
+  - del bin\*.pdb 
+  - python setup.py bdist_wheel --python-tag=%PYTHON_TAG% --plat-name=win_amd64 
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true" -And $env:APPVEYOR_REPO_BRANCH -eq "master") { Invoke-Expression "twine upload --skip-existing dist/*.whl" } Else { write-output "Not on a tag on master, won't deploy to pypi"}
+  - echo "Finished PyPi Deployment"
+
+
