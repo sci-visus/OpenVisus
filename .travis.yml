@@ -187,7 +187,7 @@ install:
         export PATH="$HOME/.pyenv/bin:$PATH"
         eval "$(pyenv init -)"
         eval "$(pyenv virtualenv-init -)"
-        pyenv install --list
+        # pyenv install --list
         pyenv install -s $PYTHON_VERSION    
         pyenv local  $PYTHON_VERSION
       
@@ -269,6 +269,6 @@ after_deploy:
   - echo "[pypi]"                    >> $HOME/.pypirc
   - echo "username=$PYPI_USERNAME"   >> $HOME/.pypirc
   - echo "password=$PYPI_PASSWORD"   >> $HOME/.pypirc
-  - if [ -n "$TRAVIS_TAG" ]; then twine upload --skip-existing $DEPLOY_FILENAME ; else echo "Not on a tag, won't deploy to pypi" ; fi
+  - if [ -n "$TRAVIS_TAG" ]; then python -m twine upload --skip-existing $DEPLOY_FILENAME ; else echo "Not on a tag, won't deploy to pypi" ; fi
 
 

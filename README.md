@@ -473,9 +473,9 @@ To properly tag your commit, your first need to edit the CMake/setup.py and chan
 Then tag your code in git:
 
 ```
+git commit -a -m "...your message here..." 
 git config --global push.followTags true 
-VERSION=N.X.Y # replace N,X,Y with the same numbers from CMake/setup.py
-git commit -a -m "$VERSION" 
+VERSION=X.Y.Z # replace  with the same numbers from CMake/setup.py
 git tag -a "$VERSION" -m "$VERSION" 
 git push
 ```
