@@ -406,8 +406,9 @@ public:
   }
 
   //getRegisteredDatasetType
-  String getRegisteredDatasetType(String extension)
-  {return registered_dataset_types.getValue(extension);}
+  String getRegisteredDatasetType(String extension) {
+    return registered_dataset_types.getValue(extension);
+  }
 
 private:
 

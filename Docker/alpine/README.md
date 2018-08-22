@@ -25,7 +25,7 @@ DOCKER_RUN_OPTS="-it"
 DOCKER_RUN_OPTS+=" --rm"
 
 # mount the volume
-DOCKER_RUN_OPTS+=" -e 'VISUS_DATASETS=/visus_datasets' -v $VISUS_DATASETS:/visus_datasets"
+DOCKER_RUN_OPTS+=" --env VISUS_DATASETS=/visus_datasets -v $VISUS_DATASETS:/visus_datasets"
 
 # map network ports
 DOCKER_RUN_OPTS+=" -p 8080:80"
@@ -40,6 +40,13 @@ Run Docker
 
 ```
 docker run $DOCKER_RUN_OPTS visus/mod_visus-alpine 
+```
+
+Test if it's working, from a remote shell
+
+```
+# change the url
+curl -v "http://atlantis.sci.utah.edu:8080/mod_visus?action=list"
 ```
 
 

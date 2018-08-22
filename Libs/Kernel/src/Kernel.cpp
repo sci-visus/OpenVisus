@@ -185,6 +185,7 @@ void ParseCommandLine()
   // parse command line
   for (int I = 0; I < argn; I++)
   {
+    //override visus.config
     if (argv[I] == String("--visus-config") && I < (argn - 1))
     {
       VisusConfig::filename = argv[++I];
@@ -194,7 +195,7 @@ void ParseCommandLine()
     //xcode debugger always passes this; just ignore it
     if (argv[I] == String("-NSDocumentRevisionsDebugMode") && I < (argn - 1))
     {
-      String enabled = argv[++I];
+      String ignoring_enabled = argv[++I];
       continue;
     }
 
