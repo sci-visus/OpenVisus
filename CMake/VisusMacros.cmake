@@ -41,31 +41,9 @@ macro(SetupCMake)
       message("APPLE_OSX_VERSION ${APPLE_OSX_VERSION}")			
 	endif()
 
-	if (NOT WIN32)
-      
-		set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE CACHE BOOL "" FORCE)
-		set(CMAKE_SKIP_BUILD_RPATH         TRUE  CACHE BOOL "" FORCE)
-		set(CMAKE_SKIP_RPATH               TRUE  CACHE BOOL "" FORCE)
-		set(CMAKE_SKIP_INSTALL_RPATH       TRUE  CACHE BOOL "" FORCE)
-
-		mark_as_advanced(CMAKE_BUILD_WITH_INSTALL_RPATH)
-		mark_as_advanced(CMAKE_SKIP_BUILD_RPATH)
-		mark_as_advanced(CMAKE_SKIP_RPATH)
-		mark_as_advanced(CMAKE_SKIP_INSTALL_RPATH)
-
-		if (APPLE)
-			# NOT USING qt deploy because it's kind of unusable
-			# you can check the rpath by 
-			#   otool -l filename | grep -i -A2 rpath
-			#   otool -L filename
-		 	set(CMAKE_MACOSX_RPATH FALSE CACHE BOOL "" FORCE)
-			mark_as_advanced(CMAKE_MACOSX_RPATH)
-		else()
-			# check dependencies
-			# ldd filename
-		endif()
-
-	endif()
+  if (APPLE)
+    set(CMAKE_MACOSX_RPATH 1)
+  endif()
 
 	if (WIN32)
 
@@ -273,17 +251,12 @@ macro(AddSwigLibrary Name SwigFile)
 	   set_target_properties(${_target_name_} PROPERTIES DEBUG_POSTFIX  "_d")
 		target_compile_definitions(${_target_name_}  PRIVATE /W0)
 	endif()
-
-	# anaconda is statically linking python library inside its executable, so I cannot link in order to avoid duplicated symbols
-	# see https://groups.google.com/a/continuum.io/forum/#!topic/anaconda/057P4uNWyCU
-	if (APPLE AND PYTHON_EXECUTABLE)
-		string(FIND "${PYTHON_EXECUTABLE}" "anaconda" is_anaconda)
-		if ("${is_anaconda}" GREATER -1)
-			set_target_properties(${_target_name_} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
-		else()
-			target_link_libraries(${_target_name_} PUBLIC ${PYTHON_LIBRARY})
-		endif()
-	endif()
+	
+  if (PYTHON_LINK_LIBRARY_TO_EXECUTABLE_ONLY)
+    set_target_properties(${_target_name_} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+  else()
+    target_link_libraries(${_target_name_} PUBLIC ${PYTHON_LIBRARY})
+  endif()
 
 	set_target_properties(${_target_name_} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
 
@@ -357,6 +330,13 @@ macro(AddLibrary Name)
 	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
 	endif()
+	 
+	if (PYTHON_LINK_LIBRARY_TO_EXECUTABLE_ONLY)
+    set_target_properties(${Name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
+  else()
+  	target_link_libraries(${Name} PUBLIC ${PYTHON_LIBRARY})
+  endif()
+	
 	InstallLibrary(${Name})
 endmacro()
 
@@ -372,6 +352,7 @@ macro(AddExecutable Name)
 	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
 	endif()
+	target_link_libraries(${Name} PUBLIC ${PYTHON_LIBRARY})
 	InstallExecutable(${Name})
 endmacro()
 
@@ -382,18 +363,18 @@ macro(InstallLibrary Name)
  
 	if (WIN32 OR APPLE)
 
-		install(TARGETS ${Name}  CONFIGURATIONS DEBUG          LIBRARY DESTINATION debug/bin RUNTIME DESTINATION debug/bin BUNDLE DESTINATION debug/bin ARCHIVE DESTINATION debug/lib)
-		install(TARGETS ${Name}  CONFIGURATIONS RELEASE        LIBRARY DESTINATION bin       RUNTIME DESTINATION bin       BUNDLE DESTINATION bin       ARCHIVE DESTINATION lib)	
-		install(TARGETS ${Name}  CONFIGURATIONS RELWITHDEBINFO LIBRARY DESTINATION bin       RUNTIME DESTINATION bin       BUNDLE DESTINATION bin       ARCHIVE DESTINATION lib)
+		install(TARGETS ${Name}  CONFIGURATIONS DEBUG          LIBRARY DESTINATION debug RUNTIME DESTINATION debug BUNDLE DESTINATION debug ARCHIVE DESTINATION debug/lib)
+		install(TARGETS ${Name}  CONFIGURATIONS RELEASE        LIBRARY DESTINATION .     RUNTIME DESTINATION .     BUNDLE DESTINATION .     ARCHIVE DESTINATION lib)	
+		install(TARGETS ${Name}  CONFIGURATIONS RELWITHDEBINFO LIBRARY DESTINATION .     RUNTIME DESTINATION .     BUNDLE DESTINATION .     ARCHIVE DESTINATION lib)
 					
 		if (WIN32)
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS DEBUG          DESTINATION debug/bin )
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELEASE        DESTINATION bin       )
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELWITHDEBINFO DESTINATION bin       )
+			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS DEBUG          DESTINATION debug )
+			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELEASE        DESTINATION .     )
+			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELWITHDEBINFO DESTINATION .     )
 		endif()
 		
 	else()
-		install(TARGETS ${Name} LIBRARY DESTINATION bin RUNTIME DESTINATION bin BUNDLE DESTINATION bin ARCHIVE DESTINATION lib)
+		install(TARGETS ${Name} LIBRARY DESTINATION . RUNTIME DESTINATION . BUNDLE DESTINATION . ARCHIVE DESTINATION lib)
 	endif()
 
 endmacro()
@@ -404,18 +385,18 @@ macro(InstallExecutable Name)
 
 	if (WIN32 OR APPLE)
 
-		install(TARGETS ${Name} CONFIGURATIONS DEBUG          BUNDLE     DESTINATION  debug/bin RUNTIME    DESTINATION  debug/bin )		
-		install(TARGETS ${Name} CONFIGURATIONS RELEASE        BUNDLE     DESTINATION  bin       RUNTIME    DESTINATION  bin)			
-		install(TARGETS ${Name} CONFIGURATIONS RELWITHDEBINFO BUNDLE     DESTINATION  bin       RUNTIME    DESTINATION  bin)						
+		install(TARGETS ${Name} CONFIGURATIONS DEBUG          BUNDLE     DESTINATION  debug RUNTIME    DESTINATION  debug )		
+		install(TARGETS ${Name} CONFIGURATIONS RELEASE        BUNDLE     DESTINATION  .     RUNTIME    DESTINATION  .)			
+		install(TARGETS ${Name} CONFIGURATIONS RELWITHDEBINFO BUNDLE     DESTINATION  .     RUNTIME    DESTINATION  .)						
 
 		if (WIN32)
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  DEBUG          DESTINATION debug/bin )
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELEASE        DESTINATION bin       )
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELWITHDEBINFO DESTINATION bin       )
+			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  DEBUG          DESTINATION debug )
+			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELEASE        DESTINATION .     )
+			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELWITHDEBINFO DESTINATION .     )
 		endif()
 	else()
 		
-		install(TARGETS ${Name} BUNDLE DESTINATION  bin RUNTIME DESTINATION  bin)			
+		install(TARGETS ${Name} BUNDLE DESTINATION  . RUNTIME DESTINATION  .)			
 	endif()
 
 endmacro()
