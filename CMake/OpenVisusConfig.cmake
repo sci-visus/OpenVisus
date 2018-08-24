@@ -19,19 +19,19 @@ if(OpenVisus_FOUND)
 	   
 	   set_target_properties(Visus${it} PROPERTIES
 			IMPORTED_IMPLIB_DEBUG               ${OpenVisus_DIR}/debug/lib/Visus${it}.lib
-			IMPORTED_LOCATION_DEBUG             ${OpenVisus_DIR}/debug/bin/Visus${it}.dll)
+			IMPORTED_LOCATION_DEBUG             ${OpenVisus_DIR}/debug/Visus${it}.dll)
 	   
 	   set_property(TARGET Visus${it} APPEND PROPERTY IMPORTED_CONFIGURATIONS Release)
 	   
 	   set_target_properties(Visus${it} PROPERTIES
 			IMPORTED_IMPLIB_RELEASE              ${OpenVisus_DIR}/lib/Visus${it}.lib
-			IMPORTED_LOCATION_RELEASE            ${OpenVisus_DIR}/bin/Visus${it}.dll)      
+			IMPORTED_LOCATION_RELEASE            ${OpenVisus_DIR}/Visus${it}.dll)      
 			
 	   set_property(TARGET Visus${it} APPEND PROPERTY IMPORTED_CONFIGURATIONS RelWithDebInfo)
 	   
 	   set_target_properties(Visus${it} PROPERTIES
 			IMPORTED_IMPLIB_RELWITHDEBINFO       ${OpenVisus_DIR}/lib/Visus${it}.lib
-			IMPORTED_LOCATION_RELWITHDEBINFO     ${OpenVisus_DIR}/bin/Visus${it}.dll)     			
+			IMPORTED_LOCATION_RELWITHDEBINFO     ${OpenVisus_DIR}/Visus${it}.dll)     			
 			
    endforeach()
 	

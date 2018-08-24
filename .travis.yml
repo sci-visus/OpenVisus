@@ -102,7 +102,7 @@ script:
         eval "$(pyenv init -)"
         eval "$(pyenv virtualenv-init -)"
         CONFIGURE_OPTS=--enable-shared pyenv install -s $PYTHON_VERSION    
-        CONFIGURE_OPTS=--enable-shared pyenv local      $PYTHON_VERSION
+        CONFIGURE_OPTS=--enable-shared pyenv global     $PYTHON_VERSION
         python -m pip install --upgrade pip
         python -m pip install numpy setuptools wheel twine        
       
@@ -147,7 +147,7 @@ script:
         eval "$(pyenv init -)"
         eval "$(pyenv virtualenv-init -)"
         CONFIGURE_OPTS=--enable-shared pyenv install -s $PYTHON_VERSION    
-        CONFIGURE_OPTS=--enable-shared pyenv local      $PYTHON_VERSION 
+        CONFIGURE_OPTS=--enable-shared pyenv global     $PYTHON_VERSION 
         python -m pip install --upgrade pip
         python -m pip install numpy setuptools wheel twine              
       

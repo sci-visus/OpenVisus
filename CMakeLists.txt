@@ -160,20 +160,13 @@ if (NOT DEFINED PYTHON_VERSION)
 	set(PYTHON_VERSION 3)
 endif()
 
-if (VISUS_INTERNAL_PYTHON)
-  set(PYTHON_LIBRARY python)
-else()
+if (NOT VISUS_INTERNAL_PYTHON)
 	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
-	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
+	find_package(PythonLibs  ${PYTHON_VERSION} REQUIRED)
 	find_package(NumPy QUIET) 
-	message("PYTHON_EXECUTABLE ${PYTHON_EXECUTABLE}")
-	message("PYTHON_LIBRARY    ${PYTHON_LIBRARY}")
-endif()
-
-# for apple I'm linking python only for *.app otherwise I'm going to have multiple libpython in the same process
-# with the error message: PyThreadState_Get: no current thread	
-if (APPLE)
- set(PYTHON_LINK_LIBRARY_TO_EXECUTABLE_ONLY 1)
+	message("PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
+	message("PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
+	message("PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
 endif()
 
 add_subdirectory(InternalLibs)
@@ -230,7 +223,7 @@ if (True)
 	InstallBuildFiles(*.py ./)
 	
 	if (WIN32)
-	  InstallBuildFiles(*.dll ./bin)
+	  InstallBuildFiles(*.dll ./)
 	endif()
 	
 	if (VISUS_GUI)

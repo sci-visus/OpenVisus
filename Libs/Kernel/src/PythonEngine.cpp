@@ -102,19 +102,56 @@ bool PythonEngine::isGoodVariableName(String name)
 };
 
 ///////////////////////////////////////////////////////////////////////////
-static bool runningInsidePyMain() {
+static bool runningInsidePyMain() 
+{
+  //no one has already callset SetCommandLine
   const auto& args = ApplicationInfo::args;
   return args.empty() || args[0].empty() || args[0] == "__main__";
 }
+
+///////////////////////////////////////////////////////////////////////////
+void PrintPythonInfo()
+{
+  std::wcout
+    << " Py_GetProgramFullPath()=" << Py_GetProgramFullPath() << std::endl
+    << " Py_GetPrefix()=" << Py_GetPrefix() << std::endl
+    << " Py_GetExecPrefix()=" << Py_GetExecPrefix() << std::endl
+    << " Py_GetProgramFullPath()=" << Py_GetProgramFullPath() << std::endl
+    << " Py_GetPath()=" << Py_GetPath() << std::endl
+    << " Py_GetVersion()=" << Py_GetVersion() << std::endl
+    << " Py_GetPlatform()=" << Py_GetPlatform() << std::endl
+    << " Py_GetCompiler()=" << Py_GetCompiler() << std::endl
+    << " Py_GetBuildInfo()=" << Py_GetBuildInfo() << std::endl;
+
+  PyRun_SimpleString("import sys; print('sys.path=',sys.path)");
+}
+
+#if PY_MAJOR_VERSION <3
+  #define char2wchar(arg) arg
+#else
+
+  static  wchar_t* char2wchar(const char* value) {
+  #if PY_MINOR_VERSION<=4
+    return _Py_char2wchar((char*)value, NULL);
+  #else
+    return Py_DecodeLocale((char*)value, NULL);
+  #endif;
+}
+#endif
+
 
 
 ///////////////////////////////////////////////////////////////////////////
 void InitPython()
 {
   if (runningInsidePyMain())
+  {
+    VisusInfo() << "Visus is running (i.e. extending) python";
+    PrintPythonInfo();
     return;
+  }
 
-    VisusInfo() << "Initializing python...";
+  VisusInfo() << "Initializing embedded python...";
 
   Py_VerboseFlag = 0;
   auto& args = ApplicationInfo::args;
@@ -130,18 +167,17 @@ void InitPython()
   args = new_args;
 
   const char* arg0 = ApplicationInfo::args[0].c_str();
+  Py_SetProgramName(char2wchar(arg0));
 
-#if PY_MAJOR_VERSION >= 3
-  #if PY_MINOR_VERSION<=4
-  #define Py_DecodeLocale _Py_char2wchar
-  #endif
-  Py_SetProgramName(Py_DecodeLocale(arg0, NULL));
-#else
-  Py_SetProgramName((char*)arg0);
-#endif
+  //IMPORTANT: if you want to avoid the usual sys.path initialization
+  //you can copy the python shared library (example: python36.dll) and create a file with the same name and _pth extension
+  //(example python36_d._pth). in that you specify the directories to include. you can also for example a python36.zip file
+  //or maybe you can set PYTHON_HOME
 
   //skips initialization registration of signal handlers
   Py_InitializeEx(0);
+
+  PrintPythonInfo();
 
   // acquire the gil
   PyEval_InitThreads();
@@ -220,12 +256,12 @@ PythonEngine::PythonEngine(bool bVerbose)
   if (runningInsidePyMain())
   {
     if (bVerbose)
-      VisusInfo() << "Visus is running inside PyMain";
+      VisusInfo() << "Visus is extending Python";
   }
   else
   {
     if (bVerbose)
-      VisusInfo() << "Visus is NOT running inside PyMain";
+      VisusInfo() << "Visus is embedding Python";
 
     //try to find visus.py in the same directory where the app is 
     //example: <name>.app/Contents/MacOS/<name>
