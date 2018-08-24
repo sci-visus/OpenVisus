@@ -123,7 +123,8 @@ void PrintPythonInfo()
     << " Py_GetCompiler()=" << Py_GetCompiler() << std::endl
     << " Py_GetBuildInfo()=" << Py_GetBuildInfo() << std::endl;
 
-  PyRun_SimpleString("import sys; print('sys.path=',sys.path)");
+  //this cause segmentation fault, no idea why!
+  //PyRun_SimpleString("import sys; print('sys.path=',sys.path)");
 }
 
 #if PY_MAJOR_VERSION <3
