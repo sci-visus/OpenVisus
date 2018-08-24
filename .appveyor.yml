@@ -19,17 +19,14 @@ environment:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_GENERATOR: Visual Studio 15 2017 Win64
       PYTHON_VERSION: 2.7
-      PYTHON_TAG: "cp27"
       PYTHON_DIR: "C:\\Python27-x64"
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_GENERATOR: Visual Studio 15 2017 Win64
       PYTHON_VERSION: 3.6
-      PYTHON_TAG: "cp36"
       PYTHON_DIR: "C:\\Python36-x64"          
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_GENERATOR: Visual Studio 15 2017 Win64
       PYTHON_VERSION: 3.7
-      PYTHON_TAG: "cp37"
       PYTHON_DIR: "C:\\Python37-x64" 
   
 # 
@@ -53,8 +50,7 @@ build_script:
   - cmake --build . --target ALL_BUILD --config RelWithDebInfo
   - cmake --build . --target RUN_TESTS --config RelWithDebInfo
   - cmake --build . --target INSTALL   --config RelWithDebInfo  
-  - cd install
-  - python setup.py bdist_wheel --python-tag=%PYTHON_TAG% --plat-name=win_amd64
+  - cmake --build . --target dist      --config RelWithDebInfo
 
 # test are already in cmake
 test: off
@@ -80,9 +76,9 @@ on_success:
   - echo username=%PYPI_USERNAME%  >> %USERPROFILE%\\.pypirc
   - echo password=%PYPI_PASSWORD%  >> %USERPROFILE%\\.pypirc
   - set HOME=%USERPROFILE%
-  - cd %APPVEYOR_BUILD_FOLDER%\build\install
-  - set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%  
-  - del bin\*.pdb 
-  - python setup.py bdist_wheel --python-tag=%PYTHON_TAG% --plat-name=win_amd64 
-  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing dist/*.whl" } Else { write-output "Not on a tag, won't deploy to pypi"}
+  - set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH% 
+  - cd %APPVEYOR_BUILD_FOLDER%\build 
+  - del install\*.pdb  
+  - cmake --build . --target dist  --config RelWithDebInfo
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing install/dist/*.whl" } Else { write-output "Not on a tag, won't deploy to pypi"}
 

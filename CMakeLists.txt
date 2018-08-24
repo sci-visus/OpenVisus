@@ -164,9 +164,9 @@ if (NOT VISUS_INTERNAL_PYTHON)
 	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 	find_package(PythonLibs  ${PYTHON_VERSION} REQUIRED)
 	find_package(NumPy QUIET) 
-	message("PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
-	message("PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
-	message("PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
+	message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
+	message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
+	message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
 endif()
 
 add_subdirectory(InternalLibs)
@@ -269,3 +269,29 @@ if (True)
 	add_subdirectory(CMake)
 	
 endif()
+
+# ///////////////////////////////////////////////////////////////////
+# 'dist' target
+if (1)
+
+	set(PYTHON_TAG cp${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
+	
+	if (WIN32)
+	  set(PLAT_NAME win_amd64)
+	elseif(APPLE)
+	  string(SUBSTRING ${APPLE_OSX_VERSION} 0 2 APPLE_OSX_VERSION_MAJOR)
+	  string(SUBSTRING ${APPLE_OSX_VERSION} 3 2 APPLE_OSX_VERSION_MINOR)
+	  set(PLAT_NAME macosx_${APPLE_OSX_VERSION_MAJOR}_${APPLE_OSX_VERSION_MINOR}_x86_64)
+	else()
+	  set(PLAT_NAME linux_x86_64)
+	endif()
+	
+	add_custom_target(dist 
+		${PYTHON_EXECUTABLE} setup.py bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PLAT_NAME} 
+		WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})	
+        
+endif()
+
+
+
+               

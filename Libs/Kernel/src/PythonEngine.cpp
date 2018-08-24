@@ -127,10 +127,10 @@ void PrintPythonInfo()
 }
 
 #if PY_MAJOR_VERSION <3
-  #define char2wchar(arg) arg
+  #define char2wchar(arg) ((char*)arg)
 #else
 
-  static  wchar_t* char2wchar(const char* value) {
+  static wchar_t* char2wchar(const char* value) {
   #if PY_MINOR_VERSION<=4
     return _Py_char2wchar((char*)value, NULL);
   #else

@@ -91,27 +91,21 @@ matrix:
 script:
     - | 
       if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then   
-      
-        # pyenv     
-        cd $HOME
-        curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer -O 
-        chmod a+x pyenv-installer 
-        ./pyenv-installer 
-        rm ./pyenv-installer 
+     
+     		# python
+        brew install pyenv 
         export PATH="$HOME/.pyenv/bin:$PATH"
         eval "$(pyenv init -)"
         eval "$(pyenv virtualenv-init -)"
         CONFIGURE_OPTS=--enable-shared pyenv install -s $PYTHON_VERSION    
         CONFIGURE_OPTS=--enable-shared pyenv global     $PYTHON_VERSION
         python -m pip install --upgrade pip
-        python -m pip install numpy setuptools wheel twine        
-      
+        python -m pip install numpy setuptools wheel twine          
+        
         #  brew install dependencies
         brew install swig qt5 
         QT5_DIR=/usr/local/opt/qt/lib/cmake/Qt5
-
-        # this is to solve logs too long
-        gem install xcpretty      
+        gem install xcpretty    # this is to solve logs too long          
         
         PYTHON_HOME=$HOME/.pyenv/versions/${PYTHON_VERSION}
         PYTHON_EXECUTABLE=${PYTHON_HOME}/bin/python
@@ -125,19 +119,13 @@ script:
         set -o pipefail &&  cmake --build ./ --target ALL_BUILD --config $BUILD_TYPE | xcpretty -c
         cmake --build ./                     --target RUN_TESTS --config $BUILD_TYPE
         cmake --build ./                     --target install   --config $BUILD_TYPE
-        
-        cd install
-        PRODUCT_VERSION=$(sw_vers -productVersion)      
-        PLAT_NAME=macosx_${PRODUCT_VERSION:0:2}_${PRODUCT_VERSION:3:2}_x86_64
-        PYTHON_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}         
-        python setup.py bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PLAT_NAME}           
-        
+        cmake --build ./                     --target dist      --config $BUILD_TYPE      
       fi 
       
     - |     
       if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then 
       
-        # pyenv
+        # python
         cd $HOME     
         curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer -O 
         chmod a+x pyenv-installer 
@@ -180,11 +168,7 @@ script:
         cmake --build ./ --target all
         cmake --build ./ --target test
         cmake --build ./ --target install
-        
-        cd install 
-        PLAT_NAME=linux_x86_64
-        PYTHON_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}        
-        python setup.py bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PLAT_NAME}          
+        cmake --build ./ --target dist         
         
       fi    
 

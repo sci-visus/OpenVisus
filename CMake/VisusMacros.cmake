@@ -38,7 +38,7 @@ macro(SetupCMake)
 			  message(FATAL "Unknown osx version")
 			endif()
         
-      message("APPLE_OSX_VERSION ${APPLE_OSX_VERSION}")			
+      message(STATUS  "APPLE_OSX_VERSION ${APPLE_OSX_VERSION}")			
 	endif()
 
   if (APPLE)
@@ -211,6 +211,7 @@ macro(LinkPythonLibrary Name Force)
 	else()
 	
 		if (WIN32)
+		
 			list(FIND PYTHON_LIBRARY optimized __index__)
 			if (NOT ${__index__} EQUAL -1)
 			  math(EXPR __next_index__ "${__index__}+1")
@@ -221,13 +222,13 @@ macro(LinkPythonLibrary Name Force)
 				target_link_libraries(${Name} PUBLIC ${PYTHON_LIBRARY})
 			endif()
 		
-	   # for apple and linux I'm linking python only for Executables (of final shared dll such as  mod_visus) otherwise I'm going to have multiple libpython in the same process
+	  # for apple and linux I'm linking python only for Executables (of final shared dll such as  mod_visus) otherwise I'm going to have multiple libpython in the same process
 		# with the error message: PyThreadState_Get: no current thread	
-	  	elseif (Force)
-	  		target_link_libraries(${Name} PUBLIC ${PYTHON_LIBRARY})
-	  	else()
-	  		set_target_properties(${Name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
-	  	endif()
+	  elseif (${Force})
+			target_link_libraries(${Name} PUBLIC ${PYTHON_LIBRARY})
+	  else()
+			set_target_properties(${Name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
+		endif()
 	endif()
     
 endmacro()
@@ -292,9 +293,6 @@ macro(AddSwigLibrary Name SwigFile)
 	endif()
 
 endmacro()
-
-
-
 
 # //////////////////////////////////////////////////////////////////////////
 macro(FindGitRevision)
