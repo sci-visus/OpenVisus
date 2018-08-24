@@ -13,31 +13,6 @@ endif()
 
 add_subdirectory(Swig)
 
-# ///////////////////////////////////////////////////////////////////////////////
-if (APPLE)
-
-	macro(FixAnaconda Name)
-	  set_target_properties(${Name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
-	endmacro()
-
-    string(FIND "${PYTHON_EXECUTABLE}" "anaconda" is_anaconda)
-	if ("${is_anaconda}" GREATER -1)
-
-		FixAnaconda(Kernel)
-		FixAnaconda(Dataflow)
-		FixAnaconda(Db)
-		FixAnaconda(Idx)
-		FixAnaconda(Nodes)
-
-		if (VISUS_GUI)
-		  FixAnaconda(Gui)
-		  FixAnaconda(GuiNodes)
-		  FixAnaconda(AppKit)
-		endif()	
-	endif()
-endif()
-
-
 
 
 

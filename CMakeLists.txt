@@ -45,21 +45,18 @@ endif()
 
 
 # enable/disable install
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
-endif()
+set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
 
 # enable/disable gui-stuff (i.e. Qt dependent)
 option(VISUS_GUI "Enable gui" TRUE)  
 
 IF (VISUS_GUI)
 
-	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL PrintSupport REQUIRED)
+	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED)
 	
 	mark_as_advanced(Qt5Core_DIR)
 	mark_as_advanced(Qt5Gui_DIR)
 	mark_as_advanced(Qt5OpenGL_DIR)
-	mark_as_advanced(Qt5PrintSupport_DIR)
 	mark_as_advanced(Qt5Widgets_DIR)
 
 	if (WIN32)
@@ -68,13 +65,25 @@ IF (VISUS_GUI)
 	
 	if (WIN32)
 		set(QT5_BINARY_DIR "${Qt5_DIR}/../../../bin")
-		find_program(WINDEPLOYQT NAMES windeployqt PATHS "${QT5_BINARY_DIR}")
+		find_program(DEPLOYQT NAMES windeployqt PATHS "${QT5_BINARY_DIR}")
 		
-		if(NOT WINDEPLOYQT)
+		if(NOT DEPLOYQT)
 			message(FATAL_ERROR "Could not find windeployqt")
 		endif()
 		
-		mark_as_advanced(WINDEPLOYQT)
+		mark_as_advanced(DEPLOYQT)
+	endif()
+	
+	if (APPLE)
+		set(QT5_BINARY_DIR "${Qt5_DIR}/../../../bin")
+	  find_program(DEPLOYQT NAMES macdeployqt PATHS "${QT5_BINARY_DIR}")
+	  
+		if(NOT DEPLOYQT)
+			message(FATAL_ERROR "Could not find macdeployqt")
+		endif()	  
+		
+		mark_as_advanced(DEPLOYQT)
+	  
 	endif()
 	
 endif()
@@ -151,12 +160,20 @@ if (NOT DEFINED PYTHON_VERSION)
 	set(PYTHON_VERSION 3)
 endif()
 
-if (NOT VISUS_INTERNAL_PYTHON)
+if (VISUS_INTERNAL_PYTHON)
+  set(PYTHON_LIBRARY python)
+else()
 	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
 	find_package(NumPy QUIET) 
 	message("PYTHON_EXECUTABLE ${PYTHON_EXECUTABLE}")
 	message("PYTHON_LIBRARY    ${PYTHON_LIBRARY}")
+endif()
+
+# for apple I'm linking python only for *.app otherwise I'm going to have multiple libpython in the same process
+# with the error message: PyThreadState_Get: no current thread	
+if (APPLE)
+ set(PYTHON_LINK_LIBRARY_TO_EXECUTABLE_ONLY 1)
 endif()
 
 add_subdirectory(InternalLibs)
@@ -217,31 +234,43 @@ if (True)
 	endif()
 	
 	if (VISUS_GUI)
-	
 		install(DIRECTORY Libs/Gui/include/Visus         DESTINATION include/Gui)
 		install(DIRECTORY Libs/GuiNodes/include/Visus    DESTINATION include/GuiNodes)
 		install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
-		
-		if (WIN32)
-		
-				get_filename_component(QT5_BIN_DIR ${Qt5_DIR}/../../../bin REALPATH  )
-				STRING(REGEX REPLACE "/" "\\\\" QT5_BIN_DIR ${QT5_BIN_DIR})
-				configure_file(${CMAKE_CURRENT_SOURCE_DIR}/CMake/visusviewer.bat.config ${CMAKE_BINARY_DIR}/visusviewer.bat)
-				install(FILES ${CMAKE_BINARY_DIR}/visusviewer.bat PERMISSIONS OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
-				
-		elseif (APPLE)
-
-				configure_file(${CMAKE_CURRENT_SOURCE_DIR}/CMake/visusviewer.command.config ${CMAKE_BINARY_DIR}/visusviewer.command)
-				install(FILES ${CMAKE_BINARY_DIR}/visusviewer.command PERMISSIONS  OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
-
-		else()
-				get_property(QT5_SO_DIR TARGET Qt5::Core PROPERTY LOCATION)
-				get_filename_component(QT5_SO_DIR ${QT5_SO_DIR} DIRECTORY)
-				configure_file(${CMAKE_CURRENT_SOURCE_DIR}/CMake/visusviewer.sh.config ${CMAKE_BINARY_DIR}/visusviewer.sh)
-				install(FILES ${CMAKE_BINARY_DIR}/visusviewer.sh PERMISSIONS  OWNER_READ OWNER_EXECUTE OWNER_WRITE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE DESTINATION .)
-		endif()	
-				
 	endif()
+	
+	
+	# ///////////////////////////////////////////////////
+	macro(PostInstallStep)
+	
+		if (VISUS_GUI)
+		
+			if (WIN32)
+				install(CODE "
+				  message(STATUS 'Deploying qt...')
+					if(\${BUILD_TYPE} STREQUAL \"Debug\")
+						execute_process(COMMAND ${DEPLOYQT} \"\${CMAKE_INSTALL_PREFIX}/debug/visusviewer.exe\" WORKING_DIRECTORY ${QT5_BINARY_DIR})
+					else()
+						execute_process(COMMAND ${DEPLOYQT} \"\${CMAKE_INSTALL_PREFIX}/visusviewer.exe\"       WORKING_DIRECTORY ${QT5_BINARY_DIR})
+					endif()
+				")	
+			endif()
+			
+			if (APPLE)
+				install(CODE "
+				  message(STATUS 'Deploying qt...')
+					if(\${BUILD_TYPE} STREQUAL \"Debug\")
+						execute_process(COMMAND ${DEPLOYQT} \"\${CMAKE_INSTALL_PREFIX}/debug/visusviewer.app\" WORKING_DIRECTORY ${QT5_BINARY_DIR})
+					else()
+						execute_process(COMMAND ${DEPLOYQT} \"\${CMAKE_INSTALL_PREFIX}/visusviewer.app\"       WORKING_DIRECTORY ${QT5_BINARY_DIR})
+					endif()
+					execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../CMake/postinstall.apple.py WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX})
+				")	
+			endif()
+		
+		endif()
+	endmacro()	
+	
 	
 	# Post install step
 	add_subdirectory(CMake)

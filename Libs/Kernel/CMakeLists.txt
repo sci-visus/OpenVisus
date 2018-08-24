@@ -243,12 +243,10 @@ else()
 	target_link_libraries(VisusKernel      PUBLIC ${CURL_LIBRARIES})
 endif()
 
-if (VISUS_INTERNAL_PYTHON)
-	target_link_libraries(VisusKernel PUBLIC python)
-else()
+if (NOT VISUS_INTERNAL_PYTHON)
 	target_include_directories(VisusKernel PUBLIC  ${PYTHON_INCLUDE_DIRS})
-	target_link_libraries(VisusKernel      PUBLIC  ${PYTHON_LIBRARIES})
 endif()
+
 
 if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)

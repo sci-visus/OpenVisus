@@ -230,7 +230,7 @@ sudo zypper -n in -t pattern devel_basis \
 	cmake cmake-gui git swig curl  \
 	python3 python3-pip python3-devel \
 	libuuid-devel libopenssl-devel glu-devel \
-	libQt5Concurrent-devel libQt5Network-devel \libQt5Test-devel libQt5OpenGL-devel libQt5PrintSupport-devel
+	libQt5Concurrent-devel libQt5Network-devel \libQt5Test-devel libQt5OpenGL-devel 
 ```
 
 Install numpy and deploy depencencies:
