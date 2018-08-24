@@ -31,8 +31,7 @@ matrix:
         PYTHON_VERSION=2.7.15,
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/2.7.15/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/2.7.15/include/python2.7,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.a,
-        PYTHON_TAG=cp27 
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.dylib
       ] 
       
     - os: osx
@@ -44,8 +43,7 @@ matrix:
         PYTHON_VERSION=3.6.6,
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.6/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.a,
-        PYTHON_TAG=cp36 
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.dylib
       ]                   
           
     - os: osx
@@ -57,8 +55,7 @@ matrix:
         PYTHON_VERSION=3.7.0,
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.7.0/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.7.0/include/python3.7m,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.a,
-        PYTHON_TAG=cp37 
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.dylib
       ]
       
     # ///////////////////////////////// osx 10.12
@@ -72,8 +69,7 @@ matrix:
         PYTHON_VERSION=2.7.15,
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/2.7.15/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/2.7.15/include/python2.7,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.a,
-        PYTHON_TAG=cp27 
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.dylib
       ]   
             
     - os: osx
@@ -85,8 +81,7 @@ matrix:
         PYTHON_VERSION=3.6.6,
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.6/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.a,
-        PYTHON_TAG=cp36 
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.dylib 
       ]    
 
     - os: osx
@@ -98,8 +93,7 @@ matrix:
         PYTHON_VERSION=3.7.0,
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.7.0/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.7.0/include/python3.7m,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.a,
-        PYTHON_TAG=cp37 
+        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.dylib
       ]     
       
     # ///////////////////////////////// Ubuntu 14.04 
@@ -111,8 +105,7 @@ matrix:
           PYTHON_VERSION=2.7,
           PYTHON_INCLUDE_DIR=/usr/include/python2.7,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython2.7.so,
-          PYTHON_EXECUTABLE=/usr/bin/python2.7,
-          PYTHON_TAG=cp27
+          PYTHON_EXECUTABLE=/usr/bin/python2.7
         ]
       addons: 
         apt:
@@ -126,8 +119,7 @@ matrix:
           PYTHON_VERSION=3.4,
           PYTHON_INCLUDE_DIR=/usr/include/python3.4m,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.4m.so,
-          PYTHON_EXECUTABLE=/usr/bin/python3.4,
-          PYTHON_TAG=cp34
+          PYTHON_EXECUTABLE=/usr/bin/python3.4
         ]
       addons: 
         apt:
@@ -141,8 +133,7 @@ matrix:
           PYTHON_VERSION=3.5,
           PYTHON_INCLUDE_DIR=/usr/include/python3.5m,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.5m.so,
-          PYTHON_EXECUTABLE=/usr/bin/python3.5,
-          PYTHON_TAG=cp35
+          PYTHON_EXECUTABLE=/usr/bin/python3.5
         ]
       addons: 
         apt:
@@ -156,8 +147,7 @@ matrix:
          PYTHON_VERSION=3.6,
          PYTHON_INCLUDE_DIR=/usr/include/python3.6m,
          PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so,
-         PYTHON_EXECUTABLE=/usr/bin/python3.6,
-         PYTHON_TAG=cp36
+         PYTHON_EXECUTABLE=/usr/bin/python3.6
         ]       
       addons: 
         apt:
