@@ -92,7 +92,7 @@ script:
     - | 
       if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then   
      
-     		# python
+        # python
         brew install pyenv 
         export PATH="$HOME/.pyenv/bin:$PATH"
         eval "$(pyenv init -)"
