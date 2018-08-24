@@ -119,7 +119,7 @@ static bool runningInsidePyMain()
     return _Py_char2wchar((char*)value, NULL);
   #else
     return Py_DecodeLocale((char*)value, NULL);
-  #endif;
+  #endif
 }
 #endif
 
@@ -153,17 +153,27 @@ void InitPython()
 	  Py_SetProgramName(char2wchar(arg0));
 	}  	
 	
+	#if 0
+#if PY_MAJOR_VERSION <3
+  #define CheckForNull(value) ((value)? (value) : "<null>")
+	std::out
+		<<" Py_GetBuildInfo()="<<CheckForNull(Py_GetBuildInfo()) << std::endl
+		<<" Py_GetCompiler ()="<<CheckForNull(Py_GetCompiler ()) << std::endl
+		<<" Py_GetCopyright()="<<CheckForNull(Py_GetCopyright()) << std::endl
+		<<" Py_GetPlatform ()="<<CheckForNull(Py_GetPlatform ()) << std::endl
+		<<" Py_GetVersion  ()="<<CheckForNull(Py_GetVersion  ()) << std::endl;		
+#else
+  #define CheckForNull(value) ((value)? (value) : L"<null>")
 	std::wcout
-    << " Py_GetProgramFullPath()=" << Py_GetProgramFullPath() << std::endl
-    << " Py_GetPrefix()=" << Py_GetPrefix() << std::endl
-    << " Py_GetExecPrefix()=" << Py_GetExecPrefix() << std::endl
-    << " Py_GetProgramFullPath()=" << Py_GetProgramFullPath() << std::endl
-    << " Py_GetPath()=" << Py_GetPath() << std::endl
-    << " Py_GetVersion()=" << Py_GetVersion() << std::endl
-    << " Py_GetPlatform()=" << Py_GetPlatform() << std::endl
-    << " Py_GetCompiler()=" << Py_GetCompiler() << std::endl
-    << " Py_GetBuildInfo()=" << Py_GetBuildInfo() << std::endl;
+		<<L" Py_GetBuildInfo()="<<CheckForNull(Py_GetBuildInfo()) << std::endl
+		<<L" Py_GetCompiler ()="<<CheckForNull(Py_GetCompiler ()) << std::endl
+		<<L" Py_GetCopyright()="<<CheckForNull(Py_GetCopyright()) << std::endl
+		<<L" Py_GetPlatform ()="<<CheckForNull(Py_GetPlatform ()) << std::endl
+		<<L" Py_GetVersion  ()="<<CheckForNull(Py_GetVersion  ()) << std::endl;		
+#endif
+#endif
 
+		
 	 if (!runningInsidePyMain())
 	 {
 	  //IMPORTANT: if you want to avoid the usual sys.path initialization
@@ -182,7 +192,29 @@ void InitPython()
 	  //see https://trac.xapian.org/ticket/185
 	  PythonEngine::mainThreadState = PyEval_SaveThread();
 	}
+	
+	#if 0
+#if PY_MAJOR_VERSION <3
+	std::out
+		<<" Py_GetPath           ()="<<CheckForNull(Py_GetPath           ()) << std::endl	
+		<<" Py_GetPrefix         ()="<<CheckForNull(Py_GetPrefix         ()) << std::endl	
+		<<" Py_GetExecPrefix     ()="<<CheckForNull(Py_GetExecPrefix     ()) << std::endl	
+		<<" Py_GetProgramFullPath()="<<CheckForNull(Py_GetProgramFullPath()) << std::endl	
+		<<" Py_GetPythonHome     ()="<<(CheckForNull(Py_GetPythonHome    ()) << std::endl	
+		<<" Py_GetProgramName    ()="<<CheckForNull(Py_GetProgramName    ()) << std::endl	;		
+#else
+	std::wcout
+		<<L" Py_GetPath           ()="<<CheckForNull(Py_GetPath           ()) << std::endl	
+		<<L" Py_GetPrefix         ()="<<CheckForNull(Py_GetPrefix         ()) << std::endl	
+		<<L" Py_GetExecPrefix     ()="<<CheckForNull(Py_GetExecPrefix     ()) << std::endl	
+		<<L" Py_GetProgramFullPath()="<<CheckForNull(Py_GetProgramFullPath()) << std::endl	
+		<<L" Py_GetPythonHome     ()="<<(CheckForNull(Py_GetPythonHome    ()) << std::endl	
+		<<L" Py_GetProgramName    ()="<<CheckForNull(Py_GetProgramName    ()) << std::endl	;		
+#endif
 
+#endif
+
+	
   VisusInfo() << "Python initialization done";
 }
 

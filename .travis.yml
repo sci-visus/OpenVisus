@@ -93,15 +93,19 @@ script:
       if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then   
      
         # python
-        brew install pyenv 
+        cd $HOME     
+        curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer -O 
+        chmod a+x pyenv-installer 
+        ./pyenv-installer 
+        rm ./pyenv-installer 
         export PATH="$HOME/.pyenv/bin:$PATH"
         eval "$(pyenv init -)"
         eval "$(pyenv virtualenv-init -)"
         CONFIGURE_OPTS=--enable-shared pyenv install -s $PYTHON_VERSION    
-        CONFIGURE_OPTS=--enable-shared pyenv global     $PYTHON_VERSION
+        CONFIGURE_OPTS=--enable-shared pyenv global     $PYTHON_VERSION 
         python -m pip install --upgrade pip
         python -m pip install numpy setuptools wheel twine          
-        
+                
         #  brew install dependencies
         brew install swig qt5 
         QT5_DIR=/usr/local/opt/qt/lib/cmake/Qt5
