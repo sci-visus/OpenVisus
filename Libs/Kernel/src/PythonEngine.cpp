@@ -121,16 +121,8 @@ void InitPython()
   std::vector<String> new_args;
   for (int I = 0; I < args.size(); I++)
   {
-    if (args[I] == "-v") {
-      Py_VerboseFlag = 1;
-      continue;
-    }
-    if (args[I] == "-vv") {
-      Py_VerboseFlag = 2;
-      continue;
-    }
-    else if (args[I] == "-vvv") {
-      Py_VerboseFlag = 3;
+    if (StringUtils::startsWith(args[I],"-v")) {
+      Py_VerboseFlag = (int)args[I].size()-1;
       continue;
     }
     new_args.push_back(args[I]);

@@ -155,6 +155,8 @@ if (NOT VISUS_INTERNAL_PYTHON)
 	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
 	find_package(NumPy QUIET) 
+	message("PYTHON_EXECUTABLE ${PYTHON_EXECUTABLE}")
+	message("PYTHON_LIBRARY    ${PYTHON_LIBRARY}")
 endif()
 
 add_subdirectory(InternalLibs)
