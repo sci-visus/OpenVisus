@@ -190,6 +190,8 @@ script:
       
         # python
         sudo apt-get -qy install --allow-unauthenticated python${PYTHON_VERSION} python${PYTHON_VERSION}-dev
+        wget -qO- https://bootstrap.pypa.io/get-pip.py
+        sudo python${PYTHON_VERSION} python get-pip.py
         sudo python${PYTHON_VERSION} -m pip install --upgrade pip
         sudo python${PYTHON_VERSION} -m pip install numpy setuptools wheel twine              
       
