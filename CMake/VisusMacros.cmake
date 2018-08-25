@@ -226,9 +226,11 @@ macro(LinkPythonLibrary Name Force)
 		# with the error message: PyThreadState_Get: no current thread	
 	  elseif (${Force})
 			target_link_libraries(${Name} PUBLIC ${PYTHON_LIBRARY})
-	  else()
+	  elseif (APPLE)
 			set_target_properties(${Name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
-		endif()
+ 	  else()
+      target_link_libraries(${Name} PUBLIC ${PYTHON_LIBRARY})
+    endif()
 	endif()
     
 endmacro()
