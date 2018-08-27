@@ -41,7 +41,7 @@ class PostInstallStep:
 			
 		os.chdir("Frameworks")
 		
-		# problem with symbolic link in Frameworks
+		# problem with symbolic link in Frameworks/
 		for filename in glob.glob("*.so.*"):
 			self.fixSymLinks(filename)
 		

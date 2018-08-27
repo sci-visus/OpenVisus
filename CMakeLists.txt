@@ -269,6 +269,11 @@ if (True)
 					INSTALL(FILES ${__location__} DESTINATION ./Frameworks/) 
 				endmacro()
 				
+				if (NOT VISUS_INTERNAL_OPENSSL)
+					InstallSharedLibWithSymLinks(${OPENSSL_SSL_LIBRARY})
+					InstallSharedLibWithSymLinks(${OPENSSL_CRYPTO_LIBRARY})
+				endif()
+				
 				InstallSharedLibWithSymLinks(${Qt5CoreLocation})
 				InstallSharedLibWithSymLinks(${Qt5GuiLocation})
 				InstallSharedLibWithSymLinks(${Qt5WidgetsLocation})

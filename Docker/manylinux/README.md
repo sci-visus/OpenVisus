@@ -1,11 +1,11 @@
 To compile Docker:
 
-mkdir wheel/
+# docker exec -i -t quay.io/pypa/manylinux1_x86_64 /bin/bash
+
 sudo docker build -t openvisus-manylinux .
 
 # in case of errors
 #sudo docker run --rm -it  <container_id> bash -il
-
 
 sudo docker run -it --rm -entrypoint=/bin/bash openvisus-manylinux
 twine upload --repository-url https://upload.pypi.org/legacy/ dist/*.whl
