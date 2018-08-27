@@ -8,10 +8,6 @@ import glob
 # ///////////////////////////////////////
 class PostInstallStep:
 	
-	# init
-	def __init__(self):
-		self.install_path=os.path.abspath(".")
-		
 	# extractDeps
 	def extractDeps(self,filename):
 		output=subprocess.check_output(('otool', '-L', filename))
@@ -34,10 +30,12 @@ class PostInstallStep:
 	# endChange
 	def endChange(self,filename):
 		
+		install_path=os.path.abspath(".")
+		
 		command=["install_name_tool"] 
 		for Old,New in self.changes:
 			filename_path=os.path.abspath(filename+"/..")
-			num_up_level=len(filename_path.split("/"))- len(self.install_path.split("/"))
+			num_up_level=len(filename_path.split("/"))- len(install_path.split("/"))
 			if num_up_level<0: raise Exception("internal error")				
 			
 			New=New.replace("${FrameworksDir}","${ThisDir}/visusviewer.app/Contents/Frameworks")
@@ -71,7 +69,7 @@ class PostInstallStep:
 
 			# qt frameworks
 			for Old in filter(lambda x: ".framework/Versions/5/Qt" in x , self.deps):
-				self.addChange(Old,"${FrameworksDir}//" + "/".join(Old.split("/")[-4:]))
+				self.addChange(Old,"${FrameworksDir}/" + "/".join(Old.split("/")[-4:]))
 
 			self.endChange(filename)
 			

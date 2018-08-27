@@ -53,7 +53,7 @@ option(VISUS_GUI "Enable gui" TRUE)
 IF (VISUS_GUI)
 
 	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED)
-	
+
 	mark_as_advanced(Qt5Core_DIR)
 	mark_as_advanced(Qt5Gui_DIR)
 	mark_as_advanced(Qt5OpenGL_DIR)
@@ -247,9 +247,7 @@ if (True)
 						execute_process(COMMAND ${DEPLOYQT} \"\${CMAKE_INSTALL_PREFIX}/visusviewer.exe\"       WORKING_DIRECTORY ${QT5_BINARY_DIR})
 					endif()
 				")	
-			endif()
-			
-			if (APPLE)
+			elseif (APPLE)
 				install(CODE "
 				  message(STATUS 'Deploying qt...')
 					if(\${BUILD_TYPE} STREQUAL \"Debug\")
@@ -259,6 +257,27 @@ if (True)
 					endif()
 					execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../CMake/postinstall.apple.py WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX})
 				")	
+			else()
+			
+				get_target_property(Qt5CoreLocation    Qt5::Core    LOCATION)
+				get_target_property(Qt5WidgetsLocation Qt5::Widgets LOCATION)
+				get_target_property(Qt5GuiLocation     Qt5::Gui     LOCATION)
+				get_target_property(Qt5OpenGLLocation  Qt5::OpenGL  LOCATION)
+				
+				macro (InstallSharedLibWithSymLinks filename)
+					get_filename_component(__location__ ${filename} REALPATH)
+					INSTALL(FILES ${__location__} DESTINATION ./Frameworks/) 
+				endmacro()
+				
+				InstallSharedLibWithSymLinks(${Qt5CoreLocation})
+				InstallSharedLibWithSymLinks(${Qt5GuiLocation})
+				InstallSharedLibWithSymLinks(${Qt5WidgetsLocation})
+				InstallSharedLibWithSymLinks(${Qt5OpenGLLocation})
+			
+				install(CODE "
+				  message(STATUS 'Post Install linux...')
+					execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../CMake/postinstall.linux.py WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX})
+				")				
 			endif()
 		
 		endif()
