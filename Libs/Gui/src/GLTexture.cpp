@@ -175,7 +175,12 @@ GLuint GLTexture::textureId(GLCanvas& gl)
     gl.glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     if (target == QOpenGLTexture::Target3D)
+    
+#if QT_VERSION > QT_VERSION_CHECK(5, 4, 0)  
       gl.glTexImage3D(target, 0, textureFormat, dims[0], dims[1], dims[2], 0, sourceFormat, sourceType, pixels);
+#else
+      glTexImage3D(target, 0, textureFormat, dims[0], dims[1], dims[2], 0, sourceFormat, sourceType, pixels);
+#endif
     else
       gl.glTexImage2D(target, 0, textureFormat, dims[0], dims[1], 0, sourceFormat, sourceType, pixels);
   }

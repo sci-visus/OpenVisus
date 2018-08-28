@@ -278,7 +278,11 @@ if (True)
 				InstallSharedLibWithSymLinks(${Qt5GuiLocation})
 				InstallSharedLibWithSymLinks(${Qt5WidgetsLocation})
 				InstallSharedLibWithSymLinks(${Qt5OpenGLLocation})
-			
+				
+				if(EXISTS "/usr/lib64/libGLU.so")
+					InstallSharedLibWithSymLinks("/usr/lib64/libGLU.so")
+				endif()
+				
 				install(CODE "
 				  message(STATUS 'Post Install linux...')
 					execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../CMake/postinstall.linux.py WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX})

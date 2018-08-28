@@ -25,6 +25,7 @@ class PostInstallStep:
 		print("Fixing symbolic link of",filename)
 		link,ext=os.path.splitext(filename)
 		while not ext==".so":
+			if(os.path.islink(link)):os.remove(link)
 			os.symlink(filename, link)
 			link,ext=os.path.splitext(link)
 			
