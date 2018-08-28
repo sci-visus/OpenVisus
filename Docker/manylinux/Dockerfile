@@ -180,14 +180,18 @@ RUN set -x \
   && cmake --build . --target all -- -j 4 \
   && cmake --build . --target install \
   && cmake --build . --target dist 
+  
+  
+WORKDIR  /home/visus/build/install
 
-RUN set -x \
-  && cd /home/visus/install \
-  && LD_LIBRARY_PATH='' ldd libVisusKernel.so # informative \
-  && WHEEL=$(find ./dist -iname "*.whl") \
-  && WHEEL=${WHEEL/linux_x86_64/manylinux1_x86_64} \
-  && mv dist/*.whl $WHEEL \
-  && LD_LIBRARY_PATH="./:./Frameworks:/usr/local/lib" auditwheel show ${WHEEL}
+RUN LD_LIBRARY_PATH='' ldd libVisusKernel.so # informative 
+
+RUN WHEEL=$(find ./dist -iname "*.whl") \
+	&& WHEEL=${WHEEL/linux_x86_64/manylinux1_x86_64} \
+	&& mv dist/*.whl ${WHEEL} \
+	&& LD_LIBRARY_PATH="./:./Frameworks:/usr/local/lib" auditwheel show ${WHEEL} 
+	
+RUN  echo "Created $(find /home/visus/build/install/dist/*.whl)"
   
 
 
