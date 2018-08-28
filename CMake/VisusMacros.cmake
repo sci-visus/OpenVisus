@@ -210,39 +210,6 @@ endmacro()
 
 
 # ///////////////////////////////////////////////////
-macro(LinkPythonLibrary Name Force)
-
-	if (VISUS_INTERNAL_PYTHON)
-	  target_link_libraries(${_target_name_} PUBLIC python)
-	else()
-	
-		if (WIN32)
-		
-			list(FIND PYTHON_LIBRARY optimized __index__)
-			if (NOT ${__index__} EQUAL -1)
-			  math(EXPR __next_index__ "${__index__}+1")
-			  list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
-				target_link_libraries( ${Name} PUBLIC debug     ${PYTHON_DEBUG_LIBRARY})
-				target_link_libraries( ${Name} PUBLIC optimized ${PYTHON_RELEASE_LIBRARY})
-			else()
-				target_link_libraries(${Name} PUBLIC ${PYTHON_LIBRARY})
-			endif()
-		
-	  # for apple and linux I'm linking python only for Executables (of final shared dll such as  mod_visus) otherwise I'm going to have multiple libpython in the same process
-		# with the error message: PyThreadState_Get: no current thread	
-	  elseif (${Force})
-			target_link_libraries(${Name} PUBLIC ${PYTHON_LIBRARY})
-	  elseif (APPLE)
-			set_target_properties(${Name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
- 	  else()
-      target_link_libraries(${Name} PUBLIC ${PYTHON_LIBRARY})
-    endif()
-	endif()
-    
-endmacro()
-    
-
-# ///////////////////////////////////////////////////
 macro(AddSwigLibrary Name SwigFile)
 
 	set(NamePy ${Name}Py)
@@ -276,7 +243,7 @@ macro(AddSwigLibrary Name SwigFile)
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${_target_name_})
 	endif()
 	
-   target_link_libraries(${_target_name_} PUBLIC ${Name})
+	target_link_libraries(${_target_name_} PUBLIC ${Name})
 
 	InstallLibrary(${_target_name_})
 
@@ -291,9 +258,7 @@ macro(AddSwigLibrary Name SwigFile)
 	   set_target_properties(${_target_name_} PROPERTIES DEBUG_POSTFIX  "_d")
 		target_compile_definitions(${_target_name_}  PRIVATE /W0)
 	endif()
-	
-  LinkPythonLibrary(${_target_name_} 0)
-  
+
 	set_target_properties(${_target_name_} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
 
 	if (NOT WIN32)
@@ -366,7 +331,6 @@ macro(AddLibrary Name)
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
 	endif()
 	 
-	LinkPythonLibrary(${Name} 0)
 	InstallLibrary(${Name})
 endmacro()
 
@@ -382,12 +346,9 @@ macro(AddExecutable Name)
 	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
 	endif()
-	LinkPythonLibrary(${Name} 1)
+	
 	InstallExecutable(${Name})
 endmacro()
-
-
-
 
 
 # ///////////////////////////////////////////////////

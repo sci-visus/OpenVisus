@@ -85,7 +85,7 @@ RUN set -x \
 RUN set -x \
 	&& mkdir -p /tmp && cd /tmp \
 	&& wget --no-check-certificate http://xcb.freedesktop.org/dist/libxcb-1.11.tar.gz \
-	&& tar -xzf libxcb-1.11.tar.gz \
+	&& tar -xzf libxcb-1.11.tar.gz \RUN ldd ./bin/libVisusKernel.so # informative
 	&& cd libxcb-1.11 \
 	&& ./configure \
 	&& make -j8 \
@@ -141,12 +141,12 @@ RUN set -x \
 
 WORKDIR /home/visus/build/install
 
-RUN set -x \  
+RUN set -x \ 
 	&& ldd libVisusKernel.so # informative
   && WHEEL=$(find ./dist -iname "*.whl") \
   && WHEEL=${WHEEL/linux_x86_64/manylinux1_x86_64} \
   && mv dist/*.whl $WHEEL \
-  && auditwheel show $WHEEL
+  && LD_LIBRARY_PATH="" auditwheel show $WHEEL
   
 
 

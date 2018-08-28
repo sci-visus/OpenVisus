@@ -1,6 +1,6 @@
 To compile Docker:
 
-# docker exec -i -t quay.io/pypa/manylinux1_x86_64 /bin/bash
+# docker run -i -t quay.io/pypa/manylinux1_x86_64 /bin/bash
 
 sudo docker build -t openvisus-manylinux .
 

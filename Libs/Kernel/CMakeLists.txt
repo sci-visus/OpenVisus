@@ -267,3 +267,35 @@ endif()
 
 add_custom_command(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/__init__.py  $<TARGET_FILE_DIR:VisusKernel>)
 add_custom_command(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../..//CMake/OpenVisus.py $<TARGET_FILE_DIR:VisusKernel>)
+
+
+# link python
+if (VISUS_INTERNAL_PYTHON)
+
+	target_link_libraries(VisusKernelPUBLIC python)
+	
+elseif (WIN32)
+
+	list(FIND PYTHON_LIBRARY optimized __index__)
+	if (NOT ${__index__} EQUAL -1)
+		math(EXPR __next_index__ "${__index__}+1")
+		list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
+		target_link_libraries(VisusKernel PUBLIC debug     ${PYTHON_DEBUG_LIBRARY})
+		target_link_libraries(VisusKernel PUBLIC optimized ${PYTHON_RELEASE_LIBRARY})
+	else()
+		target_link_libraries(VisusKernel PUBLIC ${PYTHON_LIBRARY})
+	endif()
+		
+else()
+	
+	# for apple and linux I'm linking python only for Executables (of final shared dll such as  mod_visus) 
+	# otherwise I'm going to have multiple libpython in the same process
+	# with the error message: PyThreadState_Get: no current thread		
+	
+	if (APPLE)
+		set_target_properties(VisusKernel PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
+	endif()				
+	
+	target_link_libraries(VisusKernel INTERFACE ${PYTHON_LIBRARY})
+	
+endif()
