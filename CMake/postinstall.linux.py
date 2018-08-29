@@ -8,6 +8,10 @@ import glob
 # ///////////////////////////////////////
 class PostInstallStep:
 	
+	# constructor
+	def __init__(self,Qt5_DIR):
+		self.Qt5_DIR=Qt5_DIR
+	
 	# extractDeps
 	def extractDeps(self,filename):
 		output=subprocess.check_output(('readelf','-d',filename))
@@ -20,38 +24,46 @@ class PostInstallStep:
 		if sys.version_info >= (3, 0): output=output.decode("utf-8")
 		return output.strip()
 		
-	# fixSymLinks
-	def fixSymLinks(self,filename):
-		print("Fixing symbolic link of",filename)
-		link,ext=os.path.splitext(filename)
-		while not ext==".so":
-			if(os.path.islink(link)):os.remove(link)
-			os.symlink(filename, link)
-			link,ext=os.path.splitext(link)
-			
+	# executeCommand
+	def executeCommand(self,cmd):	
+		print(" ".join(cmd))
+		subprocess.call(cmd)	
+		
+	# installSharedLib
+	def installSharedLib(self,filename):
+		filename=os.path.realpath(path) 
+		if (os.path.isfile(filename)):
+			self.executeCommand("cp",filename,".")
+								
 	# run
 	def run(self):
+		
+		for name in ("QCore","Widgets","Gui","OpenGL"):
+			filename=self.Qt5_DIR+...+name
+			self.installSharedLib(filename)
+				
+		#if (NOT VISUS_INTERNAL_OPENSSL)
+		#	self.installSharedLib(${OPENSSL_SSL_LIBRARY})
+		#	self.installSharedLib(${OPENSSL_CRYPTO_LIBRARY})
+		#endif()
+		
+		self.installSharedLib("/usr/lib64/libGLU.so")
+		
 	
-		so_libs=glob.glob("libVisus*.so") + glob.glob("_Visus*.so")
-		executables= ["libmod_visus.so","visus","visusviewer"]		
-		             
-		for filename in so_libs + executables:
-			command=["patchelf", "--set-rpath", "$ORIGIN:$ORIGIN/Frameworks", filename]
-			print(" ".join(command))
-			subprocess.call(command)	
+		for filename in glob.glob("libVisus*.so") + glob.glob("_Visus*.so") + ["libmod_visus.so","visus","visusviewer"]		:
+			self.executeCommand(["patchelf", "--set-rpath", "$ORIGIN", filename])
 			
-		os.chdir("Frameworks")
-		
-		# problem with symbolic link in Frameworks/
+		# problem with symbolic link 
 		for filename in glob.glob("*.so.*"):
-			self.fixSymLinks(filename)
+			print("Fixing symbolic link of",filename)
+			link,ext=os.path.splitext(filename)
+			while not ext==".so":
+				if(os.path.islink(link)):os.remove(link)
+				os.symlink(filename, link)
+				link,ext=os.path.splitext(link)			
 		
-		for filename in glob.glob('*.so'):
-			command=["patchelf","--set-rpath","$ORIGIN",filename]
-			print(" ".join(command))
-			subprocess.call(command)	
-		os.chdir("../")
-
 if __name__ == "__main__":
-	post_install=PostInstallStep()
-	post_install.run()
+	Qt5_DIR=sys.argv[1]
+	print("Executing post install step","Qt5_DIR",Qt5_DIR)
+	post_install_step=PostInstallStep(Qt5_DIR)
+	post_install_step.run()

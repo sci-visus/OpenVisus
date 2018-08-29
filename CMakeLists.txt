@@ -63,28 +63,6 @@ IF (VISUS_GUI)
 		string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
 	endif()
 	
-	if (WIN32)
-		set(QT5_BINARY_DIR "${Qt5_DIR}/../../../bin")
-		find_program(DEPLOYQT NAMES windeployqt PATHS "${QT5_BINARY_DIR}")
-		
-		if(NOT DEPLOYQT)
-			message(FATAL_ERROR "Could not find windeployqt")
-		endif()
-		
-		mark_as_advanced(DEPLOYQT)
-	endif()
-	
-	if (APPLE)
-		set(QT5_BINARY_DIR "${Qt5_DIR}/../../../bin")
-	  find_program(DEPLOYQT NAMES macdeployqt PATHS "${QT5_BINARY_DIR}")
-	  
-		if(NOT DEPLOYQT)
-			message(FATAL_ERROR "Could not find macdeployqt")
-		endif()	  
-		
-		mark_as_advanced(DEPLOYQT)
-	  
-	endif()
 	
 endif()
 
@@ -232,69 +210,10 @@ if (True)
 		install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
 	endif()
 	
-	
-	# ///////////////////////////////////////////////////
-	macro(PostInstallStep)
-	
-		if (VISUS_GUI)
-		
-			if (WIN32)
-				install(CODE "
-				  message(STATUS 'Deploying qt...')
-					if(\${BUILD_TYPE} STREQUAL \"Debug\")
-						execute_process(COMMAND ${DEPLOYQT} \"\${CMAKE_INSTALL_PREFIX}/debug/visusviewer.exe\" WORKING_DIRECTORY ${QT5_BINARY_DIR})
-					else()
-						execute_process(COMMAND ${DEPLOYQT} \"\${CMAKE_INSTALL_PREFIX}/visusviewer.exe\"       WORKING_DIRECTORY ${QT5_BINARY_DIR})
-					endif()
-				")	
-			elseif (APPLE)
-				install(CODE "
-				  message(STATUS 'Deploying qt...')
-					if(\${BUILD_TYPE} STREQUAL \"Debug\")
-						execute_process(COMMAND ${DEPLOYQT} \"\${CMAKE_INSTALL_PREFIX}/debug/visusviewer.app\" WORKING_DIRECTORY ${QT5_BINARY_DIR})
-					else()
-						execute_process(COMMAND ${DEPLOYQT} \"\${CMAKE_INSTALL_PREFIX}/visusviewer.app\"       WORKING_DIRECTORY ${QT5_BINARY_DIR})
-					endif()
-					execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../CMake/postinstall.apple.py WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX})
-				")	
-			else()
-			
-				get_target_property(Qt5CoreLocation    Qt5::Core    LOCATION)
-				get_target_property(Qt5WidgetsLocation Qt5::Widgets LOCATION)
-				get_target_property(Qt5GuiLocation     Qt5::Gui     LOCATION)
-				get_target_property(Qt5OpenGLLocation  Qt5::OpenGL  LOCATION)
-				
-				macro (InstallSharedLibWithSymLinks filename)
-					get_filename_component(__location__ ${filename} REALPATH)
-					INSTALL(FILES ${__location__} DESTINATION ./Frameworks/) 
-				endmacro()
-				
-				if (NOT VISUS_INTERNAL_OPENSSL)
-					InstallSharedLibWithSymLinks(${OPENSSL_SSL_LIBRARY})
-					InstallSharedLibWithSymLinks(${OPENSSL_CRYPTO_LIBRARY})
-				endif()
-				
-				InstallSharedLibWithSymLinks(${Qt5CoreLocation})
-				InstallSharedLibWithSymLinks(${Qt5GuiLocation})
-				InstallSharedLibWithSymLinks(${Qt5WidgetsLocation})
-				InstallSharedLibWithSymLinks(${Qt5OpenGLLocation})
-				
-				if(EXISTS "/usr/lib64/libGLU.so")
-					InstallSharedLibWithSymLinks("/usr/lib64/libGLU.so")
-				endif()
-				
-				install(CODE "
-				  message(STATUS 'Post Install linux...')
-					execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../CMake/postinstall.linux.py WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX})
-				")				
-			endif()
-		
-		endif()
-	endmacro()	
-	
-	
-	# Post install step
-	add_subdirectory(CMake)
+	# Post install step 
+	if (NOT VISUS_IS_SUBMODULE)
+		add_subdirectory(CMake)
+	endif()
 	
 endif()
 

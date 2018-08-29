@@ -26,35 +26,37 @@ macro(SetupCMake)
 	endif()	
 	
 	if (APPLE)
-			execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpmachine OUTPUT_VARIABLE MACHINE OUTPUT_STRIP_TRAILING_WHITESPACE)
-			string(REGEX REPLACE ".*-darwin([0-9]+).*" "\\1" _apple_ver "${MACHINE}")
 	
-			if (_apple_ver EQUAL "17")
-			  set(APPLE_OSX_VERSION 10.13)
-			elseif (_apple_ver EQUAL "16")
-			  set(APPLE_OSX_VERSION 10.12)
-			elseif (_apple_ver EQUAL "15")
-			  set(APPLE_OSX_VERSION 10_11)
-			elseif (_apple_ver EQUAL "14")
- 			  set(APPLE_OSX_VERSION 10_10)
-			elseif (_apple_ver EQUAL "13")
-			  set(APPLE_OSX_VERSION 10_9)
-			elseif (_apple_ver EQUAL "12")
-			  set(APPLE_OSX_VERSION 10_8)
-			elseif (_apple_ver EQUAL "11")
- 			  set(APPLE_OSX_VERSION 10_7)
-			elseif (_apple_ver EQUAL "10")
-			  set(APPLE_OSX_VERSION 10_6)
-			else()
-			  message(FATAL "Unknown osx version")
-			endif()
-        
-      message(STATUS "APPLE_OSX_VERSION ${APPLE_OSX_VERSION}")			
-	endif()
+		# disable rpath
+		set(CMAKE_SKIP_RPATH         1)
+		set(CMAKE_SKIP_INSTALL_RPATH 1)	
+		set(CMAKE_MACOSX_RPATH       0)
+	
+		execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpmachine OUTPUT_VARIABLE MACHINE OUTPUT_STRIP_TRAILING_WHITESPACE)
+		string(REGEX REPLACE ".*-darwin([0-9]+).*" "\\1" _apple_ver "${MACHINE}")
 
-  if (APPLE)
-    set(CMAKE_MACOSX_RPATH 1)
-  endif()
+		if (_apple_ver EQUAL "17")
+			set(APPLE_OSX_VERSION 10.13)
+		elseif (_apple_ver EQUAL "16")
+			set(APPLE_OSX_VERSION 10.12)
+		elseif (_apple_ver EQUAL "15")
+			set(APPLE_OSX_VERSION 10_11)
+		elseif (_apple_ver EQUAL "14")
+			set(APPLE_OSX_VERSION 10_10)
+		elseif (_apple_ver EQUAL "13")
+			set(APPLE_OSX_VERSION 10_9)
+		elseif (_apple_ver EQUAL "12")
+			set(APPLE_OSX_VERSION 10_8)
+		elseif (_apple_ver EQUAL "11")
+			set(APPLE_OSX_VERSION 10_7)
+		elseif (_apple_ver EQUAL "10")
+			set(APPLE_OSX_VERSION 10_6)
+		else()
+			message(FATAL "Unknown osx version")
+		endif()
+		message(STATUS "APPLE_OSX_VERSION ${APPLE_OSX_VERSION}") 
+		         
+	endif()
 
 	if (WIN32)
 
@@ -112,19 +114,54 @@ macro(SetupCMake)
 
 	endif()
 
-  if (NOT DISABLE_OPENMP)
-	  find_package(OpenMP)
-	  if (OpenMP_FOUND)
-		  set(CMAKE_C_FLAGS          "${CMAKE_C_FLAGS}          ${OpenMP_C_FLAGS}")
-		  set(CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS}        ${OpenMP_CXX_FLAGS}")
-		  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-		  MESSAGE(STATUS "OpenMP found")
-	  else()
-	    MESSAGE(STATUS "OpenMP not found")
-	  endif()
-	else()
-	  MESSAGE(STATUS "OpenMP disabled")
+	
+	
+	# openmp
+	if (NOT DISABLE_OPENMP)
+		
+		if (APPLE)
+		
+			# FindOpenMP.cmake seems broken, at least for me
+			# see https://iscinumpy.gitlab.io/post/omp-on-high-sierra/
+			
+			set(OpenMP_INCLUDE_DIR /usr/local/opt/libomp/include)
+			set(OpenMP_LIBRARY     /usr/local/opt/libomp/lib/libomp.a)
+		
+			if(EXISTS "${OpenMP_INCLUDE_DIR}/omp.h" AND EXISTS ${OpenMP_LIBRARY})
+				set(OpenMP_FOUND 1)
+				include_directories(${OpenMP_INCLUDE_DIR})
+				link_libraries(${OpenMP_LIBRARY})
+			  set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}    -Xpreprocessor -fopenmp")
+				set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -Xpreprocessor -fopenmp")	
+				MESSAGE(STATUS "Found OpenMP")		
+			else()
+				set(OpenMP_FOUND 0)
+				if (OPENMP_REQUIRED)
+					MESSAGE(ERROR "Cannot find openmp. Install it using brew install libomp")
+				endif()
+			endif()
+			
+		else()
+		
+			if (OPENMP_REQUIRED)
+				find_package(OpenMP REQUIRED)
+			else()
+				find_package(OpenMP)
+			endif()
+		
+			if (OpenMP_FOUND)
+			  MESSAGE(STATUS "OpenMP found")
+			 	set(CMAKE_C_FLAGS          "${CMAKE_C_FLAGS}          ${OpenMP_C_FLAGS}")
+				set(CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS}        ${OpenMP_CXX_FLAGS}")
+				set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+			else()
+			  MESSAGE(STATUS "OpenMP disabled or not found")
+			endif()				
+		
+		endif()
+
 	endif()
+	
 	
 endmacro()
 
@@ -411,4 +448,16 @@ macro(InstallBuildFiles Pattern Destination)
 endmacro()
 
 
+
+
+# ///////////////////////////////////////////////////
+macro(VisusPostInstallStep)
+	if (WIN32)
+		install(CODE "execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../CMake/postinstall.win32.py \"${Qt5_DIR}\" WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX})")
+	elseif (APPLE)
+		install(CODE "execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../CMake/postinstall.apple.py \"${Qt5_DIR}\" WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX})")	
+	else()
+		install(CODE "execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../CMake/postinstall.linux.py \"${Qt5_DIR}\" WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX})")	
+	endif()
+endmacro()	
 
