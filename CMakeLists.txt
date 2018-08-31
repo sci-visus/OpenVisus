@@ -201,7 +201,12 @@ if (True)
 	InstallBuildFiles(*.py ./)
 	
 	if (WIN32)
-	  InstallBuildFiles(*.dll ./)
+		InstallBuildFiles(*.dll ./Dependencies/dlls)
+		
+		if (VISUS_INTERNAL_PYTHON)
+			install(DIRECTORY InternalLibs/python/win32/ DESTINATION ./Python36)
+		endif()
+		
 	endif()
 	
 	if (VISUS_GUI)
@@ -210,26 +215,17 @@ if (True)
 		install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
 	endif()
 	
+	install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py DESTINATION .)
+	
 endif()
 
 
 # ///////////////////////////////////////////////////////////////////
 # deploy target
 if (1)
-
-
-	if (WIN32)
-	  set(__ext__ "WIN32")
-	elseif(APPLE)
-	  set(__ext__ "APPLE")
-	else()
-	  set(__ext__ "LINUX")
-	endif()
-
 	add_custom_target(deploy
-		${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.${__ext__}.py "${Qt5_DIR}/../../.." 
-		WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})	
-              
+		${PYTHON_EXECUTABLE} deploy.py --qt-directory "${Qt5_DIR}/../../.." 
+		WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})        
 endif()	
 
 
@@ -253,7 +249,6 @@ if (1)
 		${PYTHON_EXECUTABLE} setup.py bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PLAT_NAME} 
 		WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
 		 	
-        
 endif()
 
 

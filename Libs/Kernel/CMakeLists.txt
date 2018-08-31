@@ -272,7 +272,7 @@ add_custom_command(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E cop
 # link python
 if (VISUS_INTERNAL_PYTHON)
 
-	target_link_libraries(VisusKernelPUBLIC python)
+	target_link_libraries(VisusKernel PUBLIC python)
 	
 elseif (WIN32)
 
