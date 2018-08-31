@@ -104,14 +104,18 @@ class Win32DeployStep(BaseDeployStep):
 			
 			PATH=[]
 			
-			QT_PLUGIN_PATH=".\\Dependencies\\plugins"
+			QT_PLUGIN_PATH="%cd%\\.\\Dependencies\\plugins"
 			
 			# important that pyqt comes first! otherwise PyQt5 and Qt5 will fight
 			if VISUS_INTERNAL_PYTHON:
-				PATH+=["Python36","Python36\\Scripts","Python36\\lib\\site-packages\\PyQt5\\Qt\\bin"]
-				QT_PLUGIN_PATH="Python36\\lib\\site-packages\\PyQt5\\Qt\\plugins"
+				PATH+=[
+					"%cd%\\Python36",
+					"%cd%\\Python36\\Scripts",
+					"%cd%\\Python36\\lib\\site-packages\\PyQt5\\Qt\\bin"
+				]
+				QT_PLUGIN_PATH="%cd%\\Python36\\lib\\site-packages\\PyQt5\\Qt\\plugins"
 				
-			PATH+=["Dependencies\dlls"]
+			PATH+=["%cd%\\Dependencies\dlls"]
 			PATH+=["%PATH%"]
 
 			# create a batch file
@@ -119,7 +123,7 @@ class Win32DeployStep(BaseDeployStep):
 				"cd /d %~dp0",
 				"set PATH=" + (";".join(PATH)),
 				"set QT_PLUGIN_PATH=" + QT_PLUGIN_PATH,
-				exe
+				exe + " %*"
 			])
 		
 			# deploy using qt
