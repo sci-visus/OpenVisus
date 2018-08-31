@@ -368,8 +368,9 @@ class LinuxDeployStep(BaseDeployStep):
 	def run(self):
 		
 		for name in ("QCore","Widgets","Gui","OpenGL"):
-			filename=self.qt_directory+...+name
-			self.installSharedLib(filename)
+			raise Exception("TPDP")
+			#filename=self.qt_directory+...+name
+			#self.installSharedLib(filename)
 				
 		#if (NOT VISUS_INTERNAL_OPENSSL)
 		#	self.installSharedLib(${OPENSSL_SSL_LIBRARY})
@@ -395,8 +396,10 @@ class LinuxDeployStep(BaseDeployStep):
 if __name__ == "__main__":
 	qt_directory=os.path.realpath(sys.argv[1])
 	
+	print("platform.system()",platform.system())
+	
 	deploy=None
-	if platform.system()=="Windows":
+	if platform.system()=="Windows" or platform.system()=="win32":
 		deploy=Win32DeployStep()
 		
 	elif platform.system()=="Darwin":
