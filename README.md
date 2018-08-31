@@ -142,9 +142,10 @@ set QT5_DIR=C:\Qt\Qt5.9.2\5.9.2\msvc2017_64
 	-DSWIG_EXECUTABLE="C:\ProgramData\chocolatey\bin\swig.exe" ^
 	..
 
-%CMAKE% --build . --target ALL_BUILD --config %CONFIGURATION%
-%CMAKE% --build . --target RUN_TESTS --config %CONFIGURATION%
-%CMAKE% --build . --target INSTALL   --config %CONFIGURATION% 
+%CMAKE% --build . --target ALL_BUILD   --config %CONFIGURATION%
+%CMAKE% --build . --target RUN_TESTS   --config %CONFIGURATION%
+%CMAKE% --build . --target INSTALL     --config %CONFIGURATION% 
+%CMAKE% --build . --target deploy      --config %CONFIGURATION% 
 ```
 
 To test if visusviewer it's working:
@@ -164,35 +165,59 @@ c:\Python36\python.exe -c "import OpenVisus; OpenVisus.check()"
 
 ## MacOSX compilation
 
-Install xcode (command line) brew and OpenVisus prerequisites:
+
+Install python using pyenv (best to avoid conflicts):
+
+```
+cd $HOME     
+curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer -O 
+chmod a+x pyenv-installer && ./pyenv-installer  && rm ./pyenv-installer
+ 
+cat<<EOF >> ~/.bashrc
+export PATH="\$HOME/.pyenv/bin:\$PATH" 
+eval "\$(pyenv init -)"          
+eval "\$(pyenv virtualenv-init -)"
+EOF
+source ~/.bashrc
+
+PYTHON_VERSION=3.6.6 # change it if needed
+CONFIGURE_OPTS=--enable-shared pyenv install -s $PYTHON_VERSION    
+CONFIGURE_OPTS=--enable-shared pyenv global     $PYTHON_VERSION 
+pip install --upgrade pip
+pip install numpy setuptools wheel twine PyQt5 
+```
+
+
+Install prerequisites:
 
 ```
 sudo xcode-select --install
-# if command line tools do not work, type the following:
-# sudo xcode-select --reset
+# if command line tools do not work, type the following: sudo xcode-select --reset
 ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew install git cmake swig qt5 openssl python3 # TODO! make sure qt5 is version 5.9.2!
-sudo pip3 install numpy setuptools wheel twine PyQt5==5.9.2
+brew install git cmake swig qt5 openssl 
+brew upgrade cmake
+sudo pip3 install numpy setuptools wheel twine PyQt5==5.9.2 # chage PyQt5 version to be the same as the 'brew info qt'
 ```
 
-
-Compile OpenVisus. From a prompt:
+Compile OpenVisus:
 
 ```
-export Qt5_DIR=/usr/local/opt/qt/lib/cmake/Qt5
-export DYLD_FRAMEWORK_PATH=$DYLD_FRAMEWORK_PATH:$Qt5_DIR/../../../lib
-export QT_PLUGIN_PATH=$QT_PLUGIN_PATH:$Qt5_DIR/../../../plugins  
-
 git clone https://github.com/sci-visus/OpenVisus
-cd OpenVisus
-mkdir build && cd build
+cd OpenVisus && mkdir build && cd build
 
-cmake -GXcode -DQt5_DIR=$Qt5_DIR .. 
+cmake -GXcode \
+  -DPYTHON_VERSION=${PYTHON_VERSION} \
+  -DPYTHON_EXECUTABLE=$(pyenv prefix)/bin/python \
+  -DPYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_VERSION:0:3}m \
+  -DPYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_VERSION:0:3}m.dylib \
+  -DQt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5 \
+  ..
 
 CONFIGURATION=RelWithDebInfo
-cmake --build . --target ALL_BUILD --config $CONFIGURATION -- -jobs 8
-cmake --build . --target RUN_TESTS --config $CONFIGURATION
-cmake --build . --target install   --config $CONFIGURATION
+cmake --build . --target ALL_BUILD   --config $CONFIGURATION -- -jobs 8
+cmake --build . --target RUN_TESTS   --config $CONFIGURATION
+cmake --build . --target install     --config $CONFIGURATION
+cmake --build . --target deploy      --config $CONFIGURATION
 ```
  
 To test if it's working:
@@ -249,7 +274,8 @@ mkdir build  && cd build
 cmake  -DCMAKE_BUILD_TYPE=RelWithDebugInfo ../   # -G "CodeBlocks - Unix Makefiles"  if you want to use an IDE
 cmake --build . --target all      -- -j 8
 cmake --build . --target test     
-cmake --build . --target install  
+cmake --build . --target install 
+cmake --build . --target deploy  
 ```
 
 To test if it's working:

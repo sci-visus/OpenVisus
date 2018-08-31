@@ -47,10 +47,11 @@ build_script:
   - set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%
   - python -m pip install numpy setuptools wheel twine
   - cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYTHON_VERSION=%PYTHON_VERSION% -DPYTHON_EXECUTABLE=%PYTHON_DIR%/python.exe -DPYTHON_INCLUDE_DIR=%PYTHON_DIR%/include ../
-  - cmake --build . --target ALL_BUILD --config RelWithDebInfo
-  - cmake --build . --target RUN_TESTS --config RelWithDebInfo
-  - cmake --build . --target INSTALL   --config RelWithDebInfo  
-  - cmake --build . --target dist      --config RelWithDebInfo
+  - cmake --build . --target ALL_BUILD   --config RelWithDebInfo
+  - cmake --build . --target RUN_TESTS   --config RelWithDebInfo
+  - cmake --build . --target INSTALL     --config RelWithDebInfo  
+  - cmake --build . --target deploy      --config RelWithDebInfo  
+  - cmake --build . --target dist        --config RelWithDebInfo
 
 # test are already in cmake
 test: off

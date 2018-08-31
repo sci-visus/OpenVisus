@@ -28,10 +28,8 @@ macro(SetupCMake)
 	if (APPLE)
 	
 		# disable rpath
-		set(CMAKE_SKIP_RPATH         1)
-		set(CMAKE_SKIP_INSTALL_RPATH 1)	
-		set(CMAKE_MACOSX_RPATH       0)
-	
+		set(CMAKE_MACOSX_RPATH  0)
+		
 		execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpmachine OUTPUT_VARIABLE MACHINE OUTPUT_STRIP_TRAILING_WHITESPACE)
 		string(REGEX REPLACE ".*-darwin([0-9]+).*" "\\1" _apple_ver "${MACHINE}")
 
@@ -367,6 +365,7 @@ macro(AddLibrary Name)
 	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
 	endif()
+	
 	 
 	InstallLibrary(${Name})
 endmacro()
@@ -450,14 +449,4 @@ endmacro()
 
 
 
-# ///////////////////////////////////////////////////
-macro(VisusPostInstallStep)
-	if (WIN32)
-		install(CODE "execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../CMake/postinstall.win32.py \"${Qt5_DIR}\" WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX})")
-	elseif (APPLE)
-		install(CODE "execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../CMake/postinstall.apple.py \"${Qt5_DIR}\" WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX})")	
-	else()
-		install(CODE "execute_process(COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../CMake/postinstall.linux.py \"${Qt5_DIR}\" WORKING_DIRECTORY \${CMAKE_INSTALL_PREFIX})")	
-	endif()
-endmacro()	
 

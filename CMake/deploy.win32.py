@@ -5,7 +5,7 @@ import subprocess
 import globs
 
 # ///////////////////////////////////////
-class PostInstallStep:
+class DeployStep:
 	
 	# constructor
 	def __init__(self,Qt5_DIR):
@@ -21,9 +21,8 @@ class PostInstallStep:
 		deployqt=self.Qt5_DIR+/../../../bin/windeployqt
 		self.executeCommand[deployqt,"visusviewer.exe"])
 		
-
+# ///////////////////////////////////////
 if __name__ == "__main__":
 	Qt5_DIR=sys.argv[1]
-	print("Executing post install step","Qt5_DIR",Qt5_DIR)
-	post_install_step=PostInstallStep(Qt5_DIR)
-	post_install_step.run()
+	print("Executing deploy","Qt5_DIR",Qt5_DIR)
+	DeployStep(Qt5_DIR).run()

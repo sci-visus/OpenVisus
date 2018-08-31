@@ -179,6 +179,7 @@ RUN set -x \
     ../ \
   && cmake --build . --target all -- -j 4 \
   && cmake --build . --target install \
+  && cmake --build . --target deploy \
   && cmake --build . --target dist 
   
   

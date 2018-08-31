@@ -210,15 +210,31 @@ if (True)
 		install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
 	endif()
 	
-	# Post install step 
-	if (NOT VISUS_IS_SUBMODULE)
-		add_subdirectory(CMake)
-	endif()
-	
 endif()
 
+
 # ///////////////////////////////////////////////////////////////////
-# 'dist' target
+# deploy target
+if (1)
+
+
+	if (WIN32)
+	  set(__ext__ "WIN32")
+	elseif(APPLE)
+	  set(__ext__ "APPLE")
+	else()
+	  set(__ext__ "LINUX")
+	endif()
+
+	add_custom_target(deploy
+		${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.${__ext__}.py "${Qt5_DIR}/../../.." 
+		WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})	
+              
+endif()	
+
+
+# ///////////////////////////////////////////////////////////////////
+# dist target
 if (1)
 
 	set(PYTHON_TAG cp${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
@@ -235,7 +251,8 @@ if (1)
 	
 	add_custom_target(dist 
 		${PYTHON_EXECUTABLE} setup.py bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PLAT_NAME} 
-		WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})	
+		WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
+		 	
         
 endif()
 
