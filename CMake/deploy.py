@@ -5,6 +5,7 @@ import subprocess
 import glob
 import shutil
 import platform
+import errno
 
 qt_plugins=("iconengines","imageformats","platforms","printsupport","styles")
 
@@ -30,7 +31,11 @@ class BaseDeployStep:
 		
 	# createDirectory
 	def createDirectory(self,value):
-		os.makedirs(value, exist_ok=True)
+		try: 
+			os.makedirs(value)
+		except OSError:
+			if not os.path.isdir(value):
+				raise		
 		
 	#	copyDirectory
 	def copyDirectory(self,src,dst):
