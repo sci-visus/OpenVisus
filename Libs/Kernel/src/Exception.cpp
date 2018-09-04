@@ -43,7 +43,7 @@ For support : support@visus.net
 namespace Visus {
 
 void __ThrowException__(Exception ex){
-  VisusInfo()<<"Throwing exception "<<ex.getExpression();
+  VisusInfo()<<"Throwing exception file("<<ex.getFile()<<") line("<<ex.getLine()<<") expr("<<ex.getExpression()<<")";
   throw ex;
 }  
 
