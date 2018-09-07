@@ -76,6 +76,8 @@ ThreadPool::~ThreadPool()
 ////////////////////////////////////////////////////////////
 void ThreadPool::asyncRun(Function run)
 {
+  ++wait.nrunning;
+
   ApplicationStats::num_cpu_jobs++;
 
   {
@@ -116,6 +118,9 @@ void ThreadPool::workerEntryProc(int worker)
     }
 
     ApplicationStats::num_cpu_jobs--;
+
+    //for the wait: signal it has finished
+    wait.ndone.up();
 
     if (bExit)
       break;

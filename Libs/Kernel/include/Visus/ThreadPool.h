@@ -67,6 +67,12 @@ public:
   //asyncRun
   void asyncRun(Function fn);
 
+  //waitAll
+  void waitAll() {
+    while (wait.nrunning--)
+      wait.ndone.down();
+  };
+
 private:
 
   CriticalSection                                   lock;
@@ -74,6 +80,14 @@ private:
   Semaphore                                         nwaiting;
   std::deque< SharedPtr<Function> >                 waiting;
   std::set  < SharedPtr<Function> >                 running;
+
+
+  struct
+  {
+    std::atomic<int>      nrunning = 0;
+    Semaphore             ndone;
+  }
+  wait;
 
   //workerEntryProc
   void workerEntryProc(int worker);
