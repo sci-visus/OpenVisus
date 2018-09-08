@@ -41,7 +41,8 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////
-ThreadPool::ThreadPool(String basename,int num_workers) : nwaiting(0)
+ThreadPool::ThreadPool(String basename,int num_workers) 
+  : nwaiting(0), wait_nrunning(0)
 {
   for (int I=0;I<num_workers;I++)
   {
@@ -76,7 +77,7 @@ ThreadPool::~ThreadPool()
 ////////////////////////////////////////////////////////////
 void ThreadPool::asyncRun(Function run)
 {
-  ++wait.nrunning;
+  ++wait_nrunning;
 
   ApplicationStats::num_cpu_jobs++;
 
@@ -120,7 +121,7 @@ void ThreadPool::workerEntryProc(int worker)
     ApplicationStats::num_cpu_jobs--;
 
     //for the wait: signal it has finished
-    wait.ndone.up();
+    wait_ndone.up();
 
     if (bExit)
       break;

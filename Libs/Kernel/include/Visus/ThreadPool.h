@@ -69,8 +69,8 @@ public:
 
   //waitAll
   void waitAll() {
-    while (wait.nrunning--)
-      wait.ndone.down();
+    while (wait_nrunning--)
+      wait_ndone.down();
   };
 
 private:
@@ -82,12 +82,8 @@ private:
   std::set  < SharedPtr<Function> >                 running;
 
 
-  struct
-  {
-    std::atomic<int>      nrunning = 0;
-    Semaphore             ndone;
-  }
-  wait;
+  std::atomic<int>      wait_nrunning;
+  Semaphore             wait_ndone;
 
   //workerEntryProc
   void workerEntryProc(int worker);
