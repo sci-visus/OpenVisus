@@ -136,7 +136,7 @@ bool Scene::openFromUrl(Url url)
 //    {
 //      UniquePtr<CloudStorage> cloud_storage(CloudStorage::createInstance(url)); VisusAssert(cloud_storage);
 //      if (cloud_storage)
-//        content=NetService::getNetResponse(cloud_storage->createGetBlobRequest(url)).getTextBody();
+//        content=NetService::getNetResponse(cloud_storage->getBlobRequest(url)).getTextBody();
 //    }
 //    else
 //    {

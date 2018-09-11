@@ -60,7 +60,7 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
     this->netservice = std::make_shared<NetService>(nconnections);
 
-  this->cloud_storage.reset(CloudStorage::createInstance(url)); 
+  this->cloud_storage=CloudStorage::createInstance(url); 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -69,26 +69,22 @@ CloudStorageAccess::~CloudStorageAccess()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
-Url CloudStorageAccess::getBlockQueryUrl(SharedPtr<BlockQuery> query) const
+String CloudStorageAccess::getBlockQueryName(SharedPtr<BlockQuery> query) const
 {
-  Url ret=this->url;
-  ret.setPath(StringUtils::format()
-    <<url.getPath()<<"/"
+  return StringUtils::format()
     <<"time_"<<cstring((int)query->time)<<"/"
     <<"field_"<<query->field.name<<"/"
-    <<"data_"<<std::setw(20) << std::setfill('0') << cstring(query->start_address));
-  return ret;
+    <<"data_"<<std::setw(20) << std::setfill('0') << cstring(query->start_address);
 }
-
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
 void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 {
   VisusAssert((int)query->nsamples.innerProduct()==(1<<bitsperblock));
-  Url url=getBlockQueryUrl(query);
+  String blob_name= getBlockQueryName(query);
 
-  auto request=cloud_storage->createGetBlobRequest(url);
+  auto request=cloud_storage->getBlobRequest(blob_name);
 
   if (!request.valid())
     return readFailed(query);
@@ -97,7 +93,7 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 
   auto gotNetResponse=[this,query](NetResponse response)
   {
-    auto metadata=cloud_storage->getMetadata(response);
+    auto metadata=cloud_storage->parseMetadata(response);
     for (auto it : metadata)
       response.setHeader(it.first,it.second);
 
@@ -154,7 +150,7 @@ void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
   VisusAssert((int)query->nsamples.innerProduct()==(1<<bitsperblock));
 
-  Url url=getBlockQueryUrl(query);
+  String blob_name=getBlockQueryName(query);
   
   auto decoded=query->buffer;
   auto encoded=ArrayUtils::encodeArray(compression,decoded);
@@ -162,13 +158,15 @@ void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
   if (!encoded)
     return writeFailed(query);
 
-  StringMap metadata;
-  metadata.setValue("visus-compression"  , compression);
-  metadata.setValue("visus-nsamples"     , decoded.dims.toString());
-  metadata.setValue("visus-dtype"        , decoded.dtype.toString());
-  metadata.setValue("visus-layout"       , decoded.layout);
+  CloudStorage::Blob blob;
+  blob.body = encoded;
 
-  auto request=cloud_storage->createAddBlobRequest(url,encoded,metadata);
+  blob.metadata.setValue("visus-compression", compression);
+  blob.metadata.setValue("visus-nsamples"     , decoded.dims.toString());
+  blob.metadata.setValue("visus-dtype"        , decoded.dtype.toString());
+  blob.metadata.setValue("visus-layout"       , decoded.layout);
+
+  auto request=cloud_storage->addBlobRequest(blob_name,blob);
 
   if (!request.valid())
     return writeFailed(query);

@@ -90,6 +90,7 @@ CaCertFile::CaCertFile()
     curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, NULL);
     curl_easy_setopt(handle, CURLOPT_WRITEDATA, fp);
     curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 0L); //just for now
+    curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
     CURLcode res = curl_easy_perform(handle);
 
     if (res != CURLE_OK) {
@@ -165,6 +166,7 @@ public:
         curl_easy_setopt(this->handle, CURLOPT_NOSIGNAL, 1L); //otherwise crash on linux
         curl_easy_setopt(this->handle, CURLOPT_TCP_NODELAY, 1L);
         curl_easy_setopt(this->handle, CURLOPT_VERBOSE, 0L); //SET to 1L if you want to debug !
+        curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
 
         String cacertfile=CaCertFile::getSingleton()->getFilename();
         if (!cacertfile.empty())

@@ -82,8 +82,8 @@ private:
 
   SharedPtr<CloudStorage> cloud_storage;
 
-  //getBlockQueryUrl
-  Url getBlockQueryUrl(SharedPtr<BlockQuery> query) const;
+  //getBlockQueryName
+  String getBlockQueryName(SharedPtr<BlockQuery> query) const;
 
 
 };

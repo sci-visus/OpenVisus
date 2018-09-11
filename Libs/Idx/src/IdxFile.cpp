@@ -409,9 +409,11 @@ IdxFile IdxFile::openFromUrl(Url url)
     //special case for cloud storage, I need to sign the request
     if (url.isRemote() && !StringUtils::contains(url.toString(),"mod_visus"))
     {
-      UniquePtr<CloudStorage> cloud_storage(CloudStorage::createInstance(url)); VisusAssert(cloud_storage);
-      if (cloud_storage)
-        content=NetService::getNetResponse(cloud_storage->createGetBlobRequest(url)).getTextBody();
+      if (auto cloud_storage = CloudStorage::createInstance(url))
+      {
+        String blob_name = url.getPath().substr(url.getPath().rfind("/")+1);
+        content = NetService::getNetResponse(cloud_storage->getBlobRequest(blob_name)).getTextBody();
+      }
     }
     else
     {

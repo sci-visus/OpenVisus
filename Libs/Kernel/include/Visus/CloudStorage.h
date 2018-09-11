@@ -52,127 +52,62 @@ public:
 
   VISUS_CLASS(CloudStorage)
 
-  //Typical url syntax: host/container/blob 
+  //Typical url syntax: <host>/<container_name>/<blob_name> 
   //where for example:
-  //  host      = visus.blob.core.windows.net | visus.s3.amazonaws.com
-  //  container = 2kbit1
-  //  blob      = block0001.bin
+  //  <host>      = visus.blob.core.windows.net | visus.s3.amazonaws.com
+  //  <container> = 2kbit1
+  //  <blob>      = block0001.bin
 
-  enum CloudStorageType
+
+  //_____________________________________________________
+  class VISUS_KERNEL_API Blob
   {
-    DoNotUseCloudStorage=0,
-    UseAzureCloudStorage,
-    UseAmazonCloudStorage,
+  public:
+    StringMap metadata;
+    SharedPtr<HeapMemory> body;
+    String content_type = "application/octet-stream";
+    bool valid() const { return body ? true : false; }
   };
 
-  //destructor
-  virtual ~CloudStorage()
-  {}
 
-  //createInstance
-  static VISUS_NEWOBJECT(CloudStorage*) createInstance(CloudStorageType type);
-
-  //guessType
-  static CloudStorageType guessType(Url url);
-
-  //createInstance
-  static VISUS_NEWOBJECT(CloudStorage*) createInstance(Url url) {
-    return createInstance(guessType(url));
+  //constructor
+  CloudStorage(){
   }
-  
-  // createListOfContainersRequest 
-  virtual NetRequest createListOfContainersRequest(Url url)=0;
-  
-  //createCreateContainerRequest
-  virtual NetRequest createListOfBlobsRequest(Url url)=0;
-  
-  // createCreateContainerRequest
-  virtual NetRequest createCreateContainerRequest(Url url,bool isPublic=true)=0;
 
-  // createDeleteContainerRequest
-  virtual NetRequest createDeleteContainerRequest(Url url)=0;
+  //destructor
+  virtual ~CloudStorage() {
+  }
 
-  // createAddBlobRequest 
-  virtual NetRequest createAddBlobRequest(Url url,SharedPtr<HeapMemory> blob,StringMap metadata,String content_type = "application/octet-stream")=0;
-
-  // createDeleteBlobRequest
-  virtual NetRequest createDeleteBlobRequest(Url url)=0;
-
-  // createHasBlobRequest 
-  virtual NetRequest createHasBlobRequest(Url url)=0;
-
-  // createGetBlobRequest 
-  virtual NetRequest createGetBlobRequest(Url url)=0;
-
-  //getListOfContainers
-  virtual StringTree getListOfContainers(NetResponse response)=0;
-
-  //getListOfBlobs
-  virtual StringTree getListOfBlobs(NetResponse response)=0;
-
-  //getMetadata
-  virtual StringMap getMetadata(NetResponse response)=0;
-
-  //setMetadata
-  virtual void setMetadata(NetRequest& request,const StringMap& metadata)=0;
+  //createInstance
+  static SharedPtr<CloudStorage> createInstance(Url url);
 
 public:
+  
+  // createContainer
+  virtual bool createContainer()=0;
 
-  //createContainer
-  bool createContainer(Url url);
+  // deleteContainer
+  virtual bool deleteContainer()=0;
 
-  //deleteContainer
-  bool deleteContainer(Url url);
+  // deleteBlob
+  virtual bool deleteBlob(String name) = 0;
 
-  //listContainers
-  StringTree listContainers(Url url);
+  // addBlobRequest 
+  virtual NetRequest addBlobRequest(String name,Blob blob)=0;
+
+  // getBlobRequest 
+  virtual NetRequest getBlobRequest(String name)=0;
+
+  //parseMetadata
+  virtual StringMap parseMetadata(NetResponse response)=0;
 
   //addBlob
-  bool addBlob(Url dst_url,SharedPtr<HeapMemory> blob,StringMap meta_data);
-
-  //deleteBlob
-  bool deleteBlob(Url url);
+  bool addBlob(String name, Blob blob);
 
   //getBlob
-  SharedPtr<HeapMemory> getBlob(Url url,StringMap& meta_data);
-
-  //listOfBlobs
-  StringTree listOfBlobs(Url url);
-
-protected:
-
-  //getMetaDataPrefix
-  virtual String getMetaDataPrefix()=0;
-
-  //isGoodMetaName
-  virtual bool isGoodMetaName(String meta_name)=0;
-
-  //signRequest
-  virtual bool signRequest(NetRequest& request)=0;
-
-  //getDateGTM
-  static String getDateGTM(const char* format="%a, %d %b %Y %H:%M:%S GMT");
-
-  //isGoodContainerName
-  static bool isGoodContainerName(String container_name);
-
-  //isGoodBlobName
-  static bool isGoodBlobName(String blob_name);
-  
-  //getContainerName
-  static String getContainerName(Url url);
-
-  //getBlobName
-  static String getBlobName(Url url);
-
-  //needRequestParam
-  static String needRequestParam(NetRequest& request,String name,bool bBaseDecodeBase64,bool bRemoveParamFromRequest);
+  Blob getBlob(String name);
 
 };
-
-
-
-
 
 } //namespace Visus
 

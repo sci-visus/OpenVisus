@@ -326,7 +326,7 @@ public:
   {}
 
   //constructor
-  NetRequest(Url url_) : url(url_),method("GET")
+  NetRequest(Url url_,String method_="GET") : url(url_),method(method_)
   {}
 
   //constructor

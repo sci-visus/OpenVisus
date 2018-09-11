@@ -37,12 +37,12 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/CloudStorage.h>
-#include <Visus/AmazonCloudStorage.h>
-#include <Visus/AzureCloudStorage.h>
 #include <Visus/NetService.h>
 #include <Visus/Log.h>
+#include <Visus/Path.h>
 
 #include <cctype>
+#include <Visus/json.hpp>
 
 #if WIN32
 #pragma warning(disable:4996)
@@ -51,178 +51,571 @@ For support : support@visus.net
 namespace Visus {
 
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-CloudStorage* CloudStorage::createInstance(CloudStorageType type)
+//////////////////////////////////////////////////////////////////////////////// 
+class AzureCloudStorage : public CloudStorage
 {
-  if (type==UseAzureCloudStorage ) return new AzureCloudStorage ();
-  if (type==UseAmazonCloudStorage) return new AmazonCloudStorage();
-  return nullptr;
+public:
+
+  String container_url;
+  String username;
+  String password;
+
+  //constructor
+  AzureCloudStorage(Url url) 
+  {
+    this->password = url.getParam("password");
+    VisusAssert(!password.empty());
+    this->password = StringUtils::base64Decode(password);
+
+    this->username =url.getHostname().substr(0, url.getHostname().find('.'));
+
+    String path = url.getPath();
+    int index = (int)path.find('/', 1);
+    String container_name = (index >= 0) ? path.substr(1, index - 1) : path.substr(1);
+
+    this->container_url = url.getProtocol() + "/" + url.getHostname() + "/" + container_name;
+  }
+
+  //destructor
+  virtual ~AzureCloudStorage() {
+  }
+
+  //signRequest
+  void signRequest(NetRequest& request)
+  {
+    String canonicalized_resource = "/" + this->username + request.url.getPath();
+
+    if (!request.url.params.empty())
+    {
+      std::ostringstream out;
+      for (auto it = request.url.params.begin(); it != request.url.params.end(); ++it)
+        out << "\n" << it->first << ":" << it->second;
+      canonicalized_resource += out.str();
+    }
+
+    char date_GTM[256];
+    time_t t; time(&t);
+    struct tm *ptm = gmtime(&t);
+    strftime(date_GTM, sizeof(date_GTM), "%a, %d %b %Y %H:%M:%S GMT", ptm);
+
+    request.setHeader("x-ms-version", "2011-08-18");
+    request.setHeader("x-ms-date", date_GTM);
+
+    String canonicalized_headers;
+    {
+      std::ostringstream out;
+      int N = 0; for (auto it = request.headers.begin(); it != request.headers.end(); it++)
+      {
+        if (StringUtils::startsWith(it->first, "x-ms-"))
+          out << (N++ ? "\n" : "") << StringUtils::toLower(it->first) << ":" << it->second;
+      }
+      canonicalized_headers = out.str();
+    }
+
+    String signature;
+    signature += request.method + "\n";// Verb
+    signature += request.getHeader("Content-Encoding") + "\n";
+    signature += request.getHeader("Content-Language") + "\n";
+    signature += request.getHeader("Content-Length") + "\n";
+    signature += request.getHeader("Content-MD5") + "\n";
+    signature += request.getHeader("Content-Type") + "\n";
+    signature += request.getHeader("Date") + "\n";
+    signature += request.getHeader("If-Modified-Since") + "\n";
+    signature += request.getHeader("If-Match") + "\n";
+    signature += request.getHeader("If-None-Match") + "\n";
+    signature += request.getHeader("If-Unmodified-Since") + "\n";
+    signature += request.getHeader("Range") + "\n";
+    signature += canonicalized_headers + "\n";
+    signature += canonicalized_resource;
+
+    signature = StringUtils::base64Encode(StringUtils::sha256(signature, this->password));
+
+    request.setHeader("Authorization", "SharedKey " + username + ":" + signature);
+  }
+
+  // createContainer
+  virtual bool createContainer() override
+  {
+    NetRequest request(container_url, "PUT");
+    request.url.params.setValue("restype", "container");
+    request.setContentLength(0);
+    request.setHeader("x-ms-prop-publicaccess", "true");
+    signRequest(request);
+
+    auto response = NetService::getNetResponse(request);
+    if (!response.isSuccessful())
+    {
+      VisusWarning() << "ERROR. Cannot create container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+      return false;
+    }
+    VisusInfo() << "createContainer done";
+    return true;
+  }
+
+  // deleteContainer
+  virtual bool deleteContainer() override
+  {
+    NetRequest request(container_url, "DELETE");
+    request.url.params.setValue("restype", "container");
+    signRequest(request);
+
+    auto response = NetService::getNetResponse(request);
+    if (!response.isSuccessful())
+    {
+      VisusWarning() << "ERROR. Cannot delete container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+      return false;
+    }
+    VisusInfo() << "deleteContainer done";
+    return true;
+  }
+
+  // addBlobRequest 
+  virtual NetRequest addBlobRequest(String blob_name, Blob blob) override
+  {
+    NetRequest request(container_url + "/" + blob_name, "PUT");
+    request.body = blob.body;
+    request.setContentLength(blob.body->c_size());
+    request.setHeader("x-ms-blob-type", "BlockBlob");
+    request.setContentType(blob.content_type);
+
+    for (auto it : blob.metadata)
+      request.setHeader("x-ms-meta-" + it.first, it.second);
+
+    signRequest(request);
+
+    return request;
+  }
+
+  // deleteBlob
+  virtual bool deleteBlob(String blob_name) override
+  {
+    NetRequest request(container_url + "/" + blob_name, "DELETE");
+    signRequest(request);
+
+    auto response = NetService::getNetResponse(request);
+    if (!response.isSuccessful())
+    {
+      VisusWarning() << "ERROR Cannot delete block status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+      return false;
+    }
+    VisusInfo() << "deleteBlob done";
+    return true;
+  }
+
+  // getBlobRequest 
+  virtual NetRequest getBlobRequest(String blob_name) override
+  {
+    NetRequest request(container_url + "/" + blob_name, "GET");
+    signRequest(request);
+    return request;
+  }
+
+  //parseMetadata
+  virtual StringMap parseMetadata(NetResponse response) override
+  {
+    StringMap ret;
+
+    String metatata_prefix = "x-ms-meta-";
+    for (auto it = response.headers.begin(); it != response.headers.end(); it++)
+    {
+      String name = it->first;
+      if (StringUtils::startsWith(name, metatata_prefix))
+      {
+        name = StringUtils::replaceAll(name.substr(metatata_prefix.length()), "_", "-"); //trick: azure does not allow the "-" 
+        ret.setValue(name, it->second);
+      }
+    }
+
+    return ret;
+  }
+
+
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
+class AmazonCloudStorage : public CloudStorage
+{
+public:
+
+  VISUS_CLASS(AmazonCloudStorage)
+
+  String container_url;
+  String username;
+  String password;
+
+  //constructor
+  AmazonCloudStorage(Url url)  
+  {
+    this->username = url.getParam("username");
+    VisusAssert(!this->username.empty());
+
+    this->password = url.getParam("password");
+    VisusAssert(!this->password.empty());
+    this->password = StringUtils::base64Decode(password);
+
+    //http://host.something.com/container_name/blob_name path=/container_name/blob_name
+    String path = url.getPath();
+    VisusAssert(!path.empty() && path[0] == '/');
+    int index = (int)path.find('/', 1);
+    String container_name = (index >= 0) ? path.substr(1, index - 1) : path.substr(1);
+
+    this->container_url = url.getProtocol() + "//" + url.getHostname() + "/" + container_name;
+  }
+
+  //destructor
+  virtual ~AmazonCloudStorage() {
+  }
+
+  //signRequest
+  void signRequest(NetRequest& request)
+  {
+    String canonicalized_resource = request.url.getPath();
+    int find_bucket = StringUtils::find(request.url.getHostname(), "s3.amazonaws.com"); VisusAssert(find_bucket >= 0);
+    String bucket_name = request.url.getHostname().substr(0, find_bucket);
+    bucket_name = StringUtils::rtrim(bucket_name, ".");
+    if (!bucket_name.empty())
+      canonicalized_resource = "/" + bucket_name + canonicalized_resource;
+
+    String canonicalized_headers;
+    {
+      std::ostringstream out;
+      for (auto it = request.headers.begin(); it != request.headers.end(); it++)
+      {
+        if (StringUtils::startsWith(it->first, "x-amz-"))
+          out << StringUtils::toLower(it->first) << ":" << it->second << "\n";
+      }
+      canonicalized_headers = out.str();
+    }
+
+    char date_GTM[256];
+    time_t t; time(&t);
+    struct tm *ptm = gmtime(&t);
+    strftime(date_GTM, sizeof(date_GTM), "%a, %d %b %Y %H:%M:%S GMT", ptm);
+
+    String signature = request.method + "\n";
+    signature += request.getHeader("Content-MD5") + "\n";
+    signature += request.getContentType() + "\n";
+    signature += String(date_GTM) + "\n";
+    signature += canonicalized_headers;
+    signature += canonicalized_resource;
+    signature = StringUtils::base64Encode(StringUtils::sha1(signature, password));
+    request.setHeader("Host", request.url.getHostname());
+    request.setHeader("Date", date_GTM);
+    request.setHeader("Authorization", "AWS " + username + ":" + signature);
+  }
+
+  // createContainerRequest
+  virtual bool createContainer() override
+  {
+    NetRequest request(this->container_url, "PUT");
+    request.url.setPath(request.url.getPath() + "/"); //IMPORTANT the "/" to indicate is a container! see http://www.bucketexplorer.com/documentation/amazon-s3--how-to-create-a-folder.html
+    signRequest(request);
+
+    auto response = NetService::getNetResponse(request);
+    if (!response.isSuccessful())
+    {
+      VisusWarning() << "ERROR. Cannot create container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+      return false;
+    }
+    VisusInfo() << "createContainer done";
+    return true;
+  }
+
+  // deleteContainer
+  virtual bool deleteContainer() override
+  {
+    NetRequest request(this->container_url, "DELETE");
+    request.url.setPath(request.url.getPath() + "/"); //IMPORTANT the "/" to indicate is a container!
+    signRequest(request);
+
+    auto response = NetService::getNetResponse(request);
+    if (!response.isSuccessful())
+    {
+      VisusWarning() << "ERROR. Cannot delete container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+      return false;
+    }
+    VisusInfo() << "deleteContainer done";
+    return true;
+  }
+
+  // addBlobRequest 
+  virtual NetRequest addBlobRequest(String blob_name, Blob blob) override
+  {
+    NetRequest request(this->container_url+ "/" + blob_name, "PUT");
+    request.body = blob.body;
+    request.setContentLength(blob.body->c_size());
+    request.setContentType(blob.content_type);
+
+    //metadata
+    for (auto it : blob.metadata)
+    {
+      request.setHeader("x-amz-meta-" + it.first, it.second);
+    }
+
+    signRequest(request);
+
+    return request;
+  }
+
+  // deleteBlob
+  virtual bool deleteBlob(String blob_name) override
+  {
+    NetRequest request(this->container_url + "/" + blob_name, "DELETE");
+    signRequest(request);
+
+    auto response = NetService::getNetResponse(request);
+    if (!response.isSuccessful())
+    {
+      VisusWarning() << "ERROR Cannot delete block status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+      return false;
+    }
+    VisusInfo() << "deleteBlob done";
+    return true;
+  }
+
+  // getBlobRequest 
+  virtual NetRequest getBlobRequest(String blob_name) override
+  {
+    NetRequest request(this->container_url + "/" + blob_name, "GET");
+    signRequest(request);
+    return request;
+  }
+
+  //parseMetadata
+  virtual StringMap parseMetadata(NetResponse response) override
+  {
+    StringMap ret;
+    String metatata_prefix = "x-amz-meta-";
+    for (auto it = response.headers.begin(); it != response.headers.end(); it++)
+    {
+      String name = it->first;
+      if (StringUtils::startsWith(name, metatata_prefix))
+      {
+        name = StringUtils::replaceAll(name.substr(metatata_prefix.length()), "_", "-"); //backward compatibility
+        ret.setValue(name, it->second);
+      }
+    }
+    return ret;
+  }
+
+
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
+class GoogleDriveStorage : public CloudStorage
+{
+public:
+
+  VISUS_CLASS(GoogleDriveStorage)
+
+  String container_id;
+
+  String client_id;
+  String client_secret;
+  String access_token;
+  String refresh_token;
+
+  //constructor
+  GoogleDriveStorage(Url url) 
+  {
+    String path = url.getPath();
+    VisusAssert(!path.empty() && path[0] == '/');
+    int index = (int)path.find('/', 1);
+    String container_name = (index >= 0) ? path.substr(1, index - 1) : path.substr(1);
+    this->container_id = getContainerId(container_name);
+
+    this->access_token   = url.getParam("access_token"); VisusAssert(!access_token.empty());
+    this->refresh_token  = url.getParam("refresh_token"); VisusAssert(!refresh_token.empty());
+    this->client_id      = url.getParam("client_id"); VisusAssert(!client_id.empty());
+    this->client_secret  = url.getParam("client_secret"); VisusAssert(!client_secret.empty());
+  }
+
+  //destructor
+  virtual ~GoogleDriveStorage() {
+  }
+
+  //signRequest
+  void signRequest(NetRequest& request)
+  {
+    request.headers.setValue("Authorization", "Bearer " + access_token);
+  }
+
+  //getContainerId
+  String getContainerId(String container_name)
+  {
+    NetRequest request("https://www.googleapis.com/drive/v3/files?q=name='" + container_name + "'", "GET");
+    signRequest(request);
+    auto response=NetService::getNetResponse(request);
+    if (!response.isSuccessful())
+      return "";
+
+    auto json = nlohmann::json::parse(response.getTextBody());
+    auto container_id =json["files"][0]["id"].get<std::string>();
+    return container_id;
+  }
+
+  //getBlobId
+  String getBlobId(String blob_name)
+  {
+    NetRequest request("https://www.googleapis.com/drive/v3/files?q=name='" + blob_name + "' container_id in parents", "GET");
+    signRequest(request);
+    auto response = NetService::getNetResponse(request);
+    if (!response.isSuccessful())
+      return "";
+
+    auto json = nlohmann::json::parse(response.getTextBody());
+    auto blob_id = json["files"][0]["id"].get<std::string>();
+    return blob_id;
+  }
+
+  // createContainer
+  virtual bool createContainer() override
+  {
+    NetRequest request(Url("https://www.googleapis.com/drive/v3/files"),"POST");
+    request.setHeader("Content-Type","application/json");
+    request.setTextBody("{'name':'Folder1000','mimeType':'application/vnd.google-apps.folder'}");
+    signRequest(request);
+
+    auto response = NetService::getNetResponse(request);
+    if (!response.isSuccessful())
+    {
+      VisusWarning() << "ERROR. Cannot create container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+      return false;
+    }
+
+    auto json = nlohmann::json::parse(response.getTextBody());
+    this->container_id = json["id"].get<std::string>();
+
+    VisusInfo() << "createContainer done";
+    return true;
+  }
+
+  // deleteContainer
+  virtual bool deleteContainer() override
+  {
+    if (container_id.empty())
+      return false;
+
+    NetRequest request(Url("https://www.googleapis.com/drive/v3/files/"+container_id),"DELETE");
+    signRequest(request);
+
+    auto response = NetService::getNetResponse(request);
+    if (!response.isSuccessful())
+    {
+      VisusWarning() << "ERROR. Cannot delete container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+      return false;
+    }
+    VisusInfo() << "deleteContainer done";
+    return true;
+  }
+
+  // addBlobRequest 
+  virtual NetRequest addBlobRequest(String blob_name, Blob blob) override
+  {
+    NetRequest request("aaa");
+    request.method = "PUT";
+    request.body = blob.body;
+    request.setContentLength(blob.body->c_size());
+    request.setContentType(blob.content_type);
+
+    //metadata
+    for (auto it : blob.metadata)
+      request.setHeader("x-amz-meta-" + it.first, it.second);
+
+    signRequest(request);
+    return request;
+  }
+
+  // deleteBlob
+  virtual bool deleteBlob(String blob_name) override
+  {
+    auto blob_id=getBlobId(blob_name);
+    if (blob_id.empty())
+      return false;
+
+    NetRequest request(Url("https://www.googleapis.com/drive/v3/files/" + blob_id), "DELETE");
+    signRequest(request);
+
+    auto response = NetService::getNetResponse(request);
+    if (!response.isSuccessful())
+    {
+      VisusWarning() << "ERROR. Cannot delete container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+      return false;
+    }
+    VisusInfo() << "deleteContainer done";
+    return true;
+  }
+
+  // getBlobRequest 
+  virtual NetRequest getBlobRequest(String blob_name) override
+  {
+    auto blob_id = getBlobId(blob_name);
+    NetRequest request(Url("https://www.googleapis.com/drive/v3/files/" + blob_id + "?fields=id,name,mimeType,properties"),"GET");
+    signRequest(request);
+
+    //NetRequest request(Url("https://www.googleapis.com/drive/v3/files/" + blob_id + "?alt=media"), "GET");
+    //signRequest(request);
+
+    return request;
+  }
+
+
+  //parseMetadata
+  virtual StringMap parseMetadata(NetResponse response) override
+  {
+    return StringMap();
+  }
+
+
+};
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+SharedPtr<CloudStorage> CloudStorage::createInstance(Url url)
+{
+  if (StringUtils::contains(url.getHostname(), "core.windows"))
+    return std::make_shared<AzureCloudStorage>(url);
+
+  if (StringUtils::contains(url.getHostname(), "s3.amazonaws"))
+    return std::make_shared<AmazonCloudStorage>(url);
+
+  if (StringUtils::contains(url.getHostname(), "googleapis"))
+    return std::make_shared<GoogleDriveStorage>(url);
+
+  return SharedPtr<CloudStorage>();
 }
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-CloudStorage::CloudStorageType CloudStorage::guessType(Url url)
+bool CloudStorage::addBlob(String blob_name, Blob blob)
 {
-  CloudStorageType ret=DoNotUseCloudStorage;
-  if      (StringUtils::contains(url.getHostname(),"core.windows")) ret=UseAzureCloudStorage;
-  else if (StringUtils::contains(url.getHostname(),"s3.amazonaws")) ret=UseAmazonCloudStorage;
-  return ret;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-String CloudStorage::getDateGTM(const char* format)
-{
-  char ret[256];
-  time_t t;time(&t);
-  struct tm *ptm= gmtime (&t);
-  strftime(ret,sizeof(ret),format,ptm);
-  return ret;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-String CloudStorage::needRequestParam(NetRequest& request,String name,bool bBaseDecodeBase64,bool bRemoveParamFromRequest)
-{
-  String ret=request.url.getParam(name); 
-  if (ret.empty()) {VisusAssert(false);return "";}
-  if (bRemoveParamFromRequest) request.url.params.eraseValue(name);
-  return bBaseDecodeBase64? StringUtils::base64Decode(ret) : ret;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-String CloudStorage::getContainerName(Url url)
-{
-  //http://host.something.com/container_name/blob_name path=/container_name/blob_name
-  String path=url.getPath(); 
-  VisusAssert(!path.empty() && path[0]=='/');
-  int index=(int)path.find('/',1); 
-  String ret=(index>=0)? path.substr(1,index-1) : path.substr(1);
-  return ret;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-String CloudStorage::getBlobName(Url url)
-{
-  String path=url.getPath(); 
-  VisusAssert(!path.empty() && path[0]=='/');
-  int index=(int)path.find('/',1); VisusAssert(index>=0);
-  String ret=path.substr(index+1);
-  return ret;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-bool CloudStorage::isGoodContainerName(String container_name)
-{
-  //isGoodContainerName
-  // for azure  see: http://stackoverflow.com/questions/16446568/how-to-evaluate-valid-azure-blob-storage-container-names
-  // for amazon see : ?
-
-  bool ret=true;
-  ret=ret && (container_name.size()>=3 && container_name.size()<=63);
-  ret=ret && (StringUtils::toLower(container_name)==container_name);
-  ret=ret && (std::isalnum(container_name[0]));
-  ret=ret && (!StringUtils::startsWith(container_name,"-") && StringUtils::find(container_name,"--")<0 && !StringUtils::endsWith(container_name,"-"));
-  for (int I=0;I<(int)container_name.size();I++) 
-    ret=ret && (std::isalnum(container_name[I]) || container_name[I]=='-');
-  return ret;
-}
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-bool CloudStorage::isGoodBlobName(String blob_name)
-{
-  bool ret=true;
-  ret=ret && (blob_name.size()>=1 && blob_name.size()<1024);
-  ret=ret && (!StringUtils::endsWith(blob_name,"."));
-  ret=ret && (!StringUtils::endsWith(blob_name,"/"));
-  ret=ret && (StringUtils::find(blob_name,"..")<0);
-  ret=ret && (StringUtils::find(blob_name,"//")<0);
-  ret=ret && (StringUtils::find(blob_name,"./")<0);
-  ret=ret && (StringUtils::find(blob_name,"/.")<0);
-  return ret;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-bool CloudStorage::createContainer(Url url)
-{
-  auto request =createCreateContainerRequest(url);
-  auto response=NetService::getNetResponse(request);
+  auto response = NetService::getNetResponse(addBlobRequest(blob_name, blob));
   if (!response.isSuccessful())
-    {VisusWarning()<<"ERROR. Cannot create container status(" <<response.status<<"),errormsg("<<response.getErrorMessage()<<")";return false;}    
-  VisusInfo()<<"createContainer done";
+  {
+    VisusWarning() << "ERROR. Cannot create blob status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+    return false;
+  }
+  VisusInfo() << "addBlob done";
   return true;
 }
 
-//////////////////////////////////////////////////////////////////////////////
-bool CloudStorage::deleteContainer(Url url)
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+CloudStorage::Blob CloudStorage::getBlob(String name)
 {
-  auto request =createDeleteContainerRequest(url);
-  auto response=NetService::getNetResponse(request);
+  auto response = NetService::getNetResponse(getBlobRequest(name));
   if (!response.isSuccessful())
-    {VisusWarning()<<"ERROR. Cannot delete container status(" <<response.status<<"),errormsg("<<response.getErrorMessage()<<")";return false;}
-  VisusInfo()<<"deleteContainer done";
-  return true;
+  {
+    VisusWarning() << "ERROR Cannot get blob status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+    return CloudStorage::Blob();
+  }
+
+  Blob ret;
+  ret.body = response.body;
+  ret.metadata = parseMetadata(response);
+  return ret;
 }
 
-//////////////////////////////////////////////////////////////////////////////
-StringTree CloudStorage::listContainers(Url url)
-{
-  auto request =createListOfContainersRequest(url);
-  auto response=NetService::getNetResponse(request);
-  if (!response.isSuccessful())
-    {VisusWarning()<<"ERROR Cannot list containers status(" <<response.status<<"),errormsg("<<response.getErrorMessage()<<")";return StringTree();}
-  VisusInfo()<<"listContainers done";
-  return getListOfContainers(response);
-}
-
-//////////////////////////////////////////////////////////////////////////////
-bool CloudStorage::addBlob(Url dst_url,SharedPtr<HeapMemory> blob,StringMap metadata)
-{
-  auto request =createAddBlobRequest(dst_url,blob,metadata);
-  auto response=NetService::getNetResponse(request);
-  if (!response.isSuccessful())
-    {VisusWarning()<<"ERROR. Cannot create blob status(" <<response.status<<"),errormsg("<<response.getErrorMessage()<<")";return false;}
-  VisusInfo()<<"addBlob done";
-  return true;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-bool CloudStorage::deleteBlob(Url url)
-{
-  auto request =createDeleteBlobRequest(url);
-  auto response=NetService::getNetResponse(request);
-  if (!response.isSuccessful())
-    {VisusWarning()<<"ERROR Cannot delete block status(" <<response.status<<"),errormsg("<<response.getErrorMessage()<<")";return false;}
-  VisusInfo()<<"deleteBlob done";
-  return true;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-SharedPtr<HeapMemory> CloudStorage::getBlob(Url url,StringMap& meta_data)
-{
-  auto request =createGetBlobRequest(url);
-  auto response=NetService::getNetResponse(request);
-
-  if (!response.isSuccessful())
-    {VisusWarning()<<"ERROR Cannot get blob status(" <<response.status<<"),errormsg("<<response.getErrorMessage()<<")";return SharedPtr<HeapMemory>();}
-
-  meta_data=getMetadata(response);
-
-  VisusInfo()<<"getBlob done";
-  return response.body;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-StringTree CloudStorage::listOfBlobs(Url url)
-{
-  auto request =createListOfBlobsRequest(url);
-  auto response=NetService::getNetResponse(request);
-  if (!response.isSuccessful())
-    {VisusWarning()<<"ERROR Cannot list blobs status(" <<response.status<<"),errormsg("<<response.getErrorMessage()<<")";return StringTree();}
-
-  VisusInfo()<<"getListOfBlobs done";
-  return getListOfBlobs(response);
-}
-  
 
 } //namespace Visus
