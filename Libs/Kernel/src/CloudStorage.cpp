@@ -57,23 +57,23 @@ class AzureCloudStorage : public CloudStorage
 public:
 
   String container_url;
-  String username;
-  String password;
+  String storage_account_name;
+  String access_key;
 
   //constructor
   AzureCloudStorage(Url url) 
   {
-    this->password = url.getParam("password");
-    VisusAssert(!password.empty());
-    this->password = StringUtils::base64Decode(password);
+    this->access_key = url.getParam("access_key");
+    VisusAssert(!access_key.empty());
+    this->access_key = StringUtils::base64Decode(access_key);
 
-    this->username =url.getHostname().substr(0, url.getHostname().find('.'));
+    this->storage_account_name =url.getHostname().substr(0, url.getHostname().find('.'));
 
     String path = url.getPath();
     int index = (int)path.find('/', 1);
     String container_name = (index >= 0) ? path.substr(1, index - 1) : path.substr(1);
 
-    this->container_url = url.getProtocol() + "/" + url.getHostname() + "/" + container_name;
+    this->container_url = url.getProtocol() + "://" + url.getHostname() + "/" + container_name;
   }
 
   //destructor
@@ -83,7 +83,7 @@ public:
   //signRequest
   void signRequest(NetRequest& request)
   {
-    String canonicalized_resource = "/" + this->username + request.url.getPath();
+    String canonicalized_resource = "/" + this->storage_account_name + request.url.getPath();
 
     if (!request.url.params.empty())
     {
@@ -98,7 +98,7 @@ public:
     struct tm *ptm = gmtime(&t);
     strftime(date_GTM, sizeof(date_GTM), "%a, %d %b %Y %H:%M:%S GMT", ptm);
 
-    request.setHeader("x-ms-version", "2011-08-18");
+    request.setHeader("x-ms-version", "2018-03-28");
     request.setHeader("x-ms-date", date_GTM);
 
     String canonicalized_headers;
@@ -112,11 +112,20 @@ public:
       canonicalized_headers = out.str();
     }
 
+    /*
+    In the current version, the Content-Length field must be an empty string if the content length of the request is zero. 
+    In version 2014-02-14 and earlier, the content length was included even if zero. 
+    See below for more information on the old behavior
+    */
+    String content_length = request.getHeader("Content-Length");
+    if (cint(content_length) == 0)
+      content_length = "";
+
     String signature;
     signature += request.method + "\n";// Verb
     signature += request.getHeader("Content-Encoding") + "\n";
     signature += request.getHeader("Content-Language") + "\n";
-    signature += request.getHeader("Content-Length") + "\n";
+    signature += content_length + "\n";
     signature += request.getHeader("Content-MD5") + "\n";
     signature += request.getHeader("Content-Type") + "\n";
     signature += request.getHeader("Date") + "\n";
@@ -128,9 +137,13 @@ public:
     signature += canonicalized_headers + "\n";
     signature += canonicalized_resource;
 
-    signature = StringUtils::base64Encode(StringUtils::sha256(signature, this->password));
+    //if something wrong happens open a "telnet hostname 80", copy and paste what's the request made by curl (setting  CURLOPT_VERBOSE to 1)
+    //and compare what azure is signing from what you are using
+    //VisusInfo() << signature;
 
-    request.setHeader("Authorization", "SharedKey " + username + ":" + signature);
+    signature = StringUtils::base64Encode(StringUtils::sha256(signature, this->access_key));
+
+    request.setHeader("Authorization", "SharedKey " + storage_account_name + ":" + signature);
   }
 
   // createContainer
@@ -139,7 +152,7 @@ public:
     NetRequest request(container_url, "PUT");
     request.url.params.setValue("restype", "container");
     request.setContentLength(0);
-    request.setHeader("x-ms-prop-publicaccess", "true");
+    //request.setHeader("x-ms-prop-publicaccess", "container"); IF YOU WANT PUBLIC
     signRequest(request);
 
     auto response = NetService::getNetResponse(request);
@@ -179,7 +192,17 @@ public:
     request.setContentType(blob.content_type);
 
     for (auto it : blob.metadata)
-      request.setHeader("x-ms-meta-" + it.first, it.second);
+    {
+      auto name = it.first;
+      auto value = it.second;
+      
+      //name must be a C# variable name
+      VisusAssert(!StringUtils::contains(name, "_"));
+      if (StringUtils::contains(name,"-"))
+        name=StringUtils::replaceAll(name, "-", "_");
+
+      request.setHeader("x-ms-meta-" + name, value);
+    }
 
     signRequest(request);
 
@@ -221,7 +244,12 @@ public:
       String name = it->first;
       if (StringUtils::startsWith(name, metatata_prefix))
       {
-        name = StringUtils::replaceAll(name.substr(metatata_prefix.length()), "_", "-"); //trick: azure does not allow the "-" 
+        name = name.substr(metatata_prefix.length());
+
+        //trick: azure does not allow the "-" 
+        if (StringUtils::contains(name,"_"))
+          name = StringUtils::replaceAll(name, "_", "-"); 
+
         ret.setValue(name, it->second);
       }
     }
@@ -260,7 +288,7 @@ public:
     int index = (int)path.find('/', 1);
     String container_name = (index >= 0) ? path.substr(1, index - 1) : path.substr(1);
 
-    this->container_url = url.getProtocol() + "//" + url.getHostname() + "/" + container_name;
+    this->container_url = url.getProtocol() + "://" + url.getHostname() + "/" + container_name;
   }
 
   //destructor
@@ -349,9 +377,7 @@ public:
 
     //metadata
     for (auto it : blob.metadata)
-    {
       request.setHeader("x-amz-meta-" + it.first, it.second);
-    }
 
     signRequest(request);
 
@@ -567,7 +593,6 @@ public:
   {
     return StringMap();
   }
-
 
 };
 

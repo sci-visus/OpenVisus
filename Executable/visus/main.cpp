@@ -1339,7 +1339,7 @@ public:
     out << args[0]
       << " url" << std::endl
       << "Example: " << args[0] << " http://visus.s3.amazonaws.com/testing-cloud-storage?username=AKIAILLJI7ANO6Y2XJNA&password=XXXXXXXXX"
-      << "Example: " << args[0] << " http://visus.blob.core.windows.net/testing-cloud-storage?password=XXXXXXXXXXXX";
+      << "Example: " << args[0] << " http://visus.blob.core.windows.net/testing-cloud-storage?access_key=XXXXXX";
 
     return out.str();
   }
@@ -1352,9 +1352,9 @@ public:
     if (!url.valid())
       ThrowException(StringUtils::format() << args[0] << ", "<< args[1] << " is not a valid url");
 
-    String blob_name = "visus.png";
+    //note: blob name can contain '/'
+    String blob_name = "/my/blob/name/visus.png";
 
-    
     auto blob = CloudStorage::Blob();
     blob.body=Utils::loadBinaryDocument("datasets/cat/gray.png"); VisusReleaseAssert(blob.body);
     blob.metadata.setValue("example-meta-data", "visus-meta-data");
