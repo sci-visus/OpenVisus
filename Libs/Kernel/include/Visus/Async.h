@@ -292,7 +292,7 @@ public:
       else
       {
         auto it=running.insert(running.end(), running_item);
-        promise->addWhenDoneListener(BasePromise<Value>::Callback([this, it, ready_item](Value)
+        promise->addWhenDoneListener(typename BasePromise<Value>::Callback([this, it, ready_item](Value)
         {
           ScopedLock this_lock(this->lock);
           ready.push_front(ready_item);
