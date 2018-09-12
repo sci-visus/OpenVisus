@@ -1202,7 +1202,10 @@ public:
     String url = args[1];
     auto src_storage=CloudStorage::createInstance(url);
 
-    if (!src_storage->createContainer())
+    auto net = std::make_shared<NetService>(1);
+
+    auto bOk = src_storage->createContainer(net, Aborted()).get();
+    if (!bOk)
       ThrowException(StringUtils::format() << args[0] <<"  cannot create the container " << url);
     
     return data;
@@ -1233,7 +1236,11 @@ public:
 
     String url = args[1];
     auto src_storage=CloudStorage::createInstance(url);
-    if (!src_storage->deleteContainer())
+
+    auto net = std::make_shared<NetService>(1);
+
+    auto bOk = src_storage->deleteContainer(net, Aborted()).get();
+    if (!bOk)
       ThrowException(StringUtils::format() << args[0] <<"  cannot delete the container " << url);
     return data;
   }
@@ -1267,10 +1274,12 @@ public:
     auto src_storage = CloudStorage::createInstance(src_url);
     auto dst_storage = CloudStorage::createInstance(dst_url);
 
+    auto net = std::make_shared<NetService>(1);
+
     CloudStorage::Blob    blob;
     if (src_storage)
     {
-      blob = src_storage->getBlob(src_url);
+      blob = src_storage->getBlob(net,src_url,Aborted()).get();
       if (!blob.valid())
         ThrowException(StringUtils::format() << args[0] <<"  src_storage->getBlob(" << src_url << ") failed");
     }
@@ -1285,7 +1294,7 @@ public:
 
     if (dst_storage)
     {
-      if (!dst_storage->addBlob(dst_url, blob))
+      if (!dst_storage->addBlob(net,dst_url, blob,Aborted()).get())
         ThrowException(StringUtils::format() << args[0] <<"  dst_storage->addBlob(" << src_url << ") failed");
     }
     else if (!Utils::saveBinaryDocument(dst_url, blob.body))
@@ -1319,9 +1328,11 @@ public:
     if (args.size() != 2)
       ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
+    auto net = std::make_shared<NetService>(1);
+
     String url = args[1];
     auto src_storage=CloudStorage::createInstance(url);
-    if (!src_storage->deleteBlob(url))
+    if (!src_storage->deleteBlob(net,url,Aborted()).get())
       ThrowException(StringUtils::format() << args[0] <<"  cannot delete blob " << url);
     return data;
   }
@@ -1339,8 +1350,8 @@ public:
     out << args[0]
       << " url" << std::endl
       << "Example: " << args[0] << " http://visus.s3.amazonaws.com/testing-cloud-storage?username=AKIAILLJI7ANO6Y2XJNA&password=XXXXXXXXX"
-      << "Example: " << args[0] << " http://visus.blob.core.windows.net/testing-cloud-storage?access_key=XXXXXX";
-
+      << "Example: " << args[0] << " http://visus.blob.core.windows.net/testing-cloud-storage?access_key=XXXXXX"
+      << "Example: " << args[0] << " https://www.googleapis.com/testing-cloud-storage?client_id=XXXX&client_secret=YYYY&refresh_token=ZZZZZZ";
     return out.str();
   }
 
@@ -1352,6 +1363,8 @@ public:
     if (!url.valid())
       ThrowException(StringUtils::format() << args[0] << ", "<< args[1] << " is not a valid url");
 
+    auto net = std::make_shared<NetService>(1);
+
     //note: blob name can contain '/'
     String blob_name = "/my/blob/name/visus.png";
 
@@ -1360,15 +1373,16 @@ public:
     blob.metadata.setValue("example-meta-data", "visus-meta-data");
 
     auto cloud_storage=CloudStorage::createInstance(url);
-    VisusReleaseAssert(cloud_storage->createContainer());
-    VisusReleaseAssert(cloud_storage->addBlob(blob_name, blob));
+    VisusReleaseAssert(cloud_storage->createContainer(net,Aborted()).get());
+    VisusReleaseAssert(cloud_storage->addBlob(net,blob_name, blob, Aborted()).get());
 
-    auto check_blob = cloud_storage->getBlob(blob_name);
+    auto check_blob = cloud_storage->getBlob(net,blob_name, Aborted()).get();
     VisusReleaseAssert(check_blob.valid());
-    VisusReleaseAssert(blob.body->c_size() == check_blob.body->c_size() && memcmp(blob.body->c_ptr(), check_blob.body->c_ptr(), (size_t)blob.body->c_size()) == 0);
+    VisusReleaseAssert(blob.body->c_size() == check_blob.body->c_size());
+    VisusReleaseAssert(memcmp(blob.body->c_ptr(), check_blob.body->c_ptr(), (size_t)blob.body->c_size()) == 0);
     VisusReleaseAssert(check_blob.metadata.getValue("example-meta-data") == "visus-meta-data");
-    VisusReleaseAssert(cloud_storage->deleteBlob(blob_name));
-    VisusReleaseAssert(cloud_storage->deleteContainer());
+    VisusReleaseAssert(cloud_storage->deleteBlob(net,blob_name,Aborted()).get());
+    VisusReleaseAssert(cloud_storage->deleteContainer(net, Aborted()).get());
 
     return data;
   }
@@ -1928,7 +1942,10 @@ public:
 
     WaitAsync< Future<NetResponse>, int > async;
     for (int Id = 0; Id < nrequests; Id++)
-      async.pushRunning(net->asyncNetworkIO(NetRequest(urls[Id % urls.size()])), Id);
+    {
+      NetRequest request(urls[Id % urls.size()]);
+      async.pushRunning(NetService::push(net, request), Id);
+    }
 
     for (int Id = 0; Id < nrequests; Id++)
     {

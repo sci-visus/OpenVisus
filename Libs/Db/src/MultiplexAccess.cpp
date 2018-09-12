@@ -246,7 +246,7 @@ void MultiplexAccess::runInBackground()
       //need to read
       if (op == ReadOp) 
       {
-        dw_query->future.when_ready([this, up_query, dw_query, index]()
+        dw_query->future.when_ready([this, up_query, index](SharedPtr<BlockQuery> dw_query)
         {
           //if fails try the next index
           if (dw_query->getStatus() == QueryFailed)
@@ -276,7 +276,7 @@ void MultiplexAccess::runInBackground()
         VisusAssert(op == CacheOp);
 
         //if fails or not I don't care, I try to cache to upper levels anyway
-        dw_query->future.when_ready([this, up_query, dw_query, index]() {
+        dw_query->future.when_ready([this, up_query, index](SharedPtr<BlockQuery> dw_query) {
           scheduleOp(CacheOp, index - 1, up_query);
         });
 

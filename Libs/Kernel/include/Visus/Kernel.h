@@ -178,6 +178,7 @@ VISUS_KERNEL_API bool VisusHasMessageLock();
   #endif
 #endif
 
+
 //__________________________________________________________
 namespace Private {
 

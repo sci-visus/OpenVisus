@@ -142,7 +142,7 @@ void ModVisusAccess::onNetResponse(NetResponse response,SharedPtr<BlockQuery> qu
   });
 
   //done but status not set yet
-  query->future.get_promise()->set_value(true);
+  query->future.get_promise()->set_value(query);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -187,18 +187,9 @@ void ModVisusAccess::flushBatch()
   auto request=NetRequest(url);
   request.aborted=batch[0]->aborted;
 
-  if (bool bAsync= this->netservice?true:false)
-  {
-    auto FUTURE_RESPONSE= this->netservice->asyncNetworkIO(request);
-    FUTURE_RESPONSE.when_ready([this, FUTURE_RESPONSE, batch]() {
-      onNetResponse(FUTURE_RESPONSE.get(),batch);
-    });
-  }
-  else
-  {
-    auto RESPONSE=NetService::getNetResponse(request);
-    onNetResponse(RESPONSE,batch);
-  }
+  NetService::push(netservice, request).when_ready([this,batch](NetResponse response) {
+    onNetResponse(response, batch);
+  });
 
 }
 

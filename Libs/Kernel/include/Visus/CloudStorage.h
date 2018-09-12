@@ -40,7 +40,7 @@ For support : support@visus.net
 #define VISUS_CLOUD_STORAGE_
 
 #include <Visus/Kernel.h>
-#include <Visus/NetMessage.h>
+#include <Visus/NetService.h>
 
 namespace Visus {
 
@@ -69,7 +69,6 @@ public:
     bool valid() const { return body ? true : false; }
   };
 
-
   //constructor
   CloudStorage(){
   }
@@ -84,28 +83,19 @@ public:
 public:
   
   // createContainer
-  virtual bool createContainer()=0;
+  virtual Future<bool> createContainer(SharedPtr<NetService> service, Aborted aborted)=0;
 
   // deleteContainer
-  virtual bool deleteContainer()=0;
+  virtual Future<bool> deleteContainer(SharedPtr<NetService> service, Aborted aborted)=0;
 
   // deleteBlob
-  virtual bool deleteBlob(String name) = 0;
-
-  // addBlobRequest 
-  virtual NetRequest addBlobRequest(String name,Blob blob)=0;
-
-  // getBlobRequest 
-  virtual NetRequest getBlobRequest(String name)=0;
-
-  //parseMetadata
-  virtual StringMap parseMetadata(NetResponse response)=0;
+  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String name, Aborted aborted) = 0;
 
   //addBlob
-  bool addBlob(String name, Blob blob);
+  virtual Future<bool> addBlob(SharedPtr<NetService> service, String name, Blob blob, Aborted aborted)=0;
 
   //getBlob
-  Blob getBlob(String name);
+  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String name, Aborted aborted) = 0;
 
 };
 

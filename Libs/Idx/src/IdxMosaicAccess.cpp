@@ -152,7 +152,7 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
       access->beginIO(this->getMode());
 
     //TODO: should I keep track of running queries in order to wait for them in the destructor?
-    block_query->future.when_ready([this, QUERY, block_query]() {
+    block_query->future.when_ready([this, QUERY](SharedPtr<BlockQuery> block_query) {
 
       if (block_query->getStatus() != QueryOk)
         return readFailed(QUERY); //failed

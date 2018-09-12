@@ -224,7 +224,9 @@ public:
   bool setArrayBody(String compression,Array value);
 
   //getArrayBody
-  Array getArrayBody() const;
+  Array getArrayBody() const {
+    return ArrayUtils::decodeArray(this->headers, this->body);
+  }
 
 public:
 
