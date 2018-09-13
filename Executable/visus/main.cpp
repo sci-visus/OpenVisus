@@ -1204,7 +1204,7 @@ public:
 
     auto net = std::make_shared<NetService>(1);
 
-    auto bOk = src_storage->createContainer(net, Aborted()).get();
+    auto bOk = src_storage->addContainer(net, Aborted()).get();
     if (!bOk)
       ThrowException(StringUtils::format() << args[0] <<"  cannot create the container " << url);
     
@@ -1373,7 +1373,7 @@ public:
     blob.metadata.setValue("example-meta-data", "visus-meta-data");
 
     auto cloud_storage=CloudStorage::createInstance(url);
-    VisusReleaseAssert(cloud_storage->createContainer(net,Aborted()).get());
+    VisusReleaseAssert(cloud_storage->addContainer(net,Aborted()).get());
     VisusReleaseAssert(cloud_storage->addBlob(net,blob_name, blob, Aborted()).get());
 
     auto check_blob = cloud_storage->getBlob(net,blob_name, Aborted()).get();

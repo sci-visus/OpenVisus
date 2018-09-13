@@ -146,8 +146,8 @@ public:
     request.setHeader("Authorization", "SharedKey " + storage_account_name + ":" + signature);
   }
 
-  // createContainer
-  virtual Future<bool> createContainer(SharedPtr<NetService> service, Aborted aborted) override
+  // addContainer
+  virtual Future<bool> addContainer(SharedPtr<NetService> service, Aborted aborted = Aborted()) override
   {
     NetRequest request(container_url, "PUT");
     request.aborted = aborted;
@@ -165,7 +165,7 @@ public:
       if (!bOk)
         VisusWarning() << "ERROR. Cannot create container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
       else
-        VisusInfo() << "createContainer done";
+        VisusInfo() << "addContainer done";
 
       ret.get_promise()->set_value(bOk);
     });
@@ -174,7 +174,7 @@ public:
   }
 
   // deleteContainer
-  virtual Future<bool> deleteContainer(SharedPtr<NetService> service, Aborted aborted) override
+  virtual Future<bool> deleteContainer(SharedPtr<NetService> service, Aborted aborted = Aborted()) override
   {
     NetRequest request(container_url, "DELETE");
     request.aborted = aborted;
@@ -197,7 +197,7 @@ public:
   }
 
   // addBlobRequest 
-  virtual Future<bool> addBlob(SharedPtr<NetService> service, String name, Blob blob,Aborted aborted) override
+  virtual Future<bool> addBlob(SharedPtr<NetService> service, String name, Blob blob,Aborted aborted = Aborted()) override
   {
     NetRequest request(container_url + "/" + name, "PUT");
     request.aborted = aborted;
@@ -231,29 +231,9 @@ public:
     return ret;
   }
 
-  // deleteBlob
-  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String name, Aborted aborted) override
-  {
-    NetRequest request(container_url + "/" + name, "DELETE");
-    request.aborted = aborted;
-    signRequest(request);
-
-    auto ret = Promise<bool>().get_future();
-
-    NetService::push(service, request).when_ready([ret](NetResponse response) {
-      bool bOk = response.isSuccessful();
-      if (!bOk)
-        VisusWarning() << "ERROR Cannot delete block status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-      else
-        VisusInfo() << "deleteBlob done";
-      ret.get_promise()->set_value(bOk);
-    });
-
-    return ret;
-  }
 
   // getBlobRequest 
-  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String name, Aborted aborted) override
+  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String name, Aborted aborted=Aborted()) override
   {
     NetRequest request(container_url + "/" + name, "GET");
     request.aborted = aborted;
@@ -290,8 +270,30 @@ public:
         if (!content_type.empty())
           blob.content_type = content_type;
       }
-      
+
       ret.get_promise()->set_value(blob);
+    });
+
+    return ret;
+  }
+
+
+  // deleteBlob
+  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String name, Aborted aborted) override
+  {
+    NetRequest request(container_url + "/" + name, "DELETE");
+    request.aborted = aborted;
+    signRequest(request);
+
+    auto ret = Promise<bool>().get_future();
+
+    NetService::push(service, request).when_ready([ret](NetResponse response) {
+      bool bOk = response.isSuccessful();
+      if (!bOk)
+        VisusWarning() << "ERROR Cannot delete block status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+      else
+        VisusInfo() << "deleteBlob done";
+      ret.get_promise()->set_value(bOk);
     });
 
     return ret;
@@ -373,7 +375,7 @@ public:
   }
 
   // createContainerRequest
-  virtual Future<bool> createContainer(SharedPtr<NetService> service,Aborted aborted) override
+  virtual Future<bool> addContainer(SharedPtr<NetService> service,Aborted aborted=Aborted()) override
   {
     NetRequest request(this->container_url, "PUT");
     request.aborted = aborted;
@@ -389,7 +391,7 @@ public:
       if (!bOk)
         VisusWarning() << "ERROR. Cannot create container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
       else
-        VisusInfo() << "createContainer done";
+        VisusInfo() << "addContainer done";
 
       ret.get_promise()->set_value(bOk);
     });
@@ -398,7 +400,7 @@ public:
   }
 
   // deleteContainer
-  virtual Future<bool> deleteContainer(SharedPtr<NetService> service, Aborted aborted) override
+  virtual Future<bool> deleteContainer(SharedPtr<NetService> service, Aborted aborted = Aborted()) override
   {
     NetRequest request(this->container_url, "DELETE");
     request.aborted = aborted;
@@ -421,7 +423,7 @@ public:
   }
 
   // addBlobRequest 
-  virtual Future<bool> addBlob(SharedPtr<NetService> service, String name, Blob blob, Aborted aborted) override
+  virtual Future<bool> addBlob(SharedPtr<NetService> service, String name, Blob blob, Aborted aborted = Aborted()) override
   {
     NetRequest request(this->container_url+ "/" + name, "PUT");
     request.aborted = aborted;
@@ -445,29 +447,8 @@ public:
     return ret;
   }
 
-  // deleteBlob
-  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String name, Aborted aborted) override
-  {
-    NetRequest request(this->container_url + "/" + name, "DELETE");
-    request.aborted = aborted;
-    signRequest(request);
-
-    auto ret = Promise<bool>().get_future();
-
-    NetService::push(service, request).when_ready([ret](NetResponse response) {
-      bool bOk = response.isSuccessful();
-      if (!bOk)
-        VisusWarning() << "ERROR Cannot delete block status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-      else
-        VisusInfo() << "deleteBlob done";
-      ret.get_promise()->set_value(bOk);
-    });
-
-    return ret;
-  }
-
   // getBlobRequest 
-  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String name, Aborted aborted) override
+  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) override
   {
     NetRequest request(this->container_url + "/" + name, "GET");
     request.aborted = aborted;
@@ -501,6 +482,28 @@ public:
       }
 
       ret.get_promise()->set_value(blob);
+    });
+
+    return ret;
+  }
+
+
+  // deleteBlob
+  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) override
+  {
+    NetRequest request(this->container_url + "/" + name, "DELETE");
+    request.aborted = aborted;
+    signRequest(request);
+
+    auto ret = Promise<bool>().get_future();
+
+    NetService::push(service, request).when_ready([ret](NetResponse response) {
+      bool bOk = response.isSuccessful();
+      if (!bOk)
+        VisusWarning() << "ERROR Cannot delete block status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+      else
+        VisusInfo() << "deleteBlob done";
+      ret.get_promise()->set_value(bOk);
     });
 
     return ret;
@@ -607,8 +610,8 @@ public:
     return ret;
   }
 
-  // createContainer
-  virtual Future<bool> createContainer(SharedPtr<NetService> service, Aborted aborted) override
+  // addContainer
+  virtual Future<bool> addContainer(SharedPtr<NetService> service, Aborted aborted=Aborted()) override
   {
     NetRequest request(Url("https://www.googleapis.com/drive/v3/files"),"POST");
     request.aborted = aborted;
@@ -626,7 +629,7 @@ public:
         VisusWarning() << "ERROR. Cannot create container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
       else
       {
-        VisusInfo() << "createContainer done";
+        VisusInfo() << "addContainer done";
 
         auto json = nlohmann::json::parse(response.getTextBody());
         this->container_id = json["id"].get<std::string>();
@@ -639,7 +642,7 @@ public:
   }
 
   // deleteContainer
-  virtual Future<bool> deleteContainer(SharedPtr<NetService> service, Aborted aborted)  override
+  virtual Future<bool> deleteContainer(SharedPtr<NetService> service, Aborted aborted = Aborted())  override
   {
     auto ret = Promise<bool>().get_future();
 
@@ -671,60 +674,8 @@ public:
     return ret;
   }
 
-  // deleteBlob
-  virtual Future<bool> deleteBlob(SharedPtr<NetService> service,String name, Aborted aborted) override
-  {
-    auto ret = Promise<bool>().get_future();
-
-    if (container_id.empty())
-    {
-      ret.get_promise()->set_value(false);
-      return ret;
-    }
-
-    NetRequest get_blob_id("https://www.googleapis.com/drive/v3/files?q=name='" + name + "' and '" + container_id + "' in parents", "GET");
-    get_blob_id.aborted = aborted;
-    signRequest(get_blob_id);
-
-    NetService::push(service, get_blob_id).when_ready([this, service,ret,aborted](NetResponse response) {
-      
-      if (!response.isSuccessful())
-      {
-        VisusWarning() << "ERROR. Cannot delete blob status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-        ret.get_promise()->set_value(false);
-        return;
-      }
-
-      auto json = nlohmann::json::parse(response.getTextBody());
-      auto blob_id = json["files"].size() ? json["files"].at(0)["id"].get<std::string>() : String();
-      if (blob_id.empty())
-      {
-        ret.get_promise()->set_value(false);
-        return;
-      }
-
-      NetRequest delete_blob(Url("https://www.googleapis.com/drive/v3/files/" + blob_id), "DELETE");
-      delete_blob.aborted = aborted;
-      signRequest(delete_blob);
-
-      NetService::push(service, delete_blob).when_ready([this,ret](NetResponse response) {
-
-        bool bOk = response.isSuccessful();
-        if (!bOk)
-          VisusWarning() << "ERROR. Cannot delete container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-        else
-          VisusInfo() << "deleteBlob done";
-
-        ret.get_promise()->set_value(bOk);
-      });
-
-    });
-
-    return ret;
-  }
-
   // addBlobRequest 
-  virtual Future<bool> addBlob(SharedPtr<NetService> service, String name, Blob blob, Aborted aborted) override
+  virtual Future<bool> addBlob(SharedPtr<NetService> service, String name, Blob blob, Aborted aborted = Aborted()) override
   {
     auto ret = Promise<bool>().get_future();
 
@@ -787,7 +738,7 @@ public:
   }
 
   // getBlob 
-  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String name, Aborted aborted) override
+  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) override
   {
     auto ret = Promise<Blob> ().get_future();
 
@@ -872,6 +823,58 @@ public:
     return ret;
   }
 
+
+  // deleteBlob
+  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) override
+  {
+    auto ret = Promise<bool>().get_future();
+
+    if (container_id.empty())
+    {
+      ret.get_promise()->set_value(false);
+      return ret;
+    }
+
+    NetRequest get_blob_id("https://www.googleapis.com/drive/v3/files?q=name='" + name + "' and '" + container_id + "' in parents", "GET");
+    get_blob_id.aborted = aborted;
+    signRequest(get_blob_id);
+
+    NetService::push(service, get_blob_id).when_ready([this, service, ret, aborted](NetResponse response) {
+
+      if (!response.isSuccessful())
+      {
+        VisusWarning() << "ERROR. Cannot delete blob status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+        ret.get_promise()->set_value(false);
+        return;
+      }
+
+      auto json = nlohmann::json::parse(response.getTextBody());
+      auto blob_id = json["files"].size() ? json["files"].at(0)["id"].get<std::string>() : String();
+      if (blob_id.empty())
+      {
+        ret.get_promise()->set_value(false);
+        return;
+      }
+
+      NetRequest delete_blob(Url("https://www.googleapis.com/drive/v3/files/" + blob_id), "DELETE");
+      delete_blob.aborted = aborted;
+      signRequest(delete_blob);
+
+      NetService::push(service, delete_blob).when_ready([this, ret](NetResponse response) {
+
+        bool bOk = response.isSuccessful();
+        if (!bOk)
+          VisusWarning() << "ERROR. Cannot delete container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+        else
+          VisusInfo() << "deleteBlob done";
+
+        ret.get_promise()->set_value(bOk);
+      });
+
+    });
+
+    return ret;
+  }
 
 };
 
