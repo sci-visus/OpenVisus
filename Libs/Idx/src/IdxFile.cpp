@@ -411,8 +411,7 @@ IdxFile IdxFile::openFromUrl(Url url)
     {
       if (auto cloud_storage = CloudStorage::createInstance(url))
       {
-        String blob_name = url.getPath().substr(url.getPath().rfind("/")+1);
-
+        auto blob_name = url.getPath();
         auto blob=cloud_storage->getBlob(SharedPtr<NetService>(), blob_name, Aborted()).get();
         if (blob.valid())
           content = String((char*)blob.body->c_ptr(), (size_t)blob.body->c_size());

@@ -129,20 +129,7 @@ Scene::Info Scene::findSceneInVisusConfig(String name)
 //////////////////////////////////////////////////////////////////////////////
 bool Scene::openFromUrl(Url url)
 {
-  String content;
-//  {
-//    //special case for cloud storage, I need to sign the request
-//    if (url.isRemote() && !StringUtils::contains(url.toString(),"mod_visus"))
-//    {
-//      UniquePtr<CloudStorage> cloud_storage(CloudStorage::createInstance(url)); VisusAssert(cloud_storage);
-//      if (cloud_storage)
-//        content=NetService::getNetResponse(cloud_storage->getBlobRequest(url)).getTextBody();
-//    }
-//    else
-//    {
-      content=Utils::loadTextDocument(url.toString());
-//    }
-//  }
+  String content=Utils::loadTextDocument(url.toString());
   
   if (content.empty()){
     VisusError()<<"scene file empty";

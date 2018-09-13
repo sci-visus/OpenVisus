@@ -80,12 +80,6 @@ public:
   //createInstance
   static SharedPtr<CloudStorage> createInstance(Url url);
   
-  // addContainer
-  virtual Future<bool> addContainer(SharedPtr<NetService> service, Aborted aborted=Aborted())=0;
-
-  // deleteContainer
-  virtual Future<bool> deleteContainer(SharedPtr<NetService> service, Aborted aborted = Aborted())=0;
-
   //addBlob
   virtual Future<bool> addBlob(SharedPtr<NetService> service, String name, Blob blob, Aborted aborted = Aborted())=0;
 

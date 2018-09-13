@@ -69,9 +69,10 @@ CloudStorageAccess::~CloudStorageAccess()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
-String CloudStorageAccess::getBlockQueryName(SharedPtr<BlockQuery> query) const
+String CloudStorageAccess::getBlobName(SharedPtr<BlockQuery> query) const
 {
   return StringUtils::format()
+    <<this->url.getPath()<<"/"
     <<"time_"<<cstring((int)query->time)<<"/"
     <<"field_"<<query->field.name<<"/"
     <<"data_"<<std::setw(20) << std::setfill('0') << cstring(query->start_address);
@@ -82,9 +83,8 @@ String CloudStorageAccess::getBlockQueryName(SharedPtr<BlockQuery> query) const
 void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 {
   VisusAssert((int)query->nsamples.innerProduct()==(1<<bitsperblock));
-  String blob_name= getBlockQueryName(query);
 
-  cloud_storage->getBlob(netservice, blob_name, query->aborted).when_ready([this, query](CloudStorage::Blob blob) {
+  cloud_storage->getBlob(netservice, getBlobName(query), query->aborted).when_ready([this, query](CloudStorage::Blob blob) {
 
     if (!blob.metadata.hasValue("visus-dtype"))
       blob.metadata.setValue("visus-dtype", query->field.dtype.toString());
@@ -127,8 +127,6 @@ void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
   VisusAssert((int)query->nsamples.innerProduct()==(1<<bitsperblock));
 
-  String blob_name=getBlockQueryName(query);
-  
   auto decoded=query->buffer;
   auto encoded=ArrayUtils::encodeArray(compression,decoded);
   
@@ -143,7 +141,7 @@ void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
   blob.metadata.setValue("visus-dtype"        , decoded.dtype.toString());
   blob.metadata.setValue("visus-layout"       , decoded.layout);
 
-  cloud_storage->addBlob(netservice, blob_name, blob, query->aborted).when_ready([this,query](NetResponse response) {
+  cloud_storage->addBlob(netservice, getBlobName(query), blob, query->aborted).when_ready([this,query](NetResponse response) {
 
     if (query->aborted() || !response.isSuccessful())
       return writeFailed(query);

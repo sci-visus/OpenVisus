@@ -56,9 +56,11 @@ class AzureCloudStorage : public CloudStorage
 {
 public:
 
-  String container_url;
-  String storage_account_name;
+  Url    url;
+  String account_name;
   String access_key;
+
+  String container;
 
   //constructor
   AzureCloudStorage(Url url) 
@@ -67,13 +69,9 @@ public:
     VisusAssert(!access_key.empty());
     this->access_key = StringUtils::base64Decode(access_key);
 
-    this->storage_account_name =url.getHostname().substr(0, url.getHostname().find('.'));
+    this->account_name =url.getHostname().substr(0, url.getHostname().find('.'));
 
-    String path = url.getPath();
-    int index = (int)path.find('/', 1);
-    String container_name = (index >= 0) ? path.substr(1, index - 1) : path.substr(1);
-
-    this->container_url = url.getProtocol() + "://" + url.getHostname() + "/" + container_name;
+    this->url = url.getProtocol() + "://" + url.getHostname();
   }
 
   //destructor
@@ -83,7 +81,7 @@ public:
   //signRequest
   void signRequest(NetRequest& request)
   {
-    String canonicalized_resource = "/" + this->storage_account_name + request.url.getPath();
+    String canonicalized_resource = "/" + this->account_name + request.url.getPath();
 
     if (!request.url.params.empty())
     {
@@ -143,40 +141,35 @@ public:
 
     signature = StringUtils::base64Encode(StringUtils::sha256(signature, this->access_key));
 
-    request.setHeader("Authorization", "SharedKey " + storage_account_name + ":" + signature);
+    request.setHeader("Authorization", "SharedKey " + account_name + ":" + signature);
   }
 
   // addContainer
-  virtual Future<bool> addContainer(SharedPtr<NetService> service, Aborted aborted = Aborted()) override
+  Future<bool> addContainer(SharedPtr<NetService> service, String container_name, Aborted aborted = Aborted()) 
   {
-    NetRequest request(container_url, "PUT");
+    VisusAssert(!StringUtils::contains(container_name, "/"));
+    auto ret = Promise<bool>().get_future();
+
+    NetRequest request(this->url.toString() + "/" + container_name, "PUT");
     request.aborted = aborted;
     request.url.params.setValue("restype", "container");
     request.setContentLength(0);
     //request.setHeader("x-ms-prop-publicaccess", "container"); IF YOU WANT PUBLIC
     signRequest(request);
 
-    auto ret = Promise<bool>().get_future();
-    
     NetService::push(service, request).when_ready([ret](NetResponse response) {
-
-      bool bOk = response.isSuccessful();
-
-      if (!bOk)
-        VisusWarning() << "ERROR. Cannot create container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-      else
-        VisusInfo() << "addContainer done";
-
-      ret.get_promise()->set_value(bOk);
+      bool bAlreadyExits = response.status == 409;
+      ret.get_promise()->set_value(response.isSuccessful() || bAlreadyExits);
     });
 
     return ret;
   }
 
   // deleteContainer
-  virtual Future<bool> deleteContainer(SharedPtr<NetService> service, Aborted aborted = Aborted()) override
+  Future<bool> deleteContainer(SharedPtr<NetService> service, String container_name, Aborted aborted = Aborted())
   {
-    NetRequest request(container_url, "DELETE");
+    VisusAssert(!StringUtils::contains(container_name, "/"));
+    NetRequest request(this->url.toString() + "/" + container_name, "DELETE");
     request.aborted = aborted;
     request.url.params.setValue("restype", "container");
     signRequest(request);
@@ -184,70 +177,112 @@ public:
     auto ret = Promise<bool>().get_future();
 
     NetService::push(service, request).when_ready([ret](NetResponse response) {
-      bool bOk = response.isSuccessful();
-      if (bOk)
-        VisusWarning() << "ERROR. Cannot delete container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-      else
-        VisusInfo() << "deleteContainer done";
-
-      ret.get_promise()->set_value(bOk);
+      ret.get_promise()->set_value(response.isSuccessful());
     });
 
     return ret;
   }
 
-  // addBlobRequest 
-  virtual Future<bool> addBlob(SharedPtr<NetService> service, String name, Blob blob,Aborted aborted = Aborted()) override
+  //setContainer
+  Future<bool> setContainer(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted())
   {
-    NetRequest request(container_url + "/" + name, "PUT");
-    request.aborted = aborted;
-    request.body = blob.body;
-    request.setContentLength(blob.body->c_size());
-    request.setHeader("x-ms-blob-type", "BlockBlob");
-    request.setContentType(blob.content_type);
-
-    for (auto it : blob.metadata)
-    {
-      auto name = it.first;
-      auto value = it.second;
-      
-      //name must be a C# variable name
-      VisusAssert(!StringUtils::contains(name, "_"));
-      if (StringUtils::contains(name,"-"))
-        name=StringUtils::replaceAll(name, "-", "_");
-
-      request.setHeader("x-ms-meta-" + name, value);
-    }
-
-    signRequest(request);
-
     auto ret = Promise<bool>().get_future();
 
-    NetService::push(service, request).when_ready([ret](NetResponse response) {
-      bool bOk = response.isSuccessful();
+    auto v = StringUtils::split(blob_name,"/");
+    if (v.empty() || v[0].empty())
+    {
+      ret.get_promise()->set_value(false);
+      return ret;
+    }
+
+    //no need to set it again 
+    auto container = v[0];
+    if (!this->container.empty() && container == this->container) {
+      ret.get_promise()->set_value(true);
+      return ret;
+    }
+
+    //try to add
+    addContainer(service, container, aborted).when_ready([this,container,ret](bool bOk) {
+      if (bOk) 
+        this->container = container;
       ret.get_promise()->set_value(bOk);
     });
 
     return ret;
   }
 
-
-  // getBlobRequest 
-  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String name, Aborted aborted=Aborted()) override
+  // addBlob
+  virtual Future<bool> addBlob(SharedPtr<NetService> service, String blob_name, Blob blob,Aborted aborted = Aborted()) override
   {
-    NetRequest request(container_url + "/" + name, "GET");
-    request.aborted = aborted;
-    signRequest(request);
+    auto ret = Promise<bool>().get_future();
 
+    setContainer(service, blob_name,aborted).when_ready([this,ret, service, blob,blob_name,aborted](bool bOk)
+    {
+      if (!bOk)
+      {
+        ret.get_promise()->set_value(false);
+        return;
+      }
+
+      NetRequest request(this->url.toString() + blob_name, "PUT");
+      request.aborted = aborted;
+      request.body = blob.body;
+      request.setContentLength(blob.body->c_size());
+      request.setHeader("x-ms-blob-type", "BlockBlob");
+      request.setContentType(blob.content_type);
+
+      for (auto it : blob.metadata)
+      {
+        auto name = it.first;
+        auto value = it.second;
+
+        //name must be a C# variable name
+        VisusAssert(!StringUtils::contains(name, "_"));
+        if (StringUtils::contains(name, "-"))
+          name = StringUtils::replaceAll(name, "-", "_");
+
+        request.setHeader("x-ms-meta-" + name, value);
+      }
+
+      signRequest(request);
+
+      NetService::push(service, request).when_ready([ret](NetResponse response) {
+        ret.get_promise()->set_value(response.isSuccessful());
+      });
+
+    });
+
+    return ret;
+  }
+
+  // getBlob 
+  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
+  {
     auto ret = Promise<Blob>().get_future();
 
-    NetService::push(service, request).when_ready([ret](NetResponse response) {
+    setContainer(service, blob_name, aborted).when_ready([this, ret, service, blob_name, aborted](bool bOk) {
 
-      Blob blob;
-
-      if (response.isSuccessful())
+      if (!bOk)
       {
+        ret.get_promise()->set_value(Blob());
+        return;
+      }
+
+      NetRequest request(this->url.toString() + blob_name, "GET");
+      request.aborted = aborted;
+      signRequest(request);
+
+      NetService::push(service, request).when_ready([ret](NetResponse response) {
+
+        if (!response.isSuccessful())
+        {
+          ret.get_promise()->set_value(Blob());
+          return;
+        }
+
         //parse metadata
+        Blob blob;
         String metatata_prefix = "x-ms-meta-";
         for (auto it = response.headers.begin(); it != response.headers.end(); it++)
         {
@@ -269,9 +304,9 @@ public:
         auto content_type = response.getContentType();
         if (!content_type.empty())
           blob.content_type = content_type;
-      }
 
-      ret.get_promise()->set_value(blob);
+        ret.get_promise()->set_value(blob);
+      });
     });
 
     return ret;
@@ -279,21 +314,16 @@ public:
 
 
   // deleteBlob
-  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String name, Aborted aborted) override
+  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted) override
   {
-    NetRequest request(container_url + "/" + name, "DELETE");
+    auto ret = Promise<bool>().get_future();
+
+    NetRequest request(this->url.toString() + blob_name, "DELETE");
     request.aborted = aborted;
     signRequest(request);
 
-    auto ret = Promise<bool>().get_future();
-
     NetService::push(service, request).when_ready([ret](NetResponse response) {
-      bool bOk = response.isSuccessful();
-      if (!bOk)
-        VisusWarning() << "ERROR Cannot delete block status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-      else
-        VisusInfo() << "deleteBlob done";
-      ret.get_promise()->set_value(bOk);
+      ret.get_promise()->set_value(response.isSuccessful());
     });
 
     return ret;
@@ -309,9 +339,11 @@ public:
 
   VISUS_CLASS(AmazonCloudStorage)
 
-  String container_url;
+  Url    url;
   String username;
   String password;
+
+  String container;
 
   //constructor
   AmazonCloudStorage(Url url)  
@@ -323,13 +355,7 @@ public:
     VisusAssert(!this->password.empty());
     this->password = StringUtils::base64Decode(password);
 
-    //http://host.something.com/container_name/blob_name path=/container_name/blob_name
-    String path = url.getPath();
-    VisusAssert(!path.empty() && path[0] == '/');
-    int index = (int)path.find('/', 1);
-    String container_name = (index >= 0) ? path.substr(1, index - 1) : path.substr(1);
-
-    this->container_url = url.getProtocol() + "://" + url.getHostname() + "/" + container_name;
+    this->url = url.getProtocol() + "://" + url.getHostname();
   }
 
   //destructor
@@ -374,136 +400,168 @@ public:
     request.setHeader("Authorization", "AWS " + username + ":" + signature);
   }
 
-  // createContainerRequest
-  virtual Future<bool> addContainer(SharedPtr<NetService> service,Aborted aborted=Aborted()) override
+  // addContainer
+  Future<int> addContainer(SharedPtr<NetService> service,String container_name,Aborted aborted=Aborted()) 
   {
-    NetRequest request(this->container_url, "PUT");
+    auto ret = Promise<int>().get_future();
+
+    VisusAssert(!StringUtils::contains(container_name, "/"));
+    NetRequest request(this->url.toString() + "/" + container_name, "PUT");
     request.aborted = aborted;
     request.url.setPath(request.url.getPath() + "/"); //IMPORTANT the "/" to indicate is a container! see http://www.bucketexplorer.com/documentation/amazon-s3--how-to-create-a-folder.html
     signRequest(request);
 
-    auto ret = Promise<bool>().get_future();
-
     NetService::push(service, request).when_ready([ret](NetResponse response) {
-
-      bool bOk = response.isSuccessful();
-
-      if (!bOk)
-        VisusWarning() << "ERROR. Cannot create container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-      else
-        VisusInfo() << "addContainer done";
-
-      ret.get_promise()->set_value(bOk);
+      ret.get_promise()->set_value(response.isSuccessful());
     });
 
     return ret;
   }
 
   // deleteContainer
-  virtual Future<bool> deleteContainer(SharedPtr<NetService> service, Aborted aborted = Aborted()) override
+  Future<bool> deleteContainer(SharedPtr<NetService> service, String container_name, Aborted aborted = Aborted()) 
   {
-    NetRequest request(this->container_url, "DELETE");
+    VisusAssert(!StringUtils::contains(container_name, "/"));
+
+    auto ret = Promise<bool>().get_future();
+
+    NetRequest request(this->url.toString() + "/" + container_name, "DELETE");
     request.aborted = aborted;
     request.url.setPath(request.url.getPath() + "/"); //IMPORTANT the "/" to indicate is a container!
     signRequest(request);
 
+    NetService::push(service, request).when_ready([ret](NetResponse response) {
+      ret.get_promise()->set_value(response.isSuccessful());
+    });
+
+    return ret;
+  }
+
+
+  //setContainer
+  Future<bool> setContainer(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted())
+  {
     auto ret = Promise<bool>().get_future();
 
-    NetService::push(service, request).when_ready([ret](NetResponse response) {
-      bool bOk = response.isSuccessful();
-      if (bOk)
-        VisusWarning() << "ERROR. Cannot delete container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-      else
-        VisusInfo() << "deleteContainer done";
+    auto v = StringUtils::split(blob_name, "/");
+    if (v.empty() || v[0].empty())
+    {
+      ret.get_promise()->set_value(false);
+      return ret;
+    }
 
+    //no need to set it again 
+    auto container = v[0];
+    if (!this->container.empty() && container == this->container) {
+      ret.get_promise()->set_value(true);
+      return ret;
+    }
+
+    //try to add
+    addContainer(service, container, aborted).when_ready([this, container, ret](bool bOk) {
+
+      if (bOk) 
+        this->container = container;
       ret.get_promise()->set_value(bOk);
     });
 
     return ret;
   }
 
-  // addBlobRequest 
-  virtual Future<bool> addBlob(SharedPtr<NetService> service, String name, Blob blob, Aborted aborted = Aborted()) override
+  // addBlob 
+  virtual Future<bool> addBlob(SharedPtr<NetService> service, String blob_name, Blob blob, Aborted aborted = Aborted()) override
   {
-    NetRequest request(this->container_url+ "/" + name, "PUT");
-    request.aborted = aborted;
-    request.body = blob.body;
-    request.setContentLength(blob.body->c_size());
-    request.setContentType(blob.content_type);
-
-    //metadata
-    for (auto it : blob.metadata)
-      request.setHeader("x-amz-meta-" + it.first, it.second);
-
-    signRequest(request);
-
     auto ret = Promise<bool>().get_future();
 
-    NetService::push(service, request).when_ready([ret](NetResponse response) {
-      bool bOk = response.isSuccessful();
-      ret.get_promise()->set_value(bOk);
-    });
-
-    return ret;
-  }
-
-  // getBlobRequest 
-  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) override
-  {
-    NetRequest request(this->container_url + "/" + name, "GET");
-    request.aborted = aborted;
-    signRequest(request);
-
-    auto ret = Promise<Blob>().get_future();
-
-    NetService::push(service, request).when_ready([ret](NetResponse response) {
-
-      Blob blob;
-
-      if (response.isSuccessful())
+    setContainer(service, blob_name, aborted).when_ready([this, ret, service, blob, blob_name, aborted](bool bOk)
+    {
+      if (!bOk)
       {
-        //parse metadata
-        String metatata_prefix = "x-amz-meta-";
-        for (auto it = response.headers.begin(); it != response.headers.end(); it++)
-        {
-          String name = it->first;
-          if (StringUtils::startsWith(name, metatata_prefix))
-          {
-            name = StringUtils::replaceAll(name.substr(metatata_prefix.length()), "_", "-"); //backward compatibility
-            blob.metadata.setValue(name, it->second);
-          }
-        }
-        
-        blob.body = response.body;
-
-        auto content_type = response.getContentType();
-        if (!content_type.empty())
-          blob.content_type = content_type;
+        ret.get_promise()->set_value(false);
+        return;
       }
 
-      ret.get_promise()->set_value(blob);
+      NetRequest request(this->url.toString() + blob_name, "PUT");
+      request.aborted = aborted;
+      request.body = blob.body;
+      request.setContentLength(blob.body->c_size());
+      request.setContentType(blob.content_type);
+
+      //metadata
+      for (auto it : blob.metadata)
+        request.setHeader("x-amz-meta-" + it.first, it.second);
+
+      signRequest(request);
+
+      NetService::push(service, request).when_ready([ret](NetResponse response) {
+        bool bOk = response.isSuccessful();
+        ret.get_promise()->set_value(bOk);
+      });
     });
 
     return ret;
   }
 
+  // getBlob 
+  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
+  {
+    auto ret = Promise<Blob>().get_future();
+
+    setContainer(service, blob_name, aborted).when_ready([this, ret, service, blob_name, aborted](bool bOk) {
+
+      if (!bOk)
+      {
+        ret.get_promise()->set_value(Blob());
+        return;
+      }
+
+      NetRequest request(this->url.toString() + blob_name, "GET");
+      request.aborted = aborted;
+      signRequest(request);
+
+      NetService::push(service, request).when_ready([ret](NetResponse response) {
+
+        Blob blob;
+
+        if (response.isSuccessful())
+        {
+          //parse metadata
+          String metatata_prefix = "x-amz-meta-";
+          for (auto it = response.headers.begin(); it != response.headers.end(); it++)
+          {
+            String name = it->first;
+            if (StringUtils::startsWith(name, metatata_prefix))
+            {
+              name = StringUtils::replaceAll(name.substr(metatata_prefix.length()), "_", "-"); //backward compatibility
+              blob.metadata.setValue(name, it->second);
+            }
+          }
+
+          blob.body = response.body;
+
+          auto content_type = response.getContentType();
+          if (!content_type.empty())
+            blob.content_type = content_type;
+        }
+
+        ret.get_promise()->set_value(blob);
+      });
+    });
+
+    return ret;
+  }
 
   // deleteBlob
-  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) override
+  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
   {
-    NetRequest request(this->container_url + "/" + name, "DELETE");
+    NetRequest request(this->url.toString() + blob_name, "DELETE");
     request.aborted = aborted;
     signRequest(request);
 
     auto ret = Promise<bool>().get_future();
 
     NetService::push(service, request).when_ready([ret](NetResponse response) {
-      bool bOk = response.isSuccessful();
-      if (!bOk)
-        VisusWarning() << "ERROR Cannot delete block status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-      else
-        VisusInfo() << "deleteBlob done";
-      ret.get_promise()->set_value(bOk);
+      ret.get_promise()->set_value(response.isSuccessful());
     });
 
     return ret;
@@ -611,7 +669,7 @@ public:
   }
 
   // addContainer
-  virtual Future<bool> addContainer(SharedPtr<NetService> service, Aborted aborted=Aborted()) override
+  Future<bool> addContainer(SharedPtr<NetService> service, Aborted aborted=Aborted()) 
   {
     NetRequest request(Url("https://www.googleapis.com/drive/v3/files"),"POST");
     request.aborted = aborted;
@@ -642,7 +700,7 @@ public:
   }
 
   // deleteContainer
-  virtual Future<bool> deleteContainer(SharedPtr<NetService> service, Aborted aborted = Aborted())  override
+  Future<bool> deleteContainer(SharedPtr<NetService> service, Aborted aborted = Aborted())  
   {
     auto ret = Promise<bool>().get_future();
 
@@ -877,7 +935,6 @@ public:
   }
 
 };
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 SharedPtr<CloudStorage> CloudStorage::createInstance(Url url)

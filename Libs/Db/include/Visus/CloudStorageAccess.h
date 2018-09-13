@@ -82,8 +82,8 @@ private:
 
   SharedPtr<CloudStorage> cloud_storage;
 
-  //getBlockQueryName
-  String getBlockQueryName(SharedPtr<BlockQuery> query) const;
+  //getBlobName
+  String getBlobName(SharedPtr<BlockQuery> query) const;
 
 
 };
