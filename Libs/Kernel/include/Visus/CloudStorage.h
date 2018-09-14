@@ -63,10 +63,35 @@ public:
   class VISUS_KERNEL_API Blob
   {
   public:
-    StringMap metadata;
     SharedPtr<HeapMemory> body;
-    String content_type = "application/octet-stream";
-    bool valid() const { return body ? true : false; }
+    StringMap metadata;
+    String content_type;
+
+    //constructor
+    Blob(SharedPtr<HeapMemory> body_= SharedPtr<HeapMemory>(), StringMap metadata_ = StringMap(), String content_type_= "application/octet-stream")
+    : metadata(metadata_), body(body_), content_type(content_type_) {
+    }
+
+    //valid
+    bool valid() const { 
+      return body ? true : false; 
+    }
+
+    //operator==
+    bool operator==(const Blob& b) const
+    {
+      const Blob& a = *this;
+      return 
+        (a.content_type == b.content_type) &&
+        (a.metadata == b.metadata) &&
+        ((!a.body && !b.body) || (a.body && b.body && a.body->c_size() == b.body->c_size() && memcmp(a.body->c_ptr(), b.body->c_ptr(), (size_t)a.body->c_size()) == 0));
+    }
+    
+    //operator==
+    bool operator!=(const Blob& b) const {
+      return !(operator==(b));
+    }
+
   };
 
   //constructor

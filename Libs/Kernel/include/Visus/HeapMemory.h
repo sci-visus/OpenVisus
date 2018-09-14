@@ -150,6 +150,7 @@ private:
 
 
 //////////////////////////////////////////////////////////////
+#if !SWIG
 class VISUS_KERNEL_API OutputBinaryStream
 {
 public:
@@ -191,6 +192,7 @@ public:
   }
 
 };
+#endif
 
 
 } //namespace Visus

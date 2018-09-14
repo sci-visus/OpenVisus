@@ -1296,26 +1296,46 @@ public:
     Url url(args[1]);
 
     if (!url.valid())
-      ThrowException(StringUtils::format() << args[0] << ", "<< args[1] << " is not a valid url");
+      ThrowException(StringUtils::format() << args[0] << ", " << args[1] << " is not a valid url");
 
     auto net = std::make_shared<NetService>(1);
 
-    //note: blob name can contain '/'
-    String blob_name = "/testing-cloud-storage/my/blob/name/visus.png";
+    auto cloud = CloudStorage::createInstance(url);
 
+    //simple blob for testing
     auto blob = CloudStorage::Blob();
-    blob.body=Utils::loadBinaryDocument("datasets/cat/gray.png"); VisusReleaseAssert(blob.body);
+    blob.body = Utils::loadBinaryDocument("datasets/cat/gray.png"); VisusReleaseAssert(blob.body);
     blob.metadata.setValue("example-meta-data", "visus-meta-data");
 
-    auto cloud=CloudStorage::createInstance(url);
-    VisusReleaseAssert(cloud->addBlob(net,blob_name, blob, Aborted()).get());
+    {
+      String blob_name = "/testing-cloud-storage/my/blob/name/visus.png";
+      bool bOk = cloud->addBlob(net, blob_name, blob, Aborted()).get();
+      VisusReleaseAssert(bOk);
 
-    auto check_blob = cloud->getBlob(net,blob_name, Aborted()).get();
-    VisusReleaseAssert(check_blob.valid());
-    VisusReleaseAssert(blob.body->c_size() == check_blob.body->c_size());
-    VisusReleaseAssert(memcmp(blob.body->c_ptr(), check_blob.body->c_ptr(), (size_t)blob.body->c_size()) == 0);
-    VisusReleaseAssert(check_blob.metadata.getValue("example-meta-data") == "visus-meta-data");
-    VisusReleaseAssert(cloud->deleteBlob(net,blob_name,Aborted()).get());
+      auto check_blob = cloud->getBlob(net, blob_name, Aborted()).get();
+      
+      bOk=cloud->deleteBlob(net, blob_name, Aborted()).get();
+      VisusReleaseAssert(bOk);
+    }
+
+    Int64 MSEC_ADD = 0, MSEC_GET = 0;
+    for (int I = 0; ; I++)
+    {
+      String blob_name = StringUtils::format() << "/testing-cloud-storage/speed/" << "blob."<< std::setfill('0') << std::setw(4) << I <<".bin";
+      auto t1 = Time::now();
+      bool bOk=cloud->addBlob(net, blob_name, blob, Aborted()).get();
+      auto msec_add = t1.elapsedMsec(); MSEC_ADD += msec_add;
+      VisusReleaseAssert(bOk);
+
+      t1 = Time::now();
+      auto check_blob=cloud->getBlob(net, blob_name).get();
+      auto msec_get = t1.elapsedMsec(); MSEC_GET += msec_get;
+
+      check_blob.content_type = blob.content_type; //google changes the content_type
+      VisusReleaseAssert(check_blob == blob);
+
+      VisusInfo() << "Average msec_add(" << (MSEC_ADD / (I+1)) << ") msec_get(" << (MSEC_GET / (I + 1)) << ")";
+    }
 
     return data;
   }
