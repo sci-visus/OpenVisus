@@ -144,68 +144,54 @@ public:
     request.setHeader("Authorization", "SharedKey " + account_name + ":" + signature);
   }
 
-  // addContainer
-  Future<bool> addContainer(SharedPtr<NetService> service, String container_name, Aborted aborted = Aborted()) 
+  //setContainer
+  Future<bool> addContainer(SharedPtr<NetService> service, String container, Aborted aborted = Aborted())
   {
-    VisusAssert(!StringUtils::contains(container_name, "/"));
+    VisusAssert(!StringUtils::contains(container, "/"));
+
     auto ret = Promise<bool>().get_future();
 
-    NetRequest request(this->url.toString() + "/" + container_name, "PUT");
+    //I know it exists
+    if (container == this->container)
+    {
+      ret.get_promise()->set_value(true);
+      return ret;
+    }
+
+    NetRequest request(this->url.toString() + "/" + container, "PUT");
     request.aborted = aborted;
     request.url.params.setValue("restype", "container");
     request.setContentLength(0);
     //request.setHeader("x-ms-prop-publicaccess", "container"); IF YOU WANT PUBLIC
     signRequest(request);
 
-    NetService::push(service, request).when_ready([ret](NetResponse response) {
-      bool bAlreadyExits = response.status == 409;
-      ret.get_promise()->set_value(response.isSuccessful() || bAlreadyExits);
+    NetService::push(service, request).when_ready([this,ret, container](NetResponse response) {
+
+      bool bOk = response.isSuccessful() || /*bAlreadyExists*/(response.status == 409);
+      if (bOk)
+        this->container = container;
+      ret.get_promise()->set_value(bOk);
     });
 
     return ret;
   }
 
+
   // deleteContainer
-  Future<bool> deleteContainer(SharedPtr<NetService> service, String container_name, Aborted aborted = Aborted())
+  Future<bool> deleteContainer(SharedPtr<NetService> service, String container, Aborted aborted = Aborted())
   {
-    VisusAssert(!StringUtils::contains(container_name, "/"));
-    NetRequest request(this->url.toString() + "/" + container_name, "DELETE");
+    VisusAssert(!StringUtils::contains(container, "/"));
+    NetRequest request(this->url.toString() + "/" + container, "DELETE");
     request.aborted = aborted;
     request.url.params.setValue("restype", "container");
     signRequest(request);
 
     auto ret = Promise<bool>().get_future();
 
-    NetService::push(service, request).when_ready([ret](NetResponse response) {
-      ret.get_promise()->set_value(response.isSuccessful());
-    });
-
-    return ret;
-  }
-
-  //setContainer
-  Future<bool> setContainer(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted())
-  {
-    auto ret = Promise<bool>().get_future();
-
-    auto v = StringUtils::split(blob_name,"/");
-    if (v.empty() || v[0].empty())
-    {
-      ret.get_promise()->set_value(false);
-      return ret;
-    }
-
-    //no need to set it again 
-    auto container = v[0];
-    if (!this->container.empty() && container == this->container) {
-      ret.get_promise()->set_value(true);
-      return ret;
-    }
-
-    //try to add
-    addContainer(service, container, aborted).when_ready([this,container,ret](bool bOk) {
-      if (bOk) 
-        this->container = container;
+    NetService::push(service, request).when_ready([this, container,ret](NetResponse response) {
+      bool bOk = response.isSuccessful();
+      if (bOk && container == this->container)
+        this->container = "";
       ret.get_promise()->set_value(bOk);
     });
 
@@ -217,7 +203,16 @@ public:
   {
     auto ret = Promise<bool>().get_future();
 
-    setContainer(service, blob_name,aborted).when_ready([this,ret, service, blob,blob_name,aborted](bool bOk)
+    auto index = blob_name.find("/");
+    if (index == String::npos) {
+      VisusAssert(false);
+      ret.get_promise()->set_value(false);
+      return ret;
+    }
+
+    String container = blob_name.substr(0,index);
+
+    addContainer(service, container,aborted).when_ready([this,ret, service, blob,blob_name,aborted](bool bOk)
     {
       if (!bOk)
       {
@@ -261,52 +256,43 @@ public:
   {
     auto ret = Promise<Blob>().get_future();
 
-    setContainer(service, blob_name, aborted).when_ready([this, ret, service, blob_name, aborted](bool bOk) {
+    NetRequest request(this->url.toString() + blob_name, "GET");
+    request.aborted = aborted;
+    signRequest(request);
 
-      if (!bOk)
+    NetService::push(service, request).when_ready([ret](NetResponse response) {
+
+      if (!response.isSuccessful())
       {
         ret.get_promise()->set_value(Blob());
         return;
       }
 
-      NetRequest request(this->url.toString() + blob_name, "GET");
-      request.aborted = aborted;
-      signRequest(request);
-
-      NetService::push(service, request).when_ready([ret](NetResponse response) {
-
-        if (!response.isSuccessful())
+      //parse metadata
+      Blob blob;
+      String metatata_prefix = "x-ms-meta-";
+      for (auto it = response.headers.begin(); it != response.headers.end(); it++)
+      {
+        String name = it->first;
+        if (StringUtils::startsWith(name, metatata_prefix))
         {
-          ret.get_promise()->set_value(Blob());
-          return;
+          name = name.substr(metatata_prefix.length());
+
+          //trick: azure does not allow the "-" 
+          if (StringUtils::contains(name, "_"))
+            name = StringUtils::replaceAll(name, "_", "-");
+
+          blob.metadata.setValue(name, it->second);
         }
+      }
 
-        //parse metadata
-        Blob blob;
-        String metatata_prefix = "x-ms-meta-";
-        for (auto it = response.headers.begin(); it != response.headers.end(); it++)
-        {
-          String name = it->first;
-          if (StringUtils::startsWith(name, metatata_prefix))
-          {
-            name = name.substr(metatata_prefix.length());
+      blob.body = response.body;
 
-            //trick: azure does not allow the "-" 
-            if (StringUtils::contains(name, "_"))
-              name = StringUtils::replaceAll(name, "_", "-");
+      auto content_type = response.getContentType();
+      if (!content_type.empty())
+        blob.content_type = content_type;
 
-            blob.metadata.setValue(name, it->second);
-          }
-        }
-
-        blob.body = response.body;
-
-        auto content_type = response.getContentType();
-        if (!content_type.empty())
-          blob.content_type = content_type;
-
-        ret.get_promise()->set_value(blob);
-      });
+      ret.get_promise()->set_value(blob);
     });
 
     return ret;
@@ -400,19 +386,31 @@ public:
     request.setHeader("Authorization", "AWS " + username + ":" + signature);
   }
 
-  // addContainer
-  Future<int> addContainer(SharedPtr<NetService> service,String container_name,Aborted aborted=Aborted()) 
-  {
-    auto ret = Promise<int>().get_future();
 
-    VisusAssert(!StringUtils::contains(container_name, "/"));
-    NetRequest request(this->url.toString() + "/" + container_name, "PUT");
+  // addContainer
+  Future<bool> addContainer(SharedPtr<NetService> service,String container,Aborted aborted=Aborted()) 
+  {
+    VisusAssert(!StringUtils::contains(container, "/"));
+
+    auto ret = Promise<bool>().get_future();
+
+    //I know that the container already exists, don't need to create it
+    if (container == this->container)
+    {
+      ret.get_promise()->set_value(true);
+      return ret;
+    }
+
+    NetRequest request(this->url.toString() + "/" + container, "PUT");
     request.aborted = aborted;
     request.url.setPath(request.url.getPath() + "/"); //IMPORTANT the "/" to indicate is a container! see http://www.bucketexplorer.com/documentation/amazon-s3--how-to-create-a-folder.html
     signRequest(request);
 
-    NetService::push(service, request).when_ready([ret](NetResponse response) {
-      ret.get_promise()->set_value(response.isSuccessful());
+    NetService::push(service, request).when_ready([this, ret, container](NetResponse response) {
+      bool bOk = response.isSuccessful();
+      if (bOk)
+        this->container = container;
+      ret.get_promise()->set_value(bOk);
     });
 
     return ret;
@@ -437,43 +435,21 @@ public:
     return ret;
   }
 
-
-  //setContainer
-  Future<bool> setContainer(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted())
-  {
-    auto ret = Promise<bool>().get_future();
-
-    auto v = StringUtils::split(blob_name, "/");
-    if (v.empty() || v[0].empty())
-    {
-      ret.get_promise()->set_value(false);
-      return ret;
-    }
-
-    //no need to set it again 
-    auto container = v[0];
-    if (!this->container.empty() && container == this->container) {
-      ret.get_promise()->set_value(true);
-      return ret;
-    }
-
-    //try to add
-    addContainer(service, container, aborted).when_ready([this, container, ret](bool bOk) {
-
-      if (bOk) 
-        this->container = container;
-      ret.get_promise()->set_value(bOk);
-    });
-
-    return ret;
-  }
-
   // addBlob 
   virtual Future<bool> addBlob(SharedPtr<NetService> service, String blob_name, Blob blob, Aborted aborted = Aborted()) override
   {
     auto ret = Promise<bool>().get_future();
 
-    setContainer(service, blob_name, aborted).when_ready([this, ret, service, blob, blob_name, aborted](bool bOk)
+    auto index = blob_name.find("/");
+    if (index == String::npos) {
+      VisusAssert(false);
+      ret.get_promise()->set_value(false);
+      return ret;
+    }
+
+    String container = blob_name.substr(0, index);
+
+    addContainer(service, container, aborted).when_ready([this, ret, service, blob, blob_name, aborted](bool bOk)
     {
       if (!bOk)
       {
@@ -507,45 +483,36 @@ public:
   {
     auto ret = Promise<Blob>().get_future();
 
-    setContainer(service, blob_name, aborted).when_ready([this, ret, service, blob_name, aborted](bool bOk) {
+    NetRequest request(this->url.toString() + blob_name, "GET");
+    request.aborted = aborted;
+    signRequest(request);
 
-      if (!bOk)
+    NetService::push(service, request).when_ready([ret](NetResponse response) {
+
+      Blob blob;
+
+      if (response.isSuccessful())
       {
-        ret.get_promise()->set_value(Blob());
-        return;
-      }
-
-      NetRequest request(this->url.toString() + blob_name, "GET");
-      request.aborted = aborted;
-      signRequest(request);
-
-      NetService::push(service, request).when_ready([ret](NetResponse response) {
-
-        Blob blob;
-
-        if (response.isSuccessful())
+        //parse metadata
+        String metatata_prefix = "x-amz-meta-";
+        for (auto it = response.headers.begin(); it != response.headers.end(); it++)
         {
-          //parse metadata
-          String metatata_prefix = "x-amz-meta-";
-          for (auto it = response.headers.begin(); it != response.headers.end(); it++)
+          String name = it->first;
+          if (StringUtils::startsWith(name, metatata_prefix))
           {
-            String name = it->first;
-            if (StringUtils::startsWith(name, metatata_prefix))
-            {
-              name = StringUtils::replaceAll(name.substr(metatata_prefix.length()), "_", "-"); //backward compatibility
-              blob.metadata.setValue(name, it->second);
-            }
+            name = StringUtils::replaceAll(name.substr(metatata_prefix.length()), "_", "-"); //backward compatibility
+            blob.metadata.setValue(name, it->second);
           }
-
-          blob.body = response.body;
-
-          auto content_type = response.getContentType();
-          if (!content_type.empty())
-            blob.content_type = content_type;
         }
 
-        ret.get_promise()->set_value(blob);
-      });
+        blob.body = response.body;
+
+        auto content_type = response.getContentType();
+        if (!content_type.empty())
+          blob.content_type = content_type;
+      }
+
+      ret.get_promise()->set_value(blob);
     });
 
     return ret;
@@ -567,7 +534,6 @@ public:
     return ret;
   }
 
-
 };
 
 
@@ -578,9 +544,7 @@ public:
 
   VISUS_CLASS(GoogleDriveStorage)
 
-  String container_name;
-  String container_id;
-
+  Url    url;
   String client_id;
   String client_secret;
   String refresh_token;
@@ -593,6 +557,8 @@ public:
   }
   access_token;
 
+  std::map<String, String> container_ids;
+
   //constructor
   GoogleDriveStorage(Url url) 
   {
@@ -600,335 +566,375 @@ public:
     this->client_id = url.getParam("client_id"); VisusAssert(!client_id.empty());
     this->client_secret = url.getParam("client_secret"); VisusAssert(!client_secret.empty());
 
-    String path = url.getPath();
-    VisusAssert(!path.empty() && path[0] == '/');
-    int index = (int)path.find('/', 1);
-    this->container_name = (index >= 0) ? path.substr(1, index - 1) : path.substr(1);
+    this->url = url.getProtocol() + "://" + url.getHostname();
 
-    generateAccessToken();
-
-    this->container_id = getContainerId();
+    this->container_ids[""] = "root";
   }
 
   //destructor
   virtual ~GoogleDriveStorage() {
   }
 
-  //accessTokenValid
-  bool accessTokenValid() const {
-    return !this->access_token.value.empty() && this->access_token.t1.elapsedSec() < 0.85* this->access_token.expires_in;
-  }
-
-  //generateAccessToken
-  void generateAccessToken()
-  {
-    this->access_token.value.clear();
-
-    NetRequest request(Url("https://www.googleapis.com/oauth2/v3/token"), "POST");
-    request.setTextBody(StringUtils::format()
-      << "client_id=" << this->client_id
-      << "&client_secret=" << this->client_secret
-      << "&refresh_token=" << this->refresh_token
-      << "&grant_type=refresh_token");
-
-    auto response = NetService::getNetResponse(request);
-    if (!response.isSuccessful())
-      return;
-
-    auto json = nlohmann::json::parse(response.getTextBody());
-    std::cout << json <<std::endl;
-
-    this->access_token.t1 = Time::now();
-    this->access_token.value = json["access_token"].get<std::string>();
-    this->access_token.expires_in = json["expires_in"].get<int>();
-  }
-
-
   //signRequest
   void signRequest(NetRequest& request)
   {
-    if (!accessTokenValid())
-      generateAccessToken();
+    //need to regenerate access token?
+    if (this->access_token.value.empty() || this->access_token.t1.elapsedSec() > 0.85* this->access_token.expires_in)
+    {
+      this->access_token.value="";
+
+      NetRequest request(Url(this->url.toString() + "/oauth2/v3/token"), "POST");
+      request.setTextBody(StringUtils::format()
+        << "client_id=" << this->client_id
+        << "&client_secret=" << this->client_secret
+        << "&refresh_token=" << this->refresh_token
+        << "&grant_type=refresh_token");
+
+      auto response = NetService::getNetResponse(request);
+      if (response.isSuccessful())
+      {
+        auto json = nlohmann::json::parse(response.getTextBody());
+        std::cout << json << std::endl;
+        this->access_token.t1 = Time::now();
+        this->access_token.value = json["access_token"].get<std::string>();
+        this->access_token.expires_in = json["expires_in"].get<int>();
+      }
+    }
+
     request.headers.setValue("Authorization", "Bearer " + this->access_token.value);
   }
 
-  //getContainerId
-  String getContainerId()
+  // recursiveGetContainerId
+  void recursiveGetContainerId(Future<String> ret,SharedPtr<NetService> service, String current, String last, bool bCreate, Aborted aborted = Aborted())
   {
-    NetRequest request("https://www.googleapis.com/drive/v3/files?q=name='" + container_name + "'", "GET");
+    VisusAssert(StringUtils::startsWith(last, current));
+    VisusAssert(container_ids.find(current) != container_ids.end());
+
+    //final part of the recursion
+    if (current == last)
+      return ret.get_promise()->set_value(container_ids[current]);
+
+    //take only the first part that needs to be created
+    auto name = StringUtils::split(last.substr(current.size()),"/")[0];
+
+    auto next = current + "/" + name;
+
+    //already know
+    if (container_ids.find(next) != container_ids.end())
+      return recursiveGetContainerId(ret, service, next, last, bCreate, aborted);
+
+    //check if exists (don't want to create duplicates)
+    std::ostringstream url;
+    url << this->url.toString() << "/drive/v3/files?q=name='" << name << "'";
+    url << " and '" << container_ids[current] << "' in parents";
+
+    NetRequest request(url.str(), "GET");
+    request.aborted = aborted;
     signRequest(request);
-    auto response=NetService::getNetResponse(request);
+    NetService::push(service, request).when_ready([this, service, ret, current, next, last, name, bCreate, aborted](NetResponse response) {
 
-    //could be that does not exist
-    if (!response.isSuccessful())
-      return "";
+      if (!response.isSuccessful())
+        return ret.get_promise()->set_value("");
 
-    auto json = nlohmann::json::parse(response.getTextBody());
-    auto ret = json["files"].size()? json["files"].at(0)["id"].get<std::string>() : String();
+      //already exists? 
+      auto json = nlohmann::json::parse(response.getTextBody());
+      auto id = json["files"].size() ? json["files"].at(0)["id"].get<std::string>() : String();
+      if (id.size())
+      {
+        container_ids[next] = id;
+        return recursiveGetContainerId(ret, service, next, last, bCreate, aborted);
+      }
+
+      if (!bCreate)
+        return ret.get_promise()->set_value("");
+
+      //need to create one
+      std::ostringstream body;
+      body << "{";
+      body<< "'name':'" + name + "'";
+      body << " ,'mimeType':'application/vnd.google-apps.folder'";
+      body << " ,'parents':['" + container_ids[current]  + "']";
+      body << "}";
+
+      NetRequest request(Url(this->url.toString() + "/drive/v3/files"), "POST");
+      request.aborted = aborted;
+      request.setHeader("Content-Type", "application/json");
+      request.setTextBody(body.str());
+      signRequest(request);
+
+      NetService::push(service, request).when_ready([this, ret,  service, current, next, last, bCreate, aborted](NetResponse response) {
+
+        if (!response.isSuccessful())
+          return ret.get_promise()->set_value("");
+
+        auto json = nlohmann::json::parse(response.getTextBody());
+        container_ids[next] = json["id"].get<std::string>();
+        return recursiveGetContainerId(ret, service, next, last, bCreate, aborted);
+      });
+    });
+  }
+
+  //getContainerId
+  Future<String> getContainerId(SharedPtr<NetService> service, String container_name, bool bCreate, Aborted aborted = Aborted())
+  {
+    auto ret = Promise<String>().get_future();
+    recursiveGetContainerId(ret,service,"",container_name, bCreate,aborted);
     return ret;
   }
 
-  // addContainer
-  Future<bool> addContainer(SharedPtr<NetService> service, Aborted aborted=Aborted()) 
+  // addContainer (if already exists do not create)
+  Future<String> addContainer(SharedPtr<NetService> service, String container_name, Aborted aborted=Aborted())
   {
-    NetRequest request(Url("https://www.googleapis.com/drive/v3/files"),"POST");
-    request.aborted = aborted;
-    request.setHeader("Content-Type","application/json");
-    request.setTextBody("{'name':'"+this->container_name+"','mimeType':'application/vnd.google-apps.folder'}");
-    signRequest(request);
-
-    auto ret = Promise<bool>().get_future();
-
-    NetService::push(service, request).when_ready([this,ret](NetResponse response) {
-
-      bool bOk = response.isSuccessful();
-
-      if (!bOk)
-        VisusWarning() << "ERROR. Cannot create container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-      else
-      {
-        VisusInfo() << "addContainer done";
-
-        auto json = nlohmann::json::parse(response.getTextBody());
-        this->container_id = json["id"].get<std::string>();
-      }
-
-      ret.get_promise()->set_value(bOk);
-    });
-
-    return ret;
+    return getContainerId(service, container_name,/*bCreate*/true, aborted);
   }
 
   // deleteContainer
-  Future<bool> deleteContainer(SharedPtr<NetService> service, Aborted aborted = Aborted())  
+  Future<bool> deleteContainer(SharedPtr<NetService> service, String container_name, Aborted aborted = Aborted())
   {
     auto ret = Promise<bool>().get_future();
 
-    auto failed = [&] {
-      ret.get_promise()->set_value(false);
-      return ret;
-    };
+    getContainerId(service, container_name,/*bCreate*/false, aborted).when_ready([this, service, ret](String container_id) {
 
-    if (container_id.empty())
-      return failed();
+      if (container_id.empty())
+        return ret.get_promise()->set_value(false);
 
-    NetRequest request(Url("https://www.googleapis.com/drive/v3/files/"+container_id),"DELETE");
-    request.aborted = aborted;
-    signRequest(request);
+      NetRequest request(Url(this->url.toString() + "/drive/v3/files/" + container_id), "DELETE");
+      NetService::push(service, request).when_ready([this,ret](NetResponse response) {
+        ret.get_promise()->set_value(response.isSuccessful());
+      });
 
-    NetService::push(service, request).when_ready([this,ret](NetResponse response) {
-      bool bOk = response.isSuccessful();
-      if (!bOk)
-        VisusWarning() << "ERROR. Cannot delete container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-      else
-      {
-        VisusInfo() << "deleteContainer done";
-        this->container_id = "";
-      }
-
-      ret.get_promise()->set_value(bOk);
     });
 
     return ret;
   }
 
+ 
   // addBlobRequest 
-  virtual Future<bool> addBlob(SharedPtr<NetService> service, String name, Blob blob, Aborted aborted = Aborted()) override
+  virtual Future<bool> addBlob(SharedPtr<NetService> service, String blob_name, Blob blob, Aborted aborted = Aborted()) override
   {
     auto ret = Promise<bool>().get_future();
 
-    if (container_id.empty())
+    auto index = blob_name.rfind('/');
+    if (index == String::npos)
     {
-      ret.get_promise()->set_value(false);
+      VisusAssert(false);
+      ret.get_promise()->set_value("");
       return ret;
     }
 
-    NetRequest request(Url("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart"), "POST");
-    request.aborted = aborted;
+    auto container_name = blob_name.substr(0, index);
 
-    String boundary = UUIDGenerator::getSingleton()->create();
-    request.setHeader("Expect", "");
-    request.setContentType("multipart/form-data; boundary=" + boundary);
+    getContainerId(service, container_name,/*bCreate*/true, aborted).when_ready([this, service, ret, blob_name, blob, aborted](String container_id) {
 
-    //write multiparts
-    {
-      request.body = std::make_shared<HeapMemory>();
-
-      OutputBinaryStream out(*request.body);
-
-      //multipart 1
-      out << "--" << boundary << "\r\n";
-      out << "Content-Disposition: form-data; name=\"metadata\"\r\n";
-      out << "Content-Type: application/json;charset=UTF-8;\r\n";
-      out << "\r\n";
-      out << "{'name':'" << name << "','parents':['" << container_id << "'], 'properties': {";
-      bool need_sep = false; 
-      for (auto it : blob.metadata)
+      if (container_id.empty())
       {
-        out << (need_sep? "," : "" ) << "'" << it.first << "': '" << it.second << "'";
-        need_sep=true;
+        ret.get_promise()->set_value(false);
+        return;
       }
-      out << "}}" << "\r\n";
 
-      //multipart2
-      out << "--" << boundary << "\r\n";
-      out << "Content-Disposition: form-data; name=\"file\"\r\n";
-      out << "Content-Type: " + blob.content_type + "\r\n";
-      out << "\r\n";
-      out << *blob.body << "\r\n";
+      String name = StringUtils::split(blob_name, "/").back();
 
-      //multipart end
-      out << "--" << boundary << "--";
+      NetRequest request(Url(this->url.toString() + "/upload/drive/v3/files?uploadType=multipart"), "POST");
+      request.aborted = aborted;
 
-      request.setContentLength(request.body->c_size());
-    }
+      String boundary = UUIDGenerator::getSingleton()->create();
+      request.setHeader("Expect", "");
+      request.setContentType("multipart/form-data; boundary=" + boundary);
 
-    signRequest(request);
+      //write multiparts
+      {
+        request.body = std::make_shared<HeapMemory>();
 
-    NetService::push(service, request).when_ready([this, ret](NetResponse response) {
-      bool bOk = response.isSuccessful();
-      if (!bOk)
-        VisusWarning() << "ERROR. Cannot addBlob status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-      ret.get_promise()->set_value(bOk);
+        OutputBinaryStream out(*request.body);
+
+        //multipart 1
+        out << "--" << boundary << "\r\n";
+        out << "Content-Disposition: form-data; name=\"metadata\"\r\n";
+        out << "Content-Type: application/json;charset=UTF-8;\r\n";
+        out << "\r\n";
+        out << "{'name':'" << name << "','parents':['" << container_id << "'], 'properties': {";
+        bool need_sep = false;
+        for (auto it : blob.metadata)
+        {
+          out << (need_sep ? "," : "") << "'" << it.first << "': '" << it.second << "'";
+          need_sep = true;
+        }
+        out << "}}" << "\r\n";
+
+        //multipart2
+        out << "--" << boundary << "\r\n";
+        out << "Content-Disposition: form-data; name=\"file\"\r\n";
+        out << "Content-Type: " + blob.content_type + "\r\n";
+        out << "\r\n";
+        out << *blob.body << "\r\n";
+
+        //multipart end
+        out << "--" << boundary << "--";
+
+        request.setContentLength(request.body->c_size());
+      }
+
+      signRequest(request);
+
+      NetService::push(service, request).when_ready([this, ret](NetResponse response) {
+        ret.get_promise()->set_value(response.isSuccessful());
+      });
+
+
     });
 
     return ret;
   }
 
   // getBlob 
-  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) override
+  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
   {
-    auto ret = Promise<Blob> ().get_future();
+    auto ret = Promise<Blob>().get_future();
 
-    if (container_id.empty())
+    auto index = blob_name.rfind('/');
+    if (index == String::npos)
     {
+      VisusAssert(false);
       ret.get_promise()->set_value(Blob());
       return ret;
     }
+    auto container_name = blob_name.substr(0, index);
 
-    NetRequest get_blob_id("https://www.googleapis.com/drive/v3/files?q=name='" + name + "' and '" + container_id + "' in parents", "GET");
-    get_blob_id.aborted = aborted;
-    signRequest(get_blob_id);
 
-    NetService::push(service, get_blob_id).when_ready([this, service, ret, aborted](NetResponse response) {
+    getContainerId(service, container_name,/*bCreate*/false, aborted).when_ready([this, ret, service, blob_name, aborted](String container_id) {
 
-      if (!response.isSuccessful())
-      {
-        VisusWarning() << "ERROR. Cannot get blob status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-        ret.get_promise()->set_value(Blob());
-        return;
-      }
-
-      auto json = nlohmann::json::parse(response.getTextBody());
-      auto blob_id = json["files"].size() ? json["files"].at(0)["id"].get<std::string>() : String();
-      if (blob_id.empty())
+      if (container_id.empty())
       {
         ret.get_promise()->set_value(Blob());
         return;
       }
 
-      NetRequest get_blob_metadata(Url("https://www.googleapis.com/drive/v3/files/" + blob_id + "?fields=id,name,mimeType,properties"), "GET");
-      get_blob_metadata.aborted = aborted;
-      signRequest(get_blob_metadata);
+      String name = StringUtils::split(blob_name, "/").back();
 
-      NetService::push(service, get_blob_metadata).when_ready([this, ret, service, blob_id,aborted](NetResponse response) {
+      NetRequest get_blob_id(this->url.toString() + "/drive/v3/files?q=name='" + name + "' and '" + container_id + "' in parents", "GET");
+      get_blob_id.aborted = aborted;
+      signRequest(get_blob_id);
 
-        bool bOk = response.isSuccessful();
-        if (!bOk)
+      NetService::push(service, get_blob_id).when_ready([this, service, ret, aborted](NetResponse response) {
+
+        if (!response.isSuccessful())
         {
           VisusWarning() << "ERROR. Cannot get blob status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
           ret.get_promise()->set_value(Blob());
           return;
         }
 
-        auto metadata = StringMap();
         auto json = nlohmann::json::parse(response.getTextBody());
-        for (auto it : json["properties"].get<nlohmann::json::object_t>())
+        auto blob_id = json["files"].size() ? json["files"].at(0)["id"].get<std::string>() : String();
+        if (blob_id.empty())
         {
-          auto key=it.first;
-          auto value= it.second.get<String>();
-          metadata.setValue(key, value);
+          ret.get_promise()->set_value(Blob());
+          return;
         }
 
-        NetRequest get_blob_media(Url("https://www.googleapis.com/drive/v3/files/" + blob_id + "?alt=media"), "GET");
-        get_blob_media.aborted = aborted;
-        signRequest(get_blob_media);
+        NetRequest get_blob_metadata(Url(this->url.toString() + "/drive/v3/files/" + blob_id + "?fields=id,name,mimeType,properties"), "GET");
+        get_blob_metadata.aborted = aborted;
+        signRequest(get_blob_metadata);
 
-        NetService::push(service, get_blob_media).when_ready([this, ret, aborted, metadata](NetResponse response) {
+        NetService::push(service, get_blob_metadata).when_ready([this, ret, service, blob_id, aborted](NetResponse response) {
 
-          bool bOk = response.isSuccessful();
-          if (!bOk)
+          if (!response.isSuccessful())
           {
             VisusWarning() << "ERROR. Cannot get blob status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
             ret.get_promise()->set_value(Blob());
             return;
           }
 
-          auto content_type = response.getContentType();
+          auto metadata = StringMap();
+          auto json = nlohmann::json::parse(response.getTextBody());
+          for (auto it : json["properties"].get<nlohmann::json::object_t>())
+          {
+            auto key = it.first;
+            auto value = it.second.get<String>();
+            metadata.setValue(key, value);
+          }
 
-          Blob blob;
-          blob.metadata = metadata;
-          blob.body = response.body;
-          if (!content_type.empty())
-            blob.content_type = content_type;
+          NetRequest get_blob_media(Url(this->url.toString() + "/drive/v3/files/" + blob_id + "?alt=media"), "GET");
+          get_blob_media.aborted = aborted;
+          signRequest(get_blob_media);
 
-          ret.get_promise()->set_value(blob);
+          NetService::push(service, get_blob_media).when_ready([this, ret, aborted, metadata](NetResponse response) {
+
+            if (!response.isSuccessful())
+            {
+              VisusWarning() << "ERROR. Cannot get blob status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+              ret.get_promise()->set_value(Blob());
+              return;
+            }
+
+            auto content_type = response.getContentType();
+
+            Blob blob;
+            blob.metadata = metadata;
+            blob.body = response.body;
+            if (!content_type.empty())
+              blob.content_type = content_type;
+
+            ret.get_promise()->set_value(blob);
+          });
         });
-      });
 
+      });
     });
 
     return ret;
   }
 
-
   // deleteBlob
-  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) override
+  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
   {
     auto ret = Promise<bool>().get_future();
 
-    if (container_id.empty())
+    auto index = blob_name.rfind('/');
+    if (index == String::npos)
     {
+      VisusAssert(false);
       ret.get_promise()->set_value(false);
       return ret;
     }
+    auto container_name = blob_name.substr(0, index);
 
-    NetRequest get_blob_id("https://www.googleapis.com/drive/v3/files?q=name='" + name + "' and '" + container_id + "' in parents", "GET");
-    get_blob_id.aborted = aborted;
-    signRequest(get_blob_id);
+    getContainerId(service, container_name,/*bCreate*/false, aborted).when_ready([this, ret, service, blob_name, aborted](String container_id) {
 
-    NetService::push(service, get_blob_id).when_ready([this, service, ret, aborted](NetResponse response) {
+      if (container_id.empty())
+        return ret.get_promise()->set_value(false);
 
-      if (!response.isSuccessful())
-      {
-        VisusWarning() << "ERROR. Cannot delete blob status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-        ret.get_promise()->set_value(false);
-        return;
-      }
+      String name = StringUtils::split(blob_name, "/").back();
 
-      auto json = nlohmann::json::parse(response.getTextBody());
-      auto blob_id = json["files"].size() ? json["files"].at(0)["id"].get<std::string>() : String();
-      if (blob_id.empty())
-      {
-        ret.get_promise()->set_value(false);
-        return;
-      }
+      NetRequest get_blob_id(this->url.toString() + "/drive/v3/files?q=name='" + name + "' and '" + container_id + "' in parents", "GET");
+      get_blob_id.aborted = aborted;
+      signRequest(get_blob_id);
 
-      NetRequest delete_blob(Url("https://www.googleapis.com/drive/v3/files/" + blob_id), "DELETE");
-      delete_blob.aborted = aborted;
-      signRequest(delete_blob);
+      NetService::push(service, get_blob_id).when_ready([this, service, ret, aborted](NetResponse response) {
 
-      NetService::push(service, delete_blob).when_ready([this, ret](NetResponse response) {
+        if (!response.isSuccessful())
+        {
+          ret.get_promise()->set_value(false);
+          return;
+        }
 
-        bool bOk = response.isSuccessful();
-        if (!bOk)
-          VisusWarning() << "ERROR. Cannot delete container status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
-        else
-          VisusInfo() << "deleteBlob done";
+        auto json = nlohmann::json::parse(response.getTextBody());
+        auto blob_id = json["files"].size() ? json["files"].at(0)["id"].get<std::string>() : String();
+        if (blob_id.empty())
+        {
+          ret.get_promise()->set_value(false);
+          return;
+        }
 
-        ret.get_promise()->set_value(bOk);
+        NetRequest delete_blob(Url(this->url.toString() + "/drive/v3/files/" + blob_id), "DELETE");
+        delete_blob.aborted = aborted;
+        signRequest(delete_blob);
+
+        NetService::push(service, delete_blob).when_ready([this, ret](NetResponse response) {
+          ret.get_promise()->set_value(response.isSuccessful());
+        });
+
       });
-
     });
 
     return ret;
