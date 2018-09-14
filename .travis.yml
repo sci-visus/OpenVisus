@@ -101,7 +101,7 @@ matrix:
     - os: linux
       dist: trusty
       env: [
-          COMPILER=g++-4,
+          COMPILER=g++-4.9,
           PYTHON_VERSION=2.7,
           PYTHON_INCLUDE_DIR=/usr/include/python2.7,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython2.7.so,
@@ -109,13 +109,13 @@ matrix:
         ]
       addons: 
         apt:
-          packages: ['g++-4']
+          packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']       
           
     - os: linux
       dist: trusty
       env: [
-          COMPILER=g++-4,
+          COMPILER=g++-4.9,
           PYTHON_VERSION=3.4,
           PYTHON_INCLUDE_DIR=/usr/include/python3.4m,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.4m.so,
@@ -123,13 +123,13 @@ matrix:
         ]
       addons: 
         apt:
-          packages: ['g++-4']
+          packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']
          
     - os: linux
       dist: trusty
       env: [
-          COMPILER=g++-4,
+          COMPILER=g++-4.9,
           PYTHON_VERSION=3.5,
           PYTHON_INCLUDE_DIR=/usr/include/python3.5m,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.5m.so,
@@ -137,13 +137,13 @@ matrix:
         ]
       addons: 
         apt:
-          packages: ['g++-4']
+          packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']
                     
     - os: linux
       dist: trusty
       env: [
-         COMPILER=g++-4,
+         COMPILER=g++-4.9,
          PYTHON_VERSION=3.6,
          PYTHON_INCLUDE_DIR=/usr/include/python3.6m,
          PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so,
@@ -151,7 +151,7 @@ matrix:
         ]       
       addons: 
         apt:
-          packages: ['g++-4']
+          packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']
     
 script:

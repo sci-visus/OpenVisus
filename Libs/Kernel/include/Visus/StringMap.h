@@ -45,6 +45,7 @@ For support : support@visus.net
 
 namespace Visus {
 
+////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API StringMap
 {
 public:
@@ -56,24 +57,27 @@ public:
   typedef Map::const_iterator const_iterator;
 
   //constructor
-  StringMap()
-  {}
+  StringMap(){
+  }
 
   //destructor
-  ~StringMap()
-  {}
+  ~StringMap(){
+  }
 
   //clear
-  inline void clear()
-  {values.clear();}
+  inline void clear() {
+    values.clear();
+  }
 
   //size
-  inline int size() const
-  {return (int)values.size();}
+  inline int size() const {
+    return (int)values.size();
+  }
 
   //empty
-  inline bool empty() const
-  {return values.empty();}
+  inline bool empty() const {
+    return values.empty();
+  }
 
   //iterators
   inline iterator       begin()       {return values.begin();}
@@ -82,16 +86,19 @@ public:
   inline const_iterator end  () const {return values.end  ();}
 
   //find
-  inline iterator find(const String& key) 
-  {return values.find(key);}
+  inline iterator find(const String& key)  {
+    return values.find(key);
+  }
 
   //find
-  inline const_iterator find(const String& key) const 
-  {return values.find(key);}
+  inline const_iterator find(const String& key) const {
+    return values.find(key);
+  }
 
   //hasValue
-  inline bool hasValue(const String& key) const
-  {return values.find(key)!=values.end();}
+  inline bool hasValue(const String& key) const {
+    return values.find(key)!=values.end();
+  }
 
   //getValue
   inline String getValue(const String& key,String default_value="") const {
@@ -99,12 +106,24 @@ public:
   }
 
   //setValue
-  inline void setValue(const String& key,const String& value)
-  {values[key]=value;}
+  inline void setValue(const String& key,const String& value) {
+    values[key]=value;
+  }
 
   //eraseValue
-  inline void eraseValue(const String& key)
-  {values.erase(key);}
+  inline void eraseValue(const String& key) {
+    values.erase(key);
+  }
+
+  //operator==
+  bool operator==(const StringMap& other) const {
+    return values == other.values;
+  }
+
+  //operator!=
+  bool operator!=(const StringMap& other) const {
+    return values != other.values;
+  }
 
 private:
 

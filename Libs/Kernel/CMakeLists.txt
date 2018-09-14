@@ -128,11 +128,7 @@ set(GeometrySources
 
 set(NetSources
 	./src/CloudStorage.cpp
-	./src/AzureCloudStorage.cpp
-	./src/AmazonCloudStorage.cpp
 	./include/Visus/CloudStorage.h
-	./include/Visus/AmazonCloudStorage.h
-	./include/Visus/AzureCloudStorage.h
 	./include/Visus/NetMessage.h
 	./include/Visus/NetServer.h
 	./include/Visus/NetService.h

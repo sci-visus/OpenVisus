@@ -51,7 +51,7 @@ Node::Node(String name) :  name(name),dataflow(nullptr),hidden(false),parent(nul
 
   //important otherwise Jobs stick in memory and aren't destroyed
   //(i.e. there is no one that does popReady())
-  async.disableReadyInfo();
+  wait_async.disableReadyInfo();
 }
 
 ////////////////////////////////////////////////////////////
@@ -224,7 +224,7 @@ void Node::abortProcessing()
 {
   VisusAssert(VisusHasMessageLock());
 
-  for (auto it : async.getRunning())
+  for (auto it : wait_async.getRunning())
     it.second->abort();
 }
 
@@ -233,7 +233,7 @@ void Node::abortProcessing()
 void Node::joinProcessing()
 {
   VisusAssert(VisusHasMessageLock());
-  async.waitAllDone();
+  wait_async.waitAllDone();
 }
 
 ////////////////////////////////////////////////////////////
@@ -248,7 +248,7 @@ void Node::addNodeJob(SharedPtr<NodeJob> job)
     thread_pool=std::make_shared<ThreadPool>(name + " " + "Worker",1);
   }
 
-  async.pushRunning(job->done.get_future(),job);
+  wait_async.pushRunning(job->done.get_future(),job);
   thread_pool->asyncRun([job](int worker)
   {
     if (!job->aborted())

@@ -1178,95 +1178,7 @@ private:
 
 
 
-///////////////////////////////////////////////////////////
-class CloudCreateContainer : public ConvertStep
-{
-public:
 
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " <url>" << std::endl
-      << "Example: " << args[0] << " http://visus.blob.core.windows.net?password=XXXXX";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
-
-    String url = args[1];
-    UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(url));
-
-    if (!src_storage->createContainer(url))
-      ThrowException(StringUtils::format() << args[0] <<"  cannot create the container " << url);
-    
-    return data;
-  }
-};
-
-///////////////////////////////////////////////////////////
-class CloudDeleteContainer : public ConvertStep
-{
-public:
-
-   
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " <url>" << std::endl
-      << "Example: " << args[0] << " http://visus.blob.core.windows.net/2kbit1?password=XXXXX";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
-
-    String url = args[1];
-    UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(url));
-    if (!src_storage->deleteContainer(url))
-      ThrowException(StringUtils::format() << args[0] <<"  cannot delete the container " << url);
-    return data;
-  }
-};
-
-///////////////////////////////////////////////////////////
-class CloudListContainers : public ConvertStep
-{
-public:
-
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " <filename>" << std::endl
-      << "Example: " << args[0] << " http://visus.blob.core.windows.net?password=XXXXX";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
-
-    String url = args[1];
-    UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(url));
-    StringTree tree = src_storage->listContainers(url);
-    VisusInfo() << "\n" << tree.toString();
-    return data;
-  }
-};
 
 ///////////////////////////////////////////////////////////
 class CloudCopyBlob : public ConvertStep
@@ -1292,30 +1204,35 @@ public:
     String src_url = args[1];
     String dst_url = args[2];
 
-    UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(src_url));
-    UniquePtr<CloudStorage> dst_storage(CloudStorage::createInstance(dst_url));
+    auto src_storage = CloudStorage::createInstance(src_url);
+    auto dst_storage = CloudStorage::createInstance(dst_url);
 
-    StringMap             metadata;
-    SharedPtr<HeapMemory> blob;
+    auto net = std::make_shared<NetService>(1);
+
+    CloudStorage::Blob blob;
     if (src_storage)
     {
-      blob = src_storage->getBlob(src_url, metadata);
-      if (!blob)
-        ThrowException(StringUtils::format() << args[0] <<"  src_storage->getBlob(" << src_url << ") failed");
+      auto blob_name = Url(src_url).getPath();
+      blob = src_storage->getBlob(net, blob_name,Aborted()).get();
+      if (!blob.valid())
+        ThrowException(StringUtils::format() << args[0] <<"  Cloud Storage getBlob(" << src_url << ") failed");
     }
     else
     {
-      blob = Utils::loadBinaryDocument(src_url);
-      if (!blob)
+      auto body = Utils::loadBinaryDocument(src_url);
+      if (!body)
         ThrowException(StringUtils::format() << args[0] <<"  Utils::loadBinaryDocument(" << src_url << ") failed");
+
+      blob.body = body;
     }
 
     if (dst_storage)
     {
-      if (!dst_storage->addBlob(dst_url, blob, metadata))
-        ThrowException(StringUtils::format() << args[0] <<"  dst_storage->addBlob(" << src_url << ") failed");
+      auto blob_name = Url(dst_url).getPath();
+      if (!dst_storage->addBlob(net, blob_name, blob,Aborted()).get())
+        ThrowException(StringUtils::format() << args[0] <<"  Cloud Storage addBlob(" << dst_url << ") failed");
     }
-    else if (!Utils::saveBinaryDocument(dst_url, blob))
+    else if (!Utils::saveBinaryDocument(dst_url, blob.body))
     {
       ThrowException(StringUtils::format() << args[0] <<"  Utils::saveBinaryDocument(" << dst_url << ") failed");
     }
@@ -1324,34 +1241,6 @@ public:
   }
 };
 
-///////////////////////////////////////////////////////////
-class CloudListBlobs : public ConvertStep
-{
-public:
-  
-  //getHelp
-  virtual String getHelp(std::vector<String> args) override
-  {
-    std::ostringstream out;
-    out << args[0]
-      << " <url>" << std::endl
-      << "Example: " << args[0] << " http://visus.blob.core.windows.net/2kbit1?password=XXXXX";
-    return out.str();
-  }
-
-  //exec
-  virtual Array exec(Array data, std::vector<String> args) override
-  {
-    if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
-
-    String url = args[1];
-    UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(url));
-    StringTree tree = src_storage->listOfBlobs(url);
-    VisusInfo() << "\n" << tree.toString();
-    return data;
-  }
-};
 
 ///////////////////////////////////////////////////////////
 class CloudDeleteBlob : public ConvertStep
@@ -1374,10 +1263,12 @@ public:
     if (args.size() != 2)
       ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
-    String url = args[1];
-    UniquePtr<CloudStorage> src_storage(CloudStorage::createInstance(url));
-    if (!src_storage->deleteBlob(url))
-      ThrowException(StringUtils::format() << args[0] <<"  cannot delete blob " << url);
+    auto net = std::make_shared<NetService>(1);
+
+    Url url = args[1];
+    auto cloud=CloudStorage::createInstance(url);
+    if (!cloud->deleteBlob(net,url.getPath(),Aborted()).get())
+      ThrowException(StringUtils::format() << args[0] <<"  cannot delete blob " << url.toString());
     return data;
   }
 };
@@ -1394,8 +1285,8 @@ public:
     out << args[0]
       << " url" << std::endl
       << "Example: " << args[0] << " http://visus.s3.amazonaws.com?username=AKIAILLJI7ANO6Y2XJNA&password=XXXXXXXXX"
-      << "Example: " << args[0] << " http://visus.blob.core.windows.net?password=XXXXXXXXXXXX";
-
+      << "Example: " << args[0] << " http://visus.blob.core.windows.net?access_key=XXXXXX"
+      << "Example: " << args[0] << " https://www.googleapis.com?client_id=XXXX&client_secret=YYYY&refresh_token=ZZZZZZ";
     return out.str();
   }
 
@@ -1405,30 +1296,46 @@ public:
     Url url(args[1]);
 
     if (!url.valid())
-      ThrowException(StringUtils::format() << args[0] << ", "<< args[1] << " is not a valid url");
+      ThrowException(StringUtils::format() << args[0] << ", " << args[1] << " is not a valid url");
 
-    StringMap blob_metadata, check_blob_metadata;
-    blob_metadata.setValue("example-meta-data", "visus-meta-data");
+    auto net = std::make_shared<NetService>(1);
 
-    auto blob = Utils::loadBinaryDocument("datasets/cat/gray.png");
-    VisusReleaseAssert(blob);
+    auto cloud = CloudStorage::createInstance(url);
 
-    String container_name = "testing-cloud-storage";
+    //simple blob for testing
+    auto blob = CloudStorage::Blob();
+    blob.body = Utils::loadBinaryDocument("datasets/cat/gray.png"); VisusReleaseAssert(blob.body);
+    blob.metadata.setValue("example-meta-data", "visus-meta-data");
 
-    Url container_url = url; container_url.setPath(url.getPath() + "/" + container_name);
-    Url blob_url = container_url;     blob_url.setPath(url.getPath() + "/" + container_name + "/" + "visus.png");
+    {
+      String blob_name = "/testing-cloud-storage/my/blob/name/visus.png";
+      bool bOk = cloud->addBlob(net, blob_name, blob, Aborted()).get();
+      VisusReleaseAssert(bOk);
 
-    UniquePtr<CloudStorage> cloud_storage(CloudStorage::createInstance(container_url));
-    VisusReleaseAssert(cloud_storage);
-    VisusReleaseAssert(cloud_storage->createContainer(container_url));
-    VisusReleaseAssert(cloud_storage->addBlob(blob_url, blob, blob_metadata));
+      auto check_blob = cloud->getBlob(net, blob_name, Aborted()).get();
+      
+      bOk=cloud->deleteBlob(net, blob_name, Aborted()).get();
+      VisusReleaseAssert(bOk);
+    }
 
-    auto check_blob = cloud_storage->getBlob(blob_url, check_blob_metadata);
-    VisusReleaseAssert(check_blob);
-    VisusReleaseAssert(blob->c_size() == check_blob->c_size() && memcmp(blob->c_ptr(), check_blob->c_ptr(), (size_t)blob->c_size()) == 0);
-    VisusReleaseAssert(check_blob_metadata.getValue("example-meta-data") == "visus-meta-data");
-    VisusReleaseAssert(cloud_storage->deleteBlob(blob_url));
-    VisusReleaseAssert(cloud_storage->deleteContainer(container_url));
+    Int64 MSEC_ADD = 0, MSEC_GET = 0;
+    for (int I = 0; ; I++)
+    {
+      String blob_name = StringUtils::format() << "/testing-cloud-storage/speed/" << "blob."<< std::setfill('0') << std::setw(4) << I <<".bin";
+      auto t1 = Time::now();
+      bool bOk=cloud->addBlob(net, blob_name, blob, Aborted()).get();
+      auto msec_add = t1.elapsedMsec(); MSEC_ADD += msec_add;
+      VisusReleaseAssert(bOk);
+
+      t1 = Time::now();
+      auto check_blob=cloud->getBlob(net, blob_name).get();
+      auto msec_get = t1.elapsedMsec(); MSEC_GET += msec_get;
+
+      check_blob.content_type = blob.content_type; //google changes the content_type
+      VisusReleaseAssert(check_blob == blob);
+
+      VisusInfo() << "Average msec_add(" << (MSEC_ADD / (I+1)) << ") msec_get(" << (MSEC_GET / (I + 1)) << ")";
+    }
 
     return data;
   }
@@ -1988,7 +1895,10 @@ public:
 
     WaitAsync< Future<NetResponse>, int > async;
     for (int Id = 0; Id < nrequests; Id++)
-      async.pushRunning(net->asyncNetworkIO(NetRequest(urls[Id % urls.size()])), Id);
+    {
+      NetRequest request(urls[Id % urls.size()]);
+      async.pushRunning(NetService::push(net, request), Id);
+    }
 
     for (int Id = 0; Id < nrequests; Id++)
     {
@@ -2051,11 +1961,7 @@ public:
     addAction("dump", []() {return std::make_shared<DumpData>(); });
 
     //cloud
-    addAction("cloud-create-container", []() {return std::make_shared<CloudCreateContainer>(); });
-    addAction("cloud-delete-container", []() {return std::make_shared<CloudDeleteContainer>(); });
-    addAction("cloud-list-containers", []() {return std::make_shared<CloudListContainers>(); });
-    addAction("cloud-list-blobs", []() {return std::make_shared<CloudDeleteBlob>(); });
-    addAction("cloud-delete-blob", []() {return std::make_shared<CloudListBlobs>(); });
+    addAction("cloud-delete-blob", []() {return std::make_shared<CloudDeleteBlob>(); });
     addAction("cloud-copy-blob", []() {return std::make_shared<CloudCopyBlob>(); });
     addAction("cloud-self-test", []() {return std::make_shared<CloudSelfTest>(); });
 

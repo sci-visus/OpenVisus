@@ -381,7 +381,7 @@ void Dataset::readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
   VisusAssert(access->isReading());
 
   if (!access) {
-    query->setStatus(QueryFailed);
+    BlockQuery::setStatus(query, QueryFailed);
     return;
   }
 
@@ -427,7 +427,7 @@ void Dataset::readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
       query->time = cdouble(query->field.getParam("time"));
   }
 
-  query->setStatus(QueryRunning);
+  BlockQuery::setStatus(query, QueryRunning);
   access->readBlock(query);
 }
 
@@ -438,7 +438,7 @@ void Dataset::writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query)
   VisusAssert(access->isWriting());
 
   if (!access) {
-    query->setStatus(QueryFailed);
+    BlockQuery::setStatus(query, QueryFailed);
     return;
   }
 
@@ -489,7 +489,7 @@ void Dataset::writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query)
       query->time = cdouble(query->field.getParam("time"));
   }
 
-  query->setStatus(QueryRunning);
+  BlockQuery::setStatus(query, QueryRunning);
   access->writeBlock(query);
 }
 
@@ -841,7 +841,7 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
     ArrayUtils::paste(ret, p1, src);
   };
 
-  WaitAsync< Future<bool>, std::pair< SharedPtr<BlockQuery>, NdPoint > > async;
+  WaitAsync < Future < SharedPtr < BlockQuery > >, std::pair< SharedPtr<BlockQuery>, NdPoint > > wait_async;
 
   access->beginRead();
 
@@ -862,7 +862,7 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
     }
     else
     {
-      async.pushRunning(block_query->future, std::make_pair(block_query, p1));
+      wait_async.pushRunning(block_query->future, std::make_pair(block_query, p1));
       this->readBlock(access, block_query);
     }
   }
@@ -870,9 +870,9 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
   access->endRead();
 
 
-  for (int I = 0, N = async.size(); I < N; I++)
+  for (int I = 0, N = wait_async.size(); I < N; I++)
   {
-    auto ready       = async.popReady().second;
+    auto ready       = wait_async.popReady().second;
     auto block_query = ready.first;
     auto p1          = ready.second;
     blockReady(block_query, p1);

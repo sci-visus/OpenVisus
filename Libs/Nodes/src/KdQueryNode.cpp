@@ -367,8 +367,8 @@ public:
     auto bitmask = dataset->getBitmask();
 
     SharedPtr<NetService> netservice;
-    WaitAsync< Future<NetResponse>, std::pair< SharedPtr<Query>     , KdArrayNode* > > async_network;
-    WaitAsync< Future<bool>,        std::pair< SharedPtr<BlockQuery>, KdArrayNode* > > async_readblock;
+    WaitAsync< Future<NetResponse>, std::pair< SharedPtr<Query>     , KdArrayNode* > >                    wait_async_network;
+    WaitAsync< Future< SharedPtr<BlockQuery> >,        std::pair< SharedPtr<BlockQuery>, KdArrayNode* > > wait_async_readblock;
 
     //read blocks
     if (mode == KdQueryMode::UseBlockQuery)
@@ -443,7 +443,7 @@ public:
         if (netservice)
         {
           auto request = std::make_shared<NetRequest>(dataset->createPureRemoteQueryNetRequest(query));
-          async_network.pushRunning(netservice->asyncNetworkIO(*request), std::make_pair(query, node));
+          wait_async_network.pushRunning(NetService::push(netservice,*request), std::make_pair(query, node));
         }
         //execute in place (TODO: use thread here?)
         else if (dataset->executeQuery(access, query))
@@ -474,7 +474,7 @@ public:
         auto end_address   = (blocknum + 1) << bitsperblock;
 
         auto blockquery = std::make_shared<BlockQuery>(field, time, start_address, end_address, this->aborted);
-        async_readblock.pushRunning(blockquery->future, std::make_pair(blockquery, node));
+        wait_async_readblock.pushRunning(blockquery->future, std::make_pair(blockquery, node));
         dataset->readBlock(access, blockquery);
       }
     }
@@ -483,11 +483,11 @@ public:
       access->endRead();
 
     //wait async remote queries
-    for (int I = 0, N = async_network.size(); I<N; I++)
+    for (int I = 0, N = wait_async_network.size(); I<N; I++)
     {
       VisusAssert(mode == KdQueryMode::UseQuery);
 
-      auto ready      = async_network.popReady();
+      auto ready      = wait_async_network.popReady();
       auto response   = ready.first.get();
       auto blockquery = ready.second.first;
       auto node       = ready.second.second;
@@ -511,10 +511,10 @@ public:
     }
 
     //wait async read blocks
-    for (int I = 0, N = async_readblock.size(); I < N; I++)
+    for (int I = 0, N = wait_async_readblock.size(); I < N; I++)
     {
       VisusAssert(mode == KdQueryMode::UseBlockQuery);
-      auto ready      = async_readblock.popReady().second;
+      auto ready      = wait_async_readblock.popReady().second;
       auto blockquery = ready.first;
       auto node       = ready.second;
 

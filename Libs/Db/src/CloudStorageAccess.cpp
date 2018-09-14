@@ -60,7 +60,7 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
     this->netservice = std::make_shared<NetService>(nconnections);
 
-  this->cloud_storage.reset(CloudStorage::createInstance(url)); 
+  this->cloud_storage=CloudStorage::createInstance(url); 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -69,84 +69,57 @@ CloudStorageAccess::~CloudStorageAccess()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
-Url CloudStorageAccess::getBlockQueryUrl(SharedPtr<BlockQuery> query) const
+String CloudStorageAccess::getBlobName(SharedPtr<BlockQuery> query) const
 {
-  Url ret=this->url;
-  ret.setPath(StringUtils::format()
-    <<url.getPath()<<"/"
+  return StringUtils::format()
+    <<this->url.getPath()<<"/"
     <<"time_"<<cstring((int)query->time)<<"/"
     <<"field_"<<query->field.name<<"/"
-    <<"data_"<<std::setw(20) << std::setfill('0') << cstring(query->start_address));
-  return ret;
+    <<"data_"<<std::setw(20) << std::setfill('0') << cstring(query->start_address);
 }
-
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
 void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 {
   VisusAssert((int)query->nsamples.innerProduct()==(1<<bitsperblock));
-  Url url=getBlockQueryUrl(query);
 
-  auto request=cloud_storage->createGetBlobRequest(url);
+  cloud_storage->getBlob(netservice, getBlobName(query), query->aborted).when_ready([this, query](CloudStorage::Blob blob) {
 
-  if (!request.valid())
-    return readFailed(query);
+    if (!blob.metadata.hasValue("visus-dtype"))
+      blob.metadata.setValue("visus-dtype", query->field.dtype.toString());
 
-  request.aborted=query->aborted;
-
-  auto gotNetResponse=[this,query](NetResponse response)
-  {
-    auto metadata=cloud_storage->getMetadata(response);
-    for (auto it : metadata)
-      response.setHeader(it.first,it.second);
-
-    if (!response.hasHeader("visus-dtype"))
-      response.setHeader("visus-dtype",query->field.dtype.toString());
-
-    if (!response.hasHeader("visus-nsamples"))
-      response.setHeader("visus-nsamples",query->nsamples.toString());
+    if (!blob.metadata.hasValue("visus-nsamples"))
+      blob.metadata.setValue("visus-nsamples", query->nsamples.toString());
 
     //I want the decoding happens in the 'client' side
-    query->setClientProcessing([this,response,query]() 
+    query->setClientProcessing([this, blob, query]()
     {
-      if (query->aborted() || !response.isSuccessful()) 
+      if (query->aborted() || !blob.valid())
       {
         this->statistics.rfail++;
         return QueryFailed;
       }
 
-      auto decoded=response.getArrayBody();
+      auto decoded = ArrayUtils::decodeArray(blob.metadata,blob.body);
       if (!decoded)
       {
         this->statistics.rfail++;
         return QueryFailed;
       }
 
-      VisusAssert(decoded.dims==query->nsamples);
-      VisusAssert(decoded.dtype==query->field.dtype);
-      query->buffer=decoded;
+      VisusAssert(decoded.dims  == query->nsamples);
+      VisusAssert(decoded.dtype == query->field.dtype);
+      query->buffer = decoded;
 
       this->statistics.rok++;
       return QueryOk;
     });
 
     //set done but the status is not yet set
-    query->future.get_promise()->set_value(true);
-  };
+    query->future.get_promise()->set_value(query);
+  });
 
-  
-  if (bool bAsync= this->netservice?true:false)
-  {
-    auto future_response= this->netservice->asyncNetworkIO(request);
-    future_response.when_ready([future_response, query,gotNetResponse]() {
-      gotNetResponse(future_response.get());
-    });
-  }
-  else
-  {
-    gotNetResponse(NetService::getNetResponse(request));
-  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -154,46 +127,28 @@ void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
   VisusAssert((int)query->nsamples.innerProduct()==(1<<bitsperblock));
 
-  Url url=getBlockQueryUrl(query);
-  
   auto decoded=query->buffer;
   auto encoded=ArrayUtils::encodeArray(compression,decoded);
   
   if (!encoded)
     return writeFailed(query);
 
-  StringMap metadata;
-  metadata.setValue("visus-compression"  , compression);
-  metadata.setValue("visus-nsamples"     , decoded.dims.toString());
-  metadata.setValue("visus-dtype"        , decoded.dtype.toString());
-  metadata.setValue("visus-layout"       , decoded.layout);
+  CloudStorage::Blob blob;
+  blob.body = encoded;
 
-  auto request=cloud_storage->createAddBlobRequest(url,encoded,metadata);
+  blob.metadata.setValue("visus-compression", compression);
+  blob.metadata.setValue("visus-nsamples"     , decoded.dims.toString());
+  blob.metadata.setValue("visus-dtype"        , decoded.dtype.toString());
+  blob.metadata.setValue("visus-layout"       , decoded.layout);
 
-  if (!request.valid())
-    return writeFailed(query);
+  cloud_storage->addBlob(netservice, getBlobName(query), blob, query->aborted).when_ready([this,query](NetResponse response) {
 
-  request.aborted=query->aborted;
-
-  auto gotNetResponse=[this,query](NetResponse response)
-  {
-    if (query->aborted() || !response.isSuccessful()) 
+    if (query->aborted() || !response.isSuccessful())
       return writeFailed(query);
 
     return writeOk(query);
-  };
+  });
 
-  if (bool bAsync= this->netservice? true:false)
-  {
-    auto future_response= this->netservice->asyncNetworkIO(request);
-    future_response.when_ready([future_response, query,gotNetResponse]()  {
-      gotNetResponse(future_response.get());
-    });
-  }
-  else
-  {
-    gotNetResponse(NetService::getNetResponse(request));
-  }
 }
 
 

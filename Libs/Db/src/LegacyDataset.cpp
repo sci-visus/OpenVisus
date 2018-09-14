@@ -101,56 +101,45 @@ public:
 
     request.aborted=query->aborted;
 
-    auto gotNetResponse=[this,query](NetResponse response)
-    {
-      NdPoint nsamples=NdPoint::one(2);
-      nsamples[0]=dataset->tile_nsamples.x;
-      nsamples[1]=dataset->tile_nsamples.y;
+    //note [...,query] keep the query in memory
+    NetService::push(netservice, request).when_ready([this, query](NetResponse response) {
 
-      response.setHeader("visus-compression"   , dataset->tile_compression);
-      response.setHeader("visus-nsamples"      , nsamples.toString());
-      response.setHeader("visus-dtype"         , query->field.dtype.toString());
-      response.setHeader("visus-layout"        , "");
+      NdPoint nsamples = NdPoint::one(2);
+      nsamples[0] = dataset->tile_nsamples.x;
+      nsamples[1] = dataset->tile_nsamples.y;
+
+      response.setHeader("visus-compression", dataset->tile_compression);
+      response.setHeader("visus-nsamples", nsamples.toString());
+      response.setHeader("visus-dtype", query->field.dtype.toString());
+      response.setHeader("visus-layout", "");
 
       //I want the decoding happens in the 'client' side
-      query->setClientProcessing([this,response,query]() 
+      query->setClientProcessing([this, response, query]()
       {
-        if (query->aborted() || !response.isSuccessful()) 
+        if (query->aborted() || !response.isSuccessful())
         {
           this->statistics.rfail++;
           return QueryFailed;
         }
 
-        auto decoded=response.getArrayBody();
+        auto decoded = response.getArrayBody();
         if (!decoded)
         {
           this->statistics.rfail++;
           return QueryFailed;
         }
 
-        VisusAssert(decoded.dims==query->nsamples);
-        VisusAssert(decoded.dtype==query->field.dtype);
-        query->buffer=decoded;
+        VisusAssert(decoded.dims == query->nsamples);
+        VisusAssert(decoded.dtype == query->field.dtype);
+        query->buffer = decoded;
 
         this->statistics.rok++;
         return QueryOk;
       });
 
       //done but status not set yet
-      query->future.get_promise()->set_value(true);
-    };
-
-    if (bool bAsync=this->netservice?true:false)
-    {
-      auto future_response= this->netservice->asyncNetworkIO(request);
-      future_response.when_ready([future_response, query,gotNetResponse]() {
-        gotNetResponse(future_response.get());
-      });
-    }
-    else
-    {
-      gotNetResponse(NetService::getNetResponse(request));
-    }
+      query->future.get_promise()->set_value(query);
+    });
   }
 
   //writeBlock
@@ -279,7 +268,7 @@ bool LegacyDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query
   int end_resolution=query->getEndResolution();
   VisusAssert(end_resolution % 2==0);
 
-  WaitAsync< Future<bool>, SharedPtr<BlockQuery> > async;
+  WaitAsync< Future<SharedPtr<BlockQuery> >, SharedPtr<BlockQuery> > wait_async;
 
   NdBox box=this->getBox();
 
@@ -290,15 +279,15 @@ bool LegacyDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query
   {
     for (auto block_query : block_queries)
     {
-      async.pushRunning(block_query->future, block_query);
+      wait_async.pushRunning(block_query->future, block_query);
       readBlock(access, block_query);
     }
   }
   access->endRead();
 
-  for (int I=0,N=async.size();I<N;I++)
+  for (int I=0,N= wait_async.size();I<N;I++)
   {
-    auto blockquery=async.popReady().second; VisusAssert(blockquery);
+    auto blockquery= wait_async.popReady().second; VisusAssert(blockquery);
     if (!query->aborted() && blockquery->getStatus()==QueryOk)
       mergeQueryWithBlock(query,blockquery);
   }

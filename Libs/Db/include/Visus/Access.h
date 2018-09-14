@@ -215,25 +215,25 @@ public:
   //readOk
   void readOk(SharedPtr<BlockQuery> query) {
     ++statistics.rok;
-    query->setStatus(QueryOk);
+    BlockQuery::setStatus(query,QueryOk);
   }
 
   //readFailed
   void readFailed(SharedPtr<BlockQuery> query) {
     ++statistics.rfail;
-    query->setStatus(QueryFailed);
+    BlockQuery::setStatus(query, QueryFailed);
   }
 
   //writeOk
   void writeOk(SharedPtr<BlockQuery> query) {
     ++statistics.wok;
-    query->setStatus(QueryOk);
+    BlockQuery::setStatus(query, QueryOk);
   }
 
   //writeFailed
   void writeFailed(SharedPtr<BlockQuery> query) {
     ++statistics.wfail;
-    query->setStatus(QueryFailed);
+    BlockQuery::setStatus(query, QueryFailed);
   }
 
 private:
