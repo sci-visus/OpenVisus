@@ -43,6 +43,8 @@ For support : support@visus.net
 #include <Visus/UUID.h>
 
 #include <cctype>
+
+#define JSON_SKIP_UNSUPPORTED_COMPILER_CHECK 1
 #include <Visus/json.hpp>
 
 #if WIN32
