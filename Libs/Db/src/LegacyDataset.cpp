@@ -268,7 +268,7 @@ bool LegacyDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query
   int end_resolution=query->getEndResolution();
   VisusAssert(end_resolution % 2==0);
 
-  WaitAsync< Future<SharedPtr<BlockQuery> >, SharedPtr<BlockQuery> > wait_async;
+  WaitAsync< Future<SharedPtr<BlockQuery> > > wait_async;
 
   NdBox box=this->getBox();
 
@@ -279,18 +279,18 @@ bool LegacyDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query
   {
     for (auto block_query : block_queries)
     {
-      wait_async.pushRunning(block_query->future, block_query);
+      wait_async.pushRunning(block_query->future).when_ready([this,query, block_query](SharedPtr<BlockQuery>) {
+
+        if (!query->aborted() && block_query->getStatus() == QueryOk)
+          mergeQueryWithBlock(query, block_query);
+
+      });
       readBlock(access, block_query);
     }
   }
   access->endRead();
 
-  for (int I=0,N= wait_async.size();I<N;I++)
-  {
-    auto blockquery= wait_async.popReady().second; VisusAssert(blockquery);
-    if (!query->aborted() && blockquery->getStatus()==QueryOk)
-      mergeQueryWithBlock(query,blockquery);
-  }
+  wait_async.waitAllDone();
 
   query->currentLevelReady();
   return true;

@@ -809,11 +809,22 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
   Array ret(level_box.nsamples, DTypes::UINT8_RGB);
   ret.fillWithValue(0);
 
-  //blockReady
-  auto blockReady = [&](SharedPtr<BlockQuery> block_query,NdPoint p1)
+  access->beginRead();
+
+  for (int block = start_block; block < (start_block + block_per_level); block++)
   {
+    auto hzfrom = block << bitsperblock;
+    auto hzto = hzfrom + nsamplesperblock;
+
+    auto block_query = std::make_shared<BlockQuery>(field, time, hzfrom, hzto, Aborted());
+
+    auto block_box = getAddressRangeBox(hzfrom,hzto);
+    auto p1 = level_box.logicToPixel(block_box.p1);
+
+    this->readBlockAndWait(access, block_query);
+
     if (block_query->getStatus() != QueryOk)
-      return;
+      continue;
 
     //make sure is row major
     if (!block_query->buffer.layout.empty())
@@ -839,44 +850,9 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
     }
 
     ArrayUtils::paste(ret, p1, src);
-  };
-
-  WaitAsync < Future < SharedPtr < BlockQuery > >, std::pair< SharedPtr<BlockQuery>, NdPoint > > wait_async;
-
-  access->beginRead();
-
-  for (int block = start_block; block < (start_block + block_per_level); block++)
-  {
-    auto hzfrom = block << bitsperblock;
-    auto hzto = hzfrom + nsamplesperblock;
-
-    auto block_query = std::make_shared<BlockQuery>(field, time, hzfrom, hzto, Aborted());
-
-    auto block_box = getAddressRangeBox(hzfrom,hzto);
-    auto p1 = level_box.logicToPixel(block_box.p1);
-
-    if (true)
-    {
-      this->readBlockAndWait(access, block_query);
-      blockReady(block_query, p1);
-    }
-    else
-    {
-      wait_async.pushRunning(block_query->future, std::make_pair(block_query, p1));
-      this->readBlock(access, block_query);
-    }
   }
 
   access->endRead();
-
-
-  for (int I = 0, N = wait_async.size(); I < N; I++)
-  {
-    auto ready       = wait_async.popReady().second;
-    auto block_query = ready.first;
-    auto p1          = ready.second;
-    blockReady(block_query, p1);
-  }
 
   return ret;
 }

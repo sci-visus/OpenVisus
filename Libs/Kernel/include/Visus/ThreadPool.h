@@ -68,22 +68,27 @@ public:
   void asyncRun(Function fn);
 
   //waitAll
-  void waitAll() {
-    while (wait_nrunning--)
-      wait_ndone.down();
-  };
+  void waitAll();
 
 private:
+
+  //___________________________________________
+  class WaitAll
+  {
+  public:
+    CriticalSection  lock;
+    int              num_inside = 0;
+    Semaphore        num_done;
+    WaitAll() : num_inside(0) {}
+  };
+
 
   CriticalSection                                   lock;
   std::vector< SharedPtr<std::thread> >             threads;
   Semaphore                                         nwaiting;
   std::deque< SharedPtr<Function> >                 waiting;
   std::set  < SharedPtr<Function> >                 running;
-
-
-  std::atomic<int>      wait_nrunning;
-  Semaphore             wait_ndone;
+  WaitAll                                           wait_all;
 
   //workerEntryProc
   void workerEntryProc(int worker);

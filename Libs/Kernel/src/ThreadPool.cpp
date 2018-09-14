@@ -42,7 +42,7 @@ namespace Visus {
 
 ////////////////////////////////////////////////////////////
 ThreadPool::ThreadPool(String basename,int num_workers) 
-  : nwaiting(0), wait_nrunning(0)
+  : nwaiting(0)
 {
   for (int I=0;I<num_workers;I++)
   {
@@ -77,7 +77,10 @@ ThreadPool::~ThreadPool()
 ////////////////////////////////////////////////////////////
 void ThreadPool::asyncRun(Function run)
 {
-  ++wait_nrunning;
+  {
+    ScopedLock lock(wait_all.lock);
+    wait_all.num_inside++;
+  }
 
   ApplicationStats::num_cpu_jobs++;
 
@@ -88,6 +91,27 @@ void ThreadPool::asyncRun(Function run)
 
   nwaiting.up();
 }
+
+
+////////////////////////////////////////////////////////////
+void ThreadPool::waitAll() {
+  while (true)
+  {
+    {
+      ScopedLock lock(wait_all.lock);
+      if (!wait_all.num_inside)
+        return;
+    }
+
+    wait_all.num_done.down();
+
+    {
+      ScopedLock lock(wait_all.lock);
+      --wait_all.num_inside;
+    }
+
+  }
+};
 
 
 ////////////////////////////////////////////////////////////
@@ -120,8 +144,11 @@ void ThreadPool::workerEntryProc(int worker)
 
     ApplicationStats::num_cpu_jobs--;
 
-    //for the wait: signal it has finished
-    wait_ndone.up();
+    //for the wait all function
+    {
+      ScopedLock lock(wait_all.lock);
+      wait_all.num_done.up();
+    }
 
     if (bExit)
       break;

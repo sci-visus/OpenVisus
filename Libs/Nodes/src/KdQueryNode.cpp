@@ -367,8 +367,8 @@ public:
     auto bitmask = dataset->getBitmask();
 
     SharedPtr<NetService> netservice;
-    WaitAsync< Future<NetResponse>, std::pair< SharedPtr<Query>     , KdArrayNode* > >                    wait_async_network;
-    WaitAsync< Future< SharedPtr<BlockQuery> >,        std::pair< SharedPtr<BlockQuery>, KdArrayNode* > > wait_async_readblock;
+    WaitAsync< Future<NetResponse> >             wait_async_network;
+    WaitAsync< Future< SharedPtr<BlockQuery> > > wait_async_readblock;
 
     //read blocks
     if (mode == KdQueryMode::UseBlockQuery)
@@ -443,7 +443,30 @@ public:
         if (netservice)
         {
           auto request = std::make_shared<NetRequest>(dataset->createPureRemoteQueryNetRequest(query));
-          wait_async_network.pushRunning(NetService::push(netservice,*request), std::make_pair(query, node));
+
+          wait_async_network.pushRunning(NetService::push(netservice, *request)).when_ready([this,query, node,&rlock ](NetResponse response) {
+
+            VisusAssert(mode == KdQueryMode::UseQuery);
+
+            if (this->aborted() || !response.isSuccessful())
+              return;
+
+            auto array = response.getArrayBody();
+            if (!array)
+              return;
+
+            VisusAssert(!node->fullres);
+
+            //need the write lock here
+            {
+              ScopedWriteLock wlock(rlock);
+              node->fullres = array;
+              node->displaydata = array;
+            }
+
+            this->publish(false);
+
+          });
         }
         //execute in place (TODO: use thread here?)
         else if (dataset->executeQuery(access, query))
@@ -474,7 +497,31 @@ public:
         auto end_address   = (blocknum + 1) << bitsperblock;
 
         auto blockquery = std::make_shared<BlockQuery>(field, time, start_address, end_address, this->aborted);
-        wait_async_readblock.pushRunning(blockquery->future, std::make_pair(blockquery, node));
+        wait_async_readblock.pushRunning(blockquery->future).when_ready([this, blockquery, node, &rlock](SharedPtr<BlockQuery>) {
+
+
+          VisusAssert(mode == KdQueryMode::UseBlockQuery);
+
+          if (aborted() || blockquery->getStatus() != QueryOk)
+            return;
+
+          VisusAssert(!node->fullres && !node->blockdata);
+
+          //make sure is row major
+          if (!blockquery->buffer.layout.empty())
+            dataset->convertBlockQueryToRowMajor(blockquery);
+
+          if (!blockquery->buffer)
+            return;
+
+          //need the write lock here
+          {
+            ScopedWriteLock wlock(rlock);
+            node->blockdata = blockquery->buffer;
+          }
+
+          computeFullRes(node, rlock);
+        }); 
         dataset->readBlock(access, blockquery);
       }
     }
@@ -482,62 +529,8 @@ public:
     if (mode == KdQueryMode::UseBlockQuery)
       access->endRead();
 
-    //wait async remote queries
-    for (int I = 0, N = wait_async_network.size(); I<N; I++)
-    {
-      VisusAssert(mode == KdQueryMode::UseQuery);
-
-      auto ready      = wait_async_network.popReady();
-      auto response   = ready.first.get();
-      auto blockquery = ready.second.first;
-      auto node       = ready.second.second;
-
-      if (this->aborted() || !response.isSuccessful())
-        continue;
-
-      auto array = response.getArrayBody();
-      if (!array)
-        continue;
-
-      VisusAssert(!node->fullres);
-
-      //need the write lock here
-      {
-        ScopedWriteLock wlock(rlock);
-        node->fullres     = array;
-        node->displaydata = array;
-      }
-      this->publish(false);
-    }
-
-    //wait async read blocks
-    for (int I = 0, N = wait_async_readblock.size(); I < N; I++)
-    {
-      VisusAssert(mode == KdQueryMode::UseBlockQuery);
-      auto ready      = wait_async_readblock.popReady().second;
-      auto blockquery = ready.first;
-      auto node       = ready.second;
-
-      if (aborted() || blockquery->getStatus() != QueryOk)
-        continue;
-
-      VisusAssert(!node->fullres && !node->blockdata);
-
-      //make sure is row major
-      if (!blockquery->buffer.layout.empty())
-        dataset->convertBlockQueryToRowMajor(blockquery);
-
-      if (!blockquery->buffer)
-        continue;
-
-      //need the write lock here
-      {
-        ScopedWriteLock wlock(rlock);
-        node->blockdata = blockquery->buffer;
-      }
-
-      computeFullRes(node, rlock);
-    }
+    wait_async_network.waitAllDone();
+    wait_async_readblock.waitAllDone();
 
     if (aborted())
       return;

@@ -1893,21 +1893,21 @@ public:
 
     Time t1 = Time::now();
 
-    WaitAsync< Future<NetResponse>, int > async;
+    WaitAsync< Future<NetResponse> > wait_async;
     for (int Id = 0; Id < nrequests; Id++)
     {
       NetRequest request(urls[Id % urls.size()]);
-      async.pushRunning(NetService::push(net, request), Id);
+      wait_async.pushRunning(NetService::push(net, request)).when_ready([Id](NetResponse response) {
+
+        if (response.status != HttpStatus::STATUS_OK)
+          VisusInfo() << "one request failed";
+
+        if (Id && (Id % 100) == 0)
+          VisusInfo() << "Done " << Id << " request";
+      });
     }
 
-    for (int Id = 0; Id < nrequests; Id++)
-    {
-      if (async.popReady().first.get().status != HttpStatus::STATUS_OK)
-        VisusInfo() << "one request failed";
-
-      if (Id && (Id % 100) == 0)
-        VisusInfo() << "Done " << Id << " request";
-    }
+    wait_async.waitAllDone();
 
     auto sec = t1.elapsedSec();
     auto stats = ApplicationStats::net.readValues(true);

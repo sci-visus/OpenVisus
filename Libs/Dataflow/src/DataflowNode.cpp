@@ -48,10 +48,6 @@ namespace Visus {
 Node::Node(String name) :  name(name),dataflow(nullptr),hidden(false),parent(nullptr)
 {
   this->uuid=UUIDGenerator::getSingleton()->create();
-
-  //important otherwise Jobs stick in memory and aren't destroyed
-  //(i.e. there is no one that does popReady())
-  wait_async.disableReadyInfo();
 }
 
 ////////////////////////////////////////////////////////////
@@ -224,8 +220,11 @@ void Node::abortProcessing()
 {
   VisusAssert(VisusHasMessageLock());
 
-  for (auto it : wait_async.getRunning())
-    it.second->abort();
+  {
+    ScopedLock lock(running_lock);
+    for (auto it : running)
+      it->abort();
+  }
 }
 
 
@@ -233,7 +232,9 @@ void Node::abortProcessing()
 void Node::joinProcessing()
 {
   VisusAssert(VisusHasMessageLock());
-  wait_async.waitAllDone();
+
+  if (thread_pool)
+    thread_pool->waitAll();
 }
 
 ////////////////////////////////////////////////////////////
@@ -244,15 +245,24 @@ void Node::addNodeJob(SharedPtr<NodeJob> job)
 
   //create a thread for the jobs
   if (!thread_pool)
-  {
     thread_pool=std::make_shared<ThreadPool>(name + " " + "Worker",1);
+
+  {
+    ScopedLock lock(running_lock);
+    running.insert(job);
+
+    job->done.when_ready([this,job](int nworker) {
+      
+      ScopedLock lock(running_lock);
+      running.erase(job);
+    });
   }
 
-  wait_async.pushRunning(job->done.get_future(),job);
   thread_pool->asyncRun([job](int worker)
   {
     if (!job->aborted())
       job->runJob();
+
     job->done.set_value(1);
   });
 }

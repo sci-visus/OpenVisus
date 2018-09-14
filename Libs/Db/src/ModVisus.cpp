@@ -1256,47 +1256,42 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 
   auto access=dataset->createAccessForBlockQuery();
 
-  WaitAsync< Future<SharedPtr<BlockQuery> >, SharedPtr<BlockQuery> > wait_async;
+  WaitAsync< Future<SharedPtr<BlockQuery> > > wait_async;
   access->beginRead();
   Aborted aborted;
+
+  std::vector<NetResponse> responses;
   for (int I = 0; I < (int)start_address.size(); I++)
   {
-    auto query = std::make_shared<BlockQuery>(field, time, start_address[I], end_address[I], aborted);
-    wait_async.pushRunning(query->future, query);
-    dataset->readBlock(access,query);
+    auto block_query = std::make_shared<BlockQuery>(field, time, start_address[I], end_address[I], aborted);
+    wait_async.pushRunning(block_query->future).when_ready([this, block_query,&responses,dataset,compression](SharedPtr<BlockQuery>) {
+
+      if (block_query->getStatus() != QueryOk)
+      {
+        responses.push_back(NetResponseError(HttpStatus::STATUS_NOT_FOUND, "block_query->executeAndWait failed"));
+        return;
+      }
+
+      //encode data
+      NetResponse response(HttpStatus::STATUS_OK);
+      if (!response.setArrayBody(compression, block_query->buffer))
+      {
+        //maybe i need to convert to row major to compress
+        if (!(dataset->convertBlockQueryToRowMajor(block_query) && response.setArrayBody(compression, block_query->buffer)))
+        {
+          responses.push_back(NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "Encoding converting to row major failed"));
+          return;
+        }
+      }
+
+      responses.push_back(response);
+
+    });
+    dataset->readBlock(access, block_query);
   }
   access->endRead();
 
-  std::vector<NetResponse> responses;
-  for (int I=0,N= wait_async.size();I<N;I++)
-  {
-    auto query= wait_async.popReady().second;
-
-    if (query->getStatus()!=QueryOk) 
-    {
-      responses.push_back(NetResponseError(HttpStatus::STATUS_NOT_FOUND,"query->executeAndWait failed"));
-      continue;
-    }
-
-    //encode data
-    NetResponse response(HttpStatus::STATUS_OK);
-    if (!response.setArrayBody(compression,query->buffer))
-    {
-      if (!dataset->convertBlockQueryToRowMajor(query))
-      {
-        responses.push_back(NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR,"convertBlockQueryToRowMajor() failed"));
-        continue;
-      }
-
-      if (!response.setArrayBody(compression,query->buffer))
-      {
-         responses.push_back(NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR,"Cannot encode the array"));
-         continue;
-      }
-    }
-
-    responses.push_back(response);
-  }
+  wait_async.waitAllDone();
 
   return NetResponse::compose(responses);
 }

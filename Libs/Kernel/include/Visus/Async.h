@@ -234,7 +234,7 @@ private:
 
 
 ///////////////////////////////////////////////////////////
-template <typename Future,typename Etc>
+template <typename Future>
 class WaitAsync 
 {
 public:
@@ -250,26 +250,11 @@ public:
     VisusAssert(ninside==0);
   }
 
-  //disableReadyInfo
-  void disableReadyInfo() {
-    bDisableReadyInfo=true;
-  }
-
-  //size
-  int size() const
-  {
-    ScopedLock lock(const_cast<WaitAsync*>(this)->lock);
-    return ninside;
-  }
-
-  //empty
-  bool empty() const {
-    return size() == 0;
-  }
-
   //pushRunning
-  void pushRunning(Future future, Etc running_info)
+  Future pushRunning(Future future)
   {
+    Future ret = Promise<Value>().get_future();
+
     auto promise = future.get_promise();
     VisusAssert(promise);
 
@@ -279,72 +264,66 @@ public:
 
       ++ninside;
 
-      auto running_item = std::make_pair(future, running_info);
-      auto ready_item   = std::make_pair(future, bDisableReadyInfo? Etc() : running_info);
-
       //no need to wait
       if (promise->value)
       {
-        ready.push_front(ready_item);
+        ready.push_front(std::make_pair(ret,*promise->value));
         nready.up();
       }
       //need to wait, as soon as it becomes available I'm moving it to ready deque
       else
       {
-        auto it=running.insert(running.end(), running_item);
-        promise->addWhenDoneListener(typename BasePromise<Value>::Callback([this, it, ready_item](Value)
+        promise->addWhenDoneListener(typename BasePromise<Value>::Callback([this, future, ret](Value value)
         {
           ScopedLock this_lock(this->lock);
-          ready.push_front(ready_item);
-          running.erase(it);
+          ready.push_front(std::make_pair(ret, value));
           nready.up();
         }));
       }
     }
-  }
 
-  //popReady
-  std::pair<Future, Etc> popReady()
-  {
-    nready.down();
-    {
-      ScopedLock lock(this->lock);
-      VisusAssert(!ready.empty());
-      auto ret = ready.back();
-      ready.pop_back();
-      --ninside;
-      return ret;
-    }
-  }
-
-  //get_running
-  std::list< std::pair<Future, Etc> > getRunning() {
-    ScopedLock lock(this->lock);
-    return running;
+    return ret;
   }
 
   //waitAllDone
   void waitAllDone() 
   {
-    for (int I=0,N=size();I<N;I++)
-      popReady();
+    int N = 0;
+    
+    {
+      ScopedLock lock(const_cast<WaitAsync*>(this)->lock);
+      N = this->ninside;
+    }
+
+    for (int I = 0; I < N; I++)
+    {
+      Ready popped;
+      nready.down();
+      {
+        ScopedLock lock(this->lock);
+        VisusAssert(!this->ready.empty());
+        popped = this->ready.back();
+        this->ready.pop_back();
+        --ninside;
+      }
+
+      popped.first.get_promise()->set_value(popped.second);
+    }
   }
 
 private:
 
   VISUS_NON_COPYABLE_CLASS(WaitAsync)
 
-  typedef std::list< std::pair< Future, Etc > > Running;
-  typedef std::deque< std::pair<Future, Etc> >  Ready;
+  typedef std::pair<Future, Value > Ready;
 
-  CriticalSection  lock;
-  int              ninside = 0;
-  Running          running;
-  Semaphore        nready;
-  Ready            ready;
-  bool             bDisableReadyInfo = false;
+  CriticalSection     lock;
+  int                 ninside = 0;
+  Semaphore           nready;
+  std::deque< Ready > ready;
 
 };
+
 
 
 } //namespace Visus
