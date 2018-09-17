@@ -433,34 +433,21 @@ Future<NetResponse> NetService::push(SharedPtr<NetService> service, NetRequest r
 
 }
 
-
-
 /////////////////////////////////////////////////////////////////////////////
 void NetService::printStatistics(int connection_id,const NetRequest& request,const NetResponse& response)
 {
-  std::ostringstream out;
-  out << request.method;
-  out<<" connection("<<connection_id<<")";
+  Int64 download = response.body ? response.body->c_size() : 0;
+  Int64 upload = request.body ? request.body->c_size() : 0;
 
-  out << " wait(" << (request.statistics.wait_msec) << ") running(" << (request.statistics.run_msec) << ")";
-
-  if (request.method == "GET")
-  {
-    Int64 overall = response.body? response.body->c_size() :0;
-    double speed=overall/(request.statistics.run_msec/1000.0);
-    out << " download(" << StringUtils::getStringFromByteSize(overall) << " - " << (int)(speed / 1024) << "kb/sec)";
-  }
-  else if (request.method == "PUT")
-  {
-    Int64 overall = request.body? request.body->c_size() : 0;
-    double speed=overall/(request.statistics.run_msec/1000.0);
-    out << " updload(" << StringUtils::getStringFromByteSize(overall) << " - " << (int)(speed / 1024) << "kb/sec)";
-  }
-
-  out<<" status("<<response.getStatusDescription()<<")";
-  out<<" url("<<request.url.toString()<<")";
-
-  VisusInfo() << out.str();
+  VisusInfo()  
+    << request.method 
+    <<" connection("<<connection_id<<")"
+    << " wait(" << (request.statistics.wait_msec) << ")"
+    << " running(" << (request.statistics.run_msec) << ")"
+    << (download ? " download(" + StringUtils::getStringFromByteSize(download) + " - " + cstring((int)(download / (request.statistics.run_msec / 1000.0) / 1024)) + "kb/sec)" : "")
+    << (upload ?   " updload("  + StringUtils::getStringFromByteSize(upload  ) + " - " + cstring((int)(upload   / (request.statistics.run_msec / 1000.0) / 1024)) + "kb/sec)" : "")
+    << " status(" << response.getStatusDescription() << ")"
+    << " url(" << request.url.toString() << ")";
 }
 
 
@@ -481,6 +468,8 @@ void NetService::entryProc()
   bool bExitThread=false;
   while (true)
   {
+    std::ostringstream out;
+
     //finished?
     {
       ScopedLock lock(waiting_lock);
@@ -508,7 +497,6 @@ void NetService::entryProc()
         if (!request) 
         {
           ApplicationStats::num_net_jobs--;
-
           bExitThread=true;
           continue;
         }
@@ -522,10 +510,7 @@ void NetService::entryProc()
             auto response=NetResponse(HttpStatus::STATUS_SERVICE_UNAVAILABLE);
 
             request->statistics.run_msec=0;
-            if (verbose > 0)
-              printStatistics(-1,*request,response);
             promise.set_value(response);
-
             ApplicationStats::num_net_jobs--;
           }
           this->waiting_lock.lock();
@@ -578,6 +563,7 @@ void NetService::entryProc()
       waiting=still_waiting;
     }
 
+    //handle running
     if (!running.empty())
     {
       pimpl->runMore(running);
@@ -597,8 +583,10 @@ void NetService::entryProc()
           continue;
 
         connection->request.statistics.run_msec = (int)connection->request.statistics.run_t1.elapsedMsec();
-        if (verbose > 0)
+
+        if (verbose > 0 && !connection->request.aborted())
           printStatistics(connection->id, connection->request,connection->response);
+
         connection->promise.set_value(connection->response);
 
         connection->setNetRequest(NetRequest(), Promise<NetResponse>());
@@ -607,6 +595,8 @@ void NetService::entryProc()
         ApplicationStats::num_net_jobs--;
       }
     }
+
+    Thread::yield();
   }
 }
 

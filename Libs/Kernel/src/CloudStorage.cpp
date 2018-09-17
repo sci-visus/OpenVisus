@@ -594,7 +594,6 @@ public:
       if (response.isSuccessful())
       {
         auto json = nlohmann::json::parse(response.getTextBody());
-        std::cout << json << std::endl;
         this->access_token.t1 = Time::now();
         this->access_token.value = json["access_token"].get<std::string>();
         this->access_token.expires_in = json["expires_in"].get<int>();

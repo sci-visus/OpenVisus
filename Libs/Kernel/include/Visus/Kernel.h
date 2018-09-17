@@ -160,8 +160,8 @@ VISUS_KERNEL_API void SetCommandLine(String value);
 //VisusAssertFailed
 VISUS_KERNEL_API void VisusAssertFailed(const char* file, int line, const char* expr);
 
-//PrintDebugMessage
-VISUS_KERNEL_API void PrintDebugMessage(String value);
+//PrintMessageToTerminal
+VISUS_KERNEL_API void PrintMessageToTerminal(const String& value);
 
 //VisusHasMessageLock
 VISUS_KERNEL_API bool VisusHasMessageLock();
@@ -206,7 +206,7 @@ public:
         VisusAssert((int)this->value > 0);
         std::ostringstream out;
         out << "***** Leaked objects detected: " << (int)this->value << " instance(s) of class [" << ClassName::getVisusClassName()<< "] *****"<<std::endl;
-        PrintDebugMessage(out.str());
+        PrintMessageToTerminal(out.str());
         //VisusAssert(false);
       }
     }

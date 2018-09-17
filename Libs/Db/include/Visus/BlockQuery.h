@@ -53,8 +53,7 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(BlockQuery)
 
-
-  Future<Void> done = Promise<Void>().get_future();
+  Future<Void> done;
 
   BigInt start_address=0;
   BigInt end_address=0;
@@ -62,6 +61,7 @@ public:
   //constructor
   BlockQuery(Field field_,double time_,BigInt start_address_,BigInt end_address_,Aborted aborted_) 
     : BaseQuery(field_,time_,aborted_),start_address(start_address_),end_address(end_address_) {
+    done = Promise<Void>().get_future();
   }
 
   //destructor

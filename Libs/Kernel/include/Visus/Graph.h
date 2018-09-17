@@ -536,7 +536,7 @@ public:
 
   //genDot
   template<class vT,class eT>
-  static void genDot(const Graph<vT,eT> &g, vT data, const Point3i &dims, std::ostream &out=std::cout, typename Graph<vT,eT>::Vertex *highlight=nullptr)
+  static void genDot(const Graph<vT,eT> &g, vT data, const Point3i &dims, std::ostream &out, typename Graph<vT,eT>::Vertex *highlight=nullptr)
   {
     typedef typename Graph<vT,eT>::CVertIter citer_t;
     typedef typename Graph<vT,eT>::CEdgeIter eiter_t;

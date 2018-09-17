@@ -154,7 +154,7 @@ std::ostream& operator<<(std::ostream &out,const TNode &n)
 
 /////////////////////////////////////////////
 template<class vT,class eT>
-void genDot2(const Graph<vT,eT> &g, std::ostream &out=std::cout, typename Graph<vT,eT>::Vertex *highlight=nullptr)
+void genDot2(const Graph<vT,eT> &g, std::ostream &out, typename Graph<vT,eT>::Vertex *highlight=nullptr)
 {
   typedef typename Graph<vT,eT>::CVertIter citer_t;
   typedef typename Graph<vT,eT>::CEdgeIter eiter_t;
@@ -213,7 +213,7 @@ void genDot2(const Graph<vT,eT> &g, std::ostream &out=std::cout, typename Graph<
 /////////////////////////////////////////////
 // <ctc> this is ridiculous way to have more information in dot file for specific graph type. 
 template<class vT,class eT>
-void genDot3(const Graph<vT,eT> &g, std::ostream &out=std::cout, typename Graph<vT,eT>::Vertex *highlight=nullptr)
+void genDot3(const Graph<vT,eT> &g, std::ostream &out, typename Graph<vT,eT>::Vertex *highlight=nullptr)
 {
   typedef typename Graph<vT,eT>::CVertIter citer_t;
   typedef typename Graph<vT,eT>::CEdgeIter eiter_t;

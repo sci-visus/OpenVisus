@@ -124,18 +124,18 @@ void DestroyAutoReleasePool();
 #endif
 
 
-
 void InitPython();
 
 void ShutdownPython();
 
-  //////////////////////////////////////////////////////////////////
-void PrintDebugMessage(String value) {
+//////////////////////////////////////////////////////////////////
+void PrintMessageToTerminal(const String& value) {
 
 #if WIN32
   OutputDebugStringA(value.c_str());
 #endif
-  std::cout << value << std::endl;
+
+  std::cout << value;
 }
 
 //check types

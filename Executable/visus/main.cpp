@@ -1059,14 +1059,17 @@ public:
 
     Uint8* SRC = data.c_ptr();
     Int64 N = data.c_size();
+    std::ostringstream out;
+
     for (int I = 0; I<N; I++)
     {
-      std::cout << std::setfill('0') << std::hex << "0x" << std::setw(2) << (int)(*SRC++);
-      if (I != N - 1) std::cout << ",";
-      if ((I % 16) == 15) std::cout << std::endl;
+      out << std::setfill('0') << std::hex << "0x" << std::setw(2) << (int)(*SRC++);
+      if (I != N - 1) out << ",";
+      if ((I % 16) == 15) out << std::endl;
     }
-    std::cout << std::endl;
-    std::cout << std::endl;
+    out << std::endl;
+    out << std::endl;
+    VisusInfo() << "\n" << out.str();
     return data;
   }
 };
@@ -1998,7 +2001,7 @@ public:
   {
     if (args.size() <=1 || (args.size() == 2 && (args[1] == "help" || args[1] == "--help" || args[1] == "-h")))
     {
-      std::cout<<getHelp(args);
+      VisusInfo()<<getHelp(args);
       return Array();
     }
 

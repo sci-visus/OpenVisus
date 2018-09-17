@@ -108,38 +108,6 @@ void ModVisusAccess::readBlock(SharedPtr<BlockQuery> query)
     flushBatch();
 }
 
-///////////////////////////////////////////////////////////////////////////////////////
-void ModVisusAccess::onNetResponse(NetResponse response,SharedPtr<BlockQuery> query)
-{
-  if (!response.hasHeader("visus-dtype"))
-    response.setHeader("visus-dtype",query->field.dtype.toString());
-
-  if (!response.hasHeader("visus-nsamples"))
-    response.setHeader("visus-nsamples",query->nsamples.toString());
-
-  if (query->aborted() || !response.isSuccessful())
-    return readFailed(query);
-
-  auto decoded = response.getArrayBody();
-  if (!decoded)
-    return readFailed(query);
-
-  VisusAssert(decoded.dims == query->nsamples);
-  VisusAssert(decoded.dtype == query->field.dtype);
-  query->buffer = decoded;
-
-  return readOk(query);
-}
-
-///////////////////////////////////////////////////////////////////////////////////////
-void ModVisusAccess::onNetResponse(NetResponse RESPONSE,Batch batch)
-{
-  std::vector<NetResponse> responses=NetResponse::decompose(RESPONSE);
-  responses.resize(batch.size(),NetResponse(HttpStatus::STATUS_CANCELLED));
-
-  for (int I=0;I<batch.size();I++)
-    onNetResponse(responses[I],batch[I]);
-}
 
 
 
@@ -152,29 +120,60 @@ void ModVisusAccess::flushBatch()
   Batch batch;
   std::swap(batch,this->batch);
 
-  Url url(this->url.getProtocol() + "://" + this->url.getHostname() + ":" + cstring(this->url.getPort()) + "/mod_visus");
-  url.setParam("action"     ,"rangequery");
-  url.setParam("dataset"    ,this->url.getParam("dataset"));
-  url.setParam("compression",this->compression);
-
-  url.setParam("field"      ,batch[0]->field.name);
-  url.setParam("time"       ,cstring(batch[0]->time));
-
-  std::vector<String> from,to; 
-  for (auto query : batch) 
+  std::vector<String> from, to;
+  for (auto query : batch)
   {
     from.push_back(cstring(query->start_address));
-    to  .push_back(cstring(query->end_address  ));
+    to.push_back(cstring(query->end_address));
   }
 
-  url.setParam("from",StringUtils::join(from," "));
-  url.setParam("to"  ,StringUtils::join(to  ," "));
+  Url URL(this->url.getProtocol() + "://" + this->url.getHostname() + ":" + cstring(this->url.getPort()) + "/mod_visus");
+  URL.setParam("action"      , "rangequery");
+  URL.setParam("dataset"     , this->url.getParam("dataset"));
+  URL.setParam("compression" , this->compression);
+  URL.setParam("field"       , batch[0]->field.name);
+  URL.setParam("time"        , cstring(batch[0]->time));
+  URL.setParam("from"        , StringUtils::join(from," "));
+  URL.setParam("to"          , StringUtils::join(to  ," "));
 
-  auto request=NetRequest(url);
-  request.aborted=batch[0]->aborted;
+  auto REQUEST=NetRequest(URL);
+  REQUEST.aborted=batch[0]->aborted;
 
-  NetService::push(netservice, request).when_ready([this,batch](NetResponse response) {
-    onNetResponse(response, batch);
+  NetService::push(netservice, REQUEST).when_ready([this,batch](NetResponse RESPONSE)
+  {
+    std::vector<NetResponse> responses = NetResponse::decompose(RESPONSE);
+    responses.resize(batch.size(), NetResponse(HttpStatus::STATUS_CANCELLED));
+
+    for (int I = 0; I < batch.size(); I++)
+    {
+      auto query    = batch[I];
+      auto response = responses[I];
+
+      if (!response.hasHeader("visus-dtype"))
+        response.setHeader("visus-dtype", query->field.dtype.toString());
+
+      if (!response.hasHeader("visus-nsamples"))
+        response.setHeader("visus-nsamples", query->nsamples.toString());
+
+      if (query->aborted() || !response.isSuccessful())
+      {
+        readFailed(query);
+        continue;
+      }
+
+      auto decoded = response.getArrayBody();
+      if (!decoded)
+      {
+        readFailed(query);
+        continue;
+      }
+
+      VisusAssert(decoded.dims == query->nsamples);
+      VisusAssert(decoded.dtype == query->field.dtype);
+      query->buffer = decoded;
+
+      readOk(query);
+    }
   });
 
 }

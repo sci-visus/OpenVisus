@@ -104,12 +104,6 @@ private:
   //flushBatch
   void flushBatch();
 
-  //onNetResponse
-  void onNetResponse(NetResponse RESPONSE,Batch batch);
-
-  //onNetResponse
-  void onNetResponse(NetResponse response,SharedPtr<BlockQuery> query);
-
 };
 
 } //namespace Visus

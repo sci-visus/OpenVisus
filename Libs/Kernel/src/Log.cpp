@@ -83,11 +83,7 @@ LogFormattedMessage::~LogFormattedMessage()
 
   String msg = out.str();
 
-#if WIN32
-  OutputDebugStringA(msg.c_str());
-#endif
-
-  std::cout << msg;
+  //PrintMessageToTerminal(msg);
 
   if (RedirectLog)
     RedirectLog(msg);
