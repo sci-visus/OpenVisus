@@ -376,44 +376,41 @@ String Dataset::getDatasetInfos() const
 }
 
 ////////////////////////////////////////////////
-void Dataset::readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
+Future<Void> Dataset::readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
 {
   VisusAssert(access->isReading());
 
-  if (!access) {
-    BlockQuery::setStatus(query, QueryFailed);
-    return;
-  }
+  auto failed = [&]() {
+    if (!access)
+      query->setFailed();
+    else
+      access->readFailed(query);
 
-  if (!query->field.valid()) {
-    access->readFailed(query);
-    return;
-  }
+    return query->done;
+  };
 
-  if (!(query->start_address < query->end_address)) {
-    access->readFailed(query);
-    return;
-  }
+  if (!access)
+    return failed();
 
-  if (!access->can_read) {
-    access->readFailed(query);
-    return;
-  }
+  if (!query->field.valid())
+    return failed();
+
+  if (!(query->start_address < query->end_address))
+    return failed();
+
+  if (!access->can_read)
+    return failed();
 
   auto logic_box = getAddressRangeBox(query->start_address, query->end_address);
-  if (!logic_box.valid()) {
-    access->readFailed(query);
-    return;
-  }
+  if (!logic_box.valid())
+    return failed();
 
   query->nsamples = logic_box.nsamples;
   query->logic_box = logic_box;
 
   //auto allocate buffer
-  if (!query->allocateBufferIfNeeded()) {
-    access->readFailed(query);
-    return;
-  }
+  if (!query->allocateBufferIfNeeded())
+    return failed();
 
   //override time 
   {
@@ -427,55 +424,50 @@ void Dataset::readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
       query->time = cdouble(query->field.getParam("time"));
   }
 
-  BlockQuery::setStatus(query, QueryRunning);
+  query->setRunning();
   access->readBlock(query);
+  return query->done;
 }
 
 
 ////////////////////////////////////////////////
-void Dataset::writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query)
+Future<Void> Dataset::writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query)
 {
   VisusAssert(access->isWriting());
 
-  if (!access) {
-    BlockQuery::setStatus(query, QueryFailed);
-    return;
-  }
+  auto failed = [&]() {
+    if (!access)
+      query->setFailed();
+    else
+      access->readFailed(query);
+    return query->done;
+  };
 
-  if (!query->field.valid()) {
-    access->writeFailed(query);
-    return;
-  }
+  if (!access)
+    return failed();
 
-  if (!(query->start_address < query->end_address)) {
-    access->writeFailed(query);
-    return;
-  }
+  if (!query->field.valid())
+    return failed();
 
-  if (!access->can_write) {
-    access->writeFailed(query);
-    return;
-  }
+  if (!(query->start_address < query->end_address))
+    return failed();
 
-  if (!query->buffer) {
-    access->writeFailed(query);
-    return;
-  }
+  if (!access->can_write)
+    return failed();
+
+  if (!query->buffer)
+    return failed();
 
   auto logic_box = getAddressRangeBox(query->start_address, query->end_address);
-  if (!logic_box.valid()) {
-    access->writeFailed(query);
-    return;
-  }
+  if (!logic_box.valid())
+    return failed();
 
   query->nsamples = logic_box.nsamples;
   query->logic_box = logic_box;
 
   //check buffer
-  if (!query->allocateBufferIfNeeded()) {
-    access->writeFailed(query);
-    return;
-  }
+  if (!query->allocateBufferIfNeeded())
+    return failed();
 
   //override time
   {
@@ -489,8 +481,9 @@ void Dataset::writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query)
       query->time = cdouble(query->field.getParam("time"));
   }
 
-  BlockQuery::setStatus(query, QueryRunning);
+  query->setRunning();
   access->writeBlock(query);
+  return query->done;
 }
 
 ////////////////////////////////////////////////
@@ -823,7 +816,7 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
 
     this->readBlockAndWait(access, block_query);
 
-    if (block_query->getStatus() != QueryOk)
+    if (block_query->failed())
       continue;
 
     //make sure is row major

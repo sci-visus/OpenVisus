@@ -264,9 +264,7 @@ public:
   Pimpl*       pimpl=nullptr;  \
   /*--*/
 
-
-
-
+class VISUS_KERNEL_API Void {};
 
 class VISUS_KERNEL_API KernelModule
 {

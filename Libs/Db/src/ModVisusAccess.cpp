@@ -117,32 +117,18 @@ void ModVisusAccess::onNetResponse(NetResponse response,SharedPtr<BlockQuery> qu
   if (!response.hasHeader("visus-nsamples"))
     response.setHeader("visus-nsamples",query->nsamples.toString());
 
-  //I want the decoding happens in the 'client' side
-  query->setClientProcessing([this,response,query]() 
-  {
-    if (query->aborted() || !response.isSuccessful()) 
-    {
-      this->statistics.rfail++;
-      return QueryFailed;
-    }
+  if (query->aborted() || !response.isSuccessful())
+    return readFailed(query);
 
-    auto decoded=response.getArrayBody();
-    if (!decoded)
-    {
-      this->statistics.rfail++;
-      return QueryFailed;
-    }
+  auto decoded = response.getArrayBody();
+  if (!decoded)
+    return readFailed(query);
 
-    VisusAssert(decoded.dims==query->nsamples);
-    VisusAssert(decoded.dtype==query->field.dtype);
-    query->buffer=decoded;
+  VisusAssert(decoded.dims == query->nsamples);
+  VisusAssert(decoded.dtype == query->field.dtype);
+  query->buffer = decoded;
 
-    this->statistics.rok++;
-    return QueryOk;
-  });
-
-  //done but status not set yet
-  query->future.get_promise()->set_value(query);
+  return readOk(query);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

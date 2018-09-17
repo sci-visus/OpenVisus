@@ -367,8 +367,8 @@ public:
     auto bitmask = dataset->getBitmask();
 
     SharedPtr<NetService> netservice;
-    WaitAsync< Future<NetResponse> >             wait_async_network;
-    WaitAsync< Future< SharedPtr<BlockQuery> > > wait_async_readblock;
+    WaitAsync< Future<NetResponse> >  wait_async_network;
+    WaitAsync< Future<Void> > wait_async_readblock;
 
     //read blocks
     if (mode == KdQueryMode::UseBlockQuery)
@@ -497,12 +497,12 @@ public:
         auto end_address   = (blocknum + 1) << bitsperblock;
 
         auto blockquery = std::make_shared<BlockQuery>(field, time, start_address, end_address, this->aborted);
-        wait_async_readblock.pushRunning(blockquery->future).when_ready([this, blockquery, node, &rlock](SharedPtr<BlockQuery>) {
+        wait_async_readblock.pushRunning(dataset->readBlock(access, blockquery)).when_ready([this, blockquery, node, &rlock](Void) {
 
 
           VisusAssert(mode == KdQueryMode::UseBlockQuery);
 
-          if (aborted() || blockquery->getStatus() != QueryOk)
+          if (aborted() || blockquery->failed())
             return;
 
           VisusAssert(!node->fullres && !node->blockdata);
@@ -522,7 +522,6 @@ public:
 
           computeFullRes(node, rlock);
         }); 
-        dataset->readBlock(access, blockquery);
       }
     }
 

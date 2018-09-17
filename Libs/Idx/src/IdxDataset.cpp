@@ -1600,7 +1600,7 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
   std::sort(hzaddresses.begin(),hzaddresses.end());
 
   //do the for loop block aligned
-  WaitAsync< Future<SharedPtr<BlockQuery> > > wait_async;
+  WaitAsync< Future<Void> > wait_async;
 
   access->beginRead();
   for (int A=0,B=0 ; !aborted() &&  A< (int)hzaddresses.size() ; A=B)
@@ -1621,16 +1621,14 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
       ++B;
 
     auto block_query=std::make_shared<BlockQuery>(query->field,query->time,HzFrom,HzTo,aborted);
-    wait_async.pushRunning(block_query->future).when_ready([this, query, block_query,&hzaddresses, A, B, aborted](SharedPtr<BlockQuery>) {
+    wait_async.pushRunning(this->readBlock(access, block_query)).when_ready([this, query, block_query,&hzaddresses, A, B, aborted](Void) {
 
-      if (aborted() || block_query->getStatus() != QueryOk)
+      if (aborted() || block_query->failed())
         return;
 
       InsertBlockQuerySamplesIntoPointQuery op;
       NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get(), &hzaddresses[0] + A, &hzaddresses[0] + B, aborted);
     }); 
-
-    this->readBlock(access,block_query);
   }
   access->endRead();
 
@@ -1745,7 +1743,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
     for (int H = 0; H <= max_resolution; H++)
       fldeltas[H] = H? (hzorder.getLevelDelta(H)[bitmask[H]] >> 1) : 0;
 
-    WaitAsync< Future< SharedPtr<BlockQuery> > > wait_async;
+    WaitAsync< Future<Void> > wait_async;
 
     if (bReading)
       access->beginRead();
@@ -1795,13 +1793,12 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
 
           if (bReading)
           {
-            wait_async.pushRunning(read_block->future).when_ready([this,query,read_block, aborted](SharedPtr<BlockQuery>) 
+            wait_async.pushRunning(readBlock(access, read_block)).when_ready([this,query,read_block, aborted](Void)
             {
               //I don't care if the read fails...
-              if (!aborted() && read_block->getStatus() == QueryOk)
+              if (!aborted() && read_block->ok())
                 mergeQueryWithBlock(query, read_block);
             });
-            readBlock(access,read_block);
           }
           else
           {
@@ -1815,7 +1812,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
             auto write_block=std::make_shared<BlockQuery>(field,time,HzFrom,HzTo,aborted);
 
            //read ok
-            if (read_block->getStatus()==QueryOk)
+            if (read_block->ok())
             {
               write_block->buffer=read_block->buffer;
             }
@@ -1837,7 +1834,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
             //important! all writings are with a lease!
             access->releaseWriteLock(read_block);
 
-            if (aborted() || write_block->getStatus() != QueryOk) {
+            if (aborted() || write_block->failed()) {
               bReading? access->endRead() : access->endReadWrite();
               return false;
             }

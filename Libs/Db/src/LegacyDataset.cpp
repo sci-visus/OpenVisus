@@ -113,32 +113,18 @@ public:
       response.setHeader("visus-dtype", query->field.dtype.toString());
       response.setHeader("visus-layout", "");
 
-      //I want the decoding happens in the 'client' side
-      query->setClientProcessing([this, response, query]()
-      {
-        if (query->aborted() || !response.isSuccessful())
-        {
-          this->statistics.rfail++;
-          return QueryFailed;
-        }
+      if (query->aborted() || !response.isSuccessful())
+        return readFailed(query);
 
-        auto decoded = response.getArrayBody();
-        if (!decoded)
-        {
-          this->statistics.rfail++;
-          return QueryFailed;
-        }
+      auto decoded = response.getArrayBody();
+      if (!decoded)
+        return readFailed(query);
 
-        VisusAssert(decoded.dims == query->nsamples);
-        VisusAssert(decoded.dtype == query->field.dtype);
-        query->buffer = decoded;
+      VisusAssert(decoded.dims == query->nsamples);
+      VisusAssert(decoded.dtype == query->field.dtype);
+      query->buffer = decoded;
 
-        this->statistics.rok++;
-        return QueryOk;
-      });
-
-      //done but status not set yet
-      query->future.get_promise()->set_value(query);
+      return readOk(query);
     });
   }
 
@@ -268,7 +254,7 @@ bool LegacyDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query
   int end_resolution=query->getEndResolution();
   VisusAssert(end_resolution % 2==0);
 
-  WaitAsync< Future<SharedPtr<BlockQuery> > > wait_async;
+  WaitAsync< Future<Void> > wait_async;
 
   NdBox box=this->getBox();
 
@@ -279,13 +265,12 @@ bool LegacyDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query
   {
     for (auto block_query : block_queries)
     {
-      wait_async.pushRunning(block_query->future).when_ready([this,query, block_query](SharedPtr<BlockQuery>) {
+      wait_async.pushRunning(readBlock(access,block_query)).when_ready([this,query, block_query](Void) {
 
-        if (!query->aborted() && block_query->getStatus() == QueryOk)
+        if (!query->aborted() && block_query->ok())
           mergeQueryWithBlock(query, block_query);
 
       });
-      readBlock(access, block_query);
     }
   }
   access->endRead();

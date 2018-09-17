@@ -92,32 +92,18 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
     if (!blob.metadata.hasValue("visus-nsamples"))
       blob.metadata.setValue("visus-nsamples", query->nsamples.toString());
 
-    //I want the decoding happens in the 'client' side
-    query->setClientProcessing([this, blob, query]()
-    {
-      if (query->aborted() || !blob.valid())
-      {
-        this->statistics.rfail++;
-        return QueryFailed;
-      }
+    if (query->aborted() || !blob.valid())
+      return readFailed(query);
 
-      auto decoded = ArrayUtils::decodeArray(blob.metadata,blob.body);
-      if (!decoded)
-      {
-        this->statistics.rfail++;
-        return QueryFailed;
-      }
+    auto decoded = ArrayUtils::decodeArray(blob.metadata, blob.body);
+    if (!decoded)
+      return readFailed(query);
 
-      VisusAssert(decoded.dims  == query->nsamples);
-      VisusAssert(decoded.dtype == query->field.dtype);
-      query->buffer = decoded;
+    VisusAssert(decoded.dims == query->nsamples);
+    VisusAssert(decoded.dtype == query->field.dtype);
+    query->buffer = decoded;
 
-      this->statistics.rok++;
-      return QueryOk;
-    });
-
-    //set done but the status is not yet set
-    query->future.get_promise()->set_value(query);
+    return readOk(query);
   });
 
 }

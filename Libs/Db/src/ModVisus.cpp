@@ -1256,7 +1256,7 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 
   auto access=dataset->createAccessForBlockQuery();
 
-  WaitAsync< Future<SharedPtr<BlockQuery> > > wait_async;
+  WaitAsync< Future<Void> > wait_async;
   access->beginRead();
   Aborted aborted;
 
@@ -1264,9 +1264,9 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
   for (int I = 0; I < (int)start_address.size(); I++)
   {
     auto block_query = std::make_shared<BlockQuery>(field, time, start_address[I], end_address[I], aborted);
-    wait_async.pushRunning(block_query->future).when_ready([this, block_query,&responses,dataset,compression](SharedPtr<BlockQuery>) {
+    wait_async.pushRunning(dataset->readBlock(access, block_query)).when_ready([this, block_query,&responses,dataset,compression](Void) {
 
-      if (block_query->getStatus() != QueryOk)
+      if (block_query->failed())
       {
         responses.push_back(NetResponseError(HttpStatus::STATUS_NOT_FOUND, "block_query->executeAndWait failed"));
         return;
@@ -1285,9 +1285,7 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
       }
 
       responses.push_back(response);
-
     });
-    dataset->readBlock(access, block_query);
   }
   access->endRead();
 

@@ -246,17 +246,17 @@ void MultiplexAccess::runInBackground()
       //need to read
       if (op == ReadOp) 
       {
-        dw_query->future.when_ready([this, up_query, index](SharedPtr<BlockQuery> dw_query)
+        dataset->readBlock(dw_access[index],dw_query).when_ready([this, up_query, dw_query, index](Void)
         {
           //if fails try the next index
-          if (dw_query->getStatus() == QueryFailed)
+          if (dw_query->failed())
           {
             scheduleOp(ReadOp, index + 1, up_query);
           }
           //I need to write to upper access (i.e. caching)
           else
           {
-            VisusAssert(dw_query->getStatus() == QueryOk);
+            VisusAssert(dw_query->ok());
             VisusAssert(up_query->start_address == dw_query->start_address);
             VisusAssert(up_query->end_address == dw_query->end_address);
             VisusAssert(up_query->nsamples == dw_query->nsamples);
@@ -266,8 +266,6 @@ void MultiplexAccess::runInBackground()
             scheduleOp(CacheOp, index - 1, up_query);
           }
         });
-
-        dw_access[index]->readBlock(dw_query);
       }
 
       //need to cache
@@ -276,11 +274,9 @@ void MultiplexAccess::runInBackground()
         VisusAssert(op == CacheOp);
 
         //if fails or not I don't care, I try to cache to upper levels anyway
-        dw_query->future.when_ready([this, up_query, index](SharedPtr<BlockQuery> dw_query) {
+        dataset->writeBlock(dw_access[index],dw_query).when_ready([this, up_query, dw_query, index](Void) {
           scheduleOp(CacheOp, index - 1, up_query);
         });
-
-        dw_access[index]->writeBlock(dw_query);
       }
     }
 

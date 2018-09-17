@@ -54,7 +54,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(BlockQuery)
 
 
-  Future< SharedPtr<BlockQuery> > future;
+  Future<Void> done = Promise<Void>().get_future();
 
   BigInt start_address=0;
   BigInt end_address=0;
@@ -62,8 +62,6 @@ public:
   //constructor
   BlockQuery(Field field_,double time_,BigInt start_address_,BigInt end_address_,Aborted aborted_) 
     : BaseQuery(field_,time_,aborted_),start_address(start_address_),end_address(end_address_) {
-
-    future = Promise< SharedPtr<BlockQuery> >().get_future();
   }
 
   //destructor
@@ -75,57 +73,38 @@ public:
     return start_address >> bitsperblock;
   }
 
-  //getStatus
-  QueryStatus getStatus() 
-  {  
-    //client processing
-    {
-      ScopedLock lock(client_processing.lock);
-      if (client_processing.value) 
-      {
-        VisusAssert(status==QueryCreated || status==QueryRunning);
-        this->status=client_processing.value();
-        client_processing.value=nullptr;
-      }
-    }
-    VisusAssert(status==QueryOk || status==QueryFailed);
-    return this->status;
+  //setRunning
+  void setRunning() {
+    VisusAssert(status == QueryCreated);
+    this->status = QueryRunning;
   }
 
-  //setClientProcessing
-  void setClientProcessing(std::function<QueryStatus()> value) 
-  {
-    ScopedLock lock(client_processing.lock);
-    VisusAssert(!client_processing.value);
-    VisusAssert(status==QueryCreated || status==QueryRunning);
-    client_processing.value=value;
+  //ok
+  bool ok() const {
+    VisusAssert(status == QueryOk || status == QueryFailed); //call only when the blockquery is done
+    return status == QueryOk;
   }
 
-  //setStatus
-  static void setStatus(SharedPtr<BlockQuery> query,QueryStatus value) 
-  {
-    VisusAssert(!query->client_processing.value);
-
-    VisusAssert(
-      (query->status == QueryCreated && (value == QueryRunning || value == QueryFailed || value == QueryOk)) ||
-      (query->status == QueryRunning && (                         value == QueryFailed || value == QueryOk)));
-
-    query->status=value;
-
-    if (value == QueryFailed || value == QueryOk)
-      query->future.get_promise()->set_value(query);
+  //setOk
+  void setOk() {
+    VisusAssert(this->status == QueryCreated || this->status == QueryRunning);
+    this->status = QueryOk;
+    this->done.get_promise()->set_value(Void());
   }
 
-private:
-    
-  struct
-  {
-    CriticalSection              lock;
-    std::function<QueryStatus()> value;
+  //failed
+  bool failed() const {
+    VisusAssert(status == QueryOk || status == QueryFailed); //call only when the blockquery is done
+    return status == QueryFailed;
   }
-  client_processing;
 
-  
+  //setOk
+  void setFailed() {
+    VisusAssert(this->status == QueryCreated || this->status == QueryRunning);
+    this->status = QueryFailed;
+    this->done.get_promise()->set_value(Void());
+  }
+
 };
 
 
