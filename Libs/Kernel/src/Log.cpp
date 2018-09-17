@@ -83,7 +83,7 @@ LogFormattedMessage::~LogFormattedMessage()
 
   String msg = out.str();
 
-  //PrintMessageToTerminal(msg);
+  PrintMessageToTerminal(msg);
 
   if (RedirectLog)
     RedirectLog(msg);

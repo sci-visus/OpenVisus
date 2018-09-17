@@ -258,7 +258,7 @@ void Node::addNodeJob(SharedPtr<NodeJob> job)
     });
   }
 
-  thread_pool->asyncRun([job](int worker)
+  ThreadPool::push(thread_pool,[job]()
   {
     if (!job->aborted())
       job->runJob();

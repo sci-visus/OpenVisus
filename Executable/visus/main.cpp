@@ -1486,8 +1486,7 @@ public:
     auto world_box = dataset->getBox();
 
     Time T1 = Time::now();
-    int nqueries = 0;
-    for (; T1.elapsedSec()<20;nqueries++)
+    for (int nqueries = 0;;nqueries++)
     {
       Time t1 = Time::now();
 
@@ -1510,7 +1509,8 @@ public:
       auto io = ApplicationStats::io.readValues(true);
 
       VisusInfo() << "sec(" << sec << ")"
-        << "  box(" << ndbox.toString() << ") "
+        << " avg(" << (T1.elapsedSec() / (nqueries+1)) << ")"
+        << " box(" << ndbox.toString() << ") "
         << " access.rok(" << stats.rok << "/" << ((double)(stats.rok) / sec) << ") "
         << " access.rfail(" << stats.rfail << "/" << ((double)(stats.rfail) / sec) << ") "
         << " io.nopen(" << io.nopen << "/" << ((double)(io.nopen) / sec) << ") "
@@ -1518,8 +1518,7 @@ public:
         << " io.wbytes(" << double(io.wbytes) / (1024 * 1024) << "/" << double(io.wbytes) / (sec * 1024 * 1024) << ") ";
     }
 
-    auto SEC = T1.elapsedSec();
-    VisusInfo() << "all done in " << SEC<< " nqueries/sec("<<(nqueries/SEC)<<")";
+
     return data;
   }
 };

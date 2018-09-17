@@ -162,16 +162,9 @@ private:
   //readBlock 
   virtual void readBlock(SharedPtr<BlockQuery> BLOCKQUERY) override
   {
-    if (thread_pool)
-    {
-      thread_pool->asyncRun([this, BLOCKQUERY](int worker) {
-        readBlockInThread(BLOCKQUERY);
-      });
-    }
-    else
-    {
+    ThreadPool::push(thread_pool, [this, BLOCKQUERY]() {
       readBlockInThread(BLOCKQUERY);
-    }
+    });
   }
 
 }; //end class

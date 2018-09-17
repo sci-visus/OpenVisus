@@ -87,39 +87,10 @@ public:
 
 private:
 
-  //async_read
-  class FileIO : public File
-  {
-  public:
-    IdxDiskAccess *       owner;
-    SharedPtr<ThreadPool> tpool;
-    HeapMemory            headers;
+  class FileIO;
 
-    //constructor
-    FileIO(IdxDiskAccess* owner_) : owner(owner_) {
-    }
-
-    //destructor
-    ~FileIO() {
-      destroy();
-    }
-
-    //destroy
-    void destroy() {
-      tpool.reset();
-      VisusReleaseAssert(!File::isOpen());
-    }
-
-    //open
-    bool open(String filename, String mode);
-
-    //close
-    void close(String reason);
-
-  };
-
-  FileIO sync;
-  FileIO async;
+  SharedPtr<FileIO> sync;
+  SharedPtr<FileIO> async;
 
   int       bVerbose = 0;
   IdxFile   idxfile;
@@ -140,9 +111,6 @@ private:
 
   //getFirstBlockInFile
   BigInt getFirstBlockInFile(BigInt nblock) const;
-
-  //writeBlockInCurrentThread 
-  void writeBlockInCurrentThread(FileIO& file, SharedPtr<BlockQuery> query, String mode);
 
   //readBlockInCurrentThread 
   void readBlockInCurrentThread(FileIO& file,SharedPtr<BlockQuery> query, String mode);

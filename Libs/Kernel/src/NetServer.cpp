@@ -98,7 +98,7 @@ void NetServer::runInThisThread()
   {
     if (auto client = server->acceptConnection())
     {
-      thread_pool->asyncRun([this, client](int worker)
+      ThreadPool::push(thread_pool,[this, client]()
       {
         if (bExitThread)
         {

@@ -147,105 +147,129 @@ public:
 };
 
 
-////////////////////////////////////////////////////////////////////
-bool IdxDiskAccess::FileIO::open(String filename, String mode)
+//////////////////////////////////////////////////////////////////////
+class IdxDiskAccess::FileIO : public File
 {
-  VisusReleaseAssert(!mode.empty());
+public:
+  IdxDiskAccess *       owner;
+  SharedPtr<ThreadPool> tpool;
+  HeapMemory            headers;
 
-  //useless code, already opened in the desired mode
-  if (filename == this->getFilename() && mode == this->getMode())
-    return true;
+  //constructor
+  FileIO(IdxDiskAccess* owner_) : owner(owner_) {
+  }
 
-  if (isOpen())
-    close("need to openFile");
-
-  if (owner->bVerbose)
-    VisusInfo() << "Opening file(" << filename << ") mode(" << mode << ")";
-
-  bool bWriting = StringUtils::contains(mode, "w");
-
-  //already exist
-  if (bool bOpened = bWriting ? File::openReadWriteBinary(filename.c_str()) : File::openReadBinary(filename.c_str()))
+  //destructor
+  ~FileIO() 
   {
-    if (!File::read(headers.c_ptr(), headers.c_size()))
+    VisusReleaseAssert(!File::isOpen());
+    tpool.reset();
+  }
+
+  //open
+  bool open(String filename, String mode)
+  {
+    VisusReleaseAssert(!mode.empty());
+
+    //useless code, already opened in the desired mode
+    if (filename == this->getFilename() && mode == this->getMode())
+      return true;
+
+    if (isOpen())
+      close("need to openFile");
+
+    if (owner->bVerbose)
+      VisusInfo() << "Opening file(" << filename << ") mode(" << mode << ")";
+
+    bool bWriting = StringUtils::contains(mode, "w");
+
+    //already exist
+    if (bool bOpened = bWriting ? File::openReadWriteBinary(filename.c_str()) : File::openReadBinary(filename.c_str()))
     {
-      close("cannot read headers");
+      if (!File::read(headers.c_ptr(), headers.c_size()))
+      {
+        close("cannot read headers");
+        return false;
+      }
+
+      auto ptr = (Int32*)(headers.c_ptr());
+      for (int I = 0, Tot = (int)headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
+        ptr[I] = ntohl(ptr[I]);
+
+      return true;
+    }
+
+    //cannot read the file
+    if (!bWriting)
+    {
+      close("Cannot open file(" + filename + ")");
       return false;
     }
 
-    auto ptr = (Int32*)(headers.c_ptr());
-    for (int I = 0, Tot = (int)headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
-      ptr[I] = ntohl(ptr[I]);
+    //create a new file and fill up the headers
+    if (!File::createAndOpenReadWriteBinary(filename))
+    {
+      //should not fail here!
+      VisusAssert(false);
+      close("Cannot create file(" + filename + ")");
+      FileUtils::removeFile(filename);
+      return false;
+    }
+
+    //write an empty header
+    headers.fill(0);
+    if (!File::write(headers.c_ptr(), headers.c_size()))
+    {
+      //should not fail here!
+      VisusAssert(false);
+      close("Cannot write zero headers file(" + filename + ")");
+      FileUtils::removeFile(filename);
+      return false;
+    }
 
     return true;
   }
 
-  //cannot read the file
-  if (!bWriting)
+  //close
+  void close(String reason)
   {
-    close("Cannot open file(" + filename + ")");
-    return false;
-  }
+    if (!isOpen())
+      return;
 
-  //create a new file and fill up the headers
-  if (!File::createAndOpenReadWriteBinary(filename))
-  {
-    //should not fail here!
-    VisusAssert(false);
-    close("Cannot create file(" + filename + ")");
-    FileUtils::removeFile(filename);
-    return false;
-  }
+    if (owner->bVerbose)
+      VisusInfo() << "Closing file(" << this->getFilename() << ") mode(" << this->getMode() << ") reason(" << reason << ")";
 
-  //write an empty header
-  headers.fill(0);
-  if (!File::write(headers.c_ptr(), headers.c_size()))
-  {
-    //should not fail here!
-    VisusAssert(false);
-    close("Cannot write zero headers file(" + filename + ")");
-    FileUtils::removeFile(filename);
-    return false;
-  }
-
-  return true;
-}
-
-
-
-////////////////////////////////////////////////////////////////////
-void IdxDiskAccess::FileIO::close(String reason)
-{
-  if (!isOpen())
-    return;
-
-  if (owner->bVerbose)
-    VisusInfo() << "Closing file(" << this->getFilename() << ") mode(" << this->getMode() << ") reason(" << reason << ")";
-
-  //need to write the headers
-  if (this->canWrite())
-  {
-    auto ptr = (Int32*)(this->headers.c_ptr());
-    for (int I = 0, Tot = (int)headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
-      ptr[I] = htonl(ptr[I]);
-
-    if (!this->seekAndWrite(0, headers.c_size(), headers.c_ptr()))
+    //need to write the headers
+    if (this->canWrite())
     {
-      VisusAssert(false);
-      if (owner->bVerbose)
-        VisusInfo() << "cannot write headers";
+      auto ptr = (Int32*)(this->headers.c_ptr());
+      for (int I = 0, Tot = (int)headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
+        ptr[I] = htonl(ptr[I]);
+
+      if (!this->seekAndWrite(0, headers.c_size(), headers.c_ptr()))
+      {
+        VisusAssert(false);
+        if (owner->bVerbose)
+          VisusInfo() << "cannot write headers";
+      }
     }
+
+    File::close();
   }
 
-  File::close();
-}
+};
+
+
+
 
 ////////////////////////////////////////////////////////////////////
 IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config) 
-  : sync(this),async(this)
 {
   if (!dataset->valid())
     ThrowException("IdxDataset not valid");
+
+  this->sync  = std::make_shared<FileIO>(this);
+  this->async = std::make_shared<FileIO>(this);
 
   String chmod=config.readString("chmod","rw");
   auto idxfile=dataset->idxfile;
@@ -321,18 +345,20 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
   else
     file_header_size = V6FileHeaderSize + ((int)idxfile.fields.size())*idxfile.blocksperfile*V6BlockHeaderSize;
 
-  sync.headers.resize(file_header_size, __FILE__, __LINE__);
+  sync->headers.resize(file_header_size, __FILE__, __LINE__);
 
   // important!number of threads must be <=1 
+#if 1
   bool disable_async = config.readBool("disable_async", dataset->bServerMode);
   if (int nthreads = disable_async ? 0 : 1)
   {
-    async.tpool = std::make_shared<ThreadPool>("IdxDiskAccess Thread", nthreads);
-    async.headers.resize(file_header_size, __FILE__, __LINE__);
+    async->tpool = std::make_shared<ThreadPool>("IdxDiskAccess Thread", nthreads);
+    async->headers.resize(file_header_size, __FILE__, __LINE__);
   }
+#endif
 
   if (bVerbose)
-    VisusInfo()<<"IdxDiskAccess created url("<<url.toString()<<") async("<<(async.tpool?"yes":"no")<<")";
+    VisusInfo()<<"IdxDiskAccess created url("<<url.toString()<<") async("<<(async->tpool?"yes":"no")<<")";
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -342,8 +368,8 @@ IdxDiskAccess::~IdxDiskAccess()
     VisusInfo()<<"IdxDiskAccess destroyed";
 
   VisusReleaseAssert(!isReading() && !isWriting());
-  async.destroy();
-  sync.destroy();
+  async.reset();
+  sync.reset();
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -494,15 +520,15 @@ void IdxDiskAccess::beginIO(String mode) {
 ////////////////////////////////////////////////////////////////////
 void IdxDiskAccess::endIO() {
 
-  if (bool bAsyncRead = !isWriting() && async.tpool)
+  if (bool bAsyncRead = !isWriting() && async->tpool)
   {
-    async.tpool->asyncRun([this](int) {
-      async.close("posted endIO"); //go in queue...
+    ThreadPool::push(async->tpool,[this]() {
+      async->close("posted endIO"); //go in queue...
     });
   }
   else
   {
-    sync.close("endIO");
+    sync->close("endIO");
   }
 
   Access::endIO();
@@ -541,15 +567,15 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
 
   String file_mode = isWriting()? "rw" : "r"; // for writing I need to read headers too
 
-  if (bool bAsyncRead= !isWriting() && async.tpool)
+  if (bool bAsyncRead= !isWriting() && async->tpool)
   {
-    async.tpool->asyncRun([this, query, file_mode](int) {
-      readBlockInCurrentThread(async,query, file_mode);
+    ThreadPool::push(async->tpool,[this, query, file_mode]() {
+      readBlockInCurrentThread(*async,query, file_mode);
     });
   }
   else
   {
-    readBlockInCurrentThread(sync, query, file_mode);
+    readBlockInCurrentThread(*sync, query, file_mode);
   }
 }
 
@@ -708,13 +734,7 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   if (bDisableIO)
     return writeOk(query);
 
-  writeBlockInCurrentThread(sync, query, "rw"); //I need to read headers too
-}
-
-////////////////////////////////////////////////////////////////////
-void IdxDiskAccess::writeBlockInCurrentThread(FileIO& file,SharedPtr<BlockQuery> query,String file_mode)
-{
-  BigInt blockid = query->getBlockNumber(bitsperblock);
+  auto& file = *sync;
 
   acquireWriteLock(query);
 
@@ -769,7 +789,7 @@ void IdxDiskAccess::writeBlockInCurrentThread(FileIO& file,SharedPtr<BlockQuery>
     return failed("Failed to encode the data");
   }
 
-  if      (compression.empty())  block_flags |= NoCompression;
+  if (compression.empty())  block_flags |= NoCompression;
   else if (compression == "lz4") block_flags |= Lz4Compression;
   else if (compression == "zip") block_flags |= ZipCompression;
   else if (compression == "jpg") block_flags |= JpgCompression;
@@ -778,7 +798,7 @@ void IdxDiskAccess::writeBlockInCurrentThread(FileIO& file,SharedPtr<BlockQuery>
 
   String filename = getFilename(query->field, query->time, blockid);
 
-  if (!file.open(filename, file_mode))
+  if (!file.open(filename, "rw"))
     return failed("cannot open file");
 
   //block header
