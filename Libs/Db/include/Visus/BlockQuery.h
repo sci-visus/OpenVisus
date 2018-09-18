@@ -53,7 +53,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(BlockQuery)
 
-  Future<bool> future;
+
+  Future< SharedPtr<BlockQuery> > future;
 
   BigInt start_address=0;
   BigInt end_address=0;
@@ -62,7 +63,7 @@ public:
   BlockQuery(Field field_,double time_,BigInt start_address_,BigInt end_address_,Aborted aborted_) 
     : BaseQuery(field_,time_,aborted_),start_address(start_address_),end_address(end_address_) {
 
-    future = Promise<bool>().get_future();
+    future = Promise< SharedPtr<BlockQuery> >().get_future();
   }
 
   //destructor
@@ -101,18 +102,18 @@ public:
   }
 
   //setStatus
-  void setStatus(QueryStatus value) 
+  static void setStatus(SharedPtr<BlockQuery> query,QueryStatus value) 
   {
-    VisusAssert(!client_processing.value);
+    VisusAssert(!query->client_processing.value);
 
     VisusAssert(
-      (status == QueryCreated && (value == QueryRunning || value == QueryFailed || value == QueryOk)) ||
-      (status == QueryRunning && (                         value == QueryFailed || value == QueryOk)));
+      (query->status == QueryCreated && (value == QueryRunning || value == QueryFailed || value == QueryOk)) ||
+      (query->status == QueryRunning && (                         value == QueryFailed || value == QueryOk)));
 
-    this->status=value;
+    query->status=value;
 
-    if (status== QueryFailed || status== QueryOk)
-      this->future.get_promise()->set_value(true);
+    if (value == QueryFailed || value == QueryOk)
+      query->future.get_promise()->set_value(query);
   }
 
 private:
@@ -123,6 +124,7 @@ private:
     std::function<QueryStatus()> value;
   }
   client_processing;
+
   
 };
 

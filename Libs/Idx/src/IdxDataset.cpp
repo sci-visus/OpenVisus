@@ -1600,7 +1600,7 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
   std::sort(hzaddresses.begin(),hzaddresses.end());
 
   //do the for loop block aligned
-  WaitAsync< Future<bool>, std::tuple<SharedPtr<BlockQuery>, int, int> > async;
+  WaitAsync< Future<SharedPtr<BlockQuery> >, std::tuple<SharedPtr<BlockQuery>, int, int> > wait_async;
 
   access->beginRead();
   for (int A=0,B=0 ; !aborted() &&  A< (int)hzaddresses.size() ; A=B)
@@ -1621,16 +1621,16 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
       ++B;
 
     auto block_query=std::make_shared<BlockQuery>(query->field,query->time,HzFrom,HzTo,aborted);
-    async.pushRunning(block_query->future, std::make_tuple(block_query,A,B));
+    wait_async.pushRunning(block_query->future, std::make_tuple(block_query,A,B));
 
     this->readBlock(access,block_query);
   }
   access->endRead();
 
   //wait for the block query to be ready
-  for (int I=0,N=async.size();I<N;I++)
+  for (int I=0,N= wait_async.size();I<N;I++)
   {
-    auto popped=async.popReady().second;
+    auto popped= wait_async.popReady().second;
 
     auto block_query=std::get<0>(popped); VisusAssert(block_query);
     auto A=std::get<1>(popped);
@@ -1752,7 +1752,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
     for (int H = 0; H <= max_resolution; H++)
       fldeltas[H] = H? (hzorder.getLevelDelta(H)[bitmask[H]] >> 1) : 0;
 
-    WaitAsync< Future<bool> , SharedPtr<BlockQuery> > async;
+    WaitAsync< Future< SharedPtr<BlockQuery> > , SharedPtr<BlockQuery> > wait_async;
 
     if (bReading)
       access->beginRead();
@@ -1802,7 +1802,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
 
           if (bReading)
           {
-            async.pushRunning(read_block->future, read_block);
+            wait_async.pushRunning(read_block->future, read_block);
             readBlock(access,read_block);
           }
           else
@@ -1872,9 +1872,9 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
     //wait for block query completition
     if (bReading)
     {
-      for (int I=0,N=async.size();I<N;I++)
+      for (int I=0,N= wait_async.size();I<N;I++)
       {
-        auto block_query=async.popReady().second;
+        auto block_query= wait_async.popReady().second;
         VisusAssert(block_query);
 
         //I don't care if the read fails...

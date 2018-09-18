@@ -69,45 +69,6 @@ bool NetMessage::setArrayBody(String compression,Array decoded)
   return true;
 }
 
-///////////////////////////////////////////////////////////////////
-Array NetMessage::getArrayBody() const
-{
-  auto encoded=this->body;
-
-  if (!encoded || !encoded->c_size()) 
-    return Array();
-
-  auto compression =                          getHeader("visus-compression");
-  auto nsamples    = NdPoint::parseDims      (getHeader("visus-nsamples")); 
-  auto dtype       =   DType::fromString(getHeader("visus-dtype"));
-  auto layout      =                          getHeader("visus-layout");
-
-  //backward compatible
-  if (hasHeader("visus-format"))
-    layout=cint(getHeader("visus-format"))? "":"hzorder";
-
-  if (nsamples.innerProduct()<=0 || !dtype.valid())
-    return Array();
-
-  //override compression if needed (think about legacy dataset)
-  if (!hasHeader("visus-compression") && !getContentType().empty())
-  {
-    auto content_type=this->getContentType();
-    if      (content_type == "application/x-lz4") compression = "lz4";
-    else if (content_type=="application/zip")     compression="zip";
-    else if (content_type=="image/png")           compression="png";
-    else if (content_type=="image/jpeg")          compression="jpg";
-    else if (content_type=="image/tiff")          compression="tif";
-  }
-
-  auto decoded=ArrayUtils::decodeArray(compression,nsamples,dtype,encoded);
-  if (!decoded)
-    return Array();
-
-  decoded.layout=layout;
-  return decoded;
-}
-
 
 ///////////////////////////////////////////////////////////////////
 String NetRequest::getHeadersAsString() const

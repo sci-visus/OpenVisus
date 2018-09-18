@@ -1256,21 +1256,21 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 
   auto access=dataset->createAccessForBlockQuery();
 
-  WaitAsync< Future<bool>, SharedPtr<BlockQuery> > async;
+  WaitAsync< Future<SharedPtr<BlockQuery> >, SharedPtr<BlockQuery> > wait_async;
   access->beginRead();
   Aborted aborted;
   for (int I = 0; I < (int)start_address.size(); I++)
   {
     auto query = std::make_shared<BlockQuery>(field, time, start_address[I], end_address[I], aborted);
-    async.pushRunning(query->future, query);
+    wait_async.pushRunning(query->future, query);
     dataset->readBlock(access,query);
   }
   access->endRead();
 
   std::vector<NetResponse> responses;
-  for (int I=0,N=async.size();I<N;I++)
+  for (int I=0,N= wait_async.size();I<N;I++)
   {
-    auto query=async.popReady().second;
+    auto query= wait_async.popReady().second;
 
     if (query->getStatus()!=QueryOk) 
     {

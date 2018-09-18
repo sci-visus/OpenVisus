@@ -148,6 +148,53 @@ private:
 };
 
 
+
+//////////////////////////////////////////////////////////////
+#if !SWIG
+class VISUS_KERNEL_API OutputBinaryStream
+{
+public:
+
+  HeapMemory& out;
+
+  //constructor
+  OutputBinaryStream(HeapMemory& out_) : out(out_) {
+  }
+
+  //write
+  OutputBinaryStream& write(const void* buffer, Int64 num)
+  {
+    if ((out.c_size() + num) >= out.c_capacity())
+    {
+      Int64 new_capacity = out.c_size() + num;
+
+      if (new_capacity < out.c_capacity() * 2)
+        new_capacity = out.c_capacity() * 2;
+      
+      new_capacity+= 64 * 1024;
+      out.reserve(new_capacity, __FILE__, __LINE__);
+    }
+
+    auto offset = out.c_size();
+    out.resize(out.c_size() + num, __FILE__, __LINE__);
+    memcpy(out.c_ptr() + offset, buffer, num);
+    return *this;
+  }
+
+  //operator<<
+  OutputBinaryStream& operator<<(String value) {
+    return write(value.c_str(), value.size());
+  }
+
+  //operator<<
+  OutputBinaryStream& operator<<(HeapMemory& memory) {
+    return write(memory.c_ptr(), memory.c_size());
+  }
+
+};
+#endif
+
+
 } //namespace Visus
 
 #endif //_VISUS_HEAP_MEMORY_H__

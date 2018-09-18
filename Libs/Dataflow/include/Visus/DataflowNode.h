@@ -322,7 +322,7 @@ protected:
   typedef Visus::WaitAsync< Future<int>, SharedPtr<NodeJob> > WaitAsync;
 
   SharedPtr<ThreadPool>   thread_pool;
-  WaitAsync               async;
+  WaitAsync               wait_async;
 
   //processInput 
   virtual bool processInput() {

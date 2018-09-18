@@ -40,7 +40,7 @@ For support : support@visus.net
 #define VISUS_CLOUD_STORAGE_
 
 #include <Visus/Kernel.h>
-#include <Visus/NetMessage.h>
+#include <Visus/NetService.h>
 
 namespace Visus {
 
@@ -52,127 +52,69 @@ public:
 
   VISUS_CLASS(CloudStorage)
 
-  //Typical url syntax: host/container/blob 
+  //Typical url syntax: <host>/<container_name>/<blob_name> 
   //where for example:
-  //  host      = visus.blob.core.windows.net | visus.s3.amazonaws.com
-  //  container = 2kbit1
-  //  blob      = block0001.bin
+  //  <host>      = visus.blob.core.windows.net | visus.s3.amazonaws.com
+  //  <container> = 2kbit1
+  //  <blob>      = block0001.bin
 
-  enum CloudStorageType
+
+  //_____________________________________________________
+  class VISUS_KERNEL_API Blob
   {
-    DoNotUseCloudStorage=0,
-    UseAzureCloudStorage,
-    UseAmazonCloudStorage,
+  public:
+    SharedPtr<HeapMemory> body;
+    StringMap metadata;
+    String content_type;
+
+    //constructor
+    Blob(SharedPtr<HeapMemory> body_= SharedPtr<HeapMemory>(), StringMap metadata_ = StringMap(), String content_type_= "application/octet-stream")
+    : metadata(metadata_), body(body_), content_type(content_type_) {
+    }
+
+    //valid
+    bool valid() const { 
+      return body ? true : false; 
+    }
+
+    //operator==
+    bool operator==(const Blob& b) const
+    {
+      const Blob& a = *this;
+      return 
+        (a.content_type == b.content_type) &&
+        (a.metadata == b.metadata) &&
+        ((!a.body && !b.body) || (a.body && b.body && a.body->c_size() == b.body->c_size() && memcmp(a.body->c_ptr(), b.body->c_ptr(), (size_t)a.body->c_size()) == 0));
+    }
+    
+    //operator==
+    bool operator!=(const Blob& b) const {
+      return !(operator==(b));
+    }
+
   };
 
-  //destructor
-  virtual ~CloudStorage()
-  {}
-
-  //createInstance
-  static VISUS_NEWOBJECT(CloudStorage*) createInstance(CloudStorageType type);
-
-  //guessType
-  static CloudStorageType guessType(Url url);
-
-  //createInstance
-  static VISUS_NEWOBJECT(CloudStorage*) createInstance(Url url) {
-    return createInstance(guessType(url));
+  //constructor
+  CloudStorage(){
   }
+
+  //destructor
+  virtual ~CloudStorage() {
+  }
+
+  //createInstance
+  static SharedPtr<CloudStorage> createInstance(Url url);
   
-  // createListOfContainersRequest 
-  virtual NetRequest createListOfContainersRequest(Url url)=0;
-  
-  //createCreateContainerRequest
-  virtual NetRequest createListOfBlobsRequest(Url url)=0;
-  
-  // createCreateContainerRequest
-  virtual NetRequest createCreateContainerRequest(Url url,bool isPublic=true)=0;
-
-  // createDeleteContainerRequest
-  virtual NetRequest createDeleteContainerRequest(Url url)=0;
-
-  // createAddBlobRequest 
-  virtual NetRequest createAddBlobRequest(Url url,SharedPtr<HeapMemory> blob,StringMap metadata,String content_type = "application/octet-stream")=0;
-
-  // createDeleteBlobRequest
-  virtual NetRequest createDeleteBlobRequest(Url url)=0;
-
-  // createHasBlobRequest 
-  virtual NetRequest createHasBlobRequest(Url url)=0;
-
-  // createGetBlobRequest 
-  virtual NetRequest createGetBlobRequest(Url url)=0;
-
-  //getListOfContainers
-  virtual StringTree getListOfContainers(NetResponse response)=0;
-
-  //getListOfBlobs
-  virtual StringTree getListOfBlobs(NetResponse response)=0;
-
-  //getMetadata
-  virtual StringMap getMetadata(NetResponse response)=0;
-
-  //setMetadata
-  virtual void setMetadata(NetRequest& request,const StringMap& metadata)=0;
-
-public:
-
-  //createContainer
-  bool createContainer(Url url);
-
-  //deleteContainer
-  bool deleteContainer(Url url);
-
-  //listContainers
-  StringTree listContainers(Url url);
-
   //addBlob
-  bool addBlob(Url dst_url,SharedPtr<HeapMemory> blob,StringMap meta_data);
-
-  //deleteBlob
-  bool deleteBlob(Url url);
+  virtual Future<bool> addBlob(SharedPtr<NetService> service, String name, Blob blob, Aborted aborted = Aborted())=0;
 
   //getBlob
-  SharedPtr<HeapMemory> getBlob(Url url,StringMap& meta_data);
+  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) = 0;
 
-  //listOfBlobs
-  StringTree listOfBlobs(Url url);
-
-protected:
-
-  //getMetaDataPrefix
-  virtual String getMetaDataPrefix()=0;
-
-  //isGoodMetaName
-  virtual bool isGoodMetaName(String meta_name)=0;
-
-  //signRequest
-  virtual bool signRequest(NetRequest& request)=0;
-
-  //getDateGTM
-  static String getDateGTM(const char* format="%a, %d %b %Y %H:%M:%S GMT");
-
-  //isGoodContainerName
-  static bool isGoodContainerName(String container_name);
-
-  //isGoodBlobName
-  static bool isGoodBlobName(String blob_name);
-  
-  //getContainerName
-  static String getContainerName(Url url);
-
-  //getBlobName
-  static String getBlobName(Url url);
-
-  //needRequestParam
-  static String needRequestParam(NetRequest& request,String name,bool bBaseDecodeBase64,bool bRemoveParamFromRequest);
+  // deleteBlob
+  virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) = 0;
 
 };
-
-
-
-
 
 } //namespace Visus
 
