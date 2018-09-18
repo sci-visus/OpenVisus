@@ -231,7 +231,7 @@ public:
         {
           curl_easy_setopt(this->handle, CURLOPT_UPLOAD, 1);
           curl_easy_setopt(this->handle, CURLOPT_PUT, 1);
-          curl_easy_setopt(this->handle, CURLOPT_INFILESIZE, request.body->c_size());
+          curl_easy_setopt(this->handle, CURLOPT_INFILESIZE, request.body? request.body->c_size() : 0);
         }
         else
         {
