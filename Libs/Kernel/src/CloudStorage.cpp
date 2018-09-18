@@ -541,7 +541,36 @@ public:
 class GoogleDriveStorage : public CloudStorage
 {
 public:
+	
+  /*
+ 
+	# https://console.developers.google.com/apis/credentials
+	# create a project "visus"
+	# crea credential ID Client Oath with "Other" and name "visus-client"
+	# take note of client_id and client_secret
 
+	client_id="AAAAAAA"
+	client_secret="BBBBBB"
+
+	# need to activate a device using a browser
+	# echo "https://accounts.google.com/o/oauth2/auth?client_id=$client_id&response_type=code&scope=https://www.googleapis.com/auth/drive&redirect_uri=urn:ietf:wg:oauth:2.0:oob"
+	# copy the code here
+	code="CCCCCCCCCCC"
+
+	# get access_token and refresh_token
+	curl \
+		--data "code=$code" \
+		--data "client_id=$client_id" \
+		--data "client_secret=$client_secret" \
+		--data "redirect_uri=urn:ietf:wg:oauth:2.0:oob" \
+		--data "grant_type=authorization_code" \
+		"https://www.googleapis.com/oauth2/v3/token"
+		
+	access_token="DDDDDDDD"
+	refresh_token="EEEEEEEEE"
+
+  */	
+	
   VISUS_CLASS(GoogleDriveStorage)
 
   Url    url;
