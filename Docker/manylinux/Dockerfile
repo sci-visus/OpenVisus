@@ -178,9 +178,8 @@ RUN set -x \
     -DPYTHON_LIBRARY=$HOME/.pyenv/versions/${PYTHON_VERSION}/lib/libpython${PYTHON_INT_VERSION}.so \
     ../ \
   && cmake --build . --target all -- -j 4 \
-  && cmake --build . --target install \
-  && cmake --build . --target deploy \
-  && cmake --build . --target dist 
+  && cmake --build . --target install  \
+  && cmake --build . --target dist
   
   
 WORKDIR  /home/visus/build/install

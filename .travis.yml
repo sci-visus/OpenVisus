@@ -181,9 +181,8 @@ script:
         cmake -GXcode -DPYTHON_VERSION=${PYTHON_VERSION} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR} -DPYTHON_LIBRARY=${PYTHON_LIBRARY} -DQt5_DIR=${QT5_DIR} ../
         set -o pipefail &&  cmake --build ./ --target ALL_BUILD   --config $BUILD_TYPE | xcpretty -c
         cmake --build ./                     --target RUN_TESTS   --config $BUILD_TYPE
-        cmake --build ./                     --target install     --config $BUILD_TYPE
-        cmake --build ./                     --target deploy      --config $BUILD_TYPE
-        cmake --build ./                     --target dist        --config $BUILD_TYPE      
+        cmake --build ./                     --target install     --config $BUILD_TYPE 
+        cmake --build ./                     --target dist        --config $BUILD_TYPE    
       fi 
       
     - |     
@@ -215,19 +214,17 @@ script:
         cmake --build ./ --target all
         cmake --build ./ --target test
         cmake --build ./ --target install
-        cmake --build ./ --target deploy
-        cmake --build ./ --target dist  
-        
+        cmake --build ./ --target dist 
       fi    
 
 before_deploy:
-  - export DEPLOY_FILENAME=$(ls ${TRAVIS_BUILD_DIR}/build/install/dist/*.whl) 
+  - export UPLOAD_FILES=$(ls ${TRAVIS_BUILD_DIR}/build/install/dist/*)
 
 deploy:
   provider: releases
   api_key:
     secure: vvs+N/XwsigYj6pZIR0Lksg+FnA2M7bCy4aHj7at1nPOtX3ZHHdkSgIyd06awkiWSNg++fM6GIi7ewU+ftX9rGxgRFG5eWIKQyuHHPvNSIIcJe1cY7440Y6Kb2p58BFeGQxLJl0y3XlCObPW7yMoY7h9i6kTL6w7k3NkdWkFpdDaNXXEaGnzeoaM6u+iBmgAWgX9Ozlu+ogjFpw5b7QPtKgi1Bey/IbIeVWExuFnXsTJe3MDobdFvgJ0tewErnWAey3V8IXQzVMqdOIAl+xtu3RMmsdNymDAZpof31wFNLCr7BMmIg/O2QW1tnvNXuFX9Gpry5CKb7i0oxthiLyNTkh2sZQcAJcBdWJlP4LiSCBoJ2HuAc5XSqss8aXt/hHAzL3ICPtd6wVPlHEMK1+/EsC4WcO5X0ngzmGnn8eceIBFJiqYhI+c85GqUWPrFw+REKUsAwthMK0tNErruWZR1uubYnlyQYHpSaPdKie6o0aWK8Xit+GN3jkcqRrhQDwX3WFLxw2N07eh/f3vCD4m7GwRJfi5LXDuoLp3Qg5w23gi4ewp71v9oTZNT4K3vVEYuwzCyglppjyszQDvBAwxgxnWtSZh2nGEtwtDL5dRiIXehqfaK7mRKQ8iZwpQkuyTD+rsl45nTuNjeKYC3BLHd+NZhJI8qmcD6oykt+oxzjg=
-  file: ${DEPLOY_FILENAME}
+  file: ${UPLOAD_FILES}
   skip_cleanup: true
   on:
     repo: sci-visus/OpenVisus
@@ -241,6 +238,6 @@ after_deploy:
   - echo "[pypi]"                    >> $HOME/.pypirc
   - echo "username=$PYPI_USERNAME"   >> $HOME/.pypirc
   - echo "password=$PYPI_PASSWORD"   >> $HOME/.pypirc
-  - if [ -n "$TRAVIS_TAG" ]; then twine upload --skip-existing $DEPLOY_FILENAME ; else echo "Not on a tag, won't deploy to pypi" ; fi
+  - if [ -n "$TRAVIS_TAG" ]; then twine upload --skip-existing $(ls ${TRAVIS_BUILD_DIR}/build/install/dist/*.whl) ; else echo "Not on a tag, won't deploy to pypi" ; fi
 
 

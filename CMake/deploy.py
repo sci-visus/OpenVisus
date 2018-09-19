@@ -120,9 +120,9 @@ class Win32DeployStep(BaseDeployStep):
 			# create a batch file
 			self.writeTextFile("%s.bat" % (name,),[
 				"cd /d %~dp0",
-				"set PATH=" + (";".join(PATH)),
-				"set QT_PLUGIN_PATH=" + QT_PLUGIN_PATH,
-				"set PYTHONPATH=%cd%\\Python36" if VISUS_INTERNAL_PYTHON else "",
+				"set PATH=\"%s\"" % ("\";\"".join(PATH),),
+				"set QT_PLUGIN_PATH=\"%s\"" % (QT_PLUGIN_PATH,),
+				"set PYTHONPATH=\"%cd%\\Python36\"" if VISUS_INTERNAL_PYTHON else "",
 				exe + " %*"
 			])
 		

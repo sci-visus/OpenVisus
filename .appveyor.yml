@@ -50,21 +50,20 @@ build_script:
   - cmake --build . --target ALL_BUILD   --config RelWithDebInfo
   - cmake --build . --target RUN_TESTS   --config RelWithDebInfo
   - cmake --build . --target INSTALL     --config RelWithDebInfo  
-  - cmake --build . --target deploy      --config RelWithDebInfo  
   - cmake --build . --target dist        --config RelWithDebInfo
 
 # test are already in cmake
 test: off
 
 artifacts:
-    - path: .\build\install\dist\*.whl
-      name: OpenVisusDeployToGitReleases
+    - path: .\build\install\dist\*.*
+      name: UploadToGitReleases
  
 deploy:
   - provider: GitHub
     auth_token:
       secure: nwK8bGTRUynj+58b7E8Rgur5/0YvfIivBflFb5AaUrpC5BSTpcLbA4Ac+cCF6L4/
-    artifact: OpenVisusDeployToGitReleases
+    artifact: UploadToGitReleases
     on:
       appveyor_repo_tag: true 
 
@@ -79,7 +78,5 @@ on_success:
   - set HOME=%USERPROFILE%
   - set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH% 
   - cd %APPVEYOR_BUILD_FOLDER%\build 
-  - del install\*.pdb  
-  - cmake --build . --target dist  --config RelWithDebInfo
   - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing install/dist/*.whl" } Else { write-output "Not on a tag, won't deploy to pypi"}
 

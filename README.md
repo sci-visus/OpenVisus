@@ -145,7 +145,6 @@ set QT5_DIR=C:\Qt\Qt5.9.2\5.9.2\msvc2017_64
 %CMAKE% --build . --target ALL_BUILD   --config %CONFIGURATION%
 %CMAKE% --build . --target RUN_TESTS   --config %CONFIGURATION%
 %CMAKE% --build . --target INSTALL     --config %CONFIGURATION% 
-%CMAKE% --build . --target deploy      --config %CONFIGURATION% 
 ```
 
 To test if visusviewer it's working:
@@ -217,7 +216,6 @@ CONFIGURATION=RelWithDebInfo
 cmake --build . --target ALL_BUILD   --config $CONFIGURATION -- -jobs 8
 cmake --build . --target RUN_TESTS   --config $CONFIGURATION
 cmake --build . --target install     --config $CONFIGURATION
-cmake --build . --target deploy      --config $CONFIGURATION
 ```
  
 To test if it's working:
@@ -274,8 +272,7 @@ mkdir build  && cd build
 cmake  -DCMAKE_BUILD_TYPE=RelWithDebugInfo ../   # -G "CodeBlocks - Unix Makefiles"  if you want to use an IDE
 cmake --build . --target all      -- -j 8
 cmake --build . --target test     
-cmake --build . --target install 
-cmake --build . --target deploy  
+cmake --build . --target install   
 ```
 
 To test if it's working:
