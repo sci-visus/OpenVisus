@@ -10,6 +10,16 @@ def cleanAll():
 	shutil.rmtree('./dist', ignore_errors=True)
 	shutil.rmtree('./OpenVisus.egg-info', ignore_errors=True)
 	shutil.rmtree('./__pycache__', ignore_errors=True)
+	
+# ////////////////////////////////////////////////////////////////////
+def findFilesInCurrentDirectory():
+	ret=[]
+	for dirpath, __dirnames__, filenames in os.walk("."):
+	  for filename in filenames:
+	    file= os.path.abspath(os.path.join(dirpath, filename))
+	    ret.append(file)
+	return ret
+	
 
 # ////////////////////////////////////////////////////////////////////
 def runSetupTools():
