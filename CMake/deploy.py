@@ -18,12 +18,15 @@ class BaseDeployStep:
 		
 	# executeCommand
 	def executeCommand(self,cmd):	
-		#print(" ".join(cmd))
+		print(" ".join(cmd))
 		subprocess.call(cmd)	
 		
 	# writeTextFile
-	def writeTextFile(self,filename,lines):
-		content="\n".join(lines)+"\n"
+	def writeTextFile(self,filename,content):
+		
+		if not isinstance(content, str):
+			content="\n".join(content)+"\n"
+			
 		self.createDirectory(os.path.dirname(os.path.realpath(filename)))
 		file = open(filename,"wt") 
 		file.write(content) 
@@ -35,17 +38,7 @@ class BaseDeployStep:
 			os.makedirs(value)
 		except OSError:
 			if not os.path.isdir(value):
-				raise		
-		
-	#	copyDirectory
-	def copyDirectory(self,src,dst):
-		self.createDirectory(dst)
-		self.executeCommand(["cp","-R",src,dst])
-		
-	# copyFile
-	def copyFile(self,src,dst):
-		self.createDirectory(os.path.dirname(dst))
-		self.executeCommand(["cp",src,dst])	
+				raise
 		
 	# getFileNameWithoutExtension
 	def getFileNameWithoutExtension(self,filename):
@@ -171,19 +164,32 @@ class AppleDeployStep(BaseDeployStep):
 	# constructor
 	def __init__(self):
 		BaseDeployStep.__init__(self)
+  
+  
+	#  copyDirectory
+	def copyDirectory(self,src,dst):
+		self.createDirectory(dst)
+		self.executeCommand(["cp","-rf",src,dst])
+  
+	# copyFile
+	def copyFile(self,src,dst):
+		self.createDirectory(os.path.dirname(dst))
+		self.executeCommand(["cp","-rf", src,dst])
 		
 	# extractDeps
 	def extractDeps(self,filename):
 		output=subprocess.check_output(('otool', '-L', filename))
 		if sys.version_info >= (3, 0): output=output.decode("utf-8")
 		output=output.strip()
-		lines=output.split('\n')[2:]
-		ret=[line.strip().split(' ', 1)[0].strip() for line in lines]	
-		return ret
+		lines=output.split('\n')[1:]
+		deps=[line.strip().split(' ', 1)[0].strip() for line in lines]	
+		# remove any reference to myself
+		deps=[dep for dep in deps if os.path.basename(filename)!=os.path.basename(dep)]
+		return deps
 		
 	
-	#findAppBinaries
-	def findAppBinaries(self):
+	#findApps
+	def findApps(self):
 		ret=[]
 		for it in self.findDirectoriesWithExt(".app"):
 			bin="%s/Contents/MacOS/%s" % (it,self.getFileNameWithoutExtension(it))
@@ -191,12 +197,12 @@ class AppleDeployStep(BaseDeployStep):
 				ret+=[bin]
 		return ret
 		
-	# findFrameworkBinaries
-	def findFrameworkBinaries(self):
+	# findFrameworks
+	def findFrameworks(self):
 		ret=[]
 		for it in self.findDirectoriesWithExt(".framework"):
-			file=os.path.realpath("%s/%s" % (it,self.getFileNameWithoutExtension(it)))
-			if os.path.isfile(file):
+			file="%s/%s" % (it,self.getFileNameWithoutExtension(it))
+			if os.path.isfile(os.path.realpath(file)):
 				ret+=[file]
 		return ret
 		
@@ -205,12 +211,12 @@ class AppleDeployStep(BaseDeployStep):
 		ret=[]
 		ret+=self.findFilesWithExt(".dylib")
 		ret+=self.findFilesWithExt(".so")
-		ret+=self.findAppBinaries()
-		ret+=self.findFrameworkBinaries()
+		ret+=self.findApps()
+		ret+=self.findFrameworks()
 		return ret
 				
 	# printAllDeps
-	def printAllDeps(self):
+	def printAllDeps(self,bFull=False):
 		
 		deps={}
 		for filename in self.findAllBinaries():
@@ -220,10 +226,14 @@ class AppleDeployStep(BaseDeployStep):
 		
 		print("This are the dependency")
 		for dep in deps:
-			print(dep)
-			for it in deps[dep]:
-				print("\t",it)		
-			print()
+			
+			if bFull:
+				print(dep)
+				for it in deps[dep]:
+					print("\t",it)		
+				print()
+			elif not dep.startswith("@"):
+				print(dep)
 						
 	# relativeRootDir
 	def relativeRootDir(self,local,prefix="@loader_path"):
@@ -236,18 +246,29 @@ class AppleDeployStep(BaseDeployStep):
 	def changeAllDeps(self):
 		
 		for filename in self.findAllBinaries():
+			
+			deps=self.extractDeps(filename)
+			
+			print("")
+			print("#/////////////////////////////")
+			print("# Fixing",filename,"which has the following dependencies:")
+			for dep in deps:
+				print("#\t",dep)
+			print("")
+			
+			
 			cmd=["install_name_tool"]	
-			for dep in self.extractDeps(filename):
+			for dep in deps:
 				local=self.getLocal(dep)
 				if not local: continue
 				Old=dep
 				New=self.relativeRootDir(filename)+ "/" + local
 				cmd+=["-change",Old,New]
+			
 			cmd+=[filename]
 			
 			if "-change" in cmd:
 				self.executeCommand(["chmod","u+w",filename])
-				print(" ".join(cmd),"\n")
 				self.executeCommand(cmd)	
 			
 	# getLocal
@@ -263,6 +284,7 @@ class AppleDeployStep(BaseDeployStep):
 			return
 		
 		key=os.path.basename(local)
+		print("# Adding local",key,"=",local)
 		self.locals[key]=local
 		
 		deps=self.extractDeps(local)
@@ -297,18 +319,18 @@ class AppleDeployStep(BaseDeployStep):
 		if not self.isGlobal(dep):
 			return
 			
-		print("Copying",dep,"...")
-					
 		key=os.path.basename(dep)
 		
+		print("# Adding global",dep,"=",dep)
+					
 		# special case for frameworks (I need to copy the entire directory)
 		if ".framework" in dep:
 			framework_dir=dep.split(".framework")[0]+".framework"
-			self.copyDirectory(framework_dir,"Frameworks")
-			local="Frameworks/" + os.path.basename(framework_dir) + dep.split(".framework")[1]
+			self.copyDirectory(framework_dir,"bin")
+			local="bin/" + os.path.basename(framework_dir) + dep.split(".framework")[1]
 			
 		elif dep.endswith(".dylib"):
-			local="dylibs/" + os.path.basename(dep)
+			local="bin/" + os.path.basename(dep)
 			self.copyFile(dep,local)
 			
 		else:
@@ -319,13 +341,30 @@ class AppleDeployStep(BaseDeployStep):
 	# create qt.conf (even if not necessary)
 	def createQtConfs(self):
 		
-		for filename in self.findAppBinaries():
+		for filename in self.findApps():
 			qt_conf=os.path.realpath(filename+"/../../Contents/Resources/qt.conf")
-			content="\n".join()
 			self.writeTextFile(qt_conf,[
 				"[Paths]",
-				"  Plugins=%s/plugins" % (self.relativeRootDir(filename,"."),)
-			])					
+				"  Plugins=%s/bin/plugins" % (self.relativeRootDir(filename,"."),)
+			])		
+			
+	# createCommands
+	def createCommands(self):
+					
+		for name in ("visusviewer","visus"):
+		
+			command_filename="%s.command" % (name,)
+			
+			self.writeTextFile(command_filename,[
+				'#!/bin/bash',
+				'this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)',
+				'cd ${this_dir}',
+				'export PATH=${this_dir}/bin:$PATH',
+				'export QT_PLUGIN_PATH=${this_dir}/bin/plugins',
+				'export PYTHONPATH=${this_dir}:${this_dir}/bin:$PYTHONPATH',
+				'./bin/%s.app/Contents/MacOS/%s' %(name,name)])
+			
+			self.executeCommand(["chmod","a+rx",command_filename])
 					
 	# run
 	def run(self):
@@ -333,15 +372,16 @@ class AppleDeployStep(BaseDeployStep):
 		# copy qt plugins inplace
 		for plugin in qt_plugins :
 			src=os.path.realpath(self.qt_directory+"/plugins/"+plugin)	
-			self.copyDirectory(src,"plugins")
+			self.copyDirectory(src,"bin/plugins")
 	
 		self.locals={}
 		for local in self.findAllBinaries():
 			self.addLocal(local)
 			
 		self.changeAllDeps()
+		self.createCommands()
 		self.createQtConfs()
-		#self.printAllDeps()
+		self.printAllDeps()
 			
 
 

@@ -249,8 +249,6 @@ if (True)
 		install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
 	endif()
 	
-	install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py DESTINATION .)
-	
 endif()
 
 
@@ -258,7 +256,7 @@ endif()
 # deploy target
 if (1)
 	add_custom_target(deploy
-		${PYTHON_EXECUTABLE} deploy.py --qt-directory "${Qt5_DIR}/../../.." 
+${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py --qt-directory "${Qt5_DIR}/../../.."
 		WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})        
 endif()	
 
