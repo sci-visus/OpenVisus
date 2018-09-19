@@ -16,22 +16,24 @@ if(OpenVisus_FOUND)
 	   	INTERFACE_INCLUDE_DIRECTORIES "${OpenVisus_DIR}/include/Kernel;${OpenVisus_DIR}/include/${it}")
 	   
 	   set_property(TARGET Visus${it} APPEND PROPERTY IMPORTED_CONFIGURATIONS Debug)
-	   
-	   set_target_properties(Visus${it} PROPERTIES
-			IMPORTED_IMPLIB_DEBUG               ${OpenVisus_DIR}/debug/lib/Visus${it}.lib
-			IMPORTED_LOCATION_DEBUG             ${OpenVisus_DIR}/debug/Visus${it}.dll)
-	   
 	   set_property(TARGET Visus${it} APPEND PROPERTY IMPORTED_CONFIGURATIONS Release)
-	   
-	   set_target_properties(Visus${it} PROPERTIES
-			IMPORTED_IMPLIB_RELEASE              ${OpenVisus_DIR}/lib/Visus${it}.lib
-			IMPORTED_LOCATION_RELEASE            ${OpenVisus_DIR}/Visus${it}.dll)      
-			
 	   set_property(TARGET Visus${it} APPEND PROPERTY IMPORTED_CONFIGURATIONS RelWithDebInfo)
 	   
-	   set_target_properties(Visus${it} PROPERTIES
-			IMPORTED_IMPLIB_RELWITHDEBINFO       ${OpenVisus_DIR}/lib/Visus${it}.lib
-			IMPORTED_LOCATION_RELWITHDEBINFO     ${OpenVisus_DIR}/Visus${it}.dll)     			
+	   if (WIN32)
+		   set_target_properties(Visus${it} PROPERTIES
+				IMPORTED_IMPLIB_DEBUG               ${OpenVisus_DIR}/debug/lib/Visus${it}.lib
+				IMPORTED_LOCATION_DEBUG             ${OpenVisus_DIR}/debug/Visus${it}.dll)
+				
+		   set_target_properties(Visus${it} PROPERTIES
+				IMPORTED_IMPLIB_RELEASE              ${OpenVisus_DIR}/lib/Visus${it}.lib
+				IMPORTED_LOCATION_RELEASE            ${OpenVisus_DIR}/bin/Visus${it}.dll)      
+				
+		   
+		   set_target_properties(Visus${it} PROPERTIES
+				IMPORTED_IMPLIB_RELWITHDEBINFO       ${OpenVisus_DIR}/lib/Visus${it}.lib
+				IMPORTED_LOCATION_RELWITHDEBINFO     ${OpenVisus_DIR}/bin/Visus${it}.dll)    				
+				
+		endif()  
 			
    endforeach()
 	

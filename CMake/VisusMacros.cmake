@@ -390,17 +390,21 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(InstallLibrary Name)
  
-	if (WIN32 OR APPLE)
+	if (WIN32)
+	
+		install(TARGETS ${Name}  CONFIGURATIONS DEBUG          RUNTIME DESTINATION debug/bin   LIBRARY DESTINATION debug/bin ARCHIVE DESTINATION debug/lib)
+		install(TARGETS ${Name}  CONFIGURATIONS RELEASE        RUNTIME DESTINATION       bin   LIBRARY DESTINATION       bin ARCHIVE DESTINATION       lib)	
+		install(TARGETS ${Name}  CONFIGURATIONS RELWITHDEBINFO RUNTIME DESTINATION       bin   LIBRARY DESTINATION       bin ARCHIVE DESTINATION       lib)
+						
+		install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS DEBUG          DESTINATION debug/bin)
+		install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELEASE        DESTINATION       bin)
+		install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELWITHDEBINFO DESTINATION       bin)	
+	
+	elseif (APPLE)
 
 		install(TARGETS ${Name}  CONFIGURATIONS DEBUG          LIBRARY DESTINATION debug RUNTIME DESTINATION debug BUNDLE DESTINATION debug ARCHIVE DESTINATION debug/lib)
 		install(TARGETS ${Name}  CONFIGURATIONS RELEASE        LIBRARY DESTINATION .     RUNTIME DESTINATION .     BUNDLE DESTINATION .     ARCHIVE DESTINATION lib)	
 		install(TARGETS ${Name}  CONFIGURATIONS RELWITHDEBINFO LIBRARY DESTINATION .     RUNTIME DESTINATION .     BUNDLE DESTINATION .     ARCHIVE DESTINATION lib)
-					
-		if (WIN32)
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS DEBUG          DESTINATION debug )
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELEASE        DESTINATION .     )
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELWITHDEBINFO DESTINATION .     )
-		endif()
 		
 	else()
 		install(TARGETS ${Name} LIBRARY DESTINATION . RUNTIME DESTINATION . BUNDLE DESTINATION . ARCHIVE DESTINATION lib)
@@ -414,36 +418,25 @@ macro(InstallExecutable Name)
 
 	if (WIN32 OR APPLE)
 
+		install(TARGETS ${Name} CONFIGURATIONS DEBUG          RUNTIME    DESTINATION  debug/bin)		
+		install(TARGETS ${Name} CONFIGURATIONS RELEASE        RUNTIME    DESTINATION        bin)			
+		install(TARGETS ${Name} CONFIGURATIONS RELWITHDEBINFO RUNTIME    DESTINATION        bin)						
+
+		install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  DEBUG          DESTINATION debug/bin)
+		install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELEASE        DESTINATION       bin)
+		install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELWITHDEBINFO DESTINATION       bin)
+
+	elseif (APPLE)
+	
 		install(TARGETS ${Name} CONFIGURATIONS DEBUG          BUNDLE     DESTINATION  debug RUNTIME    DESTINATION  debug )		
 		install(TARGETS ${Name} CONFIGURATIONS RELEASE        BUNDLE     DESTINATION  .     RUNTIME    DESTINATION  .)			
-		install(TARGETS ${Name} CONFIGURATIONS RELWITHDEBINFO BUNDLE     DESTINATION  .     RUNTIME    DESTINATION  .)						
-
-		if (WIN32)
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  DEBUG          DESTINATION debug )
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELEASE        DESTINATION .     )
-			install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELWITHDEBINFO DESTINATION .     )
-		endif()
+		install(TARGETS ${Name} CONFIGURATIONS RELWITHDEBINFO BUNDLE     DESTINATION  .     RUNTIME    DESTINATION  .)	
+	
 	else()
 		
 		install(TARGETS ${Name} BUNDLE DESTINATION  . RUNTIME DESTINATION  .)			
 	endif()
 
-endmacro()
-
-# ///////////////////////////////////////////////////
-macro(InstallBuildFiles Pattern Destination)
-
-	if (WIN32 OR APPLE)
-		install(CODE "
-			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern})
-			FILE(INSTALL \${__files__} DESTINATION ${CMAKE_INSTALL_PREFIX}/${Destination})
-		")
-	else()
-		install(CODE "
-			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/${Pattern})
-			FILE(INSTALL \${__files__} DESTINATION ${CMAKE_INSTALL_PREFIX}/${Destination})
-		")
-	endif()
 endmacro()
 
 

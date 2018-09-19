@@ -41,6 +41,7 @@ For support : support@visus.net
 #include <Visus/Log.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/Path.h>
+#include <Visus/File.h>
 
 #include <cctype>
 
@@ -291,13 +292,41 @@ PythonEngine::PythonEngine(bool bVerbose)
     if (bVerbose)
       VisusInfo() << "Visus is embedding Python";
 
-    //try to find visus.py in the same directory where the app is 
-    //example: <name>.app/Contents/MacOS/<name>
-    #if __APPLE__
-      addSysPath(KnownPaths::CurrentApplicationFile.getParent().getParent().getParent().getParent().toString(),bVerbose);
-    #else
-      addSysPath(KnownPaths::CurrentApplicationFile.getParent().toString(),bVerbose);
-    #endif
+    //try to find where visus VisusKernelPy.py files are
+    {
+      auto py_file = "VisusKernelPy.py";
+
+      VisusInfo() << "Trying to find " << py_file;
+
+      auto current_application_dir = KnownPaths::CurrentApplicationFile.getParent().toString();
+
+      std::vector<String> candidates;
+      candidates.push_back(current_application_dir + "/.");
+
+#if WIN32
+      //example ${CMAKE_INSTALL_PREFIX}/bin
+      candidates.push_back(current_application_dir + "/..");
+#endif
+
+#if APPLE
+      //example: <name>.app/Contents/MacOS/<name>
+      candidates.push_back(current_application_dir + "/../..");
+#endif
+
+      for (auto dir : candidates)
+      {
+        if (FileUtils::existsFile(dir + "/" + py_file))
+        {
+          VisusInfo() << "\t Found in directory " << dir;
+          addSysPath(dir, bVerbose);
+          break;
+        }
+        else
+        {
+          VisusInfo() << "\t Not found in directory " << dir;
+        }
+      }
+    }
   }
 
   #if defined(VISUS_PYTHON_SYS_PATH)

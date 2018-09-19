@@ -100,16 +100,17 @@ class Win32DeployStep(BaseDeployStep):
 			])
 				
 			# install python dependencies
-			self.executeCommand(["Python36\\python.exe","python36\\get-pip.py"])
-			self.executeCommand(["Python36\\Scripts\\pip.exe","install","numpy","pymap3d","PyQt5"])
+			if not os.path.isfile("Python36\\Scripts\\pip.exe"):
+				self.executeCommand(["Python36\\python.exe","python36\\get-pip.py"])
+				self.executeCommand(["Python36\\Scripts\\pip.exe","install","numpy","pymap3d","PyQt5"])
 
-		for exe in ("visus.exe","visusviewer.exe"):
+		for exe in ("bin\\visusviewer.exe","bin\\visus.exe"):
 			
 			name=self.getFileNameWithoutExtension(exe)	
 			
 			PATH=[]
 			
-			QT_PLUGIN_PATH="%cd%\\.\\Dependencies\\plugins"
+			QT_PLUGIN_PATH="%cd%\\.\\bin\\plugins"
 			
 			# important that pyqt comes first! otherwise PyQt5 and Qt5 will fight
 			if VISUS_INTERNAL_PYTHON:
@@ -120,7 +121,7 @@ class Win32DeployStep(BaseDeployStep):
 				]
 				QT_PLUGIN_PATH="%cd%\\Python36\\lib\\site-packages\\PyQt5\\Qt\\plugins"
 				
-			PATH+=["%cd%\\Dependencies\dlls"]
+			PATH+=["%cd%\\bin"]
 			PATH+=["%PATH%"]
 
 			# create a batch file
@@ -128,12 +129,13 @@ class Win32DeployStep(BaseDeployStep):
 				"cd /d %~dp0",
 				"set PATH=" + (";".join(PATH)),
 				"set QT_PLUGIN_PATH=" + QT_PLUGIN_PATH,
+				"set PYTHONPATH=%cd%\\Python36" if VISUS_INTERNAL_PYTHON else "",
 				exe + " %*"
 			])
 		
 			# deploy using qt
 			deployqt=os.path.realpath(self.qt_directory+"/bin/windeployqt")
-			self.executeCommand([deployqt,exe, "--libdir","Dependencies/dlls","--plugindir","Dependencies/plugins","--no-translations"])
+			self.executeCommand([deployqt,exe, "--libdir","bin","--plugindir","bin\\plugins","--no-translations"])
 
 
 
@@ -302,11 +304,11 @@ class AppleDeployStep(BaseDeployStep):
 		# special case for frameworks (I need to copy the entire directory)
 		if ".framework" in dep:
 			framework_dir=dep.split(".framework")[0]+".framework"
-			self.copyDirectory(framework_dir,"Dependencies/Frameworks")
-			local="Dependencies/Frameworks/" + os.path.basename(framework_dir) + dep.split(".framework")[1]
+			self.copyDirectory(framework_dir,"Frameworks")
+			local="Frameworks/" + os.path.basename(framework_dir) + dep.split(".framework")[1]
 			
 		elif dep.endswith(".dylib"):
-			local="Dependencies/dylibs/" + os.path.basename(dep)
+			local="dylibs/" + os.path.basename(dep)
 			self.copyFile(dep,local)
 			
 		else:
@@ -322,7 +324,7 @@ class AppleDeployStep(BaseDeployStep):
 			content="\n".join()
 			self.writeTextFile(qt_conf,[
 				"[Paths]",
-				"  Plugins=%s/Dependencies/plugins" % (self.relativeRootDir(filename,"."),)
+				"  Plugins=%s/plugins" % (self.relativeRootDir(filename,"."),)
 			])					
 					
 	# run
@@ -331,7 +333,7 @@ class AppleDeployStep(BaseDeployStep):
 		# copy qt plugins inplace
 		for plugin in qt_plugins :
 			src=os.path.realpath(self.qt_directory+"/plugins/"+plugin)	
-			self.copyDirectory(src,"Dependencies/plugins")
+			self.copyDirectory(src,"plugins")
 	
 		self.locals={}
 		for local in self.findAllBinaries():

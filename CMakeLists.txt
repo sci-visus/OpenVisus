@@ -45,7 +45,15 @@ endif()
 
 
 # enable/disable install
-set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+	set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
+else()
+  string(REPLACE "\\" "/" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+  set(CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}" CACHE PATH "" FORCE)
+endif()
+
+
+MESSAGE(STATUS "CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}")
 
 # enable/disable gui-stuff (i.e. Qt dependent)
 option(VISUS_GUI "Enable gui" TRUE)  
@@ -179,6 +187,28 @@ endif()
 
 # //////////////////////////////////////////////////////////////
 # *** install ***
+
+# ///////////////////////////////////////////////////
+macro(InstallBuildFiles Pattern Destination)
+
+	if (CMAKE_CONFIGURATION_TYPES)
+		install(CODE "
+			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern})
+			MESSAGE(STATUS \"InstallBuildFiles from ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern}\")
+			MESSAGE(STATUS \"Files: \${__files__} \")
+			FILE(INSTALL \${__files__} DESTINATION \"${CMAKE_INSTALL_PREFIX}/${Destination}\")
+		")
+	else()
+		install(CODE "
+			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/${Pattern})
+			MESSAGE((STATUS \"InstallBuildFiles from ${CMAKE_BINARY_DIR}/${Pattern} \")
+			MESSAGE(STATUS \"Files: \${__files__} \")
+			FILE(INSTALL \${__files__} DESTINATION \"${CMAKE_INSTALL_PREFIX}/${Destination}\")
+		")
+	endif()
+endmacro()
+
+
 if (True)
 
 	install(FILES        LICENSE                        DESTINATION .)
@@ -189,7 +219,10 @@ if (True)
 	install(FILES        CMake/OpenVisusConfig.cmake    DESTINATION .)
 	install(DIRECTORY    Copyrights                     DESTINATION .)
 	install(DIRECTORY    Samples                        DESTINATION .)
-	install(DIRECTORY    datasets                       DESTINATION .)
+	
+	install(FILES        datasets/visus.config          DESTINATION .)
+	install(DIRECTORY    datasets/cat                   DESTINATION datasets)
+	install(DIRECTORY    datasets/midx                  DESTINATION datasets)
 	
 	install(DIRECTORY    Libs/Kernel/include/Visus      DESTINATION include/Kernel/)
 	install(DIRECTORY    Libs/Dataflow/include/Visus    DESTINATION include/Dataflow/)
@@ -201,7 +234,8 @@ if (True)
 	InstallBuildFiles(*.py ./)
 	
 	if (WIN32)
-		InstallBuildFiles(*.dll ./Dependencies/dlls)
+	
+		InstallBuildFiles(*.dll bin)
 		
 		if (VISUS_INTERNAL_PYTHON)
 			install(DIRECTORY InternalLibs/python/win32/ DESTINATION ./Python36)
