@@ -142,11 +142,16 @@ if (NOT VISUS_INTERNAL_CURL)
 endif()
 
 # python
-if (NOT DEFINED PYTHON_VERSION)
-	set(PYTHON_VERSION 3)
-endif()
+if (VISUS_INTERNAL_PYTHON)
+	set(PYTHON_VERSION       3.6)
+	set(PYTHON_VERSION_MAJOR 3)
+	set(PYTHON_VERSION_MINOR 6)
+else()
 
-if (NOT VISUS_INTERNAL_PYTHON)
+	if (NOT DEFINED PYTHON_VERSION)
+		set(PYTHON_VERSION 3)
+	endif()
+
 	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 	find_package(PythonLibs  ${PYTHON_VERSION} REQUIRED)
 	find_package(NumPy QUIET) 
@@ -278,7 +283,7 @@ if (1)
 	endif()
 	
 	add_custom_target(dist 
-		${PYTHON_EXECUTABLE} setup.py bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PLAT_NAME} 
+		${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py sdist bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PLAT_NAME} 
 		WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
 		 	
 endif()
