@@ -407,7 +407,9 @@ macro(InstallLibrary Name)
 		install(TARGETS ${Name}  CONFIGURATIONS RELWITHDEBINFO LIBRARY DESTINATION bin       RUNTIME DESTINATION bin       BUNDLE DESTINATION bin       ARCHIVE DESTINATION lib)
 		
 	else()
-		install(TARGETS ${Name} LIBRARY DESTINATION . RUNTIME DESTINATION . BUNDLE DESTINATION . ARCHIVE DESTINATION lib)
+	
+		install(TARGETS ${Name} LIBRARY DESTINATION bin RUNTIME DESTINATION bin ARCHIVE DESTINATION lib)
+		
 	endif()
 
 endmacro()
@@ -434,7 +436,7 @@ macro(InstallExecutable Name)
 	
 	else()
 		
-		install(TARGETS ${Name} BUNDLE DESTINATION  . RUNTIME DESTINATION  .)			
+		install(TARGETS ${Name} RUNTIME DESTINATION  bin)			
 	endif()
 
 endmacro()

@@ -206,13 +206,12 @@ macro(InstallBuildFiles Pattern Destination)
 	else()
 		install(CODE "
 			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/${Pattern})
-			MESSAGE((STATUS \"InstallBuildFiles from ${CMAKE_BINARY_DIR}/${Pattern} \")
+			MESSAGE(STATUS \"InstallBuildFiles from ${CMAKE_BINARY_DIR}/${Pattern}\")
 			MESSAGE(STATUS \"Files: \${__files__} \")
 			FILE(INSTALL \${__files__} DESTINATION \"${CMAKE_INSTALL_PREFIX}/${Destination}\")
 		")
 	endif()
 endmacro()
-
 
 if (True)
 
@@ -257,7 +256,7 @@ if (True)
 	# this is to post_install
 	macro(PostInstall)
 		install(CODE "execute_process(
-			COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_CURRENT_SOURCE_DIR}/deploy.py\" --qt-directory \"${Qt5_DIR}/../../..\" WORKING_DIRECTORY \"${CMAKE_INSTALL_PREFIX}\"
+			COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_CURRENT_SOURCE_DIR}/deploy.py\" --qt-directory \"${Qt5_DIR}\" WORKING_DIRECTORY \"${CMAKE_INSTALL_PREFIX}\"
 		)")
 	endmacro()
 	

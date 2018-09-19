@@ -391,7 +391,17 @@ class LinuxDeployStep(BaseDeployStep):
 	# constructor
 	def __init__(self):
 		BaseDeployStep.__init__(self)
-	
+		
+	#  copyDirectory
+	def copyDirectory(self,src,dst):
+		self.createDirectory(dst)
+		self.executeCommand(["cp","-rf",src,dst])
+  
+	# copyFile
+	def copyFile(self,src,dst):
+		self.createDirectory(os.path.dirname(dst))
+		self.executeCommand(["cp","-rf", src,dst])
+				
 	# extractDeps
 	def extractDeps(self,filename):
 		output=subprocess.check_output(('readelf','-d',filename))
@@ -404,39 +414,70 @@ class LinuxDeployStep(BaseDeployStep):
 		if sys.version_info >= (3, 0): output=output.decode("utf-8")
 		return output.strip()
 		
-
 	# installSharedLib
 	def installSharedLib(self,filename):
-		filename=os.path.realpath(path) 
+		filename=os.path.realpath(filename) 
 		if (os.path.isfile(filename)):
-			self.executeCommand("cp",filename,".")
-								
-	# run
-	def run(self):
-		
-		for name in ("QCore","Widgets","Gui","OpenGL"):
-			raise Exception("TPDP")
-			#filename=self.qt_directory+...+name
-			#self.installSharedLib(filename)
-				
-		#if (NOT VISUS_INTERNAL_OPENSSL)
-		#	self.installSharedLib(${OPENSSL_SSL_LIBRARY})
-		#	self.installSharedLib(${OPENSSL_CRYPTO_LIBRARY})
-		#endif()
-		
-		self.installSharedLib("/usr/lib64/libGLU.so")
-		
-		for filename in glob.glob("libVisus*.so") + glob.glob("_Visus*.so") + ["libmod_visus.so","visus","visusviewer"]		:
-			self.executeCommand(["patchelf", "--set-rpath", "$ORIGIN", filename])
-			
-		# problem with symbolic link 
+			self.executeCommand(["cp",filename,"bin"])
+	
+	# fixProblemsWithSymbolicLink
+	def fixProblemsWithSymbolicLink(self):
+	
+		pushd=os.getcwd()
+		os.chdir("bin")	
 		for filename in glob.glob("*.so.*"):
 			print("Fixing symbolic link of",filename)
 			link,ext=os.path.splitext(filename)
 			while not ext==".so":
-				if(os.path.islink(link)):os.remove(link)
+				if(os.path.islink(link)):
+					os.remove(link)
 				os.symlink(filename, link)
-				link,ext=os.path.splitext(link)			
+				link,ext=os.path.splitext(link)		
+		os.chdir(pushd)
+		
+	# findAllBinaries
+	def findAllBinaries(self):	
+		return glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]
+	
+	# createScripts
+	def createScripts(self):
+					
+		for name in ("visusviewer","visus"):
+		
+			bash_filename="%s.sh" % (name,)
+			
+			self.writeTextFile(bash_filename,[
+				'#!/bin/bash',
+				'this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)',
+				'cd ${this_dir}',
+				'export PATH=${this_dir}/bin:$PATH',
+				'export QT_PLUGIN_PATH=${this_dir}/bin/plugins',
+				'export PYTHONPATH=${this_dir}:${this_dir}/bin:$PYTHONPATH',
+				'./bin/%s' %(name)])
+			self.executeCommand(["chmod","a+rx",bash_filename])
+						
+	
+	# run
+	def run(self):
+	
+		# copy qt plugins inplace
+		for plugin in qt_plugins :
+			src=os.path.realpath(self.qt_directory+"/qt5/plugins/"+plugin)	
+			self.copyDirectory(src,"bin/plugins")	
+	
+		for name in ("libQt5Core.so","libQt5Widgets.so","libQt5Gui.so","libQt5OpenGL.so"):
+			filename=self.qt_directory + "/" + name
+			self.installSharedLib(filename)
+				
+		# ssl library and crypto?
+		self.installSharedLib("/usr/lib64/libGLU.so")
+		
+		for filename in self.findAllBinaries() :
+			self.executeCommand(["patchelf", "--set-rpath", "$ORIGIN", filename])
+			
+		self.fixProblemsWithSymbolicLink()
+		self.createScripts()
+		
 		
 
 # //////////////////////////////////////////////////////////////////////////////
@@ -460,7 +501,16 @@ if __name__ == "__main__":
 		
 		if sys.argv[I]=="--qt-directory":
 			deploy.qt_directory=sys.argv[I+1]
+			
+			if platform.system()=="Windows" or platform.system()=="win32":
+				deploy.qt_directory=os.path.realpath(deploy.qt_directory+"/../../..")
+			elif platform.system()=="Darwin":
+				deploy.qt_directory=os.path.realpath(deploy.qt_directory+"/../../..")
+			else:
+				deploy.qt_directory=os.path.realpath(deploy.qt_directory+"/../..")
+			
 			print("qt_directory",deploy.qt_directory)		
+			# sys.exit(0)
 			I+=2
 			continue
 			
