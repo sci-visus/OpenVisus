@@ -150,15 +150,14 @@ set QT5_DIR=C:\Qt\Qt5.9.2\5.9.2\msvc2017_64
 To test if visusviewer it's working:
 
 ```
-SET PATH=%QT5_DIR%\bin;c:\Python36;%PATH%
-SET PYTHONPATH=C:\projects\OpenVisus\build\%CONFIGURATION%
 
-REM OpenVisus EMBEDDING python 
-.\%CONFIGURATION%\visusviewer.exe 
+cd install
 
-REM OpenVisus EXTENDING python 
-REM    use python_d.exe if you are using the Debug version
-REM    add -vv if you want very verbose output  
+REM *** OpenVisus EMBEDDING python 
+visusviewer.bat 
+
+REM *** OpenVisus EXTENDING python 
+REM *** use python_d.exe if you are using the Debug version add -vv if you want very verbose output  
 c:\Python36\python.exe -c "import OpenVisus; OpenVisus.check()"
 ```
 
@@ -221,11 +220,13 @@ cmake --build . --target install     --config $CONFIGURATION
 To test if it's working:
 
 ```
+cd install
+
 # OpenVisus embedding python
-PYTHONPATH=$(pwd)/$CONFIGURATION ./$CONFIGURATION/visusviewer.app/Contents/MacOS/visusviewer         
+./visusviewer.command      
 
 # OpenVisus extending python
-PYTHONPATH=$(pwd)/$CONFIGURATION python3 -c "import OpenVisus; OpenVisus.check()"
+PYTHONPATH=$(pwd):$(pwd)/bin python -c "import OpenVisus; OpenVisus.check()"
 ```
       
 ## Linux compilation
