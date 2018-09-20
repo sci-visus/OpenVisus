@@ -19,14 +19,20 @@ environment:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_GENERATOR: Visual Studio 15 2017 Win64
       PYTHON_VERSION: 2.7
+      PYTHON_MAJOR_VERSION: 2
+      PYTHON_MINOR_VERSION 7
       PYTHON_DIR: "C:\\Python27-x64"
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_GENERATOR: Visual Studio 15 2017 Win64
       PYTHON_VERSION: 3.6
+      PYTHON_MAJOR_VERSION: 3
+      PYTHON_MINOR_VERSION 6
       PYTHON_DIR: "C:\\Python36-x64"          
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_GENERATOR: Visual Studio 15 2017 Win64
       PYTHON_VERSION: 3.7
+      PYTHON_MAJOR_VERSION: 3
+      PYTHON_MINOR_VERSION 7
       PYTHON_DIR: "C:\\Python37-x64" 
       SKIP_NOTAG: true
   
@@ -63,7 +69,7 @@ build_script:
       If ($env:APPVEYOR_REPO_TAG -eq "true") { 
          Invoke-Expression "cmake --build . --target INSTALL --config RelWithDebInfo" 
          Invoke-Expression "cd install"
-         Invoke-Expression "python setup.py -q sdist bdist_wheel --python-tag=cp%PYTHON_VERSION:~0,1%%PYTHON_VERSION:~2,1% --plat-name=win_amd64"
+         Invoke-Expression "python setup.py -q sdist bdist_wheel --python-tag=cp%PYTHON_MAJOR_VERSION%%PYTHON_MINOR_VERSION% --plat-name=win_amd64"
          Invoke-Expression "cd .."
       } 
    

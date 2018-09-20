@@ -2,7 +2,7 @@ import os, sys, setuptools
 import shutil
 
 #increase this number for PIP
-VERSION="1.2.25"
+VERSION="1.2.26"
 
 # ////////////////////////////////////////////////////////////////////
 def cleanAll():
