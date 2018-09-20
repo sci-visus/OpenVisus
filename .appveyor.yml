@@ -28,6 +28,7 @@ environment:
       CMAKE_GENERATOR: Visual Studio 15 2017 Win64
       PYTHON_VERSION: 3.7
       PYTHON_DIR: "C:\\Python37-x64" 
+      SKIP_NOTAG: true
   
 # 
 #if you need to debug uncomment these lines (see https://www.appveyor.com/docs/how-to/rdp-to-build-worker/)
@@ -36,6 +37,15 @@ environment:
 #
 #on_finish:
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
+
+init:
+	# use SKIP_NOTAG to skip building if tag is not present
+  - ps: | 
+      If (($env:SKIP_NOTAG -eq "true") -and ($env:APPVEYOR_REPO_TAG -ne "true")) {
+          Write-Host "Skipping build, not at a tag."
+          Exit-AppveyorBuild
+      }
 
 install:
   - choco install -y --allow-empty-checksums swig 
