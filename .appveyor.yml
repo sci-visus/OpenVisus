@@ -51,16 +51,14 @@ install:
   - choco install -y --allow-empty-checksums swig 
 
 build_script:
-  - cmd: >-
-      cd %APPVEYOR_BUILD_FOLDER%
-      mkdir build 
-      cd build 
-      set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%
-      python -m pip install numpy setuptools wheel twine
-      cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYTHON_VERSION=%PYTHON_VERSION% -DPYTHON_EXECUTABLE=%PYTHON_DIR%/python.exe -DPYTHON_INCLUDE_DIR=%PYTHON_DIR%/include ../
-      cmake --build . --target ALL_BUILD   --config RelWithDebInfo
-      cmake --build . --target RUN_TESTS   --config RelWithDebInfo
-      
+  - cd %APPVEYOR_BUILD_FOLDER%
+  - mkdir build 
+  - cd build 
+  - set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%
+  - python -m pip install numpy setuptools wheel twine
+  - cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYTHON_VERSION=%PYTHON_VERSION% -DPYTHON_EXECUTABLE=%PYTHON_DIR%/python.exe -DPYTHON_INCLUDE_DIR=%PYTHON_DIR%/include ../
+  - cmake --build . --target ALL_BUILD   --config RelWithDebInfo
+  - cmake --build . --target RUN_TESTS   --config RelWithDebInfo
   - ps: >-
       If ($env:APPVEYOR_REPO_TAG -eq "true") { 
          Invoke-Expression "cmake --build . --target INSTALL --config RelWithDebInfo" 
@@ -86,17 +84,15 @@ deploy:
 
 # Deploy to PyPI if is a  tagged release 
 on_success:
-  - cmd: >-
-      echo [distutils]                > %USERPROFILE%\\.pypirc
-      echo index-servers =           >> %USERPROFILE%\\.pypirc
-      echo     pypi                  >> %USERPROFILE%\\.pypirc
-      echo [pypi]                    >> %USERPROFILE%\\.pypirc
-      echo username=%PYPI_USERNAME%  >> %USERPROFILE%\\.pypirc
-      echo password=%PYPI_PASSWORD%  >> %USERPROFILE%\\.pypirc
-      set HOME=%USERPROFILE%
-      set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH% 
-      cd %APPVEYOR_BUILD_FOLDER%\build 
-
+  - echo [distutils]                > %USERPROFILE%\\.pypirc
+  - echo index-servers =           >> %USERPROFILE%\\.pypirc
+  - echo     pypi                  >> %USERPROFILE%\\.pypirc
+  - echo [pypi]                    >> %USERPROFILE%\\.pypirc
+  - echo username=%PYPI_USERNAME%  >> %USERPROFILE%\\.pypirc
+  - echo password=%PYPI_PASSWORD%  >> %USERPROFILE%\\.pypirc
+  - set HOME=%USERPROFILE%
+  - set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH% 
+  - cd %APPVEYOR_BUILD_FOLDER%\build
   - ps: >-      
       If ($env:APPVEYOR_REPO_TAG -eq "true") { 
          Invoke-Expression "twine upload --skip-existing install/dist/*.whl" 
