@@ -265,27 +265,6 @@ if (True)
 endif()
 
 
-# ///////////////////////////////////////////////////////////////////
-# dist target
-if (1)
-
-	set(PYTHON_TAG cp${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
-	
-	if (WIN32)
-	  set(PLAT_NAME win_amd64)
-	elseif(APPLE)
-	  string(SUBSTRING ${APPLE_OSX_VERSION} 0 2 APPLE_OSX_VERSION_MAJOR)
-	  string(SUBSTRING ${APPLE_OSX_VERSION} 3 2 APPLE_OSX_VERSION_MINOR)
-	  set(PLAT_NAME macosx_${APPLE_OSX_VERSION_MAJOR}_${APPLE_OSX_VERSION_MINOR}_x86_64)
-	else()
-	  set(PLAT_NAME linux_x86_64)
-	endif()
-	
-	add_custom_target(dist 
-		${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py -q sdist bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PLAT_NAME} 
-		WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
-		 	
-endif()
 
 
 

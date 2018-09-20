@@ -45,25 +45,7 @@ class BaseDeployStep:
 	# getFileNameWithoutExtension
 	def getFileNameWithoutExtension(self,filename):
 		return os.path.splitext(os.path.basename(filename))[0]
-				
-	# findFilesWithExt
-	def findFilesWithExt(self,ext,dir=os.getcwd()):
-		pushd=os.getcwd()
-		os.chdir(dir)
-		ret=[]
-		for it in glob.glob("**/*"+ext,recursive=True):
-			if os.path.isfile(it):
-				ret+=[it]		
-		os.chdir(pushd)
-		return ret
-		
-	# findDirectoriesWithExt
-	def findDirectoriesWithExt(self,ext):
-		ret=[]
-		for it in glob.glob("**/*"+ext,recursive=True):
-			if os.path.isdir(it):
-				ret+=[it]
-		return ret	
+
 
 # ///////////////////////////////////////
 class Win32DeployStep(BaseDeployStep):
@@ -193,7 +175,7 @@ class AppleDeployStep(BaseDeployStep):
 	#findApps
 	def findApps(self):
 		ret=[]
-		for it in self.findDirectoriesWithExt(".app"):
+		for it in glob.glob("bin/*.app"):
 			bin="%s/Contents/MacOS/%s" % (it,self.getFileNameWithoutExtension(it))
 			if os.path.isfile(bin):
 				ret+=[bin]
@@ -202,7 +184,7 @@ class AppleDeployStep(BaseDeployStep):
 	# findFrameworks
 	def findFrameworks(self):
 		ret=[]
-		for it in self.findDirectoriesWithExt(".framework"):
+		for it in glob.glob("bin/*.framework"):
 			file="%s/%s" % (it,self.getFileNameWithoutExtension(it))
 			if os.path.isfile(os.path.realpath(file)):
 				ret+=[file]
@@ -211,8 +193,8 @@ class AppleDeployStep(BaseDeployStep):
 	# findAllBinaries
 	def findAllBinaries(self):	
 		ret=[]
-		ret+=self.findFilesWithExt(".dylib")
-		ret+=self.findFilesWithExt(".so")
+		ret+=glob.glob("bin/*.dylib")
+		ret+=glob.glob("bin/*.so")
 		ret+=self.findApps()
 		ret+=self.findFrameworks()
 		return ret
@@ -522,10 +504,7 @@ class LinuxDeployStep(BaseDeployStep):
 				os.symlink(filename, link)
 				link,ext=os.path.splitext(link)		
 		os.chdir(pushd)			
-		
-	# findSharedObjects
-	def findSharedObjects(self):
-		return glob.glob("bin/*.so") 
+
 		
 	# findApps
 	def findApps(self):	
@@ -533,7 +512,7 @@ class LinuxDeployStep(BaseDeployStep):
 		
 	# setOrigins
 	def setOrigins(self):
-		for filename in self.findSharedObjects() + self.findApps():
+		for filename in glob.glob("bin/*.so")  + self.findApps():
 			self.executeCommand(["patchelf", "--set-rpath", "$ORIGIN", filename])	
 			
 	# createBashScripts
