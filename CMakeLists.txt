@@ -282,9 +282,7 @@ if (1)
 	endif()
 	
 	add_custom_target(dist 
-		MESSAGE(STATUS "Running dist target...")
-		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py -q sdist bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PLAT_NAME} 
-		COMMAND MESSAGE(STATUS "Done dist target")
+		${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py -q sdist bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PLAT_NAME} 
 		WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX})
 		 	
 endif()
