@@ -49,8 +49,8 @@ build_script:
   - cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYTHON_VERSION=%PYTHON_VERSION% -DPYTHON_EXECUTABLE=%PYTHON_DIR%/python.exe -DPYTHON_INCLUDE_DIR=%PYTHON_DIR%/include ../
   - cmake --build . --target ALL_BUILD   --config RelWithDebInfo
   - cmake --build . --target RUN_TESTS   --config RelWithDebInfo
-  - cmake --build . --target INSTALL     --config RelWithDebInfo  
-  - cmake --build . --target dist        --config RelWithDebInfo
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "cmake --build . --target INSTALL  --config RelWithDebInfo" } 
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "cmake --build . --target dist     --config RelWithDebInfo" } 
 
 # test are already in cmake
 test: off
