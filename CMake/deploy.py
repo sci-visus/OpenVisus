@@ -9,6 +9,8 @@ import errno
 
 qt_plugins=("iconengines","imageformats","platforms","printsupport","styles")
 
+bVerbose=False
+
 # ///////////////////////////////////////
 class BaseDeployStep:
 	
@@ -18,7 +20,7 @@ class BaseDeployStep:
 		
 	# executeCommand
 	def executeCommand(self,cmd):	
-		print(" ".join(cmd))
+		if bVerbose: print(" ".join(cmd))
 		subprocess.call(cmd)	
 		
 	# writeTextFile
@@ -249,12 +251,13 @@ class AppleDeployStep(BaseDeployStep):
 			
 			deps=self.extractDeps(filename)
 			
-			print("")
-			print("#/////////////////////////////")
-			print("# Fixing",filename,"which has the following dependencies:")
-			for dep in deps:
-				print("#\t",dep)
-			print("")
+			if bVerbose:
+				print("")
+				print("#/////////////////////////////")
+				print("# Fixing",filename,"which has the following dependencies:")
+				for dep in deps:
+					print("#\t",dep)
+				print("")
 			
 			
 			cmd=["install_name_tool"]	
@@ -284,7 +287,7 @@ class AppleDeployStep(BaseDeployStep):
 			return
 		
 		key=os.path.basename(local)
-		print("# Adding local",key,"=",local)
+		if bVerbose: print("# Adding local",key,"=",local)
 		self.locals[key]=local
 		
 		deps=self.extractDeps(local)
@@ -321,7 +324,8 @@ class AppleDeployStep(BaseDeployStep):
 			
 		key=os.path.basename(dep)
 		
-		print("# Adding global",dep,"=",dep)
+		if bVerbose:
+			print("# Adding global",dep,"=",dep)
 					
 		# special case for frameworks (I need to copy the entire directory)
 		if ".framework" in dep:
@@ -381,12 +385,81 @@ class AppleDeployStep(BaseDeployStep):
 		self.changeAllDeps()
 		self.createCommands()
 		self.createQtConfs()
-		self.printAllDeps()
+		if bVerbose:
+			self.printAllDeps()
 			
 
 
 # ///////////////////////////////////////
 class LinuxDeployStep(BaseDeployStep):
+
+	"""
+	
+	If a shared object dependency does not contain a slash, then it is
+       searched for in the following order:
+
+       -  Using the directories specified in the DT_RPATH dynamic section
+          attribute of the binary if present and DT_RUNPATH attribute does
+          not exist.  Use of DT_RPATH is deprecated.
+
+       -  Using the environment variable LD_LIBRARY_PATH, unless the
+          executable is being run in secure-execution mode (see below), in
+          which case this variable is ignored.
+
+       -  Using the directories specified in the DT_RUNPATH dynamic section
+          attribute of the binary if present.  Such directories are searched
+          only to find those objects required by DT_NEEDED (direct
+          dependencies) entries and do not apply to those objects' children,
+          which must themselves have their own DT_RUNPATH entries.  This is
+          unlike DT_RPATH, which is applied to searches for all children in
+          the dependency tree.
+
+       -  From the cache file /etc/ld.so.cache, which contains a compiled
+          list of candidate shared objects previously found in the augmented
+          library path.  If, however, the binary was linked with the -z
+          nodeflib linker option, shared objects in the default paths are
+          skipped.  Shared objects installed in hardware capability
+          directories (see below) are preferred to other shared objects.
+
+       -  In the default path /lib, and then /usr/lib.  (On some 64-bit
+          architectures, the default paths for 64-bit shared objects are
+          /lib64, and then /usr/lib64.)  If the binary was linked with the
+          -z nodeflib linker option, this step is skipped.
+
+   Rpath token expansiono
+   
+       The dynamic linker understands certain token strings in an rpath
+       specification (DT_RPATH or DT_RUNPATH).  Those strings are
+       substituted as follows:
+
+       $ORIGIN (or equivalently ${ORIGIN})
+              This expands to the directory containing the program or shared
+              object.  Thus, an application located in somedir/app could be
+              compiled with
+
+                  gcc -Wl,-rpath,'$ORIGIN/../lib'
+
+              so that it finds an associated shared object in somedir/lib no
+              matter where somedir is located in the directory hierarchy.
+              This facilitates the creation of "turn-key" applications that
+              do not need to be installed into special directories, but can
+              instead be unpacked into any directory and still find their
+              own shared objects.
+
+       $LIB (or equivalently ${LIB})
+              This expands to lib or lib64 depending on the architecture
+              (e.g., on x86-64, it expands to lib64 and on x86-32, it
+              expands to lib).
+
+       $PLATFORM (or equivalently ${PLATFORM})
+              This expands to a string corresponding to the processor type
+              of the host system (e.g., "x86_64").  On some architectures,
+              the Linux kernel doesn't provide a platform string to the
+              dynamic linker.  The value of this string is taken from the
+              AT_PLATFORM value in the auxiliary vector (see getauxval(3)).	
+	
+	
+	"""
 	
 	# constructor
 	def __init__(self):
@@ -394,58 +467,80 @@ class LinuxDeployStep(BaseDeployStep):
 		
 	#  copyDirectory
 	def copyDirectory(self,src,dst):
-		self.createDirectory(dst)
-		self.executeCommand(["cp","-rf",src,dst])
+		src=os.path.realpath(src)	
+		if os.path.isdir(src):
+			self.createDirectory(dst)
+			self.executeCommand(["cp","-rf",src,dst])
   
 	# copyFile
 	def copyFile(self,src,dst):
-		self.createDirectory(os.path.dirname(dst))
-		self.executeCommand(["cp","-rf", src,dst])
-				
-	# extractDeps
-	def extractDeps(self,filename):
-		output=subprocess.check_output(('readelf','-d',filename))
-		if sys.version_info >= (3, 0): output=output.decode("utf-8")
-		return output.strip()
+		src=os.path.realpath(src) 
+		dst=os.path.realpath(dst)
+		if src==dst:
+			return
 		
-	# debugLibDeps
-	def debugLibDeps(self,filename):
-		output=subprocess.check_output(('LD_DEBUG=libs','ldd',filename))
+		if os.path.isfile(src):
+			self.createDirectory(os.path.dirname(dst))
+			self.executeCommand(["cp","-rf", src,dst])
+
+	# copyQtPlugins
+	def copyQtPlugins(self):
+		for plugin in qt_plugins :
+			self.copyDirectory(self.qt_directory+"/qt5/plugins/"+plugin,"bin/plugins")			
+
+	# findAllDeps
+	def findAllDeps(self):
+		output=subprocess.check_output(('ldd',"bin/visusviewer"))
 		if sys.version_info >= (3, 0): output=output.decode("utf-8")
-		return output.strip()
-		
-	# installSharedLib
-	def installSharedLib(self,filename):
-		filename=os.path.realpath(filename) 
-		if (os.path.isfile(filename)):
-			self.executeCommand(["cp",filename,"bin"])
-	
-	# fixProblemsWithSymbolicLink
-	def fixProblemsWithSymbolicLink(self):
-	
+		output=output.strip()	
+		deps={}
+		for line in output.splitlines():
+			items=[it.strip() for it in line.split(" ") if len(it.strip())]
+			if len(items)>=4 and items[1]=='=>' and items[2]!='not' and items[3]!='found':
+				deps[items[0]]=items[2]	
+		return deps
+
+	# copyGlobalDeps
+	def copyGlobalDeps(self):
+		deps=self.findAllDeps()
+		for key in deps:
+			filename=deps[key]
+			if filename.startswith("/"):
+				self.copyFile(filename,"bin/"+key)	
+
+	# copySharedObjectsSymbolicLinks
+	def copySharedObjectsSymbolicLinks(self):
 		pushd=os.getcwd()
 		os.chdir("bin")	
 		for filename in glob.glob("*.so.*"):
-			print("Fixing symbolic link of",filename)
+			if bVerbose:
+				print("Fixing symbolic link of",filename)
 			link,ext=os.path.splitext(filename)
 			while not ext==".so":
 				if(os.path.islink(link)):
 					os.remove(link)
 				os.symlink(filename, link)
 				link,ext=os.path.splitext(link)		
-		os.chdir(pushd)
+		os.chdir(pushd)			
 		
-	# findAllBinaries
-	def findAllBinaries(self):	
-		return glob.glob("bin/*.so") + ["bin/visus","bin/visusviewer"]
-	
-	# createScripts
-	def createScripts(self):
-					
-		for name in ("visusviewer","visus"):
+	# findSharedObjects
+	def findSharedObjects(self):
+		return glob.glob("bin/*.so") 
 		
-			bash_filename="%s.sh" % (name,)
+	# findApps
+	def findApps(self):	
+		return [it for it in glob.glob("bin/*") if os.path.isfile(it) and not os.path.splitext(it)[1]]
+		
+	# setOrigins
+	def setOrigins(self):
+		for filename in self.findSharedObjects() + self.findApps():
+			self.executeCommand(["patchelf", "--set-rpath", "$ORIGIN", filename])	
 			
+	# createBashScripts
+	def createBashScripts(self):
+		for app in self.findApps():
+			name=self.getFileNameWithoutExtension(app)
+			bash_filename="%s.sh" % (name,)
 			self.writeTextFile(bash_filename,[
 				'#!/bin/bash',
 				'this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)',
@@ -454,29 +549,29 @@ class LinuxDeployStep(BaseDeployStep):
 				'export QT_PLUGIN_PATH=${this_dir}/bin/plugins',
 				'export PYTHONPATH=${this_dir}:${this_dir}/bin:$PYTHONPATH',
 				'./bin/%s' %(name)])
-			self.executeCommand(["chmod","a+rx",bash_filename])
-						
-	
+			self.executeCommand(["chmod","a+rx",bash_filename])	
+
+	# printDeps
+	def printDeps(self):
+		print("Finding deps:")
+		deps=self.findAllDeps()
+		for key in deps:
+			print("%30s" % (key,),deps[key])
+
 	# run
 	def run(self):
 	
-		# copy qt plugins inplace
-		for plugin in qt_plugins :
-			src=os.path.realpath(self.qt_directory+"/qt5/plugins/"+plugin)	
-			self.copyDirectory(src,"bin/plugins")	
-	
-		for name in ("libQt5Core.so","libQt5Widgets.so","libQt5Gui.so","libQt5OpenGL.so"):
-			filename=self.qt_directory + "/" + name
-			self.installSharedLib(filename)
-				
-		# ssl library and crypto?
-		self.installSharedLib("/usr/lib64/libGLU.so")
+		self.copyQtPlugins()
 		
-		for filename in self.findAllBinaries() :
-			self.executeCommand(["patchelf", "--set-rpath", "$ORIGIN", filename])
+		for I in range(2):
+			self.copyGlobalDeps()
+			self.copySharedObjectsSymbolicLinks()
+			self.setOrigins()
 			
-		self.fixProblemsWithSymbolicLink()
-		self.createScripts()
+		self.createBashScripts()
+		
+		if bVerbose:
+			self.printDeps()
 		
 		
 
@@ -484,7 +579,8 @@ class LinuxDeployStep(BaseDeployStep):
 if __name__ == "__main__":
 	qt_directory=os.path.realpath(sys.argv[1])
 	
-	print("platform.system()",platform.system())
+	print("Starting deploy...")
+	print("\tplatform.system()",platform.system())
 	
 	deploy=None
 	if platform.system()=="Windows" or platform.system()=="win32":
@@ -509,7 +605,7 @@ if __name__ == "__main__":
 			else:
 				deploy.qt_directory=os.path.realpath(deploy.qt_directory+"/../..")
 			
-			print("qt_directory",deploy.qt_directory)		
+			print("\tqt_directory",deploy.qt_directory)		
 			# sys.exit(0)
 			I+=2
 			continue
