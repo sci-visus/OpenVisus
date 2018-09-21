@@ -285,17 +285,17 @@ public:
     return ret;
   }
 
+  //getNumRunning
+  int getNumRunning() const
+  {
+    ScopedLock lock(const_cast<WaitAsync*>(this)->lock);
+    return this->ninside;
+  }
+
   //waitAllDone
   void waitAllDone() 
   {
-    int N = 0;
-    
-    {
-      ScopedLock lock(const_cast<WaitAsync*>(this)->lock);
-      N = this->ninside;
-    }
-
-    for (int I = 0; I < N; I++)
+    for (int I = 0, N= getNumRunning(); I < N; I++)
     {
       Ready popped;
       nready.down();
