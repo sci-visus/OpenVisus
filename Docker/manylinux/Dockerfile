@@ -179,6 +179,7 @@ RUN set -x \
     ../ \
   && cmake --build . --target all -- -j 4 \
   && cmake --build . --target install  \
+  && cmake --build . --target deploy   \
   && python setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=linux_x86_64
   
 WORKDIR  /home/visus/build/install

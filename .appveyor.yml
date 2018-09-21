@@ -65,6 +65,7 @@ build_script:
   - ps: >-
       If ($env:APPVEYOR_REPO_TAG -eq "true") { 
          Invoke-Expression "cmake --build . --target INSTALL --config RelWithDebInfo" 
+         Invoke-Expression "cmake --build . --target deploy  --config RelWithDebInfo" 
          Invoke-Expression "cd install"
          Invoke-Expression "python setup.py -q sdist bdist_wheel --python-tag=$env:PYTHON_TAG --plat-name=win_amd64"
          Invoke-Expression "cd .."

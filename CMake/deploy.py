@@ -556,41 +556,39 @@ class LinuxDeployStep(BaseDeployStep):
 
 # //////////////////////////////////////////////////////////////////////////////
 if __name__ == "__main__":
-	qt_directory=os.path.realpath(sys.argv[1])
 	
 	print("Starting deploy...")
-	print("\tplatform.system()",platform.system())
 	
-	deploy=None
-	if platform.system()=="Windows" or platform.system()=="win32":
-		deploy=Win32DeployStep()
-		
-	elif platform.system()=="Darwin":
-		deploy=AppleDeployStep()
-	
-	else:
-		deploy=LinuxDeployStep()
-		
+	qt_directory=""
 	I=1
 	while I < len(sys.argv):
 		
 		if sys.argv[I]=="--qt-directory":
-			deploy.qt_directory=sys.argv[I+1]
-			
-			if platform.system()=="Windows" or platform.system()=="win32":
-				deploy.qt_directory=os.path.realpath(deploy.qt_directory+"/../../..")
-			elif platform.system()=="Darwin":
-				deploy.qt_directory=os.path.realpath(deploy.qt_directory+"/../../..")
-			else:
-				deploy.qt_directory=os.path.realpath(deploy.qt_directory+"/../..")
-			
-			print("\tqt_directory",deploy.qt_directory)		
+			qt_directory=sys.argv[I+1]	
 			# sys.exit(0)
 			I+=2
 			continue
 			
 		print("Unknonwn argument",sys.argv[I])
-		sys.exit(-1)
-			
-	deploy.run()
+		sys.exit(-1)	
+	
+	print("  platform.system()",platform.system())	
+	print("  qt_directory",qt_directory)	
+
+	if platform.system()=="Windows" or platform.system()=="win32":
+		deploy=Win32DeployStep()
+		deploy.qt_directory=os.path.realpath(qt_directory+"/../../..")
+		deploy.run()
+		
+	elif platform.system()=="Darwin":
+		deploy=AppleDeployStep()
+		deploy.qt_directory=os.path.realpath(qt_directory+"/../../..")
+		deploy.run()
+	
+	else:
+		deploy=LinuxDeployStep()
+		deploy.qt_directory=os.path.realpath(qt_directory+"/../..")
+		deploy.run()
+	
+	print("done deploy")
 	sys.exit(0)

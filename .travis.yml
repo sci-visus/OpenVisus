@@ -196,6 +196,7 @@ script:
         # if there is a tag , create the wheel  
         if [ -n "$TRAVIS_TAG" ]; then 
         		cmake --build ./  --target install  --config $BUILD_TYPE  
+        		cmake --build ./  --target deploy   --config $BUILD_TYPE 
         		cd install
         		PYTHON_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}
         		PLAT_NAME=macosx_${APPLE_OSX_VERSION:0:2}_${APPLE_OSX_VERSION:3:2}_x86_64
@@ -244,6 +245,7 @@ script:
         # if there is a tag, create the wheel and tar.gz
         if [ -n "$TRAVIS_TAG" ]; then 
         		cmake --build ./ --target install  
+        		cmake --build ./ --target deploy 
         		cd install 
         		PYTHON_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}
         		${PYTHON_EXECUTABLE} setup.py -q sdist bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PLAT_NAME

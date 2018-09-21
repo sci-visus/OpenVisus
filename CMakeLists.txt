@@ -253,14 +253,14 @@ if (True)
 		install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
 	endif()
 	
-	# this is to post_install
-	macro(PostInstall)
-		install(CODE "execute_process(
-			COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_CURRENT_SOURCE_DIR}/deploy.py\" --qt-directory \"${Qt5_DIR}\" WORKING_DIRECTORY \"${CMAKE_INSTALL_PREFIX}\"
-		)")
-	endmacro()
+	add_custom_target(deploy 
+		"${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --qt-directory "${Qt5_DIR}" 
+		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}"
+	)
 	
-	add_subdirectory(CMake)
+	if (WIN32)
+		set_target_properties(deploy PROPERTIES FOLDER "CMakePredefinedTargets/")
+	endif()
 	
 endif()
 

@@ -49,6 +49,7 @@ cmake ../ \
 
 cmake --build . --target all -- -j 4 
 cmake --build . --target install  
+cmake --build . --target deploy 
 
 mv ./install $VISUS_HOME
 
