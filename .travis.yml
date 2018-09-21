@@ -192,7 +192,7 @@ script:
         		cmake --build ./  --target install  --config $BUILD_TYPE  
         		cd install
         		PYTHON_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}
-        		PLAT_NAME=linux_x86_64
+        		PLAT_NAME=macosx_${APPLE_OSX_VERSION:0:2}_${APPLE_OSX_VERSION:3:2}_x86_64
         		${PYTHON_EXECUTABLE} setup.py -q sdist bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PLAT_NAME
         		cd ..
         fi
@@ -232,7 +232,7 @@ script:
         		cmake --build ./ --target install  
         		cd install 
         		PYTHON_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}
-        		PLAT_NAME=macosx_${APPLE_OSX_VERSION:0:2}_${APPLE_OSX_VERSION:3:2}_x86_64
+        		PLAT_NAME=linux_x86_64
         		${PYTHON_EXECUTABLE} setup.py -q sdist bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PLAT_NAME
         		cd ..
         fi
