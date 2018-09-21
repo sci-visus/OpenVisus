@@ -23,6 +23,41 @@ class BaseDeployStep:
 		if bVerbose: print(" ".join(cmd))
 		subprocess.call(cmd)	
 		
+		
+	# copyFile
+	def copyFile(self,src,dst):
+		
+		src=os.path.realpath(src) 
+		dst=os.path.realpath(dst)		
+		
+		if src==dst or not os.path.isfile(src):
+			return		
+
+		self.createDirectory(os.path.dirname(dst))
+		self.executeCommand(["cp","-rf", src,dst])	
+		
+		
+	#  copyDirectory
+	def copyDirectory(self,src,dst):
+		
+		src=os.path.realpath(src)
+		
+		if not os.path.isdir(src):
+			return
+		
+		self.createDirectory(dst)
+		
+		# problems with symbolic links so using shutil
+		# self.executeCommand(["cp","-rf",src,dst])
+		import shutil
+		
+		dst=dst+"/" + os.path.basename(src)
+		
+		if os.path.isdir(dst):
+			shutil.rmtree(dst,ignore_errors=True)
+			
+		shutil.copytree(src, dst, symlinks=True)				
+		
 	# writeTextFile
 	def writeTextFile(self,filename,content):
 		
@@ -148,17 +183,6 @@ class AppleDeployStep(BaseDeployStep):
 	# constructor
 	def __init__(self):
 		BaseDeployStep.__init__(self)
-  
-  
-	#  copyDirectory
-	def copyDirectory(self,src,dst):
-		self.createDirectory(dst)
-		self.executeCommand(["cp","-rf",src,dst])
-  
-	# copyFile
-	def copyFile(self,src,dst):
-		self.createDirectory(os.path.dirname(dst))
-		self.executeCommand(["cp","-rf", src,dst])
 		
 	# extractDeps
 	def extractDeps(self,filename):
@@ -446,24 +470,6 @@ class LinuxDeployStep(BaseDeployStep):
 	# constructor
 	def __init__(self):
 		BaseDeployStep.__init__(self)
-		
-	#  copyDirectory
-	def copyDirectory(self,src,dst):
-		src=os.path.realpath(src)	
-		if os.path.isdir(src):
-			self.createDirectory(dst)
-			self.executeCommand(["cp","-rf",src,dst])
-  
-	# copyFile
-	def copyFile(self,src,dst):
-		src=os.path.realpath(src) 
-		dst=os.path.realpath(dst)
-		if src==dst:
-			return
-		
-		if os.path.isfile(src):
-			self.createDirectory(os.path.dirname(dst))
-			self.executeCommand(["cp","-rf", src,dst])
 
 	# copyQtPlugins
 	def copyQtPlugins(self):
