@@ -109,7 +109,8 @@ matrix:
           COMPILER=g++-4.9,
           PYTHON_INCLUDE_DIR=/usr/include/python2.7,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython2.7.so,
-          PYTHON_EXECUTABLE=/usr/bin/python2.7
+          PYTHON_EXECUTABLE=/usr/bin/python2.7,
+          PLAT_NAME=utuntu14
         ]
       addons: 
         apt:
@@ -119,11 +120,12 @@ matrix:
     - os: linux
       dist: trusty
       env: [
-         PYTHON_VERSION=3.6,
-         COMPILER=g++-4.9,
-         PYTHON_INCLUDE_DIR=/usr/include/python3.6m,
-         PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so,
-         PYTHON_EXECUTABLE=/usr/bin/python3.6
+          PYTHON_VERSION=3.6,
+          COMPILER=g++-4.9,
+          PYTHON_INCLUDE_DIR=/usr/include/python3.6m,
+          PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so,
+          PYTHON_EXECUTABLE=/usr/bin/python3.6,
+          PLAT_NAME=utuntu14
         ]       
       addons: 
         apt:
@@ -138,7 +140,8 @@ matrix:
           COMPILER=g++-4.9,
           PYTHON_INCLUDE_DIR=/usr/include/python3.4m,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.4m.so,
-          PYTHON_EXECUTABLE=/usr/bin/python3.4
+          PYTHON_EXECUTABLE=/usr/bin/python3.4,
+          PLAT_NAME=utuntu14
         ]
       addons: 
         apt:
@@ -153,7 +156,8 @@ matrix:
           COMPILER=g++-4.9,
           PYTHON_INCLUDE_DIR=/usr/include/python3.5m,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.5m.so,
-          PYTHON_EXECUTABLE=/usr/bin/python3.5
+          PYTHON_EXECUTABLE=/usr/bin/python3.5,
+          PLAT_NAME=utuntu14
         ]
       addons: 
         apt:
@@ -188,13 +192,23 @@ script:
         cmake -GXcode -DPYTHON_VERSION=${PYTHON_VERSION} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR} -DPYTHON_LIBRARY=${PYTHON_LIBRARY} -DQt5_DIR=${QT5_DIR} ../
         set -o pipefail &&  cmake --build ./ --target ALL_BUILD   --config $BUILD_TYPE | xcpretty -c
         cmake --build ./                     --target RUN_TESTS   --config $BUILD_TYPE
+        
+        # if there is a tag , create the wheel  
         if [ -n "$TRAVIS_TAG" ]; then 
         		cmake --build ./  --target install  --config $BUILD_TYPE  
         		cd install
         		PYTHON_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}
         		PLAT_NAME=macosx_${APPLE_OSX_VERSION:0:2}_${APPLE_OSX_VERSION:3:2}_x86_64
         		${PYTHON_EXECUTABLE} setup.py -q sdist bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PLAT_NAME
-        		cd ..
+        		
+        		# upload to Pypi
+        		echo "[distutils]"                > $HOME/.pypirc
+        		echo "index-servers ="           >> $HOME/.pypirc
+        		echo "    pypi"                  >> $HOME/.pypirc
+        		echo "[pypi]"                    >> $HOME/.pypirc
+        		echo "username=$PYPI_USERNAME"   >> $HOME/.pypirc
+        		echo "password=$PYPI_PASSWORD"   >> $HOME/.pypirc
+        		twine upload --skip-existing dist/*.whl  
         fi
       fi 
       
@@ -227,14 +241,14 @@ script:
         cmake --build ./ --target all
         cmake --build ./ --target test
         
-        # dist
+        # if there is a tag, create the wheel and tar.gz
         if [ -n "$TRAVIS_TAG" ]; then 
         		cmake --build ./ --target install  
         		cd install 
         		PYTHON_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}
-        		PLAT_NAME=linux_x86_64
         		${PYTHON_EXECUTABLE} setup.py -q sdist bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PLAT_NAME
-        		cd ..
+        		
+        		# not uploading to PyPi since it will be refused (not using manylinux)
         fi
       fi    
 
@@ -255,13 +269,5 @@ deploy:
     tags: true
     all_branches: true
 
-after_deploy:
-  - echo "[distutils]"                > $HOME/.pypirc
-  - echo "index-servers ="           >> $HOME/.pypirc
-  - echo "    pypi"                  >> $HOME/.pypirc
-  - echo "[pypi]"                    >> $HOME/.pypirc
-  - echo "username=$PYPI_USERNAME"   >> $HOME/.pypirc
-  - echo "password=$PYPI_PASSWORD"   >> $HOME/.pypirc
-  - if [ -n "$TRAVIS_TAG" ]; then twine upload --skip-existing $WHEEL_FILE ; else echo "Not on a tag, won't deploy to pypi" ; fi
 
 
