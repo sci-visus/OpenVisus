@@ -52,6 +52,7 @@ ENABLE_SHARED_PTR(StringTree)
 %init %{
 
 	#ifdef NUMPY_FOUND
+		//numpy does not work in windows/debug
 		#if WIN32
 			#if !defined(_DEBUG) || defined(SWIG_PYTHON_INTERPRETER_NO_DEBUG)
 				import_array();
@@ -66,7 +67,6 @@ ENABLE_SHARED_PTR(StringTree)
 %include <Visus/Visus.h>
 
 //______________________________ Kernel/Core
-%include <Visus/Platform.h>
 %include <Visus/Kernel.h>
 %include <Visus/Time.h>
 %include <Visus/StringMap.h>

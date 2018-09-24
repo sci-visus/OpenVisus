@@ -94,7 +94,7 @@ void Viewer::postRedisplay()
 void Viewer::setPreferences(Preferences value)
 {
   //for debugging I prefer to have always title bar and menus (example: debugging powerwall)
-#ifdef _DEBUG
+#ifdef VISUS_DEBUG
   value.bHideMenus   =false;
   value.bHideTitleBar=false;
 #endif

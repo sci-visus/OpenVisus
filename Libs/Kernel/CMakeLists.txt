@@ -51,7 +51,6 @@ set(CoreSources
 	./include/Visus/NumericLimits.h
 	./include/Visus/Object.h
 	./include/Visus/Path.h
-	./include/Visus/Platform.h
 	./include/Visus/RamResource.h
 	./include/Visus/Semaphore.h
 	./include/Visus/Singleton.h

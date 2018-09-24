@@ -251,7 +251,7 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
     }
   }
 
-#if _DEBUG
+#if VISUS_DEBUG
   if (config.texture_dim == 2)
   {
     for (auto node : rendered)

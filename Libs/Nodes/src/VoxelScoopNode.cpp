@@ -901,7 +901,7 @@ public:
         {
           float len =k==-1?v.data.max_in_length:v.data.max_out_lengths[k];
           float diam=(float)v.data.s.radius*2;
-          #if _DEBUG
+          #if VISUS_DEBUG
           {
             if (max0==k||max1==k)
               VisusDebug()<<"\t "<<k<<": NOT trimming because branch is one of longest pair (len="<<len<<").";

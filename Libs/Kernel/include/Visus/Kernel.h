@@ -41,7 +41,11 @@ For support : support@visus.net
 
 #include <Visus/Visus.h>
 
-#include <Visus/Platform.h>
+#if 0
+#  define VISUS_OPENGL_ES 1
+#else
+#define VISUS_OPENGL_ES 0
+#endif
 
 #include <memory>
 #include <string>
@@ -171,7 +175,7 @@ VISUS_KERNEL_API bool VisusHasMessageLock();
 #define VisusReleaseAssert(_Expression) \
   {if (!(_Expression)) Visus::VisusAssertFailed(__FILE__,__LINE__,#_Expression);} \
   /*--*/
-  #if defined(_DEBUG)
+  #if defined(VISUS_DEBUG)
     #define VisusAssert(_Expression) VisusReleaseAssert(_Expression)
   #else
     #define VisusAssert(_Expression) ((void)0) 
@@ -239,7 +243,7 @@ public:
 } //namespace Private
 
 
-#ifdef _DEBUG
+#ifdef VISUS_DEBUG
   #define VISUS_CLASS(className) \
     friend class Visus::Private::VisusDetectMemoryLeaks<className>; \
     static Visus::String getVisusClassName() {return #className;} \

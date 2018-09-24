@@ -26,7 +26,11 @@ endif()
 PROJECT(ViSUS)
 
 include(CMake/VisusMacros.cmake)
-SetupCMake()
+SetupCommonCMake()
+
+if (NOT DISABLE_OPENMP)
+	FindOpenMP(0)
+endif()
 
 include(FindPackageHandleStandardArgs)
 
@@ -42,7 +46,6 @@ else()
 	set(VISUS_IS_SUBMODULE 1)
 	SET(CMAKE_FOLDER_PREFIX OpenVisus/)
 endif()
-
 
 # enable/disable install
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -160,9 +163,11 @@ else()
 	message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
 endif()
 
+
 add_subdirectory(InternalLibs)
 add_subdirectory(Libs)
 add_subdirectory(Executable)
+
 
 # //////////////////////////////////////////////////////////////
 # *** samples and external apps ***

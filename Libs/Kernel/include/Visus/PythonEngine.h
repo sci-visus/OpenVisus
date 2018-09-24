@@ -55,7 +55,7 @@ For support : support@visus.net
 #ifndef SWIG_FILE_WITH_INIT
 
   #if defined(_DEBUG) && defined(SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-  /* Use debug wrappers with the Python release dll */
+  //for windows using Release anyway (otherwise most site-packages, as numpy, don't work)
   # undef _DEBUG
   # include <Python.h>
   # define _DEBUG

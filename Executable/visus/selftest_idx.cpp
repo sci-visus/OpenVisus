@@ -406,7 +406,7 @@ void execTestIdx(int max_seconds)
   }
 
 
-  #if WIN32 && _DEBUG
+  #if WIN32 && VISUS_DEBUG
     {printf("Selftest OK. Press a char to finish\n");getchar();}
   #endif
 }

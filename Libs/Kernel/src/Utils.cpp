@@ -89,7 +89,7 @@ int Utils::getPid()
 ///////////////////////////////////////////////////////////////////////////////////////
 void Utils::breakInDebugger()
 {
-#ifdef _DEBUG
+#ifdef VISUS_DEBUG
   {
 #if WIN32
     _CrtDbgBreak();
