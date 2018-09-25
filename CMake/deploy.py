@@ -114,7 +114,8 @@ class Win32DeployStep(BaseDeployStep):
 			# install python dependencies
 			if not os.path.isfile("Python36\\Scripts\\pip.exe"):
 				self.executeCommand(["Python36\\python.exe","python36\\get-pip.py"])
-				self.executeCommand(["Python36\\Scripts\\pip.exe","install","numpy","pymap3d","PyQt5"])
+			
+			self.executeCommand(["Python36\\Scripts\\pip.exe","install","numpy","pymap3d","PyQt5"])
 
 		for exe in ("bin\\visusviewer.exe","bin\\visus.exe"):
 			
