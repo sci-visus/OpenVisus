@@ -1478,7 +1478,7 @@ public:
       ThrowException(StringUtils::format() << args[0] <<" Invalid args "<<args[I]);
     }
 
-    srand(0);
+    srand((unsigned int)Time::now().getTimeStamp());
 
     VisusInfo() << "Testing query...";
 
@@ -1514,8 +1514,8 @@ public:
         << " access.rok(" << stats.rok << "/" << ((double)(stats.rok) / sec) << ") "
         << " access.rfail(" << stats.rfail << "/" << ((double)(stats.rfail) / sec) << ") "
         << " io.nopen(" << io.nopen << "/" << ((double)(io.nopen) / sec) << ") "
-        << " io.rbytes(" << double(io.rbytes) / (1024 * 1024) << "/" << double(io.rbytes) / (sec * 1024 * 1024) << ") "
-        << " io.wbytes(" << double(io.wbytes) / (1024 * 1024) << "/" << double(io.wbytes) / (sec * 1024 * 1024) << ") ";
+        << " io.rbytes(" << double(io.rbytes) / (1024 * 1024) << "kb/" << double(io.rbytes) / (sec * 1024 * 1024) << "kb) "
+        << " io.wbytes(" << double(io.wbytes) / (1024 * 1024) << "kb/" << double(io.wbytes) / (sec * 1024 * 1024) << "kb) ";
     }
 
 
