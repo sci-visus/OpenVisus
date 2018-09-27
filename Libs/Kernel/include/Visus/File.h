@@ -52,14 +52,6 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(File)
 
-  enum CreateMode
-  {
-    DoNotCreate,
-    TruncateIfExists = 1,
-    MustCreate = 2
-  };
-
-
   //constructor
   File(){
   }
@@ -80,26 +72,13 @@ public:
   }
 
   //open
-  bool open(String filename, String mode, CreateMode create_mode = DoNotCreate);
-
-  //openReadBinary ("rb")
-  bool openReadBinary(String filename) {
-    return open(filename, "r");
+  bool open(String filename, String mode) {
+    return open(filename, mode, DoNotCreate);
   }
 
-  //openReadWriteBinary
-  bool openReadWriteBinary(String filename) {
-    return open(filename, "rw");
-  }
-
-  //createOrTruncateAndWriteBinary ("wb") == if the file does exists, truncate it to zero length, if the file does not exists, create it
-  bool createOrTruncateAndWriteBinary(String filename) {
-    return open(filename, "w", TruncateIfExists);
-  }
-
-  //createAndOpenReadWriteBinary (return false if already exists)
-  bool createAndOpenReadWriteBinary(String filename) {
-    return open(filename, "rw", MustCreate);
+  //createAndOpen (return false if already exists)
+  bool createAndOpen(String filename, String mode) {
+    return open(filename, mode, MustCreate);
   }
 
   //canRead
@@ -155,6 +134,16 @@ private:
   bool can_write=false;
   String filename;
   Int64 cursor = -1;
+
+  enum CreateMode
+  {
+    DoNotCreate,
+    MustCreate = 2 //fail if the file exists
+  };
+
+  //open
+  bool open(String filename, String mode, CreateMode create_mode);
+
 
 };
 

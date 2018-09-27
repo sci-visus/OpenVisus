@@ -211,7 +211,10 @@ public:
   {
     this->bVerbose = bVerbose;
     this->bitsperblock = idxfile.bitsperblock;
-    this->headers.resize(getFileHeaderSize() + getBlockHeaderSize(), __FILE__, __LINE__);
+
+    int file_header_size = (idxfile.version == 1) ? 0 : (4 * sizeof(Int32));
+    this->headers.resize(file_header_size + (idxfile.blocksperfile * (int)idxfile.fields.size()) * sizeof(BlockHeader), __FILE__, __LINE__);
+    this->block_headers = (BlockHeader*)(this->headers.c_ptr() + file_header_size);
   }
 
   //destructor
@@ -233,6 +236,12 @@ public:
     this->mode = mode;
   }
 
+  //endIO
+  virtual void endIO() override {
+    closeFile("endIO");
+    this->mode = "";
+  }
+
   //readBlock
   virtual void readBlock(SharedPtr<BlockQuery> query) override
   {
@@ -252,12 +261,11 @@ public:
       return failed("cannot open file");
 
 
-    BlockHeader* skip_file_header = (BlockHeader*)(headers.c_ptr() + getFileHeaderSize());
-    const auto& v5 = skip_file_header[cint(query->field.index)*idxfile.blocksperfile + idxfile.getBlockPositionInFile(blockid)];
+    const auto& block_header = block_headers[cint(query->field.index)*idxfile.blocksperfile + idxfile.getBlockPositionInFile(blockid)];
     
-    Int64 block_offset = v5.offset;
-    Int32 block_size = v5.len;
-    String compression = v5.compressed ? "zip" : "";
+    Int64 block_offset = block_header.offset;
+    Int32 block_size   = block_header.len;
+    String compression = block_header.compressed ? "zip" : "";
     String layout="hzorder";
 
     if (bVerbose)
@@ -320,12 +328,6 @@ public:
     return owner->writeFailed(query);
   }
 
-  //endIO
-  virtual void endIO() override  {
-    closeFile("endIO");
-    this->mode = "";
-  }
-
 private:
 
   /*
@@ -345,15 +347,6 @@ private:
 
   */
 
-  class FileHeader
-  {
-    /*
-    version 1         := empty
-    version 2, 3, 4, 5:= Int32[4];
-    */
-    Int32 value[4];
-  };
-
   class BlockHeader
   {
   public:
@@ -365,9 +358,9 @@ private:
   IdxDiskAccess* owner;
   IdxFile        idxfile;
   HeapMemory     headers;
+  BlockHeader*   block_headers=nullptr;
   File           file;
   String         mode;
-
 
   //openFile
   bool openFile(String filename, String mode)
@@ -385,7 +378,7 @@ private:
       VisusInfo() << "Opening file(" << filename << ") mode(" << mode << ")";
 
 
-    if (!this->file.openReadBinary(filename.c_str()))
+    if (!this->file.open(filename,"r"))
     {
       closeFile("Cannot open file(" + filename + ")");
       return false;
@@ -397,6 +390,7 @@ private:
       closeFile("cannot read headers");
       return false;
     }
+
 
     auto ptr = (Int32*)(this->headers.c_ptr());
     for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
@@ -417,19 +411,6 @@ private:
     this->file.close();
   }
 
-
-  //getFileHeaderSize
-  int getFileHeaderSize()  {
-    return (idxfile.version == 1) ? 0 : sizeof(FileHeader);
-  }
-
-  //getBlockHeaderSize
-  int getBlockHeaderSize()  {
-    int tot = idxfile.blocksperfile;
-    tot *= (int)idxfile.fields.size();
-    return tot * sizeof(BlockHeader);
-  }
-
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -445,7 +426,9 @@ public:
   {
     this->bVerbose = bVerbose;
     this->bitsperblock = idxfile.bitsperblock;
-    this->headers.resize(sizeof(FileHeader) + getBlockHeaderSize(), __FILE__, __LINE__);
+    this->headers.resize(sizeof(FileHeader) + (idxfile.blocksperfile * (int)idxfile.fields.size()) * sizeof(BlockHeader), __FILE__, __LINE__);
+    this->file_header   = (FileHeader* )(this->headers.c_ptr());
+    this->block_headers = (BlockHeader*)(this->headers.c_ptr() + sizeof(FileHeader));
   }
 
   //destructor
@@ -459,9 +442,8 @@ public:
     return GetFilenameV56(idxfile, field, time, blockid);
   }
 
-
   //beginIO
-  void beginIO(String mode) {
+  virtual void beginIO(String mode) override  {
     this->mode = mode;
   }
 
@@ -484,34 +466,31 @@ public:
       return owner->readFailed(query);
     };
 
-    // for writing I need to read headers too
-    String file_mode = StringUtils::contains(mode, "w") ? "rw" : "r";
-
     //try to open the existing file
     String filename = getFilename(query->field, query->time, blockid);
-    if (!openFile(filename, file_mode))
+    if (!openFile(filename, StringUtils::contains(mode, "w") ? "rw" : "r"))
       return failed("cannot open file");
 
-    //block header
-    BlockHeader block_header = readBlockHeader(query->field, blockid);
-
-    String compression = block_header.compression;
-    String layout = block_header.layout;
+    const BlockHeader& block_header = getBlockHeader(query->field, blockid);
+    Int64 block_offset = block_header.getOffset();
+    Int32 block_size   = block_header.getSize();
+    String compression = block_header.getCompression();
+    String layout      = block_header.getLayout();
 
     if (bVerbose)
-      VisusInfo() << "Block header contains the following: block_offset(" << block_header.offset << ") block_size(" << block_header.size << ") compression(" << compression << ") layout(" << layout << ")";
+      VisusInfo() << "Block header contains the following: block_offset(" << block_offset << ") block_size(" << block_size << ") compression(" << compression << ") layout(" << layout << ")";
 
-    if (!block_header.offset || !block_header.size)
+    if (!block_offset || !block_size)
       return failed("the idx data seeems not stored in the file");
 
     auto encoded = std::make_shared<HeapMemory>();
-    if (!encoded->resize(block_header.size, __FILE__, __LINE__))
-      return failed(StringUtils::format() << "cannot resize block block_size(" << block_header.size << ")");
+    if (!encoded->resize(block_size, __FILE__, __LINE__))
+      return failed(StringUtils::format() << "cannot resize block block_size(" << block_size << ")");
 
     if (bVerbose)
-      VisusInfo() << "Reading buffer: seekAndRead block_offset(" << block_header.offset << ") encoded->c_size(" << encoded->c_size() << ")";
+      VisusInfo() << "Reading buffer: seekAndRead block_offset(" << block_offset << ") encoded->c_size(" << encoded->c_size() << ")";
 
-    if (!file.seekAndRead(block_header.offset, encoded->c_size(), encoded->c_ptr()))
+    if (!file.seekAndRead(block_offset, encoded->c_size(), encoded->c_ptr()))
       return failed("cannot seekAndRead encoded buffer");
 
     if (bVerbose)
@@ -523,30 +502,11 @@ public:
 
     decoded.layout = layout;
 
-    //i'm reading the entire block stored on this
     VisusAssert(decoded.dims == query->nsamples);
     query->buffer = decoded;
 
-    //for very old file I need to swap endian notation for FLOAT32
-    if (idxfile.version <= 2 && query->field.dtype.isVectorOf(DTypes::FLOAT32))
-    {
-      if (bVerbose)
-        VisusInfo() << "Swapping endian notation for Float32 type";
-
-      auto ptr = query->buffer.c_ptr<Float32*>();
-
-      for (int I = 0, N = (int)(query->buffer.c_size() / sizeof(Float32)); I<N; I++, ptr++)
-      {
-        u_long temp = ntohl(*((u_long*)ptr));
-        *ptr = *((Float32*)(&temp));
-      }
-    }
-
     if (bVerbose)
       VisusInfo() << "Read block(" << cstring(blockid) << ") from file(" << file.getFilename() << ") ok";
-
-    if (bVerbose)
-      VisusInfo() << "IdxDiskAccess::read blockid(" << blockid << ") ok";
 
     owner->readOk(query);
   }
@@ -592,19 +552,19 @@ public:
 
     BlockHeader block_header;
     block_header.setLayout(query->buffer.layout);
-    block_header.size = (Int32)encoded->c_size();
-    block_header.compression = compression;
+    block_header.setSize((Int32)encoded->c_size());
+    block_header.setCompression(compression);
 
     String filename = getFilename(query->field, query->time, blockid);
     if (!openFile(filename, "rw"))
       return failed("cannot open file");
 
-    BlockHeader existing = readBlockHeader(query->field, blockid);
+    BlockHeader existing = getBlockHeader(query->field,blockid);
 
-    if (bool bCanOverWrite = (existing.offset && existing.size) && (block_header.size <= existing.size))
+    if (bool bCanOverWrite = (existing.getOffset() && existing.getSize()) && (block_header.getSize() <= existing.getSize()))
     {
-      if (block_header.size)
-        block_header.offset = existing.offset;
+      if (block_header.getSize())
+        block_header.setOffset(existing.getOffset());
     }
     else
     {
@@ -614,20 +574,18 @@ public:
         return failed("Failed to write block, gotoEnd() failed");
       }
 
-      block_header.offset = file.getCursor();
+      block_header.setOffset(file.getCursor());
     }
 
-    //safety check
-    VisusAssert(block_header.size && block_header.offset);
+    VisusAssert(block_header.getSize() && block_header.getOffset());
 
-    //finally write to the disk
-    if (!file.seekAndWrite(block_header.offset, block_header.size, encoded->c_ptr()))
+    if (!file.seekAndWrite(block_header.getOffset(), block_header.getSize(), encoded->c_ptr()))
     {
       VisusAssert(false);
       return failed("Failed to write block seekAndWrite failed");
     }
 
-    writeBlockHeader(query->field, blockid, block_header);
+    getBlockHeader(query->field, blockid) =block_header;
 
     if (bVerbose)
       VisusInfo() << "IdxDiskAccess::write blockid(" << blockid << ") ok";
@@ -690,9 +648,8 @@ private:
   };
 
   //___________________________________________
-  class DiskBlockHeader
+  class BlockHeader
   {
-  public:
     Int32  prefix[2]; //not used
     Int32  offset_low = 0;
     Int32  offset_high = 0;
@@ -700,47 +657,92 @@ private:
     Int32  flags = 0;
     Int32  suffix[4]; //not used
 
-                      //constructor
-    DiskBlockHeader() {
+  public:
+
+    //constructor
+    BlockHeader() {
       prefix[0] = prefix[1] = 0;
       suffix[0] = suffix[1] = suffix[2] = suffix[3] = 0;
     }
-  };
 
-  //////////////////////////////////////////////////////////////////////
-  class BlockHeader
-  {
-  public:
+    //getOffset
+    Int64 getOffset() const {
+      return (Int64(offset_low) << 0) | (Int64(offset_high) << 32);
+    }
 
-    Int64  offset = 0;
-    Int32  size = 0;
-    String compression;
-    String layout;     //"" |"hzorder" (empty means rowmajor)
+    //setOffset
+    void setOffset(Int64 value) {
+      offset_low  = (Int32)(value & 0xffffffff);
+      offset_high = (Int32)(value >> 32);
+    }
 
-                       //setLayout
-    inline void setLayout(String value)
-    {
+    //getSize
+    Int32 getSize() const {
+      return size; 
+    }
+    
+    //setSize
+    void  setSize(Int32 value) { 
+      size = value; 
+    }
+
+    //getLayout
+    String getLayout() const {
+      return (flags & FormatRowMajor) ? "" : "hzorder";
+    }
+
+    //setLayout
+    void setLayout(String value) {
+
       if (value.empty() || value == "rowmajor")
-        this->layout = "";
+        flags |= FormatRowMajor;
+      else 
+        VisusAssert(value=="hzorder");
 
-      else if (value == "hzorder")
-        this->layout = "hzorder";
+    }
 
-      else
-        VisusAssert(false);
+    //getCompression
+    String getCompression() const {
+
+      switch (flags & CompressionMask)
+      {
+        case NoCompression: return ""; break;
+        case Lz4Compression:return "lz4"; break;
+        case ZipCompression:return "zip"; break;
+        case JpgCompression:return "jpg"; break;
+        case PngCompression:return "png"; break;
+        default: VisusAssert(false); return "";
+      }
+    }
+
+    //setCompression
+    void setCompression(String value) 
+    {
+      if      (value.empty())  flags |= NoCompression;
+      else if (value == "lz4") flags |= Lz4Compression;
+      else if (value == "zip") flags |= ZipCompression;
+      else if (value == "jpg") flags |= JpgCompression;
+      else if (value == "png") flags |= PngCompression;
+      else VisusAssert(false);
     }
 
   };
-
 
   IdxDiskAccess* owner;
   IdxFile        idxfile;
   HeapMemory     headers;
+  FileHeader*    file_header=nullptr;
+  BlockHeader*   block_headers = nullptr;
   File           file;
   String         mode;
 
   //re-entrant file lock
   std::map<String, int> file_locks;
+
+  //getBlockHeader
+  BlockHeader& getBlockHeader(Field& field, Int64 blockid) {
+    return block_headers[cint(field.index)*idxfile.blocksperfile + idxfile.getBlockPositionInFile(blockid)];
+  }
 
   //openFile
   bool openFile(String filename, String mode)
@@ -760,7 +762,7 @@ private:
     bool bWriting = StringUtils::contains(mode, "w");
 
     //already exist
-    if (bool bOpened = bWriting ? this->file.openReadWriteBinary(filename.c_str()) : this->file.openReadBinary(filename.c_str()))
+    if (bool bOpened = bWriting ? this->file.open(filename,"rw") : this->file.open(filename,"r"))
     {
       //read the headers
       if (!this->file.read(this->headers.c_ptr(), this->headers.c_size()))
@@ -784,7 +786,7 @@ private:
     }
 
     //create a new file and fill up the headers
-    if (!this->file.createAndOpenReadWriteBinary(filename))
+    if (!this->file.createAndOpen(filename,"rw"))
     {
       //should not fail here!
       VisusAssert(false);
@@ -832,70 +834,6 @@ private:
     }
 
     this->file.close();
-  }
-
-  //getBlockHeaderSize
-  int getBlockHeaderSize() 
-  {
-    int tot = idxfile.blocksperfile;
-    tot *= (int)idxfile.fields.size();
-    return tot * sizeof(DiskBlockHeader);
-  }
-
-  //readBlockHeader
-  BlockHeader readBlockHeader(Field& field,Int64 blockid) 
-  {
-    auto skip_file_header = headers.c_ptr()  + sizeof(FileHeader);
-
-   const  DiskBlockHeader& v6 = *(DiskBlockHeader*)(skip_file_header
-     + (cint(field.index)*idxfile.blocksperfile + idxfile.getBlockPositionInFile(blockid)) * sizeof(DiskBlockHeader));;
-
-    BlockHeader ret;
-    ret.offset = (Int64(v6.offset_low) << 0) | (Int64(v6.offset_high) << 32);
-    ret.size   = v6.size;
-
-    switch (v6.flags & CompressionMask)
-    {
-      case NoCompression: ret.compression=""   ; break;
-      case Lz4Compression:ret.compression="lz4"; break;
-      case ZipCompression:ret.compression="zip"; break;
-      case JpgCompression:ret.compression="jpg"; break;
-      case PngCompression:ret.compression="png"; break;
-      default: VisusAssert(false);
-    }
-
-    ret.setLayout((v6.flags & FormatRowMajor) ? "" : "hzorder");
-
-    return ret;
-  }
-
-  //writeBlockHeader
-  void writeBlockHeader(Field& field, Int64 blockid,const BlockHeader& block_header) 
-  {
-    Int32 flags = 0;
-
-    auto compression = block_header.compression;
-    if      (compression.empty())  flags |= NoCompression;
-    else if (compression == "lz4") flags |= Lz4Compression;
-    else if (compression == "zip") flags |= ZipCompression;
-    else if (compression == "jpg") flags |= JpgCompression;
-    else if (compression == "png") flags |= PngCompression;
-    else VisusAssert(false);
-
-    String layout = block_header.layout;
-
-    if (layout.empty() || layout == "rowmajor")
-      flags |= FormatRowMajor;
-
-    auto skip_file_header = headers.c_ptr() + sizeof(FileHeader);
-
-    DiskBlockHeader& v6 = *(DiskBlockHeader*)(skip_file_header
-      + (cint(field.index)*idxfile.blocksperfile + idxfile.getBlockPositionInFile(blockid)) * sizeof(DiskBlockHeader));
-
-    v6.offset_low  = (Int32)(block_header.offset & 0xffffffff);
-    v6.offset_high = (Int32)(block_header.offset >> 32);
-    v6.size = block_header.size;
-    v6.flags = flags;
   }
 
 };

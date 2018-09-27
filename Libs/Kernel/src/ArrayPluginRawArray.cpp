@@ -123,7 +123,7 @@ Array RawArrayPlugin::handleLoadImage(String url_,std::vector<String> args)
 
   //try to open the binary file
   File file;
-  if (!file.openReadBinary(filename.c_str()))
+  if (!file.open(filename,"r"))
   {
     VisusWarning()<<"file.open("<<filename<<",\"rb\") failed"<<filename;
     return Array();
@@ -164,8 +164,10 @@ bool RawArrayPlugin::handleSaveImage(String url_,Array src,std::vector<String> a
   if (extensions.find(ext)==extensions.end())
     return false;
 
+  FileUtils::removeFile(filename);
+
   File file;
-  if (!file.createOrTruncateAndWriteBinary(filename))
+  if (!file.createAndOpen(filename,"w"))
   {
     VisusWarning()<<"RawArrayPlugin::handleSaveImage ERROR, failed to file.open("<<filename<<",\"wb\")";
     return false;

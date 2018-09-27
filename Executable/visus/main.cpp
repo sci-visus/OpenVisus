@@ -1580,10 +1580,10 @@ public:
 
     if (bWriting)
     {
-      remove(filename.c_str());
+      FileUtils::removeFile(filename);
 
       File file;
-      if(!file.createOrTruncateAndWriteBinary(filename))
+      if(!file.createAndOpen(filename,"w"))
         ThrowException(StringUtils::format() << args[0] <<" TestWriteIO, file.open"<<filename<<",\"wb\") failed");
 
       Array blockdata;
@@ -1607,8 +1607,8 @@ public:
     else
     {
       File file;
-      if(!file.openReadBinary(filename))
-        ThrowException(StringUtils::format() << args[0] <<" file.openReadBinary("<<filename<<") failed");
+      if(!file.open(filename,"r"))
+        ThrowException(StringUtils::format() << args[0] <<" file.open("<<filename<<",'r') failed");
 
       Array blockdata;
       bool bOk=blockdata.resize(blocksize,DTypes::UINT8,__FILE__,__LINE__);

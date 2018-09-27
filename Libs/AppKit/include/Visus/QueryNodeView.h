@@ -320,7 +320,7 @@ private:
       filename << "_f_" << query->field.name;
       filename << ".raw";
 
-      if (data_file.createAndOpenReadWriteBinary(filename.str().c_str()))
+      if (data_file.createAndOpen(filename.str(),"rw"))
       {
         if (!data_file.write(query->buffer.c_ptr(), query->buffer.c_size()))
         {

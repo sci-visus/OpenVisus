@@ -140,7 +140,7 @@ void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
     return readFailed(query);
 
   File file;
-  if (!file.openReadBinary(filename.c_str()))
+  if (!file.open(filename,"r"))
     return readFailed(query);
 
   if (!file.read(encoded->c_ptr(),encoded->c_size()))
@@ -180,8 +180,10 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   if (query->aborted())
     return writeFailed(query);
 
+  FileUtils::removeFile(filename);
+
   File file;
-  if (!file.createOrTruncateAndWriteBinary(filename.c_str()))
+  if (!file.createAndOpen(filename,"w"))
   {
     VisusInfo()<<"Failed to write block filename("<<filename<<") cannot create file and/or directory";
     return writeFailed(query);

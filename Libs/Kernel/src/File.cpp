@@ -158,10 +158,7 @@ bool File::open(String filename,String mode,CreateMode create_mode)
   {
     imode |= O_CREAT;
 
-    VisusAssert(create_mode == TruncateIfExists || create_mode == MustCreate);
-
-    if (create_mode & TruncateIfExists)
-      imode |= O_TRUNC;
+    VisusAssert(create_mode == MustCreate);
 
     if (create_mode & MustCreate)
       imode |= O_EXCL;
@@ -517,7 +514,7 @@ bool FileUtils::removeDirectory(Path path)
 bool FileUtils::touch(Path path)
 {
   File file;
-  return file.createAndOpenReadWriteBinary(path.toString());
+  return file.createAndOpen(path.toString(),"rw");
 }
 
 
@@ -542,7 +539,7 @@ void FileUtils::lock(Path path)
   for (int nattempt=0; ;nattempt++)
   {
     File file;
-    if (file.createAndOpenReadWriteBinary(lock_filename))
+    if (file.createAndOpen(lock_filename,"rw"))
     {
       file.close();
 
