@@ -197,78 +197,282 @@ static String GetFilenameV56(const IdxFile& idxfile, Field field, double time, B
 }
 
 
-//////////////////////////////////////////////////////////////////////
-class IdxDiskAccess::Pimpl
+
+//////////////////////////////////////////////////////////////////////////////////
+class IdxDiskAccessV5 : public Access
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(Pimpl)
+  VISUS_NON_COPYABLE_CLASS(IdxDiskAccessV5)
 
-  //______________________________________________________________________________
+  //constructor
+  IdxDiskAccessV5(IdxDiskAccess* owner_, const IdxFile& idxfile_, bool bVerbose)
+    : owner(owner_), idxfile(idxfile_)
+  {
+    this->bVerbose = bVerbose;
+    this->bitsperblock = idxfile.bitsperblock;
+    this->headers.resize(getFileHeaderSize() + getBlockHeaderSize(), __FILE__, __LINE__);
+  }
+
+  //destructor
+  virtual ~IdxDiskAccessV5() {
+    VisusReleaseAssert(!file.isOpen());
+  }
+
+  //getFilename
+  virtual String getFilename(Field field, double time, BigInt blockid) const override
+  {
+    if (idxfile.version < 5)
+      return GetFilenameV1234(idxfile, field, time, blockid);
+    else
+      return GetFilenameV56(idxfile, field, time, blockid);
+  }
+
+  //beginIO
+  virtual void beginIO(String mode) override {
+    this->mode = mode;
+  }
+
+  //readBlock
+  virtual void readBlock(SharedPtr<BlockQuery> query) override
+  {
+    BigInt blockid = query->getBlockNumber(owner->bitsperblock);
+
+    auto failed = [&](String reason) {
+
+      if (bVerbose)
+        VisusInfo() << "IdxDiskAccess::read blockid(" << blockid << ") failed " << reason;
+
+      return owner->readFailed(query);
+    };
+
+    //try to open the existing file
+    String filename = getFilename(query->field, query->time, blockid);
+    if (!openFile(filename, "r"))
+      return failed("cannot open file");
+
+
+    BlockHeader* skip_file_header = (BlockHeader*)(headers.c_ptr() + getFileHeaderSize());
+    const auto& v5 = skip_file_header[cint(query->field.index)*idxfile.blocksperfile + idxfile.getBlockPositionInFile(blockid)];
+    
+    Int64 block_offset = v5.offset;
+    Int32 block_size = v5.len;
+    String compression = v5.compressed ? "zip" : "";
+    String layout="hzorder";
+
+    if (bVerbose)
+      VisusInfo() << "Block header contains the following: block_offset(" << block_offset << ") block_size(" << block_size << ") compression(" << compression << ") layout(" << layout << ")";
+
+    if (!block_offset || !block_size)
+      return failed("the idx data seeems not stored in the file");
+
+    auto encoded = std::make_shared<HeapMemory>();
+    if (!encoded->resize(block_size, __FILE__, __LINE__))
+      return failed(StringUtils::format() << "cannot resize block block_size(" << block_size << ")");
+
+    if (bVerbose)
+      VisusInfo() << "Reading buffer: seekAndRead block_offset(" << block_offset << ") encoded->c_size(" << encoded->c_size() << ")";
+
+    if (!file.seekAndRead(block_offset, encoded->c_size(), encoded->c_ptr()))
+      return failed("cannot seekAndRead encoded buffer");
+
+    if (bVerbose)
+      VisusInfo() << "Decoding buffer";
+
+    auto decoded = ArrayUtils::decodeArray(compression, query->nsamples, query->field.dtype, encoded);
+    if (!decoded)
+      return failed("cannot decode the data");
+
+    decoded.layout = layout;
+
+    //i'm reading the entire block stored on this
+    VisusAssert(decoded.dims == query->nsamples);
+    query->buffer = decoded;
+
+    //for very old file I need to swap endian notation for FLOAT32
+    if (idxfile.version <= 2 && query->field.dtype.isVectorOf(DTypes::FLOAT32))
+    {
+      if (bVerbose)
+        VisusInfo() << "Swapping endian notation for Float32 type";
+
+      auto ptr = query->buffer.c_ptr<Float32*>();
+
+      for (int I = 0, N = (int)(query->buffer.c_size() / sizeof(Float32)); I<N; I++, ptr++)
+      {
+        u_long temp = ntohl(*((u_long*)ptr));
+        *ptr = *((Float32*)(&temp));
+      }
+    }
+
+    if (bVerbose)
+      VisusInfo() << "Read block(" << cstring(blockid) << ") from file(" << file.getFilename() << ") ok";
+
+    if (bVerbose)
+      VisusInfo() << "IdxDiskAccess::read blockid(" << blockid << ") ok";
+
+    owner->readOk(query);
+  }
+
+  //writeBlock
+  virtual void writeBlock(SharedPtr<BlockQuery> query) override
+  {
+    VisusAssert(false);
+    return owner->writeFailed(query);
+  }
+
+  //endIO
+  virtual void endIO() override  {
+    closeFile("endIO");
+    this->mode = "";
+  }
+
+private:
+
+  /*
+  file header:=
+
+  NOTE For Version 5
+
+  if the dataset has a bitmask then inside the file you will have
+
+  ----------------
+  | block header |
+  - --------------
+  |
+  |--------------------> [block data] (bitmask len::int32) [bitmask data]
+
+  where the <int32> is the compressed/uncompressed size of the bitmask
+
+  */
+
+  class FileHeader
+  {
+    /*
+    version 1         := empty
+    version 2, 3, 4, 5:= Int32[4];
+    */
+    Int32 value[4];
+  };
+
   class BlockHeader
   {
   public:
-
-    Int64  offset = 0;
-    Int32  size = 0;
-    String compression;
-    String layout;     //"" |"hzorder" (empty means rowmajor)
-
-    //setLayout
-    inline void setLayout(String value)
-    {
-      if (value.empty() || value == "rowmajor")
-        this->layout = "";
-      
-      else if (value == "hzorder")
-        this->layout = "hzorder";
-
-      else
-        VisusAssert(false);
-    }
-
+    Uint32  offset     = 0;
+    Uint32  len        = 0;
+    Uint32  compressed = 0;
   };
 
   IdxDiskAccess* owner;
-  bool           bVerbose;
   IdxFile        idxfile;
   HeapMemory     headers;
   File           file;
   String         mode;
 
-  //constructor
-  Pimpl(IdxDiskAccess* owner_,const IdxFile& idxfile_,bool bVerbose_)
-    : owner(owner_),idxfile(idxfile_), bVerbose(bVerbose_)
+
+  //openFile
+  bool openFile(String filename, String mode)
   {
+    VisusReleaseAssert(!mode.empty());
+
+    //useless code, already opened in the desired mode
+    if (filename == this->file.getFilename() && mode == this->file.getMode())
+      return true;
+
+    if (this->file.isOpen())
+      closeFile("need to openFile");
+
+    if (bVerbose)
+      VisusInfo() << "Opening file(" << filename << ") mode(" << mode << ")";
+
+
+    if (!this->file.openReadBinary(filename.c_str()))
+    {
+      closeFile("Cannot open file(" + filename + ")");
+      return false;
+    }
+
+    //read the headers
+    if (!this->file.read(this->headers.c_ptr(), this->headers.c_size()))
+    {
+      closeFile("cannot read headers");
+      return false;
+    }
+
+    auto ptr = (Int32*)(this->headers.c_ptr());
+    for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
+      ptr[I] = ntohl(ptr[I]);
+
+    return true;
+  }
+
+  //closeFile
+  void closeFile(String reason)
+  {
+    if (!this->file.isOpen())
+      return;
+
+    if (bVerbose)
+      VisusInfo() << "Closing file(" << this->file.getFilename() << ") mode(" << this->file.getMode() << ") reason(" << reason << ")";
+
+    this->file.close();
+  }
+
+
+  //getFileHeaderSize
+  int getFileHeaderSize()  {
+    return (idxfile.version == 1) ? 0 : sizeof(FileHeader);
+  }
+
+  //getBlockHeaderSize
+  int getBlockHeaderSize()  {
+    int tot = idxfile.blocksperfile;
+    tot *= (int)idxfile.fields.size();
+    return tot * sizeof(BlockHeader);
+  }
+
+};
+
+//////////////////////////////////////////////////////////////////////
+class IdxDiskAccessV6 : public Access
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(IdxDiskAccessV6)
+
+  //constructor
+    IdxDiskAccessV6(IdxDiskAccess* owner_, const IdxFile& idxfile_, bool bVerbose)
+    : owner(owner_), idxfile(idxfile_)
+  {
+    this->bVerbose = bVerbose;
+    this->bitsperblock = idxfile.bitsperblock;
+    this->headers.resize(sizeof(FileHeader) + getBlockHeaderSize(), __FILE__, __LINE__);
   }
 
   //destructor
-  virtual ~Pimpl() {
+  virtual ~IdxDiskAccessV6() {
     VisusReleaseAssert(!file.isOpen());
   }
 
   //getFilename
-  virtual String getFilename(Field field, double time, BigInt blockid) const = 0;
+  virtual String getFilename(Field field, double time, BigInt blockid) const override
+  {
+    return GetFilenameV56(idxfile, field, time, blockid);
+  }
 
-  //getFileHeaderSize
-  virtual int getFileHeaderSize() = 0;
-
-  //getBlockHeaderSize
-  virtual int getBlockHeaderSize() = 0;
-
-  //readBlockHeader
-  virtual BlockHeader readBlockHeader(Field& field, Int64 blockid) = 0;
-
-  //writeBlockHeader
-  virtual void writeBlockHeader(Field& field, Int64 blockid, const BlockHeader& block_header) = 0;
 
   //beginIO
   void beginIO(String mode) {
     this->mode = mode;
   }
 
+  //endIO
+  virtual void endIO() override {
+    closeFile("endIO");
+    this->mode = "";
+  }
+
   //readBlock
-  void readBlock(SharedPtr<BlockQuery> query)
+  virtual void readBlock(SharedPtr<BlockQuery> query) override
   {
     BigInt blockid = query->getBlockNumber(owner->bitsperblock);
 
@@ -292,7 +496,7 @@ public:
     BlockHeader block_header = readBlockHeader(query->field, blockid);
 
     String compression = block_header.compression;
-    String layout      = block_header.layout;
+    String layout = block_header.layout;
 
     if (bVerbose)
       VisusInfo() << "Block header contains the following: block_offset(" << block_header.offset << ") block_size(" << block_header.size << ") compression(" << compression << ") layout(" << layout << ")";
@@ -348,7 +552,7 @@ public:
   }
 
   //writeBlock
-  void writeBlock(SharedPtr<BlockQuery> query)
+  virtual void writeBlock(SharedPtr<BlockQuery> query) override
   {
     BigInt blockid = query->getBlockNumber(owner->bitsperblock);
 
@@ -388,8 +592,8 @@ public:
 
     BlockHeader block_header;
     block_header.setLayout(query->buffer.layout);
-    block_header.size=(Int32)encoded->c_size();
-    block_header.compression=compression;
+    block_header.size = (Int32)encoded->c_size();
+    block_header.compression = compression;
 
     String filename = getFilename(query->field, query->time, blockid);
     if (!openFile(filename, "rw"))
@@ -400,7 +604,7 @@ public:
     if (bool bCanOverWrite = (existing.offset && existing.size) && (block_header.size <= existing.size))
     {
       if (block_header.size)
-        block_header.offset=existing.offset;
+        block_header.offset = existing.offset;
     }
     else
     {
@@ -410,7 +614,7 @@ public:
         return failed("Failed to write block, gotoEnd() failed");
       }
 
-      block_header.offset=file.getCursor();
+      block_header.offset = file.getCursor();
     }
 
     //safety check
@@ -431,11 +635,112 @@ public:
     return owner->writeOk(query);
   }
 
-  //endIO
-  void endIO() {
-    closeFile("endIO");
-    this->mode = "";
+  //acquireWriteLock
+  virtual void acquireWriteLock(SharedPtr<BlockQuery> query) override
+  {
+    auto filename = getFilename(query->field, query->time, query->getBlockNumber(bitsperblock));
+
+    if (++file_locks[filename] == 1)
+    {
+      FileUtils::lock(filename);
+
+      if (bVerbose)
+        VisusInfo() << "Locked file " << filename;
+    }
   }
+
+  //releaseWriteLock
+  virtual void releaseWriteLock(SharedPtr<BlockQuery> query) override
+  {
+    auto filename = getFilename(query->field, query->time, query->getBlockNumber(bitsperblock));
+
+    if (--file_locks[filename] == 0)
+    {
+      file_locks.erase(filename);
+      FileUtils::unlock(filename);
+
+      if (bVerbose)
+        VisusInfo() << "Unlocked file " << filename;
+    }
+  }
+
+private:
+
+  enum
+  {
+    NoCompression = 0,
+    ZipCompression = 0x03,
+    JpgCompression = 0x04,
+    //ExrCompression =0x05,
+    PngCompression = 0x06,
+    Lz4Compression = 0x07,
+    CompressionMask = 0x0f
+  };
+
+  enum
+  {
+    FormatRowMajor = 0x10
+  };
+
+  //___________________________________________
+  class FileHeader
+  {
+  public:
+    Int32 preamble[10]; //not used
+  };
+
+  //___________________________________________
+  class DiskBlockHeader
+  {
+  public:
+    Int32  prefix[2]; //not used
+    Int32  offset_low = 0;
+    Int32  offset_high = 0;
+    Int32  size = 0;
+    Int32  flags = 0;
+    Int32  suffix[4]; //not used
+
+                      //constructor
+    DiskBlockHeader() {
+      prefix[0] = prefix[1] = 0;
+      suffix[0] = suffix[1] = suffix[2] = suffix[3] = 0;
+    }
+  };
+
+  //////////////////////////////////////////////////////////////////////
+  class BlockHeader
+  {
+  public:
+
+    Int64  offset = 0;
+    Int32  size = 0;
+    String compression;
+    String layout;     //"" |"hzorder" (empty means rowmajor)
+
+                       //setLayout
+    inline void setLayout(String value)
+    {
+      if (value.empty() || value == "rowmajor")
+        this->layout = "";
+
+      else if (value == "hzorder")
+        this->layout = "hzorder";
+
+      else
+        VisusAssert(false);
+    }
+
+  };
+
+
+  IdxDiskAccess* owner;
+  IdxFile        idxfile;
+  HeapMemory     headers;
+  File           file;
+  String         mode;
+
+  //re-entrant file lock
+  std::map<String, int> file_locks;
 
   //openFile
   bool openFile(String filename, String mode)
@@ -529,188 +834,18 @@ public:
     this->file.close();
   }
 
-};
-
-//////////////////////////////////////////////////////////////////////////////////
-class PimplV12345 : public IdxDiskAccess::Pimpl
-{
-public:
-
-  VISUS_NON_COPYABLE_CLASS(PimplV12345)
-
-  /*
-    file header:=
-
-    NOTE For Version 5
-
-    if the dataset has a bitmask then inside the file you will have
-
-    ----------------
-    | block header |
-    - --------------
-    |
-    |--------------------> [block data] (bitmask len::int32) [bitmask data]
-
-    where the <int32> is the compressed/uncompressed size of the bitmask
-
-  */
-
-  class DiskFileHeader
-  {
-    /*
-    version 1         := empty
-    version 2, 3, 4, 5:= Int32[4];
-    */
-    Int32 value[4];
-  };
-
-  class DiskBlockHeader
-  {
-  public:
-    Uint32  offset     = 0;
-    Uint32  len        = 0;
-    Uint32  compressed = 0;
-  };
-
-  //constructor
-  PimplV12345(IdxDiskAccess* owner, const IdxFile& idxfile, bool bVerbose) 
-    : Pimpl(owner,idxfile,bVerbose) {
-
-    this->headers.resize(getFileHeaderSize() + getBlockHeaderSize(), __FILE__, __LINE__);
-  }
-
-  //destructor
-  virtual ~PimplV12345() {
-  }
-
-  //getFileHeaderSize
-  virtual int getFileHeaderSize() override {
-    return (idxfile.version == 1) ? 0 : sizeof(DiskFileHeader);
-  }
-
   //getBlockHeaderSize
-  virtual int getBlockHeaderSize() override {
-    int tot = idxfile.blocksperfile;
-    tot *= (int)idxfile.fields.size();
-    return tot * sizeof(DiskBlockHeader);
-  }
-
-  //getFilename
-  virtual String getFilename(Field field, double time, BigInt blockid) const override
-  {
-    if (idxfile.version < 5)
-      return GetFilenameV1234(idxfile, field, time, blockid);
-    else
-      return GetFilenameV56(idxfile, field, time, blockid);
-  }
-
-  //readBlockHeader
-  virtual BlockHeader readBlockHeader(Field& field, Int64 blockid) override
-  {
-    DiskBlockHeader* skip_file_header = (DiskBlockHeader*)(headers.c_ptr() + getFileHeaderSize());
-
-    const auto& v5= skip_file_header[cint(field.index)*idxfile.blocksperfile + idxfile.getBlockPositionInFile(blockid)];
-
-    BlockHeader ret;
-    ret.offset=v5.offset;
-    ret.size=v5.len;
-    ret.compression=v5.compressed ? "zip" : "";
-    ret.setLayout("hzorder");
-    return ret;
-  }
-
-  //writeBlockHeader
-  virtual void writeBlockHeader(Field& field, Int64 blockid, const BlockHeader& block_header) override
-  {
-    //writing not supported
-    VisusAssert(false);
-  }
-
-};
-
-//////////////////////////////////////////////////////////////////////
-class PimplV6 : public IdxDiskAccess::Pimpl
-{
-public:
-
-  VISUS_NON_COPYABLE_CLASS(PimplV6)
-
-  enum 
-  {
-    NoCompression = 0,
-    ZipCompression = 0x03,
-    JpgCompression = 0x04,
-    //ExrCompression =0x05,
-    PngCompression = 0x06,
-    Lz4Compression = 0x07,
-    CompressionMask = 0x0f
-  };
-
-  enum 
-  {
-    FormatRowMajor = 0x10
-  };
-
-  //___________________________________________
-  class DiskFileHeader
-  {
-  public:
-    Int32 preamble[10]; //not used
-  };
-
-  //___________________________________________
-  class DiskBlockHeader
-  {
-  public:
-    Int32  prefix[2]; //not used
-    Int32  offset_low  = 0;
-    Int32  offset_high = 0;
-    Int32  size = 0;
-    Int32  flags = 0;
-    Int32  suffix[4]; //not used
-
-    //constructor
-    DiskBlockHeader() {
-      prefix[0] = prefix[1] = 0;
-      suffix[0] = suffix[1] = suffix[2] = suffix[3] = 0;
-    }
-  };
-
-  //constructor
-  PimplV6(IdxDiskAccess* owner, const IdxFile& idxfile, bool bVerbose)
-    : Pimpl(owner, idxfile, bVerbose) {
-
-    this->headers.resize(getFileHeaderSize() + getBlockHeaderSize(), __FILE__, __LINE__);
-  }
-
-  //destructor
-  virtual ~PimplV6() {
-  }
-
-  //getFileHeaderSize
-  virtual int getFileHeaderSize() override
-  {
-    return sizeof(DiskFileHeader);
-  }
-
-  //getBlockHeaderSize
-  virtual int getBlockHeaderSize() override
+  int getBlockHeaderSize() 
   {
     int tot = idxfile.blocksperfile;
     tot *= (int)idxfile.fields.size();
     return tot * sizeof(DiskBlockHeader);
   }
 
-  //getFilename
-  virtual String getFilename(Field field, double time, BigInt blockid) const override
-  {
-    return GetFilenameV56(idxfile, field, time, blockid);
-  }
-
   //readBlockHeader
-  virtual BlockHeader readBlockHeader(Field& field,Int64 blockid) override
+  BlockHeader readBlockHeader(Field& field,Int64 blockid) 
   {
-    auto skip_file_header = headers.c_ptr()  + getFileHeaderSize();
+    auto skip_file_header = headers.c_ptr()  + sizeof(FileHeader);
 
    const  DiskBlockHeader& v6 = *(DiskBlockHeader*)(skip_file_header
      + (cint(field.index)*idxfile.blocksperfile + idxfile.getBlockPositionInFile(blockid)) * sizeof(DiskBlockHeader));;
@@ -735,7 +870,7 @@ public:
   }
 
   //writeBlockHeader
-  virtual void writeBlockHeader(Field& field, Int64 blockid,const BlockHeader& block_header) override
+  void writeBlockHeader(Field& field, Int64 blockid,const BlockHeader& block_header) 
   {
     Int32 flags = 0;
 
@@ -752,7 +887,7 @@ public:
     if (layout.empty() || layout == "rowmajor")
       flags |= FormatRowMajor;
 
-    auto skip_file_header = headers.c_ptr() + getFileHeaderSize();
+    auto skip_file_header = headers.c_ptr() + sizeof(FileHeader);
 
     DiskBlockHeader& v6 = *(DiskBlockHeader*)(skip_file_header
       + (cint(field.index)*idxfile.blocksperfile + idxfile.getBlockPositionInFile(blockid)) * sizeof(DiskBlockHeader));
@@ -823,13 +958,13 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
 
   if (idxfile.version < 6)
   {
-    this-> sync.reset(new PimplV12345(this, idxfile, bVerbose));
-    this->async.reset(new PimplV12345(this, idxfile, bVerbose));
+    this-> sync.reset(new IdxDiskAccessV5(this, idxfile, bVerbose));
+    this->async.reset(new IdxDiskAccessV5(this, idxfile, bVerbose));
   }
   else
   {
-    this-> sync.reset(new PimplV6(this, idxfile, bVerbose));
-    this->async.reset(new PimplV6(this, idxfile, bVerbose));
+    this-> sync.reset(new IdxDiskAccessV6(this, idxfile, bVerbose));
+    this->async.reset(new IdxDiskAccessV6(this, idxfile, bVerbose));
   }
 
   //special case for caching stuff (example range="0 2048" means that all block >=0 && block<2048 will pass throught)
@@ -922,6 +1057,17 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
   if (bVerbose)
     VisusInfo() << "got request to read block blockid(" << blockid << ")";
 
+  //check that the current block and file descriptor is correct
+  if (blockid < 0)
+  {
+    if (bVerbose)
+      VisusInfo() << "IdxDiskAccess::read blockid(" << blockid << ") failed blockid is wrong(" << blockid << ")";
+
+    return readFailed(query);
+  }
+
+  VisusAssert(query->start_address <= query->end_address);
+
   if (block_range.to>0 )
   {    
     if (bVerbose)
@@ -944,24 +1090,9 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
   }
 
   bool bAsync = !isWriting() && async_tpool;
-
   ThreadPool::push(bAsync? async_tpool : SharedPtr<ThreadPool>(),[this, query, bAsync]() {
 
     auto pimpl = bAsync? async.get() : sync.get();
-
-    BigInt blockid = query->getBlockNumber(bitsperblock);
-
-    //check that the current block and file descriptor is correct
-    if (blockid < 0)
-    {
-      if (bVerbose)
-        VisusInfo() << "IdxDiskAccess::read blockid(" << blockid << ") failed blockid is wrong(" << blockid << ")";
-
-      return readFailed(query);
-    }
-
-    VisusAssert(query->start_address <= query->end_address);
-
     return pimpl->readBlock(query);
   });
 
@@ -1001,15 +1132,8 @@ void IdxDiskAccess::acquireWriteLock(SharedPtr<BlockQuery> query)
   if (bDisableWriteLocks)
     return;
 
-  auto filename = getFilename(query->field, query->time, query->getBlockNumber(bitsperblock));
-
-  if (++file_locks[filename] == 1)
-  {
-    FileUtils::lock(filename);
-
-    if (bVerbose)
-      VisusInfo() << "Locked file " << filename;
-  }
+  VisusAssert(isWriting());
+  sync->acquireWriteLock(query);
 }
 
 ///////////////////////////////////////////////////////
@@ -1018,16 +1142,8 @@ void IdxDiskAccess::releaseWriteLock(SharedPtr<BlockQuery> query)
   if (bDisableWriteLocks)
     return;
 
-  auto filename = getFilename(query->field, query->time, query->getBlockNumber(bitsperblock));
-
-  if (--file_locks[filename] == 0)
-  {
-    file_locks.erase(filename);
-    FileUtils::unlock(filename);
-
-    if (bVerbose)
-      VisusInfo() << "Unlocked file " << filename;
-  }
+  VisusAssert(isWriting());
+  sync->releaseWriteLock(query);
 }
 
 } //namespace Visus

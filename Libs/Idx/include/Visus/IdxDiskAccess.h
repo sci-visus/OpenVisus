@@ -58,10 +58,6 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(IdxDiskAccess)
 
-#if !SWIG
-  class Pimpl;
-#endif
-
   //constructor
   IdxDiskAccess(IdxDataset* dataset, StringTree config = StringTree());
 
@@ -91,15 +87,11 @@ public:
 
 private:
 
-  UniquePtr<Pimpl> sync, async;
+  UniquePtr<Access> sync, async;
 
   SharedPtr<ThreadPool> async_tpool;
 
-  int       bVerbose = 0;
   IdxFile   idxfile;
-
-  //re-entrant file lock
-  std::map<String, int> file_locks;
 
   struct {BigInt from = 0, to = 0;} block_range;
 
