@@ -52,6 +52,14 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(File)
 
+  enum CreateMode
+  {
+    DoNotCreate,
+    TruncateIfExists = 1,
+    MustCreate = 2
+  };
+
+
   //constructor
   File(){
   }
@@ -71,13 +79,7 @@ public:
     return filename;
   }
 
-  enum CreateMode
-  {
-    DoNotCreate,
-    TruncateIfExists=1,
-    MustCreate=2
-  };
-
+  //open
   bool open(String filename, String mode, CreateMode create_mode = DoNotCreate);
 
   //openReadBinary ("rb")
@@ -121,11 +123,14 @@ public:
   //close
   void close();
 
-  //tell
-  Int64 tell();
+  //getCursor
+  Int64 getCursor();
 
-  //seek
-  Int64 seek(Int64 offset, int origin = SEEK_SET);
+  //setCursor
+  bool setCursor(Int64 offset);
+
+  //gotoEnd
+  bool gotoEnd();
 
   //write 
   bool write(const unsigned char* buffer, Int64 count);
@@ -135,12 +140,12 @@ public:
 
   //seekAndWrite
   bool seekAndWrite(Int64 pos, Int64 count, unsigned char* buffer) {
-    return isOpen() && count >= 0 && (pos == -1 || seek(pos, SEEK_SET) != -1) && write(buffer, count);
+    return isOpen() && count >= 0 && setCursor(pos) && write(buffer, count);
   }
 
   //seekAndRead
   bool seekAndRead(Int64 pos, Int64 count, unsigned char* buffer){
-    return isOpen() && count >= 0 && (pos == -1 || seek(pos, SEEK_SET) != -1) && read(buffer, count);
+    return isOpen() && count >= 0 && setCursor(pos) && read(buffer, count);
   }
 
 private:
@@ -149,7 +154,7 @@ private:
   bool can_read=false;
   bool can_write=false;
   String filename;
-
+  Int64 cursor = -1;
 
 };
 

@@ -106,6 +106,28 @@ static String GetOpenErrorExplanation()
 }
 
 
+
+/////////////////////////////////////////////////////////////////////////
+void File::close()
+{
+  if (this->handle != -1)
+  {
+#if WIN32
+    ::_close(this->handle);
+#else
+    ::close(this->handle);
+#endif     
+
+    this->handle = -1;
+  }
+
+  this->can_read = false;
+  this->can_write = false;
+  this->filename = "";
+  this->cursor = -1;
+}
+
+
 /////////////////////////////////////////////////////////////////////////
 bool File::open(String filename,String mode,CreateMode create_mode)
 {
@@ -187,45 +209,82 @@ bool File::open(String filename,String mode,CreateMode create_mode)
 
   ApplicationStats::io.trackOpen();
   
+  this->cursor = 0;
   return true;
 }
 
 
 /////////////////////////////////////////////////////////////////////////
-void File::close()
+bool File::setCursor(Int64 value)
 {
-  if (this->handle!=-1)
-  {
-#if WIN32
-    ::_close(this->handle);
-#else
-    ::close(this->handle);
-#endif     
+  if (!isOpen())
+    return false;
 
-    this->handle    = -1;
+  // useless call
+  if (this->cursor >= 0 && this->cursor == value)
+    return true;
+
+#if WIN32
+  bool bOk=::_lseeki64(this->handle, value, SEEK_SET)>=0;
+#else
+  bool bOk = ::lseek(this->handle, value, SEEK_SET) >= 0;
+#endif
+
+  if (!bOk) {
+    this->cursor = -1;
+    return false;
   }
 
-  this->can_read  = false;
-  this->can_write = false;
-  this->filename="";
+  this->cursor = value;
+  return true;
 }
 
 /////////////////////////////////////////////////////////////////////////
-Int64 File::tell() 
-{
-  return seek(0,SEEK_CUR);
-}
-
-/////////////////////////////////////////////////////////////////////////
-Int64 File::seek(Int64 offset,int origin)
+Int64 File::getCursor() 
 {
   if (!isOpen())
     return -1;
+
+  if (this->cursor >= 0)
+    return this->cursor;
+
 #if WIN32
-  return ::_lseeki64(this->handle, offset, origin);
+  Int64 ret=::_lseeki64(this->handle, 0, SEEK_CUR) ;
 #else
-  return ::lseek(this->handle, offset, origin);
+  Int64 ret = ::lseek(this->handle, 0, SEEK_CUR);
 #endif
+
+  if (ret < 0)
+  {
+    this->cursor = -1;
+    return -1;
+  }
+
+  this->cursor = ret;
+  return ret;
+}
+
+
+/////////////////////////////////////////////////////////////////////////
+bool File::gotoEnd()
+{
+  if (!isOpen())
+    return false;
+
+#if WIN32
+  Int64 end_of_file=::_lseeki64(this->handle, 0, SEEK_END);
+#else
+  Int64 end_of_file = ::lseek(this->handle, 0, SEEK_END);
+#endif
+
+  if (end_of_file < 0)
+  {
+    this->cursor = -1;
+    return false;
+  }
+
+  this->cursor = end_of_file;
+  return true;
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -233,6 +292,9 @@ bool File::write(const unsigned char* buffer,Int64 wbytes)
 {
   if (!isOpen() || wbytes<0 || !canWrite()) 
     return false;
+
+  if (wbytes == 0)
+    return true;
   
   for (Int64 remaining=wbytes;remaining;)
   {
@@ -244,14 +306,21 @@ bool File::write(const unsigned char* buffer,Int64 wbytes)
     int n = ::write(this->handle, buffer, chunk);
 #endif 
 
-    if (n<=0) 
+    if (n <= 0)
+    {
+      this->cursor = -1;
       return false;
+    }
     
     remaining-=n;
     buffer+=n;
   }
 
   ApplicationStats::io.trackWriteOperation(wbytes);
+
+  if (this->cursor>=0)
+    this->cursor += wbytes;
+
   return true;
 }
 
@@ -260,6 +329,9 @@ bool File::read(unsigned char* buffer,Int64 rbytes)
 {
   if (!isOpen() || rbytes<0 || !canRead()) 
     return false;
+
+  if (rbytes == 0)
+    return true;
   
   for (Int64 remaining=rbytes;remaining;)
   {
@@ -271,14 +343,21 @@ bool File::read(unsigned char* buffer,Int64 rbytes)
     int n = ::read(this->handle, buffer, chunk);
 #endif     
 
-    if (n<=0) 
-      return false; 
+    if (n <= 0)
+    {
+      this->cursor = -1;
+      return false;
+    }
 
     remaining-=n;
     buffer+=n;
   }
 
   ApplicationStats::io.trackReadOperation(rbytes);
+
+  if (this->cursor>=0)
+    this->cursor += rbytes;
+
   return true;
 }
 
@@ -286,6 +365,14 @@ bool File::read(unsigned char* buffer,Int64 rbytes)
 #define PimplStat ::_stat64
 #else
 #define PimplStat ::stat
+#endif
+
+#ifndef S_ISREG
+#  define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#endif
+
+#ifndef S_ISDIR
+#  define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
 #endif
 
 /////////////////////////////////////////////////////////////////////////
@@ -301,7 +388,13 @@ bool FileUtils::existsDirectory(Path path)
   String fullpath=path.toString();
 
   struct PimplStat status;
-  return PimplStat(fullpath.c_str(),&status)==0 && (status.st_mode & S_IFDIR)==S_IFDIR;
+  if (PimplStat(fullpath.c_str(), &status) != 0)
+    return false;
+
+  if (!S_ISDIR(status.st_mode))
+    return false;
+
+  return true;
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -312,9 +405,16 @@ bool FileUtils::existsFile(Path path)
 
   String fullpath=path.toString();
 
-  //TODO: probably here i need to specific test if it's a regular file or symbolic link
   struct PimplStat status;
-  return PimplStat(fullpath.c_str(),&status)==0 && (status.st_mode & S_IFDIR)!=S_IFDIR;
+
+  if (PimplStat(fullpath.c_str(), &status) != 0)
+    return false;
+
+  //TODO: probably here i need to specific test if it's a regular file or symbolic link
+  if (!S_ISREG(status.st_mode))
+    return false;
+
+  return  true;
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -326,7 +426,9 @@ Int64 FileUtils::getFileSize(Path path)
   String fullpath=path.toString();
 
   struct PimplStat status;
-  if (PimplStat(fullpath.c_str(),&status)!=0 || (status.st_mode & S_IFDIR)==S_IFDIR) return 0;
+  if (PimplStat(fullpath.c_str(), &status) != 0)
+    return 0;
+
   return status.st_size;
 
 }
@@ -340,7 +442,9 @@ Int64 FileUtils::getTimeLastModified(Path path)
   String fullpath=path.toString();
 
   struct PimplStat status;
-  if (PimplStat(fullpath.c_str(),&status)!=0 || (status.st_mode & S_IFDIR)==S_IFDIR) return 0;
+  if (PimplStat(fullpath.c_str(), &status) != 0)
+    return 0;
+
   return static_cast<Int64>(status.st_mtime);
 }
 
@@ -353,7 +457,9 @@ Int64 FileUtils::getTimeLastAccessed(Path path)
   String fullpath=path.toString();
 
   struct PimplStat status;
-  if (PimplStat(fullpath.c_str(),&status)!=0 || (status.st_mode & S_IFDIR)==S_IFDIR) return 0;
+  if (PimplStat(fullpath.c_str(), &status) != 0)
+    return 0;
+
   return static_cast<Int64>(status.st_atime);
 }
 
@@ -519,18 +625,7 @@ bool FileUtils::copyFile(String src_filename, String dst_filename, bool bFailIfE
 /////////////////////////////////////////////////////////////////////////
 bool FileUtils::moveFile(String src_filename, String dst_filename)
 {
-#ifdef WIN32
-
-  if  (MoveFile(src_filename.c_str(), dst_filename.c_str()) == 0)
-  {
-    VisusWarning() << "Error moving file " << FormatErrorMessage(GetLastError());
-    return false;
-  }
-  return true;
-
-#else
-  return rename(src_filename.c_str(), dst_filename.c_str()) == 0;
-#endif
+  return std::rename(src_filename.c_str(), dst_filename.c_str()) == 0;
 }
 
 /////////////////////////////////////////////////////////////////////////

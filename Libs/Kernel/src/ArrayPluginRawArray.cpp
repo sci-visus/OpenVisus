@@ -130,7 +130,7 @@ Array RawArrayPlugin::handleLoadImage(String url_,std::vector<String> args)
   }
 
   //set the offset in the file
-  if (offset && file.seek(offset,SEEK_SET)==-1)
+  if (offset && !file.setCursor(offset))
   {
     VisusWarning()<<"Cannot seek file "<<filename<<" position "<<offset;
     return Array();
@@ -180,7 +180,7 @@ bool RawArrayPlugin::handleSaveImage(String url_,Array src,std::vector<String> a
     }
   }
 
-  if (offset && file.seek(offset,SEEK_SET)==-1)
+  if (offset && !file.setCursor(offset))
   {
     VisusWarning()<<"cannot seek file "<<filename<<" position "<<offset;
     return false;

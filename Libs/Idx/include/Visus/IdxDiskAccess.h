@@ -58,6 +58,10 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(IdxDiskAccess)
 
+#if !SWIG
+  class Pimpl;
+#endif
+
   //constructor
   IdxDiskAccess(IdxDataset* dataset, StringTree config = StringTree());
 
@@ -87,10 +91,9 @@ public:
 
 private:
 
-  class FileIO;
+  UniquePtr<Pimpl> sync, async;
 
-  SharedPtr<FileIO> sync;
-  SharedPtr<FileIO> async;
+  SharedPtr<ThreadPool> async_tpool;
 
   int       bVerbose = 0;
   IdxFile   idxfile;
@@ -105,15 +108,6 @@ private:
 
   //bDisableIO (for debugging)
   bool bDisableIO = false;
-
-  //getBlockPositionInFile
-  Int64 getBlockPositionInFile(BigInt nblock) const;
-
-  //getFirstBlockInFile
-  BigInt getFirstBlockInFile(BigInt nblock) const;
-
-  //readBlockInCurrentThread 
-  void readBlockInCurrentThread(FileIO& file,SharedPtr<BlockQuery> query, String mode);
 
 }; 
 
