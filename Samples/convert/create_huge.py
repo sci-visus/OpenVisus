@@ -32,11 +32,11 @@ def executeCommand(cmd):
 		raise Exception("Command failed")
 
 
-if False:
+if True:
 	fields="DATA uint8[1] format(rowmajor) default_compression(raw)"
 	executeCommand([visus_cmd,"create",Durl,"--box","%d %d %d %d %d %d" % (0,Dsize[0]-1, 0, Dsize[1]-1,0, Dsize[2]-1),"--fields",fields])
 
-if False:
+if True:
 	for z in range(0,Dsize[2],Piece):
 		for y in range(0,Dsize[1],Piece):
 			for x in range(0,Dsize[0],Piece):
