@@ -122,17 +122,10 @@ Array RawArrayPlugin::handleLoadImage(String url_,std::vector<String> args)
   }
 
   //try to open the binary file
-  File file;
+  PosixFile file;
   if (!file.open(filename,"r"))
   {
     VisusWarning()<<"file.open("<<filename<<",\"rb\") failed"<<filename;
-    return Array();
-  }
-
-  //set the offset in the file
-  if (offset && !file.setCursor(offset))
-  {
-    VisusWarning()<<"Cannot seek file "<<filename<<" position "<<offset;
     return Array();
   }
 
@@ -140,7 +133,7 @@ Array RawArrayPlugin::handleLoadImage(String url_,std::vector<String> args)
   if (!dst.resize(dims,dtype,__FILE__,__LINE__))
     return Array();
 
-  if (!file.read(dst.c_ptr(),dst.c_size()))
+  if (!file.read(offset, dst.c_size(), dst.c_ptr()))
   {
     VisusWarning()<<"file.read failed for file "<<filename;
     return Array();
@@ -166,7 +159,7 @@ bool RawArrayPlugin::handleSaveImage(String url_,Array src,std::vector<String> a
 
   FileUtils::removeFile(filename);
 
-  File file;
+  PosixFile file;
   if (!file.createAndOpen(filename,"w"))
   {
     VisusWarning()<<"RawArrayPlugin::handleSaveImage ERROR, failed to file.open("<<filename<<",\"wb\")";
@@ -182,17 +175,11 @@ bool RawArrayPlugin::handleSaveImage(String url_,Array src,std::vector<String> a
     }
   }
 
-  if (offset && !file.setCursor(offset))
-  {
-    VisusWarning()<<"cannot seek file "<<filename<<" position "<<offset;
-    return false;
-  }
-
   Int64 tot=src.getTotalNumberOfSamples();
   if (tot<=0) 
     return false;
 
-  if (!file.write(src.c_ptr(),src.c_size()))
+  if (!file.write(offset, src.c_size(), src.c_ptr()))
   {
     VisusWarning()<<"write error on file "<<filename;
     return false;

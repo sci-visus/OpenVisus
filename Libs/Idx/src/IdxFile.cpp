@@ -172,7 +172,7 @@ void IdxFile::validate(Url url)
   if (blocksperfile==0)
   {
     Int64 totblocks=((Int64)1)<<(bitmask.getMaxResolution()-bitsperblock);
-    blocksperfile = (int)std::min(totblocks, (Int64)1024);
+    blocksperfile = (int)std::min(totblocks, (Int64)256);
   }
 
   if (blocksperfile<=0)

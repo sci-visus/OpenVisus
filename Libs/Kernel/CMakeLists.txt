@@ -90,7 +90,8 @@ set(CoreSources
 	./include/Visus/ApplicationInfo.h
 	./src/ApplicationInfo.cpp
 	./include/Visus/VisusConfig.h
-	./src/VisusConfig.cpp)
+	./src/VisusConfig.cpp
+	)
 
 IF (WIN32 OR APPLE)
 	set(CoreSources ${CoreSources} ./src/DirectoryIterator.mm)

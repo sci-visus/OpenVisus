@@ -139,11 +139,11 @@ void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
   if (!encoded->resize(FileUtils::getFileSize(filename),__FILE__,__LINE__))
     return readFailed(query);
 
-  File file;
+  PosixFile file;
   if (!file.open(filename,"r"))
     return readFailed(query);
 
-  if (!file.read(encoded->c_ptr(),encoded->c_size()))
+  if (!file.read(0,encoded->c_size(), encoded->c_ptr()))
     return readFailed(query);
 
   String compression=this->compression_type;
@@ -182,7 +182,7 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
 
   FileUtils::removeFile(filename);
 
-  File file;
+  PosixFile file;
   if (!file.createAndOpen(filename,"w"))
   {
     VisusInfo()<<"Failed to write block filename("<<filename<<") cannot create file and/or directory";
@@ -197,7 +197,7 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
     return writeFailed(query);
   }
 
-  if (!file.write(encoded->c_ptr(),encoded->c_size()))
+  if (!file.write(0, encoded->c_size(), encoded->c_ptr()))
   {
     VisusInfo()<<"Failed to write block filename("<<filename<<") compression or file.write failed";
     return writeFailed(query);

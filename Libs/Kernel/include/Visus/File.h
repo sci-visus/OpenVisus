@@ -45,7 +45,7 @@ For support : support@visus.net
 
 namespace Visus {
 
-////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API File
 {
 public:
@@ -57,95 +57,196 @@ public:
   }
 
   //destructor
-  ~File() {
-    close();
+  virtual ~File() {
   }
 
   //isOpen
-  bool isOpen() const {
-    return handle != -1;
-  }
-
-  //getFilename
-  String getFilename() const {
-    return filename;
-  }
+  virtual bool isOpen() const = 0;
 
   //open
-  bool open(String filename, String mode) {
-    return open(filename, mode, DoNotCreate);
-  }
+  virtual bool open(String filename, String mode, bool bMustCreate = false) = 0;
+
+  //close
+  virtual void close() = 0;
+
+  //size
+  virtual Int64 size() = 0;
+
+  //canRead
+  virtual bool canRead() const = 0;
+
+  //canWrite
+  virtual bool canWrite() const = 0;
+
+  //getFilename
+  virtual String getFilename() const = 0;
+
+  //write  
+  virtual bool write(Int64 pos, Int64 count, const unsigned char* buffer) = 0;
+
+  //read (should be portable to 32 and 64 bit OS)
+  virtual bool read(Int64 pos, Int64 count, unsigned char* buffer) = 0;
 
   //createAndOpen (return false if already exists)
   bool createAndOpen(String filename, String mode) {
-    return open(filename, mode, MustCreate);
-  }
-
-  //canRead
-  bool canRead() const {
-    return can_read;
-  }
-
-  //canWrite
-  bool canWrite() const {
-    return can_write;
+    return open(filename, mode, true);
   }
 
   //getMode
   String getMode() const {
-    std::ostringstream out;
-    if (can_read ) out << "r";
-    if (can_write) out << "w";
-    return out.str();
+    auto can_read  = canRead();
+    auto can_write = canWrite();
+    return can_read && can_write ? "rw" : (can_read ? "r" : (can_write ? "w" : ""));
   }
+
+};
+
+
+/////////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API PosixFile : public File
+{
+public:
+
+  //constructor
+  PosixFile() {
+  }
+
+  //destructor
+  virtual ~PosixFile() {
+    close();
+  }
+
+  //isOpen
+  virtual bool isOpen() const override {
+    return this->handle != -1;
+  }
+
+  //canRead
+  virtual bool canRead() const override {
+    return can_read;
+  }
+
+  //canWrite
+  virtual bool canWrite() const override {
+    return can_write;
+  }
+
+  //getFilename
+  virtual String getFilename() const override {
+    return this->filename;
+  }
+
+  //open
+  virtual bool open(String filename, String mode, bool bMustCreate = false) override;
 
   //close
-  void close();
+  virtual void close() override;
 
-  //getCursor
-  Int64 getCursor();
-
-  //setCursor
-  bool setCursor(Int64 offset);
-
-  //gotoEnd
-  bool gotoEnd();
+  //size
+  virtual Int64 size() override;
 
   //write 
-  bool write(const unsigned char* buffer, Int64 count);
+  virtual bool write(Int64 pos, Int64 tot, const unsigned char* buffer) override;
 
   //read (should be portable to 32 and 64 bit OS)
-  bool read(unsigned char* buffer, Int64 count);
+  virtual bool read(Int64 pos, Int64 tot, unsigned char* buffer) override;
 
-  //seekAndWrite
-  bool seekAndWrite(Int64 pos, Int64 count, unsigned char* buffer) {
-    return isOpen() && count >= 0 && setCursor(pos) && write(buffer, count);
+private:
+
+  String filename;
+  bool   can_read = false;
+  bool   can_write = false;
+
+  int    handle = -1;
+  Int64  cursor = -1;
+
+  //seek
+  bool seek(Int64 value);
+
+};
+
+
+////////////////////////////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API MemoryMappedFile : public File
+{
+public:
+
+  //constructor
+  MemoryMappedFile() {
   }
 
-  //seekAndRead
-  bool seekAndRead(Int64 pos, Int64 count, unsigned char* buffer){
-    return isOpen() && count >= 0 && setCursor(pos) && read(buffer, count);
+  //destryctor
+  virtual ~MemoryMappedFile() {
+    close();
+  }
+
+  //isOpen
+  virtual bool isOpen() const override {
+    return mem != nullptr;
+  }
+
+  //canRead
+  virtual bool canRead() const override {
+    return can_read;
+  }
+
+  //canWrite
+  virtual bool canWrite() const override {
+    return can_write;
+  }
+
+  //getFilename
+  virtual String getFilename() const override {
+    return this->filename;
+  }
+
+  //open
+  virtual bool open(String path, String mode, bool bMustCreate = false) override;
+
+  //close
+  virtual void close() override;
+
+  //size
+  virtual Int64 size() override {
+    return nbytes;
+  }
+
+  //write  
+  virtual bool write(Int64 pos, Int64 tot, const unsigned char* buffer) override;
+
+  //read
+  virtual bool read(Int64 pos, Int64 tot, unsigned char* buffer) override;
+
+  //data
+  const char* data() const {
+    VisusAssert(isOpen());
+    return mem;
+  }
+
+  //c_ptr
+  char* c_ptr() const {
+    VisusAssert(isOpen() && mode.find("w") != String::npos);
+    return mem;
   }
 
 private:
 
-  int  handle=-1;
-  bool can_read=false;
-  bool can_write=false;
-  String filename;
-  Int64 cursor = -1;
+#if defined(_WIN32)
+  void*       file = nullptr;
+  void*       mapping = nullptr;
+#else
+  int         fd = -1;
+#endif
 
-  enum CreateMode
-  {
-    DoNotCreate,
-    MustCreate = 2 //fail if the file exists
-  };
-
-  //open
-  bool open(String filename, String mode, CreateMode create_mode);
+  bool        can_read = false;
+  bool        can_write = false;
+  String      filename;
+  Int64       nbytes = 0;
+  char*       mem = nullptr;
 
 
 };
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API FileUtils

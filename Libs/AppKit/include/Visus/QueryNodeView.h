@@ -309,8 +309,6 @@ private:
       //read data
       VisusReleaseAssert(dataset->executeQuery(access, query));
 
-      File data_file;
-
       std::stringstream filename;
       filename << widgets.fileEdit->text().toStdString();
       for (int I = 0; I < dataset->getPointDim(); I++)
@@ -320,9 +318,10 @@ private:
       filename << "_f_" << query->field.name;
       filename << ".raw";
 
+      PosixFile data_file;
       if (data_file.createAndOpen(filename.str(),"rw"))
       {
-        if (!data_file.write(query->buffer.c_ptr(), query->buffer.c_size()))
+        if (!data_file.write(0, query->buffer.c_size(), query->buffer.c_ptr()))
         {
           VisusWarning() << "write error on file " << filename.str();
           return false;

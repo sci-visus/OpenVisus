@@ -279,10 +279,10 @@ public:
       return failed(StringUtils::format() << "cannot resize block block_size(" << block_size << ")");
 
     if (bVerbose)
-      VisusInfo() << "Reading buffer: seekAndRead block_offset(" << block_offset << ") encoded->c_size(" << encoded->c_size() << ")";
+      VisusInfo() << "Reading buffer: read block_offset(" << block_offset << ") encoded->c_size(" << encoded->c_size() << ")";
 
-    if (!file.seekAndRead(block_offset, encoded->c_size(), encoded->c_ptr()))
-      return failed("cannot seekAndRead encoded buffer");
+    if (!file.read(block_offset, encoded->c_size(), encoded->c_ptr()))
+      return failed("cannot read encoded buffer");
 
     if (bVerbose)
       VisusInfo() << "Decoding buffer";
@@ -359,7 +359,7 @@ private:
   IdxFile        idxfile;
   HeapMemory     headers;
   BlockHeader*   block_headers=nullptr;
-  File           file;
+  PosixFile      file;
   String         mode;
 
   //openFile
@@ -385,7 +385,7 @@ private:
     }
 
     //read the headers
-    if (!this->file.read(this->headers.c_ptr(), this->headers.c_size()))
+    if (!this->file.read(0, this->headers.c_size(), this->headers.c_ptr()))
     {
       closeFile("cannot read headers");
       return false;
@@ -429,11 +429,15 @@ public:
     this->headers.resize(sizeof(FileHeader) + (idxfile.blocksperfile * (int)idxfile.fields.size()) * sizeof(BlockHeader), __FILE__, __LINE__);
     this->file_header   = (FileHeader* )(this->headers.c_ptr());
     this->block_headers = (BlockHeader*)(this->headers.c_ptr() + sizeof(FileHeader));
+
+    this->file = std::make_shared<PosixFile>();
+    //this->file = std::make_shared<MemoryMappedFile>();
   }
 
   //destructor
   virtual ~IdxDiskAccessV6() {
-    VisusReleaseAssert(!file.isOpen());
+    VisusReleaseAssert(!file->isOpen());
+    file.reset();
   }
 
   //getFilename
@@ -488,10 +492,10 @@ public:
       return failed(StringUtils::format() << "cannot resize block block_size(" << block_size << ")");
 
     if (bVerbose)
-      VisusInfo() << "Reading buffer: seekAndRead block_offset(" << block_offset << ") encoded->c_size(" << encoded->c_size() << ")";
+      VisusInfo() << "Reading buffer: read block_offset(" << block_offset << ") encoded->c_size(" << encoded->c_size() << ")";
 
-    if (!file.seekAndRead(block_offset, encoded->c_size(), encoded->c_ptr()))
-      return failed("cannot seekAndRead encoded buffer");
+    if (!file->read(block_offset, encoded->c_size(), encoded->c_ptr()))
+      return failed("cannot read encoded buffer");
 
     if (bVerbose)
       VisusInfo() << "Decoding buffer";
@@ -506,7 +510,7 @@ public:
     query->buffer = decoded;
 
     if (bVerbose)
-      VisusInfo() << "Read block(" << cstring(blockid) << ") from file(" << file.getFilename() << ") ok";
+      VisusInfo() << "Read block(" << cstring(blockid) << ") from file(" << file->getFilename() << ") ok";
 
     owner->readOk(query);
   }
@@ -568,21 +572,23 @@ public:
     }
     else
     {
-      if (!file.gotoEnd())
+      Int64 filesize = file->size();
+
+      if (filesize <=0)
       {
         VisusAssert(false);
         return failed("Failed to write block, gotoEnd() failed");
       }
 
-      block_header.setOffset(file.getCursor());
+      block_header.setOffset(filesize);
     }
 
     VisusAssert(block_header.getSize() && block_header.getOffset());
 
-    if (!file.seekAndWrite(block_header.getOffset(), block_header.getSize(), encoded->c_ptr()))
+    if (!file->write(block_header.getOffset(), block_header.getSize(), encoded->c_ptr()))
     {
       VisusAssert(false);
-      return failed("Failed to write block seekAndWrite failed");
+      return failed("Failed to write block write failed");
     }
 
     getBlockHeader(query->field, blockid) =block_header;
@@ -728,13 +734,13 @@ private:
 
   };
 
-  IdxDiskAccess* owner;
-  IdxFile        idxfile;
-  HeapMemory     headers;
-  FileHeader*    file_header=nullptr;
-  BlockHeader*   block_headers = nullptr;
-  File           file;
-  String         mode;
+  IdxDiskAccess*  owner;
+  IdxFile         idxfile;
+  HeapMemory      headers;
+  FileHeader*     file_header=nullptr;
+  BlockHeader*    block_headers = nullptr;
+  SharedPtr<File> file;
+  String          mode;
 
   //re-entrant file lock
   std::map<String, int> file_locks;
@@ -750,10 +756,10 @@ private:
     VisusReleaseAssert(!mode.empty());
 
     //useless code, already opened in the desired mode
-    if (filename == this->file.getFilename() && mode == this->file.getMode())
+    if (filename == this->file->getFilename() && mode == this->file->getMode())
       return true;
 
-    if (this->file.isOpen())
+    if (this->file->isOpen())
       closeFile("need to openFile");
 
     if (bVerbose)
@@ -762,10 +768,10 @@ private:
     bool bWriting = StringUtils::contains(mode, "w");
 
     //already exist
-    if (bool bOpened = bWriting ? this->file.open(filename,"rw") : this->file.open(filename,"r"))
+    if (bool bOpened = bWriting ? this->file->open(filename,"rw") : this->file->open(filename,"r"))
     {
       //read the headers
-      if (!this->file.read(this->headers.c_ptr(), this->headers.c_size()))
+      if (!this->file->read(0, this->headers.c_size(), this->headers.c_ptr()))
       {
         closeFile("cannot read headers");
         return false;
@@ -786,7 +792,7 @@ private:
     }
 
     //create a new file and fill up the headers
-    if (!this->file.createAndOpen(filename,"rw"))
+    if (!this->file->createAndOpen(filename,"rw"))
     {
       //should not fail here!
       VisusAssert(false);
@@ -797,7 +803,7 @@ private:
 
     //write an empty header
     this->headers.fill(0);
-    if (!this->file.write(this->headers.c_ptr(), this->headers.c_size()))
+    if (!this->file->write(0, this->headers.c_size(), this->headers.c_ptr()))
     {
       //should not fail here!
       VisusAssert(false);
@@ -812,20 +818,20 @@ private:
   //closeFile
   void closeFile(String reason)
   {
-    if (!this->file.isOpen())
+    if (!this->file->isOpen())
       return;
 
     if (bVerbose)
-      VisusInfo() << "Closing file(" << this->file.getFilename() << ") mode(" << this->file.getMode() << ") reason(" << reason << ")";
+      VisusInfo() << "Closing file(" << this->file->getFilename() << ") mode(" << this->file->getMode() << ") reason(" << reason << ")";
 
     //need to write the headers
-    if (this->file.canWrite())
+    if (this->file->canWrite())
     {
       auto ptr = (Int32*)(this->headers.c_ptr());
       for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
         ptr[I] = htonl(ptr[I]);
 
-      if (!this->file.seekAndWrite(0, this->headers.c_size(), this->headers.c_ptr()))
+      if (!this->file->write(0, this->headers.c_size(), this->headers.c_ptr()))
       {
         VisusAssert(false);
         if (bVerbose)
@@ -833,7 +839,7 @@ private:
       }
     }
 
-    this->file.close();
+    this->file->close();
   }
 
 };

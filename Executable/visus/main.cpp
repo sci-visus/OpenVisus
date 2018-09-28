@@ -1582,7 +1582,7 @@ public:
     {
       FileUtils::removeFile(filename);
 
-      File file;
+      PosixFile file;
       if(!file.createAndOpen(filename,"w"))
         ThrowException(StringUtils::format() << args[0] <<" TestWriteIO, file.open"<<filename<<",\"wb\") failed");
 
@@ -1594,7 +1594,7 @@ public:
       int nwritten;
       for (nwritten=0;(nwritten+blocksize)<=filesize;nwritten+=blocksize)
       {
-        if(!file.write(blockdata.c_ptr(),blocksize))
+        if(!file.write(nwritten, blocksize, blockdata.c_ptr()))
           ThrowException(StringUtils::format() << args[0] <<" TestWriteIO write(...) failed");
       }
       file.close();
@@ -1606,7 +1606,7 @@ public:
     }
     else
     {
-      File file;
+      PosixFile file;
       if(!file.open(filename,"r"))
         ThrowException(StringUtils::format() << args[0] <<" file.open("<<filename<<",'r') failed");
 
@@ -1618,10 +1618,10 @@ public:
       int maxcont=1000,cont=maxcont;
       while (true)
       {
-        if(!file.read(blockdata.c_ptr(),blocksize)) 
+        if(!file.read(nread, blocksize, blockdata.c_ptr()))
           break;
-        nread+=blocksize;
 
+        nread+=blocksize;
 
         if (!--cont)
         {

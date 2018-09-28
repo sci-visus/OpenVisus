@@ -57,17 +57,36 @@ For support : support@visus.net
 #elif __APPLE__
   #include <unistd.h>
   #include <sys/socket.h>
+  #include <sys/mman.h>
+  #include <sys/stat.h>
 
 #else
   #include <unistd.h>
   #include <limits.h>
   #include <sys/sendfile.h>
+  #include <sys/mman.h>
+  #include <sys/stat.h>
 
 #endif
+
 
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif 
+
+#if WIN32
+#define PimplStat ::_stat64
+#else
+#define PimplStat ::stat
+#endif
+
+#ifndef S_ISREG
+#  define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+#endif
+
+#ifndef S_ISDIR
+#  define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+#endif
 
 namespace Visus {
 
@@ -106,62 +125,23 @@ static String GetOpenErrorExplanation()
 }
 
 
-
 /////////////////////////////////////////////////////////////////////////
-void File::close()
+bool PosixFile::open(String filename, String mode, bool bMustCreate)
 {
-  if (this->handle != -1)
-  {
-#if WIN32
-    ::_close(this->handle);
-#else
-    ::close(this->handle);
-#endif     
-
-    this->handle = -1;
-  }
-
-  this->can_read = false;
-  this->can_write = false;
-  this->filename = "";
-  this->cursor = -1;
-}
-
-
-/////////////////////////////////////////////////////////////////////////
-bool File::open(String filename,String mode,CreateMode create_mode)
-{
-  close();
-
-  bool bRead  = StringUtils::contains(mode, "r");
+  bool bRead = StringUtils::contains(mode, "r");
   bool bWrite = StringUtils::contains(mode, "w");
 
   int imode = O_BINARY;
-
-  if (bRead && bWrite)
-    imode |= O_RDWR;
-
-  else if (bRead)
-    imode |= O_RDONLY;
-
-  else if (bWrite)
-    imode |= O_WRONLY;
-
-  else {
-    VisusAssert(false);
-    return false;
-  }
+  if      (bRead && bWrite) imode |= O_RDWR;
+  else if (bRead)           imode |= O_RDONLY;
+  else if (bWrite)          imode |= O_WRONLY;
+  else  VisusAssert(false);
 
   int create_flags = 0;
 
-  if (create_mode)
+  if (bMustCreate)
   {
-    imode |= O_CREAT;
-
-    VisusAssert(create_mode == MustCreate);
-
-    if (create_mode & MustCreate)
-      imode |= O_EXCL;
+    imode |= O_CREAT | O_EXCL;
 
 #if WIN32
     create_flags |= (S_IREAD | S_IWRITE);
@@ -178,7 +158,7 @@ bool File::open(String filename,String mode,CreateMode create_mode)
 
   if (!isOpen())
   {
-    if (create_mode)
+    if (bMustCreate)
     {
       FileUtils::createDirectory(Path(filename).getParent());
 
@@ -200,102 +180,72 @@ bool File::open(String filename,String mode,CreateMode create_mode)
     }
   }
 
-  this->can_read = bRead;
-  this->can_write= bWrite;
+  this->can_read  = bRead;
+  this->can_write = bWrite;
   this->filename = filename;
+  this->cursor = 0;
 
   ApplicationStats::io.trackOpen();
-  
-  this->cursor = 0;
-  return true;
-}
 
-
-/////////////////////////////////////////////////////////////////////////
-bool File::setCursor(Int64 value)
-{
-  if (!isOpen())
-    return false;
-
-  // useless call
-  if (this->cursor >= 0 && this->cursor == value)
-    return true;
-
-#if WIN32
-  bool bOk=::_lseeki64(this->handle, value, SEEK_SET)>=0;
-#else
-  bool bOk = ::lseek(this->handle, value, SEEK_SET) >= 0;
-#endif
-
-  if (!bOk) {
-    this->cursor = -1;
-    return false;
-  }
-
-  this->cursor = value;
   return true;
 }
 
 /////////////////////////////////////////////////////////////////////////
-Int64 File::getCursor() 
+void PosixFile::close()
 {
   if (!isOpen())
-    return -1;
-
-  if (this->cursor >= 0)
-    return this->cursor;
+    return;
 
 #if WIN32
-  Int64 ret=::_lseeki64(this->handle, 0, SEEK_CUR) ;
+  ::_close(this->handle);
 #else
-  Int64 ret = ::lseek(this->handle, 0, SEEK_CUR);
+  ::close(this->handle);
+#endif     
+
+  this->handle = -1;
+  this->cursor = -1;
+  this->can_read = false;
+  this->can_write = false;
+  this->filename = filename;
+}
+
+/////////////////////////////////////////////////////////////////////////
+Int64 PosixFile::size()
+{
+  if (!isOpen())
+    return false;
+
+#if WIN32
+  Int64 ret = ::_lseeki64(this->handle, 0, SEEK_END);
+#else
+  Int64 ret = ::lseek(this->handle, 0, SEEK_END);
 #endif
 
   if (ret < 0)
   {
     this->cursor = -1;
-    return -1;
+    return ret;
   }
 
   this->cursor = ret;
   return ret;
 }
 
-
 /////////////////////////////////////////////////////////////////////////
-bool File::gotoEnd()
+bool PosixFile::write(Int64 pos, Int64 tot, const unsigned char* buffer)
 {
-  if (!isOpen())
+  if (!isOpen() || tot<0 || !can_write)
     return false;
 
-#if WIN32
-  Int64 end_of_file=::_lseeki64(this->handle, 0, SEEK_END);
-#else
-  Int64 end_of_file = ::lseek(this->handle, 0, SEEK_END);
-#endif
-
-  if (end_of_file < 0)
-  {
-    this->cursor = -1;
-    return false;
-  }
-
-  this->cursor = end_of_file;
-  return true;
-}
-
-/////////////////////////////////////////////////////////////////////////
-bool File::write(const unsigned char* buffer,Int64 wbytes)
-{
-  if (!isOpen() || wbytes<0 || !canWrite()) 
-    return false;
-
-  if (wbytes == 0)
+  if (tot == 0)
     return true;
-  
-  for (Int64 remaining=wbytes;remaining;)
+
+  if (!seek(pos))
+    return false;
+
+  for (Int64 remaining = tot; remaining;)
   {
-    int chunk=(remaining>=INT_MAX)? INT_MAX : (int)remaining;
+    int chunk = (remaining >= INT_MAX) ? INT_MAX : (int)remaining;
 
 #if WIN32
     int n = ::_write(this->handle, buffer, chunk);
@@ -308,31 +258,34 @@ bool File::write(const unsigned char* buffer,Int64 wbytes)
       this->cursor = -1;
       return false;
     }
-    
-    remaining-=n;
-    buffer+=n;
+
+    remaining -= n;
+    buffer += n;
   }
 
-  ApplicationStats::io.trackWriteOperation(wbytes);
+  ApplicationStats::io.trackWriteOperation(tot);
 
-  if (this->cursor>=0)
-    this->cursor += wbytes;
+  if (this->cursor >= 0)
+    this->cursor += tot;
 
   return true;
 }
 
 /////////////////////////////////////////////////////////////////////////
-bool File::read(unsigned char* buffer,Int64 rbytes)
+bool PosixFile::read(Int64 pos, Int64 tot, unsigned char* buffer)
 {
-  if (!isOpen() || rbytes<0 || !canRead()) 
+  if (!isOpen() || tot<0 || !can_read)
     return false;
 
-  if (rbytes == 0)
+  if (tot == 0)
     return true;
-  
-  for (Int64 remaining=rbytes;remaining;)
+
+  if (!seek(pos))
+    return false;
+
+  for (Int64 remaining = tot; remaining;)
   {
-    int chunk=(remaining>=INT_MAX)? INT_MAX : (int)remaining;
+    int chunk = (remaining >= INT_MAX) ? INT_MAX : (int)remaining;
 
 #if WIN32
     int n = ::_read(this->handle, buffer, chunk);
@@ -346,31 +299,171 @@ bool File::read(unsigned char* buffer,Int64 rbytes)
       return false;
     }
 
-    remaining-=n;
-    buffer+=n;
+    remaining -= n;
+    buffer += n;
   }
 
-  ApplicationStats::io.trackReadOperation(rbytes);
+  ApplicationStats::io.trackReadOperation(tot);
 
-  if (this->cursor>=0)
-    this->cursor += rbytes;
+  if (this->cursor >= 0)
+    this->cursor += tot;
 
   return true;
 }
 
+/////////////////////////////////////////////////////////////////////////
+bool PosixFile::seek(Int64 value)
+{
+  if (!isOpen())
+    return false;
+
+  // useless call
+  if (this->cursor >= 0 && this->cursor == value)
+    return true;
+
 #if WIN32
-#define PimplStat ::_stat64
+  bool bOk = ::_lseeki64(this->handle, value, SEEK_SET) >= 0;
 #else
-#define PimplStat ::stat
+  bool bOk = ::lseek(this->handle, value, SEEK_SET) >= 0;
 #endif
 
-#ifndef S_ISREG
-#  define S_ISREG(m) (((m) & S_IFMT) == S_IFREG)
+  if (!bOk) {
+    this->cursor = -1;
+    return false;
+  }
+  else
+  {
+    this->cursor = value;
+    return true;
+  }
+}
+
+///////////////////////////////////////////////////////////
+void MemoryMappedFile::close()
+{
+  if (!isOpen())
+    return;
+
+#if defined(WIN32)
+  {
+    if (mem)
+      UnmapViewOfFile(mem);
+
+    if (mapping)
+      CloseHandle(mapping);
+
+    if (file != INVALID_HANDLE_VALUE)
+      CloseHandle(file);
+
+    mapping = nullptr;
+    file = INVALID_HANDLE_VALUE;
+  }
+#else
+  {
+    if (mem)
+      munmap(mem, nbytes);
+
+    if (fd != -1)
+      close(fd);
+
+    fd = -1;
+  }
 #endif
 
-#ifndef S_ISDIR
-#  define S_ISDIR(m) (((m) & S_IFMT) == S_IFDIR)
+  this->can_read = false;
+  this->can_write = false;
+  this->nbytes = 0;
+  this->mem = nullptr;
+  this->filename = "";
+}
+
+////////////////////////////////////////////////////////////////////////
+bool MemoryMappedFile::open(String filename, String mode, bool bMustCreate)
+{
+  close();
+
+  //not supported
+  if (mode.find("w") != String::npos || bMustCreate) {
+    VisusAssert(false);
+    return false;
+  }
+
+#if defined(WIN32)
+  {
+    this->file = CreateFileA(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+
+    if (file == INVALID_HANDLE_VALUE) {
+      close();
+      return false;
+    }
+
+    this->nbytes = GetFileSize(file, nullptr);
+    this->mapping = CreateFileMapping(file, nullptr, PAGE_READONLY, 0, 0, nullptr);
+
+    if (mapping == nullptr) {
+      close();
+      return false;
+    }
+
+    this->mem = (char*)MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, 0);
+  }
+#else
+  {
+
+    this->fd = open(path, O_RDONLY);
+    if (this->fd == -1) {
+      close();
+      return false;
+    }
+
+    struct stat sb;
+    if (fstat(fd, &sb) == -1) {
+      close();
+      return false;
+    }
+
+    this->nbytes = sb.st_size;
+    this->mem = (char*)mmap(nullptr, nbytes, PROT_READ, MAP_PRIVATE, fd, 0);
+  }
 #endif
+
+  if (!mem) {
+    close();
+    return false;
+  }
+
+  this->filename = "";
+  this->can_read = mode.find("r") != String::npos;
+  this->can_write = mode.find("w") != String::npos;
+
+  ApplicationStats::io.trackOpen();
+
+  return true;
+}
+
+////////////////////////////////////////////////////////////////////////  
+bool MemoryMappedFile::write(Int64 pos, Int64 tot, const unsigned char* buffer) 
+{
+  if (!isOpen() || (pos + tot) > this->nbytes)
+    return false;
+
+  memcpy(mem + pos, buffer, (size_t)tot);
+
+  ApplicationStats::io.trackWriteOperation(tot);
+  return true;
+}
+
+////////////////////////////////////////////////////////////////////////
+bool MemoryMappedFile::read(Int64 pos, Int64 tot, unsigned char* buffer) 
+{
+  if (!isOpen() || (pos + tot) > this->nbytes)
+    return false;
+
+  memcpy(buffer, mem + pos, (size_t)tot);
+
+  ApplicationStats::io.trackReadOperation(tot);
+  return true;
+}
 
 /////////////////////////////////////////////////////////////////////////
 bool FileUtils::existsDirectory(Path path)
@@ -513,7 +606,7 @@ bool FileUtils::removeDirectory(Path path)
 /////////////////////////////////////////////////////////////////////////
 bool FileUtils::touch(Path path)
 {
-  File file;
+  PosixFile file;
   return file.createAndOpen(path.toString(),"rw");
 }
 
@@ -538,7 +631,7 @@ void FileUtils::lock(Path path)
   bool bVerboseReturn=false;
   for (int nattempt=0; ;nattempt++)
   {
-    File file;
+    PosixFile file;
     if (file.createAndOpen(lock_filename,"rw"))
     {
       file.close();
