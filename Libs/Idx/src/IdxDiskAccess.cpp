@@ -359,7 +359,7 @@ private:
   IdxFile        idxfile;
   HeapMemory     headers;
   BlockHeader*   block_headers=nullptr;
-  PosixFile      file;
+  File           file;
   String         mode;
 
   //openFile
@@ -430,8 +430,10 @@ public:
     this->file_header   = (FileHeader* )(this->headers.c_ptr());
     this->block_headers = (BlockHeader*)(this->headers.c_ptr() + sizeof(FileHeader));
 
-    this->file = std::make_shared<PosixFile>();
-    //this->file = std::make_shared<MemoryMappedFile>();
+    if (bool bUsePosix=true)
+      this->file = std::make_shared<File>();
+    else
+      this->file = std::make_shared<MemoryMappedFile>();
   }
 
   //destructor
@@ -650,46 +652,61 @@ private:
   class FileHeader
   {
   public:
-    Int32 preamble[10]; //not used
+
+    Uint32 preamble_0 = 0; //not used
+    Uint32 preamble_1 = 0;
+    Uint32 preamble_2 = 0;
+    Uint32 preamble_3 = 0;
+    Uint32 preamble_4 = 0;
+    Uint32 preamble_5 = 0;
+    Uint32 preamble_6 = 0;
+    Uint32 preamble_7 = 0;
+    Uint32 preamble_8 = 0;
+    Uint32 preamble_9 = 0;
   };
 
   //___________________________________________
   class BlockHeader
   {
-    Int32  prefix[2]; //not used
-    Int32  offset_low = 0;
-    Int32  offset_high = 0;
-    Int32  size = 0;
-    Int32  flags = 0;
-    Int32  suffix[4]; //not used
+    Uint32  prefix_0    = 0; //not used
+    Uint32  prefix_1    = 0; 
+    Uint32  offset_low  = 0;
+    Uint32  offset_high = 0;
+    Uint32  size        = 0;
+    Uint32  flags       = 0;
+    Uint32  suffix_0    = 0; //not used
+    Uint32  suffix_1    = 0; //not used
+    Uint32  suffix_2    = 0; //not used
+    Uint32  suffix_3    = 0; //not used
 
   public:
 
-    //constructor
-    BlockHeader() {
-      prefix[0] = prefix[1] = 0;
-      suffix[0] = suffix[1] = suffix[2] = suffix[3] = 0;
-    }
-
     //getOffset
     Int64 getOffset() const {
-      return (Int64(offset_low) << 0) | (Int64(offset_high) << 32);
+      Uint64 ret = (Uint64(offset_high) << 32) | (Uint64(offset_low) << 0);
+      VisusAssert((Int64)ret==ret);
+      return (Int64)ret;
     }
 
     //setOffset
     void setOffset(Int64 value) {
-      offset_low  = (Int32)(value & 0xffffffff);
-      offset_high = (Int32)(value >> 32);
+      VisusAssert(value >= 0);
+      VisusAssert(Uint64(value)==value);
+      offset_low  = (Uint32)(Uint64(value) & 0xffffffff);
+      offset_high = (Uint32)(Uint64(value) >> 32);
+      VisusAssert(value == getOffset());
     }
 
     //getSize
     Int32 getSize() const {
-      return size; 
+      VisusAssert((Int32)size == size);
+      return (Int32)size;
     }
     
     //setSize
-    void  setSize(Int32 value) { 
-      size = value; 
+    void setSize(Int32 value) {
+      VisusAssert(value >= 0);
+      this->size = (Uint32)value; 
     }
 
     //getLayout
@@ -739,7 +756,7 @@ private:
   HeapMemory      headers;
   FileHeader*     file_header=nullptr;
   BlockHeader*    block_headers = nullptr;
-  SharedPtr<File> file;
+  SharedPtr<AbstractFile> file;
   String          mode;
 
   //re-entrant file lock
@@ -777,8 +794,11 @@ private:
         return false;
       }
 
-      auto ptr = (Int32*)(this->headers.c_ptr());
-      for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
+      // network to host order
+      // note:  network byte order is defined to always be big-endian
+      // Intel x86 are  little-endian
+      auto ptr = (Uint32*)(this->headers.c_ptr());
+      for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Uint32); I < Tot; I++)
         ptr[I] = ntohl(ptr[I]);
 
       return true;
@@ -827,8 +847,11 @@ private:
     //need to write the headers
     if (this->file->canWrite())
     {
-      auto ptr = (Int32*)(this->headers.c_ptr());
-      for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
+      // host to network order
+      // note:  network byte order is defined to always be big-endian
+      // Intel x86 are  little-endian
+      auto ptr = (Uint32*)(this->headers.c_ptr());
+      for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Uint32); I < Tot; I++)
         ptr[I] = htonl(ptr[I]);
 
       if (!this->file->write(0, this->headers.c_size(), this->headers.c_ptr()))

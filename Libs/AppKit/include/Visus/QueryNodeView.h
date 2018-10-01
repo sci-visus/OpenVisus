@@ -318,7 +318,7 @@ private:
       filename << "_f_" << query->field.name;
       filename << ".raw";
 
-      PosixFile data_file;
+      File data_file;
       if (data_file.createAndOpen(filename.str(),"rw"))
       {
         if (!data_file.write(0, query->buffer.c_size(), query->buffer.c_ptr()))

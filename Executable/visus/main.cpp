@@ -1582,7 +1582,7 @@ public:
     {
       FileUtils::removeFile(filename);
 
-      PosixFile file;
+      File file;
       if(!file.createAndOpen(filename,"w"))
         ThrowException(StringUtils::format() << args[0] <<" TestWriteIO, file.open"<<filename<<",\"wb\") failed");
 
@@ -1606,7 +1606,7 @@ public:
     }
     else
     {
-      PosixFile file;
+      File file;
       if(!file.open(filename,"r"))
         ThrowException(StringUtils::format() << args[0] <<" file.open("<<filename<<",'r') failed");
 

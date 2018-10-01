@@ -46,18 +46,18 @@ For support : support@visus.net
 namespace Visus {
 
   ////////////////////////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API File
+class VISUS_KERNEL_API AbstractFile
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(File)
+  VISUS_NON_COPYABLE_CLASS(AbstractFile)
 
   //constructor
-  File(){
+  AbstractFile(){
   }
 
   //destructor
-  virtual ~File() {
+  virtual ~AbstractFile() {
   }
 
   //isOpen
@@ -103,16 +103,16 @@ public:
 
 
 /////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API PosixFile : public File
+class VISUS_KERNEL_API File : public AbstractFile
 {
 public:
 
   //constructor
-  PosixFile() {
+  File() {
   }
 
   //destructor
-  virtual ~PosixFile() {
+  virtual ~File() {
     close();
   }
 
@@ -167,7 +167,7 @@ private:
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API MemoryMappedFile : public File
+class VISUS_KERNEL_API MemoryMappedFile : public AbstractFile
 {
 public:
 
@@ -225,7 +225,7 @@ public:
 
   //c_ptr
   char* c_ptr() const {
-    VisusAssert(isOpen() && mode.find("w") != String::npos);
+    VisusAssert(isOpen() && !can_write);
     return mem;
   }
 

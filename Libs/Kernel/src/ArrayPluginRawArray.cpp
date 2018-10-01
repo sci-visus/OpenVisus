@@ -122,7 +122,7 @@ Array RawArrayPlugin::handleLoadImage(String url_,std::vector<String> args)
   }
 
   //try to open the binary file
-  PosixFile file;
+  File file;
   if (!file.open(filename,"r"))
   {
     VisusWarning()<<"file.open("<<filename<<",\"rb\") failed"<<filename;
@@ -159,7 +159,7 @@ bool RawArrayPlugin::handleSaveImage(String url_,Array src,std::vector<String> a
 
   FileUtils::removeFile(filename);
 
-  PosixFile file;
+  File file;
   if (!file.createAndOpen(filename,"w"))
   {
     VisusWarning()<<"RawArrayPlugin::handleSaveImage ERROR, failed to file.open("<<filename<<",\"wb\")";

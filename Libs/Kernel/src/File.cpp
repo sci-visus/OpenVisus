@@ -126,7 +126,7 @@ static String GetOpenErrorExplanation()
 
 
 /////////////////////////////////////////////////////////////////////////
-bool PosixFile::open(String filename, String mode, bool bMustCreate)
+bool File::open(String filename, String mode, bool bMustCreate)
 {
   bool bRead = StringUtils::contains(mode, "r");
   bool bWrite = StringUtils::contains(mode, "w");
@@ -191,7 +191,7 @@ bool PosixFile::open(String filename, String mode, bool bMustCreate)
 }
 
 /////////////////////////////////////////////////////////////////////////
-void PosixFile::close()
+void File::close()
 {
   if (!isOpen())
     return;
@@ -210,7 +210,7 @@ void PosixFile::close()
 }
 
 /////////////////////////////////////////////////////////////////////////
-Int64 PosixFile::size()
+Int64 File::size()
 {
   if (!isOpen())
     return false;
@@ -232,7 +232,7 @@ Int64 PosixFile::size()
 }
 
 /////////////////////////////////////////////////////////////////////////
-bool PosixFile::write(Int64 pos, Int64 tot, const unsigned char* buffer)
+bool File::write(Int64 pos, Int64 tot, const unsigned char* buffer)
 {
   if (!isOpen() || tot<0 || !can_write)
     return false;
@@ -272,7 +272,7 @@ bool PosixFile::write(Int64 pos, Int64 tot, const unsigned char* buffer)
 }
 
 /////////////////////////////////////////////////////////////////////////
-bool PosixFile::read(Int64 pos, Int64 tot, unsigned char* buffer)
+bool File::read(Int64 pos, Int64 tot, unsigned char* buffer)
 {
   if (!isOpen() || tot<0 || !can_read)
     return false;
@@ -312,7 +312,7 @@ bool PosixFile::read(Int64 pos, Int64 tot, unsigned char* buffer)
 }
 
 /////////////////////////////////////////////////////////////////////////
-bool PosixFile::seek(Int64 value)
+bool File::seek(Int64 value)
 {
   if (!isOpen())
     return false;
@@ -606,7 +606,7 @@ bool FileUtils::removeDirectory(Path path)
 /////////////////////////////////////////////////////////////////////////
 bool FileUtils::touch(Path path)
 {
-  PosixFile file;
+  File file;
   return file.createAndOpen(path.toString(),"rw");
 }
 
@@ -631,7 +631,7 @@ void FileUtils::lock(Path path)
   bool bVerboseReturn=false;
   for (int nattempt=0; ;nattempt++)
   {
-    PosixFile file;
+    File file;
     if (file.createAndOpen(lock_filename,"rw"))
     {
       file.close();

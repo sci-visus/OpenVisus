@@ -139,7 +139,7 @@ void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
   if (!encoded->resize(FileUtils::getFileSize(filename),__FILE__,__LINE__))
     return readFailed(query);
 
-  PosixFile file;
+  File file;
   if (!file.open(filename,"r"))
     return readFailed(query);
 
@@ -182,7 +182,7 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
 
   FileUtils::removeFile(filename);
 
-  PosixFile file;
+  File file;
   if (!file.createAndOpen(filename,"w"))
   {
     VisusInfo()<<"Failed to write block filename("<<filename<<") cannot create file and/or directory";

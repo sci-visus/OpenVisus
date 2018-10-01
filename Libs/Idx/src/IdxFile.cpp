@@ -168,11 +168,26 @@ void IdxFile::validate(Url url)
     this->bitsperblock=bitmask.getMaxResolution();
   }
 
-  //blocksperfile
+  //need to guess blocksperfile
   if (blocksperfile==0)
   {
+    //compute overall blockdim (ignoring the headers)
+    int overall_blockdim = 0;
+    for (auto field : this->fields)
+      overall_blockdim += (int)field.dtype.getByteSize((Int64)1 << bitsperblock);
+
+    //probably the file will be compressed and I will have a compression ratio at least of 50%, so the file size won't be larger than 16mb
+    const double likely_compression_ratio = 0.5;
+    const int mb = 1024 * 1024;
+    const int target_compressed_filesize = 16 * mb;
+    const int target_uncompressed_filesize = target_compressed_filesize / likely_compression_ratio;
+
+    blocksperfile = target_uncompressed_filesize/ overall_blockdim;
+
     Int64 totblocks=((Int64)1)<<(bitmask.getMaxResolution()-bitsperblock);
-    blocksperfile = (int)std::min(totblocks, (Int64)256);
+
+    if (blocksperfile > totblocks)
+      blocksperfile = totblocks;
   }
 
   if (blocksperfile<=0)

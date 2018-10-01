@@ -1,0 +1,35 @@
+
+produced huge 1TB 2kbit1 8k*8k*16k (see create_huge.py script)
+simply taking 2kbit 1 and replicating 4x4x8
+
+test-query-speed "F:\Google Drive sci.utah.edu\visus_dataset\2kbit1\huge\lz4\rowmajor\blocks_per_file_256\visus.idx" --query-dim 512
+	compressed size=94.5GB
+	65,793 Files, 257 Folders
+	0000.bin size(2.56mb)
+	avg sec per query(1.83005)
+
+test-query-speed "F:\Google Drive sci.utah.edu\visus_dataset\2kbit1\huge\lz4\rowmajor\blocks_per_file_2048\visus.idx" --query-dim 512
+	compressed=94.4GB
+	8,233 Files, 256 Folders
+	0000.bin size(29.5mb)
+	avg sec per query(1.19678)
+
+test-query-speed "F:\Google Drive sci.utah.edu\visus_dataset\2kbit1\huge\lz4\rowmajor\blocks_per_file_65536\visus.idx" --query-dim 512
+	compressed=94.3GB
+	513 Files, 256 Folders
+	0000.bin size(717mb)
+	avg sec per query(0.841845)
+
+
+Idea: use of MemoryMappedFile with very big few files?
+Added a MemoryMappedFile read only class (for write it's a LOT MORE COMPLICATE)
+
+test-query-speed "F:\Google Drive sci.utah.edu\visus_dataset\2kbit1\huge\lz4\rowmajor\blocks_per_file_256\visus.idx" --query-dim 512
+	avg(1.99196) NO REAL SPEEDUP
+
+test-query-speed "F:\Google Drive sci.utah.edu\visus_dataset\2kbit1\huge\lz4\rowmajor\blocks_per_file_2048\visus.idx" --query-dim 512
+	avg(1.50335) LITTE SLOWER
+
+test-query-speed "F:\Google Drive sci.utah.edu\visus_dataset\2kbit1\huge\lz4\rowmajor\blocks_per_file_65536\visus.idx" --query-dim 512
+	avg(10.3378) VERY BAD!
+
