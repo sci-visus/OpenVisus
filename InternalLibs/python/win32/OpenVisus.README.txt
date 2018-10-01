@@ -11,3 +11,5 @@ To customize it for the use in OpenVIsus:
 (*) Added libs directory
 
 (*) Added https://bootstrap.pypa.io/get-pip.py 
+
+(*) Removed *._pth file

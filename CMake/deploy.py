@@ -94,61 +94,45 @@ class Win32DeployStep(BaseDeployStep):
 		
 		# if VISUS_INTERNAL_PYTHON I want to be able to install new pip packages...
 		VISUS_INTERNAL_PYTHON=os.path.isdir("Python36")
+		
 		if VISUS_INTERNAL_PYTHON:
-			
+		
 			if os.path.isfile("Python36/python36.zip"):
 				import zipfile
 				zipper = zipfile.ZipFile("Python36/python36.zip", 'r')
 				zipper.extractall("Python36/lib")
 				zipper.close()	
 				os.remove("Python36/python36.zip")		
-				
-			self.writeTextFile("Python36/python36._pth",[
-				".",
-				".\\Lib",
-				".\\Lib\\site-packages",
-				"..\\",
-				"import site"
-			])
-				
-			# install python dependencies
+
+			# install python pip
 			if not os.path.isfile("Python36\\Scripts\\pip.exe"):
 				self.executeCommand(["Python36\\python.exe","python36\\get-pip.py"])
 			
-			self.executeCommand(["Python36\\Scripts\\pip.exe","install","numpy","pymap3d","PyQt5"])
-
-		for exe in ("bin\\visusviewer.exe","bin\\visus.exe"):
-			
-			name=self.getFileNameWithoutExtension(exe)	
-			
-			PATH=[]
-			
-			QT_PLUGIN_PATH="%cd%\\.\\bin\\plugins"
-			
-			# important that pyqt comes first! otherwise PyQt5 and Qt5 will fight
-			if VISUS_INTERNAL_PYTHON:
-				PATH+=[
-					"%cd%\\Python36",
-					"%cd%\\Python36\\Scripts",
-					"%cd%\\Python36\\lib\\site-packages\\PyQt5\\Qt\\bin"
-				]
-				QT_PLUGIN_PATH="%cd%\\Python36\\lib\\site-packages\\PyQt5\\Qt\\plugins"
-				
-			PATH+=["%cd%\\bin"]
-			PATH+=["%PATH%"]
-
-			# create a batch file
-			self.writeTextFile("%s.bat" % (name,),[
-				"cd /d %~dp0",
-				"set PATH=\"%s\"" % ("\";\"".join(PATH),),
-				"set QT_PLUGIN_PATH=\"%s\"" % (QT_PLUGIN_PATH,),
-				"set PYTHONPATH=\"%cd%\\Python36\"" if VISUS_INTERNAL_PYTHON else "",
-				exe + " %*"
-			])
+		self.writeTextFile("visus.bat",[
+			r'cd /d %~dp0',
+			r'set this_dir=%cd%',
+			r'set PYTHONHOME=%this_dir%\Python36',
+			r'set PATH="%PYTHONHOME%";"%PYTHONHOME%\lib\site-packages\PyQt5\Qt\bin";"%this_dir%\bin";%PATH%', 
+			r'set QT_PLUGIN_PATH="%PYTHONHOME%\lib\site-packages\PyQt5\Qt\plugins"',
+			r'python.exe -m pip install -U pip setuptools',
+			r'python.exe -m pip install numpy PyQt5',
+			r'bin\visus.exe %*'
+		])
 		
-			# deploy using qt
-			deployqt=os.path.realpath(self.qt_directory+"/bin/windeployqt")
-			self.executeCommand([deployqt,exe, "--libdir","bin","--plugindir","bin\\plugins","--no-translations"])
+		self.writeTextFile("visusviewer.bat",[
+			r'cd /d %~dp0',
+			r'set this_dir=%cd%',
+			r'set PYTHONHOME=%this_dir%\Python36',
+			r'set PATH="%PYTHONHOME%";"%PYTHONHOME%\lib\site-packages\PyQt5\Qt\bin";"%this_dir%\bin";%PATH%', 
+			r'set QT_PLUGIN_PATH="%PYTHONHOME%\lib\site-packages\PyQt5\Qt\plugins',
+			r'python.exe -m pip install -U pip setuptools',
+			r'python.exe -m pip install numpy PyQt5',
+			r'bin\visusviewer.exe %*'
+		])	
+		
+		# deploy using qt
+		deployqt=os.path.realpath(self.qt_directory+"/bin/windeployqt")
+		self.executeCommand([deployqt,"bin\\visusviewer.exe", "--libdir","bin","--plugindir","bin\\plugins","--no-translations"])
 
 
 
