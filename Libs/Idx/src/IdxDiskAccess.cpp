@@ -46,15 +46,7 @@ For support : support@visus.net
 #include <Visus/IdxHzOrder.h>
 #include <Visus/VisusConfig.h>
 #include <Visus/ApplicationInfo.h>
-
-#if WIN32
-#pragma warning(disable:4996)
-#include <WinSock2.h>
-#elif __APPLE__
-/*pass*/
-#else
-#include <netinet/in.h>
-#endif
+#include <Visus/ByteOrder.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -303,13 +295,10 @@ public:
       if (bVerbose)
         VisusInfo() << "Swapping endian notation for Float32 type";
 
-      auto ptr = query->buffer.c_ptr<Float32*>();
+      Float32* ptr = query->buffer.c_ptr<Float32*>();
 
-      for (int I = 0, N = (int)(query->buffer.c_size() / sizeof(Float32)); I<N; I++, ptr++)
-      {
-        u_long temp = ntohl(*((u_long*)ptr));
-        *ptr = *((Float32*)(&temp));
-      }
+      for (int I = 0, N = (int)(query->buffer.c_size() / sizeof(Float32)); I<N; I++)
+        ptr[I] = ByteOrder::fromNetworkByteOrder(ptr[I]);
     }
 
     if (bVerbose)
@@ -392,9 +381,9 @@ private:
     }
 
 
-    auto ptr = (Int32*)(this->headers.c_ptr());
+    Int32* ptr = (Int32*)(this->headers.c_ptr());
     for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Int32); I < Tot; I++)
-      ptr[I] = ntohl(ptr[I]);
+      ptr[I] = ByteOrder::fromNetworkByteOrder(ptr[I]);
 
     return true;
   }
@@ -795,11 +784,9 @@ private:
       }
 
       // network to host order
-      // note:  network byte order is defined to always be big-endian
-      // Intel x86 are  little-endian
-      auto ptr = (Uint32*)(this->headers.c_ptr());
+      Uint32* ptr = (Uint32*)(this->headers.c_ptr());
       for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Uint32); I < Tot; I++)
-        ptr[I] = ntohl(ptr[I]);
+        ptr[I] = ByteOrder::fromNetworkByteOrder(ptr[I]);
 
       return true;
     }
@@ -847,12 +834,9 @@ private:
     //need to write the headers
     if (this->file->canWrite())
     {
-      // host to network order
-      // note:  network byte order is defined to always be big-endian
-      // Intel x86 are  little-endian
       auto ptr = (Uint32*)(this->headers.c_ptr());
       for (int I = 0, Tot = (int)this->headers.c_size() / (int)sizeof(Uint32); I < Tot; I++)
-        ptr[I] = htonl(ptr[I]);
+        ptr[I] = ByteOrder::toNetworkByteOrder(ptr[I]);
 
       if (!this->file->write(0, this->headers.c_size(), this->headers.c_ptr()))
       {

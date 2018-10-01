@@ -180,14 +180,14 @@ void IdxFile::validate(Url url)
     const double likely_compression_ratio = 0.5;
     const int mb = 1024 * 1024;
     const int target_compressed_filesize = 16 * mb;
-    const int target_uncompressed_filesize = target_compressed_filesize / likely_compression_ratio;
+    const int target_uncompressed_filesize = (int)(target_compressed_filesize  / likely_compression_ratio);
 
     blocksperfile = target_uncompressed_filesize/ overall_blockdim;
 
     Int64 totblocks=((Int64)1)<<(bitmask.getMaxResolution()-bitsperblock);
 
     if (blocksperfile > totblocks)
-      blocksperfile = totblocks;
+      blocksperfile = (int)totblocks;
   }
 
   if (blocksperfile<=0)

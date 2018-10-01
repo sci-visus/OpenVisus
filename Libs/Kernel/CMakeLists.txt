@@ -91,6 +91,8 @@ set(CoreSources
 	./src/ApplicationInfo.cpp
 	./include/Visus/VisusConfig.h
 	./src/VisusConfig.cpp
+	./include/Visus/ByteOrder.h
+	./src/ByteOrder.cpp
 	)
 
 IF (WIN32 OR APPLE)
