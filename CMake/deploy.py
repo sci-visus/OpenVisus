@@ -112,8 +112,8 @@ class Win32DeployStep(BaseDeployStep):
 			r'cd /d %~dp0',
 			r'set this_dir=%cd%',
 			r'set PYTHONHOME=%this_dir%\Python36',
-			r'set PATH="%PYTHONHOME%";"%PYTHONHOME%\lib\site-packages\PyQt5\Qt\bin";"%this_dir%\bin";%PATH%', 
-			r'set QT_PLUGIN_PATH="%PYTHONHOME%\lib\site-packages\PyQt5\Qt\plugins"',
+			r'set PATH=%PYTHONHOME%;%PYTHONHOME%\lib\site-packages\PyQt5\Qt\bin;%this_dir%\bin;%PATH%', 
+			r'set QT_PLUGIN_PATH=%PYTHONHOME%\lib\site-packages\PyQt5\Qt\plugins',
 			r'python.exe -m pip install -U pip setuptools',
 			r'python.exe -m pip install numpy PyQt5',
 			r'bin\visus.exe %*'
@@ -123,8 +123,8 @@ class Win32DeployStep(BaseDeployStep):
 			r'cd /d %~dp0',
 			r'set this_dir=%cd%',
 			r'set PYTHONHOME=%this_dir%\Python36',
-			r'set PATH="%PYTHONHOME%";"%PYTHONHOME%\lib\site-packages\PyQt5\Qt\bin";"%this_dir%\bin";%PATH%', 
-			r'set QT_PLUGIN_PATH="%PYTHONHOME%\lib\site-packages\PyQt5\Qt\plugins',
+			r'set PATH=%PYTHONHOME%;%PYTHONHOME%\lib\site-packages\PyQt5\Qt\bin;%this_dir%\bin;%PATH%', 
+			r'set QT_PLUGIN_PATH=%PYTHONHOME%\lib\site-packages\PyQt5\Qt\plugins',
 			r'python.exe -m pip install -U pip setuptools',
 			r'python.exe -m pip install numpy PyQt5',
 			r'bin\visusviewer.exe %*'

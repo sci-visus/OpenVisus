@@ -258,8 +258,18 @@ if (True)
 		install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
 	endif()
 	
+	if (WIN32)
+	
+		if (OpenMP_FOUND)
+			set(CMAKE_INSTALL_OPENMP_LIBRARIES 1)
+		endif()	
+
+		include(InstallRequiredSystemLibraries)
+		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION bin COMPONENT Libraries)
+	endif()
+	
 	add_custom_target(deploy 
-		"${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --qt-directory "${Qt5_DIR}" 
+		"${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --qt-directory "${Qt5_DIR}"  
 		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}"
 	)
 	
