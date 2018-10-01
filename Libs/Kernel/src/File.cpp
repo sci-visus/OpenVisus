@@ -364,9 +364,10 @@ void MemoryMappedFile::close()
       munmap(mem, nbytes);
 
     if (fd != -1)
-      close(fd);
-
-    fd = -1;
+    {
+      ::close(fd);
+      fd = -1;
+    }
   }
 #endif
 
