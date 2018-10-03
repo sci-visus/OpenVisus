@@ -241,7 +241,7 @@ else()
 	target_link_libraries(VisusKernel      PUBLIC ${CURL_LIBRARIES})
 endif()
 
-if (NOT VISUS_INTERNAL_PYTHON)
+if (NOT TARGET python)
 	target_include_directories(VisusKernel PUBLIC  ${PYTHON_INCLUDE_DIRS})
 endif()
 
@@ -268,10 +268,10 @@ add_custom_command(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E cop
 
 
 # link python
-if (VISUS_INTERNAL_PYTHON)
+if (TARGET python)
 
 	target_link_libraries(VisusKernel PUBLIC python)
-	
+
 elseif (WIN32)
 
 	list(FIND PYTHON_LIBRARY optimized __index__)

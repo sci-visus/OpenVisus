@@ -1,23 +1,60 @@
 import os, sys, setuptools
 import shutil
+import platform
 
 #increase this number for PIP
 VERSION="1.2.35"
 
+WIN32=platform.system()=="Windows" or platform.system()=="win32"
+APPLE=platform.system()=="Darwin"
+SDIST="sdist" in sys.argv
+
 # ////////////////////////////////////////////////////////////////////
 def cleanAll():
 	shutil.rmtree('./build', ignore_errors=True)
-	shutil.rmtree('./dist', ignore_errors=True)
 	shutil.rmtree('./OpenVisus.egg-info', ignore_errors=True)
 	shutil.rmtree('./__pycache__', ignore_errors=True)
 	
+	
 # ////////////////////////////////////////////////////////////////////
 def findFilesInCurrentDirectory():
+	
 	ret=[]
+	
 	for dirpath, __dirnames__, filenames in os.walk("."):
-	  for filename in filenames:
-	    file= os.path.abspath(os.path.join(dirpath, filename))
-	    ret.append(file)
+		for it in filenames:
+
+			filename= os.path.abspath(os.path.join(dirpath, it))
+
+			if filename.startswith(os.path.abspath('./dist')): 
+				continue
+				
+			if os.path.basename(filename).startswith(".git"): 
+				continue	    	
+
+			if not SDIST:
+
+				if filename.startswith(os.path.abspath('./lib')): 
+					continue
+					
+				if filename.startswith(os.path.abspath('./include')): 
+					continue		    	
+
+				if WIN32:
+					if filename.startswith(os.path.abspath('./win32/python')): 
+						continue
+						
+					if filename.endswith(".pdb"): 
+						continue
+						
+					if filename.startswith(os.path.abspath('./bin')) and os.path.basename(filename).startswith("Qt5") and os.path.basename(filename).endswith(".dll"): 
+						continue
+						
+					if filename.startswith(os.path.abspath('./bin/plugins')): 
+						continue		    	
+
+			ret.append(filename)
+			
 	return ret
 	
 

@@ -7,6 +7,9 @@ import shutil
 import platform
 import errno
 
+WIN32=platform.system()=="Windows" or platform.system()=="win32"
+APPLE=platform.system()=="Darwin"
+
 qt_plugins=("iconengines","imageformats","platforms","printsupport","styles")
 
 bVerbose=False
@@ -91,44 +94,6 @@ class Win32DeployStep(BaseDeployStep):
 
 	# run
 	def run(self):
-		
-		# if VISUS_INTERNAL_PYTHON I want to be able to install new pip packages...
-		VISUS_INTERNAL_PYTHON=os.path.isdir("Python36")
-		
-		if VISUS_INTERNAL_PYTHON:
-		
-			if os.path.isfile("Python36/python36.zip"):
-				import zipfile
-				zipper = zipfile.ZipFile("Python36/python36.zip", 'r')
-				zipper.extractall("Python36/lib")
-				zipper.close()	
-				os.remove("Python36/python36.zip")		
-
-			# install python pip
-			if not os.path.isfile("Python36\\Scripts\\pip.exe"):
-				self.executeCommand(["Python36\\python.exe","python36\\get-pip.py"])
-			
-		self.writeTextFile("visus.bat",[
-			r'cd /d %~dp0',
-			r'set this_dir=%cd%',
-			r'set PYTHONHOME=%this_dir%\Python36',
-			r'set PATH=%PYTHONHOME%;%PYTHONHOME%\lib\site-packages\PyQt5\Qt\bin;%this_dir%\bin;%PATH%', 
-			r'set QT_PLUGIN_PATH=%PYTHONHOME%\lib\site-packages\PyQt5\Qt\plugins',
-			r'python.exe -m pip install -U pip setuptools',
-			r'python.exe -m pip install numpy PyQt5',
-			r'bin\visus.exe %*'
-		])
-		
-		self.writeTextFile("visusviewer.bat",[
-			r'cd /d %~dp0',
-			r'set this_dir=%cd%',
-			r'set PYTHONHOME=%this_dir%\Python36',
-			r'set PATH=%PYTHONHOME%;%PYTHONHOME%\lib\site-packages\PyQt5\Qt\bin;%this_dir%\bin;%PATH%', 
-			r'set QT_PLUGIN_PATH=%PYTHONHOME%\lib\site-packages\PyQt5\Qt\plugins',
-			r'python.exe -m pip install -U pip setuptools',
-			r'python.exe -m pip install numpy PyQt5',
-			r'bin\visusviewer.exe %*'
-		])	
 		
 		# deploy using qt
 		deployqt=os.path.realpath(self.qt_directory+"/bin/windeployqt")
@@ -566,12 +531,12 @@ if __name__ == "__main__":
 	print("  platform.system()",platform.system())	
 	print("  qt_directory",qt_directory)	
 
-	if platform.system()=="Windows" or platform.system()=="win32":
+	if WIN32:
 		deploy=Win32DeployStep()
 		deploy.qt_directory=os.path.realpath(qt_directory+"/../../..")
 		deploy.run()
 		
-	elif platform.system()=="Darwin":
+	elif APPLE:
 		deploy=AppleDeployStep()
 		deploy.qt_directory=os.path.realpath(qt_directory+"/../../..")
 		deploy.run()

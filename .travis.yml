@@ -109,8 +109,7 @@ matrix:
           COMPILER=g++-4.9,
           PYTHON_INCLUDE_DIR=/usr/include/python2.7,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython2.7.so,
-          PYTHON_EXECUTABLE=/usr/bin/python2.7,
-          PLAT_NAME=utuntu14
+          PYTHON_EXECUTABLE=/usr/bin/python2.7
         ]
       addons: 
         apt:
@@ -124,8 +123,7 @@ matrix:
           COMPILER=g++-4.9,
           PYTHON_INCLUDE_DIR=/usr/include/python3.6m,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so,
-          PYTHON_EXECUTABLE=/usr/bin/python3.6,
-          PLAT_NAME=utuntu14
+          PYTHON_EXECUTABLE=/usr/bin/python3.6
         ]       
       addons: 
         apt:
@@ -140,8 +138,7 @@ matrix:
           COMPILER=g++-4.9,
           PYTHON_INCLUDE_DIR=/usr/include/python3.4m,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.4m.so,
-          PYTHON_EXECUTABLE=/usr/bin/python3.4,
-          PLAT_NAME=utuntu14
+          PYTHON_EXECUTABLE=/usr/bin/python3.4
         ]
       addons: 
         apt:
@@ -156,8 +153,7 @@ matrix:
           COMPILER=g++-4.9,
           PYTHON_INCLUDE_DIR=/usr/include/python3.5m,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.5m.so,
-          PYTHON_EXECUTABLE=/usr/bin/python3.5,
-          PLAT_NAME=utuntu14
+          PYTHON_EXECUTABLE=/usr/bin/python3.5
         ]
       addons: 
         apt:
@@ -180,8 +176,8 @@ script:
         eval "$(pyenv virtualenv-init -)"
         CONFIGURE_OPTS=--enable-shared pyenv install -s $PYTHON_VERSION    
         CONFIGURE_OPTS=--enable-shared pyenv global     $PYTHON_VERSION 
-        python -m pip install --upgrade pip
-        python -m pip install numpy setuptools wheel twine          
+        python -m pip install --user --upgrade pip
+        python -m pip install --user --upgrade numpy setuptools wheel twine          
                 
         #  brew install dependencies
         brew install swig qt5 
@@ -189,7 +185,7 @@ script:
         gem install xcpretty    # this is to solve logs too long          
         
         cd "${TRAVIS_BUILD_DIR}" && mkdir build && cd build      
-        cmake -GXcode -DPYTHON_VERSION=${PYTHON_VERSION} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR} -DPYTHON_LIBRARY=${PYTHON_LIBRARY} -DQt5_DIR=${QT5_DIR} ../
+        cmake -GXcode -DPYTHON_VERSION=${PYTHON_VERSION} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR} -DPYTHON_LIBRARY=${PYTHON_LIBRARY} -DQt5_DIR=${QT5_DIR} -DPYPI_USERNAME=$PYPI_USERNAME -DPYPI_PASSWORD=$PYPI_PASSWORD ../
         set -o pipefail &&  cmake --build ./ --target ALL_BUILD   --config $BUILD_TYPE | xcpretty -c
         cmake --build ./                     --target RUN_TESTS   --config $BUILD_TYPE
         
@@ -197,19 +193,8 @@ script:
         if [ -n "$TRAVIS_TAG" ]; then 
         		cmake --build ./  --target install  --config $BUILD_TYPE  
         		cmake --build ./  --target deploy   --config $BUILD_TYPE 
-        		cd install
-        		PYTHON_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}
-        		PLAT_NAME=macosx_${APPLE_OSX_VERSION:0:2}_${APPLE_OSX_VERSION:3:2}_x86_64
-        		${PYTHON_EXECUTABLE} setup.py -q sdist bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PLAT_NAME
-        		
-        		# upload to Pypi
-        		echo "[distutils]"                > $HOME/.pypirc
-        		echo "index-servers ="           >> $HOME/.pypirc
-        		echo "    pypi"                  >> $HOME/.pypirc
-        		echo "[pypi]"                    >> $HOME/.pypirc
-        		echo "username=$PYPI_USERNAME"   >> $HOME/.pypirc
-        		echo "password=$PYPI_PASSWORD"   >> $HOME/.pypirc
-        		python -m twine upload --skip-existing dist/*.whl  
+        		cmake --build ./  --target dist     --config $BUILD_TYPE 
+        		cmake --build ./  --target pypi     --config $BUILD_TYPE
         fi
       fi 
       
@@ -222,8 +207,8 @@ script:
         sudo apt-get -qy install --allow-unauthenticated swig3.0 git cmake libssl-dev uuid-dev qt5-default qttools5-dev-tools libx11-xcb1 python${PYTHON_VERSION} python${PYTHON_VERSION}-dev
         curl -L https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
         sudo -H python${PYTHON_VERSION} /tmp/get-pip.py
-        sudo -H python${PYTHON_VERSION} -m pip install --upgrade pip
-        sudo -H python${PYTHON_VERSION} -m pip install numpy setuptools wheel twine
+        sudo -H python${PYTHON_VERSION} -m pip install --user --upgrade pip
+        sudo -H python${PYTHON_VERSION} -m pip install --user --upgrade numpy setuptools wheel twine
         
         # install qt 5.9.1
         sudo add-apt-repository ppa:beineri/opt-qt591-trusty -y; 
@@ -238,19 +223,17 @@ script:
         export PATH=${TRAVIS_BUILD_DIR}/deps/cmake/bin:${PATH}        
       
         cd "${TRAVIS_BUILD_DIR}" && mkdir build && cd build  
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DPYTHON_VERSION=${PYTHON_VERSION} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR} -DPYTHON_LIBRARY=${PYTHON_LIBRARY} ../
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DPYTHON_VERSION=${PYTHON_VERSION} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR} -DPYTHON_LIBRARY=${PYTHON_LIBRARY} -DPYPI_USERNAME=$PYPI_USERNAME -DPYPI_PASSWORD=$PYPI_PASSWORD ../
         cmake --build ./ --target all
         cmake --build ./ --target test
         
         # if there is a tag, create the wheel and tar.gz
         if [ -n "$TRAVIS_TAG" ]; then 
         		cmake --build ./ --target install  
-        		cmake --build ./ --target deploy 
-        		cd install 
-        		PYTHON_TAG=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}
-        		${PYTHON_EXECUTABLE} setup.py -q sdist bdist_wheel --python-tag=$PYTHON_TAG --plat-name=$PLAT_NAME
-        		
+        		cmake --build ./ --target deploy   
+        		cmake --build ./ --target dist 
         		# not uploading to PyPi since it will be refused (not using manylinux)
+        		# cmake --build ./  --target pypi 
         fi
       fi    
 

@@ -23,6 +23,3 @@ if (VISUS_INTERNAL_CURL)
 	add_subdirectory(curl)
 endif()
 
-if (VISUS_INTERNAL_PYTHON)
-	add_subdirectory(python)
-endif()

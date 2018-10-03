@@ -111,7 +111,25 @@ macro(SetupCommonCMake)
 	
 endmacro()
 
+# //////////////////////////////////////////////////////////////////////////
+macro(Win32CreateBatchFile filename command packages)
 
+	file(WRITE   "${filename}" "cd /d %~dp0\r\n")
+	file(APPEND  "${filename}" "if EXIST %cd%\\win32\\Python (set PYTHONHOME=%cd%\\win32\\Python) else (set PYTHONHOME=%cd%\\..\\..\\..\\) \r\n")
+	file(APPEND  "${filename}" "%PYTHONHOME%\\python.exe -m pip install --user --upgrade ${packages}\r\n")
+	file(APPEND  "${filename}" "set PATH=%PYTHONHOME%;%cd%\\bin;%PATH%\r\n")
+	
+	string(FIND "${packages}" "PyQt5" bGui)
+	
+	if (${bGui} GREATER -1)
+		file(APPEND  "${filename}" "FOR /F \"tokens=* USEBACKQ\" %%F IN (`%PYTHONHOME%\\python.exe -c \"import os,PyQt5; print(os.path.dirname(PyQt5.__file__))\"`) DO (SET PyQt5_DIR=%%F)\r\n")
+		file(APPEND  "${filename}" "set PATH=%PyQt5_DIR%\\Qt\\bin;%PATH%\r\n")
+		file(APPEND  "${filename}" "set QT_PLUGIN_PATH=%PyQt5_DIR%\\Qt\\plugins\r\n")
+	endif()
+	
+	file(APPEND  "${filename}" "${command} %*\r\n")
+
+endmacro()
 
 # //////////////////////////////////////////////////////////////////////////
 macro(FindOpenMP bRequired)
