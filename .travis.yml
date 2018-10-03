@@ -200,8 +200,15 @@ script:
       
     - |     
       if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then 
+
         #  install patchelf
-        sudo apt-get install patchelf
+        curl -L https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz -o /tmp/patchelf-0.9.tar.gz
+        cd /tmp
+        tar xvzf patchelf-0.9.tar.gz && cd patchelf*
+        ./configure 
+        make 
+        sudo make install
+        export PATH=$PATH:/usr/local/bin
       
         #  install linux dependencies
         sudo add-apt-repository -y ppa:deadsnakes/ppa
