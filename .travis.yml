@@ -200,6 +200,8 @@ script:
       
     - |     
       if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then 
+        #  install patchelf
+        sudo apt-get install patchelf
       
         #  install linux dependencies
         sudo add-apt-repository -y ppa:deadsnakes/ppa
