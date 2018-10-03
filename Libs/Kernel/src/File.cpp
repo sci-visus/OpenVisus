@@ -411,7 +411,7 @@ bool MemoryMappedFile::open(String filename, String mode, bool bMustCreate)
 #else
   {
 
-    this->fd = open(path, O_RDONLY);
+    this->fd = open(filename, O_RDONLY);
     if (this->fd == -1) {
       close();
       return false;
