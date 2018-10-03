@@ -47,7 +47,8 @@ install:
 build_script:
   - cd %APPVEYOR_BUILD_FOLDER%  
   - git submodule update --init %PYTHONHOME%
-  - %PYTHONHOME%\python.exe -m pip install --user --upgrade numpy setuptools wheel twine
+  - set PATH=%PYTHONHOME%;%PATH%
+  - python.exe -m pip install --user --upgrade numpy setuptools wheel twine
   - mkdir build 
   - cd build 
   - cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% -DPYTHONHOME=%PYTHONHOME% ../ 
