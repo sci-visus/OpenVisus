@@ -109,7 +109,7 @@ git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 
 git submodule update --init win32/python36
-set PYTHONHOME=win32\python
+set PYTHONHOME=%cd%\win32\python
 %PYTHONHOME%\python.exe -m pip install --user --upgrade numpy setuptools wheel twine PyQt5==5.9.2
 
 mkdir build

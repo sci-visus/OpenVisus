@@ -470,7 +470,7 @@ macro(InstallExecutable Name)
 
 endmacro()
 
- ///////////////////////////////////////////////////
+# ///////////////////////////////////////////////////
 macro(InstallBuildFiles Pattern Destination)
 
 	if (CMAKE_CONFIGURATION_TYPES)

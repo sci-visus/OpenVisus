@@ -43,27 +43,24 @@ install:
   - choco install -y --allow-empty-checksums swig 
 
 build_script:
-  - cd %APPVEYOR_BUILD_FOLDER%  
-  - set PYTHONHOME=%cd%\win32\python%PYTHON_VERSION:~0,1%%PYTHON_VERSION:~2,1%  
-  - git submodule update --init %PYTHONHOME%
-  - set PATH=%PYTHONHOME%;%PATH%"
-  - '%PYTHONHOME%\python.exe -m pip install numpy'
-  - mkdir build 
-  - cd build 
-  - cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% -DPYTHONHOME=%PYTHONHOME% ../ 
-  - cmake --build . --target ALL_BUILD --config RelWithDebInfo
-  - cmake --build . --target RUN_TESTS --config RelWithDebInfo
-  - cd %PYTHONHOME%
-  - git checkout -f
-  - cd %APPVEYOR_BUILD_FOLDER%\build
-  - ps: >-
-      If ($env:APPVEYOR_REPO_TAG -eq "true") { 
-         Invoke-Expression "cmake --build . --target INSTALL --config RelWithDebInfo" 
-         Invoke-Expression "%PYTHONHOME%\python.exe -m pip install numpy setuptools wheel" 
-         Invoke-Expression "cmake --build . --target deploy  --config RelWithDebInfo" 
-         Invoke-Expression "cmake --build . --target dist    --config RelWithDebInfo" 
-         Invoke-Expression "cmake --build . --target pypi    --config RelWithDebInfo" 
-      } 
+  - cmd: cd %APPVEYOR_BUILD_FOLDER%  
+  - cmd:set PYTHONHOME=%cd%\win32\python%PYTHON_VERSION:~0,1%%PYTHON_VERSION:~2,1%  
+  - cmd: git submodule update --init %PYTHONHOME%
+  - cmd: set PATH=%PYTHONHOME%;%PATH%"
+  - cmd: python.exe -m pip install numpy
+  - cmd: mkdir build 
+  - cmd:- cd build 
+  - cmd: cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% -DPYTHONHOME=%PYTHONHOME% ../ 
+  - cmd: cmake --build . --target ALL_BUILD --config RelWithDebInfo
+  - cmd: cmake --build . --target RUN_TESTS --config RelWithDebInfo
+  - cmd: cd %PYTHONHOME%
+  - cmd: git checkout -f
+  - cmd: cd %APPVEYOR_BUILD_FOLDER%\build
+  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target INSTALL --config RelWithDebInfo)
+  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (python.exe -m pip install setuptools wheel twine)
+  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target deploy  --config RelWithDebInfo)
+  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target dist    --config RelWithDebInfo)
+  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target pypi    --config RelWithDebInfo)
    
 # test are already in cmake
 test: off
