@@ -68,13 +68,13 @@ You can install OpenVisus in python using Pip:
 in windows:
 
 ```
-python -m pip install --user --upgrade PyQt5==5.9 numpy OpenVisus
+python -m pip install --user --upgrade numpy OpenVisus
 ```
 
 in osx,linux:
 
 ```
-python -m pip install  --user --upgrade PyQt5==5.9 numpy OpenVisus
+python -m pip install  --user --upgrade numpy OpenVisus
 ```
 
 And test it using the following command. 
@@ -110,7 +110,7 @@ cd OpenVisus
 
 git submodule update --init win32/python36
 set PYTHONHOME=%cd%\win32\python
-%PYTHONHOME%\python.exe -m pip install --user --upgrade numpy setuptools wheel twine PyQt5==5.9.2
+%PYTHONHOME%\python.exe -m pip install --user --upgrade numpy 
 
 mkdir build
 cd build
@@ -155,7 +155,7 @@ PYTHON_VERSION=3.6.6 # change it if needed
 CONFIGURE_OPTS=--enable-shared pyenv install -s $PYTHON_VERSION    
 CONFIGURE_OPTS=--enable-shared pyenv global     $PYTHON_VERSION 
 python -m pip install --user --upgrade pip
-python -m pip install --user --upgrade numpy setuptools wheel twine PyQt5 
+python -m pip install --user --upgrade numpy 
 ```
 
 
@@ -167,7 +167,7 @@ sudo xcode-select --install
 ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 brew install git cmake swig qt5 openssl 
 brew upgrade cmake
-python -m pip install --user --upgrade numpy setuptools wheel twine PyQt5==5.9.2 # chage PyQt5 version to be the same as the 'brew info qt'
+python -m pip install --user --upgrade numpy 
 ```
 
 Compile OpenVisus:
@@ -235,7 +235,7 @@ Install numpy and deploy depencencies:
 
 ```
 python3 -m pip install --user --upgrade pip
-python3 -m pip install --user --upgrade numpy setuptools wheel twine
+python3 -m pip install --user --upgrade numpy 
 ```
 
 Compile OpenVisus:

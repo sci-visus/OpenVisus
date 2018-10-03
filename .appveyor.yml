@@ -57,7 +57,6 @@ build_script:
   - cmd: git checkout -f
   - cmd: cd %APPVEYOR_BUILD_FOLDER%\build
   - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target INSTALL --config RelWithDebInfo)
-  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (python.exe -m pip install setuptools wheel twine)
   - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target deploy  --config RelWithDebInfo)
   - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target dist    --config RelWithDebInfo)
   - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target pypi    --config RelWithDebInfo)

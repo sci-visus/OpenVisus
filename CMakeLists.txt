@@ -301,12 +301,13 @@ if (True)
 	endif()
 
 	add_custom_target(dist 
-		        "${CMAKE_COMMAND}" -E echo "Creating bdist_wheel..."
+		        "${CMAKE_COMMAND}" -E echo "Installing setuptools wheel..."
+		COMMAND "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade setuptools wheel
+		COMMAND "${CMAKE_COMMAND}" -E echo "Creating bdist_wheel..."
 		COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py" -q bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PYTHON_PLAT_NAME} 
 		COMMAND "${CMAKE_COMMAND}" -E echo "Creating sdist..."
 		COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py" -q sdist --formats=${PYTHON_SDIST_FORMAT}
-		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}"
-	)
+		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
 	
 	if (WIN32)
 		set_target_properties(dist PROPERTIES FOLDER "CMakePredefinedTargets/")
