@@ -3,7 +3,7 @@ import shutil
 import platform
 
 #increase this number for PIP
-VERSION="1.2.42"
+VERSION="1.2.43"
 
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
@@ -47,12 +47,6 @@ def findFilesInCurrentDirectory():
 					if filename.endswith(".pdb"): 
 						continue
 						
-					if filename.startswith(os.path.abspath('./bin')) and os.path.basename(filename).startswith("Qt5") and os.path.basename(filename).endswith(".dll"): 
-						continue
-						
-					if filename.startswith(os.path.abspath('./bin/plugins')): 
-						continue		    	
-
 			ret.append(filename)
 			
 	return ret
