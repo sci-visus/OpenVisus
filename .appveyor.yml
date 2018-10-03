@@ -47,15 +47,19 @@ build_script:
   - set PYTHONHOME=%cd%\win32\python%PYTHON_VERSION:~0,1%%PYTHON_VERSION:~2,1%  
   - git submodule update --init %PYTHONHOME%
   - set PATH=%PYTHONHOME%;%PATH%"
-  - '%PYTHONHOME%\python.exe -m pip install --user --upgrade numpy setuptools wheel twine'
+  - '%PYTHONHOME%\python.exe -m pip install numpy'
   - mkdir build 
   - cd build 
   - cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% -DPYTHONHOME=%PYTHONHOME% ../ 
   - cmake --build . --target ALL_BUILD --config RelWithDebInfo
   - cmake --build . --target RUN_TESTS --config RelWithDebInfo
+  - cd %PYTHONHOME%
+  - git checkout -f
+  - cd %APPVEYOR_BUILD_FOLDER%\build
   - ps: >-
       If ($env:APPVEYOR_REPO_TAG -eq "true") { 
          Invoke-Expression "cmake --build . --target INSTALL --config RelWithDebInfo" 
+         Invoke-Expression "%PYTHONHOME%\python.exe -m pip install numpy setuptools wheel" 
          Invoke-Expression "cmake --build . --target deploy  --config RelWithDebInfo" 
          Invoke-Expression "cmake --build . --target dist    --config RelWithDebInfo" 
          Invoke-Expression "cmake --build . --target pypi    --config RelWithDebInfo" 
