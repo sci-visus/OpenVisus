@@ -49,7 +49,8 @@ build_script:
   - git submodule update --init %PYTHONHOME%
   - set PATH=%PYTHONHOME%;%PATH%"
   - set PYTHONPATH=%PYTHONHOME%;%PYTHONHOME%\DLLs;%PYTHONHOME%\Lib;%PYTHONHOME%\Lib\site-packages
-  - '%PYTHONHOME%\python.exe -m pip install numpy setuptools wheel twine'
+  - set 
+  - '%PYTHONHOME%\python.exe -v -m pip install --user --upgrade numpy setuptools wheel twine'
   - mkdir build 
   - cd build 
   - cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% -DPYTHONHOME=%PYTHONHOME% ../ 
