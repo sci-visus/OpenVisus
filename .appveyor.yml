@@ -21,7 +21,7 @@ environment:
       PYTHONHOME: win32/python36  
       SKIP_NOTAG: false
     - PYTHON_VERSION: 3.7
-    	PYTHONHOME: win32/python37
+      PYTHONHOME: win32/python37
       SKIP_NOTAG: false
   
 # 
