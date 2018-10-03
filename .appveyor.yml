@@ -55,6 +55,7 @@ build_script:
   - cmd: cmake --build . --target RUN_TESTS --config RelWithDebInfo
   - cmd: cd %PYTHONHOME%
   - cmd: git checkout -f
+  - cmd: git clean -f
   - cmd: cd %APPVEYOR_BUILD_FOLDER%\build
   - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target INSTALL --config RelWithDebInfo)
   - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target deploy  --config RelWithDebInfo)

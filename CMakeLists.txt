@@ -141,9 +141,9 @@ if (NOT VISUS_INTERNAL_CURL)
 endif()
 
 
-
 if (WIN32 AND DEFINED PYTHONHOME)
 
+	string(REPLACE "\\" "/" PYTHONHOME "${PYTHONHOME}")
 	add_subdirectory(${PYTHONHOME})
 	find_package(NumPy REQUIRED)
 
@@ -328,19 +328,17 @@ if (DEFINED PYPI_USERNAME AND DEFINED PYPI_PASSWORD)
 
 	set(__filename__ ${__home__}/.pypirc)
 
-	file(WRITE  ${__filename__} "")
-	file(APPEND ${__filename__} "[distutils]")
-	file(APPEND ${__filename__} "index-servers =")
-	file(APPEND ${__filename__} "    pypi")
-	file(APPEND ${__filename__} "[pypi]")
-	file(APPEND ${__filename__} "username=${PYPI_USERNAME}")
-	file(APPEND ${__filename__} "password=${PYPI_PASSWORD}")
+	file(WRITE  ${__filename__} "[distutils]\n")
+	file(APPEND ${__filename__} "index-servers=\n")
+	file(APPEND ${__filename__} "    pypi\n")
+	file(APPEND ${__filename__} "[pypi]\n")
+	file(APPEND ${__filename__} "username: ${PYPI_USERNAME}\n")
+	file(APPEND ${__filename__} "password: ${PYPI_PASSWORD}\n")
 	
 	add_custom_target(pypi 
-		"${CMAKE_COMMAND}" -E echo "Running pypi step..."
-		"${CMAKE_COMMAND}"  -E env HOME=${__home__} "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade twine
-		COMMAND
-		"${CMAKE_COMMAND}" -E env HOME=${__home__} "${PYTHON_EXECUTABLE}" -m twine upload --skip-existing dist/*.whl 
+		        "${CMAKE_COMMAND}" -E echo "Running pypi step..."
+		COMMAND "${CMAKE_COMMAND}" -E env HOME=${__home__} "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade twine
+		COMMAND "${CMAKE_COMMAND}" -E env HOME=${__home__} "${PYTHON_EXECUTABLE}" -m twine upload --skip-existing dist/*.whl 
 		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
 	
 	if (WIN32)
