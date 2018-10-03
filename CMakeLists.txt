@@ -196,29 +196,6 @@ if (NOT VISUS_IS_SUBMODULE)
 endif()
 
 # //////////////////////////////////////////////////////////////
-# *** install ***
-
-# ///////////////////////////////////////////////////
-macro(InstallBuildFiles Pattern Destination)
-
-	if (CMAKE_CONFIGURATION_TYPES)
-		install(CODE "
-			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern})
-			MESSAGE(STATUS \"InstallBuildFiles from ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern}\")
-			MESSAGE(STATUS \"Files: \${__files__} \")
-			FILE(INSTALL \${__files__} DESTINATION \"${CMAKE_INSTALL_PREFIX}/${Destination}\")
-		")
-	else()
-		install(CODE "
-			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/${Pattern})
-			MESSAGE(STATUS \"InstallBuildFiles from ${CMAKE_BINARY_DIR}/${Pattern}\")
-			MESSAGE(STATUS \"Files: \${__files__} \")
-			FILE(INSTALL \${__files__} DESTINATION \"${CMAKE_INSTALL_PREFIX}/${Destination}\")
-		")
-	endif()
-endmacro()
-
-# /////////////////////////////////////////////////////////////////////
 # install
 if (True)
 
