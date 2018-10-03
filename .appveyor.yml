@@ -18,10 +18,8 @@ environment:
     secure: 6DHH80JPNRCtIYxWc/h88Q==    
   matrix:
     - PYTHON_VERSION: 3.6
-      PYTHONHOME: win32\python36  
       SKIP_NOTAG: false
     - PYTHON_VERSION: 3.7
-      PYTHONHOME: win32\python37
       SKIP_NOTAG: false
   
 # 
@@ -46,9 +44,9 @@ install:
 
 build_script:
   - cd %APPVEYOR_BUILD_FOLDER%  
+  - set PYTHONHOME=%cd%\win32\python%PYTHON_VERSION:~0,1%%PYTHON_VERSION:~2,1%  
   - git submodule update --init %PYTHONHOME%
   - set PATH=%PYTHONHOME%;%PATH%"
-  - set 
   - '%PYTHONHOME%\python.exe -m pip install --user --upgrade numpy setuptools wheel twine'
   - mkdir build 
   - cd build 
