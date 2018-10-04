@@ -61,6 +61,10 @@ Table of content:
 [Auto deploy] (#auto_deploy)
 	
   
+  
+  
+  
+  
 ## PIP distribution
 
 You can install OpenVisus in python using Pip:
@@ -84,6 +88,9 @@ The `OpenVisus.check()` will tell you exactly what to add at the beginning of th
 ```
 python -c "import OpenVisus; OpenVisus.check()"
 ```
+
+
+
 
 
 ## Windows compilation
@@ -179,6 +186,9 @@ set CONFIGURATION=RelWithDebInfo
 To test if visusviewer it's working double click on the file `install\visusviewer.bat'.
 
 
+
+
+
 ## MacOSX compilation
 
 
@@ -267,6 +277,10 @@ cd install
 # OpenVisus extending python
 PYTHONPATH=$(pwd):$(pwd)/bin python -c "import OpenVisus; OpenVisus.check()"
 ```
+
+
+
+
       
 ## Linux compilation
 
@@ -275,10 +289,7 @@ Install prerequisites (assuming you are using python 3.x).
 For Ubuntu 16.04:
 
 ```
-sudo apt install -y cmake git build-essential swig \
-	libssl-dev uuid-dev \
-	python3 python3-pip \
-	qt5-default qttools5-dev-tools
+sudo apt install -y cmake git build-essential swig libssl-dev uuid-dev python3 python3-pip t5-default qttools5-dev-tools
 	
 # OPTIONAL (If you want to build Apache plugin)
 # sudo apt install -y apache2 apache2-dev 
@@ -289,11 +300,7 @@ For OpenSuse Leap:
 ```
 # OPTIONAL
 # sudo zypper refresh && sudo zypper -n update && sudo zypper -n patch     
-sudo zypper -n in -t pattern devel_basis \
-	cmake cmake-gui git swig curl  \
-	python3 python3-pip python3-devel \
-	libuuid-devel libopenssl-devel glu-devel \
-	libQt5Concurrent-devel libQt5Network-devel \libQt5Test-devel libQt5OpenGL-devel 
+sudo zypper -n in -t pattern devel_basis cmake cmake-gui git swig curl python3 python3-pip python3-devel libuuid-devel libopenssl-devel glu-devel  libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel 
 ```
 
 Install numpy and deploy depencencies:
@@ -303,13 +310,33 @@ python3 -m pip install --user --upgrade pip
 python3 -m pip install --user --upgrade numpy 
 ```
 
-Compile OpenVisus:
+Compile OpenVisus. If you want to use OS libraries (fast):
+
+```
+sudo apt-get install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
+VISUS_INTERNAL_DEFAULT=1
+```
+
+if you want to use internal libraries (slow):
+
+```
+VISUS_INTERNAL_DEFAULT=0
+``
+
+Then:
 
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 mkdir build  && cd build
-cmake  -DCMAKE_BUILD_TYPE=RelWithDebugInfo ../   # -G "CodeBlocks - Unix Makefiles"  if you want to use an IDE
+
+# if you want to use an IDE
+#GENERATOR="CodeBlocks - Unix Makefiles" 
+GENERATOR="Unix Makefiles"
+
+CMAKE_BUILD_TYPE=RelWithDebInfo
+
+cmake  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} -G "$GENERATOR" ../   
 cmake --build . --target all      -- -j 8
 cmake --build . --target test     
 cmake --build . --target install   
@@ -323,6 +350,11 @@ LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) ./visusviewer
 LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) python3 -c "import OpenVisus; OpenVisus.check()"
 ```
 
+  
+  
+  
+  
+  
   
 ## Use OpenVisus as submodule
 

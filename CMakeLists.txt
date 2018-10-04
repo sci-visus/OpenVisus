@@ -92,6 +92,8 @@ if (BREW_PREFIX)
 endif()
 
 
+SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
+
 # ______________________________________________
 # *** zlib ***
 
