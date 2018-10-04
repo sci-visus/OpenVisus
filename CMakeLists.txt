@@ -78,71 +78,148 @@ endif()
 
 
 # if using vcpkg on windows use the vcpkg libraries
-if (VCPKG)
-	set(VISUS_INTERNAL_DEFAULT 0)
-else()
-	set(VISUS_INTERNAL_DEFAULT 1)
-endif()
-
-if (NOT DEFINED VISUS_INTERNAL_ZLIB)
-	set(VISUS_INTERNAL_ZLIB ${VISUS_INTERNAL_DEFAULT})
-endif()
-
-if (NOT DEFINED VISUS_INTERNAL_LZ4)
-	set(VISUS_INTERNAL_LZ4 ${VISUS_INTERNAL_DEFAULT})
-endif()
-
-if (NOT DEFINED VISUS_INTERNAL_TINYXML)
-	set(VISUS_INTERNAL_TINYXML ${VISUS_INTERNAL_DEFAULT})
-endif()
-
-if (NOT DEFINED VISUS_INTERNAL_FREEIMAGE)
-	set(VISUS_INTERNAL_FREEIMAGE ${VISUS_INTERNAL_DEFAULT})
-endif()
-
-if (NOT DEFINED VISUS_INTERNAL_OPENSSL)
-	if (WIN32 OR APPLE)
-		set(VISUS_INTERNAL_OPENSSL ${VISUS_INTERNAL_DEFAULT})
+if (WIN32)
+	if (VCPKG)
+		SetIfNotDefined(VISUS_INTERNAL_DEFAULT 0)
 	else()
-		set(VISUS_INTERNAL_OPENSSL 0) # I have problem on linux mixing python openssl and mine, so I'm using system openssl
-	endif() 
+		SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
+	endif()
 endif()
 
-if (NOT DEFINED VISUS_INTERNAL_CURL)
-	set(VISUS_INTERNAL_CURL ${VISUS_INTERNAL_DEFAULT})
+# for APPLE if brew is used, then use external by default
+if (BREW_PREFIX)
+	SetIfNotDefined(VISUS_INTERNAL_DEFAULT 0)
 endif()
 
-MESSAGE(STATUS "VISUS_INTERNAL_ZLIB       ${VISUS_INTERNAL_ZLIB}")
-MESSAGE(STATUS "VISUS_INTERNAL_LZ4        ${VISUS_INTERNAL_LZ4}")
-MESSAGE(STATUS "VISUS_INTERNAL_TINYXML    ${VISUS_INTERNAL_TINYXML}")
-MESSAGE(STATUS "VISUS_INTERNAL_FREEIMAGE  ${VISUS_INTERNAL_FREEIMAGE}")
-MESSAGE(STATUS "VISUS_INTERNAL_OPENSSL    ${VISUS_INTERNAL_OPENSSL}")
-MESSAGE(STATUS "VISUS_INTERNAL_CURL       ${VISUS_INTERNAL_CURL}")
 
-if (NOT VISUS_INTERNAL_ZLIB)
+# ______________________________________________
+# *** zlib ***
+
+SetIfNotDefined(VISUS_INTERNAL_ZLIB ${VISUS_INTERNAL_DEFAULT})
+
+if (VISUS_INTERNAL_ZLIB)
+	MESSAGE(STATUS "Using internal zlib")
+else()
+	
+	if (BREW_PREFIX)
+		SetIfNotDefined(ZLIB_INCLUDE_DIR ${BREW_PREFIX}/zlib/include)
+		SetIfNotDefined(ZLIB_LIBRARY     ${BREW_PREFIX}/zlib/lib/libz.dylib)
+	endif()
+
 	find_package(ZLIB REQUIRED)
+	MESSAGE(STATUS "Using external zlib")
+	message(STATUS "ZLIB_INCLUDE_DIRS ${ZLIB_INCLUDE_DIRS}")
+	message(STATUS "ZLIB_LIBRARIES    ${ZLIB_LIBRARIES}")
 endif()
 
-if (NOT VISUS_INTERNAL_LZ4)
+# ______________________________________________
+# *** lz4 ***
+
+SetIfNotDefined(VISUS_INTERNAL_LZ4 ${VISUS_INTERNAL_DEFAULT})
+
+if (VISUS_INTERNAL_LZ4)
+	MESSAGE(STATUS "Using internal lz4")
+else()
+
+	if (BREW_PREFIX)
+		SetIfNotDefined(LZ4_INCLUDE_DIR ${BREW_PREFIX}/lz4/include)
+		SetIfNotDefined(LZ4_LIBRARY     ${BREW_PREFIX}/lz4/lib/liblz4.dylib)
+	endif()
+
 	find_package(LZ4 REQUIRED)
+	
+	MESSAGE(STATUS "Using external lz4")
+	message(STATUS "LZ4_INCLUDE_DIR ${LZ4_INCLUDE_DIR}")
+	message(STATUS "LZ4_LIBRARY     ${LZ4_LIBRARY}")
 endif()
 
-if (NOT VISUS_INTERNAL_TINYXML)
+# ______________________________________________
+# *** TinyXML ***
+
+SetIfNotDefined(VISUS_INTERNAL_TINYXML ${VISUS_INTERNAL_DEFAULT})
+
+if (VISUS_INTERNAL_TINYXML)
+	MESSAGE(STATUS "Using internal TynyXML")
+else()
+
+	if (BREW_PREFIX)
+		SetIfNotDefined(TinyXML_INCLUDE_DIR ${BREW_PREFIX}/tinyxml/include)
+		SetIfNotDefined(TinyXML_LIBRARY     ${BREW_PREFIX}/tinyxml/lib/libtinyxml.dylib)
+	endif()
+
 	find_package(TinyXML REQUIRED)
+	MESSAGE(STATUS "Using external TynyXML")
+	message(STATUS "TinyXML_INCLUDE_DIRS ${TinyXML_INCLUDE_DIRS}")
+	message(STATUS "TinyXML_LIBRARIES    ${TinyXML_LIBRARIES}")	
 endif()
 
-if (NOT VISUS_INTERNAL_FREEIMAGE)
+# ______________________________________________
+# *** FreeImage ***
+
+SetIfNotDefined(VISUS_INTERNAL_FREEIMAGE ${VISUS_INTERNAL_DEFAULT})
+
+
+if (VISUS_INTERNAL_FREEIMAGE)
+	MESSAGE(STATUS "Using internal FreeImage")
+else()
+
+	if (BREW_PREFIX)
+		SetIfNotDefined(FREEIMAGE_INCLUDE_DIRS ${BREW_PREFIX}/freeimage/include)
+		SetIfNotDefined(FREEIMAGE_LIBRARIES    ${BREW_PREFIX}/freeimage/lib/libfreeimage.dylib)
+	endif()
+	
 	find_package(FreeImage REQUIRED)
+	MESSAGE(STATUS "Using external FreeImage")
+	message(STATUS "FREEIMAGE_INCLUDE_DIRS ${FREEIMAGE_INCLUDE_DIRS}")
+	message(STATUS "FREEIMAGE_LIBRARIES    ${FREEIMAGE_LIBRARIES}")
 endif()
 
-if (NOT VISUS_INTERNAL_OPENSSL)
-	if (UNIX)
+# ______________________________________________
+# *** OpenSSL ***
+
+if (WIN32 OR APPLE)
+	SetIfNotDefined(VISUS_INTERNAL_OPENSSL ${VISUS_INTERNAL_DEFAULT})
+else()
+	SetIfNotDefined(VISUS_INTERNAL_OPENSSL 0) # I have problem on linux mixing python openssl and mine, so I'm using system openssl
+endif() 
+
+if (VISUS_INTERNAL_OPENSSL)
+	MESSAGE(STATUS "Using internal OpenSSL")
+else()
+
+	if (UNIX AND (NOT APPLE))
 		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/FixFindOpenSSL)
 	endif()
-	find_package(OpenSSL)
+	
+	if (BREW_PREFIX)
+		SetIfNotDefined(OPENSSL_INCLUDE_DIR    ${BREW_PREFIX}/openssl/include)
+		SetIfNotDefined(OPENSSL_CRYPTO_LIBRARY ${BREW_PREFIX}/openssl/lib/libcrypto.dylib)
+		SetIfNotDefined(OPENSSL_SSL_LIBRARY    ${BREW_PREFIX}/openssl/lib/libssl.dylib)	
+	endif()
+	
+	find_package(OpenSSL REQUIRED)
+		
+	MESSAGE(STATUS "Using external OpenSSL")
+	message(STATUS "OPENSSL_INCLUDE_DIR    ${OPENSSL_INCLUDE_DIR}")
+	message(STATUS "OPENSSL_CRYPTO_LIBRARY ${OPENSSL_CRYPTO_LIBRARY}")
+	message(STATUS "OPENSSL_SSL_LIBRARY    ${OPENSSL_SSL_LIBRARY}")
+	
 endif()
 
-if (NOT VISUS_INTERNAL_CURL)
+# ______________________________________________
+# *** curl ***
+
+SetIfNotDefined(VISUS_INTERNAL_CURL ${VISUS_INTERNAL_DEFAULT})
+
+if (VISUS_INTERNAL_CURL)
+	MESSAGE(STATUS "Using internal Curl")
+else()
+
+	if (BREW_PREFIX)
+		SetIfNotDefined(CURL_INCLUDE_DIR ${BREW_PREFIX}/curl/include)
+		SetIfNotDefined(CURL_LIBRARY     ${BREW_PREFIX}/curl/lib/libcurl.dylib)
+	endif()
+
 	find_package(CURL REQUIRED)
 	
 	# see https://github.com/Microsoft/vcpkg/issues/1909
@@ -158,40 +235,46 @@ if (NOT VISUS_INTERNAL_CURL)
 			set(CURL_LIBRARIES ${CURL_LIBRARY})
 		endif()
   endif()	
-	
+  
+  MESSAGE(STATUS "Using external Curl")
+  message(STATUS "CURL_INCLUDE_DIR ${CURL_INCLUDE_DIR}")
+	message(STATUS "CURL_LIBRARIES   ${CURL_LIBRARIES}")
+  
 endif()
 
+# ______________________________________________
+# *** python
+
 # example: git submodule update --init win32/python36
-if (WIN32 AND (NOT DEFINED VISUS_INTERNAL_PYTHON))
+if (WIN32)
 
 	 IF (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36/CMakeLists.txt)
-		set(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36)
+		SetIfNotDefined(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36)
 
 	elseif (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37/CMakeLists.txt)
-		set(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37)
+		SetIfNotDefined(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37)
 		
 	endif()
 	
 endif()
 
 
-if (DEFINED VISUS_INTERNAL_PYTHON)
+if (VISUS_INTERNAL_PYTHON)
 
 	string(REPLACE "\\" "/" VISUS_INTERNAL_PYTHON "${VISUS_INTERNAL_PYTHON}")
-	MESSAGE(STATUS "VISUS_INTERNAL_PYTHON     ${VISUS_INTERNAL_PYTHON}")
+	MESSAGE(STATUS "Using internal python: ${VISUS_INTERNAL_PYTHON}")
 	
 	add_subdirectory(${VISUS_INTERNAL_PYTHON})
 	find_package(NumPy REQUIRED)
 else()
 
-	if (NOT DEFINED PYTHON_VERSION)
-		set(PYTHON_VERSION 3)
-	endif()
+	SetIfNotDefined(PYTHON_VERSION 3)
 
 	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
 	find_package(NumPy QUIET) 
 	
+	MESSAGE(STATUS "Using external python")
 	message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
 	message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
 	message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")

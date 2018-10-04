@@ -92,6 +92,11 @@ class Win32DeployStep(BaseDeployStep):
 	def __init__(self):
 		BaseDeployStep.__init__(self)
 
+	# showDeps
+	def showDeps(self):
+		print("not supported")					
+					
+
 	# run
 	def run(self):
 		
@@ -173,8 +178,8 @@ class AppleDeployStep(BaseDeployStep):
 		ret+=self.findFrameworks()
 		return ret
 				
-	# printAllDeps
-	def printAllDeps(self,bFull=False):
+	# showDeps
+	def showDeps(self,bFull=False):
 		
 		deps={}
 		for filename in self.findAllBinaries():
@@ -326,6 +331,7 @@ class AppleDeployStep(BaseDeployStep):
 			
 			self.executeCommand(["chmod","a+rx",command_filename])
 					
+
 	# run
 	def run(self):
 		
@@ -342,7 +348,7 @@ class AppleDeployStep(BaseDeployStep):
 		self.createCommands()
 		self.createQtConfs()
 		if bVerbose:
-			self.printAllDeps()
+			self.showDeps()
 			
 
 
@@ -486,9 +492,9 @@ class LinuxDeployStep(BaseDeployStep):
 				'./bin/%s' %(name)])
 			self.executeCommand(["chmod","a+rx",bash_filename])	
 
-	# printDeps
-	def printDeps(self):
-		print("Finding deps:")
+	# showDeps
+	def showDeps(self):
+		print("Show deps:")
 		deps=self.findAllDeps()
 		for key in deps:
 			print("%30s" % (key,),deps[key])
@@ -506,45 +512,60 @@ class LinuxDeployStep(BaseDeployStep):
 		self.createBashScripts()
 		
 		if bVerbose:
-			self.printDeps()
+			self.showDeps()
 		
 		
 
 # //////////////////////////////////////////////////////////////////////////////
 if __name__ == "__main__":
 	
-	print("Starting deploy...")
+	deploy=None
 	
-	qt_directory=""
+	if WIN32:
+		deploy=Win32DeployStep()
+		
+	elif APPLE:
+		deploy=AppleDeployStep()
+	
+	else:
+		deploy=LinuxDeployStep()
+			
+	if len(sys.argv)==1:
+		sys.argv=(sys.argv[0],"--run")		
+			
 	I=1
 	while I < len(sys.argv):
 		
 		if sys.argv[I]=="--qt-directory":
-			qt_directory=sys.argv[I+1]	
-			# sys.exit(0)
+			value=sys.argv[I+1]	
 			I+=2
+			
+			print("qt_directory",value)	
+
+			if WIN32:
+				deploy.qt_directory=os.path.realpath(value+"/../../..")
+				
+			elif APPLE:
+				deploy.qt_directory=os.path.realpath(value+"/../../..")
+			
+			else:
+				deploy.qt_directory=os.path.realpath(value+"/../..")
+
 			continue
 			
+		if sys.argv[I]=="--show-deps":
+			I+=1
+			print("Showing deps")
+			deploy.showDeps()
+			continue
+			
+		if sys.argv[I]=="--run":
+			I+=1
+			print("Running deploy")
+			deploy.run()
+			continue		
+			
 		print("Unknonwn argument",sys.argv[I])
-		sys.exit(-1)	
+		sys.exit(-1)		
 	
-	print("  platform.system()",platform.system())	
-	print("  qt_directory",qt_directory)	
-
-	if WIN32:
-		deploy=Win32DeployStep()
-		deploy.qt_directory=os.path.realpath(qt_directory+"/../../..")
-		deploy.run()
-		
-	elif APPLE:
-		deploy=AppleDeployStep()
-		deploy.qt_directory=os.path.realpath(qt_directory+"/../../..")
-		deploy.run()
-	
-	else:
-		deploy=LinuxDeployStep()
-		deploy.qt_directory=os.path.realpath(qt_directory+"/../..")
-		deploy.run()
-	
-	print("done deploy")
 	sys.exit(0)

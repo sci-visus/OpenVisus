@@ -28,6 +28,16 @@ macro(DetectOsxVersion)
 
 endmacro()
 
+# ///////////////////////////////////////////////
+macro(SetIfNotDefined name value)
+
+	if (NOT DEFINED ${name})
+		set(${name} ${value})
+	endif()
+
+endmacro()
+
+
 # //////////////////////////////////////////////////////////////////////////
 macro(SetupCommonCMake)
 

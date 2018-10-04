@@ -100,7 +100,7 @@ Install [Qt5](http://download.qt.io/official_releases/qt/5.9/5.9.2/qt-opensource
 
 
 
-### Compile OpenVisus with [Microsoft vcpkg](https://github.com/Microsoft/vcpkg):
+### Compile OpenVisus with [Microsoft vcpkg](https://github.com/Microsoft/vcpkg) (fast):
 
 From a command prompt:
 
@@ -143,7 +143,7 @@ set TRIPLET=x64-windows
 %CMAKE% --build . --target deploy      --config %CONFIGURATION% 
 ```
 
-### Compile OpenVisus without [Microsoft vcpkg](https://github.com/Microsoft/vcpkg):
+### Compile OpenVisus without [Microsoft vcpkg](https://github.com/Microsoft/vcpkg) (slow):
 
 From a command prompt:
 
@@ -207,17 +207,35 @@ python -m pip install --user --upgrade numpy
 Install prerequisites:
 
 ```
-sudo xcode-select --install
 # if command line tools do not work, type the following: sudo xcode-select --reset
-ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew install git cmake swig qt5 openssl 
+sudo xcode-select --install
+
+# install brew 
+if ! [ -x "$(command -v brew)" ]; then
+  ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+fi
+
+# install brew dependencies
+brew install git cmake swig qt5  
 brew upgrade cmake
 python -m pip install --user --upgrade numpy 
 ```
 
-Compile OpenVisus:
+If you want to use precompiled brew libraries (fast):
 
 ```
+brew install zlib lz4 tinyxml freeimage openssl curl
+BREW_PREFIX=/usr/local/opt
+```
+
+if you want to use Visus internal libraries (slow):
+
+```
+unset BREW_PREFIX
+```
+
+Then compile OpenVisus:
+
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus && mkdir build && cd build
 
@@ -227,14 +245,16 @@ cmake -GXcode \
   -DPYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_VERSION:0:3}m \
   -DPYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_VERSION:0:3}m.dylib \
   -DQt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5 \
+  -DBREW_PREFIX=${BREW_PREFIX} \
   ..
-
+  
 CONFIGURATION=RelWithDebInfo
 cmake --build . --target ALL_BUILD   --config $CONFIGURATION -- -jobs 8
 cmake --build . --target RUN_TESTS   --config $CONFIGURATION
 cmake --build . --target install     --config $CONFIGURATION
-cmake --build . --target deploy      --config $CONFIGURATION
+cmake --build . --target deploy      --config $CONFIGURATION  
 ```
+
  
 To test if it's working:
 
