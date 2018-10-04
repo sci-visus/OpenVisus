@@ -84,6 +84,12 @@ macro(SetupCommonCMake)
 		add_definitions(-D_CRT_SECURE_NO_WARNINGS )
 
 		add_definitions(-DWIN32_LEAN_AND_MEAN)
+		
+		if (CMAKE_TOOLCHAIN_FILE)
+			set(VCPKG 1)
+		else()
+			set(VCPKG 0)
+		endif()		
 
 	elseif (APPLE)
 	
@@ -109,6 +115,12 @@ macro(SetupCommonCMake)
 
 	endif()
 	
+endmacro()
+
+# //////////////////////////////////////////////////////////////////////////
+macro(ForceUnset name)
+	unset(${name} CACHE)
+	unset(${name})
 endmacro()
 
 # //////////////////////////////////////////////////////////////////////////

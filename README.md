@@ -99,7 +99,53 @@ choco install -y -allow-empty-checksums git cmake swig
 Install [Qt5](http://download.qt.io/official_releases/qt/5.9/5.9.2/qt-opensource-windows-x86-5.9.2.exe) 
 
 
-Compile OpenVisus. From a prompt:
+
+### Compile OpenVisus with [Microsoft vcpkg](https://github.com/Microsoft/vcpkg):
+
+From a command prompt:
+
+```
+cd c:\
+mkdir tools
+cd tools
+git clone https://github.com/Microsoft/vcpkg
+cd vcpkg
+.\bootstrap-vcpkg.bat
+vcpkg.exe install zlib:x64-windows lz4:x64-windows tinyxml:x64-windows freeimage:x64-windows openssl:x64-windows curl:x64-windows
+
+cd c:\
+mkdir projects
+cd projects
+git clone https://github.com/sci-visus/OpenVisus
+cd OpenVisus
+
+git submodule update --init win32/python36
+win32\python36\python.exe -m pip install --user --upgrade numpy 
+
+mkdir build
+cd build
+
+REM *** change as needed *** 
+set GENERATOR=Visual Studio 15 2017 Win64
+set QT5_DIR=C:\Qt\Qt5.9.2\5.9.2\msvc2017_64
+set CMAKE="C:\Program Files\CMake\bin\cmake.exe"
+set GIT=C:\Program Files\Git\bin\git.exe
+set SWIG=C:\ProgramData\chocolatey\bin\swig.exe
+set CONFIGURATION=RelWithDebInfo
+set TOOLCHAIN=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
+set TRIPLET=x64-windows
+
+%CMAKE% -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" -DGIT_CMD="%GIT%" -DSWIG_EXECUTABLE="%SWIG%" -DCMAKE_TOOLCHAIN_FILE="%TOOLCHAIN%" -DVCPKG_TARGET_TRIPLET="%TRIPLET%"  ..
+	
+%CMAKE% --build . --target ALL_BUILD   --config %CONFIGURATION%
+%CMAKE% --build . --target RUN_TESTS   --config %CONFIGURATION%
+%CMAKE% --build . --target INSTALL     --config %CONFIGURATION% 
+%CMAKE% --build . --target deploy      --config %CONFIGURATION% 
+```
+
+### Compile OpenVisus without [Microsoft vcpkg](https://github.com/Microsoft/vcpkg):
+
+From a command prompt:
 
 ```
 cd c:\
@@ -114,7 +160,7 @@ win32\python36\python.exe -m pip install --user --upgrade numpy
 mkdir build
 cd build
 
-REM change as needed
+REM *** change as needed *** 
 set GENERATOR=Visual Studio 15 2017 Win64
 set QT5_DIR=C:\Qt\Qt5.9.2\5.9.2\msvc2017_64
 set CMAKE="C:\Program Files\CMake\bin\cmake.exe"

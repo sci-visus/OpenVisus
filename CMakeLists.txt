@@ -74,37 +74,43 @@ IF (VISUS_GUI)
 		string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
 	endif()
 	
-	
+endif()
+
+
+# if using vcpkg on windows use the vcpkg libraries
+if (VCPKG)
+	set(VISUS_INTERNAL_DEFAULT 0)
+else()
+	set(VISUS_INTERNAL_DEFAULT 1)
 endif()
 
 if (NOT DEFINED VISUS_INTERNAL_ZLIB)
-	set(VISUS_INTERNAL_ZLIB 1)
+	set(VISUS_INTERNAL_ZLIB ${VISUS_INTERNAL_DEFAULT})
 endif()
 
 if (NOT DEFINED VISUS_INTERNAL_LZ4)
-	set(VISUS_INTERNAL_LZ4 1)
+	set(VISUS_INTERNAL_LZ4 ${VISUS_INTERNAL_DEFAULT})
 endif()
 
 if (NOT DEFINED VISUS_INTERNAL_TINYXML)
-	set(VISUS_INTERNAL_TINYXML 1)
+	set(VISUS_INTERNAL_TINYXML ${VISUS_INTERNAL_DEFAULT})
 endif()
 
 if (NOT DEFINED VISUS_INTERNAL_FREEIMAGE)
-	set(VISUS_INTERNAL_FREEIMAGE 1)
+	set(VISUS_INTERNAL_FREEIMAGE ${VISUS_INTERNAL_DEFAULT})
 endif()
 
 if (NOT DEFINED VISUS_INTERNAL_OPENSSL)
 	if (WIN32 OR APPLE)
-		set(VISUS_INTERNAL_OPENSSL 1)
+		set(VISUS_INTERNAL_OPENSSL ${VISUS_INTERNAL_DEFAULT})
 	else()
-		set(VISUS_INTERNAL_OPENSSL 0) # seem to have problem on linux mixing python openssl and mine
+		set(VISUS_INTERNAL_OPENSSL 0) # I have problem on linux mixing python openssl and mine, so I'm using system openssl
 	endif() 
 endif()
 
 if (NOT DEFINED VISUS_INTERNAL_CURL)
-	set(VISUS_INTERNAL_CURL 1)
+	set(VISUS_INTERNAL_CURL ${VISUS_INTERNAL_DEFAULT})
 endif()
-
 
 MESSAGE(STATUS "VISUS_INTERNAL_ZLIB       ${VISUS_INTERNAL_ZLIB}")
 MESSAGE(STATUS "VISUS_INTERNAL_LZ4        ${VISUS_INTERNAL_LZ4}")
@@ -138,6 +144,21 @@ endif()
 
 if (NOT VISUS_INTERNAL_CURL)
 	find_package(CURL REQUIRED)
+	
+	# see https://github.com/Microsoft/vcpkg/issues/1909
+ 	if (VCPKG)
+		list(LENGTH CURL_LIBRARY CURL_LIBRARY_LENGTH)
+		if (CURL_LIBRARY_LENGTH EQUAL 1)
+			set(CURL_LIBRARY_DEBUG_LIB   ${CURL_LIBRARY})
+			set(CURL_LIBRARY_RELEASE_LIB ${CURL_LIBRARY_DEBUG_LIB}/../../../lib/libcurl.lib)
+			get_filename_component(CURL_LIBRARY_RELEASE_LIB ${CURL_LIBRARY_RELEASE_LIB} REALPATH)
+			ForceUnset(CURL_LIBRARY)
+			ForceUnset(CURL_LIBRARIES)
+			set(CURL_LIBRARY "debug;${CURL_LIBRARY_DEBUG_LIB};optimized;${CURL_LIBRARY_RELEASE_LIB}")
+			set(CURL_LIBRARIES ${CURL_LIBRARY})
+		endif()
+  endif()	
+	
 endif()
 
 # example: git submodule update --init win32/python36
