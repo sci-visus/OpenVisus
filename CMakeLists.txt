@@ -282,10 +282,8 @@ if (True)
 endif()
 
 # /////////////////////////////////////////////////////////////////////
-# dist target
+# sdist target
 if (True)
-	
-	set(PYTHON_TAG cp${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
 	
 	if (WIN32)
 		set(PYTHON_SDIST_FORMAT zip)
@@ -293,6 +291,26 @@ if (True)
 		set(PYTHON_SDIST_FORMAT gztar)
 	endif()
 	
+	add_custom_target(sdist 
+		        "${CMAKE_COMMAND}" -E echo "Installing setuptools..."
+		COMMAND "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade setuptools 
+		COMMAND "${CMAKE_COMMAND}" -E echo "Running sdist target..."
+		COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py" -q sdist --formats=${PYTHON_SDIST_FORMAT}
+		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
+	
+	if (WIN32)
+		set_target_properties(sdist PROPERTIES FOLDER "CMakePredefinedTargets/")
+	endif()	
+	
+endif()
+
+
+# /////////////////////////////////////////////////////////////////////
+# bdist_wheel target
+if (True)
+
+	set(PYTHON_TAG cp${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
+
 	if (WIN32)
 	
 		set(PYTHON_PLAT_NAME win_amd64)
@@ -311,18 +329,18 @@ if (True)
 	
 	endif()
 
-	add_custom_target(dist 
+	add_custom_target(bdist_wheel 
 		        "${CMAKE_COMMAND}" -E echo "Installing setuptools wheel..."
 		COMMAND "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade setuptools wheel
-		COMMAND "${CMAKE_COMMAND}" -E echo "Creating bdist_wheel..."
+		COMMAND "${CMAKE_COMMAND}" -E echo "Running bdist_wheel target..."
 		COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py" -q bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PYTHON_PLAT_NAME} 
-		COMMAND "${CMAKE_COMMAND}" -E echo "Creating sdist..."
-		COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py" -q sdist --formats=${PYTHON_SDIST_FORMAT}
 		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
 	
 	if (WIN32)
-		set_target_properties(dist PROPERTIES FOLDER "CMakePredefinedTargets/")
+		set_target_properties(bdist_wheel PROPERTIES FOLDER "CMakePredefinedTargets/")
 	endif()	
+	
+
 	
 endif()
 

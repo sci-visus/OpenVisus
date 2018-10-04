@@ -191,10 +191,11 @@ script:
         
         # if there is a tag , create the wheel  
         if [ -n "$TRAVIS_TAG" ]; then 
-        		cmake --build ./  --target install  --config $BUILD_TYPE  
-        		cmake --build ./  --target deploy   --config $BUILD_TYPE 
-        		cmake --build ./  --target dist     --config $BUILD_TYPE 
-        		cmake --build ./  --target pypi     --config $BUILD_TYPE
+        		cmake --build ./  --target install         --config $BUILD_TYPE  
+        		cmake --build ./  --target deploy          --config $BUILD_TYPE 
+        		cmake --build ./  --target bdist_wheel     --config $BUILD_TYPE 
+        		cmake --build ./  --target sdist           --config $BUILD_TYPE 
+        		cmake --build ./  --target pypi            --config $BUILD_TYPE
         fi
       fi 
       
@@ -237,11 +238,12 @@ script:
         cmake --build ./ --target test
         
         # if there is a tag, create the wheel and tar.gz
-        # not uploading to PyPi since it will be refused (not using manylinux)
         if [ -n "$TRAVIS_TAG" ]; then 
         		cmake --build ./ --target install  
-        		cmake --build ./ --target deploy   
-        		cmake --build ./ --target dist 
+        		cmake --build ./ --target deploy
+        		cmake --build ./ --target bdist_wheel
+        		cmake --build ./ --target sdist 
+        		# not uploading to PyPi since it will be refused (not using manylinux) 
         		# cmake --build ./  --target pypi 
         fi
       fi    

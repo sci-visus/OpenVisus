@@ -87,22 +87,11 @@ def autoRenameSDist():
 
 	for ext in (".tar.gz", ".zip"):
 		
-		sdist_filename=glob.glob('dist/*'+ext); 
-		wheel_filename =glob.glob('dist/*.whl')	
+		sdist_filename = glob.glob('dist/*'+ext); 
+		wheel_filename = glob.glob('dist/*.whl')	
 		
-		if len(sdist_filename)!=1: 
-			continue
-			
-		if len(wheel_filename )!=1: 
-			continue
-		
-		sdist_filename=sdist_filename[0]
-		wheel_filename=wheel_filename[0]
-	
-		if not os.path.isfile(sdist_filename): 
-			continue
-			
-		os.rename(sdist_filename, os.path.splitext(wheel_filename)[0]+ext)	
+		if len(sdist_filename)==1 and len(wheel_filename)==1 and os.path.isfile(sdist_filename[0]): 
+			os.rename(sdist_filename[0], os.path.splitext(wheel_filename[0])[0]+ext)	
 	
 # ////////////////////////////////////////////////////////////////////
 if __name__ == "__main__":

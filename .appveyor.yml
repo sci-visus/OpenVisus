@@ -57,10 +57,11 @@ build_script:
   - cmd: git checkout -f
   - cmd: git clean -f
   - cmd: cd %APPVEYOR_BUILD_FOLDER%\build
-  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target INSTALL --config RelWithDebInfo)
-  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target deploy  --config RelWithDebInfo)
-  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target dist    --config RelWithDebInfo)
-  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target pypi    --config RelWithDebInfo)
+  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target INSTALL       --config RelWithDebInfo)
+  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target deploy        --config RelWithDebInfo)
+  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target bdist_wheel   --config RelWithDebInfo)
+  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target sdist         --config RelWithDebInfo)
+  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target pypi          --config RelWithDebInfo)
    
 # test are already in cmake
 test: off
