@@ -142,11 +142,13 @@ endif()
 
 # example: git submodule update --init win32/python36
 if (WIN32 AND (NOT DEFINED VISUS_INTERNAL_PYTHON) AND (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36))
+	message(STATUS "Found internal python ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36")
 	set(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36)
 endif()
 
 # example: git submodule update --init win32/python37
 if (WIN32 AND (NOT DEFINED VISUS_INTERNAL_PYTHON) AND (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37))
+	message(STATUS "Found internal python ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37")
 	set(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37)
 endif()
 
