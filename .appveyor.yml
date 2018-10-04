@@ -44,16 +44,16 @@ install:
 
 build_script:
   - cmd: cd %APPVEYOR_BUILD_FOLDER%  
-  - cmd: set PYTHONHOME=%cd%\win32\python%PYTHON_VERSION:~0,1%%PYTHON_VERSION:~2,1%  
-  - cmd: git submodule update --init %PYTHONHOME%
-  - cmd: set PATH=%PYTHONHOME%;%PATH%"
+  - cmd: set PYTHON_DIR=%cd%\win32\python%PYTHON_VERSION:~0,1%%PYTHON_VERSION:~2,1%  
+  - cmd: git submodule update --init %PYTHON_DIR%
+  - cmd: set PATH=%PYTHON_DIR%;%PATH%"
   - cmd: python.exe -m pip install numpy
   - cmd: mkdir build 
   - cmd: cd build 
-  - cmd: cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% -DPYTHONHOME=%PYTHONHOME% ../ 
+  - cmd: cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% ../ 
   - cmd: cmake --build . --target ALL_BUILD --config RelWithDebInfo
   - cmd: cmake --build . --target RUN_TESTS --config RelWithDebInfo
-  - cmd: cd %PYTHONHOME%
+  - cmd: cd %PYTHON_DIR%
   - cmd: git checkout -f
   - cmd: git clean -f
   - cmd: cd %APPVEYOR_BUILD_FOLDER%\build

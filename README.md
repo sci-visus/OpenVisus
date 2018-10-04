@@ -109,8 +109,7 @@ git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 
 git submodule update --init win32/python36
-set PYTHONHOME=%cd%\win32\python
-%PYTHONHOME%\python.exe -m pip install --user --upgrade numpy 
+win32\python36\python.exe -m pip install --user --upgrade numpy 
 
 mkdir build
 cd build
@@ -123,7 +122,7 @@ set GIT=C:\Program Files\Git\bin\git.exe
 set SWIG=C:\ProgramData\chocolatey\bin\swig.exe
 set CONFIGURATION=RelWithDebInfo
 
-%CMAKE% -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" -DGIT_CMD="%GIT%" -DSWIG_EXECUTABLE="%SWIG%" -DPYTHONHOME=%PYTHONHOME% ..
+%CMAKE% -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" -DGIT_CMD="%GIT%" -DSWIG_EXECUTABLE="%SWIG%" ..
 	
 %CMAKE% --build . --target ALL_BUILD   --config %CONFIGURATION%
 %CMAKE% --build . --target RUN_TESTS   --config %CONFIGURATION%

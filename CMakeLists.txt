@@ -140,13 +140,24 @@ if (NOT VISUS_INTERNAL_CURL)
 	find_package(CURL REQUIRED)
 endif()
 
+# example: git submodule update --init win32/python36
+if (WIN32 AND (NOT DEFINED VISUS_INTERNAL_PYTHON) AND (EXISTS win32/python36))
+	set(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36)
+endif()
 
-if (WIN32 AND DEFINED PYTHONHOME)
+# example: git submodule update --init win32/python37
+if (WIN32 AND (NOT DEFINED VISUS_INTERNAL_PYTHON) AND (EXISTS win32/python37))
+	set(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37)
+endif()
 
-	string(REPLACE "\\" "/" PYTHONHOME "${PYTHONHOME}")
-	add_subdirectory(${PYTHONHOME})
+
+if (WIN32 AND (DEFINED VISUS_INTERNAL_PYTHON))
+
+	string(REPLACE "\\" "/" VISUS_INTERNAL_PYTHON "${VISUS_INTERNAL_PYTHON}")
+	MESSAGE(STATUS "VISUS_INTERNAL_PYTHON       ${VISUS_INTERNAL_PYTHON}")
+	
+	add_subdirectory(${VISUS_INTERNAL_PYTHON})
 	find_package(NumPy REQUIRED)
-
 else()
 
 	if (NOT DEFINED PYTHON_VERSION)
@@ -231,8 +242,8 @@ if (True)
 		install(FILES ${CMAKE_BINARY_DIR}/visus.bat       DESTINATION .)
 		install(FILES ${CMAKE_BINARY_DIR}/visusviewer.bat DESTINATION .)
 		
-		if (DEFINED PYTHONHOME)
-			install(DIRECTORY ${PYTHONHOME}/ DESTINATION win32/python)
+		if (DEFINED VISUS_INTERNAL_PYTHON)
+			install(DIRECTORY ${VISUS_INTERNAL_PYTHON}/ DESTINATION win32/python)
 		endif()		
 		
 		if (OpenMP_FOUND)
