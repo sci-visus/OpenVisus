@@ -105,9 +105,6 @@ if (NOT DEFINED VISUS_INTERNAL_CURL)
 	set(VISUS_INTERNAL_CURL 1)
 endif()
 
-if (NOT DEFINED VISUS_INTERNAL_PYTHON)
-	set(VISUS_INTERNAL_PYTHON 0)
-endif()
 
 MESSAGE(STATUS "VISUS_INTERNAL_ZLIB       ${VISUS_INTERNAL_ZLIB}")
 MESSAGE(STATUS "VISUS_INTERNAL_LZ4        ${VISUS_INTERNAL_LZ4}")
@@ -115,7 +112,6 @@ MESSAGE(STATUS "VISUS_INTERNAL_TINYXML    ${VISUS_INTERNAL_TINYXML}")
 MESSAGE(STATUS "VISUS_INTERNAL_FREEIMAGE  ${VISUS_INTERNAL_FREEIMAGE}")
 MESSAGE(STATUS "VISUS_INTERNAL_OPENSSL    ${VISUS_INTERNAL_OPENSSL}")
 MESSAGE(STATUS "VISUS_INTERNAL_CURL       ${VISUS_INTERNAL_CURL}")
-MESSAGE(STATUS "VISUS_INTERNAL_PYTHON     ${VISUS_INTERNAL_PYTHON}")
 
 if (NOT VISUS_INTERNAL_ZLIB)
 	find_package(ZLIB REQUIRED)
@@ -144,11 +140,27 @@ if (NOT VISUS_INTERNAL_CURL)
 	find_package(CURL REQUIRED)
 endif()
 
-# python
-if (VISUS_INTERNAL_PYTHON)
-	set(PYTHON_VERSION       3.6)
-	set(PYTHON_VERSION_MAJOR 3)
-	set(PYTHON_VERSION_MINOR 6)
+# example: git submodule update --init win32/python36
+if (WIN32 AND (NOT DEFINED VISUS_INTERNAL_PYTHON))
+
+	 IF (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36/CMakeLists.txt)
+		set(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36)
+
+	elseif (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37/CMakeLists.txt)
+		set(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37)
+		
+	endif()
+	
+endif()
+
+
+if (DEFINED VISUS_INTERNAL_PYTHON)
+
+	string(REPLACE "\\" "/" VISUS_INTERNAL_PYTHON "${VISUS_INTERNAL_PYTHON}")
+	MESSAGE(STATUS "VISUS_INTERNAL_PYTHON     ${VISUS_INTERNAL_PYTHON}")
+	
+	add_subdirectory(${VISUS_INTERNAL_PYTHON})
+	find_package(NumPy REQUIRED)
 else()
 
 	if (NOT DEFINED PYTHON_VERSION)
@@ -156,11 +168,13 @@ else()
 	endif()
 
 	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
-	find_package(PythonLibs  ${PYTHON_VERSION} REQUIRED)
+	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
 	find_package(NumPy QUIET) 
+	
 	message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
 	message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
 	message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
+	
 endif()
 
 
@@ -196,28 +210,7 @@ if (NOT VISUS_IS_SUBMODULE)
 endif()
 
 # //////////////////////////////////////////////////////////////
-# *** install ***
-
-# ///////////////////////////////////////////////////
-macro(InstallBuildFiles Pattern Destination)
-
-	if (CMAKE_CONFIGURATION_TYPES)
-		install(CODE "
-			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern})
-			MESSAGE(STATUS \"InstallBuildFiles from ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern}\")
-			MESSAGE(STATUS \"Files: \${__files__} \")
-			FILE(INSTALL \${__files__} DESTINATION \"${CMAKE_INSTALL_PREFIX}/${Destination}\")
-		")
-	else()
-		install(CODE "
-			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/${Pattern})
-			MESSAGE(STATUS \"InstallBuildFiles from ${CMAKE_BINARY_DIR}/${Pattern}\")
-			MESSAGE(STATUS \"Files: \${__files__} \")
-			FILE(INSTALL \${__files__} DESTINATION \"${CMAKE_INSTALL_PREFIX}/${Destination}\")
-		")
-	endif()
-endmacro()
-
+# install
 if (True)
 
 	install(FILES        LICENSE                        DESTINATION .)
@@ -246,20 +239,42 @@ if (True)
 	
 		InstallBuildFiles(*.dll bin)
 		
-		if (VISUS_INTERNAL_PYTHON)
-			install(DIRECTORY InternalLibs/python/win32/ DESTINATION ./Python36)
-		endif()
+		Win32CreateBatchFile(${CMAKE_BINARY_DIR}/visus.bat       "bin\\\\visus.exe"       "numpy")
+		Win32CreateBatchFile(${CMAKE_BINARY_DIR}/visusviewer.bat "bin\\\\visusviewer.exe" "numpy PyQt5")
+		
+		install(FILES ${CMAKE_BINARY_DIR}/visus.bat       DESTINATION .)
+		install(FILES ${CMAKE_BINARY_DIR}/visusviewer.bat DESTINATION .)
+		
+		if (DEFINED VISUS_INTERNAL_PYTHON)
+			install(DIRECTORY ${VISUS_INTERNAL_PYTHON}/ DESTINATION win32/python)
+		endif()		
+		
+		if (OpenMP_FOUND)
+			set(CMAKE_INSTALL_OPENMP_LIBRARIES 1)
+		endif()	
+
+		include(InstallRequiredSystemLibraries)
+		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION bin COMPONENT Libraries)		
 		
 	endif()
-	
+
 	if (VISUS_GUI)
 		install(DIRECTORY Libs/Gui/include/Visus         DESTINATION include/Gui)
 		install(DIRECTORY Libs/GuiNodes/include/Visus    DESTINATION include/GuiNodes)
 		install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
 	endif()
 	
+	
+endif()
+
+# /////////////////////////////////////////////////////////////////////
+# deploy target
+if (True)
+
 	add_custom_target(deploy 
-		"${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --qt-directory "${Qt5_DIR}" 
+		"${CMAKE_COMMAND}" -E echo "Running deploy step..."
+		COMMAND
+		"${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --qt-directory "${Qt5_DIR}"  
 		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}"
 	)
 	
@@ -269,8 +284,99 @@ if (True)
 	
 endif()
 
+# /////////////////////////////////////////////////////////////////////
+# sdist target
+if (True)
+	
+	if (WIN32)
+		set(PYTHON_SDIST_FORMAT zip)
+	else()
+		set(PYTHON_SDIST_FORMAT gztar)
+	endif()
+	
+	add_custom_target(sdist 
+		        "${CMAKE_COMMAND}" -E echo "Installing setuptools..."
+		COMMAND "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade setuptools 
+		COMMAND "${CMAKE_COMMAND}" -E echo "Running sdist target..."
+		COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py" -q sdist --formats=${PYTHON_SDIST_FORMAT}
+		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
+	
+	if (WIN32)
+		set_target_properties(sdist PROPERTIES FOLDER "CMakePredefinedTargets/")
+	endif()	
+	
+endif()
 
 
+# /////////////////////////////////////////////////////////////////////
+# bdist_wheel target
+if (True)
 
+	set(PYTHON_TAG cp${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
+
+	if (WIN32)
+	
+		set(PYTHON_PLAT_NAME win_amd64)
+		
+	elseif (APPLE)
+	
+		string(SUBSTRING ${APPLE_OSX_VERSION} 0 2 __major__)
+		string(SUBSTRING ${APPLE_OSX_VERSION} 3 2 __minor__)
+		set(PYTHON_PLAT_NAME macosx_${__major__}_${__minor__}_x86_64)
+		
+	else()
+	
+		execute_process(COMMAND lsb_release -is OUTPUT_VARIABLE __id__   OUTPUT_STRIP_TRAILING_WHITESPACE)
+		execute_process(COMMAND lsb_release -cs OUTPUT_VARIABLE __name__ OUTPUT_STRIP_TRAILING_WHITESPACE)
+		set(PYTHON_PLAT_NAME ${__id__}${__name__})
+	
+	endif()
+
+	add_custom_target(bdist_wheel 
+		        "${CMAKE_COMMAND}" -E echo "Installing setuptools wheel..."
+		COMMAND "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade setuptools wheel
+		COMMAND "${CMAKE_COMMAND}" -E echo "Running bdist_wheel target..."
+		COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py" -q bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PYTHON_PLAT_NAME} 
+		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
+	
+	if (WIN32)
+		set_target_properties(bdist_wheel PROPERTIES FOLDER "CMakePredefinedTargets/")
+	endif()	
+	
+
+	
+endif()
+
+
+# /////////////////////////////////////////////////////////////////////
+# pypi
+if (DEFINED PYPI_USERNAME AND DEFINED PYPI_PASSWORD)
+
+	if (WIN32)
+		set(__home__ $ENV{USERPROFILE})
+	else()
+		set(__home__ $ENV{HOME}/)
+	endif()
+
+	set(__filename__ ${__home__}/.pypirc)
+
+	file(WRITE  ${__filename__} "[distutils]\n")
+	file(APPEND ${__filename__} "index-servers=\n")
+	file(APPEND ${__filename__} "    pypi\n")
+	file(APPEND ${__filename__} "[pypi]\n")
+	file(APPEND ${__filename__} "username: ${PYPI_USERNAME}\n")
+	file(APPEND ${__filename__} "password: ${PYPI_PASSWORD}\n")
+	
+	add_custom_target(pypi 
+		        "${CMAKE_COMMAND}" -E echo "Running pypi step..."
+		COMMAND "${CMAKE_COMMAND}" -E env HOME=${__home__} "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade twine
+		COMMAND "${CMAKE_COMMAND}" -E env HOME=${__home__} "${PYTHON_EXECUTABLE}" -m twine upload --skip-existing dist/*.whl 
+		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
+	
+	if (WIN32)
+		set_target_properties(pypi PROPERTIES FOLDER "CMakePredefinedTargets/")
+	endif()	  
+  
+endif()
 
                

@@ -7,6 +7,9 @@ import shutil
 import platform
 import errno
 
+WIN32=platform.system()=="Windows" or platform.system()=="win32"
+APPLE=platform.system()=="Darwin"
+
 qt_plugins=("iconengines","imageformats","platforms","printsupport","styles")
 
 bVerbose=False
@@ -92,63 +95,9 @@ class Win32DeployStep(BaseDeployStep):
 	# run
 	def run(self):
 		
-		# if VISUS_INTERNAL_PYTHON I want to be able to install new pip packages...
-		VISUS_INTERNAL_PYTHON=os.path.isdir("Python36")
-		if VISUS_INTERNAL_PYTHON:
-			
-			if os.path.isfile("Python36/python36.zip"):
-				import zipfile
-				zipper = zipfile.ZipFile("Python36/python36.zip", 'r')
-				zipper.extractall("Python36/lib")
-				zipper.close()	
-				os.remove("Python36/python36.zip")		
-				
-			self.writeTextFile("Python36/python36._pth",[
-				".",
-				".\\Lib",
-				".\\Lib\\site-packages",
-				"..\\",
-				"import site"
-			])
-				
-			# install python dependencies
-			if not os.path.isfile("Python36\\Scripts\\pip.exe"):
-				self.executeCommand(["Python36\\python.exe","python36\\get-pip.py"])
-			
-			self.executeCommand(["Python36\\Scripts\\pip.exe","install","numpy","pymap3d","PyQt5"])
-
-		for exe in ("bin\\visusviewer.exe","bin\\visus.exe"):
-			
-			name=self.getFileNameWithoutExtension(exe)	
-			
-			PATH=[]
-			
-			QT_PLUGIN_PATH="%cd%\\.\\bin\\plugins"
-			
-			# important that pyqt comes first! otherwise PyQt5 and Qt5 will fight
-			if VISUS_INTERNAL_PYTHON:
-				PATH+=[
-					"%cd%\\Python36",
-					"%cd%\\Python36\\Scripts",
-					"%cd%\\Python36\\lib\\site-packages\\PyQt5\\Qt\\bin"
-				]
-				QT_PLUGIN_PATH="%cd%\\Python36\\lib\\site-packages\\PyQt5\\Qt\\plugins"
-				
-			PATH+=["%cd%\\bin"]
-			PATH+=["%PATH%"]
-
-			# create a batch file
-			self.writeTextFile("%s.bat" % (name,),[
-				"cd /d %~dp0",
-				"set PATH=\"%s\"" % ("\";\"".join(PATH),),
-				"set QT_PLUGIN_PATH=\"%s\"" % (QT_PLUGIN_PATH,),
-				"set PYTHONPATH=\"%cd%\\Python36\"" if VISUS_INTERNAL_PYTHON else "",
-				exe + " %*"
-			])
-		
-			# deploy using qt
-			deployqt=os.path.realpath(self.qt_directory+"/bin/windeployqt")
-			self.executeCommand([deployqt,exe, "--libdir","bin","--plugindir","bin\\plugins","--no-translations"])
+		# deploy using qt
+		deployqt=os.path.realpath(self.qt_directory+"/bin/windeployqt")
+		self.executeCommand([deployqt,"bin\\visusviewer.exe", "--libdir","bin","--plugindir","bin\\plugins","--no-translations"])
 
 
 
@@ -582,12 +531,12 @@ if __name__ == "__main__":
 	print("  platform.system()",platform.system())	
 	print("  qt_directory",qt_directory)	
 
-	if platform.system()=="Windows" or platform.system()=="win32":
+	if WIN32:
 		deploy=Win32DeployStep()
 		deploy.qt_directory=os.path.realpath(qt_directory+"/../../..")
 		deploy.run()
 		
-	elif platform.system()=="Darwin":
+	elif APPLE:
 		deploy=AppleDeployStep()
 		deploy.qt_directory=os.path.realpath(qt_directory+"/../../..")
 		deploy.run()
