@@ -381,9 +381,8 @@ endif()
 if (True)
 
 	add_custom_target(deploy 
-		"${CMAKE_COMMAND}" -E echo "Running deploy step..."
-		COMMAND
-		"${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --qt-directory "${Qt5_DIR}"  
+		        "${CMAKE_COMMAND}" -E echo "Running deploy step..."
+		COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --qt-directory "${Qt5_DIR}" --fix-all --show-deps  
 		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}"
 	)
 	
@@ -437,7 +436,7 @@ if (True)
 	
 		execute_process(COMMAND lsb_release -is OUTPUT_VARIABLE __id__   OUTPUT_STRIP_TRAILING_WHITESPACE)
 		execute_process(COMMAND lsb_release -cs OUTPUT_VARIABLE __name__ OUTPUT_STRIP_TRAILING_WHITESPACE)
-		set(PYTHON_PLAT_NAME ${__id__}${__name__})
+		set(PYTHON_PLAT_NAME "${__id__}.${__name__}")
 	
 	endif()
 

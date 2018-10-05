@@ -211,7 +211,7 @@ python -m pip install --user --upgrade numpy
 Choose if  you want to use precompiled brew libraries (fast) or not (slow):
 
 ```
-VISUS_INTERNAL_DEFAULT=1 # 0 means: use brew
+VISUS_INTERNAL_DEFAULT=0 # 0 means: use brew
 
 if [ $VISUS_INTERNAL_DEFAULT -eq 0 ]; then
 	brew install zlib lz4 tinyxml freeimage openssl curl
@@ -222,7 +222,9 @@ Then compile OpenVisus:
 
 ```
 git clone https://github.com/sci-visus/OpenVisus
-cd OpenVisus && mkdir build && cd build
+cd OpenVisus 
+mkdir build 
+cd build
 
 cmake -GXcode \
   -DPYTHON_VERSION=${PYTHON_VERSION} \

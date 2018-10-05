@@ -187,7 +187,6 @@ class AppleDeployStep(BaseDeployStep):
 				if not dep in deps: deps[dep]=[]
 				deps[dep]+=[filename]	
 		
-		print("This are the dependency")
 		for dep in deps:
 			
 			if bFull:
@@ -263,8 +262,8 @@ class AppleDeployStep(BaseDeployStep):
 		if not dep.startswith("/"):
 			return False
 		
-		# ignore system libraries
-		if dep.startswith("/System") or dep.startswith("/usr/lib"):
+		# ignore system libraries and built in directories
+		if dep.startswith("/System") or dep.startswith("/lib") or dep.startswith("/usr/lib"):
 			return False
 			
 		# ignore non existent dependencies
@@ -347,8 +346,6 @@ class AppleDeployStep(BaseDeployStep):
 		self.changeAllDeps()
 		self.createCommands()
 		self.createQtConfs()
-		if bVerbose:
-			self.showDeps()
 			
 
 
@@ -432,16 +429,26 @@ class LinuxDeployStep(BaseDeployStep):
 		for plugin in qt_plugins :
 			self.copyDirectory(self.qt_directory+"/qt5/plugins/"+plugin,"bin/plugins")			
 
+	# findApps
+	def findApps(self):	
+		return [it for it in glob.glob("bin/*") if os.path.isfile(it) and not os.path.splitext(it)[1]]
+		
+	# findAllBinaries
+	def findAllBinaries(self):
+		return glob.glob("bin/*.so")  + self.findApps()
+		
 	# findAllDeps
 	def findAllDeps(self):
-		output=subprocess.check_output(('ldd',"bin/visusviewer"))
-		if sys.version_info >= (3, 0): output=output.decode("utf-8")
-		output=output.strip()	
 		deps={}
-		for line in output.splitlines():
-			items=[it.strip() for it in line.split(" ") if len(it.strip())]
-			if len(items)>=4 and items[1]=='=>' and items[2]!='not' and items[3]!='found':
-				deps[items[0]]=items[2]	
+		for filename in self.findAllBinaries():
+			output=subprocess.check_output(('ldd',filename))
+			if sys.version_info >= (3, 0): 
+				output=output.decode("utf-8")
+			output=output.strip()	
+			for line in output.splitlines():
+				items=[it.strip() for it in line.split(" ") if len(it.strip())]
+				if len(items)>=4 and items[1]=='=>' and items[2]!='not' and items[3]!='found':
+					deps[items[0]]=items[2]	
 		return deps
 
 	# copyGlobalDeps
@@ -449,11 +456,12 @@ class LinuxDeployStep(BaseDeployStep):
 		deps=self.findAllDeps()
 		for key in deps:
 			filename=deps[key]
+			# only absolute file
 			if filename.startswith("/"):
 				self.copyFile(filename,"bin/"+key)	
 
-	# copySharedObjectsSymbolicLinks
-	def copySharedObjectsSymbolicLinks(self):
+	# fixSymbolicLinks
+	def fixSymbolicLinks(self):
 		pushd=os.getcwd()
 		os.chdir("bin")	
 		for filename in glob.glob("*.so.*"):
@@ -467,14 +475,9 @@ class LinuxDeployStep(BaseDeployStep):
 				link,ext=os.path.splitext(link)		
 		os.chdir(pushd)			
 
-		
-	# findApps
-	def findApps(self):	
-		return [it for it in glob.glob("bin/*") if os.path.isfile(it) and not os.path.splitext(it)[1]]
-		
 	# setOrigins
 	def setOrigins(self):
-		for filename in glob.glob("bin/*.so")  + self.findApps():
+		for filename in self.findAllBinaries():
 			self.executeCommand(["patchelf", "--set-rpath", "$ORIGIN", filename])	
 			
 	# createBashScripts
@@ -494,7 +497,6 @@ class LinuxDeployStep(BaseDeployStep):
 
 	# showDeps
 	def showDeps(self):
-		print("Show deps:")
 		deps=self.findAllDeps()
 		for key in deps:
 			print("%30s" % (key,),deps[key])
@@ -504,15 +506,15 @@ class LinuxDeployStep(BaseDeployStep):
 	
 		self.copyQtPlugins()
 		
+		# need to run two times
 		for I in range(2):
 			self.copyGlobalDeps()
-			self.copySharedObjectsSymbolicLinks()
+			self.fixSymbolicLinks()
 			self.setOrigins()
 			
 		self.createBashScripts()
 		
-		if bVerbose:
-			self.showDeps()
+
 		
 		
 
@@ -530,12 +532,17 @@ if __name__ == "__main__":
 	else:
 		deploy=LinuxDeployStep()
 			
-	if len(sys.argv)==1:
-		sys.argv=(sys.argv[0],"--run")		
 			
 	I=1
 	while I < len(sys.argv):
+	
+		# verbose	
+		if sys.argv[I]=="--verbose":
+			bVerbose=True
+			I+=1
+			continue
 		
+		# qt-directory
 		if sys.argv[I]=="--qt-directory":
 			value=sys.argv[I+1]	
 			I+=2
@@ -555,11 +562,12 @@ if __name__ == "__main__":
 			
 		if sys.argv[I]=="--show-deps":
 			I+=1
-			print("Showing deps")
+			print("Current deps:")
 			deploy.showDeps()
 			continue
-			
-		if sys.argv[I]=="--run":
+		
+		# fix all
+		if sys.argv[I]=="--fix-all":
 			I+=1
 			print("Running deploy")
 			deploy.run()
