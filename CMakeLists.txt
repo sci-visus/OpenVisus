@@ -86,11 +86,16 @@ if (WIN32)
 	endif()
 endif()
 
+# /////////////////////////////////////////////////////////////
 # for APPLE if brew is used, then use external by default
-if (BREW_PREFIX)
-	SetIfNotDefined(VISUS_INTERNAL_DEFAULT 0)
+
+if ("${CMAKE_BREW_PREFIX}" STREQUAL "")
+	ForceUnset(CMAKE_BREW_PREFIX)
 endif()
 
+if (CMAKE_BREW_PREFIX)
+	SetIfNotDefined(VISUS_INTERNAL_DEFAULT 0)
+endif()
 
 SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
 
@@ -103,9 +108,9 @@ if (VISUS_INTERNAL_ZLIB)
 	MESSAGE(STATUS "Using internal zlib")
 else()
 	
-	if (BREW_PREFIX)
-		SetIfNotDefined(ZLIB_INCLUDE_DIR ${BREW_PREFIX}/zlib/include)
-		SetIfNotDefined(ZLIB_LIBRARY     ${BREW_PREFIX}/zlib/lib/libz.dylib)
+	if (CMAKE_BREW_PREFIX)
+		SetIfNotDefined(ZLIB_INCLUDE_DIR ${CMAKE_BREW_PREFIX}/zlib/include)
+		SetIfNotDefined(ZLIB_LIBRARY     ${CMAKE_BREW_PREFIX}/zlib/lib/libz.dylib)
 	endif()
 
 	find_package(ZLIB REQUIRED)
@@ -123,9 +128,9 @@ if (VISUS_INTERNAL_LZ4)
 	MESSAGE(STATUS "Using internal lz4")
 else()
 
-	if (BREW_PREFIX)
-		SetIfNotDefined(LZ4_INCLUDE_DIR ${BREW_PREFIX}/lz4/include)
-		SetIfNotDefined(LZ4_LIBRARY     ${BREW_PREFIX}/lz4/lib/liblz4.dylib)
+	if (CMAKE_BREW_PREFIX)
+		SetIfNotDefined(LZ4_INCLUDE_DIR ${CMAKE_BREW_PREFIX}/lz4/include)
+		SetIfNotDefined(LZ4_LIBRARY     ${CMAKE_BREW_PREFIX}/lz4/lib/liblz4.dylib)
 	endif()
 
 	find_package(LZ4 REQUIRED)
@@ -144,9 +149,9 @@ if (VISUS_INTERNAL_TINYXML)
 	MESSAGE(STATUS "Using internal TynyXML")
 else()
 
-	if (BREW_PREFIX)
-		SetIfNotDefined(TinyXML_INCLUDE_DIR ${BREW_PREFIX}/tinyxml/include)
-		SetIfNotDefined(TinyXML_LIBRARY     ${BREW_PREFIX}/tinyxml/lib/libtinyxml.dylib)
+	if (CMAKE_BREW_PREFIX)
+		SetIfNotDefined(TinyXML_INCLUDE_DIR ${CMAKE_BREW_PREFIX}/tinyxml/include)
+		SetIfNotDefined(TinyXML_LIBRARY     ${CMAKE_BREW_PREFIX}/tinyxml/lib/libtinyxml.dylib)
 	endif()
 
 	find_package(TinyXML REQUIRED)
@@ -165,9 +170,9 @@ if (VISUS_INTERNAL_FREEIMAGE)
 	MESSAGE(STATUS "Using internal FreeImage")
 else()
 
-	if (BREW_PREFIX)
-		SetIfNotDefined(FREEIMAGE_INCLUDE_DIRS ${BREW_PREFIX}/freeimage/include)
-		SetIfNotDefined(FREEIMAGE_LIBRARIES    ${BREW_PREFIX}/freeimage/lib/libfreeimage.dylib)
+	if (CMAKE_BREW_PREFIX)
+		SetIfNotDefined(FREEIMAGE_INCLUDE_DIRS ${CMAKE_BREW_PREFIX}/freeimage/include)
+		SetIfNotDefined(FREEIMAGE_LIBRARIES    ${CMAKE_BREW_PREFIX}/freeimage/lib/libfreeimage.dylib)
 	endif()
 	
 	find_package(FreeImage REQUIRED)
@@ -193,10 +198,10 @@ else()
 		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/FixFindOpenSSL)
 	endif()
 	
-	if (BREW_PREFIX)
-		SetIfNotDefined(OPENSSL_INCLUDE_DIR    ${BREW_PREFIX}/openssl/include)
-		SetIfNotDefined(OPENSSL_CRYPTO_LIBRARY ${BREW_PREFIX}/openssl/lib/libcrypto.dylib)
-		SetIfNotDefined(OPENSSL_SSL_LIBRARY    ${BREW_PREFIX}/openssl/lib/libssl.dylib)	
+	if (CMAKE_BREW_PREFIX)
+		SetIfNotDefined(OPENSSL_INCLUDE_DIR    ${CMAKE_BREW_PREFIX}/openssl/include)
+		SetIfNotDefined(OPENSSL_CRYPTO_LIBRARY ${CMAKE_BREW_PREFIX}/openssl/lib/libcrypto.dylib)
+		SetIfNotDefined(OPENSSL_SSL_LIBRARY    ${CMAKE_BREW_PREFIX}/openssl/lib/libssl.dylib)	
 	endif()
 	
 	find_package(OpenSSL REQUIRED)
@@ -217,9 +222,9 @@ if (VISUS_INTERNAL_CURL)
 	MESSAGE(STATUS "Using internal Curl")
 else()
 
-	if (BREW_PREFIX)
-		SetIfNotDefined(CURL_INCLUDE_DIR ${BREW_PREFIX}/curl/include)
-		SetIfNotDefined(CURL_LIBRARY     ${BREW_PREFIX}/curl/lib/libcurl.dylib)
+	if (CMAKE_BREW_PREFIX)
+		SetIfNotDefined(CURL_INCLUDE_DIR ${CMAKE_BREW_PREFIX}/curl/include)
+		SetIfNotDefined(CURL_LIBRARY     ${CMAKE_BREW_PREFIX}/curl/lib/libcurl.dylib)
 	endif()
 
 	find_package(CURL REQUIRED)
@@ -374,6 +379,8 @@ if (True)
 endif()
 
 # /////////////////////////////////////////////////////////////////////
+# note: alternative would be to use cmake FIXUP_BUNDLE... but it seems broken on Linux
+# and also would have problmes with run-time linking (i.e. Qt5 plugins)
 # deploy target
 if (True)
 
