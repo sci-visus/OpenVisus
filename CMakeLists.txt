@@ -343,15 +343,43 @@ if (True)
 	InstallBuildFiles(*.py ./)
 	
 	if (WIN32)
+		
+		set (__filename__ "${CMAKE_BINARY_DIR}/visus.bat")
+		file(WRITE    "${__filename__}" "cd /d %~dp0\r\n")
+		file(APPEND   "${__filename__}" "if EXIST %cd%\\win32\\Python (set PYTHON_DIR=%cd%\\win32\\Python) else (set PYTHON_DIR=%cd%\\..\\..\\..\\) \r\n")
+		file(APPEND   "${__filename__}" "%PYTHON_DIR%\\python.exe -m pip install --user --upgrade numpy\r\n")
+		file(APPEND   "${__filename__}" "set PATH=%PYTHON_DIR%;%cd%\\bin;%PATH%\r\n")
+		file(APPEND   "${__filename__}" "bin\\\\visus.exe %*\r\n")
+		install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)
+		
+	elseif (APPLE)
+	
+		set(__filename__ "${CMAKE_BINARY_DIR}/visus.command")
+		file(WRITE    "${__filename__}" "#!/bin/bash\n")
+		file(APPEND   "${__filename__}" "this_dir=$(cd \"$(dirname \"${BASH_SOURCE[0]}\" )\" && pwd)\n")
+		file(APPEND   "${__filename__}" "cd ${this_dir}\n")
+		file(APPEND   "${__filename__}" "export PATH=${this_dir}/bin:$PATH\n")
+		file(APPEND   "${__filename__}" "export PYTHONPATH=${this_dir}:${this_dir}/bin:$PYTHONPATH\n")
+		file(APPEND   "${__filename__}" "./bin/visus.app/Contents/MacOS/visus\n")
+		install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)
+	
+	else()
+	
+		set(__filename__ "${CMAKE_BINARY_DIR}/visus.sh")
+		file(WRITE    "${__filename__}" "#!/bin/bash\n")
+		file(APPEND   "${__filename__}" "this_dir=$(cd \"$(dirname \"${BASH_SOURCE[0]}\" )\" && pwd)\n")
+		file(APPEND   "${__filename__}" "cd ${this_dir}\n")
+		file(APPEND   "${__filename__}" "export PATH=${this_dir}/bin:$PATH\n")
+		file(APPEND   "${__filename__}" "export PYTHONPATH=${this_dir}:${this_dir}/bin:$PYTHONPATH\n")
+		file(APPEND   "${__filename__}" "./bin/visus\n")
+		install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)	
+	
+	endif()
+	
+	if (WIN32)
 	
 		InstallBuildFiles(*.dll bin)
-		
-		Win32CreateBatchFile(${CMAKE_BINARY_DIR}/visus.bat       "bin\\\\visus.exe"       "numpy")
-		Win32CreateBatchFile(${CMAKE_BINARY_DIR}/visusviewer.bat "bin\\\\visusviewer.exe" "numpy PyQt5")
-		
-		install(FILES ${CMAKE_BINARY_DIR}/visus.bat       DESTINATION .)
-		install(FILES ${CMAKE_BINARY_DIR}/visusviewer.bat DESTINATION .)
-		
+	
 		if (DEFINED VISUS_INTERNAL_PYTHON)
 			install(DIRECTORY ${VISUS_INTERNAL_PYTHON}/ DESTINATION win32/python)
 		endif()		
@@ -361,16 +389,81 @@ if (True)
 		endif()	
 
 		include(InstallRequiredSystemLibraries)
-		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION bin COMPONENT Libraries)		
+		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION bin COMPONENT Libraries)	
 		
 	endif()
 
 	if (VISUS_GUI)
+	
 		install(DIRECTORY Libs/Gui/include/Visus         DESTINATION include/Gui)
 		install(DIRECTORY Libs/GuiNodes/include/Visus    DESTINATION include/GuiNodes)
 		install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
+		
+		# install Qt plugins
+		if (EXISTS "${Qt5_DIR}/../../../plugins")
+			set(qt5_PLUGIN_DIR "${Qt5_DIR}/../../../plugins")
+			
+		elseif (EXISTS "${Qt5_DIR}/../../qt5/plugins")
+			set(qt5_PLUGIN_DIR "${Qt5_DIR}/../../qt5/plugins")
+			
+		else()
+			MESSAGE(ERROR "Cannot find qt plugins")
+		endif()
+		
+		if (NOT WIN32)
+			install(DIRECTORY "${qt5_PLUGIN_DIR}/iconengines"   DESTINATION bin/plugins)
+			install(DIRECTORY "${qt5_PLUGIN_DIR}/imageformats"  DESTINATION bin/plugins)
+			install(DIRECTORY "${qt5_PLUGIN_DIR}/platforms"     DESTINATION bin/plugins)
+			install(DIRECTORY "${qt5_PLUGIN_DIR}/printsupport"  DESTINATION bin/plugins)
+			install(DIRECTORY "${qt5_PLUGIN_DIR}/styles"        DESTINATION bin/plugins)
+		endif()
+		
+		if (WIN32)
+				
+			set(__filename__ "${CMAKE_BINARY_DIR}/visusviewer.bat")
+			file(WRITE    "${__filename__}" "cd /d %~dp0\r\n")
+			file(APPEND   "${__filename__}" "if EXIST %cd%\\win32\\Python (set PYTHON_DIR=%cd%\\win32\\Python) else (set PYTHON_DIR=%cd%\\..\\..\\..\\) \r\n")
+			file(APPEND   "${__filename__}" "%PYTHON_DIR%\\python.exe -m pip install --user --upgrade numpy PyQt5\r\n")
+			file(APPEND   "${__filename__}" "set PATH=%PYTHON_DIR%;%cd%\\bin;%PATH%\r\n")
+			file(APPEND   "${__filename__}" "FOR /F \"tokens=* USEBACKQ\" %%F IN (`%PYTHON_DIR%\\python.exe -c \"import os,PyQt5; print(os.path.dirname(PyQt5.__file__))\"`) DO (SET PyQt5_DIR=%%F)\r\n")
+			file(APPEND   "${__filename__}" "set PATH=%PyQt5_DIR%\\Qt\\bin;%PATH%\r\n")
+			file(APPEND   "${__filename__}" "set QT_PLUGIN_PATH=%PyQt5_DIR%\\Qt\\plugins\r\n")
+			file(APPEND   "${__filename__}" "bin\\\\visusviewer.exe %*\r\n")		
+			install(FILES "${__filename__}" DESTINATION .)
+					
+		elseif (APPLE)
+		
+			set(__filename__ "${CMAKE_BINARY_DIR}/visusviewer.command")
+			file(WRITE    "${__filename__}" "#!/bin/bash\n")
+			file(APPEND   "${__filename__}" "this_dir=$(cd \"$(dirname \"${BASH_SOURCE[0]}\" )\" && pwd)\n")
+			file(APPEND   "${__filename__}" "cd ${this_dir}\n")
+			file(APPEND   "${__filename__}" "export PATH=${this_dir}/bin:$PATH\n")
+			file(APPEND   "${__filename__}" "export QT_PLUGIN_PATH=${this_dir}/bin/plugins\n")
+			file(APPEND   "${__filename__}" "export PYTHONPATH=${this_dir}:${this_dir}/bin:$PYTHONPATH\n")
+			file(APPEND   "${__filename__}" "./bin/visusviewer.app/Contents/MacOS/visusviewer\n")
+			install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)	
+			
+			set(__filename__ "${CMAKE_BINARY_DIR}/bin/visusviewer.app/Contents/Resources/qt.conf")
+			file(WRITE    "${__filename__}" "[Paths]\n")
+			file(APPEND   "${__filename__}" "  Plugins=../../../bin/plugins\n")
+			install(FILES "${__filename__}")
+				
+		else()
+			
+			set(__filename__ "${CMAKE_BINARY_DIR}/visusviewer.sh")
+			file(WRITE    "${__filename__}" "#!/bin/bash\n")
+			file(APPEND   "${__filename__}" "this_dir=$(cd \"$(dirname \"${BASH_SOURCE[0]}\" )\" && pwd)\n")
+			file(APPEND   "${__filename__}" "cd ${this_dir}\n")
+			file(APPEND   "${__filename__}" "export PATH=${this_dir}/bin:$PATH\n")
+			file(APPEND   "${__filename__}" "export QT_PLUGIN_PATH=${this_dir}/bin/plugins\n")
+			file(APPEND   "${__filename__}" "export PYTHONPATH=${this_dir}:${this_dir}/bin:$PYTHONPATH\n")
+			file(APPEND   "${__filename__}" "./bin/visusviewer\n")
+			install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)			
+		
+		endif()
+		
 	endif()
-	
+
 	
 endif()
 
@@ -380,14 +473,22 @@ endif()
 # deploy target
 if (True)
 
-	add_custom_target(deploy 
-		        "${CMAKE_COMMAND}" -E echo "Running deploy step..."
-		COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --qt-directory "${Qt5_DIR}" --fix-all --show-deps  
-		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}"
-	)
-	
 	if (WIN32)
+	
+		add_custom_target(deploy 
+			        "${CMAKE_COMMAND}" -E echo "Running deploy step..."
+		   COMMAND	"${Qt5_DIR}\\..\\..\\..\\bin\\windeployqt" "bin\\visusviewer.exe" --libdir bin --plugindir bin\\plugins --no-translations
+			WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
+			
 		set_target_properties(deploy PROPERTIES FOLDER "CMakePredefinedTargets/")
+	
+	else()
+
+		add_custom_target(deploy 
+			        "${CMAKE_COMMAND}" -E echo "Running deploy step..."
+			COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --fix-deps --show-deps  
+			WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
+			
 	endif()
 	
 endif()
