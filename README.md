@@ -106,10 +106,7 @@ choco install -y -allow-empty-checksums git cmake swig
 Install [Qt5](http://download.qt.io/official_releases/qt/5.9/5.9.2/qt-opensource-windows-x86-5.9.2.exe) 
 
 
-
-### Compile OpenVisus with [Microsoft vcpkg](https://github.com/Microsoft/vcpkg) (fast):
-
-From a command prompt:
+if you want to use [Microsoft vcpkg](https://github.com/Microsoft/vcpkg) (faster):
 
 ```
 cd c:\
@@ -119,40 +116,18 @@ git clone https://github.com/Microsoft/vcpkg
 cd vcpkg
 .\bootstrap-vcpkg.bat
 vcpkg.exe install zlib:x64-windows lz4:x64-windows tinyxml:x64-windows freeimage:x64-windows openssl:x64-windows curl:x64-windows
-
-cd c:\
-mkdir projects
-cd projects
-git clone https://github.com/sci-visus/OpenVisus
-cd OpenVisus
-
-git submodule update --init win32/python36
-win32\python36\python.exe -m pip install --user --upgrade numpy 
-
-mkdir build
-cd build
-
-REM *** change as needed *** 
-set GENERATOR=Visual Studio 15 2017 Win64
-set QT5_DIR=C:\Qt\Qt5.9.2\5.9.2\msvc2017_64
-set CMAKE="C:\Program Files\CMake\bin\cmake.exe"
-set GIT=C:\Program Files\Git\bin\git.exe
-set SWIG=C:\ProgramData\chocolatey\bin\swig.exe
-set CONFIGURATION=RelWithDebInfo
-set TOOLCHAIN=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
-set TRIPLET=x64-windows
-
-%CMAKE% -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" -DGIT_CMD="%GIT%" -DSWIG_EXECUTABLE="%SWIG%" -DCMAKE_TOOLCHAIN_FILE="%TOOLCHAIN%" -DVCPKG_TARGET_TRIPLET="%TRIPLET%"  ..
-	
-%CMAKE% --build . --target ALL_BUILD   --config %CONFIGURATION%
-%CMAKE% --build . --target RUN_TESTS   --config %CONFIGURATION%
-%CMAKE% --build . --target INSTALL     --config %CONFIGURATION% 
-%CMAKE% --build . --target deploy      --config %CONFIGURATION% 
+set CMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
+set VCPKG_TARGET_TRIPLET=x64-windows
 ```
 
-### Compile OpenVisus without [Microsoft vcpkg](https://github.com/Microsoft/vcpkg) (slow):
+otherwise (slow):
 
-From a command prompt:
+```
+set CMAKE_TOOLCHAIN_FILE=
+set VCPKG_TARGET_TRIPLET=
+```
+
+Then:
 
 ```
 cd c:\
@@ -171,11 +146,15 @@ REM *** change as needed ***
 set GENERATOR=Visual Studio 15 2017 Win64
 set QT5_DIR=C:\Qt\Qt5.9.2\5.9.2\msvc2017_64
 set CMAKE="C:\Program Files\CMake\bin\cmake.exe"
-set GIT=C:\Program Files\Git\bin\git.exe
-set SWIG=C:\ProgramData\chocolatey\bin\swig.exe
+set GIT_CMD=C:\Program Files\Git\bin\git.exe
+set SWIG_EXECUTABLE=C:\ProgramData\chocolatey\bin\swig.exe
 set CONFIGURATION=RelWithDebInfo
 
-%CMAKE% -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" -DGIT_CMD="%GIT%" -DSWIG_EXECUTABLE="%SWIG%" ..
+IF DEFINED  CMAKE_TOOLCHAIN_FILE (
+	%CMAKE% -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" -DGIT_CMD="%GIT_CMD%" -DSWIG_EXECUTABLE="%SWIG_EXECUTABLE%" -DCMAKE_TOOLCHAIN_FILE="%CMAKE_TOOLCHAIN_FILE%" -DVCPKG_TARGET_TRIPLET="%VCPKG_TARGET_TRIPLET%"  ..
+) ELSE (
+	%CMAKE% -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" -DGIT_CMD="%GIT_CMD%" -DSWIG_EXECUTABLE="%SWIG_EXECUTABLE%" ..
+)
 	
 %CMAKE% --build . --target ALL_BUILD   --config %CONFIGURATION%
 %CMAKE% --build . --target RUN_TESTS   --config %CONFIGURATION%
@@ -183,9 +162,7 @@ set CONFIGURATION=RelWithDebInfo
 %CMAKE% --build . --target deploy      --config %CONFIGURATION% 
 ```
 
-To test if visusviewer it's working double click on the file `install\visusviewer.bat'.
-
-
+To test if visusviewer it's working double click on the file install\visusviewer.bat.
 
 
 
@@ -246,6 +223,7 @@ unset BREW_PREFIX
 
 Then compile OpenVisus:
 
+```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus && mkdir build && cd build
 
@@ -265,7 +243,6 @@ cmake --build . --target install     --config $CONFIGURATION
 cmake --build . --target deploy      --config $CONFIGURATION  
 ```
 
- 
 To test if it's working:
 
 ```
@@ -310,18 +287,15 @@ python3 -m pip install --user --upgrade pip
 python3 -m pip install --user --upgrade numpy 
 ```
 
-Compile OpenVisus. If you want to use OS libraries (fast):
+Compile OpenVisus. Decide if you want to use OS libraries (fast) or internal libraries(slow):
 
 ```
-sudo apt-get install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
+
 VISUS_INTERNAL_DEFAULT=1
+if [ $VISUS_INTERNAL_DEFAULT -eq 1 ]; then 
+	sudo apt-get install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
+fi
 ```
-
-if you want to use internal libraries (slow):
-
-```
-VISUS_INTERNAL_DEFAULT=0
-``
 
 Then:
 
