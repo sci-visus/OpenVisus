@@ -27,8 +27,8 @@ def CreateDirectory(value):
 		if not os.path.isdir(value):
 			raise
 	
-# getFileNameWithoutExtension
-def getFileNameWithoutExtension(self,filename):
+# /////////////////////////////////////////////////
+def GetFileNameWithoutExtension(filename):
 	return os.path.splitext(os.path.basename(filename))[0]
 
 
@@ -117,7 +117,7 @@ class AppleDeployStep:
 	def findApps(self):
 		ret=[]
 		for it in glob.glob("bin/*.app"):
-			bin="%s/Contents/MacOS/%s" % (it,self.getFileNameWithoutExtension(it))
+			bin="%s/Contents/MacOS/%s" % (it,GetFileNameWithoutExtension(it))
 			if os.path.isfile(bin):
 				ret+=[bin]
 		return ret
@@ -126,7 +126,7 @@ class AppleDeployStep:
 	def findFrameworks(self):
 		ret=[]
 		for it in glob.glob("bin/*.framework"):
-			file="%s/%s" % (it,self.getFileNameWithoutExtension(it))
+			file="%s/%s" % (it,GetFileNameWithoutExtension(it))
 			if os.path.isfile(os.path.realpath(file)):
 				ret+=[file]
 		return ret

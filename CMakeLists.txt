@@ -443,10 +443,10 @@ if (True)
 			file(APPEND   "${__filename__}" "./bin/visusviewer.app/Contents/MacOS/visusviewer\n")
 			install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)	
 			
-			set(__filename__ "${CMAKE_BINARY_DIR}/bin/visusviewer.app/Contents/Resources/qt.conf")
+			set(__filename__ "${CMAKE_BINARY_DIR}/visusviewer.qt.conf")
 			file(WRITE    "${__filename__}" "[Paths]\n")
 			file(APPEND   "${__filename__}" "  Plugins=../../../bin/plugins\n")
-			install(FILES "${__filename__}")
+			install(FILES "${__filename__}" DESTINATION "bin/visusviewer.app/Contents/Resources/qt.conf")
 				
 		else()
 			
