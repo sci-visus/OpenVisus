@@ -49,7 +49,7 @@ install:
 build_script:
   - cmd: IF "%VCPKG%"=="1" call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
   - cmd: IF "%VCPKG%"=="1" cd c:\tools\vcpkg
-  - cmd: IF "%VCPKG%"=="1" vcpkg.exe install zlib:x64-windows lz4:x64-windows tinyxml:x64-windows freeimage:x64-windows openssl:x64-windows curl:x64-windows)
+  - cmd: IF "%VCPKG%"=="1" vcpkg.exe install zlib:x64-windows lz4:x64-windows tinyxml:x64-windows freeimage:x64-windows openssl:x64-windows curl:x64-windows
   - cmd: cd %APPVEYOR_BUILD_FOLDER%  
   - cmd: set PYTHON_DIR=%cd%\win32\python%PYTHON_VERSION:~0,1%%PYTHON_VERSION:~2,1%  
   - cmd: git submodule update --init %PYTHON_DIR%
