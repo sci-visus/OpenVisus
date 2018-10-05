@@ -208,17 +208,14 @@ brew upgrade cmake
 python -m pip install --user --upgrade numpy 
 ```
 
-If you want to use precompiled brew libraries (fast):
+Choose if  you want to use precompiled brew libraries (fast) or not (slow):
 
 ```
-brew install zlib lz4 tinyxml freeimage openssl curl
-BREW_PREFIX=/usr/local/opt
-```
+VISUS_INTERNAL_DEFAULT=1 # 0 means: use brew
 
-if you want to use Visus internal libraries (slow):
-
-```
-unset BREW_PREFIX
+if [ $VISUS_INTERNAL_DEFAULT -eq 0 ]; then
+	brew install zlib lz4 tinyxml freeimage openssl curl
+fi
 ```
 
 Then compile OpenVisus:
@@ -233,7 +230,7 @@ cmake -GXcode \
   -DPYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_VERSION:0:3}m \
   -DPYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_VERSION:0:3}m.dylib \
   -DQt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5 \
-  -DBREW_PREFIX=${BREW_PREFIX} \
+  -DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
   ..
   
 CONFIGURATION=RelWithDebInfo
@@ -290,10 +287,9 @@ python3 -m pip install --user --upgrade numpy
 Compile OpenVisus. Decide if you want to use OS libraries (fast) or internal libraries(slow):
 
 ```
-
-VISUS_INTERNAL_DEFAULT=1
-if [ $VISUS_INTERNAL_DEFAULT -eq 1 ]; then 
-	sudo apt-get install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
+VISUS_INTERNAL_DEFAULT=0
+if [ $VISUS_INTERNAL_DEFAULT -eq 0 ]; then 
+  sudo apt-get install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
 fi
 ```
 

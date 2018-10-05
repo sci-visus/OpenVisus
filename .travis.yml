@@ -25,6 +25,7 @@ matrix:
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
+      if: tag IS present
       env: [
         PYTHON_VERSION=2.7.15,
         APPLE_OSX_VERSION=10.13,
@@ -32,7 +33,7 @@ matrix:
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/2.7.15/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/2.7.15/include/python2.7,
         PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.dylib,
-        CMAKE_BREW_PREFIX=/usr/local/opt
+        VISUS_INTERNAL_DEFAULT=0
       ] 
       
     - os: osx
@@ -45,7 +46,7 @@ matrix:
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.6/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m,
         PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.dylib,
-        CMAKE_BREW_PREFIX=/usr/local/opt
+        VISUS_INTERNAL_DEFAULT=0
       ]                   
         
     - os: osx
@@ -59,7 +60,7 @@ matrix:
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.7.0/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.7.0/include/python3.7m,
         PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.dylib,
-        CMAKE_BREW_PREFIX=/usr/local/opt
+        VISUS_INTERNAL_DEFAULT=0
       ]
       
     # ///////////////////////////////// osx 10.12 
@@ -75,7 +76,7 @@ matrix:
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/2.7.15/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/2.7.15/include/python2.7,
         PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.dylib,
-        CMAKE_BREW_PREFIX=/usr/local/opt
+        VISUS_INTERNAL_DEFAULT=0
       ]   
        
     - os: osx
@@ -89,7 +90,7 @@ matrix:
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.6/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m,
         PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.dylib ,
-        CMAKE_BREW_PREFIX=/usr/local/opt
+        VISUS_INTERNAL_DEFAULT=0
       ]    
 
     - os: osx
@@ -103,19 +104,21 @@ matrix:
         PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.7.0/bin/python ,
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.7.0/include/python3.7m,
         PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.dylib,
-        CMAKE_BREW_PREFIX=/usr/local/opt
+        VISUS_INTERNAL_DEFAULT=0
       ]     
       
     # ///////////////////////////////// Ubuntu 14.04 
     
     - os: linux
       dist: trusty
+      if: tag IS present
       env: [
           PYTHON_VERSION=2.7,
           COMPILER=g++-4.9,
           PYTHON_INCLUDE_DIR=/usr/include/python2.7,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython2.7.so,
-          PYTHON_EXECUTABLE=/usr/bin/python2.7
+          PYTHON_EXECUTABLE=/usr/bin/python2.7,
+          VISUS_INTERNAL_DEFAULT=0
         ]
       addons: 
         apt:
@@ -129,7 +132,8 @@ matrix:
           COMPILER=g++-4.9,
           PYTHON_INCLUDE_DIR=/usr/include/python3.6m,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so,
-          PYTHON_EXECUTABLE=/usr/bin/python3.6
+          PYTHON_EXECUTABLE=/usr/bin/python3.6,
+          VISUS_INTERNAL_DEFAULT=0
         ]       
       addons: 
         apt:
@@ -144,7 +148,8 @@ matrix:
           COMPILER=g++-4.9,
           PYTHON_INCLUDE_DIR=/usr/include/python3.4m,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.4m.so,
-          PYTHON_EXECUTABLE=/usr/bin/python3.4
+          PYTHON_EXECUTABLE=/usr/bin/python3.4,
+          VISUS_INTERNAL_DEFAULT=0
         ]
       addons: 
         apt:
@@ -159,7 +164,8 @@ matrix:
           COMPILER=g++-4.9,
           PYTHON_INCLUDE_DIR=/usr/include/python3.5m,
           PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.5m.so,
-          PYTHON_EXECUTABLE=/usr/bin/python3.5
+          PYTHON_EXECUTABLE=/usr/bin/python3.5,
+          VISUS_INTERNAL_DEFAULT=0
         ]
       addons: 
         apt:
@@ -190,10 +196,10 @@ script:
         QT5_DIR=/usr/local/opt/qt/lib/cmake/Qt5
         gem install xcpretty    # this is to solve logs too long  
         
-        if [[ ! -z "${CMAKE_BREW_PREFIX}" ]]; then
-        	 brew install zlib lz4 tinyxml freeimage openssl curl
-        fi
-        	
+        if [ $VISUS_INTERNAL_DEFAULT -eq 0 ]; then 
+        	  brew install zlib lz4 tinyxml freeimage openssl curl
+         fi
+        
         cd "${TRAVIS_BUILD_DIR}" && mkdir build && cd build 
         cmake -GXcode \
         	-DPYTHON_VERSION=${PYTHON_VERSION} \
@@ -201,9 +207,9 @@ script:
         	-DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR} \
         	-DPYTHON_LIBRARY=${PYTHON_LIBRARY} \
         	-DQt5_DIR=${QT5_DIR} \
-        	-DPYPI_USERNAME=$PYPI_USERNAME \
-        	-DPYPI_PASSWORD=$PYPI_PASSWORD \
-        	-DCMAKE_BREW_PREFIX=${CMAKE_BREW_PREFIX} \
+        	-DPYPI_USERNAME=${PYPI_USERNAME} \
+        	-DPYPI_PASSWORD=${PYPI_PASSWORD} \
+        	-DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
         	../
         
         set -o pipefail &&  cmake --build ./ --target ALL_BUILD   --config $BUILD_TYPE | xcpretty -c
@@ -252,8 +258,25 @@ script:
         travis_retry wget --no-check-certificate --quiet -O - ${CMAKE_URL} | tar --strip-components=1 -xz -C ${TRAVIS_BUILD_DIR}/deps/cmake
         export PATH=${TRAVIS_BUILD_DIR}/deps/cmake/bin:${PATH}        
       
-        cd "${TRAVIS_BUILD_DIR}" && mkdir build && cd build  
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DPYTHON_VERSION=${PYTHON_VERSION} -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} -DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR} -DPYTHON_LIBRARY=${PYTHON_LIBRARY} -DPYPI_USERNAME=$PYPI_USERNAME -DPYPI_PASSWORD=$PYPI_PASSWORD ../
+        if [ $VISUS_INTERNAL_DEFAULT -eq 0 ]; then 
+          sudo apt-get install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
+        fi
+      
+        cd "${TRAVIS_BUILD_DIR}" 
+        mkdir build 
+        cd build  
+        
+        cmake \
+        	-DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+        	-DPYTHON_VERSION=${PYTHON_VERSION} \
+        	-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} \
+        	-DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR} \
+        	-DPYTHON_LIBRARY=${PYTHON_LIBRARY} \
+        	-DPYPI_USERNAME=$PYPI_USERNAME \
+        	-DPYPI_PASSWORD=$PYPI_PASSWORD \
+        	-DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
+        	../
+        
         cmake --build ./ --target all
         cmake --build ./ --target test
         
