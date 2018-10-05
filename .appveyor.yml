@@ -56,7 +56,7 @@ build_script:
   - cmd: python.exe -m pip install numpy
   - cmd: mkdir build 
   - cmd: cd build 
-  - cmd: IF "%VCPKG%"=="1" cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%/lib/cmake/Qt5" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% -DCMAKE_TOOLCHAIN_FILE="c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET="x64-windows" ../ 
+  - cmd: IF "%VCPKG%"=="1" cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%/lib/cmake/Qt5" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% -DCMAKE_TOOLCHAIN_FILE="c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows ../ 
   - cmd: IF "%VCPKG%"=="0" cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%/lib/cmake/Qt5" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% ../
   - cmd: cmake --build . --target ALL_BUILD --config RelWithDebInfo
   - cmd: cmake --build . --target RUN_TESTS --config RelWithDebInfo
