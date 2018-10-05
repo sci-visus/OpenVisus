@@ -21,7 +21,7 @@ environment:
     - PYTHON_VERSION: 3.6
       SKIP_NOTAG: false
     - PYTHON_VERSION: 3.7
-      SKIP_NOTAG: false
+      SKIP_NOTAG: true
   
 # enable cache for vcpkg
 cache: c:\tools\vcpkg\installed\  
