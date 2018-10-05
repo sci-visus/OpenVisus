@@ -350,7 +350,7 @@ if (True)
 		file(APPEND   "${__filename__}" "%PYTHON_DIR%\\python.exe -m pip install --user --upgrade numpy\r\n")
 		file(APPEND   "${__filename__}" "set PATH=%PYTHON_DIR%;%cd%\\bin;%PATH%\r\n")
 		file(APPEND   "${__filename__}" "bin\\\\visus.exe %*\r\n")
-		install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)
+		install(FILES "${__filename__}"  DESTINATION . )
 		
 	elseif (APPLE)
 	
