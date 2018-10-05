@@ -14,7 +14,7 @@ bVerbose=False
 
 	
 # /////////////////////////////////////////////////
-def ExecuteCommand(self,cmd):	
+def ExecuteCommand(cmd):	
 	if bVerbose: print(" ".join(cmd))
 	subprocess.call(cmd)	
 
@@ -349,6 +349,10 @@ class LinuxDeployStep:
               AT_PLATFORM value in the auxiliary vector (see getauxval(3)).	
 	
 	
+	To debug
+	
+		LD_DEBUG=libs ldd install/bin/visusviewer
+
 	"""
 	
 	# constructor
@@ -410,6 +414,8 @@ class LinuxDeployStep:
 	def showDeps(self):
 		deps=self.findAllDeps()
 		for key in deps:
+			if deps[key].startswith(os.getcwd()):
+				continue
 			print("%30s" % (key,),deps[key])
 
 	# fixAllDeps
@@ -447,6 +453,10 @@ if __name__ == "__main__":
 		if sys.argv[I]=="--show-deps":
 			I+=1
 			print("Current deps:")
+			
+			if (not APPLE):
+				print("NOTE for linux, you can still see some global deps due to the ldd command")
+				
 			deploy.showDeps()
 			continue
 		
