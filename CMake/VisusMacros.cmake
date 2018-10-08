@@ -41,101 +41,93 @@ endmacro()
 # //////////////////////////////////////////////////////////////////////////
 macro(SetupCommonCMake)
 
-	set(CMAKE_CXX_STANDARD 11)
+	if (NOT __SETUP_COMMON_CMAKE__)
 	
-	# qt-related
-	if(POLICY CMP0020)
-	  cmake_policy(SET CMP0020 NEW)
-	endif()
-
-	# qt-related
-	if (POLICY CMP0071)
-	  cmake_policy(SET CMP0071 OLD)
-	endif()
-
-	if (POLICY CMP0022)
-	  cmake_policy(SET CMP0022  NEW) 
-	endif()	
+		set(__SETUP_COMMON_CMAKE__ 1)
 	
-	# enable parallel building
-	set(CMAKE_NUM_PROCS 8)  
-	if (WIN32)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
-	endif()
+		set(CMAKE_CXX_STANDARD 11)
 
-	# use folders to organize projects                           
-	set_property(GLOBAL PROPERTY USE_FOLDERS ON)    
-
-	# save libraries and binaries in the same directory        
-	set(EXECUTABLE_OUTPUT_PATH              ${CMAKE_BINARY_DIR})           
-	set(LIBRARY_OUTPUT_PATH                 ${CMAKE_BINARY_DIR})	
-	set(CMAKE_COMPILE_PDB_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
-	
-	# multi-config generator
-	if (CMAKE_CONFIGURATION_TYPES)
-		
-		message(STATUS "Cmake is using multi-config generator (${CMAKE_CONFIGURATION_TYPES})")
-		
-		add_compile_options("$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
-		
-	else()
-
-		message(STATUS "Cmake is using single-config generator")
-		
-		if(NOT CMAKE_BUILD_TYPE)
-		  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo" FORCE)
+		# enable parallel building
+		set(CMAKE_NUM_PROCS 8)  
+		if (WIN32)
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 		endif()
-		 
-		if (NOT CMAKE_BUILD_TYPE MATCHES "^(Debug|Release|RelWithDebInfo)$")
-			message(FATAL_ERROR "Invalid value for CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
-		endif()
+
+		# use folders to organize projects                           
+		set_property(GLOBAL PROPERTY USE_FOLDERS ON)    
+
+		# save libraries and binaries in the same directory        
+		set(EXECUTABLE_OUTPUT_PATH              ${CMAKE_BINARY_DIR})           
+		set(LIBRARY_OUTPUT_PATH                 ${CMAKE_BINARY_DIR})	
+		set(CMAKE_COMPILE_PDB_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
 		
-		if (CMAKE_BUILD_TYPE EQUAL "Debug")
+		# multi-config generator
+		if (CMAKE_CONFIGURATION_TYPES)
+			
+			message(STATUS "Cmake is using multi-config generator (${CMAKE_CONFIGURATION_TYPES})")
+			
 			add_compile_options("$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
-		endif()
-		
-	endif()	
-	
-	if (WIN32)
-
-		# see http://msdn.microsoft.com/en-us/library/windows/desktop/ms683219(v=vs.85).aspx
-		add_definitions(-DPSAPI_VERSION=1)
-
-		# increse number of file descriptors
-		add_definitions(-DFD_SETSIZE=4096)
-
-		add_definitions(-D_CRT_SECURE_NO_WARNINGS )
-
-		add_definitions(-DWIN32_LEAN_AND_MEAN)
-		
-		if (CMAKE_TOOLCHAIN_FILE)
-			set(VCPKG 1)
+			
 		else()
-			set(VCPKG 0)
-		endif()		
 
-	elseif (APPLE)
+			message(STATUS "Cmake is using single-config generator")
+			
+			if(NOT CMAKE_BUILD_TYPE)
+			  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo" FORCE)
+			endif()
+			 
+			if (NOT CMAKE_BUILD_TYPE MATCHES "^(Debug|Release|RelWithDebInfo)$")
+				message(FATAL_ERROR "Invalid value for CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+			endif()
+			
+			if (CMAKE_BUILD_TYPE EQUAL "Debug")
+				add_compile_options("$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
+			endif()
+			
+		endif()	
+		
+		if (WIN32)
+
+			# see http://msdn.microsoft.com/en-us/library/windows/desktop/ms683219(v=vs.85).aspx
+			add_definitions(-DPSAPI_VERSION=1)
+
+			# increse number of file descriptors
+			add_definitions(-DFD_SETSIZE=4096)
+
+			add_definitions(-D_CRT_SECURE_NO_WARNINGS )
+
+			add_definitions(-DWIN32_LEAN_AND_MEAN)
+			
+			if (CMAKE_TOOLCHAIN_FILE)
+				set(VCPKG 1)
+			else()
+				set(VCPKG 0)
+			endif()		
+
+		elseif (APPLE)
+		
+			DetectOsxVersion()
+		
+			# disable rpath
+			set(CMAKE_MACOSX_RPATH  0)		
+
+			set(CMAKE_MACOSX_BUNDLE YES)
+
+			# suppress some warnings
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-reorder")
+
+		else ()
+		
+			# enable 64 bit file support (see http://learn-from-the-guru.blogspot.it/2008/02/large-file-support-in-linux-for-cc.html)
+			add_definitions(-D_FILE_OFFSET_BITS=64)
+
+			# -Wno-attributes to suppress spurious "type attributes ignored after type is already defined" messages 
+			# see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
+			set(CMAKE_C_FLAGS    "${CMAKE_C_FLAGS}   -fPIC -Wno-attributes")
+			set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fPIC -Wno-attributes")
+
+		endif()
 	
-		DetectOsxVersion()
-	
-		# disable rpath
-		set(CMAKE_MACOSX_RPATH  0)		
-
-		set(CMAKE_MACOSX_BUNDLE YES)
-
-		# suppress some warnings
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-reorder")
-
-	else ()
-	
-		# enable 64 bit file support (see http://learn-from-the-guru.blogspot.it/2008/02/large-file-support-in-linux-for-cc.html)
-		add_definitions(-D_FILE_OFFSET_BITS=64)
-
-		# -Wno-attributes to suppress spurious "type attributes ignored after type is already defined" messages 
-		# see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
-		set(CMAKE_C_FLAGS    "${CMAKE_C_FLAGS}   -fPIC -Wno-attributes")
-		set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fPIC -Wno-attributes")
-
 	endif()
 	
 endmacro()
