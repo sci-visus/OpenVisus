@@ -10,104 +10,77 @@ import errno
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 
-qt_plugins=("iconengines","imageformats","platforms","printsupport","styles")
-
 bVerbose=False
 
-# ///////////////////////////////////////
-class BaseDeployStep:
 	
-	# constructor
-	def __init__(self):
-		self.qt_directory=None
-		
-	# executeCommand
-	def executeCommand(self,cmd):	
-		if bVerbose: print(" ".join(cmd))
-		subprocess.call(cmd)	
-		
-		
-	# copyFile
-	def copyFile(self,src,dst):
-		
-		src=os.path.realpath(src) 
-		dst=os.path.realpath(dst)		
-		
-		if src==dst or not os.path.isfile(src):
-			return		
-
-		self.createDirectory(os.path.dirname(dst))
-		self.executeCommand(["cp","-rf", src,dst])	
-		
-		
-	#  copyDirectory
-	def copyDirectory(self,src,dst):
-		
-		src=os.path.realpath(src)
-		
-		if not os.path.isdir(src):
-			return
-		
-		self.createDirectory(dst)
-		
-		# problems with symbolic links so using shutil
-		# self.executeCommand(["cp","-rf",src,dst])
-		import shutil
-		
-		dst=dst+"/" + os.path.basename(src)
-		
-		if os.path.isdir(dst):
-			shutil.rmtree(dst,ignore_errors=True)
-			
-		shutil.copytree(src, dst, symlinks=True)				
-		
-	# writeTextFile
-	def writeTextFile(self,filename,content):
-		
-		if not isinstance(content, str):
-			content="\n".join(content)+"\n"
-			
-		self.createDirectory(os.path.dirname(os.path.realpath(filename)))
-		file = open(filename,"wt") 
-		file.write(content) 
-		file.close() 		
-		
-	# createDirectory
-	def createDirectory(self,value):
-		try: 
-			os.makedirs(value)
-		except OSError:
-			if not os.path.isdir(value):
-				raise
-		
-	# getFileNameWithoutExtension
-	def getFileNameWithoutExtension(self,filename):
-		return os.path.splitext(os.path.basename(filename))[0]
+# /////////////////////////////////////////////////
+def ExecuteCommand(cmd):	
+	if bVerbose: print(" ".join(cmd))
+	subprocess.call(cmd)	
 
 
-# ///////////////////////////////////////
-class Win32DeployStep(BaseDeployStep):
+# /////////////////////////////////////////////////
+def CreateDirectory(value):
+	try: 
+		os.makedirs(value)
+	except OSError:
+		if not os.path.isdir(value):
+			raise
 	
-	# constructor
-	def __init__(self):
-		BaseDeployStep.__init__(self)
+# /////////////////////////////////////////////////
+def GetFileNameWithoutExtension(filename):
+	return os.path.splitext(os.path.basename(filename))[0]
 
-	# showDeps
-	def showDeps(self):
-		print("not supported")					
-					
 
-	# run
-	def run(self):
+# /////////////////////////////////////////////////
+def CopyFile(src,dst):
+	
+	src=os.path.realpath(src) 
+	dst=os.path.realpath(dst)		
+	
+	if src==dst or not os.path.isfile(src):
+		return		
+
+	CreateDirectory(os.path.dirname(dst))
+	ExecuteCommand(["cp","-rf", src,dst])	
+	
+	
+# /////////////////////////////////////////////////
+def CopyDirectory(src,dst):
+	
+	src=os.path.realpath(src)
+	
+	if not os.path.isdir(src):
+		return
+	
+	CreateDirectory(dst)
+	
+	# problems with symbolic links so using shutil
+	# ExecuteCommand(["cp","-rf",src,dst])
+	import shutil
+	
+	dst=dst+"/" + os.path.basename(src)
+	
+	if os.path.isdir(dst):
+		shutil.rmtree(dst,ignore_errors=True)
 		
-		# deploy using qt
-		deployqt=os.path.realpath(self.qt_directory+"/bin/windeployqt")
-		self.executeCommand([deployqt,"bin\\visusviewer.exe", "--libdir","bin","--plugindir","bin\\plugins","--no-translations"])
-
+	shutil.copytree(src, dst, symlinks=True)				
+	
+# /////////////////////////////////////////////////
+def WriteTextFile(filename,content):
+	
+	if not isinstance(content, str):
+		content="\n".join(content)+"\n"
+		
+	CreateDirectory(os.path.dirname(os.path.realpath(filename)))
+	file = open(filename,"wt") 
+	file.write(content) 
+	file.close() 		
+	
 
 
 # ///////////////////////////////////////
-class AppleDeployStep(BaseDeployStep):
+class AppleDeployStep:
 	
 	
 	"""
@@ -137,25 +110,14 @@ class AppleDeployStep(BaseDeployStep):
 	
 	# constructor
 	def __init__(self):
-		BaseDeployStep.__init__(self)
+		pass
 		
-	# extractDeps
-	def extractDeps(self,filename):
-		output=subprocess.check_output(('otool', '-L', filename))
-		if sys.version_info >= (3, 0): output=output.decode("utf-8")
-		output=output.strip()
-		lines=output.split('\n')[1:]
-		deps=[line.strip().split(' ', 1)[0].strip() for line in lines]	
-		# remove any reference to myself
-		deps=[dep for dep in deps if os.path.basename(filename)!=os.path.basename(dep)]
-		return deps
 		
-	
 	#findApps
 	def findApps(self):
 		ret=[]
 		for it in glob.glob("bin/*.app"):
-			bin="%s/Contents/MacOS/%s" % (it,self.getFileNameWithoutExtension(it))
+			bin="%s/Contents/MacOS/%s" % (it,GetFileNameWithoutExtension(it))
 			if os.path.isfile(bin):
 				ret+=[bin]
 		return ret
@@ -164,7 +126,7 @@ class AppleDeployStep(BaseDeployStep):
 	def findFrameworks(self):
 		ret=[]
 		for it in glob.glob("bin/*.framework"):
-			file="%s/%s" % (it,self.getFileNameWithoutExtension(it))
+			file="%s/%s" % (it,GetFileNameWithoutExtension(it))
 			if os.path.isfile(os.path.realpath(file)):
 				ret+=[file]
 		return ret
@@ -177,9 +139,22 @@ class AppleDeployStep(BaseDeployStep):
 		ret+=self.findApps()
 		ret+=self.findFrameworks()
 		return ret
-				
+					
+		
+		
+	# extractDeps
+	def extractDeps(self,filename):
+		output=subprocess.check_output(('otool', '-L', filename))
+		if sys.version_info >= (3, 0): output=output.decode("utf-8")
+		output=output.strip()
+		lines=output.split('\n')[1:]
+		deps=[line.strip().split(' ', 1)[0].strip() for line in lines]	
+		# remove any reference to myself
+		deps=[dep for dep in deps if os.path.basename(filename)!=os.path.basename(dep)]
+		return deps
+	
 	# showDeps
-	def showDeps(self,bFull=False):
+	def showDeps(self):
 		
 		deps={}
 		for filename in self.findAllBinaries():
@@ -187,15 +162,8 @@ class AppleDeployStep(BaseDeployStep):
 				if not dep in deps: deps[dep]=[]
 				deps[dep]+=[filename]	
 		
-		print("This are the dependency")
 		for dep in deps:
-			
-			if bFull:
-				print(dep)
-				for it in deps[dep]:
-					print("\t",it)		
-				print()
-			elif not dep.startswith("@"):
+			if not dep.startswith("@"):
 				print(dep)
 						
 	# relativeRootDir
@@ -232,8 +200,8 @@ class AppleDeployStep(BaseDeployStep):
 			cmd+=[filename]
 			
 			if "-change" in cmd:
-				self.executeCommand(["chmod","u+w",filename])
-				self.executeCommand(cmd)	
+				ExecuteCommand(["chmod","u+w",filename])
+				ExecuteCommand(cmd)	
 			
 	# getLocal
 	def getLocal(self,filename):
@@ -263,8 +231,8 @@ class AppleDeployStep(BaseDeployStep):
 		if not dep.startswith("/"):
 			return False
 		
-		# ignore system libraries
-		if dep.startswith("/System") or dep.startswith("/usr/lib"):
+		# ignore system libraries and built in directories
+		if dep.startswith("/System") or dep.startswith("/lib") or dep.startswith("/usr/lib"):
 			return False
 			
 		# ignore non existent dependencies
@@ -291,69 +259,29 @@ class AppleDeployStep(BaseDeployStep):
 		# special case for frameworks (I need to copy the entire directory)
 		if ".framework" in dep:
 			framework_dir=dep.split(".framework")[0]+".framework"
-			self.copyDirectory(framework_dir,"bin")
+			CopyDirectory(framework_dir,"bin")
 			local="bin/" + os.path.basename(framework_dir) + dep.split(".framework")[1]
 			
 		elif dep.endswith(".dylib"):
 			local="bin/" + os.path.basename(dep)
-			self.copyFile(dep,local)
+			CopyFile(dep,local)
 			
 		else:
 			raise Exception("Unknonw %s file file" % (dep,))	
 			
 		self.addLocal(local)
 		
-	# create qt.conf (even if not necessary)
-	def createQtConfs(self):
-		
-		for filename in self.findApps():
-			qt_conf=os.path.realpath(filename+"/../../Contents/Resources/qt.conf")
-			self.writeTextFile(qt_conf,[
-				"[Paths]",
-				"  Plugins=%s/bin/plugins" % (self.relativeRootDir(filename,"."),)
-			])		
-			
-	# createCommands
-	def createCommands(self):
-					
-		for name in ("visusviewer","visus"):
-		
-			command_filename="%s.command" % (name,)
-			
-			self.writeTextFile(command_filename,[
-				'#!/bin/bash',
-				'this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)',
-				'cd ${this_dir}',
-				'export PATH=${this_dir}/bin:$PATH',
-				'export QT_PLUGIN_PATH=${this_dir}/bin/plugins',
-				'export PYTHONPATH=${this_dir}:${this_dir}/bin:$PYTHONPATH',
-				'./bin/%s.app/Contents/MacOS/%s' %(name,name)])
-			
-			self.executeCommand(["chmod","a+rx",command_filename])
-					
-
-	# run
-	def run(self):
-		
-		# copy qt plugins inplace
-		for plugin in qt_plugins :
-			src=os.path.realpath(self.qt_directory+"/plugins/"+plugin)	
-			self.copyDirectory(src,"bin/plugins")
-	
+	# fixAllDeps
+	def fixAllDeps(self):
 		self.locals={}
 		for local in self.findAllBinaries():
 			self.addLocal(local)
-			
 		self.changeAllDeps()
-		self.createCommands()
-		self.createQtConfs()
-		if bVerbose:
-			self.showDeps()
 			
 
 
 # ///////////////////////////////////////
-class LinuxDeployStep(BaseDeployStep):
+class LinuxDeployStep:
 
 	"""
 	
@@ -421,27 +349,36 @@ class LinuxDeployStep(BaseDeployStep):
               AT_PLATFORM value in the auxiliary vector (see getauxval(3)).	
 	
 	
+	To debug
+	
+		LD_DEBUG=libs ldd install/bin/visusviewer
+
 	"""
 	
 	# constructor
 	def __init__(self):
-		BaseDeployStep.__init__(self)
+		pass
 
-	# copyQtPlugins
-	def copyQtPlugins(self):
-		for plugin in qt_plugins :
-			self.copyDirectory(self.qt_directory+"/qt5/plugins/"+plugin,"bin/plugins")			
-
+	# findApps
+	def findApps(self):	
+		return [it for it in glob.glob("bin/*") if os.path.isfile(it) and not os.path.splitext(it)[1]]
+		
+	# findAllBinaries
+	def findAllBinaries(self):
+		return glob.glob("bin/*.so")  + self.findApps()
+		
 	# findAllDeps
 	def findAllDeps(self):
-		output=subprocess.check_output(('ldd',"bin/visusviewer"))
-		if sys.version_info >= (3, 0): output=output.decode("utf-8")
-		output=output.strip()	
 		deps={}
-		for line in output.splitlines():
-			items=[it.strip() for it in line.split(" ") if len(it.strip())]
-			if len(items)>=4 and items[1]=='=>' and items[2]!='not' and items[3]!='found':
-				deps[items[0]]=items[2]	
+		for filename in self.findAllBinaries():
+			output=subprocess.check_output(('ldd',filename))
+			if sys.version_info >= (3, 0): 
+				output=output.decode("utf-8")
+			output=output.strip()	
+			for line in output.splitlines():
+				items=[it.strip() for it in line.split(" ") if len(it.strip())]
+				if len(items)>=4 and items[1]=='=>' and items[2]!='not' and items[3]!='found':
+					deps[items[0]]=items[2]	
 		return deps
 
 	# copyGlobalDeps
@@ -449,11 +386,12 @@ class LinuxDeployStep(BaseDeployStep):
 		deps=self.findAllDeps()
 		for key in deps:
 			filename=deps[key]
+			# only absolute file
 			if filename.startswith("/"):
-				self.copyFile(filename,"bin/"+key)	
+				CopyFile(filename,"bin/"+key)	
 
-	# copySharedObjectsSymbolicLinks
-	def copySharedObjectsSymbolicLinks(self):
+	# fixSymbolicLinks
+	def fixSymbolicLinks(self):
 		pushd=os.getcwd()
 		os.chdir("bin")	
 		for filename in glob.glob("*.so.*"):
@@ -467,52 +405,28 @@ class LinuxDeployStep(BaseDeployStep):
 				link,ext=os.path.splitext(link)		
 		os.chdir(pushd)			
 
-		
-	# findApps
-	def findApps(self):	
-		return [it for it in glob.glob("bin/*") if os.path.isfile(it) and not os.path.splitext(it)[1]]
-		
 	# setOrigins
 	def setOrigins(self):
-		for filename in glob.glob("bin/*.so")  + self.findApps():
-			self.executeCommand(["patchelf", "--set-rpath", "$ORIGIN", filename])	
-			
-	# createBashScripts
-	def createBashScripts(self):
-		for app in self.findApps():
-			name=self.getFileNameWithoutExtension(app)
-			bash_filename="%s.sh" % (name,)
-			self.writeTextFile(bash_filename,[
-				'#!/bin/bash',
-				'this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)',
-				'cd ${this_dir}',
-				'export PATH=${this_dir}/bin:$PATH',
-				'export QT_PLUGIN_PATH=${this_dir}/bin/plugins',
-				'export PYTHONPATH=${this_dir}:${this_dir}/bin:$PYTHONPATH',
-				'./bin/%s' %(name)])
-			self.executeCommand(["chmod","a+rx",bash_filename])	
+		for filename in self.findAllBinaries():
+			ExecuteCommand(["patchelf", "--set-rpath", "$ORIGIN", filename])	
 
 	# showDeps
 	def showDeps(self):
-		print("Show deps:")
 		deps=self.findAllDeps()
 		for key in deps:
+			if deps[key].startswith(os.getcwd()):
+				continue
 			print("%30s" % (key,),deps[key])
 
-	# run
-	def run(self):
-	
-		self.copyQtPlugins()
-		
+	# fixAllDeps
+	def fixAllDeps(self):
+		# need to run two times
 		for I in range(2):
 			self.copyGlobalDeps()
-			self.copySharedObjectsSymbolicLinks()
+			self.fixSymbolicLinks()
 			self.setOrigins()
-			
-		self.createBashScripts()
 		
-		if bVerbose:
-			self.showDeps()
+
 		
 		
 
@@ -522,47 +436,35 @@ if __name__ == "__main__":
 	deploy=None
 	
 	if WIN32:
-		deploy=Win32DeployStep()
+		print("Not supported")
+		sys.exit(-1)
 		
-	elif APPLE:
-		deploy=AppleDeployStep()
-	
-	else:
-		deploy=LinuxDeployStep()
-			
-	if len(sys.argv)==1:
-		sys.argv=(sys.argv[0],"--run")		
-			
+	deploy=	AppleDeployStep() if APPLE else LinuxDeployStep()
+
 	I=1
 	while I < len(sys.argv):
-		
-		if sys.argv[I]=="--qt-directory":
-			value=sys.argv[I+1]	
-			I+=2
-			
-			print("qt_directory",value)	
-
-			if WIN32:
-				deploy.qt_directory=os.path.realpath(value+"/../../..")
-				
-			elif APPLE:
-				deploy.qt_directory=os.path.realpath(value+"/../../..")
-			
-			else:
-				deploy.qt_directory=os.path.realpath(value+"/../..")
-
+	
+		# verbose	
+		if sys.argv[I]=="--verbose":
+			bVerbose=True
+			I+=1
 			continue
-			
+		
 		if sys.argv[I]=="--show-deps":
 			I+=1
-			print("Showing deps")
+			print("Current deps:")
+			
+			if (not APPLE):
+				print("NOTE for linux, you can still see some global deps due to the ldd command")
+				
 			deploy.showDeps()
 			continue
-			
-		if sys.argv[I]=="--run":
+		
+		# fix all
+		if sys.argv[I]=="--fix-deps":
 			I+=1
-			print("Running deploy")
-			deploy.run()
+			print("Fixing deps")
+			deploy.fixAllDeps()
 			continue		
 			
 		print("Unknonwn argument",sys.argv[I])

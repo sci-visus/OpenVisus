@@ -1,36 +1,12 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8) 
 
-# qt-related
-if(POLICY CMP0020)
-  cmake_policy(SET CMP0020 NEW)
-endif()
-
-# qt-related
-if (POLICY CMP0071)
-  cmake_policy(SET CMP0071 OLD)
-endif()
-
-if (POLICY CMP0022)
-  cmake_policy(SET CMP0022  NEW) 
-endif()
-
-if(POLICY CMP0068)
-  cmake_policy(SET CMP0068 NEW)
-endif()
-
-#if (POLICY CMP0040)
-#	cmake_policy(SET CMP0040 OLD)
-#endif()
-
-PROJECT(ViSUS)
-
 include(CMake/VisusMacros.cmake)
 SetupCommonCMake()
 
-if (NOT DISABLE_OPENMP)
-	FindOpenMP(0)
-endif()
+PROJECT(ViSUS)
+
+FindOpenMP()
 
 include(FindPackageHandleStandardArgs)
 
@@ -86,11 +62,6 @@ if (WIN32)
 	endif()
 endif()
 
-# for APPLE if brew is used, then use external by default
-if (BREW_PREFIX)
-	SetIfNotDefined(VISUS_INTERNAL_DEFAULT 0)
-endif()
-
 
 SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
 
@@ -103,9 +74,10 @@ if (VISUS_INTERNAL_ZLIB)
 	MESSAGE(STATUS "Using internal zlib")
 else()
 	
-	if (BREW_PREFIX)
-		SetIfNotDefined(ZLIB_INCLUDE_DIR ${BREW_PREFIX}/zlib/include)
-		SetIfNotDefined(ZLIB_LIBRARY     ${BREW_PREFIX}/zlib/lib/libz.dylib)
+	# i'm assuming brew here
+	if (APPLE)
+		SetIfNotDefined(ZLIB_INCLUDE_DIR /usr/local/opt/zlib/include)
+		SetIfNotDefined(ZLIB_LIBRARY     /usr/local/opt/zlib/lib/libz.dylib)
 	endif()
 
 	find_package(ZLIB REQUIRED)
@@ -123,9 +95,10 @@ if (VISUS_INTERNAL_LZ4)
 	MESSAGE(STATUS "Using internal lz4")
 else()
 
-	if (BREW_PREFIX)
-		SetIfNotDefined(LZ4_INCLUDE_DIR ${BREW_PREFIX}/lz4/include)
-		SetIfNotDefined(LZ4_LIBRARY     ${BREW_PREFIX}/lz4/lib/liblz4.dylib)
+	# i'm assuming brew here
+	if (APPLE)
+		SetIfNotDefined(LZ4_INCLUDE_DIR /usr/local/opt/lz4/include)
+		SetIfNotDefined(LZ4_LIBRARY     /usr/local/opt/lz4/lib/liblz4.dylib)
 	endif()
 
 	find_package(LZ4 REQUIRED)
@@ -144,9 +117,10 @@ if (VISUS_INTERNAL_TINYXML)
 	MESSAGE(STATUS "Using internal TynyXML")
 else()
 
-	if (BREW_PREFIX)
-		SetIfNotDefined(TinyXML_INCLUDE_DIR ${BREW_PREFIX}/tinyxml/include)
-		SetIfNotDefined(TinyXML_LIBRARY     ${BREW_PREFIX}/tinyxml/lib/libtinyxml.dylib)
+	# i'm assuming brew here
+	if (APPLE)
+		SetIfNotDefined(TinyXML_INCLUDE_DIR /usr/local/opt/tinyxml/include)
+		SetIfNotDefined(TinyXML_LIBRARY     /usr/local/opt/tinyxml/lib/libtinyxml.dylib)
 	endif()
 
 	find_package(TinyXML REQUIRED)
@@ -165,9 +139,10 @@ if (VISUS_INTERNAL_FREEIMAGE)
 	MESSAGE(STATUS "Using internal FreeImage")
 else()
 
-	if (BREW_PREFIX)
-		SetIfNotDefined(FREEIMAGE_INCLUDE_DIRS ${BREW_PREFIX}/freeimage/include)
-		SetIfNotDefined(FREEIMAGE_LIBRARIES    ${BREW_PREFIX}/freeimage/lib/libfreeimage.dylib)
+	# i'm assuming brew here
+	if (APPLE)
+		SetIfNotDefined(FREEIMAGE_INCLUDE_DIRS /usr/local/opt/freeimage/include)
+		SetIfNotDefined(FREEIMAGE_LIBRARIES    /usr/local/opt/freeimage/lib/libfreeimage.dylib)
 	endif()
 	
 	find_package(FreeImage REQUIRED)
@@ -192,11 +167,12 @@ else()
 	if (UNIX AND (NOT APPLE))
 		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/FixFindOpenSSL)
 	endif()
-	
-	if (BREW_PREFIX)
-		SetIfNotDefined(OPENSSL_INCLUDE_DIR    ${BREW_PREFIX}/openssl/include)
-		SetIfNotDefined(OPENSSL_CRYPTO_LIBRARY ${BREW_PREFIX}/openssl/lib/libcrypto.dylib)
-		SetIfNotDefined(OPENSSL_SSL_LIBRARY    ${BREW_PREFIX}/openssl/lib/libssl.dylib)	
+
+	# i'm assuming brew here	
+	if (APPLE)
+		SetIfNotDefined(OPENSSL_INCLUDE_DIR    /usr/local/opt/openssl/include)
+		SetIfNotDefined(OPENSSL_CRYPTO_LIBRARY /usr/local/opt/openssl/lib/libcrypto.dylib)
+		SetIfNotDefined(OPENSSL_SSL_LIBRARY    /usr/local/opt/openssl/lib/libssl.dylib)	
 	endif()
 	
 	find_package(OpenSSL REQUIRED)
@@ -217,9 +193,10 @@ if (VISUS_INTERNAL_CURL)
 	MESSAGE(STATUS "Using internal Curl")
 else()
 
-	if (BREW_PREFIX)
-		SetIfNotDefined(CURL_INCLUDE_DIR ${BREW_PREFIX}/curl/include)
-		SetIfNotDefined(CURL_LIBRARY     ${BREW_PREFIX}/curl/lib/libcurl.dylib)
+	# i'm assuming brew here
+	if (APPLE)
+		SetIfNotDefined(CURL_INCLUDE_DIR /usr/local/opt/curl/include)
+		SetIfNotDefined(CURL_LIBRARY     /usr/local/opt/curl/lib/libcurl.dylib)
 	endif()
 
 	find_package(CURL REQUIRED)
@@ -342,15 +319,43 @@ if (True)
 	InstallBuildFiles(*.py ./)
 	
 	if (WIN32)
+		
+		set (__filename__ "${CMAKE_BINARY_DIR}/visus.bat")
+		file(WRITE    "${__filename__}" "cd /d %~dp0\r\n")
+		file(APPEND   "${__filename__}" "if EXIST %cd%\\win32\\Python (set PYTHON_DIR=%cd%\\win32\\Python) else (set PYTHON_DIR=%cd%\\..\\..\\..\\) \r\n")
+		file(APPEND   "${__filename__}" "%PYTHON_DIR%\\python.exe -m pip install --user --upgrade numpy\r\n")
+		file(APPEND   "${__filename__}" "set PATH=%PYTHON_DIR%;%cd%\\bin;%PATH%\r\n")
+		file(APPEND   "${__filename__}" "bin\\\\visus.exe %*\r\n")
+		install(FILES "${__filename__}"  DESTINATION . )
+		
+	elseif (APPLE)
+	
+		set(__filename__ "${CMAKE_BINARY_DIR}/visus.command")
+		file(WRITE    "${__filename__}" "#!/bin/bash\n")
+		file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
+		file(APPEND   "${__filename__}" "cd \${this_dir}\n")
+		file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
+		file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$PYTHONPATH\n")
+		file(APPEND   "${__filename__}" "./bin/visus.app/Contents/MacOS/visus\n")
+		install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)
+	
+	else()
+	
+		set(__filename__ "${CMAKE_BINARY_DIR}/visus.sh")
+		file(WRITE    "${__filename__}" "#!/bin/bash\n")
+		file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
+		file(APPEND   "${__filename__}" "cd \${this_dir}\n")
+		file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
+		file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$PYTHONPATH\n")
+		file(APPEND   "${__filename__}" "./bin/visus\n")
+		install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)	
+	
+	endif()
+	
+	if (WIN32)
 	
 		InstallBuildFiles(*.dll bin)
-		
-		Win32CreateBatchFile(${CMAKE_BINARY_DIR}/visus.bat       "bin\\\\visus.exe"       "numpy")
-		Win32CreateBatchFile(${CMAKE_BINARY_DIR}/visusviewer.bat "bin\\\\visusviewer.exe" "numpy PyQt5")
-		
-		install(FILES ${CMAKE_BINARY_DIR}/visus.bat       DESTINATION .)
-		install(FILES ${CMAKE_BINARY_DIR}/visusviewer.bat DESTINATION .)
-		
+	
 		if (DEFINED VISUS_INTERNAL_PYTHON)
 			install(DIRECTORY ${VISUS_INTERNAL_PYTHON}/ DESTINATION win32/python)
 		endif()		
@@ -360,32 +365,106 @@ if (True)
 		endif()	
 
 		include(InstallRequiredSystemLibraries)
-		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION bin COMPONENT Libraries)		
+		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION bin COMPONENT Libraries)	
 		
 	endif()
 
 	if (VISUS_GUI)
+	
 		install(DIRECTORY Libs/Gui/include/Visus         DESTINATION include/Gui)
 		install(DIRECTORY Libs/GuiNodes/include/Visus    DESTINATION include/GuiNodes)
 		install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
+		
+		# install Qt plugins
+		if (EXISTS "${Qt5_DIR}/../../../plugins")
+			set(qt5_PLUGIN_DIR "${Qt5_DIR}/../../../plugins")
+			
+		elseif (EXISTS "${Qt5_DIR}/../../qt5/plugins")
+			set(qt5_PLUGIN_DIR "${Qt5_DIR}/../../qt5/plugins")
+			
+		else()
+			MESSAGE(ERROR "Cannot find qt plugins")
+		endif()
+		
+		if (NOT WIN32)
+			install(DIRECTORY "${qt5_PLUGIN_DIR}/iconengines"   DESTINATION bin/plugins)
+			install(DIRECTORY "${qt5_PLUGIN_DIR}/imageformats"  DESTINATION bin/plugins)
+			install(DIRECTORY "${qt5_PLUGIN_DIR}/platforms"     DESTINATION bin/plugins)
+			install(DIRECTORY "${qt5_PLUGIN_DIR}/printsupport"  DESTINATION bin/plugins)
+			install(DIRECTORY "${qt5_PLUGIN_DIR}/styles"        DESTINATION bin/plugins)
+		endif()
+		
+		if (WIN32)
+				
+			set(__filename__ "${CMAKE_BINARY_DIR}/visusviewer.bat")
+			file(WRITE    "${__filename__}" "cd /d %~dp0\r\n")
+			file(APPEND   "${__filename__}" "if EXIST %cd%\\win32\\Python (set PYTHON_DIR=%cd%\\win32\\Python) else (set PYTHON_DIR=%cd%\\..\\..\\..\\) \r\n")
+			file(APPEND   "${__filename__}" "%PYTHON_DIR%\\python.exe -m pip install --user --upgrade numpy PyQt5\r\n")
+			file(APPEND   "${__filename__}" "set PATH=%PYTHON_DIR%;%cd%\\bin;%PATH%\r\n")
+			file(APPEND   "${__filename__}" "FOR /F \"tokens=* USEBACKQ\" %%F IN (`%PYTHON_DIR%\\python.exe -c \"import os,PyQt5; print(os.path.dirname(PyQt5.__file__))\"`) DO (SET PyQt5_DIR=%%F)\r\n")
+			file(APPEND   "${__filename__}" "set PATH=%PyQt5_DIR%\\Qt\\bin;%PATH%\r\n")
+			file(APPEND   "${__filename__}" "set QT_PLUGIN_PATH=%PyQt5_DIR%\\Qt\\plugins\r\n")
+			file(APPEND   "${__filename__}" "bin\\\\visusviewer.exe %*\r\n")		
+			install(FILES "${__filename__}" DESTINATION .)
+					
+		elseif (APPLE)
+		
+			set(__filename__ "${CMAKE_BINARY_DIR}/visusviewer.command")
+			file(WRITE    "${__filename__}" "#!/bin/bash\n")
+			file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
+			file(APPEND   "${__filename__}" "cd \${this_dir}\n")
+			file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
+			file(APPEND   "${__filename__}" "export QT_PLUGIN_PATH=\${this_dir}/bin/plugins\n")
+			file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$PYTHONPATH\n")
+			file(APPEND   "${__filename__}" "./bin/visusviewer.app/Contents/MacOS/visusviewer\n")
+			install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)	
+			
+			set(__filename__ "${CMAKE_BINARY_DIR}/visusviewer.qt.conf")
+			file(WRITE    "${__filename__}" "[Paths]\n")
+			file(APPEND   "${__filename__}" "  Plugins=../../../bin/plugins\n")
+			install(FILES "${__filename__}" DESTINATION "bin/visusviewer.app/Contents/Resources/qt.conf")
+				
+		else()
+			
+			set(__filename__ "${CMAKE_BINARY_DIR}/visusviewer.sh")
+			file(WRITE    "${__filename__}" "#!/bin/bash\n")
+			file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
+			file(APPEND   "${__filename__}" "cd \${this_dir}\n")
+			file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
+			file(APPEND   "${__filename__}" "export QT_PLUGIN_PATH=\${this_dir}/bin/plugins\n")
+			file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$PYTHONPATH\n")
+			file(APPEND   "${__filename__}" "./bin/visusviewer\n")
+			install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)			
+		
+		endif()
+		
 	endif()
-	
+
 	
 endif()
 
 # /////////////////////////////////////////////////////////////////////
+# note: alternative would be to use cmake FIXUP_BUNDLE... but it seems broken on Linux
+# and also would have problmes with run-time linking (i.e. Qt5 plugins)
 # deploy target
 if (True)
 
-	add_custom_target(deploy 
-		"${CMAKE_COMMAND}" -E echo "Running deploy step..."
-		COMMAND
-		"${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --qt-directory "${Qt5_DIR}"  
-		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}"
-	)
-	
 	if (WIN32)
+	
+		add_custom_target(deploy 
+			        "${CMAKE_COMMAND}" -E echo "Running deploy step..."
+		   COMMAND	"${Qt5_DIR}\\..\\..\\..\\bin\\windeployqt" "bin\\visusviewer.exe" --libdir bin --plugindir bin\\plugins --no-translations
+			WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
+			
 		set_target_properties(deploy PROPERTIES FOLDER "CMakePredefinedTargets/")
+	
+	else()
+
+		add_custom_target(deploy 
+			        "${CMAKE_COMMAND}" -E echo "Running deploy step..."
+			COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --fix-deps --show-deps  
+			WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
+			
 	endif()
 	
 endif()
@@ -434,7 +513,7 @@ if (True)
 	
 		execute_process(COMMAND lsb_release -is OUTPUT_VARIABLE __id__   OUTPUT_STRIP_TRAILING_WHITESPACE)
 		execute_process(COMMAND lsb_release -cs OUTPUT_VARIABLE __name__ OUTPUT_STRIP_TRAILING_WHITESPACE)
-		set(PYTHON_PLAT_NAME ${__id__}${__name__})
+		set(PYTHON_PLAT_NAME "${__id__}.${__name__}")
 	
 	endif()
 

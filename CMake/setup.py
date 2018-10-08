@@ -3,7 +3,7 @@ import shutil
 import platform
 
 #increase this number for PIP
-VERSION="1.2.46"
+VERSION="1.2.50"
 
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
@@ -30,20 +30,27 @@ def findFilesInCurrentDirectory():
 				continue
 				
 			if os.path.basename(filename).startswith(".git"): 
+				continue
+				
+			if "__pycache__" in filename:
 				continue	    	
 
 			# for bdist_wheel I don't need to add files for compilation
-			if BDIST_WHEEL and filename.startswith(os.path.abspath('./lib')): 
-				continue
+			if BDIST_WHEEL: 
 				
-			if BDIST_WHEEL and filename.startswith(os.path.abspath('./include')): 
-				continue		    	
+				if filename.startswith(os.path.abspath('./lib')):
+					continue
+				
+				if filename.startswith(os.path.abspath('./include')): 
+					continue		    	
 
-			if BDIST_WHEEL and WIN32 and filename.startswith(os.path.abspath('./win32/python')):
-				continue
+				if WIN32:
 					
-			if BDIST_WHEEL and WIN32 and filename.endswith(".pdb"): 
-				continue
+					if filename.startswith(os.path.abspath('./win32/python')):
+						continue
+						
+					if filename.endswith(".pdb"): 
+						continue
 						
 			ret.append(filename)
 			

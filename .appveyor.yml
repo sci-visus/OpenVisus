@@ -10,9 +10,10 @@ notifications:
   
 environment:
 
-  QT5_DIR: C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5
+  QT5_DIR: C:/Qt/5.10.1/msvc2017_64
   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   CMAKE_GENERATOR: Visual Studio 15 2017 Win64
+  VCPKG: 1
   PYPI_USERNAME: scrgiorgio
   PYPI_PASSWORD:
     secure: 6DHH80JPNRCtIYxWc/h88Q==    
@@ -20,7 +21,10 @@ environment:
     - PYTHON_VERSION: 3.6
       SKIP_NOTAG: false
     - PYTHON_VERSION: 3.7
-      SKIP_NOTAG: false
+      SKIP_NOTAG: true
+  
+# enable cache for vcpkg
+cache: c:\tools\vcpkg\installed\  
   
 # 
 #if you need to debug uncomment these lines (see https://www.appveyor.com/docs/how-to/rdp-to-build-worker/)
@@ -43,6 +47,9 @@ install:
   - choco install -y --allow-empty-checksums swig 
 
 build_script:
+  - cmd: IF "%VCPKG%"=="1" call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
+  - cmd: IF "%VCPKG%"=="1" cd c:\tools\vcpkg
+  - cmd: IF "%VCPKG%"=="1" vcpkg.exe install zlib:x64-windows lz4:x64-windows tinyxml:x64-windows freeimage:x64-windows openssl:x64-windows curl:x64-windows
   - cmd: cd %APPVEYOR_BUILD_FOLDER%  
   - cmd: set PYTHON_DIR=%cd%\win32\python%PYTHON_VERSION:~0,1%%PYTHON_VERSION:~2,1%  
   - cmd: git submodule update --init %PYTHON_DIR%
@@ -50,7 +57,8 @@ build_script:
   - cmd: python.exe -m pip install numpy
   - cmd: mkdir build 
   - cmd: cd build 
-  - cmd: cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% ../ 
+  - cmd: IF "%VCPKG%"=="1" cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%/lib/cmake/Qt5" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% -DCMAKE_TOOLCHAIN_FILE="c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows ../ 
+  - cmd: IF "%VCPKG%"=="0" cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%/lib/cmake/Qt5" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% ../
   - cmd: cmake --build . --target ALL_BUILD --config RelWithDebInfo
   - cmd: cmake --build . --target RUN_TESTS --config RelWithDebInfo
   - cmd: cd %PYTHON_DIR%

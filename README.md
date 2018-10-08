@@ -106,10 +106,7 @@ choco install -y -allow-empty-checksums git cmake swig
 Install [Qt5](http://download.qt.io/official_releases/qt/5.9/5.9.2/qt-opensource-windows-x86-5.9.2.exe) 
 
 
-
-### Compile OpenVisus with [Microsoft vcpkg](https://github.com/Microsoft/vcpkg) (fast):
-
-From a command prompt:
+if you want to use [Microsoft vcpkg](https://github.com/Microsoft/vcpkg) (faster):
 
 ```
 cd c:\
@@ -119,40 +116,18 @@ git clone https://github.com/Microsoft/vcpkg
 cd vcpkg
 .\bootstrap-vcpkg.bat
 vcpkg.exe install zlib:x64-windows lz4:x64-windows tinyxml:x64-windows freeimage:x64-windows openssl:x64-windows curl:x64-windows
-
-cd c:\
-mkdir projects
-cd projects
-git clone https://github.com/sci-visus/OpenVisus
-cd OpenVisus
-
-git submodule update --init win32/python36
-win32\python36\python.exe -m pip install --user --upgrade numpy 
-
-mkdir build
-cd build
-
-REM *** change as needed *** 
-set GENERATOR=Visual Studio 15 2017 Win64
-set QT5_DIR=C:\Qt\Qt5.9.2\5.9.2\msvc2017_64
-set CMAKE="C:\Program Files\CMake\bin\cmake.exe"
-set GIT=C:\Program Files\Git\bin\git.exe
-set SWIG=C:\ProgramData\chocolatey\bin\swig.exe
-set CONFIGURATION=RelWithDebInfo
-set TOOLCHAIN=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
-set TRIPLET=x64-windows
-
-%CMAKE% -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" -DGIT_CMD="%GIT%" -DSWIG_EXECUTABLE="%SWIG%" -DCMAKE_TOOLCHAIN_FILE="%TOOLCHAIN%" -DVCPKG_TARGET_TRIPLET="%TRIPLET%"  ..
-	
-%CMAKE% --build . --target ALL_BUILD   --config %CONFIGURATION%
-%CMAKE% --build . --target RUN_TESTS   --config %CONFIGURATION%
-%CMAKE% --build . --target INSTALL     --config %CONFIGURATION% 
-%CMAKE% --build . --target deploy      --config %CONFIGURATION% 
+set CMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
+set VCPKG_TARGET_TRIPLET=x64-windows
 ```
 
-### Compile OpenVisus without [Microsoft vcpkg](https://github.com/Microsoft/vcpkg) (slow):
+otherwise (slow):
 
-From a command prompt:
+```
+set CMAKE_TOOLCHAIN_FILE=
+set VCPKG_TARGET_TRIPLET=
+```
+
+Then:
 
 ```
 cd c:\
@@ -171,11 +146,15 @@ REM *** change as needed ***
 set GENERATOR=Visual Studio 15 2017 Win64
 set QT5_DIR=C:\Qt\Qt5.9.2\5.9.2\msvc2017_64
 set CMAKE="C:\Program Files\CMake\bin\cmake.exe"
-set GIT=C:\Program Files\Git\bin\git.exe
-set SWIG=C:\ProgramData\chocolatey\bin\swig.exe
+set GIT_CMD=C:\Program Files\Git\bin\git.exe
+set SWIG_EXECUTABLE=C:\ProgramData\chocolatey\bin\swig.exe
 set CONFIGURATION=RelWithDebInfo
 
-%CMAKE% -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" -DGIT_CMD="%GIT%" -DSWIG_EXECUTABLE="%SWIG%" ..
+IF DEFINED  CMAKE_TOOLCHAIN_FILE (
+	%CMAKE% -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" -DGIT_CMD="%GIT_CMD%" -DSWIG_EXECUTABLE="%SWIG_EXECUTABLE%" -DCMAKE_TOOLCHAIN_FILE="%CMAKE_TOOLCHAIN_FILE%" -DVCPKG_TARGET_TRIPLET="%VCPKG_TARGET_TRIPLET%"  ..
+) ELSE (
+	%CMAKE% -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" -DGIT_CMD="%GIT_CMD%" -DSWIG_EXECUTABLE="%SWIG_EXECUTABLE%" ..
+)
 	
 %CMAKE% --build . --target ALL_BUILD   --config %CONFIGURATION%
 %CMAKE% --build . --target RUN_TESTS   --config %CONFIGURATION%
@@ -183,9 +162,7 @@ set CONFIGURATION=RelWithDebInfo
 %CMAKE% --build . --target deploy      --config %CONFIGURATION% 
 ```
 
-To test if visusviewer it's working double click on the file `install\visusviewer.bat'.
-
-
+To test if visusviewer it's working double click on the file install\visusviewer.bat.
 
 
 
@@ -231,23 +208,23 @@ brew upgrade cmake
 python -m pip install --user --upgrade numpy 
 ```
 
-If you want to use precompiled brew libraries (fast):
+Choose if  you want to use precompiled brew libraries (fast) or not (slow):
 
 ```
-brew install zlib lz4 tinyxml freeimage openssl curl
-BREW_PREFIX=/usr/local/opt
-```
+VISUS_INTERNAL_DEFAULT=0 # 0 means: use brew
 
-if you want to use Visus internal libraries (slow):
-
-```
-unset BREW_PREFIX
+if [ $VISUS_INTERNAL_DEFAULT -eq 0 ]; then
+	brew install zlib lz4 tinyxml freeimage openssl curl
+fi
 ```
 
 Then compile OpenVisus:
 
+```
 git clone https://github.com/sci-visus/OpenVisus
-cd OpenVisus && mkdir build && cd build
+cd OpenVisus 
+mkdir build 
+cd build
 
 cmake -GXcode \
   -DPYTHON_VERSION=${PYTHON_VERSION} \
@@ -255,7 +232,7 @@ cmake -GXcode \
   -DPYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_VERSION:0:3}m \
   -DPYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_VERSION:0:3}m.dylib \
   -DQt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5 \
-  -DBREW_PREFIX=${BREW_PREFIX} \
+  -DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
   ..
   
 CONFIGURATION=RelWithDebInfo
@@ -265,7 +242,6 @@ cmake --build . --target install     --config $CONFIGURATION
 cmake --build . --target deploy      --config $CONFIGURATION  
 ```
 
- 
 To test if it's working:
 
 ```
@@ -310,18 +286,14 @@ python3 -m pip install --user --upgrade pip
 python3 -m pip install --user --upgrade numpy 
 ```
 
-Compile OpenVisus. If you want to use OS libraries (fast):
-
-```
-sudo apt-get install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
-VISUS_INTERNAL_DEFAULT=1
-```
-
-if you want to use internal libraries (slow):
+Compile OpenVisus. Decide if you want to use OS libraries (fast) or internal libraries(slow):
 
 ```
 VISUS_INTERNAL_DEFAULT=0
-``
+if [ $VISUS_INTERNAL_DEFAULT -eq 0 ]; then 
+  sudo apt-get install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
+fi
+```
 
 Then:
 
