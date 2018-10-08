@@ -110,6 +110,21 @@ public:
   //parseFields
   static std::vector<Field> parseFields(String content);
 
+  //getBlockPositionInFile
+  Int64 getBlockPositionInFile(BigInt blockid) const
+  {
+    VisusAssert(blockid >= 0);
+    return cint64((blockid / std::max(1, this->block_interleaving)) % this->blocksperfile);
+  }
+
+  //getFirstBlockInFile
+  BigInt getFirstBlockInFile(BigInt blockid) const
+  {
+    if (blockid < 0) return -1;
+    return blockid - std::max(1, this->block_interleaving)*getBlockPositionInFile(blockid);
+  }
+
+
   //validate
   void validate(Url url);
 

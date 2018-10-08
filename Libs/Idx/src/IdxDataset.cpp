@@ -729,13 +729,22 @@ bool IdxDataset::compress(String compression)
       for (auto filename : filenames) 
       {
         String tmp_filename=filename+".tmp~";
-         if(std::rename(filename.c_str(), tmp_filename.c_str())!=0) 
-         { 
-           String error_msg=StringUtils::format()<<"Cannot std::rename("+filename <<","<<tmp_filename<<")";
-           std::perror(error_msg.c_str()); 
-           VisusAssert(false);
-           return false; 
-         }
+
+        //note: this can fail because the access is working in async mode and still need to close the file
+        auto tmove = Time::now();
+        while (true)
+        {
+          if (FileUtils::moveFile(filename.c_str(), tmp_filename.c_str()))
+            break;
+
+          if (tmove.elapsedSec() > 5)
+          {
+            String error_msg = StringUtils::format() << "Cannot std::rename(" + filename << "," << tmp_filename << ")";
+            std::perror(error_msg.c_str());
+            VisusAssert(false);
+            return false;
+          }
+        }
       }
 
       //write file blocks
@@ -1559,7 +1568,7 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
     VisusWarning()<<"The hzaddress_conversion_pointquery has not been created, so loc-by-loc queries will be a lot slower!!!!";
 
     //so you investigate why it's happening! .... I think only for the iphone could make sense....
-    #if WIN32 && _DEBUG
+    #if WIN32 && VISUS_DEBUG
     VisusAssert(false);
     #endif
 

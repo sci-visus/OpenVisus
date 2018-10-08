@@ -1,23 +1,52 @@
 import os, sys, setuptools
 import shutil
+import platform
 
 #increase this number for PIP
-VERSION="1.2.33"
+VERSION="1.2.46"
+
+WIN32=platform.system()=="Windows" or platform.system()=="win32"
+APPLE=platform.system()=="Darwin"
+BDIST_WHEEL="bdist_wheel" in sys.argv
 
 # ////////////////////////////////////////////////////////////////////
 def cleanAll():
 	shutil.rmtree('./build', ignore_errors=True)
-	shutil.rmtree('./dist', ignore_errors=True)
 	shutil.rmtree('./OpenVisus.egg-info', ignore_errors=True)
 	shutil.rmtree('./__pycache__', ignore_errors=True)
 	
+	
 # ////////////////////////////////////////////////////////////////////
 def findFilesInCurrentDirectory():
+	
 	ret=[]
+	
 	for dirpath, __dirnames__, filenames in os.walk("."):
-	  for filename in filenames:
-	    file= os.path.abspath(os.path.join(dirpath, filename))
-	    ret.append(file)
+		for it in filenames:
+
+			filename= os.path.abspath(os.path.join(dirpath, it))
+
+			if filename.startswith(os.path.abspath('./dist')): 
+				continue
+				
+			if os.path.basename(filename).startswith(".git"): 
+				continue	    	
+
+			# for bdist_wheel I don't need to add files for compilation
+			if BDIST_WHEEL and filename.startswith(os.path.abspath('./lib')): 
+				continue
+				
+			if BDIST_WHEEL and filename.startswith(os.path.abspath('./include')): 
+				continue		    	
+
+			if BDIST_WHEEL and WIN32 and filename.startswith(os.path.abspath('./win32/python')):
+				continue
+					
+			if BDIST_WHEEL and WIN32 and filename.endswith(".pdb"): 
+				continue
+						
+			ret.append(filename)
+			
 	return ret
 	
 
@@ -56,22 +85,11 @@ def autoRenameSDist():
 
 	for ext in (".tar.gz", ".zip"):
 		
-		sdist_filename=glob.glob('dist/*'+ext); 
-		wheel_filename =glob.glob('dist/*.whl')	
+		sdist_filename = glob.glob('dist/*'+ext); 
+		wheel_filename = glob.glob('dist/*.whl')	
 		
-		if len(sdist_filename)!=1: 
-			continue
-			
-		if len(wheel_filename )!=1: 
-			continue
-		
-		sdist_filename=sdist_filename[0]
-		wheel_filename=wheel_filename[0]
-	
-		if not os.path.isfile(sdist_filename): 
-			continue
-			
-		os.rename(sdist_filename, os.path.splitext(wheel_filename)[0]+ext)	
+		if len(sdist_filename)==1 and len(wheel_filename)==1 and os.path.isfile(sdist_filename[0]): 
+			os.rename(sdist_filename[0], os.path.splitext(wheel_filename[0])[0]+ext)	
 	
 # ////////////////////////////////////////////////////////////////////
 if __name__ == "__main__":

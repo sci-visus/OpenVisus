@@ -258,7 +258,7 @@ void Viewer::New()
   setDataflow(std::make_shared<Dataflow>());
   clearHistory();
 
-#ifdef _DEBUG
+#ifdef VISUS_DEBUG
   enableLog("visusviewer.log.txt");
 #endif
 
@@ -872,7 +872,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
     }
 
     //clearHistory();
-#ifdef _DEBUG
+#ifdef VISUS_DEBUG
     enableLog("visusviewer.log.txt");
 #endif
 
@@ -1242,7 +1242,7 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   }
   
   //clearHistory();
-#ifdef _DEBUG
+#ifdef VISUS_DEBUG
   enableLog("visusviewer.log.txt");
 #endif
   

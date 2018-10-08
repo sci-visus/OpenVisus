@@ -1478,7 +1478,7 @@ public:
       ThrowException(StringUtils::format() << args[0] <<" Invalid args "<<args[I]);
     }
 
-    srand(0);
+    srand((unsigned int)Time::now().getTimeStamp());
 
     VisusInfo() << "Testing query...";
 
@@ -1514,8 +1514,8 @@ public:
         << " access.rok(" << stats.rok << "/" << ((double)(stats.rok) / sec) << ") "
         << " access.rfail(" << stats.rfail << "/" << ((double)(stats.rfail) / sec) << ") "
         << " io.nopen(" << io.nopen << "/" << ((double)(io.nopen) / sec) << ") "
-        << " io.rbytes(" << double(io.rbytes) / (1024 * 1024) << "/" << double(io.rbytes) / (sec * 1024 * 1024) << ") "
-        << " io.wbytes(" << double(io.wbytes) / (1024 * 1024) << "/" << double(io.wbytes) / (sec * 1024 * 1024) << ") ";
+        << " io.rbytes(" << double(io.rbytes) / (1024 * 1024) << "kb/" << double(io.rbytes) / (sec * 1024 * 1024) << "kb) "
+        << " io.wbytes(" << double(io.wbytes) / (1024 * 1024) << "kb/" << double(io.wbytes) / (sec * 1024 * 1024) << "kb) ";
     }
 
 
@@ -1580,10 +1580,10 @@ public:
 
     if (bWriting)
     {
-      remove(filename.c_str());
+      FileUtils::removeFile(filename);
 
       File file;
-      if(!file.createOrTruncateAndWriteBinary(filename))
+      if(!file.createAndOpen(filename,"w"))
         ThrowException(StringUtils::format() << args[0] <<" TestWriteIO, file.open"<<filename<<",\"wb\") failed");
 
       Array blockdata;
@@ -1594,7 +1594,7 @@ public:
       int nwritten;
       for (nwritten=0;(nwritten+blocksize)<=filesize;nwritten+=blocksize)
       {
-        if(!file.write(blockdata.c_ptr(),blocksize))
+        if(!file.write(nwritten, blocksize, blockdata.c_ptr()))
           ThrowException(StringUtils::format() << args[0] <<" TestWriteIO write(...) failed");
       }
       file.close();
@@ -1607,8 +1607,8 @@ public:
     else
     {
       File file;
-      if(!file.openReadBinary(filename))
-        ThrowException(StringUtils::format() << args[0] <<" file.openReadBinary("<<filename<<") failed");
+      if(!file.open(filename,"r"))
+        ThrowException(StringUtils::format() << args[0] <<" file.open("<<filename<<",'r') failed");
 
       Array blockdata;
       bool bOk=blockdata.resize(blocksize,DTypes::UINT8,__FILE__,__LINE__);
@@ -1618,10 +1618,10 @@ public:
       int maxcont=1000,cont=maxcont;
       while (true)
       {
-        if(!file.read(blockdata.c_ptr(),blocksize)) 
+        if(!file.read(nread, blocksize, blockdata.c_ptr()))
           break;
-        nread+=blocksize;
 
+        nread+=blocksize;
 
         if (!--cont)
         {

@@ -26,7 +26,11 @@ endif()
 PROJECT(ViSUS)
 
 include(CMake/VisusMacros.cmake)
-SetupCMake()
+SetupCommonCMake()
+
+if (NOT DISABLE_OPENMP)
+	FindOpenMP(0)
+endif()
 
 include(FindPackageHandleStandardArgs)
 
@@ -42,7 +46,6 @@ else()
 	set(VISUS_IS_SUBMODULE 1)
 	SET(CMAKE_FOLDER_PREFIX OpenVisus/)
 endif()
-
 
 # enable/disable install
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -71,98 +74,220 @@ IF (VISUS_GUI)
 		string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
 	endif()
 	
+endif()
+
+
+# if using vcpkg on windows use the vcpkg libraries
+if (WIN32)
+	if (VCPKG)
+		SetIfNotDefined(VISUS_INTERNAL_DEFAULT 0)
+	else()
+		SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
+	endif()
+endif()
+
+# for APPLE if brew is used, then use external by default
+if (BREW_PREFIX)
+	SetIfNotDefined(VISUS_INTERNAL_DEFAULT 0)
+endif()
+
+
+SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
+
+# ______________________________________________
+# *** zlib ***
+
+SetIfNotDefined(VISUS_INTERNAL_ZLIB ${VISUS_INTERNAL_DEFAULT})
+
+if (VISUS_INTERNAL_ZLIB)
+	MESSAGE(STATUS "Using internal zlib")
+else()
+	
+	if (BREW_PREFIX)
+		SetIfNotDefined(ZLIB_INCLUDE_DIR ${BREW_PREFIX}/zlib/include)
+		SetIfNotDefined(ZLIB_LIBRARY     ${BREW_PREFIX}/zlib/lib/libz.dylib)
+	endif()
+
+	find_package(ZLIB REQUIRED)
+	MESSAGE(STATUS "Using external zlib")
+	message(STATUS "ZLIB_INCLUDE_DIRS ${ZLIB_INCLUDE_DIRS}")
+	message(STATUS "ZLIB_LIBRARIES    ${ZLIB_LIBRARIES}")
+endif()
+
+# ______________________________________________
+# *** lz4 ***
+
+SetIfNotDefined(VISUS_INTERNAL_LZ4 ${VISUS_INTERNAL_DEFAULT})
+
+if (VISUS_INTERNAL_LZ4)
+	MESSAGE(STATUS "Using internal lz4")
+else()
+
+	if (BREW_PREFIX)
+		SetIfNotDefined(LZ4_INCLUDE_DIR ${BREW_PREFIX}/lz4/include)
+		SetIfNotDefined(LZ4_LIBRARY     ${BREW_PREFIX}/lz4/lib/liblz4.dylib)
+	endif()
+
+	find_package(LZ4 REQUIRED)
+	
+	MESSAGE(STATUS "Using external lz4")
+	message(STATUS "LZ4_INCLUDE_DIR ${LZ4_INCLUDE_DIR}")
+	message(STATUS "LZ4_LIBRARY     ${LZ4_LIBRARY}")
+endif()
+
+# ______________________________________________
+# *** TinyXML ***
+
+SetIfNotDefined(VISUS_INTERNAL_TINYXML ${VISUS_INTERNAL_DEFAULT})
+
+if (VISUS_INTERNAL_TINYXML)
+	MESSAGE(STATUS "Using internal TynyXML")
+else()
+
+	if (BREW_PREFIX)
+		SetIfNotDefined(TinyXML_INCLUDE_DIR ${BREW_PREFIX}/tinyxml/include)
+		SetIfNotDefined(TinyXML_LIBRARY     ${BREW_PREFIX}/tinyxml/lib/libtinyxml.dylib)
+	endif()
+
+	find_package(TinyXML REQUIRED)
+	MESSAGE(STATUS "Using external TynyXML")
+	message(STATUS "TinyXML_INCLUDE_DIRS ${TinyXML_INCLUDE_DIRS}")
+	message(STATUS "TinyXML_LIBRARIES    ${TinyXML_LIBRARIES}")	
+endif()
+
+# ______________________________________________
+# *** FreeImage ***
+
+SetIfNotDefined(VISUS_INTERNAL_FREEIMAGE ${VISUS_INTERNAL_DEFAULT})
+
+
+if (VISUS_INTERNAL_FREEIMAGE)
+	MESSAGE(STATUS "Using internal FreeImage")
+else()
+
+	if (BREW_PREFIX)
+		SetIfNotDefined(FREEIMAGE_INCLUDE_DIRS ${BREW_PREFIX}/freeimage/include)
+		SetIfNotDefined(FREEIMAGE_LIBRARIES    ${BREW_PREFIX}/freeimage/lib/libfreeimage.dylib)
+	endif()
+	
+	find_package(FreeImage REQUIRED)
+	MESSAGE(STATUS "Using external FreeImage")
+	message(STATUS "FREEIMAGE_INCLUDE_DIRS ${FREEIMAGE_INCLUDE_DIRS}")
+	message(STATUS "FREEIMAGE_LIBRARIES    ${FREEIMAGE_LIBRARIES}")
+endif()
+
+# ______________________________________________
+# *** OpenSSL ***
+
+if (WIN32 OR APPLE)
+	SetIfNotDefined(VISUS_INTERNAL_OPENSSL ${VISUS_INTERNAL_DEFAULT})
+else()
+	SetIfNotDefined(VISUS_INTERNAL_OPENSSL 0) # I have problem on linux mixing python openssl and mine, so I'm using system openssl
+endif() 
+
+if (VISUS_INTERNAL_OPENSSL)
+	MESSAGE(STATUS "Using internal OpenSSL")
+else()
+
+	if (UNIX AND (NOT APPLE))
+		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/FixFindOpenSSL)
+	endif()
+	
+	if (BREW_PREFIX)
+		SetIfNotDefined(OPENSSL_INCLUDE_DIR    ${BREW_PREFIX}/openssl/include)
+		SetIfNotDefined(OPENSSL_CRYPTO_LIBRARY ${BREW_PREFIX}/openssl/lib/libcrypto.dylib)
+		SetIfNotDefined(OPENSSL_SSL_LIBRARY    ${BREW_PREFIX}/openssl/lib/libssl.dylib)	
+	endif()
+	
+	find_package(OpenSSL REQUIRED)
+		
+	MESSAGE(STATUS "Using external OpenSSL")
+	message(STATUS "OPENSSL_INCLUDE_DIR    ${OPENSSL_INCLUDE_DIR}")
+	message(STATUS "OPENSSL_CRYPTO_LIBRARY ${OPENSSL_CRYPTO_LIBRARY}")
+	message(STATUS "OPENSSL_SSL_LIBRARY    ${OPENSSL_SSL_LIBRARY}")
 	
 endif()
 
-if (NOT DEFINED VISUS_INTERNAL_ZLIB)
-	set(VISUS_INTERNAL_ZLIB 1)
-endif()
+# ______________________________________________
+# *** curl ***
 
-if (NOT DEFINED VISUS_INTERNAL_LZ4)
-	set(VISUS_INTERNAL_LZ4 1)
-endif()
+SetIfNotDefined(VISUS_INTERNAL_CURL ${VISUS_INTERNAL_DEFAULT})
 
-if (NOT DEFINED VISUS_INTERNAL_TINYXML)
-	set(VISUS_INTERNAL_TINYXML 1)
-endif()
-
-if (NOT DEFINED VISUS_INTERNAL_FREEIMAGE)
-	set(VISUS_INTERNAL_FREEIMAGE 1)
-endif()
-
-if (NOT DEFINED VISUS_INTERNAL_OPENSSL)
-	if (WIN32 OR APPLE)
-		set(VISUS_INTERNAL_OPENSSL 1)
-	else()
-		set(VISUS_INTERNAL_OPENSSL 0) # seem to have problem on linux mixing python openssl and mine
-	endif() 
-endif()
-
-if (NOT DEFINED VISUS_INTERNAL_CURL)
-	set(VISUS_INTERNAL_CURL 1)
-endif()
-
-if (NOT DEFINED VISUS_INTERNAL_PYTHON)
-	set(VISUS_INTERNAL_PYTHON 0)
-endif()
-
-MESSAGE(STATUS "VISUS_INTERNAL_ZLIB       ${VISUS_INTERNAL_ZLIB}")
-MESSAGE(STATUS "VISUS_INTERNAL_LZ4        ${VISUS_INTERNAL_LZ4}")
-MESSAGE(STATUS "VISUS_INTERNAL_TINYXML    ${VISUS_INTERNAL_TINYXML}")
-MESSAGE(STATUS "VISUS_INTERNAL_FREEIMAGE  ${VISUS_INTERNAL_FREEIMAGE}")
-MESSAGE(STATUS "VISUS_INTERNAL_OPENSSL    ${VISUS_INTERNAL_OPENSSL}")
-MESSAGE(STATUS "VISUS_INTERNAL_CURL       ${VISUS_INTERNAL_CURL}")
-MESSAGE(STATUS "VISUS_INTERNAL_PYTHON     ${VISUS_INTERNAL_PYTHON}")
-
-if (NOT VISUS_INTERNAL_ZLIB)
-	find_package(ZLIB REQUIRED)
-endif()
-
-if (NOT VISUS_INTERNAL_LZ4)
-	find_package(LZ4 REQUIRED)
-endif()
-
-if (NOT VISUS_INTERNAL_TINYXML)
-	find_package(TinyXML REQUIRED)
-endif()
-
-if (NOT VISUS_INTERNAL_FREEIMAGE)
-	find_package(FreeImage REQUIRED)
-endif()
-
-if (NOT VISUS_INTERNAL_OPENSSL)
-	if (UNIX)
-		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/FixFindOpenSSL)
-	endif()
-	find_package(OpenSSL)
-endif()
-
-if (NOT VISUS_INTERNAL_CURL)
-	find_package(CURL REQUIRED)
-endif()
-
-# python
-if (VISUS_INTERNAL_PYTHON)
-	set(PYTHON_VERSION       3.6)
-	set(PYTHON_VERSION_MAJOR 3)
-	set(PYTHON_VERSION_MINOR 6)
+if (VISUS_INTERNAL_CURL)
+	MESSAGE(STATUS "Using internal Curl")
 else()
 
-	if (NOT DEFINED PYTHON_VERSION)
-		set(PYTHON_VERSION 3)
+	if (BREW_PREFIX)
+		SetIfNotDefined(CURL_INCLUDE_DIR ${BREW_PREFIX}/curl/include)
+		SetIfNotDefined(CURL_LIBRARY     ${BREW_PREFIX}/curl/lib/libcurl.dylib)
 	endif()
 
+	find_package(CURL REQUIRED)
+	
+	# see https://github.com/Microsoft/vcpkg/issues/1909
+ 	if (VCPKG)
+		list(LENGTH CURL_LIBRARY CURL_LIBRARY_LENGTH)
+		if (CURL_LIBRARY_LENGTH EQUAL 1)
+			set(CURL_LIBRARY_DEBUG_LIB   ${CURL_LIBRARY})
+			set(CURL_LIBRARY_RELEASE_LIB ${CURL_LIBRARY_DEBUG_LIB}/../../../lib/libcurl.lib)
+			get_filename_component(CURL_LIBRARY_RELEASE_LIB ${CURL_LIBRARY_RELEASE_LIB} REALPATH)
+			ForceUnset(CURL_LIBRARY)
+			ForceUnset(CURL_LIBRARIES)
+			set(CURL_LIBRARY "debug;${CURL_LIBRARY_DEBUG_LIB};optimized;${CURL_LIBRARY_RELEASE_LIB}")
+			set(CURL_LIBRARIES ${CURL_LIBRARY})
+		endif()
+  endif()	
+  
+  MESSAGE(STATUS "Using external Curl")
+  message(STATUS "CURL_INCLUDE_DIR ${CURL_INCLUDE_DIR}")
+	message(STATUS "CURL_LIBRARIES   ${CURL_LIBRARIES}")
+  
+endif()
+
+# ______________________________________________
+# *** python
+
+# example: git submodule update --init win32/python36
+if (WIN32)
+
+	 IF (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36/CMakeLists.txt)
+		SetIfNotDefined(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36)
+
+	elseif (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37/CMakeLists.txt)
+		SetIfNotDefined(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37)
+		
+	endif()
+	
+endif()
+
+
+if (VISUS_INTERNAL_PYTHON)
+
+	string(REPLACE "\\" "/" VISUS_INTERNAL_PYTHON "${VISUS_INTERNAL_PYTHON}")
+	MESSAGE(STATUS "Using internal python: ${VISUS_INTERNAL_PYTHON}")
+	
+	add_subdirectory(${VISUS_INTERNAL_PYTHON})
+	find_package(NumPy REQUIRED)
+else()
+
+	SetIfNotDefined(PYTHON_VERSION 3)
+
 	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
-	find_package(PythonLibs  ${PYTHON_VERSION} REQUIRED)
+	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
 	find_package(NumPy QUIET) 
+	
+	MESSAGE(STATUS "Using external python")
 	message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
 	message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
 	message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
+	
 endif()
+
 
 add_subdirectory(InternalLibs)
 add_subdirectory(Libs)
 add_subdirectory(Executable)
+
 
 # //////////////////////////////////////////////////////////////
 # *** samples and external apps ***
@@ -191,28 +316,7 @@ if (NOT VISUS_IS_SUBMODULE)
 endif()
 
 # //////////////////////////////////////////////////////////////
-# *** install ***
-
-# ///////////////////////////////////////////////////
-macro(InstallBuildFiles Pattern Destination)
-
-	if (CMAKE_CONFIGURATION_TYPES)
-		install(CODE "
-			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern})
-			MESSAGE(STATUS \"InstallBuildFiles from ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern}\")
-			MESSAGE(STATUS \"Files: \${__files__} \")
-			FILE(INSTALL \${__files__} DESTINATION \"${CMAKE_INSTALL_PREFIX}/${Destination}\")
-		")
-	else()
-		install(CODE "
-			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/${Pattern})
-			MESSAGE(STATUS \"InstallBuildFiles from ${CMAKE_BINARY_DIR}/${Pattern}\")
-			MESSAGE(STATUS \"Files: \${__files__} \")
-			FILE(INSTALL \${__files__} DESTINATION \"${CMAKE_INSTALL_PREFIX}/${Destination}\")
-		")
-	endif()
-endmacro()
-
+# install
 if (True)
 
 	install(FILES        LICENSE                        DESTINATION .)
@@ -241,20 +345,42 @@ if (True)
 	
 		InstallBuildFiles(*.dll bin)
 		
-		if (VISUS_INTERNAL_PYTHON)
-			install(DIRECTORY InternalLibs/python/win32/ DESTINATION ./Python36)
-		endif()
+		Win32CreateBatchFile(${CMAKE_BINARY_DIR}/visus.bat       "bin\\\\visus.exe"       "numpy")
+		Win32CreateBatchFile(${CMAKE_BINARY_DIR}/visusviewer.bat "bin\\\\visusviewer.exe" "numpy PyQt5")
+		
+		install(FILES ${CMAKE_BINARY_DIR}/visus.bat       DESTINATION .)
+		install(FILES ${CMAKE_BINARY_DIR}/visusviewer.bat DESTINATION .)
+		
+		if (DEFINED VISUS_INTERNAL_PYTHON)
+			install(DIRECTORY ${VISUS_INTERNAL_PYTHON}/ DESTINATION win32/python)
+		endif()		
+		
+		if (OpenMP_FOUND)
+			set(CMAKE_INSTALL_OPENMP_LIBRARIES 1)
+		endif()	
+
+		include(InstallRequiredSystemLibraries)
+		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION bin COMPONENT Libraries)		
 		
 	endif()
-	
+
 	if (VISUS_GUI)
 		install(DIRECTORY Libs/Gui/include/Visus         DESTINATION include/Gui)
 		install(DIRECTORY Libs/GuiNodes/include/Visus    DESTINATION include/GuiNodes)
 		install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
 	endif()
 	
+	
+endif()
+
+# /////////////////////////////////////////////////////////////////////
+# deploy target
+if (True)
+
 	add_custom_target(deploy 
-		"${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --qt-directory "${Qt5_DIR}" 
+		"${CMAKE_COMMAND}" -E echo "Running deploy step..."
+		COMMAND
+		"${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --qt-directory "${Qt5_DIR}"  
 		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}"
 	)
 	
@@ -264,8 +390,99 @@ if (True)
 	
 endif()
 
+# /////////////////////////////////////////////////////////////////////
+# sdist target
+if (True)
+	
+	if (WIN32)
+		set(PYTHON_SDIST_FORMAT zip)
+	else()
+		set(PYTHON_SDIST_FORMAT gztar)
+	endif()
+	
+	add_custom_target(sdist 
+		        "${CMAKE_COMMAND}" -E echo "Installing setuptools..."
+		COMMAND "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade setuptools 
+		COMMAND "${CMAKE_COMMAND}" -E echo "Running sdist target..."
+		COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py" -q sdist --formats=${PYTHON_SDIST_FORMAT}
+		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
+	
+	if (WIN32)
+		set_target_properties(sdist PROPERTIES FOLDER "CMakePredefinedTargets/")
+	endif()	
+	
+endif()
 
 
+# /////////////////////////////////////////////////////////////////////
+# bdist_wheel target
+if (True)
 
+	set(PYTHON_TAG cp${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
+
+	if (WIN32)
+	
+		set(PYTHON_PLAT_NAME win_amd64)
+		
+	elseif (APPLE)
+	
+		string(SUBSTRING ${APPLE_OSX_VERSION} 0 2 __major__)
+		string(SUBSTRING ${APPLE_OSX_VERSION} 3 2 __minor__)
+		set(PYTHON_PLAT_NAME macosx_${__major__}_${__minor__}_x86_64)
+		
+	else()
+	
+		execute_process(COMMAND lsb_release -is OUTPUT_VARIABLE __id__   OUTPUT_STRIP_TRAILING_WHITESPACE)
+		execute_process(COMMAND lsb_release -cs OUTPUT_VARIABLE __name__ OUTPUT_STRIP_TRAILING_WHITESPACE)
+		set(PYTHON_PLAT_NAME ${__id__}${__name__})
+	
+	endif()
+
+	add_custom_target(bdist_wheel 
+		        "${CMAKE_COMMAND}" -E echo "Installing setuptools wheel..."
+		COMMAND "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade setuptools wheel
+		COMMAND "${CMAKE_COMMAND}" -E echo "Running bdist_wheel target..."
+		COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py" -q bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PYTHON_PLAT_NAME} 
+		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
+	
+	if (WIN32)
+		set_target_properties(bdist_wheel PROPERTIES FOLDER "CMakePredefinedTargets/")
+	endif()	
+	
+
+	
+endif()
+
+
+# /////////////////////////////////////////////////////////////////////
+# pypi
+if (DEFINED PYPI_USERNAME AND DEFINED PYPI_PASSWORD)
+
+	if (WIN32)
+		set(__home__ $ENV{USERPROFILE})
+	else()
+		set(__home__ $ENV{HOME}/)
+	endif()
+
+	set(__filename__ ${__home__}/.pypirc)
+
+	file(WRITE  ${__filename__} "[distutils]\n")
+	file(APPEND ${__filename__} "index-servers=\n")
+	file(APPEND ${__filename__} "    pypi\n")
+	file(APPEND ${__filename__} "[pypi]\n")
+	file(APPEND ${__filename__} "username: ${PYPI_USERNAME}\n")
+	file(APPEND ${__filename__} "password: ${PYPI_PASSWORD}\n")
+	
+	add_custom_target(pypi 
+		        "${CMAKE_COMMAND}" -E echo "Running pypi step..."
+		COMMAND "${CMAKE_COMMAND}" -E env HOME=${__home__} "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade twine
+		COMMAND "${CMAKE_COMMAND}" -E env HOME=${__home__} "${PYTHON_EXECUTABLE}" -m twine upload --skip-existing dist/*.whl 
+		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
+	
+	if (WIN32)
+		set_target_properties(pypi PROPERTIES FOLDER "CMakePredefinedTargets/")
+	endif()	  
+  
+endif()
 
                

@@ -51,7 +51,6 @@ set(CoreSources
 	./include/Visus/NumericLimits.h
 	./include/Visus/Object.h
 	./include/Visus/Path.h
-	./include/Visus/Platform.h
 	./include/Visus/RamResource.h
 	./include/Visus/Semaphore.h
 	./include/Visus/Singleton.h
@@ -91,7 +90,10 @@ set(CoreSources
 	./include/Visus/ApplicationInfo.h
 	./src/ApplicationInfo.cpp
 	./include/Visus/VisusConfig.h
-	./src/VisusConfig.cpp)
+	./src/VisusConfig.cpp
+	./include/Visus/ByteOrder.h
+	./src/ByteOrder.cpp
+	)
 
 IF (WIN32 OR APPLE)
 	set(CoreSources ${CoreSources} ./src/DirectoryIterator.mm)
@@ -195,35 +197,35 @@ AddLibrary(VisusKernel ${Sources})
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/dtl/include)
 
-if (VISUS_INTERNAL_ZLIB)
+if (TARGET zlib)
 	target_link_libraries(VisusKernel PRIVATE zlib)
 else()
 	target_include_directories(VisusKernel PRIVATE ${ZLIB_INCLUDE_DIRS})
 	target_link_libraries(VisusKernel      PUBLIC ${ZLIB_LIBRARIES})	
 endif()
 
-if (VISUS_INTERNAL_LZ4)
+if (TARGET lz4)
 	target_link_libraries(VisusKernel PRIVATE lz4)
 else()
 	target_include_directories(VisusKernel PRIVATE ${LZ4_INCLUDE_DIR})
 	target_link_libraries(VisusKernel      PUBLIC ${LZ4_LIBRARY})
 endif()
 
-if (VISUS_INTERNAL_TINYXML)
+if (TARGET TinyXML)
 	target_link_libraries(VisusKernel PRIVATE TinyXML)
 else()
 	target_include_directories(VisusKernel PRIVATE ${TinyXML_INCLUDE_DIRS})
 	target_link_libraries(VisusKernel      PUBLIC ${TinyXML_LIBRARIES})	
 endif()
 
-if (VISUS_INTERNAL_FREEIMAGE)
+if (TARGET FreeImage)
 	target_link_libraries(VisusKernel PRIVATE FreeImage)
 else()
 	target_include_directories(VisusKernel PRIVATE ${FREEIMAGE_INCLUDE_DIRS})
 	target_link_libraries(VisusKernel      PUBLIC ${FREEIMAGE_LIBRARIES})
 endif()
 
-if (VISUS_INTERNAL_OPENSSL)
+if (TARGET crypto)
 	target_link_libraries(VisusKernel PRIVATE crypto)
 	target_link_libraries(VisusKernel PRIVATE ssl)	
 else()
@@ -239,8 +241,39 @@ else()
 	target_link_libraries(VisusKernel      PUBLIC ${CURL_LIBRARIES})
 endif()
 
-if (NOT VISUS_INTERNAL_PYTHON)
+if (TARGET python)
+  target_link_libraries(VisusKernel PUBLIC python)
+else()
+
 	target_include_directories(VisusKernel PUBLIC  ${PYTHON_INCLUDE_DIRS})
+
+	if (WIN32)
+	
+		# differentiate between release and debug libraries
+		list(FIND PYTHON_LIBRARY optimized __index__)
+		if (NOT ${__index__} EQUAL -1)
+			math(EXPR __next_index__ "${__index__}+1")
+			list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
+			target_link_libraries(VisusKernel PUBLIC debug     ${PYTHON_DEBUG_LIBRARY})
+			target_link_libraries(VisusKernel PUBLIC optimized ${PYTHON_RELEASE_LIBRARY})
+		else()
+			target_link_libraries(VisusKernel PUBLIC ${PYTHON_LIBRARY})
+		endif()
+			
+	else()
+		
+		# for apple and linux I'm linking python only for Executables (of final shared dll such as  mod_visus) 
+		# otherwise I'm going to have multiple libpython in the same process
+		# with the error message: PyThreadState_Get: no current thread		
+		
+		if (APPLE)
+			set_target_properties(VisusKernel PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
+		endif()				
+		
+		target_link_libraries(VisusKernel INTERFACE ${PYTHON_LIBRARY})
+		
+	endif()	
+	
 endif()
 
 
@@ -254,9 +287,9 @@ elseif(APPLE)
 
 else()
 	target_link_libraries(VisusKernel PUBLIC dl rt util)
-        if (HAS_UUID_H)
-          target_link_libraries(VisusKernel PUBLIC uuid)
-        endif()
+  if (HAS_UUID_H)
+    target_link_libraries(VisusKernel PUBLIC uuid)
+  endif()
 	target_link_libraries(VisusKernel PUBLIC  pthread)
 
 endif()
@@ -264,34 +297,3 @@ endif()
 add_custom_command(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/__init__.py  $<TARGET_FILE_DIR:VisusKernel>)
 add_custom_command(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../..//CMake/OpenVisus.py $<TARGET_FILE_DIR:VisusKernel>)
 
-
-# link python
-if (VISUS_INTERNAL_PYTHON)
-
-	target_link_libraries(VisusKernel PUBLIC python)
-	
-elseif (WIN32)
-
-	list(FIND PYTHON_LIBRARY optimized __index__)
-	if (NOT ${__index__} EQUAL -1)
-		math(EXPR __next_index__ "${__index__}+1")
-		list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
-		target_link_libraries(VisusKernel PUBLIC debug     ${PYTHON_DEBUG_LIBRARY})
-		target_link_libraries(VisusKernel PUBLIC optimized ${PYTHON_RELEASE_LIBRARY})
-	else()
-		target_link_libraries(VisusKernel PUBLIC ${PYTHON_LIBRARY})
-	endif()
-		
-else()
-	
-	# for apple and linux I'm linking python only for Executables (of final shared dll such as  mod_visus) 
-	# otherwise I'm going to have multiple libpython in the same process
-	# with the error message: PyThreadState_Get: no current thread		
-	
-	if (APPLE)
-		set_target_properties(VisusKernel PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
-	endif()				
-	
-	target_link_libraries(VisusKernel INTERFACE ${PYTHON_LIBRARY})
-	
-endif()

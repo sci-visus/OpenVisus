@@ -7,6 +7,9 @@ import shutil
 import platform
 import errno
 
+WIN32=platform.system()=="Windows" or platform.system()=="win32"
+APPLE=platform.system()=="Darwin"
+
 qt_plugins=("iconengines","imageformats","platforms","printsupport","styles")
 
 bVerbose=False
@@ -89,65 +92,17 @@ class Win32DeployStep(BaseDeployStep):
 	def __init__(self):
 		BaseDeployStep.__init__(self)
 
+	# showDeps
+	def showDeps(self):
+		print("not supported")					
+					
+
 	# run
 	def run(self):
 		
-		# if VISUS_INTERNAL_PYTHON I want to be able to install new pip packages...
-		VISUS_INTERNAL_PYTHON=os.path.isdir("Python36")
-		if VISUS_INTERNAL_PYTHON:
-			
-			if os.path.isfile("Python36/python36.zip"):
-				import zipfile
-				zipper = zipfile.ZipFile("Python36/python36.zip", 'r')
-				zipper.extractall("Python36/lib")
-				zipper.close()	
-				os.remove("Python36/python36.zip")		
-				
-			self.writeTextFile("Python36/python36._pth",[
-				".",
-				".\\Lib",
-				".\\Lib\\site-packages",
-				"..\\",
-				"import site"
-			])
-				
-			# install python dependencies
-			if not os.path.isfile("Python36\\Scripts\\pip.exe"):
-				self.executeCommand(["Python36\\python.exe","python36\\get-pip.py"])
-				self.executeCommand(["Python36\\Scripts\\pip.exe","install","numpy","pymap3d","PyQt5"])
-
-		for exe in ("bin\\visusviewer.exe","bin\\visus.exe"):
-			
-			name=self.getFileNameWithoutExtension(exe)	
-			
-			PATH=[]
-			
-			QT_PLUGIN_PATH="%cd%\\.\\bin\\plugins"
-			
-			# important that pyqt comes first! otherwise PyQt5 and Qt5 will fight
-			if VISUS_INTERNAL_PYTHON:
-				PATH+=[
-					"%cd%\\Python36",
-					"%cd%\\Python36\\Scripts",
-					"%cd%\\Python36\\lib\\site-packages\\PyQt5\\Qt\\bin"
-				]
-				QT_PLUGIN_PATH="%cd%\\Python36\\lib\\site-packages\\PyQt5\\Qt\\plugins"
-				
-			PATH+=["%cd%\\bin"]
-			PATH+=["%PATH%"]
-
-			# create a batch file
-			self.writeTextFile("%s.bat" % (name,),[
-				"cd /d %~dp0",
-				"set PATH=\"%s\"" % ("\";\"".join(PATH),),
-				"set QT_PLUGIN_PATH=\"%s\"" % (QT_PLUGIN_PATH,),
-				"set PYTHONPATH=\"%cd%\\Python36\"" if VISUS_INTERNAL_PYTHON else "",
-				exe + " %*"
-			])
-		
-			# deploy using qt
-			deployqt=os.path.realpath(self.qt_directory+"/bin/windeployqt")
-			self.executeCommand([deployqt,exe, "--libdir","bin","--plugindir","bin\\plugins","--no-translations"])
+		# deploy using qt
+		deployqt=os.path.realpath(self.qt_directory+"/bin/windeployqt")
+		self.executeCommand([deployqt,"bin\\visusviewer.exe", "--libdir","bin","--plugindir","bin\\plugins","--no-translations"])
 
 
 
@@ -223,8 +178,8 @@ class AppleDeployStep(BaseDeployStep):
 		ret+=self.findFrameworks()
 		return ret
 				
-	# printAllDeps
-	def printAllDeps(self,bFull=False):
+	# showDeps
+	def showDeps(self,bFull=False):
 		
 		deps={}
 		for filename in self.findAllBinaries():
@@ -376,6 +331,7 @@ class AppleDeployStep(BaseDeployStep):
 			
 			self.executeCommand(["chmod","a+rx",command_filename])
 					
+
 	# run
 	def run(self):
 		
@@ -392,7 +348,7 @@ class AppleDeployStep(BaseDeployStep):
 		self.createCommands()
 		self.createQtConfs()
 		if bVerbose:
-			self.printAllDeps()
+			self.showDeps()
 			
 
 
@@ -536,9 +492,9 @@ class LinuxDeployStep(BaseDeployStep):
 				'./bin/%s' %(name)])
 			self.executeCommand(["chmod","a+rx",bash_filename])	
 
-	# printDeps
-	def printDeps(self):
-		print("Finding deps:")
+	# showDeps
+	def showDeps(self):
+		print("Show deps:")
 		deps=self.findAllDeps()
 		for key in deps:
 			print("%30s" % (key,),deps[key])
@@ -556,45 +512,60 @@ class LinuxDeployStep(BaseDeployStep):
 		self.createBashScripts()
 		
 		if bVerbose:
-			self.printDeps()
+			self.showDeps()
 		
 		
 
 # //////////////////////////////////////////////////////////////////////////////
 if __name__ == "__main__":
 	
-	print("Starting deploy...")
+	deploy=None
 	
-	qt_directory=""
+	if WIN32:
+		deploy=Win32DeployStep()
+		
+	elif APPLE:
+		deploy=AppleDeployStep()
+	
+	else:
+		deploy=LinuxDeployStep()
+			
+	if len(sys.argv)==1:
+		sys.argv=(sys.argv[0],"--run")		
+			
 	I=1
 	while I < len(sys.argv):
 		
 		if sys.argv[I]=="--qt-directory":
-			qt_directory=sys.argv[I+1]	
-			# sys.exit(0)
+			value=sys.argv[I+1]	
 			I+=2
+			
+			print("qt_directory",value)	
+
+			if WIN32:
+				deploy.qt_directory=os.path.realpath(value+"/../../..")
+				
+			elif APPLE:
+				deploy.qt_directory=os.path.realpath(value+"/../../..")
+			
+			else:
+				deploy.qt_directory=os.path.realpath(value+"/../..")
+
 			continue
 			
+		if sys.argv[I]=="--show-deps":
+			I+=1
+			print("Showing deps")
+			deploy.showDeps()
+			continue
+			
+		if sys.argv[I]=="--run":
+			I+=1
+			print("Running deploy")
+			deploy.run()
+			continue		
+			
 		print("Unknonwn argument",sys.argv[I])
-		sys.exit(-1)	
+		sys.exit(-1)		
 	
-	print("  platform.system()",platform.system())	
-	print("  qt_directory",qt_directory)	
-
-	if platform.system()=="Windows" or platform.system()=="win32":
-		deploy=Win32DeployStep()
-		deploy.qt_directory=os.path.realpath(qt_directory+"/../../..")
-		deploy.run()
-		
-	elif platform.system()=="Darwin":
-		deploy=AppleDeployStep()
-		deploy.qt_directory=os.path.realpath(qt_directory+"/../../..")
-		deploy.run()
-	
-	else:
-		deploy=LinuxDeployStep()
-		deploy.qt_directory=os.path.realpath(qt_directory+"/../..")
-		deploy.run()
-	
-	print("done deploy")
 	sys.exit(0)

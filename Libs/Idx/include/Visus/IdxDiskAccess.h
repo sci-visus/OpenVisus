@@ -87,16 +87,11 @@ public:
 
 private:
 
-  class FileIO;
+  UniquePtr<Access> sync, async;
 
-  SharedPtr<FileIO> sync;
-  SharedPtr<FileIO> async;
+  SharedPtr<ThreadPool> async_tpool;
 
-  int       bVerbose = 0;
   IdxFile   idxfile;
-
-  //re-entrant file lock
-  std::map<String, int> file_locks;
 
   struct {BigInt from = 0, to = 0;} block_range;
 
@@ -105,15 +100,6 @@ private:
 
   //bDisableIO (for debugging)
   bool bDisableIO = false;
-
-  //getBlockPositionInFile
-  Int64 getBlockPositionInFile(BigInt nblock) const;
-
-  //getFirstBlockInFile
-  BigInt getFirstBlockInFile(BigInt nblock) const;
-
-  //readBlockInCurrentThread 
-  void readBlockInCurrentThread(FileIO& file,SharedPtr<BlockQuery> query, String mode);
 
 }; 
 

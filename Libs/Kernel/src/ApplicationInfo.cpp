@@ -46,7 +46,7 @@ std::vector<String> ApplicationInfo::args;
 
 Time  ApplicationInfo::start;
 
-#ifdef _DEBUG
+#ifdef VISUS_DEBUG
 bool ApplicationInfo::debug = true;
 #else
 bool ApplicationInfo::debug = false;

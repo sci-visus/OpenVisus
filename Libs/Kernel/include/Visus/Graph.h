@@ -49,6 +49,8 @@ For support : support@visus.net
 
 namespace Visus {
 
+//#define VISUS_DEBUG_GRAPH 1
+
 /////////////////////////////////////////////
 template<class vT=int>
 class GraphNode
@@ -65,7 +67,7 @@ public:
 
   //constructor
   GraphNode()
-    #ifdef _DEBUG
+    #ifdef VISUS_DEBUG_GRAPH
     : deleted(true)
     #endif
   {}
@@ -84,7 +86,7 @@ public:
   //destructor
   inline ~GraphNode()
   {
-    #ifdef _DEBUG
+    #ifdef VISUS_DEBUG_GRAPH
     this->deleted=true;
     in.clear();
     out.clear();
@@ -107,7 +109,7 @@ public:
   //in_degree
   inline int in_degree() const
   {
-    #ifdef _DEBUG
+    #ifdef VISUS_DEBUG_GRAPH
     {
       int cnt=0;
       for (int i=0;i<(int)in.size();i++) 
@@ -121,7 +123,7 @@ public:
   //out_degree
   inline int out_degree() const
   {
-    #ifdef _DEBUG
+    #ifdef VISUS_DEBUG_GRAPH
     {
       int cnt=0;
       for (int i=0;i<(int)out.size();i++) 
@@ -206,7 +208,7 @@ public:
 
   //constructor
   inline GraphEdge() 
-    #ifdef _DEBUG
+    #ifdef VISUS_DEBUG_GRAPH
     : deleted(true),src(-1),dst(-1),data(0)
     #endif
   {}
@@ -222,7 +224,7 @@ public:
   //destructor
   inline ~GraphEdge()
   {
-    #ifdef _DEBUG
+    #ifdef VISUS_DEBUG_GRAPH
     this->deleted=true;
     this->src=-2; this->dst=-2;
     #endif
@@ -290,7 +292,7 @@ public:
   //destructor
   virtual ~Graph()
   {
-  #ifdef _DEBUG
+  #ifdef VISUS_DEBUG_GRAPH
     clear();
   #endif
   }
@@ -409,7 +411,7 @@ public:
 
     X.deleted =true;
     XS.deleted=true;
-    #ifdef _DEBUG
+    #ifdef VISUS_DEBUG_GRAPH
     X.del_out_edge(xs);
     XS.src=-4;
     XS.dst=-4;

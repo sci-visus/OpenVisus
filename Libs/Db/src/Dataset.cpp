@@ -617,7 +617,7 @@ bool Dataset::beginQuery(SharedPtr<Query> query)
   if (query->end_resolutions.empty())
     query->end_resolutions={this->getMaxResolution()};
 
-  #ifdef _DEBUG
+  #ifdef VISUS_DEBUG
   if (!this->getBitmask().hasRegExpr())
   {  
     for (int I=0;I<(int)query->end_resolutions.size();I++)

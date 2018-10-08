@@ -75,6 +75,9 @@ public:
   // statistics
   Statistics statistics;
 
+  //bVerbose
+  bool bVerbose = false;
+
   //constructor 
   Access() {
   }

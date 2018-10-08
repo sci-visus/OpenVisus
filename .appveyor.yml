@@ -1,6 +1,5 @@
 version: '1.0.{build}'
 
-
 notifications:
   - provider: Email
     to:
@@ -12,26 +11,16 @@ notifications:
 environment:
 
   QT5_DIR: C:/Qt/5.10.1/msvc2017_64/lib/cmake/Qt5
+  APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+  CMAKE_GENERATOR: Visual Studio 15 2017 Win64
   PYPI_USERNAME: scrgiorgio
   PYPI_PASSWORD:
     secure: 6DHH80JPNRCtIYxWc/h88Q==    
   matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      CMAKE_GENERATOR: Visual Studio 15 2017 Win64
-      PYTHON_VERSION: 2.7
-      PYTHON_TAG: cp27
-      PYTHON_DIR: "C:\\Python27-x64"
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      CMAKE_GENERATOR: Visual Studio 15 2017 Win64
-      PYTHON_VERSION: 3.6
-      PYTHON_TAG: cp36
-      PYTHON_DIR: "C:\\Python36-x64"          
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      CMAKE_GENERATOR: Visual Studio 15 2017 Win64
-      PYTHON_VERSION: 3.7
-      PYTHON_TAG: cp37
-      PYTHON_DIR: "C:\\Python37-x64" 
-      SKIP_NOTAG: true
+    - PYTHON_VERSION: 3.6
+      SKIP_NOTAG: false
+    - PYTHON_VERSION: 3.7
+      SKIP_NOTAG: false
   
 # 
 #if you need to debug uncomment these lines (see https://www.appveyor.com/docs/how-to/rdp-to-build-worker/)
@@ -54,28 +43,31 @@ install:
   - choco install -y --allow-empty-checksums swig 
 
 build_script:
-  - cd %APPVEYOR_BUILD_FOLDER%
-  - mkdir build 
-  - cd build 
-  - set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH%
-  - python -m pip install numpy setuptools wheel twine
-  - cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYTHON_VERSION=%PYTHON_VERSION% -DPYTHON_EXECUTABLE=%PYTHON_DIR%/python.exe -DPYTHON_INCLUDE_DIR=%PYTHON_DIR%/include ../
-  - cmake --build . --target ALL_BUILD   --config RelWithDebInfo
-  - cmake --build . --target RUN_TESTS   --config RelWithDebInfo
-  - ps: >-
-      If ($env:APPVEYOR_REPO_TAG -eq "true") { 
-         Invoke-Expression "cmake --build . --target INSTALL --config RelWithDebInfo" 
-         Invoke-Expression "cmake --build . --target deploy  --config RelWithDebInfo" 
-         Invoke-Expression "cd install"
-         Invoke-Expression "python setup.py -q sdist bdist_wheel --python-tag=$env:PYTHON_TAG --plat-name=win_amd64"
-         Invoke-Expression "cd .."
-      } 
+  - cmd: cd %APPVEYOR_BUILD_FOLDER%  
+  - cmd: set PYTHON_DIR=%cd%\win32\python%PYTHON_VERSION:~0,1%%PYTHON_VERSION:~2,1%  
+  - cmd: git submodule update --init %PYTHON_DIR%
+  - cmd: set PATH=%PYTHON_DIR%;%PATH%"
+  - cmd: python.exe -m pip install numpy
+  - cmd: mkdir build 
+  - cmd: cd build 
+  - cmd: cmake -G "%CMAKE_GENERATOR%" -DQt5_DIR="%QT5_DIR%" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% ../ 
+  - cmd: cmake --build . --target ALL_BUILD --config RelWithDebInfo
+  - cmd: cmake --build . --target RUN_TESTS --config RelWithDebInfo
+  - cmd: cd %PYTHON_DIR%
+  - cmd: git checkout -f
+  - cmd: git clean -f
+  - cmd: cd %APPVEYOR_BUILD_FOLDER%\build
+  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target INSTALL       --config RelWithDebInfo)
+  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target deploy        --config RelWithDebInfo)
+  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target bdist_wheel   --config RelWithDebInfo)
+  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target sdist         --config RelWithDebInfo)
+  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target pypi          --config RelWithDebInfo)
    
 # test are already in cmake
 test: off
 
 artifacts:
-    - path: .\build\install\dist\*.*
+    - path: .\build\install\dist\*.zip
       name: UploadToGitReleases
  
 deploy:
@@ -86,19 +78,4 @@ deploy:
     on:
       appveyor_repo_tag: true 
 
-# Deploy to PyPI if is a  tagged release 
-on_success:
-  - echo [distutils]                > %USERPROFILE%\\.pypirc
-  - echo index-servers =           >> %USERPROFILE%\\.pypirc
-  - echo     pypi                  >> %USERPROFILE%\\.pypirc
-  - echo [pypi]                    >> %USERPROFILE%\\.pypirc
-  - echo username=%PYPI_USERNAME%  >> %USERPROFILE%\\.pypirc
-  - echo password=%PYPI_PASSWORD%  >> %USERPROFILE%\\.pypirc
-  - set HOME=%USERPROFILE%
-  - set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%PATH% 
-  - ps: >-      
-      If ($env:APPVEYOR_REPO_TAG -eq "true") { 
-         Invoke-Expression "cd %APPVEYOR_BUILD_FOLDER%\build"
-         Invoke-Expression "twine upload --skip-existing install/dist/*.whl" 
-      } 
 

@@ -1,4 +1,5 @@
 
+#
 SetupSwig()
 
 set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/..")
