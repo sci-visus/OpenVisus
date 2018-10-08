@@ -134,8 +134,8 @@ class AppleDeployStep:
 	# findAllBinaries
 	def findAllBinaries(self):	
 		ret=[]
-		ret+=glob.glob("bin/*.dylib")
-		ret+=glob.glob("bin/*.so")
+		ret+=glob.glob("bin/**/*.dylib", recursive=True)
+		ret+=glob.glob("bin/**/*.so", recursive=True)
 		ret+=self.findApps()
 		ret+=self.findFrameworks()
 		return ret
