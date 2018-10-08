@@ -42,7 +42,21 @@ endmacro()
 macro(SetupCommonCMake)
 
 	set(CMAKE_CXX_STANDARD 11)
+	
+	# qt-related
+	if(POLICY CMP0020)
+	  cmake_policy(SET CMP0020 NEW)
+	endif()
 
+	# qt-related
+	if (POLICY CMP0071)
+	  cmake_policy(SET CMP0071 OLD)
+	endif()
+
+	if (POLICY CMP0022)
+	  cmake_policy(SET CMP0022  NEW) 
+	endif()	
+	
 	# enable parallel building
 	set(CMAKE_NUM_PROCS 8)  
 	if (WIN32)
@@ -56,7 +70,6 @@ macro(SetupCommonCMake)
 	set(EXECUTABLE_OUTPUT_PATH              ${CMAKE_BINARY_DIR})           
 	set(LIBRARY_OUTPUT_PATH                 ${CMAKE_BINARY_DIR})	
 	set(CMAKE_COMPILE_PDB_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
-	
 	
 	# multi-config generator
 	if (CMAKE_CONFIGURATION_TYPES)
@@ -154,50 +167,54 @@ macro(Win32CreateBatchFile filename command packages)
 endmacro()
 
 # //////////////////////////////////////////////////////////////////////////
-macro(FindOpenMP bRequired)
+macro(FindOpenMP)
 
-	if (APPLE)
+	if (DISABLE_OPENMP)
 	
-		# FindOpenMP.cmake seems broken, at least for me
-		# see https://iscinumpy.gitlab.io/post/omp-on-high-sierra/
-		
-		set(OpenMP_INCLUDE_DIR /usr/local/opt/libomp/include)
-		set(OpenMP_LIBRARY     /usr/local/opt/libomp/lib/libomp.a)
-	
-		if(EXISTS "${OpenMP_INCLUDE_DIR}/omp.h" AND EXISTS ${OpenMP_LIBRARY})
-			set(OpenMP_FOUND 1)
-			include_directories(${OpenMP_INCLUDE_DIR})
-			link_libraries(${OpenMP_LIBRARY})
-			set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}    -Xpreprocessor -fopenmp")
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -Xpreprocessor -fopenmp")	
-
-		else()
-			set(OpenMP_FOUND 0)
-		endif()
+		MESSAGE(STATUS "OpenMP disabled")	
 		
 	else()
 	
-		if (bRequired)
-			find_package(OpenMP REQUIRED)
+		if (APPLE)
+		
+			# FindOpenMP.cmake seems broken, at least for me
+			# see https://iscinumpy.gitlab.io/post/omp-on-high-sierra/
+			
+			set(OpenMP_INCLUDE_DIR /usr/local/opt/libomp/include)
+			set(OpenMP_LIBRARY     /usr/local/opt/libomp/lib/libomp.a)
+		
+			if(EXISTS "${OpenMP_INCLUDE_DIR}/omp.h" AND EXISTS ${OpenMP_LIBRARY})
+				set(OpenMP_FOUND 1)
+				include_directories(${OpenMP_INCLUDE_DIR})
+				link_libraries(${OpenMP_LIBRARY})
+				set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}    -Xpreprocessor -fopenmp")
+				set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -Xpreprocessor -fopenmp")	
+
+			else()
+				set(OpenMP_FOUND 0)
+			endif()
+			
 		else()
+		
+
 			find_package(OpenMP)
+		
+			if (OpenMP_FOUND)
+			 	set(CMAKE_C_FLAGS          "${CMAKE_C_FLAGS}          ${OpenMP_C_FLAGS}")
+				set(CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS}        ${OpenMP_CXX_FLAGS}")
+				set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+			endif()				
+		
 		endif()
-	
+		
 		if (OpenMP_FOUND)
-		 	set(CMAKE_C_FLAGS          "${CMAKE_C_FLAGS}          ${OpenMP_C_FLAGS}")
-			set(CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS}        ${OpenMP_CXX_FLAGS}")
-			set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-		endif()				
-	
-	endif()	
-	
-	if (OpenMP_FOUND)
-		MESSAGE(STATUS "Found OpenMP")	
-	else()
-		if (bRequired)
-			MESSAGE(ERROR "Cannot find openmp. Install it using brew install libomp")
-		endif()
+			MESSAGE(STATUS "Found OpenMP")	
+		else()
+			MESSAGE(STATUS "OpenMP not found")
+		endif()	
+		
 	endif()
+	
 
 endmacro()
 

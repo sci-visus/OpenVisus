@@ -1,36 +1,12 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8) 
 
-# qt-related
-if(POLICY CMP0020)
-  cmake_policy(SET CMP0020 NEW)
-endif()
-
-# qt-related
-if (POLICY CMP0071)
-  cmake_policy(SET CMP0071 OLD)
-endif()
-
-if (POLICY CMP0022)
-  cmake_policy(SET CMP0022  NEW) 
-endif()
-
-if(POLICY CMP0068)
-  cmake_policy(SET CMP0068 NEW)
-endif()
-
-#if (POLICY CMP0040)
-#	cmake_policy(SET CMP0040 OLD)
-#endif()
-
-PROJECT(ViSUS)
-
 include(CMake/VisusMacros.cmake)
 SetupCommonCMake()
 
-if (NOT DISABLE_OPENMP)
-	FindOpenMP(0)
-endif()
+PROJECT(ViSUS)
+
+FindOpenMP()
 
 include(FindPackageHandleStandardArgs)
 
