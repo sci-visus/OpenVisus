@@ -276,7 +276,6 @@ ENABLE_SHARED_PTR(SingleTransferFunction)
 ENABLE_SHARED_PTR(TransferFunction)
 ENABLE_SHARED_PTR(XmlEncoder)
 
-%include <Visus/AmazonCloudStorage.h>
 %include <Visus/ApplicationInfo.h>
 %include <Visus/ApplicationStats.h>
 %include <Visus/AzureCloudStorage.h>

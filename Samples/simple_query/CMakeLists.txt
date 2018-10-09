@@ -4,11 +4,11 @@ project(simple_query)
 
 set(CMAKE_CXX_STANDARD 11)
 
-find_package(Visus REQUIRED)
+find_package(OpenVisus REQUIRED)
 
 file(GLOB Sources *.h *.cpp)
 
 add_executable(external_simple_query ${Sources})
 
-target_link_libraries(external_simple_query VisusKernel VisusIdx VisusDb)
+target_link_libraries(external_simple_query OpenVisus::Kernel OpenVisus::Idx OpenVisus::Db)
 
