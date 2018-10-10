@@ -419,10 +419,7 @@ public:
     this->file_header   = (FileHeader* )(this->headers.c_ptr());
     this->block_headers = (BlockHeader*)(this->headers.c_ptr() + sizeof(FileHeader));
 
-    if (bool bUsePosix=true)
-      this->file = std::make_shared<File>();
-    else
-      this->file = std::make_shared<MemoryMappedFile>();
+    this->file = std::make_shared<File>();
   }
 
   //destructor
@@ -745,7 +742,7 @@ private:
   HeapMemory      headers;
   FileHeader*     file_header=nullptr;
   BlockHeader*    block_headers = nullptr;
-  SharedPtr<AbstractFile> file;
+  SharedPtr<File> file;
   String          mode;
 
   //re-entrant file lock
