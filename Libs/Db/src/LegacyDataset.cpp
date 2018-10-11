@@ -304,7 +304,7 @@ bool LegacyDataset::nextQuery(SharedPtr<Query> query)
 //////////////////////////////////////////////////////////////
 bool LegacyDataset::mergeQueryWithBlock(SharedPtr<Query> query,SharedPtr<BlockQuery> blockquery) 
 {
-  return Query::mergeSamples(*query,*blockquery,Query::InsertSamples,query->aborted);
+  return Query::mergeSamples(query->logic_box, query->buffer, blockquery->logic_box, blockquery->buffer, Query::InsertSamples, query->aborted);
 }
 
 //////////////////////////////////////////////////////////////

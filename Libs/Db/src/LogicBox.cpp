@@ -36,33 +36,12 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/BlockQuery.h>
-#include <Visus/Dataset.h>
+#include <Visus/LogicBox.h>
 
 namespace Visus {
 
 
-////////////////////////////////////////////////////////////////////////////////////
-bool BlockQuery::allocateBufferIfNeeded()
-{
-  if (!buffer)
-  {
-    if (!buffer.resize(nsamples, field.dtype, __FILE__, __LINE__))
-      return false;
-    buffer.fillWithValue(field.default_value);
-  }
-  else
-  {
-    //check buffer
-    VisusAssert(buffer.dims == this->nsamples);
-    VisusAssert(buffer.dtype == field.dtype);
-    VisusAssert(buffer.c_size() == getByteSize());
-  }
 
-  return true;
-}
 
 } //namespace Visus
-
-
 

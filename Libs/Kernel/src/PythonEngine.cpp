@@ -62,14 +62,19 @@ static std::set<String> ReservedWords =
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::ScopedAcquireGil() 
 {
-  state = PyGILState_Ensure();
+  state = new PyGILState_STATE();
+  *state = PyGILState_Ensure();
 }
 
 
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::~ScopedAcquireGil()
 {
-  PyGILState_Release(state);
+  if (state)
+  {
+    PyGILState_Release(*state);
+    delete state;
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -292,9 +297,9 @@ PythonEngine::PythonEngine(bool bVerbose)
     if (bVerbose)
       VisusInfo() << "Visus is embedding Python";
 
-    //try to find where visus VisusKernelPy.py files are
+    //try to find where visus OpenVisusPy.py files are
     {
-      auto py_file = "VisusKernelPy.py";
+      auto py_file = "OpenVisusPy.py";
 
       VisusInfo() << "Trying to find " << py_file;
 

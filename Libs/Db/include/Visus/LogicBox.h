@@ -36,8 +36,8 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_BASE_QUERY_H
-#define __VISUS_BASE_QUERY_H
+#ifndef __VISUS_LOGIC_BOX_H
+#define __VISUS_LOGIC_BOX_H
 
 #include <Visus/Db.h>
 #include <Visus/Array.h>
@@ -129,75 +129,8 @@ public:
 
 };
 
-//////////////////////////////////////////////////////////////////////////
-enum QueryStatus
-{
-  QueryCreated=0,
-  QueryRunning,
-  QueryFailed,
-  QueryOk
-};
-
-
-//////////////////////////////////////////////////////////////////////////
-class VISUS_DB_API BaseQuery
-{
-public:
-
-  VISUS_NON_COPYABLE_CLASS(BaseQuery)
-
-  //see mergeQueries
-  enum MergeMode
-  {
-    InsertSamples,
-    InterpolateSamples
-  };
-
-  Aborted    aborted;
-
-  Field      field;
-  double     time=0;
-  
-  NdPoint    nsamples;
-  LogicBox   logic_box;
-  Array      buffer;
-
-  //constructor
-  BaseQuery() {
-  }
-
-  //BaseQuery
-  BaseQuery(Field field_,double time_,Aborted aborted_) 
-    : field(field_),time(time_),aborted(aborted_) {
-  }
-
-  //destructor
-  virtual ~BaseQuery() {
-  }
-
-  //getByteSize
-  Int64 getByteSize() const {
-    return field.dtype.getByteSize(nsamples);
-  }
-
-  //allocateBufferIfNeeded
-  bool allocateBufferIfNeeded();
-
-  //mergeSamples
-  static bool mergeSamples(LogicBox wbox, Array& wbuffer,LogicBox rbox, Array rbuffer, int merge_mode, Aborted aborted);
-
-  //mergeSamples
-  static bool mergeSamples(BaseQuery& write,BaseQuery& read,int merge_mode,Aborted aborted) {
-    return mergeSamples(write.logic_box,write.buffer,read.logic_box,read.buffer,merge_mode,aborted);
-  }
-
-protected:
-
-  QueryStatus status=QueryCreated;
-
-};
 
 } //namespace Visus
 
-#endif //__VISUS_BASE_QUERY_H
+#endif //__VISUS_LOGIC_BOX_H
 

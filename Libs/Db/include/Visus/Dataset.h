@@ -54,6 +54,54 @@ namespace Visus {
 //predeclaration
 class RamAccess;
 
+
+////////////////////////////////////////////////////////
+class VISUS_DB_API KdQueryMode
+{
+public:
+
+  enum
+  {
+    NotSpecified = 0x00,
+    UseBlockQuery = 0x01,
+    UseQuery = 0x02
+  };
+
+  //fromString
+  static int fromString(String value)
+  {
+    value = StringUtils::trim(StringUtils::toLower(value));
+
+    if (value == "block")
+      return KdQueryMode::UseBlockQuery;
+
+    if (value == "box")
+      return KdQueryMode::UseQuery;
+
+    if (cbool(value))
+      return KdQueryMode::UseBlockQuery;
+
+    return KdQueryMode::NotSpecified;
+  }
+
+  //toString
+  static String toString(int value)
+  {
+    VisusAssert(value >= 0 && value < 3);
+    switch (value)
+    {
+    case 0: return "";
+    case 1: return "block";
+    case 2: return "box";
+    default: return "";
+    }
+  }
+
+private:
+
+  KdQueryMode() = delete;
+};
+
 ////////////////////////////////////////////////////////
 class VISUS_DB_API BaseDataset : public Object
 {
