@@ -162,11 +162,9 @@ matrix:
                
     
 script:
-    # Use set -e so that the build fails when a command fails.
-    # The default action for Travis-CI is to continue running even if a command fails.
-    - set -e
     - |
       if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then   
+        set -e
         # python
         cd $HOME     
         curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer -O 
@@ -208,9 +206,11 @@ script:
         		cmake --build ./  --target sdist           --config $BUILD_TYPE 
         		cmake --build ./  --target pypi            --config $BUILD_TYPE
         fi
+        set +e           
       fi 
     - |
       if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then
+        set -e      
         #  install patchelf
         curl -L https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz -o /tmp/patchelf-0.9.tar.gz
         cd /tmp
@@ -264,9 +264,8 @@ script:
         		# not uploading to PyPi since it will be refused (not using manylinux) 
         		# cmake --build ./  --target pypi 
         fi
-      fi 
-    - |      
-    - set -e       
+        set +e          
+      fi           
 
 before_deploy:
   - export WHEEL_FILE=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
