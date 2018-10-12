@@ -17,11 +17,11 @@ env:
     - secure: EAZwSiQCFdTjcKDmHLFpWgX7WnGKwTtptkTvXYLcMPSUMxGymTCOTI1h8jjhxGig3k4Jni1X1gx9c8+LkcMd/yjbzDiOnIjCAVRc1hmCijAgu9j3G1ZMll4E38T7Iq6jE3/DZyb7pfK3X4NQopF/5uySIGeoH25CHwcNyr36k8Ba+qYtanPwTG1D+EVIago8qqL5yG5rslAf7Y69+zVbNa/JAUhow4fw0RAwVp+kgMC7Fj7iSMuN4NmS176VZEjD593zbiBgW+veEN0Z2MLD4vG7nq+w5u5JJYuz+Q4EiB5CCek5hhj17fJMWuAA23RZAlq4X/2oS5bKg/etHK5iVeM8ODKBX2bBHOxQoqwOaOVf0sEs5ranwVLR/77FrhFEECKAmkfFHwGGViWTvdE+F/7XqjLQK9Zm2f+T+rMHxrm1RknbXz271TNahqCHnMsmpaz98WbBHjdp2aQfU+nV/l6XLJnAf0R58ISiVdnDOy3BgQsiWIyxjZc6gRSwLg6EzAS2XlgQOmXhDo8lYoaepuK4OWvdIf+bqw0Y3b0uvrpHlAEpIG0tzzZw6ldq3CdvKD+46Vz+ZtEQBi0GBPy1Env1RHILzlkUwn6LSjVnKYY/TZxIi4ha73yo2BwJ1Q6hpdjVFgHJkEY3a72UCnOBIVnaalGv9lu/EjaixrnU6Nc=  
   
 matrix:
+  # Show final status immediately if a test fails.
+  fast_finish: true
 
   include:
-
     # ///////////////////////////////// osx 10.13
-    
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
@@ -35,7 +35,6 @@ matrix:
         PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.dylib,
         VISUS_INTERNAL_DEFAULT=0
       ] 
-      
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
@@ -47,8 +46,7 @@ matrix:
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m,
         PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.dylib,
         VISUS_INTERNAL_DEFAULT=0
-      ]                   
-        
+      ]  
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
@@ -62,9 +60,7 @@ matrix:
         PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.dylib,
         VISUS_INTERNAL_DEFAULT=0
       ]
-      
     # ///////////////////////////////// osx 10.12 
-    
     - os: osx
       osx_image: xcode8.3
       compiler: clang
@@ -78,7 +74,6 @@ matrix:
         PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.dylib,
         VISUS_INTERNAL_DEFAULT=0
       ]   
-       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
@@ -92,7 +87,6 @@ matrix:
         PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.dylib ,
         VISUS_INTERNAL_DEFAULT=0
       ]    
-
     - os: osx
       osx_image: xcode8.3
       compiler: clang
@@ -105,10 +99,8 @@ matrix:
         PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.7.0/include/python3.7m,
         PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.dylib,
         VISUS_INTERNAL_DEFAULT=0
-      ]     
-      
-    # ///////////////////////////////// Ubuntu 14.04 
-    
+      ]  
+    # ///////////////////////////////// Ubuntu 14.04
     - os: linux
       dist: trusty
       if: tag IS present
@@ -123,8 +115,7 @@ matrix:
       addons: 
         apt:
           packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']       
-          
+          sources: ['ubuntu-toolchain-r-test']   
     - os: linux
       dist: trusty
       env: [
@@ -138,8 +129,7 @@ matrix:
       addons: 
         apt:
           packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']          
-          
+          sources: ['ubuntu-toolchain-r-test']   
     - os: linux
       dist: trusty
       if: tag IS present
@@ -155,7 +145,6 @@ matrix:
         apt:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']
-             
     - os: linux
       dist: trusty
       if: tag IS present
@@ -174,9 +163,11 @@ matrix:
                
     
 script:
-    - | 
+    # Use set -e so that the build fails when a command fails.
+    # The default action for Travis-CI is to continue running even if a command fails.
+    - set -e
+    - |
       if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then   
-     
         # python
         cd $HOME     
         curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer -O 
@@ -189,17 +180,14 @@ script:
         CONFIGURE_OPTS=--enable-shared pyenv install -s $PYTHON_VERSION    
         CONFIGURE_OPTS=--enable-shared pyenv global     $PYTHON_VERSION 
         sudo python -m pip install --upgrade pip
-        sudo python -m pip install --upgrade numpy     
-                
+        sudo python -m pip install --upgrade numpy      
         #  brew install dependencies
         brew install swig qt5 
         QT5_DIR=/usr/local/opt/qt/lib/cmake/Qt5
         gem install xcpretty    # this is to solve logs too long  
-        
         if [ $VISUS_INTERNAL_DEFAULT -eq 0 ]; then 
         	  brew install zlib lz4 tinyxml freeimage openssl curl
          fi
-        
         cd "${TRAVIS_BUILD_DIR}" && mkdir build && cd build 
         cmake -GXcode \
         	-DPYTHON_VERSION=${PYTHON_VERSION} \
@@ -211,10 +199,8 @@ script:
         	-DPYPI_PASSWORD=${PYPI_PASSWORD} \
         	-DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
         	../
-        
         set -o pipefail &&  cmake --build ./ --target ALL_BUILD   --config $BUILD_TYPE | xcpretty -c
         cmake --build ./                     --target RUN_TESTS   --config $BUILD_TYPE
-        
         # if there is a tag , create the wheel  
         if [ -n "$TRAVIS_TAG" ]; then 
         		cmake --build ./  --target install         --config $BUILD_TYPE  
@@ -224,10 +210,8 @@ script:
         		cmake --build ./  --target pypi            --config $BUILD_TYPE
         fi
       fi 
-      
-    - |     
-      if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then 
-
+    - |
+      if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then
         #  install patchelf
         curl -L https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz -o /tmp/patchelf-0.9.tar.gz
         cd /tmp
@@ -236,7 +220,6 @@ script:
         make 
         sudo make install
         export PATH=$PATH:/usr/local/bin
-      
         #  install linux dependencies
         sudo add-apt-repository -y ppa:deadsnakes/ppa
         sudo apt-get -qy update
@@ -245,27 +228,22 @@ script:
         sudo -H python${PYTHON_VERSION} /tmp/get-pip.py
         sudo -H python${PYTHON_VERSION} -m pip install --upgrade pip
         sudo -H python${PYTHON_VERSION} -m pip install --upgrade numpy
-        
         # install qt 5.9.1
         sudo add-apt-repository ppa:beineri/opt-qt591-trusty -y; 
         sudo apt-get update -qq
         sudo apt-get install -qq qt59base
         source /opt/qt59/bin/qt59-env.sh  
-          
         # Download and install recent cmake
         CMAKE_URL="http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
         mkdir -p ${TRAVIS_BUILD_DIR}/deps/cmake
         travis_retry wget --no-check-certificate --quiet -O - ${CMAKE_URL} | tar --strip-components=1 -xz -C ${TRAVIS_BUILD_DIR}/deps/cmake
-        export PATH=${TRAVIS_BUILD_DIR}/deps/cmake/bin:${PATH}        
-      
+        export PATH=${TRAVIS_BUILD_DIR}/deps/cmake/bin:${PATH}  
         if [ $VISUS_INTERNAL_DEFAULT -eq 0 ]; then 
           sudo apt-get install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
         fi
-      
         cd "${TRAVIS_BUILD_DIR}" 
         mkdir build 
         cd build  
-        
         cmake \
         	-DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
         	-DPYTHON_VERSION=${PYTHON_VERSION} \
@@ -276,10 +254,8 @@ script:
         	-DPYPI_PASSWORD=$PYPI_PASSWORD \
         	-DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
         	../
-        
         cmake --build ./ --target all
         cmake --build ./ --target test
-        
         # if there is a tag, create the wheel and tar.gz
         if [ -n "$TRAVIS_TAG" ]; then 
         		cmake --build ./ --target install  
@@ -289,7 +265,9 @@ script:
         		# not uploading to PyPi since it will be refused (not using manylinux) 
         		# cmake --build ./  --target pypi 
         fi
-      fi    
+      fi 
+    - |      
+    - set -e       
 
 before_deploy:
   - export WHEEL_FILE=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
