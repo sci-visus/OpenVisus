@@ -68,21 +68,11 @@ namespace Visus {}
 %rename(__neg__)                           *::operator-();  // Unary -
 %rename(__mul__)                           *::operator*;
 %rename(__div__)                           *::operator/;
-%rename(CppException)                      Visus::Exception; //swig get confused between Visus::Exception and python Exception class, so better to rename it
 
 //__________________________________________________________
 // EXCEPTION
 
-//whenever an error happens on the python side of the director, I should throw an exception in C++
-%feature("director:except") 
-{
-  if ($error != NULL) 
-  {
-    auto error_msg=PythonEngine::getLastErrorMessage();
-	VisusInfo()<<error_msg;
-    ThrowException(error_msg);
-  }
-}
+
 
 //whenever a C++ exception happens, I should 'forward' it to python
 %exception 
@@ -90,13 +80,20 @@ namespace Visus {}
   try { 
     $action
   } 
-  catch (Visus::Exception e) {
-    SWIG_exception_fail(SWIG_RuntimeError, e.what() );
+  catch (Swig::DirectorMethodException& e) {
+	VisusInfo()<<"Error happened in swig director code: "<<e.what();
+	VisusInfo()<<PythonEngine::getLastErrorMessage();
+    SWIG_fail;
   }
-  SWIG_CATCH_STDEXCEPT
+  catch (std::exception& e) {
+    VisusInfo()<<"Swig Catched std::exception: "<<e.what();
+    SWIG_exception_fail(SWIG_SystemError, e.what() );
+  }
   catch (...) {
-	SWIG_exception(SWIG_UnknownError, "Unknown exception");
+    VisusInfo()<<"Swig Catched ... exception: unknown reason";
+    SWIG_exception(SWIG_UnknownError, "Unknown exception");
   }
+
 }
 
 //allow using PyObject* as input/output
@@ -205,14 +202,15 @@ public:
 	#include <Visus/IdxMultipleDataset.h>
 
 //Nodes
+	#include <Visus/Nodes.h>
 	
 
 #if VISUS_GUI
 
 //Gui
 	#include <Visus/Gui.h>
-	#include <Visus/GLCanvas.h>x
-	namespace Visus { QWidget* convertToQWidget(PyObject* obj) {return obj? (QWidget*)PyLong_AsVoidPtr(obj) : nullptr; }}
+	#include <Visus/GLCanvas.h>
+	namespace Visus { QWidget* ToCppQtWidget(PyObject* obj) {return obj? (QWidget*)PyLong_AsVoidPtr(obj) : nullptr; }}
 
 //GuiNodes
 	#include <Visus/PythonNode.h>
@@ -220,9 +218,18 @@ public:
 //AppKit
 	#include <Visus/Viewer.h>
 
-#endif //#if VISUS_GUI
+#endif 
 
 using namespace Visus;
+
+
+
+//deleteNumPyArrayCapsule
+static void deleteNumPyArrayCapsule(PyObject *capsule)
+{
+	SharedPtr<HeapMemory>* keep_heap_in_memory=(SharedPtr<HeapMemory>*)PyCapsule_GetPointer(capsule, NULL);
+	delete keep_heap_in_memory;
+}
 
 %}
 
@@ -230,7 +237,6 @@ using namespace Visus;
 	%include <Visus/Visus.h>
 	%include <Visus/Kernel.h>
 	%include <Visus/StringMap.h>
-	%include <Visus/Exception.h>
 	%include <Visus/Log.h>
 	ENABLE_SHARED_PTR(HeapMemory)
 	%include <Visus/HeapMemory.h>
@@ -249,6 +255,7 @@ using namespace Visus;
 	ENABLE_SHARED_PTR(StringTree)
 	%include <Visus/StringTree.h>
 	%include <Visus/VisusConfig.h>
+	%include <Visus/Color.h>
 	%include <Visus/Point.h> 
 	  %template(Point2i)    Visus::Point2<int   > ;
 	  %template(Point2f)    Visus::Point2<float > ;
@@ -289,6 +296,7 @@ using namespace Visus;
 	%include <Visus/LogicBox.h>
 	%include <Visus/BlockQuery.h>
 	%include <Visus/Query.h>
+	%include <Visus/DatasetBitmask.h>
 	%include <Visus/Dataset.h>
 
 //Dataflow
@@ -306,7 +314,7 @@ using namespace Visus;
 	%include <Visus/Dataflow.h>
 
 //Nodes
-
+	%include <Visus/Nodes.h>
 
 //Idx
 	%include <Visus/Idx.h>
@@ -315,7 +323,7 @@ using namespace Visus;
 	%include <Visus/IdxMultipleDataset.h>
 
 //Gui
-#if (VISUS_GUI)
+#if VISUS_GUI
 
 //Gui
 	#define Q_OBJECT
@@ -323,11 +331,14 @@ using namespace Visus;
 	#define slots   
 	%include <Visus/Gui.h>
 	%include <Visus/GLObject.h>
+	%include <Visus/GLMesh.h>
+	%include <Visus/GLObjects.h>
 	%include <Visus/GLCanvas.h>
 	//see https://github.com/bleepbloop/Pivy/blob/master/interfaces/soqt.i
-	namespace Visus {QWidget* convertToQWidget(PyObject* obj);}
+	namespace Visus {QWidget* ToCppQtWidget(PyObject* obj);}
 
 //GuiNodes
+	%include <Visus/GuiNodes.h>
 	//allow rendering inside main GLCanvas (problem of multi-inheritance Node and GLObject)
 	%feature("director") Visus::PythonNode; 
 	%feature("nodirector") Visus::PythonNode::beginUpdate;
@@ -357,12 +368,11 @@ using namespace Visus;
 	%include <Visus/AppKit.h>
 	%include <Visus/Viewer.h>
 
-#endif //#if (VISUS_GUI)
+#endif //#if VISUS_GUI
 
 // _____________________________________________________
 // init code 
 %init %{
-
 
 	//numpy does not work in windows/debug
 	#if WIN32
@@ -373,6 +383,7 @@ using namespace Visus;
 		import_array();
 	#endif
 %}
+
 
 // _____________________________________________________
 // python code 
@@ -401,6 +412,8 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
 // _____________________________________________________
 // extend Array
 
+
+
 %extend Visus::Array {
 
   //operator[]
@@ -426,8 +439,8 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
     return Visus::Array::fromVector<Visus::Float64>(dims, Visus::DTypes::FLOAT64, vector);
   }
 
-  //toNumPy
-  PyObject* toNumPy() const
+  //asNumPy (the returned numpy will share the memory... see capsule code)
+  PyObject* asNumPy() const
   {
     //in numpy the first dimension is the "upper dimension"
     //example:
@@ -461,27 +474,27 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
 		return nullptr;
 	}
 
-	auto numpy_array=PyArray_SimpleNew(shape_dim,shape,typenum);
-    if (!PyArray_ISCONTIGUOUS(numpy_array)) {
-      SWIG_SetErrorMsg(PyExc_NotImplementedError,"numpy array is null or not contiguous\n");
-      return nullptr;
-    }
-
-	memcpy(PyArray_DATA(numpy_array),$self->c_ptr(),$self->c_size());
-	return numpy_array;
+	//http://blog.enthought.com/python/numpy-arrays-with-pre-allocated-memory/#.W79FS-gzZtM
+	//https://gitlab.onelab.info/gmsh/gmsh/commit/9cb49a8c372d2f7a48ee91ad2ca01c70f3b7cddf
+	//NOTE: from documentatin: "...If data is passed to  PyArray_New, this memory must not be deallocated until the new array is deleted"
+	auto data=(void*)$self->c_ptr();
+	PyObject *ret = PyArray_New(&PyArray_Type, shape_dim, shape, typenum, NULL,data , 0, NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_ALIGNED | NPY_ARRAY_WRITEABLE, NULL);
+    PyArray_SetBaseObject((PyArrayObject*)ret, PyCapsule_New(new SharedPtr<HeapMemory>($self->heap), NULL, deleteNumPyArrayCapsule));
+	return ret;
   }
   
-  //fromNumPy
+  //constructor
   static Array fromNumPy(PyObject* obj)
   {
-    if (!((obj) && PyArray_Check((PyArrayObject *)obj))) 
+    if (!obj || !PyArray_Check((PyArrayObject*)obj)) 
 	{
       SWIG_SetErrorMsg(PyExc_NotImplementedError,"input argument is not a numpy array\n");
-      return Array();
+	  return Array();
     }
     
     PyArrayObject* numpy_array = (PyArrayObject*) obj;
 
+	//must be contiguos
     if (!PyArray_ISCONTIGUOUS(numpy_array)) {
       SWIG_SetErrorMsg(PyExc_NotImplementedError,"numpy array is null or not contiguous\n");
       return Array();
@@ -509,9 +522,21 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
       return Array();
     }
 
-	Array ret(dims,dtype);
-	memcpy(ret.c_ptr(),PyArray_DATA(numpy_array),ret.c_size());
-    return ret;
+	//cannot share the memory
+	if (!(numpy_array->flags & NPY_OWNDATA) || PyArray_BASE(numpy_array)!=NULL)
+	{
+	  //Array ret(dims,dtype);
+	  //memcpy(ret.c_ptr(),,ret.c_size());
+	  //return ret;
+      SWIG_SetErrorMsg(PyExc_NotImplementedError,"numpy cannot share its internal memory\n");
+      return Array();
+	}
+
+	auto heap=HeapMemory::createManaged((Uint8*)PyArray_DATA(numpy_array),dtype.getByteSize(dims));
+	numpy_array->flags &= ~NPY_OWNDATA; //Heap has taken the property
+	PyArray_SetBaseObject((PyArrayObject*)numpy_array, PyCapsule_New(new SharedPtr<HeapMemory>(heap), NULL, deleteNumPyArrayCapsule));
+
+	return Array(dims,dtype,heap);
   }
 
   %pythoncode %{

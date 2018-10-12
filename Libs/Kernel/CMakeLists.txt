@@ -42,7 +42,6 @@ set(CoreSources
 	./include/Visus/CriticalSection.h
 	./include/Visus/Diff.h
 	./include/Visus/DirectoryIterator.h
-	./include/Visus/Exception.h
 	./include/Visus/File.h
 	./include/Visus/HeapMemory.h
 	./include/Visus/ScopedVector.h
@@ -68,7 +67,6 @@ set(CoreSources
 	./src/CriticalSection.cpp
 	./src/Diff.cpp
 	./src/DirectoryIterator.cpp
-	./src/Exception.cpp
 	./src/File.cpp
 	./src/HeapMemory.cpp
 	./src/Log.cpp

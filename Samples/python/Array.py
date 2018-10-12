@@ -48,27 +48,24 @@ from OpenVisus import *
 class MyTestCase(unittest.TestCase):
 
   def testInt32Array(self):
-    a = numpy.array( [[1,2,3],[4,5,6]] ,dtype=numpy.int32)
-    b=a.toNumPy()  
-    self.assertEqual(b.get().dtype.toString(),"int32")
-    self.assertEqual(b.get().dims[0],3)
-    self.assertEqual(b.get().dims[1],2)
+    a=Array.fromNumPy(numpy.array( [[1,2,3],[4,5,6]] ,dtype=numpy.int32))
+    self.assertEqual(a.dtype.toString(),"int32")
+    self.assertEqual(a.dims[0],3)
+    self.assertEqual(a.dims[1],2)
 
   def testFloat32Array(self):
-    a = numpy.array( [[[1],[2]],[[3],[4]],[[5],[6]]],dtype=numpy.float32)
-    b=a.toNumPy()  
-    self.assertEqual(b.get().dtype.toString(),"float32")
-    self.assertEqual(b.get().dims[0],1)
-    self.assertEqual(b.get().dims[1],2)
-    self.assertEqual(b.get().dims[2],3)
+    a = Array.fromNumPy(numpy.array( [[[1],[2]],[[3],[4]],[[5],[6]]],dtype=numpy.float32))
+    self.assertEqual(a.dtype.toString(),"float32")
+    self.assertEqual(a.dims[0],1)
+    self.assertEqual(a.dims[1],2)
+    self.assertEqual(a.dims[2],3)
 
   def testFloat64Array(self):
-    a = numpy.array( [[[1],[2]],[[3],[4]],[[5],[6]]],dtype=numpy.float64)
-    b=a.toNumPy()  
-    self.assertEqual(b.get().dtype.toString(),"float64")
-    self.assertEqual(b.get().dims[0],1)
-    self.assertEqual(b.get().dims[1],2)
-    self.assertEqual(b.get().dims[2],3)
+    a=Array.fromNumPy(numpy.array( [[[1],[2]],[[3],[4]],[[5],[6]]],dtype=numpy.float64)) 
+    self.assertEqual(a.dtype.toString(),"float64")
+    self.assertEqual(a.dims[0],1)
+    self.assertEqual(a.dims[1],2)
+    self.assertEqual(a.dims[2],3)
 
 # ////////////////////////////////////////////////////////
 if __name__ == '__main__':

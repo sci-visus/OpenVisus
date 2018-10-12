@@ -319,7 +319,7 @@ public:
     try {
       return getFieldByNameThrowEx(name);
     }
-    catch (Exception ex) {
+    catch (std::exception ex) {
       return Field();
     }
   }

@@ -234,8 +234,19 @@ void VisusAssertFailed(const char* file,int line,const char* expr)
   if (ApplicationInfo::debug)
     Utils::breakInDebugger();
   else
-    __ThrowException__(Exception(file,line,expr));
+    ThrowExceptionEx(file,line,expr);
 }
+
+
+//////////////////////////////////////////////////////
+void ThrowExceptionEx(String file, int line, String expr)
+{
+  std::ostringstream out;
+  out << "Visus throwing exception file(" << file << ") line(" << line << ") expr(" << expr << ")...";
+  String msg = out.str();
+  throw std::runtime_error(msg);
+}
+
 
 ///////////////////////////////////////////////////////////
 static void InitNetwork()

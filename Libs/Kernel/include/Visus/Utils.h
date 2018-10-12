@@ -41,7 +41,6 @@ For support : support@visus.net
 
 #include <Visus/Kernel.h>
 #include <Visus/NumericLimits.h>
-#include <Visus/Exception.h>
 #include <Visus/HeapMemory.h>
 #include <Visus/StringTree.h>
 

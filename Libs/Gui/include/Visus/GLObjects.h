@@ -71,37 +71,6 @@ public:
 };
 
 /////////////////////////////////////////////////////////////////////////
-class VISUS_GUI_API GLStruct : public GLObject
-{
-public:
-
-  VISUS_CLASS(GLStruct)
-
-  std::vector< SharedPtr<GLObject> > v;
-
-  //constructor
-  GLStruct(const std::vector< SharedPtr<GLObject> >& v_) : v(v_) {
-  }
-
-  //destructor
-  virtual ~GLStruct() {
-  }
-
-  //glRender
-  virtual void glRender(GLCanvas& gl) override 
-  {
-    gl.pushModelview();
-
-    for (auto it : v) {
-      if (it)
-        it->glRender(gl);
-    }
-    gl.popModelview();
-  }
-
-};
-
-/////////////////////////////////////////////////////////////////////////
 class VISUS_GUI_API GLPhongObject : public GLObject 
 {
 public:
@@ -112,6 +81,10 @@ public:
   Color                color=Colors::White;
   SharedPtr<GLTexture> texture;
   GLMesh               mesh;
+
+  //default constructor
+  GLPhongObject() {
+  }
 
   //constructor
   GLPhongObject(const Color& color_,int line_width_=1,SharedPtr<GLTexture> texture_=SharedPtr<GLTexture>()) 
@@ -159,6 +132,41 @@ public:
 };
 
 /////////////////////////////////////////////////////////////////////////
+#if !SWIG
+
+
+/////////////////////////////////////////////////////////////////////////
+class VISUS_GUI_API GLStruct : public GLObject
+{
+public:
+
+  VISUS_CLASS(GLStruct)
+
+    std::vector< SharedPtr<GLObject> > v;
+
+  //constructor
+  GLStruct(const std::vector< SharedPtr<GLObject> >& v_ = std::vector< SharedPtr<GLObject> >()) : v(v_) {
+  }
+
+  //destructor
+  virtual ~GLStruct() {
+  }
+
+  //glRender
+  virtual void glRender(GLCanvas& gl) override
+  {
+    gl.pushModelview();
+
+    for (auto it : v) {
+      if (it)
+        it->glRender(gl);
+    }
+    gl.popModelview();
+  }
+
+};
+
+
 class VISUS_GUI_API GLLine : public GLPhongObject
 {
 public:
@@ -206,13 +214,14 @@ public:
 
   //constructor
   template <typename Point>
-  GLCubicBezier(Point2d A,Point2d B,Point2d C,Point2d D,Color color=Colors::Black,int line_width=1,const int nsegments=32) 
+  GLCubicBezier(Point A, Point B, Point C, Point D,Color color=Colors::Black,int line_width=1,const int nsegments=32)
     : GLLineStrip(bezier(A,B,C,D,nsegments),color,line_width) {}
 
 private:
 
-  static std::vector<Point2d> bezier(Point2d A,Point2d B,Point2d C,Point2d D,int nsegments) {
-    std::vector<Point2d> ret;
+  template <typename Point>
+  static std::vector<Point> bezier(Point A, Point B, Point C, Point D,int nsegments) {
+    std::vector<Point> ret;
     ret.reserve(nsegments);
     for (int I=0;I<nsegments;I++)
     {
@@ -394,6 +403,9 @@ private:
   }
 
 };
+
+
+#endif //
 
 } //namespace
 

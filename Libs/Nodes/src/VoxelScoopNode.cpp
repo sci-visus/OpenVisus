@@ -38,7 +38,6 @@ For support : support@visus.net
 
 #include <Visus/VoxelScoopNode.h>
 #include <Visus/UnionFind.h>
-#include <Visus/Exception.h>
 
 namespace Visus {
 

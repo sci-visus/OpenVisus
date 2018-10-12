@@ -53,46 +53,7 @@ class VISUS_KERNEL_API StringUtils
 {
 public:
 
-  //________________________________________________________
-  class VISUS_KERNEL_API format
-  {
-  public:
-
-    //constructor
-    format() {
-    }
-
-    //constructor
-    format(const format& other) {
-      out << other.str();
-    }
-
-    //operator=
-    format& operator=(const format& other) {
-      out.clear(); out << other.str(); return *this;
-    }
-
-    //String()
-    operator String() const {
-      return out.str();
-    }
-
-    //str
-    String str() const {
-      return out.str();
-    }
-
-    //operator<<
-    template <typename Type>
-    format& operator<<(Type value) {
-      out << value; return *this;
-    }
-
-  private:
-
-    std::ostringstream out;
-
-  };
+  typedef FormatString format;
 
   //formatToHexadecimal
   static String formatToHexadecimal(int v)
