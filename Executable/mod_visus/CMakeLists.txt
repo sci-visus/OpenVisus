@@ -25,8 +25,6 @@ if (NOT WIN32)
     
 endif()
 
-add_dependencies(mod_visus _OpenVisusPy)
-
 InstallLibrary(mod_visus)
 
 

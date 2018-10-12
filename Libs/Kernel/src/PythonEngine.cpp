@@ -297,9 +297,9 @@ PythonEngine::PythonEngine(bool bVerbose)
     if (bVerbose)
       VisusInfo() << "Visus is embedding Python";
 
-    //try to find where visus OpenVisusPy.py files are
+    //try to find where visus OpenVisus.py files are
     {
-      auto py_file = "OpenVisusPy.py";
+      auto py_file = "OpenVisus.py";
 
       VisusInfo() << "Trying to find " << py_file;
 

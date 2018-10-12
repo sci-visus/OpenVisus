@@ -7,4 +7,3 @@ FILE(GLOB Sources *.cpp *.h)
 AddExecutable(visusviewer ${Sources})
 
 target_link_libraries(visusviewer PUBLIC VisusAppKit)
-add_dependencies(visusviewer _OpenVisusPy)
