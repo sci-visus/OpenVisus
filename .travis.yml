@@ -19,7 +19,6 @@ env:
 matrix:
   # Show final status immediately if a test fails.
   fast_finish: true
-
   include:
     # ///////////////////////////////// osx 10.13
     - os: osx
