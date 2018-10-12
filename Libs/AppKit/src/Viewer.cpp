@@ -865,7 +865,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
       ObjectStream stream(stree, 'r');
       this->readFromObjectStream(stream);
     }
-    catch (Exception ex)
+    catch (std::exception ex)
     {
       VisusAssert(false);
       return false;
@@ -1000,7 +1000,7 @@ bool Viewer::saveFile(String url,bool bSaveHistory,bool bShowDialogs)
       return false;
     }
   }
-  catch (Exception ex)
+  catch (std::exception ex)
   {
     if (bShowDialogs) 
     {
@@ -1235,7 +1235,7 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
       }
     }
   }
-  catch (Exception ex)
+  catch (std::exception ex)
   {
     VisusAssert(false);
     return false;
@@ -1364,7 +1364,7 @@ bool Viewer::saveScene(String url, bool bShowDialogs)
       return false;
     }
   }
-  catch (Exception ex)
+  catch (std::exception ex)
   {
     if (bShowDialogs)
     {

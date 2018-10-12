@@ -13,8 +13,3 @@ endif()
 
 add_subdirectory(Swig)
 
-
-
-
-
-

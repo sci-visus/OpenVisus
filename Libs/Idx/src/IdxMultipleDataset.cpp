@@ -1275,7 +1275,7 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> 
       {
         OUTPUT = QueryInputTerm(this, QUERY.get(), multiple_access, QUERY->aborted).computeOutput(QUERY->field.name);
       }
-      catch (Exception ex)
+      catch (std::exception ex)
       {
         error_msg = ex.what();
       }

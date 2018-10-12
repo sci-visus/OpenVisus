@@ -38,9 +38,8 @@ For support : support@visus.net
 
 #include <Visus/HeapMemory.h>
 #include <Visus/RamResource.h>
-#include <Visus/Exception.h>
 
-
+#include <algorithm>
 
 namespace Visus {
 
@@ -63,6 +62,17 @@ SharedPtr<HeapMemory> HeapMemory::createUnmanaged(Uint8* p,Int64 n)
   ret->n=n;
   ret->m=n;
   ret->p=p;
+  return ret;
+}
+
+////////////////////////////////////////////////////////
+SharedPtr<HeapMemory> HeapMemory::createManaged(Uint8* p, Int64 n)
+{
+  auto ret = std::make_shared<HeapMemory>();
+  ret->unmanaged = false;
+  ret->n = n;
+  ret->m = n;
+  ret->p = p;
   return ret;
 }
 

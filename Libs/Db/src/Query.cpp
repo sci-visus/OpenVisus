@@ -52,6 +52,114 @@ Query::Query(Dataset* dataset,int mode)
   this->max_resolution = dataset->getMaxResolution();
 }
 
+////////////////////////////////////////////////////////////////////////////////////
+bool Query::allocateBufferIfNeeded()
+{
+  if (!buffer)
+  {
+    if (!buffer.resize(nsamples, field.dtype, __FILE__, __LINE__))
+      return false;
+    buffer.fillWithValue(field.default_value);
+  }
+  else
+  {
+    //check buffer
+    VisusAssert(buffer.dims == this->nsamples);
+    VisusAssert(buffer.dtype == field.dtype);
+    VisusAssert(buffer.c_size() == getByteSize());
+  }
+
+  return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+bool Query::mergeSamples(LogicBox Wsamples, Array& Wbuffer, LogicBox Rsamples, Array Rbuffer, int merge_mode, Aborted aborted)
+{
+  if (!Wsamples.valid() || !Rsamples.valid())
+    return false;
+
+  //cannot find intersection (i.e. no sample to merge)
+  NdBox box = Wsamples.getIntersection(Rsamples);
+  if (!box.isFullDim())
+    return false;
+
+  /*
+  Example of the problem to solve:
+
+  Wsamples:=-2 + kw*6         -2,          4,          10,            *16*,            22,            28,            34,            40,            *46*,            52,            58,  ...)
+  Rsamples:=-4 + kr*5    -4,         1,        6,         11,         *16*,          21,       25,            ,31         36,          41,         *46*,          51,         56,       ...)
+
+  give kl,kw,kr independent integers all >=0
+
+  leastCommonMultiple(2,6,5)= 2*3*5 =30
+
+  First "common" value (i.e. minimum value satisfying all 3 conditions) is 16
+  */
+
+  int pdim = Rbuffer.getPointDim();
+  NdPoint delta(pdim);
+  for (int D = 0; D<pdim; D++)
+  {
+    NdPoint::coord_t lcm = Utils::leastCommonMultiple(Rsamples.delta[D], Wsamples.delta[D]);
+
+    NdPoint::coord_t P1 = box.p1[D];
+    NdPoint::coord_t P2 = box.p2[D];
+
+    while (!Utils::isAligned(P1, Wsamples.p1[D], Wsamples.delta[D]) ||
+      !Utils::isAligned(P1, Rsamples.p1[D], Rsamples.delta[D]))
+    {
+      //NOTE: if the value is already aligned, alignRight does nothing
+      P1 = Utils::alignRight(P1, Wsamples.p1[D], Wsamples.delta[D]);
+      P1 = Utils::alignRight(P1, Rsamples.p1[D], Rsamples.delta[D]);
+
+      //cannot find any alignment, going beyond the valid range
+      if (P1 >= P2)
+        return false;
+
+      //continue in the search IIF it's not useless
+      if ((P1 - box.p1[D]) >= lcm)
+      {
+        //should be acceptable to be here, it just means that there are no samples to merge... 
+        //but since 99% of the time Visus has pow-2 alignment it is high unlikely right now... adding the VisusAssert just for now
+        VisusAssert(false);
+        return false;
+      }
+    }
+
+    delta[D] = lcm;
+    P2 = Utils::alignRight(P2, P1, delta[D]);
+    box.p1[D] = P1;
+    box.p2[D] = P2;
+  }
+
+  VisusAssert(box.isFullDim());
+
+  VisusAssert(Wbuffer.dims == Wsamples.nsamples);
+  VisusAssert(Rbuffer.dims == Rsamples.nsamples);
+  VisusAssert(Wbuffer.dtype == Rbuffer.dtype);
+
+  NdPoint wfrom = Wsamples.logicToPixel(box.p1);
+  NdPoint wto = Wsamples.logicToPixel(box.p2);
+  NdPoint wstep = delta.rightShift(Wsamples.shift);
+
+  NdPoint rfrom = Rsamples.logicToPixel(box.p1);
+  NdPoint rto = Rsamples.logicToPixel(box.p2);
+  NdPoint rstep = delta.rightShift(Rsamples.shift);
+
+  VisusAssert(NdPoint::max(wfrom, NdPoint(pdim)) == wfrom); wto = NdPoint::min(wto, Wbuffer.dims); wstep = NdPoint::min(wstep, Wbuffer.dims);
+  VisusAssert(NdPoint::max(rfrom, NdPoint(pdim)) == rfrom); rto = NdPoint::min(rto, Rbuffer.dims); rstep = NdPoint::min(rstep, Rbuffer.dims);
+
+  //first insert samples in the right position!
+  if (!ArrayUtils::insert(Wbuffer, wfrom, wto, wstep, Rbuffer, rfrom, rto, rstep, aborted))
+    return false;
+
+  //eventually interpolate the samples got so far (NOTE: interpolate can be slow!)
+  if (merge_mode == Query::InterpolateSamples && !ArrayUtils::interpolate(Wbuffer, wfrom, wto, wstep, aborted))
+    return false;
+
+  return true;
+}
 
 
 } //namespace Visus

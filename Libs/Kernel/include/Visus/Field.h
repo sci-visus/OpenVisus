@@ -63,7 +63,7 @@ public:
   //index of the field (needed byd idxfile)
   String index;
 
-  // name of compression
+  // name of compression (for storage)
   String default_compression;
 
   // default_layout

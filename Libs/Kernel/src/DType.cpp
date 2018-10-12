@@ -38,6 +38,7 @@ For support : support@visus.net
 
 #include <Visus/DType.h>
 #include <Visus/Log.h>
+#include <Visus/StringUtils.h>
 
 #include <cctype>
 

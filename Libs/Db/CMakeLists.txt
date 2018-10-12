@@ -7,10 +7,10 @@ SET(RootSources
 )
 
 SET(QuerySources
-	./include/Visus/BaseQuery.h
+	./include/Visus/LogicBox.h
 	./include/Visus/BlockQuery.h
 	./include/Visus/Query.h
-	./src/BaseQuery.cpp
+	./src/LogicBox.cpp
 	./src/BlockQuery.cpp
 	./src/Query.cpp
 )

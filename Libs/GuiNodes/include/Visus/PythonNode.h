@@ -46,8 +46,7 @@ For support : support@visus.net
 namespace Visus {
 
 ///////////////////////////////////////////////////////////////
-class VISUS_GUI_NODES_API PythonNode : 
-  public Node, public GLObject
+class VISUS_GUI_NODES_API PythonNode : public Node, public GLObject
 {
 public:
 

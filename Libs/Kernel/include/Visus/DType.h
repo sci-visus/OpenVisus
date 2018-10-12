@@ -61,7 +61,9 @@ public:
     : num(1),unsign(decimal_ || bitsize_ == 1? false : unsign_),decimal(decimal_),bitsize(bitsize_),ranges(1)
   {
     VisusAssert(bitsize > 0);
-    this->description=StringUtils::format()<<(unsign ?"u":"")<<(decimal?"float":"int")<<(bitsize);
+    std::ostringstream out;
+    out << (unsign ? "u" : "") << (decimal ? "float" : "int") << (bitsize);
+    this->description= out.str();
   }
 
   //constructor for VectorType
@@ -69,7 +71,9 @@ public:
     : num(num_),unsign(other.unsign),decimal(other.decimal),bitsize(other.bitsize),ranges(num)
   {
     VisusAssert(num && other.ncomponents()==1);
-    this->description=StringUtils::format()<<other.description<<(num>1?"[" +cstring(num)+ "]":"");
+    std::ostringstream out;
+    out << other.description << (num > 1 ? "[" + cstring(num) + "]" : "");
+    this->description= out.str();
   }
 
   //use this if you have the value representation of dtype from string representation 

@@ -174,13 +174,9 @@ private:
       Field field=dataset->getFieldByNameThrowEx(fieldname);
       msg=StringUtils::format()<<"DTYPE "<<field.dtype.toString();
     }
-    catch (Exception ex)
+    catch (std::exception ex)
     {
-      msg=StringUtils::format()<<
-        "Error\n"
-        <<"FILE "<<ex.getFile()<<"\n"
-        <<"LINE "<<ex.getLine()<<"\n"
-        <<ex.getExpression();
+      msg=StringUtils::format()<<"Error\n"<<ex.what();
     }
 
     widgets.txtOutput->clear();

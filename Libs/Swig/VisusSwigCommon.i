@@ -36,6 +36,7 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
+//common code
 %begin %{
   #if _WIN32
     //this is needed if you dont' have python debug library
@@ -57,20 +58,36 @@ For support : support@visus.net
 // warning : Nothing known about base class 'PositionRValue'
 #pragma SWIG nowarn=401 
 
+namespace Visus {}
+%apply long long  { Visus::Int64 };
+
+//this is needed to expose import_array
+%{
+#define SWIG_FILE_WITH_INIT
+%}
+%include <numpy.i>
+
+//__________________________________________________________
+//STL
+
 %include <stl.i>
 %include <std_pair.i>
 %include <std_vector.i>
 %include <std_deque.i>
 %include <std_string.i>
 %include <std_map.i>
-%include <std_set.i> 
+%include <std_set.i>
 
-#ifdef NUMPY_FOUND
-%include <numpy.i>
-#endif
+%template(PairDoubleDouble)                std::pair<double,double>;
+%template(PairIntDouble)                   std::pair<int,double>;
+%template(VectorString)                    std::vector< std::string >;
+%template(VectorInt)                       std::vector<int>;
+%template(VectorDouble)                    std::vector<double>;
+%template(VectorFloat)                     std::vector<float>;
+%template(MapStringString)                 std::map< std::string , std::string >;
 
-namespace Visus {}
-%apply long long  { Visus::Int64 };
+//__________________________________________________________
+//RENAME
 
 %rename(From)                              *::from;
 %rename(To)                                *::to;
@@ -82,31 +99,14 @@ namespace Visus {}
 %rename(__const_structure_derefence_op__)  *::operator->() const;
 %rename(__indirection_op__)                *::operator*();
 %rename(__const_indirection_op__)          *::operator*() const;
-
 %rename(__add__)                           *::operator+;
 %rename(__sub__)                           *::operator-; 
 %rename(__neg__)                           *::operator-();  // Unary -
 %rename(__mul__)                           *::operator*;
 %rename(__div__)                           *::operator/;
 
-%template(PairDoubleDouble)                std::pair<double,double>;
-%template(PairIntDouble)                   std::pair<int,double>;
-%template(VectorString)                    std::vector< std::string >;
-%template(VectorInt)                       std::vector<int>;
-%template(VectorDouble)                    std::vector<double>;
-%template(VectorFloat)                     std::vector<float>;
-%template(MapStringString)                 std::map< std::string , std::string >;
-
-//whenever an error happens on the python side of the director, I should throw an exception in C++
-%feature("director:except") 
-{
-  if ($error != NULL) 
-  {
-    auto error_msg=PythonEngine::getLastErrorMessage();
-	VisusInfo()<<error_msg;
-    ThrowException(error_msg);
-  }
-}
+//__________________________________________________________
+// EXCEPTION
 
 //whenever a C++ exception happens, I should 'forward' it to python
 %exception 
@@ -114,13 +114,20 @@ namespace Visus {}
   try { 
     $action
   } 
-  catch (Visus::Exception e) {
-    SWIG_exception_fail(SWIG_RuntimeError, e.what() );
+  catch (Swig::DirectorMethodException& e) {
+	VisusInfo()<<"Error happened in swig director code: "<<e.what();
+	VisusInfo()<<PythonEngine::getLastErrorMessage();
+    SWIG_fail;
   }
-  SWIG_CATCH_STDEXCEPT
+  catch (std::exception& e) {
+    VisusInfo()<<"Swig Catched std::exception: "<<e.what();
+    SWIG_exception_fail(SWIG_SystemError, e.what() );
+  }
   catch (...) {
-	SWIG_exception(SWIG_UnknownError, "Unknown exception");
+    VisusInfo()<<"Swig Catched ... exception: unknown reason";
+    SWIG_exception(SWIG_UnknownError, "Unknown exception");
   }
+
 }
 
 //allow using PyObject* as input/output
@@ -134,7 +141,9 @@ namespace Visus {}
 } 
 
 //__________________________________________________________
-// disown
+// DISOWN
+// grep for disown
+
 //trick to simpligy the application of disown, rename the argument to disown
 #define VISUS_DISOWN(argname) disown
 
@@ -154,12 +163,15 @@ namespace Visus {}
 }
 
 //__________________________________________________________
-// new object
+// NEW_OBJECT
+
 // IMPORTANT avoid returning director objects x
 #define VISUS_NEWOBJECT(typename) typename
 
 //__________________________________________________________
-//SharedPtr
+// SharedPtr
+// grep -E -r -i -o -h --include *.h "SharedPtr<([[:space:]])*([[:alnum:]]+)([[:space:]]*)>" src  | sort -u
+
 namespace Visus {
 template<class T>
 class SharedPtr 
@@ -184,6 +196,13 @@ public:
   %template(ClassName##Ptr) Visus::SharedPtr< Visus::ClassName >;
 %enddef
 
-// *** UniquePtr (not exposing UniquePtr to swig, please move it to the private section) ***
+//__________________________________________________________
+//UniquePtr
+// (not exposing UniquePtr to swig, please move it to the private section) ***
 
-// *** ScopedVector (not exposing ScopedVector to swig, please move it to the private section) ***
+
+//__________________________________________________________
+// ScopedVector
+// (not exposing ScopedVector to swig, please move it to the private section) ***
+//  %newobject Visus::ScopedVector::release;
+// Visus::ScopedVector::*(...VISUS_DISOWN....)

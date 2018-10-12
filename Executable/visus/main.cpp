@@ -2094,7 +2094,7 @@ int main(int argn, const char* argv[])
     {
       data = convert.exec(data, args);
     }
-    catch (Exception& ex)
+    catch (std::exception& ex)
     {
       VisusInfo() << "ERROR: " << ex.what();
       IdxModule::detach();

@@ -253,19 +253,15 @@ endif()
 
 
 if (VISUS_INTERNAL_PYTHON)
-
 	string(REPLACE "\\" "/" VISUS_INTERNAL_PYTHON "${VISUS_INTERNAL_PYTHON}")
 	MESSAGE(STATUS "Using internal python: ${VISUS_INTERNAL_PYTHON}")
-	
 	add_subdirectory(${VISUS_INTERNAL_PYTHON})
-	find_package(NumPy REQUIRED)
 else()
 
 	SetIfNotDefined(PYTHON_VERSION 3)
 
 	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
-	find_package(NumPy QUIET) 
 	
 	MESSAGE(STATUS "Using external python")
 	message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
@@ -274,6 +270,8 @@ else()
 	
 endif()
 
+# numpy 
+find_package(NumPy REQUIRED)
 
 add_subdirectory(InternalLibs)
 add_subdirectory(Libs)
