@@ -43,6 +43,7 @@ For support : support@visus.net
 #include <Visus/NumericLimits.h>
 #include <Visus/HeapMemory.h>
 #include <Visus/StringTree.h>
+#include <Visus/StringUtils.h>
 
 #include <cmath>
 #include <functional>
