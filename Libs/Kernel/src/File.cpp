@@ -661,7 +661,7 @@ public:
     }
 #else
     {
-      this->fd = ::open(filename, O_RDONLY);
+      this->fd = ::open(filename.c_str(), O_RDONLY);
       if (this->fd == -1) {
         close();
         return false;
