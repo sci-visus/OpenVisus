@@ -177,8 +177,6 @@ script:
     - | 
       if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then   
       
-        set -e
-        
         # python
         cd $HOME     
         curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer -O 
@@ -230,8 +228,6 @@ script:
     - |     
       if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then 
       
-        set -e
-
         #  install patchelf
         curl -L https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz -o /tmp/patchelf-0.9.tar.gz
         cd /tmp
