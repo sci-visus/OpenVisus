@@ -746,7 +746,7 @@ public:
     memcpy(mem + pos, buffer, (size_t)tot);
 
     ApplicationStats::io.trackWriteOperation(tot);
-    return true;
+    return true; 
   }
 
   //read

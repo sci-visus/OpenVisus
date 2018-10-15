@@ -400,15 +400,19 @@ if (True)
 		else()
 			MESSAGE(ERROR "Cannot find qt plugins")
 		endif()
+
+		macro(InstallQtPlugin name)
+			if (EXISTS "${qt5_PLUGIN_DIR}/${name}")
+				Install(DIRECTORY "${qt5_PLUGIN_DIR}/${name}" DESTINATION bin/plugins)
+			endif()
+		endmacro()
 		
-		if (NOT WIN32)
-			install(DIRECTORY "${qt5_PLUGIN_DIR}/iconengines"   DESTINATION bin/plugins)
-			install(DIRECTORY "${qt5_PLUGIN_DIR}/imageformats"  DESTINATION bin/plugins)
-			install(DIRECTORY "${qt5_PLUGIN_DIR}/platforms"     DESTINATION bin/plugins)
-			install(DIRECTORY "${qt5_PLUGIN_DIR}/printsupport"  DESTINATION bin/plugins)
-			install(DIRECTORY "${qt5_PLUGIN_DIR}/styles"        DESTINATION bin/plugins)
-		endif()
-		
+		InstallQtPlugin(iconengines)
+		InstallQtPlugin(imageformats)
+		InstallQtPlugin(platforms)
+		InstallQtPlugin(printsupport)
+		InstallQtPlugin(styles)
+
 		if (WIN32)
 				
 			set(__filename__ "${CMAKE_BINARY_DIR}/visusviewer.bat")
