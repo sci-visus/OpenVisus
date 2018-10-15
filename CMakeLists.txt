@@ -260,27 +260,19 @@ else()
 	
 endif()
 
+# PYTHON_SITE_PACKAGES_DIR
+EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE}  -c  "import site;print(site.getsitepackages()[-1])"  OUTPUT_VARIABLE PYTHON_SITE_PACKAGES_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
+
 # numpy 
 find_package(NumPy REQUIRED)
 
 
-
-
 # //////////////////////////////////////////////////////////////
 # CMAKE_INSTALL_PREFIX
-# enable/disable install
 
-
-if (CMAKE_INSTALL_SITE_PACKAGES)
-
-	EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE}  -c  "import site;print(site.getsitepackages()[-1])"  OUTPUT_VARIABLE PYTHON_SITE_PACKAGES_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
-	message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
-	set(CMAKE_INSTALL_PREFIX "${PYTHON_SITE_PACKAGES_DIR}/OpenVisus" CACHE PATH "" FORCE)
-	
-elseif (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 	set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
-
 endif()
 
 if (WIN32)
@@ -288,7 +280,6 @@ if (WIN32)
 endif()
 
 MESSAGE(STATUS "CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}")
-
 
 
 add_subdirectory(InternalLibs)
@@ -482,6 +473,8 @@ if (True)
 
 	
 endif()
+
+
 
 # /////////////////////////////////////////////////////////////////////
 # note: alternative would be to use cmake FIXUP_BUNDLE... but it seems broken on Linux
