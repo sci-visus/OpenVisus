@@ -37,16 +37,6 @@ else()
 	SET(CMAKE_FOLDER_PREFIX OpenVisus/)
 endif()
 
-# enable/disable install
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-	set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
-else()
-  string(REPLACE "\\" "/" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
-  set(CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}" CACHE PATH "" FORCE)
-endif()
-
-
-MESSAGE(STATUS "CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}")
 
 # enable/disable gui-stuff (i.e. Qt dependent)
 option(VISUS_GUI "Enable gui" TRUE)  
@@ -272,6 +262,34 @@ endif()
 
 # numpy 
 find_package(NumPy REQUIRED)
+
+
+
+
+# //////////////////////////////////////////////////////////////
+# CMAKE_INSTALL_PREFIX
+# enable/disable install
+
+
+if (CMAKE_INSTALL_SITE_PACKAGES)
+
+	EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE}  -c  "import site;print(site.getsitepackages()[-1])"  OUTPUT_VARIABLE PYTHON_SITE_PACKAGES_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+	message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
+	set(CMAKE_INSTALL_PREFIX "${PYTHON_SITE_PACKAGES_DIR}/OpenVisus" CACHE PATH "" FORCE)
+	
+elseif (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+
+	set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
+
+endif()
+
+if (WIN32)
+	string(REPLACE "\\" "/" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+endif()
+
+MESSAGE(STATUS "CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}")
+
+
 
 add_subdirectory(InternalLibs)
 add_subdirectory(Libs)
