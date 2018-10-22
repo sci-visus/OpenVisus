@@ -6,7 +6,7 @@ file(GLOB Sources include/Visus/*.h src/*.cpp resources/*.glsl resources/*.qrc)
 
 source_group("" FILES ${Sources})
 
-AddVisusLibrary(VisusGuiNodes ${Sources})
+AddLibrary(VisusGuiNodes ${Sources})
 target_link_libraries(VisusGuiNodes PUBLIC VisusGui VisusDataflow)
 
 

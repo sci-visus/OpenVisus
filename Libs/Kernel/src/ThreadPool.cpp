@@ -41,7 +41,8 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////
-ThreadPool::ThreadPool(String basename,int num_workers) : nwaiting(0)
+ThreadPool::ThreadPool(String basename,int num_workers) 
+  : nwaiting(0)
 {
   for (int I=0;I<num_workers;I++)
   {
@@ -58,12 +59,12 @@ ThreadPool::~ThreadPool()
 {
   //each worker should get only one!
   for (auto thread : threads)
-    asyncRun(Function());
+    asyncRun(std::function<void()>());
 
   for (auto thread : threads) 
     Thread::join(thread);
 
-  #ifdef _DEBUG
+  #ifdef VISUS_DEBUG
   {
     ScopedLock lock(this->lock);
     int total_jobs=(int)waiting.size()+(int)running.size();
@@ -74,17 +75,51 @@ ThreadPool::~ThreadPool()
 
 
 ////////////////////////////////////////////////////////////
-void ThreadPool::asyncRun(Function run)
+void ThreadPool::asyncRun(std::function<void()> run)
 {
+  {
+    ScopedLock lock(wait_all.lock);
+    wait_all.num_inside++;
+  }
+
   ApplicationStats::num_cpu_jobs++;
 
   {
     ScopedLock lock(this->lock);
-    waiting.push_back(std::make_shared<Function>(run));
+    waiting.push_back(std::make_shared<std::function<void()>>(run));
   }
 
   nwaiting.up();
 }
+
+////////////////////////////////////////////////////////////
+void ThreadPool::push(SharedPtr<ThreadPool> pool, std::function<void()> fn) {
+  if (pool)
+    pool->asyncRun(fn);
+  else
+    fn();
+}
+
+
+////////////////////////////////////////////////////////////
+void ThreadPool::waitAll() {
+  while (true)
+  {
+    {
+      ScopedLock lock(wait_all.lock);
+      if (!wait_all.num_inside)
+        return;
+    }
+
+    wait_all.num_done.down();
+
+    {
+      ScopedLock lock(wait_all.lock);
+      --wait_all.num_inside;
+    }
+
+  }
+};
 
 
 ////////////////////////////////////////////////////////////
@@ -95,27 +130,33 @@ void ThreadPool::workerEntryProc(int worker)
     this->nwaiting.down();
 
     //waiting->running
-    SharedPtr<Function> run;
+    SharedPtr<std::function<void()> > fn;
     {
       ScopedLock lock(this->lock);
-      run = this->waiting.front();
+      fn = this->waiting.front();
       this->waiting.pop_front();
-      this->running.insert(run);
+      this->running.insert(fn);
     }
 
-    bool bExit = *run ? false : true;
+    bool bExit = *fn ? false : true;
 
     if (!bExit)
-      (*run)(worker);
+      (*fn)();
 
     //remove from running
     {
       ScopedLock lock(this->lock);
-      VisusAssert(running.find(run) != running.end());
-      this->running.erase(run);
+      VisusAssert(running.find(fn) != running.end());
+      this->running.erase(fn);
     }
 
     ApplicationStats::num_cpu_jobs--;
+
+    //for the wait all function
+    {
+      ScopedLock lock(wait_all.lock);
+      wait_all.num_done.up();
+    }
 
     if (bExit)
       break;

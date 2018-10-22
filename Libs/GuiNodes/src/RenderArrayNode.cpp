@@ -229,29 +229,29 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   gl.pushBlend(true);
   gl.pushDepthMask(shader->config.texture_dim==3?false:true);
 
-  shader->setTexture(gl,data_texture);
+  //note: the order seeems to be important, first bind GL_TEXTURE1 then GL_TEXTURE0
+  if (shader->config.palette_enabled && palette_texture)
+    shader->setPaletteTexture(gl, palette_texture);
 
-  double opacity = this->opacity;
+  shader->setTexture(gl, data_texture);
 
   if (b3D)
   {
-    int nslices=this->maxNumSlices();
-    if (nslices<=0)
+    double opacity = this->opacity;
+    
+    int nslices = this->maxNumSlices();
+    if (nslices <= 0)
     {
-      double  factor =useViewDirection() ?2.5:1; //show a little more if use_view_direction!
-      nslices=(int)(data.dims.maxsize() * factor);
+      double factor = useViewDirection() ? 2.5 : 1; //show a little more if use_view_direction!
+      nslices = (int)(data.dims.maxsize() * factor);
     }
-
-    const int max_nslices = 128;
 
     //see https://github.com/sci-visus/visus/issues/99
+    const int max_nslices = 128;
     if (bFastRendering && nslices > max_nslices) {
-      opacity *= nslices/(double)max_nslices;
+      opacity *= nslices / (double)max_nslices;
       nslices = max_nslices;
     }
-
-    if (shader->config.palette_enabled && palette_texture)
-      shader->setPalette(gl, palette_texture);
 
     shader->setOpacity(gl, opacity);
 
@@ -270,9 +270,6 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   }
   else
   {
-    if (shader->config.palette_enabled && palette_texture)
-      shader->setPalette(gl, palette_texture);
-
     shader->setOpacity(gl, opacity);
 
     gl.glRenderMesh(GLMesh::Quad(Point2d(0,0),Point2d(1,1),/*bNormal*/shader->config.lighting_enabled,/*bTexCoord*/true));

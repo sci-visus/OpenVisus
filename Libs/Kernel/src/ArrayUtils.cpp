@@ -143,7 +143,7 @@ Array ArrayUtils::loadImage(String url,std::vector<String> args)
     {
       ret.url=url;
 
-      #ifdef _DEBUG
+      #ifdef VISUS_DEBUG
       VisusInfo()<<url<<" loaded: "<<" dtype("<<ret.dtype.toString()<<") dims("<<ret.dims.toString()<<")";
       #endif
       
@@ -263,6 +263,44 @@ Array ArrayUtils::decodeArray(String compression,NdPoint dims,DType dtype,Shared
   return Array(dims,dtype,decoded);
 }
 
+
+//////////////////////////////////////////////////////////////////////////////////////////
+Array ArrayUtils::decodeArray(StringMap metadata, SharedPtr<HeapMemory> encoded)
+{
+  if (!encoded || !encoded->c_size())
+    return Array();
+
+  auto compression = metadata.getValue("visus-compression");
+  auto nsamples = NdPoint::parseDims(metadata.getValue("visus-nsamples"));
+  auto dtype = DType::fromString(metadata.getValue("visus-dtype"));
+  auto layout = metadata.getValue("visus-layout");
+
+  //backward compatible
+  if (metadata.hasValue("visus-format"))
+    layout = cint(metadata.getValue("visus-format")) ? "" : "hzorder";
+
+  if (nsamples.innerProduct() <= 0 || !dtype.valid())
+    return Array();
+
+  //override compression if needed (think about legacy dataset)
+  if (!metadata.hasValue("visus-compression") && !metadata.getValue("Content-Type").empty())
+  {
+    auto content_type = metadata.getValue("Content-Type");
+    if (content_type == "application/x-lz4")    compression = "lz4";
+    else if (content_type == "application/zip")     compression = "zip";
+    else if (content_type == "image/png")           compression = "png";
+    else if (content_type == "image/jpeg")          compression = "jpg";
+    else if (content_type == "image/tiff")          compression = "tif";
+  }
+
+  auto decoded = decodeArray(compression, nsamples, dtype, encoded);
+  if (!decoded)
+    return Array();
+
+  decoded.layout = layout;
+  return decoded;
+
+}
 
   
 //////////////////////////////////////////////////////////////////////////////////////////

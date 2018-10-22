@@ -180,15 +180,17 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
         int nx=(int)read->buffer->dims.x;
         int ny=(int)read->buffer->dims.y;
         Uint8* SRC=read->buffer->c_ptr();
+        std::ostringstream out;
         for (int Y=0;Y<ny;Y++)
         {
           for (int X=0;X<nx;X++)
           {
-            std::cout<<std::setw(3)<<(int)SRC[((ny-Y-1)*nx+X)*2]<<" ";
+            out <<std::setw(3)<<(int)SRC[((ny-Y-1)*nx+X)*2]<<" ";
           }
-          std::cout<<std::endl;
+          out <<std::endl;
         }
-        std::cout<<std::endl;
+        out <<std::endl;
+        VisusInfo() << "\n" << out.str();
       }
       #endif
 
@@ -202,15 +204,17 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
         int nx=(int)read->buffer->dims.x;
         int ny=(int)read->buffer->dims.y;
         Uint8* SRC=read->buffer->c_ptr();
+        std::ostringstream out;
         for (int Y=0;Y<ny;Y++)
         {
           for (int X=0;X<nx;X++)
           {
-            std::cout<<std::setw(3)<<(int)SRC[((ny-Y-1)*nx+X)*2]<<" ";
+            out <<std::setw(3)<<(int)SRC[((ny-Y-1)*nx+X)*2]<<" ";
           }
-          std::cout<<std::endl;
+          out <<std::endl;
         }
-        std::cout<<std::endl;
+        out <<std::endl;
+        VisusInfo() << "\n" << out.str();
       }
       #endif
 

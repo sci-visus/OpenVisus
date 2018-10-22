@@ -41,7 +41,11 @@ For support : support@visus.net
 
 #include <Visus/Visus.h>
 
-#include <Visus/Platform.h>
+#if 0
+#  define VISUS_OPENGL_ES 1
+#else
+#define VISUS_OPENGL_ES 0
+#endif
 
 #include <memory>
 #include <string>
@@ -160,8 +164,8 @@ VISUS_KERNEL_API void SetCommandLine(String value);
 //VisusAssertFailed
 VISUS_KERNEL_API void VisusAssertFailed(const char* file, int line, const char* expr);
 
-//PrintDebugMessage
-VISUS_KERNEL_API void PrintDebugMessage(String value);
+//PrintMessageToTerminal
+VISUS_KERNEL_API void PrintMessageToTerminal(const String& value);
 
 //VisusHasMessageLock
 VISUS_KERNEL_API bool VisusHasMessageLock();
@@ -171,12 +175,13 @@ VISUS_KERNEL_API bool VisusHasMessageLock();
 #define VisusReleaseAssert(_Expression) \
   {if (!(_Expression)) Visus::VisusAssertFailed(__FILE__,__LINE__,#_Expression);} \
   /*--*/
-  #if defined(_DEBUG)
+  #if defined(VISUS_DEBUG)
     #define VisusAssert(_Expression) VisusReleaseAssert(_Expression)
   #else
     #define VisusAssert(_Expression) ((void)0) 
   #endif
 #endif
+
 
 //__________________________________________________________
 namespace Private {
@@ -205,7 +210,7 @@ public:
         VisusAssert((int)this->value > 0);
         std::ostringstream out;
         out << "***** Leaked objects detected: " << (int)this->value << " instance(s) of class [" << ClassName::getVisusClassName()<< "] *****"<<std::endl;
-        PrintDebugMessage(out.str());
+        PrintMessageToTerminal(out.str());
         //VisusAssert(false);
       }
     }
@@ -238,7 +243,7 @@ public:
 } //namespace Private
 
 
-#ifdef _DEBUG
+#ifdef VISUS_DEBUG
   #define VISUS_CLASS(className) \
     friend class Visus::Private::VisusDetectMemoryLeaks<className>; \
     static Visus::String getVisusClassName() {return #className;} \
@@ -263,9 +268,7 @@ public:
   Pimpl*       pimpl=nullptr;  \
   /*--*/
 
-
-
-
+class VISUS_KERNEL_API Void {};
 
 class VISUS_KERNEL_API KernelModule
 {

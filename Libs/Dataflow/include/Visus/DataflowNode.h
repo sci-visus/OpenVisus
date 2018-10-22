@@ -319,10 +319,10 @@ protected:
   Node*                        parent;
   std::vector<Node*>           childs;
 
-  typedef Visus::WaitAsync< Future<int>, SharedPtr<NodeJob> > WaitAsync;
+  CriticalSection                running_lock;
+  std::set< SharedPtr<NodeJob> > running;
 
-  SharedPtr<ThreadPool>   thread_pool;
-  WaitAsync               async;
+  SharedPtr<ThreadPool>          thread_pool;
 
   //processInput 
   virtual bool processInput() {

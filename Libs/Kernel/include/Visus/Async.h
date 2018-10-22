@@ -51,52 +51,56 @@ namespace Visus {
 //see http://stackoverflow.com/questions/19225372/waiting-for-multiple-futures
 
 ///////////////////////////////////////////////////////////
-template <typename T>
+template <typename __Value__>
 class BasePromise
 {
 public:
 
+  typedef __Value__ Value;
+
   CriticalSection  lock;
-  SharedPtr<T>     value;
+  SharedPtr<Value> value;
+
+  typedef std::function<void(Value)> Callback;
 
   //constructor
   BasePromise() {
   }
 
   //set_value
-  void set_value(const T& value)
+  void set_value(const Value& value)
   {
-    std::vector< std::function<void()> > listeners;
+    std::vector<Callback> callbacks;
     {
       ScopedLock lock(this->lock);
       VisusAssert(!this->value);
-      this->value = std::make_shared<T>(value);
-      listeners=this->listeners;
-      this->listeners.clear(); //one shot
+      this->value = std::make_shared<Value>(value);
+      callbacks =this->callbacks;
+      this->callbacks.clear(); //one shot
     }
 
-    for (auto fn : listeners)
-      fn();
+    for (auto fn : callbacks)
+      fn(value);
   }
 
   //addWhenDoneListener (must have the lock and value must not exists)
-  void addWhenDoneListener(std::function<void()> fn) {
+  void addWhenDoneListener(Callback fn) {
     VisusAssert(!value);
-    listeners.push_back(fn);
+    callbacks.push_back(fn);
   }
 
   //isDone
   bool is_ready() const {
     ScopedLock lock(const_cast<BasePromise*>(this)->lock);
-    return value;
+    return value? true : false;
   }
 
   //when_ready
-  void when_ready(std::function<void()> fn) {
+  void when_ready(Callback fn) {
     this->lock.lock();
     if (value) {
       this->lock.unlock();
-      fn();
+      fn(*value);
     }
     else
     {
@@ -109,22 +113,24 @@ private:
 
   VISUS_NON_COPYABLE_CLASS(BasePromise)
 
-  std::vector< std::function<void()> > listeners;
+  std::vector< Callback > callbacks;
 
 };
 
 ///////////////////////////////////////////////////////////
-template <typename T>
+template <typename __Value__>
 class Future 
 {
 public:
+
+  typedef __Value__ Value;
 
   //default constructor
   Future() {
   }
 
   //constructor
-  Future(SharedPtr< BasePromise<T> > promise_) : promise(promise_) {
+  Future(SharedPtr< BasePromise<Value> > promise_) : promise(promise_) {
   }
 
   //copy constructor
@@ -142,14 +148,14 @@ public:
   }
 
   //get
-  T get() const
+  Value get() const
   {
     ScopedLock lock(promise->lock);
     
     //need to wait?
     if (!promise->value)
     {
-      promise->addWhenDoneListener([this](){
+      promise->addWhenDoneListener([this](Value){
         const_cast<Future*>(this)->ready.up();
       });
       promise->lock.unlock();
@@ -158,11 +164,11 @@ public:
       VisusAssert(promise->value);
     }
 
-    return (*promise->value);
+    return *(promise->value);
   }
 
   //get_promise
-  SharedPtr< BasePromise<T> > get_promise() const {
+  SharedPtr< BasePromise<Value> > get_promise() const {
     return promise;
   }
 
@@ -173,60 +179,67 @@ public:
   }
 
   //when_ready
-  void when_ready(std::function<void()> fn) {
-    if (!promise) {VisusAssert(false);return;}
+  void when_ready(typename BasePromise<Value>::Callback fn) {
+    if (!promise) {
+      VisusAssert(false);
+      return;
+    }
      return promise->when_ready(fn);
   }
 
 private:
 
-  SharedPtr< BasePromise<T> > promise;
-  Semaphore                   ready;
+  SharedPtr< BasePromise<Value> > promise;
+  Semaphore                       ready;
 
 };
 
 ///////////////////////////////////////////////////////////
-template <typename T>
+template <typename __Value__>
 class Promise
 {
 public:
+
+  typedef __Value__ Value;
 
   //constructor
   Promise() {
   }
 
   //constructor
-  Promise(const T& value) {
+  Promise(const Value& value) {
     set_value(value);
   }
 
   //set_value
-  void set_value(const T& value) {
+  void set_value(const Value& value) {
     base_promise->set_value(value);
   }
 
   //get_future
-  Future<T> get_future() {
-    return Future<T>(base_promise);
+  Future<Value> get_future() {
+    return Future<Value>(base_promise);
   }
 
   //when_ready
-  void when_ready(std::function<void()> fn) {
+  void when_ready(typename BasePromise<Value>::Callback fn) {
     base_promise->when_ready(fn);
   }
 
 private:
 
-  SharedPtr< BasePromise<T> > base_promise =std::make_shared< BasePromise<T> >() ;
+  SharedPtr< BasePromise<Value> > base_promise =std::make_shared< BasePromise<Value> >() ;
 
 }; 
 
 
 ///////////////////////////////////////////////////////////
-template <typename Future,typename Etc>
+template <typename Future>
 class WaitAsync 
 {
 public:
+
+  typedef typename Future::Value Value;
 
   //constructor
   WaitAsync()  {
@@ -237,26 +250,11 @@ public:
     VisusAssert(ninside==0);
   }
 
-  //disableReadyInfo
-  void disableReadyInfo() {
-    bDisableReadyInfo=true;
-  }
-
-  //size
-  int size() const
-  {
-    ScopedLock lock(const_cast<WaitAsync*>(this)->lock);
-    return ninside;
-  }
-
-  //empty
-  bool empty() const {
-    return size() == 0;
-  }
-
   //pushRunning
-  void pushRunning(Future future, Etc running_info)
+  Future pushRunning(Future future)
   {
+    Future ret = Promise<Value>().get_future();
+
     auto promise = future.get_promise();
     VisusAssert(promise);
 
@@ -266,72 +264,66 @@ public:
 
       ++ninside;
 
-      auto running_item = std::make_pair(future, running_info);
-      auto ready_item   = std::make_pair(future, bDisableReadyInfo? Etc() : running_info);
-
       //no need to wait
       if (promise->value)
       {
-        ready.push_front(ready_item);
+        ready.push_front(std::make_pair(ret,*promise->value));
         nready.up();
       }
       //need to wait, as soon as it becomes available I'm moving it to ready deque
       else
       {
-        auto it=running.insert(running.end(), running_item);
-        promise->addWhenDoneListener(std::function<void()>([this, it, ready_item]()
+        promise->addWhenDoneListener(typename BasePromise<Value>::Callback([this, future, ret](Value value)
         {
           ScopedLock this_lock(this->lock);
-          ready.push_front(ready_item);
-          running.erase(it);
+          ready.push_front(std::make_pair(ret, value));
           nready.up();
         }));
       }
     }
+
+    return ret;
   }
 
-  //popReady
-  std::pair<Future, Etc> popReady()
+  //getNumRunning
+  int getNumRunning() const
   {
-    nready.down();
-    {
-      ScopedLock lock(this->lock);
-      VisusAssert(!ready.empty());
-      auto ret = ready.back();
-      ready.pop_back();
-      --ninside;
-      return ret;
-    }
-  }
-
-  //get_running
-  std::list< std::pair<Future, Etc> > getRunning() {
-    ScopedLock lock(this->lock);
-    return running;
+    ScopedLock lock(const_cast<WaitAsync*>(this)->lock);
+    return this->ninside;
   }
 
   //waitAllDone
   void waitAllDone() 
   {
-    for (int I=0,N=size();I<N;I++)
-      popReady();
+    for (int I = 0, N= getNumRunning(); I < N; I++)
+    {
+      Ready popped;
+      nready.down();
+      {
+        ScopedLock lock(this->lock);
+        VisusAssert(!this->ready.empty());
+        popped = this->ready.back();
+        this->ready.pop_back();
+        --ninside;
+      }
+
+      popped.first.get_promise()->set_value(popped.second);
+    }
   }
 
 private:
 
   VISUS_NON_COPYABLE_CLASS(WaitAsync)
 
-  typedef std::list< std::pair< Future, Etc > > Running;
-  typedef std::deque< std::pair<Future, Etc> >  Ready;
+  typedef std::pair<Future, Value > Ready;
 
-  CriticalSection  lock;
-  int              ninside = 0;
-  Running          running;
-  Semaphore        nready;
-  Ready            ready;
-  bool             bDisableReadyInfo = false;
+  CriticalSection     lock;
+  int                 ninside = 0;
+  Semaphore           nready;
+  std::deque< Ready > ready;
 
 };
+
 
 
 } //namespace Visus

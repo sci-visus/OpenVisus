@@ -39,79 +39,9 @@ For support : support@visus.net
 #include <Visus/Thread.h>
 
 
-#define ENABLE_CONCURRENCY_VISUALIZER 0
-
-#if ENABLE_CONCURRENCY_VISUALIZER
-#include <C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\Extensions\xwsx55s0.r1e\SDK\Native\Inc\cvmarkers.h>
-#endif
 
 namespace Visus {
 
-//////////////////////////////////////////////////////////////
-#if ENABLE_CONCURRENCY_VISUALIZER
-class ConcurrencyVisualizer::Pimpl
-{
-public:
-
-  class Series
-  {
-  public:
-
-    PCV_MARKERSERIES series;
-    PCV_PROVIDER     provider;
-
-    //constructor
-    Series()
-    {
-      CvInitProvider(&CvDefaultProviderGuid, &provider);
-      CvCreateMarkerSeries(provider, "", &series);
-    }
-
-    //destructor
-    ~Series() {
-
-      CvReleaseMarkerSeries(series);
-      CvReleaseProvider(provider);
-    }
-
-    //getSingleton
-    static PCV_MARKERSERIES& getSingleton() {
-      static Series ret;
-      return ret.series;
-    }
-
-  };
-
-  String   name;
-  PCV_SPAN span;
-
-  //constructor
-  Pimpl(String name_): name(name_){
-    CvEnterSpan(Series::getSingleton(), &span, name.c_str());
-  }
-
-  //destructor
-  ~Pimpl() {
-    CvLeaveSpan(span);
-  }
-};
-#endif
-
-//////////////////////////////////////////////////////////////
-ConcurrencyVisualizer::ConcurrencyVisualizer(String name)
-{
-#if ENABLE_CONCURRENCY_VISUALIZER
-  pimpl = new Pimpl(name);
-#endif
-}
-
-//destructor
-ConcurrencyVisualizer::~ConcurrencyVisualizer()\
-{
-#if ENABLE_CONCURRENCY_VISUALIZER
-  delete pimpl;
-#endif
-}
 
 ////////////////////////////////////////////////////////////
 SharedPtr<std::thread> Thread::start(String thread_name,std::function<void()> entry_proc)
@@ -120,7 +50,6 @@ SharedPtr<std::thread> Thread::start(String thread_name,std::function<void()> en
   
   return std::make_shared<std::thread>(([entry_proc, thread_name]()
   {
-    ConcurrencyVisualizer cv(thread_name);
     entry_proc(); 
     --ApplicationStats::num_threads;
   }));

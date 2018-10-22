@@ -34,7 +34,7 @@ RUN cmake ../ -DVISUS_GUI=0 \
 	-DVISUS_INTERNAL_SWIG=1 \
 	-DPYTHON_VERSION=2 \
 	-DPYTHON_EXECUTABLE=/usr/local/anaconda2/bin/python2.7 \
-	-DPYTHON_LIBRARIES=/usr/local/anaconda2/lib/libpython2.7.so \
+	-DPYTHON_LIBRARY=/usr/local/anaconda2/lib/libpython2.7.so \
 	-DPYTHON_INCLUDE_DIRS=/usr/local/anaconda2/include/python2.7 
 RUN make
 

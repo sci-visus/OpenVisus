@@ -181,23 +181,11 @@ public:
       NetRequest request(url);
       request.aborted = query->aborted;
 
-      if (netservice)
-      {
-        auto future_response = netservice->asyncNetworkIO(request);
-        future_response.when_ready([this, future_response, query]() {
-          auto response = future_response.get();
-
-          // As noted above, this stage always returns query failed. Third layer of multiplex will get data
-          owner->readFailed(query);
-        });
-      }
-      else
-      {
-        NetService::getNetResponse(request);
+      NetService::push(netservice, request).when_ready([this,query](NetResponse response) {
 
         // As noted above, this stage always returns query failed. Third layer of multiplex will get data
         owner->readFailed(query);
-      }
+      });
     }
     else
     {

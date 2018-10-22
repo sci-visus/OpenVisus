@@ -81,7 +81,6 @@ private:
   Path                path;
   String              compression_type;
 
-
 }; 
 
 } //namespace Visus

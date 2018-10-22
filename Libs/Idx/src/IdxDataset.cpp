@@ -729,13 +729,22 @@ bool IdxDataset::compress(String compression)
       for (auto filename : filenames) 
       {
         String tmp_filename=filename+".tmp~";
-         if(std::rename(filename.c_str(), tmp_filename.c_str())!=0) 
-         { 
-           String error_msg=StringUtils::format()<<"Cannot std::rename("+filename <<","<<tmp_filename<<")";
-           std::perror(error_msg.c_str()); 
-           VisusAssert(false);
-           return false; 
-         }
+
+        //note: this can fail because the access is working in async mode and still need to close the file
+        auto tmove = Time::now();
+        while (true)
+        {
+          if (FileUtils::moveFile(filename.c_str(), tmp_filename.c_str()))
+            break;
+
+          if (tmove.elapsedSec() > 5)
+          {
+            String error_msg = StringUtils::format() << "Cannot std::rename(" + filename << "," << tmp_filename << ")";
+            std::perror(error_msg.c_str());
+            VisusAssert(false);
+            return false;
+          }
+        }
       }
 
       //write file blocks
@@ -1559,7 +1568,7 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
     VisusWarning()<<"The hzaddress_conversion_pointquery has not been created, so loc-by-loc queries will be a lot slower!!!!";
 
     //so you investigate why it's happening! .... I think only for the iphone could make sense....
-    #if WIN32 && _DEBUG
+    #if WIN32 && VISUS_DEBUG
     VisusAssert(false);
     #endif
 
@@ -1600,7 +1609,7 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
   std::sort(hzaddresses.begin(),hzaddresses.end());
 
   //do the for loop block aligned
-  WaitAsync< Future<bool>, std::tuple<SharedPtr<BlockQuery>, int, int> > async;
+  WaitAsync< Future<Void> > wait_async;
 
   access->beginRead();
   for (int A=0,B=0 ; !aborted() &&  A< (int)hzaddresses.size() ; A=B)
@@ -1621,27 +1630,18 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
       ++B;
 
     auto block_query=std::make_shared<BlockQuery>(query->field,query->time,HzFrom,HzTo,aborted);
-    async.pushRunning(block_query->future, std::make_tuple(block_query,A,B));
+    wait_async.pushRunning(this->readBlock(access, block_query)).when_ready([this, query, block_query,&hzaddresses, A, B, aborted](Void) {
 
-    this->readBlock(access,block_query);
+      if (aborted() || block_query->failed())
+        return;
+
+      InsertBlockQuerySamplesIntoPointQuery op;
+      NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get(), &hzaddresses[0] + A, &hzaddresses[0] + B, aborted);
+    }); 
   }
   access->endRead();
 
-  //wait for the block query to be ready
-  for (int I=0,N=async.size();I<N;I++)
-  {
-    auto popped=async.popReady().second;
-
-    auto block_query=std::get<0>(popped); VisusAssert(block_query);
-    auto A=std::get<1>(popped);
-    auto B=std::get<2>(popped);
-
-    if (aborted() || block_query->getStatus()!=QueryOk) 
-      continue;
-
-    InsertBlockQuerySamplesIntoPointQuery op;
-    NeedToCopySamples(op,query->field.dtype,this,query.get(),block_query.get(),&hzaddresses[0]+A,&hzaddresses[0]+B,aborted);
-  }
+  wait_async.waitAllDone();
 
   if (aborted())
     return false;
@@ -1752,7 +1752,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
     for (int H = 0; H <= max_resolution; H++)
       fldeltas[H] = H? (hzorder.getLevelDelta(H)[bitmask[H]] >> 1) : 0;
 
-    WaitAsync< Future<bool> , SharedPtr<BlockQuery> > async;
+    WaitAsync< Future<Void> > wait_async;
 
     if (bReading)
       access->beginRead();
@@ -1802,8 +1802,12 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
 
           if (bReading)
           {
-            async.pushRunning(read_block->future, read_block);
-            readBlock(access,read_block);
+            wait_async.pushRunning(readBlock(access, read_block)).when_ready([this,query,read_block, aborted](Void)
+            {
+              //I don't care if the read fails...
+              if (!aborted() && read_block->ok())
+                mergeQueryWithBlock(query, read_block);
+            });
           }
           else
           {
@@ -1817,7 +1821,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
             auto write_block=std::make_shared<BlockQuery>(field,time,HzFrom,HzTo,aborted);
 
            //read ok
-            if (read_block->getStatus()==QueryOk)
+            if (read_block->ok())
             {
               write_block->buffer=read_block->buffer;
             }
@@ -1839,7 +1843,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
             //important! all writings are with a lease!
             access->releaseWriteLock(read_block);
 
-            if (aborted() || write_block->getStatus() != QueryOk) {
+            if (aborted() || write_block->failed()) {
               bReading? access->endRead() : access->endReadWrite();
               return false;
             }
@@ -1869,19 +1873,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
 
     bReading ? access->endRead() : access->endReadWrite();
 
-    //wait for block query completition
-    if (bReading)
-    {
-      for (int I=0,N=async.size();I<N;I++)
-      {
-        auto block_query=async.popReady().second;
-        VisusAssert(block_query);
-
-        //I don't care if the read fails...
-        if (!aborted() && block_query->getStatus()==QueryOk)
-          mergeQueryWithBlock(query,block_query);
-      }
-    }
+    wait_async.waitAllDone();
 
     //set the query status
     if (aborted())

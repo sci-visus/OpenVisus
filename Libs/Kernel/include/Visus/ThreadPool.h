@@ -56,27 +56,43 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(ThreadPool)
 
-  typedef std::function<void(int)> Function;
-
   //constructor
   ThreadPool(String basename,int num_workers);
 
   //destructor
   virtual ~ThreadPool();
 
-  //asyncRun
-  void asyncRun(Function fn);
+  //waitAll
+  void waitAll();
+
+  //push
+  static void push(SharedPtr<ThreadPool> pool, std::function<void()> fn);
 
 private:
+
+  //___________________________________________
+  class WaitAll
+  {
+  public:
+    CriticalSection  lock;
+    int              num_inside = 0;
+    Semaphore        num_done;
+    WaitAll() : num_inside(0) {}
+  };
+
 
   CriticalSection                                   lock;
   std::vector< SharedPtr<std::thread> >             threads;
   Semaphore                                         nwaiting;
-  std::deque< SharedPtr<Function> >                 waiting;
-  std::set  < SharedPtr<Function> >                 running;
+  std::deque< SharedPtr<std::function<void()> > >   waiting;
+  std::set  < SharedPtr<std::function<void()> > >   running;
+  WaitAll                                           wait_all;
 
   //workerEntryProc
   void workerEntryProc(int worker);
+
+  //asyncRun
+  void asyncRun(std::function<void()> fn);
 
 };
 

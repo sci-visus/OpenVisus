@@ -87,45 +87,11 @@ public:
 
 private:
 
-  //async_read
-  class FileIO : public File
-  {
-  public:
-    IdxDiskAccess *       owner;
-    SharedPtr<ThreadPool> tpool;
-    HeapMemory            headers;
+  UniquePtr<Access> sync, async;
 
-    //constructor
-    FileIO(IdxDiskAccess* owner_) : owner(owner_) {
-    }
+  SharedPtr<ThreadPool> async_tpool;
 
-    //destructor
-    ~FileIO() {
-      destroy();
-    }
-
-    //destroy
-    void destroy() {
-      tpool.reset();
-      VisusReleaseAssert(!File::isOpen());
-    }
-
-    //open
-    bool open(String filename, String mode);
-
-    //close
-    void close(String reason);
-
-  };
-
-  FileIO sync;
-  FileIO async;
-
-  int       bVerbose = 0;
   IdxFile   idxfile;
-
-  //re-entrant file lock
-  std::map<String, int> file_locks;
 
   struct {BigInt from = 0, to = 0;} block_range;
 
@@ -134,18 +100,6 @@ private:
 
   //bDisableIO (for debugging)
   bool bDisableIO = false;
-
-  //getBlockPositionInFile
-  Int64 getBlockPositionInFile(BigInt nblock) const;
-
-  //getFirstBlockInFile
-  BigInt getFirstBlockInFile(BigInt nblock) const;
-
-  //writeBlockInCurrentThread 
-  void writeBlockInCurrentThread(FileIO& file, SharedPtr<BlockQuery> query, String mode);
-
-  //readBlockInCurrentThread 
-  void readBlockInCurrentThread(FileIO& file,SharedPtr<BlockQuery> query, String mode);
 
 }; 
 

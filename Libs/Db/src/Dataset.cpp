@@ -376,44 +376,41 @@ String Dataset::getDatasetInfos() const
 }
 
 ////////////////////////////////////////////////
-void Dataset::readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
+Future<Void> Dataset::readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
 {
   VisusAssert(access->isReading());
 
-  if (!access) {
-    query->setStatus(QueryFailed);
-    return;
-  }
+  auto failed = [&]() {
+    if (!access)
+      query->setFailed();
+    else
+      access->readFailed(query);
 
-  if (!query->field.valid()) {
-    access->readFailed(query);
-    return;
-  }
+    return query->done;
+  };
 
-  if (!(query->start_address < query->end_address)) {
-    access->readFailed(query);
-    return;
-  }
+  if (!access)
+    return failed();
 
-  if (!access->can_read) {
-    access->readFailed(query);
-    return;
-  }
+  if (!query->field.valid())
+    return failed();
+
+  if (!(query->start_address < query->end_address))
+    return failed();
+
+  if (!access->can_read)
+    return failed();
 
   auto logic_box = getAddressRangeBox(query->start_address, query->end_address);
-  if (!logic_box.valid()) {
-    access->readFailed(query);
-    return;
-  }
+  if (!logic_box.valid())
+    return failed();
 
   query->nsamples = logic_box.nsamples;
   query->logic_box = logic_box;
 
   //auto allocate buffer
-  if (!query->allocateBufferIfNeeded()) {
-    access->readFailed(query);
-    return;
-  }
+  if (!query->allocateBufferIfNeeded())
+    return failed();
 
   //override time 
   {
@@ -427,55 +424,50 @@ void Dataset::readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
       query->time = cdouble(query->field.getParam("time"));
   }
 
-  query->setStatus(QueryRunning);
+  query->setRunning();
   access->readBlock(query);
+  return query->done;
 }
 
 
 ////////////////////////////////////////////////
-void Dataset::writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query)
+Future<Void> Dataset::writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query)
 {
   VisusAssert(access->isWriting());
 
-  if (!access) {
-    query->setStatus(QueryFailed);
-    return;
-  }
+  auto failed = [&]() {
+    if (!access)
+      query->setFailed();
+    else
+      access->readFailed(query);
+    return query->done;
+  };
 
-  if (!query->field.valid()) {
-    access->writeFailed(query);
-    return;
-  }
+  if (!access)
+    return failed();
 
-  if (!(query->start_address < query->end_address)) {
-    access->writeFailed(query);
-    return;
-  }
+  if (!query->field.valid())
+    return failed();
 
-  if (!access->can_write) {
-    access->writeFailed(query);
-    return;
-  }
+  if (!(query->start_address < query->end_address))
+    return failed();
 
-  if (!query->buffer) {
-    access->writeFailed(query);
-    return;
-  }
+  if (!access->can_write)
+    return failed();
+
+  if (!query->buffer)
+    return failed();
 
   auto logic_box = getAddressRangeBox(query->start_address, query->end_address);
-  if (!logic_box.valid()) {
-    access->writeFailed(query);
-    return;
-  }
+  if (!logic_box.valid())
+    return failed();
 
   query->nsamples = logic_box.nsamples;
   query->logic_box = logic_box;
 
   //check buffer
-  if (!query->allocateBufferIfNeeded()) {
-    access->writeFailed(query);
-    return;
-  }
+  if (!query->allocateBufferIfNeeded())
+    return failed();
 
   //override time
   {
@@ -489,8 +481,9 @@ void Dataset::writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query)
       query->time = cdouble(query->field.getParam("time"));
   }
 
-  query->setStatus(QueryRunning);
+  query->setRunning();
   access->writeBlock(query);
+  return query->done;
 }
 
 ////////////////////////////////////////////////
@@ -624,7 +617,7 @@ bool Dataset::beginQuery(SharedPtr<Query> query)
   if (query->end_resolutions.empty())
     query->end_resolutions={this->getMaxResolution()};
 
-  #ifdef _DEBUG
+  #ifdef VISUS_DEBUG
   if (!this->getBitmask().hasRegExpr())
   {  
     for (int I=0;I<(int)query->end_resolutions.size();I++)
@@ -809,11 +802,22 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
   Array ret(level_box.nsamples, DTypes::UINT8_RGB);
   ret.fillWithValue(0);
 
-  //blockReady
-  auto blockReady = [&](SharedPtr<BlockQuery> block_query,NdPoint p1)
+  access->beginRead();
+
+  for (int block = start_block; block < (start_block + block_per_level); block++)
   {
-    if (block_query->getStatus() != QueryOk)
-      return;
+    auto hzfrom = block << bitsperblock;
+    auto hzto = hzfrom + nsamplesperblock;
+
+    auto block_query = std::make_shared<BlockQuery>(field, time, hzfrom, hzto, Aborted());
+
+    auto block_box = getAddressRangeBox(hzfrom,hzto);
+    auto p1 = level_box.logicToPixel(block_box.p1);
+
+    this->readBlockAndWait(access, block_query);
+
+    if (block_query->failed())
+      continue;
 
     //make sure is row major
     if (!block_query->buffer.layout.empty())
@@ -839,44 +843,9 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
     }
 
     ArrayUtils::paste(ret, p1, src);
-  };
-
-  WaitAsync< Future<bool>, std::pair< SharedPtr<BlockQuery>, NdPoint > > async;
-
-  access->beginRead();
-
-  for (int block = start_block; block < (start_block + block_per_level); block++)
-  {
-    auto hzfrom = block << bitsperblock;
-    auto hzto = hzfrom + nsamplesperblock;
-
-    auto block_query = std::make_shared<BlockQuery>(field, time, hzfrom, hzto, Aborted());
-
-    auto block_box = getAddressRangeBox(hzfrom,hzto);
-    auto p1 = level_box.logicToPixel(block_box.p1);
-
-    if (true)
-    {
-      this->readBlockAndWait(access, block_query);
-      blockReady(block_query, p1);
-    }
-    else
-    {
-      async.pushRunning(block_query->future, std::make_pair(block_query, p1));
-      this->readBlock(access, block_query);
-    }
   }
 
   access->endRead();
-
-
-  for (int I = 0, N = async.size(); I < N; I++)
-  {
-    auto ready       = async.popReady().second;
-    auto block_query = ready.first;
-    auto p1          = ready.second;
-    blockReady(block_query, p1);
-  }
 
   return ret;
 }

@@ -37,7 +37,6 @@ SET(SceneSources
 
 SET(AccessSources
 	./include/Visus/Access.h
-	./include/Visus/NetworkAccess.h
 	./include/Visus/CloudStorageAccess.h
 	./include/Visus/DiskAccess.h
 	./include/Visus/FilterAccess.h
@@ -45,7 +44,6 @@ SET(AccessSources
 	./include/Visus/MultiplexAccess.h
 	./include/Visus/RamAccess.h
 	./src/Access.cpp
-	./src/NetworkAccess.cpp
 	./src/CloudStorageAccess.cpp
 	./src/DiskAccess.cpp
 	./src/ModVisusAccess.cpp
@@ -64,5 +62,5 @@ source_group("Query"    FILES ${QuerySources})
 
 file(GLOB Sources include/Visus/*.h src/*.cpp)
 
-AddVisusLibrary(VisusDb ${Sources})
+AddLibrary(VisusDb ${Sources})
 target_link_libraries(VisusDb PUBLIC VisusKernel)

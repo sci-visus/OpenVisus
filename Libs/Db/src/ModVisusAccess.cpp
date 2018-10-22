@@ -38,16 +38,48 @@ For support : support@visus.net
 
 #include <Visus/ModVisusAccess.h>
 #include <Visus/Dataset.h>
+#include <Visus/NetService.h>
 
 namespace Visus {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
 ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_) 
-  : NetworkAccess("ModVisusAccess", dataset, config_)
+  : config(config_)
 {
-  num_queries_per_request=cint(this->config.readString("num_queries_per_request","1"));
-  VisusAssert(num_queries_per_request > 0);
+  this->name = "ModVisusAccess";
+  this->can_read = StringUtils::find(config.readString("chmod", "rw"), "r") >= 0;
+  this->can_write = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
+  this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
+  this->url = config.readString("url", dataset->getUrl().toString()); VisusAssert(url.valid());
+  this->compression = config.readString("compression", url.getParam("compression", "zip"));  //TODO: should I swith to lz4?
+
+  this->config.writeString("url", url.toString());
+
+  this->num_queries_per_request = cint(this->config.readString("num_queries_per_request", "8"));
+
+  if (num_queries_per_request>1)
+  {
+    Url url(this->url.getProtocol() + "://" + this->url.getHostname() + ":" + cstring(this->url.getPort()) + "/mod_visus");
+    url.setParam("action", "ping");
+
+    auto request = NetRequest(url);
+    auto response = NetService::getNetResponse(request);
+    bool bSupportAggregation = cbool(response.getHeader("block-query-support-aggregation", "0"));
+    if (!bSupportAggregation)
+    {
+      VisusInfo() << "Server does not support block-query-support-aggregation, so I'm overriding num_queries_per_request to be 1";
+      num_queries_per_request = 1;
+    }
+  }
+
+  bool disable_async = dataset->bServerMode || config.readBool("disable_async", false);
+  if (!disable_async)
+  {
+    int nconnections = config.readInt("nconnections", (num_queries_per_request == 1)? (8) : (2));
+    this->netservice = std::make_shared<NetService>(nconnections);
+  }
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -72,56 +104,12 @@ void ModVisusAccess::readBlock(SharedPtr<BlockQuery> query)
   batch.push_back(query);
 
   //reached the number of queries per batch?
-  if (num_queries_per_request >= batch.size())
+  if (batch.size() >= num_queries_per_request)
     flushBatch();
 }
 
-///////////////////////////////////////////////////////////////////////////////////////
-void ModVisusAccess::onNetResponse(NetResponse response,SharedPtr<BlockQuery> query)
-{
-  if (!response.hasHeader("visus-dtype"))
-    response.setHeader("visus-dtype",query->field.dtype.toString());
 
-  if (!response.hasHeader("visus-nsamples"))
-    response.setHeader("visus-nsamples",query->nsamples.toString());
 
-  //I want the decoding happens in the 'client' side
-  query->setClientProcessing([this,response,query]() 
-  {
-    if (query->aborted() || !response.isSuccessful()) 
-    {
-      this->statistics.rfail++;
-      return QueryFailed;
-    }
-
-    auto decoded=response.getArrayBody();
-    if (!decoded)
-    {
-      this->statistics.rfail++;
-      return QueryFailed;
-    }
-
-    VisusAssert(decoded.dims==query->nsamples);
-    VisusAssert(decoded.dtype==query->field.dtype);
-    query->buffer=decoded;
-
-    this->statistics.rok++;
-    return QueryOk;
-  });
-
-  //done but status not set yet
-  query->future.get_promise()->set_value(true);
-}
-
-///////////////////////////////////////////////////////////////////////////////////////
-void ModVisusAccess::onNetResponse(NetResponse RESPONSE,Batch batch)
-{
-  std::vector<NetResponse> responses=NetResponse::decompose(RESPONSE);
-  responses.resize(batch.size(),NetResponse(HttpStatus::STATUS_CANCELLED));
-
-  for (int I=0;I<batch.size();I++)
-    onNetResponse(responses[I],batch[I]);
-}
 
 //////////////////////////////////////////////////////////////////////////////////////
 void ModVisusAccess::flushBatch()
@@ -132,39 +120,61 @@ void ModVisusAccess::flushBatch()
   Batch batch;
   std::swap(batch,this->batch);
 
-  Url url(this->url.getProtocol() + "://" + this->url.getHostname() + ":" + cstring(this->url.getPort()) + "/mod_visus");
-  url.setParam("action"     ,"rangequery");
-  url.setParam("dataset"    ,this->url.getParam("dataset"));
-  url.setParam("compression",this->compression);
-
-  url.setParam("field"      ,batch[0]->field.name);
-  url.setParam("time"       ,cstring(batch[0]->time));
-
-  std::vector<String> from,to; 
-  for (auto query : batch) 
+  std::vector<String> from, to;
+  for (auto query : batch)
   {
     from.push_back(cstring(query->start_address));
-    to  .push_back(cstring(query->end_address  ));
+    to.push_back(cstring(query->end_address));
   }
 
-  url.setParam("from",StringUtils::join(from," "));
-  url.setParam("to"  ,StringUtils::join(to  ," "));
+  Url URL(this->url.getProtocol() + "://" + this->url.getHostname() + ":" + cstring(this->url.getPort()) + "/mod_visus");
+  URL.setParam("action"      , "rangequery");
+  URL.setParam("dataset"     , this->url.getParam("dataset"));
+  URL.setParam("compression" , this->compression);
+  URL.setParam("field"       , batch[0]->field.name);
+  URL.setParam("time"        , cstring(batch[0]->time));
+  URL.setParam("from"        , StringUtils::join(from," "));
+  URL.setParam("to"          , StringUtils::join(to  ," "));
 
-  auto request=NetRequest(url);
-  request.aborted=batch[0]->aborted;
+  auto REQUEST=NetRequest(URL);
+  REQUEST.aborted=batch[0]->aborted;
 
-  if (bool bAsync= this->async.netservice?true:false)
+  NetService::push(netservice, REQUEST).when_ready([this,batch](NetResponse RESPONSE)
   {
-    auto FUTURE_RESPONSE= this->async.netservice->asyncNetworkIO(request);
-    FUTURE_RESPONSE.when_ready([this, FUTURE_RESPONSE,batch]() {
-      onNetResponse(FUTURE_RESPONSE.get(),batch);
-    });
-  }
-  else
-  {
-    auto RESPONSE=NetService::getNetResponse(request);
-    onNetResponse(RESPONSE,batch);
-  }
+    std::vector<NetResponse> responses = NetResponse::decompose(RESPONSE);
+    responses.resize(batch.size(), NetResponse(HttpStatus::STATUS_CANCELLED));
+
+    for (int I = 0; I < batch.size(); I++)
+    {
+      auto query    = batch[I];
+      auto response = responses[I];
+
+      if (!response.hasHeader("visus-dtype"))
+        response.setHeader("visus-dtype", query->field.dtype.toString());
+
+      if (!response.hasHeader("visus-nsamples"))
+        response.setHeader("visus-nsamples", query->nsamples.toString());
+
+      if (query->aborted() || !response.isSuccessful())
+      {
+        readFailed(query);
+        continue;
+      }
+
+      auto decoded = response.getArrayBody();
+      if (!decoded)
+      {
+        readFailed(query);
+        continue;
+      }
+
+      VisusAssert(decoded.dims == query->nsamples);
+      VisusAssert(decoded.dtype == query->field.dtype);
+      query->buffer = decoded;
+
+      readOk(query);
+    }
+  });
 
 }
 

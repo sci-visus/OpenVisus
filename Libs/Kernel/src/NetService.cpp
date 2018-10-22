@@ -90,6 +90,7 @@ CaCertFile::CaCertFile()
     curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, NULL);
     curl_easy_setopt(handle, CURLOPT_WRITEDATA, fp);
     curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 0L); //just for now
+    curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
     CURLcode res = curl_easy_perform(handle);
 
     if (res != CURLE_OK) {
@@ -165,6 +166,7 @@ public:
         curl_easy_setopt(this->handle, CURLOPT_NOSIGNAL, 1L); //otherwise crash on linux
         curl_easy_setopt(this->handle, CURLOPT_TCP_NODELAY, 1L);
         curl_easy_setopt(this->handle, CURLOPT_VERBOSE, 0L); //SET to 1L if you want to debug !
+        curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
 
         String cacertfile=CaCertFile::getSingleton()->getFilename();
         if (!cacertfile.empty())
@@ -225,13 +227,13 @@ public:
         }
         else if (request.method == "POST")
         {
-          VisusAssert(false); //TODO: not sure if I need it
+          curl_easy_setopt(this->handle, CURLOPT_POST, 1L);
+          curl_easy_setopt(this->handle, CURLOPT_INFILESIZE, request.body ? request.body->c_size() : 0);
         }
         else if (request.method == "PUT")
         {
-          curl_easy_setopt(this->handle, CURLOPT_UPLOAD, 1);
           curl_easy_setopt(this->handle, CURLOPT_PUT, 1);
-          curl_easy_setopt(this->handle, CURLOPT_INFILESIZE, request.body->c_size());
+          curl_easy_setopt(this->handle, CURLOPT_INFILESIZE, request.body? request.body->c_size() : 0);
         }
         else
         {
@@ -270,7 +272,7 @@ public:
       return(nmemb*size);
     }
 
-    //WriteFunction
+    //WriteFunction (downloading data)
     static size_t WriteFunction(void *chunk, size_t size, size_t nmemb, CurlConnection *connection)
     {
       connection->first_byte=true;
@@ -289,7 +291,7 @@ public:
       return tot;
     }
 
-    //ReadFunction
+    //ReadFunction (uploading data)
     static size_t ReadFunction(char *chunk, size_t size, size_t nmemb, CurlConnection *connection)
     {
       connection->first_byte=true;
@@ -379,7 +381,7 @@ NetService::~NetService()
 {
   if (this->pimpl)
   {
-    asyncNetworkIO(SharedPtr<NetRequest>()); //fake request to exit from the thread
+    handleAsync(SharedPtr<NetRequest>()); //fake request to exit from the thread
     Thread::join(thread);
     thread.reset();
 
@@ -387,50 +389,65 @@ NetService::~NetService()
   }
 }
 
-
 /////////////////////////////////////////////////////////////////////////////
-Future<NetResponse> NetService::asyncNetworkIO(SharedPtr<NetRequest> request)
+Future<NetResponse> NetService::handleAsync(SharedPtr<NetRequest> request)
 {
   if (request)
-    request->statistics.enter_t1=Time::now();
+    request->statistics.enter_t1 = Time::now();
 
   ApplicationStats::num_net_jobs++;
 
   Promise<NetResponse> promise;
   {
-    ScopedLock lock(waiting_lock);
-    waiting.push_back(std::make_pair(request,promise));
+    ScopedLock lock(this->waiting_lock);
+    this->waiting.push_back(std::make_pair(request, promise));
   }
-  got_request.up();
+  this->got_request.up();
   return promise.get_future();
+}
+
+/////////////////////////////////////////////////////////////////////////////
+NetResponse NetService::getNetResponse(NetRequest request)
+{
+  return push(SharedPtr<NetService>(),request).get();
+}
+
+/////////////////////////////////////////////////////////////////////////////
+Future<NetResponse> NetService::push(SharedPtr<NetService> service, NetRequest request)
+{
+  if (service)
+  {
+    return service->handleAsync(std::make_shared<NetRequest>(request));
+  }
+  else
+  {
+    NetService service(1);
+    auto future = service.handleAsync(std::make_shared<NetRequest>(request));
+    NetResponse response = future.get();
+
+    if (!response.isSuccessful() && !request.aborted())
+      VisusWarning() << "request " << request.url.toString() << " failed (" << response.getErrorMessage() << ")";
+
+    return future;
+  }
+
 }
 
 /////////////////////////////////////////////////////////////////////////////
 void NetService::printStatistics(int connection_id,const NetRequest& request,const NetResponse& response)
 {
-  std::ostringstream out;
-  out << request.method;
-  out<<" connection("<<connection_id<<")";
+  Int64 download = response.body ? response.body->c_size() : 0;
+  Int64 upload = request.body ? request.body->c_size() : 0;
 
-  out << " wait(" << (request.statistics.wait_msec) << ") running(" << (request.statistics.run_msec) << ")";
-
-  if (request.method == "GET")
-  {
-    Int64 overall = response.body? response.body->c_size() :0;
-    double speed=overall/(request.statistics.run_msec/1000.0);
-    out << " download(" << StringUtils::getStringFromByteSize(overall) << " - " << (int)(speed / 1024) << "kb/sec)";
-  }
-  else if (request.method == "PUT")
-  {
-    Int64 overall = request.body? request.body->c_size() : 0;
-    double speed=overall/(request.statistics.run_msec/1000.0);
-    out << " updload(" << StringUtils::getStringFromByteSize(overall) << " - " << (int)(speed / 1024) << "kb/sec)";
-  }
-
-  out<<" status("<<response.getStatusDescription()<<")";
-  out<<" url("<<request.url.toString()<<")";
-
-  VisusInfo() << out.str();
+  VisusInfo()  
+    << request.method 
+    <<" connection("<<connection_id<<")"
+    << " wait(" << (request.statistics.wait_msec) << ")"
+    << " running(" << (request.statistics.run_msec) << ")"
+    << (download ? " download(" + StringUtils::getStringFromByteSize(download) + " - " + cstring((int)(download / (request.statistics.run_msec / 1000.0) / 1024)) + "kb/sec)" : "")
+    << (upload ?   " updload("  + StringUtils::getStringFromByteSize(upload  ) + " - " + cstring((int)(upload   / (request.statistics.run_msec / 1000.0) / 1024)) + "kb/sec)" : "")
+    << " status(" << response.getStatusDescription() << ")"
+    << " url(" << request.url.toString() << ")";
 }
 
 
@@ -451,6 +468,8 @@ void NetService::entryProc()
   bool bExitThread=false;
   while (true)
   {
+    std::ostringstream out;
+
     //finished?
     {
       ScopedLock lock(waiting_lock);
@@ -478,7 +497,6 @@ void NetService::entryProc()
         if (!request) 
         {
           ApplicationStats::num_net_jobs--;
-
           bExitThread=true;
           continue;
         }
@@ -492,10 +510,7 @@ void NetService::entryProc()
             auto response=NetResponse(HttpStatus::STATUS_SERVICE_UNAVAILABLE);
 
             request->statistics.run_msec=0;
-            if (verbose > 0)
-              printStatistics(-1,*request,response);
             promise.set_value(response);
-
             ApplicationStats::num_net_jobs--;
           }
           this->waiting_lock.lock();
@@ -548,6 +563,7 @@ void NetService::entryProc()
       waiting=still_waiting;
     }
 
+    //handle running
     if (!running.empty())
     {
       pimpl->runMore(running);
@@ -567,8 +583,10 @@ void NetService::entryProc()
           continue;
 
         connection->request.statistics.run_msec = (int)connection->request.statistics.run_t1.elapsedMsec();
-        if (verbose > 0)
+
+        if (verbose > 0 && !connection->request.aborted())
           printStatistics(connection->id, connection->request,connection->response);
+
         connection->promise.set_value(connection->response);
 
         connection->setNetRequest(NetRequest(), Promise<NetResponse>());
@@ -577,20 +595,9 @@ void NetService::entryProc()
         ApplicationStats::num_net_jobs--;
       }
     }
+
+    Thread::yield();
   }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-NetResponse NetService::getNetResponse(NetRequest request)
-{
-  auto netservice=std::make_shared<NetService>(1);
-
-  NetResponse response=netservice->asyncNetworkIO(request).get();
-
-  if (!response.isSuccessful() && !request.aborted())
-    VisusWarning()<<"request "<<request.url.toString()<<" failed ("<<response.getErrorMessage()<<")";
-
-  return response;
 }
 
 

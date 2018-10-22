@@ -14,11 +14,11 @@ CONVERT=build/win64/Debug/visus.exe
   
 (*) create the container on Amazon:
 
-$CONVERT create-container http://visus.s3.amazonaws.com/$DATASET_NAME?username=$AMAZON_USERNAME&password=$AMAZON_PASSWORD
+$CONVERT cloud-create-container http://visus.s3.amazonaws.com/$DATASET_NAME?username=$AMAZON_USERNAME&password=$AMAZON_PASSWORD
 
 (*) copy the visus.idx file from mod_visus to amazon
 
-$CONVERT copy-blob \
+$CONVERT cloud-copy-blob \
   "http://atlantis.sci.utah.edu/mod_visus?dataset=$DATASET_NAME&compression=zip&action=readdataset" \
   "http://visus.s3.amazonaws.com/$DATASET_NAME/visus.idx?username=$AMAZON_USERNAME&password=$AMAZON_PASSWORD"
 

@@ -12,11 +12,11 @@ CONVERT=build/win64/Debug/visus.exe
   
 (*) create the container on Azure:
 
-$CONVERT create-container http://visus.blob.core.windows.net/$DATASET_NAME?password=$AZURE_PASSWORD
+$CONVERT cloud-create-container http://visus.blob.core.windows.net/$DATASET_NAME?password=$AZURE_PASSWORD
 
 (*) copy the visus.idx file from mod_visus to azure
 
-$CONVERT copy-blob \
+$CONVERT cloud-copy-blob \
   "http://atlantis.sci.utah.edu/mod_visus?dataset=$DATASET_NAME&compression=zip&action=readdataset" \
   "http://visus.blob.core.windows.net/$DATASET_NAME/visus.idx?password=$AZURE_PASSWORD"
 

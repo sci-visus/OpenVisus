@@ -60,39 +60,40 @@ void GLCanvas::initializeGL() {
 }
 
 /////////////////////////////////////////////////////////////////////////////
-int GLCanvas::FlushGLErrors(bool bVerbose)
+static String getGLErrorMessage(const GLenum e)
+{
+  switch (e)
+  {
+  case GL_INVALID_ENUM:                   return "GL_INVALID_ENUM";
+  case GL_INVALID_VALUE:                  return "GL_INVALID_VALUE";
+  case GL_INVALID_OPERATION:              return "GL_INVALID_OPERATION";
+  case GL_OUT_OF_MEMORY:                  return "GL_OUT_OF_MEMORY";
+#ifdef GL_STACK_OVERFLOW
+  case GL_STACK_OVERFLOW:                 return "GL_STACK_OVERFLOW";
+#endif
+#ifdef GL_STACK_UNDERFLOW
+  case GL_STACK_UNDERFLOW:                return "GL_STACK_UNDERFLOW";
+#endif
+#ifdef GL_INVALID_FRAMEBUFFER_OPERATION
+  case GL_INVALID_FRAMEBUFFER_OPERATION:  return "GL_INVALID_FRAMEBUFFER_OPERATION";
+#endif
+  default: break;
+  }
+
+  return "Unknown error";
+};
+
+/////////////////////////////////////////////////////////////////////////////
+int GLCanvas::flushGLErrors(bool bVerbose)
 {
   int nerrors=0;
 
-  for (GLenum glerr=::glGetError();glerr!=GL_NO_ERROR;glerr=::glGetError())
+  for (GLenum glerr=glGetError();glerr!=GL_NO_ERROR;glerr=glGetError())
   {
     ++nerrors;
     
     if (bVerbose)
     {
-      auto getGLErrorMessage=[] (const GLenum e)
-      {
-        switch (e)
-        {
-          case GL_INVALID_ENUM:                   return "GL_INVALID_ENUM";
-          case GL_INVALID_VALUE:                  return "GL_INVALID_VALUE";
-          case GL_INVALID_OPERATION:              return "GL_INVALID_OPERATION";
-          case GL_OUT_OF_MEMORY:                  return "GL_OUT_OF_MEMORY";
-          #ifdef GL_STACK_OVERFLOW
-          case GL_STACK_OVERFLOW:                 return "GL_STACK_OVERFLOW";
-          #endif
-          #ifdef GL_STACK_UNDERFLOW
-          case GL_STACK_UNDERFLOW:                return "GL_STACK_UNDERFLOW";
-          #endif
-          #ifdef GL_INVALID_FRAMEBUFFER_OPERATION
-          case GL_INVALID_FRAMEBUFFER_OPERATION:  return "GL_INVALID_FRAMEBUFFER_OPERATION";
-          #endif
-          default: break;
-        }
-  
-        return "Unknown error";
-      };
-
       String error_str=getGLErrorMessage(glerr);
       VisusInfo()<<"glGetError returned "<<glerr<<" ("<<error_str<<")";
     }
@@ -461,20 +462,21 @@ void GLCanvas::popCullFace()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-void GLCanvas::setTexture(int slot,GLSampler* sampler,SharedPtr<GLTexture> texture) 
+void GLCanvas::setTextureInSlot(int slot,GLSampler& sampler,SharedPtr<GLTexture> texture) 
 {
   VisusAssert(slot>=0 && slot<8);
 
-  if (!sampler || !texture) 
+  if (!texture) 
     return;
 
-  int texture_id = texture->textureId();
+  int texture_id = texture->textureId(*this);
   if (!texture_id)
     return;
 
+  int target = texture->target();
+
   glActiveTexture(GL_TEXTURE0+slot);
 
-  int target = texture->target();
   glBindTexture  (target , texture_id);
   glTexParameteri(target , GL_TEXTURE_MAG_FILTER ,(QOpenGLTexture::Filter)texture->magfilter);
   glTexParameteri(target  ,GL_TEXTURE_MIN_FILTER ,(QOpenGLTexture::Filter)texture->minfilter);
@@ -487,12 +489,12 @@ void GLCanvas::setTexture(int slot,GLSampler* sampler,SharedPtr<GLTexture> textu
 
   glActiveTexture(GL_TEXTURE0);
 
-  setUniform(sampler->u_sampler,slot);
-  setUniform(sampler->u_sampler_dims ,Point3d((double)texture->dims.x,(double)texture->dims.y,(double)texture->dims.z));
-  setUniform(sampler->u_sampler_vs,texture->vs);
-  setUniform(sampler->u_sampler_vt,texture->vt);
-  setUniform(sampler->u_sampler_envmode,texture->envmode);
-  setUniform(sampler->u_sampler_ncomponents, texture->dtype.ncomponents());
+  setUniform(sampler.u_sampler,slot);
+  setUniform(sampler.u_sampler_dims ,Point3d((double)texture->dims.x,(double)texture->dims.y,(double)texture->dims.z));
+  setUniform(sampler.u_sampler_vs,texture->vs);
+  setUniform(sampler.u_sampler_vt,texture->vt);
+  setUniform(sampler.u_sampler_envmode,texture->envmode);
+  setUniform(sampler.u_sampler_ncomponents, texture->dtype.ncomponents());
 }
 
 /////////////////////////////////////////////////////////////////////////////

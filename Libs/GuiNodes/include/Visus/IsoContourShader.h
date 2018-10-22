@@ -103,15 +103,16 @@ public:
   {return Shaders::getSingleton()->get(config.getId(),config);}
 
   //setTexture
-  void setTexture(GLCanvas& gl,SharedPtr<GLTexture> value)
-  {gl.setTexture(0,u_sampler,value);}
+  void setTexture(GLCanvas& gl,SharedPtr<GLTexture> value) {
+    gl.setTexture(u_sampler,value);
+  }
   
-  //setPalette 
+  //setPaletteTexture 
   //(NOTE: the shader will use the 'g'/'[1]' component of field in case texture has ncomponents>=2. if it has only one that it will use 'r')
-  void setPalette(GLCanvas& gl,SharedPtr<GLTexture> value)
+  void setPaletteTexture(GLCanvas& gl,SharedPtr<GLTexture> value)
   {
     VisusAssert(config.palette_enabled);
-    gl.setTexture(1,u_palette_sampler,value);
+    gl.setTextureInSlot(1,u_palette_sampler,value);
   }
 
 private:

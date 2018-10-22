@@ -842,6 +842,9 @@ public:
   //decodeArray
   static Array decodeArray(String compression, NdPoint dims,DType dtype,SharedPtr<HeapMemory> encoded);
 
+  //decodeArray
+  static Array decodeArray(StringMap metadata, SharedPtr<HeapMemory> encoded);
+
 public:
 
    //deepCopy

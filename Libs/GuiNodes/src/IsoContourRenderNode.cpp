@@ -104,11 +104,11 @@ void IsoContourRenderNode::glRender(GLCanvas& gl)
   gl.setUniformMaterial(*shader,material);
   gl.setUniformLight(*shader,Point4d(pos,1.0));
 
-  //this is to compute normals on gpu
-  shader->setTexture(gl,isocontour->field.texture);
-
   if (palette_texture)
-    shader->setPalette(gl,palette_texture);
+    shader->setPaletteTexture(gl,palette_texture);
+
+  //this is to compute normals on gpu
+  shader->setTexture(gl, isocontour->field.texture);
 
   gl.glRenderMesh(*isocontour);
   gl.popModelview();

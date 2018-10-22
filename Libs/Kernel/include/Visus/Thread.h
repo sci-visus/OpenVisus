@@ -54,21 +54,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-//////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API ConcurrencyVisualizer
-{
-public:
-
-  VISUS_PIMPL_CLASS(ConcurrencyVisualizer)
-
-  //constructor
-  ConcurrencyVisualizer(String name);
-
-  //destructor
-  ~ConcurrencyVisualizer();
-
-};
-
 
   //////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API Thread 

@@ -45,113 +45,208 @@ For support : support@visus.net
 
 namespace Visus {
 
-////////////////////////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API File
+  ////////////////////////////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API AbstractFile
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(File)
+  VISUS_NON_COPYABLE_CLASS(AbstractFile)
 
   //constructor
-  File(){
+  AbstractFile(){
   }
 
   //destructor
-  ~File() {
-    close();
+  virtual ~AbstractFile() {
   }
 
   //isOpen
-  bool isOpen() const {
-    return handle != -1;
-  }
+  virtual bool isOpen() const = 0;
 
-  //getFilename
-  String getFilename() const {
-    return filename;
-  }
+  //open
+  virtual bool open(String filename, String mode, bool bMustCreate = false) = 0;
 
-  enum CreateMode
-  {
-    DoNotCreate,
-    TruncateIfExists=1,
-    MustCreate=2
-  };
+  //close
+  virtual void close() = 0;
 
-  bool open(String filename, String mode, CreateMode create_mode = DoNotCreate);
-
-  //openReadBinary ("rb")
-  bool openReadBinary(String filename) {
-    return open(filename, "r");
-  }
-
-  //openReadWriteBinary
-  bool openReadWriteBinary(String filename) {
-    return open(filename, "rw");
-  }
-
-  //createOrTruncateAndWriteBinary ("wb") == if the file does exists, truncate it to zero length, if the file does not exists, create it
-  bool createOrTruncateAndWriteBinary(String filename) {
-    return open(filename, "w", TruncateIfExists);
-  }
-
-  //createAndOpenReadWriteBinary (return false if already exists)
-  bool createAndOpenReadWriteBinary(String filename) {
-    return open(filename, "rw", MustCreate);
-  }
+  //size
+  virtual Int64 size() = 0;
 
   //canRead
-  bool canRead() const {
-    return can_read;
-  }
+  virtual bool canRead() const = 0;
 
   //canWrite
-  bool canWrite() const {
-    return can_write;
+  virtual bool canWrite() const = 0;
+
+  //getFilename
+  virtual String getFilename() const = 0;
+
+  //write  
+  virtual bool write(Int64 pos, Int64 count, const unsigned char* buffer) = 0;
+
+  //read (should be portable to 32 and 64 bit OS)
+  virtual bool read(Int64 pos, Int64 count, unsigned char* buffer) = 0;
+
+  //createAndOpen (return false if already exists)
+  bool createAndOpen(String filename, String mode) {
+    return open(filename, mode, true);
   }
 
   //getMode
   String getMode() const {
-    std::ostringstream out;
-    if (can_read ) out << "r";
-    if (can_write) out << "w";
-    return out.str();
+    auto can_read  = canRead();
+    auto can_write = canWrite();
+    return can_read && can_write ? "rw" : (can_read ? "r" : (can_write ? "w" : ""));
   }
+
+};
+
+
+/////////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API File : public AbstractFile
+{
+public:
+
+  //constructor
+  File() {
+  }
+
+  //destructor
+  virtual ~File() {
+    close();
+  }
+
+  //isOpen
+  virtual bool isOpen() const override {
+    return this->handle != -1;
+  }
+
+  //canRead
+  virtual bool canRead() const override {
+    return can_read;
+  }
+
+  //canWrite
+  virtual bool canWrite() const override {
+    return can_write;
+  }
+
+  //getFilename
+  virtual String getFilename() const override {
+    return this->filename;
+  }
+
+  //open
+  virtual bool open(String filename, String mode, bool bMustCreate = false) override;
 
   //close
-  void close();
+  virtual void close() override;
 
-  //tell
-  Int64 tell();
-
-  //seek
-  Int64 seek(Int64 offset, int origin = SEEK_SET);
+  //size
+  virtual Int64 size() override;
 
   //write 
-  bool write(const unsigned char* buffer, Int64 count);
+  virtual bool write(Int64 pos, Int64 tot, const unsigned char* buffer) override;
 
   //read (should be portable to 32 and 64 bit OS)
-  bool read(unsigned char* buffer, Int64 count);
+  virtual bool read(Int64 pos, Int64 tot, unsigned char* buffer) override;
 
-  //seekAndWrite
-  bool seekAndWrite(Int64 pos, Int64 count, unsigned char* buffer) {
-    return isOpen() && count >= 0 && (pos == -1 || seek(pos, SEEK_SET) != -1) && write(buffer, count);
+private:
+
+  String filename;
+  bool   can_read = false;
+  bool   can_write = false;
+
+  int    handle = -1;
+  Int64  cursor = -1;
+
+  //seek
+  bool seek(Int64 value);
+
+};
+
+
+////////////////////////////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API MemoryMappedFile : public AbstractFile
+{
+public:
+
+  //constructor
+  MemoryMappedFile() {
   }
 
-  //seekAndRead
-  bool seekAndRead(Int64 pos, Int64 count, unsigned char* buffer){
-    return isOpen() && count >= 0 && (pos == -1 || seek(pos, SEEK_SET) != -1) && read(buffer, count);
+  //destryctor
+  virtual ~MemoryMappedFile() {
+    close();
+  }
+
+  //isOpen
+  virtual bool isOpen() const override {
+    return mem != nullptr;
+  }
+
+  //canRead
+  virtual bool canRead() const override {
+    return can_read;
+  }
+
+  //canWrite
+  virtual bool canWrite() const override {
+    return can_write;
+  }
+
+  //getFilename
+  virtual String getFilename() const override {
+    return this->filename;
+  }
+
+  //open
+  virtual bool open(String path, String mode, bool bMustCreate = false) override;
+
+  //close
+  virtual void close() override;
+
+  //size
+  virtual Int64 size() override {
+    return nbytes;
+  }
+
+  //write  
+  virtual bool write(Int64 pos, Int64 tot, const unsigned char* buffer) override;
+
+  //read
+  virtual bool read(Int64 pos, Int64 tot, unsigned char* buffer) override;
+
+  //data
+  const char* data() const {
+    VisusAssert(isOpen());
+    return mem;
+  }
+
+  //c_ptr
+  char* c_ptr() const {
+    VisusAssert(isOpen() && !can_write);
+    return mem;
   }
 
 private:
 
-  int  handle=-1;
-  bool can_read=false;
-  bool can_write=false;
-  String filename;
+#if defined(_WIN32)
+  void*       file = nullptr;
+  void*       mapping = nullptr;
+#else
+  int         fd = -1;
+#endif
+
+  bool        can_read = false;
+  bool        can_write = false;
+  String      filename;
+  Int64       nbytes = 0;
+  char*       mem = nullptr;
 
 
 };
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API FileUtils
@@ -181,6 +276,9 @@ public:
   //special lock/unlock functions
   static void lock  (Path path);
   static void unlock(Path path);
+
+  //touch
+  static bool touch(Path path);
 
   //copyFile
   static bool copyFile(String src, String dst, bool bFailIfExist);

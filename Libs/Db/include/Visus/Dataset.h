@@ -291,25 +291,19 @@ public:
   virtual LogicBox getAddressRangeBox(BigInt start_address,BigInt end_address)=0;
 
   //readBlock  
-  virtual void readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> query);
+  virtual Future<Void> readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> query);
 
   //writeBlock  
-  virtual void writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query);
+  virtual Future<Void> writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query);
 
   //readBlockAndWait
-  bool readBlockAndWait(SharedPtr<Access> access, SharedPtr<BlockQuery> query)
-  {
-    readBlock(access, query);
-    query->future.get();
-    return query->getStatus() == QueryOk;
+  bool readBlockAndWait(SharedPtr<Access> access, SharedPtr<BlockQuery> query) {
+    readBlock(access, query).get(); return query->ok();
   }
 
   //writeBlockAndWait
-  bool writeBlockAndWait(SharedPtr<Access> access, SharedPtr<BlockQuery> query)
-  {
-    writeBlock(access, query);
-    query->future.get();
-    return query->getStatus() == QueryOk;
+  bool writeBlockAndWait(SharedPtr<Access> access, SharedPtr<BlockQuery> query) {
+    writeBlock(access, query).get(); return query->ok();
   }
 
   //convertBlockQueryToRowMajor
@@ -406,8 +400,9 @@ public:
   }
 
   //getRegisteredDatasetType
-  String getRegisteredDatasetType(String extension)
-  {return registered_dataset_types.getValue(extension);}
+  String getRegisteredDatasetType(String extension) {
+    return registered_dataset_types.getValue(extension);
+  }
 
 private:
 

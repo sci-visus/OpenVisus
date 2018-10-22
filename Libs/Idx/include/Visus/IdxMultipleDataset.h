@@ -58,10 +58,9 @@ public:
   public:
     String                name;
     Color                 color;
-    String                origin;
     Matrix                M; //transformation matrix up <- dw
-    String                filename_template;
     SharedPtr<IdxDataset> dataset;
+    String                mosaic_filename_template;
   };
 
   //bMosaic
@@ -90,9 +89,6 @@ public:
 
   //addChild
   void addChild(Child value);
-
-  //updateBody
-  void updateBody(bool bSave=true);
 
   //computeDefaultFields
   void computeDefaultFields();

@@ -75,6 +75,9 @@ public:
   // statistics
   Statistics statistics;
 
+  //bVerbose
+  bool bVerbose = false;
+
   //constructor 
   Access() {
   }
@@ -215,25 +218,25 @@ public:
   //readOk
   void readOk(SharedPtr<BlockQuery> query) {
     ++statistics.rok;
-    query->setStatus(QueryOk);
+    query->setOk();
   }
 
   //readFailed
   void readFailed(SharedPtr<BlockQuery> query) {
     ++statistics.rfail;
-    query->setStatus(QueryFailed);
+    query->setFailed();
   }
 
   //writeOk
   void writeOk(SharedPtr<BlockQuery> query) {
     ++statistics.wok;
-    query->setStatus(QueryOk);
+    query->setOk();
   }
 
   //writeFailed
   void writeFailed(SharedPtr<BlockQuery> query) {
     ++statistics.wfail;
-    query->setStatus(QueryFailed);
+    query->setFailed();
   }
 
 private:

@@ -144,14 +144,9 @@ public:
     if (query->aborted())
       return readFailed(query);
 
-    if (thread_pool) {
-      thread_pool->asyncRun([this, query](int worker) {
+    ThreadPool::push(thread_pool,[this, query]() {
         pimpl->generateBlock(query);
-      });
-    }
-    else {
-      pimpl->generateBlock(query);
-    }
+    });
   }
 
   //writeBlock

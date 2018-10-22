@@ -41,6 +41,7 @@ For support : support@visus.net
 #include <Visus/Log.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/Path.h>
+#include <Visus/File.h>
 
 #include <cctype>
 
@@ -102,63 +103,119 @@ bool PythonEngine::isGoodVariableName(String name)
 };
 
 ///////////////////////////////////////////////////////////////////////////
-static bool runningInsidePyMain() {
+static bool runningInsidePyMain() 
+{
+  //no one has already callset SetCommandLine
   const auto& args = ApplicationInfo::args;
   return args.empty() || args[0].empty() || args[0] == "__main__";
 }
+
+
+#if PY_MAJOR_VERSION <3
+  #define char2wchar(arg) ((char*)arg)
+#else
+
+  static wchar_t* char2wchar(const char* value) {
+  #if PY_MINOR_VERSION<=4
+    return _Py_char2wchar((char*)value, NULL);
+  #else
+    return Py_DecodeLocale((char*)value, NULL);
+  #endif
+}
+#endif
+
 
 
 ///////////////////////////////////////////////////////////////////////////
 void InitPython()
 {
   if (runningInsidePyMain())
-    return;
-
-    VisusInfo() << "Initializing python...";
-
-  Py_VerboseFlag = 0;
-  auto& args = ApplicationInfo::args;
-  std::vector<String> new_args;
-  for (int I = 0; I < args.size(); I++)
   {
-    if (args[I] == "-v") {
-      Py_VerboseFlag = 1;
-      continue;
-    }
-    if (args[I] == "-vv") {
-      Py_VerboseFlag = 2;
-      continue;
-    }
-    else if (args[I] == "-vvv") {
-      Py_VerboseFlag = 3;
-      continue;
-    }
-    new_args.push_back(args[I]);
+    VisusInfo() << "Visus is running (i.e. extending) python";
   }
-  args = new_args;
-
-  const char* arg0 = ApplicationInfo::args[0].c_str();
-
-#if PY_MAJOR_VERSION >= 3
-  #if PY_MINOR_VERSION<=4
-  #define Py_DecodeLocale _Py_char2wchar
-  #endif
-  Py_SetProgramName(Py_DecodeLocale(arg0, NULL));
+  else
+  {
+  	VisusInfo() << "Initializing embedded python...";
+  	
+	  Py_VerboseFlag = 0;
+	  auto& args = ApplicationInfo::args;
+	  std::vector<String> new_args;
+	  for (int I = 0; I < args.size(); I++)
+	  {
+	    if (StringUtils::startsWith(args[I],"-v")) {
+	      Py_VerboseFlag = (int)args[I].size()-1;
+	      continue;
+	    }
+	    new_args.push_back(args[I]);
+	  }
+	  args = new_args;  	
+  	
+	  const char* arg0 = ApplicationInfo::args[0].c_str();
+	  Py_SetProgramName(char2wchar(arg0));
+	}  	
+	
+	#if 0
+#if PY_MAJOR_VERSION <3
+  #define CheckForNull(value) ((value)? (value) : "<null>")
+	std::out
+		<<" Py_GetBuildInfo()="<<CheckForNull(Py_GetBuildInfo()) << std::endl
+		<<" Py_GetCompiler ()="<<CheckForNull(Py_GetCompiler ()) << std::endl
+		<<" Py_GetCopyright()="<<CheckForNull(Py_GetCopyright()) << std::endl
+		<<" Py_GetPlatform ()="<<CheckForNull(Py_GetPlatform ()) << std::endl
+		<<" Py_GetVersion  ()="<<CheckForNull(Py_GetVersion  ()) << std::endl;		
 #else
-  Py_SetProgramName((char*)arg0);
+  #define CheckForNull(value) ((value)? (value) : L"<null>")
+	std::wcout
+		<<L" Py_GetBuildInfo()="<<CheckForNull(Py_GetBuildInfo()) << std::endl
+		<<L" Py_GetCompiler ()="<<CheckForNull(Py_GetCompiler ()) << std::endl
+		<<L" Py_GetCopyright()="<<CheckForNull(Py_GetCopyright()) << std::endl
+		<<L" Py_GetPlatform ()="<<CheckForNull(Py_GetPlatform ()) << std::endl
+		<<L" Py_GetVersion  ()="<<CheckForNull(Py_GetVersion  ()) << std::endl;		
+#endif
 #endif
 
-  //skips initialization registration of signal handlers
-  Py_InitializeEx(0);
+		
+	 if (!runningInsidePyMain())
+	 {
+	  //IMPORTANT: if you want to avoid the usual sys.path initialization
+	  //you can copy the python shared library (example: python36.dll) and create a file with the same name and _pth extension
+	  //(example python36_d._pth). in that you specify the directories to include. you can also for example a python36.zip file
+	  //or maybe you can set PYTHON_HOME
+	
+	  //skips initialization registration of signal handlers
+	  Py_InitializeEx(0);
 
-  // acquire the gil
-  PyEval_InitThreads();
+	  // acquire the gil
+	  PyEval_InitThreads();
+	
+	  //NOTE if you try to have multiple interpreters (Py_NewInterpreter) I get deadlock
+	  //see https://issues.apache.org/jira/browse/MODPYTHON-217
+	  //see https://trac.xapian.org/ticket/185
+	  PythonEngine::mainThreadState = PyEval_SaveThread();
+	}
+	
+	#if 0
+#if PY_MAJOR_VERSION <3
+	std::out
+		<<" Py_GetPath           ()="<<CheckForNull(Py_GetPath           ()) << std::endl	
+		<<" Py_GetPrefix         ()="<<CheckForNull(Py_GetPrefix         ()) << std::endl	
+		<<" Py_GetExecPrefix     ()="<<CheckForNull(Py_GetExecPrefix     ()) << std::endl	
+		<<" Py_GetProgramFullPath()="<<CheckForNull(Py_GetProgramFullPath()) << std::endl	
+		<<" Py_GetPythonHome     ()="<<(CheckForNull(Py_GetPythonHome    ()) << std::endl	
+		<<" Py_GetProgramName    ()="<<CheckForNull(Py_GetProgramName    ()) << std::endl	;		
+#else
+	std::wcout
+		<<L" Py_GetPath           ()="<<CheckForNull(Py_GetPath           ()) << std::endl	
+		<<L" Py_GetPrefix         ()="<<CheckForNull(Py_GetPrefix         ()) << std::endl	
+		<<L" Py_GetExecPrefix     ()="<<CheckForNull(Py_GetExecPrefix     ()) << std::endl	
+		<<L" Py_GetProgramFullPath()="<<CheckForNull(Py_GetProgramFullPath()) << std::endl	
+		<<L" Py_GetPythonHome     ()="<<(CheckForNull(Py_GetPythonHome    ()) << std::endl	
+		<<L" Py_GetProgramName    ()="<<CheckForNull(Py_GetProgramName    ()) << std::endl	;		
+#endif
 
-  //NOTE if you try to have multiple interpreters (Py_NewInterpreter) I get deadlock
-  //see https://issues.apache.org/jira/browse/MODPYTHON-217
-  //see https://trac.xapian.org/ticket/185
-  PythonEngine::mainThreadState = PyEval_SaveThread();
+#endif
 
+	
   VisusInfo() << "Python initialization done";
 }
 
@@ -169,11 +226,11 @@ void ShutdownPython()
   if (runningInsidePyMain())
     return;
 
-  VisusInfo() << "Shutting down python...";
+  //VisusInfo() << "Shutting down python...";
   PyEval_RestoreThread(PythonEngine::mainThreadState);
   Py_Finalize();
 
-  VisusInfo() << "Python shutting down done";
+  //VisusInfo() << "Python shutting down done";
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -228,20 +285,48 @@ PythonEngine::PythonEngine(bool bVerbose)
   if (runningInsidePyMain())
   {
     if (bVerbose)
-      VisusInfo() << "Visus is running inside PyMain";
+      VisusInfo() << "Visus is extending Python";
   }
   else
   {
     if (bVerbose)
-      VisusInfo() << "Visus is NOT running inside PyMain";
+      VisusInfo() << "Visus is embedding Python";
 
-    //try to find visus.py in the same directory where the app is 
-    //example: <name>.app/Contents/MacOS/<name>
-    #if __APPLE__
-      addSysPath(KnownPaths::CurrentApplicationFile.getParent().getParent().getParent().getParent().toString(),bVerbose);
-    #else
-      addSysPath(KnownPaths::CurrentApplicationFile.getParent().toString(),bVerbose);
-    #endif
+    //try to find where visus VisusKernelPy.py files are
+    {
+      auto py_file = "VisusKernelPy.py";
+
+      VisusInfo() << "Trying to find " << py_file;
+
+      auto current_application_dir = KnownPaths::CurrentApplicationFile.getParent().toString();
+
+      std::vector<String> candidates;
+      candidates.push_back(current_application_dir + "/.");
+
+#if WIN32
+      //example ${CMAKE_INSTALL_PREFIX}/bin
+      candidates.push_back(current_application_dir + "/..");
+#endif
+
+#if APPLE
+      //example: <name>.app/Contents/MacOS/<name>
+      candidates.push_back(current_application_dir + "/../..");
+#endif
+
+      for (auto dir : candidates)
+      {
+        if (FileUtils::existsFile(dir + "/" + py_file))
+        {
+          VisusInfo() << "\t Found in directory " << dir;
+          addSysPath(dir, bVerbose);
+          break;
+        }
+        else
+        {
+          VisusInfo() << "\t Not found in directory " << dir;
+        }
+      }
+    }
   }
 
   #if defined(VISUS_PYTHON_SYS_PATH)

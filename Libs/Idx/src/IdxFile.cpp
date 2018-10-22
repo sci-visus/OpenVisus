@@ -152,8 +152,8 @@ void IdxFile::validate(Url url)
   }
 
   //bitsperblock
-  if (bitsperblock==0)
-    bitsperblock=std::min(bitmask.getMaxResolution(),16);
+  if (bitsperblock == 0)
+    bitsperblock = std::min(bitmask.getMaxResolution(), 16);
 
   if (bitsperblock<=0)
   {
@@ -168,11 +168,26 @@ void IdxFile::validate(Url url)
     this->bitsperblock=bitmask.getMaxResolution();
   }
 
-  //blocksperfile
+  //need to guess blocksperfile
   if (blocksperfile==0)
   {
+    //compute overall blockdim (ignoring the headers)
+    int overall_blockdim = 0;
+    for (auto field : this->fields)
+      overall_blockdim += (int)field.dtype.getByteSize((Int64)1 << bitsperblock);
+
+    //probably the file will be compressed and I will have a compression ratio at least of 50%, so the file size won't be larger than 16mb
+    const double likely_compression_ratio = 0.5;
+    const int mb = 1024 * 1024;
+    const int target_compressed_filesize = 16 * mb;
+    const int target_uncompressed_filesize = (int)(target_compressed_filesize  / likely_compression_ratio);
+
+    blocksperfile = target_uncompressed_filesize/ overall_blockdim;
+
     Int64 totblocks=((Int64)1)<<(bitmask.getMaxResolution()-bitsperblock);
-    blocksperfile=(int)std::min(totblocks,(Int64)256);
+
+    if (blocksperfile > totblocks)
+      blocksperfile = (int)totblocks;
   }
 
   if (blocksperfile<=0)
@@ -242,8 +257,8 @@ void IdxFile::validate(Url url)
     bool bRowMajor=field.default_layout.empty();
     if (!bRowMajor && Encoders::getSingleton()->getEncoder(field.default_compression)->isLossy())
     {
-      VisusWarning()<<"The field "<<field.name<<" has default_compression!=zip but !field.default_layout.empty()";
-      field.default_compression="zip";
+      VisusWarning()<<"The field "<<field.name<<" has a lossy default_compression with a non row-major layout, something is wrong";
+      field.default_compression= "lz4";
     }
   }
 
@@ -336,17 +351,20 @@ std::vector<Field> IdxFile::parseFields(String fields_content)
     //description
     field.description=parseRoundBracketArgument(sfield,"description");
 
-    //default_compression
+    //default_compression(algorithm)
     {
-      field.default_compression=parseRoundBracketArgument(sfield,"default_compression");
+      auto& compression = field.default_compression;
 
-      //backward compatible: compressed(...) | compressed
-      if (field.default_compression.empty())
+      compression =parseRoundBracketArgument(sfield,"default_compression");
+
+      if (compression.empty())
       {
-        field.default_compression=parseRoundBracketArgument(sfield,"compressed");
+        //compressed(algorithm)
+        compression =parseRoundBracketArgument(sfield,"compressed");
 
-        if (field.default_compression.empty() && StringUtils::contains(sfield,"compressed"))
-          field.default_compression="zip";
+        //compressed means lz4 (note: for old format this information won't be used since all the blocks are already written)
+        if (compression.empty() && StringUtils::contains(sfield,"compressed"))
+          compression = "lz4";
       }
     }
 
@@ -406,9 +424,13 @@ IdxFile IdxFile::openFromUrl(Url url)
     //special case for cloud storage, I need to sign the request
     if (url.isRemote() && !StringUtils::contains(url.toString(),"mod_visus"))
     {
-      UniquePtr<CloudStorage> cloud_storage(CloudStorage::createInstance(url)); VisusAssert(cloud_storage);
-      if (cloud_storage)
-        content=NetService::getNetResponse(cloud_storage->createGetBlobRequest(url)).getTextBody();
+      if (auto cloud_storage = CloudStorage::createInstance(url))
+      {
+        auto blob_name = url.getPath();
+        auto blob=cloud_storage->getBlob(SharedPtr<NetService>(), blob_name, Aborted()).get();
+        if (blob.valid())
+          content = String((char*)blob.body->c_ptr(), (size_t)blob.body->c_size());
+      }
     }
     else
     {
@@ -594,13 +616,13 @@ String IdxFile::toString() const
       out<<field.name<<" ";
       out<<field.dtype.toString()<<" ";
 
-      //compressed | compressed(...)  
+      //compression
       if (!field.default_compression.empty())
       {
-        if (field.default_compression=="zip")
-          out<<"compressed"<<" ";
+        if (version<6)
+          out<<"compressed"<<" "; //old format, compressed means zip
         else
-          out<<"compressed("<<field.default_compression<<")"<<" ";
+          out<<"default_compression("<<field.default_compression<<")"<<" ";
       }
 
       //format(...)

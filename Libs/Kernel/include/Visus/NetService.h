@@ -144,12 +144,10 @@ public:
     this->connect_timeout=value;
   }
 
-  //asyncNetworkIO
-  Future<NetResponse> asyncNetworkIO(NetRequest request) {
-    return asyncNetworkIO(std::make_shared<NetRequest>(request));
-  }
+  //push
+  static Future<NetResponse> push(SharedPtr<NetService> service, NetRequest request);
 
-    //getNetResponse (max 40 sec... if you have  a very long request set "0")
+  //getNetResponse
   static NetResponse getNetResponse(NetRequest request);
 
 
@@ -171,14 +169,14 @@ private:
 
   Pimpl*                       pimpl=nullptr;
 
-  //asyncNetworkIO
-  Future<NetResponse> asyncNetworkIO(SharedPtr<NetRequest> request);
-
   //entryProc
   void entryProc();
 
   //printStatistics
   void printStatistics(int connection_id,const NetRequest& request,const NetResponse& response);
+
+  //handleAsync
+  Future<NetResponse> handleAsync(SharedPtr<NetRequest> request);
 
 };
 

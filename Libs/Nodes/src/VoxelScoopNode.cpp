@@ -154,7 +154,7 @@ std::ostream& operator<<(std::ostream &out,const TNode &n)
 
 /////////////////////////////////////////////
 template<class vT,class eT>
-void genDot2(const Graph<vT,eT> &g, std::ostream &out=std::cout, typename Graph<vT,eT>::Vertex *highlight=nullptr)
+void genDot2(const Graph<vT,eT> &g, std::ostream &out, typename Graph<vT,eT>::Vertex *highlight=nullptr)
 {
   typedef typename Graph<vT,eT>::CVertIter citer_t;
   typedef typename Graph<vT,eT>::CEdgeIter eiter_t;
@@ -213,7 +213,7 @@ void genDot2(const Graph<vT,eT> &g, std::ostream &out=std::cout, typename Graph<
 /////////////////////////////////////////////
 // <ctc> this is ridiculous way to have more information in dot file for specific graph type. 
 template<class vT,class eT>
-void genDot3(const Graph<vT,eT> &g, std::ostream &out=std::cout, typename Graph<vT,eT>::Vertex *highlight=nullptr)
+void genDot3(const Graph<vT,eT> &g, std::ostream &out, typename Graph<vT,eT>::Vertex *highlight=nullptr)
 {
   typedef typename Graph<vT,eT>::CVertIter citer_t;
   typedef typename Graph<vT,eT>::CEdgeIter eiter_t;
@@ -901,7 +901,7 @@ public:
         {
           float len =k==-1?v.data.max_in_length:v.data.max_out_lengths[k];
           float diam=(float)v.data.s.radius*2;
-          #if _DEBUG
+          #if VISUS_DEBUG
           {
             if (max0==k||max1==k)
               VisusDebug()<<"\t "<<k<<": NOT trimming because branch is one of longest pair (len="<<len<<").";

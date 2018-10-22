@@ -37,21 +37,39 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/LegacyDataset.h>
-#include <Visus/NetworkAccess.h>
+#include <Visus/Access.h>
+#include <Visus/NetService.h>
 
 
 namespace Visus {
 
 //////////////////////////////////////////////////////////////
-class LegacyAccess : public NetworkAccess
+class LegacyAccess : public Access
 {
 public:
 
   LegacyDataset* dataset;
 
+  StringTree             config;
+  Url                    url;
+  SharedPtr<NetService>  netservice;
+
   //constructor
-  LegacyAccess(LegacyDataset* dataset_,StringTree config=StringTree()) 
-    : NetworkAccess("LegacyAccess", dataset_, config), dataset(dataset_) {
+  LegacyAccess(LegacyDataset* dataset_,StringTree config_=StringTree()) 
+    : dataset(dataset_),config(config_) 
+  {
+    this->name = "LegacyAccess";
+    this->can_read = StringUtils::find(config.readString("chmod", "rw"), "r") >= 0;
+    this->can_write = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
+    this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
+    this->url = config.readString("url",dataset->getUrl().toString()); VisusAssert(url.valid());
+
+    this->config.writeString("url", url.toString());
+
+    bool disable_async = config.readBool("disable_async", dataset->bServerMode);
+
+    if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
+      this->netservice = std::make_shared<NetService>(nconnections);
   }
 
   //destructor
@@ -83,56 +101,31 @@ public:
 
     request.aborted=query->aborted;
 
-    auto gotNetResponse=[this,query](NetResponse response)
-    {
-      NdPoint nsamples=NdPoint::one(2);
-      nsamples[0]=dataset->tile_nsamples.x;
-      nsamples[1]=dataset->tile_nsamples.y;
+    //note [...,query] keep the query in memory
+    NetService::push(netservice, request).when_ready([this, query](NetResponse response) {
 
-      response.setHeader("visus-compression"   , dataset->tile_compression);
-      response.setHeader("visus-nsamples"      , nsamples.toString());
-      response.setHeader("visus-dtype"         , query->field.dtype.toString());
-      response.setHeader("visus-layout"        , "");
+      NdPoint nsamples = NdPoint::one(2);
+      nsamples[0] = dataset->tile_nsamples.x;
+      nsamples[1] = dataset->tile_nsamples.y;
 
-      //I want the decoding happens in the 'client' side
-      query->setClientProcessing([this,response,query]() 
-      {
-        if (query->aborted() || !response.isSuccessful()) 
-        {
-          this->statistics.rfail++;
-          return QueryFailed;
-        }
+      response.setHeader("visus-compression", dataset->tile_compression);
+      response.setHeader("visus-nsamples", nsamples.toString());
+      response.setHeader("visus-dtype", query->field.dtype.toString());
+      response.setHeader("visus-layout", "");
 
-        auto decoded=response.getArrayBody();
-        if (!decoded)
-        {
-          this->statistics.rfail++;
-          return QueryFailed;
-        }
+      if (query->aborted() || !response.isSuccessful())
+        return readFailed(query);
 
-        VisusAssert(decoded.dims==query->nsamples);
-        VisusAssert(decoded.dtype==query->field.dtype);
-        query->buffer=decoded;
+      auto decoded = response.getArrayBody();
+      if (!decoded)
+        return readFailed(query);
 
-        this->statistics.rok++;
-        return QueryOk;
-      });
+      VisusAssert(decoded.dims == query->nsamples);
+      VisusAssert(decoded.dtype == query->field.dtype);
+      query->buffer = decoded;
 
-      //done but status not set yet
-      query->future.get_promise()->set_value(true);
-    };
-
-    if (bool bAsync=this->async.netservice?true:false)
-    {
-      auto future_response= this->async.netservice->asyncNetworkIO(request);
-      future_response.when_ready([future_response, query,gotNetResponse]() {
-        gotNetResponse(future_response.get());
-      });
-    }
-    else
-    {
-      gotNetResponse(NetService::getNetResponse(request));
-    }
+      return readOk(query);
+    });
   }
 
   //writeBlock
@@ -144,7 +137,7 @@ public:
 
   //printStatistics
   virtual void printStatistics() override {
-    VisusInfo() << name << " hostname(" << url.getHostname() << ") port(" << url.getPort() << ") compression(" << compression << ") url(" << url.toString() << ")";
+    VisusInfo() << name << " hostname(" << url.getHostname() << ") port(" << url.getPort() << ") url(" << url.toString() << ")";
     Access::printStatistics();
   }
 
@@ -261,7 +254,7 @@ bool LegacyDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query
   int end_resolution=query->getEndResolution();
   VisusAssert(end_resolution % 2==0);
 
-  WaitAsync< Future<bool>, SharedPtr<BlockQuery> > async;
+  WaitAsync< Future<Void> > wait_async;
 
   NdBox box=this->getBox();
 
@@ -272,18 +265,17 @@ bool LegacyDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query
   {
     for (auto block_query : block_queries)
     {
-      async.pushRunning(block_query->future, block_query);
-      readBlock(access, block_query);
+      wait_async.pushRunning(readBlock(access,block_query)).when_ready([this,query, block_query](Void) {
+
+        if (!query->aborted() && block_query->ok())
+          mergeQueryWithBlock(query, block_query);
+
+      });
     }
   }
   access->endRead();
 
-  for (int I=0,N=async.size();I<N;I++)
-  {
-    auto blockquery=async.popReady().second; VisusAssert(blockquery);
-    if (!query->aborted() && blockquery->getStatus()==QueryOk)
-      mergeQueryWithBlock(query,blockquery);
-  }
+  wait_async.waitAllDone();
 
   query->currentLevelReady();
   return true;
