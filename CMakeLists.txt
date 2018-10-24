@@ -27,7 +27,10 @@ include(FindPackageHandleStandardArgs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake)
 
 # shared/static linking
-option(BUILD_SHARED_LIBS "Build the shared library" TRUE)  
+option(BUILD_SHARED_LIBS "Build the shared library" TRUE)
+
+# clone and build XIDX lib option
+option(BUILD_XIDX "Import and Build the XIDX metadata library" TRUE)
 
 if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 	set(VISUS_IS_SUBMODULE 0)
@@ -267,6 +270,43 @@ message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
 # numpy 
 find_package(NumPy REQUIRED)
 
+# ______________________________________________
+# *** xidx ***
+
+if(BUILD_XIDX)
+	set(XIDX_SRC_FOLDER ${CMAKE_SOURCE_DIR}/ExternalLibs/xidx)
+	set(XIDX_BUILD_FOLDER ${CMAKE_BINARY_DIR}/xidx)
+
+	# Dependencies
+	find_package(LibXml2 REQUIRED)
+	if(LIBXML2_FOUND)
+		include_directories(${LIBXML2_INCLUDE_DIR})
+	endif()
+
+	include(ExternalProject)
+	ExternalProject_Add(xidx
+			GIT_REPOSITORY    https://github.com/sci-visus/xidx.git
+			GIT_TAG           master
+			SOURCE_DIR        "${XIDX_SRC_FOLDER}"
+			BINARY_DIR        "${XIDX_BUILD_FOLDER}"
+			CMAKE_ARGS		  "-DBUILD_PYTHON_WRAPPER=OFF"
+			MAKE_COMMAND      "make xidx"
+			INSTALL_COMMAND   ""
+			)
+
+	include_directories("${XIDX_SRC_FOLDER}/include/")
+	include_directories("${XIDX_SRC_FOLDER}/include/xidx")
+
+	find_package(PythonLibs REQUIRED)
+	AddSwigLibrary(xidx ${XIDX_SRC_FOLDER}/include/xidx/xidx.i
+			"-I${XIDX_SRC_FOLDER}/include/"
+			"-I${XIDX_SRC_FOLDER}/include/xidx"
+			"-I${XIDX_SRC_FOLDER}/include/xidx/elements"
+			"-I${LIBXML2_INCLUDE_DIR}")
+
+	target_link_libraries(_xidx PUBLIC ${PYTHON_LIBRARIES} ${LIBXML2_LIBRARIES})
+
+endif()
 
 # //////////////////////////////////////////////////////////////
 # CMAKE_INSTALL_PREFIX
