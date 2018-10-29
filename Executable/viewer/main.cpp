@@ -43,6 +43,7 @@ For support : support@visus.net
 #include <Visus/ArrayStatisticsView.h>
 #include <Visus/FieldNode.h>
 #include <Visus/GLCameraNode.h>
+#include <Visus/PythonEngine.h>
 
 #include <QApplication>
 #include <QDesktopWidget>
@@ -124,6 +125,16 @@ static void TestMasterMiddleAndSlave(Viewer* master)
 int main(int argn,const char* argv[])
 {
   using namespace Visus;
+
+  //python main
+  if (argn >= 2 && (String(argv[1]) == "--python" || String(argv[1]) == "-python"))
+  {
+    std::vector<String> args;
+    for (int I = 0; I < argn; I++)
+      if (I != 1) args.push_back(argv[I]);
+
+    return PythonEngine::main(args);
+  }
 
   SetCommandLine(argn, argv);
   GuiModule::createApplication();

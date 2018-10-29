@@ -41,101 +41,93 @@ endmacro()
 # //////////////////////////////////////////////////////////////////////////
 macro(SetupCommonCMake)
 
-	set(CMAKE_CXX_STANDARD 11)
+	if (NOT __SETUP_COMMON_CMAKE__)
 	
-	# qt-related
-	if(POLICY CMP0020)
-	  cmake_policy(SET CMP0020 NEW)
-	endif()
-
-	# qt-related
-	if (POLICY CMP0071)
-	  cmake_policy(SET CMP0071 OLD)
-	endif()
-
-	if (POLICY CMP0022)
-	  cmake_policy(SET CMP0022  NEW) 
-	endif()	
+		set(__SETUP_COMMON_CMAKE__ 1)
 	
-	# enable parallel building
-	set(CMAKE_NUM_PROCS 8)  
-	if (WIN32)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
-	endif()
+		set(CMAKE_CXX_STANDARD 11)
 
-	# use folders to organize projects                           
-	set_property(GLOBAL PROPERTY USE_FOLDERS ON)    
-
-	# save libraries and binaries in the same directory        
-	set(EXECUTABLE_OUTPUT_PATH              ${CMAKE_BINARY_DIR})           
-	set(LIBRARY_OUTPUT_PATH                 ${CMAKE_BINARY_DIR})	
-	set(CMAKE_COMPILE_PDB_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
-	
-	# multi-config generator
-	if (CMAKE_CONFIGURATION_TYPES)
-		
-		message(STATUS "Cmake is using multi-config generator (${CMAKE_CONFIGURATION_TYPES})")
-		
-		add_compile_options("$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
-		
-	else()
-
-		message(STATUS "Cmake is using single-config generator")
-		
-		if(NOT CMAKE_BUILD_TYPE)
-		  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo" FORCE)
+		# enable parallel building
+		set(CMAKE_NUM_PROCS 8)  
+		if (WIN32)
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 		endif()
-		 
-		if (NOT CMAKE_BUILD_TYPE MATCHES "^(Debug|Release|RelWithDebInfo)$")
-			message(FATAL_ERROR "Invalid value for CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
-		endif()
+
+		# use folders to organize projects                           
+		set_property(GLOBAL PROPERTY USE_FOLDERS ON)    
+
+		# save libraries and binaries in the same directory        
+		set(EXECUTABLE_OUTPUT_PATH              ${CMAKE_BINARY_DIR})           
+		set(LIBRARY_OUTPUT_PATH                 ${CMAKE_BINARY_DIR})	
+		set(CMAKE_COMPILE_PDB_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
 		
-		if (CMAKE_BUILD_TYPE EQUAL "Debug")
+		# multi-config generator
+		if (CMAKE_CONFIGURATION_TYPES)
+			
+			message(STATUS "Cmake is using multi-config generator (${CMAKE_CONFIGURATION_TYPES})")
+			
 			add_compile_options("$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
-		endif()
-		
-	endif()	
-	
-	if (WIN32)
-
-		# see http://msdn.microsoft.com/en-us/library/windows/desktop/ms683219(v=vs.85).aspx
-		add_definitions(-DPSAPI_VERSION=1)
-
-		# increse number of file descriptors
-		add_definitions(-DFD_SETSIZE=4096)
-
-		add_definitions(-D_CRT_SECURE_NO_WARNINGS )
-
-		add_definitions(-DWIN32_LEAN_AND_MEAN)
-		
-		if (CMAKE_TOOLCHAIN_FILE)
-			set(VCPKG 1)
+			
 		else()
-			set(VCPKG 0)
-		endif()		
 
-	elseif (APPLE)
+			message(STATUS "Cmake is using single-config generator")
+			
+			if(NOT CMAKE_BUILD_TYPE)
+			  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo" FORCE)
+			endif()
+			 
+			if (NOT CMAKE_BUILD_TYPE MATCHES "^(Debug|Release|RelWithDebInfo)$")
+				message(FATAL_ERROR "Invalid value for CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
+			endif()
+			
+			if (CMAKE_BUILD_TYPE EQUAL "Debug")
+				add_compile_options("$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
+			endif()
+			
+		endif()	
+		
+		if (WIN32)
+
+			# see http://msdn.microsoft.com/en-us/library/windows/desktop/ms683219(v=vs.85).aspx
+			add_definitions(-DPSAPI_VERSION=1)
+
+			# increse number of file descriptors
+			add_definitions(-DFD_SETSIZE=4096)
+
+			add_definitions(-D_CRT_SECURE_NO_WARNINGS )
+
+			add_definitions(-DWIN32_LEAN_AND_MEAN)
+			
+			if (CMAKE_TOOLCHAIN_FILE)
+				set(VCPKG 1)
+			else()
+				set(VCPKG 0)
+			endif()		
+
+		elseif (APPLE)
+		
+			DetectOsxVersion()
+		
+			# disable rpath
+			set(CMAKE_MACOSX_RPATH  0)		
+
+			set(CMAKE_MACOSX_BUNDLE YES)
+
+			# suppress some warnings
+			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-reorder")
+
+		else ()
+		
+			# enable 64 bit file support (see http://learn-from-the-guru.blogspot.it/2008/02/large-file-support-in-linux-for-cc.html)
+			add_definitions(-D_FILE_OFFSET_BITS=64)
+
+			# -Wno-attributes to suppress spurious "type attributes ignored after type is already defined" messages 
+			# see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
+			set(CMAKE_C_FLAGS    "${CMAKE_C_FLAGS}   -fPIC -Wno-attributes")
+			set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fPIC -Wno-attributes")
+
+		endif()
 	
-		DetectOsxVersion()
-	
-		# disable rpath
-		set(CMAKE_MACOSX_RPATH  0)		
-
-		set(CMAKE_MACOSX_BUNDLE YES)
-
-		# suppress some warnings
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-reorder")
-
-	else ()
-	
-		# enable 64 bit file support (see http://learn-from-the-guru.blogspot.it/2008/02/large-file-support-in-linux-for-cc.html)
-		add_definitions(-D_FILE_OFFSET_BITS=64)
-
-		# -Wno-attributes to suppress spurious "type attributes ignored after type is already defined" messages 
-		# see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
-		set(CMAKE_C_FLAGS    "${CMAKE_C_FLAGS}   -fPIC -Wno-attributes")
-		set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fPIC -Wno-attributes")
-
 	endif()
 	
 endmacro()
@@ -246,37 +238,25 @@ endmacro()
 
 
 # ///////////////////////////////////////////////////
-macro(SetupSwig)
+macro(AddSwigLibrary NamePy SwigFile)
 
   find_package(SWIG REQUIRED)
   include(${SWIG_USE_FILE})
   set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
   set(CMAKE_SWIG_FLAGS "")
   
-  set(SWIG_FLAGS "")
+  set(SWIG_FLAGS "${ARGN}")
   set(SWIG_FLAGS "${SWIG_FLAGS};-threads")
   set(SWIG_FLAGS "${SWIG_FLAGS};-extranative")
-  
-  if (NUMPY_FOUND)
-  	set(SWIG_FLAGS "${SWIG_FLAGS};-DNUMPY_FOUND")
-  endif()
   
 	# huge file are generated by swig
 	if (WIN32)
 		SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
 	endif()
-  
-endmacro()
-
-
-# ///////////////////////////////////////////////////
-macro(AddSwigLibrary Name SwigFile)
-
-	set(NamePy ${Name}Py)
 
 	#prevents rebuild every time make is called
 	set_property(SOURCE ${SwigFile} PROPERTY SWIG_MODULE_NAME ${NamePy})
-
+	
 	set_source_files_properties(${SwigFile} PROPERTIES CPLUSPLUS ON)
 	set_source_files_properties(${SwigFile} PROPERTIES SWIG_FLAGS  "${SWIG_FLAGS}")
 
@@ -288,8 +268,10 @@ macro(AddSwigLibrary Name SwigFile)
 
 	if (TARGET _${NamePy})
 	  set(_target_name_ _${NamePy})
+	  
 	elseif (TARGET ${NamePy})
 	  set(_target_name_ ${NamePy})
+	
 	else()
 	  message("FATAL ERROR, cannot find target py name")
 	endif()
@@ -307,18 +289,15 @@ macro(AddSwigLibrary Name SwigFile)
 		
 	endif()
 	
-	target_link_libraries(${_target_name_} PUBLIC ${Name})
-
 	InstallLibrary(${_target_name_})
+	
+	set_target_properties(${_target_name_} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
 
 	target_include_directories(${_target_name_} PUBLIC ${PYTHON_INCLUDE_DIRS})
 	
-	if (NUMPY_FOUND)
-		target_include_directories(${_target_name_} PRIVATE ${NUMPY_INCLUDE_DIR})
-		target_compile_definitions(${_target_name_} PRIVATE NUMPY_FOUND)
-   endif()
+	target_include_directories(${_target_name_} PRIVATE ${NUMPY_INCLUDE_DIR})
 
-	set_target_properties(${_target_name_} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
+	# set_target_properties(${_target_name_} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
 
 	# disable warnings
 	if (WIN32)
@@ -371,7 +350,7 @@ macro(AddExternalApp name SourceDir BinaryDir)
 	endif()
 
 	add_custom_target(${name} 
-		COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DQt5_DIR="${Qt5_DIR}"
+		COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DQt5_DIR="${Qt5_DIR}" -DOpenVisus_DIR=${CMAKE_INSTALL_PREFIX}
 		COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/" --config ${CMAKE_BUILD_TYPE})
 		
 	set_target_properties(${name} PROPERTIES FOLDER CMakeTargets/)
@@ -384,13 +363,27 @@ macro(AddCTest Name Command WorkingDirectory)
 
 	add_test(NAME ${Name} WORKING_DIRECTORY "${WorkingDirectory}" COMMAND "${Command}" ${ARGN})
 
-	if (WIN32)
-		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
-	elseif(APPLE)
-		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
+	set(options "CTEST_OUTPUT_ON_FAILURE=1")
+	
+	if (CMAKE_CONFIGURATION_TYPES)
+		list(APPEND __options__ "PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
 	else()
-		set_tests_properties(${Name} PROPERTIES ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1;PYTHONPATH=${CMAKE_BINARY_DIR};LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}")
+		list(APPEND __options__ "PYTHONPATH=${CMAKE_BINARY_DIR}")
 	endif()
+
+	if (WIN32)
+	
+		if (VISUS_GUI)
+			list(APPEND __options__ "PATH=${Qt5_DIR}\\..\\..\\..\\bin")
+		endif()
+		
+	elseif(APPLE)
+
+	else()
+		list(APPEND __OPTIONS__ "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}")
+	endif()
+	
+	set_tests_properties(${Name} PROPERTIES ENVIRONMENT "${__options__}")
 
 endmacro()
 

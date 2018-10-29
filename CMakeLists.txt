@@ -1,10 +1,24 @@
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8) 
 
-include(CMake/VisusMacros.cmake)
-SetupCommonCMake()
+# qt-related
+if(POLICY CMP0020)
+  cmake_policy(SET CMP0020 NEW)
+endif()
+
+# qt-related
+if (POLICY CMP0071)
+  cmake_policy(SET CMP0071 OLD)
+endif()
+
+if (POLICY CMP0022)
+  cmake_policy(SET CMP0022  NEW) 
+endif()	
 
 PROJECT(ViSUS)
+
+include(CMake/VisusMacros.cmake)
+SetupCommonCMake()
 
 FindOpenMP()
 
@@ -17,22 +31,11 @@ option(BUILD_SHARED_LIBS "Build the shared library" TRUE)
 
 if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 	set(VISUS_IS_SUBMODULE 0)
-	set(CMAKE_FOLDER_PREFIX "")
 else()
 	set(VISUS_IS_SUBMODULE 1)
-	SET(CMAKE_FOLDER_PREFIX OpenVisus/)
+	set(CMAKE_FOLDER_PREFIX "")
 endif()
 
-# enable/disable install
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-	set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
-else()
-  string(REPLACE "\\" "/" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
-  set(CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}" CACHE PATH "" FORCE)
-endif()
-
-
-MESSAGE(STATUS "CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}")
 
 # enable/disable gui-stuff (i.e. Qt dependent)
 option(VISUS_GUI "Enable gui" TRUE)  
@@ -227,31 +230,27 @@ endif()
 # example: git submodule update --init win32/python36
 if (WIN32)
 
-	 IF (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36/CMakeLists.txt)
-		SetIfNotDefined(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36)
-
-	elseif (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37/CMakeLists.txt)
+	if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37/CMakeLists.txt)
 		SetIfNotDefined(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37)
 		
+	 elseif (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36/CMakeLists.txt)
+		SetIfNotDefined(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36)
+
 	endif()
 	
 endif()
 
 
 if (VISUS_INTERNAL_PYTHON)
-
 	string(REPLACE "\\" "/" VISUS_INTERNAL_PYTHON "${VISUS_INTERNAL_PYTHON}")
 	MESSAGE(STATUS "Using internal python: ${VISUS_INTERNAL_PYTHON}")
-	
 	add_subdirectory(${VISUS_INTERNAL_PYTHON})
-	find_package(NumPy REQUIRED)
 else()
 
 	SetIfNotDefined(PYTHON_VERSION 3)
 
 	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
-	find_package(NumPy QUIET) 
 	
 	MESSAGE(STATUS "Using external python")
 	message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
@@ -259,6 +258,27 @@ else()
 	message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
 	
 endif()
+
+# PYTHON_SITE_PACKAGES_DIR
+EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE}  -c  "import site;print(site.getsitepackages()[-1])"  OUTPUT_VARIABLE PYTHON_SITE_PACKAGES_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
+
+# numpy 
+find_package(NumPy REQUIRED)
+
+
+# //////////////////////////////////////////////////////////////
+# CMAKE_INSTALL_PREFIX
+
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+	set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
+endif()
+
+if (WIN32)
+	string(REPLACE "\\" "/" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+endif()
+
+MESSAGE(STATUS "CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}")
 
 
 add_subdirectory(InternalLibs)
@@ -323,6 +343,7 @@ if (True)
 		set (__filename__ "${CMAKE_BINARY_DIR}/visus.bat")
 		file(WRITE    "${__filename__}" "cd /d %~dp0\r\n")
 		file(APPEND   "${__filename__}" "if EXIST %cd%\\win32\\Python (set PYTHON_DIR=%cd%\\win32\\Python) else (set PYTHON_DIR=%cd%\\..\\..\\..\\) \r\n")
+		file(APPEND   "${__filename__}" "set PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
 		file(APPEND   "${__filename__}" "%PYTHON_DIR%\\python.exe -m pip install --user --upgrade numpy\r\n")
 		file(APPEND   "${__filename__}" "set PATH=%PYTHON_DIR%;%cd%\\bin;%PATH%\r\n")
 		file(APPEND   "${__filename__}" "bin\\\\visus.exe %*\r\n")
@@ -334,8 +355,9 @@ if (True)
 		file(WRITE    "${__filename__}" "#!/bin/bash\n")
 		file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
 		file(APPEND   "${__filename__}" "cd \${this_dir}\n")
+		file(APPEND   "${__filename__}" "export PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
 		file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
-		file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$PYTHONPATH\n")
+		file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$(python\$PYTHON_VERSION -c \"import sys; print(':'.join(sys.path))\")\n")
 		file(APPEND   "${__filename__}" "./bin/visus.app/Contents/MacOS/visus\n")
 		install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)
 	
@@ -345,6 +367,7 @@ if (True)
 		file(WRITE    "${__filename__}" "#!/bin/bash\n")
 		file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
 		file(APPEND   "${__filename__}" "cd \${this_dir}\n")
+		file(APPEND   "${__filename__}" "export PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
 		file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
 		file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$PYTHONPATH\n")
 		file(APPEND   "${__filename__}" "./bin/visus\n")
@@ -385,20 +408,25 @@ if (True)
 		else()
 			MESSAGE(ERROR "Cannot find qt plugins")
 		endif()
+
+		macro(InstallQtPlugin name)
+			if (EXISTS "${qt5_PLUGIN_DIR}/${name}")
+				Install(DIRECTORY "${qt5_PLUGIN_DIR}/${name}" DESTINATION bin/plugins)
+			endif()
+		endmacro()
 		
-		if (NOT WIN32)
-			install(DIRECTORY "${qt5_PLUGIN_DIR}/iconengines"   DESTINATION bin/plugins)
-			install(DIRECTORY "${qt5_PLUGIN_DIR}/imageformats"  DESTINATION bin/plugins)
-			install(DIRECTORY "${qt5_PLUGIN_DIR}/platforms"     DESTINATION bin/plugins)
-			install(DIRECTORY "${qt5_PLUGIN_DIR}/printsupport"  DESTINATION bin/plugins)
-			install(DIRECTORY "${qt5_PLUGIN_DIR}/styles"        DESTINATION bin/plugins)
-		endif()
-		
+		InstallQtPlugin(iconengines)
+		InstallQtPlugin(imageformats)
+		InstallQtPlugin(platforms)
+		InstallQtPlugin(printsupport)
+		InstallQtPlugin(styles)
+
 		if (WIN32)
 				
 			set(__filename__ "${CMAKE_BINARY_DIR}/visusviewer.bat")
 			file(WRITE    "${__filename__}" "cd /d %~dp0\r\n")
 			file(APPEND   "${__filename__}" "if EXIST %cd%\\win32\\Python (set PYTHON_DIR=%cd%\\win32\\Python) else (set PYTHON_DIR=%cd%\\..\\..\\..\\) \r\n")
+			file(APPEND   "${__filename__}" "set PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
 			file(APPEND   "${__filename__}" "%PYTHON_DIR%\\python.exe -m pip install --user --upgrade numpy PyQt5\r\n")
 			file(APPEND   "${__filename__}" "set PATH=%PYTHON_DIR%;%cd%\\bin;%PATH%\r\n")
 			file(APPEND   "${__filename__}" "FOR /F \"tokens=* USEBACKQ\" %%F IN (`%PYTHON_DIR%\\python.exe -c \"import os,PyQt5; print(os.path.dirname(PyQt5.__file__))\"`) DO (SET PyQt5_DIR=%%F)\r\n")
@@ -413,9 +441,10 @@ if (True)
 			file(WRITE    "${__filename__}" "#!/bin/bash\n")
 			file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
 			file(APPEND   "${__filename__}" "cd \${this_dir}\n")
+			file(APPEND   "${__filename__}" "export PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
 			file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
 			file(APPEND   "${__filename__}" "export QT_PLUGIN_PATH=\${this_dir}/bin/plugins\n")
-			file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$PYTHONPATH\n")
+			file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$(python\$PYTHON_VERSION -c \"import sys; print(':'.join(sys.path))\")\n")
 			file(APPEND   "${__filename__}" "./bin/visusviewer.app/Contents/MacOS/visusviewer\n")
 			install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)	
 			
@@ -430,6 +459,7 @@ if (True)
 			file(WRITE    "${__filename__}" "#!/bin/bash\n")
 			file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
 			file(APPEND   "${__filename__}" "cd \${this_dir}\n")
+			file(APPEND   "${__filename__}" "export PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
 			file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
 			file(APPEND   "${__filename__}" "export QT_PLUGIN_PATH=\${this_dir}/bin/plugins\n")
 			file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$PYTHONPATH\n")
@@ -442,6 +472,8 @@ if (True)
 
 	
 endif()
+
+
 
 # /////////////////////////////////////////////////////////////////////
 # note: alternative would be to use cmake FIXUP_BUNDLE... but it seems broken on Linux

@@ -44,7 +44,6 @@ For support : support@visus.net
 #include <Visus/Position.h>
 #include <Visus/HeapMemory.h>
 #include <Visus/Url.h>
-#include <Visus/Exception.h>
 #include <Visus/Color.h>
 
 #include <set>

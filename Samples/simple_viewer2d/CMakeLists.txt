@@ -4,7 +4,7 @@ project(simple_viewer2d)
 
 set(CMAKE_CXX_STANDARD 11)
 
-find_package(Visus REQUIRED)
+find_package(OpenVisus REQUIRED)
 
 file(GLOB Sources *.h *.cpp)
 
@@ -14,7 +14,5 @@ endif()
 
 add_executable(external_simple_viewer2d ${EXECUTABLE_TYPE} ${Sources})
 
-find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL  REQUIRED)
+target_link_libraries(external_simple_viewer2d PRIVATE OpenVisus::Kernel OpenVisus::Idx OpenVisus::Db OpenVisus::Gui OpenVisus::GuiNodes OpenVisus::AppKit)
 
-target_link_libraries(external_simple_viewer2d VisusKernel VisusIdx VisusDb VisusGui VisusGuiNodes VisusAppKit)
- 

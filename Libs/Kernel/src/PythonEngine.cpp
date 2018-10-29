@@ -62,14 +62,19 @@ static std::set<String> ReservedWords =
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::ScopedAcquireGil() 
 {
-  state = PyGILState_Ensure();
+  state = new PyGILState_STATE();
+  *state = PyGILState_Ensure();
 }
 
 
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::~ScopedAcquireGil()
 {
-  PyGILState_Release(state);
+  if (state)
+  {
+    PyGILState_Release(*state);
+    delete state;
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -292,9 +297,9 @@ PythonEngine::PythonEngine(bool bVerbose)
     if (bVerbose)
       VisusInfo() << "Visus is embedding Python";
 
-    //try to find where visus VisusKernelPy.py files are
+    //try to find where visus OpenVisus.py files are
     {
-      auto py_file = "VisusKernelPy.py";
+      auto py_file = "OpenVisus.py";
 
       VisusInfo() << "Trying to find " << py_file;
 
@@ -366,6 +371,39 @@ PythonEngine::~PythonEngine()
   // Delete the module from sys.modules
   PyObject* modules = PyImport_GetModuleDict();
   PyDict_DelItemString(modules, module_name.c_str());
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+int PythonEngine::main(std::vector<String> args)
+{
+#if WIN32 && PY_MAJOR_VERSION>=3
+  typedef wchar_t* ArgType;
+  #define PyNewArg(arg) Py_DecodeLocale(arg.c_str(),nullptr)
+  #define PyFreeArg(arg) PyMem_RawFree(arg)
+#else
+  typedef char* ArgType;
+  #define PyNewArg(arg) (arg.c_ptr())
+  #define PyFreeArg(arg)
+#endif
+
+  static int     py_argn = 0;
+  static ArgType py_argv[1024];
+  for (auto arg : args)
+    py_argv[py_argn++] = PyNewArg(arg);
+
+  Py_SetProgramName(py_argv[0]);
+  //Py_Initialize();
+  int ret = Py_Main(py_argn, py_argv);
+  Py_Finalize();
+
+  for (int I = 0; I < py_argn; I++)
+    PyFreeArg(py_argv[I]);
+
+  #undef NewPyArg
+  #undef FreePyArg
+
+  return ret;
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -555,13 +593,53 @@ String PythonEngine::convertToString(PyObject* value)
 ///////////////////////////////////////////////////////////////////////////
 String PythonEngine::getLastErrorMessage()
 {
-  PyObject *type = nullptr, *value = nullptr, *traceback = nullptr;
+  //see http://www.solutionscan.org/154789-python
+#if 1
+  auto err = PyErr_Occurred();
+  if (!err)
+    return "";
+
+  PyObject *type, *value, *traceback;
   PyErr_Fetch(&type, &value, &traceback);
-  PyErr_Clear();
 
   std::ostringstream out;
-  out<<"Python error: "<< convertToString(type)<<" "<<convertToString(value);
+
+  out << "Python error: " 
+    << convertToString(type) << " "
+    << convertToString(value) << " ";
+
+  auto module_name = PyString_FromString("traceback");
+  auto module = PyImport_Import(module_name);
+  Py_DECREF(module_name);
+
+  auto fn = module? PyObject_GetAttrString(module, "format_exception") : nullptr;
+  if (fn && PyCallable_Check(fn))
+  {
+    if (auto descr = PyObject_CallFunctionObjArgs(fn, type, value, traceback, NULL))
+    {
+      out << convertToString(descr);
+      Py_DECREF(descr);
+    }
+  }
+
+  auto ret = out.str();
+  return ret;
+
+#else
+  PyObject *type = nullptr, *value = nullptr, *traceback = nullptr;
+  PyErr_Fetch(&type, &value, &traceback);
+  PyErr_NormalizeException(&type, &value, &traceback);
+
+  PyErr_Clear();
+
+  auto stype = convertToString(type);
+  auto svalue = convertToString(value);
+  auto straceback = convertToString(traceback);
+
+  std::ostringstream out;
+  out<<"Python error: "<< stype <<" "<< svalue  << " "<< straceback;
   return out.str();
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////

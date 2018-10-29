@@ -41,8 +41,6 @@ For support : support@visus.net
 #include <Visus/GLInfo.h>
 #include <Visus/Gui.h>
 
-#include <Visus/Exception.h>
-
 #include <QTextStream>
 
 namespace Visus {

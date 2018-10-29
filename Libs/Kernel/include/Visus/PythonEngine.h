@@ -49,31 +49,34 @@ For support : support@visus.net
 #pragma warning (disable:4996)
 #endif
 
-#pragma push_macro("slots")
-#undef slots
-
-#ifndef SWIG_FILE_WITH_INIT
-
-  #if defined(_DEBUG) && defined(SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-  //for windows using Release anyway (otherwise most site-packages, as numpy, don't work)
-  # undef _DEBUG
-  # include <Python.h>
-  # define _DEBUG
-  #else
-  # include <Python.h>
-  #endif
-
-  #include <Visus/swigpyrun.h>
-#endif
-
-#pragma pop_macro("slots")
-
 #include <functional>
 
 #ifdef WIN32
 #pragma warning( pop )
 #endif
 
+//include Python
+#if 1
+  #pragma push_macro("slots")
+  #undef slots
+
+  #if defined(_DEBUG) && defined(SWIG_PYTHON_INTERPRETER_NO_DEBUG)
+    //for windows using Release anyway (otherwise most site-packages, as numpy, don't work)
+    # undef _DEBUG
+    # include <Python.h>
+    # define _DEBUG
+  #else
+   # include <Python.h>
+  #endif
+
+  //avoid multiple include
+  #ifndef SWIGRUNTIME
+    #include <Visus/swigpyrun.h>
+  #endif
+
+  #pragma pop_macro("slots")
+
+#endif
 
 namespace Visus {
 
@@ -96,6 +99,9 @@ public:
 
   //destructor
   virtual ~PythonEngine();
+
+  //main
+  static int main(std::vector<String> args);
 
   //redirectOutputTo
   void redirectOutputTo(std::function<void(String)> value);
@@ -255,7 +261,7 @@ public:
 
   VISUS_CLASS(ScopedAcquireGil)
 
-  PyGILState_STATE state;
+  PyGILState_STATE* state=nullptr;
 
   //constructor
   ScopedAcquireGil();

@@ -51,6 +51,7 @@ For support : support@visus.net
 #include <string>
 #include <sstream>
 #include <atomic>
+#include <exception>
 
 //__________________________________________________________
 #if WIN32
@@ -170,6 +171,11 @@ VISUS_KERNEL_API void PrintMessageToTerminal(const String& value);
 //VisusHasMessageLock
 VISUS_KERNEL_API bool VisusHasMessageLock();
 
+//ThrowExceptionEx
+VISUS_KERNEL_API void ThrowExceptionEx(String file,int line,String expr);
+
+#define ThrowException(expr) (ThrowExceptionEx(__FILE__,__LINE__,expr))
+
 //VisusAssert
 #if !defined(SWIG)
 #define VisusReleaseAssert(_Expression) \
@@ -182,6 +188,50 @@ VISUS_KERNEL_API bool VisusHasMessageLock();
   #endif
 #endif
 
+
+///////////////////////////////////////////////////////////////////
+#if !SWIG
+class VISUS_KERNEL_API FormatString
+{
+public:
+
+  //constructor
+  FormatString() {
+  }
+
+  //constructor
+  FormatString(const FormatString& other) {
+    out << other.str();
+  }
+
+  //operator=
+  FormatString& operator=(const FormatString& other) {
+    out.clear(); out << other.str(); return *this;
+  }
+
+  //String()
+  operator String() const {
+    return out.str();
+  }
+
+  //str
+  String str() const {
+    return out.str();
+  }
+
+  //operator<<
+  template <typename Type>
+  FormatString& operator<<(Type value) {
+    out << value; return *this;
+  }
+
+private:
+
+  std::ostringstream out;
+
+};
+
+#endif
 
 //__________________________________________________________
 namespace Private {

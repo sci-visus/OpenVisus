@@ -41,7 +41,6 @@ For support : support@visus.net
 
 #include <Visus/Kernel.h>
 #include <Visus/Model.h>
-#include <Visus/Exception.h>
 
 #include <string>
 #include <vector>

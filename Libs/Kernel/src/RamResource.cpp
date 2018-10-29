@@ -40,6 +40,7 @@ For support : support@visus.net
 #include <Visus/Utils.h>
 #include <Visus/Log.h>
 #include <Visus/VisusConfig.h>
+#include <Visus/StringUtils.h>
 
 #if WIN32
 #include <Windows.h>
