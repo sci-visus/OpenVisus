@@ -116,6 +116,7 @@ class TextIdx(unittest.TestCase):
       self.assertTrue(dataset.get().executeQuery(access,query))
       
       check=query.get().buffer.toNumPy()
+      
       for Y in range(16):
         for X in range(16):
           self.assertEqual(check[Y,X],sampleid)

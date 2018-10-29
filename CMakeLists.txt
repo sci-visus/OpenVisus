@@ -36,7 +36,6 @@ else()
 	set(CMAKE_FOLDER_PREFIX "")
 endif()
 
-
 # enable/disable gui-stuff (i.e. Qt dependent)
 option(VISUS_GUI "Enable gui" TRUE)  
 

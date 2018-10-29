@@ -51,6 +51,7 @@ For support : support@visus.net
 
 #include <functional>
 
+
 #ifdef WIN32
 #pragma warning( pop )
 #endif
