@@ -287,7 +287,7 @@ add_subdirectory(Executable)
 
 # //////////////////////////////////////////////////////////////
 # *** samples and external apps ***
-if (NOT VISUS_IS_SUBMODULE)
+if (1)
 
 	# samples
 	add_subdirectory(Samples)

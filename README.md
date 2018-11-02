@@ -72,13 +72,13 @@ You can install OpenVisus in python using Pip:
 in windows:
 
 ```
-python -m pip install --user --upgrade numpy OpenVisus
+python -m pip install --user numpy OpenVisus
 ```
 
 in osx,linux:
 
 ```
-python -m pip install  --user --upgrade numpy OpenVisus
+python -m pip install  --user numpy OpenVisus
 ```
 
 And test it using the following command. 
