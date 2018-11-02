@@ -78,7 +78,7 @@ bool Viewer::addNetRcv(int port)
   netrcv->bSend=false;
   netrcv->log.rdbuf()->pubsetbuf(0,0);
   netrcv->log.rdbuf()->pubsetbuf(0,0);
-  netrcv->log.open(KnownPaths::CurrentWorkingDirectory.getChild("netrcv.localhost."+cstring(port)+".txt"));
+  netrcv->log.open(KnownPaths::CurrentWorkingDirectory().getChild("netrcv.localhost."+cstring(port)+".txt"));
 
   netrcv->timer.start(100);
 
@@ -186,7 +186,7 @@ bool Viewer::addNetSnd(String url,Rectangle2d split_ortho,Rectangle2d screen_bou
   netsnd->bSend=true;
   netsnd->log.rdbuf()->pubsetbuf(0,0);
   netsnd->log.rdbuf()->pubsetbuf(0,0);
-  netsnd->log.open(KnownPaths::CurrentWorkingDirectory.getChild("netsnd."+Url(url).getHostname()+"."+cstring(Url(url).getPort())+".txt").toString().c_str());
+  netsnd->log.open(KnownPaths::CurrentWorkingDirectory().getChild("netsnd."+Url(url).getHostname()+"."+cstring(Url(url).getPort())+".txt").toString().c_str());
 
   netsnd->split_ortho=split_ortho;
   netsnd->fix_aspect_ratio=fix_aspect_ratio;

@@ -181,8 +181,8 @@ public:
 
     if (!isOpen())
     {
-      if (!bMustCreate && errno != ENOENT)
-        VisusWarning() << "Thread[" << Thread::getThreadId() << "] ERROR opening file " << GetOpenErrorExplanation();
+      if (!(bMustCreate && errno == EEXIST) && !(!bMustCreate && errno == ENOENT))
+        VisusWarning() << "Thread[" << Thread::getThreadId() << "] ERROR opening file "<<filename<<" " << GetOpenErrorExplanation();
 
       return false;
     }
