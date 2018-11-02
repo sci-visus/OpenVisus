@@ -377,7 +377,7 @@ PythonEngine::~PythonEngine()
 ///////////////////////////////////////////////////////////////////////////
 int PythonEngine::main(std::vector<String> args)
 {
-#if WIN32 && PY_MAJOR_VERSION>=3
+#if PY_MAJOR_VERSION>=3
   typedef wchar_t* ArgType;
   #define PyNewArg(arg) Py_DecodeLocale(arg.c_str(),nullptr)
   #define PyFreeArg(arg) PyMem_RawFree(arg)
