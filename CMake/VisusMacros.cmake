@@ -2,9 +2,13 @@
 # //////////////////////////////////////////////////////////////////////////
 macro(DetectOsxVersion)
 
+	if (NOT CMAKE_C_COMPILER)
+		MESSAGE(FATAL "Empty CMAKE_C_COMPILER, do you have a compiler installed?")
+	endif()
+
 	execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpmachine OUTPUT_VARIABLE MACHINE OUTPUT_STRIP_TRAILING_WHITESPACE)
 	string(REGEX REPLACE ".*-darwin([0-9]+).*" "\\1" _apple_ver "${MACHINE}")
-
+	
 	if (_apple_ver EQUAL "17")
 		set(APPLE_OSX_VERSION 10.13)
 	elseif (_apple_ver EQUAL "16")
@@ -22,7 +26,7 @@ macro(DetectOsxVersion)
 	elseif (_apple_ver EQUAL "10")
 		set(APPLE_OSX_VERSION 10_6)
 	else()
-		message(FATAL "Unknown osx version")
+		message(FATAL "Unknown osx version ${APPLE_OSX_VERSION}")
 	endif()
 	message(STATUS "APPLE_OSX_VERSION ${APPLE_OSX_VERSION}") 
 
@@ -61,6 +65,7 @@ macro(SetupCommonCMake)
 		set(LIBRARY_OUTPUT_PATH                 ${CMAKE_BINARY_DIR})	
 		set(CMAKE_COMPILE_PDB_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
 		
+
 		# multi-config generator
 		if (CMAKE_CONFIGURATION_TYPES)
 			

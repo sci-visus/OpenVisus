@@ -929,6 +929,9 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
     config.readBool("disable_write_locks") == true ||
     std::find(ApplicationInfo::args.begin(), ApplicationInfo::args.end(), "--disable-write-locks") != ApplicationInfo::args.end();
 
+  if (auto env = getenv("VISUS_DISABLE_WRITE_LOCK"))
+    this->bDisableWriteLocks = cbool(String(env));
+
   //if (this->bDisableWriteLocks)
   //  VisusInfo() << "IdxDiskAccess::IdxDiskAccess disabling write locsk. be careful";
 

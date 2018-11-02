@@ -74,11 +74,34 @@ For support : support@visus.net
 	
 using namespace Visus;
 
-//deleteNumPyArrayCapsule
-static void deleteNumPyArrayCapsule(PyObject *capsule)
+static char* __my_numpy_capsule_name__="__my_numpy_capsule_name__";
+
+static SharedPtr<HeapMemory> getNumPyHeap(PyArrayObject *numpy_array)
 {
-	SharedPtr<HeapMemory>* keep_heap_in_memory=(SharedPtr<HeapMemory>*)PyCapsule_GetPointer(capsule, NULL);
-	delete keep_heap_in_memory;
+	auto base=PyArray_BASE(numpy_array);
+	if (!base)
+		return SharedPtr<HeapMemory>();
+
+	auto ptr=PyCapsule_GetPointer(base, __my_numpy_capsule_name__);
+	if (!ptr)
+		return SharedPtr<HeapMemory>();
+
+	return *static_cast<SharedPtr<HeapMemory>*>(ptr);
+}
+
+//deleteNumPyCapsule
+static void deleteNumPyCapsule(PyObject *capsule)
+{
+	auto ptr=(SharedPtr<HeapMemory>*)PyCapsule_GetPointer(capsule, __my_numpy_capsule_name__);
+	VisusReleaseAssert(ptr);
+	delete ptr;
+}
+
+static void setNumPyHeap(PyArrayObject* numpy_array,SharedPtr<HeapMemory> heap)
+{
+	VisusReleaseAssert(!PyArray_BASE(numpy_array));
+	auto base=PyCapsule_New(new SharedPtr<HeapMemory>(heap), __my_numpy_capsule_name__, deleteNumPyCapsule);
+	PyArray_SetBaseObject((PyArrayObject*)numpy_array,base);
 }
 
 %}
@@ -241,26 +264,29 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
     return Visus::Array::fromVector<Visus::Float64>(dims, Visus::DTypes::FLOAT64, vector);
   }
 
-  //asNumPy (the returned numpy will share the memory... see capsule code)
-  PyObject* asNumPy() const
+  //toNumPy (the returned numpy will share the memory... see capsule code)
+  PyObject* toNumPy() const
   {
     //in numpy the first dimension is the "upper dimension"
     //example:
     // a=array([[1,2,3],[4,5,6]])
     // print a.shape # return 2,3
     // print a[1,1]  # equivalent to print a[Y,X], return 5  
-    npy_intp shape[VISUS_NDPOINT_DIM+1]; 
-	int shape_dim=0;
-    for (int I=VISUS_NDPOINT_DIM-1;I>=0;I--) {
-		if ($self->dims[I]>1) 
-		  shape[shape_dim++]=(npy_int)$self->dims[I];
-    }
 
-    int   ndtype        = $self->dtype.ncomponents();
+    int   ncomponents   = $self->dtype.ncomponents();
     DType single_dtype  = $self->dtype.get(0);
-    if (ndtype>1) shape[shape_dim++]=(npy_int)ndtype;
-    int typenum;
 
+	std::vector<npy_intp> shape;
+
+    if (ncomponents>1) 
+		shape.push_back((npy_int)ncomponents);
+
+    for (int I=0,N=$self->dims.getPointDim();I<N;I++)
+		shape.push_back((npy_int)$self->dims[I]);
+
+	std::reverse(shape.begin(), shape.end());
+
+    int typenum;
     if      (single_dtype==(DTypes::UINT8  )) typenum=NPY_UINT8 ;
     else if (single_dtype==(DTypes::INT8   )) typenum=NPY_INT8  ;
     else if (single_dtype==(DTypes::UINT16 )) typenum=NPY_UINT16;
@@ -278,15 +304,14 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
 
 	//http://blog.enthought.com/python/numpy-arrays-with-pre-allocated-memory/#.W79FS-gzZtM
 	//https://gitlab.onelab.info/gmsh/gmsh/commit/9cb49a8c372d2f7a48ee91ad2ca01c70f3b7cddf
-	//NOTE: from documentatin: "...If data is passed to  PyArray_New, this memory must not be deallocated until the new array is deleted"
-	auto data=(void*)$self->c_ptr();
-	PyObject *ret = PyArray_New(&PyArray_Type, shape_dim, shape, typenum, NULL,data , 0, NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_ALIGNED | NPY_ARRAY_WRITEABLE, NULL);
-    PyArray_SetBaseObject((PyArrayObject*)ret, PyCapsule_New(new SharedPtr<HeapMemory>($self->heap), NULL, deleteNumPyArrayCapsule));
-	return ret;
+	//https://stackoverflow.com/questions/52731884/pyarray-simplenewfromdata
+	PyObject *numpy_array = PyArray_SimpleNewFromData((int)shape.size(), &shape[0], typenum, (void*)$self->c_ptr());
+	setNumPyHeap((PyArrayObject*)numpy_array,$self->heap);
+	return numpy_array;
   }
   
-  //constructor
-  static Array fromNumPy(PyObject* obj)
+  //fromNumPy (the returned numpy will share the memory if possible... see capsule code)
+  static Array fromNumPy(PyObject* obj, int ndim=0)
   {
     if (!obj || !PyArray_Check((PyArrayObject*)obj)) 
 	{
@@ -298,15 +323,11 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
 
 	//must be contiguos
     if (!PyArray_ISCONTIGUOUS(numpy_array)) {
-      SWIG_SetErrorMsg(PyExc_NotImplementedError,"numpy array is null or not contiguous\n");
+      SWIG_SetErrorMsg(PyExc_NotImplementedError,"numpy array is not contiguous\n");
       return Array();
     }
 
     Uint8* c_ptr=(Uint8*)numpy_array->data;
-    
-    NdPoint dims=NdPoint::one(numpy_array->nd);
-    for (int I=0;I<numpy_array->nd;I++)
-      dims[I]=numpy_array->dimensions[numpy_array->nd-1-I];
 
     DType dtype;
     if      (PyArray_TYPE(numpy_array)==NPY_UINT8  ) dtype=(DTypes::UINT8  );
@@ -324,21 +345,50 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
       return Array();
     }
 
-	//cannot share the memory
-	if (!(numpy_array->flags & NPY_OWNDATA) || PyArray_BASE(numpy_array)!=NULL)
+	std::vector<int> shape;
+    for (int I=0;I<numpy_array->nd;I++)
+		shape.push_back(numpy_array->dimensions[I]);
+	std::reverse(shape.begin(), shape.end());
+
+	if (ndim==0)
+		ndim=numpy_array->nd;
+
+    NdPoint dims=NdPoint::one(ndim);
+
+	while (shape.size()>ndim)
 	{
-	  //Array ret(dims,dtype);
-	  //memcpy(ret.c_ptr(),,ret.c_size());
-	  //return ret;
+		dtype=DType(shape[0] * dtype.ncomponents(),dtype.get(0)); 
+		shape.erase(shape.begin());
+	}
+
+	for (int I=0;I<ndim;I++)
+		dims[I]=I<shape.size()? shape[I] : 1;
+
+	//already stolen the property
+	if (auto heap=getNumPyHeap(numpy_array))
+	{
+		//note: this case has not been debugged
+		VisusReleaseAssert(!(numpy_array->flags & NPY_OWNDATA));
+		return Array(dims,dtype,heap);
+
+	}
+	//steal the property
+	else if (!PyArray_BASE(numpy_array) && (numpy_array->flags & NPY_OWNDATA))
+	{
+		//steal the property
+		auto heap=HeapMemory::createManaged((Uint8*)PyArray_DATA(numpy_array),dtype.getByteSize(dims));
+		numpy_array->flags &= ~NPY_OWNDATA; 
+
+		setNumPyHeap(numpy_array,heap);
+		return Array(dims,dtype,heap);
+	}
+	else
+	{
       SWIG_SetErrorMsg(PyExc_NotImplementedError,"numpy cannot share its internal memory\n");
       return Array();
 	}
 
-	auto heap=HeapMemory::createManaged((Uint8*)PyArray_DATA(numpy_array),dtype.getByteSize(dims));
-	numpy_array->flags &= ~NPY_OWNDATA; //Heap has taken the property
-	PyArray_SetBaseObject((PyArrayObject*)numpy_array, PyCapsule_New(new SharedPtr<HeapMemory>(heap), NULL, deleteNumPyArrayCapsule));
 
-	return Array(dims,dtype,heap);
   }
 
   %pythoncode %{

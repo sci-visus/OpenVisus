@@ -31,12 +31,10 @@ option(BUILD_SHARED_LIBS "Build the shared library" TRUE)
 
 if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 	set(VISUS_IS_SUBMODULE 0)
-	set(CMAKE_FOLDER_PREFIX "")
 else()
 	set(VISUS_IS_SUBMODULE 1)
-	SET(CMAKE_FOLDER_PREFIX OpenVisus/)
+	set(CMAKE_FOLDER_PREFIX "")
 endif()
-
 
 # enable/disable gui-stuff (i.e. Qt dependent)
 option(VISUS_GUI "Enable gui" TRUE)  
@@ -231,12 +229,12 @@ endif()
 # example: git submodule update --init win32/python36
 if (WIN32)
 
-	 IF (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36/CMakeLists.txt)
-		SetIfNotDefined(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36)
-
-	elseif (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37/CMakeLists.txt)
+	if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37/CMakeLists.txt)
 		SetIfNotDefined(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python37)
 		
+	 elseif (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36/CMakeLists.txt)
+		SetIfNotDefined(VISUS_INTERNAL_PYTHON ${CMAKE_CURRENT_SOURCE_DIR}/win32/python36)
+
 	endif()
 	
 endif()
@@ -289,7 +287,7 @@ add_subdirectory(Executable)
 
 # //////////////////////////////////////////////////////////////
 # *** samples and external apps ***
-if (NOT VISUS_IS_SUBMODULE)
+if (1)
 
 	# samples
 	add_subdirectory(Samples)

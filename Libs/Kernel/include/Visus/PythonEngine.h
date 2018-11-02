@@ -51,6 +51,7 @@ For support : support@visus.net
 
 #include <functional>
 
+
 #ifdef WIN32
 #pragma warning( pop )
 #endif
@@ -99,6 +100,9 @@ public:
 
   //destructor
   virtual ~PythonEngine();
+
+  //main
+  static int main(std::vector<String> args);
 
   //redirectOutputTo
   void redirectOutputTo(std::function<void(String)> value);

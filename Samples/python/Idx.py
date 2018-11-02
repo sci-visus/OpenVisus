@@ -87,7 +87,7 @@ class TextIdx(unittest.TestCase):
       buffer=Array(query.get().nsamples,query.get().field.dtype)
       query.get().buffer=buffer
       
-      fill=buffer.asNumPy()
+      fill=buffer.toNumPy()
       for Y in range(16):
         for X in range(16):
           fill[Y,X]=sampleid
@@ -115,7 +115,8 @@ class TextIdx(unittest.TestCase):
       self.assertEqual(query.get().nsamples.innerProduct(),16*16)
       self.assertTrue(dataset.get().executeQuery(access,query))
       
-      check=query.get().buffer.asNumPy()
+      check=query.get().buffer.toNumPy()
+      
       for Y in range(16):
         for X in range(16):
           self.assertEqual(check[Y,X],sampleid)
@@ -156,7 +157,7 @@ class TextIdx(unittest.TestCase):
     self.assertEqual(query.get().cur_resolution,12)
     
     #verify the data is correct
-    check=query.get().buffer.asNumPy()
+    check=query.get().buffer.toNumPy()
     sampleid=0
     for Y in range(0,16):
       for X in range(0,16):
