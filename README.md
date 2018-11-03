@@ -136,8 +136,8 @@ cd projects
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 
-git submodule update --init win32/python36
-win32\python36\python.exe -m pip install --user --upgrade numpy 
+git submodule update --init win32/python37
+win32\python37\python.exe -m pip install --user --upgrade numpy 
 
 mkdir build
 cd build
