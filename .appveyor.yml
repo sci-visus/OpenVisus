@@ -9,19 +9,17 @@ notifications:
     on_build_status_changed: true  
   
 environment:
-
   QT5_DIR: C:/Qt/5.10.1/msvc2017_64
   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   CMAKE_GENERATOR: Visual Studio 15 2017 Win64
   PYPI_USERNAME: scrgiorgio
   PYPI_PASSWORD:
-    secure: 6DHH80JPNRCtIYxWc/h88Q==    
+    secure: 6DHH80JPNRCtIYxWc/h88Q==   
   matrix:
-    - PYTHON_EXECUTABLE=C:/Python37-x64/python.exe   
+    - PYTHON_EXECUTABLE=C:/Python37-x64/python.exe 
       SKIP_NOTAG: false  
     - PYTHON_EXECUTABLE=C:/Python36-x64/python.exe
       SKIP_NOTAG: true
-
   
 # enable cache for vcpkg
 cache: c:\tools\vcpkg\installed\  
