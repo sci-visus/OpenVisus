@@ -383,7 +383,7 @@ int PythonEngine::main(std::vector<String> args)
   #define PyFreeArg(arg) PyMem_RawFree(arg)
 #else
   typedef char* ArgType;
-  #define PyNewArg(arg) (arg.c_str())
+  #define PyNewArg(arg) ((char*)arg.c_str())
   #define PyFreeArg(arg)
 #endif
 
