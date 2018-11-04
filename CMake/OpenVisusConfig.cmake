@@ -13,22 +13,43 @@ macro(AddOpenVisusPythonLibrary)
 	file(READ "${OpenVisus_DIR}/PYTHON_VERSION" PYTHON_VERSION)
 	message(STATUS "OpenVisus is using python ${PYTHON_VERSION}")
 	
-
-	# just need to include python directory, no need to link
-	if (EXISTS "${OpenVisus_DIR}/win32/python")
+	# see https://github.com/Kitware/CMake/blob/master/Modules/FindPythonLibs.cmake
+   if (EXISTS "${OpenVisus_DIR}/win32/python")
+      set(PYTHON_EXECUTABLE "${OpenVisus_DIR}/win32/python/python.exe")
+	endif()
 	
-		set_property(TARGET OpenVisus::Python APPEND PROPERTY  INTERFACE_INCLUDE_DIRECTORIES "${OpenVisus_DIR}/win32/python/include")
-
+	find_package(PythonLibs ${PYTHON_VERSION} REQUIRED)
+	
+	set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
+	
+	if (WIN32)
+	
+  	   list(LENGTH PYTHON_LIBRARY __n__)
+    	if (${__n__} EQUAL 1)
+    		set(PYTHON_DEBUG_LIBRARY     ${PYTHON_LIBRARY})
+    		set(PYTHON_RELEASE_LIBRARY   ${PYTHON_LIBRARY})
+    	else()
+      	list(FIND PYTHON_LIBRARY optimized __index__)
+      	if (${__index__} EQUAL -1)
+      		MESSAGE(ERROR "Problem with find python")
+      	endif()
+      	math(EXPR __next_index__ "${__index__}+1")
+      	list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
+      	list(FIND PYTHON_LIBRARY debug __index__)
+      	if (${__index__} EQUAL -1)
+      		MESSAGE(ERROR "Problem with find python")
+      	endif()
+      	math(EXPR __next_index__ "${__index__}+1")
+      	list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_DEBUG_LIBRARY)
+    	endif()
+    	
+    	set_target_properties(OpenVisus::Python PROPERTIES
+        IMPORTED_IMPLIB_DEBUG           ${PYTHON_DEBUG_LIBRARY}
+        IMPORTED_IMPLIB_RELEASE         ${PYTHON_RELEASE_LIBRARY}
+        IMPORTED_IMPLIB_RELWITHDEBINFO  ${PYTHON_RELEASE_LIBRARY})
+         	
 	else()
-	
-		find_package(PythonLibs ${PYTHON_VERSION} REQUIRED)
-		
-		set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
-		
-		if (NOT WIN32)
-			set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY})	
-		endif()	
-	
+	  set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
 	endif()
 
 endmacro()
@@ -60,7 +81,6 @@ macro(AddOpenVisusLibrary target_name)
 			  IMPORTED_IMPLIB_DEBUG                ${OpenVisus_DIR}/${__debug__}lib/Visus${name}.lib
 				IMPORTED_IMPLIB_RELEASE              ${OpenVisus_DIR}/lib/Visus${name}.lib
 				IMPORTED_IMPLIB_RELWITHDEBINFO       ${OpenVisus_DIR}/lib/Visus${name}.lib)      
-
 
 		elseif (APPLE)
 		

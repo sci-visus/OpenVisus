@@ -103,6 +103,15 @@ The fastest way is to use `chocolatey` i.e from an Administrator Prompt:
 choco install -y -allow-empty-checksums git cmake swig 
 ```
 
+Install [Python3.7] (https://www.python.org/ftp/python/3.7.0/python-3.7.0-amd64.exe)
+
+Make sure you have num python installed:
+
+```
+REM change path as needed
+c:\Python37\python.exe -m pip install --user numpy
+```
+
 Install [Qt5](http://download.qt.io/official_releases/qt/5.9/5.9.2/qt-opensource-windows-x86-5.9.2.exe) 
 
 
@@ -120,11 +129,10 @@ set CMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
 set VCPKG_TARGET_TRIPLET=x64-windows
 ```
 
-otherwise (slow):
+otherwise you can use InternalLibs (slow):
 
 ```
-set CMAKE_TOOLCHAIN_FILE=
-set VCPKG_TARGET_TRIPLET=
+set VISUS_INTERNAL_DEFAULT=1
 ```
 
 Then:
@@ -136,8 +144,6 @@ cd projects
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 
-git submodule update --init win32/python37
-win32\python37\python.exe -m pip install --user --upgrade numpy 
 
 mkdir build
 cd build

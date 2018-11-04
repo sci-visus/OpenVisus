@@ -79,7 +79,6 @@ if (WIN32)
 	endif()
 endif()
 
-
 SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
 
 # ______________________________________________
@@ -241,10 +240,6 @@ endif()
 # ______________________________________________
 # *** python
 
-
-
-
-
 SetIfNotDefined(PYTHON_VERSION 3)
 
 find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
@@ -259,43 +254,30 @@ add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
 set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
 
 if (WIN32)
-
 	list(LENGTH PYTHON_LIBRARY __n__)
-	
 	if (${__n__} EQUAL 1)
-	
 		set(PYTHON_DEBUG_LIBRARY     ${PYTHON_LIBRARY})
 		set(PYTHON_RELEASE_LIBRARY   ${PYTHON_LIBRARY})
-		
 	else()
-	
-  	# differentiate between release and debug libraries
-  	list(FIND PYTHON_LIBRARY optimized __index__)
-  	if (${__index__} EQUAL -1)
-  		MESSAGE(ERROR "Problem with find python")
+    	list(FIND PYTHON_LIBRARY optimized __index__)
+    	if (${__index__} EQUAL -1)
+    		MESSAGE(ERROR "Problem with find python")
+    	endif()
+    	math(EXPR __next_index__ "${__index__}+1")
+    	list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
+    	list(FIND PYTHON_LIBRARY debug __index__)
+    	if (${__index__} EQUAL -1)
+    		MESSAGE(ERROR "Problem with find python")
+    	endif()
+    	math(EXPR __next_index__ "${__index__}+1")
+    	list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_DEBUG_LIBRARY)
   	endif()
-  	
-  	math(EXPR __next_index__ "${__index__}+1")
-  	list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
-  	
-  	list(FIND PYTHON_LIBRARY debug __index__)
-  	if (${__index__} EQUAL -1)
-  		MESSAGE(ERROR "Problem with find python")
-  	endif()
-  	math(EXPR __next_index__ "${__index__}+1")
-  	list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_DEBUG_LIBRARY)
-
-	endif()
-
-	set_target_properties(OpenVisus::Python PROPERTIES
-	  IMPORTED_IMPLIB_DEBUG                ${PYTHON_DEBUG_LIBRARY}
-		IMPORTED_IMPLIB_RELEASE              ${PYTHON_RELEASE_LIBRARY}
-		IMPORTED_IMPLIB_RELWITHDEBINFO       ${PYTHON_RELEASE_LIBRARY})  	
-
+  	set_target_properties(OpenVisus::Python PROPERTIES
+		IMPORTED_IMPLIB_DEBUG           ${PYTHON_DEBUG_LIBRARY}
+		IMPORTED_IMPLIB_RELEASE         ${PYTHON_RELEASE_LIBRARY}
+		IMPORTED_IMPLIB_RELWITHDEBINFO  ${PYTHON_RELEASE_LIBRARY})  	
 else()
-
 	set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
-	
 endif()
 
 
@@ -412,6 +394,12 @@ if (True)
 		if (OpenMP_FOUND)
 			set(CMAKE_INSTALL_OPENMP_LIBRARIES 1)
 		endif()	
+		
+		# self-contained python
+		get_filename_component(__python_dir__ ${PYTHON_EXECUTABLE} DIRECTORY)
+		install(DIRECTORY ${__python_dir__}/ DESTINATION win32/python 
+		  PATTERN "*.pyc" EXCLUDE 
+		)
 
 		include(InstallRequiredSystemLibraries)
 		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION bin COMPONENT Libraries)	
