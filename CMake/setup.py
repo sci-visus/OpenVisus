@@ -3,7 +3,7 @@ import shutil
 import platform
 
 #increase this number for PIP
-VERSION="1.2.56"
+VERSION="1.2.57"
 
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
