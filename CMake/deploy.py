@@ -259,6 +259,7 @@ class AppleDeployStep:
 		# special case for frameworks (I need to copy the entire directory)
 		if ".framework" in dep:
 			framework_dir=dep.split(".framework")[0]+".framework"
+			
 			CopyDirectory(framework_dir,"bin")
 			local="bin/" + os.path.basename(framework_dir) + dep.split(".framework")[1]
 			

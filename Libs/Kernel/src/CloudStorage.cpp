@@ -727,7 +727,7 @@ public:
         return ret.get_promise()->set_value(false);
 
       NetRequest request(Url(this->url.toString() + "/drive/v3/files/" + container_id), "DELETE");
-      NetService::push(service, request).when_ready([this,ret](NetResponse response) {
+      NetService::push(service, request).when_ready([ret](NetResponse response) {
         ret.get_promise()->set_value(response.isSuccessful());
       });
 
@@ -804,7 +804,7 @@ public:
 
       signRequest(request);
 
-      NetService::push(service, request).when_ready([this, ret](NetResponse response) {
+      NetService::push(service, request).when_ready([ret](NetResponse response) {
         ret.get_promise()->set_value(response.isSuccessful());
       });
 
@@ -886,7 +886,7 @@ public:
           get_blob_media.aborted = aborted;
           signRequest(get_blob_media);
 
-          NetService::push(service, get_blob_media).when_ready([this, ret, aborted, metadata](NetResponse response) {
+          NetService::push(service, get_blob_media).when_ready([ret, aborted, metadata](NetResponse response) {
 
             if (!response.isSuccessful())
             {
@@ -958,7 +958,7 @@ public:
         delete_blob.aborted = aborted;
         signRequest(delete_blob);
 
-        NetService::push(service, delete_blob).when_ready([this, ret](NetResponse response) {
+        NetService::push(service, delete_blob).when_ready([ret](NetResponse response) {
           ret.get_promise()->set_value(response.isSuccessful());
         });
 

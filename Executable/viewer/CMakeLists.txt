@@ -9,6 +9,6 @@ AddExecutable(visusviewer ${Sources})
 target_link_libraries(visusviewer PUBLIC VisusAppKit)
 
 if (NOT WIN32)
-  target_link_libraries(visusviewer PUBLIC ${PYTHON_LIBRARY})
+  target_link_libraries(visusviewer PUBLIC OpenVisus::Python)
 endif()
 

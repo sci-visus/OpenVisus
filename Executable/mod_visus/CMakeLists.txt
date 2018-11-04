@@ -4,7 +4,7 @@ target_link_libraries(mod_visus PUBLIC VisusIdx)
 set_target_properties(mod_visus PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Executable/)
 
 if (NOT WIN32)
-  target_link_libraries(mod_visus PUBLIC ${PYTHON_LIBRARY})
+  target_link_libraries(mod_visus PUBLIC OpenVisus::Python)
 endif()
 
 if (NOT WIN32)

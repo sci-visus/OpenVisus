@@ -292,7 +292,7 @@ macro(AddSwigLibrary NamePy SwigFile)
 	
 	# python lib is not linked
 	if (APPLE)
-		set_target_properties(VisusKernel PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
+		set_target_properties(${_target_name_} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
 	endif()	
 	
 	InstallLibrary(${_target_name_})
@@ -352,6 +352,7 @@ macro(AddExternalApp name SourceDir BinaryDir)
 	endif()
 
 	add_custom_target(${name} 
+	          "${CMAKE_COMMAND}" -E echo "Running ${name} ..."
 		COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DQt5_DIR="${Qt5_DIR}" -DOpenVisus_DIR=${CMAKE_INSTALL_PREFIX}
 		COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/" --config ${CMAKE_BUILD_TYPE})
 		
@@ -416,7 +417,7 @@ macro(AddLibrary Name)
 	
 	# python lib is not linked
 	if (APPLE)
-		set_target_properties(VisusKernel PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
+		set_target_properties(${Name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
 	endif()	
 	
 
