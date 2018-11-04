@@ -82,15 +82,10 @@ python -m pip install  --user numpy OpenVisus
 ```
 
 And test it using the following command. 
-IMPORTANT (!) you will have to add some environment variables (such as `LD_LIBRARY_PATH`). 
-The `OpenVisus.check()` will tell you exactly what to add at the beginning of the exception message.
 
 ```
-python -c "import OpenVisus; OpenVisus.check()"
+python -c "import OpenVisus"
 ```
-
-
-
 
 
 ## Windows compilation
@@ -257,7 +252,7 @@ cd install
 ./visusviewer.command      
 
 # OpenVisus extending python
-PYTHONPATH=$(pwd):$(pwd)/bin python -c "import OpenVisus; OpenVisus.check()"
+PYTHONPATH=$(pwd):$(pwd)/bin python -c "import OpenVisus"
 ```
 
 
@@ -325,7 +320,7 @@ To test if it's working:
 
 ```
 LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) ./visusviewer 
-LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) python3 -c "import OpenVisus; OpenVisus.check()"
+LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) python3 -c "import OpenVisus"
 ```
 
   

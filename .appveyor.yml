@@ -49,7 +49,7 @@ build_script:
   - cmd: cd c:\tools\vcpkg
   - cmd: vcpkg.exe install zlib:x64-windows lz4:x64-windows tinyxml:x64-windows freeimage:x64-windows openssl:x64-windows curl:x64-windows
   - cmd: cd %APPVEYOR_BUILD_FOLDER%  
-  - cmd: python.exe -m pip install numpy
+  - cmd: %PYTHON_EXECUTABLE% -m pip install --user numpy
   - cmd: mkdir build 
   - cmd: cd build 
   - cmd: cmake -G "%CMAKE_GENERATOR%" -DCMAKE_TOOLCHAIN_FILE="c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET="x64-windows" -DQt5_DIR="%QT5_DIR%/lib/cmake/Qt5" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% -DPYTHON_EXECUTABLE=%PYTHON_EXECUTABLE% ../
