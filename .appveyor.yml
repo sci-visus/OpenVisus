@@ -16,9 +16,9 @@ environment:
   PYPI_PASSWORD:
     secure: 6DHH80JPNRCtIYxWc/h88Q==   
   matrix:
-    - PYTHON_EXECUTABLE=C:/Python37-x64/python.exe 
+    - PYTHON_EXECUTABLE: C:/Python37-x64/python.exe 
       SKIP_NOTAG: false  
-    - PYTHON_EXECUTABLE=C:/Python36-x64/python.exe
+    - PYTHON_EXECUTABLE: C:/Python36-x64/python.exe
       SKIP_NOTAG: true
   
 # enable cache for vcpkg
