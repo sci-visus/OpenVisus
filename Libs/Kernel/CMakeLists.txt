@@ -190,7 +190,6 @@ else()
 	file(GLOB Sources include/Visus/*.h src/*.cpp)
 endif()
 
-
 AddLibrary(VisusKernel ${Sources})
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/dtl/include)
