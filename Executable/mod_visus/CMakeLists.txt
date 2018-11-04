@@ -3,7 +3,9 @@ add_library(mod_visus mod_visus.cpp)
 target_link_libraries(mod_visus PUBLIC VisusIdx)
 set_target_properties(mod_visus PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Executable/)
 
-DependsOnPython(mod_visus 1)
+if (NOT WIN32)
+  target_link_libraries(mod_visus PUBLIC ${PYTHON_LIBRARY})
+endif()
 
 if (NOT WIN32)
 

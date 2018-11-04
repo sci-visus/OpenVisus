@@ -290,7 +290,10 @@ macro(AddSwigLibrary NamePy SwigFile)
 		
 	endif()
 	
-	DependsOnPython(${_target_name_} 0)
+	# python lib is not linked
+	if (APPLE)
+		set_target_properties(VisusKernel PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
+	endif()	
 	
 	InstallLibrary(${_target_name_})
 	
@@ -386,52 +389,7 @@ macro(AddCTest Name Command WorkingDirectory)
 
 endmacro()
 
-# ///////////////////////////////////////////////////
-macro(DependsOnPython Name bForceLink)
 
-	if (TARGET python)
-	
-	  target_link_libraries(${Name} PUBLIC python)
-	
-	else()
-	
-		target_include_directories(${Name} PUBLIC ${PYTHON_INCLUDE_DIRS})
-	
-		if (WIN32)	
-		
-			# differentiate between release and debug libraries
-			list(FIND PYTHON_LIBRARY optimized __index__)
-			if (NOT ${__index__} EQUAL -1)
-				math(EXPR __next_index__ "${__index__}+1")
-				list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
-				target_link_libraries(${Name} PUBLIC debug     ${PYTHON_DEBUG_LIBRARY})
-				target_link_libraries(${Name} PUBLIC optimized ${PYTHON_RELEASE_LIBRARY})
-			else()
-				target_link_libraries(${Name} PUBLIC ${PYTHON_LIBRARY})
-			endif()
-			
-		else()
-	
-			# for apple and linux I'm linking python only for Executables (or final shared dll such as  mod_visus) 
-			# otherwise I'm going to have multiple libpython in the same process
-			# with the error message: PyThreadState_Get: no current thread	
-			if (${bForceLink})
-			
-				target_link_libraries(${Name} PUBLIC ${PYTHON_LIBRARY})
-				
-			else()
-	
-				if (APPLE)
-					set_target_properties(${Name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
-				endif()
-				
-			endif()
-					
-		endif()
-		
-	endif()
-
-endmacro()
 
 
 # ///////////////////////////////////////////////////
@@ -456,8 +414,12 @@ macro(AddLibrary Name)
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
 	endif()
 	
-	DependsOnPython(${Name} 0)
+	# python lib is not linked
+	if (APPLE)
+		set_target_properties(VisusKernel PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
+	endif()	
 	
+
 	InstallLibrary(${Name})
 endmacro()
 
@@ -476,8 +438,6 @@ macro(AddExecutable Name)
 	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
 	endif()
-	
-	DependsOnPython(${Name} 1)
 	
 	InstallExecutable(${Name})
 	

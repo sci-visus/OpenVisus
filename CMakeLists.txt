@@ -17,6 +17,21 @@ endif()
 
 PROJECT(ViSUS)
 
+
+# //////////////////////////////////////////////////////////////
+# CMAKE_INSTALL_PREFIX
+
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+	set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
+endif()
+
+if (WIN32)
+	string(REPLACE "\\" "/" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
+endif()
+
+MESSAGE(STATUS "CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}")
+
+
 include(CMake/VisusMacros.cmake)
 SetupCommonCMake()
 
@@ -265,19 +280,6 @@ message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
 # numpy 
 find_package(NumPy REQUIRED)
 
-
-# //////////////////////////////////////////////////////////////
-# CMAKE_INSTALL_PREFIX
-
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-	set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
-endif()
-
-if (WIN32)
-	string(REPLACE "\\" "/" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
-endif()
-
-MESSAGE(STATUS "CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}")
 
 
 add_subdirectory(InternalLibs)
