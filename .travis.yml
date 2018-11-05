@@ -262,8 +262,7 @@ script:
         	-DPYPI_PASSWORD=$PYPI_PASSWORD \
         	-DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
         	../
-        # cmake --build ./ --target all
-        make VERBOSE=1
+        cmake --build ./ --target all
         cmake --build ./ --target test
         # if there is a tag, create the wheel and tar.gz
         if [ -n "$TRAVIS_TAG" ]; then 
