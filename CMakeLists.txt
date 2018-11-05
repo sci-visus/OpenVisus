@@ -245,7 +245,6 @@ SetIfNotDefined(PYTHON_VERSION 3)
 find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)	
 
-MESSAGE(STATUS "Using external python")
 message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
 message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
 message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
@@ -254,28 +253,39 @@ add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
 set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
 
 if (WIN32)
+
+
 	list(LENGTH PYTHON_LIBRARY __n__)
 	if (${__n__} EQUAL 1)
+	
 		set(PYTHON_DEBUG_LIBRARY     ${PYTHON_LIBRARY})
 		set(PYTHON_RELEASE_LIBRARY   ${PYTHON_LIBRARY})
+	
 	else()
+	
+	   # differentiate debug from release
+	   # example debug;aaaa;optimized;bbb
     	list(FIND PYTHON_LIBRARY optimized __index__)
     	if (${__index__} EQUAL -1)
     		MESSAGE(ERROR "Problem with find python")
     	endif()
     	math(EXPR __next_index__ "${__index__}+1")
     	list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
+    	
     	list(FIND PYTHON_LIBRARY debug __index__)
     	if (${__index__} EQUAL -1)
     		MESSAGE(ERROR "Problem with find python")
     	endif()
     	math(EXPR __next_index__ "${__index__}+1")
     	list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_DEBUG_LIBRARY)
+    	
   	endif()
+  	
   	set_target_properties(OpenVisus::Python PROPERTIES
 		IMPORTED_IMPLIB_DEBUG           ${PYTHON_DEBUG_LIBRARY}
 		IMPORTED_IMPLIB_RELEASE         ${PYTHON_RELEASE_LIBRARY}
 		IMPORTED_IMPLIB_RELWITHDEBINFO  ${PYTHON_RELEASE_LIBRARY})  	
+		
 else()
 	set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
 endif()
