@@ -131,6 +131,9 @@ macro(SetupCommonCMake)
 			# see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
 			set(CMAKE_C_FLAGS    "${CMAKE_C_FLAGS}   -fPIC -Wno-attributes")
 			set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fPIC -Wno-attributes")
+			
+			# problem of linking orders
+			set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--start-group") 
 
 		endif()
 	
