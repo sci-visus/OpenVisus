@@ -174,8 +174,8 @@ matrix:
                
     
 script:
-    - if [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then ./CMake/travis-script-osx.sh   ; fi
-    - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then ./CMake/travis-script-linux.sh ; fi
+    - if [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then bash ./CMake/travis-script-osx.sh   ; fi
+    - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then bash ./CMake/travis-script-linux.sh ; fi
         
 before_deploy:
   - export WHEEL_FILE=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
