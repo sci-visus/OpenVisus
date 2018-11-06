@@ -71,12 +71,15 @@ endif()
 
 # if using vcpkg on windows use the vcpkg libraries
 if (WIN32)
-	if (VCPKG)
+	if (CMAKE_TOOLCHAIN_FILE)
+		set(VCPKG 1)
 		SetIfNotDefined(VISUS_INTERNAL_DEFAULT 0)
 	else()
+		set(VCPKG 0)
 		SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
-	endif()
+	endif()	
 endif()
+
 
 SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
 

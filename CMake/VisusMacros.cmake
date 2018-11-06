@@ -42,6 +42,7 @@ macro(SetIfNotDefined name value)
 endmacro()
 
 
+
 # //////////////////////////////////////////////////////////////////////////
 macro(SetupCommonCMake)
 
@@ -50,28 +51,19 @@ macro(SetupCommonCMake)
 		set(__SETUP_COMMON_CMAKE__ 1)
 	
 		set(CMAKE_CXX_STANDARD 11)
-
-		# enable parallel building
-		set(CMAKE_NUM_PROCS 8)  
-		if (WIN32)
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
-		endif()
-
-		# use folders to organize projects                           
-		set_property(GLOBAL PROPERTY USE_FOLDERS ON)    
+		set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+		set_property(GLOBAL PROPERTY USE_FOLDERS ON)  
+		set(CMAKE_NUM_PROCS 8)   
 
 		# save libraries and binaries in the same directory        
 		set(EXECUTABLE_OUTPUT_PATH              ${CMAKE_BINARY_DIR})           
 		set(LIBRARY_OUTPUT_PATH                 ${CMAKE_BINARY_DIR})	
 		set(CMAKE_COMPILE_PDB_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
 		
-
 		# multi-config generator
 		if (CMAKE_CONFIGURATION_TYPES)
-			
-			message(STATUS "Cmake is using multi-config generator (${CMAKE_CONFIGURATION_TYPES})")
-			
+		
+			message(STATUS "Cmake is using multi-config generator (${CMAKE_CONFIGURATION_TYPES})")	
 			add_compile_options("$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
 			
 		else()
@@ -79,77 +71,56 @@ macro(SetupCommonCMake)
 			message(STATUS "Cmake is using single-config generator")
 			
 			if(NOT CMAKE_BUILD_TYPE)
-			  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo" FORCE)
+			  set(CMAKE_BUILD_TYPE "Release")
 			endif()
 			 
-			if (NOT CMAKE_BUILD_TYPE MATCHES "^(Debug|Release|RelWithDebInfo)$")
-				message(FATAL_ERROR "Invalid value for CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
-			endif()
-			
 			if (CMAKE_BUILD_TYPE EQUAL "Debug")
 				add_compile_options("$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
 			endif()
 			
 		endif()	
 		
-		if (WIN32)
-
-			# see http://msdn.microsoft.com/en-us/library/windows/desktop/ms683219(v=vs.85).aspx
-			add_definitions(-DPSAPI_VERSION=1)
-
-			# increse number of file descriptors
-			add_definitions(-DFD_SETSIZE=4096)
-
-			add_definitions(-D_CRT_SECURE_NO_WARNINGS )
-
-			add_definitions(-DWIN32_LEAN_AND_MEAN)
-			
-			if (CMAKE_TOOLCHAIN_FILE)
-				set(VCPKG 1)
-			else()
-				set(VCPKG 0)
-			endif()		
-
-		elseif (APPLE)
-		
+		if (APPLE)
 			DetectOsxVersion()
-		
-			# disable rpath
-			set(CMAKE_MACOSX_RPATH  0)		
-
 			set(CMAKE_MACOSX_BUNDLE YES)
-
-			# suppress some warnings
-			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-variable -Wno-reorder")
-
-		else ()
-		
-			# enable 64 bit file support (see http://learn-from-the-guru.blogspot.it/2008/02/large-file-support-in-linux-for-cc.html)
-			add_definitions(-D_FILE_OFFSET_BITS=64)
-
-			# -Wno-attributes to suppress spurious "type attributes ignored after type is already defined" messages 
-			# see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
-			set(CMAKE_C_FLAGS    "${CMAKE_C_FLAGS}   -fPIC -Wno-attributes")
-			set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fPIC -Wno-attributes")
-			
-			# fix the problem of linking order
-			# see https://github.com/berenm/cmake-extra/blob/master/FixStaticLink.cmake
-			# see http://cmake.3232098.n2.nabble.com/Link-order-Ubuntu-tt7598592.html
-			string(REPLACE "<LINK_LIBRARIES>" "-Wl,--start-group <LINK_LIBRARIES> -Wl,--end-group" CMAKE_C_LINK_EXECUTABLE       "${CMAKE_C_LINK_EXECUTABLE}")
-		  string(REPLACE "<LINK_LIBRARIES>" "-Wl,--start-group <LINK_LIBRARIES> -Wl,--end-group" CMAKE_C_CREATE_SHARED_LIBRARY "${CMAKE_C_CREATE_SHARED_LIBRARY}")
-		  string(REPLACE "<LINK_LIBRARIES>" "-Wl,--start-group <LINK_LIBRARIES> -Wl,--end-group" CMAKE_C_CREATE_SHARED_MODULE  "${CMAKE_C_CREATE_SHARED_MODULE}")
-		
-		  string(REPLACE "<LINK_LIBRARIES>" "-Wl,--start-group <LINK_LIBRARIES> -Wl,--end-group" CMAKE_CXX_LINK_EXECUTABLE       "${CMAKE_CXX_LINK_EXECUTABLE}")
-		  string(REPLACE "<LINK_LIBRARIES>" "-Wl,--start-group <LINK_LIBRARIES> -Wl,--end-group" CMAKE_CXX_CREATE_SHARED_LIBRARY "${CMAKE_CXX_CREATE_SHARED_LIBRARY}")
-		  string(REPLACE "<LINK_LIBRARIES>" "-Wl,--start-group <LINK_LIBRARIES> -Wl,--end-group" CMAKE_CXX_CREATE_SHARED_MODULE  "${CMAKE_CXX_CREATE_SHARED_MODULE}")			
-					
-			
-			# set(CMAKE_CXX_LINK_EXECUTABLE "/usr/bin/c++ <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> -Wl,--start-group <LINK_LIBRARIES> -Wl,--end-group")
-
+			set(CMAKE_MACOSX_RPATH  0)	 # disable rpath
 		endif()
 	
 	endif()
 	
+endmacro()
+
+# //////////////////////////////////////////////////////////////////////////
+macro(SetupCommonCompileOptions Name)
+
+	if (WIN32)
+	
+		target_compile_options(${Name} PRIVATE /MP)
+		target_compile_options(${Name} PRIVATE /bigobj)		
+		
+		# see http://msdn.microsoft.com/en-us/library/windows/desktop/ms683219(v=vs.85).aspx
+		target_compile_options(${Name} PRIVATE -DPSAPI_VERSION=1)
+
+		target_compile_options(${Name} PRIVATE -DFD_SETSIZE=4096)
+		target_compile_options(${Name} PRIVATE -D_CRT_SECURE_NO_WARNINGS)
+		target_compile_options(${Name} PRIVATE -DWIN32_LEAN_AND_MEAN)		
+		
+	elif (APPLE)
+	
+		# suppress some warnings
+		target_compile_options(${Name} PRIVATE  -Wno-unused-variable -Wno-reorder")	
+	
+	else()
+	
+		# enable 64 bit file support (see http://learn-from-the-guru.blogspot.it/2008/02/large-file-support-in-linux-for-cc.html)
+		target_compile_options(${Name} PRIVATE -D_FILE_OFFSET_BITS=64)
+		
+		# -Wno-attributes to suppress spurious "type attributes ignored after type is already defined" messages 
+		# see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
+		target_compile_options(${Name} PRIVATE -Wno-attributes")	
+	
+	endif()
+
 endmacro()
 
 # //////////////////////////////////////////////////////////////////////////
@@ -256,73 +227,32 @@ macro(Win32CopyDllToBuild target debug_dll release_dll)
 		
 endmacro()
 
+# ///////////////////////////////////////////////////
+macro(IgnoreUndefinedSymbols Name)
+	if (NOT WIN32)
+		if (APPLE)
+			set_target_properties(${Name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
+		else()
+			set_target_properties(${Name} PROPERTIES LINK_FLAGS "-Wl,--unresolved-symbols=ignore-all")
+		endif()	
+	endif()
+endmacro()
+
 
 # ///////////////////////////////////////////////////
-macro(AddSwigLibrary NamePy SwigFile)
+macro(ResolveCyclicDependencies Name)
 
-  find_package(SWIG REQUIRED)
-  include(${SWIG_USE_FILE})
-  set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
-  set(CMAKE_SWIG_FLAGS "")
-  
-  set(SWIG_FLAGS "${ARGN}")
-  set(SWIG_FLAGS "${SWIG_FLAGS};-threads")
-  set(SWIG_FLAGS "${SWIG_FLAGS};-extranative")
-
-	#prevents rebuild every time make is called
-	set_property(SOURCE ${SwigFile} PROPERTY SWIG_MODULE_NAME ${NamePy})
-	
-	set_source_files_properties(${SwigFile} PROPERTIES CPLUSPLUS ON)
-	set_source_files_properties(${SwigFile} PROPERTIES SWIG_FLAGS  "${SWIG_FLAGS}")
-
-	if (CMAKE_VERSION VERSION_LESS "3.8")
-		swig_add_module(${NamePy} python ${SwigFile})
-	else()
-		swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
-	endif()
-
-	if (TARGET _${NamePy})
-	  set(_target_name_ _${NamePy})
-	  
-	elseif (TARGET ${NamePy})
-	  set(_target_name_ ${NamePy})
-	
-	else()
-	  message("FATAL ERROR, cannot find target py name")
-	endif()
-
-	if (WIN32)
-		
-		set_target_properties(${_target_name_}
-	      PROPERTIES
-	      COMPILE_PDB_NAME_DEBUG          ${_target_name_}_d
-	      COMPILE_PDB_NAME_RELEASE        ${_target_name_}
-	      COMPILE_PDB_NAME_MINSIZEREL     ${_target_name_}
-	      COMPILE_PDB_NAME_RELWITHDEBINFO ${_target_name_})
-	      
-		set_target_properties(${_target_name_} PROPERTIES DEBUG_POSTFIX  "_d")
-		
-	endif()
-	
-	# python lib is not linked
-	if (APPLE)
-		set_target_properties(${_target_name_} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
-	endif()	
-	
-	InstallLibrary(${_target_name_})
-	
-	set_target_properties(${_target_name_} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
-	
-	target_include_directories(${_target_name_} PRIVATE ${NUMPY_INCLUDE_DIR})
-
-	# disable warnings
-	if (WIN32)
-		target_compile_definitions(${_target_name_}  PRIVATE /W0)
-	else()
-		set_target_properties(${_target_name_} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
+	if (NOT WIN32)
+		if (APPLE)
+			# seems XCode does it automatically, good job
+		else()
+			set_target_properties(${Name} PROPERTIES LINK_FLAGS "-Wl,--start-group")
+		endif()	
 	endif()
 
 endmacro()
+
+
 
 # //////////////////////////////////////////////////////////////////////////
 macro(FindGitRevision)
@@ -405,12 +335,11 @@ macro(AddCTest Name Command WorkingDirectory)
 endmacro()
 
 
-
-
 # ///////////////////////////////////////////////////
 macro(AddLibrary Name)
 
 	add_library(${Name} ${ARGN})
+	SetupCommonCompileOptions(${Name})
 
 	set_target_properties(${Name} PROPERTIES FOLDER "${CMAKE_FOLDER_PREFIX}")
 
@@ -420,28 +349,70 @@ macro(AddLibrary Name)
 
 	target_include_directories(${Name}  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 
-	if (WIN32)
-	 	set_target_properties(${Name}
-	      PROPERTIES
-	      COMPILE_PDB_NAME_DEBUG          ${Name}
-	      COMPILE_PDB_NAME_RELEASE        ${Name}
-	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
-	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
-	endif()
-	
-	# python lib is not linked
-	if (APPLE)
-		set_target_properties(${Name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
-	endif()	
-	
+	IgnoreUndefinedSymbols(${Name})
 
 	InstallLibrary(${Name})
+endmacro()
+
+
+
+# ///////////////////////////////////////////////////
+macro(AddSwigLibrary NamePy SwigFile)
+
+  find_package(SWIG REQUIRED)
+  include(${SWIG_USE_FILE})
+  set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
+  set(CMAKE_SWIG_FLAGS "")
+  
+  set(SWIG_FLAGS "${ARGN}")
+  set(SWIG_FLAGS "${SWIG_FLAGS};-threads")
+  set(SWIG_FLAGS "${SWIG_FLAGS};-extranative")
+
+	#prevents rebuild every time make is called
+	set_property(SOURCE ${SwigFile} PROPERTY SWIG_MODULE_NAME ${NamePy})
+	
+	set_source_files_properties(${SwigFile} PROPERTIES CPLUSPLUS ON)
+	set_source_files_properties(${SwigFile} PROPERTIES SWIG_FLAGS  "${SWIG_FLAGS}")
+
+	if (CMAKE_VERSION VERSION_LESS "3.8")
+		swig_add_module(${NamePy} python ${SwigFile})
+	else()
+		swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
+	endif()
+
+  set(Name ${NamePy})
+	if (TARGET _${NamePy})
+	  set(Name _${NamePy})
+	endif()
+	
+	SetupCommonCompileOptions(${Name})
+	set_target_properties(${Name} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
+	target_include_directories(${Name} PRIVATE ${NUMPY_INCLUDE_DIR})
+	
+	# disable warnings
+	if (WIN32)
+		target_compile_definitions(${Name}  PRIVATE /W0)
+	else()
+		set_target_properties(${Name} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
+	endif()
+	
+	# python needs a _d for debug
+	if (WIN32)
+		set_target_properties(${Name} PROPERTIES 
+			DEBUG_POSTFIX  "_d" 
+			COMPILE_PDB_NAME_DEBUG ${Name}_d)
+	endif()
+	
+	IgnoreUndefinedSymbols(${Name})
+	InstallLibrary(${Name})
+	
 endmacro()
 
 # ///////////////////////////////////////////////////
 macro(AddExecutable Name)
 
 	add_executable(${Name} ${ARGN})
+	SetupCommonCompileOptions(${Name})
 
 	set_target_properties(${Name} PROPERTIES FOLDER "${CMAKE_FOLDER_PREFIX}Executable/")
 	
@@ -454,6 +425,7 @@ macro(AddExecutable Name)
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
 	endif()
 	
+  ResolveCyclicDependencies(${Name})
 	InstallExecutable(${Name})
 	
 endmacro()

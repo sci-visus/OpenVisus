@@ -241,12 +241,12 @@ endif()
 
 # for apple and linux I'm linking python only for Executables (or final shared dll such as  mod_visus) 
 # otherwise I'm going to have multiple libpython in the same process
-# with the error message: PyThreadState_Get: no current thread	
+# with the error message: PyThreadState_Get: no current thread
+# see VisusMacros.cmake IgnoreUndefinedSymbols and ResolveCyclicDependencies
 if (WIN32)
 	target_link_libraries(VisusKernel PUBLIC OpenVisus::Python)
 else()
 	target_include_directories(VisusKernel PUBLIC ${PYTHON_INCLUDE_DIRS})
-	
 endif()
 
 if(WIN32)
