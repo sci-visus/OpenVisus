@@ -247,8 +247,6 @@ if (WIN32)
 else()
 	target_include_directories(VisusKernel PUBLIC ${PYTHON_INCLUDE_DIRS})
 	
-	# this is to force the correct order
-	add_dependencies(VisusKernel OpenVisus::Python) 
 endif()
 
 if(WIN32)
