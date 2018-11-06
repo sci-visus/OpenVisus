@@ -1,6 +1,8 @@
 #!/bin/bash
 set -ex
 
+mkdir -p /tmp
+
 #  install patchelf
 curl -L https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz -o /tmp/patchelf-0.9.tar.gz
 cd /tmp
