@@ -6,14 +6,12 @@ set(CMAKE_CXX_STANDARD 11)
 
 find_package(OpenVisus REQUIRED)
 
-file(GLOB Sources *.h *.cpp)
-
 if (APPLE)
   set(EXECUTABLE_TYPE "MACOSX_BUNDLE")
 endif()
 
+file(GLOB Sources *.h *.cpp)
 add_executable(simple_viewer2d ${EXECUTABLE_TYPE} ${Sources})
-
-target_link_libraries(simple_viewer2d PUBLIC OpenVisus::AppKit OpenVisus::Python)
+target_link_libraries(simple_viewer2d PUBLIC OpenVisus::AppKit)
 
   

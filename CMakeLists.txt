@@ -54,18 +54,14 @@ endif()
 option(VISUS_GUI "Enable gui" TRUE)  
 
 IF (VISUS_GUI)
-
 	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED)
-
 	mark_as_advanced(Qt5Core_DIR)
 	mark_as_advanced(Qt5Gui_DIR)
 	mark_as_advanced(Qt5OpenGL_DIR)
 	mark_as_advanced(Qt5Widgets_DIR)
-
 	if (WIN32)
 		string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
 	endif()
-	
 endif()
 
 
@@ -87,17 +83,14 @@ SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
 # *** zlib ***
 
 SetIfNotDefined(VISUS_INTERNAL_ZLIB ${VISUS_INTERNAL_DEFAULT})
-
 if (VISUS_INTERNAL_ZLIB)
 	MESSAGE(STATUS "Using internal zlib")
 else()
-	
 	# i'm assuming brew here
 	if (APPLE)
 		SetIfNotDefined(ZLIB_INCLUDE_DIR /usr/local/opt/zlib/include)
 		SetIfNotDefined(ZLIB_LIBRARY     /usr/local/opt/zlib/lib/libz.dylib)
 	endif()
-
 	find_package(ZLIB REQUIRED)
 	MESSAGE(STATUS "Using external zlib")
 	message(STATUS "ZLIB_INCLUDE_DIRS ${ZLIB_INCLUDE_DIRS}")
@@ -108,19 +101,15 @@ endif()
 # *** lz4 ***
 
 SetIfNotDefined(VISUS_INTERNAL_LZ4 ${VISUS_INTERNAL_DEFAULT})
-
 if (VISUS_INTERNAL_LZ4)
 	MESSAGE(STATUS "Using internal lz4")
 else()
-
 	# i'm assuming brew here
 	if (APPLE)
 		SetIfNotDefined(LZ4_INCLUDE_DIR /usr/local/opt/lz4/include)
 		SetIfNotDefined(LZ4_LIBRARY     /usr/local/opt/lz4/lib/liblz4.dylib)
 	endif()
-
 	find_package(LZ4 REQUIRED)
-	
 	MESSAGE(STATUS "Using external lz4")
 	message(STATUS "LZ4_INCLUDE_DIR ${LZ4_INCLUDE_DIR}")
 	message(STATUS "LZ4_LIBRARY     ${LZ4_LIBRARY}")
@@ -130,17 +119,14 @@ endif()
 # *** TinyXML ***
 
 SetIfNotDefined(VISUS_INTERNAL_TINYXML ${VISUS_INTERNAL_DEFAULT})
-
 if (VISUS_INTERNAL_TINYXML)
 	MESSAGE(STATUS "Using internal TynyXML")
 else()
-
 	# i'm assuming brew here
 	if (APPLE)
 		SetIfNotDefined(TinyXML_INCLUDE_DIR /usr/local/opt/tinyxml/include)
 		SetIfNotDefined(TinyXML_LIBRARY     /usr/local/opt/tinyxml/lib/libtinyxml.dylib)
 	endif()
-
 	find_package(TinyXML REQUIRED)
 	MESSAGE(STATUS "Using external TynyXML")
 	message(STATUS "TinyXML_INCLUDE_DIRS ${TinyXML_INCLUDE_DIRS}")
@@ -151,18 +137,14 @@ endif()
 # *** FreeImage ***
 
 SetIfNotDefined(VISUS_INTERNAL_FREEIMAGE ${VISUS_INTERNAL_DEFAULT})
-
-
 if (VISUS_INTERNAL_FREEIMAGE)
 	MESSAGE(STATUS "Using internal FreeImage")
 else()
-
 	# i'm assuming brew here
 	if (APPLE)
 		SetIfNotDefined(FREEIMAGE_INCLUDE_DIRS /usr/local/opt/freeimage/include)
 		SetIfNotDefined(FREEIMAGE_LIBRARIES    /usr/local/opt/freeimage/lib/libfreeimage.dylib)
 	endif()
-	
 	find_package(FreeImage REQUIRED)
 	MESSAGE(STATUS "Using external FreeImage")
 	message(STATUS "FREEIMAGE_INCLUDE_DIRS ${FREEIMAGE_INCLUDE_DIRS}")
@@ -181,25 +163,20 @@ endif()
 if (VISUS_INTERNAL_OPENSSL)
 	MESSAGE(STATUS "Using internal OpenSSL")
 else()
-
 	if (UNIX AND (NOT APPLE))
 		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/FixFindOpenSSL)
 	endif()
-
 	# i'm assuming brew here	
 	if (APPLE)
 		SetIfNotDefined(OPENSSL_INCLUDE_DIR    /usr/local/opt/openssl/include)
 		SetIfNotDefined(OPENSSL_CRYPTO_LIBRARY /usr/local/opt/openssl/lib/libcrypto.dylib)
 		SetIfNotDefined(OPENSSL_SSL_LIBRARY    /usr/local/opt/openssl/lib/libssl.dylib)	
 	endif()
-	
 	find_package(OpenSSL REQUIRED)
-		
 	MESSAGE(STATUS "Using external OpenSSL")
 	message(STATUS "OPENSSL_INCLUDE_DIR    ${OPENSSL_INCLUDE_DIR}")
 	message(STATUS "OPENSSL_CRYPTO_LIBRARY ${OPENSSL_CRYPTO_LIBRARY}")
 	message(STATUS "OPENSSL_SSL_LIBRARY    ${OPENSSL_SSL_LIBRARY}")
-	
 endif()
 
 # ______________________________________________
@@ -210,15 +187,12 @@ SetIfNotDefined(VISUS_INTERNAL_CURL ${VISUS_INTERNAL_DEFAULT})
 if (VISUS_INTERNAL_CURL)
 	MESSAGE(STATUS "Using internal Curl")
 else()
-
 	# i'm assuming brew here
 	if (APPLE)
 		SetIfNotDefined(CURL_INCLUDE_DIR /usr/local/opt/curl/include)
 		SetIfNotDefined(CURL_LIBRARY     /usr/local/opt/curl/lib/libcurl.dylib)
 	endif()
-
 	find_package(CURL REQUIRED)
-	
 	# see https://github.com/Microsoft/vcpkg/issues/1909
  	if (VCPKG)
 		list(LENGTH CURL_LIBRARY CURL_LIBRARY_LENGTH)
@@ -232,85 +206,23 @@ else()
 			set(CURL_LIBRARIES ${CURL_LIBRARY})
 		endif()
   endif()	
-  
-  MESSAGE(STATUS "Using external Curl")
+  message(STATUS "Using external Curl")
   message(STATUS "CURL_INCLUDE_DIR ${CURL_INCLUDE_DIR}")
 	message(STATUS "CURL_LIBRARIES   ${CURL_LIBRARIES}")
-  
 endif()
 
 # ______________________________________________
 # *** python
 
-SetIfNotDefined(PYTHON_VERSION 3)
-
-find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
-find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)	
-
-message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
-message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
-message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
-
-add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
-set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
-
-if (WIN32)
-
-
-	list(LENGTH PYTHON_LIBRARY __n__)
-	if (${__n__} EQUAL 1)
-	
-		set(PYTHON_DEBUG_LIBRARY     ${PYTHON_LIBRARY})
-		set(PYTHON_RELEASE_LIBRARY   ${PYTHON_LIBRARY})
-	
-	else()
-	
-	   # differentiate debug from release
-	   # example debug;aaaa;optimized;bbb
-    	list(FIND PYTHON_LIBRARY optimized __index__)
-    	if (${__index__} EQUAL -1)
-    		MESSAGE(ERROR "Problem with find python")
-    	endif()
-    	math(EXPR __next_index__ "${__index__}+1")
-    	list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
-    	
-    	list(FIND PYTHON_LIBRARY debug __index__)
-    	if (${__index__} EQUAL -1)
-    		MESSAGE(ERROR "Problem with find python")
-    	endif()
-    	math(EXPR __next_index__ "${__index__}+1")
-    	list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_DEBUG_LIBRARY)
-    	
-  	endif()
-  	
-  	set_target_properties(OpenVisus::Python PROPERTIES
-		IMPORTED_IMPLIB_DEBUG           ${PYTHON_DEBUG_LIBRARY}
-		IMPORTED_IMPLIB_RELEASE         ${PYTHON_RELEASE_LIBRARY}
-		IMPORTED_IMPLIB_RELWITHDEBINFO  ${PYTHON_RELEASE_LIBRARY})  	
-		
-else()
-	set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
-endif()
-
-
-# PYTHON_SITE_PACKAGES_DIR
-EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE}  -c  "import site;print(site.getsitepackages()[-1])"  OUTPUT_VARIABLE PYTHON_SITE_PACKAGES_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
-message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
-
-# numpy 
-find_package(NumPy REQUIRED)
+FindPythonLibrary()
 
 add_subdirectory(InternalLibs)
 add_subdirectory(Libs)
 add_subdirectory(Executable)
 
-
 # //////////////////////////////////////////////////////////////
-# *** samples and external apps ***
+# *** testing and external apps ***
 if (1)
-
-	# samples
-	add_subdirectory(Samples)
 
 	# testing
 	enable_testing()
@@ -320,13 +232,15 @@ if (1)
   AddCTest(VisusTestPyIdx      ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py)
 	
   # disabled: takes too much time, in case you modify some core IDX class you can run it manually
-  # AddCTest(VisusTestIdx      $<TARGET_FILE:visus> ${CMAKE_CURRENT_SOURCE_DIR}  --test-idx --max-seconds 300)
+  if (0)
+  	AddCTest(VisusTestIdx      $<TARGET_FILE:visus> ${CMAKE_CURRENT_SOURCE_DIR}  --test-idx --max-seconds 300)
+  endif()
 	
 	# external app
-	AddExternalApp(external_simple_query ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query ${CMAKE_BINARY_DIR}/Samples/simple_query)
+	AddExternalApp(simple_query ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query ${CMAKE_BINARY_DIR}/Samples/simple_query)
 
 	if (VISUS_GUI)
-		AddExternalApp(external_simple_viewer2d ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_viewer2d ${CMAKE_BINARY_DIR}/Samples/simple_viewer2d)
+		AddExternalApp(simple_viewer2d ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_viewer2d ${CMAKE_BINARY_DIR}/Samples/simple_viewer2d)
 	endif()
 
 endif()

@@ -5,7 +5,5 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 FILE(GLOB Sources *.cpp *.h)
 AddExecutable(visusviewer ${Sources})
-
-
-target_link_libraries(visusviewer PUBLIC VisusAppKit OpenVisus::Python)
+target_link_libraries(visusviewer PUBLIC VisusAppKit)
 

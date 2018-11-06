@@ -1,4 +1,24 @@
 
+
+# //////////////////////////////////////////////////////////////////////////
+macro(ForceUnset name)
+	unset(${name} CACHE)
+	unset(${name})
+endmacro()
+
+# //////////////////////////////////////////////////////////////////////////
+macro(ForceSet name value)
+	ForceUnset(${name})
+	set(${name} ${value)
+endmacro()
+
+# ///////////////////////////////////////////////
+macro(SetIfNotDefined name value)
+	if (NOT DEFINED ${name})
+		set(${name} ${value})
+	endif()
+endmacro()
+
 # //////////////////////////////////////////////////////////////////////////
 macro(DetectOsxVersion)
 
@@ -31,16 +51,6 @@ macro(DetectOsxVersion)
 	message(STATUS "APPLE_OSX_VERSION ${APPLE_OSX_VERSION}") 
 
 endmacro()
-
-# ///////////////////////////////////////////////
-macro(SetIfNotDefined name value)
-
-	if (NOT DEFINED ${name})
-		set(${name} ${value})
-	endif()
-
-endmacro()
-
 
 
 # //////////////////////////////////////////////////////////////////////////
@@ -94,13 +104,11 @@ endmacro()
 macro(SetupCommonCompileOptions Name)
 
 	if (WIN32)
-	
+
 		target_compile_options(${Name} PRIVATE /MP)
 		target_compile_options(${Name} PRIVATE /bigobj)		
-		
 		# see http://msdn.microsoft.com/en-us/library/windows/desktop/ms683219(v=vs.85).aspx
 		target_compile_options(${Name} PRIVATE -DPSAPI_VERSION=1)
-
 		target_compile_options(${Name} PRIVATE -DFD_SETSIZE=4096)
 		target_compile_options(${Name} PRIVATE -D_CRT_SECURE_NO_WARNINGS)
 		target_compile_options(${Name} PRIVATE -DWIN32_LEAN_AND_MEAN)		
@@ -114,7 +122,6 @@ macro(SetupCommonCompileOptions Name)
 	
 		# enable 64 bit file support (see http://learn-from-the-guru.blogspot.it/2008/02/large-file-support-in-linux-for-cc.html)
 		target_compile_options(${Name} PRIVATE -D_FILE_OFFSET_BITS=64)
-		
 		# -Wno-attributes to suppress spurious "type attributes ignored after type is already defined" messages 
 		# see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
 		target_compile_options(${Name} PRIVATE -Wno-attributes")	
@@ -123,158 +130,46 @@ macro(SetupCommonCompileOptions Name)
 
 endmacro()
 
-# //////////////////////////////////////////////////////////////////////////
-macro(ForceUnset name)
-	unset(${name} CACHE)
-	unset(${name})
-endmacro()
-
 
 # //////////////////////////////////////////////////////////////////////////
 macro(FindOpenMP)
-
 	if (DISABLE_OPENMP)
-	
 		MESSAGE(STATUS "OpenMP disabled")	
-		
 	else()
-	
 		if (APPLE)
-		
 			# FindOpenMP.cmake seems broken, at least for me
 			# see https://iscinumpy.gitlab.io/post/omp-on-high-sierra/
-			
 			set(OpenMP_INCLUDE_DIR /usr/local/opt/libomp/include)
 			set(OpenMP_LIBRARY     /usr/local/opt/libomp/lib/libomp.a)
-		
 			if(EXISTS "${OpenMP_INCLUDE_DIR}/omp.h" AND EXISTS ${OpenMP_LIBRARY})
 				set(OpenMP_FOUND 1)
 				include_directories(${OpenMP_INCLUDE_DIR})
 				link_libraries(${OpenMP_LIBRARY})
 				set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}    -Xpreprocessor -fopenmp")
-				set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -Xpreprocessor -fopenmp")	
-
+				set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -Xpreprocessor -fopenmp")
 			else()
 				set(OpenMP_FOUND 0)
 			endif()
-			
 		else()
-		
-
 			find_package(OpenMP)
-		
 			if (OpenMP_FOUND)
 			 	set(CMAKE_C_FLAGS          "${CMAKE_C_FLAGS}          ${OpenMP_C_FLAGS}")
 				set(CMAKE_CXX_FLAGS        "${CMAKE_CXX_FLAGS}        ${OpenMP_CXX_FLAGS}")
 				set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 			endif()				
-		
 		endif()
-		
 		if (OpenMP_FOUND)
 			MESSAGE(STATUS "Found OpenMP")	
 		else()
 			MESSAGE(STATUS "OpenMP not found")
 		endif()	
-		
-	endif()
-	
-
-endmacro()
-
-
-
-# //////////////////////////////////////////////////////////////////////////
-macro(Win32AddImportedLibrary name include_dir debug_lib release_lib debug_dlls release_dlls)
-	add_library(${name} SHARED IMPORTED GLOBAL)
-	set_target_properties(${name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${include_dir}")
-	set_property(TARGET ${name} APPEND PROPERTY IMPORTED_CONFIGURATIONS "Debug;Release;RelWithDebInfo")
-	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_DEBUG           ${debug_lib})
-	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELEASE         ${release_lib})    
-	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO  ${release_lib}) 
-	
-	foreach(it ${debug_dlls})
-		file(COPY ${it} DESTINATION ${LIBRARY_OUTPUT_PATH}/Debug)
-	endforeach()
-	
-	foreach(it ${release_dlls})
-		file(COPY ${it} DESTINATION ${LIBRARY_OUTPUT_PATH}/RelWithDebInfo)
-		file(COPY ${it} DESTINATION ${LIBRARY_OUTPUT_PATH}/Release)
-	endforeach()	
-	
-endmacro()
-
-# //////////////////////////////////////////////////////////////////////////
-macro(Win32CopyDllToBuild target debug_dll release_dll)
-
-	ADD_CUSTOM_COMMAND(TARGET ${target} POST_BUILD COMMAND ${CMAKE_COMMAND}  -E 
-		$<$<CONFIG:Debug>:copy>  $<$<CONFIG:Debug>:${debug_dll}> $<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug>
-		$<$<CONFIG:Release>:echo>  $<$<CONFIG:Release>:"no command">
-		$<$<CONFIG:RelWithDebInfo>:echo> $<$<CONFIG:RelWithDebInfo>:"no command">
-	)
-		
-	ADD_CUSTOM_COMMAND(TARGET ${target} POST_BUILD COMMAND  ${CMAKE_COMMAND}  -E 
-		$<$<CONFIG:Debug>:echo>  $<$<CONFIG:Debug>:"no command">
-		$<$<CONFIG:Release>:copy> $<$<CONFIG:Release>:${release_dll}> $<$<CONFIG:Release>:${LIBRARY_OUTPUT_PATH}/Release>
-		$<$<CONFIG:RelWithDebInfo>:echo> $<$<CONFIG:RelWithDebInfo>:"no command">
-	)
-		
-	ADD_CUSTOM_COMMAND(TARGET ${target} POST_BUILD COMMAND  ${CMAKE_COMMAND}  -E 
-		$<$<CONFIG:Debug>:echo>  $<$<CONFIG:Debug>:"no command">
-		$<$<CONFIG:Release>:echo> $<$<CONFIG:Release>:"no command">
-		$<$<CONFIG:RelWithDebInfo>:copy> $<$<CONFIG:RelWithDebInfo>:${release_dll}> $<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo>
-	)		
-		
-endmacro()
-
-# ///////////////////////////////////////////////////
-macro(IgnoreUndefinedSymbols Name)
-	if (NOT WIN32)
-		if (APPLE)
-			set_target_properties(${Name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
-		else()
-			set_target_properties(${Name} PROPERTIES LINK_FLAGS "-Wl,--unresolved-symbols=ignore-all")
-		endif()	
 	endif()
 endmacro()
-
-
-# ///////////////////////////////////////////////////
-macro(ResolveCyclicDependencies Name)
-
-	if (NOT WIN32)
-		if (APPLE)
-			# seems XCode does it automatically, good job
-		else()
-			set_target_properties(${Name} PROPERTIES LINK_FLAGS "-Wl,--start-group")
-		endif()	
-	endif()
-
-endmacro()
-
-
-
-# //////////////////////////////////////////////////////////////////////////
-macro(FindGitRevision)
-	find_program(GIT_CMD git REQUIRED)
-	find_package_handle_standard_args(GIT REQUIRED_VARS GIT_CMD)
-	execute_process(COMMAND ${GIT_CMD} rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} OUTPUT_VARIABLE GIT_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
-	message(STATUS "Current GIT_REVISION ${GIT_REVISION}")
-endmacro()
-
-# //////////////////////////////////////////////////////////////////////////
-macro(FindVCPKGDir)
-	set(VCPKG_DIR ${CMAKE_TOOLCHAIN_FILE}/../../../installed/${VCPKG_TARGET_TRIPLET})
-	get_filename_component(VCPKG_DIR ${VCPKG_DIR} REALPATH)	
-endmacro()
-
 
 # /////////////////////////////////////////////////////////////
 macro(DisableAllWarnings)
-
 	set(CMAKE_C_WARNING_LEVEL   0)
 	set(CMAKE_CXX_WARNING_LEVEL 0)
-	
 	if(WIN32)
 		set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   /W0")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W0")
@@ -284,77 +179,105 @@ macro(DisableAllWarnings)
 	endif()
 endmacro()
 
-
-
-# //////////////////////////////////////////////////////////////////////////
-macro(AddExternalApp name SourceDir BinaryDir)
-
-	if (WIN32 OR APPLE)
-		set(CMAKE_GENERATOR_ARGUMENT -G"${CMAKE_GENERATOR}")
+# ///////////////////////////////////////////////////
+macro(FindPythonLibrary)
+	SetIfNotDefined(PYTHON_VERSION 3)
+	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
+	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)	
+	message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
+	message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
+	message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
+	
+	add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
+	set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
+	if (WIN32)
+		list(LENGTH PYTHON_LIBRARY __n__)
+		if (${__n__} EQUAL 1)
+			set(PYTHON_DEBUG_LIBRARY     ${PYTHON_LIBRARY})
+			set(PYTHON_RELEASE_LIBRARY   ${PYTHON_LIBRARY})
+		else()
+		   # differentiate debug from release
+		   # example debug;aaaa;optimized;bbb
+	    	list(FIND PYTHON_LIBRARY optimized __index__)
+	    	if (${__index__} EQUAL -1)
+	    		MESSAGE(ERROR "Problem with find python")
+	    	endif()
+	    	math(EXPR __next_index__ "${__index__}+1")
+	    	list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
+	    	
+	    	list(FIND PYTHON_LIBRARY debug __index__)
+	    	if (${__index__} EQUAL -1)
+	    		MESSAGE(ERROR "Problem with find python")
+	    	endif()
+	    	math(EXPR __next_index__ "${__index__}+1")
+	    	list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_DEBUG_LIBRARY)
+	  	endif()
+	  	set_target_properties(OpenVisus::Python PROPERTIES
+				IMPORTED_IMPLIB_DEBUG           ${PYTHON_DEBUG_LIBRARY}
+				IMPORTED_IMPLIB_RELEASE         ${PYTHON_RELEASE_LIBRARY}
+				IMPORTED_IMPLIB_RELWITHDEBINFO  ${PYTHON_RELEASE_LIBRARY})
 	else()
-		set(CMAKE_GENERATOR_ARGUMENT -G"\"${CMAKE_GENERATOR}\"")
+		set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
 	endif()
+	
 
-	add_custom_target(${name} 
-	          "${CMAKE_COMMAND}" -E echo "Running ${name} ..."
-		COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DQt5_DIR="${Qt5_DIR}" -DOpenVisus_DIR=${CMAKE_INSTALL_PREFIX}
-		COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/" --config ${CMAKE_BUILD_TYPE})
-		
-	set_target_properties(${name} PROPERTIES FOLDER CMakeTargets/)
+	EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE}  -c  "import site;print(site.getsitepackages()[-1])"  OUTPUT_VARIABLE PYTHON_SITE_PACKAGES_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+	message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
+
+	find_package(NumPy REQUIRED)
 
 endmacro()
 
-
-# //////////////////////////////////////////////////////////////////////////
-macro(AddCTest Name Command WorkingDirectory)
-
-	add_test(NAME ${Name} WORKING_DIRECTORY "${WorkingDirectory}" COMMAND "${Command}" ${ARGN})
-
-	set(options "CTEST_OUTPUT_ON_FAILURE=1")
-	
-	if (CMAKE_CONFIGURATION_TYPES)
-		list(APPEND __options__ "PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
-	else()
-		list(APPEND __options__ "PYTHONPATH=${CMAKE_BINARY_DIR}")
-	endif()
-
+# ///////////////////////////////////////////////////
+macro(LinkPythonToLibrary Name)
 	if (WIN32)
-	
-		if (VISUS_GUI)
-			list(APPEND __options__ "PATH=${Qt5_DIR}\\..\\..\\..\\bin")
-		endif()
-		
-	elseif(APPLE)
-
+		target_link_libraries(${Name} PUBLIC OpenVisus::Python)
 	else()
-		list(APPEND __OPTIONS__ "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}")
+		# for apple and linux I'm linking python only for Executables (or final shared dll such as  mod_visus) 
+		# otherwise I'm going to have multiple libpython in the same process
+		# with the error message: PyThreadState_Get: no current thread
+		target_include_directories(${Name} PUBLIC ${PYTHON_INCLUDE_DIRS})
+		if (APPLE)
+			set_target_properties(${Name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
+		else()
+			set_target_properties(${Name} PROPERTIES LINK_FLAGS "-Wl,--unresolved-symbols=ignore-all")
+		endif()
 	endif()
 	
-	set_tests_properties(${Name} PROPERTIES ENVIRONMENT "${__options__}")
+endmacro()
 
+# ///////////////////////////////////////////////////
+macro(LinkPythonToExecutable Name)
+	# for apple and nix I need to link python (I do also for windows just because it does not hurt anyone)
+	# for nix is trickier since the linking order is important
+	# the "-Wl,--start-group" does not always work (for example in travis)
+	# see http://cmake.3232098.n2.nabble.com/Link-order-Ubuntu-tt7598592.html
+	# i found this trick: VisusKernel should appear always before python
+	target_link_libraries(${Name} PUBLIC $<TARGET_FILE:VisusKernel> OpenVisus::Python)
 endmacro()
 
 
 # ///////////////////////////////////////////////////
 macro(AddLibrary Name)
-
 	add_library(${Name} ${ARGN})
 	SetupCommonCompileOptions(${Name})
-
 	set_target_properties(${Name} PROPERTIES FOLDER "${CMAKE_FOLDER_PREFIX}")
-
 	string(TOUPPER ${Name} __upper_case__name__)
-
 	target_compile_definitions(${Name}  PRIVATE VISUS_BUILDING_${__upper_case__name__}=1)
-
 	target_include_directories(${Name}  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
-
-	IgnoreUndefinedSymbols(${Name})
-
+	LinkPythonToLibrary(${Name})
 	InstallLibrary(${Name})
 endmacro()
 
 
+# ///////////////////////////////////////////////////
+macro(AddExecutable Name)
+	add_executable(${Name} ${ARGN})
+	SetupCommonCompileOptions(${Name})
+	set_target_properties(${Name} PROPERTIES FOLDER "${CMAKE_FOLDER_PREFIX}Executable/")
+	LinkPythonToExecutable(${Name})
+	InstallExecutable(${Name})
+endmacro()
 
 # ///////////////////////////////////////////////////
 macro(AddSwigLibrary NamePy SwigFile)
@@ -403,33 +326,10 @@ macro(AddSwigLibrary NamePy SwigFile)
 			COMPILE_PDB_NAME_DEBUG ${Name}_d)
 	endif()
 	
-	IgnoreUndefinedSymbols(${Name})
+	LinkPythonToLibrary(${Name})
 	InstallLibrary(${Name})
 	
 endmacro()
-
-# ///////////////////////////////////////////////////
-macro(AddExecutable Name)
-
-	add_executable(${Name} ${ARGN})
-	SetupCommonCompileOptions(${Name})
-
-	set_target_properties(${Name} PROPERTIES FOLDER "${CMAKE_FOLDER_PREFIX}Executable/")
-	
-	if (WIN32)
-	 	set_target_properties(${Name}
-	      PROPERTIES
-	      COMPILE_PDB_NAME_DEBUG          ${Name}
-	      COMPILE_PDB_NAME_RELEASE        ${Name}
-	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
-	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
-	endif()
-	
-  ResolveCyclicDependencies(${Name})
-	InstallExecutable(${Name})
-	
-endmacro()
-
 
 # ///////////////////////////////////////////////////
 macro(InstallLibrary Name)
@@ -506,5 +406,105 @@ macro(InstallBuildFiles Pattern Destination)
 endmacro()
 
 
+# //////////////////////////////////////////////////////////////////////////
+macro(AddExternalApp name SourceDir BinaryDir)
+	if (WIN32 OR APPLE)
+		set(CMAKE_GENERATOR_ARGUMENT -G"${CMAKE_GENERATOR}")
+	else()
+		set(CMAKE_GENERATOR_ARGUMENT -G"\"${CMAKE_GENERATOR}\"")
+	endif()
+	add_custom_target(${name} 
+	          "${CMAKE_COMMAND}" -E echo "Running ${name} ..."
+		COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DQt5_DIR="${Qt5_DIR}" -DOpenVisus_DIR=${CMAKE_INSTALL_PREFIX}
+		COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/" --config ${CMAKE_BUILD_TYPE})
+	set_target_properties(${name} PROPERTIES FOLDER CMakeTargets/)
+endmacro()
 
 
+# //////////////////////////////////////////////////////////////////////////
+macro(AddCTest Name Command WorkingDirectory)
+
+	add_test(NAME ${Name} WORKING_DIRECTORY "${WorkingDirectory}" COMMAND "${Command}" ${ARGN})
+
+	set(options "CTEST_OUTPUT_ON_FAILURE=1")
+	
+	if (CMAKE_CONFIGURATION_TYPES)
+		list(APPEND __options__ "PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
+	else()
+		list(APPEND __options__ "PYTHONPATH=${CMAKE_BINARY_DIR}")
+	endif()
+
+	if (WIN32)
+	
+		if (VISUS_GUI)
+			list(APPEND __options__ "PATH=${Qt5_DIR}\\..\\..\\..\\bin")
+		endif()
+		
+	elseif(APPLE)
+
+	else()
+		list(APPEND __OPTIONS__ "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}")
+	endif()
+	
+	set_tests_properties(${Name} PROPERTIES ENVIRONMENT "${__options__}")
+
+endmacro()
+
+
+
+# //////////////////////////////////////////////////////////////////////////
+macro(Win32AddImportedLibrary name include_dir debug_lib release_lib debug_dlls release_dlls)
+	add_library(${name} SHARED IMPORTED GLOBAL)
+	set_target_properties(${name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${include_dir}")
+	set_property(TARGET ${name} APPEND PROPERTY IMPORTED_CONFIGURATIONS "Debug;Release;RelWithDebInfo")
+	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_DEBUG           ${debug_lib})
+	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELEASE         ${release_lib})    
+	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO  ${release_lib}) 
+	
+	foreach(it ${debug_dlls})
+		file(COPY ${it} DESTINATION ${LIBRARY_OUTPUT_PATH}/Debug)
+	endforeach()
+	
+	foreach(it ${release_dlls})
+		file(COPY ${it} DESTINATION ${LIBRARY_OUTPUT_PATH}/RelWithDebInfo)
+		file(COPY ${it} DESTINATION ${LIBRARY_OUTPUT_PATH}/Release)
+	endforeach()	
+	
+endmacro()
+
+# //////////////////////////////////////////////////////////////////////////
+macro(Win32CopyDllToBuild target debug_dll release_dll)
+
+	ADD_CUSTOM_COMMAND(TARGET ${target} POST_BUILD COMMAND ${CMAKE_COMMAND}  -E 
+		$<$<CONFIG:Debug>:copy>  $<$<CONFIG:Debug>:${debug_dll}> $<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug>
+		$<$<CONFIG:Release>:echo>  $<$<CONFIG:Release>:"no command">
+		$<$<CONFIG:RelWithDebInfo>:echo> $<$<CONFIG:RelWithDebInfo>:"no command">
+	)
+		
+	ADD_CUSTOM_COMMAND(TARGET ${target} POST_BUILD COMMAND  ${CMAKE_COMMAND}  -E 
+		$<$<CONFIG:Debug>:echo>  $<$<CONFIG:Debug>:"no command">
+		$<$<CONFIG:Release>:copy> $<$<CONFIG:Release>:${release_dll}> $<$<CONFIG:Release>:${LIBRARY_OUTPUT_PATH}/Release>
+		$<$<CONFIG:RelWithDebInfo>:echo> $<$<CONFIG:RelWithDebInfo>:"no command">
+	)
+		
+	ADD_CUSTOM_COMMAND(TARGET ${target} POST_BUILD COMMAND  ${CMAKE_COMMAND}  -E 
+		$<$<CONFIG:Debug>:echo>  $<$<CONFIG:Debug>:"no command">
+		$<$<CONFIG:Release>:echo> $<$<CONFIG:Release>:"no command">
+		$<$<CONFIG:RelWithDebInfo>:copy> $<$<CONFIG:RelWithDebInfo>:${release_dll}> $<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo>
+	)		
+		
+endmacro()
+
+# //////////////////////////////////////////////////////////////////////////
+macro(FindGitRevision)
+	find_program(GIT_CMD git REQUIRED)
+	find_package_handle_standard_args(GIT REQUIRED_VARS GIT_CMD)
+	execute_process(COMMAND ${GIT_CMD} rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} OUTPUT_VARIABLE GIT_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
+	message(STATUS "Current GIT_REVISION ${GIT_REVISION}")
+endmacro()
+
+# //////////////////////////////////////////////////////////////////////////
+macro(FindVCPKGDir)
+	set(VCPKG_DIR ${CMAKE_TOOLCHAIN_FILE}/../../../installed/${VCPKG_TARGET_TRIPLET})
+	get_filename_component(VCPKG_DIR ${VCPKG_DIR} REALPATH)	
+endmacro()
