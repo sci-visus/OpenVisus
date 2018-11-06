@@ -13,15 +13,13 @@ export PATH="$HOME/.pyenv/bin:$PATH"
 eval "$(pyenv init -)"
 eval "$(pyenv virtualenv-init -)"
 CONFIGURE_OPTS=--enable-shared pyenv install -s $PYTHON_VERSION    
-CONFIGURE_OPTS=--enable-shared pyenv global     $PYTHON_VERSION 
-sudo python -m pip install --upgrade pip
-sudo python -m pip install --upgrade numpy  
-
+CONFIGURE_OPTS=--enable-shared pyenv global     $PYTHON_VERSION
+python -m pip install numpy  
 PYTHON_SHORT_VERSION=${PYTHON_VERSION:0:3}
-if [[ ${PYTHON_VERSION:0:1} >= 3 ]] ; then PYTHON_M_EXT=m ; else PYTHON_M_EXT= ; fi
-PYTHON_EXECUTABLE=$HOME/.pyenv/versions/${PYTHON_VERSION}/bin/python
-PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/${PYTHON_VERSION}/include/python${PYTHON_SHORT_VERSION}${PYTHON_M_EXT}
-PYTHON_LIBRARY=$HOME/.pyenv/versions/${PYTHON_VERSION}/lib/libpython${PYTHON_SHORT_VERSION}${PYTHON_M_EXT}.dylib
+if [[ ${PYTHON_VERSION:0:1} > 2 ]] ; then PYTHON_M_EXT=m ; else PYTHON_M_EXT= ; fi
+PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python
+PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_SHORT_VERSION}${PYTHON_M_EXT}
+PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_SHORT_VERSION}${PYTHON_M_EXT}.dylib
 
 # this is to solve logs too long 
 gem install xcpretty   

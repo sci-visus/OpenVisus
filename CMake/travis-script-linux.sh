@@ -3,6 +3,24 @@ set -ex
 
 mkdir -p /tmp
 
+# install python
+cd $HOME     
+curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer -O 
+chmod a+x pyenv-installer 
+./pyenv-installer 
+rm ./pyenv-installer 
+export PATH="$HOME/.pyenv/bin:$PATH"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
+CONFIGURE_OPTS=--enable-shared pyenv install -s $PYTHON_VERSION    
+CONFIGURE_OPTS=--enable-shared pyenv global     $PYTHON_VERSION
+python -m pip install numpy  
+PYTHON_SHORT_VERSION=${PYTHON_VERSION:0:3}
+if [[ ${PYTHON_VERSION:0:1} > 2 ]] ; then PYTHON_M_EXT=m ; else PYTHON_M_EXT= ; fi
+PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python
+PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_SHORT_VERSION}${PYTHON_M_EXT}
+PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_SHORT_VERSION}${PYTHON_M_EXT}.so
+
 #  install patchelf
 curl -L https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz -o /tmp/patchelf-0.9.tar.gz
 cd /tmp
@@ -16,20 +34,6 @@ export PATH=$PATH:/usr/local/bin
 sudo add-apt-repository -y ppa:deadsnakes/ppa
 sudo apt-get -qy update
 sudo apt-get -qy install --allow-unauthenticated swig3.0 git cmake libssl-dev uuid-dev qt5-default qttools5-dev-tools libx11-xcb1 
-
-# install python
-sudo apt-get -qy install --allow-unauthenticated python${PYTHON_VERSION} python${PYTHON_VERSION}-dev
-
-curl -L https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
-sudo -H python${PYTHON_VERSION} /tmp/get-pip.py
-sudo -H python${PYTHON_VERSION} -m pip install --upgrade pip
-sudo -H python${PYTHON_VERSION} -m pip install --upgrade numpy
-
-PYTHON_SHORT_VERSION=${PYTHON_VERSION:0:3}
-if [[ ${PYTHON_VERSION:0:1} >= 3 ]] ; then PYTHON_M_EXT=m ; else PYTHON_M_EXT= ; fi
-PYTHON_EXECUTABLE=/usr/bin/python${PYTHON_SHORT_VERSION}
-PYTHON_INCLUDE_DIR=/usr/include/python${PYTHON_SHORT_VERSION}${PYTHON_M_EXT}
-PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython${PYTHON_SHORT_VERSION}${PYTHON_M_EXT}.so
 
 # install qt 5.9.1
 sudo add-apt-repository ppa:beineri/opt-qt591-trusty -y; 
