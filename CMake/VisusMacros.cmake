@@ -105,26 +105,26 @@ macro(SetupCommonCompileOptions Name)
 
 	if (WIN32)
 
-		target_compile_options(${Name} PRIVATE "/MP")
-		target_compile_options(${Name} PRIVATE "/bigobj")		
+		target_compile_options(${Name} PRIVATE /MP)
+		target_compile_options(${Name} PRIVATE /bigobj)		
 		# see http://msdn.microsoft.com/en-us/library/windows/desktop/ms683219(v=vs.85).aspx
-		target_compile_options(${Name} PRIVATE "-DPSAPI_VERSION=1")
-		target_compile_options(${Name} PRIVATE "-DFD_SETSIZE=4096")
-		target_compile_options(${Name} PRIVATE "-D_CRT_SECURE_NO_WARNINGS")
-		target_compile_options(${Name} PRIVATE "-DWIN32_LEAN_AND_MEAN")		
+		target_compile_options(${Name} PRIVATE -DPSAPI_VERSION=1)
+		target_compile_options(${Name} PRIVATE -DFD_SETSIZE=4096)
+		target_compile_options(${Name} PRIVATE -D_CRT_SECURE_NO_WARNINGS)
+		target_compile_options(${Name} PRIVATE -DWIN32_LEAN_AND_MEAN)		
 		
 	elseif (APPLE)
 	
 		# suppress some warnings
-		target_compile_options(${Name} PRIVATE  "-Wno-unused-variable -Wno-reorder")	
+		target_compile_options(${Name} PRIVATE  -Wno-unused-variable -Wno-reorder)	
 	
 	else()
 	
 		# enable 64 bit file support (see http://learn-from-the-guru.blogspot.it/2008/02/large-file-support-in-linux-for-cc.html)
-		target_compile_options(${Name} PRIVATE "-D_FILE_OFFSET_BITS=64")
+		target_compile_options(${Name} PRIVATE -D_FILE_OFFSET_BITS=64)
 		# -Wno-attributes to suppress spurious "type attributes ignored after type is already defined" messages 
 		# see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
-		target_compile_options(${Name} PRIVATE "-Wno-attributes")	
+		target_compile_options(${Name} PRIVATE -Wno-attributes)	
 	
 	endif()
 

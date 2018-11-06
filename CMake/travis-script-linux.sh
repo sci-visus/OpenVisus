@@ -15,13 +15,21 @@ export PATH=$PATH:/usr/local/bin
 #  install linux dependencies
 sudo add-apt-repository -y ppa:deadsnakes/ppa
 sudo apt-get -qy update
-sudo apt-get -qy install --allow-unauthenticated swig3.0 git cmake libssl-dev uuid-dev qt5-default qttools5-dev-tools libx11-xcb1 python${PYTHON_VERSION} python${PYTHON_VERSION}-dev
+sudo apt-get -qy install --allow-unauthenticated swig3.0 git cmake libssl-dev uuid-dev qt5-default qttools5-dev-tools libx11-xcb1 
 
-# install numpy
+# install python
+sudo apt-get -qy install --allow-unauthenticated python${PYTHON_VERSION} python${PYTHON_VERSION}-dev
+
 curl -L https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
 sudo -H python${PYTHON_VERSION} /tmp/get-pip.py
 sudo -H python${PYTHON_VERSION} -m pip install --upgrade pip
 sudo -H python${PYTHON_VERSION} -m pip install --upgrade numpy
+
+PYTHON_SHORT_VERSION=${PYTHON_VERSION:0:3}
+if [[ ${PYTHON_VERSION:0:1} >= 3 ]] ; then PYTHON_M_EXT=m ; else PYTHON_M_EXT= ; fi
+PYTHON_EXECUTABLE=/usr/bin/python${PYTHON_SHORT_VERSION}
+PYTHON_INCLUDE_DIR=/usr/include/python${PYTHON_SHORT_VERSION}${PYTHON_M_EXT}
+PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython${PYTHON_SHORT_VERSION}${PYTHON_M_EXT}.so
 
 # install qt 5.9.1
 sudo add-apt-repository ppa:beineri/opt-qt591-trusty -y; 
