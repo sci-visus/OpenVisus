@@ -39,7 +39,9 @@ sudo apt-get -qy install --allow-unauthenticated swig3.0 git cmake libssl-dev uu
 sudo add-apt-repository ppa:beineri/opt-qt591-trusty -y; 
 sudo apt-get update -qq
 sudo apt-get install -qq qt59base
-/opt/qt59/bin/qt59-env.sh  
+set +e # temporary disable exit
+source /opt/qt59/bin/qt59-env.sh 
+set -e 
 
 # Download and install recent cmake
 CMAKE_URL="http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
