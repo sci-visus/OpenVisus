@@ -105,7 +105,7 @@ macro(SetupCommonCompileOptions Name)
 		target_compile_options(${Name} PRIVATE -D_CRT_SECURE_NO_WARNINGS)
 		target_compile_options(${Name} PRIVATE -DWIN32_LEAN_AND_MEAN)		
 		
-	elif (APPLE)
+	elseif (APPLE)
 	
 		# suppress some warnings
 		target_compile_options(${Name} PRIVATE  -Wno-unused-variable -Wno-reorder")	
