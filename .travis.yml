@@ -26,42 +26,42 @@ matrix:
       osx_image: xcode9.4 #10.13
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=2.7.15,COMPILER=clang++,VISUS_INTERNAL_DEFAULT=0] 
+      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=2.7,COMPILER=clang++,VISUS_INTERNAL_DEFAULT=0] 
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.6.6,COMPILER=clang++,VISUS_INTERNAL_DEFAULT=0]                   
+      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.6,COMPILER=clang++,VISUS_INTERNAL_DEFAULT=0]                   
         
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.7.0,COMPILER=clang++,VISUS_INTERNAL_DEFAULT=0]
+      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.7,COMPILER=clang++,VISUS_INTERNAL_DEFAULT=0]
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=2.7.15,COMPILER=clang++,VISUS_INTERNAL_DEFAULT=0]   
+      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=2.7,COMPILER=clang++,VISUS_INTERNAL_DEFAULT=0]   
        
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.6.6,COMPILER=clang++,VISUS_INTERNAL_DEFAULT=0]    
+      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.6,COMPILER=clang++,VISUS_INTERNAL_DEFAULT=0]    
 
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.7.0,COMPILER=clang++,VISUS_INTERNAL_DEFAULT=0]     
+      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.7,COMPILER=clang++,VISUS_INTERNAL_DEFAULT=0]     
       
     # ///////////////////////////////// Ubuntu 14.04 
     
     - os: linux
       dist: trusty
       if: tag IS present
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7.15,VISUS_INTERNAL_DEFAULT=0]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,VISUS_INTERNAL_DEFAULT=0]
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -69,7 +69,7 @@ matrix:
           
     - os: linux
       dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,VISUS_INTERNAL_DEFAULT=0]       
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,VISUS_INTERNAL_DEFAULT=0]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -78,7 +78,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.7.0,VISUS_INTERNAL_DEFAULT=0]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.7,VISUS_INTERNAL_DEFAULT=0]
       addons: 
         apt:
           packages: ['g++-4.9']
