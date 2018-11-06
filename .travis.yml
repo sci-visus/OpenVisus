@@ -61,7 +61,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,VISUS_INTERNAL_DEFAULT=0]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7.15,VISUS_INTERNAL_DEFAULT=0]
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -69,7 +69,7 @@ matrix:
           
     - os: linux
       dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,VISUS_INTERNAL_DEFAULT=0]       
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,VISUS_INTERNAL_DEFAULT=0]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -78,16 +78,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.4,VISUS_INTERNAL_DEFAULT=0]
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']
-             
-    - os: linux
-      dist: trusty
-      if: tag IS present
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.5,VISUS_INTERNAL_DEFAULT=0]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.7.0,VISUS_INTERNAL_DEFAULT=0]
       addons: 
         apt:
           packages: ['g++-4.9']
