@@ -6,11 +6,14 @@ import glob
 import shutil
 import platform
 import errno
+import fnmatch
+import os
 
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 
 bVerbose=False
+
 
 	
 # /////////////////////////////////////////////////
@@ -76,6 +79,17 @@ def WriteTextFile(filename,content):
 	file = open(filename,"wt") 
 	file.write(content) 
 	file.close() 		
+
+# /////////////////////////////////////////////////
+# glob(,recursive=True) is not supported in python 2.x
+# see https://stackoverflow.com/questions/2186525/use-a-glob-to-find-files-recursively-in-python
+def recursiveGlob(rootdir='.', pattern='*'):
+  return [os.path.join(looproot, filename)
+          for looproot, _, filenames in os.walk(rootdir)
+          for filename in filenames
+          if fnmatch.fnmatch(filename, pattern)]
+
+
 	
 
 
@@ -134,8 +148,8 @@ class AppleDeployStep:
 	# findAllBinaries
 	def findAllBinaries(self):	
 		ret=[]
-		ret+=glob.glob("bin/**/*.dylib", recursive=True)
-		ret+=glob.glob("bin/**/*.so", recursive=True)
+		ret+=recursiveGlob('src', '*.dylib')
+		ret+=recursiveGlob('src', '*.so')
 		ret+=self.findApps()
 		ret+=self.findFrameworks()
 		return ret
