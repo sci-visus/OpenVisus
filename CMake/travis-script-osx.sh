@@ -1,6 +1,9 @@
 #!/bin/bash
 set -ex
 
+# if you want to use internal libraries (i.e. less dependencies, slower)
+VISUS_INTERNAL_DEFAULT=0
+
 mkdir -p /tmp
 
 # install python

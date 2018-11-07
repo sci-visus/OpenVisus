@@ -43,6 +43,9 @@ set +e # temporary disable exit
 source /opt/qt59/bin/qt59-env.sh 
 set -e 
 
+# if you want to use internal libraries (i.e. less dependencies, slower)
+VISUS_INTERNAL_DEFAULT=0
+
 # Download and install recent cmake
 CMAKE_URL="http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
 mkdir -p ${TRAVIS_BUILD_DIR}/deps/cmake
