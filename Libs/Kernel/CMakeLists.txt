@@ -190,7 +190,6 @@ else()
 	file(GLOB Sources include/Visus/*.h src/*.cpp)
 endif()
 
-
 AddLibrary(VisusKernel ${Sources})
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/dtl/include)
@@ -238,9 +237,6 @@ else()
 	target_include_directories(VisusKernel PRIVATE ${CURL_INCLUDE_DIR})
 	target_link_libraries(VisusKernel      PUBLIC ${CURL_LIBRARIES})
 endif()
-
-
-
 
 if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)

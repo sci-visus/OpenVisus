@@ -607,7 +607,7 @@ public:
   {
     VisusInfo()<<"initialiseInCurrentProcess";
 
-    RedirectLog=[this](const String& msg) {
+    RedirectLog=[](const String& msg) {
       ap_log_perror(APLOG_MARK, APLOG_NOTICE, 0, NULL, "%s", msg.c_str());
     };
 

@@ -82,15 +82,10 @@ python -m pip install  --user numpy OpenVisus
 ```
 
 And test it using the following command. 
-IMPORTANT (!) you will have to add some environment variables (such as `LD_LIBRARY_PATH`). 
-The `OpenVisus.check()` will tell you exactly what to add at the beginning of the exception message.
 
 ```
-python -c "import OpenVisus; OpenVisus.check()"
+python -c "import OpenVisus"
 ```
-
-
-
 
 
 ## Windows compilation
@@ -101,6 +96,15 @@ The fastest way is to use `chocolatey` i.e from an Administrator Prompt:
 ```
 @"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -InputFormat None -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"
 choco install -y -allow-empty-checksums git cmake swig 
+```
+
+Install [Python3.7] (https://www.python.org/ftp/python/3.7.0/python-3.7.0-amd64.exe)
+
+Make sure you have num python installed:
+
+```
+REM change path as needed
+c:\Python37\python.exe -m pip install --user numpy
 ```
 
 Install [Qt5](http://download.qt.io/official_releases/qt/5.9/5.9.2/qt-opensource-windows-x86-5.9.2.exe) 
@@ -120,11 +124,10 @@ set CMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
 set VCPKG_TARGET_TRIPLET=x64-windows
 ```
 
-otherwise (slow):
+otherwise you can use InternalLibs (slow):
 
 ```
-set CMAKE_TOOLCHAIN_FILE=
-set VCPKG_TARGET_TRIPLET=
+set VISUS_INTERNAL_DEFAULT=1
 ```
 
 Then:
@@ -136,8 +139,6 @@ cd projects
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 
-git submodule update --init win32/python37
-win32\python37\python.exe -m pip install --user --upgrade numpy 
 
 mkdir build
 cd build
@@ -251,7 +252,7 @@ cd install
 ./visusviewer.command      
 
 # OpenVisus extending python
-PYTHONPATH=$(pwd):$(pwd)/bin python -c "import OpenVisus; OpenVisus.check()"
+PYTHONPATH=$(pwd):$(pwd)/bin python -c "import OpenVisus"
 ```
 
 
@@ -319,7 +320,7 @@ To test if it's working:
 
 ```
 LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) ./visusviewer 
-LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) python3 -c "import OpenVisus; OpenVisus.check()"
+LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) python3 -c "import OpenVisus"
 ```
 
   
