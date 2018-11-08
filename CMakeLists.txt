@@ -274,43 +274,7 @@ if (True)
 	# swig generated files 
 	InstallBuildFiles(*.py ./)
 	
-	if (WIN32)
-		
-		set (__filename__ "${CMAKE_BINARY_DIR}/visus.bat")
-		file(WRITE    "${__filename__}" "cd /d %~dp0\r\n")
-		file(APPEND   "${__filename__}" "if EXIST %cd%\\win32\\Python (set PYTHON_DIR=%cd%\\win32\\Python) else (set PYTHON_DIR=%cd%\\..\\..\\..\\) \r\n")
-		file(APPEND   "${__filename__}" "set PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
-		file(APPEND   "${__filename__}" "%PYTHON_DIR%\\python.exe -m pip install --user --upgrade numpy\r\n")
-		file(APPEND   "${__filename__}" "set PATH=%PYTHON_DIR%;%cd%\\bin;%PATH%\r\n")
-      file(APPEND   "${__filename__}" "set PYTHONPATH=%PYTHON_DIR%\\lib\r\n")		
-		file(APPEND   "${__filename__}" "bin\\\\visus.exe %*\r\n")
-		install(FILES "${__filename__}"  DESTINATION . )
-		
-	elseif (APPLE)
-	
-		set(__filename__ "${CMAKE_BINARY_DIR}/visus.command")
-		file(WRITE    "${__filename__}" "#!/bin/bash\n")
-		file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
-		file(APPEND   "${__filename__}" "cd \${this_dir}\n")
-		file(APPEND   "${__filename__}" "export PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
-		file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
-		file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$(python\$PYTHON_VERSION -c \"import sys; print(':'.join(sys.path))\")\n")
-		file(APPEND   "${__filename__}" "./bin/visus.app/Contents/MacOS/visus\n")
-		install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)
-	
-	else()
-	
-		set(__filename__ "${CMAKE_BINARY_DIR}/visus.sh")
-		file(WRITE    "${__filename__}" "#!/bin/bash\n")
-		file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
-		file(APPEND   "${__filename__}" "cd \${this_dir}\n")
-		file(APPEND   "${__filename__}" "export PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
-		file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
-		file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$PYTHONPATH\n")
-		file(APPEND   "${__filename__}" "./bin/visus\n")
-		install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)	
-	
-	endif()
+	createScript(visus "")
 	
 	if (WIN32)
 	
@@ -359,55 +323,9 @@ if (True)
 		InstallQtPlugin(platforms)
 		InstallQtPlugin(printsupport)
 		InstallQtPlugin(styles)
-
-		if (WIN32)
-				
-			set(__filename__ "${CMAKE_BINARY_DIR}/visusviewer.bat")
-			file(WRITE    "${__filename__}" "cd /d %~dp0\r\n")
-			file(APPEND   "${__filename__}" "if EXIST %cd%\\win32\\Python (set PYTHON_DIR=%cd%\\win32\\Python) else (set PYTHON_DIR=%cd%\\..\\..\\..\\) \r\n")
-			file(APPEND   "${__filename__}" "set PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
-			file(APPEND   "${__filename__}" "%PYTHON_DIR%\\python.exe -m pip install --user --upgrade numpy PyQt5\r\n")
-			file(APPEND   "${__filename__}" "set PATH=%PYTHON_DIR%;%cd%\\bin;%PATH%\r\n")
-			file(APPEND   "${__filename__}" "FOR /F \"tokens=* USEBACKQ\" %%F IN (`%PYTHON_DIR%\\python.exe -c \"import os,PyQt5; print(os.path.dirname(PyQt5.__file__))\"`) DO (SET PyQt5_DIR=%%F)\r\n")
-			file(APPEND   "${__filename__}" "set PATH=%PyQt5_DIR%\\Qt\\bin;%PATH%\r\n")
-			file(APPEND   "${__filename__}" "set QT_PLUGIN_PATH=%PyQt5_DIR%\\Qt\\plugins\r\n")
-			file(APPEND   "${__filename__}" "set PYTHONPATH=%PYTHON_DIR%\\lib\r\n")
-			file(APPEND   "${__filename__}" "bin\\\\visusviewer.exe %*\r\n")		
-			install(FILES "${__filename__}" DESTINATION .)
-					
-		elseif (APPLE)
 		
-			set(__filename__ "${CMAKE_BINARY_DIR}/visusviewer.command")
-			file(WRITE    "${__filename__}" "#!/bin/bash\n")
-			file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
-			file(APPEND   "${__filename__}" "cd \${this_dir}\n")
-			file(APPEND   "${__filename__}" "export PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
-			file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
-			file(APPEND   "${__filename__}" "export QT_PLUGIN_PATH=\${this_dir}/bin/plugins\n")
-			file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$(python\$PYTHON_VERSION -c \"import sys; print(':'.join(sys.path))\")\n")
-			file(APPEND   "${__filename__}" "./bin/visusviewer.app/Contents/MacOS/visusviewer\n")
-			install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)	
-			
-			set(__filename__ "${CMAKE_BINARY_DIR}/visusviewer.qt.conf")
-			file(WRITE    "${__filename__}" "[Paths]\n")
-			file(APPEND   "${__filename__}" "  Plugins=../../../bin/plugins\n")
-			install(FILES "${__filename__}" DESTINATION "bin/visusviewer.app/Contents/Resources/qt.conf")
-				
-		else()
-			
-			set(__filename__ "${CMAKE_BINARY_DIR}/visusviewer.sh")
-			file(WRITE    "${__filename__}" "#!/bin/bash\n")
-			file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
-			file(APPEND   "${__filename__}" "cd \${this_dir}\n")
-			file(APPEND   "${__filename__}" "export PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
-			file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
-			file(APPEND   "${__filename__}" "export QT_PLUGIN_PATH=\${this_dir}/bin/plugins\n")
-			file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$PYTHONPATH\n")
-			file(APPEND   "${__filename__}" "./bin/visusviewer\n")
-			install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)			
-		
-		endif()
-		
+      createGuiScript(visusviewer "")
+    
 	endif()
 
 	
