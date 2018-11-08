@@ -86,6 +86,7 @@ matrix:
                
     
 script:
+    - cd "${TRAVIS_BUILD_DIR}" 
     - if [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then bash ./CMake/travis-script-osx.sh   ; fi
     - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then bash ./CMake/travis-script-linux.sh ; fi
         
