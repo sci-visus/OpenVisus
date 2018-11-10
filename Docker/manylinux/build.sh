@@ -28,7 +28,7 @@ yum update
 yum install -y zlib-devel curl 
 
 DEPS_DIR=$(pwd)/Linux-x86_64
-mkdir $DEPS_DIR
+mkdir -p $DEPS_DIR
 export PATH=$DEPS_DIR/bin:${PATH} 
 
 # downloadFile
