@@ -70,12 +70,11 @@ cmake --build ./ --target all
 cmake --build ./ --target test
 cmake --build ./ --target install  
 cmake --build ./ --target deploy
+cmake --build ./ --target bdist_wheel
+cmake --build ./ --target sdist 
 
-# if there is a tag, create the wheel and tar.gz
-if [ -n "$TRAVIS_TAG" ]; then 
-  cmake --build ./ --target bdist_wheel
-  cmake --build ./ --target sdist 
-  # not uploading to PyPi since it will be refused (not using manylinux) 
-  # cmake --build ./  --target pypi 
+if [ -n "$DEPLOY_PYPI" ]; then 
+  cmake --build ./  --target pypi 
 fi
+
 

@@ -6,11 +6,12 @@ ARG CMAKE_BUILD_TYPE=Release
 ARG VISUS_INTERNAL_DEFAULT=1
 ARG DISABLE_OPENMP=1
 ARG VISUS_GUI=0
+ARG DEPLOY_PYPI=1
 
 ADD https://api.github.com/repos/sci-visus/OpenVisus/git/refs/heads/$GIT_BRANCH version.json
 RUN git clone -b${GIT_BRANCH} https://github.com/sci-visus/OpenVisus.git /home/visus
 
-COPY  build.sh /home/visus
+COPY build.sh /home/visus
 WORKDIR /home/visus 
 RUN chmod u+x ./build.sh && ./build.sh
 

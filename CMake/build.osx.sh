@@ -47,10 +47,9 @@ set -o pipefail &&  cmake --build ./ --target ALL_BUILD   --config $BUILD_TYPE |
 cmake --build ./ --target RUN_TESTS   --config $BUILD_TYPE
 cmake --build ./ --target install     --config $BUILD_TYPE  
 cmake --build ./ --target deploy      --config $BUILD_TYPE 
+cmake --build ./ --target bdist_wheel --config $BUILD_TYPE 
+cmake --build ./ --target sdist       --config $BUILD_TYPE 
 
-# if there is a tag , create the wheel  
-if [ -n "$TRAVIS_TAG" ]; then 
-  cmake --build ./  --target bdist_wheel     --config $BUILD_TYPE 
-  cmake --build ./  --target sdist           --config $BUILD_TYPE 
-  cmake --build ./  --target pypi            --config $BUILD_TYPE
+if [ -n "$DEPLOY_PYPI" ]; then 
+  cmake --build ./ --target pypi  --config $BUILD_TYPE
 fi

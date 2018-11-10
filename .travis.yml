@@ -61,7 +61,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,osname="ubuntu14"]
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -69,7 +69,7 @@ matrix:
           
     - os: linux
       dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6]       
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,osname="ubuntu14"]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -78,7 +78,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.7]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.7,osname="ubuntu14"]
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -87,8 +87,10 @@ matrix:
     
 script:
     - cd "${TRAVIS_BUILD_DIR}" 
-    - if [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then bash ./CMake/travis-script-osx.sh   ; fi
-    - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then bash ./CMake/travis-script-linux.sh ; fi
+    - if [ -n "$TRAVIS_TAG" ]; then DEPLOY_PYPI=1 ; fi
+    - if [[ "${TRAVIS_OS_NAME}" == "osx"       ]]; then bash ./CMake/build.osx.sh       ; fi
+    - if [[ "${osname}"         == "ubuntu14"  ]]; then bash ./CMake/build.ubuntu14.sh  ; fi
+    - if [[ "${osname}"         == "manylinux" ]]; then bash ./CMake/build.manylinux.sh ; fi
         
 before_deploy:
   - export WHEEL_FILE=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")

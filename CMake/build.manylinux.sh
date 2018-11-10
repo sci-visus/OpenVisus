@@ -125,6 +125,7 @@ function installSwig {
 }
 
 # //////////////////////////////////////////////////////
+# Gui stuff is broken right now!
 function installQt {
 
   yum install -y mesa-libGL mesa-libGLU mesa-libGL-devel mesa-libGLU-devel 
@@ -213,7 +214,6 @@ function installQt {
 
 
 # //////////////////////////////////////////////////////
-
 installOpenSSL
 installPython
 installCMake
@@ -232,6 +232,7 @@ opt+=" -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
 opt+=" -DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT}"
 opt+=" -DDISABLE_OPENMP=${DISABLE_OPENMP}"
 opt+=" -DVISUS_GUI=${VISUS_GUI}" 
+opt+=" -DPYTHON_PLAT_NAME=linux_x86_64" # this is important for the deploy to pypi
 
 if [ -n "${OPENSSL_ROOT_DIR}" ] ; then
   opt+=" -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}"
@@ -251,17 +252,12 @@ cmake ${opt} ../
 cmake --build . --target all -- -j 4
 cmake --build . --target install 
 cmake --build . --target deploy 
+cmake --build . --target bdist_wheel
+cmake --build . --target sdist 
 
-cd install
-python setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=linux_x86_64
-WHEEL=$(find ./dist -iname "*.whl") 
-mv ${WHEEL} ${WHEEL/linux_x86_64/manylinux1_x86_64}
-WHEEL=$(find ./dist -iname "*.whl") 
-echo "Created ${WHEEL} "
-auditwheel show ${WHEEL} 
-	
-  
-
+if [ -n "$DEPLOY_PYPI" ]; then 
+  cmake --build . --target pypi 
+fi
 
 
 
