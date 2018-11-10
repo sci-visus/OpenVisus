@@ -53,8 +53,8 @@ function installOpenSSL {
   fi
   
   export OPENSSL_ROOT_DIR=${DEPS_DIR}/openssl	
-  export OPENSSL_INCLUDE_DIR=${OPENSSL_ROOT_DIR}/ssl/include
-  export OPENSSL_LIB_DIR=${OPENSSL_ROOT_DIR}/ssl/lib
+  export OPENSSL_INCLUDE_DIR=${OPENSSL_ROOT_DIR}/include
+  export OPENSSL_LIB_DIR=${OPENSSL_ROOT_DIR}/lib
   export LD_LIBRARY_PATH=${OPENSSL_LIB_DIR}:$LD_LIBRARY_PATH
 }
 
