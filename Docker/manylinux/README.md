@@ -1,14 +1,24 @@
 To compile Docker:
 
-sudo docker build --build-arg PYTHON_VERSION=3.6.6 --build-arg GIT_BRANCH=scrgiorgio -t openvisus-manylinux .
+sudo docker build -t openvisus-manylinux .
 
+# to run interactively step by step
 # sudo docker run -i -t quay.io/pypa/manylinux1_x86_64 /bin/bash
-# sudo docker run --rm -it  <container_id> bash -il (in case of errors)
 
-sudo docker run --name temp openvisus-manylinux /bin/true
-sudo docker cp temp:/home/visus/build/install/dist ./
-sudo docker rm temp
+# to debug errors
+# sudo docker run --rm -it openvisus-manylinux /bin/bash -il 
 
-# sudo docker run -it --rm openvisus-manylinux /bin/bash
+# to create an instance
+sudo docker run --name openvisus-manylinux-instance openvisus-manylinux /bin/true
+
+# to copy the wheel
+sudo docker cp openvisus-manylinux-instance:/home/visus/build/install/dist ./
+
+# upload the wheel
 twine upload --repository-url https://upload.pypi.org/legacy/ dist/*.whl
+
+# remove the instance
+sudo docker rm openvisus-manylinux-instance
+
+
         
