@@ -23,54 +23,61 @@ if [ -z "$VISUS_GUI" ]; then
 	VISUS_GUI=0
 fi
 
+if [ -z "$DEPS_DIR" ]; then
+	DEPS_DIR=$(pwd)/Linux-x86_64
+fi
+
 # minimal stuff
 yum update 
 yum install -y zlib-devel curl 
 
-DEPS_DIR=$(pwd)/Linux-x86_64
-mkdir -p $DEPS_DIR
-export PATH=$DEPS_DIR/bin:${PATH} 
-
-# downloadFile
+# //////////////////////////////////////////////////////
 function downloadFile {
    curl -L --insecure "$1" -O
 }
 
-# install openssl 
-# NOTE for linux: mixing python openssl and OpenVisus internal openssl cause crashes
-#                 so I'm always using this one
+# //////////////////////////////////////////////////////
+# NOTE for linux: mixing python openssl and OpenVisus internal openssl cause crashes so I'm always using this one
 function installOpenSSL {
 
-  if [ ! -f $DEPS_DIR/lib/libssl.a ]; then
+  if [ ! -f ${DEPS_DIR}/openssl/lib/libssl.a ]; then
     echo "Compiling openssl"
     downloadFile "https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
     tar xvzf openssl-1.0.2a.tar.gz 
     pushd openssl-1.0.2a 
-    ./config -fpic shared --prefix=$DEPS_DIR
+    ./config -fpic shared --prefix=${DEPS_DIR}/openssl
     make 
     make install 
     popd
+    rm -Rf openssl-1.0.2a*
   fi
   
-  export LD_LIBRARY_PATH=$DEPS_DIR/lib:$LD_LIBRARY_PATH
-  OPENSSL_ROOT_DIR=$DEPS_DIR/ssl	
+  export OPENSSL_ROOT_DIR=${DEPS_DIR}/openssl	
+  export OPENSSL_INCLUDE_DIR=${OPENSSL_ROOT_DIR}/ssl/include
+  export OPENSSL_LIB_DIR=${OPENSSL_ROOT_DIR}/ssl/lib
+  export LD_LIBRARY_PATH=${OPENSSL_LIB_DIR}:$LD_LIBRARY_PATH
 }
 
-# install local Python using pyenv
+# //////////////////////////////////////////////////////
 function installPython {
 
   if ! [ -x "$(command -v pyenv)" ]; then
     downloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
     chmod a+x pyenv-installer 
     ./pyenv-installer 
+    rm -f pyenv-installer 
   fi
   
   export PATH="$HOME/.pyenv/bin:$PATH"
   eval "$(pyenv init -)"
   eval "$(pyenv virtualenv-init -)"
-
   
-  CONFIGURE_OPTS=--enable-shared pyenv install ${PYTHON_VERSION}  
+  if [ -n "${OPENSSL_INCLUDE_DIR}" ]; then
+    CONFIGURE_OPTS=--enable-shared CFLAGS=-I${OPENSSL_INCLUDE_DIR} CPPFLAGS=-I${OPENSSL_INCLUDE_DIR}/ LDFLAGS=-L${OPENSSL_LIB_DIR} pyenv install ${PYTHON_VERSION}  
+  else
+    CONFIGURE_OPTS=--enable-shared pyenv install ${PYTHON_VERSION}  
+  fi
+
   pyenv global ${PYTHON_VERSION}  
   pyenv rehash
   python -m pip install --upgrade pip  
@@ -82,38 +89,42 @@ function installPython {
     PYTHON_M_VERSION=${PYTHON_VERSION:0:3}
   fi	
   
-  PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python 
-  PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_M_VERSION} 
-  PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.so
+  export PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python 
+  export PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_M_VERSION} 
+  export PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.so
 }
 
 
-# install cmake
+# //////////////////////////////////////////////////////
 function installCMake {
-  if ! [ -x "$DEPS_DIR/bin/cmake" ]; then
+  if ! [ -x "$DEPS_DIR/cmake/bin/cmake" ]; then
     echo "Downloading precompiled cmake"
     downloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
     tar xvzf cmake-3.4.3-Linux-x86_64.tar.gz
-    mv cmake-3.4.3-Linux-x86_64/* $DEPS_DIR/
+    mv cmake-3.4.3-Linux-x86_64 $DEPS_DIR/cmake
+    rm -Rf cmake-3.4.3-Linux-x86_64*
   fi
+  export PATH=$DEPS_DIR/cmake/bin:${PATH} 
 }
 
-# install swig 
+# //////////////////////////////////////////////////////
 function installSwig {
-  if [ ! -f $DEPS_DIR/bin/swig ]; then
+  if [ ! -f $DEPS_DIR/swig/bin/swig ]; then
     downloadFile "https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz"  
     tar xvzf swig-3.0.12.tar.gz 
     pushd swig-3.0.12 
     downloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
     ./Tools/pcre-build.sh 
-    ./configure --prefix=$DEPS_DIR
+    ./configure --prefix=$DEPS_DIR/swig
     make -j 4 
     make install 
     popd
+    rm -Rf swig-3.0.12*
   fi 
+  export PATH=$DEPS_DIR/swig/bin:${PATH} 
 }
 
-# installQt
+# //////////////////////////////////////////////////////
 function installQt {
 
   yum install -y mesa-libGL mesa-libGLU mesa-libGL-devel mesa-libGLU-devel 
@@ -200,16 +211,15 @@ function installQt {
   Qt5_DIR=/usr/local/Qt-${QT_VERSION}/lib/cmake/Qt5/
 }
 
+
+# //////////////////////////////////////////////////////
+
 installOpenSSL
 installPython
 installCMake
 installSwig
 
 if [ "$VISUS_GUI" -eq "1" ]; then
-	installOpenGL
-	installXcbProto
-	installPThreadStubs
-	installXcb
 	installQt
 fi
 
@@ -222,21 +232,25 @@ opt+=" -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
 opt+=" -DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT}"
 opt+=" -DDISABLE_OPENMP=${DISABLE_OPENMP}"
 opt+=" -DVISUS_GUI=${VISUS_GUI}" 
-opt+=" -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}"
-opt+=" -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}"
-opt+=" -DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR}"
-opt+=" -DPYTHON_LIBRARY=${PYTHON_LIBRARY}"
-opt+=" -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}"
 
-if [ "$VISUS_GUI" -eq "1" ]; then
+if [ -n "${OPENSSL_ROOT_DIR}" ] ; then
+  opt+=" -DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}"
+fi
+
+if [ -n "${PYTHON_EXECUTABLE}" ] ; then
+  opt+=" -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}"
+  opt+=" -DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR}"
+  opt+=" -DPYTHON_LIBRARY=${PYTHON_LIBRARY}"
+fi
+
+if [ -n "${Qt5_DIR}" ]; then
 	opt+=" -DQt5_DIR=${Qt5_DIR}"
 fi
 
 cmake ${opt} ../ 
-
-cmake --build . --target all -j 4
-cmake --build . --target install  
-cmake --build . --target deploy   
+cmake --build . --target all -- -j 4
+cmake --build . --target install 
+cmake --build . --target deploy 
 
 cd install
 python setup.py -q bdist_wheel --python-tag=cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1} --plat-name=linux_x86_64
