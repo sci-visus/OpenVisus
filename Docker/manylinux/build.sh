@@ -51,7 +51,7 @@ function installOpenSSL {
     make install 
     popd
   fi
-   
+  
   export LD_LIBRARY_PATH=$DEPS_DIR/lib:$LD_LIBRARY_PATH
   OPENSSL_ROOT_DIR=$DEPS_DIR/ssl	
 }
@@ -59,28 +59,28 @@ function installOpenSSL {
 # install local Python using pyenv
 function installPython {
 
-	if ! [ -x "$(command -v pyenv)" ]; then
-		downloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
-		chmod a+x pyenv-installer 
-		./pyenv-installer 
-	fi
-	
+  if ! [ -x "$(command -v pyenv)" ]; then
+    downloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
+    chmod a+x pyenv-installer 
+    ./pyenv-installer 
+  fi
+  
   export PATH="\$HOME/.pyenv/bin:\$PATH"
-  "\$(pyenv init -)"
-  "\$(pyenv virtualenv-init -)"	
-
-	CONFIGURE_OPTS=--enable-shared pyenv install ${PYTHON_VERSION}  
-	pyenv global ${PYTHON_VERSION}  
-	pyenv rehash
-	python -m pip install --upgrade pip  
-	python -m pip install numpy setuptools wheel twine auditwheel 
-	
-	if [ "${PYTHON_VERSION:0:1}" -gt "2" ]; then
-		PYTHON_M_VERSION=${PYTHON_VERSION:0:3}m 
-	else
-		PYTHON_M_VERSION=${PYTHON_VERSION:0:3}
-	fi	
-
+  $(pyenv init -)
+  $(pyenv virtualenv-init -)	
+  
+  CONFIGURE_OPTS=--enable-shared pyenv install ${PYTHON_VERSION}  
+  pyenv global ${PYTHON_VERSION}  
+  pyenv rehash
+  python -m pip install --upgrade pip  
+  python -m pip install numpy setuptools wheel twine auditwheel 
+  
+  if [ "${PYTHON_VERSION:0:1}" -gt "2" ]; then
+    PYTHON_M_VERSION=${PYTHON_VERSION:0:3}m 
+  else
+    PYTHON_M_VERSION=${PYTHON_VERSION:0:3}
+  fi	
+  
   PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python 
   PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_M_VERSION} 
   PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.so
@@ -109,107 +109,94 @@ function installSwig {
     make -j 4 
     make install 
     popd
-  fi
-  
-}
-
-# install opengl (Qt dependency)
-function installOpenGL {
-	yum install -y mesa-libGL mesa-libGLU mesa-libGL-devel mesa-libGLU-devel 
-}
-
-# install xcb-proto (Qt dependency)
-function installXcbProto {
-	downloadFile "http://xcb.freedesktop.org/dist/xcb-proto-1.11.tar.gz" 
-	tar -xzf xcb-proto-1.11.tar.gz 
-	pushd xcb-proto-1.11
-	./configure 
-	make 
-	make install 
-	popd 
-}
-
-# install libpthread-stubs (Qt dependency)
-function installPThreadStubs {
-	downloadFile "http://xcb.freedesktop.org/dist/libpthread-stubs-0.3.tar.gz"
-	tar -xzf libpthread-stubs-0.3.tar.gz 
-	pushd libpthread-stubs-0.3 
-	./configure 
-	make -j8 
-	make install
-	popd 
-}
-		
-# installXcb (Qt dependency)
-function installXcb {
-	downloadFile "http://xcb.freedesktop.org/dist/libxcb-1.11.tar.gz"
-	tar -xzf libxcb-1.11.tar.gz 
-	pushd libxcb-1.11 
-	./configure 
-	make -j8 
-	make install 
-	popd 
+  fi 
 }
 
 # installQt
 function installQt {
 
-	QT_VERSION=5.4.0
-	downloadFile "http://qt.mirror.constant.com/archive/qt/${QT_VERSION:0:3}/${QT_VERSION}/single/qt-everywhere-opensource-src-${QT_VERSION}.tar.gz"
-	
-	tar -xzf qt-everywhere-opensource-src-${QT_VERSION}.tar.gz 
-	
-	pushd qt-everywhere-opensource-src-${QT_VERSION}
-	
-	sed -i "s/#define QTESTLIB_USE_PERF_EVENTS/#undef QTESTLIB_USE_PERF_EVENTS/g" qtbase/src/testlib/qbenchmark_p.h 
-	
-	./configure -R ‘\\\$$ORIGIN’ \
-		-D _X_INLINE=inline \
-		-D XK_dead_currency=0xfe6f \
-		-D XK_ISO_Level5_Lock=0xfe13 \
-		-D FC_WEIGHT_EXTRABLACK=215 \
-		-D FC_WEIGHT_ULTRABLACK=FC_WEIGHT_EXTRABLACK \
-		-DGLX_GLXEXT_LEGACY \
-		-v -opensource \
-		-confirm-license \
-		-sysconfdir /etc/xdg \
-		-release -shared \
-		-qt-zlib \
-		-qt-libpng \
-		-qt-libjpeg \
-		-qt-pcre \
-		-qt-xcb\
-		-qt-xkbcommon \
-		-xkb-config-root /usr/share/X11/xkb \
-		-no-xcb-xlib \
-		-c++11 \
-		-nomake examples \
-		-nomake tests \
-		-no-dbus \
-		-no-icu \
-		-skip activeqt \
-		-skip androidextras \
-		-skip connectivity \
-		-skip enginio \
-		-skip location \
-		-skip macextras \
-		-skip multimedia \
-		-skip quick1 \
-		-skip sensors \
-		-skip serialport \
-		-skip wayland \
-		-skip webchannel \
-		-skip webengine \
-		-skip webkit \
-		-skip webkit-examples 
-		-skip websockets \
-		-skip winextras \
-		-skip x11extras 
-		
-	make 
-	make install
-	popd
-	Qt5_DIR=/usr/local/Qt-${QT_VERSION}/lib/cmake/Qt5/
+  yum install -y mesa-libGL mesa-libGLU mesa-libGL-devel mesa-libGLU-devel 
+  
+  downloadFile "http://xcb.freedesktop.org/dist/xcb-proto-1.11.tar.gz" 
+  tar -xzf xcb-proto-1.11.tar.gz 
+  pushd xcb-proto-1.11
+  ./configure 
+  make 
+  make install 
+  popd   
+  
+  downloadFile "http://xcb.freedesktop.org/dist/libpthread-stubs-0.3.tar.gz"
+  tar -xzf libpthread-stubs-0.3.tar.gz 
+  pushd libpthread-stubs-0.3 
+  ./configure 
+  make -j8 
+  make install
+  popd 	
+  
+  downloadFile "http://xcb.freedesktop.org/dist/libxcb-1.11.tar.gz"
+  tar -xzf libxcb-1.11.tar.gz 
+  pushd libxcb-1.11 
+  ./configure 
+  make -j8 
+  make install 
+  popd 	
+  
+  QT_VERSION=5.4.0
+  downloadFile "http://qt.mirror.constant.com/archive/qt/${QT_VERSION:0:3}/${QT_VERSION}/single/qt-everywhere-opensource-src-${QT_VERSION}.tar.gz"
+  
+  tar -xzf qt-everywhere-opensource-src-${QT_VERSION}.tar.gz 
+  
+  pushd qt-everywhere-opensource-src-${QT_VERSION}
+  
+  sed -i "s/#define QTESTLIB_USE_PERF_EVENTS/#undef QTESTLIB_USE_PERF_EVENTS/g" qtbase/src/testlib/qbenchmark_p.h 
+  
+  ./configure -R ‘\\\$$ORIGIN’ \
+    -D _X_INLINE=inline \
+    -D XK_dead_currency=0xfe6f \
+    -D XK_ISO_Level5_Lock=0xfe13 \
+    -D FC_WEIGHT_EXTRABLACK=215 \
+    -D FC_WEIGHT_ULTRABLACK=FC_WEIGHT_EXTRABLACK \
+    -DGLX_GLXEXT_LEGACY \
+    -v -opensource \
+    -confirm-license \
+    -sysconfdir /etc/xdg \
+    -release -shared \
+    -qt-zlib \
+    -qt-libpng \
+    -qt-libjpeg \
+    -qt-pcre \
+    -qt-xcb\
+    -qt-xkbcommon \
+    -xkb-config-root /usr/share/X11/xkb \
+    -no-xcb-xlib \
+    -c++11 \
+    -nomake examples \
+    -nomake tests \
+    -no-dbus \
+    -no-icu \
+    -skip activeqt \
+    -skip androidextras \
+    -skip connectivity \
+    -skip enginio \
+    -skip location \
+    -skip macextras \
+    -skip multimedia \
+    -skip quick1 \
+    -skip sensors \
+    -skip serialport \
+    -skip wayland \
+    -skip webchannel \
+    -skip webengine \
+    -skip webkit \
+    -skip webkit-examples 
+    -skip websockets \
+    -skip winextras \
+    -skip x11extras 
+  
+  make 
+  make install
+  popd
+  Qt5_DIR=/usr/local/Qt-${QT_VERSION}/lib/cmake/Qt5/
 }
 
 installOpenSSL
