@@ -80,6 +80,7 @@ def WriteTextFile(filename,content):
 	file.write(content) 
 	file.close() 		
 
+
 # /////////////////////////////////////////////////
 # glob(,recursive=True) is not supported in python 2.x
 # see https://stackoverflow.com/questions/2186525/use-a-glob-to-find-files-recursively-in-python
@@ -170,6 +171,9 @@ class AppleDeployStep:
 	# showDeps
 	def showDeps(self):
 		
+		DYLD_LIBRARY_PATH=os.environ['DYLD_LIBRARY_PATH'] 
+		del os.environ['DYLD_LIBRARY_PATH']
+		
 		deps={}
 		for filename in self.findAllBinaries():
 			for dep in self.extractDeps(filename):
@@ -179,6 +183,9 @@ class AppleDeployStep:
 		for dep in deps:
 			if not dep.startswith("@"):
 				print(dep)
+				
+		if DYLD_LIBRARY_PATH:
+		  os.environ["DYLD_LIBRARY_PATH"]= DYLD_LIBRARY_PATH
 						
 	# relativeRootDir
 	def relativeRootDir(self,local,prefix="@loader_path"):
@@ -189,6 +196,7 @@ class AppleDeployStep:
 	
 	# changeAllDeps
 	def changeAllDeps(self):
+	
 		
 		for filename in self.findAllBinaries():
 			
@@ -427,11 +435,18 @@ class LinuxDeployStep:
 
 	# showDeps
 	def showDeps(self):
+	  
+		LD_LIBRARY_PATH=os.environ['LD_LIBRARY_PATH'] 
+		del os.environ['LD_LIBRARY_PATH']
+			  
 		deps=self.findAllDeps()
 		for key in deps:
 			if deps[key].startswith(os.getcwd()):
 				continue
 			print("%30s" % (key,),deps[key])
+			
+		if LD_LIBRARY_PATH:
+		  os.environ['LD_LIBRARY_PATH']=LD_LIBRARY_PATH
 
 	# fixAllDeps
 	def fixAllDeps(self):

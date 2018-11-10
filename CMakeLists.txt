@@ -348,20 +348,14 @@ if (True)
 			
 		set_target_properties(deploy PROPERTIES FOLDER "CMakePredefinedTargets/")
 	
-	elseif (APPLE)
+	else()
+
 		add_custom_target(deploy 
 		  "${CMAKE_COMMAND}" -E echo "Running deploy step..."
-			COMMAND                                                    "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --fix-deps 
-			COMMAND DYLD_LIBRARY_PATH="" DYLD_FALLBACK_LIBRARY_PATH="" "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --show-deps 
+			COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --fix-deps 
+			COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --show-deps 
 			WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
-			
-	else()
-		add_custom_target(deploy 
-			"${CMAKE_COMMAND}" -E echo "Running deploy step..."
-			COMMAND                    "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --fix-deps 
-			COMMAND LD_LIBRARY_PATH="" "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --show-deps 
-			WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")	
-	
+
 	endif()
 	
 endif()
