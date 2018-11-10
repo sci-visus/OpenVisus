@@ -65,9 +65,10 @@ function installPython {
     ./pyenv-installer 
   fi
   
-  export PATH="\$HOME/.pyenv/bin:\$PATH"
-  $(pyenv init -)
-  $(pyenv virtualenv-init -)	
+  export PATH="$HOME/.pyenv/bin:$PATH"
+  eval "$(pyenv init -)"
+  eval "$(pyenv virtualenv-init -)"
+
   
   CONFIGURE_OPTS=--enable-shared pyenv install ${PYTHON_VERSION}  
   pyenv global ${PYTHON_VERSION}  
