@@ -8,7 +8,6 @@ ARG DISABLE_OPENMP=1
 ARG VISUS_GUI=0
 
 ADD https://api.github.com/repos/sci-visus/OpenVisus/git/refs/heads/$GIT_BRANCH version.json
-RUN mkdir -p /home/visus
 RUN git clone -b${GIT_BRANCH} https://github.com/sci-visus/OpenVisus.git /home/visus
 
 COPY  build.sh /home/visus

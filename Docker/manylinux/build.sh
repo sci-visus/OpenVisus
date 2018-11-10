@@ -27,46 +27,47 @@ fi
 yum update 
 yum install -y zlib-devel curl 
 
+DEPS_DIR=$(pwd)/Linux-x86_64
+mkdir $DEPS_DIR
+export PATH=$DEPS_DIR/bin:${PATH} 
+
 # downloadFile
 function downloadFile {
-   curl --insecure "$1" -O
+   curl -L --insecure "$1" -O
 }
 
-# install openssl (sudo needed)
+# install openssl 
 # NOTE for linux: mixing python openssl and OpenVisus internal openssl cause crashes
 #                 so I'm always using this one
 function installOpenSSL {
-	downloadFile "https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
-	tar xvzf openssl-1.0.2a.tar.gz 
-	cd openssl-1.0.2a 
-	./config -fpic shared
-	make 
-	make install 
-  echo "/usr/local/ssl/lib" >> /etc/ld.so.conf 
-  ldconfig 
-	OPENSSL_ROOT_DIR=/usr/local/ssl	
+
+  if [ ! -f $DEPS_DIR/lib/libssl.a ]; then
+    echo "Compiling openssl"
+    downloadFile "https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
+    tar xvzf openssl-1.0.2a.tar.gz 
+    pushd openssl-1.0.2a 
+    ./config -fpic shared --prefix=$DEPS_DIR
+    make 
+    make install 
+    popd
+  fi
+   
+  export LD_LIBRARY_PATH=$DEPS_DIR/lib:$LD_LIBRARY_PATH
+  OPENSSL_ROOT_DIR=$DEPS_DIR/ssl	
 }
- 
 
 # install local Python using pyenv
 function installPython {
 
 	if ! [ -x "$(command -v pyenv)" ]; then
-	
 		downloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
 		chmod a+x pyenv-installer 
 		./pyenv-installer 
-		
-		cat << EOF >> ~/.bashrc
-echo "Activing pyenv"
-export PATH="\$HOME/.pyenv/bin:\$PATH"
-eval "\$(pyenv init -)"
-eval "\$(pyenv virtualenv-init -)"
-EOF
-	
-		source ~/.bashrc	
-	
 	fi
+	
+  export PATH="\$HOME/.pyenv/bin:\$PATH"
+  "\$(pyenv init -)"
+  "\$(pyenv virtualenv-init -)"	
 
 	CONFIGURE_OPTS=--enable-shared pyenv install ${PYTHON_VERSION}  
 	pyenv global ${PYTHON_VERSION}  
@@ -86,29 +87,30 @@ EOF
 }
 
 
-# install cmake (sudo needed)
+# install cmake
 function installCMake {
-	downloadFile "https://cmake.org/files/v3.12/cmake-3.12.0-rc1.tar.gz"
-	tar xvzf cmake-3.12.0-rc1.tar.gz 
-	cd cmake-3.12.0-rc1 
-	./bootstrap 
-	make -j 4 
-	make install 
-	hash -r 
-	cd .. 
+  if ! [ -x "$DEPS_DIR/bin/cmake" ]; then
+    echo "Downloading precompiled cmake"
+    downloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
+    tar xvzf cmake-3.4.3-Linux-x86_64.tar.gz
+    mv cmake-3.4.3-Linux-x86_64/* $DEPS_DIR/
+  fi
 }
 
-# install swig (sudo needed)
+# install swig 
 function installSwig {
-	downloadFile "https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz"  
-	tar xvzf swig-3.0.12.tar.gz 
-	cd swig-3.0.12 
-	downloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
-	./Tools/pcre-build.sh 
-	./configure 
-	make -j 4 
- 	make install 
-	cd ../
+  if [ ! -f $DEPS_DIR/bin/swig ]; then
+    downloadFile "https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz"  
+    tar xvzf swig-3.0.12.tar.gz 
+    pushd swig-3.0.12 
+    downloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
+    ./Tools/pcre-build.sh 
+    ./configure --prefix=$DEPS_DIR
+    make -j 4 
+    make install 
+    popd
+  fi
+  
 }
 
 # install opengl (Qt dependency)
@@ -120,33 +122,33 @@ function installOpenGL {
 function installXcbProto {
 	downloadFile "http://xcb.freedesktop.org/dist/xcb-proto-1.11.tar.gz" 
 	tar -xzf xcb-proto-1.11.tar.gz 
-	cd xcb-proto-1.11
+	pushd xcb-proto-1.11
 	./configure 
 	make 
 	make install 
-	cd .. 
+	popd 
 }
 
 # install libpthread-stubs (Qt dependency)
 function installPThreadStubs {
 	downloadFile "http://xcb.freedesktop.org/dist/libpthread-stubs-0.3.tar.gz"
 	tar -xzf libpthread-stubs-0.3.tar.gz 
-	cd libpthread-stubs-0.3 
+	pushd libpthread-stubs-0.3 
 	./configure 
 	make -j8 
 	make install
-	cd .. 
+	popd 
 }
 		
 # installXcb (Qt dependency)
 function installXcb {
 	downloadFile "http://xcb.freedesktop.org/dist/libxcb-1.11.tar.gz"
 	tar -xzf libxcb-1.11.tar.gz 
-	cd libxcb-1.11 
+	pushd libxcb-1.11 
 	./configure 
 	make -j8 
 	make install 
-	cd .. 
+	popd 
 }
 
 # installQt
@@ -157,7 +159,7 @@ function installQt {
 	
 	tar -xzf qt-everywhere-opensource-src-${QT_VERSION}.tar.gz 
 	
-	cd qt-everywhere-opensource-src-${QT_VERSION}
+	pushd qt-everywhere-opensource-src-${QT_VERSION}
 	
 	sed -i "s/#define QTESTLIB_USE_PERF_EVENTS/#undef QTESTLIB_USE_PERF_EVENTS/g" qtbase/src/testlib/qbenchmark_p.h 
 	
@@ -206,7 +208,7 @@ function installQt {
 		
 	make 
 	make install
-	cd ..
+	popd
 	Qt5_DIR=/usr/local/Qt-${QT_VERSION}/lib/cmake/Qt5/
 }
 
