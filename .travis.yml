@@ -26,35 +26,35 @@ matrix:
       osx_image: xcode9.4 #10.13
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=2.7.15,COMPILER=clang++] 
+      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=2.7.15,COMPILER=clang++,dist='osx'] 
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.6.6,COMPILER=clang++]                   
+      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.6.6,COMPILER=clang++,dist='osx']                   
         
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.7.0,COMPILER=clang++]
+      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.7.0,COMPILER=clang++,dist='osx']
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=2.7.15,COMPILER=clang++]   
+      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=2.7.15,COMPILER=clang++,dist='osx']   
        
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.6.6,COMPILER=clang++]    
+      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.6.6,COMPILER=clang++,dist='osx']    
 
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.7.0,COMPILER=clang++]     
+      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.7.0,COMPILER=clang++,dist='osx']     
       
     # ///////////////////////////////// Ubuntu 14.04 
     
@@ -86,16 +86,28 @@ matrix:
                
     
 script:
-    - cd "${TRAVIS_BUILD_DIR}" 
-    - if [ -n "$TRAVIS_TAG" ]; then DEPLOY_PYPI=1 ; fi
-    - if [[ "${TRAVIS_OS_NAME}" == "osx"       ]]; then bash ./CMake/build.osx.sh       ; fi
-    - if [[ "${dist}"           == "trusty"    ]]; then bash ./CMake/build/trusty.sh    ; fi
-    - if [[ "${dist}"           == "manylinux" ]]; then bash ./CMake/build/manylinux.sh ; fi
-        
+	- |
+		cd "${TRAVIS_BUILD_DIR}"	
+	
+		if [[ "${dist}" == "osx" ]]; then 
+			if [ -n "$TRAVIS_TAG" ]; then DEPLOY_PYPI=1 ; fi
+			bash ./CMake/build.osx.sh    
+		fi
+
+		if [[ "${dist}" == "trusty" ]]; then 
+			bash ./Docker/trusty/build.sh    
+		fi
+
+		if [[ "${dist}" == "manylinux" ]]; then 
+			bash ./Docker/manylinux/build.sh    
+		fi		
+		
+
 before_deploy:
   - export WHEEL_FILE=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
   - export SDIST_FILE=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
 
+# deploy to github releases
 deploy:
   provider: releases
   api_key:
