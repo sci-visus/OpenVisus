@@ -27,11 +27,8 @@ RUN git clone -b${GIT_BRANCH} https://github.com/sci-visus/OpenVisus.git /home/O
 WORKDIR /home/OpenVisus 
 RUN chmod u+x ./Docker/trusty/build.sh 
 
-RUN ./Docker/trusty/build.sh BUILD_STEP=0
-RUN ./Docker/trusty/build.sh BUILD_STEP=1
-RUN ./Docker/trusty/build.sh BUILD_STEP=2
-RUN ./Docker/trusty/build.sh BUILD_STEP=3
-RUN ./Docker/trusty/build.sh BUILD_STEP=4
+# RUN ./Docker/trusty/build.sh 
+RUN ./Docker/trusty/build.sh 
 
 
   
