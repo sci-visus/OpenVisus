@@ -17,10 +17,9 @@ if ((VISUS_MODVISUS==1)); then
 	CMAKE_INSTALL_PREFIX=/home/visus
 	VISUS_HOME=$CMAKE_INSTALL_PREFIX}
 	VISUS_PYTHON_SYS_PATH=$CMAKE_INSTALL_PREFIX}
-	VISUS_DATASETS=/mnt/visus_datasets # see ReadMe to understand how this directory is mounted at runtime
 fi
 
-source "./CMake/common.sh"
+source "$(dirname $(readlink -f $0))/common.sh"
 
 #  install linux dependencies
 sudo apt-get -qy install software-properties-common
@@ -50,7 +49,7 @@ SetupOpenVisusCMakeOptions
 BuildOpenVisus
 
 if ((VISUS_MODVISUS==1)); then
-	InstallModVisus ${VISUS_HOME} ${VISUS_DATASETS}
+	InstallModVisus
 fi
 
 

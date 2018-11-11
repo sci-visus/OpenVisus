@@ -13,8 +13,9 @@ DISABLE_OPENMP=${DISABLE_OPENMP:-1}
 VISUS_GUI=${VISUS_GUI:-0} 
 DEPS_INSTALL_DIR=${DEPS_INSTALL_DIR:-$(pwd)/Linux-x86_64} 
 DEPLOY_PYPI=${DEPLOY_PYPI:-0} 
+PYTHON_PLAT_NAME=linux_x86_64
 
-source "./Cmake/common.sh"
+source "$(dirname $(readlink -f $0))/common.sh"
 
 yum update 
 yum install -y zlib-devel curl 
@@ -24,12 +25,12 @@ InstallPython
 InstallCMake    
 InstallSwig     
 
+# broken right now
 if ((VISUS_GUI==1)); then
 	InstallQtForCentos5  
 fi
 
-SetupOpenVisusCMakeOptions
-PushCmakeOption PYTHON_PLAT_NAME linux_x86_64)  
+SetupOpenVisusCMakeOptions 
 BuildOpenVisus
 
 

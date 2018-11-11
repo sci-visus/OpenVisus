@@ -2,7 +2,7 @@
 
 
 # //////////////////////////////////////////////////////
-function PushCmakeOption {
+function PushCMakeOption {
 	if [ -n "$2" ] ; then
 		cmake_opts+=" -D$1=$2"
 	fi
@@ -12,22 +12,23 @@ function PushCmakeOption {
 function SetupOpenVisusCMakeOptions {
 
 	cmake_opts=""
-	PushCmakeOption PYTHON_VERSION         ${PYTHON_VERSION}
-	PushCmakeOption CMAKE_BUILD_TYPE       ${CMAKE_BUILD_TYPE}
-	PushCmakeOption VISUS_INTERNAL_DEFAULT ${VISUS_INTERNAL_DEFAULT}
-	PushCmakeOption DISABLE_OPENMP         ${DISABLE_OPENMP}
-	PushCmakeOption VISUS_GUI              ${VISUS_GUI}
-	PushCmakeOption OPENSSL_ROOT_DIR       ${OPENSSL_ROOT_DIR}
-	PushCmakeOption PYTHON_EXECUTABLE      ${PYTHON_EXECUTABLE}
-	PushCmakeOption PYTHON_INCLUDE_DIR     ${PYTHON_INCLUDE_DIR}
-	PushCmakeOption PYTHON_LIBRARY         ${PYTHON_LIBRARY}
-	PushCmakeOption Qt5_DIR                ${Qt5_DIR}
-	PushCmakeOption SWIG_EXECUTABLE        ${SWIG_EXECUTABLE}
-	PushCmakeOption VISUS_HOME             ${VISUS_HOME}
-	PushCmakeOption CMAKE_INSTALL_PREFIX   ${CMAKE_INSTALL_PREFIX}
-	PushCmakeArg    VISUS_PYTHON_SYS_PATH  ${VISUS_PYTHON_SYS_PATH}	
-	PushCmakeOption PYPI_USERNAME          ${PYPI_USERNAME}
-	PushCmakeOption PYPI_PASSWORD          ${PYPI_PASSWORD}
+	PushCMakeOption PYTHON_VERSION         ${PYTHON_VERSION}
+	PushCMakeOption CMAKE_BUILD_TYPE       ${CMAKE_BUILD_TYPE}
+	PushCMakeOption VISUS_INTERNAL_DEFAULT ${VISUS_INTERNAL_DEFAULT}
+	PushCMakeOption DISABLE_OPENMP         ${DISABLE_OPENMP}
+	PushCMakeOption VISUS_GUI              ${VISUS_GUI}
+	PushCMakeOption OPENSSL_ROOT_DIR       ${OPENSSL_ROOT_DIR}
+	PushCMakeOption PYTHON_EXECUTABLE      ${PYTHON_EXECUTABLE}
+	PushCMakeOption PYTHON_INCLUDE_DIR     ${PYTHON_INCLUDE_DIR}
+	PushCMakeOption PYTHON_LIBRARY         ${PYTHON_LIBRARY}
+	PushCMakeOption Qt5_DIR                ${Qt5_DIR}
+	PushCMakeOption SWIG_EXECUTABLE        ${SWIG_EXECUTABLE}
+	PushCMakeOption VISUS_HOME             ${VISUS_HOME}
+	PushCMakeOption CMAKE_INSTALL_PREFIX   ${CMAKE_INSTALL_PREFIX}
+	PushCMakeOption VISUS_PYTHON_SYS_PATH  ${VISUS_PYTHON_SYS_PATH}	
+	PushCMakeOption PYTHON_PLAT_NAME       ${PYTHON_PLAT_NAME}
+	PushCMakeOption PYPI_USERNAME          ${PYPI_USERNAME}
+	PushCMakeOption PYPI_PASSWORD          ${PYPI_PASSWORD}
 }
 
 
@@ -85,7 +86,7 @@ function InstallOpenSSL {
 function InstallPatchElf {
 
 	# already exists?
-	if ! [ -x "$(command -v patchelf)" ]; then
+	if [ -x "$(command -v patchelf)" ]; then
 		return
 	fi
 
@@ -283,9 +284,6 @@ function InstallQtForCentos5 {
 # ///////////////////////////////////////////////////////////
 function InstallModVisus {
 
-	VISUS_HOME=$1
-	VISUS_DATASETS=$2
-
 	sudo cat << EOF >/etc/apache2/sites-enabled/000-default.conf
 <VirtualHost *:80>
   ServerAdmin scrgiorgio@gmail.com
@@ -312,7 +310,7 @@ source /etc/apache2/envvars
 mkdir -p $APACHE_RUN_DIR $APACHE_LOCK_DIR $APACHE_LOG_DIR
 rm -f /var/log/apache2/error.log 
 exec /usr/sbin/apache2 -DFOREGROUND
-EOF	
+EOF
 	
 	echo "LoadModule visus_module ${VISUS_HOME}/bin/libmod_visus.so" > /etc/apache2/mods-available/visus.load
 	a2enmod headers 
@@ -323,7 +321,8 @@ EOF
 	echo "$VISUS_HOME/bin" >> /etc/ld.so.conf 
 	ldconfig
 	
-	echo "<include url='$VISUS_DATASETS/visus.config' />" > $VISUS_HOME/visus.config
+	# see ReadMe to understand how this directory is mounted at runtime
+	echo "<include url='/mnt/visus_datasets /visus.config' />" > $VISUS_HOME/visus.config
 	chown -R wwwrun  ${VISUS_HOME}
 	chmod -R a+rX    ${VISUS_HOME}
 }

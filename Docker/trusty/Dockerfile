@@ -15,17 +15,16 @@ ADD https://api.github.com/repos/sci-visus/OpenVisus/git/refs/heads/$GIT_BRANCH 
 RUN git clone -b${GIT_BRANCH} https://github.com/sci-visus/OpenVisus.git /home/OpenVisus      
 
 WORKDIR /home/OpenVisus 
-COPY build.sh  ./
-RUN chmod u+x build.sh
+RUN chmod u+x CMake/build/ubuntu.sh
 
 # if you want to debug: 
-#   (*) comment the "RUN build.sh"
+#   (*) comment the following line
 #   (*) sudo docker run --rm -it $DOCKER_TAG /bin/bash
 #   (*) alias ARG=
 #   (*) cut&paste all the Docker part with ARG
-#   (*) ./build.sh
+#   (*) CMake/build/ubuntu.sh 
 
-# RUN build.sh 
+# RUN CMake/build/ubuntu.sh 
 
 
 

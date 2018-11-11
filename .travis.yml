@@ -91,15 +91,15 @@ script:
 	
 		if [[ "${dist}" == "osx" ]]; then 
 			if [ -n "$TRAVIS_TAG" ]; then DEPLOY_PYPI=1 ; fi
-			bash ./CMake/build.osx.sh    
+			bash ./CMake/build/osx.sh    
 		fi
 
 		if [[ "${dist}" == "trusty" ]]; then 
-			bash ./Docker/trusty/build.sh    
+			bash ./CMake/build/build.ubuntu.sh    
 		fi
 
 		if [[ "${dist}" == "manylinux" ]]; then 
-			bash ./Docker/manylinux/build.sh    
+			bash ./CMake/build/manylinux.sh    
 		fi		
 		
 
