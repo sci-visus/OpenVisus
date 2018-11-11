@@ -12,7 +12,7 @@ notifications:
     
 env:
   global:
-    - BUILD_TYPE=RelWithDebInfo 
+    - CMAKE_BUILD_TYPE=RelWithDebInfo 
     - PYPI_USERNAME=scrgiorgio
     - secure: EAZwSiQCFdTjcKDmHLFpWgX7WnGKwTtptkTvXYLcMPSUMxGymTCOTI1h8jjhxGig3k4Jni1X1gx9c8+LkcMd/yjbzDiOnIjCAVRc1hmCijAgu9j3G1ZMll4E38T7Iq6jE3/DZyb7pfK3X4NQopF/5uySIGeoH25CHwcNyr36k8Ba+qYtanPwTG1D+EVIago8qqL5yG5rslAf7Y69+zVbNa/JAUhow4fw0RAwVp+kgMC7Fj7iSMuN4NmS176VZEjD593zbiBgW+veEN0Z2MLD4vG7nq+w5u5JJYuz+Q4EiB5CCek5hhj17fJMWuAA23RZAlq4X/2oS5bKg/etHK5iVeM8ODKBX2bBHOxQoqwOaOVf0sEs5ranwVLR/77FrhFEECKAmkfFHwGGViWTvdE+F/7XqjLQK9Zm2f+T+rMHxrm1RknbXz271TNahqCHnMsmpaz98WbBHjdp2aQfU+nV/l6XLJnAf0R58ISiVdnDOy3BgQsiWIyxjZc6gRSwLg6EzAS2XlgQOmXhDo8lYoaepuK4OWvdIf+bqw0Y3b0uvrpHlAEpIG0tzzZw6ldq3CdvKD+46Vz+ZtEQBi0GBPy1Env1RHILzlkUwn6LSjVnKYY/TZxIi4ha73yo2BwJ1Q6hpdjVFgHJkEY3a72UCnOBIVnaalGv9lu/EjaixrnU6Nc=  
   
@@ -61,7 +61,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,osname="ubuntu14"]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,dist="trusty"]
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -69,7 +69,7 @@ matrix:
           
     - os: linux
       dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,osname="ubuntu14"]       
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,dist="trusty"]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -78,7 +78,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.7,osname="ubuntu14"]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.7,dist="trusty"]
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -88,9 +88,9 @@ matrix:
 script:
     - cd "${TRAVIS_BUILD_DIR}" 
     - if [ -n "$TRAVIS_TAG" ]; then DEPLOY_PYPI=1 ; fi
-    - if [[ "${TRAVIS_OS_NAME}" == "osx"       ]]; then bash ./CMake/build.osx.sh       ; fi
-    - if [[ "${osname}"         == "ubuntu14"  ]]; then bash ./CMake/build.ubuntu14.sh  ; fi
-    - if [[ "${osname}"         == "manylinux" ]]; then bash ./CMake/build.manylinux.sh ; fi
+    - if [[ "${TRAVIS_OS_NAME}" == "osx"       ]]; then bash ./CMake/build/osx.sh       ; fi
+    - if [[ "${dist}"           == "trusty"    ]]; then bash ./CMake/build/trusty.sh  ; fi
+    - if [[ "${dist}"           == "manylinux" ]]; then bash ./CMake/build/manylinux.sh ; fi
         
 before_deploy:
   - export WHEEL_FILE=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
