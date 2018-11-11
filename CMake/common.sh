@@ -45,7 +45,7 @@ function SetupCMakeOptions {
 }
 
 # //////////////////////////////////////////////////////
-functionBuild {
+function Build {
 
 	if [[ $(uname -s) == 'Darwin' ]]; then
 	
@@ -129,7 +129,9 @@ function InstallPatchElfFromSource {
 }
 
 # //////////////////////////////////////////////////////
-function InstallPyEnv {
+function InstallPython {
+
+	PYTHON_VERSION=$1
 
   if ! [ -x "$(command -v pyenv)" ]; then
     DownloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"

@@ -14,14 +14,16 @@ PushArg DEPS_INSTALL_DIR       $(pwd)/Linux-x86_64
 PushArg DEPLOY_PYPI            0
 
 #  install linux dependencies
+sudo apt-get -qy install software-properties-common
 sudo add-apt-repository -y ppa:deadsnakes/ppa
 sudo apt-get -qy update
-sudo apt-get -qy install --allow-unauthenticated cmake swig git bzip2 ca-certificates build-essential libssl-dev uuid-dev patchelf
+sudo apt-get -qy install --allow-unauthenticated cmake swig git bzip2 ca-certificates build-essential libssl-dev uuid-dev 
 sudo apt-get -qy install --allow-unauthenticated apache2 apache2-dev 
 
+# install python
+InstallPython $PYTHON_VERSION
 
-# install pyEnv
-InstallPyEnv $HOME
+InstallPatchElfFromSource $DEPS_INSTALL_DIR
 
 # install dependencies
 if (( VISUS_INTERNAL_DEFAULT==0 )); then 

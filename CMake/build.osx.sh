@@ -3,7 +3,7 @@
 # stop on errors printout commands
 set -ex 
 
-source "$(dirname $(readlink -f $0))/../common.sh"
+source "$(dirname $(readlink -f $0))/common.sh"
 
 PushArg PYTHON_VERSION         3.6.6
 PushArg CMAKE_BUILD_TYPE       RelWithDebugInfo
@@ -13,7 +13,7 @@ PushArg VISUS_GUI              1
 PushArg DEPS_INSTALL_DIR       $(pwd)/osx
 PushArg DEPLOY_PYPI            0
             
-InstallPyEnv $HOME
+InstallPython $PYTHON_VERSION
 
 # this is to solve logs too long 
 gem install xcpretty   

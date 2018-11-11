@@ -6,7 +6,7 @@
 # stop on errors printout commands
 set -ex 
 
-source "$(dirname $(readlink -f $0))/common.sh"
+source "./Cmake/common.sh"
 
 PushArg PYTHON_VERSION         3.6.6
 PushArg CMAKE_BUILD_TYPE       RelWithDebugInfo
@@ -20,7 +20,7 @@ yum update
 yum install -y zlib-devel curl 
 
 InstallOpenSSLFromSource        $DEPS_INSTALL_DIR
-InstallPyEnv                    $HOME
+InstallPython                   $PYTHON_VERSION
 InstallPrecompiledCMakeForLinux $DEPS_INSTALL_DIR
 InstallSwigFromSource           $DEPS_INSTALL_DIR
 

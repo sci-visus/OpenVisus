@@ -28,7 +28,5 @@ WORKDIR /home/OpenVisus
 RUN chmod u+x ./Docker/trusty/build.sh 
 
 # RUN ./Docker/trusty/build.sh 
-RUN ./Docker/trusty/build.sh 
-
 
   
