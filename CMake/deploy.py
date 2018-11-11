@@ -170,9 +170,11 @@ class AppleDeployStep:
 	
 	# showDeps
 	def showDeps(self):
-		
-		DYLD_LIBRARY_PATH=os.environ['DYLD_LIBRARY_PATH'] 
-		del os.environ['DYLD_LIBRARY_PATH']
+	  
+		DYLD_LIBRARY_PATH=None
+		if 'DYLD_LIBRARY_PATH' in os.environ:
+			DYLD_LIBRARY_PATH=os.environ['DYLD_LIBRARY_PATH']  
+			del os.environ['DYLD_LIBRARY_PATH']
 		
 		deps={}
 		for filename in self.findAllBinaries():
@@ -185,7 +187,7 @@ class AppleDeployStep:
 				print(dep)
 				
 		if DYLD_LIBRARY_PATH:
-		  os.environ["DYLD_LIBRARY_PATH"]= DYLD_LIBRARY_PATH
+			os.environ["DYLD_LIBRARY_PATH"]= DYLD_LIBRARY_PATH
 						
 	# relativeRootDir
 	def relativeRootDir(self,local,prefix="@loader_path"):
@@ -436,8 +438,10 @@ class LinuxDeployStep:
 	# showDeps
 	def showDeps(self):
 	  
-		LD_LIBRARY_PATH=os.environ['LD_LIBRARY_PATH'] 
-		del os.environ['LD_LIBRARY_PATH']
+		LD_LIBRARY_PATH=None
+		if 'LD_LIBRARY_PATH' in os.environ:
+			LD_LIBRARY_PATH=os.environ['LD_LIBRARY_PATH'] 
+			del os.environ['LD_LIBRARY_PATH']
 			  
 		deps=self.findAllDeps()
 		for key in deps:
@@ -446,7 +450,7 @@ class LinuxDeployStep:
 			print("%30s" % (key,),deps[key])
 			
 		if LD_LIBRARY_PATH:
-		  os.environ['LD_LIBRARY_PATH']=LD_LIBRARY_PATH
+			os.environ['LD_LIBRARY_PATH']=LD_LIBRARY_PATH
 
 	# fixAllDeps
 	def fixAllDeps(self):
