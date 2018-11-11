@@ -6,31 +6,33 @@
 # stop on errors printout commands
 set -ex 
 
-source "./Cmake/common.sh"
+PYTHON_VERSION=${PYTHON_VERSION:-3.6.6} 
+CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Release} 
+VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-1} 
+DISABLE_OPENMP=${DISABLE_OPENMP:-1} 
+VISUS_GUI=${VISUS_GUI:-0} 
+DEPS_INSTALL_DIR=${DEPS_INSTALL_DIR:-$(pwd)/Linux-x86_64} 
+DEPLOY_PYPI=${DEPLOY_PYPI:-0} 
 
-PushArg PYTHON_VERSION         3.6.6
-PushArg CMAKE_BUILD_TYPE       RelWithDebugInfo
-PushArg VISUS_INTERNAL_DEFAULT 1
-PushArg DISABLE_OPENMP         1
-PushArg VISUS_GUI              0
-PushArg DEPS_INSTALL_DIR       $(pwd)/Linux-x86_64
-PushArg DEPLOY_PYPI            0
+source "./Cmake/common.sh"
 
 yum update 
 yum install -y zlib-devel curl 
 
-InstallOpenSSLFromSource        $DEPS_INSTALL_DIR
-InstallPython                   $PYTHON_VERSION
-InstallPrecompiledCMakeForLinux $DEPS_INSTALL_DIR
-InstallSwigFromSource           $DEPS_INSTALL_DIR
+InstallOpenSSL 
+InstallPython
+InstallCMake    
+InstallSwig     
 
 if ((VISUS_GUI==1)); then
-	InstallQtForCentos5           $DEPS_INSTALL_DIR
+	InstallQtForCentos5  
 fi
 
-SetupCMakeOptions()
+SetupOpenVisusCMakeOptions
 PushCmakeOption PYTHON_PLAT_NAME linux_x86_64)  
-Build()
+BuildOpenVisus
+
+
 
 
 

@@ -1,19 +1,5 @@
-#!/bin/baag
+#!/bin/bash
 
-# //////////////////////////////////////////////////////
-function SetIfNotDefined {
-	if [ -z "$1" ]; then
-		$1=$2
-	fi
-}
-
-
-# //////////////////////////////////////////////////////
-function PushArg {
-	if [ -z "$1" ]; then
-		$1=$2
-	fi
-}
 
 # //////////////////////////////////////////////////////
 function PushCmakeOption {
@@ -23,7 +9,7 @@ function PushCmakeOption {
 }
 
 # //////////////////////////////////////////////////////
-function SetupCMakeOptions {
+function SetupOpenVisusCMakeOptions {
 
 	cmake_opts=""
 	PushCmakeOption PYTHON_VERSION         ${PYTHON_VERSION}
@@ -36,48 +22,33 @@ function SetupCMakeOptions {
 	PushCmakeOption PYTHON_INCLUDE_DIR     ${PYTHON_INCLUDE_DIR}
 	PushCmakeOption PYTHON_LIBRARY         ${PYTHON_LIBRARY}
 	PushCmakeOption Qt5_DIR                ${Qt5_DIR}
-	
-	if ((DEPLOY_PYPI==1)); then
-		PushCmakeOption PYPI_USERNAME        ${PYPI_USERNAME}
-		PushCmakeOption PYPI_PASSWORD        ${PYPI_PASSWORD}  
-	fi
-
+	PushCmakeOption SWIG_EXECUTABLE        ${SWIG_EXECUTABLE}
+	PushCmakeOption VISUS_HOME             ${VISUS_HOME}
+	PushCmakeOption CMAKE_INSTALL_PREFIX   ${CMAKE_INSTALL_PREFIX}
+	PushCmakeArg    VISUS_PYTHON_SYS_PATH  ${VISUS_PYTHON_SYS_PATH}	
+	PushCmakeOption PYPI_USERNAME          ${PYPI_USERNAME}
+	PushCmakeOption PYPI_PASSWORD          ${PYPI_PASSWORD}
 }
 
-# //////////////////////////////////////////////////////
-function Build {
 
-	if [[ $(uname -s) == 'Darwin' ]]; then
+
+# //////////////////////////////////////////////////////
+function BuildOpenVisus {
+
+	mkdir -p build
+	cd build
+
+	cmake ${cmake_opts} ../ 
 	
-		cmake -GXcode ${cmake_opts} ../ 
-		
-		set -o pipefail && \
-		cmake --build ./ --target ALL_BUILD   --config ${CMAKE_BUILD_TYPE} | xcpretty -c
-		cmake --build ./ --target RUN_TESTS   --config ${CMAKE_BUILD_TYPE}
-		cmake --build ./ --target install     --config ${CMAKE_BUILD_TYPE}  
-		cmake --build ./ --target deploy      --config ${CMAKE_BUILD_TYPE} 
-		cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
-		cmake --build ./ --target sdist       --config ${CMAKE_BUILD_TYPE} 
-		
-		if ((DEPLOY_PYPI==1)); then 
-		  cmake --build ./ --target pypi      --config ${CMAKE_BUILD_TYPE}
-		fi
-		
-	else
+	cmake --build . --target all -- -j 4
+	cmake --build . --target test
+	cmake --build . --target install 
+	cmake --build . --target deploy 
+	cmake --build . --target bdist_wheel
+	cmake --build . --target sdist 
 	
-		cmake ${cmake_opts} ../ 
-		
-		cmake --build . --target all -- -j 4
-		cmake --build . --target test
-		cmake --build . --target install 
-		cmake --build . --target deploy 
-		cmake --build . --target bdist_wheel
-		cmake --build . --target sdist 
-		
-		if ((DEPLOY_PYPI==1)); then 
-		  cmake --build . --target pypi 
-		fi
-	
+	if ((DEPLOY_PYPI==1)); then 
+	  cmake --build . --target pypi 
 	fi
 
 }
@@ -90,48 +61,51 @@ function DownloadFile {
 
 # //////////////////////////////////////////////////////
 # NOTE for linux: mixing python openssl and OpenVisus internal openssl cause crashes so I'm always using this one
-function InstallOpenSSLFromSource {
+function InstallOpenSSL {
 
-  if [ ! -f $1/openssl/lib/libssl.a ]; then
+  if [ ! -f $DEPS_INSTALL_DIR/openssl/lib/libssl.a ]; then
     echo "Compiling openssl"
     DownloadFile "https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
     tar xvzf openssl-1.0.2a.tar.gz 
     pushd openssl-1.0.2a 
-    ./config -fpic shared --prefix=$1/openssl
+    ./config -fpic shared --prefix=$DEPS_INSTALL_DIR/openssl
     make 
     make install 
     popd
     rm -Rf openssl-1.0.2a*
   fi
   
-  export OPENSSL_ROOT_DIR=$1/openssl	
+  export OPENSSL_ROOT_DIR=$DEPS_INSTALL_DIR/openssl	
   export OPENSSL_INCLUDE_DIR=${OPENSSL_ROOT_DIR}/include
   export OPENSSL_LIB_DIR=${OPENSSL_ROOT_DIR}/lib
   export LD_LIBRARY_PATH=${OPENSSL_LIB_DIR}:$LD_LIBRARY_PATH
 }
 
 # //////////////////////////////////////////////////////
-function InstallPatchElfFromSource {
+function InstallPatchElf {
 
-	if [ ! -f $1/patchelf/bin/patchelf ]; then
+	# already exists?
+	if ! [ -x "$(command -v patchelf)" ]; then
+		return
+	fi
+
+	if [ ! -f $DEPS_INSTALL_DIR/patchelf/bin/patchelf ]; then
     echo "Compiling patchelf"
 		DownloadFile https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz 
 		tar xvzf patchelf-0.9.tar.gz
 		pushd patchelf-0.9
-		./configure --prefix=$1/patchelf
+		./configure --prefix=$DEPS_INSTALL_DIR/patchelf
 		make 
 		make install
 		popd
 		rm -Rf pushd patchelf-0.9*
 	fi
 	
-	export PATH=$1/patchelf/bin:$PATH
+	export PATH=$DEPS_INSTALL_DIR/patchelf/bin:$PATH
 }
 
 # //////////////////////////////////////////////////////
 function InstallPython {
-
-	PYTHON_VERSION=$1
 
   if ! [ -x "$(command -v pyenv)" ]; then
     DownloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
@@ -145,9 +119,9 @@ function InstallPython {
   eval "$(pyenv virtualenv-init -)"
   
   if [ -n "${OPENSSL_INCLUDE_DIR}" ]; then
-    CONFIGURE_OPTS=--enable-shared CFLAGS=-I${OPENSSL_INCLUDE_DIR} CPPFLAGS=-I${OPENSSL_INCLUDE_DIR}/ LDFLAGS=-L${OPENSSL_LIB_DIR} pyenv install ${PYTHON_VERSION}  
+    CONFIGURE_OPTS=--enable-shared CFLAGS=-I${OPENSSL_INCLUDE_DIR} CPPFLAGS=-I${OPENSSL_INCLUDE_DIR}/ LDFLAGS=-L${OPENSSL_LIB_DIR} pyenv install --skip-existing  ${PYTHON_VERSION}  
   else
-    CONFIGURE_OPTS=--enable-shared pyenv install ${PYTHON_VERSION}  
+    CONFIGURE_OPTS=--enable-shared pyenv install --skip-existing ${PYTHON_VERSION}  
   fi
 
   pyenv global ${PYTHON_VERSION}  
@@ -167,40 +141,50 @@ function InstallPython {
 }
 
 # //////////////////////////////////////////////////////
-function InstallSwigFromSource {
-  if [ ! -f $1/swig/bin/swig ]; then
+function InstallSwig {
+  if [ ! -f $DEPS_INSTALL_DIR/swig/bin/swig ]; then
     DownloadFile "https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz"  
     tar xvzf swig-3.0.12.tar.gz 
     pushd swig-3.0.12 
     DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
     ./Tools/pcre-build.sh 
-    ./configure --prefix=$1/swig
+    ./configure --prefix=$DEPS_INSTALL_DIR/swig
     make -j 4 
     make install 
     popd
     rm -Rf swig-3.0.12*
   fi 
-  export PATH=$1/swig/bin:${PATH} 
+  export PATH=$DEPS_INSTALL_DIR/swig/bin:${PATH} 
 }
 
 
 # //////////////////////////////////////////////////////
-function InstallPrecompiledCMakeForLinux {
-  if ! [ -x "$1/cmake/bin/cmake" ]; then
+function InstallCMake {
+
+	# already exists?
+	if [ -x "$(command -v cmake)" ] ; then
+		CMAKE_VERSION=$(cmake --version | cut -d' ' -f3)
+		if [[ ${CMAKE_VERSION:0:1} > =3 ]]; then
+			return
+		fi	
+	fi
+	
+  if ! [ -x "$DEPS_INSTALL_DIR/cmake/bin/cmake" ]; then
     echo "Downloading precompiled cmake"
     DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
     tar xvzf cmake-3.4.3-Linux-x86_64.tar.gz
-    mv cmake-3.4.3-Linux-x86_64 $1/cmake
+    mv cmake-3.4.3-Linux-x86_64 $DEPS_INSTALL_DIR/cmake
     rm -Rf cmake-3.4.3-Linux-x86_64*
   fi
-  export PATH=$1/cmake/bin:${PATH} 
+  
+  export PATH=$DEPS_INSTALL_DIR/cmake/bin:${PATH} 
 }
 
 # //////////////////////////////////////////////////////
 function InstallQtForUbuntu {
 	sudo add-apt-repository ppa:beineri/opt-qt591-trusty -y; 
 	sudo apt-get update -qq
-	sudo apt-get install -qq qt59base
+	sudo apt-get install -qq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt59base
 	set +e # temporary disable exit
 	source /opt/qt59/bin/qt59-env.sh 
 	set -e 
@@ -245,7 +229,7 @@ function InstallQtForCentos5 {
   
   sed -i "s/#define QTESTLIB_USE_PERF_EVENTS/#undef QTESTLIB_USE_PERF_EVENTS/g" qtbase/src/testlib/qbenchmark_p.h 
   
-  ./configure --prefix=$1 -R \\\$$ORIGIN \
+  ./configure --prefix=$DEPS_INSTALL_DIR -R \\\$$ORIGIN \
     -D _X_INLINE=inline \
     -D XK_dead_currency=0xfe6f \
     -D XK_ISO_Level5_Lock=0xfe13 \
@@ -291,5 +275,55 @@ function InstallQtForCentos5 {
   make 
   make install
   popd
-  Qt5_DIR=$1/Qt-${QT_VERSION}/lib/cmake/Qt5/
+  Qt5_DIR=$DEPS_INSTALL_DIR/Qt-${QT_VERSION}/lib/cmake/Qt5/
+}
+
+
+
+# ///////////////////////////////////////////////////////////
+function InstallModVisus {
+
+	VISUS_HOME=$1
+	VISUS_DATASETS=$2
+
+	sudo cat << EOF >/etc/apache2/sites-enabled/000-default.conf
+<VirtualHost *:80>
+  ServerAdmin scrgiorgio@gmail.com
+  DocumentRoot /var/www
+  <Directory /var/www>
+    Options Indexes FollowSymLinks MultiViews
+    AllowOverride All
+    Order allow,deny
+    Allow from all
+  </Directory>
+  <Location /mod_visus>
+    SetHandler visus
+    DirectorySlash Off
+    Header set Access-Control-Allow-Origin "*"
+  </Location>
+</VirtualHost>
+EOF
+	
+	sudo cat << EOF >/usr/local/bin/httpd-foreground.sh
+#!/bin/bash
+set -e 
+rm -f /usr/local/apache2/logs/httpd.pid
+source /etc/apache2/envvars
+mkdir -p $APACHE_RUN_DIR $APACHE_LOCK_DIR $APACHE_LOG_DIR
+rm -f /var/log/apache2/error.log 
+exec /usr/sbin/apache2 -DFOREGROUND
+EOF	
+	
+	echo "LoadModule visus_module ${VISUS_HOME}/bin/libmod_visus.so" > /etc/apache2/mods-available/visus.load
+	a2enmod headers 
+	a2enmod visus 
+	chmod a+x /usr/local/bin/httpd-foreground.sh 
+	
+	# fix LD_LIBRARY_PATH problem
+	echo "$VISUS_HOME/bin" >> /etc/ld.so.conf 
+	ldconfig
+	
+	echo "<include url='$VISUS_DATASETS/visus.config' />" > $VISUS_HOME/visus.config
+	chown -R wwwrun  ${VISUS_HOME}
+	chmod -R a+rX    ${VISUS_HOME}
 }

@@ -27,8 +27,25 @@ fi
 brew install qt5
 Qt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5
 
-SetupCMakeOptions()
-Build()
+SetupOpenVisusCMakeOptions
+
+mkdir build
+cd build
+cmake -GXcode ${cmake_opts} ../ 
+
+set -o pipefail && \
+cmake --build ./ --target ALL_BUILD   --config ${CMAKE_BUILD_TYPE} | xcpretty -c
+cmake --build ./ --target RUN_TESTS   --config ${CMAKE_BUILD_TYPE}
+cmake --build ./ --target install     --config ${CMAKE_BUILD_TYPE}  
+cmake --build ./ --target deploy      --config ${CMAKE_BUILD_TYPE} 
+cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
+cmake --build ./ --target sdist       --config ${CMAKE_BUILD_TYPE} 
+
+if ((DEPLOY_PYPI==1)); then 
+  cmake --build ./ --target pypi      --config ${CMAKE_BUILD_TYPE}
+fi
+
+
 
 
 

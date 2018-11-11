@@ -3,42 +3,55 @@
 # stop on errors printout commands
 set -ex 
 
-source "./CMake/common.sh"
+# configuration
+PYTHON_VERSION=${PYTHON_VERSION:-3.6.6} 
+CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Release} 
+VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0} 
+DISABLE_OPENMP=${DISABLE_OPENMP:-0} 
+VISUS_GUI=${VISUS_GUI:-1} 
+DEPS_INSTALL_DIR=${s:-$(pwd)/Linux-x86_64} 
+DEPLOY_PYPI=${DEPLOY_PYPI:-0} 
+VISUS_MODVISUS=${VISUS_MODVISUS:-0} 
 
-PushArg PYTHON_VERSION         3.6.6
-PushArg CMAKE_BUILD_TYPE       RelWithDebugInfo
-PushArg VISUS_INTERNAL_DEFAULT 0
-PushArg DISABLE_OPENMP         0
-PushArg VISUS_GUI              1
-PushArg DEPS_INSTALL_DIR       $(pwd)/Linux-x86_64
-PushArg DEPLOY_PYPI            0
+if ((VISUS_MODVISUS==1)); then
+	CMAKE_INSTALL_PREFIX=/home/visus
+	VISUS_HOME=$CMAKE_INSTALL_PREFIX}
+	VISUS_PYTHON_SYS_PATH=$CMAKE_INSTALL_PREFIX}
+	VISUS_DATASETS=/mnt/visus_datasets # see ReadMe to understand how this directory is mounted at runtime
+fi
+
+source "./CMake/common.sh"
 
 #  install linux dependencies
 sudo apt-get -qy install software-properties-common
 sudo add-apt-repository -y ppa:deadsnakes/ppa
 sudo apt-get -qy update
-sudo apt-get -qy install --allow-unauthenticated cmake swig git bzip2 ca-certificates build-essential libssl-dev uuid-dev 
-sudo apt-get -qy install --allow-unauthenticated apache2 apache2-dev 
+sudo apt-get -qy install --allow-unauthenticated cmake swig3.0 git bzip2 ca-certificates build-essential libssl-dev uuid-dev curl
 
-# install python
-InstallPython $PYTHON_VERSION
+SWIG_EXECUTABLE=$(which swig3.0)
 
-InstallPatchElfFromSource $DEPS_INSTALL_DIR
-
-# install dependencies
-if (( VISUS_INTERNAL_DEFAULT==0 )); then 
-  sudo apt-get install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
+if ((VISUS_MODVISUS==1)); then
+	sudo apt-get -qy install --allow-unauthenticated apache2 apache2-dev 
 fi
-	
-# install qt 
+
+InstallPatchElf 
+InstallPython   
+InstallCMake    
+
+if (( VISUS_INTERNAL_DEFAULT==0 )); then 
+  sudo apt-get -qy install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
+fi
+
 if ((VISUS_GUI==1)); then
 	InstallQtForUbuntu 
 fi
 
-# compile install openvisus
-SetupCmakeOptions()
-Build()
+SetupOpenVisusCMakeOptions
+BuildOpenVisus
 
+if ((VISUS_MODVISUS==1)); then
+	InstallModVisus ${VISUS_HOME} ${VISUS_DATASETS}
+fi
 
 
 
