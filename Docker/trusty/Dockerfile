@@ -25,8 +25,13 @@ RUN sudo apt-get -qy install git
 ADD https://api.github.com/repos/sci-visus/OpenVisus/git/refs/heads/$GIT_BRANCH version.json
 RUN git clone -b${GIT_BRANCH} https://github.com/sci-visus/OpenVisus.git /home/OpenVisus
 WORKDIR /home/OpenVisus 
-RUN chmod u+x ./Docker/trusty/build.sh && ./Docker/trusty/build.sh
+RUN chmod u+x ./Docker/trusty/build.sh 
 
+RUN ./Docker/trusty/build.sh BUILD_STEP=0
+RUN ./Docker/trusty/build.sh BUILD_STEP=1
+RUN ./Docker/trusty/build.sh BUILD_STEP=2
+RUN ./Docker/trusty/build.sh BUILD_STEP=3
+RUN ./Docker/trusty/build.sh BUILD_STEP=4
 
 
   
