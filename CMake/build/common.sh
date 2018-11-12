@@ -156,7 +156,7 @@ function InstallPython {
     brew upgrade pyenv || true
     eval "$(pyenv init -)"
     eval "$(pyenv virtualenv-init -)"
-    pyenv install --list    
+    # pyenv install --list    
     return
   fi
 
