@@ -1,19 +1,14 @@
 FROM ubuntu:trusty 
 
 ARG PYTHON_VERSION=3.6.6
-ARG GIT_BRANCH=Centos5
-                      
+ARG GIT_BRANCH=master
+ARG DOCKER_DEBUG=0
+              
 RUN sudo apt-get update
-RUN sudo apt-get -qy install git                                 
+RUN sudo apt-get -qq install git                                 
 ADD https://api.github.com/repos/sci-visus/OpenVisus/git/refs/heads/$GIT_BRANCH version.json
 RUN git clone -b${GIT_BRANCH} https://github.com/sci-visus/OpenVisus.git /home/OpenVisus      
 
-WORKDIR /home/OpenVisus 
-COPY *.sh  CMake/build/
+WORKDIR /home/OpenVisus
 RUN chmod +x CMake/build/*.sh
-# RUN ./CMake/build/ubuntu.sh
-
-
-
-
-  
+RUN if [ "${DOCKER_DEBUG}" -eq "0" ]; then ./CMake/build/ubuntu.sh ; fi

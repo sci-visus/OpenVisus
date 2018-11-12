@@ -169,78 +169,19 @@ To test if visusviewer it's working double click on the file install\visusviewer
 
 ## MacOSX compilation
 
-
-Install python using pyenv (best to avoid conflicts):
-
-```
-cd $HOME     
-curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer -O 
-chmod a+x pyenv-installer && ./pyenv-installer  && rm ./pyenv-installer
- 
-cat<<EOF >> ~/.bashrc
-export PATH="\$HOME/.pyenv/bin:\$PATH" 
-eval "\$(pyenv init -)"          
-eval "\$(pyenv virtualenv-init -)"
-EOF
-source ~/.bashrc
-
-PYTHON_VERSION=3.6.6 # change it if needed
-CONFIGURE_OPTS=--enable-shared pyenv install -s $PYTHON_VERSION    
-CONFIGURE_OPTS=--enable-shared pyenv global     $PYTHON_VERSION 
-python -m pip install --user --upgrade pip
-python -m pip install --user --upgrade numpy 
-```
-
-
-Install prerequisites:
+Make sure you have command line toos:
 
 ```
-# if command line tools do not work, type the following: sudo xcode-select --reset
 sudo xcode-select --install
-
-# install brew 
-if ! [ -x "$(command -v brew)" ]; then
-  ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-fi
-
-# install brew dependencies
-brew install git cmake swig qt5  
-brew upgrade cmake
-python -m pip install --user --upgrade numpy 
+# if command line tools do not work, type the following: sudo xcode-select --reset
 ```
 
-Choose if  you want to use precompiled brew libraries (fast) or not (slow):
-
-```
-VISUS_INTERNAL_DEFAULT=0 # 0 means: use brew
-
-if [ $VISUS_INTERNAL_DEFAULT -eq 0 ]; then
-	brew install zlib lz4 tinyxml freeimage openssl curl
-fi
-```
-
-Then compile OpenVisus:
+Build the repository:
 
 ```
 git clone https://github.com/sci-visus/OpenVisus
-cd OpenVisus 
-mkdir build 
-cd build
-
-cmake -GXcode \
-  -DPYTHON_VERSION=${PYTHON_VERSION} \
-  -DPYTHON_EXECUTABLE=$(pyenv prefix)/bin/python \
-  -DPYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_VERSION:0:3}m \
-  -DPYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_VERSION:0:3}m.dylib \
-  -DQt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5 \
-  -DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
-  ..
-  
-CONFIGURATION=RelWithDebInfo
-cmake --build . --target ALL_BUILD   --config $CONFIGURATION -- -jobs 8
-cmake --build . --target RUN_TESTS   --config $CONFIGURATION
-cmake --build . --target install     --config $CONFIGURATION
-cmake --build . --target deploy      --config $CONFIGURATION  
+cd OpenVisus
+CMAKE_BUILD_TYPE=RelWithDebInfo CMake/build/osx.sh
 ```
 
 To test if it's working:
@@ -248,85 +189,39 @@ To test if it's working:
 ```
 cd install
 
-# OpenVisus embedding python
+# (embedding mode)
 ./visusviewer.command      
 
-# OpenVisus extending python
+# (extending mode)
 PYTHONPATH=$(pwd):$(pwd)/bin python -c "import OpenVisus"
 ```
-
-
 
 
       
 ## Linux compilation
 
-Install prerequisites (assuming you are using python 3.x).
 
-For Ubuntu 16.04:
-
-```
-sudo apt install -y cmake git build-essential swig libssl-dev uuid-dev python3 python3-pip t5-default qttools5-dev-tools
-	
-# OPTIONAL (If you want to build Apache plugin)
-# sudo apt install -y apache2 apache2-dev 
-```
-	
-For OpenSuse Leap:
-
-```
-# OPTIONAL
-# sudo zypper refresh && sudo zypper -n update && sudo zypper -n patch     
-sudo zypper -n in -t pattern devel_basis cmake cmake-gui git swig curl python3 python3-pip python3-devel libuuid-devel libopenssl-devel glu-devel  libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel 
-```
-
-Install numpy and deploy depencencies:
-
-```
-python3 -m pip install --user --upgrade pip
-python3 -m pip install --user --upgrade numpy 
-```
-
-Compile OpenVisus. Decide if you want to use OS libraries (fast) or internal libraries(slow):
-
-```
-VISUS_INTERNAL_DEFAULT=0
-if [ $VISUS_INTERNAL_DEFAULT -eq 0 ]; then 
-  sudo apt-get install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
-fi
-```
-
-Then:
+Build the repository:
 
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-mkdir build  && cd build
-
-# if you want to use an IDE
-#GENERATOR="CodeBlocks - Unix Makefiles" 
-GENERATOR="Unix Makefiles"
-
-CMAKE_BUILD_TYPE=RelWithDebInfo
-
-cmake  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} -G "$GENERATOR" ../   
-cmake --build . --target all      -- -j 8
-cmake --build . --target test     
-cmake --build . --target install   
-cmake --build . --target deploy   
+CMAKE_BUILD_TYPE=RelWithDebInfo CMake/build/ubuntu.sh # or opensuse.sh
 ```
+
 
 To test if it's working:
 
 ```
+cd install
+
+# (embedding mode)
 LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) ./visusviewer 
-LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) python3 -c "import OpenVisus"
+
+# (extending mode)
+LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) python -c "import OpenVisus"
 ```
 
-  
-  
-  
-  
   
   
 ## Use OpenVisus as submodule

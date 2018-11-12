@@ -1,25 +1,29 @@
 # Build/Run the Docker container
 
-Compile and run docker:
+Compile the docker container:
 
 ```
 # change the name as you need
 DOCKER_TAG=openvisus-trusty
-cp ../../CMake/build/* . . && \
-sudo docker build --tag $DOCKER_TAG ./
-sudo docker run $DOCKER_OPTS $DOCKER_TAG /bin/bash
+BRANCH=master
+sudo docker build --tag $DOCKER_TAG --build-arg BRANCH=${BRANCH} ./
+```
+
+And run the container:
+
+```
+sudo docker run --rm -it $DOCKER_TAG /bin/bash
 ```
 
 Note that to debug you can:
 
-	- comment the last RUN docker line
-	- compile again
-	- `sudo docker run --rm -it $DOCKER_TAG /bin/bash`
+	- use `-build-arg DOCKER_DEBUG=1` for compilation
+	- run docker container
 	- type `alias ARG=` in the terminal
-	- copy&paste all the Docker part with ARG (they are not passed as ENV)
-	- execute the `./<build-filename>.sh` command in the terminal
+	- copy&paste all the Docker part with ARG (this is because ARG are not available during run)
+	- execute the las build command in the terminal
 
-To copy files from a container:
+To copy files from/to a container:
 
 ``
 sudo docker run --name temp-$DOCKER_TAG $DOCKER_TAG /bin/true
@@ -34,13 +38,15 @@ Compile docker:
 
 ```
 DOCKER_TAG=mod_visus-trusty
-cp ../../CMake/build/* . && \
-  sudo docker build  \
-    --tag $DOCKER_TAG  \
-    --build-arg DISABLE_OPENMP=0 \
-    --build-arg VISUS_GUI=0 \
-    --build-arg VISUS_MODVISUS=1 \
-    ./
+BRANCH=master
+
+sudo docker build  \
+  --tag $DOCKER_TAG  \
+  --build-arg BRANCH=${BRANCH} \
+  --build-arg DISABLE_OPENMP=0 \
+  --build-arg VISUS_GUI=0 \
+  --build-arg VISUS_MODVISUS=1 \
+  ./
 ```
 
 Configure datasets and run docker:

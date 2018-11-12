@@ -334,7 +334,7 @@ PythonEngine::PythonEngine(bool bVerbose)
     }
   }
 
-  if (auto VISUS_PYTHON_SYS_PATH=getenv("VISUS_PYTHON_SYS_PATH")
+  if (auto VISUS_PYTHON_SYS_PATH=getenv("VISUS_PYTHON_SYS_PATH"))
     addSysPath(VISUS_PYTHON_SYS_PATH,bVerbose);
 
 	if (bVerbose)
