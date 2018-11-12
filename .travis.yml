@@ -86,7 +86,7 @@ matrix:
 
 script:
     - cd "${TRAVIS_BUILD_DIR}"
-    - if [ (-n "$TRAVIS_TAG") && ("${dist}"=="osx" || "${dist}"=="manylinux") ]; then DEPLOY_PYPI=1 ; fi
+    - if [[ (-n "$TRAVIS_TAG") && ("${dist}"=="osx" || "${dist}"=="manylinux") ]]; then DEPLOY_PYPI=1 ; fi
     - if [[ "${dist}" == "osx"       ]]; then bash ./CMake/build/osx.sh ; fi
     - if [[ "${dist}" == "trusty"    ]]; then bash ./CMake/build/ubuntu.sh ; fi
     - if [[ "${dist}" == "manylinux" ]]; then bash ./CMake/build/manylinux.sh ; fi
