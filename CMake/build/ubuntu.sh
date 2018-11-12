@@ -5,7 +5,7 @@ VISUS_GUI=${VISUS_GUI:-1}
 VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0} 
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Release} 
 
-source "$(dirname $(readlink -f $0))/common.sh"
+source "$(dirname $0)/common.sh"
 
 if ((${UBUNTU_VERSION:0:2}<=14)); then
 	sudo apt-get -qq install software-properties-common

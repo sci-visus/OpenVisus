@@ -5,7 +5,7 @@ CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Release}
 VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0} 
 VISUS_GUI=${VISUS_GUI:-1}  
 
-source "$(dirname $(readlink -f $0))/common.sh"
+source "$(dirname $0)/common.sh"
             
 InstallPython 
 
