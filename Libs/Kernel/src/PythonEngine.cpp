@@ -334,11 +334,10 @@ PythonEngine::PythonEngine(bool bVerbose)
     }
   }
 
-  #if defined(VISUS_PYTHON_SYS_PATH)
+  if (auto VISUS_PYTHON_SYS_PATH=getenv("VISUS_PYTHON_SYS_PATH")
     addSysPath(VISUS_PYTHON_SYS_PATH,bVerbose);
-  #endif
 
-    if (bVerbose)
+	if (bVerbose)
     VisusInfo() << "Trying to import OpenVisus...";
 
   execCode("from OpenVisus import *");

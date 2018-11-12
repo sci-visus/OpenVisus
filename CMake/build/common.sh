@@ -23,9 +23,7 @@ function SetupOpenVisusCMakeOptions {
 	PushCMakeOption PYTHON_LIBRARY         ${PYTHON_LIBRARY}
 	PushCMakeOption Qt5_DIR                ${Qt5_DIR}
 	PushCMakeOption SWIG_EXECUTABLE        ${SWIG_EXECUTABLE}
-	PushCMakeOption VISUS_HOME             ${VISUS_HOME}
 	PushCMakeOption CMAKE_INSTALL_PREFIX   ${CMAKE_INSTALL_PREFIX}
-	PushCMakeOption VISUS_PYTHON_SYS_PATH  ${VISUS_PYTHON_SYS_PATH}	
 	PushCMakeOption PYTHON_PLAT_NAME       ${PYTHON_PLAT_NAME}
 	PushCMakeOption PYPI_USERNAME          ${PYPI_USERNAME}
 	PushCMakeOption PYPI_PASSWORD          ${PYPI_PASSWORD}
@@ -284,6 +282,8 @@ function InstallQtForCentos5 {
 # ///////////////////////////////////////////////////////////
 function InstallModVisus {
 
+	VISUS_DIR=$1
+
 	sudo cat << EOF >/etc/apache2/sites-enabled/000-default.conf
 <VirtualHost *:80>
   ServerAdmin scrgiorgio@gmail.com
@@ -312,17 +312,17 @@ rm -f /var/log/apache2/error.log
 exec /usr/sbin/apache2 -DFOREGROUND
 EOF
 	
-	echo "LoadModule visus_module ${VISUS_HOME}/bin/libmod_visus.so" > /etc/apache2/mods-available/visus.load
+	echo "LoadModule visus_module ${VISUS_DIR}/bin/libmod_visus.so" > /etc/apache2/mods-available/visus.load
 	a2enmod headers 
 	a2enmod visus 
 	chmod a+x /usr/local/bin/httpd-foreground.sh 
 	
 	# fix LD_LIBRARY_PATH problem
-	echo "$VISUS_HOME/bin" >> /etc/ld.so.conf 
+	echo "${VISUS_DIR}/bin" >> /etc/ld.so.conf 
 	ldconfig
 	
 	# see ReadMe to understand how this directory is mounted at runtime
-	echo "<include url='/mnt/visus_datasets /visus.config' />" > $VISUS_HOME/visus.config
-	chown -R wwwrun  ${VISUS_HOME}
-	chmod -R a+rX    ${VISUS_HOME}
+	echo "<include url='/mnt/visus_datasets /visus.config' />" > ${VISUS_DIR}/visus.config
+	chown -R wwwrun  ${VISUS_DIR}
+	chmod -R a+rX    ${VISUS_DIR}
 }

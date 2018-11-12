@@ -1,42 +1,59 @@
-# Simple container
+# Build/Run the Docker container
 
-Compile docker:
+Compile and run docker:
 
 ```
 # change the name as you need
 DOCKER_TAG=openvisus-trusty
-sudo docker build --tag $DOCKER_TAG Docker/trusty
+cp ../../CMake/build/* . . && \
+sudo docker build --tag $DOCKER_TAG ./
+sudo docker run $DOCKER_OPTS $DOCKER_TAG /bin/bash
 ```
 
-# Mod visus
+Note that to debug you can:
+
+	- comment the last RUN docker line
+	- compile again
+	- `sudo docker run --rm -it $DOCKER_TAG /bin/bash`
+	- type `alias ARG=` in the terminal
+	- copy&paste all the Docker part with ARG (they are not passed as ENV)
+	- execute the `./<build-filename>.sh` command in the terminal
+
+To copy files from a container:
+
+``
+sudo docker run --name temp-$DOCKER_TAG $DOCKER_TAG /bin/true
+sudo docker cp         temp-$DOCKER_TAG:./build/install/dist ./
+sudo docker rm         temp-$DOCKER_TAG
+```
+
+
+# Build/Run the mod_visus container
 
 Compile docker:
 
 ```
 DOCKER_TAG=mod_visus-trusty
-docker build --tag $DOCKER_TAG \
-	--build-arg DISABLE_OPENMP=0 \
-	
-	Docker/trusty
-
-ARG =0
-ARG VISUS_GUI=1
-ARG VISUS_MODVISUS=0
-
+cp ../../CMake/build/* . && \
+  sudo docker build  \
+    --tag $DOCKER_TAG  \
+    --build-arg DISABLE_OPENMP=0 \
+    --build-arg VISUS_GUI=0 \
+    --build-arg VISUS_MODVISUS=1 \
+    ./
 ```
 
 Configure datasets and run docker:
 
 ```
 # change this to point to where your visus datasets are stored
-VISUS_DATASETS=$(pwd)/datasets
+VISUS_DATASETS=$(pwd)/../../datasets
 
 DOCKER_OPTS=""
 DOCKER_OPTS+=" -it"  # allocate a tty for the container process.
 DOCKER_OPTS+=" --rm" #automatically clean up the container and remove the file system when the container exits
 DOCKER_OPTS+=" -v $VISUS_DATASETS:/mnt/visus_datasets" # mount the volume
-DOCKER_OPTS+=" -p 8080:80" # map network ports
-DOCKER_OPTS+=" --expose=80" # expose the port
+DOCKER_OPTS+=" --expose=80 -p 8080:80" # expose the port and remap
 docker run $DOCKER_OPTS $DOCKER_TAG "/usr/local/bin/httpd-foreground.sh"
 
 # docker run $DOCKER_OPTS --entrypoint=/bin/bash $DOCKER_TAG

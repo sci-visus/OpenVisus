@@ -11,13 +11,6 @@ DISABLE_OPENMP=${DISABLE_OPENMP:-0}
 VISUS_GUI=${VISUS_GUI:-1} 
 DEPS_INSTALL_DIR=${s:-$(pwd)/Linux-x86_64} 
 DEPLOY_PYPI=${DEPLOY_PYPI:-0} 
-VISUS_MODVISUS=${VISUS_MODVISUS:-0} 
-
-if ((VISUS_MODVISUS==1)); then
-	CMAKE_INSTALL_PREFIX=/home/visus
-	VISUS_HOME=$CMAKE_INSTALL_PREFIX}
-	VISUS_PYTHON_SYS_PATH=$CMAKE_INSTALL_PREFIX}
-fi
 
 source "$(dirname $(readlink -f $0))/common.sh"
 
@@ -47,10 +40,6 @@ fi
 
 SetupOpenVisusCMakeOptions
 BuildOpenVisus
-
-if ((VISUS_MODVISUS==1)); then
-	InstallModVisus
-fi
 
 
 
