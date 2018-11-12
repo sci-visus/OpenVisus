@@ -151,6 +151,15 @@ function InstallPatchElf {
 # //////////////////////////////////////////////////////
 function InstallPython {
 
+  if (( OSX==1 )); then 
+    brew install pyenv 
+    brew upgrade pyenv
+    eval "$(pyenv init -)"
+    eval "$(pyenv virtualenv-init -)"
+    pyenv install --list    
+    return
+  fi
+
   if ! [ -x "$(command -v pyenv)" ]; then
     DownloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
     chmod a+x pyenv-installer 
@@ -161,10 +170,7 @@ function InstallPython {
   export PATH="$HOME/.pyenv/bin:$PATH"
   eval "$(pyenv init -)"
   eval "$(pyenv virtualenv-init -)"
-  
-  pyenv update
-  pyenv install --list
-  
+
   if [ -n "${OPENSSL_INCLUDE_DIR}" ]; then
     CONFIGURE_OPTS=--enable-shared CFLAGS=-I${OPENSSL_INCLUDE_DIR} CPPFLAGS=-I${OPENSSL_INCLUDE_DIR}/ LDFLAGS=-L${OPENSSL_LIB_DIR} pyenv install --skip-existing  ${PYTHON_VERSION}  
   else
