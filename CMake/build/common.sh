@@ -10,17 +10,24 @@ UBUNTU=0
 OPENSUSE=0
 CENTOS=0
 
-if [[ "$(uname -s)" == *"Darwin"* ]]; then
+__uname__="$(uname -s) $(uname -a)"
+__uname__=${__uname__,,} # lowercase
+
+if [[ "${__uname__}" == *"darwin"* ]]; then
 	OSX=1
-elif [[ "$(uname -a)" == *"ubuntu"* ]]; then
+
+elif [[ "${__uname__}" == *"ubuntu"* ]]; then
 	UBUNTU=1
 	UBUNTU_VERSION=$(lsb_release --release | cut -f2)
-elif [[ "$(uname -a)" == *"opensuse"* ]]; then
+	
+elif [[ "${__uname__}" == *"opensuse"* ]]; then
 	OPENSUSE=1
-elif [[ "$(uname -a)" == *"centos"* ]]; then
+
+elif [[ "${__uname__}" == *"centos"* ]]; then
 	CENTOS=5
+
 else
-	error "here"
+	error "unsupported platform ${__uname__}"
 fi
 
 # //////////////////////////////////////////////////////
