@@ -85,11 +85,11 @@ matrix:
           sources: ['ubuntu-toolchain-r-test']
 
 script:
-	- cd "${TRAVIS_BUILD_DIR}"
-	- if [ (-n "$TRAVIS_TAG") && ("${dist}"=="osx" || "${dist}"=="manylinux") ]; then DEPLOY_PYPI=1 ; fi
-	- if [[ "${dist}" == "osx"       ]]; then bash ./CMake/build/osx.sh ; fi
-	- if [[ "${dist}" == "trusty"    ]]; then bash ./CMake/build/ubuntu.sh ; fi
-	- if [[ "${dist}" == "manylinux" ]]; then bash ./CMake/build/manylinux.sh ; fi
+    - cd "${TRAVIS_BUILD_DIR}"
+    - if [ (-n "$TRAVIS_TAG") && ("${dist}"=="osx" || "${dist}"=="manylinux") ]; then DEPLOY_PYPI=1 ; fi
+    - if [[ "${dist}" == "osx"       ]]; then bash ./CMake/build/osx.sh ; fi
+    - if [[ "${dist}" == "trusty"    ]]; then bash ./CMake/build/ubuntu.sh ; fi
+    - if [[ "${dist}" == "manylinux" ]]; then bash ./CMake/build/manylinux.sh ; fi
 
 before_deploy:
   - export WHEEL_FILE=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
