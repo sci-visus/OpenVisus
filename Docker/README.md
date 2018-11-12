@@ -15,14 +15,6 @@ And run the container:
 sudo docker run --rm -it $DOCKER_TAG /bin/bash
 ```
 
-Note that to debug you can:
-
-	- use `-build-arg DOCKER_DEBUG=1` for compilation
-	- run docker container
-	- type `alias ARG=` in the terminal
-	- copy&paste all the Docker part with ARG (this is because ARG are not available during run)
-	- execute the las build command in the terminal
-
 To copy files from/to a container:
 
 ``
@@ -30,7 +22,6 @@ sudo docker run --name temp-$DOCKER_TAG $DOCKER_TAG /bin/true
 sudo docker cp         temp-$DOCKER_TAG:./build/install/dist ./
 sudo docker rm         temp-$DOCKER_TAG
 ```
-
 
 # Build/Run the mod_visus container
 
