@@ -11,7 +11,7 @@ OPENSUSE=0
 CENTOS=0
 
 __uname__="$(uname -s) $(uname -a)"
-__uname__=${__uname__,,} # lowercase
+__uname__=$(echo ${__uname__} | tr '[:upper:]' '[:lower:]')
 
 if [[ "${__uname__}" == *"darwin"* ]]; then
 	OSX=1
