@@ -152,8 +152,8 @@ function InstallPatchElf {
 function InstallPython {
 
   if (( OSX==1 )); then 
-    brew install pyenv 
-    brew upgrade pyenv
+    brew install pyenv || true
+    brew upgrade pyenv || true
     eval "$(pyenv init -)"
     eval "$(pyenv virtualenv-init -)"
     pyenv install --list    

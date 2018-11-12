@@ -8,13 +8,18 @@ VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0}
 VISUS_GUI=${VISUS_GUI:-1}  
 
 source "$(dirname $0)/common.sh"
+
+if ! [ -x "$(command -v brew)" ]; then
+  /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+fi
+
+brew update >/dev/null || true
             
 InstallPython 
 
 # this is to solve logs too long 
 gem install xcpretty   
 
-brew update >/dev/null
 brew install swig  
 if (( VISUS_INTERNAL_DEFAULT==0 )); then 
   brew install zlib lz4 tinyxml freeimage openssl curl
