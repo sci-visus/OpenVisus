@@ -162,6 +162,7 @@ function InstallPython {
   eval "$(pyenv init -)"
   eval "$(pyenv virtualenv-init -)"
   
+  pyenv update
   pyenv install --list
   
   if [ -n "${OPENSSL_INCLUDE_DIR}" ]; then

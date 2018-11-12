@@ -14,6 +14,7 @@ InstallPython
 # this is to solve logs too long 
 gem install xcpretty   
 
+brew update >/dev/null
 brew install swig  
 if (( VISUS_INTERNAL_DEFAULT==0 )); then 
   brew install zlib lz4 tinyxml freeimage openssl curl
