@@ -30,7 +30,7 @@ matrix:
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.6.6,COMPILER=clang++,dist='osx']                   
+      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.6.5,COMPILER=clang++,dist='osx']                   
         
     - os: osx
       osx_image: xcode9.4 
@@ -48,7 +48,7 @@ matrix:
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.6.6,COMPILER=clang++,dist='osx']    
+      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.6.5,COMPILER=clang++,dist='osx']    
 
     - os: osx
       osx_image: xcode8.3

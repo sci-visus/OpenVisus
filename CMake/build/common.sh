@@ -99,7 +99,7 @@ function BuildOpenVisus {
 
 # //////////////////////////////////////////////////////
 function DownloadFile {
-   curl -L --insecure "$1" -O
+   curl -fsSL --insecure "$1" -O
 }
 
 
@@ -232,6 +232,17 @@ function InstallCMake {
   fi
   
   export PATH=$DEPS_INSTALL_DIR/cmake/bin:${PATH} 
+}
+
+# //////////////////////////////////////////////////////
+function InstallBrew {
+
+  if [ -x "$(command -v brew)" ]; then
+    return
+  fi
+  
+  /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+  brew update >/dev/null || true
 }
 
 # //////////////////////////////////////////////////////
