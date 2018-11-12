@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# stop on errors printout commands
-set -ex 
-
 DEPS_INSTALL_DIR=$(pwd)/.deps
 
 OSX=0

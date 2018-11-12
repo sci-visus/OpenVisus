@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -ex 
+
 PYTHON_VERSION=${PYTHON_VERSION:-3.6.6} 
 
 VISUS_INTERNAL_DEFAULT=1
