@@ -25,8 +25,6 @@ docker ps -a
 CONTAINER_ID=f3399626bda1 
 docker start $CONTAINER_ID 
 sudo docker exec -ti $CONTAINER_ID /bin/bash
-```
-
 
 # Build/Run the mod_visus container
 

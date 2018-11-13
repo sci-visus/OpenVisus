@@ -86,12 +86,12 @@ matrix:
 
 script:
     - cd "${TRAVIS_BUILD_DIR}"
-    - if [[ "${__os__}"=="osx"        && (-n "$TRAVIS_TAG") ]]; then export DEPLOY_PYPI=1 ; fi
-    - if [[ "${__os__}"=="manylinux"  && (-n "$TRAVIS_TAG") ]]; then export DEPLOY_PYPI=1 ; fi
-    - if [[ "${__os__}"=="osx"       ]] ; then bash ./CMake/build_osx.sh ; fi 
-    - if [[ "${__os__}"=="ubuntu"    ]] ; then bash ./CMake/build_ubuntu.sh ; fi
-    - if [[ "${__os__}"=="opensuse"  ]] ; then bash ./CMake/build_opensuse.sh ; fi
-    - if [[ "${__os__}"=="manylinux" ]] ; then bash ./CMake/build_manylinux.sh ; fi
+    - if [[ "${__os__}" == "osx"        && (-n "$TRAVIS_TAG") ]]; then export DEPLOY_PYPI=1 ; fi
+    - if [[ "${__os__}" == "manylinux"  && (-n "$TRAVIS_TAG") ]]; then export DEPLOY_PYPI=1 ; fi
+    - if [[ "${__os__}" == "osx"       ]] ; then bash ./CMake/build_osx.sh ; fi 
+    - if [[ "${__os__}" == "ubuntu"    ]] ; then bash ./CMake/build_ubuntu.sh ; fi
+    - if [[ "${__os__}" == "opensuse"  ]] ; then bash ./CMake/build_opensuse.sh ; fi
+    - if [[ "${__os__}" == "manylinux" ]] ; then bash ./CMake/build_manylinux.sh ; fi
 
 before_deploy:
   - export WHEEL_FILE=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
