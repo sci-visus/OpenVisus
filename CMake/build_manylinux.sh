@@ -102,15 +102,6 @@ function InstallSwig {
 # //////////////////////////////////////////////////////
 function InstallCMake {
 
-	# already exists?
-	if [ -x "$(command -v cmake)" ] ; then
-		CMAKE_VERSION=$(cmake --version | cut -d' ' -f3)
-		CMAKE_VERSION=${CMAKE_VERSION:0:1}
-		if (( CMAKE_VERSION >=3 )); then
-			return
-		fi	
-	fi
-	
 	if ! [ -x "$BUILD_DIR/cmake/bin/cmake" ]; then
 		echo "Downloading precompiled cmake"
 		DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
@@ -153,7 +144,12 @@ cmake ${cmake_opts} ${SOURCE_DIR}
 cmake --build . --target all -- -j 4
 cmake --build . --target test
 cmake --build . --target install 
-cmake --build . --target deploy 
+
+# broken this
+# cmake --build . --target deploy 
+cp openssl/lib/libcrypto.so* install/bin/
+cp openssl/lib/libssl.so*    install/bin/
+
 cmake --build . --target bdist_wheel
 cmake --build . --target sdist 
 
@@ -162,8 +158,8 @@ if (( DEPLOY_PYPI==1 )); then
 fi
 
 cd install
-LD_LIBRARY_PATH=$(pwd):$(dirname ${PYTHON_LIBRARY}) PYTHONPATH=$(pwd) bin/visus     && echo "Embedding working"
-LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
+LD_LIBRARY_PATH=$(pwd)/bin:$(dirname ${PYTHON_LIBRARY}) PYTHONPATH=$(pwd) bin/visus     && echo "Embedding working"
+LD_LIBRARY_PATH=$(pwd)/bin                              PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
 
 
 

@@ -421,10 +421,17 @@ class LinuxDeployStep:
 	        libssl.so.1.0.0 => /tmp/OpenVisus/build/install/bin/libssl.so.1.0.0 (0x00007f15e291c000)	
 		"""		
 		for key,target in self.findAllDeps().items():
-			# only absolute file outside the current directory
-			if not target.startswith(os.getcwd()):
-				print("Fixing dependency",key,": CopyFile",target,"bin/"+key)
-				CopyFile(target,"bin/"+key)	
+			
+			# already inside
+			if target.startswith(os.getcwd()):
+				continue
+			
+			# if I copy linux libraries i will get core dump
+			if target.startswith("/lib64") or target.startswith("/usr/lib64"):
+				continue
+			
+			print("CopyFile",target,"bin/"+key," (fixing dependency of %s) " % (key,))
+			CopyFile(target,"bin/"+key)	
 
 	# setOrigins
 	def setOrigins(self):

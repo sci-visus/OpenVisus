@@ -40,6 +40,19 @@ function PushCMakeOption {
 # //////////////////////////////////////////////////////
 function InstallPython {
 
+	# i can also do this
+	if ((0)); then
+		sudo apt-get install -y software-properties-common 
+		sudo add-apt-repository ppa:jonathonf/python-${PYTHON_VERSION:0:3}
+		sudo apt-get update
+		sudo apt-get install -y python${PYTHON_VERSION:0:3} python${PYTHON_VERSION:0:3}-dev
+		downloadFile https://bootstrap.pypa.io/get-pip.py /
+		export PYTHON_EXECUTABLE=$(which python3.6) 
+		sudo ${PYTHON_EXECUTABLE} get-pip.py
+		sudo ${PYTHON_EXECUTABLE} -m pip install --upgrade numpy setuptools wheel twine auditwheel  
+		return
+	fi
+
    # need to install pyenv?
 	if ! [ -x "$(command -v pyenv)" ]; then
 		DownloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
@@ -61,7 +74,7 @@ function InstallPython {
 	pyenv global ${PYTHON_VERSION}  
 	pyenv rehash
 	python -m pip install --upgrade pip  
-	python -m pip install numpy setuptools wheel twine auditwheel 
+	python -m pip install --upgrade numpy setuptools wheel twine auditwheel 
 
 	if [ "${PYTHON_VERSION:0:1}" -gt "2" ]; then
 		PYTHON_M_VERSION=${PYTHON_VERSION:0:3}m 

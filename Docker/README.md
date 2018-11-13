@@ -15,12 +15,11 @@ Run the script interactively:
 # create a container
 sudo docker run -it -v c:\projects\OpenVisus:/home/OpenVisus ubuntu:trusty 
 cd /home/OpenVisus
-CMake/build_<os_name>.sh
+./CMake/build_<os_name>.sh
 exit
 
 # commit container and re-execute it
 docker ps -a
-docker commit <container_id> openvisus-trusty
 docker exec -it <container_id> /bin/bash
 ```
 
