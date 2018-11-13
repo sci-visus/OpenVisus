@@ -72,6 +72,28 @@ function InstallPython {
 }
 
 
+# //////////////////////////////////////////////////////
+function InstallCMake {
+
+	# already exists?
+	if [ -x "$(command -v cmake)" ] ; then
+		CMAKE_VERSION=$(cmake --version | cut -d' ' -f3)
+		CMAKE_VERSION=${CMAKE_VERSION:0:1}
+		if (( CMAKE_VERSION >=3 )); then
+			return
+		fi	
+	fi
+	
+	if ! [ -x "$BUILD_DIR/cmake/bin/cmake" ]; then
+		echo "Downloading precompiled cmake"
+		DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
+		tar xvzf cmake-3.4.3-Linux-x86_64.tar.gz
+		mv cmake-3.4.3-Linux-x86_64 $BUILD_DIR/cmake
+		rm -Rf cmake-3.4.3-Linux-x86_64*
+	fi
+	
+	export PATH=$BUILD_DIR/cmake/bin:${PATH} 
+}
 
 # //////////////////////////////////////////////////////
 function InstallPatchElf {
@@ -129,6 +151,7 @@ fi
 sudo apt-get -qq install --allow-unauthenticated cmake swig3.0 git bzip2 ca-certificates build-essential libssl-dev uuid-dev curl automake
 sudo apt-get -qq install apache2 apache2-dev
 
+InstallCMake
 InstallPatchElf 
 InstallPython 
 
