@@ -8,8 +8,7 @@ RUN git clone -b${GIT_BRANCH} https://github.com/sci-visus/OpenVisus.git /home/O
 
 WORKDIR /home/OpenVisus 
 COPY *.sh  CMake/build/ 
-RUN chmod +x CMake/build/*.sh
-RUN ./CMake/build/manylinux.sh 
+RUN chmod +x ./CMake/build.sh && ./CMake/build.sh
 
 
 

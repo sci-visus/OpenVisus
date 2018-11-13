@@ -206,19 +206,18 @@ Build the repository:
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-CMAKE_BUILD_TYPE=RelWithDebInfo CMake/build/ubuntu.sh # or opensuse.sh
+./CMake/build.sh 
 ```
 
-
-To test if it's working:
+To test if it's working (consider you should modify the pyenv part):
 
 ```
 cd install
 
-# (embedding mode)
-LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) ./visusviewer 
+# example of embedding mode
+LD_LIBRARY_PATH=$(pwd):$(pyenv prefix)/lib PYTHONPATH=$(pwd) bin/visus
 
-# (extending mode)
+# example of extending mode
 LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) python -c "import OpenVisus"
 ```
 

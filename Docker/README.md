@@ -1,27 +1,41 @@
-# Build/Run the Docker container
+# How to build OpenVisus Docker container
 
-Compile the docker container:
-
-```
-# change the name as you need
-DOCKER_TAG=openvisus-trusty
-BRANCH=master
-sudo docker build --tag $DOCKER_TAG --build-arg BRANCH=${BRANCH} ./
-```
-
-And run the container:
+Compile and run the docker container. For example, for the `trusty` container:
 
 ```
-sudo docker run --rm -it $DOCKER_TAG /bin/bash
+sudo docker build -t openvisus-trusty --build-arg BRANCH=master Docker/trusty
+sudo docker run -it openvisus-trusty /bin/bash 
+```
+
+# How to debug the building process
+
+Run the script interactively:
+
+```
+sudo docker run -it -v c:\projects\OpenVisus:/home/OpenVisus ubuntu:trusty /bin/bash
+cd /home/OpenVisus
+CMake/build.sh
+exit
+```
+
+To re-enter in an exited image:
+
+```
+docker ps -a
+CONTAINER_ID=f3399626bda1 # change with your container id
+docker start $CONTAINER_ID 
+sudo docker exec -ti $CONTAINER_ID /bin/bash
 ```
 
 To copy files from/to a container:
 
 ``
-sudo docker run --name temp-$DOCKER_TAG $DOCKER_TAG /bin/true
-sudo docker cp         temp-$DOCKER_TAG:./build/install/dist ./
-sudo docker rm         temp-$DOCKER_TAG
+sudo docker run --name temp-container $DOCKER_TAG /bin/true
+sudo docker cp         temp-container:/tmp/OpenVisus/build/install ./
+sudo docker rm         temp-container
 ```
+
+
 
 # Build/Run the mod_visus container
 
