@@ -12,11 +12,9 @@ sudo docker run  -it openvisus-trusty /bin/bash
 Run the script interactively:
 
 ```
-sudo docker run -it -v c:\projects\OpenVisus:/home/OpenVisus ubuntu:trusty  
-# sudo docker run -it -v c:\projects\OpenVisus:/home/OpenVisus ubuntu:opensuse:42.3
-# sudo docker run -it -v c:\projects\OpenVisus:/home/OpenVisus quay.io/pypa/manylinux1_x86_64
+sudo docker run -it -v c:\projects\OpenVisus:/home/OpenVisus ubuntu:trusty 
 cd /home/OpenVisus
-CMake/build_ubuntu.sh
+CMake/build_<your_distrib_name>.sh
 exit
 ```
 
@@ -24,19 +22,10 @@ To re-enter in an exited image:
 
 ```
 docker ps -a
-CONTAINER_ID=f3399626bda1 # change with your container id
+CONTAINER_ID=f3399626bda1 
 docker start $CONTAINER_ID 
 sudo docker exec -ti $CONTAINER_ID /bin/bash
 ```
-
-To copy files from/to a container:
-
-``
-sudo docker run --name temp-container $DOCKER_TAG /bin/true
-sudo docker cp         temp-container:/tmp/OpenVisus/build/install ./
-sudo docker rm         temp-container
-```
-
 
 
 # Build/Run the mod_visus container

@@ -26,42 +26,42 @@ matrix:
       osx_image: xcode9.4 #10.13
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=2.7.15,COMPILER=clang++,dist='osx'] 
+      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=2.7.15,COMPILER=clang++,__os__='osx'] 
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.6.5,COMPILER=clang++,dist='osx']                   
+      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.6.5,COMPILER=clang++,__os__='osx']                   
         
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.7.1,COMPILER=clang++,dist='osx']
+      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.7.1,COMPILER=clang++,__os__='osx']
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=2.7.15,COMPILER=clang++,dist='osx']   
+      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=2.7.15,COMPILER=clang++,__os__='osx']   
        
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.6.5,COMPILER=clang++,dist='osx']    
+      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.6.5,COMPILER=clang++,__os__='osx']    
 
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present
-      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.7.1,COMPILER=clang++,dist='osx']     
+      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.7.1,COMPILER=clang++,__os__='osx']     
       
     # ///////////////////////////////// trusty (Ubuntu 14.04)
     
     - os: linux
       dist: trusty
       if: tag IS present
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,dist="ubuntu"]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,__os__="ubuntu"]
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -69,7 +69,7 @@ matrix:
           
     - os: linux
       dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,dist="ubuntu"]       
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,__os__="ubuntu"]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -78,7 +78,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.7,dist="ubuntu"]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.7,__os__="ubuntu"]
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -86,12 +86,12 @@ matrix:
 
 script:
     - cd "${TRAVIS_BUILD_DIR}"
-    - if [[ "${dist}"=="osx"        && (-n "$TRAVIS_TAG") ]]; then DEPLOY_PYPI=1 ; fi
-    - if [[ "${dist}"=="manylinux"  && (-n "$TRAVIS_TAG") ]]; then DEPLOY_PYPI=1 ; fi
-    - if [[ "${dist}"=="osx"       ]] ; then bash ./CMake/build_osx.sh ; fi 
-    - if [[ "${dist}"=="ubuntu"    ]] ; then bash ./CMake/build_ubuntu.sh ; fi
-    - if [[ "${dist}"=="opensuse"  ]] ; then bash ./CMake/build_opensuse.sh ; fi
-    - if [[ "${dist}"=="manylinux" ]] ; then bash ./CMake/build_manylinux.sh ; fi
+    - if [[ "${__os__}"=="osx"        && (-n "$TRAVIS_TAG") ]]; then export DEPLOY_PYPI=1 ; fi
+    - if [[ "${__os__}"=="manylinux"  && (-n "$TRAVIS_TAG") ]]; then export DEPLOY_PYPI=1 ; fi
+    - if [[ "${__os__}"=="osx"       ]] ; then bash ./CMake/build_osx.sh ; fi 
+    - if [[ "${__os__}"=="ubuntu"    ]] ; then bash ./CMake/build_ubuntu.sh ; fi
+    - if [[ "${__os__}"=="opensuse"  ]] ; then bash ./CMake/build_opensuse.sh ; fi
+    - if [[ "${__os__}"=="manylinux" ]] ; then bash ./CMake/build_manylinux.sh ; fi
 
 before_deploy:
   - export WHEEL_FILE=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")

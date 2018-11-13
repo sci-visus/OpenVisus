@@ -6,7 +6,7 @@ PYTHON_VERSION=${PYTHON_VERSION:-3.6.6}
 VISUS_GUI=${VISUS_GUI:-1} 
 VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0} 
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Release} 
-BUILD_DIR=${BUILD_DIR:-/tmp/OpenVisus/build} 
+BUILD_DIR=${BUILD_DIR:-$(pwd)/build/opensuse} 
 
 # //////////////////////////////////////////////////////
 function DownloadFile {

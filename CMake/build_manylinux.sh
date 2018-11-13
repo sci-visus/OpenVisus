@@ -4,7 +4,7 @@ set -ex
 
 PYTHON_VERSION=${PYTHON_VERSION:-3.6.6}
 CMAKE_BUILD_TYPE=Release 
-BUILD_DIR=${BUILD_DIR:-/tmp/OpenVisus/build} 
+BUILD_DIR=${BUILD_DIR:-$(pwd)/build/manylinux} 
 
 # //////////////////////////////////////////////////////
 function DownloadFile {

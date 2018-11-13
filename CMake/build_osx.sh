@@ -6,7 +6,7 @@ PYTHON_VERSION=${PYTHON_VERSION:-3.6.5}
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Release} 
 VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0} 
 VISUS_GUI=${VISUS_GUI:-1}  
-BUILD_DIR=${BUILD_DIR:-/tmp/OpenVisus/build}
+BUILD_DIR=${BUILD_DIR:-$(pwd)/build/osx}
 DEPLOY_PYPI=${DEPLOY_PYPI:0}
 
 # //////////////////////////////////////////////////////
@@ -24,12 +24,12 @@ function PushCMakeOption {
 # //////////////////////////////////////////////////////
 function InstallBrew {
 
-	if [ -x "$(command -v brew)" ]; then
-		return
+	if ! [ -x "$(command -v brew)" ]; then
+		/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 	fi
 	
-	/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-	brew update >/dev/null || true
+	# output is very long!
+	brew update 1>/dev/null 2>&1 || true
 }
 
 
@@ -38,6 +38,7 @@ function InstallPython {
 
 	brew install pyenv || true
 	brew upgrade pyenv || true
+	
 	eval "$(pyenv init -)"
 	eval "$(pyenv virtualenv-init -)"
 	# pyenv install --list    
