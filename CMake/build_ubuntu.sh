@@ -20,6 +20,9 @@ VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0}
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Release}
 BUILD_DIR=${BUILD_DIR:-$(pwd)/build/ubuntu${OS_VERSION}} 
 
+SOURCE_DIR=$(pwd)
+mkdir -p $BUILD_DIR
+cd $BUILD_DIR
 
 # //////////////////////////////////////////////////////
 function DownloadFile {
@@ -89,7 +92,6 @@ function InstallCMake {
 		DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
 		tar xvzf cmake-3.4.3-Linux-x86_64.tar.gz
 		mv cmake-3.4.3-Linux-x86_64 $BUILD_DIR/cmake
-		rm -Rf cmake-3.4.3-Linux-x86_64*
 	fi
 	
 	export PATH=$BUILD_DIR/cmake/bin:${PATH} 
@@ -113,7 +115,6 @@ function InstallPatchElf {
 		autoreconf -f -i
 		./configure --prefix=$BUILD_DIR/patchelf && make && make install
 		popd
-		rm -Rf pushd patchelf-0.9*
 	fi
 	
 	export PATH=$BUILD_DIR/patchelf/bin:$PATH
@@ -174,9 +175,6 @@ PushCMakeOption PYTHON_LIBRARY         ${PYTHON_LIBRARY}
 PushCMakeOption SWIG_EXECUTABLE        $(which swig3.0)
 
 # compile OpenVisus
-SOURCE_DIR=$(pwd)
-mkdir -p $BUILD_DIR
-cd $BUILD_DIR
 cmake ${cmake_opts} ${SOURCE_DIR} 
  
 cmake --build . --target all -- -j 4

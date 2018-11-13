@@ -21,7 +21,7 @@ exit
 # commit container and re-execute it
 docker ps -a
 docker commit <container_id> openvisus-trusty
-docker exec -it openvisus-trusty /bin/bash
+docker exec -it <container_id> /bin/bash
 ```
 
 

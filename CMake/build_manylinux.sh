@@ -6,6 +6,10 @@ PYTHON_VERSION=${PYTHON_VERSION:-3.6.6}
 CMAKE_BUILD_TYPE=Release 
 BUILD_DIR=${BUILD_DIR:-$(pwd)/build/manylinux} 
 
+SOURCE_DIR=$(pwd)
+mkdir -p $BUILD_DIR
+cd $BUILD_DIR
+
 # //////////////////////////////////////////////////////
 function DownloadFile {
 	curl -fsSL --insecure "$1" -O
@@ -31,7 +35,6 @@ function InstallOpenSSL {
 		make 
 		make install 
 		popd
-		rm -Rf openssl-1.0.2a*
 	fi
 	
 	export OPENSSL_ROOT_DIR=$BUILD_DIR/openssl	
@@ -92,7 +95,6 @@ function InstallSwig {
 		make -j 4 
 		make install 
 		popd
-		rm -Rf swig-3.0.12*
 	fi 
 	export PATH=$BUILD_DIR/swig/bin:${PATH} 
 }
@@ -113,8 +115,7 @@ function InstallCMake {
 		echo "Downloading precompiled cmake"
 		DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
 		tar xvzf cmake-3.4.3-Linux-x86_64.tar.gz
-		mv cmake-3.4.3-Linux-x86_64 $BUILD_DIR/cmake
-		rm -Rf cmake-3.4.3-Linux-x86_64*
+		mv cmake-3.4.3-Linux-x86_64 ${BUILD_DIR}/cmake
 	fi
 	
 	export PATH=$BUILD_DIR/cmake/bin:${PATH} 
@@ -147,9 +148,6 @@ PushCMakeOption PYTHON_PLAT_NAME       linux_x86_64
 PushCMakeOption PYPI_USERNAME          ${PYPI_USERNAME}
 PushCMakeOption PYPI_PASSWORD          ${PYPI_PASSWORD}
 
-SOURCE_DIR=$(pwd)
-mkdir -p $BUILD_DIR
-cd $BUILD_DIR
 cmake ${cmake_opts} ${SOURCE_DIR} 
 
 cmake --build . --target all -- -j 4

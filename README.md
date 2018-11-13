@@ -190,12 +190,11 @@ To test if it's working:
 cd install
 
 # (embedding mode)
-./visusviewer.command      
+PYTHONPATH=$(pwd) bin/visus.app/Contents/MacOS/visus  
 
 # (extending mode)
-PYTHONPATH=$(pwd):$(pwd)/bin python -c "import OpenVisus"
+PYTHONPATH=$(pwd) python -c "import OpenVisus"
 ```
-
 
       
 ## Linux compilation
@@ -218,7 +217,7 @@ cd install
 LD_LIBRARY_PATH=$(pwd):$(pyenv prefix)/lib PYTHONPATH=$(pwd) bin/visus
 
 # example of extending mode
-LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) python -c "import OpenVisus"
+LD_LIBRARY_PATH=$(pwd)                     PYTHONPATH=$(pwd) python -c "import OpenVisus"
 ```
 
   

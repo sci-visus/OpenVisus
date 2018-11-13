@@ -9,6 +9,10 @@ VISUS_GUI=${VISUS_GUI:-1}
 BUILD_DIR=${BUILD_DIR:-$(pwd)/build/osx}
 DEPLOY_PYPI=${DEPLOY_PYPI:0}
 
+SOURCE_DIR=$(pwd)
+mkdir -p $BUILD_DIR
+cd $BUILD_DIR
+
 # //////////////////////////////////////////////////////
 function DownloadFile {
 	curl -fsSL --insecure "$1" -O
@@ -104,9 +108,6 @@ PushCMakeOption PYTHON_INCLUDE_DIR     ${PYTHON_INCLUDE_DIR}
 PushCMakeOption PYTHON_LIBRARY         ${PYTHON_LIBRARY}
 PushCMakeOption Qt5_DIR                ${Qt5_DIR}
 
-SOURCE_DIR=$(pwd)
-mkdir -p $BUILD_DIR
-cd $BUILD_DIR
 cmake ${cmake_opts} ${SOURCE_DIR} 
 
 set -o pipefail && \
@@ -122,8 +123,13 @@ if ((DEPLOY_PYPI==1)); then
 fi
 
 cd install
-PYTHONPATH=$(pwd)           ./visus                       && echo "Embedding working"      
-PYTHONPATH=$(pwd):$(pwd)/bin python -c "import OpenVisus" && echo "Extendig working"
+
+PYTHONPATH=$(pwd) bin/visus.app/Contents/MacOS/visus      && echo "Embedding working"  
+
+PYTHONPATH=$(pwd) python -c "import OpenVisus" && echo "Extending working"
+
+    
+
 
 
 

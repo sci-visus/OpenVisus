@@ -8,6 +8,10 @@ VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0}
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Release} 
 BUILD_DIR=${BUILD_DIR:-$(pwd)/build/opensuse} 
 
+SOURCE_DIR=$(pwd)
+mkdir -p $BUILD_DIR
+cd $BUILD_DIR
+
 # //////////////////////////////////////////////////////
 function DownloadFile {
 	curl -fsSL --insecure "$1" -O
@@ -92,9 +96,6 @@ PushCMakeOption PYTHON_EXECUTABLE      ${PYTHON_EXECUTABLE}
 PushCMakeOption PYTHON_INCLUDE_DIR     ${PYTHON_INCLUDE_DIR}
 PushCMakeOption PYTHON_LIBRARY         ${PYTHON_LIBRARY}
 
-SOURCE_DIR=$(pwd)
-mkdir -p $BUILD_DIR
-cd $BUILD_DIR
 cmake ${cmake_opts} ${SOURCE_DIR} 
 
 cmake --build . --target all -- -j 4
