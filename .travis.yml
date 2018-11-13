@@ -56,12 +56,12 @@ matrix:
       if: tag IS present
       env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.7.1,COMPILER=clang++,dist='osx']     
       
-    # ///////////////////////////////// Ubuntu 14.04 
+    # ///////////////////////////////// trusty (Ubuntu 14.04)
     
     - os: linux
       dist: trusty
       if: tag IS present
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,dist="trusty"]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,dist="ubuntu"]
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -69,7 +69,7 @@ matrix:
           
     - os: linux
       dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,dist="trusty"]       
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,dist="ubuntu"]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -78,7 +78,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.7,dist="trusty"]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.7,dist="ubuntu"]
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -86,8 +86,12 @@ matrix:
 
 script:
     - cd "${TRAVIS_BUILD_DIR}"
-    - if [[ (-n "$TRAVIS_TAG") && ("${dist}"=="osx" || "${dist}"=="manylinux") ]]; then DEPLOY_PYPI=1 ; fi
-    - bash ./CMake/build.sh 
+    - if [[ "${dist}"=="osx"        && (-n "$TRAVIS_TAG") ]]; then DEPLOY_PYPI=1 ; fi
+    - if [[ "${dist}"=="manylinux"  && (-n "$TRAVIS_TAG") ]]; then DEPLOY_PYPI=1 ; fi
+    - if [[ "${dist}"=="osx"       ]] ; then bash ./CMake/build_osx.sh ; fi 
+    - if [[ "${dist}"=="ubuntu"    ]] ; then bash ./CMake/build_ubuntu.sh ; fi
+    - if [[ "${dist}"=="opensuse"  ]] ; then bash ./CMake/build_opensuse.sh ; fi
+    - if [[ "${dist}"=="manylinux" ]] ; then bash ./CMake/build_manylinux.sh ; fi
 
 before_deploy:
   - export WHEEL_FILE=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")

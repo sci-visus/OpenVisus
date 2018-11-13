@@ -181,7 +181,7 @@ Build the repository:
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-CMAKE_BUILD_TYPE=RelWithDebInfo CMake/build/osx.sh
+CMAKE_BUILD_TYPE=RelWithDebInfo CMake/build_osx.sh
 ```
 
 To test if it's working:
@@ -201,12 +201,12 @@ PYTHONPATH=$(pwd):$(pwd)/bin python -c "import OpenVisus"
 ## Linux compilation
 
 
-Build the repository:
+Build the repository (replace ubuntu with your distribution):
 
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-./CMake/build.sh 
+./CMake/build_ubuntu.sh  
 ```
 
 To test if it's working (consider you should modify the pyenv part):
@@ -221,7 +221,6 @@ LD_LIBRARY_PATH=$(pwd):$(pyenv prefix)/lib PYTHONPATH=$(pwd) bin/visus
 LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) python -c "import OpenVisus"
 ```
 
-  
   
 ## Use OpenVisus as submodule
 

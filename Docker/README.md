@@ -4,7 +4,7 @@ Compile and run the docker container. For example, for the `trusty` container:
 
 ```
 sudo docker build -t openvisus-trusty --build-arg BRANCH=master Docker/trusty
-sudo docker run -it openvisus-trusty /bin/bash 
+sudo docker run  -it openvisus-trusty /bin/bash 
 ```
 
 # How to debug the building process
@@ -12,9 +12,11 @@ sudo docker run -it openvisus-trusty /bin/bash
 Run the script interactively:
 
 ```
-sudo docker run -it -v c:\projects\OpenVisus:/home/OpenVisus ubuntu:trusty /bin/bash
+sudo docker run -it -v c:\projects\OpenVisus:/home/OpenVisus ubuntu:trusty  
+# sudo docker run -it -v c:\projects\OpenVisus:/home/OpenVisus ubuntu:opensuse:42.3
+# sudo docker run -it -v c:\projects\OpenVisus:/home/OpenVisus quay.io/pypa/manylinux1_x86_64
 cd /home/OpenVisus
-CMake/build.sh
+CMake/build_ubuntu.sh
 exit
 ```
 
