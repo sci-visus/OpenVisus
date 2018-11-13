@@ -68,7 +68,7 @@ function InstallPython {
   
 	export PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python 
 	export PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_M_VERSION} 
-	export PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.so
+	export PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.dylib
 }
 
 # //////////////////////////////////////////////////////

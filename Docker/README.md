@@ -12,19 +12,19 @@ sudo docker run  -it openvisus-trusty /bin/bash
 Run the script interactively:
 
 ```
+# create a container
 sudo docker run -it -v c:\projects\OpenVisus:/home/OpenVisus ubuntu:trusty 
 cd /home/OpenVisus
-CMake/build_<your_distrib_name>.sh
+CMake/build_<os_name>.sh
 exit
-```
 
-To re-enter in an exited image:
-
-```
+# commit container and re-execute it
 docker ps -a
-CONTAINER_ID=f3399626bda1 
-docker start $CONTAINER_ID 
-sudo docker exec -ti $CONTAINER_ID /bin/bash
+docker commit <container_id> openvisus-trusty
+docker exec -it openvisus-trusty /bin/bash
+```
+
+
 
 # Build/Run the mod_visus container
 
