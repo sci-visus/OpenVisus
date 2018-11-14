@@ -306,16 +306,17 @@ PythonEngine::PythonEngine(bool bVerbose)
       auto current_application_dir = KnownPaths::CurrentApplicationFile.getParent().toString();
 
       std::vector<String> candidates;
-      candidates.push_back(current_application_dir + "/.");
 
-#if WIN32
-      //example ${CMAKE_INSTALL_PREFIX}/bin
-      candidates.push_back(current_application_dir + "/..");
-#endif
+      //this is during build
+      candidates.push_back(current_application_dir + "/.");
 
 #if APPLE
       //example: <name>.app/Contents/MacOS/<name>
       candidates.push_back(current_application_dir + "/../..");
+#else
+      //example ${CMAKE_INSTALL_PREFIX}/bin
+      candidates.push_back(current_application_dir + "/..");
+
 #endif
 
       for (auto dir : candidates)

@@ -147,8 +147,9 @@ cmake --build . --target install
 
 # broken this
 # cmake --build . --target deploy 
-cp openssl/lib/libcrypto.so* install/bin/
-cp openssl/lib/libssl.so*    install/bin/
+cp openssl/lib/libcrypto.so*      install/bin/
+cp openssl/lib/libssl.so*         install/bin/
+cp $(pyenv prefix)/lib/libpython* install/bin/
 
 cmake --build . --target bdist_wheel
 cmake --build . --target sdist 
