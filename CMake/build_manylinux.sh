@@ -3,7 +3,7 @@
 set -ex 
 
 PYTHON_VERSION=${PYTHON_VERSION:-3.6.6}
-CMAKE_BUILD_TYPE=Release 
+CMAKE_BUILD_TYPE=RelWithDebInfo 
 BUILD_DIR=${BUILD_DIR:-$(pwd)/build/manylinux} 
 
 SOURCE_DIR=$(pwd)
