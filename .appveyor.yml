@@ -2,7 +2,7 @@ version: '1.0.{build}'
 
 # important the commit message
 # [full_matrix]
-# [deploy_pypi]
+# [deploy_pypi]   IMPORTANT: for deploy_pypi remember to change the version in CMake/setup.py
 # [deploy_github]
 
 notifications:
@@ -59,32 +59,27 @@ build_script:
   - cmd: cmake -G "%CMAKE_GENERATOR%" -DCMAKE_TOOLCHAIN_FILE="c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET="x64-windows" -DQt5_DIR="%QT5_DIR%/lib/cmake/Qt5" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% -DPYTHON_EXECUTABLE=%PYTHON_EXECUTABLE% ../
   - cmd: cmake --build . --target ALL_BUILD --config RelWithDebInfo
   - cmd: cmake --build . --target RUN_TESTS --config RelWithDebInfo
-  - cmd: cd %APPVEYOR_BUILD_FOLDER%\build
   - cmd: cmake --build . --target INSTALL       --config RelWithDebInfo
   - cmd: cmake --build . --target deploy        --config RelWithDebInfo
-  - cmd: cmake --build . --target bdist_wheel   --config RelWithDebInfo
-  - cmd: cmake --build . --target sdist         --config RelWithDebInfo
   - ps: | 
-      If ($env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]")) {
-        cmake --build . --target pypi --config RelWithDebInfo
-      }
-      ELSE {
-        Write-Host "Skipping deploy to pypi, since commit message does not contain [deploy_pypi]."
-      }       
+        If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]") ) {
+           cmake --build . --target sdist --config RelWithDebInfo
+           "%PYTHON_EXECUTABLE%" -c "import os;import glob;f=glob.glob('install/dist/*.zip')[0];os.rename(f,f.replace('.zip','.win_amd64.zip'))"
+        }
+  - ps: | 
+        If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]" )) {
+            cmake --build . --target bdist_wheel   --config RelWithDebInfo
+            cmake --build . --target pypi          --config RelWithDebInfo
+        }
    
 # test are already in cmake
 test: off
 
 after_build:
   - ps: | 
-      If (!($env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]"))) {
-        Write-Host "Skipping deploy to github releases, since commit message does not contain [deploy_github]."
+      if ( -not (Test-Path "%APPVEYOR_BUILD_FOLDER%\build\install\dist\*.zip")) {
         Exit-AppveyorBuild
       }    
-      ELSE {
-        Write-Host "Going to deploy to github release since commit message contains [deploy_github]"
-      }      
-
 
 artifacts:
     - path: .\build\install\dist\*.zip

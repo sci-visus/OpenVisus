@@ -7,7 +7,6 @@ CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
 VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0} 
 VISUS_GUI=${VISUS_GUI:-1}  
 BUILD_DIR=${BUILD_DIR:-$(pwd)/build/osx}
-DEPLOY_PYPI=${DEPLOY_PYPI:0}
 
 SOURCE_DIR=$(pwd)
 mkdir -p $BUILD_DIR
@@ -53,7 +52,7 @@ function InstallPython {
 	eval "$(pyenv init -)"
 	eval "$(pyenv virtualenv-init -)"
 	
-	pyenv install --list
+	# pyenv install --list
 	
 	if [ -n "${OPENSSL_INCLUDE_DIR}" ]; then
 		CONFIGURE_OPTS=--enable-shared CFLAGS=-I${OPENSSL_INCLUDE_DIR} CPPFLAGS=-I${OPENSSL_INCLUDE_DIR}/ LDFLAGS=-L${OPENSSL_LIB_DIR} pyenv install --skip-existing  ${PYTHON_VERSION}  
@@ -117,22 +116,11 @@ cmake --build ./ --target ALL_BUILD   --config ${CMAKE_BUILD_TYPE} | xcpretty -c
 cmake --build ./ --target RUN_TESTS   --config ${CMAKE_BUILD_TYPE}
 cmake --build ./ --target install     --config ${CMAKE_BUILD_TYPE}  
 cmake --build ./ --target deploy      --config ${CMAKE_BUILD_TYPE} 
-cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
-cmake --build ./ --target sdist       --config ${CMAKE_BUILD_TYPE} 
-
-if ((DEPLOY_PYPI==1)); then 
-	cmake --build ./ --target pypi      --config ${CMAKE_BUILD_TYPE}
-fi
 
 cd install
-
-PYTHONPATH=$(pwd) bin/visus.app/Contents/MacOS/visus      && echo "Embedding working"  
-
-PYTHONPATH=$(pwd) python -c "import OpenVisus" && echo "Extending working"
-
-    
-
-
+PYTHONPATH=$(pwd) bin/visus.app/Contents/MacOS/visus  && echo "Embedding working"  
+PYTHONPATH=$(pwd) python -c "import OpenVisus"        && echo "Extending working"
+cd ..
 
 
 

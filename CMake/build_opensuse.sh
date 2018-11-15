@@ -102,12 +102,11 @@ cmake --build . --target all -- -j 4
 cmake --build . --target test
 cmake --build . --target install 
 cmake --build . --target deploy 
-cmake --build . --target bdist_wheel
-cmake --build . --target sdist 
 
 cd install
 LD_LIBRARY_PATH=$(pwd):$(dirname ${PYTHON_LIBRARY}) PYTHONPATH=$(pwd) bin/visus     && echo "Embedding working"
 LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
+cd ..
 
 
 

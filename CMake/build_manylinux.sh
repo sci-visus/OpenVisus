@@ -135,40 +135,30 @@ PushCMakeOption PYTHON_EXECUTABLE      ${PYTHON_EXECUTABLE}
 PushCMakeOption PYTHON_INCLUDE_DIR     ${PYTHON_INCLUDE_DIR}
 PushCMakeOption PYTHON_LIBRARY         ${PYTHON_LIBRARY}
 
-PushCMakeOption PYTHON_PLAT_NAME       linux_x86_64
+PushCMakeOption PYTHON_PLAT_NAME       manylinux1_x86_64
 PushCMakeOption PYPI_USERNAME          ${PYPI_USERNAME}
 PushCMakeOption PYPI_PASSWORD          ${PYPI_PASSWORD}
 
 cmake ${cmake_opts} ${SOURCE_DIR} 
+cmake --build . --target all -- -j 4
+cmake --build . --target test
 
-#cmake --build . --target all -- -j 4
-#cmake --build . --target test
-#cmake --build . --target install 
+cmake --build . --target install 
 
-# broken this
-# cmake --build . --target deploy 
-#cp openssl/lib/libcrypto.so*      install/bin/
-#cp openssl/lib/libssl.so*         install/bin/
-
-# sometimes docker containers do not contain the shared library, and so I cannot run bin/visus
-#cp $(pyenv prefix)/lib/libpython* install/bin/ 
-
-#cmake --build . --target bdist_wheel
-#cmake --build . --target sdist 
-
-echo "!!!" $DEPLOY_PYPI
-if (( DEPLOY_PYPI==1 )); then 
-	cmake --build . --target pypi 
+if (( 0 )); then
+	# WRONG copying very low-level libraries is wrong (i.e. crashes)! I need only distribute real dependencies
+	# cmake --build . --target deploy 
+else
+	# NOTE: sometimes docker containers do not contain the python shared library (needed for executables) so I'm copying it too
+	cp openssl/lib/libcrypto.so*      install/bin/
+	cp openssl/lib/libssl.so*         install/bin/
+	cp $(pyenv prefix)/lib/libpython* install/bin/ 
 fi
 
-#cd install
-#LD_LIBRARY_PATH=$(pwd)/bin:$(dirname ${PYTHON_LIBRARY}) PYTHONPATH=$(pwd) bin/visus     && echo "Embedding working"
-#LD_LIBRARY_PATH=$(pwd)/bin                              PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
-
-
-
-
-
+cd install
+LD_LIBRARY_PATH=$(pwd)/bin:$(dirname ${PYTHON_LIBRARY}) PYTHONPATH=$(pwd) bin/visus                                  && echo "Embedding working"
+LD_LIBRARY_PATH=$(pwd)/bin                              PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
+cd ..
 
 
 

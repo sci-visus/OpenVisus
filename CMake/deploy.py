@@ -13,8 +13,6 @@ WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 
 bVerbose=False
-
-
 	
 # /////////////////////////////////////////////////
 def ExecuteCommand(cmd):	

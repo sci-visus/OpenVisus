@@ -6,18 +6,6 @@ import glob
 #increase this number for PIP
 VERSION="1.2.64"
 
-# ////////////////////////////////////////////////////////////////////
-def getArgValue(name) :
-	for I,arg in enumerate(sys.argv):
-		if arg.startswith(name+"="):
-			return arg.split("=")[1]
-	return None
-
-WIN32=platform.system()=="Windows" or platform.system()=="win32"
-APPLE=platform.system()=="Darwin"
-BDIST_WHEEL="bdist_wheel" in sys.argv
-PYTHON_TAG=getArgValue("--python-tag")
-PLATFORM_NAME=getArgValue("--plat-name")
 	
 # ////////////////////////////////////////////////////////////////////
 def cleanAll():
@@ -30,6 +18,10 @@ def cleanAll():
 def findFilesInCurrentDirectory():
 	
 	ret=[]
+	
+	WIN32=platform.system()=="Windows" or platform.system()=="win32"
+	APPLE=platform.system()=="Darwin"
+	BDIST_WHEEL="bdist_wheel" in sys.argv	
 	
 	for dirpath, __dirnames__, filenames in os.walk("."):
 		for it in filenames:
@@ -98,23 +90,8 @@ def runSetupTools():
 
 # ////////////////////////////////////////////////////////////////////
 if __name__ == "__main__":
-	
   cleanAll()
   runSetupTools()
-  
-  # for pip/linux I need to have a specific name
-  if True:
-    wheel_filename = glob.glob('dist/*.whl')
-    if PLATFORM_NAME=="linux_x86_64" and len(wheel_filename)==1:
-      os.rename(wheel_filename[0], wheel_filename[0].replace("linux_x86_64","manylinux1_x86_64"))  
-
-  # the sdist filename should be the same as the wheel
-  if True:
-    sdist_ext='.zip' if WIN32 else ".tar.gz"
-    wheel_filename = glob.glob('dist/*.whl')
-    sdist_filename = glob.glob('dist/*' +sdist_ext)
-    if len(wheel_filename)==1 and len(sdist_filename)==1:
-      os.rename(sdist_filename[0], os.path.splitext(wheel_filename[0])[0] + sdist_ext)	
 
 
 
