@@ -1,5 +1,10 @@
 version: '1.0.{build}'
 
+# important the commit message
+# [full_matrix]
+# [deploy_pypi]
+# [deploy_github]
+
 notifications:
   - provider: Email
     to:
@@ -17,9 +22,9 @@ environment:
     secure: 6DHH80JPNRCtIYxWc/h88Q==   
   matrix:
     - PYTHON_EXECUTABLE: C:/Python37-x64/python.exe 
-      SKIP_NOTAG: false  
+      ONLY_FULL_MATRIX: false  
     - PYTHON_EXECUTABLE: C:/Python36-x64/python.exe
-      SKIP_NOTAG: true
+      ONLY_FULL_MATRIX: true
   
 # enable cache for vcpkg
 cache: c:\tools\vcpkg\installed\  
@@ -33,11 +38,10 @@ cache: c:\tools\vcpkg\installed\
 #  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 
-# use SKIP_NOTAG to skip building if tag is not present
 init:
   - ps: | 
-      If (($env:SKIP_NOTAG -eq "true") -and ($env:APPVEYOR_REPO_TAG -ne "true")) {
-          Write-Host "Skipping build, not at a tag."
+      If (($env:ONLY_FULL_MATRIX -eq "true") -and !($env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[full_matrix]"))) {
+          Write-Host "Skipping build, since ONLY_FULL_MATRIX=true and commit message does not contain [full_matrix]"
           Exit-AppveyorBuild
       }
 
@@ -56,14 +60,33 @@ build_script:
   - cmd: cmake --build . --target ALL_BUILD --config RelWithDebInfo
   - cmd: cmake --build . --target RUN_TESTS --config RelWithDebInfo
   - cmd: cd %APPVEYOR_BUILD_FOLDER%\build
-  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target INSTALL       --config RelWithDebInfo)
-  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target deploy        --config RelWithDebInfo)
-  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target bdist_wheel   --config RelWithDebInfo)
-  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target sdist         --config RelWithDebInfo)
-  - cmd: IF "%APPVEYOR_REPO_TAG%" == "true" (cmake --build . --target pypi          --config RelWithDebInfo)
+  - cmd: cmake --build . --target INSTALL       --config RelWithDebInfo
+  - cmd: cmake --build . --target deploy        --config RelWithDebInfo
+  - cmd: cmake --build . --target bdist_wheel   --config RelWithDebInfo
+  - cmd: cmake --build . --target sdist         --config RelWithDebInfo
+  - ps: | 
+      If ($env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]")) {
+          cmake --build . --target pypi --config RelWithDebInfo
+      }
+      ELSE
+      {
+			Write-Host "Skipping deploy to pypi, since commit message does not contain [deploy_pypi]."
+      }       
    
 # test are already in cmake
 test: off
+
+after_build:
+  - ps: | 
+      If (!($env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]"))) {
+          Write-Host "Skipping deploy to github releases, since commit message does not contain [deploy_github]."
+          Exit-AppveyorBuild
+      }    
+      ELSE
+      {
+			Write-Host "Going to deploy to github release since commit message contains [deploy_github]"
+      }      
+
 
 artifacts:
     - path: .\build\install\dist\*.zip

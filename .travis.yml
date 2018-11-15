@@ -18,7 +18,7 @@ env:
   
 # supporting commit messages
 # [full_matrix]
-# [deploy_pypy]
+# [deploy_pypi]
 # [deploy_github]
 conditions: v1  
   
@@ -28,16 +28,17 @@ matrix:
 
     # ///////////////////////////////// osx 
     
-    - os: osx
-      osx_image: xcode9.4 #10.13
-      compiler: clang
-      if: commit_message =~ /\[full_matrix\]/
-      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=2.7.15,COMPILER=clang++,__os__='osx'] 
-    - os: osx
+   - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
       env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.6.5,COMPILER=clang++,__os__='osx']                   
-        
+          
+    - os: osx
+      osx_image: xcode9.4 #10.13
+      compiler: clang
+      if: commit_message =~ /\[full_matrix\]/  #
+      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=2.7.15,COMPILER=clang++,__os__='osx'] 
+      
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
@@ -63,7 +64,15 @@ matrix:
       env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.7.1,COMPILER=clang++,__os__='osx']     
       
     # ///////////////////////////////// trusty (Ubuntu 14.04)
-    
+       
+    - os: linux
+      dist: trusty
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,__os__="ubuntu"]       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']          
+            
     - os: linux
       dist: trusty
       if: commit_message =~ /\[full_matrix\]/
@@ -72,15 +81,7 @@ matrix:
         apt:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']       
-          
-    - os: linux
-      dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,__os__="ubuntu"]       
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']          
-          
+
     - os: linux
       dist: trusty
       if: commit_message =~ /\[full_matrix\]/
@@ -92,8 +93,8 @@ matrix:
 
 script:
     - cd "${TRAVIS_BUILD_DIR}"
-    - if [[ "${__os__}" == "osx"        && "$TRAVIS_COMMIT_MESSAGE" == *"[deploy_pypy]"* ]]; then export DEPLOY_PYPI=1 ; fi
-    - if [[ "${__os__}" == "manylinux"  && "$TRAVIS_COMMIT_MESSAGE" == *"[deploy_pypy]"* ]]; then export DEPLOY_PYPI=1 ; fi
+    - if [[ "${__os__}" == "osx"        && "$TRAVIS_COMMIT_MESSAGE" == *"[deploy_pypi]"* ]]; then export DEPLOY_PYPI=1 ; fi
+    - if [[ "${__os__}" == "manylinux"  && "$TRAVIS_COMMIT_MESSAGE" == *"[deploy_pypi]"* ]]; then export DEPLOY_PYPI=1 ; fi
     - if [[ "${__os__}" == "osx"       ]] ; then bash ./CMake/build_osx.sh ; fi 
     - if [[ "${__os__}" == "ubuntu"    ]] ; then bash ./CMake/build_ubuntu.sh ; fi
     - if [[ "${__os__}" == "opensuse"  ]] ; then bash ./CMake/build_opensuse.sh ; fi
