@@ -31,7 +31,7 @@ function InstallOpenSSL {
 		DownloadFile "https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
 		tar xvzf openssl-1.0.2a.tar.gz 
 		pushd openssl-1.0.2a 
-		./config -fpic shared --prefix=$BUILD_DIR/openssl
+		./config -fpic shared 
 		make 
 		make install 
 		popd
@@ -91,7 +91,7 @@ function InstallSwig {
 		pushd swig-3.0.12 
 		DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
 		./Tools/pcre-build.sh 
-		./configure --prefix=$BUILD_DIR/swig
+		./configure 
 		make -j 4 
 		make install 
 		popd
@@ -141,26 +141,29 @@ PushCMakeOption PYPI_PASSWORD          ${PYPI_PASSWORD}
 
 cmake ${cmake_opts} ${SOURCE_DIR} 
 
-cmake --build . --target all -- -j 4
-cmake --build . --target test
-cmake --build . --target install 
+#cmake --build . --target all -- -j 4
+#cmake --build . --target test
+#cmake --build . --target install 
 
 # broken this
 # cmake --build . --target deploy 
-cp openssl/lib/libcrypto.so*      install/bin/
-cp openssl/lib/libssl.so*         install/bin/
-cp $(pyenv prefix)/lib/libpython* install/bin/
+#cp openssl/lib/libcrypto.so*      install/bin/
+#cp openssl/lib/libssl.so*         install/bin/
 
-cmake --build . --target bdist_wheel
-cmake --build . --target sdist 
+# sometimes docker containers do not contain the shared library, and so I cannot run bin/visus
+#cp $(pyenv prefix)/lib/libpython* install/bin/ 
 
+#cmake --build . --target bdist_wheel
+#cmake --build . --target sdist 
+
+echo "!!!" $DEPLOY_PYPI
 if (( DEPLOY_PYPI==1 )); then 
 	cmake --build . --target pypi 
 fi
 
-cd install
-LD_LIBRARY_PATH=$(pwd)/bin:$(dirname ${PYTHON_LIBRARY}) PYTHONPATH=$(pwd) bin/visus     && echo "Embedding working"
-LD_LIBRARY_PATH=$(pwd)/bin                              PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
+#cd install
+#LD_LIBRARY_PATH=$(pwd)/bin:$(dirname ${PYTHON_LIBRARY}) PYTHONPATH=$(pwd) bin/visus     && echo "Embedding working"
+#LD_LIBRARY_PATH=$(pwd)/bin                              PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
 
 
 
