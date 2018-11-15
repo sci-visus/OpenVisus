@@ -82,7 +82,7 @@ after_build:
       }    
 
 artifacts:
-    - path: "%APPVEYOR_BUILD_FOLDER%\build\install\dist\*.zip"
+    - path: .\build\install\dist\*.zip
       name: UploadToGitReleases
  
 deploy:
