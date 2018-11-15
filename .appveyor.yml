@@ -53,7 +53,7 @@ build_script:
   - cmd: cd c:\tools\vcpkg
   - cmd: vcpkg.exe install zlib:x64-windows lz4:x64-windows tinyxml:x64-windows freeimage:x64-windows openssl:x64-windows curl:x64-windows
   - cmd: cd %APPVEYOR_BUILD_FOLDER%  
-  - cmd: IF 1==1 %PYTHON_EXECUTABLE% -m pip install --user numpy
+  - cmd: IF 1==1 "%PYTHON_EXECUTABLE%" -m pip install --user numpy
   - cmd: mkdir build 
   - cmd: cd build 
   - cmd: cmake -G "%CMAKE_GENERATOR%" -DCMAKE_TOOLCHAIN_FILE="c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET="x64-windows" -DQt5_DIR="%QT5_DIR%/lib/cmake/Qt5" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% -DPYTHON_EXECUTABLE=%PYTHON_EXECUTABLE% ../
@@ -64,7 +64,7 @@ build_script:
   - ps: | 
         If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]") ) {
            cmake --build . --target sdist --config RelWithDebInfo
-           "%PYTHON_EXECUTABLE%" -c "import os;import glob;f=glob.glob('install/dist/*.zip')[0];os.rename(f,f.replace('.zip','.win_amd64.zip'))"
+           IF 1==1 "%PYTHON_EXECUTABLE%" -c "import os;import glob;f=glob.glob('install/dist/*.zip')[0];os.rename(f,f.replace('.zip','.win_amd64.zip'))"
         }
   - ps: | 
         If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]" )) {
@@ -82,7 +82,7 @@ after_build:
       }    
 
 artifacts:
-    - path: .\build\install\dist\*.zip
+    - path: "%APPVEYOR_BUILD_FOLDER%\build\install\dist\*.zip"
       name: UploadToGitReleases
  
 deploy:
@@ -90,7 +90,5 @@ deploy:
     auth_token:
       secure: nwK8bGTRUynj+58b7E8Rgur5/0YvfIivBflFb5AaUrpC5BSTpcLbA4Ac+cCF6L4/
     artifact: UploadToGitReleases
-    on:
-      appveyor_repo_tag: true 
 
 
