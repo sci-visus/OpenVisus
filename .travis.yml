@@ -7,7 +7,7 @@ sudo: required
 notifications:
   email:
     recipients:
-      - scrgiorgio@ggmail.com
+      - scrgiorgio@gmail.com
     on_success: always
     on_failure: always 
     
