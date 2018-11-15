@@ -41,8 +41,8 @@ cache: c:\tools\vcpkg\installed\
 init:
   - ps: | 
       If (($env:ONLY_FULL_MATRIX -eq "true") -and !($env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[full_matrix]"))) {
-          Write-Host "Skipping build, since ONLY_FULL_MATRIX=true and commit message does not contain [full_matrix]"
-          Exit-AppveyorBuild
+        Write-Host "Skipping build, since ONLY_FULL_MATRIX=true and commit message does not contain [full_matrix]"
+        Exit-AppveyorBuild
       }
 
 install:
@@ -66,11 +66,10 @@ build_script:
   - cmd: cmake --build . --target sdist         --config RelWithDebInfo
   - ps: | 
       If ($env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]")) {
-          cmake --build . --target pypi --config RelWithDebInfo
+        cmake --build . --target pypi --config RelWithDebInfo
       }
-      ELSE
-      {
-			Write-Host "Skipping deploy to pypi, since commit message does not contain [deploy_pypi]."
+      ELSE {
+        Write-Host "Skipping deploy to pypi, since commit message does not contain [deploy_pypi]."
       }       
    
 # test are already in cmake
@@ -79,12 +78,11 @@ test: off
 after_build:
   - ps: | 
       If (!($env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]"))) {
-          Write-Host "Skipping deploy to github releases, since commit message does not contain [deploy_github]."
-          Exit-AppveyorBuild
+        Write-Host "Skipping deploy to github releases, since commit message does not contain [deploy_github]."
+        Exit-AppveyorBuild
       }    
-      ELSE
-      {
-			Write-Host "Going to deploy to github release since commit message contains [deploy_github]"
+      ELSE {
+        Write-Host "Going to deploy to github release since commit message contains [deploy_github]"
       }      
 
 
