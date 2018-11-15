@@ -41,12 +41,6 @@ matrix:
       env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=2.7.15,COMPILER=clang++,__os__='osx'] 
       
     - os: osx
-      osx_image: xcode9.4 
-      compiler: clang
-      if: commit_message =~ /\[full_matrix\]/
-      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.7.1,COMPILER=clang++,__os__='osx']
-      
-    - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: commit_message =~ /\[full_matrix\]/
@@ -56,13 +50,7 @@ matrix:
       osx_image: xcode8.3
       compiler: clang
       if: commit_message =~ /\[full_matrix\]/
-      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.6.5,COMPILER=clang++,__os__='osx']    
-
-    - os: osx
-      osx_image: xcode8.3
-      compiler: clang
-      if: commit_message =~ /\[full_matrix\]/
-      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.7.1,COMPILER=clang++,__os__='osx']     
+      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.6.1,COMPILER=clang++,__os__='osx']        
       
     # ///////////////////////////////// trusty (Ubuntu 14.04)
        
@@ -83,14 +71,6 @@ matrix:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']       
 
-    - os: linux
-      dist: trusty
-      if: commit_message =~ /\[full_matrix\]/
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.7,__os__="ubuntu"]
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']
 
 script:
     - cd "${TRAVIS_BUILD_DIR}"
