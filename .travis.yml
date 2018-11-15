@@ -28,7 +28,7 @@ matrix:
 
     # ///////////////////////////////// osx 
     
-   - os: osx
+    - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
       env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.6.5,COMPILER=clang++,__os__='osx']                   
