@@ -1,4 +1,5 @@
 
+
 language: cpp
 
 sudo: required
@@ -6,7 +7,7 @@ sudo: required
 notifications:
   email:
     recipients:
-      - scrgiorgio@gmail.com
+      - scrgiorgio@ggmail.com
     on_success: always
     on_failure: always 
     
