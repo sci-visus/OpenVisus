@@ -44,7 +44,7 @@ matrix:
       osx_image: xcode8.3
       compiler: clang
       if: commit_message =~ /\[full_matrix\]/
-      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=2.7.15,COMPILER=clang++,__os__='osx']   
+      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=2.7.14,COMPILER=clang++,__os__='osx']   
        
     - os: osx
       osx_image: xcode8.3
