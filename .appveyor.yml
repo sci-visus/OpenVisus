@@ -52,7 +52,7 @@ build_script:
   - ps: If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]") ) { $env:DEPLOY_GITHUB=1 } else { $env:DEPLOY_GITHUB=0 }
   - ps: If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]"  ) ) { $env:DEPLOY_PYPI=1   } else { $env:DEPLOY_PYPI=0   }
   - cmd: cd %APPVEYOR_BUILD_FOLDER%  
-  - cmd: CMake/build_win.bat
+  - cmd: CMake\build_win.bat
    
 # test are already in cmake
 test: off
