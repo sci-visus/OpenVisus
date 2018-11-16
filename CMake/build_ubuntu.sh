@@ -2,6 +2,16 @@
 
 set -ex 
 
+PYTHON_VERSION=${PYTHON_VERSION:-3.6.6} 
+VISUS_GUI=${VISUS_GUI:-1} 
+VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0} 
+CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
+BUILD_DIR=${BUILD_DIR:-$(pwd)/build/ubuntu} 
+
+SOURCE_DIR=$(pwd)
+mkdir -p $BUILD_DIR
+cd $BUILD_DIR
+
 # detect version
 if [ -f /etc/os-release ]; then
 	source /etc/os-release
@@ -13,16 +23,6 @@ elif [ -f /etc/lsb-release ]; then
 	OS_VERSION=$DISTRIB_RELEASE
 fi
 echo "OS_VERSION ${OS_VERSION}"
-
-PYTHON_VERSION=${PYTHON_VERSION:-3.6.6} 
-VISUS_GUI=${VISUS_GUI:-1} 
-VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0} 
-CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
-BUILD_DIR=${BUILD_DIR:-$(pwd)/build/ubuntu${OS_VERSION}} 
-
-SOURCE_DIR=$(pwd)
-mkdir -p $BUILD_DIR
-cd $BUILD_DIR
 
 # //////////////////////////////////////////////////////
 function DownloadFile {
