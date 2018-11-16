@@ -72,13 +72,11 @@ matrix:
 
 
 script:
-   - |
-     cd "${TRAVIS_BUILD_DIR}"
-     bash ./CMake/build_${OS_NAME}.sh
-     cd build
-     
+   - cd "${TRAVIS_BUILD_DIR}"
+   - bash ./CMake/build_${OS_NAME}.sh
+   - cd build
    - |     
-     export DEPLOY_GITHUB=1   
+     export DEPLOY_GITHUB=0   
      if [[ "$TRAVIS_COMMIT_MESSAGE" == *"[deploy_github]"* ]]; then
         echo "Deploying to github enabled"
         export DEPLOY_GITHUB=1
@@ -87,9 +85,8 @@ script:
         export SDIST_FILE=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
         export SDIST_FILE=${SDIST_FILE/.tar.gz/.${OS_NAME}_${OS_VERSION}.tar.gz}
      fi
-     
    - |   
-     export DEPLOY_PYPI=1 
+     export DEPLOY_PYPI=0
      if [[ "${OS_NAME}" == "osx" || "${OS_NAME}" == "manylinux" ]] ; then
         if [[ "$TRAVIS_COMMIT_MESSAGE" == *"[deploy_pypi]"* ]] ; then
            echo "Deploying to pypi enabled"
