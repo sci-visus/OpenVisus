@@ -58,10 +58,10 @@ build_script:
 test: off
 
 after_build:
-  - ps: | 
-      if ( -not (Test-Path "%APPVEYOR_BUILD_FOLDER%\build\install\dist\*.zip")) {
-        Exit-AppveyorBuild
-      }    
+  - ps: |
+        If ( -not ($env:DEPLOY_GITHUB -eq 1) ) {
+          Exit-AppveyorBuild
+        }
 
 artifacts:
     - path: .\build\install\dist\*.zip
