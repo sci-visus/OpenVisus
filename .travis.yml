@@ -77,15 +77,21 @@ script:
      bash ./CMake/build_${OS_NAME}.sh
      cd build
      
-     if [ "$TRAVIS_COMMIT_MESSAGE" == *"[deploy_github]"* ]; then
+   - |     
+     export DEPLOY_GITHUB=1   
+     if [ "$TRAVIS_COMMIT_MESSAGE" = *"[deploy_github]"* ]; then
+        echo "Deploying to github enabled"
         export DEPLOY_GITHUB=1
         cmake --build ./ --target sdist --config ${CMAKE_BUILD_TYPE}
         export SDIST_FILE=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
         export SDIST_FILE=${SDIST_FILE/.tar.gz/.${OS_NAME}_${OS_VERSION}.tar.gz}
      fi
      
-     if [ "${OS_NAME}" == "osx" || "${OS_NAME}" == "manylinux" ] ; then
+   - |   
+     export DEPLOY_PYPI=1 
+     if [ "${OS_NAME}" = "osx" || "${OS_NAME}" = "manylinux" ] ; then
         if [ "$TRAVIS_COMMIT_MESSAGE" == *"[deploy_pypi]"* ] ; then
+           echo "Deploying to pypi enabled"
            export DEPLOY_PYPI=1
            cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
            cmake --build ./ --target pypi        --config ${CMAKE_BUILD_TYPE}
@@ -103,5 +109,5 @@ deploy:
   on:
     repo: sci-visus/OpenVisus
     all_branches: true
-    condition: "$DEPLOY_GITHUB = true"
+    condition: "$DEPLOY_GITHUB = 1"
 
