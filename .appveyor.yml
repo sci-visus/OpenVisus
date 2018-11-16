@@ -61,16 +61,18 @@ build_script:
   - cmd: cmake --build . --target RUN_TESTS --config RelWithDebInfo
   - cmd: cmake --build . --target INSTALL       --config RelWithDebInfo
   - cmd: cmake --build . --target deploy        --config RelWithDebInfo
-  - ps: | 
-        If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]") ) {
+  - ps: If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]") ) { $env:DEPLOY_GITHUB=1 } else { $env:DEPLOY_GITHUB=0 }
+  - ps: If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]"  ) ) { $env:DEPLOY_PYPI=1   } else { $env:DEPLOY_PYPI=0   }
+  - cmd:| 
+        if %DEPLOY_GITHUB%==1  (
            cmake --build . --target sdist --config RelWithDebInfo
-           "%PYTHON_EXECUTABLE%" -c "import os;import glob;f=glob.glob('install/dist/*.zip')[0];os.rename(f,f.replace('.zip','.win_amd64.zip'))"
-        }
-  - ps: | 
-        If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]" )) {
-            cmake --build . --target bdist_wheel   --config RelWithDebInfo
-            cmake --build . --target pypi          --config RelWithDebInfo
-        }
+           "%PYTHON_EXECUTABLE%" -c "import os;import glob;filename=glob.glob('install/dist/*.zip')[0];os.rename(filename,filename.replace('.zip','.win_amd64.zip'))" 
+        )
+  - cmd:| 
+        if %DEPLOY_PYPI%==1  (
+           cmake --build . --target bdist_wheel   --config RelWithDebInfo
+           cmake --build . --target pypi          --config RelWithDebInfo
+        )
    
 # test are already in cmake
 test: off
