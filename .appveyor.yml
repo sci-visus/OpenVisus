@@ -49,6 +49,8 @@ install:
   - choco install -y --allow-empty-checksums swig 
 
 build_script:
+  - ps: If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]") ) { $env:DEPLOY_GITHUB=1 } else { $env:DEPLOY_GITHUB=0 }
+  - ps: If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]"  ) ) { $env:DEPLOY_PYPI=1   } else { $env:DEPLOY_PYPI=0   }
   - cmd: call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
   - cmd: cd c:\tools\vcpkg
   - cmd: vcpkg.exe install zlib:x64-windows lz4:x64-windows tinyxml:x64-windows freeimage:x64-windows openssl:x64-windows curl:x64-windows
@@ -61,18 +63,16 @@ build_script:
   - cmd: cmake --build . --target RUN_TESTS --config RelWithDebInfo
   - cmd: cmake --build . --target INSTALL       --config RelWithDebInfo
   - cmd: cmake --build . --target deploy        --config RelWithDebInfo
-  - ps: If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]") ) { $env:DEPLOY_GITHUB=1 } else { $env:DEPLOY_GITHUB=0 }
-  - ps: If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]"  ) ) { $env:DEPLOY_PYPI=1   } else { $env:DEPLOY_PYPI=0   }
-  - cmd:| 
-        if %DEPLOY_GITHUB%==1  (
-           cmake --build . --target sdist --config RelWithDebInfo
-           "%PYTHON_EXECUTABLE%" -c "import os;import glob;filename=glob.glob('install/dist/*.zip')[0];os.rename(filename,filename.replace('.zip','.win_amd64.zip'))" 
-        )
-  - cmd:| 
-        if %DEPLOY_PYPI%==1  (
-           cmake --build . --target bdist_wheel   --config RelWithDebInfo
-           cmake --build . --target pypi          --config RelWithDebInfo
-        )
+  - cmd: | 
+         if %DEPLOY_GITHUB%==1  (
+            cmake --build . --target sdist --config RelWithDebInfo
+            "%PYTHON_EXECUTABLE%" -c "import os;import glob;filename=glob.glob('install/dist/*.zip')[0];os.rename(filename,filename.replace('.zip','.win_amd64.zip'))" 
+         )
+  - cmd: | 
+         if %DEPLOY_PYPI%==1  (
+            cmake --build . --target bdist_wheel   --config RelWithDebInfo
+            cmake --build . --target pypi          --config RelWithDebInfo
+         )
    
 # test are already in cmake
 test: off
