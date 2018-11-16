@@ -51,28 +51,8 @@ install:
 build_script:
   - ps: If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]") ) { $env:DEPLOY_GITHUB=1 } else { $env:DEPLOY_GITHUB=0 }
   - ps: If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]"  ) ) { $env:DEPLOY_PYPI=1   } else { $env:DEPLOY_PYPI=0   }
-  - cmd: call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
-  - cmd: cd c:\tools\vcpkg
-  - cmd: vcpkg.exe install zlib:x64-windows lz4:x64-windows tinyxml:x64-windows freeimage:x64-windows openssl:x64-windows curl:x64-windows
   - cmd: cd %APPVEYOR_BUILD_FOLDER%  
-  - cmd: if "1"=="1" "%PYTHON_EXECUTABLE%" -m pip install --user numpy
-  - cmd: mkdir build 
-  - cmd: cd build 
-  - cmd: cmake -G "%CMAKE_GENERATOR%" -DCMAKE_TOOLCHAIN_FILE="c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET="x64-windows" -DQt5_DIR="%QT5_DIR%/lib/cmake/Qt5" -DPYPI_USERNAME=%PYPI_USERNAME% -DPYPI_PASSWORD=%PYPI_PASSWORD% -DPYTHON_EXECUTABLE=%PYTHON_EXECUTABLE% ../
-  - cmd: cmake --build . --target ALL_BUILD --config RelWithDebInfo
-  - cmd: cmake --build . --target RUN_TESTS --config RelWithDebInfo
-  - cmd: cmake --build . --target INSTALL       --config RelWithDebInfo
-  - cmd: cmake --build . --target deploy        --config RelWithDebInfo
-  - cmd: | 
-         if %DEPLOY_GITHUB%==1  (
-            cmake --build . --target sdist --config RelWithDebInfo
-            "%PYTHON_EXECUTABLE%" -c "import os;import glob;filename=glob.glob('install/dist/*.zip')[0];os.rename(filename,filename.replace('.zip','.win_amd64.zip'))" 
-         )
-  - cmd: | 
-         if %DEPLOY_PYPI%==1  (
-            cmake --build . --target bdist_wheel   --config RelWithDebInfo
-            cmake --build . --target pypi          --config RelWithDebInfo
-         )
+  - cmd: CMake/build_win.bat
    
 # test are already in cmake
 test: off

@@ -101,6 +101,5 @@ deploy:
   on:
     repo: sci-visus/OpenVisus
     all_branches: true
-    condition: commit_message =~ /\[deploy_github\]/
 
 
