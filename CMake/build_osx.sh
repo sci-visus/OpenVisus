@@ -108,6 +108,8 @@ PushCMakeOption PYTHON_EXECUTABLE      ${PYTHON_EXECUTABLE}
 PushCMakeOption PYTHON_INCLUDE_DIR     ${PYTHON_INCLUDE_DIR}
 PushCMakeOption PYTHON_LIBRARY         ${PYTHON_LIBRARY}
 PushCMakeOption Qt5_DIR                ${Qt5_DIR}
+PushCMakeOption PYPI_USERNAME          ${PYPI_USERNAME}
+PushCMakeOption PYPI_PASSWORD          ${PYPI_PASSWORD}
 
 cmake ${cmake_opts} ${SOURCE_DIR} 
 

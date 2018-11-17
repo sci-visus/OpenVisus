@@ -1,9 +1,10 @@
-version: '1.0.{build}'
-
-# important the commit message
+# supporting commit messages
+# important: if you [deploy*...] better git tag the commit and change CMake/setup.py
 # [full_matrix]
-# [deploy_pypi]   IMPORTANT: for deploy_pypi remember to change the version in CMake/setup.py
+# [deploy_pypi]   
 # [deploy_github]
+
+version: '1.0.{build}'
 
 notifications:
   - provider: Email
