@@ -1,9 +1,3 @@
-# supporting commit messages
-# important: if you [deploy*...] better git tag the commit and change CMake/setup.py
-# [full_matrix]
-# [deploy_pypi]   
-# [deploy_github] 
-
 language: cpp
 
 sudo: required
@@ -18,6 +12,8 @@ notifications:
 env:
   global:
     - CMAKE_BUILD_TYPE=RelWithDebInfo 
+    - DEPLOY_GITHUB=0
+    - DEPLOY_PYPI=0
     - PYPI_USERNAME=scrgiorgio
     - secure: EAZwSiQCFdTjcKDmHLFpWgX7WnGKwTtptkTvXYLcMPSUMxGymTCOTI1h8jjhxGig3k4Jni1X1gx9c8+LkcMd/yjbzDiOnIjCAVRc1hmCijAgu9j3G1ZMll4E38T7Iq6jE3/DZyb7pfK3X4NQopF/5uySIGeoH25CHwcNyr36k8Ba+qYtanPwTG1D+EVIago8qqL5yG5rslAf7Y69+zVbNa/JAUhow4fw0RAwVp+kgMC7Fj7iSMuN4NmS176VZEjD593zbiBgW+veEN0Z2MLD4vG7nq+w5u5JJYuz+Q4EiB5CCek5hhj17fJMWuAA23RZAlq4X/2oS5bKg/etHK5iVeM8ODKBX2bBHOxQoqwOaOVf0sEs5ranwVLR/77FrhFEECKAmkfFHwGGViWTvdE+F/7XqjLQK9Zm2f+T+rMHxrm1RknbXz271TNahqCHnMsmpaz98WbBHjdp2aQfU+nV/l6XLJnAf0R58ISiVdnDOy3BgQsiWIyxjZc6gRSwLg6EzAS2XlgQOmXhDo8lYoaepuK4OWvdIf+bqw0Y3b0uvrpHlAEpIG0tzzZw6ldq3CdvKD+46Vz+ZtEQBi0GBPy1Env1RHILzlkUwn6LSjVnKYY/TZxIi4ha73yo2BwJ1Q6hpdjVFgHJkEY3a72UCnOBIVnaalGv9lu/EjaixrnU6Nc=  
   
@@ -32,31 +28,31 @@ matrix:
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: [OS_VERSION=10.13,PYTHON_VERSION=3.6.5,COMPILER=clang++,OS_NAME='osx']                   
+      env: [OS_VERSION=10.13,PYTHON_VERSION=3.6.5,COMPILER=clang++,OS_NAME='osx',DEPLOY_PYPI_ENABLED=1]                   
           
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      if: commit_message =~ /\[full_matrix\]/  #
-      env: [OS_VERSION=10.13,PYTHON_VERSION=2.7.15,COMPILER=clang++,OS_NAME='osx'] 
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/  #
+      env: [OS_VERSION=10.13,PYTHON_VERSION=2.7.15,COMPILER=clang++,OS_NAME='osx',DEPLOY_PYPI_ENABLED=1] 
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      if: commit_message =~ /\[full_matrix\]/
-      env: [OS_VERSION=10.12,PYTHON_VERSION=2.7.14,COMPILER=clang++,OS_NAME='osx']   
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: [OS_VERSION=10.12,PYTHON_VERSION=2.7.14,COMPILER=clang++,OS_NAME='osx',DEPLOY_PYPI_ENABLED=1]   
        
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      if: commit_message =~ /\[full_matrix\]/
-      env: [OS_VERSION=10.12,PYTHON_VERSION=3.6.1,COMPILER=clang++,OS_NAME='osx']        
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: [OS_VERSION=10.12,PYTHON_VERSION=3.6.1,COMPILER=clang++,OS_NAME='osx',DEPLOY_PYPI_ENABLED=1]        
       
     # ///////////////////////////////// trusty (Ubuntu 14.04)
        
     - os: linux
       dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,OS_NAME="ubuntu",OS_VERSION=14]       
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,OS_NAME="ubuntu",OS_VERSION=14,DEPLOY_PYPI_ENABLED=0]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -64,36 +60,38 @@ matrix:
             
     - os: linux
       dist: trusty
-      if: commit_message =~ /\[full_matrix\]/
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,OS_NAME="ubuntu",OS_VERSION=14]
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,OS_NAME="ubuntu",OS_VERSION=14,DEPLOY_PYPI_ENABLED=0]
       addons: 
         apt:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']       
 
+before_script:
+   - |  
+     if [[ "${TRAVIS_TAG}" != "" || "$TRAVIS_COMMIT_MESSAGE" == *"[deploy_github]"* ]]; then
+        export DEPLOY_GITHUB=1
+     fi 
+     if [[ "${DEPLOY_PYPI_ENABLED}" == "1" && ( "${TRAVIS_TAG}" != "" ||  "$TRAVIS_COMMIT_MESSAGE" == *"[deploy_pypi]"* ) ]] ; then 
+        export DEPLOY_PYPI=1
+     fi 
 
 script:
    - cd "${TRAVIS_BUILD_DIR}"
    - bash ./CMake/build_${OS_NAME}.sh
    - cd "${TRAVIS_BUILD_DIR}/build/${OS_NAME}"
-   - |     
-     export DEPLOY_GITHUB=0   
-     if [[ "$TRAVIS_COMMIT_MESSAGE" == *"[deploy_github]"* ]]; then
-        echo "Deploying to github enabled"
-        export DEPLOY_GITHUB=1
+   - |
+     if [[ "${DEPLOY_GITHUB}" == "1" ]]; then
+        echo "Doing deploy to github..."
         cmake --build ./ --target sdist --config ${CMAKE_BUILD_TYPE}
         export SDIST_FILE=$(find ${TRAVIS_BUILD_DIR}/build/${OS_NAME}/install/dist -iname "*.tar.gz")
         export SDIST_FILE=${SDIST_FILE/.tar.gz/.${OS_NAME}_${OS_VERSION}.tar.gz}
      fi
-   - |   
-     export DEPLOY_PYPI=0
-     if [[ "${OS_NAME}" == "osx" || "${OS_NAME}" == "manylinux" ]] ; then
-        if [[ "$TRAVIS_COMMIT_MESSAGE" == *"[deploy_pypi]"* ]] ; then
-           echo "Deploying to pypi enabled"
-           export DEPLOY_PYPI=1
-           cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
-           cmake --build ./ --target pypi        --config ${CMAKE_BUILD_TYPE}
-        fi
+   - |
+     if [[ "${DEPLOY_PYPI}" == "1" ]]; then
+        echo "Doing deploy to github..."
+        cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
+        cmake --build ./ --target pypi        --config ${CMAKE_BUILD_TYPE}
      fi
 
 # deploy to github releases
@@ -107,5 +105,5 @@ deploy:
   on:
     repo: sci-visus/OpenVisus
     all_branches: true
-    condition: "$DEPLOY_GITHUB = 1"
+    condition: "${DEPLOY_GITHUB} = 1"
 

@@ -1,9 +1,3 @@
-# supporting commit messages
-# important: if you [deploy*...] better git tag the commit and change CMake/setup.py
-# [full_matrix]
-# [deploy_pypi]   
-# [deploy_github]
-
 version: '1.0.{build}'
 
 notifications:
@@ -18,14 +12,16 @@ environment:
   QT5_DIR: C:/Qt/5.10.1/msvc2017_64
   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   CMAKE_GENERATOR: Visual Studio 15 2017 Win64
+  DEPLOY_GITHUB: false
+  DEPLOY_PYPI: false
   PYPI_USERNAME: scrgiorgio
   PYPI_PASSWORD:
     secure: 6DHH80JPNRCtIYxWc/h88Q==   
   matrix:
     - PYTHON_EXECUTABLE: C:/Python37-x64/python.exe 
-      ONLY_FULL_MATRIX: false  
+      DEFAULT_ENABLED: true  
     - PYTHON_EXECUTABLE: C:/Python36-x64/python.exe
-      ONLY_FULL_MATRIX: true
+      DEFAULT_ENABLED: false
   
 # enable cache for vcpkg
 cache: c:\tools\vcpkg\installed\  
@@ -41,17 +37,24 @@ cache: c:\tools\vcpkg\installed\
 
 init:
   - ps: | 
-      If (($env:ONLY_FULL_MATRIX -eq "true") -and !($env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[full_matrix]"))) {
-        Write-Host "Skipping build, since ONLY_FULL_MATRIX=true and commit message does not contain [full_matrix]"
-        Exit-AppveyorBuild
+      If ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[full_matrix]")) {
+          $env:DEFAULT_ENABLED=true
       }
+      If ($env:APPVEYOR_REPO_TAG -eq "true"  -or  $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]") ) {
+      	DEPLOY_GITHUB=1  
+      }
+      If ($env:APPVEYOR_REPO_TAG -eq "true"  -or $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]"  ) ) {
+      	$env:DEPLOY_PYPI=1   
+      } 
+      If ($env:DEFAULT_ENABLED -eq "false") {
+        Write-Host "Skipping build"
+        Exit-AppveyorBuild
+      }      
 
 install:
   - choco install -y --allow-empty-checksums swig 
 
 build_script:
-  - ps: If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]") ) { $env:DEPLOY_GITHUB=1 } else { $env:DEPLOY_GITHUB=0 }
-  - ps: If ( $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]"  ) ) { $env:DEPLOY_PYPI=1   } else { $env:DEPLOY_PYPI=0   }
   - cmd: cd %APPVEYOR_BUILD_FOLDER%  
   - cmd: CMake\build_win.bat
    
