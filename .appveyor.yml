@@ -37,13 +37,13 @@ cache: c:\tools\vcpkg\installed\
 
 init:
   - ps: | 
-      If ($env:APPVEYOR_REPO_TAG -eq "true" -or $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[full_matrix]")) {
+      If ($env:APPVEYOR_REPO_TAG -ne "" -or $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[full_matrix]")) {
           $env:DEFAULT_ENABLED=true
       }
-      If ($env:APPVEYOR_REPO_TAG -eq "true"  -or  $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]") ) {
-      	DEPLOY_GITHUB=1  
+      If ($env:APPVEYOR_REPO_TAG -ne ""  -or  $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]") ) {
+      	$env:DEPLOY_GITHUB=1  
       }
-      If ($env:APPVEYOR_REPO_TAG -eq "true"  -or $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]"  ) ) {
+      If ($env:APPVEYOR_REPO_TAG -ne ""  -or $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]"  ) ) {
       	$env:DEPLOY_PYPI=1   
       } 
       If ($env:DEFAULT_ENABLED -eq "false") {

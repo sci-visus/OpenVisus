@@ -67,7 +67,8 @@ matrix:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']       
 
-before_script:
+
+script:
    - |  
      if [[ "${TRAVIS_TAG}" != "" || "$TRAVIS_COMMIT_MESSAGE" == *"[deploy_github]"* ]]; then
         export DEPLOY_GITHUB=1
@@ -75,8 +76,6 @@ before_script:
      if [[ "${DEPLOY_PYPI_ENABLED}" == "1" && ( "${TRAVIS_TAG}" != "" ||  "$TRAVIS_COMMIT_MESSAGE" == *"[deploy_pypi]"* ) ]] ; then 
         export DEPLOY_PYPI=1
      fi 
-
-script:
    - cd "${TRAVIS_BUILD_DIR}"
    - bash ./CMake/build_${OS_NAME}.sh
    - cd "${TRAVIS_BUILD_DIR}/build/${OS_NAME}"
@@ -105,5 +104,7 @@ deploy:
   on:
     repo: sci-visus/OpenVisus
     all_branches: true
-    condition: "${DEPLOY_GITHUB} = 1"
+    tags: true
+    # broken!
+    # condition: "${DEPLOY_GITHUB} = 1"
 
