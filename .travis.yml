@@ -71,14 +71,12 @@ script:
      cd "${TRAVIS_BUILD_DIR}"
      bash ./CMake/build_${OS_NAME}.sh
      cd "${TRAVIS_BUILD_DIR}/build/${OS_NAME}"
-     
      if [[ "${TRAVIS_TAG}" != "" ]]; then
         echo "Doing deploy to github..."
         cmake --build ./ --target sdist --config ${CMAKE_BUILD_TYPE}
-        export SDIST_FILE=$(find ${TRAVIS_BUILD_DIR}/build/${OS_NAME}/install/dist -iname "*.tar.gz")
-        export SDIST_FILE=${SDIST_FILE/.tar.gz/.${OS_NAME}_${OS_VERSION}.tar.gz}
+        SDIST_FILE=$(find ./install/dist -iname "*.tar.gz")
+        mv ${SDIST_FILE} ${SDIST_FILE/.tar.gz/.${OS_NAME}_${OS_VERSION}.tar.gz}
      fi
-     
      if [[ "${DEPLOY_PYPI_ENABLED}" == "1" && "${TRAVIS_TAG}" != "" ]] ; then 
         echo "Doing deploy to github..."
         cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
