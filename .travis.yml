@@ -74,8 +74,8 @@ script:
      if [[ "${TRAVIS_TAG}" != "" ]]; then
         echo "Doing deploy to github..."
         cmake --build ./ --target sdist --config ${CMAKE_BUILD_TYPE}
-        SDIST_FILE=$(find ./install/dist -iname "*.tar.gz")
-        mv ${SDIST_FILE} ${SDIST_FILE/.tar.gz/.${OS_NAME}_${OS_VERSION}.tar.gz}
+        __file__=$(find ./install/dist -iname "*.tar.gz")
+        mv ${__file__} ${__file__/.tar.gz/-${PYTHON_VERSION}-${OS_NAME}_${OS_VERSION}.tar.gz}
      fi
      if [[ "${DEPLOY_PYPI_ENABLED}" == "1" && "${TRAVIS_TAG}" != "" ]] ; then 
         echo "Doing deploy to pypi..."

@@ -26,13 +26,13 @@ cmake ^
 
 cmake --build . --target ALL_BUILD --config RelWithDebInfo
 cmake --build . --target RUN_TESTS --config RelWithDebInfo
-cmake --build . --target INSTALL       --config RelWithDebInfo
-cmake --build . --target deploy        --config RelWithDebInfo
+cmake --build . --target INSTALL   --config RelWithDebInfo
+cmake --build . --target deploy    --config RelWithDebInfo
 
 if %DEPLOY_GITHUB%==1 (
    echo "Deploying to github enabled"
    cmake --build . --target sdist --config RelWithDebInfo
-   "%PYTHON_EXECUTABLE%" -c "import os;import glob;filename=glob.glob('install/dist/*.zip')[0];os.rename(filename,filename.replace('.zip','.win_amd64.zip'))" 
+   "%PYTHON_EXECUTABLE%" -c "import os;import glob;filename=glob.glob('install/dist/*.zip')[0];os.rename(filename,filename.replace('.zip','-%PYTHON_VERSION%-win_amd64.zip'))" 
 )
  
 if %DEPLOY_PYPI%==1 (
