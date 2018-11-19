@@ -81,7 +81,7 @@ matrix:
 script:
    - |
      if [[ ${DOCKER_IMAGE} != "" ]]; then
-       docker run -it -v "${TRAVIS_BUILD_DIR}":"${TRAVIS_BUILD_DIR}" ${DOCKER_IMAGE}
+       docker run -it -v "${TRAVIS_BUILD_DIR}":"${TRAVIS_BUILD_DIR}" ${DOCKER_IMAGE} /bin/bash
      fi
      
      cd "${TRAVIS_BUILD_DIR}"
