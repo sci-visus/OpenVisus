@@ -2,6 +2,9 @@ language: cpp
 
 sudo: required
 
+services:
+  - docker
+
 notifications:
   email:
     recipients:
@@ -65,11 +68,29 @@ matrix:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']       
 
+    # ///////////////////////////////// manylinux
+    - os: linux
+      dist: trusty
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,OS_NAME="manylinux",OS_VERSION=5,DEPLOY_PYPI_ENABLED=1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']     
+
 
 script:
    - |
+     if [[ ${DOCKER_IMAGE} != "" ]]; then
+       docker run -it -v "${TRAVIS_BUILD_DIR}":"${TRAVIS_BUILD_DIR}" ${DOCKER_IMAGE}
+     fi
+     
      cd "${TRAVIS_BUILD_DIR}"
      bash ./CMake/build_${OS_NAME}.sh
+     
+     if [[ ${DOCKER_IMAGE} != "" ]]; then
+     	 exit
+     fi
+     
      cd "${TRAVIS_BUILD_DIR}/build/${OS_NAME}"
      if [[ "${TRAVIS_TAG}" != "" ]]; then
         echo "Doing deploy to github..."
