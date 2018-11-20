@@ -1,14 +1,12 @@
 import os, sys, setuptools
 import shutil
 import platform
+import glob
 
 #increase this number for PIP
-VERSION="1.2.64"
+VERSION="1.2.86"
 
-WIN32=platform.system()=="Windows" or platform.system()=="win32"
-APPLE=platform.system()=="Darwin"
-BDIST_WHEEL="bdist_wheel" in sys.argv
-
+	
 # ////////////////////////////////////////////////////////////////////
 def cleanAll():
 	shutil.rmtree('./build', ignore_errors=True)
@@ -20,6 +18,10 @@ def cleanAll():
 def findFilesInCurrentDirectory():
 	
 	ret=[]
+	
+	WIN32=platform.system()=="Windows" or platform.system()=="win32"
+	APPLE=platform.system()=="Darwin"
+	BDIST_WHEEL="bdist_wheel" in sys.argv	
 	
 	for dirpath, __dirnames__, filenames in os.walk("."):
 		for it in filenames:
@@ -85,25 +87,11 @@ def runSetupTools():
 	  ],
 	)
 	
-# ////////////////////////////////////////////////////////////////////
-def autoRenameSDist():
 
-	import glob
-
-	for ext in (".tar.gz", ".zip"):
-		
-		sdist_filename = glob.glob('dist/*'+ext); 
-		wheel_filename = glob.glob('dist/*.whl')	
-		
-		if len(sdist_filename)==1 and len(wheel_filename)==1 and os.path.isfile(sdist_filename[0]): 
-			os.rename(sdist_filename[0], os.path.splitext(wheel_filename[0])[0]+ext)	
-	
 # ////////////////////////////////////////////////////////////////////
 if __name__ == "__main__":
-	
-	cleanAll()
-	runSetupTools()
-	autoRenameSDist()
+  cleanAll()
+  runSetupTools()
 
 
 

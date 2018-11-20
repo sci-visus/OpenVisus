@@ -282,11 +282,11 @@ static void InitKnownPaths()
   //VisusHome
   {
     // Allow override of VisusHome
-    #ifdef VISUS_HOME
+    if (auto VISUS_HOME = getenv("VISUS_HOME"))
     {
       KnownPaths::VisusHome = Path(String(VISUS_HOME));
     }
-    #else
+    else
     {
       #if WIN32
       {
@@ -295,7 +295,7 @@ static void InitKnownPaths()
       }
       #else
       {
-	if (auto homedir = getenv("HOME"))
+				if (auto homedir = getenv("HOME"))
           KnownPaths::VisusHome = Path(homedir).getChild("visus");
 
         else if (auto pw = getpwuid(getuid()))
@@ -303,7 +303,6 @@ static void InitKnownPaths()
       }
       #endif
     }
-    #endif  
   }
 
   FileUtils::createDirectory(KnownPaths::VisusHome);

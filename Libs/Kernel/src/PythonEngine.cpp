@@ -306,16 +306,17 @@ PythonEngine::PythonEngine(bool bVerbose)
       auto current_application_dir = KnownPaths::CurrentApplicationFile.getParent().toString();
 
       std::vector<String> candidates;
-      candidates.push_back(current_application_dir + "/.");
 
-#if WIN32
-      //example ${CMAKE_INSTALL_PREFIX}/bin
-      candidates.push_back(current_application_dir + "/..");
-#endif
+      //this is during build
+      candidates.push_back(current_application_dir + "/.");
 
 #if APPLE
       //example: <name>.app/Contents/MacOS/<name>
       candidates.push_back(current_application_dir + "/../..");
+#else
+      //example ${CMAKE_INSTALL_PREFIX}/bin
+      candidates.push_back(current_application_dir + "/..");
+
 #endif
 
       for (auto dir : candidates)
@@ -334,11 +335,10 @@ PythonEngine::PythonEngine(bool bVerbose)
     }
   }
 
-  #if defined(VISUS_PYTHON_SYS_PATH)
+  if (auto VISUS_PYTHON_SYS_PATH=getenv("VISUS_PYTHON_SYS_PATH"))
     addSysPath(VISUS_PYTHON_SYS_PATH,bVerbose);
-  #endif
 
-    if (bVerbose)
+	if (bVerbose)
     VisusInfo() << "Trying to import OpenVisus...";
 
   execCode("from OpenVisus import *");
