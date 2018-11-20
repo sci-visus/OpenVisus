@@ -43,7 +43,7 @@ matrix:
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
       env: [OS_VERSION=10.12,PYTHON_VERSION=2.7.14,COMPILER=clang++,OS_NAME='osx',DEPLOY_PYPI_ENABLED=1]   
        
-    - os: osx
+    - os: osx 
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
