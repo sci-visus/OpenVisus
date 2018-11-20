@@ -190,7 +190,6 @@ else()
 	file(GLOB Sources include/Visus/*.h src/*.cpp)
 endif()
 
-
 AddLibrary(VisusKernel ${Sources})
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/dtl/include)
@@ -238,42 +237,6 @@ else()
 	target_include_directories(VisusKernel PRIVATE ${CURL_INCLUDE_DIR})
 	target_link_libraries(VisusKernel      PUBLIC ${CURL_LIBRARIES})
 endif()
-
-if (TARGET python)
-  target_link_libraries(VisusKernel PUBLIC python)
-else()
-
-	target_include_directories(VisusKernel PUBLIC  ${PYTHON_INCLUDE_DIRS})
-
-	if (WIN32)
-	
-		# differentiate between release and debug libraries
-		list(FIND PYTHON_LIBRARY optimized __index__)
-		if (NOT ${__index__} EQUAL -1)
-			math(EXPR __next_index__ "${__index__}+1")
-			list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
-			target_link_libraries(VisusKernel PUBLIC debug     ${PYTHON_DEBUG_LIBRARY})
-			target_link_libraries(VisusKernel PUBLIC optimized ${PYTHON_RELEASE_LIBRARY})
-		else()
-			target_link_libraries(VisusKernel PUBLIC ${PYTHON_LIBRARY})
-		endif()
-			
-	else()
-		
-		# for apple and linux I'm linking python only for Executables (of final shared dll such as  mod_visus) 
-		# otherwise I'm going to have multiple libpython in the same process
-		# with the error message: PyThreadState_Get: no current thread		
-		
-		if (APPLE)
-			set_target_properties(VisusKernel PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
-		endif()				
-		
-		target_link_libraries(VisusKernel INTERFACE ${PYTHON_LIBRARY})
-		
-	endif()	
-	
-endif()
-
 
 if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)

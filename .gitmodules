@@ -1,6 +1,0 @@
-[submodule "win32/python36"]
-	path = win32/python36
-	url = http://github.com/sci-visus/win32_python36
-[submodule "win32/python37"]
-	path = win32/python37
-	url = http://github.com/sci-visus/win32_python37

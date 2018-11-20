@@ -20,106 +20,48 @@ matrix:
 
   include:
 
-    # ///////////////////////////////// osx 10.13
+    # ///////////////////////////////// osx 
     
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
       if: tag IS present
-      env: [
-        PYTHON_VERSION=2.7.15,
-        APPLE_OSX_VERSION=10.13,
-        COMPILER=clang++,
-        PYTHON_EXECUTABLE=$HOME/.pyenv/versions/2.7.15/bin/python ,
-        PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/2.7.15/include/python2.7,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.dylib,
-        VISUS_INTERNAL_DEFAULT=0
-      ] 
-      
+      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=2.7.15,COMPILER=clang++] 
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: [
-        PYTHON_VERSION=3.6.6,
-        APPLE_OSX_VERSION=10.13,
-        COMPILER=clang++,
-        PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.6/bin/python ,
-        PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.dylib,
-        VISUS_INTERNAL_DEFAULT=0
-      ]                   
+      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.6.6,COMPILER=clang++]                   
         
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       if: tag IS present
-      env: [
-        PYTHON_VERSION=3.7.0,
-        APPLE_OSX_VERSION=10.13,
-        COMPILER=clang++,
-        PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.7.0/bin/python ,
-        PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.7.0/include/python3.7m,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.dylib,
-        VISUS_INTERNAL_DEFAULT=0
-      ]
+      env: [APPLE_OSX_VERSION=10.13,PYTHON_VERSION=3.7.0,COMPILER=clang++]
       
-    # ///////////////////////////////// osx 10.12 
-    
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present
-      env: [
-        APPLE_OSX_VERSION=10.12,
-        COMPILER=clang++,
-        PYTHON_VERSION=2.7.15,
-        PYTHON_EXECUTABLE=$HOME/.pyenv/versions/2.7.15/bin/python ,
-        PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/2.7.15/include/python2.7,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/2.7.15/lib/libpython2.7.dylib,
-        VISUS_INTERNAL_DEFAULT=0
-      ]   
+      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=2.7.15,COMPILER=clang++]   
        
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present
-      env: [
-        APPLE_OSX_VERSION=10.12,
-        COMPILER=clang++,
-        PYTHON_VERSION=3.6.6,
-        PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.6.6/bin/python ,
-        PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.6.6/include/python3.6m,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.6.6/lib/libpython3.6m.dylib ,
-        VISUS_INTERNAL_DEFAULT=0
-      ]    
+      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.6.6,COMPILER=clang++]    
 
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present
-      env: [
-        APPLE_OSX_VERSION=10.12,
-        COMPILER=clang++,
-        PYTHON_VERSION=3.7.0,
-        PYTHON_EXECUTABLE=$HOME/.pyenv/versions/3.7.0/bin/python ,
-        PYTHON_INCLUDE_DIR=$HOME/.pyenv/versions/3.7.0/include/python3.7m,
-        PYTHON_LIBRARY=$HOME/.pyenv/versions/3.7.0/lib/libpython3.7m.dylib,
-        VISUS_INTERNAL_DEFAULT=0
-      ]     
+      env: [APPLE_OSX_VERSION=10.12,PYTHON_VERSION=3.7.0,COMPILER=clang++]     
       
     # ///////////////////////////////// Ubuntu 14.04 
     
     - os: linux
       dist: trusty
       if: tag IS present
-      env: [
-          PYTHON_VERSION=2.7,
-          COMPILER=g++-4.9,
-          PYTHON_INCLUDE_DIR=/usr/include/python2.7,
-          PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython2.7.so,
-          PYTHON_EXECUTABLE=/usr/bin/python2.7,
-          VISUS_INTERNAL_DEFAULT=0
-        ]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7]
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -127,14 +69,7 @@ matrix:
           
     - os: linux
       dist: trusty
-      env: [
-          PYTHON_VERSION=3.6,
-          COMPILER=g++-4.9,
-          PYTHON_INCLUDE_DIR=/usr/include/python3.6m,
-          PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.6m.so,
-          PYTHON_EXECUTABLE=/usr/bin/python3.6,
-          VISUS_INTERNAL_DEFAULT=0
-        ]       
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -143,30 +78,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present
-      env: [
-          PYTHON_VERSION=3.4,
-          COMPILER=g++-4.9,
-          PYTHON_INCLUDE_DIR=/usr/include/python3.4m,
-          PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.4m.so,
-          PYTHON_EXECUTABLE=/usr/bin/python3.4,
-          VISUS_INTERNAL_DEFAULT=0
-        ]
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']
-             
-    - os: linux
-      dist: trusty
-      if: tag IS present
-      env: [
-          PYTHON_VERSION=3.5,
-          COMPILER=g++-4.9,
-          PYTHON_INCLUDE_DIR=/usr/include/python3.5m,
-          PYTHON_LIBRARY=/usr/lib/x86_64-linux-gnu/libpython3.5m.so,
-          PYTHON_EXECUTABLE=/usr/bin/python3.5,
-          VISUS_INTERNAL_DEFAULT=0
-        ]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.7]
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -174,107 +86,10 @@ matrix:
                
     
 script:
-    - | 
-      if [[ "${TRAVIS_OS_NAME}" == "osx" ]]; then   
-        # python
-        cd $HOME     
-        curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer -O 
-        chmod a+x pyenv-installer 
-        ./pyenv-installer 
-        rm ./pyenv-installer 
-        export PATH="$HOME/.pyenv/bin:$PATH"
-        eval "$(pyenv init -)"
-        eval "$(pyenv virtualenv-init -)"
-        CONFIGURE_OPTS=--enable-shared pyenv install -s $PYTHON_VERSION    
-        CONFIGURE_OPTS=--enable-shared pyenv global     $PYTHON_VERSION 
-        sudo python -m pip install --upgrade pip
-        sudo python -m pip install --upgrade numpy   
-        #  brew install dependencies
-        brew install swig qt5 
-        QT5_DIR=/usr/local/opt/qt/lib/cmake/Qt5
-        gem install xcpretty    # this is to solve logs too long  
-        if [ $VISUS_INTERNAL_DEFAULT -eq 0 ]; then 
-        	  brew install zlib lz4 tinyxml freeimage openssl curl
-         fi
-        cd "${TRAVIS_BUILD_DIR}" && mkdir build && cd build 
-        cmake -GXcode \
-        	-DPYTHON_VERSION=${PYTHON_VERSION} \
-        	-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} \
-        	-DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR} \
-        	-DPYTHON_LIBRARY=${PYTHON_LIBRARY} \
-        	-DQt5_DIR=${QT5_DIR} \
-        	-DPYPI_USERNAME=${PYPI_USERNAME} \
-        	-DPYPI_PASSWORD=${PYPI_PASSWORD} \
-        	-DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
-        	../
-        set -o pipefail &&  cmake --build ./ --target ALL_BUILD   --config $BUILD_TYPE | xcpretty -c
-        cmake --build ./                     --target RUN_TESTS   --config $BUILD_TYPE
-        # if there is a tag , create the wheel  
-        if [ -n "$TRAVIS_TAG" ]; then 
-        		cmake --build ./  --target install         --config $BUILD_TYPE  
-        		cmake --build ./  --target deploy          --config $BUILD_TYPE 
-        		cmake --build ./  --target bdist_wheel     --config $BUILD_TYPE 
-        		cmake --build ./  --target sdist           --config $BUILD_TYPE 
-        		cmake --build ./  --target pypi            --config $BUILD_TYPE
-        fi
-      fi 
-    - |     
-      if [[ ${TRAVIS_OS_NAME} == "linux" ]]; then 
-        #  install patchelf
-        curl -L https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz -o /tmp/patchelf-0.9.tar.gz
-        cd /tmp
-        tar xvzf patchelf-0.9.tar.gz && cd patchelf*
-        ./configure 
-        make 
-        sudo make install
-        export PATH=$PATH:/usr/local/bin
-        #  install linux dependencies
-        sudo add-apt-repository -y ppa:deadsnakes/ppa
-        sudo apt-get -qy update
-        sudo apt-get -qy install --allow-unauthenticated swig3.0 git cmake libssl-dev uuid-dev qt5-default qttools5-dev-tools libx11-xcb1 python${PYTHON_VERSION} python${PYTHON_VERSION}-dev
-        curl -L https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
-        sudo -H python${PYTHON_VERSION} /tmp/get-pip.py
-        sudo -H python${PYTHON_VERSION} -m pip install --upgrade pip
-        sudo -H python${PYTHON_VERSION} -m pip install --upgrade numpy
-        # install qt 5.9.1
-        sudo add-apt-repository ppa:beineri/opt-qt591-trusty -y; 
-        sudo apt-get update -qq
-        sudo apt-get install -qq qt59base
-        source /opt/qt59/bin/qt59-env.sh  
-        # Download and install recent cmake
-        CMAKE_URL="http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
-        mkdir -p ${TRAVIS_BUILD_DIR}/deps/cmake
-        travis_retry wget --no-check-certificate --quiet -O - ${CMAKE_URL} | tar --strip-components=1 -xz -C ${TRAVIS_BUILD_DIR}/deps/cmake
-        export PATH=${TRAVIS_BUILD_DIR}/deps/cmake/bin:${PATH} 
-        if [ $VISUS_INTERNAL_DEFAULT -eq 0 ]; then 
-          sudo apt-get install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
-        fi
-        cd "${TRAVIS_BUILD_DIR}" 
-        mkdir build 
-        cd build  
-        cmake \
-        	-DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
-        	-DPYTHON_VERSION=${PYTHON_VERSION} \
-        	-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} \
-        	-DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR} \
-        	-DPYTHON_LIBRARY=${PYTHON_LIBRARY} \
-        	-DPYPI_USERNAME=$PYPI_USERNAME \
-        	-DPYPI_PASSWORD=$PYPI_PASSWORD \
-        	-DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
-        	../
-        cmake --build ./ --target all
-        cmake --build ./ --target test
-        # if there is a tag, create the wheel and tar.gz
-        if [ -n "$TRAVIS_TAG" ]; then 
-        		cmake --build ./ --target install  
-        		cmake --build ./ --target deploy
-        		cmake --build ./ --target bdist_wheel
-        		cmake --build ./ --target sdist 
-        		# not uploading to PyPi since it will be refused (not using manylinux) 
-        		# cmake --build ./  --target pypi 
-        fi
-      fi    
-
+    - cd "${TRAVIS_BUILD_DIR}" 
+    - if [[ "${TRAVIS_OS_NAME}" == "osx"   ]]; then bash ./CMake/travis-script-osx.sh   ; fi
+    - if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then bash ./CMake/travis-script-linux.sh ; fi
+        
 before_deploy:
   - export WHEEL_FILE=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
   - export SDIST_FILE=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
