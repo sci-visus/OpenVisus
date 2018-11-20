@@ -80,6 +80,7 @@ matrix:
 
 script:
    - |
+     chmod +x "${TRAVIS_BUILD_DIR}/CMake/build_${OS_NAME}.sh" 
      if [[ ${DOCKER_IMAGE} != "" ]]; then
         docker run --name mydocker -v ${TRAVIS_BUILD_DIR}:/home/OpenVisus -td ${DOCKER_IMAGE} /bin/bash
         docker exec -ti mydocker /bin/bash -c "cd /home/OpenVisus && ./CMake/build_${OS_NAME}.sh"      
