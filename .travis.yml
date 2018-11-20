@@ -79,29 +79,35 @@ matrix:
 
 script:
    - |
-     chmod +x "${TRAVIS_BUILD_DIR}/CMake/build_${OS_NAME}.sh" 
-     if [[ ${DOCKER_IMAGE} != "" ]]; then
-        docker run --name mydocker -v ${TRAVIS_BUILD_DIR}:/home/OpenVisus -td ${DOCKER_IMAGE} /bin/bash
-        docker exec -ti mydocker /bin/bash -c "cd /home/OpenVisus && ./CMake/build_${OS_NAME}.sh"      
-        docker stop mydocker
-     else
-        cd "${TRAVIS_BUILD_DIR}" 
-        ./CMake/build_${OS_NAME}.sh
-     fi
-     cd "${TRAVIS_BUILD_DIR}/build/${OS_NAME}"
+     DEPLOY_GITHUB=0
      if [[ "${TRAVIS_TAG}" != "" ]]; then
-        echo "Doing deploy to github..."
-        cmake --build ./ --target sdist --config ${CMAKE_BUILD_TYPE}
-        __file__=$(find ./install/dist -iname "*.tar.gz")
-        mv ${__file__} ${__file__/.tar.gz/-${PYTHON_VERSION}-${OS_NAME}_${OS_VERSION}.tar.gz}
+     echo "Doing deploy to github..."
+        DEPLOY_GITHUB=1
+        DEPLOY_GITHUB_SUFFIX=${PYTHON_VERSION}-${OS_NAME}_${OS_VERSION}.tar.gz
      fi
-     if [[ "${DEPLOY_PYPI_ENABLED}" == "1" && "${TRAVIS_TAG}" != "" ]] ; then 
-        echo "Doing deploy to pypi..."
-        cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
-        cmake --build ./ --target pypi        --config ${CMAKE_BUILD_TYPE}
+     DEPLOY_PYPI=0
+     if [[ "${DEPLOY_PYPI_ENABLED}" == "1" && "${TRAVIS_TAG}" != "" ]] ; then   
+        DEPLOY_PYPI=1
+     fi 
+     cd "${TRAVIS_BUILD_DIR}" 
+     chmod +x "./CMake/build_${OS_NAME}.sh" 
+     if [[ ${DOCKER_IMAGE} != "" ]]; then
+        opt=""   
+        opt+-" -e PYTHON_VERSION=${PYTHON_VERSION}"
+        opt+-" -e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+        opt+-" -e DEPLOY_GITHUB=${DEPLOY_GITHUB}"
+        opt+-" -e DEPLOY_PYPI=${DEPLOY_PYPI}"
+        opt+-" -e PYPI_USERNAME=${PYPI_USERNAME}"
+        opt+-" -e PYPI_PASSWORD=${PYPI_PASSWORD}"
+        docker run --name mydocker -v $(pwd):/home/OpenVisus ${opt} -td ${DOCKER_IMAGE} /bin/bash
+        docker exec -ti mydocker /bin/bash -c "cd /home/OpenVisus && ./CMake/build_${OS_NAME}.sh"
+     else
+        ./CMake/build_${OS_NAME}.sh
      fi
 
 before_deploy:
+  - export SDIST_FILE=$(find ${TRAVIS_BUILD_DIR}/build/${OS_NAME}/install/dist -iname "*.tar.gz")
+  - mv ${SDIST_FILE} ${SDIST_FILE/.tar.gz/-${PYTHON_VERSION}-${OS_NAME}_${OS_VERSION}.tar.gz}	
   - export SDIST_FILE=$(find ${TRAVIS_BUILD_DIR}/build/${OS_NAME}/install/dist -iname "*.tar.gz")
 
 deploy:

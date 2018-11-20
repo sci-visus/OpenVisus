@@ -195,11 +195,19 @@ cmake --build . --target test
 cmake --build . --target install 
 cmake --build . --target deploy 
 
-cd install
+pushd install
 LD_LIBRARY_PATH=$(pwd):$(dirname ${PYTHON_LIBRARY}) PYTHONPATH=$(pwd) bin/visus     && echo "Embedding working"
 LD_LIBRARY_PATH=$(pwd) PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import OpenVisus"	&& echo "Extending working"
-cd ..
+popd
 
+if (( DEPLOY_GITHUB == 1 )); then
+	cmake --build ./ --target sdist --config ${CMAKE_BUILD_TYPE}
+fi
+
+if (( DEPLOY_PYPI == 1 )); then
+	cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
+	cmake --build ./ --target pypi        --config ${CMAKE_BUILD_TYPE}
+fi
 
 
 

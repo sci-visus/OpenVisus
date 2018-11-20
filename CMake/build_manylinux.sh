@@ -43,8 +43,6 @@ function InstallOpenSSL {
 	export LD_LIBRARY_PATH=${OPENSSL_LIB_DIR}:$LD_LIBRARY_PATH
 }
 
-
-
 # //////////////////////////////////////////////////////
 function InstallPython {
 
@@ -134,7 +132,6 @@ PushCMakeOption OPENSSL_ROOT_DIR       ${OPENSSL_ROOT_DIR}
 PushCMakeOption PYTHON_EXECUTABLE      ${PYTHON_EXECUTABLE}
 PushCMakeOption PYTHON_INCLUDE_DIR     ${PYTHON_INCLUDE_DIR}
 PushCMakeOption PYTHON_LIBRARY         ${PYTHON_LIBRARY}
-
 PushCMakeOption PYTHON_PLAT_NAME       manylinux1_x86_64
 PushCMakeOption PYPI_USERNAME          ${PYPI_USERNAME}
 PushCMakeOption PYPI_PASSWORD          ${PYPI_PASSWORD}
@@ -156,10 +153,19 @@ else
 	cp $(pyenv prefix)/lib/libpython* install/bin/ 
 fi
 
-cd install
+pushd install
 LD_LIBRARY_PATH=$(pwd)/bin:$(dirname ${PYTHON_LIBRARY}) PYTHONPATH=$(pwd) bin/visus                                  && echo "Embedding working"
 LD_LIBRARY_PATH=$(pwd)/bin                              PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
-cd ..
+popd
+
+if (( DEPLOY_GITHUB == 1 )); then
+	cmake --build ./ --target sdist --config ${CMAKE_BUILD_TYPE}	
+fi
+
+if (( DEPLOY_PYPI == 1 )); then
+	cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
+	cmake --build ./ --target pypi        --config ${CMAKE_BUILD_TYPE}
+fi
 
 
 

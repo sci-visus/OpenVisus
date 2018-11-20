@@ -119,12 +119,19 @@ cmake --build ./ --target RUN_TESTS   --config ${CMAKE_BUILD_TYPE}
 cmake --build ./ --target install     --config ${CMAKE_BUILD_TYPE}  
 cmake --build ./ --target deploy      --config ${CMAKE_BUILD_TYPE} 
 
-cd install
+pushd install
 PYTHONPATH=$(pwd) bin/visus.app/Contents/MacOS/visus  && echo "Embedding working"  
 PYTHONPATH=$(pwd) python -c "import OpenVisus"        && echo "Extending working"
-cd ..
+popd
 
+if (( DEPLOY_GITHUB == 1 )); then
+	cmake --build ./ --target sdist --config ${CMAKE_BUILD_TYPE}
+fi
 
+if (( DEPLOY_PYPI == 1 )); then
+	cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
+	cmake --build ./ --target pypi        --config ${CMAKE_BUILD_TYPE}
+fi
 
 
 
