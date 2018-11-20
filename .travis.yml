@@ -93,8 +93,6 @@ script:
      if [[ ${DOCKER_IMAGE} != "" ]]; then
         opt=""   
         opt+=" --name mydocker"
-        opt+=" -v $(pwd):/home/OpenVisus"
-        opt+=" --user $(id -u):$(id -g)"
         opt+=" -td"
         opt+=" -e PYTHON_VERSION=${PYTHON_VERSION}"
         opt+=" -e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
@@ -102,8 +100,11 @@ script:
         opt+=" -e DEPLOY_PYPI=${DEPLOY_PYPI}"
         opt+=" -e PYPI_USERNAME=${PYPI_USERNAME}"
         opt+=" -e PYPI_PASSWORD=${PYPI_PASSWORD}"
+        opt+=" -v $(pwd):/home/OpenVisus"
         docker run ${opt}   ${DOCKER_IMAGE} /bin/bash
         docker exec -ti mydocker /bin/bash -c "cd /home/OpenVisus && ./CMake/build_${OS_NAME}.sh"
+        sudo chown -R "$USER":"$USER" ./ 
+        sudo chmod u+rwx -R ./ 
      else
         ./CMake/build_${OS_NAME}.sh
      fi
