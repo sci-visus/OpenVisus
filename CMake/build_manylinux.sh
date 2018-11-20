@@ -33,12 +33,12 @@ function InstallOpenSSL {
 		pushd openssl-1.0.2a 
 		./config -fpic shared 
 		make 
-		make install 
+		make install	
 		popd
 	fi
 	
-	export OPENSSL_ROOT_DIR=$BUILD_DIR/openssl	
-	export OPENSSL_INCLUDE_DIR=${OPENSSL_ROOT_DIR}/include
+	export OPENSSL_ROOT_DIR=/usr/local/ssl
+	export OPENSSL_INCLUDE_DIR=${OPENSSL_ROOT_DIR}/include 
 	export OPENSSL_LIB_DIR=${OPENSSL_ROOT_DIR}/lib
 	export LD_LIBRARY_PATH=${OPENSSL_LIB_DIR}:$LD_LIBRARY_PATH
 }
@@ -148,10 +148,11 @@ cmake --build . --target install
 if (( 0 )); then
 	# WRONG copying very low-level libraries is wrong (i.e. crashes)! I need only distribute real dependencies
 	# cmake --build . --target deploy 
+	echo "nop"
 else
 	# NOTE: sometimes docker containers do not contain the python shared library (needed for executables) so I'm copying it too
-	cp openssl/lib/libcrypto.so*      install/bin/
-	cp openssl/lib/libssl.so*         install/bin/
+	cp ${OPENSSL_LIB_DIR}/libcrypto.so*      install/bin/
+	cp ${OPENSSL_LIB_DIR}/libssl.so*         install/bin/
 	cp $(pyenv prefix)/lib/libpython* install/bin/ 
 fi
 
