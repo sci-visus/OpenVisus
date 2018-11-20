@@ -92,12 +92,12 @@ script:
      chmod +x "./CMake/build_${OS_NAME}.sh" 
      if [[ ${DOCKER_IMAGE} != "" ]]; then
         opt=""   
-        opt+-" -e PYTHON_VERSION=${PYTHON_VERSION}"
-        opt+-" -e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
-        opt+-" -e DEPLOY_GITHUB=${DEPLOY_GITHUB}"
-        opt+-" -e DEPLOY_PYPI=${DEPLOY_PYPI}"
-        opt+-" -e PYPI_USERNAME=${PYPI_USERNAME}"
-        opt+-" -e PYPI_PASSWORD=${PYPI_PASSWORD}"
+        opt+=" -e PYTHON_VERSION=${PYTHON_VERSION}"
+        opt+=" -e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+        opt+=" -e DEPLOY_GITHUB=${DEPLOY_GITHUB}"
+        opt+=" -e DEPLOY_PYPI=${DEPLOY_PYPI}"
+        opt+=" -e PYPI_USERNAME=${PYPI_USERNAME}"
+        opt+=" -e PYPI_PASSWORD=${PYPI_PASSWORD}"
         docker run --name mydocker -v $(pwd):/home/OpenVisus ${opt} -td ${DOCKER_IMAGE} /bin/bash
         docker exec -ti mydocker /bin/bash -c "cd /home/OpenVisus && ./CMake/build_${OS_NAME}.sh"
      else
