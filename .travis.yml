@@ -111,7 +111,6 @@ script:
 
 before_deploy:
   - export SDIST_FILE=$(find ${TRAVIS_BUILD_DIR}/build/${OS_NAME}/install/dist -iname "*.tar.gz")
-  - chmod a+rw $SDIST_FILE
   - mv ${SDIST_FILE} ${SDIST_FILE/.tar.gz/-${PYTHON_VERSION}-${OS_NAME}_${OS_VERSION}.tar.gz}	
   - export SDIST_FILE=$(find ${TRAVIS_BUILD_DIR}/build/${OS_NAME}/install/dist -iname "*.tar.gz")
 
