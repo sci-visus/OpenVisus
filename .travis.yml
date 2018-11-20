@@ -83,7 +83,6 @@ script:
      if [[ "${TRAVIS_TAG}" != "" ]]; then
      echo "Doing deploy to github..."
         DEPLOY_GITHUB=1
-        DEPLOY_GITHUB_SUFFIX=${PYTHON_VERSION}-${OS_NAME}_${OS_VERSION}.tar.gz
      fi
      DEPLOY_PYPI=0
      if [[ "${DEPLOY_PYPI_ENABLED}" == "1" && "${TRAVIS_TAG}" != "" ]] ; then   
