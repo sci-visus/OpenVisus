@@ -81,14 +81,12 @@ matrix:
 script:
    - |
      if [[ ${DOCKER_IMAGE} != "" ]]; then
-       docker run -it -v "${TRAVIS_BUILD_DIR}":"${TRAVIS_BUILD_DIR}" ${DOCKER_IMAGE} /bin/bash
-     fi
-     
-     cd "${TRAVIS_BUILD_DIR}"
-     bash ./CMake/build_${OS_NAME}.sh
-     
-     if [[ ${DOCKER_IMAGE} != "" ]]; then
-     	 exit
+       docker run --name MYDOCKER -it -d -v "${TRAVIS_BUILD_DIR}":"${TRAVIS_BUILD_DIR}" ${DOCKER_IMAGE}
+       docker exec MYDOCKER cd "${TRAVIS_BUILD_DIR}"
+       docker exec MYDOCKER /bin/bash ./CMake/build_${OS_NAME}.sh
+     else
+	     cd "${TRAVIS_BUILD_DIR}"
+	     /bin/bash ./CMake/build_${OS_NAME}.sh
      fi
      
      cd "${TRAVIS_BUILD_DIR}/build/${OS_NAME}"
