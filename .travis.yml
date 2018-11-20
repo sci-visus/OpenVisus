@@ -1,119 +1,175 @@
-language: cpp
+YAML Lint
+Paste in your YAML and click "Go" - we'll tell you if it's valid or not, and give you a nice clean UTF-8 version of it. Optimized for Ruby.
 
-sudo: required
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
 
-services:
-  - docker
-
-notifications:
-  email:
-    recipients:
-      - scrgiorgio@gmail.com
-    on_success: always
-    on_failure: always 
-    
-env:
-  global:
-    - CMAKE_BUILD_TYPE=RelWithDebInfo 
-    - PYPI_USERNAME=scrgiorgio
-    - secure: EAZwSiQCFdTjcKDmHLFpWgX7WnGKwTtptkTvXYLcMPSUMxGymTCOTI1h8jjhxGig3k4Jni1X1gx9c8+LkcMd/yjbzDiOnIjCAVRc1hmCijAgu9j3G1ZMll4E38T7Iq6jE3/DZyb7pfK3X4NQopF/5uySIGeoH25CHwcNyr36k8Ba+qYtanPwTG1D+EVIago8qqL5yG5rslAf7Y69+zVbNa/JAUhow4fw0RAwVp+kgMC7Fj7iSMuN4NmS176VZEjD593zbiBgW+veEN0Z2MLD4vG7nq+w5u5JJYuz+Q4EiB5CCek5hhj17fJMWuAA23RZAlq4X/2oS5bKg/etHK5iVeM8ODKBX2bBHOxQoqwOaOVf0sEs5ranwVLR/77FrhFEECKAmkfFHwGGViWTvdE+F/7XqjLQK9Zm2f+T+rMHxrm1RknbXz271TNahqCHnMsmpaz98WbBHjdp2aQfU+nV/l6XLJnAf0R58ISiVdnDOy3BgQsiWIyxjZc6gRSwLg6EzAS2XlgQOmXhDo8lYoaepuK4OWvdIf+bqw0Y3b0uvrpHlAEpIG0tzzZw6ldq3CdvKD+46Vz+ZtEQBi0GBPy1Env1RHILzlkUwn6LSjVnKYY/TZxIi4ha73yo2BwJ1Q6hpdjVFgHJkEY3a72UCnOBIVnaalGv9lu/EjaixrnU6Nc=  
-  
-conditions: v1 
-  
-matrix:
-  fast_finish: true
-  include:
-
-    # ///////////////////////////////// osx 
-    
-    - os: osx
-      osx_image: xcode9.4 #10.13
-      compiler: clang
-      env: [OS_VERSION=10.13,PYTHON_VERSION=3.6.5,COMPILER=clang++,OS_NAME='osx',DEPLOY_PYPI_ENABLED=1]                   
-          
-    - os: osx
-      osx_image: xcode9.4 #10.13
-      compiler: clang
-      if: tag IS present OR commit_message =~ /\[full_matrix\]/  #
-      env: [OS_VERSION=10.13,PYTHON_VERSION=2.7.15,COMPILER=clang++,OS_NAME='osx',DEPLOY_PYPI_ENABLED=1] 
-      
-    - os: osx
-      osx_image: xcode8.3
-      compiler: clang
-      if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_VERSION=10.12,PYTHON_VERSION=2.7.14,COMPILER=clang++,OS_NAME='osx',DEPLOY_PYPI_ENABLED=1]   
-       
-    - os: osx 
-      osx_image: xcode8.3
-      compiler: clang
-      if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_VERSION=10.12,PYTHON_VERSION=3.6.1,COMPILER=clang++,OS_NAME='osx',DEPLOY_PYPI_ENABLED=1]        
-      
-    # ///////////////////////////////// trusty (Ubuntu 14.04)
-       
-    - os: linux
-      dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,OS_NAME="ubuntu",OS_VERSION=14,DEPLOY_PYPI_ENABLED=0]       
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']          
-            
-    - os: linux
-      dist: trusty
-      if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,OS_NAME="ubuntu",OS_VERSION=14,DEPLOY_PYPI_ENABLED=0]
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']       
-
-    # ///////////////////////////////// manylinux
-    - os: linux
-      dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,OS_NAME="manylinux",OS_VERSION=5,DEPLOY_PYPI_ENABLED=1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']     
-
-
-script:
-   - |
-     if [[ ${DOCKER_IMAGE} != "" ]]; then
-       docker run --name MYDOCKER -it -d -v "${TRAVIS_BUILD_DIR}":"${TRAVIS_BUILD_DIR}" ${DOCKER_IMAGE}
-       docker exec MYDOCKER cd "${TRAVIS_BUILD_DIR}"
-       docker exec MYDOCKER /bin/bash ./CMake/build_${OS_NAME}.sh
-     else
-	     cd "${TRAVIS_BUILD_DIR}"
-	     /bin/bash ./CMake/build_${OS_NAME}.sh
-     fi
-     
-     cd "${TRAVIS_BUILD_DIR}/build/${OS_NAME}"
-     if [[ "${TRAVIS_TAG}" != "" ]]; then
-        echo "Doing deploy to github..."
-        cmake --build ./ --target sdist --config ${CMAKE_BUILD_TYPE}
-        __file__=$(find ./install/dist -iname "*.tar.gz")
-        mv ${__file__} ${__file__/.tar.gz/-${PYTHON_VERSION}-${OS_NAME}_${OS_VERSION}.tar.gz}
-     fi
-     if [[ "${DEPLOY_PYPI_ENABLED}" == "1" && "${TRAVIS_TAG}" != "" ]] ; then 
-        echo "Doing deploy to pypi..."
-        cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
-        cmake --build ./ --target pypi        --config ${CMAKE_BUILD_TYPE}
-     fi
-
-before_deploy:
-  - export SDIST_FILE=$(find ${TRAVIS_BUILD_DIR}/build/${OS_NAME}/install/dist -iname "*.tar.gz")
-
-deploy:
-  provider: releases
-  api_key:
+--- 
+before_deploy: 
+  - "export SDIST_FILE=$(find ${TRAVIS_BUILD_DIR}/build/${OS_NAME}/install/dist -iname \"*.tar.gz\")"
+conditions: v1
+deploy: 
+  api_key: 
     secure: vvs+N/XwsigYj6pZIR0Lksg+FnA2M7bCy4aHj7at1nPOtX3ZHHdkSgIyd06awkiWSNg++fM6GIi7ewU+ftX9rGxgRFG5eWIKQyuHHPvNSIIcJe1cY7440Y6Kb2p58BFeGQxLJl0y3XlCObPW7yMoY7h9i6kTL6w7k3NkdWkFpdDaNXXEaGnzeoaM6u+iBmgAWgX9Ozlu+ogjFpw5b7QPtKgi1Bey/IbIeVWExuFnXsTJe3MDobdFvgJ0tewErnWAey3V8IXQzVMqdOIAl+xtu3RMmsdNymDAZpof31wFNLCr7BMmIg/O2QW1tnvNXuFX9Gpry5CKb7i0oxthiLyNTkh2sZQcAJcBdWJlP4LiSCBoJ2HuAc5XSqss8aXt/hHAzL3ICPtd6wVPlHEMK1+/EsC4WcO5X0ngzmGnn8eceIBFJiqYhI+c85GqUWPrFw+REKUsAwthMK0tNErruWZR1uubYnlyQYHpSaPdKie6o0aWK8Xit+GN3jkcqRrhQDwX3WFLxw2N07eh/f3vCD4m7GwRJfi5LXDuoLp3Qg5w23gi4ewp71v9oTZNT4K3vVEYuwzCyglppjyszQDvBAwxgxnWtSZh2nGEtwtDL5dRiIXehqfaK7mRKQ8iZwpQkuyTD+rsl45nTuNjeKYC3BLHd+NZhJI8qmcD6oykt+oxzjg=
   file: 
     - $SDIST_FILE
+  provider: releases
   skip_cleanup: true
-  on:
+  true: 
+    all_branches: true
     repo: sci-visus/OpenVisus
     tags: true
-    all_branches: true
+env: 
+  global: 
+    - CMAKE_BUILD_TYPE=RelWithDebInfo
+    - PYPI_USERNAME=scrgiorgio
+    - 
+      secure: EAZwSiQCFdTjcKDmHLFpWgX7WnGKwTtptkTvXYLcMPSUMxGymTCOTI1h8jjhxGig3k4Jni1X1gx9c8+LkcMd/yjbzDiOnIjCAVRc1hmCijAgu9j3G1ZMll4E38T7Iq6jE3/DZyb7pfK3X4NQopF/5uySIGeoH25CHwcNyr36k8Ba+qYtanPwTG1D+EVIago8qqL5yG5rslAf7Y69+zVbNa/JAUhow4fw0RAwVp+kgMC7Fj7iSMuN4NmS176VZEjD593zbiBgW+veEN0Z2MLD4vG7nq+w5u5JJYuz+Q4EiB5CCek5hhj17fJMWuAA23RZAlq4X/2oS5bKg/etHK5iVeM8ODKBX2bBHOxQoqwOaOVf0sEs5ranwVLR/77FrhFEECKAmkfFHwGGViWTvdE+F/7XqjLQK9Zm2f+T+rMHxrm1RknbXz271TNahqCHnMsmpaz98WbBHjdp2aQfU+nV/l6XLJnAf0R58ISiVdnDOy3BgQsiWIyxjZc6gRSwLg6EzAS2XlgQOmXhDo8lYoaepuK4OWvdIf+bqw0Y3b0uvrpHlAEpIG0tzzZw6ldq3CdvKD+46Vz+ZtEQBi0GBPy1Env1RHILzlkUwn6LSjVnKYY/TZxIi4ha73yo2BwJ1Q6hpdjVFgHJkEY3a72UCnOBIVnaalGv9lu/EjaixrnU6Nc=
+language: cpp
+matrix: 
+  fast_finish: true
+  include: 
+    - 
+      compiler: clang
+      env: 
+        - OS_VERSION=10.13
+        - PYTHON_VERSION=3.6.5
+        - COMPILER=clang++
+        - OS_NAME='osx'
+        - DEPLOY_PYPI_ENABLED=1
+      os: osx
+      osx_image: xcode9.4
+    - 
+      compiler: clang
+      env: 
+        - OS_VERSION=10.13
+        - PYTHON_VERSION=2.7.15
+        - COMPILER=clang++
+        - OS_NAME='osx'
+        - DEPLOY_PYPI_ENABLED=1
+      if: "tag IS present OR commit_message =~ /\\[full_matrix\\]/"
+      os: osx
+      osx_image: xcode9.4
+    - 
+      compiler: clang
+      env: 
+        - OS_VERSION=10.12
+        - PYTHON_VERSION=2.7.14
+        - COMPILER=clang++
+        - OS_NAME='osx'
+        - DEPLOY_PYPI_ENABLED=1
+      if: "tag IS present OR commit_message =~ /\\[full_matrix\\]/"
+      os: osx
+      osx_image: xcode8.3
+    - 
+      compiler: clang
+      env: 
+        - OS_VERSION=10.12
+        - PYTHON_VERSION=3.6.1
+        - COMPILER=clang++
+        - OS_NAME='osx'
+        - DEPLOY_PYPI_ENABLED=1
+      if: "tag IS present OR commit_message =~ /\\[full_matrix\\]/"
+      os: osx
+      osx_image: xcode8.3
+    - 
+      addons: 
+        apt: 
+          packages: 
+            - g++-4.9
+          sources: 
+            - ubuntu-toolchain-r-test
+      dist: trusty
+      env: 
+        - COMPILER=g++-4.9
+        - PYTHON_VERSION=3.6
+        - OS_NAME="ubuntu"
+        - OS_VERSION=14
+        - DEPLOY_PYPI_ENABLED=0
+      os: linux
+    - 
+      addons: 
+        apt: 
+          packages: 
+            - g++-4.9
+          sources: 
+            - ubuntu-toolchain-r-test
+      dist: trusty
+      env: 
+        - COMPILER=g++-4.9
+        - PYTHON_VERSION=2.7
+        - OS_NAME="ubuntu"
+        - OS_VERSION=14
+        - DEPLOY_PYPI_ENABLED=0
+      if: "tag IS present OR commit_message =~ /\\[full_matrix\\]/"
+      os: linux
+    - 
+      addons: 
+        apt: 
+          packages: 
+            - g++-4.9
+          sources: 
+            - ubuntu-toolchain-r-test
+      dist: trusty
+      env: 
+        - COMPILER=g++-4.9
+        - PYTHON_VERSION=3.6
+        - OS_NAME="manylinux"
+        - OS_VERSION=5
+        - DEPLOY_PYPI_ENABLED=1
+        - DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
+      os: linux
+notifications: 
+  email: 
+    on_failure: always
+    on_success: always
+    recipients: 
+      - scrgiorgio@gmail.com
+script: 
+    - |
+      if [[ ${DOCKER_IMAGE} != "" ]]; then
+        docker run --name MYDOCKER -it -d -v "${TRAVIS_BUILD_DIR}":"${TRAVIS_BUILD_DIR}" ${DOCKER_IMAGE}
+        docker exec MYDOCKER cd "${TRAVIS_BUILD_DIR}"
+        docker exec MYDOCKER /bin/bash ./CMake/build_${OS_NAME}.sh
+      else
+        cd "${TRAVIS_BUILD_DIR}"
+        /bin/bash ./CMake/build_${OS_NAME}.sh
+      fi
+      
+      cd "${TRAVIS_BUILD_DIR}/build/${OS_NAME}"
+      if [[ "${TRAVIS_TAG}" != "" ]]; then
+         echo "Doing deploy to github..."
+         cmake --build ./ --target sdist --config ${CMAKE_BUILD_TYPE}
+         __file__=$(find ./install/dist -iname "*.tar.gz")
+         mv ${__file__} ${__file__/.tar.gz/-${PYTHON_VERSION}-${OS_NAME}_${OS_VERSION}.tar.gz}
+      fi
+      if [[ "${DEPLOY_PYPI_ENABLED}" == "1" && "${TRAVIS_TAG}" != "" ]] ; then 
+         echo "Doing deploy to pypi..."
+         cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
+         cmake --build ./ --target pypi        --config ${CMAKE_BUILD_TYPE}
+      fi
+services: 
+  - docker
+sudo: required
 
+Valid YAML!
