@@ -79,14 +79,15 @@ matrix:
 
 script:
    - |
-     DEPLOY_GITHUB=0
+     export DEPLOY_GITHUB=0
      if [[ "${TRAVIS_TAG}" != "" ]]; then
-     echo "Doing deploy to github..."
-        DEPLOY_GITHUB=1
+        echo "Doing deploy to github..."
+        export DEPLOY_GITHUB=1
      fi
-     DEPLOY_PYPI=0
+     export DEPLOY_PYPI=0
      if [[ "${DEPLOY_PYPI_ENABLED}" == "1" && "${TRAVIS_TAG}" != "" ]] ; then   
-        DEPLOY_PYPI=1
+        echo "Doing deploy to pypi..."
+        export DEPLOY_PYPI=1
      fi 
      cd "${TRAVIS_BUILD_DIR}" 
      chmod +x "./CMake/build_${OS_NAME}.sh" 
