@@ -81,9 +81,12 @@ matrix:
 script:
    - |
      if [[ ${DOCKER_IMAGE} != "" ]]; then
-        docker run -it -v "${TRAVIS_BUILD_DIR}":"${TRAVIS_BUILD_DIR}" ${DOCKER_IMAGE} "cd ${TRAVIS_BUILD_DIR} && /bin/bash ./CMake/build_${OS_NAME}.sh"
+        docker run --name mydocker -v ${TRAVIS_BUILD_DIR}:/home/OpenVisus -td ${DOCKER_IMAGE} /bin/bash
+        docker exec -ti mydocker /bin/bash -c "cd /home/OpenVisus && ./CMake/build_${OS_NAME}.sh"      
+        docker stop mydocker
      else
-        cd "${TRAVIS_BUILD_DIR}" && /bin/bash ./CMake/build_${OS_NAME}.sh
+        cd "${TRAVIS_BUILD_DIR}" 
+        ./CMake/build_${OS_NAME}.sh
      fi
      cd "${TRAVIS_BUILD_DIR}/build/${OS_NAME}"
      if [[ "${TRAVIS_TAG}" != "" ]]; then
