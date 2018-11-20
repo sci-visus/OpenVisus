@@ -71,7 +71,7 @@ matrix:
     # ///////////////////////////////// manylinux
     - os: linux
       dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,OS_NAME="manylinux",OS_VERSION=5,DEPLOY_PYPI_ENABLED=1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,OS_NAME="manylinux",OS_VERSION=5,DEPLOY_PYPI_ENABLED=1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
       addons: 
         apt:
           packages: ['g++-4.9']
