@@ -288,8 +288,6 @@ if(BUILD_XIDX)
 			SOURCE_DIR        "${XIDX_SRC_FOLDER}"
 			BINARY_DIR        "${XIDX_BUILD_FOLDER}"
 			CMAKE_ARGS		  "-DBUILD_PYTHON_WRAPPER=OFF"
-			MAKE_COMMAND      "make xidx"
-			INSTALL_COMMAND   ""
 			)
 
 	include_directories("${XIDX_SRC_FOLDER}/include/")
