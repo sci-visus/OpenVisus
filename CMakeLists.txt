@@ -29,7 +29,6 @@ endif()
 
 MESSAGE(STATUS "CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}")
 
-
 include(CMake/VisusMacros.cmake)
 SetupCommonCMake()
 
@@ -218,6 +217,10 @@ FindPythonLibrary()
 add_subdirectory(InternalLibs)
 add_subdirectory(Libs)
 add_subdirectory(Executable)
+
+# ______________________________________________
+# *** xidx
+add_subdirectory(ExternalLibs/xidx)
 
 # //////////////////////////////////////////////////////////////
 # *** testing and external apps ***
