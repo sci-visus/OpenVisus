@@ -23,7 +23,7 @@ if (( VISUS_GUI == 1 )); then
 fi
 
 cmake_opts=""
-PushCmakeOptions
+PushCMakeOptions
 cmake ${cmake_opts} ${SOURCE_DIR} 
 
 cmake --build . --target all -- -j 4

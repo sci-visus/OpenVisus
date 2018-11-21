@@ -30,32 +30,31 @@ matrix:
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: [PYTHON_VERSION=3.6.5,COMPILER=clang++,SDIST_FILENAME='OpenVisus-3.6-osx_10.13.tar.gz',DEPLOY_PYPI_ENABLED=1]                   
+      env: [PYTHON_VERSION=3.6.5,COMPILER=clang++,SDIST_FILENAME='OpenVisus-3.6-osx_10.13.tar.gz']                   
           
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/  #
-      env: [PYTHON_VERSION=2.7.15,COMPILER=clang++,SDIST_FILENAME='OpenVisus-2.7-osx_10.13.tar.gz',DEPLOY_PYPI_ENABLED=1] 
+      env: [PYTHON_VERSION=2.7.15,COMPILER=clang++,SDIST_FILENAME='OpenVisus-2.7-osx_10.13.tar.gz'] 
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=3.6.1,COMPILER=clang++,SDIST_FILENAME='OpenVisus-3.6-osx_10.12.tar.gz',DEPLOY_PYPI_ENABLED=1]        
+      env: [PYTHON_VERSION=3.6.1,COMPILER=clang++,SDIST_FILENAME='OpenVisus-3.6-osx_10.12.tar.gz']        
             
-      
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=2.7.14,COMPILER=clang++,SDIST_FILENAME='OpenVisus-2.7-osx_10.12.tar.gz',DEPLOY_PYPI_ENABLED=1]   
+      env: [PYTHON_VERSION=2.7.14,COMPILER=clang++,SDIST_FILENAME='OpenVisus-2.7-osx_10.12.tar.gz']   
 
     # ///////////////////////////////// trusty (Ubuntu 14.04)
        
     - os: linux
       dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,SDIST_FILENAME='OpenVisus-3.6-ubuntu_14.tar.gz',DEPLOY_PYPI_ENABLED=0]       
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,SDIST_FILENAME='OpenVisus-3.6-ubuntu_14.tar.gz']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -64,7 +63,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,SDIST_FILENAME='OpenVisus-2.7-ubuntu_14.tar.gz',DEPLOY_PYPI_ENABLED=0]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,SDIST_FILENAME='OpenVisus-2.7-ubuntu_14.tar.gz']
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -73,20 +72,32 @@ matrix:
     # ///////////////////////////////// manylinux
     - os: linux
       dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,SDIST_FILENAME='OpenVisus-3.6-manylinux.tar.gz',DEPLOY_PYPI_ENABLED=1,
-         DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64,
-         VISUS_INTERNAL_DEFAULT=1,
-         DISABLE_OPENMP=1,
-         VISUS_GUI=0,
-         PYPI_PLAT_NAME=manylinux1_x86_64
-         ]       
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,SDIST_FILENAME='OpenVisus-3.6-manylinux.tar.gz']       
       addons: 
         apt:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']     
 
+
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,SDIST_FILENAME='OpenVisus-2.7-manylinux.tar.gz']       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test'] 
+
 script:
    - |
+     if [[ $SDIST_FILENAME == *manylinux* ]]; then
+        export DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64
+        export VISUS_INTERNAL_DEFAULT=1
+        export DISABLE_OPENMP=1
+        export VISUS_GUI=0
+        export PYPI_PLAT_NAME=manylinux1_x86_64
+     fi
+   
      export DEPLOY_GITHUB=0
      if [[ "${TRAVIS_TAG}" != "" ]]; then
         echo "Doing deploy to github..."
@@ -94,11 +105,13 @@ script:
      fi
      
      export DEPLOY_PYPI=0
-     if [[ "${DEPLOY_PYPI_ENABLED}" == "1" && "${TRAVIS_TAG}" != "" ]] ; then   
-        echo "Doing deploy to pypi..."
-        export DEPLOY_PYPI=1
-     fi 
-     
+     if [[ "${TRAVIS_TAG}" != "" ]]; then
+        if [[ $(uname) == "Darwin" || $SDIST_FILENAME == *manylinux* ]]; then
+           echo "Doing deploy to pypi..."
+           export DEPLOY_PYPI=1
+        fi     
+     fi
+
      cd "${TRAVIS_BUILD_DIR}" 
      chmod +x ./CMake/build*.sh 
      ./CMake/build.sh
