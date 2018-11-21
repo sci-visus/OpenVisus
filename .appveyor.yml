@@ -7,7 +7,7 @@ notifications:
     on_build_success: true
     on_build_failure: true
     on_build_status_changed: true  
-  
+   
 environment:
   QT5_DIR: C:/Qt/5.10.1/msvc2017_64
   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
