@@ -30,26 +30,26 @@ matrix:
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: [OS_VERSION=10.13,PYTHON_VERSION=3.6.5,COMPILER=clang++,SDIST_FILENAME='OpenVisus-3.6-osx_10.13.tar.gz',DEPLOY_PYPI_ENABLED=1]                   
+      env: [PYTHON_VERSION=3.6.5,COMPILER=clang++,SDIST_FILENAME='OpenVisus-3.6-osx_10.13.tar.gz',DEPLOY_PYPI_ENABLED=1]                   
           
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/  #
-      env: [OS_VERSION=10.13,PYTHON_VERSION=2.7.15,COMPILER=clang++,SDIST_FILENAME='OpenVisus-2.7-osx_10.13.tar.gz',DEPLOY_PYPI_ENABLED=1] 
+      env: [PYTHON_VERSION=2.7.15,COMPILER=clang++,SDIST_FILENAME='OpenVisus-2.7-osx_10.13.tar.gz',DEPLOY_PYPI_ENABLED=1] 
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_VERSION=10.12,PYTHON_VERSION=3.6.1,COMPILER=clang++,SDIST_FILENAME='OpenVisus-3.6-osx_10.12.tar.gz',DEPLOY_PYPI_ENABLED=1]        
+      env: [PYTHON_VERSION=3.6.1,COMPILER=clang++,SDIST_FILENAME='OpenVisus-3.6-osx_10.12.tar.gz',DEPLOY_PYPI_ENABLED=1]        
             
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_VERSION=10.12,PYTHON_VERSION=2.7.14,COMPILER=clang++,SDIST_FILENAME='OpenVisus-2.7-osx_10.12.tar.gz',DEPLOY_PYPI_ENABLED=1]   
+      env: [PYTHON_VERSION=2.7.14,COMPILER=clang++,SDIST_FILENAME='OpenVisus-2.7-osx_10.12.tar.gz',DEPLOY_PYPI_ENABLED=1]   
 
     # ///////////////////////////////// trusty (Ubuntu 14.04)
        
@@ -100,9 +100,8 @@ script:
      fi 
      
      cd "${TRAVIS_BUILD_DIR}" 
-     chmod +x "./CMake/build*.sh" 
+     chmod +x ./CMake/build*.sh 
      ./CMake/build.sh
-     fi
 
 before_deploy:
   - mv $(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz") ${SDIST_FILENAME}
