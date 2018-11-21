@@ -117,7 +117,8 @@ script:
      ./CMake/build.sh
 
 before_deploy:
-  - mv $(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz") ${SDIST_FILENAME}
+  - OLD_DIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
+  - mv $OLD_DIST_FILENAME ${SDIST_FILENAME}
 
 deploy:
   provider: releases

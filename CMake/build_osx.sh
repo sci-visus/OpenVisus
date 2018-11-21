@@ -2,6 +2,10 @@
 
 . "$(dirname "$0")/build_common.sh"
 
+SOURCE_DIR=$(pwd)
+mkdir -p $BUILD_DIR
+cd $BUILD_DIR
+
 InstallBrew            
 InstallPython
 
