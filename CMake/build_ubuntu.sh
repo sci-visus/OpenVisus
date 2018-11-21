@@ -6,18 +6,6 @@ SOURCE_DIR=$(pwd)
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
-# detect ubuntu version
-if [ -f /etc/os-release ]; then
-	source /etc/os-release
-	export OS_VERSION=$VERSION_ID
-elif type lsb_release >/dev/null 2>&1; then
-	export OS_VERSION=$(lsb_release -sr)
-elif [ -f /etc/lsb-release ]; then
-	source /etc/lsb-release
-	export OS_VERSION=$DISTRIB_RELEASE
-fi
-echo "OS_VERSION ${OS_VERSION}"
-
 # make sure sudo is available
 if [ "$EUID" -eq 0 ]; then
 	apt-get -qq update
@@ -26,6 +14,8 @@ fi
 
 sudo apt-get -qq update
 sudo apt-get -qq install git 
+
+DetectUbuntuVersion
 
 if (( ${OS_VERSION:0:2}<=14 )); then
 	sudo apt-get -qq install software-properties-common

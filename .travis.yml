@@ -73,11 +73,7 @@ matrix:
     # ///////////////////////////////// manylinux
     - os: linux
       dist: trusty
-      env: [
-      	COMPILER=g++-4.9,
-      	PYTHON_VERSION=3.6.6,
-      	SDIST_FILENAME='OpenVisus-3.6-manylinux.tar.gz',
-      	DEPLOY_PYPI_ENABLED=1,
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,SDIST_FILENAME='OpenVisus-3.6-manylinux.tar.gz',DEPLOY_PYPI_ENABLED=1,
       	DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64,
       	VISUS_INTERNAL_DEFAULT=1,
 			DISABLE_OPENMP=1,
@@ -96,17 +92,16 @@ script:
         echo "Doing deploy to github..."
         export DEPLOY_GITHUB=1
      fi
+     
      export DEPLOY_PYPI=0
      if [[ "${DEPLOY_PYPI_ENABLED}" == "1" && "${TRAVIS_TAG}" != "" ]] ; then   
         echo "Doing deploy to pypi..."
         export DEPLOY_PYPI=1
      fi 
+     
      cd "${TRAVIS_BUILD_DIR}" 
      chmod +x "./CMake/build*.sh" 
-     if [[ ${DOCKER_IMAGE} != "" ]]; then
-        ./CMake/build_docker.sh 
-     else
-        ./CMake/build.sh
+     ./CMake/build.sh
      fi
 
 before_deploy:

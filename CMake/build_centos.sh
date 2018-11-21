@@ -6,6 +6,8 @@ SOURCE_DIR=$(pwd)
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
+# note: only centos5 is supported right now
+
 yum update 
 yum install -y zlib-devel curl 
 yum install -y httpd.x86_64 httpd-devel.x86_64

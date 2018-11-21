@@ -2,16 +2,19 @@
 
 THIS_DIR=$(dirname $0)
 
-if [[ $(uname) == "Darwin" ]]; then
+if [ ${DOCKER_IMAGE} != "" ]; then
+	$THIS_DIR/build_docker.sh
+	
+elif [ $(uname) = "Darwin" ]; then
 	$THIS_DIR/build_osx.sh
 
-elif [ -n "$(which zypper)" ]; then
-	$THIS_DIR/build_opensuse.sh
-	
-elif [ -n "$(which apt-get)" ]; then
+elif [ -x "$(command -v apt-get)" ]; then
 	$THIS_DIR/build_ubuntu.sh
 
-elif [ -n "$(which yum)" ]; then
+elif [ -x "$(command -v zypper)" ]; then
+	$THIS_DIR/build_opensuse.sh
+	
+elif [ -x "$(command -v yum)" ]; then
 	$THIS_DIR/build_centos.sh
 
 else

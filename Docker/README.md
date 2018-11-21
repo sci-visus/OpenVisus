@@ -15,7 +15,7 @@ sudo docker run -it openvisus-centos5 /bin/bash
 Run the script interactively. 
 
 ```
-docker run -it --name openvisus-centos5 -v c:\projects\OpenVisus:/home/OpenVisus --workdir /home/OpenVisus quay.io/pypa/manylinux1_x86_64  
+docker run -it --name openvisus-ubuntu -v c:\projects\OpenVisus:/home/OpenVisus --workdir /home/OpenVisus ubuntu:trusty /bin/bash
 ./CMake/build.sh
 exit
 docker exec -it openvisus-centos5 /bin/bash

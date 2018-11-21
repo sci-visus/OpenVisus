@@ -52,32 +52,6 @@ function PushCMakeOptions {
 }
 
 
-# //////////////////////////////////////////////////////
-function PushDockerEnv {
-	if [ -n "$2" ] ; then
-		docker_opts+=" -e $1=$2"
-	fi
-}
-
-# //////////////////////////////////////////////////////
-function PushDockerEnvs {
-	PushDockerEnv PYTHON_VERSION          ${PYTHON_VERSION}
-	PushDockerEnv VISUS_INTERNAL_DEFAULT  ${VISUS_INTERNAL_DEFAULT}
-	PushDockerEnv DISABLE_OPENMP          ${DISABLE_OPENMP}
-	PushDockerEnv VISUS_GUI               ${VISUS_GUI}
-	PushDockerEnv CMAKE_BUILD_TYPE        ${CMAKE_BUILD_TYPE}
-	
-	PushDockerEnv DEPLOY_GITHUB           ${DEPLOY_GITHUB}"
-	
-	PushDockerEnv DEPLOY_PYPI             ${DEPLOY_PYPI}"
-	PushDockerEnv PYPI_USERNAME           ${PYPI_USERNAME}"
-	PushDockerEnv PYPI_PASSWORD           ${PYPI_PASSWORD}"
-	PushDockerEnv PYPI_PLAT_NAME          ${PYPI_PLAT_NAME}"
-	
-	PushDockerEnv BUILD_DIR               ${BUILD_DIR}
-}
-
-
 
 # //////////////////////////////////////////////////////
 function InstallPython {
@@ -145,7 +119,6 @@ function InstallCMake {
 	
 	export PATH=$BUILD_DIR/cmake/bin:${PATH} 
 }
-
 
 
 # //////////////////////////////////////////////////////
@@ -221,4 +194,18 @@ function InstallSwig {
 		popd
 	fi 
 	export PATH=$BUILD_DIR/swig/bin:${PATH} 
+}
+
+# //////////////////////////////////////////////////////
+function DetectUbuntuVersion {
+	if [ -f /etc/os-release ]; then
+		source /etc/os-release
+		export OS_VERSION=$VERSION_ID
+	elif type lsb_release >/dev/null 2>&1; then
+		export OS_VERSION=$(lsb_release -sr)
+	elif [ -f /etc/lsb-release ]; then
+		source /etc/lsb-release
+		export OS_VERSION=$DISTRIB_RELEASE
+	fi
+	echo "OS_VERSION ${OS_VERSION}"
 }

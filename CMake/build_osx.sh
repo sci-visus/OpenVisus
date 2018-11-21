@@ -13,6 +13,7 @@ InstallPython
 gem install xcpretty   
 
 brew install swig  
+
 if (( VISUS_INTERNAL_DEFAULT == 0 )); then 
   brew install zlib lz4 tinyxml freeimage openssl curl
 fi
