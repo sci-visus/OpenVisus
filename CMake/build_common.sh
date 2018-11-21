@@ -17,6 +17,13 @@ PYPI_PLAT_NAME=${PYPI_PLAT_NAME:-}
 
 BUILD_DIR=${BUILD_DIR:-$(pwd)/build} 
 
+cmake_opts=""
+docker_opts=""
+
+SOURCE_DIR=$(pwd)
+mkdir -p $BUILD_DIR
+cd $BUILD_DIR
+
 # //////////////////////////////////////////////////////
 function DownloadFile {
 	curl -fsSL --insecure "$1" -O

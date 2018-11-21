@@ -2,10 +2,6 @@
 
 . "$(dirname "$0")/build_common.sh"
 
-SOURCE_DIR=$(pwd)
-mkdir -p $BUILD_DIR
-cd $BUILD_DIR
-
 # make sure sudo is available
 if [ "$EUID" -eq 0 ]; then
 	zypper --non-interactive update
@@ -27,7 +23,6 @@ if (( VISUS_GUI==1 )); then
 	sudo zypper -n in  glu-devel  libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel
 fi
 
-cmake_opts=""
 PushCmakeOptions
 cmake ${cmake_opts} ${SOURCE_DIR} 
 

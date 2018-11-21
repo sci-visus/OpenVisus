@@ -2,10 +2,6 @@
 
 . "$(dirname "$0")/build_common.sh"
 
-SOURCE_DIR=$(pwd)
-mkdir -p $BUILD_DIR
-cd $BUILD_DIR
-
 InstallBrew            
 InstallPython
 
@@ -23,10 +19,8 @@ if (( VISUS_GUI == 1 )); then
 	Qt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5	
 fi
 
-cmake_opts=""
-cmake_opts+=" -GXcode"
 PushCMakeOptions
-cmake ${cmake_opts} ${SOURCE_DIR} 
+cmake -GXcode ${cmake_opts} ${SOURCE_DIR} 
 
 set -o pipefail && \
 cmake --build ./ --target ALL_BUILD   --config ${CMAKE_BUILD_TYPE} | xcpretty -c

@@ -2,10 +2,6 @@
 
 . "$(dirname "$0")/build_common.sh"
 
-SOURCE_DIR=$(pwd)
-mkdir -p $BUILD_DIR
-cd $BUILD_DIR
-
 # note: only centos5 is supported right now
 
 yum update 
@@ -22,7 +18,6 @@ if (( VISUS_GUI == 1 )); then
 	error "TODO"  
 fi
 
-cmake_opts=""
 PushCMakeOptions
 cmake ${cmake_opts} ${SOURCE_DIR} 
 
