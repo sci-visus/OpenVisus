@@ -1,28 +1,25 @@
+# //////////////////////////////////////////////////////////////////////
 # How to build OpenVisus Docker container
 
-Compile and run the docker container. For example, for the `trusty` container:
+Compile and run the docker container. 
+For example:
 
 ```
-sudo docker build -t openvisus-trusty --build-arg BRANCH=master Docker/trusty
-sudo docker run  -it openvisus-trusty /bin/bash 
+sudo docker build -t openvisus-centos5 Docker/centos
+sudo docker run -it openvisus-centos5 /bin/bash 
 ```
 
+# //////////////////////////////////////////////////////////////////////
 # How to debug the building process
 
-Run the script interactively:
+Run the script interactively. 
 
 ```
-# create a container
-sudo docker run -it -v c:\projects\OpenVisus:/home/OpenVisus ubuntu:trusty 
-cd /home/OpenVisus
-./CMake/build_<os_name>.sh
+docker run -it --name openvisus-centos5 -v c:\projects\OpenVisus:/home/OpenVisus --workdir /home/OpenVisus quay.io/pypa/manylinux1_x86_64  
+./CMake/build.sh
 exit
-
-# commit container and re-execute it
-docker ps -a
-docker exec -it <container_id> /bin/bash
+docker exec -it openvisus-centos5 /bin/bash
 ```
-
 
 
 # Build/Run the mod_visus container
