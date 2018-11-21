@@ -2,14 +2,6 @@
 FindGitRevision()
 add_definitions(-DGIT_REVISION=\"${GIT_REVISION}\")
 
-if (DEFINED VISUS_HOME)
- 	add_definitions(-DVISUS_HOME="${VISUS_HOME}")
-endif()
-
-if (DEFINED VISUS_PYTHON_SYS_PATH)
- 	add_definitions(-DVISUS_PYTHON_SYS_PATH="${VISUS_PYTHON_SYS_PATH}")
-endif()
-
 if (NOT (WIN32 OR APPLE))
 
   include(CheckIncludeFiles)

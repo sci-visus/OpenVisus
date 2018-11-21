@@ -303,7 +303,7 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(AddSwigLibrary NamePy SwigFile)
 
-  find_package(SWIG REQUIRED)
+  find_package(SWIG 3.0 REQUIRED)
   include(${SWIG_USE_FILE})
   set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
   set(CMAKE_SWIG_FLAGS "")

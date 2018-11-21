@@ -13,8 +13,6 @@ WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 
 bVerbose=False
-
-
 	
 # /////////////////////////////////////////////////
 def ExecuteCommand(cmd):	
@@ -79,6 +77,7 @@ def WriteTextFile(filename,content):
 	file = open(filename,"wt") 
 	file.write(content) 
 	file.close() 		
+
 
 # /////////////////////////////////////////////////
 # glob(,recursive=True) is not supported in python 2.x
@@ -148,8 +147,8 @@ class AppleDeployStep:
 	# findAllBinaries
 	def findAllBinaries(self):	
 		ret=[]
-		ret+=recursiveGlob('src', '*.dylib')
-		ret+=recursiveGlob('src', '*.so')
+		ret+=recursiveGlob('bin', '*.dylib')
+		ret+=recursiveGlob('bin', '*.so')
 		ret+=self.findApps()
 		ret+=self.findFrameworks()
 		return ret
@@ -169,6 +168,11 @@ class AppleDeployStep:
 	
 	# showDeps
 	def showDeps(self):
+	  
+		DYLD_LIBRARY_PATH=None
+		if 'DYLD_LIBRARY_PATH' in os.environ:
+			DYLD_LIBRARY_PATH=os.environ['DYLD_LIBRARY_PATH']  
+			del os.environ['DYLD_LIBRARY_PATH']
 		
 		deps={}
 		for filename in self.findAllBinaries():
@@ -179,6 +183,9 @@ class AppleDeployStep:
 		for dep in deps:
 			if not dep.startswith("@"):
 				print(dep)
+				
+		if DYLD_LIBRARY_PATH:
+			os.environ["DYLD_LIBRARY_PATH"]= DYLD_LIBRARY_PATH
 						
 	# relativeRootDir
 	def relativeRootDir(self,local,prefix="@loader_path"):
@@ -189,6 +196,7 @@ class AppleDeployStep:
 	
 	# changeAllDeps
 	def changeAllDeps(self):
+	
 		
 		for filename in self.findAllBinaries():
 			
@@ -384,7 +392,7 @@ class LinuxDeployStep:
 		
 	# findAllDeps
 	def findAllDeps(self):
-		deps={}
+		ret={}
 		for filename in self.findAllBinaries():
 			output=subprocess.check_output(('ldd',filename))
 			if sys.version_info >= (3, 0): 
@@ -393,32 +401,35 @@ class LinuxDeployStep:
 			for line in output.splitlines():
 				items=[it.strip() for it in line.split(" ") if len(it.strip())]
 				if len(items)>=4 and items[1]=='=>' and items[2]!='not' and items[3]!='found':
-					deps[items[0]]=items[2]	
-		return deps
+					key=os.path.basename(items[0])
+					target=os.path.realpath(items[2])
+					if target.startswith("/"):
+						ret[key]=target	
+		return ret
 
 	# copyGlobalDeps
 	def copyGlobalDeps(self):
-		deps=self.findAllDeps()
-		for key in deps:
-			filename=deps[key]
-			# only absolute file
-			if filename.startswith("/"):
-				CopyFile(filename,"bin/"+key)	
-
-	# fixSymbolicLinks
-	def fixSymbolicLinks(self):
-		pushd=os.getcwd()
-		os.chdir("bin")	
-		for filename in glob.glob("*.so.*"):
-			if bVerbose:
-				print("Fixing symbolic link of",filename)
-			link,ext=os.path.splitext(filename)
-			while not ext==".so":
-				if(os.path.islink(link)):
-					os.remove(link)
-				os.symlink(filename, link)
-				link,ext=os.path.splitext(link)		
-		os.chdir(pushd)			
+		"""
+		Example:
+	        linux-vdso.so.1 =>  (0x00007ffc437f5000)
+	        libVisusKernel.so => /tmp/OpenVisus/build/install/bin/libVisusKernel.so (0x00007f15e31a7000)
+	        libpython3.6m.so.1.0 => not found
+	        libVisusIdx.so => /tmp/OpenVisus/build/install/bin/libVisusIdx.so (0x00007f15e2e60000)
+	        libVisusDb.so => /tmp/OpenVisus/build/install/bin/libVisusDb.so (0x00007f15e2b93000)
+	        libssl.so.1.0.0 => /tmp/OpenVisus/build/install/bin/libssl.so.1.0.0 (0x00007f15e291c000)	
+		"""		
+		for key,target in self.findAllDeps().items():
+			
+			# already inside
+			if target.startswith(os.getcwd()):
+				continue
+			
+			# if I copy linux libraries i will get core dump
+			if target.startswith("/lib64") or target.startswith("/usr/lib64"):
+				continue
+			
+			print("CopyFile",target,"bin/"+key," (fixing dependency of %s) " % (key,))
+			CopyFile(target,"bin/"+key)	
 
 	# setOrigins
 	def setOrigins(self):
@@ -427,18 +438,20 @@ class LinuxDeployStep:
 
 	# showDeps
 	def showDeps(self):
-		deps=self.findAllDeps()
-		for key in deps:
-			if deps[key].startswith(os.getcwd()):
+	  
+		for key,target in self.findAllDeps().items():
+			
+			# print only the 'outside' target
+			if target.startswith(os.getcwd()) or os.path.isfile("bin/" + key):
 				continue
-			print("%30s" % (key,),deps[key])
+			
+			print("%30s" % (key,),target)
 
 	# fixAllDeps
 	def fixAllDeps(self):
 		# need to run two times
 		for I in range(2):
 			self.copyGlobalDeps()
-			self.fixSymbolicLinks()
 			self.setOrigins()
 		
 
