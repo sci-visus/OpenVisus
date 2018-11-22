@@ -75,19 +75,19 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,SDIST_FILENAME='OpenVisus-3.6-opensuse_42.3.tar.gz',DOCKER_IMAGE="opensuse&#58;leap"]
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,SDIST_FILENAME='OpenVisus-3.6-opensuse_42.3.tar.gz','DOCKER_IMAGE=opensuse:leap']
       addons: 
         apt:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']          
           
- 
+
     # ///////////////////////////////// alpine
        
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,SDIST_FILENAME='OpenVisus-3.6-alpine_3.7.tar.gz',DOCKER_IMAGE='alpine&#58;3.7',
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,SDIST_FILENAME='OpenVisus-3.6-alpine_3.7.tar.gz','DOCKER_IMAGE=alpine:3.7',
             VISUS_INTERNAL_DEFAULT=1, DISABLE_OPENMP=1,VISUS_GUI=0]       
       addons: 
         apt:
@@ -133,7 +133,6 @@ script:
      fi
 
      cd "${TRAVIS_BUILD_DIR}" 
-     echo "DOCKER_IMAGE: ${DOCKER_IMAGE}"
      chmod +x ./CMake/build*.sh 
      ./CMake/build.sh
 
