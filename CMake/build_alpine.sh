@@ -31,10 +31,10 @@ cmake --build . --target install
 # no deploy here 
 # cmake --build . --target deploy 
 
-pushd install
+cd install
 LD_LIBRARY_PATH=$(pwd)/bin:$(dirname ${PYTHON_LIBRARY}) PYTHONPATH=$(pwd) bin/visus                                  && echo "Embedding working"
 LD_LIBRARY_PATH=$(pwd)/bin                              PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
-popd
+cd ..
 
 if (( DEPLOY_GITHUB == 1 )); then
 	cmake --build ./ --target sdist --config ${CMAKE_BUILD_TYPE}

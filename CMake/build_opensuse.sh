@@ -27,7 +27,7 @@ if (( VISUS_GUI==1 )); then
 	sudo zypper -n in  glu-devel  libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel
 fi
 
-PushCmakeOptions
+PushCMakeOptions
 cmake ${cmake_opts} ${SOURCE_DIR} 
 
 cmake --build . --target all -- -j 4
