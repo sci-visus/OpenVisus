@@ -7,7 +7,7 @@ mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
 # to try it step by step
-# docker run -it --entrypoint=/bin/sh alpine:3.7
+# docker run -it alpine:3.7 /bin/sh
 
 # ////////////////////////////////////////////////
 # dependencies
