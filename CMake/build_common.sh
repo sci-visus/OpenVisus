@@ -18,7 +18,6 @@ PYPI_PLAT_NAME=${PYPI_PLAT_NAME:-}
 BUILD_DIR=${BUILD_DIR:-$(pwd)/build} 
 
 cmake_opts=""
-docker_opts=""
 
 # //////////////////////////////////////////////////////
 function DownloadFile {
@@ -52,29 +51,6 @@ function PushCMakeOptions {
 	PushCMakeOption PYTHON_LIBRARY         ${PYTHON_LIBRARY}
 	
 	PushCMakeOption Qt5_DIR                ${Qt5_DIR}
-}
-
-# //////////////////////////////////////////////////////
-function PushDockerEnv {
-	if [ -n "$2" ] ; then
-		docker_opts+=" -e $1=$2"
-	fi
-}
-
-# //////////////////////////////////////////////////////
-function PushDockerEnvs {
-
-	PushDockerEnv PYTHON_VERSION          ${PYTHON_VERSION}
-	PushDockerEnv VISUS_INTERNAL_DEFAULT  ${VISUS_INTERNAL_DEFAULT}
-	PushDockerEnv DISABLE_OPENMP          ${DISABLE_OPENMP}
-	PushDockerEnv VISUS_GUI               ${VISUS_GUI}
-	PushDockerEnv CMAKE_BUILD_TYPE        ${CMAKE_BUILD_TYPE}
-	PushDockerEnv DEPLOY_GITHUB           ${DEPLOY_GITHUB}
-	PushDockerEnv DEPLOY_PYPI             ${DEPLOY_PYPI}
-	PushDockerEnv PYPI_USERNAME           ${PYPI_USERNAME}
-	PushDockerEnv PYPI_PASSWORD           ${PYPI_PASSWORD}
-	PushDockerEnv PYPI_PLAT_NAME          ${PYPI_PLAT_NAME}
-	PushDockerEnv BUILD_DIR               ${BUILD_DIR}
 }
 
 

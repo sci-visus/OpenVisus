@@ -5,7 +5,7 @@ export VISUS_GUI=0
 export DISABLE_OPENMP=1
 export PYTHON_VERSION=3.6
 
-. "$(dirname "$0")/build_common.sh"
+source "$(dirname "$0")/build_common.sh"
 
 SOURCE_DIR=$(pwd)
 mkdir -p $BUILD_DIR
