@@ -114,7 +114,24 @@ script:
 
      cd "${TRAVIS_BUILD_DIR}" 
      chmod +x ./CMake/build*.sh 
-     ./CMake/build.sh
+     if [[ ${DOCKER_IMAGE} != "" ]]; then
+        opt=""   
+        opt+=" --name mydocker"
+        opt+=" -td"
+        opt+=" -e PYTHON_VERSION=${PYTHON_VERSION}"
+        opt+=" -e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+        opt+=" -e DEPLOY_GITHUB=${DEPLOY_GITHUB}"
+        opt+=" -e DEPLOY_PYPI=${DEPLOY_PYPI}"
+        opt+=" -e PYPI_USERNAME=${PYPI_USERNAME}"
+        opt+=" -e PYPI_PASSWORD=${PYPI_PASSWORD}"
+        opt+=" -v $(pwd):/home/OpenVisus"
+        docker run ${opt}   ${DOCKER_IMAGE} /bin/bash
+        docker exec -ti mydocker /bin/bash -c "cd /home/OpenVisus && ./CMake/build.sh"
+        sudo chown -R "$USER":"$USER" ./ 
+        sudo chmod u+rwx -R ./ 
+     else
+        ./CMake/build.sh
+     fi
 
 before_deploy:
   - OLD_DIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
