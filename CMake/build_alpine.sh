@@ -34,6 +34,6 @@ LD_LIBRARY_PATH=$(pwd)/bin:$(dirname ${PYTHON_LIBRARY}) PYTHONPATH=$(pwd) bin/vi
 LD_LIBRARY_PATH=$(pwd)/bin                              PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
 cd ..
 
-if (( DEPLOY_GITHUB == 1 )); then
+if [ "$DEPLOY_GITHUB" = "1" ]; then
 	cmake --build ./ --target sdist --config ${CMAKE_BUILD_TYPE}
 fi
