@@ -18,8 +18,6 @@ apk add --no-cache --virtual OpenVisusBuildDeps alpine-sdk swig apache2-dev curl
 pip3 install --upgrade pip 
 pip3 install numpy 
 
-cd $BUILD_DIR && mkdir -p ./build && cd ./build 
-
 PushCMakeOptions
 PushCMakeOption VISUS_INTERNAL_OPENSSL 0
 PushCMakeOption VISUS_INTERNAL_CURL    0
