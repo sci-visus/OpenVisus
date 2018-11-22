@@ -1,16 +1,11 @@
 #!/bin/bash
 
+DOCKER_IMAGE=${DOCKER_IMAGE:-ubuntu:trusty}
+
 source "$(dirname "$0")/build_common.sh"
 
-if [[ $DOCKER_IMAGE == "" ]] ; then
-	echo "Please specify a docker image (i.e. set DOCKER_IMAGE)"
-	exit -1
-fi
-
-# see build_common.sh to see what you want to 'forward'
-SOURCE_DIR=$(pwd)
-
 # see build_common.sh for stuff you want to forward
+# NOTE: if you specify BUILD_DIR it must be inside $(pwd) otherwise when the container exit you will loose the build
 docker_env=""
 
 function PushDockerEnv {
@@ -31,6 +26,7 @@ PushDockerEnv PYPI_PASSWORD           ${PYPI_PASSWORD}
 PushDockerEnv PYPI_PLAT_NAME          ${PYPI_PLAT_NAME}
 PushDockerEnv BUILD_DIR               ${BUILD_DIR}
 
+SOURCE_DIR=$(pwd)
 sudo docker run -d -ti --name mydocker -v ${SOURCE_DIR}:${SOURCE_DIR} ${docker_env} ${DOCKER_IMAGE} /bin/bash
 sudo docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./CMake/build.sh"
 
