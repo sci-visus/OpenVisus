@@ -1,5 +1,10 @@
 #!/bin/sh
 
+# override
+export VISUS_GUI=0
+export DISABLE_OPENMP=1
+export PYTHON_VERSION=3.6
+
 . "$(dirname "$0")/build_common.sh"
 
 SOURCE_DIR=$(pwd)
@@ -20,10 +25,6 @@ pip3 install numpy
 
 cd $BUILD_DIR && mkdir -p ./build && cd ./build 
 
-# override
-export VISUS_GUI=0
-export DISABLE_OPENMP=1
-
 PushCMakeOptions
 PushCMakeOption VISUS_INTERNAL_ZLIB      1
 PushCMakeOption VISUS_INTERNAL_LZ4       1
@@ -34,8 +35,10 @@ PushCMakeOption VISUS_INTERNAL_CURL      0
 cmake ${cmake_opts} ${SOURCE_DIR} 
 
 cmake --build . --target all -- -j 4 
-cmake --build . --target install  
-cmake --build . --target deploy 
+cmake --build . --target install 
+
+# no deploy here 
+# cmake --build . --target deploy 
 
 pushd install
 LD_LIBRARY_PATH=$(pwd)/bin:$(dirname ${PYTHON_LIBRARY}) PYTHONPATH=$(pwd) bin/visus                                  && echo "Embedding working"

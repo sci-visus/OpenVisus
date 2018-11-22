@@ -114,7 +114,7 @@ script:
 
      cd "${TRAVIS_BUILD_DIR}" 
      chmod +x ./CMake/build*.sh 
-     . CMake/build.sh
+     ./CMake/build.sh
 
 before_deploy:
   - OLD_DIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
