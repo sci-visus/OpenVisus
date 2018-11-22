@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/bin/sh
 
 THIS_DIR=$(dirname $0)
 
-if [ ${DOCKER_IMAGE} != "" ]; then
+if [ -n "${DOCKER_IMAGE}" ]; then
 	$THIS_DIR/build_docker.sh
 	
 elif [ $(uname) = "Darwin" ]; then
@@ -16,6 +16,9 @@ elif [ -x "$(command -v zypper)" ]; then
 	
 elif [ -x "$(command -v yum)" ]; then
 	$THIS_DIR/build_centos.sh
+
+elif [ -x "$(command -v apk)" ]; then
+	$THIS_DIR/build_alpine.sh
 
 else
 	echo "Failed to detect OS version"

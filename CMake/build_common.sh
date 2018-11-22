@@ -28,7 +28,7 @@ function DownloadFile {
 # //////////////////////////////////////////////////////
 function PushCMakeOption {
 	if [ -n "$2" ] ; then
-		cmake_opts+=" -D$1=$2"
+		cmake_opts="${cmake_opts} -D$1=$2"
 	fi
 }
 
