@@ -77,7 +77,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.5,SDIST_FILENAME='OpenVisus-3.5-ubuntu_14.tar.gz']       
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,SDIST_FILENAME='OpenVisus-3.5-ubuntu_14.tar.gz']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -142,16 +142,6 @@ matrix:
         apt:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']                
-            
-    - os: linux
-      dist: trusty
-      if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,SDIST_FILENAME='OpenVisus-2.7-alpine_3.7.tar.gz',VISUS_INTERNAL_DEFAULT=1,DISABLE_OPENMP=1,VISUS_GUI=0,'DOCKER_IMAGE=alpine:3.7',DOCKER_SHELL=/bin/sh]       
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']              
-            
 
     # ///////////////////////////////// manylinux (i.e. centos)
     
