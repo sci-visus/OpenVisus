@@ -31,6 +31,12 @@ function PushCMakeOption {
 	fi
 }
 
+function PushDockerEnv {
+	if [ -n "$2" ] ; then
+		docker_env+=" -e $1=$2"
+	fi
+}
+
 # //////////////////////////////////////////////////////
 function PushCMakeOptions {
 

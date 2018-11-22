@@ -1,10 +1,5 @@
 #!/bin/sh
 
-# override
-export VISUS_GUI=0
-export DISABLE_OPENMP=1
-export PYTHON_VERSION=3.6
-
 source "$(dirname "$0")/build_common.sh"
 
 SOURCE_DIR=$(pwd)
@@ -26,12 +21,8 @@ pip3 install numpy
 cd $BUILD_DIR && mkdir -p ./build && cd ./build 
 
 PushCMakeOptions
-PushCMakeOption VISUS_INTERNAL_ZLIB      1
-PushCMakeOption VISUS_INTERNAL_LZ4       1
-PushCMakeOption VISUS_INTERNAL_TINYXML   1
-PushCMakeOption VISUS_INTERNAL_FREEIMAGE 1
-PushCMakeOption VISUS_INTERNAL_OPENSSL   0
-PushCMakeOption VISUS_INTERNAL_CURL      0
+PushCMakeOption VISUS_INTERNAL_OPENSSL 0
+PushCMakeOption VISUS_INTERNAL_CURL    0
 cmake ${cmake_opts} ${SOURCE_DIR} 
 
 cmake --build . --target all -- -j 4 

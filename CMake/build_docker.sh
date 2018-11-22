@@ -1,19 +1,13 @@
 #!/bin/bash
 
+# see build_common.sh for stuff you want to forward
+# NOTE: if you specify BUILD_DIR it must be inside $(pwd) otherwise when the container exit you will loose the build
+
 DOCKER_IMAGE=${DOCKER_IMAGE:-ubuntu:trusty}
 
 source "$(dirname "$0")/build_common.sh"
 
-# see build_common.sh for stuff you want to forward
-# NOTE: if you specify BUILD_DIR it must be inside $(pwd) otherwise when the container exit you will loose the build
 docker_env=""
-
-function PushDockerEnv {
-	if [ -n "$2" ] ; then
-		docker_env+=" -e $1=$2"
-	fi
-}
-
 PushDockerEnv PYTHON_VERSION          ${PYTHON_VERSION}
 PushDockerEnv VISUS_INTERNAL_DEFAULT  ${VISUS_INTERNAL_DEFAULT}
 PushDockerEnv DISABLE_OPENMP          ${DISABLE_OPENMP}
