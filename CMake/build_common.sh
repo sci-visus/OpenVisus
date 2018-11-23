@@ -7,6 +7,7 @@ VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0}
 DISABLE_OPENMP=${DISABLE_OPENMP:-0}
 VISUS_GUI=${VISUS_GUI:-1}
 CMAKE_BUILD_TYPE=RelWithDebInfo 
+APACHE_VERSION=${APACHE_VERSION:-}
 
 DEPLOY_GITHUB=${DEPLOY_GITHUB:-0}
 
@@ -45,6 +46,7 @@ function PushCMakeOptions {
 	PushCMakeOption DISABLE_OPENMP         ${DISABLE_OPENMP}
 	PushCMakeOption VISUS_GUI              ${VISUS_GUI}
 	PushCMakeOption CMAKE_BUILD_TYPE       ${CMAKE_BUILD_TYPE}
+	PushCMakeOption APACHE_VERSION         ${APACHE_VERSION}
 	
 	PushCMakeOption PYPI_USERNAME          ${PYPI_USERNAME}
 	PushCMakeOption PYPI_PASSWORD          ${PYPI_PASSWORD}
@@ -57,6 +59,26 @@ function PushCMakeOptions {
 	PushCMakeOption PYTHON_LIBRARY         ${PYTHON_LIBRARY}
 	
 	PushCMakeOption Qt5_DIR                ${Qt5_DIR}
+}
+
+# //////////////////////////////////////////////////////
+function PushDockerEnvs {
+
+	PushDockerEnv PYTHON_VERSION          ${PYTHON_VERSION}
+	PushDockerEnv VISUS_INTERNAL_DEFAULT  ${VISUS_INTERNAL_DEFAULT}
+	PushDockerEnv DISABLE_OPENMP          ${DISABLE_OPENMP}
+	PushDockerEnv VISUS_GUI               ${VISUS_GUI}
+	PushDockerEnv CMAKE_BUILD_TYPE        ${CMAKE_BUILD_TYPE}
+	PushDockerEnv APACHE_VERSION          ${APACHE_VERSION}
+	
+	PushDockerEnv DEPLOY_GITHUB           ${DEPLOY_GITHUB}
+	
+	PushDockerEnv DEPLOY_PYPI             ${DEPLOY_PYPI}
+	PushDockerEnv PYPI_USERNAME           ${PYPI_USERNAME}
+	PushDockerEnv PYPI_PASSWORD           ${PYPI_PASSWORD}
+	PushDockerEnv PYPI_PLAT_NAME          ${PYPI_PLAT_NAME}
+	
+	PushDockerEnv BUILD_DIR               ${BUILD_DIR}
 }
 
 

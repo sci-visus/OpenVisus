@@ -11,10 +11,6 @@ cd $BUILD_DIR
 yum update 
 yum install -y zlib-devel curl 
 
-if [[ "${APACHE_VERSION}" == "" ]]; then
-	APACHE_VERSION=2.2
-fi
-
 if [[ "${APACHE_VERSION}" == "2.2" ]]; then
 
 	# for centos5 this is 2.2
@@ -25,6 +21,7 @@ elif [[ "${APACHE_VERSION}" == "2.4" ]]; then
 	InstallApache24
 
 else
+
 	echo "Unsupported APACHE_VERSION ${APACHE_VERSION}"
 	exit 0
 	

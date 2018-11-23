@@ -9,17 +9,8 @@ DOCKER_SHELL=${DOCKER_SHELL:-/bin/bash}
 source "$(dirname "$0")/build_common.sh"
 
 docker_env=""
-PushDockerEnv PYTHON_VERSION          ${PYTHON_VERSION}
-PushDockerEnv VISUS_INTERNAL_DEFAULT  ${VISUS_INTERNAL_DEFAULT}
-PushDockerEnv DISABLE_OPENMP          ${DISABLE_OPENMP}
-PushDockerEnv VISUS_GUI               ${VISUS_GUI}
-PushDockerEnv CMAKE_BUILD_TYPE        ${CMAKE_BUILD_TYPE}
-PushDockerEnv DEPLOY_GITHUB           ${DEPLOY_GITHUB}
-PushDockerEnv DEPLOY_PYPI             ${DEPLOY_PYPI}
-PushDockerEnv PYPI_USERNAME           ${PYPI_USERNAME}
-PushDockerEnv PYPI_PASSWORD           ${PYPI_PASSWORD}
-PushDockerEnv PYPI_PLAT_NAME          ${PYPI_PLAT_NAME}
-PushDockerEnv BUILD_DIR               ${BUILD_DIR}
+
+PushDockerEnvs
 
 SOURCE_DIR=$(pwd)
 sudo docker run -d -ti --name mydocker -v ${SOURCE_DIR}:${SOURCE_DIR} ${docker_env} ${DOCKER_IMAGE} ${DOCKER_SHELL}
