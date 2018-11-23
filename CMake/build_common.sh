@@ -216,3 +216,39 @@ function DetectUbuntuVersion {
 	fi
 	echo "OS_VERSION ${OS_VERSION}"
 }
+
+
+
+# //////////////////////////////////////////////////////
+function InstallApache24 {
+
+	if [ ! -d ${BUILD_DIR}/httpd-2.4.37 ]; then
+
+		DownloadFile http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz
+		tar -xvzf apr-1.6.5.tar.gz
+		pushd apr-1.6.5
+		./configure && make && make install
+		popd
+		
+		DownloadFile http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz
+		tar -xvzf apr-util-1.6.1.tar.gz
+		pushd apr-util-1.6.1
+		./configure --with-apr=/usr/local/apr && make && make install
+		popd
+		
+		DownloadFile https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz
+		tar -xvzf pcre-8.42.tar.gz
+		pushd pcre-8.42
+		./configure --prefix=/usr/local/pcre && make && make install
+		popd
+		
+		DownloadFile http://it.apache.contactlab.it/httpd/httpd-2.4.37.tar.gz
+		tar -xvzf httpd-2.4.37.tar.gz
+		pushd httpd-2.4.37
+		./configure --with-apr=/usr/local/apr/ --with-pcre=/usr/local/pcre && make&& make install
+		popd
+
+	fi
+
+}
+

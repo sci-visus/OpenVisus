@@ -22,34 +22,13 @@ if [[ "${APACHE_VERSION}" == "2.2" ]]; then
 
 elif [[ "${APACHE_VERSION}" == "2.4" ]]; then
 
-	downloadFile http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz
-	tar -xvzf apr-1.6.5.tar.gz
-	pushd apr-1.6.5
-	./configure && make && make install
-	popd
-	
-	downloadFile http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz
-	tar -xvzf apr-util-1.6.1.tar.gz
-	pushd apr-util-1.6.1
-	./configure --with-apr=/usr/local/apr && make && make install
-	popd
-	
-	downloadFile https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz
-	tar -xvzf pcre-8.42.tar.gz
-	pushd pcre-8.42
-	./configure --prefix=/usr/local/pcre && make && make install
-	popd
-	
-	downloadFile http://it.apache.contactlab.it/httpd/httpd-2.4.37.tar.gz
-	tar -xvzf httpd-2.4.37.tar.gz
-	pushd httpd-2.4.37
-	./configure --with-apr=/usr/local/apr/ --with-pcre=/usr/local/pcre && make&& make install
-	popd
+	InstallApache24
 
 else
 	echo "Unsupported APACHE_VERSION ${APACHE_VERSION}"
 	exit 0
-endif
+	
+fi
 
 InstallOpenSSL 
 InstallPython 
