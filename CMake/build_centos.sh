@@ -30,16 +30,12 @@ cmake --build . --target test
 cmake --build . --target install 
 
 # deploy
-if (( 0 )); then
-	# WRONG copying very low-level libraries is wrong (i.e. crashes)! I need only distribute real dependencies
-	# cmake --build . --target deploy 
-	echo "nop"
-else
-	# NOTE: sometimes docker containers do not contain the python shared library (needed for executables) so I'm copying it too
-	cp ${OPENSSL_LIB_DIR}/libcrypto.so*      install/bin/
-	cp ${OPENSSL_LIB_DIR}/libssl.so*         install/bin/
-	cp $(pyenv prefix)/lib/libpython* install/bin/ 
-fi
+# NOTE: sometimes docker containers do not contain the python shared library (needed for executables) so I'm copying it too
+# see CMake/deploy.py for details
+cp ${OPENSSL_LIB_DIR}/libcrypto.so*      install/bin/
+cp ${OPENSSL_LIB_DIR}/libssl.so*         install/bin/
+cp $(pyenv prefix)/lib/libpython*        install/bin/  
+cmake --build . --target deploy 
 
 pushd install
 LD_LIBRARY_PATH=$(pwd)/bin:$(dirname ${PYTHON_LIBRARY}) PYTHONPATH=$(pwd) bin/visus                                  && echo "Embedding working"
