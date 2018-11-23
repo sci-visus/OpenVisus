@@ -11,16 +11,16 @@ cd $BUILD_DIR
 yum update 
 yum install -y zlib-devel curl 
 
-if [[ ${APACHE_VERSION} == "" ]]; then
+if [[ "${APACHE_VERSION}" == "" ]]; then
 	APACHE_VERSION=2.2
 fi
 
-if [[ ${APACHE_VERSION} == "2.2" ]]; then
+if [[ "${APACHE_VERSION}" == "2.2" ]]; then
 
 	# for centos5 this is 2.2
 	yum install -y httpd.x86_64 httpd-devel.x86_64
 
-elif [[ ${APACHE_VERSION} == "2.4" ]]; then
+elif [[ "${APACHE_VERSION}" == "2.4" ]]; then
 
 	downloadFile http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz
 	tar -xvzf apr-1.6.5.tar.gz
