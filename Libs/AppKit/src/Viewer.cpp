@@ -139,7 +139,7 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////////////////
 Viewer::Viewer(String title) : QMainWindow()
 {
-  RedirectLog=[this](const String& msg) {
+  Visus::RedirectLog=[this](const String& msg) {
     {
       ScopedLock lock(log.lock);
       log.messages.push_back(msg);
@@ -222,7 +222,7 @@ Viewer::~Viewer()
 {
   VisusInfo() << "destroying VisusViewer";
 
-  RedirectLog = nullptr;
+  Visus::RedirectLog = nullptr;
   
   setDataflow(nullptr);
 }

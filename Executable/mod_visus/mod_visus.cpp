@@ -164,12 +164,6 @@ public:
     SetCommandLine(argn, argv);
     IdxModule::attach();
 
-    RedirectLog = [](const String& msg)
-    {
-      LPCSTR szBuffer[1] = { msg.c_str() };
-      WriteEventViewerLog(szBuffer, 1);
-    };
-
     mod_visus = new ModVisus();
     mod_visus->configureDatasets();
   }
@@ -178,8 +172,6 @@ public:
   ~MyGlobalModule()
   {
     delete mod_visus;
-
-    RedirectLog = nullptr;
 
     // Test whether the handle for the Event Viewer is open.
     if (NULL != g_hEventLog)
@@ -607,10 +599,6 @@ public:
   {
     VisusInfo()<<"initialiseInCurrentProcess";
 
-    RedirectLog=[](const String& msg) {
-      ap_log_perror(APLOG_MARK, APLOG_NOTICE, 0, NULL, "%s", msg.c_str());
-    };
-
     static int narg=1;
     static const char *argv[]={"mod_visus"};
     SetCommandLine(narg,argv);
@@ -623,7 +611,6 @@ public:
   {
     VisusInfo() << "shutdownInCurrentProcess";
     IdxModule::detach();
-    RedirectLog=nullptr;
   }
 
 
