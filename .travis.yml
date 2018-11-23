@@ -147,7 +147,7 @@ matrix:
     
     - os: linux
       dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,SDIST_FILENAME='OpenVisus-3.6-manylinux.tar.gz',VISUS_INTERNAL_DEFAULT=1,DISABLE_OPENMP=1,VISUS_GUI=0,PYPI_PLAT_NAME=manylinux1_x86_64,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,SDIST_FILENAME='OpenVisus-3.6-manylinux.tar.gz',VISUS_INTERNAL_DEFAULT=1,DISABLE_OPENMP=1,VISUS_GUI=0,PYPI_PLAT_NAME=manylinux1_x86_64,APACHE_VERSION="2.4",DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -156,7 +156,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,SDIST_FILENAME='OpenVisus-3.5-manylinux.tar.gz',VISUS_INTERNAL_DEFAULT=1,DISABLE_OPENMP=1,VISUS_GUI=0,PYPI_PLAT_NAME=manylinux1_x86_64,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,SDIST_FILENAME='OpenVisus-3.5-manylinux.tar.gz',VISUS_INTERNAL_DEFAULT=1,DISABLE_OPENMP=1,VISUS_GUI=0,PYPI_PLAT_NAME=manylinux1_x86_64,APACHE_VERSION="2.4",DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -165,7 +165,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,SDIST_FILENAME='OpenVisus-2.7-manylinux.tar.gz',VISUS_INTERNAL_DEFAULT=1,DISABLE_OPENMP=1,VISUS_GUI=0,PYPI_PLAT_NAME=manylinux1_x86_64,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,SDIST_FILENAME='OpenVisus-2.7-manylinux.tar.gz',VISUS_INTERNAL_DEFAULT=1,DISABLE_OPENMP=1,VISUS_GUI=0,PYPI_PLAT_NAME=manylinux1_x86_64,APACHE_VERSION="2.4",DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
       addons: 
         apt:
           packages: ['g++-4.9']

@@ -10,7 +10,46 @@ cd $BUILD_DIR
 
 yum update 
 yum install -y zlib-devel curl 
-yum install -y httpd.x86_64 httpd-devel.x86_64
+
+if [[ ${APACHE_VERSION} == "" ]]; then
+	APACHE_VERSION=2.2
+fi
+
+if [[ ${APACHE_VERSION} == "2.2" ]]; then
+
+	# for centos5 this is 2.2
+	yum install -y httpd.x86_64 httpd-devel.x86_64
+
+elif [[ ${APACHE_VERSION} == "2.4" ]]; then
+
+	downloadFile http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz
+	tar -xvzf apr-1.6.5.tar.gz
+	pushd apr-1.6.5
+	./configure && make && make install
+	popd
+	
+	downloadFile http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz
+	tar -xvzf apr-util-1.6.1.tar.gz
+	pushd apr-util-1.6.1
+	./configure --with-apr=/usr/local/apr && make && make install
+	popd
+	
+	downloadFile https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz
+	tar -xvzf pcre-8.42.tar.gz
+	pushd pcre-8.42
+	./configure --prefix=/usr/local/pcre && make && make install
+	popd
+	
+	downloadFile http://it.apache.contactlab.it/httpd/httpd-2.4.37.tar.gz
+	tar -xvzf httpd-2.4.37.tar.gz
+	pushd httpd-2.4.37
+	./configure --with-apr=/usr/local/apr/ --with-pcre=/usr/local/pcre && make&& make install
+	popd
+
+else
+	echo "Unsupported APACHE_VERSION ${APACHE_VERSION}"
+	exit 0
+endif
 
 InstallOpenSSL 
 InstallPython 

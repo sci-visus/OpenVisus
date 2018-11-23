@@ -85,8 +85,8 @@ LogFormattedMessage::~LogFormattedMessage()
 
   PrintMessageToTerminal(msg);
 
-  if (Visus::RedirectLog)
-    Visus::RedirectLog(msg);
+  if (RedirectLog)
+    RedirectLog(msg);
 }
 
 
