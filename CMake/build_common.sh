@@ -7,7 +7,6 @@ VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0}
 DISABLE_OPENMP=${DISABLE_OPENMP:-0}
 VISUS_GUI=${VISUS_GUI:-1}
 CMAKE_BUILD_TYPE=RelWithDebInfo 
-APACHE_VERSION=${APACHE_VERSION:-}
 
 DEPLOY_GITHUB=${DEPLOY_GITHUB:-0}
 
@@ -46,7 +45,6 @@ function PushCMakeOptions {
 	PushCMakeOption DISABLE_OPENMP         ${DISABLE_OPENMP}
 	PushCMakeOption VISUS_GUI              ${VISUS_GUI}
 	PushCMakeOption CMAKE_BUILD_TYPE       ${CMAKE_BUILD_TYPE}
-	PushCMakeOption APACHE_VERSION         ${APACHE_VERSION}
 	
 	PushCMakeOption PYPI_USERNAME          ${PYPI_USERNAME}
 	PushCMakeOption PYPI_PASSWORD          ${PYPI_PASSWORD}
@@ -69,7 +67,6 @@ function PushDockerEnvs {
 	PushDockerEnv DISABLE_OPENMP          ${DISABLE_OPENMP}
 	PushDockerEnv VISUS_GUI               ${VISUS_GUI}
 	PushDockerEnv CMAKE_BUILD_TYPE        ${CMAKE_BUILD_TYPE}
-	PushDockerEnv APACHE_VERSION          ${APACHE_VERSION}
 	
 	PushDockerEnv DEPLOY_GITHUB           ${DEPLOY_GITHUB}
 	
@@ -244,33 +241,29 @@ function DetectUbuntuVersion {
 # //////////////////////////////////////////////////////
 function InstallApache24 {
 
-	if [ ! -d ${BUILD_DIR}/httpd-2.4.37 ]; then
-
-		DownloadFile http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz
-		tar -xvzf apr-1.6.5.tar.gz
-		pushd apr-1.6.5
-		./configure && make && make install
-		popd
-		
-		DownloadFile http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz
-		tar -xvzf apr-util-1.6.1.tar.gz
-		pushd apr-util-1.6.1
-		./configure --with-apr=/usr/local/apr && make && make install
-		popd
-		
-		DownloadFile https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz
-		tar -xvzf pcre-8.42.tar.gz
-		pushd pcre-8.42
-		./configure --prefix=/usr/local/pcre && make && make install
-		popd
-		
-		DownloadFile http://it.apache.contactlab.it/httpd/httpd-2.4.37.tar.gz
-		tar -xvzf httpd-2.4.37.tar.gz
-		pushd httpd-2.4.37
-		./configure --with-apr=/usr/local/apr/ --with-pcre=/usr/local/pcre && make&& make install
-		popd
-
-	fi
+	DownloadFile http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz
+	tar -xvzf apr-1.6.5.tar.gz
+	pushd apr-1.6.5
+	./configure && make && make install
+	popd
+	
+	DownloadFile http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz
+	tar -xvzf apr-util-1.6.1.tar.gz
+	pushd apr-util-1.6.1
+	./configure --with-apr=/usr/local/apr && make && make install
+	popd
+	
+	DownloadFile https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz
+	tar -xvzf pcre-8.42.tar.gz
+	pushd pcre-8.42
+	./configure --prefix=/usr/local/pcre && make && make install
+	popd
+	
+	DownloadFile http://it.apache.contactlab.it/httpd/httpd-2.4.37.tar.gz
+	tar -xvzf httpd-2.4.37.tar.gz
+	pushd httpd-2.4.37
+	./configure --with-apr=/usr/local/apr/ --with-pcre=/usr/local/pcre && make && make install
+	popd
 
 }
 

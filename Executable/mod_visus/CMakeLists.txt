@@ -9,8 +9,8 @@ if (WIN32)
 
 else()
 
-  find_package(APR                      QUIET)
-  find_package(Apache ${APACHE_VERSION} QUIET)
+  find_package(APR    QUIET)
+  find_package(Apache QUIET)
   
   if (APR_FOUND AND APACHE_FOUND)
 
@@ -20,8 +20,8 @@ else()
 		set_target_properties(mod_visus PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Executable/)
 		
 		target_include_directories(mod_visus PRIVATE  ${APR_INCLUDE_DIR})
-		target_include_directories(mod_visus PRIVATE  ${HTTPD_INCLUDE_DIR})
 		target_include_directories(mod_visus PRIVATE  ${APRUTIL_INCLUDE_DIR})
+		target_include_directories(mod_visus PRIVATE  ${HTTPD_INCLUDE_DIR})
 		
 		target_link_libraries(mod_visus PRIVATE ${APR_LIBRARY})
 		target_link_libraries(mod_visus PRIVATE ${APRUTIL_LIBRARY} )		
