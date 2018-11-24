@@ -1,5 +1,10 @@
 #!/bin/sh
 
+# override
+VISUS_INTERNAL_DEFAULT=1
+DISABLE_OPENMP=1
+VISUS_GUI=0
+
 source "$(dirname "$0")/build_common.sh"
 
 SOURCE_DIR=$(pwd)

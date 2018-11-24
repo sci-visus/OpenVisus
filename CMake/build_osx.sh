@@ -6,6 +6,18 @@ SOURCE_DIR=$(pwd)
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
+# //////////////////////////////////////////////////////
+function InstallBrew {
+
+	if ! [ -x "$(command -v brew)" ]; then
+		/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+	fi
+	
+	# output is very long!
+	brew update 1>/dev/null 2>&1 || true
+}
+
+
 InstallBrew            
 InstallPython
 
