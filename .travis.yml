@@ -34,19 +34,19 @@ matrix:
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: [OS_NAME="osx_10.13",PYTHON_VERSION=3.6.5,COMPILER=clang++]   
+      env: [OS_NAME="macosx_10_13_x86_64",PYTHON_VERSION=3.6.5,COMPILER=clang++]   
       
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/  
-      env: [OS_NAME="osx_10.13",PYTHON_VERSION=3.5.1,COMPILER=clang++]                          
+      env: [OS_NAME="macosx_10_13_x86_64",PYTHON_VERSION=3.5.1,COMPILER=clang++]                          
           
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/  
-      env: [OS_NAME="osx_10.13",PYTHON_VERSION=2.7.15,COMPILER=clang++] 
+      env: [OS_NAME="macosx_10_13_x86_64",PYTHON_VERSION=2.7.15,COMPILER=clang++] 
       
     # ///////////////////////////////// osx 10.12
       
@@ -54,19 +54,19 @@ matrix:
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="osx_10.12",PYTHON_VERSION=3.6.1,COMPILER=clang++]        
+      env: [OS_NAME="macosx_10_12_x86_64",PYTHON_VERSION=3.6.1,COMPILER=clang++]        
          
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="osx_10.12",PYTHON_VERSION=3.5.1,COMPILER=clang++]              
+      env: [OS_NAME="macosx_10_12_x86_64",PYTHON_VERSION=3.5.1,COMPILER=clang++]              
             
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="osx_10.12",PYTHON_VERSION=2.7.14,COMPILER=clang++]   
+      env: [OS_NAME="macosx_10_12_x86_64",PYTHON_VERSION=2.7.14,COMPILER=clang++]   
 
     # ///////////////////////////////// trusty (Ubuntu 14.04)
        
@@ -96,22 +96,21 @@ matrix:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']       
 
-
     # ///////////////////////////////// opensuse
-       
+
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="opensuse_42.3",COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,'DOCKER_IMAGE=opensuse:leap']
+      env: [OS_NAME="opensuse_42_3",COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,'DOCKER_IMAGE=opensuse:leap']
       addons: 
         apt:
           packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']          
+          sources: ['ubuntu-toolchain-r-test']    
           
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="opensuse_42.3",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,'DOCKER_IMAGE=opensuse:leap']
+      env: [OS_NAME="opensuse_42_3",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,'DOCKER_IMAGE=opensuse:leap']
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -132,7 +131,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="alpine_3.7",COMPILER=g++-4.9,PYTHON_VERSION=3.6,'DOCKER_IMAGE=alpine:3.7',DOCKER_SHELL=/bin/sh]       
+      env: [OS_NAME="alpine_37",COMPILER=g++-4.9,PYTHON_VERSION=3.6,'DOCKER_IMAGE=alpine:3.7',DOCKER_SHELL=/bin/sh]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -141,7 +140,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="alpine_3.7",COMPILER=g++-4.9,PYTHON_VERSION=3.5,'DOCKER_IMAGE=alpine:3.7',DOCKER_SHELL=/bin/sh]       
+      env: [OS_NAME="alpine_37",COMPILER=g++-4.9,PYTHON_VERSION=3.5,'DOCKER_IMAGE=alpine:3.7',DOCKER_SHELL=/bin/sh]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -151,7 +150,7 @@ matrix:
     
     - os: linux
       dist: trusty
-      env: [OS_NAME="manylinux",COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -160,7 +159,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="manylinux",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -169,7 +168,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="manylinux",COMPILER=g++-4.9,PYTHON_VERSION=2.7,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=2.7,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -185,7 +184,7 @@ script:
      
      export DEPLOY_PYPI=0
      if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_pypi]"* ]]; then
-        if [[ $(uname) == "Darwin" || $SDIST_FILENAME == *manylinux* ]]; then
+        if [[ $(uname) == "Darwin" || "${OS_NAME}" == "manylinux1_x86_64" ]]; then
            echo "Doing deploy to pypi..."
            export DEPLOY_PYPI=1
         fi     
@@ -196,7 +195,7 @@ script:
      ./CMake/build.sh
 
 before_deploy:
-  - export SDIST_FILENAME=OpenVisus-${PYTHON_VERSION:0:3}-${OS_NAME}.tar.gz
+  - export SDIST_FILENAME=OpenVisus-cp${PYTHON_VERSION:0:3}-none-${OS_NAME}.tar.gz
   - export OLD_DIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
   - mv ${OLD_DIST_FILENAME} ${SDIST_FILENAME}
 
