@@ -28,6 +28,34 @@ conditions: v1
 matrix:
   fast_finish: true
   include:
+  
+    # ///////////////////////////////// manylinux (i.e. centos)
+    
+    - os: linux
+      dist: trusty
+      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']     
+          
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']               
+
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=2.7,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']   
 
     # ///////////////////////////////// osx 10.13
     
@@ -145,34 +173,6 @@ matrix:
         apt:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']                
-
-    # ///////////////////////////////// manylinux (i.e. centos)
-    
-    - os: linux
-      dist: trusty
-      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']     
-          
-    - os: linux
-      dist: trusty
-      if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']               
-
-    - os: linux
-      dist: trusty
-      if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=2.7,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test'] 
 
 script:
    - |

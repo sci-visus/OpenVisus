@@ -72,9 +72,9 @@ function InstallSwig {
 # //////////////////////////////////////////////////////
 function InstallApache24 {
 
-	APACHE_INCLUDE_DIR=${CACHED_DIR}/include
+	APACHE_DIR=${CACHED_DIR}
 
-	if [ ! -f ${APACHE_INCLUDE_DIR}/httpd.h ]; then
+	if [ ! -f ${APACHE_INCLUDE_DIR}/include/httpd.h ]; then
 	
       echo "Compiling apache 2.4"	
 	
@@ -118,7 +118,7 @@ InstallSwig
 InstallApache24
 
 PushCMakeOption OPENSSL_ROOT_DIR   ${OPENSSL_ROOT_DIR}
-PushCMakeOption APACHE_INCLUDE_DIR ${APACHE_INCLUDE_DIR}
+PushCMakeOption APACHE_DIR         ${APACHE_DIR}
 PushCMakeOptions
 
 cmake ${cmake_opts} ${SOURCE_DIR} 
