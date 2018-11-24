@@ -177,8 +177,6 @@ matrix:
 
 script:
    - |
-     export SDIST_FILENAME='OpenVisus-${PYTHON_VERSION:0:3}-${OS_NAME}.tar.gz'
-     
      export DEPLOY_GITHUB=0
      if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_github]"* ]]; then
         echo "Doing deploy to github..."
@@ -198,8 +196,9 @@ script:
      ./CMake/build.sh
 
 before_deploy:
-  - OLD_DIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
-  - mv $OLD_DIST_FILENAME ${SDIST_FILENAME}
+  - export SDIST_FILENAME=OpenVisus-${PYTHON_VERSION:0:3}-${OS_NAME}.tar.gz
+  - export OLD_DIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
+  - mv ${OLD_DIST_FILENAME} ${SDIST_FILENAME}
 
 deploy:
   provider: releases
