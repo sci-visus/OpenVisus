@@ -13,7 +13,8 @@
 
 FIND_PATH(APR_INCLUDE_DIR apr.h
 	${APR_DIR}/include
-	${APR_DIR}/apr-1/include
+	${APR_DIR}/include/apr-1
+	${APR_DIR}/include/apr-1.0
 	/usr/local/apr/include/apr-1
 	/usr/local/apache2/include
 	/usr/local/include/apr-1
@@ -22,9 +23,14 @@ FIND_PATH(APR_INCLUDE_DIR apr.h
 	/usr/include/apr-1.0
 )
 
+
+MESSAGE(STATUS "APR_DIR         ${APR_DIR}")
+MESSAGE(STATUS "APR_INCLUDE_DIR ${APR_INCLUDE_DIR}")
+
 FIND_PATH(HTTPD_INCLUDE_DIR httpd.h
 	${APR_DIR}/include
-	${APR_DIR}/apr-1/include
+	${APR_DIR}/include/apr-1
+	${APR_DIR}/include/apr-1.0
 	/usr/local/apache2/include
 	/usr/local/include/apr-1
 	/usr/local/include/apr-1.0
@@ -34,9 +40,16 @@ FIND_PATH(HTTPD_INCLUDE_DIR httpd.h
 	/usr/include/httpd/
 )
 
+MESSAGE(STATUS "HTTPD_INCLUDE_DIR ${HTTPD_INCLUDE_DIR}")
+
 SET(APR_NAMES ${APR_NAMES} apr-1)
 
-FIND_LIBRARY(APR_LIBRARY NAMES ${APR_NAMES} PATHS ${APR_DIR}/lib /usr/local/apr/lib /usr/lib /usr/local/lib /usr/local/apache2/lib )
+FIND_LIBRARY(APR_LIBRARY NAMES ${APR_NAMES} PATHS 
+	${APR_DIR}/lib 
+	/usr/local/apr/lib 
+	/usr/lib 
+	/usr/local/lib 
+	/usr/local/apache2/lib)
 
 IF (APR_LIBRARY AND APR_INCLUDE_DIR AND HTTPD_INCLUDE_DIR)
 	SET(APR_LIBRARIES ${APR_LIBRARY})
@@ -63,7 +76,8 @@ MARK_AS_ADVANCED(APR_LIBRARY APR_INCLUDE_DIR)
 # Next, APRUTIL.
 FIND_PATH(APRUTIL_INCLUDE_DIR apu.h
 	${APR_DIR}/include
-	${APR_DIR}/apr-1/include
+	${APR_DIR}/include/apr-1
+	${APR_DIR}/include/apr-1.0
 	/usr/local/apr/include/apr-1
 	/usr/local/apache2/include
 	/usr/local/include/apr-1
@@ -75,7 +89,12 @@ FIND_PATH(APRUTIL_INCLUDE_DIR apu.h
 )
 
 SET(APRUTIL_NAMES ${APRUTIL_NAMES} aprutil-1)
-FIND_LIBRARY(APRUTIL_LIBRARY NAMES ${APRUTIL_NAMES} PATHS ${APR_DIR}/lib /usr/local/apr/lib /usr/lib /usr/local/lib /usr/local/apache2/lib )
+FIND_LIBRARY(APRUTIL_LIBRARY NAMES ${APRUTIL_NAMES} PATHS 
+	${APR_DIR}/lib 
+	/usr/local/apr/lib 
+	/usr/lib 
+	/usr/local/lib 
+	/usr/local/apache2/lib)
 
 IF (APRUTIL_LIBRARY AND APRUTIL_INCLUDE_DIR)
 	 SET(APRUTIL_LIBRARIES ${APRUTIL_LIBRARY})

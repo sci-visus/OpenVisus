@@ -13,6 +13,8 @@ else()
   find_package(Apache)
   
   if (APR_FOUND AND APACHE_FOUND)
+  		
+  		message(STATUS "Enabling mod_visus")
 
 		AddLibrary(mod_visus mod_visus.cpp)
 		target_link_libraries(mod_visus PUBLIC VisusIdx)
