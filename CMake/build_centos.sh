@@ -75,7 +75,7 @@ function InstallApache24 {
 	APACHE_DIR=${CACHED_DIR}
 	APR_DIR=${CACHED_DIR}
 
-	if [ ! -f ${APACHE_INCLUDE_DIR}/include/httpd.h ]; then
+	if [ ! -f ${APACHE_DIR}/include/httpd.h ]; then
 	
       echo "Compiling apache 2.4"	
 	
