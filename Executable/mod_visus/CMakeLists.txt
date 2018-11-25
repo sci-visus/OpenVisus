@@ -9,8 +9,8 @@ if (WIN32)
 
 else()
 
-  find_package(APR    QUIET)
-  find_package(Apache QUIET)
+  find_package(APR)
+  find_package(Apache)
   
   if (APR_FOUND AND APACHE_FOUND)
 

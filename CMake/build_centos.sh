@@ -73,6 +73,7 @@ function InstallSwig {
 function InstallApache24 {
 
 	APACHE_DIR=${CACHED_DIR}
+	APR_DIR=${CACHED_DIR}
 
 	if [ ! -f ${APACHE_INCLUDE_DIR}/include/httpd.h ]; then
 	
@@ -119,6 +120,7 @@ InstallApache24
 
 PushCMakeOption OPENSSL_ROOT_DIR   ${OPENSSL_ROOT_DIR}
 PushCMakeOption APACHE_DIR         ${APACHE_DIR}
+PushCMakeOption APR_DIR            ${APR_DIR}
 PushCMakeOptions
 
 cmake ${cmake_opts} ${SOURCE_DIR} 
