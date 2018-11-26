@@ -185,7 +185,7 @@ void InitPython()
 	  //IMPORTANT: if you want to avoid the usual sys.path initialization
 	  //you can copy the python shared library (example: python36.dll) and create a file with the same name and _pth extension
 	  //(example python36_d._pth). in that you specify the directories to include. you can also for example a python36.zip file
-	  //or maybe you can set PYTHON_HOME
+	  //or maybe you can set PYTHONHOME
 	
 	  //skips initialization registration of signal handlers
 	  Py_InitializeEx(0);

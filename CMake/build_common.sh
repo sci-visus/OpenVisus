@@ -79,7 +79,7 @@ function InstallPython {
 	pyenv global ${PYTHON_VERSION}  
 	pyenv rehash
 	python -m pip install --upgrade pip  
-	python -m pip install numpy setuptools wheel twine auditwheel 
+	python -m pip install --upgrade numpy setuptools wheel twine auditwheel 
 
 	if [ "${PYTHON_VERSION:0:1}" -gt "2" ]; then
 		PYTHON_M_VERSION=${PYTHON_VERSION:0:3}m 
