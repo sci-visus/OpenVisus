@@ -36,19 +36,12 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Exception.h>
-#include <Visus/Utils.h>
-#include <Visus/Log.h>
+#include <Visus/LogicBox.h>
 
 namespace Visus {
 
-void __ThrowException__(Exception ex){
-  VisusInfo()<<"Throwing exception file("<<ex.getFile()<<") line("<<ex.getLine()<<") expr("<<ex.getExpression()<<")";
-  throw ex;
-}  
+
 
 
 } //namespace Visus
-
-
 

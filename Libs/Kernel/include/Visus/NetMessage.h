@@ -43,7 +43,6 @@ For support : support@visus.net
 #include <Visus/Array.h>
 #include <Visus/Url.h>
 #include <Visus/StringMap.h>
-#include <Visus/Exception.h>
 #include <Visus/Time.h>
 
 namespace Visus {

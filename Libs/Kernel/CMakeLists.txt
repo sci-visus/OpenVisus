@@ -2,14 +2,6 @@
 FindGitRevision()
 add_definitions(-DGIT_REVISION=\"${GIT_REVISION}\")
 
-if (DEFINED VISUS_HOME)
- 	add_definitions(-DVISUS_HOME="${VISUS_HOME}")
-endif()
-
-if (DEFINED VISUS_PYTHON_SYS_PATH)
- 	add_definitions(-DVISUS_PYTHON_SYS_PATH="${VISUS_PYTHON_SYS_PATH}")
-endif()
-
 if (NOT (WIN32 OR APPLE))
 
   include(CheckIncludeFiles)
@@ -42,7 +34,6 @@ set(CoreSources
 	./include/Visus/CriticalSection.h
 	./include/Visus/Diff.h
 	./include/Visus/DirectoryIterator.h
-	./include/Visus/Exception.h
 	./include/Visus/File.h
 	./include/Visus/HeapMemory.h
 	./include/Visus/ScopedVector.h
@@ -68,7 +59,6 @@ set(CoreSources
 	./src/CriticalSection.cpp
 	./src/Diff.cpp
 	./src/DirectoryIterator.cpp
-	./src/Exception.cpp
 	./src/File.cpp
 	./src/HeapMemory.cpp
 	./src/Log.cpp
@@ -192,7 +182,6 @@ else()
 	file(GLOB Sources include/Visus/*.h src/*.cpp)
 endif()
 
-
 AddLibrary(VisusKernel ${Sources})
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/dtl/include)
@@ -240,42 +229,6 @@ else()
 	target_include_directories(VisusKernel PRIVATE ${CURL_INCLUDE_DIR})
 	target_link_libraries(VisusKernel      PUBLIC ${CURL_LIBRARIES})
 endif()
-
-if (TARGET python)
-  target_link_libraries(VisusKernel PUBLIC python)
-else()
-
-	target_include_directories(VisusKernel PUBLIC  ${PYTHON_INCLUDE_DIRS})
-
-	if (WIN32)
-	
-		# differentiate between release and debug libraries
-		list(FIND PYTHON_LIBRARY optimized __index__)
-		if (NOT ${__index__} EQUAL -1)
-			math(EXPR __next_index__ "${__index__}+1")
-			list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
-			target_link_libraries(VisusKernel PUBLIC debug     ${PYTHON_DEBUG_LIBRARY})
-			target_link_libraries(VisusKernel PUBLIC optimized ${PYTHON_RELEASE_LIBRARY})
-		else()
-			target_link_libraries(VisusKernel PUBLIC ${PYTHON_LIBRARY})
-		endif()
-			
-	else()
-		
-		# for apple and linux I'm linking python only for Executables (of final shared dll such as  mod_visus) 
-		# otherwise I'm going to have multiple libpython in the same process
-		# with the error message: PyThreadState_Get: no current thread		
-		
-		if (APPLE)
-			set_target_properties(VisusKernel PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
-		endif()				
-		
-		target_link_libraries(VisusKernel INTERFACE ${PYTHON_LIBRARY})
-		
-	endif()	
-	
-endif()
-
 
 if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)

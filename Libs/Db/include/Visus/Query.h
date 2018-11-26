@@ -51,58 +51,29 @@ class Dataset;
 
 
 ////////////////////////////////////////////////////////
-class VISUS_DB_API KdQueryMode
-{
-public:
-
-  enum
-  {
-    NotSpecified  = 0x00,
-    UseBlockQuery = 0x01,
-    UseQuery      = 0x02
-  };
-
-  //fromString
-  static int fromString(String value)
-  {
-    value = StringUtils::trim(StringUtils::toLower(value));
-
-    if (value == "block")
-      return KdQueryMode::UseBlockQuery;
-
-    if (value == "box")
-      return KdQueryMode::UseQuery;
-
-    if (cbool(value))
-      return KdQueryMode::UseBlockQuery;
-
-    return KdQueryMode::NotSpecified;
-  }
-
-  //toString
-  static String toString(int value)
-  {
-    VisusAssert(value >= 0 && value < 3);
-    switch (value)
-    {
-    case 0: return "";
-    case 1: return "block";
-    case 2: return "box";
-    default: return "";
-    }
-  }
-
-private:
-
-  KdQueryMode() = delete;
-};
-
-////////////////////////////////////////////////////////
-class VISUS_DB_API Query : public BaseQuery
+class VISUS_DB_API Query : public Object
 {
 public:
 
   VISUS_NON_COPYABLE_CLASS(Query)
+
+  //see mergeQueries
+  enum MergeMode
+  {
+    InsertSamples,
+    InterpolateSamples
+  };
+
+
+  Aborted    aborted;
+
+  Field      field;
+  double     time = 0;
+
+  Array      buffer;
+
+  NdPoint    nsamples;
+  LogicBox   logic_box;
 
   //-1 guess progression
   //0 means that you want to see only the final resolution
@@ -194,6 +165,12 @@ public:
   virtual ~Query() {
   }
 
+  //getByteSize
+  Int64 getByteSize() const {
+    return field.dtype.getByteSize(nsamples);
+  }
+
+
   //isPointQuery
   bool isPointQuery() const {
     return point_coordinates ? true : false;
@@ -278,9 +255,24 @@ public:
     this->cur_resolution=end_resolutions[query_cursor];
   }
 
+  //allocateBufferIfNeeded
+  bool allocateBufferIfNeeded();
+
+public:
+
+  //mergeSamples
+  static bool mergeSamples(LogicBox wbox, Array& wbuffer, LogicBox rbox, Array rbuffer, int merge_mode, Aborted aborted);
+
+  //mergeSamples
+  static bool mergeSamples(Query& write, Query& read, int merge_mode, Aborted aborted) {
+    return mergeSamples(write.logic_box, write.buffer, read.logic_box, read.buffer, merge_mode, aborted);
+  }
+
 private:
 
   String errormsg="";
+
+  QueryStatus status = QueryCreated;
 
 };
 

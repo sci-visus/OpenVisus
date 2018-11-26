@@ -38,12 +38,34 @@ For support : support@visus.net
 
 #include <Visus/Path.h>
 
+#if WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace Visus {
 
 Path KnownPaths::VisusHome;
-Path KnownPaths::CurrentApplicationFile ;
-Path KnownPaths::CurrentWorkingDirectory;
+Path KnownPaths::CurrentApplicationFile;
+
+///////////////////////////////////////////////////////////////////////
+Path KnownPaths::CurrentWorkingDirectory()
+{
+  char buff[2048];
+
+#if WIN32
+  {
+    GetCurrentDirectory(sizeof(buff), buff);
+    std::replace(buff, buff+sizeof(buff), '\\', '/');
+    return Path(buff,false);
+  }
+#else
+  {
+    return Path(getcwd(buff, sizeof(buff)),false);
+  }
+#endif
+}
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -77,12 +99,14 @@ const String Path::normalizePath(String path)
   if (path.empty())
     return "";
 
+  auto cwd = KnownPaths::CurrentWorkingDirectory().path;
+
   //replace alias
   if (StringUtils::find(path,"$(")>=0)
   {
     path=StringUtils::replaceAll(path,"$(VisusHome)"              ,KnownPaths::VisusHome.path);
     path=StringUtils::replaceAll(path,"$(CurrentApplicationFile)" ,KnownPaths::CurrentApplicationFile .path);
-    path=StringUtils::replaceAll(path,"$(CurrentWorkingDirectory)",KnownPaths::CurrentWorkingDirectory.path);
+    path=StringUtils::replaceAll(path,"$(CurrentWorkingDirectory)", cwd);
   }
 
   //don't want window separators
@@ -91,7 +115,7 @@ const String Path::normalizePath(String path)
   // example [./something ]  -> CurrentWorkingDirectory/./something
   //         [../something]  -> CurrentWorkingDirectory/../something
   if (StringUtils::startsWith(path,"./") || StringUtils::startsWith(path,"../"))
-    path=KnownPaths::CurrentWorkingDirectory.path + "/" + path;
+    path= cwd + "/" + path;
 
   // example [~/something] -> VisusHome/something
   if (StringUtils::startsWith(path,"~"))
@@ -111,7 +135,7 @@ const String Path::normalizePath(String path)
 
   //NEED TO START WITH A ROOT DIR (example [/] or [c:])
   if (!(((path.size()>=1 && path[0]=='/') || (path.size()>=2 && isalpha(path[0]) && path[1]==':'))))
-    path=KnownPaths::CurrentWorkingDirectory.path + "/" + path;
+    path= cwd + "/" + path;
 
   VisusAssert(isGoodNormalizedPath(path));
   return path;

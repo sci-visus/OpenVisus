@@ -92,13 +92,9 @@ public:
     try {
       output = scriptingProcessInput(code, *input, aborted);
     }
-    catch (Exception ex)
+    catch (std::exception ex)
     {
-      String error_msg=StringUtils::format()<<"ERROR:\n"
-        << "FILE "<<ex.getFile()<<"\n"
-        << "LINE "<<ex.getLine() << "\n"
-        << ex.getExpression() << "\n";
-      printMessage(error_msg);
+      printMessage(ex.what());
       return;
     }
 

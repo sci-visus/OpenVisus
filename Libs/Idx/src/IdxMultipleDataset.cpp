@@ -920,11 +920,12 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
   child.M = T;
   child.name = StringUtils::trim(istream.readInline("name", istream.readInline("id"))); VisusAssert(!child.name.empty());
   child.color = Color::parseFromString(istream.readInline("color"));
+
   child.mosaic_filename_template = istream.readInline("filename_template");
 
   //override name if exist
   if (this->childs.find(child.name) != this->childs.end())
-    child.name = "_generated_name_"+cstring((int)this->childs.size());
+    child.name = StringUtils::format() << "child_" << std::setw(4) << std::setfill('0') << cstring((int)this->childs.size());
 
   url= removeAliases(url);
 
@@ -1275,7 +1276,7 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> 
       {
         OUTPUT = QueryInputTerm(this, QUERY.get(), multiple_access, QUERY->aborted).computeOutput(QUERY->field.name);
       }
-      catch (Exception ex)
+      catch (std::exception ex)
       {
         error_msg = ex.what();
       }

@@ -258,7 +258,7 @@ void IdxFile::validate(Url url)
     if (!bRowMajor && Encoders::getSingleton()->getEncoder(field.default_compression)->isLossy())
     {
       VisusWarning()<<"The field "<<field.name<<" has a lossy default_compression with a non row-major layout, something is wrong";
-      field.default_compression= "lz4";
+      field.default_compression = "lz4";
     }
   }
 
@@ -355,17 +355,16 @@ std::vector<Field> IdxFile::parseFields(String fields_content)
     {
       auto& compression = field.default_compression;
 
-      compression =parseRoundBracketArgument(sfield,"default_compression");
-
       if (compression.empty())
-      {
-        //compressed(algorithm)
+        compression = parseRoundBracketArgument(sfield, "default_compression");
+
+      //compressed(algorithm)
+      if (compression.empty())
         compression =parseRoundBracketArgument(sfield,"compressed");
 
-        //compressed means lz4 (note: for old format this information won't be used since all the blocks are already written)
-        if (compression.empty() && StringUtils::contains(sfield,"compressed"))
-          compression = "lz4";
-      }
+      //backward compatibility: compressed means zip
+      if (compression.empty() && StringUtils::contains(sfield, "compressed")) 
+        compression = "zip";
     }
 
     //default_layout
@@ -620,9 +619,9 @@ String IdxFile::toString() const
       if (!field.default_compression.empty())
       {
         if (version<6)
-          out<<"compressed"<<" "; //old format, compressed means zip
+          out<<"compressed"<<" "; //old format, compressed means zip, consider that v12345 only supports zip
         else
-          out<<"default_compression("<<field.default_compression<<")"<<" ";
+          out<<"default_compression("<<field.default_compression <<")"<<" ";
       }
 
       //format(...)

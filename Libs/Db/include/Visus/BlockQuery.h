@@ -40,18 +40,38 @@ For support : support@visus.net
 #define __VISUS_BLOCK_QUERY_H
 
 #include <Visus/Db.h>
-#include <Visus/BaseQuery.h>
+#include <Visus/LogicBox.h>
 #include <Visus/Async.h>
 
 namespace Visus {
 
 
+//////////////////////////////////////////////////////////////////////////
+enum QueryStatus
+{
+  QueryCreated = 0,
+  QueryRunning,
+  QueryFailed,
+  QueryOk
+};
+
+
 ///////////////////////////////////////////////////////////////////////////////////////
-class VISUS_DB_API BlockQuery : public BaseQuery
+class VISUS_DB_API BlockQuery : public Object
 {
 public:
 
   VISUS_NON_COPYABLE_CLASS(BlockQuery)
+
+  Aborted    aborted;
+
+  Field      field;
+  double     time = 0;
+
+  Array      buffer;
+
+  NdPoint    nsamples;
+  LogicBox   logic_box;
 
   Future<Void> done;
 
@@ -60,13 +80,20 @@ public:
 
   //constructor
   BlockQuery(Field field_,double time_,BigInt start_address_,BigInt end_address_,Aborted aborted_) 
-    : BaseQuery(field_,time_,aborted_),start_address(start_address_),end_address(end_address_) {
+    : field(field_), time(time_), aborted(aborted_),start_address(start_address_),end_address(end_address_) {
     done = Promise<Void>().get_future();
   }
 
   //destructor
   virtual ~BlockQuery() {
   }
+
+
+  //getByteSize
+  Int64 getByteSize() const {
+    return field.dtype.getByteSize(nsamples);
+  }
+
 
   //getBlockNumber
   BigInt getBlockNumber(int bitsperblock) const {
@@ -104,6 +131,13 @@ public:
     this->status = QueryFailed;
     this->done.get_promise()->set_value(Void());
   }
+
+  //allocateBufferIfNeeded
+  bool allocateBufferIfNeeded();
+
+private:
+
+  QueryStatus status = QueryCreated;
 
 };
 

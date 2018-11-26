@@ -672,7 +672,7 @@ bool IdxDataset::compress(String compression)
   //save the new idx file
   {
     for (auto& field : idxfile.fields)
-      field.default_compression=compression;
+      field.default_compression =compression;
 
     String filename=this->getUrl().getPath();
     if (!idxfile.save(filename)){
@@ -1207,7 +1207,7 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<Query> query)
   ret.url.params=url.params;  //I may have some extra params I want to keep!
   ret.url.setParam("dataset"    ,url.getParam("dataset"));
   ret.url.setParam("time"       ,url.getParam("time",cstring(query->time)));
-  ret.url.setParam("compression",url.getParam("compression",query->field.default_compression));
+  ret.url.setParam("compression",url.getParam("compression","zip")); //for networking I prefer to use zip
   ret.url.setParam("field"      ,query->field.name);
   ret.url.setParam("fromh"      ,cstring(query->start_resolution));
   ret.url.setParam("toh"        ,cstring(query->getEndResolution()));

@@ -2060,6 +2060,16 @@ public:
 //////////////////////////////////////////////////////////////////////////////
 int main(int argn, const char* argv[])
 {
+  //python main
+  if (argn >= 2 && (String(argv[1]) == "--python" || String(argv[1]) == "-python"))
+  {
+    std::vector<String> args;
+    for (int I = 0; I < argn; I++)
+      if (I != 1) args.push_back(argv[I]);
+
+    return PythonEngine::main(args);
+  }
+
   Time T1 = Time::now();
 
   SetCommandLine(argn, argv);
@@ -2094,7 +2104,7 @@ int main(int argn, const char* argv[])
     {
       data = convert.exec(data, args);
     }
-    catch (Exception& ex)
+    catch (std::exception& ex)
     {
       VisusInfo() << "ERROR: " << ex.what();
       IdxModule::detach();

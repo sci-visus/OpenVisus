@@ -234,8 +234,19 @@ void VisusAssertFailed(const char* file,int line,const char* expr)
   if (ApplicationInfo::debug)
     Utils::breakInDebugger();
   else
-    __ThrowException__(Exception(file,line,expr));
+    ThrowExceptionEx(file,line,expr);
 }
+
+
+//////////////////////////////////////////////////////
+void ThrowExceptionEx(String file, int line, String expr)
+{
+  std::ostringstream out;
+  out << "Visus throwing exception file(" << file << ") line(" << line << ") expr(" << expr << ")...";
+  String msg = out.str();
+  throw std::runtime_error(msg);
+}
+
 
 ///////////////////////////////////////////////////////////
 static void InitNetwork()
@@ -271,11 +282,11 @@ static void InitKnownPaths()
   //VisusHome
   {
     // Allow override of VisusHome
-    #ifdef VISUS_HOME
+    if (auto VISUS_HOME = getenv("VISUS_HOME"))
     {
       KnownPaths::VisusHome = Path(String(VISUS_HOME));
     }
-    #else
+    else
     {
       #if WIN32
       {
@@ -284,7 +295,7 @@ static void InitKnownPaths()
       }
       #else
       {
-	if (auto homedir = getenv("HOME"))
+				if (auto homedir = getenv("HOME"))
           KnownPaths::VisusHome = Path(homedir).getChild("visus");
 
         else if (auto pw = getpwuid(getuid()))
@@ -292,7 +303,6 @@ static void InitKnownPaths()
       }
       #endif
     }
-    #endif  
   }
 
   FileUtils::createDirectory(KnownPaths::VisusHome);
@@ -319,20 +329,6 @@ static void InitKnownPaths()
     }
     #endif
   }
-
-  //CurrentWorkingDirectory
-  {     
-    #if WIN32
-    {
-      GetCurrentDirectory(buff_size, buff);
-      KnownPaths::CurrentWorkingDirectory = Path(buff);
-    }
-    #else
-    {
-      KnownPaths::CurrentWorkingDirectory = Path(getcwd(buff, buff_size));
-    }
-    #endif
-  }
 }
   
 ///////////////////////////////////////////////////////////
@@ -354,7 +350,7 @@ static bool TryVisusConfig(String value)
 static void InitVisusConfig()
 {
   TryVisusConfig(VisusConfig::filename) ||
-  TryVisusConfig(KnownPaths::CurrentWorkingDirectory.getChild("visus.config")) ||
+  TryVisusConfig(KnownPaths::CurrentWorkingDirectory().getChild("visus.config")) ||
   TryVisusConfig(KnownPaths::VisusHome.getChild("visus.config"));
 }
 
@@ -388,7 +384,7 @@ void KernelModule::attach()
   VisusInfo() << "git_revision            " << ApplicationInfo::git_revision;
   VisusInfo() << "VisusHome               " << KnownPaths::VisusHome.toString();
   VisusInfo() << "CurrentApplicationFile  " << KnownPaths::CurrentApplicationFile.toString();
-  VisusInfo() << "CurrentWorkingDirectory " << KnownPaths::CurrentWorkingDirectory.toString();
+  VisusInfo() << "CurrentWorkingDirectory " << KnownPaths::CurrentWorkingDirectory().toString();
 
   ObjectFactory::allocSingleton();
   ArrayPlugins::allocSingleton();

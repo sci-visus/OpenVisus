@@ -144,14 +144,11 @@ class VISUS_KERNEL_API KnownPaths
 {
 public:
 
-  // The visus user's folder
   static Path VisusHome;
-
-  // Returns this application's location
-  static Path CurrentApplicationFile;  
+  static Path CurrentApplicationFile;
 
   //working directory
-  static Path CurrentWorkingDirectory;  
+  static Path CurrentWorkingDirectory();  
 
 private:
 

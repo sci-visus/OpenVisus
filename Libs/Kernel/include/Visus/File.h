@@ -45,67 +45,65 @@ For support : support@visus.net
 
 namespace Visus {
 
-  ////////////////////////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API AbstractFile
-{
-public:
-
-  VISUS_NON_COPYABLE_CLASS(AbstractFile)
-
-  //constructor
-  AbstractFile(){
-  }
-
-  //destructor
-  virtual ~AbstractFile() {
-  }
-
-  //isOpen
-  virtual bool isOpen() const = 0;
-
-  //open
-  virtual bool open(String filename, String mode, bool bMustCreate = false) = 0;
-
-  //close
-  virtual void close() = 0;
-
-  //size
-  virtual Int64 size() = 0;
-
-  //canRead
-  virtual bool canRead() const = 0;
-
-  //canWrite
-  virtual bool canWrite() const = 0;
-
-  //getFilename
-  virtual String getFilename() const = 0;
-
-  //write  
-  virtual bool write(Int64 pos, Int64 count, const unsigned char* buffer) = 0;
-
-  //read (should be portable to 32 and 64 bit OS)
-  virtual bool read(Int64 pos, Int64 count, unsigned char* buffer) = 0;
-
-  //createAndOpen (return false if already exists)
-  bool createAndOpen(String filename, String mode) {
-    return open(filename, mode, true);
-  }
-
-  //getMode
-  String getMode() const {
-    auto can_read  = canRead();
-    auto can_write = canWrite();
-    return can_read && can_write ? "rw" : (can_read ? "r" : (can_write ? "w" : ""));
-  }
-
-};
-
 
 /////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API File : public AbstractFile
+class VISUS_KERNEL_API File
 {
 public:
+
+  enum Options
+  {
+    NoOptions=0,
+    MustCreateFile=0x01,
+    PreferMemoryMapping=0x02,
+    PreferWin32Api=0x04
+  };
+
+  //__________________________________________________________________
+#if !SWIG
+  class VISUS_KERNEL_API Pimpl
+  {
+  public:
+
+    VISUS_NON_COPYABLE_CLASS(Pimpl)
+
+    //constructor
+    Pimpl() {
+    }
+
+    //destructor
+    virtual ~Pimpl() {
+    }
+
+    //isOpen
+    virtual bool isOpen() const = 0;
+
+    //open
+    virtual bool open(String filename, String mode, Options options) = 0;
+
+    //close
+    virtual void close() = 0;
+
+    //size
+    virtual Int64 size() = 0;
+
+    //canRead
+    virtual bool canRead() const = 0;
+
+    //canWrite
+    virtual bool canWrite() const = 0;
+
+    //getFilename
+    virtual String getFilename() const = 0;
+
+    //write  
+    virtual bool write(Int64 pos, Int64 count, const unsigned char* buffer) = 0;
+
+    //read (should be portable to 32 and 64 bit OS)
+    virtual bool read(Int64 pos, Int64 count, unsigned char* buffer) = 0;
+
+  };
+#endif
 
   //constructor
   File() {
@@ -113,139 +111,76 @@ public:
 
   //destructor
   virtual ~File() {
-    close();
   }
 
   //isOpen
-  virtual bool isOpen() const override {
-    return this->handle != -1;
-  }
-
-  //canRead
-  virtual bool canRead() const override {
-    return can_read;
-  }
-
-  //canWrite
-  virtual bool canWrite() const override {
-    return can_write;
-  }
-
-  //getFilename
-  virtual String getFilename() const override {
-    return this->filename;
+  bool isOpen() const  {
+    return pimpl ? true : false;
   }
 
   //open
-  virtual bool open(String filename, String mode, bool bMustCreate = false) override;
+  bool open(String filename, String mode) {
+    return open(filename, mode, NoOptions);
+  }
+
+  //createAndOpen (return false if already exists)
+  bool createAndOpen(String filename, String mode) {
+    return open(filename, mode, MustCreateFile);
+  }
 
   //close
-  virtual void close() override;
+  void close()  {
+    pimpl.reset();
+  }
 
   //size
-  virtual Int64 size() override;
-
-  //write 
-  virtual bool write(Int64 pos, Int64 tot, const unsigned char* buffer) override;
-
-  //read (should be portable to 32 and 64 bit OS)
-  virtual bool read(Int64 pos, Int64 tot, unsigned char* buffer) override;
-
-private:
-
-  String filename;
-  bool   can_read = false;
-  bool   can_write = false;
-
-  int    handle = -1;
-  Int64  cursor = -1;
-
-  //seek
-  bool seek(Int64 value);
-
-};
-
-
-////////////////////////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API MemoryMappedFile : public AbstractFile
-{
-public:
-
-  //constructor
-  MemoryMappedFile() {
-  }
-
-  //destryctor
-  virtual ~MemoryMappedFile() {
-    close();
-  }
-
-  //isOpen
-  virtual bool isOpen() const override {
-    return mem != nullptr;
+  Int64 size()  {
+    return pimpl ? pimpl->size() : -1;
   }
 
   //canRead
-  virtual bool canRead() const override {
-    return can_read;
+  bool canRead() const  {
+    return pimpl ? pimpl->canRead() : false;
   }
 
   //canWrite
-  virtual bool canWrite() const override {
-    return can_write;
+  bool canWrite() const  {
+    return pimpl ? pimpl->canWrite() : false;
   }
+
+  //getMode
+  String getMode() const {
+    auto can_read = canRead();
+    auto can_write = canWrite();
+    return can_read && can_write ? "rw" : (can_read ? "r" : (can_write ? "w" : ""));
+  }
+
 
   //getFilename
-  virtual String getFilename() const override {
-    return this->filename;
-  }
-
-  //open
-  virtual bool open(String path, String mode, bool bMustCreate = false) override;
-
-  //close
-  virtual void close() override;
-
-  //size
-  virtual Int64 size() override {
-    return nbytes;
+  String getFilename() const  {
+    return pimpl ? pimpl->getFilename() : String("");
   }
 
   //write  
-  virtual bool write(Int64 pos, Int64 tot, const unsigned char* buffer) override;
-
-  //read
-  virtual bool read(Int64 pos, Int64 tot, unsigned char* buffer) override;
-
-  //data
-  const char* data() const {
-    VisusAssert(isOpen());
-    return mem;
+  bool write(Int64 pos, Int64 count, const unsigned char* buffer)  {
+    return pimpl ? pimpl->write(pos, count, buffer) : false;
   }
 
-  //c_ptr
-  char* c_ptr() const {
-    VisusAssert(isOpen() && !can_write);
-    return mem;
+  //read (should be portable to 32 and 64 bit OS)
+  bool read(Int64 pos, Int64 count, unsigned char* buffer)  {
+    return pimpl ? pimpl->read(pos, count, buffer) : false;
   }
 
 private:
 
-#if defined(_WIN32)
-  void*       file = nullptr;
-  void*       mapping = nullptr;
-#else
-  int         fd = -1;
-#endif
+  UniquePtr<Pimpl> pimpl;
 
-  bool        can_read = false;
-  bool        can_write = false;
-  String      filename;
-  Int64       nbytes = 0;
-  char*       mem = nullptr;
-
+  //open
+  bool open(String filename, String mode, Options options);
 
 };
+
+
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////

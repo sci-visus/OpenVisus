@@ -46,9 +46,6 @@ import os
 
 from OpenVisus import *
   
-from VisusKernelPy   import *
-from VisusDataflowPy import *  
-  
 # ////////////////////////////////////////////////////////////////////////
 class PyProducer(Node):
 	

@@ -46,8 +46,10 @@ For support : support@visus.net
 
 namespace Visus {
 
+#if !SWIG
 class IdxBoxQueryHzAddressConversion;
 class IdxPointQueryHzAddressConversion;
+#endif
 
   //////////////////////////////////////////////////////////////////////
 class VISUS_IDX_API IdxDataset  : public Dataset 

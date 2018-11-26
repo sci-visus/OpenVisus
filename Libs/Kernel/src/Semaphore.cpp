@@ -37,8 +37,6 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/Semaphore.h>
-#include <Visus/Exception.h>
-
 
 #if WIN32
 #include <Windows.h>

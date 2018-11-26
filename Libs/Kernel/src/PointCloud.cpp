@@ -37,6 +37,7 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/PointCloud.h>
+#include <Visus/StringUtils.h>
 
 #include <set>
 

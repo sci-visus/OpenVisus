@@ -62,6 +62,9 @@ public:
   //createUnmanaged
   static SharedPtr<HeapMemory> createUnmanaged(Uint8* p, Int64 n);
 
+  //createManaged
+  static SharedPtr<HeapMemory> createManaged(Uint8* p, Int64 n);
+
   //clone
   SharedPtr<HeapMemory> clone() const;
 

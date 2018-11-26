@@ -419,10 +419,7 @@ public:
     this->file_header   = (FileHeader* )(this->headers.c_ptr());
     this->block_headers = (BlockHeader*)(this->headers.c_ptr() + sizeof(FileHeader));
 
-    if (bool bUsePosix=true)
-      this->file = std::make_shared<File>();
-    else
-      this->file = std::make_shared<MemoryMappedFile>();
+    this->file = std::make_shared<File>();
   }
 
   //destructor
@@ -745,7 +742,7 @@ private:
   HeapMemory      headers;
   FileHeader*     file_header=nullptr;
   BlockHeader*    block_headers = nullptr;
-  SharedPtr<AbstractFile> file;
+  SharedPtr<File> file;
   String          mode;
 
   //re-entrant file lock
@@ -931,6 +928,9 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
   this->bDisableWriteLocks = 
     config.readBool("disable_write_locks") == true ||
     std::find(ApplicationInfo::args.begin(), ApplicationInfo::args.end(), "--disable-write-locks") != ApplicationInfo::args.end();
+
+  if (auto env = getenv("VISUS_DISABLE_WRITE_LOCK"))
+    this->bDisableWriteLocks = cbool(String(env));
 
   //if (this->bDisableWriteLocks)
   //  VisusInfo() << "IdxDiskAccess::IdxDiskAccess disabling write locsk. be careful";

@@ -1,25 +1,22 @@
-
-#
-SetupSwig()
-
-set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/..")
-set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
-set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include")
-set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include")
-set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include")
-set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/../Gui/include")
-set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/../Nodes/include")
-set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/../GuiNodes/include")
-set(SWIG_FLAGS "${SWIG_FLAGS};-I${CMAKE_CURRENT_SOURCE_DIR}/../AppKit/include")
-
-AddSwigLibrary(VisusKernel      ${CMAKE_CURRENT_SOURCE_DIR}/VisusKernelPy.i)
-AddSwigLibrary(VisusDataflow    ${CMAKE_CURRENT_SOURCE_DIR}/VisusDataflowPy.i)
-AddSwigLibrary(VisusDb          ${CMAKE_CURRENT_SOURCE_DIR}/VisusDbPy.i)
-AddSwigLibrary(VisusIdx         ${CMAKE_CURRENT_SOURCE_DIR}/VisusIdxPy.i)
-AddSwigLibrary(VisusNodes       ${CMAKE_CURRENT_SOURCE_DIR}/VisusNodesPy.i)
+AddSwigLibrary(NonGuiOpenVisus ${CMAKE_CURRENT_SOURCE_DIR}/NonGuiOpenVisus.i 
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include"
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Nodes/include")
+target_link_libraries(${SWIG_MODULE_NonGuiOpenVisus_REAL_NAME} PUBLIC VisusIdx VisusNodes VisusDataflow VisusDb VisusKernel)
 
 if (VISUS_GUI)
-  AddSwigLibrary(VisusAppKit    ${CMAKE_CURRENT_SOURCE_DIR}/VisusAppKitPy.i)
-  AddSwigLibrary(VisusGui       ${CMAKE_CURRENT_SOURCE_DIR}/VisusGuiPy.i)
-  AddSwigLibrary(VisusGuiNodes  ${CMAKE_CURRENT_SOURCE_DIR}/VisusGuiNodesPy.i)
+	AddSwigLibrary(GuiOpenVisus ${CMAKE_CURRENT_SOURCE_DIR}/GuiOpenVisus.i 
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include"
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Nodes/include"
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Gui/include"
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../GuiNodes/include"
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../AppKit/include")
+	target_link_libraries(${SWIG_MODULE_GuiOpenVisus_REAL_NAME} PUBLIC VisusAppKit VisusGuiNodes VisusGui VisusIdx VisusNodes VisusDataflow VisusDb VisusKernel)
 endif()
+
+
