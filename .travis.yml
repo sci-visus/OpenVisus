@@ -205,9 +205,9 @@ script:
         sudo docker exec mydocker ${DOCKER_SHELL} -c "cd ${TRAVIS_BUILD_DIR} && ./CMake/build.sh"
         sudo chown -R "$USER":"$USER" ${TRAVIS_BUILD_DIR}/build
         sudo chmod -R u+rwx           ${TRAVIS_BUILD_DIR}/build  
-   else
-      ./CMake/build.sh
-   fi
+     else
+        ./CMake/build.sh
+     fi
 
 before_deploy:
   - export SDIST_FILENAME=OpenVisus-cp${PYTHON_VERSION:0:3}-none-${OS_NAME}.tar.gz
