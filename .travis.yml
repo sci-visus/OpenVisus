@@ -18,7 +18,6 @@ notifications:
     
 env:
   global:
-    - BUILD_DIR=${TRAVIS_BUILD_DIR}/build
     - CMAKE_BUILD_TYPE=RelWithDebInfo 
     - PYPI_USERNAME=scrgiorgio
     - secure: EAZwSiQCFdTjcKDmHLFpWgX7WnGKwTtptkTvXYLcMPSUMxGymTCOTI1h8jjhxGig3k4Jni1X1gx9c8+LkcMd/yjbzDiOnIjCAVRc1hmCijAgu9j3G1ZMll4E38T7Iq6jE3/DZyb7pfK3X4NQopF/5uySIGeoH25CHwcNyr36k8Ba+qYtanPwTG1D+EVIago8qqL5yG5rslAf7Y69+zVbNa/JAUhow4fw0RAwVp+kgMC7Fj7iSMuN4NmS176VZEjD593zbiBgW+veEN0Z2MLD4vG7nq+w5u5JJYuz+Q4EiB5CCek5hhj17fJMWuAA23RZAlq4X/2oS5bKg/etHK5iVeM8ODKBX2bBHOxQoqwOaOVf0sEs5ranwVLR/77FrhFEECKAmkfFHwGGViWTvdE+F/7XqjLQK9Zm2f+T+rMHxrm1RknbXz271TNahqCHnMsmpaz98WbBHjdp2aQfU+nV/l6XLJnAf0R58ISiVdnDOy3BgQsiWIyxjZc6gRSwLg6EzAS2XlgQOmXhDo8lYoaepuK4OWvdIf+bqw0Y3b0uvrpHlAEpIG0tzzZw6ldq3CdvKD+46Vz+ZtEQBi0GBPy1Env1RHILzlkUwn6LSjVnKYY/TZxIi4ha73yo2BwJ1Q6hpdjVFgHJkEY3a72UCnOBIVnaalGv9lu/EjaixrnU6Nc=  
@@ -33,7 +32,7 @@ matrix:
     
     - os: linux
       dist: trusty
-      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64,DOCKER_SHELL=/bin/bash]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -42,7 +41,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64,DOCKER_SHELL=/bin/bash]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -51,7 +50,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=2.7,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=2.7,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64,DOCKER_SHELL=/bin/bash]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -129,7 +128,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="opensuse_42_3",COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,'DOCKER_IMAGE=opensuse:leap']
+      env: [OS_NAME="opensuse_42_3",COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,'DOCKER_IMAGE=opensuse:leap',DOCKER_SHELL=/bin/bash]
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -138,7 +137,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="opensuse_42_3",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,'DOCKER_IMAGE=opensuse:leap']
+      env: [OS_NAME="opensuse_42_3",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,'DOCKER_IMAGE=opensuse:leap',DOCKER_SHELL=/bin/bash]
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -147,7 +146,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="opensuse_42.3",COMPILER=g++-4.9,PYTHON_VERSION=2.7,'DOCKER_IMAGE=opensuse:leap']
+      env: [OS_NAME="opensuse_42.3",COMPILER=g++-4.9,PYTHON_VERSION=2.7,'DOCKER_IMAGE=opensuse:leap',DOCKER_SHELL=/bin/bash]
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -189,10 +188,26 @@ script:
            export DEPLOY_PYPI=1
         fi     
      fi
-
+     
      cd "${TRAVIS_BUILD_DIR}" 
-     chmod +x ./CMake/build*.sh 
-     ./CMake/build.sh
+     chmod +x ./CMake/build*.sh      
+     
+     if [ -n "${DOCKER_IMAGE}" ]; then
+        docker_env=""
+        docker_env+=" -e PYTHON_VERSION=${PYTHON_VERSION}"
+        docker_env+=" -e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+        docker_env+=" -e DEPLOY_GITHUB=${DEPLOY_GITHUB}"
+        docker_env+=" -e DEPLOY_PYPI=${DEPLOY_PYPI}"
+        docker_env+=" -e PYPI_USERNAME=${PYPI_USERNAME}"
+        docker_env+=" -e PYPI_PASSWORD=${PYPI_PASSWORD}"
+        docker_env+=" -e PYPI_PLAT_NAME=${PYPI_PLAT_NAME}"
+        sudo docker run -d -ti --name mydocker -v ${TRAVIS_BUILD_DIR}:${TRAVIS_BUILD_DIR} ${docker_env} ${DOCKER_IMAGE} ${DOCKER_SHELL}
+        sudo docker exec mydocker ${DOCKER_SHELL} -c "cd ${TRAVIS_BUILD_DIR} && ./CMake/build.sh"
+        sudo chown -R "$USER":"$USER" ${TRAVIS_BUILD_DIR}/build
+        sudo chmod -R u+rwx           ${TRAVIS_BUILD_DIR}/build  
+   else
+      ./CMake/build.sh
+   fi
 
 before_deploy:
   - export SDIST_FILENAME=OpenVisus-cp${PYTHON_VERSION:0:3}-none-${OS_NAME}.tar.gz

@@ -1,11 +1,8 @@
 #!/bin/sh
 
 THIS_DIR=$(dirname $0)
-
-if [ -n "${DOCKER_IMAGE}" ]; then
-	$THIS_DIR/build_docker.sh
 	
-elif [ $(uname) = "Darwin" ]; then
+if [ $(uname) = "Darwin" ]; then
 	$THIS_DIR/build_osx.sh
 
 elif [ -x "$(command -v apt-get)" ]; then

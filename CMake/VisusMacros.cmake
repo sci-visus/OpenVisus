@@ -225,6 +225,8 @@ macro(FindPythonLibrary)
 	message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
 
 	find_package(NumPy REQUIRED)
+	message(STATUS "NUMPY_FOUND   ${NUMPY_FOUND})
+	message(STATUS "NUMPY_VERSION ${NUMPY_VERSION})
 
 endmacro()
 
