@@ -453,7 +453,7 @@ class LinuxDeployStep:
 		# need to run two times
 		for I in range(2):
 			# WRONG: for manylinux i should not copy the low-level dynamic libraries				
-			# see CMake/build_centos.sh
+			# see CMake/build_manylinux.sh
 			# self.copyGlobalDeps()
 			self.setOrigins()
 		

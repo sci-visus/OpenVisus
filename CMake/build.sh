@@ -12,7 +12,7 @@ elif [ -x "$(command -v zypper)" ]; then
 	$THIS_DIR/build_opensuse.sh
 	
 elif [ -x "$(command -v yum)" ]; then
-	$THIS_DIR/build_centos.sh
+	$THIS_DIR/build_manylinux.sh
 
 elif [ -x "$(command -v apk)" ]; then
 	$THIS_DIR/build_alpine.sh
