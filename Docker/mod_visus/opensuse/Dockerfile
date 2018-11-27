@@ -2,29 +2,27 @@ FROM opensuse:42.3
 
 RUN zypper --non-interactive update
 RUN zypper --non-interactive install python3 python3-pip apache2 
-RUN pip3 install --upgrade pip
-RUN pip3 install numpy OpenVisus
+RUN python3 -m pip install --upgrade pip 
+RUN python3 -m pip install numpy
 
-RUN mkdir -p /home/OpenVisus 
-RUN ln -s $(python3 -c "import os,OpenVisus; os.path.dirname(OpenVisus.__file__)) /home/OpenVisus
+RUN python3 --version
+
+RUN python3 -m pip install --no-cache OpenVisus==1.2.119
+ENV VISUS_HOME=/home/OpenVisus
+RUN ln -s $(python3 -c "import os, OpenVisus; print(os.path.dirname(OpenVisus.__file__))") ${VISUS_HOME}
 
 # configure apache 
 ADD 000-default.conf /etc/apache2/conf.d/000-default.conf
-RUN echo "LoadModule OpenVisus_module /home/OpenVisus/bin/libmod_visus.so" >> /etc/apache2/loadmodule.conf
-RUN a2enmod OpenVisus 
+RUN echo "LoadModule visus_module ${VISUS_HOME}/bin/libmod_visus.so" >> /etc/apache2/loadmodule.conf
+RUN a2enmod visus 
+
 ADD httpd-foreground.sh  /usr/local/bin/httpd-foreground.sh
 RUN chmod a+x /usr/local/bin/httpd-foreground.sh 
 
-# fix LD_LIBRARY_PATH problem
-RUN echo "/home/OpenVisus/bin" >> /etc/ld.so.conf 
-RUN ldconfig
-
 # setup visus.config to redirect to your visus.config
-RUN echo "<include url='/mnt/visus_datasets/visus.config' />" > /home/OpenVisus/visus.config
-RUN chown -R wwwrun  /home/OpenVisus
-RUN chmod -R a+rX    /home/OpenVisus
+RUN echo "<include url='/mnt/visus_datasets/visus.config' />" > ${VISUS_HOME}/visus.config
+RUN chmod -R 755 ${VISUS_HOME}
 
-# run apache
 EXPOSE 80
 CMD ["/usr/local/bin/httpd-foreground.sh"]
 

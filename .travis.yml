@@ -50,6 +50,15 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.4.1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64,DOCKER_SHELL=/bin/bash]       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']       
+
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
       env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=2.7,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64,DOCKER_SHELL=/bin/bash]       
       addons: 
         apt:

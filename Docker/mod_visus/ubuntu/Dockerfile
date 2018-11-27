@@ -6,8 +6,7 @@ RUN apt-get install -y python3 python3-pip
 RUN python3 -m pip install --upgrade pip 
 RUN python3 -m pip install numpy
 
-# configure OpenVisus
-RUN pip3 install OpenVisus==1.2.119
+RUN python3 -m pip install OpenVisus
 ENV VISUS_HOME=/home/OpenVisus
 RUN ln -s $(python3 -c "import os, OpenVisus; print(os.path.dirname(OpenVisus.__file__))") ${VISUS_HOME}
 
