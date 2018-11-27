@@ -5,9 +5,7 @@ RUN zypper --non-interactive install python3 python3-pip apache2
 RUN python3 -m pip install --upgrade pip 
 RUN python3 -m pip install numpy
 
-RUN python3 --version
-
-RUN python3 -m pip install --no-cache OpenVisus==1.2.119
+RUN python3 -m pip install OpenVisus
 ENV VISUS_HOME=/home/OpenVisus
 RUN ln -s $(python3 -c "import os, OpenVisus; print(os.path.dirname(OpenVisus.__file__))") ${VISUS_HOME}
 
