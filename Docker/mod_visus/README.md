@@ -1,6 +1,5 @@
 # mod_visus container
 
-
 Compile docker. For windows:
 
 ```
@@ -23,7 +22,7 @@ docker run -it -v ${VISUS_DATASETS}:/mnt/visus_datasets --expose=80 -p 8080:80 $
 To test docker container, in another terminal:
 
 ```
-curl -v "http://0.0.0.0:8080/mod_visus?action=list"
+curl  "http://0.0.0.0:8080/mod_visus?action=list"
 ```
 
 Deploy to the repository:
