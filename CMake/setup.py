@@ -4,7 +4,7 @@ import platform
 import glob
 
 #increase this number for PIP
-VERSION="1.2.121"
+VERSION="1.2.122"
 
 	
 # ////////////////////////////////////////////////////////////////////

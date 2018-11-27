@@ -47,6 +47,22 @@ For support : support@visus.net
 
 #include <pydebug.h>
 
+#if PY_MAJOR_VERSION <3
+  #define char2wchar(arg) ((char*)arg)
+#else
+
+  static wchar_t* char2wchar(const char* value) 
+  {
+  #if PY_MINOR_VERSION<=4
+    return _Py_char2wchar((char*)value, NULL);
+  #else
+    return Py_DecodeLocale((char*)value, NULL);
+  #endif
+  }
+
+#endif
+
+
 namespace Visus {
 
 PyThreadState* PythonEngine::mainThreadState=nullptr;
@@ -114,21 +130,6 @@ static bool runningInsidePyMain()
   const auto& args = ApplicationInfo::args;
   return args.empty() || args[0].empty() || args[0] == "__main__";
 }
-
-
-#if PY_MAJOR_VERSION <3
-  #define char2wchar(arg) ((char*)arg)
-#else
-
-  static wchar_t* char2wchar(const char* value) {
-  #if PY_MINOR_VERSION<=4
-    return _Py_char2wchar((char*)value, NULL);
-  #else
-    return Py_DecodeLocale((char*)value, NULL);
-  #endif
-}
-#endif
-
 
 
 ///////////////////////////////////////////////////////////////////////////
@@ -379,7 +380,7 @@ int PythonEngine::main(std::vector<String> args)
 {
 #if PY_MAJOR_VERSION>=3
   typedef wchar_t* ArgType;
-  #define PyNewArg(arg) Py_DecodeLocale(arg.c_str(),nullptr)
+  #define PyNewArg(arg)  char2wchar(arg.c_str())
   #define PyFreeArg(arg) PyMem_RawFree(arg)
 #else
   typedef char* ArgType;
