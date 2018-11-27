@@ -426,7 +426,7 @@ private:
       bool is_public=StringUtils::contains(src.readString("permissions"),"public"); 
       if (!is_public)
       {
-        //VisusWarning()<<"Dataset name("<<name<<") is not public, skipping it";
+        VisusWarning()<<"Dataset name("<<name<<") is not public, skipping it";
         return 0;
       }
 

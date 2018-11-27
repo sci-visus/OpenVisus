@@ -201,8 +201,8 @@ script:
         docker_env+=" -e PYPI_USERNAME=${PYPI_USERNAME}"
         docker_env+=" -e PYPI_PASSWORD=${PYPI_PASSWORD}"
         docker_env+=" -e PYPI_PLAT_NAME=${PYPI_PLAT_NAME}"
-        sudo docker run -d -ti --name mydocker -v ${TRAVIS_BUILD_DIR}:${TRAVIS_BUILD_DIR} ${docker_env} ${DOCKER_IMAGE} ${DOCKER_SHELL}
-        sudo docker exec mydocker ${DOCKER_SHELL} -c "cd ${TRAVIS_BUILD_DIR} && ./CMake/build.sh"
+        sudo docker run -d -ti --name mydocker -v ${TRAVIS_BUILD_DIR}:/home/OpenVisus ${docker_env} ${DOCKER_IMAGE} ${DOCKER_SHELL}
+        sudo docker exec mydocker ${DOCKER_SHELL} -c "cd /home/OpenVisus && ./CMake/build.sh"
         sudo chown -R "$USER":"$USER" ${TRAVIS_BUILD_DIR}/build
         sudo chmod -R u+rwx           ${TRAVIS_BUILD_DIR}/build  
      else
