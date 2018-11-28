@@ -376,6 +376,9 @@ class LinuxDeployStep:
 	
 		LD_DEBUG=libs ldd install/bin/visusviewer
 
+		# this shows the rpath
+		readelf -d libVisusDataflow.so
+
 	"""
 	
 	# constructor
@@ -438,9 +441,7 @@ class LinuxDeployStep:
 
 	# showDeps
 	def showDeps(self):
-	  
 		for key,target in self.findAllDeps().items():
-			
 			# print only the 'outside' target
 			if target.startswith(os.getcwd()) or os.path.isfile("bin/" + key):
 				continue
@@ -451,7 +452,9 @@ class LinuxDeployStep:
 	def fixAllDeps(self):
 		# need to run two times
 		for I in range(2):
-			self.copyGlobalDeps()
+			# WRONG: for manylinux i should not copy the low-level dynamic libraries				
+			# see CMake/build_manylinux.sh
+			# self.copyGlobalDeps()
 			self.setOrigins()
 		
 

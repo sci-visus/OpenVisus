@@ -47,6 +47,22 @@ For support : support@visus.net
 
 #include <pydebug.h>
 
+#if PY_MAJOR_VERSION <3
+  #define char2wchar(arg) ((char*)arg)
+#else
+
+  static wchar_t* char2wchar(const char* value) 
+  {
+  #if PY_MINOR_VERSION<=4
+    return _Py_char2wchar((char*)value, NULL);
+  #else
+    return Py_DecodeLocale((char*)value, NULL);
+  #endif
+  }
+
+#endif
+
+
 namespace Visus {
 
 PyThreadState* PythonEngine::mainThreadState=nullptr;
@@ -116,21 +132,6 @@ static bool runningInsidePyMain()
 }
 
 
-#if PY_MAJOR_VERSION <3
-  #define char2wchar(arg) ((char*)arg)
-#else
-
-  static wchar_t* char2wchar(const char* value) {
-  #if PY_MINOR_VERSION<=4
-    return _Py_char2wchar((char*)value, NULL);
-  #else
-    return Py_DecodeLocale((char*)value, NULL);
-  #endif
-}
-#endif
-
-
-
 ///////////////////////////////////////////////////////////////////////////
 void InitPython()
 {
@@ -185,7 +186,7 @@ void InitPython()
 	  //IMPORTANT: if you want to avoid the usual sys.path initialization
 	  //you can copy the python shared library (example: python36.dll) and create a file with the same name and _pth extension
 	  //(example python36_d._pth). in that you specify the directories to include. you can also for example a python36.zip file
-	  //or maybe you can set PYTHON_HOME
+	  //or maybe you can set PYTHONHOME
 	
 	  //skips initialization registration of signal handlers
 	  Py_InitializeEx(0);
@@ -379,7 +380,7 @@ int PythonEngine::main(std::vector<String> args)
 {
 #if PY_MAJOR_VERSION>=3
   typedef wchar_t* ArgType;
-  #define PyNewArg(arg) Py_DecodeLocale(arg.c_str(),nullptr)
+  #define PyNewArg(arg)  char2wchar(arg.c_str())
   #define PyFreeArg(arg) PyMem_RawFree(arg)
 #else
   typedef char* ArgType;

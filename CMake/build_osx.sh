@@ -1,10 +1,22 @@
 #!/bin/bash
 
-. "$(dirname "$0")/build_common.sh"
+source "$(dirname "$0")/build_common.sh"
 
 SOURCE_DIR=$(pwd)
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
+
+# //////////////////////////////////////////////////////
+function InstallBrew {
+
+	if ! [ -x "$(command -v brew)" ]; then
+		/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+	fi
+	
+	# output is very long!
+	brew update 1>/dev/null 2>&1 || true
+}
+
 
 InstallBrew            
 InstallPython
@@ -13,6 +25,7 @@ InstallPython
 gem install xcpretty   
 
 brew install swig  
+
 if (( VISUS_INTERNAL_DEFAULT == 0 )); then 
   brew install zlib lz4 tinyxml freeimage openssl curl
 fi
@@ -22,10 +35,8 @@ if (( VISUS_GUI == 1 )); then
 	Qt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5	
 fi
 
-cmake_opts=""
-cmake_opts+=" -GXcode"
 PushCMakeOptions
-cmake ${cmake_opts} ${SOURCE_DIR} 
+cmake -GXcode ${cmake_opts} ${SOURCE_DIR} 
 
 set -o pipefail && \
 cmake --build ./ --target ALL_BUILD   --config ${CMAKE_BUILD_TYPE} | xcpretty -c

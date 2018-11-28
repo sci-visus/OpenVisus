@@ -2075,6 +2075,15 @@ int main(int argn, const char* argv[])
   SetCommandLine(argn, argv);
   IdxModule::attach();
 
+  if (argn >= 2 && String(argv[1]) == "--server")
+  {
+    auto modvisus = std::make_shared<ModVisus>();
+    modvisus->configureDatasets();
+    auto server = std::make_shared<NetServer>(10000, modvisus);
+    server->runInThisThread();
+    return 0;
+  }
+
   Array data;
   DoConvert convert;
 

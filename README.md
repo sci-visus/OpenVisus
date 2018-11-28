@@ -181,7 +181,7 @@ Build the repository:
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-CMAKE_BUILD_TYPE=RelWithDebInfo CMake/build_osx.sh
+CMAKE_BUILD_TYPE=RelWithDebInfo CMake/build.sh
 ```
 
 To test if it's working:
@@ -200,12 +200,12 @@ PYTHONPATH=$(pwd) python -c "import OpenVisus"
 ## Linux compilation
 
 
-Build the repository (replace ubuntu with your distribution):
+Build the repository:
 
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-./CMake/build_ubuntu.sh  
+CMAKE_BUILD_TYPE=RelWithDebInfo ./CMake/build.sh  
 ```
 
 To test if it's working (consider you should modify the pyenv part):
@@ -245,19 +245,20 @@ target_link_libraries(your_executable VisusAppKit) # or whatever you need
 	
 ## mod_visus
 
-See Docker directory and look for VISUS_MODVISUS=1
+See Docker directory
 
 # Auto Deploy	
 
 `.travis.yml` and `.appveyor.ymp` deploy automatically to `GitHub Releases` when the Git commit is tagged.
-To properly tag your commit, your first need to edit the CMake/setup.py and change the VERSION number. 
 Then tag your code in git:
 
 ```
+vi CMake/setup.py
+# .... change the VERSION number in the file...
 git commit -a -m "...your message here..." 
 git config --global push.followTags true 
-VERSION=X.Y.Z # replace  with the same numbers from CMake/setup.py
-git tag -a "$VERSION" -m "$VERSION" 
+ # replace  with the same numbers from CMake/setup.py
+VERSION=X.Y.Z git tag -a "$VERSION" -m "$VERSION" 
 git push
 ```
 
