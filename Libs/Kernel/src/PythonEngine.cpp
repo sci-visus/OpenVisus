@@ -302,7 +302,8 @@ PythonEngine::PythonEngine(bool bVerbose)
     {
       auto py_file = "OpenVisus.py";
 
-      VisusInfo() << "Trying to find " << py_file;
+      if (bVerbose)
+        VisusInfo() << "Trying to find " << py_file;
 
       auto current_application_dir = KnownPaths::CurrentApplicationFile.getParent().toString();
 
@@ -324,13 +325,15 @@ PythonEngine::PythonEngine(bool bVerbose)
       {
         if (FileUtils::existsFile(dir + "/" + py_file))
         {
-          VisusInfo() << "\t Found in directory " << dir;
+          if (bVerbose)
+            VisusInfo() << "\t Found in directory " << dir;
           addSysPath(dir, bVerbose);
           break;
         }
         else
         {
-          VisusInfo() << "\t Not found in directory " << dir;
+          if (bVerbose)
+            VisusInfo() << "\t Not found in directory " << dir;
         }
       }
     }
