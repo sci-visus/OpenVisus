@@ -36,70 +36,9 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/GuiNodes.h>
-
-#include <Visus/GLCameraNode.h>
-#include <Visus/IsoContourNode.h>
-#include <Visus/IsoContourRenderNode.h>
-#include <Visus/RenderArrayNode.h>
-#include <Visus/KdRenderArrayNode.h>
-#include <Visus/JTreeRenderNode.h>
-#include <Visus/IsoContourShader.h>
-
-
-void GuiNodesInitResources() {
-  Q_INIT_RESOURCE(GuiNodes);
-}
-
-void GuiNodesCleanUpResources() {
-  Q_INIT_RESOURCE(GuiNodes);
-}
+#include <Visus/PythonNode.h>
 
 namespace Visus {
 
-bool GuiNodesModule::bAttached = false;
-
-
-/////////////////////////////////////////////////////
-void GuiNodesModule::attach()
-{
-  if (bAttached)  return;
-  bAttached = true;
-
-  GuiNodesInitResources();
-
-  GuiModule::attach();
-  DataflowModule::attach();
-
-  IsoContourShader::Shaders::allocSingleton();
-  KdRenderArrayNodeShader::Shaders::allocSingleton();
-  RenderArrayNodeShader::Shaders::allocSingleton();
-
-  VISUS_REGISTER_OBJECT_CLASS(GLCameraNode);
-  VISUS_REGISTER_OBJECT_CLASS(IsoContourNode);
-  VISUS_REGISTER_OBJECT_CLASS(IsoContourRenderNode);
-  VISUS_REGISTER_OBJECT_CLASS(RenderArrayNode);
-  VISUS_REGISTER_OBJECT_CLASS(KdRenderArrayNode);
-  VISUS_REGISTER_OBJECT_CLASS(JTreeRenderNode);
-
-}
-
-
-//////////////////////////////////////////////
-void GuiNodesModule::detach()
-{
-  if (!bAttached)  return;
-  bAttached = false;
-
-  GuiNodesCleanUpResources();
-
-  IsoContourShader::Shaders::releaseSingleton();
-  KdRenderArrayNodeShader::Shaders::releaseSingleton();
-  RenderArrayNodeShader::Shaders::releaseSingleton();
-
-  GuiModule::detach();
-  DataflowModule::detach();
-
-}
-
 } //namespace Visus
+
