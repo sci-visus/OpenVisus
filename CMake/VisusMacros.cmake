@@ -303,7 +303,8 @@ macro(AddExecutable Name)
 endmacro()
 
 # ///////////////////////////////////////////////////
-macro(AddSwigLibrary NamePy SwigFile)
+macro(AddSwigLibrary NamePy WrappedLib SwigFile)
+
 
   find_package(SWIG 3.0 REQUIRED)
   include(${SWIG_USE_FILE})
@@ -326,35 +327,37 @@ macro(AddSwigLibrary NamePy SwigFile)
 		swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
 	endif()
 
-  set(Name ${NamePy})
+  set(RealName ${NamePy})
 	if (TARGET _${NamePy})
-	  set(Name _${NamePy})
+	  set(RealName _${NamePy})
 	endif()
 	
-	SetupCommonCompileOptions(${Name})
-	set_target_properties(${Name} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
-	target_include_directories(${Name} PRIVATE ${NUMPY_INCLUDE_DIR})
+	SetupCommonCompileOptions(${RealName})
+	set_target_properties(${RealName} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
+	target_include_directories(${RealName} PRIVATE ${NUMPY_INCLUDE_DIR})
 	
 	# disable warnings
 	if (WIN32)
-		target_compile_definitions(${Name}  PRIVATE /W0)
+		target_compile_definitions(${RealName}  PRIVATE /W0)
 	else()
-		set_target_properties(${Name} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
+		set_target_properties(${RealName} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
 	endif()
 	
-	LinkPythonToLibrary(${Name})
+	LinkPythonToLibrary(${RealName})
 	
 	if (WIN32)
-		set_target_properties(${Name}
+		set_target_properties(${RealName}
 	      PROPERTIES
-	      COMPILE_PDB_NAME_DEBUG          ${Name}_d
-	      COMPILE_PDB_NAME_RELEASE        ${Name}
-	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
-	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
-		set_target_properties(${Name} PROPERTIES DEBUG_POSTFIX  "_d")
+	      COMPILE_PDB_NAME_DEBUG          ${RealName}_d
+	      COMPILE_PDB_NAME_RELEASE        ${RealName}
+	      COMPILE_PDB_NAME_MINSIZEREL     ${RealName}
+	      COMPILE_PDB_NAME_RELWITHDEBINFO ${RealName})
+		set_target_properties(${RealName} PROPERTIES DEBUG_POSTFIX  "_d")
 	endif()	
 	
-	InstallLibrary(${Name})
+	target_link_libraries(${RealName} PUBLIC ${WrappedLib})
+	
+	InstallLibrary(${RealName})
 	
 endmacro()
 

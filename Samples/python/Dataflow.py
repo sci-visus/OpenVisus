@@ -45,6 +45,7 @@ import unittest
 import os
 
 from OpenVisus import *
+from VisusDataflowPy import *
   
 # ////////////////////////////////////////////////////////////////////////
 class PyProducer(Node):

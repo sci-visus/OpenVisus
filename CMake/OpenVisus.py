@@ -8,7 +8,5 @@ __bin_dir__=os.path.abspath(__this_dir__+ "/bin")
 if not __bin_dir__ in sys.path:
   sys.path.append(__bin_dir__)
 
-from NonGuiOpenVisus import *
+from VisusKernelPy import *
 
-# prefer not to include this automatically
-# from GuiOpenVisus import *
