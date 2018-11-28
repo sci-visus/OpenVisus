@@ -1,80 +1,20 @@
-/*-----------------------------------------------------------------------------
-Copyright(c) 2010 - 2018 ViSUS L.L.C.,
-Scientific Computing and Imaging Institute of the University of Utah
+%module(directors="1") VisusKernelPy
 
-ViSUS L.L.C., 50 W.Broadway, Ste. 300, 84101 - 2044 Salt Lake City, UT
-University of Utah, 72 S Central Campus Dr, Room 3750, 84112 Salt Lake City, UT
-
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met :
-
-* Redistributions of source code must retain the above copyright notice, this
-list of conditions and the following disclaimer.
-
-* Redistributions in binary form must reproduce the above copyright notice,
-this list of conditions and the following disclaimer in the documentation
-and/or other materials provided with the distribution.
-
-* Neither the name of the copyright holder nor the names of its
-contributors may be used to endorse or promote products derived from
-this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED.IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-For additional information about this project contact : pascucci@acm.org
-For support : support@visus.net
------------------------------------------------------------------------------*/
-
-%module(directors="1") NonGuiOpenVisus
-
-%include <VisusSwigCommon.i>
-
-
-//__________________________________________________________
 %{ 
-
-//Kernel
 #include <Visus/Visus.h>
 #include <Visus/PythonEngine.h>
 #include <Visus/Array.h>
 #include <Visus/VisusConfig.h>
-
-//Dataflow
-#include <Visus/DataflowModule.h>
-#include <Visus/DataflowMessage.h>
-#include <Visus/DataflowPort.h>
-#include <Visus/DataflowNode.h>
-#include <Visus/Dataflow.h>
-
-//Db
-#include <Visus/Db.h>
-#include <Visus/Access.h>
-#include <Visus/BlockQuery.h>
-#include <Visus/Query.h>
-
-//Idx
-#include <Visus/Idx.h>
-#include <Visus/IdxFile.h>
-#include <Visus/IdxDataset.h>
-#include <Visus/IdxMultipleDataset.h>
-
-//Nodes
-#include <Visus/Nodes.h>
-	
 using namespace Visus;
 
 static char* __my_numpy_capsule_name__="__my_numpy_capsule_name__";
+
+%}
+
+
+%include <VisusPy.i>
+
+%{ 
 
 static SharedPtr<HeapMemory> getNumPyHeap(PyArrayObject *numpy_array)
 {
@@ -106,24 +46,23 @@ static void setNumPyHeap(PyArrayObject* numpy_array,SharedPtr<HeapMemory> heap)
 
 %}
 
-/////////////////////////////////////////////////////////////////////
-//swig includes
-
-//Kernel
 ENABLE_SHARED_PTR(HeapMemory)
 ENABLE_SHARED_PTR(DictObject)
 ENABLE_SHARED_PTR(ObjectCreator)
 ENABLE_SHARED_PTR(Object)
 ENABLE_SHARED_PTR(StringTree)
 ENABLE_SHARED_PTR(Array)
+
 %newobject Visus::ObjectStream::readObject;
 %newobject Visus::ObjectCreator::createInstance;
 %newobject Visus::ObjectFactory::createInstance;
 %newobject Visus::StringTreeEncoder::encode;
 %newobject Visus::StringTreeEncoder::decode;
+
 %template(BoolPtr) Visus::SharedPtr<bool>;
 %template(VectorOfField) std::vector<Visus::Field>;
 %template(VectorOfArray) std::vector<Visus::Array>;
+
 %include <Visus/Visus.h>
 %include <Visus/Kernel.h>
 %include <Visus/StringMap.h>
@@ -161,41 +100,6 @@ ENABLE_SHARED_PTR(Array)
 %include <Visus/Field.h>
 %include <Visus/Array.h>
 
-//Db
-ENABLE_SHARED_PTR(Access)
-ENABLE_SHARED_PTR(BlockQuery)
-ENABLE_SHARED_PTR(Query)
-ENABLE_SHARED_PTR(Dataset)
-%include <Visus/Db.h>
-%include <Visus/Access.h>
-%include <Visus/LogicBox.h>
-%include <Visus/BlockQuery.h>
-%include <Visus/Query.h>
-%include <Visus/DatasetBitmask.h>
-%include <Visus/Dataset.h>
-
-//Dataflow
-ENABLE_SHARED_PTR(Dataflow)
-ENABLE_SHARED_PTR(DataflowMessage)
-ENABLE_SHARED_PTR(ReturnReceipt)
-ENABLE_SHARED_PTR(NodeJob)
-%apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::Node* disown };
-%template(VectorNode) std::vector<Visus::Node*>;
-%feature("director") Visus::Node;
-%include <Visus/DataflowModule.h>
-%include <Visus/DataflowMessage.h>
-%include <Visus/DataflowPort.h>
-%include <Visus/DataflowNode.h>
-%include <Visus/Dataflow.h>
-
-//Nodes
-%include <Visus/Nodes.h>
-
-//Idx
-%include <Visus/Idx.h>
-%include <Visus/IdxFile.h>
-%include <Visus/IdxDataset.h>
-%include <Visus/IdxMultipleDataset.h>
 
 // _____________________________________________________
 // init code 
@@ -214,7 +118,6 @@ ENABLE_SHARED_PTR(NodeJob)
 
 // _____________________________________________________
 // python code 
-
 %pythoncode %{
 
 # equivalent to VISUS_REGISTER_OBJECT_CLASS 
@@ -238,7 +141,6 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
 
 // _____________________________________________________
 // extend Array
-
 %extend Visus::Array {
 
   //operator[]
@@ -265,7 +167,7 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
   }
 
   //toNumPy (the returned numpy will share the memory... see capsule code)
-  PyObject* toNumPy() const
+  PyObject* toNumPy(bool bSqueeze=true) const
   {
     //in numpy the first dimension is the "upper dimension"
     //example:
@@ -282,7 +184,11 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
 		shape.push_back((npy_int)ncomponents);
 
     for (int I=0,N=$self->dims.getPointDim();I<N;I++)
-		shape.push_back((npy_int)$self->dims[I]);
+	{
+		auto single_dim=(npy_int)$self->dims[I];
+		if (!bSqueeze || single_dim>1)
+			shape.push_back(single_dim);
+	}
 
 	std::reverse(shape.begin(), shape.end());
 
@@ -387,7 +293,6 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
       SWIG_SetErrorMsg(PyExc_NotImplementedError,"numpy cannot share its internal memory\n");
       return Array();
 	}
-
 
   }
 

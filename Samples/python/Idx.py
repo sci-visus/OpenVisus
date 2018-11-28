@@ -47,6 +47,8 @@ import os
 import numpy
 
 from OpenVisus import *
+from VisusDbPy import *
+from VisusIdxPy import *
 
 # ////////////////////////////////////////////////////////////////////////
 class TextIdx(unittest.TestCase):
