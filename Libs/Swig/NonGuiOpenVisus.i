@@ -265,7 +265,7 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
   }
 
   //toNumPy (the returned numpy will share the memory... see capsule code)
-  PyObject* toNumPy() const
+  PyObject* toNumPy(bool bSqueeze=false) const
   {
     //in numpy the first dimension is the "upper dimension"
     //example:
@@ -282,7 +282,11 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
 		shape.push_back((npy_int)ncomponents);
 
     for (int I=0,N=$self->dims.getPointDim();I<N;I++)
-		shape.push_back((npy_int)$self->dims[I]);
+	{
+		auto single_dim=(npy_int)$self->dims[I];
+		if (!bSqueeze || single_dim>1)
+			shape.push_back(single_dim);
+	}
 
 	std::reverse(shape.begin(), shape.end());
 
