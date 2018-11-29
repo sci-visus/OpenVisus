@@ -63,7 +63,11 @@ bool NodesModule::bAttached = false;
   //////////////////////////////////////////////
 void NodesModule::attach()
 {
-  if (bAttached)  return;
+  if (bAttached)  
+    return;
+  
+  VisusInfo() << "Attaching NodesModule...";
+
   bAttached = true;
 
   IdxModule::attach();
@@ -85,16 +89,24 @@ void NodesModule::attach()
 
   VISUS_REGISTER_OBJECT_CLASS(VoxelScoopNode);
   VISUS_REGISTER_OBJECT_CLASS(JTreeNode);
+
+  VisusInfo() << "Attached NodesModule";
 }
 
 //////////////////////////////////////////////
 void NodesModule::detach()
 {
-  if (!bAttached)  return;
+  if (!bAttached)  
+    return;
+  
+  VisusInfo() << "Detatching NodesModule...";
+
   bAttached = false;
 
   IdxModule::detach();
   DataflowModule::detach();
+
+  VisusInfo() << "Detatched NodesModule";
 }
 
 } //namespace Visus

@@ -362,6 +362,8 @@ void KernelModule::attach()
 {
   if (bAttached)  
     return;
+
+  VisusInfo() << "Attaching KernelModule...";
   
   bAttached = true;
 
@@ -387,6 +389,7 @@ void KernelModule::attach()
   VisusInfo() << "CurrentWorkingDirectory " << KnownPaths::CurrentWorkingDirectory().toString();
 
   ObjectFactory::allocSingleton();
+
   ArrayPlugins::allocSingleton();
   Encoders::allocSingleton();
   RamResource::allocSingleton();
@@ -438,14 +441,20 @@ void KernelModule::attach()
     ScopedAcquireGil acquire_gil;
     engine->execCode("print('PythonEngine is working fine')");
   }
+
+  VisusInfo() << "Attached KernelModule";
 }
 
 
 //////////////////////////////////////////////
 void KernelModule::detach()
 {
-  if (!bAttached)  return;
+  if (!bAttached)  
+    return;
+  
   bAttached = false;
+
+  VisusInfo() << "Detatching KernelModule...";
 
   ObjectFactory::releaseSingleton();
   ArrayPlugins::releaseSingleton();
@@ -461,6 +470,9 @@ void KernelModule::detach()
 #if __APPLE__
   DestroyAutoReleasePool();
 #endif
+
+  VisusInfo() << "Detatched KernelModule...";
+
 }
 
 } //namespace Visus

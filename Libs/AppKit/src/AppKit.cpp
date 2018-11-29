@@ -60,7 +60,11 @@ bool AppKitModule::bAttached = false;
 //////////////////////////////////////////////
 void AppKitModule::attach()
 {
-  if (bAttached)  return;
+  if (bAttached)  
+    return;
+  
+  VisusInfo() << "Attaching AppKitModule...";
+
   bAttached = true;
 
   AppKitInitResources();
@@ -76,12 +80,18 @@ void AppKitModule::attach()
   }
 #endif
 
+  VisusInfo() << "Attached AppKitModule";
+
 }
 
 //////////////////////////////////////////////
 void AppKitModule::detach()
 {
-  if (!bAttached)  return;
+  if (!bAttached)  
+    return;
+  
+  VisusInfo() << "Detatching AppKitModule...";
+  
   bAttached = false;
 
   AppKitCleanUpResources();
@@ -89,6 +99,8 @@ void AppKitModule::detach()
   NodesModule::detach();
   GuiNodesModule::detach();
 
+
+  VisusInfo() << "Detatched AppKitModule";
 }
 
 } //namespace Visus

@@ -49,25 +49,36 @@ bool DataflowModule::bAttached = false;
 ///////////////////////////////////////////////////////////////////////////
 void DataflowModule::attach()
 {
-  if (bAttached)  return;
-  bAttached = true;
+  if (bAttached)  
+    return;
 
+  VisusInfo() << "Attacching DataflowModule...";
+  
+  bAttached = true;
   KernelModule::attach();
 
   VISUS_REGISTER_OBJECT_CLASS(DataflowPort);
   //VISUS_REGISTER_OBJECT_CLASS(DataflowMessage);
   VISUS_REGISTER_OBJECT_CLASS(Node);
   VISUS_REGISTER_OBJECT_CLASS(Dataflow);
+
+  VisusInfo() << "Attached DataflowModule";
 }
 
 
 //////////////////////////////////////////////
 void DataflowModule::detach()
 {
-  if (!bAttached)  return;
+  if (!bAttached)  
+    return;
+
+  VisusInfo() << "Detatching DataflowModule...";
+  
   bAttached = false;
 
   KernelModule::detach();
+
+  VisusInfo() << "Detatched DataflowModule";
 }
 
 } //namespace Visus 

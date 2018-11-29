@@ -125,7 +125,7 @@ PushCMakeOptions
 
 cmake ${cmake_opts} ${SOURCE_DIR} 
 
-cmake --build . --target all -- -j 4
+cmake --build . --target all 
 cmake --build . --target test
 cmake --build . --target install 
 

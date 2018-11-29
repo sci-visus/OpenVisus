@@ -40,8 +40,9 @@ For support : support@visus.net
 #include <Visus/GLCanvas.h>
 #include <Visus/VisusConfig.h>
 
-
 namespace Visus {
+
+VISUS_IMPLEMENT_SHADER_CLASS(VISUS_GUI_NODES_API, RenderArrayNodeShader)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 RenderArrayNode::RenderArrayNode(String name) : Node(name)

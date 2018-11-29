@@ -41,6 +41,8 @@ For support : support@visus.net
 
 namespace Visus {
 
+VISUS_IMPLEMENT_SHADER_CLASS(VISUS_GUI_API, GLPhongShader)
+
 ///////////////////////////////////////////////
 int GLPhongShader::Config::getId() const
 {

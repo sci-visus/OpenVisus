@@ -344,6 +344,7 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 	endif()
 	
 	LinkPythonToLibrary(${RealName})
+	target_link_libraries(${RealName} PUBLIC ${WrappedLib})
 	
 	if (WIN32)
 		set_target_properties(${RealName}
@@ -354,8 +355,6 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${RealName})
 		set_target_properties(${RealName} PROPERTIES DEBUG_POSTFIX  "_d")
 	endif()	
-	
-	target_link_libraries(${RealName} PUBLIC ${WrappedLib})
 	
 	InstallLibrary(${RealName})
 	

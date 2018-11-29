@@ -63,7 +63,11 @@ bool GuiNodesModule::bAttached = false;
 /////////////////////////////////////////////////////
 void GuiNodesModule::attach()
 {
-  if (bAttached)  return;
+  if (bAttached)  
+    return;
+  
+  VisusInfo() << "Attaching GuiNodesModule...";
+
   bAttached = true;
 
   GuiNodesInitResources();
@@ -82,13 +86,18 @@ void GuiNodesModule::attach()
   VISUS_REGISTER_OBJECT_CLASS(KdRenderArrayNode);
   VISUS_REGISTER_OBJECT_CLASS(JTreeRenderNode);
 
+  VisusInfo() << "Attached GuiNodesModule";
 }
 
 
 //////////////////////////////////////////////
 void GuiNodesModule::detach()
 {
-  if (!bAttached)  return;
+  if (!bAttached)  
+    return;
+
+  VisusInfo() << "Detatching GuiNodesModule...";
+  
   bAttached = false;
 
   GuiNodesCleanUpResources();
@@ -100,6 +109,7 @@ void GuiNodesModule::detach()
   GuiModule::detach();
   DataflowModule::detach();
 
+  VisusInfo() << "Detatched GuiNodesModule";
 }
 
 } //namespace Visus

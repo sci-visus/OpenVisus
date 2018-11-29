@@ -374,7 +374,7 @@ class LinuxDeployStep:
 	
 	To debug
 	
-		LD_DEBUG=libs ldd install/bin/visusviewer
+		LD_DEBUG=libs,files ldd install/bin/visusviewer
 
 		# this shows the rpath
 		readelf -d libVisusDataflow.so

@@ -11,7 +11,6 @@
 using namespace Visus;
 %}
 
-
 %include <VisusPy.i>
 
 %import <VisusKernelPy.i>
@@ -20,9 +19,13 @@ ENABLE_SHARED_PTR(Dataflow)
 ENABLE_SHARED_PTR(DataflowMessage)
 ENABLE_SHARED_PTR(ReturnReceipt)
 ENABLE_SHARED_PTR(NodeJob)
+
 %apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::Node* disown };
+
 %template(VectorNode) std::vector<Visus::Node*>;
+
 %feature("director") Visus::Node;
+
 %include <Visus/DataflowModule.h>
 %include <Visus/DataflowMessage.h>
 %include <Visus/DataflowPort.h>
