@@ -267,20 +267,17 @@ void PythonEngine::addSysPath(String value,bool bVerbose) {
   execCode(cmd);
 }
 
+static std::atomic<int> module_id(0);
+
   ///////////////////////////////////////////////////////////////////////////
-PythonEngine::PythonEngine(bool bVerbose)
+PythonEngine::PythonEngine(bool bVerbose) 
 {
+  this->module_name = StringUtils::format() << "__PythonEngine__" << (++module_id);
+  VisusInfo() << "Creating PythonEngine "<< module_name <<"...";
+
   ScopedAcquireGil acquire_gil;
-
-  module_name = StringUtils::format() << "__PythonEngine__" << ++ModuleId();
-
   this->module  = PyImport_AddModule(module_name.c_str()); 
-  if (!module) {
-
-    if (bVerbose)
-      VisusInfo()<<"PyImport_AddModule(\""<< module_name<<"\") failed";
-    VisusAssert(false);
-  }
+  VisusReleaseAssert(this->module);
 
   this->globals = PyModule_GetDict(module); //borrowed
 
@@ -302,7 +299,7 @@ PythonEngine::PythonEngine(bool bVerbose)
     {
       auto py_file = "OpenVisus.py";
 
-      VisusInfo() << "Trying to find " << py_file;
+      //VisusInfo() << "Trying to find " << py_file;
 
       auto current_application_dir = KnownPaths::CurrentApplicationFile.getParent().toString();
 
@@ -324,13 +321,13 @@ PythonEngine::PythonEngine(bool bVerbose)
       {
         if (FileUtils::existsFile(dir + "/" + py_file))
         {
-          VisusInfo() << "\t Found in directory " << dir;
+          //VisusInfo() << "\t Found in directory " << dir;
           addSysPath(dir, bVerbose);
           break;
         }
         else
         {
-          VisusInfo() << "\t Not found in directory " << dir;
+          //VisusInfo() << "\t Not found in directory " << dir;
         }
       }
     }
@@ -361,6 +358,8 @@ PythonEngine::PythonEngine(bool bVerbose)
 ///////////////////////////////////////////////////////////////////////////
 PythonEngine::~PythonEngine()
 {
+  VisusInfo() << "Destroying PythonEngine " << this->module_name << "...";
+
   ScopedAcquireGil acquire_gil;
 
   if (__redirect_output__) {
@@ -430,7 +429,13 @@ void PythonEngine::delModuleAttr(String name) {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-PyObject* PythonEngine::newPyFunction(PyObject* self, String name, Function fn)
+void PythonEngine::setError(String explanation, PyObject* err)
+{
+  PyErr_SetString(err, explanation.c_str());
+}
+
+///////////////////////////////////////////////////////////////////////////
+PyObject* PythonEngine::internalNewPyFunction(PyObject* self, String name, Function fn)
 {
   //see http://code.activestate.com/recipes/54352-defining-python-class-methods-in-c/
   //see http://bannalia.blogspot.it/2016/07/passing-capturing-c-lambda-functions-as.html
@@ -469,7 +474,7 @@ PyObject* PythonEngine::newPyFunction(PyObject* self, String name, Function fn)
 ///////////////////////////////////////////////////////////////////////////
 void PythonEngine::addModuleFunction(String name, Function fn)
 {
-  auto py_fn = newPyFunction(/*self*/nullptr, name, fn);
+  auto py_fn = internalNewPyFunction(/*self*/nullptr, name, fn);
   setModuleAttr(name, py_fn);
   Py_DECREF(py_fn);
 }
@@ -477,7 +482,7 @@ void PythonEngine::addModuleFunction(String name, Function fn)
 ///////////////////////////////////////////////////////////////////////////
 void PythonEngine::addObjectMethod(PyObject* self, String name, Function fn)
 {
-  auto py_fn = newPyFunction(self, name, fn);
+  auto py_fn = internalNewPyFunction(self, name, fn);
   auto py_name = PyString_FromString(name.c_str());
   PyObject_SetAttr(self, py_name, py_fn);
   Py_DECREF(py_fn);
@@ -644,25 +649,36 @@ String PythonEngine::getLastErrorMessage()
 }
 
 ///////////////////////////////////////////////////////////////////////////
+static void PythonPrintCrLfIfNeeded()
+{
+#if PY_MAJOR_VERSION < 3
+
+  //this returns !=1 in case of errors
+  if (Py_FlushLine()) 
+    PyErr_Clear();
+
+#endif
+
+}
+
+///////////////////////////////////////////////////////////////////////////
 void PythonEngine::execCode(String s)
 {
   auto obj = PyRun_StringFlags(s.c_str(), Py_file_input, globals, globals, nullptr);
+  bool bError = (obj == nullptr);
 
-  if (bool bMaybeError=(obj == nullptr))
+  if (bError)
   {
     if (PyErr_Occurred())
     {
       auto  error_msg = getLastErrorMessage();
+      PyErr_Clear();
       ThrowException(error_msg);
     }
   }
 
   Py_DECREF(obj);
-
-#if PY_MAJOR_VERSION < 3
-  if (Py_FlushLine())
-    PyErr_Clear();
-#endif
+  PythonPrintCrLfIfNeeded();
 };
 
 
@@ -680,15 +696,12 @@ PyObject* PythonEngine::evalCode(String s)
     if (PyErr_Occurred())
     {
       auto  error_msg = getLastErrorMessage();
+      PyErr_Clear();
       ThrowException(error_msg);
     }
   }
 
-#if PY_MAJOR_VERSION < 3
-  if (Py_FlushLine())
-    PyErr_Clear();
-#endif
-
+  PythonPrintCrLfIfNeeded();
   return obj;
 };
 

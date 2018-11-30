@@ -249,7 +249,7 @@ public:
     std::atomic<int> value;
 
     //constructor
-    SharedCounter() {
+    SharedCounter() : value(0) {
     }
 
     //destructor
