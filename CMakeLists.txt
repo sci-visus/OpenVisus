@@ -251,7 +251,6 @@ if (True)
 	install(FILES        LICENSE                        DESTINATION .)
 	install(FILES        README.md                      DESTINATION .)
 	install(FILES        CMake/__init__.py              DESTINATION .)
-	install(FILES        CMake/OpenVisus.py             DESTINATION .)
 	install(FILES        CMake/setup.py                 DESTINATION .)
 	install(FILES        CMake/deploy.py                DESTINATION .)
 	install(FILES        CMake/OpenVisusConfig.cmake    DESTINATION .)
@@ -315,7 +314,7 @@ if (True)
 
 		macro(InstallQtPlugin name)
 			if (EXISTS "${qt5_PLUGIN_DIR}/${name}")
-				Install(DIRECTORY "${qt5_PLUGIN_DIR}/${name}" DESTINATION bin/plugins)
+				Install(DIRECTORY "${qt5_PLUGIN_DIR}/${name}" DESTINATION bin/Qt/plugins)
 			endif()
 		endmacro()
 		
@@ -344,7 +343,7 @@ if (True)
 	
 		add_custom_target(deploy 
 			        "${CMAKE_COMMAND}" -E echo "Running deploy step..."
-		   COMMAND	"${Qt5_DIR}\\..\\..\\..\\bin\\windeployqt" "bin\\visusviewer.exe" --libdir bin --plugindir bin\\plugins --no-translations
+		   COMMAND	"${Qt5_DIR}\\..\\..\\..\\bin\\windeployqt" "bin\\visusviewer.exe" --libdir bin --plugindir bin\\Qt\\plugins --no-translations
 			WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
 			
 		set_target_properties(deploy PROPERTIES FOLDER "CMakePredefinedTargets/")

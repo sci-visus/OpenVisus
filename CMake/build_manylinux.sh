@@ -130,7 +130,6 @@ cmake --build . --target test
 cmake --build . --target install 
 
 # deploy
-# see CMake/deploy.py for details
 cp ${OPENSSL_LIB_DIR}/libcrypto.so*      install/bin/
 cp ${OPENSSL_LIB_DIR}/libssl.so*         install/bin/
 
@@ -154,7 +153,7 @@ cmake --build . --target deploy
 
 pushd install
 LD_LIBRARY_PATH=$(pwd)/bin:$(dirname ${PYTHON_LIBRARY}) PYTHONPATH=$(pwd) bin/visus                                  && echo "Embedding working"
-LD_LIBRARY_PATH=$(pwd)/bin                              PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
+LD_LIBRARY_PATH=$(pwd)/bin                              PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import VisusKernelPy" && echo "Extending working"
 popd
 
 if (( DEPLOY_GITHUB == 1 )); then

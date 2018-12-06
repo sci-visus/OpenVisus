@@ -36,7 +36,7 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-//common code
+//common code 
 %begin %{
   #if _WIN32
     //this is needed if you dont' have python debug library
@@ -44,6 +44,23 @@ For support : support@visus.net
     #pragma warning(disable: 4101)
     #pragma warning(disable: 4244)
   #endif
+%}
+
+
+
+//__________________________________________________________
+%pythonbegin %{
+
+import os,sys
+
+__this_dir__=os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
+
+if not __this_dir__ in sys.path:
+  sys.path.append(__this_dir__)
+
+__bin_dir__=os.path.abspath(__this_dir__+ "/bin")
+if not __bin_dir__ in sys.path:
+  sys.path.append(__bin_dir__)
 %}
 
 // Nested class not currently supported
@@ -66,6 +83,8 @@ namespace Visus {}
 #define SWIG_FILE_WITH_INIT
 %}
 %include <numpy.i>
+
+
 
 //__________________________________________________________
 //STL

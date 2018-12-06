@@ -84,7 +84,7 @@ python -m pip install  --user numpy OpenVisus
 And test it using the following command. 
 
 ```
-python -c "import OpenVisus"
+python -c "import VisusKernelPy"
 ```
 
 
@@ -190,12 +190,13 @@ To test if it's working:
 cd install
 
 # (embedding mode)
-PYTHONPATH=$(pwd) bin/visus.app/Contents/MacOS/visus  
+bin/visus.app/Contents/MacOS/visus  
+bin/visusviewer.app/Contents/MacOS/visusviewer 
 
 # (extending mode)
-PYTHONPATH=$(pwd) python -c "import OpenVisus"
+PYTHONPATH=$(pwd) python -c "import VisusKernelPy"
+PYTHONPATH=$(pwd) QT_PLUGIN_PATH=$(pwd)/bin/Qt/plugins python -c "import VisusKernelPy; import VisusGuiPy"
 ```
-
       
 ## Linux compilation
 
@@ -217,7 +218,7 @@ cd install
 LD_LIBRARY_PATH=$(pwd):$(pyenv prefix)/lib PYTHONPATH=$(pwd) bin/visus
 
 # example of extending mode
-LD_LIBRARY_PATH=$(pwd)                     PYTHONPATH=$(pwd) python -c "import OpenVisus"
+LD_LIBRARY_PATH=$(pwd)                     PYTHONPATH=$(pwd) python -c "import VisusKernelPy"
 ```
 
   

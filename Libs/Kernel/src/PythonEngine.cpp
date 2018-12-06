@@ -295,22 +295,19 @@ PythonEngine::PythonEngine(bool bVerbose)
     if (bVerbose)
       VisusInfo() << "Visus is embedding Python";
 
-    //try to find where visus OpenVisus.py files are
+    //try to find where visus VisusiKernelPy.py files are
     {
-      auto py_file = "OpenVisus.py";
-
-      //VisusInfo() << "Trying to find " << py_file;
-
       auto current_application_dir = KnownPaths::CurrentApplicationFile.getParent().toString();
 
       std::vector<String> candidates;
 
-      //this is during build
-      candidates.push_back(current_application_dir + "/.");
+      //this is needed in build
+      candidates.push_back(current_application_dir);
 
-#if APPLE
-      //example: <name>.app/Contents/MacOS/<name>
-      candidates.push_back(current_application_dir + "/../..");
+      //this is needed for install
+#if __APPLE__ 
+      //example: ${CMAKE_INSTALL_PREFIX}/bin/<name>.app/Contents/MacOS/<name>
+      candidates.push_back(current_application_dir + "/../../../..");
 #else
       //example ${CMAKE_INSTALL_PREFIX}/bin
       candidates.push_back(current_application_dir + "/..");
@@ -319,15 +316,18 @@ PythonEngine::PythonEngine(bool bVerbose)
 
       for (auto dir : candidates)
       {
-        if (FileUtils::existsFile(dir + "/" + py_file))
+        auto filename=dir + "/VisusKernelPy.py";
+        if (FileUtils::existsFile(filename))
         {
-          //VisusInfo() << "\t Found in directory " << dir;
+          if (bVerbose)
+            VisusInfo() << "Found " << filename;
           addSysPath(dir, bVerbose);
           break;
         }
         else
         {
-          //VisusInfo() << "\t Not found in directory " << dir;
+          if (bVerbose)
+            VisusInfo() << "Not found " << filename;
         }
       }
     }
@@ -337,9 +337,9 @@ PythonEngine::PythonEngine(bool bVerbose)
     addSysPath(VISUS_PYTHON_SYS_PATH,bVerbose);
 
 	if (bVerbose)
-    VisusInfo() << "Trying to import OpenVisus...";
+    VisusInfo() << "Trying to import VisusKernelPy...";
 
-  execCode("from OpenVisus import *");
+  execCode("from VisusKernelPy import *");
 
   if (bVerbose)
     VisusInfo() << "...imported OpenVisus";

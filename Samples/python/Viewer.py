@@ -12,7 +12,7 @@ try:
 except ImportError:
 	bQtAvailable=False
 
-from OpenVisus import *
+from VisusKernelPy import *
 from VisusGuiPy import *
 from VisusGuiNodesPy import *
 from VisusAppKitPy import *

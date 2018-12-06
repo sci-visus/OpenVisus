@@ -46,7 +46,7 @@ cmake --build ./ --target deploy      --config ${CMAKE_BUILD_TYPE}
 
 pushd install
 PYTHONPATH=$(pwd) bin/visus.app/Contents/MacOS/visus  && echo "Embedding working"  
-PYTHONPATH=$(pwd) python -c "import OpenVisus"        && echo "Extending working"
+PYTHONPATH=$(pwd) python -c "import VisusKernelPy"        && echo "Extending working"
 popd
 
 if (( DEPLOY_GITHUB == 1 )); then

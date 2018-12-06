@@ -88,13 +88,8 @@ def recursiveGlob(rootdir='.', pattern='*'):
           for filename in filenames
           if fnmatch.fnmatch(filename, pattern)]
 
-
-	
-
-
 # ///////////////////////////////////////
 class AppleDeployStep:
-	
 	
 	"""
 	see https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/RPATH-handling
@@ -139,7 +134,7 @@ class AppleDeployStep:
 	def findFrameworks(self):
 		ret=[]
 		for it in glob.glob("bin/*.framework"):
-			file="%s/%s" % (it,GetFileNameWithoutExtension(it))
+			file="%s/Versions/Current/%s" % (it,GetFileNameWithoutExtension(it))  
 			if os.path.isfile(os.path.realpath(file)):
 				ret+=[file]
 		return ret
@@ -152,9 +147,7 @@ class AppleDeployStep:
 		ret+=self.findApps()
 		ret+=self.findFrameworks()
 		return ret
-					
-		
-		
+  
 	# extractDeps
 	def extractDeps(self,filename):
 		output=subprocess.check_output(('otool', '-L', filename))
@@ -168,35 +161,28 @@ class AppleDeployStep:
 	
 	# showDeps
 	def showDeps(self):
-	  
-		DYLD_LIBRARY_PATH=None
-		if 'DYLD_LIBRARY_PATH' in os.environ:
-			DYLD_LIBRARY_PATH=os.environ['DYLD_LIBRARY_PATH']  
-			del os.environ['DYLD_LIBRARY_PATH']
-		
-		deps={}
 		for filename in self.findAllBinaries():
-			for dep in self.extractDeps(filename):
-				if not dep in deps: deps[dep]=[]
-				deps[dep]+=[filename]	
+			output=subprocess.check_output(('otool', '-L', filename))
+			if sys.version_info >= (3, 0): output=output.decode("utf-8")
+			output=output.strip()
+			print(output)
+			
+	# relativeToBin
+	def relativeToBin(self,filename):
+		A=os.path.realpath("./bin")
+		B=os.path.realpath(filename)
+		N=len(os.path.dirname(B).split("/"))-len(A.split("/"))	
+		return "/.." * N
+
+  # getLocalName
+	def getLocalName(self,filename):
+		if ".framework" in filename:
+			return os.path.basename(filename.split(".framework")[0]+".framework") + filename.split(".framework")[1]   
+		else:
+			return os.path.basename(filename)	
 		
-		for dep in deps:
-			if not dep.startswith("@"):
-				print(dep)
-				
-		if DYLD_LIBRARY_PATH:
-			os.environ["DYLD_LIBRARY_PATH"]= DYLD_LIBRARY_PATH
-						
-	# relativeRootDir
-	def relativeRootDir(self,local,prefix="@loader_path"):
-		A=os.path.realpath(".").split("/")
-		B=os.path.dirname(os.path.realpath(local)).split("/")
-		N=len(B)-len(A)	
-		return prefix + "/.." * N		
-	
 	# changeAllDeps
 	def changeAllDeps(self):
-	
 		
 		for filename in self.findAllBinaries():
 			
@@ -210,18 +196,23 @@ class AppleDeployStep:
 					print("#\t",dep)
 				print("")
 			
+			cmd=['install_name_tool']
+			cmd+=['-id','@rpath/' + self.getLocalName(filename)]
 			
-			cmd=["install_name_tool"]	
 			for dep in deps:
 				local=self.getLocal(dep)
-				if not local: continue
-				Old=dep
-				New=self.relativeRootDir(filename)+ "/" + local
-				cmd+=["-change",Old,New]
+				
+				if not local: 
+					continue
+					
+				# example QtOpenGL.framework/Versions/5/QtOpenGL
+				cmd+=["-change",dep,"@rpath/"+ self.getLocalName(local)]
+				
+			cmd+=['-add_rpath','@loader_path' + self.relativeToBin(filename)]	
 			
 			cmd+=[filename]
-			
-			if "-change" in cmd:
+				
+			if True:
 				ExecuteCommand(["chmod","u+w",filename])
 				ExecuteCommand(cmd)	
 			
@@ -301,6 +292,10 @@ class AppleDeployStep:
 			self.addLocal(local)
 		self.changeAllDeps()
 			
+	# addRPath
+	def addRPath(self,Value):
+		for filename in self.findAllBinaries():
+			ExecuteCommand(["install_name_tool","-add_rpath",Value,filename])
 
 
 # ///////////////////////////////////////
@@ -496,7 +491,16 @@ if __name__ == "__main__":
 			I+=1
 			print("Fixing deps")
 			deploy.fixAllDeps()
-			continue		
+			continue			
+			
+		if sys.argv[I]=="--set-qt5":
+			QT5_DIR=sys.argv[I+1]
+			I+=2
+			print("Setting qt directory",QT5_DIR)
+			ExecuteCommand(["rm","-Rf","bin/Qt*"])
+			deploy.addRPath(QT5_DIR + "/lib")
+			print("Rememeber to `export QT_PLUGIN_PATH=" + QT5_DIR+"/plugins`")
+			continue
 			
 		print("Unknonwn argument",sys.argv[I])
 		sys.exit(-1)		

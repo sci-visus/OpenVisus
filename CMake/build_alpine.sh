@@ -37,7 +37,7 @@ cmake --build . --target install
 
 cd install
 LD_LIBRARY_PATH=$(pwd)/bin PYTHONPATH=$(pwd) bin/visus                                  && echo "Embedding working"
-LD_LIBRARY_PATH=$(pwd)/bin PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
+LD_LIBRARY_PATH=$(pwd)/bin PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import VisusKernelPy" && echo "Extending working"
 cd ..
 
 if [ "$DEPLOY_GITHUB" = "1" ]; then
