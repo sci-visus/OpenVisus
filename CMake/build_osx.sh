@@ -22,7 +22,7 @@ InstallBrew
 InstallPython
 
 # this is to solve logs too long 
-gem install xcpretty   
+sudo gem install xcpretty   
 
 brew install swig  
 

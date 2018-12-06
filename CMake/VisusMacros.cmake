@@ -233,8 +233,9 @@ macro(FindPythonLibrary)
 	message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
 
 	find_package(NumPy REQUIRED)
-	message(STATUS "NUMPY_FOUND   ${NUMPY_FOUND}")
-	message(STATUS "NUMPY_VERSION ${NUMPY_VERSION}")
+	message(STATUS "NUMPY_FOUND       ${NUMPY_FOUND}")
+	message(STATUS "NUMPY_VERSION     ${NUMPY_VERSION}")
+        message(STATUS "NUMPY_INCLUDE_DIR ${NUMPY_INCLUDE_DIR}")
 
 endmacro()
 
@@ -335,14 +336,15 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 		swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
 	endif()
 
-  set(RealName ${NamePy})
 	if (TARGET _${NamePy})
 	  set(RealName _${NamePy})
-	endif()
+	else()
+          set(RealName ${NamePy})
+        endif()
 	
 	SetupCommonCompileOptions(${RealName})
 	set_target_properties(${RealName} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
-	target_include_directories(${RealName} PRIVATE ${NUMPY_INCLUDE_DIR})
+	target_include_directories(${RealName} PUBLIC ${NUMPY_INCLUDE_DIR})
 	
 	# disable warnings
 	if (WIN32)
