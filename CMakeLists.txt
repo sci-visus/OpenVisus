@@ -271,7 +271,7 @@ if (True)
 	# swig generated files 
 	InstallBuildFiles(*.py ./)
 	
-	createScript(visus "")
+  	install(FILES CMake/visus${SCRIPT_EXTENSION} DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)
 	
 	if (WIN32)
 	
@@ -321,8 +321,15 @@ if (True)
 		InstallQtPlugin(printsupport)
 		InstallQtPlugin(styles)
 		
-      createGuiScript(visusviewer "")
-    
+		
+		install(FILES CMake/visusviewer${SCRIPT_EXTENSION} DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)
+		if (APPLE)
+			set(__filename__ "${CMAKE_BINARY_DIR}/${name}/qt.conf")
+			file(WRITE    "${__filename__}" "[Paths]\n")
+			file(APPEND   "${__filename__}" "  Plugins=../../../bin/Qt/plugins\n")
+			install(FILES "${__filename__}" DESTINATION "bin/visusviewer.app/Contents/Resources")
+		endif()
+		
 	endif()
 
 	
