@@ -57,7 +57,7 @@ install:
   - choco install -y --allow-empty-checksums swig 
 
 build_script:
-  - cmd: cd %APPVEYOR_BUILD_FOLDER%  
+  - cmd: cd %APPVEYOR_BUILD_FOLDER% 
   - cmd: CMake\build_win.bat
    
 # test are already in cmake

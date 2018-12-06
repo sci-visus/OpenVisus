@@ -62,9 +62,6 @@ Table of content:
 	
   
   
-  
-  
-  
 ## PIP distribution
 
 You can install OpenVisus in python using Pip:
@@ -124,12 +121,6 @@ set CMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
 set VCPKG_TARGET_TRIPLET=x64-windows
 ```
 
-otherwise you can use InternalLibs (slow):
-
-```
-set VISUS_INTERNAL_DEFAULT=1
-```
-
 Then:
 
 ```
@@ -139,32 +130,17 @@ cd projects
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 
-
 mkdir build
 cd build
 
 REM *** change as needed *** 
-set GENERATOR=Visual Studio 15 2017 Win64
-set QT5_DIR=C:\Qt\Qt5.9.2\5.9.2\msvc2017_64
-set CMAKE="C:\Program Files\CMake\bin\cmake.exe"
-set GIT_CMD=C:\Program Files\Git\bin\git.exe
-set SWIG_EXECUTABLE=C:\ProgramData\chocolatey\bin\swig.exe
-set CONFIGURATION=RelWithDebInfo
-
-IF DEFINED  CMAKE_TOOLCHAIN_FILE (
-	%CMAKE% -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" -DGIT_CMD="%GIT_CMD%" -DSWIG_EXECUTABLE="%SWIG_EXECUTABLE%" -DCMAKE_TOOLCHAIN_FILE="%CMAKE_TOOLCHAIN_FILE%" -DVCPKG_TARGET_TRIPLET="%VCPKG_TARGET_TRIPLET%"  ..
-) ELSE (
-	%CMAKE% -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" -DGIT_CMD="%GIT_CMD%" -DSWIG_EXECUTABLE="%SWIG_EXECUTABLE%" ..
-)
-	
-%CMAKE% --build . --target ALL_BUILD   --config %CONFIGURATION%
-%CMAKE% --build . --target RUN_TESTS   --config %CONFIGURATION%
-%CMAKE% --build . --target INSTALL     --config %CONFIGURATION% 
-%CMAKE% --build . --target deploy      --config %CONFIGURATION% 
+set PYTHON_EXECUTABLE=C:\Python37\python.exe
+set CMAKE_EXECUTABLE=C:\Program Files\CMake\bin\cmake.exe
+set QT5_DIR=c:\Qt\5.11.2\msvc2015_64
+CMake\build_win.bat
 ```
 
 To test if visusviewer it's working double click on the file install\visusviewer.bat.
-
 
 
 ## MacOSX compilation
