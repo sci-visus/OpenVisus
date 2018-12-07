@@ -36,8 +36,8 @@ cmake --build . --target install
 # cmake --build . --target deploy 
 
 cd install
-LD_LIBRARY_PATH=$(pwd)/bin PYTHONPATH=$(pwd) bin/visus                                  && echo "Embedding working"
-LD_LIBRARY_PATH=$(pwd)/bin PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import VisusKernelPy" && echo "Extending working"
+./visus.sh && echo "Embedding working"
+PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import VisusKernelPy" && echo "Extending working"
 cd ..
 
 if [ "$DEPLOY_GITHUB" = "1" ]; then
