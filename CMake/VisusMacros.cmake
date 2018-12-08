@@ -29,7 +29,9 @@ macro(DetectOsxVersion)
 	execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpmachine OUTPUT_VARIABLE MACHINE OUTPUT_STRIP_TRAILING_WHITESPACE)
 	string(REGEX REPLACE ".*-darwin([0-9]+).*" "\\1" _apple_ver "${MACHINE}")
 	
-	if (_apple_ver EQUAL "17")
+	if (_apple_ver EQUAL "18")
+		set(APPLE_OSX_VERSION 10.14)
+	elseif (_apple_ver EQUAL "17")
 		set(APPLE_OSX_VERSION 10.13)
 	elseif (_apple_ver EQUAL "16")
 		set(APPLE_OSX_VERSION 10.12)
@@ -233,8 +235,9 @@ macro(FindPythonLibrary)
 	message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
 
 	find_package(NumPy REQUIRED)
-	message(STATUS "NUMPY_FOUND   ${NUMPY_FOUND}")
-	message(STATUS "NUMPY_VERSION ${NUMPY_VERSION}")
+	message(STATUS "NUMPY_FOUND       ${NUMPY_FOUND}")
+	message(STATUS "NUMPY_VERSION     ${NUMPY_VERSION}")
+        message(STATUS "NUMPY_INCLUDE_DIR ${NUMPY_INCLUDE_DIR}")
 
 endmacro()
 
@@ -335,14 +338,15 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 		swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
 	endif()
 
-  set(RealName ${NamePy})
 	if (TARGET _${NamePy})
 	  set(RealName _${NamePy})
-	endif()
+	else()
+          set(RealName ${NamePy})
+        endif()
 	
 	SetupCommonCompileOptions(${RealName})
 	set_target_properties(${RealName} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
-	target_include_directories(${RealName} PRIVATE ${NUMPY_INCLUDE_DIR})
+	target_include_directories(${RealName} PUBLIC ${NUMPY_INCLUDE_DIR})
 	
 	# disable warnings
 	if (WIN32)

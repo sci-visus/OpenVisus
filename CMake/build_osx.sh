@@ -22,7 +22,7 @@ InstallBrew
 InstallPython
 
 # this is to solve logs too long 
-gem install xcpretty   
+sudo gem install xcpretty   
 
 brew install swig  
 
@@ -45,8 +45,8 @@ cmake --build ./ --target install     --config ${CMAKE_BUILD_TYPE}
 cmake --build ./ --target deploy      --config ${CMAKE_BUILD_TYPE} 
 
 pushd install
-PYTHONPATH=$(pwd) bin/visus.app/Contents/MacOS/visus  && echo "Embedding working"  
-PYTHONPATH=$(pwd) python -c "import VisusKernelPy"        && echo "Extending working"
+./visus.command  && echo "Embedding working"  
+PYTHONPATH=$(pwd) python -c "import VisusKernelPy" && echo "Extending working"
 popd
 
 if (( DEPLOY_GITHUB == 1 )); then
