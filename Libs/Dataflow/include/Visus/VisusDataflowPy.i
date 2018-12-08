@@ -11,9 +11,9 @@
 using namespace Visus;
 %}
 
-%include <VisusPy.i>
+%include <Visus/VisusPy.i>
 
-%import <VisusKernelPy.i>
+%import <Visus/VisusKernelPy.i>
 
 ENABLE_SHARED_PTR(Dataflow)
 ENABLE_SHARED_PTR(DataflowMessage)

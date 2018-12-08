@@ -12,7 +12,7 @@ static char* __my_numpy_capsule_name__="__my_numpy_capsule_name__";
 %}
 
 
-%include <VisusPy.i>
+%include <Visus/VisusPy.i>
 
 %{ 
 

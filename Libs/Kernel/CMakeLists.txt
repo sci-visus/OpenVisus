@@ -177,9 +177,9 @@ source_group(Misc              FILES ${MiscSources})
 source_group(Python            FILES ${PythonSources})
 
 IF (WIN32 OR APPLE)
-	file(GLOB Sources include/Visus/*.h src/*.cpp src/*.mm)
+	file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp src/*.mm)
 else()
-	file(GLOB Sources include/Visus/*.h src/*.cpp)
+	file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp)
 endif()
 
 AddLibrary(VisusKernel ${Sources})
@@ -249,3 +249,7 @@ endif()
 
 add_custom_command(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/__init__.py  $<TARGET_FILE_DIR:VisusKernel>)
 
+
+AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
+	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
+	  

@@ -17,7 +17,7 @@ namespace Visus {
 using namespace Visus;
 %}
 
-%include <VisusPy.i>
+%include <Visus/VisusPy.i>
 
 //__________________________________________________________
 %pythonbegin %{
@@ -33,7 +33,7 @@ else:
 	print("TODO")
 %}
 
-%import  <VisusKernelPy.i>
+%import  <Visus/VisusKernelPy.i>
 
 #define Q_OBJECT
 #define signals public
