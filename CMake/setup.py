@@ -3,7 +3,7 @@ import shutil
 import platform
 import glob
 
-PROJECT_VERSION="1.2.128"
+PROJECT_VERSION="1.2.129"
 PROJECT_NAME="OpenVisus"
 PROJECT_URL="https://github.com/sci-visus/OpenVisus"
 PROJECT_DESCRIPTION="ViSUS multiresolution I/O, analysis, and visualization system"
@@ -25,19 +25,7 @@ def findFilesInCurrentDirectory():
 
 			if filename.startswith(os.path.abspath('./dist')): 
 				continue
-				
-			if filename.startswith(os.path.abspath('./build')): 
-				continue			
-				
-			if filename.startswith(os.path.abspath('./%s.egg-info' % (PROJECT_NAME,))): 
-				continue		
-				
-			if filename.startswith(os.path.abspath('./__pycache__')): 
-				continue	
-				
-			if filename.startswith(os.path.abspath('./.git')): 
-				continue												
-
+			
 			if BDIST_WHEEL and filename.startswith(os.path.abspath('./lib')):
 				continue
 			
@@ -61,6 +49,12 @@ def findFilesInCurrentDirectory():
 
 # ////////////////////////////////////////////////////////////////////
 if __name__ == "__main__":
+	
+	shutil.rmtree('./build', ignore_errors=True)
+	shutil.rmtree('./__pycache__', ignore_errors=True)	
+	shutil.rmtree('./.git', ignore_errors=True)	
+	shutil.rmtree('./%s.egg-info' % (PROJECT_NAME,), ignore_errors=True)
+	
 	setuptools.setup(
 	  name = PROJECT_NAME,
 	  description = PROJECT_DESCRIPTION,
