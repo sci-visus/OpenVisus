@@ -352,24 +352,15 @@ endif()
 # /////////////////////////////////////////////////////////////////////
 # sdist target
 if (True)
-	
-	if (WIN32)
-		set(PYTHON_SDIST_FORMAT zip)
-	else()
-		set(PYTHON_SDIST_FORMAT gztar)
-	endif()
-	
 	add_custom_target(sdist 
-		        "${CMAKE_COMMAND}" -E echo "Installing setuptools..."
+		"${CMAKE_COMMAND}" -E echo "Installing setuptools..."
 		COMMAND "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade setuptools 
 		COMMAND "${CMAKE_COMMAND}" -E echo "Running sdist target..."
 		COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py" -q sdist --formats=${PYTHON_SDIST_FORMAT}
 		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
-	
 	if (WIN32)
 		set_target_properties(sdist PROPERTIES FOLDER "CMakePredefinedTargets/")
 	endif()	
-	
 endif()
 
 

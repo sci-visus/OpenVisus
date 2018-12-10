@@ -3,27 +3,22 @@ import shutil
 import platform
 import glob
 
-#increase this number for PIP
-VERSION="1.2.128"
+PROJECT_VERSION="1.2.128"
+PROJECT_NAME="OpenVisus"
+PROJECT_URL="https://github.com/sci-visus/OpenVisus"
+PROJECT_DESCRIPTION="ViSUS multiresolution I/O, analysis, and visualization system"
 
-	
-# ////////////////////////////////////////////////////////////////////
-def cleanAll():
-	shutil.rmtree('./build', ignore_errors=True)
-	shutil.rmtree('./OpenVisus.egg-info', ignore_errors=True)
-	shutil.rmtree('./__pycache__', ignore_errors=True)
-	
-	
+WIN32=platform.system()=="Windows" or platform.system()=="win32"
+APPLE=platform.system()=="Darwin"
+BDIST_WHEEL="bdist_wheel" in sys.argv	
+
 # ////////////////////////////////////////////////////////////////////
 def findFilesInCurrentDirectory():
 	
-	ret=[]
-	
-	WIN32=platform.system()=="Windows" or platform.system()=="win32"
-	APPLE=platform.system()=="Darwin"
-	BDIST_WHEEL="bdist_wheel" in sys.argv	
+	ret=[]	
 	
 	for dirpath, __dirnames__, filenames in os.walk("."):
+		
 		for it in filenames:
 
 			filename= os.path.abspath(os.path.join(dirpath, it))
@@ -31,46 +26,51 @@ def findFilesInCurrentDirectory():
 			if filename.startswith(os.path.abspath('./dist')): 
 				continue
 				
-			if os.path.basename(filename).startswith(".git"): 
+			if filename.startswith(os.path.abspath('./build')): 
+				continue			
+				
+			if filename.startswith(os.path.abspath('./%s.egg-info' % (PROJECT_NAME,))): 
+				continue		
+				
+			if filename.startswith(os.path.abspath('./__pycache__')): 
+				continue	
+				
+			if filename.startswith(os.path.abspath('./.git')): 
+				continue												
+
+			if BDIST_WHEEL and filename.startswith(os.path.abspath('./lib')):
+				continue
+			
+			if BDIST_WHEEL and filename.startswith(os.path.abspath('./include')): 
+				continue		    	
+
+			if BDIST_WHEEL and WIN32 and filename.startswith(os.path.abspath('./win32/python')):
+				continue
+
+			if BDIST_WHEEL and WIN32 and filename.endswith(".pdb"): 
 				continue
 				
 			if "__pycache__" in filename:
-				continue	    	
-
-			# for bdist_wheel I don't need to add files for compilation
-			if BDIST_WHEEL: 
-				
-				if filename.startswith(os.path.abspath('./lib')):
-					continue
-				
-				if filename.startswith(os.path.abspath('./include')): 
-					continue		    	
-
-				if WIN32:
-					
-					if filename.startswith(os.path.abspath('./win32/python')):
-						continue
-						
-					if filename.endswith(".pdb"): 
-						continue
+				continue	    				
 						
 			ret.append(filename)
 			
 	return ret
 	
 
+
 # ////////////////////////////////////////////////////////////////////
-def runSetupTools():
+if __name__ == "__main__":
 	setuptools.setup(
-	  name = "OpenVisus",
-	  description = "ViSUS multiresolution I/O, analysis, and visualization system",
-	  version=VERSION,
-	  url="https://github.com/sci-visus/OpenVisus",
+	  name = PROJECT_NAME,
+	  description = PROJECT_DESCRIPTION,
+	  version=PROJECT_VERSION,
+	  url=PROJECT_URL,
 	  author="visus.net",
 	  author_email="support@visus.net",
-	  packages=["OpenVisus"],
-	  package_dir={"OpenVisus":'.'},
-	  package_data={"OpenVisus": findFilesInCurrentDirectory()},
+	  packages=[PROJECT_NAME],
+	  package_dir={PROJECT_NAME:'.'},
+	  package_data={PROJECT_NAME: findFilesInCurrentDirectory()},
 	  classifiers=(
 	    "Programming Language :: Python :: 3",
 	    "License :: OSI Approved :: BSD License",
@@ -86,14 +86,6 @@ def runSetupTools():
 	    # "PyQt5>='5.9'" removed because I'm having some problems with travis
 	  ],
 	)
-	
-
-# ////////////////////////////////////////////////////////////////////
-if __name__ == "__main__":
-  cleanAll()
-  runSetupTools()
-
-
 
 
 

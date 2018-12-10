@@ -137,7 +137,7 @@ REM *** change as needed ***
 set PYTHON_EXECUTABLE=C:\Python37\python.exe
 set CMAKE_EXECUTABLE=C:\Program Files\CMake\bin\cmake.exe
 set QT5_DIR=c:\Qt\5.11.2\msvc2015_64
-CMake\build_win.bat
+CMake\build.bat
 ```
 
 To test if visusviewer it's working double click on the file install\visusviewer.bat.
