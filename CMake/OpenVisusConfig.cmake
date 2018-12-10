@@ -117,6 +117,10 @@ endmacro()
 
 if(OpenVisus_FOUND)
 
+	if (WIN32)
+		string(REPLACE "\\" "/" OpenVisus_DIR "${OpenVisus_DIR}")
+	endif()
+
 	Message(STATUS "OpenVisus found in ${OpenVisus_DIR}")
 	
 	OpenVisusFindPythonLibrary()
@@ -146,6 +150,8 @@ if(OpenVisus_FOUND)
 		set_target_properties(OpenVisus::AppKit   PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Gui;OpenVisus::Dataflow;OpenVisus::Nodes;OpenVisus::GuiNodes")
 		
 	endif()
+	
+
 
 endif()
 

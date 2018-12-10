@@ -277,15 +277,9 @@ if (True)
 	
 		InstallBuildFiles(*.dll bin)
 	
-		if (OpenMP_FOUND)
-			set(CMAKE_INSTALL_OPENMP_LIBRARIES 1)
-		endif()	
-		
 		# self-contained python
 		get_filename_component(__python_dir__ ${PYTHON_EXECUTABLE} DIRECTORY)
-		install(DIRECTORY ${__python_dir__}/ DESTINATION win32/python 
-		  PATTERN "*.pyc" EXCLUDE 
-		)
+		install(DIRECTORY ${__python_dir__}/ DESTINATION win32/python PATTERN "*.pyc" EXCLUDE )
 
 		include(InstallRequiredSystemLibraries)
 		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION bin COMPONENT Libraries)	
@@ -321,7 +315,6 @@ if (True)
 		InstallQtPlugin(printsupport)
 		InstallQtPlugin(styles)
 		
-		
 		install(FILES CMake/visusviewer${SCRIPT_EXTENSION} DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)
 		if (APPLE)
 			set(__filename__ "${CMAKE_BINARY_DIR}/${name}/qt.conf")
@@ -336,32 +329,24 @@ if (True)
 endif()
 
 
-
 # /////////////////////////////////////////////////////////////////////
 # note: alternative would be to use cmake FIXUP_BUNDLE... but it seems broken on Linux
 # and also would have problmes with run-time linking (i.e. Qt5 plugins)
 # deploy target
 if (True)
-
 	if (WIN32)
-	
 		add_custom_target(deploy 
-			        "${CMAKE_COMMAND}" -E echo "Running deploy step..."
+			"${CMAKE_COMMAND}" -E echo "Running deploy step..."
 		   COMMAND	"${Qt5_DIR}\\..\\..\\..\\bin\\windeployqt" "bin\\visusviewer.exe" --libdir bin --plugindir bin\\Qt\\plugins --no-translations
 			WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
-			
 		set_target_properties(deploy PROPERTIES FOLDER "CMakePredefinedTargets/")
 	
 	else()
-
 		add_custom_target(deploy 
 		  "${CMAKE_COMMAND}" -E echo "Running deploy step..."
 			COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --fix-deps 
-			COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --show-deps 
 			WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
-
 	endif()
-	
 endif()
 
 # /////////////////////////////////////////////////////////////////////
