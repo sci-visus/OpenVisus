@@ -1,5 +1,6 @@
 #!/bin/bash
 
+PYTHON_VERSION=${PYTHON_VERSION:-3.6.6}
 source "$(dirname "$0")/build_common.sh"
 
 SOURCE_DIR=$(pwd)
