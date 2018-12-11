@@ -6,9 +6,8 @@ cd ${this_dir}
 
 USE_PYQT5=${USE_PYQT5:0}
 
-if [ ! -f .visusviewer.command.ready ] ; then
+if [[  $1 == "--bootstrap" ]] ; then
 
-	# install python dependencies
 	python -m pip install --user numpy 
 
 	if (( USE_PYQT5 == 1 )) ; then
@@ -16,9 +15,9 @@ if [ ! -f .visusviewer.command.ready ] ; then
 		python -m pip install --user PyQt5  
 		python deploy.py --set-qt5 $(python -c "import os,PyQt5; print(os.path.dirname(PyQt5.__file__))")/Qt
 	fi
-	
-	touch .visusviewer.command.ready
 
+	exit 0
+	
 fi
 
 export PYTHONPATH=$(pwd):$(python -c "import sys; print(':'.join(sys.path))")
