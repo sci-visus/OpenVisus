@@ -31,7 +31,10 @@ if (( VISUS_INTERNAL_DEFAULT == 0 )); then
 fi
 
 if (( VISUS_GUI == 1 )); then
-	brew install qt5
+	# install qt 5.11 (instead of 5.12 which is not supported by PyQt5)
+	# brew install qt5
+	brew unlink git || true
+	brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb
 	Qt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5	
 fi
 

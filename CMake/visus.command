@@ -4,4 +4,7 @@ this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
 
 cd ${this_dir}
 
-PYTHONPATH=${this_dir} ./bin/visus.app/Contents/MacOS/visus "$@"
+# assuming the current python is version-compatible
+export PYTHONPATH=$(pwd):$(python -c "import sys; print(':'.join(sys.path))")
+
+./bin/visus.app/Contents/MacOS/visus "$@"

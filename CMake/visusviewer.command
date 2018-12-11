@@ -4,4 +4,9 @@ this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)
 
 cd ${this_dir}
 
-PYTHONPATH=${this_dir} QT_PLUGIN_PATH=${this_dir}/bin/Qt/plugins bin/visusviewer.app/Contents/MacOS/visusviewer "$@"
+# assuming the current python is version-compatible
+export PYTHONPATH=$(pwd):$(python -c "import sys; print(':'.join(sys.path))")
+
+export QT_PLUGIN_PATH=$(pwd)/bin/Qt/plugins 
+
+bin/visusviewer.app/Contents/MacOS/visusviewer "$@"
