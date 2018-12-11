@@ -197,12 +197,19 @@ endmacro()
 
 # ///////////////////////////////////////////////////
 macro(FindPythonLibrary)
+
 	SetIfNotDefined(PYTHON_VERSION 3)
+
 	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)	
+	find_package(NumPy                          REQUIRED)
+
 	message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
 	message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
 	message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
+	message(STATUS "NUMPY_FOUND         ${NUMPY_FOUND}")
+	message(STATUS "NUMPY_VERSION       ${NUMPY_VERSION}")
+	message(STATUS "NUMPY_INCLUDE_DIR   ${NUMPY_INCLUDE_DIR}")	
 	
 	add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
 	set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
@@ -240,10 +247,8 @@ macro(FindPythonLibrary)
 	EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE}  -c  "import site;print(site.getsitepackages()[-1])"  OUTPUT_VARIABLE PYTHON_SITE_PACKAGES_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
 	message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
 
-	find_package(NumPy REQUIRED)
-	message(STATUS "NUMPY_FOUND       ${NUMPY_FOUND}")
-	message(STATUS "NUMPY_VERSION     ${NUMPY_VERSION}")
-        message(STATUS "NUMPY_INCLUDE_DIR ${NUMPY_INCLUDE_DIR}")
+	
+
 
 endmacro()
 
