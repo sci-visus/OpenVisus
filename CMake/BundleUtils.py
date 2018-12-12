@@ -480,9 +480,8 @@ class PipPostInstall():
 	# createScript
 	def createScript(self,exe):
 		
-			
 			name=GetFileNameWithoutExtension(exe)
-			script_ext=".bat" if WIN32 else (".command" if APPLE else ".sh"
+			script_ext=".bat" if WIN32 else (".command" if APPLE else ".sh")
 			script_filename="%s%s" % (name,script_ext)
 			inner_exe='%s/Contents/MacOS/%s' % (exe,name) if APPLE else exe
 			
