@@ -42,7 +42,8 @@ import unittest
 
 import numpy
 
-from VisusKernelPy import *
+from OpenVisus import *
+from OpenVisus.VisusKernelPy import *
 
 
 # ////////////////////////////////////////////////////////////////////

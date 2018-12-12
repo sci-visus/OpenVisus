@@ -1,7 +1,7 @@
 
 import sys
 if (sys.version_info > (3, 0)):
-  from .OpenVisus import *
+  from . import *
 else:  
   from VisusKernelPy import *
 

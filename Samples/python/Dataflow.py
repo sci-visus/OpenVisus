@@ -44,8 +44,9 @@ import string
 import unittest
 import os
 
-from VisusKernelPy import *
-from VisusDataflowPy import *
+from OpenVisus import *
+from OpenVisus.VisusKernelPy import *
+from OpenVisus.VisusDataflowPy import *
   
 # ////////////////////////////////////////////////////////////////////////
 class PyProducer(Node):
