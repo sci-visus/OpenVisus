@@ -54,34 +54,15 @@ Table of content:
 
 [Linux compilation](#linux-compilation)
 
-[Use OpenVisus as submodule](#use-openvisus-as-submodule)
 
-[mod_visus](#mod_visus)
-
-[Auto deploy] (#auto_deploy)
-	
-  
-  
 ## PIP distribution
 
-You can install OpenVisus in python using Pip:
-
-in windows:
+You can install/test OpenVisus in python using Pip:
 
 ```
 python -m pip install --user numpy OpenVisus
-```
-
-in osx,linux:
-
-```
-python -m pip install  --user numpy OpenVisus
-```
-
-And test it using the following command. 
-
-```
-python -c "import VisusKernelPy"
+python -m OpenVisus --pip-post-install  # TODO!
+python -c "import OpenVisus"
 ```
 
 
@@ -124,23 +105,23 @@ set VCPKG_TARGET_TRIPLET=x64-windows
 Then:
 
 ```
-cd c:\
-mkdir projects
-cd projects
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 
-mkdir build
-cd build
-
-REM *** change as needed *** 
+REM *** change path as needed *** 
 set PYTHON_EXECUTABLE=C:\Python37\python.exe
 set CMAKE_EXECUTABLE=C:\Program Files\CMake\bin\cmake.exe
 set QT5_DIR=c:\Qt\5.11.2\msvc2015_64
 CMake\build.bat
 ```
 
-To test if visusviewer it's working double click on the file install\visusviewer.bat.
+To test if it's working:
+
+```
+cd install
+.\visus.bat
+.\visusviewer.bat 
+```
 
 
 ## MacOSX compilation
@@ -164,18 +145,11 @@ To test if it's working:
 
 ```
 cd install
-
-# (embedding mode)
-bin/visus.app/Contents/MacOS/visus  
-bin/visusviewer.app/Contents/MacOS/visusviewer 
-
-# (extending mode)
-PYTHONPATH=$(pwd) python -c "import VisusKernelPy"
-PYTHONPATH=$(pwd) QT_PLUGIN_PATH=$(pwd)/bin/Qt/plugins python -c "import VisusKernelPy; import VisusGuiPy"
+./visus.command
+./visusviewer.command 
 ```
       
 ## Linux compilation
-
 
 Build the repository:
 
@@ -185,58 +159,13 @@ cd OpenVisus
 CMAKE_BUILD_TYPE=RelWithDebInfo ./CMake/build.sh  
 ```
 
-To test if it's working (consider you should modify the pyenv part):
+To test if it's working:
 
 ```
 cd install
-
-# example of embedding mode
-LD_LIBRARY_PATH=$(pwd):$(pyenv prefix)/lib PYTHONPATH=$(pwd) bin/visus
-
-# example of extending mode
-LD_LIBRARY_PATH=$(pwd)                     PYTHONPATH=$(pwd) python -c "import VisusKernelPy"
+./visus.sh
+./visusviewer.sh
 ```
 
-  
-## Use OpenVisus as submodule
-
-In your repository:
-
-```
-git submodule add https://github.com/sci-visus/OpenVisus
-```
-	
-Create a CMakeLists.txt with the following content:
-
-```
-CMAKE_MINIMUM_REQUIRED(VERSION 3.1) 
-
-project(YourProjectName)
-
-include(OpenVisus/CMake/VisusMacros.cmake)
-SetupCMake()
-add_subdirectory(OpenVisus)
-...your code...
-target_link_libraries(your_executable VisusAppKit) # or whatever you need
-```
-	
-## mod_visus
-
-See Docker directory
-
-# Auto Deploy	
-
-`.travis.yml` and `.appveyor.ymp` deploy automatically to `GitHub Releases` when the Git commit is tagged.
-Then tag your code in git:
-
-```
-vi CMake/setup.py
-# .... change the VERSION number in the file...
-git commit -a -m "...your message here..." 
-git config --global push.followTags true 
- # replace  with the same numbers from CMake/setup.py
-VERSION=X.Y.Z git tag -a "$VERSION" -m "$VERSION" 
-git push
-```
 
 

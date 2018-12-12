@@ -557,7 +557,6 @@ class PipPostInstall():
 # //////////////////////////////////////////////////////////////////////////////
 if __name__ == "__main__":
 	
-	
 	Qt5_DIR=""
 	OPENSSL_ROOT_DIR=""
 	I=1
@@ -608,9 +607,7 @@ if __name__ == "__main__":
 			PipMain(['install', "--user","--upgrade","setuptools"])	
 			print("Creating sdist...")
 			subprocess.call("%s setup.py -q sdist --formats=%s" % (sys.executable ,"zip" if WIN32 else "gztar"), shell=True)	
-		
-			print("sdist Created")					
-					
+			print("sdist Created",glob.glob('dist/*.zip'))
 			print("Finished --cmake-post-install")
 			I+=1; continue
 					

@@ -46,9 +46,10 @@ import os
 
 import numpy
 
+from OpenVisus     import *
 from VisusKernelPy import *
-from VisusDbPy import *
-from VisusIdxPy import *
+from VisusDbPy     import *
+from VisusIdxPy    import *
 
 # ////////////////////////////////////////////////////////////////////////
 class TextIdx(unittest.TestCase):

@@ -136,8 +136,8 @@ fi
 
 pushd install
 ${PYTHON_EXECUTABLE} BundleUtils.py --pip-post-install
-./visus.sh                                     && echo "Embedding working"
-${PYTHON_EXECUTABLE} -c "import VisusKernelPy" && echo "Extending working"
+./visus.sh                                 && echo "Embedding working"
+${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
 popd
 
 

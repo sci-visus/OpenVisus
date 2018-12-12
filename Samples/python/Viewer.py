@@ -12,10 +12,11 @@ try:
 except ImportError:
 	bQtAvailable=False
 
-from VisusKernelPy import *
-from VisusGuiPy import *
+from OpenVisus       import *
+from VisusKernelPy   import *
+from VisusGuiPy      import *
 from VisusGuiNodesPy import *
-from VisusAppKitPy import *
+from VisusAppKitPy   import *
 
 # sip does not work in debug mode
 bSipAvailable=True

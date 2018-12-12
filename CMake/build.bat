@@ -45,6 +45,6 @@ if "%DEPLOY_PYPI%"=="1" (
 
 cd install
 "%PYTHON_EXECUTABLE%" BundleUtils.py --pip-post-install
-.\visus.bat                                     && echo "Embedding working"                                                     
-"%PYTHON_EXECUTABLE%" -c "import VisusKernelPy" && echo "Extending working"
+.\visus.bat                                 && echo "Embedding working"                                                     
+"%PYTHON_EXECUTABLE%" -c "import OpenVisus" && echo "Extending working"
 cd ..

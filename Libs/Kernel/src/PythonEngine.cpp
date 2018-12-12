@@ -316,7 +316,7 @@ PythonEngine::PythonEngine(bool bVerbose)
 
       for (auto dir : candidates)
       {
-        auto filename=dir + "/VisusKernelPy.py";
+        auto filename=dir + "/OpenVisus.py";
         if (FileUtils::existsFile(filename))
         {
           if (bVerbose)
@@ -337,9 +337,9 @@ PythonEngine::PythonEngine(bool bVerbose)
     addSysPath(VISUS_PYTHON_SYS_PATH,bVerbose);
 
 	if (bVerbose)
-    VisusInfo() << "Trying to import VisusKernelPy...";
+    VisusInfo() << "Trying to import OpenVisus...";
 
-  execCode("from VisusKernelPy import *");
+  execCode("from OpenVisus import *");
 
   if (bVerbose)
     VisusInfo() << "...imported OpenVisus";

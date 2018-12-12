@@ -42,6 +42,7 @@ import unittest
 
 import numpy
 
+from OpenVisus     import *
 from VisusKernelPy import *
 
 
