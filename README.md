@@ -43,8 +43,7 @@ For support: support@visus.net
 
 * `windows` build status: [![Windows Build status](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master?svg=true)](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master)                                                                                                                                                                             
 
-Table of content:
-
+## Table of contents:
 
 [PIP Distribution](#pip-distribution)
 
@@ -58,7 +57,7 @@ Table of content:
 
 [mod_visus](#mod_visus)
 
-[Auto deploy] (#auto_deploy)
+[Auto deploy](#auto_deploy)
 	
   
   
@@ -66,16 +65,10 @@ Table of content:
 
 You can install OpenVisus in python using Pip:
 
-in windows:
+in windows, osx, or linux:
 
 ```
 python -m pip install --user numpy OpenVisus
-```
-
-in osx,linux:
-
-```
-python -m pip install  --user numpy OpenVisus
 ```
 
 And test it using the following command. 
@@ -224,7 +217,7 @@ target_link_libraries(your_executable VisusAppKit) # or whatever you need
 
 See Docker directory
 
-# Auto Deploy	
+## Auto Deploy
 
 `.travis.yml` and `.appveyor.ymp` deploy automatically to `GitHub Releases` when the Git commit is tagged.
 Then tag your code in git:
