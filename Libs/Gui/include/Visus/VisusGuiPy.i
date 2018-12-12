@@ -21,16 +21,15 @@ using namespace Visus;
 
 //__________________________________________________________
 %pythonbegin %{
+
 import os,platform,PyQt5
 QT5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
-if (platform.system()=="Windows" or platform.system()=="win32"):
-	if not os.path.join(QT5_DIR,"bin") in sys.path:
-		sys.path.append(os.path.join(QT5_DIR,"bin"))
-	os.environ["QT_PLUGIN_PATH"] = os.path.join(QT5_DIR,"plugins")
-elif (platform.system()=="Darwin"):
-	print("TODO")
-else:
-	print("TODO")
+
+for it in [os.path.join(QT5_DIR,"bin"),]:
+	if (os.path.isdir(it)) and (not it in sys.path):
+		sys.path.append(it)
+		
+os.environ["QT_PLUGIN_PATH"]= os.path.join(QT5_DIR,"plugins")
 %}
 
 %import  <Visus/VisusKernelPy.i>

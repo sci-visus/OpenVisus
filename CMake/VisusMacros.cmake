@@ -100,13 +100,10 @@ macro(SetupCommonCMake)
 		
 		if (WIN32)
 			set(SCRIPT_EXTENSION ".bat")
-			set(PYTHON_SDIST_FORMAT zip)
 		elseif (APPLE)
 			set(SCRIPT_EXTENSION ".command")
-			set(PYTHON_SDIST_FORMAT gztar)
 		else()
 			set(SCRIPT_EXTENSION ".sh")
-			set(PYTHON_SDIST_FORMAT gztar)
 		endif()	
 	
 	endif()

@@ -249,8 +249,8 @@ if (True)
 	install(FILES        README.md                      DESTINATION .)
 	install(FILES        CMake/__init__.py              DESTINATION .)
 	install(FILES        CMake/setup.py                 DESTINATION .)
-	install(FILES        CMake/deploy.py                DESTINATION .)
 	install(FILES        CMake/OpenVisusConfig.cmake    DESTINATION .)
+	install(FILES        CMake/BundleUtils.py           DESTINATION .)
 	install(DIRECTORY    Copyrights                     DESTINATION .)
 	install(DIRECTORY    Samples                        DESTINATION .)
 	
@@ -271,8 +271,6 @@ if (True)
 	# swig generated files 
 	InstallBuildFiles(*.py ./)
 	
-  	install(FILES CMake/visus${SCRIPT_EXTENSION} DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)
-	
 	if (WIN32)
 	
 		InstallBuildFiles(*.dll bin)
@@ -287,80 +285,16 @@ if (True)
 	endif()
 
 	if (VISUS_GUI)
-	
-		install(DIRECTORY Libs/Gui/include/Visus         DESTINATION include/Gui)
-		install(DIRECTORY Libs/GuiNodes/include/Visus    DESTINATION include/GuiNodes)
-		install(DIRECTORY Libs/AppKit/include/Visus      DESTINATION include/AppKit)
-		
-		# install Qt plugins
-		if (EXISTS "${Qt5_DIR}/../../../plugins")
-			set(qt5_PLUGIN_DIR "${Qt5_DIR}/../../../plugins")
-			
-		elseif (EXISTS "${Qt5_DIR}/../../qt5/plugins")
-			set(qt5_PLUGIN_DIR "${Qt5_DIR}/../../qt5/plugins")
-			
-		else()
-			MESSAGE(ERROR "Cannot find qt plugins")
-		endif()
-
-		macro(InstallQtPlugin name)
-			if (EXISTS "${qt5_PLUGIN_DIR}/${name}")
-				Install(DIRECTORY "${qt5_PLUGIN_DIR}/${name}" DESTINATION bin/Qt/plugins)
-			endif()
-		endmacro()
-		
-		InstallQtPlugin(iconengines)
-		InstallQtPlugin(imageformats)
-		InstallQtPlugin(platforms)
-		InstallQtPlugin(printsupport)
-		InstallQtPlugin(styles)
-		
-		install(FILES CMake/visusviewer${SCRIPT_EXTENSION} DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)
-		if (APPLE)
-			set(__filename__ "${CMAKE_BINARY_DIR}/${name}/qt.conf")
-			file(WRITE    "${__filename__}" "[Paths]\n")
-			file(APPEND   "${__filename__}" "  Plugins=../../../bin/Qt/plugins\n")
-			install(FILES "${__filename__}" DESTINATION "bin/visusviewer.app/Contents/Resources")
-		endif()
-		
+		install(DIRECTORY Libs/Gui/include/Visus                DESTINATION include/Gui)
+		install(DIRECTORY Libs/GuiNodes/include/Visus           DESTINATION include/GuiNodes)
+		install(DIRECTORY Libs/AppKit/include/Visus             DESTINATION include/AppKit)
 	endif()
-
 	
-endif()
-
-
-# /////////////////////////////////////////////////////////////////////
-# note: alternative would be to use cmake FIXUP_BUNDLE... but it seems broken on Linux
-# and also would have problmes with run-time linking (i.e. Qt5 plugins)
-# deploy target
-if (True)
-	if (WIN32)
-		add_custom_target(deploy 
-			"${CMAKE_COMMAND}" -E echo "Running deploy step..."
-		   COMMAND	"${Qt5_DIR}\\..\\..\\..\\bin\\windeployqt" "bin\\visusviewer.exe" --libdir bin --plugindir bin\\Qt\\plugins --no-translations
-			WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
-		set_target_properties(deploy PROPERTIES FOLDER "CMakePredefinedTargets/")
+	file(WRITE  ${CMAKE_INSTALL_PREFIX}/requirements.txt "numpy\n")
+	file(APPEND ${CMAKE_INSTALL_PREFIX}/requirements.txt "PyQt5==5.11.2\n")	
 	
-	else()
-		add_custom_target(deploy 
-		  "${CMAKE_COMMAND}" -E echo "Running deploy step..."
-			COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/deploy.py" --fix-deps 
-			WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
-	endif()
-endif()
+	add_subdirectory(CMake/PostInstall)
 
-# /////////////////////////////////////////////////////////////////////
-# sdist target
-if (True)
-	add_custom_target(sdist 
-		"${CMAKE_COMMAND}" -E echo "Installing setuptools..."
-		COMMAND "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade setuptools 
-		COMMAND "${CMAKE_COMMAND}" -E echo "Running sdist target..."
-		COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py" -q sdist --formats=${PYTHON_SDIST_FORMAT}
-		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
-	if (WIN32)
-		set_target_properties(sdist PROPERTIES FOLDER "CMakePredefinedTargets/")
-	endif()	
 endif()
 
 

@@ -129,41 +129,16 @@ cmake --build . --target all
 cmake --build . --target test
 cmake --build . --target install 
 
-# deploy
-cp ${OPENSSL_LIB_DIR}/libcrypto.so*      install/bin/
-cp ${OPENSSL_LIB_DIR}/libssl.so*         install/bin/
-
-# NOTE: sometimes docker containers do not contain the python shared library (needed for executables) so I'm copying it too
-
-# NOTE2: if I use mine libpython* I will have problems with 'built in' modules (such as math) by running for example the executable "visus"
-#         because for example my libpython* does nog have some builtin and OS one has it 
-#         so it seems that mixing that is not a good idea
-#         example: with pyenv math is not builtin and it's a shared library:
-#         /root/.pyenv/versions/3.5.1/lib/python3.5/lib-dynload/math.cpython-35m-x86_64-linux-gnu.so
-#         but in ubuntu I have math as builtin
-#         if I use my manylinux libpython* and I use it in ubuntu, my manylinux try to find an external (not builtin) math,
-#         but it does not exist!
-#         in manylinux "python -c "import sys; print(sys.builtin_module_names)"
-#             ('__builtin__', '__main__', '_codecs', '_sre', '_symtable', 'errno', 'exceptions', 'gc', 'imp', 'marshal', 'posix', 'pwd', 'signal', 'sys', 'thread', 'zipimport')
-#         in ubuntu "import sys; print(sys.builtin_module_names)"
-#             ('_ast', '_bisect', '_codecs', '_collections', ...., 'math', 'posix', ...., 'zipimport', 'zlib')
-# cp $(pyenv prefix)/lib/libpython*        install/bin/  
-
-cmake --build . --target deploy 
-
-pushd install
-./visus.sh && echo "Embedding working"
-PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import VisusKernelPy" && echo "Extending working"
-popd
-
-if (( DEPLOY_GITHUB == 1 )); then
-	cmake --build ./ --target sdist --config ${CMAKE_BUILD_TYPE}	
-fi
-
 if (( DEPLOY_PYPI == 1 )); then
 	cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
 	cmake --build ./ --target pypi        --config ${CMAKE_BUILD_TYPE}
 fi
+
+pushd install
+${PYTHON_EXECUTABLE} BundleUtils.py --pip-post-install
+./visus.sh                                     && echo "Embedding working"
+${PYTHON_EXECUTABLE} -c "import VisusKernelPy" && echo "Extending working"
+popd
 
 
 

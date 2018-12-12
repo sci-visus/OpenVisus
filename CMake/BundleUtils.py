@@ -8,6 +8,7 @@ import platform
 import errno
 import fnmatch
 import os
+import sysconfig
 
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
@@ -82,7 +83,7 @@ def WriteTextFile(filename,content):
 # /////////////////////////////////////////////////
 # glob(,recursive=True) is not supported in python 2.x
 # see https://stackoverflow.com/questions/2186525/use-a-glob-to-find-files-recursively-in-python
-def recursiveGlob(rootdir='.', pattern='*'):
+def recursiveFindFiles(rootdir='.', pattern='*'):
   return [os.path.join(looproot, filename)
           for looproot, _, filenames in os.walk(rootdir)
           for filename in filenames
@@ -142,8 +143,8 @@ class AppleDeployStep:
 	# findAllBinaries
 	def findAllBinaries(self):	
 		ret=[]
-		ret+=recursiveGlob('bin', '*.dylib')
-		ret+=recursiveGlob('bin', '*.so')
+		ret+=recursiveFindFiles('bin', '*.dylib')
+		ret+=recursiveFindFiles('bin', '*.so')
 		ret+=self.findApps()
 		ret+=self.findFrameworks()
 		return ret
@@ -443,66 +444,182 @@ class LinuxDeployStep:
 			
 			print("%30s" % (key,),target)
 
-	# fixAllDeps
-	def fixAllDeps(self):
-		# need to run two times
-		for I in range(2):
-			# WRONG: for manylinux i should not copy the low-level dynamic libraries				
-			# see CMake/build_manylinux.sh
-			# self.copyGlobalDeps()
-			self.setOrigins()
-		
 
+
+# ////////////////////////////////////////////////////////////////////
+def PipMain(args):
+	
+	import pip
+	if int(pip.__version__.split('.')[0])>9:
+		from pip._internal import main
+	else:
+		from pip import main
 		
+	main(args)	
+	
+
+# ////////////////////////////////////////////////////////////////////
+class PipPostInstall():
+	
+	# constructor
+	def __init__(self):
+		pass
 		
+	# findExecutables
+	def findExecutables(self):
+		
+		if WIN32:
+			return glob.glob('bin/*.exe')
+			
+		if APPLE:
+			return glob.glob('bin/*.app')
+			
+		return [it for it in glob.glob('bin/*') if os.path.isfile(it) and not os.path.splitext(it)[1] ]
+
+
+	# createScript
+	def createScript(self,exe):
+		
+			
+			name=GetFileNameWithoutExtension(exe)
+			script_ext=".bat" if WIN32 else (".command" if APPLE else ".sh"
+			script_filename="%s%s" % (name,script_ext))
+			inner_exe='%s/Contents/MacOS/%s' % (exe,name) if APPLE else exe
+			
+			import PyQt5
+			
+			PYTHON_EXECUTABLE=sys.executable
+			PYTHONPATH=":".join(sys.path)
+			LD_LIBRARY_PATH=os.path.realpath(sysconfig.get_config_var("LIBDIR"))
+			QT5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
+			QT_PLUGIN_PATH=os.path.join(QT5_DIR,"plugins")
+			
+			if WIN32:
+				
+				WriteTextFile(script_filename,[
+					r'cd /d %~dp0',
+					'set PYTHON_EXECUTABLE=%s' %(PYTHON_EXECUTABLE,),
+					'set PYTHONPATH=$(pwd):%s' % (PYTHONPATH,),
+					'set QT5_DIR=%s' % (QT5_DIR,),
+					'set QT_PLUGIN_PATH=%s' % (QT_PLUGIN_PATH,),
+					'set PATH=%s;%s;%s;%s' % (os.path.join(QT5_DIR,"bin"),os.path.dirname(PYTHON_EXECUTABLE),r"%cd%\bin",r"%PATH%"),
+					'%s %*' % (inner_exe,)
+				])
+
+			else:
+		
+				WriteTextFile(script_filename,[
+					'#!/bin/bash',
+					'this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)',
+					'cd ${this_dir}',
+					'export PYTHON_EXECUTABLE=%s' %(PYTHON_EXECUTABLE,),
+					'export PYTHONPATH=$(pwd):%s' % (PYTHONPATH,),
+					'export QT5_DIR=%s' % (QT5_DIR,),
+					'export QT_PLUGIN_PATH=%s' % (QT_PLUGIN_PATH,),
+					'export %s=%s' % ("DYLD_LIBRARY_PATH" if APPLE else "LD_LIBRARY_PATH",LD_LIBRARY_PATH,),
+					'%s "$@"'	% (inner_exe,)
+				])	
+					
+				#WriteTextFile("%s/Contents/Resources/qt.conf" % (app_path,),[
+				#	"[Paths]",
+				#	"  Plugins=%s" % (os.path.join(Qt5_DIR,"plugins"),)])				
+			
+			if not WIN32:
+				subprocess.call("chmod +rx %s" % (script_filename,), shell=True)
+					
+	# run
+	def run(self):
+		
+		old_dir = os.getcwd()
+		os.chdir(os.path.dirname(os.path.realpath(__file__)))
+		
+		PipMain(["install", "-r","requirements.txt"])
+		
+		if WIN32:
+			
+			# TODO...
+			pass
+		
+		elif APPLE:
+			
+			deploy=AppleDeployStep()
+			import PyQt5
+			Qt5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
+			deploy.addRPath(os.path.join(Qt5_DIR,"lib"))	
+			
+
+		# create *.command
+		for exe in self.findExecutables():
+			self.createScript(exe)
+				
+		
+		os.chdir(old_dir)	
 
 # //////////////////////////////////////////////////////////////////////////////
 if __name__ == "__main__":
 	
-	deploy=None
 	
-	if WIN32:
-		print("Not supported")
-		sys.exit(-1)
-		
-	deploy=	AppleDeployStep() if APPLE else LinuxDeployStep()
-
+	QT5_DIR=""
+	OPENSSL_ROOT_DIR=""
 	I=1
-	while I < len(sys.argv):
-	
-		# verbose	
-		if sys.argv[I]=="--verbose":
-			bVerbose=True
-			I+=1
-			continue
-		
-		if sys.argv[I]=="--show-deps":
-			I+=1
-			print("Current deps:")
-			
-			if (not APPLE):
-				print("NOTE for linux, you can still see some global deps due to the ldd command")
-				
-			deploy.showDeps()
-			continue
-		
-		# fix all
-		if sys.argv[I]=="--fix-deps":
-			I+=1
-			print("Fixing deps")
-			deploy.fixAllDeps()
-			continue			
-			
-		if sys.argv[I]=="--set-qt5":
+	while I<len(sys.argv):
+
+		# _____________________________________________
+		if sys.argv[I]=="--Qt5_DIR":
 			QT5_DIR=sys.argv[I+1]
-			I+=2
-			print("Setting qt directory",QT5_DIR)
-			ExecuteCommand(["rm","-Rf","bin/Qt*"])
-			deploy.addRPath(QT5_DIR + "/lib")
-			print("Rememeber to `export QT_PLUGIN_PATH=" + QT5_DIR+"/plugins`")
-			continue
+			I+=2; continue	
 			
-		print("Unknonwn argument",sys.argv[I])
-		sys.exit(-1)		
-	
+		# _____________________________________________
+		if sys.argv[I]=="--OPENSSL_ROOT_DIR":
+			OPENSSL_ROOT_DIR=sys.argv[I+1]
+			I+=2; continue				
+		
+		# _____________________________________________
+		if sys.argv[I]=="--cmake-post-install":
+			
+			print("Executing --cmake-post-install...")
+						
+			if WIN32:
+				ExecuteCommand([Qt5_DIR+"\\..\\..\\..\\bin\\windeployqt","bin\\visusviewer.exe","--libdir","bin","--plugindir","bin\\Qt\\plugins","--no-translations"])
+				subprocess.call(r"rmdir /S /Q bin\Qt", shell=True)
+				subprocess.call(r"del /F /S /Q bin\Qt*", shell=True)
+				
+			elif APPLE:
+				AppleDeployStep().fixAllDeps()
+				subprocess.call(r"rm -Rf bin/Qt*", shell=True)
+				
+			else:
+				
+				# see CMake/build_manylinux.sh for 'minimal' bundle libraries
+				deploy=LinuxDeployStep()
+				for I in range(2):
+					# WRONG: for manylinux i should not copy the low-level dynamic libraries	
+					# deploy.copyGlobalDeps()
+					deploy.setOrigins()
+					
+				# WRONG: do not copy libpython
+				# if I use manylinux libpython* I will have problems with 'built in' modules (such as math) that are different depending on the platform
+				# subprocess.call("cp ..../libpython*  ./bin/", shell=True)
+				
+				if OPENSSL_ROOT_DIR:
+					subprocess.call("cp " + OPENSSL_ROOT_DIR + "/lib/libcrypto.so* bin/", shell=True)
+					subprocess.call("cp " + OPENSSL_ROOT_DIR + "/lib/libssl.so*    bin/", shell=True)			
+					
+			# create sdist
+			PipMain(['install', "--user","--upgrade","setuptools"])	
+			subprocess.call("%s setup.py -q sdist --formats=%s" % (sys.executable ,"zip" if WIN32 else "gztar"), shell=True)						
+					
+			print("Finished --cmake-post-install")
+			I+=1; continue
+					
+		# _____________________________________________
+		if sys.argv[I]=="--pip-post-install":
+			
+			print("Executing --pip-post-install....")
+			PipPostInstall().run()
+			print("finished --pip-post-install")
+			I+=1; continue
+					
+		raise Exception("Unknown argument",sys.argv[I])
+
 	sys.exit(0)

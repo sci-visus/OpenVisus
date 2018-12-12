@@ -9,7 +9,7 @@ notifications:
     on_build_status_changed: true  
    
 environment:
-  QT5_DIR: C:/Qt/5.10.1/msvc2017_64
+  QT5_DIR: C:/Qt/5.11.2/msvc2017_64
   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   CMAKE_GENERATOR: Visual Studio 15 2017 Win64
   DEPLOY_GITHUB: false
@@ -59,7 +59,7 @@ install:
 build_script:
   - cmd: cd %APPVEYOR_BUILD_FOLDER% 
   - cmd: CMake\build.bat
-   
+
 # test are already in cmake
 test: off
 
@@ -68,7 +68,8 @@ after_build:
         If ( -not ($env:DEPLOY_GITHUB -eq 1) ) {
           Exit-AppveyorBuild
         }
-
+  - cmd: "%PYTHON_EXECUTABLE%" -c "import os;import glob;filename=glob.glob('build/install/dist/*.zip')[0];os.rename(filename,filename.replace('.zip','-%PYTHON_VERSION%-win_amd64.zip'))" 
+   
 artifacts:
     - path: .\build\install\dist\*.zip
       name: UploadToGitReleases

@@ -36,16 +36,15 @@ cd build
 "%CMAKE_EXECUTABLE%" --build . --target ALL_BUILD --config RelWithDebInfo
 "%CMAKE_EXECUTABLE%" --build . --target RUN_TESTS --config RelWithDebInfo
 "%CMAKE_EXECUTABLE%" --build . --target INSTALL   --config RelWithDebInfo
-"%CMAKE_EXECUTABLE%" --build . --target deploy    --config RelWithDebInfo
-
-if "%DEPLOY_GITHUB%"=="1" (
-   echo "Deploying to github enabled"
-   "%CMAKE_EXECUTABLE%" --build . --target sdist --config RelWithDebInfo
-   "%PYTHON_EXECUTABLE%" -c "import os;import glob;filename=glob.glob('install/dist/*.zip')[0];os.rename(filename,filename.replace('.zip','-%PYTHON_VERSION%-win_amd64.zip'))" 
-)
  
 if "%DEPLOY_PYPI%"=="1" (
    echo "Deploying to pypi enabled"
    "%CMAKE_EXECUTABLE%" --build . --target bdist_wheel   --config RelWithDebInfo
    "%CMAKE_EXECUTABLE%" --build . --target pypi          --config RelWithDebInfo
 )
+
+cd install
+"%PYTHON_EXECUTABLE%" BundleUtils.py --pip-post-install
+.\visus.bat                                     && echo "Embedding working"                                                     
+"%PYTHON_EXECUTABLE%" -c "import VisusKernelPy" && echo "Extending working"
+cd ..

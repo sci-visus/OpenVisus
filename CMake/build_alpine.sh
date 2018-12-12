@@ -30,16 +30,12 @@ cmake ${cmake_opts} ${SOURCE_DIR}
 
 cmake --build . --target all -- -j 4 
 cmake --build . --target test
-cmake --build . --target install 
-
-# no deploy here 
-# cmake --build . --target deploy 
+cmake --build . --target install
 
 cd install
-./visus.sh && echo "Embedding working"
-PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import VisusKernelPy" && echo "Extending working"
+${PYTHON_EXECUTABLE} BundleUtils.py --pip-post-install
+./visus.sh                                     && echo "Embedding working"
+${PYTHON_EXECUTABLE} -c "import VisusKernelPy" && echo "Extending working"
 cd ..
 
-if [ "$DEPLOY_GITHUB" = "1" ]; then
-	cmake --build ./ --target sdist --config ${CMAKE_BUILD_TYPE}
-fi
+
