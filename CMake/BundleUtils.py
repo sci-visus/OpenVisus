@@ -502,7 +502,7 @@ class PipPostInstall():
 					'set QT5_DIR=%s' % (QT5_DIR,),
 					'set QT_PLUGIN_PATH=%s' % (QT_PLUGIN_PATH,),
 					'set PATH=%s;%s;%s;%s' % (os.path.join(QT5_DIR,"bin"),os.path.dirname(PYTHON_EXECUTABLE),r"%cd%\bin",r"%PATH%"),
-					'%s %*' % (inner_exe,)
+					inner_exe + r' %*'
 				])
 
 			else:
@@ -516,7 +516,7 @@ class PipPostInstall():
 					'export QT5_DIR=%s' % (QT5_DIR,),
 					'export QT_PLUGIN_PATH=%s' % (QT_PLUGIN_PATH,),
 					'export %s=%s' % ("DYLD_LIBRARY_PATH" if APPLE else "LD_LIBRARY_PATH",LD_LIBRARY_PATH,),
-					'%s "$@"'	% (inner_exe,)
+					inner_exe + r' "$@"'
 				])	
 					
 				#WriteTextFile("%s/Contents/Resources/qt.conf" % (app_path,),[
