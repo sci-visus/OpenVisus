@@ -6,7 +6,7 @@ PYTHON_VERSION=${PYTHON_VERSION:-3.6.1}
 VISUS_INTERNAL_DEFAULT=1
 DISABLE_OPENMP=1
 VISUS_GUI=0 
-PYPI_PLAT_NAME=manylinux1_x86_64
+PLAT_NAME=manylinux1_x86_64
 
 source "$(dirname "$0")/build_common.sh"
 
@@ -130,7 +130,6 @@ cmake --build . --target test
 cmake --build . --target install 
 
 if (( DEPLOY_PYPI == 1 )); then
-	cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
 	cmake --build ./ --target pypi        --config ${CMAKE_BUILD_TYPE}
 fi
 

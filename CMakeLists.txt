@@ -298,51 +298,6 @@ if (True)
 
 endif()
 
-
-# /////////////////////////////////////////////////////////////////////
-# bdist_wheel target
-if (True)
-
-   if (NOT PYTHON_TAG)
-	  set(PYTHON_TAG cp${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
-	endif()
-	
-	if (NOT PYPI_PLAT_NAME)
-    
-    	if (WIN32)
-    	
-    		set(PYPI_PLAT_NAME win_amd64)
-    		
-    	elseif (APPLE)
-    	
-    		string(SUBSTRING ${APPLE_OSX_VERSION} 0 2 __major__)
-    		string(SUBSTRING ${APPLE_OSX_VERSION} 3 2 __minor__)
-    		set(PYPI_PLAT_NAME macosx_${__major__}_${__minor__}_x86_64)
-    		
-    	else()
-    	
-    		execute_process(COMMAND lsb_release -is OUTPUT_VARIABLE __id__   OUTPUT_STRIP_TRAILING_WHITESPACE)
-    		execute_process(COMMAND lsb_release -cs OUTPUT_VARIABLE __name__ OUTPUT_STRIP_TRAILING_WHITESPACE)
-    		set(PYPI_PLAT_NAME "${__id__}.${__name__}")
-    	
-    	endif()
-   endif()
-
-	add_custom_target(bdist_wheel 
-		        "${CMAKE_COMMAND}" -E echo "Installing setuptools wheel..."
-		COMMAND "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade setuptools wheel
-		COMMAND "${CMAKE_COMMAND}" -E echo "Running bdist_wheel target..."
-		COMMAND "${PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py" -q bdist_wheel --python-tag=${PYTHON_TAG} --plat-name=${PYPI_PLAT_NAME} 
-		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
-	
-	if (WIN32)
-		set_target_properties(bdist_wheel PROPERTIES FOLDER "CMakePredefinedTargets/")
-	endif()	
-	
-
-endif()
-
-
 # /////////////////////////////////////////////////////////////////////
 # pypi target
 if (True)

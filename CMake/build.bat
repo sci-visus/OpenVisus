@@ -39,7 +39,6 @@ cd build
  
 if "%DEPLOY_PYPI%"=="1" (
    echo "Deploying to pypi enabled"
-   "%CMAKE_EXECUTABLE%" --build . --target bdist_wheel   --config RelWithDebInfo
    "%CMAKE_EXECUTABLE%" --build . --target pypi          --config RelWithDebInfo
 )
 

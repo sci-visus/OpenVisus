@@ -14,6 +14,12 @@ WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 
 bVerbose=False
+
+
+Qt5_DIR=""
+OPENSSL_ROOT_DIR=""
+PYTHON_TAG=""
+PLAT_NAME=""
 	
 # /////////////////////////////////////////////////
 def ExecuteCommand(cmd):	
@@ -557,8 +563,6 @@ class PipPostInstall():
 # //////////////////////////////////////////////////////////////////////////////
 if __name__ == "__main__":
 	
-	Qt5_DIR=""
-	OPENSSL_ROOT_DIR=""
 	I=1
 	while I<len(sys.argv):
 
@@ -571,6 +575,16 @@ if __name__ == "__main__":
 		if sys.argv[I]=="--OPENSSL_ROOT_DIR":
 			OPENSSL_ROOT_DIR=sys.argv[I+1]
 			I+=2; continue				
+			
+		# _____________________________________________
+		if sys.argv[I]=="--python-tag":
+			PYTHON_TAG=sys.argv[I+1]
+			I+=2; continue		
+			
+		# _____________________________________________
+		if sys.argv[I]=="--plat-name":
+			PLAT_NAME=sys.argv[I+1]
+			I+=2; continue								
 		
 		# _____________________________________________
 		if sys.argv[I]=="--cmake-post-install":
@@ -603,12 +617,23 @@ if __name__ == "__main__":
 					subprocess.call("cp " + OPENSSL_ROOT_DIR + "/lib/libcrypto.so* bin/", shell=True)
 					subprocess.call("cp " + OPENSSL_ROOT_DIR + "/lib/libssl.so*    bin/", shell=True)			
 					
-			# create sdist
-			PipMain(['install', "--user","--upgrade","setuptools"])	
+			# create sdist and wheel
+			PipMain(['install', "--user","--upgrade","setuptools","wheel"])	
+			
 			print("Creating sdist...")
 			subprocess.call("%s setup.py -q sdist --formats=%s" % (sys.executable ,"zip" if WIN32 else "gztar"), shell=True)	
-			print("sdist Created",glob.glob('dist/*.zip'))
-			print("Finished --cmake-post-install")
+			
+			print("Creating wheel...")
+			subprocess.call("%s setup.py -q bdist_wheel --python-tag=%s --plat-name=%s" % (sys.executable ,PYTHON_TAG, PLAT_NAME), shell=True)	
+			
+			sdist_ext='.zip' if WIN32 else '.tar.gz'
+			wheel_ext='.whl'
+			
+			sdist_filename=glob.glob('dist/*%s' % (sdist_ext,))[0]
+			wheel_filename=glob.glob('dist/*%s' % (wheel_ext,))[0]
+			os.rename(sdist_filename,wheel_filename.replace(wheel_ext,sdist_ext))
+			
+			print("Finished --cmake-post-install",,glob.glob('dist/*'))
 			I+=1; continue
 					
 		# _____________________________________________

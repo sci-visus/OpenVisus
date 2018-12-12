@@ -52,8 +52,7 @@ cmake --build ./ --target RUN_TESTS   --config ${CMAKE_BUILD_TYPE}
 cmake --build ./ --target install     --config ${CMAKE_BUILD_TYPE} 
 
 if (( DEPLOY_PYPI == 1 )); then
-	cmake --build ./ --target bdist_wheel --config ${CMAKE_BUILD_TYPE} 
-	cmake --build ./ --target pypi        --config ${CMAKE_BUILD_TYPE}
+	cmake --build ./ --target pypi     --config ${CMAKE_BUILD_TYPE}
 fi
 
 pushd install
