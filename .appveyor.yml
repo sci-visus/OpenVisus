@@ -58,8 +58,8 @@ install:
 
 build_script:
   - cmd: cd %APPVEYOR_BUILD_FOLDER% 
-  - cmd: CMake\build.bat
-  - cmd: "%PYTHON_EXECUTABLE%" -c "import os;import glob;filename=glob.glob('build/install/dist/*.zip')[0];os.rename(filename,filename.replace('.zip','-%PYTHON_VERSION%-win_amd64.zip'))"   
+  - cmd: CMake\build.bat 
+  - cmd: if "1"=="1" ("%PYTHON_EXECUTABLE%" -c "import os;import glob;filename=glob.glob('build/install/dist/*.zip')[0];os.rename(filename,filename.replace('.zip','-%PYTHON_VERSION%-win_amd64.zip'))")
 
 # test are already in cmake
 test: off
