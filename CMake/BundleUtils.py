@@ -606,7 +606,9 @@ if __name__ == "__main__":
 					
 			# create sdist
 			PipMain(['install', "--user","--upgrade","setuptools"])	
+			print("Creating sdist...")
 			subprocess.call("%s setup.py -q sdist --formats=%s" % (sys.executable ,"zip" if WIN32 else "gztar"), shell=True)						
+			print("sdist Created")					
 					
 			print("Finished --cmake-post-install")
 			I+=1; continue
