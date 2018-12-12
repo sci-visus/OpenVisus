@@ -490,8 +490,8 @@ class PipPostInstall():
 			PYTHON_EXECUTABLE=sys.executable
 			PYTHONPATH=":".join(sys.path)
 			LD_LIBRARY_PATH=os.path.realpath(sysconfig.get_config_var("LIBDIR"))
-			QT5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
-			QT_PLUGIN_PATH=os.path.join(QT5_DIR,"plugins")
+			Qt5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
+			QT_PLUGIN_PATH=os.path.join(Qt5_DIR,"plugins")
 			
 			if WIN32:
 				
@@ -499,9 +499,9 @@ class PipPostInstall():
 					r'cd /d %~dp0',
 					'set PYTHON_EXECUTABLE=%s' %(PYTHON_EXECUTABLE,),
 					'set PYTHONPATH=$(pwd):%s' % (PYTHONPATH,),
-					'set QT5_DIR=%s' % (QT5_DIR,),
+					'set Qt5_DIR=%s' % (Qt5_DIR,),
 					'set QT_PLUGIN_PATH=%s' % (QT_PLUGIN_PATH,),
-					'set PATH=%s;%s;%s;%s' % (os.path.join(QT5_DIR,"bin"),os.path.dirname(PYTHON_EXECUTABLE),r"%cd%\bin",r"%PATH%"),
+					'set PATH=%s;%s;%s;%s' % (os.path.join(Qt5_DIR,"bin"),os.path.dirname(PYTHON_EXECUTABLE),r"%cd%\bin",r"%PATH%"),
 					inner_exe + r' %*'
 				])
 
@@ -513,7 +513,7 @@ class PipPostInstall():
 					'cd ${this_dir}',
 					'export PYTHON_EXECUTABLE=%s' %(PYTHON_EXECUTABLE,),
 					'export PYTHONPATH=$(pwd):%s' % (PYTHONPATH,),
-					'export QT5_DIR=%s' % (QT5_DIR,),
+					'export Qt5_DIR=%s' % (Qt5_DIR,),
 					'export QT_PLUGIN_PATH=%s' % (QT_PLUGIN_PATH,),
 					'export %s=%s' % ("DYLD_LIBRARY_PATH" if APPLE else "LD_LIBRARY_PATH",LD_LIBRARY_PATH,),
 					inner_exe + r' "$@"'
@@ -558,14 +558,14 @@ class PipPostInstall():
 if __name__ == "__main__":
 	
 	
-	QT5_DIR=""
+	Qt5_DIR=""
 	OPENSSL_ROOT_DIR=""
 	I=1
 	while I<len(sys.argv):
 
 		# _____________________________________________
 		if sys.argv[I]=="--Qt5_DIR":
-			QT5_DIR=sys.argv[I+1]
+			Qt5_DIR=sys.argv[I+1]
 			I+=2; continue	
 			
 		# _____________________________________________
@@ -607,7 +607,8 @@ if __name__ == "__main__":
 			# create sdist
 			PipMain(['install', "--user","--upgrade","setuptools"])	
 			print("Creating sdist...")
-			subprocess.call("%s setup.py -q sdist --formats=%s" % (sys.executable ,"zip" if WIN32 else "gztar"), shell=True)						
+			subprocess.call("%s setup.py -q sdist --formats=%s" % (sys.executable ,"zip" if WIN32 else "gztar"), shell=True)	
+		
 			print("sdist Created")					
 					
 			print("Finished --cmake-post-install")
