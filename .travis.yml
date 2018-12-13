@@ -220,9 +220,7 @@ script:
      fi
 
 before_deploy:
-  - export SDIST_FILENAME=OpenVisus-cp${PYTHON_VERSION:0:1}${PYTHON_VERSION:2:1}-none-${OS_NAME}.tar.gz
-  - export OLD_DIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
-  - mv ${OLD_DIST_FILENAME} ${SDIST_FILENAME}
+  - export SDIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
 
 deploy:
   provider: releases

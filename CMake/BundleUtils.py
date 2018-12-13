@@ -633,7 +633,7 @@ if __name__ == "__main__":
 			wheel_filename=glob.glob('dist/*%s' % (wheel_ext,))[0]
 			os.rename(sdist_filename,wheel_filename.replace(wheel_ext,sdist_ext))
 			
-			print("Finished --cmake-post-install",,glob.glob('dist/*'))
+			print("Finished --cmake-post-install",glob.glob('dist/*'))
 			I+=1; continue
 					
 		# _____________________________________________
