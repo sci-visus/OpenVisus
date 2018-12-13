@@ -24,7 +24,7 @@ PLAT_NAME=""
 # /////////////////////////////////////////////////
 def ExecuteCommand(cmd):	
 	if bVerbose: print(" ".join(cmd))
-	subprocess.call(cmd)	
+	subprocess.call(cmd, shell=True)
 
 
 # /////////////////////////////////////////////////
@@ -120,13 +120,11 @@ class AppleDeployStep:
 	To debug loading 
 
 	DYLD_PRINT_LIBRARIES=1 QT_DEBUG_PLUGINS=1 visusviewer.app/Contents/MacOS/visusviewer
-
 	"""
 	
 	# constructor
 	def __init__(self):
 		pass
-		
 		
 	#findApps
 	def findApps(self):
@@ -309,7 +307,6 @@ class AppleDeployStep:
 class LinuxDeployStep:
 
 	"""
-	
 	If a shared object dependency does not contain a slash, then it is
        searched for in the following order:
 
@@ -463,7 +460,63 @@ def PipMain(args):
 		
 	main(args)	
 	
-
+# ////////////////////////////////////////////////////////////////////
+class CMakePostInstall():
+	
+	# constructor
+	def __init__(self):
+		pass
+			
+	# run
+	def run(self):
+		
+		if WIN32:
+			# do not want to distribute Qt
+			ExecuteCommand([Qt5_DIR+"\\..\\..\\..\\bin\\windeployqt","bin\\visusviewer.exe","--libdir","bin","--plugindir","bin\\Qt\\plugins","--no-translations"])
+			ExecuteCommand(r"rmdir /S /Q bin\Qt")
+			ExecuteCommand(r"del /F /S /Q bin\Qt*")
+			
+		elif APPLE:
+			AppleDeployStep().fixAllDeps()
+			# do not want to distribute Qt
+			ExecuteCommand(r"rm -Rf bin/Qt*")
+			
+		else:
+			
+			# see CMake/build_manylinux.sh for 'minimal' bundle libraries
+			deploy=LinuxDeployStep()
+			
+			for I in range(2):
+				# WRONG: for manylinux i should not copy the low-level dynamic libraries	
+				# deploy.copyGlobalDeps()
+				deploy.setOrigins()
+				
+			# WRONG: do not copy libpython
+			# if I use manylinux libpython* I will have problems with 'built in' modules (such as math) that are different depending on the platform
+			# ExecuteCommand("cp ..../libpython*  ./bin/")
+			
+			if OPENSSL_ROOT_DIR:
+				ExecuteCommand("cp " + OPENSSL_ROOT_DIR + "/lib/libcrypto.so* bin/")
+				ExecuteCommand("cp " + OPENSSL_ROOT_DIR + "/lib/libssl.so*    bin/")			
+				
+		# create sdist and wheel
+		PipMain(['install', "--user","--upgrade","setuptools","wheel"])	
+		
+		print("Creating sdist...")
+		ExecuteCommand("%s setup.py -q sdist --formats=%s" % (sys.executable ,"zip" if WIN32 else "gztar"))
+		sdist_ext='.zip' if WIN32 else '.tar.gz'
+		sdist_filename=glob.glob('dist/*%s' % (sdist_ext,))[0]
+		print("Created sdist",sdist_filename)
+		
+		print("Creating wheel...")
+		ExecuteCommand("%s setup.py -q bdist_wheel --python-tag=%s --plat-name=%s" % (sys.executable ,PYTHON_TAG, PLAT_NAME))
+		wheel_ext='.whl'
+		wheel_filename=glob.glob('dist/*%s' % (wheel_ext,))[0]
+		print("Created wheel",wheel_filename)
+		
+		os.rename(sdist_filename,wheel_filename.replace(wheel_ext,sdist_ext))
+				
+		
 # ////////////////////////////////////////////////////////////////////
 class PipPostInstall():
 	
@@ -530,7 +583,7 @@ class PipPostInstall():
 				#	"  Plugins=%s" % (os.path.join(Qt5_DIR,"plugins"),)])				
 			
 			if not WIN32:
-				subprocess.call("chmod +rx %s" % (script_filename,), shell=True)
+				ExecuteCommand("chmod +rx %s" % (script_filename,))
 					
 	# run
 	def run(self):
@@ -566,81 +619,37 @@ if __name__ == "__main__":
 	I=1
 	while I<len(sys.argv):
 
-		# _____________________________________________
 		if sys.argv[I]=="--Qt5_DIR":
 			Qt5_DIR=sys.argv[I+1]
+			print("Setting --Qt5_DIR",Qt5_DIR)
 			I+=2; continue	
 			
-		# _____________________________________________
 		if sys.argv[I]=="--OPENSSL_ROOT_DIR":
 			OPENSSL_ROOT_DIR=sys.argv[I+1]
+			print("Setting --OPENSSL_ROOT_DIR",OPENSSL_ROOT_DIR)
 			I+=2; continue				
 			
-		# _____________________________________________
 		if sys.argv[I]=="--python-tag":
 			PYTHON_TAG=sys.argv[I+1]
+			print("Setting --python-tag",PYTHON_TAG)
 			I+=2; continue		
 			
-		# _____________________________________________
 		if sys.argv[I]=="--plat-name":
 			PLAT_NAME=sys.argv[I+1]
+			print("Setting --plat-name",PLAT_NAME)
 			I+=2; continue								
 		
-		# _____________________________________________
 		if sys.argv[I]=="--cmake-post-install":
-			
 			print("Executing --cmake-post-install...")
-						
-			if WIN32:
-				ExecuteCommand([Qt5_DIR+"\\..\\..\\..\\bin\\windeployqt","bin\\visusviewer.exe","--libdir","bin","--plugindir","bin\\Qt\\plugins","--no-translations"])
-				subprocess.call(r"rmdir /S /Q bin\Qt", shell=True)
-				subprocess.call(r"del /F /S /Q bin\Qt*", shell=True)
-				
-			elif APPLE:
-				AppleDeployStep().fixAllDeps()
-				subprocess.call(r"rm -Rf bin/Qt*", shell=True)
-				
-			else:
-				
-				# see CMake/build_manylinux.sh for 'minimal' bundle libraries
-				deploy=LinuxDeployStep()
-				for I in range(2):
-					# WRONG: for manylinux i should not copy the low-level dynamic libraries	
-					# deploy.copyGlobalDeps()
-					deploy.setOrigins()
-					
-				# WRONG: do not copy libpython
-				# if I use manylinux libpython* I will have problems with 'built in' modules (such as math) that are different depending on the platform
-				# subprocess.call("cp ..../libpython*  ./bin/", shell=True)
-				
-				if OPENSSL_ROOT_DIR:
-					subprocess.call("cp " + OPENSSL_ROOT_DIR + "/lib/libcrypto.so* bin/", shell=True)
-					subprocess.call("cp " + OPENSSL_ROOT_DIR + "/lib/libssl.so*    bin/", shell=True)			
-					
-			# create sdist and wheel
-			PipMain(['install', "--user","--upgrade","setuptools","wheel"])	
-			
-			print("Creating sdist...")
-			subprocess.call("%s setup.py -q sdist --formats=%s" % (sys.executable ,"zip" if WIN32 else "gztar"), shell=True)	
-			
-			print("Creating wheel...")
-			subprocess.call("%s setup.py -q bdist_wheel --python-tag=%s --plat-name=%s" % (sys.executable ,PYTHON_TAG, PLAT_NAME), shell=True)	
-			
-			sdist_ext='.zip' if WIN32 else '.tar.gz'
-			wheel_ext='.whl'
-			
-			sdist_filename=glob.glob('dist/*%s' % (sdist_ext,))[0]
-			wheel_filename=glob.glob('dist/*%s' % (wheel_ext,))[0]
-			os.rename(sdist_filename,wheel_filename.replace(wheel_ext,sdist_ext))
-			
+			cmake_post_install=CMakePostInstall()
+			cmake_post_install.run()
 			print("Finished --cmake-post-install",glob.glob('dist/*'))
 			I+=1; continue
 					
-		# _____________________________________________
 		if sys.argv[I]=="--pip-post-install":
-			
 			print("Executing --pip-post-install....")
-			PipPostInstall().run()
+			pip_post_install=PipPostInstall()
+			pip_post_install.run()
 			print("finished --pip-post-install")
 			I+=1; continue
 					
