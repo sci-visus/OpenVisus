@@ -3,6 +3,9 @@ import sys
 
 if __name__ == '__main__':
 	if sys.argv[-1]=="configure":
-		from BundleUtils import *
+		if (sys.version_info > (3, 0)):
+		  from .configure import *
+		else:  
+		  from configure import *	
 		PipPostInstall().run()	
-    sys.exit(0)
+	sys.exit(0)
