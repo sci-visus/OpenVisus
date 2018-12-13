@@ -8,7 +8,7 @@ import atexit
 import setuptools
 from configure import *
 	
-PROJECT_VERSION="1.2.137"
+PROJECT_VERSION="1.2.138"
 PROJECT_NAME="OpenVisus"
 PROJECT_URL="https://github.com/sci-visus/OpenVisus"
 PROJECT_DESCRIPTION="ViSUS multiresolution I/O, analysis, and visualization system"
