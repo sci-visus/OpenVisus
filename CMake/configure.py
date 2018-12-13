@@ -15,20 +15,6 @@ APPLE=platform.system()=="Darwin"
 
 bVerbose=False
 
-# ////////////////////////////////////////////////////////////////////
-def InstallRequirements():
-	
-	import pip
-	if int(pip.__version__.split('.')[0])>9:
-		from pip._internal import main as pip_main
-	else:
-		from pip import main as pip_main
-		
-	try:
-		pip_main(["install","--user", "-r","requirements.txt"])
-	except Exception as err:
-		print("ERROR some requirements failed to install",err)
-		
 
 # ////////////////////////////////////////////////////////////////////
 def LinkPyQt5():
@@ -64,7 +50,6 @@ def CreateScripts():
 		file = open(filename,"wt") 
 		file.write("\n".join(lines)+"\n") 
 		file.close() 		
-	
 	
 	if WIN32:
 		executables=glob.glob('bin/*.exe')
@@ -140,7 +125,6 @@ def main():
 	old_dir = os.getcwd()
 	os.chdir(os.path.dirname(os.path.realpath(__file__)))
 	
-	InstallRequirements()
 	LinkPyQt5()
 	CreateScripts()
 			

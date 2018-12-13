@@ -291,10 +291,6 @@ if (True)
 		install(DIRECTORY Libs/AppKit/include/Visus             DESTINATION include/AppKit)
 	endif()
 	
-	file(WRITE  ${CMAKE_BINARY_DIR}/requirements.txt "numpy\n")
-	file(APPEND ${CMAKE_BINARY_DIR}/requirements.txt "PyQt5==5.11.2\n")
-	install(FILES ${CMAKE_BINARY_DIR}/requirements.txt DESTINATION .)	
-	
 	add_subdirectory(CMake/PostInstall)
 
 endif()
