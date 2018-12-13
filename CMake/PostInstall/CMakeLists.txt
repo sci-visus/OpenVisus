@@ -16,15 +16,14 @@ if (NOT PLAT_NAME)
  	endif()
 endif()
 
-
 install(CODE "
-	MESSAGE(STATUS \"Change this string to be sure CMake is properly genereting right code (A0001) \")
 	execute_process( 
-		 COMMAND \"${PYTHON_EXECUTABLE}\" -u \"${CMAKE_INSTALL_PREFIX}/configure.py\"
+		 COMMAND \"${PYTHON_EXECUTABLE}\" -u \"${CMAKE_CURRENT_SOURCE_DIR}/run.py\"
 		 	--qt5-dir=\"${Qt5_DIR}\"
 		 	--openssl-root-dir=\"${OPENSSL_ROOT_DIR}\" 
 		 	--python-tag=\"${PYTHON_TAG}\" 
 		 	--plat-name=\"${PLAT_NAME}\"
-		 	cmake-post-install)
+		 	--working-dir=\"${CMAKE_INSTALL_PREFIX}\"
+		)
 ")
 
