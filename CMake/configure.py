@@ -23,7 +23,7 @@ def WriteTextFile(filename,lines):
 	except OSError:
 		pass
 	file = open(filename,"wt") 
-	file.write("\n".join(content)+"\n") 
+	file.write("\n".join(lines)+"\n") 
 	file.close() 		
 
 
@@ -135,7 +135,7 @@ def main():
 		executables= [it for it in glob.glob('bin/*') if os.path.isfile(it) and not os.path.splitext(it)[1] ]	
 	
 	for exe in executables:
-		self.createScript(exe)
+		CreateScript(exe)
 			
 	os.chdir(old_dir)	
 
