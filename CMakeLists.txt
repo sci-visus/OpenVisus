@@ -17,7 +17,6 @@ endif()
 PROJECT(ViSUS)
 
 # //////////////////////////////////////////////////////////////
-
 set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
 
 if (WIN32)
@@ -248,10 +247,11 @@ if (True)
 	install(FILES        LICENSE                        DESTINATION .)
 	install(FILES        README.md                      DESTINATION .)
 	install(FILES        CMake/__init__.py              DESTINATION .)
+	install(FILES        CMake/__main__.py              DESTINATION .)
 	install(FILES        CMake/OpenVisus.py             DESTINATION .)
 	install(FILES        CMake/setup.py                 DESTINATION .)
 	install(FILES        CMake/OpenVisusConfig.cmake    DESTINATION .)
-	install(FILES        CMake/BundleUtils.py           DESTINATION .)
+	install(FILES        CMake/configure.py           DESTINATION .)
 	install(DIRECTORY    Copyrights                     DESTINATION .)
 	install(DIRECTORY    Samples                        DESTINATION .)
 	
@@ -276,9 +276,9 @@ if (True)
 	
 		InstallBuildFiles(*.dll bin)
 	
-		# self-contained python
-		get_filename_component(__python_dir__ ${PYTHON_EXECUTABLE} DIRECTORY)
-		install(DIRECTORY ${__python_dir__}/ DESTINATION win32/python PATTERN "*.pyc" EXCLUDE )
+		# self-contained python (disabled)
+		# get_filename_component(__python_dir__ ${PYTHON_EXECUTABLE} DIRECTORY)
+		# install(DIRECTORY ${__python_dir__}/ DESTINATION win32/python PATTERN "*.pyc" EXCLUDE )
 
 		include(InstallRequiredSystemLibraries)
 		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION bin COMPONENT Libraries)	
@@ -291,12 +291,18 @@ if (True)
 		install(DIRECTORY Libs/AppKit/include/Visus             DESTINATION include/AppKit)
 	endif()
 	
-	file(WRITE  ${CMAKE_INSTALL_PREFIX}/requirements.txt "numpy\n")
-	file(APPEND ${CMAKE_INSTALL_PREFIX}/requirements.txt "PyQt5==5.11.2\n")	
+	file(WRITE  ${CMAKE_BINARY_DIR}/requirements.txt "numpy\n")
+	file(APPEND ${CMAKE_BINARY_DIR}/requirements.txt "PyQt5==5.11.2\n")
+	install(FILES ${CMAKE_BINARY_DIR}/requirements.txt DESTINATION .)	
 	
 	add_subdirectory(CMake/PostInstall)
 
 endif()
+
+
+
+
+
 
 # /////////////////////////////////////////////////////////////////////
 # pypi target

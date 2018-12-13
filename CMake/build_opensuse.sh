@@ -35,7 +35,7 @@ cmake --build . --target test
 cmake --build . --target install 
 
 pushd install
-${PYTHON_EXECUTABLE} BundleUtils.py --pip-post-install
+${PYTHON_EXECUTABLE} configure.py 
 ./visus.sh                                 && echo "Embedding working"
 ${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
 popd

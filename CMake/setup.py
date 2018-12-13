@@ -6,7 +6,7 @@ import platform
 import glob
 import atexit
 import setuptools
-from BundleUtils import *
+from configure import *
 	
 PROJECT_VERSION="1.2.134"
 PROJECT_NAME="OpenVisus"
@@ -21,12 +21,15 @@ APPLE=platform.system()=="Darwin"
 BDIST_WHEEL="bdist_wheel" in sys.argv	
 
 # ////////////////////////////////////////////////////////////////////
-def findFilesInCurrentDirectory():
+if __name__ == "__main__":
 	
-	ret=[]	
+	shutil.rmtree('./build', ignore_errors=True)
+	shutil.rmtree('./__pycache__', ignore_errors=True)	
+	shutil.rmtree('./.git', ignore_errors=True)	
+	shutil.rmtree('./%s.egg-info' % (PROJECT_NAME,), ignore_errors=True)
 	
+	files=[]	
 	for dirpath, __dirnames__, filenames in os.walk("."):
-		
 		for it in filenames:
 
 			filename= os.path.abspath(os.path.join(dirpath, it))
@@ -34,6 +37,7 @@ def findFilesInCurrentDirectory():
 			if filename.startswith(os.path.abspath('./dist')): 
 				continue
 			
+			# for bdist wheel (i.e. *.whl file) I do not add developer files
 			if BDIST_WHEEL and filename.startswith(os.path.abspath('./lib')):
 				continue
 			
@@ -49,18 +53,8 @@ def findFilesInCurrentDirectory():
 			if "__pycache__" in filename:
 				continue	    				
 						
-			ret.append(filename)
-			
-	return ret
-	
-# ////////////////////////////////////////////////////////////////////
-if __name__ == "__main__":
-	
-	shutil.rmtree('./build', ignore_errors=True)
-	shutil.rmtree('./__pycache__', ignore_errors=True)	
-	shutil.rmtree('./.git', ignore_errors=True)	
-	shutil.rmtree('./%s.egg-info' % (PROJECT_NAME,), ignore_errors=True)
-	
+			files.append(filename)
+		
 	setuptools.setup(
 	  name = PROJECT_NAME,
 	  description = PROJECT_DESCRIPTION,
@@ -70,7 +64,7 @@ if __name__ == "__main__":
 	  author_email=PROJECT_EMAIL,
 	  packages=[PROJECT_NAME],
 	  package_dir={PROJECT_NAME:'.'},
-	  package_data={PROJECT_NAME: findFilesInCurrentDirectory()},
+	  package_data={PROJECT_NAME: files},
 	  platforms=['Linux', 'OS-X', 'Windows'],
 	  license = PROJECT_LICENSE
 	)

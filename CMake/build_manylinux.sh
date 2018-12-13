@@ -134,7 +134,7 @@ if (( DEPLOY_PYPI == 1 )); then
 fi
 
 pushd install
-${PYTHON_EXECUTABLE} BundleUtils.py --pip-post-install
+${PYTHON_EXECUTABLE} configure.py 
 ./visus.sh                                 && echo "Embedding working"
 ${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
 popd

@@ -13,17 +13,12 @@ import sysconfig
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 
-bVerbose=False
+bVerbose=True
 
 
-Qt5_DIR=""
-OPENSSL_ROOT_DIR=""
-PYTHON_TAG=""
-PLAT_NAME=""
-	
 # /////////////////////////////////////////////////
 def ExecuteCommand(cmd):	
-	if bVerbose: print(" ".join(cmd))
+	print(" ".join(cmd))
 	subprocess.call(cmd, shell=True)
 
 
@@ -85,6 +80,19 @@ def WriteTextFile(filename,content):
 	file.write(content) 
 	file.close() 		
 
+# ////////////////////////////////////////////////////////////////////
+#example arg:=--key='value...' 
+# ExtractNamedArgument("--key")
+def ExtractNamedArgument(key):
+	for arg in sys.argv:
+		if arg.startswith(key + "="):
+			ret=arg.split("=",1)[1]
+			if ret.startswith('"') or ret.startswith("'"): ret=ret[1:]
+			if ret.endswith('"') or ret.endswith("'"): ret=ret[:-1]
+			return ret
+			
+	return None
+
 
 # /////////////////////////////////////////////////
 # glob(,recursive=True) is not supported in python 2.x
@@ -94,6 +102,17 @@ def recursiveFindFiles(rootdir='.', pattern='*'):
           for looproot, _, filenames in os.walk(rootdir)
           for filename in filenames
           if fnmatch.fnmatch(filename, pattern)]
+
+# ////////////////////////////////////////////////////////////////////
+def PipMain(args):
+	
+	import pip
+	if int(pip.__version__.split('.')[0])>9:
+		from pip._internal import main
+	else:
+		from pip import main
+		
+	main(args)	
 
 # ///////////////////////////////////////
 class AppleDeployStep:
@@ -449,16 +468,7 @@ class LinuxDeployStep:
 
 
 
-# ////////////////////////////////////////////////////////////////////
-def PipMain(args):
-	
-	import pip
-	if int(pip.__version__.split('.')[0])>9:
-		from pip._internal import main
-	else:
-		from pip import main
-		
-	main(args)	
+
 	
 # ////////////////////////////////////////////////////////////////////
 class CMakePostInstall():
@@ -470,16 +480,27 @@ class CMakePostInstall():
 	# run
 	def run(self):
 		
+		old_dir = os.getcwd()
+		os.chdir(os.path.dirname(os.path.realpath(__file__)))		
+		
+		print("Executing CMakePostInstall")
+		
 		if WIN32:
 			# do not want to distribute Qt
-			ExecuteCommand([Qt5_DIR+"\\..\\..\\..\\bin\\windeployqt","bin\\visusviewer.exe","--libdir","bin","--plugindir","bin\\Qt\\plugins","--no-translations"])
-			ExecuteCommand(r"rmdir /S /Q bin\Qt")
-			ExecuteCommand(r"del /F /S /Q bin\Qt*")
+			Qt5_DIR=ExtractNamedArgument("--qt5-dir")
+			ExecuteCommand([
+				os.path.abspath(Qt5_DIR+"/../../../bin/windeployqt"),
+				os.path.abspath("bin/visusviewer.exe"),
+				"--libdir",os.path.abspath("bin"),
+				"--plugindir",os.path.abspath("bin/Qt/plugins"),
+				"--no-translations"])
+			ExecuteCommand(["rmdir","/S","/Q",os.path.abspath("bin/Qt")])
+			ExecuteCommand(["del","/F","/S","/Q",os.path.abspath("bin/Qt*")])
 			
 		elif APPLE:
 			AppleDeployStep().fixAllDeps()
 			# do not want to distribute Qt
-			ExecuteCommand(r"rm -Rf bin/Qt*")
+			ExecuteCommand(["rm","-Rf","bin/Qt*"])
 			
 		else:
 			
@@ -493,28 +514,33 @@ class CMakePostInstall():
 				
 			# WRONG: do not copy libpython
 			# if I use manylinux libpython* I will have problems with 'built in' modules (such as math) that are different depending on the platform
-			# ExecuteCommand("cp ..../libpython*  ./bin/")
-			
+			# ExecuteCommand(["cp", ..../libpython*,"./bin/"])
+			OPENSSL_ROOT_DIR=ExtractNamedArgument("--openssl-root-dir")
 			if OPENSSL_ROOT_DIR:
-				ExecuteCommand("cp " + OPENSSL_ROOT_DIR + "/lib/libcrypto.so* bin/")
-				ExecuteCommand("cp " + OPENSSL_ROOT_DIR + "/lib/libssl.so*    bin/")			
+				ExecuteCommand(["cp",OPENSSL_ROOT_DIR + "/lib/libcrypto.so*","bin/"])
+				ExecuteCommand(["cp",OPENSSL_ROOT_DIR + "/lib/libssl.so*","bin/"])			
 				
 		# create sdist and wheel
 		PipMain(['install', "--user","--upgrade","setuptools","wheel"])	
 		
 		print("Creating sdist...")
-		ExecuteCommand("%s setup.py -q sdist --formats=%s" % (sys.executable ,"zip" if WIN32 else "gztar"))
+		ExecuteCommand([sys.executable,"setup.py","-q","sdist","--formats=%s" % ("zip" if WIN32 else "gztar",)])
 		sdist_ext='.zip' if WIN32 else '.tar.gz'
 		sdist_filename=glob.glob('dist/*%s' % (sdist_ext,))[0]
 		print("Created sdist",sdist_filename)
 		
 		print("Creating wheel...")
-		ExecuteCommand("%s setup.py -q bdist_wheel --python-tag=%s --plat-name=%s" % (sys.executable ,PYTHON_TAG, PLAT_NAME))
+		PYTHON_TAG=ExtractNamedArgument("--python-tag")
+		PLAT_NAME=ExtractNamedArgument("--plat-name")
+		ExecuteCommand([sys.executable,"setup.py","-q","bdist_wheel","--python-tag=%s" % (PYTHON_TAG,),"--plat-name=%s" % (PLAT_NAME,)])
 		wheel_ext='.whl'
 		wheel_filename=glob.glob('dist/*%s' % (wheel_ext,))[0]
 		print("Created wheel",wheel_filename)
 		
 		os.rename(sdist_filename,wheel_filename.replace(wheel_ext,sdist_ext))
+		print("Finished CMakePostInstall",glob.glob('dist/*'))		
+		
+		os.chdir(old_dir)	
 				
 		
 # ////////////////////////////////////////////////////////////////////
@@ -583,76 +609,51 @@ class PipPostInstall():
 				#	"  Plugins=%s" % (os.path.join(Qt5_DIR,"plugins"),)])				
 			
 			if not WIN32:
-				ExecuteCommand("chmod +rx %s" % (script_filename,))
+				ExecuteCommand(["chmod","+rx",script_filename])
 					
 	# run
 	def run(self):
 		
+		print("Executing PipPostInstall....")
+		
 		old_dir = os.getcwd()
 		os.chdir(os.path.dirname(os.path.realpath(__file__)))
 		
-		PipMain(["install", "-r","requirements.txt"])
+		PipMain(["install","--user", "-r","requirements.txt"])
 		
 		if WIN32:
-			
-			# TODO...
+			# nothing todo? how OpenVisus can link PyQt?
 			pass
 		
 		elif APPLE:
-			
 			deploy=AppleDeployStep()
 			import PyQt5
 			Qt5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
 			deploy.addRPath(os.path.join(Qt5_DIR,"lib"))	
 			
-
-		# create *.command
+		else:
+			# nothing todo? how OpenVisus can link PyQt?
+			pass
+			
+		# create scripts
 		for exe in self.findExecutables():
 			self.createScript(exe)
+
+		print("finished PipPostInstall")		
 				
-		
 		os.chdir(old_dir)	
+		
+		
 
 # //////////////////////////////////////////////////////////////////////////////
 if __name__ == "__main__":
 	
-	I=1
-	while I<len(sys.argv):
-
-		if sys.argv[I]=="--Qt5_DIR":
-			Qt5_DIR=sys.argv[I+1]
-			print("Setting --Qt5_DIR",Qt5_DIR)
-			I+=2; continue	
-			
-		if sys.argv[I]=="--OPENSSL_ROOT_DIR":
-			OPENSSL_ROOT_DIR=sys.argv[I+1]
-			print("Setting --OPENSSL_ROOT_DIR",OPENSSL_ROOT_DIR)
-			I+=2; continue				
-			
-		if sys.argv[I]=="--python-tag":
-			PYTHON_TAG=sys.argv[I+1]
-			print("Setting --python-tag",PYTHON_TAG)
-			I+=2; continue		
-			
-		if sys.argv[I]=="--plat-name":
-			PLAT_NAME=sys.argv[I+1]
-			print("Setting --plat-name",PLAT_NAME)
-			I+=2; continue								
+	print("Configure got the following args",sys.argv)
+	
+	if  sys.argv[-1]=="cmake-post-install":
+		CMakePostInstall().run()
 		
-		if sys.argv[I]=="--cmake-post-install":
-			print("Executing --cmake-post-install...")
-			cmake_post_install=CMakePostInstall()
-			cmake_post_install.run()
-			print("Finished --cmake-post-install",glob.glob('dist/*'))
-			I+=1; continue
-					
-		if sys.argv[I]=="--pip-post-install":
-			print("Executing --pip-post-install....")
-			pip_post_install=PipPostInstall()
-			pip_post_install.run()
-			print("finished --pip-post-install")
-			I+=1; continue
-					
-		raise Exception("Unknown argument",sys.argv[I])
-
+	elif len(sys.argv)==1 or sys.argv[-1]=="pip-post-install":
+		PipPostInstall().run()		
+	
 	sys.exit(0)

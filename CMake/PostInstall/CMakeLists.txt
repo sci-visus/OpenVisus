@@ -1,5 +1,3 @@
-
-
 if (NOT PYTHON_TAG)
   set(PYTHON_TAG cp${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
 endif()
@@ -18,9 +16,15 @@ if (NOT PLAT_NAME)
  	endif()
 endif()
 
+
 install(CODE "
+	MESSAGE(STATUS \"Change this string to be sure CMake is properly genereting right code (A0001) \")
 	execute_process( 
-		 COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_CURRENT_SOURCE_DIR}/../BundleUtils.py\" --Qt5_DIR \"${Qt5_DIR}\" --OPENSSL_ROOT_DIR \"${OPENSSL_ROOT_DIR}\" --python-tag \"${PYTHON_TAG}\" --plat-name \"${PLAT_NAME}\" --cmake-post-install
-		 WORKING_DIRECTORY \"${CMAKE_INSTALL_PREFIX}\")
+		 COMMAND \"${PYTHON_EXECUTABLE}\" -u \"${CMAKE_INSTALL_PREFIX}/configure.py\"
+		 	--qt5-dir=\"${Qt5_DIR}\"
+		 	--openssl-root-dir=\"${OPENSSL_ROOT_DIR}\" 
+		 	--python-tag=\"${PYTHON_TAG}\" 
+		 	--plat-name=\"${PLAT_NAME}\"
+		 	cmake-post-install)
 ")
 
