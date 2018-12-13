@@ -62,7 +62,7 @@ def CreateScripts():
 		except OSError:
 			pass
 		file = open(filename,"wt") 
-		file.write("\n".join(content)+"\n") 
+		file.write("\n".join(lines)+"\n") 
 		file.close() 		
 	
 	
