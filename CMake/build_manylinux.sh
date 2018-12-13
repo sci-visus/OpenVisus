@@ -133,12 +133,6 @@ if (( DEPLOY_PYPI == 1 )); then
 	cmake --build ./ --target pypi        --config ${CMAKE_BUILD_TYPE}
 fi
 
-pushd install
-${PYTHON_EXECUTABLE} configure.py 
-./visus.sh                                 && echo "Embedding working"
-${PYTHON_EXECUTABLE} -c "import OpenVisus" && echo "Extending working"
-popd
-
 
 
 

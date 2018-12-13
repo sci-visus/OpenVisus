@@ -42,8 +42,3 @@ if "%DEPLOY_PYPI%"=="1" (
    "%CMAKE_EXECUTABLE%" --build . --target pypi          --config RelWithDebInfo
 )
 
-cd install
-"%PYTHON_EXECUTABLE%" configure.py
-.\visus.bat                                 && echo "Embedding working"                                                     
-"%PYTHON_EXECUTABLE%" -c "import OpenVisus" && echo "Extending working"
-cd ..

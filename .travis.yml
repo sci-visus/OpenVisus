@@ -163,25 +163,24 @@ matrix:
           sources: ['ubuntu-toolchain-r-test']                       
           
 
-    # ///////////////////////////////// alpine
-       
-    - os: linux
-      dist: trusty
-      if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="alpine_37",COMPILER=g++-4.9,PYTHON_VERSION=3.6,'DOCKER_IMAGE=alpine:3.7',DOCKER_SHELL=/bin/sh]       
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']          
-            
-    - os: linux
-      dist: trusty
-      if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="alpine_37",COMPILER=g++-4.9,PYTHON_VERSION=3.5,'DOCKER_IMAGE=alpine:3.7',DOCKER_SHELL=/bin/sh]       
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']                
+    # ///////////////////////////////// alpine (disabled)
+    # - os: linux
+    #   dist: trusty
+    #   if: tag IS present OR commit_message =~ /\[full_matrix\]/
+    #   env: [OS_NAME="alpine_37",COMPILER=g++-4.9,PYTHON_VERSION=3.6,'DOCKER_IMAGE=alpine:3.7',DOCKER_SHELL=/bin/sh]       
+    #   addons: 
+    #     apt:
+    #       packages: ['g++-4.9']
+    #       sources: ['ubuntu-toolchain-r-test']          
+    #         
+    # - os: linux
+    #   dist: trusty
+    #   if: tag IS present OR commit_message =~ /\[full_matrix\]/
+    #   env: [OS_NAME="alpine_37",COMPILER=g++-4.9,PYTHON_VERSION=3.5,'DOCKER_IMAGE=alpine:3.7',DOCKER_SHELL=/bin/sh]       
+    #   addons: 
+    #     apt:
+    #       packages: ['g++-4.9']
+    #       sources: ['ubuntu-toolchain-r-test']                
 
 script:
    - |

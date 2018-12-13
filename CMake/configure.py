@@ -95,7 +95,20 @@ def ExtractNamedArgument(key):
 	return None
 
 
-# /////////////////////////////////////////////////
+# ////////////////////////////////////////////////////////////////////
+def RemoveFiles(pattern):
+	
+	files=glob.glob("bin/Qt*")
+	
+	print("Removing files",files)
+	
+	for it in files:
+		if os.path.isfile(it):
+			os.remove(it)
+		else:
+			shutil.rmtree(os.path.abspath("bin/Qt"),ignore_errors=True)		
+			
+# //////////////////////////////////////
 # glob(,recursive=True) is not supported in python 2.x
 # see https://stackoverflow.com/questions/2186525/use-a-glob-to-find-files-recursively-in-python
 def RecursiveFindFiles(rootdir='.', pattern='*'):
@@ -486,6 +499,8 @@ class CMakePostInstall():
 		
 		print("Executing CMakePostInstall")
 		
+		# remove any reference to qt
+		
 		if WIN32:
 			# do not want to distribute Qt
 			Qt5_DIR=ExtractNamedArgument("--qt5-dir")
@@ -495,9 +510,7 @@ class CMakePostInstall():
 				"--libdir",os.path.abspath("bin"),
 				"--plugindir",os.path.abspath("bin/Qt/plugins"),
 				"--no-translations"])
-			ExecuteCommand(["rmdir","/S","/Q",os.path.abspath("bin/Qt")])
-			ExecuteCommand(["del","/F","/S","/Q"] + glob.glob("bin/Qt*"))
-			
+				
 		elif APPLE:
 			AppleDeployStep().fixAllDeps()
 			# do not want to distribute Qt
@@ -520,6 +533,8 @@ class CMakePostInstall():
 			if OPENSSL_ROOT_DIR:
 				ExecuteCommand(["cp"] + glob.glob(OPENSSL_ROOT_DIR + "/lib/libcrypto.so*") + ["bin/"])
 				ExecuteCommand(["cp"] + glob.glob(OPENSSL_ROOT_DIR + "/lib/libssl.so*"   ) + ["bin/"])			
+				
+		RemoveFiles("bin/Qt*")	
 				
 		# create sdist and wheel
 		PipMain(['install', "--user","--upgrade","setuptools","wheel"])	
@@ -571,28 +586,38 @@ class PipPostInstall():
 			script_filename="%s%s" % (name,script_ext)
 			inner_exe='%s/Contents/MacOS/%s' % (exe,name) if APPLE else exe
 			
-			import PyQt5
-			
 			PYTHON_EXECUTABLE=sys.executable
 			PYTHONPATH=":".join(sys.path)
 			LD_LIBRARY_PATH=os.path.realpath(sysconfig.get_config_var("LIBDIR"))
-			Qt5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
-			QT_PLUGIN_PATH=os.path.join(Qt5_DIR,"plugins")
 			
 			if WIN32:
 				
+				try:
+					import PyQt5
+					Qt5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
+				except Exception as err:
+					print("ERROR import PyQt5 failed, GUI stuff is not going to work",err)
+					Qt5_DIR=r"C:\Qt"
+					
 				WriteTextFile(script_filename,[
 					r'cd /d %~dp0',
 					'set PYTHON_EXECUTABLE=%s' %(PYTHON_EXECUTABLE,),
 					'set PYTHONPATH=$(pwd):%s' % (PYTHONPATH,),
 					'set Qt5_DIR=%s' % (Qt5_DIR,),
-					'set QT_PLUGIN_PATH=%s' % (QT_PLUGIN_PATH,),
+					'set QT_PLUGIN_PATH=%s' % (os.path.join(Qt5_DIR,"plugins")	,),
 					'set PATH=%s;%s;%s;%s' % (os.path.join(Qt5_DIR,"bin"),os.path.dirname(PYTHON_EXECUTABLE),r"%cd%\bin",r"%PATH%"),
 					inner_exe + r' %*'
 				])
 
 			else:
-		
+				
+				try:
+					import PyQt5
+					Qt5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
+				except Exception as err:
+					print("ERROR import PyQt5 failed, GUI stuff is not going to work",err)
+					Qt5_DIR=r"\Qt\not\found"
+										
 				WriteTextFile(script_filename,[
 					'#!/bin/bash',
 					'this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)',
@@ -600,7 +625,7 @@ class PipPostInstall():
 					'export PYTHON_EXECUTABLE=%s' %(PYTHON_EXECUTABLE,),
 					'export PYTHONPATH=$(pwd):%s' % (PYTHONPATH,),
 					'export Qt5_DIR=%s' % (Qt5_DIR,),
-					'export QT_PLUGIN_PATH=%s' % (QT_PLUGIN_PATH,),
+					'export QT_PLUGIN_PATH=%s' % (os.path.join(Qt5_DIR,"plugins")	,),
 					'export %s=%s' % ("DYLD_LIBRARY_PATH" if APPLE else "LD_LIBRARY_PATH",LD_LIBRARY_PATH,),
 					inner_exe + r' "$@"'
 				])	
@@ -620,17 +645,23 @@ class PipPostInstall():
 		old_dir = os.getcwd()
 		os.chdir(os.path.dirname(os.path.realpath(__file__)))
 		
-		PipMain(["install","--user", "-r","requirements.txt"])
+		try:
+			PipMain(["install","--user", "-r","requirements.txt"])
+		except Exception as err:
+			print("ERROR some requirements failed to install",err)
 		
 		if WIN32:
 			# seems to work without any problem, see VisusGuiPy.i
 			pass
 		
 		elif APPLE:
-			deploy=AppleDeployStep()
-			import PyQt5
-			Qt5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
-			deploy.addRPath(os.path.join(Qt5_DIR,"lib"))	
+			
+			try:
+				import PyQt5
+				Qt5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
+				AppleDeployStep().addRPath(os.path.join(Qt5_DIR,"lib"))	
+			except Exception as err:
+				print("ERROR import PyQt5 failed, GUI stuff is not going to work",err)
 			
 		else:
 			# nothing todo? how OpenVisus can link PyQt?
