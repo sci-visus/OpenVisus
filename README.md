@@ -61,8 +61,20 @@ You can install/test OpenVisus in python using Pip:
 
 ```
 python -m pip install --user numpy OpenVisus
-python -m OpenVisus configure
+python -m OpenVisus configure 
 python -c "import OpenVisus"
+```
+
+Or you can download/install develop version from GitHub Releases (change filename as needed):
+
+```
+filename=OpenVisus-cp27-none-macosx_10_13_x86_64.tar.gz
+curl -fsSL --insecure https://github.com/sci-visus/OpenVisus/releases/download/1.2.134/$filename -O
+tar xvzf $filename
+cd OpenVisus-*
+python ./configure.py
+python -c "import OpenVisus"
+
 ```
 
 
@@ -112,7 +124,7 @@ REM *** change path as needed ***
 set PYTHON_EXECUTABLE=C:\Python37\python.exe
 set CMAKE_EXECUTABLE=C:\Program Files\CMake\bin\cmake.exe
 set QT5_DIR=c:\Qt\5.11.2\msvc2015_64
-CMake\build.bat
+.\build.bat
 ```
 
 To test if it's working:
@@ -138,7 +150,7 @@ Build the repository:
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-CMAKE_BUILD_TYPE=RelWithDebInfo CMake/build.sh
+CMAKE_BUILD_TYPE=RelWithDebInfo build.sh
 ```
 
 To test if it's working:
@@ -156,7 +168,7 @@ Build the repository:
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-CMAKE_BUILD_TYPE=RelWithDebInfo ./CMake/build.sh  
+CMAKE_BUILD_TYPE=RelWithDebInfo ./build.sh  
 ```
 
 To test if it's working:

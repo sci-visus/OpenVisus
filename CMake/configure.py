@@ -13,13 +13,17 @@ import sysconfig
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 
-bVerbose=True
+bVerbose=False
 
 
 # /////////////////////////////////////////////////
 def ExecuteCommand(cmd):	
-	print(" ".join(cmd))
-	subprocess.call(cmd, shell=True)
+	"""
+	note: shell=False does not support wildcard but better to use this version
+	because quoting the argument is not easy
+	"""
+	print("# Executing command: ",cmd)
+	subprocess.call(cmd, shell=False)
 
 
 # /////////////////////////////////////////////////
@@ -45,7 +49,7 @@ def CopyFile(src,dst):
 		return		
 
 	CreateDirectory(os.path.dirname(dst))
-	ExecuteCommand(["cp","-rf", src,dst])	
+	shutil.copyfile(src, dst)	
 	
 	
 # /////////////////////////////////////////////////
@@ -58,10 +62,7 @@ def CopyDirectory(src,dst):
 	
 	CreateDirectory(dst)
 	
-	# problems with symbolic links so using shutil
-	# ExecuteCommand(["cp","-rf",src,dst])
-	import shutil
-	
+	# problems with symbolic links so using shutil	
 	dst=dst+"/" + os.path.basename(src)
 	
 	if os.path.isdir(dst):
@@ -97,7 +98,7 @@ def ExtractNamedArgument(key):
 # /////////////////////////////////////////////////
 # glob(,recursive=True) is not supported in python 2.x
 # see https://stackoverflow.com/questions/2186525/use-a-glob-to-find-files-recursively-in-python
-def recursiveFindFiles(rootdir='.', pattern='*'):
+def RecursiveFindFiles(rootdir='.', pattern='*'):
   return [os.path.join(looproot, filename)
           for looproot, _, filenames in os.walk(rootdir)
           for filename in filenames
@@ -166,8 +167,8 @@ class AppleDeployStep:
 	# findAllBinaries
 	def findAllBinaries(self):	
 		ret=[]
-		ret+=recursiveFindFiles('bin', '*.dylib')
-		ret+=recursiveFindFiles('bin', '*.so')
+		ret+=RecursiveFindFiles('bin', '*.dylib')
+		ret+=RecursiveFindFiles('bin', '*.so')
 		ret+=self.findApps()
 		ret+=self.findFrameworks()
 		return ret
@@ -495,12 +496,12 @@ class CMakePostInstall():
 				"--plugindir",os.path.abspath("bin/Qt/plugins"),
 				"--no-translations"])
 			ExecuteCommand(["rmdir","/S","/Q",os.path.abspath("bin/Qt")])
-			ExecuteCommand(["del","/F","/S","/Q",os.path.abspath("bin/Qt*")])
+			ExecuteCommand(["del","/F","/S","/Q"] + glob.glob("bin/Qt*"))
 			
 		elif APPLE:
 			AppleDeployStep().fixAllDeps()
 			# do not want to distribute Qt
-			ExecuteCommand(["rm","-Rf","bin/Qt*"])
+			ExecuteCommand(["rm","-Rf"] + glob.glob("bin/Qt*"))
 			
 		else:
 			
@@ -514,11 +515,11 @@ class CMakePostInstall():
 				
 			# WRONG: do not copy libpython
 			# if I use manylinux libpython* I will have problems with 'built in' modules (such as math) that are different depending on the platform
-			# ExecuteCommand(["cp", ..../libpython*,"./bin/"])
+			# ExecuteCommand(["cp"]+glob.glob("libpython*) + ["./bin/"])
 			OPENSSL_ROOT_DIR=ExtractNamedArgument("--openssl-root-dir")
 			if OPENSSL_ROOT_DIR:
-				ExecuteCommand(["cp",OPENSSL_ROOT_DIR + "/lib/libcrypto.so*","bin/"])
-				ExecuteCommand(["cp",OPENSSL_ROOT_DIR + "/lib/libssl.so*","bin/"])			
+				ExecuteCommand(["cp"] + glob.glob(OPENSSL_ROOT_DIR + "/lib/libcrypto.so*") + ["bin/"])
+				ExecuteCommand(["cp"] + glob.glob(OPENSSL_ROOT_DIR + "/lib/libssl.so*"   ) + ["bin/"])			
 				
 		# create sdist and wheel
 		PipMain(['install', "--user","--upgrade","setuptools","wheel"])	
@@ -622,7 +623,7 @@ class PipPostInstall():
 		PipMain(["install","--user", "-r","requirements.txt"])
 		
 		if WIN32:
-			# nothing todo? how OpenVisus can link PyQt?
+			# seems to work without any problem, see VisusGuiPy.i
 			pass
 		
 		elif APPLE:

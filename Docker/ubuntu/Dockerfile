@@ -12,5 +12,5 @@ RUN git clone -b${GIT_BRANCH} https://github.com/sci-visus/OpenVisus.git /home/O
 
 WORKDIR /home/OpenVisus
 RUN chmod +x ./CMake/build*.sh 
-RUN ./CMake/build.sh
+RUN ./build.sh
 

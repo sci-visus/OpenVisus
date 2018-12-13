@@ -58,7 +58,7 @@ install:
 
 build_script:
   - cmd: cd %APPVEYOR_BUILD_FOLDER% 
-  - cmd: CMake\build.bat 
+  - cmd: .\build.bat 
 
 # test are already in cmake
 test: off
