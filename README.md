@@ -41,7 +41,7 @@ For support: support@visus.net
 
 * `osx linux` build status: [![Build Status](https://travis-ci.com/sci-visus/visus.svg?token=yzpwCyVPupwSzFjgTCoA&branch=master)](https://travis-ci.com/sci-visus/visus)
 
-* `windows` build status: [![Windows Build status](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master?svg=true)](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master)                                                                                                                                                                             
+* `windows` build status: [![Windows Build status](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master?svg=true)](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master)
 
 Table of content:
 
@@ -68,14 +68,11 @@ python -c "import OpenVisus"
 Or you can download/install develop version from GitHub Releases (change filename as needed):
 
 ```
-filename=OpenVisus-cp27-none-macosx_10_13_x86_64.tar.gz
-curl -fsSL --insecure https://github.com/sci-visus/OpenVisus/releases/download/1.2.134/$filename -O
-tar xvzf $filename
+tar xvzf <filename_here>
 cd OpenVisus-*
 python ./configure.py
 python -c "import OpenVisus"
 ```
-
 
 ## Windows compilation
 

@@ -551,6 +551,9 @@ def CMakePostInstall():
 			
 	# create sdist and wheel
 	PipMain(['install', "--user","--upgrade","setuptools","wheel"])	
+
+	# remove any previous distibution
+	RemoveFiles("dist/*")
 	
 	# create source distribution
 	print("Creating sdist...")

@@ -244,6 +244,9 @@ endif()
 # install
 if (True)
 
+	# swig generated files (important to be the first since I could have changed some *.py files meantime)
+	InstallBuildFiles(*.py ./)
+
 	install(FILES        LICENSE                        DESTINATION .)
 	install(FILES        README.md                      DESTINATION .)
 	install(FILES        CMake/__init__.py              DESTINATION .)
@@ -268,9 +271,6 @@ if (True)
 	set (__filename__ )
 	file(WRITE    "${CMAKE_BINARY_DIR}/PYTHON_VERSION" "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
 	install(FILES "${CMAKE_BINARY_DIR}/PYTHON_VERSION"  DESTINATION .)
-	
-	# swig generated files 
-	InstallBuildFiles(*.py ./)
 	
 	if (WIN32)
 	
