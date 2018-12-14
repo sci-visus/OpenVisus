@@ -18,12 +18,11 @@ endif()
 
 install(CODE "
 	execute_process( 
-		 COMMAND \"${PYTHON_EXECUTABLE}\" -u \"${CMAKE_CURRENT_SOURCE_DIR}/../configure.py\"
+		 COMMAND \"${PYTHON_EXECUTABLE}\" -u \"${CMAKE_INSTALL_PREFIX}/configure.py\"
 		 	--qt5-dir=\"${Qt5_DIR}\"
 		 	--openssl-root-dir=\"${OPENSSL_ROOT_DIR}\" 
 		 	--python-tag=\"${PYTHON_TAG}\" 
 		 	--plat-name=\"${PLAT_NAME}\"
-		 	--working-dir=\"${CMAKE_INSTALL_PREFIX}\"
 			cmake_post_install
 		)
 ")

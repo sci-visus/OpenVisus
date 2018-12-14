@@ -190,11 +190,11 @@ class AppleDeployStep:
 		return ret
   
 	# extractDeps
-	def extractDeps(self,filename,bRaw=False):
-		output=subprocess.check_output(('otool', '-L', filename))
+	def extractDeps(self,filename,bFull=False):
+		output=subprocess.check_output(('otool', '-l' if bFull else '-L' , filename))
 		if sys.version_info >= (3, 0): output=output.decode("utf-8")
 		output=output.strip()
-		if bRaw: return output
+		if bFull: return output
 		lines=output.split('\n')[1:]
 		deps=[line.strip().split(' ', 1)[0].strip() for line in lines]	
 		# remove any reference to myself
@@ -430,13 +430,13 @@ class LinuxDeployStep:
 		return glob.glob("bin/*.so")  + self.findApps()
 
 	# extractDeps
-	def extractDeps(self,filename,bRaw=False):
+	def extractDeps(self,filename,bFull=False):
 		ret={}
 		output=subprocess.check_output(('ldd',filename))
 		if sys.version_info >= (3, 0): 
 			output=output.decode("utf-8")
 		output=output.strip()	
-		if bRaw: return output
+		if bFull: return output
 		for line in output.splitlines():
 			items=[it.strip() for it in line.split(" ") if len(it.strip())]
 			if len(items)>=4 and items[1]=='=>' and items[2]!='not' and items[3]!='found':
@@ -492,18 +492,28 @@ class LinuxDeployStep:
 			
 			print("%30s" % (key,),target)
 
+
+
 # ///////////////////////////////////////////////////////////////////////////
 def CMakePostInstall():
-
-	working_dir=ExtractNamedArgument("--working-dir")
-	os.chdir(working_dir)
 	
-	print("Executing CMakePostInstall (code A0000)",os.getcwd())
+	print("Executing CMakePostInstall (code A0000)")
 	
-	# remove any reference to qt
-	if WIN32:
-		# do not want to distribute Qt
+	this_dir=os.path.dirname(os.path.realpath(__file__))
+	os.chdir(this_dir)
+		
+	VISUS_GUI=True if glob.glob("bin/*VisusGui*") else False
+	Qt5_DIR=""
+	if VISUS_GUI:
 		Qt5_DIR=ExtractNamedArgument("--qt5-dir")
+		if not Qt5_DIR or not os.path.isdir(Qt5_DIR):
+			raise Exception("internal error")		
+		
+	if WIN32:
+		
+		if not VISUS_GUI:
+			raise "Internal error"
+		
 		ExecuteCommand([
 			os.path.abspath(Qt5_DIR+"/../../../bin/windeployqt"),
 			os.path.abspath("bin/visusviewer.exe"),
@@ -536,17 +546,20 @@ def CMakePostInstall():
 			ExecuteCommand(["cp"] + glob.glob(OPENSSL_ROOT_DIR + "/lib/libcrypto.so*") + ["bin/"])
 			ExecuteCommand(["cp"] + glob.glob(OPENSSL_ROOT_DIR + "/lib/libssl.so*"   ) + ["bin/"])			
 			
+	# do not want to distribute Qt
 	RemoveFiles("bin/Qt*")	
 			
 	# create sdist and wheel
 	PipMain(['install', "--user","--upgrade","setuptools","wheel"])	
 	
+	# create source distribution
 	print("Creating sdist...")
 	ExecuteCommand([sys.executable,"setup.py","-q","sdist","--formats=%s" % ("zip" if WIN32 else "gztar",)])
 	sdist_ext='.zip' if WIN32 else '.tar.gz'
 	sdist_filename=glob.glob('dist/*%s' % (sdist_ext,))[0]
 	print("Created sdist",sdist_filename)
 	
+	# create wheel distribution
 	print("Creating wheel...")
 	PYTHON_TAG=ExtractNamedArgument("--python-tag")
 	PLAT_NAME=ExtractNamedArgument("--plat-name")
@@ -555,29 +568,41 @@ def CMakePostInstall():
 	wheel_filename=glob.glob('dist/*%s' % (wheel_ext,))[0]
 	print("Created wheel",wheel_filename)
 	
+	# rename dist files to be the same
 	os.rename(sdist_filename,wheel_filename.replace(wheel_ext,sdist_ext))
 	print("Finished CMakePostInstall",glob.glob('dist/*'))
 
-
-
+	
+	
 # ////////////////////////////////////////////////////////////////////
 def ForceUseOfPyQt5():
-
+	
 	print("Doing ForceUseOfPyQt5...")
 
+	this_dir=os.path.dirname(os.path.realpath(__file__))
+	os.chdir(this_dir)
+
+	VISUS_GUI=True if glob.glob("bin/*VisusGui*") else False
+	
+	# no need to use PyQt5 since Gui is not enabled	
+	if not VISUS_GUI:
+		print("VISUS_GUI not enabled, no need to force PyQt5")
+		return 
+
+	QT5_DIR=""
 	try:
 		import PyQt5
+		QT5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
+		
 	except Exception as err:
 		print("ERROR import PyQt5 failed, GUI stuff is not going to work")
 		return
-
-	QT5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
-
+		
 	visusgui_path='VisusGui.dll' if WIN32 else ('libVisusGui.dylib' if APPLE else 'libVisusGui.so')
 	visusgui_path=os.path.join('bin',visusgui_path)
 	
+	# see VisusGui.i (%pythonbegin section, I'm using sys.path)
 	if WIN32:
-		# see VisusGui.i (%pythonbegin section)
 		pass
 
 	else:
@@ -592,9 +617,14 @@ def ForceUseOfPyQt5():
 			print("# Executing","deploy.setRPath('%s')" % (rpath,))
 			deploy.setRPath(rpath)
 
-		if QT5_DIR in deploy.extractDeps(visusgui_path,bRaw=True):
+		deps=deploy.extractDeps(visusgui_path,bFull=True)
+		
+		if QT5_DIR in deps:
 			print("PyQt5 path is now stored in rpaths")		
+		
 		else:
+			print("Cannot solve PyQt5 problems")
+			print(deps)
 			raise Exception("Cannot resolve PyQt5 problems")
 
 	#from ctypes import cdll
@@ -603,63 +633,65 @@ def ForceUseOfPyQt5():
 	
 
 # ////////////////////////////////////////////////////////////////////
-def ConfigureCreateScripts():
+def CreateScripts():
 	
 	this_dir=os.path.dirname(os.path.realpath(__file__))
+	os.chdir(this_dir)	
+
+	VISUS_GUI=True if glob.glob("bin/*VisusGui*") else False
+	Qt5_DIR=""
+	if VISUS_GUI:
+		try:
+			import PyQt5
+			Qt5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
+		except Exception as err:
+			print("ERROR import PyQt5 failed, GUI stuff is not going to work")
+			VISUS_GUI=False
 
 	for exe in FindExecutables():	
 	
 		name=os.path.splitext(os.path.basename(exe))[0]
 		script_filename="%s%s" % (name,".bat" if WIN32 else (".command" if APPLE else ".sh"))
 		
-		Qt5_DIR=""
-		try:
-			import PyQt5
-			Qt5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
-		except Exception as err:
-			print("ERROR import PyQt5 failed, GUI stuff is not going to work")
-
 		if WIN32:
-
-			paths=[]
-			if Qt5_DIR: 
-				paths+=[os.path.join(Qt5_DIR,"bin")]
-			paths+=[os.path.dirname(sys.executable)]
-			paths+=[os.path.join(r"%this_dir%","bin")]
-			paths+=[r"%PATH%"]
-
+	
+			# NOTE : don't need to add Qt path ... see VisusGui.i (i.e. adding sys.path is enought)
 			WriteTextFile(script_filename,[
-				r'set this_dir=%~dp0',
-				'set PYTHON_EXECUTABLE=' + sys.executable,
-				'set PYTHONPATH=' + ":".join([r"%this_dir%"]+sys.path),
-				'set PATH=' + ";".join(paths),
-				os.path.join(r"%this_dir%",exe) + r' %*'
-			])
+					"""set this_dir=%~dp0""",
+					"""set PYTHON_EXECUTABLE=""" + sys.executable,
+					"""set PATH=%this_dir%\\bin;%PYTHON_EXECUTABLE%\\..;%PATH%""",
+					"%this_dir%\\" + exe + " %*"
+				])
 
-		elif APPLE:				
+		elif APPLE:	
+			
+			# PyQt5 is linked using rpath (see configure)
 			WriteTextFile(script_filename,[
-				'#!/bin/bash',
-				'this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)',
-				'export PYTHON_EXECUTABLE=' + sys.executable,
-				'export PYTHONPATH=' + ":".join(["${this_dir}"]+sys.path),
-				'export DYLD_LIBRARY_PATH=' + ":".join([os.path.realpath(sysconfig.get_config_var("LIBDIR")),"${DYLD_LIBRARY_PATH}"]),
-				os.path.join("${this_dir}",'%s/Contents/MacOS/%s' % (exe,name)) + r' "$@"'
-			])
+					"""#!/bin/bash""",
+					"""this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)""",
+					"""export PYTHON_EXECUTABLE=""" + sys.executable,
+					"""export PYTHONPATH=${this_dir}:$(${PYTHON_EXECUTABLE} -c "import sys; print(':'.join(sys.path))")""",
+					"""export DYLD_LIBRARY_PATH=$(${PYTHON_EXECUTABLE} -c "import os,sysconfig; print(os.path.realpath(sysconfig.get_config_var('LIBDIR')))"):${DYLD_LIBRARY_PATH}""",
+					"${this_dir}/" + exe + "/Contents/MacOS/" + name + ' "$@"',
+				])
 				
 		else:
+			
+			# PyQt5 is linked using rpath (see configure)
 			WriteTextFile(script_filename,[
-				'#!/bin/bash',
-				'this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)',
-				'export PYTHON_EXECUTABLE=' + sys.executable,
-				'export PYTHONPATH=' + ":".join(["${this_dir}"]+sys.path),
-				'export LD_LIBRARY_PATH=' + ":".join([os.path.realpath(sysconfig.get_config_var("LIBDIR")),"${LD_LIBRARY_PATH}"]),
-				os.path.join("${this_dir}",exe) + r' "$@"'
-			])
+					"""#!/bin/bash""",
+					"""this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)""",
+					"""export PYTHON_EXECUTABLE=""" + sys.executable,
+					"""export PYTHONPATH=${this_dir}:$(${PYTHON_EXECUTABLE} -c "import sys; print(':'.join(sys.path))")""",
+					"""export LD_LIBRARY_PATH=$(${PYTHON_EXECUTABLE} -c "import os,sysconfig; print(os.path.realpath(sysconfig.get_config_var('LIBDIR')))"):${LD_LIBRARY_PATH}""",
+					"${this_dir}/" + exe + ' "$@"', 
+				])
 
 		if not WIN32:
 			subprocess.call(["chmod","+rx",script_filename], shell=False)
 
-		if Qt5_DIR:
+		if VISUS_GUI:
+			
 			qt_conf_content=[
 				"[Paths]",
 				"  Plugins=" + os.path.join(Qt5_DIR,"plugins")
@@ -669,23 +701,19 @@ def ConfigureCreateScripts():
 			else:
 				WriteTextFile(os.path.join(this_dir, 'bin','qt.conf'),qt_conf_content)
 
-
 # //////////////////////////////////////////////////////////////////////////////
 def Configure():
-	print("Executing configure....")
-	old_dir = os.getcwd()
-	os.chdir(os.path.dirname(os.path.realpath(__file__)))
-	ForceUseOfPyQt5()
-	ConfigureCreateScripts()	
-	os.chdir(old_dir)	
-	print("finished configure.py")	
-			
+		print("Executing configure....")
+		ForceUseOfPyQt5()
+		CreateScripts()	
+		print("finished configure.py")
+		
 
 # //////////////////////////////////////////////////////////////////////////////
 if __name__ == "__main__":
 
 	print(sys.argv)
-
+	
 	if "cmake_post_install" in sys.argv:
 		CMakePostInstall()
 		sys.exit(0)
