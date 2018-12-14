@@ -65,11 +65,10 @@ python -m OpenVisus configure
 python -c "import OpenVisus"
 ```
 
-Or you can download/install develop version from GitHub Releases (change filename as needed):
+Or you can download OpenVisus from GitHub releases, unzip it and:
 
 ```
-tar xvzf <filename_here>
-cd OpenVisus-*
+cd OpenVisus/directory/name/here
 python ./configure.py
 python -c "import OpenVisus"
 ```

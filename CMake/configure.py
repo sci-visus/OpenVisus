@@ -657,38 +657,50 @@ def CreateScripts():
 		script_filename="%s%s" % (name,".bat" if WIN32 else (".command" if APPLE else ".sh"))
 		
 		if WIN32:
-	
-			# NOTE : don't need to add Qt path ... see VisusGui.i (i.e. adding sys.path is enought)
-			WriteTextFile(script_filename,[
+			
+			content=[
 					"""set this_dir=%~dp0""",
 					"""set PYTHON_EXECUTABLE=""" + sys.executable,
-					"""set PATH=%this_dir%\\bin;%PYTHON_EXECUTABLE%\\..;%PATH%""",
-					"%this_dir%\\" + exe + " %*"
-				])
+					"""set PATH=%this_dir%\\bin;%PYTHON_EXECUTABLE%\\..;%PATH%"""
+			]
+			
+			if VISUS_GUI:
+				content+=[
+					"""for /f %%i in ('python -c "import os,PyQt5; print(os.path.dirname(PyQt5.__file__))"') do set PyQt5_DIR=%%i""",
+					"""set PATH=%PyQt5_DIR%\\Qt\\bin;%PATH%""",
+					"""set QT_PLUGIN_PATH=%PyQt5_DIR%\\Qt\\plugins""",
+				]
+
+			content+=["%this_dir%\\" + exe + " %*"]
+			WriteTextFile(script_filename,content)
 
 		elif APPLE:	
 			
 			# PyQt5 is linked using rpath (see configure)
-			WriteTextFile(script_filename,[
-					"""#!/bin/bash""",
-					"""this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)""",
-					"""export PYTHON_EXECUTABLE=""" + sys.executable,
-					"""export PYTHONPATH=${this_dir}:$(${PYTHON_EXECUTABLE} -c "import sys; print(':'.join(sys.path))")""",
-					"""export DYLD_LIBRARY_PATH=$(${PYTHON_EXECUTABLE} -c "import os,sysconfig; print(os.path.realpath(sysconfig.get_config_var('LIBDIR')))"):${DYLD_LIBRARY_PATH}""",
-					"${this_dir}/" + exe + "/Contents/MacOS/" + name + ' "$@"',
-				])
+			content=[
+				"""#!/bin/bash""",
+				"""this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)""",
+				"""export PYTHON_EXECUTABLE=""" + sys.executable,
+				"""export PYTHONPATH=${this_dir}:$(${PYTHON_EXECUTABLE} -c "import sys; print(':'.join(sys.path))")""",
+				"""export DYLD_LIBRARY_PATH=$(${PYTHON_EXECUTABLE} -c "import os,sysconfig; print(os.path.realpath(sysconfig.get_config_var('LIBDIR')))"):${DYLD_LIBRARY_PATH}""",
+				"${this_dir}/" + exe + "/Contents/MacOS/" + name + ' "$@"',
+			]
+			
+			WriteTextFile(script_filename,content)
 				
 		else:
 			
+			content=[
+				"""#!/bin/bash""",
+				"""this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)""",
+				"""export PYTHON_EXECUTABLE=""" + sys.executable,
+				"""export PYTHONPATH=${this_dir}:$(${PYTHON_EXECUTABLE} -c "import sys; print(':'.join(sys.path))")""",
+				"""export LD_LIBRARY_PATH=$(${PYTHON_EXECUTABLE} -c "import os,sysconfig; print(os.path.realpath(sysconfig.get_config_var('LIBDIR')))"):${LD_LIBRARY_PATH}""",
+				"${this_dir}/" + exe + ' "$@"', 
+			]
+			
 			# PyQt5 is linked using rpath (see configure)
-			WriteTextFile(script_filename,[
-					"""#!/bin/bash""",
-					"""this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)""",
-					"""export PYTHON_EXECUTABLE=""" + sys.executable,
-					"""export PYTHONPATH=${this_dir}:$(${PYTHON_EXECUTABLE} -c "import sys; print(':'.join(sys.path))")""",
-					"""export LD_LIBRARY_PATH=$(${PYTHON_EXECUTABLE} -c "import os,sysconfig; print(os.path.realpath(sysconfig.get_config_var('LIBDIR')))"):${LD_LIBRARY_PATH}""",
-					"${this_dir}/" + exe + ' "$@"', 
-				])
+			WriteTextFile(script_filename,content)
 
 		if not WIN32:
 			subprocess.call(["chmod","+rx",script_filename], shell=False)
