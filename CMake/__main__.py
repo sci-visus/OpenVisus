@@ -7,5 +7,5 @@ if __name__ == '__main__':
 		  from .configure import *
 		else:  
 		  from configure import *	
-		PipPostInstall().run()	
+		Configure()	
 	sys.exit(0)
