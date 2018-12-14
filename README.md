@@ -74,7 +74,6 @@ tar xvzf $filename
 cd OpenVisus-*
 python ./configure.py
 python -c "import OpenVisus"
-
 ```
 
 
