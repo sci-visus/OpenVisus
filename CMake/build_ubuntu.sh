@@ -1,5 +1,6 @@
 #!/bin/bash
 
+PYTHON_VERSION=${PYTHON_VERSION:-3.6.6}
 source "$(dirname "$0")/build_common.sh"
 
 SOURCE_DIR=$(pwd)
@@ -112,18 +113,7 @@ cmake ${cmake_opts} ${SOURCE_DIR}
  
 cmake --build . --target all -- -j 4
 cmake --build . --target test
-cmake --build . --target install 
-cmake --build . --target deploy 
-
-pushd install
-./visus.sh  && echo "Embedding working"
-PYTHONPATH=$(pwd) ${PYTHON_EXECUTABLE} -c "import VisusKernelPy" && echo "Extending working"
-popd
-
-if (( DEPLOY_GITHUB == 1 )); then
-	cmake --build ./ --target sdist --config ${CMAKE_BUILD_TYPE}
-fi
-
+cmake --build . --target install
 
 
 

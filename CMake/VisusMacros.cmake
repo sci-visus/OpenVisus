@@ -100,13 +100,10 @@ macro(SetupCommonCMake)
 		
 		if (WIN32)
 			set(SCRIPT_EXTENSION ".bat")
-			set(PYTHON_SDIST_FORMAT zip)
 		elseif (APPLE)
 			set(SCRIPT_EXTENSION ".command")
-			set(PYTHON_SDIST_FORMAT gztar)
 		else()
 			set(SCRIPT_EXTENSION ".sh")
-			set(PYTHON_SDIST_FORMAT gztar)
 		endif()	
 	
 	endif()
@@ -328,18 +325,18 @@ endmacro()
 macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 
 
-  find_package(SWIG 3.0 REQUIRED)
-  include(${SWIG_USE_FILE})
-  set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
-  set(CMAKE_SWIG_FLAGS "")
-  
-  set(SWIG_FLAGS "${ARGN}")
-  set(SWIG_FLAGS "${SWIG_FLAGS};-threads")
-  set(SWIG_FLAGS "${SWIG_FLAGS};-extranative")
+	find_package(SWIG 3.0 REQUIRED)
+	include(${SWIG_USE_FILE})
+	set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
+	set(CMAKE_SWIG_FLAGS "")
+
+	set(SWIG_FLAGS "${ARGN}")
+	set(SWIG_FLAGS "${SWIG_FLAGS};-threads")
+	set(SWIG_FLAGS "${SWIG_FLAGS};-extranative")
 
 	#prevents rebuild every time make is called
 	set_property(SOURCE ${SwigFile} PROPERTY SWIG_MODULE_NAME ${NamePy})
-	
+
 	set_source_files_properties(${SwigFile} PROPERTIES CPLUSPLUS ON)
 	set_source_files_properties(${SwigFile} PROPERTIES SWIG_FLAGS  "${SWIG_FLAGS}")
 
@@ -352,23 +349,23 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 	if (TARGET _${NamePy})
 	  set(RealName _${NamePy})
 	else()
-          set(RealName ${NamePy})
-        endif()
-	
+	  set(RealName ${NamePy})
+	endif()
+
 	SetupCommonCompileOptions(${RealName})
 	set_target_properties(${RealName} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
 	target_include_directories(${RealName} PUBLIC ${NUMPY_INCLUDE_DIR})
-	
+
 	# disable warnings
 	if (WIN32)
 		target_compile_definitions(${RealName}  PRIVATE /W0)
 	else()
 		set_target_properties(${RealName} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
 	endif()
-	
+
 	LinkPythonToLibrary(${RealName})
 	target_link_libraries(${RealName} PUBLIC ${WrappedLib})
-	
+
 	if (WIN32)
 		set_target_properties(${RealName}
 	      PROPERTIES
@@ -378,7 +375,7 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 	      COMPILE_PDB_NAME_RELWITHDEBINFO ${RealName})
 		set_target_properties(${RealName} PROPERTIES DEBUG_POSTFIX  "_d")
 	endif()	
-	
+
 	InstallLibrary(${RealName})
 	
 endmacro()

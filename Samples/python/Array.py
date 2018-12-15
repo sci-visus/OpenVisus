@@ -43,8 +43,6 @@ import unittest
 import numpy
 
 from OpenVisus import *
-from OpenVisus.VisusKernelPy import *
-
 
 # ////////////////////////////////////////////////////////////////////
 class MyTestCase(unittest.TestCase):

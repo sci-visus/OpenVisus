@@ -8,16 +8,21 @@ import platform
 import errno
 import fnmatch
 import os
+import sysconfig
 
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 
 bVerbose=False
-	
+
 # /////////////////////////////////////////////////
 def ExecuteCommand(cmd):	
-	if bVerbose: print(" ".join(cmd))
-	subprocess.call(cmd)	
+	"""
+	note: shell=False does not support wildcard but better to use this version
+	because quoting the argument is not easy
+	"""
+	print("# Executing command: ",cmd)
+	subprocess.call(cmd, shell=False)
 
 
 # /////////////////////////////////////////////////
@@ -43,7 +48,7 @@ def CopyFile(src,dst):
 		return		
 
 	CreateDirectory(os.path.dirname(dst))
-	ExecuteCommand(["cp","-rf", src,dst])	
+	shutil.copyfile(src, dst)	
 	
 	
 # /////////////////////////////////////////////////
@@ -56,10 +61,7 @@ def CopyDirectory(src,dst):
 	
 	CreateDirectory(dst)
 	
-	# problems with symbolic links so using shutil
-	# ExecuteCommand(["cp","-rf",src,dst])
-	import shutil
-	
+	# problems with symbolic links so using shutil	
 	dst=dst+"/" + os.path.basename(src)
 	
 	if os.path.isdir(dst):
@@ -69,24 +71,65 @@ def CopyDirectory(src,dst):
 	
 # /////////////////////////////////////////////////
 def WriteTextFile(filename,content):
-	
 	if not isinstance(content, str):
 		content="\n".join(content)+"\n"
-		
 	CreateDirectory(os.path.dirname(os.path.realpath(filename)))
 	file = open(filename,"wt") 
 	file.write(content) 
 	file.close() 		
 
+# ////////////////////////////////////////////////////////////////////
+#example arg:=--key='value...' 
+# ExtractNamedArgument("--key")
+def ExtractNamedArgument(key):
+	for arg in sys.argv:
+		if arg.startswith(key + "="):
+			ret=arg.split("=",1)[1]
+			if ret.startswith('"') or ret.startswith("'"): ret=ret[1:]
+			if ret.endswith('"')   or ret.endswith("'"):   ret=ret[:-1]
+			return ret
+			
+	return None
 
-# /////////////////////////////////////////////////
+
+# ////////////////////////////////////////////////////////////////////
+def RemoveFiles(pattern):
+	files=glob.glob(pattern)
+	print("Removing files",files)
+	for it in files:
+		if os.path.isfile(it):
+			os.remove(it)
+		else:
+			shutil.rmtree(os.path.abspath("bin/Qt"),ignore_errors=True)		
+			
+# //////////////////////////////////////
 # glob(,recursive=True) is not supported in python 2.x
 # see https://stackoverflow.com/questions/2186525/use-a-glob-to-find-files-recursively-in-python
-def recursiveGlob(rootdir='.', pattern='*'):
+def RecursiveFindFiles(rootdir='.', pattern='*'):
   return [os.path.join(looproot, filename)
           for looproot, _, filenames in os.walk(rootdir)
           for filename in filenames
           if fnmatch.fnmatch(filename, pattern)]
+
+# ////////////////////////////////////////////////////////////////////
+def FindExecutables():
+
+	if WIN32:
+		return glob.glob('bin/*.exe')
+	elif APPLE:
+		return  glob.glob('bin/*.app')
+	else:
+		return  [it for it in glob.glob('bin/*') if os.path.isfile(it) and not os.path.splitext(it)[1] ]	
+	
+
+# ////////////////////////////////////////////////////////////////////
+def PipMain(args):
+	import pip
+	if int(pip.__version__.split('.')[0])>9:
+		from pip._internal import main as pip_main
+	else:
+		from pip import main as pip_main
+	pip_main(args)	
 
 # ///////////////////////////////////////
 class AppleDeployStep:
@@ -113,13 +156,11 @@ class AppleDeployStep:
 	To debug loading 
 
 	DYLD_PRINT_LIBRARIES=1 QT_DEBUG_PLUGINS=1 visusviewer.app/Contents/MacOS/visusviewer
-
 	"""
 	
 	# constructor
 	def __init__(self):
 		pass
-		
 		
 	#findApps
 	def findApps(self):
@@ -142,17 +183,18 @@ class AppleDeployStep:
 	# findAllBinaries
 	def findAllBinaries(self):	
 		ret=[]
-		ret+=recursiveGlob('bin', '*.dylib')
-		ret+=recursiveGlob('bin', '*.so')
+		ret+=RecursiveFindFiles('bin', '*.dylib')
+		ret+=RecursiveFindFiles('bin', '*.so')
 		ret+=self.findApps()
 		ret+=self.findFrameworks()
 		return ret
   
 	# extractDeps
-	def extractDeps(self,filename):
-		output=subprocess.check_output(('otool', '-L', filename))
+	def extractDeps(self,filename,bFull=False):
+		output=subprocess.check_output(('otool', '-l' if bFull else '-L' , filename))
 		if sys.version_info >= (3, 0): output=output.decode("utf-8")
 		output=output.strip()
+		if bFull: return output
 		lines=output.split('\n')[1:]
 		deps=[line.strip().split(' ', 1)[0].strip() for line in lines]	
 		# remove any reference to myself
@@ -174,7 +216,7 @@ class AppleDeployStep:
 		N=len(os.path.dirname(B).split("/"))-len(A.split("/"))	
 		return "/.." * N
 
-  # getLocalName
+  	# getLocalName
 	def getLocalName(self,filename):
 		if ".framework" in filename:
 			return os.path.basename(filename.split(".framework")[0]+".framework") + filename.split(".framework")[1]   
@@ -302,7 +344,6 @@ class AppleDeployStep:
 class LinuxDeployStep:
 
 	"""
-	
 	If a shared object dependency does not contain a slash, then it is
        searched for in the following order:
 
@@ -369,10 +410,10 @@ class LinuxDeployStep:
 	
 	To debug
 	
-		LD_DEBUG=libs,files ldd install/bin/visusviewer
+		LD_DEBUG=libs,files ldd bin/visusviewer
 
 		# this shows the rpath
-		readelf -d libVisusDataflow.so
+		readelf -d bin/libVisusGui.so
 
 	"""
 	
@@ -387,22 +428,30 @@ class LinuxDeployStep:
 	# findAllBinaries
 	def findAllBinaries(self):
 		return glob.glob("bin/*.so")  + self.findApps()
+
+	# extractDeps
+	def extractDeps(self,filename,bFull=False):
+		ret={}
+		output=subprocess.check_output(('ldd',filename))
+		if sys.version_info >= (3, 0): 
+			output=output.decode("utf-8")
+		output=output.strip()	
+		if bFull: return output
+		for line in output.splitlines():
+			items=[it.strip() for it in line.split(" ") if len(it.strip())]
+			if len(items)>=4 and items[1]=='=>' and items[2]!='not' and items[3]!='found':
+				key=os.path.basename(items[0])
+				target=os.path.realpath(items[2])
+				if target.startswith("/"):
+					ret[key]=target	
+		return ret
 		
 	# findAllDeps
 	def findAllDeps(self):
 		ret={}
 		for filename in self.findAllBinaries():
-			output=subprocess.check_output(('ldd',filename))
-			if sys.version_info >= (3, 0): 
-				output=output.decode("utf-8")
-			output=output.strip()	
-			for line in output.splitlines():
-				items=[it.strip() for it in line.split(" ") if len(it.strip())]
-				if len(items)>=4 and items[1]=='=>' and items[2]!='not' and items[3]!='found':
-					key=os.path.basename(items[0])
-					target=os.path.realpath(items[2])
-					if target.startswith("/"):
-						ret[key]=target	
+			for key,target in self.extractDeps(filename).items():
+				ret[key]=target	
 		return ret
 
 	# copyGlobalDeps
@@ -429,10 +478,10 @@ class LinuxDeployStep:
 			print("CopyFile",target,"bin/"+key," (fixing dependency of %s) " % (key,))
 			CopyFile(target,"bin/"+key)	
 
-	# setOrigins
-	def setOrigins(self):
+	# setRPath
+	def setRPath(self,value):
 		for filename in self.findAllBinaries():
-			ExecuteCommand(["patchelf", "--set-rpath", "$ORIGIN", filename])	
+			ExecuteCommand(["patchelf", "--set-rpath", value, filename])	
 
 	# showDeps
 	def showDeps(self):
@@ -443,66 +492,248 @@ class LinuxDeployStep:
 			
 			print("%30s" % (key,),target)
 
-	# fixAllDeps
-	def fixAllDeps(self):
-		# need to run two times
-		for I in range(2):
-			# WRONG: for manylinux i should not copy the low-level dynamic libraries				
-			# see CMake/build_manylinux.sh
-			# self.copyGlobalDeps()
-			self.setOrigins()
-		
 
+
+# ///////////////////////////////////////////////////////////////////////////
+def CMakePostInstall():
+	
+	print("Executing CMakePostInstall (code A0000)")
+	
+	this_dir=os.path.dirname(os.path.realpath(__file__))
+	os.chdir(this_dir)
 		
+	VISUS_GUI=True if glob.glob("bin/*VisusGui*") else False
+	Qt5_DIR=""
+	if VISUS_GUI:
+		Qt5_DIR=ExtractNamedArgument("--qt5-dir")
+		if not Qt5_DIR or not os.path.isdir(Qt5_DIR):
+			raise Exception("internal error")		
+		
+	if WIN32:
+		
+		if not VISUS_GUI:
+			raise "Internal error"
+		
+		ExecuteCommand([
+			os.path.abspath(Qt5_DIR+"/../../../bin/windeployqt"),
+			os.path.abspath("bin/visusviewer.exe"),
+			"--libdir",os.path.abspath("bin"),
+			"--plugindir",os.path.abspath("bin/Qt/plugins"),
+			"--no-translations"])
+			
+	elif APPLE:
+		
+		AppleDeployStep().fixAllDeps()
+		# do not want to distribute Qt
+		ExecuteCommand(["rm","-Rf"] + glob.glob("bin/Qt*"))
+		
+	else:
+		
+		# see CMake/build_manylinux.sh for 'minimal' bundle libraries
+		deploy=LinuxDeployStep()
+		
+		for I in range(2):
+			# WRONG: for manylinux i should not copy the low-level dynamic libraries	
+			# deploy.copyGlobalDeps()
+			deploy.setRPath("$ORIGIN")
+			
+		# WRONG: do not copy libpython
+		# if I use manylinux libpython* I will have problems with 'built in' modules (such as math) 
+		# that are different depending on the platform
+		# ExecuteCommand(["cp"]+glob.glob("libpython*) + ["./bin/"])
+		OPENSSL_ROOT_DIR=ExtractNamedArgument("--openssl-root-dir")
+		if OPENSSL_ROOT_DIR:
+			ExecuteCommand(["cp"] + glob.glob(OPENSSL_ROOT_DIR + "/lib/libcrypto.so*") + ["bin/"])
+			ExecuteCommand(["cp"] + glob.glob(OPENSSL_ROOT_DIR + "/lib/libssl.so*"   ) + ["bin/"])			
+			
+	# do not want to distribute Qt
+	RemoveFiles("bin/Qt*")	
+			
+	# create sdist and wheel
+	PipMain(['install', "--user","--upgrade","setuptools","wheel"])	
+
+	# remove any previous distibution
+	RemoveFiles("dist/*")
+	
+	# create source distribution
+	print("Creating sdist...")
+	ExecuteCommand([sys.executable,"setup.py","-q","sdist","--formats=%s" % ("zip" if WIN32 else "gztar",)])
+	sdist_ext='.zip' if WIN32 else '.tar.gz'
+	sdist_filename=glob.glob('dist/*%s' % (sdist_ext,))[0]
+	print("Created sdist",sdist_filename)
+	
+	# create wheel distribution
+	print("Creating wheel...")
+	PYTHON_TAG=ExtractNamedArgument("--python-tag")
+	PLAT_NAME=ExtractNamedArgument("--plat-name")
+	ExecuteCommand([sys.executable,"setup.py","-q","bdist_wheel","--python-tag=%s" % (PYTHON_TAG,),"--plat-name=%s" % (PLAT_NAME,)])
+	wheel_ext='.whl'
+	wheel_filename=glob.glob('dist/*%s' % (wheel_ext,))[0]
+	print("Created wheel",wheel_filename)
+	
+	# rename dist files to be the same
+	os.rename(sdist_filename,wheel_filename.replace(wheel_ext,sdist_ext))
+	print("Finished CMakePostInstall",glob.glob('dist/*'))
+
+	
+	
+# ////////////////////////////////////////////////////////////////////
+def ForceUseOfPyQt5():
+	
+	print("Doing ForceUseOfPyQt5...")
+
+	this_dir=os.path.dirname(os.path.realpath(__file__))
+	os.chdir(this_dir)
+
+	VISUS_GUI=True if glob.glob("bin/*VisusGui*") else False
+	
+	# no need to use PyQt5 since Gui is not enabled	
+	if not VISUS_GUI:
+		print("VISUS_GUI not enabled, no need to force PyQt5")
+		return 
+
+	QT5_DIR=""
+	try:
+		import PyQt5
+		QT5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
+		
+	except Exception as err:
+		print("ERROR import PyQt5 failed, GUI stuff is not going to work")
+		return
+		
+	visusgui_path='VisusGui.dll' if WIN32 else ('libVisusGui.dylib' if APPLE else 'libVisusGui.so')
+	visusgui_path=os.path.join('bin',visusgui_path)
+	
+	# see VisusGui.i (%pythonbegin section, I'm using sys.path)
+	if WIN32:
+		pass
+
+	else:
+		deploy=AppleDeployStep() if APPLE else LinuxDeployStep()
+
+		if APPLE:
+			rpath=os.path.join(QT5_DIR,"lib")
+			print("# Executing","deploy.addRPath('%s')" % (rpath,))
+			deploy.addRPath(rpath)	
+		else:
+			rpath=":".join(["$ORIGIN",os.path.join(QT5_DIR,"lib")])
+			print("# Executing","deploy.setRPath('%s')" % (rpath,))
+			deploy.setRPath(rpath)
+
+		deps=deploy.extractDeps(visusgui_path,bFull=True)
+		
+		if QT5_DIR in deps:
+			print("PyQt5 path is now stored in rpaths")		
+		
+		else:
+			print("Cannot solve PyQt5 problems")
+			print(deps)
+			raise Exception("Cannot resolve PyQt5 problems")
+
+	#from ctypes import cdll
+	#cdll.LoadLibrary(visusgui_path)
+	print("ForceUseOfPyQt5 done")
+	
+
+# ////////////////////////////////////////////////////////////////////
+def CreateScripts():
+	
+	this_dir=os.path.dirname(os.path.realpath(__file__))
+	os.chdir(this_dir)	
+
+	VISUS_GUI=True if glob.glob("bin/*VisusGui*") else False
+	Qt5_DIR=""
+	if VISUS_GUI:
+		try:
+			import PyQt5
+			Qt5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
+		except Exception as err:
+			print("ERROR import PyQt5 failed, GUI stuff is not going to work")
+			VISUS_GUI=False
+
+	for exe in FindExecutables():	
+	
+		name=os.path.splitext(os.path.basename(exe))[0]
+		script_filename="%s%s" % (name,".bat" if WIN32 else (".command" if APPLE else ".sh"))
+		
+		if WIN32:
+			
+			content=[
+					"""set this_dir=%~dp0""",
+					"""set PYTHON_EXECUTABLE=""" + sys.executable,
+					"""set PATH=%this_dir%\\bin;%PYTHON_EXECUTABLE%\\..;%PATH%"""
+			]
+			
+			if VISUS_GUI:
+				content+=[
+					"""for /f %%i in ('python -c "import os,PyQt5; print(os.path.dirname(PyQt5.__file__))"') do set PyQt5_DIR=%%i""",
+					"""set PATH=%PyQt5_DIR%\\Qt\\bin;%PATH%""",
+					"""set QT_PLUGIN_PATH=%PyQt5_DIR%\\Qt\\plugins""",
+				]
+
+			content+=["%this_dir%\\" + exe + " %*"]
+			WriteTextFile(script_filename,content)
+
+		elif APPLE:	
+			
+			# PyQt5 is linked using rpath (see configure)
+			content=[
+				"""#!/bin/bash""",
+				"""this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)""",
+				"""export PYTHON_EXECUTABLE=""" + sys.executable,
+				"""export PYTHONPATH=${this_dir}:$(${PYTHON_EXECUTABLE} -c "import sys; print(':'.join(sys.path))")""",
+				"""export DYLD_LIBRARY_PATH=$(${PYTHON_EXECUTABLE} -c "import os,sysconfig; print(os.path.realpath(sysconfig.get_config_var('LIBDIR')))"):${DYLD_LIBRARY_PATH}""",
+				"${this_dir}/" + exe + "/Contents/MacOS/" + name + ' "$@"',
+			]
+			
+			WriteTextFile(script_filename,content)
+				
+		else:
+			
+			content=[
+				"""#!/bin/bash""",
+				"""this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)""",
+				"""export PYTHON_EXECUTABLE=""" + sys.executable,
+				"""export PYTHONPATH=${this_dir}:$(${PYTHON_EXECUTABLE} -c "import sys; print(':'.join(sys.path))")""",
+				"""export LD_LIBRARY_PATH=$(${PYTHON_EXECUTABLE} -c "import os,sysconfig; print(os.path.realpath(sysconfig.get_config_var('LIBDIR')))"):${LD_LIBRARY_PATH}""",
+				"${this_dir}/" + exe + ' "$@"', 
+			]
+			
+			# PyQt5 is linked using rpath (see configure)
+			WriteTextFile(script_filename,content)
+
+		if not WIN32:
+			subprocess.call(["chmod","+rx",script_filename], shell=False)
+
+		if VISUS_GUI:
+			
+			qt_conf_content=[
+				"[Paths]",
+				"  Plugins=" + os.path.join(Qt5_DIR,"plugins")
+			]
+			if APPLE:
+				WriteTextFile(os.path.join(this_dir, 'bin','%s.app' % (name,),'Contents','Resources','qt.conf'),qt_conf_content)
+			else:
+				WriteTextFile(os.path.join(this_dir, 'bin','qt.conf'),qt_conf_content)
+
+# //////////////////////////////////////////////////////////////////////////////
+def Configure():
+		print("Executing configure....")
+		ForceUseOfPyQt5()
+		CreateScripts()	
+		print("finished configure.py")
 		
 
 # //////////////////////////////////////////////////////////////////////////////
 if __name__ == "__main__":
-	
-	deploy=None
-	
-	if WIN32:
-		print("Not supported")
-		sys.exit(-1)
-		
-	deploy=	AppleDeployStep() if APPLE else LinuxDeployStep()
 
-	I=1
-	while I < len(sys.argv):
+	print(sys.argv)
 	
-		# verbose	
-		if sys.argv[I]=="--verbose":
-			bVerbose=True
-			I+=1
-			continue
-		
-		if sys.argv[I]=="--show-deps":
-			I+=1
-			print("Current deps:")
-			
-			if (not APPLE):
-				print("NOTE for linux, you can still see some global deps due to the ldd command")
-				
-			deploy.showDeps()
-			continue
-		
-		# fix all
-		if sys.argv[I]=="--fix-deps":
-			I+=1
-			print("Fixing deps")
-			deploy.fixAllDeps()
-			continue			
-			
-		if sys.argv[I]=="--set-qt5":
-			QT5_DIR=sys.argv[I+1]
-			I+=2
-			print("Setting qt directory",QT5_DIR)
-			ExecuteCommand(["rm","-Rf","bin/Qt*"])
-			deploy.addRPath(QT5_DIR + "/lib")
-			print("Rememeber to `export QT_PLUGIN_PATH=" + QT5_DIR+"/plugins`")
-			continue
-			
-		print("Unknonwn argument",sys.argv[I])
-		sys.exit(-1)		
+	if "cmake_post_install" in sys.argv:
+		CMakePostInstall()
+		sys.exit(0)
 	
+	Configure()
 	sys.exit(0)
+
+
