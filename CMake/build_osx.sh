@@ -17,6 +17,7 @@ function InstallBrew {
 	
 	# output is very long!
 	brew update 1>/dev/null 2>&1 || true
+	brew upgrade pyenv 1>/dev/null 2>&1 || true
 }
 
 
