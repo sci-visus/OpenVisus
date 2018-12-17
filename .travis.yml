@@ -77,6 +77,12 @@ matrix:
       osx_image: xcode9.4 #10.13
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/  
+      env: [OS_NAME="macosx_10_13_x86_64",PYTHON_VERSION=3.7.1,COMPILER=clang++]                
+      
+    - os: osx
+      osx_image: xcode9.4 #10.13
+      compiler: clang
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/  
       env: [OS_NAME="macosx_10_13_x86_64",PYTHON_VERSION=3.5.1,COMPILER=clang++]                          
           
     - os: osx
@@ -91,7 +97,13 @@ matrix:
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="macosx_10_12_x86_64",PYTHON_VERSION=3.6.1,COMPILER=clang++]        
+      env: [OS_NAME="macosx_10_12_x86_64",PYTHON_VERSION=3.6.1,COMPILER=clang++]      
+      
+    - os: osx
+      osx_image: xcode8.3
+      compiler: clang
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: [OS_NAME="macosx_10_12_x86_64",PYTHON_VERSION=3.7.1,COMPILER=clang++]           
          
     - os: osx
       osx_image: xcode8.3
