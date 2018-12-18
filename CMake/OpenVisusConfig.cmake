@@ -77,6 +77,10 @@ if(OpenVisus_FOUND)
 	
 		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL  REQUIRED)
 		
+		if (WIN32)
+			string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
+		endif()
+		
 		AddOpenVisusLibrary(OpenVisus::Gui)
 		AddOpenVisusLibrary(OpenVisus::GuiNodes)
 		AddOpenVisusLibrary(OpenVisus::AppKit)

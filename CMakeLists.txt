@@ -50,13 +50,11 @@ option(VISUS_GUI "Enable gui" TRUE)
 
 IF (VISUS_GUI)
 	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED)
-	mark_as_advanced(Qt5Core_DIR)
-	mark_as_advanced(Qt5Gui_DIR)
-	mark_as_advanced(Qt5OpenGL_DIR)
-	mark_as_advanced(Qt5Widgets_DIR)
+	
 	if (WIN32)
 		string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
-	endif()
+	endif()	
+	
 endif()
 
 
@@ -253,6 +251,8 @@ if (True)
 	file(GLOB CMakePySources CMake/*.py)
 	
 	install(FILES        CMake/VisusMacros.cmake CMake/FindNumPy.cmake DESTINATION CMake)
+	install(DIRECTORY    CMake/PostInstall                             DESTINATION CMake)
+	
 	install(FILES        ${CMakePySources}                             DESTINATION .)
 	install(FILES        LICENSE                                       DESTINATION .)
 	install(FILES        README.md                                     DESTINATION .)

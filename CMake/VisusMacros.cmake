@@ -66,6 +66,8 @@ macro(SetupCommonCMake)
 		set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 		set_property(GLOBAL PROPERTY USE_FOLDERS ON)  
 		set(CMAKE_NUM_PROCS 8)   
+		
+		option(BUILD_SHARED_LIBS "Build the shared library" TRUE)
 
 		# save libraries and binaries in the same directory        
 		set(EXECUTABLE_OUTPUT_PATH              ${CMAKE_BINARY_DIR})           
@@ -105,7 +107,7 @@ macro(SetupCommonCMake)
 		else()
 			set(SCRIPT_EXTENSION ".sh")
 		endif()	
-	
+		
 	endif()
 	
 endmacro()
@@ -243,9 +245,6 @@ macro(FindPythonLibrary)
 
 	EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE}  -c  "import site;print(site.getsitepackages()[-1])"  OUTPUT_VARIABLE PYTHON_SITE_PACKAGES_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
 	message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
-
-	
-
 
 endmacro()
 
@@ -558,5 +557,36 @@ macro(FindVCPKGDir)
 	get_filename_component(VCPKG_DIR ${VCPKG_DIR} REALPATH)	
 endmacro()
 
+# //////////////////////////////////////////////////////////////////////////
+macro(InstallPostInstallStep)
 
+	if (NOT PYTHON_TAG)
+	  set(PYTHON_TAG cp${PYTHON_VERSION_MAJOR}${PYTHON_VERSION_MINOR})
+	endif()
+
+	if (NOT PLAT_NAME)
+	 	if (WIN32)
+	 		set(PLAT_NAME win_amd64)
+	 	elseif (APPLE)
+	 		string(SUBSTRING ${APPLE_OSX_VERSION} 0 2 __major__)
+	 		string(SUBSTRING ${APPLE_OSX_VERSION} 3 2 __minor__)
+	 		set(PLAT_NAME macosx_${__major__}_${__minor__}_x86_64)
+	 	else()
+	 		execute_process(COMMAND lsb_release -is OUTPUT_VARIABLE __id__   OUTPUT_STRIP_TRAILING_WHITESPACE)
+	 		execute_process(COMMAND lsb_release -cs OUTPUT_VARIABLE __name__ OUTPUT_STRIP_TRAILING_WHITESPACE)
+	 		set(PLAT_NAME "${__id__}.${__name__}")
+	 	endif()
+	endif()	
+
+
+	install(CODE "
+		execute_process( 
+			 COMMAND \"${PYTHON_EXECUTABLE}\" -u \"${CMAKE_INSTALL_PREFIX}/configure.py\"
+			 	--qt5-dir=\"${Qt5_DIR}\"
+			 	--openssl-root-dir=\"${OPENSSL_ROOT_DIR}\" 
+			 	--python-tag=\"${PYTHON_TAG}\" 
+			 	--plat-name=\"${PLAT_NAME}\"
+				cmake_post_install)
+	")
+endmacro()
 

@@ -513,19 +513,18 @@ def CMakePostInstall():
 		
 		if not VISUS_GUI:
 			raise "Internal error"
-		
-		ExecuteCommand([
-			os.path.abspath(Qt5_DIR+"/../../../bin/windeployqt"),
-			os.path.abspath("bin/visusviewer.exe"),
-			"--libdir",os.path.abspath("bin"),
-			"--plugindir",os.path.abspath("bin/Qt/plugins"),
-			"--no-translations"])
+			
+		for exe in glob.glob("bin/*.exe"):
+			ExecuteCommand([
+				os.path.abspath(Qt5_DIR+"/../../../bin/windeployqt"),
+				os.path.abspath(exe),
+				"--libdir",os.path.abspath("bin"),
+				"--plugindir",os.path.abspath("bin/Qt/plugins"),
+				"--no-translations"])
 			
 	elif APPLE:
 		
 		AppleDeployStep().fixAllDeps()
-		# do not want to distribute Qt
-		ExecuteCommand(["rm","-Rf"] + glob.glob("bin/Qt*"))
 		
 	else:
 		
