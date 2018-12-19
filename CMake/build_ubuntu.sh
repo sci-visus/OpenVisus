@@ -99,6 +99,8 @@ InstallPython
 # install Qt ${QT5_VERSION}
 if (( VISUS_GUI==1 )); then
 
+	sudo apt-get install --reinstall ca-certificates
+
 	if (( ${OS_VERSION:0:2} <=14 )); then
 
 		sudo add-apt-repository ppa:forkotov02/opt-qt-${QT5_VERSION}-trusty -y

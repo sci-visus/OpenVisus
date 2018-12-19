@@ -121,7 +121,7 @@ matrix:
        
     - os: linux
       dist: trusty
-      env: [OS_NAME="ubuntu_14",COMPILER=g++-4.9,PYTHON_VERSION=3.6]       
+      env: [OS_NAME="ubuntu_14",COMPILER=g++-4.9,PYTHON_VERSION=3.6.1]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -151,7 +151,7 @@ matrix:
        
     - os: linux
       dist: xenial
-      env: [OS_NAME="ubuntu_16",COMPILER=g++-4.9,PYTHON_VERSION=3.6]       
+      env: [OS_NAME="ubuntu_16",COMPILER=g++-4.9,PYTHON_VERSION=3.6.1]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -179,7 +179,7 @@ matrix:
        
     - os: linux
       dist: trusty
-      env: [OS_NAME="ubuntu_18",COMPILER=g++-4.9,PYTHON_VERSION=3.6,'DOCKER_IMAGE=ubuntu:bionic']       
+      env: [OS_NAME="ubuntu_18",COMPILER=g++-4.9,PYTHON_VERSION=3.6.1,'DOCKER_IMAGE=ubuntu:bionic']       
       addons: 
         apt:
           packages: ['g++-4.9']
