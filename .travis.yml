@@ -148,7 +148,7 @@ matrix:
     # ///////////////////////////////// Ubuntu 16 
        
     - os: linux
-      dist: xenial
+      dist: trusty
       env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:xenial']       
       addons: 
         apt:
@@ -156,7 +156,7 @@ matrix:
           sources: ['ubuntu-toolchain-r-test']          
     
     - os: linux
-      dist: xenial
+      dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
       env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=ubuntu:xenial']       
       addons: 
@@ -165,7 +165,7 @@ matrix:
           sources: ['ubuntu-toolchain-r-test']       
             
     - os: linux
-      dist: xenial
+      dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
       env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=ubuntu:xenial']
       addons: 
@@ -216,7 +216,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: '[PYTHON_VERSION=3.5.1','DOCKER_IMAGE=opensuse:leap']
+      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=opensuse:leap']
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -254,7 +254,7 @@ script:
    - |
      if [ "$TRAVIS_OS_NAME" == "osx" ]; then 
         export COMPILER=clang++
-	export PRETTY_BUILD_LOG=1
+        export PRETTY_BUILD_LOG=1
      else 
         export COMPILER=g++-4.9
      fi
