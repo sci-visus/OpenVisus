@@ -143,7 +143,38 @@ matrix:
       addons: 
         apt:
           packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']    
+          
+          
+
+    # ///////////////////////////////// trusty (Ubuntu 16)
+       
+    - os: linux
+      dist: xenial
+      env: [OS_NAME="ubuntu_16",COMPILER=g++-4.9,PYTHON_VERSION=3.6]       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']          
+    
+    - os: linux
+      dist: xenial
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: [OS_NAME="ubuntu_16",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1]       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']       
+            
+    - os: linux
+      dist: xenial
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: [OS_NAME="ubuntu_16",COMPILER=g++-4.9,PYTHON_VERSION=2.7]
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']               
+             
 
     # ///////////////////////////////// opensuse
 
