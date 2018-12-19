@@ -36,9 +36,4 @@ cd build
 "%CMAKE_EXECUTABLE%" --build . --target ALL_BUILD --config RelWithDebInfo
 "%CMAKE_EXECUTABLE%" --build . --target RUN_TESTS --config RelWithDebInfo
 "%CMAKE_EXECUTABLE%" --build . --target INSTALL   --config RelWithDebInfo
- 
-if "%DEPLOY_PYPI%"=="1" (
-   echo "Deploying to pypi enabled"
-   "%CMAKE_EXECUTABLE%" --build . --target pypi          --config RelWithDebInfo
-)
 

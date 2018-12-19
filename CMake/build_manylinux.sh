@@ -5,7 +5,6 @@ PYTHON_VERSION=${PYTHON_VERSION:-3.6.1}
 # override
 DISABLE_OPENMP=1
 VISUS_GUI=0 
-PLAT_NAME=manylinux1_x86_64
 
 source "$(dirname "$0")/build_common.sh"
 
@@ -119,6 +118,8 @@ InstallSwig
 # yum install -y httpd.x86_64 httpd-devel.x86_64
 InstallApache24
 
+
+PushCMakeOption PLAT_NAME          manylinux1_x86_64
 PushCMakeOption APACHE_DIR         ${APACHE_DIR}
 PushCMakeOption APR_DIR            ${APR_DIR}
 PushCMakeOptions
@@ -128,13 +129,6 @@ cmake ${cmake_opts} ${SOURCE_DIR}
 cmake --build . --target all 
 cmake --build . --target test
 cmake --build . --target install 
-
-if (( DEPLOY_PYPI == 1 )); then
-	cmake --build ./ --target pypi --config ${CMAKE_BUILD_TYPE}
-fi
-
-
-
 
 
 

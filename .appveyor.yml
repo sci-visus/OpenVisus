@@ -12,7 +12,6 @@ environment:
   QT5_DIR: C:/Qt/5.11.2/msvc2017_64
   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   CMAKE_GENERATOR: Visual Studio 15 2017 Win64
-  DEPLOY_GITHUB: false
   DEPLOY_PYPI: false
   PYPI_USERNAME: scrgiorgio
   PYPI_PASSWORD:
@@ -42,9 +41,6 @@ init:
       If ($env:APPVEYOR_REPO_TAG -ne "" -or $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[full_matrix]")) {
           $env:DEFAULT_ENABLED=true
       }
-      If ($env:APPVEYOR_REPO_TAG -ne ""  -or  $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]") ) {
-      	$env:DEPLOY_GITHUB=1  
-      }
       If ($env:APPVEYOR_REPO_TAG -ne ""  -or $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]"  ) ) {
       	$env:DEPLOY_PYPI=1   
       } 
@@ -63,11 +59,22 @@ build_script:
 # test are already in cmake
 test: off
 
+on_success:
+  - echo [distutils]                                 > %USERPROFILE%\\.pypirc
+  - echo index-servers =                            >> %USERPROFILE%\\.pypirc
+  - echo     pypi                                   >> %USERPROFILE%\\.pypirc
+  - echo [pypi]                                     >> %USERPROFILE%\\.pypirc
+  - echo username = %PYPI_USERNAME%                 >> %USERPROFILE%\\.pypirc
+  - echo password = %PYPI_PASSWORD%                 >> %USERPROFILE%\\.pypirc
+  - set HOME=%USERPROFILE%
+  - if "%APPVEYOR_REPO_TAG%"=="true" ( "%PYTHON_EXECUTABLE%" -m pip install --user --upgrade twine )
+  - if "%APPVEYOR_REPO_TAG%"=="true" ( "%PYTHON_EXECUTABLE%" -m twine upload --skip-existing "%APPVEYOR_BUILD_FOLDER%/build/install/dist/*.whl")
+
 after_build:
   - ps: |
-        If ( -not ($env:DEPLOY_GITHUB -eq 1) ) {
-          Exit-AppveyorBuild
-        }
+      If ($env:APPVEYOR_REPO_TAG -eq "") {
+      	Exit-AppveyorBuild
+      }
    
 artifacts:
     - path: .\build\install\dist\*.zip
@@ -78,5 +85,9 @@ deploy:
     auth_token:
       secure: nwK8bGTRUynj+58b7E8Rgur5/0YvfIivBflFb5AaUrpC5BSTpcLbA4Ac+cCF6L4/
     artifact: UploadToGitHubReleases
+
+
+
+
 
 

@@ -19,7 +19,7 @@ if [ "$EUID" -eq 0 ]; then
 fi
 
 sudo apt-get -qq update
-sudo apt-get -qq install git 
+sudo apt-get -qq install git software-properties-common
 
 # //////////////////////////////////////////////////////
 function DetectUbuntuVersion {
@@ -88,9 +88,8 @@ if (( ${OS_VERSION:0:2}<=14 )); then
 	sudo apt-get -qq update
 fi
 
-sudo apt-get -qq install --allow-unauthenticated cmake swig3.0 git bzip2 ca-certificates build-essential uuid-dev curl automake
+sudo apt-get -qq install --allow-unauthenticated cmake swig3.0 git bzip2 ca-certificates build-essential uuid-dev libssl-dev zlib1g-dev curl automake 
 sudo apt-get -qq install apache2 apache2-dev
-
 
 InstallCMake
 InstallPatchElf

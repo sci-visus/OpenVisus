@@ -1,7 +1,7 @@
 #!/bin/bash
 
 PYTHON_VERSION=${PYTHON_VERSION:-3.6.6}
-IS_TRAVIS=${IS_TRAVIS:0}
+PRETTY_BUILD_LOG=${PRETTY_BUILD_LOG:-0}
 source "$(dirname "$0")/build_common.sh"
 
 SOURCE_DIR=$(pwd)
@@ -38,7 +38,7 @@ PushCMakeOptions
 cmake -GXcode ${cmake_opts} ${SOURCE_DIR} 
 
 # this is to solve logs too long 
-if (( IS_TRAVIS == 1 )) ; then
+if (( PRETTY_BUILD_LOG == 1 )) ; then
 	sudo gem install xcpretty  
 	set -o pipefail && cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
 else
@@ -47,10 +47,6 @@ fi
 
 cmake --build ./ --target RUN_TESTS   --config ${CMAKE_BUILD_TYPE}
 cmake --build ./ --target install     --config ${CMAKE_BUILD_TYPE} 
-
-if (( DEPLOY_PYPI == 1 )); then
-	cmake --build ./ --target pypi     --config ${CMAKE_BUILD_TYPE}
-fi
 
 
 
