@@ -105,19 +105,11 @@ The fastest way is to use `chocolatey` i.e from an Administrator Prompt:
 choco install -y -allow-empty-checksums git cmake swig 
 ```
 
-Install [Python3.7] (https://www.python.org/ftp/python/3.7.0/python-3.7.0-amd64.exe)
+Install [Python3.7] (https://www.python.org/ftp/python/3.7.0/python-3.7.0-amd64.exe):
 
-Make sure you have num python installed:
+Install [Qt5 5.11](https://download.qt.io/official_releases/qt/5.11/5.11.2/qt-opensource-windows-x86-5.11.2.exe) (the version is important for PyQt5 compatibility)
 
-```
-REM change path as needed
-c:\Python37\python.exe -m pip install --user numpy
-```
-
-Install [Qt5](http://download.qt.io/official_releases/qt/5.9/5.9.2/qt-opensource-windows-x86-5.9.2.exe) 
-
-
-if you want to use [Microsoft vcpkg](https://github.com/Microsoft/vcpkg) (faster):
+Install [Microsoft vcpkg](https://github.com/Microsoft/vcpkg) :
 
 ```
 cd c:\
@@ -126,23 +118,20 @@ cd tools
 git clone https://github.com/Microsoft/vcpkg
 cd vcpkg
 .\bootstrap-vcpkg.bat
-vcpkg.exe install zlib:x64-windows lz4:x64-windows tinyxml:x64-windows freeimage:x64-windows openssl:x64-windows curl:x64-windows
-set CMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
-set VCPKG_TARGET_TRIPLET=x64-windows
 ```
 
-Then:
+Then compile/install OpenVisus:
 
 ```
-git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 
-REM *** change path as needed *** 
+REM *** change path as needed ***
 set PYTHON_EXECUTABLE=C:\Python37\python.exe
 set CMAKE_EXECUTABLE=C:\Program Files\CMake\bin\cmake.exe
 set QT5_DIR=c:\Qt\5.11.2\msvc2015_64
 .\build.bat
 ```
+
 
 To test if it's working:
 

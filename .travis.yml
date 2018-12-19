@@ -117,7 +117,7 @@ matrix:
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
       env: [OS_NAME="macosx_10_12_x86_64",PYTHON_VERSION=2.7.14,COMPILER=clang++]   
 
-    # ///////////////////////////////// trusty (Ubuntu 14.04)
+    # ///////////////////////////////// Ubuntu 14.04
        
     - os: linux
       dist: trusty
@@ -147,7 +147,7 @@ matrix:
           
           
 
-    # ///////////////////////////////// xenial (Ubuntu 16)
+    # ///////////////////////////////// Ubuntu 16 
        
     - os: linux
       dist: xenial
@@ -175,11 +175,11 @@ matrix:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']        
 
-    # ///////////////////////////////// trusty (Ubuntu 18)
+    # ///////////////////////////////// Ubuntu 18
        
     - os: linux
       dist: trusty
-      env: [OS_NAME="ubuntu_18",COMPILER=g++-4.9,PYTHON_VERSION=3.6,'DOCKER_IMAGE=opensuse:bionic']       
+      env: [OS_NAME="ubuntu_18",COMPILER=g++-4.9,PYTHON_VERSION=3.6,'DOCKER_IMAGE=ubuntu:bionic']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -188,7 +188,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="ubuntu_18",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,'DOCKER_IMAGE=opensuse:bionic']       
+      env: [OS_NAME="ubuntu_18",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,'DOCKER_IMAGE=ubuntu:bionic']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -197,7 +197,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="ubuntu_18",COMPILER=g++-4.9,PYTHON_VERSION=2.7,'DOCKER_IMAGE=opensuse:bionic']
+      env: [OS_NAME="ubuntu_18",COMPILER=g++-4.9,PYTHON_VERSION=2.7,'DOCKER_IMAGE=ubuntu:bionic']
       addons: 
         apt:
           packages: ['g++-4.9']

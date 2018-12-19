@@ -17,6 +17,28 @@ CACHED_DIR=${CACHED_DIR:-$(pwd)/cached_deps}
 mkdir -p ${CACHED_DIR}
 export PATH=${CACHED_DIR}/bin:$PATH
 
+# //////////////////////////////////////////////////////
+# needed for Python!
+function InstallOpenSSL {
+
+	if [ ! -x ${CACHED_DIR}/bin/openssl ]; then
+		echo "Compiling openssl"
+		DownloadFile "https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
+		tar xzf openssl-1.0.2a.tar.gz 
+		pushd openssl-1.0.2a 
+		./config -fpic shared --prefix=${CACHED_DIR}
+		make -s 
+		make install	
+		popd
+	fi
+	
+	export OPENSSL_ROOT_DIR=${CACHED_DIR}
+	export OPENSSL_INCLUDE_DIR=${OPENSSL_ROOT_DIR}/include 
+	export OPENSSL_LIB_DIR=${OPENSSL_ROOT_DIR}/lib
+	export LD_LIBRARY_PATH=${OPENSSL_LIB_DIR}:$LD_LIBRARY_PATH
+}
+
+
 
 # //////////////////////////////////////////////////////
 function InstallCMake {
@@ -88,6 +110,7 @@ function InstallApache24 {
 yum update 
 yum install -y zlib-devel curl 
 
+InstallOpenSSL
 InstallPython 
 InstallCMake
 InstallSwig

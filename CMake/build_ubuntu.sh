@@ -96,17 +96,33 @@ InstallCMake
 InstallPatchElf
 InstallPython 
 
+# install Qt ${QT5_VERSION}
 if (( VISUS_GUI==1 )); then
+
 	if (( ${OS_VERSION:0:2} <=14 )); then
-		sudo add-apt-repository ppa:beineri/opt-qt591-trusty -y
-		sudo apt-get update -qq
-		sudo apt-get install -qq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt59base
-		set +e # temporary disable exit
-		source /opt/qt59/bin/qt59-env.sh 
-		set -e 
-	else	
-		sudo apt-get install -qq qt5-default qttools5-dev-tools	
+
+		sudo add-apt-repository ppa:forkotov02/opt-qt-${QT5_VERSION}-trusty -y
+		sudo apt-get -qq update 
+		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511base 
+
+	elif (( ${OS_VERSION:0:2} <=16 )); then	
+
+		sudo add-apt-repository ppa:beineri/opt-qt-${QT5_VERSION}-xenial -y
+		sudo apt-get -qq update 
+		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511-meta-full
+
+	elif (( ${OS_VERSION:0:2} <=18 )); then
+
+		sudo add-apt-repository ppa:beineri/opt-qt-${QT5_VERSION}-bionic -y
+		sudo apt-get -qq update 
+		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511-meta-full
+
 	fi
+
+	set +e # temporary disable exit
+	source /opt/qt511/bin/qt511-env.sh
+	set -e 
+
 fi
 
 PushCMakeOptions
