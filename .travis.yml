@@ -273,7 +273,7 @@ script:
      chmod +x ./CMake/build*.sh      
      
      if [ -n "${DOCKER_IMAGE}" ]; then
-        if [[ "${DOCKER_SHELL" == "" ]] ; then DOCKER_SHELL=/bin/bash ; fi
+        if [[ "${DOCKER_SHELL}" == "" ]] ; then DOCKER_SHELL=/bin/bash ; fi
         docker_env=""
         docker_env+=" -e PYTHON_VERSION=${PYTHON_VERSION}"
         docker_env+=" -e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
