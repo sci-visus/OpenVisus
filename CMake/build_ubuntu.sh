@@ -8,7 +8,7 @@ mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
 # directory for caching install stuff
-CACHED_DIR=${CACHED_DIR:$(pwd)/cached_deps}
+CACHED_DIR=${CACHED_DIR:-$(pwd)/cached_deps}
 mkdir -p ${CACHED_DIR}
 export PATH=${CACHED_DIR}/bin:$PATH
 
