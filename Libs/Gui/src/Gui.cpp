@@ -173,7 +173,7 @@ void GuiModule::detach()
   if (!bAttached)  
     return;
   
-  VisusInfo() << "Detatching GuiModule...";
+  VisusInfo() << "Detaching GuiModule...";
   
   bAttached = false;
 
@@ -186,7 +186,7 @@ void GuiModule::detach()
 
   KernelModule::detach();
 
-  VisusInfo() << "Detatched GuiModule";
+  VisusInfo() << "Detached GuiModule";
 }
 
 //////////////////////////////////////////////

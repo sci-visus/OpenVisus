@@ -99,14 +99,14 @@ void NodesModule::detach()
   if (!bAttached)  
     return;
   
-  VisusInfo() << "Detatching NodesModule...";
+  VisusInfo() << "Detaching NodesModule...";
 
   bAttached = false;
 
   IdxModule::detach();
   DataflowModule::detach();
 
-  VisusInfo() << "Detatched NodesModule";
+  VisusInfo() << "Detached NodesModule";
 }
 
 } //namespace Visus

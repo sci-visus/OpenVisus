@@ -96,7 +96,7 @@ void GuiNodesModule::detach()
   if (!bAttached)  
     return;
 
-  VisusInfo() << "Detatching GuiNodesModule...";
+  VisusInfo() << "Detaching GuiNodesModule...";
   
   bAttached = false;
 
@@ -109,7 +109,7 @@ void GuiNodesModule::detach()
   GuiModule::detach();
   DataflowModule::detach();
 
-  VisusInfo() << "Detatched GuiNodesModule";
+  VisusInfo() << "Detached GuiNodesModule";
 }
 
 } //namespace Visus
