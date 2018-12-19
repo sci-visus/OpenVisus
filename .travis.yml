@@ -31,7 +31,7 @@ matrix:
     
     - os: linux
       dist: trusty
-      env: [PYTHON_VERSION=3.6.6,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      env: ['PYTHON_VERSION=3.6.6','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -40,7 +40,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=3.5.1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -49,7 +49,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=3.4.1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      env: ['PYTHON_VERSION=3.4.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -58,7 +58,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=2.7,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -69,25 +69,25 @@ matrix:
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
-      env: [PYTHON_VERSION=3.6.5]   
+      env: ['PYTHON_VERSION=3.6.5']   
       
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/  
-      env: [PYTHON_VERSION=3.7.1]                
+      env: ['PYTHON_VERSION=3.7.1']                
       
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/  
-      env: [PYTHON_VERSION=3.5.1]                          
+      env: ['PYTHON_VERSION=3.5.1']                          
           
     - os: osx
       osx_image: xcode9.4 #10.13
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/  
-      env: [PYTHON_VERSION=2.7.15] 
+      env: ['PYTHON_VERSION=2.7.15'] 
       
     # ///////////////////////////////// osx 10.12
       
@@ -95,31 +95,31 @@ matrix:
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=3.6.1]      
+      env: ['PYTHON_VERSION=3.6.1']      
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=3.7.1]           
+      env: ['PYTHON_VERSION=3.7.1']           
          
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=3.5.1]              
+      env: ['PYTHON_VERSION=3.5.1']              
             
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=2.7.14]   
+      env: ['PYTHON_VERSION=2.7.14']   
 
     # ///////////////////////////////// Ubuntu 14.04
        
     - os: linux
       dist: trusty
-      env: [PYTHON_VERSION=3.6.1,DOCKER_IMAGE='ubuntu:trusty']       
+      env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:trusty']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -128,7 +128,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=3.5.1,DOCKER_IMAGE='ubuntu:trusty']       
+      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=ubuntu:trusty']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -137,7 +137,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=2.7,DOCKER_IMAGE='ubuntu:trusty']
+      env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=ubuntu:trusty']
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -149,7 +149,7 @@ matrix:
        
     - os: linux
       dist: xenial
-      env: [PYTHON_VERSION=3.6.1,DOCKER_IMAGE='ubuntu:xenial']       
+      env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:xenial']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -158,7 +158,7 @@ matrix:
     - os: linux
       dist: xenial
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=3.5.1,DOCKER_IMAGE='ubuntu:xenial']       
+      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=ubuntu:xenial']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -167,7 +167,7 @@ matrix:
     - os: linux
       dist: xenial
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=2.7,DOCKER_IMAGE='ubuntu:xenial']
+      env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=ubuntu:xenial']
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -177,7 +177,7 @@ matrix:
        
     - os: linux
       dist: trusty
-      env: [PYTHON_VERSION=3.6.1,'DOCKER_IMAGE=ubuntu:bionic']       
+      env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:bionic']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -186,7 +186,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=3.5.1,'DOCKER_IMAGE=ubuntu:bionic']       
+      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=ubuntu:bionic']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -195,7 +195,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=2.7,'DOCKER_IMAGE=ubuntu:bionic']
+      env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=ubuntu:bionic']
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -207,7 +207,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=3.6.6,'DOCKER_IMAGE=opensuse:leap']
+      env: ['PYTHON_VERSION=3.6.6','DOCKER_IMAGE=opensuse:leap']
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -216,7 +216,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=3.5.1,'DOCKER_IMAGE=opensuse:leap']
+      env: '[PYTHON_VERSION=3.5.1','DOCKER_IMAGE=opensuse:leap']
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -225,7 +225,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [PYTHON_VERSION=2.7,'DOCKER_IMAGE=opensuse:leap']
+      env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=opensuse:leap']
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -236,7 +236,7 @@ matrix:
     # - os: linux
     #   dist: trusty
     #   if: tag IS present OR commit_message =~ /\[full_matrix\]/
-    #   env: [PYTHON_VERSION=3.6,'DOCKER_IMAGE=alpine:3.7',DOCKER_SHELL=/bin/sh]       
+    #   env: ['PYTHON_VERSION=3.6','DOCKER_IMAGE=alpine:3.7','DOCKER_SHELL=/bin/sh']       
     #   addons: 
     #     apt:
     #       packages: ['g++-4.9']
@@ -244,7 +244,7 @@ matrix:
     # - os: linux
     #   dist: trusty
     #   if: tag IS present OR commit_message =~ /\[full_matrix\]/
-    #   env: [PYTHON_VERSION=3.5,'DOCKER_IMAGE=alpine:3.7',DOCKER_SHELL=/bin/sh]       
+    #   env: ['PYTHON_VERSION=3.5','DOCKER_IMAGE=alpine:3.7','DOCKER_SHELL=/bin/sh']       
     #   addons: 
     #     apt:
     #       packages: ['g++-4.9']
