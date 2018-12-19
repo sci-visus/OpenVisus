@@ -240,11 +240,10 @@ elseif(APPLE)
 
 else()
 	target_link_libraries(VisusKernel PUBLIC dl rt util)
-  if (HAS_UUID_H)
-    target_link_libraries(VisusKernel PUBLIC uuid)
-  endif()
+	if (HAS_UUID_H)
+		target_link_libraries(VisusKernel PUBLIC uuid)
+	endif()
 	target_link_libraries(VisusKernel PUBLIC  pthread)
-
 endif()
 
 # copy py files to build

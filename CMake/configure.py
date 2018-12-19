@@ -534,16 +534,7 @@ def CMakePostInstall():
 		for I in range(2):
 			# WRONG: for manylinux i should not copy the low-level dynamic libraries	
 			# deploy.copyGlobalDeps()
-			deploy.setRPath("$ORIGIN")
-			
-		# WRONG: do not copy libpython
-		# if I use manylinux libpython* I will have problems with 'built in' modules (such as math) 
-		# that are different depending on the platform
-		# ExecuteCommand(["cp"]+glob.glob("libpython*) + ["./bin/"])
-		OPENSSL_ROOT_DIR=ExtractNamedArgument("--openssl-root-dir")
-		if OPENSSL_ROOT_DIR:
-			ExecuteCommand(["cp"] + glob.glob(OPENSSL_ROOT_DIR + "/lib/libcrypto.so*") + ["bin/"])
-			ExecuteCommand(["cp"] + glob.glob(OPENSSL_ROOT_DIR + "/lib/libssl.so*"   ) + ["bin/"])			
+			deploy.setRPath("$ORIGIN")		
 			
 	# do not want to distribute Qt
 	RemoveFiles("bin/Qt*")	

@@ -1,7 +1,6 @@
 #!/bin/sh
 
 # override
-VISUS_INTERNAL_DEFAULT=1
 DISABLE_OPENMP=1
 VISUS_GUI=0
 

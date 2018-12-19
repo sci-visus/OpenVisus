@@ -14,12 +14,8 @@ fi
 
 sudo zypper --non-interactive update
 sudo zypper --non-interactive install --type pattern devel_basis
-sudo zypper --non-interactive install gcc-c++ cmake git swig  libuuid-devel libopenssl-devel curl patchelf
+sudo zypper --non-interactive install gcc-c++ cmake git swig libuuid-devel curl patchelf
 sudo zypper --non-interactive install apache2 apache2-devel
-
-if (( VISUS_INTERNAL_DEFAULT == 0 )); then
-	sudo zypper --non-interactive install zlib-devel liblz4-devel tinyxml-devel libfreeimage-devel libcurl-devel
-fi
 
 InstallPython 
 

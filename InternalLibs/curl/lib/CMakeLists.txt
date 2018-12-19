@@ -1,5 +1,5 @@
 
-add_library(curl STATIC 
+set(CURL_SOURCES
 	../include/curl/curl.h
 	../include/curl/curlver.h
 	../include/curl/easy.h
@@ -63,7 +63,10 @@ add_library(curl STATIC
 	vtls/openssl.c vtls/gtls.c vtls/vtls.c vtls/nss.c     
 	vtls/polarssl.c vtls/polarssl_threadlock.c vtls/axtls.c               
 	vtls/cyassl.c vtls/schannel.c vtls/darwinssl.c vtls/gskit.c           
-	vtls/mbedtls.c)
+	vtls/mbedtls.c
+)
+
+add_library(curl STATIC ${CURL_SOURCES})
 
 if (VISUS_INTERNAL_OPENSSL)
 	target_link_libraries(curl PRIVATE crypto ssl)
@@ -75,3 +78,4 @@ target_compile_definitions(curl PRIVATE BUILDING_LIBCURL)
 target_include_directories(curl PRIVATE ./ ../include)
 target_include_directories(curl PUBLIC  ../include)
 set_target_properties(curl PROPERTIES FOLDER "InternalLibs/")
+

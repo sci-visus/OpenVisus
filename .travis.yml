@@ -2,9 +2,9 @@ language: cpp
 
 sudo: required
 
-cache:
-   directories:
-     - ~/.cached/OpenVisus
+# cache:
+#   directories:
+#     - ~/.cached/OpenVisus
 
 services:
   - docker
@@ -33,7 +33,7 @@ matrix:
     
     - os: linux
       dist: trusty
-      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64,DOCKER_SHELL=/bin/bash]       
+      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -42,7 +42,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64,DOCKER_SHELL=/bin/bash]       
+      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -51,7 +51,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.4.1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64,DOCKER_SHELL=/bin/bash]       
+      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=3.4.1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -60,7 +60,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=2.7,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64,DOCKER_SHELL=/bin/bash]       
+      env: [OS_NAME="manylinux1_x86_64",COMPILER=g++-4.9,PYTHON_VERSION=2.7,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -173,15 +173,43 @@ matrix:
       addons: 
         apt:
           packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']               
+          sources: ['ubuntu-toolchain-r-test']        
+
+    # ///////////////////////////////// trusty (Ubuntu 18)
+       
+    - os: linux
+      dist: trusty
+      env: [OS_NAME="ubuntu_18",COMPILER=g++-4.9,PYTHON_VERSION=3.6,'DOCKER_IMAGE=opensuse:bionic']       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']          
+    
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: [OS_NAME="ubuntu_18",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,'DOCKER_IMAGE=opensuse:bionic']       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']       
+            
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: [OS_NAME="ubuntu_18",COMPILER=g++-4.9,PYTHON_VERSION=2.7,'DOCKER_IMAGE=opensuse:bionic']
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']          
              
 
-    # ///////////////////////////////// opensuse
+    # ///////////////////////////////// opensuse leap (docker)
 
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="opensuse_42_3",COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,'DOCKER_IMAGE=opensuse:leap',DOCKER_SHELL=/bin/bash]
+      env: [OS_NAME="opensuse_42_3",COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,'DOCKER_IMAGE=opensuse:leap']
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -190,7 +218,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="opensuse_42_3",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,'DOCKER_IMAGE=opensuse:leap',DOCKER_SHELL=/bin/bash]
+      env: [OS_NAME="opensuse_42_3",COMPILER=g++-4.9,PYTHON_VERSION=3.5.1,'DOCKER_IMAGE=opensuse:leap']
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -199,14 +227,14 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_NAME="opensuse_42.3",COMPILER=g++-4.9,PYTHON_VERSION=2.7,'DOCKER_IMAGE=opensuse:leap',DOCKER_SHELL=/bin/bash]
+      env: [OS_NAME="opensuse_42.3",COMPILER=g++-4.9,PYTHON_VERSION=2.7,'DOCKER_IMAGE=opensuse:leap']
       addons: 
         apt:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']                       
           
 
-    # ///////////////////////////////// alpine (disabled)
+    # ///////////////////////////////// alpine (docker) (disabled)
     # - os: linux
     #   dist: trusty
     #   if: tag IS present OR commit_message =~ /\[full_matrix\]/
@@ -245,6 +273,7 @@ script:
      chmod +x ./CMake/build*.sh      
      
      if [ -n "${DOCKER_IMAGE}" ]; then
+	if [[ "${DOCKER_SHELL" == "" ]] ; then DOCKER_SHELL=/bin/bash ; fi
         docker_env=""
         docker_env+=" -e PYTHON_VERSION=${PYTHON_VERSION}"
         docker_env+=" -e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"

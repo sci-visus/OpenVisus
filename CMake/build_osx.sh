@@ -26,10 +26,6 @@ InstallPython
 
 brew install swig  
 
-if (( VISUS_INTERNAL_DEFAULT == 0 )); then 
-  brew install zlib lz4 tinyxml freeimage openssl curl
-fi
-
 if (( VISUS_GUI == 1 )); then
 	# install qt 5.11 (instead of 5.12 which is not supported by PyQt5)
 	# brew install qt5

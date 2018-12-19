@@ -57,20 +57,25 @@ IF (VISUS_GUI)
 	
 endif()
 
-
-# if using vcpkg on windows use the vcpkg libraries
-if (WIN32)
-	if (CMAKE_TOOLCHAIN_FILE)
-		set(VCPKG 1)
-		SetIfNotDefined(VISUS_INTERNAL_DEFAULT 0)
+# ______________________________________________
+if (NOT DEFINED VISUS_INTERNAL_DEFAULT)
+	if (WIN32)
+		# if using vcpkg on windows use the vcpkg libraries
+		if (CMAKE_TOOLCHAIN_FILE)
+			set(VCPKG 1)
+			set(VISUS_INTERNAL_DEFAULT 0)
+		else()
+			set(VCPKG 0)
+			set(VISUS_INTERNAL_DEFAULT 1)
+		endif()	
 	else()
-		set(VCPKG 0)
-		SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
-	endif()	
+		# better to use internal libs to avoid random errors
+		set(VISUS_INTERNAL_DEFAULT 1)
+	endif()
 endif()
 
 
-SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
+
 
 # ______________________________________________
 # *** zlib ***
@@ -147,18 +152,11 @@ endif()
 # ______________________________________________
 # *** OpenSSL ***
 
-if (WIN32 OR APPLE)
-	SetIfNotDefined(VISUS_INTERNAL_OPENSSL ${VISUS_INTERNAL_DEFAULT})
-else()
-	SetIfNotDefined(VISUS_INTERNAL_OPENSSL 0) # I have problem on linux mixing python openssl and mine, so I'm using system openssl
-endif() 
+SetIfNotDefined(VISUS_INTERNAL_OPENSSL ${VISUS_INTERNAL_DEFAULT})
 
 if (VISUS_INTERNAL_OPENSSL)
 	MESSAGE(STATUS "Using internal OpenSSL")
 else()
-	if (UNIX AND (NOT APPLE))
-		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/FixFindOpenSSL)
-	endif()
 	# i'm assuming brew here	
 	if (APPLE)
 		SetIfNotDefined(OPENSSL_INCLUDE_DIR    /usr/local/opt/openssl/include)

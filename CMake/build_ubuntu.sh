@@ -7,12 +7,10 @@ SOURCE_DIR=$(pwd)
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
-
 # directory for caching install stuff
-CACHED_DIR=~/.cached/OpenVisus
+CACHED_DIR=${CACHED_DIR:$(pwd)/cached_deps}
 mkdir -p ${CACHED_DIR}
 export PATH=${CACHED_DIR}/bin:$PATH
-
 
 # make sure sudo is available
 if [ "$EUID" -eq 0 ]; then
@@ -26,14 +24,21 @@ sudo apt-get -qq install git
 # //////////////////////////////////////////////////////
 function DetectUbuntuVersion {
 	if [ -f /etc/os-release ]; then
+
 		source /etc/os-release
 		export OS_VERSION=$VERSION_ID
+
 	elif type lsb_release >/dev/null 2>&1; then
+
 		export OS_VERSION=$(lsb_release -sr)
+
 	elif [ -f /etc/lsb-release ]; then
+
 		source /etc/lsb-release
 		export OS_VERSION=$DISTRIB_RELEASE
+
 	fi
+
 	echo "OS_VERSION ${OS_VERSION}"
 }
 
@@ -83,16 +88,13 @@ if (( ${OS_VERSION:0:2}<=14 )); then
 	sudo apt-get -qq update
 fi
 
-sudo apt-get -qq install --allow-unauthenticated cmake swig3.0 git bzip2 ca-certificates build-essential libssl-dev uuid-dev curl automake
+sudo apt-get -qq install --allow-unauthenticated cmake swig3.0 git bzip2 ca-certificates build-essential uuid-dev curl automake
 sudo apt-get -qq install apache2 apache2-dev
+
 
 InstallCMake
 InstallPatchElf
 InstallPython 
-
-if (( VISUS_INTERNAL_DEFAULT == 0 )); then 
-	sudo apt-get -qq install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
-fi
 
 if (( VISUS_GUI==1 )); then
 	if (( ${OS_VERSION:0:2} <=14 )); then
