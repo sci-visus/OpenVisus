@@ -90,7 +90,7 @@ void AppKitModule::detach()
   if (!bAttached)  
     return;
   
-  VisusInfo() << "Detatching AppKitModule...";
+  VisusInfo() << "Detaching AppKitModule...";
   
   bAttached = false;
 
@@ -100,7 +100,7 @@ void AppKitModule::detach()
   GuiNodesModule::detach();
 
 
-  VisusInfo() << "Detatched AppKitModule";
+  VisusInfo() << "Detached AppKitModule";
 }
 
 } //namespace Visus

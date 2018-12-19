@@ -454,7 +454,7 @@ void KernelModule::detach()
   
   bAttached = false;
 
-  VisusInfo() << "Detatching KernelModule...";
+  VisusInfo() << "Detaching KernelModule...";
 
   ObjectFactory::releaseSingleton();
   ArrayPlugins::releaseSingleton();
@@ -471,7 +471,7 @@ void KernelModule::detach()
   DestroyAutoReleasePool();
 #endif
 
-  VisusInfo() << "Detatched KernelModule...";
+  VisusInfo() << "Detached KernelModule...";
 
 }
 

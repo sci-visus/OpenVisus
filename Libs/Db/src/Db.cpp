@@ -84,7 +84,7 @@ void DbModule::detach()
   if (!bAttached)  
     return;
   
-  VisusInfo() << "Detatching DbModule...";
+  VisusInfo() << "Detaching DbModule...";
   
   bAttached = false;
 
@@ -92,7 +92,7 @@ void DbModule::detach()
 
   KernelModule::detach();
 
-  VisusInfo() << "Detatched DbModule.";
+  VisusInfo() << "Detached DbModule.";
 }
 
 } //namespace Visus 

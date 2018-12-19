@@ -80,13 +80,13 @@ void IdxModule::detach()
   if (!bAttached)  
     return;
   
-  VisusInfo() << "Detatching IdxModule...";
+  VisusInfo() << "Detaching IdxModule...";
   
   bAttached = false;
 
   DbModule::detach();
 
-  VisusInfo() << "Detatched IdxModule";
+  VisusInfo() << "Detached IdxModule";
 }
 
 } //namespace Visus

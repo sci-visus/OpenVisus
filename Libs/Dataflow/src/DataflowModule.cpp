@@ -72,13 +72,13 @@ void DataflowModule::detach()
   if (!bAttached)  
     return;
 
-  VisusInfo() << "Detatching DataflowModule...";
+  VisusInfo() << "Detaching DataflowModule...";
   
   bAttached = false;
 
   KernelModule::detach();
 
-  VisusInfo() << "Detatched DataflowModule";
+  VisusInfo() << "Detached DataflowModule";
 }
 
 } //namespace Visus 
