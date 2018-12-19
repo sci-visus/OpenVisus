@@ -280,7 +280,7 @@ script:
         ./build.sh
      fi
      
-     if [[ "${TRAVIS_TAG}" != "" && ( "$TRAVIS_OS_NAME" == "osx"  || ${DOCKER_IMAGE} == "quay.io/pypa/manylinux1_x86_64" ) ]]; then
+     if [[ "${TRAVIS_TAG}" != "" && ( "$TRAVIS_OS_NAME" == "osx"  || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ) ]]; then
         echo [distutils]                                  > ~/.pypirc
         echo index-servers = pypi                        >> ~/.pypirc
         echo [pypi]                                      >> ~/.pypirc
