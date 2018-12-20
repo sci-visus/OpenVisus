@@ -2,7 +2,7 @@
 set -ex 
 
 this_dir=$(dirname $0)
-s
+
 if [ -n "${DOCKER_IMAGE}" ]; then
 
 	DOCKER_SHELL=${DOCKER_SHELL:-/bin/bash}
