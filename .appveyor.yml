@@ -67,7 +67,7 @@ build_script:
   - echo password = %PYPI_PASSWORD%                 >> %USERPROFILE%\\.pypirc
   - set HOME=%USERPROFILE%
   - if "%DEPLOY_PYPI%"=="1" ( %PYTHON_EXECUTABLE% -m pip install --user --upgrade twine )
-  - if "%DEPLOY_PYPI%"=="1" ( %PYTHON_EXECUTABLE% -m twine upload --skip-existing "build/install/dist/*.whl" ) 
+  - if "%DEPLOY_PYPI%"=="1" ( %PYTHON_EXECUTABLE% -m twine upload --skip-existing "%APPVEYOR_BUILD_FOLDER%/build/install/dist/*.whl" ) 
 
 # test are already in cmake
 test: off
