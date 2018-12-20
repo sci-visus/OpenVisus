@@ -224,8 +224,6 @@ matrix:
 
 script:
    - |
-     set -ex 
-
      VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-1}
      PRETTY_LOG=${PRETTY_LOG:-1}
      if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then COMPILER=clang++ ; fi
