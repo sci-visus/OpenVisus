@@ -227,7 +227,6 @@ script:
      set -ex 
 
      VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-1}
-     DOCKER_SHELL=${DOCKER_SHELL:-/bin/bash}
      PRETTY_LOG=${PRETTY_LOG:-1}
      if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then COMPILER=clang++ ; fi
      if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then COMPILER=g++-4.9 ; fi
@@ -247,22 +246,10 @@ script:
      fi
 
      cd "${TRAVIS_BUILD_DIR}"     
-     
-     if [ -n "${DOCKER_IMAGE}" ]; then
-        docker_env=""
-        docker_env+=" -e PYTHON_VERSION=${PYTHON_VERSION}"
-        docker_env+=" -e VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT}"
-        sudo docker run -d -ti --name mydocker -v ${TRAVIS_BUILD_DIR}:/home/OpenVisus ${docker_env} ${DOCKER_IMAGE} ${DOCKER_SHELL}
-        sudo docker exec mydocker ${DOCKER_SHELL} -c "cd /home/OpenVisus && ./build.sh"
-        sudo chown -R "$USER":"$USER" ${TRAVIS_BUILD_DIR}/build
-        sudo chmod -R u+rwx           ${TRAVIS_BUILD_DIR}/build  
-     else
-        ./build.sh
-     fi
-
+     ./build.sh
+    
      echo [distutils]                                  > ~/.pypirc
-     echo index-servers =                             >> ~/.pypirc
-     echo    pypi                                     >> ~/.pypirc
+     echo index-servers =  pypi                       >> ~/.pypirc
      echo [pypi]                                      >> ~/.pypirc
      echo username=${PYPI_USERNAME}                   >> ~/.pypirc
      echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
