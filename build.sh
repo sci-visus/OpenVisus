@@ -1,5 +1,5 @@
 #!/bin/bash
-
+gg
 set -ex 
 
 this_dir=$(dirname $0)

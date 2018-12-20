@@ -224,10 +224,10 @@ matrix:
 
 script:
    - |
-     VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-1}
-     PRETTY_LOG=${PRETTY_LOG:-1}
-     if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then COMPILER=clang++ ; fi
-     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then COMPILER=g++-4.9 ; fi
+     export VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-1}
+     export PRETTY_LOG=${PRETTY_LOG:-1}
+     if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then export COMPILER=clang++ ; fi
+     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export COMPILER=g++-4.9 ; fi
      
      export DEPLOY_GITHUB=0
      if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_github]"* ]]; then
