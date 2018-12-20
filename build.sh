@@ -3,11 +3,11 @@
 this_dir=$(dirname $0)
 
 if [ -n "${DOCKER_IMAGE}" ]; then
-	
-	if [ "${DOCKER_SHELL}" == ""           ] ; then DOCKER_SHELL=/bin/bash   ; fi
-	if [ "${DOCKER_ENV}"   == ""           ] ; then DOCKER_ENV=              ; fi
-	if [ "${BUILD_DIR}"    == ""           ] ; then BUILD_DIR=${PWD}/build   ; fi
 
+	DOCKER_SHELL=${DOCKER_SHELL:-/bin/bash}
+	DOCKER_ENV=${DOCKER_ENV:-}
+	BUILD_DIR=${BUILD_DIR:${PWD}/build}
+	
 	if [ "${PYTHON_VERSION}"         != "" ] ; then DOCKER_ENV="${DOCKER_ENV} -e PYTHON_VERSION=${PYTHON_VERSION}" ; fi
 	if [ "${VISUS_INTERNAL_DEFAULT}" != "" ] ; then DOCKER_ENV="${DOCKER_ENV} -e VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT}" ; fi
 	if [ "${BUILD_DIR}"              != "" ] ; then DOCKER_ENV="${DOCKER_ENV} -e BUILD_DIR=${BUILD_DIR}" ; fi
