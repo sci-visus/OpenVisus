@@ -197,11 +197,8 @@ Note that on linux you can even compile using docker. An example is:
 
 
 ```
-BUILD_DIR=$(pwd)/build/docker \
-PYTHON_VERSION=3.6.1 \
-VISUS_INTERNAL_DEFAULT=1 \
-DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64 \
-./build.sh
+BUILD_DIR=$(pwd)/build/docker PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64 ./build.sh
+BUILD_DIR=$(pwd)/build/trusty PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=ubuntu:trusty                  ./build.sh
 ```
 
 
