@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -ex 
 
@@ -7,7 +7,7 @@ VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0}
 DISABLE_OPENMP=${DISABLE_OPENMP:-0}
 VISUS_GUI=${VISUS_GUI:-1}
 CMAKE_BUILD_TYPE=RelWithDebInfo 
-BUILD_DIR=${BUILD_DIR:-$(pwd)/build} 
+BUILD_DIR=${BUILD_DIR:-$PWD/build} 
 
 # directory for caching install stuff
 CACHED_DIR=${BUILD_DIR}/cached_deps
