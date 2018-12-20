@@ -119,7 +119,7 @@ matrix:
        
     - os: linux
       dist: trusty
-      env: ['PYTHON_VERSION=3.6','DOCKER_IMAGE=ubuntu:trusty']       
+      env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:trusty']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -145,11 +145,11 @@ matrix:
           
           
 
-    # ///////////////////////////////// trusty (Ubuntu 16)
+    # ///////////////////////////////// xenial (Ubuntu 16)
        
     - os: linux
       dist: xenial
-      env: ['PYTHON_VERSION=3.6','DOCKER_IMAGE=ubuntu:xenial']       
+      env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:xenial']       
       addons: 
         apt:
           packages: ['g++-4.9']
