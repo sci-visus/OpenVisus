@@ -9,7 +9,7 @@ notifications:
     on_build_status_changed: true  
    
 environment:
-  QT5_DIR: C:/Qt/5.11.2/msvc2017_64
+  QT5_DIR: C:/Qt/5.11.2/msvc2017_64/lib/cmake/Qt5
   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   CMAKE_GENERATOR: Visual Studio 15 2017 Win64
   DEPLOY_GITHUB: false
@@ -68,7 +68,6 @@ build_script:
   - set HOME=%USERPROFILE%
   - if "%DEPLOY_PYPI%"=="1" ( %PYTHON_EXECUTABLE% -m pip install --user --upgrade twine )
   - if "%DEPLOY_PYPI%"=="1" ( %PYTHON_EXECUTABLE% -m twine upload --skip-existing "build/install/dist/*.whl" ) 
-
 
 # test are already in cmake
 test: off

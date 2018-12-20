@@ -583,7 +583,6 @@ macro(InstallPostInstallStep)
 		execute_process( 
 			 COMMAND \"${PYTHON_EXECUTABLE}\" -u \"${CMAKE_INSTALL_PREFIX}/configure.py\"
 			 	--qt5-dir=\"${Qt5_DIR}\"
-			 	--openssl-root-dir=\"${OPENSSL_ROOT_DIR}\" 
 			 	--python-tag=\"${PYTHON_TAG}\" 
 			 	--plat-name=\"${PLAT_NAME}\"
 				cmake_post_install)

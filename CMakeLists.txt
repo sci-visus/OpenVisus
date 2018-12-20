@@ -54,7 +54,9 @@ IF (VISUS_GUI)
 	if (WIN32)
 		string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
 	endif()	
-	
+
+	MESSAGE(STATUS "Qt5_DIR ${Qt5_DIR}")
+	MESSAGE(STATUS "Qt5Core_VERSION_STRING ${Qt5Core_VERSION_STRING}")
 endif()
 
 
@@ -150,25 +152,25 @@ endif()
 # ______________________________________________
 # *** OpenSSL ***
 
-if (WIN32 OR APPLE)
-	SetIfNotDefined(VISUS_INTERNAL_OPENSSL ${VISUS_INTERNAL_DEFAULT})
-else()
-	SetIfNotDefined(VISUS_INTERNAL_OPENSSL 0) # I have problem on linux mixing python openssl and mine, so I'm using system openssl
-endif() 
+SetIfNotDefined(VISUS_INTERNAL_OPENSSL ${VISUS_INTERNAL_DEFAULT})
 
 if (VISUS_INTERNAL_OPENSSL)
 	MESSAGE(STATUS "Using internal OpenSSL")
 else()
+
 	if (UNIX AND (NOT APPLE))
 		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/FixFindOpenSSL)
 	endif()
+
 	# i'm assuming brew here	
 	if (APPLE)
 		SetIfNotDefined(OPENSSL_INCLUDE_DIR    /usr/local/opt/openssl/include)
 		SetIfNotDefined(OPENSSL_CRYPTO_LIBRARY /usr/local/opt/openssl/lib/libcrypto.dylib)
 		SetIfNotDefined(OPENSSL_SSL_LIBRARY    /usr/local/opt/openssl/lib/libssl.dylib)	
 	endif()
+
 	find_package(OpenSSL REQUIRED)
+
 	MESSAGE(STATUS "Using external OpenSSL")
 	message(STATUS "OPENSSL_INCLUDE_DIR    ${OPENSSL_INCLUDE_DIR}")
 	message(STATUS "OPENSSL_CRYPTO_LIBRARY ${OPENSSL_CRYPTO_LIBRARY}")
@@ -277,9 +279,14 @@ if (True)
 	install(DIRECTORY    Libs/Idx/include/Visus                        DESTINATION include/Idx/)
 	install(DIRECTORY    Libs/Nodes/include/Visus                      DESTINATION include/Nodes)
 	
-	set (__filename__ )
 	file(WRITE    "${CMAKE_BINARY_DIR}/PYTHON_VERSION" "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
-	install(FILES "${CMAKE_BINARY_DIR}/PYTHON_VERSION"                 DESTINATION .)
+	install(FILES "${CMAKE_BINARY_DIR}/PYTHON_VERSION" DESTINATION .)
+
+	if (VISUS_GUI)
+
+		file(WRITE    "${CMAKE_BINARY_DIR}/QT_VERSION" "${Qt5Core_VERSION_STRING}")
+		install(FILES "${CMAKE_BINARY_DIR}/QT_VERSION" DESTINATION .)
+	endif()
 	
 	if (WIN32)
 	

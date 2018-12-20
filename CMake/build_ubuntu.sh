@@ -21,11 +21,14 @@ function DetectUbuntuVersion {
 	if [ -f /etc/os-release ]; then
 		source /etc/os-release
 		export OS_VERSION=$VERSION_ID
+
 	elif type lsb_release >/dev/null 2>&1; then
 		export OS_VERSION=$(lsb_release -sr)
+
 	elif [ -f /etc/lsb-release ]; then
 		source /etc/lsb-release
 		export OS_VERSION=$DISTRIB_RELEASE
+
 	fi
 	echo "OS_VERSION ${OS_VERSION}"
 }
@@ -87,17 +90,38 @@ if (( VISUS_INTERNAL_DEFAULT == 0 )); then
 	sudo apt-get -qq install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
 fi
 
+# install qt (it's a version available on PyQt5)
 if (( VISUS_GUI==1 )); then
+
+	sudo apt-get install --reinstall ca-certificates
+	QT_VERSION=5.11.2 # pick a version available on PyQt
+
 	if (( ${OS_VERSION:0:2} <=14 )); then
-		sudo add-apt-repository ppa:beineri/opt-qt591-trusty -y
-		sudo apt-get update -qq
-		sudo apt-get install -qq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt59base
-		set +e # temporary disable exit
-		source /opt/qt59/bin/qt59-env.sh 
-		set -e 
-	else	
-		sudo apt-get install -qq qt5-default qttools5-dev-tools	
+
+		sudo add-apt-repository ppa:forkotov02/opt-qt-${QT_VERSION}-trusty -y
+		sudo apt-get -qq update 
+		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511base 
+
+	elif (( ${OS_VERSION:0:2} <=16 )); then	
+
+		sudo add-apt-repository ppa:beineri/opt-qt-${QT_VERSION}-xenial -y
+		sudo apt-get -qq update 
+		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511-meta-full
+
+	elif (( ${OS_VERSION:0:2} <=18 )); then
+
+		sudo add-apt-repository ppa:beineri/opt-qt-${QT_VERSION}-bionic -y
+		sudo apt-get -qq update 
+		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511-meta-full
+
 	fi
+
+	# temporary disable exit
+	set +e 
+	source /opt/qt511/bin/qt511-env.sh
+	export Qt5_DIR=/opt/qt511/lib/cmake/Qt5
+	set -e 
+
 fi
 
 PushCMakeOptions

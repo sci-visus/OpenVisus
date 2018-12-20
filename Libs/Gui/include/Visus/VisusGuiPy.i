@@ -22,14 +22,23 @@ using namespace Visus;
 //__________________________________________________________
 %pythonbegin %{
 
-import PyQt5
-QT5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
+this_dir=os.path.dirname(os.path.realpath(__file__))
 
-os.environ["QT_PLUGIN_PATH"]= os.path.join(QT5_DIR,"plugins")
+# using embedded Qt5?
+if os.path.isdir(os.path.join(this_dir,"bin","Qt")):
+	for it in [os.path.join(this_dir,"bin")]:
+		if (os.path.isdir(it)) and (not it in sys.path):
+			sys.path.insert(0,it)
+	os.environ["QT_PLUGIN_PATH"]= os.path.join(this_dir,"bin","Qt","plugins")
 
-for it in [os.path.join(QT5_DIR,"bin"),os.path.join(QT5_DIR,"lib")]:
-	if (os.path.isdir(it)) and (not it in sys.path):
-		sys.path.insert(0,it)
+# using PyQt5
+else:
+	import PyQt5
+	PYQT5_DIR=os.path.dirname(PyQt5.__file__)
+	for it in [os.path.join(PYQT5_DIR,"Qt","bin"),os.path.join(PYQT5_DIR,"Qt","lib")]:
+		if (os.path.isdir(it)) and (not it in sys.path):
+			sys.path.insert(0,it)
+	os.environ["QT_PLUGIN_PATH"]= os.path.join(PYQT5_DIR,"Qt","plugins")
 %}
 
 %import  <Visus/VisusKernelPy.i>
