@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 this_dir=$(dirname $0)
 
