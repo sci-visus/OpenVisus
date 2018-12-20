@@ -7,13 +7,6 @@ SOURCE_DIR=$(pwd)
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
-
-# directory for caching install stuff
-CACHED_DIR=~/.cached/OpenVisus
-mkdir -p ${CACHED_DIR}
-export PATH=${CACHED_DIR}/bin:$PATH
-
-
 # make sure sudo is available
 if [ "$EUID" -eq 0 ]; then
 	apt-get -qq update

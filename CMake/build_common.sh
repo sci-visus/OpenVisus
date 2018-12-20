@@ -7,15 +7,12 @@ VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0}
 DISABLE_OPENMP=${DISABLE_OPENMP:-0}
 VISUS_GUI=${VISUS_GUI:-1}
 CMAKE_BUILD_TYPE=RelWithDebInfo 
-
-DEPLOY_GITHUB=${DEPLOY_GITHUB:-0}
-
-DEPLOY_PYPI=${DEPLOY_PYPI:-0}
-PYPI_USERNAME=${PYPI_USERNAME:-}
-PYPI_PASSWORD=${PYPI_PASSWORD:-}
-PLAT_NAME=${PLAT_NAME:-}
-
 BUILD_DIR=${BUILD_DIR:-$(pwd)/build} 
+
+# directory for caching install stuff
+CACHED_DIR=${BUILD_DIR}/cached_deps
+mkdir -p ${CACHED_DIR}
+export PATH=${CACHED_DIR}/bin:$PATH
 
 # cmake options
 cmake_opts=""
@@ -40,10 +37,6 @@ function PushCMakeOptions {
 	PushCMakeOption DISABLE_OPENMP         ${DISABLE_OPENMP}
 	PushCMakeOption VISUS_GUI              ${VISUS_GUI}
 	PushCMakeOption CMAKE_BUILD_TYPE       ${CMAKE_BUILD_TYPE}
-	
-	PushCMakeOption PYPI_USERNAME          ${PYPI_USERNAME}
-	PushCMakeOption PYPI_PASSWORD          ${PYPI_PASSWORD}
-	PushCMakeOption PLAT_NAME              ${PLAT_NAME}
 	
 	PushCMakeOption PYTHON_EXECUTABLE      ${PYTHON_EXECUTABLE}
 	PushCMakeOption PYTHON_INCLUDE_DIR     ${PYTHON_INCLUDE_DIR}

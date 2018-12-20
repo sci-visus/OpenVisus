@@ -28,8 +28,6 @@ cd build
 	-DCMAKE_TOOLCHAIN_FILE="c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake" ^
 	-DVCPKG_TARGET_TRIPLET="x64-windows" ^
 	-DQt5_DIR="%QT5_DIR%/lib/cmake/Qt5" ^
-	-DPYPI_USERNAME=%PYPI_USERNAME% ^
-	-DPYPI_PASSWORD=%PYPI_PASSWORD% ^
 	-DPYTHON_EXECUTABLE=%PYTHON_EXECUTABLE% ^
 	../
 
@@ -37,8 +35,4 @@ cd build
 "%CMAKE_EXECUTABLE%" --build . --target RUN_TESTS --config RelWithDebInfo
 "%CMAKE_EXECUTABLE%" --build . --target INSTALL   --config RelWithDebInfo
  
-if "%DEPLOY_PYPI%"=="1" (
-   echo "Deploying to pypi enabled"
-   "%CMAKE_EXECUTABLE%" --build . --target pypi          --config RelWithDebInfo
-)
 

@@ -167,7 +167,7 @@ Build the repository:
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-CMAKE_BUILD_TYPE=RelWithDebInfo build.sh
+build.sh
 ```
 
 To test if it's working:
@@ -185,7 +185,7 @@ Build the repository:
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-CMAKE_BUILD_TYPE=RelWithDebInfo ./build.sh  
+./build.sh  
 ```
 
 To test if it's working:

@@ -58,19 +58,22 @@ IF (VISUS_GUI)
 endif()
 
 
-# if using vcpkg on windows use the vcpkg libraries
-if (WIN32)
-	if (CMAKE_TOOLCHAIN_FILE)
-		set(VCPKG 1)
-		SetIfNotDefined(VISUS_INTERNAL_DEFAULT 0)
+# ______________________________________________
+# *** VISUS_INTERNAL_DEFAULT ***
+
+if (NOT DEFINED VISUS_INTERNAL_DEFAULT)
+	if (WIN32)
+		if (CMAKE_TOOLCHAIN_FILE)
+			set(VCPKG 1)
+			set(VISUS_INTERNAL_DEFAULT 0)
+		else()
+			set(VCPKG 0)
+			set(VISUS_INTERNAL_DEFAULT 1)
+		endif()	
 	else()
-		set(VCPKG 0)
-		SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
-	endif()	
+		set(VISUS_INTERNAL_DEFAULT 1)
+	endif()
 endif()
-
-
-SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
 
 # ______________________________________________
 # *** zlib ***
@@ -303,35 +306,5 @@ endif()
 
 
 
-# /////////////////////////////////////////////////////////////////////
-# pypi target
-if (True)
-
-	if (WIN32)
-		set(__home__ $ENV{USERPROFILE})
-	else()
-		set(__home__ $ENV{HOME}/)
-	endif()
-
-	set(__filename__ ${__home__}/.pypirc)
-
-	file(WRITE  ${__filename__} "[distutils]\n")
-	file(APPEND ${__filename__} "index-servers=\n")
-	file(APPEND ${__filename__} "    pypi\n")
-	file(APPEND ${__filename__} "[pypi]\n")
-	file(APPEND ${__filename__} "username: ${PYPI_USERNAME}\n")
-	file(APPEND ${__filename__} "password: ${PYPI_PASSWORD}\n")
-	
-	add_custom_target(pypi 
-		        "${CMAKE_COMMAND}" -E echo "Running pypi step..."
-		COMMAND "${CMAKE_COMMAND}" -E env HOME=${__home__} "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade twine
-		COMMAND "${CMAKE_COMMAND}" -E env HOME=${__home__} "${PYTHON_EXECUTABLE}" -m twine upload --skip-existing dist/*.whl 
-		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
-	
-	if (WIN32)
-		set_target_properties(pypi PROPERTIES FOLDER "CMakePredefinedTargets/")
-	endif()	  
-  
-endif()
 
                

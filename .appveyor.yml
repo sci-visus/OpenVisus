@@ -57,8 +57,18 @@ install:
   - choco install -y --allow-empty-checksums swig 
 
 build_script:
-  - cmd: cd %APPVEYOR_BUILD_FOLDER% 
-  - cmd: .\build.bat 
+  - cd %APPVEYOR_BUILD_FOLDER% 
+  - .\build.bat 
+  - echo [distutils]                                 > %USERPROFILE%\\.pypirc
+  - echo index-servers =                            >> %USERPROFILE%\\.pypirc
+  - echo     pypi                                   >> %USERPROFILE%\\.pypirc
+  - echo [pypi]                                     >> %USERPROFILE%\\.pypirc
+  - echo username = %PYPI_USERNAME%                 >> %USERPROFILE%\\.pypirc
+  - echo password = %PYPI_PASSWORD%                 >> %USERPROFILE%\\.pypirc
+  - set HOME=%USERPROFILE%
+  - if "%DEPLOY_PYPI%"=="1" ( %PYTHON_EXECUTABLE% -m pip install --user --upgrade twine )
+  - if "%DEPLOY_PYPI%"=="1" ( %PYTHON_EXECUTABLE% -m twine upload --skip-existing "build/install/dist/*.whl" ) 
+
 
 # test are already in cmake
 test: off

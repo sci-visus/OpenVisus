@@ -6,18 +6,12 @@ PYTHON_VERSION=${PYTHON_VERSION:-3.6.1}
 VISUS_INTERNAL_DEFAULT=1
 DISABLE_OPENMP=1
 VISUS_GUI=0 
-PLAT_NAME=manylinux1_x86_64
 
 source "$(dirname "$0")/build_common.sh"
 
 SOURCE_DIR=$(pwd)
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
-
-CACHED_DIR=~/.cached/OpenVisus
-mkdir -p ${CACHED_DIR}
-export PATH=${CACHED_DIR}/bin:$PATH
-
 
 # //////////////////////////////////////////////////////
 function InstallCMake {
@@ -121,6 +115,7 @@ InstallApache24
 PushCMakeOption OPENSSL_ROOT_DIR   ${OPENSSL_ROOT_DIR}
 PushCMakeOption APACHE_DIR         ${APACHE_DIR}
 PushCMakeOption APR_DIR            ${APR_DIR}
+PushCMakeOption PLAT_NAME          manylinux1_x86_64
 PushCMakeOptions
 
 cmake ${cmake_opts} ${SOURCE_DIR} 
@@ -129,9 +124,7 @@ cmake --build . --target all
 cmake --build . --target test
 cmake --build . --target install 
 
-if (( DEPLOY_PYPI == 1 )); then
-	cmake --build ./ --target pypi        --config ${CMAKE_BUILD_TYPE}
-fi
+
 
 
 
