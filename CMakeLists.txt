@@ -220,7 +220,7 @@ add_subdirectory(Executable)
 
 # ______________________________________________
 # *** xidx
-add_subdirectory(ExternalLibs/xidx)
+add_subdirectory(ExternalLibs)
 
 # //////////////////////////////////////////////////////////////
 # *** testing and external apps ***
