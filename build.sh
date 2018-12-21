@@ -1,8 +1,6 @@
 #!/bin/bash
-gg
+
 set -ex 
-
-
 
 if [ -n "${DOCKER_IMAGE}" ]; then
 

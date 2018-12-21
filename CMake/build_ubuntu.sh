@@ -86,6 +86,8 @@ InstallCMake
 InstallPatchElf
 InstallPython 
 
+
+
 if (( VISUS_INTERNAL_DEFAULT == 0 )); then 
 	sudo apt-get -qq install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
 fi
@@ -93,35 +95,30 @@ fi
 # install qt (it's a version available on PyQt5)
 if (( VISUS_GUI==1 )); then
 
+	sudo apt-get install software-properties-common
 	sudo apt-get install --reinstall ca-certificates
-	QT_VERSION=5.11.2 # pick a version available on PyQt
-
+	
+	# curl -s 'https://api.launchpad.net/1.0/~beineri/ppas?ws.size=200' | jq -r '"beineri/" + .entries[].name' | sed -nEe 's/.*opt-qt(([0-9]{2})[0-9]?|-([0-9])+\.([0-9]+)\.([0-9]+))-/ - PPA=&/p'
+	# PyQt5 versions 5.6, 5.7, 5.7.1, 5.8, 5.8.1.1, 5.8.2, 5.9, 5.9.1, 5.9.2, 5.10, 5.10.1, 5.11.2, 5.11.3
 	if (( ${OS_VERSION:0:2} <=14 )); then
-
-		sudo add-apt-repository ppa:forkotov02/opt-qt-${QT_VERSION}-trusty -y
+		
+		sudo add-apt-repository ppa:beineri/opt-qt-5.10.1-trusty -y
 		sudo apt-get -qq update 
-		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511base 
+		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt510-meta-full 
+		set +e 
+		source /opt/qt510/bin/qt510-env.sh
+		export Qt5_DIR=/opt/qt510/lib/cmake/Qt5
+		set -e 
 
-	elif (( ${OS_VERSION:0:2} <=16 )); then	
-
-		sudo add-apt-repository ppa:beineri/opt-qt-${QT_VERSION}-xenial -y
-		sudo apt-get -qq update 
-		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511-meta-full
-
-	elif (( ${OS_VERSION:0:2} <=18 )); then
-
-		sudo add-apt-repository ppa:beineri/opt-qt-${QT_VERSION}-bionic -y
+	else
+		sudo add-apt-repository ppa:beineri/opt-qt-5.11.2-xenial -y
 		sudo apt-get -qq update 
 		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511-meta-full
-
+		set +e 
+		source /opt/qt511/bin/qt511-env.sh
+		export Qt5_DIR=/opt/qt511/lib/cmake/Qt5
+		set -e 
 	fi
-
-	# temporary disable exit
-	set +e 
-	source /opt/qt511/bin/qt511-env.sh
-	export Qt5_DIR=/opt/qt511/lib/cmake/Qt5
-	set -e 
-
 fi
 
 PushCMakeOptions
