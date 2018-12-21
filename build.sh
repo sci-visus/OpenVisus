@@ -2,7 +2,7 @@
 gg
 set -ex 
 
-this_dir=$(dirname $0)
+
 
 if [ -n "${DOCKER_IMAGE}" ]; then
 
@@ -14,7 +14,8 @@ if [ -n "${DOCKER_IMAGE}" ]; then
 	if [ "${VISUS_INTERNAL_DEFAULT}" != "" ] ; then DOCKER_ENV="${DOCKER_ENV} -e VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT}" ; fi
 	if [ "${BUILD_DIR}"              != "" ] ; then DOCKER_ENV="${DOCKER_ENV} -e BUILD_DIR=${BUILD_DIR}" ; fi
 
-	sudo docker rm -f mydocker || true
+	this_dir=$(pwd)
+	sudo docker rm -f mydocker 2>/dev/null || true
 	sudo docker run -d -ti --name mydocker -v ${this_dir}:${this_dir} ${DOCKER_ENV} ${DOCKER_IMAGE} ${DOCKER_SHELL}
 	sudo docker exec mydocker ${DOCKER_SHELL} -c "cd ${this_dir} && ./build.sh"
 
@@ -22,19 +23,19 @@ if [ -n "${DOCKER_IMAGE}" ]; then
 	sudo chmod -R u+rwx           ${BUILD_DIR}
 
 elif [ $(uname) = "Darwin" ]; then
-	${this_dir}/CMake/build_osx.sh
+	./CMake/build_osx.sh
 
 elif [ -x "$(command -v apt-get)" ]; then
-	${this_dir}/CMake/build_ubuntu.sh
+	./CMake/build_ubuntu.sh
 
 elif [ -x "$(command -v zypper)" ]; then
-	${this_dir}/CMake/build_opensuse.sh
+	./CMake/build_opensuse.sh
 	
 elif [ -x "$(command -v yum)" ]; then
-	${this_dir}/CMake/build_manylinux.sh
+	./CMake/build_manylinux.sh
 
 elif [ -x "$(command -v apk)" ]; then
-	${this_dir}/CMake/build_alpine.sh
+	./CMake/build_alpine.sh
 
 else
 	echo "Failed to detect OS version"
