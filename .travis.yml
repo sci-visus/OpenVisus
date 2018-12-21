@@ -241,14 +241,58 @@ script:
      ./build.sh
      
      if [[ "${DEPLOY_PYPI}" == "1" ]] ; then 
+
+        # use the pypi python
+        if [[ "$TRAVIS_OS_NAME" == "osx"   ]];
+           export PATH="$HOME/.pyenv/bin:$PATH"
+           eval "$(pyenv init -)"
+           eval "$(pyenv virtualenv-init -)"
+           pyenv global ${PYTHON_VERSION}  
+           pyenv rehash
+        fi
+
+        # upoad using twine
         echo [distutils]                                  > ~/.pypirc
         echo index-servers =  pypi                       >> ~/.pypirc
         echo [pypi]                                      >> ~/.pypirc
         echo username=${PYPI_USERNAME}                   >> ~/.pypirc
         echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
+
         python -m pip || wget -qO- https://bootstrap.pypa.io/get-pip.py | python 
         python -m pip install --user --upgrade twine 
         python -m twine upload --skip-existing "${TRAVIS_BUILD_DIR}/build/install/dist/*.whl" 
+
+        # test of it works
+        if [[ "$TRAVIS_OS_NAME" == "osx" ]];
+           cd $HOME
+           python -m pip install OpenVisus 
+           python -m OpenVisus configure 
+           cd $(python -m OpenVisus dirname) 
+           ./visus.sh
+           python Samples/python/Array.py 
+           python Samples/python/Dataflow.py 
+           python Samples/python/Idx.py
+        # use Docker for the test
+        else
+           cd $HOME 
+           mkdir temp && cd temp
+           echo "FROM ubuntu:trusty"                                                                                 > Dockerfile
+           echo "RUN apt-get update && \\"                                                                          >> Dockerfile
+           echo "   apt-get install -y software-properties-common vim && \\"                                        >> Dockerfile
+           echo "   add-apt-repository ppa:jonathonf/python-${PYTHON_VERSION:0:3} && \\"                            >> Dockerfile
+           echo "   apt-get update -y && \\"                                                                        >> Dockerfile
+           echo "   apt-get install -y curl python${PYTHON_VERSION:0:3} python${PYTHON_VERSION:0:3}-dev  && \\"     >> Dockerfile
+           echo "   curl https://bootstrap.pypa.io/get-pip.py | python${PYTHON_VERSION:0:3} && \\"                  >> Dockerfile
+           echo "   python${PYTHON_VERSION:0:3} -m pip install --upgrade pip wheel  && \\"                          >> Dockerfile
+           echo "   python${PYTHON_VERSION:0:3} -m pip install OpenVisus && \\"                                     >> Dockerfile
+           echo "   python${PYTHON_VERSION:0:3} -m OpenVisus configure && \\"                                       >> Dockerfile
+           echo "   cd \$(python${PYTHON_VERSION:0:3} -m OpenVisus dirname) && \\"                                  >> Dockerfile
+           echo "   ./visus.sh  && \\"                                                                              >> Dockerfile
+           echo "   python${PYTHON_VERSION:0:3} Samples/python/Array.py && \\"                                      >> Dockerfile
+           echo "   python${PYTHON_VERSION:0:3} Samples/python/Dataflow.py && \\"                                   >> Dockerfile
+           echo "   python${PYTHON_VERSION:0:3} Samples/python/Idx.py "                                             >> Dockerfile
+           sudo docker build -t test-openvisus-wheel .
+        fi
      fi
 
 before_deploy:
