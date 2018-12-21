@@ -243,7 +243,7 @@ script:
      if [[ "${DEPLOY_PYPI}" == "1" ]] ; then 
 
         # use the pypi python
-        if [[ "$TRAVIS_OS_NAME" == "osx"   ]];
+        if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then
            export PATH="$HOME/.pyenv/bin:$PATH"
            eval "$(pyenv init -)"
            eval "$(pyenv virtualenv-init -)"
@@ -263,7 +263,7 @@ script:
         python -m twine upload --skip-existing "${TRAVIS_BUILD_DIR}/build/install/dist/*.whl" 
 
         # test of it works
-        if [[ "$TRAVIS_OS_NAME" == "osx" ]];
+        if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
            cd $HOME
            python -m pip install OpenVisus 
            python -m OpenVisus configure 
