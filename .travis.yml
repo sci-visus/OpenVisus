@@ -240,13 +240,16 @@ script:
      cd "${TRAVIS_BUILD_DIR}"  
      ./build.sh
      
-     echo [distutils]                                  > ~/.pypirc
-     echo index-servers =  pypi                       >> ~/.pypirc
-     echo [pypi]                                      >> ~/.pypirc
-     echo username=${PYPI_USERNAME}                   >> ~/.pypirc
-     echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
-     if [[ "${DEPLOY_PYPI}" == "1" ]] ; then python -m pip install --user --upgrade twine  ; fi
-     if [[ "${DEPLOY_PYPI}" == "1" ]] ; then python -m twine upload --skip-existing "${TRAVIS_BUILD_DIR}/build/install/dist/*.whl" ; fi
+     if [[ "${DEPLOY_PYPI}" == "1" ]] ; then 
+        echo [distutils]                                  > ~/.pypirc
+        echo index-servers =  pypi                       >> ~/.pypirc
+        echo [pypi]                                      >> ~/.pypirc
+        echo username=${PYPI_USERNAME}                   >> ~/.pypirc
+        echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
+        python -m pip || wget -qO- https://bootstrap.pypa.io/get-pip.py | python 
+        python -m pip install --user --upgrade twine 
+        python -m twine upload --skip-existing "${TRAVIS_BUILD_DIR}/build/install/dist/*.whl" 
+     fi
 
 before_deploy:
   - export SDIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
