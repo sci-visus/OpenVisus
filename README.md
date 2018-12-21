@@ -62,8 +62,7 @@ You can install/test OpenVisus in python using Pip:
 ```
 python -m pip install --user numpy OpenVisus==1.2.142
 python -m OpenVisus configure 
-python -c "import OpenVisus"
-cd /path/to/OpenVisus
+cd $(python -m OpenVisus dirname) # on windows you need to evaluate this manually
 python Samples/python/Array.py
 python Samples/python/Dataflow.py
 python Samples/python/Idx.py

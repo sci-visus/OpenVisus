@@ -59,7 +59,7 @@ build_script:
 test: off
 
 artifacts:
-    - path: %APPVEYOR_BUILD_FOLDER%\build\install\dist\*.zip
+    - path: build\install\dist\*.zip
       name: GitHubReleasesArtifact
  
 deploy:
