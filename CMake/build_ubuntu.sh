@@ -14,7 +14,7 @@ if [ "$EUID" -eq 0 ]; then
 fi
 
 sudo apt-get -qq update
-sudo apt-get -qq install git 
+sudo apt-get -qq install git software-properties-common
 
 # //////////////////////////////////////////////////////
 function DetectUbuntuVersion {
@@ -74,7 +74,6 @@ function InstallPatchElf {
 
 
 if (( ${OS_VERSION:0:2}<=14 )); then
-	sudo apt-get -qq install software-properties-common
 	sudo add-apt-repository -y ppa:deadsnakes/ppa
 	sudo apt-get -qq update
 fi
@@ -86,8 +85,6 @@ InstallCMake
 InstallPatchElf
 InstallPython 
 
-
-
 if (( VISUS_INTERNAL_DEFAULT == 0 )); then 
 	sudo apt-get -qq install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
 fi
@@ -95,30 +92,37 @@ fi
 # install qt (it's a version available on PyQt5)
 if (( VISUS_GUI==1 )); then
 
-	sudo apt-get install software-properties-common
-	sudo apt-get install --reinstall ca-certificates
-	
-	# curl -s 'https://api.launchpad.net/1.0/~beineri/ppas?ws.size=200' | jq -r '"beineri/" + .entries[].name' | sed -nEe 's/.*opt-qt(([0-9]{2})[0-9]?|-([0-9])+\.([0-9]+)\.([0-9]+))-/ - PPA=&/p'
+	# https://launchpad.net/~beineri
 	# PyQt5 versions 5.6, 5.7, 5.7.1, 5.8, 5.8.1.1, 5.8.2, 5.9, 5.9.1, 5.9.2, 5.10, 5.10.1, 5.11.2, 5.11.3
 	if (( ${OS_VERSION:0:2} <=14 )); then
 		
 		sudo add-apt-repository ppa:beineri/opt-qt-5.10.1-trusty -y
 		sudo apt-get -qq update 
-		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt510-meta-full 
+		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt510base 
 		set +e 
 		source /opt/qt510/bin/qt510-env.sh
-		export Qt5_DIR=/opt/qt510/lib/cmake/Qt5
 		set -e 
 
-	else
+	elif (( ${OS_VERSION:0:2} <=16 )); then
+
 		sudo add-apt-repository ppa:beineri/opt-qt-5.11.2-xenial -y
 		sudo apt-get -qq update 
-		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511-meta-full
+		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511base
 		set +e 
 		source /opt/qt511/bin/qt511-env.sh
-		export Qt5_DIR=/opt/qt511/lib/cmake/Qt5
+		set -e 
+
+	elif (( ${OS_VERSION:0:2} <=18)); then
+
+		sudo add-apt-repository ppa:beineri/opt-qt-5.11.2-bionic -y
+		sudo apt-get -qq update 
+		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511base
+		set +e 
+		source /opt/qt511/bin/qt511-env.sh
 		set -e 
 	fi
+
+	export Qt5_DIR=${QTDIR}/lib/cmake/Qt5
 fi
 
 PushCMakeOptions
