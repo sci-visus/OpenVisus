@@ -601,7 +601,7 @@ class CMakePostInstall:
 			ExecuteCommand([sys.executable,"setup.py","-q","sdist","--formats=%s" % ("zip" if WIN32 else "gztar",)])
 			sdist_ext='.zip' if WIN32 else '.tar.gz'
 			__filename__ = glob.glob('dist/*%s' % (sdist_ext,))[0]
-			sdist_filename=__filename__.replace(sdist_ext,"-%s-none-%s%s" % (PYTHON_TAG,PLAT_NAME,sdist_ext)
+			sdist_filename=__filename__.replace(sdist_ext,"-%s-none-%s%s" % (PYTHON_TAG,PLAT_NAME,sdist_ext))
 			os.rename(__filename__,sdist_filename)
 			print("Created sdist",sdist_filename)
 
