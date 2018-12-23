@@ -92,7 +92,7 @@ def ExtractNamedArgument(key):
 			if ret.endswith('"')   or ret.endswith("'"):   ret=ret[:-1]
 			return ret
 			
-	return None
+	return ""
 
 
 # ////////////////////////////////////////////////////////////////////
@@ -590,16 +590,32 @@ class CMakePostInstall:
 		print("Created sdist",sdist_filename)
 	
 		# create wheel distribution
-		print("Creating wheel...")
-		PYTHON_TAG=ExtractNamedArgument("--python-tag")
-		PLAT_NAME=ExtractNamedArgument("--plat-name")
-		ExecuteCommand([sys.executable,"setup.py","-q","bdist_wheel","--python-tag=%s" % (PYTHON_TAG,),"--plat-name=%s" % (PLAT_NAME,)])
-		wheel_ext='.whl'
-		wheel_filename=glob.glob('dist/*%s' % (wheel_ext,))[0]
-		print("Created wheel",wheel_filename)
+		PYTHON_TAG="cp%s%s" % (sys.version_info[0],sys.version_info[1])
+		
+		if WIN32:
+			PLAT_NAME="win_amd64"
+			
+		elif APPLE:
+	 		PLAT_NAME="macosx_%s_x86_64" % (platform.mac_ver()[0][0:5].replace('.','_'),)	
 	
-		# rename dist files to be the same
-		os.rename(sdist_filename,wheel_filename.replace(wheel_ext,sdist_ext))
+		else:
+			PLAT_NAME=ExtractNamedArgument("--plat-name")
+			
+			if not PLAT_NAME:
+				PLAT_NAME="_".join(platform.linux_distribution()[0:2]).replace(".","_")
+	
+		if WIN32 or APPLE or PLAT_NAME.startswith("manylinux"): 
+			print("Creating wheel...")
+			ExecuteCommand([sys.executable,"setup.py","-q","bdist_wheel","--python-tag=%s" % (PYTHON_TAG,),"--plat-name=%s" % (PLAT_NAME,)])
+			wheel_ext='.whl'
+			wheel_filename=glob.glob('dist/*%s' % (wheel_ext,))[0]
+			print("Created wheel",wheel_filename)
+		
+			# rename dist files to be the same
+			os.rename(sdist_filename,wheel_filename.replace(wheel_ext,sdist_ext))
+		else:
+			#  (example  'dist/OpenVisus-1.2.167.tar.gz')
+			os.rename(sdist_filename,sdist_filename.replace(sdist_ext,"-%s-none-%s%s" % (PYTHON_TAG,PLAT_NAME,sdist_ext))
 
 
 # ////////////////////////////////////////////////////////////////////
