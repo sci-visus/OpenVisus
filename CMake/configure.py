@@ -584,17 +584,17 @@ class CMakePostInstall:
 		
 		print("sys.version_info",sys.version_info)
 		PYTHON_TAG="cp%s%s" % (sys.version_info[0],sys.version_info[1])
-		
+
 		if WIN32:
 			PLAT_NAME="win_amd64"
 		elif APPLE:
 			print("platform.mac_ver()",platform.mac_ver())
-	 		PLAT_NAME="macosx_%s_x86_64" % (platform.mac_ver()[0][0:5].replace('.','_'),)	
+			PLAT_NAME="macosx_%s_x86_64" % (platform.mac_ver()[0][0:5].replace('.','_'),)	
 		else:
 			print("platform.linux_distribution()",platform.linux_distribution())
 			PLAT_NAME="_".join(platform.linux_distribution()[0:2]).replace(".","_")		
 			if PLAT_NAME.startswith("CentOS_5"): PLAT_NAME="manylinux1_x86_64"
-		
+
 		# create sdist distribution
 		if True:
 			print("Creating sdist...")
@@ -604,7 +604,7 @@ class CMakePostInstall:
 			sdist_filename=__filename__.replace(sdist_ext,"-%s-none-%s%s" % (PYTHON_TAG,PLAT_NAME,sdist_ext)
 			os.rename(__filename__,sdist_filename)
 			print("Created sdist",sdist_filename)
-		
+
 		# creating wheel distribution
 		if WIN32 or APPLE or PLAT_NAME.startswith("manylinux"): 
 			print("Creating wheel...")
