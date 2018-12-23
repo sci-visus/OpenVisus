@@ -60,7 +60,7 @@ Table of content:
 You can install/test OpenVisus in python using Pip:
 
 ```
-python -m pip install --user numpy OpenVisus==1.2.142
+python -m pip install --user numpy OpenVisus==1.2.170
 python -m OpenVisus configure 
 cd $(python -m OpenVisus dirname) # on windows you need to evaluate this manually
 python Samples/python/Array.py
@@ -69,7 +69,7 @@ python Samples/python/Idx.py
 python Samples/python/Viewer.py
 ```
 
-Or you can download OpenVisus from GitHub releases (version 1.2.142), extract it and in Windows:
+Or you can download OpenVisus from GitHub releases (use the same version), extract it and in Windows:
 
 ```
 cd \your\OpenVisus\directory
