@@ -275,10 +275,10 @@ script:
         else
            cd $HOME 
            mkdir temp && cd temp
-           echo "FROM ubuntu:trusty"                                                                                 > Dockerfile
+           echo "FROM ubuntu:xenial"                                                                                 > Dockerfile
            echo "RUN apt-get update && \\"                                                                          >> Dockerfile
            echo "   apt-get install -y software-properties-common vim && \\"                                        >> Dockerfile
-           echo "   add-apt-repository ppa:jonathonf/python-${PYTHON_VERSION:0:3} && \\"                            >> Dockerfile
+           echo "   add-apt-repository ppa:deadsnakes/ppa && \\"                                                    >> Dockerfile
            echo "   apt-get update -y && \\"                                                                        >> Dockerfile
            echo "   apt-get install -y curl python${PYTHON_VERSION:0:3} python${PYTHON_VERSION:0:3}-dev  && \\"     >> Dockerfile
            echo "   curl https://bootstrap.pypa.io/get-pip.py | python${PYTHON_VERSION:0:3} && \\"                  >> Dockerfile

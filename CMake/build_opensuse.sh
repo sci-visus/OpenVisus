@@ -14,7 +14,7 @@ fi
 
 sudo zypper --non-interactive update
 sudo zypper --non-interactive install --type pattern devel_basis
-sudo zypper --non-interactive install gcc-c++ cmake git swig  libuuid-devel libopenssl-devel curl patchelf
+sudo zypper --non-interactive install lsb-release gcc-c++ cmake git swig  libuuid-devel libopenssl-devel curl patchelf
 sudo zypper --non-interactive install apache2 apache2-devel
 
 if (( VISUS_INTERNAL_DEFAULT == 0 )); then
