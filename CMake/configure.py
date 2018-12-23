@@ -9,6 +9,7 @@ import errno
 import fnmatch
 import os
 import sysconfig
+import re
 
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
@@ -26,6 +27,12 @@ def ExecuteCommand(cmd):
 	"""
 	print("# Executing command: ",cmd)
 	subprocess.call(cmd, shell=False)
+
+# /////////////////////////////////////////////////
+def GetCommandOutput(cmd):
+	output=subprocess.check_output(cmd)
+	if sys.version_info >= (3, 0): output=output.decode("utf-8")
+	return output.strip()
 
 
 # /////////////////////////////////////////////////
@@ -539,7 +546,6 @@ class LinuxDeployStep:
 
 
 
-
 # ///////////////////////////////////////////////////////////////////////////
 class CMakePostInstall:
 	
@@ -587,13 +593,23 @@ class CMakePostInstall:
 
 		if WIN32:
 			PLAT_NAME="win_amd64"
+
 		elif APPLE:
 			print("platform.mac_ver()",platform.mac_ver())
 			PLAT_NAME="macosx_%s_x86_64" % (platform.mac_ver()[0][0:5].replace('.','_'),)	
+
 		else:
-			print("platform.linux_distribution()",platform.linux_distribution())
-			PLAT_NAME="_".join(platform.linux_distribution()[0:2]).replace(".","_")		
-			if PLAT_NAME.startswith("CentOS_5"): PLAT_NAME="manylinux1_x86_64"
+			PLAT_NAME="_".join(platform.linux_distribution()).strip().lower()
+			if "centos_5" in PLAT_NAME:
+				PLAT_NAME="manylinux1_x86_64" 
+			else:
+				try:
+					PLAT_NAME=GetCommandOutput(['lsb_release', '-is']) + "." + GetCommandOutput(['lsb_release', '-cs'])
+				except:
+					pass
+
+			PLAT_NAME= re.sub(r'(?u)[^-\w.]', '', PLAT_NAME).strip().lower().replace(".","_")
+			print("PLAT_NAME",PLAT_NAME)
 
 		# create sdist distribution
 		if True:
@@ -606,7 +622,7 @@ class CMakePostInstall:
 			print("Created sdist",sdist_filename)
 
 		# creating wheel distribution
-		if WIN32 or APPLE or PLAT_NAME.startswith("manylinux"): 
+		if WIN32 or APPLE or PLAT_NAME=="manylinux1_x86_64": 
 			print("Creating wheel...")
 			ExecuteCommand([sys.executable,"setup.py","-q","bdist_wheel","--python-tag=%s" % (PYTHON_TAG,),"--plat-name=%s" % (PLAT_NAME,)])
 			wheel_filename=glob.glob('dist/*.whl')[0]
