@@ -563,7 +563,6 @@ macro(InstallPostInstallStep)
 		execute_process( 
 			 COMMAND \"${PYTHON_EXECUTABLE}\" -u \"${CMAKE_INSTALL_PREFIX}/configure.py\"
 			 	--qt5-dir=\"${Qt5_DIR}\"
-			 	--plat-name=\"${PLAT_NAME}\"
 				cmake_post_install)
 	")
 endmacro()

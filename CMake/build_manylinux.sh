@@ -111,9 +111,8 @@ InstallSwig
 # yum install -y httpd.x86_64 httpd-devel.x86_64
 InstallApache24
 
-PushCMakeOption APACHE_DIR         ${APACHE_DIR}
-PushCMakeOption APR_DIR            ${APR_DIR}
-PushCMakeOption PLAT_NAME          manylinux1_x86_64
+PushCMakeOption APACHE_DIR            ${APACHE_DIR}
+PushCMakeOption APR_DIR               ${APR_DIR}
 PushCMakeOptions
 
 cmake ${cmake_opts} ${SOURCE_DIR} 

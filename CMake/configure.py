@@ -581,41 +581,36 @@ class CMakePostInstall:
 
 		# remove any previous distibution
 		RemoveFiles("dist/*")
-	
-		# create source distribution
-		print("Creating sdist...")
-		ExecuteCommand([sys.executable,"setup.py","-q","sdist","--formats=%s" % ("zip" if WIN32 else "gztar",)])
-		sdist_ext='.zip' if WIN32 else '.tar.gz'
-		sdist_filename=glob.glob('dist/*%s' % (sdist_ext,))[0]
-		print("Created sdist",sdist_filename)
-	
-		# create wheel distribution
+		
+		print("sys.version_info",sys.version_info)
 		PYTHON_TAG="cp%s%s" % (sys.version_info[0],sys.version_info[1])
 		
 		if WIN32:
 			PLAT_NAME="win_amd64"
-			
 		elif APPLE:
+			print("platform.mac_ver()",platform.mac_ver())
 	 		PLAT_NAME="macosx_%s_x86_64" % (platform.mac_ver()[0][0:5].replace('.','_'),)	
-	
 		else:
-			PLAT_NAME=ExtractNamedArgument("--plat-name")
-			
-			if not PLAT_NAME:
-				PLAT_NAME="_".join(platform.linux_distribution()[0:2]).replace(".","_")
-	
+			print("platform.linux_distribution()",platform.linux_distribution())
+			PLAT_NAME="_".join(platform.linux_distribution()[0:2]).replace(".","_")		
+			if PLAT_NAME.startswith("CentOS_5"): PLAT_NAME="manylinux1_x86_64"
+		
+		# create sdist distribution
+		if True:
+			print("Creating sdist...")
+			ExecuteCommand([sys.executable,"setup.py","-q","sdist","--formats=%s" % ("zip" if WIN32 else "gztar",)])
+			sdist_ext='.zip' if WIN32 else '.tar.gz'
+			__filename__ = glob.glob('dist/*%s' % (sdist_ext,))[0]
+			sdist_filename=__filename__.replace(sdist_ext,"-%s-none-%s%s" % (PYTHON_TAG,PLAT_NAME,sdist_ext)
+			os.rename(__filename__,sdist_filename)
+			print("Created sdist",sdist_filename)
+		
+		# creating wheel distribution
 		if WIN32 or APPLE or PLAT_NAME.startswith("manylinux"): 
 			print("Creating wheel...")
 			ExecuteCommand([sys.executable,"setup.py","-q","bdist_wheel","--python-tag=%s" % (PYTHON_TAG,),"--plat-name=%s" % (PLAT_NAME,)])
-			wheel_ext='.whl'
-			wheel_filename=glob.glob('dist/*%s' % (wheel_ext,))[0]
+			wheel_filename=glob.glob('dist/*.whl')[0]
 			print("Created wheel",wheel_filename)
-		
-			# rename dist files to be the same
-			os.rename(sdist_filename,wheel_filename.replace(wheel_ext,sdist_ext))
-		else:
-			#  (example  'dist/OpenVisus-1.2.167.tar.gz')
-			os.rename(sdist_filename,sdist_filename.replace(sdist_ext,"-%s-none-%s%s" % (PYTHON_TAG,PLAT_NAME,sdist_ext))
 
 
 # ////////////////////////////////////////////////////////////////////
@@ -623,7 +618,6 @@ class Configure:
 
 	# run
 	def run(self):
-	
 		self.VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
 		if self.VISUS_GUI:
 
