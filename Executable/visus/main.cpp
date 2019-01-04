@@ -585,7 +585,7 @@ public:
     String midx_filename = args[1];
     String idx_filename = args[2];
     int TileSize = 4 * 1024;
-    String fieldname = "output=voronoiBlend()";
+    String fieldname = "output=voronoi()";
 
     for (int I = 1; I < args.size(); I++)
     {
@@ -613,7 +613,7 @@ public:
       auto tile = tiles[TileId];
 
       auto t1 = Time::now();
-      auto buffer = midx->readMaxResolutionData(midx_access, tile);
+      auto buffer = midx->readMaxResolutionData(midx_access, midx->getFieldByName(fieldname), midx->getDefaultTime(), tile);
       int msec_read = (int)t1.elapsedMsec();
       if (!buffer)
         continue;
@@ -2074,6 +2074,15 @@ int main(int argn, const char* argv[])
 
   SetCommandLine(argn, argv);
   IdxModule::attach();
+
+  if (argn >= 2 && String(argv[1]) == "--server")
+  {
+    auto modvisus = std::make_shared<ModVisus>();
+    modvisus->configureDatasets();
+    auto server = std::make_shared<NetServer>(10000, modvisus);
+    server->runInThisThread();
+    return 0;
+  }
 
   Array data;
   DoConvert convert;

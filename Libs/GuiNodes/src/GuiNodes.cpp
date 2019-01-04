@@ -45,8 +45,6 @@ For support : support@visus.net
 #include <Visus/KdRenderArrayNode.h>
 #include <Visus/JTreeRenderNode.h>
 #include <Visus/IsoContourShader.h>
-#include <Visus/PythonEngine.h>
-#include <Visus/PythonNode.h>
 
 
 void GuiNodesInitResources() {
@@ -65,7 +63,11 @@ bool GuiNodesModule::bAttached = false;
 /////////////////////////////////////////////////////
 void GuiNodesModule::attach()
 {
-  if (bAttached)  return;
+  if (bAttached)  
+    return;
+  
+  VisusInfo() << "Attaching GuiNodesModule...";
+
   bAttached = true;
 
   GuiNodesInitResources();
@@ -83,15 +85,19 @@ void GuiNodesModule::attach()
   VISUS_REGISTER_OBJECT_CLASS(RenderArrayNode);
   VISUS_REGISTER_OBJECT_CLASS(KdRenderArrayNode);
   VISUS_REGISTER_OBJECT_CLASS(JTreeRenderNode);
-  VISUS_REGISTER_OBJECT_CLASS(PythonNode);
 
+  VisusInfo() << "Attached GuiNodesModule";
 }
 
 
 //////////////////////////////////////////////
 void GuiNodesModule::detach()
 {
-  if (!bAttached)  return;
+  if (!bAttached)  
+    return;
+
+  VisusInfo() << "Detaching GuiNodesModule...";
+  
   bAttached = false;
 
   GuiNodesCleanUpResources();
@@ -103,6 +109,7 @@ void GuiNodesModule::detach()
   GuiModule::detach();
   DataflowModule::detach();
 
+  VisusInfo() << "Detached GuiNodesModule";
 }
 
 } //namespace Visus

@@ -2,6 +2,10 @@ language: cpp
 
 sudo: required
 
+cache:
+   directories:
+     - ~/.cached/OpenVisus
+
 services:
   - docker
 
@@ -14,113 +18,291 @@ notifications:
     
 env:
   global:
-    - CMAKE_BUILD_TYPE=RelWithDebInfo 
     - PYPI_USERNAME=scrgiorgio
     - secure: EAZwSiQCFdTjcKDmHLFpWgX7WnGKwTtptkTvXYLcMPSUMxGymTCOTI1h8jjhxGig3k4Jni1X1gx9c8+LkcMd/yjbzDiOnIjCAVRc1hmCijAgu9j3G1ZMll4E38T7Iq6jE3/DZyb7pfK3X4NQopF/5uySIGeoH25CHwcNyr36k8Ba+qYtanPwTG1D+EVIago8qqL5yG5rslAf7Y69+zVbNa/JAUhow4fw0RAwVp+kgMC7Fj7iSMuN4NmS176VZEjD593zbiBgW+veEN0Z2MLD4vG7nq+w5u5JJYuz+Q4EiB5CCek5hhj17fJMWuAA23RZAlq4X/2oS5bKg/etHK5iVeM8ODKBX2bBHOxQoqwOaOVf0sEs5ranwVLR/77FrhFEECKAmkfFHwGGViWTvdE+F/7XqjLQK9Zm2f+T+rMHxrm1RknbXz271TNahqCHnMsmpaz98WbBHjdp2aQfU+nV/l6XLJnAf0R58ISiVdnDOy3BgQsiWIyxjZc6gRSwLg6EzAS2XlgQOmXhDo8lYoaepuK4OWvdIf+bqw0Y3b0uvrpHlAEpIG0tzzZw6ldq3CdvKD+46Vz+ZtEQBi0GBPy1Env1RHILzlkUwn6LSjVnKYY/TZxIi4ha73yo2BwJ1Q6hpdjVFgHJkEY3a72UCnOBIVnaalGv9lu/EjaixrnU6Nc=  
-  
+
 conditions: v1 
   
 matrix:
   fast_finish: true
   include:
-
-    # ///////////////////////////////// osx 
+  
+    # ///////////////////////////////// manylinux (i.e. centos)
     
-    - os: osx
-      osx_image: xcode9.4 #10.13
-      compiler: clang
-      env: [OS_VERSION=10.13,PYTHON_VERSION=3.6.5,COMPILER=clang++,OS_NAME='osx',DEPLOY_PYPI_ENABLED=1]                   
-          
-    - os: osx
-      osx_image: xcode9.4 #10.13
-      compiler: clang
-      if: tag IS present OR commit_message =~ /\[full_matrix\]/  #
-      env: [OS_VERSION=10.13,PYTHON_VERSION=2.7.15,COMPILER=clang++,OS_NAME='osx',DEPLOY_PYPI_ENABLED=1] 
-      
-    - os: osx
-      osx_image: xcode8.3
-      compiler: clang
-      if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_VERSION=10.12,PYTHON_VERSION=2.7.14,COMPILER=clang++,OS_NAME='osx',DEPLOY_PYPI_ENABLED=1]   
-       
-    - os: osx
-      osx_image: xcode8.3
-      compiler: clang
-      if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [OS_VERSION=10.12,PYTHON_VERSION=3.6.1,COMPILER=clang++,OS_NAME='osx',DEPLOY_PYPI_ENABLED=1]        
-      
-    # ///////////////////////////////// trusty (Ubuntu 14.04)
-       
     - os: linux
       dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6,OS_NAME="ubuntu",OS_VERSION=14,DEPLOY_PYPI_ENABLED=0]       
+      env: ['PYTHON_VERSION=3.6.6','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
       addons: 
         apt:
           packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']          
-            
+          sources: ['ubuntu-toolchain-r-test']     
+          
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=2.7,OS_NAME="ubuntu",OS_VERSION=14,DEPLOY_PYPI_ENABLED=0]
+      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']               
+
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=3.4.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
       addons: 
         apt:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']       
 
-    # ///////////////////////////////// manylinux
     - os: linux
       dist: trusty
-      env: [COMPILER=g++-4.9,PYTHON_VERSION=3.6.6,OS_NAME="manylinux",OS_VERSION=5,DEPLOY_PYPI_ENABLED=1,DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64]       
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
       addons: 
         apt:
           packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']     
+          sources: ['ubuntu-toolchain-r-test']   
+
+    # ///////////////////////////////// osx 10.13
+    
+    - os: osx
+      osx_image: xcode9.4 
+      compiler: clang
+      env: [PYTHON_VERSION=3.6.5]   
+      
+    - os: osx
+      osx_image: xcode9.4
+      compiler: clang
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/  
+      env: [PYTHON_VERSION=3.7.1]                
+      
+    - os: osx
+      osx_image: xcode9.4 
+      compiler: clang
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/  
+      env: [PYTHON_VERSION=3.5.1]                          
+          
+    - os: osx
+      osx_image: xcode9.4 
+      compiler: clang
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/  
+      env: [PYTHON_VERSION=2.7.15] 
+      
+    # ///////////////////////////////// osx 10.12
+      
+    - os: osx
+      osx_image: xcode8.3
+      compiler: clang
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=3.6.1']      
+      
+    - os: osx
+      osx_image: xcode8.3
+      compiler: clang
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=3.7.1']           
+         
+    - os: osx
+      osx_image: xcode8.3
+      compiler: clang
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=3.5.1']              
+            
+    - os: osx
+      osx_image: xcode8.3
+      compiler: clang
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=2.7.14']   
+
+    # ///////////////////////////////// trusty (Ubuntu 14.04)
+       
+    - os: linux
+      dist: trusty
+      env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:trusty']       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']          
+    
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=ubuntu:trusty']       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']       
+            
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=ubuntu:trusty']
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']    
+          
+          
+
+    # ///////////////////////////////// xenial (Ubuntu 16)
+       
+    - os: linux
+      dist: xenial
+      env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:xenial']       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']          
+    
+    - os: linux
+      dist: xenial
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=ubuntu:xenial']       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']       
+            
+    - os: linux
+      dist: xenial
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=ubuntu:xenial']
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']               
+             
+
+    # ///////////////////////////////// opensuse
+
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=3.6.6','DOCKER_IMAGE=opensuse:leap']
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']    
+          
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=opensuse:leap']
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']    
+          
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=opensuse:leap']
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']                       
+          
+
+    # ///////////////////////////////// alpine (disabled)
+    # - os: linux
+    #   dist: trusty
+    #   if: tag IS present OR commit_message =~ /\[full_matrix\]/
+    #   env: ['PYTHON_VERSION=3.6','DOCKER_IMAGE=alpine:3.7','DOCKER_SHELL=/bin/sh']       
+    #   addons: 
+    #     apt:
+    #       packages: ['g++-4.9']
+    #       sources: ['ubuntu-toolchain-r-test']  
+    # - os: linux
+    #   dist: trusty
+    #   if: tag IS present OR commit_message =~ /\[full_matrix\]/
+    #   env: ['PYTHON_VERSION=3.5','DOCKER_IMAGE=alpine:3.7','DOCKER_SHELL=/bin/sh']       
+    #   addons: 
+    #     apt:
+    #       packages: ['g++-4.9']
+    #       sources: ['ubuntu-toolchain-r-test']                
 
 script:
    - |
-     export DEPLOY_GITHUB=0
-     if [[ "${TRAVIS_TAG}" != "" ]]; then
-        echo "Doing deploy to github..."
-        export DEPLOY_GITHUB=1
-     fi
+     export VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-1}
+     export PRETTY_LOG=${PRETTY_LOG:-1}
+     if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then export COMPILER=clang++ ; fi
+     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export COMPILER=g++-4.9 ; fi
+     
      export DEPLOY_PYPI=0
-     if [[ "${DEPLOY_PYPI_ENABLED}" == "1" && "${TRAVIS_TAG}" != "" ]] ; then   
-        echo "Doing deploy to pypi..."
-        export DEPLOY_PYPI=1
-     fi 
-     cd "${TRAVIS_BUILD_DIR}" 
-     chmod +x "./CMake/build_${OS_NAME}.sh" 
-     if [[ ${DOCKER_IMAGE} != "" ]]; then
-        opt=""   
-        opt+=" --name mydocker"
-        opt+=" -td"
-        opt+=" -e PYTHON_VERSION=${PYTHON_VERSION}"
-        opt+=" -e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}"
-        opt+=" -e DEPLOY_GITHUB=${DEPLOY_GITHUB}"
-        opt+=" -e DEPLOY_PYPI=${DEPLOY_PYPI}"
-        opt+=" -e PYPI_USERNAME=${PYPI_USERNAME}"
-        opt+=" -e PYPI_PASSWORD=${PYPI_PASSWORD}"
-        opt+=" -v $(pwd):/home/OpenVisus"
-        docker run ${opt}   ${DOCKER_IMAGE} /bin/bash
-        docker exec -ti mydocker /bin/bash -c "cd /home/OpenVisus && ./CMake/build_${OS_NAME}.sh"
-        sudo chown -R "$USER":"$USER" ./ 
-        sudo chmod u+rwx -R ./ 
-     else
-        ./CMake/build_${OS_NAME}.sh
+     if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_pypi]"* ]]; then
+        if [[ $(uname) == "Darwin" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
+           echo "Doing deploy to pypi..."
+           export DEPLOY_PYPI=1
+        fi     
+     fi
+
+     cd "${TRAVIS_BUILD_DIR}"  
+     ./build.sh
+     
+     if [[ "${DEPLOY_PYPI}" == "1" ]] ; then 
+
+        # use the pypi python
+        if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then
+           export PATH="$HOME/.pyenv/bin:$PATH"
+           eval "$(pyenv init -)"
+           pyenv global ${PYTHON_VERSION}  
+           pyenv rehash
+        fi
+
+        # upoad using twine
+        echo [distutils]                                  > ~/.pypirc
+        echo index-servers =  pypi                       >> ~/.pypirc
+        echo [pypi]                                      >> ~/.pypirc
+        echo username=${PYPI_USERNAME}                   >> ~/.pypirc
+        echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
+
+        python -m pip || wget -qO- https://bootstrap.pypa.io/get-pip.py | python 
+        python -m pip install --user --upgrade twine 
+        python -m twine upload --skip-existing "${TRAVIS_BUILD_DIR}/build/install/dist/*.whl" 
+
+        # test of it works
+        if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+           cd $HOME
+           python -m pip install OpenVisus 
+           python -m OpenVisus configure 
+           cd $(python -m OpenVisus dirname) 
+           ./visus.sh
+           python Samples/python/Array.py 
+           python Samples/python/Dataflow.py 
+           python Samples/python/Idx.py
+        # use Docker for the test
+        else
+           cd $HOME 
+           mkdir temp && cd temp
+           echo "FROM ubuntu:xenial"                                                                                 > Dockerfile
+           echo "RUN apt-get update && \\"                                                                          >> Dockerfile
+           echo "   apt-get install -y software-properties-common vim && \\"                                        >> Dockerfile
+           echo "   add-apt-repository ppa:deadsnakes/ppa && \\"                                                    >> Dockerfile
+           echo "   apt-get update -y && \\"                                                                        >> Dockerfile
+           echo "   apt-get install -y curl python${PYTHON_VERSION:0:3} python${PYTHON_VERSION:0:3}-dev  && \\"     >> Dockerfile
+           echo "   curl https://bootstrap.pypa.io/get-pip.py | python${PYTHON_VERSION:0:3} && \\"                  >> Dockerfile
+           echo "   python${PYTHON_VERSION:0:3} -m pip install --upgrade pip wheel  && \\"                          >> Dockerfile
+           echo "   python${PYTHON_VERSION:0:3} -m pip install OpenVisus && \\"                                     >> Dockerfile
+           echo "   python${PYTHON_VERSION:0:3} -m OpenVisus configure && \\"                                       >> Dockerfile
+           echo "   cd \$(python${PYTHON_VERSION:0:3} -m OpenVisus dirname) && \\"                                  >> Dockerfile
+           echo "   ./visus.sh  && \\"                                                                              >> Dockerfile
+           echo "   python${PYTHON_VERSION:0:3} Samples/python/Array.py && \\"                                      >> Dockerfile
+           echo "   python${PYTHON_VERSION:0:3} Samples/python/Dataflow.py && \\"                                   >> Dockerfile
+           echo "   python${PYTHON_VERSION:0:3} Samples/python/Idx.py "                                             >> Dockerfile
+           sudo docker build -t test-openvisus-wheel .
+        fi
      fi
 
 before_deploy:
-  - export SDIST_FILE=$(find ${TRAVIS_BUILD_DIR}/build/${OS_NAME}/install/dist -iname "*.tar.gz")
-  - mv ${SDIST_FILE} ${SDIST_FILE/.tar.gz/-${PYTHON_VERSION}-${OS_NAME}_${OS_VERSION}.tar.gz}	
-  - export SDIST_FILE=$(find ${TRAVIS_BUILD_DIR}/build/${OS_NAME}/install/dist -iname "*.tar.gz")
+  - export SDIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
 
 deploy:
   provider: releases
   api_key:
     secure: vvs+N/XwsigYj6pZIR0Lksg+FnA2M7bCy4aHj7at1nPOtX3ZHHdkSgIyd06awkiWSNg++fM6GIi7ewU+ftX9rGxgRFG5eWIKQyuHHPvNSIIcJe1cY7440Y6Kb2p58BFeGQxLJl0y3XlCObPW7yMoY7h9i6kTL6w7k3NkdWkFpdDaNXXEaGnzeoaM6u+iBmgAWgX9Ozlu+ogjFpw5b7QPtKgi1Bey/IbIeVWExuFnXsTJe3MDobdFvgJ0tewErnWAey3V8IXQzVMqdOIAl+xtu3RMmsdNymDAZpof31wFNLCr7BMmIg/O2QW1tnvNXuFX9Gpry5CKb7i0oxthiLyNTkh2sZQcAJcBdWJlP4LiSCBoJ2HuAc5XSqss8aXt/hHAzL3ICPtd6wVPlHEMK1+/EsC4WcO5X0ngzmGnn8eceIBFJiqYhI+c85GqUWPrFw+REKUsAwthMK0tNErruWZR1uubYnlyQYHpSaPdKie6o0aWK8Xit+GN3jkcqRrhQDwX3WFLxw2N07eh/f3vCD4m7GwRJfi5LXDuoLp3Qg5w23gi4ewp71v9oTZNT4K3vVEYuwzCyglppjyszQDvBAwxgxnWtSZh2nGEtwtDL5dRiIXehqfaK7mRKQ8iZwpQkuyTD+rsl45nTuNjeKYC3BLHd+NZhJI8qmcD6oykt+oxzjg=
   file: 
-    - $SDIST_FILE
+    - $SDIST_FILENAME
   skip_cleanup: true
   on:
     repo: sci-visus/OpenVisus

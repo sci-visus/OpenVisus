@@ -47,6 +47,22 @@ For support : support@visus.net
 
 #include <pydebug.h>
 
+#if PY_MAJOR_VERSION <3
+  #define char2wchar(arg) ((char*)arg)
+#else
+
+  static wchar_t* char2wchar(const char* value) 
+  {
+  #if PY_MINOR_VERSION<=4
+    return _Py_char2wchar((char*)value, NULL);
+  #else
+    return Py_DecodeLocale((char*)value, NULL);
+  #endif
+  }
+
+#endif
+
+
 namespace Visus {
 
 PyThreadState* PythonEngine::mainThreadState=nullptr;
@@ -116,21 +132,6 @@ static bool runningInsidePyMain()
 }
 
 
-#if PY_MAJOR_VERSION <3
-  #define char2wchar(arg) ((char*)arg)
-#else
-
-  static wchar_t* char2wchar(const char* value) {
-  #if PY_MINOR_VERSION<=4
-    return _Py_char2wchar((char*)value, NULL);
-  #else
-    return Py_DecodeLocale((char*)value, NULL);
-  #endif
-}
-#endif
-
-
-
 ///////////////////////////////////////////////////////////////////////////
 void InitPython()
 {
@@ -185,7 +186,7 @@ void InitPython()
 	  //IMPORTANT: if you want to avoid the usual sys.path initialization
 	  //you can copy the python shared library (example: python36.dll) and create a file with the same name and _pth extension
 	  //(example python36_d._pth). in that you specify the directories to include. you can also for example a python36.zip file
-	  //or maybe you can set PYTHON_HOME
+	  //or maybe you can set PYTHONHOME
 	
 	  //skips initialization registration of signal handlers
 	  Py_InitializeEx(0);
@@ -266,20 +267,17 @@ void PythonEngine::addSysPath(String value,bool bVerbose) {
   execCode(cmd);
 }
 
+static std::atomic<int> module_id(0);
+
   ///////////////////////////////////////////////////////////////////////////
-PythonEngine::PythonEngine(bool bVerbose)
+PythonEngine::PythonEngine(bool bVerbose) 
 {
+  this->module_name = StringUtils::format() << "__PythonEngine__" << (++module_id);
+  VisusInfo() << "Creating PythonEngine "<< module_name <<"...";
+
   ScopedAcquireGil acquire_gil;
-
-  module_name = StringUtils::format() << "__PythonEngine__" << ++ModuleId();
-
   this->module  = PyImport_AddModule(module_name.c_str()); 
-  if (!module) {
-
-    if (bVerbose)
-      VisusInfo()<<"PyImport_AddModule(\""<< module_name<<"\") failed";
-    VisusAssert(false);
-  }
+  VisusReleaseAssert(this->module);
 
   this->globals = PyModule_GetDict(module); //borrowed
 
@@ -297,22 +295,19 @@ PythonEngine::PythonEngine(bool bVerbose)
     if (bVerbose)
       VisusInfo() << "Visus is embedding Python";
 
-    //try to find where visus OpenVisus.py files are
+    //try to find where visus VisusiKernelPy.py files are
     {
-      auto py_file = "OpenVisus.py";
-
-      VisusInfo() << "Trying to find " << py_file;
-
       auto current_application_dir = KnownPaths::CurrentApplicationFile.getParent().toString();
 
       std::vector<String> candidates;
 
-      //this is during build
-      candidates.push_back(current_application_dir + "/.");
+      //this is needed in build
+      candidates.push_back(current_application_dir);
 
-#if APPLE
-      //example: <name>.app/Contents/MacOS/<name>
-      candidates.push_back(current_application_dir + "/../..");
+      //this is needed for install
+#if __APPLE__ 
+      //example: ${CMAKE_INSTALL_PREFIX}/bin/<name>.app/Contents/MacOS/<name>
+      candidates.push_back(current_application_dir + "/../../../..");
 #else
       //example ${CMAKE_INSTALL_PREFIX}/bin
       candidates.push_back(current_application_dir + "/..");
@@ -321,15 +316,18 @@ PythonEngine::PythonEngine(bool bVerbose)
 
       for (auto dir : candidates)
       {
-        if (FileUtils::existsFile(dir + "/" + py_file))
+        auto filename=dir + "/OpenVisus.py";
+        if (FileUtils::existsFile(filename))
         {
-          VisusInfo() << "\t Found in directory " << dir;
+          if (bVerbose)
+            VisusInfo() << "Found " << filename;
           addSysPath(dir, bVerbose);
           break;
         }
         else
         {
-          VisusInfo() << "\t Not found in directory " << dir;
+          if (bVerbose)
+            VisusInfo() << "Not found " << filename;
         }
       }
     }
@@ -360,6 +358,8 @@ PythonEngine::PythonEngine(bool bVerbose)
 ///////////////////////////////////////////////////////////////////////////
 PythonEngine::~PythonEngine()
 {
+  VisusInfo() << "Destroying PythonEngine " << this->module_name << "...";
+
   ScopedAcquireGil acquire_gil;
 
   if (__redirect_output__) {
@@ -379,7 +379,7 @@ int PythonEngine::main(std::vector<String> args)
 {
 #if PY_MAJOR_VERSION>=3
   typedef wchar_t* ArgType;
-  #define PyNewArg(arg) Py_DecodeLocale(arg.c_str(),nullptr)
+  #define PyNewArg(arg)  char2wchar(arg.c_str())
   #define PyFreeArg(arg) PyMem_RawFree(arg)
 #else
   typedef char* ArgType;
@@ -429,7 +429,13 @@ void PythonEngine::delModuleAttr(String name) {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-PyObject* PythonEngine::newPyFunction(PyObject* self, String name, Function fn)
+void PythonEngine::setError(String explanation, PyObject* err)
+{
+  PyErr_SetString(err, explanation.c_str());
+}
+
+///////////////////////////////////////////////////////////////////////////
+PyObject* PythonEngine::internalNewPyFunction(PyObject* self, String name, Function fn)
 {
   //see http://code.activestate.com/recipes/54352-defining-python-class-methods-in-c/
   //see http://bannalia.blogspot.it/2016/07/passing-capturing-c-lambda-functions-as.html
@@ -468,7 +474,7 @@ PyObject* PythonEngine::newPyFunction(PyObject* self, String name, Function fn)
 ///////////////////////////////////////////////////////////////////////////
 void PythonEngine::addModuleFunction(String name, Function fn)
 {
-  auto py_fn = newPyFunction(/*self*/nullptr, name, fn);
+  auto py_fn = internalNewPyFunction(/*self*/nullptr, name, fn);
   setModuleAttr(name, py_fn);
   Py_DECREF(py_fn);
 }
@@ -476,7 +482,7 @@ void PythonEngine::addModuleFunction(String name, Function fn)
 ///////////////////////////////////////////////////////////////////////////
 void PythonEngine::addObjectMethod(PyObject* self, String name, Function fn)
 {
-  auto py_fn = newPyFunction(self, name, fn);
+  auto py_fn = internalNewPyFunction(self, name, fn);
   auto py_name = PyString_FromString(name.c_str());
   PyObject_SetAttr(self, py_name, py_fn);
   Py_DECREF(py_fn);
@@ -643,25 +649,37 @@ String PythonEngine::getLastErrorMessage()
 }
 
 ///////////////////////////////////////////////////////////////////////////
+static void PythonPrintCrLfIfNeeded()
+{
+#if PY_MAJOR_VERSION < 3
+
+  //this returns !=1 in case of errors
+  if (Py_FlushLine()) 
+    PyErr_Clear();
+
+#endif
+
+}
+
+///////////////////////////////////////////////////////////////////////////
 void PythonEngine::execCode(String s)
 {
   auto obj = PyRun_StringFlags(s.c_str(), Py_file_input, globals, globals, nullptr);
+  bool bError = (obj == nullptr);
 
-  if (bool bMaybeError=(obj == nullptr))
+  if (bError)
   {
     if (PyErr_Occurred())
     {
       auto  error_msg = getLastErrorMessage();
+      PyErr_Clear();
+      VisusInfo() << "Python error "<< error_msg;
       ThrowException(error_msg);
     }
   }
 
   Py_DECREF(obj);
-
-#if PY_MAJOR_VERSION < 3
-  if (Py_FlushLine())
-    PyErr_Clear();
-#endif
+  PythonPrintCrLfIfNeeded();
 };
 
 
@@ -679,15 +697,12 @@ PyObject* PythonEngine::evalCode(String s)
     if (PyErr_Occurred())
     {
       auto  error_msg = getLastErrorMessage();
+      PyErr_Clear();
       ThrowException(error_msg);
     }
   }
 
-#if PY_MAJOR_VERSION < 3
-  if (Py_FlushLine())
-    PyErr_Clear();
-#endif
-
+  PythonPrintCrLfIfNeeded();
   return obj;
 };
 

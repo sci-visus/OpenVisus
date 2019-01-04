@@ -301,14 +301,15 @@ private:
   {
     if (list.name=="dataset") 
     {
+      String name = list.readString("name");
+
       bool is_public=StringUtils::contains(list.readString("permissions"),"public"); 
       if (!is_public)
       {
-        //VisusWarning()<<"Dataset name("<<name<<") is not public, skipping it";
+        VisusWarning()<<"Dataset name("<<name<<") is not public, skipping it";
         return 0;
       }
 
-      String name = list.readString("name");      
       if (name.empty())
       {
         VisusWarning()<<"Dataset name("<<name<<") is not valid, skipping it";
@@ -423,14 +424,14 @@ private:
   {
     if (src.name=="dataset") 
     {
+      String name = src.readString("name");
+
       bool is_public=StringUtils::contains(src.readString("permissions"),"public"); 
       if (!is_public)
       {
-        //VisusWarning()<<"Dataset name("<<name<<") is not public, skipping it";
+        VisusWarning()<<"Dataset name("<< src.name <<") is not public, skipping it";
         return 0;
       }
-
-      String name = src.readString("name");
       
       if (name.empty())
       {
@@ -708,17 +709,18 @@ private:
   {
     if (list.name=="dataset")
     {
+      String name = list.readString("name");
+
       bool is_public=StringUtils::contains(list.readString("permissions"),"public");
       if (!is_public)
       {
-        //VisusWarning()<<"Dataset name("<<name<<") is not public, skipping it";
+        VisusWarning()<<"Scene name("<<name<<") is not public, skipping it";
         return 0;
       }
       
-      String name = list.readString("name");
       if (name.empty())
       {
-        VisusWarning()<<"Dataset name("<<name<<") is not valid, skipping it";
+        VisusWarning()<<"Scene name("<<name<<") is not valid, skipping it";
         VisusAssert(false);
         return 0;
       }
@@ -726,7 +728,7 @@ private:
       auto dataset=Dataset::loadDataset(name);
       if (!dataset)
       {
-        VisusWarning()<<"Dataset::loadDataset("<<name<<") failed, skipping it";
+        VisusWarning()<<"Scene::loadDataset("<<name<<") failed, skipping it";
         return 0;
       }
       
@@ -821,14 +823,14 @@ private:
   {
     if (src.name=="scene")
     {
+      String name = src.readString("name");
+
       bool is_public=StringUtils::contains(src.readString("permissions"),"public");
       if (!is_public)
       {
-        //VisusWarning()<<"Dataset name("<<name<<") is not public, skipping it";
+        VisusWarning()<<"Scene name("<<name<<") is not public, skipping it";
         return 0;
       }
-      
-      String name = src.readString("name");
       
       if (name.empty())
       {

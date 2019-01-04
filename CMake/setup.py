@@ -1,28 +1,36 @@
-import os, sys, setuptools
+import os
+import sys
+import pip
 import shutil
 import platform
 import glob
-
-#increase this number for PIP
-VERSION="1.2.86"
-
+import atexit
+import setuptools
+from configure import *
 	
+PROJECT_VERSION="1.2.170"
+PROJECT_NAME="OpenVisus"
+PROJECT_URL="https://github.com/sci-visus/OpenVisus"
+PROJECT_DESCRIPTION="ViSUS multiresolution I/O, analysis, and visualization system"
+PROJECT_AUTHOR="visus.net"
+PROJECT_EMAIL="support@visus.net"
+PROJECT_LICENSE="BSD"
+PROJECT_REQUIRES=["numpy"]
+PROJECT_PLATFORMS=['Linux', 'OS-X', 'Windows']
+
+WIN32=platform.system()=="Windows" or platform.system()=="win32"
+APPLE=platform.system()=="Darwin"
+BDIST_WHEEL="bdist_wheel" in sys.argv	
+
 # ////////////////////////////////////////////////////////////////////
-def cleanAll():
+if __name__ == "__main__":
+	
 	shutil.rmtree('./build', ignore_errors=True)
-	shutil.rmtree('./OpenVisus.egg-info', ignore_errors=True)
-	shutil.rmtree('./__pycache__', ignore_errors=True)
+	shutil.rmtree('./__pycache__', ignore_errors=True)	
+	shutil.rmtree('./.git', ignore_errors=True)	
+	shutil.rmtree('./%s.egg-info' % (PROJECT_NAME,), ignore_errors=True)
 	
-	
-# ////////////////////////////////////////////////////////////////////
-def findFilesInCurrentDirectory():
-	
-	ret=[]
-	
-	WIN32=platform.system()=="Windows" or platform.system()=="win32"
-	APPLE=platform.system()=="Darwin"
-	BDIST_WHEEL="bdist_wheel" in sys.argv	
-	
+	files=[]	
 	for dirpath, __dirnames__, filenames in os.walk("."):
 		for it in filenames:
 
@@ -30,71 +38,39 @@ def findFilesInCurrentDirectory():
 
 			if filename.startswith(os.path.abspath('./dist')): 
 				continue
-				
-			if os.path.basename(filename).startswith(".git"): 
+			
+			# for bdist wheel (i.e. *.whl file) I do not add developer files
+			if BDIST_WHEEL and filename.startswith(os.path.abspath('./lib')):
+				continue
+			
+			if BDIST_WHEEL and filename.startswith(os.path.abspath('./include')): 
+				continue		    	
+
+			if BDIST_WHEEL and WIN32 and filename.startswith(os.path.abspath('./win32/python')):
+				continue
+
+			if BDIST_WHEEL and WIN32 and filename.endswith(".pdb"): 
 				continue
 				
 			if "__pycache__" in filename:
-				continue	    	
-
-			# for bdist_wheel I don't need to add files for compilation
-			if BDIST_WHEEL: 
-				
-				if filename.startswith(os.path.abspath('./lib')):
-					continue
-				
-				if filename.startswith(os.path.abspath('./include')): 
-					continue		    	
-
-				if WIN32:
-					
-					if filename.startswith(os.path.abspath('./win32/python')):
-						continue
+				continue	    				
 						
-					if filename.endswith(".pdb"): 
-						continue
-						
-			ret.append(filename)
+			files.append(filename)
 			
-	return ret
-	
-
-# ////////////////////////////////////////////////////////////////////
-def runSetupTools():
 	setuptools.setup(
-	  name = "OpenVisus",
-	  description = "ViSUS multiresolution I/O, analysis, and visualization system",
-	  version=VERSION,
-	  url="https://github.com/sci-visus/OpenVisus",
-	  author="visus.net",
-	  author_email="support@visus.net",
-	  packages=["OpenVisus"],
-	  package_dir={"OpenVisus":'.'},
-	  package_data={"OpenVisus": findFilesInCurrentDirectory()},
-	  classifiers=(
-	    "Programming Language :: Python :: 3",
-	    "License :: OSI Approved :: BSD License",
-	    'Operating System :: MacOS :: MacOS X',
-	    'Operating System :: Microsoft :: Windows',
-	    'Operating System :: POSIX',
-	    'Operating System :: Unix',
-	  ),
-	  platforms=['Linux', 'OS-X', 'Windows'],
-	  license = "BSD",
-	  install_requires=[
-	    'numpy', 
-	    # "PyQt5>='5.9'" removed because I'm having some problems with travis
-	  ],
+	  name = PROJECT_NAME,
+	  description = PROJECT_DESCRIPTION,
+	  version=PROJECT_VERSION,
+	  url=PROJECT_URL,
+	  author=PROJECT_AUTHOR,
+	  author_email=PROJECT_EMAIL,
+	  packages=[PROJECT_NAME],
+	  package_dir={PROJECT_NAME:'.'},
+	  package_data={PROJECT_NAME: files},
+	  platforms=PROJECT_PLATFORMS,
+	  license = PROJECT_LICENSE,
+	  install_requires=PROJECT_REQUIRES,
 	)
-	
-
-# ////////////////////////////////////////////////////////////////////
-if __name__ == "__main__":
-  cleanAll()
-  runSetupTools()
-
-
-
 
 
 

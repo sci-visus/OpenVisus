@@ -82,6 +82,7 @@ bool VisusConfig::reload()
     VisusInfo() << "Found Visus configuration [" << filename << "]";
   }
 
+
   VisusConfig::validate();
   return true;
 }

@@ -41,7 +41,7 @@ For support: support@visus.net
 
 * `osx linux` build status: [![Build Status](https://travis-ci.com/sci-visus/visus.svg?token=yzpwCyVPupwSzFjgTCoA&branch=master)](https://travis-ci.com/sci-visus/visus)
 
-* `windows` build status: [![Windows Build status](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master?svg=true)](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master)                                                                                                                                                                             
+* `windows` build status: [![Windows Build status](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master?svg=true)](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master)
 
 Table of content:
 
@@ -54,37 +54,53 @@ Table of content:
 
 [Linux compilation](#linux-compilation)
 
-[Use OpenVisus as submodule](#use-openvisus-as-submodule)
 
-[mod_visus](#mod_visus)
-
-[Auto deploy] (#auto_deploy)
-	
-  
-  
-  
-  
-  
 ## PIP distribution
 
-You can install OpenVisus in python using Pip:
-
-in windows:
+You can install/test OpenVisus in python using Pip:
 
 ```
-python -m pip install --user numpy OpenVisus
+python -m pip install --user numpy OpenVisus==1.2.170
+python -m OpenVisus configure 
+cd $(python -m OpenVisus dirname) # on windows you need to evaluate this manually
+python Samples/python/Array.py
+python Samples/python/Dataflow.py
+python Samples/python/Idx.py
+python Samples/python/Viewer.py
 ```
 
-in osx,linux:
+Or you can download OpenVisus from GitHub releases (use the same version), extract it and in Windows:
 
 ```
-python -m pip install  --user numpy OpenVisus
+cd \your\OpenVisus\directory
+
+python configure.py
+
+REM use the following if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
+REM python configure.py --use-pyqt5
+
+set PYTHONPATH=%cd%;%PYTHONPATH%
+python Samples\python\Array.py
+python Samples\python\Dataflow.py
+python Samples\python\Idx.py
+python Samples\python\Viewer.py
 ```
 
-And test it using the following command. 
+in Osx/Linux:
 
 ```
-python -c "import OpenVisus"
+cd /your/OpenVisus/directory
+
+python configure.py
+
+# use the following if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
+# python configure.py --use-pyqt5
+
+export PYTHONPATH=$(pwd):${PYTHONPATH}
+python Samples/python/Array.py
+python Samples/python/Dataflow.py
+python Samples/python/Idx.py
+python Samples/python/Viewer.py
 ```
 
 
@@ -99,18 +115,8 @@ choco install -y -allow-empty-checksums git cmake swig
 ```
 
 Install [Python3.7] (https://www.python.org/ftp/python/3.7.0/python-3.7.0-amd64.exe)
-
-Make sure you have num python installed:
-
-```
-REM change path as needed
-c:\Python37\python.exe -m pip install --user numpy
-```
-
-Install [Qt5](http://download.qt.io/official_releases/qt/5.9/5.9.2/qt-opensource-windows-x86-5.9.2.exe) 
-
-
-if you want to use [Microsoft vcpkg](https://github.com/Microsoft/vcpkg) (faster):
+Install [Qt5](http://download.qt.io/official_releases/online_installers/qt-unified-windows-x86-online.exe) 
+Install [vcpkg](https://github.com/Microsoft/vcpkg):
 
 ```
 cd c:\
@@ -119,52 +125,28 @@ cd tools
 git clone https://github.com/Microsoft/vcpkg
 cd vcpkg
 .\bootstrap-vcpkg.bat
-vcpkg.exe install zlib:x64-windows lz4:x64-windows tinyxml:x64-windows freeimage:x64-windows openssl:x64-windows curl:x64-windows
-set CMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
-set VCPKG_TARGET_TRIPLET=x64-windows
-```
-
-otherwise you can use InternalLibs (slow):
-
-```
-set VISUS_INTERNAL_DEFAULT=1
 ```
 
 Then:
 
 ```
-cd c:\
-mkdir projects
-cd projects
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
 
-
-mkdir build
-cd build
-
-REM *** change as needed *** 
-set GENERATOR=Visual Studio 15 2017 Win64
-set QT5_DIR=C:\Qt\Qt5.9.2\5.9.2\msvc2017_64
-set CMAKE="C:\Program Files\CMake\bin\cmake.exe"
-set GIT_CMD=C:\Program Files\Git\bin\git.exe
-set SWIG_EXECUTABLE=C:\ProgramData\chocolatey\bin\swig.exe
-set CONFIGURATION=RelWithDebInfo
-
-IF DEFINED  CMAKE_TOOLCHAIN_FILE (
-	%CMAKE% -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" -DGIT_CMD="%GIT_CMD%" -DSWIG_EXECUTABLE="%SWIG_EXECUTABLE%" -DCMAKE_TOOLCHAIN_FILE="%CMAKE_TOOLCHAIN_FILE%" -DVCPKG_TARGET_TRIPLET="%VCPKG_TARGET_TRIPLET%"  ..
-) ELSE (
-	%CMAKE% -G "%GENERATOR%" -DQt5_DIR="%QT5_DIR%\lib\cmake\Qt5" -DGIT_CMD="%GIT_CMD%" -DSWIG_EXECUTABLE="%SWIG_EXECUTABLE%" ..
-)
-	
-%CMAKE% --build . --target ALL_BUILD   --config %CONFIGURATION%
-%CMAKE% --build . --target RUN_TESTS   --config %CONFIGURATION%
-%CMAKE% --build . --target INSTALL     --config %CONFIGURATION% 
-%CMAKE% --build . --target deploy      --config %CONFIGURATION% 
+REM *** change path as needed *** 
+set PYTHON_EXECUTABLE=C:\Python37\python.exe
+set CMAKE_EXECUTABLE=C:\Program Files\CMake\bin\cmake.exe
+set QT5_DIR=c:\Qt\5.11.2\msvc2015_64\lib\cmake\Qt5
+.\build.bat
 ```
 
-To test if visusviewer it's working double click on the file install\visusviewer.bat.
+To test if it's working:
 
+```
+cd install
+.\visus.bat
+.\visusviewer.bat 
+```
 
 
 ## MacOSX compilation
@@ -181,84 +163,44 @@ Build the repository:
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-CMAKE_BUILD_TYPE=RelWithDebInfo CMake/build_osx.sh
+build.sh
 ```
 
 To test if it's working:
 
 ```
 cd install
-
-# (embedding mode)
-PYTHONPATH=$(pwd) bin/visus.app/Contents/MacOS/visus  
-
-# (extending mode)
-PYTHONPATH=$(pwd) python -c "import OpenVisus"
+./visus.command
+./visusviewer.command 
 ```
-
       
 ## Linux compilation
 
-
-Build the repository (replace ubuntu with your distribution):
+Build the repository:
 
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-./CMake/build_ubuntu.sh  
+./build.sh  
 ```
 
-To test if it's working (consider you should modify the pyenv part):
+To test if it's working:
 
 ```
 cd install
-
-# example of embedding mode
-LD_LIBRARY_PATH=$(pwd):$(pyenv prefix)/lib PYTHONPATH=$(pwd) bin/visus
-
-# example of extending mode
-LD_LIBRARY_PATH=$(pwd)                     PYTHONPATH=$(pwd) python -c "import OpenVisus"
+./visus.sh
+./visusviewer.sh
 ```
 
-  
-## Use OpenVisus as submodule
+Note that on linux you can even compile using docker. An example is:
 
-In your repository:
 
 ```
-git submodule add https://github.com/sci-visus/OpenVisus
-```
-	
-Create a CMakeLists.txt with the following content:
-
-```
-CMAKE_MINIMUM_REQUIRED(VERSION 3.1) 
-
-project(YourProjectName)
-
-include(OpenVisus/CMake/VisusMacros.cmake)
-SetupCMake()
-add_subdirectory(OpenVisus)
-...your code...
-target_link_libraries(your_executable VisusAppKit) # or whatever you need
-```
-	
-## mod_visus
-
-See Docker directory and look for VISUS_MODVISUS=1
-
-# Auto Deploy	
-
-`.travis.yml` and `.appveyor.ymp` deploy automatically to `GitHub Releases` when the Git commit is tagged.
-To properly tag your commit, your first need to edit the CMake/setup.py and change the VERSION number. 
-Then tag your code in git:
-
-```
-git commit -a -m "...your message here..." 
-git config --global push.followTags true 
-VERSION=X.Y.Z # replace  with the same numbers from CMake/setup.py
-git tag -a "$VERSION" -m "$VERSION" 
-git push
+BUILD_DIR=$(pwd)/build/docker/manylinux PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64 ./build.sh
+BUILD_DIR=$(pwd)/build/docker/trusty    PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=ubuntu:trusty                  ./build.sh
+BUILD_DIR=$(pwd)/build/docker/bionic    PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=ubuntu:bionic                  ./build.sh
+BUILD_DIR=$(pwd)/build/docker/xenial    PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=ubuntu:xenial                  ./build.sh
+BUILD_DIR=$(pwd)/build/docker/leap      PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=opensuse:leap                  ./build.sh
 ```
 
 

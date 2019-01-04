@@ -176,8 +176,8 @@ public:
   //delModuleAttr
   void delModuleAttr(String name);
 
-  //newPyFunction
-  PyObject* newPyFunction(PyObject* self, String name, Function fn);
+  //setError (to call when you return nullpptr in Function)
+  static void setError(String explanation, PyObject* err= PyExc_SystemError);
 
   //addModuleFunction
   void addModuleFunction(String name,Function fn);
@@ -218,12 +218,6 @@ private:
 
   PyObject* __redirect_output__ = nullptr;
 
-  //generateModuleName
-  static std::atomic<int>& ModuleId() {
-    static std::atomic<int> ret;
-    return ret;
-  }
-
   //newPyObject
   template <typename ValueClass>
   PyObject* newPyObject(ValueClass value, swig_type_info* type_info) {
@@ -251,6 +245,10 @@ private:
 
     return ret;
   }
+
+  //internalNewPyFunction
+  PyObject* internalNewPyFunction(PyObject* self, String name, Function fn);
+
 
 };
 

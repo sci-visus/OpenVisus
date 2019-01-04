@@ -51,7 +51,11 @@ bool DbModule::bAttached = false;
 ///////////////////////////////////////////////////////////////////////////////////////////
 void DbModule::attach()
 {
-  if (bAttached)  return;
+  if (bAttached)  
+    return;
+  
+  VisusInfo() << "Attaching DbModule...";
+  
   bAttached = true;
 
   KernelModule::attach();
@@ -71,17 +75,24 @@ void DbModule::attach()
 
   VISUS_REGISTER_OBJECT_CLASS(LegacyDataset);
 
+  VisusInfo() << "Attached DbModule";
 }
 
 //////////////////////////////////////////////
 void DbModule::detach()
 {
-  if (!bAttached)  return;
+  if (!bAttached)  
+    return;
+  
+  VisusInfo() << "Detaching DbModule...";
+  
   bAttached = false;
 
   DatasetPluginFactory::releaseSingleton();
 
   KernelModule::detach();
+
+  VisusInfo() << "Detached DbModule.";
 }
 
 } //namespace Visus 

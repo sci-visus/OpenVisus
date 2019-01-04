@@ -29,7 +29,9 @@ macro(DetectOsxVersion)
 	execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpmachine OUTPUT_VARIABLE MACHINE OUTPUT_STRIP_TRAILING_WHITESPACE)
 	string(REGEX REPLACE ".*-darwin([0-9]+).*" "\\1" _apple_ver "${MACHINE}")
 	
-	if (_apple_ver EQUAL "17")
+	if (_apple_ver EQUAL "18")
+		set(APPLE_OSX_VERSION 10.14)
+	elseif (_apple_ver EQUAL "17")
 		set(APPLE_OSX_VERSION 10.13)
 	elseif (_apple_ver EQUAL "16")
 		set(APPLE_OSX_VERSION 10.12)
@@ -64,6 +66,8 @@ macro(SetupCommonCMake)
 		set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 		set_property(GLOBAL PROPERTY USE_FOLDERS ON)  
 		set(CMAKE_NUM_PROCS 8)   
+		
+		option(BUILD_SHARED_LIBS "Build the shared library" TRUE)
 
 		# save libraries and binaries in the same directory        
 		set(EXECUTABLE_OUTPUT_PATH              ${CMAKE_BINARY_DIR})           
@@ -95,7 +99,15 @@ macro(SetupCommonCMake)
 			set(CMAKE_MACOSX_BUNDLE YES)
 			set(CMAKE_MACOSX_RPATH  0)	 # disable rpath
 		endif()
-	
+		
+		if (WIN32)
+			set(SCRIPT_EXTENSION ".bat")
+		elseif (APPLE)
+			set(SCRIPT_EXTENSION ".command")
+		else()
+			set(SCRIPT_EXTENSION ".sh")
+		endif()	
+		
 	endif()
 	
 endmacro()
@@ -160,6 +172,9 @@ macro(FindOpenMP)
 		endif()
 		if (OpenMP_FOUND)
 			MESSAGE(STATUS "Found OpenMP")	
+			if (WIN32)
+				set(CMAKE_INSTALL_OPENMP_LIBRARIES 1)
+			endif()	
 		else()
 			MESSAGE(STATUS "OpenMP not found")
 		endif()	
@@ -181,12 +196,19 @@ endmacro()
 
 # ///////////////////////////////////////////////////
 macro(FindPythonLibrary)
+
 	SetIfNotDefined(PYTHON_VERSION 3)
+
 	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)	
+	find_package(NumPy                          REQUIRED)
+
 	message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
 	message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
 	message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
+	message(STATUS "NUMPY_FOUND         ${NUMPY_FOUND}")
+	message(STATUS "NUMPY_VERSION       ${NUMPY_VERSION}")
+	message(STATUS "NUMPY_INCLUDE_DIR   ${NUMPY_INCLUDE_DIR}")	
 	
 	add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
 	set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
@@ -223,8 +245,6 @@ macro(FindPythonLibrary)
 
 	EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE}  -c  "import site;print(site.getsitepackages()[-1])"  OUTPUT_VARIABLE PYTHON_SITE_PACKAGES_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
 	message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
-
-	find_package(NumPy REQUIRED)
 
 endmacro()
 
@@ -301,20 +321,21 @@ macro(AddExecutable Name)
 endmacro()
 
 # ///////////////////////////////////////////////////
-macro(AddSwigLibrary NamePy SwigFile)
+macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 
-  find_package(SWIG 3.0 REQUIRED)
-  include(${SWIG_USE_FILE})
-  set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
-  set(CMAKE_SWIG_FLAGS "")
-  
-  set(SWIG_FLAGS "${ARGN}")
-  set(SWIG_FLAGS "${SWIG_FLAGS};-threads")
-  set(SWIG_FLAGS "${SWIG_FLAGS};-extranative")
+
+	find_package(SWIG 3.0 REQUIRED)
+	include(${SWIG_USE_FILE})
+	set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
+	set(CMAKE_SWIG_FLAGS "")
+
+	set(SWIG_FLAGS "${ARGN}")
+	set(SWIG_FLAGS "${SWIG_FLAGS};-threads")
+	set(SWIG_FLAGS "${SWIG_FLAGS};-extranative")
 
 	#prevents rebuild every time make is called
 	set_property(SOURCE ${SwigFile} PROPERTY SWIG_MODULE_NAME ${NamePy})
-	
+
 	set_source_files_properties(${SwigFile} PROPERTIES CPLUSPLUS ON)
 	set_source_files_properties(${SwigFile} PROPERTIES SWIG_FLAGS  "${SWIG_FLAGS}")
 
@@ -324,35 +345,37 @@ macro(AddSwigLibrary NamePy SwigFile)
 		swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
 	endif()
 
-  set(Name ${NamePy})
 	if (TARGET _${NamePy})
-	  set(Name _${NamePy})
+	  set(RealName _${NamePy})
+	else()
+	  set(RealName ${NamePy})
 	endif()
-	
-	SetupCommonCompileOptions(${Name})
-	set_target_properties(${Name} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
-	target_include_directories(${Name} PRIVATE ${NUMPY_INCLUDE_DIR})
-	
+
+	SetupCommonCompileOptions(${RealName})
+	set_target_properties(${RealName} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
+	target_include_directories(${RealName} PUBLIC ${NUMPY_INCLUDE_DIR})
+
 	# disable warnings
 	if (WIN32)
-		target_compile_definitions(${Name}  PRIVATE /W0)
+		target_compile_definitions(${RealName}  PRIVATE /W0)
 	else()
-		set_target_properties(${Name} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
+		set_target_properties(${RealName} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
 	endif()
-	
-	LinkPythonToLibrary(${Name})
-	
+
+	LinkPythonToLibrary(${RealName})
+	target_link_libraries(${RealName} PUBLIC ${WrappedLib})
+
 	if (WIN32)
-		set_target_properties(${Name}
+		set_target_properties(${RealName}
 	      PROPERTIES
-	      COMPILE_PDB_NAME_DEBUG          ${Name}_d
-	      COMPILE_PDB_NAME_RELEASE        ${Name}
-	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
-	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
-		set_target_properties(${Name} PROPERTIES DEBUG_POSTFIX  "_d")
+	      COMPILE_PDB_NAME_DEBUG          ${RealName}_d
+	      COMPILE_PDB_NAME_RELEASE        ${RealName}
+	      COMPILE_PDB_NAME_MINSIZEREL     ${RealName}
+	      COMPILE_PDB_NAME_RELWITHDEBINFO ${RealName})
+		set_target_properties(${RealName} PROPERTIES DEBUG_POSTFIX  "_d")
 	endif()	
-	
-	InstallLibrary(${Name})
+
+	InstallLibrary(${RealName})
 	
 endmacro()
 
@@ -535,148 +558,12 @@ macro(FindVCPKGDir)
 endmacro()
 
 # //////////////////////////////////////////////////////////////////////////
-macro(createScript name extra)
-	
-  	if (WIN32)
-  		
-  		set (__filename__ "${CMAKE_BINARY_DIR}/${name}.bat")
-  		
-  		file(WRITE    "${__filename__}" "cd /d %~dp0\r\n")
-		file(APPEND   "${__filename__}" "\n")	
-  		file(APPEND   "${__filename__}" "if EXIST %cd%\\win32\\Python (set PYTHON_DIR=%cd%\\win32\\Python) else (set PYTHON_DIR=%cd%\\..\\..\\..\\) \r\n")
-  		file(APPEND   "${__filename__}" "%PYTHON_DIR%\\python.exe -m pip install --user --upgrade numpy\r\n")
-		file(APPEND   "${__filename__}" "\n")	
-  		file(APPEND   "${__filename__}" "set PATH=%PYTHON_DIR%;%cd%\\bin;%PATH%\r\n")
-      file(APPEND   "${__filename__}" "set PYTHONPATH=%PYTHON_DIR%\\lib;%PYTHON_DIR%\\DLLs\r\n")		
-		file(APPEND   "${__filename__}" "\n")	
-      file(APPEND   "${__filename__}" "${extra}\n")
-		file(APPEND   "${__filename__}" "\n")	
-  		file(APPEND   "${__filename__}" "bin\\${name}.exe %*\r\n")
-		
-  		install(FILES "${__filename__}"  DESTINATION . )
-  		
-  	elseif (APPLE)
-  	
-  		set(__filename__ "${CMAKE_BINARY_DIR}/${name}.command")
-  		
-  		file(WRITE    "${__filename__}" "#!/bin/bash\n")
-		file(APPEND   "${__filename__}" "\n")	
-  		file(APPEND   "${__filename__}" "export PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
-		file(APPEND   "${__filename__}" "\n")	
-  		file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
-  		file(APPEND   "${__filename__}" "cd \${this_dir}\n")
-		file(APPEND   "${__filename__}" "\n")	
-  		file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
-  		file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$(python\$PYTHON_VERSION -c \"import sys; print(':'.join(sys.path))\")\n")	
-		file(APPEND   "${__filename__}" "\n")	
-      file(APPEND   "${__filename__}" "${extra}\n")
-		file(APPEND   "${__filename__}" "\n")		
-  		file(APPEND   "${__filename__}" "./bin/${name}.app/Contents/MacOS/${name}\n")
-  		
-  		install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)
-  	
-  	else()
-  	
-  		set(__filename__ "${CMAKE_BINARY_DIR}/${name}.sh")
-  		
-  		file(WRITE    "${__filename__}" "#!/bin/bash\n")
-		file(APPEND   "${__filename__}" "\n")	
-  		file(APPEND   "${__filename__}" "export PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
-		file(APPEND   "${__filename__}" "\n")	
-  		file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
-  		file(APPEND   "${__filename__}" "cd \${this_dir}\n")
-		file(APPEND   "${__filename__}" "\n")	
-  		file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
-  		file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$(python\$PYTHON_VERSION -c \"import sys; print(':'.join(sys.path))\")\n")	
-		file(APPEND   "${__filename__}" "\n")	
-      file(APPEND   "${__filename__}" "${extra}\n")
-		file(APPEND   "${__filename__}" "\n")	
-  		file(APPEND   "${__filename__}" "./bin/${name}\n")
-  		
-  		install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)	
-  	
-  	endif()
-
+macro(InstallPostInstallStep)
+	install(CODE "
+		execute_process( 
+			 COMMAND \"${PYTHON_EXECUTABLE}\" -u \"${CMAKE_INSTALL_PREFIX}/configure.py\"
+			 	--qt5-dir=\"${Qt5_DIR}\"
+				cmake_post_install)
+	")
 endmacro()
 
-
-
-# ////////////////////////////////////////////////////////
-macro(createGuiScript name extra)
-
-	if (WIN32)
-			
-		set(__filename__ "${CMAKE_BINARY_DIR}/${name}.bat")
-		
-		file(WRITE    "${__filename__}" "cd /d %~dp0\r\n")
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "set PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")		
-		file(APPEND   "${__filename__}" "if EXIST %cd%\\win32\\Python (set PYTHON_DIR=%cd%\\win32\\Python) else (set PYTHON_DIR=%cd%\\..\\..\\..\\) \r\n")
-		file(APPEND   "${__filename__}" "%PYTHON_DIR%\\python.exe -m pip install --user --upgrade numpy PyQt5\r\n")
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "set PATH=%PYTHON_DIR%;%cd%\\bin;%PATH%\r\n")
-		file(APPEND   "${__filename__}" "set PYTHONPATH=%PYTHON_DIR%\\lib;%PYTHON_DIR%\\DLLs\r\n")
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "FOR /F \"tokens=* USEBACKQ\" %%F IN (`%PYTHON_DIR%\\python.exe -c \"import os,PyQt5; print(os.path.dirname(PyQt5.__file__))\"`) DO (SET PyQt5_DIR=%%F)\r\n")
-		file(APPEND   "${__filename__}" "set PATH=%PyQt5_DIR%\\Qt\\bin;%PATH%\r\n")
-		file(APPEND   "${__filename__}" "set QT_PLUGIN_PATH=%PyQt5_DIR%\\Qt\\plugins\r\n")
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "${extra}\n")	
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "bin\\${name}.exe %*\r\n")		
-		
-		install(FILES "${__filename__}" DESTINATION .)
-				
-	elseif (APPLE)
-	
-		set(__filename__ "${CMAKE_BINARY_DIR}/${name}.command")
-		
-		file(WRITE    "${__filename__}" "#!/bin/bash\n")
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "export PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
-		file(APPEND   "${__filename__}" "cd \${this_dir}\n")
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
-		file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$(python\$PYTHON_VERSION -c \"import sys; print(':'.join(sys.path))\")\n")
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "export QT_PLUGIN_PATH=\${this_dir}/bin/plugins\n")
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "${extra}\n")	
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "./bin/${name}.app/Contents/MacOS/${name}\n")
-		
-		install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)	
-		
-		set(__filename__ "${CMAKE_BINARY_DIR}/${name}.qt.conf")
-		file(WRITE    "${__filename__}" "[Paths]\n")
-		file(APPEND   "${__filename__}" "  Plugins=../../../bin/plugins\n")
-		install(FILES "${__filename__}" DESTINATION "bin/${name}.app/Contents/Resources/qt.conf")
-			
-	else()
-		
-		set(__filename__ "${CMAKE_BINARY_DIR}/${name}.sh")
-		
-		file(WRITE    "${__filename__}" "#!/bin/bash\n")
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "export PYTHON_VERSION=${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}\n")
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "this_dir=\$(cd \"\$(dirname \"\${BASH_SOURCE[0]}\" )\" && pwd)\n")
-		file(APPEND   "${__filename__}" "cd \${this_dir}\n")
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "export PATH=\${this_dir}/bin:\$PATH\n")
-		file(APPEND   "${__filename__}" "export PYTHONPATH=\${this_dir}:\${this_dir}/bin:\$(python\$PYTHON_VERSION -c \"import sys; print(':'.join(sys.path))\")\n")
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "export QT_PLUGIN_PATH=\${this_dir}/bin/plugins\n")
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "${extra}\n")	
-		file(APPEND   "${__filename__}" "\n")	
-		file(APPEND   "${__filename__}" "./bin/${name}\n")
-		
-		install(FILES "${__filename__}"  DESTINATION . PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE)			
-	
-	endif()
-			
-
-endmacro()

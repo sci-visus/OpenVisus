@@ -42,6 +42,8 @@ For support : support@visus.net
 #include <Visus/Kernel.h>
 #include <Visus/CriticalSection.h>
 
+#include <iostream>
+
 namespace Visus {
 
 
@@ -52,12 +54,15 @@ namespace Visus {
 #define VISUS_DECLARE_SINGLETON_CLASS(ClassName)\
   private:\
     VISUS_NON_COPYABLE_CLASS(ClassName)\
-    static ClassName*& __instance__() { static ClassName* ret=nullptr; return ret; }; \
+    static ClassName* __instance__;\
   public:\
-    static inline ClassName* getSingleton()     {return __instance__();}\
-    static inline void       allocSingleton()   {VisusAssert(!__instance__());__instance__()=new ClassName();} \
-    static inline void       releaseSingleton() {VisusAssert( __instance__());delete __instance__(); __instance__()=nullptr;} \
+    static ClassName* getSingleton()     {return __instance__;}\
+    static void       allocSingleton()   {VisusAssert(!__instance__);__instance__=new ClassName();} \
+    static void       releaseSingleton() {VisusAssert( __instance__);delete __instance__; __instance__=nullptr;} \
   /*--*/
+
+#define VISUS_IMPLEMENT_SINGLETON_CLASS(ClassName) \
+  ClassName* ClassName::__instance__=nullptr;
 
 
 } //namespace Visus

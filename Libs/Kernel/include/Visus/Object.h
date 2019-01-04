@@ -45,6 +45,7 @@ For support : support@visus.net
 
 #include <stack>
 #include <vector>
+#include <iostream>
 
 namespace Visus {
 
@@ -289,6 +290,10 @@ class VISUS_KERNEL_API ObjectFactory
 public:
 
   VISUS_DECLARE_SINGLETON_CLASS(ObjectFactory)
+
+  //desgtructor
+  ~ObjectFactory() {
+  }
 
   //registerObjectClass
   void registerObjectClass(String portable_typename,String os_typename,SharedPtr<ObjectCreator> creator)

@@ -124,6 +124,7 @@ if __name__ == '__main__':
     DataflowModule.attach()
     VISUS_REGISTER_PYTHON_OBJECT_CLASS("PyProducer")
     VISUS_REGISTER_PYTHON_OBJECT_CLASS("PyReceiver")
+    
     unittest.main(exit=False)
     DataflowModule.detach()
 
