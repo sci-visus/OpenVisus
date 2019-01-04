@@ -1,5 +1,8 @@
 # //////////////////////////////////////////////////////////////////////
 # How to build OpenVisus Docker container
+#
+# Note: for development with anaconda enabled, please see Docker/miniconda/README.md.
+#
 
 Compile and run the docker container. 
 For example:
