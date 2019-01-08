@@ -9,11 +9,9 @@ notifications:
     on_build_status_changed: true  
    
 environment:
-  QT5_DIR: C:/Qt/5.11.2/msvc2017_64
+  QT5_DIR: C:/Qt/5.11.2/msvc2017_64/lib/cmake/Qt5
   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   CMAKE_GENERATOR: Visual Studio 15 2017 Win64
-  DEPLOY_GITHUB: false
-  DEPLOY_PYPI: false
   PYPI_USERNAME: scrgiorgio
   PYPI_PASSWORD:
     secure: 6DHH80JPNRCtIYxWc/h88Q==   
@@ -39,44 +37,37 @@ cache: c:\tools\vcpkg\installed\
 
 init:
   - ps: | 
-      If ($env:APPVEYOR_REPO_TAG -ne "" -or $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[full_matrix]")) {
-          $env:DEFAULT_ENABLED=true
-      }
-      If ($env:APPVEYOR_REPO_TAG -ne ""  -or  $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_github]") ) {
-      	$env:DEPLOY_GITHUB=1  
-      }
-      If ($env:APPVEYOR_REPO_TAG -ne ""  -or $env:APPVEYOR_REPO_COMMIT_MESSAGE.ToLower().Contains("[deploy_pypi]"  ) ) {
-      	$env:DEPLOY_PYPI=1   
-      } 
-      If ($env:DEFAULT_ENABLED -eq "false") {
+      If ($env:APPVEYOR_REPO_TAG -eq "false" -and $env:DEFAULT_ENABLED -eq "false") {
         Write-Host "Skipping build"
         Exit-AppveyorBuild
-      }      
-
-install:
-  - choco install -y --allow-empty-checksums swig 
+      }   
 
 build_script:
+  - cmd: choco install -y --allow-empty-checksums swig 
   - cmd: cd %APPVEYOR_BUILD_FOLDER% 
   - cmd: .\build.bat 
+  - cmd: echo [distutils]                                 > %USERPROFILE%\\.pypirc
+  - cmd: echo index-servers =                            >> %USERPROFILE%\\.pypirc
+  - cmd: echo     pypi                                   >> %USERPROFILE%\\.pypirc
+  - cmd: echo [pypi]                                     >> %USERPROFILE%\\.pypirc
+  - cmd: echo username = %PYPI_USERNAME%                 >> %USERPROFILE%\\.pypirc
+  - cmd: echo password = %PYPI_PASSWORD%                 >> %USERPROFILE%\\.pypirc
+  - cmd: set HOME=%USERPROFILE%
+  - cmd: if "%APPVEYOR_REPO_TAG%" == "true" ( %PYTHON_EXECUTABLE% -m pip install --user --upgrade twine )
+  - cmd: if "%APPVEYOR_REPO_TAG%" == "true" ( %PYTHON_EXECUTABLE% -m twine upload --skip-existing "%APPVEYOR_BUILD_FOLDER%/build/install/dist/*.whl" ) 
 
-# test are already in cmake
 test: off
 
-after_build:
-  - ps: |
-        If ( -not ($env:DEPLOY_GITHUB -eq 1) ) {
-          Exit-AppveyorBuild
-        }
-   
 artifacts:
-    - path: .\build\install\dist\*.zip
-      name: UploadToGitHubReleases
+    - path: build\install\dist\*.zip
+      name: GitHubReleasesArtifact
  
 deploy:
   - provider: GitHub
     auth_token:
       secure: nwK8bGTRUynj+58b7E8Rgur5/0YvfIivBflFb5AaUrpC5BSTpcLbA4Ac+cCF6L4/
-    artifact: UploadToGitHubReleases
+    artifact: GitHubReleasesArtifact
+    on:
+      appveyor_repo_tag: true
 
 

@@ -10,6 +10,14 @@ if "%CMAKE_GENERATOR%"=="" (
 	set CMAKE_GENERATOR=Visual Studio 15 2017 Win64
 )
 
+if "%CMAKE_TOOLCHAIN_FILE%"=="" (
+	set CMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
+)
+
+if "%VCPKG_TARGET_TRIPLET%"=="" (
+	set VCPKG_TARGET_TRIPLET=x64-windows
+)
+
 if not defined DevEnvDir (
  	call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"
 )
@@ -25,11 +33,9 @@ mkdir build
 cd build 
 "%CMAKE_EXECUTABLE%" ^
 	-G "%CMAKE_GENERATOR%" ^
-	-DCMAKE_TOOLCHAIN_FILE="c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake" ^
-	-DVCPKG_TARGET_TRIPLET="x64-windows" ^
-	-DQt5_DIR="%QT5_DIR%/lib/cmake/Qt5" ^
-	-DPYPI_USERNAME=%PYPI_USERNAME% ^
-	-DPYPI_PASSWORD=%PYPI_PASSWORD% ^
+	-DCMAKE_TOOLCHAIN_FILE="%CMAKE_TOOLCHAIN_FILE%" ^
+	-DVCPKG_TARGET_TRIPLET="%VCPKG_TARGET_TRIPLET%" ^
+	-DQt5_DIR="%QT5_DIR%" ^
 	-DPYTHON_EXECUTABLE=%PYTHON_EXECUTABLE% ^
 	../
 
@@ -37,8 +43,4 @@ cd build
 "%CMAKE_EXECUTABLE%" --build . --target RUN_TESTS --config RelWithDebInfo
 "%CMAKE_EXECUTABLE%" --build . --target INSTALL   --config RelWithDebInfo
  
-if "%DEPLOY_PYPI%"=="1" (
-   echo "Deploying to pypi enabled"
-   "%CMAKE_EXECUTABLE%" --build . --target pypi          --config RelWithDebInfo
-)
 

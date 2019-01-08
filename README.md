@@ -60,21 +60,25 @@ Table of content:
 You can install/test OpenVisus in python using Pip:
 
 ```
-python -m pip install --user numpy OpenVisus==1.2.142
+python -m pip install --user numpy OpenVisus==1.2.170
 python -m OpenVisus configure 
-python -c "import OpenVisus"
-cd /path/to/OpenVisus
+cd $(python -m OpenVisus dirname) # on windows you need to evaluate this manually
 python Samples/python/Array.py
 python Samples/python/Dataflow.py
 python Samples/python/Idx.py
 python Samples/python/Viewer.py
 ```
 
-Or you can download OpenVisus from GitHub releases (version 1.2.142), extract it and in Windows:
+Or you can download OpenVisus from GitHub releases (use the same version), extract it and in Windows:
 
 ```
 cd \your\OpenVisus\directory
+
 python configure.py
+
+REM use the following if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
+REM python configure.py --use-pyqt5
+
 set PYTHONPATH=%cd%;%PYTHONPATH%
 python Samples\python\Array.py
 python Samples\python\Dataflow.py
@@ -86,7 +90,12 @@ in Osx/Linux:
 
 ```
 cd /your/OpenVisus/directory
+
 python configure.py
+
+# use the following if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
+# python configure.py --use-pyqt5
+
 export PYTHONPATH=$(pwd):${PYTHONPATH}
 python Samples/python/Array.py
 python Samples/python/Dataflow.py
@@ -106,18 +115,8 @@ choco install -y -allow-empty-checksums git cmake swig
 ```
 
 Install [Python3.7] (https://www.python.org/ftp/python/3.7.0/python-3.7.0-amd64.exe)
-
-Make sure you have num python installed:
-
-```
-REM change path as needed
-c:\Python37\python.exe -m pip install --user numpy
-```
-
-Install [Qt5](http://download.qt.io/official_releases/qt/5.9/5.9.2/qt-opensource-windows-x86-5.9.2.exe) 
-
-
-if you want to use [Microsoft vcpkg](https://github.com/Microsoft/vcpkg) (faster):
+Install [Qt5](http://download.qt.io/official_releases/online_installers/qt-unified-windows-x86-online.exe) 
+Install [vcpkg](https://github.com/Microsoft/vcpkg):
 
 ```
 cd c:\
@@ -126,9 +125,6 @@ cd tools
 git clone https://github.com/Microsoft/vcpkg
 cd vcpkg
 .\bootstrap-vcpkg.bat
-vcpkg.exe install zlib:x64-windows lz4:x64-windows tinyxml:x64-windows freeimage:x64-windows openssl:x64-windows curl:x64-windows
-set CMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
-set VCPKG_TARGET_TRIPLET=x64-windows
 ```
 
 Then:
@@ -140,7 +136,7 @@ cd OpenVisus
 REM *** change path as needed *** 
 set PYTHON_EXECUTABLE=C:\Python37\python.exe
 set CMAKE_EXECUTABLE=C:\Program Files\CMake\bin\cmake.exe
-set QT5_DIR=c:\Qt\5.11.2\msvc2015_64
+set QT5_DIR=c:\Qt\5.11.2\msvc2015_64\lib\cmake\Qt5
 .\build.bat
 ```
 
@@ -167,7 +163,7 @@ Build the repository:
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-CMAKE_BUILD_TYPE=RelWithDebInfo build.sh
+build.sh
 ```
 
 To test if it's working:
@@ -185,7 +181,7 @@ Build the repository:
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-CMAKE_BUILD_TYPE=RelWithDebInfo ./build.sh  
+./build.sh  
 ```
 
 To test if it's working:
@@ -196,5 +192,15 @@ cd install
 ./visusviewer.sh
 ```
 
+Note that on linux you can even compile using docker. An example is:
+
+
+```
+BUILD_DIR=$(pwd)/build/docker/manylinux PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64 ./build.sh
+BUILD_DIR=$(pwd)/build/docker/trusty    PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=ubuntu:trusty                  ./build.sh
+BUILD_DIR=$(pwd)/build/docker/bionic    PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=ubuntu:bionic                  ./build.sh
+BUILD_DIR=$(pwd)/build/docker/xenial    PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=ubuntu:xenial                  ./build.sh
+BUILD_DIR=$(pwd)/build/docker/leap      PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=opensuse:leap                  ./build.sh
+```
 
 

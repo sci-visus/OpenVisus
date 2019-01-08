@@ -54,23 +54,28 @@ IF (VISUS_GUI)
 	if (WIN32)
 		string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
 	endif()	
-	
+
+	MESSAGE(STATUS "Qt5_DIR ${Qt5_DIR}")
+	MESSAGE(STATUS "Qt5Core_VERSION_STRING ${Qt5Core_VERSION_STRING}")
 endif()
 
 
-# if using vcpkg on windows use the vcpkg libraries
-if (WIN32)
-	if (CMAKE_TOOLCHAIN_FILE)
-		set(VCPKG 1)
-		SetIfNotDefined(VISUS_INTERNAL_DEFAULT 0)
+# ______________________________________________
+# *** VISUS_INTERNAL_DEFAULT ***
+
+if (NOT DEFINED VISUS_INTERNAL_DEFAULT)
+	if (WIN32)
+		if (CMAKE_TOOLCHAIN_FILE)
+			set(VCPKG 1)
+			set(VISUS_INTERNAL_DEFAULT 0)
+		else()
+			set(VCPKG 0)
+			set(VISUS_INTERNAL_DEFAULT 1)
+		endif()	
 	else()
-		set(VCPKG 0)
-		SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
-	endif()	
+		set(VISUS_INTERNAL_DEFAULT 1)
+	endif()
 endif()
-
-
-SetIfNotDefined(VISUS_INTERNAL_DEFAULT 1)
 
 # ______________________________________________
 # *** zlib ***
@@ -147,25 +152,25 @@ endif()
 # ______________________________________________
 # *** OpenSSL ***
 
-if (WIN32 OR APPLE)
-	SetIfNotDefined(VISUS_INTERNAL_OPENSSL ${VISUS_INTERNAL_DEFAULT})
-else()
-	SetIfNotDefined(VISUS_INTERNAL_OPENSSL 0) # I have problem on linux mixing python openssl and mine, so I'm using system openssl
-endif() 
+SetIfNotDefined(VISUS_INTERNAL_OPENSSL ${VISUS_INTERNAL_DEFAULT})
 
 if (VISUS_INTERNAL_OPENSSL)
 	MESSAGE(STATUS "Using internal OpenSSL")
 else()
+
 	if (UNIX AND (NOT APPLE))
 		set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/FixFindOpenSSL)
 	endif()
+
 	# i'm assuming brew here	
 	if (APPLE)
 		SetIfNotDefined(OPENSSL_INCLUDE_DIR    /usr/local/opt/openssl/include)
 		SetIfNotDefined(OPENSSL_CRYPTO_LIBRARY /usr/local/opt/openssl/lib/libcrypto.dylib)
 		SetIfNotDefined(OPENSSL_SSL_LIBRARY    /usr/local/opt/openssl/lib/libssl.dylib)	
 	endif()
+
 	find_package(OpenSSL REQUIRED)
+
 	MESSAGE(STATUS "Using external OpenSSL")
 	message(STATUS "OPENSSL_INCLUDE_DIR    ${OPENSSL_INCLUDE_DIR}")
 	message(STATUS "OPENSSL_CRYPTO_LIBRARY ${OPENSSL_CRYPTO_LIBRARY}")
@@ -274,9 +279,14 @@ if (True)
 	install(DIRECTORY    Libs/Idx/include/Visus                        DESTINATION include/Idx/)
 	install(DIRECTORY    Libs/Nodes/include/Visus                      DESTINATION include/Nodes)
 	
-	set (__filename__ )
 	file(WRITE    "${CMAKE_BINARY_DIR}/PYTHON_VERSION" "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
-	install(FILES "${CMAKE_BINARY_DIR}/PYTHON_VERSION"                 DESTINATION .)
+	install(FILES "${CMAKE_BINARY_DIR}/PYTHON_VERSION" DESTINATION .)
+
+	if (VISUS_GUI)
+
+		file(WRITE    "${CMAKE_BINARY_DIR}/QT_VERSION" "${Qt5Core_VERSION_STRING}")
+		install(FILES "${CMAKE_BINARY_DIR}/QT_VERSION" DESTINATION .)
+	endif()
 	
 	if (WIN32)
 	
@@ -303,35 +313,5 @@ endif()
 
 
 
-# /////////////////////////////////////////////////////////////////////
-# pypi target
-if (True)
-
-	if (WIN32)
-		set(__home__ $ENV{USERPROFILE})
-	else()
-		set(__home__ $ENV{HOME}/)
-	endif()
-
-	set(__filename__ ${__home__}/.pypirc)
-
-	file(WRITE  ${__filename__} "[distutils]\n")
-	file(APPEND ${__filename__} "index-servers=\n")
-	file(APPEND ${__filename__} "    pypi\n")
-	file(APPEND ${__filename__} "[pypi]\n")
-	file(APPEND ${__filename__} "username: ${PYPI_USERNAME}\n")
-	file(APPEND ${__filename__} "password: ${PYPI_PASSWORD}\n")
-	
-	add_custom_target(pypi 
-		        "${CMAKE_COMMAND}" -E echo "Running pypi step..."
-		COMMAND "${CMAKE_COMMAND}" -E env HOME=${__home__} "${PYTHON_EXECUTABLE}" -m pip install --user --upgrade twine
-		COMMAND "${CMAKE_COMMAND}" -E env HOME=${__home__} "${PYTHON_EXECUTABLE}" -m twine upload --skip-existing dist/*.whl 
-		WORKING_DIRECTORY "${CMAKE_INSTALL_PREFIX}")
-	
-	if (WIN32)
-		set_target_properties(pypi PROPERTIES FOLDER "CMakePredefinedTargets/")
-	endif()	  
-  
-endif()
 
                

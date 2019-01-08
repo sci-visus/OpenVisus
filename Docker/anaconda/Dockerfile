@@ -25,7 +25,7 @@ WORKDIR $VISUS_HOME/build
 
 RUN cmake \
 	-DVISUS_GUI=0 \
-	-DVISUS_DEFAULT_INTERNAL=1 \
+	-DVISUS_INTERNAL_DEFAULT=1 \
 	-DPYTHON_VERSION=2 \
 	-DPYTHON_EXECUTABLE=/usr/local/anaconda2/bin/python2.7 \
 	-DPYTHON_LIBRARY=/usr/local/anaconda2/lib/libpython2.7.so \

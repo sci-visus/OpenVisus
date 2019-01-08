@@ -8,14 +8,15 @@ import atexit
 import setuptools
 from configure import *
 	
-PROJECT_VERSION="1.2.144"
+PROJECT_VERSION="1.2.170"
 PROJECT_NAME="OpenVisus"
 PROJECT_URL="https://github.com/sci-visus/OpenVisus"
 PROJECT_DESCRIPTION="ViSUS multiresolution I/O, analysis, and visualization system"
 PROJECT_AUTHOR="visus.net"
 PROJECT_EMAIL="support@visus.net"
 PROJECT_LICENSE="BSD"
-PROJECT_REQUIRES=["numpy","PyQt5==5.11.2"]
+PROJECT_REQUIRES=["numpy"]
+PROJECT_PLATFORMS=['Linux', 'OS-X', 'Windows']
 
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
@@ -66,7 +67,7 @@ if __name__ == "__main__":
 	  packages=[PROJECT_NAME],
 	  package_dir={PROJECT_NAME:'.'},
 	  package_data={PROJECT_NAME: files},
-	  platforms=['Linux', 'OS-X', 'Windows'],
+	  platforms=PROJECT_PLATFORMS,
 	  license = PROJECT_LICENSE,
 	  install_requires=PROJECT_REQUIRES,
 	)

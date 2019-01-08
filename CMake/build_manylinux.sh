@@ -6,7 +6,6 @@ PYTHON_VERSION=${PYTHON_VERSION:-3.6.1}
 VISUS_INTERNAL_DEFAULT=1
 DISABLE_OPENMP=1
 VISUS_GUI=0 
-PLAT_NAME=manylinux1_x86_64
 
 source "$(dirname "$0")/build_common.sh"
 
@@ -14,35 +13,29 @@ SOURCE_DIR=$(pwd)
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
-CACHED_DIR=~/.cached/OpenVisus
-mkdir -p ${CACHED_DIR}
-export PATH=${CACHED_DIR}/bin:$PATH
-
-
 # //////////////////////////////////////////////////////
 function InstallCMake {
 
 	if ! [ -x "${CACHED_DIR}/bin/cmake" ]; then
-      echo "Downloading precompiled cmake"
-      DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
-      tar xzf cmake-3.4.3-Linux-x86_64.tar.gz  -C ${CACHED_DIR} --strip-components=1
+		echo "Downloading precompiled cmake"
+		DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
+		tar xzf cmake-3.4.3-Linux-x86_64.tar.gz  -C ${CACHED_DIR} --strip-components=1
 	fi
 }
 
 
 # //////////////////////////////////////////////////////
-# NOTE for linux: mixing python openssl and OpenVisus internal openssl cause crashes so I'm always using this one
 function InstallOpenSSL {
 
 	if [ ! -x ${CACHED_DIR}/bin/openssl ]; then
-      echo "Compiling openssl"
-      DownloadFile "https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
-      tar xzf openssl-1.0.2a.tar.gz 
-      pushd openssl-1.0.2a 
-      ./config -fpic shared --prefix=${CACHED_DIR}
-      make -s 
-      make install	
-      popd
+		echo "Compiling openssl"
+		DownloadFile "https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
+		tar xzf openssl-1.0.2a.tar.gz 
+		pushd openssl-1.0.2a 
+		./config -fpic shared --prefix=${CACHED_DIR}
+		make -s 
+		make install	
+		popd
 	fi
 	
 	export OPENSSL_ROOT_DIR=${CACHED_DIR}
@@ -56,16 +49,16 @@ function InstallOpenSSL {
 function InstallSwig {
 
 	if ! [ -x "${CACHED_DIR}/bin/swig" ]; then
-      echo "Compiling swig"
-      DownloadFile "https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz"  
-      tar xzf swig-3.0.12.tar.gz 
-      pushd swig-3.0.12 
-      DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
-      ./Tools/pcre-build.sh 
-      ./configure --prefix=${CACHED_DIR}
-      make -s -j 4 
-      make install 
-      popd
+		echo "Compiling swig"
+		DownloadFile "https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz"  
+		tar xzf swig-3.0.12.tar.gz 
+		pushd swig-3.0.12 
+		DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
+		./Tools/pcre-build.sh 
+		./configure --prefix=${CACHED_DIR}
+		make -s -j 4 
+		make install 
+		popd
 	fi
 }
 
@@ -118,9 +111,8 @@ InstallSwig
 # yum install -y httpd.x86_64 httpd-devel.x86_64
 InstallApache24
 
-PushCMakeOption OPENSSL_ROOT_DIR   ${OPENSSL_ROOT_DIR}
-PushCMakeOption APACHE_DIR         ${APACHE_DIR}
-PushCMakeOption APR_DIR            ${APR_DIR}
+PushCMakeOption APACHE_DIR            ${APACHE_DIR}
+PushCMakeOption APR_DIR               ${APR_DIR}
 PushCMakeOptions
 
 cmake ${cmake_opts} ${SOURCE_DIR} 
@@ -129,9 +121,7 @@ cmake --build . --target all
 cmake --build . --target test
 cmake --build . --target install 
 
-if (( DEPLOY_PYPI == 1 )); then
-	cmake --build ./ --target pypi        --config ${CMAKE_BUILD_TYPE}
-fi
+
 
 
 
