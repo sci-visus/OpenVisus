@@ -328,8 +328,8 @@ public:
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false);
 
   //createAccessForBlockQuery
-  SharedPtr<Access> createAccessForBlockQuery() {
-    return createAccess(StringTree(),true);
+  SharedPtr<Access> createAccessForBlockQuery(StringTree config= StringTree()) {
+    return createAccess(config,true);
   }
 
   //getLevelBox

@@ -51,64 +51,21 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   String chmod=config.readString("chmod","rw");
   int default_bitsperblock=dataset->getDefaultBitsPerBlock();
 
-  this->can_read     = StringUtils::find(chmod,"r")>=0;
-  this->can_write    = StringUtils::find(chmod,"w")>=0;
-  this->path         = Path(config.readString("dir","./"));
-  this->bitsperblock = default_bitsperblock;
-  this->compression_type  = config.readString("compression", "lz4");
+  this->can_read          = StringUtils::find(chmod,"r")>=0;
+  this->can_write         = StringUtils::find(chmod,"w")>=0;
+  this->path              = Path(config.readString("dir","./"));
+  this->bitsperblock      = default_bitsperblock;
+  this->compression       = config.readString("compression", "lz4");
+  this->filename_template = config.readString("filename_template", guessBlockFilenameTemplate());
 }
 
-////////////////////////////////////////////////////////////////////
-static inline String encode(String value) 
-{
-  for (int I = 0; I < (int)value.size(); I++) 
-  {
-    if (!std::isalnum(value[I]))
-        value[I] = '_';
-  }
-  return value;
-}
 
 ////////////////////////////////////////////////////////////////////
 String DiskAccess::getFilename(Field field,double time,BigInt blockid) const
 {
-  std::ostringstream out;
-  out<<this->path.toString();
-
-  //time
-  {
-    out<<"/"<<"time_"<<encode(cstring(time));
-  }
-
-  //fieldname
-  {
-    String fieldname=StringUtils::removeSpaces(field.name); VisusAssert(!fieldname.empty());
-    
-    //if the fieldname is not too big
-    if (fieldname.length()<32)
-      out<<"/"<<encode(fieldname);
-    else
-      out<<"/"<<StringUtils::computeChecksum(fieldname);
-  }
-
-  //blocknum
-  {
-    std::ostringstream out_blockid;
-    out_blockid<<std::hex << std::setw(32) << std::setfill('0') << blockid;
-    String blockid=out_blockid.str();
-    out<<"/";
-    int N=0;for (;N<(int)blockid.size()-4;N+=4)
-      out<<blockid.substr(N,4)+"/";
-    out<<blockid.substr(N);
-  }
-  
-  //compression
-  {
-    out<<"."<<compression_type;
-  }
-
-  return out.str();
-
+  auto ret = guessBlockFilename(this->path.toString(), field, time, blockid, "." + this->compression, this->filename_template);
+  VisusAssert(!StringUtils::contains(ret, "$"));
+  return ret;
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -146,9 +103,7 @@ void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
   if (!file.read(0,encoded->c_size(), encoded->c_ptr()))
     return readFailed(query);
 
-  String compression=this->compression_type;
-
-  auto decoded=ArrayUtils::decodeArray(compression,query->nsamples,query->field.dtype, encoded);
+  auto decoded=ArrayUtils::decodeArray(this->compression,query->nsamples,query->field.dtype, encoded);
   if (!decoded)
     return readFailed(query);
 
@@ -190,7 +145,7 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   }
 
   auto decoded=query->buffer;
-  auto encoded=ArrayUtils::encodeArray(compression_type,decoded);
+  auto encoded=ArrayUtils::encodeArray(this->compression,decoded);
   if (!encoded)
   {
     VisusInfo()<<"Failed to write block filename("<<filename<<") file.write failed";

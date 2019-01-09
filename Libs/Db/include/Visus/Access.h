@@ -101,6 +101,14 @@ public:
     return getFilename(query->field,query->time,query->getBlockNumber(bitsperblock));
   }
 
+  //guessBlockFilenameTemplate
+  static String guessBlockFilenameTemplate() {
+    return "$(prefix)/time_$(time)/$(field)/$(block)$(suffix)";
+  }
+
+  //guessBlockFilename
+  String guessBlockFilename(String prefix, Field field, double time, BigInt blockid, String suffix, String filename_template = guessBlockFilenameTemplate()) const;
+
   //getStartAddress
   Int64 getStartAddress(Int64 block_id) const {
     return block_id * getSamplesPerBlock();

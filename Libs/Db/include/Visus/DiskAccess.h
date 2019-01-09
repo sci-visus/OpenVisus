@@ -79,7 +79,8 @@ public:
 private:
 
   Path                path;
-  String              compression_type;
+  String              compression;
+  String              filename_template;
 
 }; 
 
