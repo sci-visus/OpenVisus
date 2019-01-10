@@ -31,6 +31,14 @@ matrix:
     
     - os: linux
       dist: trusty
+      env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']  
+
+    - os: linux
+      dist: trusty
       env: ['PYTHON_VERSION=3.6.6','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
       addons: 
         apt:

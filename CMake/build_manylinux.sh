@@ -27,21 +27,18 @@ function InstallCMake {
 # //////////////////////////////////////////////////////
 function InstallOpenSSL {
 
-	if [ ! -x ${CACHED_DIR}/bin/openssl ]; then
+   # NOTE this requires root, I'm doing this because using a custom directory does not work in python
+	#if [ ! -f ${CACHED_DIR}/openssl-1.0.2a.done ]; then
 		echo "Compiling openssl"
 		DownloadFile "https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
 		tar xzf openssl-1.0.2a.tar.gz 
 		pushd openssl-1.0.2a 
-		./config -fpic shared --prefix=${CACHED_DIR}
+		./config --prefix=/usr -fpic shared 
 		make -s 
 		make install	
+		touch ${CACHED_DIR}/openssl-1.0.2a.done
 		popd
-	fi
-	
-	export OPENSSL_ROOT_DIR=${CACHED_DIR}
-	export OPENSSL_INCLUDE_DIR=${OPENSSL_ROOT_DIR}/include 
-	export OPENSSL_LIB_DIR=${OPENSSL_ROOT_DIR}/lib
-	export LD_LIBRARY_PATH=${OPENSSL_LIB_DIR}:$LD_LIBRARY_PATH
+	#fi
 }
 
 
@@ -100,7 +97,7 @@ function InstallApache24 {
 }
 
 yum update 
-yum install -y zlib-devel curl 
+yum install -y zlib-devel curl  libffi-devel
 
 InstallOpenSSL 
 InstallPython 
