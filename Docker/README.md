@@ -50,7 +50,7 @@ docker push visus/$DOCKER_TAG
 # //////////////////////////////////////////////////////////////////////
 # Debug step-by-step build process
 
-docker run -it -v C:\projects\OpenVisus:/home/OpenVisus --expose=80 -p 8080:80  --name manylinux quay.io/pypa/manylinux1_x86_64 /bin/bash
+sudo docker run -it -v $(pwd):/home/OpenVisus --expose=80 -p 8080:80  --name manylinux quay.io/pypa/manylinux1_x86_64 /bin/bash^
 cd /home/OpenVisus
 export BUILD_DIR=/home/OpenVisus/build/manylinux
 CMake/build_manylinux.sh
@@ -60,3 +60,4 @@ docker exec -it  manylinux /bin/bash
 cd /home/OpenVisus
 export BUILD_DIR=/home/OpenVisus/build/manylinux
 CMake/build_manylinux.sh
+
