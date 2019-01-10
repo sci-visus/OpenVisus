@@ -92,6 +92,9 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 
   cloud_storage->getBlob(netservice, Access::getFilename(query), query->aborted).when_ready([this, query](CloudStorage::Blob blob) {
 
+    if (!blob.metadata.hasValue("visus-compression"))
+      blob.metadata.setValue("visus-compression", this->compression);
+
     if (!blob.metadata.hasValue("visus-dtype"))
       blob.metadata.setValue("visus-dtype", query->field.dtype.toString());
 

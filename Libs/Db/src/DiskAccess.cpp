@@ -53,7 +53,7 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
 
   this->can_read          = StringUtils::find(chmod,"r")>=0;
   this->can_write         = StringUtils::find(chmod,"w")>=0;
-  this->path              = Path(config.readString("dir","./"));
+  this->path              = Path(config.readString("dir","."));
   this->bitsperblock      = default_bitsperblock;
   this->compression       = config.readString("compression", "lz4");
   this->filename_template = config.readString("filename_template", guessBlockFilenameTemplate());

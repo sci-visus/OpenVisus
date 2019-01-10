@@ -320,7 +320,7 @@ public:
     String Surl; StringTree Sconfig;
     String Durl; StringTree Dconfig;
 
-    if (args.size() == 1)
+    if (args.size() == 2)
     {
       //xml file with url and xml for access creation
       StringTree stree;
@@ -336,7 +336,7 @@ public:
           Sconfig = *access;
       }
 
-      if (auto dst = stree.findChildWithName("src")) {
+      if (auto dst = stree.findChildWithName("dst")) {
         Durl = dst->readString("url");
         if (auto access = dst->findChildWithName("access"))
           Dconfig = *access;
