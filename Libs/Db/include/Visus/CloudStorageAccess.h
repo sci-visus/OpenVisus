@@ -61,6 +61,9 @@ public:
   //destructor
   virtual ~CloudStorageAccess();
 
+  //getFilename
+  virtual String getFilename(Field field, double time, BigInt blockid) const override;
+
   //readBlock 
   virtual void readBlock(SharedPtr<BlockQuery> query) override;
 
@@ -81,9 +84,7 @@ private:
   SharedPtr<NetService>  netservice;
 
   SharedPtr<CloudStorage> cloud_storage;
-
-  //getBlobName
-  String getBlobName(SharedPtr<BlockQuery> query) const;
+  String                  filename_template;
 
 
 };

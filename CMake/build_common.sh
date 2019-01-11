@@ -63,9 +63,10 @@ function InstallPython {
 	
 	# pyenv install --list
 	if [ -n "${OPENSSL_INCLUDE_DIR}" ]; then
-		CONFIGURE_OPTS=--enable-shared CFLAGS=-I${OPENSSL_INCLUDE_DIR} CPPFLAGS=-I${OPENSSL_INCLUDE_DIR}/ LDFLAGS=-L${OPENSSL_LIB_DIR} pyenv install --skip-existing  ${PYTHON_VERSION}  
+
+		CONFIGURE_OPTS=--enable-shared CXX=g++ CFLAGS=-I${OPENSSL_INCLUDE_DIR} CPPFLAGS=-I${OPENSSL_INCLUDE_DIR}/ LDFLAGS=-L${OPENSSL_LIB_DIR} pyenv install -v  --skip-existing  ${PYTHON_VERSION}  
 	else
-		CONFIGURE_OPTS=--enable-shared pyenv install --skip-existing ${PYTHON_VERSION}  
+		CONFIGURE_OPTS=--enable-shared CXX=g++ pyenv install --skip-existing ${PYTHON_VERSION}  
 	fi
 	
 	pyenv global ${PYTHON_VERSION}  

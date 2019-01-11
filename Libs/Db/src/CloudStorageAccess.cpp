@@ -51,7 +51,8 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   this->can_write = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
   this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
   this->url = config.readString("url", dataset->getUrl().toString()); VisusAssert(url.valid());
-  this->compression = config.readString("compression", url.getParam("compression", "lz4")); 
+  this->compression = config.readString("compression", url.getParam("compression", "zip")); //zip compress more than lz4 for network.. 
+  this->filename_template = config.readString("filename_template", url.getParam("filename_template", guessBlockFilenameTemplate()));
 
   this->config.writeString("url", url.toString());
 
@@ -69,13 +70,18 @@ CloudStorageAccess::~CloudStorageAccess()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
-String CloudStorageAccess::getBlobName(SharedPtr<BlockQuery> query) const
+String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid) const
 {
-  return StringUtils::format()
-    <<this->url.getPath()<<"/"
-    <<"time_"<<cstring((int)query->time)<<"/"
-    <<"field_"<<query->field.name<<"/"
-    <<"data_"<<std::setw(20) << std::setfill('0') << cstring(query->start_address);
+  auto ret=guessBlockFilename(this->url.getPath(), field, time, blockid, "." + compression, this->filename_template);
+
+  //backward compatible
+  if (StringUtils::contains(ret,"$(start_address)"))
+    ret = StringUtils::replaceFirst(ret, "$(start_address)", StringUtils::format() << std::setw(20) << std::setfill('0') << cstring(blockid << bitsperblock));
+
+  VisusAssert(!StringUtils::contains(ret, "$"));
+  return ret;
+
+
 }
 
 
@@ -84,7 +90,10 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 {
   VisusAssert((int)query->nsamples.innerProduct()==(1<<bitsperblock));
 
-  cloud_storage->getBlob(netservice, getBlobName(query), query->aborted).when_ready([this, query](CloudStorage::Blob blob) {
+  cloud_storage->getBlob(netservice, Access::getFilename(query), query->aborted).when_ready([this, query](CloudStorage::Blob blob) {
+
+    if (!blob.metadata.hasValue("visus-compression"))
+      blob.metadata.setValue("visus-compression", this->compression);
 
     if (!blob.metadata.hasValue("visus-dtype"))
       blob.metadata.setValue("visus-dtype", query->field.dtype.toString());
@@ -127,7 +136,7 @@ void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
   blob.metadata.setValue("visus-dtype"        , decoded.dtype.toString());
   blob.metadata.setValue("visus-layout"       , decoded.layout);
 
-  cloud_storage->addBlob(netservice, getBlobName(query), blob, query->aborted).when_ready([this,query](NetResponse response) {
+  cloud_storage->addBlob(netservice, Access::getFilename(query), blob, query->aborted).when_ready([this,query](NetResponse response) {
 
     if (query->aborted() || !response.isSuccessful())
       return writeFailed(query);
