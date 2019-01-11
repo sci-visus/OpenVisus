@@ -16,11 +16,11 @@ FROM continuumio/miniconda3
 RUN set -x \
   && apt-get update \
   && apt-get install -y libgomp1 apache2 \
-#apt: maybe also...
-  # libxml2 swig bzip2 ca-certificates build-essential python-dev libapache2-mod-php
   && conda update -y -n base conda \
   && conda install -y numpy \
   && python3 -m pip install --upgrade pip
+#apt: maybe also...
+  # libxml2 swig bzip2 ca-certificates build-essential python-dev libapache2-mod-php
 #conda: maybe also... (cdms2 should be in ondemand's Dockerfile)
   # cdms2 genutil lxml 
 
@@ -48,7 +48,7 @@ RUN set -x \
   && conda create -n visus \
   && sed -i 's/conda activate base/conda activate visus/' ~/.bashrc
 
-# setup OpenVisus (maybe this should/needs be done)
+# setup OpenVisus (maybe this should/needs be done. Better than just setting PYTHONPATH?)
 # RUN python setup.py install
 
 #######
@@ -65,8 +65,6 @@ RUN echo "LoadModule visus_module ${VISUS_HOME}/bin/libmod_visus.so" > /etc/apac
   && a2enmod headers \
   && a2enmod visus \
   && chmod a+x /usr/local/bin/httpd-foreground.sh \
-# /mnt/visus_datasets may not exist, but even worse this line overwrites the existing visus.config
-#  && echo "<include url='/mnt/visus_datasets/visus.config' />" > ${VISUS_HOME}/visus.config \
   && chmod -R 755 ${VISUS_HOME}
 
 # install webviewer (should this script just live in webviewer git?)

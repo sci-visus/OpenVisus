@@ -1,19 +1,19 @@
 # //////////////////////////////////////////////////////////////////////
 # OpenVisus Docker containers based on continuumio/miniconda3 for
 # building/testing and installing OpenVisus, XIDX, and webviewer.
-#
+# (run everything from your root OpenVisus code directory)
 
 =======
 BUILDER
 =======
 
-First, build and run the docker `builder` container (from code/OpenVisus):
+Build and run the docker `builder` container (first run will build and install OpenVisus and XIDX):
 ```
 docker build -t visus_anaconda_builder -f Docker/anaconda/builder/Dockerfile .
-docker start -it visus_anaconda_builder
+docker run -it visus_anaconda_builder
 ```
 
-Once inside the running container, update, rebuild, and install the projects:
+Once inside the running container, you can update, rebuild, and re-install the projects:
 ```
 cd /root/code/OpenVisus/build
 git pull
@@ -49,7 +49,7 @@ INSTALL
 
 Next, build the docker installer container, which copies the new build:
 ```
-# from code/OpenVisus:
+# (from your root OpenVisus code directory):
 mv /tmp/visus_*.tgz .
 docker build -t visus_anaconda_install -f Docker/anaconda/installer/Dockerfile .
 ```
@@ -128,7 +128,7 @@ cd /home/OpenVisus
 export BUILD_DIR=/home/OpenVisus/build/manylinux
 CMake/build_manylinux.sh
 
-docker start manylinux
+docker run manylinux
 docker exec -it  manylinux /bin/bash
 cd /home/OpenVisus
 export BUILD_DIR=/home/OpenVisus/build/manylinux

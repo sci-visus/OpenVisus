@@ -1,10 +1,12 @@
 #!/bin/bash
 
-cd OpenVisus
+pushd OpenVisus/build
 cmake --build . --target install -- -j16
+popd
 
-cd ../XIDX
+pushd XIDX/build
 cmake --build . --target install -- -j16
+popd
 
-#nothing to do for webviewer
+#nothing to do to build webviewer
 

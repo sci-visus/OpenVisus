@@ -17,16 +17,16 @@ RUN set -x \
   && conda update -y -n base conda \
   && conda install -y \
   cmake swig ca-certificates \
-  libxml2 numpy \
-# conda maybe also...
-  # genutil lxml
+  libxml2 numpy zlib \
 	&& apt-get update \
 	&& apt-get install -y \
 	build-essential \
 	apache2 apache2-dev \
-  libgomp1 libxml2-dev \
+  libgomp1
+# conda maybe also...
+  # genutil lxml
 # apt-get maybe also...
-  # python-dev libapache2-mod-php
+  # libapache2-mod-php
 
 # clone OpenVisus, XIDX, visus_javascript
 ENV CODE /root/code
@@ -44,13 +44,12 @@ RUN set -x \
 RUN set -x \
   && cd OpenVisus && mkdir build && cd build \
   && cmake .. \
-  -DVISUS_GUI=0 \
-  -DOPENSSL_ROOT_DIR=/opt/conda
+  -DVISUS_GUI=0
 
 # build and install XIDX (into OpenVisus install)
 RUN set -x \
   && cd XIDX && mkdir build && cd build \
-  && cmake -DCMAKE_INSTALL_PREFIX=$VISUS_HOME/build/install .. \
+  && cmake -DCMAKE_INSTALL_PREFIX=$VISUS_HOME/build/install ..
 
 #######
 # setup environment for debugging: paths, apache setup, certs
@@ -68,14 +67,12 @@ RUN echo "LoadModule visus_module ${VISUS_HOME}/bin/libmod_visus.so" > /etc/apac
   && a2enmod headers \
   && a2enmod visus \
   && chmod a+x /usr/local/bin/httpd-foreground.sh \
-# /mnt/visus_datasets may not exist, but even worse this line overwrites the existing visus.config
-#  && echo "<include url='/mnt/visus_datasets/visus.config' />" > ${VISUS_HOME}/visus.config \
   && chmod -R 755 ${VISUS_HOME}
 
 # install webviewer (should this script just live in webviewer git?)
 ADD Docker/anaconda/webviewer.conf  /etc/apache2/sites-enabled/webviewer.conf
 ADD Docker/anaconda/.htpasswd       $VISUS_HOME/.htpasswd
-# RUN  rm                     /etc/apache2/sites-enabled/000-default.conf
+RUN rm /etc/apache2/sites-enabled/000-default.conf
 
 # download certificate
 RUN set -x \
@@ -84,18 +81,12 @@ RUN set -x \
   && curl --remote-name --time-cond cacert.pem https://curl.haxx.se/ca/cacert.pem \
   && chown -R www-data .
 
-# add a sample dataset
-# ADD ./files/visus.config    $VISUS_HOME/visus.config
-# RUN chown -R www-data $VISUS_HOME
-# RUN chmod -R a+rX  $VISUS_HOME 
-
 # ready to debug
 ################
 
 EXPOSE 80
 # build and install OpenVisus on startup since any failure will prevent creating this image
-ADD build_all.sh /root/code/build_all.sh
-CMD ["chmod a+x /root/code/build_all.sh && /root/code/build_all.sh"]
-
-
-
+ADD Docker/anaconda/builder/package_all.sh /root/code/package_all.sh
+ADD Docker/anaconda/builder/build_all.sh /root/code/build_all.sh
+RUN chmod a+x /root/code/build_all.sh && chmod a+x /root/code/package_all.sh
+CMD ["/root/code/build_all.sh", "/root/code/package_all.sh", "/bin/bash"]
