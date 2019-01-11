@@ -2,6 +2,12 @@
 
 set -ex 
 
+if [ $(uname) = "Darwin" ]; then
+	APPLE=1
+else
+	APPLE=0
+fi
+
 PYTHON_VERSION=${PYTHON_VERSION:-3.6}
 VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0}
 DISABLE_OPENMP=${DISABLE_OPENMP:-0}
@@ -62,13 +68,36 @@ function InstallPython {
 	eval "$(pyenv virtualenv-init -)"
 	
 	# pyenv install --list
-	if [ -n "${OPENSSL_INCLUDE_DIR}" ]; then
-
-		CONFIGURE_OPTS=--enable-shared CXX=g++ CFLAGS=-I${OPENSSL_INCLUDE_DIR} CPPFLAGS=-I${OPENSSL_INCLUDE_DIR}/ LDFLAGS=-L${OPENSSL_LIB_DIR} pyenv install -v  --skip-existing  ${PYTHON_VERSION}  
+	
+	__CFLAGS__=""
+	__CPPFLAGS__=""
+	__LDFLAGS__=""
+	
+	# tnis is necessary for osx 10.14
+	if (( APPLE == 1 )) ; then
+		brew install zlib openssl
+		__CFLAGS__+="-I/usr/local/opt/zlib/include    -I/usr/local/opt/openssl/include"
+		__CPPFLAGS__+="-I/usr/local/opt/zlib/include  -I/usr/local/opt/openssl/include"
+		__LDFLAGS__+="-L/usr/local/opt/zlib/lib       -L/usr/local/opt/openssl/lib"
 	else
-		CONFIGURE_OPTS=--enable-shared CXX=g++ pyenv install --skip-existing ${PYTHON_VERSION}  
+		export CXX=g++
+		
+		if [ -n "${OPENSSL_INCLUDE_DIR}" ]; then
+			__CFLAGS__+="-I${OPENSSL_INCLUDE_DIR}"
+			__CPPFLAGS__+="-I${OPENSSL_INCLUDE_DIR}"
+			__LDFLAGS__+="-L${OPENSSL_LIB_DIR}"
+		fi		
+		
 	fi
 	
+
+	
+	CONFIGURE_OPTS="--enable-shared" CFLAGS="${__CFLAGS__}" CPPFLAGS="${__CPPFLAGS__}" LDFLAGS="${__LDFLAGS__}" pyenv install --skip-existing ${PYTHON_VERSION}  
+
+	if (( APPLE == 0 )); then
+		unset CXX
+	fi
+
 	pyenv global ${PYTHON_VERSION}  
 	pyenv rehash
 	python -m pip install --upgrade pip  
@@ -83,7 +112,7 @@ function InstallPython {
 	export PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python 
 	export PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_M_VERSION} 
 	
-	if [[ $(uname) == "Darwin" ]]; then
+	if (( APPLE == 1 )) ; then
 		export PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.dylib
 	else
 		
