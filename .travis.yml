@@ -77,8 +77,8 @@ matrix:
     # build manually since travis does not support 10.14 yet
     #
     # for PYTHON_VERSION in 3.6.5 3.5.1 2.7.15 ; do BUILD_DIR=$(pwd)/build/osx1014/python${PYTHON_VERSION} ./build.sh ; done
+    # note 3.7.1rc fails to compile
      
-
     # ///////////////////////////////// osx 10.13
     
     - os: osx
@@ -132,6 +132,11 @@ matrix:
       env: ['PYTHON_VERSION=2.7.14']   
 
     # ///////////////////////////////// trusty (Ubuntu 14.04)
+    # Example to compile by hand
+    # sudo docker run -ti  -v $(pwd):/home/OpenVisus ubuntu:trusty /bin/bash
+    # cd /home/OpenVisus && PYTHON_VERSION=3.61 ./build.sh 
+    
+    #  python 3.7.1 fails to compile
        
     - os: linux
       dist: trusty
@@ -161,6 +166,18 @@ matrix:
           
 
     # ///////////////////////////////// xenial (Ubuntu 16)
+    # Example to compile by hand
+    # sudo docker run -ti  -v $(pwd):/home/OpenVisus ubuntu:xenial /bin/bash
+    # cd /home/OpenVisus && PYTHON_VERSION=3.7.1 ./build.sh
+
+    - os: linux
+      dist: xenial
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=ubuntu:xenial']       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']          
        
     - os: linux
       dist: xenial
@@ -190,6 +207,18 @@ matrix:
              
 
     # ///////////////////////////////// opensuse
+    # Example to compile by hand
+    # sudo docker run -ti  -v $(pwd):/home/OpenVisus opensuse:leap /bin/bash
+    # cd /home/OpenVisus && PYTHON_VERSION=3.7.1 ./build.sh    
+    
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=opensuse:leap']
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']
 
     - os: linux
       dist: trusty
