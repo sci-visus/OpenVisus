@@ -6,100 +6,62 @@
 #
 # NOTES:
 # - includes git repos for OpenVisus, XIDX, and visus_javascript
-#  > update these repos when you run the Docker image (TODO: add an update_repos.sh script to accomplish this)
+# - we build and test with this image, but ultimately transfer
+#   installation to a fresh image to keep deployment small
 #
 
 FROM continuumio/miniconda3
 
-# install packages necessary for building
+# install all necessary packages for building, update conda and pip
 RUN set -x \
+  && conda update -y -n base conda \
+  && conda install -y \
+  cmake swig ca-certificates \
+  libxml2 numpy \
+# conda maybe also...
+  # genutil lxml
 	&& apt-get update \
 	&& apt-get install -y \
-	cmake git swig bzip2 ca-certificates curl \
 	build-essential \
 	apache2 apache2-dev \
-  libgomp1 libxml2-dev
-#maybe also...
-#python-dev libapache2-mod-php
-
-# install conda packages
-RUN conda install -y numpy
-# maybe also...
-#cdms2 genutil lxml
+  libgomp1 libxml2-dev \
+# apt-get maybe also...
+  # python-dev libapache2-mod-php
 
 # clone OpenVisus, XIDX, visus_javascript
-RUN mkdir /root/code
 ENV CODE /root/code
 ENV VISUS_HOME $CODE/OpenVisus
 ENV XIDX_HOME $CODE/XIDX 
 ENV WEBVIEWER_HOME $CODE/webviewer
+RUN mkdir $CODE
 WORKDIR $CODE
-RUN git clone https://github.com/sci-visus/OpenVisus.git
-RUN git clone https://github.com/sci-visus/XIDX.git
-RUN git clone https://github.com/sci-visus/visus_javascript.git
+RUN set -x \
+  && git clone https://github.com/sci-visus/OpenVisus.git \
+  && git clone https://github.com/sci-visus/XIDX.git \
+  && git clone https://github.com/sci-visus/visus_javascript.git
 
-# build and install OpenVisus
-# - see below for detailed commands to accomplish this
-# - is this really the correct action to take for the Docker builder image?
+# configure OpenVisus
+RUN set -x \
+  && cd OpenVisus && mkdir build && cd build \
+  && cmake .. \
+  -DVISUS_GUI=0 \
+  -DOPENSSL_ROOT_DIR=/opt/conda
 
-# build and install XIDX
-# - is this really the correct action to take for the Docker builder image?
+# build and install XIDX (into OpenVisus install)
+RUN set -x \
+  && cd XIDX && mkdir build && cd build \
+  && cmake -DCMAKE_INSTALL_PREFIX=$VISUS_HOME/build/install .. \
 
-# install webviewer
-# - is this really the correct action to take for the Docker builder image?
+#######
+# setup environment for debugging: paths, apache setup, certs
+# note: these should be nearly identical to installer Dockerfile
 
-# NOTE: We want to build and test with this image, but ultimately transfer the installs to the install image,
-#       thereby keeping the deployment reasonably small for customers to use.
+# setup paths
+ENV PATH $VISUS_HOME/build/install/bin:$PATH
+ENV PYTHONPATH $VISUS_HOME/build/install:$VISUS_HOME/build/install/lib:$PYTHONPATH
+ENV LD_LIBRARY_PATH $VISUS_HOME/build/install/bin:$VISUS_HOME/build/install/lib:$LD_LIBRARY_PATH
 
-
-
-CMD ["/bin/bash"]
-
-
-
-
-
-#---------------
-#---------------
-# old stuff may or may not be needed (this is a draft of the builder Dockerfile, so keeping it here for reference)
-
-# compile OpenVisus
-# ENV VISUS_HOME /home/visus
-# RUN echo "force clone 5" > /dev/null
-# RUN git clone https://github.com/sci-visus/OpenVisus $VISUS_HOME
-# RUN mkdir -p $VISUS_HOME/build
-# WORKDIR $VISUS_HOME/build 
-# RUN cmake ../ -DVISUS_GUI=0 \
-# 	-DVISUS_HOME=$VISUS_HOME \
-# 	-DVISUS_PYTHON_SYS_PATH=$(pwd) \
-# 	-DVISUS_INTERNAL_ZLIB=1 \
-# 	-DVISUS_INTERNAL_LZ4=1 \
-# 	-DVISUS_INTERNAL_TINYXML=1 \
-# 	-DVISUS_INTERNAL_FREEIMAGE=1 \
-# 	-DVISUS_INTERNAL_OPENSSL=1 \
-# 	-DVISUS_INTERNAL_CURL=1 \
-# 	-DVISUS_INTERNAL_SWIG=1 \
-# 	-DPYTHON_VERSION=2 \
-# 	-DPYTHON_EXECUTABLE=/usr/local/anaconda2/bin/python2.7 \
-# 	-DPYTHON_LIBRARY=/usr/local/anaconda2/lib/libpython2.7.so \
-# 	-DPYTHON_INCLUDE_DIRS=/usr/local/anaconda2/include/python2.7 
-# RUN make
-
-# # build and install XIDX
-# WORKDIR $XIDX_HOME
-# RUN mkdir -p build
-# WORKDIR $XIDX_HOME/build
-#note: installing xidx alongside visus
-# RUN cmake -DCMAKE_INSTALL_PREFIX=$VISUS_HOME/build/install .. && make 
-# ENV PYTHONPATH $XIDX_HOME/build:$PYTHONPATH
-
-# # setup OpenVisus
-# ENV PATH /usr/local/anaconda2/bin:$PATH
-# ENV PYTHONPATH $VISUS_HOME/build/:$PYTHONPATH
-# ENV LD_LIBRARY_PATH /usr/local/anaconda2/lib/:$LD_LIBRARY_PATH
-# RUN python setup.py install
-
-# # configure apache
+# configure apache
 # ADD ./files/000-default.conf     /etc/apache2/sites-enabled/000-default.conf
 # ADD ./files/httpd-foreground.sh  /usr/local/bin/httpd-foreground.sh
 # RUN echo "LoadModule visus_module $VISUS_HOME/build/libmod_visus.so" > /etc/apache2/mods-available/visus.load
@@ -107,24 +69,30 @@ CMD ["/bin/bash"]
 # RUN a2enmod headers 
 # RUN a2enmod visus
 
-# # install webviewer
+# install webviewer
 # RUN git clone https://github.com/sci-visus/visus_javascript $VISUS_HOME/webviewer
 # ADD ./files/webviewer.conf  /etc/apache2/sites-enabled/webviewer.conf
 # ADD ./files/.htpasswd       $VISUS_HOME/.htpasswd
 # RUN  rm                     /etc/apache2/sites-enabled/000-default.conf
 
-# # download certificate
+# download certificate
 # RUN mkdir -p /var/www/visus && \
 #     cd /var/www/visus && \
 #     curl --remote-name --time-cond cacert.pem https://curl.haxx.se/ca/cacert.pem && \
 #     chown -R www-data .
 
-# EXPOSE 80
-# CMD ["/usr/local/bin/httpd-foreground.sh"]
-
-# # add a sample dataset
+# add a sample dataset
 # ADD ./files/visus.config    $VISUS_HOME/visus.config
 # RUN chown -R www-data $VISUS_HOME
 # RUN chmod -R a+rX  $VISUS_HOME 
+
+# ready to debug
+################
+
+EXPOSE 80
+# build and install OpenVisus on startup since any failure will prevent creating this image
+ADD build_all.sh /root/code/build_all.sh
+CMD ["chmod a+x /root/code/build_all.sh && /root/code/build_all.sh"]
+
 
 

@@ -1,12 +1,12 @@
 # //////////////////////////////////////////////////////////////////////
-# OpenVisus Docker containers based on miniconda3 for building/testing and install
-# Includes OpenVisus, XIDX, and webviewer (visus_javascript)
+# OpenVisus Docker containers based on continuumio/miniconda3 for
+# building/testing and installing OpenVisus, XIDX, and webviewer.
 #
 
 First, build and run the docker `builder` container (from code/OpenVisus):
 ```
-docker build -t miniconda_builder Docker/miniconda/builder
-docker start -it miniconda_builder
+docker build -t visus_miniconda_builder Docker/miniconda/builder
+docker start -it visus_miniconda_builder
 ```
 
 Once inside the running container, update, rebuild, and install the projects:
@@ -31,11 +31,10 @@ cd ../../webviewer
 git pull
 ```
 
-Create an archive of the installation that can be copied into a fresh, lightweight install container:
+Create an archive of the installation that can be copied into a fresh, lightweight install container (XIDX is with OpenVisus):
 ```
 tar zcf visus_miniconda_install.tgz -C /root/code/OpenVisus/build/install .
 tar zcf visus_webviewer.tgz -C /root/code/webviewer webviewer
-# XIDX is copied implicitly since it's installed to same folder as OpenVisus.
 scp visus_miniconda_install.tgz visus_webviewer.tgz <username>@<system>:/tmp
 exit
 ```
@@ -48,7 +47,7 @@ docker build -t visus_miniconda_install -f Docker/miniconda/installer .
 docker start -it visus_miniconda_install
 ```
 
-If you have issues or need to customize the installation, log into the container using:
+By default, the apache server is started. If you have issues or want to customize anything, start using:
 ```
 docker run -it visus_miniconda_install /bin/bash
 ```
