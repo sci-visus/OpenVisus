@@ -3,10 +3,14 @@
 # building/testing and installing OpenVisus, XIDX, and webviewer.
 #
 
+=======
+BUILDER
+=======
+
 First, build and run the docker `builder` container (from code/OpenVisus):
 ```
-docker build -t visus_miniconda_builder Docker/miniconda/builder
-docker start -it visus_miniconda_builder
+docker build -t visus_anaconda_builder -f Docker/anaconda/builder/Dockerfile .
+docker start -it visus_anaconda_builder
 ```
 
 Once inside the running container, update, rebuild, and install the projects:
@@ -33,23 +37,31 @@ git pull
 
 Create an archive of the installation that can be copied into a fresh, lightweight install container (XIDX is with OpenVisus):
 ```
-tar zcf visus_miniconda_install.tgz -C /root/code/OpenVisus/build/install .
+tar zcf visus_anaconda_install.tgz -C /root/code/OpenVisus/build/install .
 tar zcf visus_webviewer.tgz -C /root/code/webviewer webviewer
-scp visus_miniconda_install.tgz visus_webviewer.tgz <username>@<system>:/tmp
+scp visus_anaconda_install.tgz visus_webviewer.tgz <username>@<system>:/tmp
 exit
 ```
 
-Next, build the docker installer container, which copies the new build, and start the container:
+=======
+INSTALL
+=======
+
+Next, build the docker installer container, which copies the new build:
 ```
 # from code/OpenVisus:
 mv /tmp/visus_*.tgz .
-docker build -t visus_miniconda_install -f Docker/miniconda/installer .
-docker start -it visus_miniconda_install
+docker build -t visus_anaconda_install -f Docker/anaconda/installer/Dockerfile .
+```
+
+Finally, start the container (maps port 80 from the container to 8080 on the host):
+```
+docker run -p 8080:80 visus_anaconda_install
 ```
 
 By default, the apache server is started. If you have issues or want to customize anything, start using:
 ```
-docker run -it visus_miniconda_install /bin/bash
+docker run -it visus_anaconda_install /bin/bash
 ```
 
 
@@ -68,7 +80,7 @@ docker run -it visus_miniconda_install /bin/bash
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
-# Old docs, may be necessary so leaving them here for now
+# Old docs, some integration is necessary so leaving them here for now
 
 # //////////////////////////////////////////////////////////////////////
 # For mod_visus 

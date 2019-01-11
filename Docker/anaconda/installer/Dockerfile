@@ -2,10 +2,10 @@
 # ViSUS Docker *install* for miniconda3 [Debian] environment
 #
 # Must build this Docker image from the OpenVisus directory (..):
-#  `docker build -t OpenVisus:miniconda_install -f docker/miniconda/installer/Dockerfile .`
+#  `docker build -t visus_anaconda_install -f Docker/anaconda/installer/Dockerfile .`
 #
 # NOTES:
-# - use miniconda_builder to build and test code, then create tgzs and Docker installer
+# - use anaconda_builder to build and test code, then create tgzs and Docker installer
 # - See detailed instructions in ../README.md
 # - on startup, runs apache in the foreground, start w/ `docker run -it /bin/bash otherwise
 #
@@ -31,49 +31,58 @@ ENV PYTHONPATH $VISUS_HOME:$PYTHONPATH
 # create installation directory, copy and extract OpenVisus, XIDX, and webviewer installations
 RUN mkdir $VISUS_HOME \
   && printf "export PATH=$VISUS_HOME/bin:$PATH\n" >> ~/.bashrc
-ADD visus_miniconda_install.tgz $VISUS_HOME
+ADD visus_anaconda_install.tgz $VISUS_HOME
 ADD visus_webviewer.tgz $VISUS_HOME
 
 # tidy up the OpenVisus installation (dump unnecessary libraries and fix rpaths)
-ADD tidy_up_visus_install_for_miniconda.sh $VISUS_HOME
+ADD Docker/anaconda/installer/tidy_up_visus_install_for_anaconda.sh $VISUS_HOME
 RUN set -x \
   && conda install -y patchelf \
-  && chmod a+x $VISUS_HOME/tidy_up_visus_install_for_miniconda.sh \
-  && $VISUS_HOME/tidy_up_visus_install_for_miniconda.sh $VISUS_HOME \
-  && rm $VISUS_HOME/tidy_up_visus_install_for_miniconda.sh
+  && chmod a+x $VISUS_HOME/tidy_up_visus_install_for_anaconda.sh \
+  && $VISUS_HOME/tidy_up_visus_install_for_anaconda.sh $VISUS_HOME \
+  && rm $VISUS_HOME/tidy_up_visus_install_for_anaconda.sh
 
 # not super necessary, but...
 # create and activate visus conda env (and make it the default)
 RUN set -x \
   && conda create -n visus \
-  && sed -i 's/conda activate base/conda activate visus/' ~/.bashrc \
-  && conda activate visus
+  && sed -i 's/conda activate base/conda activate visus/' ~/.bashrc
 
 # setup OpenVisus (maybe this should/needs be done)
 # RUN python setup.py install
 
+#######
+# setup environment: paths, apache setup, certs
+# note: these should be nearly identical to installer Dockerfile (TODO: get one dockerfile to load contents of another)
+
+# setup paths
+# (done above)
+
 # configure mod_visus (should this be a script instead?)
-ADD 000-default.conf /etc/apache2/sites-enabled/000-default.conf
-ADD httpd-foreground.sh  /usr/local/bin/httpd-foreground.sh
+#ADD Docker/anaconda/000-default.conf /etc/apache2/sites-enabled/000-default.conf   # no need since we're adding the webviewer
+ADD Docker/anaconda/httpd-foreground.sh  /usr/local/bin/httpd-foreground.sh
 RUN echo "LoadModule visus_module ${VISUS_HOME}/bin/libmod_visus.so" > /etc/apache2/mods-available/visus.load \
   && a2enmod headers \
   && a2enmod visus \
   && chmod a+x /usr/local/bin/httpd-foreground.sh \
-# I suspect /mnt/visus_datasets doesn't exist...
-  && echo "<include url='/mnt/visus_datasets/visus.config' />" > ${VISUS_HOME}/visus.config \
+# /mnt/visus_datasets may not exist, but even worse this line overwrites the existing visus.config
+#  && echo "<include url='/mnt/visus_datasets/visus.config' />" > ${VISUS_HOME}/visus.config \
   && chmod -R 755 ${VISUS_HOME}
 
+# install webviewer (should this script just live in webviewer git?)
+ADD Docker/anaconda/webviewer.conf  /etc/apache2/sites-enabled/webviewer.conf
+ADD Docker/anaconda/.htpasswd       $VISUS_HOME/.htpasswd
+RUN rm /etc/apache2/sites-enabled/000-default.conf
 
 # download certificate
-# RUN mkdir -p /var/www/visus && \
-#     cd /var/www/visus && \
-#     curl --remote-name --time-cond cacert.pem https://curl.haxx.se/ca/cacert.pem && \
-#     chown -R www-data .
+RUN set -x \
+  && mkdir -p /var/www/visus \
+  && cd /var/www/visus \
+  && curl --remote-name --time-cond cacert.pem https://curl.haxx.se/ca/cacert.pem \
+  && chown -R www-data .
 
-# add a sample dataset
-# ADD ./files/visus.config    $VISUS_HOME/visus.config
-# RUN chown -R www-data $VISUS_HOME
-# RUN chmod -R a+rX  $VISUS_HOME 
+# ready to run
+################
 
 
 EXPOSE 80

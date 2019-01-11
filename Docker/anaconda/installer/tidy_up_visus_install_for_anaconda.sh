@@ -16,6 +16,6 @@ rm -r $INSTALL/OpenVisus.egg-info
 rm $INSTALL/bin/libssl*
 rm $INSTALL/bin/libcrypto.so*
 
-for f in `ls $INSTALL/bin`; do /usr/bin/patchelf --set-rpath '$ORIGIN:/opt/conda/lib' $INSTALL/bin/$f; done
+for f in `ls $INSTALL/bin`; do patchelf --set-rpath '$ORIGIN:/opt/conda/lib' $INSTALL/bin/$f; done
 
 echo "Done tidying!"

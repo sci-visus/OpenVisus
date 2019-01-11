@@ -2,7 +2,7 @@
 # ViSUS Docker *builder* for miniconda3 [Debian] environment
 #
 # Must build this Docker image from the OpenVisus directory (..):
-#  `docker build -t OpenVisus:miniconda_builder -f docker/miniconda/builder/Dockerfile .`
+#  `docker build -t OpenVisus:anaconda_builder -f docker/anaconda/builder/Dockerfile .`
 #
 # NOTES:
 # - includes git repos for OpenVisus, XIDX, and visus_javascript
@@ -61,25 +61,28 @@ ENV PATH $VISUS_HOME/build/install/bin:$PATH
 ENV PYTHONPATH $VISUS_HOME/build/install:$VISUS_HOME/build/install/lib:$PYTHONPATH
 ENV LD_LIBRARY_PATH $VISUS_HOME/build/install/bin:$VISUS_HOME/build/install/lib:$LD_LIBRARY_PATH
 
-# configure apache
-# ADD ./files/000-default.conf     /etc/apache2/sites-enabled/000-default.conf
-# ADD ./files/httpd-foreground.sh  /usr/local/bin/httpd-foreground.sh
-# RUN echo "LoadModule visus_module $VISUS_HOME/build/libmod_visus.so" > /etc/apache2/mods-available/visus.load
-# RUN chmod a+x /usr/local/bin/httpd-foreground.sh 
-# RUN a2enmod headers 
-# RUN a2enmod visus
+# configure mod_visus (should this be a script instead?)
+#ADD Docker/anaconda/000-default.conf /etc/apache2/sites-enabled/000-default.conf   # no need since we're adding the webviewer
+ADD Docker/anaconda/httpd-foreground.sh  /usr/local/bin/httpd-foreground.sh
+RUN echo "LoadModule visus_module ${VISUS_HOME}/bin/libmod_visus.so" > /etc/apache2/mods-available/visus.load \
+  && a2enmod headers \
+  && a2enmod visus \
+  && chmod a+x /usr/local/bin/httpd-foreground.sh \
+# /mnt/visus_datasets may not exist, but even worse this line overwrites the existing visus.config
+#  && echo "<include url='/mnt/visus_datasets/visus.config' />" > ${VISUS_HOME}/visus.config \
+  && chmod -R 755 ${VISUS_HOME}
 
-# install webviewer
-# RUN git clone https://github.com/sci-visus/visus_javascript $VISUS_HOME/webviewer
-# ADD ./files/webviewer.conf  /etc/apache2/sites-enabled/webviewer.conf
-# ADD ./files/.htpasswd       $VISUS_HOME/.htpasswd
+# install webviewer (should this script just live in webviewer git?)
+ADD Docker/anaconda/webviewer.conf  /etc/apache2/sites-enabled/webviewer.conf
+ADD Docker/anaconda/.htpasswd       $VISUS_HOME/.htpasswd
 # RUN  rm                     /etc/apache2/sites-enabled/000-default.conf
 
 # download certificate
-# RUN mkdir -p /var/www/visus && \
-#     cd /var/www/visus && \
-#     curl --remote-name --time-cond cacert.pem https://curl.haxx.se/ca/cacert.pem && \
-#     chown -R www-data .
+RUN set -x \
+  && mkdir -p /var/www/visus \
+  && cd /var/www/visus \
+  && curl --remote-name --time-cond cacert.pem https://curl.haxx.se/ca/cacert.pem \
+  && chown -R www-data .
 
 # add a sample dataset
 # ADD ./files/visus.config    $VISUS_HOME/visus.config
