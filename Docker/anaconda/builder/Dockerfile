@@ -26,7 +26,7 @@ RUN set -x \
 # conda maybe also...
   # genutil lxml
 # apt-get maybe also...
-  # libapache2-mod-php
+  # libapache2-mod-php cmake-curses-gui
 
 # clone OpenVisus, XIDX, visus_javascript
 ENV CODE /root/code
@@ -45,6 +45,7 @@ RUN set -x \
   && cd OpenVisus && mkdir build && cd build \
   && cmake .. \
   -DVISUS_GUI=0
+#  -DVISUS_INTERNAL_DEFAULT=0
 
 # build and install XIDX (into OpenVisus install)
 RUN set -x \
@@ -89,4 +90,4 @@ EXPOSE 80
 ADD Docker/anaconda/builder/package_all.sh /root/code/package_all.sh
 ADD Docker/anaconda/builder/build_all.sh /root/code/build_all.sh
 RUN chmod a+x /root/code/build_all.sh && chmod a+x /root/code/package_all.sh
-CMD ["/root/code/build_all.sh", "/root/code/package_all.sh", "/bin/bash"]
+CMD /bin/bash /root/code/build_all.sh && /bin/bash /root/code/package_all.sh && /bin/bash
