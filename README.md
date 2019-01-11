@@ -120,7 +120,7 @@ REM *** only python 3.6/3.7 64 bit are supported ***
 set PYTHON_EXECUTABLE=c:\Python37\python.exe
 
 REM add --use-pyqt if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
-%PYTHON_EXECUTABLE% configure.py
+%PYTHON_EXECUTABLE% .\configure.py
 
 set PYTHONPATH=%cd%;%PYTHONPATH%
 
@@ -137,7 +137,7 @@ in Osx/Linux:
 cd /your/OpenVisus/directory
 
 # add --use-pyqt if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
-python configure.py
+python ./configure.py
 
 export PYTHONPATH=$(pwd):${PYTHONPATH}
 
