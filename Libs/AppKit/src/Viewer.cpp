@@ -162,7 +162,7 @@ Viewer::Viewer(String title) : QMainWindow()
   {
     auto OpenScreenLogo=[](String key, String default_logo)
     {
-      String filename = VisusConfig::readString(key + "/filename");
+      String filename = VisusConfig::readString(key + "/filename"); 
       if (filename.empty())
         filename = default_logo;
 

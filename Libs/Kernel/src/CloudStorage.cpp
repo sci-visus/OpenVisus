@@ -54,13 +54,17 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////////////////////////
+/*
+https://docs.aws.amazon.com/AmazonS3/latest/user-guide/using-folders.html
+*/
 class AmazonCloudStorage : public CloudStorage
 {
 public:
 
   VISUS_CLASS(AmazonCloudStorage)
 
-    Url    url;
+  String protocol;
+  String hostname;
   String username;
   String password;
 
@@ -76,7 +80,8 @@ public:
     VisusAssert(!this->password.empty());
     this->password = StringUtils::base64Decode(password);
 
-    this->url = url.getProtocol() + "://" + url.getHostname();
+    this->protocol = url.getProtocol();
+    this->hostname = url.getHostname();
   }
 
   //destructor
@@ -86,12 +91,10 @@ public:
   //signRequest
   void signRequest(NetRequest& request)
   {
-    String canonicalized_resource = request.url.getPath();
-    int find_bucket = StringUtils::find(request.url.getHostname(), "s3.amazonaws.com"); VisusAssert(find_bucket >= 0);
-    String bucket_name = request.url.getHostname().substr(0, find_bucket);
-    bucket_name = StringUtils::rtrim(bucket_name, ".");
-    if (!bucket_name.empty())
-      canonicalized_resource = "/" + bucket_name + canonicalized_resource;
+    String bucket = StringUtils::split(request.url.getHostname(), ".")[0];
+    VisusAssert(!bucket.empty());
+
+    String canonicalized_resource = "/" + bucket + request.url.getPath();
 
     String canonicalized_headers;
     {
@@ -121,7 +124,6 @@ public:
     request.setHeader("Authorization", "AWS " + username + ":" + signature);
   }
 
-
   // addContainer
   Future<bool> addContainer(SharedPtr<NetService> service, String container, Aborted aborted = Aborted())
   {
@@ -136,7 +138,7 @@ public:
       return ret;
     }
 
-    NetRequest request(this->url.toString() + "/" + container, "PUT");
+    NetRequest request(this->protocol + "://" + this->hostname + "/" + container, "PUT");
     request.aborted = aborted;
     request.url.setPath(request.url.getPath() + "/"); //IMPORTANT the "/" to indicate is a container! see http://www.bucketexplorer.com/documentation/amazon-s3--how-to-create-a-folder.html
     signRequest(request);
@@ -158,7 +160,7 @@ public:
 
     auto ret = Promise<bool>().get_future();
 
-    NetRequest request(this->url.toString() + "/" + container_name, "DELETE");
+    NetRequest request(this->protocol + "://" + this->hostname + "/" + container_name, "DELETE");
     request.aborted = aborted;
     request.url.setPath(request.url.getPath() + "/"); //IMPORTANT the "/" to indicate is a container!
     signRequest(request);
@@ -175,14 +177,11 @@ public:
   {
     auto ret = Promise<bool>().get_future();
 
-    auto index = blob_name.find("/");
-    if (index == String::npos) {
-      VisusAssert(false);
-      ret.get_promise()->set_value(false);
-      return ret;
-    }
-
-    String container = blob_name.substr(0, index);
+    //example /container_name/aaa/bbb/filename.pdf
+    VisusAssert(StringUtils::startsWith(blob_name, "/"));
+    auto v = StringUtils::split(blob_name, "/",/*bPurgeEmptyItems*/true);
+    VisusAssert(v.size()>=2);
+    String container = v[0];
 
     addContainer(service, container, aborted).when_ready([this, ret, service, blob, blob_name, aborted](bool bOk)
     {
@@ -192,7 +191,8 @@ public:
         return;
       }
 
-      NetRequest request(this->url.toString() + blob_name, "PUT");
+      //NOTE blob_name already contains the container name
+      NetRequest request(this->protocol + "://" + this->hostname + blob_name, "PUT");
       request.aborted = aborted;
       request.body = blob.body;
       request.setContentLength(blob.body->c_size());
@@ -218,7 +218,8 @@ public:
   {
     auto ret = Promise<Blob>().get_future();
 
-    NetRequest request(this->url.toString() + blob_name, "GET");
+    //NOTE blob_name already contains the container name
+    NetRequest request(this->protocol + "://" + this->hostname + blob_name, "GET");
     request.aborted = aborted;
     signRequest(request);
 
@@ -256,7 +257,8 @@ public:
   // deleteBlob
   virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
   {
-    NetRequest request(this->url.toString() + blob_name, "DELETE");
+    //NOTE blob_name already contains the container name
+    NetRequest request(this->protocol + "://" + this->hostname + blob_name, "DELETE");
     request.aborted = aborted;
     signRequest(request);
 
@@ -976,7 +978,8 @@ SharedPtr<CloudStorage> CloudStorage::createInstance(Url url)
   if (StringUtils::contains(url.getHostname(), "core.windows"))
     return std::make_shared<AzureCloudStorage>(url);
 
-  if (StringUtils::contains(url.getHostname(), "s3.amazonaws"))
+  if (StringUtils::contains(url.getHostname(), "s3.amazonaws") ||
+      StringUtils::contains(url.getHostname(), "wasabisys.com"))
     return std::make_shared<AmazonCloudStorage>(url);
 
   if (StringUtils::contains(url.getHostname(), "googleapis"))

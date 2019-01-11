@@ -99,6 +99,18 @@ bool cbool(const String& s)
 }
 
 
+
+///////////////////////////////////////////////////////////////////////////
+String StringUtils::onlyAlNum(String value)
+{
+  for (int I = 0; I < (int)value.size(); I++)
+  {
+    if (!std::isalnum(value[I]))
+      value[I] = '_';
+  }
+  return value;
+}
+
 ///////////////////////////////////////////////////////////////////////////
 static char CharToUpper(char c) 
 {return std::toupper(c);}

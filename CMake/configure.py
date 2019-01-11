@@ -691,13 +691,13 @@ class Configure:
 			for exe in glob.glob('bin/*.exe'):
 				name=os.path.splitext(os.path.basename(exe))[0]
 				script_filename="%s.bat" % (name,)
-				content+=["%this_dir%\\" + exe + " %*"]
 				WriteTextFile(script_filename,[
 					"""set this_dir=%~dp0""",
 					"""set PYTHON_EXECUTABLE=""" + sys.executable,
 					"""set PATH=%this_dir%\\bin;""" + os.path.dirname(sys.executable) + """;%PATH%""",
 					"""set PATH=""" + self.QT_BIN_PATH + """;%PATH%""" if self.VISUS_GUI else "",
-					"""set QT_PLUGIN_PATH=""" + self.QT_PLUGIN_PATH if self.VISUS_GUI else ""])
+					"""set QT_PLUGIN_PATH=""" + self.QT_PLUGIN_PATH if self.VISUS_GUI else "",
+					"%this_dir%\\" + exe + " %*"])
 
 		elif APPLE:	
 		
