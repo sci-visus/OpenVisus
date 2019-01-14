@@ -642,7 +642,7 @@ class Configure:
 			file.close()
 			print("QT_VERSION",self.QT_VERSION)
 
-			if os.path.isdir(os.path.join(this_dir,"bin","Qt")) and not "--use-pyqt5" in sys.argv:
+			if os.path.isdir(os.path.join(this_dir,"bin","Qt")) and not "--use-pyqt" in sys.argv:
 
 				self.QT_BIN_PATH    = os.path.join(this_dir,"bin")
 				self.QT_PLUGIN_PATH = os.path.join(this_dir,"bin","Qt","plugins")
