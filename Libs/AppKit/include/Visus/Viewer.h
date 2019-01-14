@@ -171,11 +171,14 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(Viewer)
 
-    //constructor
-    Viewer(String title = "Visus Viewer");
+  //constructor
+  Viewer(String title = "Visus Viewer");
 
   //destructor
   virtual ~Viewer();
+
+  //configureFromCommandLine
+  void configureFromCommandLine(std::vector<String> args);
 
   //showLicences
   void showLicences();
