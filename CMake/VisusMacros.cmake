@@ -343,7 +343,10 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 	else()
 		swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
 	endif()
-
+	
+	# important to share types between modules
+	set_source_files_properties (${swig_generated_file_fullname} PROPERTIES COMPILE_FLAGS "-DSWIG_TYPE_TABLE=OpenVisus")	
+	
 	if (TARGET _${NamePy})
 	  set(RealName _${NamePy})
 	else()

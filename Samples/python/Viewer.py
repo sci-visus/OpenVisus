@@ -108,4 +108,5 @@ if __name__ == '__main__':
 	GuiModule.execApplication()
 	viewer=None  
 	AppKitModule.detach()
+	print("All done")
 	sys.exit(0)

@@ -49,83 +49,82 @@ from OpenVisus import *
 # ////////////////////////////////////////////////////////////////////////
 class PyProducer(Node):
 	
-  # constructor
-  def __init__(self): 
-    Node.__init__(self)
-    self.addOutputPort("output")
-   
-  # getOsDependentTypeName
-  def getOsDependentTypeName(self):
-    return "Producer"
-  
-  # processInput (overriding from Node)
-  def processInput(self):
-    print("PyProducer::processInput")
-    msg=DataflowMessagePtr(DataflowMessage())
-    msg.get().writeContent("output",ObjectPtr(StringObject("hello visus")))
-    self.publish(msg)
-    return True
+	# constructor
+	def __init__(self): 
+		Node.__init__(self)
+		self.addOutputPort("output")
+
+	# getOsDependentTypeName
+	def getOsDependentTypeName(self):
+		return "Producer"
+
+	# processInput (overriding from Node)
+	def processInput(self):
+		print("PyProducer::processInput")
+		msg=DataflowMessagePtr(DataflowMessage())
+		msg.get().writeContent("output",ObjectPtr(StringObject("hello visus")))
+		self.publish(msg)
+		return True
     
 # ////////////////////////////////////////////////////////////////////////
 class PyReceiver(Node):
-	
-  # constructor
-  def __init__(self): 
-    Node.__init__(self)
-    self.addInputPort("input")
-    
-  # getOsDependentTypeName
-  def getOsDependentTypeName(self):
-    return "Receiver"    
-    
-  # processInput (overriding from Node)
-  def processInput(self):
-    print("PyReceiver::processInput")
-    self.published_value=cstring(self.readInput("input"))
-    return True
+
+	# constructor
+	def __init__(self): 
+		Node.__init__(self)
+		self.addInputPort("input")
+
+	# getOsDependentTypeName
+	def getOsDependentTypeName(self):
+		return "Receiver"    
+
+	# processInput (overriding from Node)
+	def processInput(self):
+		print("PyReceiver::processInput")
+		self.published_value=cstring(self.readInput("input"))
+		return True
   
 
 # ////////////////////////////////////////////////////////////////////////
 class TestDataflow(unittest.TestCase):
   
-  def testDataflow(self): 
-    
-    dataflow=Dataflow()
-    
-    producer=PyProducer()
-    receiver=PyReceiver()
-    
-    # the dataflow is the owner of nodes!
-    dataflow.addNode(producer)
-    dataflow.addNode(receiver)
-    dataflow.connectPorts(producer,"output","input",receiver)
+	def testDataflow(self): 
 
-    self.assertTrue(dataflow.containsNode(producer))
-    self.assertTrue(producer.hasOutputPort("output"))
-    self.assertTrue(dataflow.containsNode(receiver))
-    self.assertTrue(receiver.hasInputPort ("input" ))
-    
-    producer.processInput()
-    
-    while dataflow.dispatchPublishedMessages():
-      pass
+		dataflow=Dataflow()
+
+		producer=PyProducer()
+		receiver=PyReceiver()
+
+		# the dataflow is the owner of nodes!
+		dataflow.addNode(producer)
+		dataflow.addNode(receiver)
+		dataflow.connectPorts(producer,"output","input",receiver)
+
+		self.assertTrue(dataflow.containsNode(producer))
+		self.assertTrue(producer.hasOutputPort("output"))
+		self.assertTrue(dataflow.containsNode(receiver))
+		self.assertTrue(receiver.hasInputPort ("input" ))
+
+		producer.processInput()
+
+		while dataflow.dispatchPublishedMessages():
+			pass
       
-    value=receiver.published_value
+		value=receiver.published_value
 
-    self.assertEqual(value,"hello visus")
-    dataflow.disconnectPorts(producer,"output","input",receiver)
-    dataflow.removeNode(producer)
-    dataflow.removeNode(receiver)  
+		self.assertEqual(value,"hello visus")
+		dataflow.disconnectPorts(producer,"output","input",receiver)
+		dataflow.removeNode(producer)
+		dataflow.removeNode(receiver)  
     
 
 # ////////////////////////////////////////////////////////
 if __name__ == '__main__':
-    SetCommandLine("__main__")
-    DataflowModule.attach()
-    VISUS_REGISTER_PYTHON_OBJECT_CLASS("PyProducer")
-    VISUS_REGISTER_PYTHON_OBJECT_CLASS("PyReceiver")
-    
-    unittest.main(exit=False)
-    DataflowModule.detach()
-
+	SetCommandLine("__main__")
+	DataflowModule.attach()
+	VISUS_REGISTER_PYTHON_OBJECT_CLASS("PyProducer")
+	VISUS_REGISTER_PYTHON_OBJECT_CLASS("PyReceiver")
+	unittest.main(exit=False)
+	DataflowModule.detach()
+	print("All done")
 

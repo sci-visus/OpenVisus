@@ -46,7 +46,7 @@ else:
 	os.environ["QT_PLUGIN_PATH"]= os.path.join(PYQT5_DIR,"Qt","plugins")
 %}
 
-%import  <Visus/VisusKernelPy.i>
+%import <Visus/VisusKernelPy.i>
 
 #define Q_OBJECT
 #define signals public

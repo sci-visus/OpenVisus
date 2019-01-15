@@ -648,17 +648,27 @@ class Configure:
 				self.QT_PLUGIN_PATH = os.path.join(this_dir,"bin","Qt","plugins")
 
 			else:
-
-				PipUninstall(["PyQt5"])
-
-				# need to install a compatible version
-				for name in ["PyQt5=="+self.QT_VERSION[0:4]+"." + str(it) for it in reversed(range(1,10))]:
-					try:
-						PipInstall([name])
-						print("Installed",name)
-						break
-					except:
-						print("Failed to install",name)
+				
+				bInstalled=False
+				
+				try:
+					from PyQt5.Qt import PYQT_VERSION_STR
+					if PYQT_VERSION_STR==self.QT_VERSION:
+						print("PyQt5",PYQT_VERSION_STR,"already installed")
+						bInstalled=True
+				except:
+					pass
+					
+				if not bInstalled:
+					# need to install a compatible version
+					PipUninstall(["PyQt5"])
+					for name in ["PyQt5=="+self.QT_VERSION] + ["PyQt5=="+self.QT_VERSION[0:4]+"." + str(it) for it in reversed(range(1,10))]:
+						try:
+							PipInstall([name])
+							print("Installed",name)
+							break
+						except:
+							print("Failed to install",name)					
 
 				import PyQt5
 				print(dir(PyQt5))
