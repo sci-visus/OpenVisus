@@ -140,6 +140,32 @@ public:
 };
 #endif
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+SharedPtr<Viewer::Logo> Viewer::OpenScreenLogo(String key, String default_logo)
+{
+  String filename = VisusConfig::readString(key + "/filename");
+  if (filename.empty())
+    filename = default_logo;
+
+  if (filename.empty())
+    return SharedPtr<Logo>();
+
+  auto img = QImage(filename.c_str());
+  if (img.isNull()) {
+    VisusInfo() << "Failed to load image " << filename;
+    return SharedPtr<Logo>();
+  }
+
+  auto ret = std::make_shared<Logo>();
+  ret->filename = filename;
+  ret->tex = std::make_shared<GLTexture>(img);
+  ret->tex->envmode = GL_MODULATE;
+  ret->pos.x = StringUtils::contains(key, "Left") ? 0 : 1;
+  ret->pos.y = StringUtils::contains(key, "Bottom") ? 0 : 1;
+  ret->opacity = cdouble(VisusConfig::readString(key + "/alpha", "0.5"));
+  ret->border = Point2d(10, 10);
+  return ret;
+};
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -166,32 +192,6 @@ Viewer::Viewer(String title) : QMainWindow()
 
   //logos
   {
-    auto OpenScreenLogo=[](String key, String default_logo)
-    {
-      String filename = VisusConfig::readString(key + "/filename"); 
-      if (filename.empty())
-        filename = default_logo;
-
-      if (filename.empty())
-        return SharedPtr<Logo>();
-
-      auto img = QImage(filename.c_str());
-      if (img.isNull()) {
-        VisusInfo() << "Failed to load image " << filename;
-        return SharedPtr<Logo>();
-      }
-
-      auto ret = std::make_shared<Logo>();
-      ret->filename = filename;
-      ret->tex = std::make_shared<GLTexture>(img);
-      ret->tex->envmode = GL_MODULATE;
-      ret->pos.x = StringUtils::contains(key, "Left"  ) ? 0 : 1;
-      ret->pos.y = StringUtils::contains(key, "Bottom") ? 0 : 1;
-      ret->opacity = cdouble(VisusConfig::readString(key + "/alpha", "0.5"));
-      ret->border = Point2d(10, 10);
-      return ret;
-    };
-    
     if (auto logo = OpenScreenLogo("Configuration/VisusViewer/Logo/BottomLeft" , ":sci.png"  )) logos.push_back(logo);
     if (auto logo = OpenScreenLogo("Configuration/VisusViewer/Logo/BottomRight", ":visus.png")) logos.push_back(logo);
     if (auto logo = OpenScreenLogo("Configuration/VisusViewer/Logo/TopRight"   , ""          )) logos.push_back(logo);
@@ -227,10 +227,25 @@ Viewer::Viewer(String title) : QMainWindow()
 Viewer::~Viewer()
 {
   VisusInfo() << "destroying VisusViewer";
-
   RedirectLog = nullptr;
-  
   setDataflow(nullptr);
+}
+
+////////////////////////////////////////////////////////////
+void Viewer::setMinimal()
+{
+  Viewer::Preferences preferences;
+  preferences.preferred_panels = "";
+  preferences.bHideMenus = true;
+  this->setPreferences(preferences);
+}
+
+
+////////////////////////////////////////////////////////////
+void Viewer::setFieldName(String value)
+{
+  if (auto fieldnode = this->findNodeByType<FieldNode>())
+    fieldnode->setFieldName(value);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -388,23 +403,13 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   }
 
   if (!open_filename.empty())
-  {
     this->openFile(open_filename);
 
-    if (!fieldname.empty())
-    {
-      if (auto fieldnode = this->findNodeByType<FieldNode>())
-        fieldnode->setFieldName(fieldname);
-    }
-  }
+  if (!fieldname.empty())
+    this->setFieldName(fieldname);
 
   if (bMinimal)
-  {
-    Viewer::Preferences preferences;
-    preferences.preferred_panels = "";
-    preferences.bHideMenus = true;
-    this->setPreferences(preferences);
-  }
+    this->setMinimal();
 
   SharedPtr<NetServer> server;
   if (bStartServer)
@@ -1216,7 +1221,9 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   }
   endUpdate();
 
-  widgets.treeview->expandAll();
+  if (widgets.treeview)
+    widgets.treeview->expandAll();
+  
   refreshActions();
   VisusInfo()<<"openFile("<<url<<") done";
   return true;

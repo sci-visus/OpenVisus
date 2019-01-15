@@ -9,16 +9,12 @@ try:
 	from PyQt5.QtCore    import *
 	from PyQt5.QtWidgets import *
 	from PyQt5.QtGui     import *
+	import PyQt5.sip as  sip
 except ImportError:
 	use_pqyt=False
 
 from OpenVisus import *
 
-# sip does not work in debug mode
-try:
-    import sip
-except ImportError:
-	 use_pqyt=False
 
 # ///////////////////////////////////////////////////////////
 if use_pqyt:

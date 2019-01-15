@@ -168,7 +168,6 @@ public:
 
   typedef std::vector< SharedPtr<Plugin> > Plugins;
 
-
   VISUS_NON_COPYABLE_CLASS(Viewer)
 
   //constructor
@@ -176,6 +175,17 @@ public:
 
   //destructor
   virtual ~Viewer();
+
+  //this is needed for swig
+  void* c_ptr() {
+    return this;
+  }
+
+  //setMinimal
+  void setMinimal();
+
+  //setFieldName
+  void setFieldName(String value);
 
   //configureFromCommandLine
   void configureFromCommandLine(std::vector<String> args);
@@ -624,6 +634,8 @@ private:
     Point2d  border;
     SharedPtr<GLTexture> tex;
   };
+
+  static SharedPtr<Logo> OpenScreenLogo(String key, String default_logo);
 
   //________________________________________________________
   class Icons
