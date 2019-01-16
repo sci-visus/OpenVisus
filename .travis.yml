@@ -291,6 +291,7 @@ script:
      cd $HOME
      export PATH="$HOME/.pyenv/bin:$PATH"
      eval "$(pyenv init -)"
+     pyenv install --skip-existing ${PYTHON_VERSION}
      pyenv global ${PYTHON_VERSION}  
      pyenv rehash     
      python -m pip check || wget -qO- https://bootstrap.pypa.io/get-pip.py | python 
@@ -303,7 +304,8 @@ script:
         echo [pypi]                                      >> ~/.pypirc
         echo username=${PYPI_USERNAME}                   >> ~/.pypirc
         echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
-        python -m twine upload --skip-existing "${TRAVIS_BUILD_DIR}/build/install/dist/*.whl" 
+        export WHEEL_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
+        python -m twine upload --skip-existing "${WHEEL_FILENAME}" 
      fi
 
      # test binary OpenVisus
