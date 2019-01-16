@@ -28,6 +28,9 @@ matrix:
   include:
   
     # ///////////////////////////////// manylinux (i.e. centos)
+    # Example to compile by hand
+    # sudo docker run -ti  -v $(pwd):/home/OpenVisus quay.io/pypa/manylinux1_x86_64 /bin/bash
+    # cd /home/OpenVisus && PYTHON_VERSION=3.4.1 BUILD_DIR=$(pwd)/build/manylinux ./build.sh     
     
     - os: linux
       dist: trusty
@@ -284,59 +287,33 @@ script:
      cd "${TRAVIS_BUILD_DIR}"  
      ./build.sh
      
+     # enable pyenv with all packages
+     cd $HOME
+     export PATH="$HOME/.pyenv/bin:$PATH"
+     eval "$(pyenv init -)"
+     pyenv global ${PYTHON_VERSION}  
+     pyenv rehash     
+     python -m pip check || wget -qO- https://bootstrap.pypa.io/get-pip.py | python 
+     python -m pip install --upgrade pip wheel twine
+     
+     # upoad using twine
      if [[ "${DEPLOY_PYPI}" == "1" ]] ; then 
-
-        # use the pypi python
-        if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then
-           export PATH="$HOME/.pyenv/bin:$PATH"
-           eval "$(pyenv init -)"
-           pyenv global ${PYTHON_VERSION}  
-           pyenv rehash
-        fi
-
-        # upoad using twine
         echo [distutils]                                  > ~/.pypirc
         echo index-servers =  pypi                       >> ~/.pypirc
         echo [pypi]                                      >> ~/.pypirc
         echo username=${PYPI_USERNAME}                   >> ~/.pypirc
         echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
-
-        python -m pip || wget -qO- https://bootstrap.pypa.io/get-pip.py | python 
-        python -m pip install --user --upgrade twine 
         python -m twine upload --skip-existing "${TRAVIS_BUILD_DIR}/build/install/dist/*.whl" 
-
-        # test of it works
-        if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-           cd $HOME
-           python -m pip install OpenVisus 
-           python -m OpenVisus configure 
-           cd $(python -m OpenVisus dirname) 
-           ./visus.sh
-           python Samples/python/Array.py 
-           python Samples/python/Dataflow.py 
-           python Samples/python/Idx.py
-        # use Docker for the test
-        else
-           cd $HOME 
-           mkdir temp && cd temp
-           echo "FROM ubuntu:xenial"                                                                                 > Dockerfile
-           echo "RUN apt-get update && \\"                                                                          >> Dockerfile
-           echo "   apt-get install -y software-properties-common vim && \\"                                        >> Dockerfile
-           echo "   add-apt-repository ppa:deadsnakes/ppa && \\"                                                    >> Dockerfile
-           echo "   apt-get update -y && \\"                                                                        >> Dockerfile
-           echo "   apt-get install -y curl python${PYTHON_VERSION:0:3} python${PYTHON_VERSION:0:3}-dev  && \\"     >> Dockerfile
-           echo "   curl https://bootstrap.pypa.io/get-pip.py | python${PYTHON_VERSION:0:3} && \\"                  >> Dockerfile
-           echo "   python${PYTHON_VERSION:0:3} -m pip install --upgrade pip wheel  && \\"                          >> Dockerfile
-           echo "   python${PYTHON_VERSION:0:3} -m pip install OpenVisus && \\"                                     >> Dockerfile
-           echo "   python${PYTHON_VERSION:0:3} -m OpenVisus configure && \\"                                       >> Dockerfile
-           echo "   cd \$(python${PYTHON_VERSION:0:3} -m OpenVisus dirname) && \\"                                  >> Dockerfile
-           echo "   ./visus.sh  && \\"                                                                              >> Dockerfile
-           echo "   python${PYTHON_VERSION:0:3} Samples/python/Array.py && \\"                                      >> Dockerfile
-           echo "   python${PYTHON_VERSION:0:3} Samples/python/Dataflow.py && \\"                                   >> Dockerfile
-           echo "   python${PYTHON_VERSION:0:3} Samples/python/Idx.py "                                             >> Dockerfile
-           sudo docker build -t test-openvisus-wheel .
-        fi
      fi
+
+     # test binary OpenVisus
+     python -m pip install "${TRAVIS_BUILD_DIR}/build/install/dist/*.whl"
+     python -m OpenVisus configure 
+     cd $(python -m OpenVisus dirname) 
+     ./visus.sh
+     python Samples/python/Array.py 
+     python Samples/python/Dataflow.py 
+     python Samples/python/Idx.py
 
 before_deploy:
   - export SDIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")

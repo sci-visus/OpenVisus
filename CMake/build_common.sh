@@ -90,8 +90,6 @@ function InstallPython {
 		
 	fi
 	
-
-	
 	CONFIGURE_OPTS="--enable-shared" CFLAGS="${__CFLAGS__}" CPPFLAGS="${__CPPFLAGS__}" LDFLAGS="${__LDFLAGS__}" pyenv install --skip-existing ${PYTHON_VERSION}  
 
 	if (( APPLE == 0 )); then
