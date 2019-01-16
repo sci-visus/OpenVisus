@@ -72,7 +72,6 @@ static PyObject* FlushMethod(PyObject* self, PyObject* args)
   return ret;
 }
 
-
 static  PyMethodDef __methods__[3] =
 {
   { "write", WriteMethod, METH_VARARGS, "doc for write" },
@@ -80,6 +79,7 @@ static  PyMethodDef __methods__[3] =
   { 0, 0, 0, 0 } // sentinel
 };
 
+#if PY_MAJOR_VERSION >= 3
 static PyModuleDef RedirectOutputModule =
 {
   PyModuleDef_HEAD_INIT,
@@ -88,7 +88,7 @@ static PyModuleDef RedirectOutputModule =
   -1,
   __methods__,
 };
-
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ScriptingNodeView::ScriptingNodeView(ScriptingNode* model)
@@ -115,11 +115,16 @@ ScriptingNodeView::~ScriptingNodeView() {
 void ScriptingNodeView::showEvent(QShowEvent *)
 {
   ScopedAcquireGil acquire_gil;
-  this->__stdout__ = PySys_GetObject("stdout");
-  this->__stderr__ = PySys_GetObject("stderr");
-  this->__redirect__ = PyModule_Create(&RedirectOutputModule);
-  PySys_SetObject("stdout", __redirect__);
-  PySys_SetObject("stderr", __redirect__);
+  this->__stdout__ = PySys_GetObject((char*)"stdout");
+  this->__stderr__ = PySys_GetObject((char*)"stderr");
+#if PY_MAJOR_VERSION >= 3
+  auto redirect_module = PyModule_Create(&RedirectOutputModule);
+#else
+  auto redirect_module = Py_InitModule("RedirectOutputModule", __methods__);
+#endif
+
+  PySys_SetObject((char*)"stdout", redirect_module);
+  PySys_SetObject((char*)"stderr", redirect_module);
 
 }
 
@@ -127,8 +132,8 @@ void ScriptingNodeView::showEvent(QShowEvent *)
 void ScriptingNodeView::hideEvent(QHideEvent *)
 {
   ScopedAcquireGil acquire_gil;
-  PySys_SetObject("stdout", this->__stdout__);
-  PySys_SetObject("stderr", this->__stderr__);
+  PySys_SetObject((char*)"stdout", this->__stdout__);
+  PySys_SetObject((char*)"stderr", this->__stderr__);
 }
 
 

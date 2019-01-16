@@ -21,7 +21,10 @@ environment:
       DEFAULT_ENABLED: true  
     - PYTHON_EXECUTABLE: C:/Python36-x64/python.exe 
       PYTHON_VERSION: 36
-      DEFAULT_ENABLED: false
+      DEFAULT_ENABLED: true
+    - PYTHON_EXECUTABLE: C:/Python27-x64/python.exe 
+      PYTHON_VERSION: 27
+      DEFAULT_ENABLED: true      
   
 # enable cache for vcpkg
 cache: c:\tools\vcpkg\installed\  

@@ -94,7 +94,6 @@ private:
 
   PyObject* __stdout__ = nullptr;
   PyObject* __stderr__ = nullptr;
-  PyObject* __redirect__ = nullptr;
 
   QTimer     output_timer;
 
