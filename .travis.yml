@@ -319,6 +319,10 @@ script:
            python Samples/python/Dataflow.py 
            python Samples/python/Idx.py
         # use Docker for the test
+        elif [[ "${PYTHON_VERSION:0:3}" = "3.4" ]]; then
+        
+           echo "Skipping test"
+           
         else
            cd $HOME 
            mkdir temp && cd temp
