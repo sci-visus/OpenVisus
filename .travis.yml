@@ -297,19 +297,20 @@ script:
      python -m pip check || wget -qO- https://bootstrap.pypa.io/get-pip.py | python 
      python -m pip install --upgrade pip wheel twine
      
+     
      # upoad using twine
+     export WHEEL_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
      if [[ "${DEPLOY_PYPI}" == "1" ]] ; then 
         echo [distutils]                                  > ~/.pypirc
         echo index-servers =  pypi                       >> ~/.pypirc
         echo [pypi]                                      >> ~/.pypirc
         echo username=${PYPI_USERNAME}                   >> ~/.pypirc
         echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
-        export WHEEL_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
         python -m twine upload --skip-existing "${WHEEL_FILENAME}" 
      fi
 
      # test binary OpenVisus
-     python -m pip install "${TRAVIS_BUILD_DIR}/build/install/dist/*.whl"
+     python -m pip install "${WHEEL_FILENAME}"
      python -m OpenVisus configure 
      cd $(python -m OpenVisus dirname) 
      ./visus.sh
