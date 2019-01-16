@@ -68,7 +68,7 @@ REM *** only python 3.6/3.7 64 bit are supported ***
 set PYTHON_EXECUTABLE=c:\Python37\python.exe
 
 %PYTHON_EXECUTABLE% -m pip uninstall OpenVisus
-%PYTHON_EXECUTABLE% -m pip install --user numpy OpenVisus==1.2.172
+%PYTHON_EXECUTABLE% -m pip install --user numpy OpenVisus==1.2.177
 
 
 REM *** Type this command: %PYTHON_EXECUTABLE%  -m OpenVisus dirname ***
