@@ -392,7 +392,7 @@
 #define HAVE_LIBSSL 1
 
 /* if zlib is available */
-#define HAVE_LIBZ 1
+/* #undef HAVE_LIBZ */
 
 /* if your compiler supports LL */
 #define HAVE_LL 1

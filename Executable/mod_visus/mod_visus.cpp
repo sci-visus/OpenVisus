@@ -734,10 +734,10 @@ static int MyHookRequest(request_rec *apache_request)
   if (!(*module) || !apache_request->parsed_uri.query) 
     return DECLINED;
 
-  #if APACHE_MAJOR_VERSION>=2 && APACHE_MINOR_VERSION>=4
-  String client_ip=apache_request->useragent_ip;
+  #if (AP_SERVER_MAJORVERSION_NUMBER>=2) && (AP_SERVER_MINORVERSION_NUMBER<4)
+  String client_ip = apache_request->connection->remote_ip;
   #else
-  String client_ip=apache_request->connection->remote_ip;
+  String client_ip = apache_request->useragent_ip;
   #endif
 
   //convert apache_request to visus_request

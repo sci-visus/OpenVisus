@@ -59,6 +59,7 @@ namespace LZ4
 
 namespace Visus {
 
+VISUS_IMPLEMENT_SINGLETON_CLASS(Encoders)
 
 //////////////////////////////////////////////////////////////
 SharedPtr<HeapMemory> IdEncoder::encode(NdPoint dims,DType dtype,SharedPtr<HeapMemory> decoded) 

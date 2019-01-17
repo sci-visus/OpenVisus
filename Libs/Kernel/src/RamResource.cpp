@@ -64,6 +64,8 @@ For support : support@visus.net
 
 namespace Visus {
 
+VISUS_IMPLEMENT_SINGLETON_CLASS(RamResource)
+
 ///////////////////////////////////////////////////////////////////////////
 RamResource::RamResource() 
 {

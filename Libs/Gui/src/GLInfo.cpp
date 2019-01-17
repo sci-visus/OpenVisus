@@ -50,6 +50,8 @@ For support : support@visus.net
 
 namespace Visus {
 
+VISUS_IMPLEMENT_SINGLETON_CLASS(GLInfo)
+
 ///////////////////////////////////////////////////////////////
 #if __APPLE__
 Int64 getTotalVideoMemoryBytes()

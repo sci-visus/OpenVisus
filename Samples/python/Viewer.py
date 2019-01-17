@@ -13,7 +13,6 @@ except ImportError:
 	bQtAvailable=False
 
 from OpenVisus import *
-from GuiOpenVisus import *
 
 # sip does not work in debug mode
 bSipAvailable=True

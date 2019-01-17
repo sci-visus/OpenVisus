@@ -300,28 +300,70 @@ public:
     std::ostringstream out;
     out << args[0]
       << " <filename.xml> OR" << std::endl
-      << " <src_dataset> <dst_dataset>" << std::endl;
+      << " <src_dataset> <dst_dataset>" << std::endl
+      << "" << std::endl
+      << ""
+      << " XML file example (to specify access):" << std::endl
+      << " <CopyDataset>" << std::endl
+      << "   <src url='E:/google_sci/visus_dataset/2kbit1/lz4/rowmajor/visus.idx' />" << std::endl
+      << "   <dst url='E:/google_sci/visus_dataset/2kbit1/lz4/rowmajor/visus.idx'  >" << std::endl
+      << "     <access type = 'CloudStorageAccess' url='http://visus.s3.wasabisys.com/2kbit1?username=NOXCLNFH3Y64J3ET7Z4B&amp;password=XXXXXXX' />" << std::endl
+      << "   </dst>" << std::endl
+      << " </CopyDataset>" << std::endl;
+
     return out.str();
   }
 
   //exec
   virtual Array exec(Array data, std::vector<String> args) override
   {
-   if (args.size() != 3)
-     ThrowException(StringUtils::format() << args[0]<< " syntax error, needed 2 arguments");
+    String Surl; StringTree Sconfig;
+    String Durl; StringTree Dconfig;
 
+    if (args.size() == 2)
+    {
+      //xml file with url and xml for access creation
+      StringTree stree;
+      if (!stree.loadFromXml(Utils::loadTextDocument(args[1])))
+      {
+        VisusAssert(false);
+        return Array();
+      }
 
-    String Surl = args[1]; auto Svf = Dataset::loadDataset(Surl); 
-    String Durl = args[2]; auto Dvf = Dataset::loadDataset(Durl); 
+      if (auto src = stree.findChildWithName("src")) {
+        Surl = src->readString("url");
+        if (auto access = src->findChildWithName("access"))
+          Sconfig = *access;
+      }
 
-    if (!Svf)  
-      ThrowException(StringUtils::format() << args[0] <<"  Dataset::loadDataset(" << Surl << ") failed");
+      if (auto dst = stree.findChildWithName("dst")) {
+        Durl = dst->readString("url");
+        if (auto access = dst->findChildWithName("access"))
+          Dconfig = *access;
+      }
+    }
+    else if (args.size() == 3)
+    {
+      //simply source url and dest url
+      Surl = args[1]; Sconfig = StringTree();
+      Durl = args[2]; Dconfig = StringTree();
+    }
+    else
+    {
+      ThrowException(StringUtils::format() << args[0] << " syntax error, wrong arguments");
+    }
 
-    if (!Dvf)  
-      ThrowException(StringUtils::format() << args[0] <<"  Dataset::loadDataset(" << Durl << ") failed");
+    auto Svf = Dataset::loadDataset(Surl);
+    auto Dvf = Dataset::loadDataset(Durl);
+
+    if (!Svf)
+      ThrowException(StringUtils::format() << args[0] << "  Dataset::loadDataset(" << Surl << ") failed");
+
+    if (!Dvf)
+      ThrowException(StringUtils::format() << args[0] << "  Dataset::loadDataset(" << Durl << ") failed");
 
     if (Svf->getTimesteps() != Dvf->getTimesteps())
-      ThrowException(StringUtils::format() << args[0] <<" Time range not compatible");
+      ThrowException(StringUtils::format() << args[0] << " Time range not compatible");
 
     std::vector<double> timesteps = Svf->getTimesteps().asVector();
 
@@ -329,10 +371,10 @@ public:
     std::vector<Field> Dfields = Dvf->getFields();
 
     if (Sfields.size() != Dfields.size())
-      ThrowException(StringUtils::format() << args[0] <<" Fieldnames not compatible");
+      ThrowException(StringUtils::format() << args[0] << " Fieldnames not compatible");
 
-    auto Saccess = Svf->createAccessForBlockQuery();
-    auto Daccess = Dvf->createAccessForBlockQuery();
+    auto Saccess = Svf->createAccessForBlockQuery(Sconfig);
+    auto Daccess = Dvf->createAccessForBlockQuery(Dconfig);
 
     for (int time_id = 0; time_id<(int)timesteps.size(); time_id++)
     {
@@ -585,7 +627,7 @@ public:
     String midx_filename = args[1];
     String idx_filename = args[2];
     int TileSize = 4 * 1024;
-    String fieldname = "output=voronoiBlend()";
+    String fieldname = "output=voronoi()";
 
     for (int I = 1; I < args.size(); I++)
     {
@@ -613,7 +655,7 @@ public:
       auto tile = tiles[TileId];
 
       auto t1 = Time::now();
-      auto buffer = midx->readMaxResolutionData(midx_access, tile);
+      auto buffer = midx->readMaxResolutionData(midx_access, midx->getFieldByName(fieldname), midx->getDefaultTime(), tile);
       int msec_read = (int)t1.elapsedMsec();
       if (!buffer)
         continue;
@@ -2074,6 +2116,15 @@ int main(int argn, const char* argv[])
 
   SetCommandLine(argn, argv);
   IdxModule::attach();
+
+  if (argn >= 2 && String(argv[1]) == "--server")
+  {
+    auto modvisus = std::make_shared<ModVisus>();
+    modvisus->configureDatasets();
+    auto server = std::make_shared<NetServer>(10000, modvisus);
+    server->runInThisThread();
+    return 0;
+  }
 
   Array data;
   DoConvert convert;

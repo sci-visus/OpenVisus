@@ -116,6 +116,9 @@ public:
     return str;
   }
 
+  //onlyAlNum
+  static String onlyAlNum(String value);
+
   //toLower
   static String toLower(String ret);
 
@@ -206,6 +209,16 @@ public:
 
   //split
   static std::vector<String> split(String source, String separator = " ", bool bPurgeEmptyItems = true);
+
+  //splitInChunks
+  static std::vector<String> splitInChunks(String source, int chunk) {
+    std::vector<String> ret;
+    int N = (int)source.size();
+    ret.reserve((N/chunk)+1);
+    for (int I=0; I<N; I+=chunk)
+      ret.push_back(source.substr(I, chunk));
+    return ret;
+  }
 
   //join
   static String join(std::vector<String> v, String separator = " ", String prefix = "", String suffix = "");

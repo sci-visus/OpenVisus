@@ -57,6 +57,8 @@ namespace Visus {
 typedef NetService::Connection Connection;
 
 
+VISUS_IMPLEMENT_SINGLETON_CLASS(CaCertFile)
+
 /////////////////////////////////////////////////////////////////////////////
 CaCertFile::CaCertFile()
 {

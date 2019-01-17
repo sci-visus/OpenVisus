@@ -1,68 +1,40 @@
+# //////////////////////////////////////////////////////////////////////
 # How to build OpenVisus Docker container
 
-Compile and run the docker container. For example, for the `trusty` container:
+Compile and run the docker container. 
+For example:
 
 ```
-sudo docker build -t openvisus-trusty --build-arg BRANCH=master Docker/trusty
-sudo docker run  -it openvisus-trusty /bin/bash 
+sudo docker build  -t openvisus-ubuntu Docker/ubuntu
+sudo docker run   -it openvisus-ubuntu /bin/bash 
 ```
 
-# How to debug the building process
+# //////////////////////////////////////////////////////////////////////
+# For mod_visus 
 
-Run the script interactively:
-
-```
-# create a container
-sudo docker run -it -v c:\projects\OpenVisus:/home/OpenVisus ubuntu:trusty 
-cd /home/OpenVisus
-./CMake/build_<os_name>.sh
-exit
-
-# commit container and re-execute it
-docker ps -a
-docker exec -it <container_id> /bin/bash
-```
-
-
-
-# Build/Run the mod_visus container
-
-Compile docker:
+Compile docker. For windows:
 
 ```
-DOCKER_TAG=mod_visus-trusty
-BRANCH=master
-
-sudo docker build  \
-  --tag $DOCKER_TAG  \
-  --build-arg BRANCH=${BRANCH} \
-  --build-arg DISABLE_OPENMP=0 \
-  --build-arg VISUS_GUI=0 \
-  --build-arg VISUS_MODVISUS=1 \
-  ./
-```
-
-Configure datasets and run docker:
+set VISUS_DATASETS=C:\projects\OpenVisus\datasets
+set TAG=mod_visus-ubuntu
+docker build  -t %TAG% Docker/%TAG%
+docker run -it -v --name mydocker %VISUS_DATASETS%:/mnt/visus_datasets --expose=80 -p 8080:80 %TAG% "/usr/local/bin/httpd-foreground.sh"
 
 ```
-# change this to point to where your visus datasets are stored
-VISUS_DATASETS=$(pwd)/../../datasets
 
-DOCKER_OPTS=""
-DOCKER_OPTS+=" -it"  # allocate a tty for the container process.
-DOCKER_OPTS+=" --rm" #automatically clean up the container and remove the file system when the container exits
-DOCKER_OPTS+=" -v $VISUS_DATASETS:/mnt/visus_datasets" # mount the volume
-DOCKER_OPTS+=" --expose=80 -p 8080:80" # expose the port and remap
-docker run $DOCKER_OPTS $DOCKER_TAG "/usr/local/bin/httpd-foreground.sh"
+For osx/linux:
 
-# docker run $DOCKER_OPTS --entrypoint=/bin/bash $DOCKER_TAG
-# /usr/local/bin/httpd-foreground.sh
+```
+VISUS_DATASETS=/path/to/datasets/dir
+TAG=mod_visus-ubuntu
+docker build  -t ${TAG} Docker/mod_visus-ubuntu
+docker run -it -v ${VISUS_DATASETS}:/mnt/visus_datasets --expose=80 -p 8080:80 ${TAG} "/usr/local/bin/httpd-foreground.sh"
 ```
 
 To test docker container, in another terminal:
 
 ```
-curl -v "http://0.0.0.0:8080/mod_visus?action=list"
+curl  "http://0.0.0.0:8080/mod_visus?action=list"
 ```
 
 Deploy to the repository:
@@ -74,3 +46,18 @@ sudo docker login -u scrgiorgio
 docker tag $DOCKER_TAG visus/$DOCKER_TAG
 docker push visus/$DOCKER_TAG
 ```
+
+# //////////////////////////////////////////////////////////////////////
+# Debug step-by-step build process
+
+sudo docker run -it -v $(pwd):/home/OpenVisus --expose=80 -p 8080:80  --name manylinux quay.io/pypa/manylinux1_x86_64 /bin/bash^
+cd /home/OpenVisus
+export BUILD_DIR=/home/OpenVisus/build/manylinux
+CMake/build_manylinux.sh
+
+docker start manylinux
+docker exec -it  manylinux /bin/bash
+cd /home/OpenVisus
+export BUILD_DIR=/home/OpenVisus/build/manylinux
+CMake/build_manylinux.sh
+

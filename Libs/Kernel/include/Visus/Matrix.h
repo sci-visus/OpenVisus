@@ -67,6 +67,13 @@ public:
     mat[6] = (double)0; mat[7] = (double)0; mat[8] = (double)1;  
   }
 
+  //copy constructor
+  Matrix3(const Matrix3& other) {
+    this->mat[0] = other.mat[0]; this->mat[1] = other.mat[1]; this->mat[2] = other.mat[2];
+    this->mat[3] = other.mat[3]; this->mat[4] = other.mat[4]; this->mat[5] = other.mat[5];
+    this->mat[6] = other.mat[6]; this->mat[7] = other.mat[7]; this->mat[8] = other.mat[8];
+  }
+
   //constructor
   Matrix3(double m1, double m2, double m3, 
           double m4, double m5, double m6, 
@@ -78,9 +85,13 @@ public:
   }
 
   //constructor
-  Matrix3(const double other[9])
-  {memcpy(mat,other,sizeof(mat));}
+  Matrix3(const double other[9]) {
+    this->mat[0] = other[0]; this->mat[1] = other[1]; this->mat[2] = other[2];
+    this->mat[3] = other[3]; this->mat[4] = other[4]; this->mat[5] = other[5];
+    this->mat[6] = other[6]; this->mat[7] = other[7]; this->mat[8] = other[8];
+  }
 
+  //constructor
   Matrix3(Point3d c0,Point3d c1,Point3d c2) {
     mat[0] = c0.x; mat[1] = c1.x; mat[2] = c2.x;
     mat[3] = c0.y; mat[4] = c1.y; mat[5] = c2.y;
@@ -96,6 +107,18 @@ public:
       std::istringstream parser(value);
       for (int i=0;i<9;i++) parser>>this->mat[i];
     }
+  }
+
+  //destructor
+  ~Matrix3() {
+  }
+
+  //operator=
+  Matrix3& operator=(const Matrix3& other) {
+    this->mat[0] = other.mat[0]; this->mat[1] = other.mat[1]; this->mat[2] = other.mat[2];
+    this->mat[3] = other.mat[3]; this->mat[4] = other.mat[4]; this->mat[5] = other.mat[5];
+    this->mat[6] = other.mat[6]; this->mat[7] = other.mat[7]; this->mat[8] = other.mat[8];
+    return *this;
   }
 
   //toString
@@ -276,12 +299,20 @@ public:
   double mat[16];
 
   //default constructor
-  inline Matrix4()
-  {memset(mat,0,sizeof(mat));mat[0]=mat[5]=mat[10]=mat[15]=1;}
+  inline Matrix4() {
+    mat[ 0] = 1.0; mat[ 1] = 0.0; mat[ 2] = 0.0; mat[ 3] = 0.0;
+    mat[ 4] = 0.0; mat[ 5] = 1.0; mat[ 6] = 0.0; mat[ 7] = 0.0;
+    mat[ 8] = 0.0; mat[ 9] = 0.0; mat[10] = 1.0; mat[11] = 0.0;
+    mat[12] = 0.0; mat[13] = 0.0; mat[14] = 0.0; mat[15] = 1.0;
+  }
   
   //copy constructor
-  inline Matrix4(const Matrix4& src)
-  {memcpy(this->mat,src.mat,sizeof(double)*16);}
+  inline Matrix4(const Matrix4& src) {
+    mat[ 0] = src.mat[ 0]; mat[ 1] = src.mat[ 1]; mat[ 2] = src.mat[ 2]; mat[ 3] = src.mat[ 3];
+    mat[ 4] = src.mat[ 4]; mat[ 5] = src.mat[ 5]; mat[ 6] = src.mat[ 6]; mat[ 7] = src.mat[ 7];
+    mat[ 8] = src.mat[ 8]; mat[ 9] = src.mat[ 9]; mat[10] = src.mat[10]; mat[11] = src.mat[11];
+    mat[12] = src.mat[12]; mat[13] = src.mat[13]; mat[14] = src.mat[14]; mat[15] = src.mat[15];
+  }
 
   //construct from string
   inline explicit Matrix4(String value)
@@ -310,12 +341,15 @@ public:
   }
 
   //constructor
-  inline explicit Matrix4(double mat[16])
-  {memcpy(this->mat,mat,sizeof(double)*16);}
+  inline explicit Matrix4(double mat[16]) {
+    memcpy(this->mat,mat,sizeof(double)*16);
+  }
 
   //constructor
-  inline explicit Matrix4(float mat[16])
-  {for (int I=0;I<16;I++) this->mat[I]=mat[I];}
+  inline explicit Matrix4(float mat[16]) {
+    for (int I=0;I<16;I++) 
+      this->mat[I]=mat[I];
+  }
 
   //constructor: transform the default axis to the system X,Y,Z in P
   inline explicit Matrix4(Point3d X,Point3d Y,Point3d Z,Point3d P)

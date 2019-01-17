@@ -262,9 +262,13 @@ SharedPtr<HeapMemory> HeapMemory::base64Decode(const String& input)
   {
     if (input[input.length()-1] == padCharacter)
       padding++;
+
     if (input[input.length()-2] == padCharacter)
       padding++;
   }
+
+  //wrong base64 string
+  VisusAssert(padding>0);
 
   //Setup a vector to hold the result
   if (!ret->resize(((input.length()/4)*3)-padding,__FILE__,__LINE__))

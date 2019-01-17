@@ -1,14 +1,52 @@
-import os,sys
+import sys,os
 
-__this_dir__=os.path.abspath(os.path.dirname(os.path.abspath(__file__)))
-if not __this_dir__ in sys.path:
-  sys.path.append(__this_dir__)
-  
-__bin_dir__=os.path.abspath(__this_dir__+ "/bin")
-if not __bin_dir__ in sys.path:
-  sys.path.append(__bin_dir__)
+__this_dir__=os.path.dirname(os.path.abspath(__file__))
 
-from NonGuiOpenVisus import *
+for it in (".","bin"):
+	dir = os.path.join(__this_dir__,it)
+	if not dir in sys.path and os.path.isdir(dir):
+		sys.path.append(dir)
 
-# prefer not to include this automatically
-# from GuiOpenVisus import *
+# soon or later all these will be packages
+try:
+	from VisusKernelPy import *
+except:
+	pass
+	
+try:
+	from VisusDataflowPy import *
+except:
+	pass
+	
+try:
+	from VisusDbPy import *
+except:
+	pass
+	
+try:
+	from VisusIdxPy import *
+except:
+	pass
+	
+try:	
+	from VisusNodesPy import *
+except:
+	pass
+
+try:
+	from VisusGuiPy import *
+except:
+	pass
+	
+try:
+	from VisusGuiNodesPy import *
+except:
+	pass
+	
+try:
+	from VisusAppKitPy import *
+except:
+	pass
+
+
+

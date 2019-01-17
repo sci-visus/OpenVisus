@@ -43,6 +43,9 @@ For support : support@visus.net
 namespace Visus {
 
 
+VISUS_IMPLEMENT_SINGLETON_CLASS(GLSharedContext)
+VISUS_IMPLEMENT_SINGLETON_CLASS(GLDoWithContext)
+
 /////////////////////////////////////////////////////////////////////////////
 GLCanvas::GLCanvas() 
 {

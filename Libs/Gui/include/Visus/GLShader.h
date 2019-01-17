@@ -55,7 +55,6 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////
-#if 1
 #define VISUS_DECLARE_SHADER_CLASS(Api,ClassName) \
   class Api Shaders \
   {\
@@ -76,9 +75,9 @@ namespace Visus {
   };\
   /*--*/
 
-
-
-#endif
+#define VISUS_IMPLEMENT_SHADER_CLASS(Api,ClassName) \
+  VISUS_IMPLEMENT_SINGLETON_CLASS(ClassName::Shaders)\
+  /*--*/
 
   
   ////////////////////////////////////////////////////////

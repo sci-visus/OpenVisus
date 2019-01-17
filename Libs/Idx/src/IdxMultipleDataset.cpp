@@ -268,7 +268,11 @@ public:
       VisusAssert(PyTuple_Size(args) == 1);
       auto arg0 = PyTuple_GetItem(args, 0); VisusAssert(arg0);//borrowed
       auto expr = PythonEngine::convertToString(arg0); VisusAssert(!expr.empty());
-      return getattr ? getattr(expr) : nullptr;
+      if (!getattr) {
+        PythonEngine::setError("getattr is null");
+        return (PyObject*)nullptr;
+      }
+      return getattr(expr);
     });
     return ret;
   }
@@ -584,14 +588,14 @@ public:
         PyObject * arg0 = nullptr;
         if (!PyArg_ParseTuple(args, "O:blendBuffers", &arg0) )
         {
-          VisusInfo() << "invalid argument";
-          return nullptr;
+          PythonEngine::setError("invalid argument");
+          return (PyObject*)nullptr;
         }
 
         if (!PyList_Check(arg0))
         {
-          VisusInfo() << "invalid argument";
-          return nullptr;
+          PythonEngine::setError("invalid argument");
+          return (PyObject*)nullptr;
         }
 
         for (int I = 0, N = (int)PyList_Size(arg0); I < N; I++)
@@ -680,8 +684,8 @@ public:
     }
      
     if (!num_args) {
-      //VisusInfo() << "empty argument";
-      return nullptr;
+      PythonEngine::setError("empty argument");
+      return (PyObject*)nullptr;
     }
 
     return engine->newPyObject(blend.result);

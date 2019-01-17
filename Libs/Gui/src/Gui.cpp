@@ -134,7 +134,11 @@ bool GuiModule::bAttached = false;
 ///////////////////////////////////////////////////////////////////////////////////
 void GuiModule::attach()
 {
-  if (bAttached)  return;
+  if (bAttached)  
+    return;
+  
+  VisusInfo() << "Attaching GuiModule...";
+
   bAttached = true;
 
   GuiInitResources();
@@ -159,13 +163,18 @@ void GuiModule::attach()
   }
 #endif
 
+  VisusInfo() << "Attached GuiModule";
 }
 
 
 //////////////////////////////////////////////
 void GuiModule::detach()
 {
-  if (!bAttached)  return;
+  if (!bAttached)  
+    return;
+  
+  VisusInfo() << "Detaching GuiModule...";
+  
   bAttached = false;
 
   GuiCleanUpResources();
@@ -177,6 +186,7 @@ void GuiModule::detach()
 
   KernelModule::detach();
 
+  VisusInfo() << "Detached GuiModule";
 }
 
 //////////////////////////////////////////////
