@@ -48,5 +48,10 @@ try:
 except:
 	pass
 
+try:
+	from xidx import *
+except:
+	pass
+
 
 
