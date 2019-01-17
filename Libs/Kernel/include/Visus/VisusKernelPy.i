@@ -158,14 +158,6 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
   Visus::Array& operator/=(Visus::Array& other)  {*self=ArrayUtils::div(*self,other); return *self;} 
   Visus::Array& operator/=(double coeff)  {*self=ArrayUtils::div(*self,coeff); return *self;}
 
-  static Visus::Array fromVectorInt32(Visus::NdPoint dims, const std::vector<Visus::Int32>& vector) {
-	return Visus::Array::fromVector<Visus::Int32>(dims, Visus::DTypes::INT32, vector);
-  }
-
-  static Visus::Array fromVectorFloat64(Visus::NdPoint dims, const std::vector<Visus::Float64>& vector) {
-    return Visus::Array::fromVector<Visus::Float64>(dims, Visus::DTypes::FLOAT64, vector);
-  }
-
   //toNumPy (the returned numpy will share the memory... see capsule code)
   PyObject* toNumPy(bool bSqueeze=true) const
   {
@@ -293,10 +285,52 @@ def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
       SWIG_SetErrorMsg(PyExc_NotImplementedError,"numpy cannot share its internal memory\n");
       return Array();
 	}
-
   }
 
   %pythoncode %{
+   
+    def fromPyArray(array) :
+
+      # getDimensions
+      def getDimensions(array):
+        if not type(array) is list: 
+          return []
+        else:
+          dims=getDimensions(array[0]) # TODO: here i'm assumnig all items are the same lenght
+          dims.append(len(array))
+          return dims
+
+      # flatten
+      def flatten(array):
+        if not type(array) is list:
+          return [array]
+        ret=[]
+        for it in array:
+          ret.extend(flatten(it)) 
+        return ret
+
+      dims=getDimensions(array)
+      pdim=len(dims)
+      if   (pdim==1): dims=NdPoint.one(1).withX(dims[0])
+      elif (pdim==2): dims=NdPoint.one(dims[0],dims[1])
+      elif (pdim==3): dims=NdPoint.one(dims[0],dims[1],dims[2])
+      else: raise Exception("internal error")
+
+      vector=flatten(array)
+
+      if (len(vector)!=dims.innerProduct()):
+        raise Exception("wrong dimension")
+
+      if (isinstance(vector[0],int)):
+        return Array.fromVectorInt32(dims,vector)
+
+      if (isinstance(vector[0],float)):
+        return Array.fromVectorFloat64(dims,vector)
+
+      raise Exception("internal error")
+
+    fromPyArray = staticmethod(fromPyArray)
+
     def __rmul__(self, v):
       return self.__mul__(v)
   %}
