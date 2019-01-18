@@ -68,7 +68,7 @@ REM *** only python 3.6/3.7 64 bit are supported ***
 set PYTHON_EXECUTABLE=c:\Python37\python.exe
 
 %PYTHON_EXECUTABLE% -m pip uninstall OpenVisus
-%PYTHON_EXECUTABLE% -m pip install --user numpy OpenVisus==1.2.172
+%PYTHON_EXECUTABLE% -m pip install --user numpy OpenVisus==1.2.177
 
 
 REM *** Type this command: %PYTHON_EXECUTABLE%  -m OpenVisus dirname ***
@@ -86,26 +86,41 @@ REM *** add --use-pyqt if you want to use PyQt5 instead of C++ Qt5 (needed if yo
 %PYTHON_EXECUTABLE% Samples/python/Idx.py
 ```
 
-on Linux/Osx
+On Linux/Osx make sure you are using the right python binary. 
+For example if you are using pyenv:
 
 ```
-python -m pip uninstall OpenVisus
-python -m pip install --user numpy OpenVisus==1.2.172
+export PATH="$HOME/.pyenv/bin:$PATH"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
+pyenv global <type_your_version_here>
+python --version # check the version here
+```
 
+Then on Linux/osx:
+
+```
+python -m pip uninstall -y OpenVisus
+python -m pip install --user numpy OpenVisus==1.2.172
 cd $(python -m OpenVisus dirname)
 
-# finilize the installation
-# add --use-pyqt if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
-python ./configure.py
 
-# ./visusviewer.command for osx
-./visusviewer.sh 
+# finilize installation
+# set PYQT=1 to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
+PYQT=0
+if (( PYQT == 1 )) ; then
+	python ./configure.py --use-pyqt
+else
+	python ./configure.py
+fi
 
 python Samples/python/Array.py
 python Samples/python/Dataflow.py
 python Samples/python/Idx.py
+python Samples/python/Viewer.py
 ```
 
+Then on Linux type './visusviewer.sh', on osx `./visusviewer.command`.
 
 ## GitHub Releases distribution
 

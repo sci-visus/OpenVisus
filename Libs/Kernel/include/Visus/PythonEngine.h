@@ -70,10 +70,7 @@ For support : support@visus.net
    # include <Python.h>
   #endif
 
-  //avoid multiple include
-  #ifndef SWIGRUNTIME
-    #include <Visus/swigpyrun.h>
-  #endif
+
 
   #pragma pop_macro("slots")
 
@@ -103,9 +100,6 @@ public:
 
   //main
   static int main(std::vector<String> args);
-
-  //redirectOutputTo
-  void redirectOutputTo(std::function<void(String)> value);
 
   //isGoodVariableName
   static bool isGoodVariableName(String name);
@@ -203,6 +197,9 @@ public:
   //addSysPath
   void addSysPath(String value,bool bVerbose=true);
 
+  //print (must have the GIL)
+  void print(String message);
+
   //fixPath
   static String fixPath(String value);
 
@@ -213,42 +210,11 @@ private:
   PyObject* module = nullptr;
   PyObject* globals = nullptr;
 
-  swig_type_info* swig_type_aborted = nullptr;
-  swig_type_info* swig_type_array = nullptr;
-
-  PyObject* __redirect_output__ = nullptr;
-
-  //newPyObject
-  template <typename ValueClass>
-  PyObject* newPyObject(ValueClass value, swig_type_info* type_info) {
-    return SWIG_NewPointerObj(new ValueClass(value), type_info, SWIG_POINTER_OWN);
-  }
-
-  //getSwigModuleAttr
-  template <typename ReturnClass>
-  ReturnClass getSwigModuleAttr(String name, swig_type_info* type_info)
-  {
-    auto py_object = getModuleAttr(name);
-    if (!py_object)
-      ThrowException(StringUtils::format() << "cannot find '" << name << "' in module");
-
-    ReturnClass* ptr = nullptr;
-    int res = SWIG_ConvertPtr(py_object, (void**)&ptr, type_info, 0);
-
-    if (!SWIG_IsOK(res) || !ptr)
-      ThrowException(StringUtils::format() << "cannot case '" << name << "' to " << type_info->name);
-
-    ReturnClass ret = (*ptr);
-
-    if (SWIG_IsNewObj(res))
-      delete ptr;
-
-    return ret;
-  }
+  void* swig_type_aborted = nullptr;
+  void* swig_type_array   = nullptr;
 
   //internalNewPyFunction
   PyObject* internalNewPyFunction(PyObject* self, String name, Function fn);
-
 
 };
 

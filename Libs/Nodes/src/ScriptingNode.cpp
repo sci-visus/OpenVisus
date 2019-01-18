@@ -94,30 +94,19 @@ public:
     }
     catch (std::exception ex)
     {
-      printMessage(ex.what());
+      ScopedAcquireGil acquire_gil;
+      engine->print(ex.what());
       return;
     }
 
     if (!output) 
     {
-      printMessage("ERROR output is not an Array");
+      ScopedAcquireGil acquire_gil;
+      engine->print("ERROR output is not an Array");
       return;
     }
 
     doPublish(output);
-  }
-
-  //printMessage
-  void printMessage(String msg)
-  {
-    if (msg.empty())
-      return;
-
-    for (auto it : node->views)
-    {
-      if (auto view = dynamic_cast<ScriptingNodeBaseView*>(it))
-        view->appendOutput(msg);
-    }
   }
 
   //scriptingProcessInput
@@ -191,7 +180,10 @@ public:
     }
 
     if (!bIncremental)
-      printMessage(StringUtils::format() << "Array " << output->dims.toString());
+    {
+      ScopedAcquireGil acquire_gil;
+      engine->print(StringUtils::format() << "Array " << output->dims.toString());
+    }
 
     auto msg=std::make_shared<DataflowMessage>();
 
@@ -212,14 +204,6 @@ ScriptingNode::ScriptingNode(String name)  : Node(name)
 
   addInputPort("data");
   addOutputPort("data");
-
-  //redirectOutputTo
-  engine->redirectOutputTo([this](String msg) {
-    for (auto it : views) {
-      if (auto view = dynamic_cast<ScriptingNodeBaseView*>(it))
-        view->appendOutput(msg);
-    }
-  });
 }
 
 ///////////////////////////////////////////////////////////////////////

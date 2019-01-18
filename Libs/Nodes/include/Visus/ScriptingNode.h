@@ -160,9 +160,6 @@ public:
   //addPreset
   virtual void addPreset(String key, String code) = 0;
 
-  //appendOutput (can be called in a different thread)
-  virtual void appendOutput(String s) = 0;
-
 };
 
 } //namespace Visus

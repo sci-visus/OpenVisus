@@ -1,6 +1,5 @@
 %module(directors="1") VisusGuiPy
 
-
 %{ 
 #include <Visus/Visus.h>
 #include <Visus/PythonEngine.h>
@@ -10,9 +9,15 @@
 #include <Visus/GLCanvas.h>
 #include <Visus/GLObjects.h>
 namespace Visus { 
+
 	QWidget* ToCppQtWidget(PyObject* obj) {
 		return obj? (QWidget*)PyLong_AsVoidPtr(obj) : nullptr; 
 	}
+
+	PyObject* FromCppQtWidget(void* widget) {
+		return PyLong_FromVoidPtr(widget);
+	}
+
 }
 using namespace Visus;
 %}
@@ -41,7 +46,7 @@ else:
 	os.environ["QT_PLUGIN_PATH"]= os.path.join(PYQT5_DIR,"Qt","plugins")
 %}
 
-%import  <Visus/VisusKernelPy.i>
+%import <Visus/VisusKernelPy.i>
 
 #define Q_OBJECT
 #define signals public
@@ -54,5 +59,8 @@ else:
 %include <Visus/GLCanvas.h>
 
 //see https://github.com/bleepbloop/Pivy/blob/master/interfaces/soqt.i
-namespace Visus {QWidget* ToCppQtWidget(PyObject* obj);}
+namespace Visus {
+	QWidget*  ToCppQtWidget   (PyObject* obj);
+	PyObject* FromCppQtWidget (void*     widget);
+}
 

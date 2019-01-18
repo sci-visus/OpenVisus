@@ -79,14 +79,15 @@ if (( ${OS_VERSION:0:2}<=14 )); then
 fi
 
 sudo apt-get -qq install --allow-unauthenticated cmake swig3.0 git bzip2 ca-certificates build-essential libssl-dev uuid-dev curl automake
-sudo apt-get -qq install apache2 apache2-dev
+sudo apt-get -qq install --allow-unauthenticated libffi-dev   
+sudo apt-get -qq install --allow-unauthenticated apache2 apache2-dev
 
 InstallCMake
 InstallPatchElf
 InstallPython 
 
 if (( VISUS_INTERNAL_DEFAULT == 0 )); then 
-	sudo apt-get -qq install zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
+	sudo apt-get -qq install --allow-unauthenticated zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
 fi
 
 # install qt (it's a version available on PyQt5)
