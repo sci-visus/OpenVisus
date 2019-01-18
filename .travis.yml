@@ -78,9 +78,15 @@ matrix:
     # ///////////////////////////////// osx 10.14
     #
     # build manually since travis does not support 10.14 yet
-    #
-    # for PYTHON_VERSION in 3.6.5 3.5.1 2.7.15 ; do BUILD_DIR=$(pwd)/build/osx1014/python${PYTHON_VERSION} ./build.sh ; done
     # note 3.7.1rc fails to compile
+    #
+    # for PYTHON_VERSION in 3.6.5 3.5.1 2.7.15 
+    # do 
+    #   export PYTHON_VERSION=${PYTHON_VERSION} 
+    #   export BUILD_DIR=$(pwd)/build/osx1014/python${PYTHON_VERSION} 
+    #   ./build.sh 
+    #   python -m twine upload --skip-existing $(find ${BUILD_DIR} -iname "*.whl")
+    # done
      
     # ///////////////////////////////// osx 10.13
     
@@ -260,7 +266,7 @@ matrix:
     #     apt:
     #       packages: ['g++-4.9']
     #       sources: ['ubuntu-toolchain-r-test']  
-    # - os: linux
+    # - os: linux 
     #   dist: trusty
     #   if: tag IS present OR commit_message =~ /\[full_matrix\]/
     #   env: ['PYTHON_VERSION=3.5','DOCKER_IMAGE=alpine:3.7','DOCKER_SHELL=/bin/sh']       

@@ -14,6 +14,10 @@ if (POLICY CMP0022)
   cmake_policy(SET CMP0022  NEW) 
 endif()	
 
+if (NOT (${CMAKE_VERSION} VERSION_LESS "3.13"))
+  cmake_policy(SET CMP0078 OLD) #controls names of SWIG targets
+endif()
+
 PROJECT(ViSUS)
 
 # //////////////////////////////////////////////////////////////
@@ -49,7 +53,12 @@ endif()
 option(VISUS_GUI "Enable gui" TRUE)  
 
 IF (VISUS_GUI)
-	find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED)
+
+  IF (APPLE)
+		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED HINTS /usr/local/opt/qt/lib/cmake/Qt5)
+  else()
+		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED)
+	endif()
 	
 	if (WIN32)
 		string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
