@@ -33,6 +33,7 @@ ADD dataportal.conf  /etc/apache2/sites-enabled/dataportal.conf
 ADD local.php	      ${VISUS_HOME}/dataportal/local.php
 ADD .htpasswd       ${VISUS_HOME}/.htpasswd
 ADD .htaccess       ${VISUS_HOME}/dataportal/.htaccess
+ADD server-tuning.conf /etc/apache2/mods-enabled/server-tuning.conf
 RUN chgrp -R www-data ${VISUS_HOME}/dataportal
 # visus.config needs write permissions
 ADD visus.config    ${VISUS_HOME}/visus.config
