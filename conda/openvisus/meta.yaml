@@ -1,0 +1,46 @@
+package:
+  name: openvisus
+  version: 1.2.178
+
+
+source:
+  git_rev: 1.2.178
+  git_url: https://github.com/sci-visus/OpenVisus.git
+
+
+build:
+  number: 1
+
+requirements:
+  build:
+    - {{ compiler('cxx') }}
+    - git
+    - swig
+    - cmake
+    - zlib
+    - openssl
+    - curl
+    - python  
+    - pip
+    - numpy
+    - setuptools
+    - wheel
+  run:
+    - python
+    - {{ pin_compatible('numpy') }}
+
+test:
+  imports:
+    - OpenVisus
+
+about:
+  home: http://github.com/sci-visus/OpenVisus
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: 'Open Source Implementation of VISUS'
+  description: |
+      The mission of ViSUS.org is to provide support for the scientific community with Big Data, management, analysis and visualization tools
+  doc_url: http://github.com/sci-visus/OpenVisus
+  dev_url: https://github.com/sci-visus/OpenVisus
+
