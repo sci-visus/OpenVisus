@@ -1,33 +1,31 @@
-# Conda instructions
+# Instructions
 
-To compile OpenVisus in conda. FIrst of all update your conda:
+If you want to use Docker you simply do:
+
+```
+cd conda/openvisus
+sudo docker build .
+```
+
+Otherwise keep reading.
+On Windows remeber to install "Visual Studio 2015" with C++.
+
+First of all update your conda and make sure your python is a `conda` one:
 
 ```
 conda install conda-build
 conda update conda
 conda update conda-build
-
-# make sure you are using a conda python
-which python
 ```
 
-On Windows install visual studio 2015 with C++.
-
-Then compile OpenVisus:
+Then:
 
 ```
 cd conda
 conda-build openvisus
-```
 
-Take note of the openvisus package name in case you want to upload it.
-
-Finally install and test it:
-
-```
 conda install --use-local openvisus
 
-# on Windows evaluate the command and cd manually
 cd $(python -m OpenVisus dirname)
 
 python Samples/python/Array.py
@@ -36,11 +34,11 @@ python Samples/python/Idx.py
 ```
 
 
-In case you want to upload:
+In case you want to upload to conda rep:
 
 ```
 anaconda login
-anaconda upload <conda/openvisus/filename/here>
+anaconda upload /type/your/conda/openvisus/filename/here
 ```
 
 
