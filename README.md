@@ -173,7 +173,8 @@ choco install -y -allow-empty-checksums git cmake swig
 
 Install [Python3.7] (https://www.python.org/ftp/python/3.7.0/python-3.7.0-amd64.exe)
 Install [Qt5](http://download.qt.io/official_releases/online_installers/qt-unified-windows-x86-online.exe) 
-Install [vcpkg](https://github.com/Microsoft/vcpkg):
+
+If you want to use Microsoft vcpkg (faster) install [vcpkg](https://github.com/Microsoft/vcpkg):
 
 ```
 cd c:\
@@ -182,9 +183,11 @@ cd tools
 git clone https://github.com/Microsoft/vcpkg
 cd vcpkg
 .\bootstrap-vcpkg.bat
+set CMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake
+set VCPKG_TARGET_TRIPLET=x64-windows
 ```
 
-Then:
+To compile OpenVIsus:
 
 ```
 git clone https://github.com/sci-visus/OpenVisus
