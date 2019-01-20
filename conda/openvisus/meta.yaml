@@ -1,15 +1,16 @@
+
 package:
   name: openvisus
-  version: 1.2.178
+  version: 1.2.179
 
+# to debug you can use inplace code
+# do a 'rm -Rf ~/Desktop/OpenVisus/build && rm -Rf ~/anaconda3/conda-bld/openvisus*'
+# source:
+#  path: ../..
 
 source:
-  git_rev: 1.2.178
+  git_rev: 1.2.179
   git_url: https://github.com/sci-visus/OpenVisus.git
-
-
-build:
-  number: 1
 
 requirements:
   build:
@@ -17,14 +18,13 @@ requirements:
     - git
     - swig
     - cmake
-    - zlib
-    - openssl
-    - curl
     - python  
     - pip
     - numpy
     - setuptools
     - wheel
+  host:
+    - python 
   run:
     - python
     - {{ pin_compatible('numpy') }}
@@ -39,8 +39,8 @@ about:
   license_family: BSD
   license_file: LICENSE
   summary: 'Open Source Implementation of VISUS'
-  description: |
-      The mission of ViSUS.org is to provide support for the scientific community with Big Data, management, analysis and visualization tools
-  doc_url: http://github.com/sci-visus/OpenVisus
-  dev_url: https://github.com/sci-visus/OpenVisus
+  description: The mission of ViSUS.org is to provide support for the scientific community with Big Data, management, analysis and visualization tools
+
+
+
 

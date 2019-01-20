@@ -797,6 +797,10 @@ add_library(FreeImage STATIC ${FreeImage_SOURCES})
 
 target_include_directories(FreeImage PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+if (TARGET zlib)
+	target_link_libraries(FreeImage PRIVATE zlib)
+endif()
+
 target_include_directories(FreeImage PRIVATE
 	Metadata LibJPEG LibPNG LibTIFF4 ZLib
 	LibOpenJPEG OpenEXR OpenEXR/Half OpenEXR/Iex OpenEXR/IlmImf OpenEXR/IlmThread OpenEXR/Imath OpenEXR/IexMath
@@ -810,3 +814,5 @@ endif()
 
 target_compile_definitions(FreeImage PRIVATE  LIBRAW_LIBRARY_BUILD)
 set_target_properties(FreeImage PROPERTIES FOLDER "InternalLibs/")
+
+

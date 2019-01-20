@@ -125,7 +125,7 @@ def RecursiveFindFiles(rootdir='.', pattern='*'):
 
 # ////////////////////////////////////////////////////////////////////
 def PipInstall(args):
-	cmd=[sys.executable,"-m","pip","install","--user"] + args
+	cmd=[sys.executable,"-m","pip","install"] + args
 	print("# Executing",cmd)
 	return_code=subprocess.call(cmd)
 	if return_code!=0:
@@ -583,7 +583,11 @@ class CMakePostInstall:
 				LinuxDeployStep().fixAllDeps()
 			
 		# create sdist and wheel
-		PipInstall(["--upgrade","setuptools","wheel"])	
+		# for conda I need to ignore any error
+		try:
+			PipInstall(["--upgrade","--user","setuptools","wheel"])	
+		except:	
+			pass 
 
 		# remove any previous distibution
 		RemoveFiles("dist/*")
@@ -664,7 +668,7 @@ class Configure:
 					PipUninstall(["PyQt5"])
 					for name in ["PyQt5=="+self.QT_VERSION] + ["PyQt5=="+self.QT_VERSION[0:4]+"." + str(it) for it in reversed(range(1,10))]:
 						try:
-							PipInstall([name])
+							PipInstall(["--user",name])
 							print("Installed",name)
 							break
 						except:

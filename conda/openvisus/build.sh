@@ -1,28 +1,13 @@
-#/usr/bin/env bash
+#!/bin/bash
 
-set -ex 
-
-CMAKE_BUILD_TYPE=RelWithDebInfo
+# TODO for python2.x we probably have to add -DPYTHON_VERSION=2
 
 mkdir -p build
 cd build
 
-cmake \
-	-DPYTHON_EXECUTABLE=$PYTHON \
-	-DPYTHON_VERSION=$PY_VER \
-	-DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
-	-DDISABLE_OPENMP=1 \
-	-DVISUS_GUI=0 \
-	-DVISUS_INTERNAL_DEFAULT=1 \
-	-DVISUS_INTERNAL_OPENSSL=0 \
-	-DVISUS_INTERNAL_CURL=0 \
-	-DCMAKE_INSTALL_PREFIX=$PREFIX \
-	..
-
+cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DDISABLE_OPENMP=1 -DVISUS_GUI=0 -DVISUS_INTERNAL_DEFAULT=1 ..
 cmake --build . --target all -- -j 4
+cmake --build . --target install
 
-python \
-	setup.py install \
-	--prefix=${PREFIX} \
-	--single-version-externally-managed \
-	--record=record.txt
+cd install
+$PYTHON setup.py install --single-version-externally-managed --record=record.txt

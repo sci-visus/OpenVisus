@@ -65,7 +65,11 @@ add_library(curl STATIC
 	vtls/cyassl.c vtls/schannel.c vtls/darwinssl.c vtls/gskit.c           
 	vtls/mbedtls.c)
 
-if (VISUS_INTERNAL_OPENSSL)
+if (TARGET zlib)
+	target_link_libraries(curl PRIVATE zlib)
+endif()
+
+if (TARGET crypto)
 	target_link_libraries(curl PRIVATE crypto ssl)
 else()
 	target_include_directories(curl PRIVATE ${OPENSSL_INCLUDE_DIR})
@@ -75,3 +79,5 @@ target_compile_definitions(curl PRIVATE BUILDING_LIBCURL)
 target_include_directories(curl PRIVATE ./ ../include)
 target_include_directories(curl PUBLIC  ../include)
 set_target_properties(curl PROPERTIES FOLDER "InternalLibs/")
+
+
