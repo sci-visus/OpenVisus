@@ -1,4 +1,4 @@
-set CMAKE_BUILD_TYPE=RelWithDebugInfo
+set CMAKE_BUILD_TYPE=RelWithDebInfo
 
 mkdir build 
 cd build 
