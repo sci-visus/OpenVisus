@@ -3,26 +3,21 @@ import sys, os
 
 # Qt5 does not work in debug mode
 # important to import before OpenVisus
-bQtAvailable=True
+use_pqyt=True
 try:
 	import PyQt5
 	from PyQt5.QtCore    import *
 	from PyQt5.QtWidgets import *
 	from PyQt5.QtGui     import *
+	import PyQt5.sip as  sip
 except ImportError:
-	bQtAvailable=False
+	use_pqyt=False
 
 from OpenVisus import *
 
-# sip does not work in debug mode
-bSipAvailable=True
-try:
-    import sip
-except ImportError:
-	 bSipAvailable=False
 
 # ///////////////////////////////////////////////////////////
-if bQtAvailable:
+if use_pqyt:
 	class MyWidget(QWidget):
 	    
 		# __init__
@@ -85,21 +80,22 @@ if __name__ == '__main__':
 	SetCommandLine("__main__")
 	GuiModule.createApplication()
 	AppKitModule.attach()  
-	VISUS_REGISTER_PYTHON_OBJECT_CLASS("MyPythonNode")
 
 	viewer=Viewer()
 	viewer.openFile("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1") 
 
 	# example of adding a PyQt5 widget to C++ Qt
-	if bSipAvailable and bQtAvailable:
+	if use_pqyt:
 		mywidget=MyWidget()
 		viewer.addDockWidget("MyWidget",ToCppQtWidget(sip.unwrapinstance(mywidget)))
 
 	# example of adding a python node to the dataflow
-	if True:
+	add_python_node=False
+	if add_python_node:
 		root=viewer.getRoot()
 		world_box=viewer.getWorldBoundingBox()
-
+		
+		VISUS_REGISTER_PYTHON_OBJECT_CLASS("MyPythonNode")
 		pynode=MyPythonNode()
 		pynode.glSetRenderQueue(999)
 		pynode.setNodeBounds(Position(world_box))
@@ -109,10 +105,8 @@ if __name__ == '__main__':
 		query_node=viewer.findNodeByName("Volume 1")
 		viewer.connectPorts(query_node,"data","data",pynode)
 	 
-	print("Executing app...")
 	GuiModule.execApplication()
-	print("Deallocating viewer...")
 	viewer=None  
-  
 	AppKitModule.detach()
+	print("All done")
 	sys.exit(0)

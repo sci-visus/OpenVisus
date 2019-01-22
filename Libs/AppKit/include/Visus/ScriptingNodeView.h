@@ -44,7 +44,7 @@ For support : support@visus.net
 #include <Visus/Model.h>
 #include <Visus/GuiFactory.h>
 
-
+#include <QTimer>
 
 namespace Visus {
 
@@ -69,24 +69,10 @@ public:
   Widgets widgets;
 
   //constructor
-  ScriptingNodeView(ScriptingNode* model=nullptr) 
-  {
-    VisusAssert(VisusHasMessageLock());
-
-    connect(&output_timer, &QTimer::timeout, [this]() {
-      flushOutputs();
-    });
-
-    output_timer.start(200);
-
-    if (model)
-      bindModel(model);
-  }
+  ScriptingNodeView(ScriptingNode* model = nullptr);
 
   //destructor
-  virtual ~ScriptingNodeView() {
-    bindModel(nullptr);
-  }
+  virtual ~ScriptingNodeView();
 
   //clearPresets
   virtual void clearPresets() override {
@@ -98,64 +84,18 @@ public:
     widgets.presets->addItem(key.c_str());
   }
 
-  //appendOutput
-  virtual void appendOutput(String s) override {
-    ScopedLock lock(outputs_lock);
-    outputs.push_back(s);
-  }
+  //see https://stackoverflow.com/questions/1956407/how-to-redirect-stderr-in-python-via-python-c-api
+
 
   //bindModel
-  virtual void bindModel(ScriptingNode* model) override
-  {
-    if (this->model)
-    {
-      QUtils::clearQWidget(this);
-      widgets = Widgets();
-    }
-
-    ScriptingNodeBaseView::bindModel(model);
-
-    if (this->model)
-    {
-      QVBoxLayout* layout = new QVBoxLayout();
-
-      layout->addWidget(new QLabel("Input"));
-
-      //presets
-      auto presets= model->getPresets();
-
-      layout->addWidget(widgets.presets = GuiFactory::CreateComboBox(presets.empty() ? "" : presets[0], presets, [this](const String value) {
-        auto code = this->model->getPresetCode(value);
-        this->model->setCode(code);
-      }));
-
-      //code
-      layout->addWidget(widgets.txtCode = GuiFactory::CreateTextEdit());
-
-      {
-        auto row = (new QHBoxLayout());;
-
-        row->addWidget(widgets.btnRun = GuiFactory::CreateButton("Run", [this](bool) {
-          this->model->setCode(cstring(widgets.txtCode->toPlainText()));
-        }));
-
-        layout->addLayout(row);
-      }
-
-      layout->addWidget(new QLabel("Output"));
-
-      //output
-      layout->addWidget(widgets.txtOutput = GuiFactory::CreateTextEdit());
-      setLayout(layout);
-      refreshGui();
-    }
-  }
+  virtual void bindModel(ScriptingNode* model) override;
 
 private:
 
-  QTimer              output_timer;
-  std::vector<String> outputs;
-  CriticalSection     outputs_lock;
+  PyObject* __stdout__ = nullptr;
+  PyObject* __stderr__ = nullptr;
+
+  QTimer     output_timer;
 
   //refreshGui
   void refreshGui()
@@ -170,26 +110,13 @@ private:
   }
 
   //flushOutputs
-  void flushOutputs()
-  {
-    VisusAssert(VisusHasMessageLock());
-    ScopedLock lock(outputs_lock);
-    for (auto output : outputs)
-    {
-#if 1
-      widgets.txtOutput->moveCursor(QTextCursor::End);
-      widgets.txtOutput->insertPlainText(output.c_str());
-      widgets.txtOutput->insertPlainText("\n");
-      widgets.txtOutput->moveCursor(QTextCursor::End);
-#else
-      widgets.txtOutput->setTextColor(QUtils::convert<QColor>(Colors::Red));
-      widgets.txtOutput->append((StringUtils::format() << "[" << Time::now().getFormattedLocalTime() << "]").str().c_str());
-      widgets.txtOutput->setTextColor(QUtils::convert<QColor>(Colors::Black));
-      widgets.txtOutput->append((StringUtils::format() << output).str().c_str());
-#endif
-    }
-    outputs.clear();
-  }
+  void flushOutputs();
+
+  //showEvent
+  virtual  void showEvent(QShowEvent *) override;
+
+  //hideEvent
+  virtual void hideEvent(QHideEvent *) override;
 
 };
 

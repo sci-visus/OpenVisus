@@ -1,5 +1,8 @@
 # //////////////////////////////////////////////////////////////////////
 # How to build OpenVisus Docker container
+#
+# Note: for development with anaconda enabled, please see Docker/anaconda/README.md.
+#
 
 Compile and run the docker container. 
 For example:
@@ -60,4 +63,3 @@ docker exec -it  manylinux /bin/bash
 cd /home/OpenVisus
 export BUILD_DIR=/home/OpenVisus/build/manylinux
 CMake/build_manylinux.sh
-

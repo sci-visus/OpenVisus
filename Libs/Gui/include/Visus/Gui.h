@@ -84,6 +84,9 @@ public:
   static void destroyApplication();
 };
 
+//having the same function name between two modules seems not to work (one will overwrite the second)
+#if !SWIG
+
 inline String cstring(QString value) {
 #if 1
   return value.toUtf8().constData();
@@ -99,6 +102,8 @@ inline double cdouble(QString value) {
 inline double cint(QString value) {
   return cint(cstring(value));
 }
+
+#endif
 
 #if !SWIG
 namespace QUtils {

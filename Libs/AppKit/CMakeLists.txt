@@ -30,6 +30,7 @@ set(ViewSources
 	./include/Visus/QueryNodeView.h
 	./include/Visus/RenderArrayNodeView.h
 	./include/Visus/ScriptingNodeView.h
+	./src/ScriptingNodeView.cpp
 	./include/Visus/StatisticsNodeView.h
 	./include/Visus/TimeNodeView.h
 	./include/Visus/TransferFunctionView.h 

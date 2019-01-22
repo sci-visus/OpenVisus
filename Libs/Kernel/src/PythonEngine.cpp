@@ -47,6 +47,10 @@ For support : support@visus.net
 
 #include <pydebug.h>
 
+//see VIsusMacros (necessary to share type info)
+#define SWIG_TYPE_TABLE OpenVisus
+#include <Visus/swigpyrun.h>
+
 #if PY_MAJOR_VERSION <3
   #define char2wchar(arg) ((char*)arg)
 #else
@@ -269,6 +273,36 @@ void PythonEngine::addSysPath(String value,bool bVerbose) {
 
 static std::atomic<int> module_id(0);
 
+
+
+///////////////////////////////////////////////////////////////////////////
+template <typename ValueClass>
+PyObject* NewPyObjectWithType(ValueClass value, swig_type_info* type_info) {
+  return SWIG_NewPointerObj(new ValueClass(value), type_info, SWIG_POINTER_OWN);
+}
+
+///////////////////////////////////////////////////////////////////////////
+template <typename ReturnClass>
+ReturnClass GetSwigModuleAttr(PyObject* py_object, String name, swig_type_info* type_info)
+{
+  if (!py_object)
+    ThrowException(StringUtils::format() << "cannot find '" << name << "' in module");
+
+  ReturnClass* ptr = nullptr;
+  int res = SWIG_ConvertPtr(py_object, (void**)&ptr, type_info, 0);
+
+  if (!SWIG_IsOK(res) || !ptr)
+    ThrowException(StringUtils::format() << "cannot case '" << name << "' to " << type_info->name);
+
+  ReturnClass ret = (*ptr);
+
+  if (SWIG_IsNewObj(res))
+    delete ptr;
+
+  return ret;
+}
+
+
   ///////////////////////////////////////////////////////////////////////////
 PythonEngine::PythonEngine(bool bVerbose) 
 {
@@ -360,17 +394,12 @@ PythonEngine::~PythonEngine()
 {
   VisusInfo() << "Destroying PythonEngine " << this->module_name << "...";
 
-  ScopedAcquireGil acquire_gil;
-
-  if (__redirect_output__) {
-    execCode("__redirect_output__.restoreOldIO()");
-    delModuleAttr("__redirect_output__");
-    __redirect_output__ = nullptr;
-  }
-
   // Delete the module from sys.modules
-  PyObject* modules = PyImport_GetModuleDict();
-  PyDict_DelItemString(modules, module_name.c_str());
+  {
+    ScopedAcquireGil acquire_gil;
+    PyObject* modules = PyImport_GetModuleDict();
+    PyDict_DelItemString(modules, module_name.c_str());
+  }
 }
 
 
@@ -506,29 +535,29 @@ PyObject* PythonEngine::newPyObject(String s) {
 
 ///////////////////////////////////////////////////////////////////////////
 PyObject* PythonEngine::newPyObject(Aborted value) {
-  return newPyObject<Aborted>(value, swig_type_aborted);
+  return NewPyObjectWithType<Aborted>(value, (swig_type_info*)swig_type_aborted);
 }
 
 ///////////////////////////////////////////////////////////////////////////
 PyObject* PythonEngine::newPyObject(Array value) {
-  return newPyObject<Array>(value, swig_type_array);
+  return NewPyObjectWithType<Array>(value, (swig_type_info*)swig_type_array);
 }
 
 ///////////////////////////////////////////////////////////////////////////
 Aborted PythonEngine::getModuleAbortedAttr(String name) {
-  return getSwigModuleAttr<Aborted>(name, swig_type_aborted);
+  return GetSwigModuleAttr<Aborted>(getModuleAttr(name), name, (swig_type_info *)swig_type_aborted);
 }
 
 ///////////////////////////////////////////////////////////////////////////
 Array PythonEngine::getModuleArrayAttr(String name) {
-  return getSwigModuleAttr<Array>(name, swig_type_array);
+  return GetSwigModuleAttr<Array>(getModuleAttr(name), name, (swig_type_info *)swig_type_array);
 }
 
 ///////////////////////////////////////////////////////////////////////////
 Array PythonEngine::toArray(PyObject* py_object) {
 
   Array* ptr = nullptr;
-  int res = SWIG_ConvertPtr(py_object, (void**)&ptr, swig_type_array, 0);
+  int res = SWIG_ConvertPtr(py_object, (void**)&ptr, (swig_type_info *)swig_type_array, 0);
 
   if (!SWIG_IsOK(res) || !ptr)
     ThrowException(StringUtils::format() << "cannot convert to array");
@@ -539,47 +568,6 @@ Array PythonEngine::toArray(PyObject* py_object) {
     delete ptr;
 
   return ret;
-}
-
-
-///////////////////////////////////////////////////////////////////////////
-void PythonEngine::redirectOutputTo(std::function<void(String)> value)
-{
-  ScopedAcquireGil acquire_gil;
-
-  execCode(
-    "import sys\n"
-    "class RedirectOutput :\n"
-    "  def __init__(self) :\n"
-    "    self.stdout,self.stderr = (sys.stdout,sys.stderr)\n"
-    "    sys.stdout,sys.stderr   = (self,self)\n"
-    "  def __del__(self) :\n"
-    "    self.restoreOldIO()\n"
-    "  def restoreOldIO(self): \n"
-    "    sys.stdout,sys.stderr = (self.stdout,self.stderr)\n"
-    "  def write(self, msg) :\n"
-    "   self.internalWrite(msg)\n"
-    "  def flush(self) :\n"
-    "    pass\n"
-    "__redirect_output__=RedirectOutput()\n"
-  );
-
-  __redirect_output__ = getModuleAttr("__redirect_output__");
-  VisusAssert(__redirect_output__);
-
-  addObjectMethod(__redirect_output__, "internalWrite", [value](PyObject*, PyObject* args)
-  {
-    VisusAssert(PyTuple_Check(args));
-    for (int I = 0, N = (int)PyTuple_Size(args); I < N; I++) {
-      auto obj = PyTuple_GetItem(args, I);
-      auto s = PythonEngine::convertToString(obj);
-      value(s);
-    }
-    auto ret = Py_None;
-    incrRef(ret);
-    return ret;
-  });
-
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -647,6 +635,13 @@ String PythonEngine::getLastErrorMessage()
   return out.str();
 #endif
 }
+
+///////////////////////////////////////////////////////////////////////////
+void PythonEngine::print(String message)
+{
+  PySys_WriteStdout("%s", message.c_str());
+}
+
 
 ///////////////////////////////////////////////////////////////////////////
 static void PythonPrintCrLfIfNeeded()

@@ -273,6 +273,17 @@ public:
   //setComponent
   bool setComponent(int C, Array src, Aborted aborted = Aborted());
 
+  //fromVectorInt32
+  static Array fromVectorInt32(NdPoint dims, const std::vector<Int32>& vector) {
+    return fromVector<Int32>(dims, DTypes::INT32, vector);
+  }
+
+  //fromVectorFloat64
+  static Array fromVectorFloat64(NdPoint dims, const std::vector<Float64>& vector) {
+    return fromVector<Float64>(dims, DTypes::FLOAT64, vector);
+  }
+
+
 public:
 
   //writeToObjectStream

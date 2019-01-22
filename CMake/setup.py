@@ -8,7 +8,7 @@ import atexit
 import setuptools
 from configure import *
 	
-PROJECT_VERSION="1.2.172"
+PROJECT_VERSION="1.2.178"
 PROJECT_NAME="OpenVisus"
 PROJECT_URL="https://github.com/sci-visus/OpenVisus"
 PROJECT_DESCRIPTION="ViSUS multiresolution I/O, analysis, and visualization system"
@@ -38,23 +38,13 @@ if __name__ == "__main__":
 
 			if filename.startswith(os.path.abspath('./dist')): 
 				continue
-			
-			# for bdist wheel (i.e. *.whl file) I do not add developer files
-			if BDIST_WHEEL and filename.startswith(os.path.abspath('./lib')):
-				continue
-			
-			if BDIST_WHEEL and filename.startswith(os.path.abspath('./include')): 
-				continue		    	
-
-			if BDIST_WHEEL and WIN32 and filename.startswith(os.path.abspath('./win32/python')):
-				continue
-
-			if BDIST_WHEEL and WIN32 and filename.endswith(".pdb"): 
-				continue
 				
 			if "__pycache__" in filename:
-				continue	    				
-						
+				continue	    							
+
+			#if BDIST_WHEEL and WIN32 and filename.endswith(".pdb"): 
+			#	continue
+				
 			files.append(filename)
 			
 	setuptools.setup(
