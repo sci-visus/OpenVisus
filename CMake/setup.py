@@ -1,6 +1,5 @@
 import os
 import sys
-import pip
 import shutil
 import platform
 import glob
@@ -8,8 +7,9 @@ import atexit
 import setuptools
 from configure import *
 	
+git grep -l 'old' | xargs sed -i 's/old/new/g'
 PROJECT_NAME="OpenVisus"
-PROJECT_VERSION="1.2.179"
+PROJECT_VERSION="1.2.180"
 
 # ////////////////////////////////////////////////////////////////////
 def findFilesInCurrentDirectory():

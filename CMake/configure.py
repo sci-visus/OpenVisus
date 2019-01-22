@@ -121,21 +121,19 @@ def RecursiveFindFiles(rootdir='.', pattern='*'):
           for filename in filenames
           if fnmatch.fnmatch(filename, pattern)]
 
-	
-
 # ////////////////////////////////////////////////////////////////////
 def PipInstall(args):
 	cmd=[sys.executable,"-m","pip","install"] + args
 	print("# Executing",cmd)
 	return_code=subprocess.call(cmd)
-	if return_code!=0:
-		raise Exception("Cannot install",args)	
+	return return_code==0
 
 # ////////////////////////////////////////////////////////////////////
 def PipUninstall(args):
 	cmd=[sys.executable,"-m","pip","uninstall","-y"] + args
 	print("# Executing",cmd)
 	return_code=subprocess.call(cmd)
+	return return_code==0
 
 
 # ///////////////////////////////////////////////////////////////////////////
@@ -581,13 +579,11 @@ class CMakePostInstall:
 		
 			else:
 				LinuxDeployStep().fixAllDeps()
-			
+
 		# create sdist and wheel
 		# for conda I need to ignore any error
-		try:
-			PipInstall(["--upgrade","--user","setuptools","wheel"])	
-		except:	
-			pass 
+		PipInstall(["--upgrade","--user","setuptools"])	
+		PipInstall(["--upgrade","--user","wheel"     ])	
 
 		# remove any previous distibution
 		RemoveFiles("dist/*")
@@ -667,12 +663,10 @@ class Configure:
 					# need to install a compatible version
 					PipUninstall(["PyQt5"])
 					for name in ["PyQt5=="+self.QT_VERSION] + ["PyQt5=="+self.QT_VERSION[0:4]+"." + str(it) for it in reversed(range(1,10))]:
-						try:
-							PipInstall(["--user",name])
+						if PipInstall(["--user",name])
 							print("Installed",name)
 							break
-						except:
-							print("Failed to install",name)					
+						print("Failed to install",name)					
 
 				import PyQt5
 				print(dir(PyQt5))
