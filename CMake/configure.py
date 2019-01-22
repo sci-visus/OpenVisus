@@ -663,7 +663,7 @@ class Configure:
 					# need to install a compatible version
 					PipUninstall(["PyQt5"])
 					for name in ["PyQt5=="+self.QT_VERSION] + ["PyQt5=="+self.QT_VERSION[0:4]+"." + str(it) for it in reversed(range(1,10))]:
-						if PipInstall(["--user",name])
+						if PipInstall(["--user",name]):
 							print("Installed",name)
 							break
 						print("Failed to install",name)					
