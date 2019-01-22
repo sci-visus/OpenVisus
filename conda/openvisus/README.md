@@ -12,7 +12,7 @@ Otherwise keep reading.
 Prerequisites for windows: remeber to install "Visual Studio 2015" with C++.
 Check that both this components are installed: "Common tools for visual c++ 2015" AND "Tools and Windows XX SDK"
 
-Install conda build components and make sure your python is a `conda` one:
+Prerequisites for all platforms:
 
 ```
 conda install conda-build

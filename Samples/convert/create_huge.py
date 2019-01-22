@@ -7,12 +7,10 @@ visus_cmd= "%s\\visus.exe" % (build_dir,)
 python_dir="C:\\Python36"	
 qt5_dir="C:\\Qt\\Qt5.9.2\\5.9.2\\msvc2017_64\\bin"	
 
-cmd_env={
-	**os.environ, 
-	"PATH": python_dir + ";" + python_dir + "\\Scripts" + ";" + qt5_dir + "\\bin;" + ".\\bin" + os.environ['PATH'],
-	"QT_PLUGIN_PATH": qt5_dir+ "\\plugins",
-	"PYTHONPATH":build_dir
-}	
+cmd_env=os.environ.copy()
+cmd_env["PATH"]=python_dir + ";" + python_dir + "\\Scripts" + ";" + qt5_dir + "\\bin;" + ".\\bin" + os.environ['PATH']
+cmd_env["QT_PLUGIN_PATH"]=qt5_dir+ "\\plugins"
+cmd_env["PYTHONPATH"]=build_dir
 
 Piece=(1024,1024,1024)
 
