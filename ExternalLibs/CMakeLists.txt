@@ -12,3 +12,5 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/xidx/include/xidx
         ${LIBXML2_INCLUDE_DIR})
 
 AddSwigLibrary(xidx xidx ${CMAKE_CURRENT_SOURCE_DIR}/xidx/include/xidx/xidx.i)
+
+target_link_libraries(_xidx PUBLIC xidx ${PYTHON_LIBRARIES} ${LIBXML2_LIBRARIES})
