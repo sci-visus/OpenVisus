@@ -29,7 +29,6 @@ endif()
 
 MESSAGE(STATUS "CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}")
 
-
 include(CMake/VisusMacros.cmake)
 SetupCommonCMake()
 
@@ -228,6 +227,9 @@ add_subdirectory(InternalLibs)
 add_subdirectory(Libs)
 add_subdirectory(Executable)
 
+# ______________________________________________
+# *** xidx
+add_subdirectory(ExternalLibs)
 
 # //////////////////////////////////////////////////////////////
 # *** testing and external apps ***
@@ -239,8 +241,12 @@ if (1)
   AddCTest(VisusTestPyDataflow ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Dataflow.py)
   AddCTest(VisusTestPyArray    ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Array.py)
   AddCTest(VisusTestPyIdx      ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py)
-	
-  # disabled: takes too much time, in case you modify some core IDX class you can run it manually
+
+	# testing xidx write and read
+  AddCTest(XidxWrite           ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/ExternalLibs/xidx/test/write_sub.py)
+  AddCTest(XidxRead            ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/ExternalLibs/xidx/test/read_sub.py)
+
+	# disabled: takes too much time, in case you modify some core IDX class you can run it manually
   if (0)
   	AddCTest(VisusTestIdx      $<TARGET_FILE:visus> ${CMAKE_CURRENT_SOURCE_DIR}  --test-idx --max-seconds 300)
   endif()
@@ -260,7 +266,6 @@ if (True)
 
 	# swig generated files (important to be the first since I could have changed some *.py files meantime)
 	InstallBuildFiles(*.py ./)
-	
 
 	file(GLOB CMakePySources CMake/*.py)
 	
