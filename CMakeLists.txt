@@ -227,9 +227,6 @@ add_subdirectory(InternalLibs)
 add_subdirectory(Libs)
 add_subdirectory(Executable)
 
-# ______________________________________________
-# *** xidx
-add_subdirectory(ExternalLibs)
 
 # //////////////////////////////////////////////////////////////
 # *** testing and external apps ***
@@ -242,9 +239,6 @@ if (1)
   AddCTest(VisusTestPyArray    ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Array.py)
   AddCTest(VisusTestPyIdx      ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py)
 
-	# testing xidx write and read
-  AddCTest(XidxWrite           ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/ExternalLibs/xidx/test/write_sub.py)
-  AddCTest(XidxRead            ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/ExternalLibs/xidx/test/read_sub.py)
 
 	# disabled: takes too much time, in case you modify some core IDX class you can run it manually
   if (0)

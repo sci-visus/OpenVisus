@@ -135,6 +135,7 @@ typedef std::string String;
 
 VISUS_KERNEL_API inline String     cstring(bool   v) { return v ? "True" : "False"; }
 VISUS_KERNEL_API inline String     cstring(int    v) { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring(Uint32 v) { return std::to_string(v); }
 VISUS_KERNEL_API inline String     cstring(float  v) { return std::to_string(v); }
 VISUS_KERNEL_API inline String     cstring(double v) { return std::to_string(v); }
 VISUS_KERNEL_API inline String     cstring(Int64  v) { return std::to_string(v); }
