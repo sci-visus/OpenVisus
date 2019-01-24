@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--Root element of dataset-->
+<!ELEMENT Xidx (Group+)>
+<!ATTLIST Xidx
+    Version CDATA #IMPLIED
+    xmlns:xi   CDATA       #FIXED    "http://www.w3.org/2001/XInclude"
+>
+
+<!ATTLIST xi:include
+    xmlns:xi   CDATA       #FIXED    "http://www.w3.org/2001/XInclude"
+    href       CDATA       #IMPLIED
+    parse      (xml|text)  "xml"
+    xpointer   CDATA       #IMPLIED
+    encoding   CDATA       #IMPLIED 
+    accept     CDATA       #IMPLIED
+    accept-language CDATA  #IMPLIED >
+
+<!--Contains domain data information-->
+<!ELEMENT Domain (DataItem*, Topology*, Geometry*, Variable*, Attribute*)>
+<!ATTLIST Domain
+	Name CDATA #IMPLIED
+    Type (Spatial | HyperSlab | List | MultiAxis | Range) "Spatial"
+>
+
+<!--Describes a file reference-->
+<!ELEMENT DataSource (DataItem*)>
+<!ATTLIST DataSource
+    Name CDATA #IMPLIED
+    Url CDATA #IMPLIED
+>
+
+<!--Contains a collection of homogeneous elements
+    Variability type specifies if the group content 
+    changes in the parent domain (Variable) or not (Static)
+-->
+<!ELEMENT Group (IndexSpace*, Group*)>
+<!ATTLIST Group
+	Name CDATA #IMPLIED
+	Type (Temporal | Spatial) "Temporal"
+    VariabilityType (Static | Variable) "Static"
+    Index CDATA #IMPLIED
+>
+
+<!--Describes the general organization of the data-->
+<!ELEMENT Topology (Information*, DataItem*)>
+<!ATTLIST Topology
+	TopologyType (NoTopologyType | Polyvertex | Polyline | Polygon | Triangle | Quadrilateral | Tetrahedron | Wedge | Hexahedron | Edge_3 | Triangle_6 | Quadrilateral_8 | Quadrilateral_9 | Tetrahedron_10 | Pyramid_13 | Wedge_15 | Wedge_18 | Hexahedron_20 | Hexahedron_24 | Hexahedron_27 | Hexahedron_64 | Hexahedron_125 | Hexahedron_216 | Hexahedron_343 | Hexahedron_512 | Hexahedron_729 | Hexahedron_1000 | Hexahedron_1331 | Hexahedron_Spectral_64 | Hexahedron_Spectral_125 | Hexahedron_Spectral_216 | Hexahedron_Spectral_343 | Hexahedron_Spectral_512 | Hexahedron_Spectral_729 | Hexahedron_Spectral_1000 | Hexahedron_Spectral_1331 | Mixed | 2DSMesh | 2DRectMesh | 2DCoRectMesh | 3DSMesh | 3DRectMesh | 3DCoRectMesh | Linear) #REQUIRED
+	Dimensions CDATA #IMPLIED
+>
+
+<!--Describes the XYZ values of the mesh-->
+<!ELEMENT Geometry (Attribute*, DataItem+)>
+<!ATTLIST Geometry
+	Name CDATA #IMPLIED
+	GeometryType (XYZ | XY | X | X_Y_Z | VXVYVZ | ORIGIN_DXDYDZ | RECT | MULTI_RECT | MULTI_AXIS) "RECT"
+>
+
+<!--Lowest level element, describes the actual data that is present in a dataset file-->
+<!ELEMENT DataItem (#PCDATA | DataItem | DataSource)*>
+<!ATTLIST DataItem
+	Name CDATA #IMPLIED
+	Dimensions CDATA #REQUIRED
+	NumberType (Char | UChar | Float | Int | UInt) "Float"
+	BitPrecision (1 | 4 | 8 | 16 | 32 | 64) "32"
+	ComponentNumber (1 | 2 | 3) "1"
+	Endian (Big | Little | Native) "Native"
+	Format (XML | HDF | Binary | TIFF | IDX) "XML"
+	Type (Uniform | Collection | Tree | HyperSlab | Coordinates | Function | Rect) "Uniform"
+>
+
+<!--Describes the values on the mesh-->
+<!ELEMENT Variable (Domain*, Attribute*, DataItem)>
+<!ATTLIST Variable
+	Name CDATA #IMPLIED
+	Center (Node | Cell | Grid | Face | Edge) "Node"
+>
+
+<!-- Application Dependent -->
+<!ELEMENT Attribute (#PCDATA | Attribute | EMPTY)*>
+<!ATTLIST Attribute 
+	Name CDATA #IMPLIED
+	Value CDATA #IMPLIED
+>

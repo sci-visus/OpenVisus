@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Xidx SYSTEM "Xidx.dtd">
+<Xidx xmlns:xi="http://www.w3.org/2001/XInclude" Version="2.0">
+  <Group Name="TimeSeries" Type="Temporal" VariabilityType="Static">
+    <DataSource Name="data" Url="file_path"/>
+    <Domain Type="HyperSlab">
+      <DataItem NumberType="Float" BitPrecision="64" Dimensions="3">2.000000 0.200000 3.000000</DataItem>
+    </Domain>
+    <Group Name="L0" Type="Spatial" VariabilityType="Static">
+      <Domain Type="Spatial">
+        <Topology Type="3DCoRectMesh" Dimensions="10 20 30"/>
+        <Geometry Type="Origin_DxDyDz">
+          <DataItem NumberType="Float" Dimensions="3">0.000000 0.000000 0.000000</DataItem>
+          <DataItem NumberType="Float" Dimensions="3">1.000000 1.000000 1.000000</DataItem>
+        </Geometry>
+      </Domain>
+      <Variable Name="var_0" Center="Cell">
+        <DataItem Format="IDX" NumberType="Float" BitPrecision="32"/>
+      </Variable>
+      <Variable Name="var_1" Center="Cell">
+        <DataItem Format="IDX" NumberType="Float" BitPrecision="32"/>
+      </Variable>
+      <Variable Name="var_2" Center="Cell">
+        <DataItem Format="IDX" NumberType="Float" BitPrecision="32"/>
+      </Variable>
+      <Variable Name="var_3" Center="Cell">
+        <DataItem Format="IDX" NumberType="Float" BitPrecision="32"/>
+      </Variable>
+    </Group>
+  </Group>
+</Xidx>
