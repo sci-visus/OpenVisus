@@ -107,30 +107,19 @@ public:
   virtual ~Variable() {
   }
   
-  //addValues
-  virtual void addValues(std::vector<double> vals)
+  //setValues
+  virtual void setValues(std::vector<double> values,int stride=1)
   {
     ensureDataItem();
-    int stride = (int)vals.size();
-    for(auto v:vals)
-      this->data_items[0]->addValue(v, stride);
+    this->data_items[0]->setValues(values,stride);
   }
   
-  //addValue
-  virtual int addValue(double v)
-  {
-    ensureDataItem();
-    this->data_items[0]->addValue(v);
-    return 0;
-  }
-
   //getValues
   std::vector<double> getValues(int axis = 0) const{
     if(data_items.size() > axis)
       return data_items[axis]->values;
     else
       VisusInfo()<<"Axis"<< axis<<" does not exist";
-
     return std::vector<double>();
   }
   

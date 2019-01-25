@@ -147,10 +147,12 @@ public:
   
   //node infos
   std::vector<int>                    dimensions;
-  DType                               dtype= DTypes::FLOAT32;
   String                              reference;
   Endianess                           endian_type;
   FormatType                          format_type;
+  DType                               dtype = DTypes::FLOAT32;
+
+  //scrgiorgio: special case for embedded values, should we create another element for this?
   std::vector<double>                 values;
 
   //down
@@ -159,14 +161,6 @@ public:
   
   //constructor
   DataItem(String name_="") : XIdxElement(name_){
-  }
-
-  //constructor
-  DataItem(std::vector<double> values)
-  {
-    this->dtype = DType::fromString("float64");
-    for (auto value : values)
-      addValue(value);
   }
 
   //setDataSource
@@ -189,27 +183,17 @@ public:
       total *= dimensions[i];
     return total;
   }
-  
-  //addValue
-  void addValue(double v, int stride){
-    this->values.push_back(v);
-    dimensions.resize(stride);
-    dimensions[0] = (int)(values.size()/stride);
-    dimensions[1] = stride;
-  }
-  
-  //addValue
-  void addValue(double v){
-    this->values.push_back(v);
-    dimensions.resize(1);
-    dimensions[0] = (int)values.size();
-  }
-
+ 
   //setValues
-  void setValues(std::vector<double> values) {
+  void setValues(std::vector<double> values,int stride=1) 
+  {
+    this->dtype = DType::fromString("float64");
     this->values = values;
-    this->dimensions.resize(1);
-    this->dimensions[0] = (int)values.size();
+    this->dimensions.resize(stride);
+    this->dimensions[0] = (int)(values.size() / stride);
+
+    if (stride > 1) 
+      this->dimensions[1] = stride; //scrgiorgio ???
   }
   
   //getXPathPrefix

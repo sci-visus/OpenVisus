@@ -65,34 +65,38 @@ public:
   {
     XIdxElement::writeToObjectStream(ostream);
     ostream.writeInline("Url", url);
+    writeUrlContent(ostream);
 
-    auto content = Utils::loadTextDocument(this->url);
-    if (content.empty())
-      ThrowException(StringUtils::format() << "Unable to read file" << url);
-
-    //write the content in another file
-    if (this->use_cdata)
-    {
-      if (StringUtils::contains(url,"://"))
-        ThrowException("url data source inline not supported");
-
-      StringTree stree;
-      if (!stree.loadFromXml(content))
-        ThrowException("Invalid xml data");
-     
-      ostream.getCurrentContext()->addChild(stree);
-    }
-    //write the contend in cdata section
-    else
-    {
-      ostream.writeText(content, /*cdata*/true);
-    }
   }
 
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override {
     XIdxElement::readFromObjectStream(istream);
     this->url  = istream.readInline("Url");
+  }
+
+private:
+
+  //writeUrlContent
+  void writeUrlContent(ObjectStream& ostream)
+  {
+    auto content = Utils::loadTextDocument(this->url);
+    if (content.empty())
+      ThrowException(StringUtils::format() << "Unable to read file" << url);
+
+    //write the content in another file
+    if (use_cdata)
+    {
+      ostream.writeText(content, /*cdata*/true);
+      return;
+    }
+
+    //must be xml data
+    StringTree stree;
+    if (!stree.loadFromXml(content))
+      ThrowException("Invalid xml data");
+
+    ostream.getCurrentContext()->addChild(stree);
   }
 
 };

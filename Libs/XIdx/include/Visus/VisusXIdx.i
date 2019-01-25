@@ -27,11 +27,11 @@ ENABLE_SHARED_PTR(Geometry)
 ENABLE_SHARED_PTR(SpatialDomain)
 
 %template(VectorOfXIdxElement) std::vector< Visus::SharedPtr< Visus::XIdxElement > >;
-%template(VectorOfAttribute) std::vector< Visus::SharedPtr< Visus::Attribute > >;
-%template(VectorOfDataItem) std::vector< Visus::SharedPtr< Visus::DataItem > >;
-%template(VectorOfGroup) std::vector< Visus::SharedPtr< Visus::Group > >;
-%template(VectorOfVariable) std::vector< Visus::SharedPtr< Visus::Variable > >;
-%template(VectorOfDataSource) std::vector< Visus::SharedPtr< Visus::DataSource > >;
+%template(VectorOfAttribute)   std::vector< Visus::SharedPtr< Visus::Attribute   > >;
+%template(VectorOfDataItem)    std::vector< Visus::SharedPtr< Visus::DataItem    > >;
+%template(VectorOfGroup)       std::vector< Visus::SharedPtr< Visus::Group       > >;
+%template(VectorOfVariable)    std::vector< Visus::SharedPtr< Visus::Variable    > >;
+%template(VectorOfDataSource)  std::vector< Visus::SharedPtr< Visus::DataSource  > >;
 
 %include <Visus/xidx_element.h>
 %include <Visus/xidx_datasource.h>

@@ -101,10 +101,10 @@ public:
 
   VISUS_CLASS(Geometry)
   
-  GeometryType                             type;
+  GeometryType type;
 
   //down nodes
-  std::vector< std::shared_ptr<DataItem> > data_items;
+  std::vector< SharedPtr<DataItem> > data_items;
   
   //constructor
   Geometry(String name_="") : XIdxElement(name_){
