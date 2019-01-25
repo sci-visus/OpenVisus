@@ -102,6 +102,8 @@ public:
   VISUS_CLASS(Geometry)
   
   GeometryType                             type;
+
+  //down nodes
   std::vector< std::shared_ptr<DataItem> > data_items;
   
   //constructor
@@ -113,9 +115,9 @@ public:
   }
 
   //addDataItem
-  void addDataItem(SharedPtr<DataItem> item) {
-    item->setParent(this);
-    this->data_items.push_back(item);
+  void addDataItem(SharedPtr<DataItem> value) {
+    addEdge(this,value);
+    this->data_items.push_back(value);
   }
 
   //getVolume

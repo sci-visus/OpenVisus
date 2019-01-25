@@ -41,20 +41,14 @@ public:
 
   VISUS_CLASS(ListDomain)
 
-  int pdim = 1;
+  int stride = 1;
   std::vector<double> values;
   
   //constructor
   ListDomain(String name_ ="") : Domain(name_, DomainType::LIST_DOMAIN_TYPE) {
-    addDataItem(std::make_shared<DataItem>(name));
+    ensureDataItem();
   }
   
-  //addDataItem
-  void addDataItem(SharedPtr<DataItem> value) {
-    value->setParent(this);
-    data_items.push_back(value);
-  }
-
   //getLinearizedIndexSpace
   virtual LinearizedIndexSpace getLinearizedIndexSpace() override{
     return values;
@@ -66,8 +60,7 @@ public:
   virtual void writeToObjectStream(ObjectStream& ostream) override
   {
     Domain::readFromObjectStream(ostream);
-
-    ostream.writeInline("pdim", cstring(pdim));
+    ostream.writeInline("stride", cstring(stride));
     ostream.writeText(StringUtils::join(this->values));
   }
   
@@ -75,8 +68,7 @@ public:
   virtual void readFromObjectStream(ObjectStream& istream) override 
   {
     Domain::readFromObjectStream(istream);
-
-    this->pdim = cint(istream.readInline("pdim"));
+    this->stride = cint(istream.readInline("stride"));
     for (auto it : StringUtils::split(istream.readText()))
       this->values.push_back(cdouble(it));
   }

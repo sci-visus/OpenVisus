@@ -145,15 +145,17 @@ public:
 
   VISUS_CLASS(DataItem)
   
+  //node infos
   std::vector<int>                    dimensions;
   DType                               dtype= DTypes::FLOAT32;
   String                              reference;
-  String                              text;
   Endianess                           endian_type;
   FormatType                          format_type;
   std::vector<double>                 values;
-  SharedPtr<DataSource>               data_source;
+
+  //down
   std::vector< SharedPtr<Attribute> > attributes;
+  SharedPtr<DataSource>               data_source;
   
   //constructor
   DataItem(String name_="") : XIdxElement(name_){
@@ -169,14 +171,14 @@ public:
 
   //setDataSource
   void setDataSource(SharedPtr<DataSource> value) {
-    value->setParent(this);
+    addEdge(this, value);
     this->data_source = value;
   }
 
   //addAttribute
   void addAttribute(SharedPtr<Attribute> value)
   {
-    value->setParent(this);
+    addEdge(this, value);
     attributes.push_back(value);
   }
   
@@ -190,19 +192,24 @@ public:
   
   //addValue
   void addValue(double v, int stride){
-    values.push_back(v);
+    this->values.push_back(v);
     dimensions.resize(stride);
     dimensions[0] = (int)(values.size()/stride);
     dimensions[1] = stride;
-    this->text = StringUtils::join(this->values);
   }
   
   //addValue
   void addValue(double v){
-    values.push_back(v);
+    this->values.push_back(v);
     dimensions.resize(1);
     dimensions[0] = (int)values.size();
-    this->text = StringUtils::join(this->values);
+  }
+
+  //setValues
+  void setValues(std::vector<double> values) {
+    this->values = values;
+    this->dimensions.resize(1);
+    this->dimensions[0] = (int)values.size();
   }
   
   //getXPathPrefix
@@ -222,7 +229,7 @@ public:
       if (cursor->getVisusClassName() == "Group")
       {
         if (auto source = cursor->findChildWithName("DataSource"))
-          return dynamic_cast<DataSource*>(source);
+          return dynamic_cast<DataSource*>(source.get());
       }
     }
     

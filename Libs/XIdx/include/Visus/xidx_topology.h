@@ -94,8 +94,11 @@ public:
 
   VISUS_CLASS(Topology)
 
+  //node info
   TopologyType                         type;
   std::vector<int>                     dimensions;
+
+  //down nodes
   std::vector< SharedPtr<Attribute> >  attributes;
   std::vector< SharedPtr<DataItem> >   data_items;
 
@@ -109,13 +112,13 @@ public:
 
   //addAttribute
   void addAttribute(SharedPtr<Attribute> value) {
-    value->setParent(this);
+    addEdge(this, value);
     attributes.push_back(value);
   }
 
   //addDataItem
   void addDataItem(SharedPtr<DataItem> value) {
-    value->setParent(this);
+    addEdge(this, value);
     data_items.push_back(value);
   }
 

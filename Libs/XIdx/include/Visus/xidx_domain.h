@@ -93,26 +93,37 @@ public:
 
   typedef std::vector<double> LinearizedIndexSpace;
 
+  //node info
   DomainType                          type;
+
+  //down nodes
   std::vector< SharedPtr<Attribute> > attributes;
   std::vector< SharedPtr<DataItem> >  data_items;
   
   //constructor
   Domain(String name_,DomainType type_=DomainType()) : XIdxElement(name_),type(type_) {
-  };
+  }
+  
+  //ensureDataItem
+  void ensureDataItem() {
+    if (data_items.empty()) {
+      auto di = std::make_shared<DataItem>();
+      addDataItem(di);
+    }
+  }
 
   //createDomain
   static SharedPtr<Domain> createDomain(DomainType type);
 
   //addDataItem
   void addDataItem(SharedPtr<DataItem> value){
-    value->setParent(this);
+    addEdge(this, value);
     this->data_items.push_back(value);
   }
   
   //addAttribute
   void addAttribute(SharedPtr<Attribute> value) {
-    value->setParent(this);
+    addEdge(this, value);
     this->attributes.push_back(value);
   }
   

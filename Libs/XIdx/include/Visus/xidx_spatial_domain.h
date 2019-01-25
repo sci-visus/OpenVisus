@@ -40,6 +40,7 @@ public:
 
   VISUS_CLASS(SpatialDomain)
 
+  //down nodes
   SharedPtr<Topology> topology = std::make_shared<Topology>();
   SharedPtr<Geometry> geometry = std::make_shared<Geometry>();
   
@@ -49,13 +50,13 @@ public:
 
   //setTopology
   void setTopology(SharedPtr<Topology> value) { 
-    value->setParent(this);
+    addEdge(this, value);
     this->topology = value;
   }
   
   //setGeometry
   void setGeometry(SharedPtr<Geometry> value) {
-    value->setParent(this);
+    addEdge(this, value);
     this->geometry = value;
   }
 

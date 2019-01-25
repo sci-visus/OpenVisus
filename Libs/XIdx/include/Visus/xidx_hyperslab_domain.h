@@ -47,17 +47,11 @@ public:
   //constructor
   HyperSlabDomain(String name_="") : Domain(name_, DomainType::HYPER_SLAB_DOMAIN_TYPE)
   {
-    auto di = std::make_shared<DataItem>(name);
-    di->dtype = DTypes::FLOAT64;
-    addDataItem(di);
+    ensureDataItem();
+    data_items[0]->name = name;
+    data_items[0]->dtype = DTypes::FLOAT64;
   }
   
-  //setDataItem
-  void setDataItem(std::vector<double> v)
-  {
-    data_items[0]->dimensions = { (int)v.size() };
-    data_items[0]->text = StringUtils::join(v);
-  }
   
   //getLinearizedIndexSpace
   virtual LinearizedIndexSpace getLinearizedIndexSpace() override {
@@ -73,16 +67,13 @@ public:
   virtual void writeToObjectStream(ObjectStream& ostream) override
   {
     Domain::writeToObjectStream(ostream);
-
-    std::vector<double> v={ start,step,(double)count };
-    ostream.writeText(StringUtils::join(v));
+    ostream.writeText(StringUtils::join(std::vector<double>({ start,step,(double)count })));
   }
 
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override
   {
     Domain::readFromObjectStream(istream);
-
     std::istringstream parse(istream.readText());
     parse >> start >> step >> count;
   }

@@ -94,6 +94,8 @@ public:
   VISUS_CLASS(Variable)
 
   CenterType                          center_type;
+
+  //down nodes
   std::vector< SharedPtr<Attribute> > attributes;
   std::vector< SharedPtr<DataItem> >  data_items;
 
@@ -142,13 +144,13 @@ public:
   
   //addAttribute
   virtual void addAttribute(SharedPtr<Attribute> value){ 
-    value->setParent(this);
+    addEdge(this, value);
     this-> attributes.push_back(value);
   }
   
   //addDataItem
   virtual void addDataItem(SharedPtr<DataItem> value){ 
-    value->setParent(this);
+    addEdge(this, value);
     this->data_items.push_back(value);
   }
 

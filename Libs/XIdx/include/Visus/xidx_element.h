@@ -57,13 +57,19 @@ public:
   //getParent
   virtual XIdxElement* getParent() const {
     return parent;
-  };
+  }
 
-  //setParent
-  void setParent(XIdxElement *value) {
-    VisusAssert(this->parent == nullptr && value);
-    this->parent = value;
-    this->parent->childs.push_back(this);
+  //hasChild
+  bool hasChild(SharedPtr<XIdxElement> child) const {
+    return std::find(childs.begin(), childs.end(), child) == childs.end();
+  }
+
+  //addEdge
+  static void addEdge(XIdxElement* parent, SharedPtr<XIdxElement> child) {
+
+    VisusAssert(parent && child && !parent->hasChild(child) && child->parent == nullptr);
+    parent->childs.push_back(child);
+    child->parent = parent;
   }
 
   //getXPathPrefix
@@ -72,7 +78,7 @@ public:
   }
 
   //findChildWithName
-  XIdxElement* findChildWithName(String name)
+  SharedPtr<XIdxElement> findChildWithName(String name)
   {
     for (auto child : this->childs) {
       if (child->getVisusClassName() == name)
@@ -117,8 +123,8 @@ public:
 
 private:
 
-  XIdxElement*              parent = nullptr;
-  std::vector<XIdxElement*> childs;
+  XIdxElement*                          parent = nullptr;
+  std::vector< SharedPtr<XIdxElement> > childs;
 
 };
 

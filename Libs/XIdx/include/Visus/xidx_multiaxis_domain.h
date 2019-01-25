@@ -34,8 +34,7 @@
 namespace Visus{
 
 
-typedef Variable Axis;
-  
+
 ////////////////////////////////////////////////////////////////
 class VISUS_XIDX_API MultiAxisDomain : public Domain
 {
@@ -43,6 +42,9 @@ public:
 
   VISUS_CLASS(MultiAxisDomain)
 
+  typedef Variable Axis;
+
+  //down nodes
   std::vector< SharedPtr<Axis> > axis;
   
   //constructor
@@ -51,7 +53,7 @@ public:
 
   //addAxis
   void addAxis(SharedPtr<Axis> value){
-    value->setParent(this);
+    addEdge(this, value);
     this->axis.push_back(value);
   }
   
@@ -83,7 +85,7 @@ public:
   {
     Domain::readFromObjectStream(istream);
 
-    while (auto child =readChild<Axis>(istream,"Axis"))
+    while (auto child = readChild<Axis>(istream,"Axis"))
       addAxis(child);
   }
 };

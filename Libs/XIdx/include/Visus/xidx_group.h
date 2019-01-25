@@ -128,10 +128,13 @@ public:
 
   VISUS_CLASS(Group)
 
+  // node info
   int                                 domain_index = 0;
   String                              file_pattern;
   GroupType                           group_type;
   VariabilityType                     variability_type;
+
+  //down nodes
   SharedPtr<Domain>                   domain;
   std::vector<SharedPtr<Group> >      groups;
   std::vector<SharedPtr<Variable> >   variables;
@@ -145,27 +148,26 @@ public:
   
   //setDomain
   inline void setDomain(SharedPtr<Domain> value) { 
-    value->setParent(this);
+    addEdge(this, value);
     this->domain = value; 
   }
 
   //addVariable
   void addVariable(SharedPtr<Variable> value) {
-    value->setParent(this);
+    addEdge(this, value);
     variables.push_back(value);
   }
 
   //addAttribute
   void addAttribute(SharedPtr<Attribute> value) {
-    value->setParent(this);
+    addEdge(this, value);
     attributes.push_back(value);
   }
   
   //addDataSource
-  int addDataSource(SharedPtr<DataSource> ds) {
-    ds->setParent(this);
-    data_sources.push_back(ds);
-    return 0;
+  void addDataSource(SharedPtr<DataSource> value) {
+    addEdge(this, value);
+    data_sources.push_back(value);
   }
 
   //addGroup
@@ -174,14 +176,39 @@ public:
     if(value->variability_type == VariabilityType::VARIABLE_VARIABILITY_TYPE)
       value->domain_index = (int)groups.size();
     
-    value->setParent(this);
+    addEdge(this,value);
     groups.push_back(value);
   }
   
   //getXPathPrefix
   virtual String getXPathPrefix() override {
     return StringUtils::format() << (getParent()? getParent()->getXPathPrefix() : "//Xidx") << "/Group" << "[@Name=\"" + name + "\"]";
-  };
+  }
+
+public:
+
+  //load
+  static SharedPtr<Group> load(String filename)
+  {
+    StringTree stree;
+    if (!stree.loadFromXml(Utils::loadTextDocument(filename)))
+      return SharedPtr<Group>();
+
+    ObjectStream istream(stree, 'r');
+    auto ret = std::make_shared<Group>("root");
+    ret->readFromObjectStream(istream);
+    return ret;
+  }
+
+  //save
+  static bool save(String filename, SharedPtr<Group> root)
+  {
+    StringTree stree(root->getVisusClassName());
+    ObjectStream ostream(stree, 'w');
+    root->writeToObjectStream(ostream);
+    Utils::saveTextDocument(filename, stree.toString());
+    return true;
+  }
 
 public:
 
