@@ -279,12 +279,6 @@ public:
     return toHexString((Uint8*)s.c_str(),(int)s.length());
   }
 
-  //sha256
-  static String sha256(String input, String key);
-
-  //sha1
-  static String sha1(String input, String key);
-
   //md5
   static String md5(const String& input);
 

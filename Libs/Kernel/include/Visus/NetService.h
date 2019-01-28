@@ -150,6 +150,11 @@ public:
   //getNetResponse
   static NetResponse getNetResponse(NetRequest request);
 
+  //sha256
+  static String sha256(String input, String key);
+
+  //sha1
+  static String sha1(String input, String key);
 
 private:
 

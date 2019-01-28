@@ -45,39 +45,6 @@ For support : support@visus.net
 #include <iomanip>
 #include <cctype>
 
-//for sha256
-
-  #undef  override
-  #undef  final
-
-#include <openssl/sha.h>
-#include <openssl/evp.h>
-#include <openssl/bio.h>
-#include <openssl/buffer.h>
-#include <openssl/engine.h>
-#include <openssl/hmac.h>
-#include <openssl/evp.h>
-#include <openssl/md5.h>
-
-#include <openssl/opensslv.h>
-
-#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
-
-inline HMAC_CTX *HMAC_CTX_new() {
-  HMAC_CTX *tmp = (HMAC_CTX *)OPENSSL_malloc(sizeof(HMAC_CTX));
-  if (tmp)
-    HMAC_CTX_init(tmp);
-  return tmp;
-}
-
-inline void HMAC_CTX_free(HMAC_CTX *ctx) {
-  if (ctx) {
-    HMAC_CTX_cleanup(ctx);
-    OPENSSL_free(ctx);
-  }
-}
-
-#endif //OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
 
 namespace Visus {
 
@@ -233,35 +200,6 @@ String StringUtils::base64Decode(const String& input)
   return String((const char*)tmp->c_ptr(),(size_t)tmp->c_size());
 }
 
-///////////////////////////////////////////////////////////////////////////
-String StringUtils::sha256(String input,String key)
-{
-  char ret[EVP_MAX_MD_SIZE];
-  unsigned int  size;
-  
-  auto ctx = HMAC_CTX_new();
-  HMAC_Init_ex(ctx, key.c_str(), (int)key.size(), EVP_sha256(), NULL);
-  HMAC_Update(ctx, (const unsigned char*)input.c_str(), input.size());
-  HMAC_Final(ctx, (unsigned char*)ret, &size);
-  HMAC_CTX_free(ctx);
-
-  return String(ret,(size_t)size);
-}
-
-///////////////////////////////////////////////////////////////////////////
-String StringUtils::sha1(String input,String key)
-{
-  char ret[EVP_MAX_MD_SIZE];
-  unsigned int size;
-  
-  auto ctx = HMAC_CTX_new();
-  HMAC_Init_ex(ctx, key.c_str(), (int)key.size(), EVP_sha1(), NULL);
-  HMAC_Update(ctx, (const unsigned char*)input.c_str(), input.size());
-  HMAC_Final(ctx, (unsigned char*)ret, &size);
-  HMAC_CTX_free(ctx);
-  
-  return String(ret,(size_t)size);
-}
 
 
 ////////////////////////////////////////////////////////////////////////
