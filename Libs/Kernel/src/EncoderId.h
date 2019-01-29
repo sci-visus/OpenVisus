@@ -36,40 +36,62 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/CloudStorage.h>
-#include <Visus/NetService.h>
-#include <Visus/Log.h>
-#include <Visus/Path.h>
-#include <Visus/UUID.h>
+#ifndef VISUS_ID_ENCODER_H
+#define VISUS_ID_ENCODER_H
 
-#include "AmazonCloudStorage.h"
-#include "AzureCloudStorage.h"
-#include "GoogleCloudStorage.h"
-
-#include <cctype>
-
-#if WIN32
-#pragma warning(disable:4996)
-#endif
+#include <Visus/Visus.h>
+#include <Visus/Encoder.h>
 
 namespace Visus {
 
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<CloudStorage> CloudStorage::createInstance(Url url)
+//////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API IdEncoder : public Encoder
 {
-  if (StringUtils::contains(url.getHostname(), "core.windows"))
-    return std::make_shared<AzureCloudStorage>(url);
+public:
 
-  if (StringUtils::contains(url.getHostname(), "s3.amazonaws") ||
-      StringUtils::contains(url.getHostname(), "wasabisys.com"))
-    return std::make_shared<AmazonCloudStorage>(url);
+  VISUS_CLASS(IdEncoder)
 
-  if (StringUtils::contains(url.getHostname(), "googleapis"))
-    return std::make_shared<GoogleDriveStorage>(url);
+    //constructor
+    IdEncoder()
+  {}
 
-  return SharedPtr<CloudStorage>();
-}
+  //destructor
+  virtual ~IdEncoder()
+  {}
 
+  //isLossy
+  virtual bool isLossy() const override
+  {
+    return false;
+  }
+
+  //encode
+  virtual SharedPtr<HeapMemory> encode(NdPoint dims, DType dtype, SharedPtr<HeapMemory> decoded) override
+  {
+    if (!decoded)
+      return SharedPtr<HeapMemory>();
+
+    return decoded;
+  }
+
+  //decode
+  virtual SharedPtr<HeapMemory> decode(NdPoint dims, DType dtype, SharedPtr<HeapMemory> encoded) override
+  {
+    if (!encoded)
+      return SharedPtr<HeapMemory>();
+
+    if (dtype.getByteSize(dims) != encoded->c_size()) {
+      VisusAssert(false);
+      return SharedPtr<HeapMemory>();
+    }
+
+    return encoded;
+  }
+
+};
 
 } //namespace Visus
+
+#endif //VISUS_ID_ENCODER_H
+

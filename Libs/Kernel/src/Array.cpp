@@ -39,6 +39,7 @@ For support : support@visus.net
 #include <Visus/Array.h>
 #include <Visus/Color.h>
 #include <Visus/Utils.h>
+#include <Visus/Log.h>
 
 #ifdef WIN32
 #pragma warning(disable:4244)
@@ -47,7 +48,93 @@ For support : support@visus.net
 
 namespace Visus {
 
-VISUS_IMPLEMENT_SINGLETON_CLASS(ArrayPlugins)
+
+///////////////////////////////////////////////////////////////////////////////////////
+Array Array::getComponent(int C, Aborted aborted) const
+{
+  Int64 Soffset = this->dtype.getBitsOffset(C); DType Sdtype = this->dtype;
+  Int64 Doffset = 0;                            DType Ddtype = this->dtype.get(C);
+
+  Array dst;
+  if (!dst.resize(this->dims, Ddtype, __FILE__, __LINE__))
+    return Array();
+
+  dst.shareProperties(*this);
+
+  //TODO!
+  if (!Utils::isByteAligned(Ddtype.getBitSize()) || !Utils::isByteAligned(Soffset) ||
+    !Utils::isByteAligned(Sdtype.getBitSize()) || !Utils::isByteAligned(Doffset))
+  {
+    VisusAssert(aborted());
+    return Array();
+  }
+
+  int bytesize = Ddtype.getBitSize() >> 3;
+
+  Soffset >>= 3; int Sstep = (Sdtype.getBitSize()) >> 3;
+  Doffset >>= 3; int Dstep = (Ddtype.getBitSize()) >> 3;
+
+  Uint8*       dst_p = dst.c_ptr() + Doffset;
+  const Uint8* src_p = this->c_ptr() + Soffset;
+
+  Int64 tot = this->getTotalNumberOfSamples();
+  for (Int64 sample = 0; sample < tot; sample++, dst_p += Dstep, src_p += Sstep)
+  {
+    if (aborted()) return Array();
+    memcpy(dst_p, src_p, bytesize);
+  }
+
+  return dst;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+bool Array::setComponent(int C, Array src, Aborted aborted)
+{
+  if (!src)
+    return false;
+
+  Int64  Doffset = this->dtype.getBitsOffset(C);
+  DType  Ddtype = this->dtype.get(C);
+  int    Dstep = this->dtype.getBitSize();
+
+  //automatic casting
+  if (src.dtype != Ddtype)
+    return setComponent(C, ArrayUtils::cast(src, Ddtype, aborted), aborted);
+
+  Int64 Soffset = 0;
+  DType Sdtype = src.dtype;
+  int   Sstep = Sdtype.getBitSize();
+
+  if (Ddtype.getBitSize() != Sdtype.getBitSize() || src.dims != this->dims)
+  {
+    VisusAssert(aborted());
+    if (!aborted())
+      VisusWarning() << "cannot copy, dtype or dims not compatible!";
+    return false;
+  }
+
+  //todo
+  if (!Utils::isByteAligned(Sdtype.getBitSize()) || !Utils::isByteAligned(Sstep) || !Utils::isByteAligned(Soffset) ||
+    !Utils::isByteAligned(Ddtype.getBitSize()) || !Utils::isByteAligned(Dstep) || !Utils::isByteAligned(Doffset))
+  {
+    VisusAssert(aborted());
+    return false;
+  }
+
+  int bytesize = Sdtype.getBitSize() >> 3;
+  Doffset >>= 3; Dstep >>= 3;
+  Soffset >>= 3; Sstep >>= 3;
+  unsigned char* dst_p = this->c_ptr() + Doffset;
+  unsigned char* src_p = src.c_ptr() + Soffset;
+  Int64 tot = src.getTotalNumberOfSamples();
+  for (Int64 I = 0; I < tot; I++, dst_p += Dstep, src_p += Sstep)
+  {
+    if (aborted()) return false;
+    memcpy(dst_p, src_p, bytesize);
+  }
+
+  return true;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 void Array::writeToObjectStream(ObjectStream& ostream)
@@ -123,6 +210,7 @@ void Array::readFromObjectStream(ObjectStream& istream)
   //mask
   //texture;
 }
+
 
 
 } //namespace Visus

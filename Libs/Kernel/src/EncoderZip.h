@@ -36,66 +36,84 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Array.h>
-#include <Visus/Log.h>
+#ifndef VISUS_ZIP_ENCODER_H
+#define VISUS_ZIP_ENCODER_H
 
-namespace Visus {
+#include <Visus/Visus.h>
+#include <Visus/Encoder.h>
 
-///////////////////////////////////////////////////////////////////////////////////////////////
-Array DevNullArrayPlugin::handleLoadImage(String url_,std::vector<String> args)
+namespace ZLib
 {
-  Url url(url_);
-
-  if (!url.isFile())
-    return Array();
-
-  String filename=url.getPath();
-
-  if (filename!="/dev/null")
-    return Array();
-
-  DType    dtype;
-  NdPoint  dims;
-  int      value=0;
-
-  for (int I=0;I<(int)args.size();I++)
-  {
-    if (args[I]=="--dtype")
-    {
-      String sdtype=args[++I];
-      dtype=DType::fromString(sdtype);
-      if (!dtype.valid())
-      {
-        VisusWarning()<<"invalid --dtype "<<sdtype;
-        return Array();
-      }
-    }
-    else if (args[I]=="--dims")
-    {
-      dims=NdPoint::parseDims(args[++I]);
-      if (dims.innerProduct()<=0) 
-      {
-        VisusWarning()<<"invalid --dims "<<args[I];
-        return Array();
-      }
-    }
-    else if (args[I]=="--value")
-    {
-      value=cint(args[I]);
-    }
-  }
-
-  Array dst;
-  if (!dst.resize(dims,dtype,__FILE__,__LINE__))
-  {
-    VisusWarning()<<" Cannot resize memory with dims("<<dims.toString()<<") and dtype("<<dtype.toString()<<")";
-    return Array();
-  }
-
-  dst.fillWithValue(value);
-  return dst;
+#include <zlib.h>
 }
 
 
+namespace Visus {
+
+//////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API ZipEncoder : public Encoder
+{
+public:
+
+  VISUS_CLASS(ZipEncoder)
+
+    //constructor
+    ZipEncoder()
+  {}
+
+  //destructor
+  virtual ~ZipEncoder()
+  {}
+
+  //isLossy
+  virtual bool isLossy() const override
+  {
+    return false;
+  }
+
+  //encode
+  virtual SharedPtr<HeapMemory> encode(NdPoint dims, DType dtype, SharedPtr<HeapMemory> decoded) override
+  {
+    if (!decoded)
+      return SharedPtr<HeapMemory>();
+
+    ZLib::uLong zbound = ZLib::compressBound(ZLib::uLong(decoded->c_size()));
+
+    auto encoded = std::make_shared<HeapMemory>();
+    if (!encoded->resize(zbound, __FILE__, __LINE__))
+      return SharedPtr<HeapMemory>();
+
+    if (ZLib::compress2(encoded->c_ptr(), &zbound, decoded->c_ptr(), (ZLib::uLong)decoded->c_size(), Z_DEFAULT_COMPRESSION) != Z_OK)
+      return SharedPtr<HeapMemory>();
+
+    if (!encoded->resize(zbound, __FILE__, __LINE__))
+      return SharedPtr<HeapMemory>();
+
+    return encoded;
+  }
+
+  //decode
+  virtual SharedPtr<HeapMemory> decode(NdPoint dims, DType dtype, SharedPtr<HeapMemory> encoded) override
+  {
+    if (!encoded)
+      return SharedPtr<HeapMemory>();
+
+    ZLib::uLong decoded_len = (ZLib::uLong)(dtype.getByteSize(dims));
+
+    auto decoded = std::make_shared<HeapMemory>();
+    if (!decoded->resize(dtype.getByteSize(dims), __FILE__, __LINE__))
+      return SharedPtr<HeapMemory>();
+
+    if (ZLib::uncompress(decoded->c_ptr(), &decoded_len, encoded->c_ptr(), (ZLib::uLong)encoded->c_size()) != Z_OK)
+      return SharedPtr<HeapMemory>();
+
+    VisusAssert(decoded_len == decoded->c_size());
+    return decoded;
+  }
+
+};
+
 } //namespace Visus
+
+#endif //VISUS_ZIP_ENCODER_H
 

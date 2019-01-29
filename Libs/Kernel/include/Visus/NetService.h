@@ -44,88 +44,32 @@ For support : support@visus.net
 #include <Visus/Async.h>
 #include <Visus/NetSocket.h>
 
-#include <thread>
-
 namespace Visus {
-
-
-  ///////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API CaCertFile
-{
-public:
-
-  VISUS_DECLARE_SINGLETON_CLASS(CaCertFile)
-
-    //getFilename
-    const String& getFilename() const {
-    return local_filename;
-  }
-
-private:
-
-  String local_filename;
-
-  //constructor
-  CaCertFile();
-
-};
-
 
 ///////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API NetService 
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(NetService)
-
-  //_________________________________________________________
-  class VISUS_KERNEL_API Connection
-  {
-  public:
-
-    VISUS_CLASS(Connection)
-
-    int                              id=0;
-    NetRequest                       request;
-    Promise<NetResponse>             promise;
-    NetResponse                      response;
-    bool                             first_byte=false;
-
-    //constructor
-    Connection(int id_) : id(id_) {
-    }
-
-    //destructor
-    virtual ~Connection() {
-    }
-
-    //setNetJob
-    virtual void setNetRequest(NetRequest request,Promise<NetResponse> promise) = 0;
-
-  };
-
-  //_________________________________________________________
-  class VISUS_KERNEL_API Pimpl 
-  {
-  public:
-    
-    //destrutor
-    virtual ~Pimpl(){
-    }
-
-    //runMore
-    virtual void runMore(const std::set<Connection*>& running) = 0;
-
-    //createConnection
-    virtual SharedPtr<Connection> createConnection(int id) = 0;
-
-  };
+  VISUS_PIMPL_CLASS(NetService)
 
   //constructor
   NetService(int nconnections,bool bVerbose=1);
 
   //destructor
   virtual ~NetService();
+
+  //attach
+  static void attach();
+
+  //detach
+  static void detach();
+
+  //sha256
+  static String sha256(String input, String key);
+
+  //sha1
+  static String sha1(String input, String key);
 
   //setSocketType
   void setVerbose(int value) {
@@ -150,12 +94,6 @@ public:
   //getNetResponse
   static NetResponse getNetResponse(NetRequest request);
 
-  //sha256
-  static String sha256(String input, String key);
-
-  //sha1
-  static String sha1(String input, String key);
-
 private:
 
   typedef std::list< std::pair< SharedPtr<NetRequest> , Promise<NetResponse> > > Waiting;
@@ -169,10 +107,7 @@ private:
   CriticalSection              waiting_lock;
   Waiting                      waiting;
 
-  SharedPtr<std::thread>       thread;
   Semaphore                    got_request;
-
-  Pimpl*                       pimpl=nullptr;
 
   //entryProc
   void entryProc();

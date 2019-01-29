@@ -36,8 +36,8 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Array.h>
-#include <Visus/Encoders.h>
+#include <Visus/ArrayUtils.h>
+#include <Visus/Encoder.h>
 #include <Visus/Log.h>
 #include <Visus/Color.h>
 
@@ -47,92 +47,6 @@ namespace Visus {
 #pragma warning(disable:4244) //conversion from .., possible loss of data
 #endif
 
-///////////////////////////////////////////////////////////////////////////////////////
-Array Array::getComponent(int C, Aborted aborted) const
-{
-  Int64 Soffset = this->dtype.getBitsOffset(C); DType Sdtype = this->dtype;
-  Int64 Doffset = 0;                            DType Ddtype = this->dtype.get(C);
-
-  Array dst;
-  if (!dst.resize(this->dims, Ddtype, __FILE__, __LINE__))
-    return Array();
-
-  dst.shareProperties(*this);
-
-  //TODO!
-  if (!Utils::isByteAligned(Ddtype.getBitSize()) || !Utils::isByteAligned(Soffset) ||
-      !Utils::isByteAligned(Sdtype.getBitSize()) || !Utils::isByteAligned(Doffset))
-  {
-    VisusAssert(aborted());
-    return Array();
-  }
-
-  int bytesize = Ddtype.getBitSize() >> 3;
-
-  Soffset >>= 3; int Sstep = (Sdtype.getBitSize()) >> 3;
-  Doffset >>= 3; int Dstep = (Ddtype.getBitSize()) >> 3;
-
-  Uint8*       dst_p =   dst.c_ptr() + Doffset;
-  const Uint8* src_p = this->c_ptr() + Soffset;
-
-  Int64 tot = this->getTotalNumberOfSamples();
-  for (Int64 sample = 0; sample < tot; sample++, dst_p += Dstep, src_p += Sstep)
-  {
-    if (aborted()) return Array();
-    memcpy(dst_p, src_p, bytesize);
-  }
-
-  return dst;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-bool Array::setComponent(int C, Array src, Aborted aborted)
-{
-  if (!src)
-    return false;
-
-  Int64  Doffset = this->dtype.getBitsOffset(C);
-  DType  Ddtype  = this->dtype.get(C);
-  int    Dstep   = this->dtype.getBitSize();
-
-  //automatic casting
-  if (src.dtype != Ddtype)
-    return setComponent(C, ArrayUtils::cast(src, Ddtype, aborted), aborted);
-
-  Int64 Soffset = 0;
-  DType Sdtype = src.dtype;
-  int   Sstep = Sdtype.getBitSize();
-
-  if (Ddtype.getBitSize() != Sdtype.getBitSize() || src.dims != this->dims)
-  {
-    VisusAssert(aborted());
-    if (!aborted())
-      VisusWarning()<<"cannot copy, dtype or dims not compatible!";
-    return false;
-  }
-
-  //todo
-  if (!Utils::isByteAligned(Sdtype.getBitSize()) || !Utils::isByteAligned(Sstep) || !Utils::isByteAligned(Soffset) ||
-      !Utils::isByteAligned(Ddtype.getBitSize()) || !Utils::isByteAligned(Dstep) || !Utils::isByteAligned(Doffset))
-  {
-    VisusAssert(aborted());
-    return false;
-  }
-
-  int bytesize = Sdtype.getBitSize() >> 3;
-  Doffset >>= 3; Dstep >>= 3;
-  Soffset >>= 3; Sstep >>= 3;
-  unsigned char* dst_p = this->c_ptr() + Doffset;
-  unsigned char* src_p =   src.c_ptr() + Soffset;
-  Int64 tot = src.getTotalNumberOfSamples();
-  for (Int64 I = 0; I < tot; I++, dst_p += Dstep, src_p += Sstep)
-  {
-    if (aborted()) return false;
-    memcpy(dst_p, src_p, bytesize);
-  }
-
-  return true;
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 Array ArrayUtils::loadImage(String url,std::vector<String> args)

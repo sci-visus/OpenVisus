@@ -36,40 +36,93 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/CloudStorage.h>
-#include <Visus/NetService.h>
+#ifndef VISUS_ARRAY_PLUGIN_DEVNULL_H
+#define VISUS_ARRAY_PLUGIN_DEVNULL_H
+
+#include <Visus/Visus.h>
+#include <Visus/Array.h>
 #include <Visus/Log.h>
-#include <Visus/Path.h>
-#include <Visus/UUID.h>
-
-#include "AmazonCloudStorage.h"
-#include "AzureCloudStorage.h"
-#include "GoogleCloudStorage.h"
-
-#include <cctype>
-
-#if WIN32
-#pragma warning(disable:4996)
-#endif
 
 namespace Visus {
 
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<CloudStorage> CloudStorage::createInstance(Url url)
+///////////////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API DevNullArrayPlugin : public ArrayPlugin
 {
-  if (StringUtils::contains(url.getHostname(), "core.windows"))
-    return std::make_shared<AzureCloudStorage>(url);
+public:
 
-  if (StringUtils::contains(url.getHostname(), "s3.amazonaws") ||
-      StringUtils::contains(url.getHostname(), "wasabisys.com"))
-    return std::make_shared<AmazonCloudStorage>(url);
+  VISUS_NON_COPYABLE_CLASS(DevNullArrayPlugin)
 
-  if (StringUtils::contains(url.getHostname(), "googleapis"))
-    return std::make_shared<GoogleDriveStorage>(url);
+    //constructor
+    DevNullArrayPlugin() {
+  }
 
-  return SharedPtr<CloudStorage>();
-}
+  //destructor
+  virtual ~DevNullArrayPlugin() {
+  }
 
+  //handleLoadImage
+  virtual Array handleLoadImage(String url_, std::vector<String> args) override
+  {
+    Url url(url_);
+
+    if (!url.isFile())
+      return Array();
+
+    String filename = url.getPath();
+
+    if (filename != "/dev/null")
+      return Array();
+
+    DType    dtype;
+    NdPoint  dims;
+    int      value = 0;
+
+    for (int I = 0; I<(int)args.size(); I++)
+    {
+      if (args[I] == "--dtype")
+      {
+        String sdtype = args[++I];
+        dtype = DType::fromString(sdtype);
+        if (!dtype.valid())
+        {
+          VisusWarning() << "invalid --dtype " << sdtype;
+          return Array();
+        }
+      }
+      else if (args[I] == "--dims")
+      {
+        dims = NdPoint::parseDims(args[++I]);
+        if (dims.innerProduct() <= 0)
+        {
+          VisusWarning() << "invalid --dims " << args[I];
+          return Array();
+        }
+      }
+      else if (args[I] == "--value")
+      {
+        value = cint(args[I]);
+      }
+    }
+
+    Array dst;
+    if (!dst.resize(dims, dtype, __FILE__, __LINE__))
+    {
+      VisusWarning() << " Cannot resize memory with dims(" << dims.toString() << ") and dtype(" << dtype.toString() << ")";
+      return Array();
+    }
+
+    dst.fillWithValue(value);
+    return dst;
+  }
+
+  //handleSaveImage
+  virtual bool handleSaveImage(String url, Array src, std::vector<String> args) override {
+    return Url(url).isFile() && Url(url).getPath() == "/dev/null";
+  }
+
+};
 
 } //namespace Visus
+
+#endif //VISUS_ARRAY_PLUGIN_DEVNULL_H

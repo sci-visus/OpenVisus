@@ -99,6 +99,8 @@ ENABLE_SHARED_PTR(Array)
 %include <Visus/DType.h>
 %include <Visus/Field.h>
 %include <Visus/Array.h>
+%include <Visus/ArrayUtils.h>
+%include <Visus/ArrayPlugin.h>
 
 
 // _____________________________________________________

@@ -36,40 +36,30 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/CloudStorage.h>
-#include <Visus/NetService.h>
-#include <Visus/Log.h>
-#include <Visus/Path.h>
-#include <Visus/UUID.h>
+#include <Visus/Array.h>
 
-#include "AmazonCloudStorage.h"
-#include "AzureCloudStorage.h"
-#include "GoogleCloudStorage.h"
+#include "ArrayPluginDevnull.h"
+#include "ArrayPluginRawArray.h"
 
-#include <cctype>
-
-#if WIN32
-#pragma warning(disable:4996)
+#if VISUS_IMAGE
+#include "ArrayPluginFreeimage.h"
 #endif
 
 namespace Visus {
 
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<CloudStorage> CloudStorage::createInstance(Url url)
-{
-  if (StringUtils::contains(url.getHostname(), "core.windows"))
-    return std::make_shared<AzureCloudStorage>(url);
 
-  if (StringUtils::contains(url.getHostname(), "s3.amazonaws") ||
-      StringUtils::contains(url.getHostname(), "wasabisys.com"))
-    return std::make_shared<AmazonCloudStorage>(url);
+VISUS_IMPLEMENT_SINGLETON_CLASS(ArrayPlugins)
 
-  if (StringUtils::contains(url.getHostname(), "googleapis"))
-    return std::make_shared<GoogleDriveStorage>(url);
+///////////////////////////////////////////////////////////////////////////////
+ArrayPlugins::ArrayPlugins() {
+  this->values.push_back(std::make_shared<DevNullArrayPlugin>());
+  this->values.push_back(std::make_shared<RawArrayPlugin>());
 
-  return SharedPtr<CloudStorage>();
+#if VISUS_IMAGE
+  this->values.push_back(std::make_shared<FreeImageArrayPlugin>());
+#endif
+
 }
 
-
-} //namespace Visus
+}

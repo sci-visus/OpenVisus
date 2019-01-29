@@ -36,40 +36,39 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/CloudStorage.h>
-#include <Visus/NetService.h>
-#include <Visus/Log.h>
-#include <Visus/Path.h>
-#include <Visus/UUID.h>
+#include <Visus/Encoder.h>
+#include <Visus/StringUtils.h>
 
-#include "AmazonCloudStorage.h"
-#include "AzureCloudStorage.h"
-#include "GoogleCloudStorage.h"
+#include "EncoderId.h"
+#include "EncoderLz4.h"
+#include "EncoderZip.h"
 
-#include <cctype>
-
-#if WIN32
-#pragma warning(disable:4996)
+#if VISUS_IMAGE
+#include "EncoderFreeImage.h"
 #endif
 
 namespace Visus {
 
+VISUS_IMPLEMENT_SINGLETON_CLASS(Encoders)
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<CloudStorage> CloudStorage::createInstance(Url url)
+Encoders::Encoders()
 {
-  if (StringUtils::contains(url.getHostname(), "core.windows"))
-    return std::make_shared<AzureCloudStorage>(url);
+  addEncoder("", std::make_shared<IdEncoder>());
+  addEncoder("raw", std::make_shared<IdEncoder>());
+  addEncoder("bin", std::make_shared<IdEncoder>());
+  addEncoder("lz4", std::make_shared<LZ4Encoder>());
+  addEncoder("zip", std::make_shared<ZipEncoder>());
 
-  if (StringUtils::contains(url.getHostname(), "s3.amazonaws") ||
-      StringUtils::contains(url.getHostname(), "wasabisys.com"))
-    return std::make_shared<AmazonCloudStorage>(url);
+#if VISUS_IMAGE
+  addEncoder("png", std::make_shared<FreeImageEncoder>("png"));
+  addEncoder("jpg", std::make_shared<FreeImageEncoder>("jpg"));
+  addEncoder("tif", std::make_shared<FreeImageEncoder>("tif"));
+#endif
 
-  if (StringUtils::contains(url.getHostname(), "googleapis"))
-    return std::make_shared<GoogleDriveStorage>(url);
-
-  return SharedPtr<CloudStorage>();
 }
 
 
 } //namespace Visus
+

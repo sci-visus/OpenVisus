@@ -40,7 +40,9 @@ For support : support@visus.net
 #define VISUS_ENCODERS_H
 
 #include <Visus/Kernel.h>
-#include <Visus/Array.h>
+#include <Visus/HeapMemory.h>
+#include <Visus/Point.h>
+#include <Visus/DType.h>
 
 namespace Visus {
 
@@ -72,124 +74,6 @@ public:
 
 
 //////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API IdEncoder : public Encoder
-{
-public:
-
-  VISUS_CLASS(IdEncoder)
-
-  //constructor
-  IdEncoder()
-  {}
-
-  //destructor
-  virtual ~IdEncoder()
-  {}
-
-  //isLossy
-  virtual bool isLossy() const override
-  {return false;}
-
-  //encode
-  virtual SharedPtr<HeapMemory> encode(NdPoint dims,DType dtype, SharedPtr<HeapMemory> decoded) override;
-
-  //decode
-  virtual SharedPtr<HeapMemory> decode(NdPoint dims,DType dtype, SharedPtr<HeapMemory> encoded) override;
-
-};
-
-//////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API FreeImageEncoder : public Encoder
-{
-public:
-
-  VISUS_CLASS(FreeImageEncoder)
-
-  //constructor
-  FreeImageEncoder(String encoder_name_);
-
-  //destructor
-  virtual ~FreeImageEncoder();
-
-  //isLossy
-  virtual bool isLossy() const override;
-
-  //encode
-  virtual SharedPtr<HeapMemory> encode(NdPoint dims,DType dtype, SharedPtr<HeapMemory> decoded) override;
-
-  //decode
-  virtual SharedPtr<HeapMemory> decode(NdPoint dims,DType dtype, SharedPtr<HeapMemory> encoded) override;
-
-private:
-
-  String encoder_name;
-  int encode_flags;
-  int decode_flags;
-
-  //canEncode
-  static  bool canEncode(String encoder_name,DType dtype);
-
-
-};
-
-//////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API ZipEncoder : public Encoder
-{
-public:
-
-  VISUS_CLASS(ZipEncoder)
-
-  //constructor
-  ZipEncoder()
-  {}
-
-  //destructor
-  virtual ~ZipEncoder()
-  {}
-
-  //isLossy
-  virtual bool isLossy() const override
-  {return false;}
-
-  //encode
-  virtual SharedPtr<HeapMemory> encode(NdPoint dims,DType dtype, SharedPtr<HeapMemory> decoded) override;
-
-  //decode
-  virtual SharedPtr<HeapMemory> decode(NdPoint dims,DType dtype, SharedPtr<HeapMemory> encoded) override;
-
-};
-
-
-//////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API LZ4Encoder : public Encoder
-{
-public:
-
-  VISUS_CLASS(LZ4Encoder)
-
-  //constructor
-  LZ4Encoder() {
-  }
-
-  //destructor
-  virtual ~LZ4Encoder() {
-  }
-
-  //isLossy
-  virtual bool isLossy() const override {
-    return false;
-  }
-
-  //encode
-  virtual SharedPtr<HeapMemory> encode(NdPoint dims,DType dtype, SharedPtr<HeapMemory> decoded) override;
-
-  //decode
-  virtual SharedPtr<HeapMemory> decode(NdPoint dims,DType dtype, SharedPtr<HeapMemory> encoded) override;
-
-};
-
-
-//////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API Encoders 
 {
 public:
@@ -211,23 +95,12 @@ public:
     return it!=encoders.end()? it->second.get() : nullptr;
   }
 
-
 private:
 
   std::map<String, SharedPtr<Encoder> > encoders;
 
   //constructor
-  Encoders()
-  {
-    addEncoder(""   ,std::make_shared<IdEncoder>());
-    addEncoder("raw", std::make_shared<IdEncoder>());
-    addEncoder("bin", std::make_shared<IdEncoder>());
-    addEncoder("lz4", std::make_shared<LZ4Encoder>());
-    addEncoder("zip", std::make_shared<ZipEncoder>());
-    addEncoder("png", std::make_shared<FreeImageEncoder>("png"));
-    addEncoder("jpg", std::make_shared<FreeImageEncoder>("jpg"));
-    addEncoder("tif", std::make_shared<FreeImageEncoder>("tif"));
-  }
+  Encoders();
 
 
 };

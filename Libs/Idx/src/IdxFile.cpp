@@ -42,7 +42,7 @@ For support : support@visus.net
 #include <Visus/Path.h>
 #include <Visus/CriticalSection.h>
 #include <Visus/File.h>
-#include <Visus/Encoders.h>
+#include <Visus/Encoder.h>
 #include <Visus/IdxHzOrder.h>
 #include <Visus/IdxDiskAccess.h>
 #include <Visus/NetService.h>

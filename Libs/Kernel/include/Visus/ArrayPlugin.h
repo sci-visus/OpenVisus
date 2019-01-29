@@ -36,40 +36,65 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/CloudStorage.h>
-#include <Visus/NetService.h>
-#include <Visus/Log.h>
-#include <Visus/Path.h>
-#include <Visus/UUID.h>
 
-#include "AmazonCloudStorage.h"
-#include "AzureCloudStorage.h"
-#include "GoogleCloudStorage.h"
+#ifndef VISUS_ARRAY_PLUGIN_H
+#define VISUS_ARRAY_PLUGIN_H
 
-#include <cctype>
-
-#if WIN32
-#pragma warning(disable:4996)
-#endif
+#include <Visus/Array.h>
 
 namespace Visus {
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<CloudStorage> CloudStorage::createInstance(Url url)
+//////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API ArrayPlugin
 {
-  if (StringUtils::contains(url.getHostname(), "core.windows"))
-    return std::make_shared<AzureCloudStorage>(url);
+public:
 
-  if (StringUtils::contains(url.getHostname(), "s3.amazonaws") ||
-      StringUtils::contains(url.getHostname(), "wasabisys.com"))
-    return std::make_shared<AmazonCloudStorage>(url);
+  VISUS_CLASS(ArrayPlugin)
 
-  if (StringUtils::contains(url.getHostname(), "googleapis"))
-    return std::make_shared<GoogleDriveStorage>(url);
+    //constructor
+    ArrayPlugin() {
+  }
 
-  return SharedPtr<CloudStorage>();
-}
+  //destructor
+  virtual ~ArrayPlugin() {}
 
+  //handleStatImage
+  virtual StringTree handleStatImage(String url) {
+    return StringTree();
+  }
+
+  //handleLoadImage
+  virtual Array handleLoadImage(String url, std::vector<String> args) = 0;
+
+  //handleSaveImage
+  virtual bool handleSaveImage(String url, Array src, std::vector<String> args) = 0;
+
+  //handleLoadImageFromMemory
+  virtual Array handleLoadImageFromMemory(SharedPtr<HeapMemory> src, std::vector<String> args) {
+    return Array();
+  }
+
+};
+
+////////////////////////////////////////////////////
+class VISUS_KERNEL_API ArrayPlugins
+{
+public:
+
+  VISUS_DECLARE_SINGLETON_CLASS(ArrayPlugins)
+
+    std::vector< SharedPtr<ArrayPlugin> > values;
+
+  //destructor
+  ~ArrayPlugins() {}
+
+private:
+
+  //singleton class 
+  ArrayPlugins();
+
+};
 
 } //namespace Visus
+
+#endif //VISUS_ARRAY_PLUGIN_H__

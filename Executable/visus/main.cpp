@@ -43,7 +43,7 @@ For support : support@visus.net
 #include <Visus/CloudStorage.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/File.h>
-#include <Visus/Encoders.h>
+#include <Visus/Encoder.h>
 #include <Visus/Idx.h>
 #include <Visus/Array.h>
 #include <Visus/ModVisus.h>

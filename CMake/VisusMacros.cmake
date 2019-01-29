@@ -94,6 +94,14 @@ macro(SetupCommonCMake)
 			
 		endif()	
 		
+		if (WIN32)
+			if (CMAKE_TOOLCHAIN_FILE)
+				set(VCPKG 1)
+			else()
+				set(VCPKG 0)
+			endif()	
+		endif()		
+		
 		if (APPLE)
 			DetectOsxVersion()
 			set(CMAKE_MACOSX_BUNDLE YES)
@@ -546,9 +554,14 @@ macro(Win32CopyDllToBuild target debug_dll release_dll)
 endmacro()
 
 # //////////////////////////////////////////////////////////////////////////
-macro(FindGitRevision)
+macro(FindGit)
 	find_program(GIT_CMD git REQUIRED)
 	find_package_handle_standard_args(GIT REQUIRED_VARS GIT_CMD)
+endmacro()
+
+# //////////////////////////////////////////////////////////////////////////
+macro(FindGitRevision)
+	FindGit()
 	execute_process(COMMAND ${GIT_CMD} rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} OUTPUT_VARIABLE GIT_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
 	message(STATUS "Current GIT_REVISION ${GIT_REVISION}")
 endmacro()
