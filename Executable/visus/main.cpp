@@ -2129,9 +2129,6 @@ int main(int argn, const char* argv[])
   Array data;
   DoConvert convert;
 
-  StringUtils::md5(
-    "std::vector<String> args;\n"
-    "for (auto it=ApplicationInfo::args.begin(); it!=ApplicationInfo::args.end();it++)");
 
   //ignores all starting arguments not in actions (they will be global arguments such as --disable-write-locks)
   std::vector<String> args;
