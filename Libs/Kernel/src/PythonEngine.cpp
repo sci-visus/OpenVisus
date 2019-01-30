@@ -69,7 +69,8 @@ For support : support@visus.net
 
 namespace Visus {
 
-void* PythonEngine::mainThreadState=nullptr;
+
+static PyThreadState* __main__thread_state__=nullptr;
 
 static std::set<String> ReservedWords =
 {
@@ -82,16 +83,15 @@ static std::set<String> ReservedWords =
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::ScopedAcquireGil() 
 {
-  auto state = new PyGILState_STATE();
-  *state = PyGILState_Ensure();
-  this->state = state;
+  this->state = new PyGILState_STATE();
+  *this->state = PyGILState_Ensure();
 }
 
 
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::~ScopedAcquireGil()
 {
-  if (PyGILState_STATE* state = (PyGILState_STATE*)this->state)
+  if (this->state)
   {
     PyGILState_Release(*state);
     delete state;
@@ -106,9 +106,13 @@ ScopedReleaseGil::ScopedReleaseGil()
 
 ///////////////////////////////////////////////////////////////////////////
 ScopedReleaseGil::~ScopedReleaseGil() {
-  PyEval_RestoreThread((PyThreadState*)state);
+  PyEval_RestoreThread(state);
 }
 
+///////////////////////////////////////////////////////////////////////////
+void PythonEngine::setMainThread()
+{
+}
 
 ////////////////////////////////////////////////////////////////////////////////////
 bool PythonEngine::isGoodVariableName(String name)
@@ -202,7 +206,7 @@ void InitPython()
 	  //NOTE if you try to have multiple interpreters (Py_NewInterpreter) I get deadlock
 	  //see https://issues.apache.org/jira/browse/MODPYTHON-217
 	  //see https://trac.xapian.org/ticket/185
-	  PythonEngine::mainThreadState = PyEval_SaveThread();
+    __main__thread_state__ = PyEval_SaveThread();
 	}
 	
 	#if 0
@@ -238,7 +242,7 @@ void ShutdownPython()
     return;
 
   //VisusInfo() << "Shutting down python...";
-  PyEval_RestoreThread((PyThreadState*)PythonEngine::mainThreadState);
+  PyEval_RestoreThread(__main__thread_state__);
   Py_Finalize();
 
   //VisusInfo() << "Python shutting down done";

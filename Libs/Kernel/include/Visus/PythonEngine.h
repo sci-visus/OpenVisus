@@ -81,8 +81,6 @@ public:
 
 public:
 
-  static void* mainThreadState;
-
   typedef std::function<PyObject*(PyObject*, PyObject*)> Function;
 
   //constructor
@@ -90,6 +88,9 @@ public:
 
   //destructor
   virtual ~PythonEngine();
+
+  //setMainThread
+  static void setMainThread();
 
   //main
   static int main(std::vector<String> args);
@@ -215,11 +216,11 @@ private:
 /////////////////////////////////////////////////////
 class VISUS_KERNEL_API ScopedAcquireGil
 {
+  PyGILState_STATE* state = nullptr;
+
 public:
 
   VISUS_CLASS(ScopedAcquireGil)
-
-  void* state=nullptr;
 
   //constructor
   ScopedAcquireGil();
@@ -232,10 +233,10 @@ typedef ScopedAcquireGil PythonThreadBlock;
 
 /////////////////////////////////////////////////////
 class VISUS_KERNEL_API ScopedReleaseGil {
-  
-public:
 
-  void* state=nullptr;
+  PyThreadState* state = nullptr;
+
+public:
 
   //constructor
   ScopedReleaseGil();
