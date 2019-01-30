@@ -793,7 +793,7 @@ set(FreeImage_SOURCES
 	DeprecationManager/DeprecationMgr.h
 )
 
-add_library(FreeImage STATIC ${FreeImage_SOURCES})
+AddStaticLibrary(FreeImage ${FreeImage_SOURCES})
 
 target_include_directories(FreeImage PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 

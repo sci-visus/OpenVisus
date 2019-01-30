@@ -1,5 +1,5 @@
 
-add_library(curl STATIC 
+AddStaticLibrary(curl  
 	../include/curl/curl.h
 	../include/curl/curlver.h
 	../include/curl/easy.h
