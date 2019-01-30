@@ -58,7 +58,6 @@ For support : support@visus.net
 #include <Visus/MultiplexAccess.h>
 
 #include <Visus/PythonEngine.h>
-#include <pydebug.h>
 
 using namespace Visus;
 

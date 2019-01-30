@@ -56,7 +56,7 @@ public:
   Int64                      incremental_last_publish_time = -1;
   int                        max_publish_msec; //Only here until it can be passed into node 
   String                     code;
-  SharedPtr<PythonEngine> engine;
+  SharedPtr<PythonEngine>    engine;
 
   //constructor
   MyJob(ScriptingNode* node_, SharedPtr<Array> input_,SharedPtr<ReturnReceipt> return_receipt_)

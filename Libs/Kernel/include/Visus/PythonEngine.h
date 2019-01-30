@@ -51,33 +51,14 @@ For support : support@visus.net
 
 #include <functional>
 
-
 #ifdef WIN32
 #pragma warning( pop )
 #endif
 
-//include Python
-#if 1
-  #pragma push_macro("slots")
-  #undef slots
+#include <Visus/IncludePython.h>
 
-  #if defined(_DEBUG) && defined(SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-    //for windows using Release anyway (otherwise most site-packages, as numpy, don't work)
-    # undef _DEBUG
-    # include <Python.h>
-    # define _DEBUG
-  #else
-   # include <Python.h>
-  #endif
-
-
-
-  #pragma pop_macro("slots")
-
-#endif
 
 namespace Visus {
-
 
 ///////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API PythonEngine
@@ -88,7 +69,7 @@ public:
 
 public:
 
-  static PyThreadState* mainThreadState;
+  static void* mainThreadState;
 
   typedef std::function<PyObject*(PyObject*, PyObject*)> Function;
 
@@ -171,7 +152,7 @@ public:
   void delModuleAttr(String name);
 
   //setError (to call when you return nullpptr in Function)
-  static void setError(String explanation, PyObject* err= PyExc_SystemError);
+  static void setError(String explanation, PyObject* err= nullptr);
 
   //addModuleFunction
   void addModuleFunction(String name,Function fn);
@@ -226,7 +207,7 @@ public:
 
   VISUS_CLASS(ScopedAcquireGil)
 
-  PyGILState_STATE* state=nullptr;
+  void* state=nullptr;
 
   //constructor
   ScopedAcquireGil();
@@ -242,7 +223,7 @@ class VISUS_KERNEL_API ScopedReleaseGil {
   
 public:
 
-  PyThreadState* state=nullptr;
+  void* state=nullptr;
 
   //constructor
   ScopedReleaseGil();

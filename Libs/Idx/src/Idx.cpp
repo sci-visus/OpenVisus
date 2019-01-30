@@ -39,7 +39,6 @@ For support : support@visus.net
 #include <Visus/Idx.h>
 #include <Visus/IdxDataset.h>  
 #include <Visus/IdxMultipleDataset.h>
-#include <Visus/PythonEngine.h>
 
 namespace Visus {
 

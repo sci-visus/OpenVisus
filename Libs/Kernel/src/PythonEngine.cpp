@@ -43,6 +43,9 @@ For support : support@visus.net
 #include <Visus/Path.h>
 #include <Visus/File.h>
 
+
+#include <Visus/IncludePython.h>
+
 #include <cctype>
 
 #include <pydebug.h>
@@ -69,7 +72,7 @@ For support : support@visus.net
 
 namespace Visus {
 
-PyThreadState* PythonEngine::mainThreadState=nullptr;
+void* PythonEngine::mainThreadState=nullptr;
 
 static std::set<String> ReservedWords =
 {
@@ -82,15 +85,16 @@ static std::set<String> ReservedWords =
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::ScopedAcquireGil() 
 {
-  state = new PyGILState_STATE();
+  auto state = new PyGILState_STATE();
   *state = PyGILState_Ensure();
+  this->state = state;
 }
 
 
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::~ScopedAcquireGil()
 {
-  if (state)
+  if (PyGILState_STATE* state = (PyGILState_STATE*)this->state)
   {
     PyGILState_Release(*state);
     delete state;
@@ -105,7 +109,7 @@ ScopedReleaseGil::ScopedReleaseGil()
 
 ///////////////////////////////////////////////////////////////////////////
 ScopedReleaseGil::~ScopedReleaseGil() {
-  PyEval_RestoreThread(state);
+  PyEval_RestoreThread((PyThreadState*)state);
 }
 
 
@@ -237,7 +241,7 @@ void ShutdownPython()
     return;
 
   //VisusInfo() << "Shutting down python...";
-  PyEval_RestoreThread(PythonEngine::mainThreadState);
+  PyEval_RestoreThread((PyThreadState*)PythonEngine::mainThreadState);
   Py_Finalize();
 
   //VisusInfo() << "Python shutting down done";
@@ -460,6 +464,9 @@ void PythonEngine::delModuleAttr(String name) {
 ///////////////////////////////////////////////////////////////////////////
 void PythonEngine::setError(String explanation, PyObject* err)
 {
+  if (!err)
+    err = PyExc_SystemError;
+
   PyErr_SetString(err, explanation.c_str());
 }
 

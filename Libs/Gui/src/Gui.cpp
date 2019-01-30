@@ -45,7 +45,6 @@ For support : support@visus.net
 #include <Visus/GLLookAtCamera.h>
 #include <Visus/GLCanvas.h>
 #include <Visus/GLPhongShader.h>
-#include <Visus/PythonEngine.h>
 
 #include <QFrame>
 #include <QTextStream>

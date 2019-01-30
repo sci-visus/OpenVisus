@@ -550,22 +550,6 @@ void NetService::attach()
   int retcode = curl_global_init(CURL_GLOBAL_ALL) ;
   VisusReleaseAssert(retcode == 0);
 #endif
-
-  //needed for networking
-#if WIN32
-  {
-    WSADATA data;
-    WSAStartup(MAKEWORD(2, 2), &data);
-  }
-#else
-  {
-    struct sigaction act, oact; //The SIGPIPE signal will be received if the peer has gone away
-    act.sa_handler = SIG_IGN;   //and an attempt is made to write data to the peer. Ignoring this
-    sigemptyset(&act.sa_mask);  //signal causes the write operation to receive an EPIPE error.
-    act.sa_flags = 0;           //Thus, the user is informed about what happened.
-    sigaction(SIGPIPE, &act, &oact);
-  }
-#endif
 }
 
 

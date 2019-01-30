@@ -36,63 +36,22 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Db.h>
-#include <Visus/Array.h>
+#ifndef _VISUS_NEED_PYTHON_H__
+#define _VISUS_NEED_PYTHON_H__
 
-#include <Visus/DatasetBitmask.h>
-#include <Visus/LegacyDataset.h>
-#include <Visus/DatasetArrayPlugin.h>
+#pragma push_macro("slots")
+#undef slots
 
-namespace Visus {
+#if defined(_DEBUG) && defined(SWIG_PYTHON_INTERPRETER_NO_DEBUG)
+//for windows using Release anyway (otherwise most site-packages, as numpy, don't work)
+# undef _DEBUG
+# include <Python.h>
+# define _DEBUG
+#else
+# include <Python.h>
+#endif
 
-bool DbModule::bAttached = false;
+#pragma pop_macro("slots")
 
-///////////////////////////////////////////////////////////////////////////////////////////
-void DbModule::attach()
-{
-  if (bAttached)  
-    return;
-  
-  VisusInfo() << "Attaching DbModule...";
-  
-  bAttached = true;
-
-  KernelModule::attach();
-
-  DatasetPluginFactory::allocSingleton();
-
-  ArrayPlugins::getSingleton()->values.push_back(std::make_shared<DatasetArrayPlugin>());
-
-  //VISUS_REGISTER_OBJECT_CLASS(Access);
-  //VISUS_REGISTER_OBJECT_CLASS(FilterAccess);
-  //VISUS_REGISTER_OBJECT_CLASS(MultiplexAccess);
-  //VISUS_REGISTER_OBJECT_CLASS(ModVisusAccess);
-  //VISUS_REGISTER_OBJECT_CLASS(RamAccess);
-  //VISUS_REGISTER_OBJECT_CLASS(DiskAccess);
-  //VISUS_REGISTER_OBJECT_CLASS(OnDemandAccess);
-  //VISUS_REGISTER_OBJECT_CLASS(Dataset);
-
-  VISUS_REGISTER_OBJECT_CLASS(LegacyDataset);
-
-  VisusInfo() << "Attached DbModule";
-}
-
-//////////////////////////////////////////////
-void DbModule::detach()
-{
-  if (!bAttached)  
-    return;
-  
-  VisusInfo() << "Detaching DbModule...";
-  
-  bAttached = false;
-
-  DatasetPluginFactory::releaseSingleton();
-
-  KernelModule::detach();
-
-  VisusInfo() << "Detached DbModule.";
-}
-
-} //namespace Visus 
+#endif //_VISUS_NEED_PYTHON_H__
 

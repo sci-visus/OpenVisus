@@ -41,7 +41,6 @@ For support : support@visus.net
 #include <Visus/TransferFunction.h>
 #include <Visus/Nodes.h>
 #include <Visus/GuiNodes.h>
-#include <Visus/PythonEngine.h>
 
 #include <QDirIterator>
 

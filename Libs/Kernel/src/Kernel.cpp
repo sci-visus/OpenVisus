@@ -63,6 +63,7 @@ For support : support@visus.net
 
 #include <Windows.h>
 #include <ShlObj.h>
+#include <winsock2.h>
 
 #elif __APPLE__
 
@@ -94,7 +95,6 @@ For support : support@visus.net
 #include <Visus/Array.h>
 
 #include <Visus/PythonEngine.h>
-#include <pydebug.h>
 
 
 #include <clocale>
@@ -356,6 +356,22 @@ void KernelModule::attach()
   srand(0);
   std::setlocale(LC_ALL, "en_US.UTF-8");
   Thread::getMainThreadId() = std::this_thread::get_id();
+
+  //this is for generic network code
+#if WIN32
+  {
+    WSADATA data;
+    WSAStartup(MAKEWORD(2, 2), &data);
+  }
+#else
+  {
+    struct sigaction act, oact; //The SIGPIPE signal will be received if the peer has gone away
+    act.sa_handler = SIG_IGN;   //and an attempt is made to write data to the peer. Ignoring this
+    sigemptyset(&act.sa_mask);  //signal causes the write operation to receive an EPIPE error.
+    act.sa_flags = 0;           //Thus, the user is informed about what happened.
+    sigaction(SIGPIPE, &act, &oact);
+  }
+#endif
 
   NetService::attach();
 
