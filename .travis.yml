@@ -277,6 +277,8 @@ matrix:
 
 script:
    - |
+     set -ex # Error out after first failure and print each command before executing   
+     
      export VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-1}
      export PRETTY_LOG=${PRETTY_LOG:-1}
      if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then export COMPILER=clang++ ; fi
@@ -294,7 +296,7 @@ script:
      ./build.sh
      
      if [[ "${DEPLOY_PYPI}" == "1" ]] ; then 
-
+        
         # use the pypi python
         if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then
            export PATH="$HOME/.pyenv/bin:$PATH"
@@ -350,6 +352,8 @@ script:
            sudo docker build -t test-openvisus-wheel .
         fi
      fi
+     
+     set +ex # Stop printing each command     
 
 before_deploy:
   - export SDIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
