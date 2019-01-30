@@ -279,7 +279,7 @@ script:
    - |
      # Error out after first failure and print each command before executing   
      # not working for osx for unknown reasons
-     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then set -ex ; fi
+     set -x 
      
      export VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-1}
      export PRETTY_LOG=${PRETTY_LOG:-1}
@@ -356,7 +356,7 @@ script:
      fi
      
      # Stop printing each command 
-     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then set +ex ; fi  
+     set +x 
 
 before_deploy:
   - export SDIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
