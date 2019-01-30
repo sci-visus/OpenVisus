@@ -1,10 +1,7 @@
 %module(directors="1") VisusNodesPy
 
 %{ 
-#include <Visus/Visus.h>
-#include <Visus/PythonEngine.h>
 #include <Visus/LogicBox.h>
-
 #include <Visus/Nodes.h>
 using namespace Visus;
 %}

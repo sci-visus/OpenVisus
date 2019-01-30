@@ -55,7 +55,19 @@ For support : support@visus.net
 #pragma warning( pop )
 #endif
 
-#include <Visus/IncludePython.h>
+#pragma push_macro("slots")
+#undef slots
+
+#if defined(_DEBUG) && defined(SWIG_PYTHON_INTERPRETER_NO_DEBUG)
+//for windows using Release anyway (otherwise most site-packages, as numpy, don't work)
+# undef _DEBUG
+# include <Python.h>
+# define _DEBUG
+#else
+# include <Python.h>
+#endif
+
+#pragma pop_macro("slots")
 
 
 namespace Visus {

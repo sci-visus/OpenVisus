@@ -1,14 +1,11 @@
 %module(directors="1") VisusKernelPy
 
 %{ 
-#include <Visus/Visus.h>
-#include <Visus/PythonEngine.h>
 #include <Visus/Array.h>
 #include <Visus/VisusConfig.h>
 using namespace Visus;
 
 static char* __my_numpy_capsule_name__="__my_numpy_capsule_name__";
-
 %}
 
 

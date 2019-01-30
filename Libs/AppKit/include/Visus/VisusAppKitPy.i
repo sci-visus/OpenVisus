@@ -3,8 +3,6 @@
 %include <Visus/VisusPy.i>
 
 %{ 
-#include <Visus/Visus.h>
-#include <Visus/PythonEngine.h>
 #include <Visus/PythonNode.h>
 #include <Visus/Viewer.h>
 using namespace Visus;

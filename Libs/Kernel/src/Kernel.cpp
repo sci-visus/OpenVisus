@@ -96,7 +96,6 @@ For support : support@visus.net
 
 #include <Visus/PythonEngine.h>
 
-
 #include <clocale>
 
 //this solve a problem of old Linux distribution (like Centos 5)

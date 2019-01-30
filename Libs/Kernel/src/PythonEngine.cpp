@@ -43,9 +43,6 @@ For support : support@visus.net
 #include <Visus/Path.h>
 #include <Visus/File.h>
 
-
-#include <Visus/IncludePython.h>
-
 #include <cctype>
 
 #include <pydebug.h>

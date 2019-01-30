@@ -313,7 +313,6 @@ source_group("Encoder" FILES
 
 source_group("Python" FILES 
 	./include/Visus/swigpyrun.h 
-	./include/Visus/IncludePython.h
 	./include/Visus/PythonEngine.h
 	./src/PythonEngine.cpp)
 

@@ -1,9 +1,7 @@
 %module(directors="1") VisusXIdxPy
 
 %{ 
-#include <Visus/PythonEngine.h>
 #include <Visus/VisusXIdx.h>
-
 using namespace Visus;
 %}
 
