@@ -281,6 +281,14 @@ macro(LinkPythonToExecutable Name)
   endif()
 endmacro()
 
+# ///////////////////////////////////////////////////
+macro(AddStaticLibrary Name)
+	add_library(${Name} STATIC ${ARGN})
+
+	# this fixes the problem of static symbols conflicting with dynamic lib
+	# example: dynamic libcrypto conflicting with internal static libcrypto
+	target_compile_options(${Name} PRIVATE -fvisibility=hidden)
+endmacro()
 
 # ///////////////////////////////////////////////////
 macro(AddLibrary Name)

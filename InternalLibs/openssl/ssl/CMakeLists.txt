@@ -1,6 +1,6 @@
 
 
-add_library(ssl STATIC
+AddStaticLibrary(ssl 
 	s2_meth.c s2_srvr.c s2_clnt.c s2_lib.c s2_enc.c s2_pkt.c s3_meth.c s3_srvr.c 
 	s3_clnt.c s3_lib.c s3_enc.c s3_pkt.c s3_both.c s23_meth.c s23_srvr.c s23_clnt.c 
 	s23_lib.c s23_pkt.c t1_meth.c t1_srvr.c t1_clnt.c t1_lib.c t1_enc.c d1_meth.c d1_srvr.c 
@@ -9,7 +9,6 @@ add_library(ssl STATIC
 	ssl_err.c kssl.c t1_reneg.c )
 	
 target_include_directories(ssl PRIVATE ../crypto ../ ../include)
-target_compile_definitions(crypto PRIVATE OPENSSL_NO_ASM)
 target_link_libraries(ssl PUBLIC crypto)
 set_target_properties(ssl PROPERTIES FOLDER "InternalLibs")
 
