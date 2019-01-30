@@ -1,6 +1,6 @@
 DisableAllWarnings()
 
-add_library(TinyXML STATIC
+AddStaticLibrary(TinyXML 
 	tinyxml.cpp 
 	tinyxmlparser.cpp 
 	xmltest.cpp 

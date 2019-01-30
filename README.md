@@ -67,6 +67,7 @@ REM *** change PYTHON_EXECUTABLE  as needed      ***
 REM *** only python 3.6/3.7 64 bit are supported ***
 set PYTHON_EXECUTABLE=c:\Python37\python.exe
 
+%PYTHON_EXECUTABLE% -m pip install pip --upgrade
 %PYTHON_EXECUTABLE% -m pip uninstall OpenVisus
 %PYTHON_EXECUTABLE% -m pip install --user numpy OpenVisus==1.2.182
 
@@ -100,6 +101,7 @@ python --version # check the version here
 Then on Linux/osx:
 
 ```
+python -m pip install pip --upgrade
 python -m pip uninstall -y OpenVisus
 python -m pip install --user numpy OpenVisus==1.2.182
 cd $(python -m OpenVisus dirname)
