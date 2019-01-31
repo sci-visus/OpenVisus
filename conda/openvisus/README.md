@@ -29,7 +29,6 @@ conda-build openvisus
 conda install --use-local openvisus
 
 cd $(python -m OpenVisus dirname)
-
 python Samples/python/Array.py
 python Samples/python/Dataflow.py
 python Samples/python/Idx.py
