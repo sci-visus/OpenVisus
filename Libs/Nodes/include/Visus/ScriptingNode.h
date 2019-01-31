@@ -54,7 +54,6 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(ScriptingNode)
 
-  SharedPtr<PythonEngine> engine;
 
   //constructor
   ScriptingNode(String name="");
@@ -128,6 +127,10 @@ private:
 
   Position  bounds;
 
+#if VISUS_PYTHON
+  SharedPtr<PythonEngine> engine;
+#endif
+
   //guessPresets
   void guessPresets(SharedPtr<Array> data);
 
@@ -136,7 +139,6 @@ private:
     if (dataflow)
       dataflow->needProcessInput(this);
   }
-
 
 };
 

@@ -40,11 +40,12 @@ For support : support@visus.net
 #include <Visus/VisusConfig.h>
 #include <Visus/PythonEngine.h>
 
-
 namespace Visus {
 
 
 /////////////////////////////////////////////////////////////////////////////////////
+#if VISUS_PYTHON
+
 class ScriptingNode::MyJob : public NodeJob
 {
 public:
@@ -95,14 +96,14 @@ public:
     catch (std::exception ex)
     {
       ScopedAcquireGil acquire_gil;
-      engine->print(ex.what());
+      engine->printMessage(ex.what());
       return;
     }
 
     if (!output) 
     {
       ScopedAcquireGil acquire_gil;
-      engine->print("ERROR output is not an Array");
+      engine->printMessage("ERROR output is not an Array");
       return;
     }
 
@@ -182,7 +183,7 @@ public:
     if (!bIncremental)
     {
       ScopedAcquireGil acquire_gil;
-      engine->print(StringUtils::format() << "Array " << output->dims.toString());
+      engine->printMessage(StringUtils::format() << "Array " << output->dims.toString());
     }
 
     auto msg=std::make_shared<DataflowMessage>();
@@ -197,10 +198,14 @@ public:
 
 };
 
+#endif //#if VISUS_PYTHON
+
 ///////////////////////////////////////////////////////////////////////
 ScriptingNode::ScriptingNode(String name)  : Node(name)
 {
+#if VISUS_PYTHON
   engine = std::make_shared<PythonEngine>(false);
+#endif
 
   addInputPort("data");
   addOutputPort("data");
@@ -227,13 +232,28 @@ bool ScriptingNode::processInput()
 
   guessPresets(input);
 
+  this->bounds = input->bounds;
+
+#if VISUS_PYTHON
+
   auto process_job=std::make_shared<MyJob>(this, input,return_receipt);
   if (!process_job->valid()) 
     return false;
   
-  this->bounds= input->bounds;
-
   addNodeJob(process_job);
+#else
+
+  //pass throught
+  auto msg = std::make_shared<DataflowMessage>();
+  if (return_receipt)
+    msg->setReturnReceipt(return_receipt);
+  msg->writeContent("data", input);
+  publish(msg);
+
+#endif
+
+  
+
   return true;
 }
 
@@ -280,6 +300,8 @@ void ScriptingNode::guessPresets(SharedPtr<Array> input)
   clearPresets();
 
   addPreset("Identity", "output=input");
+
+#if VISUS_PYTHON
 
   int N = input->dtype.ncomponents();
   {
@@ -399,6 +421,7 @@ void ScriptingNode::guessPresets(SharedPtr<Array> input)
     "percent=50\n"
     "output=ArrayUtils.median(input,Array.fromPyArray(k),percent)\n");
 
+#endif //#if VISUS_PYTHON
 }
 
 ///////////////////////////////////////////////////////////////////////

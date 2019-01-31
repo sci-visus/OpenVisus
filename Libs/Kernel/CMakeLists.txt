@@ -2,7 +2,6 @@
 FindGitRevision()
 add_definitions(-DGIT_REVISION=\"${GIT_REVISION}\")
 
-
 # *** VISUS_INTERNAL_DEFAULT ***
 if (NOT DEFINED VISUS_INTERNAL_DEFAULT)
 	if (WIN32)
@@ -162,6 +161,9 @@ endif()
 
 
 source_group("" FILES
+	${CMAKE_CURRENT_SOURCE_DIR}/../../CMakeLists.txt
+	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/VisusMacros.cmake
+	${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.txt
 	./include/Visus/Visus.h 
 	./include/Visus/Kernel.h 
 	./src/Visus.cpp 
@@ -326,10 +328,18 @@ IF (WIN32 OR APPLE)
 	set(GLOB MM_FILES src/*.mm)
 endif()
 
-file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp ${MM_FILES} src/*.h)
+file(GLOB Sources 
+	${CMAKE_CURRENT_SOURCE_DIR}/../../CMakeLists.txt
+	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/VisusMacros.cmake
+	${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.txt
+	include/Visus/*.h 
+	include/Visus/*.i 
+	src/*.cpp 
+	src/*.h
+	${MM_FILES} 
+)
 
 AddLibrary(VisusKernel ${Sources})
-
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/dtl/include)
@@ -355,9 +365,13 @@ else()
 	target_link_libraries(VisusKernel      PUBLIC ${TinyXML_LIBRARIES})	
 endif()
 
+if (VISUS_PYTHON)
+	target_compile_definitions(VisusKernel PUBLIC -DVISUS_PYTHON=1)
+endif()
+
 if (VISUS_IMAGE)
 
-	target_compile_definitions(VisusKernel PRIVATE -DVISUS_IMAGE=1)
+	target_compile_definitions(VisusKernel PUBLIC -DVISUS_IMAGE=1)
 
 	if (TARGET FreeImage)
 		target_link_libraries(VisusKernel PRIVATE FreeImage)
@@ -369,7 +383,7 @@ endif()
 
 if (VISUS_NET)
 
-	target_compile_definitions(VisusKernel PRIVATE -DVISUS_NET=1)
+	target_compile_definitions(VisusKernel PUBLIC -DVISUS_NET=1)
 
 	if (TARGET crypto)
 		target_link_libraries(VisusKernel PRIVATE crypto)
@@ -407,10 +421,9 @@ endif()
 
 # copy py files to build
 file(GLOB CMakePyFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/*.py)
-FOREACH (__it__ ${CMakePyFiles})
+foreach(__it__ ${CMakePyFiles})
 	add_custom_command(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${__it__} $<TARGET_FILE_DIR:VisusKernel>)
-ENDFOREACH()
-
+endforeach()
 
 AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")

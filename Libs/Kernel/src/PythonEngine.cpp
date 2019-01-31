@@ -36,6 +36,8 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
+# if VISUS_PYTHON
+
 #include <Visus/PythonEngine.h>
 #include <Visus/Thread.h>
 #include <Visus/Log.h>
@@ -645,7 +647,7 @@ String PythonEngine::getLastErrorMessage()
 }
 
 ///////////////////////////////////////////////////////////////////////////
-void PythonEngine::print(String message)
+void PythonEngine::printMessage(String message)
 {
   PySys_WriteStdout("%s", message.c_str());
 }
@@ -711,4 +713,6 @@ PyObject* PythonEngine::evalCode(String s)
 
 
 } //namespace Visus
+
+#endif //# if VISUS_PYTHON
 

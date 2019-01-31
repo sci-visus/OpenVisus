@@ -125,9 +125,10 @@ void DestroyAutoReleasePool();
 #endif
 
 
+#if VISUS_PYTHON
 void InitPython();
-
 void ShutdownPython();
+#endif
 
 //////////////////////////////////////////////////////////////////
 void PrintMessageToTerminal(const String& value) {
@@ -376,7 +377,10 @@ void KernelModule::attach()
 
   InitKnownPaths();
   InitVisusConfig();
+
+#if VISUS_PYTHON
   InitPython();
+#endif
 
   VisusInfo() << "git_revision            " << ApplicationInfo::git_revision;
   VisusInfo() << "VisusHome               " << KnownPaths::VisusHome.toString();
@@ -430,11 +434,13 @@ void KernelModule::attach()
   VISUS_REGISTER_OBJECT_CLASS(TransferFunction);
 
   //this is to make sure PythonEngine works
+#if VISUS_PYTHON
   if (auto engine = std::make_shared<PythonEngine>(true) )
   {
     ScopedAcquireGil acquire_gil;
     engine->execCode("print('PythonEngine is working fine')");
   }
+#endif
 
   VisusInfo() << "Attached KernelModule";
 }
@@ -456,7 +462,9 @@ void KernelModule::detach()
   RamResource::releaseSingleton();
   UUIDGenerator::releaseSingleton();
 
+#if VISUS_PYTHON
   ShutdownPython();
+#endif
 
   NetService::detach();
 

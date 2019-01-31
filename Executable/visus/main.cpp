@@ -2104,11 +2104,15 @@ int main(int argn, const char* argv[])
   //python main
   if (argn >= 2 && (String(argv[1]) == "--python" || String(argv[1]) == "-python"))
   {
+#if VISUS_PYTHON
     std::vector<String> args;
     for (int I = 0; I < argn; I++)
       if (I != 1) args.push_back(argv[I]);
-
     return PythonEngine::main(args);
+#else
+    VisusInfo() << "Python disabled";
+    return -1;
+#endif
   }
 
   Time T1 = Time::now();

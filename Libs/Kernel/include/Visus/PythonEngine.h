@@ -39,6 +39,8 @@ For support : support@visus.net
 #ifndef _VISUS_PYTHON_ENGINE_H__
 #define _VISUS_PYTHON_ENGINE_H__
 
+# if VISUS_PYTHON
+
 #include <Visus/Object.h>
 #include <Visus/Array.h>
 #include <Visus/Log.h>
@@ -68,7 +70,6 @@ For support : support@visus.net
 #endif
 
 #pragma pop_macro("slots")
-
 
 namespace Visus {
 
@@ -191,11 +192,8 @@ public:
   //addSysPath
   void addSysPath(String value,bool bVerbose=true);
 
-  //print (must have the GIL)
-  void print(String message);
-
-  //fixPath
-  static String fixPath(String value);
+  //printMessage (must have the GIL)
+  void printMessage(String message);
 
 private:
 
@@ -206,6 +204,9 @@ private:
 
   void* swig_type_aborted = nullptr;
   void* swig_type_array   = nullptr;
+
+  //fixPath
+  static String fixPath(String value);
 
   //internalNewPyFunction
   PyObject* internalNewPyFunction(PyObject* self, String name, Function fn);
@@ -249,5 +250,6 @@ typedef ScopedReleaseGil PythonThreadAllow;
 
 } //namespace Visus
 
-#endif //_VISUS_PYTHON_ENGINE_H__
+#endif //# if VISUS_PYTHON
 
+#endif //_VISUS_PYTHON_ENGINE_H__

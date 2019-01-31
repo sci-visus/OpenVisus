@@ -171,6 +171,7 @@ private:
 
 
 ////////////////////////////////////////////////////////
+#if VISUS_PYTHON
 class QueryInputTerm
 {
 public:
@@ -740,7 +741,7 @@ public:
   }
 
 };
-
+#endif //VISUS_PYTHON
 
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -806,8 +807,13 @@ Field IdxMultipleDataset::getFieldByNameThrowEx(String FIELDNAME) const
   if (existing.valid())
     return existing;
 
+#if VISUS_PYTHON
   auto output = QueryInputTerm(const_cast<IdxMultipleDataset*>(this), nullptr, SharedPtr<Access>(), Aborted()).computeOutput(FIELDNAME);
   return Field(FIELDNAME, output.dtype);
+#else
+  ThrowException("python disabled");
+  return Field();
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -820,21 +826,26 @@ void IdxMultipleDataset::addChild(IdxMultipleDataset::Child value)
 ////////////////////////////////////////////////////////////////////////////////////
 String IdxMultipleDataset::getInputName(String dataset_name, String fieldname,bool bIsVarName)
 {
+
   std::ostringstream out;
   out << "input";
+#if VISUS_PYTHON
   if (PythonEngine::isGoodVariableName(dataset_name))
     out << "." << dataset_name;
   else
+#endif
     out << "['" << dataset_name << "']";
 
   if (bIsVarName)
   {
     out << "[" << fieldname << "]";
   }
+#if VISUS_PYTHON
   else if (PythonEngine::isGoodVariableName(fieldname))
   {
     out << "." << fieldname;
   }
+#endif
   else
   {
     fieldname = StringUtils::replaceAll(fieldname, "\"", "\\\"");
@@ -1252,7 +1263,6 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   return true;
 }
 
-
 ////////////////////////////////////////////////////////////////////////
 std::map<String, SharedPtr<Dataset>> IdxMultipleDataset::getInnerDatasets() const
 {
@@ -1276,6 +1286,7 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> 
       String error_msg;
       Array  OUTPUT;
 
+#if VISUS_PYTHON
       try
       {
         OUTPUT = QueryInputTerm(this, QUERY.get(), multiple_access, QUERY->aborted).computeOutput(QUERY->field.name);
@@ -1284,6 +1295,9 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> 
       {
         error_msg = ex.what();
       }
+#else
+      error_msg = "python disabled";
+#endif
 
       if (QUERY->aborted())
         OUTPUT = Array();

@@ -48,11 +48,13 @@ else()
 	set(CMAKE_FOLDER_PREFIX "")
 endif()
 
-FindPythonLibrary()
 
-option(VISUS_NET   "Enable net"   TRUE) 
-option(VISUS_IMAGE "Enable image" TRUE)  
-option(VISUS_GUI   "Enable gui"   TRUE)  
+option(VISUS_PYTHON "Enable python"   TRUE) 
+option(VISUS_NET    "Enable net"      TRUE) 
+option(VISUS_IMAGE  "Enable image"    TRUE)  
+option(VISUS_GUI    "Enable gui"      TRUE)  
+
+FindPythonLibrary()
 
 if (VISUS_GUI)
 	IF (APPLE)
@@ -87,15 +89,16 @@ if (1)
 	# testing
 	enable_testing()
 
-  AddCTest(VisusTestPyDataflow ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Dataflow.py)
-  AddCTest(VisusTestPyArray    ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Array.py)
-  AddCTest(VisusTestPyIdx      ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py)
-
+	if (VISUS_PYTHON)
+		AddCTest(VisusTestPyDataflow ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Dataflow.py)
+		AddCTest(VisusTestPyArray    ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Array.py)
+		AddCTest(VisusTestPyIdx      ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py)
+	endif()
 
 	# disabled: takes too much time, in case you modify some core IDX class you can run it manually
-  if (0)
-  	AddCTest(VisusTestIdx      $<TARGET_FILE:visus> ${CMAKE_CURRENT_SOURCE_DIR}  --test-idx --max-seconds 300)
-  endif()
+	if (0)
+		AddCTest(VisusTestIdx      $<TARGET_FILE:visus> ${CMAKE_CURRENT_SOURCE_DIR}  --test-idx --max-seconds 300)
+	endif()
 	
 	# external app
 	AddExternalApp(simple_query ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query ${CMAKE_BINARY_DIR}/Samples/simple_query)
@@ -139,8 +142,10 @@ if (True)
 	install(DIRECTORY    Libs/Idx/include/Visus                        DESTINATION include/Idx/)
 	install(DIRECTORY    Libs/Nodes/include/Visus                      DESTINATION include/Nodes)
 	
-	file(WRITE    "${CMAKE_BINARY_DIR}/PYTHON_VERSION" "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
-	install(FILES "${CMAKE_BINARY_DIR}/PYTHON_VERSION" DESTINATION .)
+	if (VISUS_PYTHON)
+		file(WRITE    "${CMAKE_BINARY_DIR}/PYTHON_VERSION" "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+		install(FILES "${CMAKE_BINARY_DIR}/PYTHON_VERSION" DESTINATION .)
+	endif()
 
 	if (VISUS_GUI)
 		install(FILES "${CMAKE_BINARY_DIR}/QT_VERSION" DESTINATION .)
@@ -150,10 +155,6 @@ if (True)
 	
 		InstallBuildFiles(*.dll bin)
 	
-		# self-contained python (disabled)
-		# get_filename_component(__python_dir__ ${PYTHON_EXECUTABLE} DIRECTORY)
-		# install(DIRECTORY ${__python_dir__}/ DESTINATION win32/python PATTERN "*.pyc" EXCLUDE )
-
 		include(InstallRequiredSystemLibraries)
 		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION bin COMPONENT Libraries)	
 		

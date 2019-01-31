@@ -15,4 +15,3 @@ AddSwigLibrary(VisusGuiNodesPy VisusGuiNodes ${CMAKE_CURRENT_SOURCE_DIR}/include
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Nodes/include"
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Gui/include"
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../GuiNodes/include")
-
