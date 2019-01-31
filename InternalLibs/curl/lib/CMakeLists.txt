@@ -65,8 +65,10 @@ AddStaticLibrary(curl
 	vtls/cyassl.c vtls/schannel.c vtls/darwinssl.c vtls/gskit.c           
 	vtls/mbedtls.c)
 
-if (TARGET zlib)
-	target_link_libraries(curl PRIVATE zlib)
+if (VISUS_COMPRESSION)
+	if (TARGET zlib)
+		target_link_libraries(curl PRIVATE zlib)
+	endif()
 endif()
 
 if (TARGET crypto)

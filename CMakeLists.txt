@@ -49,10 +49,11 @@ else()
 endif()
 
 
-option(VISUS_PYTHON "Enable python"   TRUE) 
-option(VISUS_NET    "Enable net"      TRUE) 
-option(VISUS_IMAGE  "Enable image"    TRUE)  
-option(VISUS_GUI    "Enable gui"      TRUE)  
+option(VISUS_PYTHON       "Enable python"       TRUE) 
+option(VISUS_COMPRESSION  "Enable compression"  TRUE)  
+option(VISUS_NET          "Enable net"          TRUE) 
+option(VISUS_IMAGE        "Enable image"        TRUE)  
+option(VISUS_GUI          "Enable gui"          TRUE)  
 
 FindPythonLibrary()
 
