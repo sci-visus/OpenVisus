@@ -20,6 +20,7 @@ env:
   global:
     - PYPI_USERNAME=scrgiorgio
     - secure: EAZwSiQCFdTjcKDmHLFpWgX7WnGKwTtptkTvXYLcMPSUMxGymTCOTI1h8jjhxGig3k4Jni1X1gx9c8+LkcMd/yjbzDiOnIjCAVRc1hmCijAgu9j3G1ZMll4E38T7Iq6jE3/DZyb7pfK3X4NQopF/5uySIGeoH25CHwcNyr36k8Ba+qYtanPwTG1D+EVIago8qqL5yG5rslAf7Y69+zVbNa/JAUhow4fw0RAwVp+kgMC7Fj7iSMuN4NmS176VZEjD593zbiBgW+veEN0Z2MLD4vG7nq+w5u5JJYuz+Q4EiB5CCek5hhj17fJMWuAA23RZAlq4X/2oS5bKg/etHK5iVeM8ODKBX2bBHOxQoqwOaOVf0sEs5ranwVLR/77FrhFEECKAmkfFHwGGViWTvdE+F/7XqjLQK9Zm2f+T+rMHxrm1RknbXz271TNahqCHnMsmpaz98WbBHjdp2aQfU+nV/l6XLJnAf0R58ISiVdnDOy3BgQsiWIyxjZc6gRSwLg6EzAS2XlgQOmXhDo8lYoaepuK4OWvdIf+bqw0Y3b0uvrpHlAEpIG0tzzZw6ldq3CdvKD+46Vz+ZtEQBi0GBPy1Env1RHILzlkUwn6LSjVnKYY/TZxIi4ha73yo2BwJ1Q6hpdjVFgHJkEY3a72UCnOBIVnaalGv9lu/EjaixrnU6Nc=  
+    - secure: IKXyv5dk82z3xkFifYIGTMiiTT2eqpCQgq5F/ZIhoPoBJIXlT5ufc9kQ66JajuXvrmIa1TTMjAxd2ayRBhzXRJNtk4ygNNtpChtysTGB7m/PSW6OwqpsPDPq3t6aYI2wE8SzATZmyO49KflEyFEjdGTugvuqf0t+aCRPfAcbCsrSdb+X6tCg+rgYGwXlFGv6oR2akgYZkPDT2WMV7jG153CiSPqympvhBiCdYygUbtBFgqW/hA5X10yqfKIXwRAeEsOma7DlVIliviEJWfXzjbhxAc0shSuJ+/q/iMvAyWs/n1TDiELL+SGlD2RNmyzDsRP/KLJGLxko6lGFocSRD9BsweKw3HQ6q6KvmLUedXwRDg1KqQbf0kll8fJumsVr6ov78+QG7/eN3c2yk5q/rd4j9t1AvRLX9Lstu9DCm101TQv8IYKsAEiM2qVqpcHP1oiUSo31ETVu0xLH/zUK/pmlNlHTDoJHXFU7H24PdkdZqwCVSWinqePg6Tny0Gu834LhsJh+ZX+uqw0EHIEjHHvfpIAJ3x350wiuitepkYkVv+ZjqbutpHDAgDw6MxNzyaJ+qf0HAnxXV+RzciSyO9LmT61A7lyfiWGZyWOW17wjCjI/IIjDIq1f1MJkGUsuuwqGikz5wXfRj5YOykOdWI7YTsjPGMaXGwBC3mgBSCw=
 
 conditions: v1 
   
@@ -293,6 +294,14 @@ script:
            export DEPLOY_PYPI=1
         fi     
      fi
+     
+     export DEPLOY_ANACONDA=0
+     if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_anaconda]"* ]]; then
+        if [[ "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
+           echo "Doing deploy to anaconda..."
+           export DEPLOY_ANACONDA=1
+        fi     
+     fi     
 
      cd "${TRAVIS_BUILD_DIR}"  
      ./build.sh
@@ -355,7 +364,31 @@ script:
         fi
      fi
      
-     # Stop printing each command 
+     if [[ "${DEPLOY_ANACONDA}" == "1" ]] ; then 
+
+        # install miniconda
+        cd $HOME
+        wget https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -O miniconda.sh
+        bash miniconda.sh -b 
+        export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
+        hash -r
+        conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
+        conda install python=$PYTHON_VERSION
+        conda install conda-build anaconda-client
+        conda update -q conda conda-build
+        
+        # build and upload openvisus
+        cd "${TRAVIS_BUILD_DIR}"/conda
+        conda-build openvisus
+        conda install --use-local openvisus
+        cd $(python -m OpenVisus dirname)
+        python Samples/python/Array.py
+        python Samples/python/Dataflow.py
+        python Samples/python/Idx.py
+        anaconda -t $ANACONDA_TOKEN upload $HOME/miniconda${PYTHON_VERSION:0:1}/conda-bld/**/openvisus-*.tar.bz2 --force
+     fi
+     
+     # Stop error on each command
      set +x 
 
 before_deploy:
