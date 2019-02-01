@@ -323,7 +323,7 @@ script:
         echo username=${PYPI_USERNAME}                   >> ~/.pypirc
         echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
 
-        python -m pip || wget -qO- https://bootstrap.pypa.io/get-pip.py | python 
+        python -m pip --version || wget -qO- https://bootstrap.pypa.io/get-pip.py | python 
         python -m pip install --user --upgrade twine 
         python -m twine upload --skip-existing "${TRAVIS_BUILD_DIR}/build/install/dist/*.whl" 
 
@@ -385,7 +385,7 @@ script:
         python Samples/python/Array.py
         python Samples/python/Dataflow.py
         python Samples/python/Idx.py
-        anaconda -t $ANACONDA_TOKEN upload $HOME/miniconda${PYTHON_VERSION:0:1}/conda-bld/**/openvisus-*.tar.bz2 --force
+        anaconda upload -q -t $ANACONDA_TOKEN $HOME/miniconda${PYTHON_VERSION:0:1}/conda-bld/**/openvisus-*.tar.bz2 --force
      fi
      
      # Stop error on each command
