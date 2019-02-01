@@ -1,13 +1,13 @@
 package:
   name: openvisus
-  version: 1.2.184
+  version: 1.2.185
 
 source:
   path: ../..
 
 # you can even dowload from git
 # source:
-#   git_rev: 1.2.184
+#   git_rev: 1.2.185
 #   git_url: https://github.com/sci-visus/OpenVisus.git
 
 requirements:
