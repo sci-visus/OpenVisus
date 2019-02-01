@@ -257,6 +257,51 @@ matrix:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']                       
           
+    # ///////////////////////////////// conda (linux)
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/      
+      env: ['PYTHON_VERSION=3.7.1','CONDA=1']       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']  
+
+    - os: linux
+      dist: trusty
+      env: ['PYTHON_VERSION=3.6.6','CONDA=1']       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']     
+          
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=3.5.1','CONDA=1']           
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']               
+
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=3.4.1','CONDA=1']       
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']       
+
+    - os: linux
+      dist: trusty
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=2.7','CONDA=1']  
+      addons: 
+        apt:
+          packages: ['g++-4.9']
+          sources: ['ubuntu-toolchain-r-test']            
+          
 
     # ///////////////////////////////// alpine (disabled)
     # - os: linux
@@ -274,61 +319,53 @@ matrix:
     #   addons: 
     #     apt:
     #       packages: ['g++-4.9']
-    #       sources: ['ubuntu-toolchain-r-test']                
-
+    #       sources: ['ubuntu-toolchain-r-test']
 script:
    - |
-     # Error out after first failure and print each command before executing   
-     # not working for osx for unknown reasons
-     set -x 
-     
-     export VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-1}
-     export PRETTY_LOG=${PRETTY_LOG:-1}
+     set -x # Error out after first failure and print each command before executing  (not working for osx for unknown reasons)
+     export VISUS_INTERNAL_DEFAULT=1
+     export PRETTY_LOG=1
      if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then export COMPILER=clang++ ; fi
      if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export COMPILER=g++-4.9 ; fi
-     
-     export DEPLOY_PYPI=0
-     if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_pypi]"* ]]; then
-        if [[ $(uname) == "Darwin" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
-           echo "Doing deploy to pypi..."
-           export DEPLOY_PYPI=1
-        fi     
-     fi
-     
-     export DEPLOY_ANACONDA=0
-     if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_anaconda]"* ]]; then
-        if [[ "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
+     if [[ "$CONDA" == "1" ]]; then
+        export DEPLOY_CONDA=0
+        if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[DEPLOY_CONDA]"* ]]; then
            echo "Doing deploy to anaconda..."
-           export DEPLOY_ANACONDA=1
-        fi     
-     fi     
-
-     cd "${TRAVIS_BUILD_DIR}"  
-     ./build.sh
-     
-     if [[ "${DEPLOY_PYPI}" == "1" ]] ; then 
-        
-        # use the pypi python
-        if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then
-           export PATH="$HOME/.pyenv/bin:$PATH"
-           eval "$(pyenv init -)"
-           pyenv global ${PYTHON_VERSION}  
-           pyenv rehash
+           export DEPLOY_CONDA=1
         fi
-
-        # upoad using twine
-        echo [distutils]                                  > ~/.pypirc
-        echo index-servers =  pypi                       >> ~/.pypirc
-        echo [pypi]                                      >> ~/.pypirc
-        echo username=${PYPI_USERNAME}                   >> ~/.pypirc
-        echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
-
-        python -m pip --version || wget -qO- https://bootstrap.pypa.io/get-pip.py | python 
-        python -m pip install --user --upgrade twine 
-        
+        # install miniconda
+        cd $HOME
+        wget -q https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -O miniconda.sh
+        bash miniconda.sh -b 
+        export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
+        hash -r
+        conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
+        conda install -q python=${PYTHON_VERSION} conda-build anaconda-client 
+        conda update  -q conda conda-build
+        # build and upload openvisus
+        cd "${TRAVIS_BUILD_DIR}"
+        cd conda
+        conda-build -q openvisus
+        # test if it's working
+        conda install -q --use-local openvisus
+        cd $(python -m OpenVisus dirname)
+        python Samples/python/Array.py
+        python Samples/python/Dataflow.py
+        python Samples/python/Idx.py
+        if [[ "${DEPLOY_CONDA}" == "1" ]] ; then 
+           anaconda upload -q -t $ANACONDA_TOKEN ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld/**/openvisus*.tar.bz2 --force
+        fi
+     else
+        export DEPLOY_PYPI=0
+        if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_pypi]"* ]]; then
+           if [[ $(uname) == "Darwin" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
+              echo "Doing deploy to pypi..."
+              export DEPLOY_PYPI=1
+           fi     
+        fi
+        cd "${TRAVIS_BUILD_DIR}" 
+        ./build.sh
         export WHEEL_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
-        python -m twine upload --skip-existing "${WHEEL_FILENAME}" 
-
         # test of it works
         if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
            cd $HOME
@@ -339,12 +376,9 @@ script:
            python Samples/python/Array.py 
            python Samples/python/Dataflow.py 
            python Samples/python/Idx.py
-           
         # use Docker for the test
         elif [[ "${PYTHON_VERSION:0:3}" = "3.4" ]]; then
-        
            echo "Skipping test"
-           
         else
            cd $HOME 
            mkdir temp && cd temp
@@ -366,37 +400,26 @@ script:
            echo "   python${PYTHON_VERSION:0:3} Samples/python/Idx.py "                                             >> Dockerfile
            sudo docker build -t test-openvisus-wheel .
         fi
+        if [[ "${DEPLOY_PYPI}" == "1" ]] ; then 
+           # use the pypi python
+           if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then
+              export PATH="$HOME/.pyenv/bin:$PATH"
+              eval "$(pyenv init -)"
+              pyenv global ${PYTHON_VERSION}  
+              pyenv rehash
+           fi
+           # upoad using twine
+           echo [distutils]                                  > ~/.pypirc
+           echo index-servers =  pypi                       >> ~/.pypirc
+           echo [pypi]                                      >> ~/.pypirc
+           echo username=${PYPI_USERNAME}                   >> ~/.pypirc
+           echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
+           python -m pip --version || wget -qO- https://bootstrap.pypa.io/get-pip.py | python 
+           python -m pip install --user --upgrade twine 
+           python -m twine upload --skip-existing "${WHEEL_FILENAME}" 
+        fi
      fi
-     
-     if [[ "${DEPLOY_ANACONDA}" == "1" ]] ; then 
-
-        # install miniconda
-        cd $HOME
-        wget -q https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -O miniconda.sh
-        bash miniconda.sh -b 
-        export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
-        hash -r
-        conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-        conda install -q python=$PYTHON_VERSION
-        conda install -q conda-build anaconda-client
-        conda update  -q conda conda-build
-        
-        # build and upload openvisus
-        cd "${TRAVIS_BUILD_DIR}"
-        # i need to build it again
-        rm -Rf ./build 
-        cd conda
-        conda-build   -q openvisus
-        conda install -q --use-local openvisus
-        cd $(python -m OpenVisus dirname)
-        python Samples/python/Array.py
-        python Samples/python/Dataflow.py
-        python Samples/python/Idx.py
-        anaconda upload -q -t $ANACONDA_TOKEN $HOME/miniconda${PYTHON_VERSION:0:1}/conda-bld/**/openvisus-*.tar.bz2 --force
-     fi
-     
-     # Stop error on each command
-     set +x 
+     set +x  # Stop error on each command
 
 before_deploy:
   - export SDIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
