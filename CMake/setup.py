@@ -9,7 +9,7 @@ from configure import *
 	
 # git grep -l 'old' | xargs sed -i 's/old/new/g'
 PROJECT_NAME="OpenVisus"
-PROJECT_VERSION="1.2.187"
+PROJECT_VERSION="1.2.188"
 
 # ////////////////////////////////////////////////////////////////////
 def findFilesInCurrentDirectory():
