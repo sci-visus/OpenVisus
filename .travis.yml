@@ -368,19 +368,19 @@ script:
 
         # install miniconda
         cd $HOME
-        wget https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -O miniconda.sh
+        wget -q https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -O miniconda.sh
         bash miniconda.sh -b 
         export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
         hash -r
         conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-        conda install python=$PYTHON_VERSION
-        conda install conda-build anaconda-client
-        conda update -q conda conda-build
+        conda install -q python=$PYTHON_VERSION
+        conda install -q conda-build anaconda-client
+        conda update  -q conda conda-build
         
         # build and upload openvisus
         cd "${TRAVIS_BUILD_DIR}"/conda
-        conda-build openvisus
-        conda install --use-local openvisus
+        conda-build   -q openvisus
+        conda install -q --use-local openvisus
         cd $(python -m OpenVisus dirname)
         python Samples/python/Array.py
         python Samples/python/Dataflow.py
