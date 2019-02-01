@@ -237,19 +237,22 @@ private:
   uint4 state[4];   // digest so far
   uint1 digest[16]; // the result
 
-
+  //F
   inline uint4 F(uint4 x, uint4 y, uint4 z) {
-    return x&y | ~x&z;
+    return (x&y) | (~x&z);
   }
 
+  //G
   inline uint4 G(uint4 x, uint4 y, uint4 z) {
-    return x&z | y&~z;
+    return (x&z) | (y&~z);
   }
 
+  //H
   inline uint4 H(uint4 x, uint4 y, uint4 z) {
     return x^y^z;
   }
 
+  //I
   inline uint4 I(uint4 x, uint4 y, uint4 z) {
     return y ^ (x | ~z);
   }

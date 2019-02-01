@@ -382,7 +382,10 @@ script:
         conda update  -q conda conda-build
         
         # build and upload openvisus
-        cd "${TRAVIS_BUILD_DIR}"/conda
+        cd "${TRAVIS_BUILD_DIR}"
+        # i need to build it again
+        rm -Rf ./build 
+        cd conda
         conda-build   -q openvisus
         conda install -q --use-local openvisus
         cd $(python -m OpenVisus dirname)
