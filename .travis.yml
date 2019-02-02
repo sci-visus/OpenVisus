@@ -259,9 +259,8 @@ matrix:
           
     # ///////////////////////////////// conda (linux)
     - os: linux
-      dist: trusty
-      if: tag IS present OR commit_message =~ /\[full_matrix\]/      
-      env: ['PYTHON_VERSION=3.7.1','CONDA=1']       
+      dist: trusty   
+      env: ['PYTHON_VERSION=3.7','CONDA=1']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -269,7 +268,8 @@ matrix:
 
     - os: linux
       dist: trusty
-      env: ['PYTHON_VERSION=3.6.6','CONDA=1']       
+      if: tag IS present OR commit_message =~ /\[full_matrix\]/
+      env: ['PYTHON_VERSION=3.6','CONDA=1']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -278,20 +278,11 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=3.5.1','CONDA=1']           
+      env: ['PYTHON_VERSION=3.5','CONDA=1']           
       addons: 
         apt:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']               
-
-    - os: linux
-      dist: trusty
-      if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=3.4.1','CONDA=1']       
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']       
 
     - os: linux
       dist: trusty
@@ -340,8 +331,9 @@ script:
         export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
         hash -r
         conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-        conda install -q python=${PYTHON_VERSION} conda-build anaconda-client 
+        conda install -q conda-build anaconda-client 
         conda update  -q conda conda-build
+        conda install -q python=${PYTHON_VERSION} 
         # build and upload openvisus
         cd "${TRAVIS_BUILD_DIR}"
         cd conda
