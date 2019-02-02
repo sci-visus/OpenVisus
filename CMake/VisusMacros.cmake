@@ -533,7 +533,7 @@ endmacro()
 # //////////////////////////////////////////////////////////////////////////
 macro(AddCTestEnv Name Key Value)
 	if (APPLE)
-		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT  ${Key}="${Value}")
+		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT  ${Key}=${Value})
 	else()
 		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "${Key}=${Value}")
 	endif()
