@@ -557,7 +557,7 @@ macro(AddCTest Name Command WorkingDirectory)
 	if (WIN32)
 	
 		if (VISUS_GUI)
-			AddCTestEnv(${Name} PATH "${Qt5_DIR}\\..\\..\\..\\bin")
+			AddCTestEnv(${Name} PATH "${Qt5_DIR}/../../../bin")
 		endif()
 		
 	elseif(APPLE)
