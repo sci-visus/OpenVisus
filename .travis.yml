@@ -345,7 +345,7 @@ script:
         python Samples/python/Dataflow.py
         python Samples/python/Idx.py
         if [[ "${DEPLOY_CONDA}" == "1" ]] ; then 
-           anaconda upload -q -t $ANACONDA_TOKEN ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld/**/openvisus*.tar.bz2 --force
+           anaconda -q -t $ANACONDA_TOKEN upload ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld/**/openvisus*.tar.bz2 --force
         fi
      else
         export DEPLOY_PYPI=0
@@ -414,6 +414,7 @@ script:
      set +x  # Stop error on each command
 
 before_deploy:
+  - if [[ "$CONDA" == "1" ]]; then travis_terminate 0 ; fi
   - export SDIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
 
 deploy:
