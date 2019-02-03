@@ -316,14 +316,19 @@ script:
      set -x # Error out after first failure and print each command before executing  (not working for osx for unknown reasons)
      export VISUS_INTERNAL_DEFAULT=1
      export PRETTY_LOG=1
+     export DEPLOY_PYPI=0
+     export DEPLOY_CONDA=0
+     
      if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then export COMPILER=clang++ ; fi
      if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export COMPILER=g++-4.9 ; fi
+     
      if [[ "$CONDA" == "1" ]]; then
-        export DEPLOY_CONDA=0
+        
         if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[DEPLOY_CONDA]"* ]]; then
            echo "Doing deploy to anaconda..."
            export DEPLOY_CONDA=1
         fi
+        
         # install miniconda
         cd $HOME
         wget -q https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -O miniconda.sh
@@ -334,6 +339,7 @@ script:
         conda install -q conda-build anaconda-client 
         conda update  -q conda conda-build
         conda install -q python=${PYTHON_VERSION} 
+        
         # build and upload openvisus
         cd "${TRAVIS_BUILD_DIR}"
         cd conda
@@ -344,20 +350,24 @@ script:
         python Samples/python/Array.py
         python Samples/python/Dataflow.py
         python Samples/python/Idx.py
+        
         if [[ "${DEPLOY_CONDA}" == "1" ]] ; then 
            anaconda -q -t $ANACONDA_TOKEN upload ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld/**/openvisus*.tar.bz2 --force
         fi
+        
      else
-        export DEPLOY_PYPI=0
+
         if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_pypi]"* ]]; then
            if [[ $(uname) == "Darwin" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
               echo "Doing deploy to pypi..."
               export DEPLOY_PYPI=1
            fi     
         fi
+        
         cd "${TRAVIS_BUILD_DIR}" 
-        ./build.sh
+        source ./build.sh
         export WHEEL_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
+        
         # test of it works
         if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
            cd $HOME
@@ -368,9 +378,11 @@ script:
            python Samples/python/Array.py 
            python Samples/python/Dataflow.py 
            python Samples/python/Idx.py
+           
         # use Docker for the test
         elif [[ "${PYTHON_VERSION:0:3}" = "3.4" ]]; then
            echo "Skipping test"
+           
         else
            cd $HOME 
            mkdir temp && cd temp
@@ -392,14 +404,9 @@ script:
            echo "   python${PYTHON_VERSION:0:3} Samples/python/Idx.py "                                             >> Dockerfile
            sudo docker build -t test-openvisus-wheel .
         fi
+        
+        # deploy Pypi
         if [[ "${DEPLOY_PYPI}" == "1" ]] ; then 
-           # use the pypi python
-           if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then
-              export PATH="$HOME/.pyenv/bin:$PATH"
-              eval "$(pyenv init -)"
-              pyenv global ${PYTHON_VERSION}  
-              pyenv rehash
-           fi
            # upoad using twine
            echo [distutils]                                  > ~/.pypirc
            echo index-servers =  pypi                       >> ~/.pypirc
@@ -411,6 +418,7 @@ script:
            python -m twine upload --skip-existing "${WHEEL_FILENAME}" 
         fi
      fi
+     
      set +x  # Stop error on each command
 
 before_deploy:
