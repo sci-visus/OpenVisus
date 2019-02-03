@@ -530,42 +530,36 @@ macro(AddExternalApp name SourceDir BinaryDir)
 	set_target_properties(${name} PROPERTIES FOLDER CMakeTargets/)
 endmacro()
 
-# //////////////////////////////////////////////////////////////////////////
-macro(AddCTestEnv Name Key Value)
-	if (APPLE)
-		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT  ${Key}=${Value})
-	else()
-		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "${Key}=${Value}")
-	endif()
-endmacro()
 
 # //////////////////////////////////////////////////////////////////////////
 macro(AddCTest Name Command WorkingDirectory)
 
 	add_test(NAME ${Name} WORKING_DIRECTORY "${WorkingDirectory}" COMMAND "${Command}" ${ARGN})
-	AddCTestEnv(${Name} CTEST_OUTPUT_ON_FAILURE "1")
 	
-	
-	if (VISUS_PYTHON)
-		if (CMAKE_CONFIGURATION_TYPES)
-			AddCTestEnv(${Name} PYTHONPATH "${CMAKE_BINARY_DIR}/$<CONFIG>")
-		else()
-			AddCTestEnv(${Name} PYTHONPATH "${CMAKE_BINARY_DIR}")
-		endif()
+	set(__options__ "CTEST_OUTPUT_ON_FAILURE=1")
+		
+	if (CMAKE_CONFIGURATION_TYPES)
+		list(APPEND __options__ "PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
+	else()
+		list(APPEND __options__ "PYTHONPATH=${CMAKE_BINARY_DIR}")
 	endif()
-
-	if (WIN32)
 	
+	if (WIN32)
 		if (VISUS_GUI)
-			AddCTestEnv(${Name} PATH "${Qt5_DIR}/../../../bin")
+			list(APPEND __options__ "PATH=${Qt5_DIR}/../../../bin")
 		endif()
 		
 	elseif(APPLE)
-
+		# empty line
+		
 	else()
-		AddCTestEnv(${Name} LD_LIBRARY_PATH "${CMAKE_BINARY_DIR}")
+		list(APPEND __options__ "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}")
+		
 	endif()
 
+	set_tests_properties(${Name} PROPERTIES ENVIRONMENT "${__options__}")
+	
+	
 endmacro()
 
 
