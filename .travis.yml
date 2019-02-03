@@ -355,6 +355,8 @@ script:
            anaconda -q -t $ANACONDA_TOKEN upload ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld/**/openvisus*.tar.bz2 --force
         fi
         
+        travis_terminate 0
+        
      else
 
         if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_pypi]"* ]]; then
@@ -395,7 +397,6 @@ script:
      set +x  # Stop error on each command
 
 before_deploy:
-  - if [[ "$CONDA" == "1" ]]; then travis_terminate 0 ; fi
   - export SDIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
 
 deploy:
