@@ -369,41 +369,14 @@ script:
         export WHEEL_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
         
         # test of it works
-        if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-           cd $HOME
-           python -m pip install "${WHEEL_FILENAME}" 
-           python -m OpenVisus configure 
-           cd $(python -m OpenVisus dirname) 
-           ./visus.sh
-           python Samples/python/Array.py 
-           python Samples/python/Dataflow.py 
-           python Samples/python/Idx.py
-           
-        # use Docker for the test
-        elif [[ "${PYTHON_VERSION:0:3}" = "3.4" ]]; then
-           echo "Skipping test"
-           
-        else
-           cd $HOME 
-           mkdir temp && cd temp
-           echo "FROM ubuntu:xenial"                                                                                 > Dockerfile
-           echo "COPY ${WHEEL_FILENAME} /tmp/ "                                                                     >> Dockerfile
-           echo "RUN apt-get update && \\"                                                                          >> Dockerfile
-           echo "   apt-get install -y software-properties-common vim && \\"                                        >> Dockerfile
-           echo "   add-apt-repository ppa:deadsnakes/ppa && \\"                                                    >> Dockerfile
-           echo "   apt-get update -y && \\"                                                                        >> Dockerfile
-           echo "   apt-get install -y curl python${PYTHON_VERSION:0:3} python${PYTHON_VERSION:0:3}-dev  && \\"     >> Dockerfile
-           echo "   curl https://bootstrap.pypa.io/get-pip.py | python${PYTHON_VERSION:0:3} && \\"                  >> Dockerfile
-           echo "   python${PYTHON_VERSION:0:3} -m pip install --upgrade pip wheel  && \\"                          >> Dockerfile
-           echo "   python${PYTHON_VERSION:0:3} -m pip install /tmp/*.whl && \\"                                    >> Dockerfile
-           echo "   python${PYTHON_VERSION:0:3} -m OpenVisus configure && \\"                                       >> Dockerfile
-           echo "   cd \$(python${PYTHON_VERSION:0:3} -m OpenVisus dirname) && \\"                                  >> Dockerfile
-           echo "   ./visus.sh  && \\"                                                                              >> Dockerfile
-           echo "   python${PYTHON_VERSION:0:3} Samples/python/Array.py && \\"                                      >> Dockerfile
-           echo "   python${PYTHON_VERSION:0:3} Samples/python/Dataflow.py && \\"                                   >> Dockerfile
-           echo "   python${PYTHON_VERSION:0:3} Samples/python/Idx.py "                                             >> Dockerfile
-           sudo docker build -t test-openvisus-wheel .
-        fi
+        cd $HOME
+        python -m pip install "${WHEEL_FILENAME}" 
+        python -m OpenVisus configure 
+        cd $(python -m OpenVisus dirname) 
+        ./visus.sh
+        python Samples/python/Array.py 
+        python Samples/python/Dataflow.py 
+        python Samples/python/Idx.py
         
         # deploy Pypi
         if [[ "${DEPLOY_PYPI}" == "1" ]] ; then 
