@@ -387,7 +387,7 @@ script:
            cd $HOME 
            mkdir temp && cd temp
            echo "FROM ubuntu:xenial"                                                                                 > Dockerfile
-           echo "COPY ${WHEEL_FILENAME} /tmp/ && \\"                                                                >> Dockerfile
+           echo "COPY ${WHEEL_FILENAME} /tmp/ "                                                                     >> Dockerfile
            echo "RUN apt-get update && \\"                                                                          >> Dockerfile
            echo "   apt-get install -y software-properties-common vim && \\"                                        >> Dockerfile
            echo "   add-apt-repository ppa:deadsnakes/ppa && \\"                                                    >> Dockerfile

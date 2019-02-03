@@ -10,10 +10,7 @@ for it in (".","bin"):
 		sys.path.append(dir)
 
 # soon or later all these will be packages
-try:
-	from VisusKernelPy import *
-except:
-	pass
+from VisusKernelPy import *
 	
 try:
 	from VisusDataflowPy import *

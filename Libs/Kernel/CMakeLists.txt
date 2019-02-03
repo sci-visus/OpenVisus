@@ -328,7 +328,7 @@ source_group("Misc" FILES
 	./src/PointCloud.cpp)
 
 IF (WIN32 OR APPLE)
-	set(GLOB MM_FILES src/*.mm)
+	file(GLOB MM_FILES src/*.mm)
 endif()
 
 file(GLOB Sources 
