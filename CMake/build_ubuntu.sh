@@ -1,11 +1,21 @@
 #!/bin/bash
 
-PYTHON_VERSION=${PYTHON_VERSION:-3.6.6}
-source "$(dirname "$0")/build_common.sh"
+set -ex 
 
+source "$(dirname "$0")/build_utils.sh"
+
+PYTHON_VERSION=${PYTHON_VERSION:-3.6.6}
+VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-0}
+DISABLE_OPENMP=${DISABLE_OPENMP:-0}
+VISUS_GUI=${VISUS_GUI:-1}
+CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
 SOURCE_DIR=$(pwd)
-mkdir -p $BUILD_DIR
-cd $BUILD_DIR
+BUILD_DIR=${BUILD_DIR:-$PWD/build} 
+
+# directory for caching install stuff
+CACHED_DIR=${BUILD_DIR}/cached_deps
+mkdir -p ${CACHED_DIR}
+export PATH=${CACHED_DIR}/bin:$PATH
 
 # make sure sudo is available
 if [ "$EUID" -eq 0 ]; then
@@ -16,62 +26,7 @@ fi
 sudo apt-get -qq update
 sudo apt-get -qq install git software-properties-common
 
-# //////////////////////////////////////////////////////
-function DetectUbuntuVersion {
-	if [ -f /etc/os-release ]; then
-		source /etc/os-release
-		export OS_VERSION=$VERSION_ID
-
-	elif type lsb_release >/dev/null 2>&1; then
-		export OS_VERSION=$(lsb_release -sr)
-
-	elif [ -f /etc/lsb-release ]; then
-		source /etc/lsb-release
-		export OS_VERSION=$DISTRIB_RELEASE
-
-	fi
-	echo "OS_VERSION ${OS_VERSION}"
-}
-
-
 DetectUbuntuVersion
-
-# //////////////////////////////////////////////////////
-function InstallCMake {
-
-	# already exists?
-	if [ -x "$(command -v cmake)" ] ; then
-		CMAKE_VERSION=$(cmake --version | cut -d' ' -f3)
-		CMAKE_VERSION=${CMAKE_VERSION:0:1}
-		if (( CMAKE_VERSION >=3 )); then
-			return
-		fi	
-	fi
-
-	echo "Downloading precompiled cmake"
-	DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
-	tar xvzf cmake-3.4.3-Linux-x86_64.tar.gz -C ${CACHED_DIR} --strip-components=1 
-}
-
-
-# //////////////////////////////////////////////////////
-function InstallPatchElf {
-
-	# already exists?
-	if [ -x "$(command -v patchelf)" ]; then
-		return
-	fi
-	
-	echo "Compiling patchelf"
-	DownloadFile https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz 
-	tar xvzf patchelf-0.9.tar.gz
-	pushd patchelf-0.9
-	./configure --prefix=${CACHED_DIR} && make -s && make install
-	autoreconf -f -i
-	./configure --prefix=${CACHED_DIR} && make -s && make install
-	popd
-}
-
 
 if (( ${OS_VERSION:0:2}<=14 )); then
 	sudo add-apt-repository -y ppa:deadsnakes/ppa
@@ -84,7 +39,7 @@ sudo apt-get -qq install --allow-unauthenticated apache2 apache2-dev
 
 InstallCMake
 InstallPatchElf
-InstallPython 
+InstallPyEnvPython 
 
 if (( VISUS_INTERNAL_DEFAULT == 0 )); then 
 	sudo apt-get -qq install --allow-unauthenticated zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
@@ -126,8 +81,19 @@ if (( VISUS_GUI==1 )); then
 	export Qt5_DIR=${QTDIR}/lib/cmake/Qt5
 fi
 
-PushCMakeOptions
-PushCMakeOption SWIG_EXECUTABLE $(which swig3.0)
+mkdir -p $BUILD_DIR
+cd $BUILD_DIR
+cmake_opts=""
+PushCMakeOption PYTHON_VERSION         ${PYTHON_VERSION}
+PushCMakeOption VISUS_INTERNAL_DEFAULT ${VISUS_INTERNAL_DEFAULT}
+PushCMakeOption DISABLE_OPENMP         ${DISABLE_OPENMP}
+PushCMakeOption VISUS_GUI              ${VISUS_GUI}
+PushCMakeOption CMAKE_BUILD_TYPE       ${CMAKE_BUILD_TYPE}
+PushCMakeOption PYTHON_EXECUTABLE      ${PYTHON_EXECUTABLE}
+PushCMakeOption PYTHON_INCLUDE_DIR     ${PYTHON_INCLUDE_DIR}
+PushCMakeOption PYTHON_LIBRARY         ${PYTHON_LIBRARY}
+PushCMakeOption Qt5_DIR                ${Qt5_DIR}
+PushCMakeOption SWIG_EXECUTABLE        $(which swig3.0)
 cmake ${cmake_opts} ${SOURCE_DIR} 
  
 cmake --build . --target all -- -j 4
