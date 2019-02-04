@@ -366,12 +366,19 @@ script:
            fi     
         fi
         
+        # build openvisus
         cd "${TRAVIS_BUILD_DIR}" 
-        source ./build.sh
-        export WHEEL_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
+        ./build.sh
+        cd $HOME
+        
+        # reactivate pyenv python
+        export PATH="$HOME/.pyenv/bin:$PATH"
+        eval "$(pyenv init -)"
+        pyenv global ${PYTHON_VERSION}  
+        pyenv rehash
         
         # test of it works
-        cd $HOME
+        export WHEEL_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.whl")
         python -m pip install "${WHEEL_FILENAME}" 
         python -m OpenVisus configure 
         cd $(python -m OpenVisus dirname) 
