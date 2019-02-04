@@ -48,7 +48,7 @@ PushCMakeOption Qt5_DIR                ${Qt5_DIR}
 cmake -GXcode ${cmake_opts} ${SOURCE_DIR} 
 
 # this is to solve logs too long 
-if (( "$TRAVIS_OS_NAME" == "osx" )) ; then
+if [[ "${TRAVIS_OS_NAME}" == "osx" ]] ; then
 	sudo gem install xcpretty  
 	set -o pipefail && cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
 else

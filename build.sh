@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex 
+set -ex
 
 if [ -n "${DOCKER_IMAGE}" ]; then
 	./CMake/build_docker.sh

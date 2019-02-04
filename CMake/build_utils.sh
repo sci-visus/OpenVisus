@@ -238,9 +238,7 @@ function InstallPyEnvPython {
 	
 	CONFIGURE_OPTS="--enable-shared" CFLAGS="${__CFLAGS__}" CPPFLAGS="${__CPPFLAGS__}" LDFLAGS="${__LDFLAGS__}" pyenv install --skip-existing ${PYTHON_VERSION}  
 
-	if (( $(uname) = "Darwin" )); then
-		# empty line
-	else
+	if [[ "$(uname)" != "Darwin"   ]]; then
 		unset CXX
 	fi
 	
