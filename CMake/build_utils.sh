@@ -1,5 +1,49 @@
 #!/bin/bash
 
+
+# //////////////////////////////////////////////////////
+function DetectOS {
+	
+	if [ -n "${DOCKER_IMAGE}" ]; then
+		./CMake/build_docker.sh
+
+	elif [ $(uname) = "Darwin" ]; then
+		echo "Detected OSX"
+		export OSX=1
+
+	elif [ -x "$(command -v apt-get)" ]; then
+		echo "Detected ubuntu"
+		export UBUNTU=1
+		if [ -f /etc/os-release ]; then
+			source /etc/os-release
+			export OS_VERSION=$VERSION_ID
+
+		elif type lsb_release >/dev/null 2>&1; then
+			export OS_VERSION=$(lsb_release -sr)
+
+		elif [ -f /etc/lsb-release ]; then
+			source /etc/lsb-release
+			export OS_VERSION=$DISTRIB_RELEASE
+
+		fi
+		
+		echo "OS_VERSION ${OS_VERSION}"
+
+	elif [ -x "$(command -v zypper)" ]; then
+		echo "Detected opensus"
+		export OPENSUSE=1
+		
+	elif [ -x "$(command -v yum)" ]; then
+		echo "Detected manylinux"
+		export MANYLINUX
+
+	else
+		echo "Failed to detect OS version"
+	fi
+}
+
+DetectOS
+
 # //////////////////////////////////////////////////////
 function DownloadFile {
 	curl -fsSL --insecure "$1" -O
@@ -12,21 +56,6 @@ function PushCMakeOption {
 	fi
 }
 
-# //////////////////////////////////////////////////////
-function DetectUbuntuVersion {
-	if [ -f /etc/os-release ]; then
-		source /etc/os-release
-		export OS_VERSION=$VERSION_ID
-
-	elif type lsb_release >/dev/null 2>&1; then
-		export OS_VERSION=$(lsb_release -sr)
-
-	elif [ -f /etc/lsb-release ]; then
-		source /etc/lsb-release
-		export OS_VERSION=$DISTRIB_RELEASE
-
-	fi
-	echo "OS_VERSION ${OS_VERSION}"
 }
 
 # //////////////////////////////////////////////////////
@@ -173,6 +202,42 @@ function InstallMiniconda {
 }
 
 # //////////////////////////////////////////////////////
+function InstallQt5ForUbuntu {
+
+	# https://launchpad.net/~beineri
+	# PyQt5 versions 5.6, 5.7, 5.7.1, 5.8, 5.8.1.1, 5.8.2, 5.9, 5.9.1, 5.9.2, 5.10, 5.10.1, 5.11.2, 5.11.3
+	if (( ${OS_VERSION:0:2} <=14 )); then
+		
+		sudo add-apt-repository ppa:beineri/opt-qt-5.10.1-trusty -y
+		sudo apt-get -qq update 
+		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt510base 
+		set +e 
+		source /opt/qt510/bin/qt510-env.sh
+		set -e 
+
+	elif (( ${OS_VERSION:0:2} <=16 )); then
+
+		sudo add-apt-repository ppa:beineri/opt-qt-5.11.2-xenial -y
+		sudo apt-get -qq update 
+		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511base
+		set +e 
+		source /opt/qt511/bin/qt511-env.sh
+		set -e 
+
+	elif (( ${OS_VERSION:0:2} <=18)); then
+
+		sudo add-apt-repository ppa:beineri/opt-qt-5.11.2-bionic -y
+		sudo apt-get -qq update 
+		sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511base
+		set +e 
+		source /opt/qt511/bin/qt511-env.sh
+		set -e 
+	fi
+
+	export Qt5_DIR=${QTDIR}/lib/cmake/Qt5	
+}
+
+# //////////////////////////////////////////////////////
 function ActivatePyEnvPython {
 	
 	export PATH="$HOME/.pyenv/bin:$PATH"
@@ -256,6 +321,9 @@ function DeployPypi {
 	python -m twine upload --skip-existing "$1" 	
 	
 }
+
+
+
 
 
 
