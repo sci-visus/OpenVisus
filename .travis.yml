@@ -31,11 +31,11 @@ matrix:
     # ///////////////////////////////// manylinux (i.e. centos)
     # Example to compile by hand
     # sudo docker run -ti  -v $(pwd):/home/OpenVisus quay.io/pypa/manylinux1_x86_64 /bin/bash
-    # cd /home/OpenVisus && PYTHON_VERSION=3.4.1 BUILD_DIR=$(pwd)/build/manylinux ./build.sh     
+    # cd /home/OpenVisus && PYTHON_VERSION=3.4.1 DISABLE_OPENMP=1 VISUS_GUI=0 BUILD_DIR=$(pwd)/build/manylinux ./build.sh     
     
     - os: linux
       dist: trusty
-      env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
+      env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64', 'DISABLE_OPENMP=1', 'VISUS_GUI=0' ]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -43,7 +43,7 @@ matrix:
 
     - os: linux
       dist: trusty
-      env: ['PYTHON_VERSION=3.6.6','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
+      env: ['PYTHON_VERSION=3.6.6','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64', 'DISABLE_OPENMP=1', 'VISUS_GUI=0' ]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -52,7 +52,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
+      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64', 'DISABLE_OPENMP=1', 'VISUS_GUI=0' ]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -61,7 +61,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=3.4.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
+      env: ['PYTHON_VERSION=3.4.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64', 'DISABLE_OPENMP=1', 'VISUS_GUI=0' ]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -70,7 +70,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
+      env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64', 'DISABLE_OPENMP=1', 'VISUS_GUI=0' ]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -260,7 +260,7 @@ matrix:
     # ///////////////////////////////// conda (linux)
     - os: linux
       dist: trusty   
-      env: ['PYTHON_VERSION=3.7','CONDA=1']       
+      env: ['PYTHON_VERSION=3.7','USE_CONDA=1']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -269,7 +269,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=3.6','CONDA=1']       
+      env: ['PYTHON_VERSION=3.6','USE_CONDA=1']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -278,7 +278,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=3.5','CONDA=1']           
+      env: ['PYTHON_VERSION=3.5','USE_CONDA=1']           
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -287,15 +287,38 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=2.7','CONDA=1']  
+      env: ['PYTHON_VERSION=2.7','USE_CONDA=1']  
       addons: 
         apt:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']            
 
+
 script:
-   - chmod a+x CMake/build_*.sh
-   - CMake/build_travis.sh
+   - |
+     cd "${TRAVIS_BUILD_DIR}" 
+     if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then export COMPILER=clang++ ; fi
+     if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export COMPILER=g++-4.9 ; fi
+     
+     if (( USE_CONDA == 1 )) ; then
+        if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_conda]"* ]]; then
+           export DEPLOY_CONDA=1
+        fi
+     else
+		   DEPLOY_GITHUB=1
+       if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_pypi]"* ]]; then
+          if [[ $(uname) == "Darwin" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
+             export DEPLOY_PYPI=1
+          fi     
+       fi
+     fi
+     
+     cd ${TRAVIS_BUILD_DIR}
+     ./build.sh
+     
+     if (( DEPLOY_GITHUB !=1 )) ; then 
+        travis_terminate 0
+     fi
 
 before_deploy:
   - export SDIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/dist -iname "*.tar.gz")
