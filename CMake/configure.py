@@ -599,17 +599,8 @@ class CMakePostInstall:
 			PLAT_NAME="macosx_%s_x86_64" % (platform.mac_ver()[0][0:5].replace('.','_'),)	
 
 		else:
-			PLAT_NAME="_".join(platform.linux_distribution()).strip().lower()
-			if "centos_5" in PLAT_NAME:
-				PLAT_NAME="manylinux1_x86_64" 
-			else:
-				try:
-					PLAT_NAME=GetCommandOutput(['lsb_release', '-is']) + "." + GetCommandOutput(['lsb_release', '-cs'])
-				except:
-					pass
-
-			PLAT_NAME= re.sub(r'(?u)[^-\w.]', '', PLAT_NAME).strip().lower().replace(".","_")
-			print("PLAT_NAME",PLAT_NAME)
+			# I' m calling the wheel with "PLAT_NAME="manylinux1_x86_64" " in case I want to install it locally (even if it's not portable)
+			PLAT_NAME="manylinux1_x86_64" 
 
 		# create sdist distribution
 		if True:
@@ -622,7 +613,7 @@ class CMakePostInstall:
 			print("Created sdist",sdist_filename)
 
 		# creating wheel distribution
-		if WIN32 or APPLE or PLAT_NAME=="manylinux1_x86_64": 
+		if True: 
 			print("Creating wheel...")
 			ExecuteCommand([sys.executable,"setup.py","-q","bdist_wheel","--python-tag=%s" % (PYTHON_TAG,),"--plat-name=%s" % (PLAT_NAME,)])
 			wheel_filename=glob.glob('dist/*.whl')[0]

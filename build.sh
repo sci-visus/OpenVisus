@@ -49,6 +49,9 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
 		/bin/bash
 		
 	sudo docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
+
+	sudo chown -R "$USER":"$USER" ${BUILD_DIR}
+	sudo chmod -R u+rwx           ${BUILD_DIR}
 	
 	# all the work has been done in the docker container
 	exit 0
@@ -74,9 +77,13 @@ function DownloadFile {
 if (( USE_CONDA == 1 )) ; then
 
 	# install miniconda
-	if [ -d $HOME/miniconda${PYTHON_VERSION:0:1} ]; then
+	if [ ! -d $HOME/miniconda${PYTHON_VERSION:0:1} ]; then
 		pushd $HOME
-		wget -q https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -O miniconda.sh
+		if (( OSX == 1 )) ; then
+			wget -q https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh -O miniconda.sh
+		else
+			wget -q https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh  -O miniconda.sh
+		fis
 		bash miniconda.sh -b 
 		popd
 	fi
@@ -182,7 +189,9 @@ else
 				sudo apt-get -qq update
 			fi
 			
-			sudo apt-get -qq install --allow-unauthenticated cmake swig3.0 git bzip2 ca-certificates build-essential libssl-dev uuid-dev curl automake libffi-dev  apache2 apache2-dev
+			sudo apt-get -qq install --allow-unauthenticated \
+				cmake swig3.0 git bzip2 ca-certificates build-essential libssl-dev \
+				uuid-dev curl automake libffi-dev  apache2 apache2-dev
 			
 			# install cmake
 			echo "Downloading precompiled cmake"
@@ -366,7 +375,7 @@ else
 		__CPPFLAGS__=""
 		__LDFLAGS__=""
 		
-		# tnis is necessary for osx 10.14
+		# this is necessary for osx 10.14
 		if (( OSX == 1 )) ; then
 			brew install zlib openssl
 			__CFLAGS__+="-I/usr/local/opt/zlib/include    -I/usr/local/opt/openssl/include"
@@ -436,7 +445,6 @@ else
 		
 	else
 		cmake ${cmake_opts} ${SOURCE_DIR} 
-		
 		cmake --build . --target all -- -j 4
 		cmake --build . --target install	
 	fi 
@@ -448,7 +456,7 @@ fi
 
 
 # //////////////////////////////////////////////////////
-# test if OpenVisus is Working
+# test if OpenVisus is working
 
 cd $HOME
 python -m OpenVisus configure 
@@ -469,7 +477,7 @@ python Samples/python/Idx.py
 # deploy to pypi
 
 if (( DEPLOY_PYPI == 1 )) ; then 
-	echo "Doing deploy to pypi..."
+	echo "Doing deploy to pypi ${WHEEL_FILENAME}..."
 	echo [distutils]                                  > ~/.pypirc
 	echo index-servers =  pypi                       >> ~/.pypirc
 	echo [pypi]                                      >> ~/.pypirc
@@ -483,7 +491,10 @@ fi
 # deploy to anaconda
 
 if (( DEPLOY_CONDA == 1 )) ; then 
-	echo "Doing deploy to anaconda..."
+	echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
 	anaconda -q -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
 fi
+
+
+echo "OpenVisus build finished"
 
