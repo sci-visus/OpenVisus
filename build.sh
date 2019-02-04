@@ -58,18 +58,18 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
 
 fi
 
-# directory for caching install stuff
-CACHED_DIR=${BUILD_DIR}/cached_deps
-mkdir -p ${CACHED_DIR}
-export PATH=${CACHED_DIR}/bin:$PATH
-
-
 # in case you want to speed up compilation because prerequisites have already been installed
 FAST_MODE=${FAST_MODE:-0}
 	
 function DownloadFile {
 	curl -fsSL --insecure "$1" -O
 }	
+
+if [ $(uname) = "Darwin" ]; then
+		echo "Detected OSX"
+		export OSX=1
+fi
+
 
 # //////////////////////////////////////////////////////
 # build/install OpenVisus
@@ -80,11 +80,12 @@ if (( USE_CONDA == 1 )) ; then
 	if [ ! -d $HOME/miniconda${PYTHON_VERSION:0:1} ]; then
 		pushd $HOME
 		if (( OSX == 1 )) ; then
-			wget -q https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh -O miniconda.sh
+			DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh
+			bash Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh -b
 		else
-			wget -q https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh  -O miniconda.sh
-		fis
-		bash miniconda.sh -b 
+			DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh 
+			bash Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -b
+		fi
 		popd
 	fi
 	
@@ -108,6 +109,11 @@ if (( USE_CONDA == 1 )) ; then
 	
 else
 
+	# directory for caching install stuff
+	CACHED_DIR=${BUILD_DIR}/cached_deps
+	mkdir -p ${CACHED_DIR}
+	export PATH=${CACHED_DIR}/bin:$PATH
+
 	mkdir -p ${BUILD_DIR}
 	cd ${BUILD_DIR}
 
@@ -117,11 +123,9 @@ else
 	}
 
 	# using pyenv
-	if [ $(uname) = "Darwin" ]; then
+	if (( OSX == 1 )) ; then
 	
-		echo "Detected OSX"
-		export OSX=1
-	
+
 		# install prerequisites
 		if (( FAST_MODE==0 )) ; then 
 
@@ -349,8 +353,7 @@ else
 	
 	else
 	
-		echo "Failed to detect OS version"
-		exit -1
+		echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"
 		
 	fi
 	
