@@ -303,6 +303,7 @@ script:
      export DEPLOY_CONDA=0
      export DEPLOY_GITHUB=0
      
+     chmod a+x CMake/build_*.sh
      source CMake/build_utils.sh
      
      if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then export COMPILER=clang++ ; fi
