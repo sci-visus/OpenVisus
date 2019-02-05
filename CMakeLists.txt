@@ -54,6 +54,7 @@ option(VISUS_COMPRESSION  "Enable compression"  TRUE)
 option(VISUS_NET          "Enable net"          TRUE) 
 option(VISUS_IMAGE        "Enable image"        TRUE)  
 option(VISUS_GUI          "Enable gui"          TRUE)  
+option(VISUS_TEST         "Enable test"         TRUE)
 
 FindPythonLibrary()
 
@@ -85,7 +86,7 @@ add_subdirectory(Executable)
 
 # //////////////////////////////////////////////////////////////
 # *** testing and external apps ***
-if (1)
+if (VISUS_TEST)
 
 	# testing
 	enable_testing()
@@ -112,7 +113,7 @@ endif()
 
 # //////////////////////////////////////////////////////////////
 # install
-if (True)
+if (1)
 
 	# swig generated files (important to be the first since I could have changed some *.py files meantime)
 	InstallBuildFiles(*.py ./)
