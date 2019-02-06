@@ -514,6 +514,3 @@ fi
 
 
 echo "OpenVisus build finished"
-
-set +ex
-
