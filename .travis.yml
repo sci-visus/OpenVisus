@@ -298,6 +298,7 @@ matrix:
           sources: ['ubuntu-toolchain-r-test']  
           
     # ///////////////////////////////// osx 10.13 (conda)
+    #  "dyld: Symbol not found: _iconv" at the very end
     
     - os: osx
       osx_image: xcode9.4
