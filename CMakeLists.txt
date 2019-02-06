@@ -38,8 +38,22 @@ include(FindPackageHandleStandardArgs)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake)
 
-# shared/static linking
-option(BUILD_SHARED_LIBS "Build the shared library" TRUE)  
+
+option(BUILD_SHARED_LIBS  "Build the shared library" ON)  
+option(VISUS_PYTHON       "Enable python"            ON) 
+option(VISUS_COMPRESSION  "Enable compression"       ON)  
+option(VISUS_NET          "Enable net"               ON) 
+option(VISUS_IMAGE        "Enable image"             ON)  
+option(VISUS_GUI          "Enable gui"               ON)  
+option(VISUS_TEST         "Enable test"              ON)
+
+message(STATUS "BUILD_SHARED_LIBS  ${BUILD_SHARED_LIBS}") 
+message(STATUS "VISUS_PYTHON       ${VISUS_PYTHON}") 
+message(STATUS "VISUS_COMPRESSION  ${VISUS_COMPRESSION}") 
+message(STATUS "VISUS_NET          ${VISUS_NET}") 
+message(STATUS "VISUS_IMAGE        ${VISUS_IMAGE}") 
+message(STATUS "VISUS_GUI          ${VISUS_GUI}") 
+message(STATUS "VISUS_TEST         ${VISUS_TEST}") 
 
 if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 	set(VISUS_IS_SUBMODULE 0)
@@ -47,14 +61,6 @@ else()
 	set(VISUS_IS_SUBMODULE 1)
 	set(CMAKE_FOLDER_PREFIX "")
 endif()
-
-
-option(VISUS_PYTHON       "Enable python"       TRUE) 
-option(VISUS_COMPRESSION  "Enable compression"  TRUE)  
-option(VISUS_NET          "Enable net"          TRUE) 
-option(VISUS_IMAGE        "Enable image"        TRUE)  
-option(VISUS_GUI          "Enable gui"          TRUE)  
-option(VISUS_TEST         "Enable test"         TRUE)
 
 FindPythonLibrary()
 

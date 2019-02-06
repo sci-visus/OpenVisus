@@ -76,6 +76,17 @@ fi
 
 if (( USE_CONDA == 1 )) ; then
 
+
+	# i need MacOSX10.9.sdk
+	if (( OSX ==  1 )) ; then
+		if [ ! -d /opt/MacOSX10.9.sdk ] ; then
+			git clone https://github.com/phracker/MacOSX-SDKs
+			mkdir -p /opt
+			sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
+			rm -Rf MacOSX-SDKs
+		fi
+	fi
+
 	# install miniconda
 	if [ ! -d $HOME/miniconda${PYTHON_VERSION:0:1} ]; then
 		pushd $HOME
