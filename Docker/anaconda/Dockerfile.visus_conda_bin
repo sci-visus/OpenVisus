@@ -1,0 +1,34 @@
+#
+# ViSUS Docker for Anaconda environment (from Debian-based continuumio/miniconda3 image)
+#
+# Multi-image setup (see README.md)
+#
+# Build using:
+#  sudo docker build -t visus_conda_env -f Dockerfile.visus_conda_env .
+#  sudo docker build -t visus_conda_bin -f Dockerfile.visus_conda_bin .
+#  sudo docker build -t visus/anaconda  -f Dockerfile.visus_conda_apache .
+#
+# On startup, runs apache in the foreground, start w/ `docker run -it /bin/bash` for an interactive session
+#
+
+FROM visus_conda_env
+
+ENV VISUS_HOME=/home/OpenVisus
+
+# install and configure OpenVisus, fixup rpaths, and create symlinks in the conda env's bin directory
+#notes:
+  # OpenVisus version is hardcoded version since 1.2.1833333333 currently trumps everything else
+  # visus.sh isn't necessary and doesn't work from conda bin, so just symlinking to visus
+RUN set -x \
+  && pip install OpenVisus==1.2.194 \
+  && echo "export VISUS_HOME=$VISUS_HOME" >> ~/.bashrc \
+  && ln -s $(python3 -c "import os, OpenVisus; print(os.path.dirname(OpenVisus.__file__))") $VISUS_HOME \
+  && python $VISUS_HOME/configure.py \
+  && rm $VISUS_HOME/visus.sh \
+  && ln -s $VISUS_HOME/bin/visus $VISUS_HOME/visus.sh \
+  && ln -s $VISUS_HOME/visus.sh  $CONDA_PREFIX/bin \
+  && ln -s $VISUS_HOME/bin/visus $CONDA_PREFIX/bin \
+  && conda install -y patchelf \
+  && $CONDA_PREFIX/bin/patchelf --set-rpath '$ORIGIN:/opt/conda/lib' $VISUS_HOME/bin/visus \
+  && $CONDA_PREFIX/bin/patchelf --set-rpath '$ORIGIN:/opt/conda/lib' $VISUS_HOME/bin/libmod_visus.so
+

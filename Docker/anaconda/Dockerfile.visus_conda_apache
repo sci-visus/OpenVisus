@@ -1,0 +1,47 @@
+#
+# ViSUS Docker for Anaconda environment (from Debian-based continuumio/miniconda3 image)
+#
+# Multi-image setup (see README.md)
+#
+# Build using:
+#  sudo docker build -t visus_conda_env -f Dockerfile.visus_conda_env .
+#  sudo docker build -t visus_conda_bin -f Dockerfile.visus_conda_bin .
+#  sudo docker build -t visus/anaconda  -f Dockerfile.visus_conda_apache .
+#
+# On startup, runs apache `docker run -P visus/anaconda`.
+# Start w/ `docker run -it /bin/bash` for an interactive session.
+#
+
+FROM visus_conda_bin
+
+# install apache, jove (a handy, tiny emacs-like editor)
+RUN set -x \
+  && apt-get update \
+  && apt-get install jove \
+  && apt-get install -y apache2
+
+# configure mod_visus
+COPY visus.config $VISUS_HOME
+ADD httpd-foreground.sh  /usr/local/bin
+RUN echo "LoadModule visus_module $VISUS_HOME/bin/libmod_visus.so" > /etc/apache2/mods-available/visus.load \
+  && a2enmod headers \
+  && a2enmod visus \
+  && chmod a+x /usr/local/bin/httpd-foreground.sh
+
+# install webviewer
+RUN set -x \
+  && git clone https://github.com/sci-visus/visus_javascript.git $VISUS_HOME/webviewer \
+  && rm /etc/apache2/sites-enabled/000-default.conf
+COPY webviewer.conf  /etc/apache2/sites-enabled
+COPY .htpasswd       $VISUS_HOME
+
+# download certificate
+RUN set -x \
+  && mkdir -p /var/www/visus \
+  && cd /var/www/visus \
+  && curl --remote-name --time-cond cacert.pem https://curl.haxx.se/ca/cacert.pem \
+  && chown -R www-data .
+
+# expose and run
+EXPOSE 80
+CMD ["/usr/local/bin/httpd-foreground.sh"]

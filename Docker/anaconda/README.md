@@ -3,6 +3,18 @@
 # building/testing and installing OpenVisus, XIDX, and webviewer.
 # (run everything from your root OpenVisus code directory)
 
+# Multi-image setup (see https://medium.com/@chadlagore/conda-environments-with-docker-82cdc9d25754)
+#
+# Build using:
+#  sudo docker build -t visus_conda_env -f Dockerfile.visus_conda_env .
+#  sudo docker build -t visus_conda_bin -f Dockerfile.visus_conda_bin .
+#  sudo docker build -t visus/anaconda  -f Dockerfile.visus_conda_apache .
+#
+# On startup, runs apache in the foreground, start w/ `docker run -it /bin/bash` for an interactive session
+#
+
+TODO: need to update this readme.
+
 =======
 BUILDER
 =======
