@@ -27,15 +27,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <libxml/xmlreader.h>
-#include <libxml/xinclude.h>
 #include <time.h>
 
-#include "xidx/xidx.h"
+#include "Visus/VisusXIdx.h"
 
-using namespace xidx;
+using namespace Visus;
 
 int main(int argc, char** argv){
+// TODO use cout and toString instead of printf
 
   if(argc < 2){
     fprintf(stderr, "Usage: read file_path [debug]\n");
@@ -45,68 +44,65 @@ int main(int argc, char** argv){
   clock_t start, finish;
   start = clock();
 
-  MetadataFile metadata(argv[1]);
-
-  int ret = metadata.Load();
+  Group metadata;
 
   finish = clock();
 
+  std::shared_ptr<Group> root_group = metadata.load(std::string(argv[1]));
+
   printf("Time taken %fms\n",(double(finish)-double(start))/CLOCKS_PER_SEC);
 
-  std::shared_ptr<Group> root_group = metadata.getRootGroup();
-  
-  std::shared_ptr<Domain> time_domain = root_group->getDomain();
+  std::shared_ptr<Domain> time_domain = root_group->domain;
   
   std::shared_ptr<TemporalListDomain> domain = std::static_pointer_cast<TemporalListDomain>(time_domain);
   
-  printf("Time Domain[%s]:\n", Domain::toString(domain->getType()));
-  for(auto& att: domain->getAttributes())
+  printf("Time Domain[%s]:\n", domain->type.toString().c_str());
+  for(auto& att: domain->attributes)
     printf("\t\tAttribute %s value %s\n", att->name.c_str(), att->value.c_str());
   
   int t_count=0;
   for(auto t : domain->getLinearizedIndexSpace()){
     printf("Timestep %f\n", t);
 
-    auto& grid = root_group->getGroup(t_count++);
-    std::shared_ptr<Domain> domain = grid->getDomain();
+    auto& grid = root_group->groups[t_count++];
+    std::shared_ptr<Domain> domain = grid->domain;
     
-    printf("\tGrid Domain[%s]:\n", Domain::toString(domain->getType()));
+    printf("\tGrid Domain[%s]:\n", domain->type.toString().c_str());
     
-    for(auto& att: domain->getAttributes())
+    for(auto& att: domain->attributes)
       printf("\t\tAttribute %s value %s\n", att->name.c_str(), att->value.c_str());
     
-    if(domain->getType() == Domain::DomainType::SPATIAL_DOMAIN_TYPE){
+    if(domain->type == DomainType::SPATIAL_DOMAIN_TYPE){
       std::shared_ptr<SpatialDomain> sdom = std::dynamic_pointer_cast<SpatialDomain>(domain);
-      printf("\tTopology %s volume %lu\n", Topology::toString(sdom->topology.type), sdom->getVolume());
-      printf("\tGeometry %s", Geometry::toString(sdom->geometry.type));
+      printf("\tTopology %s volume %lu\n", sdom->topology->type.toString().c_str(), sdom->getVolume());
+      printf("\tGeometry %s", sdom->geometry->type.toString().c_str());
     }
-    else if(domain->getType() == Domain::DomainType::MULTIAXIS_DOMAIN_TYPE)
+    else if(domain->type == DomainType::MULTIAXIS_DOMAIN_TYPE)
     {
       std::shared_ptr<MultiAxisDomain> mdom = std::dynamic_pointer_cast<MultiAxisDomain>(domain);
-      for(int a=0; a < mdom->getNumberOfAxis(); a++){
-        const Axis& axis = mdom->getAxis(a);
-        printf("\tAxis %s volume %lu: [ ", axis.name.c_str(), axis.getVolume());
+      for(auto& axis : mdom->axis){
+        printf("\tAxis %s volume %lu: [ ", axis->name.c_str(), axis->getVolume());
         
         // print axis values
-        for(auto v: axis.getValues())
+        for(auto v: axis->getValues())
           printf("%f ", v);
         printf("]\n");
         
-        for(auto& att: axis.getAttributes())
+        for(auto& att: axis->attributes)
           printf("\t\tAttribute %s value %s\n", att->name.c_str(), att->value.c_str());
       }
     }
     
     printf("\n");
     
-    for(auto& var: grid->getVariables()){
-      auto source = var->getDataItems()[0]->getDataSource();
+    for(auto& var: grid->variables){
+      auto source = var->data_items[0]->data_source;
       printf("\t\tVariable: %s ", var->name.c_str());
       if(source != nullptr)
-        printf("data source url: %s\n", source->getUrl().c_str());
+        printf("data source url: %s\n", source->url.c_str());
       else printf("\n");
       
-      for(auto att: var->getAttributes()){
+      for(auto att: var->attributes){
         printf("\t\t\tAttribute %s value %s\n", att->name.c_str(), att->value.c_str());
       }
     }
@@ -114,7 +110,7 @@ int main(int argc, char** argv){
   }
   
   // (Debug) Saving the content in a different file to compare with the original
-  metadata.save("verify.xidx");
+  //metadata.save("verify.xidx");
 
-  return ret;
+  return 0;
 }

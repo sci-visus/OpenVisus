@@ -7,5 +7,5 @@
 AddExecutable(write write.cpp)
 target_link_libraries(write PUBLIC VisusXIdx)
 
-#add_executable(read read.cpp)
-#target_link_libraries(read VisusXIdx)
+AddExecutable(read read.cpp)
+target_link_libraries(read PUBLIC VisusXIdx)

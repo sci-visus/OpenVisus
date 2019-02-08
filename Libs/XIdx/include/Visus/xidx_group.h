@@ -275,7 +275,8 @@ public:
     ostream.writeInline("Name", name);
     ostream.writeInline("Type", group_type.toString());
     ostream.writeInline("VariabilityType", variability_type.toString());
-    ostream.writeInline("FilePattern", file_pattern.c_str());
+    if(file_pattern.size())
+      ostream.writeInline("FilePattern", file_pattern.c_str());
     ostream.writeInline("DomainIndex", Visus::cstring(domain_index));
 
     for (auto child : data_sources)

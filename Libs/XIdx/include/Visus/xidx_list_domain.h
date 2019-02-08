@@ -60,9 +60,12 @@ public:
   virtual void writeToObjectStream(ObjectStream& ostream) override
   {
     data_items.back()->values = this->values;
+    // TODO The user should set the dimensionality of the list (not here)
     if(data_items.back()->dimensions.size() == 0)
       data_items.back()->dimensions.push_back(this->values.size());
     Domain::writeToObjectStream(ostream);
+
+    // TODO remove stride (we use dimensions)
     ostream.writeInline("stride", cstring(stride));
   }
   

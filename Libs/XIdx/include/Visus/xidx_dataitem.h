@@ -241,7 +241,10 @@ public:
     for (auto child : this->attributes)
       writeChild<Attribute>(ostream, "Attribute", child);
 
-    ostream.writeText(StringUtils::join(this->values));
+    if(this->values.size())
+      ostream.writeText(StringUtils::join(this->values));
+    if(this->text.size())
+      ostream.writeText(this->text);
   };
 
   //readFromObjectStream

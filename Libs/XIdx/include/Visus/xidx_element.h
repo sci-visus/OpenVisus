@@ -91,7 +91,8 @@ public:
 
   //writeToObjectStream
   virtual void writeToObjectStream(ObjectStream& ostream) {
-    ostream.writeInline("Name", name);
+    if(name.size())
+      ostream.writeInline("Name", name);
   }
 
   //readFromObjectStream
