@@ -145,6 +145,11 @@ public:
   Group(String name_=""){
     name= name_;
   }
+
+  Group(String name_, GroupType type){
+    name=name_;
+    group_type=type;
+  }
   
   //setDomain
   inline void setDomain(SharedPtr<Domain> value) { 
@@ -156,6 +161,56 @@ public:
   void addVariable(SharedPtr<Variable> value) {
     addEdge(this, value);
     variables.push_back(value);
+  }
+
+  std::shared_ptr<Variable> addVariable(const char* name, std::shared_ptr<DataItem> item, std::shared_ptr<Domain> domain,
+                                        const std::vector<std::shared_ptr<Attribute>>& atts=std::vector<std::shared_ptr<Attribute>>()){
+
+    std::shared_ptr<Variable> var(new Variable(name));
+    addEdge(this, var);
+    setDomain(domain);
+    var->addDataItem(item);
+
+    var->addAttribute(atts);
+
+    addVariable(var);
+
+    return variables.back();
+  }
+
+  std::shared_ptr<Variable> addVariable(const char *name, DType dtype,
+                                        const CenterType center = CenterType::CELL_CENTER,
+                                        const Endianess endian = Endianess::LITTLE_ENDIANESS,
+                                        const std::vector <std::shared_ptr<Attribute>> &atts = std::vector <
+                                                std::shared_ptr <Attribute >> (),
+                                        const std::vector <int> dimensions = std::vector<int>()){
+    std::shared_ptr<Variable> var(new Variable(name));
+    addEdge(this, var);
+
+    var->name = name;
+    //printf("comp %s ntype %s prec %d\n", dtype.substr(0,comp_idx).c_str(), num_idx, precision);
+
+    std::shared_ptr<DataItem> di(new DataItem(dtype));
+    addEdge(this, di);
+
+    var->center_type = center;
+
+    di->endian_type = endian;
+    if(dimensions.size()>0){
+      di->dimensions = std::static_pointer_cast<SpatialDomain>(domain)->topology->dimensions; // Use same dimensions of topology
+    }
+    else
+      di->dimensions = dimensions;
+
+    di->format_type = FormatType::IDX_FORMAT;
+
+    var->addDataItem(di);
+
+    var->addAttribute(atts);
+
+    addVariable(var);
+
+    return variables.back();
   }
 
   //addAttribute
@@ -311,8 +366,8 @@ public:
 
   };
 
-private:
-
+//private:
+  // TODO move this utility function somewhere else
   //FormatString
   static String FormatString(const String fmt_str, ...);
   

@@ -110,6 +110,45 @@ public:
   Geometry(String name_="") : XIdxElement(name_){
   }
 
+  Geometry(GeometryType type_, int n_dims, const double* ox_oy_oz,
+    const double* dx_dy_dz=NULL) {
+      type = type_;
+
+      std::shared_ptr<DataItem> item_o(new DataItem());
+      addEdge(this,item_o);
+      item_o->format_type = FormatType::XML_FORMAT;
+      item_o->dtype = DTypes::FLOAT32;
+      item_o->endian_type = Endianess::LITTLE_ENDIANESS;
+
+      std::shared_ptr<DataItem> item_d(new DataItem());
+      addEdge(this, item_d);
+      item_d->format_type = FormatType::XML_FORMAT;
+      item_d->dtype = DTypes::FLOAT32;
+      item_d->endian_type = Endianess::LITTLE_ENDIANESS;
+
+      item_o->dimensions.push_back(n_dims);
+      item_d->dimensions.push_back(n_dims);
+
+      if(type == GeometryType::RECT_GEOMETRY_TYPE){
+        n_dims *= 2; // two points per dimension
+        for(int i=0; i< n_dims; i++)
+          item_o->text += std::to_string(ox_oy_oz[i])+" ";
+        StringUtils::trim(item_o->text);
+        data_items.push_back(item_o);
+      }
+      else{
+        for(int i=0; i< n_dims; i++){
+          item_o->text += std::to_string(ox_oy_oz[i])+" ";
+          item_d->text += std::to_string(dx_dy_dz[i])+" ";
+        }
+        StringUtils::trim(item_o->text);
+        StringUtils::trim(item_d->text);
+        data_items.push_back(item_o);
+        data_items.push_back(item_d);
+      }
+
+    }
+
   //destructor
   virtual ~Geometry() {
   }

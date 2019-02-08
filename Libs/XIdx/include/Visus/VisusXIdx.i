@@ -38,6 +38,7 @@ ENABLE_SHARED_PTR(SpatialDomain)
 %include <Visus/xidx_variable.h>
 %include <Visus/xidx_domain.h>
 %include <Visus/xidx_group.h>
+%include <Visus/xidx_file.h>
 
 %include <Visus/xidx_list_domain.h>
 %include <Visus/xidx_hyperslab_domain.h>

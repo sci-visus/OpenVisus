@@ -65,7 +65,8 @@ public:
   {
     XIdxElement::writeToObjectStream(ostream);
     ostream.writeInline("Url", url);
-    writeUrlContent(ostream);
+    // TODO write content only if datasource is "inline"
+    //writeUrlContent(ostream);
 
   }
 

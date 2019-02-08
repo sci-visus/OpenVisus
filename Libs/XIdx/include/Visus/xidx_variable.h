@@ -136,6 +136,11 @@ public:
     addEdge(this, value);
     this-> attributes.push_back(value);
   }
+
+  void addAttribute(const std::vector<std::shared_ptr<Attribute>>& values){
+    for(auto& value: values)
+      addAttribute(value);
+  }
   
   //addDataItem
   virtual void addDataItem(SharedPtr<DataItem> value){ 

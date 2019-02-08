@@ -106,6 +106,13 @@ public:
   Topology(String name_="") : XIdxElement(name_){
   }
 
+  Topology(TopologyType type_, int n_dims, uint32_t *dims){
+    for(int i=0; i< n_dims; i++)
+      dimensions.push_back(dims[i]);
+
+    type = type_;
+  }
+
   //destructor
   virtual ~Topology() {
   }

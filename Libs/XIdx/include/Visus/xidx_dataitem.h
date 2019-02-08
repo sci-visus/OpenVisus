@@ -151,6 +151,7 @@ public:
   Endianess                           endian_type;
   FormatType                          format_type;
   DType                               dtype = DTypes::FLOAT32;
+  String                              text;
 
   //scrgiorgio: special case for embedded values, should we create another element for this?
   std::vector<double>                 values;
@@ -161,6 +162,10 @@ public:
   
   //constructor
   DataItem(String name_="") : XIdxElement(name_){
+  }
+
+  DataItem(DType dtype_) : XIdxElement(""){
+    dtype=dtype_;
   }
 
   //setDataSource

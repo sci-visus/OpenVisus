@@ -76,14 +76,14 @@ public:
 #include <Visus/xidx_dataitem.h>
 #include <Visus/xidx_variable.h>
 #include <Visus/xidx_domain.h>
+#include <Visus/xidx_topology.h>
+#include <Visus/xidx_geometry.h>
+#include <Visus/xidx_spatial_domain.h>
 #include <Visus/xidx_group.h>
+#include <Visus/xidx_file.h>
 
 #include <Visus/xidx_list_domain.h>
 #include <Visus/xidx_hyperslab_domain.h>
 #include <Visus/xidx_multiaxis_domain.h>
-
-#include <Visus/xidx_topology.h>
-#include <Visus/xidx_geometry.h>
-#include <Visus/xidx_spatial_domain.h>
 
 #endif //XIDX_H_

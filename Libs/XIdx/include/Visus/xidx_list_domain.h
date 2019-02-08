@@ -59,9 +59,11 @@ public:
   //writeToObjectStream
   virtual void writeToObjectStream(ObjectStream& ostream) override
   {
-    Domain::readFromObjectStream(ostream);
+    data_items.back()->values = this->values;
+    if(data_items.back()->dimensions.size() == 0)
+      data_items.back()->dimensions.push_back(this->values.size());
+    Domain::writeToObjectStream(ostream);
     ostream.writeInline("stride", cstring(stride));
-    ostream.writeText(StringUtils::join(this->values));
   }
   
   //readFromObjectStream
