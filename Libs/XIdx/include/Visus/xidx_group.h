@@ -136,7 +136,6 @@ public:
 
   //down nodes
   SharedPtr<Domain>                   domain;
-  std::vector<SharedPtr<Group> >      groups;
   std::vector<SharedPtr<Variable> >   variables;
   std::vector<SharedPtr<DataSource> > data_sources;
   std::vector<SharedPtr<Attribute> >  attributes;
@@ -161,6 +160,13 @@ public:
   void addVariable(SharedPtr<Variable> value) {
     addEdge(this, value);
     variables.push_back(value);
+  }
+
+  std::shared_ptr<Group> getGroup(int index){
+    if(variability_type==VariabilityType::STATIC_VARIABILITY_TYPE)
+      return groups[0];
+    else
+      return groups[index];
   }
 
   std::shared_ptr<Variable> addVariable(const char* name, std::shared_ptr<DataItem> item, std::shared_ptr<Domain> domain,
@@ -371,7 +377,11 @@ public:
   // TODO move this utility function somewhere else
   //FormatString
   static String FormatString(const String fmt_str, ...);
-  
+
+private:
+  // TODO use map<domain_index, group>
+  std::vector<SharedPtr<Group> >      groups;
+
 };
   
 } //namespace

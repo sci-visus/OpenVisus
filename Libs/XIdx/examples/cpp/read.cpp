@@ -45,14 +45,13 @@ int main(int argc, char** argv){
   start = clock();
 
   Group metadata;
+  std::shared_ptr<Group> root_group = metadata.load(std::string(argv[1]));
 
   finish = clock();
 
-  std::shared_ptr<Group> root_group = metadata.load(std::string(argv[1]));
-
   printf("Time taken %fms\n",(double(finish)-double(start))/CLOCKS_PER_SEC);
 
-  std::shared_ptr<Domain> time_domain = root_group->domain;
+  std::shared_ptr<HyperSlabDomain> time_domain = std::static_pointer_cast<HyperSlabDomain>(root_group->domain);
   
   std::shared_ptr<TemporalListDomain> domain = std::static_pointer_cast<TemporalListDomain>(time_domain);
   
@@ -64,7 +63,7 @@ int main(int argc, char** argv){
   for(auto t : domain->getLinearizedIndexSpace()){
     printf("Timestep %f\n", t);
 
-    auto& grid = root_group->groups[t_count++];
+    auto grid = root_group->getGroup(t_count++);
     std::shared_ptr<Domain> domain = grid->domain;
     
     printf("\tGrid Domain[%s]:\n", domain->type.toString().c_str());

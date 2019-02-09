@@ -74,8 +74,10 @@ public:
   {
     Domain::readFromObjectStream(istream);
     this->stride = cint(istream.readInline("stride"));
-    for (auto it : StringUtils::split(istream.readText()))
-      this->values.push_back(cdouble(it));
+//    for (auto it : StringUtils::split(istream.readText()))
+//      this->values.push_back(cdouble(it));
+
+    this->values = data_items.back()->values;
   }
 
 };

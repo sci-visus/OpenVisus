@@ -87,8 +87,14 @@ public:
   virtual void readFromObjectStream(ObjectStream& istream) override
   {
     ListDomain::readFromObjectStream(istream);
-    std::istringstream parse(istream.readText());
-    parse >> start >> step >> count;
+    // TODO generalize for many slabs
+    if(values.size()==3){
+      start = values[0];
+      step = values[1];
+      count = values[2];
+    }
+//    std::istringstream parse(istream.readText());
+//    parse >> start >> step >> count;
   }
 
 };
