@@ -54,6 +54,14 @@ public:
     return values;
   };
 
+  void addDomainItems(std::vector<double> vals){
+    values.insert(values.end(), vals.begin(), vals.end());
+  }
+
+  void addDomainItem(double phy){
+    values.push_back(phy);
+  }
+
 public:
 
   //writeToObjectStream
@@ -65,15 +73,12 @@ public:
       data_items.back()->dimensions.push_back(this->values.size());
     Domain::writeToObjectStream(ostream);
 
-    // TODO remove stride (we use dimensions)
-    ostream.writeInline("stride", cstring(stride));
   }
   
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override 
   {
     Domain::readFromObjectStream(istream);
-    this->stride = cint(istream.readInline("stride"));
 //    for (auto it : StringUtils::split(istream.readText()))
 //      this->values.push_back(cdouble(it));
 

@@ -63,27 +63,35 @@ public:
     return StringUtils::format() << (getParent()? getParent()->getXPathPrefix() : "//Xidx") << "[@Name=\"" + name + "\"]";
   }
 
+  SharedPtr<Group> getGroup(GroupType type) const{
+    for(auto g: groups)
+      if(g->group_type.value == type.value)
+        return g;
+
+    return SharedPtr<Group>();
+  }
+
 public:
 
   //load
-  static SharedPtr<Group> load(String filename)
+  static SharedPtr<XIdxFile> load(String filename)
   {
     StringTree stree;
     if (!stree.loadFromXml(Utils::loadTextDocument(filename)))
-      return SharedPtr<Group>();
+      return SharedPtr<XIdxFile>();
 
     ObjectStream istream(stree, 'r');
-    auto ret = std::make_shared<Group>("root");
+    auto ret = std::make_shared<XIdxFile>("root");
     ret->readFromObjectStream(istream);
     return ret;
   }
 
   //save
-  static bool save(String filename, SharedPtr<Group> root)
+  bool save(String filename)
   {
-    StringTree stree(root->getVisusClassName());
+    StringTree stree("XIdx");
     ObjectStream ostream(stree, 'w');
-    root->writeToObjectStream(ostream);
+    writeToObjectStream(ostream);
     Utils::saveTextDocument(filename, stree.toString());
     return true;
   }

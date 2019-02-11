@@ -137,7 +137,11 @@ public:
     this-> attributes.push_back(value);
   }
 
-  void addAttribute(const std::vector<std::shared_ptr<Attribute>>& values){
+  inline void addAttribute(String name_, String value_){
+    addAttribute(SharedPtr<Attribute>(new Attribute(name_, value_)));
+  }
+
+  void addAttribute(const std::vector<SharedPtr<Attribute>>& values){
     for(auto& value: values)
       addAttribute(value);
   }
@@ -146,6 +150,15 @@ public:
   virtual void addDataItem(SharedPtr<DataItem> value){ 
     addEdge(this, value);
     this->data_items.push_back(value);
+  }
+
+  void addValue(double v){
+    if(data_items.size()==0){
+      SharedPtr<DataItem> d(new DataItem());
+      d->format_type=FormatType::XML_FORMAT;
+      data_items.push_back(d);
+    }
+    this->data_items[0]->addValue(v);
   }
 
 public:

@@ -168,6 +168,19 @@ public:
     dtype=dtype_;
   }
 
+  DataItem(FormatType format, DType dtype_, std::shared_ptr<DataSource> file){
+    format_type=format;
+    dtype=dtype_;
+    data_source=file;
+  }
+
+  DataItem(FormatType format_, DType dtype_, std::shared_ptr<DataSource> file,  int n_dims, uint32_t *dims) {
+    DataItem(format_, dtype_, file);
+
+    for (int i = 0; i < n_dims; i++)
+      dimensions.push_back(dims[i]);
+  }
+
   //setDataSource
   void setDataSource(SharedPtr<DataSource> value) {
     addEdge(this, value);
@@ -199,6 +212,13 @@ public:
 
     if (stride > 1) 
       this->dimensions[1] = stride; //scrgiorgio ???
+  }
+
+  void addValue(double val, int stride=1){
+    this->values.push_back(val);
+    dimensions.resize(stride);
+    dimensions[0] = values.size()/stride;
+    dimensions[1] = stride;
   }
   
   //getXPathPrefix

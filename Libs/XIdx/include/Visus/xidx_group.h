@@ -149,6 +149,25 @@ public:
     name=name_;
     group_type=type;
   }
+
+  Group(String name_, GroupType type, String file_pattern_){
+    name=name_;
+    group_type=type;
+    file_pattern=file_pattern_;
+    variability_type=VariabilityType::VARIABLE_VARIABILITY_TYPE;
+  }
+
+  Group(String name_, GroupType type, VariabilityType var_type){
+    name=name_;
+    group_type=type;
+    variability_type=var_type;
+  }
+
+  Group(String name_, GroupType type, SharedPtr<Domain> domain_){
+    name=name_;
+    group_type=type;
+    domain=domain_;
+  }
   
   //setDomain
   inline void setDomain(SharedPtr<Domain> value) { 
@@ -162,15 +181,15 @@ public:
     variables.push_back(value);
   }
 
-  std::shared_ptr<Group> getGroup(int index){
+  SharedPtr<Group> getGroup(int index){
     if(variability_type==VariabilityType::STATIC_VARIABILITY_TYPE)
       return groups[0];
     else
       return groups[index];
   }
 
-  std::shared_ptr<Variable> addVariable(const char* name, std::shared_ptr<DataItem> item, std::shared_ptr<Domain> domain,
-                                        const std::vector<std::shared_ptr<Attribute>>& atts=std::vector<std::shared_ptr<Attribute>>()){
+  SharedPtr<Variable> addVariable(const char* name, SharedPtr<DataItem> item, SharedPtr<Domain> domain,
+                                        const std::vector<SharedPtr<Attribute>>& atts=std::vector<SharedPtr<Attribute>>()){
 
     std::shared_ptr<Variable> var(new Variable(name));
     addEdge(this, var);
@@ -184,13 +203,13 @@ public:
     return variables.back();
   }
 
-  std::shared_ptr<Variable> addVariable(const char *name, DType dtype,
+  SharedPtr<Variable> addVariable(const char *name, DType dtype,
                                         const CenterType center = CenterType::CELL_CENTER,
                                         const Endianess endian = Endianess::LITTLE_ENDIANESS,
-                                        const std::vector <std::shared_ptr<Attribute>> &atts = std::vector <
-                                                std::shared_ptr <Attribute >> (),
+                                        const std::vector <SharedPtr<Attribute>> &atts = std::vector
+                                                <SharedPtr<Attribute >> (),
                                         const std::vector <int> dimensions = std::vector<int>()){
-    std::shared_ptr<Variable> var(new Variable(name));
+    SharedPtr<Variable> var(new Variable(name));
     addEdge(this, var);
 
     var->name = name;
@@ -248,31 +267,6 @@ public:
 
 public:
 
-  //load
-  static SharedPtr<Group> load(String filename)
-  {
-    StringTree stree;
-    if (!stree.loadFromXml(Utils::loadTextDocument(filename)))
-      return SharedPtr<Group>();
-
-    ObjectStream istream(stree, 'r');
-    auto ret = std::make_shared<Group>("root");
-    ret->readFromObjectStream(istream);
-    return ret;
-  }
-
-  //save
-  static bool save(String filename, SharedPtr<Group> root)
-  {
-    StringTree stree(root->getVisusClassName());
-    ObjectStream ostream(stree, 'w');
-    root->writeToObjectStream(ostream);
-    Utils::saveTextDocument(filename, stree.toString());
-    return true;
-  }
-
-public:
-
   //writeToObjectStream
   virtual void writeToObjectStream(ObjectStream& ostream) override
   {
@@ -283,7 +277,9 @@ public:
     ostream.writeInline("VariabilityType", variability_type.toString());
     if(file_pattern.size())
       ostream.writeInline("FilePattern", file_pattern.c_str());
-    ostream.writeInline("DomainIndex", Visus::cstring(domain_index));
+
+    if(variability_type.value!=VariabilityType::STATIC_VARIABILITY_TYPE)
+      ostream.writeInline("DomainIndex", Visus::cstring(domain_index));
 
     for (auto child : data_sources)
       writeChild<DataSource>(ostream, "DataSource", child);
@@ -318,6 +314,7 @@ public:
           auto content = stree.toString();
           Utils::saveTextDocument(filename,content);
         }
+
       }
     }
   };

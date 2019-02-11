@@ -44,41 +44,43 @@ int main(int argc, char** argv){
   clock_t start, finish;
   start = clock();
 
-  Group metadata;
-  std::shared_ptr<Group> root_group = metadata.load(std::string(argv[1]));
+  SharedPtr<XIdxFile> metadata = XIdxFile::load(std::string(argv[1]));
+
+  SharedPtr<Group> time_group = metadata->getGroup(GroupType::TEMPORAL_GROUP_TYPE);
 
   finish = clock();
 
   printf("Time taken %fms\n",(double(finish)-double(start))/CLOCKS_PER_SEC);
 
-  std::shared_ptr<HyperSlabDomain> time_domain = std::static_pointer_cast<HyperSlabDomain>(root_group->domain);
+  //SharedPtr<Domain> time_domain = std::static_pointer_cast<HyperSlabDomain>(root_group->domain);
   
-  std::shared_ptr<TemporalListDomain> domain = std::static_pointer_cast<TemporalListDomain>(time_domain);
+  SharedPtr<TemporalListDomain> time_domain = std::static_pointer_cast<TemporalListDomain>(time_group->domain);
   
-  printf("Time Domain[%s]:\n", domain->type.toString().c_str());
-  for(auto& att: domain->attributes)
+  printf("Time Domain[%s]:\n", time_domain->type.toString().c_str());
+
+  for(auto& att: time_domain->attributes)
     printf("\t\tAttribute %s value %s\n", att->name.c_str(), att->value.c_str());
   
   int t_count=0;
-  for(auto t : domain->getLinearizedIndexSpace()){
+  for(auto t : time_domain->getLinearizedIndexSpace()){
     printf("Timestep %f\n", t);
 
-    auto grid = root_group->getGroup(t_count++);
-    std::shared_ptr<Domain> domain = grid->domain;
+    auto grid = time_group->getGroup(t_count++);
+    SharedPtr<Domain> spatial_domain = grid->domain;
     
-    printf("\tGrid Domain[%s]:\n", domain->type.toString().c_str());
+    printf("\tGrid Domain[%s]:\n", spatial_domain->type.toString().c_str());
     
-    for(auto& att: domain->attributes)
+    for(auto& att: spatial_domain->attributes)
       printf("\t\tAttribute %s value %s\n", att->name.c_str(), att->value.c_str());
     
-    if(domain->type == DomainType::SPATIAL_DOMAIN_TYPE){
-      std::shared_ptr<SpatialDomain> sdom = std::dynamic_pointer_cast<SpatialDomain>(domain);
+    if(spatial_domain->type == DomainType::SPATIAL_DOMAIN_TYPE){
+      SharedPtr<SpatialDomain> sdom = std::dynamic_pointer_cast<SpatialDomain>(spatial_domain);
       printf("\tTopology %s volume %lu\n", sdom->topology->type.toString().c_str(), sdom->getVolume());
       printf("\tGeometry %s", sdom->geometry->type.toString().c_str());
     }
-    else if(domain->type == DomainType::MULTIAXIS_DOMAIN_TYPE)
+    else if(spatial_domain->type == DomainType::MULTIAXIS_DOMAIN_TYPE)
     {
-      std::shared_ptr<MultiAxisDomain> mdom = std::dynamic_pointer_cast<MultiAxisDomain>(domain);
+      SharedPtr<MultiAxisDomain> mdom = std::dynamic_pointer_cast<MultiAxisDomain>(spatial_domain);
       for(auto& axis : mdom->axis){
         printf("\tAxis %s volume %lu: [ ", axis->name.c_str(), axis->getVolume());
         

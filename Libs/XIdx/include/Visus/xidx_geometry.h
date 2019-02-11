@@ -110,11 +110,20 @@ public:
   Geometry(String name_="") : XIdxElement(name_){
   }
 
+  Geometry(GeometryType type_){
+    type = type_;
+  }
+
+  Geometry(GeometryType type_, SharedPtr<DataItem> item){
+    type = type_;
+    data_items.push_back(item);
+  }
+
   Geometry(GeometryType type_, int n_dims, const double* ox_oy_oz,
     const double* dx_dy_dz=NULL) {
       type = type_;
 
-      std::shared_ptr<DataItem> item_o(new DataItem());
+      SharedPtr<DataItem> item_o(new DataItem());
       addEdge(this,item_o);
       item_o->format_type = FormatType::XML_FORMAT;
       item_o->dtype = DTypes::FLOAT32;

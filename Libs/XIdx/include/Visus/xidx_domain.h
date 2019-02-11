@@ -126,7 +126,11 @@ public:
     addEdge(this, value);
     this->attributes.push_back(value);
   }
-  
+
+  inline void addAttribute(String name_, String value_){
+    addAttribute(SharedPtr<Attribute>(new Attribute(name_, value_)));
+  }
+
   //getVolume
   virtual size_t getVolume() const{
     size_t total = 1;
