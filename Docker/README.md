@@ -13,31 +13,28 @@ sudo docker run   -it openvisus-ubuntu /bin/bash
 ```
 
 # //////////////////////////////////////////////////////////////////////
-# For mod_visus 
+# For mod_visus: compile and run the docker container.
+# Note: mounting the datasets dir is optional. If you just want to see it running, omit the '-v <local_path>:<remote_path>' parameter.
 
-Compile docker. For windows:
-
+For Windows:
 ```
-set VISUS_DATASETS=C:\projects\OpenVisus\datasets
+set VISUS_DATASETS=C:\path\to\datasets\dir
 set TAG=mod_visus-ubuntu
-docker build  -t %TAG% Docker/%TAG%
-docker run -it -v --name mydocker %VISUS_DATASETS%:/mnt/visus_datasets --expose=80 -p 8080:80 %TAG% "/usr/local/bin/httpd-foreground.sh"
-
+docker build -t %TAG% Docker/%TAG%
+docker run --name mydocker -v %VISUS_DATASETS%:/mnt/visus_datasets -p 8080:80 -d %TAG%
 ```
 
 For osx/linux:
-
 ```
 VISUS_DATASETS=/path/to/datasets/dir
 TAG=mod_visus-ubuntu
-docker build  -t ${TAG} Docker/mod_visus-ubuntu
-docker run -v ${VISUS_DATASETS}:/mnt/visus_datasets -p 80:80 -d ${TAG}
+docker build -t ${TAG} Docker/mod_visus-ubuntu
+docker run --name mydocker -v ${VISUS_DATASETS}:/mnt/visus_datasets -p 8080:80 -d ${TAG}
 ```
 
-If you want to run interactively, use this version, which adds **-it** and removes **-d**:
-
+If you want to run interactively, use this version. It adds **-it**, removes **-d**, and explicitly runs the server:
 ```
-docker run -it -v ${VISUS_DATASETS}:/mnt/visus_datasets -p 8080:80 ${TAG} /bin/bash
+docker run -it --name mydocker -v ${VISUS_DATASETS}:/mnt/visus_datasets -p 8080:80 ${TAG} /bin/bash
 /usr/local/bin/httpd-foreground.sh
 ```
 
