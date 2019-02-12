@@ -48,7 +48,7 @@ except:
 	pass
 
 try:
-	from xidx import *
+	from VisusXIdxPy import *
 except:
 	pass
 

@@ -1,55 +1,55 @@
-import xidx
 import sys
+import OpenVisus
 
-from xidx import *
+from VisusXIdxPy import *
 
 if(len(sys.argv) < 2):
   print("usage: ", sys.argv[0], "<input file>")
   exit(1)
 
+XIdxModule.attach()
+
 filepath = sys.argv[1]
 
-# create metadata file object
-metadata = MetadataFile(filepath)
 # read data from input file
-ret = metadata.Load()
+metadata = XIdxFile_load(filepath)
 
-# get root group (e.g. Time series)
-root_group = metadata.getRootGroup()
+# get time group
+root_group = metadata.get().getGroup(GroupType(GroupType.TEMPORAL_GROUP_TYPE))
 
 # get domain of the group
-domain = root_group.getDomain()
+domain = root_group.get().domain
 
-print ("Time Domain[",Domain.toString(domain.getType()),"]:")
+print ("Time Domain[",domain.get().type.toString(),"]:")
 
 # print attributes if any
-for att in domain.getAttributes():
+for att in domain.get().attributes:
   print ("\t\tAttribute:", att.name, "Value:", att.value)
 
 t_count=0
 # loop over the list of timesteps
-for t in domain.getLinearizedIndexSpace():
+for t in domain.get().getLinearizedIndexSpace():
   print ("Timestep", t)
     
   # get the grid of timestep t
-  grid = root_group.getGroup(t_count)
+  grid = root_group.get().getGroup(t_count).get()
   t_count += 1
 
   # get domain of current grid
-  grid_domain = grid.getDomain()
+  grid_domain = grid.domain.get()
 
-  print ("\tGrid Domain[", Domain.toString(grid_domain.getType()), "]")
+  print ("\tGrid Domain[", grid_domain.type, "]")
 
   # print attributes if any
-  for att in grid_domain.getAttributes():
+  for att in grid_domain.attributes:
     print ("\t\tAttribute:", att.name, "Value:", att.value)
 
-  if(grid_domain.getType() == Domain.SPATIAL_DOMAIN_TYPE):
-    topology =  grid_domain.topology
-    geometry = grid_domain.geometry
-    print ("\tTopology", Topology.toString(topology.type), "volume ", grid_domain.getVolume())
-    print ("\tGeometry", Geometry.toString(geometry.type))
-  elif(grid_domain.getType() == Domain.MULTIAXIS_DOMAIN_TYPE):
+  if(grid_domain.type.value == DomainType.SPATIAL_DOMAIN_TYPE):
+    topology =  grid_domain.topology.get()
+    geometry = grid_domain.geometry.get()
+    print ("\tTopology", topology.type, "volume ", grid_domain.getVolume())
+    print ("\tGeometry", geometry.type)
+  elif(grid_domain.type.value == DomainType.MULTIAXIS_DOMAIN_TYPE):
     # loop over the axis
     for a in range(0,grid_domain.getNumberOfAxis()):
       # get axis
