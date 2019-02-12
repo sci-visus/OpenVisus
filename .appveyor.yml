@@ -9,7 +9,7 @@ notifications:
     on_build_status_changed: true  
    
 environment:
-  QT5_DIR: C:/Qt/5.11.2/msvc2017_64/lib/cmake/Qt5
+  QT5_DIR: C:/Qt/5.11/msvc2017_64/lib/cmake/Qt5
   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   CMAKE_GENERATOR: Visual Studio 15 2017 Win64
   # vcpkg disabled 
