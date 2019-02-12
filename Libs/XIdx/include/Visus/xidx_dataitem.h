@@ -233,8 +233,10 @@ public:
   //findDataSource
   virtual DataSource* findDataSource() 
   {
+    // TODO fix getParent(), it returns an XIdxElement (getVisusClassName()=="XIdxElement")
     for(auto cursor = this->getParent(); cursor; cursor = cursor->getParent())
     {
+      printf("passing through %s\n", cursor->getVisusClassName().c_str());
       if (cursor->getVisusClassName() == "Group")
       {
         if (auto source = cursor->findChildWithName("DataSource"))

@@ -175,6 +175,10 @@ public:
     this->domain = value; 
   }
 
+  SharedPtr<Domain> getDomain(){
+    return domain;
+  }
+
   //addVariable
   void addVariable(SharedPtr<Variable> value) {
     addEdge(this, value);

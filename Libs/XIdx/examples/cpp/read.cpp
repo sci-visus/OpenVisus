@@ -97,7 +97,7 @@ int main(int argc, char** argv){
     printf("\n");
     
     for(auto& var: grid->variables){
-      auto source = var->data_items[0]->data_source;
+      auto source = var->data_items[0]->findDataSource();
       printf("\t\tVariable: %s ", var->name.c_str());
       if(source != nullptr)
         printf("data source url: %s\n", source->url.c_str());
@@ -111,7 +111,8 @@ int main(int argc, char** argv){
   }
   
   // (Debug) Saving the content in a different file to compare with the original
-  //metadata.save("verify.xidx");
+  metadata->save("verify.xidx");
+  printf("output saved into verify.xidx\n");
 
   return 0;
 }

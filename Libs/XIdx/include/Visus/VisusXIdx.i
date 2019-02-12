@@ -32,6 +32,42 @@ ENABLE_SHARED_PTR(SpatialDomain)
 %template(VectorOfVariable)    std::vector< Visus::SharedPtr< Visus::Variable    > >;
 %template(VectorOfDataSource)  std::vector< Visus::SharedPtr< Visus::DataSource  > >;
 
+%inline %{
+template<typename T>
+Visus::SharedPtr<T>* toNewSharedPtr(Visus::SharedPtr<Domain> dom) {
+  return dom ? new Visus::SharedPtr<T>(std::dynamic_pointer_cast<T>(dom)) : 0;
+}
+%}
+
+%typemap(out) Visus::SharedPtr<Visus::Domain> Visus::Group::getDomain {
+  std::string lookup_typename = result->type.toString();
+
+  if(lookup_typename=="List"){
+    lookup_typename = "_p_Visus__SharedPtrT_Visus__ListDomain_t";
+    swig_type_info * const outtype = SWIG_TypeQuery(lookup_typename.c_str());
+    auto smartresult = toNewSharedPtr<ListDomain>($1);
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), outtype, SWIG_POINTER_OWN);
+  } else if(lookup_typename=="Spatial"){
+    lookup_typename = "_p_Visus__SharedPtrT_Visus__SpatialDomain_t";
+    swig_type_info * const outtype = SWIG_TypeQuery(lookup_typename.c_str());
+    auto smartresult = toNewSharedPtr<SpatialDomain>($1);
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), outtype, SWIG_POINTER_OWN);
+  }
+  else if(lookup_typename=="MultiAxisDomain"){
+    lookup_typename = "_p_Visus__SharedPtrT_Visus__MultiAxisDomain_t";
+    swig_type_info * const outtype = SWIG_TypeQuery(lookup_typename.c_str());
+    auto smartresult = toNewSharedPtr<MultiAxisDomain>($1);
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), outtype, SWIG_POINTER_OWN);
+  }
+  else if(lookup_typename=="HyperSlabDomain"){
+    lookup_typename = "_p_Visus__SharedPtrT_Visus__HyperSlabDomain_t";
+    swig_type_info * const outtype = SWIG_TypeQuery(lookup_typename.c_str());
+    auto smartresult = toNewSharedPtr<HyperSlabDomain>($1);
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), outtype, SWIG_POINTER_OWN);
+  }
+
+}
+
 %include <Visus/xidx_element.h>
 %include <Visus/xidx_datasource.h>
 %include <Visus/xidx_attribute.h>

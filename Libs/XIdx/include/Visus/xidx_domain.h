@@ -166,6 +166,10 @@ public:
 
     this->type = DomainType::fromString(istream.readInline("Type"));
 
+    // have to remove the default data_item created by the constructor
+    // TODO improve this ensureDataItem() mechanism
+    data_items.clear();
+
     while (auto child = readChild<DataItem>(istream,"DataItem"))
       addDataItem(child);
 

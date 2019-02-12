@@ -81,7 +81,7 @@ public:
       return SharedPtr<XIdxFile>();
 
     ObjectStream istream(stree, 'r');
-    auto ret = std::make_shared<XIdxFile>("root");
+    auto ret = std::make_shared<XIdxFile>("");
     ret->readFromObjectStream(istream);
     return ret;
   }

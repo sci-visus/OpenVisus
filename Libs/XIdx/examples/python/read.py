@@ -15,74 +15,72 @@ filepath = sys.argv[1]
 metadata = XIdxFile_load(filepath)
 
 # get time group
-root_group = metadata.get().getGroup(GroupType(GroupType.TEMPORAL_GROUP_TYPE))
+root_group = metadata.get().getGroup(GroupType(GroupType.TEMPORAL_GROUP_TYPE)).get()
 
 # get domain of the group
-domain = root_group.get().domain
+domain = root_group.domain.get()
 
-print ("Time Domain[",domain.get().type.toString(),"]:")
+print ("Time Domain[",domain.type.toString(),"]:")
 
 # print attributes if any
-for att in domain.get().attributes:
-  print ("\t\tAttribute:", att.name, "Value:", att.value)
+for att in domain.attributes:
+  print ("\t\tAttribute:", att.get().name, "Value:", att.get().value)
 
 t_count=0
 # loop over the list of timesteps
-for t in domain.get().getLinearizedIndexSpace():
+for t in domain.getLinearizedIndexSpace():
   print ("Timestep", t)
     
   # get the grid of timestep t
-  grid = root_group.get().getGroup(t_count).get()
+  grid = root_group.getGroup(t_count).get()
   t_count += 1
 
   # get domain of current grid
-  grid_domain = grid.domain.get()
+  grid_domain = grid.getDomain().get()
 
-  print ("\tGrid Domain[", grid_domain.type, "]")
+  print ("\tGrid Domain[", grid_domain.type.toString(), "]")
 
   # print attributes if any
   for att in grid_domain.attributes:
-    print ("\t\tAttribute:", att.name, "Value:", att.value)
+    print ("\t\tAttribute:", att.get().name, "Value:", att.get().value)
 
   if(grid_domain.type.value == DomainType.SPATIAL_DOMAIN_TYPE):
     topology =  grid_domain.topology.get()
     geometry = grid_domain.geometry.get()
-    print ("\tTopology", topology.type, "volume ", grid_domain.getVolume())
-    print ("\tGeometry", geometry.type)
+    print ("\tTopology", topology.type.toString(), "volume ", grid_domain.getVolume())
+    print ("\tGeometry", geometry.type.toString())
   elif(grid_domain.type.value == DomainType.MULTIAXIS_DOMAIN_TYPE):
     # loop over the axis
-    for a in range(0,grid_domain.getNumberOfAxis()):
-      # get axis
-      axis = grid_domain.getAxis(a);
-      print ("\tAxis", axis.name,"volume", axis.getVolume(),": [ ", end='')
+    for axis in grid_domain.axis:
+      print ("\tAxis", axis.get().name,"volume", axis.get().getVolume(),": [ ", end='')
 
-      for v in axis.getValues():
+      for v in axis.get().getValues():
         print (v, end='')
 
       print(" ]")
 
       # print attributes of the axis if any
-      for att in axis.getAttributes():
-        print ("\t\tAttribute:", att.name, "Value:", att.value)
+      for att in axis.get().attributes:
+        print ("\t\tAttribute:", att.get().name, "Value:", att.get().value)
 
     print("\n");
 
     # loop over variables
-    for var in grid.getVariables():
+    for var in grid.variables:
       # get datasource used by the first variable
-      source = var.getDataItems()[0].getDataSource();
-      print("\t\tVariable:", var.name)
+      source = var.get().data_items[0].get().findDataSource();
+      print("\t\tVariable:", var.get().name)
       if(source):
-        print("\t\t\tdata source url: ", source.getUrl())
+        print("\t\t\tdata source url: ", source.get().getUrl())
       else:
         print("\n")
 
       # print attributes of the variable if any
-      for att in var.getAttributes():
-        print ("\t\tAttribute:", att.name, "Value:", att.value)
+      for att in var.get().attributes:
+        print ("\t\tAttribute:", att.get().name, "Value:", att.get().value)
         
 # (Debug) Saving the content in a different file to compare with the original
-metadata.save("verify.xidx");
+metadata.get().save("verify.xidx");
 print("debug saved into verify.xidx")
 
 
