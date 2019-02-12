@@ -31,7 +31,14 @@ For osx/linux:
 VISUS_DATASETS=/path/to/datasets/dir
 TAG=mod_visus-ubuntu
 docker build  -t ${TAG} Docker/mod_visus-ubuntu
-docker run -it -v ${VISUS_DATASETS}:/mnt/visus_datasets --expose=80 -p 8080:80 ${TAG} "/usr/local/bin/httpd-foreground.sh"
+docker run -v ${VISUS_DATASETS}:/mnt/visus_datasets -p 80:80 -d ${TAG}
+```
+
+If you want to run interactively, use this version, which adds **-it** and removes **-d**:
+
+```
+docker run -it -v ${VISUS_DATASETS}:/mnt/visus_datasets -p 8080:80 ${TAG} /bin/bash
+/usr/local/bin/httpd-foreground.sh
 ```
 
 To test docker container, in another terminal:
