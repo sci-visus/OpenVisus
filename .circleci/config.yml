@@ -28,7 +28,7 @@ jobs:
             ./build.sh            
   
   # ///////////////////////////////// manylinux
-  manylinux-3.7
+  manylinux-3.7:
     docker:
       - image: quay.io/pypa/manylinux1_x86_64
         environment:
