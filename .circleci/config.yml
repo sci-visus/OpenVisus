@@ -3,29 +3,30 @@ version: 2
 jobs:
 
   # ///////////////////////////////// osx 10.13
-  osx-10.13-3.7:
-    macos:
-      xcode: "9.4"  
-      environment:
-        PYTHON_VERSION=3.7.1       
-    steps:
-      - checkout
-      - run: 
-          name: Build OpenVisus
-          command: |
-            ./build.sh
-            
-  osx-10.13-3.6:
-    macos:
-      xcode: "9.4"  
-      environment:
-        PYTHON_VERSION=3.6.1       
-    steps:
-      - checkout
-      - run: 
-          name: Build OpenVisus
-          command: |
-            ./build.sh            
+  # disabled because we need to pay
+  # osx-10.13-3.7:
+  #  macos:
+  #    xcode: "9.4"  
+  #    environment:
+  #      PYTHON_VERSION=3.7.1       
+  #  steps:
+  #    - checkout
+  #    - run: 
+  #        name: Build OpenVisus
+  #        command: |
+  #          ./build.sh
+  #          
+  #osx-10.13-3.6:
+  #  macos:
+  #    xcode: "9.4"  
+  #    environment:
+  #      PYTHON_VERSION=3.6.1       
+  #  steps:
+  #    - checkout
+  #    - run: 
+  #        name: Build OpenVisus
+  #        command: |
+  #          ./build.sh            
   
   # ///////////////////////////////// manylinux
   manylinux-3.7:
@@ -58,9 +59,9 @@ jobs:
 
 workflows:
   version: 2
-  build:
+  OpenVisusWorkflow:
     jobs:
-      - osx-10.13-3.7
-      - osx-10.13-3.6
+      #- osx-10.13-3.7
+      #- osx-10.13-3.6
       - manylinux-3.7
       - manylinux-3.6
