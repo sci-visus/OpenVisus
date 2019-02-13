@@ -126,7 +126,7 @@ class VISUS_XIDX_API Group : public XIdxElement
 {
 public:
 
-  VISUS_CLASS(Group)
+  VISUS_XIDX_CLASS(Group)
 
   // node info
   int                                 domain_index = 0;
@@ -203,7 +203,7 @@ public:
   //save
   static bool save(String filename, SharedPtr<Group> root)
   {
-    StringTree stree(root->getVisusClassName());
+    StringTree stree(root->getClassName());
     ObjectStream ostream(stree, 'w');
     root->writeToObjectStream(ostream);
     Utils::saveTextDocument(filename, stree.toString());
@@ -250,7 +250,7 @@ public:
         ostream.popContext("xi:include");
 
         {
-          StringTree stree(child->getVisusClassName());
+          StringTree stree(child->getClassName());
           ObjectStream ostream(stree, 'w');
           child->writeToObjectStream(ostream);
           auto content = stree.toString();

@@ -39,7 +39,7 @@ class VISUS_XIDX_API ListDomain : public Domain
 {
 public:
 
-  VISUS_CLASS(ListDomain)
+  VISUS_XIDX_CLASS(ListDomain)
 
   int stride = 1;
   std::vector<double> values;

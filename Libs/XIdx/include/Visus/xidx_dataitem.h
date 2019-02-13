@@ -143,7 +143,7 @@ class VISUS_XIDX_API DataItem : public XIdxElement
 {
 public:
 
-  VISUS_CLASS(DataItem)
+  VISUS_XIDX_CLASS(DataItem)
   
   //node infos
   std::vector<int>                    dimensions;
@@ -210,7 +210,7 @@ public:
   {
     for(auto cursor = this->getParent(); cursor; cursor = cursor->getParent())
     {
-      if (cursor->getVisusClassName() == "Group")
+      if (cursor->getClassName() == "Group")
       {
         if (auto source = cursor->findChildWithName("DataSource"))
           return dynamic_cast<DataSource*>(source.get());

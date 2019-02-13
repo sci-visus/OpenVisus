@@ -40,7 +40,7 @@ class VISUS_XIDX_API MultiAxisDomain : public Domain
 {
 public:
 
-  VISUS_CLASS(MultiAxisDomain)
+  VISUS_XIDX_CLASS(MultiAxisDomain)
 
   typedef Variable Axis;
 
