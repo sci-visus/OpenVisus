@@ -43,8 +43,10 @@ class VISUS_XIDX_API XIdxElement : public Object
 public:
 
   //VISUS_XIDX_CLASS(XIdxElement)
-  VISUS_XIDX_CLASS(XidxElement)
-  virtual String getClassName() { return "XidxElement"; }
+  VISUS_CLASS(XIdxElement)
+  virtual String getClassName() {
+    return "XIdxElement";
+  }
 
   String name;
 
@@ -55,10 +57,6 @@ public:
   //destructor 
   virtual ~XIdxElement() {
   }
-
-
-  //getClassName
-  virtual getClassName() = 0;
 
   //getParent
   virtual XIdxElement* getParent() const {
