@@ -1,8 +1,6 @@
 # //////////////////////////////////////////////////////////////////////
 # How to build OpenVisus Docker container
 #
-# Note: for development with anaconda enabled, please see Docker/anaconda/README.md.
-#
 
 Compile and run the docker container. 
 For example:
@@ -49,9 +47,9 @@ To test docker container:
 
 - in an interactive session (see above) test OpenVisus Python library:
 
-        python /home/OpenVisus/Samples/python/Idx.py
-        python /home/OpenVisus/Samples/python/Dataflow.py
-        python /home/OpenVisus/Samples/python/Array.py
+        python3 /home/OpenVisus/Samples/python/Idx.py
+        python3 /home/OpenVisus/Samples/python/Dataflow.py
+        python3 /home/OpenVisus/Samples/python/Array.py
 
 
 Deploy to the repository:
