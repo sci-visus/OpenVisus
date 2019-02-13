@@ -1,0 +1,17 @@
+version: 2
+
+jobs:
+  build:
+    docker:
+      - image: quay.io/pypa/manylinux1_x86_64
+        environment:
+           PYTHON_VERSION: 3.7.1
+           DISABLE_OPENMP: 1
+           VISUS_GUI: 0
+    steps:
+      - checkout
+      - run: 
+          name: Build OpenVisus
+          command: |
+            ./build.sh
+            echo "Finished build"

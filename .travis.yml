@@ -2,10 +2,6 @@ language: cpp
 
 sudo: required
 
-cache:
-   directories:
-     - ~/.cached/OpenVisus
-
 services:
   - docker
 
