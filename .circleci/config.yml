@@ -56,3 +56,11 @@ jobs:
           command: |
             ./build.sh            
 
+workflows:
+  version: 2
+  build:
+    jobs:
+      - osx-10.13-3.7
+      - osx-10.13-3.6
+      - manylinux-3.7
+      - manylinux-3.6
