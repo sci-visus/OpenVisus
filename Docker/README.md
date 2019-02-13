@@ -38,11 +38,21 @@ docker run -it --name mydocker -v ${VISUS_DATASETS}:/mnt/visus_datasets -p 8080:
 /usr/local/bin/httpd-foreground.sh
 ```
 
-To test docker container, in another terminal:
+To test docker container:
 
-```
-curl  "http://0.0.0.0:8080/mod_visus?action=list"
-```
+- in another terminal, list datasets hosted by the container:
+
+        curl  "http://0.0.0.0:8080/mod_visus?action=list"
+
+- in a browser, open the webviewer: `http://0.0.0.0:8080/viewer.html`
+    - change server name in viewer to: `http://0.0.0.0:8080/mod_visus?`
+
+- in an interactive session (see above) test OpenVisus Python library:
+
+        python /home/OpenVisus/Samples/python/Idx.py
+        python /home/OpenVisus/Samples/python/Dataflow.py
+        python /home/OpenVisus/Samples/python/Array.py
+
 
 Deploy to the repository:
 
