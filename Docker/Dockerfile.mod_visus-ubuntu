@@ -1,10 +1,8 @@
 FROM ubuntu:16.04
 
-# install python, pip, git, apache, and numpy
 RUN apt-get update \
   && apt-get install -y apache2 python3.5 libpython3.5 python3-pip git \
-  && python3 -m pip install --upgrade pip \
-  && python3 -m pip install numpy
+  && python3 -m pip install --upgrade pip
 
 # install openvisus pip
 ENV VISUS_HOME=/home/OpenVisus
