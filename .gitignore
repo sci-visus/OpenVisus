@@ -7,4 +7,12 @@ build/
 install/
 x64/
 tags
-
+TAGS
+.emacs*
+.gitignore*
+*~
+.DS_Store
+*.diff
+.csearchindex
+\#*
+.\#*
