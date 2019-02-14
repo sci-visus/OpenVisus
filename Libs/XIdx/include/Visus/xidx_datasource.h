@@ -39,7 +39,7 @@ class VISUS_XIDX_API DataSource : public XIdxElement
 {
 public:
 
-  VISUS_CLASS(DataSource)
+  VISUS_XIDX_CLASS(DataSource)
 
   String url;
   bool   use_cdata = false;

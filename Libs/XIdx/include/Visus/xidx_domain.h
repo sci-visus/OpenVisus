@@ -89,7 +89,7 @@ class VISUS_XIDX_API Domain : public XIdxElement
 {
 public:
 
-  VISUS_CLASS(Domain)
+  VISUS_XIDX_CLASS(Domain)
 
   typedef std::vector<double> LinearizedIndexSpace;
 

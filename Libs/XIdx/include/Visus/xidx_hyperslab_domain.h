@@ -38,7 +38,7 @@ class VISUS_XIDX_API HyperSlabDomain : public ListDomain
 {
 public:
 
-  VISUS_CLASS(HyperSlabDomain)
+  VISUS_XIDX_CLASS(HyperSlabDomain)
 
   double start = 0;
   double step = 0;

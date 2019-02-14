@@ -99,7 +99,7 @@ class VISUS_XIDX_API Geometry : public XIdxElement
 {
 public:
 
-  VISUS_CLASS(Geometry)
+  VISUS_XIDX_CLASS(Geometry)
   
   GeometryType type;
 

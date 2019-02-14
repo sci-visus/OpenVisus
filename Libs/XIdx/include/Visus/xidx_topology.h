@@ -92,7 +92,7 @@ class VISUS_XIDX_API Topology : public XIdxElement
 {
 public:
 
-  VISUS_CLASS(Topology)
+  VISUS_XIDX_CLASS(Topology)
 
   //node info
   TopologyType                         type;
