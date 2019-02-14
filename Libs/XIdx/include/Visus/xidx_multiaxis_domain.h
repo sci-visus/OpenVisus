@@ -49,6 +49,8 @@ public:
   MultiAxisDomain(String name_="") : Domain(name_, DomainType::MULTIAXIS_DOMAIN_TYPE) {
   };
 
+  void addAxis(Variable* VISUS_DISOWN(value)){ addAxis(SharedPtr<Axis>(value)); };
+
   //addAxis
   void addAxis(SharedPtr<Axis> value){
     addEdge(this, value);

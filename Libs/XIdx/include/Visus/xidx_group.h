@@ -168,12 +168,18 @@ public:
     group_type=type;
     domain=domain_;
   }
+
+  Group(String name_, GroupType type, Domain* VISUS_DISOWN(domain_)){
+    Group(name_, type, SharedPtr<Domain>(domain_));
+  }
   
   //setDomain
   inline void setDomain(SharedPtr<Domain> value) { 
     addEdge(this, value);
     this->domain = value; 
   }
+
+  void setDomain(Domain* VISUS_DISOWN(value)){ setDomain(SharedPtr<Domain>(value)); };
 
   SharedPtr<Domain> getDomain(){
     return domain;
@@ -185,12 +191,16 @@ public:
     variables.push_back(value);
   }
 
-  SharedPtr<Group> getGroup(int index){
+  void addVariable(Variable* VISUS_DISOWN(value)){ addVariable(SharedPtr<Variable>(value)); };
+
+  SharedPtr<Group> getGroupPtr(int index){
     if(variability_type==VariabilityType::STATIC_VARIABILITY_TYPE)
       return groups[0];
     else
       return groups[index];
   }
+
+  Group* getGroup(int index){ return getGroupPtr(index).get(); }
 
   SharedPtr<Variable> addVariable(const char* name, SharedPtr<DataItem> item, SharedPtr<Domain> domain,
                                         const std::vector<SharedPtr<Attribute>>& atts=std::vector<SharedPtr<Attribute>>()){
@@ -247,12 +257,16 @@ public:
     addEdge(this, value);
     attributes.push_back(value);
   }
+
+  void addAttribute(Attribute* VISUS_DISOWN(value)){ addAttribute(SharedPtr<Attribute>(value)); };
   
   //addDataSource
   void addDataSource(SharedPtr<DataSource> value) {
     addEdge(this, value);
     data_sources.push_back(value);
   }
+
+  void addDataSource(DataSource* VISUS_DISOWN(value)){ addDataSource(SharedPtr<DataSource>(value)); };
 
   //addGroup
   void addGroup(SharedPtr<Group> value)
@@ -263,6 +277,8 @@ public:
     addEdge(this,value);
     groups.push_back(value);
   }
+
+  void addGroup(Group* VISUS_DISOWN(value)){ addGroup(SharedPtr<Group>(value)); };
   
   //getXPathPrefix
   virtual String getXPathPrefix() override {

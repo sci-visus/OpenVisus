@@ -7,24 +7,25 @@ if(len(sys.argv) < 2):
   print("usage: ", sys.argv[0], "<input file>")
   exit(1)
 
-XIdxModule.attach()
-
 filepath = sys.argv[1]
 
 # read data from input file
 metadata = XIdxFile_load(filepath)
 
+
+print(metadata)
+
 # get time group
-root_group = metadata.get().getGroup(GroupType(GroupType.TEMPORAL_GROUP_TYPE)).get()
+root_group = metadata.getGroup(GroupType(GroupType.TEMPORAL_GROUP_TYPE))
 
 # get domain of the group
-domain = root_group.domain.get()
+domain = root_group.getDomain()
 
 print ("Time Domain[",domain.type.toString(),"]:")
 
 # print attributes if any
 for att in domain.attributes:
-  print ("\t\tAttribute:", att.get().name, "Value:", att.get().value)
+  print ("\t\tAttribute:", att.name, "Value:", att.value)
 
 t_count=0
 # loop over the list of timesteps
@@ -32,11 +33,11 @@ for t in domain.getLinearizedIndexSpace():
   print ("Timestep", t)
     
   # get the grid of timestep t
-  grid = root_group.getGroup(t_count).get()
+  grid = root_group.getGroup(t_count)
   t_count += 1
 
   # get domain of current grid
-  grid_domain = grid.getDomain().get()
+  grid_domain = grid.getDomain()
 
   print ("\tGrid Domain[", grid_domain.type.toString(), "]")
 
@@ -45,8 +46,8 @@ for t in domain.getLinearizedIndexSpace():
     print ("\t\tAttribute:", att.get().name, "Value:", att.get().value)
 
   if(grid_domain.type.value == DomainType.SPATIAL_DOMAIN_TYPE):
-    topology =  grid_domain.topology.get()
-    geometry = grid_domain.geometry.get()
+    topology =  grid_domain.topology
+    geometry = grid_domain.geometry
     print ("\tTopology", topology.type.toString(), "volume ", grid_domain.getVolume())
     print ("\tGeometry", geometry.type.toString())
   elif(grid_domain.type.value == DomainType.MULTIAXIS_DOMAIN_TYPE):
@@ -80,7 +81,7 @@ for t in domain.getLinearizedIndexSpace():
         print ("\t\tAttribute:", att.get().name, "Value:", att.get().value)
         
 # (Debug) Saving the content in a different file to compare with the original
-metadata.get().save("verify.xidx");
+metadata.save("verify.xidx");
 print("debug saved into verify.xidx")
 
 

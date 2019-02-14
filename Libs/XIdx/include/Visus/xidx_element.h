@@ -50,10 +50,6 @@ public:
   XIdxElement(String name_ = "") : name(name_) {
   }
 
-  //destructor 
-  virtual ~XIdxElement() {
-  }
-
   //getParent
   virtual XIdxElement* getParent() const {
     return parent;

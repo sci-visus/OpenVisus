@@ -46,7 +46,7 @@ int main(int argc, char** argv){
 
   SharedPtr<XIdxFile> metadata = XIdxFile::load(std::string(argv[1]));
 
-  SharedPtr<Group> time_group = metadata->getGroup(GroupType::TEMPORAL_GROUP_TYPE);
+  SharedPtr<Group> time_group = metadata->getGroupPtr(GroupType::TEMPORAL_GROUP_TYPE);
 
   finish = clock();
 
