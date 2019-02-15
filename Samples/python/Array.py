@@ -72,8 +72,9 @@ if __name__ == '__main__':
 	print("All done")
 	SetCommandLine("__main__")
 	KernelModule.attach()
-	unittest.main(exit=False)
+	errors=unittest.main(exit=False).result.errors
 	KernelModule.detach()
-	print("All done")
+	print("All done ("+str(len(errors))+" errors)")
+	sys.exit(len(errors)>0)
 
 
