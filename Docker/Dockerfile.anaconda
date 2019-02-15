@@ -1,0 +1,45 @@
+#
+# OpenVisus Docker for Anaconda environment
+#
+
+FROM continuumio/miniconda3
+ENV VISUS_HOME=/home/OpenVisus
+ENV CONDA_PREFIX=/opt/conda
+
+# update conda
+RUN conda update -y -n base conda
+
+# install apache and jove (a handy, tiny emacs-like editor)
+RUN apt-get update \
+  && apt-get install jove \
+  && apt-get install -y apache2
+
+# install and configure OpenVisus
+RUN pip install OpenVisus \
+  && ln -s $(python3 -c "import os, OpenVisus; print(os.path.dirname(OpenVisus.__file__))") ${VISUS_HOME} \
+  && echo "export VISUS_HOME=${VISUS_HOME}" >> ~/.bashrc \
+  && ln -s ${VISUS_HOME}/bin/visus ${CONDA_PREFIX}/bin/visus \
+  && ln -s ${VISUS_HOME}/bin/visus ${CONDA_PREFIX}/bin/visus.sh
+
+# fix rpaths
+RUN conda install -y patchelf \
+  && ${CONDA_PREFIX}/bin/patchelf --set-rpath '$ORIGIN:/opt/conda/lib' ${VISUS_HOME}/bin/visus \
+  && ${CONDA_PREFIX}/bin/patchelf --set-rpath '$ORIGIN:/opt/conda/lib' ${VISUS_HOME}/bin/libmod_visus.so
+
+# install webviewer
+RUN git clone https://github.com/sci-visus/visus_javascript.git ${VISUS_HOME}/webviewer
+
+# configure mod_visus and webviewer
+COPY resources/shared/000-default.conf /etc/apache2/sites-enabled
+COPY resources/shared/.htpasswd    ${VISUS_HOME}
+COPY resources/shared/visus.config ${VISUS_HOME}
+COPY resources/shared/httpd-foreground.sh /usr/local/bin
+RUN echo "LoadModule visus_module ${VISUS_HOME}/bin/libmod_visus.so" > /etc/apache2/mods-available/visus.load \
+  && a2enmod headers \
+  && a2enmod visus \
+  && chmod a+x /usr/local/bin/httpd-foreground.sh
+
+# run
+EXPOSE 80
+CMD ["/usr/local/bin/httpd-foreground.sh"]
+

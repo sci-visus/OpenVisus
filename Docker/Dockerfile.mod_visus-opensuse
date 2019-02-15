@@ -1,0 +1,30 @@
+FROM opensuse:42.3
+
+RUN zypper --non-interactive update \
+  && zypper --non-interactive install python3 python3-pip apache2 git which \
+  && python3 -m pip install --upgrade pip
+
+# install openvisus pip
+ENV VISUS_HOME=/home/OpenVisus
+RUN python3 -m pip install numpy==1.15.4 OpenVisus==1.2.122 \
+  && ln -s $(python3 -c "import os, OpenVisus; print(os.path.dirname(OpenVisus.__file__))") ${VISUS_HOME}
+
+# install webviewer
+RUN git clone https://github.com/sci-visus/visus_javascript.git ${VISUS_HOME}/webviewer
+
+# configure mod_visus and webviewer
+COPY resources/shared/000-default.conf /etc/apache2/conf.d
+COPY resources/shared/.htpasswd    ${VISUS_HOME}
+COPY resources/shared/visus.config ${VISUS_HOME}
+COPY resources/opensuse/httpd-foreground.sh /usr/local/bin
+RUN echo "LoadModule headers_module /usr/lib64/apache2-prefork/mod_headers.so" >> /etc/apache2/loadmodule.conf \
+  && echo "LoadModule visus_module ${VISUS_HOME}/bin/libmod_visus.so" >> /etc/apache2/loadmodule.conf \
+  && chmod a+x /usr/local/bin/httpd-foreground.sh
+
+EXPOSE 80
+CMD ["/usr/local/bin/httpd-foreground.sh"]
+
+
+
+
+

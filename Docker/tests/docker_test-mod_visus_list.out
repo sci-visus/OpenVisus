@@ -1,0 +1,4 @@
+<datasets>
+	<dataset name="BlueMarbleDay" permissions="public" url="$(protocol)://$(hostname):$(port)/mod_visus?action=readdataset&amp;dataset=BlueMarbleDay" />
+	<dataset name="BlueMarbleNight" permissions="public" url="$(protocol)://$(hostname):$(port)/mod_visus?action=readdataset&amp;dataset=BlueMarbleNight" />
+</datasets>

@@ -1,10 +1,8 @@
 FROM ubuntu:16.04
 
-# install python, pip, git, apache, and numpy
 RUN apt-get update \
   && apt-get install -y apache2 python3.5 libpython3.5 python3-pip git \
-  && python3 -m pip install --upgrade pip \
-  && python3 -m pip install numpy
+  && python3 -m pip install --upgrade pip
 
 # install openvisus pip
 ENV VISUS_HOME=/home/OpenVisus
@@ -15,10 +13,10 @@ RUN python3 -m pip install OpenVisus \
 RUN git clone https://github.com/sci-visus/visus_javascript.git ${VISUS_HOME}/webviewer
 
 # configure mod_visus and webviewer
-COPY 000-default.conf /etc/apache2/sites-enabled
-COPY .htpasswd    ${VISUS_HOME}
-COPY visus.config ${VISUS_HOME}
-COPY httpd-foreground.sh /usr/local/bin
+COPY resources/shared/000-default.conf /etc/apache2/sites-enabled
+COPY resources/shared/.htpasswd    ${VISUS_HOME}
+COPY resources/shared/visus.config ${VISUS_HOME}
+COPY resources/shared/httpd-foreground.sh /usr/local/bin
 RUN echo "LoadModule visus_module ${VISUS_HOME}/bin/libmod_visus.so" > /etc/apache2/mods-available/visus.load \
   && a2enmod headers \
   && a2enmod visus \

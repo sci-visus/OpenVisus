@@ -6,7 +6,7 @@ Compile and run the docker container.
 For example:
 
 ```
-sudo docker build  -t openvisus-ubuntu Docker/ubuntu
+sudo docker build  -t openvisus-ubuntu -f Dockerfile.ubuntu .
 sudo docker run   -it openvisus-ubuntu /bin/bash 
 ```
 
@@ -18,7 +18,7 @@ For Windows:
 ```
 set VISUS_DATASETS=C:\path\to\datasets\dir
 set TAG=mod_visus-ubuntu
-docker build -t %TAG% Docker/%TAG%
+docker build -t %TAG% -f Dockerfile.%TAG% .
 docker run --name mydocker -v %VISUS_DATASETS%:/mnt/visus_datasets -p 8080:80 -d %TAG%
 ```
 
@@ -26,7 +26,7 @@ For osx/linux:
 ```
 VISUS_DATASETS=/path/to/datasets/dir
 TAG=mod_visus-ubuntu
-docker build -t ${TAG} Docker/mod_visus-ubuntu
+docker build -t ${TAG} -f Dockerfile.${TAG} .
 docker run --name mydocker -v ${VISUS_DATASETS}:/mnt/visus_datasets -p 8080:80 -d ${TAG}
 ```
 
@@ -65,7 +65,7 @@ docker push visus/$DOCKER_TAG
 # //////////////////////////////////////////////////////////////////////
 # Debug step-by-step build process
 
-sudo docker run -it -v $(pwd):/home/OpenVisus --expose=80 -p 8080:80  --name manylinux quay.io/pypa/manylinux1_x86_64 /bin/bash^
+sudo docker run -it -v $(pwd):/home/OpenVisus --expose=80 -p 8080:80  --name manylinux quay.io/pypa/manylinux1_x86_64 /bin/bash
 cd /home/OpenVisus
 export BUILD_DIR=/home/OpenVisus/build/manylinux
 CMake/build_manylinux.sh
