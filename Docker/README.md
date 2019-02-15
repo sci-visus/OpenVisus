@@ -60,11 +60,11 @@ Notes:
 ## Deploy to the repository
 
 ```
-sudo docker login -u scrgiorgio
+sudo docker login -u <username>
 # TYPE the secret <password>
 
-docker tag $DOCKER_TAG visus/$DOCKER_TAG
-docker push visus/$DOCKER_TAG
+docker tag $TAG visus/$TAG
+docker push visus/$TAG
 ```
 
 ## Debug step-by-step build process

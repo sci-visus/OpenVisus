@@ -4,7 +4,7 @@
 # Test OpenVisus docker images that feature mod_visus and the webviewer.
 #
 
-declare -a arr=("mod_visus-ubuntu" "mod_visus-opensuse" "anaconda" "dataportal")
+declare -a arr=("mod_visus-ubuntu" "mod_visus-opensuse" "anaconda")
 #NOTE: the remaining ("ubuntu" "opensuse" "manylinux") don't have mod_visus or the webviewer
 
 #
