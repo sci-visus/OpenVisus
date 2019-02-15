@@ -68,7 +68,7 @@ public:
 };
 
 ////////////////////////////////////////////////////////////
-class VISUS_DATAFLOW_API DataflowPort : public Object
+class VISUS_DATAFLOW_API DataflowPort 
 {
 public:
 

@@ -13,10 +13,10 @@ using namespace Visus;
 
 %import <Visus/VisusKernelPy.i>
 
-ENABLE_SHARED_PTR(Dataflow)
-ENABLE_SHARED_PTR(DataflowMessage)
-ENABLE_SHARED_PTR(ReturnReceipt)
-ENABLE_SHARED_PTR(NodeJob)
+%shared_ptr(Visus::Dataflow)
+%shared_ptr(Visus::DataflowMessage)
+%shared_ptr(Visus::ReturnReceipt)
+%shared_ptr(Visus::NodeJob)
 
 %apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::Node* disown };
 

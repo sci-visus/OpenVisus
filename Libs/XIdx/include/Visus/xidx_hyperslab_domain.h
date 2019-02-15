@@ -90,8 +90,8 @@ public:
     // TODO generalize for many slabs
     if(values.size()==3){
       start = values[0];
-      step = values[1];
-      count = values[2];
+      step  = values[1];
+      count = (int)values[2];
     }
 //    std::istringstream parse(istream.readText());
 //    parse >> start >> step >> count;

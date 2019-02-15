@@ -33,22 +33,24 @@
 
 using namespace Visus;
 
-int write_temporal_hyperslab_reg_grid(const char* filepath, int n_attributes, int n_timesteps){
+/////////////////////////////////////////////////////////////////////////////////////////////////
+int write_temporal_hyperslab_reg_grid(const char* filepath, int n_attributes, int n_timesteps)
+{
   XIdxFile meta;
   
   // Create a group to collect a time series
-  SharedPtr<Group> time_group(new Group("TimeSeries", GroupType::TEMPORAL_GROUP_TYPE));
+  auto time_group=std::make_shared<Group>("TimeSeries", GroupType::TEMPORAL_GROUP_TYPE);
   meta.addGroup(time_group);
 
   // Create a data source for this group
   // if a variable does not redefine a data source the group source will be used
-  SharedPtr<DataSource> file(new DataSource("data", "file_path"));
+  auto file=std::make_shared<DataSource>("data", "file_path");
   time_group->addDataSource(file);
   
   const int n_dims = 3;
 
   // Create an hyperslab time domain (start, step, count)
-  SharedPtr<TemporalHyperSlabDomain> time_dom = std::make_shared<TemporalHyperSlabDomain>(new TemporalHyperSlabDomain("Time"));
+  auto time_dom = std::make_shared<TemporalHyperSlabDomain>(new TemporalHyperSlabDomain("Time"));
   time_dom->setDomain(2.0, float(n_timesteps-1)*0.1, n_timesteps);
 
 
@@ -62,21 +64,20 @@ int write_temporal_hyperslab_reg_grid(const char* filepath, int n_attributes, in
   ////////////////////////////////////////////////////////////
   
   // Create a new group to collect a set of variables that share the same spatial domain
-  SharedPtr<Group> grid(new Group("L0", GroupType::SPATIAL_GROUP_TYPE)); // default static group
+  auto grid=std::make_shared<Group>("L0", GroupType::SPATIAL_GROUP_TYPE); // default static group
   
   // Create a spatial domain
-  SharedPtr<SpatialDomain> space_dom(new SpatialDomain("Grid"));
+  auto space_dom=std::make_shared<SpatialDomain>("Grid");
   
   uint32_t dims[3] = {10, 20, 30};// logical dims
   double o[3] = {0, 0, 0};         // origin x y z
   double d[3] = {1.f, 1.f, 1.f};   // dx dy dz
 
-  SharedPtr<Topology> topology(new Topology(TopologyType::CORECT_3D_MESH_TOPOLOGY_TYPE, n_dims,
-                    dims));
+  auto topology=std::make_shared<Topology>(TopologyType::CORECT_3D_MESH_TOPOLOGY_TYPE, n_dims,dims);
   // Set topology and geometry of the spatial domain
   space_dom->setTopology(topology);
 
-  SharedPtr<Geometry> geometry(new Geometry(GeometryType::ORIGIN_DXDYDZ_GEOMETRY_TYPE, n_dims, o, d));
+  auto geometry=std::make_shared<Geometry>(GeometryType::ORIGIN_DXDYDZ_GEOMETRY_TYPE, n_dims, o, d);
   space_dom->setGeometry(geometry);
   
   // Set the domain for the spatial group
@@ -97,38 +98,36 @@ int write_temporal_hyperslab_reg_grid(const char* filepath, int n_attributes, in
   // Write to disk
   meta.save(filepath);
   
-  printf("%zu timeteps written in %s\n", meta.groups.size(), filepath);
+  VisusInfo()<< meta.groups.size()<<" timeteps written in "<<filepath;
   
   return 0;
 }
 
-
-int write_temporal_list_multiaxis(const char* filepath, int n_attributes, int n_timesteps){
+/////////////////////////////////////////////////////////////////////////////////////////////////
+int write_temporal_list_multiaxis(const char* filepath, int n_attributes, int n_timesteps)
+{
   XIdxFile meta;
 
   // Create a group to collect a time series
-  SharedPtr<Group> time_group(new Group("TimeSeries", GroupType::TEMPORAL_GROUP_TYPE));
+  auto time_group=std::make_shared<Group>("TimeSeries", GroupType::TEMPORAL_GROUP_TYPE);
   meta.addGroup(time_group);
 
   // Create a data source for this group
   // if a variable does not redefine a data source the group source will be used
-  SharedPtr<DataSource> file(new DataSource("data", "file_path"));
+  auto file=std::make_shared<DataSource>("data", "file_path");
   time_group->addDataSource(file);
 
   // Create the time domain
-  SharedPtr<Domain> time_dom;
-
   // Create series of timestep values
-  time_dom = SharedPtr<TemporalListDomain>(new TemporalListDomain("Time"));
+  auto time_dom = std::make_shared<TemporalListDomain>("Time");
   time_dom->addAttribute("units", "days since 1980");
   time_dom->addAttribute("calendar", "gregorian");
 
-  for(int i=0; i < n_timesteps; i++){
-    std::dynamic_pointer_cast<TemporalListDomain>(time_dom)->addDomainItem(float(i+10));
-  }
+  for(int i=0; i < n_timesteps; i++)
+    time_dom->addDomainItem(float(i+10));
 
   // You can also add tuples of items (e.g., netcdf bounds)
-  std::dynamic_pointer_cast<TemporalListDomain>(time_dom)->addDomainItems({float(100),float(200)});
+  time_dom->addDomainItems({float(100),float(200)});
 
   // Set the time group domain to use the time domain we just created
   time_group->setDomain(time_dom);
@@ -140,12 +139,13 @@ int write_temporal_list_multiaxis(const char* filepath, int n_attributes, int n_
   ///////////////////////////////////////////////////////////////
 
   // Define a new domain, group and file for a different set of variables
-  SharedPtr<MultiAxisDomain> geo_dom(new MultiAxisDomain("Geospatial"));
-  SharedPtr<Axis> latitude_axis(new Axis("latitude"));
-  SharedPtr<Axis> longitude_axis(new Axis("longitude"));
+  auto geo_dom=std::make_shared<MultiAxisDomain>("Geospatial");
+  auto latitude_axis = std::make_shared<Axis>("latitude");
+  auto longitude_axis = std::make_shared<Axis>("longitude");
 
   // Populate the axis with explicit values (will be written in the XML)
-  for(int i=0; i < 10; i++){
+  for(int i=0; i < 10; i++)
+  {
     latitude_axis->addValue((double)i*0.5);
     longitude_axis->addValue((double)i*2*0.6);
 
@@ -161,12 +161,12 @@ int write_temporal_list_multiaxis(const char* filepath, int n_attributes, int n_
   geo_dom->addAxis(longitude_axis);
 
   // Create group for the variables defined in the geospatial domain
-  SharedPtr<Group> geo_vars(new Group("geo_vars", GroupType::SPATIAL_GROUP_TYPE, geo_dom));
+  auto geo_vars=std::make_shared<Group>("geo_vars", GroupType::SPATIAL_GROUP_TYPE, geo_dom);
 
   // Create and add a variable to the group
-  SharedPtr<Variable> temp = geo_vars->addVariable("geo_temperature", DTypes::FLOAT32);
+  auto temp = geo_vars->addVariable("geo_temperature", DTypes::FLOAT32);
   if(!temp)
-    printf("error\n");
+    VisusInfo()<<"error";
 
   // add attribute to the variable (key-value) pairs
   temp->addAttribute("unit", "Celsius");
@@ -178,29 +178,30 @@ int write_temporal_list_multiaxis(const char* filepath, int n_attributes, int n_
   // Write to disk
   meta.save(filepath);
 
-  printf("%d timesteps written in %s\n", n_timesteps, filepath);
+  VisusInfo()<< n_timesteps<< " "<<filepath;
 
   return 0;
 }
 
-int write_temporal_list_binary_axis(const char* filepath, int n_attributes, int n_timesteps){
+/////////////////////////////////////////////////////////////////////////////////////////////////
+int write_temporal_list_binary_axis(const char* filepath, int n_attributes, int n_timesteps)
+{
   XIdxFile meta;
 
   // Create a group to collect a time series
-  SharedPtr<Group> time_group(new Group("TimeSeries", GroupType::TEMPORAL_GROUP_TYPE));
+  auto time_group=std::make_shared<Group>("TimeSeries", GroupType::TEMPORAL_GROUP_TYPE);
   meta.addGroup(time_group);
 
   // Create a data source for this group
   // if a variable does not redefine a data source the group source will be used
-  SharedPtr<DataSource> file(new DataSource("data", "file_path"));
+  auto file = std::make_shared<DataSource>("data", "file_path");
   time_group->addDataSource(file);
 
   // Create the time domain
-  SharedPtr<Domain> time_dom = SharedPtr<TemporalListDomain>(new TemporalListDomain("Time"));
+  auto time_dom = std::make_shared<TemporalListDomain>("Time");
 
-  for(int i=0; i < n_timesteps; i++){
-    std::dynamic_pointer_cast<TemporalListDomain>(time_dom)->addDomainItem(float(i+10));
-  }
+  for(int i=0; i < n_timesteps; i++)
+    time_dom->addDomainItem(float(i+10));
 
   // Set the time group domain to use the time domain we just created
   time_group->setDomain(time_dom);
@@ -215,26 +216,23 @@ int write_temporal_list_binary_axis(const char* filepath, int n_attributes, int 
   int file_n_dims = 2;
   uint32_t file_dims[2] = {100, 200};
 
-  SharedPtr<SpatialDomain> file_dom(new SpatialDomain("FileBasedDomain"));
-  SharedPtr<Topology> topology(new Topology(TopologyType::RECT_2D_MESH_TOPOLOGY_TYPE, file_n_dims,
-                    file_dims));
+  auto file_dom = std::make_shared<SpatialDomain>("FileBasedDomain");
+  auto topology = std::make_shared<Topology>(TopologyType::RECT_2D_MESH_TOPOLOGY_TYPE, file_n_dims,file_dims);
   file_dom->setTopology(topology);
 
   // Create a DataSource that points to the file
-  SharedPtr<DataSource> rect_grid_file(new DataSource("grid_data", "file_path"));
+  auto rect_grid_file = std::make_shared<DataSource>("grid_data", "file_path");
 
   // Create a DataItem which describes the content of the data
-  SharedPtr<DataItem> file_item(new DataItem(FormatType::BINARY_FORMAT, DTypes::FLOAT64, rect_grid_file, file_n_dims,
-                                             file_dims));
+  auto file_item = std::make_shared<DataItem>(FormatType::BINARY_FORMAT, DTypes::FLOAT64, rect_grid_file, file_n_dims,file_dims);
 
   // Create a geometry which will point to the file
-  SharedPtr<Geometry> file_geom(new Geometry(GeometryType::XY_GEOMETRY_TYPE));
+  auto file_geom = std::make_shared<Geometry>(GeometryType::XY_GEOMETRY_TYPE);
   file_geom->addDataItem(file_item);
-
   file_dom->setGeometry(file_geom);
 
   // Create group for the variables defined in the geospatial domain
-  SharedPtr<Group> rect_grid_vars(new Group("rect_grid_vars", GroupType::SPATIAL_GROUP_TYPE, file_dom));
+  auto rect_grid_vars = std::make_shared<Group>("rect_grid_vars", GroupType::SPATIAL_GROUP_TYPE, file_dom);
 
   rect_grid_vars->addVariable("rect_var", DTypes::INT32);
 
@@ -244,62 +242,61 @@ int write_temporal_list_binary_axis(const char* filepath, int n_attributes, int 
   // Write to disk
   meta.save(filepath);
 
-  printf("%d timeteps written in %s\n", n_timesteps, filepath);
+  VisusInfo()<< n_timesteps<< " "<<filepath;
 
   return 0;
 }
 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
 int write_time_varying(const char* filepath, int n_attributes, int n_timesteps){
+  
+  // Create a group to collect a time series
+
   XIdxFile meta;
 
-  // Create a group to collect a time series
-  SharedPtr<Group> time_group(new Group("TimeSeries", GroupType::TEMPORAL_GROUP_TYPE, "time_%04d"));
-
+  auto time_group = std::make_shared<Group>("TimeSeries", GroupType::TEMPORAL_GROUP_TYPE, "time_%04d");
   meta.addGroup(time_group);
 
   const int n_dims = 3;
 
-  // Create the time domain
-  SharedPtr<Domain> time_dom;
-
   // Create series of timestep values
-  time_dom = SharedPtr<TemporalListDomain>(new TemporalListDomain("Time"));
+  auto time_dom = std::make_shared<TemporalListDomain>("Time");
 
-  for(int i=0; i < n_timesteps; i++){
-    std::dynamic_pointer_cast<TemporalListDomain>(time_dom)->addDomainItem(float(i+10));
-  }
+  for(int i=0; i < n_timesteps; i++)
+    time_dom->addDomainItem(float(i+10));
 
   // Set the time group domain to use the time domain we just created
   time_group->setDomain(time_dom);
 
   // Create a grid and group of variables for every timestep
-  for(int t=0; t < n_timesteps; t++){
+  for(int t=0; t < n_timesteps; t++)
+  {
     // Create a data source for this timestep
-    SharedPtr<DataSource> file(new DataSource("timestep"+std::to_string(t),
-                                                    "timestep"+std::to_string(t)+"/file_path"));
+    auto file = std::make_shared<DataSource>("timestep"+std::to_string(t), "timestep"+std::to_string(t)+"/file_path");
     // Create a new group to collect a set of variables that share the same spatial domain
-    SharedPtr<Group> grid(new Group("L0", GroupType::SPATIAL_GROUP_TYPE, VariabilityType::VARIABLE_VARIABILITY_TYPE)); // default static group
+    auto grid = std::make_shared<Group>("L0", GroupType::SPATIAL_GROUP_TYPE, VariabilityType::VARIABLE_VARIABILITY_TYPE); // default static group
 
     grid->addDataSource(file);
 
     // Create a spatial domain
-    SharedPtr<SpatialDomain> space_dom(new SpatialDomain("Grid"));
+    auto space_dom = std::make_shared<SpatialDomain>("Grid");
 
     uint32_t dims[6] = {10, 20, 30};                     // X Y Z dimensions of the box
     double box_phy[6] = {0.3, 4.2, 0.0, 9.4, 2.5, 19.0}; // physical box (p1x,p2x,p1y,p2y,p1z,p2z)
 
     // Set topology and geometry of the spatial domain
-    SharedPtr<Topology> topology(new Topology(TopologyType::CORECT_3D_MESH_TOPOLOGY_TYPE, n_dims,
-                                              dims));
+    auto topology = std::make_shared<Topology>(TopologyType::CORECT_3D_MESH_TOPOLOGY_TYPE, n_dims,dims);
     space_dom->setTopology(topology);
-    SharedPtr<Geometry> geometry(new Geometry(GeometryType::RECT_GEOMETRY_TYPE, n_dims, box_phy));
+    auto geometry = std::make_shared<Geometry>(GeometryType::RECT_GEOMETRY_TYPE, n_dims, box_phy);
     space_dom->setGeometry(geometry);
 
     // Set the domain for the spatial group
     grid->setDomain(space_dom);
 
     // add some variables to the spatial group
-    for(int i=0; i < n_attributes; i++){
+    for(int i=0; i < n_attributes; i++)
+    {
       char name[32];
       sprintf(name, "var_%d", i);
       grid->addVariable(name, DTypes::FLOAT32);
@@ -310,36 +307,31 @@ int write_time_varying(const char* filepath, int n_attributes, int n_timesteps){
 
   meta.save(filepath);
 
-  printf("%d timeteps written in %s\n", n_timesteps, filepath);
+  VisusInfo()<< n_timesteps<< " "<<filepath;
 
   return 0;
 
 }
 
-int main(int argc, char** argv){
 
-  if(argc == 2 && strncmp(argv[1],"help",4)==0){
-    fprintf(stderr, "Usage: write [n_attributes] [n_timesteps] [n_levels]\n");
+/////////////////////////////////////////////////////////////////////////////////////////////////
+int main(int argn, const char** argv)
+{
+  SetCommandLine(argn, argv);
+  XIdxModule::attach();
 
-    return 1;
+  if(argn == 2 && strncmp(argv[1],"help",4)==0)
+  {
+    VisusInfo()<<"Usage: write [n_attributes] [n_timesteps] [n_levels]";
+    return -1;
   }
 
-  int n_attributes = 4;
-  int n_timesteps = 3;
-  int n_levels = 2;
-
-  if(argc > 1)
-    n_attributes = atoi(argv[1]);
-
-  if(argc > 2)
-    n_timesteps = atoi(argv[2]);
-
+  int n_attributes = argn > 1? cint(argv[1]) : 4;
+  int n_timesteps = argn > 2? cint(argv[2]) : 3;
   // TODO n_levels not used, create an AMR example
-  if(argc > 3)
-    n_levels = atoi(argv[3]);
+  int n_levels = argn > 3? cint(argv[3]) : 2;
 
-  clock_t start, finish;
-  start = clock();
+  auto t1 = Time::now();
   
   int ret = write_temporal_hyperslab_reg_grid("temporal_hyperslab_reg_grid.xidx", n_attributes, n_timesteps);
   VisusAssert(ret==0);
@@ -353,9 +345,10 @@ int main(int argc, char** argv){
   ret = write_time_varying("time_varying.xidx", n_attributes, n_timesteps);
   VisusAssert(ret==0);
 
-  finish = clock();
 
-  printf("Time taken %fms\n",(double(finish)-double(start))/CLOCKS_PER_SEC);
+  VisusInfo()<<"Time taken "<< t1.elapsedSec();
+
+  XIdxModule::detach();
 
   return ret;
 }

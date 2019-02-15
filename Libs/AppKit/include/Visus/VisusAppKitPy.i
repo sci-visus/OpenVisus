@@ -5,6 +5,8 @@
 %{ 
 #include <Visus/PythonNode.h>
 #include <Visus/Viewer.h>
+#include <Visus/IdxDataset.h>
+#include <Visus/IdxMultipleDataset.h>
 using namespace Visus;
 %}
 

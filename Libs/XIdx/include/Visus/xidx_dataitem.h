@@ -214,10 +214,11 @@ public:
       this->dimensions[1] = stride; //scrgiorgio ???
   }
 
+  //addValue
   void addValue(double val, int stride=1){
     this->values.push_back(val);
     dimensions.resize(stride);
-    dimensions[0] = values.size()/stride;
+    dimensions[0] = (int)(values.size()/stride);
     dimensions[1] = stride;
   }
   

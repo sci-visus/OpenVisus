@@ -58,22 +58,23 @@ public:
     groups.push_back(value);
   }
 
-  void addGroup(Group* VISUS_DISOWN(value)){ addGroup(SharedPtr<Group>(value)); };
+  //addGroup
+  void addGroup(Group* VISUS_DISOWN(value)){ 
+    addGroup(SharedPtr<Group>(value)); 
+  };
   
   //getXPathPrefix
   virtual String getXPathPrefix() override {
     return StringUtils::format() << (getParent()? getParent()->getXPathPrefix() : "//Xidx") << "[@Name=\"" + name + "\"]";
   }
 
-  SharedPtr<Group> getGroupPtr(GroupType type) const{
+  //getGroup
+  SharedPtr<Group> getGroup(GroupType type) const{
     for(auto g: groups)
       if(g->group_type.value == type.value)
         return g;
-
     return SharedPtr<Group>();
   }
-
-  Group* getGroup(GroupType type) const{ return getGroupPtr(type).get(); }
 
 public:
 

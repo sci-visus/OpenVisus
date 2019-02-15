@@ -70,7 +70,7 @@ public:
     data_items.back()->values = this->values;
     // TODO The user should set the dimensionality of the list (not here)
     if(data_items.back()->dimensions.size() == 0)
-      data_items.back()->dimensions.push_back(this->values.size());
+      data_items.back()->dimensions.push_back((int)this->values.size());
     Domain::writeToObjectStream(ostream);
 
   }
