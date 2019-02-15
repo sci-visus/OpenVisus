@@ -91,7 +91,7 @@ class VISUS_XIDX_API Variable : public XIdxElement
 {
 public:
 
-  VISUS_CLASS(Variable)
+  VISUS_XIDX_CLASS(Variable)
 
   CenterType                          center_type;
 

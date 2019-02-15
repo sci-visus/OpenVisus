@@ -36,7 +36,7 @@ namespace Visus{
 class VISUS_XIDX_API Attribute: public XIdxElement {
 public:
 
-  VISUS_CLASS(Attribute)
+  VISUS_XIDX_CLASS(Attribute)
 
   String value;
 

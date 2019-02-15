@@ -38,7 +38,7 @@ class VISUS_XIDX_API SpatialDomain : public Domain
 {
 public:
 
-  VISUS_CLASS(SpatialDomain)
+  VISUS_XIDX_CLASS(SpatialDomain)
 
   //down nodes
   SharedPtr<Topology> topology = std::make_shared<Topology>();

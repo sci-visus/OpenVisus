@@ -42,7 +42,11 @@ class VISUS_XIDX_API XIdxElement : public Object
 {
 public:
 
+  //VISUS_XIDX_CLASS(XIdxElement)
   VISUS_CLASS(XIdxElement)
+  virtual String getClassName() {
+    return "XIdxElement";
+  }
 
   String name;
 
@@ -74,14 +78,14 @@ public:
 
   //getXPathPrefix
   virtual String getXPathPrefix() {
-    return StringUtils::format()<<(getParent() ? getParent()->getXPathPrefix() : "/") << "/" << getVisusClassName();
+    return StringUtils::format()<<(getParent() ? getParent()->getXPathPrefix() : "/") << "/" << getClassName();
   }
 
   //findChildWithName
   SharedPtr<XIdxElement> findChildWithName(String name)
   {
     for (auto child : this->childs) {
-      if (child->getVisusClassName() == name)
+      if (child->getClassName() == name)
         return child;
     }
     return nullptr;
