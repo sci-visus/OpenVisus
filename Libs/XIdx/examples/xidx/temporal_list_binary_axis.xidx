@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Xidx SYSTEM "Xidx.dtd">
+<Xidx xmlns:xi="http://www.w3.org/2001/XInclude" Version="2.0">
+  <Group Name="TimeSeries" Type="Temporal" VariabilityType="Static">
+    <DataSource Name="data" Url="file_path"/>
+    <Domain Type="List">
+      <DataItem NumberType="Float" Dimensions="3">10.000000 11.000000 12.000000</DataItem>
+    </Domain>
+    <Group Name="rect_grid_vars" Type="Spatial" VariabilityType="Static">
+      <Domain Type="Spatial">
+        <Topology Type="2DRectMesh" Dimensions="100 200"/>
+        <Geometry Type="XY">
+          <DataItem Format="Binary" NumberType="Float" BitPrecision="64">
+            <DataSource Name="grid_data" Url="file_path"/>
+          </DataItem>
+        </Geometry>
+      </Domain>
+      <Variable Name="rect_var" Center="Cell">
+        <DataItem Format="IDX" NumberType="Int" BitPrecision="32"/>
+      </Variable>
+    </Group>
+  </Group>
+</Xidx>

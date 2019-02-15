@@ -9,4 +9,3 @@ AddSwigLibrary(VisusIdxPy VisusIdx ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/Vis
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include")		
-

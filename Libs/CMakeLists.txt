@@ -11,3 +11,4 @@ if (VISUS_GUI)
   add_subdirectory(AppKit)
 endif()
 
+add_subdirectory(XIdx)

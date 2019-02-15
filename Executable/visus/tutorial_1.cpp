@@ -37,7 +37,7 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/IdxDataset.h>
-#include <Visus/Encoders.h>
+#include <Visus/Encoder.h>
 
 using namespace Visus;
 

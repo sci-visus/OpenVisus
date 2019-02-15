@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Xidx SYSTEM "Xidx.dtd">
+<Xidx xmlns:xi="http://www.w3.org/2001/XInclude" Version="2.0">
+  <Group Name="TimeSeries" Type="Temporal" VariabilityType="Static">
+    <DataSource Name="data" Url="file_path"/>
+    <Domain Type="List">
+      <DataItem NumberType="Float" Dimensions="2 2">100.000000 200.000000 10.000000 11.000000 12.000000</DataItem>
+      <Attribute Name="units" Value="days since 1980"/>
+      <Attribute Name="calendar" Value="gregorian"/>
+    </Domain>
+    <Group Name="geo_vars" Type="Spatial" VariabilityType="Static">
+      <Domain Type="MultiAxisDomain">
+        <Variable Name="latitude" Center="Cell">
+          <DataItem NumberType="Float" Dimensions="10">0 0.5 1 1.5 2 2.5 3 3.5 4 4.5 </DataItem>
+          <Attribute Name="units" Value="degrees_north"/>
+          <Attribute Name="units" Value="degrees_east"/>
+        </Variable>
+        <Variable Name="longitude" Center="Cell">
+          <DataItem NumberType="Float" Dimensions="10">0 1.2 2.4 3.6 4.8 6 7.2 8.4 9.6 10.8 </DataItem>
+        </Variable>
+      </Domain>
+      <Variable Name="geo_temperature" Center="Cell">
+        <DataItem Format="IDX" NumberType="Float" BitPrecision="32"/>
+        <Attribute Name="unit" Value="Celsius"/>
+        <Attribute Name="valid_min" Value="-100.0"/>
+        <Attribute Name="valid_max" Value="200.0"/>
+      </Variable>
+    </Group>
+  </Group>
+</Xidx>

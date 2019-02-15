@@ -69,8 +69,7 @@ class Openvisus(CMakePackage):
 		return [
 			'-DVISUS_INTERNAL_DEFAULT=0', 
 			'-DVISUS_GUI=%s' % ('1' if '+gui' in self.spec else '0',),  
-			'-DVISUS_INTERNAL_FREEIMAGE=1', # spack does not have freeimage package
-			'-DVISUS_INTERNAL_TINYXML=1'    # having problems with spack tinyxml
+			'-DVISUS_INTERNAL_FREEIMAGE=1' # spack does not have freeimage package
 		]
 
 	# readme

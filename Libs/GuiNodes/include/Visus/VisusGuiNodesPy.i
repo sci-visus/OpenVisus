@@ -1,8 +1,6 @@
 %module(directors="1") VisusGuiNodesPy
 
 %{ 
-#include <Visus/Visus.h>
-#include <Visus/PythonEngine.h>
 #include <Visus/Gui.h>
 #include <Visus/GLObjects.h>
 #include <Visus/PythonNode.h>

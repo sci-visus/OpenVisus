@@ -39,7 +39,7 @@ For support : support@visus.net
 #include <Visus/DiskAccess.h>
 #include <Visus/Dataset.h>
 #include <Visus/File.h>
-#include <Visus/Encoders.h>
+#include <Visus/Encoder.h>
 
 #include <cctype>
 

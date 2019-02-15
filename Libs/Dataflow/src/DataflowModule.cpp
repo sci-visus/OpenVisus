@@ -40,8 +40,6 @@ For support : support@visus.net
 #include <Visus/DataflowPort.h>
 #include <Visus/Dataflow.h>
 
-#include <Visus/PythonEngine.h>
-
 namespace Visus {
 
 bool DataflowModule::bAttached = false;

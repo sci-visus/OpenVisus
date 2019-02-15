@@ -64,7 +64,7 @@ public:
   {
   public:
     SharedPtr<HeapMemory> body;
-    StringMap metadata;
+    StringMap metadata; 
     String content_type;
 
     //constructor

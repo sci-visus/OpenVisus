@@ -42,7 +42,6 @@ For support : support@visus.net
 #include <Visus/DatasetBitmask.h>
 #include <Visus/LegacyDataset.h>
 #include <Visus/DatasetArrayPlugin.h>
-#include <Visus/PythonEngine.h>
 
 namespace Visus {
 

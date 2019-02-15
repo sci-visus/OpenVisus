@@ -1,9 +1,6 @@
 %module(directors="1") VisusGuiPy
 
 %{ 
-#include <Visus/Visus.h>
-#include <Visus/PythonEngine.h>
-
 #include <Visus/Gui.h>
 #include <Visus/Frustum.h>
 #include <Visus/GLCanvas.h>

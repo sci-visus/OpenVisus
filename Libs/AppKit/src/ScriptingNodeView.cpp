@@ -44,6 +44,8 @@ namespace Visus {
 static CriticalSection     outputs_lock;
 static std::vector<String> outputs;
 
+#if VISUS_PYTHON
+
 ////////////////////////////////////////////////////////////////
 static PyObject* WriteMethod(PyObject* self, PyObject* args)
 {
@@ -90,6 +92,8 @@ static PyModuleDef RedirectOutputModule =
 };
 #endif
 
+#endif //#if VISUS_PYTHON
+
 ////////////////////////////////////////////////////////////////////////
 ScriptingNodeView::ScriptingNodeView(ScriptingNode* model)
 {
@@ -114,6 +118,8 @@ ScriptingNodeView::~ScriptingNodeView() {
 ////////////////////////////////////////////////////////////////////////
 void ScriptingNodeView::showEvent(QShowEvent *)
 {
+#if VISUS_PYTHON
+
   ScopedAcquireGil acquire_gil;
   this->__stdout__ = PySys_GetObject((char*)"stdout");
   this->__stderr__ = PySys_GetObject((char*)"stderr");
@@ -126,14 +132,17 @@ void ScriptingNodeView::showEvent(QShowEvent *)
   PySys_SetObject((char*)"stdout", redirect_module);
   PySys_SetObject((char*)"stderr", redirect_module);
 
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////
 void ScriptingNodeView::hideEvent(QHideEvent *)
 {
+#if VISUS_PYTHON
   ScopedAcquireGil acquire_gil;
   PySys_SetObject((char*)"stdout", this->__stdout__);
   PySys_SetObject((char*)"stderr", this->__stderr__);
+#endif
 }
 
 

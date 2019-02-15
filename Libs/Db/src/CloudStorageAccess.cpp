@@ -38,7 +38,7 @@ For support : support@visus.net
 
 #include <Visus/CloudStorageAccess.h>
 #include <Visus/Dataset.h>
-#include <Visus/Encoders.h>
+#include <Visus/Encoder.h>
 
 namespace Visus {
 

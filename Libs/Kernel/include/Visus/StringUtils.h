@@ -266,11 +266,18 @@ public:
   //base64Decode
   static String base64Decode(const String& input);
 
-  //sha256
-  static String sha256(String input, String key);
+  //toHexString
+  static String toHexString(Uint8* buffer, int len) {
+    std::ostringstream out;
+    for (int i = 0; i <len; i++)
+      out << std::hex << std::setfill('0') << std::setw(2) << static_cast<Int32>(buffer[i]);
+    return out.str();
+  }
 
-  //sha1
-  static String sha1(String input, String key);
+  //toHexString
+  static String toHexString(const String s) {
+    return toHexString((Uint8*)s.c_str(),(int)s.length());
+  }
 
   //md5
   static String md5(const String& input);

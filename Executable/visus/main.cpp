@@ -43,7 +43,7 @@ For support : support@visus.net
 #include <Visus/CloudStorage.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/File.h>
-#include <Visus/Encoders.h>
+#include <Visus/Encoder.h>
 #include <Visus/Idx.h>
 #include <Visus/Array.h>
 #include <Visus/ModVisus.h>
@@ -58,7 +58,6 @@ For support : support@visus.net
 #include <Visus/MultiplexAccess.h>
 
 #include <Visus/PythonEngine.h>
-#include <pydebug.h>
 
 using namespace Visus;
 
@@ -2105,11 +2104,15 @@ int main(int argn, const char* argv[])
   //python main
   if (argn >= 2 && (String(argv[1]) == "--python" || String(argv[1]) == "-python"))
   {
+#if VISUS_PYTHON
     std::vector<String> args;
     for (int I = 0; I < argn; I++)
       if (I != 1) args.push_back(argv[I]);
-
     return PythonEngine::main(args);
+#else
+    VisusInfo() << "Python disabled";
+    return -1;
+#endif
   }
 
   Time T1 = Time::now();
@@ -2128,6 +2131,7 @@ int main(int argn, const char* argv[])
 
   Array data;
   DoConvert convert;
+
 
   //ignores all starting arguments not in actions (they will be global arguments such as --disable-write-locks)
   std::vector<String> args;

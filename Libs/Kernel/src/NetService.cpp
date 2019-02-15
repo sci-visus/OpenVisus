@@ -43,118 +43,109 @@ For support : support@visus.net
 #include <Visus/VisusConfig.h>
 #include <Visus/Thread.h>
 
+#include <thread>
 #include <list>
 #include <set>
 
-#if !WIN32
+#if WIN32
+#include <winsock2.h>
+#else
 #include <sys/socket.h>
 #endif
 
-#include <curl/curl.h>
+#if VISUS_NET
+  #include <curl/curl.h>
+
+  //for sha256/sha1
+  #undef  override
+  #undef  final
+
+  #include <openssl/sha.h>
+  #include <openssl/evp.h>
+  #include <openssl/bio.h>
+  #include <openssl/buffer.h>
+  #include <openssl/engine.h>
+  #include <openssl/hmac.h>
+  #include <openssl/evp.h>
+  #include <openssl/md5.h>
+  #include <openssl/opensslv.h>
+
+  #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+
+    //HMAC_CTX_new
+    static inline HMAC_CTX *HMAC_CTX_new() {
+      HMAC_CTX *tmp = (HMAC_CTX *)OPENSSL_malloc(sizeof(HMAC_CTX));
+      if (tmp)
+        HMAC_CTX_init(tmp);
+      return tmp;
+    }
+
+    //HMAC_CTX_free
+    static inline void HMAC_CTX_free(HMAC_CTX *ctx) {
+      if (ctx) {
+        HMAC_CTX_cleanup(ctx);
+        OPENSSL_free(ctx);
+      }
+  }
+  #endif //OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+
+#endif //#if VISUS_NET
 
 namespace Visus {
 
-typedef NetService::Connection Connection;
-
-
-VISUS_IMPLEMENT_SINGLETON_CLASS(CaCertFile)
+#if VISUS_NET
 
 /////////////////////////////////////////////////////////////////////////////
-CaCertFile::CaCertFile()
-{
-  //Downloading up-to-date cacert.pem file from cURL website
-
-  String local_filename = KnownPaths::VisusHome.getChild("cacert.pem");
-  String remote_filename = "https://curl.haxx.se/ca/cacert.pem";
-
-#if WIN32
-  local_filename = StringUtils::replaceAll(local_filename, "/", "\\");
-#endif
-
-  if (!FileUtils::existsFile(local_filename))
-  {
-    CURL* handle = curl_easy_init();
-
-#if WIN32
-    FILE* fp = nullptr;
-    fopen_s(&fp, local_filename.c_str(), "wb");
-#else
-    FILE* fp = fopen(local_filename.c_str(), "wb");
-#endif
-
-    if (!fp)
-    {
-      VisusInfo() << "Could not create " << local_filename << " to store certificate authority.";
-      return;
-    }
-
-    curl_easy_setopt(handle, CURLOPT_URL, remote_filename.c_str());
-    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, NULL);
-    curl_easy_setopt(handle, CURLOPT_WRITEDATA, fp);
-    curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, 0L); //just for now
-    curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
-    CURLcode res = curl_easy_perform(handle);
-
-    if (res != CURLE_OK) {
-      VisusInfo() << "Error getting " + remote_filename;
-      return;
-    }
-    curl_easy_cleanup(handle);
-    fclose(fp);
-
-    VisusInfo() << "Saved " << remote_filename << " to " << local_filename;
-  }
-
-  VisusInfo() << "Using CaCertFile " << local_filename;
-  this->local_filename = local_filename;
-}
-
-
-/////////////////////////////////////////////////////////////////////////////
-class CurlNetService : public NetService::Pimpl
+class NetService::Pimpl
 {
 public:
 
-  
-  //_________________________________________________________
-  class CurlConnection : public NetService::Connection
+  //__________________________________________________________________
+  class Connection
   {
   public:
 
-    CurlNetService*    owner;
-    CURL*              handle;
-    struct curl_slist* slist;
-    char               errbuf[CURL_ERROR_SIZE];
-    Int64              last_size_download;
-    Int64              last_size_upload;
-    size_t             buffer_offset;
+    int                              id = 0;
+    NetRequest                       request;
+    Promise<NetResponse>             promise;
+    NetResponse                      response;
+    bool                             first_byte = false;
+
+    CURLM*                           multi_handle;
+    CURL*                            handle = nullptr;
+    struct curl_slist*               slist = 0;
+    char                             errbuf[CURL_ERROR_SIZE];
+    Int64                            last_size_download = 0;
+    Int64                            last_size_upload = 0;
+    size_t                           buffer_offset = 0;
 
     //constructor
-    CurlConnection(int id,CurlNetService* owner_) : Connection(id),owner(owner_), handle(nullptr), slist(0), last_size_download(0), last_size_upload(0), buffer_offset(0)
+    Connection(int id_, CURLM*  multi_handle_)
+      : id(id_), multi_handle(multi_handle_)
     {
       memset(errbuf, 0, sizeof(errbuf));
       this->handle = curl_easy_init();
     }
 
     //destructor
-    ~CurlConnection()
+    ~Connection()
     {
       if (slist != nullptr) curl_slist_free_all(slist);
       curl_easy_cleanup(handle);
     }
 
-    //setNetJob
-    virtual void setNetRequest(NetRequest user_request,Promise<NetResponse> user_promise) override
+    //setNetRequest
+    void setNetRequest(NetRequest user_request, Promise<NetResponse> user_promise)
     {
       if (this->request.valid())
       {
-        curl_multi_remove_handle(owner->multi_handle, this->handle);
+        curl_multi_remove_handle(multi_handle, this->handle);
         curl_easy_reset(this->handle);
       }
 
-      this->request  = user_request;
+      this->request = user_request;
       this->response = NetResponse();
-      this->promise  = user_promise;
+      this->promise = user_promise;
 
       this->buffer_offset = 0;
       this->last_size_download = 0;
@@ -170,13 +161,8 @@ public:
         curl_easy_setopt(this->handle, CURLOPT_VERBOSE, 0L); //SET to 1L if you want to debug !
         curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
 
-        String cacertfile=CaCertFile::getSingleton()->getFilename();
-        if (!cacertfile.empty())
-          curl_easy_setopt(this->handle, CURLOPT_CAINFO, &cacertfile[0]);
-        else {
-          //VisusInfo()<<"Disabling SSL verify peer since I cannot use any valid CaCertFile, potential security hole";
-          curl_easy_setopt(this->handle, CURLOPT_SSL_VERIFYPEER, 0L);
-        }
+        //VisusInfo()<<"Disabling SSL verify peer , potential security hole";
+        curl_easy_setopt(this->handle, CURLOPT_SSL_VERIFYPEER, 0L);
 
         curl_easy_setopt(this->handle, CURLOPT_NOPROGRESS, 1L);
         curl_easy_setopt(this->handle, CURLOPT_HEADER, 0L);
@@ -235,7 +221,7 @@ public:
         else if (request.method == "PUT")
         {
           curl_easy_setopt(this->handle, CURLOPT_PUT, 1);
-          curl_easy_setopt(this->handle, CURLOPT_INFILESIZE, request.body? request.body->c_size() : 0);
+          curl_easy_setopt(this->handle, CURLOPT_INFILESIZE, request.body ? request.body->c_size() : 0);
         }
         else
         {
@@ -243,14 +229,14 @@ public:
         }
 
         curl_easy_setopt(this->handle, CURLOPT_HTTPHEADER, this->slist);
-        curl_multi_add_handle(owner->multi_handle, this->handle);
+        curl_multi_add_handle(multi_handle, this->handle);
       }
     }
 
     //HeaderFunction
-    static size_t HeaderFunction(void *ptr, size_t size, size_t nmemb, CurlConnection *connection)
+    static size_t HeaderFunction(void *ptr, size_t size, size_t nmemb, Connection *connection)
     {
-      connection->first_byte=true;
+      connection->first_byte = true;
 
       if (!connection->response.body)
         connection->response.body = std::make_shared<HeapMemory>();
@@ -275,9 +261,9 @@ public:
     }
 
     //WriteFunction (downloading data)
-    static size_t WriteFunction(void *chunk, size_t size, size_t nmemb, CurlConnection *connection)
+    static size_t WriteFunction(void *chunk, size_t size, size_t nmemb, Connection *connection)
     {
-      connection->first_byte=true;
+      connection->first_byte = true;
 
       if (!connection->response.body)
         connection->response.body = std::make_shared<HeapMemory>();
@@ -294,9 +280,9 @@ public:
     }
 
     //ReadFunction (uploading data)
-    static size_t ReadFunction(char *chunk, size_t size, size_t nmemb, CurlConnection *connection)
+    static size_t ReadFunction(char *chunk, size_t size, size_t nmemb, Connection *connection)
     {
-      connection->first_byte=true;
+      connection->first_byte = true;
 
       size_t& offset = connection->buffer_offset;
       size_t tot = std::min((size_t)connection->request.body->c_size() - offset, size * nmemb);
@@ -308,32 +294,50 @@ public:
 
   };
 
+
   NetService* owner;
   CURLM*  multi_handle = nullptr;
 
+  SharedPtr<std::thread> thread;
+
   //constructor
-  CurlNetService(NetService* owner_) : owner(owner_) {
+  Pimpl(NetService* owner_) : owner(owner_) {
   }
 
   //destructor
-  ~CurlNetService()
+  ~Pimpl()
   {
     if (multi_handle)
       curl_multi_cleanup(multi_handle);
   }
 
+  //start
+  void start()
+  {
+    thread = Thread::start("Net Service Thread", [this]() {
+      entryProc();
+    });
+  }
+
+  //stop
+  void stop() {
+    owner->handleAsync(SharedPtr<NetRequest>()); //fake request to exit from the thread
+    Thread::join(thread);
+    thread.reset();
+  }
+
   //createConnection
-  virtual SharedPtr<Connection> createConnection(int id) override  {
+  SharedPtr<Connection> createConnection(int id)  {
 
     //important to create in this thread
     if (!multi_handle)
-      multi_handle=curl_multi_init();
+      multi_handle = curl_multi_init();
 
-    return std::make_shared<CurlConnection>(id,this);
+    return std::make_shared<Connection>(id, multi_handle);
   }
 
   //runMore
-  virtual void runMore(const std::set<Connection*>& running) override
+  void runMore(const std::set<Connection*>& running) 
   {
     if (running.empty())
       return;
@@ -346,7 +350,7 @@ public:
       CURLMsg *msg; int msgs_left_;
       while ((msg = curl_multi_info_read(multi_handle, &msgs_left_)))
       {
-        CurlConnection* connection = nullptr;
+        Connection* connection = nullptr;
         curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &connection); VisusAssert(connection);
 
         if (msg->msg == CURLMSG_DONE)
@@ -355,7 +359,7 @@ public:
           curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &response_code);
 
           //in case the request fails before being sent, the response_code is zero. 
-          connection->response.status = response_code? response_code : HttpStatus::STATUS_BAD_REQUEST; 
+          connection->response.status = response_code ? response_code : HttpStatus::STATUS_BAD_REQUEST;
 
           if (msg->data.result != CURLE_OK)
             connection->response.setErrorMessage(String(connection->errbuf));
@@ -364,32 +368,237 @@ public:
     }
   }
 
+  //entryProc
+  void entryProc()
+  {
+    std::vector< SharedPtr<Connection> > connections;
+    for (int I = 0; I < owner->nconnections; I++)
+      connections.push_back(createConnection(I));
+    VisusAssert(!connections.empty());
+
+    std::list<Connection*> available;
+    for (auto connection : connections)
+      available.push_back(connection.get());
+
+    std::set<Connection*> running;
+    std::deque<Int64> last_sec_connections;
+    bool bExitThread = false;
+    while (true)
+    {
+      std::ostringstream out;
+
+      //finished?
+      {
+        ScopedLock lock(owner->waiting_lock);
+        while (owner->waiting.empty() && running.empty())
+        {
+          if (bExitThread)
+            return;
+
+          owner->waiting_lock.unlock();
+          owner->got_request.down();
+          owner->waiting_lock.lock();
+        }
+      }
+
+      //handle waiting
+      {
+        ScopedLock lock(owner->waiting_lock);
+        Waiting still_waiting;
+        for (auto it : owner->waiting)
+        {
+          auto request = it.first;
+          auto promise = it.second;
+
+          //request to exit ASAP (no need to execute it)
+          if (!request)
+          {
+            ApplicationStats::num_net_jobs--;
+            bExitThread = true;
+            continue;
+          }
+
+          //was aborted
+          if (request->aborted() || bExitThread)
+          {
+            request->statistics.wait_msec = (int)request->statistics.enter_t1.elapsedMsec();
+            owner->waiting_lock.unlock();
+            {
+              auto response = NetResponse(HttpStatus::STATUS_SERVICE_UNAVAILABLE);
+
+              request->statistics.run_msec = 0;
+              promise.set_value(response);
+              ApplicationStats::num_net_jobs--;
+            }
+            owner->waiting_lock.lock();
+            continue;
+          }
+
+          if (available.empty())
+          {
+            still_waiting.push_back(it);
+            continue;
+          }
+
+          //there is the max_connection_per_sec to respect!
+          if (owner->max_connections_per_sec)
+          {
+            Int64 now_timestamp = Time::getTimeStamp();
+
+            //purge too old
+            while (!last_sec_connections.empty() && (now_timestamp - last_sec_connections.front()) > 1000)
+              last_sec_connections.pop_front();
+
+            if ((int)last_sec_connections.size() >= owner->max_connections_per_sec)
+            {
+              still_waiting.push_back(it);
+              continue;
+            }
+
+            last_sec_connections.push_back(now_timestamp); ///
+          }
+
+          //don't start connection too soon, they can be soon aborted
+          int wait_msec = (int)request->statistics.enter_t1.elapsedMsec();
+          if (wait_msec < owner->min_wait_time)
+          {
+            still_waiting.push_back(it);
+            continue;
+          }
+
+          //wait -> running
+          Connection* connection = available.front();
+          available.pop_front();
+          running.insert(connection);
+
+          request->statistics.wait_msec = wait_msec;
+          request->statistics.run_t1 = Time::now();
+          connection->first_byte = false;
+          connection->setNetRequest(*request, promise);
+          ApplicationStats::net.trackOpen();
+        }
+        owner->waiting = still_waiting;
+      }
+
+      //handle running
+      if (!running.empty())
+      {
+        runMore(running);
+
+        for (auto connection : std::set<Connection*>(running))
+        {
+          //run->done (since aborted)
+          if (connection->request.aborted() || bExitThread)
+            connection->response = NetResponse(HttpStatus::STATUS_SERVICE_UNAVAILABLE);
+
+          //timeout (i.e. didn' receive first byte after a certain amount of seconds
+          else if (!connection->first_byte && owner->connect_timeout > 0 && connection->request.statistics.run_msec >= (owner->connect_timeout * 1000))
+            connection->response = NetResponse(HttpStatus::STATUS_REQUEST_TIMEOUT);
+
+          //still running
+          if (!connection->response.status)
+            continue;
+
+          connection->request.statistics.run_msec = (int)connection->request.statistics.run_t1.elapsedMsec();
+
+          if (owner->verbose > 0 && !connection->request.aborted())
+            owner->printStatistics(connection->id, connection->request, connection->response);
+
+          connection->promise.set_value(connection->response);
+
+          connection->setNetRequest(NetRequest(), Promise<NetResponse>());
+          running.erase(connection);
+          available.push_back(connection);
+          ApplicationStats::num_net_jobs--;
+        }
+      }
+
+      Thread::yield();
+    }
+  }
+
 };
 
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 NetService::NetService(int nconnections_,bool bVerbose) 
   : nconnections(nconnections_),verbose(bVerbose)
 {
-  this->pimpl = new CurlNetService(this);
-
-  thread = Thread::start("Net Service Thread", [this]() {
-    entryProc();
-  });
+#if VISUS_NET
+  this->pimpl = new Pimpl(this);
+  this->pimpl->start();
+#else
+  ThrowException("VISUS_NET not enabled");
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////
 NetService::~NetService()
 {
-  if (this->pimpl)
-  {
-    handleAsync(SharedPtr<NetRequest>()); //fake request to exit from the thread
-    Thread::join(thread);
-    thread.reset();
-
-    delete pimpl;
-  }
+#if VISUS_NET
+  pimpl->stop();
+  delete pimpl;
+#endif
 }
+
+
+/////////////////////////////////////////////////////////////////////////////
+void NetService::attach()
+{
+#if VISUS_NET
+  int retcode = curl_global_init(CURL_GLOBAL_ALL) ;
+  VisusReleaseAssert(retcode == 0);
+#endif
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+void NetService::detach()
+{
+#if VISUS_NET
+  curl_global_cleanup();
+#endif
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+String NetService::sha256(String input, String key)
+{
+#if VISUS_NET
+
+  char ret[EVP_MAX_MD_SIZE];
+  unsigned int  size;
+  auto ctx = HMAC_CTX_new();
+  HMAC_Init_ex(ctx, key.c_str(), (int)key.size(), EVP_sha256(), NULL);
+  HMAC_Update(ctx, (const unsigned char*)input.c_str(), input.size());
+  HMAC_Final(ctx, (unsigned char*)ret, &size);
+  HMAC_CTX_free(ctx);
+  return String(ret, (size_t)size);
+#else
+  ThrowException("VISUS_NET disabled, cannot compute sha256");
+  return "";
+#endif
+}
+
+///////////////////////////////////////////////////////////////////////////
+String NetService::sha1(String input, String key)
+{
+#if VISUS_NET
+  char ret[EVP_MAX_MD_SIZE];
+  unsigned int size;
+  auto ctx = HMAC_CTX_new();
+  HMAC_Init_ex(ctx, key.c_str(), (int)key.size(), EVP_sha1(), NULL);
+  HMAC_Update(ctx, (const unsigned char*)input.c_str(), input.size());
+  HMAC_Final(ctx, (unsigned char*)ret, &size);
+  HMAC_CTX_free(ctx);
+  return String(ret, (size_t)size);
+#else
+  ThrowException("VISUS_NET disabled, cannot compute sha1");
+  return "";
+#endif
+}
+
 
 /////////////////////////////////////////////////////////////////////////////
 Future<NetResponse> NetService::handleAsync(SharedPtr<NetRequest> request)
@@ -432,7 +641,6 @@ Future<NetResponse> NetService::push(SharedPtr<NetService> service, NetRequest r
 
     return future;
   }
-
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -451,157 +659,6 @@ void NetService::printStatistics(int connection_id,const NetRequest& request,con
     << " status(" << response.getStatusDescription() << ")"
     << " url(" << request.url.toString() << ")";
 }
-
-
-/////////////////////////////////////////////////////////////////////////////
-void NetService::entryProc() 
-{
-  std::vector< SharedPtr<Connection> > connections;
-  for (int I = 0; I < nconnections; I++)
-    connections.push_back(pimpl->createConnection(I));
-  VisusAssert(!connections.empty());
-
-  std::list<Connection*> available;
-  for (auto connection : connections)
-    available.push_back(connection.get());
-
-  std::set<Connection*> running;
-  std::deque<Int64> last_sec_connections;
-  bool bExitThread=false;
-  while (true)
-  {
-    std::ostringstream out;
-
-    //finished?
-    {
-      ScopedLock lock(waiting_lock);
-      while (waiting.empty() && running.empty())
-      {
-        if (bExitThread)
-          return;
- 
-        this->waiting_lock.unlock();
-        got_request.down();
-        this->waiting_lock.lock();
-      }
-    }
-
-    //handle waiting
-    {
-      ScopedLock lock(waiting_lock);
-      Waiting still_waiting;
-      for (auto it : waiting)
-      {
-        auto request = it.first;
-        auto promise = it.second;
-
-        //request to exit ASAP (no need to execute it)
-        if (!request) 
-        {
-          ApplicationStats::num_net_jobs--;
-          bExitThread=true;
-          continue;
-        }
-
-        //was aborted
-        if (request->aborted() || bExitThread)
-        {
-          request->statistics.wait_msec = (int)request->statistics.enter_t1.elapsedMsec();
-          this->waiting_lock.unlock();
-          {
-            auto response=NetResponse(HttpStatus::STATUS_SERVICE_UNAVAILABLE);
-
-            request->statistics.run_msec=0;
-            promise.set_value(response);
-            ApplicationStats::num_net_jobs--;
-          }
-          this->waiting_lock.lock();
-          continue;
-        }
-
-        if (available.empty()) 
-        {
-          still_waiting.push_back(it);
-          continue;
-        }
-
-        //there is the max_connection_per_sec to respect!
-        if (max_connections_per_sec)
-        {
-          Int64 now_timestamp = Time::getTimeStamp();
-
-          //purge too old
-          while (!last_sec_connections.empty() && (now_timestamp - last_sec_connections.front()) > 1000)
-            last_sec_connections.pop_front();
-
-          if ((int)last_sec_connections.size() >= max_connections_per_sec)
-          {
-            still_waiting.push_back(it);
-            continue;
-          }
-
-          last_sec_connections.push_back(now_timestamp); ///
-        }
-
-        //don't start connection too soon, they can be soon aborted
-        int wait_msec = (int)request->statistics.enter_t1.elapsedMsec();
-        if (wait_msec < min_wait_time)
-        {
-          still_waiting.push_back(it);
-          continue;
-        }
- 
-        //wait -> running
-        Connection* connection = available.front();
-        available.pop_front();
-        running.insert(connection);
-
-        request->statistics.wait_msec = wait_msec;
-        request->statistics.run_t1 = Time::now();
-        connection->first_byte = false;
-        connection->setNetRequest(*request, promise);
-        ApplicationStats::net.trackOpen(); 
-      }
-      waiting=still_waiting;
-    }
-
-    //handle running
-    if (!running.empty())
-    {
-      pimpl->runMore(running);
-
-      for (auto connection : std::set<Connection*>(running))
-      {
-        //run->done (since aborted)
-        if (connection->request.aborted() || bExitThread)
-          connection->response=NetResponse(HttpStatus::STATUS_SERVICE_UNAVAILABLE);
-
-        //timeout (i.e. didn' receive first byte after a certain amount of seconds
-        else if (!connection->first_byte && connect_timeout>0 && connection->request.statistics.run_msec>=(this->connect_timeout*1000))
-          connection->response=NetResponse(HttpStatus::STATUS_REQUEST_TIMEOUT);
-
-        //still running
-        if (!connection->response.status) 
-          continue;
-
-        connection->request.statistics.run_msec = (int)connection->request.statistics.run_t1.elapsedMsec();
-
-        if (verbose > 0 && !connection->request.aborted())
-          printStatistics(connection->id, connection->request,connection->response);
-
-        connection->promise.set_value(connection->response);
-
-        connection->setNetRequest(NetRequest(), Promise<NetResponse>());
-        running.erase(connection);
-        available.push_back(connection);
-        ApplicationStats::num_net_jobs--;
-      }
-    }
-
-    Thread::yield();
-  }
-}
-
 
 } //namespace Visus
 

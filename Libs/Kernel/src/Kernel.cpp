@@ -43,7 +43,7 @@ For support : support@visus.net
 #include <Visus/RamResource.h>
 #include <Visus/Path.h>
 #include <Visus/File.h>
-#include <Visus/Encoders.h>
+#include <Visus/Encoder.h>
 #include <Visus/UUID.h>
 #include <Visus/VisusConfig.h>
 #include <Visus/ApplicationInfo.h>
@@ -57,7 +57,16 @@ For support : support@visus.net
 #include <atomic>
 #include <clocale>
 
-#if __APPLE__
+#if WIN32
+
+#pragma warning(disable:4996)
+
+#include <Windows.h>
+#include <ShlObj.h>
+#include <winsock2.h>
+
+#elif __APPLE__
+
 #include <mach/mach.h>
 #include <mach/mach_host.h>
 #include <signal.h>
@@ -65,23 +74,17 @@ For support : support@visus.net
 #include <sys/socket.h>
 #include <unistd.h>
 #include <mach-o/dyld.h>
-#endif
 
-#if __GNUC__ && !__APPLE__
+#else
+
 #include <signal.h>
 #include <sys/sysinfo.h>
 #include <pwd.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
 #endif
 
-#include <curl/curl.h>
-
-#if WIN32
-#pragma warning(disable:4996)
-#include <Windows.h>
-#include <ShlObj.h>
-#endif
 
 #include <Visus/Frustum.h>
 #include <Visus/Graph.h>
@@ -92,8 +95,6 @@ For support : support@visus.net
 #include <Visus/Array.h>
 
 #include <Visus/PythonEngine.h>
-#include <pydebug.h>
-
 
 #include <clocale>
 
@@ -124,9 +125,10 @@ void DestroyAutoReleasePool();
 #endif
 
 
+#if VISUS_PYTHON
 void InitPython();
-
 void ShutdownPython();
+#endif
 
 //////////////////////////////////////////////////////////////////
 void PrintMessageToTerminal(const String& value) {
@@ -248,28 +250,6 @@ void ThrowExceptionEx(String file, int line, String expr)
 }
 
 
-///////////////////////////////////////////////////////////
-static void InitNetwork()
-{
-  bool bCURLOk = curl_global_init(CURL_GLOBAL_ALL) == 0;
-  VisusReleaseAssert(bCURLOk);
-
-  //needed for networking
-#if WIN32
-  {
-    WSADATA data;
-    WSAStartup(MAKEWORD(2, 2), &data);
-  }
-#else
-  {
-    struct sigaction act, oact; //The SIGPIPE signal will be received if the peer has gone away
-    act.sa_handler = SIG_IGN;   //and an attempt is made to write data to the peer. Ignoring this
-    sigemptyset(&act.sa_mask);  //signal causes the write operation to receive an EPIPE error.
-    act.sa_flags = 0;           //Thus, the user is informed about what happened.
-    sigaction(SIGPIPE, &act, &oact);
-  }
-#endif
-}
 
 ///////////////////////////////////////////////////////////
 static void InitKnownPaths()
@@ -377,11 +357,30 @@ void KernelModule::attach()
   std::setlocale(LC_ALL, "en_US.UTF-8");
   Thread::getMainThreadId() = std::this_thread::get_id();
 
-  InitNetwork();
-  
+  //this is for generic network code
+#if WIN32
+  {
+    WSADATA data;
+    WSAStartup(MAKEWORD(2, 2), &data);
+  }
+#else
+  {
+    struct sigaction act, oact; //The SIGPIPE signal will be received if the peer has gone away
+    act.sa_handler = SIG_IGN;   //and an attempt is made to write data to the peer. Ignoring this
+    sigemptyset(&act.sa_mask);  //signal causes the write operation to receive an EPIPE error.
+    act.sa_flags = 0;           //Thus, the user is informed about what happened.
+    sigaction(SIGPIPE, &act, &oact);
+  }
+#endif
+
+  NetService::attach();
+
   InitKnownPaths();
   InitVisusConfig();
+
+#if VISUS_PYTHON
   InitPython();
+#endif
 
   VisusInfo() << "git_revision            " << ApplicationInfo::git_revision;
   VisusInfo() << "VisusHome               " << KnownPaths::VisusHome.toString();
@@ -394,7 +393,6 @@ void KernelModule::attach()
   Encoders::allocSingleton();
   RamResource::allocSingleton();
   UUIDGenerator::allocSingleton();
-  CaCertFile::allocSingleton();
 
   VisusConfig::reload();
 
@@ -436,11 +434,13 @@ void KernelModule::attach()
   VISUS_REGISTER_OBJECT_CLASS(TransferFunction);
 
   //this is to make sure PythonEngine works
+#if VISUS_PYTHON
   if (auto engine = std::make_shared<PythonEngine>(true) )
   {
     ScopedAcquireGil acquire_gil;
     engine->execCode("print('PythonEngine is working fine')");
   }
+#endif
 
   VisusInfo() << "Attached KernelModule";
 }
@@ -461,11 +461,12 @@ void KernelModule::detach()
   Encoders::releaseSingleton();
   RamResource::releaseSingleton();
   UUIDGenerator::releaseSingleton();
-  CaCertFile::releaseSingleton();
 
+#if VISUS_PYTHON
   ShutdownPython();
+#endif
 
-  curl_global_cleanup();
+  NetService::detach();
 
 #if __APPLE__
   DestroyAutoReleasePool();

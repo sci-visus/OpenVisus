@@ -36,6 +36,11 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
+%{
+#include <Visus/Visus.h>
+#include <Visus/PythonEngine.h>
+%}
+
 //common code 
 %begin %{
   #if _WIN32

@@ -42,7 +42,7 @@ For support : support@visus.net
 #include <Visus/Url.h>
 #include <Visus/File.h>
 #include <Visus/BlockQuery.h>
-#include <Visus/Encoders.h>
+#include <Visus/Encoder.h>
 #include <Visus/IdxHzOrder.h>
 #include <Visus/VisusConfig.h>
 #include <Visus/ApplicationInfo.h>

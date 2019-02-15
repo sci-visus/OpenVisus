@@ -36,6 +36,8 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
+# if VISUS_PYTHON
+
 #include <Visus/PythonEngine.h>
 #include <Visus/Thread.h>
 #include <Visus/Log.h>
@@ -69,7 +71,8 @@ For support : support@visus.net
 
 namespace Visus {
 
-PyThreadState* PythonEngine::mainThreadState=nullptr;
+
+static PyThreadState* __main__thread_state__=nullptr;
 
 static std::set<String> ReservedWords =
 {
@@ -82,15 +85,15 @@ static std::set<String> ReservedWords =
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::ScopedAcquireGil() 
 {
-  state = new PyGILState_STATE();
-  *state = PyGILState_Ensure();
+  this->state = new PyGILState_STATE();
+  *this->state = PyGILState_Ensure();
 }
 
 
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::~ScopedAcquireGil()
 {
-  if (state)
+  if (this->state)
   {
     PyGILState_Release(*state);
     delete state;
@@ -108,6 +111,10 @@ ScopedReleaseGil::~ScopedReleaseGil() {
   PyEval_RestoreThread(state);
 }
 
+///////////////////////////////////////////////////////////////////////////
+void PythonEngine::setMainThread()
+{
+}
 
 ////////////////////////////////////////////////////////////////////////////////////
 bool PythonEngine::isGoodVariableName(String name)
@@ -201,7 +208,7 @@ void InitPython()
 	  //NOTE if you try to have multiple interpreters (Py_NewInterpreter) I get deadlock
 	  //see https://issues.apache.org/jira/browse/MODPYTHON-217
 	  //see https://trac.xapian.org/ticket/185
-	  PythonEngine::mainThreadState = PyEval_SaveThread();
+    __main__thread_state__ = PyEval_SaveThread();
 	}
 	
 	#if 0
@@ -237,7 +244,7 @@ void ShutdownPython()
     return;
 
   //VisusInfo() << "Shutting down python...";
-  PyEval_RestoreThread(PythonEngine::mainThreadState);
+  PyEval_RestoreThread(__main__thread_state__);
   Py_Finalize();
 
   //VisusInfo() << "Python shutting down done";
@@ -460,6 +467,9 @@ void PythonEngine::delModuleAttr(String name) {
 ///////////////////////////////////////////////////////////////////////////
 void PythonEngine::setError(String explanation, PyObject* err)
 {
+  if (!err)
+    err = PyExc_SystemError;
+
   PyErr_SetString(err, explanation.c_str());
 }
 
@@ -637,7 +647,7 @@ String PythonEngine::getLastErrorMessage()
 }
 
 ///////////////////////////////////////////////////////////////////////////
-void PythonEngine::print(String message)
+void PythonEngine::printMessage(String message)
 {
   PySys_WriteStdout("%s", message.c_str());
 }
@@ -703,4 +713,6 @@ PyObject* PythonEngine::evalCode(String s)
 
 
 } //namespace Visus
+
+#endif //# if VISUS_PYTHON
 

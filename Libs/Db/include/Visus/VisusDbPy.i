@@ -1,9 +1,6 @@
 %module(directors="1") VisusDbPy
 
 %{ 
-#include <Visus/Visus.h>
-#include <Visus/PythonEngine.h>
-
 #include <Visus/Db.h>
 #include <Visus/Access.h>
 #include <Visus/BlockQuery.h>

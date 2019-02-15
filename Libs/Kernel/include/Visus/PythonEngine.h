@@ -39,6 +39,8 @@ For support : support@visus.net
 #ifndef _VISUS_PYTHON_ENGINE_H__
 #define _VISUS_PYTHON_ENGINE_H__
 
+# if VISUS_PYTHON
+
 #include <Visus/Object.h>
 #include <Visus/Array.h>
 #include <Visus/Log.h>
@@ -51,33 +53,25 @@ For support : support@visus.net
 
 #include <functional>
 
-
 #ifdef WIN32
 #pragma warning( pop )
 #endif
 
-//include Python
-#if 1
-  #pragma push_macro("slots")
-  #undef slots
+#pragma push_macro("slots")
+#undef slots
 
-  #if defined(_DEBUG) && defined(SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-    //for windows using Release anyway (otherwise most site-packages, as numpy, don't work)
-    # undef _DEBUG
-    # include <Python.h>
-    # define _DEBUG
-  #else
-   # include <Python.h>
-  #endif
-
-
-
-  #pragma pop_macro("slots")
-
+#if defined(_DEBUG) && defined(SWIG_PYTHON_INTERPRETER_NO_DEBUG)
+//for windows using Release anyway (otherwise most site-packages, as numpy, don't work)
+# undef _DEBUG
+# include <Python.h>
+# define _DEBUG
+#else
+# include <Python.h>
 #endif
 
-namespace Visus {
+#pragma pop_macro("slots")
 
+namespace Visus {
 
 ///////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API PythonEngine
@@ -88,8 +82,6 @@ public:
 
 public:
 
-  static PyThreadState* mainThreadState;
-
   typedef std::function<PyObject*(PyObject*, PyObject*)> Function;
 
   //constructor
@@ -97,6 +89,9 @@ public:
 
   //destructor
   virtual ~PythonEngine();
+
+  //setMainThread
+  static void setMainThread();
 
   //main
   static int main(std::vector<String> args);
@@ -171,7 +166,7 @@ public:
   void delModuleAttr(String name);
 
   //setError (to call when you return nullpptr in Function)
-  static void setError(String explanation, PyObject* err= PyExc_SystemError);
+  static void setError(String explanation, PyObject* err= nullptr);
 
   //addModuleFunction
   void addModuleFunction(String name,Function fn);
@@ -197,11 +192,8 @@ public:
   //addSysPath
   void addSysPath(String value,bool bVerbose=true);
 
-  //print (must have the GIL)
-  void print(String message);
-
-  //fixPath
-  static String fixPath(String value);
+  //printMessage (must have the GIL)
+  void printMessage(String message);
 
 private:
 
@@ -213,6 +205,9 @@ private:
   void* swig_type_aborted = nullptr;
   void* swig_type_array   = nullptr;
 
+  //fixPath
+  static String fixPath(String value);
+
   //internalNewPyFunction
   PyObject* internalNewPyFunction(PyObject* self, String name, Function fn);
 
@@ -222,11 +217,11 @@ private:
 /////////////////////////////////////////////////////
 class VISUS_KERNEL_API ScopedAcquireGil
 {
+  PyGILState_STATE* state = nullptr;
+
 public:
 
   VISUS_CLASS(ScopedAcquireGil)
-
-  PyGILState_STATE* state=nullptr;
 
   //constructor
   ScopedAcquireGil();
@@ -239,10 +234,10 @@ typedef ScopedAcquireGil PythonThreadBlock;
 
 /////////////////////////////////////////////////////
 class VISUS_KERNEL_API ScopedReleaseGil {
-  
-public:
 
-  PyThreadState* state=nullptr;
+  PyThreadState* state = nullptr;
+
+public:
 
   //constructor
   ScopedReleaseGil();
@@ -255,5 +250,6 @@ typedef ScopedReleaseGil PythonThreadAllow;
 
 } //namespace Visus
 
-#endif //_VISUS_PYTHON_ENGINE_H__
+#endif //# if VISUS_PYTHON
 
+#endif //_VISUS_PYTHON_ENGINE_H__
