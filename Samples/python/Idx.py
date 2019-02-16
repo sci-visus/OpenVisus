@@ -172,7 +172,8 @@ class TextIdx(unittest.TestCase):
 if __name__ == '__main__':
 	SetCommandLine("__main__")
 	IdxModule.attach()
-	unittest.main(exit=False)
+	errors=unittest.main(exit=False).result.errors
 	IdxModule.detach()
-	print("All done")
+	print("All done ("+str(len(errors))+" errors)")
+	sys.exit(len(errors)>0)
 

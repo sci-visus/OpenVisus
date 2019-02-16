@@ -4,9 +4,9 @@
 # Build the OpenVisus docker images.
 #
 
-# These four images use pip to install OpenVisus:
-declare -a arr=("mod_visus-ubuntu" "mod_visus-opensuse" "anaconda" "dataportal")
-# ...but these three build it inside the image, so they're currently disabled since they take so long:
+# These three images use pip to install OpenVisus:
+declare -a arr=("mod_visus-ubuntu" "mod_visus-opensuse" "anaconda")
+# These three build it inside the image; they're currently disabled because they're currently broken:
 # "ubuntu" "opensuse" "manylinux"
 
 #
