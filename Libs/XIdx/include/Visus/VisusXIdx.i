@@ -44,6 +44,46 @@ using namespace Visus;
 %template(VectorOfVariable)    std::vector< SharedPtr< Visus::Variable    > >;
 %template(VectorOfDataSource)  std::vector< SharedPtr< Visus::DataSource  > >;
 
+
+%inline %{
+template<typename T>
+std::shared_ptr<T>* toNewSharedPtr(std::shared_ptr<Domain> dom) {
+  return dom ? new std::shared_ptr<T>(std::dynamic_pointer_cast<T>(dom)) : 0;
+}
+
+%}
+
+
+%typemap(out) std::shared_ptr<Visus::Domain> Visus::Group::getDomain {
+  std::string lookup_typename = result->type.toString();
+  VisusInfo() <<lookup_typename;
+  if(lookup_typename=="List"){
+    lookup_typename = "_p_std__shared_ptrT_Visus__ListDomain_t";//"_p_Visus__SharedPtrT_Visus__ListDomain_t";
+    swig_type_info * const outtype = SWIG_TypeQuery(lookup_typename.c_str());
+    auto smartresult = toNewSharedPtr<ListDomain>($1);
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), outtype, SWIG_POINTER_OWN);
+  } else if(lookup_typename=="Spatial"){
+    lookup_typename = "_p_std__shared_ptrT_Visus__SpatialDomain_t";
+    swig_type_info * const outtype = SWIG_TypeQuery(lookup_typename.c_str());
+    auto smartresult = toNewSharedPtr<SpatialDomain>($1);
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), outtype, SWIG_POINTER_OWN);
+  }
+  else if(lookup_typename=="MultiAxisDomain"){
+    lookup_typename = "_p_std__shared_ptrT_Visus__MultiAxisDomain_t";
+    swig_type_info * const outtype = SWIG_TypeQuery(lookup_typename.c_str());
+    auto smartresult = toNewSharedPtr<MultiAxisDomain>($1);
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), outtype, SWIG_POINTER_OWN);
+  }
+  else if(lookup_typename=="HyperSlabDomain"){
+    lookup_typename = "_p_std__shared_ptrT_Visus__HyperSlabDomain_t";
+    swig_type_info * const outtype = SWIG_TypeQuery(lookup_typename.c_str());
+    auto smartresult = toNewSharedPtr<HyperSlabDomain>($1);
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), outtype, SWIG_POINTER_OWN);
+  }
+
+}
+
+
 %include <Visus/Visus.h>
 %include <Visus/Kernel.h>
 %include <Visus/StringMap.h>

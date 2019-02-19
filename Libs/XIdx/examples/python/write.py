@@ -60,7 +60,7 @@ geo_vars = Group("geo_vars", GroupType(GroupType.SPATIAL_GROUP_TYPE), geo_dom);
 geo_vars.addVariable("geo_temperature", DType.fromString("float32"));
 
 # pick last variable added
-temp = geo_vars.variables.back().get()
+temp = geo_vars.variables.back()
 
 # add attribute to the variable (key-value) pairs
 temp.addAttribute("unit", "Celsius");

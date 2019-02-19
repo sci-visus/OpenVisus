@@ -12,9 +12,6 @@ filepath = sys.argv[1]
 # read data from input file
 metadata = XIdxFile_load(filepath)
 
-
-print(metadata)
-
 # get time group
 root_group = metadata.getGroup(GroupType(GroupType.TEMPORAL_GROUP_TYPE))
 
@@ -43,7 +40,7 @@ for t in domain.getLinearizedIndexSpace():
 
   # print attributes if any
   for att in grid_domain.attributes:
-    print ("\t\tAttribute:", att.get().name, "Value:", att.get().value)
+    print ("\t\tAttribute:", att.name, "Value:", att.value)
 
   if(grid_domain.type.value == DomainType.SPATIAL_DOMAIN_TYPE):
     topology =  grid_domain.topology
@@ -53,32 +50,32 @@ for t in domain.getLinearizedIndexSpace():
   elif(grid_domain.type.value == DomainType.MULTIAXIS_DOMAIN_TYPE):
     # loop over the axis
     for axis in grid_domain.axis:
-      print ("\tAxis", axis.get().name,"volume", axis.get().getVolume(),": [ ", end='')
+      print ("\tAxis", axis.name,"volume", axis.getVolume(),": [ ", end='')
 
-      for v in axis.get().getValues():
+      for v in axis.getValues():
         print (v, end='')
 
       print(" ]")
 
       # print attributes of the axis if any
-      for att in axis.get().attributes:
-        print ("\t\tAttribute:", att.get().name, "Value:", att.get().value)
+      for att in axis.attributes:
+        print ("\t\tAttribute:", att.name, "Value:", att.value)
 
     print("\n");
 
     # loop over variables
     for var in grid.variables:
       # get datasource used by the first variable
-      source = var.get().data_items[0].get().findDataSource();
-      print("\t\tVariable:", var.get().name)
+      source = var.data_items[0].findDataSource();
+      print("\t\tVariable:", var.name)
       if(source):
-        print("\t\t\tdata source url: ", source.get().getUrl())
+        print("\t\t\tdata source url: ", source.getUrl())
       else:
         print("\n")
 
       # print attributes of the variable if any
-      for att in var.get().attributes:
-        print ("\t\tAttribute:", att.get().name, "Value:", att.get().value)
+      for att in var.attributes:
+        print ("\t\tAttribute:", att.name, "Value:", att.value)
         
 # (Debug) Saving the content in a different file to compare with the original
 metadata.save("verify.xidx");
