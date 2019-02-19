@@ -96,7 +96,7 @@ int main(int argn, const char** argv) {
     for (auto& var : grid->variables) 
     {
       auto source = var->data_items[0]->findDataSource();
-      VisusInfo() << "\t\tVariable: " << var->name <<  "data source url:" << (source ?source->url:"");
+      VisusInfo() << "\t\tVariable: " << var->name <<  " data source url: " << (source ?source->url:"");
 
         for (auto att : var->attributes) 
           VisusInfo() << "\t\t\tAttribute " << att->name << " value " << att->value;

@@ -126,7 +126,7 @@ class VISUS_XIDX_API Group : public XIdxElement
 {
 public:
 
-  VISUS_CLASS(Group)
+  VISUS_XIDX_CLASS(Group)
 
   // node info
   int                                 domain_index = 0;
