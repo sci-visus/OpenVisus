@@ -169,9 +169,9 @@ public:
     domain=domain_;
   }
 
-  Group(String name_, GroupType type, Domain* VISUS_DISOWN(domain_)){
-    Group(name_, type, SharedPtr<Domain>(domain_));
-  }
+//  Group(String name_, GroupType type, Domain* VISUS_DISOWN(domain_)){
+//    Group(name_, type, SharedPtr<Domain>(domain_));
+//  }
   
   //setDomain
   inline void setDomain(SharedPtr<Domain> value) { 
@@ -179,7 +179,7 @@ public:
     this->domain = value; 
   }
 
-  void setDomain(Domain* VISUS_DISOWN(value)){ setDomain(SharedPtr<Domain>(value)); };
+  //void setDomain(Domain* VISUS_DISOWN(value)){ setDomain(SharedPtr<Domain>(value)); };
 
   SharedPtr<Domain> getDomain(){
     return domain;
@@ -191,7 +191,7 @@ public:
     variables.push_back(value);
   }
 
-  void addVariable(Variable* VISUS_DISOWN(value)){ addVariable(SharedPtr<Variable>(value)); };
+  //void addVariable(Variable* VISUS_DISOWN(value)){ addVariable(SharedPtr<Variable>(value)); };
 
   SharedPtr<Group> getGroupPtr(int index){
     if(variability_type==VariabilityType::STATIC_VARIABILITY_TYPE)
@@ -258,7 +258,7 @@ public:
     attributes.push_back(value);
   }
 
-  void addAttribute(Attribute* VISUS_DISOWN(value)){ addAttribute(SharedPtr<Attribute>(value)); };
+  //void addAttribute(Attribute* VISUS_DISOWN(value)){ addAttribute(SharedPtr<Attribute>(value)); };
   
   //addDataSource
   void addDataSource(SharedPtr<DataSource> value) {
@@ -266,7 +266,7 @@ public:
     data_sources.push_back(value);
   }
 
-  void addDataSource(DataSource* VISUS_DISOWN(value)){ addDataSource(SharedPtr<DataSource>(value)); };
+  //void addDataSource(DataSource* VISUS_DISOWN(value)){ addDataSource(SharedPtr<DataSource>(value)); };
 
   //addGroup
   void addGroup(SharedPtr<Group> value)
@@ -278,7 +278,7 @@ public:
     groups.push_back(value);
   }
 
-  void addGroup(Group* VISUS_DISOWN(value)){ addGroup(SharedPtr<Group>(value)); };
+  //void addGroup(Group* VISUS_DISOWN(value)){ addGroup(SharedPtr<Group>(value)); };
   
   //getXPathPrefix
   virtual String getXPathPrefix() override {

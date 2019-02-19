@@ -59,9 +59,9 @@ public:
   }
 
   //addGroup
-  void addGroup(Group* VISUS_DISOWN(value)){ 
-    addGroup(SharedPtr<Group>(value)); 
-  };
+//  void addGroup(Group* VISUS_DISOWN(value)){
+//    addGroup(SharedPtr<Group>(value));
+//  };
   
   //getXPathPrefix
   virtual String getXPathPrefix() override {

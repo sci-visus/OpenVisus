@@ -48,10 +48,6 @@ public:
   DataSource(String name_= "", String url_ = "")
     : XIdxElement(name_),url(url_){
   }
-
-  //destructor
-  virtual ~DataSource() {
-  }
   
   //getXPathPrefix
   virtual String getXPathPrefix() override {

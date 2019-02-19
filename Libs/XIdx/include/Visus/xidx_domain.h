@@ -127,7 +127,7 @@ public:
     this->attributes.push_back(value);
   }
 
-  void addAttribute(Attribute* VISUS_DISOWN(value)){ addAttribute(SharedPtr<Attribute>(value)); };
+  //void addAttribute(Attribute* VISUS_DISOWN(value)){ addAttribute(SharedPtr<Attribute>(value)); };
 
   inline void addAttribute(String name_, String value_){
     addAttribute(SharedPtr<Attribute>(new Attribute(name_, value_)));

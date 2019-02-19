@@ -56,7 +56,7 @@ std::shared_ptr<T>* toNewSharedPtr(std::shared_ptr<Domain> dom) {
 
 %typemap(out) std::shared_ptr<Visus::Domain> Visus::Group::getDomain {
   std::string lookup_typename = result->type.toString();
-  VisusInfo() <<lookup_typename;
+  //VisusInfo() <<lookup_typename;
   if(lookup_typename=="List"){
     lookup_typename = "_p_std__shared_ptrT_Visus__ListDomain_t";//"_p_Visus__SharedPtrT_Visus__ListDomain_t";
     swig_type_info * const outtype = SWIG_TypeQuery(lookup_typename.c_str());
