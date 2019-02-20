@@ -243,10 +243,10 @@ IsoContourNode::~IsoContourNode()
 {}
 
 ///////////////////////////////////////////////////////////////////////
-void IsoContourNode::messageHasBeenPublished(const DataflowMessage& msg)
+void IsoContourNode::messageHasBeenPublished(SharedPtr<DataflowMessage> msg)
 {
-  double data_min=cdouble(msg.readContent("data_min"));
-  double data_max=cdouble(msg.readContent("data_max"));
+  double data_min=cdouble(msg->readContent("data_min"));
+  double data_max=cdouble(msg->readContent("data_max"));
   
   //avoid rehentrant code
   if (this->data_range.from!=data_min || this->data_range.to!=data_max)
