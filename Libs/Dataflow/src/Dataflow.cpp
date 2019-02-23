@@ -242,7 +242,6 @@ bool Dataflow::dispatchPublishedMessages()
 
     std::swap(published,this->published);
   }
-
   //floodValues stored in the publish event
   for (auto msg : published)
   {
@@ -264,7 +263,7 @@ bool Dataflow::dispatchPublishedMessages()
         floodValueForward(port,value_to_flood,msg->getReturnReceipt());
       }
 
-      sender->messageHasBeenPublished(*msg);
+      sender->messageHasBeenPublished(msg);
     }
 
     for (auto listener : listeners)
@@ -274,7 +273,7 @@ bool Dataflow::dispatchPublishedMessages()
     if (auto return_receipt=msg->getReturnReceipt())
       return_receipt->addSignature(this);
   }
-  
+
   //now I forward the input changes 
   for (auto node : need_processing)
   {

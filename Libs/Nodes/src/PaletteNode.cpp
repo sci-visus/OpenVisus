@@ -161,11 +161,11 @@ void PaletteNode::readFromObjectStream(ObjectStream& istream)
 }
 
 ///////////////////////////////////////////////////////////////////////
-void PaletteNode::messageHasBeenPublished(const DataflowMessage& msg)
+void PaletteNode::messageHasBeenPublished(SharedPtr<DataflowMessage> msg)
 {
   VisusAssert(VisusHasMessageLock());
 
-  auto statistics=std::dynamic_pointer_cast<Statistics>(msg.readContent("statistics"));
+  auto statistics=std::dynamic_pointer_cast<Statistics>(msg->readContent("statistics"));
   if (!statistics)
     return;
 

@@ -71,21 +71,21 @@ class TextIdx(unittest.TestCase):
 		
 		dataset=Dataset.loadDataset(self.filename)
 		self.assertIsNotNone(dataset)
-		access=dataset.get().createAccess()
+		access=dataset.createAccess()
 		
 		sampleid=0
 		
 		for Z in range(0,16):
-			slice_box=dataset.get().getBox().getZSlab(Z,Z+1)
+			slice_box=dataset.getBox().getZSlab(Z,Z+1)
 			
-			query=QueryPtr(Query(dataset.get(),ord('w')))
-			query.get().position=Position(slice_box)
+			query=Query(dataset,ord('w'))
+			query.position=Position(slice_box)
 			
-			self.assertTrue(dataset.get().beginQuery(query))
-			self.assertEqual(query.get().nsamples.innerProduct(),16*16)
+			self.assertTrue(dataset.beginQuery(query))
+			self.assertEqual(query.nsamples.innerProduct(),16*16)
 			
-			buffer=Array(query.get().nsamples,query.get().field.dtype)
-			query.get().buffer=buffer
+			buffer=Array(query.nsamples,query.field.dtype)
+			query.buffer=buffer
 			
 			fill=buffer.toNumPy()
 			for Y in range(16):
@@ -93,29 +93,29 @@ class TextIdx(unittest.TestCase):
 					fill[Y,X]=sampleid
 					sampleid+=1
 
-			self.assertTrue(dataset.get().executeQuery(access,query))
+			self.assertTrue(dataset.executeQuery(access,query))
 
 	# ReadIdx
 	def ReadIdx(self): 
 		
 		dataset=Dataset_loadDataset(self.filename)
 		self.assertIsNotNone(dataset)
-		box=dataset.get().getBox()
-		field=dataset.get().getDefaultField()
-		access=dataset.get().createAccess()
+		box=dataset.getBox()
+		field=dataset.getDefaultField()
+		access=dataset.createAccess()
 		
 		sampleid=0
 		for Z in range(0,16):
 			slice_box=box.getZSlab(Z,Z+1)
 			
-			query=QueryPtr(Query(dataset.get(),ord('r')))
-			query.get().position=Position(slice_box)
+			query=Query(dataset,ord('r'))
+			query.position=Position(slice_box)
 			
-			self.assertTrue(dataset.get().beginQuery(query))
-			self.assertEqual(query.get().nsamples.innerProduct(),16*16)
-			self.assertTrue(dataset.get().executeQuery(access,query))
+			self.assertTrue(dataset.beginQuery(query))
+			self.assertEqual(query.nsamples.innerProduct(),16*16)
+			self.assertTrue(dataset.executeQuery(access,query))
 			
-			check=query.get().buffer.toNumPy()
+			check=query.buffer.toNumPy()
 			
 			for Y in range(16):
 				for X in range(16):
@@ -127,37 +127,37 @@ class TextIdx(unittest.TestCase):
 		dataset=Dataset_loadDataset(self.filename)
 		self.assertIsNotNone(dataset)
 		
-		box=dataset.get().getBox()
-		access=dataset.get().createAccess()
-		field=dataset.get().getDefaultField()
-		MaxH=dataset.get().getBitmask().getMaxResolution()
+		box=dataset.getBox()
+		access=dataset.createAccess()
+		field=dataset.getDefaultField()
+		MaxH=dataset.getBitmask().getMaxResolution()
 		self.assertEqual(MaxH,12) #in the bitmask_pattern "V012012012012" the very last bit of the bitmask is at position MaxH=12 
 		
 		#I want to read data from first slice Z=0
 		slice_box=box.getZSlab(0,1);
 		
 		#create and read data from VisusFIle up to resolution FinalH=8 (<MaxH)
-		query=QueryPtr(Query(dataset.get(),ord('r')))
-		query.get().position=Position(slice_box)
-		query.get().end_resolutions.push_back(8)
-		query.get().end_resolutions.push_back(12)
-		query.get().merge_mode=Query.InsertSamples
+		query=Query(dataset,ord('r'))
+		query.position=Position(slice_box)
+		query.end_resolutions.push_back(8)
+		query.end_resolutions.push_back(12)
+		query.merge_mode=Query.InsertSamples
 		
 		# end_resolution=8
 		
-		self.assertTrue(dataset.get().beginQuery(query))
-		self.assertTrue(query.get().nsamples.innerProduct()>0)
-		self.assertTrue(dataset.get().executeQuery(access,query))
-		self.assertEqual(query.get().cur_resolution,8)
+		self.assertTrue(dataset.beginQuery(query))
+		self.assertTrue(query.nsamples.innerProduct()>0)
+		self.assertTrue(dataset.executeQuery(access,query))
+		self.assertEqual(query.cur_resolution,8)
 		
 		# end_resolution=12
-		self.assertTrue(dataset.get().nextQuery(query))
-		self.assertEqual(query.get().nsamples.innerProduct(),16*16)
-		self.assertTrue(dataset.get().executeQuery(access,query))
-		self.assertEqual(query.get().cur_resolution,12)
+		self.assertTrue(dataset.nextQuery(query))
+		self.assertEqual(query.nsamples.innerProduct(),16*16)
+		self.assertTrue(dataset.executeQuery(access,query))
+		self.assertEqual(query.cur_resolution,12)
 		
 		#verify the data is correct
-		check=query.get().buffer.toNumPy()
+		check=query.buffer.toNumPy()
 		sampleid=0
 		for Y in range(0,16):
 			for X in range(0,16):
@@ -165,7 +165,7 @@ class TextIdx(unittest.TestCase):
 				sampleid+=1 
 				
 		# finished
-		self.assertFalse(dataset.get().nextQuery(query)) 
+		self.assertFalse(dataset.nextQuery(query)) 
 
 
 # ////////////////////////////////////////////////////////

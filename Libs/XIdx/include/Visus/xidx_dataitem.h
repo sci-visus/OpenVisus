@@ -143,7 +143,7 @@ class VISUS_XIDX_API DataItem : public XIdxElement
 {
 public:
 
-  VISUS_XIDX_CLASS(DataItem)
+  VISUS_CLASS(DataItem)
   
   //node infos
   std::vector<int>                    dimensions;
@@ -151,6 +151,7 @@ public:
   Endianess                           endian_type;
   FormatType                          format_type;
   DType                               dtype = DTypes::FLOAT32;
+  String                              text;
 
   //scrgiorgio: special case for embedded values, should we create another element for this?
   std::vector<double>                 values;
@@ -161,6 +162,23 @@ public:
   
   //constructor
   DataItem(String name_="") : XIdxElement(name_){
+  }
+
+  DataItem(DType dtype_) : XIdxElement(""){
+    dtype=dtype_;
+  }
+
+  DataItem(FormatType format, DType dtype_, std::shared_ptr<DataSource> file){
+    format_type=format;
+    dtype=dtype_;
+    data_source=file;
+  }
+
+  DataItem(FormatType format_, DType dtype_, std::shared_ptr<DataSource> file,  int n_dims, uint32_t *dims) {
+    DataItem(format_, dtype_, file);
+
+    for (int i = 0; i < n_dims; i++)
+      dimensions.push_back(dims[i]);
   }
 
   //setDataSource
@@ -195,6 +213,14 @@ public:
     if (stride > 1) 
       this->dimensions[1] = stride; //scrgiorgio ???
   }
+
+  //addValue
+  void addValue(double val, int stride=1){
+    this->values.push_back(val);
+    dimensions.resize(stride);
+    dimensions[0] = (int)(values.size()/stride);
+    dimensions[1] = stride;
+  }
   
   //getXPathPrefix
   virtual String getXPathPrefix() override 
@@ -208,6 +234,7 @@ public:
   //findDataSource
   virtual DataSource* findDataSource() 
   {
+    // TODO fix getParent(), it returns an XIdxElement (getVisusClassName()=="XIdxElement")
     for(auto cursor = this->getParent(); cursor; cursor = cursor->getParent())
     {
       if (cursor->getClassName() == "Group")
@@ -236,7 +263,10 @@ public:
     for (auto child : this->attributes)
       writeChild<Attribute>(ostream, "Attribute", child);
 
-    ostream.writeText(StringUtils::join(this->values));
+    if(this->values.size())
+      ostream.writeText(StringUtils::join(this->values));
+    if(this->text.size())
+      ostream.writeText(this->text);
   };
 
   //readFromObjectStream

@@ -48,10 +48,6 @@ public:
   DataSource(String name_= "", String url_ = "")
     : XIdxElement(name_),url(url_){
   }
-
-  //destructor
-  virtual ~DataSource() {
-  }
   
   //getXPathPrefix
   virtual String getXPathPrefix() override {
@@ -65,7 +61,8 @@ public:
   {
     XIdxElement::writeToObjectStream(ostream);
     ostream.writeInline("Url", url);
-    writeUrlContent(ostream);
+    // TODO write content only if datasource is "inline"
+    //writeUrlContent(ostream);
 
   }
 

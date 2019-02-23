@@ -54,23 +54,35 @@ public:
     return values;
   };
 
+  void addDomainItems(std::vector<double> vals){
+    values.insert(values.end(), vals.begin(), vals.end());
+  }
+
+  void addDomainItem(double phy){
+    values.push_back(phy);
+  }
+
 public:
 
   //writeToObjectStream
   virtual void writeToObjectStream(ObjectStream& ostream) override
   {
-    Domain::readFromObjectStream(ostream);
-    ostream.writeInline("stride", cstring(stride));
-    ostream.writeText(StringUtils::join(this->values));
+    data_items.back()->values = this->values;
+    // TODO The user should set the dimensionality of the list (not here)
+    if(data_items.back()->dimensions.size() == 0)
+      data_items.back()->dimensions.push_back((int)this->values.size());
+    Domain::writeToObjectStream(ostream);
+
   }
   
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override 
   {
     Domain::readFromObjectStream(istream);
-    this->stride = cint(istream.readInline("stride"));
-    for (auto it : StringUtils::split(istream.readText()))
-      this->values.push_back(cdouble(it));
+//    for (auto it : StringUtils::split(istream.readText()))
+//      this->values.push_back(cdouble(it));
+
+    this->values = data_items.back()->values;
   }
 
 };

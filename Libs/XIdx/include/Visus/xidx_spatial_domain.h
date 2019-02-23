@@ -91,10 +91,10 @@ public:
   {
     Domain::readFromObjectStream(istream);
 
-    if (auto topology = readChild<Topology>(istream, "topology"))
+    if (auto topology = readChild<Topology>(istream, "Topology"))
       setTopology(topology);
 
-    if (auto geometry = readChild<Geometry>(istream, "geometry"))
+    if (auto geometry = readChild<Geometry>(istream, "Geometry"))
       setGeometry(geometry);
   }
 

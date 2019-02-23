@@ -710,11 +710,11 @@ bool JTreeNode::processInput()
 }
 
 ////////////////////////////////////////////////////////////
-void JTreeNode::messageHasBeenPublished(const DataflowMessage& msg) 
+void JTreeNode::messageHasBeenPublished(SharedPtr<DataflowMessage> msg)
 {
-  if (SharedPtr<Object> full_graph=msg.readContent("full_graph"))
+  if (SharedPtr<Object> full_graph=msg->readContent("full_graph"))
   {
-    auto data=std::dynamic_pointer_cast<Array>(msg.readContent("data")); VisusAssert(data);
+    auto data=std::dynamic_pointer_cast<Array>(msg->readContent("data")); VisusAssert(data);
     this->last_full_graph=full_graph; //recycling the last full graph
   }
 }

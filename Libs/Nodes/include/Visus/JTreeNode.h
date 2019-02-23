@@ -182,7 +182,7 @@ private:
   void updateAutoThreshold();
 
   //messageHasBeenPublished
-  virtual void messageHasBeenPublished(const DataflowMessage& msg) override;
+  virtual void messageHasBeenPublished(SharedPtr<DataflowMessage> msg) override;
 
   //recompute
   bool recompute(bool bFull=true);

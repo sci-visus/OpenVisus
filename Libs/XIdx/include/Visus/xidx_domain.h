@@ -126,7 +126,13 @@ public:
     addEdge(this, value);
     this->attributes.push_back(value);
   }
-  
+
+  //void addAttribute(Attribute* VISUS_DISOWN(value)){ addAttribute(SharedPtr<Attribute>(value)); };
+
+  inline void addAttribute(String name_, String value_){
+    addAttribute(SharedPtr<Attribute>(new Attribute(name_, value_)));
+  }
+
   //getVolume
   virtual size_t getVolume() const{
     size_t total = 1;
@@ -161,6 +167,10 @@ public:
     XIdxElement::readFromObjectStream(istream);
 
     this->type = DomainType::fromString(istream.readInline("Type"));
+
+    // have to remove the default data_item created by the constructor
+    // TODO improve this ensureDataItem() mechanism
+    data_items.clear();
 
     while (auto child = readChild<DataItem>(istream,"DataItem"))
       addDataItem(child);

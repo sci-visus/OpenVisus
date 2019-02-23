@@ -93,9 +93,9 @@ void ModVisusAccess::readBlock(SharedPtr<BlockQuery> query)
   if (!batch.empty())
   {
     bool bCompatible =
-      query->field.name          == batch[0]->field.name &&
-      query->time                == batch[0]->time &&
-      query->aborted.inner_value == batch[0]->aborted.inner_value;
+      query->field.name == batch[0]->field.name &&
+      query->time       == batch[0]->time &&
+      query->aborted    == batch[0]->aborted;
 
     if (!bCompatible)
       flushBatch();

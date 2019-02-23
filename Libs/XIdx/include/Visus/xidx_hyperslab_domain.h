@@ -34,7 +34,7 @@
 namespace Visus{
 
 //////////////////////////////////////////////////////////////////
-class VISUS_XIDX_API HyperSlabDomain : public Domain
+class VISUS_XIDX_API HyperSlabDomain : public ListDomain
 {
 public:
 
@@ -45,11 +45,25 @@ public:
   int    count = 0;
 
   //constructor
-  HyperSlabDomain(String name_="") : Domain(name_, DomainType::HYPER_SLAB_DOMAIN_TYPE)
+  HyperSlabDomain(String name_="") : ListDomain(name_)
   {
+    type = DomainType::HYPER_SLAB_DOMAIN_TYPE;
     ensureDataItem();
     data_items[0]->name = name;
     data_items[0]->dtype = DTypes::FLOAT64;
+  }
+
+  HyperSlabDomain(const HyperSlabDomain* d) : ListDomain(d->name){
+    type = DomainType::HYPER_SLAB_DOMAIN_TYPE;
+    data_items = d->data_items;
+  }
+
+  int setDomain(double start_, double step_, int count_){
+    start=start_;
+    step=step_;
+    count=count_;
+    values = std::vector<double>({ start_,step_,(double)count_ });
+    return 0;
   }
   
   
@@ -66,16 +80,21 @@ public:
   //writeToObjectStream
   virtual void writeToObjectStream(ObjectStream& ostream) override
   {
-    Domain::writeToObjectStream(ostream);
-    ostream.writeText(StringUtils::join(std::vector<double>({ start,step,(double)count })));
+    ListDomain::writeToObjectStream(ostream);
   }
 
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override
   {
-    Domain::readFromObjectStream(istream);
-    std::istringstream parse(istream.readText());
-    parse >> start >> step >> count;
+    ListDomain::readFromObjectStream(istream);
+    // TODO generalize for many slabs
+    if(values.size()==3){
+      start = values[0];
+      step  = values[1];
+      count = (int)values[2];
+    }
+//    std::istringstream parse(istream.readText());
+//    parse >> start >> step >> count;
   }
 
 };

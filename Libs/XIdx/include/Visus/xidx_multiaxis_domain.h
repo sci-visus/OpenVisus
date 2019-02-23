@@ -33,7 +33,7 @@
 
 namespace Visus{
 
-
+typedef Variable Axis;
 
 ////////////////////////////////////////////////////////////////
 class VISUS_XIDX_API MultiAxisDomain : public Domain
@@ -42,14 +42,14 @@ public:
 
   VISUS_XIDX_CLASS(MultiAxisDomain)
 
-  typedef Variable Axis;
-
   //down nodes
   std::vector< SharedPtr<Axis> > axis;
   
   //constructor
   MultiAxisDomain(String name_="") : Domain(name_, DomainType::MULTIAXIS_DOMAIN_TYPE) {
   };
+
+  //void addAxis(Variable* VISUS_DISOWN(value)){ addAxis(SharedPtr<Axis>(value)); };
 
   //addAxis
   void addAxis(SharedPtr<Axis> value){

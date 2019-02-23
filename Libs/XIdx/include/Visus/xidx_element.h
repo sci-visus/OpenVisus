@@ -54,10 +54,6 @@ public:
   XIdxElement(String name_ = "") : name(name_) {
   }
 
-  //destructor 
-  virtual ~XIdxElement() {
-  }
-
   //getParent
   virtual XIdxElement* getParent() const {
     return parent;
@@ -95,7 +91,8 @@ public:
 
   //writeToObjectStream
   virtual void writeToObjectStream(ObjectStream& ostream) {
-    ostream.writeInline("Name", name);
+    if(name.size())
+      ostream.writeInline("Name", name);
   }
 
   //readFromObjectStream

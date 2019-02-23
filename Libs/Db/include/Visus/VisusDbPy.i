@@ -14,10 +14,12 @@ using namespace Visus;
 
 %import <Visus/VisusKernelPy.i>
 
-ENABLE_SHARED_PTR(Access)
-ENABLE_SHARED_PTR(BlockQuery)
-ENABLE_SHARED_PTR(Query)
-ENABLE_SHARED_PTR(Dataset)
+%shared_ptr(Visus::Access)
+%shared_ptr(Visus::BlockQuery)
+%shared_ptr(Visus::Query)
+%shared_ptr(Visus::BaseDataset)
+%shared_ptr(Visus::Dataset)
+%shared_ptr(Visus::LogicBox)
 
 %include <Visus/Db.h>
 %include <Visus/Access.h>
