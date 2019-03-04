@@ -60,19 +60,14 @@ public:
   VISUS_NON_COPYABLE_CLASS(GLArrayBuffer)
 
   //constructor
-  GLArrayBuffer(Array array);
+  GLArrayBuffer(DType dtype,int nvertices,SharedPtr<HeapMemory> heap);
 
   //destructor
   virtual ~GLArrayBuffer();
 
   //getNumberOfVertices
   int getNumberOfVertices() const{
-    return (int)(array.c_size()/array.dtype.getByteSize());
-  }
-
-  //getArray
-  Array getArray() const {
-    return array;
+    return nvertices;
   }
 
   //enableForAttribute
@@ -87,7 +82,9 @@ public:
 
 private:
 
-  Array array;
+  DType dtype;
+  int nvertices;
+  SharedPtr<HeapMemory> heap;
 
   int     gltype=0;
   int     glsize=0;

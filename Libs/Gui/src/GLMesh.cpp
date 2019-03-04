@@ -67,16 +67,17 @@ void GLMesh::end() {
 ///////////////////////////////////////////////
 void GLMesh::flush()
 {
-  VisusAssert(building.vertices   .empty() || building.vertices   .size()==building.vertices.size()); 
-  VisusAssert(building.normals    .empty() || building.normals    .size()==building.vertices.size()); 
-  VisusAssert(building.colors     .empty() || building.colors     .size()==building.vertices.size()); 
-  VisusAssert(building.texcoords2f.empty() || building.texcoords2f.size()==building.vertices.size());
-  VisusAssert(building.texcoords3f.empty() || building.texcoords3f.size()==building.vertices.size());     
+  int nvertices = (int)building.vertices.size();
 
-  if (building.vertices.empty())
+  if (!nvertices)
     return;
- 
-    
+
+  VisusAssert(building.vertices   .empty() || building.vertices   .size()== nvertices);
+  VisusAssert(building.normals    .empty() || building.normals    .size()== nvertices);
+  VisusAssert(building.colors     .empty() || building.colors     .size()== nvertices);
+  VisusAssert(building.texcoords2f.empty() || building.texcoords2f.size()== nvertices);
+  VisusAssert(building.texcoords3f.empty() || building.texcoords3f.size()== nvertices);
+
   //Quads are not supported
   if (bool bQuadsNotSupported=VISUS_OPENGL_ES && primitive==GL_QUADS)
   {
@@ -92,11 +93,11 @@ void GLMesh::flush()
 
   VisusAssert(building.texcoords2f.empty() || building.texcoords3f.empty());
 
-  if (!building.vertices   .empty()) {batch.vertices   =std::make_shared<GLArrayBuffer>(Array::fromVector(DTypes::FLOAT32_RGB ,building.vertices   )); building.vertices   .clear();}
-  if (!building.normals    .empty()) {batch.normals    =std::make_shared<GLArrayBuffer>(Array::fromVector(DTypes::FLOAT32_RGB ,building.normals    )); building.normals    .clear();}
-  if (!building.colors     .empty()) {batch.colors     =std::make_shared<GLArrayBuffer>(Array::fromVector(DTypes::FLOAT32_RGBA,building.colors     )); building.colors     .clear();}
-  if (!building.texcoords2f.empty()) {batch.texcoords  =std::make_shared<GLArrayBuffer>(Array::fromVector(DTypes::FLOAT32_GA  ,building.texcoords2f)); building.texcoords2f.clear();}
-  if (!building.texcoords3f.empty()) {batch.texcoords  =std::make_shared<GLArrayBuffer>(Array::fromVector(DTypes::FLOAT32_RGB ,building.texcoords3f)); building.texcoords3f.clear();}
+  if (!building.vertices   .empty()) {batch.vertices   =std::make_shared<GLArrayBuffer>(DTypes::FLOAT32_RGB , nvertices, HeapMemory::createManaged(&building.vertices   [0].x,nvertices * sizeof(Point3f))); building.vertices   .clear();}
+  if (!building.normals    .empty()) {batch.normals    =std::make_shared<GLArrayBuffer>(DTypes::FLOAT32_RGB , nvertices, HeapMemory::createManaged(&building.normals    [0].x,nvertices * sizeof(Point3f))); building.normals    .clear();}
+  if (!building.colors     .empty()) {batch.colors     =std::make_shared<GLArrayBuffer>(DTypes::FLOAT32_RGBA, nvertices, HeapMemory::createManaged(&building.colors     [0].x,nvertices * sizeof(Point4f))); building.colors     .clear();}
+  if (!building.texcoords2f.empty()) {batch.texcoords  =std::make_shared<GLArrayBuffer>(DTypes::FLOAT32_GA  , nvertices, HeapMemory::createManaged(&building.texcoords2f[0].x,nvertices * sizeof(Point3f))); building.texcoords2f.clear();}
+  if (!building.texcoords3f.empty()) {batch.texcoords  =std::make_shared<GLArrayBuffer>(DTypes::FLOAT32_RGB , nvertices, HeapMemory::createManaged(&building.texcoords3f[0].x,nvertices * sizeof(Point3f))); building.texcoords3f.clear();}
    
   this->batches.push_back(batch);
   this->building.vertices_per_batch=0;

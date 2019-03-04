@@ -113,6 +113,21 @@ public:
       setComponent(I, components[I]);
   }
 
+  //constructor
+  Array(NdPoint dims, DType dtype, String c_address, bool bSharedMem = false)
+  {
+    Uint8* c_ptr = (Uint8*)cuint64(c_address);
+
+    if (bSharedMem)
+      this->heap = HeapMemory::createUnmanaged(c_ptr, dtype.getByteSize(dims));
+
+    if (!this->resize(dims, dtype, __FILE__, __LINE__))
+      ThrowException("resize of array failed, out of memory");
+
+    if (!bSharedMem)
+      memcpy(this->c_ptr(), c_ptr,dtype.getByteSize(dims));
+  }
+
   //destructor
   virtual ~Array() {
   }
@@ -181,24 +196,6 @@ public:
     return createView(src, NdPoint::one(3).withX(x).withY(y).withZ(z), dtype, c_offset);
   }
 
-  //fromVector
-  template <typename Type>
-  static Array fromVector(NdPoint dims, DType dtype, const std::vector<Type>& v)
-  {
-    VisusAssert(sizeof(Type) == dtype.getByteSize());
-    VisusAssert(dims.innerProduct() == v.size());
-    Array ret(dims, dtype);
-    memcpy(ret.c_ptr(), &v[0], (size_t)ret.c_size());
-    return ret;
-  }
-
-  //fromVector
-  template <typename Type>
-  static Array fromVector(DType dtype, const std::vector<Type>& v) {
-    auto dims = NdPoint::one(/*pdim*/1);
-    dims[0] = (int)v.size();
-    return fromVector(dims,dtype,v);
-  }
 
   //isAllZero
   inline bool isAllZero() const{
@@ -218,6 +215,11 @@ public:
   //c_ptr
   inline unsigned char* c_ptr(){
     return heap->c_ptr();
+  }
+
+  //c_address
+  inline String c_address() const {
+    return cstring((Uint64)c_ptr());
   }
 
   //c_ptr
@@ -272,17 +274,6 @@ public:
 
   //setComponent
   bool setComponent(int C, Array src, Aborted aborted = Aborted());
-
-  //fromVectorInt32
-  static Array fromVectorInt32(NdPoint dims, const std::vector<Int32>& vector) {
-    return fromVector<Int32>(dims, DTypes::INT32, vector);
-  }
-
-  //fromVectorFloat64
-  static Array fromVectorFloat64(NdPoint dims, const std::vector<Float64>& vector) {
-    return fromVector<Float64>(dims, DTypes::FLOAT64, vector);
-  }
-
 
 public:
 

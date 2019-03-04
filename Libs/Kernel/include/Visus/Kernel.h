@@ -136,12 +136,14 @@ VISUS_KERNEL_API inline String     cstring(Uint32 v) { return std::to_string(v);
 VISUS_KERNEL_API inline String     cstring(float  v) { return std::to_string(v); }
 VISUS_KERNEL_API inline String     cstring(double v) { return std::to_string(v); }
 VISUS_KERNEL_API inline String     cstring(Int64  v) { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring(Uint64 v) { return std::to_string(v); }
 
-VISUS_KERNEL_API        bool       cbool(const String& s);
-VISUS_KERNEL_API inline int        cint(const String& s) { return s.empty() ? 0 : std::stoi(s); }
-VISUS_KERNEL_API inline float      cfloat(const String& s) { return s.empty() ? 0 : std::stof(s); }
+VISUS_KERNEL_API        bool       cbool  (const String& s);
+VISUS_KERNEL_API inline int        cint   (const String& s) { return s.empty() ? 0 : std::stoi(s); }
+VISUS_KERNEL_API inline float      cfloat (const String& s) { return s.empty() ? 0 : std::stof(s); }
 VISUS_KERNEL_API inline double     cdouble(const String& s) { return s.empty() ? 0 : std::stod(s); }
-VISUS_KERNEL_API inline Int64      cint64(const String& s) { return s.empty() ? 0 : std::stoll(s); }
+VISUS_KERNEL_API inline Int64      cint64 (const String& s) { return s.empty() ? 0 : std::stoll(s); }
+VISUS_KERNEL_API inline Uint64     cuint64(const String& s) { return s.empty() ? 0 : std::stoull(s); }
 
 #if !SWIG
 namespace Private {
@@ -171,6 +173,11 @@ VISUS_KERNEL_API bool VisusHasMessageLock();
 
 //ThrowExceptionEx
 VISUS_KERNEL_API void ThrowExceptionEx(String file,int line,String expr);
+
+
+#define __S1__(x) #x
+#define __S2__(x) __S1__(x)
+#define VisusHereInTheCode __FILE__ " : " __S2__(__LINE__)
 
 #define ThrowException(expr) (ThrowExceptionEx(__FILE__,__LINE__,expr))
 

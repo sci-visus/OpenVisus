@@ -55,26 +55,26 @@ HeapMemory::~HeapMemory()
 }
 
 ////////////////////////////////////////////////////////
-SharedPtr<HeapMemory> HeapMemory::createUnmanaged(Uint8* p,Int64 n)
+SharedPtr<HeapMemory> HeapMemory::createUnmanaged(void* p,Int64 n)
 {
   auto ret=std::make_shared<HeapMemory>();
   ret->unmanaged=true;
   ret->n=n;
   ret->m=n;
-  ret->p=p;
+  ret->p=(Uint8*)p;
   return ret;
 }
 
 ////////////////////////////////////////////////////////
-SharedPtr<HeapMemory> HeapMemory::createManaged(Uint8* p, Int64 n)
+SharedPtr<HeapMemory> HeapMemory::createManaged(void* p, Int64 n) 
 {
-  auto ret = std::make_shared<HeapMemory>();
-  ret->unmanaged = false;
-  ret->n = n;
-  ret->m = n;
-  ret->p = p;
-  return ret;
+  auto dst = std::make_shared<HeapMemory>();
+  auto src = HeapMemory::createUnmanaged(p, n);
+  if (!copy(dst, src))
+    return SharedPtr<HeapMemory>();
+  return  dst; 
 }
+
 
 ////////////////////////////////////////////////////////
 SharedPtr<HeapMemory> HeapMemory::clone() const

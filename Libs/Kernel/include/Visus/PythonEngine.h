@@ -182,8 +182,8 @@ public:
   //getModuleArrayAttr
   Array getModuleArrayAttr(String name);
 
-  //toArray
-  Array toArray(PyObject* py_object);
+  //pythonObjectToArray
+  Array pythonObjectToArray(PyObject* py_object);
 
   //getLastErrorMessage
   static String getLastErrorMessage();
@@ -203,9 +203,6 @@ private:
 
   PyObject* module = nullptr;
   PyObject* globals = nullptr;
-
-  void* swig_type_aborted = nullptr;
-  void* swig_type_array   = nullptr;
 
   //fixPath
   static String fixPath(String value);

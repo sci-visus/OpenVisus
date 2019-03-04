@@ -334,92 +334,108 @@ void ScriptingNode::guessPresets(SharedPtr<Array> input)
   //see http://stackoverflow.com/questions/596216/formula-to-determine-brightness-of-rgb-color
   if (input->dtype.ncomponents()>=3)
   {
-    addPreset("Grayscale (Photometric ITU-R)", 
-      "R,G,B=(0.2126*input[0] , 0.7152*input[1] , 0.0722*input[2])\n" 
-      "output=R+G+B\n");
+    addPreset("Grayscale (Photometric ITU-R)", StringUtils::joinLines({
+      "R,G,B=(0.2126*input[0] , 0.7152*input[1] , 0.0722*input[2])",
+      "output=R+G+B"
+    }));
 
-    addPreset("Grayscale (Digital CCIR601)", 
-      "R,G,B=(0.2990*input[0] , 0.5870*input[1] , 0.1140*input[2])\n" 
-      "output=R+G+B\n");
+    addPreset("Grayscale (Digital CCIR601)", StringUtils::joinLines({
+      "R,G,B=(0.2990*input[0] , 0.5870*input[1] , 0.1140*input[2])",
+      "output=R+G+B"
+    }));
   }
 
   //filters
   {
-    addPreset("Filters/brightnessContrast",
-      "brightness,contrast=(0.0,1.0)\noutput=ArrayUtils.brightnessContrast(input,brightness,contrast,aborted)\n");
+    addPreset("Filters/brightnessContrast", StringUtils::joinLines({
+      "brightness,contrast=(0.0,1.0)",
+      "output=ArrayUtils.brightnessContrast(input,brightness,contrast,aborted)",
+    }));
 
-    addPreset("Filters/threshold",
-      "level=0.5\noutput=ArrayUtils.threshold(input,level,aborted)\n");
+    addPreset("Filters/threshold", StringUtils::joinLines({
+      "level=0.5",
+      "output=ArrayUtils.threshold(input,level,aborted)"
+    }));
 
     addPreset("Filters/invert",
-      "output=ArrayUtils.invert(input,aborted)\n");
+      "output=ArrayUtils.invert(input,aborted)");
 
-    addPreset("Filters/levels",
-      "gamma, in_min, in_max, out_min, out_max=(1.0, 0.0, 1.0, 0.0, 1.0)\noutput=ArrayUtils.levels(input, gamma, in_min, in_max, out_min, out_max, aborted)\n");
+    addPreset("Filters/levels", StringUtils::joinLines({
+      "gamma, in_min, in_max, out_min, out_max=(1.0, 0.0, 1.0, 0.0, 1.0)",
+      "output=ArrayUtils.levels(input, gamma, in_min, in_max, out_min, out_max, aborted)"
+    }));
 
-    addPreset("Filters/hueSaturationBrightness",
-      "hue,saturation,brightness=(0.0, 0.0, 0.0)\noutput=ArrayUtils.hueSaturationBrightness(input,hue,saturation,brightness,aborted)\n");
+    addPreset("Filters/hueSaturationBrightness", StringUtils::joinLines({
+      "hue,saturation,brightness=(0.0, 0.0, 0.0)",
+      "output=ArrayUtils.hueSaturationBrightness(input,hue,saturation,brightness,aborted)"
+    }));
   }
 
-  auto createConvolutionPreset = [](String kernel) {
-    return (StringUtils::format() 
-      << "kernel=" << kernel << "\n"
-      << "output=ArrayUtils.convolve(input,Array.fromPyArray(kernel),aborted)\n").str();
+  auto addConvolutionPreset = [&](String name, String kernel) {
+    addPreset(name,StringUtils::joinLines({
+      "import numpy",
+      "kernel=Array.fromNumPy(numpy.array(" + kernel + ",dtype=numpy.float64))",
+      "output=ArrayUtils.convolve(input,kernel,aborted)",
+    }));
   };
 
   //see http://www.mif.vu.lt/atpazinimas/dip/FIP/fip-Derivati.html
   //see http://www.johnloomis.org/ece563/notes/filter/second/second.html
-  addPreset("2d/Blur",          createConvolutionPreset("[[1/9.0,1/9.0,1/9.0], [1/9.0,1/9.0,1/9.0] , [1/9.0,1/9.0,1/9.0]]"));
-  addPreset("2d/Mean removal",  createConvolutionPreset("[[-1.0,-1.0,-1.0], [-1.0, 9.0,-1.0] ,[-1.0,-1.0,-1.0]]"));
-  addPreset("2d/Sharpen",       createConvolutionPreset("[[ 0.0,-2.0, 0.0], [-2.0,11.0,-2.0], [ 0.0,-2.0, 0.0]]"));
-  addPreset("2d/Emboss",        createConvolutionPreset("[[ 2.0, 0.0, 0.0], [ 0.0,-1.0, 0.0], [ 0.0, 0.0,-1.0]]"));
-  addPreset("2d/Emboss Subtle", createConvolutionPreset("[[ 1.0, 1.0,-1.0], [ 1.0, 3.0,-1.0], [ 1.0,-1.0,-1.0]]"));
-  addPreset("2d/Edge Detect",   createConvolutionPreset("[[ 1.0, 1.0, 1.0], [ 1.0,-7.0, 1.0], [ 1.0, 1.0, 1.0]]"));
+  addConvolutionPreset("2d/Blur",          "[[1/9.0,1/9.0,1/9.0], [1/9.0,1/9.0,1/9.0] , [1/9.0,1/9.0,1/9.0]]");
+  addConvolutionPreset("2d/Mean removal",  "[[-1.0,-1.0,-1.0], [-1.0, 9.0,-1.0] ,[-1.0,-1.0,-1.0]]");
+  addConvolutionPreset("2d/Sharpen",       "[[ 0.0,-2.0, 0.0], [-2.0,11.0,-2.0], [ 0.0,-2.0, 0.0]]");
+  addConvolutionPreset("2d/Emboss",        "[[ 2.0, 0.0, 0.0], [ 0.0,-1.0, 0.0], [ 0.0, 0.0,-1.0]]");
+  addConvolutionPreset("2d/Emboss Subtle", "[[ 1.0, 1.0,-1.0], [ 1.0, 3.0,-1.0], [ 1.0,-1.0,-1.0]]");
+  addConvolutionPreset("2d/Edge Detect",   "[[ 1.0, 1.0, 1.0], [ 1.0,-7.0, 1.0], [ 1.0, 1.0, 1.0]]");
   
-  addPreset("2d/First Derivative/Backward", createConvolutionPreset("[ -1.0,  1.0, 0.0 ]"));
-  addPreset("2d/First Derivative/Central",  createConvolutionPreset("[ -1.0,  0.0, 1.0 ]"));
-  addPreset("2d/First Derivative/Forward",  createConvolutionPreset("[  0.0, -1.0, 1.0 ]"));
-  addPreset("2d/First Derivative/Prewitt",  createConvolutionPreset("[[ 1.0,0.0,-1.0], [ 1.0,0.0,-1.0], [ 1.0,0.0,-1.0]]"));
-  addPreset("2d/First Derivative/Sobel",    createConvolutionPreset("[[-1.0,0.0, 1.0], [-2.0,0.0, 2.0], [-1.0,0.0, 1.0]]"));
+  addConvolutionPreset("2d/First Derivative/Backward", "[ -1.0,  1.0, 0.0 ]");
+  addConvolutionPreset("2d/First Derivative/Central",  "[ -1.0,  0.0, 1.0 ]");
+  addConvolutionPreset("2d/First Derivative/Forward",  "[  0.0, -1.0, 1.0 ]");
+  addConvolutionPreset("2d/First Derivative/Prewitt",  "[[ 1.0,0.0,-1.0], [ 1.0,0.0,-1.0], [ 1.0,0.0,-1.0]]");
+  addConvolutionPreset("2d/First Derivative/Sobel",    "[[-1.0,0.0, 1.0], [-2.0,0.0, 2.0], [-1.0,0.0, 1.0]]");
 
-  addPreset("2d/Second Derivative/Basic",                        createConvolutionPreset("[1.0,-2.0,1.0]"));
-  addPreset("2d/Second Derivative/Basic with smoothing (i)",     createConvolutionPreset("[[1.0,-2.0,1.0], [2.0,-4.0,2.0], [1.0,-2.0,1.0]]"));
-  addPreset("2d/Second Derivative/Basic with smoothing (ii)",    createConvolutionPreset("[[1.0,-2.0,1.0], [1.0,-2.0,1.0], [1.0,-2.0,1.0]]"));
-  addPreset("2d/Second Derivative/Laplacian",                    createConvolutionPreset("[[0.0, 1.0,0.0], [1.0,-4.0,1.0], [0.0, 1.0,0.0]]"));
-  addPreset("2d/Second Derivative/Laplacian with smoothing (i)", createConvolutionPreset("[[1.0, 0.0,1.0], [0.0,-4.0,0.0], [1.0, 0.0,1.0]]"));
+  addConvolutionPreset("2d/Second Derivative/Basic",                        "[1.0,-2.0,1.0]");
+  addConvolutionPreset("2d/Second Derivative/Basic with smoothing (i)",     "[[1.0,-2.0,1.0], [2.0,-4.0,2.0], [1.0,-2.0,1.0]]");
+  addConvolutionPreset("2d/Second Derivative/Basic with smoothing (ii)",    "[[1.0,-2.0,1.0], [1.0,-2.0,1.0], [1.0,-2.0,1.0]]");
+  addConvolutionPreset("2d/Second Derivative/Laplacian",                    "[[0.0, 1.0,0.0], [1.0,-4.0,1.0], [0.0, 1.0,0.0]]");
+  addConvolutionPreset("2d/Second Derivative/Laplacian with smoothing (i)", "[[1.0, 0.0,1.0], [0.0,-4.0,0.0], [1.0, 0.0,1.0]]");
 
   addPreset("3d/Sobel Derivative",
-    "k1=[\n"
-    "  [[ 1.0,  2.0,  1.0], [ 2.0,  4.0,  2.0],  [ 1.0,  2.0,  1.0]],\n"
-    "  [[ 0.0,  0.0,  0.0], [ 0.0,  0.0,  0.0],  [ 0.0,  0.0,  0.0]],\n"
-    "  [[-1.0, -2.0, -1.0], [-2.0, -4.0, -2.0],  [-1.0, -2.0 ,-1.0]]]\n"
-    "\n"
-    "k2=[\n"
-    " [[1.0,  0.0,  -1.0],  [2.0,  0.0,  -2.0],  [1.0,  0.0, -1.0]],\n"
-    " [[2.0,  0.0,  -2.0],  [4.0,  0.0,  -4.0],  [2.0,  0.0, -2.0]],\n"
-    " [[1.0,  0.0,  -1.0],  [2.0,  0.0,  -2.0],  [1.0,  0.0 ,-1.0]]]\n"
-    "\n"
-    "k3=[\n"
-    " [[1.0,  2.0,  1.0],  [0.0,  0.0,  0.0], [-1.0, -2.0, -1.0]],\n"
-    " [[2.0,  4.0,  2.0],  [0.0,  0.0,  0.0], [-2.0, -4.0, -2.0]],\n"
-    " [[1.0,  2.0,  1.0],  [0.0,  0.0,  0.0], [-1.0, -2.0 ,-1.0]]]\n"
-    "\n"
-    "o1=ArrayUtils.convolve(input,Array.fromPyArray(k1))\n"
-    "o2=ArrayUtils.convolve(input,Array.fromPyArray(k2))\n"
-    "o3=ArrayUtils.convolve(input,Array.fromPyArray(k3))\n"
-    "\n"
-    "output=o1*o1+o2*o2+o3*o3\n");
+    StringUtils::joinLines({
+      "import numpy",
+      "k1=Array.fromNumPy(numpy.array([",
+      "  [[ 1.0,  2.0,  1.0], [ 2.0,  4.0,  2.0],  [ 1.0,  2.0,  1.0]],",
+      "  [[ 0.0,  0.0,  0.0], [ 0.0,  0.0,  0.0],  [ 0.0,  0.0,  0.0]],",
+      "  [[-1.0, -2.0, -1.0], [-2.0, -4.0, -2.0],  [-1.0, -2.0 ,-1.0]]], dtype=numpy.float64))",
+      "k2=Array.fromNumPy(numpy.array([",
+      " [[1.0,  0.0,  -1.0],  [2.0,  0.0,  -2.0],  [1.0,  0.0, -1.0]],",
+      " [[2.0,  0.0,  -2.0],  [4.0,  0.0,  -4.0],  [2.0,  0.0, -2.0]],",
+      " [[1.0,  0.0,  -1.0],  [2.0,  0.0,  -2.0],  [1.0,  0.0 ,-1.0]]], dtype=numpy.float64))",
+      "k3=Array.fromNumPy(numpy.array([",
+      " [[1.0,  2.0,  1.0],  [0.0,  0.0,  0.0], [-1.0, -2.0, -1.0]],",
+      " [[2.0,  4.0,  2.0],  [0.0,  0.0,  0.0], [-2.0, -4.0, -2.0]],",
+      " [[1.0,  2.0,  1.0],  [0.0,  0.0,  0.0], [-1.0, -2.0 ,-1.0]]], dtype=numpy.float64))",
+      "o1=ArrayUtils.convolve(input,k1)",
+      "o2=ArrayUtils.convolve(input,k2)",
+      "o3=ArrayUtils.convolve(input,k3)",
+      "",
+      "output=o1*o1+o2*o2+o3*o3"
+  }));
 
   //broken right now
-  addPreset("3d/MedianHybrid",
-    "k=[1.0]\n"
-    "output=ArrayUtils.medianHybrid(input,Array.fromPyArray(k))\n");
+  addPreset("3d/MedianHybrid",StringUtils::joinLines({
+    "import numpy",
+    "kernel=Array.fromNumPy(numpy.array([1.0], dtype=numpy.float64)",
+    "output=ArrayUtils.medianHybrid(input,kernel)"
+  }));
 
   //broken right now?
-  addPreset("3d/Median",
-    "k=[1.0]\n"
-    "percent=50\n"
-    "output=ArrayUtils.median(input,Array.fromPyArray(k),percent)\n");
+  addPreset("3d/Median", StringUtils::joinLines({
+    "import numpy",
+    "kernel=Array.fromNumPy(numpy.array([1.0], dtype=numpy.float64))",
+    "percent=50",
+    "output=ArrayUtils.median(input,kernel,percent)"
+  }));
 
 #endif //#if VISUS_PYTHON
 }

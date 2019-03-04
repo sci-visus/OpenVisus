@@ -608,7 +608,7 @@ public:
 
         for (int I = 0, N = (int)PyList_Size(arg0); I < N; I++)
         {
-          auto buffer = engine->toArray(PyList_GetItem(arg0, I));
+          auto buffer = engine->pythonObjectToArray(PyList_GetItem(arg0, I));
           blend.addArg(buffer, Array());
         }
       }

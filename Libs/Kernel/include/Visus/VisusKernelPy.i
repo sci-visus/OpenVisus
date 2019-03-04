@@ -4,44 +4,10 @@
 #include <Visus/Array.h>
 #include <Visus/VisusConfig.h>
 using namespace Visus;
-
-static char* __my_numpy_capsule_name__="__my_numpy_capsule_name__";
 %}
 
 
 %include <Visus/VisusPy.i>
-
-%{ 
-
-static SharedPtr<HeapMemory> getNumPyHeap(PyArrayObject *numpy_array)
-{
-	auto base=PyArray_BASE(numpy_array);
-	if (!base)
-		return SharedPtr<HeapMemory>();
-
-	auto ptr=PyCapsule_GetPointer(base, __my_numpy_capsule_name__);
-	if (!ptr)
-		return SharedPtr<HeapMemory>();
-
-	return *static_cast<SharedPtr<HeapMemory>*>(ptr);
-}
-
-//deleteNumPyCapsule
-static void deleteNumPyCapsule(PyObject *capsule)
-{
-	auto ptr=(SharedPtr<HeapMemory>*)PyCapsule_GetPointer(capsule, __my_numpy_capsule_name__);
-	VisusReleaseAssert(ptr);
-	delete ptr;
-}
-
-static void setNumPyHeap(PyArrayObject* numpy_array,SharedPtr<HeapMemory> heap)
-{
-	VisusReleaseAssert(!PyArray_BASE(numpy_array));
-	auto base=PyCapsule_New(new SharedPtr<HeapMemory>(heap), __my_numpy_capsule_name__, deleteNumPyCapsule);
-	PyArray_SetBaseObject((PyArrayObject*)numpy_array,base);
-}
-
-%}
 
 %shared_ptr(Visus::HeapMemory)
 %shared_ptr(Visus::DictObject)
@@ -89,24 +55,24 @@ static void setNumPyHeap(PyArrayObject* numpy_array,SharedPtr<HeapMemory> heap)
 %include <Visus/VisusConfig.h>
 %include <Visus/Color.h>
 %include <Visus/Point.h> 
-  %template(Point2i)    Visus::Point2<int   > ;
-  %template(Point2f)    Visus::Point2<float > ;
-  %template(Point2d)    Visus::Point2<double> ;
-  %template(Point3i)    Visus::Point3<int  >  ;
-  %template(Point3f)    Visus::Point3<float>  ;
-  %template(Point3d)    Visus::Point3<double> ;
-  %template(Point4i)    Visus::Point4<int   > ;
-  %template(Point4f)    Visus::Point4<float > ;
-  %template(Point4d)    Visus::Point4<double> ;
-  %template(PointNi)    Visus::PointN<int >   ;
-  %template(PointNf)    Visus::PointN<float > ;
-  %template(PointNd)    Visus::PointN<double> ;
-  %template(NdPoint)    Visus::PointN< Visus::Int64 > ;
+   %template(Point2i)    Visus::Point2<int   > ;
+   %template(Point2f)    Visus::Point2<float > ;
+   %template(Point2d)    Visus::Point2<double> ;
+   %template(Point3i)    Visus::Point3<int  >  ;
+   %template(Point3f)    Visus::Point3<float>  ;
+   %template(Point3d)    Visus::Point3<double> ;
+   %template(Point4i)    Visus::Point4<int   > ;
+   %template(Point4f)    Visus::Point4<float > ;
+   %template(Point4d)    Visus::Point4<double> ;
+   %template(PointNi)    Visus::PointN<int >   ;
+   %template(PointNf)    Visus::PointN<float > ;
+   %template(PointNd)    Visus::PointN<double> ;
+   %template(NdPoint)    Visus::PointN< Visus::Int64 > ;
 %include <Visus/Box.h>
-  %template(Box3d)    Visus::Box3<double> ;
-  %template(Box3i)    Visus::Box3<int> ;
-  %template(BoxNd)    Visus::BoxN<double> ;
-  %template(NdBox)    Visus::BoxN< Visus::Int64 >;
+   %template(Box3d)    Visus::Box3<double> ;
+   %template(Box3i)    Visus::Box3<int> ;
+   %template(BoxNd)    Visus::BoxN<double> ;
+   %template(NdBox)    Visus::BoxN< Visus::Int64 >;
 %include <Visus/Matrix.h>
 %include <Visus/Position.h>
 %include <Visus/Range.h>
@@ -123,40 +89,84 @@ static void setNumPyHeap(PyArrayObject* numpy_array,SharedPtr<HeapMemory> heap)
 # equivalent to VISUS_REGISTER_OBJECT_CLASS 
 def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
 
-  class MyObjectCreator(ObjectCreator):
+   class MyObjectCreator(ObjectCreator):
+   
+      def __init__(self,object_name):
+         ObjectCreator.__init__(self)
+         self.object_name=object_name
 
-    # __init__
-    def __init__(self,object_name):
-      ObjectCreator.__init__(self)
-      self.object_name=object_name
+      def createInstance(self):
+         return eval(self.object_name+"()")
 
-    # createInstance
-    def createInstance(self):
-      return eval(self.object_name+"()")
-
-  ObjectFactory.getSingleton().registerObjectClass(object_name,object_name,MyObjectCreator(object_name))
+   ObjectFactory.getSingleton().registerObjectClass(object_name,object_name,MyObjectCreator(object_name))
 
 %}
 
 // _____________________________________________________
 // extend Array
 %extend Visus::Array {
-  Visus::Array operator[](int index) const          {return $self->getComponent(index);}
-  Visus::Array operator+(Visus::Array& other) const {return ArrayUtils::add(*self,other);}
-  Visus::Array operator-(Visus::Array& other) const {return ArrayUtils::sub(*self,other);}
-  Visus::Array operator*(Visus::Array& other) const {return ArrayUtils::mul(*self,other);}
-  Visus::Array operator*(double coeff) const        {return ArrayUtils::mul(*self,coeff);}
-  Visus::Array operator/(Visus::Array& other) const {return ArrayUtils::div(*self,other);}
-  Visus::Array operator/(double coeff) const        {return ArrayUtils::div(*self,coeff);}
-  Visus::Array& operator+=(Visus::Array& other)     {*self=ArrayUtils::add(*self,other); return *self;}
-  Visus::Array& operator-=(Visus::Array& other)     {*self=ArrayUtils::sub(*self,other); return *self;}
-  Visus::Array& operator*=(Visus::Array& other)     {*self=ArrayUtils::mul(*self,other); return *self;}
-  Visus::Array& operator*=(double coeff)            {*self=ArrayUtils::mul(*self,coeff); return *self;}
-  Visus::Array& operator/=(Visus::Array& other)     {*self=ArrayUtils::div(*self,other); return *self;} 
-  Visus::Array& operator/=(double coeff)            {*self=ArrayUtils::div(*self,coeff); return *self;}
-  %pythoncode %{
-    def __rmul__(self, v):
+
+Visus::Array operator[]  (int index)           const {return $self->getComponent(index);}
+Visus::Array operator+   (Visus::Array& other) const {return ArrayUtils::add(*self,other);}
+Visus::Array operator-   (Visus::Array& other) const {return ArrayUtils::sub(*self,other);}
+Visus::Array operator*   (Visus::Array& other) const {return ArrayUtils::mul(*self,other);}
+Visus::Array operator*   (double coeff)        const {return ArrayUtils::mul(*self,coeff);}
+Visus::Array operator/   (Visus::Array& other) const {return ArrayUtils::div(*self,other);}
+Visus::Array operator/   (double coeff)        const {return ArrayUtils::div(*self,coeff);}
+Visus::Array& operator+= (Visus::Array& other)       {*self=ArrayUtils::add(*self,other); return *self;}
+Visus::Array& operator-= (Visus::Array& other)       {*self=ArrayUtils::sub(*self,other); return *self;}
+Visus::Array& operator*= (Visus::Array& other)       {*self=ArrayUtils::mul(*self,other); return *self;}
+Visus::Array& operator*= (double coeff)              {*self=ArrayUtils::mul(*self,coeff); return *self;}
+Visus::Array& operator/= (Visus::Array& other)       {*self=ArrayUtils::div(*self,other); return *self;} 
+Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*self,coeff); return *self;}
+
+%pythoncode %{
+   
+   # ////////////////////////////////////////////////////////
+   def __rmul__(self, v):
       return self.__mul__(v)
-  %}
+
+   # ////////////////////////////////////////////////////////
+   def toNumPy(src,bShareMem=False):
+      import numpy
+      shape=list(reversed([src.dims[I] for I in range(src.dims.getPointDim())]))
+      shape.append(src.dtype.ncomponents())
+      single_dtype=src.dtype.get(0).toString()
+      if   single_dtype=="int8":     typestr="|i1"
+      elif single_dtype=="uint8":    typestr="|u1"
+      elif single_dtype=="in16":     typestr="<i2"
+      elif single_dtype=="uint16":   typestr="<u2"
+      elif single_dtype=="int32":    typestr="<i4"
+      elif single_dtype=="uint32":   typestr="<u4"
+      elif single_dtype=="float32":  typestr="<f4"
+      elif single_dtype=="float64":  typestr="<f8"
+      class numpy_holder(object): pass
+      holder = numpy_holder()
+      holder.__array_interface__ = {'strides': None,'shape': tuple(shape), 'typestr': typestr, 'data': (int(src.c_address()), False), 'version': 3 }
+      ret = numpy.array(holder, copy=not bShareMem) 
+      return ret
+   
+   # ////////////////////////////////////////////////////////
+   def fromNumPy(src,bShareMem=False):
+      import numpy
+      if src.__array_interface__["strides"] is not None: raise Exception("numpy array is not memory contiguous")
+      shape=src.__array_interface__["shape"]
+      shape=tuple(reversed(shape))
+      dims=NdPoint.one(len(shape))
+      for I in range(dims.getPointDim()): dims.set(I,shape[I])   
+      typestr=src.__array_interface__["typestr"]
+      if   typestr=="|i1": dtype=DType.fromString("int8")
+      elif typestr=="|u1": dtype=DType.fromString("uint8")
+      elif typestr=="<i2": dtype=DType.fromString("in16")
+      elif typestr=="<u2": dtype=DType.fromString("uint16")
+      elif typestr=="<i4": dtype=DType.fromString("int32")
+      elif typestr=="<u4": dtype=DType.fromString("uint32")
+      elif typestr=="<f4": dtype=DType.fromString("float32")
+      elif typestr=="<f8": dtype=DType.fromString("float64")
+      else: raise Exception("unsupported typestr {}".format(typestr))
+      c_address=str(src.__array_interface__["data"][0])
+      return Array(dims,dtype,c_address,bShareMem)
+   fromNumPy = staticmethod(fromNumPy)
+%}
 };
 

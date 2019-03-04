@@ -41,11 +41,14 @@ For support : support@visus.net
 namespace Visus {
 
 ///////////////////////////////////////////////
-GLArrayBuffer::GLArrayBuffer(Array array_) : array(array_)
+GLArrayBuffer::GLArrayBuffer(DType dtype,int nvertices,SharedPtr<HeapMemory> heap) 
 {
-  if (!array) return;
-  DType atomic_dtype=array.dtype.get(0);
+  if (!heap) 
+    return;
 
+  VisusReleaseAssert(heap->c_size() >= dtype.getByteSize(nvertices));
+
+  DType atomic_dtype=dtype.get(0);
   int gltype=0;
   if      (atomic_dtype==DTypes::FLOAT32) gltype= GL_FLOAT;
   else if (atomic_dtype==DTypes::UINT8  ) gltype= GL_UNSIGNED_BYTE;
@@ -60,8 +63,13 @@ GLArrayBuffer::GLArrayBuffer(Array array_) : array(array_)
     VisusAssert(false);
     return;
   }
+
+  this->dtype = dtype;
+  this->nvertices = nvertices;
+  this->heap = heap;
   this->gltype=gltype;
-  this->glsize=array.dtype.ncomponents();
+  this->glsize=dtype.ncomponents();
+  this->glstride = 0;
 }
 
 ///////////////////////////////////////////////
@@ -72,16 +80,20 @@ GLArrayBuffer::~GLArrayBuffer() {
 ///////////////////////////////////////////////
 void GLArrayBuffer::enableForAttribute(QOpenGLExtraFunctions& gl,int location)
 {
-  if (location<0 || !gltype)  return;
+  if (location<0 || !gltype || !heap)  
+    return;
+  
   VisusAssert(array);
-  gl.glVertexAttribPointer(location,this->glsize,this->gltype,GL_FALSE,this->glstride,array.c_ptr());
+  gl.glVertexAttribPointer(location,this->glsize,this->gltype,GL_FALSE,this->glstride,this->heap->c_ptr());
   gl.glEnableVertexAttribArray(location);
 }
 
 ///////////////////////////////////////////////
 void GLArrayBuffer::disableForAttribute(QOpenGLExtraFunctions& gl,int location)
 {
-  if (location<0 || !gltype) return;
+  if (location<0 || !gltype || !heap) 
+    return;
+  
   VisusAssert(array);
   gl.glDisableVertexAttribArray(location);
 }

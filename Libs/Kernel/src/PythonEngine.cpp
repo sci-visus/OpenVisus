@@ -71,6 +71,10 @@ For support : support@visus.net
 
 namespace Visus {
 
+//note for shared_ptr swig enabled types, you always need to use the shared_ptr typename
+static String SwigAbortedTypeName = "Visus::Aborted *";
+static String SwigArrayTypeName   = "std::shared_ptr< Visus::Array > *";
+
 
 static PyThreadState* __main__thread_state__=nullptr;
 
@@ -280,36 +284,6 @@ void PythonEngine::addSysPath(String value,bool bVerbose) {
 
 static std::atomic<int> module_id(0);
 
-
-
-///////////////////////////////////////////////////////////////////////////
-template <typename ValueClass>
-PyObject* NewPyObjectWithType(ValueClass value, swig_type_info* type_info) {
-  return SWIG_NewPointerObj(new ValueClass(value), type_info, SWIG_POINTER_OWN);
-}
-
-///////////////////////////////////////////////////////////////////////////
-template <typename ReturnClass>
-ReturnClass GetSwigModuleAttr(PyObject* py_object, String name, swig_type_info* type_info)
-{
-  if (!py_object)
-    ThrowException(StringUtils::format() << "cannot find '" << name << "' in module");
-
-  ReturnClass* ptr = nullptr;
-  int res = SWIG_ConvertPtr(py_object, (void**)&ptr, type_info, 0);
-
-  if (!SWIG_IsOK(res) || !ptr)
-    ThrowException(StringUtils::format() << "cannot case '" << name << "' to " << type_info->name);
-
-  ReturnClass ret = (*ptr);
-
-  if (SWIG_IsNewObj(res))
-    delete ptr;
-
-  return ret;
-}
-
-
   ///////////////////////////////////////////////////////////////////////////
 PythonEngine::PythonEngine(bool bVerbose) 
 {
@@ -384,15 +358,6 @@ PythonEngine::PythonEngine(bool bVerbose)
 
   if (bVerbose)
     VisusInfo() << "...imported OpenVisus";
-
-  this->swig_type_aborted = SWIG_TypeQuery("Visus::Aborted *");
-  this->swig_type_array = SWIG_TypeQuery("Visus::Array *");
-
-  VisusAssert(this->swig_type_aborted);
-  VisusAssert(this->swig_type_array);
-
-  //swig_type_object_type_info = SWIG_TypeQuery("Visus::SharedPtr< Visus::Object > *");
-  //VisusAssert(object_type_info);
 }
 
 
@@ -544,35 +509,84 @@ PyObject* PythonEngine::newPyObject(String s) {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-PyObject* PythonEngine::newPyObject(Aborted value) {
-  return NewPyObjectWithType<Aborted>(value, (swig_type_info*)swig_type_aborted);
+PyObject* PythonEngine::newPyObject(Aborted value) 
+{
+  auto typeinfo = SWIG_TypeQuery(SwigAbortedTypeName.c_str());
+  VisusAssert(typeinfo);
+  Aborted* ptr = new Aborted(value);
+  return SWIG_NewPointerObj(ptr, typeinfo, SWIG_POINTER_OWN);
 }
 
-///////////////////////////////////////////////////////////////////////////
-PyObject* PythonEngine::newPyObject(Array value) {
-  return NewPyObjectWithType<Array>(value, (swig_type_info*)swig_type_array);
-}
 
 ///////////////////////////////////////////////////////////////////////////
-Aborted PythonEngine::getModuleAbortedAttr(String name) {
-  return GetSwigModuleAttr<Aborted>(getModuleAttr(name), name, (swig_type_info *)swig_type_aborted);
-}
+Aborted PythonEngine::getModuleAbortedAttr(String name) 
+{
+  auto typeinfo = SWIG_TypeQuery(SwigAbortedTypeName.c_str());
+  VisusAssert(typeinfo);
 
-///////////////////////////////////////////////////////////////////////////
-Array PythonEngine::getModuleArrayAttr(String name) {
-  return GetSwigModuleAttr<Array>(getModuleAttr(name), name, (swig_type_info *)swig_type_array);
-}
+  auto py_object = getModuleAttr(name);
+  if (!py_object)
+    ThrowException(StringUtils::format() << "cannot find '" << name << "' in module");
 
-///////////////////////////////////////////////////////////////////////////
-Array PythonEngine::toArray(PyObject* py_object) {
-
-  Array* ptr = nullptr;
-  int res = SWIG_ConvertPtr(py_object, (void**)&ptr, (swig_type_info *)swig_type_array, 0);
+  Aborted* ptr = nullptr;
+  int res = SWIG_ConvertPtr(py_object, (void**)&ptr, typeinfo, 0);
 
   if (!SWIG_IsOK(res) || !ptr)
+    ThrowException(StringUtils::format() << "cannot case '" << name << "' to " << typeinfo->name);
+
+  Aborted ret = *ptr;
+
+  if (SWIG_IsNewObj(res))
+    delete ptr;
+
+  return ret;
+}
+
+///////////////////////////////////////////////////////////////////////////
+PyObject* PythonEngine::newPyObject(Array value) 
+{
+  auto typeinfo = SWIG_TypeQuery(SwigArrayTypeName.c_str());
+  VisusAssert(typeinfo);
+  auto ptr = new SharedPtr<Array>(new Array(value));
+  return SWIG_NewPointerObj(ptr, typeinfo, SWIG_POINTER_OWN);
+}
+///////////////////////////////////////////////////////////////////////////
+Array PythonEngine::getModuleArrayAttr(String name) 
+{
+  auto typeinfo = SWIG_TypeQuery(SwigArrayTypeName.c_str());
+  VisusAssert(typeinfo);
+
+  auto py_object = getModuleAttr(name);
+  if (!py_object)
+    ThrowException(StringUtils::format() << "cannot find '" << name << "' in module");
+
+  SharedPtr<Array>* ptr = nullptr;
+  int res = SWIG_ConvertPtr(py_object, (void**)&ptr, typeinfo, 0);
+
+  if (!SWIG_IsOK(res) || !ptr || !ptr->get())
+    ThrowException(StringUtils::format() << "cannot case '" << name << "' to " << typeinfo->name);
+
+  Array ret = **ptr;
+
+  if (SWIG_IsNewObj(res))
+    delete ptr;
+
+  return ret;
+}
+
+///////////////////////////////////////////////////////////////////////////
+Array PythonEngine::pythonObjectToArray(PyObject* py_object) 
+{
+  auto typeinfo = SWIG_TypeQuery(SwigArrayTypeName.c_str());
+  VisusAssert(typeinfo);
+
+  SharedPtr<Array>* ptr = nullptr;
+  int res = SWIG_ConvertPtr(py_object, (void**)&ptr, typeinfo, 0);
+
+  if (!SWIG_IsOK(res) || !ptr || !ptr->get())
     ThrowException(StringUtils::format() << "cannot convert to array");
 
-  Array ret = (*ptr);
+  Array ret = **ptr;
 
   if (SWIG_IsNewObj(res))
     delete ptr;

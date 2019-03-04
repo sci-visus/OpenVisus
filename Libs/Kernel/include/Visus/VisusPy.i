@@ -49,6 +49,7 @@ For support : support@visus.net
     #pragma warning(disable: 4101)
     #pragma warning(disable: 4244)
   #endif
+
 %}
 
 
@@ -145,16 +146,16 @@ namespace Visus {}
     $action
   } 
   catch (Swig::DirectorMethodException& e) {
-	VisusInfo()<<"Error happened in swig director code: "<<e.what();
+	VisusInfo()<<"Error happened in swig director code: "<<e.what()<< " where("<< VisusHereInTheCode<<")";
 	VisusInfo()<<PythonEngine::getLastErrorMessage();
     SWIG_fail;
   }
   catch (std::exception& e) {
-    VisusInfo()<<"Swig Catched std::exception: "<<e.what();
+    VisusInfo()<<"Swig Catched std::exception: "<<e.what()<<" where("<< VisusHereInTheCode<<")";
     SWIG_exception_fail(SWIG_SystemError, e.what() );
   }
   catch (...) {
-    VisusInfo()<<"Swig Catched ... exception: unknown reason";
+    VisusInfo()<<"Swig Catched ... exception: unknown reason"  << " where("<< VisusHereInTheCode<<")";
     SWIG_exception(SWIG_UnknownError, "Unknown exception");
   }
 
