@@ -145,6 +145,7 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
       holder.__array_interface__ = {'strides': None,'shape': tuple(shape), 'typestr': typestr, 'data': (int(src.c_address()), False), 'version': 3 }
       ret = numpy.array(holder, copy=not bShareMem) 
       return ret
+   toNumPy = staticmethod(toNumPy)
    
    # ////////////////////////////////////////////////////////
    def fromNumPy(src,bShareMem=False):
