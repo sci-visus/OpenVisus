@@ -87,8 +87,13 @@ namespace Visus {}
 %{
 #define SWIG_FILE_WITH_INIT
 %}
-%include <Visus/numpy.i>
 
+
+// _____________________________________________________
+// init code 
+%init %{
+	//...your init code here...
+%}
 
 
 //__________________________________________________________
