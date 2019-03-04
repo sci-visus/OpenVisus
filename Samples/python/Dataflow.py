@@ -61,8 +61,8 @@ class PyProducer(Node):
 	# processInput (overriding from Node)
 	def processInput(self):
 		print("PyProducer::processInput")
-		msg=DataflowMessagePtr(DataflowMessage())
-		msg.get().writeContent("output",ObjectPtr(StringObject("hello visus")))
+		msg=DataflowMessage()
+		msg.writeContent("output",StringObject("hello visus"))
 		self.publish(msg)
 		return True
     

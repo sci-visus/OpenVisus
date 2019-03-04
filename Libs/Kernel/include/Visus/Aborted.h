@@ -45,13 +45,11 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Aborted : public Object
+class VISUS_KERNEL_API Aborted 
 {
 public:
 
   VISUS_CLASS(Aborted)
-
-  SharedPtr<bool> inner_value = std::make_shared<bool>(false);
 
   //default constructor
   Aborted() {
@@ -71,6 +69,20 @@ public:
   void setFalse() {
     *inner_value = false;
   }
+  
+  //operator==
+  bool operator==(Aborted& other) const {
+    return inner_value== other.inner_value;
+  }
+
+  //operator!=
+  bool operator!=(Aborted& other) const {
+    return inner_value != other.inner_value;
+  }
+
+private:
+
+  SharedPtr<bool> inner_value = std::make_shared<bool>(false);
 
 };
 

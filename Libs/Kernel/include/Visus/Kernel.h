@@ -125,11 +125,8 @@ namespace Math {
   const double Pi = 3.14159265358979323846;
 }
 
-#ifndef SWIG
-template <class T> using SharedPtr = std::shared_ptr<T>;
-template <class T> using WeakPtr = std::weak_ptr  <T>;
-template <class T> using UniquePtr = std::unique_ptr<T>;
-#endif
+#define SharedPtr std::shared_ptr
+#define UniquePtr std::unique_ptr
 
 typedef std::string String;
 
@@ -234,6 +231,7 @@ private:
 
 #endif
 
+#if !SWIG
 //__________________________________________________________
 namespace Private {
 
@@ -293,6 +291,7 @@ public:
 
 } //namespace Private
 
+#endif
 
 #ifdef VISUS_DEBUG
   #define VISUS_CLASS(className) \

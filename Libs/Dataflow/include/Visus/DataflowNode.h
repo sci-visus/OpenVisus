@@ -246,7 +246,7 @@ public:
   }
 
   //in case you need to know when published message is dispatched
-  virtual void messageHasBeenPublished(const DataflowMessage& msg){
+  virtual void messageHasBeenPublished(SharedPtr<DataflowMessage> msg){
     VisusAssert(VisusHasMessageLock());
   }
 

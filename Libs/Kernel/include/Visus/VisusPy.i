@@ -106,6 +106,7 @@ namespace Visus {}
 %include <std_string.i>
 %include <std_map.i>
 %include <std_set.i>
+%include <std_shared_ptr.i>
 
 %template(PairDoubleDouble)                std::pair<double,double>;
 %template(PairIntDouble)                   std::pair<int,double>;
@@ -191,39 +192,13 @@ namespace Visus {}
   // END typemap
 }
 
+
 //__________________________________________________________
 // NEW_OBJECT
 
 // IMPORTANT avoid returning director objects x
 #define VISUS_NEWOBJECT(typename) typename
 
-//__________________________________________________________
-// SharedPtr
-// grep -E -r -i -o -h --include *.h "SharedPtr<([[:space:]])*([[:alnum:]]+)([[:space:]]*)>" src  | sort -u
-
-namespace Visus {
-template<class T>
-class SharedPtr 
-{
-public:
-  SharedPtr();
-  explicit SharedPtr(const SharedPtr& other);
-  explicit SharedPtr(T* VISUS_DISOWN(ptr));
-  ~SharedPtr();
-  SharedPtr& operator=(const SharedPtr& other);
-  void reset();
-  void reset(T* VISUS_DISOWN(other));
-  T* get() const;
-  T& operator*() const;
-  operator bool() const;
-};
-
-} //namespace Visus 
-
-%define ENABLE_SHARED_PTR(ClassName) 
-  %apply SWIGTYPE* DISOWN {Visus::ClassName* disown};
-  %template(ClassName##Ptr) Visus::SharedPtr< Visus::ClassName >;
-%enddef
 
 //__________________________________________________________
 //UniquePtr

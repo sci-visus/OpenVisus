@@ -27,94 +27,89 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <libxml/xmlreader.h>
-#include <libxml/xinclude.h>
 #include <time.h>
 
-#include "xidx/xidx.h"
+#include "Visus/VisusXIdx.h"
 
-using namespace xidx;
+using namespace Visus;
 
-int main(int argc, char** argv){
+////////////////////////////////////////////////////////////////////////////////////////////
+int main(int argn, const char** argv) {
 
-  if(argc < 2){
-    fprintf(stderr, "Usage: read file_path [debug]\n");
-    return 1;
+  SetCommandLine(argn, argv);
+  XIdxModule::attach();
+
+  if (argn < 2) {
+    VisusInfo()<<"Usage: read file_path [debug]";
+    return -1;
   }
 
-  clock_t start, finish;
-  start = clock();
+  auto t1 = Time::now();
 
-  MetadataFile metadata(argv[1]);
+  auto metadata = XIdxFile::load(std::string(argv[1]));
 
-  int ret = metadata.Load();
+  auto time_group = metadata->getGroup(GroupType::TEMPORAL_GROUP_TYPE);
+  //auto time_domain = std::static_pointer_cast<HyperSlabDomain>(root_group->domain);
+  auto time_domain = std::static_pointer_cast<TemporalListDomain>(time_group->domain);
 
-  finish = clock();
+  VisusInfo() << "Time Domain " << time_domain->type.toString();
 
-  printf("Time taken %fms\n",(double(finish)-double(start))/CLOCKS_PER_SEC);
+  for (auto& att : time_domain->attributes)
+    VisusInfo() << "\t\tAttribute " << att->name << " value " << att->value;
 
-  std::shared_ptr<Group> root_group = metadata.getRootGroup();
-  
-  std::shared_ptr<Domain> time_domain = root_group->getDomain();
-  
-  std::shared_ptr<TemporalListDomain> domain = std::static_pointer_cast<TemporalListDomain>(time_domain);
-  
-  printf("Time Domain[%s]:\n", Domain::toString(domain->getType()));
-  for(auto& att: domain->getAttributes())
-    printf("\t\tAttribute %s value %s\n", att->name.c_str(), att->value.c_str());
-  
-  int t_count=0;
-  for(auto t : domain->getLinearizedIndexSpace()){
-    printf("Timestep %f\n", t);
+  int t_count = 0;
+  for (auto t : time_domain->getLinearizedIndexSpace()) 
+  {
+    VisusInfo() << "Timestep " << t;
 
-    auto& grid = root_group->getGroup(t_count++);
-    std::shared_ptr<Domain> domain = grid->getDomain();
-    
-    printf("\tGrid Domain[%s]:\n", Domain::toString(domain->getType()));
-    
-    for(auto& att: domain->getAttributes())
-      printf("\t\tAttribute %s value %s\n", att->name.c_str(), att->value.c_str());
-    
-    if(domain->getType() == Domain::DomainType::SPATIAL_DOMAIN_TYPE){
-      std::shared_ptr<SpatialDomain> sdom = std::dynamic_pointer_cast<SpatialDomain>(domain);
-      printf("\tTopology %s volume %lu\n", Topology::toString(sdom->topology.type), sdom->getVolume());
-      printf("\tGeometry %s", Geometry::toString(sdom->geometry.type));
-    }
-    else if(domain->getType() == Domain::DomainType::MULTIAXIS_DOMAIN_TYPE)
+    auto grid = time_group->getGroup(t_count++);
+    auto spatial_domain = grid->domain;
+
+    VisusInfo() << "\tGrid Domain[" << spatial_domain->type.toString() << "]";
+
+    for (auto& att : spatial_domain->attributes)
+      VisusInfo() << "\t\tAttribute " << att->name << " value " << att->value;
+
+    if (spatial_domain->type == DomainType::SPATIAL_DOMAIN_TYPE) 
     {
-      std::shared_ptr<MultiAxisDomain> mdom = std::dynamic_pointer_cast<MultiAxisDomain>(domain);
-      for(int a=0; a < mdom->getNumberOfAxis(); a++){
-        const Axis& axis = mdom->getAxis(a);
-        printf("\tAxis %s volume %lu: [ ", axis.name.c_str(), axis.getVolume());
-        
-        // print axis values
-        for(auto v: axis.getValues())
-          printf("%f ", v);
-        printf("]\n");
-        
-        for(auto& att: axis.getAttributes())
-          printf("\t\tAttribute %s value %s\n", att->name.c_str(), att->value.c_str());
-      }
+      auto sdom = std::dynamic_pointer_cast<SpatialDomain>(spatial_domain);
+      VisusInfo() << "\tTopology " << sdom->topology->type.toString() << " volume " << sdom->getVolume();
+      VisusInfo() << "\tGeometry " << sdom->geometry->type.toString();
     }
-    
-    printf("\n");
-    
-    for(auto& var: grid->getVariables()){
-      auto source = var->getDataItems()[0]->getDataSource();
-      printf("\t\tVariable: %s ", var->name.c_str());
-      if(source != nullptr)
-        printf("data source url: %s\n", source->getUrl().c_str());
-      else printf("\n");
-      
-      for(auto att: var->getAttributes()){
-        printf("\t\t\tAttribute %s value %s\n", att->name.c_str(), att->value.c_str());
-      }
-    }
-    
-  }
-  
-  // (Debug) Saving the content in a different file to compare with the original
-  metadata.save("verify.xidx");
+    else if (spatial_domain->type == DomainType::MULTIAXIS_DOMAIN_TYPE)
+    {
+      auto mdom = std::dynamic_pointer_cast<MultiAxisDomain>(spatial_domain);
+      for (auto& axis : mdom->axis) {
+        VisusInfo() << "\tAxis " << axis->name << " volume " << axis->getVolume();
 
-  return ret;
+        // print axis values
+        for (auto v : axis->getValues())
+          VisusInfo() << v;
+
+        for (auto& att : axis->attributes)
+          VisusInfo() << "\t\tAttribute " << att->name << " value " << att->value;
+      }
+    }
+
+    VisusInfo() << "";
+
+    for (auto& var : grid->variables) 
+    {
+      auto source = var->data_items[0]->findDataSource();
+      VisusInfo() << "\t\tVariable: " << var->name <<  " data source url: " << (source ?source->url:"");
+
+        for (auto att : var->attributes) 
+          VisusInfo() << "\t\t\tAttribute " << att->name << " value " << att->value;
+    }
+
+  }
+
+  // (Debug) Saving the content in a different file to compare with the original
+  metadata->save("verify.xidx");
+
+  VisusInfo() << "output saved into verify.xidx";
+
+  XIdxModule::detach();
+
+  return 0; 
 }

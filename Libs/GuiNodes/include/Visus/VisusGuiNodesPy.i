@@ -4,6 +4,7 @@
 #include <Visus/Gui.h>
 #include <Visus/GLObjects.h>
 #include <Visus/PythonNode.h>
+#include <Visus/Dataflow.h>
 using namespace Visus;
 %}
 

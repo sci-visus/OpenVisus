@@ -86,11 +86,11 @@ bool StatisticsNode::processInput()
 }
 
 ////////////////////////////////////////////////////////
-void StatisticsNode::messageHasBeenPublished(const DataflowMessage& msg) 
+void StatisticsNode::messageHasBeenPublished(SharedPtr<DataflowMessage> msg)
 {
   VisusAssert(VisusHasMessageLock());
 
-  auto statistics=std::dynamic_pointer_cast<Statistics>(msg.readContent("statistics"));
+  auto statistics=std::dynamic_pointer_cast<Statistics>(msg->readContent("statistics"));
   if (!statistics)
     return;
 

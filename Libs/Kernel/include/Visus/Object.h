@@ -214,7 +214,7 @@ inline VISUS_NEWOBJECT(ClassName*) ObjectStream::readObject(String name) {
   
 
 /////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API ObjectEncoder : public Object
+class VISUS_KERNEL_API ObjectEncoder
 {
 public:
 
