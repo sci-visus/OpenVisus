@@ -45,6 +45,8 @@ For support : support@visus.net
 
 namespace Visus {
 
+class VISUS_IDX_API PythonEnginePool;
+
 //////////////////////////////////////////////////////////////////////
 class VISUS_IDX_API IdxMultipleDataset  : public IdxDataset
 {
@@ -69,12 +71,10 @@ public:
   std::map<String , Child > childs;
 
   //constructor
-  IdxMultipleDataset() {
-  }
+  IdxMultipleDataset();
 
   //destructor
-  virtual ~IdxMultipleDataset() {
-  }
+  virtual ~IdxMultipleDataset();
 
   //getChild
   Child getChild(String name) const {
@@ -136,6 +136,10 @@ public:
   bool createIdxFile(String idx_filename, Field idx_field) const;
 
 private:
+
+  friend class QueryInputTerm;
+
+  SharedPtr<PythonEnginePool> python_engine_pool;
 
   //getInputName
   String getInputName(String name, String fieldname,bool bIsVarName=false);

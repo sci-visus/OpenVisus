@@ -314,7 +314,7 @@ ReturnClass GetSwigModuleAttr(PyObject* py_object, String name, swig_type_info* 
 PythonEngine::PythonEngine(bool bVerbose) 
 {
   this->module_name = StringUtils::format() << "__PythonEngine__" << (++module_id);
-  VisusInfo() << "Creating PythonEngine "<< module_name <<"...";
+  //VisusInfo() << "Creating PythonEngine "<< module_name <<"...";
 
   ScopedAcquireGil acquire_gil;
   this->module  = PyImport_AddModule(module_name.c_str()); 
@@ -385,11 +385,11 @@ PythonEngine::PythonEngine(bool bVerbose)
   if (bVerbose)
     VisusInfo() << "...imported OpenVisus";
 
-  swig_type_aborted = SWIG_TypeQuery("Visus::Aborted *");
-  VisusAssert(swig_type_aborted);
+  this->swig_type_aborted = SWIG_TypeQuery("Visus::Aborted *");
+  this->swig_type_array = SWIG_TypeQuery("Visus::Array *");
 
-  swig_type_array = SWIG_TypeQuery("Visus::Array *");
-  VisusAssert(swig_type_array);
+  VisusAssert(this->swig_type_aborted);
+  VisusAssert(this->swig_type_array);
 
   //swig_type_object_type_info = SWIG_TypeQuery("Visus::SharedPtr< Visus::Object > *");
   //VisusAssert(object_type_info);
@@ -399,7 +399,7 @@ PythonEngine::PythonEngine(bool bVerbose)
 ///////////////////////////////////////////////////////////////////////////
 PythonEngine::~PythonEngine()
 {
-  VisusInfo() << "Destroying PythonEngine " << this->module_name << "...";
+  //VisusInfo() << "Destroying PythonEngine " << this->module_name << "...";
 
   // Delete the module from sys.modules
   {

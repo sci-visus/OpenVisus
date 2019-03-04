@@ -204,7 +204,7 @@ public:
 ScriptingNode::ScriptingNode(String name)  : Node(name)
 {
 #if VISUS_PYTHON
-  engine = std::make_shared<PythonEngine>(false);
+  this->engine = std::make_shared<PythonEngine>(false);
 #endif
 
   addInputPort("data");

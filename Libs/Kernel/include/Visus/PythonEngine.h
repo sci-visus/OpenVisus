@@ -46,6 +46,8 @@ For support : support@visus.net
 #include <Visus/Log.h>
 #include <Visus/StringUtils.h>
 
+#include <queue>
+
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning (disable:4996)
@@ -247,6 +249,36 @@ public:
 };
 
 typedef ScopedReleaseGil PythonThreadAllow;
+
+
+/////////////////////////////////////////////////////
+class VISUS_KERNEL_API PythonEnginePool
+{
+public:
+
+  //createEngine
+  SharedPtr<PythonEngine> createEngine() {
+    ScopedLock lock(this->lock);
+    if (freelist.empty()) 
+      freelist.push(std::make_shared<PythonEngine>());
+    auto ret = freelist.front();
+    freelist.pop();
+    return ret;
+  }
+
+  //releaseEngine
+  void releaseEngine(SharedPtr<PythonEngine> value) {
+    ScopedLock lock(this->lock);
+    freelist.push(value);
+  }
+
+private:
+
+  CriticalSection lock;
+  std::queue< SharedPtr<PythonEngine> > freelist;
+
+};
+
 
 } //namespace Visus
 
