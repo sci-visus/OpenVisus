@@ -22,6 +22,7 @@ using namespace Visus;
 ///////////////////////////////////////////////////////////////
 //allow rendering inside main GLCanvas (problem of multi-inheritance Node and GLObject)
 %feature("director") Visus::PythonNode; 
+
 %feature("nodirector") Visus::PythonNode::beginUpdate;
 %feature("nodirector") Visus::PythonNode::endUpdate;
 %feature("nodirector") Visus::PythonNode::getNodeBounds;
@@ -43,4 +44,5 @@ using namespace Visus;
 %feature("nodirector") Visus::PythonNode::readFromObjectStream;
 %feature("nodirector") Visus::PythonNode::writeToSceneObjectStream;
 %feature("nodirector") Visus::PythonNode::readFromSceneObjectStream;
+
 %include <Visus/PythonNode.h>
