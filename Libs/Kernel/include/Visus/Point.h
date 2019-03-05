@@ -72,8 +72,8 @@ public:
   explicit Point2(const std::array<T, 2>& src) : x(src[0]), y(src[1]) {
   }
 
-  //toArray
-  std::array<T, 2> toArray() const {
+  //toStdArray
+  std::array<T, 2> toStdArray() const {
     return { {x,y} };
   }
 
@@ -248,8 +248,8 @@ public:
     std::istringstream parser(value); parser >> x >> y >> z;
   }
 
-  //toArray
-  std::array<T,3> toArray() const {
+  //toStdArray
+  std::array<T,3> toStdArray() const {
     return { {x,y,z} };
   }
 
@@ -476,8 +476,8 @@ public:
     std::istringstream parser(value); parser >> x >> y >> z >> w;
   }
 
-  //toArray
-  std::array<T, 4> toArray() const {
+  //toStdArray
+  std::array<T, 4> toStdArray() const {
     return { {x,y,z,w} };
   }
 
@@ -848,6 +848,12 @@ public:
   inline const T& get(int i) const {
     VisusAssert(i >= 0 && i < 5);
     return coords[i];
+  }
+
+  //set
+  inline void set(int i, T value) {
+    VisusAssert(i >= 0 && i < 5);
+    coords[i]=value;
   }
 
   //operator[]

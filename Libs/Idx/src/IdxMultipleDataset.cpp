@@ -182,7 +182,7 @@ public:
   Query*                   QUERY;
   SharedPtr<Access>        ACCESS;
 
-  SharedPtr<PythonEngine>  engine = std::make_shared<PythonEngine>(false);
+  SharedPtr<PythonEngine>  engine;
   Aborted                  aborted;
 
   struct
@@ -197,6 +197,8 @@ public:
     : VF(VF_), QUERY(QUERY_), ACCESS(ACCESS_), aborted(aborted_) {
 
     VisusAssert(!VF->bMosaic);
+
+    this->engine = (!VF->bServerMode)? VF->python_engine_pool->createEngine() : std::make_shared<PythonEngine>();
 
     {
       ScopedAcquireGil acquire_gil;
@@ -230,13 +232,18 @@ public:
   //destructor
   virtual ~QueryInputTerm()
   {
-    ScopedAcquireGil acquire_gil;
-    engine->delModuleAttr("query_time");
-    engine->delModuleAttr("doPublish");
-    engine->delModuleAttr("voronoiBlend");
-    engine->delModuleAttr("averageBlend");
-    engine->delModuleAttr("noBlend");
-    engine->delModuleAttr("input");
+    {
+      ScopedAcquireGil acquire_gil;
+      engine->delModuleAttr("query_time");
+      engine->delModuleAttr("doPublish");
+      engine->delModuleAttr("voronoiBlend");
+      engine->delModuleAttr("averageBlend");
+      engine->delModuleAttr("noBlend");
+      engine->delModuleAttr("input");
+    }
+
+    if (!VF->bServerMode)
+      VF->python_engine_pool->releaseEngine(this->engine);
   }
 
   //computeOutput
@@ -601,7 +608,7 @@ public:
 
         for (int I = 0, N = (int)PyList_Size(arg0); I < N; I++)
         {
-          auto buffer = engine->toArray(PyList_GetItem(arg0, I));
+          auto buffer = engine->pythonObjectToArray(PyList_GetItem(arg0, I));
           blend.addArg(buffer, Array());
         }
       }
@@ -743,6 +750,17 @@ public:
 };
 #endif //VISUS_PYTHON
 
+
+
+///////////////////////////////////////////////////////////////////////////////////
+IdxMultipleDataset::IdxMultipleDataset() {
+  python_engine_pool = std::make_shared<PythonEnginePool>();
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////
+IdxMultipleDataset::~IdxMultipleDataset() {
+}
 
 ///////////////////////////////////////////////////////////////////////////////////
 SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForBlockQuery)

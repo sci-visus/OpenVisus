@@ -52,6 +52,10 @@ namespace Visus {
 ///////////////////////////////////////////////////////////////////////////////////////
 Array Array::getComponent(int C, Aborted aborted) const
 {
+  //return the same component
+  if (this->dtype.ncomponents() == 1 && C == 0)
+    return *this;
+
   Int64 Soffset = this->dtype.getBitsOffset(C); DType Sdtype = this->dtype;
   Int64 Doffset = 0;                            DType Ddtype = this->dtype.get(C);
 
