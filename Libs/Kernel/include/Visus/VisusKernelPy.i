@@ -127,19 +127,13 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
       return self.__mul__(v)
 
    # ////////////////////////////////////////////////////////
-   def toNumPy(src,bShareMem=False):
+   def toNumPy(src,bShareMem=False,bSqueeze=False):
       import numpy
       shape=list(reversed([src.dims[I] for I in range(src.dims.getPointDim())]))
       shape.append(src.dtype.ncomponents())
-      single_dtype=src.dtype.get(0).toString()
-      if   single_dtype=="int8":     typestr="|i1"
-      elif single_dtype=="uint8":    typestr="|u1"
-      elif single_dtype=="in16":     typestr="<i2"
-      elif single_dtype=="uint16":   typestr="<u2"
-      elif single_dtype=="int32":    typestr="<i4"
-      elif single_dtype=="uint32":   typestr="<u4"
-      elif single_dtype=="float32":  typestr="<f4"
-      elif single_dtype=="float64":  typestr="<f8"
+      if bSqueeze: shape=[it for it in shape if it>1]
+      single_dtype=src.dtype.get(0)
+      typestr=("|" if single_dtype.getBitSize()==8 else "<") + ("f" if single_dtype.isDecimal() else ("u" if single_dtype.isUnsigned() else "i")) + str(int(single_dtype.getBitSize()/8))
       class numpy_holder(object): pass
       holder = numpy_holder()
       holder.__array_interface__ = {'strides': None,'shape': tuple(shape), 'typestr': typestr, 'data': (int(src.c_address()), False), 'version': 3 }
@@ -156,15 +150,7 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
       dims=NdPoint.one(len(shape))
       for I in range(dims.getPointDim()): dims.set(I,shape[I])   
       typestr=src.__array_interface__["typestr"]
-      if   typestr=="|i1": dtype=DType.fromString("int8")
-      elif typestr=="|u1": dtype=DType.fromString("uint8")
-      elif typestr=="<i2": dtype=DType.fromString("in16")
-      elif typestr=="<u2": dtype=DType.fromString("uint16")
-      elif typestr=="<i4": dtype=DType.fromString("int32")
-      elif typestr=="<u4": dtype=DType.fromString("uint32")
-      elif typestr=="<f4": dtype=DType.fromString("float32")
-      elif typestr=="<f8": dtype=DType.fromString("float64")
-      else: raise Exception("unsupported typestr {}".format(typestr))
+      dtype=DType(typestr[1]=="u", typestr[1]=="f", int(typestr[2])*8)
       c_address=str(src.__array_interface__["data"][0])
       return Array(dims,dtype,c_address,bShareMem)
    fromNumPy = staticmethod(fromNumPy)
