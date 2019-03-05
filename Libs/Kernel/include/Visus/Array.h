@@ -273,6 +273,10 @@ public:
   //setComponent
   bool setComponent(int C, Array src, Aborted aborted = Aborted());
 
+  static Array* castFrom(Object* obj) {
+    return dynamic_cast<Array*>(obj);
+  }
+
   //fromVectorInt32
   static Array fromVectorInt32(NdPoint dims, const std::vector<Int32>& vector) {
     return fromVector<Int32>(dims, DTypes::INT32, vector);

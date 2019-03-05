@@ -255,7 +255,7 @@ private:
     {
         auto access=dataset->createAccess();
         auto query=std::make_shared<Query>(dataset.get(),'r');
-        query->field=widgets.selected_field;
+        query->field= dataset->getFieldByName(widgets.selected_field.name);
         query->position=this->model->getQueryPosition();
         query->time=time_node->getCurrentTime();
         query->end_resolutions.push_back(value);
@@ -297,7 +297,7 @@ private:
 
       auto access = dataset->createAccess();
       auto query = std::make_shared<Query>(dataset.get(), 'r');
-      query->field = widgets.selected_field;
+      query->field = dataset->getFieldByName(widgets.selected_field.name);
       query->position = this->model->getQueryPosition();
       query->time = time_node->getCurrentTime();
       query->end_resolutions.push_back(res_value);
@@ -314,8 +314,8 @@ private:
       for (int I = 0; I < dataset->getPointDim(); I++)
         filename << "_" << query->nsamples[I];
       filename << query->field.dtype.toString();
-      filename << "_t_" << query->time;
-      filename << "_f_" << query->field.name;
+      //filename << "_t_" << query->time;
+      //filename << "_f_" << query->field.name;
       filename << ".raw";
 
       File data_file;

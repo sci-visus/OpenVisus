@@ -103,6 +103,10 @@ private:
     doPublish();
   }
 
+  static FieldNode* castFrom(Node* obj) {
+    return dynamic_cast<FieldNode*>(obj);
+  }
+
 };
 
 

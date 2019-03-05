@@ -62,6 +62,7 @@ public:
   field;
 
   Position bounds;
+  SharedPtr<Array> cell_array; // 1 if a voxel contributes to the isosurface; 0 otherwise
 
   //constructor
   IsoContour() {

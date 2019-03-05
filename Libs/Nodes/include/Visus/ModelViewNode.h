@@ -88,6 +88,10 @@ public:
     T=Matrix(istream.read("T"));
   }
 
+  static ModelViewNode* castFrom(Node* obj) {
+    return dynamic_cast<ModelViewNode*>(obj);
+  }
+
 private:
 
   Matrix T;

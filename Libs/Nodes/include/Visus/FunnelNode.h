@@ -68,6 +68,10 @@ public:
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override;
 
+  static FunnelNode* castFrom(Node* obj) {
+    return dynamic_cast<FunnelNode*>(obj);
+  }
+
 private:
 
 };
