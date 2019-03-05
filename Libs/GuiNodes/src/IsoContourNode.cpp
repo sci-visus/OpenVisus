@@ -68,6 +68,8 @@ struct ComputeIsoContourOp
     if (!(dims.x*dims.y*dims.z) || !field)
       return false;
 
+    CppType* cell_data = isocontour.cell_array.get()? isocontour.cell_array->c_ptr<CppType*>() : NULL;
+
     const int stridex=data.dtype.getByteSize()/sizeof(CppType);
     const int stridey=stridex*dims.x;
     const int stridez=stridey*dims.y;
@@ -126,6 +128,9 @@ struct ComputeIsoContourOp
 
       if (!et) 
         continue;
+
+      if (cell_data)
+        cell_data[index] = 1;
 
       double cube_points[8][3]=
       {
@@ -198,6 +203,11 @@ public:
   virtual void runJob() override
   {
     auto isocontour=std::make_shared<IsoContour>();
+    if (node->isOutputConnected("cell_array"))
+    {
+      isocontour->cell_array = std::make_shared<Array>(data.dims, data.dtype);
+      isocontour->cell_array->fillWithValue(0);
+    }
 
     ComputeIsoContourOp op;
 
@@ -221,6 +231,7 @@ public:
     //tell that the output has changed, if the port is not connected, this is a NOP!
     node->publish({
       {"data",isocontour},
+      {"cell_array",isocontour->cell_array},
       {"data_min",std::make_shared<DoubleObject>(op.data_min)},
       {"data_max",std::make_shared<DoubleObject>(op.data_max)}
     });
@@ -236,6 +247,7 @@ IsoContourNode::IsoContourNode(String name)
 {
   addInputPort("data");
   addOutputPort("data");
+  addOutputPort("cell_array");
 }
 
 ///////////////////////////////////////////////////////////////////////

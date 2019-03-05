@@ -93,6 +93,9 @@ public:
   void doPublish(SharedPtr<ReturnReceipt> value=SharedPtr<ReturnReceipt>());
 
 
+  static TimeNode* castFrom(Node* obj) {
+    return dynamic_cast<TimeNode*>(obj);
+  }
 public:
 
   //writeToObjectStream

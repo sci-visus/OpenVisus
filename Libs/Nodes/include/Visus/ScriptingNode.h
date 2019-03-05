@@ -101,6 +101,10 @@ public:
     return this->bounds;
   }
 
+  static ScriptingNode* castFrom(Node* obj) {
+    return dynamic_cast<ScriptingNode*>(obj);
+  }
+
 public:
 
   //writeToObjectStream

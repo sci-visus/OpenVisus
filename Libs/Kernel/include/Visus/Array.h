@@ -275,6 +275,10 @@ public:
   //setComponent
   bool setComponent(int C, Array src, Aborted aborted = Aborted());
 
+  static Array* castFrom(Object* obj) {
+    return dynamic_cast<Array*>(obj);
+  }
+
 public:
 
   //writeToObjectStream

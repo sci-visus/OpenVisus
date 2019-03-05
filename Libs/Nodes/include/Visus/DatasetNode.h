@@ -102,6 +102,10 @@ public:
     endUpdate();
   }
 
+  static DatasetNode* castFrom(Node* obj) {
+    return dynamic_cast<DatasetNode*>(obj);
+  }
+
 public:
 
   //writeToObjectStream

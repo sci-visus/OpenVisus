@@ -2514,13 +2514,14 @@ struct ConvolveOp
           Q[0]=i;
           Float64 sum=0.0;
           const Float64* kernel_p=kernel_begin;
-          NdPoint Sp(pdim), Kp(pdim);
-          #define ForKernel(n) for (Kp[n]=0, Sp[n]=Q[n]-Kcenter[n]; Kp[n]<Kdims[n]; ++Kp[n], ++Sp[n]) { if (Sp[n]<0 || Sp[n]>=Sdims[n]) continue;
+          NdPoint Sp(pdim), Kp(pdim), Tp(pdim);
+          //#define ForKernel(n) for (Kp[n]=0, Sp[n]=Q[n]-Kcenter[n]; Kp[n]<Kdims[n]; ++Kp[n], ++Sp[n]) { if (Sp[n]<0 || Sp[n]>=Sdims[n]) { int skip=1; int n1=n; while(n1-- != 0) skip *= Kdims[n1]; kernel_p += skip; continue; }
+          #define ForKernel(n) for (Kp[n]=0, Sp[n]=Q[n]-Kcenter[n]; Kp[n]<Kdims[n]; ++Kp[n], ++Sp[n]) { Tp[n] = Sp[n] < 0 ? 0 : Sp[n]>=Sdims[n] ? Sdims[n]-1 : Sp[n];
           switch (Kspace)
           {
-          case 1:                           ForKernel(0) sum+=(Float64)(src_p[Sp[0]*stride[0]                                ]) * (Float64)(*kernel_p++);}    break;
-          case 2:              ForKernel(1) ForKernel(0) sum+=(Float64)(src_p[Sp[0]*stride[0]+Sp[1]*stride[1]                ]) * (Float64)(*kernel_p++);}}   break;
-          case 3: ForKernel(2) ForKernel(1) ForKernel(0) sum+=(Float64)(src_p[Sp[0]*stride[0]+Sp[1]*stride[1]+Sp[2]*stride[2]]) * (Float64)(*kernel_p++);}}}  break;
+          case 1:                           ForKernel(0) sum+=(Float64)(src_p[Tp[0]*stride[0]                                ]) * (Float64)(*kernel_p++);}    break;
+          case 2:              ForKernel(1) ForKernel(0) sum+=(Float64)(src_p[Tp[0]*stride[0]+Tp[1]*stride[1]                ]) * (Float64)(*kernel_p++);}}   break;
+          case 3: ForKernel(2) ForKernel(1) ForKernel(0) sum+=(Float64)(src_p[Tp[0]*stride[0]+Tp[1]*stride[1]+Tp[2]*stride[2]]) * (Float64)(*kernel_p++);}}}  break;
           default:VisusAssert(false);
           }
           #undef ForKernel

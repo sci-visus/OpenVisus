@@ -166,6 +166,9 @@ public:
   //exitFromDataflow (to avoid dataset stuck in memory)
   virtual void exitFromDataflow() override;
 
+  static QueryNode* castFrom(Node* obj) {
+    return dynamic_cast<QueryNode*>(obj);
+  }
 public:
 
   //writeToObjectStream
