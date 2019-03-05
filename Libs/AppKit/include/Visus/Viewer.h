@@ -72,6 +72,7 @@ class QueryNode;
 class ScriptingNode;
 class PaletteNode;
 class RenderArrayNode;
+class OSPRayRenderNode;
 class ModelViewNode;
 class KdRenderArrayNode;
 class KdQueryNode;
@@ -391,7 +392,7 @@ public:
   IsoContourNode* addIsoContourNode(Node* parent, Node* data_provider = nullptr, double isovalue = 0.0);
 
   //addRenderArrayNode
-  RenderArrayNode* addRenderArrayNode(Node* parent, Node* data_provider = nullptr, String default_palette = "");
+  Node* addRenderArrayNode(Node* parent, Node* data_provider = nullptr, String default_palette = "", String render_type="");
 
   //addKdRenderArrayNode
   KdRenderArrayNode* addKdRenderArrayNode(Node* parent, Node* data_provider = nullptr);

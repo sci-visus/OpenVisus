@@ -36,82 +36,88 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
+
+#ifndef VISUS_OSPRAY_RENDERNODE_H
+#define VISUS_OSPRAY_RENDERNODE_H
+
 #include <Visus/GuiNodes.h>
+#include <Visus/DataflowNode.h>
+#include <Visus/TransferFunction.h>
 
-#include <Visus/GLCameraNode.h>
-#include <Visus/IsoContourNode.h>
-#include <Visus/IsoContourRenderNode.h>
-#include <Visus/RenderArrayNode.h>
-#include <Visus/OSPrayRenderNode.h>
-#include <Visus/KdRenderArrayNode.h>
-#include <Visus/JTreeRenderNode.h>
-#include <Visus/IsoContourShader.h>
-
-
-void GuiNodesInitResources() {
-  Q_INIT_RESOURCE(GuiNodes);
-}
-
-void GuiNodesCleanUpResources() {
-  Q_INIT_RESOURCE(GuiNodes);
-}
+#include <Visus/GLCanvas.h>
 
 namespace Visus {
 
-bool GuiNodesModule::bAttached = false;
-
-
-/////////////////////////////////////////////////////
-void GuiNodesModule::attach()
+////////////////////////////////////////////////////////////////////
+class VISUS_GUI_NODES_API OSPRayRenderNode :
+  public Node,
+  public GLObject
 {
-  if (bAttached)  
-    return;
-  
-  VisusInfo() << "Attaching GuiNodesModule...";
+public:
 
-  bAttached = true;
+  VISUS_NON_COPYABLE_CLASS(OSPRayRenderNode)
 
-  GuiNodesInitResources();
+  //constructor
+  OSPRayRenderNode(String name = "");
 
-  GuiModule::attach();
-  DataflowModule::attach();
+  //destructor
+  virtual ~OSPRayRenderNode();
 
-  IsoContourShader::Shaders::allocSingleton();
-  KdRenderArrayNodeShader::Shaders::allocSingleton();
-  RenderArrayNodeShader::Shaders::allocSingleton();
+  //getData
+  Array getData() const {
+    VisusAssert(VisusHasMessageLock()); return data;
+  }
 
-  VISUS_REGISTER_OBJECT_CLASS(GLCameraNode);
-  VISUS_REGISTER_OBJECT_CLASS(IsoContourNode);
-  VISUS_REGISTER_OBJECT_CLASS(IsoContourRenderNode);
-  VISUS_REGISTER_OBJECT_CLASS(RenderArrayNode);
-  VISUS_REGISTER_OBJECT_CLASS(OSPRayRenderNode);
-  VISUS_REGISTER_OBJECT_CLASS(KdRenderArrayNode);
-  VISUS_REGISTER_OBJECT_CLASS(JTreeRenderNode);
+  //getDataDimension
+  int getDataDimension() const {
+    VisusAssert(VisusHasMessageLock());
+    return (data.getWidth() > 1 ? 1 : 0) + (data.getHeight() > 1 ? 1 : 0) + (data.getDepth() > 1 ? 1 : 0);
+  }
 
-  VisusInfo() << "Attached GuiNodesModule";
-}
+  //getDataBounds 
+  Position getDataBounds() {
+    VisusAssert(VisusHasMessageLock());
+    return (data.clipping.valid() ? data.clipping : data.bounds);
+  }
 
+  //getNodeBounds 
+  virtual Position getNodeBounds() override {
+    return getDataBounds();
+  }
 
-//////////////////////////////////////////////
-void GuiNodesModule::detach()
-{
-  if (!bAttached)  
-    return;
+  //glRender
+  virtual void glRender(GLCanvas& gl) override;
 
-  VisusInfo() << "Detaching GuiNodesModule...";
-  
-  bAttached = false;
+  //processInput
+  virtual bool processInput() override;
 
-  GuiNodesCleanUpResources();
+public:
 
-  IsoContourShader::Shaders::releaseSingleton();
-  KdRenderArrayNodeShader::Shaders::releaseSingleton();
-  RenderArrayNodeShader::Shaders::releaseSingleton();
+  //writeToObjectStream
+  virtual void writeToObjectStream(ObjectStream& ostream) override;
 
-  GuiModule::detach();
-  DataflowModule::detach();
+  //readFromObjectStream
+  virtual void readFromObjectStream(ObjectStream& istream) override;
 
-  VisusInfo() << "Detached GuiNodesModule";
-}
+  //writeToSceneObjectStream
+  virtual void writeToSceneObjectStream(ObjectStream& ostream) override;
+
+  //readFromSceneObjectStream
+  virtual void readFromSceneObjectStream(ObjectStream& istream) override;
+
+private:
+
+  class MyGLObject; friend class MyGLObject;
+
+  SharedPtr<ReturnReceipt>    return_receipt;
+
+  Array                       data;
+  SharedPtr<Palette>          palette;
+
+}; //end class
+
 
 } //namespace Visus
+
+#endif //VISUS_OSPRAY_RENDERNODE_H
+
