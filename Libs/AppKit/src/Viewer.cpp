@@ -64,6 +64,7 @@ For support : support@visus.net
 #include <Visus/ScriptingNode.h>
 #include <Visus/PaletteNode.h>
 #include <Visus/RenderArrayNode.h>
+#include <Visus/OSPRayRenderNode.h>
 #include <Visus/ModelViewNode.h>
 #include <Visus/KdRenderArrayNode.h>
 #include <Visus/KdQueryNode.h>
@@ -1432,29 +1433,28 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
         QueryNode* query_node=NULL;
         FieldNode* field_node=NULL;
         PaletteNode* pal_node=NULL;
-        RenderArrayNode* rend_node=NULL;
+        Node* rend_node=NULL;
         
         data_node->setDataset(dataset, true);
         if (!data_node->getDataset()->openFromUrl(dataset_url))
           ThrowException(StringUtils::format()<<"Cannot open dataset from url "<<dataset_url);
         
-        for(auto data_child : data_node->breadthFirstSearch()){
-          String childPortableName=ObjectFactory::getSingleton()->getPortableTypeName(*data_child);
-          
-          if(childPortableName == "TimeNode")
-            time_node = (TimeNode*)data_child;
-          else if(childPortableName == "QueryNode")
-            query_node = (QueryNode*)data_child;
-          else if(childPortableName == "FieldNode")
-            field_node = (FieldNode*)data_child;
-          else if(childPortableName == "PaletteNode")
-            pal_node = (PaletteNode*)data_child;
-          else if(childPortableName == "RenderArrayNode")
-            rend_node = (RenderArrayNode*)data_child;
-          
-          //VisusInfo() << "found child " <<childPortableName;
+        for(auto data_child : data_node->breadthFirstSearch())
+        {
+          if (auto tmp=dynamic_cast<TimeNode*>(data_child))
+            time_node = tmp;
+          else if (auto tmp = dynamic_cast<QueryNode*>(data_child))
+            query_node = tmp;
+          else if (auto tmp = dynamic_cast<FieldNode*>(data_child))
+            field_node = tmp;
+          else if (auto tmp = dynamic_cast<PaletteNode*>(data_child))
+            pal_node = tmp;
+          else if (auto tmp = dynamic_cast<RenderArrayNode*>(data_child))
+            rend_node = tmp;
+          else if (auto tmp = dynamic_cast<OSPRayRenderNode*>(data_child))
+            rend_node = tmp;
         }
-        
+
         auto query=child->findChildWithName("query");
         if(query_node != NULL)
         {
@@ -1574,22 +1574,30 @@ bool Viewer::saveScene(String url, bool bShowDialogs)
         QueryNode* query_node = NULL;
         FieldNode* field_node = NULL;
         PaletteNode* pal_node = NULL;
-        RenderArrayNode* rend_node = NULL;
+        Node* rend_node = NULL;
         
-        for(auto child : node->breadthFirstSearch()){
+        for(auto child : node->breadthFirstSearch())
+        {
           String childPortableName = ObjectFactory::getSingleton()->getPortableTypeName(*child);
-          
-          if(childPortableName == "TimeNode")
-            time_node = (TimeNode*)child;
-          else if(childPortableName == "QueryNode")
-            query_node = (QueryNode*)child;
-          else if(childPortableName == "FieldNode")
-            field_node = (FieldNode*)child;
-          else if(childPortableName == "PaletteNode")
-            pal_node = (PaletteNode*)child;
-          else if(childPortableName == "RenderArrayNode")
-            rend_node = (RenderArrayNode*)child;
-          
+
+          if (auto tmp = dynamic_cast<TimeNode*>(child))
+            time_node = tmp;
+
+          else if (auto tmp = dynamic_cast<QueryNode*>(child))
+            query_node = tmp;
+
+          else if (auto tmp = dynamic_cast<FieldNode*>(child))
+            field_node = tmp;
+
+          else if (auto tmp = dynamic_cast<PaletteNode*>(child))
+            pal_node = tmp;
+
+          else if (auto tmp = dynamic_cast<RenderArrayNode*>(child))
+            rend_node = tmp;
+
+          else if (auto tmp = dynamic_cast<OSPRayRenderNode*>(child))
+            rend_node = tmp;
+
           //ostream.write("node", portableName);
         }
         
@@ -2608,14 +2616,20 @@ IsoContourNode* Viewer::addIsoContourNode(Node* parent,Node* data_provider,doubl
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-RenderArrayNode* Viewer::addRenderArrayNode(Node* parent,Node* data_provider,String default_palette)  
+Node* Viewer::addRenderArrayNode(Node* parent,Node* data_provider,String default_palette,String render_type)  
 {
   if (!data_provider)
     data_provider=parent;
 
   VisusAssert(parent && data_provider && data_provider->hasOutputPort("data"));
 
-  auto render_node =new RenderArrayNode("Render Node");
+  Node* render_node;
+  
+  if (render_type == "ospray" || VisusConfig::readString("Configuration/VisusViewer/DefaultRenderNode/value")=="ospray")
+    render_node = new OSPRayRenderNode("OSPray Render Node");
+  else
+    render_node = new RenderArrayNode("Render Node");
+
   auto palette_node=default_palette.empty()? nullptr : new PaletteNode("Palette",default_palette);
 
   beginUpdate();
@@ -2638,6 +2652,8 @@ RenderArrayNode* Viewer::addRenderArrayNode(Node* parent,Node* data_provider,Str
 
   return render_node;
 }
+
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 KdRenderArrayNode* Viewer::addKdRenderArrayNode(Node* parent,Node* data_provider) 
@@ -2780,7 +2796,8 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
     {
       String default_palette_2d=VisusConfig::readString("Configuration/VisusViewer/default_palette_2d","GrayOpaque");
       String default_palette_3d=VisusConfig::readString("Configuration/VisusViewer/default_palette_3d","GrayTransparent");
-      addRenderArrayNode(query_node,scripting_node,dim==3?default_palette_3d:default_palette_2d);
+      String default_render_type = VisusConfig::readString("Configuration/VisusViewer/DefaultRenderNode/value", "");
+      addRenderArrayNode(query_node,scripting_node,dim==3?default_palette_3d:default_palette_2d, default_render_type);
     }
   }
   endUpdate();
