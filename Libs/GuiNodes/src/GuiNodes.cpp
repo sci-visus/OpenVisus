@@ -42,7 +42,7 @@ For support : support@visus.net
 #include <Visus/IsoContourNode.h>
 #include <Visus/IsoContourRenderNode.h>
 #include <Visus/RenderArrayNode.h>
-#include <Visus/OSPrayRenderNode.h>
+#include <Visus/OSPRayRenderNode.h>
 #include <Visus/KdRenderArrayNode.h>
 #include <Visus/JTreeRenderNode.h>
 #include <Visus/IsoContourShader.h>
