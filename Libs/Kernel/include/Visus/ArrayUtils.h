@@ -43,10 +43,22 @@ For support : support@visus.net
 
 namespace Visus {
 
+
+
+
 ///////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API ArrayUtils
 {
 public:
+
+  //toArrayVector
+  static std::vector<Array> toArrayVector(std::vector< SharedPtr<Array> > v) {
+    std::vector<Array> ret;
+    for (auto it : v) {
+      if (it) ret.push_back(*it);
+    }
+    return ret;
+  }
 
   //loadImage
   static Array loadImage(String url, std::vector<String> args = std::vector<String>());
@@ -93,6 +105,11 @@ public:
 
   //interleave
   static Array interleave(std::vector<Array> v, Aborted aborted = Aborted());
+
+  //interleave
+  static Array interleave(std::vector< SharedPtr<Array> > v, Aborted aborted = Aborted()) {
+    return interleave(toArrayVector(v),aborted);
+  }
 
   //insert
   static bool insert(
@@ -215,6 +232,11 @@ public:
 
   static Array executeOperation(Operation op, std::vector<Array> args, Aborted aborted = Aborted());
 
+  //executeOperation
+  static Array executeOperation(Operation op, std::vector< SharedPtr<Array> > v, Aborted aborted = Aborted()) {
+    return executeOperation(op, toArrayVector(v), aborted);
+  }
+
   static Array executeOperation(Operation op, Array a, Array b, Aborted aborted = Aborted()) {
     return executeOperation(op, { a,b }, aborted);
   }
@@ -222,6 +244,11 @@ public:
   //add
   static Array add(std::vector<Array> args, Aborted aborted = Aborted()) {
     return executeOperation(AddOperation, args, aborted);
+  }
+
+  //add
+  static Array add(std::vector< SharedPtr<Array> > args, Aborted aborted = Aborted()) {
+    return add(toArrayVector(args), aborted);
   }
 
   //add
@@ -235,6 +262,11 @@ public:
   }
 
   //sub
+  static Array sub(std::vector< SharedPtr<Array> > args, Aborted aborted = Aborted()) {
+    return sub(toArrayVector(args), aborted);
+  }
+
+  //sub
   static Array sub(Array a, Array b, Aborted aborted = Aborted()) {
     return sub({ a,b }, aborted);
   }
@@ -242,6 +274,11 @@ public:
   //mul
   static Array mul(std::vector<Array> args, Aborted aborted = Aborted()) {
     return executeOperation(MulOperation, args, aborted);
+  }
+
+  //mul
+  static Array mul(std::vector< SharedPtr<Array> > args, Aborted aborted = Aborted()) {
+    return mul(toArrayVector(args), aborted);
   }
 
   //mul
@@ -255,6 +292,11 @@ public:
   }
 
   //div
+  static Array div(std::vector< SharedPtr<Array> > args, Aborted aborted = Aborted()) {
+    return div(toArrayVector(args), aborted);
+  }
+
+  //div
   static Array div(Array a, Array b, Aborted aborted = Aborted()) {
     return div({ a,b }, aborted);
   }
@@ -262,6 +304,11 @@ public:
   //min
   static Array min(std::vector<Array> args, Aborted aborted = Aborted()) {
     return executeOperation(MinOperation, args, aborted);
+  }
+
+  //min
+  static Array min(std::vector< SharedPtr<Array> > args, Aborted aborted = Aborted()) {
+    return min(toArrayVector(args), aborted);
   }
 
   //min
@@ -275,6 +322,11 @@ public:
   }
 
   //max
+  static Array max(std::vector< SharedPtr<Array> > args, Aborted aborted = Aborted()) {
+    return max(toArrayVector(args), aborted);
+  }
+
+  //max
   static Array max(Array a, Array b, Aborted aborted = Aborted()) {
     return max({ a,b }, aborted);
   }
@@ -282,6 +334,11 @@ public:
   //average
   static Array average(std::vector<Array> args, Aborted aborted = Aborted()) {
     return executeOperation(AverageOperation, args, aborted);
+  }
+
+  //average
+  static Array average(std::vector< SharedPtr<Array> > args, Aborted aborted = Aborted()) {
+    return average(toArrayVector(args), aborted);
   }
 
   //average
@@ -295,6 +352,11 @@ public:
   }
 
   //standardDeviation
+  static Array standardDeviation(std::vector< SharedPtr<Array> > args, Aborted aborted = Aborted()) {
+    return standardDeviation(toArrayVector(args), aborted);
+  }
+
+  //standardDeviation
   static Array standardDeviation(Array a, Array b, Aborted aborted = Aborted()) {
     return standardDeviation({ a,b }, aborted);
   }
@@ -302,6 +364,11 @@ public:
   //median
   static Array median(std::vector<Array> args, Aborted aborted = Aborted()) {
     return executeOperation(MedianOperation, args, aborted);
+  }
+
+  //median
+  static Array median(std::vector< SharedPtr<Array> > args, Aborted aborted = Aborted()) {
+    return median(toArrayVector(args), aborted);
   }
 
   //median

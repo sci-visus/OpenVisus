@@ -105,13 +105,6 @@ public:
     : Array(NdPoint::one(x, y,z), dtype, heap) {
   }
 
-  //constructor
-  Array(const std::vector<Array>& components)
-    : Array(components.empty()? NdPoint() : components[0].dims, components.empty() ? DType() : DType((int)components.size(),components[0].dtype))
-  {
-    for (int I = 0; I < (int)components.size(); I++)
-      setComponent(I, components[I]);
-  }
 
   //constructor
   Array(NdPoint dims, DType dtype, String c_address, bool bSharedMem = false)

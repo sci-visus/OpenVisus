@@ -40,8 +40,10 @@ using namespace Visus;
 %newobject Visus::StringTreeEncoder::encode;
 %newobject Visus::StringTreeEncoder::decode;
 
-%template(VectorOfField) std::vector<Visus::Field>;
-%template(VectorOfArray) std::vector<Visus::Array>;
+%template(VectorOfField) std::vector< Visus::Field >;
+
+//for unknown reason swig doesn't accept std::vector<Array> but only std::vector< std::shared_ptr<Array> >)
+%template(VectorOfArray) std::vector< std::shared_ptr< Visus::Array > >;
 
 %include <Visus/Visus.h>
 %include <Visus/Kernel.h>
@@ -155,5 +157,6 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
       return Array(dims,dtype,c_address,bShareMem)
    fromNumPy = staticmethod(fromNumPy)
 %}
-};
+}; //%extend Visus::Array {
+
 
