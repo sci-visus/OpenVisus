@@ -2,10 +2,15 @@
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
+# TODO: This should be behind a CMake option
+find_package(ospray REQUIRED)
+include_directories(${OSPRAY_INCLUDE_DIR})
+
+
 file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp resources/*.glsl resources/*.qrc)
 source_group("" FILES ${Sources})
 AddLibrary(VisusGuiNodes ${Sources})
-target_link_libraries(VisusGuiNodes PUBLIC VisusGui VisusDataflow)
+target_link_libraries(VisusGuiNodes PUBLIC VisusGui VisusDataflow ${OSPRAY_LIBRARIES})
 
 AddSwigLibrary(VisusGuiNodesPy VisusGuiNodes ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiNodesPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"

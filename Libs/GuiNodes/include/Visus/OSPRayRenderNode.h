@@ -40,6 +40,7 @@ For support : support@visus.net
 #ifndef VISUS_OSPRAY_RENDERNODE_H
 #define VISUS_OSPRAY_RENDERNODE_H
 
+#include <ospray/ospray.h>
 #include <Visus/GuiNodes.h>
 #include <Visus/DataflowNode.h>
 #include <Visus/TransferFunction.h>
@@ -113,6 +114,17 @@ private:
 
   Array                       data;
   SharedPtr<Palette>          palette;
+
+  // OSPRay components for rendering
+  OSPVolume volume;
+  OSPData volumeData;
+  OSPTransferFunction transferFcn;
+  OSPModel world;
+  OSPCamera camera;
+  OSPRenderer renderer;
+  OSPFrameBuffer framebuffer;
+
+  std::array<int, 2> imgDims;
 
 }; //end class
 
