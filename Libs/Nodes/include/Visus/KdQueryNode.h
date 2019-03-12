@@ -78,6 +78,10 @@ private:
     kdarray.reset();
   }
 
+  static KdQueryNode* castFrom(Node* obj) {
+    return dynamic_cast<KdQueryNode*>(obj);
+  }
+
 };
 
 } //namespace Visus

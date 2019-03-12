@@ -90,6 +90,9 @@ public:
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override;
 
+  static PaletteNode* castFrom(Node* obj) {
+    return dynamic_cast<PaletteNode*>(obj);
+  }
 private:
 
   SharedPtr<Palette> palette;

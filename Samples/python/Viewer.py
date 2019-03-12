@@ -90,7 +90,8 @@ if __name__ == '__main__':
 		viewer.addDockWidget("MyWidget",ToCppQtWidget(sip.unwrapinstance(mywidget)))
 
 	# example of adding a python node to the dataflow
-	add_python_node=False
+	add_python_node=True
+	
 	if add_python_node:
 		root=viewer.getRoot()
 		world_box=viewer.getWorldBoundingBox()

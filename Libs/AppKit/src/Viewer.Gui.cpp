@@ -46,6 +46,7 @@ For support : support@visus.net
 #include <Visus/TimeNode.h>
 #include <Visus/ScriptingNode.h>
 #include <Visus/RenderArrayNode.h>
+#include <Visus/OSPRayRenderNode.h>
 #include <Visus/StatisticsNode.h>
 #include <Visus/PaletteNode.h>
 #include <Visus/ModelViewNode.h>
@@ -513,6 +514,9 @@ DataflowTreeView* Viewer::createTreeView()
     if (dynamic_cast<RenderArrayNode*>(node))
       return icons->paint;
 
+    if (dynamic_cast<OSPRayRenderNode*>(node))
+      return icons->paint;
+
     if (dynamic_cast<StatisticsNode*>(node))
       return icons->statistics;
 
@@ -797,6 +801,16 @@ void Viewer::editNode(Node* node)
     addDockWidget(node->getName(),new RenderArrayNodeView(model));
     return;
   }
+
+
+
+  //RenderArrayNode
+  if (auto model = dynamic_cast<OSPRayRenderNode*>(node))
+  {
+    //todo...
+    return;
+  }
+
 
   //IsoContourNode
   if (auto model=dynamic_cast<IsoContourNode*>(node))

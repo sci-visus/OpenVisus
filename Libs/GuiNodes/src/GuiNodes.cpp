@@ -42,6 +42,7 @@ For support : support@visus.net
 #include <Visus/IsoContourNode.h>
 #include <Visus/IsoContourRenderNode.h>
 #include <Visus/RenderArrayNode.h>
+#include <Visus/OSPRayRenderNode.h>
 #include <Visus/KdRenderArrayNode.h>
 #include <Visus/JTreeRenderNode.h>
 #include <Visus/IsoContourShader.h>
@@ -83,6 +84,7 @@ void GuiNodesModule::attach()
   VISUS_REGISTER_OBJECT_CLASS(IsoContourNode);
   VISUS_REGISTER_OBJECT_CLASS(IsoContourRenderNode);
   VISUS_REGISTER_OBJECT_CLASS(RenderArrayNode);
+  VISUS_REGISTER_OBJECT_CLASS(OSPRayRenderNode);
   VISUS_REGISTER_OBJECT_CLASS(KdRenderArrayNode);
   VISUS_REGISTER_OBJECT_CLASS(JTreeRenderNode);
 

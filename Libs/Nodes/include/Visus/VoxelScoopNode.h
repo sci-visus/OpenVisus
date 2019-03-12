@@ -95,6 +95,9 @@ public:
   //processInput
   virtual bool processInput() override;
 
+  static VoxelScoopNode* castFrom(Node* obj) {
+    return dynamic_cast<VoxelScoopNode*>(obj);
+  }
 public:
 
   //writeToObjectStream

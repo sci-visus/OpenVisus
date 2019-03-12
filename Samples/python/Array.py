@@ -39,33 +39,61 @@
 import sys
 import os
 import unittest
-
 import numpy
 
 from OpenVisus import *
 
+"""
+To test it manually under windows:
+
+set PATH=C:\Python37;C:\projects\OpenVisus\build\RelWithDebInfo;%PATH%
+set PYTHONPATH=C:\projects\OpenVisus\build\RelWithDebInfo
+c:\Python37\python.exe Samples\python\Array.py
+
+"""
+
+
 # ////////////////////////////////////////////////////////////////////
 class MyTestCase(unittest.TestCase):
 
-	def testInt32Array(self):
-		a=Array.fromNumPy(numpy.array( [[1,2,3],[4,5,6]] ,dtype=numpy.int32))
-		self.assertEqual(a.dtype.toString(),"int32")
-		self.assertEqual(a.dims[0],3)
-		self.assertEqual(a.dims[1],2)
 
-	def testFloat32Array(self):
-		a = Array.fromNumPy(numpy.array( [[[1],[2]],[[3],[4]],[[5],[6]]],dtype=numpy.float32))
-		self.assertEqual(a.dtype.toString(),"float32")
-		self.assertEqual(a.dims[0],1)
-		self.assertEqual(a.dims[1],2)
-		self.assertEqual(a.dims[2],3)
+	# test1: convert numpy->Array with no memory sharing
+	def test1(self):
+		width,height,ncomponents=5,4,3
+		A=numpy.zeros((height,width,ncomponents),dtype=numpy.float32)
+		B=Array.fromNumPy(A,bShareMem=False)
+		self.assertEqual(B.dims,NdPoint.one(ncomponents,width,height))
+		self.assertEqual(B.dtype.toString(),"float32")
+		self.assertNotEqual(str(A.__array_interface__["data"][0]),B.c_address())
 
-	def testFloat64Array(self):
-		a=Array.fromNumPy(numpy.array( [[[1],[2]],[[3],[4]],[[5],[6]]],dtype=numpy.float64)) 
-		self.assertEqual(a.dtype.toString(),"float64")
-		self.assertEqual(a.dims[0],1)
-		self.assertEqual(a.dims[1],2)
-		self.assertEqual(a.dims[2],3)
+	# test2: convert Array->numpy with no memory sharing
+	def test2(self):
+		width,height,ncomponents=5,4,3
+		A=Array(width,height,DType.fromString("float32[{}]".format(ncomponents)))
+		B=Array.toNumPy(A,bShareMem=False)
+		self.assertEqual(B.shape,(4,5,3))
+		self.assertEqual(B.dtype,numpy.float32)
+		self.assertNotEqual(str(B.__array_interface__["data"][0]),A.c_address())
+
+	# test3 : convert numpy->Array with memory sharing, be careful to keep the numpy array alive
+	def test3(self):
+		width,height,ncomponents=5,4,3
+		A=numpy.zeros((height,width,ncomponents),dtype=numpy.float32)
+		B=Array.fromNumPy(A,bShareMem=True)
+		self.assertEqual(B.dims,NdPoint.one(ncomponents,width,height))
+		self.assertEqual(B.dtype.toString(),"float32")
+		self.assertEqual(str(A.__array_interface__["data"][0]),B.c_address())
+
+	# test4: convert Array->numpy with memory sharing, be careful to keep the OpenVisus array alive
+	def test4(self):
+		width,height,ncomponents=5,4,3
+		A=Array(width,height,DType.fromString("float32[{}]".format(ncomponents)))
+		B=Array.toNumPy(A,bShareMem=True)
+		self.assertEqual(B.shape,(4,5,3))
+		self.assertEqual(B.dtype,numpy.float32)
+		self.assertEqual(str(B.__array_interface__["data"][0]),A.c_address())
+		
+		
 
 # ////////////////////////////////////////////////////////
 if __name__ == '__main__':

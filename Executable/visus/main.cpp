@@ -674,7 +674,6 @@ public:
 
 };
 
-
 ///////////////////////////////////////////////////////////
 class ImportData : public ConvertStep
 {
@@ -1220,10 +1219,6 @@ private:
   bool bWriting;
 };
 
-
-
-
-
 ///////////////////////////////////////////////////////////
 class CloudCopyBlob : public ConvertStep
 {
@@ -1284,7 +1279,6 @@ public:
     return data;
   }
 };
-
 
 ///////////////////////////////////////////////////////////
 class CloudDeleteBlob : public ConvertStep
@@ -1384,9 +1378,6 @@ public:
     return data;
   }
 };
-
-
-
 
 ///////////////////////////////////////////////////////////
 class TestEncoderSpeed : public ConvertStep
@@ -1965,7 +1956,6 @@ public:
   }
 };
 
-
 using namespace Visus;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -2096,7 +2086,6 @@ public:
     return data;
   }
 };
-
 
 //////////////////////////////////////////////////////////////////////////////
 int main(int argn, const char* argv[])

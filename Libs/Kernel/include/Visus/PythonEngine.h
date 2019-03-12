@@ -46,6 +46,8 @@ For support : support@visus.net
 #include <Visus/Log.h>
 #include <Visus/StringUtils.h>
 
+#include <queue>
+
 #ifdef WIN32
 #pragma warning( push )
 #pragma warning (disable:4996)
@@ -61,7 +63,7 @@ For support : support@visus.net
 #undef slots
 
 #if defined(_DEBUG) && defined(SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-//for windows using Release anyway (otherwise most site-packages, as numpy, don't work)
+//for windows using Release anyway (otherwise most site-packages don't work)
 # undef _DEBUG
 # include <Python.h>
 # define _DEBUG
@@ -180,8 +182,8 @@ public:
   //getModuleArrayAttr
   Array getModuleArrayAttr(String name);
 
-  //toArray
-  Array toArray(PyObject* py_object);
+  //pythonObjectToArray
+  Array pythonObjectToArray(PyObject* py_object);
 
   //getLastErrorMessage
   static String getLastErrorMessage();
@@ -201,9 +203,6 @@ private:
 
   PyObject* module = nullptr;
   PyObject* globals = nullptr;
-
-  void* swig_type_aborted = nullptr;
-  void* swig_type_array   = nullptr;
 
   //fixPath
   static String fixPath(String value);
@@ -247,6 +246,36 @@ public:
 };
 
 typedef ScopedReleaseGil PythonThreadAllow;
+
+
+/////////////////////////////////////////////////////
+class VISUS_KERNEL_API PythonEnginePool
+{
+public:
+
+  //createEngine
+  SharedPtr<PythonEngine> createEngine() {
+    ScopedLock lock(this->lock);
+    if (freelist.empty()) 
+      freelist.push(std::make_shared<PythonEngine>());
+    auto ret = freelist.front();
+    freelist.pop();
+    return ret;
+  }
+
+  //releaseEngine
+  void releaseEngine(SharedPtr<PythonEngine> value) {
+    ScopedLock lock(this->lock);
+    freelist.push(value);
+  }
+
+private:
+
+  CriticalSection lock;
+  std::queue< SharedPtr<PythonEngine> > freelist;
+
+};
+
 
 } //namespace Visus
 

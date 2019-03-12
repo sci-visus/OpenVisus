@@ -75,6 +75,19 @@ public:
     endUpdate();
   }
 
+  void addUserInput(String key, SharedPtr<Array> value) {
+    try {
+      ScopedAcquireGil acquire_gil;
+      engine->setModuleAttr(key, *value);
+    }
+    catch (std::exception ex)
+    {
+      ScopedAcquireGil acquire_gil;
+      engine->printMessage(ex.what());
+      return;
+    }
+  }
+
   //clearPresets
   void clearPresets();
 
@@ -99,6 +112,10 @@ public:
   //getNodeBounds
   virtual Position getNodeBounds() override {
     return this->bounds;
+  }
+
+  static ScriptingNode* castFrom(Node* obj) {
+    return dynamic_cast<ScriptingNode*>(obj);
   }
 
 public:

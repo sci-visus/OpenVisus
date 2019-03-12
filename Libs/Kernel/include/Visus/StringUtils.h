@@ -223,6 +223,11 @@ public:
   //join
   static String join(std::vector<String> v, String separator = " ", String prefix = "", String suffix = "");
 
+  //joinLines
+  static String joinLines(std::vector<String> v) {
+    return join(v, "\n");
+  }
+
   //join
   template <typename T>
   static String join(std::vector<T> v, String separator = " ", String prefix = "", String suffix = "")

@@ -36,63 +36,100 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_GL_ARRAY_BUFFER_H
-#define __VISUS_GL_ARRAY_BUFFER_H
 
-#include <Visus/Gui.h>
+#ifndef VISUS_OSPRAY_RENDERNODE_H
+#define VISUS_OSPRAY_RENDERNODE_H
 
+#include <ospray/ospray.h>
+#include <Visus/GuiNodes.h>
+#include <Visus/DataflowNode.h>
+#include <Visus/TransferFunction.h>
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 6, 0)
-  #include <QOpenGLExtraFunctions>
-#else
-  #include <QOpenGLFunctions>
-  #define QOpenGLExtraFunctions QOpenGLFunctions
-#endif
-
+#include <Visus/GLCanvas.h>
 
 namespace Visus {
 
-///////////////////////////////////////////////////////////////////
-class VISUS_GUI_API GLArrayBuffer : public Object
+////////////////////////////////////////////////////////////////////
+class VISUS_GUI_NODES_API OSPRayRenderNode :
+  public Node,
+  public GLObject
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(GLArrayBuffer)
+  VISUS_NON_COPYABLE_CLASS(OSPRayRenderNode)
 
   //constructor
-  GLArrayBuffer(DType dtype,int nvertices,SharedPtr<HeapMemory> heap);
+  OSPRayRenderNode(String name = "");
 
   //destructor
-  virtual ~GLArrayBuffer();
+  virtual ~OSPRayRenderNode();
 
-  //getNumberOfVertices
-  int getNumberOfVertices() const{
-    return nvertices;
+  //getData
+  Array getData() const {
+    VisusAssert(VisusHasMessageLock()); return data;
   }
 
-  //enableForAttribute
-#if !SWIG
-  void enableForAttribute(QOpenGLExtraFunctions& gl,int location);
-#endif
+  //getDataDimension
+  int getDataDimension() const {
+    VisusAssert(VisusHasMessageLock());
+    return (data.getWidth() > 1 ? 1 : 0) + (data.getHeight() > 1 ? 1 : 0) + (data.getDepth() > 1 ? 1 : 0);
+  }
 
-  //disableForAttribute
-#if !SWIG
-  void disableForAttribute(QOpenGLExtraFunctions& gl,int location);
-#endif
+  //getDataBounds 
+  Position getDataBounds() {
+    VisusAssert(VisusHasMessageLock());
+    return (data.clipping.valid() ? data.clipping : data.bounds);
+  }
+
+  //getNodeBounds 
+  virtual Position getNodeBounds() override {
+    return getDataBounds();
+  }
+
+  //glRender
+  virtual void glRender(GLCanvas& gl) override;
+
+  //processInput
+  virtual bool processInput() override;
+
+public:
+
+  //writeToObjectStream
+  virtual void writeToObjectStream(ObjectStream& ostream) override;
+
+  //readFromObjectStream
+  virtual void readFromObjectStream(ObjectStream& istream) override;
+
+  //writeToSceneObjectStream
+  virtual void writeToSceneObjectStream(ObjectStream& ostream) override;
+
+  //readFromSceneObjectStream
+  virtual void readFromSceneObjectStream(ObjectStream& istream) override;
 
 private:
 
-  DType dtype;
-  int nvertices;
-  SharedPtr<HeapMemory> heap;
+  class MyGLObject; friend class MyGLObject;
 
-  int     gltype=0;
-  int     glsize=0;
-  int     glstride=0;
+  SharedPtr<ReturnReceipt>    return_receipt;
 
-};
+  Array                       data;
+  SharedPtr<Palette>          palette;
 
-} //namespace
+  // OSPRay components for rendering
+  OSPVolume volume;
+  OSPData volumeData;
+  OSPTransferFunction transferFcn;
+  OSPModel world;
+  OSPCamera camera;
+  OSPRenderer renderer;
+  OSPFrameBuffer framebuffer;
 
-#endif //__VISUS_GL_ARRAY_BUFFER_H
+  std::array<int, 2> imgDims;
+
+}; //end class
+
+
+} //namespace Visus
+
+#endif //VISUS_OSPRAY_RENDERNODE_H
 

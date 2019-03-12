@@ -62,6 +62,9 @@ public:
   //processInput
   virtual bool processInput() override;
 
+  static StatisticsNode* castFrom(Node* obj) {
+    return dynamic_cast<StatisticsNode*>(obj);
+  }
 private:
 
   //messageHasBeenPublished
