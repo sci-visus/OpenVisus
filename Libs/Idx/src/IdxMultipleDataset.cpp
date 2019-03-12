@@ -356,28 +356,31 @@ public:
   SharedPtr<Query> createDownQuery(String name, String fieldname)
   {
     auto key = name +"/"+fieldname;
+
+    //already created?
     auto it = QUERY->down_queries.find(key);
     if (it != QUERY->down_queries.end())
       return it->second;
 
     auto child = VF->childs[name];
-    auto M = child.M;
-    auto vf = child.dataset; VisusAssert(vf);
+    auto M     = child.M;
+    auto vf    = child.dataset; VisusAssert(vf);
     auto field = vf->getFieldByName(fieldname); VisusAssert(field.valid());
 
-    //no intersection (==no need to create the query)
     auto BOX = Position(M, vf->getBox()).toAxisAlignedBox();
+
+    //no intersection? just skip this down query
     if (!QUERY->position.toAxisAlignedBox().intersect(BOX))
       return SharedPtr<Query>();
 
     auto query = std::make_shared<Query>(vf.get(), 'r');
-    query->down_info.name = name;
     QUERY->down_queries[key] = query;
-
+    query->down_info.name = name;
     query->aborted = QUERY->aborted;
-    query->time = QUERY->time;
-    query->field = field;
+    query->time    = QUERY->time;
+    query->field   = field;
 
+    //special and simplier case
     if (VF->sameLogicSpace(child))
     {
       query->start_resolution = QUERY->start_resolution;
@@ -401,7 +404,7 @@ public:
           (value.size().z ? value.size().z : 1);
       };
 
-      auto VOLUME = ComputeVolume(Position(VF->getBox()).toAxisAlignedBox());
+      auto VOLUME = ComputeVolume(Position(   VF->getBox()).toAxisAlignedBox());
       auto volume = ComputeVolume(Position(M, vf->getBox()).toAxisAlignedBox());
       int delta_h = -(int)log2(VOLUME / volume);
 
@@ -418,15 +421,23 @@ public:
         end_resolutions.insert(end_resolution);
       }
       query->end_resolutions = std::vector<int>(end_resolutions.begin(), end_resolutions.end());
-
       query->max_resolution = vf->getMaxResolution();
 
+      // WRONG, consider that M could have mat(3,0) | mat(3,1) | mat(3,2) !=0 and so I can have non-parallel axis
+      // i.e. computing the bounding box in position very far from the mapped region are wrong
+      // if you use this wrong version, for voronoi in 2d you will see some missing pieces around
+#if 0
       query->position = Position(M.invert(), QUERY->position);
+#else
 
-      //for "full" queries (i.e. not point query) I correct the position
-      bool bPointQuery = QUERY->position.getPointDim() < VF->getPointDim();
-      if (!bPointQuery)
-        query->position = query->position.withoutTransformation().getNdBox().getIntersection(vf->getBox());
+      auto QUERY_T   = QUERY->position.getTransformation();
+      auto QUERY_BOX = QUERY->position.getBox();
+
+      //'shring' the QUERY_BOX to avoid inversion axis when Matrix has elements mat(3,0 | 1 | 1)!=0
+      QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).toAxisAlignedBox().getIntersection(QUERY_BOX);
+
+      query->position = Position(M.invert(), QUERY_T, QUERY_BOX);
+#endif
     }
 
     //skip this argument since returns empty array
@@ -554,6 +565,7 @@ public:
     query->down_info.logic_centroid = M * vf->getBox().center().toPoint3d();
 
     //limit the samples to good logic domain
+    //explanation: for each pixel in dims, tranform it to the logic dataset box, if inside set the pixel to 1 otherwise set the pixel to 0
     Array alpha = ArrayUtils::createTransformedAlpha(vf->getBox(), pixel_to_logic, query->buffer.dims, QUERY->aborted);
 
     if (!QUERY->aborted())

@@ -47,7 +47,7 @@ Position Position::withoutTransformation() const
     return Position::invalid();
 
   Matrix T   = getTransformation();
-  Box3d    box = getBox();
+  Box3d  box = getBox();
 
   Box3d ret = Box3d::invalid();
   for (int I = 0; I<8; I++)
