@@ -45,6 +45,7 @@ option(VISUS_COMPRESSION  "Enable compression"       ON)
 option(VISUS_NET          "Enable net"               ON) 
 option(VISUS_IMAGE        "Enable image"             ON)  
 option(VISUS_GUI          "Enable gui"               ON)  
+option(VISUS_OSPRAY       "Enable ospray"            OFF)
 option(VISUS_TEST         "Enable test"              ON)
 
 message(STATUS "BUILD_SHARED_LIBS  ${BUILD_SHARED_LIBS}") 
@@ -53,6 +54,7 @@ message(STATUS "VISUS_COMPRESSION  ${VISUS_COMPRESSION}")
 message(STATUS "VISUS_NET          ${VISUS_NET}") 
 message(STATUS "VISUS_IMAGE        ${VISUS_IMAGE}") 
 message(STATUS "VISUS_GUI          ${VISUS_GUI}") 
+message(STATUS "VISUS_OSPRAY       ${VISUS_OSPRAY}") 
 message(STATUS "VISUS_TEST         ${VISUS_TEST}") 
 
 if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
@@ -84,6 +86,10 @@ if (VISUS_GUI)
 	MESSAGE(STATUS "Qt5Core_VERSION_STRING ${Qt5Core_VERSION_STRING}")
 	file(WRITE "${CMAKE_BINARY_DIR}/QT_VERSION" "${Qt5Core_VERSION_STRING}")	
 	
+endif()
+
+if (VISUS_OSPRAY)
+	find_package(ospray REQUIRED)
 endif()
 
 add_subdirectory(Libs)
@@ -158,6 +164,10 @@ if (1)
 
 	if (VISUS_GUI)
 		install(FILES "${CMAKE_BINARY_DIR}/QT_VERSION" DESTINATION .)
+	endif()
+	
+	if (VISUS_OSPRAY)
+		install(FILES "${OSPRAY_LIBRARIES}" DESTINATION bin)
 	endif()
 	
 	if (WIN32)

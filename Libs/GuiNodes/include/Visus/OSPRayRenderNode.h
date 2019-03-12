@@ -55,7 +55,7 @@ class VISUS_GUI_NODES_API OSPRayRenderNode :
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(OSPRayRenderNode)
+  VISUS_PIMPL_CLASS(OSPRayRenderNode)
 
   //constructor
   OSPRayRenderNode(String name = "");
@@ -113,6 +113,7 @@ private:
 
   Array                       data;
   SharedPtr<Palette>          palette;
+  
 
 }; //end class
 

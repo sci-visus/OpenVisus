@@ -46,7 +46,7 @@ For support : support@visus.net
 #include <Visus/TimeNode.h>
 #include <Visus/ScriptingNode.h>
 #include <Visus/RenderArrayNode.h>
-#include <Visus/OSPrayRenderNode.h>
+#include <Visus/OSPRayRenderNode.h>
 #include <Visus/StatisticsNode.h>
 #include <Visus/PaletteNode.h>
 #include <Visus/ModelViewNode.h>
