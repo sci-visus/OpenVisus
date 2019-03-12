@@ -47,6 +47,9 @@ For support : support@visus.net
 #include <Visus/JTreeRenderNode.h>
 #include <Visus/IsoContourShader.h>
 
+#if VISUS_OSPRAY
+#include <ospray/ospray.h>
+#endif
 
 void GuiNodesInitResources() {
   Q_INIT_RESOURCE(GuiNodes);
@@ -88,6 +91,13 @@ void GuiNodesModule::attach()
   VISUS_REGISTER_OBJECT_CLASS(KdRenderArrayNode);
   VISUS_REGISTER_OBJECT_CLASS(JTreeRenderNode);
 
+#if VISUS_OSPRAY
+  const char *argv[] = { "visus_app" };
+  int argc = 1;
+  if (ospInit(&argc, argv) != OSP_NO_ERROR)
+    ThrowException("Failed to initialize OSPRay");
+#endif
+
   VisusInfo() << "Attached GuiNodesModule";
 }
 
@@ -110,6 +120,10 @@ void GuiNodesModule::detach()
 
   GuiModule::detach();
   DataflowModule::detach();
+
+#if VISUS_OSPRAY
+  ospShutdown();
+#endif
 
   VisusInfo() << "Detached GuiNodesModule";
 }
