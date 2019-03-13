@@ -165,7 +165,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=ubuntu:trusty']
+      env: ['PYTHON_VERSION=2.7.1','DOCKER_IMAGE=ubuntu:trusty']
       addons: 
         apt:
           packages: ['g++-4.9']
