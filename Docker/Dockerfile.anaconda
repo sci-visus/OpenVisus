@@ -27,7 +27,8 @@ RUN conda install -y patchelf \
   && ${CONDA_PREFIX}/bin/patchelf --set-rpath '$ORIGIN:/opt/conda/lib' ${VISUS_HOME}/bin/libmod_visus.so
 
 # install webviewer
-RUN git clone https://github.com/sci-visus/visus_javascript.git ${VISUS_HOME}/webviewer
+ADD https://api.github.com/repos/sci-visus/OpenVisusJS/git/refs/heads/master version.json
+RUN git clone -bmaster https://github.com/sci-visus/OpenVisusJS.git ${VISUS_HOME}/webviewer
 
 # configure mod_visus and webviewer
 COPY resources/shared/000-default.conf /etc/apache2/sites-enabled
