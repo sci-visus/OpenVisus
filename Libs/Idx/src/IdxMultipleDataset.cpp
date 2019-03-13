@@ -961,16 +961,18 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
   String url = istream.readInline("url");
   VisusAssert(!url.empty());
 
+  String default_name = StringUtils::format() << "child_" << std::setw(4) << std::setfill('0') << cstring((int)this->childs.size());
+
   Child child;
   child.M = T;
-  child.name = StringUtils::trim(istream.readInline("name", istream.readInline("id"))); VisusAssert(!child.name.empty());
+  child.name = StringUtils::trim(istream.readInline("name", istream.readInline("id"))); 
   child.color = Color::parseFromString(istream.readInline("color"));
 
   child.mosaic_filename_template = istream.readInline("filename_template");
 
   //override name if exist
-  if (this->childs.find(child.name) != this->childs.end())
-    child.name = StringUtils::format() << "child_" << std::setw(4) << std::setfill('0') << cstring((int)this->childs.size());
+  if (child.name.empty() || this->childs.find(child.name) != this->childs.end())
+    child.name = default_name;
 
   url= removeAliases(url);
 

@@ -83,7 +83,6 @@ void GLArrayBuffer::enableForAttribute(QOpenGLExtraFunctions& gl,int location)
   if (location<0 || !gltype || !heap)  
     return;
   
-  VisusAssert(array);
   gl.glVertexAttribPointer(location,this->glsize,this->gltype,GL_FALSE,this->glstride,this->heap->c_ptr());
   gl.glEnableVertexAttribArray(location);
 }
@@ -94,7 +93,6 @@ void GLArrayBuffer::disableForAttribute(QOpenGLExtraFunctions& gl,int location)
   if (location<0 || !gltype || !heap) 
     return;
   
-  VisusAssert(array);
   gl.glDisableVertexAttribArray(location);
 }
 

@@ -3,7 +3,12 @@
 set THIS_DIR=%cd%
 
 if "%CMAKE_EXECUTABLE%"=="" (
-	set CMAKE_EXECUTABLE=cmake
+
+	IF EXIST "C:\Program Files\CMake\bin\cmake.exe" (
+		set CMAKE_EXECUTABLE=C:\Program Files\CMake\bin\cmake.exe
+	) ELSE (
+		set CMAKE_EXECUTABLE=cmake.exe
+	)
 )
 
 if "%CMAKE_GENERATOR%"=="" (
@@ -13,6 +18,30 @@ if "%CMAKE_GENERATOR%"=="" (
 if NOT "%CMAKE_TOOLCHAIN_FILE%"=="" (
 	cd c:\tools\vcpkg 
 	vcpkg.exe install zlib:x64-windows lz4:x64-windows tinyxml:x64-windows freeimage:x64-windows openssl:x64-windows curl:x64-windows
+)
+
+if "%VCPKG_TARGET_TRIPLET%"=="" (
+	set VCPKG_TARGET_TRIPLET=x64-windows
+)
+
+if "%PYTHON_EXECUTABLE%"=="" (
+	IF EXIST "C:\Python37\python.exe" (
+		set PYTHON_EXECUTABLE=C:\Python37\python.exe
+	) ELSE (
+		IF EXIST "C:\Python36\python.exe" ( 
+			set PYTHON_EXECUTABLE=C:\Python36\python.exe
+		)	
+	)
+)
+
+if "%QT5_DIR%"=="" (
+	IF EXIST "C:\Qt\5.11.2\msvc2015_64\lib\cmake\Qt5" (
+		set Qt5_DIR=C:\Qt\5.11.2\msvc2015_64\lib\cmake\Qt5
+	) ELSE (
+		IF EXIST "C:\Qt\5.11.1\msvc2015_64\lib\cmake\Qt5" (
+			set Qt5_DIR=C:\Qt\5.11.1\msvc2015_64\lib\cmake\Qt5
+		)
+	)
 )
 
 if not defined DevEnvDir (

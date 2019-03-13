@@ -272,13 +272,11 @@ public:
   std::vector< std::pair<BigInt,Int32>* > loc;
 
   //create
-  IdxPointQueryHzAddressConversion(IdxDataset* vf)
+  IdxPointQueryHzAddressConversion(DatasetBitmask bitmask,int MaxH)
   {
     //todo cases for which I'm using regexp
-    int    MaxH         = vf->getMaxResolution();
     BigInt last_bitmask = ((BigInt)1)<<MaxH;
 
-    DatasetBitmask bitmask=vf->getBitmask();
     HzOrder hzorder(bitmask,MaxH);
     int pdim = bitmask.getPointDim();
     loc.resize(pdim);
@@ -1021,6 +1019,12 @@ SharedPtr<IdxDataset> IdxDataset::cloneForMosaic() const
   return ret;
 }
 
+static CriticalSection                                                                HZADDRESS_CONVERSION_BOXQUERY_LOCK;
+static std::map<String, SharedPtr<IdxBoxQueryHzAddressConversion> >                   HZADDRESS_CONVERSION_BOXQUERY;
+
+static CriticalSection                                                                HZADDRESS_CONVERSION_POINTQUERY_LOCK;
+static std::map<std::pair<String,int> , SharedPtr<IdxPointQueryHzAddressConversion> > HZADDRESS_CONVERSION_POINTQUERY;
+
 
 ////////////////////////////////////////////////////////////
 void IdxDataset::setIdxFile(IdxFile value)
@@ -1044,12 +1048,47 @@ void IdxDataset::setIdxFile(IdxFile value)
   for (auto field : value.fields)
     addField(field);
 
-  this->hzaddress_conversion_boxquery=std::make_shared<IdxBoxQueryHzAddressConversion>(this->bitmask);
+  //cache address conversion
+  {
+    auto key = this->bitmask.toString();
+    {
+      ScopedLock lock(HZADDRESS_CONVERSION_BOXQUERY_LOCK);
+      auto it = HZADDRESS_CONVERSION_BOXQUERY.find(key);
+      if (it != HZADDRESS_CONVERSION_BOXQUERY.end()) 
+        this->hzaddress_conversion_boxquery = it->second;
+    }
+
+    if (!this->hzaddress_conversion_boxquery)
+    {
+      this->hzaddress_conversion_boxquery = std::make_shared<IdxBoxQueryHzAddressConversion>(this->bitmask);
+      {
+        ScopedLock lock(HZADDRESS_CONVERSION_BOXQUERY_LOCK);
+        HZADDRESS_CONVERSION_BOXQUERY[key] = this->hzaddress_conversion_boxquery;
+      }
+    }
+  }
 
   //create the loc-cache only for 3d data, in 2d I know I'm not going to use it!
   //instead in 3d I will use it a lot (consider a slice in odd position)
-  if (value.bitmask.getPointDim()>=3 && !this->hzaddress_conversion_pointquery)
-    this->hzaddress_conversion_pointquery=std::make_shared<IdxPointQueryHzAddressConversion>(this);
+  if (value.bitmask.getPointDim() >= 3 && !this->hzaddress_conversion_pointquery)
+  {
+    auto key = std::make_pair(this->bitmask.toString(), this->getMaxResolution());
+    {
+      ScopedLock lock(HZADDRESS_CONVERSION_POINTQUERY_LOCK);
+      auto it = HZADDRESS_CONVERSION_POINTQUERY.find(key);
+      if (it != HZADDRESS_CONVERSION_POINTQUERY.end())
+        this->hzaddress_conversion_pointquery = it->second;
+    }
+
+    if (!this->hzaddress_conversion_pointquery)
+    {
+      this->hzaddress_conversion_pointquery = std::make_shared<IdxPointQueryHzAddressConversion>(this->bitmask,this->getMaxResolution());
+      {
+        ScopedLock lock(HZADDRESS_CONVERSION_POINTQUERY_LOCK);
+        HZADDRESS_CONVERSION_POINTQUERY[key] = this->hzaddress_conversion_pointquery;
+      }
+    }
+  }
 }
 
 
