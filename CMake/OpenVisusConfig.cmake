@@ -5,6 +5,9 @@ include(FindPackageHandleStandardArgs)
 	
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(OpenVisus DEFAULT_MSG OpenVisus_DIR)
 
+# todo: force when VISUS_PYTHON is not enabled
+SET(VISUS_PYTHON "1" CACHE INTERNAL "")
+
 # //////////////////////////////////////////////////////////////////////////////////
 macro(AddOpenVisusLibrary target_name)
 

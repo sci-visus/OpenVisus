@@ -61,10 +61,18 @@ class MyTestCase(unittest.TestCase):
 	def test1(self):
 		width,height,ncomponents=5,4,3
 		A=numpy.zeros((height,width,ncomponents),dtype=numpy.float32)
+		
 		B=Array.fromNumPy(A,bShareMem=False)
 		self.assertEqual(B.dims,NdPoint.one(ncomponents,width,height))
 		self.assertEqual(B.dtype.toString(),"float32")
 		self.assertNotEqual(str(A.__array_interface__["data"][0]),B.c_address())
+		
+		# use TargetDim if you want the dtype to have multiple ncomponents
+		B=Array.fromNumPy(A,TargetDim=2,bShareMem=False)
+		self.assertEqual(B.dims,NdPoint.one(width,height))
+		self.assertEqual(B.dtype.toString(),"float32[3]")
+		self.assertNotEqual(str(A.__array_interface__["data"][0]),B.c_address())
+		
 
 	# test2: convert Array->numpy with no memory sharing
 	def test2(self):
@@ -79,9 +87,16 @@ class MyTestCase(unittest.TestCase):
 	def test3(self):
 		width,height,ncomponents=5,4,3
 		A=numpy.zeros((height,width,ncomponents),dtype=numpy.float32)
+		
 		B=Array.fromNumPy(A,bShareMem=True)
 		self.assertEqual(B.dims,NdPoint.one(ncomponents,width,height))
 		self.assertEqual(B.dtype.toString(),"float32")
+		self.assertEqual(str(A.__array_interface__["data"][0]),B.c_address())
+		
+		# use TargetDim if you want the dtype to have multiple ncomponents
+		B=Array.fromNumPy(A,TargetDim=2,bShareMem=True)
+		self.assertEqual(B.dims,NdPoint.one(width,height))
+		self.assertEqual(B.dtype.toString(),"float32[3]")
 		self.assertEqual(str(A.__array_interface__["data"][0]),B.c_address())
 
 	# test4: convert Array->numpy with memory sharing, be careful to keep the OpenVisus array alive

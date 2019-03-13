@@ -144,7 +144,7 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
    toNumPy = staticmethod(toNumPy)
    
    # ////////////////////////////////////////////////////////
-   def fromNumPy(src,bShareMem=False):
+   def fromNumPy(src,TargetDim=0,bShareMem=False):
       import numpy
       if src.__array_interface__["strides"] is not None: raise Exception("numpy array is not memory contiguous")
       shape=src.__array_interface__["shape"]
@@ -154,7 +154,12 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
       typestr=src.__array_interface__["typestr"]
       dtype=DType(typestr[1]=="u", typestr[1]=="f", int(typestr[2])*8)
       c_address=str(src.__array_interface__["data"][0])
-      return Array(dims,dtype,c_address,bShareMem)
+      ret=Array(dims,dtype,c_address,bShareMem)
+      if TargetDim: 
+        dims=NdPoint.one(TargetDim)
+        for I in range(TargetDim): dims.set(I,ret.dims[ret.dims.getPointDim()-TargetDim+I])
+        ret.resize(dims,DType(int(ret.dims.innerProduct()/dims.innerProduct()),ret.dtype), "Array::fromNumPy",0)
+      return ret
    fromNumPy = staticmethod(fromNumPy)
 %}
 }; //%extend Visus::Array {

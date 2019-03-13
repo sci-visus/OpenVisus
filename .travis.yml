@@ -67,7 +67,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64', 'DISABLE_OPENMP=1', 'VISUS_GUI=0' ]       
+      env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64', 'DISABLE_OPENMP=1', 'VISUS_GUI=0' ]       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -165,7 +165,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=2.7.1','DOCKER_IMAGE=ubuntu:trusty']
+      env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=ubuntu:trusty']
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -206,7 +206,7 @@ matrix:
     - os: linux
       dist: xenial
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=ubuntu:xenial']
+      env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=ubuntu:xenial']
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -248,7 +248,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=2.7','DOCKER_IMAGE=opensuse:leap']
+      env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=opensuse:leap']
       addons: 
         apt:
           packages: ['g++-4.9']
