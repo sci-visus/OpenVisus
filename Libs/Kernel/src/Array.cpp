@@ -91,6 +91,7 @@ Array Array::getComponent(int C, Aborted aborted) const
   return dst;
 }
 
+
 ///////////////////////////////////////////////////////////////////////////////
 bool Array::setComponent(int C, Array src, Aborted aborted)
 {

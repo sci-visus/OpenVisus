@@ -456,11 +456,13 @@ else
 		fi
 	
 		cmake --build ./ --target install --config ${CMAKE_BUILD_TYPE} 		
+		cmake --build ./ --target dist    --config ${CMAKE_BUILD_TYPE} 	
 		
 	else
 		cmake ${cmake_opts} ${SOURCE_DIR} 
 		cmake --build . --target all -- -j 4
 		cmake --build . --target install	
+		cmake --build . --target dist	
 	fi 
 	
 	WHEEL_FILENAME=$(find ${BUILD_DIR}/install/dist -iname "*.whl")

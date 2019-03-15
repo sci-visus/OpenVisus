@@ -63,8 +63,8 @@ cmake \
 	${SOURCE_DIR}
 
 cmake --build ./ --target all -- -j 4
-
 cmake --build ./ --target install  
+cmake --build ./ --target dist  
 
 pushd install
 $PYTHON setup.py install --single-version-externally-managed --record=record.txt

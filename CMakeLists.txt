@@ -18,7 +18,7 @@ if (NOT (${CMAKE_VERSION} VERSION_LESS "3.13"))
   cmake_policy(SET CMP0078 OLD) #controls names of SWIG targets
 endif()
 
-PROJECT(ViSUS)
+PROJECT(ViSUS) 
 
 # //////////////////////////////////////////////////////////////
 set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
@@ -190,6 +190,12 @@ if (1)
 endif()
 
 
+add_custom_target(dist
+	WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}
+	COMMAND ${PYTHON_EXECUTABLE} -u configure.py cmake_dist_step
+)
 
+if (WIN32)
+	set_property(TARGET dist PROPERTY FOLDER CMakePredefinedTargets)
+endif()
 
-               

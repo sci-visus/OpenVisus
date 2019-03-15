@@ -543,211 +543,226 @@ class LinuxDeployStep:
 
 
 
+# ///////////////////////////////////////////////////////////////////////////
+def CMakePostInstallStep():
+	
+	print("Executing cmake post install",sys.argv)
+
+	if WIN32:
+		Win32DeployStep().fixAllDeps()
+		
+	else:
+
+		# copy plugins
+		VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
+		if VISUS_GUI:
+
+			QT5_DIR=ExtractNamedArgument("--qt5-dir")
+			QT_PLUGIN_PATH=""
+			for it in ["../../../plugins","../../qt5/plugins"]:
+				if os.path.isdir(os.path.join(QT5_DIR,it)):
+					QT_PLUGIN_PATH=os.path.join(QT5_DIR,it) 
+					break
+
+			if not QT_PLUGIN_PATH:
+				raise Exception("internal error, cannot find Qt plugins","QT_PLUGIN_PATH",QT_PLUGIN_PATH)
+
+			for it in ["iconengines","imageformats","platforms","printsupport","styles"]:
+				if os.path.isdir(os.path.join(QT_PLUGIN_PATH,it)):
+					CopyDirectory(os.path.join(QT_PLUGIN_PATH,it) ,"bin/Qt/plugins")
+
+		if APPLE:
+			AppleDeployStep().fixAllDeps()
+	
+		else:
+			LinuxDeployStep().fixAllDeps()
+
+
+	print("Finished cmake post install")
 
 # ///////////////////////////////////////////////////////////////////////////
-class CMakePostInstall:
+def CMakeDistStep():
 	
-	# run
-	def run(self):
+	print("Executing dist step",sys.argv)	
 
-		VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
+	# create sdist and wheel
+	# for conda I need to ignore any error
+	PipInstall(["--upgrade","--user","setuptools"])	
+	PipInstall(["--upgrade","--user","wheel"     ])	
 
-		if WIN32:
-			Win32DeployStep().fixAllDeps()
-			
-		else:
+	# remove any previous distibution
+	RemoveFiles("dist/*")
+	
+	print("sys.version_info",sys.version_info)
+	PYTHON_TAG="cp%s%s" % (sys.version_info[0],sys.version_info[1])
 
-			# copy plugins
-			if VISUS_GUI:
+	if WIN32:
+		PLAT_NAME="win_amd64"
 
-				QT5_DIR=ExtractNamedArgument("--qt5-dir")
-				QT_PLUGIN_PATH=""
-				for it in ["../../../plugins","../../qt5/plugins"]:
-					if os.path.isdir(os.path.join(QT5_DIR,it)):
-						QT_PLUGIN_PATH=os.path.join(QT5_DIR,it) 
-						break
+	elif APPLE:
+		print("platform.mac_ver()",platform.mac_ver())
+		PLAT_NAME="macosx_%s_x86_64" % (platform.mac_ver()[0][0:5].replace('.','_'),)	
 
-				if not QT_PLUGIN_PATH:
-					raise Exception("internal error, cannot find Qt plugins","QT_PLUGIN_PATH",QT_PLUGIN_PATH)
+	else:
+		# I' m calling the wheel with "PLAT_NAME="manylinux1_x86_64" " in case I want to install it locally (even if it's not portable)
+		PLAT_NAME="manylinux1_x86_64" 
 
-				for it in ["iconengines","imageformats","platforms","printsupport","styles"]:
-					if os.path.isdir(os.path.join(QT_PLUGIN_PATH,it)):
-						CopyDirectory(os.path.join(QT_PLUGIN_PATH,it) ,"bin/Qt/plugins")
+	# create sdist distribution
+	if True:
+		print("Creating sdist...")
+		ExecuteCommand([sys.executable,"setup.py","-q","sdist","--formats=%s" % ("zip" if WIN32 else "gztar",)])
+		sdist_ext='.zip' if WIN32 else '.tar.gz'
+		__filename__ = glob.glob('dist/*%s' % (sdist_ext,))[0]
+		sdist_filename=__filename__.replace(sdist_ext,"-%s-none-%s%s" % (PYTHON_TAG,PLAT_NAME,sdist_ext))
+		os.rename(__filename__,sdist_filename)
+		print("Created sdist",sdist_filename)
 
-			if APPLE:
-				AppleDeployStep().fixAllDeps()
+	# creating wheel distribution
+	if True: 
+		print("Creating wheel...")
+		ExecuteCommand([sys.executable,"setup.py","-q","bdist_wheel","--python-tag=%s" % (PYTHON_TAG,),"--plat-name=%s" % (PLAT_NAME,)])
+		wheel_filename=glob.glob('dist/*.whl')[0]
+		print("Created wheel",wheel_filename)
 		
-			else:
-				LinuxDeployStep().fixAllDeps()
-
-		# create sdist and wheel
-		# for conda I need to ignore any error
-		PipInstall(["--upgrade","--user","setuptools"])	
-		PipInstall(["--upgrade","--user","wheel"     ])	
-
-		# remove any previous distibution
-		RemoveFiles("dist/*")
+	print("Finished dist step",glob.glob('dist/*'))				
 		
-		print("sys.version_info",sys.version_info)
-		PYTHON_TAG="cp%s%s" % (sys.version_info[0],sys.version_info[1])
-
-		if WIN32:
-			PLAT_NAME="win_amd64"
-
-		elif APPLE:
-			print("platform.mac_ver()",platform.mac_ver())
-			PLAT_NAME="macosx_%s_x86_64" % (platform.mac_ver()[0][0:5].replace('.','_'),)	
-
-		else:
-			# I' m calling the wheel with "PLAT_NAME="manylinux1_x86_64" " in case I want to install it locally (even if it's not portable)
-			PLAT_NAME="manylinux1_x86_64" 
-
-		# create sdist distribution
-		if True:
-			print("Creating sdist...")
-			ExecuteCommand([sys.executable,"setup.py","-q","sdist","--formats=%s" % ("zip" if WIN32 else "gztar",)])
-			sdist_ext='.zip' if WIN32 else '.tar.gz'
-			__filename__ = glob.glob('dist/*%s' % (sdist_ext,))[0]
-			sdist_filename=__filename__.replace(sdist_ext,"-%s-none-%s%s" % (PYTHON_TAG,PLAT_NAME,sdist_ext))
-			os.rename(__filename__,sdist_filename)
-			print("Created sdist",sdist_filename)
-
-		# creating wheel distribution
-		if True: 
-			print("Creating wheel...")
-			ExecuteCommand([sys.executable,"setup.py","-q","bdist_wheel","--python-tag=%s" % (PYTHON_TAG,),"--plat-name=%s" % (PLAT_NAME,)])
-			wheel_filename=glob.glob('dist/*.whl')[0]
-			print("Created wheel",wheel_filename)
 
 
 # ////////////////////////////////////////////////////////////////////
-class Configure:
+def ConfigureStep():
+	
+	print("Executing configure step",sys.argv)
+	
+	VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
+	if VISUS_GUI:
 
-	# run
-	def run(self):
-		self.VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
-		if self.VISUS_GUI:
+		file = open("QT_VERSION", "r") 
+		QT_VERSION=file.read().strip()
+		file.close()
+		print("QT_VERSION",QT_VERSION)
 
-			file = open("QT_VERSION", "r") 
-			self.QT_VERSION=file.read().strip()
-			file.close()
-			print("QT_VERSION",self.QT_VERSION)
+		if os.path.isdir(os.path.join(this_dir,"bin","Qt")) and not "--use-pyqt" in sys.argv:
 
-			if os.path.isdir(os.path.join(this_dir,"bin","Qt")) and not "--use-pyqt" in sys.argv:
+			QT_BIN_PATH    = os.path.join(this_dir,"bin")
+			QT_PLUGIN_PATH = os.path.join(this_dir,"bin","Qt","plugins")
 
-				self.QT_BIN_PATH    = os.path.join(this_dir,"bin")
-				self.QT_PLUGIN_PATH = os.path.join(this_dir,"bin","Qt","plugins")
-
-			else:
+		else:
+			
+			bInstalled=False
+			
+			try:
+				from PyQt5.Qt import PYQT_VERSION_STR
+				if PYQT_VERSION_STR==QT_VERSION:
+					print("PyQt5",PYQT_VERSION_STR,"already installed")
+					bInstalled=True
+			except:
+				pass
 				
-				bInstalled=False
-				
+			if not bInstalled:
+				# need to install a compatible version
+				bPyQt5AlreadyInstalled=False
 				try:
-					from PyQt5.Qt import PYQT_VERSION_STR
-					if PYQT_VERSION_STR==self.QT_VERSION:
-						print("PyQt5",PYQT_VERSION_STR,"already installed")
-						bInstalled=True
+					import PyQt5.QtCore
+					if PyQt5.QtCore.QT_VERSION_STR==QT_VERSION:
+						print("PyQt5",QT_VERSION,"already installed")
+						bPyQt5AlreadyInstalled=True
 				except:
 					pass
 					
-				if not bInstalled:
-					# need to install a compatible version
+				if not bPyQt5AlreadyInstalled:
 					PipUninstall(["PyQt5"])
-					for name in ["PyQt5=="+self.QT_VERSION] + ["PyQt5=="+self.QT_VERSION[0:4]+"." + str(it) for it in reversed(range(1,10))]:
+					for name in ["PyQt5=="+QT_VERSION] + ["PyQt5=="+QT_VERSION[0:4]+"." + str(it) for it in reversed(range(1,10))]:
 						if PipInstall(["--user",name]):
 							print("Installed",name)
 							break
 						print("Failed to install",name)					
 
-				import PyQt5
-				print(dir(PyQt5))
+			import PyQt5
+			print(dir(PyQt5))
 
-				self.QT_BIN_PATH    = os.path.join(os.path.dirname(PyQt5.__file__),"Qt","bin" if WIN32 else "lib")
-				self.QT_PLUGIN_PATH = os.path.join(os.path.dirname(PyQt5.__file__),"Qt","plugins")
+			QT_BIN_PATH    = os.path.join(os.path.dirname(PyQt5.__file__),"Qt","bin" if WIN32 else "lib")
+			QT_PLUGIN_PATH = os.path.join(os.path.dirname(PyQt5.__file__),"Qt","plugins")
+			
+			if WIN32:
+				# see VisusGui.i (%pythonbegin section, I'm using sys.path)
+				pass
+
+			elif APPLE:
+				rpath=QT_BIN_PATH
+				deploy=AppleDeployStep()
+				for filename in deploy.findAllBinaries():
+					print("# Executing","deploy.addRPath('%s','%s')" % (filename,rpath,))
+					deploy.addRPath(filename,rpath)	
+			else:
 				
-				if WIN32:
-					# see VisusGui.i (%pythonbegin section, I'm using sys.path)
-					pass
+				deploy=LinuxDeployStep()
+				for filename in deploy.findAllBinaries():
+					rpath=QT_BIN_PATH + ":" + deploy.guessRPath(filename)
+					print("# Executing","deploy.setRPath('%s,'%s')" % (filename,rpath,))
+					deploy.setRPath(filename, rpath)
 
-				elif APPLE:
-					rpath=self.QT_BIN_PATH
-					deploy=AppleDeployStep()
-					for filename in deploy.findAllBinaries():
-						print("# Executing","deploy.addRPath('%s','%s')" % (filename,rpath,))
-						deploy.addRPath(filename,rpath)	
-				else:
-					
-					deploy=LinuxDeployStep()
-					for filename in deploy.findAllBinaries():
-						rpath=self.QT_BIN_PATH + ":" + deploy.guessRPath(filename)
-						print("# Executing","deploy.setRPath('%s,'%s')" % (filename,rpath,))
-						deploy.setRPath(filename, rpath)
+			# avoid conflicts removing any Qt file
+			RemoveFiles("bin/Qt*")
 
-				# avoid conflicts removing any Qt file
-				RemoveFiles("bin/Qt*")
+	if WIN32:
+		for exe in glob.glob('bin/*.exe'):
+			name=os.path.splitext(os.path.basename(exe))[0]
+			script_filename="%s.bat" % (name,)
+			WriteTextFile(script_filename,[
+				"""set this_dir=%~dp0""",
+				"""set PYTHON_EXECUTABLE=""" + sys.executable,
+				"""set PATH=%this_dir%\\bin;""" + os.path.dirname(sys.executable) + """;%PATH%""",
+				"""set PATH=""" + QT_BIN_PATH + """;%PATH%""" if VISUS_GUI else "",
+				"""set QT_PLUGIN_PATH=""" + QT_PLUGIN_PATH if VISUS_GUI else "",
+				"%this_dir%\\" + exe + " %*"])
 
-		if WIN32:
-			for exe in glob.glob('bin/*.exe'):
-				name=os.path.splitext(os.path.basename(exe))[0]
-				script_filename="%s.bat" % (name,)
-				WriteTextFile(script_filename,[
-					"""set this_dir=%~dp0""",
-					"""set PYTHON_EXECUTABLE=""" + sys.executable,
-					"""set PATH=%this_dir%\\bin;""" + os.path.dirname(sys.executable) + """;%PATH%""",
-					"""set PATH=""" + self.QT_BIN_PATH + """;%PATH%""" if self.VISUS_GUI else "",
-					"""set QT_PLUGIN_PATH=""" + self.QT_PLUGIN_PATH if self.VISUS_GUI else "",
-					"%this_dir%\\" + exe + " %*"])
-
-		elif APPLE:	
+	elif APPLE:	
+	
+		# PyQt5 is linked using rpath (see configure)
+		for exe in glob.glob('bin/*.app'):
+			name=os.path.splitext(os.path.basename(exe))[0]
+			script_filename="%s.command" % (name,)
+			WriteTextFile(script_filename,[
+				"""#!/bin/bash""",
+				"""this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)""",
+				"""export PYTHON_EXECUTABLE=""" + sys.executable,
+				"""export PYTHONPATH=${this_dir}:""" + ':'.join(sys.path),
+				"""export DYLD_LIBRARY_PATH=""" + os.path.realpath(sysconfig.get_config_var('LIBDIR')) + """:${DYLD_LIBRARY_PATH}""",
+				"""export QT_PLUGIN_PATH=""" + QT_PLUGIN_PATH if VISUS_GUI else "",
+				"${this_dir}/" + exe + "/Contents/MacOS/" + name + ' "$@"'])
+			subprocess.call(["chmod","+rx",script_filename], shell=False)
 		
-			# PyQt5 is linked using rpath (see configure)
-			for exe in glob.glob('bin/*.app'):
+	else:
+		# PyQt5 is linked using rpath (see configure)
+		for exe in glob.glob('bin/*'):
+			if os.path.isfile(exe) and os.access(exe, os.X_OK) and not os.path.splitext(exe)[1]:
 				name=os.path.splitext(os.path.basename(exe))[0]
-				script_filename="%s.command" % (name,)
+				script_filename="%s.sh" % (name,)
 				WriteTextFile(script_filename,[
 					"""#!/bin/bash""",
 					"""this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)""",
 					"""export PYTHON_EXECUTABLE=""" + sys.executable,
 					"""export PYTHONPATH=${this_dir}:""" + ':'.join(sys.path),
-					"""export DYLD_LIBRARY_PATH=""" + os.path.realpath(sysconfig.get_config_var('LIBDIR')) + """:${DYLD_LIBRARY_PATH}""",
-					"""export QT_PLUGIN_PATH=""" + self.QT_PLUGIN_PATH if self.VISUS_GUI else "",
-					"${this_dir}/" + exe + "/Contents/MacOS/" + name + ' "$@"'])
+					"""export LD_LIBRARY_PATH=""" + os.path.realpath(sysconfig.get_config_var('LIBDIR')) + """:${LD_LIBRARY_PATH}""",
+					"""export QT_PLUGIN_PATH=""" + QT_PLUGIN_PATH if VISUS_GUI else "",
+					"${this_dir}/" + exe + ' "$@"'])
 				subprocess.call(["chmod","+rx",script_filename], shell=False)
-			
-		else:
-			# PyQt5 is linked using rpath (see configure)
-			for exe in glob.glob('bin/*'):
-				if os.path.isfile(exe) and os.access(exe, os.X_OK) and not os.path.splitext(exe)[1]:
-					name=os.path.splitext(os.path.basename(exe))[0]
-					script_filename="%s.sh" % (name,)
-					WriteTextFile(script_filename,[
-						"""#!/bin/bash""",
-						"""this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}" )" && pwd)""",
-						"""export PYTHON_EXECUTABLE=""" + sys.executable,
-						"""export PYTHONPATH=${this_dir}:""" + ':'.join(sys.path),
-						"""export LD_LIBRARY_PATH=""" + os.path.realpath(sysconfig.get_config_var('LIBDIR')) + """:${LD_LIBRARY_PATH}""",
-						"""export QT_PLUGIN_PATH=""" + self.QT_PLUGIN_PATH if self.VISUS_GUI else "",
-						"${this_dir}/" + exe + ' "$@"'])
-					subprocess.call(["chmod","+rx",script_filename], shell=False)
 
-		
+
+	print("finished configure step")
 
 # //////////////////////////////////////////////////////////////////////////////
 if __name__ == "__main__":
 
-	print(sys.argv)
-	
 	if "cmake_post_install" in sys.argv:
-
-		print("Executing CMakePostInstall")
-		CMakePostInstall().run()
-		print("Finished CMakePostInstall",glob.glob('dist/*'))
-
-	else:
-		print("Executing configure....")
-		Configure().run()
-		print("finished configure.py")
-
+		CMakePostInstallStep()
+		sys.exit(0)
+		
+	if "cmake_dist_step" in sys.argv:
+		CMakeDistStep()
+		sys.exit(0)
+		
+	ConfigureStep()
 	sys.exit(0)
 
 

@@ -105,7 +105,6 @@ public:
     : Array(NdPoint::one(x, y,z), dtype, heap) {
   }
 
-
   //constructor
   Array(NdPoint dims, DType dtype, String c_address, bool bSharedMem = false)
   {

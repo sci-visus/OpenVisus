@@ -854,6 +854,19 @@ Array ArrayUtils::cast(Array src, DType dtype, Aborted aborted)
 }
 
 /////////////////////////////////////////////////////////////////////
+Array ArrayUtils::selectComponents(Array src, std::vector<int> v, Aborted aborted) 
+{
+  int N = src.dtype.ncomponents();
+  std::vector<Array> components;
+  for (int C : v)
+  {
+    if (C>=0 && C<N)
+      components.push_back(src.getComponent(C));
+  }
+  return ArrayUtils::interleave(components, aborted);
+}
+
+/////////////////////////////////////////////////////////////////////
 template <typename CppType>
 Array SqrtArray(Array src, Aborted& aborted)
 {
@@ -1444,6 +1457,12 @@ public:
   template <class Sample>
   bool execute(Array& dst,Array& dst_alpha,const Matrix& T,Array src,Array src_alpha,Aborted& aborted)
   {
+    //not compatible
+    if (dst.dtype != src.dtype) {
+      VisusAssert(false);
+      return false;
+    }
+
     if (T.isIdentity() && src.dims==dst.dims)
     {
       dst       = src;

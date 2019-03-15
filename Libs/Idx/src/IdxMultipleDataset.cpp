@@ -508,8 +508,8 @@ public:
     if (query->down_info.BUFFER && query->down_info.BUFFER.dims == QUERY->nsamples)
       return query->down_info.BUFFER;
 
-    //create a brand new BUFFER compatible with QUERY
-    query->down_info.BUFFER = Array(QUERY->nsamples, QUERY->field.dtype);
+    //create a brand new BUFFER for doing the warpPerspective
+    query->down_info.BUFFER = Array(QUERY->nsamples, query->buffer.dtype);
     query->down_info.BUFFER.fillWithValue(query->field.default_value);
     query->down_info.BUFFER.layout = ""; //row major
     query->down_info.BUFFER.bounds = Position(M, query->buffer.bounds);
@@ -518,7 +518,6 @@ public:
     query->down_info.ALPHA = Array(QUERY->nsamples, DTypes::UINT8);
     query->down_info.ALPHA.fillWithValue(0);
     query->down_info.ALPHA.shareProperties(query->down_info.BUFFER);
-
 
     //FixScale
     auto FixScale=[](Point3d vs) {

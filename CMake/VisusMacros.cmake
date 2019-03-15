@@ -105,6 +105,7 @@ macro(SetupCommonCMake)
 			# (1) numpy is not available in debug mode
 			# (2) lot of problems/incompatibilities happens (for example: https://github.com/swig/swig/issues/1321)			
 			SET(SWIG_PYTHON_INTERPRETER_NO_DEBUG "1" CACHE INTERNAL "")
+			MESSAGE(STATUS "Forcing SWIG_PYTHON_INTERPRETER_NO_DEBUG for windows")
 			
 		endif()		
 		

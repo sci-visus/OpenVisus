@@ -152,12 +152,8 @@ public:
   //cast
   static Array cast(Array src, DType dtype, Aborted aborted = Aborted());
 
-  //maxNumComponents
-  static Array maxNumComponents(Array src, int max_num_components) {
-    int num_components = std::min(src.dtype.ncomponents(), max_num_components);
-    auto dtype = DType(num_components, src.dtype.get(0));
-    return ArrayUtils::cast(src, dtype);
-  }
+  //selectComponents (equivalent to numpy numpy[A:B])
+  static Array selectComponents(Array src, std::vector<int> v, Aborted aborted = Aborted());
 
   //sqrt
   static Array sqrt(Array src, Aborted aborted = Aborted());

@@ -146,7 +146,9 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
    # ////////////////////////////////////////////////////////
    def fromNumPy(src,TargetDim=0,bShareMem=False):
       import numpy
-      if src.__array_interface__["strides"] is not None: raise Exception("numpy array is not memory contiguous")
+      if src.__array_interface__["strides"] is not None: 
+        if bShareMem: raise Exception("numpy array is not memory contiguous","src.__array_interface__['strides']",src.__array_interface__["strides"],"bShareMem",bShareMem)
+        src=numpy.ascontiguousarray(src)
       shape=src.__array_interface__["shape"]
       shape=tuple(reversed(shape))
       dims=NdPoint.one(len(shape))
