@@ -168,8 +168,16 @@ void IdxFile::validate(Url url)
     this->bitsperblock=bitmask.getMaxResolution();
   }
 
+  Int64 totblocks = ((Int64)1) << (bitmask.getMaxResolution() - bitsperblock);
+
+  //one file per dataset
+  if (blocksperfile == -1)
+  {
+    blocksperfile = (int)totblocks;
+    VisusAssert(blocksperfile == totblocks);
+  }
   //need to guess blocksperfile
-  if (blocksperfile==0)
+  else if (blocksperfile==0)
   {
     //compute overall blockdim (ignoring the headers)
     int overall_blockdim = 0;
@@ -183,8 +191,6 @@ void IdxFile::validate(Url url)
     const int target_uncompressed_filesize = (int)(target_compressed_filesize  / likely_compression_ratio);
 
     blocksperfile = target_uncompressed_filesize/ overall_blockdim;
-
-    Int64 totblocks=((Int64)1)<<(bitmask.getMaxResolution()-bitsperblock);
 
     if (blocksperfile > totblocks)
       blocksperfile = (int)totblocks;
@@ -209,7 +215,7 @@ void IdxFile::validate(Url url)
     }
     else
     {
-      this->blocksperfile=1<<(bitmask.getMaxResolution()-bitsperblock);  
+      this->blocksperfile= totblocks;
     }
   }
 

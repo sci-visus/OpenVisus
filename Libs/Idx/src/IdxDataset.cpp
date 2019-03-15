@@ -689,10 +689,13 @@ bool IdxDataset::compress(String compression)
 
   //for each time
   auto timesteps=idxfile.timesteps.asVector();
+  Int64 overall_file_size = 0;
   for (auto time : timesteps)
   {
     //for each file...
-    BigInt tot_files = getTotalnumberOfBlocks() / idxfile.blocksperfile;
+    BigInt total_block = getTotalnumberOfBlocks();
+    BigInt tot_files = (total_block  / idxfile.blocksperfile) + ((total_block % idxfile.blocksperfile)? 1 : 0);
+
     for (BigInt fileid = 0; fileid < tot_files; fileid++)
     {
       std::vector< std::vector<Array> > file_blocks;
@@ -707,9 +710,10 @@ bool IdxDataset::compress(String compression)
         auto field = idxfile.fields[F];
 
         auto blockid = fileid*idxfile.blocksperfile;
-        for (BigInt B = 0; B < idxfile.blocksperfile; B++, blockid++)
+        for (BigInt B = 0; B < idxfile.blocksperfile && blockid<total_block; B++, blockid++)
         {
           auto filename=access->getFilename(field,time,blockid);
+
           if (!FileUtils::existsFile(filename))
             continue;
 
@@ -775,9 +779,8 @@ bool IdxDataset::compress(String compression)
       for (auto filename : filenames) 
       {
         String old_filename=filename+".tmp~";
-        Int64 old_size=FileUtils::getFileSize(old_filename);
-        Int64 new_size=FileUtils::getFileSize(    filename);
-        double ratio=100.0*(new_size/(double)old_size);
+        auto new_filesize = FileUtils::getFileSize(filename);
+        overall_file_size += new_filesize;
 
         if(std::remove(old_filename.c_str())!=0)  
         {
@@ -787,12 +790,22 @@ bool IdxDataset::compress(String compression)
           return false;
         }
 
-        VisusInfo()<<"Done "<<filename<<" time("<<time<<"/"<<timesteps.size()<<" fileid("<<fileid<<"/"<<tot_files<<") ratio("<<ratio<<")";
+        VisusInfo()<<"Done "<<filename<<" time("<<time<<"/"<<timesteps.size()<<" fileid("<<fileid<<"/"<<tot_files<<")";
       }
     }
   }
 
-  VisusInfo()<<"Dataset compressed in "<<T1.elapsedSec()<<"sec";
+  BigInt original_bytesize =0;
+  for (auto field : idxfile.fields)
+    original_bytesize += field.dtype.getByteSize();
+  original_bytesize *= this->box.size().innerProduct();
+
+  auto ratio = overall_file_size/double(original_bytesize);
+
+  VisusInfo()<<"Dataset compressed in "<<T1.elapsedSec()<<"sec"
+    <<" original_bytesize("<<StringUtils::getStringFromByteSize(original_bytesize)<<")"
+    <<" overall_file_size("<< StringUtils::getStringFromByteSize(overall_file_size)<<")"
+    <<" ratio("<< ratio<<")";
   return true;
 }
 
