@@ -159,6 +159,10 @@ public:
         curl_easy_setopt(this->handle, CURLOPT_NOSIGNAL, 1L); //otherwise crash on linux
         curl_easy_setopt(this->handle, CURLOPT_TCP_NODELAY, 1L);
         curl_easy_setopt(this->handle, CURLOPT_VERBOSE, 0L); //SET to 1L if you want to debug !
+
+        //if you want to use TLS 1.2
+        //curl_easy_setopt(this->handle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+
         curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
 
         //VisusInfo()<<"Disabling SSL verify peer , potential security hole";

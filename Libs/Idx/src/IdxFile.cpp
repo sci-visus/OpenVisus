@@ -215,7 +215,8 @@ void IdxFile::validate(Url url)
     }
     else
     {
-      this->blocksperfile= totblocks;
+      this->blocksperfile= (int)totblocks;
+      VisusAssert(this->blocksperfile==totblocks);
     }
   }
 

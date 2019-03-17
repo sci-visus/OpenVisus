@@ -73,10 +73,12 @@ endif()
 
 # *** openssl dependency ***
 if (VISUS_NET)	
+
 	SetIfNotDefined(VISUS_INTERNAL_OPENSSL ${VISUS_INTERNAL_DEFAULT})
 	if (VISUS_INTERNAL_OPENSSL)
 		MESSAGE(STATUS "Using internal OpenSSL")
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/openssl ${CMAKE_CURRENT_BINARY_DIR}/openssl)
+		# add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/openssl ${CMAKE_CURRENT_BINARY_DIR}/openssl)
+		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/libressl ${CMAKE_CURRENT_BINARY_DIR}/libressl)
 	else()
 		if (UNIX AND (NOT APPLE))
 			set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/FixFindOpenSSL)

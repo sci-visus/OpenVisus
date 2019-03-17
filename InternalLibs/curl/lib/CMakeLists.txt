@@ -72,7 +72,16 @@ if (VISUS_COMPRESSION)
 endif()
 
 if (TARGET crypto)
-	target_link_libraries(curl PRIVATE crypto ssl)
+	target_link_libraries(curl PRIVATE crypto)
+
+	if (TARGET ssl)
+		target_link_libraries(curl PRIVATE ssl)
+	endif()	
+	
+	if (TARGET tls)
+		target_link_libraries(curl PRIVATE tls)
+	endif()
+	
 else()
 	target_include_directories(curl PRIVATE ${OPENSSL_INCLUDE_DIR})
 endif()
