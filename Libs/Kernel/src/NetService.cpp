@@ -70,7 +70,7 @@ For support : support@visus.net
   #include <openssl/md5.h>
   #include <openssl/opensslv.h>
 
-  #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+  #if OPENSSL_VERSION_NUMBER < 0x10100000L 
 
     //HMAC_CTX_new
     static inline HMAC_CTX *HMAC_CTX_new() {
@@ -87,7 +87,7 @@ For support : support@visus.net
         OPENSSL_free(ctx);
       }
   }
-  #endif //OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+  #endif //OPENSSL_VERSION_NUMBER < 0x10100000L 
 
 #endif //#if VISUS_NET
 

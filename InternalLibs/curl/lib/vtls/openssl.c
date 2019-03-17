@@ -117,7 +117,8 @@
 #define X509_get0_notBefore(x) X509_get_notBefore(x)
 #define X509_get0_notAfter(x) X509_get_notAfter(x)
 #define CONST_EXTS /* nope */
-#ifdef LIBRESSL_VERSION_NUMBER
+#if defined(LIBRESSL_VERSION_NUMBER) && \
+ (LIBRESSL_VERSION_NUMBER <= 0x2060400fL)
 static unsigned long OpenSSL_version_num(void)
 {
   return LIBRESSL_VERSION_NUMBER;
