@@ -1278,7 +1278,7 @@ bool Viewer::saveFile(String url,bool bSaveHistory,bool bShowDialogs)
   if (bShowDialogs) 
   {
     String errormsg=StringUtils::format()<<"File " + url+ " saved";
-    QMessageBox::information(this,"Error",errormsg.c_str());
+    QMessageBox::information(this,"Info",errormsg.c_str());
   }
 
   return true;
@@ -1649,7 +1649,7 @@ bool Viewer::saveScene(String url, bool bShowDialogs)
   if (bShowDialogs)
   {
     String errormsg=StringUtils::format()<<"File " + url+ " saved";
-    QMessageBox::information(this,"Error",errormsg.c_str());
+    QMessageBox::information(this,"Info",errormsg.c_str());
   }
   
   return true;
