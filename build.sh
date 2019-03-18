@@ -303,7 +303,7 @@ else
 			yum update 
 			yum install -y zlib-devel curl libffi-devel
 			
-			# install openssl
+			# install openssl 
 			echo "Installing openssl"
 			DownloadFile "https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
 			tar xzf openssl-1.0.2a.tar.gz 
