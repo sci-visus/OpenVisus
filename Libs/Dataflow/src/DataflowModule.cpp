@@ -55,10 +55,7 @@ void DataflowModule::attach()
   bAttached = true;
   KernelModule::attach();
 
-  //VISUS_REGISTER_OBJECT_CLASS(DataflowPort);
-  //VISUS_REGISTER_OBJECT_CLASS(DataflowMessage);
   VISUS_REGISTER_OBJECT_CLASS(Node);
-  VISUS_REGISTER_OBJECT_CLASS(Dataflow);
 
   VisusInfo() << "Attached DataflowModule";
 }

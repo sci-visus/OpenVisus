@@ -45,7 +45,7 @@ For support : support@visus.net
 namespace Visus {
 
 /////////////////////////////////////////////////////////////////
-class VISUS_GUI_API GLOrthoParams : public Object
+class VISUS_GUI_API GLOrthoParams 
 {
 public:
 
@@ -119,7 +119,7 @@ public:
   void fixAspectRatio(const Viewport& old_value, const Viewport& new_value);
 
   //toString
-  virtual String toString() const override {
+  String toString() const {
     std::ostringstream out;
     out << left << " " << right << " " << top << " " << bottom << " " << zNear << " " << zFar;
     return out.str();
@@ -128,10 +128,10 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override;
+  void writeToObjectStream(ObjectStream& ostream) ;
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override;
+  void readFromObjectStream(ObjectStream& istream) ;
 
 };
 

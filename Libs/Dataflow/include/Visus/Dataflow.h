@@ -113,7 +113,7 @@ public:
 };
 
 ////////////////////////////////////////////////////////////
-class VISUS_DATAFLOW_API Dataflow : public virtual Object
+class VISUS_DATAFLOW_API Dataflow 
 {
 public:
 
@@ -239,10 +239,10 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override;
+  void writeToObjectStream(ObjectStream& ostream) ;
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override;
+  void readFromObjectStream(ObjectStream& istream) ;
 
 private:
 

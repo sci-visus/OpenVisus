@@ -51,7 +51,7 @@ class Dataset;
 
 
 ////////////////////////////////////////////////////////
-class VISUS_DB_API Query : public Object
+class VISUS_DB_API Query 
 {
 public:
 

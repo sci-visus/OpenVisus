@@ -10,7 +10,6 @@ using namespace Visus;
 %include <Visus/VisusPy.i>
 
 %shared_ptr(Visus::HeapMemory)
-%shared_ptr(Visus::DictObject)
 %shared_ptr(Visus::ObjectCreator)
 %shared_ptr(Visus::Object)
 %shared_ptr(Visus::BoolObject)
@@ -19,20 +18,10 @@ using namespace Visus;
 %shared_ptr(Visus::DoubleObject)
 %shared_ptr(Visus::StringObject)
 %shared_ptr(Visus::ListObject)
+%shared_ptr(Visus::DictObject)
 %shared_ptr(Visus::StringTree)
+
 %shared_ptr(Visus::Array)
-%shared_ptr(Visus::Color)
-%shared_ptr(Visus::Box3<double>)
-%shared_ptr(Visus::Box3<int>)
-%shared_ptr(Visus::Box3<double>)
-%shared_ptr(Visus::Box3<Visus::Int64>)
-%shared_ptr(Visus::BoxN<double>)
-%shared_ptr(Visus::BoxN<Visus::Int64>)
-%shared_ptr(Visus::Matrix4)
-%shared_ptr(Visus::Position)
-%shared_ptr(Visus::Range)
-%shared_ptr(Visus::DType)
-%shared_ptr(Visus::Field)
 
 %newobject Visus::ObjectStream::readObject;
 %newobject Visus::ObjectCreator::createInstance;

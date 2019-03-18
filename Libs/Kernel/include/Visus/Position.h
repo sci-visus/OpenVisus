@@ -46,7 +46,7 @@ For support : support@visus.net
 namespace Visus {
 
 /////////////////////////////////////////////////
-class VISUS_KERNEL_API Position : public Object
+class VISUS_KERNEL_API Position 
 {
 public:
 
@@ -171,7 +171,7 @@ public:
   static Position shrink(const Box3d& dst_box, const LinearMap& map, Position position);
 
   //toString
-  virtual String toString() const override {
+  String toString() const {
     std::ostringstream out;
     out  << "T(" << getTransformation().toString() << ") box(" << getBox().toString() << ")";
     return out.str();
@@ -180,10 +180,10 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override;
+  void writeToObjectStream(ObjectStream& ostream) ;
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override;
+  void readFromObjectStream(ObjectStream& istream) ;
 
 private:
 

@@ -46,7 +46,7 @@ For support : support@visus.net
 namespace Visus {
 
   //////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API DType : public Object
+class VISUS_KERNEL_API DType
 {
 public:
 
@@ -82,7 +82,7 @@ public:
   static DType fromString(String s);
 
   //toString
-  virtual String toString() const override {
+  virtual String toString() const {
     return this->description;
   }
 
@@ -181,12 +181,12 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override {
+  void writeToObjectStream(ObjectStream& ostream)  {
     ostream.write("description",this->description);
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override {
+  void readFromObjectStream(ObjectStream& istream)  {
     *this=DType::fromString(istream.read("description"));
   }
 

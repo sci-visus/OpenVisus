@@ -45,7 +45,7 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API KdArrayNode : public Object
+class VISUS_KERNEL_API KdArrayNode
 {
 public:
 

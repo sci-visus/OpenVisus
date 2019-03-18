@@ -160,7 +160,7 @@ class IdxBoxQueryHzAddressConversion : public Query::AddressConversion
 public:
 
   //_______________________________________________________________
-  class Level : public Object
+  class Level 
   {
   public:
 

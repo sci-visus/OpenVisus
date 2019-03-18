@@ -47,7 +47,7 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////
-class VISUS_DB_API Scene : public Object
+class VISUS_DB_API Scene 
 {
 public:
 
@@ -103,7 +103,7 @@ public:
   } 
 
   //toString
-  virtual String toString() const override final {
+  String toString() const {
     return scene_body.empty()? getUrl().toString() : scene_body;
   }
 

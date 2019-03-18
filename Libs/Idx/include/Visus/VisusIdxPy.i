@@ -11,7 +11,6 @@ using namespace Visus;
 
 %include <Visus/VisusPy.i>
 
-%shared_ptr(Visus::IdxFile)
 %shared_ptr(Visus::IdxDataset)
 %shared_ptr(Visus::IdxMultipleDataset)
 

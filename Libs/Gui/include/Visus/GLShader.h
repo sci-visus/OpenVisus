@@ -179,7 +179,7 @@ public:
 class GLShader;
 
 ////////////////////////////////////////////////////////
-class VISUS_GUI_API GLProgram : public Object
+class VISUS_GUI_API GLProgram 
 {
 public:
 
@@ -226,7 +226,7 @@ private:
 
 
 ////////////////////////////////////////////////////////
-class VISUS_GUI_API GLShader : public Object 
+class VISUS_GUI_API GLShader 
 {
 public:
 

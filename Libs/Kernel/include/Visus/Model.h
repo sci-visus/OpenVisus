@@ -65,7 +65,7 @@ public:
 
 
 //////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Model : public virtual Object
+class VISUS_KERNEL_API Model : public Object
 {
 public:
 
@@ -91,7 +91,6 @@ public:
     destroyed.emitSignal();
     VisusAssert(destroyed.empty());
   }
-
 
   //isUpdating
   inline bool isUpdating() const {

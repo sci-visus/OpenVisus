@@ -138,22 +138,21 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
   }
 
   StringTree ret;
-  ret.writeString("url",url);
-  ret.writeString("format",ObjectFactory::getSingleton()->getPortableTypeName(*dataset));
-  ret.writeString("size",dataset->getBox().size().toString());
-  ret.writeString("box", dataset->getBox().toOldFormatString());
-  ret.writeString("timesteps",cstring(dataset->getTimesteps().getMin())+" " + cstring(dataset->getTimesteps().getMax()));
-  ret.writeInt   ("bitsperblock",dataset->getDefaultBitsPerBlock());
-  ret.writeString("bitmask",dataset->getBitmask().toString());
+  ObjectStream ostream(ret, 'w');
+  
+  ostream.writeInline("url",url);
+  ostream.writeInline("format",ObjectFactory::getSingleton()->getPortableTypeName(*dataset));
+  ostream.writeInline("size",dataset->getBox().size().toString());
+  ostream.writeInline("box", dataset->getBox().toOldFormatString());
+  ostream.writeInline("timesteps",cstring(dataset->getTimesteps().getMin())+" " + cstring(dataset->getTimesteps().getMax()));
+  ostream.writeInline("bitsperblock",cstring(dataset->getDefaultBitsPerBlock()));
+  ostream.writeInline("bitmask",dataset->getBitmask().toString());
 
-  //fields (infos)
+  for (auto field : dataset->getFields())
   {
-    StringTree* fields_info=ret.addChild(StringTree("fields"));
-    for (int i=0;i<(int)dataset->getFields().size();i++)
-    {
-      UniquePtr<StringTree> field_info(StringTreeEncoder().encode(&dataset->getFields()[i]));
-      fields_info->addChild(*field_info);
-    }
+    ostream.pushContext("field");
+    field.writeToObjectStream(ostream);
+    ostream.popContext("field");
   }
 
   return ret;

@@ -97,7 +97,7 @@ private:
 
 
 ///////////////////////////////////////////////////////////////////////////////
-class VISUS_DATAFLOW_API DataflowMessage : public Object 
+class VISUS_DATAFLOW_API DataflowMessage 
 {
 public:  
 

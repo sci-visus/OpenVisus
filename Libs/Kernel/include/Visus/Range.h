@@ -50,7 +50,7 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Range : public Object
+class VISUS_KERNEL_API Range 
 {
 public:
 
@@ -133,7 +133,7 @@ public:
   }
 
   //toString
-  virtual String toString() const override {
+  String toString() const {
     std::ostringstream o; 
     o << this->from << " " << this->to << " " << this->step; 
     return o.str();
@@ -171,7 +171,7 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  void writeToObjectStream(ObjectStream& ostream) 
   {
     ostream.write("from", cstring(this->from));
     ostream.write("to", cstring(this->to));
@@ -179,7 +179,7 @@ public:
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  void readFromObjectStream(ObjectStream& istream) 
   {
     this->from = (double)cdouble(istream.read("from"));
     this->to = (double)cdouble(istream.read("to"));

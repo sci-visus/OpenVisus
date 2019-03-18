@@ -38,7 +38,7 @@ class VISUS_XIDX_API Domain;
 class VISUS_XIDX_API DataSource;
 
 /////////////////////////////////////////////////////////////////////
-class VISUS_XIDX_API XIdxElement : public Object
+class VISUS_XIDX_API XIdxElement 
 {
 public:
 

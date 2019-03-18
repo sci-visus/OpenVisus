@@ -45,7 +45,7 @@ namespace Visus {
 
 
 ////////////////////////////////////////////////////////////////
-class VISUS_GUI_API GLMaterial : public Object
+class VISUS_GUI_API GLMaterial 
 {
 public:
 
@@ -109,10 +109,10 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override;
+  void writeToObjectStream(ObjectStream& ostream) ;
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override;
+  void readFromObjectStream(ObjectStream& istream) ;
 
 
 }; //end class

@@ -49,7 +49,7 @@ namespace Visus {
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-class Box3 : public Object
+class Box3
 {
 public:
 
@@ -211,19 +211,19 @@ public:
   }
 
   //construct to string
-  String toString() const override {
+  String toString() const {
     return p1.toString() + " " + p2.toString();
   }
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  void writeToObjectStream(ObjectStream& ostream) 
   {
     ostream.write("p1", p1.toString());
     ostream.write("p2", p2.toString());
   }
 
   //writeToObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  void readFromObjectStream(ObjectStream& istream) 
   {
     p1 = Point(istream.read("p1"));
     p2 = Point(istream.read("p2"));
@@ -235,7 +235,7 @@ typedef Box3<double> Box3d;
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-class BoxN : public Object
+class BoxN 
 {
 public:
   
@@ -415,7 +415,7 @@ public:
   }
 
   //construct to string
-  String toString() const override 
+  String toString() const  
   {
     int pdim = getPointDim();
     if (!pdim) return "";
@@ -448,14 +448,14 @@ public:
   }
 
   //writeToObjectStream`
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  void writeToObjectStream(ObjectStream& ostream) 
   {
     ostream.write("p1", p1.toString());
     ostream.write("p2", p2.toString());
   }
 
   //writeToObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  void readFromObjectStream(ObjectStream& istream) 
   {
     p1 = Point::parseFromString(istream.read("p1"));
     p2 = Point::parseFromString(istream.read("p2"));
