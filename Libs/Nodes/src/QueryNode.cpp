@@ -312,6 +312,18 @@ void QueryNode::exitFromDataflow()
 //////////////////////////////////////////////////////////////////
 void QueryNode::writeToObjectStream(ObjectStream& ostream) 
 {
+  if (ostream.isSceneMode())
+  {
+    // use same serialization for query which will include
+    // a transformation matrix in case of rotated selection
+    ostream.pushContext("query");
+    ostream.pushContext("bounds");
+    bounds.writeToObjectStream(ostream);
+    ostream.popContext("bounds");
+    ostream.popContext("query");
+    return;
+  }
+
   Node::writeToObjectStream(ostream);
   ostream.write("accessindex",cstring(accessindex));
   ostream.write("view_dependent",cstring(bViewDependentEnabled));
@@ -328,6 +340,14 @@ void QueryNode::writeToObjectStream(ObjectStream& ostream)
 //////////////////////////////////////////////////////////////////
 void QueryNode::readFromObjectStream(ObjectStream& istream) 
 {
+  if (istream.isSceneMode())
+  {
+    istream.pushContext("bounds");
+    bounds.readFromObjectStream(istream);
+    istream.popContext("bounds");
+    return;
+  }
+
   Node::readFromObjectStream(istream);
   this->accessindex=cint(istream.read("accessindex"));
   this->bViewDependentEnabled=cbool(istream.read("view_dependent"));
@@ -341,27 +361,7 @@ void QueryNode::readFromObjectStream(ObjectStream& istream)
   //position=fn(tree_position)
 }
 
-//////////////////////////////////////////////////////////////////
-void QueryNode::writeToSceneObjectStream(ObjectStream& ostream)
-{
-  ostream.pushContext("query");
 
-  // use same serialization for query which will include
-  // a transformation matrix in case of rotated selection
-  ostream.pushContext("bounds");
-  bounds.writeToObjectStream(ostream);
-  ostream.popContext("bounds");
-
-  ostream.popContext("query");
-}
-        
-//////////////////////////////////////////////////////////////////
-void QueryNode::readFromSceneObjectStream(ObjectStream& istream)
-{
-  istream.pushContext("bounds");
-  bounds.readFromObjectStream(istream);
-  istream.popContext("bounds");
-}
 
 } //namespace Visus
 

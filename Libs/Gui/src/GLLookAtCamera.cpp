@@ -556,6 +556,32 @@ void GLLookAtCamera::guessOrthoParams()
 //////////////////////////////////////////////////////////////////////
 void GLLookAtCamera::writeToObjectStream(ObjectStream& ostream) 
 {
+  if (ostream.isSceneMode())
+  {
+    ostream.writeInline("type", "lookAt");
+    // TODO generalize keyframes interpolation
+    ostream.pushContext("keyframes");
+    ostream.writeInline("interpolation", "linear");
+
+    // TODO Loop through the keyframes set on this Object
+    ostream.pushContext("keyframe");
+    ostream.writeInline("time", "0");
+
+    // write camera data
+    ostream.write("bound", bound.toString());
+    ostream.write("pos", pos.toString());
+    ostream.write("dir", dir.toString());
+    ostream.write("vup", vup.toString());
+    ostream.write("centerOfRotation", centerOfRotation.toString());
+    ostream.write("quaternion", quaternion.toString());
+
+    ostream.popContext("keyframe");
+    // end keyframes loop
+
+    ostream.popContext("keyframes");
+    return;
+  }
+
   GLCamera::writeToObjectStream(ostream);
 
   ostream.write("bound",bound.toString());
@@ -574,38 +600,21 @@ void GLLookAtCamera::writeToObjectStream(ObjectStream& ostream)
   ortho_params.writeToObjectStream(ostream);
   ostream.popContext("ortho_params");
 }
-  
-////////////////////////////////////////////////////////////////
-void GLLookAtCamera::writeToSceneObjectStream(ObjectStream& ostream)
-{
-  ostream.writeInline("type", "lookAt");
-  // TODO generalize keyframes interpolation
-  ostream.pushContext("keyframes");
-  ostream.writeInline("interpolation", "linear");
-  
-  // TODO Loop through the keyframes set on this Object
-  ostream.pushContext("keyframe");
-  ostream.writeInline("time", "0");
-  
-  // write camera data
-  ostream.write("bound",bound.toString());
-  ostream.write("pos",pos.toString());
-  ostream.write("dir",dir.toString());
-  ostream.write("vup",vup.toString());
-  ostream.write("centerOfRotation",centerOfRotation.toString());
-  ostream.write("quaternion",quaternion.toString());
-  
-  ostream.popContext("keyframe");
-  // end keyframes loop
-  
-  ostream.popContext("keyframes");
-  
-}
-  
 
 //////////////////////////////////////////////////////////////////////
 void GLLookAtCamera::readFromObjectStream(ObjectStream& istream) 
 {
+  if (istream.isSceneMode())
+  {
+    bound = Box3d::parseFromString(istream.read("bound"));
+    pos = Point3d(istream.read("pos"));
+    dir = Point3d(istream.read("dir"));
+    vup = Point3d(istream.read("vup"));
+    centerOfRotation = Point3d(istream.read("centerOfRotation"));
+    quaternion = Quaternion4d(istream.read("quaternion"));
+    return;
+  }
+
   GLCamera::readFromObjectStream(istream);
 
   bound            = Box3d::parseFromString(istream.read("bound"));
@@ -625,16 +634,7 @@ void GLLookAtCamera::readFromObjectStream(ObjectStream& istream)
   istream.popContext("ortho_params");
 }
   
-//////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::readFromSceneObjectStream(ObjectStream& istream)
-{
-  bound            = Box3d::parseFromString(istream.read("bound"));
-  pos              = Point3d(istream.read("pos"));
-  dir              = Point3d(istream.read("dir"));
-  vup              = Point3d(istream.read("vup"));
-  centerOfRotation = Point3d(istream.read("centerOfRotation"));
-  quaternion       = Quaternion4d(istream.read("quaternion"));
-}
+
 
 
 } //namespace Visus

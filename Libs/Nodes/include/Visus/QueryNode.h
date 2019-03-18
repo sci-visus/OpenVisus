@@ -176,12 +176,6 @@ public:
 
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override;
-  
-  //writeToSceneObjectStream
-  virtual void writeToSceneObjectStream(ObjectStream& ostream) override;
-
-  //readFromObjectStream
-  virtual void readFromSceneObjectStream(ObjectStream& istream) override;
 
 protected:
 

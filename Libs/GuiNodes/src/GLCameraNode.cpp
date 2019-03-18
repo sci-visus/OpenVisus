@@ -79,6 +79,16 @@ void GLCameraNode::setGLCamera(SharedPtr<GLCamera> value)
 //////////////////////////////////////////////////
 void GLCameraNode::writeToObjectStream(ObjectStream& ostream) 
 {
+  if (ostream.isSceneMode())
+  {
+    ostream.pushContext("camera");
+    if (glcamera)
+      getGLCamera()->writeToObjectStream(ostream);
+
+    ostream.popContext("camera");
+    return;
+  }
+
   Node::writeToObjectStream(ostream);
 
   if (glcamera)
@@ -90,6 +100,16 @@ void GLCameraNode::writeToObjectStream(ObjectStream& ostream)
 //////////////////////////////////////////////////
 void GLCameraNode::readFromObjectStream(ObjectStream& istream) 
 {
+  if (istream.isSceneMode())
+  {
+    istream.pushContext("glcamera");
+    this->glcamera->beginUpdate();
+    this->glcamera->readFromObjectStream(istream);
+    this->glcamera->endUpdate();
+    istream.popContext("glcamera");
+    return;
+  }
+
   Node::readFromObjectStream(istream);
 
   if (!this->glcamera)
@@ -106,38 +126,6 @@ void GLCameraNode::readFromObjectStream(ObjectStream& istream)
   }
 }
   
-//////////////////////////////////////////////////
-void GLCameraNode::writeToSceneObjectStream(ObjectStream& ostream)
-{
-  ostream.pushContext("camera");
-  if (glcamera)
-    getGLCamera()->writeToSceneObjectStream(ostream);
-  
-  ostream.popContext("camera");
-  //bDebugFrustum
-}
-  
-//////////////////////////////////////////////////
-void GLCameraNode::readFromSceneObjectStream(ObjectStream& istream)
-{
-//  Node::readFromObjectStream(istream);
-  
-//  if (!this->glcamera)
-//  {
-//    setGLCamera(SharedPtr<GLCamera>(istream.readObject<GLCamera>("glcamera")));
-//  }
-//  else
-//  {
-    istream.pushContext("glcamera");
-    this->glcamera->beginUpdate();
-    this->glcamera->readFromSceneObjectStream(istream);
-    this->glcamera->endUpdate();
-    istream.popContext("glcamera");
-//  }
-}
-
-
-
 } //namespace Visus
 
 

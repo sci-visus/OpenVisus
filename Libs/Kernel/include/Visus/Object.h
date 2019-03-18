@@ -132,6 +132,18 @@ public:
   template <class ClassName>
   VISUS_NEWOBJECT(ClassName*) readObject(String name);
 
+public:
+
+  //setSceneMode
+  void setSceneMode(bool value) {
+    run_time_options.setValue("scene_mode",cstring(value));
+  }
+
+  //isSceneMode
+  bool isSceneMode() const {
+    return cbool(run_time_options.getValue("scene_mode"));
+  }
+
 private:
 
   int mode;
@@ -187,16 +199,6 @@ public:
 
   //readFromObjectStream (to implement if needed!)
   virtual void readFromObjectStream(ObjectStream& istream) {
-    VisusAssert(false);
-  }
-  
-  //writeToSceneObjectStream (to implement if needed!)
-  virtual void writeToSceneObjectStream(ObjectStream& ostream) {
-    VisusAssert(false);
-  }
-  
-  //readFromObjectStream (to implement if needed!)
-  virtual void readFromSceneObjectStream(ObjectStream& istream) {
     VisusAssert(false);
   }
 

@@ -1388,18 +1388,19 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
         if(cam.size()>0)
         {
           ObjectStream stream(*cam[0], 'r');
+          stream.setSceneMode(true);
           beginUpdate();
           if (!glcamera)
           { String cam_type = child->readString("type");
             if(cam_type=="lookAt")
             {
               glcamera=std::make_shared<GLLookAtCamera>();
-              glcamera->readFromSceneObjectStream(stream);
+              glcamera->readFromObjectStream(stream);
             }
             else if(cam_type=="ortho")
             {
               glcamera=std::make_shared<GLOrthoCamera>();
-              glcamera->readFromSceneObjectStream(stream);
+              glcamera->readFromObjectStream(stream);
             }
             addGLCameraNode(glcamera);
           }
@@ -1459,7 +1460,8 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
         if(query_node != NULL)
         {
           ObjectStream query_stream(*query, 'r');
-          query_node->readFromSceneObjectStream(query_stream);
+          query_stream.setSceneMode(true);
+          query_node->readFromObjectStream(query_stream);
           query_node->setName(child->readString("name"));
         }
         
@@ -1467,21 +1469,24 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
         if(field_node != NULL)
         {
           ObjectStream field_stream(*field, 'r');
-          field_node->readFromSceneObjectStream(field_stream);
+          field_stream.setSceneMode(true);
+          field_node->readFromObjectStream(field_stream);
         }
         
         auto pal=child->findChildWithName("palette");
         if(pal_node != NULL)
         {
           ObjectStream pal_stream(*pal, 'r');
-          pal_node->getPalette()->readFromSceneObjectStream(pal_stream);
+          pal_stream.setSceneMode(true);
+          pal_node->getPalette()->readFromObjectStream(pal_stream);
         }
       
         auto rend=child->findChildWithName("render");
         if(rend_node != NULL)
         {
           ObjectStream rend_stream(*rend, 'r');
-          rend_node->readFromSceneObjectStream(rend_stream);
+          rend_stream.setSceneMode(true);
+          rend_node->readFromObjectStream(rend_stream);
         }
         
         auto time=child->findChildWithName("timestep");
@@ -1537,6 +1542,7 @@ bool Viewer::saveScene(String url, bool bShowDialogs)
   
   StringTree stree("scene");
   ObjectStream ostream(stree,'w');
+  ostream.setSceneMode(true);
   ostream.writeInline("version", "0");
   
   try
@@ -1562,7 +1568,7 @@ bool Viewer::saveScene(String url, bool bShowDialogs)
       if (portableName == "GLCameraNode")
       {
         GLCameraNode* cam_node = (GLCameraNode*)node;
-        cam_node->writeToSceneObjectStream(ostream);
+        cam_node->writeToObjectStream(ostream);
       }
       else if(portableName == "DatasetNode")
       {
@@ -1605,19 +1611,19 @@ bool Viewer::saveScene(String url, bool bShowDialogs)
         ostream.writeInline("url", data_node->getDataset()->getUrl().toString());
         
         if(field_node != NULL)
-          field_node->writeToSceneObjectStream(ostream);
+          field_node->writeToObjectStream(ostream);
         
         if(query_node != NULL)
-          query_node->writeToSceneObjectStream(ostream);
+          query_node->writeToObjectStream(ostream);
         
         if(time_node != NULL)
-          time_node->writeToSceneObjectStream(ostream);
+          time_node->writeToObjectStream(ostream);
         
         if(pal_node != NULL)
-          pal_node->getPalette()->writeToSceneObjectStream(ostream);
+          pal_node->getPalette()->writeToObjectStream(ostream);
         
         if(rend_node != NULL)
-          rend_node->writeToSceneObjectStream(ostream);
+          rend_node->writeToObjectStream(ostream);
         
         ostream.popContext("dataset");
       }

@@ -288,6 +288,17 @@ void RenderArrayNode::glRender(GLCanvas& gl)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 void RenderArrayNode::writeToObjectStream(ObjectStream& ostream)
 {
+  if (ostream.isSceneMode())
+  {
+    ostream.pushContext("render");
+    ostream.writeInline("type", "volume_slicer");
+    ostream.write("lighting_enabled", cstring(lighting_enabled));
+    ostream.write("use_view_direction", cstring(use_view_direction));
+    ostream.write("max_num_slices", cstring(max_num_slices));
+    ostream.popContext("render");
+    return;
+  }
+
   Node::writeToObjectStream(ostream);
 
   ostream.write("lighting_enabled",cstring(lighting_enabled));
@@ -301,6 +312,14 @@ void RenderArrayNode::writeToObjectStream(ObjectStream& ostream)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 void RenderArrayNode::readFromObjectStream(ObjectStream& istream)
 {
+  if (istream.isSceneMode())
+  {
+    this->lighting_enabled = cbool(istream.read("lighting_enabled"));
+    this->use_view_direction = cbool(istream.read("use_view_direction"));
+    this->max_num_slices = cint(istream.read("max_num_slices"));
+    return;
+  }
+
   Node::readFromObjectStream(istream);
 
   this->lighting_enabled=cbool(istream.read("lighting_enabled"));
@@ -310,27 +329,8 @@ void RenderArrayNode::readFromObjectStream(ObjectStream& istream)
   this->magnify_filter=cint(istream.read("magnify_filter"));
   this->minify_filter=cint(istream.read("minify_filter"));
 }
-  
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RenderArrayNode::writeToSceneObjectStream(ObjectStream& ostream)
-{
-  ostream.pushContext("render");
-  ostream.writeInline("type", "volume_slicer");
-  
-  ostream.write("lighting_enabled",cstring(lighting_enabled));
-  ostream.write("use_view_direction",cstring(use_view_direction));
-  ostream.write("max_num_slices",cstring(max_num_slices));
-  
-  ostream.popContext("render");
-}
-  
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RenderArrayNode::readFromSceneObjectStream(ObjectStream& istream)
-{
-  this->lighting_enabled=cbool(istream.read("lighting_enabled"));
-  this->use_view_direction=cbool(istream.read("use_view_direction"));
-  this->max_num_slices=cint(istream.read("max_num_slices"));
-}
+ 
+
 
 } //namespace Visus
 

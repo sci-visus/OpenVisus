@@ -412,21 +412,15 @@ public:
   }
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
-  {
+  virtual void writeToObjectStream(ObjectStream& ostream) override{
     VisusAssert(false);
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
-  {
+  virtual void readFromObjectStream(ObjectStream& istream) override{
     VisusAssert(false);
   }
   
-  virtual void writeToSceneObjectStream(ObjectStream& ostream) override
-  {
-    VisusAssert(false);
-  }
   
 private:
 

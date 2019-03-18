@@ -389,17 +389,7 @@ void OSPRayRenderNode::readFromObjectStream(ObjectStream& istream)
   Node::readFromObjectStream(istream);
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-void OSPRayRenderNode::writeToSceneObjectStream(ObjectStream& ostream)
-{
-  Node::writeToSceneObjectStream(ostream);
-}
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-void OSPRayRenderNode::readFromSceneObjectStream(ObjectStream& istream)
-{
-  Node::readFromSceneObjectStream(istream);
-}
 
 
 } //namespace Visus

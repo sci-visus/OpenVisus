@@ -437,6 +437,33 @@ void GLOrthoCamera::scale(double vs,Point2d center)
  ////////////////////////////////////////////////////////////////
 void GLOrthoCamera::writeToObjectStream(ObjectStream& ostream) 
 {
+  if (ostream.isSceneMode())
+  {
+    ostream.writeInline("type", "ortho");
+    // TODO generalize keyframes interpolation
+    ostream.pushContext("keyframes");
+    ostream.writeInline("interpolation", "linear");
+
+    // TODO Loop through the keyframes set on this Object
+    ostream.pushContext("keyframe");
+    ostream.writeInline("time", "0");
+
+    // write camera data
+    ostream.write("pos", pos.toString());
+    ostream.write("dir", dir.toString());
+    ostream.write("vup", vup.toString());
+
+    ostream.pushContext("ortho_params");
+    ortho_params.writeToObjectStream(ostream);
+    ostream.popContext("ortho_params");
+
+    ostream.popContext("keyframe");
+    // end keyframes loop
+
+    ostream.popContext("keyframes");
+    return;
+  }
+
   GLCamera::writeToObjectStream(ostream);
 
   ostream.write("default_scale",cstring(default_scale));
@@ -458,6 +485,25 @@ void GLOrthoCamera::writeToObjectStream(ObjectStream& ostream)
 ////////////////////////////////////////////////////////////////
 void GLOrthoCamera::readFromObjectStream(ObjectStream& istream) 
 {
+  if (istream.isSceneMode())
+  {
+    pos = Point3d(istream.read("pos", "0  0  0"));
+    dir = Point3d(istream.read("dir", "0  0 -1"));
+    vup = Point3d(istream.read("vup", "0  1  0"));
+
+    rotation_angle = cdouble(istream.read("rotation_angle"));
+
+    istream.pushContext("ortho_params");
+    {
+      GLOrthoParams value;
+      value.readFromObjectStream(istream);
+      this->ortho_params = value;
+      this->ortho_params_final = value;
+    }
+    istream.popContext("ortho_params");
+    return;
+  }
+
   GLCamera::readFromObjectStream(istream);
 
   pos=Point3d(istream.read("pos","0  0  0"));
@@ -481,52 +527,7 @@ void GLOrthoCamera::readFromObjectStream(ObjectStream& istream)
   istream.popContext("ortho_params");
 }
   
-////////////////////////////////////////////////////////////////
-void GLOrthoCamera::writeToSceneObjectStream(ObjectStream& ostream)
-{
-  ostream.writeInline("type", "ortho");
-  // TODO generalize keyframes interpolation
-  ostream.pushContext("keyframes");
-  ostream.writeInline("interpolation", "linear");
-  
-  // TODO Loop through the keyframes set on this Object
-  ostream.pushContext("keyframe");
-  ostream.writeInline("time", "0");
-  
-  // write camera data
-  ostream.write("pos",pos.toString());
-  ostream.write("dir",dir.toString());
-  ostream.write("vup",vup.toString());
-  
-  ostream.pushContext("ortho_params");
-  ortho_params.writeToObjectStream(ostream);
-  ostream.popContext("ortho_params");
-  
-  ostream.popContext("keyframe");
-  // end keyframes loop
-  
-  ostream.popContext("keyframes");
-  
-}
-  
-////////////////////////////////////////////////////////////////
-void GLOrthoCamera::readFromSceneObjectStream(ObjectStream& istream)
-{
-  pos=Point3d(istream.read("pos","0  0  0"));
-  dir=Point3d(istream.read("dir","0  0 -1"));
-  vup=Point3d(istream.read("vup","0  1  0"));
-  
-  rotation_angle=cdouble(istream.read("rotation_angle"));
-  
-  istream.pushContext("ortho_params");
-  {
-    GLOrthoParams value;
-    value.readFromObjectStream(istream);
-    this->ortho_params       = value;
-    this->ortho_params_final = value;
-  }
-  istream.popContext("ortho_params");
-}
+
 
 } //namespace
 

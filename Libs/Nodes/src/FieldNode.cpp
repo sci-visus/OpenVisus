@@ -73,6 +73,16 @@ void FieldNode::doPublish()
 ///////////////////////////////////////////////////////////////////////////////////////////
 void FieldNode::writeToObjectStream(ObjectStream& ostream)
 {
+  if (ostream.isSceneMode())
+  {
+    ostream.pushContext("field");
+    ostream.pushContext("name");
+    ostream.writeInline("value", getFieldName());
+    ostream.popContext("name");
+    ostream.popContext("field");
+    return;
+  }
+
   Node::writeToObjectStream(ostream);
 
   ostream.pushContext("fieldname");
@@ -83,6 +93,23 @@ void FieldNode::writeToObjectStream(ObjectStream& ostream)
 ///////////////////////////////////////////////////////////////////////////////////////////
 void FieldNode::readFromObjectStream(ObjectStream& istream)
 {
+  if (istream.isSceneMode())
+  {
+    Node::readFromObjectStream(istream);
+
+    if (istream.pushContext("name"))
+    {
+      this->fieldname = istream.readInline("value");
+      istream.popContext("name");
+    }
+
+    // not sure why I need to do this
+    // but otherwise it does not update the field
+    doPublish();
+
+    return;
+  }
+
   Node::readFromObjectStream(istream);
 
   if (istream.pushContext("fieldname"))
@@ -90,31 +117,6 @@ void FieldNode::readFromObjectStream(ObjectStream& istream)
     this->fieldname=istream.readText();
     istream.popContext("fieldname");
   } 
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////
-void FieldNode::writeToSceneObjectStream(ObjectStream& ostream)
-{
-  ostream.pushContext("field");
-  ostream.pushContext("name");
-  ostream.writeInline("value", getFieldName());
-  ostream.popContext("name");
-  ostream.popContext("field");
-}
-  
-///////////////////////////////////////////////////////////////////////////////////////////
-void FieldNode::readFromSceneObjectStream(ObjectStream& istream)
-{
-  Node::readFromObjectStream(istream);
-  
-  if (istream.pushContext("name"))
-  {
-    this->fieldname=istream.readInline("value");
-    istream.popContext("name");
-    // not sure why I need to do this
-    // but otherwise it does not update the field
-    doPublish();
-  }
 }
 
 
