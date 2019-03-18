@@ -73,14 +73,12 @@ endif()
 
 # *** openssl dependency ***
 if (VISUS_NET)	
+
 	SetIfNotDefined(VISUS_INTERNAL_OPENSSL ${VISUS_INTERNAL_DEFAULT})
 	if (VISUS_INTERNAL_OPENSSL)
-		MESSAGE(STATUS "Using internal OpenSSL")
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/openssl ${CMAKE_CURRENT_BINARY_DIR}/openssl)
+		MESSAGE(STATUS "Using internal LibresSSL")
+		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/libressl ${CMAKE_CURRENT_BINARY_DIR}/libressl)
 	else()
-		if (UNIX AND (NOT APPLE))
-			set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake/FixFindOpenSSL)
-		endif()
 		# i'm assuming brew here	
 		if (APPLE)
 			SetIfNotDefined(OPENSSL_INCLUDE_DIR    /usr/local/opt/openssl/include)
@@ -403,8 +401,17 @@ if (VISUS_NET)
 	target_compile_definitions(VisusKernel PUBLIC -DVISUS_NET=1)
 
 	if (TARGET crypto)
+	
 		target_link_libraries(VisusKernel PRIVATE crypto)
-		target_link_libraries(VisusKernel PRIVATE ssl)	
+		
+		if (TARGET ssl)
+			target_link_libraries(VisusKernel PRIVATE ssl)	
+		endif()
+		
+		if (TARGET tls)
+			target_link_libraries(VisusKernel PRIVATE tls)
+		endif()
+		
 	else()
 		target_include_directories(VisusKernel PRIVATE ${OPENSSL_INCLUDE_DIR})
 		target_link_libraries(VisusKernel      PUBLIC ${OPENSSL_SSL_LIBRARY})
