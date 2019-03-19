@@ -91,7 +91,7 @@ Scene::Info Scene::findSceneInVisusConfig(String name)
   if (ret.url.isFile())
   {
     String extension=Path(ret.url.getPath()).getExtension();
-//    ret.TypeName=DatasetPluginFactory::getSingleton()->getRegisteredDatasetType(extension);
+//    ret.TypeName=DatasetPluginFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
 //
 //    //probably not even an idx dataset
 //    if (ret.TypeName.empty()) 

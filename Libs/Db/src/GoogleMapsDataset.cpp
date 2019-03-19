@@ -36,7 +36,7 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/LegacyDataset.h>
+#include <Visus/GoogleMapsDataset.h>
 #include <Visus/Access.h>
 #include <Visus/NetService.h>
 
@@ -44,21 +44,21 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////////////////
-class LegacyAccess : public Access
+class GoogleMapsAccess : public Access
 {
 public:
 
-  LegacyDataset* dataset;
+  GoogleMapsDataset* dataset;
 
   StringTree             config;
   Url                    url;
   SharedPtr<NetService>  netservice;
 
   //constructor
-  LegacyAccess(LegacyDataset* dataset_,StringTree config_=StringTree()) 
+  GoogleMapsAccess(GoogleMapsDataset* dataset_,StringTree config_=StringTree()) 
     : dataset(dataset_),config(config_) 
   {
-    this->name = "LegacyAccess";
+    this->name = "GoogleMapsAccess";
     this->can_read = StringUtils::find(config.readString("chmod", "rw"), "r") >= 0;
     this->can_write = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
     this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
@@ -73,7 +73,7 @@ public:
   }
 
   //destructor
-  virtual ~LegacyAccess(){
+  virtual ~GoogleMapsAccess(){
   }
 
   //readBlock
@@ -145,7 +145,7 @@ public:
 
 
 //////////////////////////////////////////////////////////////
-bool LegacyDataset::beginQuery(SharedPtr<Query> query) 
+bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query) 
 {
   if (!Dataset::beginQuery(query))
     return false;
@@ -204,7 +204,7 @@ bool LegacyDataset::beginQuery(SharedPtr<Query> query)
 
 
 //////////////////////////////////////////////////////////////
-void LegacyDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<Query> query,NdBox box,BigInt id,int H,int end_resolution)
+void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<Query> query,NdBox box,BigInt id,int H,int end_resolution)
 {
   if (query->aborted()) 
     return;
@@ -236,7 +236,7 @@ void LegacyDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queri
 }
 
 //////////////////////////////////////////////////////////////
-bool LegacyDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query) 
+bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query) 
 {
   if (!Dataset::executeQuery(access,query))
     return false;
@@ -249,7 +249,7 @@ bool LegacyDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query
 
   //always need an access.. the google server cannot handle pure remote queries (i.e. compose the tiles on server side)
   if (!access)
-    access=std::make_shared<LegacyAccess>(this);  
+    access=std::make_shared<GoogleMapsAccess>(this);  
 
   int end_resolution=query->getEndResolution();
   VisusAssert(end_resolution % 2==0);
@@ -282,7 +282,7 @@ bool LegacyDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query
 }
 
 //////////////////////////////////////////////////////////////
-bool LegacyDataset::nextQuery(SharedPtr<Query> query) 
+bool GoogleMapsDataset::nextQuery(SharedPtr<Query> query) 
 {
   if (!Dataset::nextQuery(query))
     return false;
@@ -302,13 +302,13 @@ bool LegacyDataset::nextQuery(SharedPtr<Query> query)
 }
 
 //////////////////////////////////////////////////////////////
-bool LegacyDataset::mergeQueryWithBlock(SharedPtr<Query> query,SharedPtr<BlockQuery> blockquery) 
+bool GoogleMapsDataset::mergeQueryWithBlock(SharedPtr<Query> query,SharedPtr<BlockQuery> blockquery) 
 {
   return Query::mergeSamples(query->logic_box, query->buffer, blockquery->logic_box, blockquery->buffer, Query::InsertSamples, query->aborted);
 }
 
 //////////////////////////////////////////////////////////////
-SharedPtr<Access> LegacyDataset::createAccess(StringTree config, bool bForBlockQuery)
+SharedPtr<Access> GoogleMapsDataset::createAccess(StringTree config, bool bForBlockQuery)
 {
   VisusAssert(this->valid());
 
@@ -319,18 +319,18 @@ SharedPtr<Access> LegacyDataset::createAccess(StringTree config, bool bForBlockQ
 
   //I always need an access
   if (type.empty()) 
-    return std::make_shared<LegacyAccess>(this, config);
+    return std::make_shared<GoogleMapsAccess>(this, config);
 
-  //LegacyAccess
+  //GoogleMapsAccess
   if (type=="legacyaccess")
-    return std::make_shared<LegacyAccess>(this, config);
+    return std::make_shared<GoogleMapsAccess>(this, config);
 
   return Dataset::createAccess(config, bForBlockQuery);
 }
 
 
 //////////////////////////////////////////////////////////////
-std::vector<int> LegacyDataset::guessEndResolutions(const Frustum& viewdep,Position position,Query::Quality quality,Query::Progression progression)
+std::vector<int> GoogleMapsDataset::guessEndResolutions(const Frustum& viewdep,Position position,Query::Quality quality,Query::Progression progression)
 {
   std::vector<int> ret=Dataset::guessEndResolutions(viewdep,position,quality,progression);
   for (int I=0;I<(int)ret.size();I++)
@@ -339,7 +339,7 @@ std::vector<int> LegacyDataset::guessEndResolutions(const Frustum& viewdep,Posit
 }
 
 //////////////////////////////////////////////////////////////
-Point3i LegacyDataset::getTileCoordinate(BigInt start_address,BigInt end_address)
+Point3i GoogleMapsDataset::getTileCoordinate(BigInt start_address,BigInt end_address)
 {
   int bitsperblock=this->getDefaultBitsPerBlock();
   int samplesperblock=((BigInt)1)<<bitsperblock;
@@ -359,7 +359,7 @@ Point3i LegacyDataset::getTileCoordinate(BigInt start_address,BigInt end_address
 }
 
 //////////////////////////////////////////////////////////////
-LogicBox LegacyDataset::getAddressRangeBox(BigInt start_address,BigInt end_address)
+LogicBox GoogleMapsDataset::getAddressRangeBox(BigInt start_address,BigInt end_address)
 {
   auto coord=getTileCoordinate(start_address,end_address);
 
@@ -383,7 +383,7 @@ LogicBox LegacyDataset::getAddressRangeBox(BigInt start_address,BigInt end_addre
 }
 
 //////////////////////////////////////////////////////////////
-bool LegacyDataset::openFromUrl(Url url)
+bool GoogleMapsDataset::openFromUrl(Url url)
 {
   this->tile_nsamples.x  = cint(url.getParam("tile_width" ,"0")); 
   this->tile_nsamples.y  = cint(url.getParam("tile_height","0")); 
@@ -422,7 +422,7 @@ bool LegacyDataset::openFromUrl(Url url)
 
 
 //////////////////////////////////////////////////////////////
-LogicBox LegacyDataset::getLevelBox(int H)
+LogicBox GoogleMapsDataset::getLevelBox(int H)
 {
   int bitsperblock=this->getDefaultBitsPerBlock();
   VisusAssert((H%2)==0 && H>=bitsperblock);
@@ -448,7 +448,7 @@ LogicBox LegacyDataset::getLevelBox(int H)
 }
 
 //////////////////////////////////////////////////////////////
-bool LegacyDataset::setCurrentEndResolution(SharedPtr<Query> query)
+bool GoogleMapsDataset::setCurrentEndResolution(SharedPtr<Query> query)
 {
   int end_resolution=query->getEndResolution(); 
   if (end_resolution<0) 

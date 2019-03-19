@@ -440,22 +440,35 @@ public:
 
   VISUS_DECLARE_SINGLETON_CLASS(DatasetPluginFactory)
 
+  class VISUS_DB_API RegisteredDataset
+  {
+  public:
+    String extension; 
+    String TypeName;
+  };
+
   //registerDatasetType
   void registerDatasetType(String extension,String TypeName)
   {
-    VisusAssert(registered_dataset_types.find(extension)==registered_dataset_types.end());
-    registered_dataset_types.setValue(extension,TypeName);
+    RegisteredDataset item;
+    item.extension = extension;
+    item.TypeName = TypeName;
+    v.push_back(item);
   }
 
-  //getRegisteredDatasetType
-  String getRegisteredDatasetType(String extension) {
-    return registered_dataset_types.getValue(extension);
+  //getDatasetTypeNameFromExtension
+  String getDatasetTypeNameFromExtension(String extension) {
+    for (const auto& it : v) {
+      if (it.extension == extension)
+        return it.TypeName;
+    }
+    return "";
   }
 
 private:
 
   //extension -> TypeName
-  StringMap registered_dataset_types;
+  std::vector<RegisteredDataset> v;
 
   DatasetPluginFactory(){}
 

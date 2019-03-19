@@ -332,7 +332,7 @@ private:
       else if (url.isFile())
       {
         String extension=Path(url.getPath()).getExtension();
-        TypeName = DatasetPluginFactory::getSingleton()->getRegisteredDatasetType(extension);
+        TypeName = DatasetPluginFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
         if (TypeName.empty()) 
           return 0;
       }
@@ -355,7 +355,7 @@ private:
       //legacy dataset (example google maps)
       else if (StringUtils::endsWith(url.getHostname(),".google.com"))
       {
-        TypeName = "LegacyDataset";
+        TypeName = "GoogleMapsDataset";
       }
 
       if (property.empty())
@@ -740,7 +740,7 @@ private:
       else if (url.isFile())
       {
         String extension=Path(url.getPath()).getExtension();
-        TypeName = DatasetPluginFactory::getSingleton()->getRegisteredDatasetType(extension);
+        TypeName = DatasetPluginFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
         if (TypeName.empty())
           return 0;
       }
@@ -763,7 +763,7 @@ private:
       //legacy dataset (example google maps)
       else if (StringUtils::endsWith(url.getHostname(),".google.com"))
       {
-        TypeName = "LegacyDataset";
+        TypeName = "GoogleMapsDataset";
       }
       
       if (property.empty())

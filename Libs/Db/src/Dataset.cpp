@@ -98,7 +98,7 @@ Dataset::Info Dataset::findDatasetInVisusConfig(String name)
   if (ret.url.isFile())
   {
     String extension=Path(ret.url.getPath()).getExtension();
-    ret.TypeName=DatasetPluginFactory::getSingleton()->getRegisteredDatasetType(extension);
+    ret.TypeName=DatasetPluginFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
 
     //probably not even an idx dataset
     if (ret.TypeName.empty()) 
@@ -129,7 +129,7 @@ Dataset::Info Dataset::findDatasetInVisusConfig(String name)
   //legacy dataset (example google maps)
   else if (StringUtils::endsWith(ret.url.getHostname(),".google.com"))
   {
-    ret.TypeName = "LegacyDataset";
+    ret.TypeName = "GoogleMapsDataset";
   }
   //cloud storage
   else

@@ -36,8 +36,8 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_DB_LEGACYDATASET_H
-#define __VISUS_DB_LEGACYDATASET_H
+#ifndef __VISUS_DB_GOOGLE_MAPS_DATASET_H
+#define __VISUS_DB_GOOGLE_MAPS_DATASET_H
 
 #include <Visus/Db.h>
 #include <Visus/Dataset.h>
@@ -46,22 +46,22 @@ namespace Visus {
 
 
 ////////////////////////////////////////////////////////
-class VISUS_DB_API LegacyDataset : public Dataset
+class VISUS_DB_API GoogleMapsDataset : public Dataset
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(LegacyDataset)
+  VISUS_NON_COPYABLE_CLASS(GoogleMapsDataset)
 
   DType            dtype;
   Point2i          tile_nsamples;
   String           tile_compression;
 
   //constructor
-  LegacyDataset() {
+  GoogleMapsDataset() {
   }
 
   //destructor
-  virtual ~LegacyDataset() {
+  virtual ~GoogleMapsDataset() {
   }
 
   //getTileCoordinate
@@ -109,6 +109,6 @@ private:
 
 } //namespace Visus
 
-#endif //__VISUS_DB_LEGACYTILEDATASET_H
+#endif //__VISUS_DB_GOOGLE_MAPS_DATASET_H
 
 
