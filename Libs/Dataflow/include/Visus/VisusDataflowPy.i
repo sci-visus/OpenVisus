@@ -14,7 +14,6 @@ using namespace Visus;
 %import <Visus/VisusKernelPy.i>
 
 %shared_ptr(Visus::Dataflow)
-%shared_ptr(Visus::DataflowMessage)
 %shared_ptr(Visus::ReturnReceipt)
 %shared_ptr(Visus::NodeJob)
 

@@ -445,11 +445,16 @@ void Node::readFromObjectStream(ObjectStream& istream)
   hidden=cbool(istream.read("hidden"));
 }
 
+//////////////////////////////////////////////////////////
+SharedPtr<ReturnReceipt> Node::createPassThroughtReceipt()
+{
+  return ReturnReceipt::createPassThroughtReceipt(this);
+}
 
 //////////////////////////////////////////////////////////
-bool Node::publish(SharedPtr<DataflowMessage> msg)
+bool Node::publish(DataflowMessage msg)
 {
-  msg->setSender(this);
+  msg.setSender(this);
 
   if (!dataflow)
     return false;
@@ -460,7 +465,6 @@ bool Node::publish(SharedPtr<DataflowMessage> msg)
 
   return dataflow->publish(msg);
 }
-
 
 } //namespace Visus 
 

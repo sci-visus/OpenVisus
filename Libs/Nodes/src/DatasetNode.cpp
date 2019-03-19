@@ -57,15 +57,21 @@ DatasetNode::~DatasetNode()
 void DatasetNode::setDataset(SharedPtr<Dataset> dataset,bool bPublish)
 {
   this->dataset=dataset;
-  if (bPublish && getDataflow()) 
-    publish(std::map<String,SharedPtr<Object> >({{"dataset",dataset}}));
+  if (bPublish && getDataflow())
+  {
+    DataflowMessage msg;
+    msg.writeContent("dataset", dataset);
+    this->publish(msg);
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////
 void DatasetNode::enterInDataflow() 
 {
   Node::enterInDataflow();
-  this->publish(std::map<String, SharedPtr<Object> >({ { "dataset", dataset } }));
+  DataflowMessage msg;
+  msg.writeContent("dataset", dataset);
+  this->publish(msg);
 }
 
 //////////////////////////////////////////////////////////////////////////

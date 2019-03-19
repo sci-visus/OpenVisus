@@ -131,7 +131,7 @@ private:
   }
 
   //messageHasBeenPublished
-  virtual void messageHasBeenPublished(SharedPtr<DataflowMessage> msg) override;
+  virtual void messageHasBeenPublished(const DataflowMessage& msg) override;
 
 }; //end class
 

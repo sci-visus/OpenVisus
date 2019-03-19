@@ -235,18 +235,10 @@ public:
   }
 
   //publish
-  bool publish(SharedPtr<DataflowMessage> msg);
-
-  //publish
-  bool publish(const std::map< String, SharedPtr<Object> >& values) {
-    auto msg=std::make_shared<DataflowMessage>();
-    for (auto it : values)
-      msg->writeContent(it.first,it.second);
-    return publish(msg);
-  }
+  bool publish(DataflowMessage msg);
 
   //in case you need to know when published message is dispatched
-  virtual void messageHasBeenPublished(SharedPtr<DataflowMessage> msg){
+  virtual void messageHasBeenPublished(const DataflowMessage& msg){
     VisusAssert(VisusHasMessageLock());
   }
 
@@ -299,6 +291,9 @@ public:
 
   //guessUniqueChildName
   String guessUniqueChildName(String prefix) const;
+
+  //createPassThroughtReceipt
+  SharedPtr<ReturnReceipt> createPassThroughtReceipt();
 
 public:
 

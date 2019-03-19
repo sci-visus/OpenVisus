@@ -79,7 +79,9 @@ public:
       if (auto filter=query->filter.value)
         data=filter->dropExtraComponentIfExists(data);
     
-	  this->node->publish(std::map<String, SharedPtr<Object> >({ { "data", std::make_shared<Array>(data) } }));
+      DataflowMessage msg;
+      msg.writeContent("data", std::make_shared<Array>(data));
+	    this->node->publish(msg);
     };
   }
 
@@ -139,7 +141,7 @@ public:
     if (auto filter=query->filter.value)
       output=filter->dropExtraComponentIfExists(output);
     
-    auto msg=std::make_shared<DataflowMessage>();
+    DataflowMessage msg;
 
     SharedPtr<ReturnReceipt> return_receipt;
 
@@ -147,10 +149,10 @@ public:
     if (bWaitReturnReceipt)
     {
       return_receipt = std::make_shared<ReturnReceipt>();
-      msg->setReturnReceipt(return_receipt);
+      msg.setReturnReceipt(return_receipt);
     }
 
-    msg->writeContent("data",std::make_shared<Array>(output));
+    msg.writeContent("data",std::make_shared<Array>(output));
 
     //only if the publish went well, I could wait
     if (node->publish(msg))
@@ -275,7 +277,9 @@ void QueryNode::publishDumbArray()
   auto buffer=std::make_shared<Array>();
   buffer->bounds=Position::invalid();
 
-  publish(std::map<String,SharedPtr<Object> >({{"data",buffer}}));
+  DataflowMessage msg;
+  msg.writeContent("data", buffer);
+  publish(msg);
 }
 
 //////////////////////////////////////////////////////////////////

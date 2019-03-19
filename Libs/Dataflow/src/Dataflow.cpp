@@ -232,7 +232,7 @@ bool Dataflow::dispatchPublishedMessages()
   VisusAssert(VisusHasMessageLock());
 
   //make this very fast
-  std::vector< SharedPtr<DataflowMessage> > published;
+  std::vector<DataflowMessage> published;
   {
     ScopedLock lock(this->published_lock); //need the lock
 
@@ -243,13 +243,13 @@ bool Dataflow::dispatchPublishedMessages()
     std::swap(published,this->published);
   }
   //floodValues stored in the publish event
-  for (auto msg : published)
+  for (auto& msg : published)
   {
     //probably the node has been removed from the dataflow (see removeNode)
-    if (Node* sender=msg->getSender())
+    if (Node* sender=msg.getSender())
     {
       VisusAssert(containsNode(sender));
-      for (auto it=msg->getContent().begin();it!=msg->getContent().end();it++)
+      for (auto it=msg.getContent().begin();it!=msg.getContent().end();it++)
       {
         String port_name=it->first;
 
@@ -260,7 +260,7 @@ bool Dataflow::dispatchPublishedMessages()
         if (!port || !port->getNode() || !port->getNode()->getDataflow())
           continue;
 
-        floodValueForward(port,value_to_flood,msg->getReturnReceipt());
+        floodValueForward(port,value_to_flood,msg.getReturnReceipt());
       }
 
       sender->messageHasBeenPublished(msg);
@@ -270,7 +270,7 @@ bool Dataflow::dispatchPublishedMessages()
       listener->dataflowMessageHasBeenPublished(msg);
 
     //I promised to sign it in Dataflow::publish
-    if (auto return_receipt=msg->getReturnReceipt())
+    if (auto return_receipt=msg.getReturnReceipt())
       return_receipt->addSignature(this);
   }
 
@@ -288,14 +288,14 @@ bool Dataflow::dispatchPublishedMessages()
 }
 
 //////////////////////////////////////////////////////////
-bool Dataflow::publish(SharedPtr<DataflowMessage> msg)
+bool Dataflow::publish(DataflowMessage msg)
 {
   //I need the lock, I can be in any thread here
   {
     ScopedLock lock(published_lock);
     published.push_back(msg);
 
-    if (auto return_receipt = msg->getReturnReceipt())
+    if (auto return_receipt = msg.getReturnReceipt())
       return_receipt->needSignature(this);
   }
 
@@ -393,10 +393,10 @@ void Dataflow::removeNode(Node* NODE)
     //invalidate published message 
     {
       ScopedLock lock(published_lock);
-      for (auto it=this->published.begin();it!=this->published.end();it++)
+      for (auto& msg : this->published)
       {
-        if ((*it)->getSender()==node) 
-          (*it)->setSender(nullptr);
+        if (msg.getSender()==node)
+          msg.setSender(nullptr);
       }
     }
 

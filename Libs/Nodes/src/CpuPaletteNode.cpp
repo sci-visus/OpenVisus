@@ -73,9 +73,9 @@ public:
     if (!output)
       return;
 
-    auto msg=std::make_shared<DataflowMessage>();
-    msg->setReturnReceipt(return_receipt);
-    msg->writeContent("data",std::make_shared<Array>(output));
+    DataflowMessage msg;
+    msg.setReturnReceipt(return_receipt);
+    msg.writeContent("data",std::make_shared<Array>(output));
     node->publish(msg);
   }
 };
@@ -127,7 +127,7 @@ bool CpuPaletteNode::processInput()
   abortProcessing();
 
   // important to do before readInput
-  SharedPtr<ReturnReceipt> return_receipt=ReturnReceipt::createPassThroughtReceipt(this);
+  auto return_receipt=createPassThroughtReceipt();
 
   auto data = readInput<Array>("data");
   if (!data)

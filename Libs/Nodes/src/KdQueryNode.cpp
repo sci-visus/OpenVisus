@@ -163,8 +163,8 @@ public:
 
     if (bForce || last_publish.elapsedMsec() > publish_interval)
     {
-      auto msg=std::make_shared<DataflowMessage>();
-      msg->writeContent("data", kdarray);
+      DataflowMessage msg;
+      msg.writeContent("data", kdarray);
       node->publish(msg);
       last_publish = Time::now();
     }

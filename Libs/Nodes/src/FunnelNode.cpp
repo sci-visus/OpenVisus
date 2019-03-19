@@ -66,11 +66,11 @@ bool FunnelNode::processInput()
 
   if (latest_value)
   {
-    auto msg=std::make_shared<DataflowMessage>();
+    DataflowMessage msg;
     for (auto it=this->outputs.begin();it!=this->outputs.end();it++)
     {
       String oport_name=it->first;
-      msg->writeContent(oport_name,latest_value);
+      msg.writeContent(oport_name,latest_value);
     }
     this->publish(msg);
   }

@@ -186,13 +186,13 @@ public:
       engine->printMessage(StringUtils::format() << "Array " << output->dims.toString());
     }
 
-    auto msg=std::make_shared<DataflowMessage>();
+    DataflowMessage msg;
 
     //only if final I eventually release the pass thought return receipt
     if (!bIncremental && return_receipt)
-      msg->setReturnReceipt(return_receipt);
+      msg.setReturnReceipt(return_receipt);
 
-    msg->writeContent("data",output);
+    msg.writeContent("data",output);
     node->publish(msg);
   }
 
@@ -225,7 +225,7 @@ bool ScriptingNode::processInput()
   joinProcessing(); 
 
   // important to do before readInput
-  auto return_receipt=ReturnReceipt::createPassThroughtReceipt(this);
+  auto return_receipt=createPassThroughtReceipt();
   auto input = readInput<Array>("data");
   if (!input)
     return  false;
@@ -244,15 +244,12 @@ bool ScriptingNode::processInput()
 #else
 
   //pass throught
-  auto msg = std::make_shared<DataflowMessage>();
+  DataflowMessage msg;
   if (return_receipt)
-    msg->setReturnReceipt(return_receipt);
-  msg->writeContent("data", input);
+    msg.setReturnReceipt(return_receipt);
+  msg.writeContent("data", input);
   publish(msg);
-
 #endif
-
-  
 
   return true;
 }

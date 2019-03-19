@@ -337,7 +337,7 @@ OSPRayRenderNode::~OSPRayRenderNode()
 bool OSPRayRenderNode::processInput()
 {
   //I want to sign the input return receipt only after the rendering
-  auto return_receipt = ReturnReceipt::createPassThroughtReceipt(this);
+  auto return_receipt = createPassThroughtReceipt();
   auto palette = readInput<Palette>("palette");
   auto data = readInput<Array>("data");
 

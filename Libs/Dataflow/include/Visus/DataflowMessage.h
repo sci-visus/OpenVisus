@@ -67,9 +67,6 @@ public:
   //destructor
   ~ReturnReceipt();
 
-  //createPassThroughtReceipt
-  static SharedPtr<ReturnReceipt> createPassThroughtReceipt(Node* node);
-
   //isReady
   bool isReady();
 
@@ -81,6 +78,9 @@ public:
 
   //addSignature
   void addSignature(Signer* signer);
+
+  //createPassThroughtReceipt
+  static SharedPtr<ReturnReceipt> createPassThroughtReceipt(Node* node);
 
 private:
 
@@ -101,59 +101,73 @@ class VISUS_DATAFLOW_API DataflowMessage
 {
 public:  
 
+  VISUS_CLASS(DataflowMessage)
+
   typedef std::map<String, SharedPtr<Object> > Content;
 
   //constructor 
-  inline DataflowMessage() : sender(nullptr)
-  {}
+  DataflowMessage() : sender(nullptr) {
+  }
 
   //destructor
-  inline ~DataflowMessage() 
-  {}
+  ~DataflowMessage() {
+  }
 
   //getSender
-  Node* getSender() const
-  {return sender;}
+  Node* getSender() const {
+    return sender;
+  }
 
   //setSender
-  void setSender(Node* value)
-  {this->sender=value;}
+  void setSender(Node* value) {
+    this->sender=value;
+  }
 
   //getReturnReceipt
-  SharedPtr<ReturnReceipt> getReturnReceipt()
-  {return return_receipt;}
+  SharedPtr<ReturnReceipt> getReturnReceipt() const {
+    return return_receipt;
+  }
 
   //setReturnReceipt
-  void setReturnReceipt(SharedPtr<ReturnReceipt> value)
-  {this->return_receipt=value;}
+  void setReturnReceipt(SharedPtr<ReturnReceipt> value) {
+    this->return_receipt=value;
+  }
 
   //getContent
-  const Content& getContent() const
-  {return content;}
+  const Content& getContent() const {
+    return content;
+  }
 
   //hasContent
-  inline bool hasContent(String key) const
-  {return content.find(key)!=content.end();}
+  bool hasContent(String key) const {
+    return content.find(key)!=content.end();
+  }
 
   //readContent
-  inline SharedPtr<Object> readContent(String key,SharedPtr<Object> default_value=SharedPtr<Object>()) const
+  SharedPtr<Object> readContent(String key,SharedPtr<Object> default_value=SharedPtr<Object>()) const
   {
     auto it=content.find(key);
     if (it==content.end()) return default_value;
     return it->second;
   }
 
-  //writeContent
-  inline void writeContent(String key,SharedPtr<Object> value) 
-  {content[key]=value;}
+  //readContent
+  template <class CastTo>
+  SharedPtr<CastTo> readContent(String key, SharedPtr<CastTo> default_value = SharedPtr<CastTo>()) const {
+    auto ret = std::dynamic_pointer_cast<CastTo>(readContent(key));
+    return ret ? ret : default_value;
+  }
+
+   //writeContent
+  void writeContent(String key,SharedPtr<Object> value)  {
+    content[key]=value;
+  }
 
 private:
 
-  VISUS_NON_COPYABLE_CLASS(DataflowMessage)
-
-  Node*                                sender;
-  std::map<String, SharedPtr<Object> > content;
-  SharedPtr<ReturnReceipt>             return_receipt;
+  Node*                        sender;
+  Content                      content;
+  SharedPtr<ReturnReceipt>     return_receipt;
 
 };
 

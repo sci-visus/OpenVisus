@@ -104,7 +104,9 @@ private:
   void doPublish() 
   {
     if (!getDataflow()) return;
-    this->publish(std::map<String,SharedPtr<Object> >({{"palette",palette}}));
+    DataflowMessage msg;
+    msg.writeContent("palette", palette);
+    this->publish(msg);
   }
 
   //modelChanged
@@ -113,7 +115,7 @@ private:
   }
 
   //messageHasBeenPublished
-  virtual void messageHasBeenPublished(SharedPtr<DataflowMessage> msg) override;
+  virtual void messageHasBeenPublished(const DataflowMessage& msg) override;
 
 };
 

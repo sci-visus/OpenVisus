@@ -626,12 +626,12 @@ public:
 
       VisusInfo()<<"Produced tree with "<<reduced_graph->verts.size()<<" verts and "<<reduced_graph->edges.size()<<" edges";
 
-      node->publish({
-        {"graph",reduced_graph},
-        {"data",std::make_shared<Array>(this->data)},
-        {"branches",std::make_shared<BranchesObject>(branches)},
-        {"full_graph",full_graph} //important to recycle the last graph
-      });
+      DataflowMessage msg;
+      msg.writeContent("graph", reduced_graph);
+      msg.writeContent("data",std::make_shared<Array>(this->data));
+      msg.writeContent("branches",std::make_shared<BranchesObject>(branches));
+      msg.writeContent("full_graph",full_graph); //important to recycle the last graph
+      node->publish(msg);
     }
   };
 
@@ -710,11 +710,11 @@ bool JTreeNode::processInput()
 }
 
 ////////////////////////////////////////////////////////////
-void JTreeNode::messageHasBeenPublished(SharedPtr<DataflowMessage> msg)
+void JTreeNode::messageHasBeenPublished(const DataflowMessage& msg)
 {
-  if (SharedPtr<Object> full_graph=msg->readContent("full_graph"))
+  if (auto full_graph=msg.readContent("full_graph"))
   {
-    auto data=std::dynamic_pointer_cast<Array>(msg->readContent("data")); VisusAssert(data);
+    auto data=msg.readContent<Array>("data"); VisusAssert(data);
     this->last_full_graph=full_graph; //recycling the last full graph
   }
 }

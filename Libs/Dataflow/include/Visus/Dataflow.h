@@ -63,7 +63,7 @@ public:
   }
 
   //dataflowMessageHasBeenPublished
-  virtual void dataflowMessageHasBeenPublished(SharedPtr<DataflowMessage> msg) {
+  virtual void dataflowMessageHasBeenPublished(const DataflowMessage& msg) {
   }
 
   //dataflowBeingDestroyed
@@ -168,7 +168,7 @@ public:
   }
 
   //publish
-  bool publish(SharedPtr<DataflowMessage> msg);
+  bool publish(DataflowMessage msg);
 
   //abortProcessing
   void abortProcessing();
@@ -254,8 +254,8 @@ private:
   std::set<Node*>                            need_processing;
 
   //runtime
-  CriticalSection                           published_lock;
-  std::vector< SharedPtr<DataflowMessage> > published;
+  CriticalSection               published_lock;
+  std::vector<DataflowMessage> published;
 
   //floodValueForward
   void floodValueForward(DataflowPort* port, SharedPtr<Object> value, const SharedPtr<ReturnReceipt>& return_receipt);

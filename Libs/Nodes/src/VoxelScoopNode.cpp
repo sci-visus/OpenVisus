@@ -1009,11 +1009,12 @@ public:
     //publish the results
     //tell that the output has changed (note, if the port is not connected, this is a NOP)
     VisusInfo()<<"publishing centerlines...";
-    node->publish({
-      {"graph",centerlines},
-      {"graph_dbg",centerlines_untrimmed},
-      {"data",std::make_shared<Array>(node->data)}
-    });
+
+    DataflowMessage msg;
+    msg.writeContent("graph", centerlines);
+    msg.writeContent("graph_dbg",centerlines_untrimmed);
+    msg.writeContent("data",std::make_shared<Array>(node->data));
+    node->publish(msg);
   }
 };
 

@@ -229,12 +229,12 @@ public:
       /*--- end_remap ---*/ ); 
 
     //tell that the output has changed, if the port is not connected, this is a NOP!
-    node->publish({
-      {"data",isocontour},
-      {"cell_array",isocontour->cell_array},
-      {"data_min",std::make_shared<DoubleObject>(op.data_min)},
-      {"data_max",std::make_shared<DoubleObject>(op.data_max)}
-    });
+    DataflowMessage msg;
+    msg.writeContent("data", isocontour);
+    msg.writeContent("cell_array",isocontour->cell_array);
+    msg.writeContent("data_min",std::make_shared<DoubleObject>(op.data_min));
+    msg.writeContent("data_max",std::make_shared<DoubleObject>(op.data_max));
+    node->publish(msg);
   }
 
 
@@ -255,10 +255,10 @@ IsoContourNode::~IsoContourNode()
 {}
 
 ///////////////////////////////////////////////////////////////////////
-void IsoContourNode::messageHasBeenPublished(SharedPtr<DataflowMessage> msg)
+void IsoContourNode::messageHasBeenPublished(const DataflowMessage& msg)
 {
-  double data_min=cdouble(msg->readContent("data_min"));
-  double data_max=cdouble(msg->readContent("data_max"));
+  double data_min=cdouble(msg.readContent<DoubleObject>("data_min"));
+  double data_max=cdouble(msg.readContent<DoubleObject>("data_max"));
   
   //avoid rehentrant code
   if (this->data_range.from!=data_min || this->data_range.to!=data_max)

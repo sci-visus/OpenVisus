@@ -67,7 +67,9 @@ void FieldNode::doPublish()
   if (!dataflow)
     return;
 
-  this->publish(std::map<String, SharedPtr<Object> >({ {"fieldname",std::make_shared<StringObject>(this->fieldname)} }));
+  DataflowMessage msg;
+  msg.writeContent("fieldname", std::make_shared<StringObject>(this->fieldname));
+  this->publish(msg);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
