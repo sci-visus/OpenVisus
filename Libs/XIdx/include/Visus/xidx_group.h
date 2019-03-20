@@ -323,7 +323,7 @@ public:
         ostream.popContext("xi:include");
 
         {
-          StringTree stree(child->getClassName());
+          StringTree stree(child->getTypeName());
           ObjectStream ostream(stree, 'w');
           child->writeToObjectStream(ostream);
           auto content = stree.toString();

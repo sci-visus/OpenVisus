@@ -253,10 +253,10 @@ public:
   //findDataSource
   virtual DataSource* findDataSource() 
   {
-    // TODO fix getParent(), it returns an XIdxElement (getVisusClassName()=="XIdxElement")
+    // TODO fix getParent(), it returns an XIdxElement 
     for(auto cursor = this->getParent(); cursor; cursor = cursor->getParent())
     {
-      if (cursor->getClassName() == "Group")
+      if (cursor->getTypeName() == "Group")
       {
         if (auto source = cursor->findChildWithName("DataSource"))
           return dynamic_cast<DataSource*>(source);

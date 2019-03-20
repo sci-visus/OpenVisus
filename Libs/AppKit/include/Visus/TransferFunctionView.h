@@ -524,7 +524,7 @@ private:
   //refreshGui
   void refreshGui() {
 
-    StringTree stree;
+    StringTree stree(model->getTypeName());
     ObjectStream ostream(stree, 'w');
     model->writeToObjectStream(ostream);
     ostream.close();

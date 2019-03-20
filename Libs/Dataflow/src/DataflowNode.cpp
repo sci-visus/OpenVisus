@@ -58,6 +58,13 @@ Node::~Node()
   for (auto it=outputs.begin();it!=outputs.end();it++) delete it->second;
 }
 
+////////////////////////////////////////////////////////////
+String Node::getTypeName() const
+{
+  return NodeFactory::getSingleton()->getTypeName(*this);
+}
+
+
 ////////////////////////////////////////////////////////////////////////////
 void Node::addChild(Node* child,int index)
 {
@@ -420,26 +427,19 @@ void Node::writeToObjectStream(ObjectStream& ostream)
   if (!uuid.empty()) 
     ostream.writeInline("uuid",uuid);
 
-  //if (parent)
-  //  ostream.write("parent",parent->uuid);
-
   if (!name.empty())
     ostream.writeInline("name",name);
 
   if (hidden)
-    ostream.write("hidden",cstring(true));
+    ostream.writeInline("hidden",cstring(hidden));
 }
 
 ////////////////////////////////////////////////////////////
 void Node::readFromObjectStream(ObjectStream& istream)
 {
-  uuid=istream.readInline("uuid");
-
-  //see Dataflow::readFromObjectStream
-  //String parent_uuid=istream.read("parent");
-
-  name=istream.readInline("name");
-  hidden=cbool(istream.read("hidden"));
+  this->uuid=istream.readInline("uuid");
+  this->name=istream.readInline("name");
+  this->hidden=cbool(istream.readInline("hidden"));
 }
 
 //////////////////////////////////////////////////////////

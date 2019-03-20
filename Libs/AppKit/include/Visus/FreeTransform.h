@@ -92,6 +92,11 @@ public:
   virtual ~FreeTransform() {
   }
 
+  //getTypeName
+  virtual String getTypeName() const override{
+    return "FreeTransform";
+  }
+
   //getObject
   const Position& getObject() const {
     return this->obj;

@@ -107,6 +107,9 @@ public:
   //destructor (please remove from the dataflow before destroying!)
   virtual ~Node();
 
+  //getTypeName
+  virtual String getTypeName() const override;
+
   //getOsDependentTypeName
   virtual String getOsDependentTypeName() const {
     return typeid(*this).name();

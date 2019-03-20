@@ -1245,7 +1245,7 @@ bool Viewer::saveFile(String url,bool bSaveHistory,bool bShowDialogs)
   if (Path(url).getExtension().empty())
     url=url+".xml";
 
-  StringTree stree("Viewer");
+  StringTree stree(this->getTypeName());
   ObjectStream ostream(stree,'w');
   ostream.run_time_options.setValue("bSaveHistory",cstring(bSaveHistory));
 
@@ -1906,7 +1906,7 @@ public:
   //setBefore
   void setBefore(Node* node) 
   {
-    StringTree stree;
+    StringTree stree(node->getTypeName());
     ObjectStream ostream(stree,'w');
     node->writeToObjectStream(ostream);
     ostream.close();
@@ -1916,7 +1916,7 @@ public:
   //setAfter
   void setAfter(Node* node) 
   {
-    StringTree stree;
+    StringTree stree(node->getTypeName());
     ObjectStream ostream(stree, 'w');
     node->writeToObjectStream(ostream);
     ostream.close();
@@ -1949,7 +1949,7 @@ public:
     if (!diff.empty())
     {
       ostream.pushContext("diff");
-      ostream.writeText(this->diff.toString(),true);
+      ostream.writeText(this->diff.toString(),/*bCData*/true);
       ostream.popContext("diff");
     }
   }
@@ -1961,7 +1961,8 @@ public:
     this->node=istream.readInline("node");
     if (istream.pushContext("diff"))
     {
-      this->diff=Diff(StringUtils::getNonEmptyLines(istream.readText()));
+      auto lines = StringUtils::getNonEmptyLines(istream.readText());
+      this->diff=Diff(lines);
       istream.popContext("diff");
     }
   }
@@ -1991,7 +1992,7 @@ public:
 
     if (node) 
     {
-      this->encoded = std::make_shared<StringTree>();
+      this->encoded = std::make_shared<StringTree>(node->getTypeName());
       ObjectStream ostream(*this->encoded, 'w');
       node->writeToObjectStream(ostream);
       ostream.close();
@@ -2115,7 +2116,7 @@ public:
 
     if (node) 
     {
-      this->encoded = std::make_shared<StringTree>();
+      this->encoded = std::make_shared<StringTree>(node->getTypeName());
       ObjectStream ostream(*this->encoded, 'w');
       node->writeToObjectStream(ostream);
       ostream.close();

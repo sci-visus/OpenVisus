@@ -61,9 +61,6 @@ public:
   virtual ~GLCamera()
   {}
 
-  //getTypeName
-  virtual String getTypeName() const = 0;
-
   //glMousePressEvent
   virtual void glMousePressEvent(QMouseEvent* evt)=0;
 

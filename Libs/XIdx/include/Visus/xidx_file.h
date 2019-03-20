@@ -44,7 +44,7 @@ public:
   String                   file_pattern;
 
   //constructor
-  XIdxFile(String name_=""){
+  XIdxFile(String name_="") {
     name= name_;
   }
 
@@ -96,9 +96,9 @@ public:
   //save
   bool save(String filename)
   {
-    StringTree stree("XIdx");
+    StringTree stree(this->getTypeName());
     ObjectStream ostream(stree, 'w');
-    writeToObjectStream(ostream);
+    this->writeToObjectStream(ostream);
     Utils::saveTextDocument(filename, stree.toString());
     return true;
   }
@@ -128,7 +128,7 @@ public:
         ostream.popContext("xi:include");
 
         {
-          StringTree stree(child->getVisusClassName());
+          StringTree stree(child->getTypeName());
           ObjectStream ostream(stree, 'w');
           child->writeToObjectStream(ostream);
           auto content = stree.toString();

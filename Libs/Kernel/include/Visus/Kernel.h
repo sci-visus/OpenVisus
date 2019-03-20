@@ -242,11 +242,10 @@ private:
 #endif
 
 #if !SWIG
-//__________________________________________________________
-namespace Private {
+
 
 template <class ClassName>
-class VisusDetectMemoryLeaks
+class DetectMemoryLeaks
 {
 public:
 
@@ -268,7 +267,7 @@ public:
       {
         VisusAssert((int)this->value > 0);
         std::ostringstream out;
-        out << "***** Leaked objects detected: " << (int)this->value << " instance(s) of class [" << ClassName::getVisusClassName()<< "] *****"<<std::endl;
+        out << "***** Leaked objects detected: " << (int)this->value << " instance(s) of class [" << typeid(ClassName).name()<< "] *****"<<std::endl;
         PrintMessageToTerminal(out.str());
         //VisusAssert(false);
       }
@@ -283,35 +282,30 @@ public:
   };
 
   //constructor
-  VisusDetectMemoryLeaks() {
+  DetectMemoryLeaks() {
     ++(SharedCounter::getSingleton().value);
   }
 
   //copy constructor
-  VisusDetectMemoryLeaks(const VisusDetectMemoryLeaks&) {
+  DetectMemoryLeaks(const DetectMemoryLeaks&) {
     ++(SharedCounter::getSingleton().value);
   }
 
   //destructor
-  ~VisusDetectMemoryLeaks() {
+  ~DetectMemoryLeaks() {
     --(SharedCounter::getSingleton().value);
   }
 
 };
 
-} //namespace Private
-
 #endif
 
 #ifdef VISUS_DEBUG
   #define VISUS_CLASS(className) \
-    friend class Visus::Private::VisusDetectMemoryLeaks<className>; \
-    static Visus::String getVisusClassName() {return #className;} \
-    Visus::Private::VisusDetectMemoryLeaks<className> VISUS_JOIN_MACRO(__leak_detector__,__LINE__);\
+    Visus::DetectMemoryLeaks<className> VISUS_JOIN_MACRO(__leak_detector__,__LINE__);\
     /*--*/
 #else
   #define VISUS_CLASS(className) \
-    static Visus::String getVisusClassName() { return #className; } \
     /*--*/
 #endif
 

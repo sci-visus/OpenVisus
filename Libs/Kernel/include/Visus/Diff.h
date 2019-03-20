@@ -105,7 +105,7 @@ public:
     if (diff.empty())
       return;
 
-    StringTree stree;
+    StringTree stree(model->getTypeName());
     ObjectStream ostream(stree, 'w');
     model->writeToObjectStream(ostream);
     ostream.close();

@@ -137,7 +137,7 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
     return StringTree();
   }
 
-  StringTree ret;
+  StringTree ret("stat");
   ObjectStream ostream(ret, 'w');
   
   ostream.writeInline("url",url);

@@ -177,6 +177,11 @@ public:
   //destructor
   virtual ~Viewer();
 
+  //getTypeName
+  virtual String getTypeName() const {
+    return "Viewer";
+  }
+
   //this is needed for swig
   void* c_ptr() {
     return this;

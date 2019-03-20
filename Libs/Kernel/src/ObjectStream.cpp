@@ -54,6 +54,7 @@ String ObjectStream::readText()
 void ObjectStream::open(StringTree& root,int mode)
 {
   VisusAssert(mode=='w' || mode=='r');
+  VisusReleaseAssert(!root.name.empty());
   this->mode=mode;
   stack=std::stack<StackItem>();
   stack.push(StackItem(&root));
@@ -136,12 +137,11 @@ void ObjectStream::write(String name,String value)
 /////////////////////////////////////////////////////////////
 String ObjectStream::read(String name,String default_value)
 {
-  String ret=default_value;
-  if (pushContext(name))
-  {
-    ret=readInline("value",default_value);
-    popContext(name);
-  }
+  if (!pushContext(name))
+    return default_value;
+
+  String ret=readInline("value",default_value);
+  popContext(name);
   return ret;
 }
 

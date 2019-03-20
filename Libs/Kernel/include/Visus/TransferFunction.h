@@ -297,6 +297,11 @@ public:
   virtual ~TransferFunction() {
   }
 
+  //getTypeName
+  virtual String getTypeName() const  override {
+    return "TransferFunction";
+  }
+
   //size
   int size() const {
     return functions.empty() ? 0 : functions[0]->size();

@@ -333,7 +333,7 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
     }
     case Qt::Key_P:
     {
-      StringTree stree;
+      StringTree stree(this->getTypeName());
       ObjectStream ostream(stree, 'w');
       this->writeToObjectStream(ostream);
       ostream.close();

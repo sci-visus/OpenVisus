@@ -47,8 +47,7 @@ void Viewer::sendNetMessage(SharedPtr<NetConnection> netsnd,void* obj)
   VisusAssert(false);
 #else
 
-  String TypeName=ObjectFactory::getSingleton()->getTypeName(*obj);
-  StringTree stree(TypeName);
+  StringTree stree(obj->getTypeName(obj));
   ObjectStream ostream(stree, 'w');
   ostream.writeInline("request_id",cstring(++netsnd->request_id));
   obj->writeToObjectStream(ostream);

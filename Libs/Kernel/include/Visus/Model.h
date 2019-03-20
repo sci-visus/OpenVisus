@@ -90,6 +90,9 @@ public:
     VisusAssert(destroyed.empty());
   }
 
+  //getTypeName
+  virtual String getTypeName() const = 0;
+
   //isUpdating
   inline bool isUpdating() const {
     return nbegin>0;
@@ -164,6 +167,11 @@ public:
 
     //destructor
     virtual ~Action() {
+    }
+
+    //getTypeName
+    String getTypeName() const {
+      return TypeName;
     }
 
     //redo
@@ -448,12 +456,10 @@ private:
 
     if (log.is_open())
     {
-      StringTree stree(action->TypeName);
-      {
-        ObjectStream ostream(stree, 'w');
-        action->write(target(),ostream);
-        ostream.close(); 
-      }
+      StringTree stree(action->getTypeName());
+      ObjectStream ostream(stree, 'w');
+      action->write(target(),ostream);
+      ostream.close(); 
       log<<stree.toString()<<std::endl<<std::endl;
     }
   }

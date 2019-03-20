@@ -596,7 +596,7 @@ public:
 
     VisusInfo() << "done fixFieldsRange";
 
-    StringTree stree;
+    StringTree stree("fields");
     ObjectStream ostream(stree,'w');
     for (auto field : vf->getFields())
     {
