@@ -551,7 +551,8 @@ public:
   double                       min_persistence;
   Array                        data;
 
-  typedef typename BuildJTreeNodeUtils<CppType>::MyGraph FullGraph;
+  typedef BuildJTreeNodeUtils<CppType> ParentClass;
+  typedef typename ParentClass::MyGraph FullGraph;
 
   SharedPtr<FullGraph> full_graph;
 
