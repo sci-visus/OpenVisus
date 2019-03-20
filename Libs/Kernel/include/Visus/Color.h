@@ -40,7 +40,6 @@ For support : support@visus.net
 #define __VISUS_COLOR_H
 
 #include <Visus/Kernel.h>
-#include <Visus/Object.h>
 #include <Visus/Utils.h>
 
 #include <array>

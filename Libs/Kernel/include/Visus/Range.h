@@ -40,7 +40,6 @@ For support : support@visus.net
 #define VISUS_RANGE_H
 
 #include <Visus/Kernel.h>
-#include <Visus/Object.h>
 #include <Visus/NumericLimits.h>
 #include <Visus/Utils.h>
 #include <Visus/Aborted.h>

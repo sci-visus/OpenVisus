@@ -61,7 +61,7 @@ public:
     if (auto stats = Statistics::compute(data, compute_range, 256, aborted))
     {
       DataflowMessage msg;
-      msg.writeContent("statistics", std::make_shared<Statistics>(stats));
+      msg.writeValue("statistics", stats);
       node->publish(msg);
     }
   }
@@ -115,7 +115,7 @@ bool PaletteNode::processInput()
   abortProcessing();
 
   //important to remove any input from the queue  
-  auto data = readInput<Array>("data");
+  auto data = readValue<Array>("data");
   if (!data) 
     return false;
 
@@ -165,11 +165,11 @@ void PaletteNode::readFromObjectStream(ObjectStream& istream)
 }
 
 ///////////////////////////////////////////////////////////////////////
-void PaletteNode::messageHasBeenPublished(const DataflowMessage& msg)
+void PaletteNode::messageHasBeenPublished(DataflowMessage msg)
 {
   VisusAssert(VisusHasMessageLock());
 
-  auto statistics=msg.readContent<Statistics>("statistics");
+  auto statistics=msg.readValue<Statistics>("statistics");
   if (!statistics)
     return;
 

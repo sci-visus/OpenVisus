@@ -42,9 +42,11 @@ For support : support@visus.net
 #include <Visus/DataflowModule.h>
 #include <Visus/Semaphore.h>
 #include <Visus/CriticalSection.h>
-#include <Visus/Object.h>
+#include <Visus/ObjectStream.h>
+#include <Visus/Array.h>
 
 #include <set>
+#include <type_traits>
 
 namespace Visus {
 
@@ -97,13 +99,82 @@ private:
 
 
 ///////////////////////////////////////////////////////////////////////////////
+template <class Value>
+class WrappedDataflowValue : public DataflowValue
+{
+public:
+
+  SharedPtr<Value> value;
+
+  //constructor
+  WrappedDataflowValue(SharedPtr<Value> value_ = SharedPtr<Value>()) : value(value_) {
+  }
+
+  //destructor
+  virtual ~WrappedDataflowValue() {
+  }
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
+class VISUS_DATAFLOW_API DataflowValue
+{
+public:
+
+  VISUS_CLASS(DataflowValue)
+
+  //constructor
+  DataflowValue() {
+  }
+
+  //destructor
+  virtual ~DataflowValue() {
+  }
+
+  //wrapValue
+  template <class Value>
+  static SharedPtr<DataflowValue> wrapValue(Value value) {
+    return wrapValue<Value>(value, is_shared_ptr<Value>{});
+  }
+
+  //unwrapValue
+  template <class Value>
+  static SharedPtr<Value> unwrapValue(SharedPtr<DataflowValue> obj) {
+    auto wrapped = std::dynamic_pointer_cast< WrappedDataflowValue<Value> >(obj);
+    return wrapped ? wrapped->value : SharedPtr<Value>();
+  }
+
+private:
+
+  template<class T>
+  struct is_shared_ptr : std::false_type {};
+
+  template<class T>
+  struct is_shared_ptr< SharedPtr<T> > : std::true_type {};
+
+  //wrapValue (for shared_ptr)
+  template <class Value>
+  static SharedPtr<DataflowValue> wrapValue(Value value, std::true_type) {
+    return std::make_shared< WrappedDataflowValue<typename Value::element_type> >(value);
+  }
+
+  //wrapValue (for !shared_ptr)
+  template <class Value>
+  static SharedPtr<DataflowValue> wrapValue(Value value, std::false_type) {
+    return std::make_shared< WrappedDataflowValue<Value> >( std::make_shared<Value>(value) );
+  }
+
+
+};
+
+///////////////////////////////////////////////////////////////////////////////
 class VISUS_DATAFLOW_API DataflowMessage 
 {
 public:  
 
   VISUS_CLASS(DataflowMessage)
 
-  typedef std::map<String, SharedPtr<Object> > Content;
+  typedef std::map<String, SharedPtr<DataflowValue> > Content;
 
   //constructor 
   DataflowMessage() : sender(nullptr) {
@@ -143,24 +214,26 @@ public:
     return content.find(key)!=content.end();
   }
 
-  //readContent
-  SharedPtr<Object> readContent(String key,SharedPtr<Object> default_value=SharedPtr<Object>()) const
-  {
-    auto it=content.find(key);
-    if (it==content.end()) return default_value;
-    return it->second;
+  //readValue
+  SharedPtr<DataflowValue> readValue(String key) const {
+    auto it = content.find(key); return (it != content.end()) ? it->second : SharedPtr<DataflowValue>();
   }
 
-  //readContent
-  template <class CastTo>
-  SharedPtr<CastTo> readContent(String key, SharedPtr<CastTo> default_value = SharedPtr<CastTo>()) const {
-    auto ret = std::dynamic_pointer_cast<CastTo>(readContent(key));
-    return ret ? ret : default_value;
+  //writeValue
+  void writeValue(String key, SharedPtr<DataflowValue> value) {
+    content[key] = value;
   }
 
-   //writeContent
-  void writeContent(String key,SharedPtr<Object> value)  {
-    content[key]=value;
+  //readValue
+  template <class Value>
+  SharedPtr<Value> readValue(String key) {
+    return DataflowValue::unwrapValue<Value>(readValue(key));
+  }
+
+  //writeValue
+  template <class Value>
+  void writeValue(String key, Value value) {
+    writeValue(key, DataflowValue::wrapValue<Value>(value));
   }
 
 private:

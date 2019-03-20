@@ -141,7 +141,7 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
   ObjectStream ostream(ret, 'w');
   
   ostream.writeInline("url",url);
-  ostream.writeInline("format",ObjectFactory::getSingleton()->getPortableTypeName(*dataset));
+  ostream.writeInline("format", dataset->getTypeName());
   ostream.writeInline("size",dataset->getBox().size().toString());
   ostream.writeInline("box", dataset->getBox().toOldFormatString());
   ostream.writeInline("timesteps",cstring(dataset->getTimesteps().getMin())+" " + cstring(dataset->getTimesteps().getMax()));

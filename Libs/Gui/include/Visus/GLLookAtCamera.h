@@ -62,6 +62,11 @@ public:
   virtual ~GLLookAtCamera() {
   }
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "GLLookAtCamera";
+  }
+
   //getCenterOfRotation
   Point3d getCenterOfRotation() const {
     return centerOfRotation;

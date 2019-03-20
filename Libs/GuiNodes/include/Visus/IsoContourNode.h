@@ -48,7 +48,7 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////////////
-class VISUS_GUI_NODES_API IsoContour : public Object, public GLMesh 
+class VISUS_GUI_NODES_API IsoContour : public GLMesh 
 {
 public:
 
@@ -62,7 +62,7 @@ public:
   field;
 
   Position bounds;
-  SharedPtr<Array> cell_array; // 1 if a voxel contributes to the isosurface; 0 otherwise
+  Array    cell_array; // 1 if a voxel contributes to the isosurface; 0 otherwise
 
   //constructor
   IsoContour() {
@@ -131,7 +131,7 @@ private:
   }
 
   //messageHasBeenPublished
-  virtual void messageHasBeenPublished(const DataflowMessage& msg) override;
+  virtual void messageHasBeenPublished(DataflowMessage msg) override;
 
 }; //end class
 

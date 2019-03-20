@@ -82,9 +82,9 @@ public:
   }
 
   //setData
-  void setData(SharedPtr<Array> data,SharedPtr<Palette> palette)
+  void setData(Array data,SharedPtr<Palette> palette)
   {
-    if (!data || data->getPointDim() != 3) 
+    if (!data || data.getPointDim() != 3) 
       ThrowException("OSPRay Volume must be 3D");
 
     // Read transfer function data from the palette and pass to OSPRay,
@@ -123,29 +123,29 @@ public:
     }
 
     volume = ospNewVolume("shared_structured_volume");
-    const OSPDataType ospDType = dtypeToOSPDtype(data->dtype);
+    const OSPDataType ospDType = dtypeToOSPDtype(data.dtype);
     // The OSP_DATA_SHARED_BUFFER flag tells OSPRay to not copy the data
     // internally, but to just share the pointer with us.
-    volumeData = ospNewData(data->getTotalNumberOfSamples(), ospDType,
-      data->c_ptr(), OSP_DATA_SHARED_BUFFER);
+    volumeData = ospNewData(data.getTotalNumberOfSamples(), ospDType,
+      data.c_ptr(), OSP_DATA_SHARED_BUFFER);
 
     // TODO: How to get the value range of the array?
     ospSet2f(volume, "voxelRange", 0.f, 255.f);
     ospSetString(volume, "voxelType", ospDTypeStr(ospDType).c_str());
-    ospSet3i(volume, "dimensions", data->getWidth(), data->getHeight(), data->getDepth());
+    ospSet3i(volume, "dimensions", data.getWidth(), data.getHeight(), data.getDepth());
     ospSetData(volume, "voxelData", volumeData);
     ospSetObject(volume, "transferFunction", transferFcn);
 
-    VisusInfo() << data->bounds.toString();
+    VisusInfo() << data.bounds.toString();
 
-    const Box3d grid = data->bounds.toAxisAlignedBox();
+    const Box3d grid = data.bounds.toAxisAlignedBox();
 
     // Scale the smaller volumes we get while loading progressively to fill the true bounds
     // of the full dataset
     ospSet3f(volume, "gridSpacing",
-      (grid.p2.x - grid.p1.x) / data->getWidth(),
-      (grid.p2.y - grid.p1.y) / data->getHeight(),
-      (grid.p2.z - grid.p1.z) / data->getDepth());
+      (grid.p2.x - grid.p1.x) / data.getWidth(),
+      (grid.p2.y - grid.p1.y) / data.getHeight(),
+      (grid.p2.z - grid.p1.z) / data.getDepth());
 
     // TODO: This parameter should be exposed in the UI
     // Sampling rate will adjust the quality and cost of rendering,
@@ -306,7 +306,7 @@ public:
   }
 
   //setData
-  void setData(SharedPtr<Array> data, SharedPtr<Palette> palette) {
+  void setData(Array data, SharedPtr<Palette> palette) {
   }
 
   //glRender
@@ -338,8 +338,8 @@ bool OSPRayRenderNode::processInput()
 {
   //I want to sign the input return receipt only after the rendering
   auto return_receipt = createPassThroughtReceipt();
-  auto palette = readInput<Palette>("palette");
-  auto data = readInput<Array>("data");
+  auto palette = readValue<Palette>("palette");
+  auto data    = readValue<Array>("data");
 
   //request to flush all
   if (!data || !data->dims.innerProduct() || !data->dtype.valid())
@@ -350,7 +350,7 @@ bool OSPRayRenderNode::processInput()
     return false;
   }
 
-  pimpl->setData(data, palette);
+  pimpl->setData(*data, palette);
 
   //so far I can apply the transfer function on the GPU only if the data is atomic
   bool bPaletteEnabled = (palette && data && data->dtype.ncomponents() == 1);
@@ -371,7 +371,7 @@ void OSPRayRenderNode::glRender(GLCanvas& gl)
   if (!data)
     return;
 
-  SharedPtr<ReturnReceipt> return_receipt = this->return_receipt;
+  auto return_receipt = this->return_receipt;
   this->return_receipt.reset();
   pimpl->glRender(gl);
 }
@@ -388,9 +388,6 @@ void OSPRayRenderNode::readFromObjectStream(ObjectStream& istream)
 {
   Node::readFromObjectStream(istream);
 }
-
-
-
 
 } //namespace Visus
 

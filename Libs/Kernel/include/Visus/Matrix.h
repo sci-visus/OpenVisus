@@ -43,7 +43,6 @@ For support : support@visus.net
 #include <Visus/Quaternion.h>
 #include <Visus/Plane.h>
 #include <Visus/LinearMap.h>
-#include <Visus/Object.h>
 
 #include <cstring>
 #include <iomanip>

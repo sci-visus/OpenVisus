@@ -41,10 +41,14 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////
-void Viewer::sendNetMessage(SharedPtr<NetConnection> netsnd,Object* obj)
+void Viewer::sendNetMessage(SharedPtr<NetConnection> netsnd,void* obj)
 {
-  String ClassName=ObjectFactory::getSingleton()->getPortableTypeName(*obj);
-  StringTree stree(ClassName);
+#if 1
+  VisusAssert(false);
+#else
+
+  String TypeName=ObjectFactory::getSingleton()->getTypeName(*obj);
+  StringTree stree(TypeName);
   ObjectStream ostream(stree, 'w');
   ostream.writeInline("request_id",cstring(++netsnd->request_id));
   obj->writeToObjectStream(ostream);
@@ -56,6 +60,7 @@ void Viewer::sendNetMessage(SharedPtr<NetConnection> netsnd,Object* obj)
     ScopedLock lock(netsnd->requests_lock);
     netsnd->requests.push_back(request);
   }
+#endif
 }
 
 
@@ -134,7 +139,7 @@ bool Viewer::addNetRcv(int port)
         <<std::endl;
 
       StringTree stree;
-      if (!stree.loadFromXml(request.getTextBody()))
+      if (!stree.fromXmlString(request.getTextBody()))
       {
         VisusAssert(false);
         return;
@@ -142,15 +147,16 @@ bool Viewer::addNetRcv(int port)
 
       ObjectStream istream(stree, 'r');
 
-      String TypeName = istream.getCurrentContext()->name; 
+  #if 1
+        VisusAssert(false); //TODO
+  #else
+
+      String TypeName = istream.getCurrentContext()->name;
       VisusAssert(!TypeName.empty());
       SharedPtr<Object> obj(ObjectFactory::getSingleton()->createInstance<Object>(TypeName));  VisusAssert(obj);
       obj->readFromObjectStream(istream);
       istream.close();
 
-  #if 1
-        VisusAssert(false); //TODO
-  #else
       if (auto update_glcamera=dynamic_cast<UpdateGLCamera*>(action.get()))
       {
         auto glcamera_node=dynamic_cast<GLCameraNode*>(viewer->findNodeByUUID(update_glcamera->glcamera_node));VisusAssert(glcamera_node);

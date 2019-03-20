@@ -49,7 +49,6 @@
 #include <sstream>
 
 #include <Visus/Kernel.h>
-#include <Visus/Object.h>
 #include <Visus/StringUtils.h>
 #include <Visus/DType.h>
 #include <Visus/Log.h>

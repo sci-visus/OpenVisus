@@ -51,7 +51,7 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Array : public Object
+class VISUS_KERNEL_API Array 
 {
 public:
 
@@ -266,18 +266,6 @@ public:
 
   //setComponent
   bool setComponent(int C, Array src, Aborted aborted = Aborted());
-
-  static Array* castFrom(Object* obj) {
-    return dynamic_cast<Array*>(obj);
-  }
-
-public:
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override;
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override;
 
 };
 

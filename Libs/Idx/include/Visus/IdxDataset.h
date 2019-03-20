@@ -68,11 +68,16 @@ public:
   // So use only when stricly necessary! 
   SharedPtr<IdxPointQueryHzAddressConversion> hzaddress_conversion_pointquery;
 
-  //default constructor (needed for Object factory)
+  //default constructor
   IdxDataset();
 
   //destructor
   virtual ~IdxDataset();
+
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "IdxDataset";
+  }
 
   //loadDataset
   static SharedPtr<IdxDataset> loadDataset(String url) {

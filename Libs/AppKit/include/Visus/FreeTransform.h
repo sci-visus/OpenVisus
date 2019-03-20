@@ -142,6 +142,16 @@ public:
   //glRender
   virtual void glRender(GLCanvas& gl) override;
 
+  //writeToObjectStream (to implement if needed!)
+  virtual void writeToObjectStream(ObjectStream& ostream) override {
+    VisusAssert(false);
+  }
+
+  //readFromObjectStream (to implement if needed!)
+  virtual void readFromObjectStream(ObjectStream& istream) override {
+    VisusAssert(false);
+  }
+
 private:
 
   Position              obj;

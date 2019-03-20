@@ -41,7 +41,6 @@ For support : support@visus.net
 
 #include <Visus/Kernel.h>
 #include <Visus/Point.h>
-#include <Visus/Object.h>
 
 #include <algorithm>
 

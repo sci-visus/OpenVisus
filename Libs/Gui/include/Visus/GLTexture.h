@@ -41,6 +41,8 @@ For support : support@visus.net
 
 #include <Visus/Gui.h>
 
+#include <Visus/KdArray.h>
+
 #include <QOpenGLTexture>
 
 namespace Visus {
@@ -49,7 +51,10 @@ namespace Visus {
 class GLCanvas;
 
 ///////////////////////////////////////////////////////////////////
-class VISUS_GUI_API GLTexture : public Object
+class VISUS_GUI_API GLTexture 
+#if !SWIG
+  : public KdArrayNode::UserValue
+#endif
 {
 public:
 
@@ -100,7 +105,6 @@ private:
   upload;
 
   unsigned int texture_id=0;
-
 
 };
 

@@ -40,7 +40,6 @@ For support : support@visus.net
 #define VISUS_MODEL_H__
 
 #include <Visus/Kernel.h>
-#include <Visus/Object.h>
 #include <Visus/Time.h>
 #include <Visus/StringUtils.h>
 #include <Visus/Log.h>
@@ -63,9 +62,8 @@ public:
   }
 };
 
-
 //////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Model : public Object
+class VISUS_KERNEL_API Model 
 {
 public:
 
@@ -123,6 +121,14 @@ public:
   void removeView(BaseView* value) {
     Utils::remove(this->views,value);
   }
+
+public:
+
+  //writeToObjectStream
+  virtual void writeToObjectStream(ObjectStream& ostream) = 0;
+
+  //readFromObjectStream
+  virtual void readFromObjectStream(ObjectStream& istream) = 0;
 
 protected:
 
@@ -410,17 +416,6 @@ public:
     log.rdbuf()->pubsetbuf(0,0);
     return true;
   }
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override{
-    VisusAssert(false);
-  }
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override{
-    VisusAssert(false);
-  }
-  
   
 private:
 

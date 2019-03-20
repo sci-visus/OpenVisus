@@ -91,7 +91,7 @@ Scene::Info Scene::findSceneInVisusConfig(String name)
   if (ret.url.isFile())
   {
     String extension=Path(ret.url.getPath()).getExtension();
-//    ret.TypeName=DatasetPluginFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
+//    ret.TypeName=DatasetFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
 //
 //    //probably not even an idx dataset
 //    if (ret.TypeName.empty()) 
@@ -137,7 +137,7 @@ bool Scene::openFromUrl(Url url)
   }
   
   StringTree stree;
-  if (!stree.loadFromXml(content))
+  if (!stree.fromXmlString(content))
   {
     VisusError()<<"scene file is wrong";
     VisusAssert(false);
@@ -159,29 +159,16 @@ SharedPtr<Scene> Scene::loadScene(String name)
   if (!info.valid())
     return SharedPtr<Scene>();
 
-//  String TypeName = info.TypeName;
-  Url    url      = info.url;
 
-//  if (TypeName.empty())
-//    return SharedPtr<Dataset>();
+  Url url = info.url;
 
-  SharedPtr<Scene> ret = SharedPtr<Scene>(new Scene());
-  //(ObjectFactory::getSingleton()->createInstance<Scene>(TypeName));
-//  if (!ret) 
-//  {
-//    VisusWarning()<<"Dataset::loadDataset("<<url.toString()<<") failed. Cannot ObjectFactory::getSingleton()->createInstance("<<TypeName<<")";
-//    return SharedPtr<Dataset>();
-//  }
-
-//  ret->config=info.config;
-
+  auto ret = std::make_shared<Scene>();
   if (!ret->openFromUrl(url.toString())) 
   {
     VisusWarning()<<"Scene openFromUrl("<<url.toString()<<") failed";
     return SharedPtr<Scene>();
   }
 
-  //VisusInfo()<<ret->getDatasetInfos();
   return ret; 
 }
 

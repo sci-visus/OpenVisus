@@ -57,8 +57,8 @@ IsoContourRenderNode::~IsoContourRenderNode() {
 ///////////////////////////////////////////////////////////////////////////
 bool IsoContourRenderNode::processInput()
 {
-  auto isocontour  = readInput<IsoContour>("data");
-  auto palette     = readInput<Palette   >("palette");
+  auto isocontour  = readValue<IsoContour>("data");
+  auto palette     = readValue<Palette>("palette");
 
   bool bEnablePalette=palette && isocontour && isocontour->field.array.dtype.ncomponents()>=2;
   if (!bEnablePalette)

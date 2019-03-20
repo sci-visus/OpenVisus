@@ -50,135 +50,8 @@ For support : support@visus.net
 
 namespace Visus {
 
-class XmlPimpl
-{
-public:
-
-  //encode
-  static String encode(const StringTree& stree)
-  {
-    TiXmlDocument* xmldoc=new TiXmlDocument();
-    xmldoc->LinkEndChild(new TiXmlDeclaration( "1.0", "", "" ));
-    xmldoc->LinkEndChild(XmlEncodeStringTree(stree));
-    TiXmlPrinter printer;
-    printer.SetIndent("\t");
-    printer.SetLineBreak("\n");
-    xmldoc->Accept(&printer);
-    String ret(printer.CStr());
-    delete xmldoc;
-    return StringUtils::trim(StringUtils::replaceAll(ret,"<?xml version=\"1.0\" ?>",""));
-  }
-
-
-  //decode
-  static bool decode(StringTree& dst,const String& src)
-  {
-    if (src.empty())
-    {
-      VisusWarning()<<"XmlEncoder::decodeStringTree failed because of empty content";
-      return false;
-    }
-
-    TiXmlDocument xmldoc;
-    xmldoc.Parse(src.c_str());
-    if (xmldoc.Error())
-    {
-      VisusWarning()<<"Failed XmlEncoder::decodeStringTree"
-        <<" ErrorRow("<<xmldoc.ErrorRow()<<")"
-        <<" ErrorCol("<<xmldoc.ErrorCol()<<")"
-        <<" ErrorDesc("<<xmldoc.ErrorDesc()<<")";
-      return false;
-    }
-
-    dst=XmlDecodeStringTree(xmldoc.FirstChildElement());
-    return true;
-  }
-
-private:
-
-  //XmlEncodeStringTree
-  static TiXmlElement* XmlEncodeStringTree(const StringTree& src)
-  {
-    TiXmlElement* dst=new TiXmlElement(src.name.c_str());
-
-    for (auto it=src.attributes.begin();it!=src.attributes.end();it++)
-    {
-      String key   =it->first;
-      String value =it->second;
-      dst->SetAttribute(key.c_str(),value.c_str());
-    }
-
-    for (int I=0;I<src.getNumberOfChilds();I++)
-    {
-      const StringTree& child=src.getChild(I);
-      if (child.isCDataSectionNode())
-      {
-        VisusAssert(child.attributes.size()==1 && child.attributes.hasValue("value") && child.getNumberOfChilds()==0);
-        String text=child.readString("value");
-        TiXmlText * ti_xml_text = new TiXmlText(text.c_str());
-        ti_xml_text->SetCDATA(true); 
-        dst->LinkEndChild(ti_xml_text);
-      }
-      else if (child.isTextNode())
-      {
-        VisusAssert(child.attributes.size()==1 && child.attributes.hasValue("value") && child.getNumberOfChilds()==0);
-        String text=child.readString("value");
-        TiXmlText * ti_xml_text = new TiXmlText(text.c_str());
-        ti_xml_text->SetCDATA(false); 
-        dst->LinkEndChild(ti_xml_text);
-      }
-      else
-      {
-        dst->LinkEndChild(XmlEncodeStringTree(src.getChild(I)));
-      }
-    }
-
-    return dst;
-  }
-
-
-  //XmlDecodeStringTree
-  static StringTree XmlDecodeStringTree(TiXmlElement* src)
-  {
-    StringTree dst(src->Value());
-
-    for (TiXmlAttribute* attr=src->FirstAttribute();attr;attr=attr->Next())
-      dst.writeString(attr->Name(),attr->Value());
-
-    //xml_text                                              
-    if ( const TiXmlNode* child = src->FirstChild() )
-    {
-      if (const TiXmlText* child_text = child->ToText())
-      {
-        if (const char* xml_text=child_text->Value())
-        {
-          if (child_text->CDATA())
-            dst.addCDataSectionNode(xml_text);
-          else
-            dst.addTextNode(xml_text);
-        }
-      }
-      else if (const TiXmlComment* child_comment = child->ToComment())
-      {
-        dst.addCommentNode(child_comment->Value());
-      }
-    }
-
-    for (TiXmlElement* child=src->FirstChildElement();child;child=child->NextSiblingElement()) 
-      dst.addChild(XmlDecodeStringTree(child));
-
-    return dst;
-  }
-
-};
-
-} //namespace Visus
-
-
-namespace Visus {
-
 //////////////////////////////////////////////////////////////////////////////////////////////////
-class StringTreePostProcess
+class PostProcessStringTree
 {
 private:
 
@@ -264,7 +137,7 @@ private:
     VisusAssert(!url.empty());
 
     StringTree inplace;
-    if (!inplace.loadFromXml(Utils::loadTextDocument(url)))
+    if (!inplace.fromXmlString(Utils::loadTextDocument(url)))
     {
       VisusInfo()<<"cannot load document "<<url;
       VisusAssert(false);
@@ -462,153 +335,9 @@ public:
 /////////////////////////////////////////////////
 StringTree StringTree::postProcess(const StringTree& src)
 {
-  auto dst=StringTreePostProcess::exec(const_cast<StringTree&>(src));
+  auto dst=PostProcessStringTree::exec(const_cast<StringTree&>(src));
   //VisusInfo() << dst.toString();
   return dst;
-}
-
-/////////////////////////////////////////////////
-String StringTree::toString() const
-{
-  return XmlEncoder().encode(this);
-}
-
-// This function has been copied from
-// commit 13d2ba14a5a8f3cd1c364c21c078575c40d0ba3d
-// see ScriptingEngine::encodeObject
-String StringTree::encodeObjectToJSON(const Object* obj_, int nrec) const
-{
-  auto formatString = [](String str)
-  {
-    String nStr = str;
-    for (size_t i = 0; i<nStr.size(); i++)
-    {
-      String sreplace = "";
-      bool replace = true;
-      
-      switch (nStr[i])
-      {
-        case '\\': sreplace = "\\\\";    break;
-        case '\n': sreplace = "\\n\\\n"; break;
-        case '\r': sreplace = "\\r";     break;
-        case '\a': sreplace = "\\a";     break;
-        case '"':  sreplace = "\\\"";    break;
-        default:
-        {
-          int nCh = ((int)nStr[i]) & 0xFF;
-          if (nCh<32 || nCh>127)
-          {
-            char buffer[5];
-#if VISUS_WIN
-            sprintf_s(buffer, 5, "\\x%02X", nCh);
-#else
-            snprintf(buffer, 5, "\\x%02X", nCh);
-#endif
-            sreplace = buffer;
-          }
-          else
-            replace = false;
-        }
-      }
-      
-      if (replace)
-      {
-        nStr = nStr.substr(0, i) + sreplace + nStr.substr(i + 1);
-        i += sreplace.length() - 1;
-      }
-    }
-    return "\"" + nStr + "\"";
-  };
-  
-  Object* obj = const_cast<Object*>(obj_);
-  
-  //null obj
-  if (!obj)
-    return "";
-  
-  //list
-  if (ListObject* list = dynamic_cast<ListObject*>(obj))
-  {
-    const String tab(nrec * 2, ' ');
-    std::ostringstream out;
-    out << "[\n";
-    int len = (int)list->size();
-    for (int i = 0; i<len; i++)
-    {
-      SharedPtr<Object> item = list->getAt(i);
-      if (!item)
-        out << tab << " NullObject";
-      else
-        out << tab << "  " << encodeObjectToJSON(item.get(), nrec + 1);
-      if (i<len - 1) out << ",\n";
-    }
-    out << "\n" << tab << "]";
-    return out.str();
-  }
-  
-  //dict
-  if (DictObject* dict = dynamic_cast<DictObject*>(obj))
-  {
-    const String tab(nrec * 2, ' ');
-    std::ostringstream out;
-    out << "{ \n";
-    
-    //I want the reorder the keys
-    std::deque<String> keys;
-    for (auto it = dict->begin(); it != dict->end(); it++)
-      keys.push_back(it->first);
-    
-    auto it = std::find(keys.begin(), keys.end(), "name");
-    if (it != keys.end())
-    {
-      keys.erase(it); keys.push_front("name");
-    }
-    
-    for (int I = 0; I<(int)keys.size(); I++)
-    {
-      out << tab << "  " << formatString(keys[I]) << " : " << encodeObjectToJSON(dict->getattr(keys[I]).get(), nrec + 1);
-      if (I != (keys.size() - 1)) out << ",\n";
-    }
-    out << "\n" << tab << "}";
-    return out.str();
-  }
-  
-  //    if (obj == NullObject.get())
-  //      return obj->toString();
-  //
-  //    if (obj == UndefinedObject.get())
-  //      return obj->toString();
-  
-  if (dynamic_cast<IntObject*>(obj))
-    return obj->toString();
-  
-  if (dynamic_cast<DoubleObject*>(obj))
-    return obj->toString();
-  
-  if (dynamic_cast<StringObject*>(obj))
-    return formatString(obj->toString());
-  
-  //    if (ScriptingFunction* fn = dynamic_cast<ScriptingFunction*>(obj))
-  //    {
-  //      std::ostringstream out;
-  //      out << "function (";
-  //      int N = 0; for (auto it = fn->argnames.begin(); it != fn->argnames.end(); it++, N++)
-  //        out << (N ? "," : "") << (*it);
-  //      out << ") " << fn->body;
-  //      return out.str();
-  //    }
-  
-  //Object->StringTree->JSON dictionary
-  SharedPtr<StringTree> stree(StringTreeEncoder().encode(obj));
-  SharedPtr<Object>     json = Utils::convertStringTreeToDictObject(stree.get());
-  return encodeObjectToJSON(json.get());
-  
-}
-
-/////////////////////////////////////////////////
-String StringTree::toJSONString() const
-{
-  return encodeObjectToJSON(this);
 }
 
 /////////////////////////////////////////////////
@@ -635,19 +364,6 @@ StringTree& StringTree::operator=(const StringTree& other)
 }
 
 
-/////////////////////////////////////////////////
-bool StringTree::loadFromXml(String content,bool bEnablePostProcessing)
-{
-  if (content.empty())
-    return false;
-
-  StringTree tmp;
-  if (!XmlEncoder().internalDecode(tmp, content,bEnablePostProcessing))
-    return false;
-    
-  *this=tmp;
-  return true;
-}
 
 /////////////////////////////////////////////////
 String StringTree::readString(String key,String default_value) const
@@ -787,95 +503,197 @@ void StringTree::readFromObjectStream(ObjectStream& istream)
 }
 
 
+static TiXmlElement* ToXmlElement(const StringTree& src)
+{
+  TiXmlElement* dst = new TiXmlElement(src.name.c_str());
+
+  for (auto it = src.attributes.begin(); it != src.attributes.end(); it++)
+  {
+    String key = it->first;
+    String value = it->second;
+    dst->SetAttribute(key.c_str(), value.c_str());
+  }
+
+  for (int I = 0; I<src.getNumberOfChilds(); I++)
+  {
+    const StringTree& child = src.getChild(I);
+    if (child.isCDataSectionNode())
+    {
+      VisusAssert(child.attributes.size() == 1 && child.attributes.hasValue("value") && child.getNumberOfChilds() == 0);
+      String text = child.readString("value");
+      TiXmlText * ti_xml_text = new TiXmlText(text.c_str());
+      ti_xml_text->SetCDATA(true);
+      dst->LinkEndChild(ti_xml_text);
+    }
+    else if (child.isTextNode())
+    {
+      VisusAssert(child.attributes.size() == 1 && child.attributes.hasValue("value") && child.getNumberOfChilds() == 0);
+      String text = child.readString("value");
+      TiXmlText * ti_xml_text = new TiXmlText(text.c_str());
+      ti_xml_text->SetCDATA(false);
+      dst->LinkEndChild(ti_xml_text);
+    }
+    else
+    {
+      dst->LinkEndChild(ToXmlElement(src.getChild(I)));
+    }
+  }
+
+  return dst;
+}
+
+///////////////////////////////////////////////////////////////////////////
+String StringTree::toXmlString() const
+{
+  TiXmlDocument* xmldoc = new TiXmlDocument();
+  xmldoc->LinkEndChild(new TiXmlDeclaration("1.0", "", ""));
+  xmldoc->LinkEndChild(ToXmlElement(*this));
+
+  TiXmlPrinter printer;
+  printer.SetIndent("\t");
+  printer.SetLineBreak("\n");
+  xmldoc->Accept(&printer);
+  String ret(printer.CStr());
+  delete xmldoc;
+
+  ret = StringUtils::replaceAll(ret, "<?xml version=\"1.0\" ?>", "");
+  ret = StringUtils::trim(ret);
+  return ret;
+}
+
+///////////////////////////////////////////////////////////////////////////
+static String FormatJSON(String str)
+{
+  String nStr = str;
+  for (size_t i = 0; i < nStr.size(); i++)
+  {
+    String sreplace = "";
+    bool replace = true;
+
+    switch (nStr[i])
+    {
+      case '\\': sreplace = "\\\\";    break;
+      case '\n': sreplace = "\\n\\\n"; break;
+      case '\r': sreplace = "\\r";     break;
+      case '\a': sreplace = "\\a";     break;
+      case '"':  sreplace = "\\\"";    break;
+      default:
+      {
+        int nCh = ((int)nStr[i]) & 0xFF;
+        if (nCh < 32 || nCh>127)
+        {
+          char buffer[5];
+  #if VISUS_WIN
+          sprintf_s(buffer, 5, "\\x%02X", nCh);
+  #else
+          snprintf(buffer, 5, "\\x%02X", nCh);
+  #endif
+          sreplace = buffer;
+        }
+        else
+          replace = false;
+      }
+    }
+
+    if (replace)
+    {
+      nStr = nStr.substr(0, i) + sreplace + nStr.substr(i + 1);
+      i += sreplace.length() - 1;
+    }
+  }
+  return "\"" + nStr + "\"";
+};
+
+
 /////////////////////////////////////////////////
-StringTree* StringTreeEncoder::encode(Object* obj)
+String StringTree::toJSONString(const StringTree& src, int nrec) 
 {
-  //invalid arg
-  if (!obj)
-    return nullptr;
+  std::ostringstream out;
 
-  //already a StringTree
-  if (StringTree* stree=dynamic_cast<StringTree*>(obj))
-  {
-    VisusAssert(stree->readString("decoded_typename").empty());
-    return new StringTree(*stree);
+  out << "{" << std::endl;
+  out << FormatJSON("name")      << " : " << FormatJSON(src.name) << ","<<std::endl;
+  out << FormatJSON("attributes") << " : { " << std::endl;
+
+  int I=0,N=(int)src.attributes.size();
+  for (const auto& it : src.attributes) {
+    out << FormatJSON(it.first) << " : " << FormatJSON(it.second) << ((I != N - 1) ? "," : "") << std::endl;
+    I++;
   }
-  //create a StringTree by serializing the object
-  else
+  out << "}" << std::endl;
+
+  out << FormatJSON("childs") << " : [ " << std::endl;
+  I = 0; N = (int)src.childs.size();
+  for (const auto& child : src.childs)
   {
-    String decoded_typename=ObjectFactory::getSingleton()->getPortableTypeName(*obj);
-    UniquePtr<StringTree> ret(new StringTree(decoded_typename));
-    ret->writeString("decoded_typename",decoded_typename); 
-    ObjectStream ostream(*ret,'w');
-    obj->writeToObjectStream(ostream);
-    return ret.release();
+    out << toJSONString(*child,nrec+1) << ((I != N - 1) ? "," : "") << std::endl;
+    I++;
   }
+  out << "]" << std::endl;
+  return out.str();
+}
+
+////////////////////////////////////////////////////////////////////////
+static StringTree FromXmlElement(TiXmlElement* src)
+{
+  StringTree dst(src->Value());
+
+  for (TiXmlAttribute* attr = src->FirstAttribute(); attr; attr = attr->Next())
+    dst.writeString(attr->Name(), attr->Value());
+
+  //xml_text                                              
+  if (const TiXmlNode* child = src->FirstChild())
+  {
+    if (const TiXmlText* child_text = child->ToText())
+    {
+      if (const char* xml_text = child_text->Value())
+      {
+        if (child_text->CDATA())
+          dst.addCDataSectionNode(xml_text);
+        else
+          dst.addTextNode(xml_text);
+      }
+    }
+    else if (const TiXmlComment* child_comment = child->ToComment())
+    {
+      dst.addCommentNode(child_comment->Value());
+    }
+  }
+
+  for (TiXmlElement* child = src->FirstChildElement(); child; child = child->NextSiblingElement())
+    dst.addChild(FromXmlElement(child));
+
+  return dst;
 }
 
 
-////////////////////////////////////////////////////////////
-VISUS_NEWOBJECT(Object*) StringTreeEncoder::decode(StringTree* stree) 
-{
-  //invalid arg
-  if (!stree || stree->empty())
-    return nullptr;
-
-  //see StringTree::create(Object*)
-  String decoded_typename=stree->readString("decoded_typename",stree->name);
-  if (decoded_typename.empty())
-  {
-    return new StringTree(*stree);
-  }
-  else
-  {
-    UniquePtr<Object> ret(ObjectFactory::getSingleton()->createInstance(decoded_typename));
-    if (!ret) return nullptr;
-    ObjectStream istream(*stree,'r');
-    ret->readFromObjectStream(istream);
-    return ret.release();
-  }
-}
-
 
 
 ////////////////////////////////////////////////////////////
-String XmlEncoder::encode(const Object* obj)
+bool StringTree::fromXmlString(String content, bool bEnablePostProcessing)
 {
-  UniquePtr<StringTree> stree(StringTreeEncoder().encode(const_cast<Object*>(obj)));
-
-  if (!stree) 
-    return "";
-
-  return XmlPimpl::encode(*stree);
-}
-
-
-////////////////////////////////////////////////////////////
-bool XmlEncoder::internalDecode(StringTree& dst,const String& src,bool bEnablePostProcessing)
-{
-  if (src.empty())
+  if (content.empty())
   {
-    VisusWarning()<<"XmlEncoder::decodeStringTree failed because of empty content";
+    VisusWarning() << "StringTree::fromXmlString failed because of empty content";
     return false;
   }
 
-  if (!XmlPimpl::decode(dst,src))
+  TiXmlDocument xmldoc;
+  xmldoc.Parse(content.c_str());
+  if (xmldoc.Error())
+  {
+    VisusWarning() << "Failed StringTree::fromXmlString failed"
+      << " ErrorRow(" << xmldoc.ErrorRow() << ")"
+      << " ErrorCol(" << xmldoc.ErrorCol() << ")"
+      << " ErrorDesc(" << xmldoc.ErrorDesc() << ")";
     return false;
+  }
+
+  (*this) = FromXmlElement(xmldoc.FirstChildElement());
 
   if (bEnablePostProcessing)
-    dst=StringTree::postProcess(dst);
+    *this = StringTree::postProcess(*this);
 
   return true;
-}
-
-////////////////////////////////////////////////////////////
-SharedPtr<Object> XmlEncoder::decode(const String& content)
-{
-  StringTree stree;
-  if (!internalDecode(stree,content))
-    return SharedPtr<Object>();
-
-  return SharedPtr<Object>(StringTreeEncoder().decode(&stree));
 }
 
 

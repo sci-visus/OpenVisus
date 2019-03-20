@@ -393,28 +393,25 @@ bool Node::needProcessInputs() const
 }
 
 ////////////////////////////////////////////////////////////
-SharedPtr<Object> Node::readInput(String iport,Int64* write_timestamp)
+SharedPtr<DataflowValue> Node::readValue(String iport)
 {
   VisusAssert(VisusHasMessageLock());
   DataflowPort* port=this->getInputPort(iport);
-  if (!port) return SharedPtr<Object>();
-  return port->readValue(write_timestamp);
+  if (!port) return SharedPtr<DataflowValue>();
+  return port->readValue();
 }
 
 ////////////////////////////////////////////////////////////
-SharedPtr<Object> Node::previewInput(String iport,Int64* write_timestamp)
+SharedPtr<DataflowValue> Node::previewInput(String iport)
 {
   VisusAssert(VisusHasMessageLock());
   DataflowPort* port=this->getInputPort(iport);
-  if (!port) return SharedPtr<Object>();
+  if (!port) return SharedPtr<DataflowValue>();
 
-  if (DataflowPortStoredValue* preview_value=port->previewValue())
-  {
-    if (write_timestamp) *write_timestamp=preview_value->write_timestamp;
+  if (auto preview_value=port->previewValue())
     return preview_value->value;
-  }
 
-  return SharedPtr<Object>();
+  return SharedPtr<DataflowValue>();
 }
 
 ////////////////////////////////////////////////////////////

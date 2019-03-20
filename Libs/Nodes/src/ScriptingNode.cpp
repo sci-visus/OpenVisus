@@ -51,7 +51,7 @@ class ScriptingNode::MyJob : public NodeJob
 public:
 
   ScriptingNode*             node;
-  SharedPtr<Array>           input;
+  Array                      input;
   SharedPtr<ReturnReceipt>   return_receipt;
   bool                       bDataOutputPortConnected;
   Int64                      incremental_last_publish_time = -1;
@@ -60,7 +60,7 @@ public:
   SharedPtr<PythonEngine>    engine;
 
   //constructor
-  MyJob(ScriptingNode* node_, SharedPtr<Array> input_,SharedPtr<ReturnReceipt> return_receipt_)
+  MyJob(ScriptingNode* node_, Array input_,SharedPtr<ReturnReceipt> return_receipt_)
     : node(node_), input(input_),return_receipt(return_receipt_)
   {
     this->engine = node->engine;
@@ -74,80 +74,10 @@ public:
     return node && input && bDataOutputPortConnected;
   }
 
-  //runJob
-  virtual void runJob() override
-  {
-    if (!valid() || aborted()) 
-      return;
-
-    if (aborted())
-      return;
-
-    if (code.empty())
-    {
-      doPublish(input,/*bIncremental*/false);
-      return;
-    }
-
-    SharedPtr<Array> output;
-    try {
-      output = scriptingProcessInput(code, *input, aborted);
-    }
-    catch (std::exception ex)
-    {
-      ScopedAcquireGil acquire_gil;
-      engine->printMessage(ex.what());
-      return;
-    }
-
-    if (!output) 
-    {
-      ScopedAcquireGil acquire_gil;
-      engine->printMessage("ERROR output is not an Array");
-      return;
-    }
-
-    doPublish(output);
-  }
-
-  //scriptingProcessInput
-  SharedPtr<Array> scriptingProcessInput(String code, Array input, Aborted aborted)
-  {
-    ScopedAcquireGil acquire_gil;
-    
-    Array output;
-    {
-      DoAtExit do_at_exit([this]() {
-
-        engine->delModuleAttr("input");
-        engine->delModuleAttr("aborted");
-        engine->delModuleAttr("output");
-        engine->delModuleAttr("doPublish");
-      });
-
-      engine->setModuleAttr("input"  , input);
-      engine->setModuleAttr("aborted", aborted);
-
-      engine->addModuleFunction("doPublish", [this](PyObject *self, PyObject *args)
-      {
-        auto output = engine->getModuleArrayAttr("output");
-        if (output)
-          doPublish(std::make_shared<Array>(output),/*bIncremental*/true);
-        return (PyObject*)nullptr;
-      });
-
-      engine->execCode(code);
-
-      output = engine->getModuleArrayAttr("output");
-    }
-
-    return std::make_shared<Array>(output);
-  };
-
   //doPublish
-  void doPublish(SharedPtr<Array> output,bool bIncremental=false)
+  void doPublish(Array output, bool bIncremental = false)
   {
-    if (aborted() || !output)
+    if (aborted())
       return;
 
     if (bIncremental)
@@ -165,25 +95,25 @@ public:
       incremental_last_publish_time = current_time.getUTCMilliseconds();
     }
 
-    output->shareProperties(*input);
-    
+    output.shareProperties(input);
+
     //a projection happened?
-    int pdim = input->dims.getPointDim();
+    int pdim = input.dims.getPointDim();
     for (int D = 0; D < pdim; D++)
     {
-      if (output->dims[D] == 1 && input->dims[D] > 1)
+      if (output.dims[D] == 1 && input.dims[D] > 1)
       {
-        auto box = output->bounds.getBox();
+        auto box = output.bounds.getBox();
         box.p2[D] = box.p1[D];
-        output->bounds = Position(output->bounds.getTransformation(), box);
-        output->clipping = Position::invalid(); //disable clipping
+        output.bounds = Position(output.bounds.getTransformation(), box);
+        output.clipping = Position::invalid(); //disable clipping
       }
     }
 
     if (!bIncremental)
     {
       ScopedAcquireGil acquire_gil;
-      engine->printMessage(StringUtils::format() << "Array " << output->dims.toString());
+      engine->printMessage(StringUtils::format() << "Array " << output.dims.toString());
     }
 
     DataflowMessage msg;
@@ -192,8 +122,57 @@ public:
     if (!bIncremental && return_receipt)
       msg.setReturnReceipt(return_receipt);
 
-    msg.writeContent("data",output);
+    msg.writeValue("data", output);
     node->publish(msg);
+  }
+
+  //clearModuleAttrs
+  void clearModuleAttrs(ScopedAcquireGil&) {
+    engine->delModuleAttr("input");
+    engine->delModuleAttr("aborted");
+    engine->delModuleAttr("output");
+    engine->delModuleAttr("doPublish");
+  }
+
+  //runJob
+  virtual void runJob() override
+  {
+    if (!valid() || aborted()) 
+      return;
+
+    //pass throught
+    if (code.empty())
+    {
+      doPublish(input);
+      return;
+    }
+
+    Array output;
+    try 
+    {
+      ScopedAcquireGil acquire_gil;
+      engine->setModuleAttr("input", input);
+      engine->setModuleAttr("aborted", aborted);
+      engine->addModuleFunction("doPublish", [this](PyObject *self, PyObject *args)
+      {
+        auto output = engine->getModuleArrayAttr("output");
+        doPublish(output,/*bIncremental*/true);
+        return (PyObject*)nullptr;
+      });
+
+      engine->execCode(code);
+      output = engine->getModuleArrayAttr("output");
+      clearModuleAttrs(acquire_gil);
+    }
+    catch (std::exception ex)
+    {
+      ScopedAcquireGil acquire_gil;
+      engine->printMessage(ex.what());
+      clearModuleAttrs(acquire_gil);
+      return;
+    }
+
+    doPublish(output);
   }
 
 };
@@ -224,19 +203,19 @@ bool ScriptingNode::processInput()
   //I'm using the shared engine...
   joinProcessing(); 
 
-  // important to do before readInput
+  // important to do before readValue
   auto return_receipt=createPassThroughtReceipt();
-  auto input = readInput<Array>("data");
+  auto input = readValue<Array>("data");
   if (!input)
     return  false;
 
-  guessPresets(input);
+  guessPresets(*input);
 
   this->bounds = input->bounds;
 
 #if VISUS_PYTHON
 
-  auto process_job=std::make_shared<MyJob>(this, input,return_receipt);
+  auto process_job=std::make_shared<MyJob>(this, *input, return_receipt);
   if (!process_job->valid()) 
     return false;
   
@@ -247,8 +226,9 @@ bool ScriptingNode::processInput()
   DataflowMessage msg;
   if (return_receipt)
     msg.setReturnReceipt(return_receipt);
-  msg.writeContent("data", input);
+  msg.writeValue("data", input);
   publish(msg);
+
 #endif
 
   return true;
@@ -282,17 +262,17 @@ void ScriptingNode::addPreset(String key, String code)
 
 
 ///////////////////////////////////////////////////////////////
-void ScriptingNode::guessPresets(SharedPtr<Array> input)
+void ScriptingNode::guessPresets(Array input)
 {
   VisusAssert(VisusHasMessageLock());
 
   if (!input)
     return;
 
-  if (last_dtype == input->dtype)
+  if (last_dtype == input.dtype)
     return;
 
-  last_dtype = input->dtype;
+  last_dtype = input.dtype;
 
   clearPresets();
 
@@ -300,7 +280,7 @@ void ScriptingNode::guessPresets(SharedPtr<Array> input)
 
 #if VISUS_PYTHON
 
-  int N = input->dtype.ncomponents();
+  int N = input.dtype.ncomponents();
   {
     std::vector<String> inputs;
     for (int I = 0; I<N; I++)
@@ -329,7 +309,7 @@ void ScriptingNode::guessPresets(SharedPtr<Array> input)
   }
 
   //see http://stackoverflow.com/questions/596216/formula-to-determine-brightness-of-rgb-color
-  if (input->dtype.ncomponents()>=3)
+  if (input.dtype.ncomponents()>=3)
   {
     addPreset("Grayscale (Photometric ITU-R)", StringUtils::joinLines({
       "R,G,B=(0.2126*input[0] , 0.7152*input[1] , 0.0722*input[2])",

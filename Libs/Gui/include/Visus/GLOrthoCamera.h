@@ -69,6 +69,11 @@ public:
     timer.stop();
   }
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "GLOrthoCamera";
+  }
+
   //getLookAt
   void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const {
     pos = this->pos;

@@ -332,9 +332,15 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
       return ;
     }
     case Qt::Key_P:
-      VisusInfo()<<this->toString();
+    {
+      StringTree stree;
+      ObjectStream ostream(stree, 'w');
+      this->writeToObjectStream(ostream);
+      ostream.close();
+      VisusInfo() << stree.toXmlString();
       evt->accept();
       return;
+    }
 
     case Qt::Key_M:
     {
@@ -563,7 +569,7 @@ void GLLookAtCamera::writeToObjectStream(ObjectStream& ostream)
     ostream.pushContext("keyframes");
     ostream.writeInline("interpolation", "linear");
 
-    // TODO Loop through the keyframes set on this Object
+    // TODO Loop through the keyframes
     ostream.pushContext("keyframe");
     ostream.writeInline("time", "0");
 

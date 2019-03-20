@@ -75,10 +75,10 @@ public:
     endUpdate();
   }
 
-  void addUserInput(String key, SharedPtr<Array> value) {
+  void addUserInput(String key, Array value) {
     try {
       ScopedAcquireGil acquire_gil;
-      engine->setModuleAttr(key, *value);
+      engine->setModuleAttr(key, value);
     }
     catch (std::exception ex)
     {
@@ -149,7 +149,7 @@ private:
 #endif
 
   //guessPresets
-  void guessPresets(SharedPtr<Array> data);
+  void guessPresets(Array data);
 
   //modelChanged
   virtual void modelChanged() override {

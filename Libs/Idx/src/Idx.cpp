@@ -56,11 +56,8 @@ void IdxModule::attach()
 
   DbModule::attach();
 
-  VISUS_REGISTER_OBJECT_CLASS(IdxDataset);
-  VISUS_REGISTER_OBJECT_CLASS(IdxMultipleDataset);
-  
-  DatasetPluginFactory::getSingleton()->registerDatasetType(".idx" ,"IdxDataset");
-  DatasetPluginFactory::getSingleton()->registerDatasetType(".midx","IdxMultipleDataset");
+  DatasetFactory::getSingleton()->registerDatasetType(".idx" ,"IdxDataset"        , []() {return std::make_shared<IdxDataset>(); });
+  DatasetFactory::getSingleton()->registerDatasetType(".midx","IdxMultipleDataset", []() {return std::make_shared<IdxMultipleDataset>(); });
 
   IdxDataset::tryRemoveLockAndCorruptedBinaryFiles();
 

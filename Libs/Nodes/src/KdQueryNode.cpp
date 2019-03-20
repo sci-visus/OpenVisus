@@ -164,7 +164,7 @@ public:
     if (bForce || last_publish.elapsedMsec() > publish_interval)
     {
       DataflowMessage msg;
-      msg.writeContent("data", kdarray);
+      msg.writeValue("data", kdarray);
       node->publish(msg);
       last_publish = Time::now();
     }
@@ -613,9 +613,9 @@ bool KdQueryNode::processInput()
 {
   abortProcessing();
    
-  auto dataset         = readInput<Dataset>("dataset");
-  auto fieldname       = cstring(readInput("fieldname"));
-  auto time            = cdouble(readInput("time"));
+  auto dataset         = readValue<Dataset>("dataset");
+  auto fieldname       = cstring(readValue<String>("fieldname"));
+  auto time            = cdouble(readValue<double>("time"));
 
   int kdquery_mode=dataset? dataset->getKdQueryMode() : KdQueryMode::NotSpecified;
   if (kdquery_mode==KdQueryMode::NotSpecified) 

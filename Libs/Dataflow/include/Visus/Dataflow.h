@@ -63,7 +63,7 @@ public:
   }
 
   //dataflowMessageHasBeenPublished
-  virtual void dataflowMessageHasBeenPublished(const DataflowMessage& msg) {
+  virtual void dataflowMessageHasBeenPublished(DataflowMessage msg) {
   }
 
   //dataflowBeingDestroyed
@@ -177,7 +177,7 @@ public:
   void joinProcessing();
 
   //guessLastPublished
-  DataflowPortStoredValue* guessLastPublished(DataflowPort* from);
+  DataflowPortValue* guessLastPublished(DataflowPort* from);
 
   //dispatchPublishedMessages
   bool dispatchPublishedMessages();
@@ -258,7 +258,7 @@ private:
   std::vector<DataflowMessage> published;
 
   //floodValueForward
-  void floodValueForward(DataflowPort* port, SharedPtr<Object> value, const SharedPtr<ReturnReceipt>& return_receipt);
+  void floodValueForward(DataflowPort* port, SharedPtr<DataflowValue> value, const SharedPtr<ReturnReceipt>& return_receipt);
 
 };
 

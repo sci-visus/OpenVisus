@@ -103,7 +103,7 @@ private:
 };
 
 ////////////////////////////////////////////////////////
-class VISUS_DB_API BaseDataset : public Object
+class VISUS_DB_API BaseDataset
 {
 public:
 
@@ -153,6 +153,9 @@ public:
   //destructor
   virtual ~Dataset() {
   }
+
+  //getTypeName
+  virtual String getTypeName() const = 0;
 
   //copyDataset
   static void copyDataset(Dataset* Dvf, SharedPtr<Access> Daccess, Field Dfield, double Dtime,
@@ -280,11 +283,6 @@ public:
   String getDatasetBody() const {
     return dataset_body;
   } 
-
-  //toString
-  virtual String toString() const override final {
-    return dataset_body.empty()? getUrl().toString() : dataset_body;
-  }
 
   // getDatasetInfos
   String getDatasetInfos() const;
@@ -419,12 +417,17 @@ public:
   }
 
 public:
+  
+  //toString
+  String toString() const {
+    return dataset_body.empty() ? getUrl().toString() : dataset_body;
+  }
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override;
+  void writeToObjectStream(ObjectStream& ostream);
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override;
+  void readFromObjectStream(ObjectStream& istream);
 
 private:
 
@@ -434,25 +437,30 @@ private:
 
 
 ////////////////////////////////////////////////////////////////
-class VISUS_DB_API DatasetPluginFactory
+class VISUS_DB_API DatasetFactory
 {
 public:
 
-  VISUS_DECLARE_SINGLETON_CLASS(DatasetPluginFactory)
+  VISUS_DECLARE_SINGLETON_CLASS(DatasetFactory)
+
+  typedef std::function< SharedPtr<Dataset>() > CreateInstance;
 
   class VISUS_DB_API RegisteredDataset
   {
   public:
     String extension; 
     String TypeName;
+    CreateInstance createInstance;
+
   };
 
   //registerDatasetType
-  void registerDatasetType(String extension,String TypeName)
+  void registerDatasetType(String extension,String TypeName, CreateInstance createInstance)
   {
     RegisteredDataset item;
     item.extension = extension;
     item.TypeName = TypeName;
+    item.createInstance = createInstance;
     v.push_back(item);
   }
 
@@ -465,12 +473,21 @@ public:
     return "";
   }
 
+  //createInstance
+  SharedPtr<Dataset> createInstance(String TypeName) {
+    for (const auto& it : v) {
+      if (it.TypeName == TypeName)
+        return it.createInstance();
+    }
+    return SharedPtr<Dataset>();
+  }
+
 private:
 
   //extension -> TypeName
   std::vector<RegisteredDataset> v;
 
-  DatasetPluginFactory(){}
+  DatasetFactory(){}
 
 };
 

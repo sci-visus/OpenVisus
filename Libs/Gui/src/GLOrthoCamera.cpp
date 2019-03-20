@@ -444,7 +444,7 @@ void GLOrthoCamera::writeToObjectStream(ObjectStream& ostream)
     ostream.pushContext("keyframes");
     ostream.writeInline("interpolation", "linear");
 
-    // TODO Loop through the keyframes set on this Object
+    // TODO Loop through the keyframes 
     ostream.pushContext("keyframe");
     ostream.writeInline("time", "0");
 

@@ -116,7 +116,7 @@ void TimeNode::doPublish(SharedPtr<ReturnReceipt> return_receipt)
   
   DataflowMessage msg;
   msg.setReturnReceipt(return_receipt);
-  msg.writeContent("time",std::make_shared<DoubleObject>(current_time));
+  msg.writeValue("time",current_time);
   this->publish(msg);
 }
 

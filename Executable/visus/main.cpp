@@ -323,7 +323,7 @@ public:
     {
       //xml file with url and xml for access creation
       StringTree stree;
-      if (!stree.loadFromXml(Utils::loadTextDocument(args[1])))
+      if (!stree.fromXmlString(Utils::loadTextDocument(args[1])))
       {
         VisusAssert(false);
         return Array();

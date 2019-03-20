@@ -339,6 +339,8 @@ public:
   //exportTransferFunction
   bool exportTransferFunction(String filename);
 
+public:
+
   //writeToObjectStream
   virtual void writeToObjectStream(ObjectStream& ostream) override;
 

@@ -34,7 +34,7 @@
 
 namespace Visus{
 
-  //////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////
 class VISUS_XIDX_API CenterType
 {
 public:
@@ -93,11 +93,11 @@ public:
 
   VISUS_XIDX_CLASS(Variable)
 
-  CenterType                          center_type;
+  CenterType               center_type;
 
   //down nodes
-  std::vector< SharedPtr<Attribute> > attributes;
-  std::vector< SharedPtr<DataItem> >  data_items;
+  std::vector<Attribute*> attributes;
+  std::vector<DataItem*>  data_items;
 
   //constructor
   Variable(String name_="") : XIdxElement(name_) {
@@ -105,6 +105,10 @@ public:
 
   //constructor
   virtual ~Variable() {
+    for (auto it : attributes)
+      delete it;
+    for (auto it : data_items)
+      delete it;
   }
   
   //setValues
@@ -132,29 +136,28 @@ public:
   }
   
   //addAttribute
-  virtual void addAttribute(SharedPtr<Attribute> value){ 
+  virtual void addAttribute(Attribute* VISUS_DISOWN(value)){
     addEdge(this, value);
     this-> attributes.push_back(value);
   }
 
-  inline void addAttribute(String name_, String value_){
-    addAttribute(SharedPtr<Attribute>(new Attribute(name_, value_)));
+  //addAttribute
+  void addAttribute(String name_, String value_){
+    addAttribute(new Attribute(name_, value_));
   }
 
-  void addAttribute(const std::vector<SharedPtr<Attribute>>& values){
-    for(auto& value: values)
-      addAttribute(value);
-  }
-  
   //addDataItem
-  virtual void addDataItem(SharedPtr<DataItem> value){ 
+  virtual void addDataItem(DataItem* VISUS_DISOWN(value)){
     addEdge(this, value);
     this->data_items.push_back(value);
   }
 
-  void addValue(double v){
-    if(data_items.size()==0){
-      SharedPtr<DataItem> d(new DataItem());
+  //addValue
+  void addValue(double v)
+  {
+    if(data_items.size()==0)
+    {
+      DataItem* d=new DataItem();
       d->format_type=FormatType::XML_FORMAT;
       data_items.push_back(d);
     }
@@ -196,7 +199,7 @@ private:
   //ensureDataItem
   void ensureDataItem() {
     if (data_items.empty())
-      addDataItem(std::make_shared<DataItem>());
+      addDataItem(new DataItem());
   }
 
 };

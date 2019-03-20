@@ -40,16 +40,22 @@ public:
 
   VISUS_CLASS(XIdxFile)
 
-  std::vector<SharedPtr<Group> >      groups;
-  String                              file_pattern;
+  std::vector<Group*>      groups;
+  String                   file_pattern;
 
   //constructor
   XIdxFile(String name_=""){
     name= name_;
   }
 
+  //destructor
+  virtual ~XIdxFile() {
+    for (auto it : groups)
+      delete it;
+  }
+
   //addGroup
-  void addGroup(SharedPtr<Group> value)
+  void addGroup(Group* VISUS_DISOWN(value))
   {
     if(value->variability_type == VariabilityType::VARIABLE_VARIABILITY_TYPE)
       value->domain_index = (int)groups.size();
@@ -58,35 +64,31 @@ public:
     groups.push_back(value);
   }
 
-  //addGroup
-//  void addGroup(Group* VISUS_DISOWN(value)){
-//    addGroup(SharedPtr<Group>(value));
-//  };
-  
   //getXPathPrefix
   virtual String getXPathPrefix() override {
     return StringUtils::format() << (getParent()? getParent()->getXPathPrefix() : "//Xidx") << "[@Name=\"" + name + "\"]";
   }
 
   //getGroup
-  SharedPtr<Group> getGroup(GroupType type) const{
-    for(auto g: groups)
+  Group* getGroup(GroupType type) const
+  {
+    for (auto g: groups)
       if(g->group_type.value == type.value)
         return g;
-    return SharedPtr<Group>();
+    return nullptr;
   }
 
 public:
 
   //load
-  static SharedPtr<XIdxFile> load(String filename)
+  static VISUS_NEWOBJECT(XIdxFile*) load(String filename)
   {
     StringTree stree;
-    if (!stree.loadFromXml(Utils::loadTextDocument(filename)))
-      return SharedPtr<XIdxFile>();
+    if (!stree.fromXmlString(Utils::loadTextDocument(filename)))
+      return nullptr;
 
     ObjectStream istream(stree, 'r');
-    auto ret = std::make_shared<XIdxFile>("");
+    auto ret = new XIdxFile("");
     ret->readFromObjectStream(istream);
     return ret;
   }
@@ -118,7 +120,7 @@ public:
       }
       else
       {
-        String filename = Group::FormatString(file_pattern + "/meta.xidx", child->domain_index);
+        String filename = XIdxFormatString(file_pattern + "/meta.xidx", child->domain_index);
 
         ostream.pushContext("xi:include");
         ostream.writeInline("href", filename.c_str());
@@ -149,16 +151,15 @@ public:
       auto filename = istream.readInline("href");
 
       StringTree stree;
-      if (!stree.loadFromXml(Utils::loadTextDocument(filename)))
+      if (!stree.fromXmlString(Utils::loadTextDocument(filename)))
         ThrowException("internal error");
 
-      auto child = std::make_shared<Group>();
+      auto child = new Group();
       {
         ObjectStream istream(stree, 'r');
         child->readFromObjectStream(istream);
       }
       istream.popContext("xi:include");
-
       addGroup(child);
     }
 

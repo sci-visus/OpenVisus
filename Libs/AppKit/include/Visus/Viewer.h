@@ -820,7 +820,7 @@ private:
   void internalFlushMessages();
 
   //sendNetMessage
-  void sendNetMessage(SharedPtr<NetConnection> netsnd,Object* obj);
+  void sendNetMessage(SharedPtr<NetConnection> netsnd,void* obj);
 
   //createActions
   void createActions();

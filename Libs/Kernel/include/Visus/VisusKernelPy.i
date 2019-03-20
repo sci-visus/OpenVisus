@@ -10,29 +10,16 @@ using namespace Visus;
 %include <Visus/VisusPy.i>
 
 %shared_ptr(Visus::HeapMemory)
-%shared_ptr(Visus::ObjectCreator)
-%shared_ptr(Visus::Object)
-%shared_ptr(Visus::BoolObject)
-%shared_ptr(Visus::IntObject)
-%shared_ptr(Visus::Int64Object)
-%shared_ptr(Visus::DoubleObject)
-%shared_ptr(Visus::StringObject)
-%shared_ptr(Visus::ListObject)
-%shared_ptr(Visus::DictObject)
-%shared_ptr(Visus::StringTree)
 
-%shared_ptr(Visus::Array)
+//VISUS_NEWOBJECT
+//%newobject Visus::ClassName::MethodName;
 
-%newobject Visus::ObjectStream::readObject;
-%newobject Visus::ObjectCreator::createInstance;
-%newobject Visus::ObjectFactory::createInstance;
-%newobject Visus::StringTreeEncoder::encode;
-%newobject Visus::StringTreeEncoder::decode;
+//VISUS_DISOWN -> DISOWN | DISOWN_FOR_DIRECTOR
+//%apply SWIGTYPE *DISOWN              { Visus::ClassName*         disown};
+//%apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::DirectorClassName* disown};
 
-%template(VectorOfField) std::vector< Visus::Field >;
-
-//for unknown reason swig doesn't accept std::vector<Array> but only std::vector< std::shared_ptr<Array> >)
-%template(VectorOfArray) std::vector< std::shared_ptr< Visus::Array > >;
+%template(VectorOfField) std::vector<Visus::Field>;
+%template(VectorOfArray) std::vector<Visus::Array>;
 
 %include <Visus/Visus.h>
 %include <Visus/Kernel.h>
@@ -40,7 +27,7 @@ using namespace Visus;
 %include <Visus/Log.h>
 %include <Visus/HeapMemory.h>
 %include <Visus/Singleton.h>
-%include <Visus/Object.h>
+%include <Visus/ObjectStream.h>
 %include <Visus/Aborted.h>
 %include <Visus/StringTree.h>
 %include <Visus/VisusConfig.h>
@@ -73,25 +60,7 @@ using namespace Visus;
 %include <Visus/ArrayUtils.h>
 %include <Visus/ArrayPlugin.h>
 
-// _____________________________________________________
-// python code 
-%pythoncode %{
 
-# equivalent to VISUS_REGISTER_OBJECT_CLASS 
-def VISUS_REGISTER_PYTHON_OBJECT_CLASS(object_name):
-
-   class MyObjectCreator(ObjectCreator):
-   
-      def __init__(self,object_name):
-         ObjectCreator.__init__(self)
-         self.object_name=object_name
-
-      def createInstance(self):
-         return eval(self.object_name+"()")
-
-   ObjectFactory.getSingleton().registerObjectClass(object_name,object_name,MyObjectCreator(object_name))
-
-%}
 
 // _____________________________________________________
 // extend Array

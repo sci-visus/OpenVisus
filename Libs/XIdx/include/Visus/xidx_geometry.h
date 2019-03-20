@@ -104,66 +104,66 @@ public:
   GeometryType type;
 
   //down nodes
-  std::vector< SharedPtr<DataItem> > data_items;
+  std::vector<DataItem*> data_items;
   
   //constructor
   Geometry(String name_="") : XIdxElement(name_){
   }
 
+  //constructor
   Geometry(GeometryType type_){
     type = type_;
   }
 
-  Geometry(GeometryType type_, SharedPtr<DataItem> item){
+  //constructor
+  Geometry(GeometryType type_, DataItem* VISUS_DISOWN(item)){
     type = type_;
-    data_items.push_back(item);
+    addDataItem(item);
   }
 
-  Geometry(GeometryType type_, int n_dims, const double* ox_oy_oz,
-    const double* dx_dy_dz=NULL) {
-      type = type_;
+  //constructor
+  Geometry(GeometryType type_, int n_dims, const double* ox_oy_oz, const double* dx_dy_dz=NULL) 
+  {
+    this->type = type_;
 
-      SharedPtr<DataItem> item_o(new DataItem());
-      addEdge(this,item_o);
-      item_o->format_type = FormatType::XML_FORMAT;
-      item_o->dtype = DTypes::FLOAT32;
-      item_o->endian_type = Endianess::LITTLE_ENDIANESS;
+    DataItem* item_o=new DataItem();
+    item_o->format_type = FormatType::XML_FORMAT;
+    item_o->dtype = DTypes::FLOAT32;
+    item_o->endian_type = Endianess::LITTLE_ENDIANESS;
+    item_o->dimensions.push_back(n_dims);
+    addDataItem(item_o);
 
-      std::shared_ptr<DataItem> item_d(new DataItem());
-      addEdge(this, item_d);
+    if(type == GeometryType::RECT_GEOMETRY_TYPE)
+    {
+      n_dims *= 2; // two points per dimension
+      for(int i=0; i< n_dims; i++)
+        item_o->text += (i ? " " : "") + cstring(ox_oy_oz[i])+" ";
+    }
+    else
+    {
+      DataItem* item_d=new DataItem();
       item_d->format_type = FormatType::XML_FORMAT;
       item_d->dtype = DTypes::FLOAT32;
       item_d->endian_type = Endianess::LITTLE_ENDIANESS;
-
-      item_o->dimensions.push_back(n_dims);
       item_d->dimensions.push_back(n_dims);
+      addDataItem(item_d);
 
-      if(type == GeometryType::RECT_GEOMETRY_TYPE){
-        n_dims *= 2; // two points per dimension
-        for(int i=0; i< n_dims; i++)
-          item_o->text += std::to_string(ox_oy_oz[i])+" ";
-        StringUtils::trim(item_o->text);
-        data_items.push_back(item_o);
+      for(int i=0; i< n_dims; i++)
+      {
+        item_o->text += (i ? " " : "") + cstring(ox_oy_oz[i]);
+        item_d->text += (i ? " " : "") + cstring(dx_dy_dz[i]);
       }
-      else{
-        for(int i=0; i< n_dims; i++){
-          item_o->text += std::to_string(ox_oy_oz[i])+" ";
-          item_d->text += std::to_string(dx_dy_dz[i])+" ";
-        }
-        StringUtils::trim(item_o->text);
-        StringUtils::trim(item_d->text);
-        data_items.push_back(item_o);
-        data_items.push_back(item_d);
-      }
-
     }
+  }
 
   //destructor
   virtual ~Geometry() {
+    for (auto it : data_items)
+      delete it;
   }
 
   //addDataItem
-  void addDataItem(SharedPtr<DataItem> value) {
+  void addDataItem(DataItem* VISUS_DISOWN(value)) {
     addEdge(this,value);
     this->data_items.push_back(value);
   }

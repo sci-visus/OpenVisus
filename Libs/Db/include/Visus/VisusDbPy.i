@@ -19,6 +19,7 @@ using namespace Visus;
 %shared_ptr(Visus::Query)
 %shared_ptr(Visus::BaseDataset)
 %shared_ptr(Visus::Dataset)
+%shared_ptr(Visus::GoogleMapsDataset)
 
 %include <Visus/Db.h>
 %include <Visus/Access.h>

@@ -77,8 +77,8 @@ bool RenderArrayNode::processInput()
 
   //I want to sign the input return receipt only after the rendering
   auto return_receipt = createPassThroughtReceipt();
-  auto palette        = readInput<Palette>("palette");
-  auto data           = readInput<Array>("data");
+  auto palette        = readValue<Palette>("palette");
+  auto data           = readValue<Array>("data");
 
   //so far I can apply the transfer function on the GPU only if the data is atomic
   bool bPaletteEnabled = paletteEnabled() || (palette && data && data->dtype.ncomponents()==1);

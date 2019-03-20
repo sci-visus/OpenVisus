@@ -61,6 +61,9 @@ public:
   virtual ~GLCamera()
   {}
 
+  //getTypeName
+  virtual String getTypeName() const = 0;
+
   //glMousePressEvent
   virtual void glMousePressEvent(QMouseEvent* evt)=0;
 
@@ -118,7 +121,7 @@ public:
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override {
+  virtual void readFromObjectStream(ObjectStream& istream) override  {
   }
 
 

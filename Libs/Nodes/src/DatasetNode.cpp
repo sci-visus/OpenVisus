@@ -60,7 +60,7 @@ void DatasetNode::setDataset(SharedPtr<Dataset> dataset,bool bPublish)
   if (bPublish && getDataflow())
   {
     DataflowMessage msg;
-    msg.writeContent("dataset", dataset);
+    msg.writeValue("dataset", dataset);
     this->publish(msg);
   }
 }
@@ -70,7 +70,7 @@ void DatasetNode::enterInDataflow()
 {
   Node::enterInDataflow();
   DataflowMessage msg;
-  msg.writeContent("dataset", dataset);
+  msg.writeValue("dataset", dataset);
   this->publish(msg);
 }
 
@@ -83,7 +83,14 @@ void DatasetNode::writeToObjectStream(ObjectStream& ostream)
 {
   Node::writeToObjectStream(ostream);
 
-  ostream.writeObject("dataset",dataset.get());
+  if (dataset)
+  {
+    ostream.pushContext("dataset");
+    ostream.writeInline("TypeName",dataset->getTypeName());
+    dataset->writeToObjectStream(ostream);
+    ostream.popContext("dataset");
+  }
+
   ostream.write("show_bounds",cstring(show_bounds));
 }
 
@@ -92,7 +99,14 @@ void DatasetNode::readFromObjectStream(ObjectStream& istream)
 {
   Node::readFromObjectStream(istream);
 
-  dataset.reset(istream.readObject<Dataset>("dataset"));
+  if (istream.pushContext("dataset"))
+  {
+    auto TypeName = istream.readInline("TypeName");
+    dataset=DatasetFactory::getSingleton()->createInstance(TypeName);
+    dataset->readFromObjectStream(istream);
+    istream.popContext("dataset");
+  }
+
   show_bounds=cbool(istream.read("show_bounds"));
 }
 

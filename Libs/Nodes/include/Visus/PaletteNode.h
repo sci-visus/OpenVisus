@@ -105,7 +105,7 @@ private:
   {
     if (!getDataflow()) return;
     DataflowMessage msg;
-    msg.writeContent("palette", palette);
+    msg.writeValue("palette", palette);
     this->publish(msg);
   }
 
@@ -115,7 +115,7 @@ private:
   }
 
   //messageHasBeenPublished
-  virtual void messageHasBeenPublished(const DataflowMessage& msg) override;
+  virtual void messageHasBeenPublished(DataflowMessage msg) override;
 
 };
 

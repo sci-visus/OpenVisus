@@ -3,12 +3,8 @@
 %{
 #include <Visus/Visus.h>
 #include <Visus/Kernel.h>
-
-#define SharedPtr std::shared_ptr
-
 #include <Visus/VisusXIdx.h>
 using namespace Visus;
-
 %}
 
 %include <std_shared_ptr.i>
@@ -16,79 +12,57 @@ using namespace Visus;
 %include <std_string.i>
 %include <typemaps.i>
 
-
 %include <Visus/VisusPy.i>
 %import <Visus/VisusKernelPy.i>
 
 %include <Visus/VisusXIdx.h>
 
-%shared_ptr(Visus::XIdxElement)
-%shared_ptr(Visus::DataSource)
-%shared_ptr(Visus::Attribute)
-%shared_ptr(Visus::DataItem)
-%shared_ptr(Visus::Variable)
-%shared_ptr(Visus::Domain)
-%shared_ptr(Visus::Group)
-%shared_ptr(Visus::XIdxFile)
-%shared_ptr(Visus::ListDomain)
-%shared_ptr(Visus::HyperSlabDomain)
-%shared_ptr(Visus::MultiAxisDomain)
-%shared_ptr(Visus::Topology)
-%shared_ptr(Visus::Geometry)
-%shared_ptr(Visus::SpatialDomain)
+//VISUS_DISOWN -> DISOWN | DISOWN_FOR_DIRECTOR
+%apply SWIGTYPE *DISOWN  { Visus::XIdxElement*      disown};
+%apply SWIGTYPE *DISOWN  { Visus::DataSource*       disown};
+%apply SWIGTYPE *DISOWN  { Visus::Attribute*        disown};
+%apply SWIGTYPE *DISOWN  { Visus::DataItem*         disown};
+%apply SWIGTYPE *DISOWN  { Visus::Variable*         disown};
+%apply SWIGTYPE *DISOWN  { Visus::Domain*           disown};
+%apply SWIGTYPE *DISOWN  { Visus::Group*            disown};
+%apply SWIGTYPE *DISOWN  { Visus::XIdxFile*         disown};
+%apply SWIGTYPE *DISOWN  { Visus::ListDomain*       disown};
+%apply SWIGTYPE *DISOWN  { Visus::HyperSlabDomain*  disown};
+%apply SWIGTYPE *DISOWN  { Visus::MultiAxisDomain*  disown};
+%apply SWIGTYPE *DISOWN  { Visus::Topology*         disown};
+%apply SWIGTYPE *DISOWN  { Visus::Geometry*         disown};
+%apply SWIGTYPE *DISOWN  { Visus::SpatialDomain*    disown};
 
-%template(VectorOfXIdxElement) std::vector< SharedPtr< Visus::XIdxElement > >;
-%template(VectorOfAttribute)   std::vector< SharedPtr< Visus::Attribute   > >;
-%template(VectorOfDataItem)    std::vector< SharedPtr< Visus::DataItem    > >;
-%template(VectorOfGroup)       std::vector< SharedPtr< Visus::Group       > >;
-%template(VectorOfVariable)    std::vector< SharedPtr< Visus::Variable    > >;
-%template(VectorOfDataSource)  std::vector< SharedPtr< Visus::DataSource  > >;
+//VISUS_NEWOBJECT
+%newobject Visus::Domain::createDomain;
+%newobject Visus::IdxFile::load;
+%newobject Visus::XIdxElement::readChild;
 
+%template(VectorOfAttribute)       std::vector<Visus::Attribute*>;
+%template(VectorOfDataItem)        std::vector<Visus::DataItem*>;
+%template(VectorOfXIdxElement)     std::vector<Visus::XIdxElement*>;
+%template(VectorOfGroup)           std::vector<Visus::Group*>;
+%template(VectorOfVariable)        std::vector<Visus::Variable*>;
+%template(VectorOfDataSource)      std::vector<Visus::DataSource*>;
 
-%inline %{
-template<typename T>
-std::shared_ptr<T>* toNewSharedPtr(std::shared_ptr<Domain> dom) {
-  return dom ? new std::shared_ptr<T>(std::dynamic_pointer_cast<T>(dom)) : 0;
+%typemap(out) Visus::Domain* Visus::Group::getDomain 
+{
+	//scrgiorgio: i don't think the returned ptr should have a SWIG_OWN flag
+  if(dynamic_cast<ListDomain*>($1))
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr($1), SWIG_TypeQuery("Visus::ListDomain *"), 0 | 0);
+  else if(dynamic_cast<SpatialDomain*>($1))
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr($1), SWIG_TypeQuery("Visus::SpatialDomain *"), 0 | 0);
+  else if(dynamic_cast<MultiAxisDomain*>($1))
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr($1), SWIG_TypeQuery("Visus::MultiAxisDomain *"), 0 | 0);
+  else if(dynamic_cast<HyperSlabDomain*>($1))
+    $result = SWIG_NewPointerObj(SWIG_as_voidptr($1), SWIG_TypeQuery("Visus::HyperSlabDomain *"), 0 | 0);
 }
-
-%}
-
-
-%typemap(out) std::shared_ptr<Visus::Domain> Visus::Group::getDomain {
-  std::string lookup_typename = result->type.toString();
-  //VisusInfo() <<lookup_typename;
-  if(lookup_typename=="List"){
-    lookup_typename = "_p_std__shared_ptrT_Visus__ListDomain_t";//"_p_Visus__SharedPtrT_Visus__ListDomain_t";
-    swig_type_info * const outtype = SWIG_TypeQuery(lookup_typename.c_str());
-    auto smartresult = toNewSharedPtr<ListDomain>($1);
-    $result = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), outtype, SWIG_POINTER_OWN);
-  } else if(lookup_typename=="Spatial"){
-    lookup_typename = "_p_std__shared_ptrT_Visus__SpatialDomain_t";
-    swig_type_info * const outtype = SWIG_TypeQuery(lookup_typename.c_str());
-    auto smartresult = toNewSharedPtr<SpatialDomain>($1);
-    $result = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), outtype, SWIG_POINTER_OWN);
-  }
-  else if(lookup_typename=="MultiAxisDomain"){
-    lookup_typename = "_p_std__shared_ptrT_Visus__MultiAxisDomain_t";
-    swig_type_info * const outtype = SWIG_TypeQuery(lookup_typename.c_str());
-    auto smartresult = toNewSharedPtr<MultiAxisDomain>($1);
-    $result = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), outtype, SWIG_POINTER_OWN);
-  }
-  else if(lookup_typename=="HyperSlabDomain"){
-    lookup_typename = "_p_std__shared_ptrT_Visus__HyperSlabDomain_t";
-    swig_type_info * const outtype = SWIG_TypeQuery(lookup_typename.c_str());
-    auto smartresult = toNewSharedPtr<HyperSlabDomain>($1);
-    $result = SWIG_NewPointerObj(SWIG_as_voidptr(smartresult), outtype, SWIG_POINTER_OWN);
-  }
-
-}
-
 
 %include <Visus/Visus.h>
 %include <Visus/Kernel.h>
 %include <Visus/StringMap.h>
 %include <Visus/Singleton.h>
-%include <Visus/Object.h>
+%include <Visus/ObjectStream.h>
 
 %include <Visus/xidx_element.h>
 %include <Visus/xidx_datasource.h>

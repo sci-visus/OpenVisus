@@ -59,12 +59,10 @@ void DbModule::attach()
 
   KernelModule::attach();
 
-  DatasetPluginFactory::allocSingleton();
-  DatasetPluginFactory::getSingleton()->registerDatasetType(".gmaps", "GoogleMapsDataset");
+  DatasetFactory::allocSingleton();
+  DatasetFactory::getSingleton()->registerDatasetType(".gmaps", "GoogleMapsDataset", []() {return std::make_shared<GoogleMapsDataset>(); });
 
   ArrayPlugins::getSingleton()->values.push_back(std::make_shared<DatasetArrayPlugin>());
-
-  VISUS_REGISTER_OBJECT_CLASS(GoogleMapsDataset);
 
   VisusInfo() << "Attached DbModule";
 }
@@ -79,7 +77,7 @@ void DbModule::detach()
   
   bAttached = false;
 
-  DatasetPluginFactory::releaseSingleton();
+  DatasetFactory::releaseSingleton();
 
   KernelModule::detach();
 

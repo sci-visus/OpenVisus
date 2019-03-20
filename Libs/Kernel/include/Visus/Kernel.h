@@ -145,6 +145,9 @@ VISUS_KERNEL_API inline double     cdouble(const String& s) { return s.empty() ?
 VISUS_KERNEL_API inline Int64      cint64 (const String& s) { return s.empty() ? 0 : std::stoll(s); }
 VISUS_KERNEL_API inline Uint64     cuint64(const String& s) { return s.empty() ? 0 : std::stoull(s); }
 
+VISUS_KERNEL_API inline String     cstring(SharedPtr<String> v) { return v ? *v : ""; }
+VISUS_KERNEL_API inline double     cdouble(SharedPtr<double> v) { return v ? *v : 0.0; }
+
 #if !SWIG
 namespace Private {
 class VISUS_KERNEL_API CommandLine

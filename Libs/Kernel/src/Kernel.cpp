@@ -387,44 +387,12 @@ void KernelModule::attach()
   VisusInfo() << "CurrentApplicationFile  " << KnownPaths::CurrentApplicationFile.toString();
   VisusInfo() << "CurrentWorkingDirectory " << KnownPaths::CurrentWorkingDirectory().toString();
 
-  ObjectFactory::allocSingleton();
-
   ArrayPlugins::allocSingleton();
   Encoders::allocSingleton();
   RamResource::allocSingleton();
   UUIDGenerator::allocSingleton();
 
   VisusConfig::reload();
-
-  VISUS_REGISTER_OBJECT_CLASS(Object);
-  VISUS_REGISTER_OBJECT_CLASS(BoolObject);
-  VISUS_REGISTER_OBJECT_CLASS(IntObject);
-  VISUS_REGISTER_OBJECT_CLASS(Int64Object);
-  VISUS_REGISTER_OBJECT_CLASS(DoubleObject);
-  VISUS_REGISTER_OBJECT_CLASS(StringObject);
-  VISUS_REGISTER_OBJECT_CLASS(ListObject);
-  VISUS_REGISTER_OBJECT_CLASS(DictObject);
-  VISUS_REGISTER_OBJECT_CLASS(StringTree);
-
-  VISUS_REGISTER_OBJECT_CLASS(Array);
-  VISUS_REGISTER_OBJECT_CLASS(KdArray);
-
-  VISUS_REGISTER_OBJECT_CLASS(Model);
-
-  VISUS_REGISTER_OBJECT_CLASS(GraphInt8);
-  VISUS_REGISTER_OBJECT_CLASS(GraphUint8);
-  VISUS_REGISTER_OBJECT_CLASS(GraphInt16);
-  VISUS_REGISTER_OBJECT_CLASS(GraphUint16);
-  VISUS_REGISTER_OBJECT_CLASS(GraphInt32);
-  VISUS_REGISTER_OBJECT_CLASS(GraphUint32);
-  VISUS_REGISTER_OBJECT_CLASS(GraphInt64);
-  VISUS_REGISTER_OBJECT_CLASS(GraphUint64);
-  VISUS_REGISTER_OBJECT_CLASS(GraphFloat32);
-  VISUS_REGISTER_OBJECT_CLASS(GraphFloat64);
-  VISUS_REGISTER_OBJECT_CLASS(FGraph);
-  VISUS_REGISTER_OBJECT_CLASS(CGraph);
-
-  VISUS_REGISTER_OBJECT_CLASS(TransferFunction);
 
   //this is to make sure PythonEngine works
 #if VISUS_PYTHON
@@ -449,7 +417,6 @@ void KernelModule::detach()
 
   VisusInfo() << "Detaching KernelModule...";
 
-  ObjectFactory::releaseSingleton();
   ArrayPlugins::releaseSingleton();
   Encoders::releaseSingleton();
   RamResource::releaseSingleton();

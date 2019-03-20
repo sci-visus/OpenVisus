@@ -141,7 +141,7 @@ private:
     if (bool bMaybeXml=StringUtils::startsWith(dataset_body,"<"))
     {
       StringTree stree;
-      if (stree.loadFromXml(dataset_body)) 
+      if (stree.fromXmlString(dataset_body)) 
       {
         fixUrls(stree);
         dataset_body=stree.toString();
@@ -247,7 +247,7 @@ public:
       String     visus_config_filename=VisusConfig::filename;
       StringTree new_visus_config;
       bool bEnablePostProcessing=false;
-      if (!new_visus_config.loadFromXml(Utils::loadTextDocument(visus_config_filename),bEnablePostProcessing))
+      if (!new_visus_config.fromXmlString(Utils::loadTextDocument(visus_config_filename),bEnablePostProcessing))
       {
         VisusWarning()<<"Cannot load visus.config";
         VisusAssert(false);//TODO rollback
@@ -332,7 +332,7 @@ private:
       else if (url.isFile())
       {
         String extension=Path(url.getPath()).getExtension();
-        TypeName = DatasetPluginFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
+        TypeName = DatasetFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
         if (TypeName.empty()) 
           return 0;
       }
@@ -597,7 +597,7 @@ private:
     //special case for IdxMultipleDataset, I need to remap urls
     {
       StringTree stree;
-      if (stree.loadFromXml(scene_body))
+      if (stree.fromXmlString(scene_body))
       {
         fixUrls(stree);
         scene_body=stree.toString();
@@ -740,7 +740,7 @@ private:
       else if (url.isFile())
       {
         String extension=Path(url.getPath()).getExtension();
-        TypeName = DatasetPluginFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
+        TypeName = DatasetFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
         if (TypeName.empty())
           return 0;
       }
@@ -988,7 +988,7 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
   {
     String xml=request.url.getParam("xml");
     StringTree stree;
-    if (!stree.loadFromXml(xml))
+    if (!stree.fromXmlString(xml))
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST,"Cannot decode xml");
 
     String name = stree.readString("name");
@@ -1016,7 +1016,7 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
 
   NetResponse response(HttpStatus::STATUS_OK);
   response.setHeader("visus-git-revision", ApplicationInfo::git_revision);
-  response.setHeader("visus-typename", ObjectFactory::getSingleton()->getPortableTypeName(*public_dataset->getDataset()));
+  response.setHeader("visus-typename", public_dataset->getDataset()->getTypeName());
 
   auto body=public_dataset->getDatasetBody();
   response.setTextBody(body,/*bHasBinary*/true);
@@ -1034,7 +1034,7 @@ NetResponse ModVisus::handleReadScene(const NetRequest& request)
   
   NetResponse response(HttpStatus::STATUS_OK);
   response.setHeader("visus-git-revision", ApplicationInfo::git_revision);
-//  response.setHeader("visus-typename", ObjectFactory::getSingleton()->getPortableTypeName(*public_dataset->getDataset()));
+  //response.setHeader("visus-typename", public_dataset->getDataset()->getTypeName());
   
   auto body=public_scene->getSceneBody();
   response.setTextBody(body,/*bHasBinary*/true);
@@ -1235,7 +1235,7 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
   if (!public_dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find dataset(" + dataset_name + ")");
 
-  SharedPtr<Dataset> dataset=public_dataset->getDataset();
+  auto dataset=public_dataset->getDataset();
 
   String compression         =         request.url.getParam("compression");
   String fieldname           =         request.url.getParam("field",dataset->getDefaultField().name);
@@ -1319,7 +1319,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   if (!public_dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find dataset(" + dataset_name + ")");
 
-  SharedPtr<Dataset> dataset=public_dataset->getDataset();
+  auto dataset=public_dataset->getDataset();
   int pdim = dataset->getPointDim();
 
   Field field = fieldname.empty()? dataset->getDefaultField() : dataset->getFieldByName(fieldname);

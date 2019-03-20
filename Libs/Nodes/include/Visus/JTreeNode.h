@@ -42,6 +42,7 @@ For support : support@visus.net
 #include <Visus/Nodes.h>
 #include <Visus/DataflowNode.h>
 #include <Visus/Array.h>
+#include <Visus/Graph.h>
 
 namespace Visus {
 
@@ -176,13 +177,13 @@ private:
   double minThresholdRange=-1;
   double maxThresholdRange=+1;
 
-  SharedPtr<Object> last_full_graph;
+  SharedPtr<BaseGraph> last_full_graph;
 
   //update automatic threshold
   void updateAutoThreshold();
 
   //messageHasBeenPublished
-  virtual void messageHasBeenPublished(const DataflowMessage& msg) override;
+  virtual void messageHasBeenPublished(DataflowMessage msg) override;
 
   //recompute
   bool recompute(bool bFull=true);

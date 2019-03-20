@@ -68,7 +68,7 @@ void FieldNode::doPublish()
     return;
 
   DataflowMessage msg;
-  msg.writeContent("fieldname", std::make_shared<StringObject>(this->fieldname));
+  msg.writeValue("fieldname", this->fieldname);
   this->publish(msg);
 }
 

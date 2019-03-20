@@ -76,6 +76,11 @@ public:
   //destructor
   virtual ~IdxMultipleDataset();
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "IdxMultipleDataset";
+  }
+
   //getChild
   Child getChild(String name) const {
     auto it = childs.find(name); 

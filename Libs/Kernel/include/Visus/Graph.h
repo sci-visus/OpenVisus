@@ -244,10 +244,23 @@ public:
   }
 };
 
+/////////////////////////////////////////////
+class VISUS_KERNEL_API BaseGraph
+{
+public:
+
+  //constructor
+  BaseGraph() {
+  }
+
+  //destructor
+  virtual ~BaseGraph() {
+  }
+};
 
 /////////////////////////////////////////////
 template<class vT_=int, class eT_=int>
-class Graph : public Object
+class Graph : public BaseGraph
 {
 public:
 
@@ -296,7 +309,6 @@ public:
     clear();
   #endif
   }
-
 
   //clear
   inline void clear() 
@@ -500,8 +512,6 @@ class VISUS_KERNEL_API GraphUtils
 {
 public:
 
-  
-
   //toIPoint
   template<class Type>
   static Point3i toIPoint(const Type *p, const Type *data, const Point3i &dims)
@@ -585,6 +595,14 @@ private:
   GraphUtils()=delete;
 };
 
+
+struct CGraphEdge
+{
+  Float32 length;
+  CGraphEdge(Float32 length_) : length(length_) {}
+};
+
+
 //////////////////////////////////////////////
 //some Graph templates
 //////////////////////////////////////////////
@@ -599,20 +617,11 @@ typedef Graph < Int64*  ,Int64  > GraphInt64  ;
 typedef Graph < Uint64* ,Uint64 > GraphUint64 ;
 typedef Graph < Float32*,Float32> GraphFloat32;
 typedef Graph < Float64*,Float64> GraphFloat64;
-typedef Graph < Point3f  ,Float32> FGraph;
 
-//////////////////////////////////////////////
-//CGraph==CenterLine
-//node has position and radius, edge has centerline id and euclidian length
-//////////////////////////////////////////////
+typedef Graph < Point3f ,Float32>     FGraph;
+typedef Graph < Sphere,  CGraphEdge>  CGraph; //CGraph==CenterLine node has position and radius, edge has centerline id and euclidian length
 
-struct CGraphEdge
-{ 
-  float length; 
-  CGraphEdge(float length_) : length(length_) {}
-};
 
-typedef Graph<Sphere,CGraphEdge> CGraph;
 
 } //namespace Visus
 

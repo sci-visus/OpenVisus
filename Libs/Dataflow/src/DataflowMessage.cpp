@@ -147,7 +147,7 @@ SharedPtr<ReturnReceipt> ReturnReceipt::createPassThroughtReceipt(Node* node)
   for (auto it=node->inputs.begin();it!=node->inputs.end();it++)
   {
     DataflowPort* iport=it->second;
-    if (DataflowPortStoredValue* preview_value=iport->previewValue())
+    if (DataflowPortValue* preview_value=iport->previewValue())
     {
       if (SharedPtr<ReturnReceipt> A=preview_value->return_receipt)
       {

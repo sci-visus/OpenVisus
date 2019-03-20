@@ -36,84 +36,116 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_DB_GOOGLE_MAPS_DATASET_H
-#define __VISUS_DB_GOOGLE_MAPS_DATASET_H
+#ifndef VISUS_OBJECT_STREAM_H__
+#define VISUS_OBJECT_STREAM_H__
 
-#include <Visus/Db.h>
-#include <Visus/Dataset.h>
+#include <Visus/Kernel.h>
+#include <Visus/StringMap.h>
+#include <Visus/Singleton.h>
+
+#include <stack>
+#include <vector>
+#include <iostream>
 
 namespace Visus {
 
+//predeclaration
+class StringTree;
 
-////////////////////////////////////////////////////////
-class VISUS_DB_API GoogleMapsDataset : public Dataset
+  /////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API ObjectStream 
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(GoogleMapsDataset)
+  VISUS_CLASS(ObjectStream)
 
-  DType            dtype;
-  Point2i          tile_nsamples;
-  String           tile_compression;
+  StringMap run_time_options;
 
   //constructor
-  GoogleMapsDataset() {
+  ObjectStream() : mode(0) {
+  }
+
+  //constructor
+  ObjectStream(StringTree& root_,int mode_) : mode(0) {
+    open(root_,mode_);
   }
 
   //destructor
-  virtual ~GoogleMapsDataset() {
+  virtual ~ObjectStream(){
+    close();
   }
 
-  //getTypeName
-  virtual String getTypeName() const override {
-    return "GoogleMapsDataset";
+  //open
+  void open(StringTree& root,int mode);
+
+  //close
+  void close();
+
+  //getCurrentDepth
+  int getCurrentDepth(){
+    return (int)stack.size();
   }
 
-  //getTileCoordinate
-  Point3i getTileCoordinate(BigInt start_address,BigInt end_address);
+  //getCurrentContext
+  StringTree* getCurrentContext(){
+    return stack.top().context;
+  }
+
+  // pushContext
+  bool pushContext(String context_name);
+
+  //popContext
+  bool popContext(String context_name);
+
+  //writeInline
+  void writeInline(String name, String value);
+
+  //readInline
+  String readInline(String name, String default_value = "");
+
+  //write
+  void write(String name, String value);
+
+  //read
+  String read(String name, String default_value = "");
+
+  //writeText
+  void writeText(const String& value, bool bCData = false);
+
+  //readText
+  String readText();
 
 public:
 
-  //openFromUrl 
-  virtual bool openFromUrl(Url url) override;
+  //setSceneMode
+  void setSceneMode(bool value) {
+    run_time_options.setValue("scene_mode",cstring(value));
+  }
 
-  //guessEndResolutions
-  virtual std::vector<int> guessEndResolutions(const Frustum& viewdep, Position position, Query::Quality quality = Query::DefaultQuality, Query::Progression progression = Query::GuessProgression) override;
-
-  //createAccess
-  virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
-
-  //getAddressRangeBox
-  virtual LogicBox getAddressRangeBox(BigInt start_address,BigInt end_address) override;
-
-  //beginQuery
-  virtual bool beginQuery(SharedPtr<Query> query) override;
-
-  //executeQuery
-  virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<Query> query) override;
-
-  //nextQuery
-  virtual bool nextQuery(SharedPtr<Query> query) override;
-
-  //mergeWithBlockQuery
-  virtual bool mergeQueryWithBlock(SharedPtr<Query> query,SharedPtr<BlockQuery> blockquery) override;
-
-  //getLevelBox
-  virtual LogicBox getLevelBox(int H) override;
+  //isSceneMode
+  bool isSceneMode() const {
+    return cbool(run_time_options.getValue("scene_mode"));
+  }
 
 private:
 
-  //setCurrentEndResolution
-  bool setCurrentEndResolution(SharedPtr<Query> query);
+  int mode;
 
-  //kdTraverse
-  void kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<Query> query,NdBox box,BigInt id,int H,int end_resolution);
+  class StackItem
+  {
+  public:
+    StringTree*                  context;
+    std::map<String,StringTree*> next_child;
+    StackItem(StringTree* context_=nullptr) : context(context_) {}
+  };
+  std::stack<StackItem> stack;
 
 };
 
-
+  
 } //namespace Visus
 
-#endif //__VISUS_DB_GOOGLE_MAPS_DATASET_H
+
+#endif //VISUS_OBJECT_STREAM_H__
 
 

@@ -38,7 +38,7 @@ void XIdxModule::detach()
 }
 
 //////////////////////////////////////////////
-String Group::FormatString(const String fmt_str, ...)
+String XIdxFormatString(const String fmt_str, ...)
 {
   int final_n, n = ((int)fmt_str.size()) * 2; /* Reserve two times as much as the length of the fmt_str */
   std::unique_ptr<char[]> formatted;
@@ -58,24 +58,24 @@ String Group::FormatString(const String fmt_str, ...)
 }
 
 //////////////////////////////////////////////
-SharedPtr<Domain> Domain::createDomain(DomainType type) {
+Domain* Domain::createDomain(DomainType type) {
 
   if (type == DomainType::HYPER_SLAB_DOMAIN_TYPE)
-    return std::make_shared<HyperSlabDomain>();
+    return new HyperSlabDomain;
 
   if (type == DomainType::LIST_DOMAIN_TYPE)
-    return std::make_shared<ListDomain>();
+    return new ListDomain;
 
   if (type == DomainType::MULTIAXIS_DOMAIN_TYPE)
-    return std::make_shared<MultiAxisDomain>();
+    return new MultiAxisDomain;
 
   if (type == DomainType::SPATIAL_DOMAIN_TYPE)
-    return std::make_shared<SpatialDomain>();
+    return new SpatialDomain;
 
   if (type == DomainType::RANGE_DOMAIN_TYPE)
     ThrowException("not implemented");
 
-  return SharedPtr<Domain>();
+  return nullptr;
 }
 
 } //namespace

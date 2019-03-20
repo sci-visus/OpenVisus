@@ -81,9 +81,6 @@ void Dataflow::processInput(Node* node)
 
   for (auto it : listeners)
     it->dataflowBeforeProcessInput(node);
-
-  //do not enable this, make the dataflow very slow!
-  //VisusInfo()<<typeid(*node).name()<<" got input";
   
   node->processInput();
 
@@ -110,7 +107,7 @@ void Dataflow::joinProcessing()
 }
 
 ////////////////////////////////////////////////////////////////////
-void Dataflow::floodValueForward(DataflowPort* port,SharedPtr<Object> value,const SharedPtr<ReturnReceipt>& return_receipt)
+void Dataflow::floodValueForward(DataflowPort* port,SharedPtr<DataflowValue> value,const SharedPtr<ReturnReceipt>& return_receipt)
 {
   VisusAssert(VisusHasMessageLock());
   Node* node=port->getNode();
@@ -173,12 +170,12 @@ case IPORT_IPORT
 ////////////////////////////////////////////////////////////////////////
 
 
-DataflowPortStoredValue* Dataflow::guessLastPublished(DataflowPort* from)
+DataflowPortValue* Dataflow::guessLastPublished(DataflowPort* from)
 {
   VisusAssert(VisusHasMessageLock());
 
   //this is the simple algorithm which covers 99% of the cases (mostly when I don't have multiple dataflow)
-  if (DataflowPortStoredValue* ret=from->previewValue())
+  if (DataflowPortValue* ret=from->previewValue())
     return ret;
 
   //going backward
@@ -191,7 +188,7 @@ DataflowPortStoredValue* Dataflow::guessLastPublished(DataflowPort* from)
 
     while (!backward.empty())
     {
-      if (DataflowPortStoredValue* ret=backward.front()->previewValue())
+      if (DataflowPortValue* ret=backward.front()->previewValue())
         return ret;
 
       //no ambiguity
@@ -212,7 +209,7 @@ DataflowPortStoredValue* Dataflow::guessLastPublished(DataflowPort* from)
 
     while (!forward.empty())
     {
-      if (DataflowPortStoredValue* ret=forward.front()->previewValue())
+      if (DataflowPortValue* ret=forward.front()->previewValue())
         return ret;
 
       for (auto it=forward.front()->outputs.begin();it!=forward.front()->outputs.end();it++)
@@ -253,7 +250,7 @@ bool Dataflow::dispatchPublishedMessages()
       {
         String port_name=it->first;
 
-        SharedPtr<Object> value_to_flood=it->second;
+        SharedPtr<DataflowValue> value_to_flood=it->second;
         DataflowPort* port=sender->getOutputPort(port_name);
 
         //make sure it's not removed meanwhile
@@ -451,7 +448,7 @@ void Dataflow::connectPorts(Node* from,String oport_name,String iport_name,Node*
   VisusAssert(iport && containsNode(from) && iport->inputs .find(oport)==iport->inputs .end());
   VisusAssert(oport && containsNode(to  ) && oport->outputs.find(iport)==oport->outputs.end());
 
-  DataflowPortStoredValue* last_published=guessLastPublished(oport);
+  DataflowPortValue* last_published=guessLastPublished(oport);
 
   oport->outputs.insert(iport);
   iport->inputs .insert(oport);

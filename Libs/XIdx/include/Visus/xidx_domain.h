@@ -94,43 +94,51 @@ public:
   typedef std::vector<double> LinearizedIndexSpace;
 
   //node info
-  DomainType                          type;
+  DomainType              type;
 
   //down nodes
-  std::vector< SharedPtr<Attribute> > attributes;
-  std::vector< SharedPtr<DataItem> >  data_items;
+  std::vector<Attribute*> attributes;
+  std::vector<DataItem*>  data_items;
   
   //constructor
-  Domain(String name_,DomainType type_=DomainType()) : XIdxElement(name_),type(type_) {
+  Domain(String name_,DomainType type_=DomainType()) 
+    : XIdxElement(name_),type(type_) {
+  }
+
+  //destructor
+  virtual ~Domain() 
+  {
+    for (auto it : attributes)
+      delete it;
+
+    for (auto it : data_items)
+      delete it;
   }
   
   //ensureDataItem
   void ensureDataItem() {
-    if (data_items.empty()) {
-      auto di = std::make_shared<DataItem>();
-      addDataItem(di);
-    }
+    if (data_items.empty()) 
+      addDataItem(new DataItem());
   }
 
   //createDomain
-  static SharedPtr<Domain> createDomain(DomainType type);
+  static VISUS_NEWOBJECT(Domain*) createDomain(DomainType type);
 
   //addDataItem
-  void addDataItem(SharedPtr<DataItem> value){
+  void addDataItem(DataItem* VISUS_DISOWN(value)){
     addEdge(this, value);
     this->data_items.push_back(value);
   }
   
   //addAttribute
-  void addAttribute(SharedPtr<Attribute> value) {
+  void addAttribute(Attribute* VISUS_DISOWN(value)) {
     addEdge(this, value);
     this->attributes.push_back(value);
   }
 
-  //void addAttribute(Attribute* VISUS_DISOWN(value)){ addAttribute(SharedPtr<Attribute>(value)); };
-
-  inline void addAttribute(String name_, String value_){
-    addAttribute(SharedPtr<Attribute>(new Attribute(name_, value_)));
+  //addAttribute
+  void addAttribute(String name_, String value_){
+    addAttribute(new Attribute(name_, value_));
   }
 
   //getVolume

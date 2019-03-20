@@ -43,7 +43,7 @@ namespace Visus {
 //////////////////////////////////////////////////////////////
 bool FunnelNode::processInput()
 {
-  SharedPtr<Object> latest_value;
+  SharedPtr<DataflowValue> latest_value;
   Int64 latest_write_timestamp=-1;
 
   //read in inputs
@@ -54,8 +54,8 @@ bool FunnelNode::processInput()
     if (!iport->hasNewValue()) 
       continue;
 
-    Int64 write_timestamp;
-    SharedPtr<Object>  value = iport->readValue(&write_timestamp);
+    Int64 write_timestamp=iport->readWriteTimestamp();
+    SharedPtr<DataflowValue>  value = iport->readValue();
 
     if (value && (latest_write_timestamp==-1 || write_timestamp>latest_write_timestamp))
     {
@@ -70,7 +70,7 @@ bool FunnelNode::processInput()
     for (auto it=this->outputs.begin();it!=this->outputs.end();it++)
     {
       String oport_name=it->first;
-      msg.writeContent(oport_name,latest_value);
+      msg.writeValue(oport_name,latest_value);
     }
     this->publish(msg);
   }

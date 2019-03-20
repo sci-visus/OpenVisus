@@ -80,7 +80,7 @@ public:
         data=filter->dropExtraComponentIfExists(data);
     
       DataflowMessage msg;
-      msg.writeContent("data", std::make_shared<Array>(data));
+      msg.writeValue("data", data);
 	    this->node->publish(msg);
     };
   }
@@ -152,7 +152,7 @@ public:
       msg.setReturnReceipt(return_receipt);
     }
 
-    msg.writeContent("data",std::make_shared<Array>(output));
+    msg.writeValue("data",output);
 
     //only if the publish went well, I could wait
     if (node->publish(msg))
@@ -194,10 +194,10 @@ bool QueryNode::processInput()
 {
   abortProcessing();
 
-  //important to do before readInput
-  auto dataset          = readInput<Dataset>("dataset");
-  auto time             = readInput("time");
-  auto fieldname        = readInput("fieldname");
+  //important to do before readValue
+  auto dataset          = readValue<Dataset>("dataset");
+  auto time             = readValue<double>("time");
+  auto fieldname        = readValue<String>("fieldname");
 
   //I always need a dataset
   if (!dataset)
@@ -278,7 +278,7 @@ void QueryNode::publishDumbArray()
   buffer->bounds=Position::invalid();
 
   DataflowMessage msg;
-  msg.writeContent("data", buffer);
+  msg.writeValue("data", buffer);
   publish(msg);
 }
 
@@ -294,7 +294,7 @@ DatasetNode* QueryNode::getDatasetNode()
 SharedPtr<Dataset> QueryNode::getDataset()
 {
   VisusAssert(VisusHasMessageLock());
-  return readInput<Dataset>("dataset");
+  return readValue<Dataset>("dataset");
 }
 
 //////////////////////////////////////////////////////////////////
@@ -302,7 +302,7 @@ Field QueryNode::getField()
 {
   Dataset* dataset=getDataset().get(); 
   if (!dataset) return Field();
-  String fieldname=cstring(readInput("fieldname"));
+  String fieldname=cstring(readValue<String>("fieldname"));
   return dataset->getFieldByName(fieldname);
 }
 

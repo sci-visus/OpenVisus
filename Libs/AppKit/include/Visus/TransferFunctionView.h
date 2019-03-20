@@ -502,8 +502,6 @@ public:
 
     if (this->model)
     {
-      this->encoder=std::make_shared<XmlEncoder>();
-
       QVBoxLayout* layout = new QVBoxLayout();
 
       layout->addWidget(widgets.textedit= GuiFactory::CreateTextEdit());
@@ -523,11 +521,15 @@ public:
 
 private:
 
-  SharedPtr<XmlEncoder> encoder = std::make_shared<XmlEncoder>();
-
   //refreshGui
   void refreshGui() {
-    widgets.textedit->setText(encoder->encode(model).c_str());
+
+    StringTree stree;
+    ObjectStream ostream(stree, 'w');
+    model->writeToObjectStream(ostream);
+    ostream.close();
+    auto content=stree.toXmlString();
+    widgets.textedit->setText(content.c_str());
   }
 
   //doParse
@@ -537,14 +539,19 @@ private:
       return;
 
     String content = cstring(widgets.textedit->toPlainText());
-    SharedPtr<TransferFunction> parsed = std::dynamic_pointer_cast<TransferFunction>(encoder->decode(content));
-    if (!parsed)
+
+    StringTree stree;
+    if (!stree.fromXmlString(content))
     {
       VisusAssert(false);
       return;
     }
+    auto tf = std::make_shared<TransferFunction>();
+    ObjectStream istream(stree, 'r');
+    tf->readFromObjectStream(istream);
+    istream.close();
 
-    TransferFunction::copy(*this->model,*parsed);
+    TransferFunction::copy(*this->model,*tf);
   }
 
   //doOpen
@@ -569,7 +576,7 @@ private:
   
     //special case for Visit transfer function
     StringTree stree;
-    if (stree.loadFromXml(content) && stree.name=="Object")
+    if (stree.fromXmlString(content) && stree.name=="Object")
     {
       VisusInfo()<<"Loading Visit transfer function";
     
@@ -638,15 +645,19 @@ private:
       }
       return;
     }
-  
-    SharedPtr<TransferFunction> decoded = std::dynamic_pointer_cast<TransferFunction>(encoder->decode(content));
-    if (!decoded)
+
+    auto tf = std::make_shared<TransferFunction>();
+    stree=StringTree();
+    if (!stree.fromXmlString(content))
     {
       VisusAssert(false);
       return;
     }
+    ObjectStream istream(stree, 'r');
+    tf->readFromObjectStream(istream);
+    istream.close();
 
-    TransferFunction::copy(*this->model,*decoded);
+    TransferFunction::copy(*this->model,*tf);
   }
 
   //doSave

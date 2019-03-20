@@ -62,7 +62,7 @@ class PyProducer(Node):
 	def processInput(self):
 		print("PyProducer::processInput")
 		msg=DataflowMessage()
-		msg.writeContent("output",StringObject("hello visus"))
+		msg.writeString("output","hello visus")
 		self.publish(msg)
 		return True
     
@@ -81,7 +81,7 @@ class PyReceiver(Node):
 	# processInput (overriding from Node)
 	def processInput(self):
 		print("PyReceiver::processInput")
-		self.published_value=cstring(self.readInput("input"))
+		self.published_value=self.readString("input")
 		return True
   
 
@@ -122,8 +122,8 @@ class TestDataflow(unittest.TestCase):
 if __name__ == '__main__':
 	SetCommandLine("__main__")
 	DataflowModule.attach()
-	VISUS_REGISTER_PYTHON_OBJECT_CLASS("PyProducer")
-	VISUS_REGISTER_PYTHON_OBJECT_CLASS("PyReceiver")
+	VISUS_REGISTER_NODE_CLASS("PyProducer")
+	VISUS_REGISTER_NODE_CLASS("PyReceiver")
 	errors=unittest.main(exit=False).result.errors
 	DataflowModule.detach()
 	print("All done ("+str(len(errors))+" errors)")

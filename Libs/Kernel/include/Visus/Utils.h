@@ -419,7 +419,7 @@ namespace Utils
       return false;
 
     StringTree stree;
-    if (!stree.loadFromXml(content))
+    if (!stree.fromXmlString(content))
       return false;
 
     if (StringUtils::toLower(stree.name) != StringUtils::toLower(class_name))
@@ -429,12 +429,6 @@ namespace Utils
     obj.readFromObjectStream(istream);
     return true;
   }
-
-  //convertStringTreeToDictObject
-  VISUS_KERNEL_API SharedPtr<DictObject> convertStringTreeToDictObject(const StringTree* src);
-
-  //convertDictObjectToStringTree
-  VISUS_KERNEL_API SharedPtr<StringTree> convertDictObjectToStringTree(DictObject* src);
 
   //LLtoUTM
   VISUS_KERNEL_API void LLtoUTM(const double Lat, const double Long, double &UTMNorthing, double &UTMEasting);
