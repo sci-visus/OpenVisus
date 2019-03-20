@@ -99,24 +99,6 @@ private:
 
 
 ///////////////////////////////////////////////////////////////////////////////
-template <class Value>
-class WrappedDataflowValue : public DataflowValue
-{
-public:
-
-  SharedPtr<Value> value;
-
-  //constructor
-  WrappedDataflowValue(SharedPtr<Value> value_ = SharedPtr<Value>()) : value(value_) {
-  }
-
-  //destructor
-  virtual ~WrappedDataflowValue() {
-  }
-
-};
-
-///////////////////////////////////////////////////////////////////////////////
 class VISUS_DATAFLOW_API DataflowValue
 {
 public:
@@ -139,10 +121,7 @@ public:
 
   //unwrapValue
   template <class Value>
-  static SharedPtr<Value> unwrapValue(SharedPtr<DataflowValue> obj) {
-    auto wrapped = std::dynamic_pointer_cast< WrappedDataflowValue<Value> >(obj);
-    return wrapped ? wrapped->value : SharedPtr<Value>();
-  }
+  static SharedPtr<Value> unwrapValue(SharedPtr<DataflowValue> obj);
 
 private:
 
@@ -154,18 +133,50 @@ private:
 
   //wrapValue (for shared_ptr)
   template <class Value>
-  static SharedPtr<DataflowValue> wrapValue(Value value, std::true_type) {
-    return std::make_shared< WrappedDataflowValue<typename Value::element_type> >(value);
-  }
+  static SharedPtr<DataflowValue> wrapValue(Value value, std::true_type);
 
   //wrapValue (for !shared_ptr)
   template <class Value>
-  static SharedPtr<DataflowValue> wrapValue(Value value, std::false_type) {
-    return std::make_shared< WrappedDataflowValue<Value> >( std::make_shared<Value>(value) );
-  }
+  static SharedPtr<DataflowValue> wrapValue(Value value, std::false_type);
 
 
 };
+
+
+///////////////////////////////////////////////////////////////////////////////
+template <class Value>
+class WrappedDataflowValue : public DataflowValue
+{
+public:
+
+  SharedPtr<Value> value;
+
+  //constructor
+  WrappedDataflowValue(SharedPtr<Value> value_ = SharedPtr<Value>()) : value(value_) {
+  }
+
+  //destructor
+  virtual ~WrappedDataflowValue() {
+  }
+
+};
+
+
+template <class Value>
+inline SharedPtr<Value> DataflowValue::unwrapValue(SharedPtr<DataflowValue> obj) {
+  auto wrapped = std::dynamic_pointer_cast< WrappedDataflowValue<Value> >(obj);
+  return wrapped ? wrapped->value : SharedPtr<Value>();
+}
+
+template <class Value>
+inline SharedPtr<DataflowValue> DataflowValue::wrapValue(Value value, std::true_type) {
+  return std::make_shared< WrappedDataflowValue<typename Value::element_type> >(value);
+}
+
+template <class Value>
+inline  SharedPtr<DataflowValue> DataflowValue::wrapValue(Value value, std::false_type) {
+  return std::make_shared< WrappedDataflowValue<Value> >(std::make_shared<Value>(value));
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 class VISUS_DATAFLOW_API DataflowMessage 
