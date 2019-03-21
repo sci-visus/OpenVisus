@@ -67,4 +67,4 @@ public:
 
 } //XIDX_ATTRIBUTE_H_
 
-#endif
+#endif //XIDX_ATTRIBUTE_H_

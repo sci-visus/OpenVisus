@@ -42,7 +42,5 @@ using namespace Visus;
 %feature("nodirector") Visus::PythonNode::toString;
 %feature("nodirector") Visus::PythonNode::writeToObjectStream;
 %feature("nodirector") Visus::PythonNode::readFromObjectStream;
-%feature("nodirector") Visus::PythonNode::writeToSceneObjectStream;
-%feature("nodirector") Visus::PythonNode::readFromSceneObjectStream;
 
 %include <Visus/PythonNode.h>

@@ -60,7 +60,9 @@ public:
     if (auto stats=Statistics::compute(data,aborted))
     {
       VisusInfo()<<"Computed statistics done in "<<t1.elapsedMsec();
-      node->publish(std::map<String, SharedPtr<Object> >({{"statistics",std::make_shared<Statistics>(stats)}}));
+      DataflowMessage msg;
+      msg.writeValue("statistics", stats);
+      node->publish(msg);
     }
   }
 };
@@ -78,7 +80,7 @@ StatisticsNode::~StatisticsNode() {
 bool StatisticsNode::processInput() 
 {
   abortProcessing();
-  auto data = readInput<Array>("data");
+  auto data = readValue<Array>("data");
   if (!data) return false;
   VisusInfo()<<"Statistics node got data "<<data->dims.toString();
   addNodeJob(std::make_shared<ComputeStatisticsJob>(this,*data));
@@ -86,11 +88,11 @@ bool StatisticsNode::processInput()
 }
 
 ////////////////////////////////////////////////////////
-void StatisticsNode::messageHasBeenPublished(SharedPtr<DataflowMessage> msg)
+void StatisticsNode::messageHasBeenPublished(DataflowMessage msg)
 {
   VisusAssert(VisusHasMessageLock());
 
-  auto statistics=std::dynamic_pointer_cast<Statistics>(msg->readContent("statistics"));
+  auto statistics=msg.readValue<Statistics>("statistics");
   if (!statistics)
     return;
 

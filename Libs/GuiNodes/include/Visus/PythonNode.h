@@ -60,7 +60,7 @@ public:
   virtual ~PythonNode() {
   }
 
-  //getOsDependentTypeName
+  //getOsDependentTypeName (virtual so that I can override it in python)
   virtual String getOsDependentTypeName() const override {
     return "PythonNode";
   }

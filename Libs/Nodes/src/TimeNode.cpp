@@ -114,15 +114,38 @@ void TimeNode::doPublish(SharedPtr<ReturnReceipt> return_receipt)
   if (!getDataflow()) 
     return;
   
-  auto msg=std::make_shared<DataflowMessage>();
-  msg->setReturnReceipt(return_receipt);
-  msg->writeContent("time",std::make_shared<DoubleObject>(current_time));
+  DataflowMessage msg;
+  msg.setReturnReceipt(return_receipt);
+  msg.writeValue("time",current_time);
   this->publish(msg);
 }
 
 //////////////////////////////////////////////////
 void TimeNode::writeToObjectStream(ObjectStream& ostream) 
 {
+  if (ostream.isSceneMode())
+  {
+    ostream.pushContext("timestep");
+
+    ostream.pushContext("keyframes");
+    ostream.writeInline("interpolation", "none");
+
+    // TODO loop through the keyframes for this object
+    ostream.pushContext("keyframe");
+    ostream.writeInline("time", "0");
+
+    ostream.pushContext("time");
+    ostream.writeInline("value", cstring(current_time));
+    ostream.popContext("time");
+
+    ostream.popContext("keyframe");
+    ostream.popContext("keyframes");
+    // TODO end loop
+
+    ostream.popContext("timestep");
+    return;
+  }
+
   Node::writeToObjectStream(ostream);
 
   ostream.write("current_time",cstring(current_time));
@@ -164,28 +187,6 @@ void TimeNode::readFromObjectStream(ObjectStream& istream)
   play_msec=cint(istream.read("play_msec","1000"));
 }
 
-//////////////////////////////////////////////////
-void TimeNode::writeToSceneObjectStream(ObjectStream& ostream)
-{
-  ostream.pushContext("timestep");
-  
-  ostream.pushContext("keyframes");
-  ostream.writeInline("interpolation", "none");
-  
-  // TODO loop through the keyframes for this object
-  ostream.pushContext("keyframe");
-  ostream.writeInline("time", "0");
-  
-  ostream.pushContext("time");
-  ostream.writeInline("value", cstring(current_time));
-  ostream.popContext("time");
-  
-  ostream.popContext("keyframe");
-  ostream.popContext("keyframes");
-  // TODO end loop
-  
-  ostream.popContext("timestep");
-}
 
 } //namespace Visus
 

@@ -160,7 +160,7 @@ class IdxBoxQueryHzAddressConversion : public Query::AddressConversion
 public:
 
   //_______________________________________________________________
-  class Level : public Object
+  class Level 
   {
   public:
 
@@ -1246,7 +1246,7 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<Query> query)
 
         (*) I don't have to go level by level after Q0. By "jumping" levels I send less data
         (*) I can use lossy compression (in the old code I needed lossless compression to rebuild the data for Qi with i>0)
-        (*) not all datasets support the merging (see IdxMultipleDataset and LegacyDataset)
+        (*) not all datasets support the merging (see IdxMultipleDataset and GoogleMapsDataset)
         (*) the filters (example wavelets) are applied always on the server side (in the old code filters were applied on the server only for Q0)
   */
 

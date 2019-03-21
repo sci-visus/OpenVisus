@@ -38,7 +38,7 @@ For support : support@visus.net
 
 
 #include <Visus/KdQueryNode.h>
-#include <Visus/LegacyDataset.h>
+#include <Visus/GoogleMapsDataset.h>
 #include <Visus/DatasetFilter.h>
 #include <Visus/NetService.h>
 #include <Visus/FieldNode.h>
@@ -140,7 +140,7 @@ public:
       kdarray->query_box = position.getNdBox();
       kdarray->end_resolution = end_resolutions.back();
 
-      this->bBlocksAreFullRes = std::dynamic_pointer_cast<LegacyDataset>(dataset) ? true : false;
+      this->bBlocksAreFullRes = std::dynamic_pointer_cast<GoogleMapsDataset>(dataset) ? true : false;
 
       //TODO enable also for UseBlockQuery?
       if (mode == KdQueryMode::UseQuery)
@@ -163,8 +163,8 @@ public:
 
     if (bForce || last_publish.elapsedMsec() > publish_interval)
     {
-      auto msg=std::make_shared<DataflowMessage>();
-      msg->writeContent("data", kdarray);
+      DataflowMessage msg;
+      msg.writeValue("data", kdarray);
       node->publish(msg);
       last_publish = Time::now();
     }
@@ -613,9 +613,9 @@ bool KdQueryNode::processInput()
 {
   abortProcessing();
    
-  auto dataset         = readInput<Dataset>("dataset");
-  auto fieldname       = cstring(readInput("fieldname"));
-  auto time            = cdouble(readInput("time"));
+  auto dataset         = readValue<Dataset>("dataset");
+  auto fieldname       = cstring(readValue<String>("fieldname"));
+  auto time            = cdouble(readValue<double>("time"));
 
   int kdquery_mode=dataset? dataset->getKdQueryMode() : KdQueryMode::NotSpecified;
   if (kdquery_mode==KdQueryMode::NotSpecified) 

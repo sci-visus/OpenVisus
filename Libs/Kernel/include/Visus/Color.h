@@ -40,7 +40,6 @@ For support : support@visus.net
 #define __VISUS_COLOR_H
 
 #include <Visus/Kernel.h>
-#include <Visus/Object.h>
 #include <Visus/Utils.h>
 
 #include <array>
@@ -49,7 +48,7 @@ For support : support@visus.net
 namespace Visus {
  
 ////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Color :public Object
+class VISUS_KERNEL_API Color
 {
 public:
 
@@ -244,7 +243,7 @@ public:
 public:
 
   //toString
-  String toString() const override
+  String toString() const 
   {
     Color rgb=toRGB();
     std::ostringstream o; 
@@ -269,7 +268,7 @@ public:
   }
   
   //writeToObjectStream
-  void writeToObjectStream(ObjectStream& ostream) override
+  void writeToObjectStream(ObjectStream& ostream) 
   {
     Color rgb=toRGB();
     ostream.writeInline("r",cstring((int)(255.0*rgb.get(0))));
@@ -279,7 +278,7 @@ public:
   }
   
   //readFromObjectStream
-  void readFromObjectStream(ObjectStream& istream) override
+  void readFromObjectStream(ObjectStream& istream) 
   {
     int R=cint(istream.readInline("r"));
     int G=cint(istream.readInline("g"));

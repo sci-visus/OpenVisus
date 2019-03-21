@@ -62,6 +62,11 @@ public:
   virtual ~GLLookAtCamera() {
   }
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "GLLookAtCamera";
+  }
+
   //getCenterOfRotation
   Point3d getCenterOfRotation() const {
     return centerOfRotation;
@@ -136,12 +141,6 @@ public:
 
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override;
-  
-  //writeSceneToObjectStream
-  virtual void writeToSceneObjectStream(ObjectStream& ostream) override;
-  
-  //readFromSceneObjectStream
-  virtual void readFromSceneObjectStream(ObjectStream& istream) override;
 
 private:
 

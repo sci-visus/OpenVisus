@@ -256,59 +256,6 @@ bool Utils::saveBinaryDocument(String filename,SharedPtr<HeapMemory> src)
 
 
 
-//////////////////////////////////////////////////
-SharedPtr<DictObject> Utils::convertStringTreeToDictObject(const StringTree* src)
-{
-  auto dst = std::make_shared<DictObject>();
-
-  //name
-  dst->setattr("name", std::make_shared<StringObject>(src->name));
-
-  //attributes
-  if (!src->attributes.empty())
-  {
-    auto attributes = std::make_shared<DictObject>();
-    for (auto it = src->attributes.begin(); it != src->attributes.end(); it++)
-      attributes->setattr(it->first, std::make_shared<StringObject>(it->second));
-    dst->setattr("attributes", attributes);
-  }
-
-  //childs
-  if (int N = src->getNumberOfChilds())
-  {
-    auto childs = std::make_shared<ListObject>();
-    dst->setattr("childs", childs);
-    for (int I = 0; I<N; I++)
-      childs->push_back(convertStringTreeToDictObject(&src->getChild(I)));
-  }
-
-  return dst;
-}
-
-//////////////////////////////////////////////////
-SharedPtr<StringTree> Utils::convertDictObjectToStringTree(DictObject* src)
-{
-  VisusAssert(src);
-
-  auto dst = std::make_shared<StringTree>();
-
-  dst->name = cstring(src->getattr("name"));
-  VisusAssert(!dst->name.empty());
-
-  if (SharedPtr<DictObject> attributes = std::dynamic_pointer_cast<DictObject>(src->getattr("attributes")))
-  {
-    for (auto it = attributes->begin(); it != attributes->end(); it++)
-      dst->writeString(it->first, cstring(it->second));
-  }
-
-  if (SharedPtr<ListObject> childs = std::dynamic_pointer_cast<ListObject>(src->getattr("childs")))
-  {
-    for (auto it = childs->begin(); it != childs->end(); it++)
-      dst->addChild(*convertDictObjectToStringTree(dynamic_cast<DictObject*>(it->get())));
-  }
-
-  return dst;
-}
 
 
 //////////////////////////////////////////////////

@@ -183,14 +183,12 @@ namespace Visus {}
 // see http://swig.10945.n7.nabble.com/Disown-Typemap-and-Directors-td9146.html)
 %typemap(in, noblock=1) SWIGTYPE *DISOWN_FOR_DIRECTOR(int res = 0) 
 {
-  // BEGIN typemap DISOWN_FOR_DIRECTOR
   res = SWIG_ConvertPtr($input, %as_voidptrptr(&$1), $descriptor, SWIG_POINTER_DISOWN | %convertptr_flags);
   if (!SWIG_IsOK(res))  {
     %argument_fail(res,"$type", $symname, $argnum);
   }
   if (Swig::Director *director = dynamic_cast<Swig::Director *>($1)) 
     director->swig_disown(); //C++ will own swig counterpart
-  // END typemap
 }
 
 

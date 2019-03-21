@@ -157,38 +157,57 @@ public:
   std::vector<double>                 values;
 
   //down
-  std::vector< SharedPtr<Attribute> > attributes;
-  SharedPtr<DataSource>               data_source;
+  std::vector<Attribute*> attributes;
+  DataSource*             data_source=nullptr;
   
   //constructor
   DataItem(String name_="") : XIdxElement(name_){
   }
 
+  //constructor
   DataItem(DType dtype_) : XIdxElement(""){
     dtype=dtype_;
   }
 
-  DataItem(FormatType format, DType dtype_, std::shared_ptr<DataSource> file){
-    format_type=format;
-    dtype=dtype_;
-    data_source=file;
+  //constructor
+  DataItem(FormatType format, DType dtype_, DataSource* VISUS_DISOWN(data_source)){
+    this->format_type=format;
+    this->dtype=dtype_;
+    setDataSource(data_source);
   }
 
-  DataItem(FormatType format_, DType dtype_, std::shared_ptr<DataSource> file,  int n_dims, uint32_t *dims) {
-    DataItem(format_, dtype_, file);
-
+  //constructor
+  DataItem(FormatType format_, DType dtype_, DataSource* VISUS_DISOWN(data_source),  int n_dims, uint32_t *dims) 
+    : DataItem(format_, dtype_, data_source)
+  {
     for (int i = 0; i < n_dims; i++)
       dimensions.push_back(dims[i]);
   }
 
+  //destructor
+  virtual ~DataItem() 
+  {
+    setDataSource(nullptr);
+    for (auto it : attributes)
+      delete it;
+  }
+
   //setDataSource
-  void setDataSource(SharedPtr<DataSource> value) {
-    addEdge(this, value);
+  void setDataSource(DataSource* VISUS_DISOWN(value)) 
+  {
+    if (this->data_source) {
+      removeEdge(this, this->data_source);
+      delete this->data_source;
+    }
+
     this->data_source = value;
+
+    if (this->data_source)
+      addEdge(this, this->data_source);
   }
 
   //addAttribute
-  void addAttribute(SharedPtr<Attribute> value)
+  void addAttribute(Attribute* VISUS_DISOWN(value))
   {
     addEdge(this, value);
     attributes.push_back(value);
@@ -234,16 +253,15 @@ public:
   //findDataSource
   virtual DataSource* findDataSource() 
   {
-    // TODO fix getParent(), it returns an XIdxElement (getVisusClassName()=="XIdxElement")
+    // TODO fix getParent(), it returns an XIdxElement 
     for(auto cursor = this->getParent(); cursor; cursor = cursor->getParent())
     {
-      if (cursor->getClassName() == "Group")
+      if (cursor->getTypeName() == "Group")
       {
         if (auto source = cursor->findChildWithName("DataSource"))
-          return dynamic_cast<DataSource*>(source.get());
+          return dynamic_cast<DataSource*>(source);
       }
     }
-    
     return nullptr;
   }
 

@@ -57,7 +57,7 @@ enum QueryStatus
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-class VISUS_DB_API BlockQuery : public Object
+class VISUS_DB_API BlockQuery 
 {
 public:
 

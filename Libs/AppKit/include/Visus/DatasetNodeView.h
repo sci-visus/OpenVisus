@@ -84,12 +84,13 @@ public:
     {
       auto textedit=GuiFactory::CreateTextEdit();
 
-      if (SharedPtr<Dataset> dataset=model->getDataset())
+      if (auto dataset=model->getDataset())
       {
         std::ostringstream out;
-        out<<XmlEncoder().encode(dataset.get())<<std::endl<<std::endl;
+        out<< dataset->toString()<<std::endl<<std::endl;
         out<<"//Infos"<<std::endl;
         out<<model->getDataset()->getDatasetInfos();
+
         textedit->setText(out.str().c_str());
       }
 

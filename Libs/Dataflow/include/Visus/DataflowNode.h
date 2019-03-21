@@ -47,6 +47,7 @@ For support : support@visus.net
 #include <Visus/DataflowPort.h>
 #include <Visus/Position.h>
 #include <Visus/Async.h>
+#include <Visus/Array.h>
 
 namespace Visus {
 
@@ -105,6 +106,14 @@ public:
 
   //destructor (please remove from the dataflow before destroying!)
   virtual ~Node();
+
+  //getTypeName
+  virtual String getTypeName() const override;
+
+  //getOsDependentTypeName
+  virtual String getOsDependentTypeName() const {
+    return typeid(*this).name();
+  }
 
   //getName
   String getName() const {
@@ -212,41 +221,23 @@ public:
   //needProcessInputs
   bool needProcessInputs() const;
 
-  //readInput
-  SharedPtr<Object> readInput(String iport,Int64* write_timestamp=nullptr);
+  //readValue
+  SharedPtr<DataflowValue> readValue(String iport);
 
-  //previewInput
-  SharedPtr<Object> previewInput(String iport,Int64* write_timestamp=nullptr);
-
-  //readInput
-  template <class CastTo>
-  SharedPtr<CastTo> readInput(String iport,Int64* write_timestamp=nullptr)
-  {
-    VisusAssert(VisusHasMessageLock());
-    return std::dynamic_pointer_cast<CastTo>(readInput(iport,write_timestamp));
+  //readValue
+  template <class Value>
+  SharedPtr<Value> readValue(String iport) {
+    return DataflowValue::unwrapValue<Value>(readValue(iport));
   }
 
   //previewInput
-  template <class CastTo>
-  SharedPtr<CastTo> previewInput(String iport,Int64* write_timestamp=nullptr)
-  {
-    VisusAssert(VisusHasMessageLock());
-    return std::dynamic_pointer_cast<CastTo>(previewInput(iport,write_timestamp));
-  }
+  SharedPtr<DataflowValue> previewInput(String iport);
 
   //publish
-  bool publish(SharedPtr<DataflowMessage> msg);
-
-  //publish
-  bool publish(const std::map< String, SharedPtr<Object> >& values) {
-    auto msg=std::make_shared<DataflowMessage>();
-    for (auto it : values)
-      msg->writeContent(it.first,it.second);
-    return publish(msg);
-  }
+  bool publish(DataflowMessage msg);
 
   //in case you need to know when published message is dispatched
-  virtual void messageHasBeenPublished(SharedPtr<DataflowMessage> msg){
+  virtual void messageHasBeenPublished(DataflowMessage msg){
     VisusAssert(VisusHasMessageLock());
   }
 
@@ -300,6 +291,9 @@ public:
   //guessUniqueChildName
   String guessUniqueChildName(String prefix) const;
 
+  //createPassThroughtReceipt
+  SharedPtr<ReturnReceipt> createPassThroughtReceipt();
+
 public:
 
   //writeToObjectStream
@@ -336,6 +330,124 @@ protected:
   void removeChild(Node* child);
 
 };
+
+
+///////////////////////////////////////////////////////////////////////////////
+class VISUS_DATAFLOW_API NodeCreator
+{
+public:
+
+  VISUS_CLASS(NodeCreator)
+
+  //constructor
+  NodeCreator() {
+  }
+
+  //destructor
+  virtual ~NodeCreator() {
+  }
+
+  //createInstance
+  virtual VISUS_NEWOBJECT(Node*) createInstance() {
+    ThrowException("internal error, you forgot to implement createInstance");
+    return nullptr;
+  }
+};
+
+
+///////////////////////////////////////////////////////////////////////////////
+class VISUS_DATAFLOW_API NodeFactory
+{
+public:
+
+  VISUS_DECLARE_SINGLETON_CLASS(NodeFactory)
+
+  //desgtructor
+  ~NodeFactory() {
+    for (auto it : creators)
+      delete it.second;
+  }
+
+  //registerClass
+  void registerClass(String portable_typename, String os_typename, NodeCreator* VISUS_DISOWN(creator)) {
+    VisusAssert(creators.find(portable_typename) == creators.end());
+    creators[portable_typename] = creator;
+    portable_typenames.setValue(os_typename, portable_typename);
+  }
+
+  //registerClass
+  template <typename NodeClass>
+  void registerClass(String portable_typename) {
+    return registerClass(portable_typename, typeid(NodeClass).name(), new CppNodeCreator<NodeClass>());
+  }
+
+  //createInstance
+  VISUS_NEWOBJECT(Node*) createInstance(String portable_typename, bool bCanFail = false)
+  {
+    auto it = creators.find(portable_typename);
+    if (it == creators.end()) { VisusAssert(bCanFail); return nullptr; }
+    return it->second->createInstance();
+  }
+
+  //createInstance
+  template <class NodeClass>
+  VISUS_NEWOBJECT(NodeClass*) createInstance(String portable_typename, bool bCanFail = false)
+  {
+    Node* obj = createInstance(portable_typename, bCanFail);
+    if (NodeClass* ret = dynamic_cast<NodeClass*>(obj)) return ret;
+    if (obj) delete obj;
+    return nullptr;
+  }
+
+  //getTypeName
+  String getTypeName(const Node& instance)
+  {
+    String os_dependent_typename = instance.getOsDependentTypeName();
+    VisusAssert(portable_typenames.hasValue(os_dependent_typename));
+    return portable_typenames.getValue(os_dependent_typename);
+  }
+
+private:
+
+  //constructor
+  NodeFactory() {
+  }
+
+  std::map<String, NodeCreator*> creators;
+  StringMap                      portable_typenames;
+
+
+  //_______________________________________________
+  template <class NodeClass>
+  class CppNodeCreator : public NodeCreator
+  {
+  public:
+
+    //constructor
+    CppNodeCreator() {
+    }
+
+    //destructor
+    virtual ~CppNodeCreator() {
+    }
+
+    //createInstance
+    virtual VISUS_NEWOBJECT(Node*) createInstance() override {
+      return new NodeClass();
+    }
+
+  private:
+
+    VISUS_NON_COPYABLE_CLASS(CppNodeCreator)
+  };
+
+};
+
+
+//VISUS_REGISTER_NODE_CLASS
+#define VISUS_REGISTER_NODE_CLASS(NodeClass) \
+    Visus::NodeFactory::getSingleton()->registerClass<NodeClass>(#NodeClass) \
+    /*--*/
 
 } //namespace Visus
 

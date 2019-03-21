@@ -68,7 +68,7 @@ struct ComputeIsoContourOp
     if (!(dims.x*dims.y*dims.z) || !field)
       return false;
 
-    CppType* cell_data = isocontour.cell_array.get()? isocontour.cell_array->c_ptr<CppType*>() : NULL;
+    CppType* cell_data = isocontour.cell_array? isocontour.cell_array.c_ptr<CppType*>() : NULL;
 
     const int stridex=data.dtype.getByteSize()/sizeof(CppType);
     const int stridey=stridex*dims.x;
@@ -205,8 +205,8 @@ public:
     auto isocontour=std::make_shared<IsoContour>();
     if (node->isOutputConnected("cell_array"))
     {
-      isocontour->cell_array = std::make_shared<Array>(data.dims, data.dtype);
-      isocontour->cell_array->fillWithValue(0);
+      isocontour->cell_array = Array(data.dims, data.dtype);
+      isocontour->cell_array.fillWithValue(0);
     }
 
     ComputeIsoContourOp op;
@@ -229,14 +229,13 @@ public:
       /*--- end_remap ---*/ ); 
 
     //tell that the output has changed, if the port is not connected, this is a NOP!
-    node->publish({
-      {"data",isocontour},
-      {"cell_array",isocontour->cell_array},
-      {"data_min",std::make_shared<DoubleObject>(op.data_min)},
-      {"data_max",std::make_shared<DoubleObject>(op.data_max)}
-    });
+    DataflowMessage msg;
+    msg.writeValue("data", isocontour);
+    msg.writeValue("cell_array",isocontour->cell_array);
+    msg.writeValue("data_min",op.data_min);
+    msg.writeValue("data_max",op.data_max);
+    node->publish(msg);
   }
-
 
 };
 
@@ -255,16 +254,16 @@ IsoContourNode::~IsoContourNode()
 {}
 
 ///////////////////////////////////////////////////////////////////////
-void IsoContourNode::messageHasBeenPublished(SharedPtr<DataflowMessage> msg)
+void IsoContourNode::messageHasBeenPublished(DataflowMessage msg)
 {
-  double data_min=cdouble(msg->readContent("data_min"));
-  double data_max=cdouble(msg->readContent("data_max"));
+  auto data_min= *msg.readValue<double>("data_min");
+  auto data_max= *msg.readValue<double>("data_max");
   
   //avoid rehentrant code
-  if (this->data_range.from!=data_min || this->data_range.to!=data_max)
+  if (this->data_range.from!=data_min || this->data_range.to!= data_max)
   {
     beginUpdate();
-    this->data_range=Range(data_min,data_max,0.0);
+    this->data_range=Range(data_min, data_max,0.0);
     endUpdate();
   }
 }
@@ -276,7 +275,7 @@ bool IsoContourNode::processInput()
 {
   abortProcessing();
 
-  auto data = readInput<Array>("data");
+  auto data = readValue<Array>("data");
   if (!data || !data->dtype.valid())
     return false;
   

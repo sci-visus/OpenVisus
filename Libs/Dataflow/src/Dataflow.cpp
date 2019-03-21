@@ -81,9 +81,6 @@ void Dataflow::processInput(Node* node)
 
   for (auto it : listeners)
     it->dataflowBeforeProcessInput(node);
-
-  //do not enable this, make the dataflow very slow!
-  //VisusInfo()<<typeid(*node).name()<<" got input";
   
   node->processInput();
 
@@ -110,7 +107,7 @@ void Dataflow::joinProcessing()
 }
 
 ////////////////////////////////////////////////////////////////////
-void Dataflow::floodValueForward(DataflowPort* port,SharedPtr<Object> value,const SharedPtr<ReturnReceipt>& return_receipt)
+void Dataflow::floodValueForward(DataflowPort* port,SharedPtr<DataflowValue> value,const SharedPtr<ReturnReceipt>& return_receipt)
 {
   VisusAssert(VisusHasMessageLock());
   Node* node=port->getNode();
@@ -173,12 +170,12 @@ case IPORT_IPORT
 ////////////////////////////////////////////////////////////////////////
 
 
-DataflowPortStoredValue* Dataflow::guessLastPublished(DataflowPort* from)
+DataflowPortValue* Dataflow::guessLastPublished(DataflowPort* from)
 {
   VisusAssert(VisusHasMessageLock());
 
   //this is the simple algorithm which covers 99% of the cases (mostly when I don't have multiple dataflow)
-  if (DataflowPortStoredValue* ret=from->previewValue())
+  if (DataflowPortValue* ret=from->previewValue())
     return ret;
 
   //going backward
@@ -191,7 +188,7 @@ DataflowPortStoredValue* Dataflow::guessLastPublished(DataflowPort* from)
 
     while (!backward.empty())
     {
-      if (DataflowPortStoredValue* ret=backward.front()->previewValue())
+      if (DataflowPortValue* ret=backward.front()->previewValue())
         return ret;
 
       //no ambiguity
@@ -212,7 +209,7 @@ DataflowPortStoredValue* Dataflow::guessLastPublished(DataflowPort* from)
 
     while (!forward.empty())
     {
-      if (DataflowPortStoredValue* ret=forward.front()->previewValue())
+      if (DataflowPortValue* ret=forward.front()->previewValue())
         return ret;
 
       for (auto it=forward.front()->outputs.begin();it!=forward.front()->outputs.end();it++)
@@ -232,7 +229,7 @@ bool Dataflow::dispatchPublishedMessages()
   VisusAssert(VisusHasMessageLock());
 
   //make this very fast
-  std::vector< SharedPtr<DataflowMessage> > published;
+  std::vector<DataflowMessage> published;
   {
     ScopedLock lock(this->published_lock); //need the lock
 
@@ -243,24 +240,24 @@ bool Dataflow::dispatchPublishedMessages()
     std::swap(published,this->published);
   }
   //floodValues stored in the publish event
-  for (auto msg : published)
+  for (auto& msg : published)
   {
     //probably the node has been removed from the dataflow (see removeNode)
-    if (Node* sender=msg->getSender())
+    if (Node* sender=msg.getSender())
     {
       VisusAssert(containsNode(sender));
-      for (auto it=msg->getContent().begin();it!=msg->getContent().end();it++)
+      for (auto it=msg.getContent().begin();it!=msg.getContent().end();it++)
       {
         String port_name=it->first;
 
-        SharedPtr<Object> value_to_flood=it->second;
+        SharedPtr<DataflowValue> value_to_flood=it->second;
         DataflowPort* port=sender->getOutputPort(port_name);
 
         //make sure it's not removed meanwhile
         if (!port || !port->getNode() || !port->getNode()->getDataflow())
           continue;
 
-        floodValueForward(port,value_to_flood,msg->getReturnReceipt());
+        floodValueForward(port,value_to_flood,msg.getReturnReceipt());
       }
 
       sender->messageHasBeenPublished(msg);
@@ -270,7 +267,7 @@ bool Dataflow::dispatchPublishedMessages()
       listener->dataflowMessageHasBeenPublished(msg);
 
     //I promised to sign it in Dataflow::publish
-    if (auto return_receipt=msg->getReturnReceipt())
+    if (auto return_receipt=msg.getReturnReceipt())
       return_receipt->addSignature(this);
   }
 
@@ -288,14 +285,14 @@ bool Dataflow::dispatchPublishedMessages()
 }
 
 //////////////////////////////////////////////////////////
-bool Dataflow::publish(SharedPtr<DataflowMessage> msg)
+bool Dataflow::publish(DataflowMessage msg)
 {
   //I need the lock, I can be in any thread here
   {
     ScopedLock lock(published_lock);
     published.push_back(msg);
 
-    if (auto return_receipt = msg->getReturnReceipt())
+    if (auto return_receipt = msg.getReturnReceipt())
       return_receipt->needSignature(this);
   }
 
@@ -393,10 +390,10 @@ void Dataflow::removeNode(Node* NODE)
     //invalidate published message 
     {
       ScopedLock lock(published_lock);
-      for (auto it=this->published.begin();it!=this->published.end();it++)
+      for (auto& msg : this->published)
       {
-        if ((*it)->getSender()==node) 
-          (*it)->setSender(nullptr);
+        if (msg.getSender()==node)
+          msg.setSender(nullptr);
       }
     }
 
@@ -451,7 +448,7 @@ void Dataflow::connectPorts(Node* from,String oport_name,String iport_name,Node*
   VisusAssert(iport && containsNode(from) && iport->inputs .find(oport)==iport->inputs .end());
   VisusAssert(oport && containsNode(to  ) && oport->outputs.find(iport)==oport->outputs.end());
 
-  DataflowPortStoredValue* last_published=guessLastPublished(oport);
+  DataflowPortValue* last_published=guessLastPublished(oport);
 
   oport->outputs.insert(iport);
   iport->inputs .insert(oport);

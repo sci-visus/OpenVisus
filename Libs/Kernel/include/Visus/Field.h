@@ -45,7 +45,7 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Field : public Object
+class VISUS_KERNEL_API Field 
 {
 public:
 
@@ -124,10 +124,10 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override;
+  void writeToObjectStream(ObjectStream& ostream) ;
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override;
+  void readFromObjectStream(ObjectStream& istream) ;
 
 };
 

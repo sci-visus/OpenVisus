@@ -105,11 +105,16 @@ public:
     if (diff.empty())
       return;
 
-    std::vector<String> curr = StringUtils::getNonEmptyLines(XmlEncoder().encode(model));
+    StringTree stree(model->getTypeName());
+    ObjectStream ostream(stree, 'w');
+    model->writeToObjectStream(ostream);
+    ostream.close();
+
+    std::vector<String> curr = StringUtils::getNonEmptyLines(stree.toXmlString());
     std::vector<String> next = bDirect? diff.applyDirect(curr) : diff.applyInverse(curr);
 
-    StringTree stree;
-    if (!stree.loadFromXml(StringUtils::join(next,"\r\n")))
+    stree=StringTree();
+    if (!stree.fromXmlString(StringUtils::join(next,"\r\n")))
     {
       String error_msg=StringUtils::format()<<"Error ApplyPatch::applyPatch()\r\n"
         <<"diff:\r\n" <<"[["<<diff.toString()<<"]]\r\n"

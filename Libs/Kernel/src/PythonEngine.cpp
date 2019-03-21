@@ -73,8 +73,7 @@ namespace Visus {
 
 //note for shared_ptr swig enabled types, you always need to use the shared_ptr typename
 static String SwigAbortedTypeName = "Visus::Aborted *";
-static String SwigArrayTypeName   = "std::shared_ptr< Visus::Array > *";
-
+static String SwigArrayTypeName   = "Visus::Array *";
 
 static PyThreadState* __main__thread_state__=nullptr;
 
@@ -84,7 +83,6 @@ static std::set<String> ReservedWords =
   "pass","yield","break","except","import","print", "class","exec""in","raise","continue", 
   "finally","is","return","def","for","lambda","try"
 };
-
 
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::ScopedAcquireGil() 
@@ -547,31 +545,16 @@ PyObject* PythonEngine::newPyObject(Array value)
 {
   auto typeinfo = SWIG_TypeQuery(SwigArrayTypeName.c_str());
   VisusAssert(typeinfo);
-  auto ptr = new SharedPtr<Array>(new Array(value));
+  auto ptr = new Array(value);
   return SWIG_NewPointerObj(ptr, typeinfo, SWIG_POINTER_OWN);
 }
 ///////////////////////////////////////////////////////////////////////////
 Array PythonEngine::getModuleArrayAttr(String name) 
 {
-  auto typeinfo = SWIG_TypeQuery(SwigArrayTypeName.c_str());
-  VisusAssert(typeinfo);
-
   auto py_object = getModuleAttr(name);
   if (!py_object)
     ThrowException(StringUtils::format() << "cannot find '" << name << "' in module");
-
-  SharedPtr<Array>* ptr = nullptr;
-  int res = SWIG_ConvertPtr(py_object, (void**)&ptr, typeinfo, 0);
-
-  if (!SWIG_IsOK(res) || !ptr || !ptr->get())
-    ThrowException(StringUtils::format() << "cannot case '" << name << "' to " << typeinfo->name);
-
-  Array ret = **ptr;
-
-  if (SWIG_IsNewObj(res))
-    delete ptr;
-
-  return ret;
+  return pythonObjectToArray(py_object);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -580,13 +563,13 @@ Array PythonEngine::pythonObjectToArray(PyObject* py_object)
   auto typeinfo = SWIG_TypeQuery(SwigArrayTypeName.c_str());
   VisusAssert(typeinfo);
 
-  SharedPtr<Array>* ptr = nullptr;
+  Array* ptr = nullptr;
   int res = SWIG_ConvertPtr(py_object, (void**)&ptr, typeinfo, 0);
 
-  if (!SWIG_IsOK(res) || !ptr || !ptr->get())
+  if (!SWIG_IsOK(res) || !ptr)
     ThrowException(StringUtils::format() << "cannot convert to array");
 
-  Array ret = **ptr;
+  Array ret = *ptr;
 
   if (SWIG_IsNewObj(res))
     delete ptr;

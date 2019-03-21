@@ -40,7 +40,7 @@ For support : support@visus.net
 #include <Visus/Array.h>
 
 #include <Visus/DatasetBitmask.h>
-#include <Visus/LegacyDataset.h>
+#include <Visus/GoogleMapsDataset.h>
 #include <Visus/DatasetArrayPlugin.h>
 
 namespace Visus {
@@ -59,20 +59,10 @@ void DbModule::attach()
 
   KernelModule::attach();
 
-  DatasetPluginFactory::allocSingleton();
+  DatasetFactory::allocSingleton();
+  DatasetFactory::getSingleton()->registerDatasetType(".gmaps", "GoogleMapsDataset", []() {return std::make_shared<GoogleMapsDataset>(); });
 
   ArrayPlugins::getSingleton()->values.push_back(std::make_shared<DatasetArrayPlugin>());
-
-  //VISUS_REGISTER_OBJECT_CLASS(Access);
-  //VISUS_REGISTER_OBJECT_CLASS(FilterAccess);
-  //VISUS_REGISTER_OBJECT_CLASS(MultiplexAccess);
-  //VISUS_REGISTER_OBJECT_CLASS(ModVisusAccess);
-  //VISUS_REGISTER_OBJECT_CLASS(RamAccess);
-  //VISUS_REGISTER_OBJECT_CLASS(DiskAccess);
-  //VISUS_REGISTER_OBJECT_CLASS(OnDemandAccess);
-  //VISUS_REGISTER_OBJECT_CLASS(Dataset);
-
-  VISUS_REGISTER_OBJECT_CLASS(LegacyDataset);
 
   VisusInfo() << "Attached DbModule";
 }
@@ -87,7 +77,7 @@ void DbModule::detach()
   
   bAttached = false;
 
-  DatasetPluginFactory::releaseSingleton();
+  DatasetFactory::releaseSingleton();
 
   KernelModule::detach();
 

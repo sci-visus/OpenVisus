@@ -56,7 +56,7 @@ bool VisusConfig::reload()
   {
     String body = Utils::loadTextDocument(filename);
     StringTree temp("visus");
-    if (temp.loadFromXml(body))
+    if (temp.fromXmlString(body))
     {
       VisusConfig::storage = temp;
       VisusConfig::timestamp = FileUtils::getTimeLastModified(filename);

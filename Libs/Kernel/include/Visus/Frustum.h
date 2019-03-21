@@ -51,7 +51,7 @@ For support : support@visus.net
 namespace Visus {
 
 /////////////////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Frustum : public Object
+class VISUS_KERNEL_API Frustum 
 {
 public:
 
@@ -216,7 +216,7 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  void writeToObjectStream(ObjectStream& ostream) 
   {
     ostream.write("modelview" ,getModelview ().toString());
     ostream.write("projection",getProjection().toString());
@@ -224,7 +224,7 @@ public:
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  void readFromObjectStream(ObjectStream& istream) 
   {
     loadModelview (Matrix  (istream.read("modelview" )));
     loadProjection(Matrix  (istream.read("projection")));

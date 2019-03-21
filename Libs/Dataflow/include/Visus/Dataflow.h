@@ -63,7 +63,7 @@ public:
   }
 
   //dataflowMessageHasBeenPublished
-  virtual void dataflowMessageHasBeenPublished(SharedPtr<DataflowMessage> msg) {
+  virtual void dataflowMessageHasBeenPublished(DataflowMessage msg) {
   }
 
   //dataflowBeingDestroyed
@@ -113,7 +113,7 @@ public:
 };
 
 ////////////////////////////////////////////////////////////
-class VISUS_DATAFLOW_API Dataflow : public virtual Object
+class VISUS_DATAFLOW_API Dataflow 
 {
 public:
 
@@ -168,7 +168,7 @@ public:
   }
 
   //publish
-  bool publish(SharedPtr<DataflowMessage> msg);
+  bool publish(DataflowMessage msg);
 
   //abortProcessing
   void abortProcessing();
@@ -177,7 +177,7 @@ public:
   void joinProcessing();
 
   //guessLastPublished
-  DataflowPortStoredValue* guessLastPublished(DataflowPort* from);
+  DataflowPortValue* guessLastPublished(DataflowPort* from);
 
   //dispatchPublishedMessages
   bool dispatchPublishedMessages();
@@ -239,10 +239,10 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override;
+  void writeToObjectStream(ObjectStream& ostream) ;
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override;
+  void readFromObjectStream(ObjectStream& istream) ;
 
 private:
 
@@ -254,11 +254,11 @@ private:
   std::set<Node*>                            need_processing;
 
   //runtime
-  CriticalSection                           published_lock;
-  std::vector< SharedPtr<DataflowMessage> > published;
+  CriticalSection               published_lock;
+  std::vector<DataflowMessage> published;
 
   //floodValueForward
-  void floodValueForward(DataflowPort* port, SharedPtr<Object> value, const SharedPtr<ReturnReceipt>& return_receipt);
+  void floodValueForward(DataflowPort* port, SharedPtr<DataflowValue> value, const SharedPtr<ReturnReceipt>& return_receipt);
 
 };
 

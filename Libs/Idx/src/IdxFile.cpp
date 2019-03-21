@@ -540,7 +540,7 @@ IdxFile IdxFile::openFromUrl(Url url)
   else
   {
     StringTree stree;
-    if (!stree.loadFromXml(content))
+    if (!stree.fromXmlString(content))
     {
       VisusInfo()<<"idx file is wrong";
       VisusAssert(false);

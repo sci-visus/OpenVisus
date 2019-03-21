@@ -40,7 +40,6 @@ For support : support@visus.net
 #define __VISUS_ABORTED_H__
 
 #include <Visus/Kernel.h>
-#include <Visus/Object.h>
 
 namespace Visus {
 

@@ -86,8 +86,8 @@ static bool isNodeVisible(const SharedPtr<KdArray>& kdarray,KdArrayNode* node)
 bool KdRenderArrayNode::processInput()
 {
   //assign the input anyway, even if wrong
-  this->kdarray  = readInput<KdArray>("data");
-  auto  palette  = readInput<Palette>("palette");
+  this->kdarray  = readValue<KdArray>("data");
+  auto  palette  = readValue<Palette>("palette");
 
   this->palette.reset();
   this->palette_texture.reset();
@@ -131,21 +131,21 @@ bool KdRenderArrayNode::processInput()
       if (node->bDisplay)
       {
         //need to write lock here
-        if (!node->texture)
+        if (!node->user_value)
         {
           auto texture=std::make_shared<GLTexture>(node->displaydata);
           texture->vs=vs;
           texture->vt=vt;
           {
             //ScopedWriteLock wlock(rlock); Don't NEED wlock since I'm the only one to use the texture variable
-            node->texture = texture;
+            node->user_value = texture;
           }
         }
       }
-      else if (node->texture)
+      else if (node->user_value)
       {
         //ScopedWriteLock wlock(rlock); Don't NEED wlock since I'm the only one to use the texture variable
-        node->texture.reset();
+        node->user_value.reset();
       }
 
       if (node->right) stack.push(node->right );
@@ -214,12 +214,12 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
   {
     SharedPtr<KdArrayNode> node=stack.top(); stack.pop();
 
-    if (node->bDisplay && node->texture)
+    if (node->bDisplay && node->user_value)
     {
       Box3d   box       = Position(node->box).getBox();
       Array displaydata = node->displaydata; 
 
-      shader->setTexture(gl,std::dynamic_pointer_cast<GLTexture>(node->texture));
+      shader->setTexture(gl,std::dynamic_pointer_cast<GLTexture>(node->user_value));
 
       //2d
       if (config.texture_dim==2)
@@ -240,7 +240,7 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
     }
     else
     {
-      node->texture.reset();
+      node->user_value.reset();
     }
 
     if (!node->isLeaf())

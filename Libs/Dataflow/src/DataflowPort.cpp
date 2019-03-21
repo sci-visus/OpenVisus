@@ -42,7 +42,7 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////////////////////////////
-void DataflowPort::writeValue(SharedPtr<Object> value,const SharedPtr<ReturnReceipt>& return_receipt)
+void DataflowPort::writeValue(SharedPtr<DataflowValue> value,const SharedPtr<ReturnReceipt>& return_receipt)
 {
   if (policy==DoNotStoreValue) 
     return;
@@ -50,37 +50,52 @@ void DataflowPort::writeValue(SharedPtr<Object> value,const SharedPtr<ReturnRece
   if (policy!=StoreMultipleVolatileValues) 
     values.clear();
 
-  DataflowPortStoredValue dataflow_port_stored_value;
+  DataflowPortValue dataflow_port_stored_value;
   dataflow_port_stored_value.value=value;
   dataflow_port_stored_value.write_id=++write_id;
   dataflow_port_stored_value.write_timestamp=Time::getTimeStamp();
+
   if (return_receipt)
   {
     dataflow_port_stored_value.return_receipt=return_receipt;
     return_receipt->needSignature(this);
   }
+  
   this->values.push_back(dataflow_port_stored_value);
 }
 
 //////////////////////////////////////////////////////////////////////////
-SharedPtr<Object> DataflowPort::readValue(Int64* write_timestamp)
+Int64 DataflowPort::readWriteTimestamp()
 {
-  if (this->values.empty()) return SharedPtr<Object>();
+  return values.empty()? 0 : values.front().write_timestamp;
+}
+
+//////////////////////////////////////////////////////////////////////////
+SharedPtr<DataflowValue> DataflowPort::readValue()
+{
+  if (this->values.empty()) 
+    return SharedPtr<DataflowValue>();
+  
   VisusAssert(policy!=DoNotStoreValue);
-  SharedPtr<Object> ret=values.front().value;
-  if (write_timestamp) (*write_timestamp)=values.front().write_timestamp;
+  
+  SharedPtr<DataflowValue> ret=values.front().value;
+
   this->read_id=values.front().write_id;
-  if (SharedPtr<ReturnReceipt> return_receipt=values.front().return_receipt)
+  
+  if (auto return_receipt=values.front().return_receipt)
   {
     return_receipt->addSignature(this);
     values.front().return_receipt.reset(); //sign just one time
   }
-  if (policy!=StoreOnlyOnePersistentValue) values.pop_front();
+
+  if (policy!=StoreOnlyOnePersistentValue) 
+    values.pop_front();
+  
   return ret;
 }
 
 //////////////////////////////////////////////////////////////////////////
-DataflowPortStoredValue* DataflowPort::previewValue()
+DataflowPortValue* DataflowPort::previewValue()
 {
   if (this->values.empty()) return nullptr;
   VisusAssert(policy!=DoNotStoreValue);

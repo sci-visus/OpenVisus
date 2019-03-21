@@ -49,7 +49,7 @@ For support : support@visus.net
 
 namespace Visus {
 
-VISUS_IMPLEMENT_SINGLETON_CLASS(DatasetPluginFactory)
+VISUS_IMPLEMENT_SINGLETON_CLASS(DatasetFactory)
 
  ////////////////////////////////////////////////////////////////////////////////////
 Dataset::Info Dataset::findDatasetInVisusConfig(String name)
@@ -98,7 +98,7 @@ Dataset::Info Dataset::findDatasetInVisusConfig(String name)
   if (ret.url.isFile())
   {
     String extension=Path(ret.url.getPath()).getExtension();
-    ret.TypeName=DatasetPluginFactory::getSingleton()->getRegisteredDatasetType(extension);
+    ret.TypeName=DatasetFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
 
     //probably not even an idx dataset
     if (ret.TypeName.empty()) 
@@ -129,7 +129,7 @@ Dataset::Info Dataset::findDatasetInVisusConfig(String name)
   //legacy dataset (example google maps)
   else if (StringUtils::endsWith(ret.url.getHostname(),".google.com"))
   {
-    ret.TypeName = "LegacyDataset";
+    ret.TypeName = "GoogleMapsDataset";
   }
   //cloud storage
   else
@@ -312,10 +312,10 @@ SharedPtr<Dataset> Dataset::loadDataset(String name)
   if (TypeName.empty())
     return SharedPtr<Dataset>();
 
-  SharedPtr<Dataset> ret(ObjectFactory::getSingleton()->createInstance<Dataset>(TypeName));
+  auto ret= DatasetFactory::getSingleton()->createInstance(TypeName);
   if (!ret) 
   {
-    VisusWarning()<<"Dataset::loadDataset("<<url.toString()<<") failed. Cannot ObjectFactory::getSingleton()->createInstance("<<TypeName<<")";
+    VisusWarning()<<"Dataset::loadDataset("<<url.toString()<<") failed. Cannot DatasetFactory::getSingleton()->createInstance("<<TypeName<<")";
     return SharedPtr<Dataset>();
   }
 

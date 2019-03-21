@@ -149,11 +149,6 @@ void GuiModule::attach()
   GLDoWithContext::allocSingleton();
   GLPhongShader::Shaders::allocSingleton();
 
-  VISUS_REGISTER_OBJECT_CLASS(Color);
-  VISUS_REGISTER_OBJECT_CLASS(GLMaterial);
-  VISUS_REGISTER_OBJECT_CLASS(GLLookAtCamera);
-  VISUS_REGISTER_OBJECT_CLASS(GLOrthoCamera);
-
   //show qt resources
 #if 0
   QDirIterator it(":", QDirIterator::Subdirectories);

@@ -53,7 +53,7 @@ For support : support@visus.net
 namespace Visus {
 
 ///////////////////////////////////////////////////////////////////
-class VISUS_GUI_API GLArrayBuffer : public Object
+class VISUS_GUI_API GLArrayBuffer 
 {
 public:
 

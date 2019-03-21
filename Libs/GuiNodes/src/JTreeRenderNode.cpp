@@ -87,7 +87,7 @@ Position JTreeRenderNode::getNodeBounds()
 ////////////////////////////////////////////////////////////
 bool JTreeRenderNode::processInput()
 {
-  this->graph=readInput<FGraph>("graph");
+  this->graph=readValue<FGraph>("graph");
   return this->graph? true:false;
 }
 

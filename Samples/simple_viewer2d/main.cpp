@@ -245,7 +245,7 @@ public:
   void setFieldName(String value)
   {
     auto port=this->query_node->getInputPort("fieldname");
-    port->writeValue(std::make_shared<StringObject>(value));
+    port->writeValue(value);
     dataflow->needProcessInput(query_node);
   }
 
@@ -253,7 +253,7 @@ public:
   void setTime(double value)
   {
     auto port=query_node->getInputPort("time");
-    port->writeValue(std::make_shared<DoubleObject>(value));
+    port->writeValue(value);
     dataflow->needProcessInput(query_node);
   }
 

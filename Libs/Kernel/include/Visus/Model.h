@@ -40,7 +40,6 @@ For support : support@visus.net
 #define VISUS_MODEL_H__
 
 #include <Visus/Kernel.h>
-#include <Visus/Object.h>
 #include <Visus/Time.h>
 #include <Visus/StringUtils.h>
 #include <Visus/Log.h>
@@ -63,9 +62,8 @@ public:
   }
 };
 
-
 //////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Model : public virtual Object
+class VISUS_KERNEL_API Model 
 {
 public:
 
@@ -92,6 +90,8 @@ public:
     VisusAssert(destroyed.empty());
   }
 
+  //getTypeName
+  virtual String getTypeName() const = 0;
 
   //isUpdating
   inline bool isUpdating() const {
@@ -124,6 +124,14 @@ public:
   void removeView(BaseView* value) {
     Utils::remove(this->views,value);
   }
+
+public:
+
+  //writeToObjectStream
+  virtual void writeToObjectStream(ObjectStream& ostream) = 0;
+
+  //readFromObjectStream
+  virtual void readFromObjectStream(ObjectStream& istream) = 0;
 
 protected:
 
@@ -159,6 +167,11 @@ public:
 
     //destructor
     virtual ~Action() {
+    }
+
+    //getTypeName
+    String getTypeName() const {
+      return TypeName;
     }
 
     //redo
@@ -411,23 +424,6 @@ public:
     log.rdbuf()->pubsetbuf(0,0);
     return true;
   }
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
-  {
-    VisusAssert(false);
-  }
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
-  {
-    VisusAssert(false);
-  }
-  
-  virtual void writeToSceneObjectStream(ObjectStream& ostream) override
-  {
-    VisusAssert(false);
-  }
   
 private:
 
@@ -460,12 +456,10 @@ private:
 
     if (log.is_open())
     {
-      StringTree stree(action->TypeName);
-      {
-        ObjectStream ostream(stree, 'w');
-        action->write(target(),ostream);
-        ostream.close(); 
-      }
+      StringTree stree(action->getTypeName());
+      ObjectStream ostream(stree, 'w');
+      action->write(target(),ostream);
+      ostream.close(); 
       log<<stree.toString()<<std::endl<<std::endl;
     }
   }

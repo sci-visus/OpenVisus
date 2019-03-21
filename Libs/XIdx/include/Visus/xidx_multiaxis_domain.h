@@ -43,16 +43,21 @@ public:
   VISUS_XIDX_CLASS(MultiAxisDomain)
 
   //down nodes
-  std::vector< SharedPtr<Axis> > axis;
+  std::vector<Axis*> axis;
   
   //constructor
-  MultiAxisDomain(String name_="") : Domain(name_, DomainType::MULTIAXIS_DOMAIN_TYPE) {
+  MultiAxisDomain(String name_="") 
+    : Domain(name_, DomainType::MULTIAXIS_DOMAIN_TYPE) {
   };
 
-  //void addAxis(Variable* VISUS_DISOWN(value)){ addAxis(SharedPtr<Axis>(value)); };
+  //destructor
+  virtual ~MultiAxisDomain() {
+    for (auto it : axis)
+      delete it;
+  }
 
   //addAxis
-  void addAxis(SharedPtr<Axis> value){
+  void addAxis(Axis* VISUS_DISOWN(value)){
     addEdge(this, value);
     this->axis.push_back(value);
   }
@@ -75,7 +80,6 @@ public:
   virtual void writeToObjectStream(ObjectStream& ostream) override
   {
     Domain::writeToObjectStream(ostream);
-
     for (auto child : this->axis)
       writeChild<Axis>(ostream, "Axis", child);
   }
@@ -84,7 +88,6 @@ public:
   virtual void readFromObjectStream(ObjectStream& istream) override
   {
     Domain::readFromObjectStream(istream);
-
     while (auto child = readChild<Axis>(istream,"Axis"))
       addAxis(child);
   }

@@ -541,21 +541,6 @@ class JTreeNode::MyJob : public NodeJob, public BuildJTreeNodeUtils<CppType>
 {
 public:
 
-  //_______________________________________________
-  class BranchesObject : public Object
-  {
-  public:
-    std::vector<Int32> v;
-
-    //constructor
-    BranchesObject(std::vector<Int32> v_ = std::vector<Int32>()) : v(v_) {
-    }
-
-    //destructor
-    virtual ~BranchesObject() {
-    }
-  };
-
   JTreeNode*                   node;
   Point3i                      idims;
   Point3d                      ddims;
@@ -566,7 +551,10 @@ public:
   double                       min_persistence;
   Array                        data;
 
-  SharedPtr<typename BuildJTreeNodeUtils<CppType>::MyGraph> full_graph;
+  typedef BuildJTreeNodeUtils<CppType> ParentClass;
+  typedef typename ParentClass::MyGraph FullGraph;
+
+  SharedPtr<FullGraph> full_graph;
 
   //constructor
   MyJob(JTreeNode* node_) : node(node_),data(node_->data) 
@@ -581,7 +569,7 @@ public:
 
     //trying to recycle the last graph
     //NOTE: doing the dynamic cast so that if they are not compatible (example: the CppType template changed) I'm automatically reset full_graph to zero
-    this->full_graph=std::dynamic_pointer_cast<typename BuildJTreeNodeUtils<CppType>::MyGraph>(node->last_full_graph);
+    this->full_graph=std::dynamic_pointer_cast<FullGraph>(node->last_full_graph);
   }
 
   //destructor
@@ -596,14 +584,14 @@ public:
     //recompute the full graph only if needed
     if (!this->full_graph)                                         
     {
-      this->full_graph.reset(new typename BuildJTreeNodeUtils<CppType>::MyGraph());
+      this->full_graph=std::make_shared<FullGraph>();
       this->full_graph->properties.setValue("minima_tree",cstring(this->minima_tree));
       if (!this->calculateJoinTree(*this->full_graph,data,idims,minima_tree,(CppType)threshold_min,(CppType)threshold_max,this->aborted))
         return;
     } 
 
     //simplify 
-    SharedPtr<FGraph> reduced_graph(new FGraph()); 
+    auto reduced_graph=std::make_shared<FGraph>(); 
     reduced_graph->properties.setValue("minima_tree",cstring(this->minima_tree));
 
     std::vector<Int32> branches;
@@ -626,15 +614,14 @@ public:
 
       VisusInfo()<<"Produced tree with "<<reduced_graph->verts.size()<<" verts and "<<reduced_graph->edges.size()<<" edges";
 
-      node->publish({
-        {"graph",reduced_graph},
-        {"data",std::make_shared<Array>(this->data)},
-        {"branches",std::make_shared<BranchesObject>(branches)},
-        {"full_graph",full_graph} //important to recycle the last graph
-      });
+      DataflowMessage msg;
+      msg.writeValue("graph", reduced_graph);
+      msg.writeValue("data",this->data);
+      msg.writeValue("branches",branches);
+      msg.writeValue("full_graph",full_graph); //important to recycle the last graph
+      node->publish(msg);
     }
   };
-
 
 };
 
@@ -704,17 +691,17 @@ bool JTreeNode::processInput()
   abortProcessing();
 
   bool bFull=getInputPort("data")->hasNewValue();
-  auto data=readInput<Array>("data");
+  auto data = readValue<Array>("data");
   this->data=data? *data : Array();
   return recompute(bFull);
 }
 
 ////////////////////////////////////////////////////////////
-void JTreeNode::messageHasBeenPublished(SharedPtr<DataflowMessage> msg)
+void JTreeNode::messageHasBeenPublished(DataflowMessage msg)
 {
-  if (SharedPtr<Object> full_graph=msg->readContent("full_graph"))
+  if (auto full_graph=msg.readValue<BaseGraph>("full_graph"))
   {
-    auto data=std::dynamic_pointer_cast<Array>(msg->readContent("data")); VisusAssert(data);
+    auto data=msg.readValue<Array>("data"); VisusAssert(data);
     this->last_full_graph=full_graph; //recycling the last full graph
   }
 }

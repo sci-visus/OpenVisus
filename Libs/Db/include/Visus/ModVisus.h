@@ -48,7 +48,7 @@ namespace Visus {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-class VISUS_DB_API ModVisus : public Object, public NetServerModule
+class VISUS_DB_API ModVisus : public NetServerModule
 {
 public:
 

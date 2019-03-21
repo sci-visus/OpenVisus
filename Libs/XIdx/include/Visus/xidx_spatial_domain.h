@@ -41,23 +41,47 @@ public:
   VISUS_XIDX_CLASS(SpatialDomain)
 
   //down nodes
-  SharedPtr<Topology> topology = std::make_shared<Topology>();
-  SharedPtr<Geometry> geometry = std::make_shared<Geometry>();
+  Topology* topology = nullptr;
+  Geometry* geometry = nullptr;
   
   //constructor
   SpatialDomain(String name_="") : Domain(name_, DomainType::SPATIAL_DOMAIN_TYPE) {
+    setTopology(new Topology());
+    setGeometry(new Geometry());
   };
 
+  //destructor
+  virtual ~SpatialDomain() {
+    setTopology(nullptr);
+    setGeometry(nullptr);
+  }
+
   //setTopology
-  void setTopology(SharedPtr<Topology> value) { 
-    addEdge(this, value);
+  void setTopology(Topology* VISUS_DISOWN(value)) 
+  {
+    if (this->topology) {
+      removeEdge(this, this->topology);
+      delete this->topology;
+    }
+
     this->topology = value;
+
+    if (this->topology)
+      addEdge(this, value);
   }
   
   //setGeometry
-  void setGeometry(SharedPtr<Geometry> value) {
-    addEdge(this, value);
+  void setGeometry(Geometry* VISUS_DISOWN(value)) 
+  {
+    if (this->geometry) {
+      removeEdge(this, this->geometry);
+      delete this->geometry;
+    }
+
     this->geometry = value;
+    
+    if (this->geometry) 
+      addEdge(this, value);
   }
 
   //getLinearizedIndexSpace
@@ -81,7 +105,6 @@ public:
   virtual void writeToObjectStream(ObjectStream& ostream) override
   {
     Domain::writeToObjectStream(ostream);
-
     writeChild<Topology>(ostream,"Topology",topology);
     writeChild<Geometry>(ostream, "Geometry", geometry);
   }

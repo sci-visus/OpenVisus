@@ -51,19 +51,19 @@ namespace Visus {
 class Node;
 
 ////////////////////////////////////////////////////////////
-class VISUS_DATAFLOW_API DataflowPortStoredValue
+class VISUS_DATAFLOW_API DataflowPortValue
 {
 public:
 
-  VISUS_CLASS(DataflowPortStoredValue)
+  VISUS_CLASS(DataflowPortValue)
 
-  SharedPtr<Object>          value;
+  SharedPtr<DataflowValue>   value;
   int                        write_id=0;
   Int64                      write_timestamp = 0;
   SharedPtr<ReturnReceipt>   return_receipt;
 
   //constructor
-  DataflowPortStoredValue() {
+  DataflowPortValue() {
   }
 };
 
@@ -139,13 +139,28 @@ public:
   {return !values.empty() && read_id<write_id;}
 
   //writeValue
-  void writeValue(SharedPtr<Object> value,const SharedPtr<ReturnReceipt>& return_receipt=SharedPtr<ReturnReceipt>());
+  void writeValue(SharedPtr<DataflowValue> value,const SharedPtr<ReturnReceipt>& return_receipt=SharedPtr<ReturnReceipt>());
+
+  //writeValue
+  template <class Value>
+  void writeValue(Value value, const SharedPtr<ReturnReceipt>& return_receipt = SharedPtr<ReturnReceipt>()) {
+    writeValue(DataflowValue::wrapValue<Value>(value), return_receipt);
+  }
+
+  //readWriteTimestamp
+  Int64 readWriteTimestamp();
 
   //readValue 
-  SharedPtr<Object> readValue(Int64* write_timestamp=nullptr);
+  SharedPtr<DataflowValue> readValue();
+
+  //readValue 
+  template <class Value>
+  SharedPtr<Value> readValue() {
+    return DataflowValue::unwrapValue<Value>(readValue());
+  }
 
   //previewValue 
-  DataflowPortStoredValue* previewValue();
+  DataflowPortValue* previewValue();
 
   //disconnect (both inputs and outputs)
   bool disconnect();
@@ -174,7 +189,7 @@ protected:
   Node*     node;  
   String    name;
 
-  std::deque<DataflowPortStoredValue> values;
+  std::deque<DataflowPortValue> values;
   int write_id;
   int read_id;
 };

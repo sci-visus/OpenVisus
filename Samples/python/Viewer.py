@@ -96,7 +96,7 @@ if __name__ == '__main__':
 		root=viewer.getRoot()
 		world_box=viewer.getWorldBoundingBox()
 		
-		VISUS_REGISTER_PYTHON_OBJECT_CLASS("MyPythonNode")
+		VISUS_REGISTER_NODE_CLASS("MyPythonNode")
 		pynode=MyPythonNode()
 		pynode.glSetRenderQueue(999)
 		pynode.setNodeBounds(Position(world_box))

@@ -95,36 +95,42 @@ public:
   VISUS_XIDX_CLASS(Topology)
 
   //node info
-  TopologyType                         type;
-  std::vector<int>                     dimensions;
+  TopologyType             type;
+  std::vector<int>          dimensions;
 
   //down nodes
-  std::vector< SharedPtr<Attribute> >  attributes;
-  std::vector< SharedPtr<DataItem> >   data_items;
+  std::vector<Attribute*>  attributes;
+  std::vector<DataItem*>   data_items;
 
   //construtor
   Topology(String name_="") : XIdxElement(name_){
   }
 
+  //constructor
   Topology(TopologyType type_, int n_dims, uint32_t *dims){
     for(int i=0; i< n_dims; i++)
       dimensions.push_back(dims[i]);
-
     type = type_;
   }
 
   //destructor
-  virtual ~Topology() {
+  virtual ~Topology() 
+  {
+    for (auto it : attributes)
+      delete it;
+
+    for (auto it : data_items)
+      delete it;
   }
 
   //addAttribute
-  void addAttribute(SharedPtr<Attribute> value) {
+  void addAttribute(Attribute* VISUS_DISOWN(value)) {
     addEdge(this, value);
     attributes.push_back(value);
   }
 
   //addDataItem
-  void addDataItem(SharedPtr<DataItem> value) {
+  void addDataItem(DataItem* VISUS_DISOWN(value)) {
     addEdge(this, value);
     data_items.push_back(value);
   }

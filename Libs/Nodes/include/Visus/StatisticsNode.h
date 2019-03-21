@@ -68,7 +68,7 @@ public:
 private:
 
   //messageHasBeenPublished
-  virtual void messageHasBeenPublished(SharedPtr<DataflowMessage> msg) override;
+  virtual void messageHasBeenPublished(DataflowMessage msg) override;
 
 }; //end class
 

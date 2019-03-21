@@ -118,10 +118,7 @@ public:
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override {
-  }
-
-  virtual void writeToSceneObjectStream(ObjectStream& ostream) override {
+  virtual void readFromObjectStream(ObjectStream& istream) override  {
   }
 
 

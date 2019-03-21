@@ -399,43 +399,6 @@ namespace Utils
   //saveTextDocument
   VISUS_KERNEL_API bool saveBinaryDocument(String url, SharedPtr<HeapMemory> src);
 
-  //saveObject
-  template <class ObjectClass>
-  inline bool saveObject(String filename, String class_name, ObjectClass& obj)
-  {
-    StringTree stree(class_name);
-    ObjectStream ostream(stree, 'w');
-    obj.writeToObjectStream(ostream);
-    return Utils::saveTextDocument(filename, stree.toString());
-  }
-
-  //loadObject
-  template <class ObjectClass>
-  inline bool loadObject(String filename, String class_name, ObjectClass& obj)
-  {
-    String content = Utils::loadTextDocument(filename);
-
-    if (content.empty())
-      return false;
-
-    StringTree stree;
-    if (!stree.loadFromXml(content))
-      return false;
-
-    if (StringUtils::toLower(stree.name) != StringUtils::toLower(class_name))
-      return false;
-    
-    ObjectStream istream(stree, 'r');
-    obj.readFromObjectStream(istream);
-    return true;
-  }
-
-  //convertStringTreeToDictObject
-  VISUS_KERNEL_API SharedPtr<DictObject> convertStringTreeToDictObject(const StringTree* src);
-
-  //convertDictObjectToStringTree
-  VISUS_KERNEL_API SharedPtr<StringTree> convertDictObjectToStringTree(DictObject* src);
-
   //LLtoUTM
   VISUS_KERNEL_API void LLtoUTM(const double Lat, const double Long, double &UTMNorthing, double &UTMEasting);
 

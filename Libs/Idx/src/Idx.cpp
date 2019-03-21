@@ -56,16 +56,8 @@ void IdxModule::attach()
 
   DbModule::attach();
 
-  //VISUS_REGISTER_OBJECT_CLASS(IdxFile);
-  VISUS_REGISTER_OBJECT_CLASS(IdxDataset);
-  VISUS_REGISTER_OBJECT_CLASS(IdxMultipleDataset);
-  
-  //VISUS_REGISTER_OBJECT_CLASS(IdxDiskAccess); ABSTRACT
-  //VISUS_REGISTER_OBJECT_CLASS(IdxDiskAccessV5); do I need this in ObjectFactory?
-  //VISUS_REGISTER_OBJECT_CLASS(IdxDiskAccessV6); do I need this in ObjectFactory?
-
-  DatasetPluginFactory::getSingleton()->registerDatasetType(".idx" ,"IdxDataset");
-  DatasetPluginFactory::getSingleton()->registerDatasetType(".midx","IdxMultipleDataset");
+  DatasetFactory::getSingleton()->registerDatasetType(".idx" ,"IdxDataset"        , []() {return std::make_shared<IdxDataset>(); });
+  DatasetFactory::getSingleton()->registerDatasetType(".midx","IdxMultipleDataset", []() {return std::make_shared<IdxMultipleDataset>(); });
 
   IdxDataset::tryRemoveLockAndCorruptedBinaryFiles();
 

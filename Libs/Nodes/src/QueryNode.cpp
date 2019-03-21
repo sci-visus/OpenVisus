@@ -79,7 +79,9 @@ public:
       if (auto filter=query->filter.value)
         data=filter->dropExtraComponentIfExists(data);
     
-	  this->node->publish(std::map<String, SharedPtr<Object> >({ { "data", std::make_shared<Array>(data) } }));
+      DataflowMessage msg;
+      msg.writeValue("data", data);
+	    this->node->publish(msg);
     };
   }
 
@@ -139,7 +141,7 @@ public:
     if (auto filter=query->filter.value)
       output=filter->dropExtraComponentIfExists(output);
     
-    auto msg=std::make_shared<DataflowMessage>();
+    DataflowMessage msg;
 
     SharedPtr<ReturnReceipt> return_receipt;
 
@@ -147,10 +149,10 @@ public:
     if (bWaitReturnReceipt)
     {
       return_receipt = std::make_shared<ReturnReceipt>();
-      msg->setReturnReceipt(return_receipt);
+      msg.setReturnReceipt(return_receipt);
     }
 
-    msg->writeContent("data",std::make_shared<Array>(output));
+    msg.writeValue("data",output);
 
     //only if the publish went well, I could wait
     if (node->publish(msg))
@@ -192,10 +194,10 @@ bool QueryNode::processInput()
 {
   abortProcessing();
 
-  //important to do before readInput
-  auto dataset          = readInput<Dataset>("dataset");
-  auto time             = readInput("time");
-  auto fieldname        = readInput("fieldname");
+  //important to do before readValue
+  auto dataset          = readValue<Dataset>("dataset");
+  auto time             = readValue<double>("time");
+  auto fieldname        = readValue<String>("fieldname");
 
   //I always need a dataset
   if (!dataset)
@@ -275,7 +277,9 @@ void QueryNode::publishDumbArray()
   auto buffer=std::make_shared<Array>();
   buffer->bounds=Position::invalid();
 
-  publish(std::map<String,SharedPtr<Object> >({{"data",buffer}}));
+  DataflowMessage msg;
+  msg.writeValue("data", buffer);
+  publish(msg);
 }
 
 //////////////////////////////////////////////////////////////////
@@ -290,7 +294,7 @@ DatasetNode* QueryNode::getDatasetNode()
 SharedPtr<Dataset> QueryNode::getDataset()
 {
   VisusAssert(VisusHasMessageLock());
-  return readInput<Dataset>("dataset");
+  return readValue<Dataset>("dataset");
 }
 
 //////////////////////////////////////////////////////////////////
@@ -298,7 +302,7 @@ Field QueryNode::getField()
 {
   Dataset* dataset=getDataset().get(); 
   if (!dataset) return Field();
-  String fieldname=cstring(readInput("fieldname"));
+  String fieldname=cstring(readValue<String>("fieldname"));
   return dataset->getFieldByName(fieldname);
 }
 
@@ -312,6 +316,18 @@ void QueryNode::exitFromDataflow()
 //////////////////////////////////////////////////////////////////
 void QueryNode::writeToObjectStream(ObjectStream& ostream) 
 {
+  if (ostream.isSceneMode())
+  {
+    // use same serialization for query which will include
+    // a transformation matrix in case of rotated selection
+    ostream.pushContext("query");
+    ostream.pushContext("bounds");
+    bounds.writeToObjectStream(ostream);
+    ostream.popContext("bounds");
+    ostream.popContext("query");
+    return;
+  }
+
   Node::writeToObjectStream(ostream);
   ostream.write("accessindex",cstring(accessindex));
   ostream.write("view_dependent",cstring(bViewDependentEnabled));
@@ -328,6 +344,14 @@ void QueryNode::writeToObjectStream(ObjectStream& ostream)
 //////////////////////////////////////////////////////////////////
 void QueryNode::readFromObjectStream(ObjectStream& istream) 
 {
+  if (istream.isSceneMode())
+  {
+    istream.pushContext("bounds");
+    bounds.readFromObjectStream(istream);
+    istream.popContext("bounds");
+    return;
+  }
+
   Node::readFromObjectStream(istream);
   this->accessindex=cint(istream.read("accessindex"));
   this->bViewDependentEnabled=cbool(istream.read("view_dependent"));
@@ -341,27 +365,7 @@ void QueryNode::readFromObjectStream(ObjectStream& istream)
   //position=fn(tree_position)
 }
 
-//////////////////////////////////////////////////////////////////
-void QueryNode::writeToSceneObjectStream(ObjectStream& ostream)
-{
-  ostream.pushContext("query");
 
-  // use same serialization for query which will include
-  // a transformation matrix in case of rotated selection
-  ostream.pushContext("bounds");
-  bounds.writeToObjectStream(ostream);
-  ostream.popContext("bounds");
-
-  ostream.popContext("query");
-}
-        
-//////////////////////////////////////////////////////////////////
-void QueryNode::readFromSceneObjectStream(ObjectStream& istream)
-{
-  istream.pushContext("bounds");
-  bounds.readFromObjectStream(istream);
-  istream.popContext("bounds");
-}
 
 } //namespace Visus
 

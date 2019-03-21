@@ -90,7 +90,7 @@ private:
 
     //must be xml data
     StringTree stree;
-    if (!stree.loadFromXml(content))
+    if (!stree.fromXmlString(content))
       ThrowException("Invalid xml data");
 
     ostream.getCurrentContext()->addChild(stree);

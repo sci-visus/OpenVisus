@@ -1082,7 +1082,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   if (StringUtils::endsWith(url,".config"))
   {
     StringTree stree;
-    if (!stree.loadFromXml(Utils::loadTextDocument(url)))
+    if (!stree.fromXmlString(Utils::loadTextDocument(url)))
     {
       VisusAssert(false);
       return false;
@@ -1112,7 +1112,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   if (StringUtils::endsWith(url,".xml"))
   {
     StringTree stree;
-    if (!stree.loadFromXml(Utils::loadTextDocument(url)))
+    if (!stree.fromXmlString(Utils::loadTextDocument(url)))
     {
       VisusAssert(false);
       return false;
@@ -1147,7 +1147,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   if (StringUtils::endsWith(url,".gidx"))
   {
     StringTree stree;
-    if (!stree.loadFromXml(Utils::loadTextDocument(url)))
+    if (!stree.fromXmlString(Utils::loadTextDocument(url)))
     {
       VisusAssert(false);
       return false;
@@ -1171,7 +1171,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   }
 
   //try to open a dataset
-  SharedPtr<Dataset> dataset(Dataset::loadDataset(url));
+  auto dataset=Dataset::loadDataset(url);
   if (!dataset)
   {
     QMessageBox::information(this, "Error", (StringUtils::format() << "open file(" << url << +") failed.").str().c_str());
@@ -1245,7 +1245,7 @@ bool Viewer::saveFile(String url,bool bSaveHistory,bool bShowDialogs)
   if (Path(url).getExtension().empty())
     url=url+".xml";
 
-  StringTree stree("Viewer");
+  StringTree stree(this->getTypeName());
   ObjectStream ostream(stree,'w');
   ostream.run_time_options.setValue("bSaveHistory",cstring(bSaveHistory));
 
@@ -1278,7 +1278,7 @@ bool Viewer::saveFile(String url,bool bSaveHistory,bool bShowDialogs)
   if (bShowDialogs) 
   {
     String errormsg=StringUtils::format()<<"File " + url+ " saved";
-    QMessageBox::information(this,"Error",errormsg.c_str());
+    QMessageBox::information(this,"Info",errormsg.c_str());
   }
 
   return true;
@@ -1319,7 +1319,7 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   // if local scene file load from disk
   if (StringUtils::endsWith(url,".scn"))
   {
-    if (!stree.loadFromXml(Utils::loadTextDocument(url)))
+    if (!stree.fromXmlString(Utils::loadTextDocument(url)))
     {
       VisusAssert(false);
       return false;
@@ -1335,7 +1335,7 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
       return false;
     }
     
-    if (!stree.loadFromXml(response.getTextBody()))
+    if (!stree.fromXmlString(response.getTextBody()))
     {
       VisusWarning() << "Unable to load scene from URL: " << url;
       return false;
@@ -1388,18 +1388,19 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
         if(cam.size()>0)
         {
           ObjectStream stream(*cam[0], 'r');
+          stream.setSceneMode(true);
           beginUpdate();
           if (!glcamera)
           { String cam_type = child->readString("type");
             if(cam_type=="lookAt")
             {
               glcamera=std::make_shared<GLLookAtCamera>();
-              glcamera->readFromSceneObjectStream(stream);
+              glcamera->readFromObjectStream(stream);
             }
             else if(cam_type=="ortho")
             {
               glcamera=std::make_shared<GLOrthoCamera>();
-              glcamera->readFromSceneObjectStream(stream);
+              glcamera->readFromObjectStream(stream);
             }
             addGLCameraNode(glcamera);
           }
@@ -1417,7 +1418,7 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
           dataset_url = url.substr(0,dir_idx) + "/" + dataset_url;
         }
         
-        SharedPtr<Dataset> dataset(Dataset::loadDataset(dataset_url));
+        auto dataset=Dataset::loadDataset(dataset_url);
         
         if (!dataset)
         {
@@ -1459,7 +1460,8 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
         if(query_node != NULL)
         {
           ObjectStream query_stream(*query, 'r');
-          query_node->readFromSceneObjectStream(query_stream);
+          query_stream.setSceneMode(true);
+          query_node->readFromObjectStream(query_stream);
           query_node->setName(child->readString("name"));
         }
         
@@ -1467,21 +1469,24 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
         if(field_node != NULL)
         {
           ObjectStream field_stream(*field, 'r');
-          field_node->readFromSceneObjectStream(field_stream);
+          field_stream.setSceneMode(true);
+          field_node->readFromObjectStream(field_stream);
         }
         
         auto pal=child->findChildWithName("palette");
         if(pal_node != NULL)
         {
           ObjectStream pal_stream(*pal, 'r');
-          pal_node->getPalette()->readFromSceneObjectStream(pal_stream);
+          pal_stream.setSceneMode(true);
+          pal_node->getPalette()->readFromObjectStream(pal_stream);
         }
       
         auto rend=child->findChildWithName("render");
         if(rend_node != NULL)
         {
           ObjectStream rend_stream(*rend, 'r');
-          rend_node->readFromSceneObjectStream(rend_stream);
+          rend_stream.setSceneMode(true);
+          rend_node->readFromObjectStream(rend_stream);
         }
         
         auto time=child->findChildWithName("timestep");
@@ -1537,6 +1542,7 @@ bool Viewer::saveScene(String url, bool bShowDialogs)
   
   StringTree stree("scene");
   ObjectStream ostream(stree,'w');
+  ostream.setSceneMode(true);
   ostream.writeInline("version", "0");
   
   try
@@ -1557,14 +1563,14 @@ bool Viewer::saveScene(String url, bool bShowDialogs)
     //then the root children
     for (auto* node : root->getChilds())
     {
-      String portableName = ObjectFactory::getSingleton()->getPortableTypeName(*node);
+      String TypeName = NodeFactory::getSingleton()->getTypeName(*node);
       
-      if (portableName == "GLCameraNode")
+      if (TypeName == "GLCameraNode")
       {
         GLCameraNode* cam_node = (GLCameraNode*)node;
-        cam_node->writeToSceneObjectStream(ostream);
+        cam_node->writeToObjectStream(ostream);
       }
-      else if(portableName == "DatasetNode")
+      else if(TypeName == "DatasetNode")
       {
         DatasetNode* data_node = (DatasetNode*)node;
       
@@ -1578,7 +1584,7 @@ bool Viewer::saveScene(String url, bool bShowDialogs)
         
         for(auto child : node->breadthFirstSearch())
         {
-          String childPortableName = ObjectFactory::getSingleton()->getPortableTypeName(*child);
+          String child_TypeName = NodeFactory::getSingleton()->getTypeName(*child);
 
           if (auto tmp = dynamic_cast<TimeNode*>(child))
             time_node = tmp;
@@ -1598,26 +1604,26 @@ bool Viewer::saveScene(String url, bool bShowDialogs)
           else if (auto tmp = dynamic_cast<OSPRayRenderNode*>(child))
             rend_node = tmp;
 
-          //ostream.write("node", portableName);
+          //ostream.write("node", TypeName);
         }
         
         ostream.writeInline("name", query_node->getName());
         ostream.writeInline("url", data_node->getDataset()->getUrl().toString());
         
         if(field_node != NULL)
-          field_node->writeToSceneObjectStream(ostream);
+          field_node->writeToObjectStream(ostream);
         
         if(query_node != NULL)
-          query_node->writeToSceneObjectStream(ostream);
+          query_node->writeToObjectStream(ostream);
         
         if(time_node != NULL)
-          time_node->writeToSceneObjectStream(ostream);
+          time_node->writeToObjectStream(ostream);
         
         if(pal_node != NULL)
-          pal_node->getPalette()->writeToSceneObjectStream(ostream);
+          pal_node->getPalette()->writeToObjectStream(ostream);
         
         if(rend_node != NULL)
-          rend_node->writeToSceneObjectStream(ostream);
+          rend_node->writeToObjectStream(ostream);
         
         ostream.popContext("dataset");
       }
@@ -1649,7 +1655,7 @@ bool Viewer::saveScene(String url, bool bShowDialogs)
   if (bShowDialogs)
   {
     String errormsg=StringUtils::format()<<"File " + url+ " saved";
-    QMessageBox::information(this,"Error",errormsg.c_str());
+    QMessageBox::information(this,"Info",errormsg.c_str());
   }
   
   return true;
@@ -1898,13 +1904,23 @@ public:
   }
 
   //setBefore
-  void setBefore(Node* node) {
-    this->before=StringUtils::getNonEmptyLines(XmlEncoder().encode(node));
+  void setBefore(Node* node) 
+  {
+    StringTree stree(node->getTypeName());
+    ObjectStream ostream(stree,'w');
+    node->writeToObjectStream(ostream);
+    ostream.close();
+    this->before=StringUtils::getNonEmptyLines(stree.toXmlString());
   }
 
   //setAfter
-  void setAfter(Node* node) {
-    this->after = StringUtils::getNonEmptyLines(XmlEncoder().encode(node));
+  void setAfter(Node* node) 
+  {
+    StringTree stree(node->getTypeName());
+    ObjectStream ostream(stree, 'w');
+    node->writeToObjectStream(ostream);
+    ostream.close();
+    this->after = StringUtils::getNonEmptyLines(stree.toXmlString());
     this->diff = Diff(this->before, this->after);
     this->before.clear();
     this->after .clear();
@@ -1933,7 +1949,7 @@ public:
     if (!diff.empty())
     {
       ostream.pushContext("diff");
-      ostream.writeText(this->diff.toString(),true);
+      ostream.writeText(this->diff.toString(),/*bCData*/true);
       ostream.popContext("diff");
     }
   }
@@ -1945,7 +1961,8 @@ public:
     this->node=istream.readInline("node");
     if (istream.pushContext("diff"))
     {
-      this->diff=Diff(StringUtils::getNonEmptyLines(istream.readText()));
+      auto lines = StringUtils::getNonEmptyLines(istream.readText());
+      this->diff=Diff(lines);
       istream.popContext("diff");
     }
   }
@@ -1975,7 +1992,10 @@ public:
 
     if (node) 
     {
-      this->encoded=SharedPtr<StringTree>(StringTreeEncoder().encode(node));VisusAssert(this->encoded);
+      this->encoded = std::make_shared<StringTree>(node->getTypeName());
+      ObjectStream ostream(*this->encoded, 'w');
+      node->writeToObjectStream(ostream);
+      ostream.close();
       VisusAssert(this->encoded->readString("uuid")==this->node);
     }
   }
@@ -1989,7 +2009,13 @@ public:
   {
     Node* parent=viewer->findNodeByUUID(this->parent);
     VisusAssert(encoded);
-    auto node=dynamic_cast<Node*>(StringTreeEncoder().decode(encoded.get()));
+
+    ObjectStream istream(*encoded, 'r');
+    auto TypeName = istream.readInline("TypeName");
+    auto node=NodeFactory::getSingleton()->createInstance(TypeName); VisusAssert(node);
+    node->readFromObjectStream(istream);
+    istream.close();
+
     VisusAssert(node && node->getUUID()==this->node);
     viewer->addNode(parent,node,index); //this will create a new AddNode with encode_node inside
   }
@@ -2088,8 +2114,12 @@ public:
     this->parent=node? node->getParent()->getUUID() : "";
     this->index =node? node->getIndexInParent() : -1;
 
-    if (node) {
-      this->encoded.reset(StringTreeEncoder().encode(node)); //needed for undo
+    if (node) 
+    {
+      this->encoded = std::make_shared<StringTree>(node->getTypeName());
+      ObjectStream ostream(*this->encoded, 'w');
+      node->writeToObjectStream(ostream);
+      ostream.close();
       VisusAssert(encoded);
     }
   }
@@ -2110,8 +2140,13 @@ public:
   virtual void undo(Viewer* viewer) override 
   {
     VisusAssert(encoded);
-    auto node=dynamic_cast<Node*>(StringTreeEncoder().decode(encoded.get()));
-    VisusAssert(node);
+
+    ObjectStream istream(*encoded, 'r');
+    auto TypeName = istream.readInline("TypeName");
+    auto node = NodeFactory::getSingleton()->createInstance(TypeName); VisusAssert(node);
+    node->readFromObjectStream(istream);
+    istream.close();
+
     Node* parent=viewer->findNodeByUUID(this->parent);
     VisusAssert((this->parent.empty() && !parent) || (!this->parent.empty() && parent));
     viewer->addNode(parent,node,this->index);
@@ -2699,7 +2734,7 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
 
   VisusAssert(parent && dataset_node);
 
-  SharedPtr<Dataset> dataset=dataset_node->getDataset();
+  auto dataset=dataset_node->getDataset();
   if (!dataset) 
   {
     VisusInfo()<<"Cannot find dataset";
@@ -2824,7 +2859,7 @@ KdQueryNode* Viewer::addKdQueryNode(Node* parent,DatasetNode* dataset_node,Strin
 
   VisusAssert(parent && dataset_node);
 
-  SharedPtr<Dataset> dataset=dataset_node->getDataset();
+  auto dataset=dataset_node->getDataset();
   if (!dataset)
   {
     VisusInfo()<<"Cannot find dataset";
@@ -3003,7 +3038,7 @@ CpuPaletteNode* Viewer::addCpuTransferFunctionNode(Node* parent,Node* data_provi
   {
     //guess number of functions
     int num_functions=1;
-    if (DataflowPortStoredValue* last_published=dataflow->guessLastPublished(data_provider->getOutputPort("data")))
+    if (DataflowPortValue* last_published=dataflow->guessLastPublished(data_provider->getOutputPort("data")))
     {
       if (auto last_data=std::dynamic_pointer_cast<Array>(last_published->value))
         num_functions=last_data->dtype.ncomponents();

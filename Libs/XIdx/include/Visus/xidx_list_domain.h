@@ -48,16 +48,22 @@ public:
   ListDomain(String name_ ="") : Domain(name_, DomainType::LIST_DOMAIN_TYPE) {
     ensureDataItem();
   }
+
+  //destructor
+  virtual ~ListDomain() {
+  }
   
   //getLinearizedIndexSpace
   virtual LinearizedIndexSpace getLinearizedIndexSpace() override{
     return values;
   };
 
+  //addDomainItems
   void addDomainItems(std::vector<double> vals){
     values.insert(values.end(), vals.begin(), vals.end());
   }
 
+  //addDomainItem
   void addDomainItem(double phy){
     values.push_back(phy);
   }

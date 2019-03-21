@@ -83,13 +83,13 @@ void GuiNodesModule::attach()
   KdRenderArrayNodeShader::Shaders::allocSingleton();
   RenderArrayNodeShader::Shaders::allocSingleton();
 
-  VISUS_REGISTER_OBJECT_CLASS(GLCameraNode);
-  VISUS_REGISTER_OBJECT_CLASS(IsoContourNode);
-  VISUS_REGISTER_OBJECT_CLASS(IsoContourRenderNode);
-  VISUS_REGISTER_OBJECT_CLASS(RenderArrayNode);
-  VISUS_REGISTER_OBJECT_CLASS(OSPRayRenderNode);
-  VISUS_REGISTER_OBJECT_CLASS(KdRenderArrayNode);
-  VISUS_REGISTER_OBJECT_CLASS(JTreeRenderNode);
+  VISUS_REGISTER_NODE_CLASS(GLCameraNode);
+  VISUS_REGISTER_NODE_CLASS(IsoContourNode);
+  VISUS_REGISTER_NODE_CLASS(IsoContourRenderNode);
+  VISUS_REGISTER_NODE_CLASS(RenderArrayNode);
+  VISUS_REGISTER_NODE_CLASS(OSPRayRenderNode);
+  VISUS_REGISTER_NODE_CLASS(KdRenderArrayNode);
+  VISUS_REGISTER_NODE_CLASS(JTreeRenderNode);
 
 #if VISUS_OSPRAY
   const char *argv[] = { "visus_app" };

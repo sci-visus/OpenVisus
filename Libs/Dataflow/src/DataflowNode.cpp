@@ -58,6 +58,13 @@ Node::~Node()
   for (auto it=outputs.begin();it!=outputs.end();it++) delete it->second;
 }
 
+////////////////////////////////////////////////////////////
+String Node::getTypeName() const
+{
+  return NodeFactory::getSingleton()->getTypeName(*this);
+}
+
+
 ////////////////////////////////////////////////////////////////////////////
 void Node::addChild(Node* child,int index)
 {
@@ -393,28 +400,25 @@ bool Node::needProcessInputs() const
 }
 
 ////////////////////////////////////////////////////////////
-SharedPtr<Object> Node::readInput(String iport,Int64* write_timestamp)
+SharedPtr<DataflowValue> Node::readValue(String iport)
 {
   VisusAssert(VisusHasMessageLock());
   DataflowPort* port=this->getInputPort(iport);
-  if (!port) return SharedPtr<Object>();
-  return port->readValue(write_timestamp);
+  if (!port) return SharedPtr<DataflowValue>();
+  return port->readValue();
 }
 
 ////////////////////////////////////////////////////////////
-SharedPtr<Object> Node::previewInput(String iport,Int64* write_timestamp)
+SharedPtr<DataflowValue> Node::previewInput(String iport)
 {
   VisusAssert(VisusHasMessageLock());
   DataflowPort* port=this->getInputPort(iport);
-  if (!port) return SharedPtr<Object>();
+  if (!port) return SharedPtr<DataflowValue>();
 
-  if (DataflowPortStoredValue* preview_value=port->previewValue())
-  {
-    if (write_timestamp) *write_timestamp=preview_value->write_timestamp;
+  if (auto preview_value=port->previewValue())
     return preview_value->value;
-  }
 
-  return SharedPtr<Object>();
+  return SharedPtr<DataflowValue>();
 }
 
 ////////////////////////////////////////////////////////////
@@ -423,33 +427,31 @@ void Node::writeToObjectStream(ObjectStream& ostream)
   if (!uuid.empty()) 
     ostream.writeInline("uuid",uuid);
 
-  //if (parent)
-  //  ostream.write("parent",parent->uuid);
-
   if (!name.empty())
     ostream.writeInline("name",name);
 
   if (hidden)
-    ostream.write("hidden",cstring(true));
+    ostream.writeInline("hidden",cstring(hidden));
 }
 
 ////////////////////////////////////////////////////////////
 void Node::readFromObjectStream(ObjectStream& istream)
 {
-  uuid=istream.readInline("uuid");
-
-  //see Dataflow::readFromObjectStream
-  //String parent_uuid=istream.read("parent");
-
-  name=istream.readInline("name");
-  hidden=cbool(istream.read("hidden"));
+  this->uuid=istream.readInline("uuid");
+  this->name=istream.readInline("name");
+  this->hidden=cbool(istream.readInline("hidden"));
 }
 
+//////////////////////////////////////////////////////////
+SharedPtr<ReturnReceipt> Node::createPassThroughtReceipt()
+{
+  return ReturnReceipt::createPassThroughtReceipt(this);
+}
 
 //////////////////////////////////////////////////////////
-bool Node::publish(SharedPtr<DataflowMessage> msg)
+bool Node::publish(DataflowMessage msg)
 {
-  msg->setSender(this);
+  msg.setSender(this);
 
   if (!dataflow)
     return false;
@@ -460,7 +462,6 @@ bool Node::publish(SharedPtr<DataflowMessage> msg)
 
   return dataflow->publish(msg);
 }
-
 
 } //namespace Visus 
 

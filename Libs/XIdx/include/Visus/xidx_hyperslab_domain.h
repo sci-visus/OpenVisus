@@ -53,11 +53,13 @@ public:
     data_items[0]->dtype = DTypes::FLOAT64;
   }
 
+  //constructor
   HyperSlabDomain(const HyperSlabDomain* d) : ListDomain(d->name){
     type = DomainType::HYPER_SLAB_DOMAIN_TYPE;
     data_items = d->data_items;
   }
 
+  //setDomain
   int setDomain(double start_, double step_, int count_){
     start=start_;
     step=step_;
@@ -65,7 +67,6 @@ public:
     values = std::vector<double>({ start_,step_,(double)count_ });
     return 0;
   }
-  
   
   //getLinearizedIndexSpace
   virtual LinearizedIndexSpace getLinearizedIndexSpace() override {

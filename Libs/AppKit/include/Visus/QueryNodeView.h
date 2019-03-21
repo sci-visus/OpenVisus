@@ -219,7 +219,7 @@ private:
     fileRow->addWidget(widgets.fileEdit);
     fileRow->addWidget(browseButton);
     
-    SharedPtr<Dataset> dataset=this->model->getDataset();
+    auto dataset=this->model->getDataset();
     auto dataset_node=this->model->getDatasetNode();
     auto time_node=dataset_node->findChild<TimeNode*>();
     

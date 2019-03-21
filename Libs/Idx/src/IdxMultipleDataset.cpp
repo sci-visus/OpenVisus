@@ -1179,7 +1179,7 @@ void IdxMultipleDataset::computeDefaultFields()
 bool IdxMultipleDataset::openFromUrl(Url URL)
 {
   StringTree BODY;
-  if (!BODY.loadFromXml(Utils::loadTextDocument(URL.toString())))
+  if (!BODY.fromXmlString(Utils::loadTextDocument(URL.toString())))
     return false;
 
   BODY.writeString("url", URL.toString());

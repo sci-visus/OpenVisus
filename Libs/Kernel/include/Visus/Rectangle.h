@@ -41,14 +41,13 @@ For support : support@visus.net
 
 #include <Visus/Kernel.h>
 #include <Visus/Point.h>
-#include <Visus/Object.h>
 
 #include <algorithm>
 
 namespace Visus {
 
 /////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Rectangle2i : public Object
+class VISUS_KERNEL_API Rectangle2i
 {
 public:
 
@@ -146,7 +145,7 @@ public:
   }
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  void writeToObjectStream(ObjectStream& ostream) 
   {
     ostream.writeInline("x", cstring(x));
     ostream.writeInline("y", cstring(y));
@@ -155,7 +154,7 @@ public:
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  void readFromObjectStream(ObjectStream& istream) 
   {
     x = cint(istream.readInline("x"));
     y = cint(istream.readInline("y"));
@@ -164,7 +163,7 @@ public:
   }
 
   //convert to string
-  String toString() const override
+  String toString() const 
   {
     std::ostringstream out;
     out << this->x << " " << this->y << " " << this->width << " " << this->height;
@@ -174,7 +173,7 @@ public:
 }; //end class Reclangle2i
 
 /////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Rectangle2d : public Object
+class VISUS_KERNEL_API Rectangle2d
 {
 public:
 
@@ -265,7 +264,7 @@ public:
   }
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  void writeToObjectStream(ObjectStream& ostream) 
   {
     ostream.writeInline("x", cstring(x));
     ostream.writeInline("y", cstring(y));
@@ -274,7 +273,7 @@ public:
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  void readFromObjectStream(ObjectStream& istream) 
   {
     x = cdouble(istream.readInline("x"));
     y = cdouble(istream.readInline("y"));
@@ -283,7 +282,7 @@ public:
   }
 
   //convert to string
-  String toString() const override
+  String toString() const 
   {
     std::ostringstream out;
     out << this->x << " " << this->y << " " << this->width << " " << this->height;

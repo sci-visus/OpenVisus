@@ -50,7 +50,7 @@ class Dataset;
 class Access;
 
 ////////////////////////////////////////////////////////
-class VISUS_DB_API DatasetFilter : public Object
+class VISUS_DB_API DatasetFilter
 {
 public:
 

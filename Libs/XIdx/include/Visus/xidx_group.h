@@ -129,27 +129,30 @@ public:
   VISUS_XIDX_CLASS(Group)
 
   // node info
-  int                                 domain_index = 0;
-  String                              file_pattern;
-  GroupType                           group_type;
-  VariabilityType                     variability_type;
+  int                      domain_index = 0;
+  String                   file_pattern;
+  GroupType                group_type;
+  VariabilityType          variability_type;
 
   //down nodes
-  SharedPtr<Domain>                   domain;
-  std::vector<SharedPtr<Variable> >   variables;
-  std::vector<SharedPtr<DataSource> > data_sources;
-  std::vector<SharedPtr<Attribute> >  attributes;
+  Domain*                  domain=nullptr;
+  std::vector<Variable*>   variables;
+  std::vector<DataSource*> data_sources;
+  std::vector<Attribute*>  attributes;
+  std::vector<Group*>      groups;
 
   //constructor
   Group(String name_=""){
     name= name_;
   }
 
+  //constructor
   Group(String name_, GroupType type){
     name=name_;
     group_type=type;
   }
 
+  //constructor
   Group(String name_, GroupType type, String file_pattern_){
     name=name_;
     group_type=type;
@@ -157,119 +160,113 @@ public:
     variability_type=VariabilityType::VARIABLE_VARIABILITY_TYPE;
   }
 
+  //constructor
   Group(String name_, GroupType type, VariabilityType var_type){
     name=name_;
     group_type=type;
     variability_type=var_type;
   }
 
-  Group(String name_, GroupType type, SharedPtr<Domain> domain_){
+  //constructor
+  Group(String name_, GroupType type, Domain* VISUS_DISOWN(domain)){
     name=name_;
     group_type=type;
-    domain=domain_;
+    setDomain(domain);
   }
 
-//  Group(String name_, GroupType type, Domain* VISUS_DISOWN(domain_)){
-//    Group(name_, type, SharedPtr<Domain>(domain_));
-//  }
-  
+  //destructor
+  virtual ~Group() 
+  {
+    setDomain(nullptr);
+
+    for (auto it : variables)
+      delete it;
+    
+    for (auto it : data_sources)
+      delete it;
+
+    for (auto it : attributes)
+      delete it;
+
+    for (auto it : groups)
+      delete it;
+  }
+
   //setDomain
-  inline void setDomain(SharedPtr<Domain> value) { 
-    addEdge(this, value);
-    this->domain = value; 
+  void setDomain(Domain* VISUS_DISOWN(value)) { 
+
+    if (this->domain) {
+      removeEdge(this, this->domain);
+      delete this->domain;
+    }
+
+    this->domain = value;
+
+    if (this->domain)
+      addEdge(this, value);
   }
 
-  //void setDomain(Domain* VISUS_DISOWN(value)){ setDomain(SharedPtr<Domain>(value)); };
-
-  SharedPtr<Domain> getDomain(){
+  //getDomain
+  Domain* getDomain(){
     return domain;
   }
 
   //addVariable
-  void addVariable(SharedPtr<Variable> value) {
+  void addVariable(Variable* VISUS_DISOWN(value)) {
     addEdge(this, value);
     variables.push_back(value);
   }
 
-  //void addVariable(Variable* VISUS_DISOWN(value)){ addVariable(SharedPtr<Variable>(value)); };
-
-  SharedPtr<Group> getGroupPtr(int index){
-    if(variability_type==VariabilityType::STATIC_VARIABILITY_TYPE)
-      return groups[0];
-    else
-      return groups[index];
+  //getGroup
+  Group* getGroup(int index){
+    if (variability_type == VariabilityType::STATIC_VARIABILITY_TYPE)
+      index = 0;
+    return groups[index];
   }
 
-  Group* getGroup(int index){ return getGroupPtr(index).get(); }
+  //addVariable
+  Variable* addVariable(const char* name, DataItem* VISUS_DISOWN(data_item), Domain* VISUS_DISOWN(domain)){
 
-  SharedPtr<Variable> addVariable(const char* name, SharedPtr<DataItem> item, SharedPtr<Domain> domain,
-                                        const std::vector<SharedPtr<Attribute>>& atts=std::vector<SharedPtr<Attribute>>()){
-
-    std::shared_ptr<Variable> var(new Variable(name));
-    addEdge(this, var);
     setDomain(domain);
-    var->addDataItem(item);
 
-    var->addAttribute(atts);
-
+    Variable* var=new Variable(name);
     addVariable(var);
-
-    return variables.back();
+    var->addDataItem(data_item);
+    return var;
   }
 
-  SharedPtr<Variable> addVariable(const char *name, DType dtype,
-                                        const CenterType center = CenterType::CELL_CENTER,
-                                        const Endianess endian = Endianess::LITTLE_ENDIANESS,
-                                        const std::vector <SharedPtr<Attribute>> &atts = std::vector
-                                                <SharedPtr<Attribute >> (),
-                                        const std::vector <int> dimensions = std::vector<int>()){
-    SharedPtr<Variable> var(new Variable(name));
-    addEdge(this, var);
-
-    var->name = name;
-    //printf("comp %s ntype %s prec %d\n", dtype.substr(0,comp_idx).c_str(), num_idx, precision);
-
-    std::shared_ptr<DataItem> di(new DataItem(dtype));
-    addEdge(this, di);
-
+  //addVariable
+  Variable* addVariable(const char *name, DType dtype,
+    const CenterType center = CenterType::CELL_CENTER,
+    const Endianess endian = Endianess::LITTLE_ENDIANESS,
+    const std::vector<int> dimensions = std::vector<int>())
+  {
+    Variable* var=new Variable(name);
     var->center_type = center;
-
-    di->endian_type = endian;
-    if(dimensions.size()>0){
-      di->dimensions = std::static_pointer_cast<SpatialDomain>(domain)->topology->dimensions; // Use same dimensions of topology
-    }
-    else
-      di->dimensions = dimensions;
-
-    di->format_type = FormatType::IDX_FORMAT;
-
-    var->addDataItem(di);
-
-    var->addAttribute(atts);
-
     addVariable(var);
 
-    return variables.back();
+    DataItem* di=new DataItem(dtype);
+    di->endian_type = endian;
+    di->dimensions = dimensions.size()>0? dynamic_cast<SpatialDomain*>(domain)->topology->dimensions : dimensions; // Use same dimensions of topology
+    di->format_type = FormatType::IDX_FORMAT;
+    var->addDataItem(di);
+    return var;
   }
 
   //addAttribute
-  void addAttribute(SharedPtr<Attribute> value) {
+  void addAttribute(Attribute* VISUS_DISOWN(value)) {
     addEdge(this, value);
     attributes.push_back(value);
   }
 
-  //void addAttribute(Attribute* VISUS_DISOWN(value)){ addAttribute(SharedPtr<Attribute>(value)); };
-  
   //addDataSource
-  void addDataSource(SharedPtr<DataSource> value) {
+  void addDataSource(DataSource* VISUS_DISOWN(value)) {
     addEdge(this, value);
     data_sources.push_back(value);
   }
 
-  //void addDataSource(DataSource* VISUS_DISOWN(value)){ addDataSource(SharedPtr<DataSource>(value)); };
-
   //addGroup
-  void addGroup(SharedPtr<Group> value)
+  void addGroup(Group* VISUS_DISOWN(value))
   {
     if(value->variability_type == VariabilityType::VARIABLE_VARIABILITY_TYPE)
       value->domain_index = (int)groups.size();
@@ -278,8 +275,6 @@ public:
     groups.push_back(value);
   }
 
-  //void addGroup(Group* VISUS_DISOWN(value)){ addGroup(SharedPtr<Group>(value)); };
-  
   //getXPathPrefix
   virtual String getXPathPrefix() override {
     return StringUtils::format() << (getParent()? getParent()->getXPathPrefix() : "//Xidx") << "/Group" << "[@Name=\"" + name + "\"]";
@@ -320,7 +315,7 @@ public:
       }
       else
       {
-        String filename = FormatString(file_pattern + "/meta.xidx", child->domain_index);
+        String filename = XIdxFormatString(file_pattern + "/meta.xidx", child->domain_index);
 
         ostream.pushContext("xi:include");
         ostream.writeInline("href", filename.c_str());
@@ -328,7 +323,7 @@ public:
         ostream.popContext("xi:include");
 
         {
-          StringTree stree(child->getClassName());
+          StringTree stree(child->getTypeName());
           ObjectStream ostream(stree, 'w');
           child->writeToObjectStream(ostream);
           auto content = stree.toString();
@@ -375,29 +370,20 @@ public:
       auto filename = istream.readInline("href");
 
       StringTree stree;
-      if (!stree.loadFromXml(Utils::loadTextDocument(filename)))
+      if (!stree.fromXmlString(Utils::loadTextDocument(filename)))
         ThrowException("internal error");
 
-      auto child = std::make_shared<Group>();
+      auto child = new Group();
       {
         ObjectStream istream(stree, 'r');
         child->readFromObjectStream(istream);
       }
       istream.popContext("xi:include");
-
       addGroup(child);
     }
 
   };
 
-//private:
-  // TODO move this utility function somewhere else
-  //FormatString
-  static String FormatString(const String fmt_str, ...);
-
-private:
-  // TODO use map<domain_index, group>
-  std::vector<SharedPtr<Group> >      groups;
 
 };
   

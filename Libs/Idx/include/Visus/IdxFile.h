@@ -49,7 +49,7 @@ namespace Visus {
 
 
 //////////////////////////////////////////////////////////////////////
-class VISUS_IDX_API IdxFile : public Object
+class VISUS_IDX_API IdxFile 
 {
 public:
 
@@ -129,13 +129,13 @@ public:
   void validate(Url url);
 
   //toString
-  virtual String toString() const override;
+  String toString() const ;
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override;
+  void writeToObjectStream(ObjectStream& ostream) ;
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override; 
+  void readFromObjectStream(ObjectStream& istream) ; 
 
 private:
 

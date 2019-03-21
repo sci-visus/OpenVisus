@@ -43,7 +43,6 @@ For support : support@visus.net
 #include <Visus/Quaternion.h>
 #include <Visus/Plane.h>
 #include <Visus/LinearMap.h>
-#include <Visus/Object.h>
 
 #include <cstring>
 #include <iomanip>
@@ -289,7 +288,7 @@ inline Point3d operator*(Point3d p,const Matrix3& T){
 
 
 //////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Matrix4 : public Object
+class VISUS_KERNEL_API Matrix4 
 {
 public:
 
@@ -497,7 +496,7 @@ public:
   #endif
 
   //toString
-  inline String toString() const override
+  String toString() const 
   {
     std::ostringstream out;
     for (int i=0;i<16;i++)  {if (i) out<<" ";out<<mat[i];}
@@ -635,13 +634,13 @@ public:
   {Matrix4 ret;for (int I=0;I<16;I++) ret.mat[I]=alpha*T1.mat[I]+beta*T2.mat[I];return ret;}
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  void writeToObjectStream(ObjectStream& ostream) 
   {
     ostream.write("matrix",this->toString());
   }
 
   //writeToObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  void readFromObjectStream(ObjectStream& istream) 
   {
     Matrix4 T(istream.read("matrix"));
     (*this)=T;

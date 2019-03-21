@@ -42,6 +42,9 @@ For support : support@visus.net
 
 namespace Visus {
 
+
+VISUS_IMPLEMENT_SINGLETON_CLASS(NodeFactory)
+
 bool DataflowModule::bAttached = false;
 
 ///////////////////////////////////////////////////////////////////////////
@@ -55,10 +58,9 @@ void DataflowModule::attach()
   bAttached = true;
   KernelModule::attach();
 
-  //VISUS_REGISTER_OBJECT_CLASS(DataflowPort);
-  //VISUS_REGISTER_OBJECT_CLASS(DataflowMessage);
-  VISUS_REGISTER_OBJECT_CLASS(Node);
-  VISUS_REGISTER_OBJECT_CLASS(Dataflow);
+  NodeFactory::getSingleton()->allocSingleton();
+
+  VISUS_REGISTER_NODE_CLASS(Node);
 
   VisusInfo() << "Attached DataflowModule";
 }
@@ -71,6 +73,8 @@ void DataflowModule::detach()
     return;
 
   VisusInfo() << "Detaching DataflowModule...";
+
+  NodeFactory::getSingleton()->releaseSingleton();
   
   bAttached = false;
 

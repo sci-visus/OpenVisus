@@ -323,7 +323,7 @@ public:
     {
       //xml file with url and xml for access creation
       StringTree stree;
-      if (!stree.loadFromXml(Utils::loadTextDocument(args[1])))
+      if (!stree.fromXmlString(Utils::loadTextDocument(args[1])))
       {
         VisusAssert(false);
         return Array();
@@ -596,8 +596,15 @@ public:
 
     VisusInfo() << "done fixFieldsRange";
 
+    StringTree stree("fields");
+    ObjectStream ostream(stree,'w');
     for (auto field : vf->getFields())
-      VisusInfo() << field.toString();
+    {
+      ostream.pushContext("field");
+      field.writeToObjectStream(ostream);
+      ostream.popContext("field");
+    }
+    VisusInfo() << stree.toString();
 
     return data;
   }

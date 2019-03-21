@@ -177,6 +177,11 @@ public:
   //destructor
   virtual ~Viewer();
 
+  //getTypeName
+  virtual String getTypeName() const {
+    return "Viewer";
+  }
+
   //this is needed for swig
   void* c_ptr() {
     return this;
@@ -820,7 +825,7 @@ private:
   void internalFlushMessages();
 
   //sendNetMessage
-  void sendNetMessage(SharedPtr<NetConnection> netsnd,Object* obj);
+  void sendNetMessage(SharedPtr<NetConnection> netsnd,void* obj);
 
   //createActions
   void createActions();

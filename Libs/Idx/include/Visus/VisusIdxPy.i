@@ -8,16 +8,17 @@
 using namespace Visus;
 %}
 
-
 %include <Visus/VisusPy.i>
 
-%shared_ptr(Visus::IdxFile)
+//VISUS_DISOWN
+
+//VISUS_NEWOBJECT
+
 %shared_ptr(Visus::IdxDataset)
 %shared_ptr(Visus::IdxMultipleDataset)
 
 %import <Visus/VisusKernelPy.i>
 %import <Visus/VisusDbPy.i>
-
 
 %include <Visus/Idx.h>
 %include <Visus/IdxFile.h>

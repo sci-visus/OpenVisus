@@ -92,6 +92,11 @@ public:
   virtual ~FreeTransform() {
   }
 
+  //getTypeName
+  virtual String getTypeName() const override{
+    return "FreeTransform";
+  }
+
   //getObject
   const Position& getObject() const {
     return this->obj;
@@ -141,6 +146,16 @@ public:
 
   //glRender
   virtual void glRender(GLCanvas& gl) override;
+
+  //writeToObjectStream (to implement if needed!)
+  virtual void writeToObjectStream(ObjectStream& ostream) override {
+    VisusAssert(false);
+  }
+
+  //readFromObjectStream (to implement if needed!)
+  virtual void readFromObjectStream(ObjectStream& istream) override {
+    VisusAssert(false);
+  }
 
 private:
 

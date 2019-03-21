@@ -297,6 +297,11 @@ public:
   virtual ~TransferFunction() {
   }
 
+  //getTypeName
+  virtual String getTypeName() const  override {
+    return "TransferFunction";
+  }
+
   //size
   int size() const {
     return functions.empty() ? 0 : functions[0]->size();
@@ -339,18 +344,14 @@ public:
   //exportTransferFunction
   bool exportTransferFunction(String filename);
 
+public:
+
   //writeToObjectStream
   virtual void writeToObjectStream(ObjectStream& ostream) override;
 
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override;
   
-  //writeToSceneObjectStream
-  virtual void writeToSceneObjectStream(ObjectStream& ostream) override;
-  
-  //readFromObjectStream
-  virtual void readFromSceneObjectStream(ObjectStream& istream) override;
-
 };
 
 typedef TransferFunction Palette;

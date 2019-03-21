@@ -36,12 +36,10 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Object.h>
+#include <Visus/ObjectStream.h>
 #include <Visus/StringTree.h>
 
 namespace Visus {
-
-VISUS_IMPLEMENT_SINGLETON_CLASS(ObjectFactory)
 
 /////////////////////////////////////////////////////////////
 void ObjectStream::writeText(const String& value,bool bCData)
@@ -53,18 +51,10 @@ String ObjectStream::readText()
 
 
 /////////////////////////////////////////////////////////////
-String Object::toXmlString() const
-{
-  StringTree stree(ObjectFactory::getSingleton()->getPortableTypeName(*this));
-  ObjectStream ostream(stree,'w');
-  const_cast<Object*>(this)->writeToObjectStream(ostream);
-  return stree.toString();
-}
-
-/////////////////////////////////////////////////////////////
 void ObjectStream::open(StringTree& root,int mode)
 {
   VisusAssert(mode=='w' || mode=='r');
+  VisusReleaseAssert(!root.name.empty());
   this->mode=mode;
   stack=std::stack<StackItem>();
   stack.push(StackItem(&root));
@@ -137,14 +127,6 @@ bool ObjectStream::popContext(String context_name)
 }
 
 /////////////////////////////////////////////////////////////
-void ObjectStream::writeTypeName(const Object& obj)
-{writeInline("TypeName",ObjectFactory::getSingleton()->getPortableTypeName(obj));}
-
-/////////////////////////////////////////////////////////////
-String ObjectStream::readTypeName()
-{return readInline("TypeName");}
-
-/////////////////////////////////////////////////////////////
 void ObjectStream::write(String name,String value)
 {
   pushContext(name);
@@ -155,144 +137,14 @@ void ObjectStream::write(String name,String value)
 /////////////////////////////////////////////////////////////
 String ObjectStream::read(String name,String default_value)
 {
-  String ret=default_value;
-  if (pushContext(name))
-  {
-    ret=readInline("value",default_value);
-    popContext(name);
-  }
+  if (!pushContext(name))
+    return default_value;
+
+  String ret=readInline("value",default_value);
+  popContext(name);
   return ret;
 }
 
-
-/////////////////////////////////////////////////////////////
-void ObjectStream::writeObject(String name,Object* obj)
-{
-  VisusAssert(mode=='w');
-  if (!obj) return ;
-  pushContext(name);
-  writeTypeName(*obj);
-  obj->writeToObjectStream(*this);
-  popContext(name);
-}
-
-/////////////////////////////////////////////////////////////
-Object* ObjectStream::readObject(String name)
-{
-  VisusAssert(mode=='r');
-  if (!pushContext(name)) return nullptr;
-
-  String TypeName=readTypeName();VisusAssert(!TypeName.empty());
-  Object* obj=ObjectFactory::getSingleton()->createInstance(TypeName); 
-  obj->readFromObjectStream(*this);
-  popContext(name);
-  return obj;
-}
-
-void BoolObject::writeToObjectStream(ObjectStream& ostream){
-  ostream.writeInline("value", cstring(value));
-}
-
-void BoolObject::readFromObjectStream(ObjectStream& istream){
-  setValue(cbool(istream.readInline("value")));
-}
-
-////////////////////////////////////////////////////////////
-void IntObject::writeToObjectStream(ObjectStream& ostream){
-  ostream.writeInline("value", cstring(value));
-}
-
-////////////////////////////////////////////////////////////
-void IntObject::readFromObjectStream(ObjectStream& istream){
-  setValue(cint(istream.readInline("value")));
-}
-
-////////////////////////////////////////////////////////////
-void Int64Object::writeToObjectStream(ObjectStream& ostream) {
-  ostream.writeInline("value", cstring(value));
-}
-
-////////////////////////////////////////////////////////////
-void Int64Object::readFromObjectStream(ObjectStream& istream) {
-  setValue(cint(istream.readInline("value")));
-}
-
-void DoubleObject::writeToObjectStream(ObjectStream& ostream){
-  ostream.writeInline("value", cstring(getValue()));
-}
-
-void DoubleObject::readFromObjectStream(ObjectStream& istream){
-  setValue(cdouble(istream.readInline("value")));
-}
-
-void StringObject::writeToObjectStream(ObjectStream& ostream){
-  ostream.writeInline("value", getValue());
-}
-
-void StringObject::readFromObjectStream(ObjectStream& istream)
-{
-  setValue(istream.readInline("value"));
-}
-
-////////////////////////////////////////////////////////////
-void DictObject::writeToObjectStream(ObjectStream& ostream)
-{
-  VisusAssert(false);
-  for (const_iterator it=map.begin();it!=map.end();it++)
-  {
-    String            key  =it->first;  
-    SharedPtr<Object> value=it->second;
-
-    ostream.pushContext("item");
-    {
-      ostream.write("key",key);
-      ostream.writeObject("value",value.get());
-    }
-    ostream.popContext("item");
-  }
-}
-
-
-////////////////////////////////////////////////////////////
-void DictObject::readFromObjectStream(ObjectStream& istream)
-{
-  VisusAssert(false);//problem of shared obj
-  this->map.clear();
-  for (;istream.pushContext("item");istream.popContext("item"))
-  {
-    String key=istream.read("key");
-    SharedPtr<Object> value(istream.readObject("value"));
-    this->setattr(key,value);
-  }
-}
-
-
-/////////////////////////////////////////////////////////////////////////////////////
-void ListObject::writeToObjectStream(ObjectStream& ostream)
-{
-  //NOTE: writing a SharedPtr<Object> won't give you back a SharedPtr
-  //commented the VisusAssert just because I need it for scripting debug
-  //VisusAssert(false);
-  for (int I=0;I<(int)this->vector.size();I++)
-  {
-    ostream.pushContext("item");
-    ostream.writeObject("value",vector[I].get());
-    ostream.popContext("item");
-  }
-}
-
-/////////////////////////////////////////////////////////////////////////////////////
-void ListObject::readFromObjectStream(ObjectStream& istream)
-{
-  VisusAssert(false);//problem of shared obj
-  this->vector.clear();
-
-  for (;istream.pushContext("item");istream.popContext("item"))
-  {
-    SharedPtr<Object> value(istream.readObject("value"));
-    this->vector.push_back(value);
-  }
-}
 
 } //namespace Visus
 

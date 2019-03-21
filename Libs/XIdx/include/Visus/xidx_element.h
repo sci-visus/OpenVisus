@@ -30,21 +30,22 @@
 #ifndef XIDX_PARSABLE_INTERFACE_H_
 #define XIDX_PARSABLE_INTERFACE_H_
 
-
-
 namespace Visus{
 
 class VISUS_XIDX_API Domain;
 class VISUS_XIDX_API DataSource;
 
+VISUS_XIDX_API String XIdxFormatString(const String fmt_str, ...);
+
 /////////////////////////////////////////////////////////////////////
-class VISUS_XIDX_API XIdxElement : public Object
+class VISUS_XIDX_API XIdxElement 
 {
 public:
 
   //VISUS_XIDX_CLASS(XIdxElement)
   VISUS_CLASS(XIdxElement)
-  virtual String getClassName() {
+
+  virtual String getTypeName() {
     return "XIdxElement";
   }
 
@@ -54,34 +55,44 @@ public:
   XIdxElement(String name_ = "") : name(name_) {
   }
 
+  //destructor
+  virtual ~XIdxElement() {
+  }
+
   //getParent
   virtual XIdxElement* getParent() const {
     return parent;
   }
 
   //hasChild
-  bool hasChild(SharedPtr<XIdxElement> child) const {
+  bool hasChild(XIdxElement* child) const {
     return std::find(childs.begin(), childs.end(), child) == childs.end();
   }
 
   //addEdge
-  static void addEdge(XIdxElement* parent, SharedPtr<XIdxElement> child) {
-
+  static void addEdge(XIdxElement* parent, XIdxElement* child) {
     VisusAssert(parent && child && !parent->hasChild(child) && child->parent == nullptr);
     parent->childs.push_back(child);
     child->parent = parent;
   }
 
+  //removeEdge
+  static void removeEdge(XIdxElement* parent, XIdxElement* child) {
+    VisusAssert(parent && child && parent->hasChild(child) && child->parent == parent);
+    Utils::remove(parent->childs, child);
+    child->parent = nullptr;
+  }
+
   //getXPathPrefix
   virtual String getXPathPrefix() {
-    return StringUtils::format()<<(getParent() ? getParent()->getXPathPrefix() : "/") << "/" << getClassName();
+    return StringUtils::format()<<(getParent() ? getParent()->getXPathPrefix() : "/") << "/" << getTypeName();
   }
 
   //findChildWithName
-  SharedPtr<XIdxElement> findChildWithName(String name)
+  XIdxElement* findChildWithName(String name)
   {
     for (auto child : this->childs) {
-      if (child->getClassName() == name)
+      if (child->getTypeName() == name)
         return child;
     }
     return nullptr;
@@ -102,7 +113,7 @@ public:
 
   //writeChilds
   template <typename T>
-  void writeChild(ObjectStream& ostream,String name, SharedPtr<T> child) {
+  void writeChild(ObjectStream& ostream,String name, T* child) {
     if (!child) return;
     ostream.pushContext(name);
     child->writeToObjectStream(ostream);
@@ -111,12 +122,12 @@ public:
 
   //readChilds
   template <typename T>
-  SharedPtr<T> readChild(ObjectStream& istream, String name) {
+  VISUS_NEWOBJECT(T*) readChild(ObjectStream& istream, String name) {
     
     if (!istream.pushContext(name))
-      return SharedPtr<T>();
+      return nullptr;
 
-    auto ret = std::make_shared<T>();
+    auto ret = new T();
     ret->readFromObjectStream(istream);
     istream.popContext(name);
     return ret;
@@ -124,8 +135,8 @@ public:
 
 private:
 
-  XIdxElement*                          parent = nullptr;
-  std::vector< SharedPtr<XIdxElement> > childs;
+  XIdxElement*              parent = nullptr;
+  std::vector<XIdxElement*> childs;
 
 };
 

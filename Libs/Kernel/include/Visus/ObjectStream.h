@@ -36,77 +36,116 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Nodes.h>
+#ifndef VISUS_OBJECT_STREAM_H__
+#define VISUS_OBJECT_STREAM_H__
 
-#include <Visus/Idx.h>
+#include <Visus/Kernel.h>
+#include <Visus/StringMap.h>
+#include <Visus/Singleton.h>
 
-#include <Visus/CpuPaletteNode.h>
-#include <Visus/DatasetNode.h>
-#include <Visus/FieldNode.h>
-#include <Visus/FunnelNode.h>
-
-#include <Visus/KdQueryNode.h>
-#include <Visus/PaletteNode.h>
-#include <Visus/QueryNode.h>
-#include <Visus/JTreeNode.h>
-#include <Visus/VoxelScoopNode.h>
-
-#include <Visus/ScriptingNode.h>
-#include <Visus/StatisticsNode.h>
-#include <Visus/TimeNode.h>
-#include <Visus/ModelViewNode.h>
+#include <stack>
+#include <vector>
+#include <iostream>
 
 namespace Visus {
 
-bool NodesModule::bAttached = false;
+//predeclaration
+class StringTree;
 
-  //////////////////////////////////////////////
-void NodesModule::attach()
+  /////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API ObjectStream 
 {
-  if (bAttached)  
-    return;
+public:
+
+  VISUS_CLASS(ObjectStream)
+
+  StringMap run_time_options;
+
+  //constructor
+  ObjectStream() : mode(0) {
+  }
+
+  //constructor
+  ObjectStream(StringTree& root_,int mode_) : mode(0) {
+    open(root_,mode_);
+  }
+
+  //destructor
+  virtual ~ObjectStream(){
+    close();
+  }
+
+  //open
+  void open(StringTree& root,int mode);
+
+  //close
+  void close();
+
+  //getCurrentDepth
+  int getCurrentDepth(){
+    return (int)stack.size();
+  }
+
+  //getCurrentContext
+  StringTree* getCurrentContext(){
+    return stack.top().context;
+  }
+
+  // pushContext
+  bool pushContext(String context_name);
+
+  //popContext
+  bool popContext(String context_name);
+
+  //writeInline
+  void writeInline(String name, String value);
+
+  //readInline
+  String readInline(String name, String default_value = "");
+
+  //write
+  void write(String name, String value);
+
+  //read
+  String read(String name, String default_value = "");
+
+  //writeText
+  void writeText(const String& value, bool bCData = false);
+
+  //readText
+  String readText();
+
+public:
+
+  //setSceneMode
+  void setSceneMode(bool value) {
+    run_time_options.setValue("scene_mode",cstring(value));
+  }
+
+  //isSceneMode
+  bool isSceneMode() const {
+    return cbool(run_time_options.getValue("scene_mode"));
+  }
+
+private:
+
+  int mode;
+
+  class StackItem
+  {
+  public:
+    StringTree*                  context;
+    std::map<String,StringTree*> next_child;
+    StackItem(StringTree* context_=nullptr) : context(context_) {}
+  };
+  std::stack<StackItem> stack;
+
+};
+
   
-  VisusInfo() << "Attaching NodesModule...";
-
-  bAttached = true;
-
-  IdxModule::attach();
-  DataflowModule::attach();
-
-  VISUS_REGISTER_NODE_CLASS(CpuPaletteNode);
-  VISUS_REGISTER_NODE_CLASS(DatasetNode);
-  VISUS_REGISTER_NODE_CLASS(FieldNode);
-  VISUS_REGISTER_NODE_CLASS(FunnelNode);
-
-  VISUS_REGISTER_NODE_CLASS(KdQueryNode);
-  VISUS_REGISTER_NODE_CLASS(PaletteNode);
-  VISUS_REGISTER_NODE_CLASS(QueryNode);
-
-  VISUS_REGISTER_NODE_CLASS(ScriptingNode);
-  VISUS_REGISTER_NODE_CLASS(StatisticsNode);
-  VISUS_REGISTER_NODE_CLASS(ModelViewNode);
-  VISUS_REGISTER_NODE_CLASS(TimeNode);
-
-  VISUS_REGISTER_NODE_CLASS(VoxelScoopNode);
-  VISUS_REGISTER_NODE_CLASS(JTreeNode);
-
-  VisusInfo() << "Attached NodesModule";
-}
-
-//////////////////////////////////////////////
-void NodesModule::detach()
-{
-  if (!bAttached)  
-    return;
-  
-  VisusInfo() << "Detaching NodesModule...";
-
-  bAttached = false;
-
-  IdxModule::detach();
-  DataflowModule::detach();
-
-  VisusInfo() << "Detached NodesModule";
-}
-
 } //namespace Visus
+
+
+#endif //VISUS_OBJECT_STREAM_H__
+
+

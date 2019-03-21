@@ -10,7 +10,11 @@
 using namespace Visus;
 %}
 
+//VISUS_DISOWN | DISOWN_FOR_DIRECTOR
+%apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::Node* disown };
+
 %import  <Visus/VisusKernelPy.i>
+
 %import  <Visus/VisusDataflowPy.i>
 %import  <Visus/VisusDbPy.i>
 %import  <Visus/VisusNodesPy.i>

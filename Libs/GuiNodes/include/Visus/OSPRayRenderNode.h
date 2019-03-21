@@ -99,12 +99,6 @@ public:
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override;
 
-  //writeToSceneObjectStream
-  virtual void writeToSceneObjectStream(ObjectStream& ostream) override;
-
-  //readFromSceneObjectStream
-  virtual void readFromSceneObjectStream(ObjectStream& istream) override;
-
 private:
 
   class MyGLObject; friend class MyGLObject;

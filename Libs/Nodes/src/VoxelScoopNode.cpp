@@ -335,8 +335,9 @@ public:
 
 
   //return result
-  SharedPtr<CGraph> getResult()
-    {return this->centerlines;}
+  SharedPtr<CGraph> getResult() {
+    return this->centerlines;
+  }
 
   ///////////////////////////////////////////////////////////////////////
   //This stencil handles boundary cases in the production of relative
@@ -587,7 +588,7 @@ public:
           Box3d geometric_box=this->centerlines->bounds.getBox();
           geometric_box.addPoint(newpos);
           this->centerlines->bounds=Position(this->centerlines->bounds.getTransformation(),geometric_box);
-          this->centerlines->mkEdge(newcluster.nodeid,cluster.nodeid,CGraphEdge((float)(newpos-cluster.nodepos).module()));
+          this->centerlines->mkEdge(newcluster.nodeid,cluster.nodeid,(Float32)(newpos-cluster.nodepos).module());
         }
 
         //"scoop" voxels within a given radius of this node
@@ -669,7 +670,7 @@ public:
       for (int k=0;k<(int)E.data.pts.size();k++)
       {
         int pID=cg.mkVert(E.data.pts[k]);
-        cg.mkEdge(pID,prevID,CGraphEdge((float)(prevLoc-E.data.pts[k].center).module()));
+        cg.mkEdge(pID,prevID,(Float32)(prevLoc-E.data.pts[k].center).module());
         prevLoc=E.data.pts[k].center;
         prevID=pID;
       }
@@ -681,7 +682,7 @@ public:
   /////////////////////////////////////////////
   SharedPtr<CGraph> CreateCGraph(const TrimGraph &tg)
   {
-    SharedPtr<CGraph> cg(new CGraph());
+    auto cg=std::make_shared<CGraph>();
     
     //for each rooted subtree of tg...
     for (int i=0;i<(int)tg.verts.size();i++)
@@ -927,7 +928,7 @@ public:
     }
     
     //convert from TrimGraph back to CGraph
-    SharedPtr<CGraph> cg=CreateCGraph(*tg);
+    auto cg=CreateCGraph(*tg);
     VisusAssert(cg);
 
     cg_dump.open("/tmp/cg2.dot");
@@ -989,8 +990,7 @@ public:
      VisusInfo()<<"done calculating.";
       
     //<ctc> TODO: remove this when done.
-    SharedPtr<CGraph> centerlines_untrimmed(new CGraph);
-    *centerlines_untrimmed=*builder->getResult();
+    auto centerlines_untrimmed=std::make_shared<CGraph>(*builder->getResult());
 
     if (this->aborted())
       return;
@@ -1001,7 +1001,7 @@ public:
        builder->simplify();
     }
 
-    SharedPtr<CGraph> centerlines=builder->getResult();
+    auto centerlines=builder->getResult();
 
     if (this->aborted() || !centerlines)
       return;
@@ -1009,11 +1009,12 @@ public:
     //publish the results
     //tell that the output has changed (note, if the port is not connected, this is a NOP)
     VisusInfo()<<"publishing centerlines...";
-    node->publish({
-      {"graph",centerlines},
-      {"graph_dbg",centerlines_untrimmed},
-      {"data",std::make_shared<Array>(node->data)}
-    });
+
+    DataflowMessage msg;
+    msg.writeValue("graph", centerlines);
+    msg.writeValue("graph_dbg",centerlines_untrimmed);
+    msg.writeValue("data",node->data);
+    node->publish(msg);
   }
 };
 
@@ -1034,7 +1035,7 @@ bool VoxelScoopNode::processInput()
 {
   abortProcessing();
 
-  auto data=readInput<Array>("data");
+  auto data=readValue<Array>("data");
 
   //wrong input
   if (!data || data->dtype!=DTypes::UINT8)
@@ -1048,7 +1049,7 @@ bool VoxelScoopNode::processInput()
   //getting seeds from Graph<Point3f,float> (they will be in brick space / IJK of data)
   std::vector<Point3i> seeds;
   {
-    SharedPtr<FGraph> graph=readInput<FGraph>("graph");
+    auto graph=readValue<FGraph>("graph");
     ScopedLock glock(graph->lock);
 
     for (int I=0;I<(int)graph->verts.size();I++)

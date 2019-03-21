@@ -40,14 +40,15 @@ For support : support@visus.net
 #define VISUS_STRINGTREE_H__
 
 #include <Visus/Kernel.h>
-#include <Visus/Object.h>
 #include <Visus/StringMap.h>
 #include <Visus/BigInt.h>
+#include <Visus/ObjectStream.h>
+
 
 namespace Visus {
 
 ///////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API StringTree : public Object
+class VISUS_KERNEL_API StringTree 
 {
 public:
 
@@ -83,8 +84,8 @@ public:
   virtual ~StringTree(){
   }
 
-  //loadFromXml
-  bool loadFromXml(String content, bool bEnablePostProcessing = true);
+  //fromXmlString
+  bool fromXmlString(String content, bool bEnablePostProcessing = true);
 
   //operator=
   StringTree& operator=(const StringTree& other);
@@ -147,8 +148,11 @@ public:
   }
 
   //getChilds
-  const std::vector< SharedPtr<StringTree> >& getChilds() const {
-    return childs;
+  const std::vector<StringTree*> getChilds() const {
+    std::vector<StringTree*> ret;
+    for (auto child : this->childs)
+      ret.push_back(child.get());
+    return ret;
   }
 
   //getChild
@@ -208,18 +212,6 @@ public:
     }
   }
 
-  //toString
-  virtual String toString() const override;
-
-  //toJSONString
-  String toJSONString() const;
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override;
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override;
-
   //internal use only
   static StringTree postProcess(const StringTree& src);
 
@@ -264,60 +256,36 @@ public:
   //collapseTextAndCData (backward compatible, collect all text in TextNode and CDataSectionNode)
   String collapseTextAndCData() const;
 
+public:
+
+  //toXmlString
+  String toXmlString() const;
+
+  //toJSONString
+  String toJSONString() const {
+    return toJSONString(*this, 0);
+  }
+
+  //toString
+  String toString() const {
+    return toXmlString();
+  }
+
+  //writeToObjectStream
+  void writeToObjectStream(ObjectStream& ostream);
+
+  //readFromObjectStream
+  void readFromObjectStream(ObjectStream& istream);
+
 private:
-  //encode object as JSON
-  String encodeObjectToJSON(const Object* obj_, int nrec=0) const;
-  
+
   //childs
   std::vector< SharedPtr<StringTree> > childs;
+
+  //toJSONString
+  static String toJSONString(const StringTree& stree, int nrec);
  
 }; //end class
-
-
-
-///////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API StringTreeEncoder
-{
-public:
-
-  VISUS_CLASS(StringTreeEncoder)
-
-  //constructor
-  StringTreeEncoder()
-  {}
-
-  //encode (Object->StringTree)
-  VISUS_NEWOBJECT(StringTree*) encode(Object* obj);
-
-  //decode (StringTree->Object)
-  VISUS_NEWOBJECT(Object*) decode(StringTree* stree);
-};
-
-///////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API XmlEncoder : public ObjectEncoder
-{
-public:
-
-  VISUS_CLASS(XmlEncoder)
-
-  //constructor
-  XmlEncoder()
-  {}
-
-  //encode
-  virtual String encode(const Object* obj) override;
-
-  //decode
-  virtual SharedPtr<Object> decode(const String& src) override;
-
-private:
-
-  friend class StringTree;
-
-  //internalDecode (convert the XML to a StringTree)
-  bool internalDecode(StringTree& dst,const String& src,bool bEnablePostProcessing=true);
-
-};
 
 
 } //namespace Visus
