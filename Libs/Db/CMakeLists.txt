@@ -20,13 +20,13 @@ SET(DatasetSources
 	./include/Visus/DatasetArrayPlugin.h  
 	./include/Visus/DatasetBitmask.h
 	./include/Visus/DatasetFilter.h
-	./include/Visus/DatasetTimeSteps.h
+	./include/Visus/DatasetTimesteps.h
 	./include/Visus/GoogleMapsDataset.h
 	./src/Dataset.cpp
 	./src/DatasetArrayPlugin.cpp
 	./src/DatasetBitmask.cpp
 	./src/DatasetFilter.cpp
-	./src/DatasetTimeSteps.cpp
+	./src/DatasetTimesteps.cpp
 	./src/GoogleMapsDataset.cpp
 )
 
