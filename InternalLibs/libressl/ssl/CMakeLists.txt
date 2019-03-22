@@ -41,32 +41,7 @@ set(
 	tls13_key_schedule.c
 )
 
-add_library(ssl ${SSL_SRC})
-target_include_directories(ssl
-	PRIVATE
-		.
-		../include/compat
-	PUBLIC
-		../include)
+AddStaticLibrary(ssl ${SSL_SRC})
+target_include_directories(ssl PRIVATE . ../include/compat PUBLIC ../include)
+target_link_libraries(ssl crypto ${PLATFORM_LIBS})
 
-if (BUILD_SHARED_LIBS)
-	export_symbol(ssl ${CMAKE_CURRENT_SOURCE_DIR}/ssl.sym)
-	target_link_libraries(ssl crypto ${PLATFORM_LIBS})
-	if (WIN32)
-		set(SSL_POSTFIX -${SSL_MAJOR_VERSION})
-	endif()
-	set_target_properties(ssl PROPERTIES
-		OUTPUT_NAME ssl${SSL_POSTFIX}
-		ARCHIVE_OUTPUT_NAME ssl${SSL_POSTFIX})
-	set_target_properties(ssl PROPERTIES VERSION ${SSL_VERSION}
-		SOVERSION ${SSL_MAJOR_VERSION})
-endif()
-
-if(ENABLE_LIBRESSL_INSTALL)
-	install(
-		TARGETS ssl
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-	)
-endif(ENABLE_LIBRESSL_INSTALL)

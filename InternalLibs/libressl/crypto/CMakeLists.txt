@@ -1,126 +1,15 @@
-if(HOST_ASM_ELF_ARMV4)
-	set(
-		ASM_ARMV4_ELF_SRC
-		aes/aes-elf-armv4.S
-		bn/gf2m-elf-armv4.S
-		bn/mont-elf-armv4.S
-		sha/sha1-elf-armv4.S
-		sha/sha512-elf-armv4.S
-		sha/sha256-elf-armv4.S
-		modes/ghash-elf-armv4.S
-		armv4cpuid.S
-		armcap.c
-	)
-	add_definitions(-DAES_ASM)
-	add_definitions(-DOPENSSL_BN_ASM_MONT)
-	add_definitions(-DOPENSSL_BN_ASM_GF2m)
-	add_definitions(-DGHASH_ASM)
-	add_definitions(-DSHA1_ASM)
-	add_definitions(-DSHA256_ASM)
-	add_definitions(-DSHA512_ASM)
-	add_definitions(-DOPENSSL_CPUID_OBJ)
-	set(CRYPTO_SRC ${CRYPTO_SRC} ${ASM_ARMV4_ELF_SRC})
-	set_property(SOURCE ${ASM_ARMV4_ELF_SRC} PROPERTY LANGUAGE C)
-endif()
 
-if(HOST_ASM_ELF_X86_64)
-	set(
-		ASM_X86_64_ELF_SRC
-		aes/aes-elf-x86_64.S
-		aes/bsaes-elf-x86_64.S
-		aes/vpaes-elf-x86_64.S
-		aes/aesni-elf-x86_64.S
-		aes/aesni-sha1-elf-x86_64.S
-		bn/modexp512-elf-x86_64.S
-		bn/mont-elf-x86_64.S
-		bn/mont5-elf-x86_64.S
-		bn/gf2m-elf-x86_64.S
-		camellia/cmll-elf-x86_64.S
-		md5/md5-elf-x86_64.S
-		modes/ghash-elf-x86_64.S
-		rc4/rc4-elf-x86_64.S
-		rc4/rc4-md5-elf-x86_64.S
-		sha/sha1-elf-x86_64.S
-		sha/sha256-elf-x86_64.S
-		sha/sha512-elf-x86_64.S
-		whrlpool/wp-elf-x86_64.S
-		cpuid-elf-x86_64.S
-	)
-	add_definitions(-DAES_ASM)
-	add_definitions(-DBSAES_ASM)
-	add_definitions(-DVPAES_ASM)
-	add_definitions(-DOPENSSL_IA32_SSE2)
-	add_definitions(-DOPENSSL_BN_ASM_MONT)
-	add_definitions(-DOPENSSL_BN_ASM_MONT5)
-	add_definitions(-DOPENSSL_BN_ASM_GF2m)
-	add_definitions(-DMD5_ASM)
-	add_definitions(-DGHASH_ASM)
-	add_definitions(-DRSA_ASM)
-	add_definitions(-DSHA1_ASM)
-	add_definitions(-DSHA256_ASM)
-	add_definitions(-DSHA512_ASM)
-	add_definitions(-DWHIRLPOOL_ASM)
-	add_definitions(-DOPENSSL_CPUID_OBJ)
-	set(CRYPTO_SRC ${CRYPTO_SRC} ${ASM_X86_64_ELF_SRC})
-	set_property(SOURCE ${ASM_X86_64_ELF_SRC} PROPERTY LANGUAGE C)
-endif()
-
-if(HOST_ASM_MACOSX_X86_64)
-	set(
-		ASM_X86_64_MACOSX_SRC
-		aes/aes-macosx-x86_64.S
-		aes/bsaes-macosx-x86_64.S
-		aes/vpaes-macosx-x86_64.S
-		aes/aesni-macosx-x86_64.S
-		aes/aesni-sha1-macosx-x86_64.S
-		bn/modexp512-macosx-x86_64.S
-		bn/mont-macosx-x86_64.S
-		bn/mont5-macosx-x86_64.S
-		bn/gf2m-macosx-x86_64.S
-		camellia/cmll-macosx-x86_64.S
-		md5/md5-macosx-x86_64.S
-		modes/ghash-macosx-x86_64.S
-		rc4/rc4-macosx-x86_64.S
-		rc4/rc4-md5-macosx-x86_64.S
-		sha/sha1-macosx-x86_64.S
-		sha/sha256-macosx-x86_64.S
-		sha/sha512-macosx-x86_64.S
-		whrlpool/wp-macosx-x86_64.S
-		cpuid-macosx-x86_64.S
-	)
-	add_definitions(-DAES_ASM)
-	add_definitions(-DBSAES_ASM)
-	add_definitions(-DVPAES_ASM)
-	add_definitions(-DOPENSSL_IA32_SSE2)
-	add_definitions(-DOPENSSL_BN_ASM_MONT)
-	add_definitions(-DOPENSSL_BN_ASM_MONT5)
-	add_definitions(-DOPENSSL_BN_ASM_GF2m)
-	add_definitions(-DMD5_ASM)
-	add_definitions(-DGHASH_ASM)
-	add_definitions(-DRSA_ASM)
-	add_definitions(-DSHA1_ASM)
-	add_definitions(-DSHA256_ASM)
-	add_definitions(-DSHA512_ASM)
-	add_definitions(-DWHIRLPOOL_ASM)
-	add_definitions(-DOPENSSL_CPUID_OBJ)
-	set(CRYPTO_SRC ${CRYPTO_SRC} ${ASM_X86_64_MACOSX_SRC})
-	set_property(SOURCE ${ASM_X86_64_MACOSX_SRC} PROPERTY LANGUAGE C)
-	set_property(SOURCE ${ASM_X86_64_MACOSX_SRC} PROPERTY XCODE_EXPLICIT_FILE_TYPE "sourcecode.asm")
-endif()
-
-if((NOT HOST_ASM_ELF_X86_64) AND (NOT HOST_ASM_MACOSX_X86_64))
-	set(
-		CRYPTO_SRC
-		${CRYPTO_SRC}
-		aes/aes_cbc.c
-		aes/aes_core.c
-		camellia/camellia.c
-		camellia/cmll_cbc.c
-		rc4/rc4_enc.c
-		rc4/rc4_skey.c
-		whrlpool/wp_block.c
-	)
-endif()
+set(
+  CRYPTO_SRC
+  ${CRYPTO_SRC}
+  aes/aes_cbc.c
+  aes/aes_core.c
+  camellia/camellia.c
+  camellia/cmll_cbc.c
+  rc4/rc4_enc.c
+  rc4/rc4_skey.c
+  whrlpool/wp_block.c
+)
 
 set(
 	CRYPTO_SRC
@@ -814,19 +703,7 @@ else()
 	add_definitions(-DOPENSSLDIR=\"${CMAKE_INSTALL_PREFIX}/etc/ssl\")
 endif()
 
-file(READ ${CMAKE_CURRENT_SOURCE_DIR}/crypto.sym SYMS)
-foreach(SYM IN LISTS CRYPTO_UNEXPORT)
-	string(REPLACE "${SYM}\n" "" SYMS ${SYMS})
-endforeach()
-file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/crypto_p.sym ${SYMS})
-if(EXTRA_EXPORT)
-	list(SORT EXTRA_EXPORT)
-	foreach(SYM IN LISTS EXTRA_EXPORT)
-		file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/crypto_p.sym "${SYM}\n")
-	endforeach()
-endif()
-
-add_library(crypto ${CRYPTO_SRC})
+AddStaticLibrary(crypto ${CRYPTO_SRC})
 target_include_directories(crypto
 	PRIVATE
 		.
@@ -839,24 +716,5 @@ target_include_directories(crypto
 	PUBLIC
 		../include)
 
-if (BUILD_SHARED_LIBS)
-	export_symbol(crypto ${CMAKE_CURRENT_BINARY_DIR}/crypto_p.sym)
-	target_link_libraries(crypto ${PLATFORM_LIBS})
-	if (WIN32)
-		set(CRYPTO_POSTFIX -${CRYPTO_MAJOR_VERSION})
-	endif()
-	set_target_properties(crypto PROPERTIES
-		OUTPUT_NAME crypto${CRYPTO_POSTFIX}
-		ARCHIVE_OUTPUT_NAME crypto${CRYPTO_POSTFIX})
-	set_target_properties(crypto PROPERTIES VERSION
-		${CRYPTO_VERSION} SOVERSION ${CRYPTO_MAJOR_VERSION})
-endif()
+target_link_libraries(crypto ${PLATFORM_LIBS})
 
-if(ENABLE_LIBRESSL_INSTALL)
-	install(
-		TARGETS crypto
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-	)
-endif(ENABLE_LIBRESSL_INSTALL)

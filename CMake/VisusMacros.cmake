@@ -143,7 +143,7 @@ macro(SetupCommonCompileOptions Name)
 	elseif (APPLE)
 	
 		# suppress some warnings
-		target_compile_options(${Name} PRIVATE  -Wno-unused-variable -Wno-reorder)	
+		target_compile_options(${Name} PRIVATE  -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
 	
 	else()
 	

@@ -9,7 +9,7 @@ if __name__ == '__main__':
 		  from .configure import *
 		else:  
 		  from configure import *	
-		Configure().run()
+		ConfigureStep()
 		sys.exit(0)
 
 	# dirname

@@ -466,13 +466,13 @@ else
 	fi 
 	
 	WHEEL_FILENAME=$(find ${BUILD_DIR}/install/dist -iname "*.whl")
-	python -m pip install "${WHEEL_FILENAME}" 
+	python -m pip install --ignore-installed "${WHEEL_FILENAME}" 
 	
 fi
 
 
 # //////////////////////////////////////////////////////
-# test if OpenVisus is working
+# test if OpenVisus is working (note not using any GUI/qt stuff here)
 
 cd $HOME
 python -m OpenVisus configure 

@@ -1,4 +1,4 @@
-set(LIBRESSL_SKIP_INSTALL        1)
+
 set(LIBRESSL_APPS                0)
 set(LIBRESSL_TESTS               0)
 set(ENABLE_ASM "Enable assembly" 0)

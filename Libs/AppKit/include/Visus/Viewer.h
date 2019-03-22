@@ -178,7 +178,7 @@ public:
   virtual ~Viewer();
 
   //getTypeName
-  virtual String getTypeName() const {
+  virtual String getTypeName() const override {
     return "Viewer";
   }
 
