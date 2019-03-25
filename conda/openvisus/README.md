@@ -1,52 +1,47 @@
 # Instructions
 
-If you want to use precompiled conda packages just do:
+## Use precompiled openvisus conda packages 
+
+From a shell:
 
 ```
 conda install -c visus openvisus
 ```
 
 
-If you want to use Docker to build the openvisus conda recipe:
+## Build conda openvisus recipe
+
+### Build conda openvisus on Windows
+
+[BROKEN right now]
+
+### Build conda openvisus using Docker
+
+Type:
 
 ```
 cd conda/openvisus
 sudo docker build .
 ```
 
-If you want to build the openvisus recipe in your current shell , please keep reading.
-Prerequisites for windows: remeber to install "Visual Studio 2015" with C++.
-Check that both this components are installed: "Common tools for visual c++ 2015" AND "Tools and Windows XX SDK"
+### Build OpenVisus on Linux/OSX
 
-Prerequisites for all platforms:
+In a shell:
 
 ```
-conda install conda-build
-conda update conda
-conda update conda-build
+# uncomment if needed
+# rm -Rf $(find ${HOME}/miniconda${PYTHON_VERSION:0:1} -iname "*openvisus*"
+
+# change as needed
+export PYTHON_VERSION=3.6 
+export USE_CONDA=1
+./build.sh
 ```
-
-Then:
-
-```
-cd conda
-conda-build openvisus
-
-conda install --use-local openvisus
-
-cd $(python -m OpenVisus dirname)
-python Samples/python/Array.py
-python Samples/python/Dataflow.py
-python Samples/python/Idx.py
-```
-
 
 In case you want to upload to conda rep:
 
 ```
 anaconda login
-anaconda upload /type/your/conda/openvisus/filename/here
+CONDA_BUILD_FILENAME=$(find ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld -iname "openvisus*.tar.bz2")
+anaconda upload ${CONDA_BUILD_FILENAME}
 ```
-
-
-

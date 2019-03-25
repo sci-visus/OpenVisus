@@ -4,7 +4,7 @@
 
 FROM continuumio/miniconda3
 
-ARG GIT_BRANCH=conda
+ARG GIT_BRANCH=master
 
 RUN apt-get update -y
 RUN apt-get -qq install -y git apache2 apache2-dev
