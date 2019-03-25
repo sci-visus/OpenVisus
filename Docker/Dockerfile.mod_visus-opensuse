@@ -6,7 +6,7 @@ RUN zypper --non-interactive update \
 
 # install openvisus pip
 ENV VISUS_HOME=/home/OpenVisus
-RUN python3 -m pip install numpy==1.15.4 OpenVisus==1.2.122 \
+RUN python3 -m pip install numpy OpenVisus==1.2.122 \
   && ln -s $(python3 -c "import os, OpenVisus; print(os.path.dirname(OpenVisus.__file__))") ${VISUS_HOME}
 
 # install webviewer

@@ -20,12 +20,11 @@ requirements:
   host:
     - python  
     - pip
-    - numpy
     - setuptools
     - wheel
   run:
     - python
-    - {{ pin_compatible('numpy') }}
+    - numpy
 
 test:
   imports:

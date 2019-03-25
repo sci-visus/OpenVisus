@@ -218,14 +218,10 @@ macro(FindPythonLibrary)
 
 		find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 		find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)	
-		find_package(NumPy                          REQUIRED)
 
 		message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
 		message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
 		message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
-		message(STATUS "NUMPY_FOUND         ${NUMPY_FOUND}")
-		message(STATUS "NUMPY_VERSION       ${NUMPY_VERSION}")
-		message(STATUS "NUMPY_INCLUDE_DIR   ${NUMPY_INCLUDE_DIR}")	
 		
 		add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
 		set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
@@ -272,15 +268,11 @@ macro(FindPythonLibrary)
 	
 		ForceUnset(PYTHONINTERP_FOUND)
 		ForceUnset(PYTHONLIBS_FOUND)
-		ForceUnset(NUMPY_FOUND)
 		ForceUnset(PYTHON_EXECUTABLE)
 		ForceUnset(PYTHON_LIBRARY)
 		ForceUnset(PYTHON_DEBUG_LIBRARY)
 		ForceUnset(PYTHON_RELEASE_LIBRARY)
 		ForceUnset(PYTHON_INCLUDE_DIR)
-		ForceUnset(NUMPY_FOUND)
-		ForceUnset(NUMPY_VERSION)
-		ForceUnset(NUMPY_INCLUDE_DIR)	
 		ForceUnset(PYTHON_SITE_PACKAGES_DIR)
 		
 		ForceUnset(PYTHON_VERSION_STRING)
@@ -428,7 +420,6 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 
 		SetupCommonCompileOptions(${RealName})
 		set_target_properties(${RealName} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
-		target_include_directories(${RealName} PUBLIC ${NUMPY_INCLUDE_DIR})
 
 		# disable warnings
 		if (WIN32)

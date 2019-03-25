@@ -133,7 +133,6 @@ if (1)
 
 	file(GLOB CMakePySources CMake/*.py)
 	
-	install(FILES        CMake/VisusMacros.cmake CMake/FindNumPy.cmake DESTINATION CMake)
 	install(DIRECTORY    CMake/PostInstall                             DESTINATION CMake)
 	
 	install(FILES        ${CMakePySources}                             DESTINATION .)
