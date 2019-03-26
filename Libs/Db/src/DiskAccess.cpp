@@ -71,12 +71,16 @@ String DiskAccess::getFilename(Field field,double time,BigInt blockid) const
 ////////////////////////////////////////////////////////////////////
 void DiskAccess::acquireWriteLock(SharedPtr<BlockQuery> query)
 {
+  VisusAssert(isWriting());
+  if (bDisableWriteLocks) return;
   FileUtils::lock(Access::getFilename(query));
 }
 
 ////////////////////////////////////////////////////////////////////
 void DiskAccess::releaseWriteLock(SharedPtr<BlockQuery> query)
 {
+  VisusAssert(isWriting());
+  if (bDisableWriteLocks) return;
   FileUtils::unlock(Access::getFilename(query));
 }
 

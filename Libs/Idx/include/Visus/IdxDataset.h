@@ -95,8 +95,8 @@ public:
   // removeFiles all files bolonging to this visus file 
   void removeFiles(int maxh = -1);
 
-  //compress
-  virtual bool compress(String compression) override;
+  //compressDataset
+  virtual bool compressDataset(String compression) override;
 
   //getAddressRangeBox
   LogicBox getAddressRangeBox(BigInt start_address,BigInt end_address, int max_resolution);
@@ -116,12 +116,11 @@ public:
   //createEquivalentQuery
   SharedPtr<Query> createEquivalentQuery(int mode,SharedPtr<BlockQuery> block_query);
 
-  //create
-  static SharedPtr<IdxDataset> create(String filename, Array data, IdxFile idxfile = IdxFile());
-
   //setIdxFile
   void setIdxFile(IdxFile value);
 
+  //createDatasetFromBuffer
+  static SharedPtr<IdxDataset> createDatasetFromBuffer(String idx_filename, Array buffer, String compression = "zip", Aborted aborted = Aborted());
 
 public:
 

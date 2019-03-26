@@ -46,6 +46,7 @@ For support : support@visus.net
 #include <Visus/Diff.h>
 
 #include <Visus/Dataflow.h>
+#include <Visus/IdxDataset.h>
 
 #include <Visus/GLCamera.h>
 #include <Visus/GLInfo.h>
@@ -1171,7 +1172,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   }
 
   //try to open a dataset
-  auto dataset=Dataset::loadDataset(url);
+  auto dataset = Dataset::loadDataset(url);
   if (!dataset)
   {
     QMessageBox::information(this, "Error", (StringUtils::format() << "open file(" << url << +") failed.").str().c_str());
@@ -1181,14 +1182,11 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   if (!parent)
   {
     //try to use the default scene, if any
-    String def_scene = dataset->getDefaultScene();
-
-    if(def_scene!="")
-      if(openScene(def_scene))
-        return true;
+    String default_scene = dataset->getDefaultScene();
+    if (!default_scene.empty() && openScene(default_scene)) 
+      return true;
     
     //instead if it fails continue opening the dataset
-
     New();
     parent = dataflow->getRoot();
   }
@@ -1212,7 +1210,6 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
 
     glcamera->guessPosition(getWorldBoundingBox());
 
-
     if (dataset && StringUtils::contains(dataset->getConfig().readString("mirror"), "x"))
       glcamera->mirror(0);
 
@@ -1229,6 +1226,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   VisusInfo()<<"openFile("<<url<<") done";
   return true;
 }
+
 
 //////////////////////////////////////////////////////////////////////
 bool Viewer::saveFile(String url,bool bSaveHistory,bool bShowDialogs)
@@ -1428,7 +1426,7 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
         
         beginUpdate();
         
-        DatasetNode* data_node=addDatasetNode(dataset,parent);
+        DatasetNode* dataset_node=addDatasetNode(dataset,parent);
       
         TimeNode* time_node=NULL;
         QueryNode* query_node=NULL;
@@ -1436,11 +1434,11 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
         PaletteNode* pal_node=NULL;
         Node* rend_node=NULL;
         
-        data_node->setDataset(dataset, true);
-        if (!data_node->getDataset()->openFromUrl(dataset_url))
+        dataset_node->setDataset(dataset, true);
+        if (!dataset_node->getDataset()->openFromUrl(dataset_url))
           ThrowException(StringUtils::format()<<"Cannot open dataset from url "<<dataset_url);
         
-        for(auto data_child : data_node->breadthFirstSearch())
+        for(auto data_child : dataset_node->breadthFirstSearch())
         {
           if (auto tmp=dynamic_cast<TimeNode*>(data_child))
             time_node = tmp;

@@ -54,10 +54,16 @@ public:
   VISUS_NON_COPYABLE_CLASS(RamAccess)
 
   //constructor
-  RamAccess(Dataset* dataset,StringTree config=StringTree(),SharedPtr<RamAccess> other=SharedPtr<RamAccess>());
+  RamAccess();
 
   //destructor
   virtual ~RamAccess();
+
+  //setAvailableMemory
+  void setAvailableMemory(Int64 value);
+
+  //shareMemoryWith
+  void shareMemoryWith(SharedPtr<RamAccess> value);
 
   //readBlock
   virtual void readBlock(SharedPtr<BlockQuery> query) override;

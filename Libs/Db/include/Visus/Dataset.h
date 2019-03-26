@@ -290,11 +290,8 @@ public:
   //openFromUrl 
   virtual bool openFromUrl(Url url) = 0;
 
-  //compress
-  virtual bool compress(String compression) {
-    VisusAssert(false);
-    return false;
-  }
+  //compressDataset
+  virtual bool compressDataset(String compression) = 0;
 
   //getInnerDatasets
   virtual std::map<String,SharedPtr<Dataset> > getInnerDatasets() const  {
@@ -378,6 +375,9 @@ public:
 
 public:
 
+  //createRamAccess
+  SharedPtr<Access> createRamAccess(Int64 available, bool can_read = true, bool can_write = true);
+
   //addField
   void addField(String name, Field field) {
     fields.push_back(field);
@@ -395,21 +395,11 @@ public:
   //generateTiles (useful for conversion)
   std::vector<NdBox> generateTiles(int TileSize) const;
 
-  //readMaxResolutionData
-  Array readMaxResolutionData(SharedPtr<Access> access, Field field, double time, NdBox box);
+  //readFullResolutionData
+  Array readFullResolutionData(SharedPtr<Access> access, Field field, double time, NdBox box=NdBox());
 
-  //readMaxResolutionData
-  Array readMaxResolutionData(SharedPtr<Access> access, NdBox box) {
-    return readMaxResolutionData(access, getDefaultField(), getDefaultTime(),box);
-  }
-
-  //writeMaxResolutionData
-  bool writeMaxResolutionData(SharedPtr<Access> access, Field field, double time, NdBox box, Array buffer);
-
-  //writeMaxResolutionData
-  bool writeMaxResolutionData(SharedPtr<Access> access, NdBox box, Array buffer) {
-    return writeMaxResolutionData(access,getDefaultField(),getDefaultTime(),box,buffer);
-  }
+  //writeFullResolutionData
+  bool writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer,NdBox box=NdBox());
 
 public:
   

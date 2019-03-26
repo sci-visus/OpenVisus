@@ -149,7 +149,8 @@ public:
     Cached* cached = (it == index.end()) ? 0 : it->second;
     if (!cached)
     {
-      while (used >= available) delete remove(back);
+      while (available>0 && used >= available) 
+        delete remove(back);
       cached = new Cached();
     }
 
@@ -207,20 +208,24 @@ private:
 
 
 ////////////////////////////////////////////////////////////////////////////////
-RamAccess::RamAccess(Dataset* dataset,StringTree config,SharedPtr<RamAccess> other) 
-{  
-  VisusAssert(dataset);
-  String chmod=config.readString("chmod","rw");
-  this->name           = config.readString("name","RamAccess");
-  this->can_read       = StringUtils::find(chmod,"r")>=0;
-  this->can_write      = StringUtils::find(chmod,"w")>=0;
-  this->bitsperblock   = config.readInt("bitsperblock",dataset->getDefaultBitsPerBlock());
-  this->shared=other? other->shared : std::make_shared<Shared>(StringUtils::getByteSizeFromString(config.readString("available","128mb")));
+RamAccess::RamAccess() {  
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 RamAccess::~RamAccess() {
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void RamAccess::setAvailableMemory(Int64 value)
+{
+  this->shared = std::make_shared<Shared>(value);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void RamAccess::shareMemoryWith(SharedPtr<RamAccess> value)
+{
+  this->shared = value->shared;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

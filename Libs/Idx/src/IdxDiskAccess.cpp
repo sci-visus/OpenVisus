@@ -590,6 +590,9 @@ public:
   //acquireWriteLock
   virtual void acquireWriteLock(SharedPtr<BlockQuery> query) override
   {
+    VisusAssert(isWriting());
+    if (bDisableWriteLocks) return;
+
     auto filename = getFilename(query->field, query->time, query->getBlockNumber(bitsperblock));
 
     if (++file_locks[filename] == 1)
@@ -604,6 +607,9 @@ public:
   //releaseWriteLock
   virtual void releaseWriteLock(SharedPtr<BlockQuery> query) override
   {
+    VisusAssert(isWriting());
+    if (bDisableWriteLocks) return;
+
     auto filename = getFilename(query->field, query->time, query->getBlockNumber(bitsperblock));
 
     if (--file_locks[filename] == 0)
@@ -1080,19 +1086,15 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
 ///////////////////////////////////////////////////////
 void IdxDiskAccess::acquireWriteLock(SharedPtr<BlockQuery> query)
 {
-  if (bDisableWriteLocks)
-    return;
-
   VisusAssert(isWriting());
+  if (bDisableWriteLocks) return;
   sync->acquireWriteLock(query);
 }
 
 ///////////////////////////////////////////////////////
 void IdxDiskAccess::releaseWriteLock(SharedPtr<BlockQuery> query)
 {
-  if (bDisableWriteLocks)
-    return;
-
+  if (bDisableWriteLocks) return;
   VisusAssert(isWriting());
   sync->releaseWriteLock(query);
 }

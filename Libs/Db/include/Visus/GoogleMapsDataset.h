@@ -82,6 +82,12 @@ public:
   //openFromUrl 
   virtual bool openFromUrl(Url url) override;
 
+  //compressDataset
+  virtual bool compressDataset(String compression) override {
+    VisusWarning()<<"compress not supported";
+    return false;
+  }
+
   //guessEndResolutions
   virtual std::vector<int> guessEndResolutions(const Frustum& viewdep, Position position, Query::Quality quality = Query::DefaultQuality, Query::Progression progression = Query::GuessProgression) override;
 

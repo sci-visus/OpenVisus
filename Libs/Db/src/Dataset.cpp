@@ -224,6 +224,29 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& viewdep,Position po
 
 
 ////////////////////////////////////////////////////////////////////
+SharedPtr<Access> Dataset::createRamAccess(Int64 available, bool can_read, bool can_write)
+{
+  auto ret = std::make_shared<RamAccess>();
+
+  ret->name      = "RamAccess";
+  ret->can_read  = can_read;
+  ret->can_write = can_write;
+  ret->bitsperblock = this->getDefaultBitsPerBlock();
+
+  if (this->ram_access)
+  {
+    ret->shareMemoryWith(this->ram_access);
+  }
+  else
+  {
+    ret->setAvailableMemory(available);
+    this->ram_access = ret;
+  }
+
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////
 SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
 {
   VisusAssert(this->valid());
@@ -252,11 +275,12 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
     return std::make_shared<MultiplexAccess>(this, config);
   
   // RAM CACHE 
-  if (type=="lruam" || type=="ram" || type=="ramaccess")
-  {  
-    //create the ram cache on the fly
-    this->ram_access=std::make_shared<RamAccess>(this, config, this->ram_access);
-    return this->ram_access;
+  if (type == "lruam" || type == "ram" || type == "ramaccess")
+  {
+    auto available = StringUtils::getByteSizeFromString(config.readString("available", "128mb"));
+    auto can_read = StringUtils::contains(config.readString("chmod", "rw"), "r");
+    auto can_write = StringUtils::contains(config.readString("chmod", "rw"), "w");
+    return createRamAccess(available, can_read, can_write);
   }
 
   // NETWORK 
@@ -376,6 +400,9 @@ String Dataset::getDatasetInfos() const
 
   return out.str();
 }
+
+
+
 
 ////////////////////////////////////////////////
 Future<Void> Dataset::readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
@@ -518,8 +545,11 @@ std::vector<NdBox> Dataset::generateTiles(int TileSize) const
 }
 
 ////////////////////////////////////////////////
-Array Dataset::readMaxResolutionData(SharedPtr<Access> access, Field field, double time, NdBox box)
+Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, double time, NdBox box)
 {
+  if (box == NdBox())
+    box = this->box;
+
   auto query = std::make_shared<Query>(this, 'r');
 
   query->time = time;
@@ -531,6 +561,7 @@ Array Dataset::readMaxResolutionData(SharedPtr<Access> access, Field field, doub
   if (!beginQuery(query))
     return Array();
 
+  VisusAssert(query->nsamples == buffer.dims);
   if (!executeQuery(access, query))
     return Array();
 
@@ -538,19 +569,24 @@ Array Dataset::readMaxResolutionData(SharedPtr<Access> access, Field field, doub
 }
 
 ////////////////////////////////////////////////
-bool Dataset::writeMaxResolutionData(SharedPtr<Access> access, Field field, double time, NdBox box, Array buffer)
+bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer, NdBox box)
 {
+  if (box==NdBox()) 
+    box=NdBox(NdPoint(buffer.getPointDim()), buffer.dims);
+
   auto query = std::make_shared<Query>(this, 'w');
 
   query->time = time;
   query->field = field;
   query->position = box;
+  query->start_resolution = 0;
   query->max_resolution = this->getMaxResolution();
   query->end_resolutions = { query->max_resolution };
 
   if (!beginQuery(query))
     return false;
 
+  VisusAssert(query->nsamples == buffer.dims);
   query->buffer = buffer;
 
   if (!executeQuery(access, query))

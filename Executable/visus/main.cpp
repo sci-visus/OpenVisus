@@ -109,9 +109,15 @@ public:
     if (args.size() < 2)
       ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
+
+    if (!data || !data.getTotalNumberOfSamples())
+      ThrowException(StringUtils::format() << args[0] << " got empty array");
+
     String filename = args[1];
 
     IdxFile idxfile;
+    idxfile.box = NdBox(NdPoint(data.getPointDim()), data.dims);
+    idxfile.fields.push_back(Field("data", data.dtype));
 
     for (int I = 2; I < (int)args.size(); I++)
     {
@@ -142,14 +148,14 @@ public:
         idxfile.timesteps = DatasetTimesteps();
         String from = args[++I];
         String to = args[++I];
-        String templ = args[++I];
+        String time_template = args[++I];
 
         if (from == "*" && to == "*")
           idxfile.timesteps = DatasetTimesteps::star();
         else
           idxfile.timesteps.addTimesteps(cdouble(from), cdouble(to), 1.0);
 
-        idxfile.time_template = templ;
+        idxfile.time_template = time_template;
       }
       else
       {
@@ -157,9 +163,14 @@ public:
       }
     }
 
-    if (!IdxDataset::create(filename, data, idxfile))
+    if (!idxfile.save(filename))
     {
-      VisusError() << "IdxDataset::create(" << filename << ") failed";
+      VisusError() << "idxfile.save(" << filename << ") failed";
+      return Array();
+    }
+
+    if (!IdxDataset::createDatasetFromBuffer(filename, data)) {
+      VisusError() << "Failed to create Dataset";
       return Array();
     }
 
@@ -418,7 +429,7 @@ public:
     if (!Encoders::getSingleton()->getEncoder(compression))
       ThrowException(StringUtils::format() << args[0] <<"  encoder(" << compression << ") does not exists");
 
-    if (!dataset->compress(compression))
+    if (!dataset->compressDataset(compression))
       ThrowException(StringUtils::format() << args[0] <<" Compression failed");
 
     return data;
@@ -661,19 +672,22 @@ public:
       auto tile = tiles[TileId];
 
       auto t1 = Time::now();
-      auto buffer = midx->readMaxResolutionData(midx_access, midx->getFieldByName(fieldname), midx->getDefaultTime(), tile);
+      auto buffer = midx->readFullResolutionData(midx_access, midx->getFieldByName(fieldname), midx->getDefaultTime(), tile);
       int msec_read = (int)t1.elapsedMsec();
       if (!buffer)
         continue;
 
       t1 = Time::now();
-      idx->writeMaxResolutionData(idx_access, tile, buffer);
+      idx->writeFullResolutionData(idx_access, idx->getDefaultField(),idx->getDefaultTime(), buffer, tile);
       int msec_write = (int)t1.elapsedMsec();
 
       VisusInfo() << "done " << TileId << " of " << tiles.size() << " msec_read(" << msec_read << ") msec_write(" << msec_write << ")";
 
       //ArrayUtils::saveImage(StringUtils::format() << "tile_" << TileId << ".png", read->buffer);
     }
+
+    //finally compress
+    idx->compressDataset("zip");
 
     VisusInfo() << "ALL DONE IN " << T1.elapsedMsec();
     return data;
