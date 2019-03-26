@@ -322,7 +322,7 @@ script:
      fi
           
      cd ${TRAVIS_BUILD_DIR}
-     travis_wait 45 ./build.sh
+     travis_wait 60 ./build.sh
      echo "Finished build"
      
      if (( DEPLOY_GITHUB !=1 )) ; then 

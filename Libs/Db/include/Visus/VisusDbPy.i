@@ -19,7 +19,6 @@ using namespace Visus;
 %shared_ptr(Visus::Access)
 %shared_ptr(Visus::BlockQuery)
 %shared_ptr(Visus::Query)
-%shared_ptr(Visus::BaseDataset)
 %shared_ptr(Visus::Dataset)
 %shared_ptr(Visus::GoogleMapsDataset)
 

@@ -102,12 +102,23 @@ private:
   KdQueryMode() = delete;
 };
 
+
 ////////////////////////////////////////////////////////
-class VISUS_DB_API BaseDataset
+class VISUS_DB_API Dataset 
 {
 public:
 
-  //NOTE: I can copy the base inforation
+  //______________________________________________
+  class VISUS_DB_API Info
+  {
+  public:
+    String     name;
+    Url        url;
+    String     TypeName;
+    StringTree config;
+    bool valid() const { return !name.empty(); }
+  };
+
 
   Url                     url;
   String                  dataset_body;
@@ -126,25 +137,6 @@ public:
 
   bool                    bServerMode = false;
 
-};
-
-////////////////////////////////////////////////////////
-class VISUS_DB_API Dataset : public BaseDataset
-{
-public:
-
-  VISUS_NON_COPYABLE_CLASS(Dataset)
-
-  //______________________________________________
-  class VISUS_DB_API Info
-  {
-  public:
-    String     name;
-    Url        url;
-    String     TypeName;
-    StringTree config;
-    bool valid() const { return !name.empty(); }
-  };
 
   //constructor
   Dataset() {
@@ -156,6 +148,9 @@ public:
 
   //getTypeName
   virtual String getTypeName() const = 0;
+
+  //cloneclone
+  virtual SharedPtr<Dataset> clone() const = 0;
 
   //copyDataset
   static void copyDataset(Dataset* Dvf, SharedPtr<Access> Daccess, Field Dfield, double Dtime,
@@ -429,9 +424,6 @@ public:
   //readFromObjectStream
   void readFromObjectStream(ObjectStream& istream);
 
-private:
-
-  //DO NOT ADD VARIABLE here... add to BaseDataset which is copy-able
 
 };
 

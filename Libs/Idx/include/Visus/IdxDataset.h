@@ -56,8 +56,6 @@ class VISUS_IDX_API IdxDataset  : public Dataset
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(IdxDataset)
-
   //idxfile
   IdxFile idxfile;
 
@@ -77,6 +75,13 @@ public:
   //getTypeName
   virtual String getTypeName() const override {
     return "IdxDataset";
+  }
+
+  //clone
+  virtual SharedPtr<Dataset> clone() const override {
+    auto ret = std::make_shared<IdxDataset>();
+    *ret = *this;
+    return ret;
   }
 
   //loadDataset
@@ -117,8 +122,6 @@ public:
   //setIdxFile
   void setIdxFile(IdxFile value);
 
-  //special function for mosaic idx
-  SharedPtr<IdxDataset> cloneForMosaic() const;
 
 public:
 

@@ -52,8 +52,6 @@ class VISUS_IDX_API IdxMultipleDataset  : public IdxDataset
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(IdxMultipleDataset)
-
   //___________________________________________________
   class VISUS_IDX_API Child
   {
@@ -79,6 +77,13 @@ public:
   //getTypeName
   virtual String getTypeName() const override {
     return "IdxMultipleDataset";
+  }
+
+  //clone
+  virtual SharedPtr<Dataset> clone() const override {
+    auto ret = std::make_shared<IdxMultipleDataset>();
+    *ret = *this;
+    return ret;
   }
 
   //getChild

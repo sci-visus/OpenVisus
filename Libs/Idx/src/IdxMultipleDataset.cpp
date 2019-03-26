@@ -979,7 +979,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
   if (this->bMosaic && !childs.empty() && !child.mosaic_filename_template.empty())
   {
     auto first = childs.begin()->second.dataset;
-    auto other = first->cloneForMosaic();
+    auto other = std::dynamic_pointer_cast<IdxDataset>(first->clone());
     VisusReleaseAssert(first);
     VisusReleaseAssert(other);
 
