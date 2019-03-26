@@ -124,9 +124,22 @@ typedef unsigned long long Uint64;
 namespace Math {
   const double Pi = 3.14159265358979323846;
 }
-
-#define SharedPtr std::shared_ptr
-#define UniquePtr std::unique_ptr
+  
+#if SWIG
+  
+  #define SharedPtr std::shared_ptr
+  #define UniquePtr std::unique_ptr
+  
+#else
+  
+  //https://en.cppreference.com/w/cpp/language/type_alias
+  template<class T>
+  using SharedPtr = std::shared_ptr<T>;
+  
+  template<class T>
+  using UniquePtr = std::unique_ptr<T>;
+  
+#endif
 
 typedef std::string String;
 
