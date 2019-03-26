@@ -468,20 +468,17 @@ function TestOpenVisus {
   python Samples/python/Dataflow.py
   python Samples/python/Idx.py
 
-  # test if the binaries are working (for conda it may not work)...
-  if (( USE_CONDA == 1 )) ; then
-    set +e
-  fi
-
-  if (( OSX == 1 )) ; then
-    ./visus.command
-  else
-    ./visus.sh
-  fi
-
-  if (( USE_CONDA == 1 )) ; then
-    set -e
-  fi
+	if (( OSX == 1 )) ; then
+		if (( USE_CONDA == 1 )) ; then
+			echo "Skipping execution of visus.command"
+			echo "conda standalone commands are not working"
+			echo "reason: dyld: Symbol not found: _iconv	"		
+		else
+			./visus.command
+		fi
+	else
+		./visus.sh
+	fi
 }
 
 
