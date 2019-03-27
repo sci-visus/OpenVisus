@@ -49,10 +49,10 @@ import numpy
 from OpenVisus import *
 
 # ////////////////////////////////////////////////////////////////////////
-class TextIdx(unittest.TestCase):
+class TestIdx(unittest.TestCase):
   
 	def testIdx(self):
-		self.filename="temp/tutorial_1.idx"
+		self.filename="temp/TestIdx.idx"
 		self.WriteIdx()
 		self.ReadIdx()
 		self.MergeIdx()

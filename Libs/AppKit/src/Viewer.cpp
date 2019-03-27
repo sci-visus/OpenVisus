@@ -246,9 +246,17 @@ void Viewer::setMinimal()
 ////////////////////////////////////////////////////////////
 void Viewer::setFieldName(String value)
 {
-  if (auto fieldnode = this->findNodeByType<FieldNode>())
-    fieldnode->setFieldName(value);
+  if (auto node = this->findNodeByType<FieldNode>())
+    node->setFieldName(value);
 }
+
+////////////////////////////////////////////////////////////
+void Viewer::setScriptingCode(String value)
+{
+  if (auto node = this->findNodeByType<ScriptingNode>())
+    node->setCode(value);
+}
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 void Viewer::configureFromCommandLine(std::vector<String> args)

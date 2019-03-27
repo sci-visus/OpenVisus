@@ -193,6 +193,9 @@ public:
   //setFieldName
   void setFieldName(String value);
 
+  //setScriptingCode
+  void setScriptingCode(String value);
+
   //configureFromCommandLine
   void configureFromCommandLine(std::vector<String> args);
 
