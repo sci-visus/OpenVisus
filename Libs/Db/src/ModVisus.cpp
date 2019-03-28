@@ -58,18 +58,22 @@ static NetResponse CreateNetResponseError(int status,String errormsg,String file
 #define NetResponseError(status,errormsg) CreateNetResponseError(status,errormsg,__FILE__,__LINE__)
 
 
-String read_dataset_template = "$(protocol)://$(hostname):$(port)/mod_visus?action=readdataset&dataset=$(name)";
-String read_scene_template = "$(protocol)://$(hostname):$(port)/mod_visus?action=readscene&scene=$(name)";
+
 
 ////////////////////////////////////////////////////////////////////////////////
 class ModVisus::Datasets
 {
 public:
-  
-  RWLock            lock;
+
+  RWLock lock;
 
   //constructor
   Datasets() : stree("datasets") {
+  }
+
+  //getUrl
+  String getUrl(String name) {
+    return "$(protocol)://$(hostname):$(port)/mod_visus?action=readdataset&dataset=" + name;
   }
 
   //load
@@ -146,7 +150,7 @@ private:
     StringTree* child=dst.addChild(StringTree("dataset"));
     child->attributes= dataset->getConfig().attributes; //for example kdquery=true could be maintained!
     child->writeString("name", name);
-    child->writeString("url", StringUtils::replaceAll(read_dataset_template, "$(name)", name));
+    child->writeString("url", getUrl(name));
 
     //automatically add the childs of a multiple datasets
     for (auto it : dataset->getInnerDatasets())
@@ -215,9 +219,14 @@ private:
 class ModVisus::Scenes
 {
 public:
-  
+
   //constructor
   Scenes() : stree("scenes") {
+  }
+
+  //getUrl
+  String getUrl(String name) {
+    return "$(protocol)://$(hostname):$(port)/mod_visus?action=readscene&scene=" + name;
   }
 
   //load
@@ -312,7 +321,7 @@ private:
     StringTree* child = dst.addChild(StringTree("dataset"));
     // child->attributes=scene->getConfig().attributes; 
     child->writeString("name", name);
-    child->writeString("url", StringUtils::replaceAll(read_scene_template, "$(name)", name));
+    child->writeString("url", getUrl(name));
   }
   
 };
@@ -455,11 +464,7 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
         auto cursor = stack.top(); stack.pop();
 
         if (cursor->name == "dataset" && cursor->hasValue("name") && cursor->hasValue("url"))
-        {
-          String name = cursor->readString("name");
-          String url = StringUtils::replaceAll(read_dataset_template, "$(name)", dataset_name + "/" + name);
-          cursor->writeString("url", url);
-        }
+          cursor->writeString("url", datasets->getUrl(dataset_name + "/" + cursor->readString("name")));
 
         for (auto child : cursor->getChilds())
           stack.push(child);
@@ -502,11 +507,7 @@ NetResponse ModVisus::handleReadScene(const NetRequest& request)
         auto cursor = stack.top(); stack.pop();
 
         if (cursor->name == "scene" && cursor->hasValue("name") && cursor->hasValue("url"))
-        {
-          String name = cursor->readString("name");
-          String url = StringUtils::replaceAll(read_scene_template, "$(name)", scene_name + "/" + name);
-          cursor->writeString("url", url);
-        }
+          cursor->writeString("url", scenes->getUrl(scene_name + "/" + cursor->readString("name")));
 
         for (auto child : cursor->getChilds())
           stack.push(child);
