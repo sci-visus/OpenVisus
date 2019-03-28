@@ -156,61 +156,55 @@ public:
   enum BodyFormat
   {
     XmlFormat,
-    HtmlFormat,
     JSONFormat
   };
 
   //constructor
-  PublicDatasets() : list("datasets") {
+  PublicDatasets() : stree("datasets") {
   }
 
-  //getList
-  String getList(BodyFormat format, String property="") 
+  //getBody
+  String getBody(BodyFormat format) 
   {
     ScopedReadLock read_lock(this->lock);
 
-    if (!property.empty())
-    {
-      StringTree filtered_list;
-      recursiveFindDatasets(filtered_list,this->list,property);
-      return dumpList(format,filtered_list);
-    }
-    else
-    {
-      return dumpList(format,this->list);
-    }
+    if (format == JSONFormat)
+      return stree.toJSONString();
+
+    return stree.toString();
   }
 
-  //findPublicDataset
-  SharedPtr<PublicDataset> findPublicDataset(String name)
+  //find
+  SharedPtr<PublicDataset> find(String name)
   {
-    if (!name.empty()) 
+    if (name.empty())
+      return SharedPtr<PublicDataset>();
+
+    for (auto bReload : { 0,1 })
     {
+      if (bReload)
+      {
+        if (!VisusConfig::getSingleton()->reload())
+          continue;
+
+        //TODO: (optimization for reloads) only add new public datasets by diffing entries in string tree instead of reconfiguring all datasets
+        this->add(*VisusConfig::getSingleton());
+      }
+
       {
         ScopedReadLock read_lock(this->lock);
-        auto it=this->map.find(name);
-        if (it!=this->map.end())
+        auto it = this->map.find(name);
+        if (it != this->map.end())
           return it->second;
       }
-
-
-      if (VisusConfig::getSingleton()->reload())
-      {
-        this->configureDatasets(*VisusConfig::getSingleton()); //TODO: (optimization for reloads) only add new public datasets by diffing entries in string tree instead of reconfiguring all datasets
-        {
-          ScopedReadLock read_lock(this->lock);
-          auto it=this->map.find(name);
-          if (it!=this->map.end())
-            return it->second;
-        }
-      }
     }
+
     return SharedPtr<PublicDataset>();
   }
 
-  //addPublicDataset
+  //add
   //NOTE: this works only IIF you don't use alias or templates or any XML processing
-  bool addPublicDataset(StringTree& src,bool bPersistent)
+  bool add(const StringTree& src,bool bPersistent)
   {
     ScopedWriteLock write_lock(this->lock);
 
@@ -242,26 +236,26 @@ public:
       }
     }
 
-    return recursiveAddDatasetsFromStringTree(write_lock,this->list,src)>0;
+    return add(this->stree,src)>0;
   }
 
-  //addPublicDataset
-  bool addPublicDataset(String name,String url,bool bPersistent)
+  //add
+  bool add(String name,String url,bool bPersistent)
   {
     StringTree stree("dataset");
     stree.writeString("name",name);
     stree.writeString("url",url);
     stree.writeString("permissions","public");
-    return addPublicDataset(stree,bPersistent);
+    return add(stree,bPersistent);
   }
 
-  //configureDatasets
-  void configureDatasets(const StringTree& visus_config)
+  //add
+  void add(const StringTree& stree)
   {
     ScopedWriteLock write_lock(this->lock);
     this->map.clear();
-    this->list=StringTree("datasets");
-    recursiveAddDatasetsFromStringTree(write_lock,this->list,visus_config);
+    this->stree =StringTree("datasets");
+    add(this->stree, stree);
   }
 
 private:
@@ -272,108 +266,10 @@ private:
 
   RWLock            lock;
   Map               map;
-  StringTree        list;
+  StringTree        stree;
 
-  //recursiveFindDatasets
-  static int recursiveFindDatasets(StringTree& result,const StringTree& list,const String property="")
-  {
-    if (list.name=="dataset") 
-    {
-      String name = list.readString("name");
-
-      bool is_public=StringUtils::contains(list.readString("permissions"),"public"); 
-      if (!is_public)
-      {
-        VisusWarning()<<"Dataset name("<<name<<") is not public, skipping it";
-        return 0;
-      }
-
-      if (name.empty())
-      {
-        VisusWarning()<<"Dataset name("<<name<<") is not valid, skipping it";
-        VisusAssert(false);
-        return 0;
-      }
-
-      auto dataset=Dataset::loadDataset(name);
-      if (!dataset)
-      {
-        VisusWarning()<<"Dataset::loadDataset("<<name<<") failed, skipping it";
-        return 0;
-      }
-
-      //filters
-      Url url=dataset->getUrl();
-      String TypeName;
-      if (!url.valid())
-        return 0;
-      else if (url.isFile())
-      {
-        String extension=Path(url.getPath()).getExtension();
-        TypeName = DatasetFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
-        if (TypeName.empty()) 
-          return 0;
-      }
-      else if (StringUtils::contains(url.toString(),"mod_visus"))
-      {
-        url.setParam("action","readdataset");
-      
-        auto response=NetService::getNetResponse(url);
-        if (!response.isSuccessful())
-          return 0;
-      
-        TypeName = response.getHeader("visus-typename","IdxDataset");
-        if (TypeName.empty())
-          return 0;
-
-        // backward compatible 
-        if (TypeName == "MultipleDataset")
-          TypeName="IdxMultipleDataset";
-      }
-      //legacy dataset (example google maps)
-      else if (StringUtils::endsWith(url.getHostname(),".google.com"))
-      {
-        TypeName = "GoogleMapsDataset";
-      }
-
-      if (property.empty())
-        result.addChild(list);
-      else if (property=="midx" && TypeName=="IdxMultipleDataset")
-        result.addChild(list);
-      else if (property=="idx" && TypeName=="IdxDataset")
-        result.addChild(list);
-      else
-        VisusInfo()<<"Skipping "<<name<<"(type="<<TypeName<<") because property="<<property;
-
-      return 1;
-    }
-    //I want to maintain the group hierarchy!
-    else if (list.name=="group")
-    {
-      StringTree body_group(list.name);
-      body_group.attributes=list.attributes;
-    
-      int ret=0;
-      for (int I=0;I<(int)list.getNumberOfChilds();I++)
-        ret+=recursiveFindDatasets(result,list.getChild(I),property);
-
-      if (ret)
-        result.addChild(body_group);
-
-      return ret;
-    }
-    //flattening the hierarchy!
-    else
-    {
-      int ret=0;
-      for (int I=0;I<(int)list.getNumberOfChilds();I++)
-        ret+=recursiveFindDatasets(result,list.getChild(I),property);
-      return ret;
-    }
-  }
-
-  //recursiveAddPublicDataset
-  void recursiveAddPublicDataset(ScopedWriteLock& write_lock,StringTree& list,SharedPtr<PublicDataset> public_dataset)
+  //add (Need write lock)
+  void add(StringTree& dst,SharedPtr<PublicDataset> public_dataset)
   {
     String public_name=public_dataset->getName();
 
@@ -383,7 +279,7 @@ private:
     public_dataset->getDataset()->bServerMode = true;
     this->map[public_name]=public_dataset;
 
-    StringTree* list_child=list.addChild(StringTree("dataset"));
+    StringTree* list_child=dst.addChild(StringTree("dataset"));
     list_child->attributes=public_dataset->getDataset()->getConfig().attributes; //for example kdquery=true could be maintained!
     list_child->writeString("name",public_name);
     list_child->writeString("url",public_dataset->getUrl()); 
@@ -393,114 +289,66 @@ private:
     {
       auto child_public_name=public_name+"/"+it.first;
       auto child_dataset=it.second;
-      recursiveAddPublicDataset(write_lock,*list_child,std::make_shared<PublicDataset>(child_public_name,child_dataset));
+      add(*list_child,std::make_shared<PublicDataset>(child_public_name,child_dataset));
     }
   }
 
-  //recursiveAddDatasetsFromStringTree
-  int recursiveAddDatasetsFromStringTree(ScopedWriteLock& write_lock,StringTree& list,const StringTree& src)
+  //add (need write lock)
+  int add(StringTree& dst,const StringTree& src)
   {
-    if (src.name=="dataset") 
-    {
-      String name = src.readString("name");
-
-      bool is_public=StringUtils::contains(src.readString("permissions"),"public"); 
-      if (!is_public)
-      {
-        VisusWarning()<<"Dataset name("<< src.name <<") is not public, skipping it";
-        return 0;
-      }
-      
-      if (name.empty())
-      {
-        VisusWarning()<<"Dataset name("<<name<<") is not valid, skipping it";
-        VisusAssert(false);
-        return 0;
-      }
-
-      auto dataset=Dataset::loadDataset(name);
-      if (!dataset)
-      {
-        VisusWarning()<<"Dataset::loadDataset("<<name<<") failed, skipping it";
-        return 0;
-      }
-
-      recursiveAddPublicDataset(write_lock,list,std::make_shared<PublicDataset>(name,dataset));
-      return 1;
-    }
     //I want to maintain the group hierarchy!
-    else if (src.name=="group")
+    if (src.name=="group")
     {
       StringTree body_group(src.name);
       body_group.attributes=src.attributes;
     
       int ret=0;
       for (int I=0;I<(int)src.getNumberOfChilds();I++)
-        ret+=recursiveAddDatasetsFromStringTree(write_lock,body_group,src.getChild(I));
+        ret+= add(body_group,src.getChild(I));
 
       if (ret)
-        list.addChild(body_group);
+        dst.addChild(body_group);
 
       return ret;
     }
+
     //flattening the hierarchy!
-    else
+    if (src.name!="dataset")
     {
       int ret=0;
       for (int I=0;I<(int)src.getNumberOfChilds();I++)
-        ret+=recursiveAddDatasetsFromStringTree(write_lock,list,src.getChild(I));
+        ret+=add(dst,src.getChild(I));
       return ret;
     }
+
+    String name = src.readString("name");
+
+    bool is_public = StringUtils::contains(src.readString("permissions"), "public");
+    if (!is_public)
+    {
+      VisusWarning() << "Dataset name(" << src.name << ") is not public, skipping it";
+      return 0;
+    }
+
+    if (name.empty())
+    {
+      VisusWarning() << "Dataset name(" << name << ") is not valid, skipping it";
+      VisusAssert(false);
+      return 0;
+    }
+
+    auto dataset = Dataset::loadDataset(name);
+    if (!dataset)
+    {
+      VisusWarning() << "Dataset::loadDataset(" << name << ") failed, skipping it";
+      return 0;
+    }
+
+    add(dst, std::make_shared<PublicDataset>(name, dataset));
+    return 1;
   }
 
-  //getListAsHtmlFormat
-  static void getListAsHtmlFormat(std::ostringstream& out,const StringTree& cursor,const String& tab,const String& crlf)
-  {
-    if (cursor.name=="datasets")
-    {
-      String s="<h1>Datasets</h1><br>";
-      out<<tab<<s<<crlf;
-    }
-    else if (cursor.name=="group")
-    {
-      String s="<h2>$(name)</h2><br>";
-      s=StringUtils::replaceAll(s,"$(name)",cursor.readString("name"));
-      out<<tab<<s<<crlf;
-    }
-    else if (cursor.name=="dataset")
-    {
-      String s="<a href='$(url)'>$(name)</a><br>";
-      s=StringUtils::replaceAll(s,"$(name)",cursor.readString("name"));
-      s=StringUtils::replaceAll(s,"$(url)" ,cursor.readString("url"));
-      out<<tab<<s<<crlf;
-    }
 
-    for (int I=0;I<(int)cursor.getNumberOfChilds();I++)
-      getListAsHtmlFormat(out,cursor.getChild(I),tab+"&nbsp;&nbsp;",crlf);
-  }
-
-  //dumpList
-  static String dumpList(BodyFormat format,const StringTree& list)
-  {
-    if (format==HtmlFormat)
-    {
-      std::ostringstream  out;
-      String crlf="\r\n";
-      out<<"<HTML>"<<crlf;
-      out<<"<HEAD><TITLE>Visus datasets</TITLE>"<<crlf;
-      getListAsHtmlFormat(out,list,"",crlf);
-      out<<"</HEAD>"<<crlf;
-      out<<"<BODY>"<<crlf;
-      return out.str();
-    }
-
-    if (format==JSONFormat)
-    {
-      return list.toJSONString();
-    }
-
-    return list.toString();
-  }
 
 };
   
@@ -533,8 +381,6 @@ public:
     return scene_body;
   }
   
-
-  
 private:
   
   VISUS_NON_COPYABLE_CLASS(PublicScene)
@@ -554,7 +400,6 @@ private:
     if (scene_body.empty())
       return scene->getUrl().toString();
     
-    //special case for IdxMultipleDataset, I need to remap urls
     {
       StringTree stree;
       if (stree.fromXmlString(scene_body))
@@ -585,303 +430,117 @@ private:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-class ModVisus::PublicScenes
+class ModVisus::Scenes
 {
 public:
   
   enum BodyFormat
   {
     XmlFormat,
-    HtmlFormat,
     JSONFormat
   };
   
   //constructor
-  PublicScenes() : list("scenes") {
+  Scenes() : stree("scenes") {
   }
   
-  //getList
-  String getList(BodyFormat format, String property="")
+  //getBody
+  String getBody(BodyFormat format)
   {
     ScopedReadLock read_lock(this->lock);
-    
-    if (!property.empty())
-    {
-      StringTree filtered_list;
-      recursiveFindScenes(filtered_list,this->list,property);
-      return dumpList(format,filtered_list);
-    }
-    else
-    {
-      return dumpList(format,this->list);
-    }
-  }
-  
-  //findPublicScene
-  SharedPtr<PublicScene> findPublicScene(String name)
-  {
-    if (!name.empty())
-    {
-      {
-        ScopedReadLock read_lock(this->lock);
-        auto it=this->map.find(name);
-        if (it!=this->map.end())
-          return it->second;
-      }
 
-      //not found, reload visus.config and try again
-      if (VisusConfig::getSingleton()->reload())
-      {
-        this->configureScenes(*VisusConfig::getSingleton()); //TODO: (optimization for reloads) only add new public datasets by diffing entries in string tree instead of reconfiguring all datasets
-        {
-          ScopedReadLock read_lock(this->lock);
-          auto it=this->map.find(name);
-          if (it!=this->map.end())
-            return it->second;
-        }
-      }
-    }
-    return SharedPtr<PublicScene>();
+    if (format == JSONFormat)
+      return stree.toJSONString();
+
+    return stree.toString();
   }
   
-  //configureScenes
-  void configureScenes(const StringTree& visus_config)
+  //find
+  SharedPtr<PublicScene> find(String name)
+  {
+    ScopedReadLock read_lock(this->lock);
+    auto it=this->map.find(name);
+    return it != this->map.end() ? it->second : SharedPtr<PublicScene>();
+  }
+  
+  //add
+  void add(const StringTree& stree)
   {
     ScopedWriteLock write_lock(this->lock);
     this->map.clear();
-    this->list=StringTree("scenes");
-    recursiveAddSceneFromStringTree(write_lock,this->list,visus_config);
+    this->stree =StringTree("scenes");
+    add(this->stree, stree);
   }
 
 private:
   
-  VISUS_NON_COPYABLE_CLASS(PublicScenes)
+  VISUS_NON_COPYABLE_CLASS(Scenes)
   
   typedef std::map<String, SharedPtr<PublicScene > > Map;
   
   RWLock            lock;
   Map               map;
-  StringTree        list;
+  StringTree        stree;
   
-  //recursiveFindDatasets
-  static int recursiveFindScenes(StringTree& result,const StringTree& list,const String property="")
+  //add (need write lock)
+  void add(StringTree& dst,const StringTree& src)
   {
-    if (list.name=="dataset")
-    {
-      String name = list.readString("name");
-
-      bool is_public=StringUtils::contains(list.readString("permissions"),"public");
-      if (!is_public)
-      {
-        VisusWarning()<<"Scene name("<<name<<") is not public, skipping it";
-        return 0;
-      }
-      
-      if (name.empty())
-      {
-        VisusWarning()<<"Scene name("<<name<<") is not valid, skipping it";
-        VisusAssert(false);
-        return 0;
-      }
-      
-      auto dataset=Dataset::loadDataset(name);
-      if (!dataset)
-      {
-        VisusWarning()<<"Scene::loadDataset("<<name<<") failed, skipping it";
-        return 0;
-      }
-      
-      //filters
-      Url url=dataset->getUrl();
-      String TypeName;
-      if (!url.valid())
-        return 0;
-      else if (url.isFile())
-      {
-        String extension=Path(url.getPath()).getExtension();
-        TypeName = DatasetFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
-        if (TypeName.empty())
-          return 0;
-      }
-      else if (StringUtils::contains(url.toString(),"mod_visus"))
-      {
-        url.setParam("action","readdataset");
-        
-        auto response=NetService::getNetResponse(url);
-        if (!response.isSuccessful())
-          return 0;
-        
-        TypeName = response.getHeader("visus-typename","IdxDataset");
-        if (TypeName.empty())
-          return 0;
-        
-        // backward compatible
-        if (TypeName == "MultipleDataset")
-          TypeName="IdxMultipleDataset";
-      }
-      //legacy dataset (example google maps)
-      else if (StringUtils::endsWith(url.getHostname(),".google.com"))
-      {
-        TypeName = "GoogleMapsDataset";
-      }
-      
-      if (property.empty())
-        result.addChild(list);
-      else if (property=="midx" && TypeName=="IdxMultipleDataset")
-        result.addChild(list);
-      else if (property=="idx" && TypeName=="IdxDataset")
-        result.addChild(list);
-      else
-        VisusInfo()<<"Skipping "<<name<<"(type="<<TypeName<<") because property="<<property;
-      
-      return 1;
-    }
     //I want to maintain the group hierarchy!
-    else if (list.name=="group")
+    if (src.name=="group")
     {
-      StringTree body_group(list.name);
-      body_group.attributes=list.attributes;
+      auto group = dst.addChild(StringTree(src.name));
+      group->attributes=src.attributes;
       
-      int ret=0;
-      for (int I=0;I<(int)list.getNumberOfChilds();I++)
-        ret+=recursiveFindScenes(result,list.getChild(I),property);
+      for (auto child : src.getChilds())
+        add(*group,*child);
       
-      if (ret)
-        result.addChild(body_group);
-      
-      return ret;
+      return ;
     }
-    //flattening the hierarchy!
-    else
-    {
-      int ret=0;
-      for (int I=0;I<(int)list.getNumberOfChilds();I++)
-        ret+=recursiveFindScenes(result,list.getChild(I),property);
-      return ret;
-    }
-  }
-  
-  //recursiveAddPublicScene
-  void recursiveAddPublicScene(ScopedWriteLock& write_lock,StringTree& list,SharedPtr<PublicScene> public_scene)
-  {
-    String public_name=public_scene->getName();
-    
-    if (map.find(public_name)!=map.end())
-      VisusWarning()<<"Scene name("<<public_name<<") already exists, overwriting it";
-    
-    this->map[public_scene->getName()]=public_scene;
-    
-    StringTree* list_child=list.addChild(StringTree("dataset"));
-   // list_child->attributes=public_dataset->getDataset()->getConfig().attributes; //for example kdquery=true could be maintained!
-    list_child->writeString("name",public_name);
-    list_child->writeString("url",public_scene->getUrl());
-  }
-  
-  //recursiveAddSceneFromStringTree
-  int recursiveAddSceneFromStringTree(ScopedWriteLock& write_lock,StringTree& list,const StringTree& src)
-  {
-    if (src.name=="scene")
-    {
-      String name = src.readString("name");
 
-      bool is_public=StringUtils::contains(src.readString("permissions"),"public");
-      if (!is_public)
-      {
-        VisusWarning()<<"Scene name("<<name<<") is not public, skipping it";
-        return 0;
-      }
-      
-      if (name.empty())
-      {
-        VisusWarning()<<"Scene name("<<name<<") is not valid, skipping it";
-        VisusAssert(false);
-        return 0;
-      }
-      
-      auto scene=Scene::loadScene(name);
-      if (!scene)
-      {
-        VisusWarning()<<"Scene::loadScene("<<scene<<") failed, skipping it";
-        return 0;
-      }
-      
-      recursiveAddPublicScene(write_lock,list,std::make_shared<PublicScene>(name,scene));
-      return 1;
-    }
-    //I want to maintain the group hierarchy!
-    else if (src.name=="group")
-    {
-      StringTree body_group(src.name);
-      body_group.attributes=src.attributes;
-      
-      int ret=0;
-      for (int I=0;I<(int)src.getNumberOfChilds();I++)
-        ret+=recursiveAddSceneFromStringTree(write_lock,body_group,src.getChild(I));
-      
-      if (ret)
-        list.addChild(body_group);
-      
-      return ret;
-    }
     //flattening the hierarchy!
-    else
+    if (src.name != "scene")
     {
-      int ret=0;
-      for (int I=0;I<(int)src.getNumberOfChilds();I++)
-        ret+=recursiveAddSceneFromStringTree(write_lock,list,src.getChild(I));
-      return ret;
+      for (auto child : src.getChilds())
+        add(dst,*child);
+      return;
     }
+
+    String name = src.readString("name");
+
+    bool is_public = StringUtils::contains(src.readString("permissions"), "public");
+    if (!is_public)
+    {
+      VisusWarning() << "Scene name(" << name << ") is not public, skipping it";
+      return;
+    }
+
+    if (name.empty())
+    {
+      VisusWarning() << "Scene name(" << name << ") is not valid, skipping it";
+      VisusAssert(false);
+      return;
+    }
+
+    auto scene = Scene::loadScene(name);
+    if (!scene)
+    {
+      VisusWarning() << "Scene::loadScene(" << scene << ") failed, skipping it";
+      return;
+    }
+
+    auto public_scene = std::make_shared<PublicScene>(name, scene);
+
+    if (map.find(name) != map.end())
+      VisusWarning() << "Scene name(" << name << ") already exists, overwriting it";
+
+    this->map[public_scene->getName()] = public_scene;
+
+    StringTree* child = dst.addChild(StringTree("dataset"));
+    // child->attributes=public_dataset->getDataset()->getConfig().attributes; //for example kdquery=true could be maintained!
+    child->writeString("name", name);
+    child->writeString("url", public_scene->getUrl());
   }
   
-  //getListAsHtmlFormat
-  static void getListAsHtmlFormat(std::ostringstream& out,const StringTree& cursor,const String& tab,const String& crlf)
-  {
-    if (cursor.name=="datasets")
-    {
-      String s="<h1>Datasets</h1><br>";
-      out<<tab<<s<<crlf;
-    }
-    else if (cursor.name=="group")
-    {
-      String s="<h2>$(name)</h2><br>";
-      s=StringUtils::replaceAll(s,"$(name)",cursor.readString("name"));
-      out<<tab<<s<<crlf;
-    }
-    else if (cursor.name=="dataset")
-    {
-      String s="<a href='$(url)'>$(name)</a><br>";
-      s=StringUtils::replaceAll(s,"$(name)",cursor.readString("name"));
-      s=StringUtils::replaceAll(s,"$(url)" ,cursor.readString("url"));
-      out<<tab<<s<<crlf;
-    }
-    
-    for (int I=0;I<(int)cursor.getNumberOfChilds();I++)
-      getListAsHtmlFormat(out,cursor.getChild(I),tab+"&nbsp;&nbsp;",crlf);
-  }
-  
-  
-  //dumpList
-  static String dumpList(BodyFormat format,const StringTree& list)
-  {
-    if (format==HtmlFormat)
-    {
-      std::ostringstream  out;
-      String crlf="\r\n";
-      out<<"<HTML>"<<crlf;
-      out<<"<HEAD><TITLE>Visus scenes</TITLE>"<<crlf;
-      getListAsHtmlFormat(out,list,"",crlf);
-      out<<"</HEAD>"<<crlf;
-      out<<"<BODY>"<<crlf;
-      return out.str();
-    }
-    
-    if (format==JSONFormat)
-    {
-      return list.toJSONString();
-    }
-    
-    return list.toString();
-  }
   
 };
 
@@ -890,7 +549,7 @@ private:
 ModVisus::ModVisus()
 {
   datasets=std::make_shared<PublicDatasets>();
-  scenes  =std::make_shared<PublicScenes>();
+  scenes  =std::make_shared<Scenes>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -904,12 +563,12 @@ bool ModVisus::configureDatasets()
 
   VisusConfig::getSingleton()->reload();
 
-  datasets->configureDatasets(*VisusConfig::getSingleton());
-  scenes->configureScenes(*VisusConfig::getSingleton());
+  datasets->add(*VisusConfig::getSingleton());
+  scenes->add(*VisusConfig::getSingleton());
 
-  VisusInfo()<<"/mod_visus?action=list\n"<<datasets->getList(PublicDatasets::XmlFormat);
+  VisusInfo()<<"/mod_visus?action=list\n"<<datasets->getBody(PublicDatasets::XmlFormat);
 
-  VisusInfo()<<"/mod_visus?action=list_scenes\n"<<scenes->getList(PublicScenes::XmlFormat);
+  VisusInfo()<<"/mod_visus?action=list_scenes\n"<<scenes->getBody(Scenes::XmlFormat);
 
   return true;
 }
@@ -937,10 +596,10 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
     String name=request.url.getParam("name");
     String url=request.url.getParam("url");
 
-    if (datasets->findPublicDataset(name))
+    if (datasets->find(name))
       return NetResponseError(HttpStatus::STATUS_CONFLICT,"Cannot add dataset(" + name + ") because it already exists");
 
-    bOk=datasets->addPublicDataset(name,url,bPersistent);
+    bOk=datasets->add(name,url,bPersistent);
   }
   else if (request.url.hasParam("xml"))
   {
@@ -950,10 +609,10 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST,"Cannot decode xml");
 
     String name = stree.readString("name");
-    if (datasets->findPublicDataset(name))
+    if (datasets->find(name))
       return NetResponseError(HttpStatus::STATUS_CONFLICT,"Cannot add dataset(" + name + ") because it already exists");
 
-    bOk=datasets->addPublicDataset(stree,bPersistent);
+    bOk=datasets->add(stree,bPersistent);
   }
 
   if (!bOk)
@@ -968,7 +627,7 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
 {
   String dataset_name=request.url.getParam("dataset");
 
-  SharedPtr<PublicDataset> public_dataset=datasets->findPublicDataset(dataset_name);
+  SharedPtr<PublicDataset> public_dataset=datasets->find(dataset_name);
   if (!public_dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find dataset(" + dataset_name + ")");
 
@@ -986,7 +645,7 @@ NetResponse ModVisus::handleReadScene(const NetRequest& request)
 {
   String scene_name=request.url.getParam("scene");
   
-  SharedPtr<PublicScene> public_scene=scenes->findPublicScene(scene_name);
+  SharedPtr<PublicScene> public_scene=scenes->find(scene_name);
   if (!public_scene)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find scene(" + scene_name + ")");
   
@@ -1006,7 +665,6 @@ NetResponse ModVisus::handleGetListOfDatasets(const NetRequest& request)
   String format=request.url.getParam("format","xml");
   String hostname=request.url.getParam("hostname"); //trick if you want $(localhost):$(port) to be replaced with what the client has
   String port=request.url.getParam("port");
-  String property=request.url.getParam("property");
 
   NetResponse response(HttpStatus::STATUS_OK);
 
@@ -1014,15 +672,11 @@ NetResponse ModVisus::handleGetListOfDatasets(const NetRequest& request)
 
   if (format=="xml")
   {
-    response.setXmlBody(datasets->getList(PublicDatasets::XmlFormat,property));
-  }
-  else if (format=="html")
-  {
-    response.setHtmlBody(datasets->getList(PublicDatasets::HtmlFormat,property));
+    response.setXmlBody(datasets->getBody(PublicDatasets::XmlFormat));
   }
   else if (format=="json")
   {
-    response.setJSONBody(datasets->getList(PublicDatasets::JSONFormat,property));
+    response.setJSONBody(datasets->getBody(PublicDatasets::JSONFormat));
   }
   else
   {
@@ -1044,7 +698,6 @@ NetResponse ModVisus::handleGetListOfScenes(const NetRequest& request)
   String format=request.url.getParam("format","xml");
   String hostname=request.url.getParam("hostname"); //trick if you want $(localhost):$(port) to be replaced with what the client has
   String port=request.url.getParam("port");
-  String property=request.url.getParam("property");
   
   NetResponse response(HttpStatus::STATUS_OK);
   
@@ -1052,15 +705,11 @@ NetResponse ModVisus::handleGetListOfScenes(const NetRequest& request)
   
   if (format=="xml")
   {
-    response.setXmlBody(scenes->getList(PublicScenes::XmlFormat,property));
-  }
-  else if (format=="html")
-  {
-    response.setHtmlBody(scenes->getList(PublicScenes::HtmlFormat,property));
+    response.setXmlBody(scenes->getBody(Scenes::XmlFormat));
   }
   else if (format=="json")
   {
-    response.setJSONBody(scenes->getList(PublicScenes::JSONFormat,property));
+    response.setJSONBody(scenes->getBody(Scenes::JSONFormat));
   }
   else
   {
@@ -1107,7 +756,7 @@ NetResponse ModVisus::handleOpenSeaDragon(const NetRequest& request)
   String debugMode     = request.url.getParam("debugMode","false");
   String showNavigator = request.url.getParam("showNavigator","true");
 
-  SharedPtr<PublicDataset> public_dataset=datasets->findPublicDataset(dataset_name);
+  SharedPtr<PublicDataset> public_dataset=datasets->find(dataset_name);
   if (!public_dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find dataset(" + dataset_name + ")");
   
@@ -1185,7 +834,7 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 {
   String dataset_name = request.url.getParam("dataset");
 
-  SharedPtr<PublicDataset> public_dataset=datasets->findPublicDataset(dataset_name);
+  SharedPtr<PublicDataset> public_dataset=datasets->find(dataset_name);
   if (!public_dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find dataset(" + dataset_name + ")");
 
@@ -1269,7 +918,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   double palette_max     = cdouble(request.url.getParam("palette_max"));
   String palette_interp  =        (request.url.getParam("palette_interp"));
 
-  SharedPtr<PublicDataset> public_dataset=datasets->findPublicDataset(dataset_name);
+  SharedPtr<PublicDataset> public_dataset=datasets->find(dataset_name);
   if (!public_dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find dataset(" + dataset_name + ")");
 

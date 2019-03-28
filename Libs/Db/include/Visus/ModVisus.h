@@ -69,10 +69,10 @@ public:
 private:
 
   class PublicDatasets;
-  class PublicScenes;
+  class Scenes;
 
   SharedPtr<PublicDatasets> datasets;
-  SharedPtr<PublicScenes>   scenes;
+  SharedPtr<Scenes>   scenes;
 
   //all requests
   NetResponse handleConfigureDatasets(const NetRequest& request);
