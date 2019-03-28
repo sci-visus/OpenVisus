@@ -62,7 +62,7 @@ public:
   virtual ~Scene() {
   }
 
-  //loadDataset
+  //loadScene
   static SharedPtr<Scene> loadScene(String name);
 
   //valid

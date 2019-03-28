@@ -561,7 +561,6 @@ Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, dou
   if (!beginQuery(query))
     return Array();
 
-  VisusAssert(query->nsamples == buffer.dims);
   if (!executeQuery(access, query))
     return Array();
 

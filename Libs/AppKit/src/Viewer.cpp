@@ -290,7 +290,6 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   String args_zoom_to;
 
   String open_filename = Dataset::getDefaultDataset();
-  bool bStartServer = false;
   bool bFullScreen = false;
   Rectangle2i geometry(0, 0, 0, 0);
   String fieldname;
@@ -302,10 +301,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
     {
       open_filename = args[++I];
     }
-    else if (args[I] == "--server")
-    {
-      bStartServer = true;
-    }
+
     else if (args[I] == "--fullscreen")
     {
       bFullScreen = true;
@@ -421,15 +417,6 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   if (bMinimal)
     this->setMinimal();
 
-  SharedPtr<NetServer> server;
-  if (bStartServer)
-  {
-    //mixing client and server mode for debugging purpouses
-    auto modvisus = new ModVisus();
-    modvisus->configureDatasets();
-    server = std::make_shared<NetServer>(10000, modvisus);
-    server->runInBackground();
-  }
 
   if (bFullScreen)
     this->showFullScreen();

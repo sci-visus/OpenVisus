@@ -46,27 +46,40 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API VisusConfig : public StringTree
+class VISUS_KERNEL_API ConfigFile : public StringTree
 {
 public:
-
-  VISUS_DECLARE_SINGLETON_CLASS(VisusConfig)
 
   String     filename;
   Int64      timestamp=0;
 
   //constructor
-  VisusConfig(String name= "visus_config") : StringTree(name) {
+  ConfigFile(String name= "ConfigFile") : StringTree(name) {
   }
 
   //destructor
-  ~VisusConfig() {
+  ~ConfigFile() {
   }
 
   //reload
   bool reload(bool bForce=false);
 
 };
+
+//////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API VisusConfig : public ConfigFile
+{
+public:
+
+  VISUS_DECLARE_SINGLETON_CLASS(VisusConfig)
+
+  //constructor
+  VisusConfig() : ConfigFile("visus_config") {
+  }
+
+
+};
+
 
 
 } //namespace Visus

@@ -49,16 +49,12 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////////////////////////
-static NetResponse CreateNetResponseError(int status,String errormsg,String file,int line)
+static NetResponse CreateNetResponseError(int status, String errormsg, String file, int line)
 {
-  errormsg+=" __FILE__("+file+") __LINE__("+cstring(line)+")";
-  return NetResponse(status,errormsg);
+  return NetResponse(status, errormsg + " __FILE__(" + file + ") __LINE__(" + cstring(line) + ")");
 }
 
 #define NetResponseError(status,errormsg) CreateNetResponseError(status,errormsg,__FILE__,__LINE__)
-
-
-
 
 ////////////////////////////////////////////////////////////////////////////////
 class ModVisus::Datasets
@@ -71,13 +67,17 @@ public:
   Datasets() : stree("datasets") {
   }
 
+  //destructor
+  ~Datasets() {
+  }
+
   //getUrl
   String getUrl(String name) {
     return "$(protocol)://$(hostname):$(port)/mod_visus?action=readdataset&dataset=" + name;
   }
 
   //load
-  bool load(const StringTree& stree,bool bClear=true)
+  bool load(const StringTree& stree, bool bClear = true)
   {
     ScopedWriteLock write_lock(this->lock);
     if (bClear)
@@ -85,18 +85,15 @@ public:
       this->map.clear();
       this->stree = StringTree("datasets");
     }
-    
-    return add(this->stree, stree)>0;
+    return addDatasets(this->stree, stree)>0;
   }
 
   //getBody
-  String getBody(String format="xml") 
+  String getBody(String format = "xml")
   {
     ScopedReadLock read_lock(this->lock);
-
     if (format == "json")
       return stree.toJSONString();
-
     return stree.toString();
   }
 
@@ -132,88 +129,79 @@ private:
 
   VISUS_NON_COPYABLE_CLASS(Datasets)
 
-  typedef std::map<String, SharedPtr<Dataset > > Map;
+    typedef std::map<String, SharedPtr<Dataset > > Map;
 
   Map               map;
   StringTree        stree;
 
-  //add (Need write lock)
-  void add(StringTree& dst,String name,SharedPtr<Dataset> dataset)
+  //addDataset (Need write lock)
+  int addDataset(StringTree& dst, String name, SharedPtr<Dataset> dataset)
   {
-    if (map.find(name)!=map.end())
-      VisusWarning()<<"Dataset name("<< name <<") already exists, overwriting it";
+    this->map[name] = dataset;
 
-    dataset->bServerMode = true;
+    StringTree* child = dst.addChild(StringTree("dataset"));
 
-    this->map[name]=dataset;
+    //for example kdquery=true could be maintained!
+    child->attributes = dataset->getConfig().attributes;
 
-    StringTree* child=dst.addChild(StringTree("dataset"));
-    child->attributes= dataset->getConfig().attributes; //for example kdquery=true could be maintained!
     child->writeString("name", name);
     child->writeString("url", getUrl(name));
 
+    dataset->bServerMode = true;
+
     //automatically add the childs of a multiple datasets
+    int ret = 1;
     for (auto it : dataset->getInnerDatasets())
-      add(*child, name + "/" + it.first, it.second);
+      ret += addDataset(*child, name + "/" + it.first, it.second);
+    return ret;
   }
 
-  //add (need write lock)
-  int add(StringTree& dst,const StringTree& src)
+  //addDatasets (need write lock)
+  int addDatasets(StringTree& dst, const StringTree& src)
   {
+    int ret = 0;
+
     //I want to maintain the group hierarchy!
-    if (src.name=="group")
+    if (src.name == "group")
     {
-      StringTree body_group(src.name);
-      body_group.attributes=src.attributes;
-    
-      int ret=0;
-      for (int I=0;I<(int)src.getNumberOfChilds();I++)
-        ret+= add(body_group,src.getChild(I));
-
+      StringTree group(src.name);
+      group.attributes = src.attributes;
+      for (auto child : src.getChilds())
+        ret += addDatasets(group, *child);
       if (ret)
-        dst.addChild(body_group);
-
+        dst.addChild(group);
       return ret;
     }
 
     //flattening the hierarchy!
-    if (src.name!="dataset")
-    {
-      int ret=0;
-      for (int I=0;I<(int)src.getNumberOfChilds();I++)
-        ret+=add(dst,src.getChild(I));
+    if (src.name != "dataset") {
+      for (auto child : src.getChilds())
+        ret += addDatasets(dst, *child);
       return ret;
     }
 
+    //just ignore those with empty names or not public
     String name = src.readString("name");
-
     bool is_public = StringUtils::contains(src.readString("permissions"), "public");
-    if (!is_public)
-    {
-      VisusWarning() << "Dataset name(" << src.name << ") is not public, skipping it";
+    if (name.empty() || !is_public)
       return 0;
-    }
-
-    if (name.empty())
-    {
-      VisusWarning() << "Dataset name(" << name << ") is not valid, skipping it";
-      VisusAssert(false);
-      return 0;
-    }
 
     auto dataset = Dataset::loadDataset(name);
-    if (!dataset)
-    {
-      VisusWarning() << "Dataset::loadDataset(" << name << ") failed, skipping it";
+    if (!dataset) {
+      VisusWarning() << "dataset name(" << name << ") load failed, skipping it";
       return 0;
     }
 
-    add(dst, name, dataset);
-    return 1;
+    if (map.find(name) != map.end()) {
+      VisusWarning() << "dataset name(" << name << ")  already exists, skipping it";
+      return 0;
+    }
+
+    return addDataset(dst, name, dataset);
   }
 
 };
-  
+
 
 ///////////////////////////////////////////////////////////////////////////////
 class ModVisus::Scenes
@@ -224,114 +212,119 @@ public:
   Scenes() : stree("scenes") {
   }
 
+  //destructor
+  ~Scenes() {
+  }
+
   //getUrl
   String getUrl(String name) {
     return "$(protocol)://$(hostname):$(port)/mod_visus?action=readscene&scene=" + name;
   }
 
   //load
-  void load(const StringTree& stree)
+  bool load(const StringTree& stree, bool bClear = true)
   {
     ScopedWriteLock write_lock(this->lock);
-    this->map.clear();
-    this->stree = StringTree("scenes");
-    add(this->stree, stree);
+    if (bClear)
+    {
+      this->map.clear();
+      this->stree = StringTree("scenes");
+    }
+    return addScenes(this->stree, stree)>0;
   }
-  
+
   //getBody
-  String getBody(String format="xml")
+  String getBody(String format = "xml")
   {
     ScopedReadLock read_lock(this->lock);
-
     if (format == "json")
       return stree.toJSONString();
-
     return stree.toString();
   }
-  
+
   //find
   SharedPtr<Scene> find(String name)
   {
     ScopedReadLock read_lock(this->lock);
-    auto it=this->map.find(name);
+    auto it = this->map.find(name);
     return it != this->map.end() ? it->second : SharedPtr<Scene>();
   }
 
 private:
-  
+
   VISUS_NON_COPYABLE_CLASS(Scenes)
-  
-  typedef std::map<String, SharedPtr<Scene > > Map;
+
+    typedef std::map<String, SharedPtr<Scene > > Map;
 
   RWLock            lock;
   Map               map;
   StringTree        stree;
 
-  //add (need write lock)
-  void add(StringTree& dst,const StringTree& src)
+  //addScene
+  int addScene(StringTree& dst, String name,SharedPtr<Scene> scene)
   {
+    this->map[name] = scene;
+
+    StringTree* child = dst.addChild(StringTree("scene"));
+    child->writeString("name", name);
+    child->writeString("url", getUrl(name));
+
+    return 1;
+  }
+
+  //addScenes (need write lock)
+  int addScenes(StringTree& dst, const StringTree& src)
+  {
+    int ret = 0;
+
     //I want to maintain the group hierarchy!
-    if (src.name=="group")
+    if (src.name == "group")
     {
-      auto group = dst.addChild(StringTree(src.name));
-      group->attributes=src.attributes;
-      
+      auto group = StringTree(src.name);
+      group.attributes = src.attributes;
       for (auto child : src.getChilds())
-        add(*group,*child);
-      
-      return ;
+        ret += addScenes(group, *child);
+      if (ret)
+        dst.addChild(group);
+      return ret;
     }
 
     //flattening the hierarchy!
     if (src.name != "scene")
     {
       for (auto child : src.getChilds())
-        add(dst,*child);
-      return;
+        ret += addScenes(dst, *child);
+      return ret;
     }
 
+    //just ignore those with empty names or not public
     String name = src.readString("name");
-
     bool is_public = StringUtils::contains(src.readString("permissions"), "public");
-    if (!is_public)
-    {
-      VisusWarning() << "Scene name(" << name << ") is not public, skipping it";
-      return;
-    }
-
-    if (name.empty())
-    {
-      VisusWarning() << "Scene name(" << name << ") is not valid, skipping it";
-      VisusAssert(false);
-      return;
-    }
+    if (name.empty() || !is_public)
+      return 0;
 
     auto scene = Scene::loadScene(name);
-    if (!scene)
-    {
-      VisusWarning() << "Scene::loadScene(" << scene << ") failed, skipping it";
-      return;
+    if (!scene) {
+      VisusWarning() << "Scene::loadScene(" << name << ") failed, skipping it";
+      return 0;
     }
 
-    if (map.find(name) != map.end())
-      VisusWarning() << "Scene name(" << name << ") already exists, overwriting it";
+    if (map.find(name) != map.end()) {
+      VisusWarning() << "Scene name(" << name << ") already exists, skipping it";
+      return 0;
+    }
 
-    this->map[name] = scene;
-
-    StringTree* child = dst.addChild(StringTree("dataset"));
-    // child->attributes=scene->getConfig().attributes; 
-    child->writeString("name", name);
-    child->writeString("url", getUrl(name));
+    return addScene(dst, name, scene);
   }
-  
+
 };
 
 
 ////////////////////////////////////////////////////////////////////////////////
 ModVisus::ModVisus()
 {
-  datasets=std::make_shared<Datasets>();
-  scenes  =std::make_shared<Scenes>();
+  datasets = std::make_shared<Datasets>();
+  scenes = std::make_shared<Scenes>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -341,16 +334,15 @@ ModVisus::~ModVisus()
 ////////////////////////////////////////////////////////////////////////////////
 bool ModVisus::configureDatasets()
 {
-  VisusInfo()<<"ModVisus::configureDatasets()...";
+  VisusInfo() << "ModVisus::configureDatasets()...";
 
   VisusConfig::getSingleton()->reload();
 
   datasets->load(*VisusConfig::getSingleton());
   scenes->load(*VisusConfig::getSingleton());
 
-  VisusInfo()<<"/mod_visus?action=list\n"<<datasets->getBody();
-
-  VisusInfo()<<"/mod_visus?action=list_scenes\n"<<scenes->getBody();
+  VisusInfo() << "/mod_visus?action=list\n" << datasets->getBody();
+  VisusInfo() << "/mod_visus?action=list_scenes\n" << scenes->getBody();
 
   return true;
 }
@@ -360,8 +352,8 @@ bool ModVisus::configureDatasets()
 NetResponse ModVisus::handleConfigureDatasets(const NetRequest& request)
 {
   if (!configureDatasets())
-    return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR,"Cannot read the visus.config");
-  
+    return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "Cannot read the visus.config");
+
   return NetResponse(HttpStatus::STATUS_OK);
 }
 
@@ -369,37 +361,37 @@ NetResponse ModVisus::handleConfigureDatasets(const NetRequest& request)
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleAddDataset(const NetRequest& request)
 {
-  bool bOk=false;
+  bool bOk = false;
 
-  bool bPersistent=cbool(request.url.getParam("persistent","true"));
+  bool bPersistent = cbool(request.url.getParam("persistent", "true"));
 
 
   StringTree stree;
   if (request.url.hasParam("name"))
   {
-    String name=request.url.getParam("name");
-    String url=request.url.getParam("url");
+    String name = request.url.getParam("name");
+    String url = request.url.getParam("url");
 
     if (datasets->find(name))
-      return NetResponseError(HttpStatus::STATUS_CONFLICT,"Cannot add dataset(" + name + ") because it already exists");
+      return NetResponseError(HttpStatus::STATUS_CONFLICT, "Cannot add dataset(" + name + ") because it already exists");
 
-
-    stree= StringTree("dataset");
+    stree = StringTree("dataset");
     stree.writeString("name", name);
     stree.writeString("url", url);
     stree.writeString("permissions", "public");
   }
   else if (request.url.hasParam("xml"))
   {
-    String xml=request.url.getParam("xml");
+    String xml = request.url.getParam("xml");
     if (!stree.fromXmlString(xml))
-      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST,"Cannot decode xml");
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Cannot decode xml");
 
     String name = stree.readString("name");
     if (datasets->find(name))
-      return NetResponseError(HttpStatus::STATUS_CONFLICT,"Cannot add dataset(" + name + ") because it already exists");
+      return NetResponseError(HttpStatus::STATUS_CONFLICT, "Cannot add dataset(" + name + ") because it already exists");
   }
 
+  //try to add
   {
     ScopedWriteLock write_lock(datasets->lock);
 
@@ -439,83 +431,66 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleReadDataset(const NetRequest& request)
 {
-  String dataset_name=request.url.getParam("dataset");
+  String dataset_name = request.url.getParam("dataset");
 
-  auto dataset=datasets->find(dataset_name);
+  auto dataset = datasets->find(dataset_name);
   if (!dataset)
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find dataset(" + dataset_name + ")");
+    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
 
   NetResponse response(HttpStatus::STATUS_OK);
   response.setHeader("visus-git-revision", ApplicationInfo::git_revision);
   response.setHeader("visus-typename", dataset->getTypeName());
 
-  auto body= dataset->getDatasetBody();
+  auto body = dataset->getDatasetBody();
 
-  //fix urls
-  if (bool bMaybeXml = StringUtils::startsWith(body, "<"))
+  //fix urls (this is needed for midx where I need to remap urls)
+  if (bool bIsXml = StringUtils::startsWith(body, "<"))
   {
     StringTree stree;
     if (stree.fromXmlString(body))
     {
-      std::stack<StringTree*> stack;
-      stack.push(&stree);
+      VisusReleaseAssert(stree.name=="dataset");
+      stree.writeString("name", dataset_name);
+
+      std::stack< std::pair<String,StringTree*>> stack;
+      stack.push(std::make_pair("",&stree));
       while (!stack.empty())
       {
-        auto cursor = stack.top(); stack.pop();
-
-        if (cursor->name == "dataset" && cursor->hasValue("name") && cursor->hasValue("url"))
-          cursor->writeString("url", datasets->getUrl(dataset_name + "/" + cursor->readString("name")));
-
-        for (auto child : cursor->getChilds())
-          stack.push(child);
+        auto prefix = stack.top().first;
+        auto stree  = stack.top().second; 
+        stack.pop();
+        if (stree->name == "dataset" && stree->hasValue("name"))
+        {
+          prefix = prefix + (prefix.empty() ? "" : "/") + stree->readString("name");
+          stree->writeString("url", datasets->getUrl(prefix));
+        }
+        for (auto child : stree->getChilds())
+          stack.push(std::make_pair(prefix, child));
       }
-
       body = stree.toString();
     }
   }
-
 
   response.setTextBody(body,/*bHasBinary*/true);
   return response;
 }
-  
+
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleReadScene(const NetRequest& request)
 {
-  String scene_name=request.url.getParam("scene");
-  
-  auto scene=scenes->find(scene_name);
+  String scene_name = request.url.getParam("scene");
+
+  auto scene = scenes->find(scene_name);
   if (!scene)
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find scene(" + scene_name + ")");
-  
+    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find scene(" + scene_name + ")");
+
   NetResponse response(HttpStatus::STATUS_OK);
   response.setHeader("visus-git-revision", ApplicationInfo::git_revision);
   //response.setHeader("visus-typename", scene->getTypeName());
-  
-  auto body= scene->getSceneBody();
 
-  //fix urls
-  if (bool bMaybeXml = StringUtils::startsWith(body, "<"))
-  {
-    StringTree stree;
-    if (stree.fromXmlString(body))
-    {
-      std::stack<StringTree*> stack;
-      stack.push(&stree);
-      while (!stack.empty())
-      {
-        auto cursor = stack.top(); stack.pop();
+  auto body = scene->getSceneBody();
 
-        if (cursor->name == "scene" && cursor->hasValue("name") && cursor->hasValue("url"))
-          cursor->writeString("url", scenes->getUrl(scene_name + "/" + cursor->readString("name")));
-
-        for (auto child : cursor->getChilds())
-          stack.push(child);
-      }
-
-      body = stree.toString();
-    }
-  }
+  //scrgiorgio: do i need to fix url here?
 
   response.setTextBody(body,/*bHasBinary*/true);
   return response;
@@ -525,26 +500,26 @@ NetResponse ModVisus::handleReadScene(const NetRequest& request)
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleGetListOfDatasets(const NetRequest& request)
 {
-  String format=request.url.getParam("format","xml");
-  String hostname=request.url.getParam("hostname"); //trick if you want $(localhost):$(port) to be replaced with what the client has
-  String port=request.url.getParam("port");
+  String format = request.url.getParam("format", "xml");
+  String hostname = request.url.getParam("hostname"); //trick if you want $(localhost):$(port) to be replaced with what the client has
+  String port = request.url.getParam("port");
 
   NetResponse response(HttpStatus::STATUS_OK);
 
   VisusConfig::getSingleton()->reload();
 
-  if (format=="xml")
+  if (format == "xml")
     response.setXmlBody(datasets->getBody(format));
-  else if (format=="json")
+  else if (format == "json")
     response.setJSONBody(datasets->getBody(format));
   else
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"wrong format(" + format + ")");
+    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "wrong format(" + format + ")");
 
   if (!hostname.empty())
-    response.setTextBody(StringUtils::replaceAll(response.getTextBody(),"$(hostname)",hostname));
+    response.setTextBody(StringUtils::replaceAll(response.getTextBody(), "$(hostname)", hostname));
 
   if (!port.empty())
-    response.setTextBody(StringUtils::replaceAll(response.getTextBody(),"$(port)",port));
+    response.setTextBody(StringUtils::replaceAll(response.getTextBody(), "$(port)", port));
 
   return response;
 }
@@ -552,27 +527,27 @@ NetResponse ModVisus::handleGetListOfDatasets(const NetRequest& request)
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleGetListOfScenes(const NetRequest& request)
 {
-  String format=request.url.getParam("format","xml");
-  String hostname=request.url.getParam("hostname"); //trick if you want $(localhost):$(port) to be replaced with what the client has
-  String port=request.url.getParam("port");
-  
+  String format = request.url.getParam("format", "xml");
+  String hostname = request.url.getParam("hostname"); //trick if you want $(localhost):$(port) to be replaced with what the client has
+  String port = request.url.getParam("port");
+
   NetResponse response(HttpStatus::STATUS_OK);
-  
+
   VisusConfig::getSingleton()->reload();
-  
-  if (format=="xml")
+
+  if (format == "xml")
     response.setXmlBody(scenes->getBody(format));
-  else if (format=="json")
+  else if (format == "json")
     response.setJSONBody(scenes->getBody(format));
   else
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"wrong format(" + format + ")");
-  
+    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "wrong format(" + format + ")");
+
   if (!hostname.empty())
-    response.setTextBody(StringUtils::replaceAll(response.getTextBody(),"$(hostname)",hostname));
-  
+    response.setTextBody(StringUtils::replaceAll(response.getTextBody(), "$(hostname)", hostname));
+
   if (!port.empty())
-    response.setTextBody(StringUtils::replaceAll(response.getTextBody(),"$(port)",port));
-  
+    response.setTextBody(StringUtils::replaceAll(response.getTextBody(), "$(port)", port));
+
   return response;
 }
 
@@ -580,21 +555,21 @@ NetResponse ModVisus::handleGetListOfScenes(const NetRequest& request)
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleHtmlForPlugin(const NetRequest& request)
 {
-  String htmlcontent=
-      "<HTML>\r\n"
-      "<HEAD><TITLE>Visus Plugin</TITLE><STYLE>body{margin:0;padding:0;}</STYLE></HEAD><BODY>\r\n"
-      "  <center>\r\n"
-      "  <script>\r\n"
-      "    document.write('<embed  id=\"plugin\" type=\"application/npvisusplugin\" src=\"\" width=\"100%%\" height=\"100%%\"></embed>');\r\n"
-      "    document.getElementById(\"plugin\").open(location.href);\r\n"
-      "  </script>\r\n"
-      "  <noscript>NPAPI not enabled</noscript>\r\n"
-      "  </center>\r\n"
-      "</BODY>\r\n"
-      "</HTML>\r\n";
+  String htmlcontent =
+    "<HTML>\r\n"
+    "<HEAD><TITLE>Visus Plugin</TITLE><STYLE>body{margin:0;padding:0;}</STYLE></HEAD><BODY>\r\n"
+    "  <center>\r\n"
+    "  <script>\r\n"
+    "    document.write('<embed  id=\"plugin\" type=\"application/npvisusplugin\" src=\"\" width=\"100%%\" height=\"100%%\"></embed>');\r\n"
+    "    document.getElementById(\"plugin\").open(location.href);\r\n"
+    "  </script>\r\n"
+    "  <noscript>NPAPI not enabled</noscript>\r\n"
+    "  </center>\r\n"
+    "</BODY>\r\n"
+    "</HTML>\r\n";
 
   NetResponse response(HttpStatus::STATUS_OK);
-  response.setHtmlBody(htmlcontent); 
+  response.setHtmlBody(htmlcontent);
   return response;
 }
 
@@ -602,79 +577,79 @@ NetResponse ModVisus::handleHtmlForPlugin(const NetRequest& request)
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleOpenSeaDragon(const NetRequest& request)
 {
-  String dataset_name  = request.url.getParam("dataset");
-  String compression   = request.url.getParam("compression","png");
-  String debugMode     = request.url.getParam("debugMode","false");
-  String showNavigator = request.url.getParam("showNavigator","true");
+  String dataset_name = request.url.getParam("dataset");
+  String compression = request.url.getParam("compression", "png");
+  String debugMode = request.url.getParam("debugMode", "false");
+  String showNavigator = request.url.getParam("showNavigator", "true");
 
-  auto dataset=datasets->find(dataset_name);
+  auto dataset = datasets->find(dataset_name);
   if (!dataset)
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find dataset(" + dataset_name + ")");
-  
-  if (dataset->getPointDim()!=2)
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST,"dataset(" + dataset_name + ") has dimension !=2");
+    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
 
-  int w=(int)dataset->getBox().p2[0];
-  int h=(int)dataset->getBox().p2[1];
-  int maxh=dataset->getBitmask().getMaxResolution();
-  int bitsperblock=dataset->getDefaultBitsPerBlock();
+  if (dataset->getPointDim() != 2)
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset(" + dataset_name + ") has dimension !=2");
+
+  int w = (int)dataset->getBox().p2[0];
+  int h = (int)dataset->getBox().p2[1];
+  int maxh = dataset->getBitmask().getMaxResolution();
+  int bitsperblock = dataset->getDefaultBitsPerBlock();
 
   std::ostringstream out;
   out
-    <<"<html>"<<std::endl
-    <<"<head>"<<std::endl
-    <<"<meta charset='utf-8'>"<<std::endl
-    <<"<title>Visus OpenSeaDragon</title>"<<std::endl
-    <<"<script src='https://openseadragon.github.io/openseadragon/openseadragon.min.js'></script>"<<std::endl
-    <<"<style>.openseadragon {background-color: gray;}</style>"<<std::endl
-    <<"</head>"<<std::endl
+    << "<html>" << std::endl
+    << "<head>" << std::endl
+    << "<meta charset='utf-8'>" << std::endl
+    << "<title>Visus OpenSeaDragon</title>" << std::endl
+    << "<script src='https://openseadragon.github.io/openseadragon/openseadragon.min.js'></script>" << std::endl
+    << "<style>.openseadragon {background-color: gray;}</style>" << std::endl
+    << "</head>" << std::endl
 
-    <<"<body>"<<std::endl
-    <<"<div id='osd1' class='openseadragon' style='width:100%; height:100%;'>"<<std::endl
+    << "<body>" << std::endl
+    << "<div id='osd1' class='openseadragon' style='width:100%; height:100%;'>" << std::endl
 
-    <<"<script type='text/javascript'>"<<std::endl
-    <<"base_url = window.location.protocol + '//' + window.location.host + '/mod_visus?action=boxquery&dataset="<<dataset_name<<"&compression="<<compression<<"';"<<std::endl
-    <<"w = "<<w<<";"<<std::endl
-    <<"h = "<<h<<";"<<std::endl
-    <<"maxh = "<<maxh<<";"<<std::endl
-    <<"bitsperblock = "<<bitsperblock<<";"<<std::endl
+    << "<script type='text/javascript'>" << std::endl
+    << "base_url = window.location.protocol + '//' + window.location.host + '/mod_visus?action=boxquery&dataset=" << dataset_name << "&compression=" << compression << "';" << std::endl
+    << "w = " << w << ";" << std::endl
+    << "h = " << h << ";" << std::endl
+    << "maxh = " << maxh << ";" << std::endl
+    << "bitsperblock = " << bitsperblock << ";" << std::endl
 
     //try to align as much as possible to the block shape: we know that a block
     //has 2^bitsperblock samples. Assuming the bitmask is balanced at the end (i.e. V.....01010101)
     //then we simply subdivide the domain in squares with tileSize^2=2^bitsperblock -> tileSize is about 2^(bitsperblock/2)
 
-    <<"tileSize = Math.pow(2,bitsperblock/2);"<<std::endl
-    <<"minLevel=bitsperblock/2;"<<std::endl
-    <<"maxLevel=maxh/2;"<<std::endl
-    <<"OpenSeadragon({"<<std::endl
-    <<"  id: 'osd1',"<<std::endl
-    <<"  prefixUrl: 'https://raw.githubusercontent.com/openseadragon/svg-overlay/master/openseadragon/images/',"<<std::endl
-    <<"  showNavigator: "<<showNavigator<<","<<std::endl
-    <<"  debugMode: "<<debugMode<<","<<std::endl
-    <<"  tileSources: {"<<std::endl
-    <<"    height: h, width:  w, tileSize: tileSize, minLevel: minLevel, maxLevel: maxLevel,"<<std::endl
-    <<"    getTileUrl: function(level,x,y) {"<<std::endl
+    << "tileSize = Math.pow(2,bitsperblock/2);" << std::endl
+    << "minLevel=bitsperblock/2;" << std::endl
+    << "maxLevel=maxh/2;" << std::endl
+    << "OpenSeadragon({" << std::endl
+    << "  id: 'osd1'," << std::endl
+    << "  prefixUrl: 'https://raw.githubusercontent.com/openseadragon/svg-overlay/master/openseadragon/images/'," << std::endl
+    << "  showNavigator: " << showNavigator << "," << std::endl
+    << "  debugMode: " << debugMode << "," << std::endl
+    << "  tileSources: {" << std::endl
+    << "    height: h, width:  w, tileSize: tileSize, minLevel: minLevel, maxLevel: maxLevel," << std::endl
+    << "    getTileUrl: function(level,x,y) {" << std::endl
 
     // trick to return an image with resolution (tileSize*tileSize) at a certain resolution
     // when level=maxLevel I just use the tileSize
     // when I go up one level I need to use 2*tileSize in order to have the same number of samples
 
-    <<"      lvlTileSize = tileSize*Math.pow(2, maxLevel-level);"<<std::endl
-    <<"    	 x1 = Math.min(lvlTileSize*x,w); x2 = Math.min(x1 + lvlTileSize, w);"<<std::endl
-    <<"    	 y1 = Math.min(lvlTileSize*y,h); y2 = Math.min(y1 + lvlTileSize, h);"<<std::endl
-    <<"    	 return base_url"<<std::endl
-    <<"    	   + '&box='+x1+'%20'+(x2-1)+'%20'+(h -y2)+'%20'+(h-y1-1)"<<std::endl
-    <<"    		 + '&toh=' + level*2"<<std::endl
-    <<"    		 + '&maxh=' + maxh ;"<<std::endl
-    <<"}}});"<<std::endl
+    << "      lvlTileSize = tileSize*Math.pow(2, maxLevel-level);" << std::endl
+    << "    	 x1 = Math.min(lvlTileSize*x,w); x2 = Math.min(x1 + lvlTileSize, w);" << std::endl
+    << "    	 y1 = Math.min(lvlTileSize*y,h); y2 = Math.min(y1 + lvlTileSize, h);" << std::endl
+    << "    	 return base_url" << std::endl
+    << "    	   + '&box='+x1+'%20'+(x2-1)+'%20'+(h -y2)+'%20'+(h-y1-1)" << std::endl
+    << "    		 + '&toh=' + level*2" << std::endl
+    << "    		 + '&maxh=' + maxh ;" << std::endl
+    << "}}});" << std::endl
 
-    <<"</script>"<<std::endl
-    <<"</div>"<<std::endl
-    <<"</body>"<<std::endl
-    <<"</html>;"<<std::endl;
+    << "</script>" << std::endl
+    << "</div>" << std::endl
+    << "</body>" << std::endl
+    << "</html>;" << std::endl;
 
   NetResponse response(HttpStatus::STATUS_OK);
-  response.setHtmlBody(out.str()); 
+  response.setHtmlBody(out.str());
   return response;
 }
 
@@ -684,30 +659,30 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 {
   String dataset_name = request.url.getParam("dataset");
 
-  auto dataset=datasets->find(dataset_name);
+  auto dataset = datasets->find(dataset_name);
   if (!dataset)
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find dataset(" + dataset_name + ")");
+    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
 
-  String compression         =         request.url.getParam("compression");
-  String fieldname           =         request.url.getParam("field",dataset->getDefaultField().name);
-  double time                = cdouble(request.url.getParam("time",cstring(dataset->getDefaultTime())));
+  String compression = request.url.getParam("compression");
+  String fieldname = request.url.getParam("field", dataset->getDefaultField().name);
+  double time = cdouble(request.url.getParam("time", cstring(dataset->getDefaultTime())));
 
-  std::vector<BigInt> start_address; for (auto it : StringUtils::split(request.url.getParam("from" ,"0"))) start_address.push_back(cbigint(it));
-  std::vector<BigInt> end_address  ; for (auto it : StringUtils::split(request.url.getParam("to"   ,"0"))) end_address  .push_back(cbigint(it));
+  std::vector<BigInt> start_address; for (auto it : StringUtils::split(request.url.getParam("from", "0"))) start_address.push_back(cbigint(it));
+  std::vector<BigInt> end_address; for (auto it : StringUtils::split(request.url.getParam("to", "0"))) end_address.push_back(cbigint(it));
 
   if (start_address.empty())
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"start_address.empty()");
+    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "start_address.empty()");
 
-  if (start_address.size()!=end_address.size())
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"start_address.size()!=end_address.size()");
+  if (start_address.size() != end_address.size())
+    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "start_address.size()!=end_address.size()");
 
-  Field field=fieldname.empty()?dataset->getDefaultField():dataset->getFieldByName(fieldname);
-  if (!field.valid()) 
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find field(" + fieldname + ")");
+  Field field = fieldname.empty() ? dataset->getDefaultField() : dataset->getFieldByName(fieldname);
+  if (!field.valid())
+    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find field(" + fieldname + ")");
 
-  bool bHasFilter=!field.filter.empty();
+  bool bHasFilter = !field.filter.empty();
 
-  auto access=dataset->createAccessForBlockQuery();
+  auto access = dataset->createAccessForBlockQuery();
 
   WaitAsync< Future<Void> > wait_async;
   access->beginRead();
@@ -717,7 +692,7 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
   for (int I = 0; I < (int)start_address.size(); I++)
   {
     auto block_query = std::make_shared<BlockQuery>(field, time, start_address[I], end_address[I], aborted);
-    wait_async.pushRunning(dataset->readBlock(access, block_query)).when_ready([block_query,&responses,dataset,compression](Void) {
+    wait_async.pushRunning(dataset->readBlock(access, block_query)).when_ready([block_query, &responses, dataset, compression](Void) {
 
       if (block_query->failed())
       {
@@ -750,61 +725,61 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleQuery(const NetRequest& request)
 {
-  String dataset_name    =         request.url.getParam("dataset");
-  int maxh               =    cint(request.url.getParam("maxh"));
-  int fromh              =    cint(request.url.getParam("fromh"));
-  int endh               =    cint(request.url.getParam("toh"));
-  String fieldname       =         request.url.getParam("field");
-  double time            = cdouble(request.url.getParam("time"));
-  String compression     =         request.url.getParam("compression");
-  bool   bDisableFilters = cbool  (request.url.getParam("disable_filters"));
-  bool   bKdBoxQuery     =         request.url.getParam("kdquery")=="box";
-  String action          =         request.url.getParam("action");
+  String dataset_name = request.url.getParam("dataset");
+  int maxh = cint(request.url.getParam("maxh"));
+  int fromh = cint(request.url.getParam("fromh"));
+  int endh = cint(request.url.getParam("toh"));
+  String fieldname = request.url.getParam("field");
+  double time = cdouble(request.url.getParam("time"));
+  String compression = request.url.getParam("compression");
+  bool   bDisableFilters = cbool(request.url.getParam("disable_filters"));
+  bool   bKdBoxQuery = request.url.getParam("kdquery") == "box";
+  String action = request.url.getParam("action");
 
-  String palette         =         request.url.getParam("palette");
-  double palette_min     = cdouble(request.url.getParam("palette_min"));
-  double palette_max     = cdouble(request.url.getParam("palette_max"));
-  String palette_interp  =        (request.url.getParam("palette_interp"));
+  String palette = request.url.getParam("palette");
+  double palette_min = cdouble(request.url.getParam("palette_min"));
+  double palette_max = cdouble(request.url.getParam("palette_max"));
+  String palette_interp = (request.url.getParam("palette_interp"));
 
-  auto dataset=datasets->find(dataset_name);
+  auto dataset = datasets->find(dataset_name);
   if (!dataset)
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find dataset(" + dataset_name + ")");
+    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
 
   int pdim = dataset->getPointDim();
 
-  Field field = fieldname.empty()? dataset->getDefaultField() : dataset->getFieldByName(fieldname);
+  Field field = fieldname.empty() ? dataset->getDefaultField() : dataset->getFieldByName(fieldname);
   if (!field.valid())
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST,"Cannot find fieldname(" + fieldname + ")");
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Cannot find fieldname(" + fieldname + ")");
 
-  auto query=std::make_shared<Query>(dataset.get(),'r');
-  query->time=time;
-  query->field=field;
-  query->start_resolution=fromh;
-  query->end_resolutions={endh};
-  query->max_resolution=maxh;
-  query->aborted=Aborted(); //TODO: how can I get the aborted from network?
+  auto query = std::make_shared<Query>(dataset.get(), 'r');
+  query->time = time;
+  query->field = field;
+  query->start_resolution = fromh;
+  query->end_resolutions = { endh };
+  query->max_resolution = maxh;
+  query->aborted = Aborted(); //TODO: how can I get the aborted from network?
 
-  //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)
-  if (fromh==0 && !bDisableFilters)
+                              //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)
+  if (fromh == 0 && !bDisableFilters)
   {
-    query->filter.enabled=true;
-    query->filter.domain=(bKdBoxQuery? dataset->getBitmask().getPow2Box() : dataset->getBox());
+    query->filter.enabled = true;
+    query->filter.domain = (bKdBoxQuery ? dataset->getBitmask().getPow2Box() : dataset->getBox());
   }
   else
   {
-    query->filter.enabled=false;
+    query->filter.enabled = false;
   }
 
   //position
-  if (action=="boxquery")
+  if (action == "boxquery")
   {
-    query->position=Position(NdBox::parseFromOldFormatString(pdim, request.url.getParam("box")));
+    query->position = Position(NdBox::parseFromOldFormatString(pdim, request.url.getParam("box")));
   }
-  else if (action=="pointquery")
+  else if (action == "pointquery")
   {
-    Matrix  map     =  Matrix(request.url.getParam("matrix"));
-    Box3d   box     =  Box3d::parseFromString(request.url.getParam("box"));
-    query->position=(Position(map,box));
+    Matrix  map = Matrix(request.url.getParam("matrix"));
+    Box3d   box = Box3d::parseFromString(request.url.getParam("box"));
+    query->position = (Position(map, box));
   }
   else
   {
@@ -814,50 +789,50 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
 
   //query failed
   if (!dataset->beginQuery(query))
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST,"dataset->beginQuery() failed "  + query->getLastErrorMsg());
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
 
-  auto access=dataset->createAccess();
-  if (!dataset->executeQuery(access,query))
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST,"dataset->executeQuery() failed " + query->getLastErrorMsg());
+  auto access = dataset->createAccess();
+  if (!dataset->executeQuery(access, query))
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
 
-  auto buffer=query->buffer;
+  auto buffer = query->buffer;
 
   //useful for kdquery=box (for example with discrete wavelets, don't want the extra channel)
   if (bKdBoxQuery)
   {
-    if (auto filter=query->filter.value)
-      buffer=filter->dropExtraComponentIfExists(buffer);
+    if (auto filter = query->filter.value)
+      buffer = filter->dropExtraComponentIfExists(buffer);
   }
 
-  if (!palette.empty() && buffer.dtype.ncomponents()==1)
+  if (!palette.empty() && buffer.dtype.ncomponents() == 1)
   {
     TransferFunction tf;
     if (!tf.setDefault(palette))
     {
       VisusAssert(false);
-      VisusInfo()<<"invalid palette specified: "<<palette;
-      VisusInfo()<<"use one of:";
-      std::vector<String> tf_defaults=TransferFunction::getDefaults();
-      for (int i=0;i<tf_defaults.size();i++)
-        VisusInfo()<<"\t"<<tf_defaults[i];
+      VisusInfo() << "invalid palette specified: " << palette;
+      VisusInfo() << "use one of:";
+      std::vector<String> tf_defaults = TransferFunction::getDefaults();
+      for (int i = 0; i<tf_defaults.size(); i++)
+        VisusInfo() << "\t" << tf_defaults[i];
     }
     else
     {
       if (palette_min != palette_max)
-        tf.input_range= ComputeRange::createCustom(palette_min,palette_max);
+        tf.input_range = ComputeRange::createCustom(palette_min, palette_max);
 
       if (!palette_interp.empty())
         tf.interpolation.set(palette_interp);
 
-      buffer=tf.applyToArray(buffer);
+      buffer = tf.applyToArray(buffer);
       if (!buffer)
-        return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR,"palette failed");
+        return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "palette failed");
     }
   }
 
   NetResponse response(HttpStatus::STATUS_OK);
-  if (!response.setArrayBody(compression,buffer))
-    return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR,"NetResponse encodeBuffer failed");
+  if (!response.setArrayBody(compression, buffer))
+    return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "NetResponse encodeBuffer failed");
 
   return response;
 }
@@ -866,101 +841,101 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleRequest(NetRequest request)
 {
-  Time t1=Time::now();
+  Time t1 = Time::now();
 
   //default action
   if (request.url.getParam("action").empty())
   {
-    String user_agent=StringUtils::toLower(request.getHeader("User-Agent"));
+    String user_agent = StringUtils::toLower(request.getHeader("User-Agent"));
 
-    bool bSpecifyDataset=request.url.hasParam("dataset");
-    bool bSpecifyScene=request.url.hasParam("scene");
-    bool bCommercialBrower=!user_agent.empty() && !StringUtils::contains(user_agent,"visus");
+    bool bSpecifyDataset = request.url.hasParam("dataset");
+    bool bSpecifyScene = request.url.hasParam("scene");
+    bool bCommercialBrower = !user_agent.empty() && !StringUtils::contains(user_agent, "visus");
 
     if (bCommercialBrower)
     {
       if (bSpecifyDataset)
       {
-        request.url.setParam("action","plugin");
+        request.url.setParam("action", "plugin");
       }
-      else if(bSpecifyScene)
+      else if (bSpecifyScene)
       {
-        request.url.setParam("action","readscene");
+        request.url.setParam("action", "readscene");
       }
       else
       {
-        request.url.setParam("action","list");
-        request.url.setParam("format","html");
+        request.url.setParam("action", "list");
+        request.url.setParam("format", "html");
       }
     }
     else
     {
       if (bSpecifyDataset)
       {
-        request.url.setParam("action","readdataset");
+        request.url.setParam("action", "readdataset");
       }
-      else if(bSpecifyScene)
+      else if (bSpecifyScene)
       {
-        request.url.setParam("action","readscene");
+        request.url.setParam("action", "readscene");
       }
       else
       {
-        request.url.setParam("action","list");
-        request.url.setParam("format","xml");
+        request.url.setParam("action", "list");
+        request.url.setParam("format", "xml");
       }
     }
   }
 
-  String action=request.url.getParam("action");
+  String action = request.url.getParam("action");
 
   NetResponse response;
 
-  if (action=="rangequery" || action=="blockquery") 
-    response=handleBlockQuery(request);
+  if (action == "rangequery" || action == "blockquery")
+    response = handleBlockQuery(request);
 
-  else if (action=="query" || action=="boxquery" || action=="pointquery")
-    response=handleQuery(request);
+  else if (action == "query" || action == "boxquery" || action == "pointquery")
+    response = handleQuery(request);
 
-  else if (action=="readdataset" || action=="read_dataset")
-    response=handleReadDataset(request);
-  
-  else if (action=="readscene" || action=="read_scene")
-    response=handleReadScene(request);
+  else if (action == "readdataset" || action == "read_dataset")
+    response = handleReadDataset(request);
 
-  else if (action=="plugin") 
-    response=handleHtmlForPlugin(request);
+  else if (action == "readscene" || action == "read_scene")
+    response = handleReadScene(request);
 
-  else if (action=="list")
-    response=handleGetListOfDatasets(request);
-  
-  else if (action=="listscenes" || action=="list_scenes")
-    response=handleGetListOfScenes(request);
+  else if (action == "plugin")
+    response = handleHtmlForPlugin(request);
 
-  else if (action=="configure_datasets")
-    response=handleConfigureDatasets(request);
+  else if (action == "list")
+    response = handleGetListOfDatasets(request);
 
-  else if (action=="AddDataset" || action=="add_dataset")
-    response=handleAddDataset(request);
+  else if (action == "listscenes" || action == "list_scenes")
+    response = handleGetListOfScenes(request);
 
-  else if (action=="openseadragon")
-    response=handleOpenSeaDragon(request);
+  else if (action == "configure_datasets")
+    response = handleConfigureDatasets(request);
+
+  else if (action == "AddDataset" || action == "add_dataset")
+    response = handleAddDataset(request);
+
+  else if (action == "openseadragon")
+    response = handleOpenSeaDragon(request);
 
   else if (action == "ping")
   {
     response = NetResponse(HttpStatus::STATUS_OK);
-    response.setHeader("block-query-support-aggregation","1");
+    response.setHeader("block-query-support-aggregation", "1");
   }
 
   else
-    response=NetResponseError(HttpStatus::STATUS_NOT_FOUND,"unknown action(" + action + ")");
+    response = NetResponseError(HttpStatus::STATUS_NOT_FOUND, "unknown action(" + action + ")");
 
   VisusInfo()
-    <<" request("<<request.url.toString()<<") "
-    <<" status("<<response.getStatusDescription()<<") body("<<StringUtils::getStringFromByteSize(response.body? response.body->c_size():0)<<") msec("<<t1.elapsedMsec()<<")";
+    << " request(" << request.url.toString() << ") "
+    << " status(" << response.getStatusDescription() << ") body(" << StringUtils::getStringFromByteSize(response.body ? response.body->c_size() : 0) << ") msec(" << t1.elapsedMsec() << ")";
 
   //add some standard header
-  response.setHeader("git_revision",ApplicationInfo::git_revision);
-  response.setHeader("version",cstring(ApplicationInfo::version));
+  response.setHeader("git_revision", ApplicationInfo::git_revision);
+  response.setHeader("version", cstring(ApplicationInfo::version));
 
   //expose visus headers (for javascript access)
   //see https://stackoverflow.com/questions/35240520/fetch-answer-empty-due-to-the-preflight
@@ -973,7 +948,7 @@ NetResponse ModVisus::handleRequest(NetRequest request)
     }
     response.setHeader("Access-Control-Expose-Headers", StringUtils::join(exposed_headers, ","));
   }
- 
+
   return response;
 }
 

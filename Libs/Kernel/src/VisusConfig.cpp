@@ -47,8 +47,10 @@ VISUS_IMPLEMENT_SINGLETON_CLASS(VisusConfig)
 
 
 //////////////////////////////////////////////////////////////
-bool VisusConfig::reload(bool bForce)
+bool ConfigFile::reload(bool bForce)
 {
+  VisusAssert(!this->filename.empty());
+
   if (!bForce && this->timestamp && this->timestamp == FileUtils::getTimeLastModified(this->filename))
     return false;
 
@@ -63,7 +65,7 @@ bool VisusConfig::reload(bool bForce)
   this->StringTree::operator=(temp);
   this->timestamp = FileUtils::getTimeLastModified(this->filename);
 
-  VisusInfo() << "Reloaded VisusConfig " << filename;
+  VisusInfo() << "Reloaded ConfigFile " << filename;
   return true;
 }
 

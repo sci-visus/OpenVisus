@@ -152,7 +152,7 @@ private:
   SharedPtr<PythonEnginePool> python_engine_pool;
 
   //getInputName
-  String getInputName(String name, String fieldname,bool bIsVarName=false);
+  String getInputName(String name, String fieldname);
 
   //createField
   Field createField(String operation_name);
