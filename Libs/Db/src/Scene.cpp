@@ -45,12 +45,12 @@ For support : support@visus.net
 namespace Visus {
 
  ////////////////////////////////////////////////////////////////////////////////////
-Scene::Info Scene::findSceneInVisusConfig(String name)
+Scene::Info Scene::getSceneInfo(String name, const StringTree& stree)
 {
   Scene::Info ret;
   ret.name=name;
 
-  auto all_scenes=VisusConfig::findAllChildsWithName("scene");
+  auto all_scenes=stree.findAllChildsWithName("scene");
 
   bool bFound=false;
   for (auto it : all_scenes)
@@ -155,7 +155,7 @@ SharedPtr<Scene> Scene::loadScene(String name)
   if (name.empty())
     return SharedPtr<Scene>();
 
-  auto info=findSceneInVisusConfig(name);
+  auto info=getSceneInfo(name,*VisusConfig::getSingleton());
   if (!info.valid())
     return SharedPtr<Scene>();
 

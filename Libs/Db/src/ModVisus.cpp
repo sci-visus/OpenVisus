@@ -96,8 +96,8 @@ public:
     return dataset_body;
   }
 
-  //reloadIfNeeded
-  bool reloadIfNeeded()
+  //reload
+  bool reload(bool bForce=false)
   {
     //NOTE: i don't have a way to know if the file has changed meanwhile... so this is not very optimized
     auto new_dataset=Dataset::loadDataset(this->getName());
@@ -105,7 +105,7 @@ public:
       return false;
 
     String new_dataset_body=getDatasetBody(new_dataset);
-    if (new_dataset_body==getDatasetBody())
+    if (!bForce && new_dataset_body==getDatasetBody())
       return false;
 
     {
@@ -214,11 +214,10 @@ public:
           return it->second;
       }
 
-      //not found, reload visus.config and try again
-      if (bool bReloadVisusConfig=VisusConfig::needReload())
+
+      if (VisusConfig::getSingleton()->reload())
       {
-        VisusConfig::reload();
-        this->configureDatasets(VisusConfig::storage); //TODO: (optimization for reloads) only add new public datasets by diffing entries in string tree instead of reconfiguring all datasets
+        this->configureDatasets(*VisusConfig::getSingleton()); //TODO: (optimization for reloads) only add new public datasets by diffing entries in string tree instead of reconfiguring all datasets
         {
           ScopedReadLock read_lock(this->lock);
           auto it=this->map.find(name);
@@ -238,13 +237,13 @@ public:
 
     //add src to visus.config in memory (this is necessary for Dataset::loadDataset(name))
     {
-      VisusConfig::storage.addChild(src);
+      VisusConfig::getSingleton()->addChild(src);
     }
 
     //add src to visus.config on the file system (otherwise when mod_visus restarts it will be lost)
     if (bPersistent)
     {
-      String     visus_config_filename=VisusConfig::filename;
+      String     visus_config_filename=VisusConfig::getSingleton()->filename;
       StringTree new_visus_config;
       bool bEnablePostProcessing=false;
       if (!new_visus_config.fromXmlString(Utils::loadTextDocument(visus_config_filename),bEnablePostProcessing))
@@ -555,8 +554,8 @@ public:
     return scene_body;
   }
   
-  //reloadIfNeeded
-  bool reloadIfNeeded()
+  //reload
+  bool reload(bool bForce=false)
   {
     //NOTE: i don't have a way to know if the file has changed meanwhile... so this is not very optimized
     auto new_scene=Scene::loadScene(this->getName());
@@ -564,7 +563,7 @@ public:
       return false;
     
     String new_scene_body=getSceneBody(new_scene);
-    if (new_scene_body==getSceneBody())
+    if (!bForce && new_scene_body==getSceneBody())
       return false;
     
     {
@@ -670,10 +669,9 @@ public:
       }
 
       //not found, reload visus.config and try again
-      if (bool bReloadVisusConfig=VisusConfig::needReload())
+      if (VisusConfig::getSingleton()->reload())
       {
-        VisusConfig::reload();
-        this->configureScenes(VisusConfig::storage); //TODO: (optimization for reloads) only add new public datasets by diffing entries in string tree instead of reconfiguring all datasets
+        this->configureScenes(*VisusConfig::getSingleton()); //TODO: (optimization for reloads) only add new public datasets by diffing entries in string tree instead of reconfiguring all datasets
         {
           ScopedReadLock read_lock(this->lock);
           auto it=this->map.find(name);
@@ -931,7 +929,7 @@ private:
 ModVisus::ModVisus()
 {
   datasets=std::make_shared<PublicDatasets>();
-  scenes=std::make_shared<PublicScenes>();
+  scenes  =std::make_shared<PublicScenes>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -943,11 +941,10 @@ bool ModVisus::configureDatasets()
 {
   VisusInfo()<<"ModVisus::configureDatasets()...";
 
-  if (VisusConfig::needReload())
-    VisusConfig::reload();
+  VisusConfig::getSingleton()->reload();
 
-  datasets->configureDatasets(VisusConfig::storage);
-  scenes->configureScenes(VisusConfig::storage);
+  datasets->configureDatasets(*VisusConfig::getSingleton());
+  scenes->configureScenes(*VisusConfig::getSingleton());
 
   VisusInfo()<<"/mod_visus?action=list\n"<<datasets->getList(PublicDatasets::XmlFormat);
 
@@ -1052,9 +1049,7 @@ NetResponse ModVisus::handleGetListOfDatasets(const NetRequest& request)
 
   NetResponse response(HttpStatus::STATUS_OK);
 
-  //ensure we're using latest visus.config
-  if (VisusConfig::needReload())
-    VisusConfig::reload();
+  VisusConfig::getSingleton()->reload();
 
   if (format=="xml")
   {
@@ -1092,9 +1087,7 @@ NetResponse ModVisus::handleGetListOfScenes(const NetRequest& request)
   
   NetResponse response(HttpStatus::STATUS_OK);
   
-  //ensure we're using latest visus.config
-  if (VisusConfig::needReload())
-    VisusConfig::reload();
+  VisusConfig::getSingleton()->reload();
   
   if (format=="xml")
   {

@@ -174,15 +174,14 @@ static_assert(sizeof(S133) == 133, "internal error");
 static_assert(sizeof(off_t) == 8, "internal error");
 #endif
 
-
 int          Private::CommandLine::argn=0;
 const char** Private::CommandLine::argv ;
 
 ///////////////////////////////////////////////////////////////////////////////
-void ParseCommandLine()
+void SetCommandLine(int argn, const char** argv)
 {
-  int argn = Private::CommandLine::argn;
-  const char** argv = Private::CommandLine::argv;
+  Private::CommandLine::argn = argn;
+  Private::CommandLine::argv = argv;
 
   // parse command line
   for (int I = 0; I < argn; I++)
@@ -190,7 +189,7 @@ void ParseCommandLine()
     //override visus.config
     if (argv[I] == String("--visus-config") && I < (argn - 1))
     {
-      VisusConfig::filename = argv[++I];
+      VisusConfig::getSingleton()->filename = argv[++I];
       continue;
     }
 
@@ -206,21 +205,12 @@ void ParseCommandLine()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void SetCommandLine(int argn, const char** argv)
-{
-  Private::CommandLine::argn = argn;
-  Private::CommandLine::argv = argv;
-  ParseCommandLine();
-}
-
-///////////////////////////////////////////////////////////////////////////////
 void SetCommandLine(String value)
 {
   static String keep_in_memory = value;
+  static const int argn = 1;
   static const char* argv[] = { keep_in_memory.c_str()};
-  Private::CommandLine::argn = 1;
-  Private::CommandLine::argv = argv;
-  ParseCommandLine();
+  SetCommandLine(argn, argv);
 }
 
 /////////////////////////////////////////////////////
@@ -311,27 +301,26 @@ static void InitKnownPaths()
   }
 }
   
-///////////////////////////////////////////////////////////
-static bool TryVisusConfig(String value)
-{
-  if (value.empty())
-    return false;
-
-  bool bOk=FileUtils::existsFile(value);
-  VisusInfo() << "VisusConfig::filename value(" << value << ") ok(" << ( bOk ? "YES" : "NO") << ")";
-  if (!bOk)
-    return false;
-
-  VisusConfig::filename = Path(value);
-  return true;
-}
 
 ///////////////////////////////////////////////////////////
 static void InitVisusConfig()
 {
-  TryVisusConfig(VisusConfig::filename) ||
-  TryVisusConfig(KnownPaths::CurrentWorkingDirectory().getChild("visus.config")) ||
-  TryVisusConfig(KnownPaths::VisusHome.getChild("visus.config"));
+  for (auto filename : {
+    VisusConfig::getSingleton()->filename ,
+    KnownPaths::CurrentWorkingDirectory().getChild("visus.config").toString(),
+    KnownPaths::VisusHome.getChild("visus.config").toString() })
+  {
+    if (filename.empty())
+      continue;
+
+    bool bOk = FileUtils::existsFile(filename);
+    VisusInfo() << "VisusConfig filename(" << filename << ") ok(" << (bOk ? "YES" : "NO") << ")";
+    if (!bOk)
+      continue;
+
+    VisusConfig::getSingleton()->filename = Path(filename);
+    break;
+  }
 }
 
 
@@ -373,6 +362,8 @@ void KernelModule::attach()
   }
 #endif
 
+  VisusConfig::allocSingleton();
+
   NetService::attach();
 
   InitKnownPaths();
@@ -392,7 +383,7 @@ void KernelModule::attach()
   RamResource::allocSingleton();
   UUIDGenerator::allocSingleton();
 
-  VisusConfig::reload();
+  VisusConfig::getSingleton()->reload(/*bForce*/true);
 
   //this is to make sure PythonEngine works
 #if VISUS_PYTHON
@@ -402,6 +393,10 @@ void KernelModule::attach()
     engine->execCode("print('PythonEngine is working fine')");
   }
 #endif
+
+  //in case the user whant to simulate I have a certain amount of RAM
+  if (Int64 total = StringUtils::getByteSizeFromString(VisusConfig::getSingleton()->readString("Configuration/RamResource/total", "0")))
+    RamResource::getSingleton()->setOsTotalMemory(total);
 
   VisusInfo() << "Attached KernelModule";
 }
@@ -427,6 +422,8 @@ void KernelModule::detach()
 #endif
 
   NetService::detach();
+
+  VisusConfig::releaseSingleton();
 
 #if __APPLE__
   DestroyAutoReleasePool();

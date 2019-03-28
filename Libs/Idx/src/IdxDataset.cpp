@@ -594,7 +594,7 @@ void IdxDataset::tryRemoveLockAndCorruptedBinaryFiles(String directory)
 {
   if (directory.empty())
   {
-    directory=VisusConfig::readString("Configuration/IdxDataset/RemoveLockFiles/directory");
+    directory=VisusConfig::getSingleton()->readString("Configuration/IdxDataset/RemoveLockFiles/directory");
     if (directory.empty())
       return;
   }

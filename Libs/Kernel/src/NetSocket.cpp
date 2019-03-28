@@ -315,16 +315,16 @@ private:
   //configureOptions
   void configureOptions(String config_key)
   {
-    int send_buffer_size = cint(VisusConfig::readString(config_key+"/send_buffer_size"));
+    int send_buffer_size = cint(VisusConfig::getSingleton()->readString(config_key+"/send_buffer_size"));
     if (send_buffer_size > 0) 
       setSendBufferSize(send_buffer_size);
 
-    int recv_buffer_size = cint(VisusConfig::readString(config_key+"/recv_buffer_size"));
+    int recv_buffer_size = cint(VisusConfig::getSingleton()->readString(config_key+"/recv_buffer_size"));
     if (recv_buffer_size > 0) 
       setReceiveBufferSize(recv_buffer_size);
 
     //I think the no delay should be always enabled in Visus
-    bool tcp_no_delay = cbool(VisusConfig::readString(config_key+"/tcp_no_delay","1"));
+    bool tcp_no_delay = cbool(VisusConfig::getSingleton()->readString(config_key+"/tcp_no_delay","1"));
     if (tcp_no_delay) 
       setNoDelay(tcp_no_delay);
   }

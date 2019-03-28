@@ -75,8 +75,8 @@ public:
   {
     if (config.empty())
     {
-      if (StringTree* default_config = VisusConfig::storage.findChildWithName("Configuration/OnDemandAccessExternal"))
-        config = *default_config;
+      if (auto it = VisusConfig::getSingleton()->findChildWithName("Configuration/OnDemandAccessExternal"))
+        config = *it;
     }
 
     bool disable_async = config.readBool("disable_async", dataset->bServerMode);

@@ -195,7 +195,7 @@ public:
   StringTree* findChildWithName(String name, StringTree* prev = NULL) const;
 
   //findAllChildsWithName
-  std::vector<StringTree*> findAllChildsWithName(String name, bool bRecursive) const;
+  std::vector<StringTree*> findAllChildsWithName(String name, bool bRecursive=true) const;
 
   //getMaxDepth
   int getMaxDepth();

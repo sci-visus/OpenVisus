@@ -168,7 +168,7 @@ GLInfo::GLInfo() : visus_used_memory(0),os_total_memory(0),extension_GL_NVX_gpu_
   VisusInfo()<<"GL_MAX_CLIP_PLANES "    <<this->max_clip_planes;
 
   //simulate that the graphic card has a certain memory 
-  if (Int64 total = StringUtils::getByteSizeFromString(VisusConfig::readString("Configuration/GLMemory/total", "0")))
+  if (Int64 total = StringUtils::getByteSizeFromString(VisusConfig::getSingleton()->readString("Configuration/GLMemory/total", "0")))
     setOsTotalMemory(total);
 
   #if __APPLE__
@@ -192,7 +192,7 @@ GLInfo::GLInfo() : visus_used_memory(0),os_total_memory(0),extension_GL_NVX_gpu_
   #endif
 
 
-  this->max_memory_allocation_factor=cdouble(VisusConfig::readString("Configuration/GLMemory/maximum_memory_allocation_factor","0.8"));
+  this->max_memory_allocation_factor=cdouble(VisusConfig::getSingleton()->readString("Configuration/GLMemory/maximum_memory_allocation_factor","0.8"));
   VisusAssert(this->os_total_memory==0 || this->max_memory_allocation_factor>0);
   VisusInfo() << "...done";
 }

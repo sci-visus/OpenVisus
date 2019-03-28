@@ -60,10 +60,10 @@ RenderArrayNode::RenderArrayNode(String name) : Node(name)
   lighting_material.back.specular=Colors::White;
   lighting_material.back.shininess=100;
 
-  lighting_enabled=cbool(VisusConfig::readString("Configuration/RenderNode/lighting_enabled",cstring(lighting_enabled)));
-  palette_enabled=cbool(VisusConfig::readString("Configuration/RenderNode/palette_enabled",cstring(palette_enabled)));
-  use_view_direction=cbool(VisusConfig::readString("Configuration/RenderNode/use_view_direction",cstring(use_view_direction)));
-  max_num_slices=cint(VisusConfig::readString("Configuration/RenderNode/max_num_slices",cstring(max_num_slices)));
+  lighting_enabled=cbool(VisusConfig::getSingleton()->readString("Configuration/RenderNode/lighting_enabled",cstring(lighting_enabled)));
+  palette_enabled=cbool(VisusConfig::getSingleton()->readString("Configuration/RenderNode/palette_enabled",cstring(palette_enabled)));
+  use_view_direction=cbool(VisusConfig::getSingleton()->readString("Configuration/RenderNode/use_view_direction",cstring(use_view_direction)));
+  max_num_slices=cint(VisusConfig::getSingleton()->readString("Configuration/RenderNode/max_num_slices",cstring(max_num_slices)));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////

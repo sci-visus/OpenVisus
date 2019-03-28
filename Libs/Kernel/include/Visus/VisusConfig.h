@@ -46,47 +46,25 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API VisusConfig
+class VISUS_KERNEL_API VisusConfig : public StringTree
 {
 public:
 
-  static String     filename;
-  static StringTree storage;
-  static Int64      timestamp;
+  VISUS_DECLARE_SINGLETON_CLASS(VisusConfig)
 
-  //validate
-  static bool validate();
-
-  //needReload
-  static bool needReload();
-
-  //reload
-  static bool reload();
-
-  //readString
-  static String readString(String key, String default_value = "") {
-    return storage.readString(key, default_value);
-  }
-
-  //writeString
-  static void writeString(String key, String value) {
-    return storage.writeString(key, value);
-  }
-
-  //findChildWithName
-  static StringTree* findChildWithName(String name) {
-    return storage.findChildWithName(name);
-  }
-
-  //findAllChildsWithName
-  static std::vector<StringTree*> findAllChildsWithName(String name) {
-    return storage.findAllChildsWithName(name, true);
-  }
-
-private:
+  String     filename;
+  Int64      timestamp=0;
 
   //constructor
-  VisusConfig() = delete;
+  VisusConfig(String name= "visus_config") : StringTree(name) {
+  }
+
+  //destructor
+  ~VisusConfig() {
+  }
+
+  //reload
+  bool reload(bool bForce=false);
 
 };
 

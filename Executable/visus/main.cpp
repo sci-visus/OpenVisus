@@ -209,11 +209,11 @@ public:
       ThrowException(StringUtils::format() << args[0] <<"  Invalid argument " << args[I]);
     }
 
-    auto modvisus=std::make_shared<ModVisus>();
+    auto modvisus=new ModVisus();
     modvisus->configureDatasets();
   
-    auto netserver=std::make_shared<NetServer>(port, modvisus);
-    netserver->runInThisThread();
+    NetServer netserver(port, modvisus);
+    netserver.runInThisThread();
 
     return data;
   }
@@ -2132,10 +2132,10 @@ int main(int argn, const char* argv[])
 
   if (argn >= 2 && String(argv[1]) == "--server")
   {
-    auto modvisus = std::make_shared<ModVisus>();
+    auto modvisus = new ModVisus;
     modvisus->configureDatasets();
-    auto server = std::make_shared<NetServer>(10000, modvisus);
-    server->runInThisThread();
+    NetServer server(10000, modvisus);
+    server.runInThisThread();
     return 0;
   }
 

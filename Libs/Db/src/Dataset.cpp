@@ -52,12 +52,12 @@ namespace Visus {
 VISUS_IMPLEMENT_SINGLETON_CLASS(DatasetFactory)
 
  ////////////////////////////////////////////////////////////////////////////////////
-Dataset::Info Dataset::findDatasetInVisusConfig(String name)
+Dataset::Info Dataset::getDatasetInfo(String name,const StringTree& stree)
 {
   Dataset::Info ret;
   ret.name=name;
 
-  auto all_datasets=VisusConfig::findAllChildsWithName("dataset");
+  auto all_datasets= stree.findAllChildsWithName("dataset");
 
   bool bFound=false;
   for (auto it : all_datasets) 
@@ -326,7 +326,7 @@ SharedPtr<Dataset> Dataset::loadDataset(String name)
   if (name.empty())
     return SharedPtr<Dataset>();
 
-  auto info=findDatasetInVisusConfig(name);
+  auto info=getDatasetInfo(name,*VisusConfig::getSingleton());
   if (!info.valid())
     return SharedPtr<Dataset>();
 
@@ -359,9 +359,9 @@ SharedPtr<Dataset> Dataset::loadDataset(String name)
 
 
 /////////////////////////////////////////////////////////////////////////
-String Dataset::getDefaultDatasetInVisusConfig()
+String Dataset::getDefaultDataset()
 {
-  auto configs = VisusConfig::findAllChildsWithName("dataset");
+  auto configs = VisusConfig::getSingleton()->findAllChildsWithName("dataset");
   if (configs.empty()) 
     return ""; //no default
 
@@ -914,7 +914,7 @@ void Dataset::readFromObjectStream(ObjectStream& istream)
     istream.popContext("config");
   }
 
-  auto info=findDatasetInVisusConfig(url);
+  auto info=getDatasetInfo(url,*VisusConfig::getSingleton());
   if (!info.valid())
     ThrowException(StringUtils::format()<<"Cannot get dataset info for "<<url);
 

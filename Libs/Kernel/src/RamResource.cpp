@@ -96,7 +96,7 @@ RamResource::RamResource()
 
 
 
-  this->max_memory_allocation_factor=cdouble(VisusConfig::readString("Configuration/RamResource/maximum_memory_allocation_factor","0.8"));
+  this->max_memory_allocation_factor=cdouble(VisusConfig::getSingleton()->readString("Configuration/RamResource/maximum_memory_allocation_factor","0.8"));
 
   VisusAssert(this->os_total_memory==0 || this->max_memory_allocation_factor>0);
 }

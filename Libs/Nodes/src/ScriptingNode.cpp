@@ -65,7 +65,7 @@ public:
   {
     this->engine = node->engine;
     this->bDataOutputPortConnected=node->isOutputConnected("data");
-    this->max_publish_msec=cint(VisusConfig::readString("Configuration/ScriptingNode/max_dopublish_msec","600"));
+    this->max_publish_msec=cint(VisusConfig::getSingleton()->readString("Configuration/ScriptingNode/max_dopublish_msec","600"));
     this->code = node->getCode();
   }
 

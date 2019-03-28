@@ -145,7 +145,7 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////////////////
 SharedPtr<Viewer::Logo> Viewer::OpenScreenLogo(String key, String default_logo)
 {
-  String filename = VisusConfig::readString(key + "/filename");
+  String filename = VisusConfig::getSingleton()->readString(key + "/filename");
   if (filename.empty())
     filename = default_logo;
 
@@ -164,7 +164,7 @@ SharedPtr<Viewer::Logo> Viewer::OpenScreenLogo(String key, String default_logo)
   ret->tex->envmode = GL_MODULATE;
   ret->pos.x = StringUtils::contains(key, "Left") ? 0 : 1;
   ret->pos.y = StringUtils::contains(key, "Bottom") ? 0 : 1;
-  ret->opacity = cdouble(VisusConfig::readString(key + "/alpha", "0.5"));
+  ret->opacity = cdouble(VisusConfig::getSingleton()->readString(key + "/alpha", "0.5"));
   ret->border = Point2d(10, 10);
   return ret;
 };
@@ -190,7 +190,7 @@ Viewer::Viewer(String title) : QMainWindow()
 
   setWindowTitle(title.c_str());
 
-  this->background_color=Color::parseFromString(VisusConfig::readString("Configuration/VisusViewer/background_color", Colors::DarkBlue.toString()));
+  this->background_color=Color::parseFromString(VisusConfig::getSingleton()->readString("Configuration/VisusViewer/background_color", Colors::DarkBlue.toString()));
 
   //logos
   {
@@ -289,7 +289,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   String arg_split_ortho;
   String args_zoom_to;
 
-  String open_filename = Dataset::getDefaultDatasetInVisusConfig();
+  String open_filename = Dataset::getDefaultDataset();
   bool bStartServer = false;
   bool bFullScreen = false;
   Rectangle2i geometry(0, 0, 0, 0);
@@ -425,7 +425,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   if (bStartServer)
   {
     //mixing client and server mode for debugging purpouses
-    auto modvisus = std::make_shared<ModVisus>();
+    auto modvisus = new ModVisus();
     modvisus->configureDatasets();
     server = std::make_shared<NetServer>(10000, modvisus);
     server->runInBackground();
@@ -540,9 +540,9 @@ void Viewer::enableSaveSession()
 {
   save_session_timer.reset(new QTimer());
   
-  String filename = VisusConfig::readString("Configuration/VisusViewer/SaveSession/filename", KnownPaths::VisusHome.getChild("viewer_session.xml"));
+  String filename = VisusConfig::getSingleton()->readString("Configuration/VisusViewer/SaveSession/filename", KnownPaths::VisusHome.getChild("viewer_session.xml"));
   
-  int every_sec    =cint(VisusConfig::readString("Configuration/VisusViewer/SaveSession/sec","60")); //1 min!
+  int every_sec    =cint(VisusConfig::getSingleton()->readString("Configuration/VisusViewer/SaveSession/sec","60")); //1 min!
 
   //make sure I create a unique filename
   String extension=Path(filename).getExtension();
@@ -1051,10 +1051,11 @@ void Viewer::reloadVisusConfig(bool bChooseAFile)
     String filename=cstring(QFileDialog::getOpenFileName(nullptr,"Choose a file to open...",last_dir.c_str(),"*"));
     if (filename.empty()) return;
     last_dir=Path(filename).getParent();
-    VisusConfig::filename=filename;
+    VisusConfig::getSingleton()->filename=filename;
   }
 
-  VisusConfig::reload();
+  bool bForce = true;
+  VisusConfig::getSingleton()->reload(bForce);
 
   widgets.toolbar->bookmarks_button->setMenu(createBookmarks());
 }
@@ -1098,8 +1099,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
     }
 
     for (int i=0;i<stree.getNumberOfChilds();i++)
-      VisusConfig::storage.addChild(stree.getChild(i));
-    VisusConfig::validate();
+      VisusConfig::getSingleton()->addChild(stree.getChild(i));
 
     //load first bookmark from new config
     auto children=stree.findAllChildsWithName("dataset",true);
@@ -2666,7 +2666,7 @@ Node* Viewer::addRenderArrayNode(Node* parent,Node* data_provider,String default
 
   Node* render_node;
   
-  if (render_type == "ospray" || VisusConfig::readString("Configuration/VisusViewer/DefaultRenderNode/value")=="ospray")
+  if (render_type == "ospray" || VisusConfig::getSingleton()->readString("Configuration/VisusViewer/DefaultRenderNode/value")=="ospray")
     render_node = new OSPRayRenderNode("OSPray Render Node");
   else
     render_node = new RenderArrayNode("Render Node");
@@ -2835,9 +2835,9 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
     }
     else
     {
-      String default_palette_2d=VisusConfig::readString("Configuration/VisusViewer/default_palette_2d","GrayOpaque");
-      String default_palette_3d=VisusConfig::readString("Configuration/VisusViewer/default_palette_3d","GrayTransparent");
-      String default_render_type = VisusConfig::readString("Configuration/VisusViewer/DefaultRenderNode/value", "");
+      String default_palette_2d=VisusConfig::getSingleton()->readString("Configuration/VisusViewer/default_palette_2d","GrayOpaque");
+      String default_palette_3d=VisusConfig::getSingleton()->readString("Configuration/VisusViewer/default_palette_3d","GrayTransparent");
+      String default_render_type = VisusConfig::getSingleton()->readString("Configuration/VisusViewer/DefaultRenderNode/value", "");
       addRenderArrayNode(query_node,scripting_node,dim==3?default_palette_3d:default_palette_2d, default_render_type);
     }
   }
@@ -2948,7 +2948,7 @@ DatasetNode* Viewer::addDatasetNode(SharedPtr<Dataset> dataset,Node* parent)
   auto time_node=new TimeNode("time",dataset->getDefaultTime(),dataset->getTimesteps());
 
   //rendertype
-  String default_rendertype=VisusConfig::readString("Configuration/VisusViewer/render","");
+  String default_rendertype=VisusConfig::getSingleton()->readString("Configuration/VisusViewer/render","");
   String rendertype=StringUtils::toLower(dataset->getConfig().readString("rendertype",default_rendertype));
 
   beginUpdate();

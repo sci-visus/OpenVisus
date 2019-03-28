@@ -108,18 +108,6 @@ class VISUS_DB_API Dataset
 {
 public:
 
-  //______________________________________________
-  class VISUS_DB_API Info
-  {
-  public:
-    String     name;
-    Url        url;
-    String     TypeName;
-    StringTree config;
-    bool valid() const { return !name.empty(); }
-  };
-
-
   Url                     url;
   String                  dataset_body;
   DatasetBitmask          bitmask;
@@ -156,12 +144,8 @@ public:
   static void copyDataset(Dataset* Dvf, SharedPtr<Access> Daccess, Field Dfield, double Dtime,
     Dataset* Svf, SharedPtr<Access> Saccess, Field Sfield, double Stime);
 
-
-  //findDatasetInVisusConfig
-  static Info findDatasetInVisusConfig(String name);
-
-  //getDefaultDatasetInVisusConfig
-  static String getDefaultDatasetInVisusConfig();
+  //getDefaultDataset
+  static String getDefaultDataset();
 
   //loadDataset
   static SharedPtr<Dataset> loadDataset(String name);
@@ -414,6 +398,21 @@ public:
   //readFromObjectStream
   void readFromObjectStream(ObjectStream& istream);
 
+private:
+
+  //______________________________________________
+  class VISUS_DB_API Info
+  {
+  public:
+    String     name;
+    Url        url;
+    String     TypeName;
+    StringTree config;
+    bool valid() const { return !name.empty(); }
+  };
+
+  //getDatasetInfo
+  static Info getDatasetInfo(String name,const StringTree& stree);
 
 };
 

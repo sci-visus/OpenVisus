@@ -43,81 +43,29 @@ For support : support@visus.net
 
 namespace Visus {
 
-String                   VisusConfig::filename;
-StringTree               VisusConfig::storage = StringTree("visus_config");
-Int64                    VisusConfig::timestamp = 0;
+VISUS_IMPLEMENT_SINGLETON_CLASS(VisusConfig)
+
 
 //////////////////////////////////////////////////////////////
-bool VisusConfig::reload()
+bool VisusConfig::reload(bool bForce)
 {
-  auto filename = VisusConfig::filename;
-
-  if (FileUtils::existsFile(filename))
-  {
-    String body = Utils::loadTextDocument(filename);
-    StringTree temp("visus");
-    if (temp.fromXmlString(body))
-    {
-      VisusConfig::storage = temp;
-      VisusConfig::timestamp = FileUtils::getTimeLastModified(filename);
-      //VisusInfo() << VisusConfig::storage.toString();
-    }
-    else
-    {
-      VisusWarning() << "visus config content is wrong or empty";
-    }
-  }
-
-  //in case the user whant to simulate I have a certain amount of RAM
-  if (Int64 total = StringUtils::getByteSizeFromString(VisusConfig::readString("Configuration/RamResource/total", "0")))
-    RamResource::getSingleton()->setOsTotalMemory(total);
-
-  if (VisusConfig::storage.empty())
-  {
+  if (!bForce && this->timestamp && this->timestamp == FileUtils::getTimeLastModified(this->filename))
     return false;
-    VisusInfo() << "Cannot find visus config file, maybe you can specify it using --visus-config <filename>";
-  }
-  else
+
+  String body = Utils::loadTextDocument(this->filename);
+  StringTree temp("visus");
+  if (!temp.fromXmlString(body))
   {
-    VisusInfo() << "Found Visus configuration [" << filename << "]";
+    VisusWarning() << "visus config content is wrong or empty";
+    return false;
   }
 
+  this->StringTree::operator=(temp);
+  this->timestamp = FileUtils::getTimeLastModified(this->filename);
 
-  VisusConfig::validate();
+  VisusInfo() << "Reloaded VisusConfig " << filename;
   return true;
 }
-
-//////////////////////////////////////////////////////////////
-bool VisusConfig::needReload()
-{
-  return VisusConfig::timestamp == FileUtils::getTimeLastModified(VisusConfig::filename) ? false : true;
-}
-
-
-//////////////////////////////////////////////////////////////
-bool VisusConfig::validate()
-{
-  bool valid = true;
-  std::vector<StringTree*> datasets = findAllChildsWithName("dataset");
-
-  //check for duplicates in datasets
-  std::map<String, StringTree*> map;
-  for (int i = 0; i<(int)datasets.size(); i++)
-  {
-    String name = datasets[i]->readString("name", "<unnamed>");
-    auto iter = map.find(name);
-    if (iter != map.end())
-    {
-      if (name != "<unnamed>")
-        VisusWarning() << "Duplicate entries found in visus.config for: " << name;
-      valid = false;
-    }
-    map[name] = datasets[i];
-  }
-
-  return valid;
-}
-
 
 } //namespace Visus
 

@@ -132,15 +132,17 @@ public:
     VISUS_CLASS(Preferences)
 
     String       title = "VisusViewer-" + ApplicationInfo::git_revision;
-    String       preferred_panels = VisusConfig::readString("Configuration/VisusViewer/panels", "left center");
+    String       preferred_panels;
     bool         bHideTitleBar = false;
     bool         bHideMenus = false;
     bool         bRightHanded = true;
     Rectangle2d  screen_bounds;
-    bool         bRenderLogos = cbool(VisusConfig::readString("Configuration/VisusViewer/show_logos", "true"));
+    bool         bRenderLogos;
 
     //constructor
     Preferences() {
+      this->preferred_panels = VisusConfig::getSingleton()->readString("Configuration/VisusViewer/panels", "left center");
+      this->bRenderLogos = cbool(VisusConfig::getSingleton()->readString("Configuration/VisusViewer/show_logos", "true"));
     }
 
     //writeToObjectStream
@@ -837,12 +839,12 @@ private:
   void refreshActions();
 
   //createBookmarks
-  void createBookmarks(QMenu* dst,const StringTree* src);
+  void createBookmarks(QMenu* dst,const StringTree& src);
 
   //createBookmarks
   QMenu* createBookmarks() {
     auto ret=new QMenu(this);
-    createBookmarks(ret,&VisusConfig::storage);
+    createBookmarks(ret,*VisusConfig::getSingleton());
     setBlueMenu(ret);
     return ret;
   }

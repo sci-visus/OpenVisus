@@ -444,35 +444,35 @@ void Viewer::createActions()
 }
 
 ////////////////////////////////////////////////////////////
-void Viewer::createBookmarks(QMenu* dst,const StringTree* src)
+void Viewer::createBookmarks(QMenu* dst,const StringTree& src)
 {
-  for (int I=0;I<(int)src->getNumberOfChilds();I++)
+  for (int I=0;I<(int)src.getNumberOfChilds();I++)
   {
-    const StringTree* child=&src->getChild(I);
+    const StringTree& child=src.getChild(I);
 
-    if (child->name=="dataset")
+    if (child.name=="dataset")
     {
       //NOTE: i'm using name and not url because I can have multiple dataset with the same url (example: cached, no cached)
       //      later loadDataset (with DatasetGetInfo) will figure out the real url
-      String url=child->readString("name",child->readString("url"));
+      String url=child.readString("name",child.readString("url"));
       VisusAssert(!url.empty());
       dst->addAction(GuiFactory::CreateAction(StringUtils::replaceAll(url, "&", "&&").c_str(), this, [this, url]() {
         openFile(url); 
       }));
     }
-    else if (child->name == "scene")
+    else if (child.name == "scene")
     {
-      String name = child->readString("name"); VisusAssert(!name.empty());
-      String url   = child->readString("url"); VisusAssert(!url.empty() && (StringUtils::endsWith(url, ".xml") || StringUtils::endsWith(url, ".scn")));
+      String name = child.readString("name"); VisusAssert(!name.empty());
+      String url   = child.readString("url"); VisusAssert(!url.empty() && (StringUtils::endsWith(url, ".xml") || StringUtils::endsWith(url, ".scn")));
       name = StringUtils::replaceAll(name, "&", "&&");
 
       dst->addAction(GuiFactory::CreateAction(name.c_str(), this, [this, url]() {
         openFile(url);
       }));
     }
-    else if (child->name=="group")
+    else if (child.name=="group")
     {
-      QMenu* submenu=dst->addMenu(child->readString("name",child->name).c_str());
+      QMenu* submenu=dst->addMenu(child.readString("name",child.name).c_str());
       createBookmarks(submenu,child);
     }
     else

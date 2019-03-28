@@ -17,9 +17,12 @@ if __name__ == '__main__':
 	"""
 	
 	SetCommandLine("__main__")
-	GuiModule.createApplication();
-	AppKitModule.attach()
+	GuiModule.createApplication()
 	
+	if VISUS_GUI:
+		AppKitModule.attach()
+	else:
+		IdxModule.attach()
 	
 	img_filename="datasets/cat/rgb.png"
 	idx_filename="temp/visus.idx"
@@ -49,12 +52,14 @@ if __name__ == '__main__':
 	ASSERT(bOk)
 	
 	# (3) view the idx in visus viewer...
-	viewer=Viewer()
-	viewer.openFile(idx_filename)	
-	viewer.setMinimal()
+	if VISUS_GUI:
 	
-	# ... with some little python scripting
-	viewer.setScriptingCode("""
+		viewer=Viewer()
+		viewer.openFile(idx_filename)	
+		viewer.setMinimal()
+		
+		# ... with some little python scripting
+		viewer.setScriptingCode("""
 import cv2,numpy
 
 pdim=input.dims.getPointDim()
@@ -63,12 +68,14 @@ img=Array.toNumPy(input,bShareMem=True)
 img=cv2.Laplacian(img,cv2.CV_64F)
 
 output=Array.fromNumPy(img,TargetDim=pdim)
-""".strip())
+	""".strip())
 		
+		GuiModule.execApplication()
 		
-	# exit
-	GuiModule.execApplication()
-	AppKitModule.detach()
+	if VISUS_GUI:
+		AppKitModule.detach()
+	else:
+		IdxModule.detach()
 
 	
 	

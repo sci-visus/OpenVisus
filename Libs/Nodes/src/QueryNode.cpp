@@ -67,7 +67,7 @@ public:
     : node(node_),dataset(dataset_),access(access_),query(query_),max_query_size(max_query_size_)
   {
     this->query->aborted=this->aborted;
-    this->verbose=cbool(VisusConfig::readString("Configuration/QueryNode/verbose","true"));
+    this->verbose=cbool(VisusConfig::getSingleton()->readString("Configuration/QueryNode/verbose","true"));
     this->waiting_ready=std::make_shared<Semaphore>();
 
     //need custom doPublish for scripting since it will not always wish to wait for return receipt

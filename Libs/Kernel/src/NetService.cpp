@@ -181,11 +181,11 @@ public:
         curl_easy_setopt(this->handle, CURLOPT_WRITEDATA, this);
         curl_easy_setopt(this->handle, CURLOPT_READDATA, this);
 
-        String proxy = VisusConfig::readString("Configuration/NetService/proxy");
+        String proxy = VisusConfig::getSingleton()->readString("Configuration/NetService/proxy");
         if (!proxy.empty())
         {
           curl_easy_setopt(this->handle, CURLOPT_PROXY, proxy.c_str());
-          if (int proxy_port = cint(VisusConfig::readString("Configuration/NetService/proxyport")))
+          if (int proxy_port = cint(VisusConfig::getSingleton()->readString("Configuration/NetService/proxyport")))
             curl_easy_setopt(this->handle, CURLOPT_PROXYPORT, proxy_port);
         }
 

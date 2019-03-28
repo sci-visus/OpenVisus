@@ -3,6 +3,7 @@
 %{ 
 #include <Visus/Array.h>
 #include <Visus/VisusConfig.h>
+#include <Visus/NetServer.h>
 using namespace Visus;
 %}
 
@@ -20,6 +21,9 @@ using namespace Visus;
 //VISUS_DISOWN -> DISOWN | DISOWN_FOR_DIRECTOR
 //%apply SWIGTYPE *DISOWN              { Visus::ClassName*         disown};
 //%apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::DirectorClassName* disown};
+
+%apply SWIGTYPE *DISOWN                { Visus::NetServerModule* disown};
+
 
 %template(VectorOfField) std::vector<Visus::Field>;
 %template(VectorOfArray) std::vector<Visus::Array>;
@@ -62,7 +66,6 @@ using namespace Visus;
 %include <Visus/Array.h>
 %include <Visus/ArrayUtils.h>
 %include <Visus/ArrayPlugin.h>
-
 
 
 // _____________________________________________________
@@ -128,3 +131,5 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
 }; //%extend Visus::Array {
 
 
+
+%include <Visus/NetServer.h>

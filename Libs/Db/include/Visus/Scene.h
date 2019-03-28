@@ -53,16 +53,7 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(Scene)
 
-  //______________________________________________
-  class VISUS_DB_API Info
-  {
-  public:
-    String     name;
-    Url        url;
-    StringTree config;
-    bool valid() const {return !name.empty();}
-  };
-  
+
   //constructor
   Scene() {
   }
@@ -70,9 +61,6 @@ public:
   //destructor
   virtual ~Scene() {
   }
-
-  //findSceneInVisusConfig
-  static Info findSceneInVisusConfig(String name);
 
   //loadDataset
   static SharedPtr<Scene> loadScene(String name);
@@ -117,6 +105,24 @@ protected:
   String                 name;
   Url                    url;
   String                 scene_body;
+
+private:
+
+
+  //______________________________________________
+  class VISUS_DB_API Info
+  {
+  public:
+    String     name;
+    Url        url;
+    StringTree config;
+    bool valid() const { return !name.empty(); }
+  };
+
+
+  //getSceneInfo
+  static Info getSceneInfo(String name,const StringTree& stree);
+
 
 };
 

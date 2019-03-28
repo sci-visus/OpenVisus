@@ -157,7 +157,7 @@ public:
     // Open a handle to the Event Viewer.
     g_hEventLog = RegisterEventSource(NULL, "IISADMIN");
 
-    VisusConfig::filename = "/inetpub/wwwroot/visus/visus.config";
+    VisusConfig::getSingleton()->filename = "/inetpub/wwwroot/visus/visus.config";
 
     static int argn = 1;
     static const char* argv[] = { "mod_visus.dll" };
