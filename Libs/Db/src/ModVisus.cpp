@@ -58,19 +58,23 @@ static NetResponse CreateNetResponseError(int status,String errormsg,String file
 #define NetResponseError(status,errormsg) CreateNetResponseError(status,errormsg,__FILE__,__LINE__)
 
 
+String read_dataset_template = "$(protocol)://$(hostname):$(port)/mod_visus?action=readdataset&dataset=$(name)";
+String read_scene_template = "$(protocol)://$(hostname):$(port)/mod_visus?action=readscene&scene=$(name)";
+
 ////////////////////////////////////////////////////////////////////////////////
 class PublicDataset
 {
 public:
 
+
+  SharedPtr<Dataset> dataset;
+
   //constructor
-  PublicDataset(String name,SharedPtr<Dataset> dataset,String url_template="$(protocol)://$(hostname):$(port)/mod_visus?action=readdataset&dataset=$(name)")
+  PublicDataset(String name,SharedPtr<Dataset> dataset)
   {
     this->name=name;
-    this->url_template=url_template;
-    this->url=StringUtils::replaceAll(url_template,"$(name)",name);
+    this->url=StringUtils::replaceAll(read_dataset_template,"$(name)",name);
     this->dataset=dataset;
-    this->dataset_body=getDatasetBody(dataset);
   }
 
   //getName
@@ -83,67 +87,12 @@ public:
     return url;
   }
 
-  //getDataset
-  SharedPtr<Dataset> getDataset() const
-  {
-    ScopedReadLock lock(const_cast<PublicDataset*>(this)->dataset_lock);
-    return dataset;
-  }
-
-  //getDatasetBody
-  String getDatasetBody() const {
-    ScopedReadLock lock(const_cast<PublicDataset*>(this)->dataset_lock);
-    return dataset_body;
-  }
-
 private:
 
   VISUS_NON_COPYABLE_CLASS(PublicDataset)
 
   String             name;
   String             url;
-  String             url_template;
-
-  RWLock             dataset_lock;
-  SharedPtr<Dataset> dataset;
-  String             dataset_body;
-
-  //getDatasetBody
-  String getDatasetBody(SharedPtr<Dataset> dataset)
-  {
-    String dataset_body= StringUtils::trim(dataset->getDatasetBody());
-
-    if (dataset_body.empty())
-      return dataset->getUrl().toString();
-
-    //special case for IdxMultipleDataset, I need to remap urls
-    if (bool bMaybeXml=StringUtils::startsWith(dataset_body,"<"))
-    {
-      StringTree stree;
-      if (stree.fromXmlString(dataset_body)) 
-      {
-        fixUrls(stree);
-        dataset_body=stree.toString();
-      }
-    }
-
-    return dataset_body;
-  }
-
-  //fixUrls
-  void fixUrls(StringTree& stree)
-  {
-    if (stree.name=="dataset" && stree.hasValue("name") && stree.hasValue("url"))
-    {
-      String name=stree.readString("name");
-      String url =stree.readString("url");
-      url=StringUtils::replaceAll(this->url_template,"$(name)",this->name+"/"+name);
-      stree.writeString("url",url);
-    }
-
-    for (int I=0;I<stree.getNumberOfChilds();I++)
-      fixUrls(stree.getChild(I));
-  }
 
 };
 
@@ -175,10 +124,10 @@ public:
   }
 
   //find
-  SharedPtr<PublicDataset> find(String name)
+  SharedPtr<Dataset> find(String name)
   {
     if (name.empty())
-      return SharedPtr<PublicDataset>();
+      return SharedPtr<Dataset>();
 
     for (auto bReload : { 0,1 })
     {
@@ -195,11 +144,11 @@ public:
         ScopedReadLock read_lock(this->lock);
         auto it = this->map.find(name);
         if (it != this->map.end())
-          return it->second;
+          return it->second->dataset;
       }
     }
 
-    return SharedPtr<PublicDataset>();
+    return SharedPtr<Dataset>();
   }
 
   //add
@@ -276,16 +225,16 @@ private:
     if (map.find(public_name)!=map.end())
       VisusWarning()<<"Dataset name("<<public_name<<") already exists, overwriting it";
 
-    public_dataset->getDataset()->bServerMode = true;
+    public_dataset->dataset->bServerMode = true;
     this->map[public_name]=public_dataset;
 
     StringTree* child=dst.addChild(StringTree("dataset"));
-    child->attributes=public_dataset->getDataset()->getConfig().attributes; //for example kdquery=true could be maintained!
+    child->attributes=public_dataset->dataset->getConfig().attributes; //for example kdquery=true could be maintained!
     child->writeString("name",public_name);
     child->writeString("url",public_dataset->getUrl());
 
     //automatically add the childs of a multiple datasets
-    for (auto it : public_dataset->getDataset()->getInnerDatasets())
+    for (auto it : public_dataset->dataset->getInnerDatasets())
     {
       auto child_public_name=public_name+"/"+it.first;
       auto child_dataset=it.second;
@@ -356,30 +305,27 @@ private:
 class PublicScene
 {
 public:
+
+  SharedPtr<Scene> scene;
   
   //constructor
-  PublicScene(String name,SharedPtr<Scene> scene,String url_template="$(protocol)://$(hostname):$(port)/mod_visus?action=readscene&scene=$(name)")
+  PublicScene(String name,SharedPtr<Scene> scene)
   {
     this->name=name;
-    this->url_template=url_template;
-    this->url=StringUtils::replaceAll(url_template,"$(name)",name);
-    this->scene_body=scene->getSceneBody();
+    this->url=StringUtils::replaceAll(read_scene_template,"$(name)",name);
+    this->scene = scene;
   }
   
   //getName
-  const String& getName() const
-  {return name;}
+  const String& getName() const {
+    return name;
+  }
   
   //getUrl
-  const String& getUrl() const
-  {return url;}
-  
-  //getDatasetBody
-  String getSceneBody() const
-  {
-    ScopedReadLock lock(const_cast<PublicScene*>(this)->scene_lock);
-    return scene_body;
+  const String& getUrl() const {
+    return url;
   }
+  
   
 private:
   
@@ -387,45 +333,9 @@ private:
   
   String             name;
   String             url;
-  String             url_template;
   
-  RWLock             scene_lock;
-  String             scene_body;
-  
-  //getDatasetBody
-  String getSceneBody(SharedPtr<Scene> scene)
-  {
-    String scene_body=scene->getSceneBody();
-    
-    if (scene_body.empty())
-      return scene->getUrl().toString();
-    
-    {
-      StringTree stree;
-      if (stree.fromXmlString(scene_body))
-      {
-        fixUrls(stree);
-        scene_body=stree.toString();
-      }
-    }
-    
-    return scene_body;
-  }
-  
-  //fixUrls
-  void fixUrls(StringTree& stree)
-  {
-    if (stree.name=="scene" && stree.hasValue("name") && stree.hasValue("url"))
-    {
-      String name=stree.readString("name");
-      String url =stree.readString("url");
-      url=StringUtils::replaceAll(this->url_template,"$(name)",this->name+"/"+name);
-      stree.writeString("url",url);
-    }
-    
-    for (int I=0;I<stree.getNumberOfChilds();I++)
-      fixUrls(stree.getChild(I));
-  }
+
+
   
 };
 
@@ -456,11 +366,11 @@ public:
   }
   
   //find
-  SharedPtr<PublicScene> find(String name)
+  SharedPtr<Scene> find(String name)
   {
     ScopedReadLock read_lock(this->lock);
     auto it=this->map.find(name);
-    return it != this->map.end() ? it->second : SharedPtr<PublicScene>();
+    return it != this->map.end() ? it->second->scene : SharedPtr<Scene>();
   }
   
   //add
@@ -536,7 +446,7 @@ private:
     this->map[public_scene->getName()] = public_scene;
 
     StringTree* child = dst.addChild(StringTree("dataset"));
-    // child->attributes=public_dataset->getDataset()->getConfig().attributes; //for example kdquery=true could be maintained!
+    // child->attributes=public_scene->scene->getConfig().attributes; //for example kdquery=true could be maintained!
     child->writeString("name", name);
     child->writeString("url", public_scene->getUrl());
   }
@@ -627,15 +537,44 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
 {
   String dataset_name=request.url.getParam("dataset");
 
-  SharedPtr<PublicDataset> public_dataset=datasets->find(dataset_name);
-  if (!public_dataset)
+  auto dataset=datasets->find(dataset_name);
+  if (!dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find dataset(" + dataset_name + ")");
 
   NetResponse response(HttpStatus::STATUS_OK);
   response.setHeader("visus-git-revision", ApplicationInfo::git_revision);
-  response.setHeader("visus-typename", public_dataset->getDataset()->getTypeName());
+  response.setHeader("visus-typename", dataset->getTypeName());
 
-  auto body=public_dataset->getDatasetBody();
+  auto body= dataset->getDatasetBody();
+
+  //fix urls
+  if (bool bMaybeXml = StringUtils::startsWith(body, "<"))
+  {
+    StringTree stree;
+    if (stree.fromXmlString(body))
+    {
+      std::stack<StringTree*> stack;
+      stack.push(&stree);
+      while (!stack.empty())
+      {
+        auto cursor = stack.top(); stack.pop();
+
+        if (cursor->name == "dataset" && cursor->hasValue("name") && cursor->hasValue("url"))
+        {
+          String name = cursor->readString("name");
+          String url = StringUtils::replaceAll(read_dataset_template, "$(name)", dataset_name + "/" + name);
+          cursor->writeString("url", url);
+        }
+
+        for (auto child : cursor->getChilds())
+          stack.push(child);
+      }
+
+      body = stree.toString();
+    }
+  }
+
+
   response.setTextBody(body,/*bHasBinary*/true);
   return response;
 }
@@ -645,15 +584,43 @@ NetResponse ModVisus::handleReadScene(const NetRequest& request)
 {
   String scene_name=request.url.getParam("scene");
   
-  SharedPtr<PublicScene> public_scene=scenes->find(scene_name);
-  if (!public_scene)
+  auto scene=scenes->find(scene_name);
+  if (!scene)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find scene(" + scene_name + ")");
   
   NetResponse response(HttpStatus::STATUS_OK);
   response.setHeader("visus-git-revision", ApplicationInfo::git_revision);
-  //response.setHeader("visus-typename", public_dataset->getDataset()->getTypeName());
+  //response.setHeader("visus-typename", scene->getTypeName());
   
-  auto body=public_scene->getSceneBody();
+  auto body= scene->getSceneBody();
+
+  //fix urls
+  if (bool bMaybeXml = StringUtils::startsWith(body, "<"))
+  {
+    StringTree stree;
+    if (stree.fromXmlString(body))
+    {
+      std::stack<StringTree*> stack;
+      stack.push(&stree);
+      while (!stack.empty())
+      {
+        auto cursor = stack.top(); stack.pop();
+
+        if (cursor->name == "scene" && cursor->hasValue("name") && cursor->hasValue("url"))
+        {
+          String name = cursor->readString("name");
+          String url = StringUtils::replaceAll(read_scene_template, "$(name)", scene_name + "/" + name);
+          cursor->writeString("url", url);
+        }
+
+        for (auto child : cursor->getChilds())
+          stack.push(child);
+      }
+
+      body = stree.toString();
+    }
+  }
+
   response.setTextBody(body,/*bHasBinary*/true);
   return response;
 }
@@ -756,11 +723,10 @@ NetResponse ModVisus::handleOpenSeaDragon(const NetRequest& request)
   String debugMode     = request.url.getParam("debugMode","false");
   String showNavigator = request.url.getParam("showNavigator","true");
 
-  SharedPtr<PublicDataset> public_dataset=datasets->find(dataset_name);
-  if (!public_dataset)
+  auto dataset=datasets->find(dataset_name);
+  if (!dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find dataset(" + dataset_name + ")");
   
-  auto dataset=public_dataset->getDataset();
   if (dataset->getPointDim()!=2)
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST,"dataset(" + dataset_name + ") has dimension !=2");
 
@@ -834,11 +800,9 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 {
   String dataset_name = request.url.getParam("dataset");
 
-  SharedPtr<PublicDataset> public_dataset=datasets->find(dataset_name);
-  if (!public_dataset)
+  auto dataset=datasets->find(dataset_name);
+  if (!dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find dataset(" + dataset_name + ")");
-
-  auto dataset=public_dataset->getDataset();
 
   String compression         =         request.url.getParam("compression");
   String fieldname           =         request.url.getParam("field",dataset->getDefaultField().name);
@@ -918,11 +882,10 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   double palette_max     = cdouble(request.url.getParam("palette_max"));
   String palette_interp  =        (request.url.getParam("palette_interp"));
 
-  SharedPtr<PublicDataset> public_dataset=datasets->find(dataset_name);
-  if (!public_dataset)
+  auto dataset=datasets->find(dataset_name);
+  if (!dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"Cannot find dataset(" + dataset_name + ")");
 
-  auto dataset=public_dataset->getDataset();
   int pdim = dataset->getPointDim();
 
   Field field = fieldname.empty()? dataset->getDefaultField() : dataset->getFieldByName(fieldname);

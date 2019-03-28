@@ -87,12 +87,12 @@ public:
 
   //getSceneBody
   String getSceneBody() const {
-    return scene_body;
+    return scene_body.empty() ? getUrl().toString() : scene_body;
   } 
 
   //toString
   String toString() const {
-    return scene_body.empty()? getUrl().toString() : scene_body;
+    return getSceneBody();
   }
 
 public:

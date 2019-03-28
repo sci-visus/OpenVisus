@@ -260,7 +260,7 @@ public:
 
   //getDatasetBody
   String getDatasetBody() const {
-    return dataset_body;
+    return dataset_body.empty() ? getUrl().toString() : dataset_body;
   } 
 
   // getDatasetInfos
@@ -389,7 +389,7 @@ public:
   
   //toString
   String toString() const {
-    return dataset_body.empty() ? getUrl().toString() : dataset_body;
+    return getDatasetBody();
   }
 
   //writeToObjectStream
