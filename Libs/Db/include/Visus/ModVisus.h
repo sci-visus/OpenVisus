@@ -68,10 +68,10 @@ public:
 
 private:
 
-  class PublicDatasets;
+  class Datasets;
   class Scenes;
 
-  SharedPtr<PublicDatasets> datasets;
+  SharedPtr<Datasets> datasets;
   SharedPtr<Scenes>   scenes;
 
   //all requests

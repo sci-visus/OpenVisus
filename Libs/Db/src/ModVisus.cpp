@@ -62,54 +62,27 @@ String read_dataset_template = "$(protocol)://$(hostname):$(port)/mod_visus?acti
 String read_scene_template = "$(protocol)://$(hostname):$(port)/mod_visus?action=readscene&scene=$(name)";
 
 ////////////////////////////////////////////////////////////////////////////////
-class PublicDataset
+class ModVisus::Datasets
 {
 public:
-
-
-  SharedPtr<Dataset> dataset;
-
-  //constructor
-  PublicDataset(String name,SharedPtr<Dataset> dataset)
-  {
-    this->name=name;
-    this->url=StringUtils::replaceAll(read_dataset_template,"$(name)",name);
-    this->dataset=dataset;
-  }
-
-  //getName
-  const String& getName() const {
-    return name;
-  }
-
-  //getUrl
-  const String& getUrl() const {
-    return url;
-  }
-
-private:
-
-  VISUS_NON_COPYABLE_CLASS(PublicDataset)
-
-  String             name;
-  String             url;
-
-};
-
-
-////////////////////////////////////////////////////////////////////////////////
-class ModVisus::PublicDatasets
-{
-public:
-
-  enum BodyFormat
-  {
-    XmlFormat,
-    JSONFormat
-  };
+  
+  RWLock            lock;
 
   //constructor
-  PublicDatasets() : stree("datasets") {
+  Datasets() : stree("datasets") {
+  }
+
+  //load
+  bool load(const StringTree& stree,bool bClear=true)
+  {
+    ScopedWriteLock write_lock(this->lock);
+    if (bClear)
+    {
+      this->map.clear();
+      this->stree = StringTree("datasets");
+    }
+    
+    return add(this->stree, stree)>0;
   }
 
   //getBody
@@ -137,109 +110,47 @@ public:
           continue;
 
         //TODO: (optimization for reloads) only add new public datasets by diffing entries in string tree instead of reconfiguring all datasets
-        this->add(*VisusConfig::getSingleton());
+        this->load(*VisusConfig::getSingleton());
       }
 
       {
         ScopedReadLock read_lock(this->lock);
         auto it = this->map.find(name);
         if (it != this->map.end())
-          return it->second->dataset;
+          return it->second;
       }
     }
 
     return SharedPtr<Dataset>();
   }
 
-  //add
-  //NOTE: this works only IIF you don't use alias or templates or any XML processing
-  bool add(const StringTree& src,bool bPersistent)
-  {
-    ScopedWriteLock write_lock(this->lock);
-
-    //add src to visus.config in memory (this is necessary for Dataset::loadDataset(name))
-    {
-      VisusConfig::getSingleton()->addChild(src);
-    }
-
-    //add src to visus.config on the file system (otherwise when mod_visus restarts it will be lost)
-    if (bPersistent)
-    {
-      String     visus_config_filename=VisusConfig::getSingleton()->filename;
-      StringTree new_visus_config;
-      bool bEnablePostProcessing=false;
-      if (!new_visus_config.fromXmlString(Utils::loadTextDocument(visus_config_filename),bEnablePostProcessing))
-      {
-        VisusWarning()<<"Cannot load visus.config";
-        VisusAssert(false);//TODO rollback
-        return false;
-      }
-
-      new_visus_config.addChild(src);
-
-      if (!Utils::saveTextDocument(visus_config_filename,new_visus_config.toString()))
-      {
-        VisusWarning()<<"Cannot save new visus.config";
-        VisusAssert(false);//TODO rollback
-        return false;
-      }
-    }
-
-    return add(this->stree,src)>0;
-  }
-
-  //add
-  bool add(String name,String url,bool bPersistent)
-  {
-    StringTree stree("dataset");
-    stree.writeString("name",name);
-    stree.writeString("url",url);
-    stree.writeString("permissions","public");
-    return add(stree,bPersistent);
-  }
-
-  //add
-  void add(const StringTree& stree)
-  {
-    ScopedWriteLock write_lock(this->lock);
-    this->map.clear();
-    this->stree =StringTree("datasets");
-    add(this->stree, stree);
-  }
-
 private:
 
-  VISUS_NON_COPYABLE_CLASS(PublicDatasets)
+  VISUS_NON_COPYABLE_CLASS(Datasets)
 
-  typedef std::map<String, SharedPtr<PublicDataset > > Map;
+  typedef std::map<String, SharedPtr<Dataset > > Map;
 
-  RWLock            lock;
   Map               map;
   StringTree        stree;
 
   //add (Need write lock)
-  void add(StringTree& dst,SharedPtr<PublicDataset> public_dataset)
+  void add(StringTree& dst,String name,SharedPtr<Dataset> dataset)
   {
-    String public_name=public_dataset->getName();
+    if (map.find(name)!=map.end())
+      VisusWarning()<<"Dataset name("<< name <<") already exists, overwriting it";
 
-    if (map.find(public_name)!=map.end())
-      VisusWarning()<<"Dataset name("<<public_name<<") already exists, overwriting it";
+    dataset->bServerMode = true;
 
-    public_dataset->dataset->bServerMode = true;
-    this->map[public_name]=public_dataset;
+    this->map[name]=dataset;
 
     StringTree* child=dst.addChild(StringTree("dataset"));
-    child->attributes=public_dataset->dataset->getConfig().attributes; //for example kdquery=true could be maintained!
-    child->writeString("name",public_name);
-    child->writeString("url",public_dataset->getUrl());
+    child->attributes= dataset->getConfig().attributes; //for example kdquery=true could be maintained!
+    child->writeString("name", name);
+    child->writeString("url", StringUtils::replaceAll(read_dataset_template, "$(name)", name));
 
     //automatically add the childs of a multiple datasets
-    for (auto it : public_dataset->dataset->getInnerDatasets())
-    {
-      auto child_public_name=public_name+"/"+it.first;
-      auto child_dataset=it.second;
-      add(*child,std::make_shared<PublicDataset>(child_public_name,child_dataset));
-    }
+    for (auto it : dataset->getInnerDatasets())
+      add(*child, name + "/" + it.first, it.second);
   }
 
   //add (need write lock)
@@ -293,11 +204,9 @@ private:
       return 0;
     }
 
-    add(dst, std::make_shared<PublicDataset>(name, dataset));
+    add(dst, name, dataset);
     return 1;
   }
-
-
 
 };
   
@@ -307,14 +216,17 @@ class ModVisus::Scenes
 {
 public:
   
-  typedef std::map<String, SharedPtr<Scene > > Map;
-
-  RWLock            lock;
-  Map               map;
-  StringTree        stree;
-
   //constructor
   Scenes() : stree("scenes") {
+  }
+
+  //load
+  void load(const StringTree& stree)
+  {
+    ScopedWriteLock write_lock(this->lock);
+    this->map.clear();
+    this->stree = StringTree("scenes");
+    add(this->stree, stree);
   }
   
   //getBody
@@ -335,20 +247,16 @@ public:
     auto it=this->map.find(name);
     return it != this->map.end() ? it->second : SharedPtr<Scene>();
   }
-  
-  //add
-  void add(const StringTree& stree)
-  {
-    ScopedWriteLock write_lock(this->lock);
-    this->map.clear();
-    this->stree =StringTree("scenes");
-    add(this->stree, stree);
-  }
 
 private:
   
   VISUS_NON_COPYABLE_CLASS(Scenes)
   
+  typedef std::map<String, SharedPtr<Scene > > Map;
+
+  RWLock            lock;
+  Map               map;
+  StringTree        stree;
 
   //add (need write lock)
   void add(StringTree& dst,const StringTree& src)
@@ -407,14 +315,13 @@ private:
     child->writeString("url", StringUtils::replaceAll(read_scene_template, "$(name)", name));
   }
   
-  
 };
 
 
 ////////////////////////////////////////////////////////////////////////////////
 ModVisus::ModVisus()
 {
-  datasets=std::make_shared<PublicDatasets>();
+  datasets=std::make_shared<Datasets>();
   scenes  =std::make_shared<Scenes>();
 }
 
@@ -429,8 +336,8 @@ bool ModVisus::configureDatasets()
 
   VisusConfig::getSingleton()->reload();
 
-  datasets->add(*VisusConfig::getSingleton());
-  scenes->add(*VisusConfig::getSingleton());
+  datasets->load(*VisusConfig::getSingleton());
+  scenes->load(*VisusConfig::getSingleton());
 
   VisusInfo()<<"/mod_visus?action=list\n"<<datasets->getBody();
 
@@ -457,6 +364,8 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
 
   bool bPersistent=cbool(request.url.getParam("persistent","true"));
 
+
+  StringTree stree;
   if (request.url.hasParam("name"))
   {
     String name=request.url.getParam("name");
@@ -465,24 +374,54 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
     if (datasets->find(name))
       return NetResponseError(HttpStatus::STATUS_CONFLICT,"Cannot add dataset(" + name + ") because it already exists");
 
-    bOk=datasets->add(name,url,bPersistent);
+
+    stree= StringTree("dataset");
+    stree.writeString("name", name);
+    stree.writeString("url", url);
+    stree.writeString("permissions", "public");
   }
   else if (request.url.hasParam("xml"))
   {
     String xml=request.url.getParam("xml");
-    StringTree stree;
     if (!stree.fromXmlString(xml))
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST,"Cannot decode xml");
 
     String name = stree.readString("name");
     if (datasets->find(name))
       return NetResponseError(HttpStatus::STATUS_CONFLICT,"Cannot add dataset(" + name + ") because it already exists");
-
-    bOk=datasets->add(stree,bPersistent);
   }
 
-  if (!bOk)
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST,"Add dataset failed");
+  {
+    ScopedWriteLock write_lock(datasets->lock);
+
+    //add src to visus.config in memory (this is necessary for Dataset::loadDataset(name))
+    VisusConfig::getSingleton()->addChild(stree);
+
+    //add src to visus.config on the file system (otherwise when mod_visus restarts it will be lost)
+    if (bPersistent)
+    {
+      String     filename = VisusConfig::getSingleton()->filename;
+      StringTree visus_config;
+      if (!visus_config.fromXmlString(Utils::loadTextDocument(filename), /*bEnablePostProcessing*/false))
+      {
+        VisusWarning() << "Cannot load visus.config";
+        VisusAssert(false);//TODO rollback
+        return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
+      }
+
+      visus_config.addChild(stree);
+
+      if (!Utils::saveTextDocument(filename, visus_config.toString()))
+      {
+        VisusWarning() << "Cannot save new visus.config";
+        VisusAssert(false);//TODO rollback
+        return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
+      }
+    }
+  }
+
+  if (!datasets->load(stree,/*bClear*/false))
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
 
   return NetResponse(HttpStatus::STATUS_OK);
 }
