@@ -113,11 +113,11 @@ public:
   }
 
   //getBody
-  String getBody(BodyFormat format) 
+  String getBody(String format="xml") 
   {
     ScopedReadLock read_lock(this->lock);
 
-    if (format == JSONFormat)
+    if (format == "json")
       return stree.toJSONString();
 
     return stree.toString();
@@ -301,65 +301,28 @@ private:
 
 };
   
-////////////////////////////////////////////////////////////////////////////////
-class PublicScene
-{
-public:
-
-  SharedPtr<Scene> scene;
-  
-  //constructor
-  PublicScene(String name,SharedPtr<Scene> scene)
-  {
-    this->name=name;
-    this->url=StringUtils::replaceAll(read_scene_template,"$(name)",name);
-    this->scene = scene;
-  }
-  
-  //getName
-  const String& getName() const {
-    return name;
-  }
-  
-  //getUrl
-  const String& getUrl() const {
-    return url;
-  }
-  
-  
-private:
-  
-  VISUS_NON_COPYABLE_CLASS(PublicScene)
-  
-  String             name;
-  String             url;
-  
-
-
-  
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 class ModVisus::Scenes
 {
 public:
   
-  enum BodyFormat
-  {
-    XmlFormat,
-    JSONFormat
-  };
-  
+  typedef std::map<String, SharedPtr<Scene > > Map;
+
+  RWLock            lock;
+  Map               map;
+  StringTree        stree;
+
   //constructor
   Scenes() : stree("scenes") {
   }
   
   //getBody
-  String getBody(BodyFormat format)
+  String getBody(String format="xml")
   {
     ScopedReadLock read_lock(this->lock);
 
-    if (format == JSONFormat)
+    if (format == "json")
       return stree.toJSONString();
 
     return stree.toString();
@@ -370,7 +333,7 @@ public:
   {
     ScopedReadLock read_lock(this->lock);
     auto it=this->map.find(name);
-    return it != this->map.end() ? it->second->scene : SharedPtr<Scene>();
+    return it != this->map.end() ? it->second : SharedPtr<Scene>();
   }
   
   //add
@@ -386,12 +349,7 @@ private:
   
   VISUS_NON_COPYABLE_CLASS(Scenes)
   
-  typedef std::map<String, SharedPtr<PublicScene > > Map;
-  
-  RWLock            lock;
-  Map               map;
-  StringTree        stree;
-  
+
   //add (need write lock)
   void add(StringTree& dst,const StringTree& src)
   {
@@ -438,17 +396,15 @@ private:
       return;
     }
 
-    auto public_scene = std::make_shared<PublicScene>(name, scene);
-
     if (map.find(name) != map.end())
       VisusWarning() << "Scene name(" << name << ") already exists, overwriting it";
 
-    this->map[public_scene->getName()] = public_scene;
+    this->map[name] = scene;
 
     StringTree* child = dst.addChild(StringTree("dataset"));
-    // child->attributes=public_scene->scene->getConfig().attributes; //for example kdquery=true could be maintained!
+    // child->attributes=scene->getConfig().attributes; 
     child->writeString("name", name);
-    child->writeString("url", public_scene->getUrl());
+    child->writeString("url", StringUtils::replaceAll(read_scene_template, "$(name)", name));
   }
   
   
@@ -476,9 +432,9 @@ bool ModVisus::configureDatasets()
   datasets->add(*VisusConfig::getSingleton());
   scenes->add(*VisusConfig::getSingleton());
 
-  VisusInfo()<<"/mod_visus?action=list\n"<<datasets->getBody(PublicDatasets::XmlFormat);
+  VisusInfo()<<"/mod_visus?action=list\n"<<datasets->getBody();
 
-  VisusInfo()<<"/mod_visus?action=list_scenes\n"<<scenes->getBody(Scenes::XmlFormat);
+  VisusInfo()<<"/mod_visus?action=list_scenes\n"<<scenes->getBody();
 
   return true;
 }
@@ -638,17 +594,11 @@ NetResponse ModVisus::handleGetListOfDatasets(const NetRequest& request)
   VisusConfig::getSingleton()->reload();
 
   if (format=="xml")
-  {
-    response.setXmlBody(datasets->getBody(PublicDatasets::XmlFormat));
-  }
+    response.setXmlBody(datasets->getBody(format));
   else if (format=="json")
-  {
-    response.setJSONBody(datasets->getBody(PublicDatasets::JSONFormat));
-  }
+    response.setJSONBody(datasets->getBody(format));
   else
-  {
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"wrong format(" + format + ")");
-  }
 
   if (!hostname.empty())
     response.setTextBody(StringUtils::replaceAll(response.getTextBody(),"$(hostname)",hostname));
@@ -671,17 +621,11 @@ NetResponse ModVisus::handleGetListOfScenes(const NetRequest& request)
   VisusConfig::getSingleton()->reload();
   
   if (format=="xml")
-  {
-    response.setXmlBody(scenes->getBody(Scenes::XmlFormat));
-  }
+    response.setXmlBody(scenes->getBody(format));
   else if (format=="json")
-  {
-    response.setJSONBody(scenes->getBody(Scenes::JSONFormat));
-  }
+    response.setJSONBody(scenes->getBody(format));
   else
-  {
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND,"wrong format(" + format + ")");
-  }
   
   if (!hostname.empty())
     response.setTextBody(StringUtils::replaceAll(response.getTextBody(),"$(hostname)",hostname));
