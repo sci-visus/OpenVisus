@@ -279,17 +279,17 @@ private:
     public_dataset->getDataset()->bServerMode = true;
     this->map[public_name]=public_dataset;
 
-    StringTree* list_child=dst.addChild(StringTree("dataset"));
-    list_child->attributes=public_dataset->getDataset()->getConfig().attributes; //for example kdquery=true could be maintained!
-    list_child->writeString("name",public_name);
-    list_child->writeString("url",public_dataset->getUrl()); 
+    StringTree* child=dst.addChild(StringTree("dataset"));
+    child->attributes=public_dataset->getDataset()->getConfig().attributes; //for example kdquery=true could be maintained!
+    child->writeString("name",public_name);
+    child->writeString("url",public_dataset->getUrl());
 
     //automatically add the childs of a multiple datasets
     for (auto it : public_dataset->getDataset()->getInnerDatasets())
     {
       auto child_public_name=public_name+"/"+it.first;
       auto child_dataset=it.second;
-      add(*list_child,std::make_shared<PublicDataset>(child_public_name,child_dataset));
+      add(*child,std::make_shared<PublicDataset>(child_public_name,child_dataset));
     }
   }
 
