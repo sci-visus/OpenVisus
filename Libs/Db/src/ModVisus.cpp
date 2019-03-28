@@ -96,27 +96,6 @@ public:
     return dataset_body;
   }
 
-  //reload
-  bool reload(bool bForce=false)
-  {
-    //NOTE: i don't have a way to know if the file has changed meanwhile... so this is not very optimized
-    auto new_dataset=Dataset::loadDataset(this->getName());
-    if (!new_dataset)
-      return false;
-
-    String new_dataset_body=getDatasetBody(new_dataset);
-    if (!bForce && new_dataset_body==getDatasetBody())
-      return false;
-
-    {
-      ScopedWriteLock lock(dataset_lock);
-      this->dataset=new_dataset;
-      this->dataset_body=new_dataset_body;
-    }
-
-    return true;
-  }
-
 private:
 
   VISUS_NON_COPYABLE_CLASS(PublicDataset)
@@ -554,25 +533,7 @@ public:
     return scene_body;
   }
   
-  //reload
-  bool reload(bool bForce=false)
-  {
-    //NOTE: i don't have a way to know if the file has changed meanwhile... so this is not very optimized
-    auto new_scene=Scene::loadScene(this->getName());
-    if (!new_scene)
-      return false;
-    
-    String new_scene_body=getSceneBody(new_scene);
-    if (!bForce && new_scene_body==getSceneBody())
-      return false;
-    
-    {
-      ScopedWriteLock lock(scene_lock);
-      this->scene_body=new_scene_body;
-    }
-    
-    return true;
-  }
+
   
 private:
   
