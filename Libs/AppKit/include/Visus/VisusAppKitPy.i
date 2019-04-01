@@ -7,6 +7,7 @@
 #include <Visus/Viewer.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/IdxMultipleDataset.h>
+#include <Visus/Nodes.h>
 using namespace Visus;
 %}
 

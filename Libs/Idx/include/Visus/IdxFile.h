@@ -96,8 +96,8 @@ public:
     return IdxFile(-1);
   }
 
-  //openFromUrl
-  static IdxFile openFromUrl(Url url);
+  //load
+  static IdxFile load(Url url);
 
   //valid
   bool valid() const {

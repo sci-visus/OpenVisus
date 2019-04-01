@@ -53,7 +53,7 @@ namespace Visus {
   #endif
 #endif
 
-class VISUS_NODES_API NodesModule
+class VISUS_NODES_API NodesModule : public VisusModule
 {
 public:
 

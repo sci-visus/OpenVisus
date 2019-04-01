@@ -890,7 +890,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
 
     //need to load it again since it can be different
     {
-      IdxFile local_idxfile=IdxFile::openFromUrl(url);
+      IdxFile local_idxfile=IdxFile::load(url);
       if (!local_idxfile.valid()) {
         String msg=StringUtils::format()<<"cannot use "<<url.toString()<<" as cache location. load failed";
         VisusWarning()<<msg;

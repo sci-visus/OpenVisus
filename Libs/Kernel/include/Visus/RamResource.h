@@ -81,7 +81,6 @@ private:
   CriticalSection lock;
   
   Int64 os_total_memory=0;
-  double max_memory_allocation_factor=0;
 
   
 };

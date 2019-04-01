@@ -592,13 +592,6 @@ LogicBox IdxDataset::getLevelBox(HzOrder& hzorder, int H)
 ///////////////////////////////////////////////////////////
 void IdxDataset::tryRemoveLockAndCorruptedBinaryFiles(String directory)
 {
-  if (directory.empty())
-  {
-    directory=VisusConfig::getSingleton()->readString("Configuration/IdxDataset/RemoveLockFiles/directory");
-    if (directory.empty())
-      return;
-  }
-
   VisusInfo()<<"Trying to remove locks and corrupted binary files in directory "<<directory<<"...";
 
   std::vector<String> lock_files;
@@ -1003,9 +996,9 @@ SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuer
 }
 
 ////////////////////////////////////////////////////////////////////
-bool IdxDataset::openFromUrl(Url url) 
+bool IdxDataset::openFromUrl(Url url)
 {
-  auto idxfile = IdxFile::openFromUrl(url);
+  auto idxfile = IdxFile::load(url);
   if (!idxfile.valid()) {
     this->invalidate();
     return false;
@@ -1016,8 +1009,6 @@ bool IdxDataset::openFromUrl(Url url)
   setIdxFile(idxfile);
   return true;
 }
-
-
 
 
 static CriticalSection                                                                HZADDRESS_CONVERSION_BOXQUERY_LOCK;
@@ -2002,7 +1993,7 @@ SharedPtr<IdxDataset> IdxDataset::createDatasetFromBuffer(String idx_filename, A
       return Error("cannot save idx file");
   }
 
-  auto dataset = IdxDataset::loadDataset(idx_filename);
+  auto dataset = LoadDataset<IdxDataset>(idx_filename);
   if (!dataset)
     return Error("cannot load dataset");
 

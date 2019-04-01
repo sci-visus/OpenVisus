@@ -453,7 +453,6 @@ void Viewer::createBookmarks(QMenu* dst,const StringTree& src)
     if (child.name=="dataset")
     {
       //NOTE: i'm using name and not url because I can have multiple dataset with the same url (example: cached, no cached)
-      //      later loadDataset (with DatasetGetInfo) will figure out the real url
       String url=child.readString("name",child.readString("url"));
       VisusAssert(!url.empty());
       dst->addAction(GuiFactory::CreateAction(StringUtils::replaceAll(url, "&", "&&").c_str(), this, [this, url]() {

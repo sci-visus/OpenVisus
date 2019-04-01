@@ -53,7 +53,7 @@ namespace Visus {
   #endif
 #endif
 
-class VISUS_APPKIT_API AppKitModule
+class VISUS_APPKIT_API AppKitModule : public VisusModule
 {
 public:
 

@@ -50,8 +50,6 @@ class VISUS_KERNEL_API ConfigFile : public StringTree
 {
 public:
 
-  String     filename;
-  Int64      timestamp=0;
 
   //constructor
   ConfigFile(String name= "ConfigFile") : StringTree(name) {
@@ -61,24 +59,42 @@ public:
   ~ConfigFile() {
   }
 
+  //getFilename
+  String getFilename() const {
+    return filename;
+  }
+
+  //load
+  bool load(String filename, bool bEnablePostProcessing = true);
+
   //reload
-  bool reload(bool bForce=false);
+  bool reload(bool bEnablePostProcessing = true) {
+    return load(filename, bEnablePostProcessing);
+  }
+
+  //save
+  bool save();
+
+
+private:
+
+  String filename;
 
 };
 
 //////////////////////////////////////////////////////////////////////
+namespace Private {
 class VISUS_KERNEL_API VisusConfig : public ConfigFile
 {
 public:
 
   VISUS_DECLARE_SINGLETON_CLASS(VisusConfig)
 
-  //constructor
-  VisusConfig() : ConfigFile("visus_config") {
+    //constructor
+    VisusConfig() : ConfigFile("visus_config") {
   }
-
-
 };
+} //namespace Private
 
 
 

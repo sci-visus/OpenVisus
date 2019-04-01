@@ -93,6 +93,9 @@ For support : support@visus.net
 
 namespace Visus {
 
+String NetService::Defaults::proxy="";
+int    NetService::Defaults::proxy_port=0;
+
 #if VISUS_NET
 
 /////////////////////////////////////////////////////////////////////////////
@@ -181,11 +184,11 @@ public:
         curl_easy_setopt(this->handle, CURLOPT_WRITEDATA, this);
         curl_easy_setopt(this->handle, CURLOPT_READDATA, this);
 
-        String proxy = VisusConfig::getSingleton()->readString("Configuration/NetService/proxy");
+        String proxy = NetService::Defaults::proxy;
         if (!proxy.empty())
         {
           curl_easy_setopt(this->handle, CURLOPT_PROXY, proxy.c_str());
-          if (int proxy_port = cint(VisusConfig::getSingleton()->readString("Configuration/NetService/proxyport")))
+          if (int proxy_port = NetService::Defaults::proxy_port)
             curl_easy_setopt(this->handle, CURLOPT_PROXYPORT, proxy_port);
         }
 

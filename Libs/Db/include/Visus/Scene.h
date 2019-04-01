@@ -53,6 +53,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(Scene)
 
+  Url     url;
+  String  scene_body;
 
   //constructor
   Scene() {
@@ -62,9 +64,6 @@ public:
   virtual ~Scene() {
   }
 
-  //loadScene
-  static SharedPtr<Scene> loadScene(String name);
-
   //valid
   bool valid() const {
     return getUrl().valid();
@@ -73,11 +72,6 @@ public:
   //invalidate
   void invalidate() {
     this->url=Url();
-  }
-
-  //getName
-  String getName() const {
-    return name;
   }
 
   //getUrl
@@ -95,36 +89,14 @@ public:
     return getSceneBody();
   }
 
-public:
-
-  //openFromUrl 
-  bool openFromUrl(Url url);
-
-protected:
-
-  String                 name;
-  Url                    url;
-  String                 scene_body;
-
-private:
-
-
-  //______________________________________________
-  class VISUS_DB_API Info
-  {
-  public:
-    String     name;
-    Url        url;
-    StringTree config;
-    bool valid() const { return !name.empty(); }
-  };
-
-
-  //getSceneInfo
-  static Info getSceneInfo(String name,const StringTree& stree);
-
-
 };
+
+//LoadSceneEx
+VISUS_DB_API SharedPtr<Scene> LoadSceneEx(String name, const StringTree& config);
+
+inline SharedPtr<Scene> LoadScene(String name) {
+  return LoadSceneEx(name, StringTree());
+}
 
 } //namespace Visus
 

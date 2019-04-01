@@ -61,83 +61,95 @@ class ModVisus::Datasets
 {
 public:
 
-  RWLock lock;
-
   //constructor
-  Datasets() : stree("datasets") {
+  Datasets(const StringTree& config) 
+  {
+    StringTree datasets("datasets");
+    addDatasets(datasets, config, config);
+    datasets_xml_body  = datasets.toXmlString();
+    datasets_json_body = datasets.toJSONString();
+
+    StringTree scenes("scenes");
+    addDatasets(scenes, config, config);
+    scenes_xml_body = scenes.toXmlString();
+    scenes_json_body = scenes.toJSONString();
   }
 
   //destructor
   ~Datasets() {
   }
 
-  //getUrl
-  String getUrl(String name) {
+  //getNumberOfDatasets
+  int getNumberOfDatasets() const {
+    return (int)datasets_map.size();
+  }
+
+  //getNumberOfScenes
+  int getNumberOfScenes() const {
+    return (int)scenes_map.size();
+  }
+
+  //getDatasetUrl
+  String getDatasetUrl(String name) const {
     return "$(protocol)://$(hostname):$(port)/mod_visus?action=readdataset&dataset=" + name;
   }
 
-  //load
-  bool load(const StringTree& stree, bool bClear = true)
-  {
-    ScopedWriteLock write_lock(this->lock);
-    if (bClear)
-    {
-      this->map.clear();
-      this->stree = StringTree("datasets");
-    }
-    return addDatasets(this->stree, stree)>0;
+  //getSceneUrl
+  String getSceneUrl(String name) const {
+    return "$(protocol)://$(hostname):$(port)/mod_visus?action=readscene&scene=" + name;
   }
 
-  //getBody
-  String getBody(String format = "xml")
+  //getDatasetsBody
+  String getDatasetsBody(String format = "xml") const
   {
-    ScopedReadLock read_lock(this->lock);
     if (format == "json")
-      return stree.toJSONString();
-    return stree.toString();
+      return datasets_json_body;
+    else
+      return datasets_xml_body;
+  }
+
+  //getScenesBody
+  String getScenesBody(String format = "xml") const
+  {
+    if (format == "json")
+      return scenes_json_body;
+    else
+      return scenes_xml_body;
+  }
+
+  //findDataset
+  SharedPtr<Dataset> findDataset(String name) const
+  {
+    auto it = datasets_map.find(name);
+    return (it != datasets_map.end()) ? it->second : SharedPtr<Dataset>();
   }
 
   //find
-  SharedPtr<Dataset> find(String name)
+  SharedPtr<Scene> findScene(String name) const
   {
-    if (name.empty())
-      return SharedPtr<Dataset>();
-
-    for (auto bReload : { 0,1 })
-    {
-      if (bReload)
-      {
-        if (!VisusConfig::getSingleton()->reload())
-          continue;
-
-        //TODO: (optimization for reloads) only add new public datasets by diffing entries in string tree instead of reconfiguring all datasets
-        this->load(*VisusConfig::getSingleton());
-      }
-
-      {
-        ScopedReadLock read_lock(this->lock);
-        auto it = this->map.find(name);
-        if (it != this->map.end())
-          return it->second;
-      }
-    }
-
-    return SharedPtr<Dataset>();
+    auto it = scenes_map.find(name);
+    return it != scenes_map.end() ? it->second : SharedPtr<Scene>();
   }
 
 private:
 
   VISUS_NON_COPYABLE_CLASS(Datasets)
 
-    typedef std::map<String, SharedPtr<Dataset > > Map;
+  typedef std::map<String, SharedPtr<Dataset > > DatasetMap;
+  typedef std::map<String, SharedPtr<Scene > >   SceneMap;
 
-  Map               map;
-  StringTree        stree;
+  SceneMap          scenes_map;
+  String            scenes_xml_body;
+  String            scenes_json_body;
 
-  //addDataset (Need write lock)
-  int addDataset(StringTree& dst, String name, SharedPtr<Dataset> dataset)
+  DatasetMap        datasets_map;
+  String            datasets_xml_body;
+  String            datasets_json_body;
+
+  //addDataset
+  int addDataset(StringTree& dst, String name, SharedPtr<Dataset> dataset) 
   {
-    this->map[name] = dataset;
+    datasets_map[name] = dataset;
 
     StringTree* child = dst.addChild(StringTree("dataset"));
 
@@ -145,7 +157,7 @@ private:
     child->attributes = dataset->getConfig().attributes;
 
     child->writeString("name", name);
-    child->writeString("url", getUrl(name));
+    child->writeString("url", getDatasetUrl(name));
 
     dataset->bServerMode = true;
 
@@ -156,43 +168,43 @@ private:
     return ret;
   }
 
-  //addDatasets (need write lock)
-  int addDatasets(StringTree& dst, const StringTree& src)
+  //addDatasets
+  int addDatasets(StringTree& dst, const StringTree& config, const StringTree& cursor)
   {
     int ret = 0;
 
     //I want to maintain the group hierarchy!
-    if (src.name == "group")
+    if (cursor.name == "group")
     {
-      StringTree group(src.name);
-      group.attributes = src.attributes;
-      for (auto child : src.getChilds())
-        ret += addDatasets(group, *child);
+      StringTree group(cursor.name);
+      group.attributes = cursor.attributes;
+      for (auto child : cursor.getChilds())
+        ret += addDatasets(group, config, *child);
       if (ret)
         dst.addChild(group);
       return ret;
     }
 
     //flattening the hierarchy!
-    if (src.name != "dataset") {
-      for (auto child : src.getChilds())
-        ret += addDatasets(dst, *child);
+    if (cursor.name != "dataset") {
+      for (auto child : cursor.getChilds())
+        ret += addDatasets(dst, config, *child);
       return ret;
     }
 
     //just ignore those with empty names or not public
-    String name = src.readString("name");
-    bool is_public = StringUtils::contains(src.readString("permissions"), "public");
+    String name = cursor.readString("name");
+    bool is_public = StringUtils::contains(cursor.readString("permissions"), "public");
     if (name.empty() || !is_public)
       return 0;
 
-    auto dataset = Dataset::loadDataset(name);
+    auto dataset = LoadDatasetEx(name,config);
     if (!dataset) {
       VisusWarning() << "dataset name(" << name << ") load failed, skipping it";
       return 0;
     }
 
-    if (map.find(name) != map.end()) {
+    if (datasets_map.find(name) != datasets_map.end()) {
       VisusWarning() << "dataset name(" << name << ")  already exists, skipping it";
       return 0;
     }
@@ -200,180 +212,167 @@ private:
     return addDataset(dst, name, dataset);
   }
 
-};
-
-
-///////////////////////////////////////////////////////////////////////////////
-class ModVisus::Scenes
-{
-public:
-
-  //constructor
-  Scenes() : stree("scenes") {
-  }
-
-  //destructor
-  ~Scenes() {
-  }
-
-  //getUrl
-  String getUrl(String name) {
-    return "$(protocol)://$(hostname):$(port)/mod_visus?action=readscene&scene=" + name;
-  }
-
-  //load
-  bool load(const StringTree& stree, bool bClear = true)
-  {
-    ScopedWriteLock write_lock(this->lock);
-    if (bClear)
-    {
-      this->map.clear();
-      this->stree = StringTree("scenes");
-    }
-    return addScenes(this->stree, stree)>0;
-  }
-
-  //getBody
-  String getBody(String format = "xml")
-  {
-    ScopedReadLock read_lock(this->lock);
-    if (format == "json")
-      return stree.toJSONString();
-    return stree.toString();
-  }
-
-  //find
-  SharedPtr<Scene> find(String name)
-  {
-    ScopedReadLock read_lock(this->lock);
-    auto it = this->map.find(name);
-    return it != this->map.end() ? it->second : SharedPtr<Scene>();
-  }
-
-private:
-
-  VISUS_NON_COPYABLE_CLASS(Scenes)
-
-    typedef std::map<String, SharedPtr<Scene > > Map;
-
-  RWLock            lock;
-  Map               map;
-  StringTree        stree;
-
-  //addScene
-  int addScene(StringTree& dst, String name,SharedPtr<Scene> scene)
-  {
-    this->map[name] = scene;
-
-    StringTree* child = dst.addChild(StringTree("scene"));
-    child->writeString("name", name);
-    child->writeString("url", getUrl(name));
-
-    return 1;
-  }
-
-  //addScenes (need write lock)
-  int addScenes(StringTree& dst, const StringTree& src)
+  //addScenes 
+  int addScenes(StringTree& dst, const StringTree& config, const StringTree& cursor)
   {
     int ret = 0;
 
     //I want to maintain the group hierarchy!
-    if (src.name == "group")
+    if (cursor.name == "group")
     {
-      auto group = StringTree(src.name);
-      group.attributes = src.attributes;
-      for (auto child : src.getChilds())
-        ret += addScenes(group, *child);
+      auto group = StringTree(cursor.name);
+      group.attributes = cursor.attributes;
+      for (auto child : cursor.getChilds())
+        ret += addScenes(group, config, *child);
       if (ret)
         dst.addChild(group);
       return ret;
     }
 
     //flattening the hierarchy!
-    if (src.name != "scene")
+    if (cursor.name != "scene")
     {
-      for (auto child : src.getChilds())
-        ret += addScenes(dst, *child);
+      for (auto child : cursor.getChilds())
+        ret += addScenes(dst, config, *child);
       return ret;
     }
 
     //just ignore those with empty names or not public
-    String name = src.readString("name");
-    bool is_public = StringUtils::contains(src.readString("permissions"), "public");
+    String name = cursor.readString("name");
+    bool is_public = StringUtils::contains(cursor.readString("permissions"), "public");
     if (name.empty() || !is_public)
       return 0;
 
-    auto scene = Scene::loadScene(name);
+    auto scene = LoadSceneEx(name, config);
     if (!scene) {
-      VisusWarning() << "Scene::loadScene(" << name << ") failed, skipping it";
+      VisusWarning() << "LoadScene(" << name << ") failed, skipping it";
       return 0;
     }
 
-    if (map.find(name) != map.end()) {
+    if (scenes_map.find(name) != scenes_map.end()) {
       VisusWarning() << "Scene name(" << name << ") already exists, skipping it";
       return 0;
-    }
+    }  
+    scenes_map[name] = scene;
 
-    return addScene(dst, name, scene);
+    StringTree* child = dst.addChild(StringTree("scene"));
+    child->writeString("name", name);
+    child->writeString("url", getSceneUrl(name));
+    return 1;
   }
 
 };
 
-
 ////////////////////////////////////////////////////////////////////////////////
 ModVisus::ModVisus()
 {
-  datasets = std::make_shared<Datasets>();
-  scenes = std::make_shared<Scenes>();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 ModVisus::~ModVisus()
-{}
+{ 
+  if (dynamic)
+  {
+    bExit = true;
+    config_thread->join();
+    config_thread.reset();
+  }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
-bool ModVisus::configureDatasets()
+SharedPtr<ModVisus::Datasets> ModVisus::getDatasets()
 {
-  VisusInfo() << "ModVisus::configureDatasets()...";
+  if (dynamic) rw_lock.enterRead();
+  auto ret = m_datasets;
+  if (dynamic) rw_lock.exitRead();
+  return ret;
+}
 
-  VisusConfig::getSingleton()->reload();
+////////////////////////////////////////////////////////////////////////////////
+bool ModVisus::configureDatasets(const ConfigFile& config)
+{
+  this->dynamic = config.readBool("Configuration/ModVisus/dynamic", false);
+  this->config_filename = config.getFilename();
 
-  datasets->load(*VisusConfig::getSingleton());
-  scenes->load(*VisusConfig::getSingleton());
+  //for dynamic I need to reload the file
+  if (config_filename.empty() && this->dynamic)
+  {
+    VisusInfo() << "Switching ModVisus to non-dynamic content since the config file is not stored on disk";
+    this->dynamic = false;
+  }
 
-  VisusInfo() << "/mod_visus?action=list\n" << datasets->getBody();
-  VisusInfo() << "/mod_visus?action=list_scenes\n" << scenes->getBody();
+  SharedPtr<Datasets> datasets = std::make_shared<Datasets>(config);
+  this->m_datasets = datasets;
+  
+  if (dynamic)
+  {
+    this->config_timestamp = FileUtils::getTimeLastModified(this->config_filename);
+
+    this->config_thread = Thread::start("Check config thread", [this]() 
+    {
+      while (!bExit)
+      {
+        auto timestamp = FileUtils::getTimeLastModified(this->config_filename);
+        bool bReload = false;
+        {
+          ScopedReadLock lock(rw_lock);
+          bReload = this->config_timestamp != timestamp;
+        }
+
+        if (bReload)
+          reload();
+
+        Thread::sleep(1000);
+      }
+    });
+  }
+
+  VisusInfo() << "ModVisus::configure dynamic(" << dynamic << ") config_filename(" << config_filename << ")...";
+  VisusInfo() << "/mod_visus?action=list\n" << datasets->getDatasetsBody();
+  VisusInfo() << "/mod_visus?action=list_scenes\n" << datasets->getScenesBody();
 
   return true;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////
-NetResponse ModVisus::handleConfigureDatasets(const NetRequest& request)
+bool ModVisus::reload()
 {
-  if (!configureDatasets())
-    return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "Cannot read the visus.config");
+  if (!dynamic)
+    return false;
 
-  return NetResponse(HttpStatus::STATUS_OK);
+  ConfigFile config;
+  if (!config.load(this->config_filename))
+  {
+    VisusInfo() << "Reload modvisus config_filename(" << this->config_filename << ") failed";
+    return false;
+  }
+
+  auto datasets = std::make_shared<Datasets>(config);
+  {
+    ScopedWriteLock lock(this->rw_lock);
+    this->m_datasets = datasets;
+    this->config_timestamp = FileUtils::getTimeLastModified(this->config_filename);
+  }
+
+  VisusInfo() << "modvisus config file changed config_filename(" << this->config_filename << ") #datasets(" << datasets->getNumberOfDatasets() << ") #scenes(" << datasets->getNumberOfScenes() << ")";
+  return true;
 }
 
 
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleAddDataset(const NetRequest& request)
 {
-  bool bOk = false;
+  //not supported
+  if (!this->dynamic)
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Mod visus is in non-dynamic mode");
 
-  bool bPersistent = cbool(request.url.getParam("persistent", "true"));
-
+  auto datasets = getDatasets();
 
   StringTree stree;
   if (request.url.hasParam("name"))
   {
-    String name = request.url.getParam("name");
-    String url = request.url.getParam("url");
-
-    if (datasets->find(name))
-      return NetResponseError(HttpStatus::STATUS_CONFLICT, "Cannot add dataset(" + name + ") because it already exists");
+    auto name = request.url.getParam("name");
+    auto url = request.url.getParam("url");
 
     stree = StringTree("dataset");
     stree.writeString("name", name);
@@ -383,48 +382,56 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
   else if (request.url.hasParam("xml"))
   {
     String xml = request.url.getParam("xml");
+
     if (!stree.fromXmlString(xml))
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Cannot decode xml");
-
-    String name = stree.readString("name");
-    if (datasets->find(name))
-      return NetResponseError(HttpStatus::STATUS_CONFLICT, "Cannot add dataset(" + name + ") because it already exists");
   }
 
-  //try to add
+  //add the dataset
   {
-    ScopedWriteLock write_lock(datasets->lock);
+    //need to use a file_lock to make sure I don't loose and addDataset 
+    ScopedFileLock file_lock(this->config_filename);
 
-    //add src to visus.config in memory (this is necessary for Dataset::loadDataset(name))
-    VisusConfig::getSingleton()->addChild(stree);
+    String name = stree.readString("name");
 
-    //add src to visus.config on the file system (otherwise when mod_visus restarts it will be lost)
-    if (bPersistent)
+    if (name.empty())
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Empty name");
+
+    if (m_datasets->findDataset(name))
+      return NetResponseError(HttpStatus::STATUS_CONFLICT, "Cannot add dataset(" + name + ") because it already exists");
+
+    ConfigFile config;
+    if (!config.load(this->config_filename,/*bEnablePostProcessing*/false))
     {
-      String     filename = VisusConfig::getSingleton()->filename;
-      StringTree visus_config;
-      if (!visus_config.fromXmlString(Utils::loadTextDocument(filename), /*bEnablePostProcessing*/false))
-      {
-        VisusWarning() << "Cannot load visus.config";
-        VisusAssert(false);//TODO rollback
-        return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
-      }
+      VisusWarning() << "Cannot load " << this->config_filename;
+      VisusAssert(false);//TODO rollback
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
+    }
 
-      visus_config.addChild(stree);
+    config.addChild(stree);
 
-      if (!Utils::saveTextDocument(filename, visus_config.toString()))
-      {
-        VisusWarning() << "Cannot save new visus.config";
-        VisusAssert(false);//TODO rollback
-        return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
-      }
+    if (!config.save())
+    {
+      VisusWarning() << "Cannot save " << config.getFilename();
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
+    }
+
+    if (!reload()) {
+      VisusWarning() << "Cannot reload modvisus config";
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Reload failed");
     }
   }
 
-  if (!datasets->load(stree,/*bClear*/false))
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
-
   return NetResponse(HttpStatus::STATUS_OK);
+}
+
+///////////////////////////////////////////////////////////////////////////
+NetResponse ModVisus::handleReload(const NetRequest& request)
+{
+  if (!reload())
+    return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "Cannot reload");
+  else
+    return NetResponse(HttpStatus::STATUS_OK);
 }
 
 
@@ -433,7 +440,8 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
 {
   String dataset_name = request.url.getParam("dataset");
 
-  auto dataset = datasets->find(dataset_name);
+  auto datasets=getDatasets();
+  auto dataset = datasets->findDataset(dataset_name);
   if (!dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
 
@@ -462,7 +470,7 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
         if (stree->name == "dataset" && stree->hasValue("name"))
         {
           prefix = prefix + (prefix.empty() ? "" : "/") + stree->readString("name");
-          stree->writeString("url", datasets->getUrl(prefix));
+          stree->writeString("url", datasets->getDatasetUrl(prefix));
         }
         for (auto child : stree->getChilds())
           stack.push(std::make_pair(prefix, child));
@@ -480,22 +488,19 @@ NetResponse ModVisus::handleReadScene(const NetRequest& request)
 {
   String scene_name = request.url.getParam("scene");
 
-  auto scene = scenes->find(scene_name);
+  auto datasets=getDatasets();
+  auto scene = datasets->findScene(scene_name);
   if (!scene)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find scene(" + scene_name + ")");
 
   NetResponse response(HttpStatus::STATUS_OK);
   response.setHeader("visus-git-revision", ApplicationInfo::git_revision);
-  //response.setHeader("visus-typename", scene->getTypeName());
 
   auto body = scene->getSceneBody();
-
-  //scrgiorgio: do i need to fix url here?
 
   response.setTextBody(body,/*bHasBinary*/true);
   return response;
 }
-
 
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleGetListOfDatasets(const NetRequest& request)
@@ -506,12 +511,12 @@ NetResponse ModVisus::handleGetListOfDatasets(const NetRequest& request)
 
   NetResponse response(HttpStatus::STATUS_OK);
 
-  VisusConfig::getSingleton()->reload();
+  auto datasets=getDatasets();
 
   if (format == "xml")
-    response.setXmlBody(datasets->getBody(format));
+    response.setXmlBody(datasets->getDatasetsBody(format));
   else if (format == "json")
-    response.setJSONBody(datasets->getBody(format));
+    response.setJSONBody(datasets->getDatasetsBody(format));
   else
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "wrong format(" + format + ")");
 
@@ -533,12 +538,12 @@ NetResponse ModVisus::handleGetListOfScenes(const NetRequest& request)
 
   NetResponse response(HttpStatus::STATUS_OK);
 
-  VisusConfig::getSingleton()->reload();
+  auto datasets=getDatasets();
 
   if (format == "xml")
-    response.setXmlBody(scenes->getBody(format));
+    response.setXmlBody(datasets->getScenesBody(format));
   else if (format == "json")
-    response.setJSONBody(scenes->getBody(format));
+    response.setJSONBody(datasets->getScenesBody(format));
   else
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "wrong format(" + format + ")");
 
@@ -550,7 +555,6 @@ NetResponse ModVisus::handleGetListOfScenes(const NetRequest& request)
 
   return response;
 }
-
 
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleHtmlForPlugin(const NetRequest& request)
@@ -573,16 +577,17 @@ NetResponse ModVisus::handleHtmlForPlugin(const NetRequest& request)
   return response;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleOpenSeaDragon(const NetRequest& request)
 {
+  auto datasets=getDatasets();
+
   String dataset_name = request.url.getParam("dataset");
   String compression = request.url.getParam("compression", "png");
   String debugMode = request.url.getParam("debugMode", "false");
   String showNavigator = request.url.getParam("showNavigator", "true");
 
-  auto dataset = datasets->find(dataset_name);
+  auto dataset = datasets->findDataset(dataset_name);
   if (!dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
 
@@ -653,13 +658,14 @@ NetResponse ModVisus::handleOpenSeaDragon(const NetRequest& request)
   return response;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 {
+  auto datasets=getDatasets();
+
   String dataset_name = request.url.getParam("dataset");
 
-  auto dataset = datasets->find(dataset_name);
+  auto dataset = datasets->findDataset(dataset_name);
   if (!dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
 
@@ -741,7 +747,9 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   double palette_max = cdouble(request.url.getParam("palette_max"));
   String palette_interp = (request.url.getParam("palette_interp"));
 
-  auto dataset = datasets->find(dataset_name);
+  auto datasets=getDatasets();
+
+  auto dataset = datasets->findDataset(dataset_name);
   if (!dataset)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
 
@@ -837,7 +845,6 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   return response;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleRequest(NetRequest request)
 {
@@ -911,8 +918,8 @@ NetResponse ModVisus::handleRequest(NetRequest request)
   else if (action == "listscenes" || action == "list_scenes")
     response = handleGetListOfScenes(request);
 
-  else if (action == "configure_datasets")
-    response = handleConfigureDatasets(request);
+  else if (action == "configure_datasets" || action == "configure" || action == "reload")
+    response = handleReload(request);
 
   else if (action == "AddDataset" || action == "add_dataset")
     response = handleAddDataset(request);

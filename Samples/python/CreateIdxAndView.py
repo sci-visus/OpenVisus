@@ -41,7 +41,7 @@ if __name__ == '__main__':
 	bOk=idxfile.save(idx_filename)
 	ASSERT(bOk)
 		
-	dataset=Dataset.loadDataset(idx_filename)
+	dataset=LoadDataset(idx_filename)
 	ASSERT(dataset)
 		
 	array=Array.fromNumPy(img,TargetDim=2,bShareMem=True)

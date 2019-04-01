@@ -157,10 +157,8 @@ public:
     // Open a handle to the Event Viewer.
     g_hEventLog = RegisterEventSource(NULL, "IISADMIN");
 
-    VisusConfig::getSingleton()->filename = "/inetpub/wwwroot/visus/visus.config";
-
-    static int argn = 1;
-    static const char* argv[] = { "mod_visus.dll" };
+    static int argn = 3;
+    static const char* argv[] = { "mod_visus.dll", "--visus-config", "/inetpub/wwwroot/visus/visus.config" };
     SetCommandLine(argn, argv);
     IdxModule::attach();
 
@@ -384,7 +382,6 @@ extern "C" __declspec(dllexport)  HRESULT __stdcall RegisterModule(DWORD ,IHttpM
 #include <sys/types.h>
 #include <unistd.h>
 
-
 #include <httpd.h>
 #include <http_config.h>
 
@@ -396,8 +393,6 @@ extern "C" module AP_MODULE_DECLARE_DATA visus_module;
 #include <http_log.h>
 #include <http_protocol.h>
 #include <apr_strings.h>
-
-
 
 using namespace Visus;
 
@@ -615,7 +610,8 @@ public:
     static const char *argv[]={"mod_visus"};
     SetCommandLine(narg,argv);
     IdxModule::attach();
-    this->configureDatasets();    
+
+    this->configureDatasets();
   }
   
   //shutdownInCurrentProcess

@@ -79,6 +79,11 @@ void AppKitModule::attach()
   }
 #endif
 
+  auto config = getModuleConfig();
+
+  Viewer::Defaults::panels= config->readString("Configuration/VisusViewer/panels", "left center");
+  Viewer::Defaults::show_logos = cbool(config->readString("Configuration/VisusViewer/show_logos", "true"));
+
   VisusInfo() << "Attached AppKitModule";
 
 }

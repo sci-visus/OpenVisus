@@ -39,6 +39,7 @@ For support : support@visus.net
 #include <Visus/Idx.h>
 #include <Visus/IdxDataset.h>  
 #include <Visus/IdxMultipleDataset.h>
+#include <Visus/VisusConfig.h>
 
 namespace Visus {
 
@@ -59,7 +60,15 @@ void IdxModule::attach()
   DatasetFactory::getSingleton()->registerDatasetType(".idx" ,"IdxDataset"        , []() {return std::make_shared<IdxDataset>(); });
   DatasetFactory::getSingleton()->registerDatasetType(".midx","IdxMultipleDataset", []() {return std::make_shared<IdxMultipleDataset>(); });
 
-  IdxDataset::tryRemoveLockAndCorruptedBinaryFiles();
+  //remove broken files
+
+  auto config = getModuleConfig();
+
+  {
+    auto directory = config->readString("Configuration/IdxDataset/RemoveLockFiles/directory");
+    if (!directory.empty())
+      IdxDataset::tryRemoveLockAndCorruptedBinaryFiles(directory);
+  }
 
   VisusInfo() << "Attached IdxModule";
 }

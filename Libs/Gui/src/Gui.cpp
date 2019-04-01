@@ -45,6 +45,7 @@ For support : support@visus.net
 #include <Visus/GLLookAtCamera.h>
 #include <Visus/GLCanvas.h>
 #include <Visus/GLPhongShader.h>
+#include <Visus/VisusConfig.h>
 
 #include <QFrame>
 #include <QTextStream>
@@ -156,6 +157,12 @@ void GuiModule::attach()
     qDebug() << it.next();
   }
 #endif
+
+  auto config = getModuleConfig();
+
+  //simulate that the graphic card has a certain memory 
+  if (Int64 total = StringUtils::getByteSizeFromString(config->readString("Configuration/GLMemory/total", "0")))
+    GLInfo::getSingleton()->setOsTotalMemory(total);
 
   VisusInfo() << "Attached GuiModule";
 }

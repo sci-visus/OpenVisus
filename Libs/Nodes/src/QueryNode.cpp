@@ -67,7 +67,7 @@ public:
     : node(node_),dataset(dataset_),access(access_),query(query_),max_query_size(max_query_size_)
   {
     this->query->aborted=this->aborted;
-    this->verbose=cbool(VisusConfig::getSingleton()->readString("Configuration/QueryNode/verbose","true"));
+    this->verbose=node->isVerbose();
     this->waiting_ready=std::make_shared<Semaphore>();
 
     //need custom doPublish for scripting since it will not always wish to wait for return receipt
@@ -329,6 +329,8 @@ void QueryNode::writeToObjectStream(ObjectStream& ostream)
   }
 
   Node::writeToObjectStream(ostream);
+
+  ostream.write("verbose", cstring(verbose));
   ostream.write("accessindex",cstring(accessindex));
   ostream.write("view_dependent",cstring(bViewDependentEnabled));
   ostream.write("progression",std::to_string(progression));
@@ -353,6 +355,8 @@ void QueryNode::readFromObjectStream(ObjectStream& istream)
   }
 
   Node::readFromObjectStream(istream);
+
+  this->verbose = cint(istream.read("verbose"));
   this->accessindex=cint(istream.read("accessindex"));
   this->bViewDependentEnabled=cbool(istream.read("view_dependent"));
   this->progression=(Query::Progression)cint(istream.read("progression"));

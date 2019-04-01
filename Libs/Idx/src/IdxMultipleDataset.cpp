@@ -990,7 +990,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
   }
   else
   {
-    child.dataset = IdxDataset::loadDataset(url);
+    child.dataset = std::dynamic_pointer_cast<IdxDataset>(LoadDatasetEx(url,this->config));
   }
 
   if (!child.dataset) {

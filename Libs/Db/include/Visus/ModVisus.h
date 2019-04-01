@@ -43,6 +43,8 @@ For support : support@visus.net
 #include <Visus/NetMessage.h>
 #include <Visus/NetServer.h>
 #include <Visus/Log.h>
+#include <Visus/VisusConfig.h>
+#include <Visus/CriticalSection.h>
 
 namespace Visus {
 
@@ -61,7 +63,12 @@ public:
   virtual ~ModVisus();
 
   //configureDatasets
-  bool configureDatasets();
+  bool configureDatasets(const ConfigFile& config);
+
+  //configureDatasets
+  bool configureDatasets() {
+    return configureDatasets(*DbModule::getModuleConfig());
+  }
 
   //main request handler
   virtual NetResponse handleRequest(NetRequest request) override;
@@ -69,22 +76,33 @@ public:
 private:
 
   class Datasets;
-  class Scenes;
 
-  SharedPtr<Datasets> datasets;
-  SharedPtr<Scenes>   scenes;
+  SharedPtr<Datasets>  m_datasets;
+
+  //for dynamic mode
+  bool                   dynamic = false;
+  RWLock                 rw_lock;
+  bool                   bExit = false;
+  String                 config_filename;
+  SharedPtr<std::thread> config_thread;
+  Int64                  config_timestamp = 0;
+
+  //getDatasets
+  SharedPtr<Datasets> getDatasets();
+
+
+  //reload
+  bool reload();
 
   //all requests
-  NetResponse handleConfigureDatasets(const NetRequest& request);
+  NetResponse handleReload           (const NetRequest& request);
   NetResponse handleReadDataset      (const NetRequest& request);
   NetResponse handleReadScene        (const NetRequest& request);
   NetResponse handleGetListOfDatasets(const NetRequest& request);
   NetResponse handleGetListOfScenes  (const NetRequest& request);
   NetResponse handleAddDataset       (const NetRequest& request);
-
   NetResponse handleHtmlForPlugin    (const NetRequest& request);
   NetResponse handleBlockQuery       (const NetRequest& request);
-  NetResponse handleBoxQuery         (const NetRequest& request);
   NetResponse handleQuery            (const NetRequest& request);
   NetResponse handleOpenSeaDragon    (const NetRequest& request);
 

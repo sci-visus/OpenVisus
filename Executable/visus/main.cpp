@@ -63,6 +63,7 @@ using namespace Visus;
 
 void execTestIdx(int max_seconds);
 
+
 ///////////////////////////////////////////////////////////
 class ConvertStep
 {
@@ -196,8 +197,7 @@ public:
   //exec
   virtual Array exec(Array data,std::vector<String> args) override
   {
-    int    port=10000;
-
+    int port=10000;
     for (int I=1;I<(int)args.size();I++)
     {
       if (args[I]=="--port" || args[I]=="-p") 
@@ -205,13 +205,12 @@ public:
         port=cint(args[++I]);
         continue;
       }
-      
+
       ThrowException(StringUtils::format() << args[0] <<"  Invalid argument " << args[I]);
     }
 
     auto modvisus=new ModVisus();
     modvisus->configureDatasets();
-  
     NetServer netserver(port, modvisus);
     netserver.runInThisThread();
 
@@ -245,9 +244,9 @@ public:
 
     String filename = args[1];
 
-    auto dataset = Dataset::loadDataset(filename);
+    auto dataset = LoadDataset(filename);
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] <<"  Dataset::loadDataset(" << filename << ") failed");
+      ThrowException(StringUtils::format() << args[0] <<"  LoadDataset(" << filename << ") failed");
 
     int window_size = 4096;
     double time = dataset->getDefaultTime();
@@ -363,14 +362,14 @@ public:
       ThrowException(StringUtils::format() << args[0] << " syntax error, wrong arguments");
     }
 
-    auto Svf = Dataset::loadDataset(Surl);
-    auto Dvf = Dataset::loadDataset(Durl);
+    auto Svf = LoadDataset(Surl);
+    auto Dvf = LoadDataset(Durl);
 
     if (!Svf)
-      ThrowException(StringUtils::format() << args[0] << "  Dataset::loadDataset(" << Surl << ") failed");
+      ThrowException(StringUtils::format() << args[0] << "  LoadDataset(" << Surl << ") failed");
 
     if (!Dvf)
-      ThrowException(StringUtils::format() << args[0] << "  Dataset::loadDataset(" << Durl << ") failed");
+      ThrowException(StringUtils::format() << args[0] << "  LoadDataset(" << Durl << ") failed");
 
     if (Svf->getTimesteps() != Dvf->getTimesteps())
       ThrowException(StringUtils::format() << args[0] << " Time range not compatible");
@@ -421,9 +420,9 @@ public:
     if (args.size() != 3)
       ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed 3 arguments");
 
-    String url = args[1]; auto dataset = Dataset::loadDataset(url); 
+    String url = args[1]; auto dataset = LoadDataset(url); 
     if (!dataset)  
-      ThrowException(StringUtils::format() << args[0] <<"  Dataset::loadDataset(" << url << ") failed");
+      ThrowException(StringUtils::format() << args[0] <<"  LoadDataset(" << url << ") failed");
 
     String compression = args[2];
     if (!Encoders::getSingleton()->getEncoder(compression))
@@ -463,9 +462,9 @@ public:
     VisusInfo() << "FixDatasetRange starting...";
 
     String filename = args[1];
-    auto vf = IdxDataset::loadDataset(filename);
+    auto vf = LoadDataset<IdxDataset>(filename);
     if (!vf)
-      ThrowException(StringUtils::format() << args[0] <<"  failed to read IDX dataset (Dataset::loadDataset(" << filename << ") failed)");
+      ThrowException(StringUtils::format() << args[0] <<"  failed to read IDX dataset (LoadDataset(" << filename << ") failed)");
 
     auto idxfile = vf->idxfile;
 
@@ -655,13 +654,13 @@ public:
         fieldname = args[++I];
     }
 
-    auto midx = std::dynamic_pointer_cast<IdxMultipleDataset>(Dataset::loadDataset(midx_filename)); VisusReleaseAssert(midx);
+    auto midx = std::dynamic_pointer_cast<IdxMultipleDataset>(LoadDataset(midx_filename)); VisusReleaseAssert(midx);
     auto midx_access = midx->createAccess();
 
     bool bOk = midx->createIdxFile(idx_filename, Field("DATA", midx->getFieldByName(fieldname).dtype, "rowmajor"));
     VisusReleaseAssert(bOk);
 
-    auto idx = IdxDataset::loadDataset(idx_filename);
+    auto idx = LoadDataset<IdxDataset>(idx_filename);
     auto idx_access = idx->createAccess();
 
     auto tiles = midx->generateTiles(TileSize);
@@ -1091,7 +1090,7 @@ public:
 
     VisusInfo() << std::endl << info.toString();
 
-    auto dataset = Dataset::loadDataset(filename);
+    auto dataset = LoadDataset(filename);
     return data;
   }
 };
@@ -1164,9 +1163,9 @@ public:
 
     String url = args[1];
 
-    auto dataset = Dataset::loadDataset(url);
+    auto dataset = LoadDataset(url);
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] <<"  Dataset::loadDataset(" << url << ") failed");
+      ThrowException(StringUtils::format() << args[0] <<"  LoadDataset(" << url << ") failed");
 
     BigInt block_id = 0;
     Field  field = dataset->getDefaultField();
@@ -1422,7 +1421,7 @@ public:
       ThrowException(StringUtils::format() << args[0] << "  syntax error");
 
     String filename = args[1];
-    auto dataset = Dataset::loadDataset(filename);
+    auto dataset = LoadDataset(filename);
 
     String compression = args[2];
 
@@ -1430,7 +1429,7 @@ public:
       ThrowException(StringUtils::format() << args[0] << "  failed to create encoder " << compression << "");
 
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] << "  failed to read dataset (Dataset::loadDataset(" << filename << ") failed)");
+      ThrowException(StringUtils::format() << args[0] << "  failed to read dataset (LoadDataset(" << filename << ") failed)");
 
     auto access = dataset->createAccessForBlockQuery();
     auto field  = dataset->getDefaultField();
@@ -1510,9 +1509,9 @@ public:
       ThrowException(StringUtils::format() << args[0] << " syntax error");
 
     String filename = args[1];
-    auto dataset = Dataset::loadDataset(filename);
+    auto dataset = LoadDataset(filename);
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] << "  cannot loadDataset " << filename);
+      ThrowException(StringUtils::format() << args[0] << "  cannot LoadDataset " << filename);
 
     int    query_dim=512;
 
@@ -1824,7 +1823,7 @@ public:
     }
 
     //now create a Dataset, save it and reopen from disk
-    auto dataset = Dataset::loadDataset(filename);
+    auto dataset = LoadDataset(filename);
     VisusReleaseAssert(dataset && dataset->valid());
 
     //any time you need to read/write data from/to a Dataset I need a Access
@@ -2132,8 +2131,9 @@ int main(int argn, const char* argv[])
 
   if (argn >= 2 && String(argv[1]) == "--server")
   {
-    auto modvisus = new ModVisus;
+    auto modvisus = new ModVisus();
     modvisus->configureDatasets();
+
     NetServer server(10000, modvisus);
     server.runInThisThread();
     return 0;

@@ -130,6 +130,10 @@ void InitPython();
 void ShutdownPython();
 #endif
 
+ConfigFile* VisusModule::getModuleConfig() {
+  return Private::VisusConfig::getSingleton();
+}
+
 //////////////////////////////////////////////////////////////////
 void PrintMessageToTerminal(const String& value) {
 
@@ -177,6 +181,8 @@ static_assert(sizeof(off_t) == 8, "internal error");
 int          Private::CommandLine::argn=0;
 const char** Private::CommandLine::argv ;
 
+static String visus_config_commandline_filename;
+
 ///////////////////////////////////////////////////////////////////////////////
 void SetCommandLine(int argn, const char** argv)
 {
@@ -189,7 +195,7 @@ void SetCommandLine(int argn, const char** argv)
     //override visus.config
     if (argv[I] == String("--visus-config") && I < (argn - 1))
     {
-      VisusConfig::getSingleton()->filename = argv[++I];
+      visus_config_commandline_filename = argv[++I];
       continue;
     }
 
@@ -302,26 +308,6 @@ static void InitKnownPaths()
 }
   
 
-///////////////////////////////////////////////////////////
-static void InitVisusConfig()
-{
-  for (auto filename : {
-    VisusConfig::getSingleton()->filename ,
-    KnownPaths::CurrentWorkingDirectory().getChild("visus.config").toString(),
-    KnownPaths::VisusHome.getChild("visus.config").toString() })
-  {
-    if (filename.empty())
-      continue;
-
-    bool bOk = FileUtils::existsFile(filename);
-    VisusInfo() << "VisusConfig filename(" << filename << ") ok(" << (bOk ? "YES" : "NO") << ")";
-    if (!bOk)
-      continue;
-
-    VisusConfig::getSingleton()->filename = Path(filename);
-    break;
-  }
-}
 
 
 bool KernelModule::bAttached = false;
@@ -362,12 +348,28 @@ void KernelModule::attach()
   }
 #endif
 
-  VisusConfig::allocSingleton();
+  Private::VisusConfig::allocSingleton();
 
   NetService::attach();
 
   InitKnownPaths();
-  InitVisusConfig();
+
+  auto config = getModuleConfig();
+
+  for (auto filename : {
+    visus_config_commandline_filename ,
+    KnownPaths::CurrentWorkingDirectory().getChild("visus.config").toString(),
+    KnownPaths::VisusHome.getChild("visus.config").toString() })
+  {
+    if (filename.empty())
+      continue;
+
+    bool bOk = config->load(filename);
+    VisusInfo() << "VisusConfig filename(" << filename << ") ok(" << (bOk ? "YES" : "NO") << ")";
+    if (bOk)
+      break;
+  }
+
 
 #if VISUS_PYTHON
   InitPython();
@@ -383,8 +385,6 @@ void KernelModule::attach()
   RamResource::allocSingleton();
   UUIDGenerator::allocSingleton();
 
-  VisusConfig::getSingleton()->reload(/*bForce*/true);
-
   //this is to make sure PythonEngine works
 #if VISUS_PYTHON
   if (auto engine = std::make_shared<PythonEngine>(true) )
@@ -395,8 +395,15 @@ void KernelModule::attach()
 #endif
 
   //in case the user whant to simulate I have a certain amount of RAM
-  if (Int64 total = StringUtils::getByteSizeFromString(VisusConfig::getSingleton()->readString("Configuration/RamResource/total", "0")))
+  if (Int64 total = StringUtils::getByteSizeFromString(config->readString("Configuration/RamResource/total", "0")))
     RamResource::getSingleton()->setOsTotalMemory(total);
+
+  NetService::Defaults::proxy      = config->readString("Configuration/NetService/proxy");
+  NetService::Defaults::proxy_port = cint(config->readString("Configuration/NetService/proxyport"));
+
+  NetSocket::Defaults::send_buffer_size   = config->readInt("Configuration/NetSocket/send_buffer_size");
+  NetSocket::Defaults::recv_buffer_size   = config->readInt("Configuration/NetSocket/recv_buffer_size");
+  NetSocket::Defaults::tcp_no_delay       = config->readBool("Configuration/NetSocket/tcp_no_delay", "1");
 
   VisusInfo() << "Attached KernelModule";
 }
@@ -423,7 +430,7 @@ void KernelModule::detach()
 
   NetService::detach();
 
-  VisusConfig::releaseSingleton();
+  Private::VisusConfig::releaseSingleton();
 
 #if __APPLE__
   DestroyAutoReleasePool();

@@ -94,7 +94,6 @@ private:
   CriticalSection lock;
   Int64           visus_used_memory;
   Int64           os_total_memory;
-  double          max_memory_allocation_factor;
 
   bool extension_GL_NVX_gpu_memory_info;
 

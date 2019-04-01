@@ -53,7 +53,7 @@ namespace Visus {
   #endif
 #endif
 
-class VISUS_DATAFLOW_API DataflowModule
+class VISUS_DATAFLOW_API DataflowModule : public VisusModule
 {
 public:
 

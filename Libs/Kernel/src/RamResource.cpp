@@ -93,12 +93,6 @@ RamResource::RamResource()
     }
     #endif
   }
-
-
-
-  this->max_memory_allocation_factor=cdouble(VisusConfig::getSingleton()->readString("Configuration/RamResource/maximum_memory_allocation_factor","0.8"));
-
-  VisusAssert(this->os_total_memory==0 || this->max_memory_allocation_factor>0);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -206,7 +200,7 @@ bool RamResource::allocateMemory(Int64 reqsize)
   else
   {
     ScopedLock lock(this->lock);
-    Int64 os_free_memory=((Int64)(getOsTotalMemory()*max_memory_allocation_factor))-getVisusUsedMemory();
+    Int64 os_free_memory=((Int64)(getOsTotalMemory()*0.80))-getVisusUsedMemory();
     if (reqsize>os_free_memory)
     {
       VisusWarning()<<"RamResource out of memory "
@@ -214,8 +208,7 @@ bool RamResource::allocateMemory(Int64 reqsize)
                     <<" visus_used_memory("<<StringUtils::getStringFromByteSize(getVisusUsedMemory())<<")"
                     <<" os_used_memory("<<StringUtils::getStringFromByteSize(getOsUsedMemory())<<")"
                     <<" os_total_memory("<<StringUtils::getStringFromByteSize(getOsTotalMemory())<<")"
-                    <<" visus_free_memory("<<StringUtils::getStringFromByteSize(os_free_memory)<<")"
-                    <<" max_memory_allocation_factor("<<max_memory_allocation_factor<<")";
+                    <<" visus_free_memory("<<StringUtils::getStringFromByteSize(os_free_memory)<<")";
       return false;
     }
     return true;

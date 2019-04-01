@@ -45,130 +45,63 @@ For support : support@visus.net
 namespace Visus {
 
  ////////////////////////////////////////////////////////////////////////////////////
-Scene::Info Scene::getSceneInfo(String name, const StringTree& stree)
+static StringTree* FindScene(String name, const StringTree& stree)
 {
-  Scene::Info ret;
-  ret.name=name;
-
   auto all_scenes=stree.findAllChildsWithName("scene");
 
-  bool bFound=false;
   for (auto it : all_scenes)
   {
-    if (it->readString("name")==name) 
-    {
-      ret.url=it->readString("url");
-      ret.config=*it;
-      bFound=true;
-      break;
-    }
+    if (it->readString("name") == name)
+      return it;
   }
 
-  if (!bFound)
+  for (auto it : all_scenes)
   {
-    for (auto it : all_scenes)
-    {
-      if (it->readString("url")==name) 
-      {
-        ret.url=it->readString("url");
-        ret.config=*it;
-        bFound=true;
-        break;
-      }
-    }
+    if (it->readString("url") == name)
+      return it;
   }
 
-  if (!bFound)
-    ret.url=Url(name);
-
-  if (!ret.url.valid())
-  {
-    VisusWarning() << "Scene::loadScene(" << name << ") failed. Not a valid url";
-    return Info();
-  }
-
-  //local
-  if (ret.url.isFile())
-  {
-    String extension=Path(ret.url.getPath()).getExtension();
-//    ret.TypeName=DatasetFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
-//
-//    //probably not even an idx dataset
-//    if (ret.TypeName.empty()) 
-//      return Info(); 
-  }
-  else if (StringUtils::contains(ret.url.toString(),"mod_visus"))
-  {
-    ret.url.setParam("action","readscene");
-      
-    auto response=NetService::getNetResponse(ret.url);
-    if (!response.isSuccessful())
-    {
-      VisusWarning()<<"LoadScene("<<ret.url.toString()<<") failed errormsg("<<response.getErrorMessage()<<")";
-      return Info();
-    }
-    
-    VisusWarning() << response.getTextBody();
-    VisusWarning() << response.toString();
-      
-//    ret.TypeName = response.getHeader("visus-typename","IdxDataset");
-//    if (ret.TypeName.empty())
-//    {
-//      VisusWarning()<<"LoadDataset("<<ret.url.toString()<<") failed. Got empty TypeName";
-//      return Info();
-//    }
-//
-//    // backward compatible 
-//    if (ret.TypeName == "MultipleDataset")
-//      ret.TypeName="IdxMultipleDataset";
-  }
-  
-  return ret;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-bool Scene::openFromUrl(Url url)
-{
-  String content=Utils::loadTextDocument(url.toString());
-  
-  if (content.empty()){
-    VisusError()<<"scene file empty";
-    return false;
-  }
-  
-  StringTree stree;
-  if (!stree.fromXmlString(content))
-  {
-    VisusError()<<"scene file is wrong";
-    VisusAssert(false);
-    return false;
-  }
-  
-  scene_body = stree.toString();
-  
-  return true;
+  return nullptr;
 }
 
 /////////////////////////////////////////////////////////////////////////
-SharedPtr<Scene> Scene::loadScene(String name)
+SharedPtr<Scene> LoadSceneEx(String name, const StringTree& config)
 {
   if (name.empty())
     return SharedPtr<Scene>();
 
-  auto info=getSceneInfo(name,*VisusConfig::getSingleton());
-  if (!info.valid())
-    return SharedPtr<Scene>();
+  auto it = FindScene(name,config);
 
+  Url url = (it ? it->readString("url") : name);
 
-  Url url = info.url;
-
-  auto ret = std::make_shared<Scene>();
-  if (!ret->openFromUrl(url.toString())) 
+  if (!url.valid())
   {
-    VisusWarning()<<"Scene openFromUrl("<<url.toString()<<") failed";
+    VisusWarning() << "LoadScene(" << name << ") failed. Not a valid url";
     return SharedPtr<Scene>();
   }
 
+  if (!url.isFile() && StringUtils::contains(url.toString(), "mod_visus"))
+    url.setParam("action", "readscene");
+
+
+  String content = Utils::loadTextDocument(url.toString());
+
+  if (content.empty()) {
+    VisusWarning() << "LoadScene(" << url.toString() << ") failed";
+    return SharedPtr<Scene>();
+  }
+
+  StringTree stree;
+  if (!stree.fromXmlString(content))
+  {
+    VisusWarning() << "LoadScene(" << url.toString() << ") failed";
+    VisusAssert(false);
+    return SharedPtr<Scene>();
+  }
+
+  auto ret = std::make_shared<Scene>();
+  ret->url = url;
+  ret->scene_body = stree.toString();
   return ret; 
 }
 

@@ -423,7 +423,7 @@ IdxFile::IdxFile(int version_) : version(version_)
 
 
 //////////////////////////////////////////////////////////////////////////////
-IdxFile IdxFile::openFromUrl(Url url)
+IdxFile IdxFile::load(Url url)
 {
   String content;
   {

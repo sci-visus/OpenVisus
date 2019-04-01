@@ -69,7 +69,7 @@ class TestIdx(unittest.TestCase):
 		bSaved=idxfile.save(self.filename)
 		self.assertTrue(bSaved)
 		
-		dataset=Dataset.loadDataset(self.filename)
+		dataset=LoadDataset(self.filename)
 		self.assertIsNotNone(dataset)
 		access=dataset.createAccess()
 		
@@ -98,7 +98,7 @@ class TestIdx(unittest.TestCase):
 	# ReadIdx
 	def ReadIdx(self): 
 		
-		dataset=Dataset_loadDataset(self.filename)
+		dataset=LoadDataset(self.filename)
 		self.assertIsNotNone(dataset)
 		box=dataset.getBox()
 		field=dataset.getDefaultField()
@@ -124,7 +124,7 @@ class TestIdx(unittest.TestCase):
 
 	def MergeIdx(self): 
 		
-		dataset=Dataset_loadDataset(self.filename)
+		dataset=LoadDataset(self.filename)
 		self.assertIsNotNone(dataset)
 		
 		box=dataset.getBox()

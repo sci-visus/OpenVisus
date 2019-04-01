@@ -54,7 +54,6 @@ int main(int argn,const char* argv[])
   auto args = ApplicationInfo::args;
   if (std::find(args.begin(), args.end(), String("--server")) != args.end())
   {
-    //mixing client and server mode for debugging purpouses
     auto modvisus = new ModVisus();
     modvisus->configureDatasets();
     server = std::make_shared<NetServer>(10000, modvisus);

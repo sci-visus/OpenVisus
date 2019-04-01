@@ -45,7 +45,7 @@ using namespace Visus;
 ////////////////////////////////////////////////////////////////////////////////////
 void Tutorial_3(String default_layout)
 {
-  auto dataset=Dataset::loadDataset("temp/tutorial_1.idx");
+  auto dataset= LoadDataset("temp/tutorial_1.idx");
   VisusReleaseAssert(dataset);
   
   NdBox world_box=dataset->getBox();

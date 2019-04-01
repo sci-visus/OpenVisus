@@ -231,6 +231,29 @@ private:
 };
 
 
+////////////////////////////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API ScopedFileLock
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(ScopedFileLock)
+
+  //constructor
+  ScopedFileLock(String filename_) : filename(filename_) {
+    FileUtils::lock(filename);
+  }
+
+  //destructor
+  ~ScopedFileLock() {
+    FileUtils::unlock(filename);
+  }
+
+private:
+  
+  String filename;
+};
+
+
 } //namespace Visus
 
 #endif //__VISUS_FILE_IO_H__

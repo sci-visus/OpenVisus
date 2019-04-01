@@ -43,31 +43,44 @@ For support : support@visus.net
 
 namespace Visus {
 
-VISUS_IMPLEMENT_SINGLETON_CLASS(VisusConfig)
-
+VISUS_IMPLEMENT_SINGLETON_CLASS(Private::VisusConfig)
 
 //////////////////////////////////////////////////////////////
-bool ConfigFile::reload(bool bForce)
+bool ConfigFile::load(String filename, bool bEnablePostProcessing)
 {
-  VisusAssert(!this->filename.empty());
-
-  if (!bForce && this->timestamp && this->timestamp == FileUtils::getTimeLastModified(this->filename))
+  if (filename.empty()) {
+    VisusAssert(false);
     return false;
+  }
 
-  String body = Utils::loadTextDocument(this->filename);
-  StringTree temp("visus");
-  if (!temp.fromXmlString(body))
+  String body = Utils::loadTextDocument(filename);
+
+  StringTree temp(this->name);
+  if (!temp.fromXmlString(body, bEnablePostProcessing))
   {
     VisusWarning() << "visus config content is wrong or empty";
     return false;
   }
 
+  this->filename = filename;
   this->StringTree::operator=(temp);
-  this->timestamp = FileUtils::getTimeLastModified(this->filename);
 
-  VisusInfo() << "Reloaded ConfigFile " << filename;
   return true;
 }
+
+//////////////////////////////////////////////////////////////
+bool ConfigFile::save()
+{
+  if (this->filename.empty())
+    return false;
+
+  if (!Utils::saveTextDocument(filename, this->StringTree::toXmlString()))
+    return false;
+
+  return true;
+}
+
+
 
 } //namespace Visus
 

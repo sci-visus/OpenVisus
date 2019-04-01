@@ -337,7 +337,16 @@ public:
 
 class VISUS_KERNEL_API Void {};
 
-class VISUS_KERNEL_API KernelModule
+class VISUS_KERNEL_API ConfigFile;
+
+class VISUS_KERNEL_API VisusModule
+{
+public:
+
+  static ConfigFile* getModuleConfig();
+};
+
+class VISUS_KERNEL_API KernelModule : public VisusModule
 {
 public:
 

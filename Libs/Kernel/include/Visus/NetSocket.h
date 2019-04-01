@@ -49,118 +49,51 @@ class VISUS_KERNEL_API NetSocket
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(NetSocket)
+  VISUS_PIMPL_CLASS(NetSocket)
 
-  //______________________________________________
-  class Pimpl
+  class VISUS_KERNEL_API Defaults
   {
   public:
-
-    //constructors
-    Pimpl()
-    {}
-
-    //destructor
-    virtual ~Pimpl()
-    {}
-
-    //getNativeHandle
-    virtual void* getNativeHandle()=0;
-
-    //shutdownSend
-    virtual void shutdownSend()=0;
-
-    //close
-    virtual void close()=0;
-
-    //connect (client side)
-    virtual bool connect(String url)=0;
-
-    //bind (server side)
-    virtual bool bind(String url)=0;
-
-    //acceptConnection (server side)
-    virtual SharedPtr<NetSocket> acceptConnection()=0;
-
-    //sendRequest
-    virtual bool sendRequest(NetRequest request)=0;
-
-    //sendResponse
-    virtual bool sendResponse(NetResponse response)=0;
-
-    //receiveRequest
-    virtual NetRequest receiveRequest()=0;
-
-    //receiveResponse
-    virtual NetResponse receiveResponse()=0;
-  
+    static int send_buffer_size;
+    static int recv_buffer_size;
+    static bool tcp_no_delay;
   };
 
   //constructor
   NetSocket();
 
   //constructor
-  NetSocket(Pimpl* VISUS_DISOWN(pimpl_)) : pimpl(pimpl_){
-  }
+  NetSocket(Pimpl* VISUS_DISOWN(pimpl_));
 
   //destructor
-  virtual ~NetSocket() {
-    if (pimpl) delete pimpl;
-  }
-
-  //getPimpl
-  virtual Pimpl* getPimpl() const {
-    return pimpl;
-  }
+  virtual ~NetSocket();
 
   //shutdownSend
-  void shutdownSend() {
-    return pimpl->shutdownSend();
-  }
+  void shutdownSend();
 
   //close
-  void close() {
-    return pimpl->close();
-  }
+  void close();
 
   //connect (client side)
-  bool connect(String url) {
-    return pimpl->connect(url);
-  }
+  bool connect(String url);
 
   //bind (server side)
-  bool bind(String url) {
-    return pimpl->bind(url);
-  }
+  bool bind(String url);
 
   //acceptConnection (server side)
-  SharedPtr<NetSocket> acceptConnection() {
-    return pimpl->acceptConnection();
-  }
+  SharedPtr<NetSocket> acceptConnection();
 
   //sendRequest
-  bool sendRequest(NetRequest request) {
-    return pimpl->sendRequest(request);
-  }
+  bool sendRequest(NetRequest request);
 
   //sendResponse
-  bool sendResponse(NetResponse response) {
-    return pimpl->sendResponse(response);
-  }
+  bool sendResponse(NetResponse response);
 
   //receiveRequest
-  NetRequest receiveRequest() {
-    return pimpl->receiveRequest();
-  }
+  NetRequest receiveRequest();
 
   //receiveResponse
-  NetResponse receiveResponse() {
-    return pimpl->receiveResponse();
-  }
-
-private:
-
-  Pimpl* pimpl;
+  NetResponse receiveResponse();
 
 };
 

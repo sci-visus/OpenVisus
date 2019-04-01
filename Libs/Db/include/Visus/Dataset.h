@@ -125,7 +125,6 @@ public:
 
   bool                    bServerMode = false;
 
-
   //constructor
   Dataset() {
   }
@@ -143,12 +142,6 @@ public:
   //copyDataset
   static void copyDataset(Dataset* Dvf, SharedPtr<Access> Daccess, Field Dfield, double Dtime,
     Dataset* Svf, SharedPtr<Access> Saccess, Field Sfield, double Stime);
-
-  //getDefaultDataset
-  static String getDefaultDataset();
-
-  //loadDataset
-  static SharedPtr<Dataset> loadDataset(String name);
 
   //valid
   bool valid() const {
@@ -398,22 +391,6 @@ public:
   //readFromObjectStream
   void readFromObjectStream(ObjectStream& istream);
 
-private:
-
-  //______________________________________________
-  class VISUS_DB_API Info
-  {
-  public:
-    String     name;
-    Url        url;
-    String     TypeName;
-    StringTree config;
-    bool valid() const { return !name.empty(); }
-  };
-
-  //getDatasetInfo
-  static Info getDatasetInfo(String name,const StringTree& stree);
-
 };
 
 
@@ -471,6 +448,19 @@ private:
   DatasetFactory(){}
 
 };
+
+//LoadDatasetEx
+VISUS_DB_API SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config);
+
+inline SharedPtr<Dataset> LoadDataset(String url) {
+  return LoadDatasetEx(url, StringTree());
+}
+
+
+template <class T>
+inline SharedPtr<T> LoadDataset(String url) {
+  return std::dynamic_pointer_cast<T>(LoadDataset(url));
+}
 
 } //namespace Visus
 

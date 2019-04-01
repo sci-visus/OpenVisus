@@ -84,13 +84,8 @@ public:
     return ret;
   }
 
-  //loadDataset
-  static SharedPtr<IdxDataset> loadDataset(String url) {
-    return std::dynamic_pointer_cast<IdxDataset>(Dataset::loadDataset(url));
-  }
-
   //tryRemoveLockAndCorruptedBinaryFiles
-  static void tryRemoveLockAndCorruptedBinaryFiles(String directory = "");
+  static void tryRemoveLockAndCorruptedBinaryFiles(String directory);
 
   // removeFiles all files bolonging to this visus file 
   void removeFiles(int maxh = -1);
