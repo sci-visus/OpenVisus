@@ -143,6 +143,7 @@ if (1)
 	install(FILES        CMake/configure.py                            DESTINATION .)
 	install(FILES        CMake/OpenVisus.py                            DESTINATION .)
 	install(FILES        CMake/OpenVisusConfig.cmake                   DESTINATION .)
+	install(FILES        CMake/VisusMacros.cmake                       DESTINATION CMake)
 	install(DIRECTORY    Copyrights                                    DESTINATION .)
 	install(DIRECTORY    Samples                                       DESTINATION .)
 	
