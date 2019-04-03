@@ -360,9 +360,12 @@ function InstallPython {
     # this is necessary for osx 10.14
     if (( OSX == 1 )) ; then
       brew install zlib openssl
-      __CFLAGS__+="-I/usr/local/opt/zlib/include    -I/usr/local/opt/openssl/include"
-      __CPPFLAGS__+="-I/usr/local/opt/zlib/include  -I/usr/local/opt/openssl/include"
-      __LDFLAGS__+="-L/usr/local/opt/zlib/lib       -L/usr/local/opt/openssl/lib"
+      __CFLAGS__+="   -I$(brew --prefix zlib)/include"
+      __CPPFLAGS__+=" -I$(brew --prefix zlib)/include"
+      __LDFLAGS__+="  -L$(brew --prefix zlib)/lib"
+      __CFLAGS__+="   -I$(brew --prefix openssl)/include"
+      __CPPFLAGS__+=" -I$(brew --prefix openssl)/include"
+      __LDFLAGS__+="  -L$(brew --prefix openssl)/lib"
     else
       export CXX=g++
       if [[ "$OPENSSL_INCLUDE_DIR" != "" ]] ; then

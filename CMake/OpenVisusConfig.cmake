@@ -1,12 +1,12 @@
 
-find_path(OpenVisus_DIR Names OpenVisusConfig.cmake NO_DEFAULT_PATH )
+find_path(OpenVisus_DIR Names OpenVisusConfig.cmake NO_DEFAULT_PATH)
 
 include(FindPackageHandleStandardArgs)
 	
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(OpenVisus DEFAULT_MSG OpenVisus_DIR)
 
 # //////////////////////////////////////////////////////////////////////////////////
-macro(AddOpenVisusLibrary target_name)
+macro(AddOpenVisusLibrary target_name link_libraries)
 
 	add_library(${target_name} SHARED IMPORTED GLOBAL)
 	
@@ -50,6 +50,8 @@ macro(AddOpenVisusLibrary target_name)
 				IMPORTED_LOCATION                    "${OpenVisus_DIR}/libVisus${base_name}.so"
 				INTERFACE_INCLUDE_DIRECTORIES        "${OpenVisus_DIR}/include/Kernel;${OpenVisus_DIR}/include/${base_name}")  
 	endif() 
+	
+	set_target_properties(${target_name} PROPERTIES INTERFACE_LINK_LIBRARIES "${link_libraries}") 
 
 endmacro()
 
@@ -60,36 +62,31 @@ if(OpenVisus_FOUND)
 		string(REPLACE "\\" "/" OpenVisus_DIR "${OpenVisus_DIR}")
 	endif()
 
-	Message(STATUS "OpenVisus found in ${OpenVisus_DIR}")
+	message(STATUS "OpenVisus found in ${OpenVisus_DIR}")
 	
-	AddOpenVisusLibrary(OpenVisus::Kernel)
-	AddOpenVisusLibrary(OpenVisus::Dataflow)
-	AddOpenVisusLibrary(OpenVisus::Db)
-	AddOpenVisusLibrary(OpenVisus::Idx)
-	AddOpenVisusLibrary(OpenVisus::Nodes)
+	AddOpenVisusLibrary(OpenVisus::Kernel   "")
+	AddOpenVisusLibrary(OpenVisus::Dataflow "OpenVisus::Kernel")
+	AddOpenVisusLibrary(OpenVisus::Db       "OpenVisus::Kernel")
+	AddOpenVisusLibrary(OpenVisus::Idx      "OpenVisus::Db")
+	AddOpenVisusLibrary(OpenVisus::Nodes    "OpenVisus::Idx")
 	
-	set_target_properties(OpenVisus::Dataflow  PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Kernel") 
-	set_target_properties(OpenVisus::Db        PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Kernel") 
-	set_target_properties(OpenVisus::Idx       PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Db") 
-	set_target_properties(OpenVisus::Nodes     PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Idx") 
-	
-
 	if (EXISTS "${OpenVisus_DIR}/include/Gui")
 	
-		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL  REQUIRED)
+		find_package(Qt5 OPTIONAL_COMPONENTS Core Widgets Gui OpenGL QUIET)
 		
-		if (WIN32)
-			string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
+		if (Qt5_FOUND)
+		
+			if (WIN32)
+				string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
+			endif()
+		
+			AddOpenVisusLibrary(OpenVisus::Gui      "OpenVisus::Kernel;Qt5::Core;Qt5::Widgets;Qt5::Gui;Qt5::OpenGL")
+			AddOpenVisusLibrary(OpenVisus::GuiNodes "OpenVisus::Gui;OpenVisus::Dataflow")
+			AddOpenVisusLibrary(OpenVisus::AppKit   "OpenVisus::Gui;OpenVisus::Dataflow;OpenVisus::Nodes;OpenVisus::GuiNodes")
+		
+		else()
+			message(STATUS "Qt5 not found, disabling it")
 		endif()
-		
-		AddOpenVisusLibrary(OpenVisus::Gui)
-		AddOpenVisusLibrary(OpenVisus::GuiNodes)
-		AddOpenVisusLibrary(OpenVisus::AppKit)
-		
-		set_target_properties(OpenVisus::Gui      PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Kernel;Qt5::Core;Qt5::Widgets;Qt5::Gui;Qt5::OpenGL")
-		set_target_properties(OpenVisus::GuiNodes PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Gui;OpenVisus::Dataflow") 
-		set_target_properties(OpenVisus::AppKit   PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Gui;OpenVisus::Dataflow;OpenVisus::Nodes;OpenVisus::GuiNodes")
-		
 	endif()
 
 endif()
