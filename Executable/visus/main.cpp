@@ -63,6 +63,7 @@ using namespace Visus;
 
 void execTestIdx(int max_seconds);
 
+
 ///////////////////////////////////////////////////////////
 class ConvertStep
 {
@@ -109,9 +110,15 @@ public:
     if (args.size() < 2)
       ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
+
+    if (!data || !data.getTotalNumberOfSamples())
+      ThrowException(StringUtils::format() << args[0] << " got empty array");
+
     String filename = args[1];
 
     IdxFile idxfile;
+    idxfile.box = NdBox(NdPoint(data.getPointDim()), data.dims);
+    idxfile.fields.push_back(Field("data", data.dtype));
 
     for (int I = 2; I < (int)args.size(); I++)
     {
@@ -142,14 +149,14 @@ public:
         idxfile.timesteps = DatasetTimesteps();
         String from = args[++I];
         String to = args[++I];
-        String templ = args[++I];
+        String time_template = args[++I];
 
         if (from == "*" && to == "*")
           idxfile.timesteps = DatasetTimesteps::star();
         else
           idxfile.timesteps.addTimesteps(cdouble(from), cdouble(to), 1.0);
 
-        idxfile.time_template = templ;
+        idxfile.time_template = time_template;
       }
       else
       {
@@ -157,9 +164,14 @@ public:
       }
     }
 
-    if (!IdxDataset::create(filename, data, idxfile))
+    if (!idxfile.save(filename))
     {
-      VisusError() << "IdxDataset::create(" << filename << ") failed";
+      VisusError() << "idxfile.save(" << filename << ") failed";
+      return Array();
+    }
+
+    if (!IdxDataset::createDatasetFromBuffer(filename, data)) {
+      VisusError() << "Failed to create Dataset";
       return Array();
     }
 
@@ -185,8 +197,7 @@ public:
   //exec
   virtual Array exec(Array data,std::vector<String> args) override
   {
-    int    port=10000;
-
+    int port=10000;
     for (int I=1;I<(int)args.size();I++)
     {
       if (args[I]=="--port" || args[I]=="-p") 
@@ -194,15 +205,14 @@ public:
         port=cint(args[++I]);
         continue;
       }
-      
+
       ThrowException(StringUtils::format() << args[0] <<"  Invalid argument " << args[I]);
     }
 
-    auto modvisus=std::make_shared<ModVisus>();
+    auto modvisus=new ModVisus();
     modvisus->configureDatasets();
-  
-    auto netserver=std::make_shared<NetServer>(port, modvisus);
-    netserver->runInThisThread();
+    NetServer netserver(port, modvisus);
+    netserver.runInThisThread();
 
     return data;
   }
@@ -234,9 +244,9 @@ public:
 
     String filename = args[1];
 
-    auto dataset = Dataset::loadDataset(filename);
+    auto dataset = LoadDataset(filename);
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] <<"  Dataset::loadDataset(" << filename << ") failed");
+      ThrowException(StringUtils::format() << args[0] <<"  LoadDataset(" << filename << ") failed");
 
     int window_size = 4096;
     double time = dataset->getDefaultTime();
@@ -352,14 +362,14 @@ public:
       ThrowException(StringUtils::format() << args[0] << " syntax error, wrong arguments");
     }
 
-    auto Svf = Dataset::loadDataset(Surl);
-    auto Dvf = Dataset::loadDataset(Durl);
+    auto Svf = LoadDataset(Surl);
+    auto Dvf = LoadDataset(Durl);
 
     if (!Svf)
-      ThrowException(StringUtils::format() << args[0] << "  Dataset::loadDataset(" << Surl << ") failed");
+      ThrowException(StringUtils::format() << args[0] << "  LoadDataset(" << Surl << ") failed");
 
     if (!Dvf)
-      ThrowException(StringUtils::format() << args[0] << "  Dataset::loadDataset(" << Durl << ") failed");
+      ThrowException(StringUtils::format() << args[0] << "  LoadDataset(" << Durl << ") failed");
 
     if (Svf->getTimesteps() != Dvf->getTimesteps())
       ThrowException(StringUtils::format() << args[0] << " Time range not compatible");
@@ -410,15 +420,15 @@ public:
     if (args.size() != 3)
       ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed 3 arguments");
 
-    String url = args[1]; auto dataset = Dataset::loadDataset(url); 
+    String url = args[1]; auto dataset = LoadDataset(url); 
     if (!dataset)  
-      ThrowException(StringUtils::format() << args[0] <<"  Dataset::loadDataset(" << url << ") failed");
+      ThrowException(StringUtils::format() << args[0] <<"  LoadDataset(" << url << ") failed");
 
     String compression = args[2];
     if (!Encoders::getSingleton()->getEncoder(compression))
       ThrowException(StringUtils::format() << args[0] <<"  encoder(" << compression << ") does not exists");
 
-    if (!dataset->compress(compression))
+    if (!dataset->compressDataset(compression))
       ThrowException(StringUtils::format() << args[0] <<" Compression failed");
 
     return data;
@@ -452,9 +462,9 @@ public:
     VisusInfo() << "FixDatasetRange starting...";
 
     String filename = args[1];
-    auto vf = IdxDataset::loadDataset(filename);
+    auto vf = LoadDataset<IdxDataset>(filename);
     if (!vf)
-      ThrowException(StringUtils::format() << args[0] <<"  failed to read IDX dataset (Dataset::loadDataset(" << filename << ") failed)");
+      ThrowException(StringUtils::format() << args[0] <<"  failed to read IDX dataset (LoadDataset(" << filename << ") failed)");
 
     auto idxfile = vf->idxfile;
 
@@ -644,13 +654,13 @@ public:
         fieldname = args[++I];
     }
 
-    auto midx = std::dynamic_pointer_cast<IdxMultipleDataset>(Dataset::loadDataset(midx_filename)); VisusReleaseAssert(midx);
+    auto midx = std::dynamic_pointer_cast<IdxMultipleDataset>(LoadDataset(midx_filename)); VisusReleaseAssert(midx);
     auto midx_access = midx->createAccess();
 
     bool bOk = midx->createIdxFile(idx_filename, Field("DATA", midx->getFieldByName(fieldname).dtype, "rowmajor"));
     VisusReleaseAssert(bOk);
 
-    auto idx = IdxDataset::loadDataset(idx_filename);
+    auto idx = LoadDataset<IdxDataset>(idx_filename);
     auto idx_access = idx->createAccess();
 
     auto tiles = midx->generateTiles(TileSize);
@@ -661,19 +671,22 @@ public:
       auto tile = tiles[TileId];
 
       auto t1 = Time::now();
-      auto buffer = midx->readMaxResolutionData(midx_access, midx->getFieldByName(fieldname), midx->getDefaultTime(), tile);
+      auto buffer = midx->readFullResolutionData(midx_access, midx->getFieldByName(fieldname), midx->getDefaultTime(), tile);
       int msec_read = (int)t1.elapsedMsec();
       if (!buffer)
         continue;
 
       t1 = Time::now();
-      idx->writeMaxResolutionData(idx_access, tile, buffer);
+      idx->writeFullResolutionData(idx_access, idx->getDefaultField(),idx->getDefaultTime(), buffer, tile);
       int msec_write = (int)t1.elapsedMsec();
 
       VisusInfo() << "done " << TileId << " of " << tiles.size() << " msec_read(" << msec_read << ") msec_write(" << msec_write << ")";
 
       //ArrayUtils::saveImage(StringUtils::format() << "tile_" << TileId << ".png", read->buffer);
     }
+
+    //finally compress
+    idx->compressDataset("zip");
 
     VisusInfo() << "ALL DONE IN " << T1.elapsedMsec();
     return data;
@@ -1077,7 +1090,7 @@ public:
 
     VisusInfo() << std::endl << info.toString();
 
-    auto dataset = Dataset::loadDataset(filename);
+    auto dataset = LoadDataset(filename);
     return data;
   }
 };
@@ -1150,9 +1163,9 @@ public:
 
     String url = args[1];
 
-    auto dataset = Dataset::loadDataset(url);
+    auto dataset = LoadDataset(url);
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] <<"  Dataset::loadDataset(" << url << ") failed");
+      ThrowException(StringUtils::format() << args[0] <<"  LoadDataset(" << url << ") failed");
 
     BigInt block_id = 0;
     Field  field = dataset->getDefaultField();
@@ -1408,7 +1421,7 @@ public:
       ThrowException(StringUtils::format() << args[0] << "  syntax error");
 
     String filename = args[1];
-    auto dataset = Dataset::loadDataset(filename);
+    auto dataset = LoadDataset(filename);
 
     String compression = args[2];
 
@@ -1416,7 +1429,7 @@ public:
       ThrowException(StringUtils::format() << args[0] << "  failed to create encoder " << compression << "");
 
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] << "  failed to read dataset (Dataset::loadDataset(" << filename << ") failed)");
+      ThrowException(StringUtils::format() << args[0] << "  failed to read dataset (LoadDataset(" << filename << ") failed)");
 
     auto access = dataset->createAccessForBlockQuery();
     auto field  = dataset->getDefaultField();
@@ -1496,9 +1509,9 @@ public:
       ThrowException(StringUtils::format() << args[0] << " syntax error");
 
     String filename = args[1];
-    auto dataset = Dataset::loadDataset(filename);
+    auto dataset = LoadDataset(filename);
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] << "  cannot loadDataset " << filename);
+      ThrowException(StringUtils::format() << args[0] << "  cannot LoadDataset " << filename);
 
     int    query_dim=512;
 
@@ -1810,7 +1823,7 @@ public:
     }
 
     //now create a Dataset, save it and reopen from disk
-    auto dataset = Dataset::loadDataset(filename);
+    auto dataset = LoadDataset(filename);
     VisusReleaseAssert(dataset && dataset->valid());
 
     //any time you need to read/write data from/to a Dataset I need a Access
@@ -2118,10 +2131,11 @@ int main(int argn, const char* argv[])
 
   if (argn >= 2 && String(argv[1]) == "--server")
   {
-    auto modvisus = std::make_shared<ModVisus>();
+    auto modvisus = new ModVisus();
     modvisus->configureDatasets();
-    auto server = std::make_shared<NetServer>(10000, modvisus);
-    server->runInThisThread();
+
+    NetServer server(10000, modvisus);
+    server.runInThisThread();
     return 0;
   }
 

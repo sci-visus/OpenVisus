@@ -592,13 +592,6 @@ LogicBox IdxDataset::getLevelBox(HzOrder& hzorder, int H)
 ///////////////////////////////////////////////////////////
 void IdxDataset::tryRemoveLockAndCorruptedBinaryFiles(String directory)
 {
-  if (directory.empty())
-  {
-    directory=VisusConfig::readString("Configuration/IdxDataset/RemoveLockFiles/directory");
-    if (directory.empty())
-      return;
-  }
-
   VisusInfo()<<"Trying to remove locks and corrupted binary files in directory "<<directory<<"...";
 
   std::vector<String> lock_files;
@@ -659,7 +652,7 @@ void IdxDataset::removeFiles(int maxh)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::compress(String compression) 
+bool IdxDataset::compressDataset(String compression)
 {
   // for future version: here I'm making the assumption that a file contains multiple fields
   if (idxfile.version != 6) {
@@ -1003,9 +996,9 @@ SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuer
 }
 
 ////////////////////////////////////////////////////////////////////
-bool IdxDataset::openFromUrl(Url url) 
+bool IdxDataset::openFromUrl(Url url)
 {
-  auto idxfile = IdxFile::openFromUrl(url);
+  auto idxfile = IdxFile::load(url);
   if (!idxfile.valid()) {
     this->invalidate();
     return false;
@@ -1017,20 +1010,6 @@ bool IdxDataset::openFromUrl(Url url)
   return true;
 }
 
-
-////////////////////////////////////////////////////////////
-SharedPtr<IdxDataset> IdxDataset::cloneForMosaic() const
-{
-  SharedPtr<IdxDataset> ret = std::make_shared<IdxDataset>();
-
-  ret->BaseDataset::operator=(*this);
-
-  ret->idxfile = this->idxfile;
-  ret->hzaddress_conversion_boxquery = this->hzaddress_conversion_boxquery;
-  ret->hzaddress_conversion_pointquery = this->hzaddress_conversion_pointquery;
-
-  return ret;
-}
 
 static CriticalSection                                                                HZADDRESS_CONVERSION_BOXQUERY_LOCK;
 static std::map<String, SharedPtr<IdxBoxQueryHzAddressConversion> >                   HZADDRESS_CONVERSION_BOXQUERY;
@@ -1989,54 +1968,79 @@ bool IdxDataset::nextQuery(SharedPtr<Query> query)
   return true;
 }
 
-/////////////////////////////////////////////////////////////////////////
-SharedPtr<IdxDataset> IdxDataset::create(String filename, Array data, IdxFile idxfile)
-{
-  //override box
-  if (idxfile.box == NdBox() && data && data.getTotalNumberOfSamples())
-    idxfile.box = NdBox(NdPoint(data.getPointDim()), data.dims);
 
-  //append field
-  if (idxfile.fields.empty() && data.dtype.valid())
-    idxfile.fields.push_back(Field("data", data.dtype));
+//////////////////////////////////////////////////////////////////////////////////////////////////
+SharedPtr<IdxDataset> IdxDataset::createDatasetFromBuffer(String idx_filename, Array buffer, String compression, Aborted aborted) {
 
-  if (!idxfile.save(filename))
-  {
-    VisusError() << "idxfile.save(" << filename << ") failed";
+  auto Error = [](String error_msg) {
+    VisusWarning() << "Cannot create dataset. Reason: " << error_msg;
     return SharedPtr<IdxDataset>();
-  }
+  }; 
 
-  auto vf = IdxDataset::loadDataset(filename);
-  if (!vf)
+  //need to create the file? if exists, keep it
+  if (!FileUtils::existsFile(idx_filename))
   {
-    VisusError() << "Dataset::loadDataset(" << filename << ") failed";
-    return SharedPtr<IdxDataset>();
+    auto field = Field("data", buffer.dtype);
+    field.default_layout = "rowmajor";
+
+    IdxFile idxfile;
+    idxfile.box = NdBox(NdPoint(buffer.getPointDim()), buffer.dims);
+    idxfile.blocksperfile = -1; //one file per dataset
+    idxfile.filename_template = StringUtils::format() << "./" << Path(idx_filename).getFileNameWithoutExtension() << ".bin";
+    idxfile.fields.push_back(field);
+
+    if (!idxfile.save(idx_filename))
+      return Error("cannot save idx file");
   }
 
-  //write the data
-  if (data && data.getTotalNumberOfSamples())
+  auto dataset = LoadDataset<IdxDataset>(idx_filename);
+  if (!dataset)
+    return Error("cannot load dataset");
+
+  auto ram_access = dataset->createRamAccess(/* no memory limit*/0);
+  ram_access->bDisableWriteLocks = true; //only one process is writing in sync
+  if (!dataset->writeFullResolutionData(ram_access, dataset->getDefaultField(), dataset->getDefaultTime(), buffer))
+    return Error("Failed to write full res data");
+
+  for (auto& field : dataset->getFields())
+    field.default_compression = "zip";
+
+  if (!dataset->idxfile.save(idx_filename))
+    return Error("Failed to save idx file");
+
+  //for each timestep...
+  for (auto time : dataset->getTimesteps().asVector())
   {
-    auto query = std::make_shared<Query>(vf.get(), 'w');
-    query->time = vf->getDefaultTime();
-    query->field = vf->getDefaultField();
-    query->position = NdBox(NdPoint(data.getPointDim()), data.dims);
-    query->start_resolution = 0;
-    query->end_resolutions = { vf->getMaxResolution() };
-    query->max_resolution = vf->getMaxResolution();
+    //for each field...
+    for (auto& field : dataset->getFields())
+    {
+      auto r_access = ram_access;
+      auto w_access = dataset->createAccess();
 
-    if (!vf->beginQuery(query))
-      return SharedPtr<IdxDataset>();
+      r_access->beginRead();
+      w_access->beginWrite();
 
-    VisusAssert(query->nsamples == data.dims);
-    query->buffer = data;
+      for (BigInt blockid = 0, TotBlocks = dataset->getTotalnumberOfBlocks(); blockid <TotBlocks; blockid++)
+      {
+        auto hz1 = w_access->getStartAddress(blockid);
+        auto hz2 = w_access->getEndAddress(blockid);
+        auto read_block = std::make_shared<BlockQuery>(field, time, hz1, hz2, aborted);
+        if (dataset->readBlockAndWait(r_access, read_block))
+        {
+          auto write_block = std::make_shared<BlockQuery>(field, time, hz1, hz2, aborted);
+          write_block->buffer = read_block->buffer;
+          if (!dataset->writeBlockAndWait(w_access, write_block))
+            return Error("Failed to write block");
+        }
+      }
 
-    auto access = vf->createAccess();
-    if (!vf->executeQuery(access, query))
-      return SharedPtr<IdxDataset>();
+      r_access->endRead();
+      w_access->endWrite();
+    }
   }
 
-  return vf;
-}
+  return dataset;
+};
 
 
 ///////////////////////////////////////////////////

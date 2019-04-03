@@ -65,7 +65,7 @@ public:
   {
     this->engine = node->engine;
     this->bDataOutputPortConnected=node->isOutputConnected("data");
-    this->max_publish_msec=cint(VisusConfig::readString("Configuration/ScriptingNode/max_dopublish_msec","600"));
+    this->max_publish_msec=node->max_publish_msec;
     this->code = node->getCode();
   }
 
@@ -421,6 +421,9 @@ void ScriptingNode::guessPresets(Array input)
 void ScriptingNode::writeToObjectStream(ObjectStream& ostream)
 {
   Node::writeToObjectStream(ostream);
+
+  ostream.write("max_publish_msec", cstring(max_publish_msec));
+
   if (!code.empty())
   {
     ostream.pushContext("code");
@@ -433,6 +436,8 @@ void ScriptingNode::writeToObjectStream(ObjectStream& ostream)
 void ScriptingNode::readFromObjectStream(ObjectStream& istream)
 {
   Node::readFromObjectStream(istream);
+
+  max_publish_msec=cint(istream.read("max_publish_msec", cstring(this->max_publish_msec)));
 
   if (istream.pushContext("code"))
   {

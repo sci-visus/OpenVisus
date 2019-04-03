@@ -45,7 +45,7 @@ using namespace Visus;
 ////////////////////////////////////////////////////////////////////////////////////
 void Tutorial_3(String default_layout)
 {
-  auto dataset=Dataset::loadDataset("temp/tutorial_1.idx");
+  auto dataset= LoadDataset("temp/tutorial_1.idx");
   VisusReleaseAssert(dataset);
   
   NdBox world_box=dataset->getBox();
@@ -55,7 +55,7 @@ void Tutorial_3(String default_layout)
 
   Field field=dataset->getDefaultField();
 
-  //this is the maximum resolution of the Dataset (see Dataset::create*)
+  //this is the maximum resolution of the Dataset 
   int MaxH=dataset->getMaxResolution();
 
   //in the bitmask "V012012012012" the very last bit of the bitmask is at position MaxH=12 

@@ -44,7 +44,7 @@ namespace Visus {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
-ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_) 
+ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
   : config(config_)
 {
   this->name = "ModVisusAccess";

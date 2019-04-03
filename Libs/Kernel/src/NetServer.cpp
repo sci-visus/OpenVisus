@@ -45,9 +45,9 @@ namespace Visus {
 
 
 ///////////////////////////////////////////////////////////////
-NetServer::NetServer(int port_, SharedPtr<NetServerModule> module_,int nthreads_) : port(port_), module(module_),nthreads(nthreads_)
+NetServer::NetServer(int port_, NetServerModule* module_,int nthreads_) : port(port_), module(module_),nthreads(nthreads_)
 {
-  this->verbose = cint(VisusConfig::readString("Configuration/NetServer/verbose", ApplicationInfo::debug ? "1" : "0"));
+  this->verbose = ApplicationInfo::debug ? 1 : 0;
 }
 
 

@@ -317,7 +317,7 @@ void execTestIdx(int max_seconds)
     VisusInfo()<<"...done";
 
     //remove data from tutorial_1
-    if (auto vf= IdxDataset::loadDataset("./temp/tutorial_1.idx")) 
+    if (auto vf= LoadDataset<IdxDataset>("./temp/tutorial_1.idx"))
       vf->removeFiles();
  
     VisusInfo()<<"Running Tutorial_4...";
@@ -354,7 +354,7 @@ void execTestIdx(int max_seconds)
           }
           VisusReleaseAssert(idxfile.save("./temp/temp.idx"));
 
-          auto vf=IdxDataset::loadDataset("./temp/temp.idx");
+          auto vf=LoadDataset<IdxDataset>("./temp/temp.idx");
           VisusReleaseAssert(vf && vf->valid());
 
           {
@@ -392,7 +392,7 @@ void execTestIdx(int max_seconds)
 
       VisusReleaseAssert(idxfile.save(idxfilename));
 
-      auto vf=IdxDataset::loadDataset(idxfilename);
+      auto vf=LoadDataset<IdxDataset>(idxfilename);
       VisusReleaseAssert(vf && vf->valid());
       
       {

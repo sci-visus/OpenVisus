@@ -190,14 +190,14 @@ public:
   virtual bool openDataset()
   {
     //open the new dataset
-    SharedPtr<Dataset> dataset(Dataset::loadDataset(david_url));
+    SharedPtr<Dataset> dataset(LoadDataset(david_url));
     if (!dataset)
     {
-      VisusInfo()<<"Dataset::loadDataset("<<david_url<<") failed.";
+      VisusInfo()<<"LoadDataset("<<david_url<<") failed.";
       return false;
     }
 
-    VisusInfo()<<"Dataset::loadDataset("<<david_url<<") done";
+    VisusInfo()<<"LoadDataset("<<david_url<<") done";
 
     this->dataflow=std::make_shared<Dataflow>();
     this->dataflow->listeners.push_back(this);

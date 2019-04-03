@@ -78,6 +78,9 @@ public:
   //bVerbose
   bool bVerbose = false;
 
+  //bDisableWriteLocks (to speed up writing with only one writer)
+  bool bDisableWriteLocks = false;
+
   //constructor 
   Access() {
   }
@@ -190,11 +193,15 @@ public:
 
   //in case you want first to read block, merge block samples, and finally write block you need a "lease" (using Microsoft Azure cloud terminology)
   virtual void acquireWriteLock(SharedPtr<BlockQuery> query) {
+    VisusAssert(isWriting());
+    if (bDisableWriteLocks) return;
     ThrowException("not supported");
   }
 
   //releaseWriteLock
   virtual void releaseWriteLock(SharedPtr<BlockQuery> query) {
+    VisusAssert(isWriting());
+    if (bDisableWriteLocks) return;
     ThrowException("not supported");
   }
 

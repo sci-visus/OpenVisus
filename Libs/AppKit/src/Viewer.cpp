@@ -46,6 +46,7 @@ For support : support@visus.net
 #include <Visus/Diff.h>
 
 #include <Visus/Dataflow.h>
+#include <Visus/IdxDataset.h>
 
 #include <Visus/GLCamera.h>
 #include <Visus/GLInfo.h>
@@ -141,10 +142,13 @@ public:
 };
 #endif
 
+String Viewer::Defaults::panels = "left center";
+bool   Viewer::Defaults::show_logos = true;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<Viewer::Logo> Viewer::OpenScreenLogo(String key, String default_logo)
+SharedPtr<Viewer::Logo> Viewer::openScreenLogo(String key, String default_logo)
 {
-  String filename = VisusConfig::readString(key + "/filename");
+  String filename = config.readString(key + "/filename");
   if (filename.empty())
     filename = default_logo;
 
@@ -163,7 +167,7 @@ SharedPtr<Viewer::Logo> Viewer::OpenScreenLogo(String key, String default_logo)
   ret->tex->envmode = GL_MODULATE;
   ret->pos.x = StringUtils::contains(key, "Left") ? 0 : 1;
   ret->pos.y = StringUtils::contains(key, "Bottom") ? 0 : 1;
-  ret->opacity = cdouble(VisusConfig::readString(key + "/alpha", "0.5"));
+  ret->opacity = cdouble(config.readString(key + "/alpha", "0.5"));
   ret->border = Point2d(10, 10);
   return ret;
 };
@@ -172,6 +176,8 @@ SharedPtr<Viewer::Logo> Viewer::OpenScreenLogo(String key, String default_logo)
 ///////////////////////////////////////////////////////////////////////////////////////////////
 Viewer::Viewer(String title) : QMainWindow()
 {
+  this->config = *AppKitModule::getModuleConfig();
+
   RedirectLog=[this](const String& msg) {
     {
       ScopedLock lock(log.lock);
@@ -189,14 +195,14 @@ Viewer::Viewer(String title) : QMainWindow()
 
   setWindowTitle(title.c_str());
 
-  this->background_color=Color::parseFromString(VisusConfig::readString("Configuration/VisusViewer/background_color", Colors::DarkBlue.toString()));
+  this->background_color=Color::parseFromString(config.readString("Configuration/VisusViewer/background_color", Colors::DarkBlue.toString()));
 
   //logos
   {
-    if (auto logo = OpenScreenLogo("Configuration/VisusViewer/Logo/BottomLeft" , ":sci.png"  )) logos.push_back(logo);
-    if (auto logo = OpenScreenLogo("Configuration/VisusViewer/Logo/BottomRight", ":visus.png")) logos.push_back(logo);
-    if (auto logo = OpenScreenLogo("Configuration/VisusViewer/Logo/TopRight"   , ""          )) logos.push_back(logo);
-    if (auto logo = OpenScreenLogo("Configuration/VisusViewer/Logo/TopLeft"    , ""          )) logos.push_back(logo);
+    if (auto logo = openScreenLogo("Configuration/VisusViewer/Logo/BottomLeft" , ":sci.png"  )) logos.push_back(logo);
+    if (auto logo = openScreenLogo("Configuration/VisusViewer/Logo/BottomRight", ":visus.png")) logos.push_back(logo);
+    if (auto logo = openScreenLogo("Configuration/VisusViewer/Logo/TopRight"   , ""          )) logos.push_back(logo);
+    if (auto logo = openScreenLogo("Configuration/VisusViewer/Logo/TopLeft"    , ""          )) logos.push_back(logo);
   }
 
   icons.reset(new Icons());
@@ -236,7 +242,7 @@ Viewer::~Viewer()
 void Viewer::setMinimal()
 {
   Viewer::Preferences preferences;
-  preferences.preferred_panels = "";
+  preferences.panels = "";
   preferences.bHideMenus = true;
   this->setPreferences(preferences);
 }
@@ -245,9 +251,17 @@ void Viewer::setMinimal()
 ////////////////////////////////////////////////////////////
 void Viewer::setFieldName(String value)
 {
-  if (auto fieldnode = this->findNodeByType<FieldNode>())
-    fieldnode->setFieldName(value);
+  if (auto node = this->findNodeByType<FieldNode>())
+    node->setFieldName(value);
 }
+
+////////////////////////////////////////////////////////////
+void Viewer::setScriptingCode(String value)
+{
+  if (auto node = this->findNodeByType<ScriptingNode>())
+    node->setCode(value);
+}
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 void Viewer::configureFromCommandLine(std::vector<String> args)
@@ -280,8 +294,17 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   String arg_split_ortho;
   String args_zoom_to;
 
-  String open_filename = Dataset::getDefaultDatasetInVisusConfig();
-  bool bStartServer = false;
+  String open_filename;
+  {
+    auto configs = config.findAllChildsWithName("dataset");
+    if (!configs.empty())
+    {
+      String dataset_url = configs[0]->readString("url"); VisusAssert(!dataset_url.empty());
+      String dataset_name = configs[0]->readString("name", dataset_url);
+      open_filename = dataset_name;
+    }
+  }
+
   bool bFullScreen = false;
   Rectangle2i geometry(0, 0, 0, 0);
   String fieldname;
@@ -293,10 +316,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
     {
       open_filename = args[++I];
     }
-    else if (args[I] == "--server")
-    {
-      bStartServer = true;
-    }
+
     else if (args[I] == "--fullscreen")
     {
       bFullScreen = true;
@@ -412,15 +432,6 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   if (bMinimal)
     this->setMinimal();
 
-  SharedPtr<NetServer> server;
-  if (bStartServer)
-  {
-    //mixing client and server mode for debugging purpouses
-    auto modvisus = std::make_shared<ModVisus>();
-    modvisus->configureDatasets();
-    server = std::make_shared<NetServer>(10000, modvisus);
-    server->runInBackground();
-  }
 
   if (bFullScreen)
     this->showFullScreen();
@@ -531,9 +542,9 @@ void Viewer::enableSaveSession()
 {
   save_session_timer.reset(new QTimer());
   
-  String filename = VisusConfig::readString("Configuration/VisusViewer/SaveSession/filename", KnownPaths::VisusHome.getChild("viewer_session.xml"));
+  String filename = config.readString("Configuration/VisusViewer/SaveSession/filename", KnownPaths::VisusHome.getChild("viewer_session.xml"));
   
-  int every_sec    =cint(VisusConfig::readString("Configuration/VisusViewer/SaveSession/sec","60")); //1 min!
+  int every_sec    =cint(config.readString("Configuration/VisusViewer/SaveSession/sec","60")); //1 min!
 
   //make sure I create a unique filename
   String extension=Path(filename).getExtension();
@@ -995,7 +1006,7 @@ void Viewer::setDataflow(SharedPtr<Dataflow> value)
     widgets.glcanvas=createGLCanvas();
 
     //I want to show only the GLCanvas
-    if (preferences.preferred_panels.empty())
+    if (preferences.panels.empty())
     {
       widgets.log->hide();
       setCentralWidget(widgets.glcanvas);
@@ -1034,18 +1045,20 @@ void Viewer::setDataflow(SharedPtr<Dataflow> value)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-void Viewer::reloadVisusConfig(bool bChooseAFile) 
+void Viewer::reloadVisusConfig(bool bChooseAFile)
 {
   if (bChooseAFile)
   {
     static String last_dir(KnownPaths::VisusHome.toString());
-    String filename=cstring(QFileDialog::getOpenFileName(nullptr,"Choose a file to open...",last_dir.c_str(),"*"));
+    String filename = cstring(QFileDialog::getOpenFileName(nullptr, "Choose a file to open...", last_dir.c_str(), "*"));
     if (filename.empty()) return;
-    last_dir=Path(filename).getParent();
-    VisusConfig::filename=filename;
+    last_dir = Path(filename).getParent();
+    config.load(filename);
   }
-
-  VisusConfig::reload();
+  else
+  {
+    config.reload();
+  }
 
   widgets.toolbar->bookmarks_button->setMenu(createBookmarks());
 }
@@ -1089,8 +1102,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
     }
 
     for (int i=0;i<stree.getNumberOfChilds();i++)
-      VisusConfig::storage.addChild(stree.getChild(i));
-    VisusConfig::validate();
+      config.addChild(stree.getChild(i));
 
     //load first bookmark from new config
     auto children=stree.findAllChildsWithName("dataset",true);
@@ -1171,7 +1183,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   }
 
   //try to open a dataset
-  auto dataset=Dataset::loadDataset(url);
+  auto dataset = LoadDatasetEx(url,this->config);
   if (!dataset)
   {
     QMessageBox::information(this, "Error", (StringUtils::format() << "open file(" << url << +") failed.").str().c_str());
@@ -1181,14 +1193,11 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   if (!parent)
   {
     //try to use the default scene, if any
-    String def_scene = dataset->getDefaultScene();
-
-    if(def_scene!="")
-      if(openScene(def_scene))
-        return true;
+    String default_scene = dataset->getDefaultScene();
+    if (!default_scene.empty() && openScene(default_scene)) 
+      return true;
     
     //instead if it fails continue opening the dataset
-
     New();
     parent = dataflow->getRoot();
   }
@@ -1212,7 +1221,6 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
 
     glcamera->guessPosition(getWorldBoundingBox());
 
-
     if (dataset && StringUtils::contains(dataset->getConfig().readString("mirror"), "x"))
       glcamera->mirror(0);
 
@@ -1229,6 +1237,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   VisusInfo()<<"openFile("<<url<<") done";
   return true;
 }
+
 
 //////////////////////////////////////////////////////////////////////
 bool Viewer::saveFile(String url,bool bSaveHistory,bool bShowDialogs)
@@ -1418,8 +1427,7 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
           dataset_url = url.substr(0,dir_idx) + "/" + dataset_url;
         }
         
-        auto dataset=Dataset::loadDataset(dataset_url);
-        
+        auto dataset=LoadDatasetEx(dataset_url,this->config);
         if (!dataset)
         {
           QMessageBox::information(this, "Error", (StringUtils::format() << "open file(" << url << +") failed.").str().c_str());
@@ -1428,7 +1436,7 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
         
         beginUpdate();
         
-        DatasetNode* data_node=addDatasetNode(dataset,parent);
+        DatasetNode* dataset_node=addDatasetNode(dataset,parent);
       
         TimeNode* time_node=NULL;
         QueryNode* query_node=NULL;
@@ -1436,11 +1444,9 @@ bool Viewer::openScene(String url,Node* parent,bool bShowUrlDialogIfNeeded)
         PaletteNode* pal_node=NULL;
         Node* rend_node=NULL;
         
-        data_node->setDataset(dataset, true);
-        if (!data_node->getDataset()->openFromUrl(dataset_url))
-          ThrowException(StringUtils::format()<<"Cannot open dataset from url "<<dataset_url);
-        
-        for(auto data_child : data_node->breadthFirstSearch())
+        dataset_node->setDataset(dataset, /*bPublish*/true);
+
+        for(auto data_child : dataset_node->breadthFirstSearch())
         {
           if (auto tmp=dynamic_cast<TimeNode*>(data_child))
             time_node = tmp;
@@ -2658,12 +2664,21 @@ Node* Viewer::addRenderArrayNode(Node* parent,Node* data_provider,String default
 
   VisusAssert(parent && data_provider && data_provider->hasOutputPort("data"));
 
-  Node* render_node;
+  Node* ret;
   
-  if (render_type == "ospray" || VisusConfig::readString("Configuration/VisusViewer/DefaultRenderNode/value")=="ospray")
-    render_node = new OSPRayRenderNode("OSPray Render Node");
+  if (render_type == "ospray" || config.readString("Configuration/VisusViewer/DefaultRenderNode/value") == "ospray")
+  {
+    ret = new OSPRayRenderNode("OSPray Render Node");
+  }
   else
-    render_node = new RenderArrayNode("Render Node");
+  {
+    auto render_node = new RenderArrayNode("Render Node");
+    render_node->setLightingEnabled(cbool(config.readString("Configuration/RenderNode/lighting_enabled", cstring(render_node->lightingEnabled()))));
+    render_node->setPaletteEnabled(cbool(config.readString("Configuration/RenderNode/palette_enabled", cstring(render_node->paletteEnabled()))));
+    render_node->setUseViewDirection(cbool(config.readString("Configuration/RenderNode/use_view_direction", cstring(render_node->useViewDirection()))));
+    render_node->setMaxNumSlices(cint(config.readString("Configuration/RenderNode/max_num_slices", cstring(render_node->maxNumSlices()))));
+    ret = render_node;
+  }
 
   auto palette_node=default_palette.empty()? nullptr : new PaletteNode("Palette",default_palette);
 
@@ -2674,18 +2689,18 @@ Node* Viewer::addRenderArrayNode(Node* parent,Node* data_provider,String default
     if (palette_node)
       addNode(parent,palette_node);
 
-    addNode(parent,render_node);
-    connectPorts(data_provider,"data",render_node);
+    addNode(parent, ret);
+    connectPorts(data_provider,"data", ret);
 
     if (palette_node)
     {
       connectPorts(data_provider,"data",palette_node); //enable statistics
-      connectPorts(palette_node,"palette",render_node);
+      connectPorts(palette_node,"palette", ret);
     }
   }
   endUpdate();
 
-  return render_node;
+  return ret;
 }
 
 
@@ -2765,6 +2780,7 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
 
   //QueryNode
   auto query_node=new QueryNode(name);
+  query_node->setVerbose(cint(config.readString("Configuration/QueryNode/verbose", "1")));
   query_node->setAccessIndex(access_id);
   query_node->setViewDependentEnabled(true);
   query_node->setProgression(Query::GuessProgression);
@@ -2811,6 +2827,8 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
     connectPorts(field_node,query_node);
 
     auto scripting_node = new ScriptingNode("Scripting");
+    scripting_node->setMaxPublishMSec(cint(config.readString("Configuration/ScriptingNode/max_publish_msec", cstring(scripting_node->getMaxPublishMSec()))));
+
     {
       addNode(query_node, scripting_node);
       connectPorts(query_node, "data", scripting_node);
@@ -2829,9 +2847,9 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
     }
     else
     {
-      String default_palette_2d=VisusConfig::readString("Configuration/VisusViewer/default_palette_2d","GrayOpaque");
-      String default_palette_3d=VisusConfig::readString("Configuration/VisusViewer/default_palette_3d","GrayTransparent");
-      String default_render_type = VisusConfig::readString("Configuration/VisusViewer/DefaultRenderNode/value", "");
+      String default_palette_2d= config.readString("Configuration/VisusViewer/default_palette_2d","GrayOpaque");
+      String default_palette_3d= config.readString("Configuration/VisusViewer/default_palette_3d","GrayTransparent");
+      String default_render_type = config.readString("Configuration/VisusViewer/DefaultRenderNode/value", "");
       addRenderArrayNode(query_node,scripting_node,dim==3?default_palette_3d:default_palette_2d, default_render_type);
     }
   }
@@ -2942,7 +2960,7 @@ DatasetNode* Viewer::addDatasetNode(SharedPtr<Dataset> dataset,Node* parent)
   auto time_node=new TimeNode("time",dataset->getDefaultTime(),dataset->getTimesteps());
 
   //rendertype
-  String default_rendertype=VisusConfig::readString("Configuration/VisusViewer/render","");
+  String default_rendertype= config.readString("Configuration/VisusViewer/render","");
   String rendertype=StringUtils::toLower(dataset->getConfig().readString("rendertype",default_rendertype));
 
   beginUpdate();
@@ -3008,6 +3026,7 @@ ScriptingNode* Viewer::addScriptingNode(Node* parent,Node* data_provider)
   VisusAssert(data_provider->hasOutputPort("data"));
 
   auto scripting_node=new ScriptingNode("Scripting");
+  scripting_node->setMaxPublishMSec(cint(config.readString("Configuration/ScriptingNode/max_publish_msec", cstring(scripting_node->getMaxPublishMSec()))));
 
   beginUpdate();
   {

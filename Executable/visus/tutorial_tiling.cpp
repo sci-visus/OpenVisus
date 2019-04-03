@@ -130,7 +130,7 @@ void Tutorial_Tiling(String default_layout)
   idxfile.blocksperfile=1;
   VisusReleaseAssert(idxfile.save(filename));
 
-  auto vf=IdxDataset::loadDataset(filename);
+  auto vf= LoadDataset<IdxDataset>(filename);
   VisusReleaseAssert(vf && vf->valid());
 
   TilingExample(vf.get());

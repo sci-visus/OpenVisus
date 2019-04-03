@@ -51,94 +51,6 @@ namespace Visus {
 
 VISUS_IMPLEMENT_SINGLETON_CLASS(DatasetFactory)
 
- ////////////////////////////////////////////////////////////////////////////////////
-Dataset::Info Dataset::findDatasetInVisusConfig(String name)
-{
-  Dataset::Info ret;
-  ret.name=name;
-
-  auto all_datasets=VisusConfig::findAllChildsWithName("dataset");
-
-  bool bFound=false;
-  for (auto it : all_datasets) 
-  {
-    if (it->readString("name")==name) 
-    {
-      ret.url=it->readString("url");
-      ret.config=*it;
-      bFound=true;
-      break;
-    }
-  }
-
-  if (!bFound)
-  {
-    for (auto it : all_datasets) 
-    {
-      if (it->readString("url")==name) 
-      {
-        ret.url=it->readString("url");
-        ret.config=*it;
-        bFound=true;
-        break;
-      }
-    }
-  }
-
-  if (!bFound)
-    ret.url=Url(name);
-
-  if (!ret.url.valid())
-  {
-    VisusWarning() << "Dataset::loadDataset(" << name << ") failed. Not a valid url";
-    return Info();
-  }
-
-  //local
-  if (ret.url.isFile())
-  {
-    String extension=Path(ret.url.getPath()).getExtension();
-    ret.TypeName=DatasetFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
-
-    //probably not even an idx dataset
-    if (ret.TypeName.empty()) 
-      return Info(); 
-  }
-  else if (StringUtils::contains(ret.url.toString(),"mod_visus"))
-  {
-    ret.url.setParam("action","readdataset");
-      
-    auto response=NetService::getNetResponse(ret.url);
-    if (!response.isSuccessful())
-    {
-      VisusWarning()<<"LoadDataset("<<ret.url.toString()<<") failed errormsg("<<response.getErrorMessage()<<")";
-      return Info();
-    }
-      
-    ret.TypeName = response.getHeader("visus-typename","IdxDataset");
-    if (ret.TypeName.empty())
-    {
-      VisusWarning()<<"LoadDataset("<<ret.url.toString()<<") failed. Got empty TypeName";
-      return Info();
-    }
-
-    // backward compatible 
-    if (ret.TypeName == "MultipleDataset")
-      ret.TypeName="IdxMultipleDataset";
-  }
-  //legacy dataset (example google maps)
-  else if (StringUtils::endsWith(ret.url.getHostname(),".google.com"))
-  {
-    ret.TypeName = "GoogleMapsDataset";
-  }
-  //cloud storage
-  else
-  {
-    ret.TypeName = "IdxDataset"; //using cloud storage only for IDX dataset (in fact MultiDataset must have some run-time processing)
-  }
-  
-  return ret;
-}
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -224,6 +136,29 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& viewdep,Position po
 
 
 ////////////////////////////////////////////////////////////////////
+SharedPtr<Access> Dataset::createRamAccess(Int64 available, bool can_read, bool can_write)
+{
+  auto ret = std::make_shared<RamAccess>();
+
+  ret->name      = "RamAccess";
+  ret->can_read  = can_read;
+  ret->can_write = can_write;
+  ret->bitsperblock = this->getDefaultBitsPerBlock();
+
+  if (this->ram_access)
+  {
+    ret->shareMemoryWith(this->ram_access);
+  }
+  else
+  {
+    ret->setAvailableMemory(available);
+    this->ram_access = ret;
+  }
+
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////
 SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
 {
   VisusAssert(this->valid());
@@ -252,11 +187,12 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
     return std::make_shared<MultiplexAccess>(this, config);
   
   // RAM CACHE 
-  if (type=="lruam" || type=="ram" || type=="ramaccess")
-  {  
-    //create the ram cache on the fly
-    this->ram_access=std::make_shared<RamAccess>(this, config, this->ram_access);
-    return this->ram_access;
+  if (type == "lruam" || type == "ram" || type == "ramaccess")
+  {
+    auto available = StringUtils::getByteSizeFromString(config.readString("available", "128mb"));
+    auto can_read = StringUtils::contains(config.readString("chmod", "rw"), "r");
+    auto can_write = StringUtils::contains(config.readString("chmod", "rw"), "w");
+    return createRamAccess(available, can_read, can_write);
   }
 
   // NETWORK 
@@ -296,31 +232,96 @@ Field Dataset::getFieldByNameThrowEx(String fieldname) const
   return Field();
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////
+static StringTree* FindDataset(String name, const StringTree& stree)
+{
+  auto all_datasets = stree.findAllChildsWithName("dataset");
+  for (auto it : all_datasets)
+  {
+    if (it->readString("name") == name)
+      return it;
+  }
+
+  for (auto it : all_datasets)
+  {
+    if (it->readString("url") == name)
+      return it;
+  }
+
+  return nullptr;
+}
+
+
 /////////////////////////////////////////////////////////////////////////
-SharedPtr<Dataset> Dataset::loadDataset(String name)
+SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config)
 {
   if (name.empty())
     return SharedPtr<Dataset>();
 
-  auto info=findDatasetInVisusConfig(name);
-  if (!info.valid())
-    return SharedPtr<Dataset>();
+  auto it=FindDataset(name, config);
 
-  String TypeName = info.TypeName;
-  Url    url      = info.url;
-
-  if (TypeName.empty())
+  Url url(it? it->readString("url") : name);
+  if (!url.valid())
+  {
+    VisusWarning() << "LoadDataset(" << name << ") failed. Not a valid url";
     return SharedPtr<Dataset>();
+  }
+
+  String TypeName;
+
+  //local
+  if (url.isFile())
+  {
+    String extension = Path(url.getPath()).getExtension();
+    TypeName = DatasetFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
+
+    //probably not even an idx dataset
+    if (TypeName.empty())
+      return SharedPtr<Dataset>();
+  }
+  else if (StringUtils::contains(url.toString(), "mod_visus"))
+  {
+    url.setParam("action", "readdataset");
+
+    auto response = NetService::getNetResponse(url);
+    if (!response.isSuccessful())
+    {
+      VisusWarning() << "LoadDataset(" << url.toString() << ") failed errormsg(" << response.getErrorMessage() << ")";
+      return SharedPtr<Dataset>();
+    }
+
+    TypeName = response.getHeader("visus-typename", "IdxDataset");
+    if (TypeName.empty())
+    {
+      VisusWarning() << "LoadDataset(" << url.toString() << ") failed. Got empty TypeName";
+      return SharedPtr<Dataset>();
+    }
+  }
+  //legacy dataset (example google maps)
+  else if (StringUtils::endsWith(url.getHostname(), ".google.com"))
+  {
+    TypeName = "GoogleMapsDataset";
+  }
+  //cloud storage
+  else
+  {
+    TypeName = "IdxDataset"; //using cloud storage only for IDX dataset (in fact MultiDataset must have some run-time processing)
+  }
+
+  // backward compatible 
+  if (TypeName == "MultipleDataset")
+    TypeName = "IdxMultipleDataset";
 
   auto ret= DatasetFactory::getSingleton()->createInstance(TypeName);
   if (!ret) 
   {
-    VisusWarning()<<"Dataset::loadDataset("<<url.toString()<<") failed. Cannot DatasetFactory::getSingleton()->createInstance("<<TypeName<<")";
+    VisusWarning()<<"LoadDatasetEx("<<url.toString()<<") failed. Cannot DatasetFactory::getSingleton()->createInstance("<<TypeName<<")";
     return SharedPtr<Dataset>();
   }
 
-  ret->config=info.config;
-
+  ret->url = url;
+  ret->config = it? *it :StringTree();
   ret->kdquery_mode = KdQueryMode::fromString(ret->config.readString("kdquery", url.getParam("kdquery")));
 
   if (!ret->openFromUrl(url.toString())) 
@@ -331,19 +332,6 @@ SharedPtr<Dataset> Dataset::loadDataset(String name)
 
   //VisusInfo()<<ret->getDatasetInfos();
   return ret; 
-}
-
-
-/////////////////////////////////////////////////////////////////////////
-String Dataset::getDefaultDatasetInVisusConfig()
-{
-  auto configs = VisusConfig::findAllChildsWithName("dataset");
-  if (configs.empty()) 
-    return ""; //no default
-
-  String dataset_url  = configs[0]->readString("url"); VisusAssert(!dataset_url.empty());
-  String dataset_name = configs[0]->readString("name",dataset_url);
-  return dataset_name;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -431,7 +419,6 @@ Future<Void> Dataset::readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> q
   return query->done;
 }
 
-
 ////////////////////////////////////////////////
 Future<Void> Dataset::writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query)
 {
@@ -518,8 +505,11 @@ std::vector<NdBox> Dataset::generateTiles(int TileSize) const
 }
 
 ////////////////////////////////////////////////
-Array Dataset::readMaxResolutionData(SharedPtr<Access> access, Field field, double time, NdBox box)
+Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, double time, NdBox box)
 {
+  if (box == NdBox())
+    box = this->box;
+
   auto query = std::make_shared<Query>(this, 'r');
 
   query->time = time;
@@ -538,19 +528,24 @@ Array Dataset::readMaxResolutionData(SharedPtr<Access> access, Field field, doub
 }
 
 ////////////////////////////////////////////////
-bool Dataset::writeMaxResolutionData(SharedPtr<Access> access, Field field, double time, NdBox box, Array buffer)
+bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer, NdBox box)
 {
+  if (box==NdBox()) 
+    box=NdBox(NdPoint(buffer.getPointDim()), buffer.dims);
+
   auto query = std::make_shared<Query>(this, 'w');
 
   query->time = time;
   query->field = field;
   query->position = box;
+  query->start_resolution = 0;
   query->max_resolution = this->getMaxResolution();
   query->end_resolutions = { query->max_resolution };
 
   if (!beginQuery(query))
     return false;
 
+  VisusAssert(query->nsamples == buffer.dims);
   query->buffer = buffer;
 
   if (!executeQuery(access, query))
@@ -630,7 +625,6 @@ bool Dataset::beginQuery(SharedPtr<Query> query)
   return true;
 }
 
-
 ////////////////////////////////////////////////
 bool Dataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query)
 {
@@ -658,7 +652,6 @@ bool Dataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query)
 
   return true;
 }
-
 
 ////////////////////////////////////////////////
 bool Dataset::nextQuery(SharedPtr<Query> query)
@@ -717,7 +710,6 @@ bool Dataset::executePureRemoteQuery(SharedPtr<Query> query)
   query->currentLevelReady();
   return true;
 }
-
 
 ////////////////////////////////////////////////
 void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield, double Wtime,
@@ -869,22 +861,17 @@ void Dataset::writeToObjectStream(ObjectStream& ostream)
 //////////////////////////////////////////////////////////////////////////
 void Dataset::readFromObjectStream(ObjectStream& istream)
 {
-  String url=istream.read("url");
+  String url = istream.read("url");
 
   if (istream.pushContext("config"))
   {
-    VisusAssert(istream.getCurrentContext()->getNumberOfChilds()==1);
-    this->config=istream.getCurrentContext()->getChild(0);    
+    VisusAssert(istream.getCurrentContext()->getNumberOfChilds() == 1);
+    this->config = istream.getCurrentContext()->getChild(0);
     istream.popContext("config");
   }
 
-  auto info=findDatasetInVisusConfig(url);
-  if (!info.valid())
-    ThrowException(StringUtils::format()<<"Cannot get dataset info for "<<url);
-
-  if (!this->openFromUrl(info.url))
-    ThrowException(StringUtils::format()<<"Cannot open dataset from url "<<info.url.toString());
+  if (!this->openFromUrl(url))
+    ThrowException(StringUtils::format() << "Cannot open dataset from url " << url);
 }
-
 
 } //namespace Visus 

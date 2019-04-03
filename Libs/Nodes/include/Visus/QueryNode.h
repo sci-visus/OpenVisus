@@ -73,6 +73,19 @@ public:
   //getField
   virtual Field getField();
 
+  //isVerbose
+  bool isVerbose() const {
+    return this->verbose;
+  }
+
+  //setVerbose
+  void setVerbose(int value) {
+    if (this->verbose == value) return;
+    this->beginUpdate();
+    this->verbose = value;
+    this->endUpdate();
+  }
+
   //getAccessIndex
   int getAccessIndex() const {
     return this->accessindex;
@@ -186,6 +199,7 @@ private:
   class MyJob;
   friend class MyJob;
 
+  int                verbose = 0;
   int                accessindex=0;
   bool               bViewDependentEnabled = false;
   Frustum            viewdep;

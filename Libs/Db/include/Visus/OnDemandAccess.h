@@ -75,6 +75,13 @@ public:
   };
 
   //__________________________________________________
+  class VISUS_DB_API Defaults
+  {
+  public:
+    static int nconnections;
+  };
+
+  //__________________________________________________
   class VISUS_DB_API Type
   { 
   public:

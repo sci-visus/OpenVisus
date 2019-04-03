@@ -167,19 +167,14 @@ GLInfo::GLInfo() : visus_used_memory(0),os_total_memory(0),extension_GL_NVX_gpu_
   VisusInfo()<<"GL_MAX_3D_TEXTURE_SIZE "<<this->max_3d_texture_size;
   VisusInfo()<<"GL_MAX_CLIP_PLANES "    <<this->max_clip_planes;
 
-  //simulate that the graphic card has a certain memory 
-  if (Int64 total = StringUtils::getByteSizeFromString(VisusConfig::readString("Configuration/GLMemory/total", "0")))
-    setOsTotalMemory(total);
-
   #if __APPLE__
   {
-    if (os_total_memory==0)
-      this->os_total_memory=getTotalVideoMemoryBytes();
+    this->os_total_memory=getTotalVideoMemoryBytes();
   }
   #else
   {
     this->extension_GL_NVX_gpu_memory_info=StringUtils::contains(this->extensions,"GL_NVX_gpu_memory_info");
-    if (os_total_memory==0 && extension_GL_NVX_gpu_memory_info)
+    if (extension_GL_NVX_gpu_memory_info)
     {
       #ifndef GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX
       #define GL_GPU_MEM_INFO_TOTAL_AVAILABLE_MEM_NVX 0x9048
@@ -191,9 +186,6 @@ GLInfo::GLInfo() : visus_used_memory(0),os_total_memory(0),extension_GL_NVX_gpu_
   }
   #endif
 
-
-  this->max_memory_allocation_factor=cdouble(VisusConfig::readString("Configuration/GLMemory/maximum_memory_allocation_factor","0.8"));
-  VisusAssert(this->os_total_memory==0 || this->max_memory_allocation_factor>0);
   VisusInfo() << "...done";
 }
 
@@ -257,7 +249,7 @@ bool GLInfo::allocateMemory(Int64 reqsize)
 
     if (os_total_memory>0)
     {
-      Int64 os_free_memory=((Int64)(getOsTotalMemory()*max_memory_allocation_factor))-visus_used_memory;
+      Int64 os_free_memory=((Int64)(getOsTotalMemory()*0.80))-visus_used_memory;
       if (reqsize>os_free_memory)
       {
         VisusWarning()<<"OpenGL out of memory "

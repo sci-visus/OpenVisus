@@ -68,7 +68,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
   idxfile.bitsperblock=bitsperblock;
   VisusReleaseAssert(idxfile.save(filename));
 
-  auto dataset=IdxDataset::loadDataset(filename);
+  auto dataset= LoadDataset<IdxDataset>(filename);
   VisusReleaseAssert(dataset && dataset->valid());
 
   auto access=dataset->createAccess();

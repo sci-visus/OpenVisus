@@ -53,6 +53,13 @@ public:
 
   VISUS_PIMPL_CLASS(NetService)
 
+  class VISUS_KERNEL_API Defaults
+  {
+  public:
+    static String proxy;
+    static int    proxy_port;
+  };
+
   //constructor
   NetService(int nconnections,bool bVerbose=1);
 

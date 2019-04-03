@@ -42,6 +42,8 @@ For support : support@visus.net
 #include <Visus/DatasetBitmask.h>
 #include <Visus/GoogleMapsDataset.h>
 #include <Visus/DatasetArrayPlugin.h>
+#include <Visus/OnDemandAccess.h>
+#include <Visus/VisusConfig.h>
 
 namespace Visus {
 
@@ -63,6 +65,11 @@ void DbModule::attach()
   DatasetFactory::getSingleton()->registerDatasetType(".gmaps", "GoogleMapsDataset", []() {return std::make_shared<GoogleMapsDataset>(); });
 
   ArrayPlugins::getSingleton()->values.push_back(std::make_shared<DatasetArrayPlugin>());
+
+  auto config = getModuleConfig();
+
+  if (auto value = config->readInt("Configuration/OnDemandAccess/External/nconnections", 8))
+    OnDemandAccess::Defaults::nconnections = value;
 
   VisusInfo() << "Attached DbModule";
 }

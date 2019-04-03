@@ -62,6 +62,8 @@ For support : support@visus.net
 
 namespace Visus {
 
+int OnDemandAccess::Defaults::nconnections=8;
+
 ////////////////////////////////////////////////////////////////////////////
 class OnDemandAccessExternalPimpl : public OnDemandAccess::Pimpl
 {
@@ -70,19 +72,14 @@ public:
   SharedPtr<NetService> netservice;
 
   //constructor
-  OnDemandAccessExternalPimpl(OnDemandAccess* owner, Dataset* dataset, StringTree config = StringTree())
+  OnDemandAccessExternalPimpl(OnDemandAccess* owner, Dataset* dataset)
     : OnDemandAccess::Pimpl(owner)
   {
-    if (config.empty())
+    if (!dataset->bServerMode)
     {
-      if (StringTree* default_config = VisusConfig::storage.findChildWithName("Configuration/OnDemandAccessExternal"))
-        config = *default_config;
+      if (auto nconnections = OnDemandAccess::Defaults::nconnections)
+        this->netservice = std::make_shared<NetService>(nconnections);
     }
-
-    bool disable_async = config.readBool("disable_async", dataset->bServerMode);
-
-    if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
-      this->netservice = std::make_shared<NetService>(nconnections);
   }
 
   //destructor

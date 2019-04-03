@@ -67,6 +67,19 @@ public:
     return code;
   }
 
+  //getMaxPublishMSec
+  int getMaxPublishMSec() const {
+    return max_publish_msec;
+  }
+
+  //setMaxPublishMSec
+  void setMaxPublishMSec(int value) {
+    if (this->max_publish_msec == value) return;
+    beginUpdate();
+    this->max_publish_msec = value;
+    endUpdate();
+  }
+
   //setCode
   void setCode(String code) {
     if (this->code == code) return;
@@ -75,6 +88,7 @@ public:
     endUpdate();
   }
 
+  //addUserInput
   void addUserInput(String key, Array value) {
     try {
       ScopedAcquireGil acquire_gil;
@@ -131,6 +145,8 @@ private:
   class MyJob;  friend class MyJob;
 
   String    code;
+
+  int max_publish_msec = 600;
 
   struct
   {

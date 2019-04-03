@@ -54,7 +54,7 @@ namespace Visus {
 #endif
 
 
-class VISUS_DB_API DbModule
+class VISUS_DB_API DbModule : public VisusModule
 {
 public:
 

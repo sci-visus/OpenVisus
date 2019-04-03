@@ -38,31 +38,28 @@ For support : support@visus.net
 
 #include <Visus/Viewer.h>
 #include <Visus/PythonEngine.h>
-
+#include <Visus/ApplicationInfo.h>
+#include <Visus/ModVisus.h>
 
 ////////////////////////////////////////////////////////////////////////
 int main(int argn,const char* argv[])
 {
   using namespace Visus;
-
-  //python main
-  if (argn >= 2 && (String(argv[1]) == "--python" || String(argv[1]) == "-python"))
-  {
-#if VISUS_PYTHON
-    std::vector<String> args;
-    for (int I = 0; I < argn; I++)
-      if (I != 1) args.push_back(argv[I]);
-
-    return PythonEngine::main(args);
-#else
-    VisusInfo() << "Python disabled";
-    return -1;
-#endif
-  }
-
   SetCommandLine(argn, argv);
   GuiModule::createApplication();
   AppKitModule::attach();
+
+  SharedPtr<NetServer> server;
+
+  auto args = ApplicationInfo::args;
+  if (std::find(args.begin(), args.end(), String("--server")) != args.end())
+  {
+    auto modvisus = new ModVisus();
+    modvisus->configureDatasets();
+    server = std::make_shared<NetServer>(10000, modvisus);
+    server->runInBackground();
+  }
+
   {
     UniquePtr<Viewer> viewer(new Viewer());
     viewer->configureFromCommandLine(ApplicationInfo::args);
@@ -70,7 +67,6 @@ int main(int argn,const char* argv[])
   }
   AppKitModule::detach();
   GuiModule::destroyApplication();
-
   return 0;
 }
 

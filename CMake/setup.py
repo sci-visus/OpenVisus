@@ -12,7 +12,7 @@ PROJECT_NAME="OpenVisus"
 # use a number like 1.0.xxxx for travis testing
 # otherwise use a number greater than the one uploaded in pip
 # PROJECT_VERSION="1.0.1000"
-PROJECT_VERSION="1.3.14"
+PROJECT_VERSION="1.3.15"
 
 # ////////////////////////////////////////////////////////////////////
 def findFilesInCurrentDirectory():

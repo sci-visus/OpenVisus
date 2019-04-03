@@ -66,28 +66,37 @@ typedef int socklen_t;
 
 namespace Visus {
 
+
+int  NetSocket::Defaults::send_buffer_size=0;
+int  NetSocket::Defaults::recv_buffer_size = 0;
+bool NetSocket::Defaults::tcp_no_delay=true;
+
 //////////////////////////////////////////////////////////////
-class BSDNetSocketPimpl : public NetSocket::Pimpl
+class NetSocket::Pimpl
 {
 public:
 
+  VISUS_NON_COPYABLE_CLASS(Pimpl)
+
+     int socketfd=-1;
+
   //constructor
-  BSDNetSocketPimpl() : socketfd(-1)
-  {}
+  Pimpl() {
+  }
 
   //destructor
-  ~BSDNetSocketPimpl()
+  ~Pimpl()
   { 
     if (socketfd>=0)
       closesocket(socketfd);
   }
 
   //getNativeHandle
-  virtual void* getNativeHandle() override
+  void* getNativeHandle() 
   {return &socketfd;}
 
   //close
-  virtual void close() override
+  void close() 
   {
     if (socketfd<0) return;
     closesocket(socketfd);
@@ -95,14 +104,14 @@ public:
   }
 
   //shutdownSend
-  virtual void shutdownSend() override
+  void shutdownSend() 
   {
     if (socketfd<0) return;
     ::shutdown(socketfd, SHUT_WR);
   }
 
   //connect
-  virtual bool connect(String url_) override
+  bool connect(String url_) 
   {
     Url url(url_);
 
@@ -121,7 +130,7 @@ public:
   
     serv_addr.sin_addr.s_addr = getIPAddress(url.getHostname().c_str());
 
-    configureOptions("Configuration/NetSocket/connect");
+    configureOptions();
 
     serv_addr.sin_port = htons(url.getPort());
     if (::connect(this->socketfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr)) < 0)
@@ -134,7 +143,7 @@ public:
   }
 
   //bind
-  virtual bool bind(String url_) override
+  bool bind(String url_) 
   {
     close();
 
@@ -166,7 +175,7 @@ public:
     }
 
     const int max_connections = SOMAXCONN;
-    this->configureOptions("Configuration/NetSocket/listen");
+    this->configureOptions();
     if (::listen(this->socketfd, max_connections))
     {
       close();
@@ -179,12 +188,12 @@ public:
   }
 
   //acceptConnection
-  virtual SharedPtr<NetSocket> acceptConnection() override
+  SharedPtr<NetSocket> acceptConnection() 
   {
     if (socketfd<0) 
       return SharedPtr<NetSocket>();
 
-    UniquePtr<BSDNetSocketPimpl> pimpl(new BSDNetSocketPimpl());
+    UniquePtr<Pimpl> pimpl(new Pimpl());
 
     struct sockaddr_in client_addr;
     socklen_t sin_size = sizeof(struct sockaddr_in);
@@ -196,14 +205,14 @@ public:
       return SharedPtr<NetSocket>();
     }
 
-    pimpl->configureOptions("Configuration/NetSocket/accept");
+    pimpl->configureOptions();
 
     VisusInfo() << "NetSocket accepted new connection";
     return std::make_shared<NetSocket>(pimpl.release());
   }
 
   //sendRequest
-  virtual bool sendRequest(NetRequest request) override
+  bool sendRequest(NetRequest request) 
   {
     String headers=request.getHeadersAsString();
 
@@ -221,7 +230,7 @@ public:
   }
 
   //sendResponse
-  virtual bool sendResponse(NetResponse response) override
+  bool sendResponse(NetResponse response) 
   {
     String headers=response.getHeadersAsString();
 
@@ -239,7 +248,7 @@ public:
   }
 
   //receiveRequest
-  virtual NetRequest receiveRequest() override
+  NetRequest receiveRequest() 
   {
     String headers;
     headers.reserve(8192);
@@ -273,7 +282,7 @@ public:
   }
 
   //receiveResponse
-  virtual NetResponse receiveResponse() override
+  NetResponse receiveResponse() 
   {
     String headers;
     headers.reserve(8192);
@@ -308,25 +317,17 @@ public:
 
 private:
 
-  VISUS_NON_COPYABLE_CLASS(BSDNetSocketPimpl)
-
-  int socketfd;
-
   //configureOptions
-  void configureOptions(String config_key)
+  void configureOptions()
   {
-    int send_buffer_size = cint(VisusConfig::readString(config_key+"/send_buffer_size"));
-    if (send_buffer_size > 0) 
-      setSendBufferSize(send_buffer_size);
+    if (auto value= NetSocket::Defaults::send_buffer_size)
+      setSendBufferSize(value);
 
-    int recv_buffer_size = cint(VisusConfig::readString(config_key+"/recv_buffer_size"));
-    if (recv_buffer_size > 0) 
-      setReceiveBufferSize(recv_buffer_size);
+    if (auto value= NetSocket::Defaults::recv_buffer_size)
+      setReceiveBufferSize(value);
 
     //I think the no delay should be always enabled in Visus
-    bool tcp_no_delay = cbool(VisusConfig::readString(config_key+"/tcp_no_delay","1"));
-    if (tcp_no_delay) 
-      setNoDelay(tcp_no_delay);
+    setNoDelay(NetSocket::Defaults::tcp_no_delay);
   }
 
   //setNoDelay
@@ -441,7 +442,52 @@ private:
 ////////////////////////////////////////////////////////////////////
 NetSocket::NetSocket() 
 {
-  this->pimpl=new BSDNetSocketPimpl();
+  this->pimpl=new Pimpl();
+}
+
+
+NetSocket::NetSocket(Pimpl* pimpl_) : pimpl(pimpl_) 
+{
+}
+
+NetSocket::~NetSocket() {
+  if (pimpl) delete pimpl;
+}
+
+void NetSocket::shutdownSend() {
+  return pimpl->shutdownSend();
+}
+
+void NetSocket::close() {
+  return pimpl->close();
+}
+
+bool NetSocket::connect(String url) {
+  return pimpl->connect(url);
+}
+
+bool NetSocket::bind(String url) {
+  return pimpl->bind(url);
+}
+
+SharedPtr<NetSocket> NetSocket::acceptConnection() {
+  return pimpl->acceptConnection();
+}
+
+bool NetSocket::sendRequest(NetRequest request) {
+  return pimpl->sendRequest(request);
+}
+
+bool NetSocket::sendResponse(NetResponse response) {
+  return pimpl->sendResponse(response);
+}
+
+NetRequest NetSocket::receiveRequest() {
+  return pimpl->receiveRequest();
+}
+
+NetResponse NetSocket::receiveResponse() {
+  return pimpl->receiveResponse();
 }
 
 

@@ -49,10 +49,10 @@ import numpy
 from OpenVisus import *
 
 # ////////////////////////////////////////////////////////////////////////
-class TextIdx(unittest.TestCase):
+class TestIdx(unittest.TestCase):
   
 	def testIdx(self):
-		self.filename="temp/tutorial_1.idx"
+		self.filename="temp/TestIdx.idx"
 		self.WriteIdx()
 		self.ReadIdx()
 		self.MergeIdx()
@@ -69,7 +69,7 @@ class TextIdx(unittest.TestCase):
 		bSaved=idxfile.save(self.filename)
 		self.assertTrue(bSaved)
 		
-		dataset=Dataset.loadDataset(self.filename)
+		dataset=LoadDataset(self.filename)
 		self.assertIsNotNone(dataset)
 		access=dataset.createAccess()
 		
@@ -98,7 +98,7 @@ class TextIdx(unittest.TestCase):
 	# ReadIdx
 	def ReadIdx(self): 
 		
-		dataset=Dataset_loadDataset(self.filename)
+		dataset=LoadDataset(self.filename)
 		self.assertIsNotNone(dataset)
 		box=dataset.getBox()
 		field=dataset.getDefaultField()
@@ -124,7 +124,7 @@ class TextIdx(unittest.TestCase):
 
 	def MergeIdx(self): 
 		
-		dataset=Dataset_loadDataset(self.filename)
+		dataset=LoadDataset(self.filename)
 		self.assertIsNotNone(dataset)
 		
 		box=dataset.getBox()

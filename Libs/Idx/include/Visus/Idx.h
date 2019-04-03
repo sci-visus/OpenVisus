@@ -53,7 +53,7 @@ namespace Visus {
   #endif
 #endif
 
-class VISUS_IDX_API IdxModule
+class VISUS_IDX_API IdxModule : public VisusModule
 {
 public:
 

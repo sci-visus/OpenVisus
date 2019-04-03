@@ -77,7 +77,7 @@ void Tutorial_4(String default_layout)
   VisusReleaseAssert(idxfile.save("temp/tutorial_4.idx"));
 
   //create the Dataset, since I'm using a bitmask with regular expression, I need to use VisusCreateEx
-  auto dataset=IdxDataset::loadDataset("temp/tutorial_4.idx");
+  auto dataset=LoadDataset<IdxDataset>("temp/tutorial_4.idx");
   VisusReleaseAssert(dataset && dataset->valid());
   Field field=dataset->getDefaultField();
 

@@ -104,7 +104,7 @@ int main(int argc, const char* argv[])
     }
   }
 
-  auto dataset=Dataset::loadDataset(dataset_url);
+  auto dataset=LoadDataset(dataset_url);
   VisusReleaseAssert(dataset);
 
   NdBox world_box=dataset->getBox();

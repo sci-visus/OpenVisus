@@ -56,8 +56,6 @@ class VISUS_IDX_API IdxDataset  : public Dataset
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(IdxDataset)
-
   //idxfile
   IdxFile idxfile;
 
@@ -79,19 +77,21 @@ public:
     return "IdxDataset";
   }
 
-  //loadDataset
-  static SharedPtr<IdxDataset> loadDataset(String url) {
-    return std::dynamic_pointer_cast<IdxDataset>(Dataset::loadDataset(url));
+  //clone
+  virtual SharedPtr<Dataset> clone() const override {
+    auto ret = std::make_shared<IdxDataset>();
+    *ret = *this;
+    return ret;
   }
 
   //tryRemoveLockAndCorruptedBinaryFiles
-  static void tryRemoveLockAndCorruptedBinaryFiles(String directory = "");
+  static void tryRemoveLockAndCorruptedBinaryFiles(String directory);
 
   // removeFiles all files bolonging to this visus file 
   void removeFiles(int maxh = -1);
 
-  //compress
-  virtual bool compress(String compression) override;
+  //compressDataset
+  virtual bool compressDataset(String compression) override;
 
   //getAddressRangeBox
   LogicBox getAddressRangeBox(BigInt start_address,BigInt end_address, int max_resolution);
@@ -111,14 +111,11 @@ public:
   //createEquivalentQuery
   SharedPtr<Query> createEquivalentQuery(int mode,SharedPtr<BlockQuery> block_query);
 
-  //create
-  static SharedPtr<IdxDataset> create(String filename, Array data, IdxFile idxfile = IdxFile());
-
   //setIdxFile
   void setIdxFile(IdxFile value);
 
-  //special function for mosaic idx
-  SharedPtr<IdxDataset> cloneForMosaic() const;
+  //createDatasetFromBuffer
+  static SharedPtr<IdxDataset> createDatasetFromBuffer(String idx_filename, Array buffer, String compression = "zip", Aborted aborted = Aborted());
 
 public:
 

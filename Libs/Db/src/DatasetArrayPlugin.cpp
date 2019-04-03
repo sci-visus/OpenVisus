@@ -129,7 +129,7 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 StringTree DatasetArrayPlugin::handleStatImage(String url)
 {
-  auto dataset=Dataset::loadDataset(url);
+  auto dataset=LoadDataset(url);
 
   if (!dataset)
   {
@@ -161,7 +161,7 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
 ///////////////////////////////////////////////////////////////////////////////
 Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
 {
-  auto dataset=Dataset::loadDataset(url);
+  auto dataset= LoadDataset(url);
 
   if (!dataset)
     return Array();
@@ -224,7 +224,7 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
 ///////////////////////////////////////////////////////////////////////////////
 bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String> args_)
 {
-  auto dataset=Dataset::loadDataset(url);
+  auto dataset= LoadDataset(url);
 
   if (!dataset)
     return false;

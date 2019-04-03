@@ -499,7 +499,7 @@ void Viewer::glRenderGestures(GLCanvas& gl)
 /////////////////////////////////////////////////////////////////////////////////////
 void Viewer::glRenderLogos(GLCanvas& gl)
 {
-  if (!preferences.bRenderLogos)
+  if (!preferences.show_logos)
     return;
 
   int W = gl.getViewport().width;

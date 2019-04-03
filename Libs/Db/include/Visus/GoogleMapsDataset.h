@@ -50,8 +50,6 @@ class VISUS_DB_API GoogleMapsDataset : public Dataset
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(GoogleMapsDataset)
-
   DType            dtype;
   Point2i          tile_nsamples;
   String           tile_compression;
@@ -69,6 +67,13 @@ public:
     return "GoogleMapsDataset";
   }
 
+  //clone
+  virtual SharedPtr<Dataset> clone() const override {
+    auto ret = std::make_shared<GoogleMapsDataset>();
+    *ret = *this;
+    return ret;
+  }
+
   //getTileCoordinate
   Point3i getTileCoordinate(BigInt start_address,BigInt end_address);
 
@@ -76,6 +81,12 @@ public:
 
   //openFromUrl 
   virtual bool openFromUrl(Url url) override;
+
+  //compressDataset
+  virtual bool compressDataset(String compression) override {
+    VisusWarning()<<"compress not supported";
+    return false;
+  }
 
   //guessEndResolutions
   virtual std::vector<int> guessEndResolutions(const Frustum& viewdep, Position position, Query::Quality quality = Query::DefaultQuality, Query::Progression progression = Query::GuessProgression) override;

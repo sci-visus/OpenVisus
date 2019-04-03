@@ -410,18 +410,10 @@ function InstallPython {
 
 # //////////////////////////////////////////////////////
 function BuildCondaOpenVisus {
-
   pushd conda
-
-  if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
-    travis_wait 30 conda-build -q openvisus
-  else
-    conda-build -q openvisus
-  fi
-
+  conda-build -q openvisus
   conda install -q --use-local openvisus
   CONDA_BUILD_FILENAME=$(find ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld -iname "openvisus*.tar.bz2")
-
   popd
 }
 

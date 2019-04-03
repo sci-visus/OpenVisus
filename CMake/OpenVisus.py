@@ -32,8 +32,10 @@ try:
 except:
 	pass
 
+VISUS_GUI=False
 try:
 	from VisusGuiPy import *
+	VISUS_GUI=True
 except:
 	pass
 	

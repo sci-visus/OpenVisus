@@ -102,12 +102,11 @@ private:
   KdQueryMode() = delete;
 };
 
+
 ////////////////////////////////////////////////////////
-class VISUS_DB_API BaseDataset
+class VISUS_DB_API Dataset 
 {
 public:
-
-  //NOTE: I can copy the base inforation
 
   Url                     url;
   String                  dataset_body;
@@ -126,26 +125,6 @@ public:
 
   bool                    bServerMode = false;
 
-};
-
-////////////////////////////////////////////////////////
-class VISUS_DB_API Dataset : public BaseDataset
-{
-public:
-
-  VISUS_NON_COPYABLE_CLASS(Dataset)
-
-  //______________________________________________
-  class VISUS_DB_API Info
-  {
-  public:
-    String     name;
-    Url        url;
-    String     TypeName;
-    StringTree config;
-    bool valid() const { return !name.empty(); }
-  };
-
   //constructor
   Dataset() {
   }
@@ -157,19 +136,12 @@ public:
   //getTypeName
   virtual String getTypeName() const = 0;
 
+  //cloneclone
+  virtual SharedPtr<Dataset> clone() const = 0;
+
   //copyDataset
   static void copyDataset(Dataset* Dvf, SharedPtr<Access> Daccess, Field Dfield, double Dtime,
     Dataset* Svf, SharedPtr<Access> Saccess, Field Sfield, double Stime);
-
-
-  //findDatasetInVisusConfig
-  static Info findDatasetInVisusConfig(String name);
-
-  //getDefaultDatasetInVisusConfig
-  static String getDefaultDatasetInVisusConfig();
-
-  //loadDataset
-  static SharedPtr<Dataset> loadDataset(String name);
 
   //valid
   bool valid() const {
@@ -281,7 +253,7 @@ public:
 
   //getDatasetBody
   String getDatasetBody() const {
-    return dataset_body;
+    return dataset_body.empty() ? getUrl().toString() : dataset_body;
   } 
 
   // getDatasetInfos
@@ -295,11 +267,8 @@ public:
   //openFromUrl 
   virtual bool openFromUrl(Url url) = 0;
 
-  //compress
-  virtual bool compress(String compression) {
-    VisusAssert(false);
-    return false;
-  }
+  //compressDataset
+  virtual bool compressDataset(String compression) = 0;
 
   //getInnerDatasets
   virtual std::map<String,SharedPtr<Dataset> > getInnerDatasets() const  {
@@ -383,6 +352,9 @@ public:
 
 public:
 
+  //createRamAccess
+  SharedPtr<Access> createRamAccess(Int64 available, bool can_read = true, bool can_write = true);
+
   //addField
   void addField(String name, Field field) {
     fields.push_back(field);
@@ -400,27 +372,17 @@ public:
   //generateTiles (useful for conversion)
   std::vector<NdBox> generateTiles(int TileSize) const;
 
-  //readMaxResolutionData
-  Array readMaxResolutionData(SharedPtr<Access> access, Field field, double time, NdBox box);
+  //readFullResolutionData
+  Array readFullResolutionData(SharedPtr<Access> access, Field field, double time, NdBox box=NdBox());
 
-  //readMaxResolutionData
-  Array readMaxResolutionData(SharedPtr<Access> access, NdBox box) {
-    return readMaxResolutionData(access, getDefaultField(), getDefaultTime(),box);
-  }
-
-  //writeMaxResolutionData
-  bool writeMaxResolutionData(SharedPtr<Access> access, Field field, double time, NdBox box, Array buffer);
-
-  //writeMaxResolutionData
-  bool writeMaxResolutionData(SharedPtr<Access> access, NdBox box, Array buffer) {
-    return writeMaxResolutionData(access,getDefaultField(),getDefaultTime(),box,buffer);
-  }
+  //writeFullResolutionData
+  bool writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer,NdBox box=NdBox());
 
 public:
   
   //toString
   String toString() const {
-    return dataset_body.empty() ? getUrl().toString() : dataset_body;
+    return getDatasetBody();
   }
 
   //writeToObjectStream
@@ -428,10 +390,6 @@ public:
 
   //readFromObjectStream
   void readFromObjectStream(ObjectStream& istream);
-
-private:
-
-  //DO NOT ADD VARIABLE here... add to BaseDataset which is copy-able
 
 };
 
@@ -490,6 +448,19 @@ private:
   DatasetFactory(){}
 
 };
+
+//LoadDatasetEx
+VISUS_DB_API SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config);
+
+inline SharedPtr<Dataset> LoadDataset(String url) {
+  return LoadDatasetEx(url, StringTree());
+}
+
+
+template <class T>
+inline SharedPtr<T> LoadDataset(String url) {
+  return std::dynamic_pointer_cast<T>(LoadDataset(url));
+}
 
 } //namespace Visus
 

@@ -590,6 +590,9 @@ public:
   //acquireWriteLock
   virtual void acquireWriteLock(SharedPtr<BlockQuery> query) override
   {
+    VisusAssert(isWriting());
+    if (bDisableWriteLocks) return;
+
     auto filename = getFilename(query->field, query->time, query->getBlockNumber(bitsperblock));
 
     if (++file_locks[filename] == 1)
@@ -604,6 +607,9 @@ public:
   //releaseWriteLock
   virtual void releaseWriteLock(SharedPtr<BlockQuery> query) override
   {
+    VisusAssert(isWriting());
+    if (bDisableWriteLocks) return;
+
     auto filename = getFilename(query->field, query->time, query->getBlockNumber(bitsperblock));
 
     if (--file_locks[filename] == 0)
@@ -884,7 +890,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
 
     //need to load it again since it can be different
     {
-      IdxFile local_idxfile=IdxFile::openFromUrl(url);
+      IdxFile local_idxfile=IdxFile::load(url);
       if (!local_idxfile.valid()) {
         String msg=StringUtils::format()<<"cannot use "<<url.toString()<<" as cache location. load failed";
         VisusWarning()<<msg;
@@ -1080,19 +1086,15 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
 ///////////////////////////////////////////////////////
 void IdxDiskAccess::acquireWriteLock(SharedPtr<BlockQuery> query)
 {
-  if (bDisableWriteLocks)
-    return;
-
   VisusAssert(isWriting());
+  if (bDisableWriteLocks) return;
   sync->acquireWriteLock(query);
 }
 
 ///////////////////////////////////////////////////////
 void IdxDiskAccess::releaseWriteLock(SharedPtr<BlockQuery> query)
 {
-  if (bDisableWriteLocks)
-    return;
-
+  if (bDisableWriteLocks) return;
   VisusAssert(isWriting());
   sync->releaseWriteLock(query);
 }

@@ -8,6 +8,8 @@
 #include <Visus/DatasetTimesteps.h>
 #include <Visus/DatasetFilter.h>
 #include <Visus/Dataset.h>
+#include <Visus/ModVisus.h>
+#include <Visus/VisusConfig.h>
 
 using namespace Visus;
 %}
@@ -19,7 +21,6 @@ using namespace Visus;
 %shared_ptr(Visus::Access)
 %shared_ptr(Visus::BlockQuery)
 %shared_ptr(Visus::Query)
-%shared_ptr(Visus::BaseDataset)
 %shared_ptr(Visus::Dataset)
 %shared_ptr(Visus::GoogleMapsDataset)
 
@@ -32,3 +33,4 @@ using namespace Visus;
 %include <Visus/DatasetTimesteps.h>
 %include <Visus/DatasetFilter.h>
 %include <Visus/Dataset.h>
+%include <Visus/ModVisus.h>

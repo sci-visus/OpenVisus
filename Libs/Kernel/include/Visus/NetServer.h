@@ -71,10 +71,15 @@ public:
   VISUS_NON_COPYABLE_CLASS(NetServer)
 
   //constructor
-  NetServer(int port, SharedPtr<NetServerModule> module, int nthreads = 8);
+  NetServer(int port, NetServerModule* VISUS_DISOWN(module), int nthreads = 8);
 
   //destructor
   virtual ~NetServer();
+
+  //setVerbose
+  void setVerbose(int value) {
+    this->verbose = value;
+  }
 
   //runInThisThread
   void runInThisThread();
@@ -91,7 +96,7 @@ protected:
   int                        port;
   int                        nthreads;
   int                        verbose;
-  SharedPtr<NetServerModule> module;
+  UniquePtr<NetServerModule> module;
   SharedPtr<std::thread>     thread;
   bool                       bExitThread = false;
 

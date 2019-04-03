@@ -95,9 +95,6 @@ private:
 
   struct {BigInt from = 0, to = 0;} block_range;
 
-  //bDisableWriteLocks (to speed up writing with only one writer)
-  bool bDisableWriteLocks =false;
-
   //bDisableIO (for debugging)
   bool bDisableIO = false;
 

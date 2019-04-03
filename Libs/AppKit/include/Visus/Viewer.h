@@ -125,6 +125,14 @@ public:
   };
 
   //_____________________________________________________________
+  class VISUS_APPKIT_API Defaults
+  {
+  public:
+    static String panels;
+    static bool   show_logos;
+  };
+
+  //_____________________________________________________________
   class VISUS_APPKIT_API Preferences
   {
   public:
@@ -132,22 +140,24 @@ public:
     VISUS_CLASS(Preferences)
 
     String       title = "VisusViewer-" + ApplicationInfo::git_revision;
-    String       preferred_panels = VisusConfig::readString("Configuration/VisusViewer/panels", "left center");
+    String       panels;
     bool         bHideTitleBar = false;
     bool         bHideMenus = false;
     bool         bRightHanded = true;
     Rectangle2d  screen_bounds;
-    bool         bRenderLogos = cbool(VisusConfig::readString("Configuration/VisusViewer/show_logos", "true"));
+    bool         show_logos=true;
 
     //constructor
     Preferences() {
+      this->panels = Defaults::panels;
+      this->show_logos = Defaults::show_logos;
     }
 
     //writeToObjectStream
     void writeToObjectStream(ObjectStream& ostream)
     {
       ostream.write("title", title);
-      ostream.write("preferred_panels", preferred_panels);
+      ostream.write("panels", panels);
       ostream.write("bHideTitleBar", cstring(bHideTitleBar));
       ostream.write("bHideMenus", cstring(bHideMenus));
       ostream.write("screen_bounds", screen_bounds.toString());
@@ -157,7 +167,7 @@ public:
     void readFromObjectStream(ObjectStream& istream)
     {
       title = istream.read("title");
-      preferred_panels = istream.read("preferred_panels");
+      panels = istream.read("panels");
       bHideTitleBar = cbool(istream.read("bHideTitleBar"));
       bHideMenus = cbool(istream.read("bHideMenus"));
       screen_bounds = Rectangle2d(istream.read("screen_bounds"));
@@ -192,6 +202,9 @@ public:
 
   //setFieldName
   void setFieldName(String value);
+
+  //setScriptingCode
+  void setScriptingCode(String value);
 
   //configureFromCommandLine
   void configureFromCommandLine(std::vector<String> args);
@@ -641,8 +654,6 @@ private:
     SharedPtr<GLTexture> tex;
   };
 
-  static SharedPtr<Logo> OpenScreenLogo(String key, String default_logo);
-
   //________________________________________________________
   class Icons
   {
@@ -812,6 +823,7 @@ private:
   Connections                           netsnd;
   Color                                 background_color;
   AutoRefresh                           auto_refresh;
+  ConfigFile                            config;
 
   struct
   {
@@ -820,6 +832,8 @@ private:
     std::ofstream                         fstream;
   }
   log;
+
+  SharedPtr<Logo> openScreenLogo(String key, String default_logo);
 
   //internalFlushMessages
   void internalFlushMessages();
@@ -834,12 +848,12 @@ private:
   void refreshActions();
 
   //createBookmarks
-  void createBookmarks(QMenu* dst,const StringTree* src);
+  void createBookmarks(QMenu* dst,const StringTree& src);
 
   //createBookmarks
   QMenu* createBookmarks() {
     auto ret=new QMenu(this);
-    createBookmarks(ret,&VisusConfig::storage);
+    createBookmarks(ret,this->config);
     setBlueMenu(ret);
     return ret;
   }

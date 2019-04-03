@@ -853,37 +853,42 @@ void IdxMultipleDataset::addChild(IdxMultipleDataset::Child value)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-String IdxMultipleDataset::getInputName(String dataset_name, String fieldname,bool bIsVarName)
+String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
 {
-
   std::ostringstream out;
   out << "input";
-#if VISUS_PYTHON
-  if (PythonEngine::isGoodVariableName(dataset_name))
-    out << "." << dataset_name;
-  else
-#endif
-    out << "['" << dataset_name << "']";
 
-  if (bIsVarName)
+  #if VISUS_PYTHON
+  if (PythonEngine::isGoodVariableName(dataset_name))
   {
-    out << "[" << fieldname << "]";
+    out << "." << dataset_name;
   }
-#if VISUS_PYTHON
-  else if (PythonEngine::isGoodVariableName(fieldname))
+  else
+  #endif
+  {
+    out << "['" << dataset_name << "']";
+  }
+
+
+  #if VISUS_PYTHON
+  if (PythonEngine::isGoodVariableName(fieldname))
   {
     out << "." << fieldname;
   }
-#endif
   else
+  #endif
   {
-    fieldname = StringUtils::replaceAll(fieldname, "\"", "\\\"");
-    fieldname = StringUtils::replaceAll(fieldname, "'", "\\'");
-
     if (StringUtils::contains(fieldname, "\n"))
-      fieldname = StringUtils::replaceAll("\n" + fieldname, "\n", "\\\n\t");
-
-    out << "['" << fieldname << "']";
+    {
+      const String triple = "\"\"\"";
+      out << "[" + triple + "\n" + fieldname + triple + "]";
+    }
+    else
+    {
+      //fieldname = StringUtils::replaceAll(fieldname, "\"", "\\\"");
+      fieldname = StringUtils::replaceAll(fieldname, "'", "\\'");
+      out << "['" << fieldname << "']";
+    }
   }
 
   return out.str();
@@ -893,29 +898,18 @@ String IdxMultipleDataset::getInputName(String dataset_name, String fieldname,bo
 Field IdxMultipleDataset::createField(String operation_name)
 {
   std::ostringstream out;
-  int D = 0;
 
-  //special case when all childs have the same default field
-  bool bIsVarName = true;
-  auto first_fieldname = childs.begin()->second.dataset->getDefaultField().name;
-  for (auto it : childs)
-    bIsVarName = bIsVarName && (first_fieldname ==it.second.dataset->getDefaultField().name);
-
-  if (bIsVarName)
-    out << "sub_field='"<< first_fieldname <<"'" << std::endl;
-
+  std::vector<String> args;
   for (auto it : childs)
   {
-    out << "f" << D << "=" <<getInputName(it.first, bIsVarName? "sub_field" : it.second.dataset->getDefaultField().name, bIsVarName)<< std::endl;
-    D++;
+    String arg = "f" + cstring((int)args.size());
+    args.push_back(arg);
+    out << arg << "=" <<getInputName(it.first, it.second.dataset->getDefaultField().name)<< std::endl;
   }
+  out << "output=" << operation_name << "([" << StringUtils::join(args,",") << "])" << std::endl;
 
-  out << "output=" << operation_name << "([";
-  for (int I = 0; I < D; I++)
-    out << "f" << I << (I == D - 1 ? "" : ",");
-  out << "])" << std::endl;
-
-  Field ret = getFieldByName(out.str());
+  String fieldname = out.str();
+  Field ret = getFieldByName(fieldname);
   ret.setDescription(operation_name);
   VisusAssert(ret.valid());
   return ret;
@@ -979,7 +973,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
   if (this->bMosaic && !childs.empty() && !child.mosaic_filename_template.empty())
   {
     auto first = childs.begin()->second.dataset;
-    auto other = first->cloneForMosaic();
+    auto other = std::dynamic_pointer_cast<IdxDataset>(first->clone());
     VisusReleaseAssert(first);
     VisusReleaseAssert(other);
 
@@ -996,7 +990,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
   }
   else
   {
-    child.dataset = IdxDataset::loadDataset(url);
+    child.dataset = std::dynamic_pointer_cast<IdxDataset>(LoadDatasetEx(url,this->config));
   }
 
   if (!child.dataset) {
@@ -1163,13 +1157,12 @@ void IdxMultipleDataset::computeDefaultFields()
 
   for (auto it : childs)
   {
-    std::vector<Field> temp = it.second.dataset->getFields();
-    for (int F = 0; F < (int)temp.size(); F++)
+    for (auto field : it.second.dataset->getFields())
     {
-      String description = it.first + "/" + temp[F].getDescription();
-      String inputname = getInputName(it.first, temp[F].name);
-      Field FIELD = getFieldByName("output=" + inputname + ";");
-      FIELD.setDescription(description);
+      auto arg = getInputName(it.first, field.name);
+      Field FIELD = getFieldByName("output=" + arg  + ";");
+      VisusAssert(FIELD.valid());
+      FIELD.setDescription(it.first + "/" + field.getDescription());
       addField(FIELD);
     }
   }
@@ -1245,7 +1238,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     IDXFILE.validate(this->url);
     VisusReleaseAssert(IDXFILE.valid());
 
-    VisusInfo() << "MIDX idxfile is the following" << std::endl << IDXFILE.toString();
+    //VisusInfo() << "MIDX idxfile is the following" << std::endl << IDXFILE.toString();
     setIdxFile(IDXFILE);
 
     return true;
@@ -1264,7 +1257,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   IDXFILE.validate(URL);
   VisusReleaseAssert(IDXFILE.valid());
 
-  VisusInfo() << "MIDX idxfile is the following" << std::endl << IDXFILE.toString();
+  //VisusInfo() << "MIDX idxfile is the following" << std::endl << IDXFILE.toString();
   setIdxFile(IDXFILE);
 
   //for non-mosaic I cannot use block query
