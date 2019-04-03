@@ -160,9 +160,7 @@ private:
 
   Position  bounds;
 
-#if VISUS_PYTHON
   SharedPtr<PythonEngine> engine;
-#endif
 
   //guessPresets
   void guessPresets(Array data);

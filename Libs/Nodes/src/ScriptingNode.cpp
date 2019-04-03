@@ -44,8 +44,6 @@ namespace Visus {
 
 
 /////////////////////////////////////////////////////////////////////////////////////
-#if VISUS_PYTHON
-
 class ScriptingNode::MyJob : public NodeJob
 {
 public:
@@ -177,14 +175,10 @@ public:
 
 };
 
-#endif //#if VISUS_PYTHON
-
 ///////////////////////////////////////////////////////////////////////
 ScriptingNode::ScriptingNode(String name)  : Node(name)
 {
-#if VISUS_PYTHON
   this->engine = std::make_shared<PythonEngine>(false);
-#endif
 
   addInputPort("data");
   addOutputPort("data");
@@ -213,23 +207,11 @@ bool ScriptingNode::processInput()
 
   this->bounds = input->bounds;
 
-#if VISUS_PYTHON
-
   auto process_job=std::make_shared<MyJob>(this, *input, return_receipt);
   if (!process_job->valid()) 
     return false;
   
   addNodeJob(process_job);
-#else
-
-  //pass throught
-  DataflowMessage msg;
-  if (return_receipt)
-    msg.setReturnReceipt(return_receipt);
-  msg.writeValue("data", input);
-  publish(msg);
-
-#endif
 
   return true;
 }
@@ -277,8 +259,6 @@ void ScriptingNode::guessPresets(Array input)
   clearPresets();
 
   addPreset("Identity", "output=input");
-
-#if VISUS_PYTHON
 
   int N = input.dtype.ncomponents();
   {
@@ -413,8 +393,6 @@ void ScriptingNode::guessPresets(Array input)
     "percent=50",
     "output=ArrayUtils.median(input,kernel,percent)"
   }));
-
-#endif //#if VISUS_PYTHON
 }
 
 ///////////////////////////////////////////////////////////////////////

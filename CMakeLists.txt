@@ -40,7 +40,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake)
 
 
 option(BUILD_SHARED_LIBS  "Build the shared library" ON)  
-option(VISUS_PYTHON       "Enable python"            ON) 
 option(VISUS_COMPRESSION  "Enable compression"       ON)  
 option(VISUS_NET          "Enable net"               ON) 
 option(VISUS_IMAGE        "Enable image"             ON)  
@@ -48,8 +47,7 @@ option(VISUS_GUI          "Enable gui"               ON)
 option(VISUS_OSPRAY       "Enable ospray"            OFF)
 option(VISUS_TEST         "Enable test"              ON)
 
-message(STATUS "BUILD_SHARED_LIBS  ${BUILD_SHARED_LIBS}") 
-message(STATUS "VISUS_PYTHON       ${VISUS_PYTHON}") 
+message(STATUS "BUILD_SHARED_LIBS  ${BUILD_SHARED_LIBS}")
 message(STATUS "VISUS_COMPRESSION  ${VISUS_COMPRESSION}") 
 message(STATUS "VISUS_NET          ${VISUS_NET}") 
 message(STATUS "VISUS_IMAGE        ${VISUS_IMAGE}") 
@@ -103,12 +101,11 @@ if (VISUS_TEST)
 	# testing
 	enable_testing()
 
-	if (VISUS_PYTHON)
-		AddCTest(VisusTestPyDataflow ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Dataflow.py)
-		AddCTest(VisusTestPyArray    ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Array.py)
-		AddCTest(VisusTestPyIdx      ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py)
-		AddCTest(VisusTestPyXIdx     ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py)
-	endif()
+	AddCTest(VisusTestPyDataflow ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Dataflow.py)
+	AddCTest(VisusTestPyArray    ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Array.py)
+	AddCTest(VisusTestPyIdx      ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py)
+	AddCTest(VisusTestPyXIdx     ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py)
+
 
 	# disabled: takes too much time, in case you modify some core IDX class you can run it manually
 	if (0)
@@ -157,11 +154,9 @@ if (1)
 	install(DIRECTORY    Libs/Idx/include/Visus                        DESTINATION include/Idx/)
 	install(DIRECTORY    Libs/Nodes/include/Visus                      DESTINATION include/Nodes)
 	
-	if (VISUS_PYTHON)
-		file(WRITE    "${CMAKE_BINARY_DIR}/PYTHON_VERSION" "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
-		install(FILES "${CMAKE_BINARY_DIR}/PYTHON_VERSION" DESTINATION .)
-	endif()
-
+	file(WRITE    "${CMAKE_BINARY_DIR}/PYTHON_VERSION" "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+	install(FILES "${CMAKE_BINARY_DIR}/PYTHON_VERSION" DESTINATION .)
+	
 	if (VISUS_GUI)
 		install(FILES "${CMAKE_BINARY_DIR}/QT_VERSION" DESTINATION .)
 	endif()

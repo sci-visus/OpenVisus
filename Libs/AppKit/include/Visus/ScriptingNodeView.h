@@ -92,10 +92,8 @@ public:
 
 private:
 
-#if VISUS_PYTHON
   PyObject* __stdout__ = nullptr;
   PyObject* __stderr__ = nullptr;
-#endif
 
   QTimer     output_timer;
 

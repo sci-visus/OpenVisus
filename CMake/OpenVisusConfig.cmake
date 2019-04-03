@@ -5,9 +5,6 @@ include(FindPackageHandleStandardArgs)
 	
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(OpenVisus DEFAULT_MSG OpenVisus_DIR)
 
-# todo: force when VISUS_PYTHON is not enabled
-SET(VISUS_PYTHON "1" CACHE INTERNAL "")
-
 # //////////////////////////////////////////////////////////////////////////////////
 macro(AddOpenVisusLibrary target_name)
 
@@ -76,10 +73,7 @@ if(OpenVisus_FOUND)
 	set_target_properties(OpenVisus::Idx       PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Db") 
 	set_target_properties(OpenVisus::Nodes     PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Idx") 
 	
-	if (VISUS_PYTHON)
-		set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_COMPILE_DEFINITIONS VISUS_PYTHON=1)
-	endif()
-	
+
 	if (EXISTS "${OpenVisus_DIR}/include/Gui")
 	
 		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL  REQUIRED)

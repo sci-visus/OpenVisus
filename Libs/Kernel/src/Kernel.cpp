@@ -125,10 +125,8 @@ void DestroyAutoReleasePool();
 #endif
 
 
-#if VISUS_PYTHON
 void InitPython();
 void ShutdownPython();
-#endif
 
 ConfigFile* VisusModule::getModuleConfig() {
   return Private::VisusConfig::getSingleton();
@@ -370,10 +368,7 @@ void KernelModule::attach()
       break;
   }
 
-
-#if VISUS_PYTHON
   InitPython();
-#endif
 
   VisusInfo() << "git_revision            " << ApplicationInfo::git_revision;
   VisusInfo() << "VisusHome               " << KnownPaths::VisusHome.toString();
@@ -386,13 +381,11 @@ void KernelModule::attach()
   UUIDGenerator::allocSingleton();
 
   //this is to make sure PythonEngine works
-#if VISUS_PYTHON
   if (auto engine = std::make_shared<PythonEngine>(true) )
   {
     ScopedAcquireGil acquire_gil;
     engine->execCode("print('PythonEngine is working fine')");
   }
-#endif
 
   //in case the user whant to simulate I have a certain amount of RAM
   if (Int64 total = StringUtils::getByteSizeFromString(config->readString("Configuration/RamResource/total", "0")))
@@ -424,9 +417,7 @@ void KernelModule::detach()
   RamResource::releaseSingleton();
   UUIDGenerator::releaseSingleton();
 
-#if VISUS_PYTHON
   ShutdownPython();
-#endif
 
   NetService::detach();
 

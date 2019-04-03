@@ -212,103 +212,74 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(FindPythonLibrary)
 
-	if (VISUS_PYTHON)
+	SetIfNotDefined(PYTHON_VERSION 3)
 
-		SetIfNotDefined(PYTHON_VERSION 3)
+	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
+	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)	
 
-		find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
-		find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)	
-
-		message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
-		message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
-		message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
+	message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
+	message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
+	message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
 		
-		add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
-		set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
+	add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
+	set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
 		
-		if (WIN32)
-			list(LENGTH PYTHON_LIBRARY __n__)
-			if (${__n__} EQUAL 1)
-				set(PYTHON_DEBUG_LIBRARY     ${PYTHON_LIBRARY})
-				set(PYTHON_RELEASE_LIBRARY   ${PYTHON_LIBRARY})
-			else()
-			   # differentiate debug from release
-			   # example debug;aaaa;optimized;bbb
-
-			   list(FIND PYTHON_LIBRARY optimized __index__)
-		    	if (${__index__} EQUAL -1)
-		    		MESSAGE(ERROR "Problem with find python")
-		    	endif()
-		    	math(EXPR __next_index__ "${__index__}+1")
-		    	list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
-
-			   list(FIND PYTHON_LIBRARY debug __index__)
-			   if (${__index__} EQUAL -1)
-		    		MESSAGE(ERROR "Problem with find python")
-			   endif()
-			   math(EXPR __next_index__ "${__index__}+1")
-			   list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_DEBUG_LIBRARY)
-		  	endif()
-		  	
-		  	if (SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-		  		set(PYTHON_DEBUG_LIBRARY ${PYTHON_RELEASE_LIBRARY})
-		  	endif()
-
-		  	 set_target_properties(OpenVisus::Python PROPERTIES
-		  		IMPORTED_IMPLIB_DEBUG           ${PYTHON_DEBUG_LIBRARY}
-		  		IMPORTED_IMPLIB_RELEASE         ${PYTHON_RELEASE_LIBRARY}
-		  		IMPORTED_IMPLIB_RELWITHDEBINFO  ${PYTHON_RELEASE_LIBRARY})
+	if (WIN32)
+		list(LENGTH PYTHON_LIBRARY __n__)
+		if (${__n__} EQUAL 1)
+			set(PYTHON_DEBUG_LIBRARY     ${PYTHON_LIBRARY})
+			set(PYTHON_RELEASE_LIBRARY   ${PYTHON_LIBRARY})
 		else()
-			set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
-		endif()
-		
-		EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE}  -c  "import site;print(site.getsitepackages()[-1])"  OUTPUT_VARIABLE PYTHON_SITE_PACKAGES_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
-		message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
-	else()
-	
-		ForceUnset(PYTHONINTERP_FOUND)
-		ForceUnset(PYTHONLIBS_FOUND)
-		ForceUnset(PYTHON_EXECUTABLE)
-		ForceUnset(PYTHON_LIBRARY)
-		ForceUnset(PYTHON_DEBUG_LIBRARY)
-		ForceUnset(PYTHON_RELEASE_LIBRARY)
-		ForceUnset(PYTHON_INCLUDE_DIR)
-		ForceUnset(PYTHON_SITE_PACKAGES_DIR)
-		
-		ForceUnset(PYTHON_VERSION_STRING)
-		ForceUnset(PYTHON_VERSION_MAJOR)
-		ForceUnset(PYTHON_VERSION_MINOR)
-		ForceUnset(PYTHON_VERSION_PATCH)
-		
-		ForceUnset(PYTHON_LIBRARIES)
-		ForceUnset(PYTHON_INCLUDE_PATH)
-		ForceUnset(PYTHON_INCLUDE_DIRS)
-		ForceUnset(PYTHON_DEBUG_LIBRARIES)
-		ForceUnset(PYTHONLIBS_VERSION_STRING)
-	
-	endif()
+			# differentiate debug from release
+			# example debug;aaaa;optimized;bbb
 
+			list(FIND PYTHON_LIBRARY optimized __index__)
+		    if (${__index__} EQUAL -1)
+		    	MESSAGE(ERROR "Problem with find python")
+		    endif()
+		    math(EXPR __next_index__ "${__index__}+1")
+		    list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
+
+			list(FIND PYTHON_LIBRARY debug __index__)
+			if (${__index__} EQUAL -1)
+		    	MESSAGE(ERROR "Problem with find python")
+			endif()
+			math(EXPR __next_index__ "${__index__}+1")
+			list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_DEBUG_LIBRARY)
+		endif()
+		  	
+		if (SWIG_PYTHON_INTERPRETER_NO_DEBUG)
+		  	set(PYTHON_DEBUG_LIBRARY ${PYTHON_RELEASE_LIBRARY})
+		endif()
+
+		  	set_target_properties(OpenVisus::Python PROPERTIES
+		  	IMPORTED_IMPLIB_DEBUG           ${PYTHON_DEBUG_LIBRARY}
+		  	IMPORTED_IMPLIB_RELEASE         ${PYTHON_RELEASE_LIBRARY}
+		  	IMPORTED_IMPLIB_RELWITHDEBINFO  ${PYTHON_RELEASE_LIBRARY})
+	else()
+		set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
+	endif()
+		
+	EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE}  -c  "import site;print(site.getsitepackages()[-1])"  OUTPUT_VARIABLE PYTHON_SITE_PACKAGES_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+	message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
+	
 endmacro()
 
 # ///////////////////////////////////////////////////
 macro(LinkPythonToLibrary Name)
 
-	if (VISUS_PYTHON)
-
-		if (WIN32)
-			target_link_libraries(${Name} PUBLIC OpenVisus::Python)
+	if (WIN32)
+		target_link_libraries(${Name} PUBLIC OpenVisus::Python)
+	else()
+		# for apple and linux I'm linking python only for Executables (or final shared dll such as  mod_visus) 
+		# otherwise I'm going to have multiple libpython in the same process
+		# with the error message: PyThreadState_Get: no current thread
+		target_include_directories(${Name} PUBLIC ${PYTHON_INCLUDE_DIRS})
+		if (APPLE)
+			set_target_properties(${Name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
 		else()
-			# for apple and linux I'm linking python only for Executables (or final shared dll such as  mod_visus) 
-			# otherwise I'm going to have multiple libpython in the same process
-			# with the error message: PyThreadState_Get: no current thread
-			target_include_directories(${Name} PUBLIC ${PYTHON_INCLUDE_DIRS})
-			if (APPLE)
-				set_target_properties(${Name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup") 	
-			else()
-				set_target_properties(${Name} PROPERTIES LINK_FLAGS "-Wl,--unresolved-symbols=ignore-all")
-			endif()
+			set_target_properties(${Name} PROPERTIES LINK_FLAGS "-Wl,--unresolved-symbols=ignore-all")
 		endif()
-		
 	endif()
 	
 endmacro()
@@ -316,21 +287,18 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(LinkPythonToExecutable Name)
 
-	if (VISUS_PYTHON)
-
-		if (WIN32)
-			# already linked
-			elseif (APPLE)
-			target_link_libraries(${Name} PUBLIC OpenVisus::Python)
-		else()
-			# for nix is trickier since the linking order is important
-			# the "-Wl,--start-group" does not always work (for example in travis)
-			# see http://cmake.3232098.n2.nabble.com/Link-order-Ubuntu-tt7598592.html
-			# i found this trick: VisusKernel should appear always before python 
-			target_link_libraries(${Name} PUBLIC $<TARGET_FILE:VisusKernel> OpenVisus::Python)
-		endif()
-		
+	if (WIN32)
+		# already linked
+		elseif (APPLE)
+		target_link_libraries(${Name} PUBLIC OpenVisus::Python)
+	else()
+		# for nix is trickier since the linking order is important
+		# the "-Wl,--start-group" does not always work (for example in travis)
+		# see http://cmake.3232098.n2.nabble.com/Link-order-Ubuntu-tt7598592.html
+		# i found this trick: VisusKernel should appear always before python 
+		target_link_libraries(${Name} PUBLIC $<TARGET_FILE:VisusKernel> OpenVisus::Python)
 	endif()
+		
 endmacro()
 
 # ///////////////////////////////////////////////////
@@ -386,80 +354,77 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 
-	if (VISUS_PYTHON)
+	find_package(SWIG 3.0 REQUIRED)
+	include(${SWIG_USE_FILE})
+	set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
+	set(CMAKE_SWIG_FLAGS "")
+
+	set(SWIG_FLAGS "${ARGN}")
+	set(SWIG_FLAGS "${SWIG_FLAGS};-threads")
+	set(SWIG_FLAGS "${SWIG_FLAGS};-extranative")
+
+	#prevents rebuild every time make is called
+	set_property(SOURCE ${SwigFile} PROPERTY SWIG_MODULE_NAME ${NamePy})
+
+	set_source_files_properties(${SwigFile} PROPERTIES CPLUSPLUS ON)
+	set_source_files_properties(${SwigFile} PROPERTIES SWIG_FLAGS  "${SWIG_FLAGS}")
+
+	if (CMAKE_VERSION VERSION_LESS "3.8")
+		swig_add_module(${NamePy} python ${SwigFile})
+	else()
+		swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
+	endif()
 		
-		find_package(SWIG 3.0 REQUIRED)
-		include(${SWIG_USE_FILE})
-		set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
-		set(CMAKE_SWIG_FLAGS "")
+	# important to share types between modules
+	set_source_files_properties (${swig_generated_file_fullname} PROPERTIES COMPILE_FLAGS "-DSWIG_TYPE_TABLE=OpenVisus")	
+		
+	if (TARGET _${NamePy})
+		set(RealName _${NamePy})
+	else()
+		set(RealName ${NamePy})
+	endif()
 
-		set(SWIG_FLAGS "${ARGN}")
-		set(SWIG_FLAGS "${SWIG_FLAGS};-threads")
-		set(SWIG_FLAGS "${SWIG_FLAGS};-extranative")
+	SetupCommonCompileOptions(${RealName})
+	set_target_properties(${RealName} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
 
-		#prevents rebuild every time make is called
-		set_property(SOURCE ${SwigFile} PROPERTY SWIG_MODULE_NAME ${NamePy})
-
-		set_source_files_properties(${SwigFile} PROPERTIES CPLUSPLUS ON)
-		set_source_files_properties(${SwigFile} PROPERTIES SWIG_FLAGS  "${SWIG_FLAGS}")
-
-		if (CMAKE_VERSION VERSION_LESS "3.8")
-			swig_add_module(${NamePy} python ${SwigFile})
-		else()
-			swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
+	# disable warnings
+	if (WIN32)
+		target_compile_definitions(${RealName}  PRIVATE /W0)
+		if (SWIG_PYTHON_INTERPRETER_NO_DEBUG)
+			target_compile_definitions(${RealName} PUBLIC -DSWIG_PYTHON_INTERPRETER_NO_DEBUG=1) 
 		endif()
+	else()
+		set_target_properties(${RealName} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
+	endif()
+
+	LinkPythonToLibrary(${RealName})
+	target_link_libraries(${RealName} PUBLIC ${WrappedLib})
+
+	if (WIN32)
 		
-		# important to share types between modules
-		set_source_files_properties (${swig_generated_file_fullname} PROPERTIES COMPILE_FLAGS "-DSWIG_TYPE_TABLE=OpenVisus")	
-		
-		if (TARGET _${NamePy})
-		  set(RealName _${NamePy})
+		if (SWIG_PYTHON_INTERPRETER_NO_DEBUG)
+			set_target_properties(${RealName}
+				PROPERTIES
+				COMPILE_PDB_NAME_DEBUG          ${RealName}
+				COMPILE_PDB_NAME_RELEASE        ${RealName}
+				COMPILE_PDB_NAME_MINSIZEREL     ${RealName}
+				COMPILE_PDB_NAME_RELWITHDEBINFO ${RealName})
+			set_target_properties(${RealName} PROPERTIES DEBUG_POSTFIX  "")
 		else()
-		  set(RealName ${NamePy})
+			set_target_properties(${RealName}
+				PROPERTIES
+				COMPILE_PDB_NAME_DEBUG          ${RealName}_d
+				COMPILE_PDB_NAME_RELEASE        ${RealName}
+				COMPILE_PDB_NAME_MINSIZEREL     ${RealName}
+				COMPILE_PDB_NAME_RELWITHDEBINFO ${RealName})
+			set_target_properties(${RealName} PROPERTIES DEBUG_POSTFIX  "_d")
 		endif()
-
-		SetupCommonCompileOptions(${RealName})
-		set_target_properties(${RealName} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
-
-		# disable warnings
-		if (WIN32)
-			target_compile_definitions(${RealName}  PRIVATE /W0)
-			if (SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-				target_compile_definitions(${RealName} PUBLIC -DSWIG_PYTHON_INTERPRETER_NO_DEBUG=1) 
-			endif()
-		else()
-			set_target_properties(${RealName} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
-		endif()
-
-		LinkPythonToLibrary(${RealName})
-		target_link_libraries(${RealName} PUBLIC ${WrappedLib})
-
-		if (WIN32)
-		
-			if (SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-				set_target_properties(${RealName}
-					PROPERTIES
-					COMPILE_PDB_NAME_DEBUG          ${RealName}
-					COMPILE_PDB_NAME_RELEASE        ${RealName}
-					COMPILE_PDB_NAME_MINSIZEREL     ${RealName}
-					COMPILE_PDB_NAME_RELWITHDEBINFO ${RealName})
-				set_target_properties(${RealName} PROPERTIES DEBUG_POSTFIX  "")
-			else()
-				set_target_properties(${RealName}
-					PROPERTIES
-					COMPILE_PDB_NAME_DEBUG          ${RealName}_d
-					COMPILE_PDB_NAME_RELEASE        ${RealName}
-					COMPILE_PDB_NAME_MINSIZEREL     ${RealName}
-					COMPILE_PDB_NAME_RELWITHDEBINFO ${RealName})
-				set_target_properties(${RealName} PROPERTIES DEBUG_POSTFIX  "_d")
-			endif()
 			
 		
 
-		endif()	
+	endif()	
 
-		InstallLibrary(${RealName})
-	endif()
+	InstallLibrary(${RealName})
 	
 endmacro()
 
@@ -649,18 +614,12 @@ endmacro()
 # //////////////////////////////////////////////////////////////////////////
 macro(InstallPostInstallStep)
 
-	if (VISUS_PYTHON)
-		install(CODE "
-			execute_process( 
-				 COMMAND \"${PYTHON_EXECUTABLE}\" -u \"${CMAKE_INSTALL_PREFIX}/configure.py\"
-				 	--qt5-dir=\"${Qt5_DIR}\"
-					cmake_post_install)
-		")
-	else()
+	install(CODE "
+		execute_process( 
+				COMMAND \"${PYTHON_EXECUTABLE}\" -u \"${CMAKE_INSTALL_PREFIX}/configure.py\"
+				--qt5-dir=\"${Qt5_DIR}\"
+				cmake_post_install)
+	")
 	
-		# TODO: copy Qt
-		MESSAGE(STATUS "TODO: post install step not working with python disabled")
-	
-	endif()
 endmacro()
 
