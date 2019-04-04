@@ -71,11 +71,6 @@ set PYTHON_EXECUTABLE=c:\Python37\python.exe
 %PYTHON_EXECUTABLE% -m pip uninstall OpenVisus
 %PYTHON_EXECUTABLE% -m pip install --user numpy OpenVisus
 
-
-REM *** Type this command: %PYTHON_EXECUTABLE%  -m OpenVisus dirname ***
-REM *** and replace the following path with the one you just got     ***
-cd "C:\Users\%USERNAME%\AppData\Roaming\..."
-
 REM *** execute the following step to finilize the installation                                                                   ***
 REM *** add --use-pyqt if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components) ***
 %PYTHON_EXECUTABLE% -m OpenVisus configure
@@ -104,8 +99,6 @@ Then on Linux/osx:
 python -m pip install pip --upgrade
 python -m pip uninstall -y OpenVisus
 python -m pip install --user numpy OpenVisus
-cd $(python -m OpenVisus dirname)
-
 
 # finilize installation
 # add "--use-pyqt" to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
@@ -146,8 +139,6 @@ set PYTHONPATH=%cd%;%PYTHONPATH%
 in Osx/Linux:
 
 ```
-cd /your/OpenVisus/directory
-
 # add --use-pyqt if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
 python -m OpenVisus configure
 

@@ -1,24 +1,34 @@
 import os
 import sys
+import platform
+import glob
+
+WIN32=platform.system()=="Windows" or platform.system()=="win32"
+APPLE=platform.system()=="Darwin"
+
+from Deploy import DeployUtils
 
 if __name__ == '__main__':
 	
+	__this_dir__=os.path.dirname(os.path.abspath(__file__))
+	
 	# ___________________________________________________________________
 	if sys.argv[1]=="dirname":
-		print(OpenVisusDir)
+		print(__this_dir__)
 		sys.exit(0)	
 
 	# ___________________________________________________________________
 	if sys.argv[1]=="configure":
 		
-		os.chdir(OpenVisusDir)
+		os.chdir(__this_dir__)
 	
-		print("Executing --openvisus-configure",sys.argv)
+		print("Executing configure",sys.argv)
 		
 		VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
 		if VISUS_GUI:
 			bUsePyQt=not os.path.isdir(os.path.join("bin","Qt","plugins")) or "--use-pyqt" in sys.argv
 			if bUsePyQt:
+				print("Forcing the use of pyqt")
 				QT_VERSION = DeployUtils.ReadTextFile("QT_VERSION")
 				DeployUtils.InstallPyQt5(QT_VERSION)
 				
@@ -46,15 +56,15 @@ if __name__ == '__main__':
 			if WIN32:
 				filenames=glob.glob('bin/*.exe')
 			elif APPLE:	
-				filenames=glob.glob('bin/*.app')
+				filenames=["{}/Contents/MacOS/{}".format(app,DeployUtils.GetFilenameWithoutExtension(app))for app in glob.glob('bin/*.app')]
+				
 			else:
-				filenames=[exe for exe in glob.glob('bin/*') if os.path.isfile(exe) and os.access(exe, os.X_OK) and not os.path.splitext(exe)[1] ]:
+				filenames=[filename for filename in glob.glob('bin/*') if os.path.isfile(filename) and os.access(filename, os.X_OK) and not os.path.splitext(filename)[1] ]
 					
 			for filename in filenames:
-				name=os.path.splitext(os.path.basename(filename))[0]
-				DeployUtils.CreateScript(name,env)
+				DeployUtils.CreateScript(filename,env)
 
-		print("finished --openvisus-configure")
+		print("finished configure")
 		sys.exit(0)
 		
 

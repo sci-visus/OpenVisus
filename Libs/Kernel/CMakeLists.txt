@@ -330,9 +330,8 @@ IF (WIN32 OR APPLE)
 	file(GLOB MM_FILES src/*.mm)
 endif()
 
-
-file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../OpenVisus/*.py)
-source_group("Py" FILES ${PyFiles})
+file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/src/*.py)
+source_group("PyFiles" FILES ${PyFiles})
 
 file(GLOB Sources 
 	${CMAKE_CURRENT_SOURCE_DIR}/../../CMakeLists.txt

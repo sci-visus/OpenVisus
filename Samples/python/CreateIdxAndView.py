@@ -3,6 +3,11 @@ import sys
 import cv2
 from OpenVisus import *
 
+if VISUS_GUI:
+	from VisusGuiPy      import *
+	from VisusGuiNodesPy import *
+	from VisusAppKitPy   import *
+
 def ASSERT(cond):
 	if not cond: raise Exception("Assert failed")	
 
