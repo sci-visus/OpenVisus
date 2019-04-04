@@ -44,9 +44,9 @@ class DeployUtils:
 			if not os.path.isdir(value):
 				raise
 		
-	# GetFileNameWithoutExtension
+	# GetFilenameWithoutExtension
 	@staticmethod
-	def GetFileNameWithoutExtension(filename):
+	def GetFilenameWithoutExtension(filename):
 		return os.path.splitext(os.path.basename(filename))[0]
 
 	# CopyFile
@@ -237,15 +237,17 @@ class DeployUtils:
 			for key in env: 
 				lines+=[setEnv(key,env[key])]
 				
-			lines+=["${this_dir}/{} $@".format(filename) ]
+			lines+=["${this_dir}/%s $@" % (filename,) ]
 		
 		ext="bat" if WIN32 else ("command" if APPLE else "sh")
-		script_filename="%s.%s" % (DeployUtils.GetFileNameWithoutExtension(filename),ext)
+		script_filename="%s.%s" % (DeployUtils.GetFilenameWithoutExtension(filename),ext)
 		print("Creating script",script_filename,"target",filename)
 		DeployUtils.WriteTextFile(script_filename,lines)
 			
 		if not WIN32:
 			subprocess.call(["chmod","+rx",script_filename], shell=False)	
+			subprocess.call(["chmod","+rx",filename       ], shell=False)	
+			
 
 	# PythonDist
 	@staticmethod
@@ -315,7 +317,7 @@ class AppleDeploy:
 	def findApps(self):
 		ret=[]
 		for it in glob.glob("bin/*.app"):
-			bin="%s/Contents/MacOS/%s" % (it,DeployUtils.GetFileNameWithoutExtension(it))
+			bin="%s/Contents/MacOS/%s" % (it,DeployUtils.GetFilenameWithoutExtension(it))
 			if os.path.isfile(bin):
 				ret+=[bin]
 		return ret
@@ -324,7 +326,7 @@ class AppleDeploy:
 	def findFrameworks(self):
 		ret=[]
 		for it in glob.glob("bin/*.framework"):
-			file="%s/Versions/Current/%s" % (it,DeployUtils.GetFileNameWithoutExtension(it))  
+			file="%s/Versions/Current/%s" % (it,DeployUtils.GetFilenameWithoutExtension(it))  
 			if os.path.isfile(os.path.realpath(file)):
 				ret+=[file]
 		return ret
@@ -432,105 +434,98 @@ class AppleDeploy:
 					# example: /bla/bla/ QtOpenGL.framework/Versions/5/QtOpenGL -> QtOpenGL.framework/Versions/5/QtOpenGL
 					return os.path.basename(filename.split(".framework")[0]+".framework") + filename.split(".framework")[1]   
 				else:
-					return os.path.basename(filename)				
+					return os.path.basename(filename)
 			
-			cmd=['install_name_tool','-id','@rpath/' + getBaseName(filename)]
-			
+			DeployUtils.ExecuteCommand(["chmod","u+w",filename])
+			DeployUtils.ExecuteCommand(['install_name_tool','-id','@rpath/' + getBaseName(filename),filename])
+
+			# example QtOpenGL.framework/Versions/5/QtOpenGL
 			for dep in deps:
 				local=self.getLocal(dep)
-				
-				# example QtOpenGL.framework/Versions/5/QtOpenGL
 				if local: 
-					cmd+=["-change",dep,"@rpath/"+ getBaseName(local)]
+					DeployUtils.ExecuteCommand(['install_name_tool','-change',dep,"@rpath/"+ getBaseName(local),filename])
 
-			cmd+=['-add_rpath','@loader_path']	
+			DeployUtils.ExecuteCommand(['install_name_tool','-add_rpath','@loader_path',filename])
 			
 			# how to go from a executable in ./bin/** to ./bin
 			A=os.path.realpath("./bin")
 			B=os.path.dirname(os.path.realpath(filename))
 			if A!=B: 
 				N=len(B.split("/"))-len(A.split("/"))	
-				cmd+=['-add_rpath','@loader_path' +  "/.." * N]
-			cmd+=[filename]
-				
-			DeployUtils.ExecuteCommand(["chmod","u+w",filename])
-			DeployUtils.ExecuteCommand(cmd)				
-			
-		self.changeAllDeps()
-			
+				DeployUtils.ExecuteCommand(['install_name_tool','-add_rpath','@loader_path' +  "/.." * N,filename])
+
 	# addRPath
-	def addRPath(self,rpath):
+	def addRPath(self,value):
 		for filename in self.findAllBinaries():
-			DeployUtils.ExecuteCommand(["install_name_tool","-add_rpath",rpath,filename])
+			DeployUtils.ExecuteCommand(["install_name_tool","-add_rpath",value,filename])
 		
 # ///////////////////////////////////////
 class LinuxDeploy:
 
 	"""
 	If a shared object dependency does not contain a slash, then it is
-       searched for in the following order:
-
-	 -  Using the directories specified in the DT_RPATH dynamic section
-	    attribute of the binary if present and DT_RUNPATH attribute does
-	    not exist.  Use of DT_RPATH is deprecated.
-
-	 -  Using the environment variable LD_LIBRARY_PATH, unless the
-	    executable is being run in secure-execution mode (see below), in
-	    which case this variable is ignored.
-
-	 -  Using the directories specified in the DT_RUNPATH dynamic section
-	    attribute of the binary if present.  Such directories are searched
-	    only to find those objects required by DT_NEEDED (direct
-	    dependencies) entries and do not apply to those objects' children,
-	    which must themselves have their own DT_RUNPATH entries.  This is
-	    unlike DT_RPATH, which is applied to searches for all children in
-	    the dependency tree.
-
-	 -  From the cache file /etc/ld.so.cache, which contains a compiled
-	    list of candidate shared objects previously found in the augmented
-	    library path.  If, however, the binary was linked with the -z
-	    nodeflib linker option, shared objects in the default paths are
-	    skipped.  Shared objects installed in hardware capability
-	    directories (see below) are preferred to other shared objects.
-
-	 -  In the default path /lib, and then /usr/lib.  (On some 64-bit
-	    architectures, the default paths for 64-bit shared objects are
-	    /lib64, and then /usr/lib64.)  If the binary was linked with the
-	    -z nodeflib linker option, this step is skipped.
-
-   Rpath token expansionon
-   
-       The dynamic linker understands certain token strings in an rpath
-       specification (DT_RPATH or DT_RUNPATH).  Those strings are
-       substituted as follows:
-
-       $ORIGIN (or equivalently ${ORIGIN})
-              This expands to the directory containing the program or shared
-              object.  Thus, an application located in somedir/app could be
-              compiled with
-
-                  gcc -Wl,-rpath,'$ORIGIN/../lib'
-
-              so that it finds an associated shared object in somedir/lib no
-              matter where somedir is located in the directory hierarchy.
-              This facilitates the creation of "turn-key" applications that
-              do not need to be installed into special directories, but can
-              instead be unpacked into any directory and still find their
-              own shared objects.
-
-       $LIB (or equivalently ${LIB})
-              This expands to lib or lib64 depending on the architecture
-              (e.g., on x86-64, it expands to lib64 and on x86-32, it
-              expands to lib).
-
-       $PLATFORM (or equivalently ${PLATFORM})
-              This expands to a string corresponding to the processor type
-              of the host system (e.g., "x86_64").  On some architectures,
-              the Linux kernel doesn't provide a platform string to the
-              dynamic linker.  The value of this string is taken from the
-              AT_PLATFORM value in the auxiliary vector (see getauxval(3)).	
+	searched for in the following order:
 	
+		-  Using the directories specified in the DT_RPATH dynamic section
+		attribute of the binary if present and DT_RUNPATH attribute does
+		not exist.  Use of DT_RPATH is deprecated.
+		
+		-  Using the environment variable LD_LIBRARY_PATH, unless the
+		executable is being run in secure-execution mode (see below), in
+		which case this variable is ignored.
+		
+		-  Using the directories specified in the DT_RUNPATH dynamic section
+		attribute of the binary if present.  Such directories are searched
+		only to find those objects required by DT_NEEDED (direct
+		dependencies) entries and do not apply to those objects' children,
+		which must themselves have their own DT_RUNPATH entries.  This is
+		unlike DT_RPATH, which is applied to searches for all children in
+		the dependency tree.
+		
+		-  From the cache file /etc/ld.so.cache, which contains a compiled
+		list of candidate shared objects previously found in the augmented
+		library path.  If, however, the binary was linked with the -z
+		nodeflib linker option, shared objects in the default paths are
+		skipped.  Shared objects installed in hardware capability
+		directories (see below) are preferred to other shared objects.
+		
+		-  In the default path /lib, and then /usr/lib.  (On some 64-bit
+		architectures, the default paths for 64-bit shared objects are
+		/lib64, and then /usr/lib64.)  If the binary was linked with the
+		-z nodeflib linker option, this step is skipped.
 	
+	Rpath token expansion:
+
+		The dynamic linker understands certain token strings in an rpath
+		specification (DT_RPATH or DT_RUNPATH).  Those strings are
+		substituted as follows:
+	
+		$ORIGIN (or equivalently ${ORIGIN})
+		This expands to the directory containing the program or shared
+		object.  Thus, an application located in somedir/app could be
+		compiled with
+		
+			gcc -Wl,-rpath,'$ORIGIN/../lib'
+		
+			so that it finds an associated shared object in somedir/lib no
+			matter where somedir is located in the directory hierarchy.
+			This facilitates the creation of "turn-key" applications that
+			do not need to be installed into special directories, but can
+			instead be unpacked into any directory and still find their
+			own shared objects.
+		
+		$LIB (or equivalently ${LIB})
+		This expands to lib or lib64 depending on the architecture
+		(e.g., on x86-64, it expands to lib64 and on x86-32, it
+		expands to lib).
+		
+		$PLATFORM (or equivalently ${PLATFORM})
+		This expands to a string corresponding to the processor type
+		of the host system (e.g., "x86_64").  On some architectures,
+		the Linux kernel doesn't provide a platform string to the
+		dynamic linker.  The value of this string is taken from the
+		AT_PLATFORM value in the auxiliary vector (see getauxval(3)).	
+
 	To debug
 	
 		LD_DEBUG=libs,files ldd bin/visusviewer

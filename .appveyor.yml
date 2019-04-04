@@ -54,12 +54,12 @@ build_script:
   - cmd: echo password = %PYPI_PASSWORD%                 >> %USERPROFILE%\\.pypirc
   - cmd: set HOME=%USERPROFILE%
   - cmd: if "%APPVEYOR_REPO_TAG%" == "true" ( %PYTHON_EXECUTABLE% -m pip install --user --upgrade twine )
-  - cmd: if "%APPVEYOR_REPO_TAG%" == "true" ( %PYTHON_EXECUTABLE% -m twine upload --skip-existing "%APPVEYOR_BUILD_FOLDER%/build/install/dist/*.whl" ) 
+  - cmd: if "%APPVEYOR_REPO_TAG%" == "true" ( %PYTHON_EXECUTABLE% -m twine upload --skip-existing "%APPVEYOR_BUILD_FOLDER%/build/install/OpenVisus/dist/*.whl" ) 
 
 test: off
 
 artifacts:
-    - path: build\install\dist\*.zip
+    - path: build\install\OpenVisus\dist\*.zip
       name: GitHubReleasesArtifact
  
 deploy:

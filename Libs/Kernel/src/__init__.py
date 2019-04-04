@@ -22,5 +22,5 @@ if False and VISUS_GUI:
 	from VisusGuiNodesPy import *
 	from VisusAppKitPy   import *
 	
-print("OpenVisus imported","VISUS_GUI",VISUS_GUI)
+# print("OpenVisus imported","VISUS_GUI",VISUS_GUI)
 

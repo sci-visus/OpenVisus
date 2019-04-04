@@ -448,7 +448,7 @@ function BuildOpenVisus {
     cmake --build . --target dist
   fi
 
-  WHEEL_FILENAME=$(find ${BUILD_DIR}/install/dist -iname "*.whl")
+  WHEEL_FILENAME=$(find ${BUILD_DIR}/install/OpenVisus/dist -iname "*.whl")
   python -m pip install --ignore-installed "${WHEEL_FILENAME}"
 }
 

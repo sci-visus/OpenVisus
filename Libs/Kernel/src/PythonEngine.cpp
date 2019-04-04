@@ -325,7 +325,7 @@ PythonEngine::PythonEngine(bool bVerbose)
       //example: C:\projects\OpenVisus\build\RelWithDebInfo\OpenVisus\bin\visus.exe
       auto bin_dir = current_application_dir;
 
-#elif APPLE
+#elif __APPLE__
       //example: /Users/scrgiorgio/Desktop/OpenVisus/build/RelWithDebInfo/OpenVisus/bin/visus.app/Contents/MacOS/<name>
       auto bin_dir = current_application_dir + "/../../..";
 
@@ -348,6 +348,8 @@ PythonEngine::PythonEngine(bool bVerbose)
 	if (bVerbose)
     VisusInfo() << "Trying to import OpenVisus...";
 
+  //execCode("import sys;print(sys.path)");
+  
   //execCode("from .OpenVisus import *");
   execCode("from OpenVisus import *");
 
