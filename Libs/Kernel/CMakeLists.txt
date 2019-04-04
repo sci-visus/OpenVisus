@@ -446,7 +446,11 @@ endif()
 # copy py files to build
 foreach(__src__ ${PyFiles})
 	get_filename_component(__basename__ ${__src__} NAME)
-	set(__dst__ "${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/${__basename__}")
+	if (CMAKE_CONFIGURATION_TYPES)
+		set(__dst__ "${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/${__basename__}")
+	else()
+		set(__dst__ "${CMAKE_BINARY_DIR}/OpenVisus/${__basename__}")
+	endif()
 	file(GENERATE OUTPUT ${__dst__} INPUT ${__src__})
 endforeach()
 

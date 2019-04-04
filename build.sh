@@ -184,8 +184,8 @@ function InstallUbuntuPrerequisites {
 
     # install cmake
     echo "Downloading precompiled cmake"
-    DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
-    tar xvzf cmake-3.4.3-Linux-x86_64.tar.gz -C ${CACHED_DIR} --strip-components=1
+    DownloadFile "https://github.com/Kitware/CMake/releases/download/v3.14.1/cmake-3.14.1-Linux-x86_64.tar.gz"
+    tar xvzf cmake-3.14.1-Linux-x86_64.tar.gz -C ${CACHED_DIR} --strip-components=1
 
     # install patchelf
     DownloadFile https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz

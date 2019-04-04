@@ -64,7 +64,14 @@ else()
 endif()
 
 FindPythonLibrary()
-file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+
+if (CMAKE_CONFIGURATION_TYPES)
+	file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+else()
+	file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/OpenVisus/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+endif()
+
+
 
 if (VISUS_GUI)
 	IF (APPLE)
@@ -85,7 +92,11 @@ if (VISUS_GUI)
 	MESSAGE(STATUS "Qt5_DIR ${Qt5_DIR}")
 	MESSAGE(STATUS "Qt5Core_VERSION_STRING ${Qt5Core_VERSION_STRING}")
 
-	file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/QT_VERSION CONTENT ${Qt5Core_VERSION_STRING})
+	if (CMAKE_CONFIGURATION_TYPES)
+		file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/QT_VERSION CONTENT ${Qt5Core_VERSION_STRING})
+	else()
+		file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/OpenVisus/QT_VERSION CONTENT ${Qt5Core_VERSION_STRING})
+	endif()
 	
 endif()
 
@@ -116,10 +127,18 @@ if (VISUS_TEST)
 	endif()
 	
 	# external app
-	AddExternalApp(simple_query        ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query    ${CMAKE_BINARY_DIR}/$<CONFIG>/Samples/simple_query)
+	if (CMAKE_CONFIGURATION_TYPES)
+		AddExternalApp(simple_query ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query    ${CMAKE_BINARY_DIR}/$<CONFIG>/Samples/simple_query)
+	else()
+		AddExternalApp(simple_query ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query    ${CMAKE_BINARY_DIR}/Samples/simple_query)
+	endif()
 
 	if (VISUS_GUI)
-		AddExternalApp(simple_viewer2d ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_viewer2d ${CMAKE_BINARY_DIR}/$<CONFIG>/Samples/simple_viewer2d)
+		if (CMAKE_CONFIGURATION_TYPES)
+			AddExternalApp(simple_viewer2d ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_viewer2d ${CMAKE_BINARY_DIR}/$<CONFIG>/Samples/simple_viewer2d)
+		else()
+			AddExternalApp(simple_viewer2d ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_viewer2d ${CMAKE_BINARY_DIR}/Samples/simple_viewer2d)
+		endif()
 	endif()
 
 endif()
@@ -137,7 +156,12 @@ if (1)
 	install(DIRECTORY    Samples                                       DESTINATION OpenVisus)
 	install(DIRECTORY    CMake                                         DESTINATION OpenVisus)
 	install(DIRECTORY    datasets                                      DESTINATION OpenVisus)
-	install(DIRECTORY    ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/      DESTINATION OpenVisus) 
+
+	if (CMAKE_CONFIGURATION_TYPES)
+		install(DIRECTORY    ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/   DESTINATION OpenVisus) 
+	else()	
+		install(DIRECTORY    ${CMAKE_BINARY_DIR}/OpenVisus/             DESTINATION OpenVisus) 
+	endif()
 	
 	# includes
 	install(DIRECTORY    Libs/Kernel/include/Visus                     DESTINATION OpenVisus/include/Kernel/)

@@ -26,7 +26,7 @@ class DeployUtils:
 		because quoting the argument is not easy
 		"""
 		print("# Executing command: ",cmd)
-		subprocess.call(cmd, shell=False)
+		return subprocess.call(cmd, shell=False)
 
 	# GetCommandOutput
 	@staticmethod
@@ -466,72 +466,72 @@ class LinuxDeploy:
 	If a shared object dependency does not contain a slash, then it is
 	searched for in the following order:
 	
-		-  Using the directories specified in the DT_RPATH dynamic section
-		attribute of the binary if present and DT_RUNPATH attribute does
-		not exist.  Use of DT_RPATH is deprecated.
-		
-		-  Using the environment variable LD_LIBRARY_PATH, unless the
-		executable is being run in secure-execution mode (see below), in
-		which case this variable is ignored.
-		
-		-  Using the directories specified in the DT_RUNPATH dynamic section
-		attribute of the binary if present.  Such directories are searched
-		only to find those objects required by DT_NEEDED (direct
-		dependencies) entries and do not apply to those objects' children,
-		which must themselves have their own DT_RUNPATH entries.  This is
-		unlike DT_RPATH, which is applied to searches for all children in
-		the dependency tree.
-		
-		-  From the cache file /etc/ld.so.cache, which contains a compiled
-		list of candidate shared objects previously found in the augmented
-		library path.  If, however, the binary was linked with the -z
-		nodeflib linker option, shared objects in the default paths are
-		skipped.  Shared objects installed in hardware capability
-		directories (see below) are preferred to other shared objects.
-		
-		-  In the default path /lib, and then /usr/lib.  (On some 64-bit
-		architectures, the default paths for 64-bit shared objects are
-		/lib64, and then /usr/lib64.)  If the binary was linked with the
-		-z nodeflib linker option, this step is skipped.
+	-  Using the directories specified in the DT_RPATH dynamic section
+	attribute of the binary if present and DT_RUNPATH attribute does
+	not exist.  Use of DT_RPATH is deprecated.
 	
-	Rpath token expansion:
-
-		The dynamic linker understands certain token strings in an rpath
-		specification (DT_RPATH or DT_RUNPATH).  Those strings are
-		substituted as follows:
+	-  Using the environment variable LD_LIBRARY_PATH, unless the
+	executable is being run in secure-execution mode (see below), in
+	which case this variable is ignored.
 	
-		$ORIGIN (or equivalently ${ORIGIN})
-		This expands to the directory containing the program or shared
-		object.  Thus, an application located in somedir/app could be
-		compiled with
-		
-			gcc -Wl,-rpath,'$ORIGIN/../lib'
-		
-			so that it finds an associated shared object in somedir/lib no
-			matter where somedir is located in the directory hierarchy.
-			This facilitates the creation of "turn-key" applications that
-			do not need to be installed into special directories, but can
-			instead be unpacked into any directory and still find their
-			own shared objects.
-		
-		$LIB (or equivalently ${LIB})
-		This expands to lib or lib64 depending on the architecture
-		(e.g., on x86-64, it expands to lib64 and on x86-32, it
-		expands to lib).
-		
-		$PLATFORM (or equivalently ${PLATFORM})
-		This expands to a string corresponding to the processor type
-		of the host system (e.g., "x86_64").  On some architectures,
-		the Linux kernel doesn't provide a platform string to the
-		dynamic linker.  The value of this string is taken from the
-		AT_PLATFORM value in the auxiliary vector (see getauxval(3)).	
-
-	To debug
+	-  Using the directories specified in the DT_RUNPATH dynamic section
+	attribute of the binary if present.  Such directories are searched
+	only to find those objects required by DT_NEEDED (direct
+	dependencies) entries and do not apply to those objects' children,
+	which must themselves have their own DT_RUNPATH entries.  This is
+	unlike DT_RPATH, which is applied to searches for all children in
+	the dependency tree.
 	
-		LD_DEBUG=libs,files ldd bin/visusviewer
+	-  From the cache file /etc/ld.so.cache, which contains a compiled
+	list of candidate shared objects previously found in the augmented
+	library path.  If, however, the binary was linked with the -z
+	nodeflib linker option, shared objects in the default paths are
+	skipped.  Shared objects installed in hardware capability
+	directories (see below) are preferred to other shared objects.
+	
+	-  In the default path /lib, and then /usr/lib.  (On some 64-bit
+	architectures, the default paths for 64-bit shared objects are
+	/lib64, and then /usr/lib64.)  If the binary was linked with the
+	-z nodeflib linker option, this step is skipped.
 
-		# this shows the rpath
-		readelf -d bin/libVisusGui.so
+Rpath token expansion:
+
+	The dynamic linker understands certain token strings in an rpath
+	specification (DT_RPATH or DT_RUNPATH).  Those strings are
+	substituted as follows:
+
+	$ORIGIN (or equivalently ${ORIGIN})
+	This expands to the directory containing the program or shared
+	object.  Thus, an application located in somedir/app could be
+	compiled with
+	
+		gcc -Wl,-rpath,'$ORIGIN/../lib'
+	
+		so that it finds an associated shared object in somedir/lib no
+		matter where somedir is located in the directory hierarchy.
+		This facilitates the creation of "turn-key" applications that
+		do not need to be installed into special directories, but can
+		instead be unpacked into any directory and still find their
+		own shared objects.
+	
+	$LIB (or equivalently ${LIB})
+	This expands to lib or lib64 depending on the architecture
+	(e.g., on x86-64, it expands to lib64 and on x86-32, it
+	expands to lib).
+	
+	$PLATFORM (or equivalently ${PLATFORM})
+	This expands to a string corresponding to the processor type
+	of the host system (e.g., "x86_64").  On some architectures,
+	the Linux kernel doesn't provide a platform string to the
+	dynamic linker.  The value of this string is taken from the
+	AT_PLATFORM value in the auxiliary vector (see getauxval(3)).	
+
+To debug
+
+	LD_DEBUG=libs,files ldd bin/visus
+
+	# this shows the rpath
+	readelf -d bin/visus
 
 	"""
 	
@@ -607,7 +607,8 @@ class LinuxDeploy:
 				N=len(B.split("/"))-len(A.split("/"))	
 				v+=['$ORIGIN' +  "/.." * N]			
 			
-			DeployUtils.ExecuteCommand(["patchelf", "--set-rpath", '"' + ":".join(v) + '"', filename])	
+			retcode=DeployUtils.ExecuteCommand(["patchelf", "--set-rpath", ":".join(v) , filename])
+			#print("retcode",retcode)	
 
 	# fixAllDeps
 	def fixAllDeps(self):

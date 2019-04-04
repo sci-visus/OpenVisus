@@ -155,27 +155,37 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(SetupCommonOutputTargetProperties Name)
 
-	set_target_properties(${Name} PROPERTIES 
-		LIBRARY_OUTPUT_DIRECTORY_DEBUG           ${CMAKE_BINARY_DIR}/Debug/OpenVisus/bin
-		LIBRARY_OUTPUT_DIRECTORY_RELEASE         ${CMAKE_BINARY_DIR}/Release/OpenVisus/bin
-		LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO  ${CMAKE_BINARY_DIR}/RelWithDebInfo/OpenVisus/bin) 
+	if (CMAKE_CONFIGURATION_TYPES)
 
-	set_target_properties(${Name} PROPERTIES 
-		ARCHIVE_OUTPUT_DIRECTORY_DEBUG           ${CMAKE_BINARY_DIR}/Debug/OpenVisus/lib
-		ARCHIVE_OUTPUT_DIRECTORY_RELEASE         ${CMAKE_BINARY_DIR}/Release/OpenVisus/lib
-		ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO  ${CMAKE_BINARY_DIR}/RelWithDebInfo/OpenVisus/lib) 
+		set_target_properties(${Name} PROPERTIES 
+			LIBRARY_OUTPUT_DIRECTORY_DEBUG           ${CMAKE_BINARY_DIR}/Debug/OpenVisus/bin
+			LIBRARY_OUTPUT_DIRECTORY_RELEASE         ${CMAKE_BINARY_DIR}/Release/OpenVisus/bin
+			LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO  ${CMAKE_BINARY_DIR}/RelWithDebInfo/OpenVisus/bin) 
 
-	set_target_properties(${Name} PROPERTIES 
-		RUNTIME_OUTPUT_DIRECTORY_DEBUG           ${CMAKE_BINARY_DIR}/Debug/OpenVisus/bin
-		RUNTIME_OUTPUT_DIRECTORY_RELEASE         ${CMAKE_BINARY_DIR}/Release/OpenVisus/bin
-		RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO  ${CMAKE_BINARY_DIR}/RelWithDebInfo/OpenVisus/bin) 
+		set_target_properties(${Name} PROPERTIES 
+			ARCHIVE_OUTPUT_DIRECTORY_DEBUG           ${CMAKE_BINARY_DIR}/Debug/OpenVisus/lib
+			ARCHIVE_OUTPUT_DIRECTORY_RELEASE         ${CMAKE_BINARY_DIR}/Release/OpenVisus/lib
+			ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO  ${CMAKE_BINARY_DIR}/RelWithDebInfo/OpenVisus/lib) 
 
-	if (WIN32)
-		set_target_properties(${Name}
-			PROPERTIES
-			COMPILE_PDB_NAME_DEBUG          ${Name}
-			COMPILE_PDB_NAME_RELEASE        ${Name}
-			COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
+		set_target_properties(${Name} PROPERTIES 
+			RUNTIME_OUTPUT_DIRECTORY_DEBUG           ${CMAKE_BINARY_DIR}/Debug/OpenVisus/bin
+			RUNTIME_OUTPUT_DIRECTORY_RELEASE         ${CMAKE_BINARY_DIR}/Release/OpenVisus/bin
+			RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO  ${CMAKE_BINARY_DIR}/RelWithDebInfo/OpenVisus/bin) 
+
+		if (WIN32)
+			set_target_properties(${Name}
+				PROPERTIES
+				COMPILE_PDB_NAME_DEBUG          ${Name}
+				COMPILE_PDB_NAME_RELEASE        ${Name}
+				COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
+		endif()
+	
+	else()
+
+		set_target_properties(${Name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/OpenVisus/bin) 
+		set_target_properties(${Name} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/OpenVisus/lib)
+		set_target_properties(${Name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/OpenVisus/bin) 
+
 	endif()
 
 endmacro()
@@ -275,10 +285,10 @@ macro(FindPythonLibrary)
 		  	set(PYTHON_DEBUG_LIBRARY ${PYTHON_RELEASE_LIBRARY})
 		endif()
 
-		  	set_target_properties(OpenVisus::Python PROPERTIES
-		  	IMPORTED_IMPLIB_DEBUG           ${PYTHON_DEBUG_LIBRARY}
-		  	IMPORTED_IMPLIB_RELEASE         ${PYTHON_RELEASE_LIBRARY}
-		  	IMPORTED_IMPLIB_RELWITHDEBINFO  ${PYTHON_RELEASE_LIBRARY})
+	  	set_target_properties(OpenVisus::Python PROPERTIES
+	  	IMPORTED_IMPLIB_DEBUG           ${PYTHON_DEBUG_LIBRARY}
+	  	IMPORTED_IMPLIB_RELEASE         ${PYTHON_RELEASE_LIBRARY}
+	  	IMPORTED_IMPLIB_RELWITHDEBINFO  ${PYTHON_RELEASE_LIBRARY})
 	else()
 		set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
 	endif()
@@ -365,8 +375,15 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 
 	find_package(SWIG 3.0 REQUIRED)
 	include(${SWIG_USE_FILE})
-	set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/OpenVisus)
-	set(SWIG_OUTFILE_DIR  ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
+
+	if (CMAKE_CONFIGURATION_TYPES)
+		set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/OpenVisus)
+		set(SWIG_OUTFILE_DIR  ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
+	else()
+		set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/OpenVisus)
+		set(SWIG_OUTFILE_DIR  ${CMAKE_BINARY_DIR})
+	endif()
+
 	set(CMAKE_SWIG_FLAGS "")
 
 	set(SWIG_FLAGS "${ARGN}")
