@@ -4,6 +4,7 @@ add_subdirectory(Dataflow)
 add_subdirectory(Db)
 add_subdirectory(Idx)
 add_subdirectory(Nodes)
+add_subdirectory(XIdx)
 
 if (VISUS_GUI)
   add_subdirectory(Gui)
@@ -11,4 +12,3 @@ if (VISUS_GUI)
   add_subdirectory(AppKit)
 endif()
 
-add_subdirectory(XIdx)

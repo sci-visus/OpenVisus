@@ -1,6 +1,7 @@
 
 FindGitRevision()
-add_definitions(-DGIT_REVISION=\"${GIT_REVISION}\")
+
+add_definitions(-DGIT_REVISION=${GIT_REVISION})
 
 # *** VISUS_INTERNAL_DEFAULT ***
 if (NOT DEFINED VISUS_INTERNAL_DEFAULT)
@@ -329,6 +330,10 @@ IF (WIN32 OR APPLE)
 	file(GLOB MM_FILES src/*.mm)
 endif()
 
+
+file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../OpenVisus/*.py)
+source_group("Py" FILES ${PyFiles})
+
 file(GLOB Sources 
 	${CMAKE_CURRENT_SOURCE_DIR}/../../CMakeLists.txt
 	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/VisusMacros.cmake
@@ -338,6 +343,7 @@ file(GLOB Sources
 	src/*.cpp 
 	src/*.h
 	${MM_FILES} 
+	${PyFiles}
 )
 
 AddLibrary(VisusKernel ${Sources})
@@ -371,12 +377,11 @@ else()
 	target_link_libraries(VisusKernel      PUBLIC ${TinyXML_LIBRARIES})	
 endif()
 
-if (1)
-	# disabled debug version
-	if (WIN32)
-		if (SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-			target_compile_definitions(VisusKernel PUBLIC -DSWIG_PYTHON_INTERPRETER_NO_DEBUG=1) 
-		endif()
+
+# disabled debug version
+if (WIN32)
+	if (SWIG_PYTHON_INTERPRETER_NO_DEBUG)
+		target_compile_definitions(VisusKernel PUBLIC -DSWIG_PYTHON_INTERPRETER_NO_DEBUG=1) 
 	endif()
 endif()
 
@@ -440,11 +445,14 @@ else()
 endif()
 
 # copy py files to build
-file(GLOB CMakePyFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/*.py)
-foreach(__it__ ${CMakePyFiles})
-	add_custom_command(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${__it__} $<TARGET_FILE_DIR:VisusKernel>)
+foreach(__src__ ${PyFiles})
+	get_filename_component(__basename__ ${__src__} NAME)
+	set(__dst__ "${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/${__basename__}")
+	file(GENERATE OUTPUT ${__dst__} INPUT ${__src__})
 endforeach()
 
-AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
+AddSwigLibrary(VisusKernelPy 
+	VisusKernel 
+	${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
 	  

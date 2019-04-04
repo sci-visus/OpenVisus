@@ -68,11 +68,6 @@ macro(SetupCommonCMake)
 		set(CMAKE_NUM_PROCS 8)   
 		
 		option(BUILD_SHARED_LIBS "Build the shared library" TRUE)
-
-		# save libraries and binaries in the same directory        
-		set(EXECUTABLE_OUTPUT_PATH              ${CMAKE_BINARY_DIR})           
-		set(LIBRARY_OUTPUT_PATH                 ${CMAKE_BINARY_DIR})	
-		set(CMAKE_COMPILE_PDB_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
 		
 		# multi-config generator
 		if (CMAKE_CONFIGURATION_TYPES)
@@ -153,6 +148,34 @@ macro(SetupCommonCompileOptions Name)
 		# see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
 		target_compile_options(${Name} PRIVATE -Wno-attributes)	
 	
+	endif()
+
+endmacro()
+
+# ///////////////////////////////////////////////////
+macro(SetupCommonOutputTargetProperties Name)
+
+	set_target_properties(${Name} PROPERTIES 
+		LIBRARY_OUTPUT_DIRECTORY_DEBUG           ${CMAKE_BINARY_DIR}/Debug/OpenVisus/bin
+		LIBRARY_OUTPUT_DIRECTORY_RELEASE         ${CMAKE_BINARY_DIR}/Release/OpenVisus/bin
+		LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO  ${CMAKE_BINARY_DIR}/RelWithDebInfo/OpenVisus/bin) 
+
+	set_target_properties(${Name} PROPERTIES 
+		ARCHIVE_OUTPUT_DIRECTORY_DEBUG           ${CMAKE_BINARY_DIR}/Debug/OpenVisus/lib
+		ARCHIVE_OUTPUT_DIRECTORY_RELEASE         ${CMAKE_BINARY_DIR}/Release/OpenVisus/lib
+		ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO  ${CMAKE_BINARY_DIR}/RelWithDebInfo/OpenVisus/lib) 
+
+	set_target_properties(${Name} PROPERTIES 
+		RUNTIME_OUTPUT_DIRECTORY_DEBUG           ${CMAKE_BINARY_DIR}/Debug/OpenVisus/bin
+		RUNTIME_OUTPUT_DIRECTORY_RELEASE         ${CMAKE_BINARY_DIR}/Release/OpenVisus/bin
+		RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO  ${CMAKE_BINARY_DIR}/RelWithDebInfo/OpenVisus/bin) 
+
+	if (WIN32)
+		set_target_properties(${Name}
+			PROPERTIES
+			COMPILE_PDB_NAME_DEBUG          ${Name}
+			COMPILE_PDB_NAME_RELEASE        ${Name}
+			COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
 	endif()
 
 endmacro()
@@ -311,6 +334,8 @@ macro(AddStaticLibrary Name)
 	if (NOT WIN32)
 		target_compile_options(${Name} PRIVATE -fvisibility=hidden)
 	endif()
+
+	SetupCommonOutputTargetProperties(${Name})
 endmacro()
 
 # ///////////////////////////////////////////////////
@@ -322,15 +347,7 @@ macro(AddLibrary Name)
 	target_compile_definitions(${Name}  PRIVATE VISUS_BUILDING_${__upper_case__name__}=1)
 	target_include_directories(${Name}  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 	LinkPythonToLibrary(${Name})
-  if (WIN32)
-	 	set_target_properties(${Name}
-	      PROPERTIES
-	      COMPILE_PDB_NAME_DEBUG          ${Name}
-	      COMPILE_PDB_NAME_RELEASE        ${Name}
-	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
-	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
-	endif()
-	InstallLibrary(${Name})
+	SetupCommonOutputTargetProperties(${Name})
 endmacro()
 
 
@@ -340,15 +357,7 @@ macro(AddExecutable Name)
 	SetupCommonCompileOptions(${Name})
 	set_target_properties(${Name} PROPERTIES FOLDER "${CMAKE_FOLDER_PREFIX}Executable/")
 	LinkPythonToExecutable(${Name})
-	if (WIN32)
-	 	set_target_properties(${Name}
-	      PROPERTIES
-	      COMPILE_PDB_NAME_DEBUG          ${Name}
-	      COMPILE_PDB_NAME_RELEASE        ${Name}
-	      COMPILE_PDB_NAME_MINSIZEREL     ${Name}
-	      COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
-	endif()
-	InstallExecutable(${Name})
+	SetupCommonOutputTargetProperties(${Name})
 endmacro()
 
 # ///////////////////////////////////////////////////
@@ -356,7 +365,8 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 
 	find_package(SWIG 3.0 REQUIRED)
 	include(${SWIG_USE_FILE})
-	set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
+	set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/OpenVisus)
+	set(SWIG_OUTFILE_DIR  ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
 	set(CMAKE_SWIG_FLAGS "")
 
 	set(SWIG_FLAGS "${ARGN}")
@@ -384,7 +394,6 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 		set(RealName ${NamePy})
 	endif()
 
-	SetupCommonCompileOptions(${RealName})
 	set_target_properties(${RealName} PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Swig/)
 
 	# disable warnings
@@ -398,106 +407,11 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 	endif()
 
 	LinkPythonToLibrary(${RealName})
+	SetupCommonCompileOptions(${RealName})
+	SetupCommonOutputTargetProperties(${RealName})
+
 	target_link_libraries(${RealName} PUBLIC ${WrappedLib})
-
-	if (WIN32)
-		
-		if (SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-			set_target_properties(${RealName}
-				PROPERTIES
-				COMPILE_PDB_NAME_DEBUG          ${RealName}
-				COMPILE_PDB_NAME_RELEASE        ${RealName}
-				COMPILE_PDB_NAME_MINSIZEREL     ${RealName}
-				COMPILE_PDB_NAME_RELWITHDEBINFO ${RealName})
-			set_target_properties(${RealName} PROPERTIES DEBUG_POSTFIX  "")
-		else()
-			set_target_properties(${RealName}
-				PROPERTIES
-				COMPILE_PDB_NAME_DEBUG          ${RealName}_d
-				COMPILE_PDB_NAME_RELEASE        ${RealName}
-				COMPILE_PDB_NAME_MINSIZEREL     ${RealName}
-				COMPILE_PDB_NAME_RELWITHDEBINFO ${RealName})
-			set_target_properties(${RealName} PROPERTIES DEBUG_POSTFIX  "_d")
-		endif()
-			
-		
-
-	endif()	
-
-	InstallLibrary(${RealName})
 	
-endmacro()
-
-# ///////////////////////////////////////////////////
-macro(InstallLibrary Name)
- 
-	if (WIN32)
-	
-		install(TARGETS ${Name}  CONFIGURATIONS DEBUG          RUNTIME DESTINATION debug/bin   LIBRARY DESTINATION debug/bin ARCHIVE DESTINATION debug/lib)
-		install(TARGETS ${Name}  CONFIGURATIONS RELEASE        RUNTIME DESTINATION       bin   LIBRARY DESTINATION       bin ARCHIVE DESTINATION       lib)	
-		install(TARGETS ${Name}  CONFIGURATIONS RELWITHDEBINFO RUNTIME DESTINATION       bin   LIBRARY DESTINATION       bin ARCHIVE DESTINATION       lib)
-						
-		install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS DEBUG          DESTINATION debug/bin)
-		install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS RELWITHDEBINFO DESTINATION       bin)	
-	
-	elseif (APPLE)
-
-		install(TARGETS ${Name}  CONFIGURATIONS DEBUG          LIBRARY DESTINATION debug/bin RUNTIME DESTINATION debug/bin BUNDLE DESTINATION debug/bin ARCHIVE DESTINATION debug/lib)
-		install(TARGETS ${Name}  CONFIGURATIONS RELEASE        LIBRARY DESTINATION bin       RUNTIME DESTINATION bin       BUNDLE DESTINATION bin       ARCHIVE DESTINATION lib)
-		install(TARGETS ${Name}  CONFIGURATIONS RELWITHDEBINFO LIBRARY DESTINATION bin       RUNTIME DESTINATION bin       BUNDLE DESTINATION bin       ARCHIVE DESTINATION lib)
-		
-	else()
-	
-		install(TARGETS ${Name} LIBRARY DESTINATION bin RUNTIME DESTINATION bin ARCHIVE DESTINATION lib)
-		
-	endif()
-
-endmacro()
-
-
-# ///////////////////////////////////////////////////
-macro(InstallExecutable Name)
-
-	if (WIN32)
-
-		install(TARGETS ${Name} CONFIGURATIONS DEBUG          RUNTIME    DESTINATION  debug/bin)		
-		install(TARGETS ${Name} CONFIGURATIONS RELEASE        RUNTIME    DESTINATION        bin)			
-		install(TARGETS ${Name} CONFIGURATIONS RELWITHDEBINFO RUNTIME    DESTINATION        bin)						
-
-		install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  DEBUG          DESTINATION debug/bin)
-		install(FILES $<TARGET_PDB_FILE:${Name}> CONFIGURATIONS  RELWITHDEBINFO DESTINATION       bin)
-
-	elseif (APPLE)
-	
-		install(TARGETS ${Name} CONFIGURATIONS DEBUG          BUNDLE     DESTINATION  debug/bin RUNTIME    DESTINATION  debug/bin)
-		install(TARGETS ${Name} CONFIGURATIONS RELEASE        BUNDLE     DESTINATION  bin       RUNTIME    DESTINATION  bin)
-		install(TARGETS ${Name} CONFIGURATIONS RELWITHDEBINFO BUNDLE     DESTINATION  bin       RUNTIME    DESTINATION  bin)
-	
-	else()
-		
-		install(TARGETS ${Name} RUNTIME DESTINATION  bin)			
-	endif()
-
-endmacro()
-
-# ///////////////////////////////////////////////////
-macro(InstallBuildFiles Pattern Destination)
-
-	if (CMAKE_CONFIGURATION_TYPES)
-		install(CODE "
-			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern})
-			MESSAGE(STATUS \"InstallBuildFiles from ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern}\")
-			MESSAGE(STATUS \"Files: \${__files__} \")
-			FILE(INSTALL \${__files__} DESTINATION \"${CMAKE_INSTALL_PREFIX}/${Destination}\")
-		")
-	else()
-		install(CODE "
-			FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/${Pattern})
-			MESSAGE(STATUS \"InstallBuildFiles from ${CMAKE_BINARY_DIR}/${Pattern}\")
-			MESSAGE(STATUS \"Files: \${__files__} \")
-			FILE(INSTALL \${__files__} DESTINATION \"${CMAKE_INSTALL_PREFIX}/${Destination}\")
-		")
-	endif()
 endmacro()
 
 
@@ -510,7 +424,7 @@ macro(AddExternalApp name SourceDir BinaryDir)
 	endif()
 	add_custom_target(${name} 
 	          "${CMAKE_COMMAND}" -E echo "Running ${name} ..."
-		COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DQt5_DIR="${Qt5_DIR}" -DOpenVisus_DIR=${CMAKE_INSTALL_PREFIX}
+		COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DQt5_DIR="${Qt5_DIR}" -DOpenVisus_DIR=${CMAKE_INSTALL_PREFIX}/OpenVisus
 		COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/" --config ${CMAKE_BUILD_TYPE})
 	set_target_properties(${name} PROPERTIES FOLDER CMakeTargets/)
 endmacro()
@@ -540,56 +454,10 @@ macro(AddCTest Name Command WorkingDirectory)
 		# empty line
 		
 	else()
-		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}")
+		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/OpenVisus/bin")
 		
 	endif()
 
-	
-endmacro()
-
-
-
-# //////////////////////////////////////////////////////////////////////////
-macro(Win32AddImportedLibrary name include_dir debug_lib release_lib debug_dlls release_dlls)
-	add_library(${name} SHARED IMPORTED GLOBAL)
-	set_target_properties(${name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${include_dir}")
-	set_property(TARGET ${name} APPEND PROPERTY IMPORTED_CONFIGURATIONS "Debug;Release;RelWithDebInfo")
-	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_DEBUG           ${debug_lib})
-	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELEASE         ${release_lib})    
-	set_target_properties(${name} PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO  ${release_lib}) 
-	
-	foreach(it ${debug_dlls})
-		file(COPY ${it} DESTINATION ${LIBRARY_OUTPUT_PATH}/Debug)
-	endforeach()
-	
-	foreach(it ${release_dlls})
-		file(COPY ${it} DESTINATION ${LIBRARY_OUTPUT_PATH}/RelWithDebInfo)
-		file(COPY ${it} DESTINATION ${LIBRARY_OUTPUT_PATH}/Release)
-	endforeach()	
-	
-endmacro()
-
-# //////////////////////////////////////////////////////////////////////////
-macro(Win32CopyDllToBuild target debug_dll release_dll)
-
-	ADD_CUSTOM_COMMAND(TARGET ${target} POST_BUILD COMMAND ${CMAKE_COMMAND}  -E 
-		$<$<CONFIG:Debug>:copy>  $<$<CONFIG:Debug>:${debug_dll}> $<$<CONFIG:Debug>:${LIBRARY_OUTPUT_PATH}/Debug>
-		$<$<CONFIG:Release>:echo>  $<$<CONFIG:Release>:"no command">
-		$<$<CONFIG:RelWithDebInfo>:echo> $<$<CONFIG:RelWithDebInfo>:"no command">
-	)
-		
-	ADD_CUSTOM_COMMAND(TARGET ${target} POST_BUILD COMMAND  ${CMAKE_COMMAND}  -E 
-		$<$<CONFIG:Debug>:echo>  $<$<CONFIG:Debug>:"no command">
-		$<$<CONFIG:Release>:copy> $<$<CONFIG:Release>:${release_dll}> $<$<CONFIG:Release>:${LIBRARY_OUTPUT_PATH}/Release>
-		$<$<CONFIG:RelWithDebInfo>:echo> $<$<CONFIG:RelWithDebInfo>:"no command">
-	)
-		
-	ADD_CUSTOM_COMMAND(TARGET ${target} POST_BUILD COMMAND  ${CMAKE_COMMAND}  -E 
-		$<$<CONFIG:Debug>:echo>  $<$<CONFIG:Debug>:"no command">
-		$<$<CONFIG:Release>:echo> $<$<CONFIG:Release>:"no command">
-		$<$<CONFIG:RelWithDebInfo>:copy> $<$<CONFIG:RelWithDebInfo>:${release_dll}> $<$<CONFIG:RelWithDebInfo>:${LIBRARY_OUTPUT_PATH}/RelWithDebInfo>
-	)		
-		
 endmacro()
 
 # //////////////////////////////////////////////////////////////////////////
@@ -609,17 +477,5 @@ endmacro()
 macro(FindVCPKGDir)
 	set(VCPKG_DIR ${CMAKE_TOOLCHAIN_FILE}/../../../installed/${VCPKG_TARGET_TRIPLET})
 	get_filename_component(VCPKG_DIR ${VCPKG_DIR} REALPATH)	
-endmacro()
-
-# //////////////////////////////////////////////////////////////////////////
-macro(InstallPostInstallStep)
-
-	install(CODE "
-		execute_process( 
-				COMMAND \"${PYTHON_EXECUTABLE}\" -u \"${CMAKE_INSTALL_PREFIX}/configure.py\"
-				--qt5-dir=\"${Qt5_DIR}\"
-				cmake_post_install)
-	")
-	
 endmacro()
 

@@ -49,7 +49,9 @@ AddLibrary(VisusAppKit ${Sources})
 target_link_libraries(VisusAppKit PUBLIC VisusNodes VisusGuiNodes)
 
 
-AddSwigLibrary(VisusAppKitPy VisusAppKit ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusAppKitPy.i 
+AddSwigLibrary(VisusAppKitPy 
+	VisusAppKit
+	${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusAppKitPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"

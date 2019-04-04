@@ -4,7 +4,9 @@ source_group("" FILES ${Sources})
 AddLibrary(VisusNodes ${Sources})
 target_link_libraries(VisusNodes PUBLIC VisusIdx VisusDataflow)
 
-AddSwigLibrary(VisusNodesPy VisusNodes ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusNodesPy.i 
+AddSwigLibrary(VisusNodesPy 
+	VisusNodes 
+	${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusNodesPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"

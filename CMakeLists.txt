@@ -21,6 +21,7 @@ endif()
 PROJECT(ViSUS) 
 
 # //////////////////////////////////////////////////////////////
+MESSAGE(STATUS "CMAKE_BINARY_DIR ${CMAKE_BINARY_DIR}")
 set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
 
 if (WIN32)
@@ -63,6 +64,7 @@ else()
 endif()
 
 FindPythonLibrary()
+file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
 
 if (VISUS_GUI)
 	IF (APPLE)
@@ -82,7 +84,8 @@ if (VISUS_GUI)
 	
 	MESSAGE(STATUS "Qt5_DIR ${Qt5_DIR}")
 	MESSAGE(STATUS "Qt5Core_VERSION_STRING ${Qt5Core_VERSION_STRING}")
-	file(WRITE "${CMAKE_BINARY_DIR}/QT_VERSION" "${Qt5Core_VERSION_STRING}")	
+
+	file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/QT_VERSION CONTENT ${Qt5Core_VERSION_STRING})
 	
 endif()
 
@@ -113,10 +116,10 @@ if (VISUS_TEST)
 	endif()
 	
 	# external app
-	AddExternalApp(simple_query ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query ${CMAKE_BINARY_DIR}/Samples/simple_query)
+	AddExternalApp(simple_query        ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query    ${CMAKE_BINARY_DIR}/$<CONFIG>/Samples/simple_query)
 
 	if (VISUS_GUI)
-		AddExternalApp(simple_viewer2d ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_viewer2d ${CMAKE_BINARY_DIR}/Samples/simple_viewer2d)
+		AddExternalApp(simple_viewer2d ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_viewer2d ${CMAKE_BINARY_DIR}/$<CONFIG>/Samples/simple_viewer2d)
 	endif()
 
 endif()
@@ -125,69 +128,61 @@ endif()
 # install
 if (1)
 
-	# swig generated files (important to be the first since I could have changed some *.py files meantime)
-	InstallBuildFiles(*.py ./)
+	install(FILES        LICENSE                                       DESTINATION OpenVisus)
+	install(FILES        README.md                                     DESTINATION OpenVisus)
+	install(FILES        CMake/OpenVisusConfig.cmake                   DESTINATION OpenVisus)
+	install(FILES        datasets/visus.config                         DESTINATION OpenVisus)
 
-	file(GLOB CMakePySources CMake/*.py)
+	install(DIRECTORY    Copyrights                                    DESTINATION OpenVisus)
+	install(DIRECTORY    Samples                                       DESTINATION OpenVisus)
+	install(DIRECTORY    CMake                                         DESTINATION OpenVisus)
+	install(DIRECTORY    datasets                                      DESTINATION OpenVisus)
+	install(DIRECTORY    ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/      DESTINATION OpenVisus) 
 	
-	install(DIRECTORY    CMake/PostInstall                             DESTINATION CMake)
-	
-	install(FILES        ${CMakePySources}                             DESTINATION .)
-	install(FILES        LICENSE                                       DESTINATION .)
-	install(FILES        README.md                                     DESTINATION .)
-	install(FILES        CMake/__init__.py                             DESTINATION .)
-	install(FILES        CMake/__main__.py                             DESTINATION .)
-	install(FILES        CMake/configure.py                            DESTINATION .)
-	install(FILES        CMake/OpenVisus.py                            DESTINATION .)
-	install(FILES        CMake/OpenVisusConfig.cmake                   DESTINATION .)
-	install(FILES        CMake/VisusMacros.cmake                       DESTINATION CMake)
-	install(DIRECTORY    Copyrights                                    DESTINATION .)
-	install(DIRECTORY    Samples                                       DESTINATION .)
-	
-	install(FILES        datasets/visus.config                         DESTINATION .)
-	install(DIRECTORY    datasets/cat                                  DESTINATION datasets)
-	install(DIRECTORY    datasets/midx                                 DESTINATION datasets)
-	
-	install(DIRECTORY    Libs/Kernel/include/Visus                     DESTINATION include/Kernel/)
-	install(DIRECTORY    Libs/Dataflow/include/Visus                   DESTINATION include/Dataflow/)
-	install(DIRECTORY    Libs/Db/include/Visus                         DESTINATION include/Db/)
-	install(DIRECTORY    Libs/Idx/include/Visus                        DESTINATION include/Idx/)
-	install(DIRECTORY    Libs/Nodes/include/Visus                      DESTINATION include/Nodes)
-	
-	file(WRITE    "${CMAKE_BINARY_DIR}/PYTHON_VERSION" "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
-	install(FILES "${CMAKE_BINARY_DIR}/PYTHON_VERSION" DESTINATION .)
-	
+	# includes
+	install(DIRECTORY    Libs/Kernel/include/Visus                     DESTINATION OpenVisus/include/Kernel/)
+	install(DIRECTORY    Libs/Dataflow/include/Visus                   DESTINATION OpenVisus/include/Dataflow/)
+	install(DIRECTORY    Libs/Db/include/Visus                         DESTINATION OpenVisus/include/Db/)
+	install(DIRECTORY    Libs/Idx/include/Visus                        DESTINATION OpenVisus/include/Idx/)
+	install(DIRECTORY    Libs/Nodes/include/Visus                      DESTINATION OpenVisus/include/Nodes)
+
 	if (VISUS_GUI)
-		install(FILES "${CMAKE_BINARY_DIR}/QT_VERSION" DESTINATION .)
+		install(DIRECTORY Libs/Gui/include/Visus                       DESTINATION OpenVisus/include/Gui)
+		install(DIRECTORY Libs/GuiNodes/include/Visus                  DESTINATION OpenVisus/include/GuiNodes)
+		install(DIRECTORY Libs/AppKit/include/Visus                    DESTINATION OpenVisus/include/AppKit)
 	endif()
-	
-	if (VISUS_OSPRAY)
-		install(FILES "${OSPRAY_LIBRARIES}" DESTINATION bin)
-	endif()
-	
+
 	if (WIN32)
-	
-		InstallBuildFiles(*.dll bin)
-	
-		include(InstallRequiredSystemLibraries)
-		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION bin COMPONENT Libraries)	
 		
+		#macro(InstallBuildFiles Pattern Destination)
+		#	install(CODE "
+		#		FILE(GLOB __files__ ${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/${Pattern})
+		#		FILE(INSTALL \${__files__} DESTINATION \"${Destination}\")")
+		#endmacro()
+		#InstallBuildFiles(*.dll ${CMAKE_INSTALL_PREFIX}/OpenVisus/bin)
+
+		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION OpenVisus/bin)
+		include(InstallRequiredSystemLibraries)
+		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}  DESTINATION OpenVisus/bin COMPONENT Libraries)	
 	endif()
 
-	if (VISUS_GUI)
-		install(DIRECTORY Libs/Gui/include/Visus                DESTINATION include/Gui)
-		install(DIRECTORY Libs/GuiNodes/include/Visus           DESTINATION include/GuiNodes)
-		install(DIRECTORY Libs/AppKit/include/Visus             DESTINATION include/AppKit)
-	endif()
-	
+	macro(InstallPostInstallStep)
+		install(CODE "
+			execute_process(COMMAND 
+				\"${PYTHON_EXECUTABLE}\" -u Deploy.py OpenVisusCMakePostInstall --qt5-dir=\"${Qt5_DIR}\"
+				WORKING_DIRECTORY \"${CMAKE_INSTALL_PREFIX}/OpenVisus\"
+			)
+		")
+	endmacro()
 	add_subdirectory(CMake/PostInstall)
 
 endif()
 
 
+# ///////////////////////////////////////////////////////////////////////////////////////////////
 add_custom_target(dist
-	WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}
-	COMMAND ${PYTHON_EXECUTABLE} -u configure.py cmake_dist_step
+	COMMAND ${PYTHON_EXECUTABLE} -u Deploy.py PythonDist
+	WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/OpenVisus
 )
 
 if (WIN32)

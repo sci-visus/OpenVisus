@@ -78,7 +78,7 @@ cd "C:\Users\%USERNAME%\AppData\Roaming\..."
 
 REM *** execute the following step to finilize the installation                                                                   ***
 REM *** add --use-pyqt if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components) ***
-%PYTHON_EXECUTABLE% .\configure.py
+%PYTHON_EXECUTABLE% -m OpenVisus configure
 
 .\visusviewer.bat
 
@@ -108,13 +108,8 @@ cd $(python -m OpenVisus dirname)
 
 
 # finilize installation
-# set PYQT=1 to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
-PYQT=0
-if (( PYQT == 1 )) ; then
-	python ./configure.py --use-pyqt
-else
-	python ./configure.py
-fi
+# add "--use-pyqt" to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
+python -m OpenVisus configure
 
 python Samples/python/Array.py
 python Samples/python/Dataflow.py
@@ -136,8 +131,8 @@ REM *** change PYTHON_EXECUTABLE  as needed      ***
 REM *** only python 3.6/3.7 64 bit are supported ***
 set PYTHON_EXECUTABLE=c:\Python37\python.exe
 
-REM add --use-pyqt if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
-%PYTHON_EXECUTABLE% .\configure.py
+REM add "--use-pyqt" if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
+%PYTHON_EXECUTABLE% -m OpenVisus configure
 
 set PYTHONPATH=%cd%;%PYTHONPATH%
 
@@ -154,7 +149,7 @@ in Osx/Linux:
 cd /your/OpenVisus/directory
 
 # add --use-pyqt if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
-python ./configure.py
+python -m OpenVisus configure
 
 export PYTHONPATH=$(pwd):${PYTHONPATH}
 
