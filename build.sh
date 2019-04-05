@@ -446,21 +446,18 @@ function BuildOpenVisus {
 		cmake --build . --target install
 	fi
 
-	if (( FAST_MODE==1 )) ; then
-		export PYTHONPATH=${BUILD_DIR}/install:${PYTHONPATH}
 
+	if (( OSX == 1 )) ; then
+	 	cmake --build ./ --target dist    --config ${CMAKE_BUILD_TYPE}
+	 	WHEEL_FILENAME=$(find ${BUILD_DIR}/RelWithDebInfo/site-packages/OpenVisus/dist -iname "*.whl")
 	else
-
-		if (( OSX == 1 )) ; then
-		 	cmake --build ./ --target dist    --config ${CMAKE_BUILD_TYPE}
-		else
-		 	cmake --build ./ --target dist
-		fi
-
-		WHEEL_FILENAME=$(find ${BUILD_DIR}/install/OpenVisus/dist -iname "*.whl")
-		python -m pip install --ignore-installed "${WHEEL_FILENAME}"  	
-
+	 	cmake --build ./ --target dist
+	 	
+	 	WHEEL_FILENAME=$(find ${BUILD_DIR}/site-packages/OpenVisus/dist -iname "*.whl")
 	fi
+
+		
+	python -m pip install --ignore-installed "${WHEEL_FILENAME}"  	
 }
 
 # //////////////////////////////////////////////////////

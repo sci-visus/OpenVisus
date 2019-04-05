@@ -332,7 +332,7 @@ script:
      fi
 
 before_deploy:
-  - export SDIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/install/OpenVisus/dist -iname "*.tar.gz")
+  - export SDIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/RelWithDebInfo/OpenVisus/dist -iname "*.tar.gz")
 
 deploy:
   provider: releases
