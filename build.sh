@@ -410,24 +410,25 @@ function InstallPython {
 
 # //////////////////////////////////////////////////////
 function BuildCondaOpenVisus {
-  pushd conda
-  conda-build -q openvisus
-  conda install -q --use-local openvisus
-  CONDA_BUILD_FILENAME=$(find ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld -iname "openvisus*.tar.bz2")
-  popd
+	pushd conda
+	conda-build -q openvisus
+	conda install -q --use-local openvisus
+	CONDA_BUILD_FILENAME=$(find ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld -iname "openvisus*.tar.bz2")
+	popd
 }
 
 # //////////////////////////////////////////////////////
 function BuildOpenVisus {
 
-  PushCMakeOption PYTHON_VERSION         ${PYTHON_VERSION}
-  PushCMakeOption VISUS_INTERNAL_DEFAULT ${VISUS_INTERNAL_DEFAULT}
-  PushCMakeOption DISABLE_OPENMP         ${DISABLE_OPENMP}
-  PushCMakeOption VISUS_GUI              ${VISUS_GUI}
-  PushCMakeOption CMAKE_BUILD_TYPE       ${CMAKE_BUILD_TYPE}
+	PushCMakeOption PYTHON_VERSION         ${PYTHON_VERSION}
+	PushCMakeOption VISUS_INTERNAL_DEFAULT ${VISUS_INTERNAL_DEFAULT}
+	PushCMakeOption DISABLE_OPENMP         ${DISABLE_OPENMP}
+	PushCMakeOption VISUS_GUI              ${VISUS_GUI}
+	PushCMakeOption CMAKE_BUILD_TYPE       ${CMAKE_BUILD_TYPE}
 
-  if (( OSX == 1 )) ; then
-
+  
+	if (( OSX == 1 )) ; then
+	
     cmake -GXcode ${cmake_opts} ${SOURCE_DIR}
 
     # this is to solve logs too long
@@ -439,29 +440,41 @@ function BuildOpenVisus {
     fi
 
     cmake --build ./ --target install --config ${CMAKE_BUILD_TYPE}
-    cmake --build ./ --target dist    --config ${CMAKE_BUILD_TYPE}
 
   else
     cmake ${cmake_opts} ${SOURCE_DIR}
     cmake --build . --target all -- -j 4
     cmake --build . --target install
-    cmake --build . --target dist
   fi
-
-  WHEEL_FILENAME=$(find ${BUILD_DIR}/install/OpenVisus/dist -iname "*.whl")
-  python -m pip install --ignore-installed "${WHEEL_FILENAME}"
+  
+  if (( FAST_MODE==1 )) ; then
+  
+  	export PYTHONPATH=${BUILD_DIR}/install:${PYTHONPATH}
+  
+  else
+  
+  	if (( OSX == 1 )) ; then
+    	cmake --build ./ --target dist    --config ${CMAKE_BUILD_TYPE}
+  	else
+    	cmake --build . --target dist
+  	fi
+  	
+	  WHEEL_FILENAME=$(find ${BUILD_DIR}/install/OpenVisus/dist -iname "*.whl")
+	  python -m pip install --ignore-installed "${WHEEL_FILENAME}"  	
+  	
+  fi
 }
 
 # //////////////////////////////////////////////////////
 function TestOpenVisus {
 
-  cd $HOME
-  python -m OpenVisus CreateScripts
-  cd $(python -m OpenVisus dirname)
-
-  python Samples/python/Array.py
-  python Samples/python/Dataflow.py
-  python Samples/python/Idx.py
+	cd $HOME
+	python -m OpenVisus CreateScripts
+	cd $(python -m OpenVisus dirname)
+	
+	python Samples/python/Array.py
+	python Samples/python/Dataflow.py
+	python Samples/python/Idx.py
 
 	if (( OSX == 1 )) ; then
 		if (( USE_CONDA == 1 )) ; then
@@ -479,19 +492,19 @@ function TestOpenVisus {
 
 # //////////////////////////////////////////////////////
 function DeployPyPi {
-  echo "Doing deploy to pypi ${WHEEL_FILENAME}..."
-  echo [distutils]                                  > ~/.pypirc
-  echo index-servers =  pypi                       >> ~/.pypirc
-  echo [pypi]                                      >> ~/.pypirc
-  echo username=${PYPI_USERNAME}                   >> ~/.pypirc
-  echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
-  python -m twine upload --skip-existing "${WHEEL_FILENAME}"
+	echo "Doing deploy to pypi ${WHEEL_FILENAME}..."
+	echo [distutils]                                  > ~/.pypirc
+	echo index-servers =  pypi                       >> ~/.pypirc
+	echo [pypi]                                      >> ~/.pypirc
+	echo username=${PYPI_USERNAME}                   >> ~/.pypirc
+	echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
+	python -m twine upload --skip-existing "${WHEEL_FILENAME}"
 }
 
 # //////////////////////////////////////////////////////
 function DeployConda {
-  echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
-  anaconda -q -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
+	echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
+	anaconda -q -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
 }
 
 

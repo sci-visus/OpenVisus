@@ -306,7 +306,7 @@ class DeployUtils:
 
 			lines=[
 				"""#!/bin/bash""",
-				"""this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"""
+				"""this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)""",
 				"""export PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}""".replace("${PYTHON_EXECUTABLE}",sys.executable),
 				"""export PYTHON_PATH="""+(":".join(["${this_dir}"] + sys.path)),
 				"""export """+ LD_LIBRARY_PATH + """=""" + LIBDIR]
