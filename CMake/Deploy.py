@@ -236,7 +236,11 @@ class DeployUtils:
 	@staticmethod
 	def UsePyQt():
 
-		print("Forcing use of pyqt")
+		print("Executing UsePyQt")
+		
+		__this_dir__=os.path.dirname(os.path.abspath(__file__))
+		os.chdir(__this_dir__)		
+		
 		VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
 		if not VISUS_GUI:
 			raise Exception("VISUS_GUI not enabled")
@@ -254,6 +258,7 @@ class DeployUtils:
 
 		# avoid conflicts removing any Qt file
 		DeployUtils.RemoveFiles("bin/Qt*")
+		print("Done UsePyQt")
 
 	# CreateScript
 	@staticmethod
