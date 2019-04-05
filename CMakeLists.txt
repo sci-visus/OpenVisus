@@ -176,6 +176,10 @@ if (1)
 		install(DIRECTORY Libs/AppKit/include/Visus                    DESTINATION OpenVisus/include/AppKit)
 	endif()
 
+	# in case some file have changed
+	file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/Libs/Kernel/src/*.py)
+	install (FILES ${PyFiles} DESTINATION OpenVisus)
+
 	if (WIN32)
 		
 		#macro(InstallBuildFiles Pattern Destination)
@@ -191,8 +195,21 @@ if (1)
 	endif()
 
 	macro(InstallPostInstallStep)
-		install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_INSTALL_PREFIX}/OpenVisus/Deploy.py\" FixAllDeps --qt5-dir=\"${Qt5_DIR}\")")
-		install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_INSTALL_PREFIX}/OpenVisus/Deploy.py\" CreateScripts)")
+
+		get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." REALPATH)
+		MESSAGE(STATUS "Qt5_HOME ${Qt5_HOME}")
+
+		# copy qt plugins
+		if (VISUS_GUI)
+			install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_INSTALL_PREFIX}/OpenVisus/Deploy.py\" CopyQt5Plugins    --qt5-home=\"${Qt5_HOME}\")")
+		endif()
+
+		# make self contained
+		install(CODE     "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_INSTALL_PREFIX}/OpenVisus/Deploy.py\" MakeSelfContained --qt5-home=\"${Qt5_HOME}\")")
+
+		# create scripts
+		install(CODE     "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_INSTALL_PREFIX}/OpenVisus/Deploy.py\" CreateScripts)")
+
 	endmacro()
 	add_subdirectory(CMake/PostInstall)
 

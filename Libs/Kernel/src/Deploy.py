@@ -171,26 +171,6 @@ class DeployUtils:
 		return_code=subprocess.call(cmd)
 		return return_code==0
 
-	# CopyQt5Plugins
-	@staticmethod
-	def CopyQt5Plugins(QT5_DIR):
-		
-		if WIN32:
-			raise Exception("internal error")
-				
-		QT_PLUGIN_PATH=""
-		for it in ["../../../plugins","../../qt5/plugins"]:
-			if os.path.isdir(os.path.join(QT5_DIR,it)):
-				QT_PLUGIN_PATH=os.path.join(QT5_DIR,it) 
-				break
-
-		if not QT_PLUGIN_PATH:
-			raise Exception("internal error, cannot find Qt plugins","QT_PLUGIN_PATH",QT_PLUGIN_PATH)
-
-		for it in ["iconengines","imageformats","platforms","printsupport","styles"]:
-			if os.path.isdir(os.path.join(QT_PLUGIN_PATH,it)):
-				DeployUtils.CopyDirectory(os.path.join(QT_PLUGIN_PATH,it) ,"bin/Qt/plugins")		
-
 	# PythonDist
 	@staticmethod
 	def PythonDist():
@@ -351,25 +331,52 @@ class DeployUtils:
 
 		print("Done scripts creation")
 
-	# FixAllDeps
+	# CopyQt5Plugins
 	@staticmethod
-	def FixAllDeps():
+	def CopyQt5Plugins():
+
+		print("Copying Qt5 plugins",sys.argv)
+
 		__this_dir__=os.path.dirname(os.path.abspath(__file__))
 		os.chdir(__this_dir__)
-		
-		print("Executing FixAllDeps",sys.argv)
-		VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
-		
-		if VISUS_GUI:
-			QT5_DIR=DeployUtils.ExtractNamedArgument("--qt5-dir")
-			if not os.path.isdir(QT5_DIR):
-				raise Exception("--qt5-dir not specified")
 
+		QT5_HOME=DeployUtils.ExtractNamedArgument("--qt5-home")
+		if not os.path.isdir(QT5_HOME):
+			raise Exception("--qt5-home not specified")
+
+		QT_PLUGIN_PATH=""
+		for it in [QT5_HOME + "/plugins",QT5_HOME + "/lib/qt5/plugins"]:
+			if os.path.isdir(os.path.join(it)):
+				QT_PLUGIN_PATH=os.path.join(QT5_HOME,it) 
+				break
+
+		if not QT_PLUGIN_PATH:
+			raise Exception("internal error, cannot find Qt plugins","QT_PLUGIN_PATH",QT_PLUGIN_PATH)
+
+		for it in ["iconengines","imageformats","platforms","printsupport","styles"]:
+			if os.path.isdir(os.path.join(QT_PLUGIN_PATH,it)):
+				DeployUtils.CopyDirectory(os.path.join(QT_PLUGIN_PATH,it) ,"bin/Qt/plugins")		
+
+		
+		print("Done copy Qt5 plugins")
+
+	# MakeSelfContained
+	@staticmethod
+	def MakeSelfContained():
+
+		print("Executing MakeSelfContained",sys.argv)
+
+		__this_dir__=os.path.dirname(os.path.abspath(__file__))
+		os.chdir(__this_dir__)
+
+		# for windows I use windeploy since there is no easy way to get DLLs dependencies
 		if WIN32:
-			if not VISUS_GUI:
-				raise Exception("Internal error") 
+
+			QT5_HOME=DeployUtils.ExtractNamedArgument("--qt5-home")
+			if not os.path.isdir(QT5_HOME):
+				raise Exception("--qt5-home not specified")
 				
-			windeploy=os.path.abspath(QT5_DIR+"/../../../bin/windeployqt")
+			windeploy=os.path.abspath(QT5_HOME+"/bin/windeployqt")
 			for exe in glob.glob("bin/*.exe"):
 				DeployUtils.ExecuteCommand([windeploy,os.path.abspath(exe),
 					"--libdir",os.path.abspath("bin"),
@@ -377,14 +384,11 @@ class DeployUtils:
 					"--no-translations"])			
 			
 		else:
-			if VISUS_GUI: 
-				DeployUtils.CopyQt5Plugins(QT5_DIR)
-				
+
 			deploy=AppleDeploy() if APPLE else LinuxDeploy()
 			deploy.fixAllDeps()
 
-
-		print("Finished FixAllDeps")
+		print("Finished MakeSelfContained")
 
 
 # ///////////////////////////////////////
@@ -729,8 +733,12 @@ def Main():
 		print(os.path.dirname(os.path.abspath(__file__)))
 		sys.exit(0)	
 
-	if sys.argv[1]=="FixAllDeps":
-		DeployUtils.FixAllDeps()
+	if sys.argv[1]=="CopyQt5Plugins":
+		DeployUtils.CopyQt5Plugins()
+		sys.exit(0)
+
+	if sys.argv[1]=="MakeSelfContained":
+		DeployUtils.MakeSelfContained()
 		sys.exit(0)
 		
 	if sys.argv[1]=="PythonDist":
