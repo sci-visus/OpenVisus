@@ -52,9 +52,14 @@ bool ApplicationInfo::debug = true;
 bool ApplicationInfo::debug = false;
 #endif
 
-#define xstr(s) str(s)
-#define str(s) #s
-String ApplicationInfo::git_revision= xstr(GIT_REVISION);
+
+#ifdef GIT_REVISION
+#define __str__(s) #s
+#define __xstr__(s) __str__(s)
+String ApplicationInfo::git_revision= __xstr__(GIT_REVISION);
+#else
+String ApplicationInfo::git_revision = "";
+#endif
 
 #if WIN32
 String ApplicationInfo::platform_name = "win";
