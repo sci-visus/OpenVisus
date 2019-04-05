@@ -6,7 +6,7 @@ from VisusGuiPy      import *
 from VisusGuiNodesPy import *
 from VisusAppKitPy   import *
 	
-# asssuming you have installed OpenVisus and configured with "--use-pyqt"
+# asssuming you have installed OpenVisus and configured with "UsePyQt"
 import PyQt5
 from   PyQt5.QtCore    import *
 from   PyQt5.QtWidgets import *

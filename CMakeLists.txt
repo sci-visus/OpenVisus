@@ -191,12 +191,8 @@ if (1)
 	endif()
 
 	macro(InstallPostInstallStep)
-		install(CODE "
-			execute_process(COMMAND 
-				\"${PYTHON_EXECUTABLE}\" -u Deploy.py OpenVisusCMakePostInstall --qt5-dir=\"${Qt5_DIR}\"
-				WORKING_DIRECTORY \"${CMAKE_INSTALL_PREFIX}/OpenVisus\"
-			)
-		")
+		install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_INSTALL_PREFIX}/OpenVisus/Deploy.py\" FixAllDeps --qt5-dir=\"${Qt5_DIR}\")")
+		install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${CMAKE_INSTALL_PREFIX}/OpenVisus/Deploy.py\" CreateScripts)")
 	endmacro()
 	add_subdirectory(CMake/PostInstall)
 

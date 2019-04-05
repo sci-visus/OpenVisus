@@ -456,7 +456,7 @@ function BuildOpenVisus {
 function TestOpenVisus {
 
   cd $HOME
-  python -m OpenVisus configure
+  python -m OpenVisus CreateScripts
   cd $(python -m OpenVisus dirname)
 
   python Samples/python/Array.py

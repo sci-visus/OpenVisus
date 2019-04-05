@@ -161,11 +161,17 @@ if (NOT (WIN32 OR APPLE))
   endif()
 endif()
 
-
-source_group("" FILES
+set(RootFiles 
+	${CMAKE_CURRENT_SOURCE_DIR}/../../README.md
 	${CMAKE_CURRENT_SOURCE_DIR}/../../CMakeLists.txt
+	${CMAKE_CURRENT_SOURCE_DIR}/../../build.bat
+	${CMAKE_CURRENT_SOURCE_DIR}/../../build.sh
 	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/VisusMacros.cmake
 	${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.txt
+)
+
+source_group("" FILES
+	${RootFiles}
 	./include/Visus/Visus.h 
 	./include/Visus/Kernel.h 
 	./src/Visus.cpp 
@@ -334,9 +340,7 @@ file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/src/*.py)
 source_group("PyFiles" FILES ${PyFiles})
 
 file(GLOB Sources 
-	${CMAKE_CURRENT_SOURCE_DIR}/../../CMakeLists.txt
-	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/VisusMacros.cmake
-	${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.txt
+	${RootFiles}
 	include/Visus/*.h 
 	include/Visus/*.i 
 	src/*.cpp 

@@ -38,7 +38,6 @@ For support: support@visus.net
 
 # ViSUS Visualization project  
 
-
 * `osx linux` build status: [![Build Status](https://travis-ci.com/sci-visus/visus.svg?token=yzpwCyVPupwSzFjgTCoA&branch=master)](https://travis-ci.com/sci-visus/visus)
 
 * `windows` build status: [![Windows Build status](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master?svg=true)](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master)
@@ -63,17 +62,16 @@ You can install/test OpenVisus in python using Pip.
 Under Windows:
 
 ```
-REM *** change PYTHON_EXECUTABLE  as needed      *** 
-REM *** only python 3.6/3.7 64 bit are supported ***
+REM *** change PYTHON_EXECUTABLE  as needed (only python 3.6/3.7 64 bit are supported) *** 
 set PYTHON_EXECUTABLE=c:\Python37\python.exe
 
-%PYTHON_EXECUTABLE% -m pip install pip --upgrade
-%PYTHON_EXECUTABLE% -m pip uninstall OpenVisus
 %PYTHON_EXECUTABLE% -m pip install --user numpy OpenVisus
 
-REM *** execute the following step to finilize the installation                                                                   ***
-REM *** add --use-pyqt if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components) ***
-%PYTHON_EXECUTABLE% -m OpenVisus configure
+REM uncomment this line if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
+REM %PYTHON_EXECUTABLE% -m OpenVisus UsePyQt
+
+REM Finilize the installation 
+%PYTHON_EXECUTABLE% -m OpenVisus CreateScripts
 
 .\visusviewer.bat
 
@@ -96,13 +94,13 @@ python --version # check the version here
 Then on Linux/osx:
 
 ```
-python -m pip install pip --upgrade
-python -m pip uninstall -y OpenVisus
 python -m pip install --user numpy OpenVisus
 
+# uncomment this line if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
+# python -m OpenVisus UsePyQt
+
 # finilize installation
-# add "--use-pyqt" to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
-python -m OpenVisus configure
+python -m OpenVisus CreateScripts
 
 python Samples/python/Array.py
 python Samples/python/Dataflow.py
@@ -124,8 +122,7 @@ REM *** change PYTHON_EXECUTABLE  as needed      ***
 REM *** only python 3.6/3.7 64 bit are supported ***
 set PYTHON_EXECUTABLE=c:\Python37\python.exe
 
-REM add "--use-pyqt" if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
-%PYTHON_EXECUTABLE% -m OpenVisus configure
+%PYTHON_EXECUTABLE% -m OpenVisus CreateScripts
 
 set PYTHONPATH=%cd%;%PYTHONPATH%
 
@@ -139,8 +136,7 @@ set PYTHONPATH=%cd%;%PYTHONPATH%
 in Osx/Linux:
 
 ```
-# add --use-pyqt if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
-python -m OpenVisus configure
+python -m OpenVisus CreateScripts
 
 export PYTHONPATH=$(pwd):${PYTHONPATH}
 

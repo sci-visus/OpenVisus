@@ -15,6 +15,27 @@ bVerbose=False
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 
+"""
+Fix the problem about shared library path finding
+
+on windows: it seems sufficient to modify the sys.path before importing the module.
+Example (see __init__.py):
+
+OpenVisusDir=os.path.dirname(os.path.abspath(__file__))
+for it in (".","bin"):
+	dir = os.path.join(OpenVisusDir,it)
+	if not dir in sys.path and os.path.isdir(dir):
+		sys.path.append(dir)
+
+on osx sys.path does not seem to work. Even changing the DYLIB_LIBRARY_PATH
+seems not to work. SO the only viable solution seems to be to modify the Rpath
+(see AppleDeploy)
+
+
+on linux sys.path does not seem to work. I didnt' check if LD_LIBRARY_PATH
+is working or not. To be coherent with OSX I'm using the rpath
+"""
+
 # /////////////////////////////////////////////////
 class DeployUtils:
 	
@@ -150,35 +171,6 @@ class DeployUtils:
 		return_code=subprocess.call(cmd)
 		return return_code==0
 
-	# InstallPyQt5
-	@staticmethod
-	def InstallPyQt5(QT_VERSION):
-		try:
-			from PyQt5.Qt import PYQT_VERSION_STR
-			if PYQT_VERSION_STR==QT_VERSION:
-				print("PyQt5",PYQT_VERSION_STR,"already installed")
-				return
-		except:
-			pass
-			
-		# need to install a compatible version
-		try:
-			import PyQt5.QtCore
-			if PyQt5.QtCore.QT_VERSION_STR==QT_VERSION:
-				print("PyQt5",QT_VERSION,"already installed")
-				return
-		except:
-			pass
-			
-		DeployUtils.PipUninstall(["PyQt5"])
-		for name in ["PyQt5=="+QT_VERSION] + ["PyQt5=="+QT_VERSION[0:4]+"." + str(it) for it in reversed(range(1,10))]:
-			if DeployUtils.PipInstall(["--user",name]):
-				print("Installed",name)
-				return
-			print("Failed to install",name)	
-			
-		raise Exception("Cannot install PyQt5")
-
 	# CopyQt5Plugins
 	@staticmethod
 	def CopyQt5Plugins(QT5_DIR):
@@ -198,56 +190,6 @@ class DeployUtils:
 		for it in ["iconengines","imageformats","platforms","printsupport","styles"]:
 			if os.path.isdir(os.path.join(QT_PLUGIN_PATH,it)):
 				DeployUtils.CopyDirectory(os.path.join(QT_PLUGIN_PATH,it) ,"bin/Qt/plugins")		
-
-	# CreateScript
-	@staticmethod
-	def CreateScript(filename,env):
-		
-		def setEnv(Key,Value,bAdd=False):
-			if WIN32:
-				if bAdd: Value="{};%{}%".format(Value,Key)
-				return "set {}={}".format(Key,Value)
-			else:
-				if bAdd: Value="{}:${}".format(Value,Key)
-				return "export {}={}".format(Key,Value)
-				
-		def addEnv(Key,Value):
-			return setEnv(Key,Value,bAdd=True)
-		
-		lines=[]
-		if WIN32:
-			lines+=[setEnv("this_dir","%~dp0")]
-			lines+=[setEnv("PYTHON_EXECUTABLE",sys.executable)]
-			lines+=[addEnv("PATH",";".join(["%this_dir%\\bin",os.path.dirname(sys.executable)]))]
-			
-			for key in env: 
-				lines+=[setEnv(key,env[key])]
-				
-			lines+=["%this_dir%\\{} %*".format(filename)]
-		else:	
-			LD_LIBRARY_PATH="DYLD_LIBRARY_PATH" if APPLE else "LD_LIBRARY_PATH"
-			LIBDIR=os.path.realpath(sysconfig.get_config_var("LIBDIR"))
-			
-			lines+=["#!/bin/bash"]
-			lines+=["""this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"""]
-			lines+=[setEnv("PYTHON_EXECUTABLE",sys.executable)]
-			lines+=[addEnv("PYTHONPATH",":".join(["${this_dir}"] + sys.path))]
-			lines+=[addEnv(LD_LIBRARY_PATH,LIBDIR)]
-			
-			for key in env: 
-				lines+=[setEnv(key,env[key])]
-				
-			lines+=["${this_dir}/%s $@" % (filename,) ]
-		
-		ext="bat" if WIN32 else ("command" if APPLE else "sh")
-		script_filename="%s.%s" % (DeployUtils.GetFilenameWithoutExtension(filename),ext)
-		print("Creating script",script_filename,"target",filename)
-		DeployUtils.WriteTextFile(script_filename,lines)
-			
-		if not WIN32:
-			subprocess.call(["chmod","+rx",script_filename], shell=False)	
-			subprocess.call(["chmod","+rx",filename       ], shell=False)	
-			
 
 	# PythonDist
 	@staticmethod
@@ -279,6 +221,171 @@ class DeployUtils:
 		print("Created wheel",wheel_filename)
 			
 		print("Finished dist",glob.glob('dist/*'))
+
+
+	# InstallPyQt5
+	@staticmethod
+	def InstallPyQt5(QT_VERSION):
+		try:
+			from PyQt5.Qt import PYQT_VERSION_STR
+			if PYQT_VERSION_STR==QT_VERSION:
+				print("PyQt5",PYQT_VERSION_STR,"already installed")
+				return
+		except:
+			pass
+			
+		# need to install a compatible version
+		try:
+			import PyQt5.QtCore
+			if PyQt5.QtCore.QT_VERSION_STR==QT_VERSION:
+				print("PyQt5",QT_VERSION,"already installed")
+				return
+		except:
+			pass
+			
+		DeployUtils.PipUninstall(["PyQt5"])
+		for name in ["PyQt5=="+QT_VERSION] + ["PyQt5=="+QT_VERSION[0:4]+"." + str(it) for it in reversed(range(1,10))]:
+			if DeployUtils.PipInstall(["--user",name]):
+				print("Installed",name)
+				return
+			print("Failed to install",name)	
+			
+		raise Exception("Cannot install PyQt5")
+
+	# UsePyQt
+	@staticmethod
+	def UsePyQt():
+
+		print("Forcing use of pyqt")
+		VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
+		if not VISUS_GUI:
+			raise Exception("VISUS_GUI not enabled")
+
+		QT_VERSION = DeployUtils.ReadTextFile("QT_VERSION")
+		DeployUtils.InstallPyQt5(QT_VERSION)
+
+		import PyQt5
+		Qt5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
+			
+		# for windowss see VisusGui.i (%pythonbegin section, I'm using sys.path)
+		if not WIN32:
+			deploy=AppleDeploy() if APPLE else LinuxDeploy()
+			deploy.addRPath(os.path.join(Qt5_DIR,"lib"))	
+
+		# avoid conflicts removing any Qt file
+		DeployUtils.RemoveFiles("bin/Qt*")
+
+	# CreateScript
+	@staticmethod
+	def CreateScript(script_filename,target,VISUS_GUI=False,extra_lines=[]):
+		
+		if WIN32:
+
+			lines=[
+				r"""set this_dir=%~dp0""",
+				r"""set PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}""".replace("${PYTHON_EXECUTABLE}",sys.executable),
+				r"""set PATH=%this_dir%\bin;%PYTHON_EXECUTABLE%\..;%PATH%"""]
+
+			if VISUS_GUI:
+				lines+=[
+					r"""if EXIST %this_dir%\bin\Qt (""",
+					r"""   echo "Using internal Qt5""",
+					r"""   set Qt5_DIR=%this_dir%\bin\Qt""",
+					r""") else (""",
+					r"""   echo "Using external PyQt5""",
+					r"""   for /f "usebackq tokens=*" %%G in (`%PYTHON_EXECUTABLE% -c "import os,PyQt5; print(os.path.dirname(PyQt5.__file__))"`) do set Qt5_DIR=%%G\Qt""",
+					r""")""",
+					r"""set QT_PLUGIN_PATH=%Qt5_DIR%\plugins"""]
+
+			lines+=extra_lines
+			lines+=[r"%this_dir%\${target} %*".replace("${target}",target)]
+		else:	
+
+			LD_LIBRARY_PATH="DYLD_LIBRARY_PATH" if APPLE else "LD_LIBRARY_PATH"
+			LIBDIR=os.path.realpath(sysconfig.get_config_var("LIBDIR"))
+
+			lines=[
+				"""#!/bin/bash""",
+				"""this_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"""
+				"""export PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}""".replace("${PYTHON_EXECUTABLE}",sys.executable),
+				"""export PYTHON_PATH="""+(":".join(["${this_dir}"] + sys.path)),
+				"""export """+ LD_LIBRARY_PATH + """=""" + LIBDIR]
+
+			if VISUS_GUI:
+				lines+=[	
+					"""if [ -d ${this_dir}/bin/Qt ]; then """,
+					"""   echo "Using internal Qt5""",
+					"""   export Qt5_DIR=${this_dir}/bin/Qt""",
+					"""else""",
+					"""   echo "Using external PyQt5""",
+					"""   export Qt5_DIR=$(${PYTHON_EXECUTABLE} -c "import os,PyQt5; print(os.path.dirname(PyQt5.__file__))")""",
+					"""fi""",
+					"""export QT_PLUGIN_PATH=${Qt5_DIR}/plugins"""]
+
+			lines+=extra_lines
+			lines+=["${this_dir}/" + target + " $@"]
+
+		DeployUtils.WriteTextFile(script_filename,lines)
+			
+		if not WIN32:
+			subprocess.call(["chmod","+rx",script_filename], shell=False)	
+			subprocess.call(["chmod","+rx",target         ], shell=False)	
+
+	# CreateScripts
+	@staticmethod
+	def CreateScripts():
+
+		print("Creating scripts")
+		__this_dir__=os.path.dirname(os.path.abspath(__file__))
+		os.chdir(__this_dir__)
+			
+		if WIN32:
+			DeployUtils.CreateScript("visus.bat"          ,"bin/visus.exe")
+			DeployUtils.CreateScript("visusviewer.bat"    ,"bin/visusviewer.exe",VISUS_GUI=True, extra_lines=["cd %this_dir%"])
+		elif APPLE:	
+			DeployUtils.CreateScript("visus.command"      ,"bin/visus.app/Contents/MacOS/visus")
+			DeployUtils.CreateScript("visusviewer.command","bin/visusviewer.app/Contents/MacOS/visusviewer",VISUS_GUI=True, extra_lines=["cd ${this_dir}"])
+		else:
+			DeployUtils.CreateScript("visus.sh"           ,"bin/visus")
+			DeployUtils.CreateScript("visusviewer.sh"     ,"bin/visusviewer",VISUS_GUI=True, extra_lines=["cd ${this_dir}"])
+
+		print("Done scripts creation")
+
+	# FixAllDeps
+	@staticmethod
+	def FixAllDeps():
+		__this_dir__=os.path.dirname(os.path.abspath(__file__))
+		os.chdir(__this_dir__)
+		
+		print("Executing FixAllDeps",sys.argv)
+		VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
+		
+		if VISUS_GUI:
+			QT5_DIR=DeployUtils.ExtractNamedArgument("--qt5-dir")
+			if not os.path.isdir(QT5_DIR):
+				raise Exception("--qt5-dir not specified")
+
+		if WIN32:
+			if not VISUS_GUI:
+				raise Exception("Internal error") 
+				
+			windeploy=os.path.abspath(QT5_DIR+"/../../../bin/windeployqt")
+			for exe in glob.glob("bin/*.exe"):
+				DeployUtils.ExecuteCommand([windeploy,os.path.abspath(exe),
+					"--libdir",os.path.abspath("bin"),
+					"--plugindir",os.path.abspath("bin/Qt/plugins"),
+					"--no-translations"])			
+			
+		else:
+			if VISUS_GUI: 
+				DeployUtils.CopyQt5Plugins(QT5_DIR)
+				
+			deploy=AppleDeploy() if APPLE else LinuxDeploy()
+			deploy.fixAllDeps()
+
+
+		print("Finished FixAllDeps")
+
 
 # ///////////////////////////////////////
 class AppleDeploy:
@@ -349,7 +456,6 @@ class AppleDeploy:
 		deps=[dep for dep in deps if os.path.basename(filename)!=os.path.basename(dep)]
 		return deps
 	
-
 	# getLocal
 	def getLocal(self,filename):
 		key=os.path.basename(filename)
@@ -616,51 +722,34 @@ To debug
 			self.copyGlobalDeps()
 			self.setRPath("")
 
+# ////////////////////////////////////////////////////////////////////////////////////////////////
+def Main():
+
+	if sys.argv[1]=="dirname":
+		print(os.path.dirname(os.path.abspath(__file__)))
+		sys.exit(0)	
+
+	if sys.argv[1]=="FixAllDeps":
+		DeployUtils.FixAllDeps()
+		sys.exit(0)
+		
+	if sys.argv[1]=="PythonDist":
+		DeployUtils.PythonDist()
+		sys.exit(0)
+
+	if sys.argv[1]=="UsePyQt":
+		DeployUtils.UsePyQt()
+		sys.exit(0)
+
+	if sys.argv[1]=="CreateScripts":
+		DeployUtils.CreateScripts()
+		sys.exit(0)			
+
+	print("Error in arguments",sys.argv)
+	sys.exit(-1)
 
 
 
 # ////////////////////////////////////////////////////////////////////////////////////////////////
 if __name__ == '__main__':
-	
-	# ___________________________________________________________________
-	if sys.argv[1]=="PythonDist":
-		DeployUtils.PythonDist()
-		sys.exit(0)
-		
-	# ___________________________________________________________________
-	if sys.argv[1]=="OpenVisusCMakePostInstall":
-
-		print("Executing OpenVisusCMakePostInstall",sys.argv)
-		
-		VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
-		
-		if VISUS_GUI:
-			QT5_DIR=DeployUtils.ExtractNamedArgument("--qt5-dir")
-			if not os.path.isdir(QT5_DIR):
-				raise Exception("Internal error")
-
-		if WIN32:
-			if not VISUS_GUI:
-				raise Exception("Internal error") 
-				
-			windeploy=os.path.abspath(QT5_DIR+"/../../../bin/windeployqt")
-			for exe in glob.glob("bin/*.exe"):
-				DeployUtils.ExecuteCommand([windeploy,os.path.abspath(exe),
-					"--libdir",os.path.abspath("bin"),
-					"--plugindir",os.path.abspath("bin/Qt/plugins"),
-					"--no-translations"])			
-			
-		else:
-			if VISUS_GUI: 
-				DeployUtils.CopyQt5Plugins(QT5_DIR)
-				
-			deploy=AppleDeploy() if APPLE else LinuxDeploy()
-			deploy.fixAllDeps()
-
-
-		print("Finished OpenVisusCMakePostInstall")
-		sys.exit(0)
-				
-
-	print("Error in arguments",sys.argv)
-	sys.exit(-1)
+	Main()
