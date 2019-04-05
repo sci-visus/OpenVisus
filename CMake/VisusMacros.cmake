@@ -119,6 +119,14 @@ macro(SetupCommonCMake)
 		endif()	
 		
 	endif()
+
+	if (CMAKE_CONFIGURATION_TYPES)
+		set(PYTHON_BINARY_DIR ${CMAKE_BINARY_DIR}/$<CONFIG>/${CMAKE_PROJECT_NAME})
+	else()
+		set(PYTHON_BINARY_DIR ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME})
+	endif()
+
+	set(SWIG_TYPE_TABLE ${CMAKE_PROJECT_NAME})
 	
 endmacro()
 
@@ -155,37 +163,12 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(SetupCommonOutputTargetProperties Name)
 
-	if (CMAKE_CONFIGURATION_TYPES)
+	set_target_properties(${Name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PYTHON_BINARY_DIR}/bin) 
+	set_target_properties(${Name} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${PYTHON_BINARY_DIR}/lib) 
+	set_target_properties(${Name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PYTHON_BINARY_DIR}/bin) 
 
-		set_target_properties(${Name} PROPERTIES 
-			LIBRARY_OUTPUT_DIRECTORY_DEBUG           ${CMAKE_BINARY_DIR}/Debug/OpenVisus/bin
-			LIBRARY_OUTPUT_DIRECTORY_RELEASE         ${CMAKE_BINARY_DIR}/Release/OpenVisus/bin
-			LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO  ${CMAKE_BINARY_DIR}/RelWithDebInfo/OpenVisus/bin) 
-
-		set_target_properties(${Name} PROPERTIES 
-			ARCHIVE_OUTPUT_DIRECTORY_DEBUG           ${CMAKE_BINARY_DIR}/Debug/OpenVisus/lib
-			ARCHIVE_OUTPUT_DIRECTORY_RELEASE         ${CMAKE_BINARY_DIR}/Release/OpenVisus/lib
-			ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO  ${CMAKE_BINARY_DIR}/RelWithDebInfo/OpenVisus/lib) 
-
-		set_target_properties(${Name} PROPERTIES 
-			RUNTIME_OUTPUT_DIRECTORY_DEBUG           ${CMAKE_BINARY_DIR}/Debug/OpenVisus/bin
-			RUNTIME_OUTPUT_DIRECTORY_RELEASE         ${CMAKE_BINARY_DIR}/Release/OpenVisus/bin
-			RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO  ${CMAKE_BINARY_DIR}/RelWithDebInfo/OpenVisus/bin) 
-
-		if (WIN32)
-			set_target_properties(${Name}
-				PROPERTIES
-				COMPILE_PDB_NAME_DEBUG          ${Name}
-				COMPILE_PDB_NAME_RELEASE        ${Name}
-				COMPILE_PDB_NAME_RELWITHDEBINFO ${Name})
-		endif()
-	
-	else()
-
-		set_target_properties(${Name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/OpenVisus/bin) 
-		set_target_properties(${Name} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/OpenVisus/lib)
-		set_target_properties(${Name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/OpenVisus/bin) 
-
+	if (WIN32)
+		set_target_properties(${Name} PROPERTIES COMPILE_PDB_NAME ${Name})
 	endif()
 
 endmacro()
@@ -254,8 +237,8 @@ macro(FindPythonLibrary)
 	message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
 	message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
 		
-	add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
-	set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
+	add_library(Imported::Python SHARED IMPORTED GLOBAL)
+	set_property(TARGET Imported::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
 		
 	if (WIN32)
 		list(LENGTH PYTHON_LIBRARY __n__)
@@ -285,12 +268,12 @@ macro(FindPythonLibrary)
 		  	set(PYTHON_DEBUG_LIBRARY ${PYTHON_RELEASE_LIBRARY})
 		endif()
 
-	  	set_target_properties(OpenVisus::Python PROPERTIES
+	  	set_target_properties(Imported::Python PROPERTIES
 	  	IMPORTED_IMPLIB_DEBUG           ${PYTHON_DEBUG_LIBRARY}
 	  	IMPORTED_IMPLIB_RELEASE         ${PYTHON_RELEASE_LIBRARY}
 	  	IMPORTED_IMPLIB_RELWITHDEBINFO  ${PYTHON_RELEASE_LIBRARY})
 	else()
-		set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
+		set_target_properties(Imported::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
 	endif()
 		
 	EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE}  -c  "import site;print(site.getsitepackages()[-1])"  OUTPUT_VARIABLE PYTHON_SITE_PACKAGES_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -302,7 +285,7 @@ endmacro()
 macro(LinkPythonToLibrary Name)
 
 	if (WIN32)
-		target_link_libraries(${Name} PUBLIC OpenVisus::Python)
+		target_link_libraries(${Name} PUBLIC Imported::Python)
 	else()
 		# for apple and linux I'm linking python only for Executables (or final shared dll such as  mod_visus) 
 		# otherwise I'm going to have multiple libpython in the same process
@@ -323,13 +306,13 @@ macro(LinkPythonToExecutable Name)
 	if (WIN32)
 		# already linked
 		elseif (APPLE)
-		target_link_libraries(${Name} PUBLIC OpenVisus::Python)
+		target_link_libraries(${Name} PUBLIC Imported::Python)
 	else()
 		# for nix is trickier since the linking order is important
 		# the "-Wl,--start-group" does not always work (for example in travis)
 		# see http://cmake.3232098.n2.nabble.com/Link-order-Ubuntu-tt7598592.html
 		# i found this trick: VisusKernel should appear always before python 
-		target_link_libraries(${Name} PUBLIC $<TARGET_FILE:VisusKernel> OpenVisus::Python)
+		target_link_libraries(${Name} PUBLIC $<TARGET_FILE:VisusKernel> Imported::Python)
 	endif()
 		
 endmacro()
@@ -376,11 +359,11 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 	find_package(SWIG 3.0 REQUIRED)
 	include(${SWIG_USE_FILE})
 
+	string(REPLACE "$<CONFIG>" "${CMAKE_CFG_INTDIR}" CMAKE_SWIG_OUTDIR ${PYTHON_BINARY_DIR})
+
 	if (CMAKE_CONFIGURATION_TYPES)
-		set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/OpenVisus)
 		set(SWIG_OUTFILE_DIR  ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
 	else()
-		set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/OpenVisus)
 		set(SWIG_OUTFILE_DIR  ${CMAKE_BINARY_DIR})
 	endif()
 
@@ -403,7 +386,7 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 	endif()
 		
 	# important to share types between modules
-	set_source_files_properties (${swig_generated_file_fullname} PROPERTIES COMPILE_FLAGS "-DSWIG_TYPE_TABLE=OpenVisus")	
+	set_source_files_properties (${swig_generated_file_fullname} PROPERTIES COMPILE_FLAGS "-DSWIG_TYPE_TABLE=${SWIG_TYPE_TABLE}")	
 		
 	if (TARGET _${NamePy})
 		set(RealName _${NamePy})
@@ -431,51 +414,6 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 	
 endmacro()
 
-
-# //////////////////////////////////////////////////////////////////////////
-macro(AddExternalApp name SourceDir BinaryDir)
-	if (WIN32 OR APPLE)
-		set(CMAKE_GENERATOR_ARGUMENT -G"${CMAKE_GENERATOR}")
-	else()
-		set(CMAKE_GENERATOR_ARGUMENT -G"\"${CMAKE_GENERATOR}\"")
-	endif()
-	add_custom_target(${name} 
-	          "${CMAKE_COMMAND}" -E echo "Running ${name} ..."
-		COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DQt5_DIR="${Qt5_DIR}" -DOpenVisus_DIR=${CMAKE_INSTALL_PREFIX}/OpenVisus
-		COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/" --config ${CMAKE_BUILD_TYPE})
-	set_target_properties(${name} PROPERTIES FOLDER CMakeTargets/)
-endmacro()
-
-
-# //////////////////////////////////////////////////////////////////////////
-macro(AddCTest Name Command WorkingDirectory)
-
-	add_test(NAME ${Name} 
-		WORKING_DIRECTORY "${WorkingDirectory}" 
-		COMMAND "${Command}" ${ARGN})
-	
-	set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1")
-	
-	if (CMAKE_CONFIGURATION_TYPES)
-		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}/$<CONFIG>")
-	else()
-		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "PYTHONPATH=${CMAKE_BINARY_DIR}")
-	endif()
-	
-	if (WIN32)
-		if (VISUS_GUI)
-			set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "PATH=${Qt5_DIR}/../../../bin")
-	endif()
-		
-	elseif(APPLE)
-		# empty line
-		
-	else()
-		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/OpenVisus/bin")
-		
-	endif()
-
-endmacro()
 
 # //////////////////////////////////////////////////////////////////////////
 macro(FindGit)

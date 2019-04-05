@@ -426,43 +426,41 @@ function BuildOpenVisus {
 	PushCMakeOption VISUS_GUI              ${VISUS_GUI}
 	PushCMakeOption CMAKE_BUILD_TYPE       ${CMAKE_BUILD_TYPE}
 
-  
 	if (( OSX == 1 )) ; then
-	
-    cmake -GXcode ${cmake_opts} ${SOURCE_DIR}
 
-    # this is to solve logs too long
-    if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
-      sudo gem install xcpretty
-      set -o pipefail && cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
-    else
-      cmake                    --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
-    fi
+	 cmake -GXcode ${cmake_opts} ${SOURCE_DIR}
 
-    cmake --build ./ --target install --config ${CMAKE_BUILD_TYPE}
+	 # this is to solve logs too long
+	 if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
+		sudo gem install xcpretty
+		set -o pipefail && cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
+	 else
+		cmake                    --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
+	 fi
 
-  else
-    cmake ${cmake_opts} ${SOURCE_DIR}
-    cmake --build . --target all -- -j 4
-    cmake --build . --target install
-  fi
-  
-  if (( FAST_MODE==1 )) ; then
-  
-  	export PYTHONPATH=${BUILD_DIR}/install:${PYTHONPATH}
-  
-  else
-  
-  	if (( OSX == 1 )) ; then
-    	cmake --build ./ --target dist    --config ${CMAKE_BUILD_TYPE}
-  	else
-    	cmake --build . --target dist
-  	fi
-  	
-	  WHEEL_FILENAME=$(find ${BUILD_DIR}/install/OpenVisus/dist -iname "*.whl")
-	  python -m pip install --ignore-installed "${WHEEL_FILENAME}"  	
-  	
-  fi
+	 cmake --build ./ --target install --config ${CMAKE_BUILD_TYPE}
+
+	else
+		cmake ${cmake_opts} ${SOURCE_DIR}
+		cmake --build . --target all -- -j 4
+		cmake --build . --target install
+	fi
+
+	if (( FAST_MODE==1 )) ; then
+		export PYTHONPATH=${BUILD_DIR}/install:${PYTHONPATH}
+
+	else
+
+		if (( OSX == 1 )) ; then
+		 	cmake --build ./ --target dist    --config ${CMAKE_BUILD_TYPE}
+		else
+		 	cmake --build ./ --target dist
+		fi
+
+		WHEEL_FILENAME=$(find ${BUILD_DIR}/install/OpenVisus/dist -iname "*.whl")
+		python -m pip install --ignore-installed "${WHEEL_FILENAME}"  	
+
+	fi
 }
 
 # //////////////////////////////////////////////////////

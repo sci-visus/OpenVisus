@@ -18,10 +18,9 @@ if (NOT (${CMAKE_VERSION} VERSION_LESS "3.13"))
   cmake_policy(SET CMP0078 OLD) #controls names of SWIG targets
 endif()
 
-PROJECT(ViSUS) 
+PROJECT(OpenVisus) 
 
 # //////////////////////////////////////////////////////////////
-MESSAGE(STATUS "CMAKE_BINARY_DIR ${CMAKE_BINARY_DIR}")
 set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE PATH "" FORCE)
 
 if (WIN32)
@@ -65,12 +64,7 @@ endif()
 
 FindPythonLibrary()
 
-if (CMAKE_CONFIGURATION_TYPES)
-	file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
-else()
-	file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/OpenVisus/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
-endif()
-
+file(GENERATE OUTPUT ${PYTHON_BINARY_DIR}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
 
 
 if (VISUS_GUI)
@@ -92,11 +86,7 @@ if (VISUS_GUI)
 	MESSAGE(STATUS "Qt5_DIR ${Qt5_DIR}")
 	MESSAGE(STATUS "Qt5Core_VERSION_STRING ${Qt5Core_VERSION_STRING}")
 
-	if (CMAKE_CONFIGURATION_TYPES)
-		file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/QT_VERSION CONTENT ${Qt5Core_VERSION_STRING})
-	else()
-		file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/OpenVisus/QT_VERSION CONTENT ${Qt5Core_VERSION_STRING})
-	endif()
+	file(GENERATE OUTPUT ${PYTHON_BINARY_DIR}/QT_VERSION CONTENT ${Qt5Core_VERSION_STRING})
 	
 endif()
 
@@ -104,44 +94,19 @@ if (VISUS_OSPRAY)
 	find_package(ospray REQUIRED)
 endif()
 
+# copy py files to build
+if (1)
+	file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/CMake/*.py)
+	foreach(__src__ ${PyFiles})
+		get_filename_component(__basename__ ${__src__} NAME)
+		set(__dst__ "${PYTHON_BINARY_DIR}/${__basename__}")
+		file(GENERATE OUTPUT ${__dst__} INPUT ${__src__})
+	endforeach()
+endif()
+
 add_subdirectory(Libs)
 add_subdirectory(Executable)
 
-
-# //////////////////////////////////////////////////////////////
-# *** testing and external apps ***
-if (VISUS_TEST)
-
-	# testing
-	enable_testing()
-
-	AddCTest(VisusTestPyDataflow ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Dataflow.py)
-	AddCTest(VisusTestPyArray    ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Array.py)
-	AddCTest(VisusTestPyIdx      ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py)
-	AddCTest(VisusTestPyXIdx     ${PYTHON_EXECUTABLE}  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py)
-
-
-	# disabled: takes too much time, in case you modify some core IDX class you can run it manually
-	if (0)
-		AddCTest(VisusTestIdx      $<TARGET_FILE:visus> ${CMAKE_CURRENT_SOURCE_DIR}  --test-idx --max-seconds 300)
-	endif()
-	
-	# external app
-	if (CMAKE_CONFIGURATION_TYPES)
-		AddExternalApp(simple_query ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query    ${CMAKE_BINARY_DIR}/$<CONFIG>/Samples/simple_query)
-	else()
-		AddExternalApp(simple_query ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query    ${CMAKE_BINARY_DIR}/Samples/simple_query)
-	endif()
-
-	if (VISUS_GUI)
-		if (CMAKE_CONFIGURATION_TYPES)
-			AddExternalApp(simple_viewer2d ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_viewer2d ${CMAKE_BINARY_DIR}/$<CONFIG>/Samples/simple_viewer2d)
-		else()
-			AddExternalApp(simple_viewer2d ${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_viewer2d ${CMAKE_BINARY_DIR}/Samples/simple_viewer2d)
-		endif()
-	endif()
-
-endif()
 
 # //////////////////////////////////////////////////////////////
 # install
@@ -157,12 +122,8 @@ if (1)
 	install(DIRECTORY    CMake                                         DESTINATION OpenVisus)
 	install(DIRECTORY    datasets                                      DESTINATION OpenVisus)
 
-	if (CMAKE_CONFIGURATION_TYPES)
-		install(DIRECTORY    ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/   DESTINATION OpenVisus) 
-	else()	
-		install(DIRECTORY    ${CMAKE_BINARY_DIR}/OpenVisus/             DESTINATION OpenVisus) 
-	endif()
-	
+	install(DIRECTORY    ${PYTHON_BINARY_DIR}/                         DESTINATION OpenVisus) 
+
 	# includes
 	install(DIRECTORY    Libs/Kernel/include/Visus                     DESTINATION OpenVisus/include/Kernel/)
 	install(DIRECTORY    Libs/Dataflow/include/Visus                   DESTINATION OpenVisus/include/Dataflow/)
@@ -226,3 +187,62 @@ if (WIN32)
 	set_property(TARGET dist PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 
+
+# //////////////////////////////////////////////////////////////
+# *** testing (to call after INSTALL) ***
+if (VISUS_TEST)
+
+	# testing
+	enable_testing()
+
+	macro(AddOpenVisusTest Name)
+		add_test(NAME ${Name} ${ARGN})
+		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1")
+		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "PYTHONPATH=${CMAKE_INSTALL_PREFIX}")
+	endmacro()
+	
+	AddOpenVisusTest(VisusTestPyDataflow COMMAND "${PYTHON_EXECUTABLE}"    "${CMAKE_INSTALL_PREFIX}/OpenVisus/Samples/python/Dataflow.py")
+	AddOpenVisusTest(VisusTestPyArray    COMMAND "${PYTHON_EXECUTABLE}"    "${CMAKE_INSTALL_PREFIX}/OpenVisus/Samples/python/Array.py")
+	AddOpenVisusTest(VisusTestPyIdx      COMMAND "${PYTHON_EXECUTABLE}"    "${CMAKE_INSTALL_PREFIX}/OpenVisus/Samples/python/Idx.py")
+	AddOpenVisusTest(VisusTestPyXIdx     COMMAND "${PYTHON_EXECUTABLE}"    "${CMAKE_INSTALL_PREFIX}/OpenVisus/Samples/python/Idx.py")
+
+	# disabled: takes too much time, in case you modify some core IDX class you can run it manually
+	# AddOpenVisusTest(NAME VisusTestIdx COMMAND "$<TARGET_FILE:visus>"         "${CMAKE_INSTALL_PREFIX}/OpenVisus" --test-idx --max-seconds 300)
+endif()
+
+
+# //////////////////////////////////////////////////////////////
+# *** external apps (dependent on install)
+if (1)
+
+	# external app
+	macro(AddOpenVisusExternalApp SourceDir)
+
+		get_filename_component(Name ${SourceDir} NAME_WE   )
+
+		if (WIN32 OR APPLE)
+			set(CMAKE_GENERATOR_ARGUMENT -G"${CMAKE_GENERATOR}")
+		else()
+			set(CMAKE_GENERATOR_ARGUMENT -G"\"${CMAKE_GENERATOR}\"")
+		endif()
+
+		if (CMAKE_CONFIGURATION_TYPES)
+			set(BinaryDir ${CMAKE_BINARY_DIR}/$<CONFIG>/ExternalApps/${Name})
+		else()
+			set(BinaryDir ${CMAKE_BINARY_DIR}/ExternalApps/${Name})
+		endif()
+
+		add_custom_target(${Name} 
+			COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DQt5_DIR="${Qt5_DIR}" -DOpenVisus_DIR=${CMAKE_INSTALL_PREFIX}/OpenVisus
+			COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/" --config ${CMAKE_BUILD_TYPE})
+		set_target_properties(${Name} PROPERTIES FOLDER CMakeTargets/)
+	endmacro()
+
+
+	AddOpenVisusExternalApp(${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query)
+
+	if (VISUS_GUI)
+		AddOpenVisusExternalApp(${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_viewer2d)
+	endif()
+
+endif()

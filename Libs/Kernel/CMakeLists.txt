@@ -336,9 +336,6 @@ IF (WIN32 OR APPLE)
 	file(GLOB MM_FILES src/*.mm)
 endif()
 
-file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/src/*.py)
-source_group("PyFiles" FILES ${PyFiles})
-
 file(GLOB Sources 
 	${RootFiles}
 	include/Visus/*.h 
@@ -346,7 +343,6 @@ file(GLOB Sources
 	src/*.cpp 
 	src/*.h
 	${MM_FILES} 
-	${PyFiles}
 )
 
 AddLibrary(VisusKernel ${Sources})
@@ -446,17 +442,6 @@ else()
 	target_link_libraries(VisusKernel PUBLIC  pthread)
 
 endif()
-
-# copy py files to build
-foreach(__src__ ${PyFiles})
-	get_filename_component(__basename__ ${__src__} NAME)
-	if (CMAKE_CONFIGURATION_TYPES)
-		set(__dst__ "${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/${__basename__}")
-	else()
-		set(__dst__ "${CMAKE_BINARY_DIR}/OpenVisus/${__basename__}")
-	endif()
-	file(GENERATE OUTPUT ${__dst__} INPUT ${__src__})
-endforeach()
 
 AddSwigLibrary(VisusKernelPy 
 	VisusKernel 

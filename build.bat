@@ -68,11 +68,11 @@ REM setup step
 REM build step
 "%CMAKE_EXECUTABLE%" --build . --target ALL_BUILD --config RelWithDebInfo
 
-REM run test step
-"%CMAKE_EXECUTABLE%" --build . --target RUN_TESTS --config RelWithDebInfo
-
 REM install step
 "%CMAKE_EXECUTABLE%" --build . --target INSTALL   --config RelWithDebInfo
+
+REM run test step
+"%CMAKE_EXECUTABLE%" --build . --target RUN_TESTS --config RelWithDebInfo
  
 REM dist step
 "%CMAKE_EXECUTABLE%" --build . --target dist      --config RelWithDebInfo
