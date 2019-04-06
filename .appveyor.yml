@@ -59,7 +59,7 @@ build_script:
 test: off
 
 artifacts:
-    - path: build\RelWithDebInfo\OpenVisus\dist\*.zip
+    - path: build\RelWithDebInfo\site-packages\OpenVisus\dist\*.zip
       name: GitHubReleasesArtifact
  
 deploy:

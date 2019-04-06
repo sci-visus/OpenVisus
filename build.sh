@@ -452,7 +452,6 @@ function BuildOpenVisus {
 	 	WHEEL_FILENAME=$(find ${BUILD_DIR}/RelWithDebInfo/site-packages/OpenVisus/dist -iname "*.whl")
 	else
 	 	cmake --build ./ --target dist
-	 	
 	 	WHEEL_FILENAME=$(find ${BUILD_DIR}/site-packages/OpenVisus/dist -iname "*.whl")
 	fi
 
