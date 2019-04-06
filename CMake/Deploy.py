@@ -325,14 +325,19 @@ class DeployUtils:
 		os.chdir(__this_dir__)
 			
 		if WIN32:
-			DeployUtils.CreateScript("visus.bat"          ,"bin/visus.exe")
-			DeployUtils.CreateScript("visusviewer.bat"    ,"bin/visusviewer.exe",VISUS_GUI=True, extra_lines=["cd %this_dir%"])
+			DeployUtils.CreateScript("visus.bat","bin/visus.exe")
+			if os.path.isfile("bin/visusviewer.exe"):
+				DeployUtils.CreateScript("visusviewer.bat","bin/visusviewer.exe",VISUS_GUI=True, extra_lines=["cd %this_dir%"])
+
 		elif APPLE:	
-			DeployUtils.CreateScript("visus.command"      ,"bin/visus.app/Contents/MacOS/visus")
-			DeployUtils.CreateScript("visusviewer.command","bin/visusviewer.app/Contents/MacOS/visusviewer",VISUS_GUI=True, extra_lines=["cd ${this_dir}"])
+			DeployUtils.CreateScript("visus.command","bin/visus.app/Contents/MacOS/visus")
+			if os.path.isdir("bin/visusviewer.app"):
+				DeployUtils.CreateScript("visusviewer.command","bin/visusviewer.app/Contents/MacOS/visusviewer",VISUS_GUI=True, extra_lines=["cd ${this_dir}"])
+
 		else:
-			DeployUtils.CreateScript("visus.sh"           ,"bin/visus")
-			DeployUtils.CreateScript("visusviewer.sh"     ,"bin/visusviewer",VISUS_GUI=True, extra_lines=["cd ${this_dir}"])
+			DeployUtils.CreateScript("visus.sh","bin/visus")
+			if os.path.isfile("bin/visusviewer"):
+				DeployUtils.CreateScript("visusviewer.sh","bin/visusviewer",VISUS_GUI=True, extra_lines=["cd ${this_dir}"])
 
 		print("Done scripts creation")
 
