@@ -175,7 +175,11 @@ class DeployUtils:
 	@staticmethod
 	def PythonDist():
 
-		print("Executing dist",sys.argv)	
+		print("Executing dist",sys.argv)
+		
+		__this_dir__=os.path.dirname(os.path.abspath(__file__))
+		os.chdir(__this_dir__)	
+
 		DeployUtils.PipInstall(["--upgrade","--user","setuptools"])	
 		DeployUtils.PipInstall(["--upgrade","--user","wheel"     ])	
 		DeployUtils.RemoveFiles("dist/*")
@@ -201,7 +205,6 @@ class DeployUtils:
 		print("Created wheel",wheel_filename)
 			
 		print("Finished dist",glob.glob('dist/*'))
-
 
 	# InstallPyQt5
 	@staticmethod
@@ -236,7 +239,7 @@ class DeployUtils:
 	@staticmethod
 	def UsePyQt():
 
-		print("Executing UsePyQt")
+		print("Executing UsePyQt",sys.argv)
 		
 		__this_dir__=os.path.dirname(os.path.abspath(__file__))
 		os.chdir(__this_dir__)		

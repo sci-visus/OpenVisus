@@ -148,7 +148,7 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** dist (to call after INSTALL) ***
 if (1)
-	add_custom_target(dist COMMAND ${PYTHON_EXECUTABLE} -u Deploy.py PythonDist WORKING_DIRECTORY ${PYTHON_BINARY_DIR})
+	add_custom_target(dist COMMAND ${PYTHON_EXECUTABLE} -u \"${PYTHON_BINARY_DIR}/Deploy.py\" PythonDist)
 	set_property(TARGET dist PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 
