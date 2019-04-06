@@ -359,20 +359,29 @@ function InstallPython {
 
     # this is necessary for osx 10.14
     if (( OSX == 1 )) ; then
-      brew install zlib openssl
+      brew reinstall  readline 
+      __CFLAGS__+="   -I$(brew --prefix readline)/include"
+      __CPPFLAGS__+=" -I$(brew --prefix readline)/include"
+      __LDFLAGS__+="  -L$(brew --prefix readline)/lib"
+      
+      brew reinstall  zlib 
       __CFLAGS__+="   -I$(brew --prefix zlib)/include"
       __CPPFLAGS__+=" -I$(brew --prefix zlib)/include"
       __LDFLAGS__+="  -L$(brew --prefix zlib)/lib"
+      
+      brew reinstall  openssl
       __CFLAGS__+="   -I$(brew --prefix openssl)/include"
       __CPPFLAGS__+=" -I$(brew --prefix openssl)/include"
       __LDFLAGS__+="  -L$(brew --prefix openssl)/lib"
+      
     else
       export CXX=g++
       if [[ "$OPENSSL_INCLUDE_DIR" != "" ]] ; then
-        __CFLAGS__+="-I${OPENSSL_INCLUDE_DIR}"
+        __CFLAGS__+="  -I${OPENSSL_INCLUDE_DIR}"
         __CPPFLAGS__+="-I${OPENSSL_INCLUDE_DIR}"
-        __LDFLAGS__+="-L${OPENSSL_LIB_DIR}"
+        __LDFLAGS__+=" -L${OPENSSL_LIB_DIR}"
       fi
+      
     fi
 
     CONFIGURE_OPTS="--enable-shared" CFLAGS="${__CFLAGS__}" CPPFLAGS="${__CPPFLAGS__}" LDFLAGS="${__LDFLAGS__}" pyenv install --skip-existing ${PYTHON_VERSION}
