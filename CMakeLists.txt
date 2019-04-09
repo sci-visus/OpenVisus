@@ -76,27 +76,25 @@ endif()
 add_subdirectory(Libs)
 add_subdirectory(Executable)
 
-# //////////////////////////////////////////////////////////////
-# copy files to build dir
-macro(GenerateOutput dst_filename)
-	if (CMAKE_CONFIGURATION_TYPES)
-		file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/$<CONFIG>/site-packages/${CMAKE_PROJECT_NAME}/${dst_filename}           ${ARGN})
-	else()
-		file(GENERATE OUTPUT ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/site-packages/${CMAKE_PROJECT_NAME}/${dst_filename} ${ARGN})
-	endif()
-endmacro()
+if (CMAKE_CONFIGURATION_TYPES)
+	set(OpenVisus_DIR ${CMAKE_BINARY_DIR}/$<CONFIG>/site-packages/${CMAKE_PROJECT_NAME})
+else()
+	set(OpenVisus_DIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/site-packages/${CMAKE_PROJECT_NAME})
+endif()
 
-GenerateOutput(PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+
+# //////////////////////////////////////////////////////////////
+file(GENERATE OUTPUT ${OpenVisus_DIR}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
 
 if (VISUS_GUI)
-	GenerateOutput(QT_VERSION CONTENT ${Qt5Core_VERSION_STRING})
+	file(GENERATE OUTPUT ${OpenVisus_DIR}/QT_VERSION CONTENT ${Qt5Core_VERSION_STRING})
 endif()
 
 # copy py files to build
 file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/CMake/*.py)
 foreach(src_filename ${PyFiles})
 	get_filename_component(src_basename ${src_filename} NAME)
-	GenerateOutput(${src_basename} INPUT ${src_filename})
+	file(GENERATE OUTPUT ${OpenVisus_DIR}/${src_basename} INPUT ${src_filename})
 endforeach()
 
 
@@ -108,11 +106,9 @@ if (1)
 	mark_as_advanced(CMAKE_INSTALL_PREFIX)
 
 	if (CMAKE_CONFIGURATION_TYPES)
-		set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_CONFIG_NAME}/site-packages/${CMAKE_PROJECT_NAME})
-	else()
-		set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/site-packages/${CMAKE_PROJECT_NAME})
+		string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" INSTALL_DIRECTORY ${OpenVisus_DIR})
 	endif()
-	
+
 	install(FILES          LICENSE                                       DESTINATION ${INSTALL_DIRECTORY})
 	install(FILES          README.md                                     DESTINATION ${INSTALL_DIRECTORY})
 	install(FILES          CMake/OpenVisusConfig.cmake                   DESTINATION ${INSTALL_DIRECTORY})
@@ -160,7 +156,7 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** dist (to call after INSTALL) ***
 if (1)
-	add_custom_target(dist COMMAND ${PYTHON_EXECUTABLE} -u \"${INSTALL_DIRECTORY}/Deploy.py\" PythonDist)
+	add_custom_target(dist COMMAND ${PYTHON_EXECUTABLE} -u \"${CMAKE_CURRENT_SOURCE_DIR}/CMake/Deploy.py\" PythonDist)
 	set_property(TARGET dist PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 
@@ -174,7 +170,7 @@ if (1)
 	macro(AddOpenVisusTest Name)
 		add_test(NAME ${Name} ${ARGN})
 		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1")
-		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "PYTHONPATH=${INSTALL_DIRECTORY}/..")
+		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "PYTHONPATH=${OpenVisus_DIR}/..")
 	endmacro()
 	
 	AddOpenVisusTest(VisusTestPyDataflow COMMAND "${PYTHON_EXECUTABLE}"    "${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Dataflow.py")
@@ -209,7 +205,7 @@ if (1)
 		endif()
 
 		add_custom_target(${Name} 
-			COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DQt5_DIR="${Qt5_DIR}" -DOpenVisus_DIR=${INSTALL_DIRECTORY}
+			COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DQt5_DIR="${Qt5_DIR}" -DOpenVisus_DIR=${OpenVisus_DIR}
 			COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/" --config ${CMAKE_BUILD_TYPE})
 		set_target_properties(${Name} PROPERTIES FOLDER CMakeTargets/)
 	endmacro()
