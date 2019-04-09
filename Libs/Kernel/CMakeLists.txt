@@ -6,7 +6,7 @@ add_definitions(-DGIT_REVISION=${GIT_REVISION})
 # *** VISUS_INTERNAL_DEFAULT ***
 if (NOT DEFINED VISUS_INTERNAL_DEFAULT)
 	if (WIN32)
-		if (VCPKG)
+		if (CMAKE_TOOLCHAIN_FILE)
 			set(VISUS_INTERNAL_DEFAULT 0)
 		else()
 			set(VISUS_INTERNAL_DEFAULT 1)
@@ -108,7 +108,7 @@ if (VISUS_NET)
 		endif()
 		find_package(CURL REQUIRED)
 		# see https://github.com/Microsoft/vcpkg/issues/1909
-	 	if (VCPKG)
+	 	if (CMAKE_TOOLCHAIN_FILE)
 			list(LENGTH CURL_LIBRARY CURL_LIBRARY_LENGTH)
 			if (CURL_LIBRARY_LENGTH EQUAL 1)
 				set(CURL_LIBRARY_DEBUG_LIB   ${CURL_LIBRARY})
@@ -452,6 +452,8 @@ endif()
 
 AddSwigLibrary(VisusKernelPy 
 	VisusKernel 
+	OpenVisus
 	${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
+
 	  

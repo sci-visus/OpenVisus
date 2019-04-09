@@ -1,6 +1,6 @@
 DisableAllWarnings()
 
-AddStaticLibrary(lz4  
+AddInternalLibrary(lz4  
 	lz4.c  
 	lz4.h  
 	lz4frame.c  

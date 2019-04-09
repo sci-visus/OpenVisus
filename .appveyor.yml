@@ -9,6 +9,7 @@ notifications:
     on_build_status_changed: true  
    
 environment:
+  CMAKE_BUILD_TYPE: RelWithDebInfo
   QT5_DIR: C:/Qt/5.11/msvc2017_64/lib/cmake/Qt5
   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
   CMAKE_GENERATOR: Visual Studio 15 2017 Win64
@@ -54,12 +55,12 @@ build_script:
   - cmd: echo password = %PYPI_PASSWORD%                 >> %USERPROFILE%\\.pypirc
   - cmd: set HOME=%USERPROFILE%
   - cmd: if "%APPVEYOR_REPO_TAG%" == "true" ( %PYTHON_EXECUTABLE% -m pip install --user --upgrade twine )
-  - cmd: if "%APPVEYOR_REPO_TAG%" == "true" ( %PYTHON_EXECUTABLE% -m twine upload --skip-existing "%APPVEYOR_BUILD_FOLDER%/build/RelWithDebInfo/site-packages/OpenVisus/dist/*.whl" ) 
+  - cmd: if "%APPVEYOR_REPO_TAG%" == "true" ( %PYTHON_EXECUTABLE% -m twine upload --skip-existing "%APPVEYOR_BUILD_FOLDER%/build/%CMAKE_BUILD_TYPE%/site-packages/OpenVisus/dist/*.whl" ) 
 
 test: off
 
 artifacts:
-    - path: build\RelWithDebInfo\site-packages\OpenVisus\dist\*.zip
+    - path: build\%CMAKE_BUILD_TYPE%\site-packages\OpenVisus\dist\*.zip
       name: GitHubReleasesArtifact
  
 deploy:

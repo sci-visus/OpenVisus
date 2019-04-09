@@ -18,6 +18,7 @@ endif()
 
 AddSwigLibrary(VisusGuiNodesPy 
 	VisusGuiNodes 
+	OpenVisus
 	${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiNodesPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"

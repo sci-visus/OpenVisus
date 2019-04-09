@@ -20,118 +20,56 @@ macro(SetIfNotDefined name value)
 endmacro()
 
 # //////////////////////////////////////////////////////////////////////////
-macro(DetectOsxVersion)
-
-	if (NOT CMAKE_C_COMPILER)
-		MESSAGE(FATAL "Empty CMAKE_C_COMPILER, do you have a compiler installed?")
-	endif()
-
-	execute_process(COMMAND ${CMAKE_C_COMPILER} -dumpmachine OUTPUT_VARIABLE MACHINE OUTPUT_STRIP_TRAILING_WHITESPACE)
-	string(REGEX REPLACE ".*-darwin([0-9]+).*" "\\1" _apple_ver "${MACHINE}")
-	
-	if (_apple_ver EQUAL "18")
-		set(APPLE_OSX_VERSION 10.14)
-	elseif (_apple_ver EQUAL "17")
-		set(APPLE_OSX_VERSION 10.13)
-	elseif (_apple_ver EQUAL "16")
-		set(APPLE_OSX_VERSION 10.12)
-	elseif (_apple_ver EQUAL "15")
-		set(APPLE_OSX_VERSION 10_11)
-	elseif (_apple_ver EQUAL "14")
-		set(APPLE_OSX_VERSION 10_10)
-	elseif (_apple_ver EQUAL "13")
-		set(APPLE_OSX_VERSION 10_9)
-	elseif (_apple_ver EQUAL "12")
-		set(APPLE_OSX_VERSION 10_8)
-	elseif (_apple_ver EQUAL "11")
-		set(APPLE_OSX_VERSION 10_7)
-	elseif (_apple_ver EQUAL "10")
-		set(APPLE_OSX_VERSION 10_6)
-	else()
-		message(FATAL "Unknown osx version ${APPLE_OSX_VERSION}")
-	endif()
-	message(STATUS "APPLE_OSX_VERSION ${APPLE_OSX_VERSION}") 
-
-endmacro()
-
-
-# //////////////////////////////////////////////////////////////////////////
 macro(SetupCommonCMake)
 
-	if (NOT __SETUP_COMMON_CMAKE__)
-	
-		set(__SETUP_COMMON_CMAKE__ 1)
-	
-		set(CMAKE_CXX_STANDARD 11)
-		set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-		set_property(GLOBAL PROPERTY USE_FOLDERS ON)  
-		set(CMAKE_NUM_PROCS 8)   
-		
-		option(BUILD_SHARED_LIBS "Build the shared library" TRUE)
-		
-		# multi-config generator
-		if (CMAKE_CONFIGURATION_TYPES)
-		
-			message(STATUS "Cmake is using multi-config generator (${CMAKE_CONFIGURATION_TYPES})")	
-			add_compile_options("$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
-			
-		else()
-
-			message(STATUS "Cmake is using single-config generator")
-			
-			if(NOT CMAKE_BUILD_TYPE)
-			  set(CMAKE_BUILD_TYPE "Release")
-			endif()
-			 
-			if (CMAKE_BUILD_TYPE EQUAL "Debug")
-				add_compile_options("$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
-			endif()
-			
-		endif()	
-		
-		if (WIN32)
-			if (CMAKE_TOOLCHAIN_FILE)
-				set(VCPKG 1)
-			else()
-				set(VCPKG 0)
-			endif()	
-			
-			# on windows I'm always using the Release version because
-			# (1) numpy is not available in debug mode
-			# (2) lot of problems/incompatibilities happens (for example: https://github.com/swig/swig/issues/1321)			
-			SET(SWIG_PYTHON_INTERPRETER_NO_DEBUG "1" CACHE INTERNAL "")
-			MESSAGE(STATUS "Forcing SWIG_PYTHON_INTERPRETER_NO_DEBUG for windows")
-			
-		endif()		
-		
-		if (APPLE)
-			DetectOsxVersion()
-			set(CMAKE_MACOSX_BUNDLE YES)
-			set(CMAKE_MACOSX_RPATH  0)	 # disable rpath
+	if (NOT CMAKE_CONFIGURATION_TYPES)
+		if(NOT CMAKE_BUILD_TYPE)
+		  set(CMAKE_BUILD_TYPE "Release")
 		endif()
-		
-		if (WIN32)
-			set(SCRIPT_EXTENSION ".bat")
-		elseif (APPLE)
-			set(SCRIPT_EXTENSION ".command")
-		else()
-			set(SCRIPT_EXTENSION ".sh")
-		endif()	
-		
 	endif()
+	
+	set(CMAKE_CXX_STANDARD 11)
+	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+	set_property(GLOBAL PROPERTY USE_FOLDERS ON)  
 
 	if (CMAKE_CONFIGURATION_TYPES)
-		set(PYTHON_BINARY_DIR ${CMAKE_BINARY_DIR}/$<CONFIG>/site-packages/${CMAKE_PROJECT_NAME})
+		add_compile_options("$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
 	else()
-		set(PYTHON_BINARY_DIR ${CMAKE_BINARY_DIR}/site-packages/${CMAKE_PROJECT_NAME})
+		if (CMAKE_BUILD_TYPE EQUAL "Debug")
+			add_compile_options("-DVISUS_DEBUG=1")	
+		endif()
+	endif()	
+	
+	# on windows I'm always using the Release version because
+	# (1) numpy is not available in debug mode
+	# (2) lot of problems/incompatibilities happens (for example: https://github.com/swig/swig/issues/1321)			
+	if (WIN32)
+		SET(SWIG_PYTHON_INTERPRETER_NO_DEBUG "1" CACHE INTERNAL "")
+		MESSAGE(STATUS "Forcing SWIG_PYTHON_INTERPRETER_NO_DEBUG for windows")
+	endif()		
+	
+	if (APPLE)
+		set(CMAKE_MACOSX_BUNDLE YES)
+		set(CMAKE_MACOSX_RPATH  0)	 # disable rpath
 	endif()
-
-	set(SWIG_TYPE_TABLE ${CMAKE_PROJECT_NAME})
 	
 endmacro()
 
+# ///////////////////////////////////////////////////
+macro(SetTargetOutputDirectory Name BinDir LibDir)
+	if (CMAKE_CONFIGURATION_TYPES)
+		set_target_properties(${Name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/${BinDir}) 
+		set_target_properties(${Name} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/${LibDir}) 
+		set_target_properties(${Name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/${BinDir}) 
+	else()
+		set_target_properties(${Name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${BinDir}) 
+		set_target_properties(${Name} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${LibDir}) 
+		set_target_properties(${Name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${BinDir}) 
+	endif()
+endmacro()
+
 # //////////////////////////////////////////////////////////////////////////
-macro(SetupCommonCompileOptions Name)
+macro(SetupCommonTargetOptions Name)
 
 	if (WIN32)
 
@@ -152,6 +90,7 @@ macro(SetupCommonCompileOptions Name)
 	
 		# enable 64 bit file support (see http://learn-from-the-guru.blogspot.it/2008/02/large-file-support-in-linux-for-cc.html)
 		target_compile_options(${Name} PRIVATE -D_FILE_OFFSET_BITS=64)
+
 		# -Wno-attributes to suppress spurious "type attributes ignored after type is already defined" messages 
 		# see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
 		target_compile_options(${Name} PRIVATE -Wno-attributes)	
@@ -160,25 +99,14 @@ macro(SetupCommonCompileOptions Name)
 
 endmacro()
 
-# ///////////////////////////////////////////////////
-macro(SetupCommonOutputTargetProperties Name)
-
-	set_target_properties(${Name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PYTHON_BINARY_DIR}/bin) 
-	set_target_properties(${Name} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${PYTHON_BINARY_DIR}/lib) 
-	set_target_properties(${Name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PYTHON_BINARY_DIR}/bin) 
-
-	if (WIN32)
-		set_target_properties(${Name} PROPERTIES COMPILE_PDB_NAME ${Name})
-	endif()
-
-endmacro()
-
 
 # //////////////////////////////////////////////////////////////////////////
 macro(FindOpenMP)
+
 	if (DISABLE_OPENMP)
 		MESSAGE(STATUS "OpenMP disabled")	
 	else()
+
 		if (APPLE)
 			# FindOpenMP.cmake seems broken, at least for me
 			# see https://iscinumpy.gitlab.io/post/omp-on-high-sierra/
@@ -201,6 +129,7 @@ macro(FindOpenMP)
 				set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 			endif()				
 		endif()
+
 		if (OpenMP_FOUND)
 			MESSAGE(STATUS "Found OpenMP")	
 			if (WIN32)
@@ -305,7 +234,7 @@ macro(LinkPythonToExecutable Name)
 
 	if (WIN32)
 		# already linked
-		elseif (APPLE)
+	elseif (APPLE)
 		target_link_libraries(${Name} PUBLIC Imported::Python)
 	else()
 		# for nix is trickier since the linking order is important
@@ -317,8 +246,11 @@ macro(LinkPythonToExecutable Name)
 		
 endmacro()
 
+
+
+
 # ///////////////////////////////////////////////////
-macro(AddStaticLibrary Name)
+macro(AddInternalLibrary Name)
 
 	add_library(${Name} STATIC ${ARGN})
 
@@ -328,45 +260,57 @@ macro(AddStaticLibrary Name)
 		target_compile_options(${Name} PRIVATE -fvisibility=hidden)
 	endif()
 
-	SetupCommonOutputTargetProperties(${Name})
+	SetTargetOutputDirectory(${Name} bin lib)
+
 endmacro()
 
 # ///////////////////////////////////////////////////
 macro(AddLibrary Name)
+
 	add_library(${Name} ${ARGN})
-	SetupCommonCompileOptions(${Name})
-	set_target_properties(${Name} PROPERTIES FOLDER "")
+
+	LinkPythonToLibrary(${Name})
+	SetupCommonTargetOptions(${Name})
+	SetTargetOutputDirectory(${Name} site-packages/${CMAKE_PROJECT_NAME}/bin site-packages/${CMAKE_PROJECT_NAME}/lib)
+
 	string(TOUPPER ${Name} __upper_case__name__)
 	target_compile_definitions(${Name}  PRIVATE VISUS_BUILDING_${__upper_case__name__}=1)
 	target_include_directories(${Name}  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
-	LinkPythonToLibrary(${Name})
-	SetupCommonOutputTargetProperties(${Name})
+
+	set_target_properties(${Name} PROPERTIES FOLDER "")
+
 endmacro()
 
 
 # ///////////////////////////////////////////////////
 macro(AddExecutable Name)
 	add_executable(${Name} ${ARGN})
-	SetupCommonCompileOptions(${Name})
-	set_target_properties(${Name} PROPERTIES FOLDER "Executable/")
+
 	LinkPythonToExecutable(${Name})
-	SetupCommonOutputTargetProperties(${Name})
+	SetupCommonTargetOptions(${Name})
+	SetTargetOutputDirectory(${Name} site-packages/${CMAKE_PROJECT_NAME}/bin site-packages/${CMAKE_PROJECT_NAME}/lib)
+
+	set_target_properties(${Name} PROPERTIES FOLDER "Executable/")
 endmacro()
 
 # ///////////////////////////////////////////////////
-macro(AddSwigLibrary NamePy WrappedLib SwigFile)
+macro(AddSwigLibrary NamePy WrappedLib SwigTypeTable SwigFile)
 
 	find_package(SWIG 3.0 REQUIRED)
 	include(${SWIG_USE_FILE})
 
 	# this is for *.py generated files
-	string(REPLACE "$<CONFIG>" "${CMAKE_CFG_INTDIR}" CMAKE_SWIG_OUTDIR ${PYTHON_BINARY_DIR})
+	if (CMAKE_CONFIGURATION_TYPES)
+		set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/site-packages/${CMAKE_PROJECT_NAME})
+	else()
+		set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/site-packages/${CMAKE_PROJECT_NAME})
+	endif()
 
 	# this is for generated C++ and header files
 	if (CMAKE_CONFIGURATION_TYPES)
 		set(SWIG_OUTFILE_DIR  ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
 	else()
-		set(SWIG_OUTFILE_DIR  ${CMAKE_BINARY_DIR})
+		set(SWIG_OUTFILE_DIR  ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
 	endif()
 
 	set(CMAKE_SWIG_FLAGS "")
@@ -388,7 +332,7 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 	endif()
 		
 	# important to share types between modules
-	set_source_files_properties (${swig_generated_file_fullname} PROPERTIES COMPILE_FLAGS "-DSWIG_TYPE_TABLE=${SWIG_TYPE_TABLE}")	
+	set_source_files_properties (${swig_generated_file_fullname} PROPERTIES COMPILE_FLAGS "-DSWIG_TYPE_TABLE=${SwigTypeTable}")	
 		
 	if (TARGET _${NamePy})
 		set(RealName _${NamePy})
@@ -396,7 +340,7 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 		set(RealName ${NamePy})
 	endif()
 
-	set_target_properties(${RealName} PROPERTIES FOLDER Swig/)
+	LinkPythonToLibrary(${RealName})
 
 	# disable warnings
 	if (WIN32)
@@ -408,14 +352,13 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 		set_target_properties(${RealName} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
 	endif()
 
-	LinkPythonToLibrary(${RealName})
-	SetupCommonCompileOptions(${RealName})
-	SetupCommonOutputTargetProperties(${RealName})
+	SetupCommonTargetOptions(${RealName})
+	SetTargetOutputDirectory(${RealName} site-packages/${CMAKE_PROJECT_NAME}/bin lib)
 
 	target_link_libraries(${RealName} PUBLIC ${WrappedLib})
+	set_target_properties(${RealName} PROPERTIES FOLDER Swig/)
 	
 endmacro()
-
 
 # //////////////////////////////////////////////////////////////////////////
 macro(FindGit)
@@ -430,9 +373,5 @@ macro(FindGitRevision)
 	message(STATUS "Current GIT_REVISION ${GIT_REVISION}")
 endmacro()
 
-# //////////////////////////////////////////////////////////////////////////
-macro(FindVCPKGDir)
-	set(VCPKG_DIR ${CMAKE_TOOLCHAIN_FILE}/../../../installed/${VCPKG_TARGET_TRIPLET})
-	get_filename_component(VCPKG_DIR ${VCPKG_DIR} REALPATH)	
-endmacro()
+
 

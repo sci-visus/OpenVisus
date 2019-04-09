@@ -1,4 +1,6 @@
-set CMAKE_BUILD_TYPE=RelWithDebInfo
+if "%CMAKE_BUILD_TYPE%"=="" (
+ 	set CMAKE_BUILD_TYPE=RelWithDebInfo
+)
 
 mkdir build 
 cd build 
@@ -22,7 +24,8 @@ if errorlevel 1 exit 1
 cmake --build . --target dist      --config %CMAKE_BUILD_TYPE%
 if errorlevel 1 exit 1
 
-cd install
+cd %CMAKE_BUILD_TYPE%\site-packages\OpenVisus
+
 "%PYTHON%" setup.py install --single-version-externally-managed --record=record.txt
 if errorlevel 1 exit 1
 

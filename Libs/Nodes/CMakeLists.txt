@@ -6,6 +6,7 @@ target_link_libraries(VisusNodes PUBLIC VisusIdx VisusDataflow)
 
 AddSwigLibrary(VisusNodesPy 
 	VisusNodes 
+	OpenVisus
 	${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusNodesPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"

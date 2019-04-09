@@ -27,88 +27,74 @@ PYPI_PASSWORD=${PYPI_PASSWORD:-}
 FAST_MODE=${FAST_MODE:-0}
 
 if [ $(uname) = "Darwin" ]; then
-  echo "Detected OSX"
-  export OSX=1
+	echo "Detected OSX"
+	export OSX=1
+fi
+
+if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
+	export TRAVIS=1
+
+	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then export COMPILER=clang++ ; fi
+	if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export COMPILER=g++-4.9 ; fi
+
+	if (( USE_CONDA == 1 )) ; then
+		if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_conda]"* ]]; then
+			export DEPLOY_CONDA=1
+		fi
+	else
+	  DEPLOY_GITHUB=1
+	  if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_pypi]"* ]]; then
+		  if [[ $(uname) == "Darwin" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
+		     export DEPLOY_PYPI=1
+		  fi     
+	  fi
+	fi
 fi
 
 
 # //////////////////////////////////////////////////////
 function DownloadFile {
-  curl -fsSL --insecure "$1" -O
+	curl -fsSL --insecure "$1" -O
 }
 
 # //////////////////////////////////////////////////////
 cmake_opts=""
 function PushCMakeOption {
-  if [ -n "$2" ] ; then
-    cmake_opts="${cmake_opts} -D$1=$2"
-  fi
+	if [ -n "$2" ] ; then
+		cmake_opts="${cmake_opts} -D$1=$2"
+	fi
 }
 
 # //////////////////////////////////////////////////////
 function BuildDockerOpenVisus {
-  sudo docker rm -f mydocker 2>/dev/null || true
+	sudo docker rm -f mydocker 2>/dev/null || true
 
-  sudo docker run -d -ti \
-    --name mydocker \
-    -v ${SOURCE_DIR}:${SOURCE_DIR} \
-    -e BUILD_DIR=${BUILD_DIR} \
-    -e PYTHON_VERSION=${PYTHON_VERSION} \
-    -e VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
-    -e DISABLE_OPENMP=${DISABLE_OPENMP} \
-    -e VISUS_GUI=${VISUS_GUI} \
-    -e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
-    -e USE_CONDA=${USE_CONDA} \
-    -e DEPLOY_CONDA=${DEPLOY_CONDA} \
-    -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
-    -e DEPLOY_PYPI=${DEPLOY_PYPI} \
-    -e PYPI_USERNAME=${PYPI_USERNAME} \
-    -e PYPI_PASSWORD=${PYPI_PASSWORD} \
-    ${DOCKER_IMAGE} \
-    /bin/bash
+	sudo docker run -d -ti \
+		--name mydocker \
+		-v ${SOURCE_DIR}:${SOURCE_DIR} \
+		-e BUILD_DIR=${BUILD_DIR} \
+		-e PYTHON_VERSION=${PYTHON_VERSION} \
+		-e VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
+		-e DISABLE_OPENMP=${DISABLE_OPENMP} \
+		-e VISUS_GUI=${VISUS_GUI} \
+		-e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
+		-e USE_CONDA=${USE_CONDA} \
+		-e DEPLOY_CONDA=${DEPLOY_CONDA} \
+		-e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
+		-e DEPLOY_PYPI=${DEPLOY_PYPI} \
+		-e PYPI_USERNAME=${PYPI_USERNAME} \
+		-e PYPI_PASSWORD=${PYPI_PASSWORD} \
+		${DOCKER_IMAGE} \
+		/bin/bash
 
-  sudo docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
+	sudo docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
 
-  sudo chown -R "$USER":"$USER" ${BUILD_DIR}
-  sudo chmod -R u+rwx           ${BUILD_DIR}
+	sudo chown -R "$USER":"$USER" ${BUILD_DIR}
+	sudo chmod -R u+rwx           ${BUILD_DIR}
 }
 
 
 
-# //////////////////////////////////////////////////////
-function InstallConda {
-
-  if (( OSX ==  1 )) ; then
-    if [ ! -d /opt/MacOSX10.9.sdk ] ; then
-      git clone https://github.com/phracker/MacOSX-SDKs
-      mkdir -p /opt
-      sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
-      rm -Rf MacOSX-SDKs
-    fi
-  fi
-
-  if [ ! -d $HOME/miniconda${PYTHON_VERSION:0:1} ]; then
-    pushd $HOME
-    if (( OSX == 1 )) ; then
-      DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh
-      bash Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh -b
-    else
-      DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh
-      bash Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -b
-    fi
-    popd
-  fi
-
-  export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
-  hash -r
-
-  if (( FASTMODE == 0 )) ; then
-    conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-    conda install -q conda-build anaconda-client
-    conda update  -q conda conda-build
-    conda install -q python=${PYTHON_VERSION}
-  fi
-}
 
 # //////////////////////////////////////////////////////
 function InstallOSXPrerequisites {
@@ -179,13 +165,13 @@ function InstallUbuntuPrerequisites {
     fi
 
     sudo apt-get -qq install --allow-unauthenticated \
-      cmake swig3.0 git bzip2 ca-certificates build-essential libssl-dev \
+      swig3.0 git bzip2 ca-certificates build-essential libssl-dev \
       uuid-dev curl automake libffi-dev  apache2 apache2-dev
 
     # install cmake
     echo "Downloading precompiled cmake"
-    DownloadFile "https://github.com/Kitware/CMake/releases/download/v3.14.1/cmake-3.14.1-Linux-x86_64.tar.gz"
-    tar xvzf cmake-3.14.1-Linux-x86_64.tar.gz -C ${CACHED_DIR} --strip-components=1
+    DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
+    tar xvzf cmake-3.4.3-Linux-x86_64.tar.gz -C ${CACHED_DIR} --strip-components=1 
 
     # install patchelf
     DownloadFile https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz
@@ -408,156 +394,170 @@ function InstallPython {
   fi
 }
 
-# //////////////////////////////////////////////////////
-function BuildCondaOpenVisus {
+
+
+
+# ///////////////////////////////////////////////////////
+if [[ "$DOCKER_IMAGE" != "" ]] ; then\
+  BuildDockerOpenVisus
+  exit 0
+
+fi
+
+# ///////////////////////////////////////////////////////
+if (( USE_CONDA == 1 )) ; then
+
+	if (( OSX ==  1 )) ; then
+
+		if [ ! -d /opt/MacOSX10.9.sdk ] ; then
+			git clone https://github.com/phracker/MacOSX-SDKs
+			mkdir -p /opt
+			sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
+			rm -Rf MacOSX-SDKs
+		fi
+
+	fi
+
+	if [ ! -d $HOME/miniconda${PYTHON_VERSION:0:1} ]; then
+		pushd $HOME
+		if (( OSX == 1 )) ; then
+			DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh
+			bash Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh -b
+		else
+			DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh
+			bash Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -b
+		fi
+		popd
+	fi
+
+	export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
+	hash -r
+
+	if (( FASTMODE == 0 )) ; then
+		conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
+		conda install -q conda-build anaconda-client
+		conda update  -q conda conda-build
+		conda install -q python=${PYTHON_VERSION}
+	fi
+
 	pushd conda
 	conda-build -q openvisus
 	conda install -q --use-local openvisus
 	CONDA_BUILD_FILENAME=$(find ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld -iname "openvisus*.tar.bz2")
 	popd
-}
 
-# //////////////////////////////////////////////////////
-function BuildOpenVisus {
-
-	PushCMakeOption PYTHON_VERSION         ${PYTHON_VERSION}
-	PushCMakeOption VISUS_INTERNAL_DEFAULT ${VISUS_INTERNAL_DEFAULT}
-	PushCMakeOption DISABLE_OPENMP         ${DISABLE_OPENMP}
-	PushCMakeOption VISUS_GUI              ${VISUS_GUI}
-	PushCMakeOption CMAKE_BUILD_TYPE       ${CMAKE_BUILD_TYPE}
-
-	if (( OSX == 1 )) ; then
-
-	 cmake -GXcode ${cmake_opts} ${SOURCE_DIR}
-
-	 # this is to solve logs too long
-	 if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
-		sudo gem install xcpretty
-		set -o pipefail && cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
-	 else
-		cmake                    --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
-	 fi
-
-	 cmake --build ./ --target install --config ${CMAKE_BUILD_TYPE}
-
-	else
-		cmake ${cmake_opts} ${SOURCE_DIR}
-		cmake --build . --target all -- -j 4
-		cmake --build . --target install
-	fi
-
-
-	if (( OSX == 1 )) ; then
-	 	cmake --build ./ --target dist    --config ${CMAKE_BUILD_TYPE}
-	 	WHEEL_FILENAME=$(find ${BUILD_DIR}/RelWithDebInfo/site-packages/OpenVisus/dist -iname "*.whl")
-	else
-	 	cmake --build ./ --target dist
-	 	WHEEL_FILENAME=$(find ${BUILD_DIR}/site-packages/OpenVisus/dist -iname "*.whl")
-	fi
-
-		
-	python -m pip install --ignore-installed "${WHEEL_FILENAME}"  	
-}
-
-# //////////////////////////////////////////////////////
-function TestOpenVisus {
-
-	cd $HOME
-	python -m OpenVisus CreateScripts
 	cd $(python -m OpenVisus dirname)
-	
 	python Samples/python/Array.py
 	python Samples/python/Dataflow.py
 	python Samples/python/Idx.py
 
-	if (( OSX == 1 )) ; then
-		if (( USE_CONDA == 1 )) ; then
-			echo "Skipping execution of visus.command"
-			echo "conda standalone commands are not working"
-			echo "reason: dyld: Symbol not found: _iconv	"		
-		else
-			./visus.command
-		fi
-	else
-		./visus.sh
+	if (( DEPLOY_CONDA == 1 )) ; then
+		echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
+		anaconda -q -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
 	fi
-}
+
+	echo "OpenVisus build finished"
+	exit 0
+fi
 
 
-# //////////////////////////////////////////////////////
-function DeployPyPi {
-	echo "Doing deploy to pypi ${WHEEL_FILENAME}..."
-	echo [distutils]                                  > ~/.pypirc
-	echo index-servers =  pypi                       >> ~/.pypirc
-	echo [pypi]                                      >> ~/.pypirc
-	echo username=${PYPI_USERNAME}                   >> ~/.pypirc
-	echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
-	python -m twine upload --skip-existing "${WHEEL_FILENAME}"
-}
+# ///////////////////////////////////////////////////////
+# directory for caching install stuff
+CACHED_DIR=${BUILD_DIR}/cached_deps
+mkdir -p ${CACHED_DIR}
 
-# //////////////////////////////////////////////////////
-function DeployConda {
-	echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
-	anaconda -q -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
-}
+export PATH=${CACHED_DIR}/bin:$PATH
+mkdir -p ${BUILD_DIR}
 
+cd ${BUILD_DIR}
 
-if [[ "$DOCKER_IMAGE" != "" ]] ; then
+if (( OSX == 1 )) ; then
+	echo "Detected OSX"
+	InstallOSXPrerequisites
 
-  BuildDockerOpenVisus
-  exit 0
+elif [ -x "$(command -v apt-get)" ]; then
+	echo "Detected ubuntu"
+	InstallUbuntuPrerequisites
 
-elif (( USE_CONDA == 1 )) ; then
+elif [ -x "$(command -v zypper)" ]; then
+	echo "Detected opensuse"
+	InstallOpenSusePrerequisites
 
-  InstallConda
-  BuildCondaOpenVisus
-  TestOpenVisus
-
-  if (( DEPLOY_CONDA == 1 )) ; then
-    DeployConda
-  fi
+elif [ -x "$(command -v yum)" ]; then
+	echo "Detected centos"
+	InstallCentosPrerequisites
 
 else
+	echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"
 
-	# directory for caching install stuff
-	CACHED_DIR=${BUILD_DIR}/cached_deps
-	mkdir -p ${CACHED_DIR}
+fi
 
-	export PATH=${CACHED_DIR}/bin:$PATH
-	mkdir -p ${BUILD_DIR}
+InstallPython
 
-  cd ${BUILD_DIR}
+PushCMakeOption PYTHON_VERSION         ${PYTHON_VERSION}
+PushCMakeOption VISUS_INTERNAL_DEFAULT ${VISUS_INTERNAL_DEFAULT}
+PushCMakeOption DISABLE_OPENMP         ${DISABLE_OPENMP}
+PushCMakeOption VISUS_GUI              ${VISUS_GUI}
+PushCMakeOption CMAKE_BUILD_TYPE       ${CMAKE_BUILD_TYPE}
 
-	if (( OSX == 1 )) ; then
-    echo "Detected OSX"
-    InstallOSXPrerequisites
+if (( OSX == 1 )) ; then
 
-	elif [ -x "$(command -v apt-get)" ]; then
-		echo "Detected ubuntu"
-    InstallUbuntuPrerequisites
+	cmake -GXcode ${cmake_opts} ${SOURCE_DIR}
 
-	elif [ -x "$(command -v zypper)" ]; then
-		echo "Detected opensuse"
-    InstallOpenSusePrerequisites
-
-	elif [ -x "$(command -v yum)" ]; then
-		echo "Detected centos"
-    InstallCentosPrerequisites
-
+	# this is to solve logs too long
+	if (( TRAVIS ==1 )) ; then
+		sudo gem install xcpretty
+		set -o pipefail && cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
 	else
-		echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"
-
+		cmake                    --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
 	fi
 
-  InstallPython
-  BuildOpenVisus
-  TestOpenVisus
+	cmake --build ./ --target install --config ${CMAKE_BUILD_TYPE}
 
-  if (( DEPLOY_PYPI == 1 )) ; then
-    DeployPyPi
-  fi
+else
+	cmake ${cmake_opts} ${SOURCE_DIR}
+	cmake --build . --target all -- -j 4
+	cmake --build . --target install
+fi
+
+
+# test OpenVisus Package
+export PYTHONPATH=${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages
+cd $(python -m OpenVisus dirname)
+python Samples/python/Array.py
+python Samples/python/Dataflow.py
+python Samples/python/Idx.py
+
+# test stand alone scripts
+python -m OpenVisus CreateScripts
+if (( OSX == 1 )) ; then
+	./visus.command
+else
+	./visus.sh
+fi
+
+# dist
+if (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
+
+	if (( OSX == 1 )) ; then
+		cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
+	else
+		cmake --build . --target dist
+	fi
+
+	if (( DEPLOY_PYPI == 1 )) ; then
+		WHEEL_FILENAME=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.whl")
+		echo "Doing deploy to pypi ${WHEEL_FILENAME}..."
+		echo [distutils]                                  > ~/.pypirc
+		echo index-servers =  pypi                       >> ~/.pypirc
+		echo [pypi]                                      >> ~/.pypirc
+		echo username=${PYPI_USERNAME}                   >> ~/.pypirc
+		echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
+		python -m twine upload --skip-existing "${WHEEL_FILENAME}"
+	fi
 
 fi
 
 echo "OpenVisus build finished"
-set +ex
+
+

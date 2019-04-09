@@ -1,7 +1,7 @@
 DisableAllWarnings()
 
 
-AddStaticLibrary(zlib  
+AddInternalLibrary(zlib  
 	adler32.c 
 	compress.c 
 	crc32.c 

@@ -70,7 +70,7 @@ if(OpenVisus_FOUND)
 	AddOpenVisusLibrary(OpenVisus::Idx      "OpenVisus::Db")
 	AddOpenVisusLibrary(OpenVisus::Nodes    "OpenVisus::Idx")
 	
-	if (EXISTS "${OpenVisus_DIR}/include/Gui")
+	if (EXISTS "${OpenVisus_DIR}/QT_VERSION")
 	
 		find_package(Qt5 OPTIONAL_COMPONENTS Core Widgets Gui OpenGL QUIET)
 		

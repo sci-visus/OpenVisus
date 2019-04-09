@@ -66,8 +66,6 @@ cmake --build ./ --target all -- -j 4
 cmake --build ./ --target install  
 cmake --build ./ --target dist  
 
-pushd install
+cd ${CMAKE_BUILD_TYPE}/site-packages/OpenVisus
 $PYTHON setup.py install --single-version-externally-managed --record=record.txt
-popd
 
-set +ex
