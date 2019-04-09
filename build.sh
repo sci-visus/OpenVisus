@@ -26,6 +26,8 @@ PYPI_PASSWORD=${PYPI_PASSWORD:-}
 # in case you want to speed up compilation because prerequisites have already been installed
 FAST_MODE=${FAST_MODE:-0}
 
+declare -a cmake_opts
+
 if [ $(uname) = "Darwin" ]; then
 	echo "Detected OSX"
 	export OSX=1
@@ -57,238 +59,235 @@ function DownloadFile {
 	curl -fsSL --insecure "$1" -O
 }
 
-# //////////////////////////////////////////////////////
-cmake_opts=""
-function PushCMakeOption {
-	if [ -n "$2" ] ; then
-		cmake_opts="${cmake_opts} -D$1=$2"
-	fi
-}
-
-
 
 # //////////////////////////////////////////////////////
 function InstallOSXPrerequisites {
 
-  if (( FAST_MODE==0 )) ; then
+	if (( FAST_MODE==0 )) ; then
 
-    # install brew
-    if [ !  -x "$(command -v brew)" ]; then
-      /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-    fi
+		# install brew
+		if [ !  -x "$(command -v brew)" ]; then
+			/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+		fi
 
-    # output is very long!
-    brew update        1>/dev/null 2>&1 || true
-    brew upgrade pyenv 1>/dev/null 2>&1 || true
-    brew install swig
+		# output is very long!
+		brew update        1>/dev/null 2>&1 || true
+		brew upgrade pyenv 1>/dev/null 2>&1 || true
+		brew install swig
 
-    if (( VISUS_INTERNAL_DEFAULT == 0 )); then
-      brew install zlib lz4 tinyxml freeimage openssl curl
-    fi
+		if (( VISUS_INTERNAL_DEFAULT == 0 )); then
+			brew install zlib lz4 tinyxml freeimage openssl curl
+		fi
 
-    # install qt 5.11 (instead of 5.12 which is not supported by PyQt5)
-    # brew install qt5
-    if (( VISUS_GUI == 1 )); then
-      brew unlink git || true
-      brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb
-    fi
-  fi
+		# install qt 5.11 (instead of 5.12 which is not supported by PyQt5)
+		# brew install qt5
+		if (( VISUS_GUI == 1 )); then
+			brew unlink git || true
+			brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb
+		fi
+	fi
 
-  if (( VISUS_GUI == 1 )); then
-    PushCMakeOption Qt5_DIR $(brew --prefix Qt)/lib/cmake/Qt5
-  fi
+	if (( VISUS_GUI == 1 )); then
+		cmake_opts+=(-DQt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5)
+	fi
+
+}
+
+# //////////////////////////////////////////////////////
+function InstallCMakeForLinux {
+
+	# install cmake
+	if [ ! -f cmake-3.4.3-Linux-x86_64.tar.gz ] ; then
+		echo "Downloading precompiled cmake"
+		DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
+		tar xvzf cmake-3.4.3-Linux-x86_64.tar.gz -C ${CACHED_DIR} --strip-components=1 
+	fi
 
 }
 
 # //////////////////////////////////////////////////////
 function InstallUbuntuPrerequisites {
 
-  # get ubuntu version
-  if [ -f /etc/os-release ]; then
-    source /etc/os-release
-    export UBUNTU_VERSION=$VERSION_ID
+	# get ubuntu version
+	if [ -f /etc/os-release ]; then
+		source /etc/os-release
+		export UBUNTU_VERSION=$VERSION_ID
 
-  elif type lsb_release >/dev/null 2>&1; then
-    export UBUNTU_VERSION=$(lsb_release -sr)
+	elif type lsb_release >/dev/null 2>&1; then
+		export UBUNTU_VERSION=$(lsb_release -sr)
 
-  elif [ -f /etc/lsb-release ]; then
-    source /etc/lsb-release
-    export UBUNTU_VERSION=$DISTRIB_RELEASE
-  fi
+	elif [ -f /etc/lsb-release ]; then
+		source /etc/lsb-release
+		export UBUNTU_VERSION=$DISTRIB_RELEASE
+	fi
 
-  echo "UBUNTU_VERSION ${UBUNTU_VERSION}"
+	echo "UBUNTU_VERSION ${UBUNTU_VERSION}"
 
-  # install prerequisites
-  if (( FAST_MODE==0 )) ; then
+	# install prerequisites
+	if (( FAST_MODE==0 )) ; then
 
-    # make sure sudo is available
-    if [ "$EUID" -eq 0 ]; then
-      apt-get -qq update
-      apt-get -qq install sudo
-    fi
+		# make sure sudo is available
+		if [ "$EUID" -eq 0 ]; then
+			apt-get -qq update
+			apt-get -qq install sudo
+		fi
 
-    sudo apt-get -qq update
-    sudo apt-get -qq install git software-properties-common
+		sudo apt-get -qq update
+		sudo apt-get -qq install git software-properties-common
 
-    if (( ${UBUNTU_VERSION:0:2}<=14 )); then
-      sudo add-apt-repository -y ppa:deadsnakes/ppa
-      sudo apt-get -qq update
-    fi
+		if (( ${UBUNTU_VERSION:0:2}<=14 )); then
+			sudo add-apt-repository -y ppa:deadsnakes/ppa
+			sudo apt-get -qq update
+		fi
 
-    sudo apt-get -qq install --allow-unauthenticated \
-      swig3.0 git bzip2 ca-certificates build-essential libssl-dev \
-      uuid-dev curl automake libffi-dev  apache2 apache2-dev
+		sudo apt-get -qq install --allow-unauthenticated \
+		swig3.0 git bzip2 ca-certificates build-essential libssl-dev \
+		uuid-dev curl automake libffi-dev  apache2 apache2-dev
 
-    # install cmake
-    echo "Downloading precompiled cmake"
-    DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
-    tar xvzf cmake-3.4.3-Linux-x86_64.tar.gz -C ${CACHED_DIR} --strip-components=1 
+		InstallCMakeForLinux
 
-    # install patchelf
-    DownloadFile https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz
-    tar xvzf patchelf-0.9.tar.gz
-    pushd patchelf-0.9
-    ./configure --prefix=${CACHED_DIR} && make -s && make install
-    autoreconf -f -i
-    ./configure --prefix=${CACHED_DIR} && make -s && make install
-    popd
+		# install patchelf
+		DownloadFile https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz
+		tar xvzf patchelf-0.9.tar.gz
+		pushd patchelf-0.9
+		./configure --prefix=${CACHED_DIR} && make -s && make install
+		autoreconf -f -i
+		./configure --prefix=${CACHED_DIR} && make -s && make install
+		popd
 
-    if (( VISUS_INTERNAL_DEFAULT == 0 )); then
-      sudo apt-get -qq install --allow-unauthenticated zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
-    fi
+		if (( VISUS_INTERNAL_DEFAULT == 0 )); then
+			sudo apt-get -qq install --allow-unauthenticated zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
+		fi
 
-    # install qt (it's a version available on PyQt5)
-    if (( VISUS_GUI == 1 )); then
+		# install qt (it's a version available on PyQt5)
+		if (( VISUS_GUI == 1 )); then
 
-      # https://launchpad.net/~beineri
-      # PyQt5 versions 5.6, 5.7, 5.7.1, 5.8, 5.8.1.1, 5.8.2, 5.9, 5.9.1, 5.9.2, 5.10, 5.10.1, 5.11.2, 5.11.3
-      if (( ${UBUNTU_VERSION:0:2} <=14 )); then
-        sudo add-apt-repository ppa:beineri/opt-qt-5.10.1-trusty -y
-        sudo apt-get -qq update
-        sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt510base
+			# https://launchpad.net/~beineri
+			# PyQt5 versions 5.6, 5.7, 5.7.1, 5.8, 5.8.1.1, 5.8.2, 5.9, 5.9.1, 5.9.2, 5.10, 5.10.1, 5.11.2, 5.11.3
+			if (( ${UBUNTU_VERSION:0:2} <=14 )); then
+				sudo add-apt-repository ppa:beineri/opt-qt-5.10.1-trusty -y
+				sudo apt-get -qq update
+				sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt510base
 
-      elif (( ${UBUNTU_VERSION:0:2} <=16 )); then
-        sudo add-apt-repository ppa:beineri/opt-qt-5.11.2-xenial -y
-        sudo apt-get -qq update
-        sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511base
+			elif (( ${UBUNTU_VERSION:0:2} <=16 )); then
+				sudo add-apt-repository ppa:beineri/opt-qt-5.11.2-xenial -y
+				sudo apt-get -qq update
+				sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511base
 
-      elif (( ${UBUNTU_VERSION:0:2} <=18)); then
-        sudo add-apt-repository ppa:beineri/opt-qt-5.11.2-bionic -y
-        sudo apt-get -qq update
-        sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511base
-      fi
+			elif (( ${UBUNTU_VERSION:0:2} <=18)); then
+				sudo add-apt-repository ppa:beineri/opt-qt-5.11.2-bionic -y
+				sudo apt-get -qq update
+				sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511base
+			fi
 
-    fi
+		fi
 
-  fi
+	fi
 
-  if (( ${UBUNTU_VERSION:0:2} <=14 )); then
-    PushCMakeOption Qt5_DIR /opt/qt510/lib/cmake/Qt5
+	if (( ${UBUNTU_VERSION:0:2} <=14 )); then
+		cmake_opts+=(-DQt5_DIR=/opt/qt510/lib/cmake/Qt5)
 
-  elif (( ${UBUNTU_VERSION:0:2} <=16 )); then
-    PushCMakeOption Qt5_DIR /opt/qt511/lib/cmake/Qt5
+	elif (( ${UBUNTU_VERSION:0:2} <=16 )); then
+		cmake_opts+=(-DQt5_DIR=/opt/qt511/lib/cmake/Qt5)
 
-  elif (( ${UBUNTU_VERSION:0:2} <=18)); then
-    PushCMakeOption Qt5_DIR /opt/qt511/lib/cmake/Qt5
+	elif (( ${UBUNTU_VERSION:0:2} <=18)); then
+		cmake_opts+=(-DQt5_DIR=/opt/qt511/lib/cmake/Qt5)
 
-  fi
+	fi
 
-  PushCMakeOption SWIG_EXECUTABLE $(which swig3.0)
+	cmake_opts+=(-DSWIG_EXECUTABLE=$(which swig3.0))
 }
 
 # //////////////////////////////////////////////////////
 function InstallOpenSusePrerequisites {
 
-  # install prerequisites
-  if (( FAST_MODE==0 )) ; then
+	# install prerequisites
+	if (( FAST_MODE==0 )) ; then
 
-    # make sure sudo is available
-    if [ "$EUID" -eq 0 ]; then
-      zypper --non-interactive update
-      zypper --non-interactive install sudo
-    fi
+		# make sure sudo is available
+		if [ "$EUID" -eq 0 ]; then
+			zypper --non-interactive update
+			zypper --non-interactive install sudo
+		fi
 
-    sudo zypper --non-interactive update
-    sudo zypper --non-interactive install --type pattern devel_basis
-    sudo zypper --non-interactive install lsb-release gcc-c++ cmake git swig  libuuid-devel libopenssl-devel curl patchelf apache2 apache2-devel libffi-devel
+		sudo zypper --non-interactive update
+		sudo zypper --non-interactive install --type pattern devel_basis
+		sudo zypper --non-interactive install lsb-release gcc-c++ cmake git swig  libuuid-devel libopenssl-devel curl patchelf apache2 apache2-devel libffi-devel
 
-    if (( VISUS_INTERNAL_DEFAULT == 0 )); then
-      sudo zypper --non-interactive install zlib-devel liblz4-devel tinyxml-devel libfreeimage-devel libcurl-devel
-    fi
+		if (( VISUS_INTERNAL_DEFAULT == 0 )); then
+			sudo zypper --non-interactive install zlib-devel liblz4-devel tinyxml-devel libfreeimage-devel libcurl-devel
+		fi
 
-    if (( VISUS_GUI==1 )); then
-      sudo zypper -n in  glu-devel  libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel
-    fi
+		if (( VISUS_GUI==1 )); then
+			sudo zypper -n in  glu-devel  libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel
+		fi
 
-  fi
+	fi
 }
 
 # //////////////////////////////////////////////////////
 function InstallCentosPrerequisites {
 
-  if (( FAST_MODE==0 )) ; then
+	if (( FAST_MODE==0 )) ; then
 
-    yum update
-    yum install -y zlib-devel curl libffi-devel
+		yum update
+		yum install -y zlib-devel curl libffi-devel
 
-    # install openssl
-    echo "Installing openssl"
-    DownloadFile "https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
-    tar xzf openssl-1.0.2a.tar.gz
-    pushd openssl-1.0.2a
-    ./config --prefix=/usr -fpic shared
-    make -s
-    make install
-    popd
+		# install openssl
+		echo "Installing openssl"
+		DownloadFile "https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
+		tar xzf openssl-1.0.2a.tar.gz
+		pushd openssl-1.0.2a
+		./config --prefix=/usr -fpic shared
+		make -s
+		make install
+		popd
 
-    # install cmake
-    echo "Downloading precompiled cmake"
-    DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
-    tar xvzf cmake-3.4.3-Linux-x86_64.tar.gz -C ${CACHED_DIR} --strip-components=1
+		InstallCMakeForLinux
 
-    # install swig
-    echo "Istalling swig"
-    DownloadFile "https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz"
-    tar xzf swig-3.0.12.tar.gz
-    pushd swig-3.0.12
-    DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
-    ./Tools/pcre-build.sh
-    ./configure --prefix=${CACHED_DIR}
-    make -s -j 4
-    make install
-    popd
+		# install swig
+		echo "Istalling swig"
+		DownloadFile "https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz"
+		tar xzf swig-3.0.12.tar.gz
+		pushd swig-3.0.12
+		DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
+		./Tools/pcre-build.sh
+		./configure --prefix=${CACHED_DIR}
+		make -s -j 4
+		make install
+		popd
 
-    # install apache 2.4
-    # for centos5 this is 2.2, I prefer to use 2.4 which is more common
-    # yum install -y httpd.x86_64 httpd-devel.x86_64
-    DownloadFile http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz
-    tar xzf apr-1.6.5.tar.gz
-    pushd apr-1.6.5
-    ./configure --prefix=${CACHED_DIR} && make -s && make install
-    popd
+		# install apache 2.4
+		# for centos5 this is 2.2, I prefer to use 2.4 which is more common
+		# yum install -y httpd.x86_64 httpd-devel.x86_64
+		DownloadFile http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz
+		tar xzf apr-1.6.5.tar.gz
+		pushd apr-1.6.5
+		./configure --prefix=${CACHED_DIR} && make -s && make install
+		popd
 
-    DownloadFile http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz
-    tar xzf apr-util-1.6.1.tar.gz
-    pushd apr-util-1.6.1
-    ./configure --prefix=${CACHED_DIR} --with-apr=${CACHED_DIR} && make -s && make install
-    popd
+		DownloadFile http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz
+		tar xzf apr-util-1.6.1.tar.gz
+		pushd apr-util-1.6.1
+		./configure --prefix=${CACHED_DIR} --with-apr=${CACHED_DIR} && make -s && make install
+		popd
 
-    DownloadFile https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz
-    tar xzf pcre-8.42.tar.gz
-    pushd pcre-8.42
-    ./configure --prefix=${CACHED_DIR} && make -s && make install
-    popd
+		DownloadFile https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz
+		tar xzf pcre-8.42.tar.gz
+		pushd pcre-8.42
+		./configure --prefix=${CACHED_DIR} && make -s && make install
+		popd
 
-    DownloadFile http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz
-    tar xzf httpd-2.4.38.tar.gz
-    pushd httpd-2.4.38
-    ./configure --prefix=${CACHED_DIR} --with-apr=${CACHED_DIR} --with-pcre=${CACHED_DIR} && make -s && make install
-    popd
+		DownloadFile http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz
+		tar xzf httpd-2.4.38.tar.gz
+		pushd httpd-2.4.38
+		./configure --prefix=${CACHED_DIR} --with-apr=${CACHED_DIR} --with-pcre=${CACHED_DIR} && make -s && make install
+		popd
 
-  fi
+	fi
 
-  PushCMakeOption APACHE_DIR ${CACHED_DIR}
-  PushCMakeOption APR_DIR    ${CACHED_DIR}
+	cmake_opts+=(-DAPACHE_DIR=${CACHED_DIR})
+	cmake_opts+=(-DAPR_DIR=${CACHED_DIR})
 }
 
 
@@ -420,7 +419,7 @@ if (( FAST_MODE==0 )) ; then
 		CONFIGURE_OPTS="--enable-shared --with-openssl=$(brew --prefix openssl@1.1)" \
 		CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include  -I$(brew --prefix openssl@1.1)/include" \
 		LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib      -L$(brew --prefix openssl@1.1)/lib" \
-		pyenv install ${PYTHON_VERSION}
+		pyenv install --skip-existing ${PYTHON_VERSION}
 
 	else
 
@@ -437,7 +436,7 @@ if (( FAST_MODE==0 )) ; then
 		export PATH="$HOME/.pyenv/bin:$PATH"
 		eval "$(pyenv init -)"
 		
-		CXX=g++ CONFIGURE_OPTS="--enable-shared" pyenv install ${PYTHON_VERSION}
+		CXX=g++ CONFIGURE_OPTS="--enable-shared" pyenv install --skip-existing ${PYTHON_VERSION}
 		
 	fi
 fi
@@ -463,24 +462,24 @@ else
 	PYTHON_M_VERSION=${PYTHON_VERSION:0:3}
 fi
 
-PushCMakeOption PYTHON_EXECUTABLE   $(pyenv prefix)/bin/python
-PushCMakeOption PYTHON_INCLUDE_DIR  $(pyenv prefix)/include/python${PYTHON_M_VERSION}
+cmake_opts+=(-DPYTHON_EXECUTABLE=$(pyenv prefix)/bin/python)
+cmake_opts+=(-DPYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_M_VERSION})
 
 if (( OSX == 1 )) ; then
-	PushCMakeOption PYTHON_LIBRARY $(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.dylib
+	cmake_opts+=(-DPYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.dylib)
 else
-	PushCMakeOption PYTHON_LIBRARY $(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.so
+	cmake_opts+=(-DPYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.so)
 fi
 
-PushCMakeOption PYTHON_VERSION         ${PYTHON_VERSION}
-PushCMakeOption VISUS_INTERNAL_DEFAULT ${VISUS_INTERNAL_DEFAULT}
-PushCMakeOption DISABLE_OPENMP         ${DISABLE_OPENMP}
-PushCMakeOption VISUS_GUI              ${VISUS_GUI}
-PushCMakeOption CMAKE_BUILD_TYPE       ${CMAKE_BUILD_TYPE}
+cmake_opts+=(-DPYTHON_VERSION=${PYTHON_VERSION})
+cmake_opts+=(-DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT})
+cmake_opts+=(-DDISABLE_OPENMP=${DISABLE_OPENMP})
+cmake_opts+=(-DVISUS_GUI=${VISUS_GUI})
+cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
 if (( OSX == 1 )) ; then
 
-	cmake -GXcode ${cmake_opts} ${SOURCE_DIR}
+	cmake -GXcode ${cmake_opts[@]} ${SOURCE_DIR}
 
 	# this is to solve logs too long
 	if (( TRAVIS ==1 )) ; then
@@ -493,7 +492,7 @@ if (( OSX == 1 )) ; then
 	cmake --build ./ --target install --config ${CMAKE_BUILD_TYPE}
 
 else
-	cmake ${cmake_opts} ${SOURCE_DIR}
+	cmake ${cmake_opts[@]} ${SOURCE_DIR}
 	cmake --build . --target all -- -j 4
 	cmake --build . --target install
 fi
