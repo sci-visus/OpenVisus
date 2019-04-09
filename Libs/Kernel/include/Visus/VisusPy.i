@@ -45,7 +45,6 @@ For support : support@visus.net
 %begin %{
   #if _WIN32
     //this is needed if you dont' have python debug library
-    //#define SWIG_PYTHON_INTERPRETER_NO_DEBUG
     #pragma warning(disable: 4101)
     #pragma warning(disable: 4244)
   #endif

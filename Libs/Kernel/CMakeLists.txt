@@ -383,14 +383,6 @@ else()
 	target_link_libraries(VisusKernel      PUBLIC ${TinyXML_LIBRARIES})	
 endif()
 
-
-# disabled debug version
-if (WIN32)
-	if (SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-		target_compile_definitions(VisusKernel PUBLIC -DSWIG_PYTHON_INTERPRETER_NO_DEBUG=1) 
-	endif()
-endif()
-
 if (VISUS_IMAGE)
 
 	target_compile_definitions(VisusKernel PUBLIC -DVISUS_IMAGE=1)

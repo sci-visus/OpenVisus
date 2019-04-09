@@ -52,7 +52,7 @@ class VISUS_KERNEL_API ApplicationInfo
 {
 public:
 
-  //static only
+
   //VISUS_CLASS(ApplicationInfo)
 
   static double              version;

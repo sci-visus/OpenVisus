@@ -30,7 +30,6 @@ macro(SetupCommonCMake)
 	
 	set(CMAKE_CXX_STANDARD 11)
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-	set_property(GLOBAL PROPERTY USE_FOLDERS ON)  
 
 	if (CMAKE_CONFIGURATION_TYPES)
 		add_compile_options("$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
@@ -39,14 +38,6 @@ macro(SetupCommonCMake)
 			add_compile_options("-DVISUS_DEBUG=1")	
 		endif()
 	endif()	
-	
-	# on windows I'm always using the Release version because
-	# (1) numpy is not available in debug mode
-	# (2) lot of problems/incompatibilities happens (for example: https://github.com/swig/swig/issues/1321)			
-	if (WIN32)
-		SET(SWIG_PYTHON_INTERPRETER_NO_DEBUG "1" CACHE INTERNAL "")
-		MESSAGE(STATUS "Forcing SWIG_PYTHON_INTERPRETER_NO_DEBUG for windows")
-	endif()		
 	
 	if (APPLE)
 		set(CMAKE_MACOSX_BUNDLE YES)
@@ -193,14 +184,13 @@ macro(FindPythonLibrary)
 			list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_DEBUG_LIBRARY)
 		endif()
 		  	
-		if (SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-		  	set(PYTHON_DEBUG_LIBRARY ${PYTHON_RELEASE_LIBRARY})
-		endif()
+		# always release version!
+		set(PYTHON_DEBUG_LIBRARY ${PYTHON_RELEASE_LIBRARY})
 
 	  	set_target_properties(Imported::Python PROPERTIES
-	  	IMPORTED_IMPLIB_DEBUG           ${PYTHON_DEBUG_LIBRARY}
-	  	IMPORTED_IMPLIB_RELEASE         ${PYTHON_RELEASE_LIBRARY}
-	  	IMPORTED_IMPLIB_RELWITHDEBINFO  ${PYTHON_RELEASE_LIBRARY})
+	  		IMPORTED_IMPLIB_DEBUG           ${PYTHON_DEBUG_LIBRARY}
+	  		IMPORTED_IMPLIB_RELEASE         ${PYTHON_RELEASE_LIBRARY}
+	  		IMPORTED_IMPLIB_RELWITHDEBINFO  ${PYTHON_RELEASE_LIBRARY})
 	else()
 		set_target_properties(Imported::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
 	endif()
@@ -345,9 +335,6 @@ macro(AddSwigLibrary NamePy WrappedLib SwigTypeTable SwigFile)
 	# disable warnings
 	if (WIN32)
 		target_compile_definitions(${RealName}  PRIVATE /W0)
-		if (SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-			target_compile_definitions(${RealName} PUBLIC -DSWIG_PYTHON_INTERPRETER_NO_DEBUG=1) 
-		endif()
 	else()
 		set_target_properties(${RealName} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
 	endif()

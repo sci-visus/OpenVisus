@@ -46,11 +46,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-
-  ///////////////////////////////////////////////////////
-  // VISUS_DECLARE_SINGLETON_CLASS
-  ///////////////////////////////////////////////////////
-
 #define VISUS_DECLARE_SINGLETON_CLASS(ClassName)\
   private:\
     VISUS_NON_COPYABLE_CLASS(ClassName)\
@@ -64,10 +59,7 @@ namespace Visus {
 #define VISUS_IMPLEMENT_SINGLETON_CLASS(ClassName) \
   ClassName* ClassName::__instance__=nullptr;
 
-
 } //namespace Visus
-
-
 
 #endif //__VISUS_SINGLETON_H__
 

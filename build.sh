@@ -65,35 +65,6 @@ function PushCMakeOption {
 	fi
 }
 
-# //////////////////////////////////////////////////////
-function BuildDockerOpenVisus {
-	sudo docker rm -f mydocker 2>/dev/null || true
-
-	sudo docker run -d -ti \
-		--name mydocker \
-		-v ${SOURCE_DIR}:${SOURCE_DIR} \
-		-e BUILD_DIR=${BUILD_DIR} \
-		-e PYTHON_VERSION=${PYTHON_VERSION} \
-		-e VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
-		-e DISABLE_OPENMP=${DISABLE_OPENMP} \
-		-e VISUS_GUI=${VISUS_GUI} \
-		-e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
-		-e USE_CONDA=${USE_CONDA} \
-		-e DEPLOY_CONDA=${DEPLOY_CONDA} \
-		-e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
-		-e DEPLOY_PYPI=${DEPLOY_PYPI} \
-		-e PYPI_USERNAME=${PYPI_USERNAME} \
-		-e PYPI_PASSWORD=${PYPI_PASSWORD} \
-		${DOCKER_IMAGE} \
-		/bin/bash
-
-	sudo docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
-
-	sudo chown -R "$USER":"$USER" ${BUILD_DIR}
-	sudo chmod -R u+rwx           ${BUILD_DIR}
-}
-
-
 
 
 # //////////////////////////////////////////////////////
@@ -320,86 +291,34 @@ function InstallCentosPrerequisites {
   PushCMakeOption APR_DIR    ${CACHED_DIR}
 }
 
-# //////////////////////////////////////////////////////
-function InstallPython {
-
-  if ! [ -d "$HOME/.pyenv" ]; then
-    pushd $HOME
-    DownloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
-    chmod a+x pyenv-installer
-    ./pyenv-installer
-    rm -f pyenv-installer
-    popd
-  fi
-
-  export PATH="$HOME/.pyenv/bin:$PATH"
-  eval "$(pyenv init -)"
-
-  # install python
-  if (( FAST_MODE==0 )) ; then
-
-    # pyenv install --list
-    __CFLAGS__=""
-    __CPPFLAGS__=""
-    __LDFLAGS__=""
-
-    # this is necessary for osx 10.14
-    if (( OSX == 1 )) ; then
-    	
-      brew install autoconf pkg-config readline zlib openssl@1.1 
-      
-      __CFLAGS__+="   -I$(brew --prefix readline)/include   -I$(brew --prefix zlib)/include  -I$(brew --prefix openssl@1.1)/include"
-      __CPPFLAGS__+=" -I$(brew --prefix readline)/include   -I$(brew --prefix zlib)/include  -I$(brew --prefix openssl@1.1)/include"
-      __LDFLAGS__+="  -L$(brew --prefix readline)/lib       -L$(brew --prefix zlib)/lib      -L$(brew --prefix openssl@1.1)/lib"
-
-      CONFIGURE_OPTS="--enable-shared --with-openssl=$(brew --prefix openssl@1.1)" CFLAGS="${__CFLAGS__}" CPPFLAGS="${__CPPFLAGS__}" LDFLAGS="${__LDFLAGS__}" \
-      pyenv install --skip-existing ${PYTHON_VERSION}
-      
-    else
-      export CXX=g++
-      if [[ "$OPENSSL_INCLUDE_DIR" != "" ]] ; then
-        __CFLAGS__+="  -I${OPENSSL_INCLUDE_DIR}"
-        __CPPFLAGS__+="-I${OPENSSL_INCLUDE_DIR}"
-        __LDFLAGS__+=" -L${OPENSSL_LIB_DIR}"
-      fi
-      CONFIGURE_OPTS="--enable-shared" CFLAGS="${__CFLAGS__}" CPPFLAGS="${__CPPFLAGS__}" LDFLAGS="${__LDFLAGS__}" \
-      pyenv install --skip-existing ${PYTHON_VERSION}
-      unset CXX
-    fi
-
-    pyenv global ${PYTHON_VERSION}
-    pyenv rehash
-    python -m pip install --upgrade pip
-    python -m pip install --upgrade numpy setuptools wheel twine auditwheel
-
-  fi
-
-  # activate pyenv
-  pyenv global ${PYTHON_VERSION}
-  pyenv rehash
-
-  if [ "${PYTHON_VERSION:0:1}" -gt "2" ]; then
-    PYTHON_M_VERSION=${PYTHON_VERSION:0:3}m
-  else
-    PYTHON_M_VERSION=${PYTHON_VERSION:0:3}
-  fi
-
-  PushCMakeOption PYTHON_EXECUTABLE   $(pyenv prefix)/bin/python
-  PushCMakeOption PYTHON_INCLUDE_DIR  $(pyenv prefix)/include/python${PYTHON_M_VERSION}
-
-  if (( OSX == 1 )) ; then
-    PushCMakeOption PYTHON_LIBRARY $(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.dylib
-  else
-    PushCMakeOption PYTHON_LIBRARY $(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.so
-  fi
-}
-
-
-
 
 # ///////////////////////////////////////////////////////
-if [[ "$DOCKER_IMAGE" != "" ]] ; then\
-  BuildDockerOpenVisus
+if [[ "$DOCKER_IMAGE" != "" ]] ; then
+
+	sudo docker rm -f mydocker 2>/dev/null || true
+
+	sudo docker run -d -ti \
+		--name mydocker \
+		-v ${SOURCE_DIR}:${SOURCE_DIR} \
+		-e BUILD_DIR=${BUILD_DIR} \
+		-e PYTHON_VERSION=${PYTHON_VERSION} \
+		-e VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
+		-e DISABLE_OPENMP=${DISABLE_OPENMP} \
+		-e VISUS_GUI=${VISUS_GUI} \
+		-e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
+		-e USE_CONDA=${USE_CONDA} \
+		-e DEPLOY_CONDA=${DEPLOY_CONDA} \
+		-e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
+		-e DEPLOY_PYPI=${DEPLOY_PYPI} \
+		-e PYPI_USERNAME=${PYPI_USERNAME} \
+		-e PYPI_PASSWORD=${PYPI_PASSWORD} \
+		${DOCKER_IMAGE} \
+		/bin/bash
+
+	sudo docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
+
+	sudo chown -R "$USER":"$USER" ${BUILD_DIR}
+	sudo chmod -R u+rwx           ${BUILD_DIR}
   exit 0
 
 fi
@@ -408,14 +327,12 @@ fi
 if (( USE_CONDA == 1 )) ; then
 
 	if (( OSX ==  1 )) ; then
-
 		if [ ! -d /opt/MacOSX10.9.sdk ] ; then
 			git clone https://github.com/phracker/MacOSX-SDKs
 			mkdir -p /opt
 			sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
 			rm -Rf MacOSX-SDKs
 		fi
-
 	fi
 
 	if [ ! -d $HOME/miniconda${PYTHON_VERSION:0:1} ]; then
@@ -492,7 +409,68 @@ else
 
 fi
 
-InstallPython
+# install python using pyenv
+if (( FAST_MODE==0 )) ; then
+	
+	if (( OSX == 1 )) ; then
+		
+		brew install pyenv
+		brew reinstall readline zlib openssl@1.1
+		
+		CONFIGURE_OPTS="--enable-shared --with-openssl=$(brew --prefix openssl@1.1)" \
+		CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include  -I$(brew --prefix openssl@1.1)/include" \
+		LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib      -L$(brew --prefix openssl@1.1)/lib" \
+		pyenv install ${PYTHON_VERSION}
+
+	else
+
+		if ! [ -d "$HOME/.pyenv" ]; then
+			pushd $HOME
+			DownloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
+			chmod a+x pyenv-installer
+			./pyenv-installer
+			rm -f pyenv-installer
+			popd
+		fi
+		
+		# activate pyenv
+		export PATH="$HOME/.pyenv/bin:$PATH"
+		eval "$(pyenv init -)"
+		
+		CXX=g++ CONFIGURE_OPTS="--enable-shared" pyenv install ${PYTHON_VERSION}
+		
+	fi
+fi
+
+# activate pyenv
+if (( OSX != 1 )) ; then
+	export PATH="$HOME/.pyenv/bin:$PATH"	
+fi
+
+eval "$(pyenv init -)"
+pyenv global ${PYTHON_VERSION}
+pyenv rehash
+
+# install python packages
+if (( FAST_MODE == 0 )) ; then	
+	python -m pip install --upgrade pip
+	python -m pip install numpy setuptools wheel twine auditwheel	
+fi
+
+if [ "${PYTHON_VERSION:0:1}" -gt "2" ]; then
+	PYTHON_M_VERSION=${PYTHON_VERSION:0:3}m
+else
+	PYTHON_M_VERSION=${PYTHON_VERSION:0:3}
+fi
+
+PushCMakeOption PYTHON_EXECUTABLE   $(pyenv prefix)/bin/python
+PushCMakeOption PYTHON_INCLUDE_DIR  $(pyenv prefix)/include/python${PYTHON_M_VERSION}
+
+if (( OSX == 1 )) ; then
+	PushCMakeOption PYTHON_LIBRARY $(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.dylib
+else
+	PushCMakeOption PYTHON_LIBRARY $(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.so
+fi
 
 PushCMakeOption PYTHON_VERSION         ${PYTHON_VERSION}
 PushCMakeOption VISUS_INTERNAL_DEFAULT ${VISUS_INTERNAL_DEFAULT}
@@ -519,7 +497,6 @@ else
 	cmake --build . --target all -- -j 4
 	cmake --build . --target install
 fi
-
 
 # test OpenVisus Package
 export PYTHONPATH=${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages
