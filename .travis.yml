@@ -310,15 +310,14 @@ script:
    - |
      cd "${TRAVIS_BUILD_DIR}" 
      ./build.sh
-     echo "Finished build"
-     if (( DEPLOY_GITHUB !=1 )) ; then 
-        echo "Calling travis_terminate since not github DEPLOY_GITHUB!=1"
-        travis_terminate 0
-     fi
 
 before_deploy:
    - |
-     export SDIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.tar.gz")
+     SDIST_FILENAME=$(find ${TRAVIS_BUILD_DIR}/build/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.tar.gz" 2>/dev/null)
+     if [ -z "${SDIST_FILENAME}" ]; then
+        echo "Calling travis_terminate since SDIST_FILENAME is empty"
+        travis_terminate 0
+     fi
 
 deploy:
   provider: releases
