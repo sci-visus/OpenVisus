@@ -357,6 +357,30 @@ AddLibrary(VisusKernel ${Sources})
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/dtl/include)
 
+
+
+if (NOT DISABLE_OPENMP)
+
+	find_package(OpenMP QUIET)
+
+	# note: to have OpenMP cmake support you need cmake version>=3.9
+	if (TARGET OpenMP::OpenMP_CXX)
+		MESSAGE(STATUS "OpenMP found (OpenMP::OpenMP_CXX)")
+		target_link_libraries(VisusKernel PUBLIC OpenMP::OpenMP_CXX)
+
+	# FindOpenMP.cmake seems broken, at least for me
+	# see https://iscinumpy.gitlab.io/post/omp-on-high-sierra/
+	elseif (APPLE AND EXISTS "/usr/local/opt/libomp/include/omp.h" AND EXISTS "/usr/local/opt/libomp/lib/libomp.a")
+		MESSAGE(STATUS "OpenMP found (brew version for APPLE)")
+		target_include_directories(VisusKernel   PUBLIC /usr/local/opt/libomp/include)
+		target_link_libraries(VisusKernel        PUBLIC /usr/local/opt/libomp/lib/libomp.a)
+		target_compile_definitions(VisusKernel   PUBLIC "-Xpreprocessor -fopenmp")
+
+	endif()
+
+endif()
+
+
 if (VISUS_COMPRESSION)
 
 	target_compile_definitions(VisusKernel PUBLIC -DVISUS_COMPRESSION=1)

@@ -31,8 +31,6 @@ endif()
 # //////////////////////////////////////////////////////////////
 include(CMake/VisusMacros.cmake)
 
-FindOpenMP()
-
 include(FindPackageHandleStandardArgs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake)
 
