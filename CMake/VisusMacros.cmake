@@ -19,6 +19,21 @@ macro(SetIfNotDefined name value)
 	endif()
 endmacro()
 
+# //////////////////////////////////////////////////////////////////////////
+macro(FindGit)
+	find_program(GIT_CMD git REQUIRED)
+	find_package_handle_standard_args(GIT REQUIRED_VARS GIT_CMD)
+endmacro()
+
+# //////////////////////////////////////////////////////////////////////////
+macro(FindGitRevision)
+	FindGit()
+	execute_process(COMMAND ${GIT_CMD} rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} OUTPUT_VARIABLE GIT_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
+	message(STATUS "Current GIT_REVISION ${GIT_REVISION}")
+endmacro()
+
+
+
 # ///////////////////////////////////////////////////
 macro(SetTargetOutputDirectory Name BinDir LibDir)
 	if (CMAKE_CONFIGURATION_TYPES)
@@ -29,6 +44,15 @@ macro(SetTargetOutputDirectory Name BinDir LibDir)
 		set_target_properties(${Name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${BinDir}) 
 		set_target_properties(${Name} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${LibDir}) 
 		set_target_properties(${Name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${BinDir}) 
+	endif()
+endmacro()
+
+# /////////////////////////////////////////////////////////////
+macro(DisableTargetWarnings Name)
+	if(WIN32)
+		target_compile_options(${Name} PRIVATE "/W0")
+	else()
+		target_compile_options(${Name} PRIVATE "-w")
 	endif()
 endmacro()
 
@@ -60,7 +84,7 @@ macro(SetupCommonTargetOptions Name)
 	
 		# suppress some warnings
 		target_compile_options(${Name} PRIVATE -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
-	
+
 		set_target_properties(${Name} PROPERTIES MACOSX_BUNDLE TRUE) 
 		set_target_properties(${Name} PROPERTIES MACOSX_RPATH 0) # disable rpath
 
@@ -75,20 +99,6 @@ macro(SetupCommonTargetOptions Name)
 	
 	endif()
 
-endmacro()
-
-
-# /////////////////////////////////////////////////////////////
-macro(DisableAllWarnings)
-	set(CMAKE_C_WARNING_LEVEL   0)
-	set(CMAKE_CXX_WARNING_LEVEL 0)
-	if(WIN32)
-		set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   /W0")
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W0")
-	else()
-		set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -w")
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
-	endif()
 endmacro()
 
 # ///////////////////////////////////////////////////
@@ -158,6 +168,8 @@ macro(AddInternalLibrary Name)
 		target_compile_options(${Name} PRIVATE -fvisibility=hidden)
 	endif()
 
+
+	DisableTargetWarnings(${Name})
 endmacro()
 
 # ///////////////////////////////////////////////////
@@ -286,19 +298,6 @@ macro(AddSwigLibrary NamePy WrappedLib SwigTypeTable SwigFile)
 	target_link_libraries(${RealName} PUBLIC ${WrappedLib})
 	set_target_properties(${RealName} PROPERTIES FOLDER Swig/)
 	
-endmacro()
-
-# //////////////////////////////////////////////////////////////////////////
-macro(FindGit)
-	find_program(GIT_CMD git REQUIRED)
-	find_package_handle_standard_args(GIT REQUIRED_VARS GIT_CMD)
-endmacro()
-
-# //////////////////////////////////////////////////////////////////////////
-macro(FindGitRevision)
-	FindGit()
-	execute_process(COMMAND ${GIT_CMD} rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} OUTPUT_VARIABLE GIT_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
-	message(STATUS "Current GIT_REVISION ${GIT_REVISION}")
 endmacro()
 
 

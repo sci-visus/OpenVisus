@@ -1,4 +1,4 @@
-DisableAllWarnings()
+
 
 set(FreeImage_SOURCES
 	FreeImage/BitmapAccess.cpp

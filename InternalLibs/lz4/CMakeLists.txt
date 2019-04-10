@@ -1,4 +1,3 @@
-DisableAllWarnings()
 
 AddInternalLibrary(lz4  
 	lz4.c  

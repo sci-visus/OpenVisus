@@ -1,5 +1,3 @@
-DisableAllWarnings()
-
 
 AddInternalLibrary(zlib  
 	adler32.c 

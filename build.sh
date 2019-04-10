@@ -83,7 +83,10 @@ else
 	echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"
 fi
 
-
+# //////////////////////////////////////////////////////
+function DownloadFile {
+	curl -fsSL --insecure "$1" -O
+}
 
 # ///////////////////////////////////////////////////////
 # Docker
@@ -180,10 +183,7 @@ if (( USE_CONDA == 1 )) ; then
 	exit 0
 fi
 
-# //////////////////////////////////////////////////////
-function DownloadFile {
-	curl -fsSL --insecure "$1" -O
-}
+
 
 # //////////////////////////////////////////////////////
 function InstallOSXPrerequisites {
@@ -520,7 +520,15 @@ cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
 if (( OSX == 1 )) ; then
 	cmake -GXcode ${cmake_opts[@]} ${SOURCE_DIR}
-	cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
+	
+	# this is to solve logs too long 
+	if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
+		sudo gem install xcpretty  
+		set -o pipefail && cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
+	else
+		cmake                    --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
+	fi	
+	
 	cmake --build ./ --target install   --config ${CMAKE_BUILD_TYPE}
 else
 	cmake ${cmake_opts[@]} ${SOURCE_DIR}

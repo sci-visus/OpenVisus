@@ -1,4 +1,3 @@
-DisableAllWarnings()
 
 AddInternalLibrary(TinyXML 
 	tinyxml.cpp 
