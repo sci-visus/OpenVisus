@@ -29,11 +29,11 @@ matrix:
     # Example to compile step by step:
     #   sudo docker run -ti  -v $(pwd):/home/OpenVisus quay.io/pypa/manylinux1_x86_64 /bin/bash
     #   cd /home/OpenVisus 
-    #   PYTHON_VERSION=3.6.1 DISABLE_OPENMP=1 VISUS_GUI=0 BUILD_DIR=$(pwd)/build/manylinux ./build.sh     
+    #   PYTHON_VERSION=3.6.1 BUILD_DIR=$(pwd)/build/manylinux ./build.sh     
     
     - os: linux
       dist: trusty
-      env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64', 'DISABLE_OPENMP=1', 'VISUS_GUI=0' ]       
+      env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -41,7 +41,7 @@ matrix:
 
     - os: linux
       dist: trusty
-      env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64', 'DISABLE_OPENMP=1', 'VISUS_GUI=0' ]       
+      env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -50,7 +50,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64', 'DISABLE_OPENMP=1', 'VISUS_GUI=0' ]       
+      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -59,7 +59,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=3.4.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64', 'DISABLE_OPENMP=1', 'VISUS_GUI=0' ]       
+      env: ['PYTHON_VERSION=3.4.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -68,7 +68,7 @@ matrix:
     - os: linux
       dist: trusty
       if: tag IS present OR commit_message =~ /\[full_matrix\]/
-      env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64', 'DISABLE_OPENMP=1', 'VISUS_GUI=0' ]       
+      env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -309,7 +309,7 @@ matrix:
 script:
    - |
      cd "${TRAVIS_BUILD_DIR}" 
-     travis_wait 60 ./build.sh
+     ./build.sh
      echo "Finished build"
      if (( DEPLOY_GITHUB !=1 )) ; then 
         echo "Calling travis_terminate since not github DEPLOY_GITHUB!=1"

@@ -28,12 +28,11 @@ FAST_MODE=${FAST_MODE:-0}
 
 declare -a cmake_opts
 
-if [ $(uname) = "Darwin" ]; then
-	echo "Detected OSX"
-	export OSX=1
-fi
+# ///////////////////////////////////////////////////////////////////////////////////////////////
+# travis specific 
 
 if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
+	
 	export TRAVIS=1
 
 	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then export COMPILER=clang++ ; fi
@@ -53,12 +52,138 @@ if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
 	fi
 fi
 
+# ///////////////////////////////////////////////////////////////////////////////////////////////
+# detect OS
+if [ $(uname) = "Darwin" ]; then
+	echo "Detected OSX"
+	OSX=1
+	
+elif [ -x "$(command -v apt-get)" ]; then
+	echo "Detected ubuntu"
+	UBUNTU=1
+
+elif [ -x "$(command -v zypper)" ]; then
+	echo "Detected opensuse"
+	OPENSUSE=1
+
+elif [ -x "$(command -v yum)" ]; then
+	echo "Detected centos"
+	CENTOS=1
+	
+	CENTOS_MAJOR=$(cat /etc/centos-release | tr -dc '0-9.'|cut -d \. -f1)
+	CENTOS_MINOR=$(cat /etc/centos-release | tr -dc '0-9.'|cut -d \. -f2)
+	
+	# override
+	if (( CENTOS_MAJOR <=5 )) ; then
+		DISABLE_OPENMP=1
+		VISUS_GUI=0
+	fi
+	
+else
+	echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"
+fi
+
+
+
+# ///////////////////////////////////////////////////////
+# Docker
+
+if [[ "$DOCKER_IMAGE" != "" ]] ; then
+
+	sudo docker rm -f mydocker 2>/dev/null || true
+
+	sudo docker run -d -ti \
+		--name mydocker \
+		-v ${SOURCE_DIR}:${SOURCE_DIR} \
+		-e BUILD_DIR=${BUILD_DIR} \
+		-e PYTHON_VERSION=${PYTHON_VERSION} \
+		-e VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
+		-e DISABLE_OPENMP=${DISABLE_OPENMP} \
+		-e VISUS_GUI=${VISUS_GUI} \
+		-e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
+		-e USE_CONDA=${USE_CONDA} \
+		-e DEPLOY_CONDA=${DEPLOY_CONDA} \
+		-e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
+		-e DEPLOY_PYPI=${DEPLOY_PYPI} \
+		-e PYPI_USERNAME=${PYPI_USERNAME} \
+		-e PYPI_PASSWORD=${PYPI_PASSWORD} \
+		${DOCKER_IMAGE} \
+		/bin/bash
+
+	sudo docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
+
+	sudo chown -R "$USER":"$USER" ${BUILD_DIR}
+	sudo chmod -R u+rwx           ${BUILD_DIR}
+  exit 0
+
+fi
+
+
+# ///////////////////////////////////////////////////////
+# conda
+
+if (( USE_CONDA == 1 )) ; then
+	
+	if (( FASTMODE == 0 )) ; then
+
+		if (( OSX ==  1 )) ; then
+			if [ ! -d /opt/MacOSX10.9.sdk ] ; then
+				git clone https://github.com/phracker/MacOSX-SDKs
+				mkdir -p /opt
+				sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
+				rm -Rf MacOSX-SDKs
+			fi
+		fi
+
+		if [ ! -d $HOME/miniconda${PYTHON_VERSION:0:1} ]; then
+			pushd $HOME
+			if (( OSX == 1 )) ; then
+				DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh
+				bash Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh -b
+			else
+				DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh
+				bash Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -b
+			fi
+			popd
+		fi
+		
+		export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
+		hash -r		
+		
+		conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
+		conda install -q conda-build anaconda-client
+		conda update  -q conda conda-build
+		conda install -q python=${PYTHON_VERSION}		
+
+	else
+		export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
+		hash -r
+	fi
+
+	pushd conda
+	conda-build -q openvisus
+	conda install -q --use-local openvisus
+	popd
+
+	cd $(python -m OpenVisus dirname)
+	python Samples/python/Array.py
+	python Samples/python/Dataflow.py
+	python Samples/python/Idx.py
+
+	if (( DEPLOY_CONDA == 1 )) ; then
+		CONDA_BUILD_FILENAME=$(find ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld -iname "openvisus*.tar.bz2")
+		echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
+		anaconda -q -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
+	fi
+
+	echo "OpenVisus build finished"
+	exit 0
+fi
 
 # //////////////////////////////////////////////////////
 function DownloadFile {
 	curl -fsSL --insecure "$1" -O
 }
-
 
 # //////////////////////////////////////////////////////
 function InstallOSXPrerequisites {
@@ -95,9 +220,7 @@ function InstallOSXPrerequisites {
 
 # //////////////////////////////////////////////////////
 function InstallCMakeForLinux {
-	# VERSION=3.4.3
-	# VERSION=3.14.1
-	VERSION=3.9.1
+	VERSION=$1
 	url="https://github.com/Kitware/CMake/releases/download/v${VERSION}/cmake-${VERSION}-Linux-x86_64.tar.gz"
 	filename=$(basename ${url})
 	if [ ! -f ${filename} ] ; then
@@ -146,7 +269,7 @@ function InstallUbuntuPrerequisites {
 			swig3.0 git bzip2 ca-certificates build-essential libssl-dev \
 			uuid-dev curl automake libffi-dev  apache2 apache2-dev
 
-		InstallCMakeForLinux
+		InstallCMakeForLinux 3.14.1
 
 		# install patchelf
 		DownloadFile https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz
@@ -214,7 +337,9 @@ function InstallOpenSusePrerequisites {
 
 		sudo zypper --non-interactive update
 		sudo zypper --non-interactive install --type pattern devel_basis
-		sudo zypper --non-interactive install lsb-release gcc-c++ cmake git swig  libuuid-devel libopenssl-devel curl patchelf apache2 apache2-devel libffi-devel
+		sudo zypper --non-interactive install lsb-release gcc-c++ git swig  libuuid-devel libopenssl-devel curl patchelf apache2 apache2-devel libffi-devel
+
+		InstallCMakeForLinux 3.14.1
 
 		if (( VISUS_INTERNAL_DEFAULT == 0 )); then
 			sudo zypper --non-interactive install zlib-devel liblz4-devel tinyxml-devel libfreeimage-devel libcurl-devel
@@ -245,7 +370,13 @@ function InstallCentosPrerequisites {
 		make install
 		popd
 
-		InstallCMakeForLinux
+		# version a little old, otherwise I will get:
+		# cmake: /lib64/libc.so.6: version `GLIBC_2.6' not found (required by cmake)
+		if (( CENTOS_MAJOR <=5 )) ; then
+			InstallCMakeForLinux 3.4.3
+		else
+			InstallCMakeForLinux 3.14.1
+		fi
 
 		# install swig
 		echo "Istalling swig"
@@ -292,93 +423,6 @@ function InstallCentosPrerequisites {
 	cmake_opts+=(-DAPR_DIR=${CACHED_DIR})
 }
 
-
-# ///////////////////////////////////////////////////////
-if [[ "$DOCKER_IMAGE" != "" ]] ; then
-
-	sudo docker rm -f mydocker 2>/dev/null || true
-
-	sudo docker run -d -ti \
-		--name mydocker \
-		-v ${SOURCE_DIR}:${SOURCE_DIR} \
-		-e BUILD_DIR=${BUILD_DIR} \
-		-e PYTHON_VERSION=${PYTHON_VERSION} \
-		-e VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
-		-e DISABLE_OPENMP=${DISABLE_OPENMP} \
-		-e VISUS_GUI=${VISUS_GUI} \
-		-e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
-		-e USE_CONDA=${USE_CONDA} \
-		-e DEPLOY_CONDA=${DEPLOY_CONDA} \
-		-e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
-		-e DEPLOY_PYPI=${DEPLOY_PYPI} \
-		-e PYPI_USERNAME=${PYPI_USERNAME} \
-		-e PYPI_PASSWORD=${PYPI_PASSWORD} \
-		${DOCKER_IMAGE} \
-		/bin/bash
-
-	sudo docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
-
-	sudo chown -R "$USER":"$USER" ${BUILD_DIR}
-	sudo chmod -R u+rwx           ${BUILD_DIR}
-  exit 0
-
-fi
-
-# ///////////////////////////////////////////////////////
-if (( USE_CONDA == 1 )) ; then
-
-	if (( OSX ==  1 )) ; then
-		if [ ! -d /opt/MacOSX10.9.sdk ] ; then
-			git clone https://github.com/phracker/MacOSX-SDKs
-			mkdir -p /opt
-			sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
-			rm -Rf MacOSX-SDKs
-		fi
-	fi
-
-	if [ ! -d $HOME/miniconda${PYTHON_VERSION:0:1} ]; then
-		pushd $HOME
-		if (( OSX == 1 )) ; then
-			DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh
-			bash Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh -b
-		else
-			DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh
-			bash Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -b
-		fi
-		popd
-	fi
-
-	export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
-	hash -r
-
-	if (( FASTMODE == 0 )) ; then
-		conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-		conda install -q conda-build anaconda-client
-		conda update  -q conda conda-build
-		conda install -q python=${PYTHON_VERSION}
-	fi
-
-	pushd conda
-	conda-build -q openvisus
-	conda install -q --use-local openvisus
-	CONDA_BUILD_FILENAME=$(find ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld -iname "openvisus*.tar.bz2")
-	popd
-
-	cd $(python -m OpenVisus dirname)
-	python Samples/python/Array.py
-	python Samples/python/Dataflow.py
-	python Samples/python/Idx.py
-
-	if (( DEPLOY_CONDA == 1 )) ; then
-		echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
-		anaconda -q -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
-	fi
-
-	echo "OpenVisus build finished"
-	exit 0
-fi
-
-
 # ///////////////////////////////////////////////////////
 # directory for caching install stuff
 CACHED_DIR=${BUILD_DIR}/cached_deps
@@ -390,24 +434,19 @@ mkdir -p ${BUILD_DIR}
 cd ${BUILD_DIR}
 
 if (( OSX == 1 )) ; then
-	echo "Detected OSX"
 	InstallOSXPrerequisites
 
-elif [ -x "$(command -v apt-get)" ]; then
-	echo "Detected ubuntu"
+elif (( UBUNTU == 1 )) ; then
 	InstallUbuntuPrerequisites
 
-elif [ -x "$(command -v zypper)" ]; then
-	echo "Detected opensuse"
+elif (( OPENSUSE == 1 )) ; then
 	InstallOpenSusePrerequisites
 
-elif [ -x "$(command -v yum)" ]; then
-	echo "Detected centos"
+elif (( CENTOS == 1 )) ; then
 	InstallCentosPrerequisites
 
 else
-	echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"
-
+	echo "Internal error"
 fi
 
 # install python using pyenv
