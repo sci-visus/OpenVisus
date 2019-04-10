@@ -95,14 +95,16 @@ function InstallOSXPrerequisites {
 
 # //////////////////////////////////////////////////////
 function InstallCMakeForLinux {
-
-	# install cmake
-	if [ ! -f cmake-3.4.3-Linux-x86_64.tar.gz ] ; then
-		echo "Downloading precompiled cmake"
-		DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
-		tar xvzf cmake-3.4.3-Linux-x86_64.tar.gz -C ${CACHED_DIR} --strip-components=1 
+	# VERSION=3.4.3
+	# VERSION=3.14.1
+	VERSION=3.9.1
+	url="https://github.com/Kitware/CMake/releases/download/v${VERSION}/cmake-${VERSION}-Linux-x86_64.tar.gz"
+	filename=$(basename ${url})
+	if [ ! -f ${filename} ] ; then
+		echo "Downloading precompiled cmake from ${url}"
+		DownloadFile "${url}"
+		tar xvzf ${filename} -C ${CACHED_DIR} --strip-components=1 
 	fi
-
 }
 
 # //////////////////////////////////////////////////////
@@ -141,8 +143,8 @@ function InstallUbuntuPrerequisites {
 		fi
 
 		sudo apt-get -qq install --allow-unauthenticated \
-		swig3.0 git bzip2 ca-certificates build-essential libssl-dev \
-		uuid-dev curl automake libffi-dev  apache2 apache2-dev
+			swig3.0 git bzip2 ca-certificates build-essential libssl-dev \
+			uuid-dev curl automake libffi-dev  apache2 apache2-dev
 
 		InstallCMakeForLinux
 
@@ -478,39 +480,15 @@ cmake_opts+=(-DVISUS_GUI=${VISUS_GUI})
 cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
 if (( OSX == 1 )) ; then
-
 	cmake -GXcode ${cmake_opts[@]} ${SOURCE_DIR}
-
-	# this is to solve logs too long
-	if (( TRAVIS ==1 )) ; then
-		sudo gem install xcpretty
-		set -o pipefail && cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
-	else
-		cmake                    --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
-	fi
-
-	cmake --build ./ --target install --config ${CMAKE_BUILD_TYPE}
-
+	cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
+	cmake --build ./ --target install   --config ${CMAKE_BUILD_TYPE}
 else
 	cmake ${cmake_opts[@]} ${SOURCE_DIR}
 	cmake --build . --target all -- -j 4
 	cmake --build . --target install
 fi
 
-# test OpenVisus Package
-export PYTHONPATH=${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages
-cd $(python -m OpenVisus dirname)
-python Samples/python/Array.py
-python Samples/python/Dataflow.py
-python Samples/python/Idx.py
-
-# test stand alone scripts
-python -m OpenVisus CreateScripts
-if (( OSX == 1 )) ; then
-	./visus.command
-else
-	./visus.sh
-fi
 
 # dist
 if (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
@@ -532,6 +510,21 @@ if (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
 		python -m twine upload --skip-existing "${WHEEL_FILENAME}"
 	fi
 
+fi
+
+# test OpenVisus Package
+export PYTHONPATH=${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages
+cd $(python -m OpenVisus dirname)
+python Samples/python/Array.py
+python Samples/python/Dataflow.py
+python Samples/python/Idx.py
+
+# test stand alone scripts
+python -m OpenVisus CreateScripts
+if (( OSX == 1 )) ; then
+	./visus.command
+else
+	./visus.sh
 fi
 
 echo "OpenVisus build finished"

@@ -122,13 +122,11 @@ macro(FindOpenMP)
 		endif()
 
 		if (OpenMP_FOUND)
-			MESSAGE(STATUS "Found OpenMP")	
-			if (WIN32)
-				set(CMAKE_INSTALL_OPENMP_LIBRARIES 1)
-			endif()	
+			MESSAGE(STATUS "Found OpenMP")
 		else()
 			MESSAGE(STATUS "OpenMP not found")
-		endif()	
+		endif()
+	
 	endif()
 endmacro()
 
@@ -298,13 +296,13 @@ macro(AddSwigLibrary NamePy WrappedLib SwigTypeTable SwigFile)
 
 	# this is for generated C++ and header files
 	if (CMAKE_CONFIGURATION_TYPES)
-		set(SWIG_OUTFILE_DIR  ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
+		set(SWIG_OUTFILE_DIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
 	else()
-		set(SWIG_OUTFILE_DIR  ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+		set(SWIG_OUTFILE_DIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+
 	endif()
 
 	set(CMAKE_SWIG_FLAGS "")
-
 	set(SWIG_FLAGS "${ARGN}")
 	set(SWIG_FLAGS "${SWIG_FLAGS};-threads")
 	set(SWIG_FLAGS "${SWIG_FLAGS};-extranative")

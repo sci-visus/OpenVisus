@@ -90,7 +90,6 @@ if (VISUS_GUI)
 	file(GENERATE OUTPUT ${OpenVisus_DIR}/QT_VERSION CONTENT ${Qt5Core_VERSION_STRING})
 endif()
 
-# copy py files to build
 file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/CMake/*.py)
 foreach(src_filename ${PyFiles})
 	get_filename_component(src_basename ${src_filename} NAME)
@@ -102,11 +101,13 @@ endforeach()
 # install
 if (1)
 
-	# not used at all
+	# CMAKE_INSTALL_PREFIX is not used at all!
 	mark_as_advanced(CMAKE_INSTALL_PREFIX)
 
 	if (CMAKE_CONFIGURATION_TYPES)
-		string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" INSTALL_DIRECTORY ${OpenVisus_DIR})
+		set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_INSTALL_CONFIG_NAME}/site-packages/${CMAKE_PROJECT_NAME})
+	else()
+		set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/site-packages/${CMAKE_PROJECT_NAME})
 	endif()
 
 	install(FILES          LICENSE                                       DESTINATION ${INSTALL_DIRECTORY})
@@ -125,15 +126,20 @@ if (1)
 	install(DIRECTORY      Libs/Nodes/include/Visus                      DESTINATION ${INSTALL_DIRECTORY}/include/Nodes)
 
 	if (VISUS_GUI)
-		install(DIRECTORY  Libs/Gui/include/Visus                        DESTINATION ${INSTALL_DIRECTORY}/include/Gui)
-		install(DIRECTORY  Libs/GuiNodes/include/Visus                   DESTINATION ${INSTALL_DIRECTORY}/include/GuiNodes)
-		install(DIRECTORY  Libs/AppKit/include/Visus                     DESTINATION ${INSTALL_DIRECTORY}/include/AppKit)
+		install(DIRECTORY   Libs/Gui/include/Visus                        DESTINATION ${INSTALL_DIRECTORY}/include/Gui)
+		install(DIRECTORY   Libs/GuiNodes/include/Visus                   DESTINATION ${INSTALL_DIRECTORY}/include/GuiNodes)
+		install(DIRECTORY   Libs/AppKit/include/Visus                     DESTINATION ${INSTALL_DIRECTORY}/include/AppKit)
 	endif()
 
 	if (WIN32)
-		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION                                 ${INSTALL_DIRECTORY}/bin)
+
+		if (OpenMP_FOUND)
+			set(CMAKE_INSTALL_OPENMP_LIBRARIES 1)
+		endif()	
+
+		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION                                  ${INSTALL_DIRECTORY}/bin)
 		include(InstallRequiredSystemLibraries)
-		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION               ${INSTALL_DIRECTORY}/bin)	
+		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}                DESTINATION ${INSTALL_DIRECTORY}/bin)	
 	endif()
 
 	macro(CMakePostInstallStep)
@@ -156,7 +162,8 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** dist (to call after INSTALL) ***
 if (1)
-	add_custom_target(dist COMMAND ${PYTHON_EXECUTABLE} -u \"${CMAKE_CURRENT_SOURCE_DIR}/CMake/Deploy.py\" PythonDist)
+	add_custom_target(dist 
+		COMMAND ${PYTHON_EXECUTABLE} -u \"${CMAKE_CURRENT_SOURCE_DIR}/CMake/Deploy.py\" PythonDist)
 	set_property(TARGET dist PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 
@@ -207,9 +214,9 @@ if (1)
 		add_custom_target(${Name} 
 			COMMAND "${CMAKE_COMMAND}"  "${CMAKE_GENERATOR_ARGUMENT}" -H"${SourceDir}/"  -B"${BinaryDir}/"  -DQt5_DIR="${Qt5_DIR}" -DOpenVisus_DIR=${OpenVisus_DIR}
 			COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/" --config ${CMAKE_BUILD_TYPE})
+
 		set_target_properties(${Name} PROPERTIES FOLDER CMakeTargets/)
 	endmacro()
-
 
 	AddOpenVisusExternalApp(${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query)
 
