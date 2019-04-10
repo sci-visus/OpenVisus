@@ -69,8 +69,6 @@ REM setup step
 	-DVCPKG_TARGET_TRIPLET="%VCPKG_TARGET_TRIPLET%" ^
 	../
 
-
-
 REM build step
 "%CMAKE_EXECUTABLE%" --build . --target ALL_BUILD --config %CMAKE_BUILD_TYPE%
 
@@ -81,5 +79,19 @@ REM run test step
 "%CMAKE_EXECUTABLE%" --build . --target RUN_TESTS --config %CMAKE_BUILD_TYPE%
  
 REM dist step
-"%CMAKE_EXECUTABLE%" --build . --target dist      --config %CMAKE_BUILD_TYPE%
+if NOT "%APPVEYOR%"=="" (
+	"%CMAKE_EXECUTABLE%" --build . --target dist   --config %CMAKE_BUILD_TYPE%
+)
 
+REM test OpenVisus 
+set PYTHONPATH=%THIS_DIR%\build\%CMAKE_BUILD_TYPE%\site-packages
+cd %THIS_DIR%\build\%CMAKE_BUILD_TYPE%\site-packages\OpenVisus
+%PYTHON_EXECUTABLE% Samples/python/Array.py
+%PYTHON_EXECUTABLE% Samples/python/Dataflow.py
+%PYTHON_EXECUTABLE% Samples/python/Idx.py
+
+REM test stand alone scripts
+%PYTHON_EXECUTABLE% -m OpenVisus CreateScripts
+.\visus.bat
+
+echo "OpenVisus build finished"
