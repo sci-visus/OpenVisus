@@ -22,9 +22,14 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 PROJECT(OpenVisus) 
 
+if (NOT CMAKE_CONFIGURATION_TYPES)
+	if(NOT DEFINED CMAKE_BUILD_TYPE)
+	  set(CMAKE_BUILD_TYPE "RelWithDebInfo")
+	endif()
+endif()
+
 # //////////////////////////////////////////////////////////////
 include(CMake/VisusMacros.cmake)
-SetupCommonCMake()
 
 FindOpenMP()
 
@@ -46,7 +51,6 @@ message(STATUS "VISUS_GUI          ${VISUS_GUI}")
 message(STATUS "VISUS_OSPRAY       ${VISUS_OSPRAY}") 
 
 FindPythonLibrary()
-
 
 if (VISUS_OSPRAY)
 	find_package(ospray REQUIRED)

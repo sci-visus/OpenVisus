@@ -19,33 +19,6 @@ macro(SetIfNotDefined name value)
 	endif()
 endmacro()
 
-# //////////////////////////////////////////////////////////////////////////
-macro(SetupCommonCMake)
-
-	if (NOT CMAKE_CONFIGURATION_TYPES)
-		if(NOT CMAKE_BUILD_TYPE)
-		  set(CMAKE_BUILD_TYPE "Release")
-		endif()
-	endif()
-	
-	set(CMAKE_CXX_STANDARD 11)
-	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
-	if (CMAKE_CONFIGURATION_TYPES)
-		add_compile_options("$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
-	else()
-		if (CMAKE_BUILD_TYPE EQUAL "Debug")
-			add_compile_options("-DVISUS_DEBUG=1")	
-		endif()
-	endif()	
-	
-	if (APPLE)
-		set(CMAKE_MACOSX_BUNDLE YES)
-		set(CMAKE_MACOSX_RPATH  0)	 # disable rpath
-	endif()
-	
-endmacro()
-
 # ///////////////////////////////////////////////////
 macro(SetTargetOutputDirectory Name BinDir LibDir)
 	if (CMAKE_CONFIGURATION_TYPES)
@@ -62,6 +35,17 @@ endmacro()
 # //////////////////////////////////////////////////////////////////////////
 macro(SetupCommonTargetOptions Name)
 
+	set_target_properties(${Name} PROPERTIES CXX_STANDARD 11)
+	set_target_properties(${Name} PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
+	if (CMAKE_CONFIGURATION_TYPES)
+		target_compile_options(${Name} PRIVATE "$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
+	else()
+		if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+			target_compile_options(${Name} PRIVATE -DVISUS_DEBUG=1)
+		endif()
+	endif()
+
 	if (WIN32)
 
 		target_compile_options(${Name} PRIVATE /MP)
@@ -75,8 +59,11 @@ macro(SetupCommonTargetOptions Name)
 	elseif (APPLE)
 	
 		# suppress some warnings
-		target_compile_options(${Name} PRIVATE  -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
+		target_compile_options(${Name} PRIVATE -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
 	
+		set_target_properties(${Name} PROPERTIES MACOSX_BUNDLE TRUE) 
+		set_target_properties(${Name} PROPERTIES MACOSX_RPATH 0) # disable rpath
+
 	else()
 	
 		# enable 64 bit file support (see http://learn-from-the-guru.blogspot.it/2008/02/large-file-support-in-linux-for-cc.html)
@@ -192,10 +179,24 @@ macro(FindPythonLibrary)
 	else()
 		set_target_properties(Imported::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
 	endif()
-		
-	EXECUTE_PROCESS(COMMAND ${PYTHON_EXECUTABLE}  -c  "import site;print(site.getsitepackages()[-1])"  OUTPUT_VARIABLE PYTHON_SITE_PACKAGES_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
-	message(STATUS "PYTHON_SITE_PACKAGES_DIR ${PYTHON_SITE_PACKAGES_DIR}")
 	
+endmacro()
+
+
+# ///////////////////////////////////////////////////
+macro(AddInternalLibrary Name)
+
+	add_library(${Name} STATIC ${ARGN})
+
+	SetupCommonTargetOptions(${Name})
+	SetTargetOutputDirectory(${Name} bin lib)
+
+	# this fixes the problem of static symbols conflicting with dynamic lib
+	# example: dynamic libcrypto conflicting with internal static libcrypto
+	if (NOT WIN32)
+		target_compile_options(${Name} PRIVATE -fvisibility=hidden)
+	endif()
+
 endmacro()
 
 # ///////////////////////////////////////////////////
@@ -218,41 +219,6 @@ macro(LinkPythonToLibrary Name)
 endmacro()
 
 # ///////////////////////////////////////////////////
-macro(LinkPythonToExecutable Name)
-
-	if (WIN32)
-		# already linked
-	elseif (APPLE)
-		target_link_libraries(${Name} PUBLIC Imported::Python)
-	else()
-		# for nix is trickier since the linking order is important
-		# the "-Wl,--start-group" does not always work (for example in travis)
-		# see http://cmake.3232098.n2.nabble.com/Link-order-Ubuntu-tt7598592.html
-		# i found this trick: VisusKernel should appear always before python 
-		target_link_libraries(${Name} PUBLIC $<TARGET_FILE:VisusKernel> Imported::Python)
-	endif()
-		
-endmacro()
-
-
-
-
-# ///////////////////////////////////////////////////
-macro(AddInternalLibrary Name)
-
-	add_library(${Name} STATIC ${ARGN})
-
-	# this fixes the problem of static symbols conflicting with dynamic lib
-	# example: dynamic libcrypto conflicting with internal static libcrypto
-	if (NOT WIN32)
-		target_compile_options(${Name} PRIVATE -fvisibility=hidden)
-	endif()
-
-	SetTargetOutputDirectory(${Name} bin lib)
-
-endmacro()
-
-# ///////////////////////////////////////////////////
 macro(AddLibrary Name)
 
 	add_library(${Name} ${ARGN})
@@ -269,6 +235,22 @@ macro(AddLibrary Name)
 
 endmacro()
 
+# ///////////////////////////////////////////////////
+macro(LinkPythonToExecutable Name)
+
+	if (WIN32)
+		# already linked
+	elseif (APPLE)
+		target_link_libraries(${Name} PUBLIC Imported::Python)
+	else()
+		# for nix is trickier since the linking order is important
+		# the "-Wl,--start-group" does not always work (for example in travis)
+		# see http://cmake.3232098.n2.nabble.com/Link-order-Ubuntu-tt7598592.html
+		# i found this trick: VisusKernel should appear always before python 
+		target_link_libraries(${Name} PUBLIC $<TARGET_FILE:VisusKernel> Imported::Python)
+	endif()
+		
+endmacro()
 
 # ///////////////////////////////////////////////////
 macro(AddExecutable Name)
