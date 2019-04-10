@@ -174,12 +174,6 @@ class DeployUtils:
 	# PythonDist
 	@staticmethod
 	def PythonDist():
-
-		print("Executing dist",sys.argv)
-		
-		__this_dir__=os.path.dirname(os.path.abspath(__file__))
-		os.chdir(__this_dir__)	
-
 		DeployUtils.PipInstall(["--upgrade","--user","setuptools"])	
 		DeployUtils.PipInstall(["--upgrade","--user","wheel"     ])	
 		DeployUtils.RemoveFiles("dist/*")
@@ -203,8 +197,6 @@ class DeployUtils:
 		DeployUtils.ExecuteCommand([sys.executable,"setup.py","-q","bdist_wheel","--python-tag=%s" % (PYTHON_TAG,),"--plat-name=%s" % (PLAT_NAME,)])
 		wheel_filename=glob.glob('dist/*.whl')[0]
 		print("Created wheel",wheel_filename)
-			
-		print("Finished dist",glob.glob('dist/*'))
 
 	# InstallPyQt5
 	@staticmethod
@@ -239,11 +231,6 @@ class DeployUtils:
 	@staticmethod
 	def UsePyQt():
 
-		print("Executing UsePyQt",sys.argv)
-		
-		__this_dir__=os.path.dirname(os.path.abspath(__file__))
-		os.chdir(__this_dir__)		
-		
 		VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
 		if not VISUS_GUI:
 			raise Exception("VISUS_GUI not enabled")
@@ -261,7 +248,6 @@ class DeployUtils:
 
 		# avoid conflicts removing any Qt file
 		DeployUtils.RemoveFiles("bin/Qt*")
-		print("Done UsePyQt")
 
 	# CreateScript
 	@staticmethod
@@ -322,11 +308,6 @@ class DeployUtils:
 	# CreateScripts
 	@staticmethod
 	def CreateScripts():
-
-		print("Creating scripts")
-		__this_dir__=os.path.dirname(os.path.abspath(__file__))
-		os.chdir(__this_dir__)
-			
 		if WIN32:
 			DeployUtils.CreateScript("visus.bat","bin/visus.exe")
 			if os.path.isfile("bin/visusviewer.exe"):
@@ -342,16 +323,9 @@ class DeployUtils:
 			if os.path.isfile("bin/visusviewer"):
 				DeployUtils.CreateScript("visusviewer.sh","bin/visusviewer",VISUS_GUI=True, extra_lines=["cd ${this_dir}"])
 
-		print("Done scripts creation")
-
 	# CopyQt5Plugins
 	@staticmethod
 	def CopyQt5Plugins():
-
-		print("Copying Qt5 plugins",sys.argv)
-
-		__this_dir__=os.path.dirname(os.path.abspath(__file__))
-		os.chdir(__this_dir__)
 
 		QT5_HOME=DeployUtils.ExtractNamedArgument("--qt5-home")
 		if not os.path.isdir(QT5_HOME):
@@ -370,17 +344,10 @@ class DeployUtils:
 			if os.path.isdir(os.path.join(QT_PLUGIN_PATH,it)):
 				DeployUtils.CopyDirectory(os.path.join(QT_PLUGIN_PATH,it) ,"bin/Qt/plugins")		
 
-		
-		print("Done copy Qt5 plugins")
 
 	# MakeSelfContained
 	@staticmethod
 	def MakeSelfContained():
-
-		print("Executing MakeSelfContained",sys.argv)
-
-		__this_dir__=os.path.dirname(os.path.abspath(__file__))
-		os.chdir(__this_dir__)
 
 		# for windows I use windeploy since there is no easy way to get DLLs dependencies
 		if WIN32:
@@ -400,8 +367,6 @@ class DeployUtils:
 
 			deploy=AppleDeploy() if APPLE else LinuxDeploy()
 			deploy.fixAllDeps()
-
-		print("Finished MakeSelfContained")
 
 
 # ///////////////////////////////////////
@@ -747,23 +712,38 @@ def Main():
 		sys.exit(0)	
 
 	if sys.argv[1]=="CopyQt5Plugins":
+		os.chdir(os.path.dirname(os.path.abspath(__file__)))	
+		print("Executing CopyQt5Plugins","cwd",os.getcwd(),"args",sys.argv)
 		DeployUtils.CopyQt5Plugins()
+		print("Done CopyQt5Plugins")
 		sys.exit(0)
 
 	if sys.argv[1]=="MakeSelfContained":
+		os.chdir(os.path.dirname(os.path.abspath(__file__)))	
+		print("Executing MakeSelfContained","cwd",os.getcwd(),"args",sys.argv)
 		DeployUtils.MakeSelfContained()
+		print("Done MakeSelfContained")
 		sys.exit(0)
 		
 	if sys.argv[1]=="PythonDist":
+		os.chdir(os.path.dirname(os.path.abspath(__file__)))	
+		print("Executing PythonDist","cwd",os.getcwd(),"args",sys.argv)
 		DeployUtils.PythonDist()
+		print("Done PythonDist",glob.glob('dist/*'))
 		sys.exit(0)
 
 	if sys.argv[1]=="UsePyQt":
+		os.chdir(os.path.dirname(os.path.abspath(__file__)))	
+		print("Executing UsePyQt","cwd",os.getcwd(),"args",sys.argv)
 		DeployUtils.UsePyQt()
+		print("Done UsePyQt")
 		sys.exit(0)
 
 	if sys.argv[1]=="CreateScripts":
+		os.chdir(os.path.dirname(os.path.abspath(__file__)))	
+		print("Executing CreateScripts","cwd",os.getcwd(),"args",sys.argv)
 		DeployUtils.CreateScripts()
+		print("Done CreateScripts")
 		sys.exit(0)			
 
 	print("Error in arguments",sys.argv)

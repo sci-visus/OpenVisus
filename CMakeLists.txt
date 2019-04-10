@@ -164,8 +164,7 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** dist (to call after INSTALL) ***
 if (1)
-	add_custom_target(dist 
-		COMMAND ${PYTHON_EXECUTABLE} -u \"${CMAKE_CURRENT_SOURCE_DIR}/CMake/Deploy.py\" PythonDist)
+	add_custom_target(dist COMMAND ${PYTHON_EXECUTABLE} -u \"${OpenVisus_DIR}/Deploy.py\" PythonDist)
 	set_property(TARGET dist PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 
