@@ -1,34 +1,31 @@
 
 import sys, os
 
-# Qt5 does not work in debug mode
-# important to import before OpenVisus
-use_pqyt=True
-try:
-	import PyQt5
-	from PyQt5.QtCore    import *
-	from PyQt5.QtWidgets import *
-	from PyQt5.QtGui     import *
-	import PyQt5.sip as  sip
-except ImportError:
-	use_pqyt=False
-
-from OpenVisus import *
+from OpenVisus       import *
+from VisusGuiPy      import *
+from VisusGuiNodesPy import *
+from VisusAppKitPy   import *
+	
+# asssuming you have installed OpenVisus and configured with "UsePyQt"
+import PyQt5
+from   PyQt5.QtCore    import *
+from   PyQt5.QtWidgets import *
+from   PyQt5.QtGui     import *
+import PyQt5.sip  as  sip
 
 
 # ///////////////////////////////////////////////////////////
-if use_pqyt:
-	class MyWidget(QWidget):
-	    
-		# __init__
-		def __init__(self):
-			QWidget.__init__(self)
-			self.checkbox = QCheckBox('Show title', self)
-			self.checkbox.move(20, 20)
-			self.checkbox.toggle()
-			self.setGeometry(300, 300, 250, 150)
-			self.setWindowTitle('QCheckBox')
-			self.show()
+class MyWidget(QWidget):
+    
+	# __init__
+	def __init__(self):
+		QWidget.__init__(self)
+		self.checkbox = QCheckBox('Show title', self)
+		self.checkbox.move(20, 20)
+		self.checkbox.toggle()
+		self.setGeometry(300, 300, 250, 150)
+		self.setWindowTitle('QCheckBox')
+		self.show()
 
 
 # ///////////////////////////////////////////////////////////
@@ -85,9 +82,8 @@ if __name__ == '__main__':
 	viewer.openFile("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1") 
 
 	# example of adding a PyQt5 widget to C++ Qt
-	if use_pqyt:
-		mywidget=MyWidget()
-		viewer.addDockWidget("MyWidget",ToCppQtWidget(sip.unwrapinstance(mywidget)))
+	mywidget=MyWidget()
+	viewer.addDockWidget("MyWidget",ToCppQtWidget(sip.unwrapinstance(mywidget)))
 
 	# example of adding a python node to the dataflow
 	add_python_node=True

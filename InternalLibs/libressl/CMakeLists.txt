@@ -8,8 +8,6 @@ set(OPENSSLDIR                   "")
 set(BUILD_NC                     0)
 
 
-DisableAllWarnings()
-
 include(CheckFunctionExists)
 include(CheckSymbolExists)
 include(CheckLibraryExists)
@@ -197,7 +195,6 @@ set(OPENSSL_LIBS tls ssl crypto ${PLATFORM_LIBS})
 add_subdirectory(crypto)
 add_subdirectory(ssl)
 add_subdirectory(tls)
-
 
 set_target_properties(crypto PROPERTIES FOLDER "InternalLibs/libressl")
 set_target_properties(ssl    PROPERTIES FOLDER "InternalLibs/libressl")

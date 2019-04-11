@@ -43,16 +43,6 @@ import numpy
 
 from OpenVisus import *
 
-"""
-To test it manually under windows:
-
-set PATH=C:\Python37;C:\projects\OpenVisus\build\RelWithDebInfo;%PATH%
-set PYTHONPATH=C:\projects\OpenVisus\build\RelWithDebInfo
-c:\Python37\python.exe Samples\python\Array.py
-
-"""
-
-
 # ////////////////////////////////////////////////////////////////////
 class MyTestCase(unittest.TestCase):
 

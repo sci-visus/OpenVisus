@@ -90,8 +90,8 @@ public:
 
   VISUS_DECLARE_SINGLETON_CLASS(VisusConfig)
 
-    //constructor
-    VisusConfig() : ConfigFile("visus_config") {
+  //constructor
+  VisusConfig() : ConfigFile("visus_config") {
   }
 };
 } //namespace Private

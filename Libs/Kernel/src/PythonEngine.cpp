@@ -271,11 +271,21 @@ String PythonEngine::fixPath(String value) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-void PythonEngine::addSysPath(String value,bool bVerbose) {
+void PythonEngine::addSysPath(String value,bool bVerbose)
+{
   value = fixPath(value);
-  auto cmd = "import sys; sys.path.append('" + value + "')";
+
+  const String crlf = "\r\n";
+
+  String cmd = StringUtils::format() <<
+    "import os,sys" << crlf <<
+    "value=os.path.realpath('" + value + "')" << crlf <<
+    "if not value in sys.path:" << crlf <<
+    "   sys.path.append(value)" << crlf;
+
   if (bVerbose)
     VisusInfo() << cmd;
+
   execCode(cmd);
 }
 
@@ -307,41 +317,28 @@ PythonEngine::PythonEngine(bool bVerbose)
     if (bVerbose)
       VisusInfo() << "Visus is embedding Python";
 
-    //try to find where visus VisusiKernelPy.py files are
+    //try to find where OpenVisus package files are
     {
       auto current_application_dir = KnownPaths::CurrentApplicationFile.getParent().toString();
 
-      std::vector<String> candidates;
+#if WIN32
+      //example: C:\projects\OpenVisus\build\RelWithDebInfo\OpenVisus\bin\visus.exe
+      auto bin_dir = current_application_dir;
 
-      //this is needed in build
-      candidates.push_back(current_application_dir);
+#elif __APPLE__
+      //example: /Users/scrgiorgio/Desktop/OpenVisus/build/RelWithDebInfo/OpenVisus/bin/visus.app/Contents/MacOS/<name>
+      auto bin_dir = current_application_dir + "/../../..";
 
-      //this is needed for install
-#if __APPLE__ 
-      //example: ${CMAKE_INSTALL_PREFIX}/bin/<name>.app/Contents/MacOS/<name>
-      candidates.push_back(current_application_dir + "/../../../..");
 #else
-      //example ${CMAKE_INSTALL_PREFIX}/bin
-      candidates.push_back(current_application_dir + "/..");
-
+      //example: /home/scrgiorgio/Desktop/OpenVisus/build/OpenVisus/bin/visus
+      auto bin_dir = current_application_dir;
 #endif
 
-      for (auto dir : candidates)
-      {
-        auto filename=dir + "/OpenVisus.py";
-        if (FileUtils::existsFile(filename))
-        {
-          if (bVerbose)
-            VisusInfo() << "Found " << filename;
-          addSysPath(dir, bVerbose);
-          break;
-        }
-        else
-        {
-          if (bVerbose)
-            VisusInfo() << "Not found " << filename;
-        }
-      }
+      //this is for shared library
+      //addSysPath(bin_dir, bVerbose);
+
+      //this is for OpenVisus  package 
+      addSysPath(bin_dir + "/../..", bVerbose);
     }
   }
 
@@ -351,6 +348,9 @@ PythonEngine::PythonEngine(bool bVerbose)
 	if (bVerbose)
     VisusInfo() << "Trying to import OpenVisus...";
 
+  //execCode("import sys;print(sys.path)");
+  
+  //execCode("from .OpenVisus import *");
   execCode("from OpenVisus import *");
 
   if (bVerbose)

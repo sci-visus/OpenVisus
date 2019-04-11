@@ -703,7 +703,7 @@ else()
 	add_definitions(-DOPENSSLDIR=\"${CMAKE_INSTALL_PREFIX}/etc/ssl\")
 endif()
 
-AddStaticLibrary(crypto ${CRYPTO_SRC})
+AddInternalLibrary(crypto ${CRYPTO_SRC})
 target_include_directories(crypto
 	PRIVATE
 		.

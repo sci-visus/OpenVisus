@@ -1,11 +1,12 @@
 
 FindGitRevision()
-add_definitions(-DGIT_REVISION=\"${GIT_REVISION}\")
+
+add_definitions(-DGIT_REVISION=${GIT_REVISION})
 
 # *** VISUS_INTERNAL_DEFAULT ***
 if (NOT DEFINED VISUS_INTERNAL_DEFAULT)
 	if (WIN32)
-		if (VCPKG)
+		if (CMAKE_TOOLCHAIN_FILE)
 			set(VISUS_INTERNAL_DEFAULT 0)
 		else()
 			set(VISUS_INTERNAL_DEFAULT 1)
@@ -107,7 +108,7 @@ if (VISUS_NET)
 		endif()
 		find_package(CURL REQUIRED)
 		# see https://github.com/Microsoft/vcpkg/issues/1909
-	 	if (VCPKG)
+	 	if (CMAKE_TOOLCHAIN_FILE)
 			list(LENGTH CURL_LIBRARY CURL_LIBRARY_LENGTH)
 			if (CURL_LIBRARY_LENGTH EQUAL 1)
 				set(CURL_LIBRARY_DEBUG_LIB   ${CURL_LIBRARY})
@@ -161,10 +162,22 @@ if (NOT (WIN32 OR APPLE))
 endif()
 
 
-source_group("" FILES
+file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/*.py)
+
+set(RootFiles 
+	${CMAKE_CURRENT_SOURCE_DIR}/../../README.md
 	${CMAKE_CURRENT_SOURCE_DIR}/../../CMakeLists.txt
+	${CMAKE_CURRENT_SOURCE_DIR}/../../build.bat
+	${CMAKE_CURRENT_SOURCE_DIR}/../../build.sh
 	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/VisusMacros.cmake
 	${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.txt
+)
+
+
+source_group("PyFiles" FILES ${PyFiles})
+
+source_group("" FILES
+	${RootFiles}
 	./include/Visus/Visus.h 
 	./include/Visus/Kernel.h 
 	./src/Visus.cpp 
@@ -330,9 +343,8 @@ IF (WIN32 OR APPLE)
 endif()
 
 file(GLOB Sources 
-	${CMAKE_CURRENT_SOURCE_DIR}/../../CMakeLists.txt
-	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/VisusMacros.cmake
-	${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.txt
+	${RootFiles}
+	${PyFiles}
 	include/Visus/*.h 
 	include/Visus/*.i 
 	src/*.cpp 
@@ -344,6 +356,30 @@ AddLibrary(VisusKernel ${Sources})
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/dtl/include)
+
+
+
+if (NOT DISABLE_OPENMP)
+
+	find_package(OpenMP QUIET)
+
+	# note: to have OpenMP cmake support you need cmake version>=3.9
+	if (TARGET OpenMP::OpenMP_CXX)
+		MESSAGE(STATUS "OpenMP found (OpenMP::OpenMP_CXX)")
+		target_link_libraries(VisusKernel PUBLIC OpenMP::OpenMP_CXX)
+
+	# FindOpenMP.cmake seems broken, at least for me
+	# see https://iscinumpy.gitlab.io/post/omp-on-high-sierra/
+	elseif (APPLE AND EXISTS "/usr/local/opt/libomp/include/omp.h" AND EXISTS "/usr/local/opt/libomp/lib/libomp.a")
+		MESSAGE(STATUS "OpenMP found (brew version for APPLE)")
+		target_include_directories(VisusKernel   PUBLIC /usr/local/opt/libomp/include)
+		target_link_libraries(VisusKernel        PUBLIC /usr/local/opt/libomp/lib/libomp.a)
+		target_compile_options(VisusKernel   PUBLIC -Xpreprocessor -fopenmp)
+
+	endif()
+
+endif()
+
 
 if (VISUS_COMPRESSION)
 
@@ -369,15 +405,6 @@ if (TARGET TinyXML)
 else()
 	target_include_directories(VisusKernel PRIVATE ${TinyXML_INCLUDE_DIRS})
 	target_link_libraries(VisusKernel      PUBLIC ${TinyXML_LIBRARIES})	
-endif()
-
-if (1)
-	# disabled debug version
-	if (WIN32)
-		if (SWIG_PYTHON_INTERPRETER_NO_DEBUG)
-			target_compile_definitions(VisusKernel PUBLIC -DSWIG_PYTHON_INTERPRETER_NO_DEBUG=1) 
-		endif()
-	endif()
 endif()
 
 if (VISUS_IMAGE)
@@ -439,12 +466,10 @@ else()
 
 endif()
 
-# copy py files to build
-file(GLOB CMakePyFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/*.py)
-foreach(__it__ ${CMakePyFiles})
-	add_custom_command(TARGET VisusKernel POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${__it__} $<TARGET_FILE_DIR:VisusKernel>)
-endforeach()
-
-AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
+AddSwigLibrary(VisusKernelPy 
+	VisusKernel 
+	OpenVisus
+	${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
+
 	  

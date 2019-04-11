@@ -11,6 +11,7 @@ PYTHON_VERSION=${PYTHON_VERSION:-3.6.1}
 VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT:-1}
 DISABLE_OPENMP=${DISABLE_OPENMP:-0}
 VISUS_GUI=${VISUS_GUI:-1}
+
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
 
 # conda stuff
@@ -26,531 +27,633 @@ PYPI_PASSWORD=${PYPI_PASSWORD:-}
 # in case you want to speed up compilation because prerequisites have already been installed
 FAST_MODE=${FAST_MODE:-0}
 
-if [ $(uname) = "Darwin" ]; then
-  echo "Detected OSX"
-  export OSX=1
+declare -a cmake_opts
+
+# ///////////////////////////////////////////////////////////////////////////////////////////////
+# travis specific 
+
+if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
+	
+	export TRAVIS=1
+
+	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then export COMPILER=clang++ ; fi
+	if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export COMPILER=g++-4.9 ; fi
+
+	if (( USE_CONDA == 1 )) ; then
+		if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_conda]"* ]]; then
+			export DEPLOY_CONDA=1
+		fi
+	else
+	  DEPLOY_GITHUB=1
+	  if [[ "${TRAVIS_TAG}" != "" || "${TRAVIS_COMMIT_MESSAGE}" == *"[deploy_pypi]"* ]]; then
+		  if [[ $(uname) == "Darwin" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
+		     export DEPLOY_PYPI=1
+		  fi     
+	  fi
+	fi
 fi
 
+# ///////////////////////////////////////////////////////////////////////////////////////////////
+# detect OS
+if [ $(uname) = "Darwin" ]; then
+	echo "Detected OSX"
+	OSX=1
+	
+elif [ -x "$(command -v apt-get)" ]; then
+	echo "Detected ubuntu"
+	UBUNTU=1
+
+elif [ -x "$(command -v zypper)" ]; then
+	echo "Detected opensuse"
+	OPENSUSE=1
+
+elif [ -x "$(command -v yum)" ]; then
+	echo "Detected centos"
+	CENTOS=1
+	
+	CENTOS_MAJOR=$(cat /etc/centos-release | tr -dc '0-9.'|cut -d \. -f1)
+	CENTOS_MINOR=$(cat /etc/centos-release | tr -dc '0-9.'|cut -d \. -f2)
+	
+	# override
+	if (( CENTOS_MAJOR <=5 )) ; then
+		DISABLE_OPENMP=1
+		VISUS_GUI=0
+
+		# note: I could use an existing Qt5 doing:
+		if (( 0 == 1 )) ; then
+			Qt5_HOME=/opt/qt511
+			QT_VERSION=5.11.2
+			python -m pip install --user PyQt5==$QT_VERSION
+			PyQt5_DIR=$(python -c 'import os,PyQt5;print(os.path.dirname(PyQt5.__file__))')
+
+			rm -Rf qt${QT_VERSION}/*
+			mkdir -p qt${QT_VERSION}/lib/cmake/Qt
+			cp -r ${Qt5_HOME}/include           qt${QT_VERSION}/
+			cp -r ${Qt5_HOME}/lib/cmake         qt${QT_VERSION}/lib/
+			cp -r ${PyQt5_DIR}/Qt/lib/*.so*     qt${QT_VERSION}/lib/
+			cp -r ${PyQt5_DIR}/Qt/plugins       qt${QT_VERSION}/
+
+			Qt5_DIR=$(pwd)/qt${QT_VERSION}/lib/cmake/Qt5 ./build.sh 
+		fi
+
+	fi
+	
+else
+	echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"
+fi
 
 # //////////////////////////////////////////////////////
 function DownloadFile {
-  curl -fsSL --insecure "$1" -O
+	curl -fsSL --insecure "$1" -O
 }
 
-# //////////////////////////////////////////////////////
-cmake_opts=""
-function PushCMakeOption {
-  if [ -n "$2" ] ; then
-    cmake_opts="${cmake_opts} -D$1=$2"
-  fi
-}
+# ///////////////////////////////////////////////////////
+# Docker
 
-# //////////////////////////////////////////////////////
-function BuildDockerOpenVisus {
-  sudo docker rm -f mydocker 2>/dev/null || true
+if [[ "$DOCKER_IMAGE" != "" ]] ; then
 
-  sudo docker run -d -ti \
-    --name mydocker \
-    -v ${SOURCE_DIR}:${SOURCE_DIR} \
-    -e BUILD_DIR=${BUILD_DIR} \
-    -e PYTHON_VERSION=${PYTHON_VERSION} \
-    -e VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
-    -e DISABLE_OPENMP=${DISABLE_OPENMP} \
-    -e VISUS_GUI=${VISUS_GUI} \
-    -e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
-    -e USE_CONDA=${USE_CONDA} \
-    -e DEPLOY_CONDA=${DEPLOY_CONDA} \
-    -e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
-    -e DEPLOY_PYPI=${DEPLOY_PYPI} \
-    -e PYPI_USERNAME=${PYPI_USERNAME} \
-    -e PYPI_PASSWORD=${PYPI_PASSWORD} \
-    ${DOCKER_IMAGE} \
-    /bin/bash
+	sudo docker rm -f mydocker 2>/dev/null || true
 
-  sudo docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
+	sudo docker run -d -ti \
+		--name mydocker \
+		-v ${SOURCE_DIR}:${SOURCE_DIR} \
+		-e BUILD_DIR=${BUILD_DIR} \
+		-e PYTHON_VERSION=${PYTHON_VERSION} \
+		-e VISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT} \
+		-e DISABLE_OPENMP=${DISABLE_OPENMP} \
+		-e VISUS_GUI=${VISUS_GUI} \
+		-e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
+		-e USE_CONDA=${USE_CONDA} \
+		-e DEPLOY_CONDA=${DEPLOY_CONDA} \
+		-e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
+		-e DEPLOY_PYPI=${DEPLOY_PYPI} \
+		-e PYPI_USERNAME=${PYPI_USERNAME} \
+		-e PYPI_PASSWORD=${PYPI_PASSWORD} \
+		${DOCKER_IMAGE} \
+		/bin/bash
 
-  sudo chown -R "$USER":"$USER" ${BUILD_DIR}
-  sudo chmod -R u+rwx           ${BUILD_DIR}
-}
+	sudo docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
+
+	sudo chown -R "$USER":"$USER" ${BUILD_DIR}
+	sudo chmod -R u+rwx           ${BUILD_DIR}
+  exit 0
+
+fi
 
 
+# ///////////////////////////////////////////////////////
+# conda
 
-# //////////////////////////////////////////////////////
-function InstallConda {
+if (( USE_CONDA == 1 )) ; then
+	
+	if (( FASTMODE == 0 )) ; then
 
-  if (( OSX ==  1 )) ; then
-    if [ ! -d /opt/MacOSX10.9.sdk ] ; then
-      git clone https://github.com/phracker/MacOSX-SDKs
-      mkdir -p /opt
-      sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
-      rm -Rf MacOSX-SDKs
-    fi
-  fi
+		if (( OSX ==  1 )) ; then
+			if [ ! -d /opt/MacOSX10.9.sdk ] ; then
+				git clone https://github.com/phracker/MacOSX-SDKs
+				mkdir -p /opt
+				sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
+				rm -Rf MacOSX-SDKs
+			fi
+		fi
 
-  if [ ! -d $HOME/miniconda${PYTHON_VERSION:0:1} ]; then
-    pushd $HOME
-    if (( OSX == 1 )) ; then
-      DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh
-      bash Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh -b
-    else
-      DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh
-      bash Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -b
-    fi
-    popd
-  fi
+		if [ ! -d $HOME/miniconda${PYTHON_VERSION:0:1} ]; then
+			pushd $HOME
+			if (( OSX == 1 )) ; then
+				DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh
+				bash Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh -b
+			else
+				DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh
+				bash Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -b
+			fi
+			popd
+		fi
+		
+		export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
+		hash -r		
+		
+		conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
+		conda install -q conda-build anaconda-client
+		conda update  -q conda conda-build
+		conda install -q python=${PYTHON_VERSION}		
 
-  export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
-  hash -r
+	else
+		export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
+		hash -r
+	fi
 
-  if (( FASTMODE == 0 )) ; then
-    conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-    conda install -q conda-build anaconda-client
-    conda update  -q conda conda-build
-    conda install -q python=${PYTHON_VERSION}
-  fi
-}
+	pushd conda
+	conda-build -q openvisus
+	conda install -q --use-local openvisus
+	popd
+
+	cd $(python -m OpenVisus dirname)
+	python Samples/python/Array.py
+	python Samples/python/Dataflow.py
+	python Samples/python/Idx.py
+
+	if (( DEPLOY_CONDA == 1 )) ; then
+		CONDA_BUILD_FILENAME=$(find ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld -iname "openvisus*.tar.bz2")
+		echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
+		anaconda -q -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
+	fi
+
+	echo "OpenVisus build finished"
+	exit 0
+fi
+
+
 
 # //////////////////////////////////////////////////////
 function InstallOSXPrerequisites {
 
-  if (( FAST_MODE==0 )) ; then
+	if (( FAST_MODE==0 )) ; then
 
-    # install brew
-    if [ !  -x "$(command -v brew)" ]; then
-      /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-    fi
+		# install brew
+		if [ !  -x "$(command -v brew)" ]; then
+			/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+		fi
 
-    # output is very long!
-    brew update        1>/dev/null 2>&1 || true
-    brew upgrade pyenv 1>/dev/null 2>&1 || true
-    brew install swig
+		# output is very long!
+		brew update        1>/dev/null 2>&1 || true
+		brew upgrade pyenv 1>/dev/null 2>&1 || true
+		brew install swig
 
-    if (( VISUS_INTERNAL_DEFAULT == 0 )); then
-      brew install zlib lz4 tinyxml freeimage openssl curl
-    fi
+		if (( VISUS_INTERNAL_DEFAULT == 0 )); then
+			brew install zlib lz4 tinyxml freeimage openssl curl
+		fi
 
-    # install qt 5.11 (instead of 5.12 which is not supported by PyQt5)
-    # brew install qt5
-    if (( VISUS_GUI == 1 )); then
-      brew unlink git || true
-      brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb
-    fi
-  fi
+		# install qt 5.11 (instead of 5.12 which is not supported by PyQt5)
+		# brew install qt5
+		if (( VISUS_GUI == 1 )); then
+			if [ -z "${Qt5_DIR}" ] ; then
+				brew unlink git || true
+				brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb
+			fi
+		fi
+	fi
 
-  if (( VISUS_GUI == 1 )); then
-    PushCMakeOption Qt5_DIR $(brew --prefix Qt)/lib/cmake/Qt5
-  fi
 
+	if (( VISUS_GUI == 1 )); then
+		if [ -z "${Qt5_DIR}" ] ; then
+			Qt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5
+		fi
+	fi
+}
+
+# //////////////////////////////////////////////////////
+function InstallCMakeForLinux {
+	VERSION=$1
+	url="https://github.com/Kitware/CMake/releases/download/v${VERSION}/cmake-${VERSION}-Linux-x86_64.tar.gz"
+	filename=$(basename ${url})
+	if [ ! -f ${filename} ] ; then
+		echo "Downloading precompiled cmake from ${url}"
+		DownloadFile "${url}"
+		tar xvzf ${filename} -C ${CACHED_DIR} --strip-components=1 
+	fi
 }
 
 # //////////////////////////////////////////////////////
 function InstallUbuntuPrerequisites {
 
-  # get ubuntu version
-  if [ -f /etc/os-release ]; then
-    source /etc/os-release
-    export UBUNTU_VERSION=$VERSION_ID
+	# get ubuntu version
+	if [ -f /etc/os-release ]; then
+		source /etc/os-release
+		export UBUNTU_VERSION=$VERSION_ID
 
-  elif type lsb_release >/dev/null 2>&1; then
-    export UBUNTU_VERSION=$(lsb_release -sr)
+	elif type lsb_release >/dev/null 2>&1; then
+		export UBUNTU_VERSION=$(lsb_release -sr)
 
-  elif [ -f /etc/lsb-release ]; then
-    source /etc/lsb-release
-    export UBUNTU_VERSION=$DISTRIB_RELEASE
-  fi
+	elif [ -f /etc/lsb-release ]; then
+		source /etc/lsb-release
+		export UBUNTU_VERSION=$DISTRIB_RELEASE
+	fi
 
-  echo "UBUNTU_VERSION ${UBUNTU_VERSION}"
+	echo "UBUNTU_VERSION ${UBUNTU_VERSION}"
 
-  # install prerequisites
-  if (( FAST_MODE==0 )) ; then
+	# install prerequisites
+	if (( FAST_MODE==0 )) ; then
 
-    # make sure sudo is available
-    if [ "$EUID" -eq 0 ]; then
-      apt-get -qq update
-      apt-get -qq install sudo
-    fi
+		# make sure sudo is available
+		if [ "$EUID" -eq 0 ]; then
+			apt-get -qq update
+			apt-get -qq install sudo
+		fi
 
-    sudo apt-get -qq update
-    sudo apt-get -qq install git software-properties-common
+		sudo apt-get -qq update
+		sudo apt-get -qq install git software-properties-common
 
-    if (( ${UBUNTU_VERSION:0:2}<=14 )); then
-      sudo add-apt-repository -y ppa:deadsnakes/ppa
-      sudo apt-get -qq update
-    fi
+		if (( ${UBUNTU_VERSION:0:2}<=14 )); then
+			sudo add-apt-repository -y ppa:deadsnakes/ppa
+			sudo apt-get -qq update
+		fi
 
-    sudo apt-get -qq install --allow-unauthenticated \
-      cmake swig3.0 git bzip2 ca-certificates build-essential libssl-dev \
-      uuid-dev curl automake libffi-dev  apache2 apache2-dev
+		sudo apt-get -qq install --allow-unauthenticated \
+			swig3.0 git bzip2 ca-certificates build-essential libssl-dev \
+			uuid-dev curl automake libffi-dev  apache2 apache2-dev
 
-    # install cmake
-    echo "Downloading precompiled cmake"
-    DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
-    tar xvzf cmake-3.4.3-Linux-x86_64.tar.gz -C ${CACHED_DIR} --strip-components=1
+		InstallCMakeForLinux 3.14.1
 
-    # install patchelf
-    DownloadFile https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz
-    tar xvzf patchelf-0.9.tar.gz
-    pushd patchelf-0.9
-    ./configure --prefix=${CACHED_DIR} && make -s && make install
-    autoreconf -f -i
-    ./configure --prefix=${CACHED_DIR} && make -s && make install
-    popd
+		# install patchelf
+		url="https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz"
+		filename=$(basename ${url})
+		if [ !  -f ${filename} ] ; then
+			DownloadFile ${url}
+			tar xzf ${filename}
+			pushd patchelf-0.9
+			./configure --prefix=${CACHED_DIR} && make -s && make install
+			autoreconf -f -i
+			./configure --prefix=${CACHED_DIR} && make -s && make install
+			popd
+		fi
 
-    if (( VISUS_INTERNAL_DEFAULT == 0 )); then
-      sudo apt-get -qq install --allow-unauthenticated zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
-    fi
+		if (( VISUS_INTERNAL_DEFAULT == 0 )); then
+			sudo apt-get -qq install --allow-unauthenticated zlib1g-dev liblz4-dev libtinyxml-dev libfreeimage-dev libssl-dev libcurl4-openssl-dev
+		fi
 
-    # install qt (it's a version available on PyQt5)
-    if (( VISUS_GUI == 1 )); then
+		# install qt (it's a version available on PyQt5)
+		if (( VISUS_GUI == 1 )); then
 
-      # https://launchpad.net/~beineri
-      # PyQt5 versions 5.6, 5.7, 5.7.1, 5.8, 5.8.1.1, 5.8.2, 5.9, 5.9.1, 5.9.2, 5.10, 5.10.1, 5.11.2, 5.11.3
-      if (( ${UBUNTU_VERSION:0:2} <=14 )); then
-        sudo add-apt-repository ppa:beineri/opt-qt-5.10.1-trusty -y
-        sudo apt-get -qq update
-        sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt510base
+			if [ -z "${Qt5_DIR}" ] ; then
 
-      elif (( ${UBUNTU_VERSION:0:2} <=16 )); then
-        sudo add-apt-repository ppa:beineri/opt-qt-5.11.2-xenial -y
-        sudo apt-get -qq update
-        sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511base
+				# https://launchpad.net/~beineri
+				# PyQt5 versions 5.6, 5.7, 5.7.1, 5.8, 5.8.1.1, 5.8.2, 5.9, 5.9.1, 5.9.2, 5.10, 5.10.1, 5.11.2, 5.11.3
+				if (( ${UBUNTU_VERSION:0:2} <=14 )); then
+					sudo add-apt-repository ppa:beineri/opt-qt-5.10.1-trusty -y
+					sudo apt-get -qq update
+					sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt510base
 
-      elif (( ${UBUNTU_VERSION:0:2} <=18)); then
-        sudo add-apt-repository ppa:beineri/opt-qt-5.11.2-bionic -y
-        sudo apt-get -qq update
-        sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511base
-      fi
+				elif (( ${UBUNTU_VERSION:0:2} <=16 )); then
+					sudo add-apt-repository ppa:beineri/opt-qt-5.11.2-xenial -y
+					sudo apt-get -qq update
+					sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511base
 
-    fi
+				elif (( ${UBUNTU_VERSION:0:2} <=18)); then
+					sudo add-apt-repository ppa:beineri/opt-qt-5.11.2-bionic -y
+					sudo apt-get -qq update
+					sudo apt-get install -yqq mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev qt511base
+				fi
+			fi
 
-  fi
+		fi
 
-  if (( ${UBUNTU_VERSION:0:2} <=14 )); then
-    PushCMakeOption Qt5_DIR /opt/qt510/lib/cmake/Qt5
+	fi
 
-  elif (( ${UBUNTU_VERSION:0:2} <=16 )); then
-    PushCMakeOption Qt5_DIR /opt/qt511/lib/cmake/Qt5
+	
+	cmake_opts+=(-DSWIG_EXECUTABLE=$(which swig3.0))
 
-  elif (( ${UBUNTU_VERSION:0:2} <=18)); then
-    PushCMakeOption Qt5_DIR /opt/qt511/lib/cmake/Qt5
-
-  fi
-
-  PushCMakeOption SWIG_EXECUTABLE $(which swig3.0)
+	if (( VISUS_GUI == 1 )); then 
+		if [ -z "${Qt5_DIR}" ] ; then
+			if (( ${UBUNTU_VERSION:0:2} <=14 )); then
+				Qt5_DIR=/opt/qt510/lib/cmake/Qt5
+			elif (( ${UBUNTU_VERSION:0:2} <=16 )); then
+				Qt5_DIR=/opt/qt511/lib/cmake/Qt5
+			elif (( ${UBUNTU_VERSION:0:2} <=18)); then
+				Qt5_DIR=/opt/qt511/lib/cmake/Qt5
+			fi
+		fi
+	fi
 }
 
 # //////////////////////////////////////////////////////
 function InstallOpenSusePrerequisites {
 
-  # install prerequisites
-  if (( FAST_MODE==0 )) ; then
+	# install prerequisites
+	if (( FAST_MODE==0 )) ; then
 
-    # make sure sudo is available
-    if [ "$EUID" -eq 0 ]; then
-      zypper --non-interactive update
-      zypper --non-interactive install sudo
-    fi
+		# make sure sudo is available
+		if [ "$EUID" -eq 0 ]; then
+			zypper --non-interactive update
+			zypper --non-interactive install sudo
+		fi
 
-    sudo zypper --non-interactive update
-    sudo zypper --non-interactive install --type pattern devel_basis
-    sudo zypper --non-interactive install lsb-release gcc-c++ cmake git swig  libuuid-devel libopenssl-devel curl patchelf apache2 apache2-devel libffi-devel
+		sudo zypper --non-interactive update
+		sudo zypper --non-interactive install --type pattern devel_basis
+		sudo zypper --non-interactive install lsb-release gcc-c++ git swig  libuuid-devel libopenssl-devel curl patchelf apache2 apache2-devel libffi-devel
 
-    if (( VISUS_INTERNAL_DEFAULT == 0 )); then
-      sudo zypper --non-interactive install zlib-devel liblz4-devel tinyxml-devel libfreeimage-devel libcurl-devel
-    fi
+		InstallCMakeForLinux 3.14.1
 
-    if (( VISUS_GUI==1 )); then
-      sudo zypper -n in  glu-devel  libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel
-    fi
+		if (( VISUS_INTERNAL_DEFAULT == 0 )); then
+			sudo zypper --non-interactive install zlib-devel liblz4-devel tinyxml-devel libfreeimage-devel libcurl-devel
+		fi
 
-  fi
+		if (( VISUS_GUI == 1 )); then
+			if [ -z "${Qt5_DIR}" ] ; then
+				sudo zypper -n in  glu-devel  libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel
+			fi
+		fi
+
+	fi
 }
 
 # //////////////////////////////////////////////////////
 function InstallCentosPrerequisites {
 
-  if (( FAST_MODE==0 )) ; then
+	if (( FAST_MODE==0 )) ; then
 
-    yum update
-    yum install -y zlib-devel curl libffi-devel
+		yum update
+		yum install -y zlib-devel curl libffi-devel
 
-    # install openssl
-    echo "Installing openssl"
-    DownloadFile "https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
-    tar xzf openssl-1.0.2a.tar.gz
-    pushd openssl-1.0.2a
-    ./config --prefix=/usr -fpic shared
-    make -s
-    make install
-    popd
-
-    # install cmake
-    echo "Downloading precompiled cmake"
-    DownloadFile "http://www.cmake.org/files/v3.4/cmake-3.4.3-Linux-x86_64.tar.gz"
-    tar xvzf cmake-3.4.3-Linux-x86_64.tar.gz -C ${CACHED_DIR} --strip-components=1
-
-    # install swig
-    echo "Istalling swig"
-    DownloadFile "https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz"
-    tar xzf swig-3.0.12.tar.gz
-    pushd swig-3.0.12
-    DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
-    ./Tools/pcre-build.sh
-    ./configure --prefix=${CACHED_DIR}
-    make -s -j 4
-    make install
-    popd
-
-    # install apache 2.4
-    # for centos5 this is 2.2, I prefer to use 2.4 which is more common
-    # yum install -y httpd.x86_64 httpd-devel.x86_64
-    DownloadFile http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz
-    tar xzf apr-1.6.5.tar.gz
-    pushd apr-1.6.5
-    ./configure --prefix=${CACHED_DIR} && make -s && make install
-    popd
-
-    DownloadFile http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz
-    tar xzf apr-util-1.6.1.tar.gz
-    pushd apr-util-1.6.1
-    ./configure --prefix=${CACHED_DIR} --with-apr=${CACHED_DIR} && make -s && make install
-    popd
-
-    DownloadFile https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz
-    tar xzf pcre-8.42.tar.gz
-    pushd pcre-8.42
-    ./configure --prefix=${CACHED_DIR} && make -s && make install
-    popd
-
-    DownloadFile http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz
-    tar xzf httpd-2.4.38.tar.gz
-    pushd httpd-2.4.38
-    ./configure --prefix=${CACHED_DIR} --with-apr=${CACHED_DIR} --with-pcre=${CACHED_DIR} && make -s && make install
-    popd
-
-  fi
-
-  PushCMakeOption APACHE_DIR ${CACHED_DIR}
-  PushCMakeOption APR_DIR    ${CACHED_DIR}
-}
-
-# //////////////////////////////////////////////////////
-function InstallPython {
-
-  if ! [ -d "$HOME/.pyenv" ]; then
-    pushd $HOME
-    DownloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
-    chmod a+x pyenv-installer
-    ./pyenv-installer
-    rm -f pyenv-installer
-    popd
-  fi
-
-  export PATH="$HOME/.pyenv/bin:$PATH"
-  eval "$(pyenv init -)"
-
-  # install python
-  if (( FAST_MODE==0 )) ; then
-
-    # pyenv install --list
-    __CFLAGS__=""
-    __CPPFLAGS__=""
-    __LDFLAGS__=""
-
-    # this is necessary for osx 10.14
-    if (( OSX == 1 )) ; then
-      brew install zlib openssl
-      __CFLAGS__+="   -I$(brew --prefix zlib)/include"
-      __CPPFLAGS__+=" -I$(brew --prefix zlib)/include"
-      __LDFLAGS__+="  -L$(brew --prefix zlib)/lib"
-      __CFLAGS__+="   -I$(brew --prefix openssl)/include"
-      __CPPFLAGS__+=" -I$(brew --prefix openssl)/include"
-      __LDFLAGS__+="  -L$(brew --prefix openssl)/lib"
-    else
-      export CXX=g++
-      if [[ "$OPENSSL_INCLUDE_DIR" != "" ]] ; then
-        __CFLAGS__+="-I${OPENSSL_INCLUDE_DIR}"
-        __CPPFLAGS__+="-I${OPENSSL_INCLUDE_DIR}"
-        __LDFLAGS__+="-L${OPENSSL_LIB_DIR}"
-      fi
-    fi
-
-    CONFIGURE_OPTS="--enable-shared" CFLAGS="${__CFLAGS__}" CPPFLAGS="${__CPPFLAGS__}" LDFLAGS="${__LDFLAGS__}" pyenv install --skip-existing ${PYTHON_VERSION}
-
-    if (( OSX != 1 )); then
-      unset CXX
-    fi
-
-    pyenv global ${PYTHON_VERSION}
-    pyenv rehash
-    python -m pip install --upgrade pip
-    python -m pip install --upgrade numpy setuptools wheel twine auditwheel
-
-  fi
-
-  # activate pyenv
-  pyenv global ${PYTHON_VERSION}
-  pyenv rehash
-
-  if [ "${PYTHON_VERSION:0:1}" -gt "2" ]; then
-    PYTHON_M_VERSION=${PYTHON_VERSION:0:3}m
-  else
-    PYTHON_M_VERSION=${PYTHON_VERSION:0:3}
-  fi
-
-  PushCMakeOption PYTHON_EXECUTABLE   $(pyenv prefix)/bin/python
-  PushCMakeOption PYTHON_INCLUDE_DIR  $(pyenv prefix)/include/python${PYTHON_M_VERSION}
-
-  if (( OSX == 1 )) ; then
-    PushCMakeOption PYTHON_LIBRARY $(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.dylib
-  else
-    PushCMakeOption PYTHON_LIBRARY $(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.so
-  fi
-}
-
-# //////////////////////////////////////////////////////
-function BuildCondaOpenVisus {
-  pushd conda
-  conda-build -q openvisus
-  conda install -q --use-local openvisus
-  CONDA_BUILD_FILENAME=$(find ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld -iname "openvisus*.tar.bz2")
-  popd
-}
-
-# //////////////////////////////////////////////////////
-function BuildOpenVisus {
-
-  PushCMakeOption PYTHON_VERSION         ${PYTHON_VERSION}
-  PushCMakeOption VISUS_INTERNAL_DEFAULT ${VISUS_INTERNAL_DEFAULT}
-  PushCMakeOption DISABLE_OPENMP         ${DISABLE_OPENMP}
-  PushCMakeOption VISUS_GUI              ${VISUS_GUI}
-  PushCMakeOption CMAKE_BUILD_TYPE       ${CMAKE_BUILD_TYPE}
-
-  if (( OSX == 1 )) ; then
-
-    cmake -GXcode ${cmake_opts} ${SOURCE_DIR}
-
-    # this is to solve logs too long
-    if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
-      sudo gem install xcpretty
-      set -o pipefail && cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
-    else
-      cmake                    --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
-    fi
-
-    cmake --build ./ --target install --config ${CMAKE_BUILD_TYPE}
-    cmake --build ./ --target dist    --config ${CMAKE_BUILD_TYPE}
-
-  else
-    cmake ${cmake_opts} ${SOURCE_DIR}
-    cmake --build . --target all -- -j 4
-    cmake --build . --target install
-    cmake --build . --target dist
-  fi
-
-  WHEEL_FILENAME=$(find ${BUILD_DIR}/install/dist -iname "*.whl")
-  python -m pip install --ignore-installed "${WHEEL_FILENAME}"
-}
-
-# //////////////////////////////////////////////////////
-function TestOpenVisus {
-
-  cd $HOME
-  python -m OpenVisus configure
-  cd $(python -m OpenVisus dirname)
-
-  python Samples/python/Array.py
-  python Samples/python/Dataflow.py
-  python Samples/python/Idx.py
-
-	if (( OSX == 1 )) ; then
-		if (( USE_CONDA == 1 )) ; then
-			echo "Skipping execution of visus.command"
-			echo "conda standalone commands are not working"
-			echo "reason: dyld: Symbol not found: _iconv	"		
-		else
-			./visus.command
+		# install openssl
+		url="https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
+		filename=$(basename ${url})
+		if [ !  -f ${filename} ] ; then
+			DownloadFile ${url}
+			tar xzf ${filename}
+			pushd openssl-1.0.2a
+			./config --prefix=/usr -fpic shared
+			make -s
+			make install
+			popd
 		fi
-	else
-		./visus.sh
+
+		# version a little old, otherwise I will get:
+		# cmake: /lib64/libc.so.6: version `GLIBC_2.6' not found (required by cmake)
+		if (( CENTOS_MAJOR <=5 )) ; then
+			InstallCMakeForLinux 3.4.3
+		else
+			InstallCMakeForLinux 3.14.1
+		fi
+
+		# install swig
+		url="https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz"
+		filename=$(basename ${url})
+		if [ !  -f ${filename} ] ; then
+			DownloadFile ${url}
+			tar xzf ${filename}
+			pushd swig-3.0.12
+			DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
+			./Tools/pcre-build.sh
+			./configure --prefix=${CACHED_DIR}
+			make -s -j 4
+			make install
+			popd
+		fi
+
+		# install apache 2.4
+			# for centos5 this is 2.2, I prefer to use 2.4 which is more common
+			# yum install -y httpd.x86_64 httpd-devel.x86_64		
+		if (( 1 == 1 )); then
+		
+			url="http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz"
+			filename=$(basename ${url})
+			if [ !  -f ${filename} ] ; then
+				DownloadFile ${url}
+				tar xzf ${filename}
+				pushd apr-1.6.5
+				./configure --prefix=${CACHED_DIR} && make -s && make install
+				popd
+			fi
+	
+			url="http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz"
+			filename=$(basename ${url})
+			if [ !  -f ${filename} ] ; then
+				DownloadFile ${url}
+				tar xzf ${filename}
+				pushd apr-util-1.6.1
+				./configure --prefix=${CACHED_DIR} --with-apr=${CACHED_DIR} && make -s && make install
+				popd
+			fi
+	
+			url="https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
+			filename=$(basename ${url})
+			if [ !  -f ${filename} ] ; then
+				DownloadFile ${url}
+				tar xzf ${filename}
+				pushd pcre-8.42
+				./configure --prefix=${CACHED_DIR} && make -s && make install
+				popd
+			fi
+	
+			url="http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz"
+			filename=$(basename ${url})
+			if [ !  -f ${filename} ] ; then
+				DownloadFile ${url}
+				tar xzf ${filename}
+				pushd httpd-2.4.38
+				./configure --prefix=${CACHED_DIR} --with-apr=${CACHED_DIR} --with-pcre=${CACHED_DIR} && make -s && make install
+				popd
+			fi
+		fi
+
 	fi
+
+	cmake_opts+=(-DAPACHE_DIR=${CACHED_DIR})
+	cmake_opts+=(-DAPR_DIR=${CACHED_DIR})
 }
 
+# ///////////////////////////////////////////////////////
+# directory for caching install stuff
+CACHED_DIR=${BUILD_DIR}/cached_deps
+mkdir -p ${CACHED_DIR}
 
-# //////////////////////////////////////////////////////
-function DeployPyPi {
-  echo "Doing deploy to pypi ${WHEEL_FILENAME}..."
-  echo [distutils]                                  > ~/.pypirc
-  echo index-servers =  pypi                       >> ~/.pypirc
-  echo [pypi]                                      >> ~/.pypirc
-  echo username=${PYPI_USERNAME}                   >> ~/.pypirc
-  echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
-  python -m twine upload --skip-existing "${WHEEL_FILENAME}"
-}
+export PATH=${CACHED_DIR}/bin:$PATH
+mkdir -p ${BUILD_DIR}
 
-# //////////////////////////////////////////////////////
-function DeployConda {
-  echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
-  anaconda -q -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
-}
+cd ${BUILD_DIR}
 
+if (( OSX == 1 )) ; then
+	InstallOSXPrerequisites
 
-if [[ "$DOCKER_IMAGE" != "" ]] ; then
+elif (( UBUNTU == 1 )) ; then
+	InstallUbuntuPrerequisites
 
-  BuildDockerOpenVisus
-  exit 0
+elif (( OPENSUSE == 1 )) ; then
+	InstallOpenSusePrerequisites
 
-elif (( USE_CONDA == 1 )) ; then
-
-  InstallConda
-  BuildCondaOpenVisus
-  TestOpenVisus
-
-  if (( DEPLOY_CONDA == 1 )) ; then
-    DeployConda
-  fi
+elif (( CENTOS == 1 )) ; then
+	InstallCentosPrerequisites
 
 else
+	echo "Internal error"
+fi
 
-	# directory for caching install stuff
-	CACHED_DIR=${BUILD_DIR}/cached_deps
-	mkdir -p ${CACHED_DIR}
-
-	export PATH=${CACHED_DIR}/bin:$PATH
-	mkdir -p ${BUILD_DIR}
-
-  cd ${BUILD_DIR}
-
+# install python using pyenv
+if (( FAST_MODE==0 )) ; then
+	
 	if (( OSX == 1 )) ; then
-    echo "Detected OSX"
-    InstallOSXPrerequisites
-
-	elif [ -x "$(command -v apt-get)" ]; then
-		echo "Detected ubuntu"
-    InstallUbuntuPrerequisites
-
-	elif [ -x "$(command -v zypper)" ]; then
-		echo "Detected opensuse"
-    InstallOpenSusePrerequisites
-
-	elif [ -x "$(command -v yum)" ]; then
-		echo "Detected centos"
-    InstallCentosPrerequisites
+		
+		brew install pyenv
+		brew reinstall readline zlib openssl@1.1
+		
+		CONFIGURE_OPTS="--enable-shared --with-openssl=$(brew --prefix openssl@1.1)" \
+		CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include  -I$(brew --prefix openssl@1.1)/include" \
+		LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib      -L$(brew --prefix openssl@1.1)/lib" \
+		pyenv install --skip-existing ${PYTHON_VERSION}
 
 	else
-		echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"
 
+		if ! [ -d "$HOME/.pyenv" ]; then
+			pushd $HOME
+			DownloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
+			chmod a+x pyenv-installer
+			./pyenv-installer
+			rm -f pyenv-installer
+			popd
+		fi
+		
+		# activate pyenv
+		export PATH="$HOME/.pyenv/bin:$PATH"
+		eval "$(pyenv init -)"
+		
+		CXX=g++ CONFIGURE_OPTS="--enable-shared" pyenv install --skip-existing ${PYTHON_VERSION}
+		
 	fi
+fi
 
-  InstallPython
-  BuildOpenVisus
-  TestOpenVisus
+# activate pyenv
+if (( OSX != 1 )) ; then
+	export PATH="$HOME/.pyenv/bin:$PATH"	
+fi
 
-  if (( DEPLOY_PYPI == 1 )) ; then
-    DeployPyPi
-  fi
+eval "$(pyenv init -)"
+pyenv global ${PYTHON_VERSION}
+pyenv rehash
+
+# install python packages
+if (( FAST_MODE == 0 )) ; then	
+	python -m pip install --upgrade pip
+	python -m pip install numpy setuptools wheel twine auditwheel	
+fi
+
+if [ "${PYTHON_VERSION:0:1}" -gt "2" ]; then
+	PYTHON_M_VERSION=${PYTHON_VERSION:0:3}m
+else
+	PYTHON_M_VERSION=${PYTHON_VERSION:0:3}
+fi
+
+cmake_opts+=(-DPYTHON_EXECUTABLE=$(pyenv prefix)/bin/python)
+cmake_opts+=(-DPYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_M_VERSION})
+
+if (( OSX == 1 )) ; then
+	cmake_opts+=(-DPYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.dylib)
+else
+	cmake_opts+=(-DPYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.so)
+fi
+
+cmake_opts+=(-DPYTHON_VERSION=${PYTHON_VERSION})
+cmake_opts+=(-DVISUS_INTERNAL_DEFAULT=${VISUS_INTERNAL_DEFAULT})
+cmake_opts+=(-DDISABLE_OPENMP=${DISABLE_OPENMP})
+cmake_opts+=(-DVISUS_GUI=${VISUS_GUI})
+cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
+
+if (( VISUS_GUI == 1 )); then
+	if [ ! -z "${Qt5_DIR}" ] ; then 
+		cmake_opts+=(-DQt5_DIR=${Qt5_DIR})
+	fi
+fi
+
+if (( OSX == 1 )) ; then
+	cmake -GXcode ${cmake_opts[@]} ${SOURCE_DIR}
+	 
+	# this is to solve logs too long 
+	if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
+		sudo gem install xcpretty  
+		set -o pipefail && cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
+	else
+		cmake                    --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
+	fi	
+	
+else
+	cmake ${cmake_opts[@]} ${SOURCE_DIR}
+	cmake --build . --target all -- -j 4
+	
+fi
+
+cmake --build . --target install   --config ${CMAKE_BUILD_TYPE}
+
+# dist
+if (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
+
+	cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
+
+	if (( DEPLOY_PYPI == 1 )) ; then
+		WHEEL_FILENAME=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.whl")
+		echo "Doing deploy to pypi ${WHEEL_FILENAME}..."
+		echo [distutils]                                  > ~/.pypirc
+		echo index-servers =  pypi                       >> ~/.pypirc
+		echo [pypi]                                      >> ~/.pypirc
+		echo username=${PYPI_USERNAME}                   >> ~/.pypirc
+		echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
+		python -m twine upload --skip-existing "${WHEEL_FILENAME}"
+	fi
 
 fi
 
+# RUN_TESTS
+if (( 1 == 1 )) ; then
+	if (( OSX == 1 )) ; then
+		cmake --build   . --target  RUN_TESTS       --config ${CMAKE_BUILD_TYPE}	
+	else
+		cmake --build   . --target  test            --config ${CMAKE_BUILD_TYPE}	
+	fi
+	
+	# test external app
+	cmake --build      . --target  simple_query    --config ${CMAKE_BUILD_TYPE}
+	
+	if (( VISUS_GUI == 1 )) ; then
+		cmake --build   . --target  simple_viewer2d --config ${CMAKE_BUILD_TYPE}
+	fi
+fi
+
+
+# test OpenVisus Package
+if (( 1 == 1 )); then
+	export PYTHONPATH=${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages
+	cd $(python -m OpenVisus dirname)
+	python Samples/python/Array.py
+	python Samples/python/Dataflow.py
+	python Samples/python/Idx.py
+	
+	# test stand alone scripts
+	python -m OpenVisus CreateScripts
+	if (( OSX == 1 )) ; then
+		./visus.command
+	else
+		./visus.sh
+	fi
+fi
+
 echo "OpenVisus build finished"
-set +ex
+
+

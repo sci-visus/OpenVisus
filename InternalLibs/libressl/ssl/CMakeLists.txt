@@ -41,7 +41,7 @@ set(
 	tls13_key_schedule.c
 )
 
-AddStaticLibrary(ssl ${SSL_SRC})
+AddInternalLibrary(ssl ${SSL_SRC})
 target_include_directories(ssl PRIVATE . ../include/compat PUBLIC ../include)
 target_link_libraries(ssl crypto ${PLATFORM_LIBS})
 

@@ -5,7 +5,7 @@ if (WIN32)
 	AddLibrary(mod_visus mod_visus.cpp)
 	target_link_libraries(mod_visus PUBLIC VisusIdx)
 	LinkPythonToExecutable(mod_visus)
-	set_target_properties(mod_visus PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Executable/)
+	set_target_properties(mod_visus PROPERTIES FOLDER Executable/)
 
 else()
 
@@ -19,7 +19,7 @@ else()
 		AddLibrary(mod_visus mod_visus.cpp)
 		target_link_libraries(mod_visus PUBLIC VisusIdx)
 		LinkPythonToExecutable(mod_visus)
-		set_target_properties(mod_visus PROPERTIES FOLDER ${CMAKE_FOLDER_PREFIX}Executable/)
+		set_target_properties(mod_visus PROPERTIES FOLDER Executable/)
 		
 		target_include_directories(mod_visus PRIVATE  ${APR_INCLUDE_DIR})
 		target_include_directories(mod_visus PRIVATE  ${APRUTIL_INCLUDE_DIR})
