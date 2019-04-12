@@ -1,7 +1,6 @@
 #!/bin/bash
 
-set -e
-set -x
+set -ex
 
 SOURCE_DIR=$(pwd)
 BUILD_DIR=${BUILD_DIR:-${SOURCE_DIR}/build}
@@ -33,9 +32,10 @@ FAST_MODE=${FAST_MODE:-0}
 # sudo allowed or not (in general I assume I cannot use sudo)
 SUDO=${SUDO:-0}
 
+
 # //////////////////////////////////////////////////////
 function DownloadFile {
-	curl -fsSL --insecure "$1" -O
+	curl -fsSL --insecure "$1" -O 
 }
 
 
@@ -218,7 +218,6 @@ if (( USE_CONDA == 1 )) ; then
 fi
 
 
-
 # //////////////////////////////////////////////////////
 function GetVersionFromCommand {
 	# return the next word after the pattern and parse the version in the format MAJOR.MINOR.whatever
@@ -232,8 +231,6 @@ function GetVersionFromCommand {
 
 # //////////////////////////////////////////////////////
 function InstallPackages {
-
-	packages=
 
 	SudoNeeded=1
 	if (( OSX == 1 )) ; then
@@ -257,7 +254,8 @@ function InstallPackages {
 
 	AlreadyInstalled=1
 	for package_name in $@ ; do
-		$CheckInstallCommand ${package_name} 1>/dev/null 2>/dev/null
+		set +e
+		$CheckInstallCommand ${package_name} 1>/dev/null 2>/dev/null && : 
 		if [ $? != 0 ] ; then 
 			AlreadyInstalled=0
 		fi
@@ -273,7 +271,7 @@ function InstallPackages {
 		return 1
 	fi
 
-	$InstallCommand $@
+	$InstallCommand $@  && : 
 	if [ $? == 0 ] ; then 
 		echo "Just installed: $@"
 		return 0
@@ -366,7 +364,7 @@ function InstallPrerequisites {
 # //////////////////////////////////////////////////////
 function InstallCMake {
 
-	InstallPackages cmake
+	InstallPackages cmake && :
 
 	# already installed
 	if [[ -x "$(command -v cmake)" ]]; then
@@ -401,7 +399,7 @@ function InstallCMake {
 # //////////////////////////////////////////////////////
 function InstallSwig {
 
-	InstallPackages swig
+	InstallPackages swig && :
 
 	# already installed
 	if [[ -x "$(command -v swig)" ]]; then
@@ -415,7 +413,7 @@ function InstallSwig {
 		fi
 	fi 
 
-	InstallPackages swig3.0
+	InstallPackages swig3.0 && :
 
 	# already installed
 	if [[ -x "$(command -v swig3.0)" ]]; then
@@ -451,7 +449,7 @@ function InstallPatchElf {
 		return 0
 	fi
 
-	InstallPackages patchelf
+	InstallPackages patchelf && :
 
 	# already installed
 	if [ -x "$(command -v patchelf)" ]; then
@@ -481,15 +479,15 @@ function InstallPatchElf {
 function InstallOpenSSL {
 
 	if (( OSX == 1 )); then
-		InstallPackages openssl@1.1
+		InstallPackages openssl@1.1  && : 
 		if [ $? == 0 ] ; then return 0 ; fi
 
 	elif (( UBUNTU == 1 )) ; then
-		InstallPackages libssl-dev
+		InstallPackages libssl-dev  && : 
 		if [ $? == 0 ] ; then return 0 ; fi
 
 	elif (( OPENSUSE == 1 )) ; then
-		InstallPackages libopenssl-devel  
+		InstallPackages libopenssl-devel  && : 
 		if [ $? == 0 ] ; then return 0 ; fi
 
 	elif (( CENTOS == 1 )) ; then
@@ -523,11 +521,11 @@ function InstallApache {
 	fi
 
 	if (( UBUNTU == 1 )); then
-		InstallPackages apache2 apache2-dev libffi-dev
+		InstallPackages apache2 apache2-dev libffi-dev  && : 
 		if [ $? == 0 ] ; then return 0 ; fi
 
 	elif (( OPENSUSE == 1 )); then
-		InstallPackages apache2 apache2-devel libffi-devel
+		InstallPackages apache2 apache2-devel libffi-devel  && : 
 		if [ $? == 0 ] ; then return 0 ; fi
 
 	elif (( CENTOS == 1 )) ; then
@@ -609,10 +607,10 @@ function InstallQt5 {
 	# install qt 5.11 (instead of 5.12 which is not supported by PyQt5)
 	if (( OSX == 1 )); then
 
-		echo "installing Qt5 from brew"
 		if (( FAST_MODE==0 )) ; then
-			brew cleanup gt5 || true
-			brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb
+			echo "installing Qt5 from brew"
+			brew uninstall qt5 1>/dev/null 2>/dev/null && :
+			InstallPackages https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb
 		fi
 
 		Qt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5
@@ -651,7 +649,7 @@ function InstallQt5 {
 			fi
 		fi
 
-		InstallPackages mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev ${QT5_PACKAGE}
+		InstallPackages mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev ${QT5_PACKAGE}  && : 
 		if [ $? == 0 ] ; then
 			echo "Using Qt5 from unbuntu repository"
 			Qt5_DIR=${OPT_QT5_DIR}
@@ -662,7 +660,7 @@ function InstallQt5 {
 
 	# opensuse
 	if (( OPENSUSE == 1 )) ; then
-		InstallPackages glu-devel  libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel
+		InstallPackages glu-devel  libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel && : 
 		if [ $? == 0 ] ; then return 0 ; fi
 	fi
 
@@ -825,9 +823,9 @@ if (( OSX == 1 )) ; then
 	 
 	# this is to solve logs too long 
 	if (( TRAVIS == 1 )) ; then 
-		set -o pipefail && cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
+		cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
 	else
-		cmake                    --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
+		cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
 	fi	
 	
 else
