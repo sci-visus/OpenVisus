@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-set -v
+set -x
 
 SOURCE_DIR=$(pwd)
 BUILD_DIR=${BUILD_DIR:-${SOURCE_DIR}/build}
