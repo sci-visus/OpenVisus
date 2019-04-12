@@ -43,6 +43,19 @@ function DownloadFile {
 }
 
 
+# //////////////////////////////////////////////////////
+function GetVersionFromCommand {
+	# return the next word after the pattern and parse the version in the format MAJOR.MINOR.whatever
+	cmd=$1
+	pattern=$2
+	__content__=$(${cmd})
+	__version__=$(echo ${__content__} | awk -F "${pattern}" '{print $2}' | cut -d' ' -f1)
+	__major__=$(echo ${__version__} | cut -d'.' -f1)
+	__minor__=$(echo ${__version__} | cut -d'.' -f2)
+}
+
+
+
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
 # travis preamble
@@ -109,11 +122,10 @@ elif [ -x "$(command -v zypper)" ]; then
 elif [ -x "$(command -v yum)" ]; then
 
 	CENTOS=1
-	CENTOS_MAJOR=$(cat /etc/centos-release | tr -dc '0-9.'|cut -d \. -f1)
-	CENTOS_MINOR=$(cat /etc/centos-release | tr -dc '0-9.'|cut -d \. -f2)
-	echo "Detected centos ${CENTOS_MAJOR}.${CENTOS_MINOR}"
 
-	if (( CENTOS == 1 && CENTOS_MAJOR == 5 )) ; then
+	GetVersionFromCommand "cat /etc/redhat-release" "CentOS release "
+	echo "Detected centos ${__version__}"
+	if (( ${__major__}  == 5 )) ; then
 		MANYLINUX=1
 		DISABLE_OPENMP=1
 		VISUS_GUI=0
@@ -221,17 +233,6 @@ if (( USE_CONDA == 1 )) ; then
 	exit 0
 fi
 
-
-# //////////////////////////////////////////////////////
-function GetVersionFromCommand {
-	# return the next word after the pattern and parse the version in the format MAJOR.MINOR.whatever
-	cmd=$1
-	pattern=$2
-	__content__=$(${cmd})
-	__version__=$(echo ${__content__} | awk -F "${pattern}" '{print $2}' | cut -d' ' -f1)
-	__major__=$(echo ${__version__} | cut -d'.' -f1)
-	__minor__=$(echo ${__version__} | cut -d'.' -f2)
-}
 
 # //////////////////////////////////////////////////////
 function InstallPackages {
