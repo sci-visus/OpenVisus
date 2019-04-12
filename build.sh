@@ -32,6 +32,10 @@ FAST_MODE=${FAST_MODE:-0}
 # sudo allowed or not (in general I assume I cannot use sudo)
 SUDO=${SUDO:-0}
 
+# i'm already 'root'
+if [ "$EUID" -eq 0 ]; then
+	SUDO=1
+fi
 
 # //////////////////////////////////////////////////////
 function DownloadFile {
