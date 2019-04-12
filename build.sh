@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -e
-set -x
+set -v
 
 SOURCE_DIR=$(pwd)
 BUILD_DIR=${BUILD_DIR:-${SOURCE_DIR}/build}
@@ -32,6 +32,12 @@ FAST_MODE=${FAST_MODE:-0}
 
 # sudo allowed or not (in general I assume I cannot use sudo)
 SUDO=${SUDO:-0}
+
+# //////////////////////////////////////////////////////
+function DownloadFile {
+	curl -fsSL --insecure "$1" -O
+}
+
 
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -212,10 +218,6 @@ if (( USE_CONDA == 1 )) ; then
 fi
 
 
-# //////////////////////////////////////////////////////
-function DownloadFile {
-	curl -fsSL --insecure "$1" -O
-}
 
 # //////////////////////////////////////////////////////
 function GetVersionFromCommand {
