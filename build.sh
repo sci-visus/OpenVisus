@@ -239,7 +239,7 @@ function InstallPackages {
 		InstallCommand="brew install"
 		SudoNeeded=0
 
-	elif (( UBUNTU == 1)); then
+	elif (( UBUNTU == 1 )); then
 		CheckInstallCommand="dpkg -s"
 		InstallCommand="sudo apt-get -qq install --allow-unauthenticated"
 
