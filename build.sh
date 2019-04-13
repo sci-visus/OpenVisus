@@ -37,7 +37,7 @@ FAST_MODE=${FAST_MODE:-0}
 CAN_SUDO=${CAN_SUDO:-0}
 
 if [ "$EUID" -eq 0 ]; then 
-	alias sudo='' # no need to call sudo
+	alias sudo='__dumb__=1 ' # no need to call sudo
 	CAN_SUDO=1
 fi
 
