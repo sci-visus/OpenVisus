@@ -392,6 +392,13 @@ function InstallPrerequisites {
 	if (( CENTOS == 1 )) ; then
 
 		if (( IsRoot == 1 && FastMode == 0 )) ; then
+
+			# make sure sudo is available
+			if [ "$EUID" -eq 0 ]; then
+				yum update
+				yum install sudo
+			fi
+
 			sudo yum update
 		fi
 
