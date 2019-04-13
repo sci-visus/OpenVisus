@@ -34,15 +34,23 @@ PYPI_PASSWORD=${PYPI_PASSWORD:-}NO_CMAKE_SYSTEM_PATH
 FAST_MODE=${FAST_MODE:-0}
 
 # sudo allowed or not (in general I assume I cannot use sudo)
-CAN_SUDO=${CAN_SUDO:-0}
+CanSudo=${CanSudo:-0}
 
 if [ "$EUID" -eq 0 ]; then 
-	alias sudo='__dumb__=1 ' # no need to call sudo
-	CAN_SUDO=1
+	CanSudo=1
 fi
 
 # in case you want to try manylinux-like compilation
 SIMULATE_MANYLINUX=0
+
+# //////////////////////////////////////////////////////
+function ExecuteAsSudo {
+	if [ "$EUID" -eq 0 ]; then 
+		$@
+	else
+		sudo $@
+	fi
+}
 
 # //////////////////////////////////////////////////////
 function DownloadFile {
@@ -80,11 +88,12 @@ function GetVersionFromCommand {
 if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
 
 	TRAVIS=1
-	CAN_SUDO=1
+	CanSudo=1
+	SudoCommand=""
 
 	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then 
 		export COMPILER=clang++ 
-		sudo gem install xcpretty 
+		ExecuteAsSudo gem install xcpretty 
 	fi
 
 	if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then 
@@ -158,9 +167,9 @@ fi
 
 if [[ "$DOCKER_IMAGE" != "" ]] ; then
 
-	sudo docker rm -f mydocker 2>/dev/null || true
+	ExecuteAsSudo docker rm -f mydocker 2>/dev/null || true
 
-	sudo docker run -d -ti \
+	ExecuteAsSudo docker run -d -ti \
 		--name mydocker \
 		-v ${SOURCE_DIR}:${SOURCE_DIR} \
 		-e BUILD_DIR=${BUILD_DIR} \
@@ -178,10 +187,10 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
 		${DOCKER_IMAGE} \
 		/bin/bash
 
-	sudo docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
+	ExecuteAsSudo docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
 
-	sudo chown -R "$USER":"$USER" ${BUILD_DIR}
-	sudo chmod -R u+rwx           ${BUILD_DIR}
+	ExecuteAsSudo chown -R "$USER":"$USER" ${BUILD_DIR}
+	ExecuteAsSudo chmod -R u+rwx           ${BUILD_DIR}
 	exit 0
 fi
 
@@ -199,7 +208,7 @@ if (( USE_CONDA == 1 )) ; then
 			if [ ! -d /opt/MacOSX10.9.sdk ] ; then
 				git clone https://github.com/phracker/MacOSX-SDKs
 				mkdir -p /opt
-				sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
+				ExecuteAsSudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
 				rm -Rf MacOSX-SDKs
 			fi
 		fi
@@ -263,17 +272,17 @@ function InstallPackages {
 
 	elif (( UBUNTU == 1 )); then
 		CheckInstallCommand="dpkg -s"
-		InstallCommand="sudo apt-get -qq install --allow-unauthenticated"
+		InstallCommand="ExecuteAsSudo apt-get -qq install --allow-unauthenticated"
 		SudoNeeded=1
 
 	elif (( OPENSUSE == 1 )) ; then
 		CheckInstallCommand=rpm -q
-		InstallCommand="sudo zypper --non-interactive install "
+		InstallCommand="ExecuteAsSudo zypper --non-interactive install "
 		SudoNeeded=1
 		
 	elif (( CENTOS == 1 )) ; then
-		CheckInstallCommand="sudo yum list installed ${package_name}"
-		InstallCommand="sudo yum install -y"
+		CheckInstallCommand="yum list installed ${package_name}"
+		InstallCommand="ExecuteAsSudo yum install -y"
 		SudoNeeded=1
 
 	fi
@@ -293,7 +302,7 @@ function InstallPackages {
 		return 0
 	fi
 
-	if (( SudoNeeded == 1 && CAN_SUDO == 0 )); then
+	if (( SudoNeeded == 1 && CanSudo == 0 )); then
 		echo "Failed to install because I need sudo: $@"
 		set -x
 		return 1
@@ -333,15 +342,15 @@ function InstallPrerequisites {
 
 	if (( UBUNTU == 1 )) ; then
 
-		if (( CAN_SUDO == 1 && FAST_MODE == 0 )) ; then
+		if (( CanSudo == 1 && FAST_MODE == 0 )) ; then
 
-			sudo apt-get -qq update
+			ExecuteAsSudo apt-get -qq update
 
 			InstallPackages software-properties-common
 
 			if (( ${UBUNTU_VERSION:0:2}<=14 )); then
-				sudo add-apt-repository -y ppa:deadsnakes/ppa
-				sudo apt-get -qq update
+				ExecuteAsSudo add-apt-repository -y ppa:deadsnakes/ppa
+				ExecuteAsSudo apt-get -qq update
 			fi
 
 		fi
@@ -354,10 +363,10 @@ function InstallPrerequisites {
 
 	if (( OPENSUSE == 1 )) ; then
 
-		if (( CAN_SUDO == 1 && FAST_MODE == 0 )) ; then
+		if (( CanSudo == 1 && FAST_MODE == 0 )) ; then
 
-			sudo zypper --non-interactive update
-			sudo zypper --non-interactive install --type pattern devel_basis
+			ExecuteAsSudo zypper --non-interactive update
+			ExecuteAsSudo zypper --non-interactive install --type pattern devel_basis
 		fi
 
 		InstalPackages gcc-c++
@@ -369,8 +378,8 @@ function InstallPrerequisites {
 
 	if (( CENTOS == 1 )) ; then
 
-		if (( CAN_SUDO == 1 && FAST_MODE == 0 )) ; then
-			sudo yum update
+		if (( CanSudo == 1 && FAST_MODE == 0 )) ; then
+			ExecuteAsSudo yum update
 		fi
 
 		InstallPackages zlib-devel curl libffi-devel
@@ -682,10 +691,10 @@ function InstallQt5 {
 				InternalError
 			fi
 
-			if (( CAN_SUDO == 1 )) ; then
+			if (( CanSudo == 1 )) ; then
 				if (( FAST_MODE== 0 )) ; then
-					sudo add-apt-repository ${QT5_REPOSITORY} -y 
-					sudo apt-get -qq update
+					ExecuteAsSudo add-apt-repository ${QT5_REPOSITORY} -y 
+					ExecuteAsSudo apt-get -qq update
 				fi
 			fi
 
