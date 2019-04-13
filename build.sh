@@ -308,7 +308,7 @@ function InstallPackages {
 	fi
 
 	set -x
-	$InstallCommand $@  && : 
+	$InstallCommand $@  1>/dev/null && : 
 	retcode=$?
 	if ((  retcode == 0 )) ; then 
 		echo "Just installed: $@"
@@ -831,7 +831,6 @@ function InstallPython {
 			eval "$(pyenv init -)"
 
 			declare -a __opt__
-			__opt__+=(CXX=g++)
 			__opt__+=(CONFIGURE_OPTS="--enable-shared")
 
 			if [[ "$OPENSSL_DIR" != "" ]] ; then
