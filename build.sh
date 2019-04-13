@@ -27,10 +27,10 @@ PYPI_PASSWORD=${PYPI_PASSWORD:-}NO_CMAKE_SYSTEM_PATH
 
 
 # sudo allowed or not (in general I assume I cannot use sudo)
-CanSudo=${CanSudo:-0}
+CanExecuteAsRoot=${CanExecuteAsRoot:-0}
 
-if [ "$EUID" -eq 0 ]; then 
-	CanSudo=1
+if (( "$EUID" == 0 || DOCKER == 1 || TRAVIS == 1 )); then 
+	CanExecuteAsRoot=1
 fi
 
 
@@ -45,16 +45,48 @@ OpenVisusCache=${OpenVisusCache:-${BUILD_DIR}/.cache}
 mkdir -p ${OpenVisusCache}
 export PATH=${OpenVisusCache}/bin:$PATH
 
-
+if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
+	TRAVIS=1
+fi
 
 # //////////////////////////////////////////////////////
-function ExecuteAsSudo {
-	if [ "$EUID" -eq 0 ]; then 
+function ExecuteAsRoot {
+	if (( "$EUID" == 0 || DOCKER == 1 || TRAVIS == 1 )); then 
 		$@
 	else
 		sudo $@
 	fi
 }
+
+
+# ///////////////////////////////////////////////////////////////////////////////////////////////
+# travis preamble
+if (( TRAVIS == 1) ; then
+
+	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then 
+		export COMPILER=clang++ 
+		ExecuteAsRoot gem install xcpretty 
+	fi
+
+	if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then 
+		export COMPILER=g++-4.9 
+	fi
+
+	if (( USE_CONDA == 1 )) ; then
+		if [[ "${TRAVIS_TAG}" != "" ]]; then
+			export DEPLOY_CONDA=1
+		fi
+	else
+	  DEPLOY_GITHUB=1
+	  if [[ "${TRAVIS_TAG}" != "" ]]; then
+		  if [[ $(uname) == "Darwin" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
+			  export DEPLOY_PYPI=1
+		  fi     
+	  fi
+	fi
+fi
+
+
 
 # //////////////////////////////////////////////////////
 function DownloadFile {
@@ -87,35 +119,7 @@ function GetVersionFromCommand {
 	__minor__=$(echo ${__version__} | cut -d'.' -f2)
 }
 
-# ///////////////////////////////////////////////////////////////////////////////////////////////
-# travis preamble
-if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
 
-	TRAVIS=1
-	CanSudo=1
-
-	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then 
-		export COMPILER=clang++ 
-		ExecuteAsSudo gem install xcpretty 
-	fi
-
-	if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then 
-		export COMPILER=g++-4.9 
-	fi
-
-	if (( USE_CONDA == 1 )) ; then
-		if [[ "${TRAVIS_TAG}" != "" ]]; then
-			export DEPLOY_CONDA=1
-		fi
-	else
-	  DEPLOY_GITHUB=1
-	  if [[ "${TRAVIS_TAG}" != "" ]]; then
-		  if [[ $(uname) == "Darwin" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
-			  export DEPLOY_PYPI=1
-		  fi     
-	  fi
-	fi
-fi
 
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -170,10 +174,11 @@ fi
 
 if [[ "$DOCKER_IMAGE" != "" ]] ; then
 
-	ExecuteAsSudo docker rm -f mydocker 2>/dev/null || true
+	ExecuteAsRoot docker rm -f mydocker 2>/dev/null || true
 
-	ExecuteAsSudo docker run -d -ti \
+	ExecuteAsRoot docker run -d -ti \
 		--name mydocker \
+		-v DOCKER=1 \
 		-v ${SOURCE_DIR}:${SOURCE_DIR} \
 		-e BUILD_DIR=${BUILD_DIR} \
 		-e OpenVisusCache=${OpenVisusCache} \
@@ -190,10 +195,10 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
 		${DOCKER_IMAGE} \
 		/bin/bash
 
-	ExecuteAsSudo docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
+	ExecuteAsRoot docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
 
-	ExecuteAsSudo chown -R "$USER":"$USER" ${BUILD_DIR}
-	ExecuteAsSudo chmod -R u+rwx           ${BUILD_DIR}
+	ExecuteAsRoot chown -R "$USER":"$USER" ${BUILD_DIR}
+	ExecuteAsRoot chmod -R u+rwx           ${BUILD_DIR}
 	exit 0
 fi
 
@@ -211,7 +216,7 @@ if (( USE_CONDA == 1 )) ; then
 			if [ ! -d /opt/MacOSX10.9.sdk ] ; then
 				git clone https://github.com/phracker/MacOSX-SDKs
 				mkdir -p /opt
-				ExecuteAsSudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
+				ExecuteAsRoot mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
 				rm -Rf MacOSX-SDKs
 			fi
 		fi
@@ -275,17 +280,17 @@ function InstallPackages {
 
 	elif (( UBUNTU == 1 )); then
 		CheckInstallCommand="dpkg -s"
-		InstallCommand="ExecuteAsSudo apt-get -qq install --allow-unauthenticated"
+		InstallCommand="ExecuteAsRoot apt-get -qq install --allow-unauthenticated"
 		SudoNeeded=1
 
 	elif (( OPENSUSE == 1 )) ; then
 		CheckInstallCommand=rpm -q
-		InstallCommand="ExecuteAsSudo zypper --non-interactive install "
+		InstallCommand="ExecuteAsRoot zypper --non-interactive install "
 		SudoNeeded=1
 		
 	elif (( CENTOS == 1 )) ; then
 		CheckInstallCommand="yum list installed ${package_name}"
-		InstallCommand="ExecuteAsSudo yum install -y"
+		InstallCommand="ExecuteAsRoot yum install -y"
 		SudoNeeded=1
 
 	fi
@@ -305,7 +310,7 @@ function InstallPackages {
 		return 0
 	fi
 
-	if (( SudoNeeded == 1 && CanSudo == 0 )); then
+	if (( SudoNeeded == 1 && CanExecuteAsRoot == 0 )); then
 		echo "Failed to install because I need sudo: $@"
 		set -x
 		return 1
@@ -345,15 +350,15 @@ function InstallPrerequisites {
 
 	if (( UBUNTU == 1 )) ; then
 
-		if (( CanSudo == 1 && FastMode == 0 )) ; then
+		if (( CanExecuteAsRoot == 1 && FastMode == 0 )) ; then
 
-			ExecuteAsSudo apt-get -qq update
+			ExecuteAsRoot apt-get -qq update
 
 			InstallPackages software-properties-common
 
 			if (( ${UBUNTU_VERSION:0:2}<=14 )); then
-				ExecuteAsSudo add-apt-repository -y ppa:deadsnakes/ppa
-				ExecuteAsSudo apt-get -qq update
+				ExecuteAsRoot add-apt-repository -y ppa:deadsnakes/ppa
+				ExecuteAsRoot apt-get -qq update
 			fi
 
 		fi
@@ -366,10 +371,10 @@ function InstallPrerequisites {
 
 	if (( OPENSUSE == 1 )) ; then
 
-		if (( CanSudo == 1 && FastMode == 0 )) ; then
+		if (( CanExecuteAsRoot == 1 && FastMode == 0 )) ; then
 
-			ExecuteAsSudo zypper --non-interactive update
-			ExecuteAsSudo zypper --non-interactive install --type pattern devel_basis
+			ExecuteAsRoot zypper --non-interactive update
+			ExecuteAsRoot zypper --non-interactive install --type pattern devel_basis
 		fi
 
 		InstalPackages gcc-c++
@@ -381,8 +386,8 @@ function InstallPrerequisites {
 
 	if (( CENTOS == 1 )) ; then
 
-		if (( CanSudo == 1 && FastMode == 0 )) ; then
-			ExecuteAsSudo yum update
+		if (( CanExecuteAsRoot == 1 && FastMode == 0 )) ; then
+			ExecuteAsRoot yum update
 		fi
 
 		InstallPackages zlib-devel curl libffi-devel
@@ -694,10 +699,10 @@ function InstallQt5 {
 				InternalError
 			fi
 
-			if (( CanSudo == 1 )) ; then
+			if (( CanExecuteAsRoot == 1 )) ; then
 				if (( FastMode== 0 )) ; then
-					ExecuteAsSudo add-apt-repository ${QT5_REPOSITORY} -y 
-					ExecuteAsSudo apt-get -qq update
+					ExecuteAsRoot add-apt-repository ${QT5_REPOSITORY} -y 
+					ExecuteAsRoot apt-get -qq update
 				fi
 			fi
 
