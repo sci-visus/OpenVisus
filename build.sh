@@ -25,13 +25,6 @@ DEPLOY_PYPI=${DEPLOY_PYPI:-0}
 PYPI_USERNAME=${PYPI_USERNAME:-}
 PYPI_PASSWORD=${PYPI_PASSWORD:-}NO_CMAKE_SYSTEM_PATH 
 
-
-# sudo allowed or not (in general I assume I cannot use sudo)
-CanSudo=${CanSudo:-0}
-if (( "$EUID" == 0 || DOCKER == 1 || TRAVIS == 1 )); then 
-	CanSudo=1
-fi
-
 # if is docker or not
 DOCKER=0
 grep 'docker\|lxc' /proc/1/cgroup && :
@@ -39,12 +32,13 @@ if [ $? == 0 ] ; then
 	DOCKER=1
 fi
 
+
+
 # in case you want to try manylinux-like compilation
 SimulateManyLinux=0
 
 # in case you want to speed up compilation because prerequisites have already been installed
 FastMode=${FastMode:-0}
-
 
 OpenVisusCache=${OpenVisusCache:-${BUILD_DIR}/.cache}
 mkdir -p ${OpenVisusCache}
@@ -54,8 +48,11 @@ if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
 	TRAVIS=1
 fi
 
-
-
+# sudo allowed or not (in general I assume I cannot use sudo)
+CanSudo=${CanSudo:-0}
+if (( "$EUID" == 0 || DOCKER == 1 || TRAVIS == 1 )); then 
+	CanSudo=1
+fi
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
 # travis preamble
