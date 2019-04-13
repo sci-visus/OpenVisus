@@ -27,10 +27,9 @@ PYPI_PASSWORD=${PYPI_PASSWORD:-}NO_CMAKE_SYSTEM_PATH
 
 
 # sudo allowed or not (in general I assume I cannot use sudo)
-CanExecuteAsRoot=${CanExecuteAsRoot:-0}
-
+IsRoot=${IsRoot:-0}
 if (( "$EUID" == 0 || DOCKER == 1 || TRAVIS == 1 )); then 
-	CanExecuteAsRoot=1
+	IsRoot=1
 fi
 
 # if is docker or not
@@ -52,8 +51,8 @@ if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
 fi
 
 # //////////////////////////////////////////////////////
-function ExecuteAsRoot {
-	if (( "$EUID" == 0 || DOCKER == 1 || TRAVIS == 1 )); then 
+function SudoExecute {
+	if (( IsRoot == 1 )); then 
 		$@
 	else
 		sudo $@
@@ -67,7 +66,7 @@ if (( TRAVIS == 1)) ; then
 
 	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then 
 		export COMPILER=clang++ 
-		ExecuteAsRoot gem install xcpretty 
+		SudoExecute gem install xcpretty 
 	fi
 
 	if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then 
@@ -176,9 +175,9 @@ fi
 
 if [[ "$DOCKER_IMAGE" != "" ]] ; then
 
-	ExecuteAsRoot docker rm -f mydocker 2>/dev/null || true
+	SudoExecute docker rm -f mydocker 2>/dev/null || true
 
-	ExecuteAsRoot docker run -d -ti \
+	SudoExecute docker run -d -ti \
 		--name mydocker \
 		-v ${SOURCE_DIR}:${SOURCE_DIR} \
 		-e DOCKER=1 \
@@ -197,10 +196,10 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
 		${DOCKER_IMAGE} \
 		/bin/bash
 
-	ExecuteAsRoot docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
+	SudoExecute docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
 
-	ExecuteAsRoot chown -R "$USER":"$USER" ${BUILD_DIR}
-	ExecuteAsRoot chmod -R u+rwx           ${BUILD_DIR}
+	SudoExecute chown -R "$USER":"$USER" ${BUILD_DIR}
+	SudoExecute chmod -R u+rwx           ${BUILD_DIR}
 	exit 0
 fi
 
@@ -214,11 +213,11 @@ if (( USE_CONDA == 1 )) ; then
 	if (( FASTMODE == 0 )) ; then
 
 		# here I need sudo! 
-		if (( OSX ==  1 )) ; then
+		if (( OSX ==  1 && IsRoot == 1 )) ; then
 			if [ ! -d /opt/MacOSX10.9.sdk ] ; then
 				git clone https://github.com/phracker/MacOSX-SDKs
 				mkdir -p /opt
-				ExecuteAsRoot mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
+				SudoExecute mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
 				rm -Rf MacOSX-SDKs
 			fi
 		fi
@@ -278,22 +277,18 @@ function InstallPackages {
 	if (( OSX == 1 )) ; then
 		CheckInstallCommand="brew list"
 		InstallCommand="brew install"
-		SudoNeeded=0
 
 	elif (( UBUNTU == 1 )); then
 		CheckInstallCommand="dpkg -s"
-		InstallCommand="ExecuteAsRoot apt-get -qq install --allow-unauthenticated"
-		SudoNeeded=1
+		InstallCommand="SudoExecute apt-get -qq install --allow-unauthenticated"
 
 	elif (( OPENSUSE == 1 )) ; then
 		CheckInstallCommand=rpm -q
-		InstallCommand="ExecuteAsRoot zypper --non-interactive install "
-		SudoNeeded=1
+		InstallCommand="SudoExecute zypper --non-interactive install "
 		
 	elif (( CENTOS == 1 )) ; then
 		CheckInstallCommand="yum list installed ${package_name}"
-		InstallCommand="ExecuteAsRoot yum install -y"
-		SudoNeeded=1
+		InstallCommand="SudoExecute yum install -y"
 
 	fi
 
@@ -312,7 +307,7 @@ function InstallPackages {
 		return 0
 	fi
 
-	if (( SudoNeeded == 1 && CanExecuteAsRoot == 0 )); then
+	if [[ $InstallCommand == *"SudoExecute"* && "${IsRoot}" == "0" ]]; then
 		echo "Failed to install because I need sudo: $@"
 		set -x
 		return 1
@@ -352,15 +347,15 @@ function InstallPrerequisites {
 
 	if (( UBUNTU == 1 )) ; then
 
-		if (( CanExecuteAsRoot == 1 && FastMode == 0 )) ; then
+		if (( IsRoot == 1 && FastMode == 0 )) ; then
 
-			ExecuteAsRoot apt-get -qq update
+			SudoExecute apt-get -qq update
 
 			InstallPackages software-properties-common
 
 			if (( ${UBUNTU_VERSION:0:2}<=14 )); then
-				ExecuteAsRoot add-apt-repository -y ppa:deadsnakes/ppa
-				ExecuteAsRoot apt-get -qq update
+				SudoExecute add-apt-repository -y ppa:deadsnakes/ppa
+				SudoExecute apt-get -qq update
 			fi
 
 		fi
@@ -373,10 +368,10 @@ function InstallPrerequisites {
 
 	if (( OPENSUSE == 1 )) ; then
 
-		if (( CanExecuteAsRoot == 1 && FastMode == 0 )) ; then
+		if (( IsRoot == 1 && FastMode == 0 )) ; then
 
-			ExecuteAsRoot zypper --non-interactive update
-			ExecuteAsRoot zypper --non-interactive install --type pattern devel_basis
+			SudoExecute zypper --non-interactive update
+			SudoExecute zypper --non-interactive install --type pattern devel_basis
 		fi
 
 		InstalPackages gcc-c++
@@ -388,8 +383,8 @@ function InstallPrerequisites {
 
 	if (( CENTOS == 1 )) ; then
 
-		if (( CanExecuteAsRoot == 1 && FastMode == 0 )) ; then
-			ExecuteAsRoot yum update
+		if (( IsRoot == 1 && FastMode == 0 )) ; then
+			SudoExecute yum update
 		fi
 
 		InstallPackages zlib-devel curl libffi-devel
@@ -701,10 +696,10 @@ function InstallQt5 {
 				InternalError
 			fi
 
-			if (( CanExecuteAsRoot == 1 )) ; then
+			if (( IsRoot == 1 )) ; then
 				if (( FastMode== 0 )) ; then
-					ExecuteAsRoot add-apt-repository ${QT5_REPOSITORY} -y 
-					ExecuteAsRoot apt-get -qq update
+					SudoExecute add-apt-repository ${QT5_REPOSITORY} -y 
+					SudoExecute apt-get -qq update
 				fi
 			fi
 
