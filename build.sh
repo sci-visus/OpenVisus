@@ -42,13 +42,12 @@ DOCKER=0
 grep 'docker\|lxc' /proc/1/cgroup && :
 if [ $? == 0 ] ; then 
 	DOCKER=1
-	alias sudo=' '
 fi
 
 # sudo allowed or not (in general I assume I cannot use sudo)
-CanSudo=${CanSudo:-0}
+IsRoot=${IsRoot:-0}
 if (( "$EUID" == 0 || DOCKER == 1 || TRAVIS == 1 )); then 
-	CanSudo=1
+	IsRoot=1
 fi
 
 OpenVisusCache=${OpenVisusCache:-${BUILD_DIR}/.cache}
@@ -171,9 +170,9 @@ fi
 
 if [[ "$DOCKER_IMAGE" != "" ]] ; then
 
-	sudo  docker rm -f mydocker 2>/dev/null || true
+	sudo docker rm -f mydocker 2>/dev/null || true
 
-	sudo  docker run -d -ti \
+	sudo docker run -d -ti \
 		--name mydocker \
 		-v ${SOURCE_DIR}:${SOURCE_DIR} \
 		-e BUILD_DIR=${BUILD_DIR} \
@@ -208,7 +207,7 @@ if (( USE_CONDA == 1 )) ; then
 	if (( FASTMODE == 0 )) ; then
 
 		# here I need sudo! 
-		if (( OSX ==  1 && CanSudo == 1 )) ; then
+		if (( OSX ==  1 && IsRoot == 1 )) ; then
 			if [ ! -d /opt/MacOSX10.9.sdk ] ; then
 				git clone https://github.com/phracker/MacOSX-SDKs
 				mkdir -p /opt
@@ -302,7 +301,7 @@ function InstallPackages {
 		return 0
 	fi
 
-	if [[ $InstallCommand == *"sudo"* && "${CanSudo}" == "0" ]]; then
+	if [[ $InstallCommand == *"sudo"* && "${IsRoot}" == "0" ]]; then
 		echo "Failed to install because I need sudo: $@"
 		set -x
 		return 1
@@ -324,7 +323,7 @@ function InstallPackages {
 function InstallPrerequisites {
 
 	# make sure sudo is available
-	if [[ "$CanSudo" == "1" && ! -x "$(command -v sudo)" && "$EUID" -eq 0 ]]; then
+	if [[ "$IsRoot" == "1" ]]; then
 
 		if (( UBUNTU ==1 )); then
 			apt-get -qq update
@@ -360,7 +359,7 @@ function InstallPrerequisites {
 
 	if (( UBUNTU == 1 )) ; then
 	
-		if (( CanSudo == 1 && FastMode == 0 )) ; then
+		if (( IsRoot == 1 && FastMode == 0 )) ; then
 
 			sudo apt-get -qq update
 
@@ -381,7 +380,7 @@ function InstallPrerequisites {
 
 	if (( OPENSUSE == 1 )) ; then
 
-		if (( CanSudo == 1 && FastMode == 0 )) ; then
+		if (( IsRoot == 1 && FastMode == 0 )) ; then
 			sudo zypper --non-interactive update
 			sudo zypper --non-interactive install --type pattern devel_basis
 		fi
@@ -395,7 +394,7 @@ function InstallPrerequisites {
 
 	if (( CENTOS == 1 )) ; then
 
-		if (( CanSudo == 1 && FastMode == 0 )) ; then
+		if (( IsRoot == 1 && FastMode == 0 )) ; then
 			sudo yum update
 		fi
 
@@ -708,7 +707,7 @@ function InstallQt5 {
 				InternalError
 			fi
 
-			if (( CanSudo == 1 )) ; then
+			if (( IsRoot == 1 )) ; then
 				if (( FastMode== 0 )) ; then
 					sudo add-apt-repository ${QT5_REPOSITORY} -y 
 					sudo apt-get -qq update
@@ -802,11 +801,10 @@ function InstallPython {
 	
 		if (( OSX == 1 )) ; then
 
-			InstallPackages readline zlib
 			InstallPackages pyenv
 
 			# this avoid problems
-			brew upgrade readline zlib pyenv 1>/dev/null && :
+			brew reinstall readline openssl@1.1 1>/dev/null && :
 		
 			CONFIGURE_OPTS="--enable-shared --with-openssl=$(brew --prefix openssl@1.1)" \
 			CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include  -I$(brew --prefix openssl@1.1)/include" \
