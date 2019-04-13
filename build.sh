@@ -180,8 +180,8 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
 
 	ExecuteAsRoot docker run -d -ti \
 		--name mydocker \
-		-v DOCKER=1 \
 		-v ${SOURCE_DIR}:${SOURCE_DIR} \
+		-e DOCKER=1 \
 		-e BUILD_DIR=${BUILD_DIR} \
 		-e OpenVisusCache=${OpenVisusCache} \
 		-e PYTHON_VERSION=${PYTHON_VERSION} \
