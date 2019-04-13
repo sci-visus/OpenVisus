@@ -27,9 +27,9 @@ PYPI_PASSWORD=${PYPI_PASSWORD:-}NO_CMAKE_SYSTEM_PATH
 
 
 # sudo allowed or not (in general I assume I cannot use sudo)
-IsRoot=${IsRoot:-0}
+CanSudo=${CanSudo:-0}
 if (( "$EUID" == 0 || DOCKER == 1 || TRAVIS == 1 )); then 
-	IsRoot=1
+	CanSudo=1
 fi
 
 # if is docker or not
@@ -209,7 +209,7 @@ if (( USE_CONDA == 1 )) ; then
 	if (( FASTMODE == 0 )) ; then
 
 		# here I need sudo! 
-		if (( OSX ==  1 && IsRoot == 1 )) ; then
+		if (( OSX ==  1 && CanSudo == 1 )) ; then
 			if [ ! -d /opt/MacOSX10.9.sdk ] ; then
 				git clone https://github.com/phracker/MacOSX-SDKs
 				mkdir -p /opt
@@ -303,7 +303,7 @@ function InstallPackages {
 		return 0
 	fi
 
-	if [[ $InstallCommand == *"sudo"* && "${IsRoot}" == "0" ]]; then
+	if [[ $InstallCommand == *"sudo"* && "${CanSudo}" == "0" ]]; then
 		echo "Failed to install because I need sudo: $@"
 		set -x
 		return 1
@@ -324,6 +324,24 @@ function InstallPackages {
 # //////////////////////////////////////////////////////////////
 function InstallPrerequisites {
 
+	# make sure sudo is available
+	if [[ "$CanSudo" == "1" && ! -x "$(command -v sudo)" && "$EUID" -eq 0 ]]; then
+
+		if (( UBUNTU ==1 )); then
+			apt-get -qq update
+			apt-get -qq install sudo
+
+		elif (( OPENSUSE == 1 )); then
+			apt-get -qq update
+			apt-get -qq install sudo
+
+		elif (( CENTOS == 1 )); then
+			yum update
+			yum install sudo
+
+		fi
+	fi
+
 	if (( OSX == 1 )) ; then
 
 		if (( FastMode == 0 )) ; then
@@ -342,14 +360,8 @@ function InstallPrerequisites {
 
 
 	if (( UBUNTU == 1 )) ; then
-
-		if (( IsRoot == 1 && FastMode == 0 )) ; then
-
-			# make sure sudo is available
-			if [ "$EUID" -eq 0 ]; then
-				apt-get -qq update
-				apt-get -qq install sudo
-			fi
+	
+		if (( CanSudo == 1 && FastMode == 0 )) ; then
 
 			sudo apt-get -qq update
 
@@ -370,14 +382,7 @@ function InstallPrerequisites {
 
 	if (( OPENSUSE == 1 )) ; then
 
-		if (( IsRoot == 1 && FastMode == 0 )) ; then
-
-			# make sure sudo is available
-			if [ "$EUID" -eq 0 ]; then
-				apt-get -qq update
-				apt-get -qq install sudo
-			fi
-
+		if (( CanSudo == 1 && FastMode == 0 )) ; then
 			sudo zypper --non-interactive update
 			sudo zypper --non-interactive install --type pattern devel_basis
 		fi
@@ -391,14 +396,7 @@ function InstallPrerequisites {
 
 	if (( CENTOS == 1 )) ; then
 
-		if (( IsRoot == 1 && FastMode == 0 )) ; then
-
-			# make sure sudo is available
-			if [ "$EUID" -eq 0 ]; then
-				yum update
-				yum install sudo
-			fi 
-
+		if (( CanSudo == 1 && FastMode == 0 )) ; then
 			sudo yum update
 		fi
 
@@ -711,7 +709,7 @@ function InstallQt5 {
 				InternalError
 			fi
 
-			if (( IsRoot == 1 )) ; then
+			if (( CanSudo == 1 )) ; then
 				if (( FastMode== 0 )) ; then
 					sudo add-apt-repository ${QT5_REPOSITORY} -y 
 					sudo apt-get -qq update
