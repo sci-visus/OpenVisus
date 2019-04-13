@@ -33,6 +33,8 @@ if (( "$EUID" == 0 || DOCKER == 1 || TRAVIS == 1 )); then
 	CanExecuteAsRoot=1
 fi
 
+# if is docker or not
+DOCKER=${DOCKER:-0}
 
 # in case you want to try manylinux-like compilation
 SimulateManyLinux=0
