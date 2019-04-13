@@ -61,7 +61,7 @@ function ExecuteAsRoot {
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
 # travis preamble
-if (( TRAVIS == 1) ; then
+if (( TRAVIS == 1)) ; then
 
 	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then 
 		export COMPILER=clang++ 
