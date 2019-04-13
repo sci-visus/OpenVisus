@@ -54,15 +54,7 @@ if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
 	TRAVIS=1
 fi
 
-# //////////////////////////////////////////////////////
-function SudoExecute {
-	if [ -x "$(command -v sudo)" ]; then
-		sudo $@
-	elif (( IsRoot == 1 )); then
-		$@ # try without sudo
-	fi
-	
-}
+
 
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -71,7 +63,7 @@ if (( TRAVIS == 1)) ; then
 
 	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then 
 		export COMPILER=clang++ 
-		SudoExecute gem install xcpretty 
+		sudo gem install xcpretty 
 	fi
 
 	if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then 
@@ -180,9 +172,9 @@ fi
 
 if [[ "$DOCKER_IMAGE" != "" ]] ; then
 
-	SudoExecute docker rm -f mydocker 2>/dev/null || true
+	sudo  docker rm -f mydocker 2>/dev/null || true
 
-	SudoExecute docker run -d -ti \
+	sudo  docker run -d -ti \
 		--name mydocker \
 		-v ${SOURCE_DIR}:${SOURCE_DIR} \
 		-e BUILD_DIR=${BUILD_DIR} \
@@ -200,10 +192,10 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
 		${DOCKER_IMAGE} \
 		/bin/bash
 
-	SudoExecute docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
+	sudo  docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
 
-	SudoExecute chown -R "$USER":"$USER" ${BUILD_DIR}
-	SudoExecute chmod -R u+rwx           ${BUILD_DIR}
+	sudo  chown -R "$USER":"$USER" ${BUILD_DIR}
+	sudo  chmod -R u+rwx           ${BUILD_DIR}
 	exit 0
 fi
 
@@ -221,7 +213,7 @@ if (( USE_CONDA == 1 )) ; then
 			if [ ! -d /opt/MacOSX10.9.sdk ] ; then
 				git clone https://github.com/phracker/MacOSX-SDKs
 				mkdir -p /opt
-				SudoExecute mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
+				sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
 				rm -Rf MacOSX-SDKs
 			fi
 		fi
@@ -284,15 +276,15 @@ function InstallPackages {
 
 	elif (( UBUNTU == 1 )); then
 		CheckInstallCommand="dpkg -s"
-		InstallCommand="SudoExecute apt-get -qq install --allow-unauthenticated"
+		InstallCommand="sudo apt-get -qq install --allow-unauthenticated"
 
 	elif (( OPENSUSE == 1 )) ; then
 		CheckInstallCommand=rpm -q
-		InstallCommand="SudoExecute zypper --non-interactive install "
+		InstallCommand="sudo zypper --non-interactive install "
 		
 	elif (( CENTOS == 1 )) ; then
 		CheckInstallCommand="yum list installed ${package_name}"
-		InstallCommand="SudoExecute yum install -y"
+		InstallCommand="sudo yum install -y"
 
 	fi
 
@@ -311,7 +303,7 @@ function InstallPackages {
 		return 0
 	fi
 
-	if [[ $InstallCommand == *"SudoExecute"* && "${IsRoot}" == "0" ]]; then
+	if [[ $InstallCommand == *"sudo"* && "${IsRoot}" == "0" ]]; then
 		echo "Failed to install because I need sudo: $@"
 		set -x
 		return 1
@@ -353,13 +345,19 @@ function InstallPrerequisites {
 
 		if (( IsRoot == 1 && FastMode == 0 )) ; then
 
-			SudoExecute apt-get -qq update
+			# make sure sudo is available
+			if [ "$EUID" -eq 0 ]; then
+				apt-get -qq update
+				apt-get -qq install sudo
+			fi
+
+			sudo apt-get -qq update
 
 			InstallPackages software-properties-common
 
 			if (( ${UBUNTU_VERSION:0:2}<=14 )); then
-				SudoExecute add-apt-repository -y ppa:deadsnakes/ppa
-				SudoExecute apt-get -qq update
+				sudo add-apt-repository -y ppa:deadsnakes/ppa
+				sudo apt-get -qq update
 			fi
 
 		fi
@@ -374,8 +372,14 @@ function InstallPrerequisites {
 
 		if (( IsRoot == 1 && FastMode == 0 )) ; then
 
-			SudoExecute zypper --non-interactive update
-			SudoExecute zypper --non-interactive install --type pattern devel_basis
+			# make sure sudo is available
+			if [ "$EUID" -eq 0 ]; then
+				apt-get -qq update
+				apt-get -qq install sudo
+			fi
+
+			sudo zypper --non-interactive update
+			sudo zypper --non-interactive install --type pattern devel_basis
 		fi
 
 		InstalPackages gcc-c++
@@ -388,7 +392,7 @@ function InstallPrerequisites {
 	if (( CENTOS == 1 )) ; then
 
 		if (( IsRoot == 1 && FastMode == 0 )) ; then
-			SudoExecute yum update
+			sudo yum update
 		fi
 
 		InstallPackages zlib-devel curl libffi-devel
@@ -702,8 +706,8 @@ function InstallQt5 {
 
 			if (( IsRoot == 1 )) ; then
 				if (( FastMode== 0 )) ; then
-					SudoExecute add-apt-repository ${QT5_REPOSITORY} -y 
-					SudoExecute apt-get -qq update
+					sudo add-apt-repository ${QT5_REPOSITORY} -y 
+					sudo apt-get -qq update
 				fi
 			fi
 
