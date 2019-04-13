@@ -56,11 +56,12 @@ fi
 
 # //////////////////////////////////////////////////////
 function SudoExecute {
-	if (( IsRoot == 1 )); then 
-		$@
-	else
+	if [ -x "$(command -v sudo)" ]; then
 		sudo $@
+	elif (( IsRoot == 1 )); then
+		$@ # try without sudo
 	fi
+	
 }
 
 
