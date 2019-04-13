@@ -397,7 +397,7 @@ function InstallPrerequisites {
 			if [ "$EUID" -eq 0 ]; then
 				yum update
 				yum install sudo
-			fi
+			fi 
 
 			sudo yum update
 		fi
