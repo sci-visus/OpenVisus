@@ -27,7 +27,7 @@ matrix:
   
     # ///////////////////////////////// manylinux (pyenv)
     # Example to compile step by step:
-    #   sudo docker run -ti  -v $(pwd):/home/OpenVisus quay.io/pypa/manylinux1_x86_64 /bin/bash
+    #   sudo docker run -ti -v $(pwd):/home/OpenVisus quay.io/pypa/manylinux1_x86_64 /bin/bash
     #   cd /home/OpenVisus 
     #   PYTHON_VERSION=3.6.1 BUILD_DIR=$(pwd)/build/manylinux ./build.sh     
     
@@ -177,7 +177,7 @@ matrix:
 
     # ///////////////////////////////// xenial (Ubuntu 16) (pyenv)
     # Example to compile by hand
-    # sudo docker run -ti  -v $(pwd):/home/OpenVisus ubuntu:xenial /bin/bash
+    # sudo docker run -ti -v $(pwd):/home/OpenVisus ubuntu:xenial /bin/bash
     # cd /home/OpenVisus && PYTHON_VERSION=3.7.1 ./build.sh
 
     - os: linux

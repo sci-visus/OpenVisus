@@ -33,7 +33,11 @@ if (( "$EUID" == 0 || DOCKER == 1 || TRAVIS == 1 )); then
 fi
 
 # if is docker or not
-DOCKER=${DOCKER:-0}
+DOCKER=0
+grep 'docker\|lxc' /proc/1/cgroup && :
+if [ $? == 0 ] ; then 
+	DOCKER=1
+fi
 
 # in case you want to try manylinux-like compilation
 SimulateManyLinux=0
@@ -180,7 +184,6 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
 	SudoExecute docker run -d -ti \
 		--name mydocker \
 		-v ${SOURCE_DIR}:${SOURCE_DIR} \
-		-e DOCKER=1 \
 		-e BUILD_DIR=${BUILD_DIR} \
 		-e OpenVisusCache=${OpenVisusCache} \
 		-e PYTHON_VERSION=${PYTHON_VERSION} \
