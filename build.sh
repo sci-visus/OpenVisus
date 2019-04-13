@@ -8,16 +8,11 @@ set -x
 
 SOURCE_DIR=$(pwd)
 BUILD_DIR=${BUILD_DIR:-${SOURCE_DIR}/build}
-OpenVisusCache=${OpenVisusCache:-${BUILD_DIR}/.cache}
-
-mkdir -p ${OpenVisusCache}
-export PATH=${OpenVisusCache}/bin:$PATH
 
 # cmake flags
 PYTHON_VERSION=${PYTHON_VERSION:-3.6.1}
 DISABLE_OPENMP=${DISABLE_OPENMP:-0}
 VISUS_GUI=${VISUS_GUI:-1}
-
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
 
 # conda stuff
@@ -30,8 +25,6 @@ DEPLOY_PYPI=${DEPLOY_PYPI:-0}
 PYPI_USERNAME=${PYPI_USERNAME:-}
 PYPI_PASSWORD=${PYPI_PASSWORD:-}NO_CMAKE_SYSTEM_PATH 
 
-# in case you want to speed up compilation because prerequisites have already been installed
-FAST_MODE=${FAST_MODE:-0}
 
 # sudo allowed or not (in general I assume I cannot use sudo)
 CanSudo=${CanSudo:-0}
@@ -40,8 +33,19 @@ if [ "$EUID" -eq 0 ]; then
 	CanSudo=1
 fi
 
+
 # in case you want to try manylinux-like compilation
-SIMULATE_MANYLINUX=0
+SimulateManyLinux=0
+
+# in case you want to speed up compilation because prerequisites have already been installed
+FastMode=${FastMode:-0}
+
+
+OpenVisusCache=${OpenVisusCache:-${BUILD_DIR}/.cache}
+mkdir -p ${OpenVisusCache}
+export PATH=${OpenVisusCache}/bin:$PATH
+
+
 
 # //////////////////////////////////////////////////////
 function ExecuteAsSudo {
@@ -89,7 +93,6 @@ if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
 
 	TRAVIS=1
 	CanSudo=1
-	SudoCommand=""
 
 	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then 
 		export COMPILER=clang++ 
@@ -325,7 +328,7 @@ function InstallPrerequisites {
 
 	if (( OSX == 1 )) ; then
 
-		if (( FAST_MODE == 0 )) ; then
+		if (( FastMode == 0 )) ; then
 
 			# install brew
 			if [ !  -x "$(command -v brew)" ]; then
@@ -342,7 +345,7 @@ function InstallPrerequisites {
 
 	if (( UBUNTU == 1 )) ; then
 
-		if (( CanSudo == 1 && FAST_MODE == 0 )) ; then
+		if (( CanSudo == 1 && FastMode == 0 )) ; then
 
 			ExecuteAsSudo apt-get -qq update
 
@@ -363,7 +366,7 @@ function InstallPrerequisites {
 
 	if (( OPENSUSE == 1 )) ; then
 
-		if (( CanSudo == 1 && FAST_MODE == 0 )) ; then
+		if (( CanSudo == 1 && FastMode == 0 )) ; then
 
 			ExecuteAsSudo zypper --non-interactive update
 			ExecuteAsSudo zypper --non-interactive install --type pattern devel_basis
@@ -378,7 +381,7 @@ function InstallPrerequisites {
 
 	if (( CENTOS == 1 )) ; then
 
-		if (( CanSudo == 1 && FAST_MODE == 0 )) ; then
+		if (( CanSudo == 1 && FastMode == 0 )) ; then
 			ExecuteAsSudo yum update
 		fi
 
@@ -390,7 +393,7 @@ function InstallPrerequisites {
 # //////////////////////////////////////////////////////
 function InstallCMake {
 
-	if (( OSX == 1 || SIMULATE_MANYLINUX == 0 )); then
+	if (( OSX == 1 || SimulateManyLinux == 0 )); then
 
 		InstallPackages cmake && :
 
@@ -428,7 +431,7 @@ function InstallCMake {
 # //////////////////////////////////////////////////////
 function InstallSwig {
 
-	if (( OSX == 1 || SIMULATE_MANYLINUX == 0 )); then
+	if (( OSX == 1 || SimulateManyLinux == 0 )); then
 
 		InstallPackages swig && :
 
@@ -480,7 +483,7 @@ function InstallPatchElf {
 		return 0
 	fi
 
-	if (( SIMULATE_MANYLINUX == 0 )); then
+	if (( SimulateManyLinux == 0 )); then
 
 		InstallPackages patchelf && :
 
@@ -517,7 +520,7 @@ function InstallOpenSSL {
 		if [ $? == 0 ] ; then return 0 ; fi
 	fi
 
-	if (( SIMULATE_MANYLINUX == 0 )); then
+	if (( SimulateManyLinux == 0 )); then
 
 
 		if (( UBUNTU == 1 )) ; then
@@ -561,7 +564,7 @@ function InstallApache {
 		return 0
 	fi
 
-	if (( SIMULATE_MANYLINUX == 0 )); then
+	if (( SimulateManyLinux == 0 )); then
 
 		if (( UBUNTU == 1 )); then
 			InstallPackages apache2 apache2-dev libffi-dev  && : 
@@ -654,7 +657,7 @@ function InstallQt5 {
 	# install qt 5.11 (instead of 5.12 which is not supported by PyQt5)
 	if (( OSX == 1 )); then
 
-		if (( FAST_MODE == 0 )) ; then
+		if (( FastMode == 0 )) ; then
 			echo "installing Qt5 from brew"
 			brew uninstall qt5 1>/dev/null 2>/dev/null && :
 			InstallPackages https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb
@@ -665,7 +668,7 @@ function InstallQt5 {
 		return 0
 	fi
 
-	if (( SIMULATE_MANYLINUX == 0 )); then
+	if (( SimulateManyLinux == 0 )); then
 
 		# ubuntu
 		if (( UBUNTU == 1 )) ; then
@@ -692,7 +695,7 @@ function InstallQt5 {
 			fi
 
 			if (( CanSudo == 1 )) ; then
-				if (( FAST_MODE== 0 )) ; then
+				if (( FastMode== 0 )) ; then
 					ExecuteAsSudo add-apt-repository ${QT5_REPOSITORY} -y 
 					ExecuteAsSudo apt-get -qq update
 				fi
@@ -781,17 +784,24 @@ function InstallQt5 {
 function InstallPython {
 
 	# install python using pyenv
-	if (( FAST_MODE == 0 )) ; then
+	if (( FastMode == 0 )) ; then
 	
 		if (( OSX == 1 )) ; then
 
 			InstallPackages readline zlib
 			InstallPackages pyenv
+
+			# this avoid problems
+			brew upgrade readline zlib pyenv 1>/dev/null && :
 		
 			CONFIGURE_OPTS="--enable-shared --with-openssl=$(brew --prefix openssl@1.1)" \
 			CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include  -I$(brew --prefix openssl@1.1)/include" \
 			LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib      -L$(brew --prefix openssl@1.1)/lib" \
 			pyenv install --skip-existing ${PYTHON_VERSION}
+			if [ $? != 0 ] ; then
+				echo "Installation of python failed"
+				exit -1
+			fi
 
 		else
 
@@ -818,7 +828,12 @@ function InstallPython {
 				__opt__+=(LDFLAGS="-L${OPENSSL_DIR}/lib")
 			fi
 
-			${__opt__[@]} pyenv install --skip-existing ${PYTHON_VERSION}
+			${__opt__[@]} pyenv install --skip-existing ${PYTHON_VERSION} && :
+			if [ $? != 0 ] ; then
+				echo "Installation of python failed"
+				exit -1
+			fi
+			
 		
 		fi
 	fi
@@ -833,7 +848,7 @@ function InstallPython {
 	pyenv rehash
 
 	# install python packages
-	if (( FAST_MODE == 0 )) ; then	
+	if (( FastMode == 0 )) ; then	
 		python -m pip install -q --upgrade pip
 		python -m pip install -q numpy setuptools wheel twine auditwheel	
 	fi
