@@ -310,6 +310,10 @@ script:
    - |
      cd "${TRAVIS_BUILD_DIR}" 
      ./build.sh
+     if [ $? != 0 ] ; then 
+        echo "Build failed"
+        travis_terminate -1
+     fi
 
 before_deploy:
    - |

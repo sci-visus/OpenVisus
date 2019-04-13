@@ -1,6 +1,10 @@
 #!/bin/bash
 
-set -ex
+# stop on error
+set -e
+
+# very verbose
+set -x
 
 SOURCE_DIR=$(pwd)
 BUILD_DIR=${BUILD_DIR:-${SOURCE_DIR}/build}
@@ -30,16 +34,33 @@ PYPI_PASSWORD=${PYPI_PASSWORD:-}NO_CMAKE_SYSTEM_PATH
 FAST_MODE=${FAST_MODE:-0}
 
 # sudo allowed or not (in general I assume I cannot use sudo)
-SUDO=${SUDO:-0}
+CAN_SUDO=${CAN_SUDO:-0}
 
-# i'm already 'root'
-if [ "$EUID" -eq 0 ]; then
-	SUDO=1
+if [ "$EUID" -eq 0 ]; then 
+	alias sudo='' # no need to call sudo
+	CAN_SUDO=1
 fi
+
+# in case you want to try manylinux-like compilation
+SIMULATE_MANYLINUX=0
 
 # //////////////////////////////////////////////////////
 function DownloadFile {
-	curl -fsSL --insecure "$1" -O 
+
+	set +x
+
+	url=$1
+
+	filename=$(basename $url)
+	if [ -f "${filename}" ] ; then
+		echo "file $filename already downloaded"
+		set -x
+		return 0	
+	fi
+
+	set -x
+	curl -fsSL --insecure "$url" -O
+	set -x
 }
 
 
@@ -54,16 +75,12 @@ function GetVersionFromCommand {
 	__minor__=$(echo ${__version__} | cut -d'.' -f2)
 }
 
-
-
-
 # ///////////////////////////////////////////////////////////////////////////////////////////////
 # travis preamble
-
 if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
 
 	TRAVIS=1
-	SUDO=1
+	CAN_SUDO=1
 
 	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then 
 		export COMPILER=clang++ 
@@ -237,7 +254,8 @@ fi
 # //////////////////////////////////////////////////////
 function InstallPackages {
 
-	SudoNeeded=1
+	set +x
+
 	if (( OSX == 1 )) ; then
 		CheckInstallCommand="brew list"
 		InstallCommand="brew install"
@@ -246,14 +264,17 @@ function InstallPackages {
 	elif (( UBUNTU == 1 )); then
 		CheckInstallCommand="dpkg -s"
 		InstallCommand="sudo apt-get -qq install --allow-unauthenticated"
+		SudoNeeded=1
 
 	elif (( OPENSUSE == 1 )) ; then
 		CheckInstallCommand=rpm -q
 		InstallCommand="sudo zypper --non-interactive install "
+		SudoNeeded=1
 		
 	elif (( CENTOS == 1 )) ; then
-		CheckInstallCommand="yum list installed ${package_name}"
-		InstallCommand="yum install -y"
+		CheckInstallCommand="sudo yum list installed ${package_name}"
+		InstallCommand="sudo yum install -y"
+		SudoNeeded=1
 
 	fi
 
@@ -268,22 +289,25 @@ function InstallPackages {
 
 	if (( AlreadyInstalled == 1 )) ; then
 		echo "Already installed: $@"
+		set -x
 		return 0
 	fi
 
-	if (( SudoNeeded == 1 && SUDO == 0 )); then
+	if (( SudoNeeded == 1 && CAN_SUDO == 0 )); then
 		echo "Failed to install because I need sudo: $@"
+		set -x
 		return 1
 	fi
 
+	set -x
 	$InstallCommand $@  && : 
-	if [ $? == 0 ] ; then 
+	retcode=$?
+	if ((  retcode == 0 )) ; then 
 		echo "Just installed: $@"
-		return 0
+	else
+		echo "Failed to install: $@"
 	fi
-
-	echo "Failed to install: $@"
-	return 1
+	return $retcode
 }
 
 
@@ -309,13 +333,7 @@ function InstallPrerequisites {
 
 	if (( UBUNTU == 1 )) ; then
 
-		if (( SUDO == 1 && FAST_MODE == 0 )) ; then
-
-			# install sudo if needed
-			if [ "$EUID" -eq 0 ]; then
-				apt-get -qq update
-				apt-get -qq install sudo
-			fi
+		if (( CAN_SUDO == 1 && FAST_MODE == 0 )) ; then
 
 			sudo apt-get -qq update
 
@@ -336,13 +354,7 @@ function InstallPrerequisites {
 
 	if (( OPENSUSE == 1 )) ; then
 
-		if (( SUDO == 1 && FAST_MODE == 0 )) ; then
-
-			# install sudo if needed
-			if [ "$EUID" -eq 0 ]; then
-				zypper --non-interactive update
-				zypper --non-interactive install sudo
-			fi
+		if (( CAN_SUDO == 1 && FAST_MODE == 0 )) ; then
 
 			sudo zypper --non-interactive update
 			sudo zypper --non-interactive install --type pattern devel_basis
@@ -357,8 +369,8 @@ function InstallPrerequisites {
 
 	if (( CENTOS == 1 )) ; then
 
-		if (( SUDO == 1 && FAST_MODE == 0 )) ; then
-			yum update
+		if (( CAN_SUDO == 1 && FAST_MODE == 0 )) ; then
+			sudo yum update
 		fi
 
 		InstallPackages zlib-devel curl libffi-devel
@@ -369,18 +381,21 @@ function InstallPrerequisites {
 # //////////////////////////////////////////////////////
 function InstallCMake {
 
-	InstallPackages cmake && :
+	if (( OSX == 1 || SIMULATE_MANYLINUX == 0 )); then
 
-	# already installed
-	if [[ -x "$(command -v cmake)" ]]; then
-		GetVersionFromCommand "cmake --version" "cmake version "
-		if (( __major__== 3 && __minor__ >= 9 )); then
-			echo "Good version: cmake==${__version__}"
-			return 0
-		else
-			echo "Wrong version: cmake==${__version__} "
-		fi
-	fi 
+		InstallPackages cmake && :
+
+		# already installed
+		if [[ -x "$(command -v cmake)" ]]; then
+			GetVersionFromCommand "cmake --version" "cmake version "
+			if (( __major__== 3 && __minor__ >= 9 )); then
+				echo "Good version: cmake==${__version__}"
+				return 0
+			else
+				echo "Wrong version: cmake==${__version__} "
+			fi
+		fi 
+	fi
 
 	# install from source
 	echo "installing cmake from source"
@@ -393,7 +408,7 @@ function InstallCMake {
 		url="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.tar.gz"
 		filename=$(basename ${url})
 		DownloadFile "${url}"
-		tar xvzf ${filename} -C ${OpenVisusCache} --strip-components=1 
+		tar xzf ${filename} -C ${OpenVisusCache} --strip-components=1 
 		rm -f ${filename}
 	fi
 
@@ -404,26 +419,30 @@ function InstallCMake {
 # //////////////////////////////////////////////////////
 function InstallSwig {
 
-	InstallPackages swig && :
+	if (( OSX == 1 || SIMULATE_MANYLINUX == 0 )); then
 
-	# already installed
-	if [[ -x "$(command -v swig)" ]]; then
-		GetVersionFromCommand "swig -version" "SWIG Version "
-		if (( __major__>= 3)); then
-			echo "Good version: swig==${__version__}"
-			cmake_opts+=(-DSWIG_EXECUTABLE=$(which swig))	
+		InstallPackages swig && :
+
+		# already installed
+		if [[ -x "$(command -v swig)" ]]; then
+			GetVersionFromCommand "swig -version" "SWIG Version "
+			if (( __major__>= 3)); then
+				echo "Good version: swig==${__version__}"
+				cmake_opts+=(-DSWIG_EXECUTABLE=$(which swig))	
+				return 0
+			else
+				echo "Wrong version: swig==${__version__}"
+			fi
+		fi 
+
+		InstallPackages swig3.0 && :
+
+		# already installed
+		if [[ -x "$(command -v swig3.0)" ]]; then
+			cmake_opts+=(-DSWIG_EXECUTABLE=$(which swig3.0))	
 			return 0
-		else
-			echo "Wrong version: swig==${__version__}"
 		fi
-	fi 
 
-	InstallPackages swig3.0 && :
-
-	# already installed
-	if [[ -x "$(command -v swig3.0)" ]]; then
-		cmake_opts+=(-DSWIG_EXECUTABLE=$(which swig3.0))	
-		return 0
 	fi
 
 	# install from source
@@ -435,12 +454,10 @@ function InstallSwig {
 		tar xzf ${filename}
 		pushd swig-3.0.12
 		DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
-		./Tools/pcre-build.sh
-		./configure --prefix=${OpenVisusCache}
-		make -s -j 4
-		make install
+		./Tools/pcre-build.sh 1>/dev/null
+		./configure --prefix=${OpenVisusCache} 1>/dev/null && make -s -j 4 1>/dev/null && make install 1>/dev/null 
 		popd
-		rm -Rf ${filename} swig-3.0.12
+		rm -Rf swig-3.0.12
 	fi
 
 	cmake_opts+=(-DSWIG_EXECUTABLE=${OpenVisusCache}/bin/swig)
@@ -454,12 +471,15 @@ function InstallPatchElf {
 		return 0
 	fi
 
-	InstallPackages patchelf && :
+	if (( SIMULATE_MANYLINUX == 0 )); then
 
-	# already installed
-	if [ -x "$(command -v patchelf)" ]; then
-		echo "Already installed: patchelf"
-		return 0
+		InstallPackages patchelf && :
+
+		# already installed
+		if [ -x "$(command -v patchelf)" ]; then
+			echo "Already installed: patchelf"
+			return 0
+		fi
 	fi
 
 	# install from source
@@ -470,11 +490,11 @@ function InstallPatchElf {
 		DownloadFile ${url}
 		tar xzf ${filename}
 		pushd patchelf-0.9
-		./configure --prefix=${OpenVisusCache} && make -s && make install
+		./configure --prefix=${OpenVisusCache} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
 		autoreconf -f -i
-		./configure --prefix=${OpenVisusCache} && make -s && make install
+		./configure --prefix=${OpenVisusCache} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
 		popd
-		rm -Rf ${filename} patchelf-0.9
+		rm -Rf patchelf-0.9
 	fi
 
 	return 0
@@ -486,18 +506,23 @@ function InstallOpenSSL {
 	if (( OSX == 1 )); then
 		InstallPackages openssl@1.1  && : 
 		if [ $? == 0 ] ; then return 0 ; fi
+	fi
 
-	elif (( UBUNTU == 1 )) ; then
-		InstallPackages libssl-dev  && : 
-		if [ $? == 0 ] ; then return 0 ; fi
+	if (( SIMULATE_MANYLINUX == 0 )); then
 
-	elif (( OPENSUSE == 1 )) ; then
-		InstallPackages libopenssl-devel  && : 
-		if [ $? == 0 ] ; then return 0 ; fi
 
-	elif (( CENTOS == 1 )) ; then
-		# for centos I prefer to build from scratch
-		echo "Centos, prefer source openssl"
+		if (( UBUNTU == 1 )) ; then
+			InstallPackages libssl-dev  && : 
+			if [ $? == 0 ] ; then return 0 ; fi
+
+		elif (( OPENSUSE == 1 )) ; then
+			InstallPackages libopenssl-devel  && : 
+			if [ $? == 0 ] ; then return 0 ; fi
+
+		elif (( CENTOS == 1 )) ; then
+			# for centos I prefer to build from scratch
+			echo "Centos, prefer source openssl"
+		fi
 	fi
 
 	# install from source
@@ -508,12 +533,14 @@ function InstallOpenSSL {
 		DownloadFile ${url}
 		tar xzf ${filename}
 		pushd openssl-1.0.2a
-		./config --prefix=${OpenVisusCache} -fpic shared
-		make -s
-		make install
+		./config --prefix=${OpenVisusCache} -fpic shared 1>/dev/null && make -s 1>/dev/null  && make install 1>/dev/null 
 		popd
-		rm -Rf ${filename} openssl-1.0.2a
+		rm -Rf openssl-1.0.2a
 	fi
+
+	OPENSSL_INCLUDE_DIR="${OpenVisusCache}/include" 
+	OPENSSL_LIB_DIR="${OpenVisusCache}/lib"
+
 	return 0
 }
 
@@ -525,17 +552,21 @@ function InstallApache {
 		return 0
 	fi
 
-	if (( UBUNTU == 1 )); then
-		InstallPackages apache2 apache2-dev libffi-dev  && : 
-		if [ $? == 0 ] ; then return 0 ; fi
+	if (( SIMULATE_MANYLINUX == 0 )); then
 
-	elif (( OPENSUSE == 1 )); then
-		InstallPackages apache2 apache2-devel libffi-devel  && : 
-		if [ $? == 0 ] ; then return 0 ; fi
+		if (( UBUNTU == 1 )); then
+			InstallPackages apache2 apache2-dev libffi-dev  && : 
+			if [ $? == 0 ] ; then return 0 ; fi
 
-	elif (( CENTOS == 1 )) ; then
-		# for centos I prefer to build from scratch
-		echo "centos, prefers source apache"
+		elif (( OPENSUSE == 1 )); then
+			InstallPackages apache2 apache2-devel libffi-devel  && : 
+			if [ $? == 0 ] ; then return 0 ; fi
+
+		elif (( CENTOS == 1 )) ; then
+			# for centos I prefer to build from scratch
+			echo "centos, prefers source apache"
+		fi
+
 	fi
 
 	# install from source
@@ -548,9 +579,9 @@ function InstallApache {
 		DownloadFile ${url}
 		tar xzf ${filename}
 		pushd apr-1.6.5
-		./configure --prefix=${OpenVisusCache} && make -s && make install
+		./configure --prefix=${OpenVisusCache} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
 		popd
-		rm -Rf ${filename} apr-1.6.5
+		rm -Rf apr-1.6.5
 	fi
 
 	# install apr utils 
@@ -560,9 +591,9 @@ function InstallApache {
 		DownloadFile ${url}
 		tar xzf ${filename}
 		pushd apr-util-1.6.1
-		./configure --prefix=${OpenVisusCache} --with-apr=${OpenVisusCache} && make -s && make install
+		./configure --prefix=${OpenVisusCache} --with-apr=${OpenVisusCache} 1>/dev/null  && make -s 1>/dev/null  && make install 1>/dev/null 
 		popd
-		rm -Rf ${filename} apr-util-1.6.1
+		rm -Rf apr-util-1.6.1
 	fi
 
 	# install pcre 
@@ -572,9 +603,9 @@ function InstallApache {
 		DownloadFile ${url}
 		tar xzf ${filename}
 		pushd pcre-8.42
-		./configure --prefix=${OpenVisusCache} && make -s && make install
+		./configure --prefix=${OpenVisusCache} 1>/dev/null  && make -s 1>/dev/null  && make install 1>/dev/null 
 		popd
-		rm -Rf ${filename} pcre-8.42
+		rm -Rf pcre-8.42
 	fi
 
 	# install httpd
@@ -584,9 +615,11 @@ function InstallApache {
 		DownloadFile ${url}
 		tar xzf ${filename}
 		pushd httpd-2.4.38
-		./configure --prefix=${OpenVisusCache} --with-apr=${OpenVisusCache} --with-pcre=${OpenVisusCache} --with-ssl=${OpenVisusCache} && make -s && make install
+		./configure --prefix=${OpenVisusCache} --with-apr=${OpenVisusCache} --with-pcre=${OpenVisusCache} --with-ssl=${OpenVisusCache} 1>/dev/null && \
+			make -s 1>/dev/null && \
+			make install 1>/dev/null 
 		popd
-		rm -Rf ${filename} httpd-2.4.38
+		rm -Rf httpd-2.4.38
 	fi
 	
 	cmake_opts+=(-DAPR_DIR=${OpenVisusCache})
@@ -612,7 +645,7 @@ function InstallQt5 {
 	# install qt 5.11 (instead of 5.12 which is not supported by PyQt5)
 	if (( OSX == 1 )); then
 
-		if (( FAST_MODE==0 )) ; then
+		if (( FAST_MODE == 0 )) ; then
 			echo "installing Qt5 from brew"
 			brew uninstall qt5 1>/dev/null 2>/dev/null && :
 			InstallPackages https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb
@@ -623,50 +656,54 @@ function InstallQt5 {
 		return 0
 	fi
 
-	# ubuntu
-	if (( UBUNTU == 1 )) ; then
+	if (( SIMULATE_MANYLINUX == 0 )); then
 
-		# https://launchpad.net/~beineri
-		# PyQt5 versions 5.6, 5.7, 5.7.1, 5.8, 5.8.1.1, 5.8.2, 5.9, 5.9.1, 5.9.2, 5.10, 5.10.1, 5.11.2, 5.11.3
-		if (( ${UBUNTU_VERSION:0:2} <=14 )); then
-			QT5_PACKAGE=qt510base
-			QT5_REPOSITORY=ppa:beineri/opt-qt-5.10.1-trusty
-			OPT_QT5_DIR=/opt/qt510/lib/cmake/Qt5
+		# ubuntu
+		if (( UBUNTU == 1 )) ; then
 
-		elif (( ${UBUNTU_VERSION:0:2} <=16 )); then
-			QT5_PACKAGE=qt511base
-			QT5_REPOSITORY=ppa:beineri/opt-qt-5.11.2-xenial
-			OPT_QT5_DIR=/opt/qt511/lib/cmake/Qt5
+			# https://launchpad.net/~beineri
+			# PyQt5 versions 5.6, 5.7, 5.7.1, 5.8, 5.8.1.1, 5.8.2, 5.9, 5.9.1, 5.9.2, 5.10, 5.10.1, 5.11.2, 5.11.3
+			if (( ${UBUNTU_VERSION:0:2} <=14 )); then
+				QT5_PACKAGE=qt510base
+				QT5_REPOSITORY=ppa:beineri/opt-qt-5.10.1-trusty
+				OPT_QT5_DIR=/opt/qt510/lib/cmake/Qt5
 
-		elif (( ${UBUNTU_VERSION:0:2} <=18)); then
-			QT5_PACKAGE=qt511base
-			QT5_REPOSITORY=ppa:beineri/opt-qt-5.11.2-bionic
-			OPT_QT5_DIR=/opt/qt511/lib/cmake/Qt5
+			elif (( ${UBUNTU_VERSION:0:2} <=16 )); then
+				QT5_PACKAGE=qt511base
+				QT5_REPOSITORY=ppa:beineri/opt-qt-5.11.2-xenial
+				OPT_QT5_DIR=/opt/qt511/lib/cmake/Qt5
 
-		else
-			InternalError
-		fi
+			elif (( ${UBUNTU_VERSION:0:2} <=18)); then
+				QT5_PACKAGE=qt511base
+				QT5_REPOSITORY=ppa:beineri/opt-qt-5.11.2-bionic
+				OPT_QT5_DIR=/opt/qt511/lib/cmake/Qt5
 
-		if (( SUDO == 1 )) ; then
-			if (( FAST_MODE==0 )) ; then
-				sudo add-apt-repository ${QT5_REPOSITORY} -y 
-				sudo apt-get -qq update
+			else
+				InternalError
+			fi
+
+			if (( CAN_SUDO == 1 )) ; then
+				if (( FAST_MODE== 0 )) ; then
+					sudo add-apt-repository ${QT5_REPOSITORY} -y 
+					sudo apt-get -qq update
+				fi
+			fi
+
+			InstallPackages mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev ${QT5_PACKAGE}  && : 
+			if [ $? == 0 ] ; then
+				echo "Using Qt5 from unbuntu repository"
+				Qt5_DIR=${OPT_QT5_DIR}
+				cmake_opts+=(-DQt5_DIR=${Qt5_DIR})
+				return 0
 			fi
 		fi
 
-		InstallPackages mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev ${QT5_PACKAGE}  && : 
-		if [ $? == 0 ] ; then
-			echo "Using Qt5 from unbuntu repository"
-			Qt5_DIR=${OPT_QT5_DIR}
-			cmake_opts+=(-DQt5_DIR=${Qt5_DIR})
-			return 0
+		# opensuse
+		if (( OPENSUSE == 1 )) ; then
+			InstallPackages glu-devel  libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel && : 
+			if [ $? == 0 ] ; then return 0 ; fi
 		fi
-	fi
 
-	# opensuse
-	if (( OPENSUSE == 1 )) ; then
-		InstallPackages glu-devel  libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel && : 
-		if [ $? == 0 ] ; then return 0 ; fi
 	fi
 
 	# backup plan , use a minimal Qt5 which does not need SUDO
@@ -709,7 +746,7 @@ function InstallQt5 {
 		url="http://atlantis.sci.utah.edu/qt/qt${QT_VERSION}.tar.gz"
 		filename=$(basename ${url})
 		DownloadFile "${url}"
-		tar xvzf ${filename} -C ${OpenVisusCache} 
+		tar xzf ${filename} -C ${OpenVisusCache} 
 
 		python -m pip install -q uninstall PyQt5 || true
 		python -m pip install -q --user PyQt5==${QT_VERSION}
@@ -735,12 +772,12 @@ function InstallQt5 {
 function InstallPython {
 
 	# install python using pyenv
-	if (( FAST_MODE==0 )) ; then
+	if (( FAST_MODE == 0 )) ; then
 	
 		if (( OSX == 1 )) ; then
-		
-			brew install pyenv readline zlib 1>/dev/null 2>&1 || true
-			brew upgrade pyenv readline zlib 1>/dev/null 2>&1 || true
+
+			InstallPackages readline zlib
+			InstallPackages pyenv
 		
 			CONFIGURE_OPTS="--enable-shared --with-openssl=$(brew --prefix openssl@1.1)" \
 			CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include  -I$(brew --prefix openssl@1.1)/include" \
@@ -761,10 +798,18 @@ function InstallPython {
 			# activate pyenv
 			export PATH="$HOME/.pyenv/bin:$PATH"
 			eval "$(pyenv init -)"
-		
-			CXX=g++ \
-			CONFIGURE_OPTS="--enable-shared" \
-			pyenv install --skip-existing ${PYTHON_VERSION}
+
+			declare -a __opt__
+			__opt__+=(CXX=g++)
+			__opt__+=(CONFIGURE_OPTS="--enable-shared")
+
+			if [[ "$OPENSSL_DIR" != "" ]] ; then
+				__opt__+=(--with-openssl=${OPENSSL_DIR})
+				__opt__+=(CFLAGS="-I${OPENSSL_DIR}/include")
+				__opt__+=(LDFLAGS="-L${OPENSSL_DIR}/lib")
+			fi
+
+			${__opt__[@]} pyenv install --skip-existing ${PYTHON_VERSION}
 		
 		fi
 	fi
