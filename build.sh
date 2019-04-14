@@ -326,16 +326,16 @@ function InstallPrerequisites {
 	if [[ "$IsRoot" == "1" ]]; then
 
 		if (( UBUNTU ==1 )); then
-			apt-get -qq update
-			apt-get -qq install sudo
+			apt-get -qq update       1>/dev/null
+			apt-get -qq install sudo 1>/dev/null
 
 		elif (( OPENSUSE == 1 )); then
-			apt-get -qq update
-			apt-get -qq install sudo
+			apt-get -qq update       1>/dev/null
+			apt-get -qq install sudo 1>/dev/null
 
 		elif (( CENTOS == 1 )); then
-			yum update
-			yum install sudo
+			yum update       1>/dev/null
+			yum install sudo 1>/dev/null
 
 		fi
 	fi
@@ -801,19 +801,13 @@ function InstallPython {
 	
 		if (( OSX == 1 )) ; then
 
-			InstallPackages pyenv
-
-			# this avoid problems
-			brew reinstall readline openssl@1.1 1>/dev/null && :
+			brew install pyenv
+			brew reinstall readline zlib openssl@1.1
 		
 			CONFIGURE_OPTS="--enable-shared --with-openssl=$(brew --prefix openssl@1.1)" \
 			CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include  -I$(brew --prefix openssl@1.1)/include" \
 			LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib      -L$(brew --prefix openssl@1.1)/lib" \
 			pyenv install --skip-existing ${PYTHON_VERSION}
-			if [ $? != 0 ] ; then
-				echo "Installation of python failed"
-				exit -1
-			fi
 
 		else
 
@@ -830,21 +824,22 @@ function InstallPython {
 			export PATH="$HOME/.pyenv/bin:$PATH"
 			eval "$(pyenv init -)"
 
-			declare -a __opt__
-			__opt__+=(CONFIGURE_OPTS="--enable-shared")
-
+			CONFIGURE_OPTS="--enable-shared"
 			if [[ "$OPENSSL_DIR" != "" ]] ; then
-				__opt__+=(--with-openssl=${OPENSSL_DIR})
-				__opt__+=(CFLAGS="-I${OPENSSL_DIR}/include")
-				__opt__+=(LDFLAGS="-L${OPENSSL_DIR}/lib")
+				CONFIGURE_OPTS="--with-openssl=${OPENSSL_DIR} ${CONFIGURE_OPTS}"
+				CFLAGS="-I${OPENSSL_DIR}/include"
+				LDFLAGS="-L${OPENSSL_DIR}/lib"
 			fi
 
-			${__opt__[@]} pyenv install --skip-existing ${PYTHON_VERSION} && :
+			pyenv install --skip-existing ${PYTHON_VERSION} && :
 			if [ $? != 0 ] ; then
 				echo "Installation of python failed"
 				exit -1
 			fi
-			
+
+			unset CONFIGURE_OPTS
+			unset CFLAGS
+			unset LDFLAGS
 		
 		fi
 	fi
