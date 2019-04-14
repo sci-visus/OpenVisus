@@ -338,15 +338,15 @@ function InstallPrerequisites {
 
 		if (( UBUNTU ==1 )); then
 			apt-get -qq update       1>/dev/null
-			apt-get -qq install sudo 1>/dev/null
+			apt-get -qq install sudo 
 
 		elif (( OPENSUSE == 1 )); then
 			apt-get -qq update       1>/dev/null
-			apt-get -qq install sudo 1>/dev/null
+			apt-get -qq install sudo 
 
 		elif (( CENTOS == 1 )); then
 			yum update       1>/dev/null
-			yum install sudo 1>/dev/null
+			yum install sudo 
 
 		fi
 	fi
