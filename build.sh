@@ -666,10 +666,14 @@ function InstallQt5 {
 	# install qt 5.11 (instead of 5.12 which is not supported by PyQt5)
 	if (( OSX == 1 )); then
 
-		if (( FastMode == 0 )) ; then
-			echo "installing Qt5 from brew"
+		formula=https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb
+		brew ls --version ${formula} && :
+		if [ $? == 0 ] ; then
+			echo "Qt 5.11 (brew version) is already installed formula($formula)"
+		else
+			echo "installing brew Qt5 formula($formula)"
 			brew uninstall qt5 1>/dev/null 2>/dev/null && :
-			InstallPackages https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb
+			InstallPackages $formula
 		fi
 
 		Qt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5
@@ -712,7 +716,7 @@ function InstallQt5 {
 
 			InstallPackages mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev ${QT5_PACKAGE}  && : 
 			if [ $? == 0 ] ; then
-				echo "Using Qt5 from unbuntu repository"
+				echo "Using Qt5 from unbuntu repository"g
 				Qt5_DIR=${OPT_QT5_DIR}
 				cmake_opts+=(-DQt5_DIR=${Qt5_DIR})
 				return 0
