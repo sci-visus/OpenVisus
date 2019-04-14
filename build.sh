@@ -820,7 +820,8 @@ function InstallPython {
 	
 		if (( OSX == 1 )) ; then
 
-			brew install pyenv
+			InstallPackages pyenv
+
 			brew reinstall readline zlib openssl
 		
 			export CONFIGURE_OPTS="--enable-shared --with-openssl=$(brew --prefix openssl)"
