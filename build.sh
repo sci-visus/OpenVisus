@@ -26,8 +26,6 @@ PYPI_USERNAME=${PYPI_USERNAME:-}
 PYPI_PASSWORD=${PYPI_PASSWORD:-}NO_CMAKE_SYSTEM_PATH 
 
 
-# in case you want to try manylinux-like compilation
-SimulateManyLinux=0
 
 # in case you want to speed up compilation because prerequisites have already been installed
 FastMode=${FastMode:-0}
@@ -53,6 +51,10 @@ fi
 OpenVisusCache=${OpenVisusCache:-${BUILD_DIR}/.cache}
 mkdir -p ${OpenVisusCache}
 export PATH=${OpenVisusCache}/bin:$PATH
+
+
+# in case you want to try manylinux-like compilation
+SimulateManyLinux=1
 
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -107,15 +109,24 @@ function DownloadFile {
 # //////////////////////////////////////////////////////
 function GetVersionFromCommand {
 	# return the next word after the pattern and parse the version in the format MAJOR.MINOR.whatever
+	__version__=""
+	__major__=""
+	__minor__=""
 	cmd=$1
 	pattern=$2
-	__content__=$(${cmd})
-	__version__=$(echo ${__content__} | awk -F "${pattern}" '{print $2}' | cut -d' ' -f1)
-	__major__=$(echo ${__version__} | cut -d'.' -f1)
-	__minor__=$(echo ${__version__} | cut -d'.' -f2)
+	set +e
+	__content__=$(${cmd} 2>/dev/null)
+	retcode=$?
+	set -e
+	if [ $? == 0 ] ; then 
+		__version__=$(echo ${__content__} | awk -F "${pattern}" '{print $2}' | cut -d' ' -f1)
+		__major__=$(echo ${__version__} | cut -d'.' -f1)
+		__minor__=$(echo ${__version__} | cut -d'.' -f2)
+		echo "Found version ${__version__}"
+	else
+		echo "Cannot find any version"
+	fi
 }
-
-
 
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -529,7 +540,7 @@ function InstallPatchElf {
 function InstallOpenSSL {
 
 	if (( OSX == 1 )); then
-		InstallPackages openssl@1.1  && : 
+		InstallPackages openssl  && : 
 		if [ $? == 0 ] ; then return 0 ; fi
 	fi
 
@@ -761,7 +772,7 @@ function InstallQt5 {
 		cp -r ${SRC}/bin/uic                 qt${QT_VERSION}/bin/ 
 		cp -r ${SRC}/lib/cmake               qt${QT_VERSION}/lib/
 		cp -r ${SRC}/mkspecs/linux-g++       qt${QT_VERSION}/mkspecs/
-		tar cvzf qt${QT_VERSION}.tar.gz qt${QT_VERSION}
+		tar czf qt${QT_VERSION}.tar.gz qt${QT_VERSION}
 		scp qt${QT_VERSION}.tar.gz scrgiorgio@atlantis.sci.utah.edu:/www/qt/
 		rm -Rf qt${QT_VERSION}.tar.gz qt${QT_VERSION}
 	fi
@@ -772,9 +783,16 @@ function InstallQt5 {
 		filename=$(basename ${url})
 		DownloadFile "${url}"
 		tar xzf ${filename} -C ${OpenVisusCache} 
+		
+		GetVersionFromCommand "python -m pip show PyQt5" "Version: "
+		if [[ "${__version__}" != "${QT_VERSION}" ]]; then
+			python -m pip install -q uninstall PyQt5 || true
+			python -m pip install -q --user PyQt5==${QT_VERSION}
+			echo "PyQt5==${QT_VERSION} installed"
+		else
+			echo "PyQt5==${QT_VERSION} already installed"
+		fi
 
-		python -m pip install -q uninstall PyQt5 || true
-		python -m pip install -q --user PyQt5==${QT_VERSION}
 		PyQt5_DIR=$(python -c 'import os,PyQt5;print(os.path.dirname(PyQt5.__file__))')
 
 		cp -r ${PyQt5_DIR}/Qt/lib/*   ${OpenVisusCache}/qt${QT_VERSION}/lib/
@@ -789,6 +807,7 @@ function InstallQt5 {
 		done
 
 	fi
+
 	return 0
 }
 
@@ -802,12 +821,16 @@ function InstallPython {
 		if (( OSX == 1 )) ; then
 
 			brew install pyenv
-			brew reinstall readline zlib openssl@1.1
+			brew reinstall readline zlib openssl
 		
-			CONFIGURE_OPTS="--enable-shared --with-openssl=$(brew --prefix openssl@1.1)" \
-			CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include  -I$(brew --prefix openssl@1.1)/include" \
-			LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib      -L$(brew --prefix openssl@1.1)/lib" \
-			pyenv install --skip-existing ${PYTHON_VERSION}
+			CONFIGURE_OPTS="--enable-shared --with-openssl=$(brew --prefix openssl)" \
+			CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include  -I$(brew --prefix openssl)/include" \
+			LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib      -L$(brew --prefix openssl)/lib" \
+			pyenv install --skip-existing ${PYTHON_VERSION} && :
+			if [ $? != 0 ] ; then 
+				echo "pyenv failed to install"
+				exit -1
+			fi
 
 		else
 
@@ -825,15 +848,16 @@ function InstallPython {
 			eval "$(pyenv init -)"
 
 			CONFIGURE_OPTS="--enable-shared"
+
 			if [[ "$OPENSSL_DIR" != "" ]] ; then
 				CONFIGURE_OPTS="--with-openssl=${OPENSSL_DIR} ${CONFIGURE_OPTS}"
 				CFLAGS="-I${OPENSSL_DIR}/include"
 				LDFLAGS="-L${OPENSSL_DIR}/lib"
 			fi
 
-			pyenv install --skip-existing ${PYTHON_VERSION} && :
-			if [ $? != 0 ] ; then
-				echo "Installation of python failed"
+			pyenv install --skip-existing ${PYTHON_VERSION}  && :
+			if [ $? != 0 ] ; then 
+				echo "pyenv failed to install"
 				exit -1
 			fi
 
