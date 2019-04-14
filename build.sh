@@ -43,9 +43,11 @@ if [ $? == 0 ] ; then
 fi
 
 # sudo allowed or not (in general I assume I cannot use sudo)
+SudoCmd="sudo"
 IsRoot=${IsRoot:-0}
 if (( "$EUID" == 0 || DOCKER == 1 || TRAVIS == 1 )); then 
 	IsRoot=1
+	SudoCmd=""
 fi
 
 OpenVisusCache=${OpenVisusCache:-${BUILD_DIR}/.cache}
@@ -63,7 +65,7 @@ if (( TRAVIS == 1)) ; then
 
 	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then 
 		export COMPILER=clang++ 
-		sudo gem install xcpretty 
+		${SudoCmd} gem install xcpretty 
 	fi
 
 	if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then 
@@ -181,9 +183,9 @@ fi
 
 if [[ "$DOCKER_IMAGE" != "" ]] ; then
 
-	sudo docker rm -f mydocker 2>/dev/null || true
+	${SudoCmd} docker rm -f mydocker 2>/dev/null || true
 
-	sudo docker run -d -ti \
+	${SudoCmd} docker run -d -ti \
 		--name mydocker \
 		-v ${SOURCE_DIR}:${SOURCE_DIR} \
 		-e BUILD_DIR=${BUILD_DIR} \
@@ -201,10 +203,11 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
 		${DOCKER_IMAGE} \
 		/bin/bash
 
-	sudo  docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
+	${SudoCmd}  docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
 
-	sudo  chown -R "$USER":"$USER" ${BUILD_DIR}
-	sudo  chmod -R u+rwx           ${BUILD_DIR}
+	${SudoCmd}  chown -R "$USER":"$USER" ${BUILD_DIR}
+	${SudoCmd}  chmod -R u+rwx           ${BUILD_DIR}
+
 	exit 0
 fi
 
@@ -222,7 +225,7 @@ if (( USE_CONDA == 1 )) ; then
 			if [ ! -d /opt/MacOSX10.9.sdk ] ; then
 				git clone https://github.com/phracker/MacOSX-SDKs
 				mkdir -p /opt
-				sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
+				${SudoCmd} mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
 				rm -Rf MacOSX-SDKs
 			fi
 		fi
@@ -285,15 +288,15 @@ function InstallPackages {
 
 	elif (( UBUNTU == 1 )); then
 		CheckInstallCommand="dpkg -s"
-		InstallCommand="sudo apt-get -qq install --allow-unauthenticated"
+		InstallCommand="${SudoCmd} apt-get -qq install --allow-unauthenticated"
 
 	elif (( OPENSUSE == 1 )) ; then
 		CheckInstallCommand=rpm -q
-		InstallCommand="sudo zypper --non-interactive install "
+		InstallCommand="${SudoCmd} zypper --non-interactive install "
 		
 	elif (( CENTOS == 1 )) ; then
 		CheckInstallCommand="yum list installed ${package_name}"
-		InstallCommand="sudo yum install -y"
+		InstallCommand="${SudoCmd} yum install -y"
 
 	fi
 
@@ -312,8 +315,8 @@ function InstallPackages {
 		return 0
 	fi
 
-	if [[ $InstallCommand == *"sudo"* && "${IsRoot}" == "0" ]]; then
-		echo "Failed to install because I need sudo: $@"
+	if [[ "${SudoCmd}" != "" && ${InstallCommand} == *"${SudoCmd}"* && "${IsRoot}" == "0" ]]; then
+		echo "Failed to install because I need ${SudoCmd}: $@"
 		set -x
 		return 1
 	fi
@@ -332,24 +335,6 @@ function InstallPackages {
 
 # //////////////////////////////////////////////////////////////
 function InstallPrerequisites {
-
-	# make sure sudo is available
-	if [[ "$IsRoot" == "1" ]]; then
-
-		if (( UBUNTU ==1 )); then
-			apt-get -qq update       1>/dev/null
-			apt-get -qq install sudo 
-
-		elif (( OPENSUSE == 1 )); then
-			apt-get -qq update       1>/dev/null
-			apt-get -qq install sudo 
-
-		elif (( CENTOS == 1 )); then
-			yum update       1>/dev/null
-			yum install -y sudo
-
-		fi
-	fi
 
 	if (( OSX == 1 )) ; then
 
@@ -372,13 +357,13 @@ function InstallPrerequisites {
 	
 		if (( IsRoot == 1 && FastMode == 0 )) ; then
 
-			sudo apt-get -qq update
+			${SudoCmd} apt-get -qq update
 
 			InstallPackages software-properties-common
 
 			if (( ${UBUNTU_VERSION:0:2}<=14 )); then
-				sudo add-apt-repository -y ppa:deadsnakes/ppa
-				sudo apt-get -qq update
+				${SudoCmd} add-apt-repository -y ppa:deadsnakes/ppa
+				${SudoCmd} apt-get -qq update
 			fi
 
 		fi
@@ -392,8 +377,8 @@ function InstallPrerequisites {
 	if (( OPENSUSE == 1 )) ; then
 
 		if (( IsRoot == 1 && FastMode == 0 )) ; then
-			sudo zypper --non-interactive update
-			sudo zypper --non-interactive install --type pattern devel_basis
+			${SudoCmd} zypper --non-interactive update
+			${SudoCmd} zypper --non-interactive install --type pattern devel_basis
 		fi
 
 		InstalPackages gcc-c++
@@ -406,7 +391,7 @@ function InstallPrerequisites {
 	if (( CENTOS == 1 )) ; then
 
 		if (( IsRoot == 1 && FastMode == 0 )) ; then
-			sudo yum update
+			${SudoCmd} yum update
 		fi
 
 		InstallPackages zlib-devel curl libffi-devel
@@ -720,8 +705,8 @@ function InstallQt5 {
 
 			if (( IsRoot == 1 )) ; then
 				if (( FastMode== 0 )) ; then
-					sudo add-apt-repository ${QT5_REPOSITORY} -y 
-					sudo apt-get -qq update
+					${SudoCmd} add-apt-repository ${QT5_REPOSITORY} -y 
+					${SudoCmd} apt-get -qq update
 				fi
 			fi
 
