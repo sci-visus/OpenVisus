@@ -823,9 +823,10 @@ function InstallPython {
 			brew install pyenv
 			brew reinstall readline zlib openssl
 		
-			CONFIGURE_OPTS="--enable-shared --with-openssl=$(brew --prefix openssl)" \
-			CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include  -I$(brew --prefix openssl)/include" \
-			LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib      -L$(brew --prefix openssl)/lib" \
+			export CONFIGURE_OPTS="--enable-shared --with-openssl=$(brew --prefix openssl)"
+			export CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include  -I$(brew --prefix openssl)/include" 
+			export LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib      -L$(brew --prefix openssl)/lib" 
+
 			pyenv install --skip-existing ${PYTHON_VERSION} && :
 			if [ $? != 0 ] ; then 
 				echo "pyenv failed to install"
@@ -847,12 +848,12 @@ function InstallPython {
 			export PATH="$HOME/.pyenv/bin:$PATH"
 			eval "$(pyenv init -)"
 
-			CONFIGURE_OPTS="--enable-shared"
+			export CONFIGURE_OPTS="--enable-shared"
 
 			if [[ "$OPENSSL_DIR" != "" ]] ; then
-				CONFIGURE_OPTS="--with-openssl=${OPENSSL_DIR} ${CONFIGURE_OPTS}"
-				CFLAGS="-I${OPENSSL_DIR}/include"
-				LDFLAGS="-L${OPENSSL_DIR}/lib"
+				export CONFIGURE_OPTS="--with-openssl=${OPENSSL_DIR} ${CONFIGURE_OPTS}"
+				export CFLAGS="-I${OPENSSL_DIR}/include"
+				export LDFLAGS="-L${OPENSSL_DIR}/lib"
 			fi
 
 			pyenv install --skip-existing ${PYTHON_VERSION}  && :
