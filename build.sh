@@ -346,7 +346,7 @@ function InstallPrerequisites {
 
 		elif (( CENTOS == 1 )); then
 			yum update       1>/dev/null
-			yum install sudo 
+			yum install -y sudo
 
 		fi
 	fi
