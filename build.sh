@@ -531,7 +531,6 @@ function InstallOpenSSL {
 
 	if (( SimulateManyLinux == 0 )); then
 
-
 		if (( UBUNTU == 1 )) ; then
 			InstallPackages libssl-dev  && : 
 			if [ $? == 0 ] ; then return 0 ; fi
@@ -559,8 +558,7 @@ function InstallOpenSSL {
 		rm -Rf openssl-1.0.2a
 	fi
 
-	OPENSSL_INCLUDE_DIR="${OpenVisusCache}/include" 
-	OPENSSL_LIB_DIR="${OpenVisusCache}/lib"
+	OPENSSL_DIR="${OpenVisusCache}" 
 
 	return 0
 }
