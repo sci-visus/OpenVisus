@@ -54,7 +54,7 @@ export PATH=${OpenVisusCache}/bin:$PATH
 
 
 # in case you want to try manylinux-like compilation
-SimulateManyLinux=1
+SimulateManyLinux=0
 
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -920,8 +920,8 @@ InstallCMake
 InstallSwig
 InstallPatchElf
 InstallApache
-InstallQt5
 InstallPython
+InstallQt5
 
 if (( OSX == 1 )) ; then
 	cmake -GXcode ${cmake_opts[@]} ${SOURCE_DIR}
