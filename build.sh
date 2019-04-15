@@ -595,11 +595,14 @@ if (( OSX == 1 )) ; then
 	fi	
 	
 else
+  echo cmake ${cmake_opts[@]} ${SOURCE_DIR}
 	cmake ${cmake_opts[@]} ${SOURCE_DIR}
+  echo cmake --build . --target all -- -j 4
 	cmake --build . --target all -- -j 4
 	
 fi
 
+echo cmake --build . --target install   --config ${CMAKE_BUILD_TYPE}
 cmake --build . --target install   --config ${CMAKE_BUILD_TYPE}
 
 # dist

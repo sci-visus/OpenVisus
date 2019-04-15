@@ -145,16 +145,28 @@ public:
 	  //choose timesteps
       for (int I=0;I<4;I++)
       {
-        auto button = new QPushButton();
-        button->setText((StringUtils::format()<<"Time "<<I).str().c_str());
+        auto button = new QPushButton( );
+        
+        QPixmap pixmap((StringUtils::format()<<"/Users/amygooch/GIT/ViSUS/OpenViSUS_David/Samples/simple_viewer2d/imgs/time0"<<I<<".png").str().c_str());
+        QIcon ButtonIcon(pixmap);
+        button->setIcon(ButtonIcon);
+        button->setIconSize(pixmap.rect().size()*.8);
+        button->setFixedSize(pixmap.rect().size()*.8);
+        button->setStyleSheet("margin-left: 0px; margin-right: 0px;"
+                              "margin-top: 15px; margin-bottom: 15px;");
+        button->setStyleSheet("padding-left: 0px; padding-right: 0px;"
+                              "padding-top: 0px; padding-bottom: 0px;");
+        
+       // button->setText((StringUtils::format()<<"Time "<<I).str().c_str());
         connect(button,&QPushButton::clicked,[this,I](){
           setTime((double)I);
         });
+    
+        button->setFlat(true);
         buttons->addWidget(button);
       }
-
+     
       buttons->addStretch(1);
-
       layout->addLayout(buttons,2);
     }
 
