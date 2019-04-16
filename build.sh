@@ -926,8 +926,16 @@ if (( VISUS_GUI == 1 )); then
 fi
 
 if (( OSX == 1 )) ; then
+
 	cmake -GXcode ${cmake_opts[@]} ${SOURCE_DIR}  
-	cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} -- -quiet
+
+	if (( TRAVIS == 1 )) ; then
+		${SudoCmd} gem install xcpretty  
+		set -o pipefail && cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
+	else
+		cmake                    --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
+	fi	
+	
 else
 	cmake ${cmake_opts[@]} ${SOURCE_DIR}
 	cmake --build ./ --target all -- -j 4 
