@@ -30,7 +30,6 @@ if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
 
 	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then 
 		export COMPILER=clang++ 
-		gem install xcpretty 
 	fi
 
 	if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then 
@@ -912,17 +911,10 @@ fi
 
 if (( OSX == 1 )) ; then
 	cmake -GXcode ${cmake_opts[@]} ${SOURCE_DIR}  
-	 
-	# this is to solve logs too long 
-	if (( TRAVIS == 1 )) ; then 
-		cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
-	else
-		cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
-	fi	
-	
+	cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} -- -quiet
 else
 	cmake ${cmake_opts[@]} ${SOURCE_DIR}
-	cmake --build . --target all -- -j 4
+	cmake --build ./ --target all -- -j 4 
 	
 fi
 
