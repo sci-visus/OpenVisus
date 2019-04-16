@@ -25,47 +25,12 @@ DEPLOY_PYPI=${DEPLOY_PYPI:-0}
 PYPI_USERNAME=${PYPI_USERNAME:-}
 PYPI_PASSWORD=${PYPI_PASSWORD:-}NO_CMAKE_SYSTEM_PATH 
 
-
-
-# in case you want to speed up compilation because prerequisites have already been installed
-FastMode=${FastMode:-0}
-
-# if travis or not
-if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
-	TRAVIS=1
-fi
-
-# if is docker or not
-DOCKER=0
-grep 'docker\|lxc' /proc/1/cgroup && :
-if [ $? == 0 ] ; then 
-	DOCKER=1
-fi
-
-# sudo allowed or not (in general I assume I cannot use sudo)
-SudoCmd="sudo"
-IsRoot=${IsRoot:-0}
-if (( "$EUID" == 0 || DOCKER == 1 || TRAVIS == 1 )); then 
-	IsRoot=1
-	SudoCmd=""
-fi
-
-OpenVisusCache=${OpenVisusCache:-${BUILD_DIR}/.cache}
-mkdir -p ${OpenVisusCache}
-export PATH=${OpenVisusCache}/bin:$PATH
-
-
-# in case you want to try manylinux-like compilation
-SimulateManyLinux=0
-
-
-# ///////////////////////////////////////////////////////////////////////////////////////////////
 # travis preamble
-if (( TRAVIS == 1)) ; then
+if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
 
 	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then 
 		export COMPILER=clang++ 
-		${SudoCmd} gem install xcpretty 
+		gem install xcpretty 
 	fi
 
 	if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then 
@@ -86,15 +51,36 @@ if (( TRAVIS == 1)) ; then
 	fi
 fi
 
+# if is docker or not
+DOCKER=0
+grep 'docker\|lxc' /proc/1/cgroup && :
+if [ $? == 0 ] ; then 
+	DOCKER=1
+fi
 
+# sudo allowed or not (in general I assume I cannot use sudo)
+SudoCmd="sudo"
+IsRoot=${IsRoot:-0}
+if (( EUID== 0 || DOCKER == 1 || TRAVIS == 1 )); then 
+	IsRoot=1
+	SudoCmd=""
+fi
+
+OpenVisusCache=${OpenVisusCache:-${BUILD_DIR}/.cache}
+mkdir -p ${OpenVisusCache}
+export PATH=${OpenVisusCache}/bin:$PATH
+
+# in case you want to try manylinux-like compilation
+UseInstalledPackages=1
+
+# in case you want to speed up compilation because prerequisites have already been installed
+FastMode=${FastMode:-0}
 
 # //////////////////////////////////////////////////////
 function DownloadFile {
 
 	set +x
-
 	url=$1
-
 	filename=$(basename $url)
 	if [ -f "${filename}" ] ; then
 		echo "file $filename already downloaded"
@@ -102,15 +88,15 @@ function DownloadFile {
 		return 0	
 	fi
 
-	set -x
 	curl -fsSL --insecure "$url" -O
 	set -x
 }
 
 
 # //////////////////////////////////////////////////////
-function GetVersionFromCommand {
-	# return the next word after the pattern and parse the version in the format MAJOR.MINOR.whatever
+# return the next word after the pattern and parse the version in the format MAJOR.MINOR.whatever
+function GetVersionFromCommand {	
+	set +x
 	__version__=""
 	__major__=""
 	__minor__=""
@@ -128,6 +114,7 @@ function GetVersionFromCommand {
 	else
 		echo "Cannot find any version"
 	fi
+	set -x
 }
 
 
@@ -171,6 +158,7 @@ elif [ -x "$(command -v yum)" ]; then
 		MANYLINUX=1
 		DISABLE_OPENMP=1
 		VISUS_GUI=0
+		UseInstalledPackages=0
 	fi	
 
 else
@@ -282,6 +270,9 @@ function InstallPackages {
 
 	set +x
 
+	packages=$@
+	echo "Installing packages ${packages}..."
+
 	if (( OSX == 1 )) ; then
 		CheckInstallCommand="brew list"
 		InstallCommand="brew install"
@@ -295,46 +286,50 @@ function InstallPackages {
 		InstallCommand="${SudoCmd} zypper --non-interactive install "
 		
 	elif (( CENTOS == 1 )) ; then
-		CheckInstallCommand="yum list installed ${package_name}"
+		CheckInstallCommand="yum list installed"
 		InstallCommand="${SudoCmd} yum install -y"
 
 	fi
 
 	AlreadyInstalled=1
-	for package_name in $@ ; do
-		set +e
+	for package_name in ${packages} ; do
 		$CheckInstallCommand ${package_name} 1>/dev/null 2>/dev/null && : 
-		if [ $? != 0 ] ; then 
+		retcode=$?
+		if [ ${retcode} != 0 ] ; then 
 			AlreadyInstalled=0
 		fi
 	done
 
 	if (( AlreadyInstalled == 1 )) ; then
-		echo "Already installed: $@"
+		echo "Already installed: ${packages}"
 		set -x
 		return 0
 	fi
 
 	if [[ "${SudoCmd}" != "" && ${InstallCommand} == *"${SudoCmd}"* && "${IsRoot}" == "0" ]]; then
-		echo "Failed to install because I need ${SudoCmd}: $@"
+		echo "Failed to install because I need ${SudoCmd}: ${packages}"
 		set -x
 		return 1
 	fi
 
-	set -x
-	$InstallCommand $@  1>/dev/null && : 
+	$InstallCommand ${packages}  1>/dev/null && : 
 	retcode=$?
 	if ((  retcode == 0 )) ; then 
-		echo "Just installed: $@"
+		echo "Installed packages: ${packages}"
 	else
-		echo "Failed to install: $@"
+		echo "Failed to install: ${packages}"
 	fi
+
+	set -x
 	return $retcode
 }
 
 
+
 # //////////////////////////////////////////////////////////////
 function InstallPrerequisites {
+
+	echo "Installing prerequisites..."
 
 	if (( OSX == 1 )) ; then
 
@@ -346,9 +341,10 @@ function InstallPrerequisites {
 			fi
 
 			# output is very long!
-			brew update 1>/dev/null 2>&1 || true
+			brew update 1>/dev/null && :
 		fi
 
+		echo "Installed prerequisites for OSX"
 		return 0
 	fi
 
@@ -357,10 +353,10 @@ function InstallPrerequisites {
 	
 		if (( IsRoot == 1 && FastMode == 0 )) ; then
 
-			${SudoCmd} apt-get -qq update
+			${SudoCmd} apt-get -qq update 1>/dev/null  && :
 
+			# install additional rep
 			InstallPackages software-properties-common
-
 			if (( ${UBUNTU_VERSION:0:2}<=14 )); then
 				${SudoCmd} add-apt-repository -y ppa:deadsnakes/ppa
 				${SudoCmd} apt-get -qq update
@@ -371,19 +367,23 @@ function InstallPrerequisites {
 		InstallPackages build-essential
 		InstallPackages git curl
 		InstallPackages ca-certificates uuid-dev automake bzip2
+
+		echo "Installed prerequisites for Ubuntu"
 		return 0
 	fi
 
 	if (( OPENSUSE == 1 )) ; then
 
 		if (( IsRoot == 1 && FastMode == 0 )) ; then
-			${SudoCmd} zypper --non-interactive update
+			${SudoCmd} zypper --non-interactive update 1>/dev/null  && :
 			${SudoCmd} zypper --non-interactive install --type pattern devel_basis
 		fi
 
 		InstalPackages gcc-c++
 		InstalPackages git curl
 		InstalPackages lsb-release libuuid-devel 
+
+		echo "Installed prerequisites for OpenSuse"
 		return 0
 		
 	fi
@@ -391,10 +391,12 @@ function InstallPrerequisites {
 	if (( CENTOS == 1 )) ; then
 
 		if (( IsRoot == 1 && FastMode == 0 )) ; then
-			${SudoCmd} yum update
+			${SudoCmd} yum update 1>/dev/null  && :
 		fi
 
-		InstallPackages zlib-devel curl libffi-devel
+		InstallPackages gcc-c++
+		InstallPackages zlib zlib-devel curl libffi-devel
+		echo "Installed prerequisites for Centos"
 		return 0
 	fi
 }
@@ -402,7 +404,7 @@ function InstallPrerequisites {
 # //////////////////////////////////////////////////////
 function InstallCMake {
 
-	if (( OSX == 1 || SimulateManyLinux == 0 )); then
+	if (( OSX == 1 || UseInstalledPackages == 1 )); then
 
 		InstallPackages cmake && :
 
@@ -440,7 +442,7 @@ function InstallCMake {
 # //////////////////////////////////////////////////////
 function InstallSwig {
 
-	if (( OSX == 1 || SimulateManyLinux == 0 )); then
+	if (( OSX == 1 || UseInstalledPackages == 1 )); then
 
 		InstallPackages swig && :
 
@@ -492,7 +494,7 @@ function InstallPatchElf {
 		return 0
 	fi
 
-	if (( SimulateManyLinux == 0 )); then
+	if (( UseInstalledPackages == 1 )); then
 
 		InstallPackages patchelf && :
 
@@ -529,7 +531,7 @@ function InstallOpenSSL {
 		if [ $? == 0 ] ; then return 0 ; fi
 	fi
 
-	if (( SimulateManyLinux == 0 )); then
+	if (( UseInstalledPackages == 1 )); then
 
 		if (( UBUNTU == 1 )) ; then
 			InstallPackages libssl-dev  && : 
@@ -547,19 +549,19 @@ function InstallOpenSSL {
 
 	# install from source
 	echo "installing openssl from source"
-	if [ ! -f "${OpenVisusCache}/bin/openssl" ]; then
+	OPENSSL_DIR="${OpenVisusCache}" 
+	if [ ! -f "${OPENSSL_DIR}/bin/openssl" ]; then
 		url="https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
 		filename=$(basename ${url})
 		DownloadFile ${url}
 		tar xzf ${filename}
 		pushd openssl-1.0.2a
-		./config --prefix=${OpenVisusCache} -fpic shared 1>/dev/null && make -s 1>/dev/null  && make install 1>/dev/null 
+		./config --prefix=${OPENSSL_DIR} -fPIC shared 1>/dev/null && make -s 1>/dev/null  && make install 1>/dev/null 
 		popd
 		rm -Rf openssl-1.0.2a
 	fi
-
-	OPENSSL_DIR="${OpenVisusCache}" 
-
+	
+	export LD_LIBRARY_PATH="${OPENSSL_DIR}/lib:${LD_LIBRARY_PATH}"
 	return 0
 }
 
@@ -571,7 +573,7 @@ function InstallApache {
 		return 0
 	fi
 
-	if (( SimulateManyLinux == 0 )); then
+	if (( UseInstalledPackages == 1 )); then
 
 		if (( UBUNTU == 1 )); then
 			InstallPackages apache2 apache2-dev libffi-dev  && : 
@@ -643,6 +645,7 @@ function InstallApache {
 	
 	cmake_opts+=(-DAPR_DIR=${OpenVisusCache})
 	cmake_opts+=(-DAPACHE_DIR=${OpenVisusCache})
+
 	return 0
 }
 
@@ -679,7 +682,7 @@ function InstallQt5 {
 		return 0
 	fi
 
-	if (( SimulateManyLinux == 0 )); then
+	if (( UseInstalledPackages == 1 )); then
 
 		# ubuntu
 		if (( UBUNTU == 1 )) ; then
@@ -839,12 +842,12 @@ function InstallPython {
 			export CONFIGURE_OPTS="--enable-shared"
 
 			if [[ "$OPENSSL_DIR" != "" ]] ; then
-				export CONFIGURE_OPTS="--with-openssl=${OPENSSL_DIR} ${CONFIGURE_OPTS}"
-				export CFLAGS="-I${OPENSSL_DIR}/include"
-				export LDFLAGS="-L${OPENSSL_DIR}/lib"
+				export CFLAGS="  -I${OPENSSL_DIR}/include -I${OPENSSL_DIR}/include/openssl"
+				export CPPFLAGS="-I${OPENSSL_DIR}/include -I${OPENSSL_DIR}/include/openssl"
+				export LDFLAGS=" -L${OPENSSL_DIR}/lib"
 			fi
 
-			pyenv install --skip-existing ${PYTHON_VERSION}  && :
+			CXX=g++ pyenv install --verbose --skip-existing ${PYTHON_VERSION}  && :
 			if [ $? != 0 ] ; then 
 				echo "pyenv failed to install"
 				exit -1
@@ -852,6 +855,7 @@ function InstallPython {
 
 			unset CONFIGURE_OPTS
 			unset CFLAGS
+			unset CPPFLAGS
 			unset LDFLAGS
 		
 		fi
