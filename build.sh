@@ -654,17 +654,10 @@ function InstallQt5 {
 	# install qt 5.11 (instead of 5.12 which is not supported by PyQt5)
 	if (( OSX == 1 )); then
 
-		formula=https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb
-		
-		set +e
-		__version__=$(brew ls --version "${formula}")
-		set -e
-		if [[ "${__version__}" != "" ]] ; then
-			echo "Qt 5.11 (brew version) is already installed formula($formula)"
-		else
-			echo "installing brew Qt5 formula($formula)"
+		if (( FastMode== 0 )) ; then
+			echo "installing brew Qt5"
 			brew uninstall qt5 1>/dev/null 2>/dev/null && :
-			InstallPackages $formula
+			InstallPackages "https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb"
 		fi
 
 		Qt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5
