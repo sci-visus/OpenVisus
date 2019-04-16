@@ -668,8 +668,11 @@ function InstallQt5 {
 	if (( OSX == 1 )); then
 
 		formula=https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb
-		brew ls --version ${formula} && :
-		if [ $? == 0 ] ; then
+		
+		set +e
+		__version__=$(brew ls --version "${formula}")
+		set -e
+		if [[ "${__version__}" != "" ]] ; then
 			echo "Qt 5.11 (brew version) is already installed formula($formula)"
 		else
 			echo "installing brew Qt5 formula($formula)"
@@ -916,7 +919,7 @@ InstallPython
 InstallQt5
 
 if (( OSX == 1 )) ; then
-	cmake -GXcode ${cmake_opts[@]} ${SOURCE_DIR}
+	cmake -GXcode ${cmake_opts[@]} ${SOURCE_DIR}  
 	 
 	# this is to solve logs too long 
 	if (( TRAVIS == 1 )) ; then 
