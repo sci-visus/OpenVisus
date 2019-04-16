@@ -490,10 +490,6 @@ function InstallSwig {
 # //////////////////////////////////////////////////////
 function InstallPatchElf {
 
-	if (( OSX == 1 )); then
-		return 0
-	fi
-
 	if (( UseInstalledPackages == 1 )); then
 
 		InstallPackages patchelf && :
@@ -568,10 +564,6 @@ function InstallOpenSSL {
 
 # //////////////////////////////////////////////////////
 function InstallApache {
-
-	if (( OSX == 1 )); then
-		return 0
-	fi
 
 	if (( UseInstalledPackages == 1 )); then
 
@@ -652,11 +644,6 @@ function InstallApache {
 
 # //////////////////////////////////////////////////////
 function InstallQt5 {
-
-	# no need
-	if (( VISUS_GUI != 1 )); then
-		return 0
-	fi
 
 	# already set by user
 	if [ ! -z "${Qt5_DIR}" ] ; then
@@ -845,12 +832,13 @@ function InstallPython {
 			export CONFIGURE_OPTS="--enable-shared"
 
 			if [[ "$OPENSSL_DIR" != "" ]] ; then
+				export CONFIGURE_OPTS="${CONFIGURE_OPTS} --with-openssl=${OPENSSL_DIR}"
 				export CFLAGS="  -I${OPENSSL_DIR}/include -I${OPENSSL_DIR}/include/openssl"
 				export CPPFLAGS="-I${OPENSSL_DIR}/include -I${OPENSSL_DIR}/include/openssl"
 				export LDFLAGS=" -L${OPENSSL_DIR}/lib"
 			fi
 
-			CXX=g++ pyenv install --verbose --skip-existing ${PYTHON_VERSION}  && :
+			CXX=g++ pyenv install --skip-existing ${PYTHON_VERSION}  && :
 			if [ $? != 0 ] ; then 
 				echo "pyenv failed to install"
 				exit -1
@@ -910,13 +898,24 @@ cmake_opts+=(-DVISUS_GUI=${VISUS_GUI})
 cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
 InstallPrerequisites
-InstallOpenSSL
+
 InstallCMake
 InstallSwig
-InstallPatchElf
-InstallApache
+
+if (( OSX != 1 )); then
+	InstallPatchElf
+fi
+
+InstallOpenSSL
 InstallPython
-InstallQt5
+
+if (( OSX != 1 )); then
+	InstallApache
+fi
+
+if (( VISUS_GUI == 1 )); then
+	InstallQt5
+fi
 
 if (( OSX == 1 )) ; then
 	cmake -GXcode ${cmake_opts[@]} ${SOURCE_DIR}  
