@@ -793,18 +793,34 @@ function InstallPython {
 		if (( OSX == 1 )) ; then
 
 			InstallPackages pyenv
+			InstallPackages readline zlib libffi
 
-			brew reinstall readline zlib openssl
+			brew reinstall  openssl 
+			
+			OPENSSL_DIR=$(brew --prefix readline)
+			READLINE_DIR=$(brew --prefix readline)
+			ZLIB_DIR=$(brew --prefix zlib)
 		
-			export CONFIGURE_OPTS="--enable-shared --with-openssl=$(brew --prefix openssl)"
-			export CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include  -I$(brew --prefix openssl)/include" 
-			export LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib      -L$(brew --prefix openssl)/lib" 
-
+			export CONFIGURE_OPTS="--enable-shared --with-openssl=${OPENSSL_DIR}"
+			export CFLAGS="   -I${READLINE_DIR}/include -I${ZLIB_DIR}/include  -I${OPENSSL_DIR}/include" 
+			export CPPFLAGS=" -I${READLINE_DIR}/include -I${ZLIB_DIR}/include  -I${OPENSSL_DIR}/include" 
+			export LDFLAGS="  -L${READLINE_DIR}/lib     -L${ZLIB_DIR}/lib      -L${OPENSSL_DIR}/lib" 
+			export PKG_CONFIG_PATH="${OPENSSL_DIR}/lib/pkgconfig"
+			export PATH="${OPENSSL_DIR}/bin:$PATH"
+			
 			pyenv install --skip-existing ${PYTHON_VERSION} && :
 			if [ $? != 0 ] ; then 
 				echo "pyenv failed to install"
 				exit -1
 			fi
+			
+			unset CONFIGURE_OPTS
+			unset CFLAGS
+			unset CPPFLAGS
+			unset LDFLAGS
+			unset OPENSSL_DIR
+			unset READLINE_DIR
+			unset ZLIB_DIR
 
 		else
 
