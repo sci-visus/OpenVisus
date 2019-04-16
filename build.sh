@@ -25,10 +25,11 @@ DEPLOY_PYPI=${DEPLOY_PYPI:-0}
 PYPI_USERNAME=${PYPI_USERNAME:-}
 PYPI_PASSWORD=${PYPI_PASSWORD:-}NO_CMAKE_SYSTEM_PATH 
 
+
 # travis preamble
 if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
 
-	export TRAVIS=1
+	export TRAVIS=1 
 
 	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then 
 		export COMPILER=clang++ 
