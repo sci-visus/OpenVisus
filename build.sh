@@ -966,7 +966,7 @@ if (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
 	fi
 
 fi
-
+ 
 # tests using CMake targets
 if (( 1 == 1 )) ; then
 	if (( OSX == 1 )) ; then
