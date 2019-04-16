@@ -28,6 +28,8 @@ PYPI_PASSWORD=${PYPI_PASSWORD:-}NO_CMAKE_SYSTEM_PATH
 # travis preamble
 if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
 
+	TRAVIS = 1
+
 	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then 
 		export COMPILER=clang++ 
 	fi
