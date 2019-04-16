@@ -35,6 +35,7 @@ matrix:
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
+      if: true OR commit_message =~ /\[manylinux\]/
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -42,7 +43,8 @@ matrix:
 
     - os: linux
       dist: trusty
-      env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
+      env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']  
+      if: true OR commit_message =~ /\[manylinux\]/      
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -50,17 +52,17 @@ matrix:
           
     - os: linux
       dist: trusty
-      if: tag IS present OR commit_message =~ /\[manylinux\]/  
-      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
+      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']  
+      if: tag IS present OR commit_message =~ /\[manylinux\]/       
       addons: 
         apt:
           packages: ['g++-4.9']
           sources: ['ubuntu-toolchain-r-test']               
 
     - os: linux
-      dist: trusty
+      dist: trusty  
+      env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']     
       if: tag IS present OR commit_message =~ /\[manylinux\]/ 
-      env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -71,38 +73,40 @@ matrix:
     - os: osx
       osx_image: xcode10.2
       compiler: clang
-      if: tag IS present OR commit_message =~ /\[osx1014\]/  
       env: [PYTHON_VERSION=3.7.1]     
+      if: tag IS present OR commit_message =~ /\[osx1014\]/  
     
     - os: osx
       osx_image: xcode10.2
       compiler: clang
+      if: true OR commit_message =~ /\[osx1014\]/ 
       env: [PYTHON_VERSION=3.6.5]   
      
     - os: osx
       osx_image: xcode10.2
       compiler: clang
-      if: tag IS present OR commit_message =~ /\[osx1014\]/ 
       env: [PYTHON_VERSION=2.7.15]
+      if: tag IS present OR commit_message =~ /\[osx1014\]/ 
      
     # ///////////////////////////////// osx 10.13
     
     - os: osx
       osx_image: xcode9.4
       compiler: clang
-      if: tag IS present OR commit_message =~ /\[osx1013\]/ 
       env: [PYTHON_VERSION=3.7.1]     
+      if: tag IS present OR commit_message =~ /\[osx1013\]/ 
     
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       env: [PYTHON_VERSION=3.6.5]   
+      if: true OR commit_message =~ /\[osx1013\]/ 
 
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      if: tag IS present OR commit_message =~ /\[osx1013\]/  
       env: [PYTHON_VERSION=2.7.15] 
+      if: tag IS present OR commit_message =~ /\[osx1013\]/  
       
     # ///////////////////////////////// osx 10.12
     
@@ -112,18 +116,17 @@ matrix:
       if: tag IS present OR commit_message =~ /\[osx1012\]/  
       env: ['PYTHON_VERSION=3.7.1']           
              
-      
     - os: osx
       osx_image: xcode8.3
-      compiler: clang
-      if: tag IS present OR commit_message =~ /\[osx1012\]/   
+      compiler: clang 
       env: ['PYTHON_VERSION=3.6.1']      
+      if: tag IS present OR commit_message =~ /\[osx1012\]/  
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      if: tag IS present OR commit_message =~ /\[osx1012\]/  
       env: ['PYTHON_VERSION=2.7.14']   
+      if: tag IS present OR commit_message =~ /\[osx1012\]/  
 
     # ///////////////////////////////// trusty (Ubuntu 14.04)
 
@@ -133,7 +136,8 @@ matrix:
     
     - os: linux
       dist: trusty
-      env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:trusty']       
+      env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:trusty']  
+      if: true OR commit_message =~ /\[trusty\]/      
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -141,8 +145,8 @@ matrix:
     
     - os: linux
       dist: trusty
-      if: tag IS present OR commit_message =~ /\[trusty\]/ 
-      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=ubuntu:trusty']       
+      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=ubuntu:trusty'] 
+      if: tag IS present OR commit_message =~ /\[trusty\]/       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -150,8 +154,8 @@ matrix:
             
     - os: linux
       dist: trusty
-      if: tag IS present OR commit_message =~ /\[trusty\]/  
       env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=ubuntu:trusty']
+      if: tag IS present OR commit_message =~ /\[trusty\]/  
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -166,8 +170,8 @@ matrix:
 
     - os: linux
       dist: xenial
-      if: tag IS present OR commit_message =~ /\[xenial\]/ 
-      env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=ubuntu:xenial']       
+      env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=ubuntu:xenial'] 
+      if: tag IS present OR commit_message =~ /\[xenial\]/       
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -175,7 +179,8 @@ matrix:
        
     - os: linux
       dist: xenial
-      env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:xenial']       
+      env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:xenial']    
+      if: true OR commit_message =~ /\[xenial\]/    
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -183,8 +188,8 @@ matrix:
     
     - os: linux
       dist: xenial
-      if: tag IS present OR commit_message =~ /\[xenial\]/ 
-      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=ubuntu:xenial']       
+      env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=ubuntu:xenial']  
+      if: tag IS present OR commit_message =~ /\[xenial\]/      
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -192,8 +197,8 @@ matrix:
             
     - os: linux
       dist: xenial
-      if: tag IS present OR commit_message =~ /\[xenial\]/ 
       env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=ubuntu:xenial']
+      if: tag IS present OR commit_message =~ /\[xenial\]/ 
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -208,8 +213,8 @@ matrix:
     
     - os: linux
       dist: trusty
-      if: tag IS present OR commit_message =~ /\[opensuse\]/ 
       env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=opensuse:leap']
+      if: tag IS present OR commit_message =~ /\[opensuse\]/ 
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -217,8 +222,8 @@ matrix:
 
     - os: linux
       dist: trusty
-      if: tag IS present OR commit_message =~ /\[opensuse\]/ 
       env: ['PYTHON_VERSION=3.6.6','DOCKER_IMAGE=opensuse:leap']
+      if: tag IS present OR commit_message =~ /\[opensuse\]/ 
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -226,8 +231,8 @@ matrix:
           
     - os: linux
       dist: trusty
-      if: tag IS present OR commit_message =~ /\[opensuse\]/ 
       env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=opensuse:leap']
+      if: tag IS present OR commit_message =~ /\[opensuse\]/ 
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -235,8 +240,8 @@ matrix:
           
     - os: linux
       dist: trusty
-      if: tag IS present OR commit_message =~ /\[opensuse\]/ 
       env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=opensuse:leap']
+      if: tag IS present OR commit_message =~ /\[opensuse\]/ 
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -248,8 +253,9 @@ matrix:
     # USE_CONDA=1 PYTHON_VERSION=3.6 ./build.sh
 
     - os: linux
-      dist: trusty   
+      dist: trusty
       env: ['PYTHON_VERSION=3.7','USE_CONDA=1']       
+      if: true OR commit_message =~ /\[linux-conda\]/ 
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -257,8 +263,8 @@ matrix:
 
     - os: linux
       dist: trusty
-      if: tag IS present OR commit_message =~ /\[linux-conda\]/ 
       env: ['PYTHON_VERSION=3.6','USE_CONDA=1']       
+      if: tag IS present OR commit_message =~ /\[linux-conda\]/ 
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -266,8 +272,8 @@ matrix:
      
     - os: linux
       dist: trusty
-      if: tag IS present OR commit_message =~ /\[linux-conda\]/ 
       env: ['PYTHON_VERSION=2.7','USE_CONDA=1']  
+      if: tag IS present OR commit_message =~ /\[linux-conda\]/ 
       addons: 
         apt:
           packages: ['g++-4.9']
@@ -278,25 +284,25 @@ matrix:
     - os: osx
       osx_image: xcode9.4
       compiler: clang
-      if: commit_message =~ /\[osx-conda\]/ 
       env: [PYTHON_VERSION=3.7, 'USE_CONDA=1']
+      if: tag IS present OR commit_message =~ /\[osx-conda\]/ 
     
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      if: commit_message =~ /\[osx-conda\]/ 
       env: [PYTHON_VERSION=3.6, 'USE_CONDA=1']
+      if: tag IS present OR commit_message =~ /\[osx-conda\]/ 
      
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      if: commit_message =~ /\[osx-conda\]/ 
       env: [PYTHON_VERSION=2.7, 'USE_CONDA=1']
+      if: tag IS present OR commit_message =~ /\[osx-conda\]/ 
 
 script:
    - |
      cd "${TRAVIS_BUILD_DIR}" 
-     ./build.sh
+     travis_wait 20 ./build.sh
      if [ $? != 0 ] ; then 
         echo "Build failed"
         travis_terminate -1
