@@ -25,7 +25,7 @@ matrix:
   fast_finish: true
   include:
   
-    # ///////////////////////////////// manylinux (pyenv)
+    # ///////////////////////////////// manylinux 
 
     # Example to compile step by step:
     #   sudo docker run -ti -v $(pwd):/home/OpenVisus quay.io/pypa/manylinux1_x86_64 /bin/bash
@@ -35,134 +35,111 @@ matrix:
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
-      if: true OR commit_message =~ /\[manylinux\]/
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']  
+      if: commit_message =~ /\[CI::travis::manylinux\]/  OR (commit_message !~ /\[CI::/ AND true)
 
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']  
-      if: true OR commit_message =~ /\[manylinux\]/      
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']     
+      if: commit_message =~ /\[CI::travis::manylinux\]/  OR (commit_message !~ /\[CI::/ AND true)   
           
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']  
-      if: tag IS present OR commit_message =~ /\[manylinux\]/       
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']               
+      if: commit_message =~ /\[CI::travis::manylinux\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)       
 
     - os: linux
       dist: trusty  
       env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']     
-      if: tag IS present OR commit_message =~ /\[manylinux\]/ 
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']  
+      if: commit_message =~ /\[CI::travis::manylinux\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)
           
-    # ///////////////////////////////// osx 10.14
+    # ///////////////////////////////// osx1014
    
     - os: osx
       osx_image: xcode10.2
       compiler: clang
       env: [PYTHON_VERSION=3.7.1]     
-      if: tag IS present OR commit_message =~ /\[osx1014\]/  
+      if: commit_message =~ /\[CI::travis::osx1014\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)
     
     - os: osx
       osx_image: xcode10.2
       compiler: clang
-      if: true OR commit_message =~ /\[osx1014\]/ 
+      if: commit_message =~ /\[CI::travis::osx1014\]/  OR (commit_message !~ /\[CI::/ AND true)
       env: [PYTHON_VERSION=3.6.5]   
      
     - os: osx
       osx_image: xcode10.2
       compiler: clang
       env: [PYTHON_VERSION=2.7.15]
-      if: tag IS present OR commit_message =~ /\[osx1014\]/ 
+      if: commit_message =~ /\[CI::travis::osx1014\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)
      
-    # ///////////////////////////////// osx 10.13
+    # ///////////////////////////////// osx1013
     
     - os: osx
       osx_image: xcode9.4
       compiler: clang
       env: [PYTHON_VERSION=3.7.1]     
-      if: tag IS present OR commit_message =~ /\[osx1013\]/ 
+      if: commit_message =~ /\[CI::travis::osx1013\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)
     
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       env: [PYTHON_VERSION=3.6.5]   
-      if: true OR commit_message =~ /\[osx1013\]/ 
+      if: commit_message =~ /\[CI::travis::osx1013\]/  OR (commit_message !~ /\[CI::/ AND true)
 
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       env: [PYTHON_VERSION=2.7.15] 
-      if: tag IS present OR commit_message =~ /\[osx1013\]/  
+      if: commit_message =~ /\[CI::travis::osx1013\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)
       
-    # ///////////////////////////////// osx 10.12
+    # ///////////////////////////////// osx1012
     
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      if: tag IS present OR commit_message =~ /\[osx1012\]/  
-      env: ['PYTHON_VERSION=3.7.1']           
+      env: ['PYTHON_VERSION=3.7.1']    
+      if: commit_message =~ /\[CI::travis::osx1012\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)       
              
     - os: osx
       osx_image: xcode8.3
       compiler: clang 
       env: ['PYTHON_VERSION=3.6.1']      
-      if: tag IS present OR commit_message =~ /\[osx1012\]/  
+      if: commit_message =~ /\[CI::travis::osx1012\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)  
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       env: ['PYTHON_VERSION=2.7.14']   
-      if: tag IS present OR commit_message =~ /\[osx1012\]/  
+      if: commit_message =~ /\[CI::travis::osx1012\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)  
 
-    # ///////////////////////////////// trusty (Ubuntu 14.04)
+    # ///////////////////////////////// ubuntu14
 
     # Example to compile by hand
     # sudo docker run -ti  -v $(pwd):/home/OpenVisus ubuntu:trusty /bin/bash
     # cd /home/OpenVisus && PYTHON_VERSION=3.61 ./build.sh 
+
+    - os: linux
+      dist: trusty
+      env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=ubuntu:trusty']  
+      if: commit_message =~ /\[CI::travis::ubuntu14\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)    
     
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:trusty']  
-      if: true OR commit_message =~ /\[trusty\]/      
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']          
+      if: commit_message =~ /\[CI::travis::ubuntu14\]/  OR (commit_message !~ /\[CI::/ AND true)      
     
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=ubuntu:trusty'] 
-      if: tag IS present OR commit_message =~ /\[trusty\]/       
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']       
+      if: commit_message =~ /\[CI::travis::ubuntu14\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)      
             
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=ubuntu:trusty']
-      if: tag IS present OR commit_message =~ /\[trusty\]/  
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']    
+      if: commit_message =~ /\[CI::travis::ubuntu14\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)   
           
 
-    # ///////////////////////////////// xenial (Ubuntu 16) (pyenv)
+    # ///////////////////////////////// ubuntu16
 
     # Example to compile by hand
     # sudo docker run -ti -v $(pwd):/home/OpenVisus ubuntu:xenial /bin/bash
@@ -171,41 +148,25 @@ matrix:
     - os: linux
       dist: xenial
       env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=ubuntu:xenial'] 
-      if: tag IS present OR commit_message =~ /\[xenial\]/       
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']          
+      if: commit_message =~ /\[CI::travis::ubuntu16\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)            
        
     - os: linux
       dist: xenial
       env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:xenial']    
-      if: true OR commit_message =~ /\[xenial\]/    
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']          
+      if: commit_message =~ /\[CI::travis::ubuntu16\]/  OR (commit_message !~ /\[CI::/ AND true)    
     
     - os: linux
       dist: xenial
       env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=ubuntu:xenial']  
-      if: tag IS present OR commit_message =~ /\[xenial\]/      
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']       
+      if: commit_message =~ /\[CI::travis::ubuntu16\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)          
             
     - os: linux
       dist: xenial
       env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=ubuntu:xenial']
-      if: tag IS present OR commit_message =~ /\[xenial\]/ 
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']               
+      if: commit_message =~ /\[CI::travis::ubuntu16\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)               
              
 
-    # ///////////////////////////////// opensuse (pyenv)
+    # ///////////////////////////////// opensuse 
 
     # Example to compile by hand
     # sudo docker run -ti  -v $(pwd):/home/OpenVisus opensuse:leap /bin/bash
@@ -214,40 +175,24 @@ matrix:
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=opensuse:leap']
-      if: tag IS present OR commit_message =~ /\[opensuse\]/ 
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']
+      if: commit_message =~ /\[CI::travis::opensuse\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)    
 
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.6.6','DOCKER_IMAGE=opensuse:leap']
-      if: tag IS present OR commit_message =~ /\[opensuse\]/ 
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']    
+      if: commit_message =~ /\[CI::travis::opensuse\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)      
           
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=opensuse:leap']
-      if: tag IS present OR commit_message =~ /\[opensuse\]/ 
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']    
+      if: commit_message =~ /\[CI::travis::opensuse\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)    
           
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=opensuse:leap']
-      if: tag IS present OR commit_message =~ /\[opensuse\]/ 
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']            
+      if: commit_message =~ /\[CI::travis::opensuse\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)               
           
-    # ///////////////////////////////// linux with conda 
+    # ///////////////////////////////// linux_conda
 
     # Example to compile by hand
     # USE_CONDA=1 PYTHON_VERSION=3.6 ./build.sh
@@ -255,49 +200,37 @@ matrix:
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.7','USE_CONDA=1']       
-      if: true OR commit_message =~ /\[linux-conda\]/ 
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']  
+      if: commit_message =~ /\[CI::travis::linux_conda\]/  OR (commit_message !~ /\[CI::/ AND true)
 
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.6','USE_CONDA=1']       
-      if: tag IS present OR commit_message =~ /\[linux-conda\]/ 
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']     
+      if: commit_message =~ /\[CI::travis::linux_conda\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)
      
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=2.7','USE_CONDA=1']  
-      if: tag IS present OR commit_message =~ /\[linux-conda\]/ 
-      addons: 
-        apt:
-          packages: ['g++-4.9']
-          sources: ['ubuntu-toolchain-r-test']  
+      if: commit_message =~ /\[CI::travis::linux_conda\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)
           
-    # ///////////////////////////////// osx 10.13 (conda)
+    # ///////////////////////////////// osx_conda
 
     - os: osx
       osx_image: xcode9.4
       compiler: clang
       env: [PYTHON_VERSION=3.7, 'USE_CONDA=1']
-      if: tag IS present OR commit_message =~ /\[osx-conda\]/ 
+      if: commit_message =~ /\[CI::travis::osx_conda\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)     
     
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       env: [PYTHON_VERSION=3.6, 'USE_CONDA=1']
-      if: tag IS present OR commit_message =~ /\[osx-conda\]/ 
+      if: commit_message =~ /\[CI::travis::osx_conda\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)      
      
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       env: [PYTHON_VERSION=2.7, 'USE_CONDA=1']
-      if: tag IS present OR commit_message =~ /\[osx-conda\]/ 
+      if: commit_message =~ /\[CI::travis::osx_conda\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)  
 
 script:
    - |
@@ -327,4 +260,7 @@ deploy:
     repo: sci-visus/OpenVisus
     tags: true
     all_branches: true
+
+
+
 
