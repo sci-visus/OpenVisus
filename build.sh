@@ -32,52 +32,6 @@ UseInstalledPackages=${UseInstalledPackages:-1}
 # in case you want to speed up compilation because prerequisites have already been installed
 FastMode=${FastMode:-0}
 
-# travis preamble
-if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
-
-	export TRAVIS=1 
-
-	if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then 
-		export COMPILER=clang++ 
-	fi
-
-	if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then 
-		export COMPILER=g++-4.9 
-	fi
-
-	if (( USE_CONDA == 1 )) ; then
-		if [[ "${TRAVIS_TAG}" != "" ]]; then
-			export DEPLOY_CONDA=1
-		fi
-	else
-	  DEPLOY_GITHUB=1
-	  if [[ "${TRAVIS_TAG}" != "" ]]; then
-		  if [[ $(uname) == "Darwin" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
-			  export DEPLOY_PYPI=1
-		  fi     
-	  fi
-	fi
-fi
-
-# if is docker or not
-DOCKER=0
-grep 'docker\|lxc' /proc/1/cgroup && :
-if [ $? == 0 ] ; then 
-	DOCKER=1
-fi
-
-# sudo allowed or not (in general I assume I cannot use sudo)
-SudoCmd="sudo"
-IsRoot=${IsRoot:-0}
-if (( EUID== 0 || DOCKER == 1 || TRAVIS == 1 )); then 
-	IsRoot=1
-	SudoCmd=""
-fi
-
-mkdir -p ${BUILD_DIR}
-mkdir -p ${CACHE_DIR}
-
-
 # //////////////////////////////////////////////////////
 function DownloadFile {
 
@@ -93,6 +47,7 @@ function DownloadFile {
 	curl -fsSL --insecure "$url" -O
 	set -x
 }
+
 
 # //////////////////////////////////////////////////////
 # return the next word after the pattern and parse the version in the format MAJOR.MINOR.whatever
@@ -120,57 +75,91 @@ function GetVersionFromCommand {
 
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
-# detect OS
+function BuildPreamble {	
 
-if [ $(uname) = "Darwin" ]; then
-	echo "Detected OSX"
-	OSX=1
-
-elif [ -x "$(command -v apt-get)" ]; then
-
-	UBUNTU=1
-
-	if [ -f /etc/os-release ]; then
-		source /etc/os-release
-		export UBUNTU_VERSION=$VERSION_ID
-
-	elif type lsb_release >/dev/null 2>&1; then
-		export UBUNTU_VERSION=$(lsb_release -sr)
-
-	elif [ -f /etc/lsb-release ]; then
-		source /etc/lsb-release
-		export UBUNTU_VERSION=$DISTRIB_RELEASE
+	# if is docker or not
+	DOCKER=0
+	grep 'docker\|lxc' /proc/1/cgroup && :
+	if [ $? == 0 ] ; then 
+		export DOCKER=1
 	fi
 
-	echo "Detected ubuntu ${UBUNTU_VERSION}"
+	# If is travis or not 
+	if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
+		export TRAVIS=1 
+
+		if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then 
+			export COMPILER=clang++ 
+		fi
+
+		if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then 
+			export COMPILER=g++-4.9 
+		fi
+
+		if (( USE_CONDA == 1 )) ; then
+			if [[ "${TRAVIS_TAG}" != "" ]]; then
+				export DEPLOY_CONDA=1
+			fi
+		else
+		  DEPLOY_GITHUB=1
+		  if [[ "${TRAVIS_TAG}" != "" ]]; then
+			  if [[ $(uname) == "Darwin" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
+				  export DEPLOY_PYPI=1
+			  fi     
+		  fi
+		fi
+	fi
+
+	if [ $(uname) = "Darwin" ]; then
+		OSX=1
+		echo "Detected OSX"
+
+	elif [ -x "$(command -v apt-get)" ]; then
+		UBUNTU=1
+
+		if [ -f /etc/os-release ]; then
+			source /etc/os-release
+			export UBUNTU_VERSION=$VERSION_ID
+
+		elif type lsb_release >/dev/null 2>&1; then
+			export UBUNTU_VERSION=$(lsb_release -sr)
+
+		elif [ -f /etc/lsb-release ]; then
+			source /etc/lsb-release
+			export UBUNTU_VERSION=$DISTRIB_RELEASE
+		fi
+
+		echo "Detected ubuntu ${UBUNTU_VERSION}"
 
 
-elif [ -x "$(command -v zypper)" ]; then
-	echo "Detected opensuse"
-	OPENSUSE=1
+	elif [ -x "$(command -v zypper)" ]; then
+		OPENSUSE=1
+		echo "Detected opensuse"
 
-elif [ -x "$(command -v yum)" ]; then
+	elif [ -x "$(command -v yum)" ]; then
+		CENTOS=1
+		GetVersionFromCommand "cat /etc/redhat-release" "CentOS release "
+		CENTOS_MAJOR=${__major__}
+		echo "Detected centos ${__version__}"
 
-	CENTOS=1
+	else
+		echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"
+	fi
 
-	GetVersionFromCommand "cat /etc/redhat-release" "CentOS release "
-	echo "Detected centos ${__version__}"
-	if (( ${__major__}  == 5 )) ; then
-		MANYLINUX=1
-		DISABLE_OPENMP=1
-		VISUS_GUI=0
-		UseInstalledPackages=0
-	fi	
-
-else
-	echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"
-fi
+	# sudo allowed or not (in general I assume I cannot use sudo)
+	SudoCmd="sudo"
+	IsRoot=${IsRoot:-0}
+	if (( EUID== 0 || DOCKER == 1 || TRAVIS == 1 )); then 
+		IsRoot=1
+		SudoCmd=""
+	fi
 
 
-# ///////////////////////////////////////////////////////
-# Docker-build
+}
 
-if [[ "$DOCKER_IMAGE" != "" ]] ; then
+
+# ///////////////////////////////////////////////////////////////////////////////////////////////
+function DockerBuild {
 
 	# otherwise it fails on travis
 	SudoCmd="sudo"
@@ -199,16 +188,13 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
 
 	${SudoCmd}  chown -R "$USER":"$USER" ${BUILD_DIR} 1>/dev/null && :
 	${SudoCmd}  chmod -R u+rwx           ${BUILD_DIR} 1>/dev/null && :
-
-	exit 0
-fi
+}
 
 
-# ///////////////////////////////////////////////////////
-# conda-build
 
-if (( USE_CONDA == 1 )) ; then
-	
+# ///////////////////////////////////////////////////////////////////////////////////////////////
+function CondaBuild {
+
 	if (( FASTMODE == 0 )) ; then
 
 		# here I need sudo! 
@@ -262,11 +248,7 @@ if (( USE_CONDA == 1 )) ; then
 		echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
 		anaconda -q -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
 	fi
-
-	echo "OpenVisus build finished"
-	exit 0
-fi
-
+}
 
 
 # //////////////////////////////////////////////////////
@@ -331,13 +313,18 @@ function InstallPackages {
 
 
 # //////////////////////////////////////////////////////////////
-function InstallPrerequisites {
+function UpdateOSAndInstallCompilers {
 
 	echo "Installing prerequisites..."
 
 	if (( OSX == 1 )) ; then
 
 		if (( FastMode == 0 )) ; then
+
+			#  for travis long log
+			if (( TRAVIS == 1 )) ; then
+				${SudoCmd} gem install xcpretty 
+			fi 
 
 			# install brew
 			if [ !  -x "$(command -v brew)" ]; then
@@ -430,7 +417,7 @@ function InstallCMake {
 		CMAKE_VERSION=3.10.1
 
 		# Error with other  versions: `GLIBC_2.6' not found (required by cmake)
-		if (( MANYLINUX == 1 )) ; then  CMAKE_VERSION=3.4.3 ; fi 
+		if (( CENTOS == 1 && CENTOS_MAJOR <= 5 )) ; then  CMAKE_VERSION=3.4.3 ; fi 
 
 		url="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.tar.gz"
 		filename=$(basename ${url})
@@ -790,7 +777,7 @@ function InstallQt5 {
 
 
 # ///////////////////////////////////////////////////////
-function InstallPython {
+function InstallPyEnvPython {
 
 	# install python using pyenv
 	if (( FastMode == 0 )) ; then
@@ -900,6 +887,36 @@ function InstallPython {
 	return 0
 }
 
+
+# /////////////////////////////////////////////////////////////////////
+
+BuildPreamble
+
+# minimal (manylinux)
+if (( CENTOS == 1 && CENTOS_MAJOR <=5 )); then
+	DISABLE_OPENMP=1
+	VISUS_GUI=0
+	UseInstalledPackages=0
+fi
+
+mkdir -p ${BUILD_DIR}
+mkdir -p ${CACHE_DIR}
+
+if [[ "$DOCKER_IMAGE" != "" ]] ; then
+	echo "Building docker OpenVisus..."
+	DockerBuild
+	echo "OpenVisus docker build finished"
+	exit 0
+fi
+
+if (( USE_CONDA == 1 )) ; then
+	echo "Building conda OpenVisus..."
+	CondaBuild
+	echo "OpenVisus conda build finished"
+	exit 0
+fi
+
+echo "Building pyenv OpenVisus..."
 cd ${BUILD_DIR}
 export PATH=${CACHE_DIR}/bin:$PATH
 
@@ -909,8 +926,7 @@ cmake_opts+=(-DDISABLE_OPENMP=${DISABLE_OPENMP})
 cmake_opts+=(-DVISUS_GUI=${VISUS_GUI})
 cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
-InstallPrerequisites
-
+UpdateOSAndInstallCompilers
 InstallCMake
 InstallSwig
 
@@ -919,7 +935,7 @@ if (( OSX != 1 )); then
 fi
 
 InstallOpenSSL
-InstallPython
+InstallPyEnvPython
 
 if (( OSX != 1 )); then
 	InstallApache
@@ -947,7 +963,6 @@ else
 fi
 
 cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
-
 
 # dist
 if (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
@@ -1000,6 +1015,8 @@ if (( 1 == 1 )); then
 	fi
 fi
 
-echo "OpenVisus build finished"
+echo "OpenVisus pyenv build finished"
+exit 0
+
 
 
