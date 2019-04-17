@@ -6,6 +6,7 @@ set -e
 # very verbose
 set -x
 
+
 SOURCE_DIR=$(pwd)
 BUILD_DIR=${BUILD_DIR:-${SOURCE_DIR}/build}
 CACHE_DIR=${CACHE_DIR:-${BUILD_DIR}/.cache}
@@ -153,48 +154,12 @@ function BuildPreamble {
 		IsRoot=1
 		SudoCmd=""
 	fi
-
-
-}
-
-
-# ///////////////////////////////////////////////////////////////////////////////////////////////
-function DockerBuild {
-
-	# otherwise it fails on travis
-	SudoCmd="sudo"
-
-	${SudoCmd} docker rm -f mydocker 2>/dev/null || true
-
-	${SudoCmd} docker run -d -ti \
-		--name mydocker \
-		-v ${SOURCE_DIR}:${SOURCE_DIR} \
-		-e BUILD_DIR=${BUILD_DIR} \
-		-e CACHE_DIR=${CACHE_DIR} \
-		-e PYTHON_VERSION=${PYTHON_VERSION} \
-		-e DISABLE_OPENMP=${DISABLE_OPENMP} \
-		-e VISUS_GUI=${VISUS_GUI} \
-		-e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
-		-e USE_CONDA=${USE_CONDA} \
-		-e DEPLOY_CONDA=${DEPLOY_CONDA} \
-		-e ANACONDA_TOKEN=${ANACONDA_TOKEN} \
-		-e DEPLOY_PYPI=${DEPLOY_PYPI} \
-		-e PYPI_USERNAME=${PYPI_USERNAME} \
-		-e PYPI_PASSWORD=${PYPI_PASSWORD} \
-		${DOCKER_IMAGE} \
-		/bin/bash
-
-	${SudoCmd}  docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
-
-	${SudoCmd}  chown -R "$USER":"$USER" ${BUILD_DIR} 1>/dev/null && :
-	${SudoCmd}  chmod -R u+rwx           ${BUILD_DIR} 1>/dev/null && :
 }
 
 
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
-function CondaBuild {
-
+function BuildConda {
 
 	# here I need sudo! 
 	if (( OSX ==  1 && IsRoot == 1 )) ; then
@@ -249,6 +214,51 @@ function CondaBuild {
 		echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
 		anaconda -q -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
 	fi
+}
+
+
+# ///////////////////////////////////////////////////////////////////////////////////////////////
+function BuildDocker {
+
+	# otherwise it fails on travis
+	SudoCmd="sudo"
+
+	${SudoCmd} docker rm -f mydocker 2>/dev/null || true
+
+	declare -a docker_opts
+
+	# this is to solve permission problems
+	docker_opts+=(-e USERID=${UID})
+
+	docker_opts+=(-v ${SOURCE_DIR}:/root/OpenVisus)
+	docker_opts+=(-e SOURCE_DIR=/root/OpenVisus)
+
+	docker_opts+=(-v ${BUILD_DIR}:/root/OpenVisus.build)
+	docker_opts+=(-e BUILD_DIR=/root/OpenVisus.build)
+
+	docker_opts+=(-v ${CACHE_DIR}:/root/OpenVisus.cache)
+	docker_opts+=(-e CACHE_DIR=/root/OpenVisus.cache)
+
+	# in case you want to cache pyenv directory
+	if (( TRAVIS == 1 )) ; then
+		mkdir -p ${HOME}/.pyenv.docker
+		docker_opts+=(-v ${HOME}/.pyenv.docker:/root/.pyenv)
+	fi
+
+	docker_opts+=(-e PYTHON_VERSION=${PYTHON_VERSION})
+	docker_opts+=(-e DISABLE_OPENMP=${DISABLE_OPENMP})
+	docker_opts+=(-e VISUS_GUI=${VISUS_GUI})
+	docker_opts+=(-e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
+
+	docker_opts+=(-e DEPLOY_PYPI=${DEPLOY_PYPI})
+	docker_opts+=(-e PYPI_USERNAME=${PYPI_USERNAME})
+	docker_opts+=(-e PYPI_PASSWORD=${PYPI_PASSWORD})
+
+	${SudoCmd} docker run -d -ti --name mydocker ${docker_opts[@]} ${DOCKER_IMAGE} /bin/bash
+	${SudoCmd} docker exec mydocker /bin/bash -c "cd \${SOURCE_DIR} && ./build.sh"
+
+	#${SudoCmd}  chown -R "$USER":"$USER" ${BUILD_DIR} 1>/dev/null && :
+	#${SudoCmd}  chmod -R u+rwx           ${BUILD_DIR} 1>/dev/null && :
 }
 
 
@@ -316,8 +326,6 @@ function InstallPackages {
 # //////////////////////////////////////////////////////////////
 function UpdateOSAndInstallCompilers {
 
-	echo "Installing prerequisites..."
-
 	if (( OSX == 1 )) ; then
 
 		#  for travis long log
@@ -336,7 +344,6 @@ function UpdateOSAndInstallCompilers {
 			brew update 1>/dev/null && : # output is very long!
 		fi
 
-		echo "Installed prerequisites for OSX"
 		return 0
 	fi
 
@@ -359,8 +366,6 @@ function UpdateOSAndInstallCompilers {
 		InstallPackages build-essential
 		InstallPackages git curl
 		InstallPackages ca-certificates uuid-dev automake bzip2
-
-		echo "Installed prerequisites for Ubuntu"
 		return 0
 	fi
 
@@ -374,8 +379,6 @@ function UpdateOSAndInstallCompilers {
 		InstalPackages gcc-c++
 		InstalPackages git curl
 		InstalPackages lsb-release libuuid-devel 
-
-		echo "Installed prerequisites for OpenSuse"
 		return 0
 		
 	fi
@@ -388,7 +391,6 @@ function UpdateOSAndInstallCompilers {
 
 		InstallPackages gcc-c++
 		InstallPackages zlib zlib-devel curl libffi-devel
-		echo "Installed prerequisites for Centos"
 		return 0
 	fi
 }
@@ -791,37 +793,33 @@ function InstallPyEnvPython {
 		eval "$(pyenv init -)"
 
 		if (( FastMode == 0 )) ; then
-
 			brew reinstall openssl 
-			
-			OPENSSL_DIR=$(brew --prefix readline)
-			READLINE_DIR=$(brew --prefix readline)
-			ZLIB_DIR=$(brew --prefix zlib)
-		
-			export CONFIGURE_OPTS="--enable-shared --with-openssl=${OPENSSL_DIR}"
-			export CFLAGS="   -I${READLINE_DIR}/include -I${ZLIB_DIR}/include  -I${OPENSSL_DIR}/include" 
-			export CPPFLAGS=" -I${READLINE_DIR}/include -I${ZLIB_DIR}/include  -I${OPENSSL_DIR}/include" 
-			export LDFLAGS="  -L${READLINE_DIR}/lib     -L${ZLIB_DIR}/lib      -L${OPENSSL_DIR}/lib" 
-			export PKG_CONFIG_PATH="${OPENSSL_DIR}/lib/pkgconfig"
-			export PATH="${OPENSSL_DIR}/bin:$PATH"
-			
-			pyenv install --skip-existing ${PYTHON_VERSION} && :
-			if [ $? != 0 ] ; then 
-				echo "pyenv failed to install"
-				exit -1
-			fi
-			
-			unset CONFIGURE_OPTS
-			unset CFLAGS
-			unset CPPFLAGS
-			unset LDFLAGS
-			unset PKG_CONFIG_PATH
-
-		else
-			OPENSSL_DIR=$(brew --prefix readline)
-			export PATH="${OPENSSL_DIR}/bin:$PATH"
 		fi
 
+		OPENSSL_DIR=$(brew --prefix openssl)
+		READLINE_DIR=$(brew --prefix readline)
+		ZLIB_DIR=$(brew --prefix zlib)
+
+		export PATH="${OPENSSL_DIR}/bin:$PATH"
+	
+		export CONFIGURE_OPTS="--enable-shared --with-openssl=${OPENSSL_DIR}"
+		export CFLAGS="   -I${READLINE_DIR}/include -I${ZLIB_DIR}/include  -I${OPENSSL_DIR}/include" 
+		export CPPFLAGS=" -I${READLINE_DIR}/include -I${ZLIB_DIR}/include  -I${OPENSSL_DIR}/include" 
+		export LDFLAGS="  -L${READLINE_DIR}/lib     -L${ZLIB_DIR}/lib      -L${OPENSSL_DIR}/lib" 
+		export PKG_CONFIG_PATH="${OPENSSL_DIR}/lib/pkgconfig"
+		
+		# -s/--skip-existing    Skip the installation if the version appears to be installed already
+		pyenv install --skip-existing ${PYTHON_VERSION} && :
+		if [ $? != 0 ] ; then 
+			echo "pyenv failed to install"
+			exit -1
+		fi
+		
+		unset CONFIGURE_OPTS
+		unset CFLAGS
+		unset CPPFLAGS
+		unset LDFLAGS
+		unset PKG_CONFIG_PATH
 	else
 
 		if ! [ -d "$HOME/.pyenv" ]; then
@@ -837,29 +835,25 @@ function InstallPyEnvPython {
 		export PATH="$HOME/.pyenv/bin:$PATH"
 		eval "$(pyenv init -)"
 
-		if (( FastMode == 0 )) ; then
+		export CONFIGURE_OPTS="--enable-shared"
 
-			export CONFIGURE_OPTS="--enable-shared"
-
-			if [[ "$OPENSSL_DIR" != "" ]] ; then
-				export CONFIGURE_OPTS="${CONFIGURE_OPTS} --with-openssl=${OPENSSL_DIR}"
-				export CFLAGS="  -I${OPENSSL_DIR}/include -I${OPENSSL_DIR}/include/openssl"
-				export CPPFLAGS="-I${OPENSSL_DIR}/include -I${OPENSSL_DIR}/include/openssl"
-				export LDFLAGS=" -L${OPENSSL_DIR}/lib"
-			fi
-
-			CXX=g++ pyenv install --skip-existing ${PYTHON_VERSION}  && :
-			if [ $? != 0 ] ; then 
-				echo "pyenv failed to install"
-				exit -1
-			fi
-
-			unset CONFIGURE_OPTS
-			unset CFLAGS
-			unset CPPFLAGS
-			unset LDFLAGS
-		
+		if [[ "$OPENSSL_DIR" != "" ]] ; then
+			export CONFIGURE_OPTS="${CONFIGURE_OPTS} --with-openssl=${OPENSSL_DIR}"
+			export CFLAGS="  -I${OPENSSL_DIR}/include -I${OPENSSL_DIR}/include/openssl"
+			export CPPFLAGS="-I${OPENSSL_DIR}/include -I${OPENSSL_DIR}/include/openssl"
+			export LDFLAGS=" -L${OPENSSL_DIR}/lib"
 		fi
+
+		CXX=g++ pyenv install --skip-existing ${PYTHON_VERSION}  && :
+		if [ $? != 0 ] ; then 
+			echo "pyenv failed to install"
+			exit -1
+		fi
+
+		unset CONFIGURE_OPTS
+		unset CFLAGS
+		unset CPPFLAGS
+		unset LDFLAGS
 	fi
 
 	# activate pyenv
@@ -897,9 +891,15 @@ function InstallPyEnvPython {
 	return 0
 }
 
+function BeginSection {
+	set +x
+	echo "///////////////////////////////////////////////// $1"
+	set -x
+}
 
 # /////////////////////////////////////////////////////////////////////
 
+BeginSection "BuildPreamble UID(${UID})"
 BuildPreamble
 
 # minimal (manylinux)
@@ -913,20 +913,20 @@ mkdir -p ${BUILD_DIR}
 mkdir -p ${CACHE_DIR}
 
 if [[ "$DOCKER_IMAGE" != "" ]] ; then
-	echo "Building docker OpenVisus..."
-	DockerBuild
+	BeginSection "Building docker OpenVisus..."
+	BuildDocker
 	echo "OpenVisus docker build finished"
 	exit 0
 fi
 
 if (( USE_CONDA == 1 )) ; then
-	echo "Building conda OpenVisus..."
-	CondaBuild
+	BeginSection "Building conda OpenVisus..."
+	BuildConda
 	echo "OpenVisus conda build finished"
 	exit 0
 fi
 
-echo "Building pyenv OpenVisus..."
+BeginSection "Building pyenv OpenVisus..."
 cd ${BUILD_DIR}
 export PATH=${CACHE_DIR}/bin:$PATH
 
@@ -936,24 +936,37 @@ cmake_opts+=(-DDISABLE_OPENMP=${DISABLE_OPENMP})
 cmake_opts+=(-DVISUS_GUI=${VISUS_GUI})
 cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
+BeginSection "UpdateOSAndInstallCompilers"
 UpdateOSAndInstallCompilers
+
+BeginSection "InstallCMake"
 InstallCMake
+
+BeginSection "InstallSwig"
 InstallSwig
 
 if (( OSX != 1 )); then
+	BeginSection "InstallPatchElf"
 	InstallPatchElf
 fi
 
+BeginSection "InstallOpenSSL"
 InstallOpenSSL
+
+BeginSection "InstallPyEnvPython"
 InstallPyEnvPython
 
 if (( OSX != 1 )); then
+	BeginSection "InstallApache"
 	InstallApache
 fi
 
 if (( VISUS_GUI == 1 )); then
+	BeginSection "InstallQt5"
 	InstallQt5
 fi
+
+BeginSection "Compiling OpenVisus"
 
 if (( OSX == 1 )) ; then
 
@@ -972,11 +985,14 @@ else
 	
 fi
 
+BeginSection "Installing OpenVisus"
 cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
 
 # dist
+
 if (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
 
+	BeginSection "Dist OpenVisus"
 	cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
 
 	if (( DEPLOY_PYPI == 1 )) ; then
@@ -994,6 +1010,7 @@ fi
  
 # tests using CMake targets
 if (( 1 == 1 )) ; then
+	BeginSection "Test OpenVisus"
 	if (( OSX == 1 )) ; then
 		cmake --build   . --target  RUN_TESTS       --config ${CMAKE_BUILD_TYPE}	
 	else
@@ -1010,6 +1027,7 @@ fi
 
 # test OpenVisus package using python
 if (( 1 == 1 )); then
+	BeginSection "Test OpenVisus (2)"
 	export PYTHONPATH=${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages
 	cd $(python -m OpenVisus dirname)
 	python Samples/python/Array.py
