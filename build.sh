@@ -195,34 +195,35 @@ function DockerBuild {
 # ///////////////////////////////////////////////////////////////////////////////////////////////
 function CondaBuild {
 
+
+	# here I need sudo! 
+	if (( OSX ==  1 && IsRoot == 1 )) ; then
+		if [ ! -d /opt/MacOSX10.9.sdk ] ; then
+			git clone https://github.com/phracker/MacOSX-SDKs
+			mkdir -p /opt
+			${SudoCmd} mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
+			rm -Rf MacOSX-SDKs
+		fi
+	fi
+
+	if [ ! -d $HOME/miniconda${PYTHON_VERSION:0:1} ]; then
+		pushd $HOME
+		if (( OSX == 1 )) ; then
+			DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh
+			bash Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh -b
+		else
+			DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh
+			bash Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -b
+		fi
+		popd
+	fi
+
+
+	export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
+	hash -r	
+	conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
+
 	if (( FASTMODE == 0 )) ; then
-
-		# here I need sudo! 
-		if (( OSX ==  1 && IsRoot == 1 )) ; then
-			if [ ! -d /opt/MacOSX10.9.sdk ] ; then
-				git clone https://github.com/phracker/MacOSX-SDKs
-				mkdir -p /opt
-				${SudoCmd} mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
-				rm -Rf MacOSX-SDKs
-			fi
-		fi
-
-		if [ ! -d $HOME/miniconda${PYTHON_VERSION:0:1} ]; then
-			pushd $HOME
-			if (( OSX == 1 )) ; then
-				DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh
-				bash Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh -b
-			else
-				DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh
-				bash Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -b
-			fi
-			popd
-		fi
-		
-		export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
-		hash -r		
-		
-		conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
 		conda install -q conda-build anaconda-client
 		conda update  -q conda conda-build
 		conda install -q python=${PYTHON_VERSION}	
@@ -319,20 +320,20 @@ function UpdateOSAndInstallCompilers {
 
 	if (( OSX == 1 )) ; then
 
-		if (( FastMode == 0 )) ; then
-
-			#  for travis long log
-			if (( TRAVIS == 1 )) ; then
+		#  for travis long log
+		if (( TRAVIS == 1 )) ; then
+			if [ !  -x "$(command -v xcpretty)" ]; then
 				${SudoCmd} gem install xcpretty 
-			fi 
-
-			# install brew
-			if [ !  -x "$(command -v brew)" ]; then
-				/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 			fi
+		fi 
 
-			# output is very long!
-			brew update 1>/dev/null && :
+		# install brew
+		if [ !  -x "$(command -v brew)" ]; then
+			/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+		fi
+
+		if (( FastMode == 0 )) ; then
+			brew update 1>/dev/null && : # output is very long!
 		fi
 
 		echo "Installed prerequisites for OSX"
@@ -645,7 +646,7 @@ function InstallQt5 {
 	# install qt 5.11 (instead of 5.12 which is not supported by PyQt5)
 	if (( OSX == 1 )); then
 
-		if (( FastMode== 0 )) ; then
+		if [ ! -d "/usr/local/Cellar/qt/5.11.2_1" ] ; then
 			echo "installing brew Qt5"
 			brew uninstall qt5 1>/dev/null 2>/dev/null && :
 			InstallPackages "https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb"
@@ -780,14 +781,18 @@ function InstallQt5 {
 function InstallPyEnvPython {
 
 	# install python using pyenv
-	if (( FastMode == 0 )) ; then
-	
-		if (( OSX == 1 )) ; then
 
-			InstallPackages pyenv
-			InstallPackages readline zlib libffi
+	if (( OSX == 1 )) ; then
 
-			brew reinstall  openssl 
+		InstallPackages pyenv
+		InstallPackages readline zlib libffi
+
+		# activate pyenv
+		eval "$(pyenv init -)"
+
+		if (( FastMode == 0 )) ; then
+
+			brew reinstall openssl 
 			
 			OPENSSL_DIR=$(brew --prefix readline)
 			READLINE_DIR=$(brew --prefix readline)
@@ -810,24 +815,29 @@ function InstallPyEnvPython {
 			unset CFLAGS
 			unset CPPFLAGS
 			unset LDFLAGS
-			unset OPENSSL_DIR
-			unset READLINE_DIR
-			unset ZLIB_DIR
+			unset PKG_CONFIG_PATH
 
 		else
+			OPENSSL_DIR=$(brew --prefix readline)
+			export PATH="${OPENSSL_DIR}/bin:$PATH"
+		fi
 
-			if ! [ -d "$HOME/.pyenv" ]; then
-				pushd $HOME
-				DownloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
-				chmod a+x pyenv-installer
-				./pyenv-installer
-				rm -f pyenv-installer
-				popd
-			fi
-		
-			# activate pyenv
-			export PATH="$HOME/.pyenv/bin:$PATH"
-			eval "$(pyenv init -)"
+	else
+
+		if ! [ -d "$HOME/.pyenv" ]; then
+			pushd $HOME
+			DownloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
+			chmod a+x pyenv-installer
+			./pyenv-installer
+			rm -f pyenv-installer
+			popd
+		fi
+
+		# activate pyenv
+		export PATH="$HOME/.pyenv/bin:$PATH"
+		eval "$(pyenv init -)"
+
+		if (( FastMode == 0 )) ; then
 
 			export CONFIGURE_OPTS="--enable-shared"
 
