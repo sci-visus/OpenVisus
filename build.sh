@@ -8,6 +8,7 @@ set -x
 
 SOURCE_DIR=$(pwd)
 BUILD_DIR=${BUILD_DIR:-${SOURCE_DIR}/build}
+CACHE_DIR=${CACHE_DIR:-${BUILD_DIR}/.cache}
 
 # cmake flags
 PYTHON_VERSION=${PYTHON_VERSION:-3.6.1}
@@ -25,6 +26,11 @@ DEPLOY_PYPI=${DEPLOY_PYPI:-0}
 PYPI_USERNAME=${PYPI_USERNAME:-}
 PYPI_PASSWORD=${PYPI_PASSWORD:-} 
 
+# in case you want to try manylinux-like compilation
+UseInstalledPackages=${UseInstalledPackages:-1}
+
+# in case you want to speed up compilation because prerequisites have already been installed
+FastMode=${FastMode:-0}
 
 # travis preamble
 if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
@@ -68,15 +74,9 @@ if (( EUID== 0 || DOCKER == 1 || TRAVIS == 1 )); then
 	SudoCmd=""
 fi
 
-OpenVisusCache=${OpenVisusCache:-${BUILD_DIR}/.cache}
-mkdir -p ${OpenVisusCache}
-export PATH=${OpenVisusCache}/bin:$PATH
+mkdir -p ${BUILD_DIR}
+mkdir -p ${CACHE_DIR}
 
-# in case you want to try manylinux-like compilation
-UseInstalledPackages=1
-
-# in case you want to speed up compilation because prerequisites have already been installed
-FastMode=${FastMode:-0}
 
 # //////////////////////////////////////////////////////
 function DownloadFile {
@@ -93,7 +93,6 @@ function DownloadFile {
 	curl -fsSL --insecure "$url" -O
 	set -x
 }
-
 
 # //////////////////////////////////////////////////////
 # return the next word after the pattern and parse the version in the format MAJOR.MINOR.whatever
@@ -173,13 +172,16 @@ fi
 
 if [[ "$DOCKER_IMAGE" != "" ]] ; then
 
+	# otherwise it fails on travis
+	SudoCmd="sudo"
+
 	${SudoCmd} docker rm -f mydocker 2>/dev/null || true
 
 	${SudoCmd} docker run -d -ti \
 		--name mydocker \
 		-v ${SOURCE_DIR}:${SOURCE_DIR} \
 		-e BUILD_DIR=${BUILD_DIR} \
-		-e OpenVisusCache=${OpenVisusCache} \
+		-e CACHE_DIR=${CACHE_DIR} \
 		-e PYTHON_VERSION=${PYTHON_VERSION} \
 		-e DISABLE_OPENMP=${DISABLE_OPENMP} \
 		-e VISUS_GUI=${VISUS_GUI} \
@@ -195,12 +197,11 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
 
 	${SudoCmd}  docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
 
-	${SudoCmd}  chown -R "$USER":"$USER" ${BUILD_DIR}
-	${SudoCmd}  chmod -R u+rwx           ${BUILD_DIR}
+	${SudoCmd}  chown -R "$USER":"$USER" ${BUILD_DIR} 1>/dev/null && :
+	${SudoCmd}  chmod -R u+rwx           ${BUILD_DIR} 1>/dev/null && :
 
 	exit 0
 fi
-
 
 
 # ///////////////////////////////////////////////////////
@@ -265,6 +266,7 @@ if (( USE_CONDA == 1 )) ; then
 	echo "OpenVisus build finished"
 	exit 0
 fi
+
 
 
 # //////////////////////////////////////////////////////
@@ -424,7 +426,7 @@ function InstallCMake {
 
 	# install from source
 	echo "installing cmake from source"
-	if [ ! -f "${OpenVisusCache}/bin/cmake" ]; then
+	if [ ! -f "${CACHE_DIR}/bin/cmake" ]; then
 		CMAKE_VERSION=3.10.1
 
 		# Error with other  versions: `GLIBC_2.6' not found (required by cmake)
@@ -433,7 +435,7 @@ function InstallCMake {
 		url="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.tar.gz"
 		filename=$(basename ${url})
 		DownloadFile "${url}"
-		tar xzf ${filename} -C ${OpenVisusCache} --strip-components=1 
+		tar xzf ${filename} -C ${CACHE_DIR} --strip-components=1 
 		rm -f ${filename}
 	fi
 
@@ -472,7 +474,7 @@ function InstallSwig {
 
 	# install from source
 	echo "installing swig from source"
-	if [ ! -f "${OpenVisusCache}/bin/swig" ]; then
+	if [ ! -f "${CACHE_DIR}/bin/swig" ]; then
 		url="https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz"
 		filename=$(basename ${url})
 		DownloadFile ${url}
@@ -480,12 +482,12 @@ function InstallSwig {
 		pushd swig-3.0.12
 		DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
 		./Tools/pcre-build.sh 1>/dev/null
-		./configure --prefix=${OpenVisusCache} 1>/dev/null && make -s -j 4 1>/dev/null && make install 1>/dev/null 
+		./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s -j 4 1>/dev/null && make install 1>/dev/null 
 		popd
 		rm -Rf swig-3.0.12
 	fi
 
-	cmake_opts+=(-DSWIG_EXECUTABLE=${OpenVisusCache}/bin/swig)
+	cmake_opts+=(-DSWIG_EXECUTABLE=${CACHE_DIR}/bin/swig)
 	return 0
 }
 
@@ -505,15 +507,15 @@ function InstallPatchElf {
 
 	# install from source
 	echo "installing patchelf from source"
-	if [ ! -f "${OpenVisusCache}/bin/patchelf" ]; then
+	if [ ! -f "${CACHE_DIR}/bin/patchelf" ]; then
 		url="https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz"
 		filename=$(basename ${url})
 		DownloadFile ${url}
 		tar xzf ${filename}
 		pushd patchelf-0.9
-		./configure --prefix=${OpenVisusCache} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
+		./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
 		autoreconf -f -i
-		./configure --prefix=${OpenVisusCache} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
+		./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
 		popd
 		rm -Rf patchelf-0.9
 	fi
@@ -547,7 +549,7 @@ function InstallOpenSSL {
 
 	# install from source
 	echo "installing openssl from source"
-	OPENSSL_DIR="${OpenVisusCache}" 
+	OPENSSL_DIR="${CACHE_DIR}" 
 	if [ ! -f "${OPENSSL_DIR}/bin/openssl" ]; then
 		url="https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
 		filename=$(basename ${url})
@@ -588,57 +590,57 @@ function InstallApache {
 	echo "installing apache from source"
 
 	# install apr 
-	if [ !  -f "${OpenVisusCache}/lib/libapr-1.a" ] ; then
+	if [ !  -f "${CACHE_DIR}/lib/libapr-1.a" ] ; then
 		url="http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz"
 		filename=$(basename ${url})
 		DownloadFile ${url}
 		tar xzf ${filename}
 		pushd apr-1.6.5
-		./configure --prefix=${OpenVisusCache} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
+		./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
 		popd
 		rm -Rf apr-1.6.5
 	fi
 
 	# install apr utils 
-	if [ !  -f "${OpenVisusCache}/lib/libaprutil-1.a" ] ; then
+	if [ !  -f "${CACHE_DIR}/lib/libaprutil-1.a" ] ; then
 		url="http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz"
 		filename=$(basename ${url})
 		DownloadFile ${url}
 		tar xzf ${filename}
 		pushd apr-util-1.6.1
-		./configure --prefix=${OpenVisusCache} --with-apr=${OpenVisusCache} 1>/dev/null  && make -s 1>/dev/null  && make install 1>/dev/null 
+		./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} 1>/dev/null  && make -s 1>/dev/null  && make install 1>/dev/null 
 		popd
 		rm -Rf apr-util-1.6.1
 	fi
 
 	# install pcre 
-	if [ !  -f "${OpenVisusCache}/lib/libpcre.a" ] ; then
+	if [ !  -f "${CACHE_DIR}/lib/libpcre.a" ] ; then
 		url="https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
 		filename=$(basename ${url})
 		DownloadFile ${url}
 		tar xzf ${filename}
 		pushd pcre-8.42
-		./configure --prefix=${OpenVisusCache} 1>/dev/null  && make -s 1>/dev/null  && make install 1>/dev/null 
+		./configure --prefix=${CACHE_DIR} 1>/dev/null  && make -s 1>/dev/null  && make install 1>/dev/null 
 		popd
 		rm -Rf pcre-8.42
 	fi
 
 	# install httpd
-	if [ !  -f "${OpenVisusCache}/include/httpd.h" ] ; then
+	if [ !  -f "${CACHE_DIR}/include/httpd.h" ] ; then
 		url="http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz"
 		filename=$(basename ${url})
 		DownloadFile ${url}
 		tar xzf ${filename}
 		pushd httpd-2.4.38
-		./configure --prefix=${OpenVisusCache} --with-apr=${OpenVisusCache} --with-pcre=${OpenVisusCache} --with-ssl=${OpenVisusCache} 1>/dev/null && \
+		./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-pcre=${CACHE_DIR} --with-ssl=${CACHE_DIR} 1>/dev/null && \
 			make -s 1>/dev/null && \
 			make install 1>/dev/null 
 		popd
 		rm -Rf httpd-2.4.38
 	fi
 	
-	cmake_opts+=(-DAPR_DIR=${OpenVisusCache})
-	cmake_opts+=(-DAPACHE_DIR=${OpenVisusCache})
+	cmake_opts+=(-DAPR_DIR=${CACHE_DIR})
+	cmake_opts+=(-DAPACHE_DIR=${CACHE_DIR})
 
 	return 0
 }
@@ -724,7 +726,7 @@ function InstallQt5 {
 	echo "Using minimal Qt5"
 
 	QT_VERSION=5.11.2
-	Qt5_DIR=${OpenVisusCache}/qt${QT_VERSION}/lib/cmake/Qt5
+	Qt5_DIR=${CACHE_DIR}/qt${QT_VERSION}/lib/cmake/Qt5
 	cmake_opts+=(-DQt5_DIR=${Qt5_DIR})
 
 	# if you want to create a "new" minimal Qt5 file this is what I did
@@ -757,7 +759,7 @@ function InstallQt5 {
 		url="http://atlantis.sci.utah.edu/qt/qt${QT_VERSION}.tar.gz"
 		filename=$(basename ${url})
 		DownloadFile "${url}"
-		tar xzf ${filename} -C ${OpenVisusCache} 
+		tar xzf ${filename} -C ${CACHE_DIR} 
 		
 		GetVersionFromCommand "python -m pip show PyQt5" "Version: "
 		if [[ "${__version__}" != "${QT_VERSION}" ]]; then
@@ -770,11 +772,11 @@ function InstallQt5 {
 
 		PyQt5_DIR=$(python -c 'import os,PyQt5;print(os.path.dirname(PyQt5.__file__))')
 
-		cp -r ${PyQt5_DIR}/Qt/lib/*   ${OpenVisusCache}/qt${QT_VERSION}/lib/
-		cp -r ${PyQt5_DIR}/Qt/plugins ${OpenVisusCache}/qt${QT_VERSION}/
+		cp -r ${PyQt5_DIR}/Qt/lib/*   ${CACHE_DIR}/qt${QT_VERSION}/lib/
+		cp -r ${PyQt5_DIR}/Qt/plugins ${CACHE_DIR}/qt${QT_VERSION}/
 
 		# fix *.so links (example libQt5OpenGL.so.5.11.2 / libQt5OpenGL.so.5.11 / libQt5OpenGL.so.5)
-		FILES=$(find ${OpenVisusCache}/qt${QT_VERSION}/lib -iname "libQt5*.so.5")
+		FILES=$(find ${CACHE_DIR}/qt${QT_VERSION}/lib -iname "libQt5*.so.5")
 		for it in ${FILES}
 		do
 			ln -s ${it} ${it}.${QT_VERSION:2:2}
@@ -898,9 +900,8 @@ function InstallPython {
 	return 0
 }
 
-
-mkdir -p ${BUILD_DIR}
 cd ${BUILD_DIR}
+export PATH=${CACHE_DIR}/bin:$PATH
 
 declare -a cmake_opts
 
