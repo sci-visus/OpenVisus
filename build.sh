@@ -344,6 +344,8 @@ function UpdateOSAndInstallCompilers {
 			brew update 1>/dev/null && : # output is very long!
 		fi
 
+		InstallPackages libffi
+
 		return 0
 	fi
 
@@ -365,7 +367,7 @@ function UpdateOSAndInstallCompilers {
 
 		InstallPackages build-essential
 		InstallPackages git curl
-		InstallPackages ca-certificates uuid-dev automake bzip2
+		InstallPackages ca-certificates uuid-dev automake bzip2 libffi-dev 
 		return 0
 	fi
 
@@ -376,9 +378,9 @@ function UpdateOSAndInstallCompilers {
 			${SudoCmd} zypper --non-interactive install --type pattern devel_basis
 		fi
 
-		InstalPackages gcc-c++
-		InstalPackages git curl
-		InstalPackages lsb-release libuuid-devel 
+		InstallPackages gcc-c++
+		InstallPackages git curl
+		InstallPackages lsb-release libuuid-devel libffi-devel
 		return 0
 		
 	fi
@@ -562,11 +564,11 @@ function InstallApache {
 	if (( UseInstalledPackages == 1 )); then
 
 		if (( UBUNTU == 1 )); then
-			InstallPackages apache2 apache2-dev libffi-dev  && : 
+			InstallPackages apache2 apache2-dev  && : 
 			if [ $? == 0 ] ; then return 0 ; fi
 
 		elif (( OPENSUSE == 1 )); then
-			InstallPackages apache2 apache2-devel libffi-devel  && : 
+			InstallPackages apache2 apache2-devel && : 
 			if [ $? == 0 ] ; then return 0 ; fi
 
 		elif (( CENTOS == 1 )) ; then
@@ -787,7 +789,7 @@ function InstallPyEnvPython {
 	if (( OSX == 1 )) ; then
 
 		InstallPackages pyenv
-		InstallPackages readline zlib libffi
+		InstallPackages readline zlib 
 
 		# activate pyenv
 		eval "$(pyenv init -)"
@@ -812,6 +814,7 @@ function InstallPyEnvPython {
 		pyenv install --skip-existing ${PYTHON_VERSION} && :
 		if [ $? != 0 ] ; then 
 			echo "pyenv failed to install"
+			pyenv install --list && :
 			exit -1
 		fi
 		
@@ -847,6 +850,7 @@ function InstallPyEnvPython {
 		CXX=g++ pyenv install --skip-existing ${PYTHON_VERSION}  && :
 		if [ $? != 0 ] ; then 
 			echo "pyenv failed to install"
+			pyenv install --list && :
 			exit -1
 		fi
 
