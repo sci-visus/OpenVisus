@@ -878,6 +878,36 @@ function InstallPyEnvPython {
 }
 
 
+
+# /////////////////////////////////////////////////////////////////////
+function DeployToPyPi {
+	echo "deploy to pypi"
+	WHEEL_FILENAME=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.whl")
+	echo "Doing deploy to pypi ${WHEEL_FILENAME}..."
+	echo [distutils]                                  > ~/.pypirc
+	echo index-servers =  pypi                       >> ~/.pypirc
+	echo [pypi]                                      >> ~/.pypirc
+	echo username=${PYPI_USERNAME}                   >> ~/.pypirc
+	echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
+	python -m twine upload --skip-existing "${WHEEL_FILENAME}"
+}
+
+
+
+# /////////////////////////////////////////////////////////////////////
+function DeployToGitHubReleases {
+	echo "deploy to github releases"
+	SDIST_FILENAME=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.tar.gz")
+	response=$(curl -sH "Authorization: token ${GITHUB_API_TOKEN}" https://api.github.com/repos/sci-visus/OpenVisus/releases/tags/${TRAVIS_TAG})
+	eval $(echo "$response" | grep -m 1 "id.:" | grep -w id | tr : = | tr -cd '[[:alnum:]]=')
+	curl --data-binary @"${SDIST_FILENAME}" \
+		-H "Authorization: token $GITHUB_API_TOKEN" \
+		-H "Content-Type: application/octet-stream" \
+		"https://uploads.github.com/repos/sci-visus/OpenVisus/releases/$id/assets?name=$(basename ${SDIST_FILENAME})"
+}
+
+
+
 # /////////////////////////////////////////////////////////////////////
 EchoSection "BuildPreamble"
 BuildPreamble
@@ -971,6 +1001,7 @@ EchoSection "Install OpenVisus"
 cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
 
 
+
 # doploy
 EchoSection "dist OpenVisus"
 if [[ "$TRAVIS" == "1" && "${TRAVIS_TAG}" != "" ]] ; then
@@ -978,24 +1009,11 @@ if [[ "$TRAVIS" == "1" && "${TRAVIS_TAG}" != "" ]] ; then
 	cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
 
 	if [[ $(uname) == "Darwin" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
-		echo "deploy to pypi"
-		WHEEL_FILENAME=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.whl")
-		echo "Doing deploy to pypi ${WHEEL_FILENAME}..."
-		echo [distutils]                                  > ~/.pypirc
-		echo index-servers =  pypi                       >> ~/.pypirc
-		echo [pypi]                                      >> ~/.pypirc
-		echo username=${PYPI_USERNAME}                   >> ~/.pypirc
-		echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
-		python -m twine upload --skip-existing "${WHEEL_FILENAME}"
+		DeployToPyPi
 	fi
 
 	if [[ $(uname) == "Darwin" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
-		echo "deploy to github releases"
-		SDIST_FILENAME=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.tar.gz")
-		response=$(curl -sH "Authorization: token ${GITHUB_API_TOKEN}" https://api.github.com/repos/sci-visus/OpenVisus/releases/tags/${TRAVIS_TAG})
-		eval $(echo "$response" | grep -m 1 "id.:" | grep -w id | tr : = | tr -cd '[[:alnum:]]=')
-		curl "$GITHUB_OAUTH_BASIC" --data-binary @"${SDIST_FILENAME}" -H "Authorization: token $GITHUB_API_TOKEN" -H "Content-Type: application/octet-stream" \
-			"https://uploads.github.com/repos/sci-visus/OpenVisus/releases/$id/assets?name=$(basename ${SDIST_FILENAME})"
+		DeployToGitHubReleases
 	fi
 
 fi
