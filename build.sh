@@ -516,7 +516,9 @@ function InstallOpenSSL {
 
 	if (( OSX == 1 )); then
 
-		InstallPackages openssl  && : 
+		InstallPackages openssl  && :
+		brew reinstall openssl && : # this solve problems...
+ 
 		if [ $? == 0 ] ; then
 			CheckOpenSSLVersion "$(brew --prefix openssl)/bin/openssl"  && : 
 			if [ $? == 0 ] ; then
