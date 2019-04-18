@@ -512,31 +512,12 @@ function CheckOpenSSLVersion {
 # //////////////////////////////////////////////////////
 function InstallOpenSSL {
 
-	unset OPENSSL_DIR
-
 	if (( OSX == 1 )); then
-
-		InstallPackages openssl  && :
-		brew reinstall openssl && : # this solve problems...
- 
-		if [ $? == 0 ] ; then
-			CheckOpenSSLVersion "$(brew --prefix openssl)/bin/openssl"  && : 
-			if [ $? == 0 ] ; then
-				OPENSSL_DIR=$(brew --prefix openssl)
-				return 0
-			fi
-		fi
-
-		InstallPackages openssl@1.1 && :
-		if [ $? == 0 ] ; then 
-			OPENSSL_DIR=$(brew --prefix openssl@1.1)
-			return 0
-		fi
-
-		echo "internal error, cannot install openssl"
-		return -1
-
+		InstallPackages openssl openssl@1.1  && :
+		return 0
 	fi
+
+	unset OPENSSL_DIR
 
 	if [ -f "${CACHE_DIR}/bin/openssl" ]; then
 		echo "Using cached openssl"
@@ -810,19 +791,9 @@ function InstallPyEnvPython {
 	
 	if (( OSX == 1 )) ; then
 
-		InstallPackages pyenv
-		InstallPackages readline zlib 
+		InstallPackages readline zlib  pyenv
 
-		READLINE_DIR=$(brew --prefix readline)
-		ZLIB_DIR=$(brew --prefix zlib)
-	
-		export CONFIGURE_OPTS="--enable-shared --with-openssl=${OPENSSL_DIR}"
-		export CFLAGS="   -I${READLINE_DIR}/include -I${ZLIB_DIR}/include  -I${OPENSSL_DIR}/include" 
-		export CPPFLAGS=" -I${READLINE_DIR}/include -I${ZLIB_DIR}/include  -I${OPENSSL_DIR}/include" 
-		export LDFLAGS="  -L${READLINE_DIR}/lib     -L${ZLIB_DIR}/lib      -L${OPENSSL_DIR}/lib" 
-		export PKG_CONFIG_PATH="${OPENSSL_DIR}/lib/pkgconfig"
-		export PATH="${OPENSSL_DIR}/bin:$PATH"
-		
+		export CONFIGURE_OPTS="--enable-shared"
 		pyenv install --skip-existing ${PYTHON_VERSION} && :
 		if [ $? != 0 ] ; then 
 			echo "pyenv failed to install"
