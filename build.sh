@@ -196,15 +196,17 @@ function DockerBuild {
 	docker_opts+=(-e VISUS_GUI=${VISUS_GUI})
 	docker_opts+=(-e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 	docker_opts+=(-e USE_CONDA=${USE_CONDA})
+
+	# deploy to conda
 	docker_opts+=(-e DEPLOY_CONDA=${DEPLOY_CONDA})
 	docker_opts+=(-e ANACONDA_TOKEN=${ANACONDA_TOKEN})
 
-	# could be I have to deploy to PyPi inside docker
+	# deploy to pypi
 	docker_opts+=(-e DEPLOY_PYPI=${DEPLOY_PYPI})
 	docker_opts+=(-e PYPI_USERNAME=${PYPI_USERNAME})
 	docker_opts+=(-e PYPI_PASSWORD=${PYPI_PASSWORD})
 
-	# could be I have to deploy to github inside docker
+	# deploy to github
 	docker_opts+=(-e DEPLOY_GITHUB=${DEPLOY_GITHUB})
 	docker_opts+=(-e GITHUB_API_TOKEN=${GITHUB_API_TOKEN})
 
@@ -915,9 +917,7 @@ function InstallPyEnvPython {
 # /////////////////////////////////////////////////////////////////////
 function DeployToPyPi {
 
-	echo "deploy to pypi"
 	WHEEL_FILENAME=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.whl")
-
 	echo "Doing deploy to pypi ${WHEEL_FILENAME}..."
 	echo [distutils]                                  > ~/.pypirc
 	echo index-servers =  pypi                       >> ~/.pypirc
@@ -936,6 +936,7 @@ function DeployToGitHub {
 	echo "deploy to github releases"
 	filename=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.tar.gz")
 
+	# rename to avoid collisions
 	if (( UBUNTU == 1 )); then
 		old_filename=$filename
 		filename=${filename/.tar.gz/.ubuntu.${UBUNTU_VERSION}.tar.gz}
@@ -1059,17 +1060,9 @@ cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
 # doploy
 EchoSection "dist OpenVisus"
 if (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
-
 	cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
-
-	if (( DEPLOY_PYPI == 1 )) ; then
-		DeployToPyPi
-	fi
-
-	if (( DEPLOY_GITHUB == 1 )) ; then
-		DeployToGitHub
-	fi
-
+	if (( DEPLOY_PYPI   == 1 )) ; then DeployToPyPi   ; fi
+	if (( DEPLOY_GITHUB == 1 )) ; then DeployToGitHub ; fi
 fi
  
 # tests using CMake targets
