@@ -41,22 +41,22 @@ matrix:
     - os: linux
       dist: trusty
       env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.7.1']   
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)
 
     - os: linux
       dist: trusty
       env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.6.1','DEFAULT=1']   
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)
           
     - os: linux
       dist: trusty
       env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.5.1']        
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)  
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)
 
     - os: linux
       dist: trusty  
       env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=2.7.15']  
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)    
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)  
           
 
     # ///////////////////////////////// ubuntu:trusty
@@ -68,22 +68,22 @@ matrix:
     - os: linux
       dist: trusty
       env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=3.7.1']  
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)
     
     - os: linux
       dist: trusty
       env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=3.6.1','DEFAULT=1']   
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)     
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)
     
     - os: linux
       dist: trusty
       env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=3.5.1']  
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)     
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/) 
             
     - os: linux
       dist: trusty
       env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=2.7.15']  
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)  
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/) 
           
 
     # ///////////////////////////////// ubuntu:xenial
@@ -95,22 +95,22 @@ matrix:
     - os: linux
       dist: xenial
       env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=3.7.1'] 
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)           
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)          
        
     - os: linux
       dist: xenial
       env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=3.6.1','DEFAULT=1']  
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)    
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)   
     
     - os: linux
       dist: xenial
       env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=3.5.1']     
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)       
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)     
             
     - os: linux
       dist: xenial
       env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=2.7.15']  
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)             
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)          
              
 
     # ///////////////////////////////// opensuse:leap 
@@ -122,22 +122,22 @@ matrix:
     - os: linux
       dist: trusty
       env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.7.1']  
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)
 
     - os: linux
       dist: trusty
       env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.6.6','DEFAULT=1']  
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1) 
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)
           
     - os: linux
       dist: trusty
       env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.5.1']  
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1) 
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)
           
     - os: linux
       dist: trusty
       env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=2.7.15']   
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)            
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)          
           
 
     # ///////////////////////////////// osx1014
@@ -146,19 +146,19 @@ matrix:
       osx_image: xcode10.2
       compiler: clang
       env: ['OSX_VERSION=1014','PYTHON_VERSION=3.7.1']  
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)     
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)    
     
     - os: osx
       osx_image: xcode10.2
       compiler: clang
       env: ['OSX_VERSION=1014','PYTHON_VERSION=3.6.5','DEFAULT=1']  
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)     
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)    
      
     - os: osx
       osx_image: xcode10.2
       compiler: clang
       env: ['OSX_VERSION=1014','PYTHON_VERSION=2.7.15']    
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)
      
     # ///////////////////////////////// osx1013
     
@@ -166,19 +166,19 @@ matrix:
       osx_image: xcode9.4
       compiler: clang
       env: ['OSX_VERSION=1013','PYTHON_VERSION=3.7.1','DISABLED=1'] # only 3.7-dev 
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)     
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)  
     
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       env: ['OSX_VERSION=1013','PYTHON_VERSION=3.6.5','DEFAULT=1']    
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)   
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)  
 
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       env: ['OSX_VERSION=1013','PYTHON_VERSION=2.7.15']   
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)  
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)
       
     # ///////////////////////////////// osx1012
     
@@ -187,19 +187,19 @@ matrix:
       osx_image: xcode8.3
       compiler: clang
       env: ['OSX_VERSION=1012','PYTHON_VERSION=3.7.1',DISABLED="1"] # only 3.7-dev
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)       
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)     
              
     - os: osx
       osx_image: xcode8.3
       compiler: clang 
       env: ['OSX_VERSION=1012','PYTHON_VERSION=3.6.1','DEFAULT=1']    
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)     
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       env: ['OSX_VERSION=1012','PYTHON_VERSION=2.7.14'] 
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)      
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)
 
 
     # ///////////////////////////////// trusty:conda
@@ -210,17 +210,17 @@ matrix:
     - os: linux
       dist: trusty
       env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=3.7','USE_CONDA=1']     
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)   
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/) 
 
     - os: linux
       dist: trusty
       env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=3.6','USE_CONDA=1','DEFAULT=1']  
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)       
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)     
      
     - os: linux
       dist: trusty
       env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=2.7','USE_CONDA=1']   
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)
           
 
 
@@ -230,31 +230,31 @@ matrix:
       osx_image: xcode9.4
       compiler: clang
       env: ['OSX_VERSION=1013','PYTHON_VERSION=3.7','USE_CONDA=1','DISABLED=1']  
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)   
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/) 
     
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       env: ['OSX_VERSION=1013','PYTHON_VERSION=3.6','USE_CONDA=1','DISABLED=1']
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1) 
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)
 
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       env: ['OSX_VERSION=1013','PYTHON_VERSION=2.7','USE_CONDA=1','DISABLED=1']
-      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)
+      if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1 OR commit_message  =~ /CI::/)
 
 script:
    - |
-     if [[ "$TRAVIS_COMMIT_MESSAGE" == *"CI::"* ]]; then
-       echo "Enable filters here"
-     fi
+     if [[ "$TRAVIS_COMMIT_MESSAGE" == *"CI::manylinux"*        && "${DOCKER_IMAGE}" != "quay.io/pypa/manylinux1_x86_64"  ]]; then travis_terminate 0 ; fi
+     if [[ "$TRAVIS_COMMIT_MESSAGE" == *"CI::osx"*              && "${TRAVIS_OS_NAME}" != "osx"                           ]]; then travis_terminate 0 ; fi
+     if [[ "$TRAVIS_COMMIT_MESSAGE" == *"CI::conda"*            && "${USE_CONDA}" != "1"                                  ]]; then travis_terminate 0 ; fi
      cd "${TRAVIS_BUILD_DIR}" 
      ./build.sh
-     export RETCODE=$?
+     export OpenVisusBuildReturnCode=$?
      
 after_script:
-     echo "Travis Build finished RETCODE(${RETCODE})"
-     travis_terminate ${RETCODE}
+     echo "Travis Build finished with code ${OpenVisusBuildReturnCode}"
+     travis_terminate ${OpenVisusBuildReturnCode}
 
 
