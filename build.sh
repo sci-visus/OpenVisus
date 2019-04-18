@@ -791,7 +791,7 @@ function InstallPyEnvPython {
 	
 	if (( OSX == 1 )) ; then
 
-		InstallPackages readline zlib  pyenv
+		InstallPackages readline zlib  pyenv && :
 
 		export CONFIGURE_OPTS="--enable-shared"
 		pyenv install --skip-existing ${PYTHON_VERSION} && :
@@ -801,13 +801,6 @@ function InstallPyEnvPython {
 			exit -1
 		fi
 		
-		unset CONFIGURE_OPTS
-		unset CFLAGS
-		unset CPPFLAGS
-		unset LDFLAGS
-		unset READLINE_DIR
-		unset ZLIB_DIR
-
 	else
 
 		if [ ! -f "$HOME/.pyenv/bin/pyenv" ]; then
