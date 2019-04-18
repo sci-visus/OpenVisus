@@ -1058,7 +1058,7 @@ cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
 
 # doploy
 EchoSection "dist OpenVisus"
-f (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
+if (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
 
 	cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
 
