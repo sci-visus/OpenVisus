@@ -23,6 +23,14 @@ USE_CONDA=${USE_CONDA:-0}
 DEPLOY_CONDA=${DEPLOY_CONDA:-0}
 ANACONDA_TOKEN=${ANACONDA_TOKEN:-}
 
+# deploy pypi
+DEPLOY_PYPI=${DEPLOY_PYPI:-0}
+PYPI_USERNAME=${PYPI_USERNAME:-}
+PYPI_PASSWORD=${PYPI_PASSWORD:-}
+
+# deploy github
+DEPLOY_GITHUB=${DEPLOY_GITHUB:-0}
+GITHUB_API_TOKEN=${GITHUB_API_TOKEN:-}
 
 # in case you want to try manylinux-like compilation
 UseInstalledPackages=${UseInstalledPackages:-1}
@@ -98,6 +106,21 @@ function BuildPreamble {
 			if [[ "${TRAVIS_TAG}" != "" ]]; then
 				export DEPLOY_CONDA=1
 			fi
+		else
+
+		  export DEPLOY_GITHUB=1
+
+		  if [[ "${TRAVIS_TAG}" != "" ]]; then
+
+			  if [[ "$TRAVIS_OS_NAME" == "osx"  ]]; then
+				  export DEPLOY_PYPI=1
+			  fi    
+		
+			  if [[ "$TRAVIS_OS_NAME" == "linux" && "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
+				  export DEPLOY_PYPI=1
+			  fi    
+ 
+		  fi
 		fi
 	fi
 
@@ -130,8 +153,9 @@ function BuildPreamble {
 	elif [ -x "$(command -v yum)" ]; then
 		CENTOS=1
 		GetVersionFromCommand "cat /etc/redhat-release" "CentOS release "
+		CENTOS_VERSION=${__version__}
 		CENTOS_MAJOR=${__major__}
-		echo "Detected centos ${__version__}"
+		echo "Detected centos ${CENTOS_VERSION}"
 
 	else
 		echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"
@@ -174,6 +198,15 @@ function DockerBuild {
 	docker_opts+=(-e USE_CONDA=${USE_CONDA})
 	docker_opts+=(-e DEPLOY_CONDA=${DEPLOY_CONDA})
 	docker_opts+=(-e ANACONDA_TOKEN=${ANACONDA_TOKEN})
+
+	# could be I have to deploy to PyPi inside docker
+	docker_opts+=(-e DEPLOY_PYPI=${DEPLOY_PYPI})
+	docker_opts+=(-e PYPI_USERNAME=${PYPI_USERNAME})
+	docker_opts+=(-e PYPI_PASSWORD=${PYPI_PASSWORD})
+
+	# could be I have to deploy to github inside docker
+	docker_opts+=(-e DEPLOY_GITHUB=${DEPLOY_GITHUB})
+	docker_opts+=(-e GITHUB_API_TOKEN=${GITHUB_API_TOKEN})
 
 	sudo docker run -d -ti --name mydocker ${docker_opts[@]} ${DOCKER_IMAGE} /bin/bash
 	sudo docker exec mydocker /bin/bash -c "cd /root/OpenVisus && ./build.sh"
@@ -881,29 +914,52 @@ function InstallPyEnvPython {
 
 # /////////////////////////////////////////////////////////////////////
 function DeployToPyPi {
+
 	echo "deploy to pypi"
 	WHEEL_FILENAME=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.whl")
+
 	echo "Doing deploy to pypi ${WHEEL_FILENAME}..."
 	echo [distutils]                                  > ~/.pypirc
 	echo index-servers =  pypi                       >> ~/.pypirc
 	echo [pypi]                                      >> ~/.pypirc
 	echo username=${PYPI_USERNAME}                   >> ~/.pypirc
 	echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
+
 	python -m twine upload --skip-existing "${WHEEL_FILENAME}"
 }
 
 
 
 # /////////////////////////////////////////////////////////////////////
-function DeployToGitHubReleases {
+function DeployToGitHub {
+
 	echo "deploy to github releases"
-	SDIST_FILENAME=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.tar.gz")
+	filename=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.tar.gz")
+
+	if (( UBUNTU == 1 )); then
+		old_filename=$filename
+		filename=${filename/.tar.gz/.ubuntu.${UBUNTU_VERSION}.tar.gz}
+		mv $old_filename $filename
+
+	elif (( OPENSUSE == 1 )); then
+		old_filename=$filename
+		filename=${filename/.tar.gz/.opensuse.tar.gz}
+		mv $old_filename $filename
+
+	elif (( CENTOS == 1 )); then
+		old_filename=$filename
+		filename=${filename/.tar.gz/.centos.${CENTOS_VERSION}.tar.gz}
+		mv $old_filename $filename
+
+	fi
+
 	response=$(curl -sH "Authorization: token ${GITHUB_API_TOKEN}" https://api.github.com/repos/sci-visus/OpenVisus/releases/tags/${TRAVIS_TAG})
 	eval $(echo "$response" | grep -m 1 "id.:" | grep -w id | tr : = | tr -cd '[[:alnum:]]=')
-	curl --data-binary @"${SDIST_FILENAME}" \
+
+	curl --data-binary @"${filename}" \
 		-H "Authorization: token $GITHUB_API_TOKEN" \
 		-H "Content-Type: application/octet-stream" \
-		"https://uploads.github.com/repos/sci-visus/OpenVisus/releases/$id/assets?name=$(basename ${SDIST_FILENAME})"
+		"https://uploads.github.com/repos/sci-visus/OpenVisus/releases/$id/assets?name=$(basename ${filename})"
 }
 
 
@@ -1000,20 +1056,18 @@ fi
 EchoSection "Install OpenVisus"
 cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
 
-
-
 # doploy
 EchoSection "dist OpenVisus"
-if [[ "$TRAVIS" == "1" && "${TRAVIS_TAG}" != "" ]] ; then
+f (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
 
 	cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
 
-	if [[ $(uname) == "Darwin" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
+	if (( DEPLOY_PYPI == 1 )) ; then
 		DeployToPyPi
 	fi
 
-	if [[ $(uname) == "Darwin" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
-		DeployToGitHubReleases
+	if (( DEPLOY_GITHUB == 1 )) ; then
+		DeployToGitHub
 	fi
 
 fi
