@@ -158,11 +158,11 @@ function DockerBuild {
 	docker_opts+=(-v ${SOURCE_DIR}:/root/OpenVisus)
 	docker_opts+=(-e SOURCE_DIR=/root/OpenVisus)
 
-	#docker_opts+=(-v ${BUILD_DIR}:/root/.build)
-	#docker_opts+=(-e BUILD_DIR=/root/.build)
+	docker_opts+=(-v ${BUILD_DIR}:/root/OpenVisus.build)
+	docker_opts+=(-e BUILD_DIR=/root/OpenVisus.build)
 
-	#docker_opts+=(-v ${CACHE_DIR}:/root/.cache)
-	#docker_opts+=(-e CACHE_DIR=/root/.cache)
+	docker_opts+=(-v ${CACHE_DIR}:/root/OpenVisus.cache)
+	docker_opts+=(-e CACHE_DIR=/root/OpenVisus.cache)
 
 	#docker_opts+=(-v ${PYENV_ROOT}:/root/.pyenv)
 	#docker_opts+=(-e ${PYENV_ROOT}=/root/.pyenv)
@@ -512,11 +512,6 @@ function CheckOpenSSLVersion {
 # //////////////////////////////////////////////////////
 function InstallOpenSSL {
 
-	if (( OSX == 1 )); then
-		InstallPackages openssl openssl@1.1  && :
-		return 0
-	fi
-
 	unset OPENSSL_DIR
 
 	if [ -f "${CACHE_DIR}/bin/openssl" ]; then
@@ -527,9 +522,7 @@ function InstallOpenSSL {
 	fi
 	
 	if (( UseInstalledPackages == 1 )); then
-
 		if (( UBUNTU == 1 )) ; then
-
 			InstallPackages libssl-dev && : 
 			if [ $? == 0 ] ; then
 				CheckOpenSSLVersion /usr/bin/openssl && : 
@@ -537,7 +530,6 @@ function InstallOpenSSL {
 			fi
 
 		elif (( OPENSUSE == 1 )) ; then
-
 			InstallPackages libopenssl-devel && : 
 			if [ $? == 0 ] ; then
 				CheckOpenSSLVersion /usr/bin/openssl && : 
@@ -788,20 +780,33 @@ function InstallQt5 {
 function InstallPyEnvPython {
 
 	# install python using pyenv
-	
 	if (( OSX == 1 )) ; then
 
-		InstallPackages readline zlib  pyenv && :
+		InstallPackages readline zlib openssl openssl@1.1 pyenv && :
+
+		# activate pyenv
+		eval "$(pyenv init -)"
 
 		export CONFIGURE_OPTS="--enable-shared"
+		export CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include"
+		export LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib"
+		export CPPFLAGS="${CFLAGS}"
+
 		pyenv install --skip-existing ${PYTHON_VERSION} && :
 		if [ $? != 0 ] ; then 
 			echo "pyenv failed to install"
 			pyenv install --list
 			exit -1
 		fi
+
+		unset CONFIGURE_OPTS
+		unset CFLAGS
+		unset LDFLAGS
+		unset CPPFLAGS
 		
 	else
+
+		InstallOpenSSL
 
 		if [ ! -f "$HOME/.pyenv/bin/pyenv" ]; then
 			pushd $HOME
@@ -928,10 +933,8 @@ InstallSwig
 if (( OSX != 1 )); then
 	EchoSection "InstallPatchElf"
 	InstallPatchElf
-fi
 
-EchoSection "InstallOpenSSL"
-InstallOpenSSL
+fi
 
 EchoSection "InstallPyEnvPython"
 InstallPyEnvPython

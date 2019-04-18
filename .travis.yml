@@ -162,11 +162,10 @@ matrix:
      
     # ///////////////////////////////// osx1013
     
-    # disabled,pyenv has only 3.7-dev
     - os: osx
       osx_image: xcode9.4
       compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.7.1','DISABLED=1']   
+      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.7.1','DISABLED=1'] # only 3.7-dev 
       if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)     
     
     - os: osx
@@ -183,10 +182,11 @@ matrix:
       
     # ///////////////////////////////// osx1012
     
+    
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: ['OSX_VERSION=1012','PYTHON_VERSION=3.7.1']   
+      env: ['OSX_VERSION=1012','PYTHON_VERSION=3.7.1',DISABLED="1"] # only 3.7-dev
       if: (env(DISABLED) != 1) AND (tag IS present OR env(DEFAULT) = 1)       
              
     - os: osx
@@ -247,14 +247,14 @@ matrix:
 script:
    - |
      if [[ "$TRAVIS_COMMIT_MESSAGE" == *"CI::"* ]]; then
-       echo "Enable filts here"
+       echo "Enable filters here"
      fi
      cd "${TRAVIS_BUILD_DIR}" 
      ./build.sh
-     if [ $? != 0 ] ; then 
-        echo "Build failed"
-        travis_terminate -1
-     fi
-
+     export RETCODE=$?
+     
+after_script:
+     echo "Travis Build finished RETCODE(${RETCODE})"
+     travis_terminate ${RETCODE}
 
 
