@@ -56,6 +56,7 @@ function GetVersionFromCommand {
 	__version__=""
 	__major__=""
 	__minor__=""
+	__patch__=""
 	cmd=$1
 	pattern=$2
 	set +e
@@ -66,6 +67,7 @@ function GetVersionFromCommand {
 		__version__=$(echo ${__content__} | awk -F "${pattern}" '{print $2}' | cut -d' ' -f1)
 		__major__=$(echo ${__version__} | cut -d'.' -f1)
 		__minor__=$(echo ${__version__} | cut -d'.' -f2)
+		__patch__=$(echo ${__version__} | cut -d'.' -f3)
 		echo "Found version ${__version__}"
 	else
 		echo "Cannot find any version"
@@ -73,6 +75,13 @@ function GetVersionFromCommand {
 	set -x
 }
 
+
+# ///////////////////////////////////////////////////////////////////////////////////////////////
+function EchoSection {
+	set +x	
+	echo "//////////////////////////////////////// $1"
+	set -x
+}
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
 function BuildPreamble {	
@@ -151,12 +160,10 @@ function BuildPreamble {
 # ///////////////////////////////////////////////////////////////////////////////////////////////
 function DockerBuild {
 
-	# otherwise it fails on travis
-	SudoCmd="sudo"
+	# note: sudo is needed anyway otherwise travis fails
+	sudo docker rm -f mydocker 2>/dev/null || true
 
-	${SudoCmd} docker rm -f mydocker 2>/dev/null || true
-
-	${SudoCmd} docker run -d -ti \
+	sudo docker run -d -ti \
 		--name mydocker \
 		-v ${SOURCE_DIR}:${SOURCE_DIR} \
 		-e BUILD_DIR=${BUILD_DIR} \
@@ -174,10 +181,10 @@ function DockerBuild {
 		${DOCKER_IMAGE} \
 		/bin/bash
 
-	${SudoCmd}  docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
+	sudo docker exec mydocker /bin/bash -c "cd ${SOURCE_DIR} && ./build.sh"
 
-	${SudoCmd}  chown -R "$USER":"$USER" ${BUILD_DIR} 1>/dev/null && :
-	${SudoCmd}  chmod -R u+rwx           ${BUILD_DIR} 1>/dev/null && :
+	sudo chown -R "$USER":"$USER" ${BUILD_DIR} 1>/dev/null && :
+	sudo chmod -R u+rwx           ${BUILD_DIR} 1>/dev/null && :
 }
 
 
@@ -185,14 +192,14 @@ function DockerBuild {
 # ///////////////////////////////////////////////////////////////////////////////////////////////
 function CondaBuild {
 
+	# note: sudo is needed anyway otherwise travis fails
 	if (( FASTMODE == 0 )) ; then
 
 		# here I need sudo! 
 		if (( OSX ==  1 && IsRoot == 1 )) ; then
 			if [ ! -d /opt/MacOSX10.9.sdk ] ; then
-				git clone https://github.com/phracker/MacOSX-SDKs
-				mkdir -p /opt
-				${SudoCmd} mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
+				git clone https://github.com/phracker/MacOSX-SDKsF
+				sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
 				rm -Rf MacOSX-SDKs
 			fi
 		fi
@@ -236,7 +243,7 @@ function CondaBuild {
 	if (( DEPLOY_CONDA == 1 )) ; then
 		CONDA_BUILD_FILENAME=$(find ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld -iname "openvisus*.tar.bz2")
 		echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
-		anaconda -q -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
+		anaconda -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
 	fi
 }
 
@@ -361,9 +368,9 @@ function UpdateOSAndInstallCompilers {
 			${SudoCmd} zypper --non-interactive install --type pattern devel_basis
 		fi
 
-		InstalPackages gcc-c++
-		InstalPackages git curl
-		InstalPackages lsb-release libuuid-devel libffi-devel
+		InstallPackages gcc-c++
+		InstallPackages git curl
+		InstallPackages lsb-release libuuid-devel libffi-devel
 
 		echo "Installed prerequisites for OpenSuse"
 		return 0
@@ -386,6 +393,11 @@ function UpdateOSAndInstallCompilers {
 # //////////////////////////////////////////////////////
 function InstallCMake {
 
+	if [ -f "${CACHE_DIR}/bin/cmake" ]; then
+		echo "Using cached cmake"
+		return 0
+	fi
+
 	if (( OSX == 1 || UseInstalledPackages == 1 )); then
 
 		InstallPackages cmake && :
@@ -404,25 +416,30 @@ function InstallCMake {
 
 	# install from source
 	echo "installing cmake from source"
-	if [ ! -f "${CACHE_DIR}/bin/cmake" ]; then
-		CMAKE_VERSION=3.10.1
+	
+	if (( CENTOS == 1 && CENTOS_MAJOR <= 5 )) ; then  
+		__version__=3.4.3  # Error with other  versions: `GLIBC_2.6' not found (required by cmake)
+	else
+		__version__=3.10.1
+	fi 
 
-		# Error with other  versions: `GLIBC_2.6' not found (required by cmake)
-		if (( CENTOS == 1 && CENTOS_MAJOR <= 5 )) ; then  CMAKE_VERSION=3.4.3 ; fi 
-
-		url="https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.tar.gz"
-		filename=$(basename ${url})
-		DownloadFile "${url}"
-		tar xzf ${filename} -C ${CACHE_DIR} --strip-components=1 
-		rm -f ${filename}
-	fi
-
+	url="https://github.com/Kitware/CMake/releases/download/v${__version__}/cmake-${__version__}-Linux-x86_64.tar.gz"
+	filename=$(basename ${url})
+	DownloadFile "${url}"
+	tar xzf ${filename} -C ${CACHE_DIR} --strip-components=1 
+	rm -f ${filename}
 	return 0
 }
 
 
 # //////////////////////////////////////////////////////
 function InstallSwig {
+
+	if [ -f "${CACHE_DIR}/bin/swig" ]; then	
+		echo "Using cached swig"
+		cmake_opts+=(-DSWIG_EXECUTABLE=${CACHE_DIR}/bin/swig)
+		return 0
+	fi
 
 	if (( OSX == 1 || UseInstalledPackages == 1 )); then
 
@@ -452,18 +469,16 @@ function InstallSwig {
 
 	# install from source
 	echo "installing swig from source"
-	if [ ! -f "${CACHE_DIR}/bin/swig" ]; then
-		url="https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz"
-		filename=$(basename ${url})
-		DownloadFile ${url}
-		tar xzf ${filename}
-		pushd swig-3.0.12
-		DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
-		./Tools/pcre-build.sh 1>/dev/null
-		./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s -j 4 1>/dev/null && make install 1>/dev/null 
-		popd
-		rm -Rf swig-3.0.12
-	fi
+	url="https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz"
+	filename=$(basename ${url})
+	DownloadFile ${url}
+	tar xzf ${filename}
+	pushd swig-3.0.12
+	DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
+	./Tools/pcre-build.sh 1>/dev/null
+	./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s -j 4 1>/dev/null && make install 1>/dev/null 
+	popd
+	rm -Rf swig-3.0.12
 
 	cmake_opts+=(-DSWIG_EXECUTABLE=${CACHE_DIR}/bin/swig)
 	return 0
@@ -471,6 +486,11 @@ function InstallSwig {
 
 # //////////////////////////////////////////////////////
 function InstallPatchElf {
+
+	if [ -f "${CACHE_DIR}/bin/patchelf" ]; then
+		echo "using cached patchelf"
+		return 0
+	fi
 
 	if (( UseInstalledPackages == 1 )); then
 
@@ -485,67 +505,128 @@ function InstallPatchElf {
 
 	# install from source
 	echo "installing patchelf from source"
-	if [ ! -f "${CACHE_DIR}/bin/patchelf" ]; then
-		url="https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz"
-		filename=$(basename ${url})
-		DownloadFile ${url}
-		tar xzf ${filename}
-		pushd patchelf-0.9
-		./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
-		autoreconf -f -i
-		./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
-		popd
-		rm -Rf patchelf-0.9
-	fi
+	url="https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz"
+	filename=$(basename ${url})
+	DownloadFile ${url}
+	tar xzf ${filename}
+	pushd patchelf-0.9
+	./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
+	autoreconf -f -i
+	./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
+	popd
+	rm -Rf patchelf-0.9
 
 	return 0
 }
 
 # //////////////////////////////////////////////////////
+function CheckOpenSSLVersion {
+
+	GetVersionFromCommand "$1 version" "OpenSSL "
+
+	if [[ "${__major__}" == "" || "${__minor__}" == "" || "${__patch__}" == "" ]]; then
+		echo "OpenSSL not found"
+		return -1
+
+	# Python requires an OpenSSL 1.0.2 or 1.1 compatible libssl with X509_VERIFY_PARAM_set1_host().
+	elif [[ "${__major__}" == "1" && "${__minor__}" == "0" && "${__patch__:0:1}" -lt "2" ]]; then
+		echo "OpenSSL version(${__version__}) too old"
+		return -1
+
+
+	else
+		echo "Openssl version(${__version__}) ok"
+		return 0
+
+	fi
+}
+
+
+# //////////////////////////////////////////////////////
 function InstallOpenSSL {
 
+	unset OPENSSL_DIR
+
+	# using cached openssl
+	if [ -f "${CACHE_DIR}/bin/openssl" ]; then
+		echo "Using cached openssl"
+		export OPENSSL_DIR="${CACHE_DIR}" 
+		export LD_LIBRARY_PATH="${CACHE_DIR}/lib:${LD_LIBRARY_PATH}"
+		return 0
+	fi
+	
 	if (( OSX == 1 )); then
+
+		InstallPackages openssl@1.1 && :
+		if [ $? == 0 ] ; then 
+			OPENSSL_DIR=$(brew --prefix openssl@1.1)
+			return 0
+		fi
+
 		InstallPackages openssl  && : 
-		if [ $? == 0 ] ; then return 0 ; fi
+		if [ $? == 0 ] ; then
+			CheckOpenSSLVersion "$(brew --prefix openssl)/bin/openssl"  && : 
+			if [ $? == 0 ] ; then
+				OPENSSL_DIR=$(brew --prefix openssl)
+				return 0
+			fi
+		fi
+
+		echo "internal error, cannot install openssl"
+		return -1
+
 	fi
 
 	if (( UseInstalledPackages == 1 )); then
 
 		if (( UBUNTU == 1 )) ; then
-			InstallPackages libssl-dev  && : 
-			if [ $? == 0 ] ; then return 0 ; fi
+
+			InstallPackages libssl-dev && : 
+			if [ $? == 0 ] ; then
+				CheckOpenSSLVersion /usr/bin/openssl && : 
+				if [ $? == 0 ] ; then return 0 ; fi
+			fi
 
 		elif (( OPENSUSE == 1 )) ; then
-			InstallPackages libopenssl-devel  && : 
-			if [ $? == 0 ] ; then return 0 ; fi
+
+			InstallPackages libopenssl-devel && : 
+			if [ $? == 0 ] ; then
+				CheckOpenSSLVersion /usr/bin/openssl && : 
+				if [ $? == 0 ] ; then return 0 ; fi
+			fi
 
 		elif (( CENTOS == 1 )) ; then
-			# for centos I prefer to build from scratch
 			echo "Centos, prefer source openssl"
 		fi
+
 	fi
 
 	# install from source
 	echo "installing openssl from source"
-	OPENSSL_DIR="${CACHE_DIR}" 
-	if [ ! -f "${OPENSSL_DIR}/bin/openssl" ]; then
-		url="https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
-		filename=$(basename ${url})
-		DownloadFile ${url}
-		tar xzf ${filename}
-		pushd openssl-1.0.2a
-		./config --prefix=${OPENSSL_DIR} -fPIC shared 1>/dev/null && make -s 1>/dev/null  && make install 1>/dev/null 
-		popd
-		rm -Rf openssl-1.0.2a
-	fi
+	url="https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
+	filename=$(basename ${url})
+	DownloadFile ${url}
+	tar xzf ${filename}
+	pushd openssl-1.0.2a
+	./config --prefix=${CACHE_DIR} -fPIC shared 1>/dev/null && make -s 1>/dev/null  && make install 1>/dev/null 
+	popd
+	rm -Rf openssl-1.0.2a
 	
-	export LD_LIBRARY_PATH="${OPENSSL_DIR}/lib:${LD_LIBRARY_PATH}"
+	export OPENSSL_DIR="${CACHE_DIR}" 
+	export LD_LIBRARY_PATH="${CACHE_DIR}/lib:${LD_LIBRARY_PATH}"
 	return 0
 }
 
 
 # //////////////////////////////////////////////////////
 function InstallApache {
+
+	if [ -f "${CACHE_DIR}/include/httpd.h" ] ; then
+		echo "Using cached apache"
+		cmake_opts+=(-DAPR_DIR=${CACHE_DIR})
+		cmake_opts+=(-DAPACHE_DIR=${CACHE_DIR})
+		return 0		
+	fi
 
 	if (( UseInstalledPackages == 1 )); then
 
@@ -568,58 +649,49 @@ function InstallApache {
 	echo "installing apache from source"
 
 	# install apr 
-	if [ !  -f "${CACHE_DIR}/lib/libapr-1.a" ] ; then
-		url="http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz"
-		filename=$(basename ${url})
-		DownloadFile ${url}
-		tar xzf ${filename}
-		pushd apr-1.6.5
-		./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
-		popd
-		rm -Rf apr-1.6.5
-	fi
+	url="http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz"
+	filename=$(basename ${url})
+	DownloadFile ${url}
+	tar xzf ${filename}
+	pushd apr-1.6.5
+	./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
+	popd
+	rm -Rf apr-1.6.5
 
 	# install apr utils 
-	if [ !  -f "${CACHE_DIR}/lib/libaprutil-1.a" ] ; then
-		url="http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz"
-		filename=$(basename ${url})
-		DownloadFile ${url}
-		tar xzf ${filename}
-		pushd apr-util-1.6.1
-		./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} 1>/dev/null  && make -s 1>/dev/null  && make install 1>/dev/null 
-		popd
-		rm -Rf apr-util-1.6.1
-	fi
+	url="http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz"
+	filename=$(basename ${url})
+	DownloadFile ${url}
+	tar xzf ${filename}
+	pushd apr-util-1.6.1
+	./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} 1>/dev/null  && make -s 1>/dev/null  && make install 1>/dev/null 
+	popd
+	rm -Rf apr-util-1.6.1
 
 	# install pcre 
-	if [ !  -f "${CACHE_DIR}/lib/libpcre.a" ] ; then
-		url="https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
-		filename=$(basename ${url})
-		DownloadFile ${url}
-		tar xzf ${filename}
-		pushd pcre-8.42
-		./configure --prefix=${CACHE_DIR} 1>/dev/null  && make -s 1>/dev/null  && make install 1>/dev/null 
-		popd
-		rm -Rf pcre-8.42
-	fi
+	url="https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
+	filename=$(basename ${url})
+	DownloadFile ${url}
+	tar xzf ${filename}
+	pushd pcre-8.42
+	./configure --prefix=${CACHE_DIR} 1>/dev/null  && make -s 1>/dev/null  && make install 1>/dev/null 
+	popd
+	rm -Rf pcre-8.42
 
 	# install httpd
-	if [ !  -f "${CACHE_DIR}/include/httpd.h" ] ; then
-		url="http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz"
-		filename=$(basename ${url})
-		DownloadFile ${url}
-		tar xzf ${filename}
-		pushd httpd-2.4.38
-		./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-pcre=${CACHE_DIR} --with-ssl=${CACHE_DIR} 1>/dev/null && \
-			make -s 1>/dev/null && \
-			make install 1>/dev/null 
-		popd
-		rm -Rf httpd-2.4.38
-	fi
+	url="http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz"
+	filename=$(basename ${url})
+	DownloadFile ${url}
+	tar xzf ${filename}
+	pushd httpd-2.4.38
+	./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-pcre=${CACHE_DIR} --with-ssl=${CACHE_DIR} 1>/dev/null && \
+		make -s 1>/dev/null && \
+		make install 1>/dev/null 
+	popd
+	rm -Rf httpd-2.4.38
 	
 	cmake_opts+=(-DAPR_DIR=${CACHE_DIR})
 	cmake_opts+=(-DAPACHE_DIR=${CACHE_DIR})
-
 	return 0
 }
 
@@ -701,7 +773,7 @@ function InstallQt5 {
 	# You can use your Qt5 by setting Qt5_DIR in command line 
 	# Default is to use a "minimal" Qt I'm storing on atlantis (NOTE: it does not contains *.so files or plugins, I'm using PyQt5 for that)
 	
-	echo "Using minimal Qt5"
+	echo "Using minimal Qt5"I
 
 	QT_VERSION=5.11.2
 	Qt5_DIR=${CACHE_DIR}/qt${QT_VERSION}/lib/cmake/Qt5
@@ -778,9 +850,6 @@ function InstallPyEnvPython {
 			InstallPackages pyenv
 			InstallPackages readline zlib 
 
-			brew reinstall  openssl 
-			
-			OPENSSL_DIR=$(brew --prefix readline)
 			READLINE_DIR=$(brew --prefix readline)
 			ZLIB_DIR=$(brew --prefix zlib)
 		
@@ -802,7 +871,6 @@ function InstallPyEnvPython {
 			unset CFLAGS
 			unset CPPFLAGS
 			unset LDFLAGS
-			unset OPENSSL_DIR
 			unset READLINE_DIR
 			unset ZLIB_DIR
 
@@ -883,6 +951,7 @@ function InstallPyEnvPython {
 
 # /////////////////////////////////////////////////////////////////////
 
+EchoSection "BuildPreamble"
 BuildPreamble
 
 # minimal (manylinux)
@@ -896,20 +965,20 @@ mkdir -p ${BUILD_DIR}
 mkdir -p ${CACHE_DIR}
 
 if [[ "$DOCKER_IMAGE" != "" ]] ; then
-	echo "Building docker OpenVisus..."
+	EchoSection "DockerBuild"
 	DockerBuild
 	echo "OpenVisus docker build finished"
 	exit 0
 fi
 
 if (( USE_CONDA == 1 )) ; then
-	echo "Building conda OpenVisus..."
+	EchoSection "CondaBuild"
 	CondaBuild
 	echo "OpenVisus conda build finished"
 	exit 0
 fi
 
-echo "Building pyenv OpenVisus..."
+EchoSection "PyEnvBuild"
 cd ${BUILD_DIR}
 export PATH=${CACHE_DIR}/bin:$PATH
 
@@ -919,25 +988,37 @@ cmake_opts+=(-DDISABLE_OPENMP=${DISABLE_OPENMP})
 cmake_opts+=(-DVISUS_GUI=${VISUS_GUI})
 cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
+EchoSection "UpdateOSAndInstallCompilers"
 UpdateOSAndInstallCompilers
+
+EchoSection "InstallCMake"
 InstallCMake
+
+EchoSection "InstallSwig"
 InstallSwig
 
 if (( OSX != 1 )); then
+	EchoSection "InstallPatchElf"
 	InstallPatchElf
 fi
 
+EchoSection "InstallOpenSSL"
 InstallOpenSSL
+
+EchoSection "InstallPyEnvPython"
 InstallPyEnvPython
 
 if (( OSX != 1 )); then
+	EchoSection "InstallApache"
 	InstallApache
 fi
 
 if (( VISUS_GUI == 1 )); then
+	EchoSection "InstallQt5"
 	InstallQt5
 fi
 
+EchoSection "Build OpenVisus"
 if (( OSX == 1 )) ; then
 
 	cmake -GXcode ${cmake_opts[@]} ${SOURCE_DIR}  
@@ -955,11 +1036,13 @@ else
 	
 fi
 
+EchoSection "Install OpenVisus"
 cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
 
 # dist
 if (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
 
+	EchoSection "Dist OpenVisus"
 	cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
 
 	if (( DEPLOY_PYPI == 1 )) ; then
@@ -977,6 +1060,7 @@ fi
  
 # tests using CMake targets
 if (( 1 == 1 )) ; then
+	EchoSection "Test (1/2) OpenVisus"
 	if (( OSX == 1 )) ; then
 		cmake --build   . --target  RUN_TESTS       --config ${CMAKE_BUILD_TYPE}	
 	else
@@ -993,6 +1077,8 @@ fi
 
 # test OpenVisus package using python
 if (( 1 == 1 )); then
+	EchoSection "Test (2/2) OpenVisus"
+
 	export PYTHONPATH=${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages
 	cd $(python -m OpenVisus dirname)
 	python Samples/python/Array.py

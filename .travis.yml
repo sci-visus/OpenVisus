@@ -35,84 +35,25 @@ matrix:
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']       
-      if: commit_message =~ /\[CI::travis::manylinux\]/  OR (commit_message !~ /\[CI::/ AND true)
+      if: commit_message =~ /\[CI::manylinux\]/ OR commit_message =~ /\[CI::python37\]/ OR (commit_message !~ /\[CI:/)
 
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']  
-      if: commit_message =~ /\[CI::travis::manylinux\]/  OR (commit_message !~ /\[CI::/ AND true)   
+      if: commit_message =~ /\[CI::manylinux\]/ OR commit_message =~ /\[CI::python36\]/ OR (commit_message !~ /\[CI:/)   
           
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']  
-      if: commit_message =~ /\[CI::travis::manylinux\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)       
+      if: commit_message =~ /\[CI::manylinux\]/ OR commit_message =~ /\[CI::python35\]/ OR (commit_message !~ /\[CI:/ AND tag IS present)       
 
     - os: linux
       dist: trusty  
       env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64']     
-      if: commit_message =~ /\[CI::travis::manylinux\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)
+      if: commit_message =~ /\[CI::manylinux\]/ OR commit_message =~ /\[CI::python27\]/ OR (commit_message !~ /\[CI:/ AND tag IS present)
           
-    # ///////////////////////////////// osx1014
-   
-    - os: osx
-      osx_image: xcode10.2
-      compiler: clang
-      env: [PYTHON_VERSION=3.7.1]     
-      if: commit_message =~ /\[CI::travis::osx1014\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)
-    
-    - os: osx
-      osx_image: xcode10.2
-      compiler: clang
-      if: commit_message =~ /\[CI::travis::osx1014\]/  OR (commit_message !~ /\[CI::/ AND true)
-      env: [PYTHON_VERSION=3.6.5]   
-     
-    - os: osx
-      osx_image: xcode10.2
-      compiler: clang
-      env: [PYTHON_VERSION=2.7.15]
-      if: commit_message =~ /\[CI::travis::osx1014\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)
-     
-    # ///////////////////////////////// osx1013
-    
-    - os: osx
-      osx_image: xcode9.4
-      compiler: clang
-      env: [PYTHON_VERSION=3.7.1]     
-      if: commit_message =~ /\[CI::travis::osx1013\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)
-    
-    - os: osx
-      osx_image: xcode9.4 
-      compiler: clang
-      env: [PYTHON_VERSION=3.6.5]   
-      if: commit_message =~ /\[CI::travis::osx1013\]/  OR (commit_message !~ /\[CI::/ AND true)
 
-    - os: osx
-      osx_image: xcode9.4 
-      compiler: clang
-      env: [PYTHON_VERSION=2.7.15] 
-      if: commit_message =~ /\[CI::travis::osx1013\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)
-      
-    # ///////////////////////////////// osx1012
-    
-    - os: osx
-      osx_image: xcode8.3
-      compiler: clang
-      env: ['PYTHON_VERSION=3.7.1']    
-      if: commit_message =~ /\[CI::travis::osx1012\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)       
-             
-    - os: osx
-      osx_image: xcode8.3
-      compiler: clang 
-      env: ['PYTHON_VERSION=3.6.1']      
-      if: commit_message =~ /\[CI::travis::osx1012\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)  
-      
-    - os: osx
-      osx_image: xcode8.3
-      compiler: clang
-      env: ['PYTHON_VERSION=2.7.14']   
-      if: commit_message =~ /\[CI::travis::osx1012\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)  
-
-    # ///////////////////////////////// ubuntu14
+    # ///////////////////////////////// ubuntu:trusty
 
     # Example to compile by hand
     # sudo docker run -ti  -v $(pwd):/home/OpenVisus ubuntu:trusty /bin/bash
@@ -121,25 +62,25 @@ matrix:
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=ubuntu:trusty']  
-      if: commit_message =~ /\[CI::travis::ubuntu14\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)    
+      if: commit_message =~ /\[CI::ubuntu:trusty\]/  OR commit_message =~ /\[CI::python37\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)    
     
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:trusty']  
-      if: commit_message =~ /\[CI::travis::ubuntu14\]/  OR (commit_message !~ /\[CI::/ AND true)      
+      if: commit_message =~ /\[CI::ubuntu:trusty\]/ OR commit_message =~ /\[CI::python36\]/  OR (commit_message !~ /\[CI:/)      
     
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=ubuntu:trusty'] 
-      if: commit_message =~ /\[CI::travis::ubuntu14\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)      
+      if: commit_message =~ /\[CI::ubuntu:trusty\]/ OR commit_message =~ /\[CI::python35\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)      
             
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=ubuntu:trusty']
-      if: commit_message =~ /\[CI::travis::ubuntu14\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)   
+      if: commit_message =~ /\[CI::ubuntu:trusty\]/ OR commit_message =~ /\[CI::python27\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)   
           
 
-    # ///////////////////////////////// ubuntu16
+    # ///////////////////////////////// ubuntu:xenial
 
     # Example to compile by hand
     # sudo docker run -ti -v $(pwd):/home/OpenVisus ubuntu:xenial /bin/bash
@@ -148,25 +89,25 @@ matrix:
     - os: linux
       dist: xenial
       env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=ubuntu:xenial'] 
-      if: commit_message =~ /\[CI::travis::ubuntu16\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)            
+      if: commit_message =~ /\[CI::ubuntu:xenial\]/ OR commit_message =~ /\[CI::python37\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)            
        
     - os: linux
       dist: xenial
       env: ['PYTHON_VERSION=3.6.1','DOCKER_IMAGE=ubuntu:xenial']    
-      if: commit_message =~ /\[CI::travis::ubuntu16\]/  OR (commit_message !~ /\[CI::/ AND true)    
+      if: commit_message =~ /\[CI::ubuntu:xenial\]/ OR commit_message =~ /\[CI::python36\]/  OR (commit_message !~ /\[CI:/)    
     
     - os: linux
       dist: xenial
       env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=ubuntu:xenial']  
-      if: commit_message =~ /\[CI::travis::ubuntu16\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)          
+      if: commit_message =~ /\[CI::ubuntu:xenial\]/ OR commit_message =~ /\[CI::python35\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)          
             
     - os: linux
       dist: xenial
       env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=ubuntu:xenial']
-      if: commit_message =~ /\[CI::travis::ubuntu16\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)               
+      if: commit_message =~ /\[CI::ubuntu:xenial\]/ OR commit_message =~ /\[CI::python27\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)               
              
 
-    # ///////////////////////////////// opensuse 
+    # ///////////////////////////////// opensuse:leap 
 
     # Example to compile by hand
     # sudo docker run -ti  -v $(pwd):/home/OpenVisus opensuse:leap /bin/bash
@@ -175,24 +116,24 @@ matrix:
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.7.1','DOCKER_IMAGE=opensuse:leap']
-      if: commit_message =~ /\[CI::travis::opensuse\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)    
+      if: commit_message =~ /\[CI::opensuse:leap\]/ OR commit_message =~ /\[CI::python37\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)    
 
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.6.6','DOCKER_IMAGE=opensuse:leap']
-      if: commit_message =~ /\[CI::travis::opensuse\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)      
+      if: commit_message =~ /\[CI::opensuse:leap\]/ OR commit_message =~ /\[CI::python36\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)      
           
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.5.1','DOCKER_IMAGE=opensuse:leap']
-      if: commit_message =~ /\[CI::travis::opensuse\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)    
+      if: commit_message =~ /\[CI::opensuse:leap\]/ OR commit_message =~ /\[CI::python35\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)    
           
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=2.7.15','DOCKER_IMAGE=opensuse:leap']
-      if: commit_message =~ /\[CI::travis::opensuse\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)               
+      if: commit_message =~ /\[CI::opensuse:leap\]/ OR commit_message =~ /\[CI::python27\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)               
           
-    # ///////////////////////////////// linux_conda
+    # ///////////////////////////////// trusty:conda
 
     # Example to compile by hand
     # USE_CONDA=1 PYTHON_VERSION=3.6 ./build.sh
@@ -200,37 +141,98 @@ matrix:
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.7','USE_CONDA=1']       
-      if: commit_message =~ /\[CI::travis::linux_conda\]/  OR (commit_message !~ /\[CI::/ AND true)
+      if: commit_message =~ /\[CI::trusty:conda\]/ OR commit_message =~ /\[CI::python37\]/  OR (commit_message !~ /\[CI:/)
 
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=3.6','USE_CONDA=1']       
-      if: commit_message =~ /\[CI::travis::linux_conda\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)
+      if: commit_message =~ /\[CI::trusty:conda\]/ OR commit_message =~ /\[CI::python36\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)
      
     - os: linux
       dist: trusty
       env: ['PYTHON_VERSION=2.7','USE_CONDA=1']  
-      if: commit_message =~ /\[CI::travis::linux_conda\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)
+      if: commit_message =~ /\[CI::trusty:conda\]/ OR commit_message =~ /\[CI::python27\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)
           
-    # ///////////////////////////////// osx_conda
+
+    # ///////////////////////////////// osx1014
+   
+    - os: osx
+      osx_image: xcode10.2
+      compiler: clang
+      env: [PYTHON_VERSION=3.7.1]     
+      if: commit_message =~ /\[CI::osx1014\]/ OR commit_message =~ /\[CI::python37\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)
+    
+    - os: osx
+      osx_image: xcode10.2
+      compiler: clang
+      if: commit_message =~ /\[CI::osx1014\]/ OR commit_message =~ /\[CI::python36\]/  OR (commit_message !~ /\[CI:/)
+      env: [PYTHON_VERSION=3.6.5]   
+     
+    - os: osx
+      osx_image: xcode10.2
+      compiler: clang
+      env: [PYTHON_VERSION=2.7.15]
+      if: commit_message =~ /\[CI::osx1014\]/ OR commit_message =~ /\[CI::python27\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)
+     
+    # ///////////////////////////////// osx1013
+    
+    - os: osx
+      osx_image: xcode9.4
+      compiler: clang
+      env: [PYTHON_VERSION=3.7.1]     
+      if: commit_message =~ /\[CI::osx1013\]/ OR commit_message =~ /\[CI::python37\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)
+    
+    - os: osx
+      osx_image: xcode9.4 
+      compiler: clang
+      env: [PYTHON_VERSION=3.6.5]   
+      if: commit_message =~ /\[CI::osx1013\]/ OR commit_message =~ /\[CI::python36\]/  OR (commit_message !~ /\[CI:/)
+
+    - os: osx
+      osx_image: xcode9.4 
+      compiler: clang
+      env: [PYTHON_VERSION=2.7.15] 
+      if: commit_message =~ /\[CI::osx1013\]/ OR commit_message =~ /\[CI::python27\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)
+      
+    # ///////////////////////////////// osx1012
+    
+    - os: osx
+      osx_image: xcode8.3
+      compiler: clang
+      env: ['PYTHON_VERSION=3.7.1']    
+      if: commit_message =~ /\[CI::osx1012\]/ OR commit_message =~ /\[CI::python37\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)       
+             
+    - os: osx
+      osx_image: xcode8.3
+      compiler: clang 
+      env: ['PYTHON_VERSION=3.6.1']      
+      if: commit_message =~ /\[CI::osx1012\]/ OR commit_message =~ /\[CI::python36\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)  
+      
+    - os: osx
+      osx_image: xcode8.3
+      compiler: clang
+      env: ['PYTHON_VERSION=2.7.14']   
+      if: commit_message =~ /\[CI::osx1012\]/ OR commit_message =~ /\[CI::python27\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)  
+
+    # ///////////////////////////////// osx:conda
 
     - os: osx
       osx_image: xcode9.4
       compiler: clang
       env: [PYTHON_VERSION=3.7, 'USE_CONDA=1']
-      if: commit_message =~ /\[CI::travis::osx_conda\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)     
+      if: commit_message =~ /\[CI::osx:conda\]/ OR commit_message =~ /\[CI::python37\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)     
     
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       env: [PYTHON_VERSION=3.6, 'USE_CONDA=1']
-      if: commit_message =~ /\[CI::travis::osx_conda\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)      
+      if: commit_message =~ /\[CI::osx:conda\]/ OR commit_message =~ /\[CI::python36\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)      
      
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       env: [PYTHON_VERSION=2.7, 'USE_CONDA=1']
-      if: commit_message =~ /\[CI::travis::osx_conda\]/  OR (commit_message !~ /\[CI::/ AND tag IS present)  
+      if: commit_message =~ /\[CI::osx:conda\]/ OR commit_message =~ /\[CI::python27\]/  OR (commit_message !~ /\[CI:/ AND tag IS present)  
 
 script:
    - |
