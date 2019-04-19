@@ -300,9 +300,9 @@ function InstallPackages {
 
 
 # //////////////////////////////////////////////////////////////
-function UpdateOSAndInstallCompilers {
+function UpdateOS {
 
-	echo "Installing prerequisites..."
+	BeginSection "UpdateOS"
 
 	if (( OSX == 1 )) ; then
 
@@ -336,7 +336,7 @@ function UpdateOSAndInstallCompilers {
 			fi
 		fi
 
-		InstallPackages build-essential git curl ca-certificates uuid-dev automake bzip2 libffi-dev
+		InstallPackages git curl ca-certificates uuid-dev automake bzip2 libffi-dev
 
 	elif (( OPENSUSE == 1 )) ; then
 
@@ -345,7 +345,7 @@ function UpdateOSAndInstallCompilers {
 			${SudoCmd} zypper --non-interactive install --type pattern devel_basis
 		fi
 
-		InstallPackages gcc-c++ git curl lsb-release libuuid-devel libffi-devel
+		InstallPackages git curl lsb-release libuuid-devel libffi-devel
 		
 	elif (( CENTOS == 1 )) ; then
 
@@ -353,11 +353,35 @@ function UpdateOSAndInstallCompilers {
 			${SudoCmd} yum update 1>/dev/null  && :
 		fi
 
-		InstallPackages gcc-c++ zlib zlib-devel curl libffi-devel
+		InstallPackages zlib zlib-devel curl libffi-devel
 	fi
 
 	
 	echo "Installed prerequisites"
+	return 0
+}
+
+
+# //////////////////////////////////////////////////////////////
+function InstallCompilers {
+
+	BeginSection "InstallCompilers"
+
+	if (( OSX == 1 )) ; then
+		echo "Assuming XCode is already installed"
+
+	elif (( UBUNTU == 1 )) ; then
+		InstallPackages build-essential
+
+	elif (( OPENSUSE == 1 )) ; then
+		InstallPackages gcc-c++ 
+		
+	elif (( CENTOS == 1 )) ; then
+		InstallPackages gcc-c++ 
+	fi
+
+	echo "Installed prerequisites"
+	return 0
 }
 
 # //////////////////////////////////////////////////////
@@ -984,11 +1008,8 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
 	exit 0
 fi
 
-if [ ! -f ${BUILD_DIR}/.done.UpdateOSAndInstallCompilers ] ; then
-  BeginSection "UpdateOSAndInstallCompilers"
-	UpdateOSAndInstallCompilers
-	touch ${BUILD_DIR}/.done.UpdateOSAndInstallCompilers
-fi
+
+UpdateOS && :
 
 if (( OSX != 1 )); then
 	InstallPatchElf
@@ -1038,6 +1059,7 @@ if (( USE_CONDA == 1 )) ; then
 
 else	
 
+	InstallCompilers
 	InstallCMake
 	InstallSwig
 	InstallPyEnvPython
