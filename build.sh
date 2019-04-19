@@ -710,17 +710,17 @@ function InstallMinimalQt5 {
 	tar xzf ${filename} -C ${CACHE_DIR} 
 	
 	# check pyqt version
-	GetVersionFromCommand "python -m pip show PyQt5" "Version: "
+	GetVersionFromCommand "${PYTHON_EXECUTABLE} -m pip show PyQt5" "Version: "
 	
 	if [[ "${__version__}" != "${QT_VERSION}" ]]; then
-		python -m pip install -q uninstall PyQt5 || true
-		python -m pip install -q --user PyQt5==${QT_VERSION}
+		${PYTHON_EXECUTABLE} -m pip install -q uninstall PyQt5 || true
+		${PYTHON_EXECUTABLE} -m pip install -q --user PyQt5==${QT_VERSION}
 		echo "PyQt5==${QT_VERSION} installed"
 	else
 		echo "PyQt5==${QT_VERSION} already installed"
 	fi
 	
-	PyQt5_DIR=$(python -c 'import os,PyQt5;print(os.path.dirname(PyQt5.__file__))')
+	PyQt5_DIR=$(${PYTHON_EXECUTABLE} -c 'import os,PyQt5;print(os.path.dirname(PyQt5.__file__))')
 	
 	cp -r ${PyQt5_DIR}/Qt/lib/*   ${CACHE_DIR}/qt${QT_VERSION}/lib/
 	cp -r ${PyQt5_DIR}/Qt/plugins ${CACHE_DIR}/qt${QT_VERSION}/
@@ -827,34 +827,68 @@ function InstallQt5 {
 
 
 # ///////////////////////////////////////////////////////
-function InstallPyEnvPython {
+function InstallPython {
 
-	BeginSection InstallPyEnvPython
-
+	BeginSection InstallPython
+	
+	PYTHON_MAJOR_VERSION=${PYTHON_VERSION:0:1}
+	PYTHON_MINOR_VERSION=${PYTHON_VERSION:2:1}	
+	
+	if (( PYTHON_MAJOR_VERSION > 2 )) ; then 
+		PYTHON_M_VERSION=${PYTHON_VERSION:0:3}m 
+	else
+		PYTHON_M_VERSION=${PYTHON_VERSION:0:3}
+	fi	
+	
 	# install python using pyenv
 	if (( OSX == 1 )) ; then
+		
+		# pyenv does not support 3.7.x  maxosx 10.(12|13)
+		if (( 1 == 1 )) ; then
 
-		InstallPackages readline zlib openssl openssl@1.1 pyenv && :
+			package_name=python${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}
+			
+			brew install sashkab/python/${package_name}
+			
+			package_dir=$(brew --prefix ${package_name})
+			
+			PYTHON_EXECUTABLE=${package_dir}/bin/python${PYTHON_VERSION:0:3}
+			PYTHON_INCLUDE_DIR=${package_dir}/Frameworks/Python.framework/Versions/${PYTHON_VERSION:0:3}/include/python${PYTHON_M_VERSION}
+			PYTHON_LIBRARY=${package_dir}/Frameworks/Python.framework/Versions/${PYTHON_VERSION:0:3}/lib/libpython${PYTHON_M_VERSION}.dylib
+			
+		else
 
-		# activate pyenv
-		eval "$(pyenv init -)"
-
-		export CONFIGURE_OPTS="--enable-shared"
-		export CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include"
-		export LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib"
-		export CPPFLAGS="${CFLAGS}"
-
-		pyenv install --skip-existing ${PYTHON_VERSION} && :
-		if [ $? != 0 ] ; then 
-			echo "pyenv failed to install"
-			pyenv install --list
-			exit -1
-		fi
-
-		unset CONFIGURE_OPTS
-		unset CFLAGS
-		unset LDFLAGS
-		unset CPPFLAGS
+			InstallPackages readline zlib openssl openssl@1.1 pyenv && :
+	
+			# activate pyenv
+			eval "$(pyenv init -)"
+	
+			export CONFIGURE_OPTS="--enable-shared"
+			export CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include"
+			export LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib"
+			export CPPFLAGS="${CFLAGS}"
+	
+			pyenv install --skip-existing ${PYTHON_VERSION} && :
+			if [ $? != 0 ] ; then 
+				echo "pyenv failed to install"
+				pyenv install --list
+				exit -1
+			fi
+	
+			unset CONFIGURE_OPTS
+			unset CFLAGS
+			unset LDFLAGS
+			unset CPPFLAGS
+			
+			eval "$(pyenv init -)"
+			pyenv global ${PYTHON_VERSION}
+			pyenv rehash
+		
+			PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python
+			PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_M_VERSION}
+			PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.dylib 	
+			
+		fi		
 		
 	else
 
@@ -893,35 +927,22 @@ function InstallPyEnvPython {
 		unset CFLAGS
 		unset CPPFLAGS
 		unset LDFLAGS
+		
+		# activate pyenv
+		export PATH="$HOME/.pyenv/bin:$PATH"
+		eval "$(pyenv init -)"
+		pyenv global ${PYTHON_VERSION}
+		pyenv rehash
 	
+		PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python
+		PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_M_VERSION}
+		PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.so
+		
 	fi
-
-	# activate pyenv
-	if (( OSX != 1 )) ; then
-		export PATH="$HOME/.pyenv/bin:$PATH"	
-	fi
-
-	eval "$(pyenv init -)"
-	pyenv global ${PYTHON_VERSION}
-	pyenv rehash
-
+	
 	# install python packages
-	python -m pip install -q --upgrade pip
-	python -m pip install -q numpy setuptools wheel twine auditwheel	
-
-	__m__=
-	if [ "${PYTHON_VERSION:0:1}" -gt "2" ]; then 
-		__m__=m        
-	fi
-	
-	__ext__=.so
-	if (( OSX == 1 )); then 
-		__ext__=.dylib 
-	fi
-
-	PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python
-	PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_VERSION:0:3}${__m__}
-	PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_VERSION:0:3}${__m__}${__ext__}
+	${PYTHON_EXECUTABLE} -m pip install -q --upgrade pip
+	${PYTHON_EXECUTABLE} -m pip install -q numpy setuptools wheel twine auditwheel		
 	
 	return 0
 }
@@ -940,7 +961,7 @@ function DeployToPyPi {
 	echo username=${PYPI_USERNAME}                   >> ~/.pypirc
 	echo password=${PYPI_PASSWORD}                   >> ~/.pypirc
 
-	python -m twine upload --skip-existing "${WHEEL_FILENAME}"
+	${PYTHON_EXECUTABLE} -m twine upload --skip-existing "${WHEEL_FILENAME}"
 }
 
 
@@ -1062,7 +1083,7 @@ else
 	InstallCompilers
 	InstallCMake
 	InstallSwig
-	InstallPyEnvPython
+	InstallPython
 	
 	if (( OSX != 1 && VISUS_MODVISUS == 1 )); then	
 		InstallApache
@@ -1150,18 +1171,18 @@ fi
 # test extending python
 if (( 1 == 1 )); then
 	BeginSection "Test OpenVisus (extending python)"
-	pushd $(python -m OpenVisus dirname)
-	python Samples/python/Array.py
-	python Samples/python/Dataflow.py
-	python Samples/python/Idx.py
+	pushd $(${PYTHON_EXECUTABLE} -m OpenVisus dirname)
+	${PYTHON_EXECUTABLE} Samples/python/Array.py
+	${PYTHON_EXECUTABLE} Samples/python/Dataflow.py
+	${PYTHON_EXECUTABLE} Samples/python/Idx.py
 	popd
 fi
 
 # test stand alone scripts
 if (( USE_CONDA == 0 )) ; then
 	BeginSection "Test OpenVisus (embedding python)"
-	python -m OpenVisus CreateScripts
-	pushd $(python -m OpenVisus dirname)
+	${PYTHON_EXECUTABLE} -m OpenVisus CreateScripts
+	pushd $(${PYTHON_EXECUTABLE} -m OpenVisus dirname)
 	if (( OSX == 1 )) ; then
 		./visus.command
 	else
