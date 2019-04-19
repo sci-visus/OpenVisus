@@ -844,7 +844,7 @@ function InstallPython {
 	if (( OSX == 1 )) ; then
 		
 		# pyenv does not support 3.7.x  maxosx 10.(12|13)
-		if (( 1 == 1 )) ; then
+		if (( PYTHON_MAJOR_VERSION == 3 && PYTHON_MINOR_VERSION ==  7 )) ; then
 
 			package_name=python${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}
 			
