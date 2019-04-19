@@ -31,8 +31,9 @@ PYPI_PASSWORD=${PYPI_PASSWORD:-}
 # deploy github
 DEPLOY_GITHUB=${DEPLOY_GITHUB:-0}
 GITHUB_API_TOKEN=${GITHUB_API_TOKEN:-}
+TRAVIS_TAG=${TRAVIS_TAG:-}
 
-# in case you want to try manylinux-like compilation
+# in case you want to try manylinux-like compilation (for debugging only)
 UseInstalledPackages=${UseInstalledPackages:-1}
 
 # //////////////////////////////////////////////////////
@@ -170,7 +171,6 @@ function BuildPreamble {
 	fi
 }
 
-
 # ///////////////////////////////////////////////////////////////////////////////////////////////
 function DockerBuild {
 
@@ -195,9 +195,9 @@ function DockerBuild {
 	docker_opts+=(-e DISABLE_OPENMP=${DISABLE_OPENMP})
 	docker_opts+=(-e VISUS_GUI=${VISUS_GUI})
 	docker_opts+=(-e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
-	docker_opts+=(-e USE_CONDA=${USE_CONDA})
 
 	# deploy to conda
+	docker_opts+=(-e USE_CONDA=${USE_CONDA})
 	docker_opts+=(-e DEPLOY_CONDA=${DEPLOY_CONDA})
 	docker_opts+=(-e ANACONDA_TOKEN=${ANACONDA_TOKEN})
 
@@ -209,6 +209,7 @@ function DockerBuild {
 	# deploy to github
 	docker_opts+=(-e DEPLOY_GITHUB=${DEPLOY_GITHUB})
 	docker_opts+=(-e GITHUB_API_TOKEN=${GITHUB_API_TOKEN})
+	docker_opts+=(-e TRAVIS_TAG=${TRAVIS_TAG})
 
 	sudo docker run -d -ti --name mydocker ${docker_opts[@]} ${DOCKER_IMAGE} /bin/bash
 	sudo docker exec mydocker /bin/bash -c "cd /root/OpenVisus && ./build.sh"
@@ -939,17 +940,17 @@ function DeployToGitHub {
 	# rename to avoid collisions
 	if (( UBUNTU == 1 )); then
 		old_filename=$filename
-		filename=${filename/.tar.gz/.ubuntu.${UBUNTU_VERSION}.tar.gz}
+		filename=${filename/manylinux1_x86_64.tar.gz/ubuntu.${UBUNTU_VERSION}.tar.gz}
 		mv $old_filename $filename
 
 	elif (( OPENSUSE == 1 )); then
 		old_filename=$filename
-		filename=${filename/.tar.gz/.opensuse.tar.gz}
+		filename=${filename/manylinux1_x86_64.tar.gz/opensuse.tar.gz}
 		mv $old_filename $filename
 
 	elif (( CENTOS == 1 )); then
 		old_filename=$filename
-		filename=${filename/.tar.gz/.centos.${CENTOS_VERSION}.tar.gz}
+		filename=${filename/manylinux1_x86_64.tar.gz/centos.${CENTOS_VERSION}.tar.gz}
 		mv $old_filename $filename
 
 	fi
