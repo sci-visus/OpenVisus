@@ -53,10 +53,6 @@ class Openvisus(CMakePackage):
 	variant('gui', default=False,description='Include Gui stuff')	
 	
 	# non-gui
-	depends_on('zlib')
-	depends_on('lz4')
-	depends_on('openssl')
-	depends_on('curl')
 	depends_on('swig')
 	depends_on('python@3.6.6')
 	depends_on('py-numpy')	
@@ -67,9 +63,7 @@ class Openvisus(CMakePackage):
 	# cmake_args
 	def cmake_args(self):
 		return [
-			'-DVISUS_INTERNAL_DEFAULT=0', 
-			'-DVISUS_GUI=%s' % ('1' if '+gui' in self.spec else '0',),  
-			'-DVISUS_INTERNAL_FREEIMAGE=1' # spack does not have freeimage package
+			'-DVISUS_GUI=%s' % ('1' if '+gui' in self.spec else '0',)  
 		]
 
 	# readme

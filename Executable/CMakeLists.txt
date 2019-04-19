@@ -1,10 +1,13 @@
 
 add_subdirectory(visus)
-add_subdirectory(mod_visus)
+
+if (VISUS_MODVISUS)
+	add_subdirectory(mod_visus)
+endif()
 
 if (VISUS_GUI)
   add_subdirectory(viewer)
-ENDIF()
+endif()
 
 
 

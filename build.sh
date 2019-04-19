@@ -16,6 +16,7 @@ PYENV_ROOT=${PYENV_ROOT:-${HOME}/.pyenv}
 PYTHON_VERSION=${PYTHON_VERSION:-3.6.1}
 DISABLE_OPENMP=${DISABLE_OPENMP:-0}
 VISUS_GUI=${VISUS_GUI:-1}
+VISUS_MODVISUS=${VISUS_MODVISUS:-1}
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
 
 # conda stuff
@@ -83,14 +84,17 @@ function GetVersionFromCommand {
 
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
-function EchoSection {
+function BeginSection {
 	set +x	
 	echo "//////////////////////////////////////////////////////////////////////// $1"
 	set -x
 }
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
-function BuildPreamble {	
+function Preamble {	
+
+	
+	BeginSection "Preamble"
 
 	# if is docker or not
 	DOCKER=0
@@ -172,7 +176,7 @@ function BuildPreamble {
 }
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
-function DockerBuild {
+function BuildUsingDocker {
 
 	# note: sudo is needed anyway otherwise travis fails
 	sudo docker rm -f mydocker 2>/dev/null || true
@@ -194,6 +198,7 @@ function DockerBuild {
 	docker_opts+=(-e PYTHON_VERSION=${PYTHON_VERSION})
 	docker_opts+=(-e DISABLE_OPENMP=${DISABLE_OPENMP})
 	docker_opts+=(-e VISUS_GUI=${VISUS_GUI})
+	docker_opts+=(-e VISUS_MODVISUS=${VISUS_MODVISUS})
 	docker_opts+=(-e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
 	# deploy to conda
@@ -218,59 +223,18 @@ function DockerBuild {
 	sudo chmod -R u+rwx           ${BUILD_DIR} 1>/dev/null && :
 }
 
-
-
 # ///////////////////////////////////////////////////////////////////////////////////////////////
-function CondaBuild {
-
-	# here I need sudo! 
-	if (( OSX ==  1 && IsRoot == 1 )) ; then
-		if [ ! -d /opt/MacOSX10.9.sdk ] ; then
-			git clone https://github.com/phracker/MacOSX-SDKsF
-			sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
-			rm -Rf MacOSX-SDKs
-		fi
+function InstallMiniconda {
+	
+	pushd $HOME
+	if (( OSX == 1 )) ; then
+		DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh
+		bash Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh -b
+	else
+		DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh
+		bash Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -b
 	fi
-
-	if [ ! -d $HOME/miniconda${PYTHON_VERSION:0:1} ]; then
-		pushd $HOME
-		if (( OSX == 1 )) ; then
-			DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh
-			bash Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh -b
-		else
-			DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh
-			bash Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -b
-		fi
-		popd
-	fi
-
-	export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
-	hash -r	
-	conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-	conda install -q conda-build anaconda-client && :
-	conda update  -q conda conda-build           && :
-	conda install -q python=${PYTHON_VERSION}	   && :
-
-	export PATH="$HOME/miniconda${PYTHON_VERSION:0:1}/bin:$PATH"
-	hash -r
-
-	pushd conda
-	conda-build -q openvisus
-	conda install -q --use-local openvisus
 	popd
-
-	# test openvisus
-	cd $(python -m OpenVisus dirname)
-	python Samples/python/Array.py
-	python Samples/python/Dataflow.py
-	python Samples/python/Idx.py
-
-	# deploy to conda
-	if (( DEPLOY_CONDA == 1 )) ; then
-		CONDA_BUILD_FILENAME=$(find ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld -iname "openvisus*.tar.bz2")
-		echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
-		anaconda -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
-	fi
 }
 
 
@@ -399,6 +363,8 @@ function UpdateOSAndInstallCompilers {
 # //////////////////////////////////////////////////////
 function InstallCMake {
 
+	BeginSection "InstallCMake"
+
 	if [ -f "${CACHE_DIR}/bin/cmake" ]; then
 		echo "Using cached cmake"
 		return 0
@@ -440,9 +406,13 @@ function InstallCMake {
 # //////////////////////////////////////////////////////
 function InstallSwig {
 
+	BeginSection "InstallSwig"
+	
+	unset SWIG_EXECUTABLE
+
 	if [ -f "${CACHE_DIR}/bin/swig" ]; then	
 		echo "Using cached swig"
-		cmake_opts+=(-DSWIG_EXECUTABLE=${CACHE_DIR}/bin/swig)
+		SWIG_EXECUTABLE=${CACHE_DIR}/bin/swig
 		return 0
 	fi
 
@@ -455,7 +425,7 @@ function InstallSwig {
 			GetVersionFromCommand "swig -version" "SWIG Version "
 			if (( __major__>= 3)); then
 				echo "Good version: swig==${__version__}"
-				cmake_opts+=(-DSWIG_EXECUTABLE=$(which swig))	
+				SWIG_EXECUTABLE=$(which swig)	
 				return 0
 			else
 				echo "Wrong version: swig==${__version__}"
@@ -466,7 +436,7 @@ function InstallSwig {
 
 		# already installed
 		if [[ -x "$(command -v swig3.0)" ]]; then
-			cmake_opts+=(-DSWIG_EXECUTABLE=$(which swig3.0))	
+			SWIG_EXECUTABLE=$(which swig3.0)
 			return 0
 		fi
 
@@ -484,12 +454,14 @@ function InstallSwig {
 	popd
 	rm -Rf swig-3.0.12
 
-	cmake_opts+=(-DSWIG_EXECUTABLE=${CACHE_DIR}/bin/swig)
+	SWIG_EXECUTABLE=${CACHE_DIR}/bin/swig
 	return 0
 }
 
 # //////////////////////////////////////////////////////
 function InstallPatchElf {
+
+	BeginSection "InstallPatchElf"
 
 	if [ -f "${CACHE_DIR}/bin/patchelf" ]; then
 		echo "using cached patchelf"
@@ -597,10 +569,15 @@ function InstallOpenSSL {
 # //////////////////////////////////////////////////////
 function InstallApache {
 
+	unset APR_DIR
+	unset APACHE_DIR
+
+	BeginSection "InstallApache"
+
 	if [ -f "${CACHE_DIR}/include/httpd.h" ] ; then
 		echo "Using cached apache"
-		cmake_opts+=(-DAPR_DIR=${CACHE_DIR})
-		cmake_opts+=(-DAPACHE_DIR=${CACHE_DIR})
+		APR_DIR={CACHE_DIR}
+		APACHE_DIR=${CACHE_DIR}
 		return 0		
 	fi
 
@@ -665,20 +642,85 @@ function InstallApache {
 	popd
 	rm -Rf httpd-2.4.38
 	
-	cmake_opts+=(-DAPR_DIR=${CACHE_DIR})
-	cmake_opts+=(-DAPACHE_DIR=${CACHE_DIR})
+	APR_DIR={CACHE_DIR}
+	APACHE_DIR=${CACHE_DIR}
 	return 0
 }
 
+# //////////////////////////////////////////////////////
+function CreateMinimalQt5 {
+	QT_VERSION=$1
+	wget http://download.qt.io/official_releases/qt/${QT_VERSION:0:4}/${QT_VERSION}/qt-opensource-linux-x64-${QT_VERSION}.run
+	chmod +x qt-opensource-linux-x64-${QT_VERSION}.run
+	./qt-opensource-linux-x64-5${QT_VERSION}.run	
+	SRC=${HOME}/Qt${QT_VERSION}/${QT_VERSION}/gcc_64
+	cd /tmp
+	
+	rm -Rf   qt${QT_VERSION}/*
+	
+	mkdir -p qt${QT_VERSION}
+	mkdir -p qt${QT_VERSION}/bin
+	mkdir -p qt${QT_VERSION}/lib
+	mkdir -p qt${QT_VERSION}/mkspecs
+	
+	cp -r ${SRC}/include                 qt${QT_VERSION}/  
+	cp -r ${SRC}/bin/qmake               qt${QT_VERSION}/bin/
+	cp -r ${SRC}/bin/moc                 qt${QT_VERSION}/bin/
+	cp -r ${SRC}/bin/rcc                 qt${QT_VERSION}/bin/
+	cp -r ${SRC}/bin/uic                 qt${QT_VERSION}/bin/ 
+	cp -r ${SRC}/lib/cmake               qt${QT_VERSION}/lib/
+	cp -r ${SRC}/mkspecs/linux-g++       qt${QT_VERSION}/mkspecs/
+	
+	tar czf qt${QT_VERSION}.tar.gz qt${QT_VERSION}
+	scp qt${QT_VERSION}.tar.gz scrgiorgio@atlantis.sci.utah.edu:/www/qt/
+	rm -Rf qt${QT_VERSION}.tar.gz qt${QT_VERSION}
+}
+
+# //////////////////////////////////////////////////////
+function InstallMinimalQt5 {
+
+	QT_VERSION=$1
+	url="http://atlantis.sci.utah.edu/qt/qt${QT_VERSION}.tar.gz"
+	filename=$(basename ${url})
+	DownloadFile "${url}"
+	tar xzf ${filename} -C ${CACHE_DIR} 
+	
+	# check pyqt version
+	GetVersionFromCommand "python -m pip show PyQt5" "Version: "
+	
+	if [[ "${__version__}" != "${QT_VERSION}" ]]; then
+		python -m pip install -q uninstall PyQt5 || true
+		python -m pip install -q --user PyQt5==${QT_VERSION}
+		echo "PyQt5==${QT_VERSION} installed"
+	else
+		echo "PyQt5==${QT_VERSION} already installed"
+	fi
+	
+	PyQt5_DIR=$(python -c 'import os,PyQt5;print(os.path.dirname(PyQt5.__file__))')
+	
+	cp -r ${PyQt5_DIR}/Qt/lib/*   ${CACHE_DIR}/qt${QT_VERSION}/lib/
+	cp -r ${PyQt5_DIR}/Qt/plugins ${CACHE_DIR}/qt${QT_VERSION}/
+	
+	# fix *.so links (example libQt5OpenGL.so.5.11.2 / libQt5OpenGL.so.5.11 / libQt5OpenGL.so.5)
+	FILES=$(find ${CACHE_DIR}/qt${QT_VERSION}/lib -iname "libQt5*.so.5")
+	for it in ${FILES}
+	do
+		ln -s ${it} ${it}.${QT_VERSION:2:2}
+		ln -s ${it} ${it}.${QT_VERSION:2:2}.${QT_VERSION:5:1}
+	done
+}
 
 # //////////////////////////////////////////////////////
 function InstallQt5 {
+	
+	BeginSection "InstallQt5"
 
 	# already set by user
-	if [ ! -z "${Qt5_DIR}" ] ; then
-		cmake_opts+=(-DQt5_DIR=${Qt5_DIR})
+	if [[ "${Qt5_DIR}" != "" ]] ; then
 		return 0
 	fi
+	
+	unset Qt5_DIR
 
 	# install qt 5.11 (instead of 5.12 which is not supported by PyQt5)
 	if (( OSX == 1 )); then
@@ -690,7 +732,6 @@ function InstallQt5 {
 		fi
 
 		Qt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5
-		cmake_opts+=(-DQt5_DIR=${Qt5_DIR})
 		return 0
 	fi
 
@@ -729,7 +770,6 @@ function InstallQt5 {
 			if [ $? == 0 ] ; then
 				echo "Using Qt5 from unbuntu repository"g
 				Qt5_DIR=${OPT_QT5_DIR}
-				cmake_opts+=(-DQt5_DIR=${Qt5_DIR})
 				return 0
 			fi
 		fi
@@ -750,62 +790,12 @@ function InstallQt5 {
 
 	QT_VERSION=5.11.2
 	Qt5_DIR=${CACHE_DIR}/qt${QT_VERSION}/lib/cmake/Qt5
-	cmake_opts+=(-DQt5_DIR=${Qt5_DIR})
 
 	# if you want to create a "new" minimal Qt5 file this is what I did
-	if (( 0 == 1 )); then
-		wget http://download.qt.io/official_releases/qt/${QT_VERSION:0:4}/${QT_VERSION}/qt-opensource-linux-x64-${QT_VERSION}.run
-		chmod +x qt-opensource-linux-x64-${QT_VERSION}.run
-		./qt-opensource-linux-x64-5${QT_VERSION}.run	
-		SRC=${HOME}/Qt${QT_VERSION}/${QT_VERSION}/gcc_64
-		cd /tmp
-		rm -Rf   qt${QT_VERSION}/*
-		mkdir -p qt${QT_VERSION}
-		mkdir -p qt${QT_VERSION}/bin
-		mkdir -p qt${QT_VERSION}/lib
-		mkdir -p qt${QT_VERSION}/plugins
-		mkdir -p qt${QT_VERSION}/mkspecs
-		cp -r ${SRC}/include                 qt${QT_VERSION}/  
-		cp -r ${SRC}/bin/qmake               qt${QT_VERSION}/bin/
-		cp -r ${SRC}/bin/moc                 qt${QT_VERSION}/bin/
-		cp -r ${SRC}/bin/rcc                 qt${QT_VERSION}/bin/
-		cp -r ${SRC}/bin/uic                 qt${QT_VERSION}/bin/ 
-		cp -r ${SRC}/lib/cmake               qt${QT_VERSION}/lib/
-		cp -r ${SRC}/mkspecs/linux-g++       qt${QT_VERSION}/mkspecs/
-		tar czf qt${QT_VERSION}.tar.gz qt${QT_VERSION}
-		scp qt${QT_VERSION}.tar.gz scrgiorgio@atlantis.sci.utah.edu:/www/qt/
-		rm -Rf qt${QT_VERSION}.tar.gz qt${QT_VERSION}
-	fi
-
+	# CreateMinimalQt5 ${QT_VERSION}
+	
 	if [ ! -d "${Qt5_DIR}" ] ; then
-
-		url="http://atlantis.sci.utah.edu/qt/qt${QT_VERSION}.tar.gz"
-		filename=$(basename ${url})
-		DownloadFile "${url}"
-		tar xzf ${filename} -C ${CACHE_DIR} 
-		
-		GetVersionFromCommand "python -m pip show PyQt5" "Version: "
-		if [[ "${__version__}" != "${QT_VERSION}" ]]; then
-			python -m pip install -q uninstall PyQt5 || true
-			python -m pip install -q --user PyQt5==${QT_VERSION}
-			echo "PyQt5==${QT_VERSION} installed"
-		else
-			echo "PyQt5==${QT_VERSION} already installed"
-		fi
-
-		PyQt5_DIR=$(python -c 'import os,PyQt5;print(os.path.dirname(PyQt5.__file__))')
-
-		cp -r ${PyQt5_DIR}/Qt/lib/*   ${CACHE_DIR}/qt${QT_VERSION}/lib/
-		cp -r ${PyQt5_DIR}/Qt/plugins ${CACHE_DIR}/qt${QT_VERSION}/
-
-		# fix *.so links (example libQt5OpenGL.so.5.11.2 / libQt5OpenGL.so.5.11 / libQt5OpenGL.so.5)
-		FILES=$(find ${CACHE_DIR}/qt${QT_VERSION}/lib -iname "libQt5*.so.5")
-		for it in ${FILES}
-		do
-			ln -s ${it} ${it}.${QT_VERSION:2:2}
-			ln -s ${it} ${it}.${QT_VERSION:2:2}.${QT_VERSION:5:1}
-		done
-
+		InstallMinimalQt5 ${QT_VERSION}
 	fi
 
 	return 0
@@ -814,6 +804,8 @@ function InstallQt5 {
 
 # ///////////////////////////////////////////////////////
 function InstallPyEnvPython {
+
+	BeginSection InstallPyEnvPython
 
 	# install python using pyenv
 	if (( OSX == 1 )) ; then
@@ -893,30 +885,28 @@ function InstallPyEnvPython {
 	python -m pip install -q --upgrade pip
 	python -m pip install -q numpy setuptools wheel twine auditwheel	
 
-	if [ "${PYTHON_VERSION:0:1}" -gt "2" ]; then
-		__m__=m
-	else
-		__m__=
+	__m__=
+	if [ "${PYTHON_VERSION:0:1}" -gt "2" ]; then 
+		__m__=m        
+	fi
+	
+	__ext__=.so
+	if (( OSX == 1 )); then 
+		__ext__=.dylib 
 	fi
 
-	if (( OSX == 1 )) ; then
-		__ext__=.dylib
-	else
-		__ext__=.so
-	fi
-
-	cmake_opts+=(-DPYTHON_EXECUTABLE=$(pyenv prefix)/bin/python)
-	cmake_opts+=(-DPYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_VERSION:0:3}${__m__})
-	cmake_opts+=(-DPYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_VERSION:0:3}${__m__}${__ext__})
-	cmake_opts+=(-DPYTHON_VERSION=${PYTHON_VERSION})
-
+	PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python
+	PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_VERSION:0:3}${__m__}
+	PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_VERSION:0:3}${__m__}${__ext__}
+	
 	return 0
 }
 
-
-
 # /////////////////////////////////////////////////////////////////////
 function DeployToPyPi {
+
+
+	BeginSection "DeployToPyPi"
 
 	WHEEL_FILENAME=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.whl")
 	echo "Doing deploy to pypi ${WHEEL_FILENAME}..."
@@ -930,11 +920,11 @@ function DeployToPyPi {
 }
 
 
-
 # /////////////////////////////////////////////////////////////////////
 function DeployToGitHub {
+	
+	BeginSection "DeployToGitHub"
 
-	echo "deploy to github releases"
 	filename=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.tar.gz")
 
 	# rename to avoid collisions
@@ -964,11 +954,18 @@ function DeployToGitHub {
 		"https://uploads.github.com/repos/sci-visus/OpenVisus/releases/$id/assets?name=$(basename ${filename})"
 }
 
+# /////////////////////////////////////////////////////////////////////
+function DeployToConda {
+
+	BeginSection "Deploy conda"
+	CONDA_BUILD_FILENAME=$(find ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld -iname "openvisus*.tar.bz2")
+	echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
+	anaconda -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
+}
 
 
 # /////////////////////////////////////////////////////////////////////
-EchoSection "BuildPreamble"
-BuildPreamble
+Preamble
 
 # minimal (manylinux)
 if (( CENTOS == 1 && CENTOS_MAJOR <=5 )); then
@@ -981,128 +978,190 @@ mkdir -p ${BUILD_DIR}
 mkdir -p ${CACHE_DIR}
 
 if [[ "$DOCKER_IMAGE" != "" ]] ; then
-	EchoSection "DockerBuild"
-	DockerBuild
-	echo "OpenVisus docker build finished"
+	BeginSection "BuildUsingDocker"
+	BuildUsingDocker
+	echo "BuildUsingDocker done"
 	exit 0
 fi
 
-if (( USE_CONDA == 1 )) ; then
-	EchoSection "CondaBuild"
-	CondaBuild
-	echo "OpenVisus conda build finished"
-	exit 0
+if (( OSX != 1 )); then
+	InstallPatchElf
 fi
 
-EchoSection "PyEnvBuild"
-cd ${BUILD_DIR}
 export PATH=${CACHE_DIR}/bin:$PATH
 
-declare -a cmake_opts
+if (( USE_CONDA == 1 )) ; then
 
-cmake_opts+=(-DDISABLE_OPENMP=${DISABLE_OPENMP})
-cmake_opts+=(-DVISUS_GUI=${VISUS_GUI})
-cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
+	# redirecting to conda/OpenVisus/build.sh
+	BeginSection "Build OpenVisus using conda"
 
-EchoSection "UpdateOSAndInstallCompilers"
-if [ -f ${BUILD_DIR}/.done.UpdateOSAndInstallCompilers ] ; then
-	echo "already installed"
-else
-	UpdateOSAndInstallCompilers
-	touch ${BUILD_DIR}/.done.UpdateOSAndInstallCompilers
-fi
+	# here I need sudo! 
+	if (( OSX ==  1)) ; then
+		if [ ! -d /opt/MacOSX10.9.sdk ] ; then
+		  if (( IsRoot == 1 )) ; then
+				git clone https://github.com/phracker/MacOSX-SDKsF
+				sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
+				rm -Rf MacOSX-SDKs
+			else
+				echo "Missing /opt/MacOSX10.9.sdk, but to install it I need sudo"
+				exit -1
+			fi
+		fi
+	fi
 
-EchoSection "InstallCMake"
-InstallCMake
+	# install Miniconda
+	MINICONDA_ROOT=$HOME/miniconda${PYTHON_VERSION:0:1}
+	if [ ! -d  ${MINICONDA_ROOT} ]; then
+		InstallMiniconda
+	fi
 
-EchoSection "InstallSwig"
-InstallSwig
+	# config Miniconda
+	export PATH="${MINICONDA_ROOT}/bin:$PATH"
+	
+	hash -r	
+	conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
+	conda install -q conda-build anaconda-client && :
+	conda update  -q conda conda-build           && :
+	conda install -q python=${PYTHON_VERSION}	   && :
 
-if (( OSX != 1 )); then
-	EchoSection "InstallPatchElf"
-	InstallPatchElf
+	# build Openvisus (see conda/OpenVisus/* files)
+	pushd conda
+	conda-build -q openvisus
+	conda install -q --use-local openvisus
+	popd
 
-fi
+else	
 
-EchoSection "InstallPyEnvPython"
-InstallPyEnvPython
-
-if (( OSX != 1 )); then
-	EchoSection "InstallApache"
-	InstallApache
-fi
-
-if (( VISUS_GUI == 1 )); then
-	EchoSection "InstallQt5"
-	InstallQt5
-fi
-
-EchoSection "Build OpenVisus"
-if (( OSX == 1 )) ; then
-
-	cmake -GXcode ${cmake_opts[@]} ${SOURCE_DIR}  
-
-	if (( TRAVIS == 1 )) ; then
-		${SudoCmd} gem install xcpretty  
-		set -o pipefail && cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
+	if [ ! -f ${BUILD_DIR}/.done.UpdateOSAndInstallCompilers ] ; then
+	  BeginSection "UpdateOSAndInstallCompilers"
+		UpdateOSAndInstallCompilers
+		touch ${BUILD_DIR}/.done.UpdateOSAndInstallCompilers
+	fi
+	
+	InstallCMake
+	InstallSwig
+	InstallPyEnvPython
+	
+	if (( OSX != 1 && VISUS_MODVISUS == 1 )); then	
+		InstallApache
+	fi
+	
+	if (( VISUS_GUI == 1 )); then
+		InstallQt5
+	fi
+	
+	BeginSection "Build OpenVisus using pyenv"
+	
+	declare -a cmake_opts
+	
+	if (( OSX == 1 )) ; then
+		cmake_opts+=(-GXcode)
+		CMAKE_TEST_STEP="RUN_TESTS"
+		CMAKE_ALL_STEP="ALL_BUILD"
 	else
-		cmake                    --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
+		CMAKE_TEST_STEP="test"
+		CMAKE_ALL_STEP="all"
+	fi
+	
+	cmake_opts+=(-DDISABLE_OPENMP=${DISABLE_OPENMP})
+	cmake_opts+=(-DVISUS_GUI=${VISUS_GUI})
+	cmake_opts+=(-DVISUS_MODVISUS=${VISUS_MODVISUS})
+	cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
+	
+	cmake_opts+=(-DPYTHON_VERSION=${PYTHON_VERSION})	
+	cmake_opts+=(-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE})
+	cmake_opts+=(-DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR})
+	cmake_opts+=(-DPYTHON_LIBRARY=${PYTHON_LIBRARY})
+	
+	cmake_opts+=(-DSWIG_EXECUTABLE=${SWIG_EXECUTABLE})
+	
+	if [[ "${APR_DIR}" != "" ]]; then
+		cmake_opts+=(-DAPR_DIR=${APR_DIR})
+	fi
+	
+	if [[ "${APACHE_DIR}" != "" ]]; then
+		cmake_opts+=(-DAPACHE_DIR=${APACHE_DIR})
+	fi
+	
+	if [[ "${Qt5_DIR}" != "" ]]; then
+		cmake_opts+=(-DQt5_DIR=${Qt5_DIR})
+	fi
+	
+	pushd ${BUILD_DIR}
+	cmake ${cmake_opts[@]} ${SOURCE_DIR}
+	
+	if (( TRAVIS == 1 && OSX == 1 )) ; then
+		set -o pipefail && cmake --build ./ --target ${CMAKE_ALL_STEP} --config ${CMAKE_BUILD_TYPE} | xcpretty -c
+	else
+		cmake --build ./ --target ${CMAKE_ALL_STEP}  --config ${CMAKE_BUILD_TYPE}
 	fi	
 	
-else
-	cmake ${cmake_opts[@]} ${SOURCE_DIR}
-	cmake --build ./ --target all -- -j 4 
+	BeginSection "Install OpenVisus"
+	cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
 	
-fi
-
-EchoSection "Install OpenVisus"
-cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
-
-# doploy
-EchoSection "dist OpenVisus"
-if (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
-	cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
-	if (( DEPLOY_PYPI   == 1 )) ; then DeployToPyPi   ; fi
-	if (( DEPLOY_GITHUB == 1 )) ; then DeployToGitHub ; fi
-fi
- 
-# tests using CMake targets
-if (( 1 == 1 )) ; then
-	EchoSection "Test (1/2) OpenVisus"
-	if (( OSX == 1 )) ; then
-		cmake --build   . --target  RUN_TESTS       --config ${CMAKE_BUILD_TYPE}	
-	else
-		cmake --build   . --target  test            --config ${CMAKE_BUILD_TYPE}	
+	if (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
+		BeginSection "OpenVisus cmake dist"
+		cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
+	fi	
+	
+	# tests using CMake targets
+	if (( 1 == 1 )) ; then
+		BeginSection "Test OpenVisus (cmake ${CMAKE_TEST_STEP})"
+		cmake --build  ./ --target  ${CMAKE_TEST_STEP} --config ${CMAKE_BUILD_TYPE}	
 	fi
 	
-	# test external app
-	cmake --build      . --target  simple_query    --config ${CMAKE_BUILD_TYPE}
-	
-	if (( VISUS_GUI == 1 )) ; then
-		cmake --build   . --target  simple_viewer2d --config ${CMAKE_BUILD_TYPE}
+	# tests external app
+	if (( 1 == 1 )) ; then
+		BeginSection "Test OpenVisus (cmake external app)"
+		cmake --build ./ --target  simple_query --config ${CMAKE_BUILD_TYPE}
+		if (( VISUS_GUI == 1 )) ; then
+			cmake --build   . --target   simple_viewer2d --config ${CMAKE_BUILD_TYPE}
+		fi	
 	fi
-fi
-
-# test OpenVisus package using python
-if (( 1 == 1 )); then
-	EchoSection "Test (2/2) OpenVisus"
-
+	
+	popd
+	
 	export PYTHONPATH=${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages
-	cd $(python -m OpenVisus dirname)
+	
+fi
+
+# test extending python
+if (( 1 == 1 )); then
+	BeginSection "Test OpenVisus (extending python)"
+	pushd $(python -m OpenVisus dirname)
 	python Samples/python/Array.py
 	python Samples/python/Dataflow.py
 	python Samples/python/Idx.py
-	
-	# test stand alone scripts
+	popd
+fi
+
+# test stand alone scripts
+if (( USE_CONDA == 0 )) ; then
+	BeginSection "Test OpenVisus (embedding python)"
 	python -m OpenVisus CreateScripts
+	pushd $(python -m OpenVisus dirname)
 	if (( OSX == 1 )) ; then
 		./visus.command
 	else
 		./visus.sh
 	fi
+	popd
 fi
 
-echo "OpenVisus pyenv build finished"
+if (( DEPLOY_PYPI == 1 )) ; then 
+	DeployToPyPi   
+fi
+
+if (( DEPLOY_GITHUB == 1 )) ; then 
+	DeployToGitHub 
+fi
+
+# deploy to conda 
+if (( DEPLOY_CONDA == 1 )) ; then
+	DeployToConda
+fi
+
+echo "OpenVisus build finished"
 exit 0
 
 

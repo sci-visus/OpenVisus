@@ -40,6 +40,7 @@ option(VISUS_NET          "Enable net"               ON)
 option(VISUS_IMAGE        "Enable image"             ON)  
 option(VISUS_GUI          "Enable gui"               ON)  
 option(VISUS_OSPRAY       "Enable ospray"            OFF)
+option(VISUS_MODVISUS     "Enable mod_visus"         ON)
 
 message(STATUS "BUILD_SHARED_LIBS  ${BUILD_SHARED_LIBS}")
 message(STATUS "VISUS_COMPRESSION  ${VISUS_COMPRESSION}") 
@@ -47,6 +48,7 @@ message(STATUS "VISUS_NET          ${VISUS_NET}")
 message(STATUS "VISUS_IMAGE        ${VISUS_IMAGE}") 
 message(STATUS "VISUS_GUI          ${VISUS_GUI}") 
 message(STATUS "VISUS_OSPRAY       ${VISUS_OSPRAY}") 
+message(STATUS "VISUS_MODVISUS     ${VISUS_MODVISUS}") 
 
 FindPythonLibrary()
 
