@@ -1047,7 +1047,7 @@ if (( USE_CONDA == 1 )) ; then
 	if (( OSX ==  1)) ; then
 		if [ ! -d /opt/MacOSX10.9.sdk ] ; then
 		  if (( IsRoot == 1 )) ; then
-				git clone https://github.com/phracker/MacOSX-SDKsF
+				git clone  https://github.com/phracker/MacOSX-SDKs.git 
 				sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
 				rm -Rf MacOSX-SDKs
 			else
