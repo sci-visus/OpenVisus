@@ -40,22 +40,22 @@ matrix:
     
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.7.1','COMMIT_REGEXPR=(linux|manylinux)']   
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.7.1','COMMIT_REGEXPR=(manylinux\|python37)']   
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
 
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.6.1','COMMIT_REGEXPR=(linux|manylinux)','DEFAULT=1']   
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.6.1','COMMIT_REGEXPR=(manylinux\|python36)','DEFAULT=1']   
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
           
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.5.1','COMMIT_REGEXPR=(linux|manylinux)']
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.5.1','COMMIT_REGEXPR=(manylinux\|python35)']
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
 
     - os: linux
       dist: trusty  
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=2.7.15''COMMIT_REGEXPR=(linux|manylinux)']
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=2.7.15''COMMIT_REGEXPR=(manylinux\|python27)']
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
           
 
@@ -67,22 +67,22 @@ matrix:
 
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=3.7.1','COMMIT_REGEXPR=(linux|trusty)']  
+      env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=3.7.1','COMMIT_REGEXPR=(trusty\|python37)']  
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
     
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=3.6.1','COMMIT_REGEXPR=(linux|trusty)','DEFAULT=1']   
+      env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=3.6.1','COMMIT_REGEXPR=(trusty\|python36)','DEFAULT=1']   
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
     
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=3.5.1','COMMIT_REGEXPR=(linux|trusty)']  
+      env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=3.5.1','COMMIT_REGEXPR=(trusty\|python35)']  
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
             
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=2.7.15','COMMIT_REGEXPR=(linux|trusty)']  
+      env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=2.7.15','COMMIT_REGEXPR=(trusty\|python27)']  
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
           
 
@@ -94,22 +94,22 @@ matrix:
 
     - os: linux
       dist: xenial
-      env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=3.7.1','COMMIT_REGEXPR=(linux|xenial)'] 
+      env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=3.7.1','COMMIT_REGEXPR=(xenial\|python37)'] 
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
        
     - os: linux
       dist: xenial
-      env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=3.6.1','COMMIT_REGEXPR=(linux|xenial)','DEFAULT=1']  
+      env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=3.6.1','COMMIT_REGEXPR=(xenial\|python36)','DEFAULT=1']  
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
     
     - os: linux
       dist: xenial
-      env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=3.5.1','COMMIT_REGEXPR=(linux|xenial)']     
+      env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=3.5.1','COMMIT_REGEXPR=(xenial\|python35)']     
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
             
     - os: linux
       dist: xenial
-      env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=2.7.15','COMMIT_REGEXPR=(linux|xenial)']  
+      env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=2.7.15','COMMIT_REGEXPR=(xenial\|python27)']  
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
              
 
@@ -121,22 +121,22 @@ matrix:
     
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.7.1','COMMIT_REGEXPR=(linux|leap)']  
+      env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.7.1','COMMIT_REGEXPR=(leap\|python37)']  
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
 
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.6.6','COMMIT_REGEXPR=(linux|leap)','DEFAULT=1']  
+      env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.6.6','COMMIT_REGEXPR=(leap\|python36)','DEFAULT=1']  
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
           
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.5.1','COMMIT_REGEXPR=(linux|leap)']  
-      if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
+      env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.5.1','COMMIT_REGEXPR=(leap|python35)']  
+      if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR\ commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
           
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=2.7.15','COMMIT_REGEXPR=(linux|leap)']   
+      env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=2.7.15','COMMIT_REGEXPR=(leap\|python27)']   
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
           
 
@@ -145,19 +145,19 @@ matrix:
     - os: osx
       osx_image: xcode10.2
       compiler: clang
-      env: ['OSX_VERSION=1014','PYTHON_VERSION=3.7.1','COMMIT_REGEXPR=(osx|osx1014)']  
+      env: ['OSX_VERSION=1014','PYTHON_VERSION=3.7.1','COMMIT_REGEXPR=(osx\|osx1014\|python37)']  
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
     
     - os: osx
       osx_image: xcode10.2
       compiler: clang
-      env: ['OSX_VERSION=1014','PYTHON_VERSION=3.6.5','COMMIT_REGEXPR=(osx|osx1014)','DEFAULT=1']  
+      env: ['OSX_VERSION=1014','PYTHON_VERSION=3.6.5','COMMIT_REGEXPR=(osx\|osx1014\|python36)','DEFAULT=1']  
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
      
     - os: osx
       osx_image: xcode10.2
       compiler: clang
-      env: ['OSX_VERSION=1014','PYTHON_VERSION=2.7.15','COMMIT_REGEXPR=(osx|osx1014)']    
+      env: ['OSX_VERSION=1014','PYTHON_VERSION=2.7.15','COMMIT_REGEXPR=(osx\|osx1014\|python27)']    
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
      
     # ///////////////////////////////// osx1013
@@ -166,19 +166,19 @@ matrix:
     #- os: osx
     #  osx_image: xcode9.4
     #  compiler: clang
-    #  env: ['OSX_VERSION=1013','PYTHON_VERSION=3.7.1','COMMIT_REGEXPR=(osx|osx1013)] 
+    #  env: ['OSX_VERSION=1013','PYTHON_VERSION=3.7.1','COMMIT_REGEXPR=(osx\|osx1013\|python37)] 
     #  if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
     
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.6.5','COMMIT_REGEXPR=(osx|osx1013)','DEFAULT=1']    
+      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.6.5','COMMIT_REGEXPR=(osx\|osx1013\|python36)','DEFAULT=1']    
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
 
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=2.7.15','COMMIT_REGEXPR=(osx|osx1013|osx_1013_27)']   
+      env: ['OSX_VERSION=1013','PYTHON_VERSION=2.7.15','COMMIT_REGEXPR=(osx\|osx1013\|python27)']   
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
       
     # ///////////////////////////////// osx1012
@@ -187,19 +187,19 @@ matrix:
     #- os: osx
     #  osx_image: xcode8.3
     #  compiler: clang
-    #  env: ['OSX_VERSION=1012','PYTHON_VERSION=3.7.1','COMMIT_REGEXPR=(osx|osx1012)'] 
+    #  env: ['OSX_VERSION=1012','PYTHON_VERSION=3.7.1','COMMIT_REGEXPR=(osx\|osx1012\|python37)'] 
     #  if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
              
     - os: osx
       osx_image: xcode8.3
       compiler: clang 
-      env: ['OSX_VERSION=1012','PYTHON_VERSION=3.6.1','COMMIT_REGEXPR=(osx|osx1012)','DEFAULT=1']    
+      env: ['OSX_VERSION=1012','PYTHON_VERSION=3.6.1','COMMIT_REGEXPR=(osx\|osx1012\|python36)','DEFAULT=1']    
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
-      env: ['OSX_VERSION=1012','PYTHON_VERSION=2.7.14','COMMIT_REGEXPR=(osx|osx1012)'] 
+      env: ['OSX_VERSION=1012','PYTHON_VERSION=2.7.14','COMMIT_REGEXPR=(osx\|osx1012\|python27)'] 
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
 
 
@@ -210,17 +210,17 @@ matrix:
 
     - os: linux
       dist: trusty
-      env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=3.7','USE_CONDA=1','COMMIT_REGEXPR=(conda)']     
+      env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=3.7','USE_CONDA=1','COMMIT_REGEXPR=(conda\|conda37)']     
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
 
     - os: linux
       dist: trusty
-      env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=3.6','USE_CONDA=1','COMMIT_REGEXPR=(conda)']  
+      env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=3.6','USE_CONDA=1','COMMIT_REGEXPR=(conda\|conda36)']  
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
      
     - os: linux
       dist: trusty
-      env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=2.7','USE_CONDA=1','COMMIT_REGEXPR=(conda)']   
+      env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=2.7','USE_CONDA=1','COMMIT_REGEXPR=(conda\|conda27)']   
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
           
 
@@ -232,19 +232,19 @@ matrix:
     - os: osx
       osx_image: xcode9.4
       compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.7','USE_CONDA=1','COMMIT_REGEXPR=(conda)']  
+      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.7','USE_CONDA=1','COMMIT_REGEXPR=(conda\|conda37)']  
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
     
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.6','USE_CONDA=1','COMMIT_REGEXPR=(conda)']
+      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.6','USE_CONDA=1','COMMIT_REGEXPR=(conda\|conda36)']
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
 
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=2.7','USE_CONDA=1','COMMIT_REGEXPR=(conda)']
+      env: ['OSX_VERSION=1013','PYTHON_VERSION=2.7','USE_CONDA=1','COMMIT_REGEXPR=(conda\|conda27)']
       if: ( commit_message !~ /\[CI::/ AND ( tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::env(COMMIT_REGEXPR)\]/ 
 
 script:

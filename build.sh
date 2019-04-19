@@ -984,6 +984,12 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
 	exit 0
 fi
 
+if [ ! -f ${BUILD_DIR}/.done.UpdateOSAndInstallCompilers ] ; then
+  BeginSection "UpdateOSAndInstallCompilers"
+	UpdateOSAndInstallCompilers
+	touch ${BUILD_DIR}/.done.UpdateOSAndInstallCompilers
+fi
+
 if (( OSX != 1 )); then
 	InstallPatchElf
 fi
@@ -1032,12 +1038,6 @@ if (( USE_CONDA == 1 )) ; then
 
 else	
 
-	if [ ! -f ${BUILD_DIR}/.done.UpdateOSAndInstallCompilers ] ; then
-	  BeginSection "UpdateOSAndInstallCompilers"
-		UpdateOSAndInstallCompilers
-		touch ${BUILD_DIR}/.done.UpdateOSAndInstallCompilers
-	fi
-	
 	InstallCMake
 	InstallSwig
 	InstallPyEnvPython
