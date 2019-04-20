@@ -37,6 +37,9 @@ TRAVIS_TAG=${TRAVIS_TAG:-}
 # in case you want to try manylinux-like compilation (for debugging only)
 UseInstalledPackages=${UseInstalledPackages:-1}
 
+PYTHON_MAJOR_VERSION=${PYTHON_VERSION:0:1}
+PYTHON_MINOR_VERSION=${PYTHON_VERSION:2:1}	
+
 # //////////////////////////////////////////////////////
 function DownloadFile {
 
@@ -228,11 +231,11 @@ function InstallMiniconda {
 	
 	pushd $HOME
 	if (( OSX == 1 )) ; then
-		DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh
-		bash Miniconda${PYTHON_VERSION:0:1}-latest-MacOSX-x86_64.sh -b
+		DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_MAJOR_VERSION}-latest-MacOSX-x86_64.sh
+		bash Miniconda${PYTHON_MAJOR_VERSION}-latest-MacOSX-x86_64.sh -b
 	else
-		DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh
-		bash Miniconda${PYTHON_VERSION:0:1}-latest-Linux-x86_64.sh -b
+		DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_MAJOR_VERSION}-latest-Linux-x86_64.sh
+		bash Miniconda${PYTHON_MAJOR_VERSION}-latest-Linux-x86_64.sh -b
 	fi
 	popd
 }
@@ -831,13 +834,10 @@ function InstallPython {
 
 	BeginSection InstallPython
 	
-	PYTHON_MAJOR_VERSION=${PYTHON_VERSION:0:1}
-	PYTHON_MINOR_VERSION=${PYTHON_VERSION:2:1}	
-	
 	if (( PYTHON_MAJOR_VERSION > 2 )) ; then 
-		PYTHON_M_VERSION=${PYTHON_VERSION:0:3}m 
+		PYTHON_M_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}m 
 	else
-		PYTHON_M_VERSION=${PYTHON_VERSION:0:3}
+		PYTHON_M_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
 	fi	
 	
 	# install python using pyenv
@@ -845,6 +845,9 @@ function InstallPython {
 		
 		# pyenv does not support 3.7.x  maxosx 10.(12|13)
 		if (( PYTHON_MAJOR_VERSION == 3 && PYTHON_MINOR_VERSION ==  7 )) ; then
+		
+			# this is the short python version
+			PYTHON_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
 
 			package_name=python${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}
 			
@@ -852,9 +855,9 @@ function InstallPython {
 			
 			package_dir=$(brew --prefix ${package_name})
 			
-			PYTHON_EXECUTABLE=${package_dir}/bin/python${PYTHON_VERSION:0:3}
-			PYTHON_INCLUDE_DIR=${package_dir}/Frameworks/Python.framework/Versions/${PYTHON_VERSION:0:3}/include/python${PYTHON_M_VERSION}
-			PYTHON_LIBRARY=${package_dir}/Frameworks/Python.framework/Versions/${PYTHON_VERSION:0:3}/lib/libpython${PYTHON_M_VERSION}.dylib
+			PYTHON_EXECUTABLE=${package_dir}/bin/python${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
+			PYTHON_INCLUDE_DIR=${package_dir}/Frameworks/Python.framework/Versions/${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}/include/python${PYTHON_M_VERSION}
+			PYTHON_LIBRARY=${package_dir}/Frameworks/Python.framework/Versions/${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}/lib/libpython${PYTHON_M_VERSION}.dylib
 			
 		else
 
@@ -1003,7 +1006,7 @@ function DeployToGitHub {
 function DeployToConda {
 
 	BeginSection "Deploy conda"
-	CONDA_BUILD_FILENAME=$(find ${HOME}/miniconda${PYTHON_VERSION:0:1}/conda-bld -iname "openvisus*.tar.bz2")
+	CONDA_BUILD_FILENAME=$(find ${HOME}/miniconda${PYTHON_MAJOR_VERSION}/conda-bld -iname "openvisus*.tar.bz2")
 	echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
 	anaconda -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
 }
@@ -1058,7 +1061,7 @@ if (( USE_CONDA == 1 )) ; then
 	fi
 
 	# install Miniconda
-	MINICONDA_ROOT=$HOME/miniconda${PYTHON_VERSION:0:1}
+	MINICONDA_ROOT=$HOME/miniconda${PYTHON_MAJOR_VERSION}
 	if [ ! -d  ${MINICONDA_ROOT} ]; then
 		InstallMiniconda
 	fi
@@ -1071,12 +1074,16 @@ if (( USE_CONDA == 1 )) ; then
 	conda install -q conda-build anaconda-client && :
 	conda update  -q conda conda-build           && :
 	conda install -q python=${PYTHON_VERSION}	   && :
+	
+	PYTHON_EXECUTABLE=python
 
 	# build Openvisus (see conda/OpenVisus/* files)
 	pushd conda
 	conda-build -q openvisus
 	conda install -q --use-local openvisus
 	popd
+	
+	
 
 else	
 

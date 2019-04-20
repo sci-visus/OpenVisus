@@ -11,10 +11,15 @@ macro(AddPythonLibrary Name)
 	file(READ ${OpenVisus_DIR}/PYTHON_VERSION PYTHON_VERSION) 
 	string(STRIP ${PYTHON_VERSION} PYTHON_VERSION)
 
-	message(STATUS "PYTHON_VERSION ${PYTHON_VERSION}")
+	message(STATUS "AddPythonLibrary PYTHON_VERSION=${PYTHON_VERSION}")
 
 	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
-	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)	
+	message(STATUS "AddPythonLibrary PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}")
+	
+	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
+	message(STATUS "AddPythonLibrary PYTHON_INCLUDE_DIRS=${PYTHON_INCLUDE_DIRS}")
+	message(STATUS "AddPythonLibrary PYTHON_LIBRARIES=${PYTHON_LIBRARIES}")
+	
 	add_library(${Name} SHARED IMPORTED GLOBAL)
 	
 	if (WIN32)
