@@ -844,8 +844,7 @@ function InstallPython {
 	if (( OSX == 1 )) ; then
 		
 		# pyenv does not support 3.7.x  maxosx 10.(12|13)
-		USE_PYENV=0
-		if (( USE_PYENV == 0 )); then
+		if (( PYTHON_MAJOR_VERSION > 2 )); then
 			PYTHON_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
 			package_name=python${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}
 			brew install sashkab/python/${package_name}
