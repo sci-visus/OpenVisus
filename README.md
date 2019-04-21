@@ -240,11 +240,11 @@ Note that on linux you can even compile using docker. An example is:
 
 
 ```
-BUILD_DIR=$(pwd)/build/docker/manylinux PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64 ./build.sh
-BUILD_DIR=$(pwd)/build/docker/trusty    PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=ubuntu:trusty                  ./build.sh
-BUILD_DIR=$(pwd)/build/docker/bionic    PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=ubuntu:bionic                  ./build.sh
-BUILD_DIR=$(pwd)/build/docker/xenial    PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=ubuntu:xenial                  ./build.sh
-BUILD_DIR=$(pwd)/build/docker/leap      PYTHON_VERSION=3.6.1 VISUS_INTERNAL_DEFAULT=1 DOCKER_IMAGE=opensuse:leap                  ./build.sh
+BUILD_DIR=$(pwd)/build/docker/manylinux PYTHON_VERSION=3.6.1 DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64 ./build.sh
+BUILD_DIR=$(pwd)/build/docker/trusty    PYTHON_VERSION=3.6.1 DOCKER_IMAGE=ubuntu:trusty                  ./build.sh
+BUILD_DIR=$(pwd)/build/docker/bionic    PYTHON_VERSION=3.6.1 DOCKER_IMAGE=ubuntu:bionic                  ./build.sh
+BUILD_DIR=$(pwd)/build/docker/xenial    PYTHON_VERSION=3.6.1 DOCKER_IMAGE=ubuntu:xenial                  ./build.sh
+BUILD_DIR=$(pwd)/build/docker/leap      PYTHON_VERSION=3.6.1 DOCKER_IMAGE=opensuse:leap                  ./build.sh
 ```
 
 

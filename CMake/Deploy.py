@@ -706,7 +706,7 @@ To debug
 
 # ////////////////////////////////////////////////////////////////////////////////////////////////
 def Main():
-
+	
 	if sys.argv[1]=="dirname":
 		print(os.path.dirname(os.path.abspath(__file__)))
 		sys.exit(0)	
@@ -714,35 +714,50 @@ def Main():
 	if sys.argv[1]=="CopyQt5Plugins":
 		os.chdir(os.path.dirname(os.path.abspath(__file__)))	
 		print("Executing CopyQt5Plugins","cwd",os.getcwd(),"args",sys.argv)
-		DeployUtils.CopyQt5Plugins()
+		try:
+			DeployUtils.CopyQt5Plugins()
+		except:
+			sys.exit(-1)
 		print("Done CopyQt5Plugins")
 		sys.exit(0)
 
 	if sys.argv[1]=="MakeSelfContained":
 		os.chdir(os.path.dirname(os.path.abspath(__file__)))	
 		print("Executing MakeSelfContained","cwd",os.getcwd(),"args",sys.argv)
-		DeployUtils.MakeSelfContained()
+		try:
+			DeployUtils.MakeSelfContained()
+		except:
+			sys.exit(-1)
 		print("Done MakeSelfContained")
 		sys.exit(0)
 		
 	if sys.argv[1]=="PythonDist":
 		os.chdir(os.path.dirname(os.path.abspath(__file__)))	
 		print("Executing PythonDist","cwd",os.getcwd(),"args",sys.argv)
-		DeployUtils.PythonDist()
+		try:
+			DeployUtils.PythonDist()
+		except:
+			sys.exit(-1)
 		print("Done PythonDist",glob.glob('dist/*'))
 		sys.exit(0)
 
 	if sys.argv[1]=="UsePyQt":
 		os.chdir(os.path.dirname(os.path.abspath(__file__)))	
 		print("Executing UsePyQt","cwd",os.getcwd(),"args",sys.argv)
-		DeployUtils.UsePyQt()
+		try:
+			DeployUtils.UsePyQt()
+		except:
+			sys.exit(-1)
 		print("Done UsePyQt")
 		sys.exit(0)
 
 	if sys.argv[1]=="CreateScripts":
 		os.chdir(os.path.dirname(os.path.abspath(__file__)))	
 		print("Executing CreateScripts","cwd",os.getcwd(),"args",sys.argv)
-		DeployUtils.CreateScripts()
+		try:
+			DeployUtils.CreateScripts()
+		except:
+			sys.exit(-1)
 		print("Done CreateScripts")
 		sys.exit(0)			
 

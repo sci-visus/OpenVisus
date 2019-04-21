@@ -40,6 +40,7 @@ option(VISUS_NET          "Enable net"               ON)
 option(VISUS_IMAGE        "Enable image"             ON)  
 option(VISUS_GUI          "Enable gui"               ON)  
 option(VISUS_OSPRAY       "Enable ospray"            OFF)
+option(VISUS_MODVISUS     "Enable mod_visus"         ON)
 
 message(STATUS "BUILD_SHARED_LIBS  ${BUILD_SHARED_LIBS}")
 message(STATUS "VISUS_COMPRESSION  ${VISUS_COMPRESSION}") 
@@ -47,6 +48,7 @@ message(STATUS "VISUS_NET          ${VISUS_NET}")
 message(STATUS "VISUS_IMAGE        ${VISUS_IMAGE}") 
 message(STATUS "VISUS_GUI          ${VISUS_GUI}") 
 message(STATUS "VISUS_OSPRAY       ${VISUS_OSPRAY}") 
+message(STATUS "VISUS_MODVISUS     ${VISUS_MODVISUS}") 
 
 FindPythonLibrary()
 
@@ -82,10 +84,11 @@ add_subdirectory(Executable)
 
 if (CMAKE_CONFIGURATION_TYPES)
 	set(OpenVisus_DIR ${CMAKE_BINARY_DIR}/$<CONFIG>/site-packages/${CMAKE_PROJECT_NAME})
+	string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" OpenVisusInstall_DIR "${OpenVisus_DIR}")
 else()
-	set(OpenVisus_DIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/site-packages/${CMAKE_PROJECT_NAME})
+	set(OpenVisus_DIR        ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/site-packages/${CMAKE_PROJECT_NAME})
+	set(OpenVisusInstall_DIR ${OpenVisus_DIR})
 endif()
-
 
 # //////////////////////////////////////////////////////////////
 file(GENERATE OUTPUT ${OpenVisus_DIR}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
@@ -143,13 +146,13 @@ if (1)
 	macro(CMakePostInstallStep)
 
 		get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." REALPATH)
-
+		
 		if (VISUS_GUI)
-			install(CODE "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${OpenVisus_DIR}/Deploy.py\"  CopyQt5Plugins     --qt5-home=\"${Qt5_HOME}\")")
+		  install(CODE "execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py  CopyQt5Plugins     --qt5-home=${Qt5_HOME}   )" )
 		endif()
 
-		install(CODE   "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${OpenVisus_DIR}/Deploy.py\"  MakeSelfContained  --qt5-home=\"${Qt5_HOME}\")")
-		install(CODE   "execute_process(COMMAND \"${PYTHON_EXECUTABLE}\" \"${OpenVisus_DIR}/Deploy.py\"  CreateScripts)")
+		install(CODE   "execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py  MakeSelfContained  --qt5-home=${Qt5_HOME}   )" )
+		install(CODE   "execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py  CreateScripts                               )" )
 	endmacro()
 
 	add_subdirectory(CMake/PostInstall)
@@ -210,8 +213,8 @@ if (1)
 				-H"${SourceDir}/"  
 				-B"${BinaryDir}/" 
 				-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} 
-				-DPYTHON_LIBRARIES=${PYTHON_LIBRARIES}
-				-DPYTHON_INCLUDE_DIRS=${PYTHON_INCLUDE_DIRS}
+				-DPYTHON_LIBRARY=${PYTHON_LIBRARIES}
+				-DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIRS}
 				-DQt5_DIR="${Qt5_DIR}" 
 				-DOpenVisus_DIR=${OpenVisus_DIR}
 
