@@ -357,6 +357,11 @@ function UpdateOS {
 		fi
 
 		InstallPackages zlib zlib-devel curl libffi-devel
+
+		if (( VISUS_GUI ==  1 )); then
+			InstallPackages mesa-libGL-devel mesa-libGLU-devel 
+		fi
+
 	fi
 
 	
@@ -674,68 +679,7 @@ function InstallApache {
 	return 0
 }
 
-# //////////////////////////////////////////////////////
-function CreateMinimalQt5 {
-	QT_VERSION=$1
-	wget http://download.qt.io/official_releases/qt/${QT_VERSION:0:4}/${QT_VERSION}/qt-opensource-linux-x64-${QT_VERSION}.run
-	chmod +x qt-opensource-linux-x64-${QT_VERSION}.run
-	./qt-opensource-linux-x64-5${QT_VERSION}.run	
-	SRC=${HOME}/Qt${QT_VERSION}/${QT_VERSION}/gcc_64
-	cd /tmp
-	
-	rm -Rf   qt${QT_VERSION}/*
-	
-	mkdir -p qt${QT_VERSION}
-	mkdir -p qt${QT_VERSION}/bin
-	mkdir -p qt${QT_VERSION}/lib
-	mkdir -p qt${QT_VERSION}/mkspecs
-	
-	cp -r ${SRC}/include                 qt${QT_VERSION}/  
-	cp -r ${SRC}/bin/qmake               qt${QT_VERSION}/bin/
-	cp -r ${SRC}/bin/moc                 qt${QT_VERSION}/bin/
-	cp -r ${SRC}/bin/rcc                 qt${QT_VERSION}/bin/
-	cp -r ${SRC}/bin/uic                 qt${QT_VERSION}/bin/ 
-	cp -r ${SRC}/lib/cmake               qt${QT_VERSION}/lib/
-	cp -r ${SRC}/mkspecs/linux-g++       qt${QT_VERSION}/mkspecs/
-	
-	tar czf qt${QT_VERSION}.tar.gz qt${QT_VERSION}
-	scp qt${QT_VERSION}.tar.gz scrgiorgio@atlantis.sci.utah.edu:/www/qt/
-	rm -Rf qt${QT_VERSION}.tar.gz qt${QT_VERSION}
-}
 
-# //////////////////////////////////////////////////////
-function InstallMinimalQt5 {
-
-	QT_VERSION=$1
-	url="http://atlantis.sci.utah.edu/qt/qt${QT_VERSION}.tar.gz"
-	filename=$(basename ${url})
-	DownloadFile "${url}"
-	tar xzf ${filename} -C ${CACHE_DIR} 
-	
-	# check pyqt version
-	GetVersionFromCommand "${PYTHON_EXECUTABLE} -m pip show PyQt5" "Version: "
-	
-	if [[ "${__version__}" != "${QT_VERSION}" ]]; then
-		${PYTHON_EXECUTABLE} -m pip install -q uninstall PyQt5 || true
-		${PYTHON_EXECUTABLE} -m pip install -q --user PyQt5==${QT_VERSION}
-		echo "PyQt5==${QT_VERSION} installed"
-	else
-		echo "PyQt5==${QT_VERSION} already installed"
-	fi
-	
-	PyQt5_DIR=$(${PYTHON_EXECUTABLE} -c 'import os,PyQt5;print(os.path.dirname(PyQt5.__file__))')
-	
-	cp -r ${PyQt5_DIR}/Qt/lib/*   ${CACHE_DIR}/qt${QT_VERSION}/lib/
-	cp -r ${PyQt5_DIR}/Qt/plugins ${CACHE_DIR}/qt${QT_VERSION}/
-	
-	# fix *.so links (example libQt5OpenGL.so.5.11.2 / libQt5OpenGL.so.5.11 / libQt5OpenGL.so.5)
-	FILES=$(find ${CACHE_DIR}/qt${QT_VERSION}/lib -iname "libQt5*.so.5")
-	for it in ${FILES}
-	do
-		ln -s ${it} ${it}.${QT_VERSION:2:2}
-		ln -s ${it} ${it}.${QT_VERSION:2:2}.${QT_VERSION:5:1}
-	done
-}
 
 # //////////////////////////////////////////////////////
 function InstallQt5 {
@@ -803,26 +747,29 @@ function InstallQt5 {
 
 		# opensuse
 		if (( OPENSUSE == 1 )) ; then
-			InstallPackages glu-devel  libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel && : 
+			InstallPackages glu-devel libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel && : 
 			if [ $? == 0 ] ; then return 0 ; fi
 		fi
 
 	fi
 
 	# backup plan , use a minimal Qt5 which does not need SUDO
-	# You can use your Qt5 by setting Qt5_DIR in command line 
-	# Default is to use a "minimal" Qt I'm storing on atlantis (NOTE: it does not contains *.so files or plugins, I'm using PyQt5 for that)
-	
 	echo "Using minimal Qt5"
-
 	QT_VERSION=5.11.2
 	Qt5_DIR=${CACHE_DIR}/qt${QT_VERSION}/lib/cmake/Qt5
 
 	# if you want to create a "new" minimal Qt5 file this is what I did
-	# CreateMinimalQt5 ${QT_VERSION}
-	
+	# sudo docker build  -t openvisus/manylinuxqt -f CMake/Dockerfile.BuildQt5 .
+	# sudo docker create -ti --name dummy openvisus/manylinuxqt bash
+	# sudo docker cp dummy:/root/qt${QT_VERSION}.tar.gz . 
+	# sudo docker rm -fv dummy
+	# scp qt${QT_VERSION}.tar.gz scrgiorgio@atlantis.sci.utah.edu:/www/qt/
+
 	if [ ! -d "${Qt5_DIR}" ] ; then
-		InstallMinimalQt5 ${QT_VERSION}
+		url="http://atlantis.sci.utah.edu/qt/qt${QT_VERSION}.tar.gz"
+		filename=$(basename ${url})
+		DownloadFile "${url}"
+		tar xzf ${filename} -C ${CACHE_DIR} 
 	fi
 
 	return 0
@@ -1009,13 +956,6 @@ function DeployToConda {
 # /////////////////////////////////////////////////////////////////////
 Preamble
 
-# minimal (manylinux)
-if (( CENTOS == 1 && CENTOS_MAJOR <=5 )); then
-	DISABLE_OPENMP=1
-	VISUS_GUI=0
-	UseInstalledPackages=0
-fi
-
 mkdir -p ${BUILD_DIR}
 mkdir -p ${CACHE_DIR}
 
@@ -1026,6 +966,7 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
 	exit 0
 fi
 
+pushd ${BUILD_DIR}
 
 UpdateOS && :
 
@@ -1072,13 +1013,11 @@ if (( USE_CONDA == 1 )) ; then
 	PYTHON_EXECUTABLE=python
 
 	# build Openvisus (see conda/OpenVisus/* files)
-	pushd conda
+	pushd ${SOURCE_DIR}/conda
 	conda-build -q openvisus
 	conda install -q --use-local openvisus
 	popd
 	
-	
-
 else	
 
 	InstallCompilers
@@ -1131,7 +1070,7 @@ else
 		cmake_opts+=(-DQt5_DIR=${Qt5_DIR})
 	fi
 	
-	pushd ${BUILD_DIR}
+	
 	cmake ${cmake_opts[@]} ${SOURCE_DIR}
 	
 	if (( TRAVIS == 1 && OSX == 1 )) ; then
@@ -1163,11 +1102,11 @@ else
 		fi	
 	fi
 	
-	popd
-	
 	export PYTHONPATH=${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages
 	
 fi
+
+popd
 
 # test extending python
 if (( 1 == 1 )); then
