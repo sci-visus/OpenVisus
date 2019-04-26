@@ -162,6 +162,11 @@ class DeployUtils:
 		cmd=[sys.executable,"-m","pip","install"] + args
 		print("# Executing",cmd)
 		return_code=subprocess.call(cmd)
+
+		# fore the reload 
+		from imp import reload
+		reload(mymodule)
+
 		return return_code==0
 
 	# PipUninstall
