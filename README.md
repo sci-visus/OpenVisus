@@ -47,8 +47,6 @@ Table of content:
 
 [PIP Distribution](#pip-distribution)
 
-[GitHub Releases Distribution](#github-releases-distribution)
-
 [Windows compilation](#windows-compilation)
 
 [MacOSX compilation](#macosx-compilation)
@@ -58,92 +56,78 @@ Table of content:
 
 ## PIP distribution
 
-You can install/test OpenVisus in python using Pip.
-Under Windows:
+
+### Windows
+
+On a command prompt:
 
 ```
-REM *** change PYTHON_EXECUTABLE  as needed (only python 3.6/3.7 64 bit are supported) *** 
+REM change this as needed
 set PYTHON_EXECUTABLE=c:\Python37\python.exe
 
-%PYTHON_EXECUTABLE% -m pip install --user numpy OpenVisus
+%PYTHON_EXECUTABLE% -m pip install --user --no-cache numpy OpenVisus
 
-REM uncomment this line if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
-REM %PYTHON_EXECUTABLE% -m OpenVisus UsePyQt
+REM finilize the installation 
+%PYTHON_EXECUTABLE% -m OpenVisus configure 
 
-REM Finilize the installation 
-%PYTHON_EXECUTABLE% -m OpenVisus CreateScripts
+%PYTHON_EXECUTABLE% -m dirname
+cd \to\the\direttory\printed\by\above\command
 
-.\visusviewer.bat
-
+REM test python  examples 
 %PYTHON_EXECUTABLE% Samples/python/Array.py
 %PYTHON_EXECUTABLE% Samples/python/Dataflow.py
 %PYTHON_EXECUTABLE% Samples/python/Idx.py
+%PYTHON_EXECUTABLE% Samples/python/Viewer.py
+
+REM test OpenVisus vieweer
+.\visusviewer.bat
 ```
 
-On Linux/Osx make sure you are using the right python binary. 
-For example if you are using pyenv:
+### OSX
+
+On a terminal:
 
 ```
-export PATH="$HOME/.pyenv/bin:$PATH"
-eval "$(pyenv init -)"
-eval "$(pyenv virtualenv-init -)"
-pyenv global <type_your_version_here>
-python --version # check the version here
-```
+python -m pip install --user --no-cache numpy OpenVisus
 
-Then on Linux/osx:
+# finilize installation 
+python -m OpenVisus configure 
 
-```
-python -m pip install --user numpy OpenVisus
+cd $(python -m OpenVisus dirname)
 
-# uncomment this line if you want to use PyQt5 instead of C++ Qt5 (needed if you are going to mix Python and C++ Gui components)
-# python -m OpenVisus UsePyQt
-
-# finilize installation
-python -m OpenVisus CreateScripts
-
+# test python  examples
 python Samples/python/Array.py
 python Samples/python/Dataflow.py
 python Samples/python/Idx.py
 python Samples/python/Viewer.py
+
+# run OpenVisus viewer
+./visusviewer.command 
 ```
 
-Then on Linux type './visusviewer.sh', on osx `./visusviewer.command`.
 
-## GitHub Releases distribution
+### Linux
 
-You can download OpenVisus from GitHub releases (use the same version). Unzip/Untar your file. 
-And in Windows:
+On a terminal:
 
 ```
-cd \your\OpenVisus\directory
+python -m pip install --user --no-cache numpy OpenVisus
 
-REM *** change PYTHON_EXECUTABLE  as needed      *** 
-REM *** only python 3.6/3.7 64 bit are supported ***
-set PYTHON_EXECUTABLE=c:\Python37\python.exe
+# finilize installation 
+python -m OpenVisus configure 
 
-%PYTHON_EXECUTABLE% -m OpenVisus CreateScripts
+cd $(python -m OpenVisus dirname)
 
-set PYTHONPATH=%cd%;%PYTHONPATH%
-
-.\visusviewer.bat
-
-%PYTHON_EXECUTABLE% Samples\python\Array.py
-%PYTHON_EXECUTABLE% Samples\python\Dataflow.py
-%PYTHON_EXECUTABLE% Samples\python\Idx.py
-```
-
-in Osx/Linux:
-
-```
-python -m OpenVisus CreateScripts
-
-export PYTHONPATH=$(pwd):${PYTHONPATH}
-
+# test python  examples
 python Samples/python/Array.py
 python Samples/python/Dataflow.py
 python Samples/python/Idx.py
+python Samples/python/Viewer.py
+
+# run OpenVisus viewer
+./visusviewer.sh
 ```
+
 
 ## Windows compilation
 
@@ -225,7 +209,7 @@ Build the repository:
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-./build.sh  
+./build.sh
 ```
 
 To test if it's working:

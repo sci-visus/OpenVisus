@@ -91,7 +91,7 @@ cd %THIS_DIR%\build\%CMAKE_BUILD_TYPE%\site-packages\OpenVisus
 %PYTHON_EXECUTABLE% Samples/python/Idx.py
 
 REM test stand alone scripts
-%PYTHON_EXECUTABLE% -m OpenVisus CreateScripts
+%PYTHON_EXECUTABLE% -m OpenVisus configure
 .\visus.bat
 
 echo "OpenVisus build finished"

@@ -758,13 +758,9 @@ function InstallQt5 {
 	QT_VERSION=5.11.2
 	Qt5_DIR=${CACHE_DIR}/qt${QT_VERSION}/lib/cmake/Qt5
 
-	# if you want to create a "new" minimal Qt5 file this is what I did
-	# sudo docker build  -t openvisus/manylinuxqt -f CMake/Dockerfile.BuildQt5 .
-	# sudo docker create -ti --name dummy openvisus/manylinuxqt bash
-	# sudo docker cp dummy:/root/qt${QT_VERSION}.tar.gz . 
-	# sudo docker rm -fv dummy
-	# scp qt${QT_VERSION}.tar.gz scrgiorgio@atlantis.sci.utah.edu:/www/qt/
-
+	# if you want to create a "new" minimal Qt5 see CMake/Dockerfile.BuildQt5
+	# note this is only to allow compilation
+	# in order to execute it you need to use PyUseQt 
 	if [ ! -d "${Qt5_DIR}" ] ; then
 		url="http://atlantis.sci.utah.edu/qt/qt${QT_VERSION}.tar.gz"
 		filename=$(basename ${url})
@@ -1121,7 +1117,7 @@ fi
 # test stand alone scripts
 if (( USE_CONDA == 0 )) ; then
 	BeginSection "Test OpenVisus (embedding python)"
-	${PYTHON_EXECUTABLE} -m OpenVisus CreateScripts
+	${PYTHON_EXECUTABLE} -m OpenVisus configure
 	pushd $(${PYTHON_EXECUTABLE} -m OpenVisus dirname)
 	if (( OSX == 1 )) ; then
 		./visus.command

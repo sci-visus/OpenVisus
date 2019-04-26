@@ -144,15 +144,21 @@ if (1)
 	endif()
 
 	macro(CMakePostInstallStep)
-
 		get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." REALPATH)
 		
-		if (VISUS_GUI)
-		  install(CODE "execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py  CopyQt5Plugins     --qt5-home=${Qt5_HOME}   )" )
-		endif()
+		install(CODE "
+			execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py MakeSelfContained --qt5-home=${Qt5_HOME} RESULT_VARIABLE retcode)
+			if(NOT \"\${retcode}\" STREQUAL \"0\")
+				message(FATAL_ERROR \"Fatal error executing ${OpenVisusInstall_DIR}/Deploy.py MakeSelfContained\")
+			endif()
+		")
 
-		install(CODE   "execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py  MakeSelfContained  --qt5-home=${Qt5_HOME}   )" )
-		install(CODE   "execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py  CreateScripts                               )" )
+		install(CODE "
+			execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py configure RESULT_VARIABLE retcode)
+			if(NOT \"\${retcode}\" STREQUAL \"0\")
+				message(FATAL_ERROR \"Fatal error executing ${OpenVisusInstall_DIR}/Deploy.py configure\")
+			endif()
+		")
 	endmacro()
 
 	add_subdirectory(CMake/PostInstall)

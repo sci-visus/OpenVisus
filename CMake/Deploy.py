@@ -14,6 +14,7 @@ bVerbose=False
 
 WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
+LINUX=not APPLE and not WIN32
 
 """
 Fix the problem about shared library path finding
@@ -230,28 +231,33 @@ class DeployUtils:
 	# UsePyQt
 	@staticmethod
 	def UsePyQt():
-
-		VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
-		if not VISUS_GUI:
-			raise Exception("VISUS_GUI not enabled")
-
 		QT_VERSION = DeployUtils.ReadTextFile("QT_VERSION")
 		DeployUtils.InstallPyQt5(QT_VERSION)
+
+		# avoid conflicts removing any Qt file
+		DeployUtils.RemoveFiles("bin/Qt*")
 
 		import PyQt5
 		Qt5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
 			
 		# for windowss see VisusGui.i (%pythonbegin section, I'm using sys.path)
-		if not WIN32:
-			deploy=AppleDeploy() if APPLE else LinuxDeploy()
-			deploy.addRPath(os.path.join(Qt5_DIR,"lib"))	
+		if WIN32:
+			pass
+		elif APPLE:
+			deploy=AppleDeploy()
+			for filename in deploy.findAllBinaries():
+				deploy.addRPath(os.path.join(Qt5_DIR,"lib"))	
+		else:
+			deploy=LinuxDeploy()
+			for filename in deploy.findAllBinaries():
+			 	deploy.setRPath(filename,[os.path.join(Qt5_DIR,"lib")])
+			
 
-		# avoid conflicts removing any Qt file
-		DeployUtils.RemoveFiles("bin/Qt*")
+
 
 	# CreateScript
 	@staticmethod
-	def CreateScript(script_filename,target,VISUS_GUI=False,extra_lines=[]):
+	def CreateScript(script_filename,target,bUsingQt5=False,extra_lines=[]):
 		
 		if WIN32:
 
@@ -260,13 +266,13 @@ class DeployUtils:
 				r"""set PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}""".replace("${PYTHON_EXECUTABLE}",sys.executable),
 				r"""set PATH=%this_dir%\bin;%PYTHON_EXECUTABLE%\..;%PATH%"""]
 
-			if VISUS_GUI:
+			if bUsingQt5:
 				lines+=[
 					r"""if EXIST %this_dir%\bin\Qt (""",
-					r"""   echo "Using internal Qt5""",
+					r"""   echo "Using internal Qt5" """,
 					r"""   set Qt5_DIR=%this_dir%\bin\Qt""",
 					r""") else (""",
-					r"""   echo "Using external PyQt5""",
+					r"""   echo "Using external PyQt5" """,
 					r"""   for /f "usebackq tokens=*" %%G in (`%PYTHON_EXECUTABLE% -c "import os,PyQt5; print(os.path.dirname(PyQt5.__file__))"`) do set Qt5_DIR=%%G\Qt""",
 					r""")""",
 					r"""set QT_PLUGIN_PATH=%Qt5_DIR%\plugins"""]
@@ -285,14 +291,14 @@ class DeployUtils:
 				"""export PYTHON_PATH="""+(":".join(["${this_dir}"] + sys.path)),
 				"""export """+ LD_LIBRARY_PATH + """=""" + LIBDIR]
 
-			if VISUS_GUI:
+			if bUsingQt5:
 				lines+=[	
 					"""if [ -d ${this_dir}/bin/Qt ]; then """,
-					"""   echo "Using internal Qt5""",
+					"""   echo "Using internal Qt5" """,
 					"""   export Qt5_DIR=${this_dir}/bin/Qt""",
 					"""else""",
-					"""   echo "Using external PyQt5""",
-					"""   export Qt5_DIR=$(${PYTHON_EXECUTABLE} -c "import os,PyQt5; print(os.path.dirname(PyQt5.__file__))")""",
+					"""   echo "Using external PyQt5" """,
+					"""   export Qt5_DIR=$(${PYTHON_EXECUTABLE} -c "import os,PyQt5; print(os.path.dirname(PyQt5.__file__))")/Qt """,
 					"""fi""",
 					"""export QT_PLUGIN_PATH=${Qt5_DIR}/plugins"""]
 
@@ -305,44 +311,28 @@ class DeployUtils:
 			subprocess.call(["chmod","+rx",script_filename], shell=False)	
 			subprocess.call(["chmod","+rx",target         ], shell=False)	
 
-	# CreateScripts
+	# configure
 	@staticmethod
-	def CreateScripts():
+	def configure():
+
 		if WIN32:
 			DeployUtils.CreateScript("visus.bat","bin/visus.exe")
 			if os.path.isfile("bin/visusviewer.exe"):
-				DeployUtils.CreateScript("visusviewer.bat","bin/visusviewer.exe",VISUS_GUI=True, extra_lines=["cd %this_dir%"])
+				DeployUtils.CreateScript("visusviewer.bat","bin/visusviewer.exe",bUsingQt5=True, extra_lines=["cd %this_dir%"])
 
 		elif APPLE:	
 			DeployUtils.CreateScript("visus.command","bin/visus.app/Contents/MacOS/visus")
 			if os.path.isdir("bin/visusviewer.app"):
-				DeployUtils.CreateScript("visusviewer.command","bin/visusviewer.app/Contents/MacOS/visusviewer",VISUS_GUI=True, extra_lines=["cd ${this_dir}"])
+				DeployUtils.CreateScript("visusviewer.command","bin/visusviewer.app/Contents/MacOS/visusviewer",bUsingQt5=True, extra_lines=["cd ${this_dir}"])
 
 		else:
 			DeployUtils.CreateScript("visus.sh","bin/visus")
 			if os.path.isfile("bin/visusviewer"):
-				DeployUtils.CreateScript("visusviewer.sh","bin/visusviewer",VISUS_GUI=True, extra_lines=["cd ${this_dir}"])
+				DeployUtils.CreateScript("visusviewer.sh","bin/visusviewer",bUsingQt5=True, extra_lines=["cd ${this_dir}"])
 
-	# CopyQt5Plugins
-	@staticmethod
-	def CopyQt5Plugins():
-
-		QT5_HOME=DeployUtils.ExtractNamedArgument("--qt5-home")
-		if not os.path.isdir(QT5_HOME):
-			raise Exception("--qt5-home not specified")
-
-		QT_PLUGIN_PATH=""
-		for it in [QT5_HOME + "/plugins",QT5_HOME + "/lib/qt5/plugins"]:
-			if os.path.isdir(os.path.join(it)):
-				QT_PLUGIN_PATH=os.path.join(QT5_HOME,it) 
-				break
-
-		if not QT_PLUGIN_PATH:
-			raise Exception("internal error, cannot find Qt plugins","QT_PLUGIN_PATH",QT_PLUGIN_PATH)
-
-		for it in ["iconengines","imageformats","platforms","printsupport","styles"]:
-			if os.path.isdir(os.path.join(QT_PLUGIN_PATH,it)):
-				DeployUtils.CopyDirectory(os.path.join(QT_PLUGIN_PATH,it) ,"bin/Qt/plugins")		
+		VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
+		if VISUS_GUI:
+			DeployUtils.UsePyQt()
 
 
 	# MakeSelfContained
@@ -355,7 +345,21 @@ class DeployUtils:
 			QT5_HOME=DeployUtils.ExtractNamedArgument("--qt5-home")
 			if not os.path.isdir(QT5_HOME):
 				raise Exception("--qt5-home not specified")
-				
+
+			# copy plugins
+			QT_PLUGIN_PATH=""
+			for it in [QT5_HOME + "/plugins",QT5_HOME + "/lib/qt5/plugins"]:
+				if os.path.isdir(os.path.join(it)):
+					QT_PLUGIN_PATH=os.path.join(QT5_HOME,it) 
+					break
+
+			if not QT_PLUGIN_PATH:
+				raise Exception("internal error, cannot find Qt plugins","QT_PLUGIN_PATH",QT_PLUGIN_PATH)
+
+			for it in ["iconengines","imageformats","platforms","printsupport","styles"]:
+				if os.path.isdir(os.path.join(QT_PLUGIN_PATH,it)):
+					DeployUtils.CopyDirectory(os.path.join(QT_PLUGIN_PATH,it) ,"bin/Qt/plugins")	
+
 			windeploy=os.path.abspath(QT5_HOME+"/bin/windeployqt")
 			for exe in glob.glob("bin/*.exe"):
 				DeployUtils.ExecuteCommand([windeploy,os.path.abspath(exe),
@@ -363,10 +367,13 @@ class DeployUtils:
 					"--plugindir",os.path.abspath("bin/Qt/plugins"),
 					"--no-translations"])			
 			
-		else:
+		elif APPLE:
+			deploy=AppleDeploy()
+			deploy.makeSelfContained()
 
-			deploy=AppleDeploy() if APPLE else LinuxDeploy()
-			deploy.fixAllDeps()
+		else:
+			deploy=LinuxDeploy()
+			deploy.makeSelfContained()
 
 
 # ///////////////////////////////////////
@@ -497,9 +504,30 @@ class AppleDeploy:
 		self.addLocal(local)
 		
 
-	# fixAllDeps
-	def fixAllDeps(self):
-		
+	# makeSelfContained
+	def makeSelfContained(self):
+
+		VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
+
+		# copy plugin plugins
+		if VISUS_GUI:
+			QT5_HOME=DeployUtils.ExtractNamedArgument("--qt5-home")
+			if not os.path.isdir(QT5_HOME):
+				raise Exception("--qt5-home not specified")
+
+			QT_PLUGIN_PATH=""
+			for it in [QT5_HOME + "/plugins",QT5_HOME + "/lib/qt5/plugins"]:
+				if os.path.isdir(os.path.join(it)):
+					QT_PLUGIN_PATH=os.path.join(QT5_HOME,it) 
+					break
+
+			if not QT_PLUGIN_PATH:
+				raise Exception("internal error, cannot find Qt plugins","QT_PLUGIN_PATH",QT_PLUGIN_PATH)
+
+			for it in ["iconengines","imageformats","platforms","printsupport","styles"]:
+				if os.path.isdir(os.path.join(QT_PLUGIN_PATH,it)):
+					DeployUtils.CopyDirectory(os.path.join(QT_PLUGIN_PATH,it) ,"bin/Qt/plugins")	
+
 		self.locals={}
 		
 		for local in self.findAllBinaries():
@@ -543,9 +571,8 @@ class AppleDeploy:
 				DeployUtils.ExecuteCommand(['install_name_tool','-add_rpath','@loader_path' +  "/.." * N,filename])
 
 	# addRPath
-	def addRPath(self,value):
-		for filename in self.findAllBinaries():
-			DeployUtils.ExecuteCommand(["install_name_tool","-add_rpath",value,filename])
+	def addRPath(self,filename,value):
+		DeployUtils.ExecuteCommand(["install_name_tool","-add_rpath",value,filename])
 		
 # ///////////////////////////////////////
 class LinuxDeploy:
@@ -616,6 +643,8 @@ Rpath token expansion:
 
 To debug
 
+	QT_DEBUG_PLUGINS=1 LD_DEBUG=libs,files  ./visusviewer.sh
+
 	LD_DEBUG=libs,files ldd bin/visus
 
 	# this shows the rpath
@@ -626,6 +655,7 @@ To debug
 	# constructor
 	def __init__(self):
 		pass
+
 
 	# findApps
 	def findApps(self):	
@@ -638,128 +668,66 @@ To debug
 		ret+=self.findApps()
 		return ret
 
-	# extractDeps
-	def extractDeps(self,filename):
-		ret={}
-		output=DeployUtils.GetCommandOutput(['ldd',filename])
-		for line in output.splitlines():
-			items=[it.strip() for it in line.split(" ") if len(it.strip())]
-			if len(items)>=4 and items[1]=='=>' and items[2]!='not' and items[3]!='found':
-				key=os.path.basename(items[0])
-				target=os.path.realpath(items[2])
-				if target.startswith("/"):
-					ret[key]=target	
-		return ret
-		
-	# findAllDeps
-	def findAllDeps(self):
-		ret={}
-		for filename in self.findAllBinaries():
-			for key,target in self.extractDeps(filename).items():
-				ret[key]=target	
-		return ret
-
-	# copyGlobalDeps
-	def copyGlobalDeps(self):
-		"""
-		Example:
-		linux-vdso.so.1 =>  (0x00007ffc437f5000)
-		libVisusKernel.so => /tmp/OpenVisus/build/install/bin/libVisusKernel.so (0x00007f15e31a7000)
-		libpython3.6m.so.1.0 => not found
-		libVisusIdx.so => /tmp/OpenVisus/build/install/bin/libVisusIdx.so (0x00007f15e2e60000)
-		libVisusDb.so => /tmp/OpenVisus/build/install/bin/libVisusDb.so (0x00007f15e2b93000)
-		libssl.so.1.0.0 => /tmp/OpenVisus/build/install/bin/libssl.so.1.0.0 (0x00007f15e291c000)	
-		"""		
-		for key,target in self.findAllDeps().items():
-			
-			# already inside
-			if target.startswith(os.getcwd()):
-				continue
-			
-			# if I copy linux libraries i will get core dump
-			if target.startswith("/lib64") or target.startswith("/usr/lib64"):
-				continue
-			
-			print("CopyFile",target,"bin/"+key," (fixing dependency of %s) " % (key,))
-			DeployUtils.CopyFile(target,"bin/"+key)	
-
 	# setRPath
-	def setRPath(self,rpath):
-		for filename in self.findAllBinaries():
-			v=[rpath] if rpath else []
-			v+=['$ORIGIN']
-			
-			A=os.path.realpath("./bin")
-			B=os.path.dirname(os.path.realpath(filename))
-			if A!=B:
-				N=len(B.split("/"))-len(A.split("/"))	
-				v+=['$ORIGIN' +  "/.." * N]			
-			
-			retcode=DeployUtils.ExecuteCommand(["patchelf", "--set-rpath", ":".join(v) , filename])
-			#print("retcode",retcode)	
+	def setRPath(self,filename,v):
+		v+=['$ORIGIN']
+		
+		# add rpapath to bin
+		A=os.path.realpath("./bin")
+		B=os.path.dirname(os.path.realpath(filename))
+		if A!=B:
+			N=len(B.split("/"))-len(A.split("/"))	
+			v+=['$ORIGIN' +  "/.." * N]			
+		
+		DeployUtils.ExecuteCommand(["patchelf", "--set-rpath", ":".join(v) , filename])
 
-	# fixAllDeps
-	def fixAllDeps(self):
-		for I in range(2):
-			self.copyGlobalDeps()
-			self.setRPath("")
+	# makeSelfContained
+	def makeSelfContained(self):
+		for filename in self.findAllBinaries():
+			self.setRPath(filename,[])
+
 
 # ////////////////////////////////////////////////////////////////////////////////////////////////
 def Main():
 	
+	this_dir=os.path.dirname(os.path.abspath(__file__))
+	os.chdir(this_dir)
+
+
 	if sys.argv[1]=="dirname":
-		print(os.path.dirname(os.path.abspath(__file__)))
+		print(this_dir)
 		sys.exit(0)	
 
-	if sys.argv[1]=="CopyQt5Plugins":
-		os.chdir(os.path.dirname(os.path.abspath(__file__)))	
-		print("Executing CopyQt5Plugins","cwd",os.getcwd(),"args",sys.argv)
-		try:
-			DeployUtils.CopyQt5Plugins()
-		except:
-			sys.exit(-1)
-		print("Done CopyQt5Plugins")
-		sys.exit(0)
-
-	if sys.argv[1]=="MakeSelfContained":
-		os.chdir(os.path.dirname(os.path.abspath(__file__)))	
+	if sys.argv[1]=="MakeSelfContained":	
 		print("Executing MakeSelfContained","cwd",os.getcwd(),"args",sys.argv)
 		try:
 			DeployUtils.MakeSelfContained()
-		except:
+		except Exception as e:
+			print("Error happened",e)
 			sys.exit(-1)
 		print("Done MakeSelfContained")
 		sys.exit(0)
 		
 	if sys.argv[1]=="PythonDist":
-		os.chdir(os.path.dirname(os.path.abspath(__file__)))	
 		print("Executing PythonDist","cwd",os.getcwd(),"args",sys.argv)
 		try:
 			DeployUtils.PythonDist()
-		except:
+		except Exception as e:
+			print("Error happened",e)
 			sys.exit(-1)
 		print("Done PythonDist",glob.glob('dist/*'))
 		sys.exit(0)
 
-	if sys.argv[1]=="UsePyQt":
-		os.chdir(os.path.dirname(os.path.abspath(__file__)))	
-		print("Executing UsePyQt","cwd",os.getcwd(),"args",sys.argv)
+	if sys.argv[1]=="configure":
+		print("Executing configure","cwd",os.getcwd(),"args",sys.argv)
 		try:
-			DeployUtils.UsePyQt()
-		except:
+			DeployUtils.configure()
+		except Exception as e:
+			print("Error happened",e)
 			sys.exit(-1)
-		print("Done UsePyQt")
-		sys.exit(0)
 
-	if sys.argv[1]=="CreateScripts":
-		os.chdir(os.path.dirname(os.path.abspath(__file__)))	
-		print("Executing CreateScripts","cwd",os.getcwd(),"args",sys.argv)
-		try:
-			DeployUtils.CreateScripts()
-		except:
-			sys.exit(-1)
-		print("Done CreateScripts")
-		sys.exit(0)			
+		print("Done configure")
+		sys.exit(0)
 
 	print("Error in arguments",sys.argv)
 	sys.exit(-1)
@@ -769,3 +737,5 @@ def Main():
 # ////////////////////////////////////////////////////////////////////////////////////////////////
 if __name__ == '__main__':
 	Main()
+
+

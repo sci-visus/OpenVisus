@@ -31,12 +31,12 @@ matrix:
     # ///////////////////////////////// manylinux 
 
     # example of to compile:
-    # PYTHON_VERSION=3.7.1 DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64 BUILD_DIR=$(pwd)/build/manylinux DISABLE_OPENMP=1 VISUS_GUI=0 UseInstalledPackages=0 ./build.sh
+    # PYTHON_VERSION=3.6.1 DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64 BUILD_DIR=$(pwd)/build/manylinux DISABLE_OPENMP=1 VISUS_GUI=1 UseInstalledPackages=0 ./build.sh
 
     # Example to compile step by step:
     # sudo docker run -ti -v $(pwd):/home/OpenVisus quay.io/pypa/manylinux1_x86_64 /bin/bash
     # cd /home/OpenVisus 
-    # PYTHON_VERSION=3.7.1                                             BUILD_DIR=$(pwd)/build/manylinux DISABLE_OPENMP=1 VISUS_GUI=0 UseInstalledPackages=0 ./build.sh     
+    # PYTHON_VERSION=3.6.1 BUILD_DIR=$(pwd)/build/manylinux DISABLE_OPENMP=1 VISUS_GUI=1 UseInstalledPackages=0 ./build.sh     
     
     - os: linux
       dist: trusty
