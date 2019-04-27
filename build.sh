@@ -1066,7 +1066,6 @@ else
 		cmake_opts+=(-DQt5_DIR=${Qt5_DIR})
 	fi
 	
-	
 	cmake ${cmake_opts[@]} ${SOURCE_DIR}
 	
 	if (( TRAVIS == 1 && OSX == 1 )) ; then
@@ -1075,21 +1074,23 @@ else
 		cmake --build ./ --target ${CMAKE_ALL_STEP}  --config ${CMAKE_BUILD_TYPE}
 	fi	
 	
+	# install step
 	BeginSection "Install OpenVisus"
 	cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
-	
+
+	# dist test	
 	if (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
 		BeginSection "OpenVisus cmake dist"
 		cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
 	fi	
 	
-	# tests using CMake targets
+	# tests step
 	if (( 1 == 1 )) ; then
 		BeginSection "Test OpenVisus (cmake ${CMAKE_TEST_STEP})"
 		cmake --build  ./ --target  ${CMAKE_TEST_STEP} --config ${CMAKE_BUILD_TYPE}	
 	fi
 	
-	# tests external app
+	# external app step
 	if (( 1 == 1 )) ; then
 		BeginSection "Test OpenVisus (cmake external app)"
 		cmake --build ./ --target  simple_query --config ${CMAKE_BUILD_TYPE}
@@ -1117,7 +1118,6 @@ fi
 # test stand alone scripts
 if (( USE_CONDA == 0 )) ; then
 	BeginSection "Test OpenVisus (embedding python)"
-	${PYTHON_EXECUTABLE} -m OpenVisus configure
 	pushd $(${PYTHON_EXECUTABLE} -m OpenVisus dirname)
 	if (( OSX == 1 )) ; then
 		./visus.command

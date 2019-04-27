@@ -158,31 +158,18 @@ class DeployUtils:
 
 	# PipInstall
 	@staticmethod
-	def PipInstall(package,upgrade=False):
+	def PipInstall(package,extra_args=[]):
 		cmd=[sys.executable,"-m","pip","install","--user",package]
-		if upgrade: cmd+=["--upgrade"]
-		print("# Executing",cmd)
-		return_code=subprocess.call(cmd)
-
-		# fore the reload 
-		from imp import reload
-		reload(mymodule)
-
-		return return_code==0
-
-	# PipUninstall
-	@staticmethod
-	def PipUninstall(args):
-		cmd=[sys.executable,"-m","pip","uninstall","-y"] + args
+		if extra_args: cmd+=extra_args
 		print("# Executing",cmd)
 		return_code=subprocess.call(cmd)
 		return return_code==0
 
-	# PythonDist
+	# Dist
 	@staticmethod
-	def PythonDist():
-		DeployUtils.PipInstall("setuptools",upgrade=True)	
-		DeployUtils.PipInstall("wheel"     ,upgrade=True)	
+	def Dist():
+		DeployUtils.PipInstall("setuptools",["--upgrade"])	
+		DeployUtils.PipInstall("wheel"     ,["--upgrade"])	
 		DeployUtils.RemoveFiles("dist/*")
 		PYTHON_TAG="cp%s%s" % (sys.version_info[0],sys.version_info[1])
 		if WIN32:
@@ -208,27 +195,20 @@ class DeployUtils:
 	# InstallPyQt5
 	@staticmethod
 	def InstallPyQt5(QT_VERSION):
-		try:
-			from PyQt5.Qt import PYQT_VERSION_STR
-			if PYQT_VERSION_STR==QT_VERSION:
-				print("PyQt5",PYQT_VERSION_STR,"already installed")
-				return
-		except:
-			pass
-			
-		# need to install a compatible version
+
+		# already install and compatible?
 		try:
 			import PyQt5.QtCore
 			if PyQt5.QtCore.QT_VERSION_STR==QT_VERSION:
 				print("PyQt5",QT_VERSION,"already installed")
 				return
+
 		except:
 			pass
 			
-		DeployUtils.PipUninstall(["PyQt5"])
 		for name in ["PyQt5=="+QT_VERSION] + ["PyQt5=="+QT_VERSION[0:4]+"." + str(it) for it in reversed(range(1,10))]:
-			if DeployUtils.PipInstall(name):
-				print("Installed",name)
+			if DeployUtils.PipInstall(name,["--ignore-installed"]):
+				print("Installed PyQt5")
 				return
 			print("Failed to install",name)	
 			
@@ -243,8 +223,11 @@ class DeployUtils:
 		# avoid conflicts removing any Qt file
 		DeployUtils.RemoveFiles("bin/Qt*")
 
-		import PyQt5
-		Qt5_DIR=os.path.join(os.path.dirname(PyQt5.__file__),"Qt")
+		import imp 
+		Qt5_DIR=os.path.join(imp.find_module('PyQt5')[1],"Qt")
+		print("Qt5_DIR",Qt5_DIR)
+		if not os.path.isdir(Qt5_DIR):
+			raise Exception("internal error")
 			
 		# for windowss see VisusGui.i (%pythonbegin section, I'm using sys.path)
 		if WIN32:
@@ -314,9 +297,9 @@ class DeployUtils:
 			subprocess.call(["chmod","+rx",script_filename], shell=False)	
 			subprocess.call(["chmod","+rx",target         ], shell=False)	
 
-	# configure
+	# Configure
 	@staticmethod
-	def configure():
+	def Configure():
 
 		if WIN32:
 			DeployUtils.CreateScript("visus.bat","bin/visus.exe")
@@ -338,45 +321,41 @@ class DeployUtils:
 			DeployUtils.UsePyQt()
 
 
-	# MakeSelfContained
-	@staticmethod
-	def MakeSelfContained():
 
-		# for windows I use windeploy since there is no easy way to get DLLs dependencies
-		if WIN32:
+# ///////////////////////////////////////
+class WinDeploy:
 
-			QT5_HOME=DeployUtils.ExtractNamedArgument("--qt5-home")
-			if not os.path.isdir(QT5_HOME):
-				raise Exception("--qt5-home not specified")
+	# constructor
+	def __init__(self):
+		pass
 
-			# copy plugins
-			QT_PLUGIN_PATH=""
-			for it in [QT5_HOME + "/plugins",QT5_HOME + "/lib/qt5/plugins"]:
-				if os.path.isdir(os.path.join(it)):
-					QT_PLUGIN_PATH=os.path.join(QT5_HOME,it) 
-					break
 
-			if not QT_PLUGIN_PATH:
-				raise Exception("internal error, cannot find Qt plugins","QT_PLUGIN_PATH",QT_PLUGIN_PATH)
+	# makeSelfContained
+	def makeSelfContained(self):
+		QT5_HOME=DeployUtils.ExtractNamedArgument("--qt5-home")
+		if not os.path.isdir(QT5_HOME):
+			raise Exception("--qt5-home not specified")
 
-			for it in ["iconengines","imageformats","platforms","printsupport","styles"]:
-				if os.path.isdir(os.path.join(QT_PLUGIN_PATH,it)):
-					DeployUtils.CopyDirectory(os.path.join(QT_PLUGIN_PATH,it) ,"bin/Qt/plugins")	
+		# copy plugins
+		QT_PLUGIN_PATH=""
+		for it in [QT5_HOME + "/plugins",QT5_HOME + "/lib/qt5/plugins"]:
+			if os.path.isdir(os.path.join(it)):
+				QT_PLUGIN_PATH=os.path.join(QT5_HOME,it) 
+				break
 
-			windeploy=os.path.abspath(QT5_HOME+"/bin/windeployqt")
-			for exe in glob.glob("bin/*.exe"):
-				DeployUtils.ExecuteCommand([windeploy,os.path.abspath(exe),
-					"--libdir",os.path.abspath("bin"),
-					"--plugindir",os.path.abspath("bin/Qt/plugins"),
-					"--no-translations"])			
-			
-		elif APPLE:
-			deploy=AppleDeploy()
-			deploy.makeSelfContained()
+		if not QT_PLUGIN_PATH:
+			raise Exception("internal error, cannot find Qt plugins","QT_PLUGIN_PATH",QT_PLUGIN_PATH)
 
-		else:
-			deploy=LinuxDeploy()
-			deploy.makeSelfContained()
+		for it in ["iconengines","imageformats","platforms","printsupport","styles"]:
+			if os.path.isdir(os.path.join(QT_PLUGIN_PATH,it)):
+				DeployUtils.CopyDirectory(os.path.join(QT_PLUGIN_PATH,it) ,"bin/Qt/plugins")	
+
+		windeploy=os.path.abspath(QT5_HOME+"/bin/windeployqt")
+		for exe in glob.glob("bin/*.exe"):
+			DeployUtils.ExecuteCommand([windeploy,os.path.abspath(exe),
+				"--libdir",os.path.abspath("bin"),
+				"--plugindir",os.path.abspath("bin/Qt/plugins"),
+				"--no-translations"])	
 
 
 # ///////////////////////////////////////
@@ -690,50 +669,50 @@ To debug
 			self.setRPath(filename,[])
 
 
+import traceback
+
 # ////////////////////////////////////////////////////////////////////////////////////////////////
 def Main():
 	
 	this_dir=os.path.dirname(os.path.abspath(__file__))
-	os.chdir(this_dir)
+	try:
 
+		action=sys.argv[1]
+		if action=="dirname":
+			print(this_dir)
+			sys.exit(0)	
 
-	if sys.argv[1]=="dirname":
-		print(this_dir)
-		sys.exit(0)	
+		os.chdir(this_dir)
+		print("Executing",action,"cwd",os.getcwd(),"args",sys.argv)
 
-	if sys.argv[1]=="MakeSelfContained":	
-		print("Executing MakeSelfContained","cwd",os.getcwd(),"args",sys.argv)
-		try:
-			DeployUtils.MakeSelfContained()
-		except Exception as e:
-			print("Error happened",e)
-			sys.exit(-1)
-		print("Done MakeSelfContained")
-		sys.exit(0)
+		if action=="--make-self-contained":	
+
+			if WIN32:
+				WinDeploy().makeSelfContained()
+			elif APPLE:
+				AppleDeploy().makeSelfContained()
+			else:
+				LinuxDeploy().makeSelfContained()
+
+			print("done",action)
+			sys.exit(0)
 		
-	if sys.argv[1]=="PythonDist":
-		print("Executing PythonDist","cwd",os.getcwd(),"args",sys.argv)
-		try:
-			DeployUtils.PythonDist()
-		except Exception as e:
-			print("Error happened",e)
-			sys.exit(-1)
-		print("Done PythonDist",glob.glob('dist/*'))
-		sys.exit(0)
+		if action=="--configure" or action=="configure":
+			DeployUtils.Configure()
+			print("done",action)
+			sys.exit(0)
 
-	if sys.argv[1]=="configure":
-		print("Executing configure","cwd",os.getcwd(),"args",sys.argv)
-		try:
-			DeployUtils.configure()
-		except Exception as e:
-			print("Error happened",e)
-			sys.exit(-1)
+		if action=="--dist":
+			DeployUtils.Dist()
+			print("done",action,glob.glob('dist/*'))
+			sys.exit(0)
 
-		print("Done configure")
-		sys.exit(0)
+		raise Exception("Error in arguments")
 
-	print("Error in arguments",sys.argv)
-	sys.exit(-1)
+	except Exception as e:
+		traceback.print_exc()
+		sys.exit(-1)
+
 
 
 

@@ -86,12 +86,11 @@ if NOT "%APPVEYOR%"=="" (
 REM test OpenVisus 
 set PYTHONPATH=%THIS_DIR%\build\%CMAKE_BUILD_TYPE%\site-packages
 cd %THIS_DIR%\build\%CMAKE_BUILD_TYPE%\site-packages\OpenVisus
+
 %PYTHON_EXECUTABLE% Samples/python/Array.py
 %PYTHON_EXECUTABLE% Samples/python/Dataflow.py
 %PYTHON_EXECUTABLE% Samples/python/Idx.py
 
-REM test stand alone scripts
-%PYTHON_EXECUTABLE% -m OpenVisus configure
 .\visus.bat
 
 echo "OpenVisus build finished"
