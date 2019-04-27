@@ -9,6 +9,7 @@ import fnmatch
 import os
 import sysconfig
 import re
+import imp
 
 bVerbose=False
 
@@ -158,8 +159,8 @@ class DeployUtils:
 
 	# PipInstall
 	@staticmethod
-	def PipInstall(package,extra_args=[]):
-		cmd=[sys.executable,"-m","pip","install","--user",package]
+	def PipInstall(packagename,extra_args=[]):
+		cmd=[sys.executable,"-m","pip","install","--user",packagename]
 		if extra_args: cmd+=extra_args
 		print("# Executing",cmd)
 		return_code=subprocess.call(cmd)
@@ -223,8 +224,7 @@ class DeployUtils:
 		# avoid conflicts removing any Qt file
 		DeployUtils.RemoveFiles("bin/Qt*")
 
-		import imp 
-		Qt5_DIR=os.path.join(imp.find_module('PyQt5')[1],"Qt")
+		Qt5_DIR=DeployUtils.GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.join(os.path.dirname(PyQt5.__file__),'Qt'))"]).strip()
 		print("Qt5_DIR",Qt5_DIR)
 		if not os.path.isdir(Qt5_DIR):
 			raise Exception("internal error")
