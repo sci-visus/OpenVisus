@@ -40,22 +40,22 @@ matrix:
     
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.7.1','DISABLE_OPENMP=1','VISUS_GUI=1','UseInstalledPackages=0']   
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.7.1','DISABLE_OPENMP=1','UseInstalledPackages=0']   
       if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::manylinux\]/
 
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.6.1','DISABLE_OPENMP=1','VISUS_GUI=1','UseInstalledPackages=0','DEFAULT=1']   
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.6.1','DISABLE_OPENMP=1','UseInstalledPackages=0','DEFAULT=1']   
       if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::manylinux\]/
           
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.5.1','DISABLE_OPENMP=1','VISUS_GUI=1','UseInstalledPackages=0']
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.5.1','DISABLE_OPENMP=1','UseInstalledPackages=0']
       if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::manylinux\]/
 
     - os: linux
       dist: trusty  
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=2.7.15','DISABLE_OPENMP=1','VISUS_GUI=1','UseInstalledPackages=0']
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=2.7.15','DISABLE_OPENMP=1','UseInstalledPackages=0']
       if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::manylinux\]/
           
 

@@ -7,6 +7,9 @@ set -x
 # stop on error
 set -e
 
+# stop of the first command that fails with pipe (|)
+set -o pipefail
+
 SOURCE_DIR=$(pwd)
 BUILD_DIR=${BUILD_DIR:-${SOURCE_DIR}/build}
 CACHE_DIR=${CACHE_DIR:-${BUILD_DIR}/.cache}
@@ -101,6 +104,7 @@ function Preamble {
 
 	# if is docker or not
 	DOCKER=0
+
 	grep 'docker\|lxc' /proc/1/cgroup && :
 	if [ $? == 0 ] ; then 
 		export DOCKER=1
@@ -371,21 +375,21 @@ function UpdateOS {
 
 
 # //////////////////////////////////////////////////////////////
-function InstallCompilers {
+function InstallPrerequisites {
 
-	BeginSection "InstallCompilers"
+	BeginSection "InstallPrerequisites"
 
 	if (( OSX == 1 )) ; then
 		echo "Assuming XCode is already installed"
 
 	elif (( UBUNTU == 1 )) ; then
-		InstallPackages build-essential
+		InstallPackages build-essential make
 
 	elif (( OPENSUSE == 1 )) ; then
-		InstallPackages gcc-c++ 
+		InstallPackages gcc-c++ make
 		
 	elif (( CENTOS == 1 )) ; then
-		InstallPackages gcc-c++ 
+		InstallPackages gcc-c++ make
 	fi
 
 	echo "Installed prerequisites"
@@ -482,7 +486,9 @@ function InstallSwig {
 	pushd swig-3.0.12
 	DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
 	./Tools/pcre-build.sh 1>/dev/null
-	./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s -j 4 1>/dev/null && make install 1>/dev/null 
+	./configure --prefix=${CACHE_DIR} 1>/dev/null 
+	make -s -j 4 1>/dev/null 
+	make install 1>/dev/null 
 	popd
 	rm -Rf swig-3.0.12
 
@@ -517,9 +523,13 @@ function InstallPatchElf {
 	DownloadFile ${url}
 	tar xzf ${filename}
 	pushd patchelf-0.9
-	./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
+	./configure --prefix=${CACHE_DIR} 1>/dev/null 
+	make -s 1>/dev/null 
+	make install 1>/dev/null 
 	autoreconf -f -i
-	./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
+	./configure --prefix=${CACHE_DIR} 1>/dev/null 
+	make -s 1>/dev/null 
+	make install 1>/dev/null 
 	popd
 	rm -Rf patchelf-0.9
 
@@ -588,7 +598,9 @@ function InstallOpenSSL {
 	DownloadFile ${url}
 	tar xzf ${filename}
 	pushd openssl-1.0.2a
-	./config --prefix=${CACHE_DIR} -fPIC shared 1>/dev/null && make -s 1>/dev/null  && make install 1>/dev/null 
+	./config --prefix=${CACHE_DIR} -fPIC shared 1>/dev/null 
+	make -s 1>/dev/null  
+	make install 1>/dev/null 
 	popd
 	rm -Rf openssl-1.0.2a
 	
@@ -638,7 +650,9 @@ function InstallApache {
 	DownloadFile ${url}
 	tar xzf ${filename}
 	pushd apr-1.6.5
-	./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
+	./configure --prefix=${CACHE_DIR} 1>/dev/null 
+	make -s 1>/dev/null 
+	make install 1>/dev/null 
 	popd
 	rm -Rf apr-1.6.5
 
@@ -648,7 +662,9 @@ function InstallApache {
 	DownloadFile ${url}
 	tar xzf ${filename}
 	pushd apr-util-1.6.1
-	./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} 1>/dev/null  && make -s 1>/dev/null  && make install 1>/dev/null 
+	./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} 1>/dev/null  
+	make -s 1>/dev/null 
+	make install 1>/dev/null 
 	popd
 	rm -Rf apr-util-1.6.1
 
@@ -658,7 +674,9 @@ function InstallApache {
 	DownloadFile ${url}
 	tar xzf ${filename}
 	pushd pcre-8.42
-	./configure --prefix=${CACHE_DIR} 1>/dev/null  && make -s 1>/dev/null  && make install 1>/dev/null 
+	./configure --prefix=${CACHE_DIR} 1>/dev/null 
+	make -s 1>/dev/null 
+	make install 1>/dev/null 
 	popd
 	rm -Rf pcre-8.42
 
@@ -668,9 +686,9 @@ function InstallApache {
 	DownloadFile ${url}
 	tar xzf ${filename}
 	pushd httpd-2.4.38
-	./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-pcre=${CACHE_DIR} --with-ssl=${CACHE_DIR} 1>/dev/null && \
-		make -s 1>/dev/null && \
-		make install 1>/dev/null 
+	./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-pcre=${CACHE_DIR} --with-ssl=${CACHE_DIR} 1>/dev/null 
+	make -s 1>/dev/null 
+	make install 1>/dev/null 
 	popd
 	rm -Rf httpd-2.4.38
 	
@@ -1016,7 +1034,7 @@ if (( USE_CONDA == 1 )) ; then
 	
 else	
 
-	InstallCompilers
+	InstallPrerequisites
 	InstallCMake
 	InstallSwig
 	InstallPython
@@ -1069,9 +1087,9 @@ else
 	cmake ${cmake_opts[@]} ${SOURCE_DIR}
 	
 	if (( TRAVIS == 1 && OSX == 1 )) ; then
-		set -o pipefail && cmake --build ./ --target ${CMAKE_ALL_STEP} --config ${CMAKE_BUILD_TYPE} | xcpretty -c
+		cmake --build ./ --target ${CMAKE_ALL_STEP} --config ${CMAKE_BUILD_TYPE} | xcpretty -c
 	else
-		cmake --build ./ --target ${CMAKE_ALL_STEP}  --config ${CMAKE_BUILD_TYPE}
+		cmake --build ./ --target ${CMAKE_ALL_STEP} --config ${CMAKE_BUILD_TYPE}
 	fi	
 	
 	# install step
