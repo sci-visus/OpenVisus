@@ -207,7 +207,10 @@ class DeployUtils:
 		except:
 			pass
 			
-		for name in ["PyQt5=="+QT_VERSION] + ["PyQt5=="+QT_VERSION[0:4]+"." + str(it) for it in reversed(range(1,10))]:
+		QT_MAJOR_VERSION=QT_VERSION.split(".")[0]
+		QT_MINOR_VERSION=QT_VERSION.split(".")[1]
+
+		for name in ["PyQt5=="+QT_VERSION] + ["PyQt5=="+".".join("{}.{}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION,N) for N in reversed(range(1,10))]:
 			if DeployUtils.PipInstall(name,["--ignore-installed"]):
 				print("Installed PyQt5")
 				return
@@ -227,6 +230,7 @@ class DeployUtils:
 		Qt5_DIR=DeployUtils.GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.join(os.path.dirname(PyQt5.__file__),'Qt'))"]).strip()
 		print("Qt5_DIR",Qt5_DIR)
 		if not os.path.isdir(Qt5_DIR):
+			print("Error directory does not exists")
 			raise Exception("internal error")
 			
 		# for windowss see VisusGui.i (%pythonbegin section, I'm using sys.path)
@@ -235,7 +239,7 @@ class DeployUtils:
 		elif APPLE:
 			deploy=AppleDeploy()
 			for filename in deploy.findAllBinaries():
-				deploy.addRPath(os.path.join(Qt5_DIR,"lib"))	
+				deploy.addRPath(filename,os.path.join(Qt5_DIR,"lib"))	
 		else:
 			deploy=LinuxDeploy()
 			for filename in deploy.findAllBinaries():
