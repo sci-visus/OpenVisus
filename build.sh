@@ -307,9 +307,9 @@ function InstallPackages {
 
 
 # //////////////////////////////////////////////////////////////
-function UpdateOS {
+function InstallPrerequisites {
 
-	BeginSection "UpdateOS"
+	BeginSection "InstallPrerequisites"
 
 	if (( OSX == 1 )) ; then
 
@@ -343,7 +343,8 @@ function UpdateOS {
 			fi
 		fi
 
-		InstallPackages git curl ca-certificates uuid-dev automake bzip2 libffi-dev
+		InstallPackages git curl ca-certificates uuid-dev automake bzip2 libffi-dev build-essential make
+		InstallPatchElf
 
 	elif (( OPENSUSE == 1 )) ; then
 
@@ -352,7 +353,8 @@ function UpdateOS {
 			${SudoCmd} zypper --non-interactive install --type pattern devel_basis
 		fi
 
-		InstallPackages git curl lsb-release libuuid-devel libffi-devel
+		InstallPackages git curl lsb-release libuuid-devel libffi-devel gcc-c++ make
+		InstallPatchElf
 		
 	elif (( CENTOS == 1 )) ; then
 
@@ -360,7 +362,8 @@ function UpdateOS {
 			${SudoCmd} yum update 1>/dev/null  && :
 		fi
 
-		InstallPackages zlib zlib-devel curl libffi-devel
+		InstallPackages zlib zlib-devel curl libffi-devel gcc-c++ make
+		InstallPatchElf
 
 		if (( VISUS_GUI ==  1 )); then
 			InstallPackages mesa-libGL-devel mesa-libGLU-devel 
@@ -368,33 +371,12 @@ function UpdateOS {
 
 	fi
 
-	
 	echo "Installed prerequisites"
 	return 0
 }
 
 
-# //////////////////////////////////////////////////////////////
-function InstallPrerequisites {
 
-	BeginSection "InstallPrerequisites"
-
-	if (( OSX == 1 )) ; then
-		echo "Assuming XCode is already installed"
-
-	elif (( UBUNTU == 1 )) ; then
-		InstallPackages build-essential make
-
-	elif (( OPENSUSE == 1 )) ; then
-		InstallPackages gcc-c++ make
-		
-	elif (( CENTOS == 1 )) ; then
-		InstallPackages gcc-c++ make
-	fi
-
-	echo "Installed prerequisites"
-	return 0
-}
 
 # //////////////////////////////////////////////////////
 function InstallCMake {
@@ -981,14 +963,9 @@ if [[ "$DOCKER_IMAGE" != "" ]] ; then
 fi
 
 pushd ${BUILD_DIR}
-
-UpdateOS && :
-
-if (( OSX != 1 )); then
-	InstallPatchElf
-fi
-
 export PATH=${CACHE_DIR}/bin:$PATH
+
+InstallPrerequisites && :
 
 if (( USE_CONDA == 1 )) ; then
 
@@ -1034,7 +1011,6 @@ if (( USE_CONDA == 1 )) ; then
 	
 else	
 
-	InstallPrerequisites
 	InstallCMake
 	InstallSwig
 	InstallPython
