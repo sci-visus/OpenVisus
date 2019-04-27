@@ -206,15 +206,20 @@ class DeployUtils:
 
 		except:
 			pass
-			
+
 		QT_MAJOR_VERSION=QT_VERSION.split(".")[0]
 		QT_MINOR_VERSION=QT_VERSION.split(".")[1]
 
-		for name in ["PyQt5=="+QT_VERSION] + ["PyQt5=="+".".join("{}.{}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION,N) for N in reversed(range(1,10))]:
-			if DeployUtils.PipInstall(name,["--ignore-installed"]):
-				print("Installed PyQt5")
+		versions=[]
+		versions+=["{}".format(QT_VERSION)]
+		versions+=["{}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION)]
+		versions+=["{}.{}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION,N) for N in reversed(range(1,10))]
+
+		for version in versions:
+			packagename="PyQt5=="+version
+			if DeployUtils.PipInstall(packagename,["--ignore-installed"]):
+				print("Installed",packagename)
 				return
-			print("Failed to install",name)	
 			
 		raise Exception("Cannot install PyQt5")
 
