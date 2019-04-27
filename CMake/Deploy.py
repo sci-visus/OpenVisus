@@ -158,8 +158,9 @@ class DeployUtils:
 
 	# PipInstall
 	@staticmethod
-	def PipInstall(args):
-		cmd=[sys.executable,"-m","pip","install"] + args
+	def PipInstall(package,upgrade=False):
+		cmd=[sys.executable,"-m","pip","install","--user",package]
+		if upgrade: cmd+=["--upgrade"]
 		print("# Executing",cmd)
 		return_code=subprocess.call(cmd)
 
@@ -180,8 +181,8 @@ class DeployUtils:
 	# PythonDist
 	@staticmethod
 	def PythonDist():
-		DeployUtils.PipInstall(["--upgrade","--user","setuptools"])	
-		DeployUtils.PipInstall(["--upgrade","--user","wheel"     ])	
+		DeployUtils.PipInstall("setuptools",upgrade=True)	
+		DeployUtils.PipInstall("wheel"     ,upgrade=True)	
 		DeployUtils.RemoveFiles("dist/*")
 		PYTHON_TAG="cp%s%s" % (sys.version_info[0],sys.version_info[1])
 		if WIN32:
@@ -226,7 +227,7 @@ class DeployUtils:
 			
 		DeployUtils.PipUninstall(["PyQt5"])
 		for name in ["PyQt5=="+QT_VERSION] + ["PyQt5=="+QT_VERSION[0:4]+"." + str(it) for it in reversed(range(1,10))]:
-			if DeployUtils.PipInstall(["--user",name]):
+			if DeployUtils.PipInstall(name):
 				print("Installed",name)
 				return
 			print("Failed to install",name)	
@@ -256,9 +257,6 @@ class DeployUtils:
 			deploy=LinuxDeploy()
 			for filename in deploy.findAllBinaries():
 			 	deploy.setRPath(filename,[os.path.join(Qt5_DIR,"lib")])
-			
-
-
 
 	# CreateScript
 	@staticmethod
