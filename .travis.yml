@@ -31,114 +31,51 @@ matrix:
     # ///////////////////////////////// manylinux 
 
     # example of to compile:
-    # PYTHON_VERSION=3.6.1 DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64 BUILD_DIR=$(pwd)/build/manylinux DISABLE_OPENMP=1 VISUS_GUI=1 UseInstalledPackages=0 ./build.sh
+    # PYTHON_VERSION=3.6.1 DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64 BUILD_DIR=$(pwd)/build/manylinux ./build.sh
 
     # Example to compile step by step:
     # sudo docker run -ti -v $(pwd):/home/OpenVisus quay.io/pypa/manylinux1_x86_64 /bin/bash
     # cd /home/OpenVisus 
-    # PYTHON_VERSION=3.6.1 BUILD_DIR=$(pwd)/build/manylinux DISABLE_OPENMP=1 VISUS_GUI=1 UseInstalledPackages=0 ./build.sh     
+    # PYTHON_VERSION=3.6.1 BUILD_DIR=$(pwd)/build/manylinux ./build.sh     
     
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.7.1','DISABLE_OPENMP=1','UseInstalledPackages=0']   
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::manylinux\]/
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.7.1']   
+      if: tag IS present 
 
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.6.1','DISABLE_OPENMP=1','UseInstalledPackages=0','DEFAULT=1']   
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::manylinux\]/
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.6.1']   
           
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.5.1','DISABLE_OPENMP=1','UseInstalledPackages=0']
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::manylinux\]/
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.5.1']
+      if: tag IS present 
 
     - os: linux
       dist: trusty  
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=2.7.15','DISABLE_OPENMP=1','UseInstalledPackages=0']
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::manylinux\]/
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=2.7.15']
+      if: tag IS present 
           
 
-    # ///////////////////////////////// ubuntu:trusty
+    # ///////////////////////////////// ubuntu:trusty | ubuntu:xenial | opensuse:leap 
 
     # Example to compile by hand
-    # sudo docker run -ti  -v $(pwd):/home/OpenVisus ubuntu:trusty /bin/bash
+    # sudo docker run -ti  -v $(pwd):/home/OpenVisus $DOCKER_IMAGE /bin/bash
     # cd /home/OpenVisus && PYTHON_VERSION=3.61 ./build.sh 
 
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=3.7.1']  
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[tCI::trusty\]/
-    
-    - os: linux
-      dist: trusty
-      env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=3.6.1','DEFAULT=1']   
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::trusty\]/
-    
-    - os: linux
-      dist: trusty
-      env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=3.5.1']  
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::trusty\]/
-            
-    - os: linux
-      dist: trusty
-      env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=2.7.15']  
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[tCI::rusty\]/
-          
-
-    # ///////////////////////////////// ubuntu:xenial
-
-    # Example to compile by hand
-    # sudo docker run -ti -v $(pwd):/home/OpenVisus ubuntu:xenial /bin/bash
-    # cd /home/OpenVisus && PYTHON_VERSION=3.7.1 ./build.sh
-
+      env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=3.6.1']   
+   
     - os: linux
       dist: xenial
-      env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=3.7.1'] 
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::xenial\]/
-       
-    - os: linux
-      dist: xenial
-      env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=3.6.1','DEFAULT=1']  
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::xenial\]/
-    
-    - os: linux
-      dist: xenial
-      env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=3.5.1']     
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::xenial\]/
-            
-    - os: linux
-      dist: xenial
-      env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=2.7.15']  
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::xenial\]/
-             
-
-    # ///////////////////////////////// opensuse:leap 
-
-    # Example to compile by hand
-    # sudo docker run -ti  -v $(pwd):/home/OpenVisus opensuse:leap /bin/bash
-    # cd /home/OpenVisus && PYTHON_VERSION=3.7.1 ./build.sh    
-    
-    - os: linux
-      dist: trusty
-      env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.7.1']  
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::leap\]/
+      env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=3.6.1']
 
     - os: linux
       dist: trusty
-      env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.6.6','DEFAULT=1']  
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::leap\]/
-          
-    - os: linux
-      dist: trusty
-      env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.5.1']  
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::leap\]/
-          
-    - os: linux
-      dist: trusty
-      env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=2.7.15']   
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::leap\]/
-          
+      env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.6.6']  
+
 
     # ///////////////////////////////// osx1014
    
@@ -146,19 +83,18 @@ matrix:
       osx_image: xcode10.2
       compiler: clang
       env: ['OSX_VERSION=1014','PYTHON_VERSION=3.7.1']  
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::osx\]/
+      if: tag IS present 
     
     - os: osx
       osx_image: xcode10.2
       compiler: clang
-      env: ['OSX_VERSION=1014','PYTHON_VERSION=3.6.5','DEFAULT=1']  
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::osx\]/
+      env: ['OSX_VERSION=1014','PYTHON_VERSION=3.6.5']  
      
     - os: osx
       osx_image: xcode10.2
       compiler: clang
       env: ['OSX_VERSION=1014','PYTHON_VERSION=2.7.15']    
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::osx\]/
+      if: tag IS present 
      
     # ///////////////////////////////// osx1013
     
@@ -167,19 +103,18 @@ matrix:
       osx_image: xcode9.4
       compiler: clang
       env: ['OSX_VERSION=1013','PYTHON_VERSION=3.7.1'] 
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::osx\]/
+      if: tag IS present 
     
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.6.5','DEFAULT=1']    
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::osx\]/
+      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.6.5']
 
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
       env: ['OSX_VERSION=1013','PYTHON_VERSION=2.7.15']   
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::osx\]/
+      if: tag IS present 
       
     # ///////////////////////////////// osx1012
     
@@ -187,19 +122,18 @@ matrix:
       osx_image: xcode8.3
       compiler: clang
       env: ['OSX_VERSION=1012','PYTHON_VERSION=3.7.1'] 
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::osx\]/
+      if: tag IS present 
              
     - os: osx
       osx_image: xcode8.3
       compiler: clang 
-      env: ['OSX_VERSION=1012','PYTHON_VERSION=3.6.1','DEFAULT=1']    
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::osx\]/
+      env: ['OSX_VERSION=1012','PYTHON_VERSION=3.6.1']   
       
     - os: osx
       osx_image: xcode8.3
       compiler: clang
       env: ['OSX_VERSION=1012','PYTHON_VERSION=2.7.14'] 
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::osx\]/
+      if: tag IS present 
 
 
     # ///////////////////////////////// trusty:conda
@@ -210,17 +144,16 @@ matrix:
     - os: linux
       dist: trusty
       env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=3.7','USE_CONDA=1']     
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::conda\]/
+      if: tag IS present 
 
     - os: linux
       dist: trusty
-      env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=3.6','USE_CONDA=1']  
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::conda\]/
+      env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=3.6','USE_CONDA=1']
      
     - os: linux
       dist: trusty
       env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=2.7','USE_CONDA=1']   
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::conda\]/
+      if: tag IS present  
           
 
 
@@ -231,20 +164,19 @@ matrix:
     - os: osx
       osx_image: xcode9.4
       compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.7','USE_CONDA=1','DEFAULT=1']  
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::conda\]/
+      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.7','USE_CONDA=1']  
+      if: tag IS present 
     
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.6','USE_CONDA=1','DEFAULT=1']
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::conda\]/
+      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.6','USE_CONDA=1']
 
     - os: osx
       osx_image: xcode9.4 
       compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=2.7','USE_CONDA=1','DEFAULT=1']
-      if: ( commit_message !~ /\[CI::/ AND (tag IS present OR env(DEFAULT) = 1 )) OR commit_message =~ /\[CI::conda\]/
+      env: ['OSX_VERSION=1013','PYTHON_VERSION=2.7','USE_CONDA=1']
+      if: tag IS present 
 
 script:
    - |
