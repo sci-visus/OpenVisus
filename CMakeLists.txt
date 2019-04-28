@@ -147,14 +147,14 @@ if (1)
 		get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." REALPATH)
 		
 		install(CODE "
-			execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py --make-self-contained --qt5-home=${Qt5_HOME} RESULT_VARIABLE retcode)
+			execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py MakeSelfContainedStep --qt5-home=${Qt5_HOME} RESULT_VARIABLE retcode)
 			if(NOT \"\${retcode}\" STREQUAL \"0\")
 				message(FATAL_ERROR \"Fatal error executing make self contained\")
 			endif()
 		")
 
 		install(CODE "
-			execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py --configure RESULT_VARIABLE retcode)
+			execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py CreateScriptsStep RESULT_VARIABLE retcode)
 			if(NOT \"\${retcode}\" STREQUAL \"0\")
 				message(FATAL_ERROR \"Fatal error executing configure step\")
 			endif()
@@ -169,7 +169,7 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** dist (to call after INSTALL) ***
 if (1)
-	add_custom_target(dist COMMAND ${PYTHON_EXECUTABLE} -u \"${OpenVisus_DIR}/Deploy.py\" --dist)
+	add_custom_target(dist COMMAND ${PYTHON_EXECUTABLE} -u \"${OpenVisus_DIR}/Deploy.py\" DistStep)
 	set_property(TARGET dist PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 

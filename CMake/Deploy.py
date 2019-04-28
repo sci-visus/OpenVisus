@@ -9,6 +9,7 @@ import fnmatch
 import os
 import sysconfig
 import re
+import imp
 
 bVerbose=False
 
@@ -158,8 +159,8 @@ class DeployUtils:
 
 	# PipInstall
 	@staticmethod
-	def PipInstall(package,extra_args=[]):
-		cmd=[sys.executable,"-m","pip","install","--user",package]
+	def PipInstall(packagename,extra_args=[]):
+		cmd=[sys.executable,"-m","pip","install","--user",packagename]
 		if extra_args: cmd+=extra_args
 		print("# Executing",cmd)
 		return_code=subprocess.call(cmd)
@@ -205,12 +206,20 @@ class DeployUtils:
 
 		except:
 			pass
-			
-		for name in ["PyQt5=="+QT_VERSION] + ["PyQt5=="+QT_VERSION[0:4]+"." + str(it) for it in reversed(range(1,10))]:
-			if DeployUtils.PipInstall(name,["--ignore-installed"]):
-				print("Installed PyQt5")
+
+		QT_MAJOR_VERSION=QT_VERSION.split(".")[0]
+		QT_MINOR_VERSION=QT_VERSION.split(".")[1]
+
+		versions=[]
+		versions+=["{}".format(QT_VERSION)]
+		versions+=["{}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION)]
+		versions+=["{}.{}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION,N) for N in reversed(range(1,10))]
+
+		for version in versions:
+			packagename="PyQt5=="+version
+			if DeployUtils.PipInstall(packagename,["--ignore-installed"]):
+				print("Installed",packagename)
 				return
-			print("Failed to install",name)	
 			
 		raise Exception("Cannot install PyQt5")
 
@@ -223,10 +232,10 @@ class DeployUtils:
 		# avoid conflicts removing any Qt file
 		DeployUtils.RemoveFiles("bin/Qt*")
 
-		import imp 
-		Qt5_DIR=os.path.join(imp.find_module('PyQt5')[1],"Qt")
+		Qt5_DIR=DeployUtils.GetCommandOutput([sys.executable,"-c","import os,PyQt5;print(os.path.join(os.path.dirname(PyQt5.__file__),'Qt'))"]).strip()
 		print("Qt5_DIR",Qt5_DIR)
 		if not os.path.isdir(Qt5_DIR):
+			print("Error directory does not exists")
 			raise Exception("internal error")
 			
 		# for windowss see VisusGui.i (%pythonbegin section, I'm using sys.path)
@@ -235,7 +244,7 @@ class DeployUtils:
 		elif APPLE:
 			deploy=AppleDeploy()
 			for filename in deploy.findAllBinaries():
-				deploy.addRPath(os.path.join(Qt5_DIR,"lib"))	
+				deploy.addRPath(filename,os.path.join(Qt5_DIR,"lib"))	
 		else:
 			deploy=LinuxDeploy()
 			for filename in deploy.findAllBinaries():
@@ -297,30 +306,37 @@ class DeployUtils:
 			subprocess.call(["chmod","+rx",script_filename], shell=False)	
 			subprocess.call(["chmod","+rx",target         ], shell=False)	
 
-	# Configure
+
+	# CreateScripts
 	@staticmethod
-	def Configure():
+	def CreateScripts():
+
+		VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
 
 		if WIN32:
 			DeployUtils.CreateScript("visus.bat","bin/visus.exe")
-			if os.path.isfile("bin/visusviewer.exe"):
+			if VISUS_GUI:
 				DeployUtils.CreateScript("visusviewer.bat","bin/visusviewer.exe",bUsingQt5=True, extra_lines=["cd %this_dir%"])
 
 		elif APPLE:	
 			DeployUtils.CreateScript("visus.command","bin/visus.app/Contents/MacOS/visus")
-			if os.path.isdir("bin/visusviewer.app"):
+			if VISUS_GUI:
 				DeployUtils.CreateScript("visusviewer.command","bin/visusviewer.app/Contents/MacOS/visusviewer",bUsingQt5=True, extra_lines=["cd ${this_dir}"])
 
 		else:
 			DeployUtils.CreateScript("visus.sh","bin/visus")
-			if os.path.isfile("bin/visusviewer"):
+			if VISUS_GUI:
 				DeployUtils.CreateScript("visusviewer.sh","bin/visusviewer",bUsingQt5=True, extra_lines=["cd ${this_dir}"])
 
-		VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
-		if VISUS_GUI:
-			DeployUtils.UsePyQt()
-
-
+	# MakeSelfContained
+	@staticmethod
+	def MakeSelfContained():
+		if WIN32:
+			WinDeploy().makeSelfContained()
+		elif APPLE:
+			AppleDeploy().makeSelfContained()
+		else:
+			LinuxDeploy().makeSelfContained()
 
 # ///////////////////////////////////////
 class WinDeploy:
@@ -675,43 +691,85 @@ import traceback
 def Main():
 	
 	this_dir=os.path.dirname(os.path.abspath(__file__))
-	try:
+	os.chdir(this_dir)
 
-		action=sys.argv[1]
-		if action=="dirname":
-			print(this_dir)
-			sys.exit(0)	
+	VISUS_GUI=True if os.path.isfile("QT_VERSION") else False
 
-		os.chdir(this_dir)
+	action=sys.argv[1]
+
+	# _____________________________________________
+	
+	if action=="dirname":
+		print(this_dir)
+		sys.exit(0)	
+	
+	# _____________________________________________
+	if action=="MakeSelfContainedStep":	
+
 		print("Executing",action,"cwd",os.getcwd(),"args",sys.argv)
 
-		if action=="--make-self-contained":	
+		try:
+			DeployUtils.MakeSelfContained()
 
-			if WIN32:
-				WinDeploy().makeSelfContained()
-			elif APPLE:
-				AppleDeploy().makeSelfContained()
-			else:
-				LinuxDeploy().makeSelfContained()
+		except Exception as e:
+			traceback.print_exc()
+			sys.exit(-1)
 
-			print("done",action)
-			sys.exit(0)
-		
-		if action=="--configure" or action=="configure":
-			DeployUtils.Configure()
-			print("done",action)
-			sys.exit(0)
+		print("done",action)
+		sys.exit(0)
+	
+	# _____________________________________________
+	if action=="DistStep":
 
-		if action=="--dist":
+		print("Executing",action,"cwd",os.getcwd(),"args",sys.argv)
+
+		try:
 			DeployUtils.Dist()
-			print("done",action,glob.glob('dist/*'))
-			sys.exit(0)
 
-		raise Exception("Error in arguments")
+		except Exception as e:
+			traceback.print_exc()
+			sys.exit(-1)
 
-	except Exception as e:
-		traceback.print_exc()
-		sys.exit(-1)
+		print("done",action,glob.glob('dist/*'))
+		sys.exit(0)
+
+	# _____________________________________________
+	if action=="CreateScriptsStep":
+
+		print("Executing",action,"cwd",os.getcwd(),"args",sys.argv)
+
+		try:
+			DeployUtils.CreateScripts()
+
+		except Exception as e:
+			traceback.print_exc()
+			sys.exit(-1)
+
+		print("done",action)
+		sys.exit(0)
+
+
+	# _____________________________________________
+	if action=="configure":
+
+		print("Executing",action,"cwd",os.getcwd(),"args",sys.argv)
+
+		try:
+			DeployUtils.CreateScripts()
+			if VISUS_GUI:
+				DeployUtils.UsePyQt()
+
+		except Exception as e:
+			traceback.print_exc()
+			sys.exit(-1)
+
+		print("done",action)
+		sys.exit(0)
+
+
+
+	print("Error in arguments")
+	sys.exit(-1)
 
 
 

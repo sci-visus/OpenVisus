@@ -38,7 +38,7 @@ GITHUB_API_TOKEN=${GITHUB_API_TOKEN:-}
 TRAVIS_TAG=${TRAVIS_TAG:-}
 
 # in case you want to try manylinux-like compilation (for debugging only)
-UseInstalledPackages=${UseInstalledPackages:-1}
+USE_OS_PACKAGES=${USE_OS_PACKAGES:-1}
 
 PYTHON_MAJOR_VERSION=${PYTHON_VERSION:0:1}
 PYTHON_MINOR_VERSION=${PYTHON_VERSION:2:1}	
@@ -171,6 +171,11 @@ function Preamble {
 
 	else
 		echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"
+	fi
+
+	if (( CENTOS == 1 && CENTOS_MAJOR == 5 )) ; then
+		DISABLE_OPENMP=1
+		USE_OS_PACKAGES=0
 	fi
 
 	# sudo allowed or not (in general I assume I cannot use sudo)
@@ -355,6 +360,10 @@ function InstallPrerequisites {
 
 		InstallPackages git curl lsb-release libuuid-devel libffi-devel gcc-c++ make
 		InstallPatchElf
+
+		if (( VISUS_GUI ==  1 )); then
+			InstallPackages glu-devel
+		fi
 		
 	elif (( CENTOS == 1 )) ; then
 
@@ -388,7 +397,7 @@ function InstallCMake {
 		return 0
 	fi
 
-	if (( OSX == 1 || UseInstalledPackages == 1 )); then
+	if (( OSX == 1 || USE_OS_PACKAGES == 1 )); then
 
 		InstallPackages cmake && :
 
@@ -434,7 +443,7 @@ function InstallSwig {
 		return 0
 	fi
 
-	if (( OSX == 1 || UseInstalledPackages == 1 )); then
+	if (( OSX == 1 || USE_OS_PACKAGES == 1 )); then
 
 		InstallPackages swig && :
 
@@ -488,7 +497,7 @@ function InstallPatchElf {
 		return 0
 	fi
 
-	if (( UseInstalledPackages == 1 )); then
+	if (( USE_OS_PACKAGES == 1 )); then
 
 		InstallPackages patchelf && :
 
@@ -553,7 +562,7 @@ function InstallOpenSSL {
 		return 0
 	fi
 	
-	if (( UseInstalledPackages == 1 )); then
+	if (( USE_OS_PACKAGES == 1 )); then
 		if (( UBUNTU == 1 )) ; then
 			InstallPackages libssl-dev && : 
 			if [ $? == 0 ] ; then
@@ -607,7 +616,7 @@ function InstallApache {
 		return 0		
 	fi
 
-	if (( UseInstalledPackages == 1 )); then
+	if (( USE_OS_PACKAGES == 1 )); then
 
 		if (( UBUNTU == 1 )); then
 			InstallPackages apache2 apache2-dev   && : 
@@ -706,7 +715,7 @@ function InstallQt5 {
 		return 0
 	fi
 
-	if (( UseInstalledPackages == 1 )); then
+	if (( USE_OS_PACKAGES == 1 )); then
 
 		# ubuntu
 		if (( UBUNTU == 1 )) ; then
@@ -745,9 +754,9 @@ function InstallQt5 {
 			fi
 		fi
 
-		# opensuse
-		if (( OPENSUSE == 1 )) ; then
-			InstallPackages glu-devel libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel && : 
+		# opensuse 
+		if (( OPENSUSE == 1 )) ; then	
+			InstallPackages libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel && : 
 			if [ $? == 0 ] ; then return 0 ; fi
 		fi
 
