@@ -175,7 +175,7 @@ function Preamble {
 
 	if (( CENTOS == 1 && CENTOS_MAJOR == 5 )) ; then
 		DISABLE_OPENMP=1
-		USE_OS_PACKAGES = 0
+		USE_OS_PACKAGES=0
 	fi
 
 	# sudo allowed or not (in general I assume I cannot use sudo)
@@ -754,11 +754,11 @@ function InstallQt5 {
 			fi
 		fi
 
-		# opensuse (qt5 is too old)
-		#if (( OPENSUSE == 1 )) ; then	
-		#	InstallPackages libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel && : 
-		#	if [ $? == 0 ] ; then return 0 ; fi
-		#fi
+		# opensuse 
+		if (( OPENSUSE == 1 )) ; then	
+			InstallPackages libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel && : 
+			if [ $? == 0 ] ; then return 0 ; fi
+		fi
 
 	fi
 
