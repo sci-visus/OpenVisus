@@ -202,6 +202,7 @@ class DeployUtils:
 			A=".".join(PyQt5.QtCore.QT_VERSION_STR.split(".")[0:2])
 			B=".".join(                 QT_VERSION.split(".")[0:2])
 			if A==B:
+				DeployUtils.PipInstall("PyQt5-sip") # make sure sip is installed
 				print("PyQt5",A,"already installed")
 				return
 
@@ -218,6 +219,7 @@ class DeployUtils:
 		for version in versions:
 			packagename="PyQt5=="+version
 			if DeployUtils.PipInstall(packagename,["--ignore-installed"]):
+				DeployUtils.PipInstall("PyQt5-sip",["--ignore-installed"])
 				print("Installed",packagename)
 				return
 			
