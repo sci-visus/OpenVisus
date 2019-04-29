@@ -16,10 +16,7 @@ if (VISUS_OSPRAY)
 	target_link_libraries(VisusGuiNodes PUBLIC ${OSPRAY_LIBRARIES})
 endif()
 
-AddSwigLibrary(VisusGuiNodesPy 
-	VisusGuiNodes 
-	OpenVisus
-	${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiNodesPy.i 
+AddSwigLibrary(VisusGuiNodes ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiNodesPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"

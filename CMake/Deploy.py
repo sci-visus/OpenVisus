@@ -9,7 +9,6 @@ import fnmatch
 import os
 import sysconfig
 import re
-import imp
 
 bVerbose=False
 
@@ -196,12 +195,14 @@ class DeployUtils:
 	# InstallPyQt5
 	@staticmethod
 	def InstallPyQt5(QT_VERSION):
-
+		
 		# already install and compatible?
 		try:
 			import PyQt5.QtCore
-			if PyQt5.QtCore.QT_VERSION_STR==QT_VERSION:
-				print("PyQt5",QT_VERSION,"already installed")
+			A=".".join(PyQt5.QtCore.QT_VERSION_STR.split(".")[0:2])
+			B=".".join(                 QT_VERSION.split(".")[0:2])
+			if A==B:
+				print("PyQt5",A,"already installed")
 				return
 
 		except:
@@ -214,7 +215,6 @@ class DeployUtils:
 		versions+=["{}".format(QT_VERSION)]
 		versions+=["{}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION)]
 		versions+=["{}.{}.{}".format(QT_MAJOR_VERSION,QT_MINOR_VERSION,N) for N in reversed(range(1,10))]
-
 		for version in versions:
 			packagename="PyQt5=="+version
 			if DeployUtils.PipInstall(packagename,["--ignore-installed"]):
@@ -226,7 +226,10 @@ class DeployUtils:
 	# UsePyQt
 	@staticmethod
 	def UsePyQt():
+
+		print("Forcing use of PyQt...")
 		QT_VERSION = DeployUtils.ReadTextFile("QT_VERSION")
+
 		DeployUtils.InstallPyQt5(QT_VERSION)
 
 		# avoid conflicts removing any Qt file
@@ -765,8 +768,6 @@ def Main():
 
 		print("done",action)
 		sys.exit(0)
-
-
 
 	print("Error in arguments")
 	sys.exit(-1)

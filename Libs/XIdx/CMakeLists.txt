@@ -9,10 +9,7 @@ source_group("" FILES ${Sources})
 AddLibrary(VisusXIdx ${Sources})
 target_link_libraries(VisusXIdx PUBLIC VisusKernel)
 
-AddSwigLibrary(VisusXIdxPy 
-	VisusXIdx 
-	OpenVisus
-	${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusXIdx.i 
+AddSwigLibrary(VisusXIdx ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusXIdx.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
 

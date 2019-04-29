@@ -59,6 +59,11 @@ endif()
 if (VISUS_GUI)
 
 	if (DEFINED Qt5_DIR)
+	
+		if (WIN32)
+			string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
+		endif()	
+	
 		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS ${Qt5_DIR}                      NO_DEFAULT_PATH)
 	elseif (APPLE AND EXISTS /usr/local/opt/qt/lib/cmake/Qt5)
 		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS /usr/local/opt/qt/lib/cmake/Qt5 NO_DEFAULT_PATH)
@@ -83,10 +88,10 @@ add_subdirectory(Libs)
 add_subdirectory(Executable)
 
 if (CMAKE_CONFIGURATION_TYPES)
-	set(OpenVisus_DIR ${CMAKE_BINARY_DIR}/$<CONFIG>/site-packages/${CMAKE_PROJECT_NAME})
+	set(OpenVisus_DIR ${CMAKE_BINARY_DIR}/$<CONFIG>/site-packages/OpenVisus)
 	string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" OpenVisusInstall_DIR "${OpenVisus_DIR}")
 else()
-	set(OpenVisus_DIR        ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/site-packages/${CMAKE_PROJECT_NAME})
+	set(OpenVisus_DIR        ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus)
 	set(OpenVisusInstall_DIR ${OpenVisus_DIR})
 endif()
 
@@ -171,6 +176,14 @@ endif()
 if (1)
 	add_custom_target(dist COMMAND ${PYTHON_EXECUTABLE} -u \"${OpenVisus_DIR}/Deploy.py\" DistStep)
 	set_property(TARGET dist PROPERTY FOLDER CMakePredefinedTargets)
+endif()
+
+
+# //////////////////////////////////////////////////////////////
+# *** configure (to call after INSTALL) ***
+if (1)
+	add_custom_target(configure COMMAND ${PYTHON_EXECUTABLE} -u \"${OpenVisus_DIR}/Deploy.py\" configure)
+	set_property(TARGET configure PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 
 

@@ -33,7 +33,6 @@ macro(FindGitRevision)
 endmacro()
 
 
-
 # ///////////////////////////////////////////////////
 macro(SetTargetOutputDirectory Name BinDir LibDir)
 	if (CMAKE_CONFIGURATION_TYPES)
@@ -198,7 +197,7 @@ macro(AddLibrary Name)
 
 	LinkPythonToLibrary(${Name})
 	SetupCommonTargetOptions(${Name})
-	SetTargetOutputDirectory(${Name} site-packages/${CMAKE_PROJECT_NAME}/bin site-packages/${CMAKE_PROJECT_NAME}/lib)
+	SetTargetOutputDirectory(${Name} site-packages/OpenVisus/bin site-packages/OpenVisus/lib)
 
 	string(TOUPPER ${Name} __upper_case__name__)
 	target_compile_definitions(${Name}  PRIVATE VISUS_BUILDING_${__upper_case__name__}=1)
@@ -231,22 +230,23 @@ macro(AddExecutable Name)
 
 	LinkPythonToExecutable(${Name})
 	SetupCommonTargetOptions(${Name})
-	SetTargetOutputDirectory(${Name} site-packages/${CMAKE_PROJECT_NAME}/bin site-packages/${CMAKE_PROJECT_NAME}/lib)
+	SetTargetOutputDirectory(${Name} site-packages/OpenVisus/bin site-packages/OpenVisus/lib)
 
 	set_target_properties(${Name} PROPERTIES FOLDER "Executable/")
 endmacro()
 
 # ///////////////////////////////////////////////////
-macro(AddSwigLibrary NamePy WrappedLib SwigTypeTable SwigFile)
+macro(AddSwigLibrary WrappedLib SwigFile)
 
+	set(NamePy ${WrappedLib}Py)
 	find_package(SWIG 3.0 REQUIRED)
 	include(${SWIG_USE_FILE})
 
 	# this is for *.py generated files
 	if (CMAKE_CONFIGURATION_TYPES)
-		set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/site-packages/${CMAKE_PROJECT_NAME})
+		set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/site-packages/OpenVisus)
 	else()
-		set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/site-packages/${CMAKE_PROJECT_NAME})
+		set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus)
 	endif()
 
 	# this is for generated C++ and header files
@@ -275,7 +275,7 @@ macro(AddSwigLibrary NamePy WrappedLib SwigTypeTable SwigFile)
 	endif()
 		
 	# important to share types between modules
-	set_source_files_properties (${swig_generated_file_fullname} PROPERTIES COMPILE_FLAGS "-DSWIG_TYPE_TABLE=${SwigTypeTable}")	
+	set_source_files_properties (${swig_generated_file_fullname} PROPERTIES COMPILE_FLAGS "-DSWIG_TYPE_TABLE=OpenVisus")	
 		
 	if (TARGET _${NamePy})
 		set(RealName _${NamePy})
@@ -293,7 +293,7 @@ macro(AddSwigLibrary NamePy WrappedLib SwigTypeTable SwigFile)
 	endif()
 
 	SetupCommonTargetOptions(${RealName})
-	SetTargetOutputDirectory(${RealName} site-packages/${CMAKE_PROJECT_NAME}/bin lib)
+	SetTargetOutputDirectory(${RealName} site-packages/OpenVisus/bin lib)
 
 	target_link_libraries(${RealName} PUBLIC ${WrappedLib})
 	set_target_properties(${RealName} PROPERTIES FOLDER Swig/)

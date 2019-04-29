@@ -2,18 +2,8 @@
 FindGitRevision()
 
 add_definitions(-DGIT_REVISION=${GIT_REVISION})
-
-# *** VISUS_INTERNAL_DEFAULT ***
 if (NOT DEFINED VISUS_INTERNAL_DEFAULT)
-	if (WIN32)
-		if (CMAKE_TOOLCHAIN_FILE)
-			set(VISUS_INTERNAL_DEFAULT 0)
-		else()
-			set(VISUS_INTERNAL_DEFAULT 1)
-		endif()	
-	else()
-		set(VISUS_INTERNAL_DEFAULT 1)
-	endif()
+	set(VISUS_INTERNAL_DEFAULT 1)
 endif()
 
 
@@ -357,8 +347,7 @@ AddLibrary(VisusKernel ${Sources})
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/dtl/include)
 
-
-
+# openmp
 if (NOT DISABLE_OPENMP)
 
 	find_package(OpenMP QUIET)
@@ -374,12 +363,11 @@ if (NOT DISABLE_OPENMP)
 		MESSAGE(STATUS "OpenMP found (brew version for APPLE)")
 		target_include_directories(VisusKernel   PUBLIC /usr/local/opt/libomp/include)
 		target_link_libraries(VisusKernel        PUBLIC /usr/local/opt/libomp/lib/libomp.a)
-		target_compile_options(VisusKernel   PUBLIC -Xpreprocessor -fopenmp)
+		target_compile_options(VisusKernel       PUBLIC -Xpreprocessor -fopenmp)
 
 	endif()
 
 endif()
-
 
 if (VISUS_COMPRESSION)
 
@@ -466,10 +454,7 @@ else()
 
 endif()
 
-AddSwigLibrary(VisusKernelPy 
-	VisusKernel 
-	OpenVisus
-	${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
+AddSwigLibrary(VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
 
 	  
