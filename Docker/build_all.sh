@@ -1,20 +1,35 @@
 #!/bin/bash
 
-#
+# stop on error
+set -e
+
+# /////////////////////////////////////////////////////
 # Build the OpenVisus docker images.
+# Example:
 #
+#   cd Docker
+#   sudo ./build_all.sh
+# /////////////////////////////////////////////////////
+
+function BuildDocker {
+	name=$1
+	echo "# ///////////////////////////////////////////////////////////"
+	echo "# Building ${name}.."
+	docker build --tag ${name} --file Dockerfile.${name} .
+	echo "# Done ${name}"
+}
 
 # These three images use pip to install OpenVisus:
-declare -a arr=("mod_visus-ubuntu" "mod_visus-opensuse" "anaconda")
-# These three build it inside the image; they're currently disabled because they're currently broken:
-# "ubuntu" "opensuse" "manylinux"
+BuildDocker mod_visus-ubuntu   
+BuildDocker mod_visus-opensuse 
 
-#
-# Build them
-#
-for i in "${arr[@]}"
-do
-  echo "Building $i..."
-  sudo docker build -t $i -f Dockerfile.$i .
-done
+# this does not work, now we have a conda distribution without mod_visus
+# do we need to support Apache/mod_visus for conda too?
+# BuildDocker anaconda           
+
+# These three build from scratch (without pip binary distribution)
+BuildDocker ubuntu
+BuildDocker opensuse
+BuildDocker manylinux
+
 
