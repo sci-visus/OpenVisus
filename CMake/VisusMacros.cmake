@@ -32,6 +32,18 @@ macro(FindGitRevision)
 	message(STATUS "Current GIT_REVISION ${GIT_REVISION}")
 endmacro()
 
+# //////////////////////////////////////////////////////////////////////////
+macro(DownloadAndUncompress url uncompress_dir check_directory)
+	IF(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${check_directory}")
+		MESSAGE(STATUS "Downloading ${url}...")
+		get_filename_component(filename ${url} NAME)
+		file(DOWNLOAD "${url}" "${CMAKE_BINARY_DIR}/${filename}" SHOW_PROGRESS)
+		MESSAGE(STATUS "Uncompressing ${filename}...")
+		execute_process(
+			COMMAND ${CMAKE_COMMAND} -E tar xzf "${CMAKE_BINARY_DIR}/${filename}" 
+			WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${uncompress_dir}")
+	endif()
+endmacro()
 
 # ///////////////////////////////////////////////////
 macro(SetTargetOutputDirectory Name BinDir LibDir)

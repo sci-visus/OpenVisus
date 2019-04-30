@@ -57,18 +57,18 @@ if (VISUS_OSPRAY)
 endif()
 
 if (VISUS_GUI)
-
 	if (DEFINED Qt5_DIR)
-	
 		if (WIN32)
 			string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
 		endif()	
-	
-		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS ${Qt5_DIR}                      NO_DEFAULT_PATH)
+		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS ${Qt5_DIR} NO_DEFAULT_PATH)
+		
 	elseif (APPLE AND EXISTS /usr/local/opt/qt/lib/cmake/Qt5)
 		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS /usr/local/opt/qt/lib/cmake/Qt5 NO_DEFAULT_PATH)
+		
 	else()
 		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED)
+		
  	endif()
 
 	mark_as_advanced(Qt5Core_DIR)

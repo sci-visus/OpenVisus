@@ -51,15 +51,6 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(KdArrayNode)
 
-#if !SWIG
-  class VISUS_KERNEL_API UserValue
-  {
-  public:
-    UserValue() {}
-    virtual ~UserValue() {}
-  };
-#endif
-
   // box
   NdBox box;    
 
@@ -86,7 +77,7 @@ public:
   Array                displaydata;
   Array                blockdata;
   bool                 bDisplay=false;
-  SharedPtr<UserValue> user_value;
+  SharedPtr<Object>    user_value;
 
   //default constructor
   KdArrayNode() {

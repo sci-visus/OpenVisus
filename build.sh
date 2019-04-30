@@ -771,7 +771,7 @@ function InstallQt5 {
 	# note this is only to allow compilation
 	# in order to execute it you need to use PyUseQt 
 	if [ ! -d "${Qt5_DIR}" ] ; then
-		url="http://atlantis.sci.utah.edu/qt/qt${QT_VERSION}.tar.gz"
+		url="https://github.com/sci-visus/OpenVisus/releases/download/portable/qt${QT_VERSION}.tar.gz"
 		filename=$(basename ${url})
 		DownloadFile "${url}"
 		tar xzf ${filename} -C ${CACHE_DIR} 

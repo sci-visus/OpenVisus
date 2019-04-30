@@ -51,10 +51,7 @@ namespace Visus {
 class GLCanvas;
 
 ///////////////////////////////////////////////////////////////////
-class VISUS_GUI_API GLTexture 
-#if !SWIG
-  : public KdArrayNode::UserValue
-#endif
+class VISUS_GUI_API GLTexture : public Object
 {
 public:
 
