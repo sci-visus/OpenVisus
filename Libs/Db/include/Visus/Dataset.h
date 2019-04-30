@@ -452,9 +452,7 @@ private:
 //LoadDatasetEx
 VISUS_DB_API SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config);
 
-inline SharedPtr<Dataset> LoadDataset(String url) {
-  return LoadDatasetEx(url, StringTree());
-}
+VISUS_DB_API SharedPtr<Dataset> LoadDataset(String url);
 
 
 template <class T>

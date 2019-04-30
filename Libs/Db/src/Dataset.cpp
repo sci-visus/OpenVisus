@@ -366,6 +366,12 @@ String Dataset::getDatasetInfos() const
 }
 
 ////////////////////////////////////////////////
+SharedPtr<Dataset> LoadDataset(String url) {
+  return LoadDatasetEx(url, *DbModule::getModuleConfig());
+}
+
+
+////////////////////////////////////////////////
 Future<Void> Dataset::readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
 {
   VisusAssert(access->isReading());
