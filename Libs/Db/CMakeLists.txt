@@ -62,7 +62,7 @@ source_group("Query"    FILES ${QuerySources})
 
 file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp)
 
-AddLibrary(VisusDb ${Sources})
+AddLibrary(VisusDb SHARED ${Sources})
 target_link_libraries(VisusDb PUBLIC VisusKernel)
 
 AddSwigLibrary(VisusDb ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusDbPy.i 

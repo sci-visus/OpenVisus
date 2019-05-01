@@ -9,7 +9,7 @@ endif()
 
 file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp resources/*.glsl resources/*.qrc)
 source_group("" FILES ${Sources})
-AddLibrary(VisusGuiNodes ${Sources})
+AddLibrary(VisusGuiNodes SHARED ${Sources})
 target_link_libraries(VisusGuiNodes PUBLIC VisusGui VisusDataflow)
 
 if (VISUS_OSPRAY)
