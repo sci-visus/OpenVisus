@@ -15,16 +15,13 @@ RUN apt-get update \
   && apt-get install -y apache2
 
 # install and configure OpenVisus
-RUN pip install OpenVisus \
-  && ln -s $(python3 -c "import os, OpenVisus; print(os.path.dirname(OpenVisus.__file__))") ${VISUS_HOME} \
-  && echo "export VISUS_HOME=${VISUS_HOME}" >> ~/.bashrc \
-  && ln -s ${VISUS_HOME}/bin/visus ${CONDA_PREFIX}/bin/visus \
-  && ln -s ${VISUS_HOME}/bin/visus ${CONDA_PREFIX}/bin/visus.sh
+RUN conda install -y -c visus openvisus
+RUN ln -s $(python3 -m OpenVisus) ${VISUS_HOME}
+RUN echo "export VISUS_HOME=${VISUS_HOME}" >> ~/.bashrc 
 
 # fix rpaths
-RUN conda install -y patchelf \
-  && ${CONDA_PREFIX}/bin/patchelf --set-rpath '$ORIGIN:/opt/conda/lib' ${VISUS_HOME}/bin/visus \
-  && ${CONDA_PREFIX}/bin/patchelf --set-rpath '$ORIGIN:/opt/conda/lib' ${VISUS_HOME}/bin/libmod_visus.so
+RUN conda install -y patchelf 
+RUN ${CONDA_PREFIX}/bin/patchelf --set-rpath '$ORIGIN:/opt/conda/lib' ${VISUS_HOME}/bin/libmod_visus.so
 
 # install webviewer
 ADD https://api.github.com/repos/sci-visus/OpenVisusJS/git/refs/heads/master version.json
