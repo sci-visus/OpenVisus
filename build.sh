@@ -976,6 +976,11 @@ export PATH=${CACHE_DIR}/bin:$PATH
 
 InstallPrerequisites && :
 
+	
+if (( OSX != 1 && VISUS_MODVISUS == 1 )); then	
+	InstallApache
+fi
+
 if (( USE_CONDA == 1 )) ; then
 
 	# redirecting to conda/OpenVisus/build.sh
@@ -1023,11 +1028,7 @@ else
 	InstallCMake
 	InstallSwig
 	InstallPython
-	
-	if (( OSX != 1 && VISUS_MODVISUS == 1 )); then	
-		InstallApache
-	fi
-	
+
 	if (( VISUS_GUI == 1 )); then
 		InstallQt5
 	fi

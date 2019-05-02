@@ -4,32 +4,22 @@ set -ex
 
 if [ $(uname) = "Darwin" ]; then
 	OSX=1
-else
-   LINUX=1
 fi
 
-# source dir
-SOURCE_DIR=$(pwd)
-
-# build dir
-BUILD_DIR=${BUILD_DIR:-$SOURCE_DIR/build/conda}
+# NOTE environment variables are not passed to this script
+# unless you add them to build/enviroment in meta.yml
 
 # change as needed
-CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
+CMAKE_BUILD_TYPE=RelWithDebInfo
 
 # I don't think I need openmp
-DISABLE_OPENMP=${DISABLE_OPENMP:-1}
+DISABLE_OPENMP=1
 
 # todo: can I enable the Gui stuff?
-VISUS_GUI=${VISUS_GUI:-0}
+VISUS_GUI=0
 
-# I don't think I need to need mod visus
-VISUS_MODVISUS=${VISUS_MODVISUS:-0}
-
-
-rm -Rf ${BUILD_DIR}
-mkdir -p ${BUILD_DIR}
-cd ${BUILD_DIR}
+# this is needed for ondemand code
+VISUS_MODVISUS=1
 
 # see https://www.anaconda.com/utilizing-the-new-compilers-in-anaconda-distribution-5/
 if (( OSX == 1 )) ; then
@@ -61,7 +51,9 @@ cmake_opts+=(-DPYTHON_VERSION=${PY_VER})
 cmake_opts+=(-DPYTHON_EXECUTABLE=${PYTHON})
 cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}) 
 
-cmake ${cmake_opts[@]} ${SOURCE_DIR}
+mkdir -p build_conda
+cd build_conda
+cmake ${cmake_opts[@]} ../
 
 cmake --build ./ --target all     --config ${CMAKE_BUILD_TYPE}
 cmake --build ./ --target install --config ${CMAKE_BUILD_TYPE}
@@ -69,5 +61,7 @@ cmake --build ./ --target dist    --config ${CMAKE_BUILD_TYPE}
 
 cd ${CMAKE_BUILD_TYPE}/site-packages/OpenVisus
 
-$PYTHON setup.py install --single-version-externally-managed --record=record.txt
+${PYTHON} setup.py install --single-version-externally-managed --record=record.txt
+
+
 
