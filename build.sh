@@ -286,7 +286,6 @@ pository -y ppa:deadsnakes/ppa
 
 # //////////////////////////////////////////////////////
 function InstallCMake {
-sStep cwd $SRC_DIR/build/RelWithDebInfo/site-packages/OpenVisus args ['$SRC_DIR/build/RelWithDebInfo/site-packages/OpenVisus/Deploy.py', 'CreateScriptsStep']
 
 	BeginSection "InstallCMake"
 
