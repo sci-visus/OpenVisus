@@ -376,7 +376,7 @@ function InstallSwig {
 	./Tools/pcre-build.sh 1>/dev/null
 	./configure --prefix=${CACHE_DIR} 1>/dev/null 
 	make -s -j 4 1>/dev/null 
-	make install 1>/dev/null a
+	make install 1>/dev/null 
 	popd
 	rm -Rf swig-3.0.12
 
