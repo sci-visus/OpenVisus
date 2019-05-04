@@ -13,7 +13,6 @@ set -o pipefail
 SOURCE_DIR=$(pwd)
 BUILD_DIR=${BUILD_DIR:-${SOURCE_DIR}/build}
 CACHE_DIR=${CACHE_DIR:-${BUILD_DIR}/.cache}
-PYENV_ROOT=${PYENV_ROOT:-${HOME}/.pyenv}
 
 # cmake flags
 PYTHON_VERSION=${PYTHON_VERSION:-3.6.1}
@@ -22,26 +21,8 @@ VISUS_GUI=${VISUS_GUI:-1}
 VISUS_MODVISUS=${VISUS_MODVISUS:-1}
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
 
-# conda stuff
-USE_CONDA=${USE_CONDA:-0}
-DEPLOY_CONDA=${DEPLOY_CONDA:-0}
-ANACONDA_TOKEN=${ANACONDA_TOKEN:-}
-
-# deploy pypi
-DEPLOY_PYPI=${DEPLOY_PYPI:-0}
-PYPI_USERNAME=${PYPI_USERNAME:-}
-PYPI_PASSWORD=${PYPI_PASSWORD:-}
-
-# deploy github
-DEPLOY_GITHUB=${DEPLOY_GITHUB:-0}
-GITHUB_API_TOKEN=${GITHUB_API_TOKEN:-}
-TRAVIS_TAG=${TRAVIS_TAG:-}
-
 # in case you want to try manylinux-like compilation (for debugging only)
 USE_OS_PACKAGES=${USE_OS_PACKAGES:-1}
-
-PYTHON_MAJOR_VERSION=${PYTHON_VERSION:0:1}
-PYTHON_MINOR_VERSION=${PYTHON_VERSION:2:1}	
 
 # //////////////////////////////////////////////////////
 function DownloadFile {
@@ -97,14 +78,12 @@ function BeginSection {
 }
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
-function Preamble {	
+function DetectOS {	
 
-	
-	BeginSection "Preamble"
+	BeginSection "DetectOS"
 
 	# if is docker or not
 	DOCKER=0
-
 	grep 'docker\|lxc' /proc/1/cgroup && :
 	if [ $? == 0 ] ; then 
 		export DOCKER=1
@@ -113,33 +92,14 @@ function Preamble {
 	# If is travis or not 
 	if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
 		export TRAVIS=1 
-
-		if (( USE_CONDA == 1 )) ; then
-			if [[ "${TRAVIS_TAG}" != "" ]]; then
-				export DEPLOY_CONDA=1
-			fi
-		else
-
-		  export DEPLOY_GITHUB=1
-
-		  if [[ "${TRAVIS_TAG}" != "" ]]; then
-
-			  if [[ "$TRAVIS_OS_NAME" == "osx"  ]]; then
-				  export DEPLOY_PYPI=1
-			  fi    
-		
-			  if [[ "$TRAVIS_OS_NAME" == "linux" && "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]]; then
-				  export DEPLOY_PYPI=1
-			  fi    
- 
-		  fi
-		fi
 	fi
 
+	# osx
 	if [ $(uname) = "Darwin" ]; then
 		OSX=1
 		echo "Detected OSX"
 
+	# ubuntu
 	elif [ -x "$(command -v apt-get)" ]; then
 		UBUNTU=1
 
@@ -157,11 +117,12 @@ function Preamble {
 
 		echo "Detected ubuntu ${UBUNTU_VERSION}"
 
-
+	# opensuse
 	elif [ -x "$(command -v zypper)" ]; then
 		OPENSUSE=1
 		echo "Detected opensuse"
 
+	# centos
 	elif [ -x "$(command -v yum)" ]; then
 		CENTOS=1
 		GetVersionFromCommand "cat /etc/redhat-release" "CentOS release "
@@ -173,11 +134,6 @@ function Preamble {
 		echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"
 	fi
 
-	if (( CENTOS == 1 && CENTOS_MAJOR == 5 )) ; then
-		DISABLE_OPENMP=1
-		USE_OS_PACKAGES=0
-	fi
-
 	# sudo allowed or not (in general I assume I cannot use sudo)
 	SudoCmd="sudo"
 	IsRoot=${IsRoot:-0}
@@ -185,68 +141,7 @@ function Preamble {
 		IsRoot=1
 		SudoCmd=""
 	fi
-}
 
-# ///////////////////////////////////////////////////////////////////////////////////////////////
-function BuildUsingDocker {
-
-	# note: sudo is needed anyway otherwise travis fails
-	sudo docker rm -f mydocker 2>/dev/null || true
-
-	declare -a docker_opts
-
-	docker_opts+=(-v ${SOURCE_DIR}:/root/OpenVisus)
-	docker_opts+=(-e SOURCE_DIR=/root/OpenVisus)
-
-	docker_opts+=(-v ${BUILD_DIR}:/root/OpenVisus.build)
-	docker_opts+=(-e BUILD_DIR=/root/OpenVisus.build)
-
-	docker_opts+=(-v ${CACHE_DIR}:/root/OpenVisus.cache)
-	docker_opts+=(-e CACHE_DIR=/root/OpenVisus.cache)
-
-	#docker_opts+=(-v ${PYENV_ROOT}:/root/.pyenv)
-	#docker_opts+=(-e ${PYENV_ROOT}=/root/.pyenv)
-
-	docker_opts+=(-e PYTHON_VERSION=${PYTHON_VERSION})
-	docker_opts+=(-e DISABLE_OPENMP=${DISABLE_OPENMP})
-	docker_opts+=(-e VISUS_GUI=${VISUS_GUI})
-	docker_opts+=(-e VISUS_MODVISUS=${VISUS_MODVISUS})
-	docker_opts+=(-e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
-
-	# deploy to conda
-	docker_opts+=(-e USE_CONDA=${USE_CONDA})
-	docker_opts+=(-e DEPLOY_CONDA=${DEPLOY_CONDA})
-	docker_opts+=(-e ANACONDA_TOKEN=${ANACONDA_TOKEN})
-
-	# deploy to pypi
-	docker_opts+=(-e DEPLOY_PYPI=${DEPLOY_PYPI})
-	docker_opts+=(-e PYPI_USERNAME=${PYPI_USERNAME})
-	docker_opts+=(-e PYPI_PASSWORD=${PYPI_PASSWORD})
-
-	# deploy to github
-	docker_opts+=(-e DEPLOY_GITHUB=${DEPLOY_GITHUB})
-	docker_opts+=(-e GITHUB_API_TOKEN=${GITHUB_API_TOKEN})
-	docker_opts+=(-e TRAVIS_TAG=${TRAVIS_TAG})
-
-	sudo docker run -d -ti --name mydocker ${docker_opts[@]} ${DOCKER_IMAGE} /bin/bash
-	sudo docker exec mydocker /bin/bash -c "cd /root/OpenVisus && ./build.sh"
-
-	sudo chown -R "$USER":"$USER" ${BUILD_DIR} 1>/dev/null && :
-	sudo chmod -R u+rwx           ${BUILD_DIR} 1>/dev/null && :
-}
-
-# ///////////////////////////////////////////////////////////////////////////////////////////////
-function InstallMiniconda {
-	
-	pushd $HOME
-	if (( OSX == 1 )) ; then
-		DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_MAJOR_VERSION}-latest-MacOSX-x86_64.sh
-		bash Miniconda${PYTHON_MAJOR_VERSION}-latest-MacOSX-x86_64.sh -b
-	else
-		DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_MAJOR_VERSION}-latest-Linux-x86_64.sh
-		bash Miniconda${PYTHON_MAJOR_VERSION}-latest-Linux-x86_64.sh -b
-	fi
-	popd
 }
 
 
@@ -293,7 +188,8 @@ function InstallPackages {
 
 	if [[ "${SudoCmd}" != "" && ${InstallCommand} == *"${SudoCmd}"* && "${IsRoot}" == "0" ]]; then
 		echo "Failed to install because I need ${SudoCmd}: ${packages}"
-		set -x
+		set -xsStep cwd $SRC_DIR/build/RelWithDebInfo/site-packages/OpenVisus args ['$SRC_DIR/build/RelWithDebInfo/site-packages/OpenVisus/Deploy.py', 'CreateScriptsStep']
+
 		return 1
 	fi
 
@@ -343,7 +239,8 @@ function InstallPrerequisites {
 		if (( IsRoot == 1 )) ; then
 			InstallPackages software-properties-common
 			if (( ${UBUNTU_VERSION:0:2}<=14 )); then
-				${SudoCmd} add-apt-repository -y ppa:deadsnakes/ppa
+				${SudoCmd} add-apt-resStep cwd $SRC_DIR/build/RelWithDebInfo/site-packages/OpenVisus args ['$SRC_DIR/build/RelWithDebInfo/site-packages/OpenVisus/Deploy.py', 'CreateScriptsStep']
+pository -y ppa:deadsnakes/ppa
 				${SudoCmd} apt-get -qq update
 			fi
 		fi
@@ -389,6 +286,7 @@ function InstallPrerequisites {
 
 # //////////////////////////////////////////////////////
 function InstallCMake {
+sStep cwd $SRC_DIR/build/RelWithDebInfo/site-packages/OpenVisus args ['$SRC_DIR/build/RelWithDebInfo/site-packages/OpenVisus/Deploy.py', 'CreateScriptsStep']
 
 	BeginSection "InstallCMake"
 
@@ -479,7 +377,7 @@ function InstallSwig {
 	./Tools/pcre-build.sh 1>/dev/null
 	./configure --prefix=${CACHE_DIR} 1>/dev/null 
 	make -s -j 4 1>/dev/null 
-	make install 1>/dev/null 
+	make install 1>/dev/null a
 	popd
 	rm -Rf swig-3.0.12
 
@@ -635,6 +533,18 @@ function InstallApache {
 
 	echo "installing cached apache"
 
+	# expat
+	url="https://github.com/libexpat/libexpat/releases/download/R_2_2_6/expat-2.2.6.tar.bz2"
+	filename=$(basename ${url})
+	DownloadFile  ${url}
+	tar xjf ${filename}
+	pushd expat-2.2.6
+	./configure --prefix=${CACHE_DIR} 1>/dev/null 
+	make
+	make install
+	popd
+	rm -Rf expat-2.2.6
+
 	# install apr 
 	url="http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz"
 	filename=$(basename ${url})
@@ -653,7 +563,7 @@ function InstallApache {
 	DownloadFile ${url}
 	tar xzf ${filename}
 	pushd apr-util-1.6.1
-	./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} 1>/dev/null  
+	./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-expat=${CACHE_DIR} 1>/dev/null  
 	make -s 1>/dev/null 
 	make install 1>/dev/null 
 	popd
@@ -677,7 +587,7 @@ function InstallApache {
 	DownloadFile ${url}
 	tar xzf ${filename}
 	pushd httpd-2.4.38
-	./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-pcre=${CACHE_DIR} --with-ssl=${CACHE_DIR} 1>/dev/null 
+	./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-pcre=${CACHE_DIR} --with-ssl=${CACHE_DIR} --with-expat=${CACHE_DIR} 1>/dev/null 
 	make -s 1>/dev/null 
 	make install 1>/dev/null 
 	popd
@@ -770,12 +680,10 @@ function InstallQt5 {
 	# if you want to create a "new" minimal Qt5 see CMake/Dockerfile.BuildQt5
 	# note this is only to allow compilation
 	# in order to execute it you need to use PyUseQt 
-	if [ ! -d "${Qt5_DIR}" ] ; then
-		url="http://atlantis.sci.utah.edu/qt/qt${QT_VERSION}.tar.gz"
-		filename=$(basename ${url})
-		DownloadFile "${url}"
-		tar xzf ${filename} -C ${CACHE_DIR} 
-	fi
+	url="http://atlantis.sci.utah.edu/qt/qt${QT_VERSION}.tar.gz"
+	filename=$(basename ${url})
+	DownloadFile "${url}"
+	tar xzf ${filename} -C ${CACHE_DIR} 
 
 	return 0
 }
@@ -896,12 +804,54 @@ function InstallPython {
 	return 0
 }
 
+
+# /////////////////////////////////////////////////////////////////////
+function InstallCondaPython {
+
+	# here I need sudo! 
+	if (( OSX ==  1)) ; then
+		if [ ! -d /opt/MacOSX10.9.sdk ] ; then
+		  if (( IsRoot == 1 )) ; then
+				git clone  https://github.com/phracker/MacOSX-SDKs.git 
+				sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
+				rm -Rf MacOSX-SDKs
+			else
+				echo "Missing /opt/MacOSX10.9.sdk, but to install it I need sudo"
+				exit -1
+			fi
+		fi
+	fi
+
+	# install Miniconda
+	MINICONDA_ROOT=$HOME/miniconda${PYTHON_MAJOR_VERSION}
+	if [ ! -d  ${MINICONDA_ROOT} ]; then
+		pushd $HOME
+		if (( OSX == 1 )) ; then
+			DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_MAJOR_VERSION}-latest-MacOSX-x86_64.sh
+			bash Miniconda${PYTHON_MAJOR_VERSION}-latest-MacOSX-x86_64.sh -b
+		else
+			DownloadFile https://repo.continuum.io/miniconda/Miniconda${PYTHON_MAJOR_VERSION}-latest-Linux-x86_64.sh
+			bash Miniconda${PYTHON_MAJOR_VERSION}-latest-Linux-x86_64.sh -b
+		fi
+		popd
+	fi
+
+	# config Miniconda
+	export PATH="${MINICONDA_ROOT}/bin:$PATH"
+
+	hash -r	
+	conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
+	conda install -q conda-build anaconda-client          && :
+	conda update  -q conda conda-build                    && :
+
+	conda create -q  -n mypython python=${PYTHON_VERSION} && :
+	conda activate mypython                               && :
+	PYTHON_EXECUTABLE=python
+
+}
+
 # /////////////////////////////////////////////////////////////////////
 function DeployToPyPi {
-
-
-	BeginSection "DeployToPyPi"
-
 	WHEEL_FILENAME=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.whl")
 	echo "Doing deploy to pypi ${WHEEL_FILENAME}..."
 	echo [distutils]                                  > ~/.pypirc
@@ -913,11 +863,8 @@ function DeployToPyPi {
 	${PYTHON_EXECUTABLE} -m twine upload --skip-existing "${WHEEL_FILENAME}"
 }
 
-
 # /////////////////////////////////////////////////////////////////////
 function DeployToGitHub {
-	
-	BeginSection "DeployToGitHub"
 
 	filename=$(find ${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus/dist -iname "*.tar.gz")
 
@@ -950,198 +897,234 @@ function DeployToGitHub {
 
 # /////////////////////////////////////////////////////////////////////
 function DeployToConda {
-
-	BeginSection "Deploy conda"
 	CONDA_BUILD_FILENAME=$(find ${HOME}/miniconda${PYTHON_MAJOR_VERSION}/conda-bld -iname "openvisus*.tar.bz2")
 	echo "Doing deploy to anaconda ${CONDA_BUILD_FILENAME}..."
 	anaconda -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
 }
 
+# /////////////////////////////////////////////////////////////////////
+function AddCMakeOption {
+	key=$1
+	value=$2
+	if [[ "${value}" != "" ]]; then
+		cmake_opts+=(${key}=${value})
+	fi
+}
 
 # /////////////////////////////////////////////////////////////////////
-Preamble
+DetectOS
 
-mkdir -p ${BUILD_DIR}
-mkdir -p ${CACHE_DIR}
+PYTHON_MAJOR_VERSION=${PYTHON_VERSION:0:1}
+PYTHON_MINOR_VERSION=${PYTHON_VERSION:2:1}	
 
-if [[ "$DOCKER_IMAGE" != "" ]] ; then
-	BeginSection "BuildUsingDocker"
-	BuildUsingDocker
-	echo "BuildUsingDocker done"
-	exit 0
+if (( CENTOS == 1 && CENTOS_MAJOR == 5 )) ; then
+	DISABLE_OPENMP=1
+	USE_OS_PACKAGES=0
 fi
 
-pushd ${BUILD_DIR}
-export PATH=${CACHE_DIR}/bin:$PATH
+if [[ "$TRAVIS" == "1" && "${TRAVIS_TAG}" != "" ]] ; then
 
-InstallPrerequisites && :
+	# deploy to conda?
+	if [[ "${USE_CONDA}" == "1" ]] ; then
+		DEPLOY_CONDA=1
+	fi
 
-	
-if (( OSX != 1 && VISUS_MODVISUS == 1 )); then	
-	InstallApache
+	# deploy to pypi | github
+	if [[ "${USE_CONDA}" == "0" && "${OSX}" == "1" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]] ; then
+		DEPLOY_PYPI=1
+		DEPLOY_GITHUB=1
+	fi
 fi
 
-if (( USE_CONDA == 1 )) ; then
+# forward to conda/OpenVisus/build.sh
+if (( USE_CONDA == 1 && INSIDE_CONDA == 0 )) ; then
 
-	# redirecting to conda/OpenVisus/build.sh
-	BeginSection "Build OpenVisus using conda"
-
-	# here I need sudo! 
-	if (( OSX ==  1)) ; then
-		if [ ! -d /opt/MacOSX10.9.sdk ] ; then
-		  if (( IsRoot == 1 )) ; then
-				git clone  https://github.com/phracker/MacOSX-SDKs.git 
-				sudo mv MacOSX-SDKs/MacOSX10.9.sdk /opt/
-				rm -Rf MacOSX-SDKs
-			else
-				echo "Missing /opt/MacOSX10.9.sdk, but to install it I need sudo"
-				exit -1
-			fi
-		fi
-	fi
-
-	# install Miniconda
-	MINICONDA_ROOT=$HOME/miniconda${PYTHON_MAJOR_VERSION}
-	if [ ! -d  ${MINICONDA_ROOT} ]; then
-		InstallMiniconda
-	fi
-
-	# config Miniconda
-	export PATH="${MINICONDA_ROOT}/bin:$PATH"
+	InstallCondaPython
 	
-	hash -r	
-	conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-	conda install -q conda-build anaconda-client && :
-	conda update  -q conda conda-build           && :
-	conda install -q python=${PYTHON_VERSION}	   && :
-	
-	PYTHON_EXECUTABLE=python
-
-	# build Openvisus (see conda/OpenVisus/* files)
 	pushd ${SOURCE_DIR}/conda
 	conda-build -q openvisus
 	conda install -q --use-local openvisus
 	popd
-	
-else	
 
-	InstallCMake
-	InstallSwig
-	InstallPython
-
-	if (( VISUS_GUI == 1 )); then
-		InstallQt5
-	fi
-	
-	BeginSection "Build OpenVisus using pyenv"
-	
-	declare -a cmake_opts
-	
-	if (( OSX == 1 )) ; then
-		cmake_opts+=(-GXcode)
-		CMAKE_TEST_STEP="RUN_TESTS"
-		CMAKE_ALL_STEP="ALL_BUILD"
-	else
-		CMAKE_TEST_STEP="test"
-		CMAKE_ALL_STEP="all"
-	fi
-	
-	cmake_opts+=(-DDISABLE_OPENMP=${DISABLE_OPENMP})
-	cmake_opts+=(-DVISUS_GUI=${VISUS_GUI})
-	cmake_opts+=(-DVISUS_MODVISUS=${VISUS_MODVISUS})
-	cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
-	
-	cmake_opts+=(-DPYTHON_VERSION=${PYTHON_VERSION})	
-	cmake_opts+=(-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE})
-	cmake_opts+=(-DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR})
-	cmake_opts+=(-DPYTHON_LIBRARY=${PYTHON_LIBRARY})
-	
-	cmake_opts+=(-DSWIG_EXECUTABLE=${SWIG_EXECUTABLE})
-	
-	if [[ "${APR_DIR}" != "" ]]; then
-		cmake_opts+=(-DAPR_DIR=${APR_DIR})
-	fi
-	
-	if [[ "${APACHE_DIR}" != "" ]]; then
-		cmake_opts+=(-DAPACHE_DIR=${APACHE_DIR})
-	fi
-	
-	if [[ "${Qt5_DIR}" != "" ]]; then
-		cmake_opts+=(-DQt5_DIR=${Qt5_DIR})
-	fi
-	
-	cmake ${cmake_opts[@]} ${SOURCE_DIR}
-	
-	if (( TRAVIS == 1 && OSX == 1 )) ; then
-		cmake --build ./ --target ${CMAKE_ALL_STEP} --config ${CMAKE_BUILD_TYPE} | xcpretty -c
-	else
-		cmake --build ./ --target ${CMAKE_ALL_STEP} --config ${CMAKE_BUILD_TYPE}
-	fi	
-	
-	# install step
-	BeginSection "Install OpenVisus"
-	cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
-
-	# dist test	
-	if (( DEPLOY_GITHUB == 1 || DEPLOY_PYPI == 1 )) ; then
-		BeginSection "OpenVisus cmake dist"
-		cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
-	fi	
-	
-	# tests step
-	if (( 1 == 1 )) ; then
-		BeginSection "Test OpenVisus (cmake ${CMAKE_TEST_STEP})"
-		cmake --build  ./ --target  ${CMAKE_TEST_STEP} --config ${CMAKE_BUILD_TYPE}	
-	fi
-	
-	# external app step
-	if (( 1 == 1 )) ; then
-		BeginSection "Test OpenVisus (cmake external app)"
-		cmake --build ./ --target  simple_query --config ${CMAKE_BUILD_TYPE}
-		if (( VISUS_GUI == 1 )) ; then
-			cmake --build   . --target   simple_viewer2d --config ${CMAKE_BUILD_TYPE}
-		fi	
-	fi
-	
-	export PYTHONPATH=${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages
-	
-fi
-
-popd
-
-# test extending python
-if (( 1 == 1 )); then
-	BeginSection "Test OpenVisus (extending python)"
+	# test
 	pushd $(${PYTHON_EXECUTABLE} -m OpenVisus dirname)
 	${PYTHON_EXECUTABLE} Samples/python/Array.py
 	${PYTHON_EXECUTABLE} Samples/python/Dataflow.py
 	${PYTHON_EXECUTABLE} Samples/python/Idx.py
 	popd
-fi
 
-# test stand alone scripts
-if (( USE_CONDA == 0 )) ; then
-	BeginSection "Test OpenVisus (embedding python)"
-	pushd $(${PYTHON_EXECUTABLE} -m OpenVisus dirname)
-	if (( OSX == 1 )) ; then
-		./visus.command
-	else
-		./visus.sh
+	# the deploy happens here for the top-level build
+	if (( DEPLOY_CONDA == 1 )) ; then
+		DeployToConda
 	fi
-	popd
+
+	exit 0
 fi
 
-if (( DEPLOY_PYPI == 1 )) ; then 
-	DeployToPyPi   
+# docker build
+if [[ "$DOCKER_IMAGE" != "" ]] ; then
+
+	BeginSection "BuildUsingDocker"
+
+	mkdir -p ${BUILD_DIR}
+	mkdir -p ${CACHE_DIR}
+
+	# note: sudo is needed anyway otherwise travis fails
+	sudo docker rm -f mydocker 2>/dev/null || true
+
+	declare -a docker_opts
+
+	docker_opts+=(-v ${SOURCE_DIR}:/root/OpenVisus)
+	docker_opts+=(-v ${BUILD_DIR}:/root/OpenVisus.build)
+	docker_opts+=(-v ${CACHE_DIR}:/root/OpenVisus.cache)
+
+	docker_opts+=(-e SOURCE_DIR=/root/OpenVisus)
+	docker_opts+=(-e BUILD_DIR=/root/OpenVisus.build)
+	docker_opts+=(-e CACHE_DIR=/root/OpenVisus.cache)
+
+	docker_opts+=(-e PYTHON_VERSION=${PYTHON_VERSION})
+	docker_opts+=(-e DISABLE_OPENMP=${DISABLE_OPENMP})
+	docker_opts+=(-e VISUS_GUI=${VISUS_GUI})
+	docker_opts+=(-e VISUS_MODVISUS=${VISUS_MODVISUS})
+	docker_opts+=(-e CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
+
+	# this is needed to forward the deploy to the docker image (where I have a python to do the deploy)
+	docker_opts+=(-e DEPLOY_PYPI=${DEPLOY_PYPI})
+	docker_opts+=(-e PYPI_USERNAME=${PYPI_USERNAME})
+	docker_opts+=(-e PYPI_PASSWORD=${PYPI_PASSWORD})
+
+	# this is needed to foward the deploy to the docker image (where I have a python to do the deploy)
+	docker_opts+=(-e DEPLOY_GITHUB=${DEPLOY_GITHUB})
+	docker_opts+=(-e GITHUB_API_TOKEN=${GITHUB_API_TOKEN})
+	docker_opts+=(-e TRAVIS_TAG=${TRAVIS_TAG})
+
+	sudo docker run -d -ti --name mydocker ${docker_opts[@]} ${DOCKER_IMAGE} /bin/bash
+	sudo docker exec mydocker /bin/bash -c "cd /root/OpenVisus && ./build.sh"
+	sudo chown -R "$USER":"$USER" ${BUILD_DIR} 1>/dev/null && :
+	sudo chmod -R u+rwx           ${BUILD_DIR} 1>/dev/null && :
+
+	exit 0
 fi
 
-if (( DEPLOY_GITHUB == 1 )) ; then 
-	DeployToGitHub 
+# all other cases
+mkdir -p ${BUILD_DIR}
+mkdir -p ${CACHE_DIR}
+export PATH=${CACHE_DIR}/bin:$PATH
+
+if (( USE_CONDA == 0 )) ; then
+	InstallPrerequisites && :
+	InstallCMake
+	InstallSwig
+	InstallPython
 fi
 
-# deploy to conda 
-if (( DEPLOY_CONDA == 1 )) ; then
-	DeployToConda
+if (( VISUS_MODVISUS == 1 )); then	
+	InstallApache
+fi
+
+if (( VISUS_GUI == 1 )); then
+	InstallQt5
+fi
+
+BeginSection "Build OpenVisus"
+
+declare -a cmake_opts
+
+if (( OSX == 1 && USE_CONDA == 0 )) ; then
+	cmake_opts+=(-GXcode)
+	CMAKE_TEST_STEP="RUN_TESTS"
+	CMAKE_ALL_STEP="ALL_BUILD"
+else
+	CMAKE_TEST_STEP="test"
+	CMAKE_ALL_STEP="all"
+fi
+
+AddCMakeOption -DDISABLE_OPENMP       "${DISABLE_OPENMP}"
+AddCMakeOption -DVISUS_GUI            "${VISUS_GUI}"
+AddCMakeOption -DVISUS_MODVISUS       "${VISUS_MODVISUS}"
+AddCMakeOption -DCMAKE_BUILD_TYPE     "${CMAKE_BUILD_TYPE}"
+AddCMakeOption -DPYTHON_VERSION       "${PYTHON_VERSION}"
+AddCMakeOption -DPYTHON_EXECUTABLE    "${PYTHON_EXECUTABLE}"
+AddCMakeOption -DPYTHON_INCLUDE_DIR   "${PYTHON_INCLUDE_DIR}"
+AddCMakeOption -DPYTHON_LIBRARY       "${PYTHON_LIBRARY}"
+AddCMakeOption -DSWIG_EXECUTABLE      "${SWIG_EXECUTABLE}"
+AddCMakeOption -DAPR_DIR              "${APR_DIR}"
+AddCMakeOption -DAPACHE_DIR           "${APACHE_DIR}"
+AddCMakeOption -DQt5_DIR              "${Qt5_DIR}"
+AddCMakeOption -DCMAKE_OSX_SYSROOT    "${CMAKE_OSX_SYSROOT}"
+AddCMakeOption -DCMAKE_TOOLCHAIN_FILE "${CMAKE_TOOLCHAIN_FILE}"
+
+# compile and install
+pushd ${BUILD_DIR}
+cmake ${cmake_opts[@]} ${SOURCE_DIR}
+if (( TRAVIS == 1 && OSX == 1 )) ; then
+	cmake --build ./ --target ${CMAKE_ALL_STEP} --config ${CMAKE_BUILD_TYPE} | xcpretty -c
+else
+	cmake --build ./ --target ${CMAKE_ALL_STEP} --config ${CMAKE_BUILD_TYPE}
+fi	
+
+cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
+
+if (( USE_CONDA == 0 )) ; then
+
+	# cmake tests 
+	if (( 1 == 1 )) ; then
+		BeginSection "Test OpenVisus (cmake ${CMAKE_TEST_STEP})"
+		pushd ${BUILD_DIR}
+		cmake --build  ./ --target  ${CMAKE_TEST_STEP} --config ${CMAKE_BUILD_TYPE}	
+		popd
+	fi
+
+	# cmake external app
+	if (( 1 == 1 )) ; then
+		BeginSection "Test OpenVisus (cmake external app)"
+		pushd ${BUILD_DIR}
+		cmake --build ./ --target  simple_query --config ${CMAKE_BUILD_TYPE}
+		if (( VISUS_GUI == 1 )) ; then
+			cmake --build   . --target   simple_viewer2d --config ${CMAKE_BUILD_TYPE}
+		fi	
+		popd
+	fi
+
+	export PYTHONPATH=${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages
+
+	# test extending python
+	if (( 1 == 1 )) ; then
+		BeginSection "Test OpenVisus (extending python)"
+		pushd $(${PYTHON_EXECUTABLE} -m OpenVisus dirname)
+		${PYTHON_EXECUTABLE} Samples/python/Array.py
+		${PYTHON_EXECUTABLE} Samples/python/Dataflow.py
+		${PYTHON_EXECUTABLE} Samples/python/Idx.py
+		popd
+	fi
+
+	# test embedding python
+	if (( 1 == 1 )) ; then
+		BeginSection "Test OpenVisus (embedding python)"
+		pushd $(${PYTHON_EXECUTABLE} -m OpenVisus dirname)
+		if (( OSX == 1 )) ; then
+			./visus.command
+		else
+			./visus.sh
+		fi
+		popd
+	fi
+
+	# deploy
+	if (( DEPLOY_PYPI == 1 || DEPLOY_GITHUB == 1 )) ; then
+		pushd ${BUILD_DIR}
+		cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
+		popd
+
+		if (( DEPLOY_PYPI == 1 )) ; then
+			DeployToPyPi
+		fi
+
+		if (( DEPLOY_GITHUB == 1 )) ; then
+			DeployToGitHub
+		fi
+
+	fi
 fi
 
 echo "OpenVisus build finished"

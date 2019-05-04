@@ -2,25 +2,6 @@
 
 set -ex
 
-if [ $(uname) = "Darwin" ]; then
-	OSX=1
-fi
-
-# NOTE environment variables are not passed to this script
-# unless you add them to build/enviroment in meta.yml
-
-# change as needed
-CMAKE_BUILD_TYPE=RelWithDebInfo
-
-# I don't think I need openmp
-DISABLE_OPENMP=1
-
-# todo: can I enable the Gui stuff?
-VISUS_GUI=0
-
-# this is needed for ondemand code
-VISUS_MODVISUS=1
-
 # see https://www.anaconda.com/utilizing-the-new-compilers-in-anaconda-distribution-5/
 if (( OSX == 1 )) ; then
 	echo "CONDA_BUILD_SYSROOT=${CONDA_BUILD_SYSROOT}" 	
@@ -30,38 +11,31 @@ if (( OSX == 1 )) ; then
 	fi
 fi
 
-# inspired by: https://github.com/conda-forge/libnetcdf-feedstock/tree/master/recipe
-declare -a cmake_opts
-
 if [[ ${c_compiler} != "toolchain_c" ]]; then
 	export CC=$(basename ${CC})
 	export CXX=$(basename ${CXX})
 	if (( OSX == 1 )); then
-		cmake_opts+=(-DCMAKE_OSX_SYSROOT="${CONDA_BUILD_SYSROOT}")
+		export CMAKE_OSX_SYSROOT="${CONDA_BUILD_SYSROOT}"
 		export LDFLAGS=$(echo "${LDFLAGS}" | sed "s/-Wl,-dead_strip_dylibs//g")
 	else
-	  cmake_opts+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
+		export CMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake"
 	fi
 fi
 
-# openvisus flags
-cmake_opts+=(-DDISABLE_OPENMP=${DISABLE_OPENMP})
-cmake_opts+=(-DVISUS_GUI=${VISUS_GUI})
-cmake_opts+=(-DPYTHON_VERSION=${PY_VER})
-cmake_opts+=(-DPYTHON_EXECUTABLE=${PYTHON})
-cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}) 
+# NOTE environment variables are not passed to this script
+# unless you add them to build/enviroment in meta.yml
+export PYTHON_EXECUTABLE=${PYTHON}
+export PYTHON_VERSION=${PY_VER}
+export DISABLE_OPENMP=1
+export USE_OS_PACKAGES=0
+export VISUS_GUI=0 # todo: can Qt5 work?
 
-mkdir -p build_conda
-cd build_conda
-cmake ${cmake_opts[@]} ../
+USE_CONDA=1 INSIDE_CONDA=1 ./build.sh
 
-cmake --build ./ --target all     --config ${CMAKE_BUILD_TYPE}
-cmake --build ./ --target install --config ${CMAKE_BUILD_TYPE}
-cmake --build ./ --target dist    --config ${CMAKE_BUILD_TYPE}
-
-cd ${CMAKE_BUILD_TYPE}/site-packages/OpenVisus
-
+# install into conda python
+pushd build/RelWithDebInfo/site-packages/OpenVisus
 ${PYTHON} setup.py install --single-version-externally-managed --record=record.txt
+popd
 
 
 

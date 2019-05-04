@@ -13,8 +13,6 @@ requirements:
     - swig
     - cmake
 
-
-
   host:
     - python
   run:
