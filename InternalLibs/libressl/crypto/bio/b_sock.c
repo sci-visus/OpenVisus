@@ -34,6 +34,12 @@
 #include <openssl/buffer.h>
 #include <openssl/err.h>
 
+//scrgiorgio: fix for conda/osx
+#ifndef NI_MAXHOST
+#define NI_MAXHOST 1025
+#endif
+
+
 int
 BIO_get_host_ip(const char *str, unsigned char *ip)
 {
