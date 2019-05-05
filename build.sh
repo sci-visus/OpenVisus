@@ -40,7 +40,7 @@ function DownloadFile {
 		travis_retry curl -fsSL --insecure "$url" -O
 	else
 		curl -fsSL --insecure "$url" -O
-	if
+	fi
 	
 	set -x
 }
