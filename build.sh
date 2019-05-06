@@ -35,13 +35,7 @@ function DownloadFile {
 		set -x
 		return 0	
 	fi
-
-	if (( TRAVIS == 1 )) ; then
-		travis_retry curl -fsSL --insecure "$url" -O
-	else
-		curl -fsSL --insecure "$url" -O
-	fi
-	
+	curl -fsSL --insecure "$url" -O
 	set -x
 }
 
