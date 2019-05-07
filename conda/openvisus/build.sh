@@ -27,7 +27,6 @@ fi
 export PYTHON_EXECUTABLE=${PYTHON}
 export PYTHON_VERSION=${PY_VER}
 export DISABLE_OPENMP=1
-export USE_OS_PACKAGES=0
 export VISUS_GUI=0 # todo: can Qt5 work?
 
 USE_CONDA=1 INSIDE_CONDA=1 ./build.sh

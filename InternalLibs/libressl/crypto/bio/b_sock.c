@@ -39,6 +39,10 @@
 #define NI_MAXHOST 1025
 #endif
 
+#ifndef NI_MAXSERV
+#define NI_MAXSERV 32
+#endif
+
 
 int
 BIO_get_host_ip(const char *str, unsigned char *ip)

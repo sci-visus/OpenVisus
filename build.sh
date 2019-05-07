@@ -22,7 +22,7 @@ VISUS_MODVISUS=${VISUS_MODVISUS:-1}
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
 
 # in case you want to try manylinux-like compilation (for debugging only)
-USE_OS_PACKAGES=${USE_OS_PACKAGES:-1}
+USE_LINUX_PACKAGES=${USE_LINUX_PACKAGES:-1}
 
 # //////////////////////////////////////////////////////
 function DownloadFile {
@@ -93,6 +93,14 @@ function DetectOS {
 		export TRAVIS=1 
 	fi
 
+	# sudo allowed or not (in general I assume I cannot use sudo)
+	IsRoot=0
+	SudoCmd="sudo"
+	if (( EUID== 0 || DOCKER == 1 || TRAVIS == 1 )); then 
+		IsRoot=1
+		SudoCmd=""
+	fi
+
 	# osx
 	if [ $(uname) = "Darwin" ]; then
 		OSX=1
@@ -114,11 +122,15 @@ function DetectOS {
 			export UBUNTU_VERSION=$DISTRIB_RELEASE
 		fi
 
+		CheckPackageCommand="dpkg -s"
+		PackageCommand="${SudoCmd} apt-get --quiet --yes --allow-unauthenticated"
 		echo "Detected ubuntu ${UBUNTU_VERSION}"
 
 	# opensuse
 	elif [ -x "$(command -v zypper)" ]; then
 		OPENSUSE=1
+		CheckPackageCommand="rpm -q"
+		PackageCommand="${SudoCmd} zypper--quiet --non-interactive"
 		echo "Detected opensuse"
 
 	# centos
@@ -127,54 +139,29 @@ function DetectOS {
 		GetVersionFromCommand "cat /etc/redhat-release" "CentOS release "
 		CENTOS_VERSION=${__version__}
 		CENTOS_MAJOR=${__major__}
+		CheckPackageCommand="yum --quiet list installed"
+		PackageCommand="${SudoCmd} yum --quiet -y"
 		echo "Detected centos ${CENTOS_VERSION}"
 
 	else
 		echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"
 	fi
-
-	# sudo allowed or not (in general I assume I cannot use sudo)
-	SudoCmd="sudo"
-	IsRoot=${IsRoot:-0}
-	if (( EUID== 0 || DOCKER == 1 || TRAVIS == 1 )); then 
-		IsRoot=1
-		SudoCmd=""
-	fi
-
 }
 
-
 # //////////////////////////////////////////////////////
-function InstallPackages {
+function InstallLinuxPackages {
 
 	set +x
 
 	packages=$@
 	echo "Installing packages ${packages}..."
 
-	if (( OSX == 1 )) ; then
-		CheckInstallCommand="brew list"
-		InstallCommand="brew install"
-
-	elif (( UBUNTU == 1 )); then
-		CheckInstallCommand="dpkg -s"
-		InstallCommand="${SudoCmd} apt-get -qq install --allow-unauthenticated"
-
-	elif (( OPENSUSE == 1 )) ; then
-		CheckInstallCommand="rpm -q"
-		InstallCommand="${SudoCmd} zypper --non-interactive install"
-		
-	elif (( CENTOS == 1 )) ; then
-		CheckInstallCommand="yum list installed"
-		InstallCommand="${SudoCmd} yum install -y"
-
-	fi
-
 	AlreadyInstalled=1
 	for package_name in ${packages} ; do
-		$CheckInstallCommand ${package_name} 1>/dev/null 2>/dev/null && : 
+		${CheckPackageCommand} ${package_name} 1>/dev/null 2>/dev/null && : 
 		retcode=$?
 		if [ ${retcode} != 0 ] ; then 
+			echo "Need to install ${package_name}"
 			AlreadyInstalled=0
 		fi
 	done
@@ -185,14 +172,13 @@ function InstallPackages {
 		return 0
 	fi
 
-	if [[ "${SudoCmd}" != "" && ${InstallCommand} == *"${SudoCmd}"* && "${IsRoot}" == "0" ]]; then
+	if [[ "${SudoCmd}" != "" && ${PackageCommand} == *"${SudoCmd}"* && "${IsRoot}" == "0" ]]; then
 		echo "Failed to install because I need ${SudoCmd}: ${packages}"
-		set -xsStep cwd $SRC_DIR/build/RelWithDebInfo/site-packages/OpenVisus args ['$SRC_DIR/build/RelWithDebInfo/site-packages/OpenVisus/Deploy.py', 'CreateScriptsStep']
-
+		set -x
 		return 1
 	fi
 
-	$InstallCommand ${packages}  1>/dev/null && : 
+	${PackageCommand} install ${packages}  1>/dev/null && : 
 	retcode=$?
 	if ((  retcode == 0 )) ; then 
 		echo "Installed packages: ${packages}"
@@ -205,97 +191,13 @@ function InstallPackages {
 }
 
 
-
-# //////////////////////////////////////////////////////////////
-function InstallPrerequisites {
-
-	BeginSection "InstallPrerequisites"
-
-	if (( OSX == 1 )) ; then
-
-		#  for travis long log
-		if (( TRAVIS == 1 )) ; then
-			${SudoCmd} gem install xcpretty 
-		fi 
-
-		# install brew
-		if [ !  -x "$(command -v brew)" ]; then
-			/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-		fi
-
-		# output is very long!
-		brew update 1>/dev/null && :
-
-		InstallPackages libffi
-
-	elif (( UBUNTU == 1 )) ; then
-	
-		if (( IsRoot == 1 )) ; then
-			${SudoCmd} apt-get -qq update 1>/dev/null  && :
-		fi
-
-		# install additional rep
-		if (( IsRoot == 1 )) ; then
-			InstallPackages software-properties-common
-			if (( ${UBUNTU_VERSION:0:2}<=14 )); then
-				${SudoCmd} add-apt-resStep cwd $SRC_DIR/build/RelWithDebInfo/site-packages/OpenVisus args ['$SRC_DIR/build/RelWithDebInfo/site-packages/OpenVisus/Deploy.py', 'CreateScriptsStep']
-pository -y ppa:deadsnakes/ppa
-				${SudoCmd} apt-get -qq update
-			fi
-		fi
-
-		InstallPackages git curl ca-certificates uuid-dev automake bzip2 libffi-dev build-essential make
-		InstallPatchElf
-
-	elif (( OPENSUSE == 1 )) ; then
-
-		if (( IsRoot == 1 )) ; then
-			${SudoCmd} zypper --non-interactive update 1>/dev/null  && :
-			${SudoCmd} zypper --non-interactive install --type pattern devel_basis
-		fi
-
-		InstallPackages git curl lsb-release libuuid-devel libffi-devel gcc-c++ make
-		InstallPatchElf
-
-		if (( VISUS_GUI ==  1 )); then
-			InstallPackages glu-devel
-		fi
-		
-	elif (( CENTOS == 1 )) ; then
-
-		if (( IsRoot == 1 )) ; then
-			${SudoCmd} yum update 1>/dev/null  && :
-		fi
-
-		InstallPackages zlib zlib-devel curl libffi-devel gcc-c++ make
-		InstallPatchElf
-
-		if (( VISUS_GUI ==  1 )); then
-			InstallPackages mesa-libGL-devel mesa-libGLU-devel 
-		fi
-
-	fi
-
-	echo "Installed prerequisites"
-	return 0
-}
-
-
-
-
 # //////////////////////////////////////////////////////
-function InstallCMake {
+function InstallCMakeForLinux {
 
-	BeginSection "InstallCMake"
+	BeginSection "InstallCMakeForLinux"
 
-	if [ -f "${CACHE_DIR}/bin/cmake" ]; then
-		echo "Using cached cmake"
-		return 0
-	fi
-
-	if (( OSX == 1 || USE_OS_PACKAGES == 1 )); then
-
-		InstallPackages cmake && :
+	if (( USE_LINUX_PACKAGES == 1 )); then
+		InstallLinuxPackages cmake && :
 
 		# already installed
 		if [[ -x "$(command -v cmake)" ]]; then
@@ -309,41 +211,40 @@ function InstallCMake {
 		fi 
 	fi
 
-	echo "installing cached cmake"
-	
-	if (( CENTOS == 1 && CENTOS_MAJOR <= 5 )) ; then  
-		__version__=3.4.3  # Error with other  versions: `GLIBC_2.6' not found (required by cmake)
-	else
-		__version__=3.10.1
-	fi 
+	if [ ! -f "${CACHE_DIR}/bin/cmake" ]; then
 
-	url="https://github.com/Kitware/CMake/releases/download/v${__version__}/cmake-${__version__}-Linux-x86_64.tar.gz"
-	filename=$(basename ${url})
-	DownloadFile "${url}"
-	tar xzf ${filename} -C ${CACHE_DIR} --strip-components=1 
-	rm -f ${filename}
+		echo "installing cached cmake"
+	
+		__version__=3.10.1
+		if (( CENTOS == 1 && CENTOS_MAJOR <= 5 )) ; then  
+			__version__=3.4.3  # Error with other  versions: `GLIBC_2.6' not found (required by cmake)
+		fi 
+
+		url="https://github.com/Kitware/CMake/releases/download/v${__version__}/cmake-${__version__}-Linux-x86_64.tar.gz"
+		filename=$(basename ${url})
+		DownloadFile "${url}"
+		tar xzf ${filename} -C ${CACHE_DIR} --strip-components=1 
+		rm -f ${filename}
+	fi
+
 	return 0
 }
 
-
 # //////////////////////////////////////////////////////
-function InstallSwig {
+function InstallSwigForLinux {
 
-	BeginSection "InstallSwig"
-	
-	unset SWIG_EXECUTABLE
+	BeginSection "InstallSwigForLinux"
+	if (( USE_LINUX_PACKAGES == 1 )); then
 
-	if [ -f "${CACHE_DIR}/bin/swig" ]; then	
-		echo "Using cached swig"
-		SWIG_EXECUTABLE=${CACHE_DIR}/bin/swig
-		return 0
-	fi
-
-	if (( OSX == 1 || USE_OS_PACKAGES == 1 )); then
-
-		InstallPackages swig && :
+		InstallLinuxPackages swig3.0 swig && :
 
 		# already installed
+		if [[ -x "$(command -v swig3.0)" ]]; then
+			SWIG_EXECUTABLE=$(which swig3.0)
+			return 0
+		fi
+
+		# already installed and good version
 		if [[ -x "$(command -v swig)" ]]; then
 			GetVersionFromCommand "swig -version" "SWIG Version "
 			if (( __major__>= 3)); then
@@ -354,71 +255,56 @@ function InstallSwig {
 				echo "Wrong version: swig==${__version__}"
 			fi
 		fi 
-
-		InstallPackages swig3.0 && :
-
-		# already installed
-		if [[ -x "$(command -v swig3.0)" ]]; then
-			SWIG_EXECUTABLE=$(which swig3.0)
-			return 0
-		fi
-
 	fi
 
-	echo "installing cached swig"
-	url="https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz"
-	filename=$(basename ${url})
-	DownloadFile ${url}
-	tar xzf ${filename}
-	pushd swig-3.0.12
-	DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
-	./Tools/pcre-build.sh 1>/dev/null
-	./configure --prefix=${CACHE_DIR} 1>/dev/null 
-	make -s -j 4 1>/dev/null 
-	make install 1>/dev/null 
-	popd
-	rm -Rf swig-3.0.12
-
 	SWIG_EXECUTABLE=${CACHE_DIR}/bin/swig
+	if [ ! -f "${SWIG_EXECUTABLE}" ]; then
+		echo "installing cached swig"
+		url="https://ftp.osuosl.org/pub/blfs/conglomeration/swig/swig-3.0.12.tar.gz"
+		filename=$(basename ${url})
+		DownloadFile ${url}
+		tar xzf ${filename}
+		pushd swig-3.0.12
+		DownloadFile "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
+		./Tools/pcre-build.sh 1>/dev/null
+		./configure --prefix=${CACHE_DIR} 1>/dev/null 
+		make -s -j 4 1>/dev/null 
+		make install 1>/dev/null 
+		popd
+		rm -Rf swig-3.0.12
+	fi
+
+	
 	return 0
 }
 
 # //////////////////////////////////////////////////////
-function InstallPatchElf {
+function InstallPatchElfForLinux {
 
-	BeginSection "InstallPatchElf"
+	BeginSection "InstallPatchElfForLinux"
 
-	if [ -f "${CACHE_DIR}/bin/patchelf" ]; then
-		echo "using cached patchelf"
+	InstallLinuxPackages patchelf && :
+	if [ -x "$(command -v patchelf)" ]; then
+		echo "Already installed: patchelf"
 		return 0
 	fi
 
-	if (( USE_OS_PACKAGES == 1 )); then
-
-		InstallPackages patchelf && :
-
-		# already installed
-		if [ -x "$(command -v patchelf)" ]; then
-			echo "Already installed: patchelf"
-			return 0
-		fi
+	if [ ! -f "${CACHE_DIR}/bin/patchelf" ]; then
+		url="https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz"
+		filename=$(basename ${url})
+		DownloadFile ${url}
+		tar xzf ${filename}
+		pushd patchelf-0.9
+		./configure --prefix=${CACHE_DIR} 1>/dev/null 
+		make -s 1>/dev/null 
+		make install 1>/dev/null 
+		autoreconf -f -i
+		./configure --prefix=${CACHE_DIR} 1>/dev/null 
+		make -s 1>/dev/null 
+		make install 1>/dev/null 
+		popd
+		rm -Rf patchelf-0.9
 	fi
-
-	echo "installing cached patchelf"
-	url="https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz"
-	filename=$(basename ${url})
-	DownloadFile ${url}
-	tar xzf ${filename}
-	pushd patchelf-0.9
-	./configure --prefix=${CACHE_DIR} 1>/dev/null 
-	make -s 1>/dev/null 
-	make install 1>/dev/null 
-	autoreconf -f -i
-	./configure --prefix=${CACHE_DIR} 1>/dev/null 
-	make -s 1>/dev/null 
-	make install 1>/dev/null 
-	popd
-	rm -Rf patchelf-0.9
 
 	return 0
 }
@@ -437,7 +323,6 @@ function CheckOpenSSLVersion {
 		echo "OpenSSL version(${__version__}) too old"
 		return -1
 
-
 	else
 		echo "Openssl version(${__version__}) ok"
 		return 0
@@ -447,79 +332,59 @@ function CheckOpenSSLVersion {
 
 
 # //////////////////////////////////////////////////////
-function InstallOpenSSL {
+function InstallOpenSSLForLinux {
 
-	unset OPENSSL_DIR
+	if (( USE_LINUX_PACKAGES == 1 )); then
 
-	if [ -f "${CACHE_DIR}/bin/openssl" ]; then
-		echo "Using cached openssl"
-		export OPENSSL_DIR="${CACHE_DIR}" 
-		export LD_LIBRARY_PATH="${CACHE_DIR}/lib:${LD_LIBRARY_PATH}"
-		return 0
-	fi
-	
-	if (( USE_OS_PACKAGES == 1 )); then
 		if (( UBUNTU == 1 )) ; then
-			InstallPackages libssl-dev && : 
-			if [ $? == 0 ] ; then
-				CheckOpenSSLVersion /usr/bin/openssl && : 
-				if [ $? == 0 ] ; then return 0 ; fi
-			fi
+			InstallLinuxPackages libssl-dev && : 
 
 		elif (( OPENSUSE == 1 )) ; then
-			InstallPackages libopenssl-devel && : 
-			if [ $? == 0 ] ; then
-				CheckOpenSSLVersion /usr/bin/openssl && : 
-				if [ $? == 0 ] ; then return 0 ; fi
-			fi
+			InstallLinuxPackages libopenssl-devel && :
 
 		elif (( CENTOS == 1 )) ; then
-			echo "Centos, prefer source openssl"
+			InstallLinuxPackages openssl-devel
+		fi
+
+		if [ -x "/usr/bin/openssl" ] ; then
+			CheckOpenSSLVersion /usr/bin/openssl && : 
+			if [ $? == 0 ] ; then return 0 ; fi
 		fi
 
 	fi
 
-	echo "installing cached openssl"
-	url="https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
-	filename=$(basename ${url})
-	DownloadFile ${url}
-	tar xzf ${filename}
-	pushd openssl-1.0.2a
-	./config --prefix=${CACHE_DIR} -fPIC shared 1>/dev/null 
-	make -s 1>/dev/null  
-	make install 1>/dev/null 
-	popd
-	rm -Rf openssl-1.0.2a
-	
 	export OPENSSL_DIR="${CACHE_DIR}" 
+	if [ ! -f "${OPENSSL_DIR}/bin/openssl" ]; then
+		echo "installing cached openssl"
+		url="https://www.openssl.org/source/openssl-1.0.2a.tar.gz"
+		filename=$(basename ${url})
+		DownloadFile ${url}
+		tar xzf ${filename}
+		pushd openssl-1.0.2a
+		./config --prefix=${CACHE_DIR} -fPIC shared 1>/dev/null 
+		make -s 1>/dev/null  
+		make install 1>/dev/null 
+		popd
+		rm -Rf openssl-1.0.2a
+	fi	
 	export LD_LIBRARY_PATH="${CACHE_DIR}/lib:${LD_LIBRARY_PATH}"
 	return 0
 }
 
 
 # //////////////////////////////////////////////////////
-function InstallApache {
+function InstallApacheForLinux {
 
-	unset APR_DIR
-	unset APACHE_DIR
+	BeginSection "InstallApacheForLinux"
 
-	BeginSection "InstallApache"
-
-	if [ -f "${CACHE_DIR}/include/httpd.h" ] ; then
-		echo "Using cached apache"
-		APR_DIR={CACHE_DIR}
-		APACHE_DIR=${CACHE_DIR}
-		return 0		
-	fi
-
-	if (( USE_OS_PACKAGES == 1 )); then
+	if (( USE_LINUX_PACKAGES == 1 )); then
 
 		if (( UBUNTU == 1 )); then
-			InstallPackages apache2 apache2-dev   && : 
+			InstallLinuxPackages apache2 apache2-dev   && : 
 			if [ $? == 0 ] ; then return 0 ; fi
 
 		elif (( OPENSUSE == 1 )); then
-			InstallPackages apache2 apache2-devel   && : 
+			InstallLinuxPackages apache2 apache2-devel   && : 
 			if [ $? == 0 ] ; then return 0 ; fi
 
 		elif (( CENTOS == 1 )) ; then
@@ -529,101 +394,99 @@ function InstallApache {
 
 	fi
 
-	echo "installing cached apache"
-
-	# expat
-	url="https://github.com/libexpat/libexpat/releases/download/R_2_2_6/expat-2.2.6.tar.bz2"
-	filename=$(basename ${url})
-	DownloadFile  ${url}
-	tar xjf ${filename}
-	pushd expat-2.2.6
-	./configure --prefix=${CACHE_DIR} 1>/dev/null 
-	make
-	make install
-	popd
-	rm -Rf expat-2.2.6
-
-	# install apr 
-	url="http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz"
-	filename=$(basename ${url})
-	DownloadFile ${url}
-	tar xzf ${filename}
-	pushd apr-1.6.5
-	./configure --prefix=${CACHE_DIR} 1>/dev/null 
-	make -s 1>/dev/null 
-	make install 1>/dev/null 
-	popd
-	rm -Rf apr-1.6.5
-
-	# install apr utils 
-	url="http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz"
-	filename=$(basename ${url})
-	DownloadFile ${url}
-	tar xzf ${filename}
-	pushd apr-util-1.6.1
-	./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-expat=${CACHE_DIR} 1>/dev/null  
-	make -s 1>/dev/null 
-	make install 1>/dev/null 
-	popd
-	rm -Rf apr-util-1.6.1
-
-	# install pcre 
-	url="https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
-	filename=$(basename ${url})
-	DownloadFile ${url}
-	tar xzf ${filename}
-	pushd pcre-8.42
-	./configure --prefix=${CACHE_DIR} 1>/dev/null 
-	make -s 1>/dev/null 
-	make install 1>/dev/null 
-	popd
-	rm -Rf pcre-8.42
-
-	# install httpd
-	url="http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz"
-	filename=$(basename ${url})
-	DownloadFile ${url}
-	tar xzf ${filename}
-	pushd httpd-2.4.38
-	./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-pcre=${CACHE_DIR} --with-ssl=${CACHE_DIR} --with-expat=${CACHE_DIR} 1>/dev/null 
-	make -s 1>/dev/null 
-	make install 1>/dev/null 
-	popd
-	rm -Rf httpd-2.4.38
-	
 	APR_DIR={CACHE_DIR}
 	APACHE_DIR=${CACHE_DIR}
+	if [ ! -f "${APACHE_DIR}/include/httpd.h" ] ; then
+
+		echo "installing cached apache"
+
+		# expat
+		url="https://github.com/libexpat/libexpat/releases/download/R_2_2_6/expat-2.2.6.tar.bz2"
+		filename=$(basename ${url})
+		DownloadFile  ${url}
+		tar xjf ${filename}
+		pushd expat-2.2.6
+		./configure --prefix=${CACHE_DIR} 1>/dev/null 
+		make
+		make install
+		popd
+		rm -Rf expat-2.2.6
+
+		# install apr 
+		url="http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz"
+		filename=$(basename ${url})
+		DownloadFile ${url}
+		tar xzf ${filename}
+		pushd apr-1.6.5
+		./configure --prefix=${CACHE_DIR} 1>/dev/null 
+		make -s 1>/dev/null 
+		make install 1>/dev/null 
+		popd
+		rm -Rf apr-1.6.5
+
+		# install apr utils 
+		url="http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz"
+		filename=$(basename ${url})
+		DownloadFile ${url}
+		tar xzf ${filename}
+		pushd apr-util-1.6.1
+		./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-expat=${CACHE_DIR} 1>/dev/null  
+		make -s 1>/dev/null 
+		make install 1>/dev/null 
+		popd
+		rm -Rf apr-util-1.6.1
+
+		# install pcre 
+		url="https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz"
+		filename=$(basename ${url})
+		DownloadFile ${url}
+		tar xzf ${filename}
+		pushd pcre-8.42
+		./configure --prefix=${CACHE_DIR} 1>/dev/null 
+		make -s 1>/dev/null 
+		make install 1>/dev/null 
+		popd
+		rm -Rf pcre-8.42
+
+		# install httpd
+		url="http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz"
+		filename=$(basename ${url})
+		DownloadFile ${url}
+		tar xzf ${filename}
+		pushd httpd-2.4.38
+		./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-pcre=${CACHE_DIR} --with-ssl=${CACHE_DIR} --with-expat=${CACHE_DIR} 1>/dev/null 
+		make -s 1>/dev/null 
+		make install 1>/dev/null 
+		popd
+		rm -Rf httpd-2.4.38
+	fi	
+
 	return 0
 }
 
 
 
 # //////////////////////////////////////////////////////
-function InstallQt5 {
+function InstallQt5ForLinux {
 	
-	BeginSection "InstallQt5"
+	BeginSection "InstallQt5ForLinux"
 
 	# already set by user
 	if [[ "${Qt5_DIR}" != "" ]] ; then
 		return 0
 	fi
 	
-	unset Qt5_DIR
-
-	# install qt 5.11 (instead of 5.12 which is not supported by PyQt5)
-	if (( OSX == 1 )); then
-
-		if [ ! -d /usr/local/Cellar/qt/5.11.2_1 ] ; then
-			echo "installing brew Qt5"
-			brew uninstall qt5 1>/dev/null 2>/dev/null && :
-			InstallPackages "https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb"
-		fi
-
-		Qt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5
-		return 0
+	# I need opengl
+	if (( UBUNTU == 1 )); then
+		InstallLinuxPackages mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev  && :
+	elif (( OPENSUSE == 1 )); then
+		InstallLinuxPackages glu-devel  && :
+	elif (( CENTOS ==  1 )); then
+		InstallLinuxPackages mesa-libGL-devel mesa-libGLU-devel && : 
 	fi
 
-	if (( USE_OS_PACKAGES == 1 )); then
+	# try to use OS Qt5
+	if (( USE_LINUX_PACKAGES == 1 )); then
 
 		# ubuntu
 		if (( UBUNTU == 1 )) ; then
@@ -651,12 +514,12 @@ function InstallQt5 {
 
 			if (( IsRoot == 1 )) ; then
 				${SudoCmd} add-apt-repository ${QT5_REPOSITORY} -y && :
-				${SudoCmd} apt-get -qq update && :
+				${PackageCommand} update && :
 			fi
 
-			InstallPackages mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev ${QT5_PACKAGE}  && : 
+			InstallLinuxPackages ${QT5_PACKAGE}  && : 
 			if [ $? == 0 ] ; then
-				echo "Using Qt5 from unbuntu repository"g
+				echo "Using Qt5 from unbuntu repository"
 				Qt5_DIR=${OPT_QT5_DIR}
 				return 0
 			fi
@@ -664,114 +527,58 @@ function InstallQt5 {
 
 		# opensuse 
 		if (( OPENSUSE == 1 )) ; then	
-			InstallPackages libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel && : 
+			InstallLinuxPackages libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel && : 
 			if [ $? == 0 ] ; then return 0 ; fi
 		fi
 
 	fi
 
 	# backup plan , use a minimal Qt5 which does not need SUDO
-	echo "Using minimal Qt5"
-	QT_VERSION=5.11.2
-	Qt5_DIR=${CACHE_DIR}/qt${QT_VERSION}/lib/cmake/Qt5
-
 	# if you want to create a "new" minimal Qt5 see CMake/Dockerfile.BuildQt5
 	# note this is only to allow compilation
 	# in order to execute it you need to use PyUseQt 
-	url="http://atlantis.sci.utah.edu/qt/qt${QT_VERSION}.tar.gz"
-	filename=$(basename ${url})
-	DownloadFile "${url}"
-	tar xzf ${filename} -C ${CACHE_DIR} 
+	echo "Using minimal Qt5"
+	QT_VERSION=5.11.2
+	Qt5_DIR=${CACHE_DIR}/qt${QT_VERSION}/lib/cmake/Qt5
+	if [ ! -d "${Qt5_DIR}" ] ; then
+		url="http://atlantis.sci.utah.edu/qt/qt${QT_VERSION}.tar.gz"
+		filename=$(basename ${url})
+		DownloadFile "${url}"
+		tar xzf ${filename} -C ${CACHE_DIR} 
+	fi
 
 	return 0
 }
 
-
 # ///////////////////////////////////////////////////////
-function InstallPython {
+function InstallPythonForOsx {
 
-	BeginSection InstallPython
-	
-	if (( PYTHON_MAJOR_VERSION > 2 )) ; then 
-		PYTHON_M_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}m 
-	else
-		PYTHON_M_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
-	fi	
-	
-	# install python using pyenv
-	if (( OSX == 1 )) ; then
-		
-		# pyenv does not support 3.7.x  maxosx 10.(12|13)
-		if (( PYTHON_MAJOR_VERSION > 2 )); then
-			PYTHON_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
-			package_name=python${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}
-			brew install sashkab/python/${package_name}
-			package_dir=$(brew --prefix ${package_name})
-			PYTHON_EXECUTABLE=${package_dir}/bin/python${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
-			PYTHON_INCLUDE_DIR=${package_dir}/Frameworks/Python.framework/Versions/${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}/include/python${PYTHON_M_VERSION}
-			PYTHON_LIBRARY=${package_dir}/Frameworks/Python.framework/Versions/${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}/lib/libpython${PYTHON_M_VERSION}.dylib
-			
-		else
+	BeginSection InstallPythonForOsx
 
-			InstallPackages readline zlib openssl openssl@1.1 pyenv && :
-	
-			# activate pyenv
-			eval "$(pyenv init -)"
-	
-			export CONFIGURE_OPTS="--enable-shared"
-			export CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include"
-			export LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib"
-			export CPPFLAGS="${CFLAGS}"
-	
-			pyenv install --skip-existing ${PYTHON_VERSION} && :
-			if [ $? != 0 ] ; then 
-				echo "pyenv failed to install"
-				pyenv install --list
-				exit -1
-			fi
-	
-			unset CONFIGURE_OPTS
-			unset CFLAGS
-			unset LDFLAGS
-			unset CPPFLAGS
-			
-			eval "$(pyenv init -)"
-			pyenv global ${PYTHON_VERSION}
-			pyenv rehash
-		
-			PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python
-			PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_M_VERSION}
-			PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.dylib 	
-			
-		fi		
+	# pyenv does not support 3.7.x  maxosx 10.(12|13)
+	if (( PYTHON_MAJOR_VERSION > 2 )); then
+
+		PYTHON_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
+		package_name=python${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}
+		brew --quiet install sashkab/python/${package_name}
+		package_dir=$(brew --prefix ${package_name})
+		PYTHON_EXECUTABLE=${package_dir}/bin/python${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
+		PYTHON_INCLUDE_DIR=${package_dir}/Frameworks/Python.framework/Versions/${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}/include/python${PYTHON_M_VERSION}
+		PYTHON_LIBRARY=${package_dir}/Frameworks/Python.framework/Versions/${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}/lib/libpython${PYTHON_M_VERSION}.dylib
 		
 	else
 
-		InstallOpenSSL
+		brew --quiet install readline zlib openssl openssl@1.1 pyenv libffi && :
 
-		if [ ! -f "$HOME/.pyenv/bin/pyenv" ]; then
-			pushd $HOME
-			DownloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
-			chmod a+x pyenv-installer
-			./pyenv-installer
-			rm -f pyenv-installer
-			popd
-		fi
-	
 		# activate pyenv
-		export PATH="$HOME/.pyenv/bin:$PATH"
 		eval "$(pyenv init -)"
 
 		export CONFIGURE_OPTS="--enable-shared"
+		export CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include"
+		export LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib"
+		export CPPFLAGS="${CFLAGS}"
 
-		if [[ "$OPENSSL_DIR" != "" ]] ; then
-			export CONFIGURE_OPTS="${CONFIGURE_OPTS} --with-openssl=${OPENSSL_DIR}"
-			export CFLAGS="  -I${OPENSSL_DIR}/include -I${OPENSSL_DIR}/include/openssl"
-			export CPPFLAGS="-I${OPENSSL_DIR}/include -I${OPENSSL_DIR}/include/openssl"
-			export LDFLAGS=" -L${OPENSSL_DIR}/lib"
-		fi
-
-		CXX=g++ pyenv install --skip-existing ${PYTHON_VERSION}  && :
+		pyenv install --skip-existing ${PYTHON_VERSION} && :
 		if [ $? != 0 ] ; then 
 			echo "pyenv failed to install"
 			pyenv install --list
@@ -780,28 +587,80 @@ function InstallPython {
 
 		unset CONFIGURE_OPTS
 		unset CFLAGS
-		unset CPPFLAGS
 		unset LDFLAGS
+		unset CPPFLAGS
 		
-		# activate pyenv
-		export PATH="$HOME/.pyenv/bin:$PATH"
 		eval "$(pyenv init -)"
 		pyenv global ${PYTHON_VERSION}
 		pyenv rehash
 	
 		PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python
 		PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_M_VERSION}
-		PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.so
+		PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.dylib 	
 		
+	fi	
+
+	${PYTHON_EXECUTABLE} -m pip install -q --upgrade pip
+	${PYTHON_EXECUTABLE} -m pip install -q numpy setuptools wheel twine auditwheel
+
+	return 0
+}
+
+
+# ///////////////////////////////////////////////////////
+function InstallPythonForLinux {
+
+	BeginSection InstallPythonForLinux
+
+	# install pyenv
+	if [ ! -f "$HOME/.pyenv/bin/pyenv" ]; then
+		pushd $HOME
+		DownloadFile "https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer"
+		chmod a+x pyenv-installer
+		./pyenv-installer
+		rm -f pyenv-installer
+		popd
 	fi
+	export PATH="$HOME/.pyenv/bin:$PATH"
+	eval "$(pyenv init -)"
+
+	# install python
+	export CONFIGURE_OPTS="--enable-shared"
+
+	if [[ "$OPENSSL_DIR" != "" ]] ; then
+		export CONFIGURE_OPTS="${CONFIGURE_OPTS} --with-openssl=${OPENSSL_DIR}"
+		export CFLAGS="  -I${OPENSSL_DIR}/include -I${OPENSSL_DIR}/include/openssl"
+		export CPPFLAGS="-I${OPENSSL_DIR}/include -I${OPENSSL_DIR}/include/openssl"
+		export LDFLAGS=" -L${OPENSSL_DIR}/lib"
+	fi
+	CXX=g++ pyenv install --skip-existing ${PYTHON_VERSION}  && :
+	if [ $? != 0 ] ; then 
+		echo "pyenv failed to install"
+		pyenv install --list
+		exit -1
+	fi
+
+	unset CONFIGURE_OPTS
+	unset CFLAGS
+	unset CPPFLAGS
+	unset LDFLAGS
 	
-	# install python packages
+	# activate pyenv
+	export PATH="$HOME/.pyenv/bin:$PATH"
+	eval "$(pyenv init -)"
+	pyenv global ${PYTHON_VERSION}
+	pyenv rehash
+
+	PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python
+	PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_M_VERSION}
+	PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.so
+
 	${PYTHON_EXECUTABLE} -m pip install -q --upgrade pip
 	${PYTHON_EXECUTABLE} -m pip install -q numpy setuptools wheel twine auditwheel		
 	
 	return 0
-}
 
+}
 
 # /////////////////////////////////////////////////////////////////////
 function InstallCondaPython {
@@ -915,9 +774,15 @@ DetectOS
 PYTHON_MAJOR_VERSION=${PYTHON_VERSION:0:1}
 PYTHON_MINOR_VERSION=${PYTHON_VERSION:2:1}	
 
-if (( CENTOS == 1 && CENTOS_MAJOR == 5 )) ; then
+if (( PYTHON_MAJOR_VERSION > 2 )) ; then 
+	PYTHON_M_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}m 
+else
+	PYTHON_M_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
+fi	
+
+if (( USE_CONDA == 1 || ( CENTOS == 1 && CENTOS_MAJOR == 5 ) )) ; then
 	DISABLE_OPENMP=1
-	USE_OS_PACKAGES=0
+	USE_LINUX_PACKAGES=0
 fi
 
 if [[ "$TRAVIS" == "1" && "${TRAVIS_TAG}" != "" ]] ; then
@@ -1009,32 +874,109 @@ mkdir -p ${BUILD_DIR}
 mkdir -p ${CACHE_DIR}
 export PATH=${CACHE_DIR}/bin:$PATH
 
+pushd ${BUILD_DIR}
+
+# install OpenVisus dependencies
 if (( USE_CONDA == 0 )) ; then
-	InstallPrerequisites && :
-	InstallCMake
-	InstallSwig
-	InstallPython
-fi
 
-if (( VISUS_MODVISUS == 1 )); then	
-	InstallApache
-fi
+	if (( OSX == 1 )) ; then
 
-if (( VISUS_GUI == 1 )); then
-	InstallQt5
+		#  for travis long log
+		if (( TRAVIS == 1 )) ; then
+			${SudoCmd} gem install xcpretty 
+		fi 
+
+		# brew
+		if [ !  -x "$(command -v brew)" ]; then
+			/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+		fi
+
+		brew --quiet update 
+		
+		# cmake
+		brew --quiet install cmake 
+
+		# swig
+		brew --quiet install swig
+		SWIG_EXECUTABLE=$(which swig)
+
+		# python
+		InstallPythonForOsx
+
+		# qt5
+		if (( VISUS_GUI == 1 )); then
+			if [ ! -d /usr/local/Cellar/qt/5.11.2_1 ] ; then
+				echo "installing brew Qt5"
+				brew --quiet uninstall qt5  && :
+				brew --quiet "https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb"
+			fi
+			Qt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5
+		fi
+
+	else
+
+		if (( IsRoot == 1 )) ; then
+
+			${PackageCommand} update 
+
+			# install compilers
+			if (( UBUNTU == 1  )) ; then
+				InstallLinuxPackages software-properties-common 
+				if (( ${UBUNTU_VERSION:0:2}<=14 )); then
+					${SudoCmd} add-apt-repository -y ppa:deadsnakes/ppa
+					${PackageCommand} update
+				fi
+				InstallLinuxPackages build-essential make automake 
+
+			elif (( OPENSUSE == 1 )) ; then
+				${PackageCommand} install --type pattern devel_basis 
+				InstallLinuxPackages gcc-c++ make 
+
+			elif (( CENTOS == 1 )) ; then
+				InstallLinuxPackages gcc-c++ make 
+
+			fi
+		fi
+
+		# some libraries I may need later
+		if (( UBUNTU == 1 )) ; then
+			InstallLinuxPackages git curl ca-certificates uuid-dev bzip2 libffi-dev && :
+
+		elif (( OPENSUSE == 1 )) ; then
+			InstallLinuxPackages git curl lsb-release libuuid-devel libffi-devel  && :
+
+		elif (( CENTOS == 1 )) ; then
+			InstallLinuxPackages git curl zlib zlib-devel libffi-devel  && :
+		fi
+
+		InstallPatchElfForLinux
+		InstallCMakeForLinux
+		InstallSwigForLinux
+		InstallOpenSSLForLinux
+		InstallPythonForLinux
+
+		if (( VISUS_MODVISUS == 1 )); then	
+			InstallApacheForLinux
+		fi
+
+		if (( VISUS_GUI == 1 )); then
+			InstallQt5ForLinux
+		fi
+
+	fi
+
 fi
 
 BeginSection "Build OpenVisus"
 
 declare -a cmake_opts
 
+CMAKE_TEST_STEP="test"
+CMAKE_ALL_STEP="all"
 if (( OSX == 1 && USE_CONDA == 0 )) ; then
 	cmake_opts+=(-GXcode)
 	CMAKE_TEST_STEP="RUN_TESTS"
 	CMAKE_ALL_STEP="ALL_BUILD"
-else
-	CMAKE_TEST_STEP="test"
-	CMAKE_ALL_STEP="all"
 fi
 
 AddCMakeOption -DDISABLE_OPENMP       "${DISABLE_OPENMP}"
@@ -1053,7 +995,6 @@ AddCMakeOption -DCMAKE_OSX_SYSROOT    "${CMAKE_OSX_SYSROOT}"
 AddCMakeOption -DCMAKE_TOOLCHAIN_FILE "${CMAKE_TOOLCHAIN_FILE}"
 
 # compile and install
-pushd ${BUILD_DIR}
 cmake ${cmake_opts[@]} ${SOURCE_DIR}
 if (( TRAVIS == 1 && OSX == 1 )) ; then
 	cmake --build ./ --target ${CMAKE_ALL_STEP} --config ${CMAKE_BUILD_TYPE} | xcpretty -c
@@ -1063,66 +1004,66 @@ fi
 
 cmake --build . --target install --config ${CMAKE_BUILD_TYPE}
 
+
+# cmake tests 
 if (( USE_CONDA == 0 )) ; then
+	BeginSection "Test OpenVisus (cmake ${CMAKE_TEST_STEP})"
+	pushd ${BUILD_DIR}
+	cmake --build  ./ --target  ${CMAKE_TEST_STEP} --config ${CMAKE_BUILD_TYPE}	
+	popd
+fi
 
-	# cmake tests 
-	if (( 1 == 1 )) ; then
-		BeginSection "Test OpenVisus (cmake ${CMAKE_TEST_STEP})"
-		pushd ${BUILD_DIR}
-		cmake --build  ./ --target  ${CMAKE_TEST_STEP} --config ${CMAKE_BUILD_TYPE}	
-		popd
-	fi
+# cmake external app
+if (( USE_CONDA == 0 )) ; then
+	BeginSection "Test OpenVisus (cmake external app)"
+	pushd ${BUILD_DIR}
+	cmake --build ./ --target  simple_query --config ${CMAKE_BUILD_TYPE}
+	if (( VISUS_GUI == 1 )) ; then
+		cmake --build   . --target   simple_viewer2d --config ${CMAKE_BUILD_TYPE}
+	fi	
+	popd
+fi
 
-	# cmake external app
-	if (( 1 == 1 )) ; then
-		BeginSection "Test OpenVisus (cmake external app)"
-		pushd ${BUILD_DIR}
-		cmake --build ./ --target  simple_query --config ${CMAKE_BUILD_TYPE}
-		if (( VISUS_GUI == 1 )) ; then
-			cmake --build   . --target   simple_viewer2d --config ${CMAKE_BUILD_TYPE}
-		fi	
-		popd
-	fi
-
+if (( USE_CONDA == 0 )) ; then
 	export PYTHONPATH=${BUILD_DIR}/${CMAKE_BUILD_TYPE}/site-packages
+fi
 
-	# test extending python
-	if (( 1 == 1 )) ; then
-		BeginSection "Test OpenVisus (extending python)"
-		pushd $(${PYTHON_EXECUTABLE} -m OpenVisus dirname)
-		${PYTHON_EXECUTABLE} Samples/python/Array.py
-		${PYTHON_EXECUTABLE} Samples/python/Dataflow.py
-		${PYTHON_EXECUTABLE} Samples/python/Idx.py
-		popd
+# test extending python
+if (( USE_CONDA == 0 )) ; then
+	BeginSection "Test OpenVisus (extending python)"
+	pushd $(${PYTHON_EXECUTABLE} -m OpenVisus dirname)
+	${PYTHON_EXECUTABLE} Samples/python/Array.py
+	${PYTHON_EXECUTABLE} Samples/python/Dataflow.py
+	${PYTHON_EXECUTABLE} Samples/python/Idx.py
+	popd
+fi
+
+# test embedding python
+if (( USE_CONDA == 0 )) ; then
+	BeginSection "Test OpenVisus (embedding python)"
+	pushd $(${PYTHON_EXECUTABLE} -m OpenVisus dirname)
+	if (( OSX == 1 )) ; then
+		./visus.command
+	else
+		./visus.sh
+	fi
+	popd
+fi
+
+# deploy
+if (( DEPLOY_PYPI == 1 || DEPLOY_GITHUB == 1 )) ; then
+	pushd ${BUILD_DIR}
+	cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
+	popd
+
+	if (( DEPLOY_PYPI == 1 )) ; then
+		DeployToPyPi
 	fi
 
-	# test embedding python
-	if (( 1 == 1 )) ; then
-		BeginSection "Test OpenVisus (embedding python)"
-		pushd $(${PYTHON_EXECUTABLE} -m OpenVisus dirname)
-		if (( OSX == 1 )) ; then
-			./visus.command
-		else
-			./visus.sh
-		fi
-		popd
+	if (( DEPLOY_GITHUB == 1 )) ; then
+		DeployToGitHub
 	fi
 
-	# deploy
-	if (( DEPLOY_PYPI == 1 || DEPLOY_GITHUB == 1 )) ; then
-		pushd ${BUILD_DIR}
-		cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
-		popd
-
-		if (( DEPLOY_PYPI == 1 )) ; then
-			DeployToPyPi
-		fi
-
-		if (( DEPLOY_GITHUB == 1 )) ; then
-			DeployToGitHub
-		fi
-
-	fi
 fi
 
 echo "OpenVisus build finished"
