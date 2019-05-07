@@ -192,6 +192,10 @@ add_definitions(-DSIZEOF_TIME_T=${SIZEOF_TIME_T})
 
 set(OPENSSL_LIBS tls ssl crypto ${PLATFORM_LIBS})
 
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  add_definitions(-D_DARWIN_C_SOURCE)
+endif()
+
 add_subdirectory(crypto)
 add_subdirectory(ssl)
 add_subdirectory(tls)
