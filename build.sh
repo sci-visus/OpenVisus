@@ -104,6 +104,8 @@ function DetectOS {
 	# osx
 	if [ $(uname) = "Darwin" ]; then
 		OSX=1
+		CheckPackageCommand="brew list"
+		PackageCommand="brew install"
 		echo "Detected OSX"
 
 	# ubuntu
@@ -148,8 +150,11 @@ function DetectOS {
 	fi
 }
 
+
+
+
 # //////////////////////////////////////////////////////
-function InstallLinuxPackages {
+function InstallPackages {
 
 	set +x
 
@@ -157,37 +162,34 @@ function InstallLinuxPackages {
 	echo "Installing packages ${packages}..."
 
 	AlreadyInstalled=1
-	for package_name in ${packages} ; do
-		${CheckPackageCommand} ${package_name} 1>/dev/null 2>/dev/null && : 
+	for package in ${packages} ; do
+		${CheckPackageCommand} ${package} 1>/dev/null 2>/dev/null && : 
 		retcode=$?
-		if [ ${retcode} != 0 ] ; then 
-			echo "Need to install ${package_name}"
-			AlreadyInstalled=0
+
+		if [ ${retcode} == 0 ] ; then 
+			echo "Package  ${package} already installed"
+		else
+
+			if [[ "${SudoCmd}" != "" && ${PackageCommand} == *"${SudoCmd}"* && "${IsRoot}" == "0" ]]; then
+				echo "Failed to install ${package} because I need ${SudoCmd}: ${packages}"
+				set -x
+				return 1
+			fi
+
+			${PackageCommand} install ${package}  1>/dev/null && : 
+			retcode=$?
+			if ((  retcode != 0 )) ; then 
+				echo "Failed to install: ${package}"
+				set -x
+				return 1
+			fi
+
+			echo "Installed package ${packages}"
 		fi
 	done
 
-	if (( AlreadyInstalled == 1 )) ; then
-		echo "Already installed: ${packages}"
-		set -x
-		return 0
-	fi
-
-	if [[ "${SudoCmd}" != "" && ${PackageCommand} == *"${SudoCmd}"* && "${IsRoot}" == "0" ]]; then
-		echo "Failed to install because I need ${SudoCmd}: ${packages}"
-		set -x
-		return 1
-	fi
-
-	${PackageCommand} install ${packages}  1>/dev/null && : 
-	retcode=$?
-	if ((  retcode == 0 )) ; then 
-		echo "Installed packages: ${packages}"
-	else
-		echo "Failed to install: ${packages}"
-	fi
-
 	set -x
-	return $retcode
+	return 0
 }
 
 
@@ -197,7 +199,7 @@ function InstallCMakeForLinux {
 	BeginSection "InstallCMakeForLinux"
 
 	if (( USE_LINUX_PACKAGES == 1 )); then
-		InstallLinuxPackages cmake && :
+		InstallPackages cmake && :
 
 		# already installed
 		if [[ -x "$(command -v cmake)" ]]; then
@@ -236,7 +238,7 @@ function InstallSwigForLinux {
 	BeginSection "InstallSwigForLinux"
 	if (( USE_LINUX_PACKAGES == 1 )); then
 
-		InstallLinuxPackages swig3.0 swig && :
+		InstallPackages swig3.0 swig && :
 
 		# already installed
 		if [[ -x "$(command -v swig3.0)" ]]; then
@@ -283,7 +285,7 @@ function InstallPatchElfForLinux {
 
 	BeginSection "InstallPatchElfForLinux"
 
-	InstallLinuxPackages patchelf && :
+	InstallPackages patchelf && :
 	if [ -x "$(command -v patchelf)" ]; then
 		echo "Already installed: patchelf"
 		return 0
@@ -337,13 +339,13 @@ function InstallOpenSSLForLinux {
 	if (( USE_LINUX_PACKAGES == 1 )); then
 
 		if (( UBUNTU == 1 )) ; then
-			InstallLinuxPackages libssl-dev && : 
+			InstallPackages libssl-dev && : 
 
 		elif (( OPENSUSE == 1 )) ; then
-			InstallLinuxPackages libopenssl-devel && :
+			InstallPackages libopenssl-devel && :
 
 		elif (( CENTOS == 1 )) ; then
-			InstallLinuxPackages openssl-devel
+			InstallPackages openssl-devel
 		fi
 
 		if [ -x "/usr/bin/openssl" ] ; then
@@ -380,11 +382,11 @@ function InstallApacheForLinux {
 	if (( USE_LINUX_PACKAGES == 1 )); then
 
 		if (( UBUNTU == 1 )); then
-			InstallLinuxPackages apache2 apache2-dev   && : 
+			InstallPackages apache2 apache2-dev   && : 
 			if [ $? == 0 ] ; then return 0 ; fi
 
 		elif (( OPENSUSE == 1 )); then
-			InstallLinuxPackages apache2 apache2-devel   && : 
+			InstallPackages apache2 apache2-devel   && : 
 			if [ $? == 0 ] ; then return 0 ; fi
 
 		elif (( CENTOS == 1 )) ; then
@@ -478,11 +480,11 @@ function InstallQt5ForLinux {
 	
 	# I need opengl
 	if (( UBUNTU == 1 )); then
-		InstallLinuxPackages mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev  && :
+		InstallPackages mesa-common-dev libgl1-mesa-dev libglu1-mesa-dev  && :
 	elif (( OPENSUSE == 1 )); then
-		InstallLinuxPackages glu-devel  && :
+		InstallPackages glu-devel  && :
 	elif (( CENTOS ==  1 )); then
-		InstallLinuxPackages mesa-libGL-devel mesa-libGLU-devel && : 
+		InstallPackages mesa-libGL-devel mesa-libGLU-devel && : 
 	fi
 
 	# try to use OS Qt5
@@ -517,7 +519,7 @@ function InstallQt5ForLinux {
 				${PackageCommand} update && :
 			fi
 
-			InstallLinuxPackages ${QT5_PACKAGE}  && : 
+			InstallPackages ${QT5_PACKAGE}  && : 
 			if [ $? == 0 ] ; then
 				echo "Using Qt5 from unbuntu repository"
 				Qt5_DIR=${OPT_QT5_DIR}
@@ -527,7 +529,7 @@ function InstallQt5ForLinux {
 
 		# opensuse 
 		if (( OPENSUSE == 1 )) ; then	
-			InstallLinuxPackages libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel && : 
+			InstallPackages libQt5Concurrent-devel libQt5Network-devel libQt5Test-devel libQt5OpenGL-devel && : 
 			if [ $? == 0 ] ; then return 0 ; fi
 		fi
 
@@ -560,7 +562,7 @@ function InstallPythonForOsx {
 
 		PYTHON_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
 		package_name=python${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}
-		brew install sashkab/python/${package_name} 1>/dev/null
+		InstallPackages sashkab/python/${package_name} 
 		package_dir=$(brew --prefix ${package_name})
 		PYTHON_EXECUTABLE=${package_dir}/bin/python${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
 		PYTHON_INCLUDE_DIR=${package_dir}/Frameworks/Python.framework/Versions/${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}/include/python${PYTHON_M_VERSION}
@@ -568,29 +570,22 @@ function InstallPythonForOsx {
 		
 	else
 
-		brew install readline zlib openssl openssl@1.1 pyenv libffi 1>/dev/null && :
+		InstallPackages readline zlib openssl openssl@1.1 pyenv libffi
 
-		# activate pyenv
 		eval "$(pyenv init -)"
 
-		export CONFIGURE_OPTS="--enable-shared"
-		export CFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include"
-		export LDFLAGS="-L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib"
-		export CPPFLAGS="${CFLAGS}"
-
+		CONFIGURE_OPTS="--enable-shared" \
+		CFLAGS="   -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include" \
+		CPPFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include" \
+		LDFLAGS="  -L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib" \
 		pyenv install --skip-existing ${PYTHON_VERSION} && :
+
 		if [ $? != 0 ] ; then 
 			echo "pyenv failed to install"
 			pyenv install --list
 			exit -1
 		fi
 
-		unset CONFIGURE_OPTS
-		unset CFLAGS
-		unset LDFLAGS
-		unset CPPFLAGS
-		
-		eval "$(pyenv init -)"
 		pyenv global ${PYTHON_VERSION}
 		pyenv rehash
 	
@@ -894,10 +889,10 @@ if (( USE_CONDA == 0 )) ; then
 		brew update 1>/dev/null
 		
 		# cmake
-		brew install cmake 1>/dev/null
+		InstallPackages cmake 
 
 		# swig
-		brew install swig 1>/dev/null
+		InstallPackages swig 
 		SWIG_EXECUTABLE=$(which swig)
 
 		# python
@@ -907,8 +902,8 @@ if (( USE_CONDA == 0 )) ; then
 		if (( VISUS_GUI == 1 )); then
 			if [ ! -d /usr/local/Cellar/qt/5.11.2_1 ] ; then
 				echo "installing brew Qt5"
-				brew uninstall qt5  1>/dev/null && :
-				brew install   "https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb" 1>/dev/null
+				brew uninstall qt5 1>/dev/null && :
+				InstallPackages "https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb" 
 			fi
 			Qt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5
 		fi
@@ -921,32 +916,32 @@ if (( USE_CONDA == 0 )) ; then
 
 			# install compilers
 			if (( UBUNTU == 1  )) ; then
-				InstallLinuxPackages software-properties-common 
+				InstallPackages software-properties-common 
 				if (( ${UBUNTU_VERSION:0:2}<=14 )); then
 					${SudoCmd} add-apt-repository -y ppa:deadsnakes/ppa
 					${PackageCommand} update
 				fi
-				InstallLinuxPackages build-essential make automake 
+				InstallPackages build-essential make automake 
 
 			elif (( OPENSUSE == 1 )) ; then
 				${PackageCommand} install --type pattern devel_basis 
-				InstallLinuxPackages gcc-c++ make 
+				InstallPackages gcc-c++ make 
 
 			elif (( CENTOS == 1 )) ; then
-				InstallLinuxPackages gcc-c++ make 
+				InstallPackages gcc-c++ make 
 
 			fi
 		fi
 
 		# some libraries I may need later
 		if (( UBUNTU == 1 )) ; then
-			InstallLinuxPackages git curl ca-certificates uuid-dev bzip2 libffi-dev && :
+			InstallPackages git curl ca-certificates uuid-dev bzip2 libffi-dev && :
 
 		elif (( OPENSUSE == 1 )) ; then
-			InstallLinuxPackages git curl lsb-release libuuid-devel libffi-devel  && :
+			InstallPackages git curl lsb-release libuuid-devel libffi-devel  && :
 
 		elif (( CENTOS == 1 )) ; then
-			InstallLinuxPackages git curl zlib zlib-devel libffi-devel  && :
+			InstallPackages git curl zlib zlib-devel libffi-devel  && :
 		fi
 
 		InstallPatchElfForLinux
