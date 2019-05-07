@@ -130,7 +130,7 @@ function DetectOS {
 	elif [ -x "$(command -v zypper)" ]; then
 		OPENSUSE=1
 		CheckPackageCommand="rpm -q"
-		PackageCommand="${SudoCmd} zypper--quiet --non-interactive"
+		PackageCommand="${SudoCmd} zypper --quiet --non-interactive"
 		echo "Detected opensuse"
 
 	# centos
@@ -560,7 +560,7 @@ function InstallPythonForOsx {
 
 		PYTHON_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
 		package_name=python${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}
-		brew --quiet install sashkab/python/${package_name}
+		brew install --quiet sashkab/python/${package_name}
 		package_dir=$(brew --prefix ${package_name})
 		PYTHON_EXECUTABLE=${package_dir}/bin/python${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
 		PYTHON_INCLUDE_DIR=${package_dir}/Frameworks/Python.framework/Versions/${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}/include/python${PYTHON_M_VERSION}
@@ -568,7 +568,7 @@ function InstallPythonForOsx {
 		
 	else
 
-		brew --quiet install readline zlib openssl openssl@1.1 pyenv libffi && :
+		brew install --quiet readline zlib openssl openssl@1.1 pyenv libffi && :
 
 		# activate pyenv
 		eval "$(pyenv init -)"
@@ -891,13 +891,13 @@ if (( USE_CONDA == 0 )) ; then
 			/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 		fi
 
-		brew --quiet update 
+		brew update --quiet 
 		
 		# cmake
-		brew --quiet install cmake 
+		brew install --quiet cmake 
 
 		# swig
-		brew --quiet install swig
+		brew install --quiet swig
 		SWIG_EXECUTABLE=$(which swig)
 
 		# python
@@ -907,8 +907,8 @@ if (( USE_CONDA == 0 )) ; then
 		if (( VISUS_GUI == 1 )); then
 			if [ ! -d /usr/local/Cellar/qt/5.11.2_1 ] ; then
 				echo "installing brew Qt5"
-				brew --quiet uninstall qt5  && :
-				brew --quiet "https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb"
+				brew uninstall --quiet qt5  && :
+				brew install   --quiet  "https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb"
 			fi
 			Qt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5
 		fi
