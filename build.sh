@@ -105,7 +105,7 @@ function DetectOS {
 	if [ $(uname) = "Darwin" ]; then
 		OSX=1
 		CheckPackageCommand="brew list"
-		PackageCommand="brew install"
+		PackageCommand="brew"
 		echo "Detected OSX"
 
 	# ubuntu
@@ -886,7 +886,7 @@ if (( USE_CONDA == 0 )) ; then
 			/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 		fi
 
-		brew update 1>/dev/null
+		${PackageCommand} update 1>/dev/null
 		
 		# cmake
 		InstallPackages cmake 
@@ -902,7 +902,7 @@ if (( USE_CONDA == 0 )) ; then
 		if (( VISUS_GUI == 1 )); then
 			if [ ! -d /usr/local/Cellar/qt/5.11.2_1 ] ; then
 				echo "installing brew Qt5"
-				brew uninstall qt5 1>/dev/null && :
+				${PackageCommand} uninstall qt5 1>/dev/null && :
 				InstallPackages "https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb" 
 			fi
 			Qt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5
