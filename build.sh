@@ -560,7 +560,7 @@ function InstallPythonForOsx {
 
 		PYTHON_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
 		package_name=python${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}
-		brew install --quiet sashkab/python/${package_name}
+		brew install sashkab/python/${package_name} 1>/dev/null
 		package_dir=$(brew --prefix ${package_name})
 		PYTHON_EXECUTABLE=${package_dir}/bin/python${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
 		PYTHON_INCLUDE_DIR=${package_dir}/Frameworks/Python.framework/Versions/${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}/include/python${PYTHON_M_VERSION}
@@ -568,7 +568,7 @@ function InstallPythonForOsx {
 		
 	else
 
-		brew install --quiet readline zlib openssl openssl@1.1 pyenv libffi && :
+		brew install readline zlib openssl openssl@1.1 pyenv libffi 1>/dev/null && :
 
 		# activate pyenv
 		eval "$(pyenv init -)"
@@ -891,13 +891,13 @@ if (( USE_CONDA == 0 )) ; then
 			/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 		fi
 
-		brew update --quiet 
+		brew update 1>/dev/null
 		
 		# cmake
-		brew install --quiet cmake 
+		brew install cmake 1>/dev/null
 
 		# swig
-		brew install --quiet swig
+		brew install swig 1>/dev/null
 		SWIG_EXECUTABLE=$(which swig)
 
 		# python
@@ -907,8 +907,8 @@ if (( USE_CONDA == 0 )) ; then
 		if (( VISUS_GUI == 1 )); then
 			if [ ! -d /usr/local/Cellar/qt/5.11.2_1 ] ; then
 				echo "installing brew Qt5"
-				brew uninstall --quiet qt5  && :
-				brew install   --quiet  "https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb"
+				brew uninstall qt5  1>/dev/null && :
+				brew install   "https://raw.githubusercontent.com/Homebrew/homebrew-core/5eb54ced793999e3dd3bce7c64c34e7ffe65ddfd/Formula/qt.rb" 1>/dev/null
 			fi
 			Qt5_DIR=$(brew --prefix Qt)/lib/cmake/Qt5
 		fi
