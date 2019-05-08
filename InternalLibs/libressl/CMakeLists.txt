@@ -192,12 +192,12 @@ add_definitions(-DSIZEOF_TIME_T=${SIZEOF_TIME_T})
 
 set(OPENSSL_LIBS tls ssl crypto ${PLATFORM_LIBS})
 
-# fix for aplpe
-if (APPLE)
-	message(STATUS "Adding definition of _DARWIN_C_SOURCE for conda OSX")	
-	add_definitions(-D_DARWIN_C_SOURCE)	
-endif()	
 
+
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+	MESSAGE(STATUS "add_definitions(-D_DARWIN_C_SOURCE)")
+	add_definitions(-D_DARWIN_C_SOURCE)
+endif()
 
 add_subdirectory(crypto)
 add_subdirectory(ssl)

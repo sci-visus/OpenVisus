@@ -28,6 +28,8 @@ if (NOT CMAKE_CONFIGURATION_TYPES)
 	endif()
 endif()
 
+MESSAGE(STATUS "CMAKE_SYSTEM_NAME ${CMAKE_SYSTEM_NAME}")
+
 # //////////////////////////////////////////////////////////////
 include(CMake/VisusMacros.cmake)
 
