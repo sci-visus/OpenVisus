@@ -697,6 +697,7 @@ function InstallCondaPython {
 	conda update  -q conda conda-build                    && :
 
 	conda create -q  -n mypython python=${PYTHON_VERSION} && :
+	conda init bash                                       && :
 	conda activate mypython                               && :
 	PYTHON_EXECUTABLE=python
 
@@ -773,9 +774,15 @@ if (( PYTHON_MAJOR_VERSION > 2 )) ; then
 	PYTHON_M_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}m 
 else
 	PYTHON_M_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
-fi	
+fi
 
-if (( USE_CONDA == 1 || ( CENTOS == 1 && CENTOS_MAJOR == 5 ) )) ; then
+if (( USE_CONDA == 1 )) ; then
+	DISABLE_OPENMP=1
+	USE_LINUX_PACKAGES=0
+	VISUS_GUI=0 # todo: can Qt5 work?
+fi
+
+if (( CENTOS == 1 && CENTOS_MAJOR == 5 )) ; then
 	DISABLE_OPENMP=1
 	USE_LINUX_PACKAGES=0
 fi
