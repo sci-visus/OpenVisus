@@ -697,7 +697,7 @@ function InstallCondaPython {
 	conda update  -q conda conda-build                    && :
 
 	conda create -q  -n mypython python=${PYTHON_VERSION} && :
-	conda init bash                                       && :
+	source ${MINICONDA_ROOT}/etc/profile.d/conda.sh       && :
 	conda activate mypython                               && :
 	PYTHON_EXECUTABLE=python
 
