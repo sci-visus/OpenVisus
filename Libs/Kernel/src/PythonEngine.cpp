@@ -44,6 +44,8 @@ For support : support@visus.net
 #include <Visus/Path.h>
 #include <Visus/File.h>
 
+#if !VISUS_DISABLE_PYTHON
+
 #include <cctype>
 
 #include <pydebug.h>
@@ -710,3 +712,4 @@ PyObject* PythonEngine::evalCode(String s)
 
 } //namespace Visus
 
+#endif //VISUS_DISABLE_PYTHON

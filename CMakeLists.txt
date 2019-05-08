@@ -36,23 +36,38 @@ include(CMake/VisusMacros.cmake)
 include(FindPackageHandleStandardArgs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake)
 
-option(BUILD_SHARED_LIBS  "Build the shared library" ON)  
-option(VISUS_COMPRESSION  "Enable compression"       ON)  
-option(VISUS_NET          "Enable net"               ON) 
-option(VISUS_IMAGE        "Enable image"             ON)  
-option(VISUS_GUI          "Enable gui"               ON)  
-option(VISUS_OSPRAY       "Enable ospray"            OFF)
-option(VISUS_MODVISUS     "Enable mod_visus"         ON)
+option(BUILD_SHARED_LIBS     "Build the shared library" ON)  
+option(VISUS_COMPRESSION     "Enable compression"       ON)  
+option(VISUS_NET             "Enable net"               ON) 
+option(VISUS_IMAGE           "Enable image"             ON)  
+option(VISUS_GUI             "Enable gui"               ON)  
+option(VISUS_OSPRAY          "Enable ospray"            OFF)
+option(VISUS_MODVISUS        "Enable mod_visus"         ON)
+option(VISUS_DISABLE_PYTHON  "Disable python"           OFF)  
 
-message(STATUS "BUILD_SHARED_LIBS  ${BUILD_SHARED_LIBS}")
-message(STATUS "VISUS_COMPRESSION  ${VISUS_COMPRESSION}") 
-message(STATUS "VISUS_NET          ${VISUS_NET}") 
-message(STATUS "VISUS_IMAGE        ${VISUS_IMAGE}") 
-message(STATUS "VISUS_GUI          ${VISUS_GUI}") 
-message(STATUS "VISUS_OSPRAY       ${VISUS_OSPRAY}") 
-message(STATUS "VISUS_MODVISUS     ${VISUS_MODVISUS}") 
+message(STATUS "BUILD_SHARED_LIBS    ${BUILD_SHARED_LIBS}")
+message(STATUS "VISUS_COMPRESSION    ${VISUS_COMPRESSION}") 
+message(STATUS "VISUS_NET            ${VISUS_NET}") 
+message(STATUS "VISUS_IMAGE          ${VISUS_IMAGE}") 
+message(STATUS "VISUS_GUI            ${VISUS_GUI}") 
+message(STATUS "VISUS_OSPRAY         ${VISUS_OSPRAY}") 
+message(STATUS "VISUS_MODVISUS       ${VISUS_MODVISUS}") 
+message(STATUS "VISUS_DISABLE_PYTHON ${VISUS_DISABLE_PYTHON}") 
 
-FindPythonLibrary()
+
+if (VISUS_DISABLE_PYTHON)
+
+	file (REMOVE ${OpenVisus_DIR}/PYTHON_VERSION)
+	
+	# i can use PYTHON_EXECUTABLE just for deployment
+	SetIfNotDefined(PYTHON_VERSION 3)
+	find_package(PythonInterp ${PYTHON_VERSION})
+	message(STATUS "PYTHON_EXECUTABLE ${PYTHON_EXECUTABLE}")	
+	
+else()
+	FindPythonLibrary()
+	file(GENERATE OUTPUT ${OpenVisus_DIR}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+endif()
 
 if (VISUS_OSPRAY)
 	find_package(ospray REQUIRED)
@@ -98,7 +113,6 @@ else()
 endif()
 
 # //////////////////////////////////////////////////////////////
-file(GENERATE OUTPUT ${OpenVisus_DIR}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
 
 if (VISUS_GUI)
 	file(GENERATE OUTPUT ${OpenVisus_DIR}/QT_VERSION CONTENT ${Qt5Core_VERSION_STRING})
@@ -150,40 +164,44 @@ if (1)
 		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}                DESTINATION ${OpenVisus_DIR}/bin)	
 	endif()
 
-	macro(CMakePostInstallStep)
-		get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." REALPATH)
+	# MakeSelfContainedStep and CreateScriptsStep
+	if (PYTHON_EXECUTABLE)
 		
-		install(CODE "
-			execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py MakeSelfContainedStep --qt5-home=${Qt5_HOME} RESULT_VARIABLE retcode)
-			if(NOT \"\${retcode}\" STREQUAL \"0\")
-				message(FATAL_ERROR \"Fatal error executing make self contained\")
-			endif()
-		")
-
-		install(CODE "
-			execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py CreateScriptsStep RESULT_VARIABLE retcode)
-			if(NOT \"\${retcode}\" STREQUAL \"0\")
-				message(FATAL_ERROR \"Fatal error executing configure step\")
-			endif()
-		")
-	endmacro()
-
-	add_subdirectory(CMake/PostInstall)
+		macro(CMakePostInstallStep)
+			get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." REALPATH)
+			
+			install(CODE "
+				execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py MakeSelfContainedStep --qt5-home=${Qt5_HOME} RESULT_VARIABLE retcode)
+				if(NOT \"\${retcode}\" STREQUAL \"0\")
+					message(FATAL_ERROR \"Fatal error executing make self contained\")
+				endif()
+			")
+	
+			install(CODE "
+				execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py CreateScriptsStep RESULT_VARIABLE retcode)
+				if(NOT \"\${retcode}\" STREQUAL \"0\")
+					message(FATAL_ERROR \"Fatal error executing configure step\")
+				endif()
+			")
+		endmacro()	
+	
+		add_subdirectory(CMake/PostInstall)
+	endif()
 
 endif()
 
 
 # //////////////////////////////////////////////////////////////
 # *** dist (to call after INSTALL) ***
-if (1)
+if (NOT VISUS_DISABLE_PYTHON)
 	add_custom_target(dist COMMAND ${PYTHON_EXECUTABLE} -u \"${OpenVisus_DIR}/Deploy.py\" DistStep)
 	set_property(TARGET dist PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 
 
 # //////////////////////////////////////////////////////////////
-# *** configure (to call after INSTALL) ***
-if (1)
+# *** configure (to call after INSTALL, create scripts and forse use of PyQt) ***
+if (NOT VISUS_DISABLE_PYTHON)
 	add_custom_target(configure COMMAND ${PYTHON_EXECUTABLE} -u \"${OpenVisus_DIR}/Deploy.py\" configure)
 	set_property(TARGET configure PROPERTY FOLDER CMakePredefinedTargets)
 endif()
@@ -191,7 +209,7 @@ endif()
 
 # //////////////////////////////////////////////////////////////
 # *** RUN_TESTS (to call after INSTALL) ***
-if (1)
+if (NOT VISUS_DISABLE_PYTHON)
 
 	enable_testing()
 
@@ -208,6 +226,7 @@ if (1)
 
 	# disabled: takes too much time, in case you modify some core IDX class you can run it manually
 	# AddOpenVisusTest(NAME VisusTestIdx COMMAND "$<TARGET_FILE:visus>"     "${CMAKE_CURRENT_SOURCE_DIR}" --test-idx --max-seconds 300)
+	
 endif()
 
 
@@ -218,7 +237,7 @@ if (1)
 	# external app
 	macro(AddOpenVisusExternalApp SourceDir)
 
-		get_filename_component(Name ${SourceDir} NAME_WE   )
+		get_filename_component(Name ${SourceDir} NAME_WE )
 
 		if (CMAKE_CONFIGURATION_TYPES)
 			set(CMAKE_GENERATOR_ARGUMENT -G"${CMAKE_GENERATOR}")

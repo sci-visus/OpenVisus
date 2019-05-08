@@ -437,6 +437,11 @@ if (VISUS_NET)
 	endif()
 endif()
 
+if (VISUS_DISABLE_PYTHON)	
+	target_compile_definitions(VisusKernel PUBLIC -DVISUS_DISABLE_PYTHON=1)
+endif()
+	
+
 if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
 

@@ -49,34 +49,52 @@ macro(AddOpenVisusLibrary Name)
 	string(REPLACE "OpenVisus::" "" base_name ${Name})
 
 	if (WIN32)
-		set(lib_ext ".lib")
+		set(lib_prefix "lib/Visus")
+		set(lib_extension ".lib")
 	elseif (APPLE)
-		set(lib_ext ".dylib")
+		set(lib_prefix "bin/libVisus")
+		set(lib_extension ".dylib")
 	else()
-		set(lib_ext ".so")
+		set(lib_prefix "bin/lib")
+		set(lib_extension ".so")
 	endif()
 
 	set_target_properties(${Name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${OpenVisus_DIR}/include/Kernel;${OpenVisus_DIR}/include/${base_name}") 
+
+	set(lib_release "${OpenVisus_DIR}/${lib_prefix}${base_name}${lib_extension}")
 	
 	# multiconfigurations
 	if (CMAKE_CONFIGURATION_TYPES)
-
-		set_target_properties(${Name}    PROPERTIES IMPORTED_CONFIGURATIONS "Debug")
-		set_target_properties(${Name}    PROPERTIES IMPORTED_CONFIGURATIONS "Release")
-		set_target_properties(${Name}    PROPERTIES IMPORTED_CONFIGURATIONS "RelWithDebInfo")
-
+	
 		if (EXISTS "${OpenVisus_DIR}/debug")
-			set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_DEBUG          "${OpenVisus_DIR}/debug/bin/libVisus${base_name}${lib_ext}")
+			set(lib_debug "${OpenVisus_DIR}/debug/${lib_prefix}${base_name}${lib_extension}")
 		else()
-			set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_DEBUG          "${OpenVisus_DIR}/bin/libVisus${base_name}${lib_ext}")
-		endif()
-
-		set_target_properties(${Name}    PROPERTIES IMPORTED_LOCATION_RELEASE        "${OpenVisus_DIR}/bin/libVisus${base_name}${lib_ext}")
-		set_target_properties(${Name}    PROPERTIES IMPORTED_LOCATION_RELWITHDEBINFO "${OpenVisus_DIR}/bin/libVisus${base_name}${lib_ext}")    	
+			set(lib_debug   "${lib_release}")
+		endif()				
+	
+		set_target_properties(${Name} PROPERTIES IMPORTED_CONFIGURATIONS "Debug")
+		set_target_properties(${Name} PROPERTIES IMPORTED_CONFIGURATIONS "Release")
+		set_target_properties(${Name} PROPERTIES IMPORTED_CONFIGURATIONS "RelWithDebInfo")
+		
+		# note: IMPORTED_<names> are different!
+		if (WIN32)
+	  		set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB_DEBUG             "${lib_debug}")
+		  	set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB_RELEASE           "${lib_release}")
+		  	set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO    "${lib_release}")		
+		else()
+	  		set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_DEBUG           "${lib_debug}")
+		  	set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_RELEASE         "${lib_release}")
+		  	set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_RELWITHDEBINFO  "${lib_release}")	
+		endif()	
 		
 	else()
-			set_target_properties(${Name} PROPERTIES  IMPORTED_LOCATION               "${OpenVisus_DIR}/bin/libVisus${base_name}${lib_ext}")   
-	endif() 
+		if (WIN32)
+			set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB                   "${lib_release}")
+		else()
+			set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION                 "${lib_release}")
+		endif()
+	endif()
+
 
 endmacro()
 
@@ -89,10 +107,17 @@ if(OpenVisus_FOUND)
 
 	message(STATUS "OpenVisus found in ${OpenVisus_DIR}")
 
-	AddPythonLibrary(OpenVisus::Python)
-	
 	AddOpenVisusLibrary(OpenVisus::Kernel)
-	set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Python") 
+	
+	if (EXISTS "${OpenVisus_DIR}/PYTHON_VERSION")
+		unset(VISUS_DISABLE_PYTHON CACHE)
+		unset(VISUS_DISABLE_PYTHON)
+		AddPythonLibrary(OpenVisus::Python)
+		set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Python") 
+	else()
+		SET(VISUS_DISABLE_PYTHON  "1" CACHE INTERNAL "VISUS_DISABLE_PYTHON")
+		set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_COMPILE_DEFINITIONS "-DVISUS_DISABLE_PYTHON=1")
+	endif()
 
 	AddOpenVisusLibrary(OpenVisus::Dataflow)
 	set_target_properties(OpenVisus::Dataflow PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Kernel") 

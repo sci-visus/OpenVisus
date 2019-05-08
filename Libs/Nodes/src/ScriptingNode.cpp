@@ -44,6 +44,7 @@ namespace Visus {
 
 
 /////////////////////////////////////////////////////////////////////////////////////
+#if !VISUS_DISABLE_PYTHON
 class ScriptingNode::MyJob : public NodeJob
 {
 public:
@@ -174,11 +175,14 @@ public:
   }
 
 };
+#endif //VISUS_DISABLE_PYTHON
 
 ///////////////////////////////////////////////////////////////////////
 ScriptingNode::ScriptingNode(String name)  : Node(name)
 {
+#if !VISUS_DISABLE_PYTHON
   this->engine = std::make_shared<PythonEngine>(false);
+#endif
 
   addInputPort("data");
   addOutputPort("data");
@@ -207,15 +211,42 @@ bool ScriptingNode::processInput()
 
   this->bounds = input->bounds;
 
+  //pass throught
+#if VISUS_DISABLE_PYTHON
+
+  DataflowMessage msg;
+  msg.setReturnReceipt(return_receipt);
+  msg.writeValue("data", input);
+  this->publish(msg);
+
+#else
   auto process_job=std::make_shared<MyJob>(this, *input, return_receipt);
   if (!process_job->valid()) 
     return false;
-  
   addNodeJob(process_job);
+#endif
 
   return true;
 }
 
+///////////////////////////////////////////////////////////////////////
+void ScriptingNode::addUserInput(String key, Array value) 
+{
+#if VISUS_DISABLE_PYTHON
+  ThrowException(" not supported");
+#else
+  try {
+    ScopedAcquireGil acquire_gil;
+    engine->setModuleAttr(key, value);
+  }
+  catch (std::exception ex)
+  {
+    ScopedAcquireGil acquire_gil;
+    engine->printMessage(ex.what());
+    return;
+  }
+#endif
+}
 
 ///////////////////////////////////////////////////////////////////////
 void ScriptingNode::clearPresets()

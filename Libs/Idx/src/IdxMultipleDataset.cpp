@@ -171,6 +171,7 @@ private:
 
 
 ////////////////////////////////////////////////////////
+#if !VISUS_DISABLE_PYTHON
 class QueryInputTerm
 {
 public:
@@ -758,12 +759,15 @@ public:
   }
 
 };
+#endif //VISUS_DISABLE_PYTHON
 
 
 
 ///////////////////////////////////////////////////////////////////////////////////
 IdxMultipleDataset::IdxMultipleDataset() {
+#if !VISUS_DISABLE_PYTHON
   python_engine_pool = std::make_shared<PythonEnginePool>();
+#endif
 }
 
 
@@ -834,8 +838,14 @@ Field IdxMultipleDataset::getFieldByNameThrowEx(String FIELDNAME) const
   if (existing.valid())
     return existing;
 
+#if VISUS_DISABLE_PYTHON
+  return Field(); //invalid
+#else
   auto output = QueryInputTerm(const_cast<IdxMultipleDataset*>(this), nullptr, SharedPtr<Access>(), Aborted()).computeOutput(FIELDNAME);
   return Field(FIELDNAME, output.dtype);
+#endif
+
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -845,9 +855,15 @@ void IdxMultipleDataset::addChild(IdxMultipleDataset::Child value)
   childs[value.name] = value;
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////////
 String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
 {
+#if VISUS_DISABLE_PYTHON
+  return FormatString() << "input." << dataset_name << "." <<fieldname;
+
+#else
+
   std::ostringstream out;
   out << "input";
 
@@ -880,6 +896,7 @@ String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
   }
 
   return out.str();
+#endif
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -1298,6 +1315,9 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> 
       String error_msg;
       Array  OUTPUT;
 
+#if VISUS_DISABLE_PYTHON
+      error_msg = "Python disabled";
+#else
       try
       {
         OUTPUT = QueryInputTerm(this, QUERY.get(), multiple_access, QUERY->aborted).computeOutput(QUERY->field.name);
@@ -1306,6 +1326,7 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> 
       {
         error_msg = ex.what();
       }
+#endif
 
       if (QUERY->aborted())
         OUTPUT = Array();

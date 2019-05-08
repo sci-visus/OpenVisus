@@ -45,7 +45,9 @@ For support : support@visus.net
 
 namespace Visus {
 
+#if !VISUS_DISABLE_PYTHON
 class VISUS_IDX_API PythonEnginePool;
+#endif
 
 //////////////////////////////////////////////////////////////////////
 class VISUS_IDX_API IdxMultipleDataset  : public IdxDataset
@@ -149,7 +151,9 @@ private:
 
   friend class QueryInputTerm;
 
+#if !VISUS_DISABLE_PYTHON
   SharedPtr<PythonEnginePool> python_engine_pool;
+#endif
 
   //getInputName
   String getInputName(String name, String fieldname);
