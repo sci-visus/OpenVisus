@@ -687,18 +687,16 @@ function InstallCondaPython {
 		fi
 		popd
 	fi
-
-	# config Miniconda
 	export PATH="${MINICONDA_ROOT}/bin:$PATH"
+	source ${MINICONDA_ROOT}/etc/profile.d/conda.sh 
 
 	hash -r	
 	conda config --set always_yes yes --set changeps1 no --set anaconda_upload no
-	conda install -q conda-build anaconda-client          && :
-	conda update  -q conda conda-build                    && :
-
-	conda create -q  -n mypython python=${PYTHON_VERSION} && :
-	source ${MINICONDA_ROOT}/etc/profile.d/conda.sh       && :
-	conda activate mypython                               && :
+	conda install -q conda-build anaconda-client       
+	conda update  -q conda conda-build  
+	conda install -q python=${PYTHON_VERSION}  
+	__versions__=$(python --version)
+	echo "Python version is ${__versions__}"                         
 	PYTHON_EXECUTABLE=python
 
 }
