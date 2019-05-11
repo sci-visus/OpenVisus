@@ -30,6 +30,7 @@ endif()
 
 MESSAGE(STATUS "CMAKE_SYSTEM_NAME ${CMAKE_SYSTEM_NAME}")
 
+
 # //////////////////////////////////////////////////////////////
 include(CMake/VisusMacros.cmake)
 
@@ -41,9 +42,9 @@ option(VISUS_COMPRESSION     "Enable compression"       ON)
 option(VISUS_NET             "Enable net"               ON) 
 option(VISUS_IMAGE           "Enable image"             ON)  
 option(VISUS_GUI             "Enable gui"               ON)  
-option(VISUS_OSPRAY          "Enable ospray"            OFF)
 option(VISUS_MODVISUS        "Enable mod_visus"         ON)
-option(VISUS_DISABLE_PYTHON  "Disable python"           OFF)  
+option(VISUS_PYTHON          "Enable python"            ON)  
+option(VISUS_OSPRAY          "Enable ospray"            OFF)
 
 message(STATUS "BUILD_SHARED_LIBS    ${BUILD_SHARED_LIBS}")
 message(STATUS "VISUS_COMPRESSION    ${VISUS_COMPRESSION}") 
@@ -52,21 +53,10 @@ message(STATUS "VISUS_IMAGE          ${VISUS_IMAGE}")
 message(STATUS "VISUS_GUI            ${VISUS_GUI}") 
 message(STATUS "VISUS_OSPRAY         ${VISUS_OSPRAY}") 
 message(STATUS "VISUS_MODVISUS       ${VISUS_MODVISUS}") 
-message(STATUS "VISUS_DISABLE_PYTHON ${VISUS_DISABLE_PYTHON}") 
+message(STATUS "VISUS_PYTHON         ${VISUS_PYTHON}") 
 
-
-if (VISUS_DISABLE_PYTHON)
-
-	file (REMOVE ${OpenVisus_DIR}/PYTHON_VERSION)
-	
-	# i can use PYTHON_EXECUTABLE just for deployment
-	SetIfNotDefined(PYTHON_VERSION 3)
-	find_package(PythonInterp ${PYTHON_VERSION})
-	message(STATUS "PYTHON_EXECUTABLE ${PYTHON_EXECUTABLE}")	
-	
-else()
+if (VISUS_PYTHON)
 	FindPythonLibrary()
-	file(GENERATE OUTPUT ${OpenVisus_DIR}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
 endif()
 
 if (VISUS_OSPRAY)
@@ -93,107 +83,162 @@ if (VISUS_GUI)
 	mark_as_advanced(Qt5OpenGL_DIR)
 	mark_as_advanced(Qt5Widgets_DIR)	
 
-	if (WIN32)
-		string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
-	endif()	
+	get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." REALPATH)
+
+	if (EXISTS "${Qt5_HOME}/plugins")
+		set(Qt5_PLUGIN_PATH "${Qt5_HOME}/plugins")
+	elseif (EXISTS "${Qt5_HOME}/lib/qt5/plugin")
+		set(Qt5_PLUGIN_PATH "${Qt5_HOME}/lib/qt5/plugin")
+	else()
+		MESSAGE(WARNING "cannot find Qt5 plugins")
+		ForceUnset(Qt5_PLUGIN_PATH)
+	endif()
 	
-	MESSAGE(STATUS "Qt5_DIR ${Qt5_DIR}")
+	if (WIN32)
+		string(REPLACE "\\" "/" Qt5_DIR         "${Qt5_DIR}")
+		string(REPLACE "\\" "/" Qt5_HOME        "${Qt5_HOME}")
+		string(REPLACE "\\" "/" Qt5_PLUGIN_PATH "${Qt5_PLUGIN_PATH}")
+	endif()	
+
+	MESSAGE(STATUS "Qt5_DIR        ${Qt5_DIR}")
+	MESSAGE(STATUS "Qt5_HOME       ${Qt5_HOME}")
+	MESSAGE(STATUS "Qt5_PLUGIN_PATH ${Qt5_PLUGIN_PATH}")
 
 endif()
 
 add_subdirectory(Libs)
 add_subdirectory(Executable)
 
-if (CMAKE_CONFIGURATION_TYPES)
-	set(OpenVisus_DIR ${CMAKE_BINARY_DIR}/$<CONFIG>/site-packages/OpenVisus)
-	string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" OpenVisusInstall_DIR "${OpenVisus_DIR}")
+if (WIN32)
+	set(SCRIPT_EXT ".bat")
+elseif (APPLE)	
+	set(SCRIPT_EXT ".command")
 else()
-	set(OpenVisus_DIR        ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus)
-	set(OpenVisusInstall_DIR ${OpenVisus_DIR})
+	set(SCRIPT_EXT ".sh")
 endif()
 
-# //////////////////////////////////////////////////////////////
+if (CMAKE_CONFIGURATION_TYPES)
+	set(OpenVisus_DIR ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus)
+else()
+	set(OpenVisus_DIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus)
+endif()
+
+file(GENERATE   OUTPUT ${OpenVisus_DIR}/Deploy.py      INPUT ${CMAKE_CURRENT_SOURCE_DIR}/CMake/Deploy.py)
+file(GENERATE   OUTPUT ${OpenVisus_DIR}/__init__.py    INPUT ${CMAKE_CURRENT_SOURCE_DIR}/CMake/__init__.py)
+file(GENERATE   OUTPUT ${OpenVisus_DIR}/__main__.py    INPUT ${CMAKE_CURRENT_SOURCE_DIR}/CMake/__main__.py)
+file(GENERATE   OUTPUT ${OpenVisus_DIR}/setup.py       INPUT ${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py)
+
+if (VISUS_PYTHON)
+	file(GENERATE OUTPUT ${OpenVisus_DIR}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+endif()
 
 if (VISUS_GUI)
-	file(GENERATE OUTPUT ${OpenVisus_DIR}/QT_VERSION CONTENT ${Qt5Core_VERSION_STRING})
+	file(GENERATE OUTPUT ${OpenVisus_DIR}/QT_VERSION     CONTENT "${Qt5Core_VERSION_STRING}")
+endif()	
+
+# create scripts
+GenerateScript("${CMAKE_CURRENT_SOURCE_DIR}/CMake/script" ${OpenVisus_DIR}/visus       ${OpenVisus_DIR}/bin/visus)
+
+if (VISUS_GUI)
+	GenerateScript(${CMAKE_CURRENT_SOURCE_DIR}/CMake/script ${OpenVisus_DIR}/visusviewer ${OpenVisus_DIR}/bin/visusviewer)
 endif()
-
-file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/CMake/*.py)
-foreach(src_filename ${PyFiles})
-	get_filename_component(src_basename ${src_filename} NAME)
-	file(GENERATE OUTPUT ${OpenVisus_DIR}/${src_basename} INPUT ${src_filename})
-endforeach()
-
 
 # //////////////////////////////////////////////////////////////
 # install
 if (1)
 
-	# CMAKE_INSTALL_PREFIX is not used at all!
-	mark_as_advanced(CMAKE_INSTALL_PREFIX)
+	# avoid problem about permission denied
+	#if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+	#	set (CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install " CACHE PATH "default install path" FORCE )
+	#endif()
+	
+	install(FILES           LICENSE                                       DESTINATION ${OpenVisus_DIR}/)
+	install(FILES           README.md                                     DESTINATION ${OpenVisus_DIR}/)
+	install(FILES           CMake/OpenVisusConfig.cmake                   DESTINATION ${OpenVisus_DIR}/)
+	install(DIRECTORY       Copyrights                                    DESTINATION ${OpenVisus_DIR}/)
+	install(DIRECTORY       Samples                                       DESTINATION ${OpenVisus_DIR}/)
+	install(DIRECTORY       CMake                                         DESTINATION ${OpenVisus_DIR}/)
+	install(DIRECTORY       datasets                                      DESTINATION ${OpenVisus_DIR}/)
+	install(FILES           datasets/visus.config                         DESTINATION ${OpenVisus_DIR}/)
 
-	install(FILES          LICENSE                                       DESTINATION ${OpenVisus_DIR})
-	install(FILES          README.md                                     DESTINATION ${OpenVisus_DIR})
-	install(FILES          CMake/OpenVisusConfig.cmake                   DESTINATION ${OpenVisus_DIR})
-	install(FILES          datasets/visus.config                         DESTINATION ${OpenVisus_DIR})
-	install(DIRECTORY      Copyrights                                    DESTINATION ${OpenVisus_DIR})
-	install(DIRECTORY      Samples                                       DESTINATION ${OpenVisus_DIR})
-	install(DIRECTORY      CMake                                         DESTINATION ${OpenVisus_DIR})
-	install(DIRECTORY      datasets                                      DESTINATION ${OpenVisus_DIR})
-
-	install(DIRECTORY      Libs/Kernel/include/Visus                     DESTINATION ${OpenVisus_DIR}/include/Kernel/)
-	install(DIRECTORY      Libs/Dataflow/include/Visus                   DESTINATION ${OpenVisus_DIR}/include/Dataflow/)
-	install(DIRECTORY      Libs/Db/include/Visus                         DESTINATION ${OpenVisus_DIR}/include/Db/)
-	install(DIRECTORY      Libs/Idx/include/Visus                        DESTINATION ${OpenVisus_DIR}/include/Idx/)
-	install(DIRECTORY      Libs/Nodes/include/Visus                      DESTINATION ${OpenVisus_DIR}/include/Nodes)
+	install(DIRECTORY       Libs/Kernel/include/Visus                     DESTINATION ${OpenVisus_DIR}/include/Kernel/)
+	install(DIRECTORY       Libs/Dataflow/include/Visus                   DESTINATION ${OpenVisus_DIR}/include/Dataflow/)
+	install(DIRECTORY       Libs/Db/include/Visus                         DESTINATION ${OpenVisus_DIR}/include/Db/)
+	install(DIRECTORY       Libs/Idx/include/Visus                        DESTINATION ${OpenVisus_DIR}/include/Idx/)
+	install(DIRECTORY       Libs/Nodes/include/Visus                      DESTINATION ${OpenVisus_DIR}/include/Nodes/)
+	
+	install(FILES           ${OpenVisus_DIR}/visus${SCRIPT_EXT}           DESTINATION ${OpenVisus_DIR}/ PERMISSIONS WORLD_READ WORLD_EXECUTE)
 
 	if (VISUS_GUI)
-		install(DIRECTORY    Libs/Gui/include/Visus                        DESTINATION ${OpenVisus_DIR}/include/Gui)
-		install(DIRECTORY    Libs/GuiNodes/include/Visus                   DESTINATION ${OpenVisus_DIR}/include/GuiNodes)
-		install(DIRECTORY    Libs/AppKit/include/Visus                     DESTINATION ${OpenVisus_DIR}/include/AppKit)
+	
+		install(FILES         ${OpenVisus_DIR}/visusviewer${SCRIPT_EXT}     DESTINATION ${OpenVisus_DIR}/ PERMISSIONS WORLD_READ WORLD_EXECUTE)
+	
+		install(DIRECTORY     Libs/Gui/include/Visus                        DESTINATION ${OpenVisus_DIR}/include/Gui/)
+		install(DIRECTORY     Libs/GuiNodes/include/Visus                   DESTINATION ${OpenVisus_DIR}/include/GuiNodes/)
+		install(DIRECTORY     Libs/AppKit/include/Visus                     DESTINATION ${OpenVisus_DIR}/include/AppKit/)
 	endif()
 
+	# copy needed windows *.dll
 	if (WIN32)
-
 		if (OpenMP_FOUND)
 			set(CMAKE_INSTALL_OPENMP_LIBRARIES 1)
 		endif()	
-
-		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION                                  ${OpenVisus_DIR}/bin)
+		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ${OpenVisus_DIR}/bin)
 		include(InstallRequiredSystemLibraries)
-		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS}                DESTINATION ${OpenVisus_DIR}/bin)	
+		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ${OpenVisus_DIR}/bin)	
 	endif()
 
-	# MakeSelfContainedStep and CreateScriptsStep
-	if (PYTHON_EXECUTABLE)
-		
-		macro(CMakePostInstallStep)
-			get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." REALPATH)
-			
-			install(CODE "
-				execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py MakeSelfContainedStep --qt5-home=${Qt5_HOME} RESULT_VARIABLE retcode)
-				if(NOT \"\${retcode}\" STREQUAL \"0\")
-					message(FATAL_ERROR \"Fatal error executing make self contained\")
-				endif()
-			")
+
+	# ____________________________________________
+	macro(CMakePostInstallStep)
 	
-			install(CODE "
-				execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisusInstall_DIR}/Deploy.py CreateScriptsStep RESULT_VARIABLE retcode)
-				if(NOT \"\${retcode}\" STREQUAL \"0\")
-					message(FATAL_ERROR \"Fatal error executing configure step\")
-				endif()
-			")
-		endmacro()	
-	
-		add_subdirectory(CMake/PostInstall)
-	endif()
+		# fix the problem with <CONFIG> inside
+		string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" OpenVisus_INSTALL_DIR  "${OpenVisus_DIR}")
+
+		# copy Qt5 plugins
+		if (VISUS_GUI AND Qt5_PLUGIN_PATH)
+			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/iconengines    ${OpenVisus_DIR}/bin/Qt/plugins/)
+			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/platforms      ${OpenVisus_DIR}/bin/Qt/plugins/)
+			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/printsupport   ${OpenVisus_DIR}/bin/Qt/plugins/)
+			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/styles         ${OpenVisus_DIR}/bin/Qt/plugins/)	
+		endif()
+
+		if (WIN32)
+
+			# copy Qt5 libraries
+			if (VISUS_GUI)
+				install(CODE "
+					execute_process(COMMAND ${Qt5_HOME}/bin/windeployqt.exe bin/visusviewer.exe
+						--libdir    ./bin
+						--plugindir ./bin/Qt/plugins
+						--no-translations
+						WORKING_DIRECTORY ${OpenVisus_INSTALL_DIR})")
+			endif()
+
+		else()
+
+			# macdeployqt does not allow to choose the 'layout' of the app
+			if (PYTHON_EXECUTABLE)
+				install(CODE "
+					execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisus_INSTALL_DIR}/Deploy.py MakeSelfContainedStep RESULT_VARIABLE retcode)
+					if(NOT \"\${retcode}\" STREQUAL \"0\")
+						message(FATAL_ERROR \"Fatal error executing make self contained\")
+					endif()")
+			else()
+				message(WARNING "I don't have a way to create self contained binaries. Path will be absolute")
+			endif()
+
+		endif()
+
+	endmacro()
+
+	add_subdirectory(CMake/PostInstall)
 
 endif()
 
-
 # //////////////////////////////////////////////////////////////
 # *** dist (to call after INSTALL) ***
-if (NOT VISUS_DISABLE_PYTHON)
+if (VISUS_PYTHON)
 	add_custom_target(dist COMMAND ${PYTHON_EXECUTABLE} -u \"${OpenVisus_DIR}/Deploy.py\" DistStep)
 	set_property(TARGET dist PROPERTY FOLDER CMakePredefinedTargets)
 endif()
@@ -201,7 +246,7 @@ endif()
 
 # //////////////////////////////////////////////////////////////
 # *** configure (to call after INSTALL, create scripts and forse use of PyQt) ***
-if (NOT VISUS_DISABLE_PYTHON)
+if (VISUS_PYTHON)
 	add_custom_target(configure COMMAND ${PYTHON_EXECUTABLE} -u \"${OpenVisus_DIR}/Deploy.py\" configure)
 	set_property(TARGET configure PROPERTY FOLDER CMakePredefinedTargets)
 endif()
@@ -209,10 +254,8 @@ endif()
 
 # //////////////////////////////////////////////////////////////
 # *** RUN_TESTS (to call after INSTALL) ***
-if (NOT VISUS_DISABLE_PYTHON)
-
+if (VISUS_PYTHON)
 	enable_testing()
-
 	macro(AddOpenVisusTest Name)
 		add_test(NAME ${Name} ${ARGN})
 		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1")
@@ -228,7 +271,6 @@ if (NOT VISUS_DISABLE_PYTHON)
 	# AddOpenVisusTest(NAME VisusTestIdx COMMAND "$<TARGET_FILE:visus>"     "${CMAKE_CURRENT_SOURCE_DIR}" --test-idx --max-seconds 300)
 	
 endif()
-
 
 # //////////////////////////////////////////////////////////////
 # *** ExternalApps (dependent on install)

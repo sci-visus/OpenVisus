@@ -131,7 +131,7 @@ public:
 
 private:
 
-#ifndef VISUS_DISABLE_PYTHON
+#if VISUS_PYTHON
   class MyJob;  
   friend class MyJob;
 #endif
@@ -152,7 +152,7 @@ private:
 
   Position  bounds;
 
-#ifndef VISUS_DISABLE_PYTHON
+#if VISUS_PYTHON
   SharedPtr<PythonEngine> engine;
 #endif
 

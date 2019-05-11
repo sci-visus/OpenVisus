@@ -46,7 +46,7 @@ static std::vector<String> outputs;
 
 
 ////////////////////////////////////////////////////////////////
-#if !VISUS_DISABLE_PYTHON
+#if VISUS_PYTHON
 static PyObject* WriteMethod(PyObject* self, PyObject* args)
 {
   if (!PyTuple_Check(args))
@@ -118,7 +118,7 @@ ScriptingNodeView::~ScriptingNodeView() {
 ////////////////////////////////////////////////////////////////////////
 void ScriptingNodeView::showEvent(QShowEvent *)
 {
-#if !VISUS_DISABLE_PYTHON
+#if VISUS_PYTHON
 
   ScopedAcquireGil acquire_gil;
   this->__stdout__ = PySys_GetObject((char*)"stdout");
@@ -138,7 +138,7 @@ void ScriptingNodeView::showEvent(QShowEvent *)
 ////////////////////////////////////////////////////////////////////////
 void ScriptingNodeView::hideEvent(QHideEvent *)
 {
-#if !VISUS_DISABLE_PYTHON
+#if VISUS_PYTHON
   ScopedAcquireGil acquire_gil;
   PySys_SetObject((char*)"stdout", this->__stdout__);
   PySys_SetObject((char*)"stderr", this->__stderr__);

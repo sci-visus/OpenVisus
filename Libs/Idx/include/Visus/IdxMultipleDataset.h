@@ -45,7 +45,7 @@ For support : support@visus.net
 
 namespace Visus {
 
-#if !VISUS_DISABLE_PYTHON
+#if VISUS_PYTHON
 class VISUS_IDX_API PythonEnginePool;
 #endif
 
@@ -151,7 +151,7 @@ private:
 
   friend class QueryInputTerm;
 
-#if !VISUS_DISABLE_PYTHON
+#if VISUS_PYTHON
   SharedPtr<PythonEnginePool> python_engine_pool;
 #endif
 

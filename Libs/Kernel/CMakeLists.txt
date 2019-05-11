@@ -160,6 +160,7 @@ set(RootFiles
 	${CMAKE_CURRENT_SOURCE_DIR}/../../build.bat
 	${CMAKE_CURRENT_SOURCE_DIR}/../../build.sh
 	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/VisusMacros.cmake
+	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/OpenVisusConfig.cmake
 	${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.txt
 )
 
@@ -348,7 +349,7 @@ target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/dtl/include)
 
 # openmp
-if (NOT DISABLE_OPENMP)
+if (VISUS_OPENMP)
 
 	find_package(OpenMP QUIET)
 
@@ -437,10 +438,11 @@ if (VISUS_NET)
 	endif()
 endif()
 
-if (VISUS_DISABLE_PYTHON)	
-	target_compile_definitions(VisusKernel PUBLIC -DVISUS_DISABLE_PYTHON=1)
+if (VISUS_PYTHON)
+	target_compile_definitions(VisusKernel PUBLIC -DVISUS_PYTHON=1)
+else()
+	target_compile_definitions(VisusKernel PUBLIC -DVISUS_PYTHON=0)
 endif()
-	
 
 if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)

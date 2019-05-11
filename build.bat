@@ -84,8 +84,8 @@ if NOT "%APPVEYOR%"=="" (
 )
 
 REM test OpenVisus 
-set PYTHONPATH=%THIS_DIR%\build\%CMAKE_BUILD_TYPE%\site-packages
-cd %THIS_DIR%\build\%CMAKE_BUILD_TYPE%\site-packages\OpenVisus
+set PYTHONPATH=%THIS_DIR%\build\%CMAKE_BUILD_TYPE%
+cd %THIS_DIR%\build\%CMAKE_BUILD_TYPE%\OpenVisus
 
 %PYTHON_EXECUTABLE% Samples/python/Array.py
 %PYTHON_EXECUTABLE% Samples/python/Dataflow.py

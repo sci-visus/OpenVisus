@@ -124,7 +124,7 @@ void DestroyAutoReleasePool();
   
 #endif
 
-#if !VISUS_DISABLE_PYTHON
+#if VISUS_PYTHON
 void InitPython();
 void ShutdownPython();
 #endif
@@ -369,7 +369,7 @@ void KernelModule::attach()
       break;
   }
 
-#if !VISUS_DISABLE_PYTHON
+#if VISUS_PYTHON
   InitPython();
 #endif
 
@@ -384,7 +384,7 @@ void KernelModule::attach()
   UUIDGenerator::allocSingleton();
 
   //this is to make sure PythonEngine works
-#if !VISUS_DISABLE_PYTHON
+#if VISUS_PYTHON
   if (auto engine = std::make_shared<PythonEngine>(true) )
   {
     ScopedAcquireGil acquire_gil;
@@ -422,7 +422,7 @@ void KernelModule::detach()
   RamResource::releaseSingleton();
   UUIDGenerator::releaseSingleton();
 
-#if !VISUS_DISABLE_PYTHON
+#if VISUS_PYTHON
   ShutdownPython();
 #endif
 

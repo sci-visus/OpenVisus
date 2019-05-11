@@ -6,21 +6,19 @@ include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(OpenVisus DEFAULT_MSG OpenVisus_DIR)
 
 # //////////////////////////////////////////////////////////////////////////////////
-macro(AddPythonLibrary Name)
+macro(AddImportedPythonLibrary)
 
 	file(READ ${OpenVisus_DIR}/PYTHON_VERSION PYTHON_VERSION) 
 	string(STRIP ${PYTHON_VERSION} PYTHON_VERSION)
+	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
+	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
 
 	message(STATUS "AddPythonLibrary PYTHON_VERSION=${PYTHON_VERSION}")
-
-	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 	message(STATUS "AddPythonLibrary PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}")
-	
-	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
 	message(STATUS "AddPythonLibrary PYTHON_INCLUDE_DIRS=${PYTHON_INCLUDE_DIRS}")
 	message(STATUS "AddPythonLibrary PYTHON_LIBRARIES=${PYTHON_LIBRARIES}")
 	
-	add_library(${Name} SHARED IMPORTED GLOBAL)
+	add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
 	
 	if (WIN32)
 		list(LENGTH PYTHON_LIBRARY __n__)
@@ -35,8 +33,8 @@ macro(AddPythonLibrary Name)
 		endif()
 	endif()
 
-	set_property(TARGET ${Name} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
-	set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
+	set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
+	set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
 
 endmacro()
 
@@ -55,7 +53,7 @@ macro(AddOpenVisusLibrary Name)
 		set(lib_prefix "bin/libVisus")
 		set(lib_extension ".dylib")
 	else()
-		set(lib_prefix "bin/lib")
+		set(lib_prefix "bin/libVisus")
 		set(lib_extension ".so")
 	endif()
 
@@ -95,7 +93,6 @@ macro(AddOpenVisusLibrary Name)
 		endif()
 	endif()
 
-
 endmacro()
 
 
@@ -107,16 +104,31 @@ if(OpenVisus_FOUND)
 
 	message(STATUS "OpenVisus found in ${OpenVisus_DIR}")
 
-	AddOpenVisusLibrary(OpenVisus::Kernel)
-	
+	# python enabled/disabled
 	if (EXISTS "${OpenVisus_DIR}/PYTHON_VERSION")
-		unset(VISUS_DISABLE_PYTHON CACHE)
-		unset(VISUS_DISABLE_PYTHON)
-		AddPythonLibrary(OpenVisus::Python)
-		set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Python") 
+		SET(VISUS_PYTHON  "1" CACHE INTERNAL "VISUS_PYTHON")
 	else()
-		SET(VISUS_DISABLE_PYTHON  "1" CACHE INTERNAL "VISUS_DISABLE_PYTHON")
-		set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_COMPILE_DEFINITIONS "-DVISUS_DISABLE_PYTHON=1")
+		SET(VISUS_PYTHON  "0" CACHE INTERNAL "VISUS_PYTHON")
+	endif()
+
+	# gui enabled disabled
+	if (EXISTS "${OpenVisus_DIR}/QT_VERSION")
+		SET(VISUS_GUI  "1" CACHE INTERNAL "VISUS_PYTHON")
+	else()
+		SET(VISUS_GUI  "0" CACHE INTERNAL "VISUS_PYTHON")
+	endif()
+	
+	if (VISUS_PYTHON)
+		AddImportedPythonLibrary()
+	endif()	
+
+	AddOpenVisusLibrary(OpenVisus::Kernel)
+
+	if (VISUS_PYTHON)
+		set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_COMPILE_DEFINITIONS VISUS_PYTHON=1)
+		set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_LINK_LIBRARIES     "OpenVisus::Python") 
+	else()
+		set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_COMPILE_DEFINITIONS VISUS_PYTHON=0)
 	endif()
 
 	AddOpenVisusLibrary(OpenVisus::Dataflow)
@@ -131,7 +143,7 @@ if(OpenVisus_FOUND)
 	AddOpenVisusLibrary(OpenVisus::Nodes)
 	set_target_properties(OpenVisus::Nodes    PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Idx") 
 	
-	if (EXISTS "${OpenVisus_DIR}/QT_VERSION")
+	if (VISUS_GUI)
 	
 		find_package(Qt5 OPTIONAL_COMPONENTS Core Widgets Gui OpenGL QUIET)
 		

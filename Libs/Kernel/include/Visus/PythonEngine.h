@@ -39,8 +39,11 @@ For support : support@visus.net
 #ifndef _VISUS_PYTHON_ENGINE_H__
 #define _VISUS_PYTHON_ENGINE_H__
 
+#ifndef VISUS_PYTHON
+#define VISUS_PYTHON 1
+#endif
 
-#if !VISUS_DISABLE_PYTHON
+#if VISUS_PYTHON
 
 #include <Visus/Array.h>
 #include <Visus/Log.h>
@@ -278,6 +281,6 @@ private:
 
 } //namespace Visus
 
-#endif //VISUS_DISABLE_PYTHON
+#endif //VISUS_PYTHON
 
 #endif //_VISUS_PYTHON_ENGINE_H__

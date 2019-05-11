@@ -38,12 +38,32 @@ macro(SetTargetOutputDirectory Name BinDir LibDir)
 	if (CMAKE_CONFIGURATION_TYPES)
 		set_target_properties(${Name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/${BinDir}) 
 		set_target_properties(${Name} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/${LibDir}) 
-		set_target_properties(${Name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/${BinDir}) 
+		set_target_properties(${Name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/${BinDir}) 		
 	else()
 		set_target_properties(${Name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${BinDir}) 
 		set_target_properties(${Name} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${LibDir}) 
 		set_target_properties(${Name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${BinDir}) 
 	endif()
+endmacro()
+
+# ///////////////////////////////////////////////////
+macro(InstallTarget Name)
+
+	if (CMAKE_CONFIGURATION_TYPES)
+    install(
+        TARGETS ${Name}
+        LIBRARY DESTINATION ${OpenVisus_DIR}/$<CONFIG>/${BinDir}
+        ARCHIVE DESTINATION ${OpenVisus_DIR}/$<CONFIG>/${LibDir}
+        RUNTIME DESTINATION ${OpenVisus_DIR}/$<CONFIG>/${BinDir})		
+		
+	else()
+    install(
+        TARGETS ${Name}
+        LIBRARY DESTINATION ${OpenVisus_DIR}/${CMAKE_BUILD_TYPE}/${BinDir}
+        ARCHIVE DESTINATION ${OpenVisus_DIR}/${CMAKE_BUILD_TYPE}/${LibDir}
+        RUNTIME DESTINATION ${OpenVisus_DIR}/${CMAKE_BUILD_TYPE}/${BinDir})	
+	endif()
+
 endmacro()
 
 # /////////////////////////////////////////////////////////////
@@ -103,7 +123,7 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(FindPythonLibrary)
 
-	if (NOT VISUS_DISABLE_PYTHON)
+	if (VISUS_PYTHON)
 	
 		SetIfNotDefined(PYTHON_VERSION 3)
 	
@@ -114,8 +134,8 @@ macro(FindPythonLibrary)
 		message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
 		message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
 			
-		add_library(Imported::Python SHARED IMPORTED GLOBAL)
-		set_property(TARGET Imported::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
+		add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
+		set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
 			
 		if (WIN32)
 			list(LENGTH PYTHON_LIBRARY __n__)
@@ -144,12 +164,12 @@ macro(FindPythonLibrary)
 			# always release version!
 			set(PYTHON_DEBUG_LIBRARY ${PYTHON_RELEASE_LIBRARY})
 	
-		  	set_target_properties(Imported::Python PROPERTIES
+		  	set_target_properties(OpenVisus::Python PROPERTIES
 		  		IMPORTED_IMPLIB_DEBUG           ${PYTHON_DEBUG_LIBRARY}
 		  		IMPORTED_IMPLIB_RELEASE         ${PYTHON_RELEASE_LIBRARY}
 		  		IMPORTED_IMPLIB_RELWITHDEBINFO  ${PYTHON_RELEASE_LIBRARY})
 		else()
-			set_target_properties(Imported::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
+			set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
 		endif()
 	endif()
 		
@@ -170,17 +190,16 @@ macro(AddInternalLibrary Name)
 		target_compile_options(${Name} PRIVATE -fvisibility=hidden)
 	endif()
 
-
 	DisableTargetWarnings(${Name})
 endmacro()
 
 # ///////////////////////////////////////////////////
 macro(LinkPythonToLibrary Name)
 
-	if (NOT VISUS_DISABLE_PYTHON)
+	if (VISUS_PYTHON)
 	
 		if (WIN32)
-			target_link_libraries(${Name} PUBLIC Imported::Python)
+			target_link_libraries(${Name} PUBLIC OpenVisus::Python)
 		else()
 			# for apple and linux I'm linking python only for Executables (or final shared dll such as  mod_visus) 
 			# otherwise I'm going to have multiple libpython in the same process
@@ -196,6 +215,9 @@ macro(LinkPythonToLibrary Name)
 		
 endmacro()
 
+
+
+
 # ///////////////////////////////////////////////////
 macro(AddLibrary Name)
 
@@ -203,8 +225,9 @@ macro(AddLibrary Name)
 
 	LinkPythonToLibrary(${Name})
 	SetupCommonTargetOptions(${Name})
-	SetTargetOutputDirectory(${Name} site-packages/OpenVisus/bin site-packages/OpenVisus/lib)
-
+	SetTargetOutputDirectory(${Name} OpenVisus/bin OpenVisus/lib)
+	# InstallTarget("OpenVisus/bin" "OpenVisus/lib")
+	
 	string(TOUPPER ${Name} __upper_case__name__)
 	target_compile_definitions(${Name}  PRIVATE VISUS_BUILDING_${__upper_case__name__}=1)
 	target_include_directories(${Name}  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
@@ -216,17 +239,17 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(LinkPythonToExecutable Name)
 
-	if (NOT VISUS_DISABLE_PYTHON)
+	if (VISUS_PYTHON)
 		if (WIN32)
 			# already linked
 		elseif (APPLE)
-			target_link_libraries(${Name} PUBLIC Imported::Python)
+			target_link_libraries(${Name} PUBLIC OpenVisus::Python)
 		else()
 			# for nix is trickier since the linking order is important
 			# the "-Wl,--start-group" does not always work (for example in travis)
 			# see http://cmake.3232098.n2.nabble.com/Link-order-Ubuntu-tt7598592.html
 			# i found this trick: VisusKernel should appear always before python 
-			target_link_libraries(${Name} PUBLIC $<TARGET_FILE:VisusKernel> Imported::Python)
+			target_link_libraries(${Name} PUBLIC $<TARGET_FILE:VisusKernel> OpenVisus::Python)
 		endif()
 	endif()
 		
@@ -238,7 +261,7 @@ macro(AddExecutable Name)
 
 	LinkPythonToExecutable(${Name})
 	SetupCommonTargetOptions(${Name})
-	SetTargetOutputDirectory(${Name} site-packages/OpenVisus/bin site-packages/OpenVisus/lib)
+	SetTargetOutputDirectory(${Name} OpenVisus/bin OpenVisus/lib)
 
 	set_target_properties(${Name} PROPERTIES FOLDER "Executable/")
 endmacro()
@@ -246,7 +269,7 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(AddSwigLibrary WrappedLib SwigFile)
 
-	if (NOT VISUS_DISABLE_PYTHON)
+	if (VISUS_PYTHON)
 	
 		set(NamePy ${WrappedLib}Py)
 		find_package(SWIG 3.0 REQUIRED)
@@ -254,9 +277,9 @@ macro(AddSwigLibrary WrappedLib SwigFile)
 	
 		# this is for *.py generated files
 		if (CMAKE_CONFIGURATION_TYPES)
-			set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/site-packages/OpenVisus)
+			set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/OpenVisus)
 		else()
-			set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/site-packages/OpenVisus)
+			set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus)
 		endif()
 	
 		# this is for generated C++ and header files
@@ -286,6 +309,7 @@ macro(AddSwigLibrary WrappedLib SwigFile)
 			
 		# important to share types between modules
 		set_source_files_properties (${swig_generated_file_fullname} PROPERTIES COMPILE_FLAGS "-DSWIG_TYPE_TABLE=OpenVisus")	
+		set_source_files_properties (${swig_generated_file_fullname} PROPERTIES COMPILE_FLAGS "-DVISUS_PYTHON=1")
 			
 		if (TARGET _${NamePy})
 			set(RealName _${NamePy})
@@ -303,7 +327,7 @@ macro(AddSwigLibrary WrappedLib SwigFile)
 		endif()
 	
 		SetupCommonTargetOptions(${RealName})
-		SetTargetOutputDirectory(${RealName} site-packages/OpenVisus/bin lib)
+		SetTargetOutputDirectory(${RealName} OpenVisus/bin lib)
 	
 		target_link_libraries(${RealName} PUBLIC ${WrappedLib})
 		set_target_properties(${RealName} PROPERTIES FOLDER Swig/)
@@ -311,5 +335,45 @@ macro(AddSwigLibrary WrappedLib SwigFile)
 	
 endmacro()
 
+
+# ///////////////////////////////////////////////////
+macro(GenerateScript template_filename script_filename target_filename)
+
+	if (WIN32)
+		set(SCRIPT_EXT ".bat")
+	elseif (APPLE)	
+		set(SCRIPT_EXT ".command")
+	else()
+		set(SCRIPT_EXT ".sh")
+	endif()
+
+	file(READ "${template_filename}${SCRIPT_EXT}" content) 
+	
+	string(REPLACE "\${PYTHON_EXECUTABLE}" "${PYTHON_EXECUTABLE}" content "${content}")
+	if (VISUS_GUI)
+		string(REPLACE "\${VISUS_GUI}" "1" content "${content}")
+	else()
+		string(REPLACE "\${VISUS_GUI}" "0" content "${content}")
+	endif()
+	
+	if (WIN32)
+		string(REPLACE "\${TARGET_FILENAME}" "${target_filename}.exe" content  "${content}")
+	
+	elseif (APPLE)
+		get_filename_component(__name_we__ ${target_filename} NAME_WE)
+		string(REPLACE "\${TARGET_FILENAME}" "${target_filename}.app/Contents/MacOS/${__name_we__}" content  "${content}")
+	else()
+		string(REPLACE "\${TARGET_FILENAME}" "${target_filename}" content  "${content}")
+	endif()
+	
+	file(GENERATE OUTPUT "${script_filename}${SCRIPT_EXT}" CONTENT "${content}")
+endmacro()
+
+# ///////////////////////////////////////////////////
+macro(InstallDirectoryIfExists src dst) 
+	if (EXISTS "${src}")
+		install(DIRECTORY "${src}" DESTINATION ${dst})
+	endif()
+endmacro()
 
 

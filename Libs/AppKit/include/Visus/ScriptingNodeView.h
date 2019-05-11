@@ -92,7 +92,7 @@ public:
 
 private:
 
-#if !VISUS_DISABLE_PYTHON
+#if VISUS_PYTHON
   PyObject* __stdout__ = nullptr;
   PyObject* __stderr__ = nullptr;
 #endif
