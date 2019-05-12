@@ -9,59 +9,35 @@ for it in (".","bin"):
 		
 VISUS_GUI=os.path.isfile(os.path.join(OpenVisus_Dir,"QT_VERSION"))
 
-from VisusKernelPy    import *
-print("VisusKernelPy imported")
+if os.path.isfile(os.path.join(OpenVisus_Dir,"VisusKernelPy.py")) :
+	from VisusKernelPy import *
 
-try:
+if os.path.isfile(os.path.join(OpenVisus_Dir,"VisusXIdxPy.py")) :
 	from VisusXIdxPy import *
-	print("VisusXIdxPy imported")
-except:
-	print("VisusXIdxPy missing or failed")
 	
-try:
+if os.path.isfile(os.path.join(OpenVisus_Dir,"VisusDbPy.py")) :
 	from VisusDbPy import *
-	print("VisusDbPy imported")
-except:
-	print("VisusDbPy missing or failed")
-	
-try:
+
+if os.path.isfile(os.path.join(OpenVisus_Dir,"VisusIdxPy.py")) :
 	from VisusIdxPy import *
-	print("VisusIdxPy imported")
-except:
-	print("VisusIdxPy missing or failed")
 
-try:
-	from VisusDataflowPy  import *
-	print("VisusDataflowPy imported")
-except:
-	print("VisusDataflowPy missing or failed")
+if os.path.isfile(os.path.join(OpenVisus_Dir,"VisusDataflowPy.py")) :
+	from VisusDataflowPy import *
 
-try:
+if os.path.isfile(os.path.join(OpenVisus_Dir,"VisusNodesPy.py")) :
 	from VisusNodesPy import *
-	print("VisusNodesPy imported")
-except:
-	print("VisusNodesPy missing or failed")
 
 # automatic import of VISUS_GUI is disabled
-if False :
-	try:
+if False:
+
+	if os.path.isfile(os.path.join(OpenVisus_Dir,"VisusGuiPy.py")) :
 		from VisusGuiPy import *
-		print("VisusGuiPy imported")
-	except:
-		print("VisusGuiPy missing or failed")
-		
-	try:
+
+	if os.path.isfile(os.path.join(OpenVisus_Dir,"VisusGuiNodesPy.py")) :
 		from VisusGuiNodesPy import *
-		print("VisusGuiNodesPy imported")
-	except:
-		print("VisusGuiNodesPy missing or failed")
-		
-	try:
-		from VisusAppKitPy import *
-		print("VisusAppKitPy imported")
-	except:
-		print("VisusAppKitPy missing or failed")	
 	
+	if os.path.isfile(os.path.join(OpenVisus_Dir,"VisusAppKitPy.py")) :
+		from VisusAppKitPy import *
 
 
 

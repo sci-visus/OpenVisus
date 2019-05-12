@@ -371,16 +371,15 @@ if (( IsRoot == 1 )) ; then
 		OS_NICKNAME=ubuntu.${UBUNTU_VERSION}
 		echo "Detected ubuntu ${UBUNTU_VERSION}"
 			
-		PackageCmd="apt-get --quiet --yes --allow-unauthenticated"
-
-		${PackageCmd} update 
-		${PackageCmd} install software-properties-common 
+		apt-get --quiet --yes --allow-unauthenticated update 
+		apt-get --quiet --yes --allow-unauthenticated install software-properties-common 
 		if (( ${UBUNTU_VERSION:0:2}<=14 )); then
 			add-apt-repository -y ppa:deadsnakes/ppa
-			${PackageCmd} update
+			apt-get --quiet --yes --allow-unauthenticated update
 		fi
 
-		packages+=" build-essential make automake git curl ca-certificates uuid-dev bzip2 libffi-dev libssl-dev swig3.0 swig swig3.0 swig cmake patchelf"
+		packages+=" build-essential make automake git curl ca-certificates"
+		packages+=" uuid-dev bzip2 libffi-dev libssl-dev swig3.0 swig swig3.0 swig cmake patchelf"
 
 		if (( VISUS_MODVISUS == 1 )); then
 			packages+=" apache2 apache2-dev"
@@ -409,30 +408,30 @@ if (( IsRoot == 1 )) ; then
 				exit -1
 			fi
 
-			${PackageCmd} update && :
+			apt-get --quiet --yes --allow-unauthenticated update && :
 
 		fi
 
-		${PackageCmd} --ignore-missing install ${packages} && :
+		apt-get --quiet --yes --allow-unauthenticated --ignore-missing install ${packages} && :
 
 	elif [ -x "$(command -v zypper)" ]; then
 		OPENSUSE=1
 		OS_NICKNAME=opensuse
 		echo "Detected opensuse"
 
-		PackageCmd="zypper --quiet --non-interactive"
-
-		${PackageCmd} update 
-		${PackageCmd} install --type pattern devel_basis 
+		zypper --quiet --non-interactive update 
+		zypper --quiet --non-interactive install --type pattern devel_basis 
 
 		packages+=" gcc-c++ make  git curl lsb-release libuuid-devel libffi-devel libopenssl-devel swig3.0 swig cmake patchelf"
 
 		if (( VISUS_MODVISUS == 1 )); then
 			packages+=" apache2 apache2-devel"
 		fi
+
 		# install one by one otherwise it will fail
-		for package in ${packages} ; do
-			${PackageCmd} install ${package}  && :
+		for package in ${packages} 
+		do
+			zypper --quiet --non-interactive install ${package}  && :
 		done
 
 	elif [ -x "$(command -v yum)" ]; then
@@ -450,8 +449,7 @@ if (( IsRoot == 1 )) ; then
 			VISUS_OPENMP=0 # disabled
 		fi
 
-		PackageCmd="yum --quiet -y"
-		${PackageCmd} update 
+		yum --quiet - update 
 
 		packages+=" gcc-c++ make git curl zlib zlib-devel libffi-devel openssl-devel swig3.0 swig cmake patchelf"
 
@@ -460,8 +458,9 @@ if (( IsRoot == 1 )) ; then
 		fi
 
 		# install one by one otherwise it will fail
-		for package in ${packages} ; do
-			${PackageCmd} install ${package}  && :
+		for package in ${packages}
+		do
+			yum --quiet - install ${package}  && :
 		done
 
 	else

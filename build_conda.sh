@@ -46,30 +46,32 @@ if (( INSTALL_CONDA == 1 )) ; then
 		else
 			__name__=Linux-x86_64
 		fi
-		curl -fsSL --insecure https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-${__name__}.sh -o miniconda.sh
+
+		url="https://repo.continuum.io/miniconda/Miniconda${PYTHON_VERSION:0:1}-latest-${__name__}.sh"
+		curl -fsSL --insecure ${url} -o miniconda.sh
 		chmod +x miniconda.sh
 		./miniconda.sh -b
 		popd
 	fi
 
 	export PATH=${MINICONDA_ROOT}/bin:$PATH
-	conda config --set changeps1 no --set anaconda_upload no
-	conda update --yes conda
+	conda config  --set changeps1 no --set anaconda_upload no
+	conda update  --yes conda
 	conda install --yes -q conda-build anaconda-client
 
 fi
 
 # activate
 export PATH=${MINICONDA_ROOT}/bin:$PATH
-conda create --yes --force --name openvisus-conda python=${PYTHON_VERSION}
-conda install --name openvisus-conda numpy
+conda create  --yes --force --name openvisus-conda python=${PYTHON_VERSION}
+conda install --yes --name openvisus-conda numpy
 source activate openvisus-conda
 
 # see conda/openvisus/build.sh
 if (( 1 == 1 )) ; then
 	pushd ./conda
-	conda-build -q openvisus
-	conda install -q --use-local openvisus
+	conda-build         -q openvisus
+	conda install --yes -q --use-local openvisus
 	popd
 fi
 
