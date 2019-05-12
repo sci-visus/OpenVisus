@@ -412,7 +412,11 @@ if (( IsRoot == 1 )) ; then
 
 		fi
 
-		apt-get --quiet --yes --allow-unauthenticated --ignore-missing install ${packages} && :
+		# install one by one otherwise it will fail
+		for package in ${packages}
+		do
+			apt-get --quiet --yes --allow-unauthenticated install ${package}  && :
+		done
 
 	elif [ -x "$(command -v zypper)" ]; then
 		OPENSUSE=1

@@ -134,17 +134,16 @@ else()
 	set(OpenVisus_DIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus)
 endif()
 
-file(GENERATE   OUTPUT ${OpenVisus_DIR}/Deploy.py      INPUT ${CMAKE_CURRENT_SOURCE_DIR}/CMake/Deploy.py)
-file(GENERATE   OUTPUT ${OpenVisus_DIR}/__init__.py    INPUT ${CMAKE_CURRENT_SOURCE_DIR}/CMake/__init__.py)
-file(GENERATE   OUTPUT ${OpenVisus_DIR}/__main__.py    INPUT ${CMAKE_CURRENT_SOURCE_DIR}/CMake/__main__.py)
-file(GENERATE   OUTPUT ${OpenVisus_DIR}/setup.py       INPUT ${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py)
-
 if (VISUS_PYTHON)
-	file(GENERATE OUTPUT ${OpenVisus_DIR}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+	file(GENERATE   OUTPUT ${OpenVisus_DIR}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+	file(GENERATE   OUTPUT ${OpenVisus_DIR}/Deploy.py      INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/Deploy.py)
+	file(GENERATE   OUTPUT ${OpenVisus_DIR}/__init__.py    INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/__init__.py)
+	file(GENERATE   OUTPUT ${OpenVisus_DIR}/__main__.py    INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/__main__.py)
+	file(GENERATE   OUTPUT ${OpenVisus_DIR}/setup.py       INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py)
 endif()
 
 if (VISUS_GUI)
-	file(GENERATE OUTPUT ${OpenVisus_DIR}/QT_VERSION     CONTENT "${Qt5Core_VERSION_STRING}")
+	file(GENERATE OUTPUT ${OpenVisus_DIR}/QT_VERSION       CONTENT "${Qt5Core_VERSION_STRING}")
 endif()	
 
 # create scripts
