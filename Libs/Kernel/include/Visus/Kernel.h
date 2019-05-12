@@ -209,6 +209,21 @@ VISUS_KERNEL_API void ThrowExceptionEx(String file,int line,String expr);
   #endif
 #endif
 
+////////////////////////////////////////////////////////////
+// in case you want to store an agnostic pointer to an object
+class VISUS_KERNEL_API Object
+{
+public:
+
+  //constructor
+  Object() {
+  }
+
+  //destructor
+  virtual ~Object() {
+  }
+
+};
 
 ///////////////////////////////////////////////////////////////////
 #if !SWIG

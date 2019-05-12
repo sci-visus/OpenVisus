@@ -27,9 +27,9 @@ Fix the problem about shared library path finding
 on windows: it seems sufficient to modify the sys.path before importing the module.
 Example (see __init__.py):
 
-OpenVisusDir=os.path.dirname(os.path.abspath(__file__))
+OpenVisus_Dir=os.path.dirname(os.path.abspath(__file__))
 for it in (".","bin"):
-	dir = os.path.join(OpenVisusDir,it)
+	dir = os.path.join(OpenVisus_Dir,it)
 	if not dir in sys.path and os.path.isdir(dir):
 		sys.path.append(dir)
 

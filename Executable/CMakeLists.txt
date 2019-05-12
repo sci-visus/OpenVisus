@@ -1,11 +1,13 @@
 
-add_subdirectory(visus)
+if (VISUS_IDX)
+	add_subdirectory(visus)
+endif()
 
-if (VISUS_MODVISUS)
+if (VISUS_IDX)
 	add_subdirectory(mod_visus)
 endif()
 
-if (VISUS_GUI)
+if (VISUS_APPKIT)
   add_subdirectory(viewer)
 endif()
 

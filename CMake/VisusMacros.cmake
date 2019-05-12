@@ -19,18 +19,20 @@ macro(SetIfNotDefined name value)
 	endif()
 endmacro()
 
-# //////////////////////////////////////////////////////////////////////////
-macro(FindGit)
-	find_program(GIT_CMD git REQUIRED)
-	find_package_handle_standard_args(GIT REQUIRED_VARS GIT_CMD)
+# //////////////////////////////////////////////////////////////////////
+macro(DownloadAndUncompress url check_exist working_directory)
+	if (NOT EXISTS "${check_exist}")
+		file(MAKE_DIRECTORY ${working_directory})
+		message(STATUS "Downloading ${url}")
+		get_filename_component(filename ${url} NAME)
+		set(filename ${CMAKE_BINARY_DIR}/${filename})		
+		file(DOWNLOAD ${url} ${filename})
+		message(STATUS "Unzipping file ${filename} into ${working_directory}")
+		file(MAKE_DIRECTORY ${check_exist})
+		execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf ${filename} WORKING_DIRECTORY ${working_directory})
+	endif()
 endmacro()
 
-# //////////////////////////////////////////////////////////////////////////
-macro(FindGitRevision)
-	FindGit()
-	execute_process(COMMAND ${GIT_CMD} rev-parse --short HEAD WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} OUTPUT_VARIABLE GIT_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
-	message(STATUS "Current GIT_REVISION ${GIT_REVISION}")
-endmacro()
 
 
 # ///////////////////////////////////////////////////
@@ -47,22 +49,23 @@ macro(SetTargetOutputDirectory Name BinDir LibDir)
 endmacro()
 
 # ///////////////////////////////////////////////////
-macro(InstallTarget Name)
+macro(InstallTarget Name IncDir BinDir LibDir)
 
-	if (CMAKE_CONFIGURATION_TYPES)
-    install(
-        TARGETS ${Name}
-        LIBRARY DESTINATION ${OpenVisus_DIR}/$<CONFIG>/${BinDir}
-        ARCHIVE DESTINATION ${OpenVisus_DIR}/$<CONFIG>/${LibDir}
-        RUNTIME DESTINATION ${OpenVisus_DIR}/$<CONFIG>/${BinDir})		
-		
-	else()
-    install(
-        TARGETS ${Name}
-        LIBRARY DESTINATION ${OpenVisus_DIR}/${CMAKE_BUILD_TYPE}/${BinDir}
-        ARCHIVE DESTINATION ${OpenVisus_DIR}/${CMAKE_BUILD_TYPE}/${LibDir}
-        RUNTIME DESTINATION ${OpenVisus_DIR}/${CMAKE_BUILD_TYPE}/${BinDir})	
-	endif()
+	# install(DIRECTORY ${IncDir} DESTINATION ${OpenVisus_DIR}/include/${Name}/)
+
+	#if (CMAKE_CONFIGURATION_TYPES)
+	#	install(
+    #    TARGETS ${Name}
+    #    LIBRARY DESTINATION ${OpenVisus_DIR}/$<CONFIG>/${BinDir}
+    #    ARCHIVE DESTINATION ${OpenVisus_DIR}/$<CONFIG>/${LibDir}
+    #    RUNTIME DESTINATION ${OpenVisus_DIR}/$<CONFIG>/${BinDir})			
+	#else()
+	#	install(
+	#		TARGETS ${Name}
+	#		LIBRARY DESTINATION ${OpenVisus_DIR}/${CMAKE_BUILD_TYPE}/${BinDir}
+	#		ARCHIVE DESTINATION ${OpenVisus_DIR}/${CMAKE_BUILD_TYPE}/${LibDir}
+	#		RUNTIME DESTINATION ${OpenVisus_DIR}/${CMAKE_BUILD_TYPE}/${BinDir})	
+	#endif()
 
 endmacro()
 
@@ -123,54 +126,32 @@ endmacro()
 # ///////////////////////////////////////////////////
 macro(FindPythonLibrary)
 
-	if (VISUS_PYTHON)
+	SetIfNotDefined(PYTHON_VERSION 3)
 	
-		SetIfNotDefined(PYTHON_VERSION 3)
+	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
+	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)	
 	
-		find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
-		find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)	
-	
-		message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
-		message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
-		message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
+	message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
+	message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
+	message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
 			
-		add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
-		set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
+	add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
+	set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
 			
-		if (WIN32)
-			list(LENGTH PYTHON_LIBRARY __n__)
-			if (${__n__} EQUAL 1)
-				set(PYTHON_DEBUG_LIBRARY     ${PYTHON_LIBRARY})
-				set(PYTHON_RELEASE_LIBRARY   ${PYTHON_LIBRARY})
-			else()
-				# differentiate debug from release
-				# example debug;aaaa;optimized;bbb
-	
-				list(FIND PYTHON_LIBRARY optimized __index__)
-			    if (${__index__} EQUAL -1)
-			    	MESSAGE(ERROR "Problem with find python")
-			    endif()
-			    math(EXPR __next_index__ "${__index__}+1")
-			    list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_RELEASE_LIBRARY)
-	
-				list(FIND PYTHON_LIBRARY debug __index__)
-				if (${__index__} EQUAL -1)
-			    	MESSAGE(ERROR "Problem with find python")
-				endif()
-				math(EXPR __next_index__ "${__index__}+1")
-				list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_DEBUG_LIBRARY)
-			endif()
-			  	
-			# always release version!
-			set(PYTHON_DEBUG_LIBRARY ${PYTHON_RELEASE_LIBRARY})
-	
-		  	set_target_properties(OpenVisus::Python PROPERTIES
-		  		IMPORTED_IMPLIB_DEBUG           ${PYTHON_DEBUG_LIBRARY}
-		  		IMPORTED_IMPLIB_RELEASE         ${PYTHON_RELEASE_LIBRARY}
-		  		IMPORTED_IMPLIB_RELWITHDEBINFO  ${PYTHON_RELEASE_LIBRARY})
+	if (WIN32)
+		list(LENGTH PYTHON_LIBRARY __n__)
+		if (${__n__} EQUAL 1)
+			set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_IMPLIB ${PYTHON_LIBRARY})
 		else()
-			set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
+			list(FIND PYTHON_LIBRARY optimized __index__)
+			math(EXPR __next_index__ "${__index__}+1")
+			list(GET PYTHON_LIBRARY ${__next_index__} __release_library_location_)
+			ForceUnset(PYTHON_LIBRARY)
+			set(PYTHON_LIBRARY ${__release_library_location_})
+			set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_IMPLIB ${__release_library_location_})
 		endif()
+	else()
+		set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
 	endif()
 		
 endmacro()
@@ -215,7 +196,10 @@ macro(LinkPythonToLibrary Name)
 		
 endmacro()
 
+# ///////////////////////////////////////////////////
+function(StringStartsWith str search)
 
+endfunction()
 
 
 # ///////////////////////////////////////////////////
@@ -226,11 +210,20 @@ macro(AddLibrary Name)
 	LinkPythonToLibrary(${Name})
 	SetupCommonTargetOptions(${Name})
 	SetTargetOutputDirectory(${Name} OpenVisus/bin OpenVisus/lib)
-	# InstallTarget("OpenVisus/bin" "OpenVisus/lib")
-	
-	string(TOUPPER ${Name} __upper_case__name__)
-	target_compile_definitions(${Name}  PRIVATE VISUS_BUILDING_${__upper_case__name__}=1)
+
+	# InstallTarget(${Name} Libs/Db/include/Visus OpenVisus/bin OpenVisus/lib)
+	if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/include)
+		string(REPLACE "Visus" "" __tmp__ ${Name})
+		install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus DESTINATION ${OpenVisus_DIR}/include/${__tmp__}/)
+	endif()
+
+	string(TOUPPER ${Name} __NAME__)
+	target_compile_definitions(${Name}  PRIVATE VISUS_BUILDING_${__NAME__}=1)
 	target_include_directories(${Name}  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+
+	# example: VisusKernel -> VISUS_KERNEL
+	string(REPLACE "VISUS" "" __out__ ${__NAME__})
+	target_compile_definitions(${Name}  PUBLIC VISUS_${__out__}=1) 
 
 	set_target_properties(${Name} PROPERTIES FOLDER "")
 

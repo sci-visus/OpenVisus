@@ -1,7 +1,14 @@
 
-FindGitRevision()
+find_package(Git)
+if(GIT_FOUND)
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD 
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
+		OUTPUT_VARIABLE GIT_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
+	add_definitions(-DGIT_REVISION=${GIT_REVISION})
+	message(STATUS "${GIT_EXECUTABLE} Current GIT_REVISION ${GIT_REVISION}")
+endif()
 
-add_definitions(-DGIT_REVISION=${GIT_REVISION})
 if (NOT DEFINED VISUS_INTERNAL_DEFAULT)
 	set(VISUS_INTERNAL_DEFAULT 1)
 endif()
@@ -159,6 +166,9 @@ set(RootFiles
 	${CMAKE_CURRENT_SOURCE_DIR}/../../CMakeLists.txt
 	${CMAKE_CURRENT_SOURCE_DIR}/../../build.bat
 	${CMAKE_CURRENT_SOURCE_DIR}/../../build.sh
+	${CMAKE_CURRENT_SOURCE_DIR}/../../build_docker.sh
+	${CMAKE_CURRENT_SOURCE_DIR}/../../build_conda.sh
+	${CMAKE_CURRENT_SOURCE_DIR}/../../build_osx.sh
 	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/VisusMacros.cmake
 	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/OpenVisusConfig.cmake
 	${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.txt

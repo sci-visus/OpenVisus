@@ -37,23 +37,37 @@ include(CMake/VisusMacros.cmake)
 include(FindPackageHandleStandardArgs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake)
 
-option(BUILD_SHARED_LIBS     "Build the shared library" ON)  
-option(VISUS_COMPRESSION     "Enable compression"       ON)  
-option(VISUS_NET             "Enable net"               ON) 
-option(VISUS_IMAGE           "Enable image"             ON)  
-option(VISUS_GUI             "Enable gui"               ON)  
-option(VISUS_MODVISUS        "Enable mod_visus"         ON)
-option(VISUS_PYTHON          "Enable python"            ON)  
-option(VISUS_OSPRAY          "Enable ospray"            OFF)
 
-message(STATUS "BUILD_SHARED_LIBS    ${BUILD_SHARED_LIBS}")
-message(STATUS "VISUS_COMPRESSION    ${VISUS_COMPRESSION}") 
-message(STATUS "VISUS_NET            ${VISUS_NET}") 
-message(STATUS "VISUS_IMAGE          ${VISUS_IMAGE}") 
-message(STATUS "VISUS_GUI            ${VISUS_GUI}") 
-message(STATUS "VISUS_OSPRAY         ${VISUS_OSPRAY}") 
-message(STATUS "VISUS_MODVISUS       ${VISUS_MODVISUS}") 
-message(STATUS "VISUS_PYTHON         ${VISUS_PYTHON}") 
+option(BUILD_SHARED_LIBS "Build the shared library"  ON)
+option(VISUS_COMPRESSION "Enable compression"        ON)  
+option(VISUS_NET         "Enable net"                ON) 
+option(VISUS_IMAGE       "Enable image"              ON)  
+option(VISUS_PYTHON      "Enable python"             ON) 
+option(VISUS_XIDX        "Enable VisusXIdx"          ON)
+option(VISUS_DB          "Enable VisusDb"            ON)
+option(VISUS_DATAFLOW    "Enable VisusDataflow"      ON)
+option(VISUS_GUI         "Enable VisusGui"           ON)
+
+include(CMakeDependentOption)
+CMAKE_DEPENDENT_OPTION(VISUS_IDX         "Enable VisusIdx"           ON  "VISUS_DB"                   OFF)
+CMAKE_DEPENDENT_OPTION(VISUS_NODES       "Enable VisusNodes"         ON  "VISUS_DATAFLOW;VISUS_IDX;"  OFF)
+CMAKE_DEPENDENT_OPTION(VISUS_GUINODES    "Enable VisusGuiNodes"      ON  "VISUS_GUI;VISUS_DATAFLOW"   OFF)
+CMAKE_DEPENDENT_OPTION(VISUS_APPKIT      "Enable VisusAppKit"        ON  "VISUS_NODES;VISUS_GUINODES" OFF)
+CMAKE_DEPENDENT_OPTION(VISUS_OSPRAY      "Enable ospray"             OFF "VISUS_GUINODES"             OFF)
+
+message(STATUS "VISUS_COMPRESSION ${VISUS_COMPRESSION}")
+message(STATUS "VISUS_NET         ${VISUS_NET}")
+message(STATUS "VISUS_IMAGE       ${VISUS_IMAGE}")
+message(STATUS "VISUS_PYTHON      ${VISUS_PYTHON}")
+message(STATUS "VISUS_XIDX        ${VISUS_XIDX}")
+message(STATUS "VISUS_DB          ${VISUS_DB}")
+message(STATUS "VISUS_DATAFLOW    ${VISUS_DATAFLOW}")
+message(STATUS "VISUS_GUI         ${VISUS_GUI}")
+message(STATUS "VISUS_IDX         ${VISUS_IDX}")
+message(STATUS "VISUS_NODES       ${VISUS_NODES}")
+message(STATUS "VISUS_GUINODES    ${VISUS_GUINODES}")
+message(STATUS "VISUS_OSPRAY      ${VISUS_OSPRAY}")
+message(STATUS "VISUS_APPKIT      ${VISUS_APPKIT}")
 
 if (VISUS_PYTHON)
 	FindPythonLibrary()
@@ -106,9 +120,6 @@ if (VISUS_GUI)
 
 endif()
 
-add_subdirectory(Libs)
-add_subdirectory(Executable)
-
 if (WIN32)
 	set(SCRIPT_EXT ".bat")
 elseif (APPLE)	
@@ -143,6 +154,9 @@ if (VISUS_GUI)
 	GenerateScript(${CMAKE_CURRENT_SOURCE_DIR}/CMake/script ${OpenVisus_DIR}/visusviewer ${OpenVisus_DIR}/bin/visusviewer)
 endif()
 
+add_subdirectory(Libs)
+add_subdirectory(Executable)
+
 # //////////////////////////////////////////////////////////////
 # install
 if (1)
@@ -161,21 +175,10 @@ if (1)
 	install(DIRECTORY       datasets                                      DESTINATION ${OpenVisus_DIR}/)
 	install(FILES           datasets/visus.config                         DESTINATION ${OpenVisus_DIR}/)
 
-	install(DIRECTORY       Libs/Kernel/include/Visus                     DESTINATION ${OpenVisus_DIR}/include/Kernel/)
-	install(DIRECTORY       Libs/Dataflow/include/Visus                   DESTINATION ${OpenVisus_DIR}/include/Dataflow/)
-	install(DIRECTORY       Libs/Db/include/Visus                         DESTINATION ${OpenVisus_DIR}/include/Db/)
-	install(DIRECTORY       Libs/Idx/include/Visus                        DESTINATION ${OpenVisus_DIR}/include/Idx/)
-	install(DIRECTORY       Libs/Nodes/include/Visus                      DESTINATION ${OpenVisus_DIR}/include/Nodes/)
-	
+	# script
 	install(FILES           ${OpenVisus_DIR}/visus${SCRIPT_EXT}           DESTINATION ${OpenVisus_DIR}/ PERMISSIONS WORLD_READ WORLD_EXECUTE)
-
 	if (VISUS_GUI)
-	
-		install(FILES         ${OpenVisus_DIR}/visusviewer${SCRIPT_EXT}     DESTINATION ${OpenVisus_DIR}/ PERMISSIONS WORLD_READ WORLD_EXECUTE)
-	
-		install(DIRECTORY     Libs/Gui/include/Visus                        DESTINATION ${OpenVisus_DIR}/include/Gui/)
-		install(DIRECTORY     Libs/GuiNodes/include/Visus                   DESTINATION ${OpenVisus_DIR}/include/GuiNodes/)
-		install(DIRECTORY     Libs/AppKit/include/Visus                     DESTINATION ${OpenVisus_DIR}/include/AppKit/)
+		install(FILES       ${OpenVisus_DIR}/visusviewer${SCRIPT_EXT}     DESTINATION ${OpenVisus_DIR}/ PERMISSIONS WORLD_READ WORLD_EXECUTE)
 	endif()
 
 	# copy needed windows *.dll
@@ -255,7 +258,9 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** RUN_TESTS (to call after INSTALL) ***
 if (VISUS_PYTHON)
+
 	enable_testing()
+
 	macro(AddOpenVisusTest Name)
 		add_test(NAME ${Name} ${ARGN})
 		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1")
@@ -290,26 +295,24 @@ if (1)
 		endif()
 
 		add_custom_target(${Name} 
-
-			COMMAND "${CMAKE_COMMAND}" "${CMAKE_GENERATOR_ARGUMENT}" 
-				-H"${SourceDir}/"  
+			COMMAND "${CMAKE_COMMAND}" 
+				"${CMAKE_GENERATOR_ARGUMENT}"  
+				-H"${SourceDir}/" 
 				-B"${BinaryDir}/" 
 				-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} 
-				-DPYTHON_LIBRARY=${PYTHON_LIBRARIES}
+				-DPYTHON_LIBRARY=${PYTHON_LIBRARY}
 				-DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIRS}
 				-DQt5_DIR="${Qt5_DIR}" 
 				-DOpenVisus_DIR=${OpenVisus_DIR}
-
-			COMMAND "${CMAKE_COMMAND}"  
-				--build "${BinaryDir}/" 
-				--config ${CMAKE_BUILD_TYPE}
-
-		)
+			COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/"  --config ${CMAKE_BUILD_TYPE})
 
 		set_target_properties(${Name} PROPERTIES FOLDER CMakeTargets/)
+
 	endmacro()
 
-	AddOpenVisusExternalApp(${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query)
+	if (VISUS_IDX)
+		AddOpenVisusExternalApp(${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_query)
+	endif()
 
 	if (VISUS_GUI)
 		AddOpenVisusExternalApp(${CMAKE_CURRENT_SOURCE_DIR}/Samples/simple_viewer2d)

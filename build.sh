@@ -413,7 +413,7 @@ if (( IsRoot == 1 )) ; then
 
 		fi
 
-		${PackageCmd} install ${packages} && :
+		${PackageCmd} --ignore-missing install ${packages} && :
 
 	elif [ -x "$(command -v zypper)" ]; then
 		OPENSUSE=1
@@ -430,8 +430,10 @@ if (( IsRoot == 1 )) ; then
 		if (( VISUS_MODVISUS == 1 )); then
 			packages+=" apache2 apache2-devel"
 		fi
-
-		${PackageCmd} install ${packages}  && :
+		# install one by one otherwise it will fail
+		for package in ${packages} ; do
+			${PackageCmd} install ${package}  && :
+		done
 
 	elif [ -x "$(command -v yum)" ]; then
 
@@ -457,7 +459,10 @@ if (( IsRoot == 1 )) ; then
 			packages+=" mesa-libGL-devel mesa-libGLU-devel" 
 		fi
 
-		${PackageCmd} install ${packages} && :
+		# install one by one otherwise it will fail
+		for package in ${packages} ; do
+			${PackageCmd} install ${package}  && :
+		done
 
 	else
 		echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"

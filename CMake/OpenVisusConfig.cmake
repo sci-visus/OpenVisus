@@ -6,90 +6,87 @@ include(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(OpenVisus DEFAULT_MSG OpenVisus_DIR)
 
 # //////////////////////////////////////////////////////////////////////////////////
-macro(AddImportedPythonLibrary)
+macro(AddOpenVisusPythonLibrary)
 
 	file(READ ${OpenVisus_DIR}/PYTHON_VERSION PYTHON_VERSION) 
 	string(STRIP ${PYTHON_VERSION} PYTHON_VERSION)
+
 	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)
 
-	message(STATUS "AddPythonLibrary PYTHON_VERSION=${PYTHON_VERSION}")
-	message(STATUS "AddPythonLibrary PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}")
-	message(STATUS "AddPythonLibrary PYTHON_INCLUDE_DIRS=${PYTHON_INCLUDE_DIRS}")
-	message(STATUS "AddPythonLibrary PYTHON_LIBRARIES=${PYTHON_LIBRARIES}")
-	
 	add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
-	
+	set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
+
 	if (WIN32)
 		list(LENGTH PYTHON_LIBRARY __n__)
-		# example debug;aaaa;optimized;bbb
-		if (${__n__} GREATER 1)
+		if (${__n__} EQUAL 1)
+			set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_IMPLIB ${PYTHON_LIBRARY})
+		else()
 			list(FIND PYTHON_LIBRARY optimized __index__)
-			if (${__index__} EQUAL -1)
-				MESSAGE(ERROR "Problem with find python")
-			endif()
 			math(EXPR __next_index__ "${__index__}+1")
-			list(GET PYTHON_LIBRARY ${__next_index__} PYTHON_LIBRARY)
+			list(GET PYTHON_LIBRARY ${__next_index__} __release_library_location_)
+			unset(PYTHON_LIBRARY CACHE)
+			unset(PYTHON_LIBRARY)
+			set(PYTHON_LIBRARY ${__release_library_location_})
+			set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_IMPLIB ${__release_library_location_})
 		endif()
+	else()
+		set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
 	endif()
-
-	set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
-	set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
 
 endmacro()
 
 
 # //////////////////////////////////////////////////////////////////////////////////
-macro(AddOpenVisusLibrary Name)
+macro(AddOpenVisusLibrary Name Dependencies)
 
-	add_library(${Name} SHARED IMPORTED GLOBAL)
-	
 	string(REPLACE "OpenVisus::" "" base_name ${Name})
 
 	if (WIN32)
-		set(lib_prefix "lib/Visus")
-		set(lib_extension ".lib")
+		set(lib_release "${OpenVisus_DIR}/lib/Visus${base_name}.lib")
+		set(lib_debug   "${OpenVisus_DIR}/debug/lib/Visus${base_name}.lib")
 	elseif (APPLE)
-		set(lib_prefix "bin/libVisus")
-		set(lib_extension ".dylib")
+		set(lib_release "${OpenVisus_DIR}/bin/libVisus${base_name}.dylib")
+		set(lib_debug   "${OpenVisus_DIR}/debug/bin/libVisus${base_name}.dylib")	
 	else()
-		set(lib_prefix "bin/libVisus")
-		set(lib_extension ".so")
+		set(lib_release "${OpenVisus_DIR}/bin/libVisus${base_name}.so")
+		set(lib_debug   "${OpenVisus_DIR}/debug/bin/libVisus${base_name}.so")	
 	endif()
 
-	set_target_properties(${Name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${OpenVisus_DIR}/include/Kernel;${OpenVisus_DIR}/include/${base_name}") 
+	if (EXISTS "${lib_release}")
 
-	set(lib_release "${OpenVisus_DIR}/${lib_prefix}${base_name}${lib_extension}")
-	
-	# multiconfigurations
-	if (CMAKE_CONFIGURATION_TYPES)
-	
-		if (EXISTS "${OpenVisus_DIR}/debug")
-			set(lib_debug "${OpenVisus_DIR}/debug/${lib_prefix}${base_name}${lib_extension}")
-		else()
+		if (NOT EXISTS "${OpenVisus_DIR}/debug")
 			set(lib_debug   "${lib_release}")
-		endif()				
+		endif()		
+
+		add_library(${Name} SHARED IMPORTED GLOBAL)
+		set_target_properties(${Name} PROPERTIES INTERFACE_LINK_LIBRARIES "${Dependencies}") 
+		set_target_properties(${Name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${OpenVisus_DIR}/include/Kernel;${OpenVisus_DIR}/include/${base_name}") 
+
+		# multiconfigurations
+		if (CMAKE_CONFIGURATION_TYPES)
 	
-		set_target_properties(${Name} PROPERTIES IMPORTED_CONFIGURATIONS "Debug")
-		set_target_properties(${Name} PROPERTIES IMPORTED_CONFIGURATIONS "Release")
-		set_target_properties(${Name} PROPERTIES IMPORTED_CONFIGURATIONS "RelWithDebInfo")
+			set_target_properties(${Name} PROPERTIES IMPORTED_CONFIGURATIONS "Debug")
+			set_target_properties(${Name} PROPERTIES IMPORTED_CONFIGURATIONS "Release")
+			set_target_properties(${Name} PROPERTIES IMPORTED_CONFIGURATIONS "RelWithDebInfo")
 		
-		# note: IMPORTED_<names> are different!
-		if (WIN32)
-	  		set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB_DEBUG             "${lib_debug}")
-		  	set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB_RELEASE           "${lib_release}")
-		  	set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO    "${lib_release}")		
-		else()
-	  		set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_DEBUG           "${lib_debug}")
-		  	set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_RELEASE         "${lib_release}")
-		  	set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_RELWITHDEBINFO  "${lib_release}")	
-		endif()	
+			# note: IMPORTED_<names> are different!
+			if (WIN32)
+	  			set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB_DEBUG             "${lib_debug}")
+		  		set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB_RELEASE           "${lib_release}")
+		  		set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO    "${lib_release}")		
+			else()
+	  			set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_DEBUG           "${lib_debug}")
+		  		set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_RELEASE         "${lib_release}")
+		  		set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_RELWITHDEBINFO  "${lib_release}")	
+			endif()	
 		
-	else()
-		if (WIN32)
-			set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB                   "${lib_release}")
 		else()
-			set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION                 "${lib_release}")
+			if (WIN32)
+				set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB                   "${lib_release}")
+			else()
+				set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION                 "${lib_release}")
+			endif()
 		endif()
 	endif()
 
@@ -119,49 +116,29 @@ if(OpenVisus_FOUND)
 	endif()
 	
 	if (VISUS_PYTHON)
-		AddImportedPythonLibrary()
-	endif()	
-
-	AddOpenVisusLibrary(OpenVisus::Kernel)
-
-	if (VISUS_PYTHON)
+		AddOpenVisusPythonLibrary()
+		AddOpenVisusLibrary(OpenVisus::Kernel "OpenVisus::Python")
 		set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_COMPILE_DEFINITIONS VISUS_PYTHON=1)
-		set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_LINK_LIBRARIES     "OpenVisus::Python") 
 	else()
+		AddOpenVisusLibrary(OpenVisus::Kernel "")
 		set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_COMPILE_DEFINITIONS VISUS_PYTHON=0)
 	endif()
 
-	AddOpenVisusLibrary(OpenVisus::Dataflow)
-	set_target_properties(OpenVisus::Dataflow PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Kernel") 
-
-	AddOpenVisusLibrary(OpenVisus::Db)
-	set_target_properties(OpenVisus::Db       PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Kernel") 
-
-	AddOpenVisusLibrary(OpenVisus::Idx)
-	set_target_properties(OpenVisus::Idx      PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Db") 
-
-	AddOpenVisusLibrary(OpenVisus::Nodes)
-	set_target_properties(OpenVisus::Nodes    PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Idx") 
+	AddOpenVisusLibrary(OpenVisus::Dataflow "OpenVisus::Kernel")
+	AddOpenVisusLibrary(OpenVisus::XIdx     "OpenVisus::Kernel")
+	AddOpenVisusLibrary(OpenVisus::Db       "OpenVisus::Kernel")
+	AddOpenVisusLibrary(OpenVisus::Idx      "OpenVisus::Db")
+	AddOpenVisusLibrary(OpenVisus::Nodes    "OpenVisus::Idx")
 	
 	if (VISUS_GUI)
-	
 		find_package(Qt5 OPTIONAL_COMPONENTS Core Widgets Gui OpenGL QUIET)
-		
 		if (Qt5_FOUND)
-		
 			if (WIN32)
 				string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
 			endif()
-		
-			AddOpenVisusLibrary(OpenVisus::Gui)
-			set_target_properties(OpenVisus::Gui      PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Kernel;Qt5::Core;Qt5::Widgets;Qt5::Gui;Qt5::OpenGL") 
-
-			AddOpenVisusLibrary(OpenVisus::GuiNodes)
-			set_target_properties(OpenVisus::GuiNodes PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Gui;OpenVisus::Dataflow") 
-
-			AddOpenVisusLibrary(OpenVisus::AppKit)
-			set_target_properties(OpenVisus::AppKit   PROPERTIES INTERFACE_LINK_LIBRARIES "OpenVisus::Gui;OpenVisus::Dataflow;OpenVisus::Nodes;OpenVisus::GuiNodes") 
-		
+			AddOpenVisusLibrary(OpenVisus::Gui       "OpenVisus::Kernel;Qt5::Core;Qt5::Widgets;Qt5::Gui;Qt5::OpenGL")
+			AddOpenVisusLibrary(OpenVisus::GuiNodes  "OpenVisus::Gui;OpenVisus::Dataflow")
+			AddOpenVisusLibrary(OpenVisus::AppKit    "OpenVisus::Gui;OpenVisus::Dataflow;OpenVisus::Nodes;OpenVisus::GuiNodes")
 		else()
 			message(STATUS "Qt5 not found, disabling it")
 		endif()
