@@ -101,7 +101,7 @@ function IsPackageInstalled {
 		if [ $? == 0 ] ; then return 0 ; fi
 
 	elif (( CENTOS == 1 )) ; then
-		yum --quiet list installed $1 1>/dev/null 2>/dev/null && : 
+		yum --quiet -y list installed $1 1>/dev/null 2>/dev/null && : 
 		if [ $? == 0 ] ; then return 0 ; fi
 	fi
 
@@ -432,6 +432,10 @@ if (( IsRoot == 1 )) ; then
 			packages+=" apache2 apache2-devel"
 		fi
 
+		if (( VISUS_GUI ==  1 )); then
+			packages+=" glu-devel"
+		fi
+
 		# install one by one otherwise it will fail
 		for package in ${packages} 
 		do
@@ -453,7 +457,7 @@ if (( IsRoot == 1 )) ; then
 			VISUS_OPENMP=0 # disabled
 		fi
 
-		yum --quiet - update 
+		yum --quiet -y update 
 
 		packages+=" gcc-c++ make git curl zlib zlib-devel libffi-devel openssl-devel swig3.0 swig cmake patchelf"
 
@@ -464,7 +468,7 @@ if (( IsRoot == 1 )) ; then
 		# install one by one otherwise it will fail
 		for package in ${packages}
 		do
-			yum --quiet - install ${package}  && :
+			yum --quiet -y install ${package}  && :
 		done
 
 	else

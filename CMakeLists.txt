@@ -37,7 +37,6 @@ include(CMake/VisusMacros.cmake)
 include(FindPackageHandleStandardArgs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake)
 
-
 option(BUILD_SHARED_LIBS "Build the shared library"  ON)
 option(VISUS_COMPRESSION "Enable compression"        ON)  
 option(VISUS_NET         "Enable net"                ON) 

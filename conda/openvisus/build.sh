@@ -25,28 +25,40 @@ function NeedApache {
 		mkdir -p ${APACHE_DIR} 
 
 		curl -fsSL --insecure "https://github.com/libexpat/libexpat/releases/download/R_2_2_6/expat-2.2.6.tar.bz2" | tar xj
-		pushd expat-2.2.6 && ./configure --prefix=${APACHE_DIR} 1>/dev/null && make && make install && popd
+		pushd expat-2.2.6
+		./configure --prefix=${APACHE_DIR} 
+		make -s 
+		make install 
+		popd
+		
+		curl -fsSL --insecure "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz" | tar xz
+		pushd pcre-8.42 
+		./configure --prefix=${APACHE_DIR}  
+		make -s   
+		make install  
+		popd	
 
 		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz" | tar xz
-		pushd apr-1.6.5 && ./configure --prefix=${APACHE_DIR} 1>/dev/null  && make -s 1>/dev/null && make install 1>/dev/null && popd
+		pushd apr-1.6.5 
+		./configure --prefix=${APACHE_DIR}   
+		make -s  
+		make install  
+		popd
 
 		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz" | tar xz
 		pushd apr-util-1.6.1 
-		./configure --prefix=${APACHE_DIR} --with-apr=${APACHE_DIR} --with-expat=${APACHE_DIR} 1>/dev/null 
-		make -s 1>/dev/null 
-		make install 1>/dev/null 
+		./configure --prefix=${APACHE_DIR} --with-apr=${APACHE_DIR} --with-expat=${APACHE_DIR}  
+		make -s  
+		make install  
 		popd
-
-		curl -fsSL --insecure "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz" | tar xz
-		pushd pcre-8.42 && ./configure --prefix=${APACHE_DIR} 1>/dev/null && make -s 1>/dev/null  && make install 1>/dev/null && popd
 
 		curl -fsSL --insecure "http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz" | tar xz 
 		pushd httpd-2.4.38
-		./configure --prefix=${APACHE_DIR} --with-apr=${APACHE_DIR} --with-pcre=${APACHE_DIR} --with-ssl=${APACHE_DIR} --with-expat=${APACHE_DIR} 1>/dev/null 
-		make -s 1>/dev/null && make install 1>/dev/null 
+		./configure --prefix=${APACHE_DIR} --with-apr=${APACHE_DIR} --with-pcre=${APACHE_DIR} --with-ssl=${APACHE_DIR} --with-expat=${APACHE_DIR}  
+		make -s  
+		make install  
 		popd
 	fi
-
 }
 
 if (( OSX == 1 )) ; then

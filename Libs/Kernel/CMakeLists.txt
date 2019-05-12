@@ -14,24 +14,6 @@ if (NOT DEFINED VISUS_INTERNAL_DEFAULT)
 endif()
 
 
-# *** TinyXML dependency ***
-SetIfNotDefined(VISUS_INTERNAL_TINYXML ${VISUS_INTERNAL_DEFAULT})
-if (VISUS_INTERNAL_TINYXML)
-	MESSAGE(STATUS "Using internal TynyXML")
-	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/tinyxml ${CMAKE_CURRENT_BINARY_DIR}/tinyxml)
-else()
-	# i'm assuming brew here
-	if (APPLE)
-		SetIfNotDefined(TinyXML_INCLUDE_DIR /usr/local/opt/tinyxml/include)
-		SetIfNotDefined(TinyXML_LIBRARY     /usr/local/opt/tinyxml/lib/libtinyxml.dylib)
-	endif()
-	find_package(TinyXML REQUIRED)
-	MESSAGE(STATUS "Using external TynyXML")
-	message(STATUS "TinyXML_INCLUDE_DIRS ${TinyXML_INCLUDE_DIRS}")
-	message(STATUS "TinyXML_LIBRARIES    ${TinyXML_LIBRARIES}")
-endif()
-
-
 if (VISUS_COMPRESSION)
 
 	# *** zlib dependency ***
@@ -343,6 +325,13 @@ IF (WIN32 OR APPLE)
 	file(GLOB MM_FILES src/*.mm)
 endif()
 
+file(GLOB DtlSources   src/dtl/*.hpp src/dtl/*.cpp)
+source_group("dtl" FILES ${DtlSources})
+
+file(GLOB TinyXmlSources   src/tinyxml/*.h src/tinyxml/*.cpp)
+source_group("tinyxml" FILES ${TinyXmlSources})
+
+
 file(GLOB Sources 
 	${RootFiles}
 	${PyFiles}
@@ -350,13 +339,14 @@ file(GLOB Sources
 	include/Visus/*.i 
 	src/*.cpp 
 	src/*.h
+	${TinyXmlSources}
+	${DtlSources}
 	${MM_FILES} 
 )
 
 AddLibrary(VisusKernel ${Sources})
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/dtl/include)
 
 # openmp
 if (VISUS_OPENMP)
@@ -397,13 +387,6 @@ if (VISUS_COMPRESSION)
 		target_include_directories(VisusKernel PRIVATE ${LZ4_INCLUDE_DIR})
 		target_link_libraries(VisusKernel      PUBLIC ${LZ4_LIBRARY})
 	endif()
-endif()
-
-if (TARGET TinyXML)
-	target_link_libraries(VisusKernel PRIVATE TinyXML)
-else()
-	target_include_directories(VisusKernel PRIVATE ${TinyXML_INCLUDE_DIRS})
-	target_link_libraries(VisusKernel      PUBLIC ${TinyXML_LIBRARIES})	
 endif()
 
 if (VISUS_IMAGE)
