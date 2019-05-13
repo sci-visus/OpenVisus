@@ -140,9 +140,6 @@ if (NOT (WIN32 OR APPLE))
   endif()
 endif()
 
-
-file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/*.py)
-
 set(RootFiles 
 	${CMAKE_CURRENT_SOURCE_DIR}/../../README.md
 	${CMAKE_CURRENT_SOURCE_DIR}/../../CMakeLists.txt
@@ -155,9 +152,6 @@ set(RootFiles
 	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/OpenVisusConfig.cmake
 	${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.txt
 )
-
-
-source_group("PyFiles" FILES ${PyFiles})
 
 source_group("" FILES
 	${RootFiles}
@@ -310,10 +304,7 @@ source_group("Encoder" FILES
 	./src/EncoderFreeImage.h
 	./src/Encoder.cpp)
 
-source_group("Python" FILES 
-	./include/Visus/swigpyrun.h 
-	./include/Visus/PythonEngine.h
-	./src/PythonEngine.cpp)
+
 
 source_group("Misc" FILES 
 	./include/Visus/PointCloud.h
@@ -331,17 +322,21 @@ source_group("dtl" FILES ${DtlSources})
 file(GLOB TinyXmlSources   src/tinyxml/*.h src/tinyxml/*.cpp)
 source_group("tinyxml" FILES ${TinyXmlSources})
 
+file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/*.py)
+source_group("Python" FILES 
+	./include/Visus/swigpyrun.h 
+	./include/Visus/PythonEngine.h
+	./src/PythonEngine.cpp
+	${PyFiles})
 
 file(GLOB Sources 
-	${RootFiles}
-	${PyFiles}
-	include/Visus/*.h 
-	include/Visus/*.i 
-	src/*.cpp 
-	src/*.h
-	${TinyXmlSources}
-	${DtlSources}
-	${MM_FILES} 
+	${RootFiles} 
+	${PyFiles} 
+	${TinyXmlSources} 
+	${DtlSources} 
+	${MM_FILES}
+	include/Visus/*.* 
+	src/*.cpp src/*.h
 )
 
 AddLibrary(VisusKernel ${Sources})
