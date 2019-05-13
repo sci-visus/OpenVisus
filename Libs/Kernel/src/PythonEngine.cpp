@@ -50,8 +50,7 @@ For support : support@visus.net
 
 #include <pydebug.h>
 
-//see VIsusMacros (necessary to share type info)
-#define SWIG_TYPE_TABLE OpenVisus
+//see SWIG_TYPE_TABLE necessary to share type info
 #include <Visus/swigpyrun.h>
 
 #if PY_MAJOR_VERSION <3
@@ -172,31 +171,7 @@ void InitPython()
   	
 	  const char* arg0 = ApplicationInfo::args[0].c_str();
 	  Py_SetProgramName(char2wchar(arg0));
-	}  	
 	
-	#if 0
-#if PY_MAJOR_VERSION <3
-  #define CheckForNull(value) ((value)? (value) : "<null>")
-	std::out
-		<<" Py_GetBuildInfo()="<<CheckForNull(Py_GetBuildInfo()) << std::endl
-		<<" Py_GetCompiler ()="<<CheckForNull(Py_GetCompiler ()) << std::endl
-		<<" Py_GetCopyright()="<<CheckForNull(Py_GetCopyright()) << std::endl
-		<<" Py_GetPlatform ()="<<CheckForNull(Py_GetPlatform ()) << std::endl
-		<<" Py_GetVersion  ()="<<CheckForNull(Py_GetVersion  ()) << std::endl;		
-#else
-  #define CheckForNull(value) ((value)? (value) : L"<null>")
-	std::wcout
-		<<L" Py_GetBuildInfo()="<<CheckForNull(Py_GetBuildInfo()) << std::endl
-		<<L" Py_GetCompiler ()="<<CheckForNull(Py_GetCompiler ()) << std::endl
-		<<L" Py_GetCopyright()="<<CheckForNull(Py_GetCopyright()) << std::endl
-		<<L" Py_GetPlatform ()="<<CheckForNull(Py_GetPlatform ()) << std::endl
-		<<L" Py_GetVersion  ()="<<CheckForNull(Py_GetVersion  ()) << std::endl;		
-#endif
-#endif
-
-		
-	 if (!runningInsidePyMain())
-	 {
 	  //IMPORTANT: if you want to avoid the usual sys.path initialization
 	  //you can copy the python shared library (example: python36.dll) and create a file with the same name and _pth extension
 	  //(example python36_d._pth). in that you specify the directories to include. you can also for example a python36.zip file
@@ -207,7 +182,7 @@ void InitPython()
 
 	  // acquire the gil
 	  PyEval_InitThreads();
-	
+
 	  //NOTE if you try to have multiple interpreters (Py_NewInterpreter) I get deadlock
 	  //see https://issues.apache.org/jira/browse/MODPYTHON-217
 	  //see https://trac.xapian.org/ticket/185
@@ -350,10 +325,8 @@ PythonEngine::PythonEngine(bool bVerbose)
 	if (bVerbose)
     VisusInfo() << "Trying to import OpenVisus...";
 
-  //execCode("import sys;print(sys.path)");
-  
-  //execCode("from .OpenVisus import *");
   execCode("from OpenVisus import *");
+
 
   if (bVerbose)
     VisusInfo() << "...imported OpenVisus";

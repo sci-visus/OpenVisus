@@ -80,15 +80,14 @@ public:
     PLANE_FAR
   };
 
-  
+  //constructor
+  Frustum(){
+  }
 
   //constructor
-  Frustum()
-  {}
-
-  //constructor
-  Frustum(const Viewport& viewport_,const Matrix& projection_,const Matrix& modelview_) : viewport(viewport_) ,projection(projection_),modelview(modelview_)
-  {}
+  Frustum(const Viewport& viewport_,const Matrix& projection_,const Matrix& modelview_) 
+    : viewport(viewport_) ,projection(projection_),modelview(modelview_) {
+  }
 
   //operator==
   bool operator==(const Frustum& other) const {
@@ -106,8 +105,9 @@ public:
   const Viewport& getViewport  () const {return viewport  ;}
 
   //valid
-  bool valid() const
-  {return modelview.valid() && projection.valid() && viewport.valid();}
+  bool valid() const {
+    return modelview.valid() && projection.valid() && viewport.valid();
+  }
 
   //screen box
   Box3d getScreenBox() const
@@ -127,8 +127,7 @@ public:
   void multProjection(const Matrix& T) {if (T.isIdentity()) return;projection*=T; }
 
   //pickMatrix
-  Matrix pickMatrix(double x, double y, double dx, double dy) const
-  {
+  Matrix pickMatrix(double x, double y, double dx, double dy) const{
     return (dx <= 0 || dy <= 0)? Matrix() : // If we don't have a valid region we return the identity
            Matrix::translate(Point3d((getViewport().width-2*(x-getViewport().x))/dx,(getViewport().height-2*(y-getViewport().y))/dy,0)) * 
            Matrix::scale(Point3d(getViewport().width/dx,getViewport().height/dy, 1));
@@ -173,7 +172,6 @@ public:
 
   //computeZDistance (return <0 if error)
   double computeZDistance(const Position& obj,bool bUseFarPoint=false) const;
-
 
   //getViewportDirectTransformation (-1,+1)x(-1,+1) -> (x,x+width)x(y,y+height)
   static Matrix4 getViewportDirectTransformation(const Viewport& viewport) 

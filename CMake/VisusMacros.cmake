@@ -33,8 +33,6 @@ macro(DownloadAndUncompress url check_exist working_directory)
 	endif()
 endmacro()
 
-
-
 # ///////////////////////////////////////////////////
 macro(SetTargetOutputDirectory Name BinDir LibDir)
 	if (CMAKE_CONFIGURATION_TYPES)
@@ -131,13 +129,10 @@ macro(FindPythonLibrary)
 	find_package(PythonInterp ${PYTHON_VERSION} REQUIRED)
 	find_package(PythonLibs   ${PYTHON_VERSION} REQUIRED)	
 	
-	message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
-	message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
-	message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
-			
 	add_library(OpenVisus::Python SHARED IMPORTED GLOBAL)
 	set_property(TARGET OpenVisus::Python APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES "${PYTHON_INCLUDE_DIRS}")	
 			
+	# disable Python debug library (most of pip packages do not work in debug mode)
 	if (WIN32)
 		list(LENGTH PYTHON_LIBRARY __n__)
 		if (${__n__} EQUAL 1)
@@ -150,9 +145,14 @@ macro(FindPythonLibrary)
 			set(PYTHON_LIBRARY ${__release_library_location_})
 			set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_IMPLIB ${__release_library_location_})
 		endif()
+		target_compile_definitions(OpenVisus::Python INTERFACE SWIG_PYTHON_INTERPRETER_NO_DEBUG=1)
 	else()
 		set_target_properties(OpenVisus::Python PROPERTIES IMPORTED_LOCATION ${PYTHON_LIBRARY}) 
 	endif()
+
+	message(STATUS "PYTHON_EXECUTABLE   ${PYTHON_EXECUTABLE}")
+	message(STATUS "PYTHON_LIBRARY      ${PYTHON_LIBRARY}")
+	message(STATUS "PYTHON_INCLUDE_DIR  ${PYTHON_INCLUDE_DIR}")
 		
 endmacro()
 
@@ -300,16 +300,15 @@ macro(AddSwigLibrary WrappedLib SwigFile)
 			swig_add_library(${NamePy} LANGUAGE python SOURCES ${SwigFile})
 		endif()
 			
-		# important to share types between modules
-		set_source_files_properties (${swig_generated_file_fullname} PROPERTIES COMPILE_FLAGS "-DSWIG_TYPE_TABLE=OpenVisus")	
-		set_source_files_properties (${swig_generated_file_fullname} PROPERTIES COMPILE_FLAGS "-DVISUS_PYTHON=1")
-			
 		if (TARGET _${NamePy})
 			set(RealName _${NamePy})
 		else()
 			set(RealName ${NamePy})
 		endif()
-	
+
+		target_compile_definitions(${RealName}  PRIVATE SWIG_TYPE_TABLE=OpenVisus)
+		target_compile_definitions(${RealName}  PRIVATE VISUS_PYTHON=1)
+
 		LinkPythonToLibrary(${RealName})
 	
 		# disable warnings
@@ -367,6 +366,105 @@ macro(InstallDirectoryIfExists src dst)
 	if (EXISTS "${src}")
 		install(DIRECTORY "${src}" DESTINATION ${dst})
 	endif()
+endmacro()
+
+# //////////////////////////////////////////////////////////////////////////////////
+macro(AddImportedOpenVisusLibrary OpenVisus_DIR Name Dependencies)
+
+	string(REPLACE "OpenVisus::" "" base_name ${Name})
+
+	if (WIN32)
+		set(lib_release "${OpenVisus_DIR}/lib/Visus${base_name}.lib")
+		set(lib_debug   "${OpenVisus_DIR}/debug/lib/Visus${base_name}.lib")
+	elseif (APPLE)
+		set(lib_release "${OpenVisus_DIR}/bin/libVisus${base_name}.dylib")
+		set(lib_debug   "${OpenVisus_DIR}/debug/bin/libVisus${base_name}.dylib")	
+	else()
+		set(lib_release "${OpenVisus_DIR}/bin/libVisus${base_name}.so")
+		set(lib_debug   "${OpenVisus_DIR}/debug/bin/libVisus${base_name}.so")	
+	endif()
+
+	if (EXISTS "${lib_release}")
+
+		if (NOT EXISTS "${OpenVisus_DIR}/debug")
+			set(lib_debug   "${lib_release}")
+		endif()		
+
+		add_library(${Name} SHARED IMPORTED GLOBAL)
+		set_target_properties(${Name} PROPERTIES INTERFACE_LINK_LIBRARIES "${Dependencies}") 
+		set_target_properties(${Name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${OpenVisus_DIR}/include/Kernel;${OpenVisus_DIR}/include/${base_name}") 
+
+		# multiconfigurations
+		if (CMAKE_CONFIGURATION_TYPES)
+	
+			set_target_properties(${Name} PROPERTIES IMPORTED_CONFIGURATIONS "Debug")
+			set_target_properties(${Name} PROPERTIES IMPORTED_CONFIGURATIONS "Release")
+			set_target_properties(${Name} PROPERTIES IMPORTED_CONFIGURATIONS "RelWithDebInfo")
+		
+			# note: IMPORTED_<names> are different!
+			if (WIN32)
+	  			set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB_DEBUG             "${lib_debug}")
+		  		set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB_RELEASE           "${lib_release}")
+		  		set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO    "${lib_release}")		
+			else()
+	  			set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_DEBUG           "${lib_debug}")
+		  		set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_RELEASE         "${lib_release}")
+		  		set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_RELWITHDEBINFO  "${lib_release}")	
+			endif()	
+		
+		else()
+			if (WIN32)
+				set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB                   "${lib_release}")
+			else()
+				set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION                 "${lib_release}")
+			endif()
+		endif()
+	endif()
+
+endmacro()
+
+# ///////////////////////////////////////////////////////////////
+macro(AddOpenVisusPythonLibraries OpenVisus_DIR)
+
+	if (EXISTS "${OpenVisus_DIR}/PYTHON_VERSION")
+
+		SET(VISUS_PYTHON  "1" CACHE INTERNAL "VISUS_PYTHON")
+
+		# force the version to be the same
+		file(READ ${OpenVisus_DIR}/PYTHON_VERSION PYTHON_VERSION) 
+		string(STRIP ${PYTHON_VERSION} PYTHON_VERSION)
+
+		FindPythonLibrary()
+		AddImportedOpenVisusLibrary(${OpenVisus_DIR} OpenVisus::Kernel "OpenVisus::Python")
+		set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_COMPILE_DEFINITIONS VISUS_PYTHON=1)
+	else()
+		ForceUnset(VISUS_PYTHON)
+		AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Kernel "")
+	endif()
+
+	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Dataflow "OpenVisus::Kernel")
+	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::XIdx     "OpenVisus::Kernel")
+	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Db       "OpenVisus::Kernel")
+	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Idx      "OpenVisus::Db")
+	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Nodes    "OpenVisus::Idx")
+	
+	if (EXISTS "${OpenVisus_DIR}/QT_VERSION")
+		SET(VISUS_GUI  "1" CACHE INTERNAL "VISUS_PYTHON")
+		find_package(Qt5 OPTIONAL_COMPONENTS Core Widgets Gui OpenGL QUIET)
+		if (Qt5_FOUND)
+			if (WIN32)
+				string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
+			endif()
+			AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Gui       "OpenVisus::Kernel;Qt5::Core;Qt5::Widgets;Qt5::Gui;Qt5::OpenGL")
+			AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::GuiNodes  "OpenVisus::Gui;OpenVisus::Dataflow")
+			AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::AppKit    "OpenVisus::Gui;OpenVisus::Dataflow;OpenVisus::Nodes;OpenVisus::GuiNodes")
+		else()
+			message(STATUS "Qt5 not found, disabling it")
+		endif()
+	else()
+		ForceUnset(VISUS_GUI)
+	endif()
+
 endmacro()
 
 

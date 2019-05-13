@@ -65,13 +65,13 @@ For support : support@visus.net
 #pragma push_macro("slots")
 #undef slots
 
-//for windows using Release anyway (otherwise most site-packages don't work)
-#if defined(_DEBUG) && defined(WIN32)
-#   undef _DEBUG
-#   include <Python.h>
-#   define _DEBUG
+#if defined(_DEBUG) && defined(SWIG_PYTHON_INTERPRETER_NO_DEBUG)
+/* Use debug wrappers with the Python release dll */
+# undef _DEBUG
+# include <Python.h>
+# define _DEBUG
 #else
-#   include <Python.h>
+# include <Python.h>
 #endif
 
 #pragma pop_macro("slots")
