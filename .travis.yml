@@ -72,9 +72,9 @@ matrix:
       dist: xenial
       env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=3.6.1']
 
-    - os: linux
-      dist: trusty
-      env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.6.6']  
+    #- os: linux
+    #  dist: trusty
+    #  env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.6.6']  
 
 
     # ///////////////////////////////// osx1014

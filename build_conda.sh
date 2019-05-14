@@ -16,9 +16,23 @@ export PYTHON_VERSION=${PYTHON_VERSION:-3.6.1}
 # assume miniconda installed here
 export MINICONDA_ROOT=${HOME}/miniconda${PYTHON_VERSION:0:1}
 
+if [[ "$TRAVIS_OS_NAME" != "" ]] ; then
+	export TRAVIS=1 
+fi
+
+
 if [ "$(uname)" == "Darwin" ]; then
 	OSX=1
 fi
+
+IsRoot=0
+if (( EUID== 0 || TRAVIS == 1 )); then 
+	IsRoot=1
+else
+	grep 'docker\|lxc' /proc/1/cgroup && :
+	if [ $? == 0 ] ; then  IsRoot=1 ; fi
+fi
+
 
 # install conda
 if (( INSTALL_CONDA == 1 )) ; then
