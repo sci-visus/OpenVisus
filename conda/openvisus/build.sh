@@ -38,23 +38,13 @@ function NeedApache {
 		make install  
 		popd	
 
-		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz" | tar xz
-		pushd apr-1.6.5 
-		./configure --prefix=${APACHE_DIR}   
-		make -s  
-		make install  
-		popd
-
-		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz" | tar xz
-		pushd apr-util-1.6.1 
-		./configure --prefix=${APACHE_DIR} --with-apr=${APACHE_DIR} --with-expat=${APACHE_DIR}  
-		make -s  
-		make install  
-		popd
-
 		curl -fsSL --insecure "http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz" | tar xz 
-		pushd httpd-2.4.38
-		./configure --prefix=${APACHE_DIR} --with-apr=${APACHE_DIR} --with-pcre=${APACHE_DIR} --with-ssl=${APACHE_DIR} --with-expat=${APACHE_DIR}  
+		pushd httpd-2.4.38		
+		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz"      | tar xz
+		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz" | tar xz	
+		mv ./apr-1.6.5      ./srclib/apr
+		mv ./apr-util-1.6.1 ./srclib/apr-util
+		./configure --prefix=${APACHE_DIR} --with-included-apr --with-pcre=${APACHE_DIR} --with-ssl=${APACHE_DIR} --with-expat=${APACHE_DIR}  
 		make -s  
 		make install  
 		popd

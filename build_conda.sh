@@ -16,7 +16,7 @@ export PYTHON_VERSION=${PYTHON_VERSION:-3.6.1}
 # assume miniconda installed here
 export MINICONDA_ROOT=${HOME}/miniconda${PYTHON_VERSION:0:1}
 
-if [ $(uname) = "Darwin" ]; then
+if [ "$(uname)" == "Darwin" ]; then
 	OSX=1
 fi
 
@@ -25,7 +25,7 @@ if (( INSTALL_CONDA == 1 )) ; then
 
 	# check I have a portable SDK
 	# here I need sudo! 
-	if (( OSX ==  1)) ; then
+	if (( OSX ==  1 )) ; then
 		if [ ! -d /opt/MacOSX10.9.sdk ] ; then
 		  if (( IsRoot == 1 )) ; then
 				git clone  https://github.com/phracker/MacOSX-SDKs.git 

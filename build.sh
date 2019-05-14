@@ -23,7 +23,7 @@ if [[ "${USE_CONDA}" == "1" ]] ; then
 fi
 
 # forward to osx (non rehentrant)
-if [ $(uname) = "Darwin" ]; then
+if [ "$(uname)" == "Darwin" ]; then
 	./build_osx.sh
 	exit 0
 fi
@@ -117,8 +117,15 @@ function NeedPatchElf {
 
 	if [ ! -f "${CACHE_DIR}/bin/patchelf" ] ; then
 		curl -fsSL --insecure "https://nixos.org/releases/patchelf/patchelf-0.9/patchelf-0.9.tar.gz" | tar xz			
-		cd    patchelf-0.9 && ./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
-		autoreconf -f -i   && ./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null 
+		pushd patchelf-0.9 
+		./configure --prefix=${CACHE_DIR} 1>/dev/null 
+		make -s 1>/dev/null 
+		make install 1>/dev/null 
+		autoreconf -f -i  
+		./configure --prefix=${CACHE_DIR} 1>/dev/null 
+		make -s 1>/dev/null 
+		make install 1>/dev/null
+		popd 
 	fi
 }
 
@@ -268,23 +275,38 @@ function NeedApache {
 		BeginSection "Compiling apache from source"
 
 		curl -fsSL --insecure "https://github.com/libexpat/libexpat/releases/download/R_2_2_6/expat-2.2.6.tar.bz2" | tar xj
-		pushd expat-2.2.6 && ./configure --prefix=${CACHE_DIR} 1>/dev/null && make && make install && popd
+		pushd expat-2.2.6 
+		./configure --prefix=${CACHE_DIR} 1>/dev/null
+		make
+		make install 
+		popd
 
 		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz" | tar xz
-		pushd apr-1.6.5 && ./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null && popd
+		pushd apr-1.6.5 
+		./configure --prefix=${CACHE_DIR} 1>/dev/null
+		make -s 1>/dev/null
+		make install 1>/dev/null
+		popd
 
 		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz" | tar xz
 		pushd apr-util-1.6.1 
-		./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-expat=${CACHE_DIR} 1>/dev/null  && make -s 1>/dev/null && make install 1>/dev/null 
+		./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-expat=${CACHE_DIR} 1>/dev/null  
+		make -s 1>/dev/null
+		make install 1>/dev/null 
 		popd
 
 		curl -fsSL --insecure "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz" | tar xz
-		pushd pcre-8.42 && ./configure --prefix=${CACHE_DIR} 1>/dev/null && make -s 1>/dev/null && make install 1>/dev/null && popd
+		pushd pcre-8.42 
+		./configure --prefix=${CACHE_DIR} 1>/dev/null 
+		make -s 1>/dev/null  
+		make install 1>/dev/null 
+		popd
 
 		curl -fsSL --insecure  "http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz" | tar xz
 		pushd httpd-2.4.38
 		./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-pcre=${CACHE_DIR} --with-ssl=${CACHE_DIR} --with-expat=${CACHE_DIR} 1>/dev/null 
-		make -s 1>/dev/null && make install 1>/dev/null 
+		make -s 1>/dev/null 
+		make install 1>/dev/null 
 		popd
 	fi	
 }
