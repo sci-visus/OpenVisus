@@ -61,6 +61,8 @@ cd ${BUILD_DIR}
 declare -a cmake_opts
 cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 cmake_opts+=(-DVISUS_OPENMP=${VISUS_OPENMP})
+cmake_opts+=(-DPYTHON_EXECUTABLE=${PYTHON}) 
+cmake_opts+=(-DPYTHON_VERSION=${PY_VER})
 
 # setup compiler
 if [[ ${c_compiler} != "toolchain_c" ]]; then

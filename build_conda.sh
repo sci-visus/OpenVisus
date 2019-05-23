@@ -78,8 +78,9 @@ fi
 # activate
 export PATH=${MINICONDA_ROOT}/bin:$PATH
 conda create  --yes --force --name openvisus-conda python=${PYTHON_VERSION}
-conda install --yes --name openvisus-conda numpy
-source activate openvisus-conda
+source ${MINICONDA_ROOT}/etc/profile.d/conda.sh
+conda activate openvisus-conda
+conda install --yes numpy
 
 # see conda/openvisus/build.sh
 if (( 1 == 1 )) ; then
