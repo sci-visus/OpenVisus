@@ -264,11 +264,9 @@ function NeedApache {
 	# use existing
 	if (( MANYLINUX == 0 )); then
 		unset APACHE_DIR
-		unset APR_DIR
 		return 0
 	fi
 
-	APR_DIR={CACHE_DIR}
 	APACHE_DIR=${CACHE_DIR}
 	if [ ! -f "${APACHE_DIR}/include/httpd.h" ] ; then
 
@@ -276,38 +274,29 @@ function NeedApache {
 
 		curl -fsSL --insecure "https://github.com/libexpat/libexpat/releases/download/R_2_2_6/expat-2.2.6.tar.bz2" | tar xj
 		pushd expat-2.2.6 
-		./configure --prefix=${CACHE_DIR} 1>/dev/null
-		make
-		make install 
-		popd
-
-		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz" | tar xz
-		pushd apr-1.6.5 
-		./configure --prefix=${CACHE_DIR} 1>/dev/null
-		make -s 1>/dev/null
-		make install 1>/dev/null
-		popd
-
-		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz" | tar xz
-		pushd apr-util-1.6.1 
-		./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-expat=${CACHE_DIR} 1>/dev/null  
-		make -s 1>/dev/null
+		./configure --prefix=${APACHE_DIR} 1>/dev/null
+		make -s      1>/dev/null  
 		make install 1>/dev/null 
 		popd
 
 		curl -fsSL --insecure "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz" | tar xz
 		pushd pcre-8.42 
-		./configure --prefix=${CACHE_DIR} 1>/dev/null 
-		make -s 1>/dev/null  
+		./configure --prefix=${APACHE_DIR} 1>/dev/null 
+		make -s      1>/dev/null  
 		make install 1>/dev/null 
 		popd
 
-		curl -fsSL --insecure  "http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz" | tar xz
-		pushd httpd-2.4.38
-		./configure --prefix=${CACHE_DIR} --with-apr=${CACHE_DIR} --with-pcre=${CACHE_DIR} --with-ssl=${CACHE_DIR} --with-expat=${CACHE_DIR} 1>/dev/null 
-		make -s 1>/dev/null 
-		make install 1>/dev/null 
+		curl -fsSL --insecure "http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz" | tar xz 
+		pushd httpd-2.4.38		
+		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz"      | tar xz
+		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz" | tar xz	
+		mv ./apr-1.6.5      ./srclib/apr
+		mv ./apr-util-1.6.1 ./srclib/apr-util
+		./configure --prefix=${APACHE_DIR} --with-included-apr --with-pcre=${APACHE_DIR} --with-ssl=${APACHE_DIR} --with-expat=${APACHE_DIR}  1>/dev/null 
+		make -s       1>/dev/null 
+		make install  1>/dev/null 
 		popd
+
 	fi	
 }
 
@@ -528,7 +517,7 @@ AddCMakeOption -DVISUS_IMAGE        "${VISUS_IMAGE}"
 # python
 AddCMakeOption -DVISUS_PYTHON "${VISUS_PYTHON}"
 if (( VISUS_PYTHON == 1 )) ; then
-	AddCMakeOption -DSWIG_EXECUTABLE "${SWIG_EXECUTABLE}"
+	AddCMakeOption -DSWIG_EXECUTABLE      "${SWIG_EXECUTABLE}"
 	AddCMakeOption -DPYTHON_VERSION       "${PYTHON_VERSION}"
 	AddCMakeOption -DPYTHON_EXECUTABLE    "${PYTHON_EXECUTABLE}"
 	AddCMakeOption -DPYTHON_INCLUDE_DIR   "${PYTHON_INCLUDE_DIR}"
@@ -536,9 +525,7 @@ if (( VISUS_PYTHON == 1 )) ; then
 fi
 
 # mod_visus
-AddCMakeOption -DVISUS_MODVISUS "${VISUS_MODVISUS}"
 if (( VISUS_MODVISUS == 1 )); then
-	AddCMakeOption -DAPR_DIR     "${APR_DIR}"
 	AddCMakeOption -DAPACHE_DIR  "${APACHE_DIR}"
 fi
 

@@ -79,13 +79,15 @@ fi
 export PATH=${MINICONDA_ROOT}/bin:$PATH
 conda create  --yes --force --name openvisus-conda python=${PYTHON_VERSION}
 source ${MINICONDA_ROOT}/etc/profile.d/conda.sh
+# see https://github.com/conda/conda/issues/8072
+eval "$(conda shell.bash hook)"
 conda activate openvisus-conda
 conda install --yes numpy
 
 # see conda/openvisus/build.sh
 if (( 1 == 1 )) ; then
 	pushd ./conda
-	conda-build         -q openvisus
+	conda-build --python=${PYTHON_VERSION} -q openvisus
 	conda install --yes -q --use-local openvisus
 	popd
 fi

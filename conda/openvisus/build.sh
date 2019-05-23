@@ -19,7 +19,6 @@ VISUS_GUI=0 # todo: can Qt5 work?
 function NeedApache {
 
 	APACHE_DIR=${BUILD_DIR}/.apache
-
 	if [ ! -f "${APACHE_DIR}/include/httpd.h" ] ; then
 
 		mkdir -p ${APACHE_DIR} 
@@ -85,11 +84,9 @@ if [[ ${c_compiler} != "toolchain_c" ]]; then
 fi
 
 # apache
-cmake_opts+=(-DVISUS_MODVISUS="${VISUS_MODVISUS}")
 if (( VISUS_MODVISUS == 1 )); then
 	NeedApache	
-	cmake_opts+=(-DAPACHE_DIR="${APACHE_DIR}")
-	cmake_opts+=(-DAPR_DIR="${APACHE_DIR}")
+	cmake_opts+=(-DAPACHE_DIR=${APACHE_DIR})
 fi
 
 # qt5 (can it work?)

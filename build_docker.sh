@@ -57,10 +57,6 @@ if [[ "${VISUS_PYTHON}" != "" ]] ; then
 	fi
 fi
 
-if [[ "${VISUS_MODVISUS}" != "" ]] ; then
-	docker_opts+=(-e VISUS_MODVISUS=${VISUS_MODVISUS})
-fi
-
 if [[ "${VISUS_GUI}" != "" ]] ; then
 	docker_opts+=(-e VISUS_GUI=${VISUS_GUI})
 fi
