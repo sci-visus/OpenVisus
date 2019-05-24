@@ -73,9 +73,9 @@ function NeedPython {
 
 		eval "$(pyenv init -)"
 		CONFIGURE_OPTS="--enable-shared" \
-		CFLAGS="   -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include" \
-		CPPFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include" \
-		LDFLAGS="  -L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib" \
+		CFLAGS="   -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include -I$(brew --prefix openssl@1.1)/include" \
+		CPPFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include -I$(brew --prefix openssl@1.1)/include" \
+		LDFLAGS="  -L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib     -L$(brew --prefix openssl@1.1)/lib" \
 		pyenv install --skip-existing ${PYTHON_VERSION} 
 		pyenv global ${PYTHON_VERSION}
 		pyenv rehash
