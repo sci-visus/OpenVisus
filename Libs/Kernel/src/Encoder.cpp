@@ -41,8 +41,9 @@ For support : support@visus.net
 
 #include "EncoderId.h"
 
-#if VISUS_COMPRESSION
 #include "EncoderLz4.h"
+
+#if VISUS_COMPRESSION
 #include "EncoderZip.h"
 #endif
 
@@ -61,8 +62,9 @@ Encoders::Encoders()
   addEncoder("raw", std::make_shared<IdEncoder>());
   addEncoder("bin", std::make_shared<IdEncoder>());
 
-#if VISUS_COMPRESSION
   addEncoder("lz4", std::make_shared<LZ4Encoder>());
+
+#if VISUS_COMPRESSION
   addEncoder("zip", std::make_shared<ZipEncoder>());
 #endif
 

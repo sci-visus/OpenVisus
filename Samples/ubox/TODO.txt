@@ -1,0 +1,29 @@
+
+Integrate Ubox into Data portal
+
+(*) a Ubox user "A" share a folder to another user "B" (see movie about how to do it)
+
+(*) a Ubox user "B" receive the email with the sharing, copy/paste that link in Visus DataPortal. 
+    Simply clicking on the email link is not enought for doing automatically conversion since this way you will be redirect to the Ubox default interface.
+   
+
+(*) The DataPortal page gets that link, redirect to the Ubox page for SingleSignOn (OAth2). it will redirect to a page like:
+
+	redirect_uri=http://molniya.sci.utah.edu/visus/ubox?folder_id=<folder_id>
+	https://app.box.com/api/oauth2/authorize?access_type=offline&client_id=<client_id>&redirect_uri=$redirect_uri&response_type=code
+	
+	(NOTE we need to enable this redirect in the ubox developer console!)
+	
+(*) User "B" login into Ubox account and grants permissions
+
+(*) DataPortal will receive a "callback" with the authorization code. Something like:
+
+	http://molniya.sci.utah.edu/visus/ubox?folder_id=<folder_id>&code=<authorization_code>
+	
+(*) Data portal will use this authorization code to get an <access_token>
+
+(*) Now data portal can programmatically download files from the specific folder and convert to IDX
+
+For details how to do it you have a self-contained python example (test.py)
+In the comments you have also the curl equivalent to make network requests.
+

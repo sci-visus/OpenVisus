@@ -36,22 +36,6 @@ if (VISUS_COMPRESSION)
 		message(STATUS "ZLIB_LIBRARIES    ${ZLIB_LIBRARIES}")
 	endif()
 
-	# *** lz4 dependency ***
-	SetIfNotDefined(VISUS_INTERNAL_LZ4 ${VISUS_INTERNAL_DEFAULT})
-	if (VISUS_INTERNAL_LZ4)
-		MESSAGE(STATUS "Using internal lz4")
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/lz4 ${CMAKE_CURRENT_BINARY_DIR}/lz4)
-	else()
-		# i'm assuming brew here
-		if (APPLE)
-			SetIfNotDefined(LZ4_INCLUDE_DIR /usr/local/opt/lz4/include)
-			SetIfNotDefined(LZ4_LIBRARY     /usr/local/opt/lz4/lib/liblz4.dylib)
-		endif()
-		find_package(LZ4 REQUIRED)
-		MESSAGE(STATUS "Using external lz4")
-		message(STATUS "LZ4_INCLUDE_DIR ${LZ4_INCLUDE_DIR}")
-		message(STATUS "LZ4_LIBRARY     ${LZ4_LIBRARY}")
-	endif()
 endif()
 
 # *** openssl dependency ***
@@ -308,7 +292,6 @@ source_group("Encoder" FILES
 	./src/Encoder.cpp)
 
 
-
 source_group("Misc" FILES 
 	./include/Visus/PointCloud.h
 	./include/Visus/Graph.h
@@ -320,10 +303,13 @@ IF (WIN32 OR APPLE)
 endif()
 
 file(GLOB DtlSources   src/dtl/*.hpp src/dtl/*.cpp)
-source_group("dtl" FILES ${DtlSources})
+source_group("Libs\\dtl" FILES ${DtlSources})
 
 file(GLOB TinyXmlSources   src/tinyxml/*.h src/tinyxml/*.cpp)
-source_group("tinyxml" FILES ${TinyXmlSources})
+source_group("Libs\\tinyxml" FILES ${TinyXmlSources})
+
+file(GLOB Lz4Sources   src/lz4/*.h src/lz4/*.c)
+source_group("Libs\\lz4" FILES ${Lz4Sources})
 
 file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/*.py)
 source_group("Python" FILES 
@@ -337,6 +323,7 @@ file(GLOB Sources
 	${PyFiles} 
 	${TinyXmlSources} 
 	${DtlSources} 
+	${Lz4Sources} 
 	${MM_FILES}
 	include/Visus/*.* 
 	src/*.cpp src/*.h
@@ -376,15 +363,9 @@ if (VISUS_COMPRESSION)
 		target_link_libraries(VisusKernel PRIVATE zlib)
 	else()
 		target_include_directories(VisusKernel PRIVATE ${ZLIB_INCLUDE_DIRS})
-		target_link_libraries(VisusKernel      PUBLIC ${ZLIB_LIBRARIES})	
+		target_link_libraries(VisusKernel      PUBLIC  ${ZLIB_LIBRARIES})	
 	endif()
 
-	if (TARGET lz4)
-		target_link_libraries(VisusKernel PRIVATE lz4)
-	else()
-		target_include_directories(VisusKernel PRIVATE ${LZ4_INCLUDE_DIR})
-		target_link_libraries(VisusKernel      PUBLIC ${LZ4_LIBRARY})
-	endif()
 endif()
 
 if (VISUS_IMAGE)
