@@ -197,11 +197,6 @@ macro(LinkPythonToLibrary Name)
 		
 endmacro()
 
-# ///////////////////////////////////////////////////
-function(StringStartsWith str search)
-
-endfunction()
-
 
 # ///////////////////////////////////////////////////
 macro(AddLibrary Name)
@@ -221,6 +216,15 @@ macro(AddLibrary Name)
 	string(TOUPPER ${Name} __NAME__)
 	target_compile_definitions(${Name}  PRIVATE VISUS_BUILDING_${__NAME__}=1)
 	target_include_directories(${Name}  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+
+	# example VISUS_STATIC_KERNEL_LIB
+	get_target_property(target_type ${Name} TYPE)
+	if (target_type STREQUAL "STATIC_LIBRARY")
+		string(TOUPPER ${__NAME__} __definition__)
+		set(__definition__ "VISUS_STATIC_${__definition__}_LIB=1")
+		string(REPLACE "VISUS_STATIC_VISUS" "VISUS_STATIC_" __definition__ "${__definition__}")
+		target_compile_definitions(${Name}  PUBLIC ${__definition__})
+	endif ()	
 
 	# example: VisusKernel -> VISUS_KERNEL
 	string(REPLACE "VISUS" "" __out__ ${__NAME__})
