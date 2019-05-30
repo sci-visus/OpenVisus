@@ -199,11 +199,10 @@ class BoxStorage:
 
 		webbrowser.open("~picker.html")		
 
-# must configure your SCI box account using 'devconsole'# https://uofu.account.box.com/login?redirect_url=%2Fdevelopers%2Fconsole&logout=true
-# user=u0705839@utah.edu		
+# must configure your SCI box account using 'devconsole'# https://uofu.account.box.com/login?redirect_url=%2Fdevelopers%2Fconsole&logout=true	
 box=BoxStorage(
-	client_id='xd4r7ohya087jittg5cilu0v68g1yamk',
-	client_secret='uNcNHCUk0oAzz1yC14r5hRzBtYxRIj8t',
+	client_id='XXXXXXXXXXXXX',
+	client_secret='YYYYYYYYYYYYYY',
 	redirect_uri='http://127.0.0.1:53682')
 	
 root_id=0
