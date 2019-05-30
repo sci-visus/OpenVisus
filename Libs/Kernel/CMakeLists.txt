@@ -12,86 +12,12 @@ if(GIT_FOUND)
 	endif()
 endif()
 
-if (NOT DEFINED VISUS_INTERNAL_DEFAULT)
-	set(VISUS_INTERNAL_DEFAULT 1)
-endif()
-
-
-
-# *** openssl dependency ***
-if (VISUS_NET)	
-
-	SetIfNotDefined(VISUS_INTERNAL_OPENSSL ${VISUS_INTERNAL_DEFAULT})
-	if (VISUS_INTERNAL_OPENSSL)
-		MESSAGE(STATUS "Using internal LibresSSL")
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/libressl ${CMAKE_CURRENT_BINARY_DIR}/libressl)
-	else()
-		# i'm assuming brew here	
-		if (APPLE)
-			SetIfNotDefined(OPENSSL_INCLUDE_DIR    /usr/local/opt/openssl/include)
-			SetIfNotDefined(OPENSSL_CRYPTO_LIBRARY /usr/local/opt/openssl/lib/libcrypto.dylib)
-			SetIfNotDefined(OPENSSL_SSL_LIBRARY    /usr/local/opt/openssl/lib/libssl.dylib)	
-		endif()
-		find_package(OpenSSL REQUIRED)
-		MESSAGE(STATUS "Using external OpenSSL")
-		message(STATUS "OPENSSL_INCLUDE_DIR    ${OPENSSL_INCLUDE_DIR}")
-		message(STATUS "OPENSSL_CRYPTO_LIBRARY ${OPENSSL_CRYPTO_LIBRARY}")
-		message(STATUS "OPENSSL_SSL_LIBRARY    ${OPENSSL_SSL_LIBRARY}")
-	endif()
-endif()
-
-# *** curl dependency ***
 if (VISUS_NET)		
-	SetIfNotDefined(VISUS_INTERNAL_CURL ${VISUS_INTERNAL_DEFAULT})
-	if (VISUS_INTERNAL_CURL)
-		MESSAGE(STATUS "Using internal Curl")
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/curl ${CMAKE_CURRENT_BINARY_DIR}/curl)
-	else()
-		# i'm assuming brew here
-		if (APPLE)
-			SetIfNotDefined(CURL_INCLUDE_DIR /usr/local/opt/curl/include)
-			SetIfNotDefined(CURL_LIBRARY     /usr/local/opt/curl/lib/libcurl.dylib)
-		endif()
-		find_package(CURL REQUIRED)
-		# see https://github.com/Microsoft/vcpkg/issues/1909
-	 	if (CMAKE_TOOLCHAIN_FILE)
-			list(LENGTH CURL_LIBRARY CURL_LIBRARY_LENGTH)
-			if (CURL_LIBRARY_LENGTH EQUAL 1)
-				set(CURL_LIBRARY_DEBUG_LIB   ${CURL_LIBRARY})
-				set(CURL_LIBRARY_RELEASE_LIB ${CURL_LIBRARY_DEBUG_LIB}/../../../lib/libcurl.lib)
-				get_filename_component(CURL_LIBRARY_RELEASE_LIB ${CURL_LIBRARY_RELEASE_LIB} REALPATH)
-				ForceUnset(CURL_LIBRARY)
-				ForceUnset(CURL_LIBRARIES)
-				set(CURL_LIBRARY "debug;${CURL_LIBRARY_DEBUG_LIB};optimized;${CURL_LIBRARY_RELEASE_LIB}")
-				set(CURL_LIBRARIES ${CURL_LIBRARY})
-			endif()
-		endif()	
-		message(STATUS "Using external Curl")
-		message(STATUS "CURL_INCLUDE_DIR ${CURL_INCLUDE_DIR}")
-		message(STATUS "CURL_LIBRARIES   ${CURL_LIBRARIES}")
-	endif()
-
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/curl ${CMAKE_CURRENT_BINARY_DIR}/curl)
 endif() 
 
-
-# *** FreeImage dependency ***
 if (VISUS_IMAGE)
-	SetIfNotDefined(VISUS_INTERNAL_FREEIMAGE ${VISUS_INTERNAL_DEFAULT})
-	if (VISUS_INTERNAL_FREEIMAGE)
-		MESSAGE(STATUS "Using internal FreeImage")
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/FreeImage ${CMAKE_CURRENT_BINARY_DIR}/FreeImage)
-	else()
-		# i'm assuming brew here
-		if (APPLE)
-			SetIfNotDefined(FREEIMAGE_INCLUDE_DIRS /usr/local/opt/freeimage/include)
-			SetIfNotDefined(FREEIMAGE_LIBRARIES    /usr/local/opt/freeimage/lib/libfreeimage.dylib)
-		endif()
-		find_package(FreeImage REQUIRED)
-		MESSAGE(STATUS "Using external FreeImage")
-		message(STATUS "FREEIMAGE_INCLUDE_DIRS ${FREEIMAGE_INCLUDE_DIRS}")
-		message(STATUS "FREEIMAGE_LIBRARIES    ${FREEIMAGE_LIBRARIES}")
-	endif()
-	
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/FreeImage ${CMAKE_CURRENT_BINARY_DIR}/FreeImage)
 endif()
 
 if (NOT (WIN32 OR APPLE))
@@ -299,6 +225,9 @@ if (HAVE_OFF64_T)
 	set_property(SOURCE ${ZLibSources} PROPERTY COMPILE_DEFINITIONS _LARGEFILE64_SOURCE=1)
 endif()
 
+file(GLOB CryptLiteSources   src/cryptlite/*.h src/cryptlite/*.c)
+source_group("Libs\\cryptlite" FILES ${CryptLiteSources})
+
 file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/*.py)
 source_group("Python" FILES 
 	./include/Visus/swigpyrun.h 
@@ -313,6 +242,7 @@ file(GLOB Sources
 	${DtlSources} 
 	${Lz4Sources} 
 	${ZLibSources} 
+	${CryptLiteSources}
 	${MM_FILES}
 	include/Visus/*.* 
 	src/*.cpp src/*.h
@@ -345,45 +275,13 @@ if (VISUS_OPENMP)
 endif()
 
 if (VISUS_IMAGE)
-
 	target_compile_definitions(VisusKernel PUBLIC -DVISUS_IMAGE=1)
-
-	if (TARGET FreeImage)
-		target_link_libraries(VisusKernel PRIVATE FreeImage)
-	else()
-		target_include_directories(VisusKernel PRIVATE ${FREEIMAGE_INCLUDE_DIRS})
-		target_link_libraries(VisusKernel      PUBLIC ${FREEIMAGE_LIBRARIES})
-	endif()
+	target_link_libraries(VisusKernel PRIVATE FreeImage)
 endif()
 
 if (VISUS_NET)
-
 	target_compile_definitions(VisusKernel PUBLIC -DVISUS_NET=1)
-
-	if (TARGET crypto)
-	
-		target_link_libraries(VisusKernel PRIVATE crypto)
-		
-		if (TARGET ssl)
-			target_link_libraries(VisusKernel PRIVATE ssl)	
-		endif()
-		
-		if (TARGET tls)
-			target_link_libraries(VisusKernel PRIVATE tls)
-		endif()
-		
-	else()
-		target_include_directories(VisusKernel PRIVATE ${OPENSSL_INCLUDE_DIR})
-		target_link_libraries(VisusKernel      PUBLIC ${OPENSSL_SSL_LIBRARY})
-		target_link_libraries(VisusKernel      PUBLIC ${OPENSSL_CRYPTO_LIBRARY})
-	endif()
-
-	if (TARGET curl)
-		target_link_libraries(VisusKernel PRIVATE curl)
-	else()
-		target_include_directories(VisusKernel PRIVATE ${CURL_INCLUDE_DIR})
-		target_link_libraries(VisusKernel      PUBLIC ${CURL_LIBRARIES})
-	endif()
+	target_link_libraries(VisusKernel PRIVATE curl)
 endif()
 
 if (VISUS_PYTHON)

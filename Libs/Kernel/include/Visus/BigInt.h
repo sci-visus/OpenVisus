@@ -42,81 +42,21 @@ For support : support@visus.net
 #include <Visus/Kernel.h>
 #include <Visus/NumericLimits.h>
 
-#ifndef VISUS_BIGINT_NBITS
-#  define VISUS_BIGINT_NBITS 64
-#endif
+namespace Visus {
 
-#if VISUS_BIGINT_NBITS==64
+  typedef Int64 BigInt;
 
-  namespace Visus {
+  //String->BigInt
+  inline BigInt cbigint(const String& s) {
+    return cint64(s);
+  }
 
-    typedef Int64 BigInt;
+  //BigInt->Int64
+  inline Int64 cint64(const BigInt& value) {
+    return value;
+  }
 
-    //String->BigInt
-    inline BigInt cbigint(const String& s) {
-      return cint64(s);
-    }
-
-    //BigInt->Int64
-    inline Int64 cint64(const BigInt& value) {
-      return value;
-    }
-
-  } //namespace Visus
-
-#else
-
-  #define VISUS_HAS_INT128 1
-  #define VISUS_HAS_INT256 1
-  #define VISUS_HAS_INT512 1
-
-  #if defined(__LP64__) || defined(_WIN64) || (defined(__x86_64__) &&     !defined(__ILP32__) ) || defined(_M_X64) || defined(__ia64) || defined (_M_IA64) || defined(__aarch64__) || defined(__powerpc64__)
-    #define TTMATH_PLATFORM64 1
-    #define TTMATH_NOASM      1
-  #else
-    #define TTMATH_PLATFORM32 1
-  #endif
-
-  #include <ttmath/ttmath.h>
-
-  namespace Visus {
-
-    typedef ttmath::Int< TTMATH_BITS(128) >  Int128;
-    typedef ttmath::Int< TTMATH_BITS(256) >  Int256;
-    typedef ttmath::Int< TTMATH_BITS(512) >  Int512;
-
-    #if VISUS_BIGINT_NBITS==128
-      typedef Int128 BigInt;
-    #elif VISUS_BIGINT_NBITS==256
-      typedef Int256 BigInt;
-    #elif VISUS_BIGINT_NBITS==512
-      typedef Int512 BigInt;
-    #else
-      #error "Something wrong with VISUS_BIGINT_NBITS"
-    #endif
-
-    //String->BigInt
-    inline BigInt cbigint(const String& s) {
-      return BigInt(s);
-    }
-
-    //BigInt->Int64 (must check that the BigInt fits in Int64)
-    inline Int64 cint64(const BigInt& value) {
-      Int64 result; 
-      bool overflow = value.ToInt(result) ? true : false; 
-      VisusAssert(!overflow); 
-      return result;
-    }
-
-    //BigInt->String
-    inline String cstring(const BigInt& v) {
-      return v.ToString();
-    }
-
-  } //namespace Visus
-
-#endif
-
+} //namespace Visus
 
 
 #endif //_VISUS_BIGINT_H__

@@ -65,25 +65,11 @@ AddInternalLibrary(curl
 	vtls/cyassl.c vtls/schannel.c vtls/darwinssl.c vtls/gskit.c           
 	vtls/mbedtls.c)
 
-if (TARGET crypto)
-
-	target_link_libraries(curl PRIVATE crypto)
-
-	if (TARGET ssl)
-		target_link_libraries(curl PRIVATE ssl)
-	endif()	
-	
-	if (TARGET tls)
-		target_link_libraries(curl PRIVATE tls)
-	endif()
-	
-else()
-	target_include_directories(curl PRIVATE ${OPENSSL_INCLUDE_DIR})
-endif()
+target_link_libraries(curl PRIVATE crypto ssl tls)
 
 target_compile_definitions(curl PRIVATE BUILDING_LIBCURL)
 target_include_directories(curl PRIVATE ./ ../include)
 target_include_directories(curl PUBLIC  ../include)
-set_target_properties(curl PROPERTIES FOLDER "InternalLibs/")
+set_target_properties(curl PROPERTIES FOLDER "InternalLibs/curl")
 
 

@@ -1,7 +1,7 @@
 
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libressl ${CMAKE_CURRENT_BINARY_DIR}/libressl)
 
 # https://curl.haxx.se/download/curl-7.59.0.tar.gz
-
 if (WIN32)
   add_definitions(-DPSAPI_VERSION=1)
   add_definitions(-DFD_SETSIZE=4096)

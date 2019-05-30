@@ -201,9 +201,9 @@ add_subdirectory(crypto)
 add_subdirectory(ssl)
 add_subdirectory(tls)
 
-set_target_properties(crypto PROPERTIES FOLDER "InternalLibs/libressl")
-set_target_properties(ssl    PROPERTIES FOLDER "InternalLibs/libressl")
-set_target_properties(tls    PROPERTIES FOLDER "InternalLibs/libressl")
+set_target_properties(crypto PROPERTIES FOLDER "InternalLibs/curl")
+set_target_properties(ssl    PROPERTIES FOLDER "InternalLibs/curl")
+set_target_properties(tls    PROPERTIES FOLDER "InternalLibs/curl")
 
 
 

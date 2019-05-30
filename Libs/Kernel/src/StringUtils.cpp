@@ -45,9 +45,11 @@ For support : support@visus.net
 #include <iomanip>
 #include <cctype>
 
+#include <cryptlite/sha1.h>
+#include <cryptlite/sha256.h>
+#include <cryptlite/hmac.h>
 
 namespace Visus {
-
 
 ///////////////////////////////////////////////////////////////////////////
 bool cbool(const String& s) 
@@ -201,9 +203,24 @@ String StringUtils::base64Decode(const String& input)
 }
 
 
+///////////////////////////////////////////////////////////////////////////
+String StringUtils::hmac_sha256(String input, String key)
+{
+  Uint8 buffer[cryptlite::sha256::HASH_SIZE];
+  cryptlite::hmac<cryptlite::sha256>::calc(input, key, buffer);
+  return String((char*)buffer, cryptlite::sha256::HASH_SIZE);
+}
+
+///////////////////////////////////////////////////////////////////////////
+String StringUtils::hmac_sha1(String input, String key)
+{
+  Uint8 buffer[cryptlite::sha1::HASH_SIZE];
+  cryptlite::hmac<cryptlite::sha1>::calc(input, key, buffer);
+  return String((char*)buffer, cryptlite::sha1::HASH_SIZE);
+}
+
 
 ////////////////////////////////////////////////////////////////////////
-
 class MD5
 {
 private:

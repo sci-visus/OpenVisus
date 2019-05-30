@@ -72,12 +72,6 @@ public:
   //detach
   static void detach();
 
-  //sha256
-  static String sha256(String input, String key);
-
-  //sha1
-  static String sha1(String input, String key);
-
   //setSocketType
   void setVerbose(int value) {
     VisusAssert(!pimpl);
