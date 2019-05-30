@@ -37,10 +37,6 @@ if [[ "${DISABLE_OPENMP}" != "" ]] ; then
 	docker_opts+=(-e DISABLE_OPENMP=${DISABLE_OPENMP})
 fi
 
-if [[ "${VISUS_COMPRESSION}" != "" ]] ; then
-	docker_opts+=(-e VISUS_COMPRESSION=${VISUS_COMPRESSION})
-fi
-
 if [[ "${VISUS_NET}" != "" ]] ; then
 	docker_opts+=(-e VISUS_NET=${VISUS_NET})
 fi

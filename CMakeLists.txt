@@ -38,7 +38,6 @@ include(FindPackageHandleStandardArgs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake)
 
 option(BUILD_SHARED_LIBS "Build the shared library"  ON)
-option(VISUS_COMPRESSION "Enable compression"        ON)  
 option(VISUS_NET         "Enable net"                ON) 
 option(VISUS_IMAGE       "Enable image"              ON)  
 option(VISUS_PYTHON      "Enable python"             ON) 
@@ -54,7 +53,6 @@ CMAKE_DEPENDENT_OPTION(VISUS_GUINODES    "Enable VisusGuiNodes"      ON  "VISUS_
 CMAKE_DEPENDENT_OPTION(VISUS_APPKIT      "Enable VisusAppKit"        ON  "VISUS_NODES;VISUS_GUINODES" OFF)
 CMAKE_DEPENDENT_OPTION(VISUS_OSPRAY      "Enable ospray"             OFF "VISUS_GUINODES"             OFF)
 
-message(STATUS "VISUS_COMPRESSION ${VISUS_COMPRESSION}")
 message(STATUS "VISUS_NET         ${VISUS_NET}")
 message(STATUS "VISUS_IMAGE       ${VISUS_IMAGE}")
 message(STATUS "VISUS_PYTHON      ${VISUS_PYTHON}")

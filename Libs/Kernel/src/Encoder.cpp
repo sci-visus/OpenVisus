@@ -40,16 +40,14 @@ For support : support@visus.net
 #include <Visus/StringUtils.h>
 
 #include "EncoderId.h"
-
 #include "EncoderLz4.h"
-
-#if VISUS_COMPRESSION
 #include "EncoderZip.h"
-#endif
 
 #if VISUS_IMAGE
 #include "EncoderFreeImage.h"
 #endif
+
+
 
 namespace Visus {
 
@@ -61,12 +59,8 @@ Encoders::Encoders()
   addEncoder(""   , std::make_shared<IdEncoder>());
   addEncoder("raw", std::make_shared<IdEncoder>());
   addEncoder("bin", std::make_shared<IdEncoder>());
-
   addEncoder("lz4", std::make_shared<LZ4Encoder>());
-
-#if VISUS_COMPRESSION
   addEncoder("zip", std::make_shared<ZipEncoder>());
-#endif
 
 #if VISUS_IMAGE
   addEncoder("png", std::make_shared<FreeImageEncoder>("png"));

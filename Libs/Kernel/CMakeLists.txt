@@ -17,26 +17,6 @@ if (NOT DEFINED VISUS_INTERNAL_DEFAULT)
 endif()
 
 
-if (VISUS_COMPRESSION)
-
-	# *** zlib dependency ***
-	SetIfNotDefined(VISUS_INTERNAL_ZLIB ${VISUS_INTERNAL_DEFAULT})
-	if (VISUS_INTERNAL_ZLIB)
-		MESSAGE(STATUS "Using internal zlib")
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/zlib ${CMAKE_CURRENT_BINARY_DIR}/zlib)
-	else()
-		# i'm assuming brew here
-		if (APPLE)
-			SetIfNotDefined(ZLIB_INCLUDE_DIR /usr/local/opt/zlib/include)
-			SetIfNotDefined(ZLIB_LIBRARY     /usr/local/opt/zlib/lib/libz.dylib)
-		endif()
-		find_package(ZLIB REQUIRED)
-		MESSAGE(STATUS "Using external zlib")
-		message(STATUS "ZLIB_INCLUDE_DIRS ${ZLIB_INCLUDE_DIRS}")
-		message(STATUS "ZLIB_LIBRARIES    ${ZLIB_LIBRARIES}")
-	endif()
-
-endif()
 
 # *** openssl dependency ***
 if (VISUS_NET)	
@@ -311,6 +291,14 @@ source_group("Libs\\tinyxml" FILES ${TinyXmlSources})
 file(GLOB Lz4Sources   src/lz4/*.h src/lz4/*.c)
 source_group("Libs\\lz4" FILES ${Lz4Sources})
 
+file(GLOB ZLibSources   src/zlib/*.h src/zlib/*.c)
+source_group("Libs\\zlib" FILES ${ZLibSources})
+include(CheckTypeSize)
+check_type_size(off64_t OFF64_T)
+if (HAVE_OFF64_T)
+	set_property(SOURCE ${ZLibSources} PROPERTY COMPILE_DEFINITIONS _LARGEFILE64_SOURCE=1)
+endif()
+
 file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/*.py)
 source_group("Python" FILES 
 	./include/Visus/swigpyrun.h 
@@ -324,6 +312,7 @@ file(GLOB Sources
 	${TinyXmlSources} 
 	${DtlSources} 
 	${Lz4Sources} 
+	${ZLibSources} 
 	${MM_FILES}
 	include/Visus/*.* 
 	src/*.cpp src/*.h
@@ -351,19 +340,6 @@ if (VISUS_OPENMP)
 		target_link_libraries(VisusKernel        PUBLIC /usr/local/opt/libomp/lib/libomp.a)
 		target_compile_options(VisusKernel       PUBLIC -Xpreprocessor -fopenmp)
 
-	endif()
-
-endif()
-
-if (VISUS_COMPRESSION)
-
-	target_compile_definitions(VisusKernel PUBLIC -DVISUS_COMPRESSION=1)
-
-	if (TARGET zlib)
-		target_link_libraries(VisusKernel PRIVATE zlib)
-	else()
-		target_include_directories(VisusKernel PRIVATE ${ZLIB_INCLUDE_DIRS})
-		target_link_libraries(VisusKernel      PUBLIC  ${ZLIB_LIBRARIES})	
 	endif()
 
 endif()

@@ -750,7 +750,7 @@
 #define HAVE_PROCESS_H 1
 
 /* if you have the zlib.h header file */
-/* #undef HAVE_ZLIB_H */
+#undef HAVE_ZLIB_H
 
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
