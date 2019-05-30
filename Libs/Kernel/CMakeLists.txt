@@ -13,11 +13,12 @@ if(GIT_FOUND)
 endif()
 
 if (VISUS_NET)		
-	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/curl ${CMAKE_CURRENT_BINARY_DIR}/curl)
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/libressl ${CMAKE_CURRENT_BINARY_DIR}/libressl)
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/curl     ${CMAKE_CURRENT_BINARY_DIR}/curl)
 endif() 
 
 if (VISUS_IMAGE)
-	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/FreeImage ${CMAKE_CURRENT_BINARY_DIR}/FreeImage)
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/FreeImage ${CMAKE_CURRENT_BINARY_DIR}/FreeImage)
 endif()
 
 if (NOT (WIN32 OR APPLE))

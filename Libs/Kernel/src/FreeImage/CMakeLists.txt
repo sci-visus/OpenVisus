@@ -827,6 +827,6 @@ if (NOT WIN32)
 endif()
 
 target_compile_definitions(FreeImage PRIVATE  LIBRAW_LIBRARY_BUILD)
-set_target_properties(FreeImage PROPERTIES FOLDER "InternalLibs/")
+set_target_properties(FreeImage PROPERTIES FOLDER "VisusKernelLibs/")
 
 

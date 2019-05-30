@@ -70,6 +70,6 @@ target_link_libraries(curl PRIVATE crypto ssl tls)
 target_compile_definitions(curl PRIVATE BUILDING_LIBCURL)
 target_include_directories(curl PRIVATE ./ ../include)
 target_include_directories(curl PUBLIC  ../include)
-set_target_properties(curl PROPERTIES FOLDER "InternalLibs/curl")
+set_target_properties(curl PROPERTIES FOLDER "VisusKernelLibs")
 
 
