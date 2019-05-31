@@ -52,19 +52,7 @@ namespace Visus {
 //predeclaration
 class StringTree;
 
-/////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Object
-{
-public:
 
-  //pretty much useless class used for example for GLTexture
-  Object() {
-  }
-
-  //destructor
-  virtual ~Object() {
-  }
-};
 
   /////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API ObjectStream 
