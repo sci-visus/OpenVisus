@@ -2018,6 +2018,8 @@ public:
 
     ObjectStream istream(*encoded, 'r');
     auto TypeName = istream.readInline("TypeName");
+    if (TypeName.empty())
+      TypeName = encoded->name;
     auto node=NodeFactory::getSingleton()->createInstance(TypeName); VisusAssert(node);
     node->readFromObjectStream(istream);
     istream.close();

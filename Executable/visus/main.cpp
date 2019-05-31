@@ -2111,6 +2111,7 @@ public:
 int main(int argn, const char* argv[])
 {
   //python main
+  #if VISUS_PYTHON
   if (argn >= 2 && (String(argv[1]) == "--python" || String(argv[1]) == "-python"))
   {
     std::vector<String> args;
@@ -2118,6 +2119,7 @@ int main(int argn, const char* argv[])
       if (I != 1) args.push_back(argv[I]);
     return PythonEngine::main(args);
   }
+  #endif
 
   Time T1 = Time::now();
 

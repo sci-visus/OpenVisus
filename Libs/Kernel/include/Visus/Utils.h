@@ -56,7 +56,7 @@ namespace Visus {
 namespace Utils
 {
   template <typename T>
-  int find(std::vector<T>& v,T value) {
+  int find(const std::vector<T>& v,T value) {
     auto it = std::find(v.begin(), v.end(), value);
     return it == v.end() ? -1 : (int)(it - v.begin());
   }

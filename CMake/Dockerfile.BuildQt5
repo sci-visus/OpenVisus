@@ -3,7 +3,7 @@
 # sudo docker create -ti --name dummy openvisus/manylinuxqt bash
 # sudo docker cp dummy:/root/qt5.11.2.tar.gz . 
 # sudo docker rm -fv dummy
-# scp qt5.11.2.tar.gz scrgiorgio@atlantis.sci.utah.edu:/www/qt/
+# copy the file qt5.11.2.tar.gz to github
 
 # see 
 #    https://kate-editor.org/2014/12/22/qt-5-4-on-red-hat-enterprise-5/

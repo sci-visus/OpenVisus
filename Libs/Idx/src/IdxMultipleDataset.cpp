@@ -171,6 +171,7 @@ private:
 
 
 ////////////////////////////////////////////////////////
+#if VISUS_PYTHON
 class QueryInputTerm
 {
 public:
@@ -758,12 +759,15 @@ public:
   }
 
 };
+#endif //VISUS_PYTHON
 
 
 
 ///////////////////////////////////////////////////////////////////////////////////
 IdxMultipleDataset::IdxMultipleDataset() {
+#if VISUS_PYTHON
   python_engine_pool = std::make_shared<PythonEnginePool>();
+#endif //VISUS_PYTHON
 }
 
 
@@ -834,8 +838,14 @@ Field IdxMultipleDataset::getFieldByNameThrowEx(String FIELDNAME) const
   if (existing.valid())
     return existing;
 
+#if VISUS_PYTHON
   auto output = QueryInputTerm(const_cast<IdxMultipleDataset*>(this), nullptr, SharedPtr<Access>(), Aborted()).computeOutput(FIELDNAME);
   return Field(FIELDNAME, output.dtype);
+#else
+  return Field(); //invalid
+#endif
+
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -845,9 +855,12 @@ void IdxMultipleDataset::addChild(IdxMultipleDataset::Child value)
   childs[value.name] = value;
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////////
 String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
 {
+#if VISUS_PYTHON
+
   std::ostringstream out;
   out << "input";
 
@@ -880,6 +893,9 @@ String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
   }
 
   return out.str();
+#else
+  return FormatString() << "input." << dataset_name << "." << fieldname;
+#endif
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -1298,6 +1314,7 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> 
       String error_msg;
       Array  OUTPUT;
 
+#if VISUS_PYTHON
       try
       {
         OUTPUT = QueryInputTerm(this, QUERY.get(), multiple_access, QUERY->aborted).computeOutput(QUERY->field.name);
@@ -1306,6 +1323,9 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> 
       {
         error_msg = ex.what();
       }
+#else
+      error_msg = "Python disabled";
+#endif
 
       if (QUERY->aborted())
         OUTPUT = Array();

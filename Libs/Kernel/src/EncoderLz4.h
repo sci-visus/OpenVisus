@@ -45,7 +45,7 @@ For support : support@visus.net
 //self contained lz4
 namespace LZ4
 {
-#include <lz4.h>
+#include <lz4/lz4.h>
 }
 
 namespace Visus {

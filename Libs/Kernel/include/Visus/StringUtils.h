@@ -288,10 +288,15 @@ public:
   static String md5(const String& input);
 
   //computeChecksum
-  static String computeChecksum(const String& input)
-  {
+  static String computeChecksum(const String& input)  {
     return md5(input);
   }
+
+  //hmac_sha256
+  static String hmac_sha256(String input, String key);
+
+  //hmac_sha1
+  static String hmac_sha1(String input, String key);
 
   //encodeForFilename
   static String encodeForFilename(String value);

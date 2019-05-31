@@ -555,6 +555,11 @@ public:
   //static scale
   static Matrix4 scale(Point3d vs);
 
+  //static scale
+  static Matrix4 nonZeroScale(Point3d vs) {
+    return scale(Point3d(vs.x ? vs.x : 1.0, vs.y ? vs.y : 1.0, vs.z ? vs.z : 1.0));
+  }
+
   //static translate
   static Matrix4 translate(Point3d vt);
 

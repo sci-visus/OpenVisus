@@ -34,7 +34,7 @@ jobs:
       - image: quay.io/pypa/manylinux1_x86_64
         environment:
           PYTHON_VERSION: 3.7.1
-          DISABLE_OPENMP: 1
+          VISUS_OPENMP: 0
           VISUS_GUI: 0
     steps:
       - checkout
@@ -48,7 +48,7 @@ jobs:
       - image: quay.io/pypa/manylinux1_x86_64
         environment:
           PYTHON_VERSION: 3.6.1
-          DISABLE_OPENMP: 1
+          VISUS_OPENMP: 0
           VISUS_GUI: 0
     steps:
       - checkout

@@ -89,18 +89,7 @@ public:
   }
 
   //addUserInput
-  void addUserInput(String key, Array value) {
-    try {
-      ScopedAcquireGil acquire_gil;
-      engine->setModuleAttr(key, value);
-    }
-    catch (std::exception ex)
-    {
-      ScopedAcquireGil acquire_gil;
-      engine->printMessage(ex.what());
-      return;
-    }
-  }
+  void addUserInput(String key, Array value);
 
   //clearPresets
   void clearPresets();
@@ -142,7 +131,10 @@ public:
 
 private:
 
-  class MyJob;  friend class MyJob;
+#if VISUS_PYTHON
+  class MyJob;  
+  friend class MyJob;
+#endif
 
   String    code;
 
@@ -160,7 +152,9 @@ private:
 
   Position  bounds;
 
+#if VISUS_PYTHON
   SharedPtr<PythonEngine> engine;
+#endif
 
   //guessPresets
   void guessPresets(Array data);

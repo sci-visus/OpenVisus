@@ -54,42 +54,8 @@ For support : support@visus.net
 #endif
 
 #if VISUS_NET
-  #include <curl/curl.h>
-
-  //for sha256/sha1
-  #undef  override
-  #undef  final
-
-  #include <openssl/sha.h>
-  #include <openssl/evp.h>
-  #include <openssl/bio.h>
-  #include <openssl/buffer.h>
-  #include <openssl/engine.h>
-  #include <openssl/hmac.h>
-  #include <openssl/evp.h>
-  #include <openssl/md5.h>
-  #include <openssl/opensslv.h>
-
-  #if OPENSSL_VERSION_NUMBER < 0x10100000L 
-
-    //HMAC_CTX_new
-    static inline HMAC_CTX *HMAC_CTX_new() {
-      HMAC_CTX *tmp = (HMAC_CTX *)OPENSSL_malloc(sizeof(HMAC_CTX));
-      if (tmp)
-        HMAC_CTX_init(tmp);
-      return tmp;
-    }
-
-    //HMAC_CTX_free
-    static inline void HMAC_CTX_free(HMAC_CTX *ctx) {
-      if (ctx) {
-        HMAC_CTX_cleanup(ctx);
-        OPENSSL_free(ctx);
-      }
-  }
-  #endif //OPENSSL_VERSION_NUMBER < 0x10100000L 
-
-#endif //#if VISUS_NET
+#include <curl/curl.h>
+#endif 
 
 namespace Visus {
 
@@ -565,44 +531,6 @@ void NetService::detach()
 {
 #if VISUS_NET
   curl_global_cleanup();
-#endif
-}
-
-
-///////////////////////////////////////////////////////////////////////////
-String NetService::sha256(String input, String key)
-{
-#if VISUS_NET
-
-  char ret[EVP_MAX_MD_SIZE];
-  unsigned int  size;
-  auto ctx = HMAC_CTX_new();
-  HMAC_Init_ex(ctx, key.c_str(), (int)key.size(), EVP_sha256(), NULL);
-  HMAC_Update(ctx, (const unsigned char*)input.c_str(), input.size());
-  HMAC_Final(ctx, (unsigned char*)ret, &size);
-  HMAC_CTX_free(ctx);
-  return String(ret, (size_t)size);
-#else
-  ThrowException("VISUS_NET disabled, cannot compute sha256");
-  return "";
-#endif
-}
-
-///////////////////////////////////////////////////////////////////////////
-String NetService::sha1(String input, String key)
-{
-#if VISUS_NET
-  char ret[EVP_MAX_MD_SIZE];
-  unsigned int size;
-  auto ctx = HMAC_CTX_new();
-  HMAC_Init_ex(ctx, key.c_str(), (int)key.size(), EVP_sha1(), NULL);
-  HMAC_Update(ctx, (const unsigned char*)input.c_str(), input.size());
-  HMAC_Final(ctx, (unsigned char*)ret, &size);
-  HMAC_CTX_free(ctx);
-  return String(ret, (size_t)size);
-#else
-  ThrowException("VISUS_NET disabled, cannot compute sha1");
-  return "";
 #endif
 }
 

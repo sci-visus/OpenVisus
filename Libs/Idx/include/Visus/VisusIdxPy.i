@@ -6,6 +6,7 @@
 #include <Visus/IdxDataset.h>
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/VisusConfig.h>
+#include <Visus/PythonEngine.h>
 using namespace Visus;
 %}
 

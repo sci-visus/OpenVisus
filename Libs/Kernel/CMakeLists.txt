@@ -1,141 +1,24 @@
 
-FindGitRevision()
-
-add_definitions(-DGIT_REVISION=${GIT_REVISION})
-if (NOT DEFINED VISUS_INTERNAL_DEFAULT)
-	set(VISUS_INTERNAL_DEFAULT 1)
-endif()
-
-
-# *** TinyXML dependency ***
-SetIfNotDefined(VISUS_INTERNAL_TINYXML ${VISUS_INTERNAL_DEFAULT})
-if (VISUS_INTERNAL_TINYXML)
-	MESSAGE(STATUS "Using internal TynyXML")
-	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/tinyxml ${CMAKE_CURRENT_BINARY_DIR}/tinyxml)
-else()
-	# i'm assuming brew here
-	if (APPLE)
-		SetIfNotDefined(TinyXML_INCLUDE_DIR /usr/local/opt/tinyxml/include)
-		SetIfNotDefined(TinyXML_LIBRARY     /usr/local/opt/tinyxml/lib/libtinyxml.dylib)
-	endif()
-	find_package(TinyXML REQUIRED)
-	MESSAGE(STATUS "Using external TynyXML")
-	message(STATUS "TinyXML_INCLUDE_DIRS ${TinyXML_INCLUDE_DIRS}")
-	message(STATUS "TinyXML_LIBRARIES    ${TinyXML_LIBRARIES}")
-endif()
-
-
-if (VISUS_COMPRESSION)
-
-	# *** zlib dependency ***
-	SetIfNotDefined(VISUS_INTERNAL_ZLIB ${VISUS_INTERNAL_DEFAULT})
-	if (VISUS_INTERNAL_ZLIB)
-		MESSAGE(STATUS "Using internal zlib")
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/zlib ${CMAKE_CURRENT_BINARY_DIR}/zlib)
-	else()
-		# i'm assuming brew here
-		if (APPLE)
-			SetIfNotDefined(ZLIB_INCLUDE_DIR /usr/local/opt/zlib/include)
-			SetIfNotDefined(ZLIB_LIBRARY     /usr/local/opt/zlib/lib/libz.dylib)
-		endif()
-		find_package(ZLIB REQUIRED)
-		MESSAGE(STATUS "Using external zlib")
-		message(STATUS "ZLIB_INCLUDE_DIRS ${ZLIB_INCLUDE_DIRS}")
-		message(STATUS "ZLIB_LIBRARIES    ${ZLIB_LIBRARIES}")
-	endif()
-
-	# *** lz4 dependency ***
-	SetIfNotDefined(VISUS_INTERNAL_LZ4 ${VISUS_INTERNAL_DEFAULT})
-	if (VISUS_INTERNAL_LZ4)
-		MESSAGE(STATUS "Using internal lz4")
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/lz4 ${CMAKE_CURRENT_BINARY_DIR}/lz4)
-	else()
-		# i'm assuming brew here
-		if (APPLE)
-			SetIfNotDefined(LZ4_INCLUDE_DIR /usr/local/opt/lz4/include)
-			SetIfNotDefined(LZ4_LIBRARY     /usr/local/opt/lz4/lib/liblz4.dylib)
-		endif()
-		find_package(LZ4 REQUIRED)
-		MESSAGE(STATUS "Using external lz4")
-		message(STATUS "LZ4_INCLUDE_DIR ${LZ4_INCLUDE_DIR}")
-		message(STATUS "LZ4_LIBRARY     ${LZ4_LIBRARY}")
+find_package(Git)
+if(GIT_FOUND)
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD 
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
+		OUTPUT_VARIABLE GIT_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
+		
+	if (NOT GIT_REVISION STREQUAL "")
+		add_definitions(-DGIT_REVISION=${GIT_REVISION})
+		message(STATUS "${GIT_EXECUTABLE} Current GIT_REVISION ${GIT_REVISION}")
 	endif()
 endif()
 
-# *** openssl dependency ***
-if (VISUS_NET)	
-
-	SetIfNotDefined(VISUS_INTERNAL_OPENSSL ${VISUS_INTERNAL_DEFAULT})
-	if (VISUS_INTERNAL_OPENSSL)
-		MESSAGE(STATUS "Using internal LibresSSL")
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/libressl ${CMAKE_CURRENT_BINARY_DIR}/libressl)
-	else()
-		# i'm assuming brew here	
-		if (APPLE)
-			SetIfNotDefined(OPENSSL_INCLUDE_DIR    /usr/local/opt/openssl/include)
-			SetIfNotDefined(OPENSSL_CRYPTO_LIBRARY /usr/local/opt/openssl/lib/libcrypto.dylib)
-			SetIfNotDefined(OPENSSL_SSL_LIBRARY    /usr/local/opt/openssl/lib/libssl.dylib)	
-		endif()
-		find_package(OpenSSL REQUIRED)
-		MESSAGE(STATUS "Using external OpenSSL")
-		message(STATUS "OPENSSL_INCLUDE_DIR    ${OPENSSL_INCLUDE_DIR}")
-		message(STATUS "OPENSSL_CRYPTO_LIBRARY ${OPENSSL_CRYPTO_LIBRARY}")
-		message(STATUS "OPENSSL_SSL_LIBRARY    ${OPENSSL_SSL_LIBRARY}")
-	endif()
-endif()
-
-# *** curl dependency ***
 if (VISUS_NET)		
-	SetIfNotDefined(VISUS_INTERNAL_CURL ${VISUS_INTERNAL_DEFAULT})
-	if (VISUS_INTERNAL_CURL)
-		MESSAGE(STATUS "Using internal Curl")
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/curl ${CMAKE_CURRENT_BINARY_DIR}/curl)
-	else()
-		# i'm assuming brew here
-		if (APPLE)
-			SetIfNotDefined(CURL_INCLUDE_DIR /usr/local/opt/curl/include)
-			SetIfNotDefined(CURL_LIBRARY     /usr/local/opt/curl/lib/libcurl.dylib)
-		endif()
-		find_package(CURL REQUIRED)
-		# see https://github.com/Microsoft/vcpkg/issues/1909
-	 	if (CMAKE_TOOLCHAIN_FILE)
-			list(LENGTH CURL_LIBRARY CURL_LIBRARY_LENGTH)
-			if (CURL_LIBRARY_LENGTH EQUAL 1)
-				set(CURL_LIBRARY_DEBUG_LIB   ${CURL_LIBRARY})
-				set(CURL_LIBRARY_RELEASE_LIB ${CURL_LIBRARY_DEBUG_LIB}/../../../lib/libcurl.lib)
-				get_filename_component(CURL_LIBRARY_RELEASE_LIB ${CURL_LIBRARY_RELEASE_LIB} REALPATH)
-				ForceUnset(CURL_LIBRARY)
-				ForceUnset(CURL_LIBRARIES)
-				set(CURL_LIBRARY "debug;${CURL_LIBRARY_DEBUG_LIB};optimized;${CURL_LIBRARY_RELEASE_LIB}")
-				set(CURL_LIBRARIES ${CURL_LIBRARY})
-			endif()
-		endif()	
-		message(STATUS "Using external Curl")
-		message(STATUS "CURL_INCLUDE_DIR ${CURL_INCLUDE_DIR}")
-		message(STATUS "CURL_LIBRARIES   ${CURL_LIBRARIES}")
-	endif()
-
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/libressl ${CMAKE_CURRENT_BINARY_DIR}/libressl)
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/curl     ${CMAKE_CURRENT_BINARY_DIR}/curl)
 endif() 
 
-
-# *** FreeImage dependency ***
 if (VISUS_IMAGE)
-	SetIfNotDefined(VISUS_INTERNAL_FREEIMAGE ${VISUS_INTERNAL_DEFAULT})
-	if (VISUS_INTERNAL_FREEIMAGE)
-		MESSAGE(STATUS "Using internal FreeImage")
-		add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/FreeImage ${CMAKE_CURRENT_BINARY_DIR}/FreeImage)
-	else()
-		# i'm assuming brew here
-		if (APPLE)
-			SetIfNotDefined(FREEIMAGE_INCLUDE_DIRS /usr/local/opt/freeimage/include)
-			SetIfNotDefined(FREEIMAGE_LIBRARIES    /usr/local/opt/freeimage/lib/libfreeimage.dylib)
-		endif()
-		find_package(FreeImage REQUIRED)
-		MESSAGE(STATUS "Using external FreeImage")
-		message(STATUS "FREEIMAGE_INCLUDE_DIRS ${FREEIMAGE_INCLUDE_DIRS}")
-		message(STATUS "FREEIMAGE_LIBRARIES    ${FREEIMAGE_LIBRARIES}")
-	endif()
-	
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/FreeImage ${CMAKE_CURRENT_BINARY_DIR}/FreeImage)
 endif()
 
 if (NOT (WIN32 OR APPLE))
@@ -151,20 +34,18 @@ if (NOT (WIN32 OR APPLE))
   endif()
 endif()
 
-
-file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/*.py)
-
 set(RootFiles 
 	${CMAKE_CURRENT_SOURCE_DIR}/../../README.md
 	${CMAKE_CURRENT_SOURCE_DIR}/../../CMakeLists.txt
 	${CMAKE_CURRENT_SOURCE_DIR}/../../build.bat
 	${CMAKE_CURRENT_SOURCE_DIR}/../../build.sh
+	${CMAKE_CURRENT_SOURCE_DIR}/../../build_docker.sh
+	${CMAKE_CURRENT_SOURCE_DIR}/../../build_conda.sh
+	${CMAKE_CURRENT_SOURCE_DIR}/../../build_osx.sh
 	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/VisusMacros.cmake
+	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/OpenVisusConfig.cmake
 	${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.txt
 )
-
-
-source_group("PyFiles" FILES ${PyFiles})
 
 source_group("" FILES
 	${RootFiles}
@@ -317,10 +198,6 @@ source_group("Encoder" FILES
 	./src/EncoderFreeImage.h
 	./src/Encoder.cpp)
 
-source_group("Python" FILES 
-	./include/Visus/swigpyrun.h 
-	./include/Visus/PythonEngine.h
-	./src/PythonEngine.cpp)
 
 source_group("Misc" FILES 
 	./include/Visus/PointCloud.h
@@ -332,23 +209,52 @@ IF (WIN32 OR APPLE)
 	file(GLOB MM_FILES src/*.mm)
 endif()
 
+file(GLOB DtlSources   src/dtl/*.hpp src/dtl/*.cpp)
+source_group("Libs\\dtl" FILES ${DtlSources})
+
+file(GLOB TinyXmlSources   src/tinyxml/*.h src/tinyxml/*.cpp)
+source_group("Libs\\tinyxml" FILES ${TinyXmlSources})
+
+file(GLOB Lz4Sources   src/lz4/*.h src/lz4/*.c)
+source_group("Libs\\lz4" FILES ${Lz4Sources})
+
+file(GLOB ZLibSources   src/zlib/*.h src/zlib/*.c)
+source_group("Libs\\zlib" FILES ${ZLibSources})
+include(CheckTypeSize)
+check_type_size(off64_t OFF64_T)
+if (HAVE_OFF64_T)
+	set_property(SOURCE ${ZLibSources} PROPERTY COMPILE_DEFINITIONS _LARGEFILE64_SOURCE=1)
+endif()
+
+file(GLOB CryptLiteSources   src/cryptlite/*.h src/cryptlite/*.c)
+source_group("Libs\\cryptlite" FILES ${CryptLiteSources})
+
+file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/*.py)
+source_group("Python" FILES 
+	./include/Visus/swigpyrun.h 
+	./include/Visus/PythonEngine.h
+	./src/PythonEngine.cpp
+	${PyFiles})
+
 file(GLOB Sources 
-	${RootFiles}
-	${PyFiles}
-	include/Visus/*.h 
-	include/Visus/*.i 
-	src/*.cpp 
-	src/*.h
-	${MM_FILES} 
+	${RootFiles} 
+	${PyFiles} 
+	${TinyXmlSources} 
+	${DtlSources} 
+	${Lz4Sources} 
+	${ZLibSources} 
+	${CryptLiteSources}
+	${MM_FILES}
+	include/Visus/*.* 
+	src/*.cpp src/*.h
 )
 
 AddLibrary(VisusKernel SHARED ${Sources})
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../InternalLibs/dtl/include)
 
 # openmp
-if (NOT DISABLE_OPENMP)
+if (VISUS_OPENMP)
 
 	find_package(OpenMP QUIET)
 
@@ -369,72 +275,21 @@ if (NOT DISABLE_OPENMP)
 
 endif()
 
-if (VISUS_COMPRESSION)
-
-	target_compile_definitions(VisusKernel PUBLIC -DVISUS_COMPRESSION=1)
-
-	if (TARGET zlib)
-		target_link_libraries(VisusKernel PRIVATE zlib)
-	else()
-		target_include_directories(VisusKernel PRIVATE ${ZLIB_INCLUDE_DIRS})
-		target_link_libraries(VisusKernel      PUBLIC ${ZLIB_LIBRARIES})	
-	endif()
-
-	if (TARGET lz4)
-		target_link_libraries(VisusKernel PRIVATE lz4)
-	else()
-		target_include_directories(VisusKernel PRIVATE ${LZ4_INCLUDE_DIR})
-		target_link_libraries(VisusKernel      PUBLIC ${LZ4_LIBRARY})
-	endif()
-endif()
-
-if (TARGET TinyXML)
-	target_link_libraries(VisusKernel PRIVATE TinyXML)
-else()
-	target_include_directories(VisusKernel PRIVATE ${TinyXML_INCLUDE_DIRS})
-	target_link_libraries(VisusKernel      PUBLIC ${TinyXML_LIBRARIES})	
-endif()
-
 if (VISUS_IMAGE)
-
 	target_compile_definitions(VisusKernel PUBLIC -DVISUS_IMAGE=1)
-
-	if (TARGET FreeImage)
-		target_link_libraries(VisusKernel PRIVATE FreeImage)
-	else()
-		target_include_directories(VisusKernel PRIVATE ${FREEIMAGE_INCLUDE_DIRS})
-		target_link_libraries(VisusKernel      PUBLIC ${FREEIMAGE_LIBRARIES})
-	endif()
+	target_link_libraries(VisusKernel PRIVATE FreeImage)
 endif()
 
 if (VISUS_NET)
-
 	target_compile_definitions(VisusKernel PUBLIC -DVISUS_NET=1)
+	target_link_libraries(VisusKernel PRIVATE curl)
+endif()
 
-	if (TARGET crypto)
-	
-		target_link_libraries(VisusKernel PRIVATE crypto)
-		
-		if (TARGET ssl)
-			target_link_libraries(VisusKernel PRIVATE ssl)	
-		endif()
-		
-		if (TARGET tls)
-			target_link_libraries(VisusKernel PRIVATE tls)
-		endif()
-		
-	else()
-		target_include_directories(VisusKernel PRIVATE ${OPENSSL_INCLUDE_DIR})
-		target_link_libraries(VisusKernel      PUBLIC ${OPENSSL_SSL_LIBRARY})
-		target_link_libraries(VisusKernel      PUBLIC ${OPENSSL_CRYPTO_LIBRARY})
-	endif()
-
-	if (TARGET curl)
-		target_link_libraries(VisusKernel PRIVATE curl)
-	else()
-		target_include_directories(VisusKernel PRIVATE ${CURL_INCLUDE_DIR})
-		target_link_libraries(VisusKernel      PUBLIC ${CURL_LIBRARIES})
-	endif()
+if (VISUS_PYTHON)
+	target_compile_definitions(VisusKernel  PUBLIC  -DVISUS_PYTHON=1)
+	target_compile_definitions(VisusKernel  PRIVATE SWIG_TYPE_TABLE=OpenVisus)
+else()
+	target_compile_definitions(VisusKernel PUBLIC -DVISUS_PYTHON=0)
 endif()
 
 if(WIN32)

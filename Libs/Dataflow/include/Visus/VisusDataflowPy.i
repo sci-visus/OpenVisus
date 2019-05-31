@@ -6,6 +6,7 @@
 #include <Visus/DataflowPort.h>
 #include <Visus/DataflowNode.h>
 #include <Visus/Dataflow.h>
+#include <Visus/PythonEngine.h>
 using namespace Visus;
 %}
 

@@ -132,7 +132,7 @@ public:
     //and compare what azure is signing from what you are using
     //VisusInfo() << signature;
 
-    signature = StringUtils::base64Encode(NetService::sha256(signature, this->access_key));
+    signature = StringUtils::base64Encode(StringUtils::hmac_sha256(signature, this->access_key));
 
     request.setHeader("Authorization", "SharedKey " + account_name + ":" + signature);
   }

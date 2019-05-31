@@ -109,7 +109,7 @@ public:
     signature += String(date_GTM) + "\n";
     signature += canonicalized_headers;
     signature += canonicalized_resource;
-    signature = StringUtils::base64Encode(NetService::sha1(signature, password));
+    signature = StringUtils::base64Encode(StringUtils::hmac_sha1(signature, password));
     request.setHeader("Host", request.url.getHostname());
     request.setHeader("Date", date_GTM);
     request.setHeader("Authorization", "AWS " + username + ":" + signature);

@@ -4,70 +4,107 @@ set -ex
 
 if [ $(uname) = "Darwin" ]; then
 	OSX=1
-else
-   LINUX=1
 fi
 
-# source dir
+# NOTE environment variables are not passed to this script
+# unless you add them to build/enviroment in meta.yml
 SOURCE_DIR=$(pwd)
+BUILD_DIR=${SOURCE_DIR}/build_conda
+CMAKE_BUILD_TYPE=RelWithDebInfo
+VISUS_OPENMP=0
+VISUS_MODVISUS=1
+VISUS_GUI=0 # todo: can Qt5 work?
 
-# build dir
-BUILD_DIR=${BUILD_DIR:-$SOURCE_DIR/build/conda}
+# ////////////////////////////////////////////////////////////////////////
+function NeedApache {
 
-# change as needed
-CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
+	APACHE_DIR=${BUILD_DIR}/.apache
+	if [ ! -f "${APACHE_DIR}/include/httpd.h" ] ; then
 
-# I don't think I need openmp
-DISABLE_OPENMP=${DISABLE_OPENMP:-1}
+		mkdir -p ${APACHE_DIR} 
 
-# todo: can I enable the Gui stuff?
-VISUS_GUI=${VISUS_GUI:-0}
+		curl -fsSL --insecure "https://github.com/libexpat/libexpat/releases/download/R_2_2_6/expat-2.2.6.tar.bz2" | tar xj
+		pushd expat-2.2.6
+		./configure --prefix=${APACHE_DIR} 
+		make -s 
+		make install 
+		popd
+		
+		curl -fsSL --insecure "https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.gz" | tar xz
+		pushd pcre-8.42 
+		./configure --prefix=${APACHE_DIR}  
+		make -s   
+		make install  
+		popd	
 
-# I don't think I need to need mod visus
-VISUS_MODVISUS=${VISUS_MODVISUS:-0}
+		curl -fsSL --insecure "http://it.apache.contactlab.it/httpd/httpd-2.4.38.tar.gz" | tar xz 
+		pushd httpd-2.4.38		
+		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-1.6.5.tar.gz"      | tar xz
+		curl -fsSL --insecure "http://mirror.nohup.it/apache/apr/apr-util-1.6.1.tar.gz" | tar xz	
+		mv ./apr-1.6.5      ./srclib/apr
+		mv ./apr-util-1.6.1 ./srclib/apr-util
+		./configure --prefix=${APACHE_DIR} --with-included-apr --with-pcre=${APACHE_DIR} --with-ssl=${APACHE_DIR} --with-expat=${APACHE_DIR}  
+		make -s  
+		make install  
+		popd
+	fi
+}
 
+if (( OSX == 1 )) ; then
+	VISUS_MODVISUS=0
+fi
 
-rm -Rf ${BUILD_DIR}
 mkdir -p ${BUILD_DIR}
 cd ${BUILD_DIR}
 
-# see https://www.anaconda.com/utilizing-the-new-compilers-in-anaconda-distribution-5/
-if (( OSX == 1 )) ; then
-	echo "CONDA_BUILD_SYSROOT=${CONDA_BUILD_SYSROOT}" 	
-	if [[ ( -z "$CONDA_BUILD_SYSROOT") || ( ! -d "${CONDA_BUILD_SYSROOT}" ) ]] ; then
-		echo "CONDA_BUILD_SYSROOT directory is wrong"
-		exit -1
-	fi
-fi
-
-# inspired by: https://github.com/conda-forge/libnetcdf-feedstock/tree/master/recipe
 declare -a cmake_opts
+cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
+cmake_opts+=(-DVISUS_OPENMP=${VISUS_OPENMP})
+cmake_opts+=(-DPYTHON_EXECUTABLE=${PYTHON}) 
+cmake_opts+=(-DPYTHON_VERSION=${PY_VER})
 
+# setup compiler
 if [[ ${c_compiler} != "toolchain_c" ]]; then
+
 	export CC=$(basename ${CC})
 	export CXX=$(basename ${CXX})
+
 	if (( OSX == 1 )); then
-		cmake_opts+=(-DCMAKE_OSX_SYSROOT="${CONDA_BUILD_SYSROOT}")
 		export LDFLAGS=$(echo "${LDFLAGS}" | sed "s/-Wl,-dead_strip_dylibs//g")
+	 	#see https://www.anaconda.com/utilizing-the-new-compilers-in-anaconda-distribution-5/
+		echo "CONDA_BUILD_SYSROOT=${CONDA_BUILD_SYSROOT}" 	
+		if [[ ( -z "$CONDA_BUILD_SYSROOT" ) || ( ! -d "${CONDA_BUILD_SYSROOT}" ) ]] ; then
+			echo "CONDA_BUILD_SYSROOT directory is wrong"
+			exit -1
+		fi
+		cmake_opts+=(-DCMAKE_OSX_SYSROOT=${CONDA_BUILD_SYSROOT})
 	else
-	  cmake_opts+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
+		cmake_opts+=(-DCMAKE_TOOLCHAIN_FILE="${RECIPE_DIR}/cross-linux.cmake")
 	fi
 fi
 
-# openvisus flags
-cmake_opts+=(-DDISABLE_OPENMP=${DISABLE_OPENMP})
-cmake_opts+=(-DVISUS_GUI=${VISUS_GUI})
-cmake_opts+=(-DPYTHON_VERSION=${PY_VER})
-cmake_opts+=(-DPYTHON_EXECUTABLE=${PYTHON})
-cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}) 
+# apache
+if (( VISUS_MODVISUS == 1 )); then
+	NeedApache	
+	cmake_opts+=(-DAPACHE_DIR=${APACHE_DIR})
+fi
+
+# qt5 (can it work?)
+cmake_opts+=(-DVISUS_GUI="${VISUS_GUI}") 
+if (( VISUS_GUI == 1 )) ; then
+	echo "todo..."
+	exit -1
+fi
 
 cmake ${cmake_opts[@]} ${SOURCE_DIR}
+cmake --build ./ --target "all"   --config ${CMAKE_BUILD_TYPE}
+cmake --build .  --target install --config ${CMAKE_BUILD_TYPE}
 
-cmake --build ./ --target all     --config ${CMAKE_BUILD_TYPE}
-cmake --build ./ --target install --config ${CMAKE_BUILD_TYPE}
-cmake --build ./ --target dist    --config ${CMAKE_BUILD_TYPE}
+# install into conda python
+pushd ${CMAKE_BUILD_TYPE}/OpenVisus
+${PYTHON} setup.py install --single-version-externally-managed --record=record.txt
+popd
 
-cd ${CMAKE_BUILD_TYPE}/site-packages/OpenVisus
 
-$PYTHON setup.py install --single-version-externally-managed --record=record.txt
+
 

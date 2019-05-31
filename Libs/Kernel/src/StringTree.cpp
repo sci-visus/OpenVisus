@@ -43,14 +43,12 @@ For support : support@visus.net
 #include <Visus/Utils.h>
 #include <Visus/ApplicationInfo.h>
 
-#include <tinyxml.h>
+#include <tinyxml/tinyxml.h>
 
 #include <algorithm>
 #include <iomanip>
 
 namespace Visus {
-
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 class PostProcessStringTree

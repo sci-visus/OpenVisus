@@ -44,7 +44,7 @@ For support : support@visus.net
 
 namespace ZLib
 {
-#include <zlib.h>
+#include "zlib/zlib.h"
 }
 
 

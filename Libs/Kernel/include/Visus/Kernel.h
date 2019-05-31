@@ -197,18 +197,37 @@ VISUS_KERNEL_API void ThrowExceptionEx(String file,int line,String expr);
 
 #define ThrowException(expr) (ThrowExceptionEx(__FILE__,__LINE__,expr))
 
-//VisusAssert
-#if !defined(SWIG)
-#define VisusReleaseAssert(_Expression) \
-  {if (!(_Expression)) Visus::VisusAssertFailed(__FILE__,__LINE__,#_Expression);} \
-  /*--*/
-  #if defined(VISUS_DEBUG)
-    #define VisusAssert(_Expression) VisusReleaseAssert(_Expression)
-  #else
-    #define VisusAssert(_Expression) ((void)0) 
-  #endif
-#endif
+#if !defined(SWIG) && !defined(VisusReleaseAssert)
+#  define VisusReleaseAssert(_Expression) { \
+     if (!(_Expression)) \
+        Visus::VisusAssertFailed(__FILE__,__LINE__,#_Expression); \
+   }\
+   /*--*/
+#endif 
 
+#if !defined(SWIG) && !defined(VisusAssert)
+#  if defined(VISUS_DEBUG)
+#    define VisusAssert(_Expression) VisusReleaseAssert(_Expression)
+#  else
+#    define VisusAssert(_Expression) ((void)0) 
+#  endif
+#endif 
+
+////////////////////////////////////////////////////////////
+// in case you want to store an agnostic pointer to an object
+class VISUS_KERNEL_API Object
+{
+public:
+
+  //constructor
+  Object() {
+  }
+
+  //destructor
+  virtual ~Object() {
+  }
+
+};
 
 ///////////////////////////////////////////////////////////////////
 #if !SWIG
@@ -322,18 +341,22 @@ public:
     /*--*/
 #endif
 
+#ifndef VISUS_NON_COPYABLE_CLASS
 #define VISUS_NON_COPYABLE_CLASS(className) \
   VISUS_CLASS(className) \
   className (const className&)=delete;\
   className& operator= (const className&)=delete;\
   /*--*/
+#endif
 
+#ifndef VISUS_PIMPL_CLASS
 #define VISUS_PIMPL_CLASS(className) \
   VISUS_NON_COPYABLE_CLASS(className) \
   class        Pimpl;  \
   friend class Pimpl;  \
   Pimpl*       pimpl=nullptr;  \
   /*--*/
+#endif
 
 class VISUS_KERNEL_API Void {};
 
