@@ -51,7 +51,6 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(KdArrayNode)
 
-
   // box
   NdBox box;    
 

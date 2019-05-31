@@ -249,7 +249,7 @@ file(GLOB Sources
 	src/*.cpp src/*.h
 )
 
-AddLibrary(VisusKernel ${Sources})
+AddLibrary(VisusKernel SHARED ${Sources})
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 

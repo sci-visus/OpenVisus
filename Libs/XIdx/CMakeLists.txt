@@ -6,7 +6,7 @@ file(GLOB Sources
 	)
 	
 source_group("" FILES ${Sources})
-AddLibrary(VisusXIdx ${Sources})
+AddLibrary(VisusXIdx SHARED ${Sources})
 target_link_libraries(VisusXIdx PUBLIC VisusKernel)
 
 AddSwigLibrary(VisusXIdx ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusXIdx.i 

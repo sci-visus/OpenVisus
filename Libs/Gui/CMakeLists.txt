@@ -11,7 +11,7 @@ file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp resources/*.glsl
 
 source_group("" FILES ${Sources})
 
-AddLibrary(VisusGui ${Sources})
+AddLibrary(VisusGui SHARED ${Sources})
 
 target_link_libraries(VisusGui PUBLIC VisusKernel)
 target_link_libraries(VisusGui PUBLIC Qt5::Core Qt5::Widgets Qt5::Gui Qt5::OpenGL)

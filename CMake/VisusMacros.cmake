@@ -199,9 +199,9 @@ endmacro()
 
 
 # ///////////////////////////////////////////////////
-macro(AddLibrary Name)
+macro(AddLibrary Name LibraryType)
 
-	add_library(${Name} ${ARGN})
+	add_library(${Name} ${LibraryType} ${ARGN})
 
 	LinkPythonToLibrary(${Name})
 	SetupCommonTargetOptions(${Name})

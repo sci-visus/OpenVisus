@@ -1,22 +1,17 @@
 
-
 if (WIN32)
-
-	AddLibrary(mod_visus mod_visus.cpp)
+	AddLibrary(mod_visus SHARED mod_visus.cpp)
 	target_link_libraries(mod_visus PUBLIC VisusIdx)
 	LinkPythonToExecutable(mod_visus)
 	set_target_properties(mod_visus PROPERTIES FOLDER Executable/)
 
 else()
-
 	# this is for conda where cmake 'find_path' seems to have problems
 	if (DEFINED APACHE_DIR)
-
 		set(VISUS_MODVISUS      1)
 		set(APACHE_INCLUDE_DIRS ${APACHE_DIR}/include)
 		set(APACHE_LIBRARIES    ${APACHE_DIR}/lib/libapr-1.so ${APACHE_DIR}/lib/libaprutil-1.so)
 		MESSAGE(STATUS "Enabling mod_visus APACHE_DIR=${APACHE_DIR}")
-
 	else()
 
 		set(__search_include_dirs__ 
