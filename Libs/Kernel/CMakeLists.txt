@@ -105,7 +105,9 @@ source_group("Core" FILES
 	./include/Visus/ApplicationInfo.h
 	./src/ApplicationInfo.cpp
 	./include/Visus/VisusConfig.h
-	./src/VisusConfig.cpp)
+	./src/VisusConfig.cpp
+	./include/Visus/SharedLibrary.h
+	./src/SharedLibrary.cpp)
 	
 
 source_group("Thread" FILES
@@ -311,5 +313,3 @@ endif()
 
 AddSwigLibrary(VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
 	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
-
-	  

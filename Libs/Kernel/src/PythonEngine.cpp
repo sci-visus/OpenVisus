@@ -296,20 +296,7 @@ PythonEngine::PythonEngine(bool bVerbose)
 
     //try to find where OpenVisus package files are
     {
-      auto current_application_dir = KnownPaths::CurrentApplicationFile.getParent().toString();
-
-#if WIN32
-      //example: C:\projects\OpenVisus\build\RelWithDebInfo\OpenVisus\bin\visus.exe
-      auto bin_dir = current_application_dir;
-
-#elif __APPLE__
-      //example: /Users/scrgiorgio/Desktop/OpenVisus/build/RelWithDebInfo/OpenVisus/bin/visus.app/Contents/MacOS/<name>
-      auto bin_dir = current_application_dir + "/../../..";
-
-#else
-      //example: /home/scrgiorgio/Desktop/OpenVisus/build/OpenVisus/bin/visus
-      auto bin_dir = current_application_dir;
-#endif
+      auto bin_dir = KnownPaths::BinaryDirectory.toString();
 
       //this is for shared library
       //addSysPath(bin_dir, bVerbose);

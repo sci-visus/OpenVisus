@@ -15,6 +15,10 @@
 #endif
 #endif
 
+#if WIN32
+#pragma warning(disable: 4996)
+#endif
+
 /* Local functions */
 local void gz_reset OF((gz_statep));
 local gzFile gz_open OF((const void *, int, const char *));

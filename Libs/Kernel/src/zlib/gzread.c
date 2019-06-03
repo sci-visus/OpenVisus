@@ -5,6 +5,11 @@
 
 #include "gzguts.h"
 
+#if WIN32
+#pragma warning(disable: 4267)
+#pragma warning(disable: 4996)
+#endif
+
 /* Local functions */
 local int gz_load OF((gz_statep, unsigned char *, unsigned, unsigned *));
 local int gz_avail OF((gz_statep));

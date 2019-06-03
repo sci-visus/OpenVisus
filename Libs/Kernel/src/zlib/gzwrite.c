@@ -5,6 +5,10 @@
 
 #include "gzguts.h"
 
+#if WIN32
+#pragma warning(disable: 4267)
+#endif
+
 /* Local functions */
 local int gz_init OF((gz_statep));
 local int gz_comp OF((gz_statep, int));

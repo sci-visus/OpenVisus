@@ -48,6 +48,7 @@ For support : support@visus.net
 #include <Visus/VisusConfig.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/NetService.h>
+#include <Visus/SharedLibrary.h>
 
 #include <assert.h>
 #include <type_traits>
@@ -58,33 +59,27 @@ For support : support@visus.net
 #include <clocale>
 
 #if WIN32
-
-#pragma warning(disable:4996)
-
-#include <Windows.h>
-#include <ShlObj.h>
-#include <winsock2.h>
-
-#elif __APPLE__
-
-#include <mach/mach.h>
-#include <mach/mach_host.h>
-#include <signal.h>
-#include <pwd.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#include <mach-o/dyld.h>
-
+#  pragma warning(disable:4996)
+#  include <Windows.h>
+#  include <ShlObj.h>
+#  include <winsock2.h>
 #else
-
-#include <signal.h>
-#include <sys/sysinfo.h>
-#include <pwd.h>
-#include <sys/socket.h>
-#include <unistd.h>
-
+#  ifndef _GNU_SOURCE
+#    define _GNU_SOURCE
+#  endif
+#  include <dlfcn.h>
+#  include <signal.h>
+#  include <pwd.h>
+#  include <sys/socket.h>
+#  include <unistd.h>
+#  if __APPLE__
+#    include <mach/mach.h>
+#    include <mach/mach_host.h>
+#    include <mach-o/dyld.h>
+#  else
+#    include <sys/sysinfo.h>
+#  endif
 #endif
-
 
 #include <Visus/Frustum.h>
 #include <Visus/Graph.h>
@@ -244,16 +239,18 @@ void ThrowExceptionEx(String file, int line, String expr)
   throw std::runtime_error(msg);
 }
 
+#if WIN32
+static void __do_not_remove_my_function__() {
+}
+#else
+VISUS_SHARED_EXPORT void __do_not_remove_my_function__() {
+}
+#endif
 
 
 ///////////////////////////////////////////////////////////
 static void InitKnownPaths()
 {
-  std::vector<char> _mem_(2048, 0);
-
-  auto buff = &_mem_[0];
-  auto buff_size = (int)_mem_.size() - 1;
-
   //VisusHome
   {
     // Allow override of VisusHome
@@ -265,6 +262,7 @@ static void InitKnownPaths()
     {
       #if WIN32
       {
+        char buff[2048]; memset(buff, 0, sizeof(buff));
         SHGetSpecialFolderPath(0, buff, CSIDL_PERSONAL, FALSE);
         KnownPaths::VisusHome = Path(buff).getChild("visus");
       }
@@ -282,43 +280,39 @@ static void InitKnownPaths()
 
   FileUtils::createDirectory(KnownPaths::VisusHome);
 
-  //Current application file
+  //Current application file (i.e. where VisusKernel shared library is)
   {
     #if WIN32
     {
-      auto first_arg = ApplicationInfo::args.empty() ? nullptr : ApplicationInfo::args[0].c_str();
-      GetModuleFileName((HINSTANCE)GetModuleHandle(first_arg), buff, buff_size);
-      KnownPaths::CurrentApplicationFile = Path(buff);
-    }
-    #elif __APPLE__
-    {
-      uint32_t bufsize = buff_size;
-      if (_NSGetExecutablePath((char*)buff, &bufsize) == 0)
-        KnownPaths::CurrentApplicationFile = Path(buff);
+      //see https://stackoverflow.com/questions/6924195/get-dll-path-at-runtime
+      HMODULE handle;
+      GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPCSTR)__do_not_remove_my_function__, &handle);
+      VisusReleaseAssert(handle);
+      char buff[2048]; memset(buff, 0, sizeof(buff));
+      GetModuleFileName(handle, buff, sizeof(buff));
+      KnownPaths::BinaryDirectory = Path(buff).getParent();
     }
     #else
     {
-      int len=readlink("/proc/self/exe", buff, buff_size);
-      if (len != -1)  buff[len] = 0;
-      KnownPaths::CurrentApplicationFile = Path(buff);
+      Dl_info dlInfo;
+      dladdr((const void*)__do_not_remove_my_function__, &dlInfo);
+      VisusReleaseAssert(dlInfo.dli_sname && dlInfo.dli_saddr);
+      KnownPaths::BinaryDirectory = Path(dlInfo.dli_fname).getParent();
     }
     #endif
   }
 }
   
-
-
-
 bool KernelModule::bAttached = false;
 
 //////////////////////////////////////////////////////
 void KernelModule::attach()
 {
-  if (bAttached)  
+  if (bAttached)
     return;
 
   VisusInfo() << "Attaching KernelModule...";
-  
+
   bAttached = true;
 
   ApplicationInfo::start = Time::now();
@@ -375,7 +369,7 @@ void KernelModule::attach()
 
   VisusInfo() << "git_revision            " << ApplicationInfo::git_revision;
   VisusInfo() << "VisusHome               " << KnownPaths::VisusHome.toString();
-  VisusInfo() << "CurrentApplicationFile  " << KnownPaths::CurrentApplicationFile.toString();
+  VisusInfo() << "BinaryDirectory         " << KnownPaths::BinaryDirectory.toString();
   VisusInfo() << "CurrentWorkingDirectory " << KnownPaths::CurrentWorkingDirectory().toString();
 
   ArrayPlugins::allocSingleton();
@@ -385,7 +379,7 @@ void KernelModule::attach()
 
   //this is to make sure PythonEngine works
 #if VISUS_PYTHON
-  if (auto engine = std::make_shared<PythonEngine>(true) )
+  if (auto engine = std::make_shared<PythonEngine>(true))
   {
     ScopedAcquireGil acquire_gil;
     engine->execCode("print('PythonEngine is working fine')");
@@ -396,12 +390,24 @@ void KernelModule::attach()
   if (Int64 total = StringUtils::getByteSizeFromString(config->readString("Configuration/RamResource/total", "0")))
     RamResource::getSingleton()->setOsTotalMemory(total);
 
-  NetService::Defaults::proxy      = config->readString("Configuration/NetService/proxy");
+  NetService::Defaults::proxy = config->readString("Configuration/NetService/proxy");
   NetService::Defaults::proxy_port = cint(config->readString("Configuration/NetService/proxyport"));
 
-  NetSocket::Defaults::send_buffer_size   = config->readInt("Configuration/NetSocket/send_buffer_size");
-  NetSocket::Defaults::recv_buffer_size   = config->readInt("Configuration/NetSocket/recv_buffer_size");
-  NetSocket::Defaults::tcp_no_delay       = config->readBool("Configuration/NetSocket/tcp_no_delay", "1");
+  NetSocket::Defaults::send_buffer_size = config->readInt("Configuration/NetSocket/send_buffer_size");
+  NetSocket::Defaults::recv_buffer_size = config->readInt("Configuration/NetSocket/recv_buffer_size");
+  NetSocket::Defaults::tcp_no_delay = config->readBool("Configuration/NetSocket/tcp_no_delay", "1");
+
+  //test plugin
+#if 0
+  auto lib = std::make_shared<SharedLibrary>();
+  if (lib->load(SharedLibrary::getFilenameInBinaryDirectory("MyPlugin")))
+  {
+    auto get_instance = (SharedPlugin* (*)())example.findSymbol("GetSharedPluginInstance");
+    VisusReleaseAssert(get_instance);
+    auto plugin = get_instance();
+    plugin->lib = lib;
+  }
+#endif
 
   VisusInfo() << "Attached KernelModule";
 }

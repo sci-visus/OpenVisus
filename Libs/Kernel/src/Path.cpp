@@ -47,7 +47,7 @@ For support : support@visus.net
 namespace Visus {
 
 Path KnownPaths::VisusHome;
-Path KnownPaths::CurrentApplicationFile;
+Path KnownPaths::BinaryDirectory;
 
 ///////////////////////////////////////////////////////////////////////
 Path KnownPaths::CurrentWorkingDirectory()
@@ -105,7 +105,7 @@ const String Path::normalizePath(String path)
   if (StringUtils::find(path,"$(")>=0)
   {
     path=StringUtils::replaceAll(path,"$(VisusHome)"              ,KnownPaths::VisusHome.path);
-    path=StringUtils::replaceAll(path,"$(CurrentApplicationFile)" ,KnownPaths::CurrentApplicationFile .path);
+    path=StringUtils::replaceAll(path,"$(BinaryDirectory)"        ,KnownPaths::BinaryDirectory.path);
     path=StringUtils::replaceAll(path,"$(CurrentWorkingDirectory)", cwd);
   }
 

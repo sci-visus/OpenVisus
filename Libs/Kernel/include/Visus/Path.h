@@ -145,7 +145,7 @@ class VISUS_KERNEL_API KnownPaths
 public:
 
   static Path VisusHome;
-  static Path CurrentApplicationFile;
+  static Path BinaryDirectory;
 
   //working directory
   static Path CurrentWorkingDirectory();  

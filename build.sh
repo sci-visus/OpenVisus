@@ -427,6 +427,64 @@ if (( IsRoot == 1 )) ; then
 		do
 			apt-get --quiet --yes --allow-unauthenticated install ${package}  && :
 		done
+
+	elif [ -x "$(command -v zypper)" ]; then
+		OPENSUSE=1
+		OS_NICKNAME=opensuse
+		echo "Detected opensuse"
+
+		zypper --quiet --non-interactive update 
+		zypper --quiet --non-interactive install --type pattern devel_basis 
+
+		packages+=" gcc-c++ make  git curl lsb-release libuuid-devel libffi-devel libopenssl-devel swig3.0 swig cmake patchelf"
+
+		if (( VISUS_MODVISUS == 1 )); then
+			packages+=" apache2 apache2-devel"
+		fi
+
+		if (( VISUS_GUI ==  1 )); then
+			packages+=" glu-devel"
+		fi
+
+		# install one by one otherwise it will fail
+		for package in ${packages} 
+		do
+			zypper --quiet --non-interactive install ${package}  && :
+		done
+
+	elif [ -x "$(command -v yum)" ]; then
+
+		CENTOS=1
+		GetVersionFromCommand "cat /etc/redhat-release" "CentOS release "
+		CENTOS_VERSION=${__version__}
+		CENTOS_MAJOR=${__major__}
+		OS_NICKNAME=centos.${CENTOS_VERSION}
+		echo "Detected centos ${CENTOS_VERSION}"
+
+		if (( CENTOS_MAJOR == 5 )) ; then
+			echo "Detected manylinux"
+			MANYLINUX=1
+			VISUS_OPENMP=0 # disabled
+		fi
+
+		yum --quiet -y update 
+
+		packages+=" gcc-c++ make git curl zlib zlib-devel libffi-devel openssl-devel swig3.0 swig cmake patchelf"
+
+		if (( VISUS_GUI ==  1 )); then
+			packages+=" mesa-libGL-devel mesa-libGLU-devel" 
+		fi
+
+		# install one by one otherwise it will fail
+		for package in ${packages}
+		do
+			yum --quiet -y install ${package}  && :
+		done
+
+	else
+		echo "Failed to detect OS version, I will keep going but it could be that I won't find some dependency"
+	fi
+
 fi
 
 cd ${BUILD_DIR}
