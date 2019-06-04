@@ -15,18 +15,11 @@ RUN apt-get update \
   && apt-get install -y apache2
 
 # install and configure OpenVisus
-RUN pip install OpenVisus==1.3.8  # 1.3.8 (in PyPI) was the last working version to include mod_visus
+RUN conda install -y -c visus openvisus=1.3.57
 RUN ln -s $(python3 -c "import os, OpenVisus; print(os.path.dirname(OpenVisus.__file__))") ${VISUS_HOME}
 RUN echo "export VISUS_HOME=${VISUS_HOME}" >> ~/.bashrc
 RUN ln -s ${VISUS_HOME}/bin/visus ${CONDA_PREFIX}/bin/visus \
  && ln -s ${VISUS_HOME}/bin/visus ${CONDA_PREFIX}/bin/visus.sh
-
-# fix rpaths
-# - still needed for 1.3.8, but latest 1.3.56 (in anaconda.org) doesn't need to patch visus executable
-# - when mod_visus gets added it will hopefully also not need patching and this can be removed
-RUN conda install -y patchelf \
-  && ${CONDA_PREFIX}/bin/patchelf --set-rpath '$ORIGIN:/opt/conda/lib' ${VISUS_HOME}/bin/visus \
-  && ${CONDA_PREFIX}/bin/patchelf --set-rpath '$ORIGIN:/opt/conda/lib' ${VISUS_HOME}/bin/libmod_visus.so
 
 # install webviewer
 ADD https://api.github.com/repos/sci-visus/OpenVisusJS/git/refs/heads/master version.json
