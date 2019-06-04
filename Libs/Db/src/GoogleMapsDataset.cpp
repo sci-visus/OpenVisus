@@ -153,17 +153,20 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query)
   VisusAssert(query->start_resolution==0);
   VisusAssert(query->max_resolution==this->getBitmask().getMaxResolution());
 
-  //i don't have odd resolutions
   {
-    std::vector<int> end_resolutions=query->end_resolutions;
-    std::vector<int> even_end_resolutions;
-    for (int I=0;I<(int)end_resolutions.size();I++)
+    std::set<int> good;
+    for (auto it : query->end_resolutions)
     {
-      int even_end_resolution=(end_resolutions[I]>>1)<<1;
-      if (even_end_resolutions.empty() || even_end_resolutions.back()!=even_end_resolution)
-        even_end_resolutions.push_back(even_end_resolution);
+
+      //i don't have odd resolutions
+      auto value = (it >> 1) << 1;
+
+      //resolution cannot be less than tile resolution
+      if (value>= getDefaultBitsPerBlock())
+        good.insert(value);
     }
-    query->end_resolutions=even_end_resolutions;
+
+    query->end_resolutions.assign(good.begin(),good.end());
   }
 
   //writing is not supported
