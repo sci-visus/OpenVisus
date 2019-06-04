@@ -39,10 +39,6 @@ For support : support@visus.net
 #ifndef _VISUS_PYTHON_ENGINE_H__
 #define _VISUS_PYTHON_ENGINE_H__
 
-#ifndef VISUS_PYTHON
-#define VISUS_PYTHON 1
-#endif
-
 #if VISUS_PYTHON
 
 #include <Visus/Array.h>

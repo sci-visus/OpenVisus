@@ -36,62 +36,93 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef VISUS_ID_ENCODER_H
-#define VISUS_ID_ENCODER_H
+#ifndef VISUS_ARRAY_PLUGIN_DEVNULL_H
+#define VISUS_ARRAY_PLUGIN_DEVNULL_H
 
-#include <Visus/Visus.h>
-#include <Visus/Encoder.h>
+#include <Visus/Kernel.h>
+#include <Visus/Array.h>
+#include <Visus/Log.h>
 
 namespace Visus {
 
 
-//////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API IdEncoder : public Encoder
+///////////////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API DevNullArrayPlugin : public ArrayPlugin
 {
 public:
 
-  VISUS_CLASS(IdEncoder)
+  VISUS_NON_COPYABLE_CLASS(DevNullArrayPlugin)
 
     //constructor
-    IdEncoder()
-  {}
+    DevNullArrayPlugin() {
+  }
 
   //destructor
-  virtual ~IdEncoder()
-  {}
-
-  //isLossy
-  virtual bool isLossy() const override
-  {
-    return false;
+  virtual ~DevNullArrayPlugin() {
   }
 
-  //encode
-  virtual SharedPtr<HeapMemory> encode(NdPoint dims, DType dtype, SharedPtr<HeapMemory> decoded) override
+  //handleLoadImage
+  virtual Array handleLoadImage(String url_, std::vector<String> args) override
   {
-    if (!decoded)
-      return SharedPtr<HeapMemory>();
+    Url url(url_);
 
-    return decoded;
-  }
+    if (!url.isFile())
+      return Array();
 
-  //decode
-  virtual SharedPtr<HeapMemory> decode(NdPoint dims, DType dtype, SharedPtr<HeapMemory> encoded) override
-  {
-    if (!encoded)
-      return SharedPtr<HeapMemory>();
+    String filename = url.getPath();
 
-    if (dtype.getByteSize(dims) != encoded->c_size()) {
-      VisusAssert(false);
-      return SharedPtr<HeapMemory>();
+    if (filename != "/dev/null")
+      return Array();
+
+    DType    dtype;
+    NdPoint  dims;
+    int      value = 0;
+
+    for (int I = 0; I<(int)args.size(); I++)
+    {
+      if (args[I] == "--dtype")
+      {
+        String sdtype = args[++I];
+        dtype = DType::fromString(sdtype);
+        if (!dtype.valid())
+        {
+          VisusWarning() << "invalid --dtype " << sdtype;
+          return Array();
+        }
+      }
+      else if (args[I] == "--dims")
+      {
+        dims = NdPoint::parseDims(args[++I]);
+        if (dims.innerProduct() <= 0)
+        {
+          VisusWarning() << "invalid --dims " << args[I];
+          return Array();
+        }
+      }
+      else if (args[I] == "--value")
+      {
+        value = cint(args[I]);
+      }
     }
 
-    return encoded;
+    Array dst;
+    if (!dst.resize(dims, dtype, __FILE__, __LINE__))
+    {
+      VisusWarning() << " Cannot resize memory with dims(" << dims.toString() << ") and dtype(" << dtype.toString() << ")";
+      return Array();
+    }
+
+    dst.fillWithValue(value);
+    return dst;
+  }
+
+  //handleSaveImage
+  virtual bool handleSaveImage(String url, Array src, std::vector<String> args) override {
+    return Url(url).isFile() && Url(url).getPath() == "/dev/null";
   }
 
 };
 
 } //namespace Visus
 
-#endif //VISUS_ID_ENCODER_H
-
+#endif //VISUS_ARRAY_PLUGIN_DEVNULL_H

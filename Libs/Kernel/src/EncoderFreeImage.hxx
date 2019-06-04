@@ -39,7 +39,7 @@ For support : support@visus.net
 #ifndef VISUS_FREEIMAGE_ENCODER_H
 #define VISUS_FREEIMAGE_ENCODER_H
 
-#include <Visus/Visus.h>
+#include <Visus/Kernel.h>
 #include <Visus/Encoder.h>
 
 #if WIN32

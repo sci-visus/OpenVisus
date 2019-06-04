@@ -21,11 +21,11 @@
 using namespace Visus;
 %}
 
-%include <Visus/VisusPy.i>
-%import <Visus/VisusKernelPy.i>
-%import <Visus/VisusDataflowPy.i>
-%import <Visus/VisusDbPy.i>
-%import <Visus/VisusIdxPy.i>
+%include <VisusPy.i>
+%import <VisusKernelPy.i>
+%import <VisusDataflowPy.i>
+%import <VisusDbPy.i>
+%import <VisusIdxPy.i>
 
 %include <Visus/Nodes.h>
 %include <Visus/CpuPaletteNode.h>

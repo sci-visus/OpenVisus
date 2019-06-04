@@ -60,12 +60,9 @@ source_group("Dataset"  FILES ${DatasetSources})
 source_group("Scene"    FILES ${SceneSources})
 source_group("Query"    FILES ${QuerySources})
 
-file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp)
+file(GLOB Sources include/Visus/*.h src/*.cpp)
 
 AddLibrary(VisusDb SHARED ${Sources})
 target_link_libraries(VisusDb PUBLIC VisusKernel)
 
-AddSwigLibrary(VisusDb ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusDbPy.i 
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include")
+

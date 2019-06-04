@@ -37,7 +37,6 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/Viewer.h>
-#include <Visus/PythonEngine.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/ModVisus.h>
 

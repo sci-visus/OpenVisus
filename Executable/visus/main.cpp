@@ -57,7 +57,9 @@ For support : support@visus.net
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/MultiplexAccess.h>
 
-#include <Visus/PythonEngine.h>
+#if VISUS_PYTHON
+#include <Visus/Python.h>
+#endif
 
 using namespace Visus;
 

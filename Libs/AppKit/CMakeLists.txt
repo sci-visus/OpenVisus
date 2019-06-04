@@ -44,16 +44,7 @@ set(ViewSources
 
 source_group(""     FILES ${RootSources})
 source_group("View" FILES ${ViewSources})
-file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp resources/*.glsl resources/*.qrc)
+file(GLOB Sources include/Visus/*.h src/*.cpp resources/*.glsl resources/*.qrc)
 AddLibrary(VisusAppKit SHARED ${Sources})
 target_link_libraries(VisusAppKit PUBLIC VisusNodes VisusGuiNodes)
 
-AddSwigLibrary(VisusAppKit ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusAppKitPy.i 
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Nodes/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Gui/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../GuiNodes/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../AppKit/include")

@@ -33,6 +33,9 @@ if (VISUS_APPKIT)
 	add_subdirectory(AppKit)
 endif()
 
+if (VISUS_PYTHON)
+	add_subdirectory(swig)
+endif()
 
 
 

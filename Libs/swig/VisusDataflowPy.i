@@ -6,13 +6,12 @@
 #include <Visus/DataflowPort.h>
 #include <Visus/DataflowNode.h>
 #include <Visus/Dataflow.h>
-#include <Visus/PythonEngine.h>
 using namespace Visus;
 %}
 
-%include <Visus/VisusPy.i>
+%include <VisusPy.i>
 
-%import <Visus/VisusKernelPy.i>
+%import <VisusKernelPy.i>
 
 %shared_ptr(Visus::DataflowValue)
 %shared_ptr(Visus::Dataflow)

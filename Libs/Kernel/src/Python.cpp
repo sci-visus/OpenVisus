@@ -36,15 +36,14 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
+#if VISUS_PYTHON
 
-#include <Visus/PythonEngine.h>
+#include <Visus/Python.h>
 #include <Visus/Thread.h>
 #include <Visus/Log.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/Path.h>
 #include <Visus/File.h>
-
-#if VISUS_PYTHON
 
 #include <cctype>
 
@@ -68,7 +67,6 @@ For support : support@visus.net
 
 #endif
 
-
 namespace Visus {
 
 //note for shared_ptr swig enabled types, you always need to use the shared_ptr typename
@@ -77,12 +75,7 @@ static String SwigArrayTypeName   = "Visus::Array *";
 
 static PyThreadState* __main__thread_state__=nullptr;
 
-static std::set<String> ReservedWords =
-{
-  "and", "del","from","not","while","as","elif","global","or","with","assert", "else","if",
-  "pass","yield","break","except","import","print", "class","exec""in","raise","continue", 
-  "finally","is","return","def","for","lambda","try"
-};
+
 
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::ScopedAcquireGil() 
@@ -121,6 +114,13 @@ void PythonEngine::setMainThread()
 ////////////////////////////////////////////////////////////////////////////////////
 bool PythonEngine::isGoodVariableName(String name)
 {
+  const std::set<String> ReservedWords =
+  {
+    "and", "del","from","not","while","as","elif","global","or","with","assert", "else","if",
+    "pass","yield","break","except","import","print", "class","exec""in","raise","continue",
+    "finally","is","return","def","for","lambda","try"
+  };
+
   if (name.empty() || ReservedWords.count(name))
     return false;
 
@@ -188,28 +188,6 @@ void InitPython()
 	  //see https://trac.xapian.org/ticket/185
     __main__thread_state__ = PyEval_SaveThread();
 	}
-	
-	#if 0
-#if PY_MAJOR_VERSION <3
-	std::out
-		<<" Py_GetPath           ()="<<CheckForNull(Py_GetPath           ()) << std::endl	
-		<<" Py_GetPrefix         ()="<<CheckForNull(Py_GetPrefix         ()) << std::endl	
-		<<" Py_GetExecPrefix     ()="<<CheckForNull(Py_GetExecPrefix     ()) << std::endl	
-		<<" Py_GetProgramFullPath()="<<CheckForNull(Py_GetProgramFullPath()) << std::endl	
-		<<" Py_GetPythonHome     ()="<<(CheckForNull(Py_GetPythonHome    ()) << std::endl	
-		<<" Py_GetProgramName    ()="<<CheckForNull(Py_GetProgramName    ()) << std::endl	;		
-#else
-	std::wcout
-		<<L" Py_GetPath           ()="<<CheckForNull(Py_GetPath           ()) << std::endl	
-		<<L" Py_GetPrefix         ()="<<CheckForNull(Py_GetPrefix         ()) << std::endl	
-		<<L" Py_GetExecPrefix     ()="<<CheckForNull(Py_GetExecPrefix     ()) << std::endl	
-		<<L" Py_GetProgramFullPath()="<<CheckForNull(Py_GetProgramFullPath()) << std::endl	
-		<<L" Py_GetPythonHome     ()="<<(CheckForNull(Py_GetPythonHome    ()) << std::endl	
-		<<L" Py_GetProgramName    ()="<<CheckForNull(Py_GetProgramName    ()) << std::endl	;		
-#endif
-
-#endif
-
 	
   VisusInfo() << "Python initialization done";
 }
@@ -556,7 +534,6 @@ String PythonEngine::convertToString(PyObject* value)
 String PythonEngine::getLastErrorMessage()
 {
   //see http://www.solutionscan.org/154789-python
-#if 1
   auto err = PyErr_Occurred();
   if (!err)
     return "";
@@ -584,24 +561,7 @@ String PythonEngine::getLastErrorMessage()
     }
   }
 
-  auto ret = out.str();
-  return ret;
-
-#else
-  PyObject *type = nullptr, *value = nullptr, *traceback = nullptr;
-  PyErr_Fetch(&type, &value, &traceback);
-  PyErr_NormalizeException(&type, &value, &traceback);
-
-  PyErr_Clear();
-
-  auto stype = convertToString(type);
-  auto svalue = convertToString(value);
-  auto straceback = convertToString(traceback);
-
-  std::ostringstream out;
-  out<<"Python error: "<< stype <<" "<< svalue  << " "<< straceback;
   return out.str();
-#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////

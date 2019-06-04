@@ -37,8 +37,7 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 %{
-#include <Visus/Visus.h>
-#include <Visus/PythonEngine.h>
+#include <Visus/Kernel.h>
 %}
 
 //common code 
@@ -51,6 +50,57 @@ For support : support@visus.net
 
 %}
 
+%{
+
+#include <sstream>
+#include <string>
+#include <iostream>
+
+///////////////////////////////////////////////////////////////////////////
+std::string ConvertToString(PyObject* value)
+{
+  if (!value)  return "";
+  PyObject *py_str = PyObject_Str(value);
+  auto tmp = SWIG_Python_str_AsChar(py_str);
+  std::string ret = tmp ? tmp : "";
+  SWIG_Python_str_DelForPy3(tmp);
+  Py_DECREF(py_str);
+  return ret;
+}
+
+///////////////////////////////////////////////////////////////////////////
+std::string GetLastErrorMessage()
+{
+  //see http://www.solutionscan.org/154789-python
+  auto err = PyErr_Occurred();
+  if (!err)
+    return "";
+
+  PyObject *type, *value, *traceback;
+  PyErr_Fetch(&type, &value, &traceback);
+
+  std::ostringstream out;
+
+  out << "Python error: " 
+    << ConvertToString(type) << " "
+    << ConvertToString(value) << " ";
+
+  auto module_name = PyString_FromString("traceback");
+  auto module = PyImport_Import(module_name);
+  Py_DECREF(module_name);
+
+  auto fn = module? PyObject_GetAttrString(module, "format_exception") : nullptr;
+  if (fn && PyCallable_Check(fn)) {
+    if (auto descr = PyObject_CallFunctionObjArgs(fn, type, value, traceback, NULL)) {
+      out << ConvertToString(descr);
+      Py_DECREF(descr);
+    }
+  }
+
+  return out.str();
+}
+
+%}
 
 
 //__________________________________________________________
@@ -146,7 +196,7 @@ namespace Visus {}
   } 
   catch (Swig::DirectorMethodException& e) {
 	VisusInfo()<<"Error happened in swig director code: "<<e.what()<< " where("<< VisusHereInTheCode<<")";
-	VisusInfo()<<PythonEngine::getLastErrorMessage();
+	VisusInfo()<<GetLastErrorMessage();
     SWIG_fail;
   }
   catch (std::exception& e) {

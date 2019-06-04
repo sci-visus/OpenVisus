@@ -6,11 +6,10 @@
 #include <Visus/IdxDataset.h>
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/VisusConfig.h>
-#include <Visus/PythonEngine.h>
 using namespace Visus;
 %}
 
-%include <Visus/VisusPy.i>
+%include <VisusPy.i>
 
 //VISUS_DISOWN
 
@@ -19,8 +18,8 @@ using namespace Visus;
 %shared_ptr(Visus::IdxDataset)
 %shared_ptr(Visus::IdxMultipleDataset)
 
-%import <Visus/VisusKernelPy.i>
-%import <Visus/VisusDbPy.i>
+%import <VisusKernelPy.i>
+%import <VisusDbPy.i>
 
 %include <Visus/Idx.h>
 %include <Visus/IdxFile.h>

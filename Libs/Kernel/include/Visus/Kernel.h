@@ -39,13 +39,7 @@ For support : support@visus.net
 #ifndef VISUS_KERNEL_H__
 #define VISUS_KERNEL_H__
 
-#include <Visus/Visus.h>
-
-#if 0
-#  define VISUS_OPENGL_ES 1
-#else
-#define VISUS_OPENGL_ES 0
-#endif
+#include <Visus/Kernel.h>
 
 #include <memory>
 #include <string>

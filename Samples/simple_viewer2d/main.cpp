@@ -36,7 +36,7 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Visus.h>
+#include <Visus/Kernel.h>
 #include <Visus/Dataflow.h>
 #include <Visus/DatasetNode.h>
 #include <Visus/QueryNode.h>

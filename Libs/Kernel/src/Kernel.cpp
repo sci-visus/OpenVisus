@@ -36,7 +36,7 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Visus.h>
+#include <Visus/Kernel.h>
 
 #include <Visus/Thread.h>
 #include <Visus/NetService.h>
@@ -89,7 +89,9 @@ For support : support@visus.net
 #include <Visus/Statistics.h>
 #include <Visus/Array.h>
 
-#include <Visus/PythonEngine.h>
+#if VISUS_PYTHON
+#include <Visus/Python.h>
+#endif
 
 #include <clocale>
 
@@ -363,10 +365,6 @@ void KernelModule::attach()
       break;
   }
 
-#if VISUS_PYTHON
-  InitPython();
-#endif
-
   VisusInfo() << "git_revision            " << ApplicationInfo::git_revision;
   VisusInfo() << "VisusHome               " << KnownPaths::VisusHome.toString();
   VisusInfo() << "BinaryDirectory         " << KnownPaths::BinaryDirectory.toString();
@@ -379,6 +377,7 @@ void KernelModule::attach()
 
   //this is to make sure PythonEngine works
 #if VISUS_PYTHON
+  InitPython();
   if (auto engine = std::make_shared<PythonEngine>(true))
   {
     ScopedAcquireGil acquire_gil;

@@ -36,38 +36,37 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef VISUS_ZIP_ENCODER_H
-#define VISUS_ZIP_ENCODER_H
+#ifndef VISUS_LZ4_ENCODER_H
+#define VISUS_LZ4_ENCODER_H
 
-#include <Visus/Visus.h>
+#include <Visus/Kernel.h>
 #include <Visus/Encoder.h>
 
-namespace ZLib
+//self contained lz4
+namespace LZ4
 {
-#include "zlib/zlib.h"
+#include <lz4/lz4.h>
 }
-
 
 namespace Visus {
 
 //////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API ZipEncoder : public Encoder
+class VISUS_KERNEL_API LZ4Encoder : public Encoder
 {
 public:
 
-  VISUS_CLASS(ZipEncoder)
+  VISUS_CLASS(LZ4Encoder)
 
     //constructor
-    ZipEncoder()
-  {}
+    LZ4Encoder() {
+  }
 
   //destructor
-  virtual ~ZipEncoder()
-  {}
+  virtual ~LZ4Encoder() {
+  }
 
   //isLossy
-  virtual bool isLossy() const override
-  {
+  virtual bool isLossy() const override {
     return false;
   }
 
@@ -77,16 +76,23 @@ public:
     if (!decoded)
       return SharedPtr<HeapMemory>();
 
-    ZLib::uLong zbound = ZLib::compressBound(ZLib::uLong(decoded->c_size()));
+    using namespace LZ4;
+
+    auto encoded_bound = LZ4_compressBound((int)decoded->c_size());
 
     auto encoded = std::make_shared<HeapMemory>();
-    if (!encoded->resize(zbound, __FILE__, __LINE__))
+    if (!encoded->resize(encoded_bound, __FILE__, __LINE__))
       return SharedPtr<HeapMemory>();
 
-    if (ZLib::compress2(encoded->c_ptr(), &zbound, decoded->c_ptr(), (ZLib::uLong)decoded->c_size(), Z_DEFAULT_COMPRESSION) != Z_OK)
+#if LZ4_VERSION_MAJOR<=1 && LZ4_VERSION_MINOR<=6
+#define LZ4_compress_default(source,dest,sourceSize,destSize) LZ4_compress(source,dest,sourceSize)
+#endif
+
+    auto encoded_size = LZ4_compress_default((const char*)decoded->c_ptr(), (char*)encoded->c_ptr(), (int)decoded->c_size(), (int)encoded->c_size());
+    if (encoded_size <= 0)
       return SharedPtr<HeapMemory>();
 
-    if (!encoded->resize(zbound, __FILE__, __LINE__))
+    if (!encoded->resize(encoded_size, __FILE__, __LINE__))
       return SharedPtr<HeapMemory>();
 
     return encoded;
@@ -98,16 +104,19 @@ public:
     if (!encoded)
       return SharedPtr<HeapMemory>();
 
-    ZLib::uLong decoded_len = (ZLib::uLong)(dtype.getByteSize(dims));
-
     auto decoded = std::make_shared<HeapMemory>();
     if (!decoded->resize(dtype.getByteSize(dims), __FILE__, __LINE__))
       return SharedPtr<HeapMemory>();
 
-    if (ZLib::uncompress(decoded->c_ptr(), &decoded_len, encoded->c_ptr(), (ZLib::uLong)encoded->c_size()) != Z_OK)
+    auto nbytes = LZ4::LZ4_decompress_safe((const char*)encoded->c_ptr(), (char*)decoded->c_ptr(), (int)encoded->c_size(), (int)decoded->c_size());
+    if (nbytes <= 0)
       return SharedPtr<HeapMemory>();
 
-    VisusAssert(decoded_len == decoded->c_size());
+    if (nbytes != decoded->c_size()) {
+      VisusAssert(false);
+      return SharedPtr<HeapMemory>();
+    }
+
     return decoded;
   }
 
@@ -115,5 +124,5 @@ public:
 
 } //namespace Visus
 
-#endif //VISUS_ZIP_ENCODER_H
+#endif //VISUS_LZ4_ENCODER_H
 

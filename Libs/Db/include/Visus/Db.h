@@ -39,7 +39,7 @@ For support : support@visus.net
 #ifndef VISUS_DB_H__
 #define VISUS_DB_H__
 
-#include <Visus/Visus.h>
+#include <Visus/Kernel.h>
 
 namespace Visus {
 

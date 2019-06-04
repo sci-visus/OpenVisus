@@ -8,10 +8,10 @@
 using namespace Visus;
 %}
 
-%include <Visus/VisusPy.i>
-%import  <Visus/VisusKernelPy.i>
-%import  <Visus/VisusDataflowPy.i>
-%import  <Visus/VisusGuiPy.i>
+%include <VisusPy.i>
+%import  <VisusKernelPy.i>
+%import  <VisusDataflowPy.i>
+%import  <VisusGuiPy.i>
 
 #define Q_OBJECT
 #define signals public

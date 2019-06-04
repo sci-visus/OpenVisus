@@ -14,9 +14,9 @@
 using namespace Visus;
 %}
 
-%include <Visus/VisusPy.i>
+%include <VisusPy.i>
 
-%import <Visus/VisusKernelPy.i>
+%import <VisusKernelPy.i>
 
 %shared_ptr(Visus::Access)
 %shared_ptr(Visus::BlockQuery)

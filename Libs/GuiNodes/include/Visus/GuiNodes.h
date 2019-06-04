@@ -39,7 +39,7 @@ For support : support@visus.net
 #ifndef VISUS_GUI_NODES_H__
 #define VISUS_GUI_NODES_H__
 
-#include <Visus/Visus.h>
+#include <Visus/Kernel.h>
 
 namespace Visus {
 

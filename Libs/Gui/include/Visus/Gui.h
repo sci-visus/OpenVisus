@@ -39,7 +39,7 @@ For support : support@visus.net
 #ifndef VISUS_GUI_H__
 #define VISUS_GUI_H__
 
-#include <Visus/Visus.h>
+#include <Visus/Kernel.h>
 #include <Visus/Color.h>
 #include <Visus/Model.h>
 #include <Visus/Rectangle.h>
@@ -60,6 +60,10 @@ namespace Visus {
   #else
     #define VISUS_GUI_API VISUS_SHARED_IMPORT
   #endif
+#endif
+
+#ifndef VISUS_OPENGL_ES
+#define VISUS_OPENGL_ES 0
 #endif
 
 class VISUS_GUI_API GuiModule : public VisusModule

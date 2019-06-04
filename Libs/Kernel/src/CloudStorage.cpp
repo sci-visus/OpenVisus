@@ -42,9 +42,9 @@ For support : support@visus.net
 #include <Visus/Path.h>
 #include <Visus/UUID.h>
 
-#include "AmazonCloudStorage.h"
-#include "AzureCloudStorage.h"
-#include "GoogleCloudStorage.h"
+#include "AmazonCloudStorage.hxx"
+#include "AzureCloudStorage.hxx"
+#include "GoogleCloudStorage.hxx"
 
 #include <cctype>
 

@@ -38,15 +38,14 @@ For support : support@visus.net
 
 #include <Visus/Array.h>
 
-#include "ArrayPluginDevnull.h"
-#include "ArrayPluginRawArray.h"
+#include "ArrayPluginDevnull.hxx"
+#include "ArrayPluginRawArray.hxx"
 
 #if VISUS_IMAGE
-#include "ArrayPluginFreeimage.h"
+#include "ArrayPluginFreeimage.hxx"
 #endif
 
 namespace Visus {
-
 
 
 VISUS_IMPLEMENT_SINGLETON_CLASS(ArrayPlugins)

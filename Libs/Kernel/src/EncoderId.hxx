@@ -36,11 +36,62 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Visus.h>
+#ifndef VISUS_ID_ENCODER_H
+#define VISUS_ID_ENCODER_H
+
+#include <Visus/Kernel.h>
+#include <Visus/Encoder.h>
 
 namespace Visus {
 
+
+//////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API IdEncoder : public Encoder
+{
+public:
+
+  VISUS_CLASS(IdEncoder)
+
+    //constructor
+    IdEncoder()
+  {}
+
+  //destructor
+  virtual ~IdEncoder()
+  {}
+
+  //isLossy
+  virtual bool isLossy() const override
+  {
+    return false;
+  }
+
+  //encode
+  virtual SharedPtr<HeapMemory> encode(NdPoint dims, DType dtype, SharedPtr<HeapMemory> decoded) override
+  {
+    if (!decoded)
+      return SharedPtr<HeapMemory>();
+
+    return decoded;
+  }
+
+  //decode
+  virtual SharedPtr<HeapMemory> decode(NdPoint dims, DType dtype, SharedPtr<HeapMemory> encoded) override
+  {
+    if (!encoded)
+      return SharedPtr<HeapMemory>();
+
+    if (dtype.getByteSize(dims) != encoded->c_size()) {
+      VisusAssert(false);
+      return SharedPtr<HeapMemory>();
+    }
+
+    return encoded;
+  }
+
+};
+
 } //namespace Visus
 
-
+#endif //VISUS_ID_ENCODER_H
 

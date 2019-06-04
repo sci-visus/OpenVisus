@@ -70,7 +70,7 @@ else()
 	endif()
 
 	if (VISUS_MODVISUS)
-		AddLibrary(mod_visus mod_visus.cpp)
+		AddLibrary(mod_visus SHARED mod_visus.cpp)
 		target_link_libraries(mod_visus PUBLIC VisusIdx)
 		LinkPythonToExecutable(mod_visus)
 		set_target_properties(mod_visus PROPERTIES FOLDER Executable/)

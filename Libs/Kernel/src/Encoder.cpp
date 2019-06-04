@@ -39,15 +39,13 @@ For support : support@visus.net
 #include <Visus/Encoder.h>
 #include <Visus/StringUtils.h>
 
-#include "EncoderId.h"
-#include "EncoderLz4.h"
-#include "EncoderZip.h"
+#include "EncoderId.hxx"
+#include "EncoderLz4.hxx"
+#include "EncoderZip.hxx"
 
 #if VISUS_IMAGE
-#include "EncoderFreeImage.h"
+#include "EncoderFreeImage.hxx"
 #endif
-
-
 
 namespace Visus {
 

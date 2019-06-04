@@ -1,11 +1,6 @@
 
-file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp)
+file(GLOB Sources include/Visus/*.h src/*.cpp)
 source_group("" FILES ${Sources})
 AddLibrary(VisusIdx SHARED ${Sources})
 target_link_libraries(VisusIdx PUBLIC VisusDb)
 
-AddSwigLibrary(VisusIdx ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusIdxPy.i 
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Db/include"
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Idx/include")		

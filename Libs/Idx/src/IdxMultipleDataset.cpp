@@ -39,10 +39,13 @@ For support : support@visus.net
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/ModVisusAccess.h>
 #include <Visus/Path.h>
-#include <Visus/PythonEngine.h>
 #include <Visus/ThreadPool.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/IdxMosaicAccess.h>
+
+#if VISUS_PYTHON
+#include <Visus/Python.h>
+#endif
 
 #include <atomic>
 

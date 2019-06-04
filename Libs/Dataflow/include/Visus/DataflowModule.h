@@ -39,7 +39,7 @@ For support : support@visus.net
 #ifndef VISUS_DATAFLOW_MODULE_H__
 #define VISUS_DATAFLOW_MODULE_H__
 
-#include <Visus/Visus.h>
+#include <Visus/Kernel.h>
 
 namespace Visus {
 

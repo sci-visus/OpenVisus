@@ -64,208 +64,209 @@ int    NetService::Defaults::proxy_port=0;
 
 #if VISUS_NET
 
+
+///////////////////////////////////////////////////////////////////////////////////
+class CurlConnection
+{
+public:
+
+  int                              id = 0;
+  NetRequest                       request;
+  Promise<NetResponse>             promise;
+  NetResponse                      response;
+  bool                             first_byte = false;
+
+  CURLM*                           multi_handle;
+  CURL*                            handle = nullptr;
+  struct curl_slist*               slist = 0;
+  char                             errbuf[CURL_ERROR_SIZE];
+  Int64                            last_size_download = 0;
+  Int64                            last_size_upload = 0;
+  size_t                           buffer_offset = 0;
+
+  //constructor
+  CurlConnection(int id_, CURLM*  multi_handle_)
+    : id(id_), multi_handle(multi_handle_)
+  {
+    memset(errbuf, 0, sizeof(errbuf));
+    this->handle = curl_easy_init();
+  }
+
+  //destructor
+  ~CurlConnection()
+  {
+    if (slist != nullptr) curl_slist_free_all(slist);
+    curl_easy_cleanup(handle);
+  }
+
+  //setNetRequest
+  void setNetRequest(NetRequest user_request, Promise<NetResponse> user_promise)
+  {
+    if (this->request.valid())
+    {
+      curl_multi_remove_handle(multi_handle, this->handle);
+      curl_easy_reset(this->handle);
+    }
+
+    this->request = user_request;
+    this->response = NetResponse();
+    this->promise = user_promise;
+
+    this->buffer_offset = 0;
+    this->last_size_download = 0;
+    this->last_size_upload = 0;
+    memset(errbuf, 0, sizeof(errbuf));
+
+    if (this->request.valid())
+    {
+      curl_easy_setopt(this->handle, CURLOPT_FORBID_REUSE, 1L); //not sure if this is the best option (see http://www.perlmonks.org/?node_id=925760)
+      curl_easy_setopt(this->handle, CURLOPT_FRESH_CONNECT, 1L);
+      curl_easy_setopt(this->handle, CURLOPT_NOSIGNAL, 1L); //otherwise crash on linux
+      curl_easy_setopt(this->handle, CURLOPT_TCP_NODELAY, 1L);
+      curl_easy_setopt(this->handle, CURLOPT_VERBOSE, 0L); //SET to 1L if you want to debug !
+                                                           //if you want to use TLS 1.2
+                                                           //curl_easy_setopt(this->handle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+
+      curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+      //VisusInfo()<<"Disabling SSL verify peer , potential security hole";
+      curl_easy_setopt(this->handle, CURLOPT_SSL_VERIFYPEER, 0L);
+
+      curl_easy_setopt(this->handle, CURLOPT_NOPROGRESS, 1L);
+      curl_easy_setopt(this->handle, CURLOPT_HEADER, 0L);
+      curl_easy_setopt(this->handle, CURLOPT_FAILONERROR, 1L);
+      curl_easy_setopt(this->handle, CURLOPT_USERAGENT, "visus/libcurl");
+      curl_easy_setopt(this->handle, CURLOPT_ERRORBUFFER, this->errbuf);
+      curl_easy_setopt(this->handle, CURLOPT_HEADERFUNCTION, HeaderFunction);
+      curl_easy_setopt(this->handle, CURLOPT_WRITEFUNCTION, WriteFunction);
+      curl_easy_setopt(this->handle, CURLOPT_READFUNCTION, ReadFunction);
+      curl_easy_setopt(this->handle, CURLOPT_PRIVATE, this);
+      curl_easy_setopt(this->handle, CURLOPT_HEADERDATA, this);
+      curl_easy_setopt(this->handle, CURLOPT_WRITEDATA, this);
+      curl_easy_setopt(this->handle, CURLOPT_READDATA, this);
+
+      String proxy = NetService::Defaults::proxy;
+      if (!proxy.empty())
+      {
+        curl_easy_setopt(this->handle, CURLOPT_PROXY, proxy.c_str());
+        if (int proxy_port = NetService::Defaults::proxy_port)
+          curl_easy_setopt(this->handle, CURLOPT_PROXYPORT, proxy_port);
+      }
+
+      curl_easy_setopt(this->handle, CURLOPT_URL, request.url.toString().c_str());
+
+      //set request_headers
+      if (this->slist != nullptr) curl_slist_free_all(this->slist);
+      this->slist = nullptr;
+      for (auto it = request.headers.begin(); it != request.headers.end(); it++)
+      {
+        String temp = it->first + ":" + it->second;
+        this->slist = curl_slist_append(this->slist, temp.c_str());
+      }
+
+      //see https://www.redhat.com/archives/libvir-list/2012-February/msg00860.html
+      //this is needed for example for VisusNetRerver that does not send "100 (Continue)"
+      this->slist = curl_slist_append(this->slist, "Expect:");
+
+      if (request.method == "DELETE")
+      {
+        curl_easy_setopt(this->handle, CURLOPT_CUSTOMREQUEST, "DELETE");
+      }
+      else if (request.method == "GET")
+      {
+        curl_easy_setopt(this->handle, CURLOPT_HTTPGET, 1);
+      }
+      else if (request.method == "HEAD")
+      {
+        curl_easy_setopt(this->handle, CURLOPT_HTTPGET, 1);
+        curl_easy_setopt(this->handle, CURLOPT_NOBODY, 1);
+      }
+      else if (request.method == "POST")
+      {
+        curl_easy_setopt(this->handle, CURLOPT_POST, 1L);
+        curl_easy_setopt(this->handle, CURLOPT_INFILESIZE, request.body ? request.body->c_size() : 0);
+      }
+      else if (request.method == "PUT")
+      {
+        curl_easy_setopt(this->handle, CURLOPT_PUT, 1);
+        curl_easy_setopt(this->handle, CURLOPT_INFILESIZE, request.body ? request.body->c_size() : 0);
+      }
+      else
+      {
+        VisusAssert(false);
+      }
+
+      curl_easy_setopt(this->handle, CURLOPT_HTTPHEADER, this->slist);
+      curl_multi_add_handle(multi_handle, this->handle);
+    }
+  }
+
+  //HeaderFunction
+  static size_t HeaderFunction(void *ptr, size_t size, size_t nmemb, CurlConnection *connection)
+  {
+    connection->first_byte = true;
+
+    if (!connection->response.body)
+      connection->response.body = std::make_shared<HeapMemory>();
+
+    size_t tot = size*nmemb;
+    char* p = strchr((char*)ptr, ':');
+    if (p)
+    {
+      String key = StringUtils::trim(String((char*)ptr, p));
+      String value = StringUtils::trim(String((char*)p + 1, (char*)ptr + tot));
+      if (!key.empty()) connection->response.setHeader(key, value);
+
+      //avoid too much overhead for writeFunction function
+      if (StringUtils::toLower(key) == "content-length")
+      {
+        int content_length = cint(value);
+        connection->response.body->reserve(content_length, __FILE__, __LINE__);
+      }
+
+    }
+    return(nmemb*size);
+  }
+
+  //WriteFunction (downloading data)
+  static size_t WriteFunction(void *chunk, size_t size, size_t nmemb, CurlConnection *connection)
+  {
+    connection->first_byte = true;
+
+    if (!connection->response.body)
+      connection->response.body = std::make_shared<HeapMemory>();
+
+    size_t tot = size * nmemb;
+    Int64 oldsize = connection->response.body->c_size();
+    if (!connection->response.body->resize(oldsize + tot, __FILE__, __LINE__))
+    {
+      VisusAssert(false); return 0;
+    }
+    memcpy(connection->response.body->c_ptr() + oldsize, chunk, tot);
+    ApplicationStats::net.trackReadOperation(tot);
+    return tot;
+  }
+
+  //ReadFunction (uploading data)
+  static size_t ReadFunction(char *chunk, size_t size, size_t nmemb, CurlConnection *connection)
+  {
+    connection->first_byte = true;
+
+    size_t& offset = connection->buffer_offset;
+    size_t tot = std::min((size_t)connection->request.body->c_size() - offset, size * nmemb);
+    memcpy(chunk, connection->request.body->c_ptr() + offset, tot);
+    offset += tot;
+    ApplicationStats::net.trackWriteOperation(tot);
+    return tot;
+  }
+
+};
+
+
 /////////////////////////////////////////////////////////////////////////////
 class NetService::Pimpl
 {
 public:
-
-  //__________________________________________________________________
-  class Connection
-  {
-  public:
-
-    int                              id = 0;
-    NetRequest                       request;
-    Promise<NetResponse>             promise;
-    NetResponse                      response;
-    bool                             first_byte = false;
-
-    CURLM*                           multi_handle;
-    CURL*                            handle = nullptr;
-    struct curl_slist*               slist = 0;
-    char                             errbuf[CURL_ERROR_SIZE];
-    Int64                            last_size_download = 0;
-    Int64                            last_size_upload = 0;
-    size_t                           buffer_offset = 0;
-
-    //constructor
-    Connection(int id_, CURLM*  multi_handle_)
-      : id(id_), multi_handle(multi_handle_)
-    {
-      memset(errbuf, 0, sizeof(errbuf));
-      this->handle = curl_easy_init();
-    }
-
-    //destructor
-    ~Connection()
-    {
-      if (slist != nullptr) curl_slist_free_all(slist);
-      curl_easy_cleanup(handle);
-    }
-
-    //setNetRequest
-    void setNetRequest(NetRequest user_request, Promise<NetResponse> user_promise)
-    {
-      if (this->request.valid())
-      {
-        curl_multi_remove_handle(multi_handle, this->handle);
-        curl_easy_reset(this->handle);
-      }
-
-      this->request = user_request;
-      this->response = NetResponse();
-      this->promise = user_promise;
-
-      this->buffer_offset = 0;
-      this->last_size_download = 0;
-      this->last_size_upload = 0;
-      memset(errbuf, 0, sizeof(errbuf));
-
-      if (this->request.valid())
-      {
-        curl_easy_setopt(this->handle, CURLOPT_FORBID_REUSE, 1L); //not sure if this is the best option (see http://www.perlmonks.org/?node_id=925760)
-        curl_easy_setopt(this->handle, CURLOPT_FRESH_CONNECT, 1L);
-        curl_easy_setopt(this->handle, CURLOPT_NOSIGNAL, 1L); //otherwise crash on linux
-        curl_easy_setopt(this->handle, CURLOPT_TCP_NODELAY, 1L);
-        curl_easy_setopt(this->handle, CURLOPT_VERBOSE, 0L); //SET to 1L if you want to debug !
-
-        //if you want to use TLS 1.2
-        //curl_easy_setopt(this->handle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
-
-        curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
-
-        //VisusInfo()<<"Disabling SSL verify peer , potential security hole";
-        curl_easy_setopt(this->handle, CURLOPT_SSL_VERIFYPEER, 0L);
-
-        curl_easy_setopt(this->handle, CURLOPT_NOPROGRESS, 1L);
-        curl_easy_setopt(this->handle, CURLOPT_HEADER, 0L);
-        curl_easy_setopt(this->handle, CURLOPT_FAILONERROR, 1L);
-        curl_easy_setopt(this->handle, CURLOPT_USERAGENT, "visus/libcurl");
-        curl_easy_setopt(this->handle, CURLOPT_ERRORBUFFER, this->errbuf);
-        curl_easy_setopt(this->handle, CURLOPT_HEADERFUNCTION, HeaderFunction);
-        curl_easy_setopt(this->handle, CURLOPT_WRITEFUNCTION, WriteFunction);
-        curl_easy_setopt(this->handle, CURLOPT_READFUNCTION, ReadFunction);
-        curl_easy_setopt(this->handle, CURLOPT_PRIVATE, this);
-        curl_easy_setopt(this->handle, CURLOPT_HEADERDATA, this);
-        curl_easy_setopt(this->handle, CURLOPT_WRITEDATA, this);
-        curl_easy_setopt(this->handle, CURLOPT_READDATA, this);
-
-        String proxy = NetService::Defaults::proxy;
-        if (!proxy.empty())
-        {
-          curl_easy_setopt(this->handle, CURLOPT_PROXY, proxy.c_str());
-          if (int proxy_port = NetService::Defaults::proxy_port)
-            curl_easy_setopt(this->handle, CURLOPT_PROXYPORT, proxy_port);
-        }
-
-        curl_easy_setopt(this->handle, CURLOPT_URL, request.url.toString().c_str());
-
-        //set request_headers
-        if (this->slist != nullptr) curl_slist_free_all(this->slist);
-        this->slist = nullptr;
-        for (auto it = request.headers.begin(); it != request.headers.end(); it++)
-        {
-          String temp = it->first + ":" + it->second;
-          this->slist = curl_slist_append(this->slist, temp.c_str());
-        }
-
-        //see https://www.redhat.com/archives/libvir-list/2012-February/msg00860.html
-        //this is needed for example for VisusNetRerver that does not send "100 (Continue)"
-        this->slist = curl_slist_append(this->slist, "Expect:");
-
-        if (request.method == "DELETE")
-        {
-          curl_easy_setopt(this->handle, CURLOPT_CUSTOMREQUEST, "DELETE");
-        }
-        else if (request.method == "GET")
-        {
-          curl_easy_setopt(this->handle, CURLOPT_HTTPGET, 1);
-        }
-        else if (request.method == "HEAD")
-        {
-          curl_easy_setopt(this->handle, CURLOPT_HTTPGET, 1);
-          curl_easy_setopt(this->handle, CURLOPT_NOBODY, 1);
-        }
-        else if (request.method == "POST")
-        {
-          curl_easy_setopt(this->handle, CURLOPT_POST, 1L);
-          curl_easy_setopt(this->handle, CURLOPT_INFILESIZE, request.body ? request.body->c_size() : 0);
-        }
-        else if (request.method == "PUT")
-        {
-          curl_easy_setopt(this->handle, CURLOPT_PUT, 1);
-          curl_easy_setopt(this->handle, CURLOPT_INFILESIZE, request.body ? request.body->c_size() : 0);
-        }
-        else
-        {
-          VisusAssert(false);
-        }
-
-        curl_easy_setopt(this->handle, CURLOPT_HTTPHEADER, this->slist);
-        curl_multi_add_handle(multi_handle, this->handle);
-      }
-    }
-
-    //HeaderFunction
-    static size_t HeaderFunction(void *ptr, size_t size, size_t nmemb, Connection *connection)
-    {
-      connection->first_byte = true;
-
-      if (!connection->response.body)
-        connection->response.body = std::make_shared<HeapMemory>();
-
-      size_t tot = size*nmemb;
-      char* p = strchr((char*)ptr, ':');
-      if (p)
-      {
-        String key = StringUtils::trim(String((char*)ptr, p));
-        String value = StringUtils::trim(String((char*)p + 1, (char*)ptr + tot));
-        if (!key.empty()) connection->response.setHeader(key, value);
-
-        //avoid too much overhead for writeFunction function
-        if (StringUtils::toLower(key) == "content-length")
-        {
-          int content_length = cint(value);
-          connection->response.body->reserve(content_length, __FILE__, __LINE__);
-        }
-
-      }
-      return(nmemb*size);
-    }
-
-    //WriteFunction (downloading data)
-    static size_t WriteFunction(void *chunk, size_t size, size_t nmemb, Connection *connection)
-    {
-      connection->first_byte = true;
-
-      if (!connection->response.body)
-        connection->response.body = std::make_shared<HeapMemory>();
-
-      size_t tot = size * nmemb;
-      Int64 oldsize = connection->response.body->c_size();
-      if (!connection->response.body->resize(oldsize + tot, __FILE__, __LINE__))
-      {
-        VisusAssert(false); return 0;
-      }
-      memcpy(connection->response.body->c_ptr() + oldsize, chunk, tot);
-      ApplicationStats::net.trackReadOperation(tot);
-      return tot;
-    }
-
-    //ReadFunction (uploading data)
-    static size_t ReadFunction(char *chunk, size_t size, size_t nmemb, Connection *connection)
-    {
-      connection->first_byte = true;
-
-      size_t& offset = connection->buffer_offset;
-      size_t tot = std::min((size_t)connection->request.body->c_size() - offset, size * nmemb);
-      memcpy(chunk, connection->request.body->c_ptr() + offset, tot);
-      offset += tot;
-      ApplicationStats::net.trackWriteOperation(tot);
-      return tot;
-    }
-
-  };
 
 
   NetService* owner;
@@ -300,17 +301,17 @@ public:
   }
 
   //createConnection
-  SharedPtr<Connection> createConnection(int id)  {
+  SharedPtr<CurlConnection> createConnection(int id)  {
 
     //important to create in this thread
     if (!multi_handle)
       multi_handle = curl_multi_init();
 
-    return std::make_shared<Connection>(id, multi_handle);
+    return std::make_shared<CurlConnection>(id, multi_handle);
   }
 
   //runMore
-  void runMore(const std::set<Connection*>& running) 
+  void runMore(const std::set<CurlConnection*>& running)
   {
     if (running.empty())
       return;
@@ -323,7 +324,7 @@ public:
       CURLMsg *msg; int msgs_left_;
       while ((msg = curl_multi_info_read(multi_handle, &msgs_left_)))
       {
-        Connection* connection = nullptr;
+        CurlConnection* connection = nullptr;
         curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &connection); VisusAssert(connection);
 
         if (msg->msg == CURLMSG_DONE)
@@ -344,16 +345,16 @@ public:
   //entryProc
   void entryProc()
   {
-    std::vector< SharedPtr<Connection> > connections;
+    std::vector< SharedPtr<CurlConnection> > connections;
     for (int I = 0; I < owner->nconnections; I++)
       connections.push_back(createConnection(I));
     VisusAssert(!connections.empty());
 
-    std::list<Connection*> available;
+    std::list<CurlConnection*> available;
     for (auto connection : connections)
       available.push_back(connection.get());
 
-    std::set<Connection*> running;
+    std::set<CurlConnection*> running;
     std::deque<Int64> last_sec_connections;
     bool bExitThread = false;
     while (true)
@@ -440,7 +441,7 @@ public:
           }
 
           //wait -> running
-          Connection* connection = available.front();
+          CurlConnection* connection = available.front();
           available.pop_front();
           running.insert(connection);
 
@@ -458,7 +459,7 @@ public:
       {
         runMore(running);
 
-        for (auto connection : std::set<Connection*>(running))
+        for (auto connection : std::set<CurlConnection*>(running))
         {
           //run->done (since aborted)
           if (connection->request.aborted() || bExitThread)

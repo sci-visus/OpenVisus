@@ -12,6 +12,12 @@ if(GIT_FOUND)
 	endif()
 endif()
 
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/cryptlite   ${CMAKE_CURRENT_BINARY_DIR}/cryptlite)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/dtl         ${CMAKE_CURRENT_BINARY_DIR}/dtl)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/lz4         ${CMAKE_CURRENT_BINARY_DIR}/lz4)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/tinyxml     ${CMAKE_CURRENT_BINARY_DIR}/tinyxml)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/zlib        ${CMAKE_CURRENT_BINARY_DIR}/zlib)
+
 if (VISUS_NET)		
 	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/libressl ${CMAKE_CURRENT_BINARY_DIR}/libressl)
 	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/curl     ${CMAKE_CURRENT_BINARY_DIR}/curl)
@@ -34,24 +40,8 @@ if (NOT (WIN32 OR APPLE))
   endif()
 endif()
 
-set(RootFiles 
-	${CMAKE_CURRENT_SOURCE_DIR}/../../README.md
-	${CMAKE_CURRENT_SOURCE_DIR}/../../CMakeLists.txt
-	${CMAKE_CURRENT_SOURCE_DIR}/../../build.bat
-	${CMAKE_CURRENT_SOURCE_DIR}/../../build.sh
-	${CMAKE_CURRENT_SOURCE_DIR}/../../build_docker.sh
-	${CMAKE_CURRENT_SOURCE_DIR}/../../build_conda.sh
-	${CMAKE_CURRENT_SOURCE_DIR}/../../build_osx.sh
-	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/VisusMacros.cmake
-	${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/OpenVisusConfig.cmake
-	${CMAKE_CURRENT_SOURCE_DIR}/../CMakeLists.txt
-)
-
 source_group("" FILES
-	${RootFiles}
-	./include/Visus/Visus.h 
 	./include/Visus/Kernel.h 
-	./src/Visus.cpp 
 	./src/Kernel.cpp
 	./src/Kernel.mm
 )
@@ -107,7 +97,8 @@ source_group("Core" FILES
 	./include/Visus/VisusConfig.h
 	./src/VisusConfig.cpp
 	./include/Visus/SharedLibrary.h
-	./src/SharedLibrary.cpp)
+	./src/SharedLibrary.cpp
+	./include/Visus/json.hpp)
 	
 
 source_group("Thread" FILES
@@ -151,11 +142,11 @@ source_group("Geometry" FILES
 	./src/FindRoots.cpp)
 
 source_group("Net" FILES
-	./src/AmazonCloudStorage.h
-	./src/AzureCloudStorage.h
-	./src/GoogleCloudStorage.h
 	./include/Visus/CloudStorage.h
 	./src/CloudStorage.cpp
+	./src/AmazonCloudStorage.hxx
+	./src/AzureCloudStorage.hxx
+	./src/GoogleCloudStorage.hxx
 	./include/Visus/NetMessage.h
 	./src/NetMessage.cpp
 	./include/Visus/NetServer.h
@@ -188,17 +179,17 @@ source_group("Array"  FILES
 source_group("Array\\Plugin" FILES
 	./include/Visus/ArrayPlugin.h
 	./src/ArrayPlugin.cpp
-	./src/ArrayPluginDevnull.h
-	./src/ArrayPluginFreeimage.h
-	./src/ArrayPluginRawArray.h)
+	./src/ArrayPluginDevnull.hxx
+	./src/ArrayPluginFreeimage.hxx
+	./src/ArrayPluginRawArray.hxx)
 
 source_group("Encoder" FILES
 	./include/Visus/Encoder.h
-	./src/EncoderId.h
-	./src/EncoderZip.h
-	./src/EncoderLz4.h
-	./src/EncoderFreeImage.h
-	./src/Encoder.cpp)
+	./src/Encoder.cpp
+	./src/EncoderId.hxx
+	./src/EncoderZip.hxx
+	./src/EncoderLz4.hxx
+	./src/EncoderFreeImage.hxx)
 
 
 source_group("Misc" FILES 
@@ -211,49 +202,27 @@ IF (WIN32 OR APPLE)
 	file(GLOB MM_FILES src/*.mm)
 endif()
 
-file(GLOB DtlSources   src/dtl/*.hpp src/dtl/*.cpp)
-source_group("Libs\\dtl" FILES ${DtlSources})
 
-file(GLOB TinyXmlSources   src/tinyxml/*.h src/tinyxml/*.cpp)
-source_group("Libs\\tinyxml" FILES ${TinyXmlSources})
-
-file(GLOB Lz4Sources   src/lz4/*.h src/lz4/*.c)
-source_group("Libs\\lz4" FILES ${Lz4Sources})
-
-file(GLOB ZLibSources   src/zlib/*.h src/zlib/*.c)
-source_group("Libs\\zlib" FILES ${ZLibSources})
-include(CheckTypeSize)
-check_type_size(off64_t OFF64_T)
-if (HAVE_OFF64_T)
-	set_property(SOURCE ${ZLibSources} PROPERTY COMPILE_DEFINITIONS _LARGEFILE64_SOURCE=1)
-endif()
-
-file(GLOB CryptLiteSources   src/cryptlite/*.h src/cryptlite/*.c)
-source_group("Libs\\cryptlite" FILES ${CryptLiteSources})
-
-file(GLOB PyFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/*.py)
-source_group("Python" FILES 
-	./include/Visus/swigpyrun.h 
-	./include/Visus/PythonEngine.h
-	./src/PythonEngine.cpp
-	${PyFiles})
-
+file(GLOB PyFiles    ./include/Visus/swigpyrun.h  ./include/Visus/Python.h ./src/Python.cpp)
+file(GLOB PyCMake    ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/*.py)
+file(GLOB PyExamples ${CMAKE_CURRENT_SOURCE_DIR}/../../Samples/python/*.py)
+source_group("Python"          FILES   ${PyFiles})
+source_group("Python\\CMake"   FILES   ${PyCMake})
+source_group("Python\\Samples" FILES ${PyExamples})
+	
 file(GLOB Sources 
-	${RootFiles} 
-	${PyFiles} 
-	${TinyXmlSources} 
-	${DtlSources} 
-	${Lz4Sources} 
-	${ZLibSources} 
-	${CryptLiteSources}
+	${PyFiles} ${PyCMake} ${PyExamples}
 	${MM_FILES}
 	include/Visus/*.* 
-	src/*.cpp src/*.h
+	src/*.cpp src/*.hxx
 )
 
 AddLibrary(VisusKernel SHARED ${Sources})
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+target_link_libraries(VisusKernel PRIVATE cryptlite dtl lz4 tinyxml zlib)
+
 
 # openmp
 if (VISUS_OPENMP)
@@ -311,5 +280,4 @@ else()
 
 endif()
 
-AddSwigLibrary(VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
-	"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include")
+

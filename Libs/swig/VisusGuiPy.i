@@ -19,7 +19,7 @@ namespace Visus {
 using namespace Visus;
 %}
 
-%include <Visus/VisusPy.i>
+%include <VisusPy.i>
 
 //__________________________________________________________
 %pythonbegin %{
@@ -43,7 +43,7 @@ else:
 	os.environ["QT_PLUGIN_PATH"]= os.path.join(PYQT5_DIR,"Qt","plugins")
 %}
 
-%import <Visus/VisusKernelPy.i>
+%import <VisusKernelPy.i>
 
 #define Q_OBJECT
 #define signals public

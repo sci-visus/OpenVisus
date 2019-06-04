@@ -1,7 +1,6 @@
 %module(directors="1") VisusXIdxPy
 
 %{
-#include <Visus/Visus.h>
 #include <Visus/Kernel.h>
 #include <Visus/VisusXIdx.h>
 using namespace Visus;
@@ -12,8 +11,8 @@ using namespace Visus;
 %include <std_string.i>
 %include <typemaps.i>
 
-%include <Visus/VisusPy.i>
-%import <Visus/VisusKernelPy.i>
+%include <VisusPy.i>
+%import <VisusKernelPy.i>
 
 %include <Visus/VisusXIdx.h>
 
@@ -58,7 +57,6 @@ using namespace Visus;
     $result = SWIG_NewPointerObj(SWIG_as_voidptr($1), SWIG_TypeQuery("Visus::HyperSlabDomain *"), 0 | 0);
 }
 
-%include <Visus/Visus.h>
 %include <Visus/Kernel.h>
 %include <Visus/StringMap.h>
 %include <Visus/Singleton.h>
