@@ -586,21 +586,21 @@ To debug
 import traceback
 
 # ////////////////////////////////////////////////////////////////////////////////////////////////
-def Main():
+def Main(argv):
 	
 	os.chdir(OpenVisus_DIR)
 
-	action=sys.argv[1]
+	action=argv[1]
 
 	# _____________________________________________
 	if action=="dirname":
 		print(OpenVisus_DIR)
-		sys.exit(0)	
+		return 0
 	
 	# _____________________________________________
 	if action=="MakeSelfContainedStep":	
 
-		print("Executing",action,"cwd",os.getcwd(),"args",sys.argv)
+		print("Executing",action,"cwd",os.getcwd(),"args",argv)
 		
 		try:
 			if WIN32:
@@ -614,30 +614,30 @@ def Main():
 
 		except Exception as e:
 			traceback.print_exc()
-			sys.exit(-1)
+			return -1
 
 		print("done",action)
-		sys.exit(0)
+		return 0
 	
 	# _____________________________________________
 	if action=="DistStep":
 
-		print("Executing",action,"cwd",os.getcwd(),"args",sys.argv)
+		print("Executing",action,"cwd",os.getcwd(),"args",argv)
 
 		try:
 			DeployUtils.Dist()
 
 		except Exception as e:
 			traceback.print_exc()
-			sys.exit(-1)
+			return -1
 
 		print("done",action,glob.glob('dist/*'))
-		sys.exit(0)
+		return 0
 
 	# _____________________________________________
 	if action=="configure":
 
-		print("Executing",action,"cwd",os.getcwd(),"args",sys.argv)
+		print("Executing",action,"cwd",os.getcwd(),"args",argv)
 
 		try:
 			DeployUtils.CreateScript("CMake/script","visus","bin/visus")
@@ -648,17 +648,18 @@ def Main():
 
 		except Exception as e:
 			traceback.print_exc()
-			sys.exit(-1)
+			return -1
 
 		print("done",action)
-		sys.exit(0)
+		return 0
 
 	print("Error in arguments")
-	sys.exit(-1)
+	return -1
 
 
 # ////////////////////////////////////////////////////////////////////////////////////////////////
 if __name__ == '__main__':
-	Main()
+	retcode=Main(sys.argv)
+	sys.exit(retcode)
 
 
