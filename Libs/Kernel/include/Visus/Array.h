@@ -78,6 +78,9 @@ public:
   //internal use only
   SharedPtr<HeapMemory> heap=std::make_shared<HeapMemory>();
 
+  //for midx
+  SharedPtr<Array> alpha;
+
   //constructor
   Array() {
   }

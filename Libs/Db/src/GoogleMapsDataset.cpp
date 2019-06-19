@@ -272,14 +272,12 @@ bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> q
 
         if (!query->aborted() && block_query->ok())
           mergeQueryWithBlock(query, block_query);
-
       });
     }
   }
   access->endRead();
 
   wait_async.waitAllDone();
-
   query->currentLevelReady();
   return true;
 }
@@ -291,7 +289,7 @@ bool GoogleMapsDataset::nextQuery(SharedPtr<Query> query)
     return false;
 
   //merging is not supported
-  query->buffer=Array();
+  query->buffer= Array();
 
   if (!setCurrentEndResolution(query))
   {
@@ -321,11 +319,7 @@ SharedPtr<Access> GoogleMapsDataset::createAccess(StringTree config, bool bForBl
   String type = StringUtils::toLower(config.readString("type"));
 
   //I always need an access
-  if (type.empty()) 
-    return std::make_shared<GoogleMapsAccess>(this, config);
-
-  //GoogleMapsAccess
-  if (type=="legacyaccess")
+  if (type.empty() || type == "legacyaccess" || type=="GoogleMapsAccess")
     return std::make_shared<GoogleMapsAccess>(this, config);
 
   return Dataset::createAccess(config, bForBlockQuery);

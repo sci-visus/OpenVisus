@@ -1455,7 +1455,7 @@ class WarpPerspective
 public:
 
   template <class Sample>
-  bool execute(Array& dst,Array& dst_alpha,const Matrix& T,Array src,Array src_alpha,Aborted& aborted)
+  bool execute(Array& dst,const Matrix& T,Array src,Aborted& aborted)
   {
     //not compatible
     if (dst.dtype != src.dtype) {
@@ -1465,8 +1465,7 @@ public:
 
     if (T.isIdentity() && src.dims==dst.dims)
     {
-      dst       = src;
-      dst_alpha = src_alpha;
+      dst = src;
       return true;
     }
 
@@ -1475,8 +1474,10 @@ public:
     auto wdims = dst.dims; auto wstride=wdims.stride();
     auto rdims = src.dims; auto rstride=rdims.stride();
 
-    auto write = GetSamples<Sample>(dst); auto write_alpha = GetSamples<Uint8>(dst_alpha);
-    auto read  = GetSamples<Sample>(src); auto read_alpha  = GetSamples<Uint8>(src_alpha);
+    VisusReleaseAssert(dst.alpha && dst.alpha->dtype == DTypes::UINT8);
+    VisusReleaseAssert(src.alpha && src.alpha->dtype == DTypes::UINT8);
+    auto write = GetSamples<Sample>(dst); auto write_alpha = GetSamples<Uint8>(*dst.alpha);
+    auto read  = GetSamples<Sample>(src); auto read_alpha  = GetSamples<Uint8>(*src.alpha);
 
     VisusAssert(dst.getPointDim() == src.getPointDim());
     auto pdim = dst.getPointDim();
@@ -1560,106 +1561,105 @@ public:
     dst.bounds   = Position(T,src.bounds); 
     dst.clipping = Position(T,src.clipping);
 
-    dst_alpha.layout   =             src_alpha.layout;
-    dst_alpha.bounds   = Position(T, src_alpha.bounds);
-    dst_alpha.clipping = Position(T, src_alpha.clipping);
-
     return true;
   }
 
 };
 
-bool ArrayUtils::warpPerspective(Array& dst,Array& dst_alpha, Matrix T,Array src, Array src_alpha,Aborted aborted)
+bool ArrayUtils::warpPerspective(Array& dst,Matrix T,Array src,Aborted aborted)
 {
   WarpPerspective op;
-  return NeedToCopySamples(op,src.dtype,dst, dst_alpha,T,src, src_alpha,aborted);
+  return NeedToCopySamples(op,src.dtype,dst, T,src, aborted);
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 class BlendBuffers::Pimpl
 {
 public:
-  BlendBuffers* owner;
   Type          type;
   Aborted       aborted;
-  Array         Acc, TotWeight; //for average
-  Array         BestDistance;//for voronoi
 
-  //constructor
-  Pimpl(BlendBuffers* owner_,Type type_,Aborted aborted_) : owner(owner_),type(type_),aborted(aborted_) {
-  }
+  //for average
+  Array         num, den; 
 
+  //for voronoi
+  Array         best_distance;
+
+  //execute
   template <class CppType>
-  bool execute(Array Read,Array Alpha, Matrix up_pixel_to_logic , Point3d logic_centroid)
+  bool execute(Type type, Array& dst, Array src, Matrix up_pixel_to_logic, Point3d logic_centroid, Aborted aborted )
   {
-    if (!Read) {
+    if (!src) {
       VisusAssert(false);
       return false;
     }
-    
-    //first argument
-    auto& Write = owner->result;
-    if (!Write)
+
+    //TODO: this is just to simplify the code
+    if (!src.alpha)
     {
-      auto dims = Read.dims;
-
-      if (!Write.resize(dims, Read.dtype, __FILE__, __LINE__))
-        return false;
-
-      Write.fillWithValue(0);
-      Write.shareProperties(Read);
+      src.alpha = std::make_shared<Array>(src.dims, DTypes::UINT8);
+      src.alpha->fillWithValue(255);
     }
-    else
+    VisusReleaseAssert(src.alpha->dtype == DTypes::UINT8);
+
+    //first argument
+    if (!dst)
     {
-      if (Read.dims != Write.dims || Write.dtype != Read.dtype)
-      {
-        VisusAssert(false);
+      auto dims = src.dims;
+
+      if (!dst.resize(dims, src.dtype, __FILE__, __LINE__))
         return false;
-      }
+
+      dst.fillWithValue(0);
+      dst.shareProperties(src);
+
+      dst.alpha = std::make_shared<Array>(dims, DTypes::UINT8);
+      dst.alpha->fillWithValue(0);
     }
 
     //just a preview
-    if (!Write.getTotalNumberOfSamples())
+    if (!dst.getTotalNumberOfSamples())
       return true;
 
-    auto write = (CppType*)Write.c_ptr();
-    auto read  = (CppType*)Read.c_ptr();
-    auto alpha = (Uint8*)Alpha.c_ptr();
-
-    auto dims = Write.dims;
-    auto pdim = dims.getPointDim(); VisusReleaseAssert(pdim <= 3);
+    auto dims   = dst.dims;
+    auto pdim   = dims.getPointDim(); VisusReleaseAssert(pdim <= 3);
     auto width  = pdim >= 1 ? dims[0] : 1;
     auto height = pdim >= 2 ? dims[1] : 1;
     auto depth  = pdim >= 3 ? dims[2] : 1;
-    auto ncomponents = Write.dtype.ncomponents();
+    auto ncomponents = dst.dtype.ncomponents();
 
-    auto ncomponents_per_width = ncomponents*width;
-
-    #define isEmptyLine() (!alpha[0]  && memcmp(alpha, alpha + 1, width - 1)==0)
+    #define isEmptyLine() (!SRC_ALPHA[SampleId]  && memcmp(&SRC_ALPHA[SampleId], &SRC_ALPHA[SampleId + 1], width - 1)==0)
 
     if (type == GenericBlend)
     {
-      for (int Z = 0; Z < depth; Z++)
+      for (int C = 0; C < ncomponents; C++)
       {
-        for (int Y = 0; Y < height; Y++)
+        int SampleId = 0;
+        GetComponentSamples<CppType> DST(dst, C); GetSamples<Uint8> DST_ALPHA(*dst.alpha);
+        GetComponentSamples<CppType> SRC(src, C); GetSamples<Uint8> SRC_ALPHA(*src.alpha);
+
+        for (int Z = 0; Z < depth; Z++)
         {
-          if (aborted())
-            return false;
-
-          if (isEmptyLine())
+          for (int Y = 0; Y < height; Y++)
           {
-            read  += ncomponents_per_width;
-            write += ncomponents_per_width;
-            alpha += width;
-            continue;
-          }
+            if (aborted())
+              return false;
 
-          for (int X = 0; X < width; X++, write+=ncomponents, read+=ncomponents, alpha++)
-          {
-            if (*alpha)
+            if (isEmptyLine())
             {
-              for (int C = 0; C < ncomponents; C++)
-                write[C] += (CppType)(((*alpha) / 255.0)*read[C]);
+              SampleId += width;
+              continue;
+            }
+
+            for (int X = 0; X < width; X++, ++SampleId)
+            {
+              if (SRC_ALPHA[SampleId])
+              {
+                auto alpha = SRC_ALPHA[SampleId] / 255.0;
+                DST[SampleId] += (CppType)(alpha*SRC[SampleId]);
+                DST_ALPHA[SampleId] = 255.0;
+              }
             }
           }
         }
@@ -1669,27 +1669,32 @@ public:
 
     if (type == NoBlend)
     {
-      for (int Z = 0; Z < depth; Z++)
+      for (int C = 0; C < ncomponents; C++)
       {
-        for (int Y = 0; Y < height; Y++)
+        int SampleId = 0;
+        GetComponentSamples<CppType> DST(dst, C); GetSamples<Uint8> DST_ALPHA(*dst.alpha);
+        GetComponentSamples<CppType> SRC(src, C); GetSamples<Uint8> SRC_ALPHA(*src.alpha);
+
+        for (int Z = 0; Z < depth; Z++)
         {
-          if (aborted())
-            return false;
-
-          if (isEmptyLine())
+          for (int Y = 0; Y < height; Y++)
           {
-            read += ncomponents_per_width;
-            write += ncomponents_per_width;
-            alpha += width;
-            continue;
-          }
+            if (aborted())
+              return false;
 
-          for (int X = 0; X < width; X++, write+=ncomponents, read+=ncomponents, alpha++)
-          {
-            if (*alpha)
+            if (isEmptyLine())
             {
-              for (int C = 0; C < ncomponents; C++)
-                write[C] = read[C];
+              SampleId += width;
+              continue;
+            }
+
+            for (int X = 0; X < width; X++, ++SampleId)
+            {
+              if (SRC_ALPHA[SampleId])
+              {
+                DST[SampleId] = SRC[SampleId];
+                DST_ALPHA[SampleId] = 255.0;
+              }
             }
           }
         }
@@ -1699,50 +1704,48 @@ public:
 
     if (type == AverageBlend)
     {
-      if (!Acc)
+      if (!num)
       {
-        if (!Acc.resize(dims, DType(Write.dtype.ncomponents(), DTypes::FLOAT64), __FILE__, __LINE__))
+        if (!num.resize(dims, DType(ncomponents , DTypes::FLOAT64), __FILE__, __LINE__))
           return false;
 
-        Acc.fillWithValue(0);
-
-        if (!TotWeight.resize(dims, DTypes::FLOAT64, __FILE__, __LINE__))
+        if (!den.resize(dims, DType(ncomponents , DTypes::FLOAT64), __FILE__, __LINE__))
           return false;
 
-        TotWeight.fillWithValue(0);
+        num.fillWithValue(0);
+        den.fillWithValue(0);
       }
 
-      auto acc = (Float64*)Acc.c_ptr();
-      auto tot_weight = (Float64*)TotWeight.c_ptr();
-
-      for (int Z = 0; Z < depth; Z++)
+      for (int C = 0; C < ncomponents; C++)
       {
-        for (int Y = 0; Y < height; Y++)
+        int SampleId = 0;
+        GetComponentSamples<CppType> DST(dst, C); GetSamples<Uint8> DST_ALPHA(*dst.alpha);
+        GetComponentSamples<CppType> SRC(src, C); GetSamples<Uint8> SRC_ALPHA(*src.alpha);
+        GetComponentSamples<Float64> NUM(num, C);
+        GetComponentSamples<Float64> DEN(den, C);
+
+        for (int Z = 0; Z < depth; Z++)
         {
-          if (aborted())
-            return false;
-
-          if (isEmptyLine())
+          for (int Y = 0; Y < height; Y++)
           {
-            read += ncomponents_per_width;
-            write += ncomponents_per_width;
-            acc += ncomponents_per_width;
-            alpha += width;
-            tot_weight += width;
-            continue;
-          }
+            if (aborted())
+              return false;
 
-          for (int X = 0; X < width; X++, alpha++, write += ncomponents, read += ncomponents, acc += ncomponents, tot_weight++)
-          {
-            if (alpha[0])
+            if (isEmptyLine())
             {
-              double a = alpha[0] / 255.0;
-              (*tot_weight) += a;
+              SampleId += width;
+              continue;
+            }
 
-              for (int C = 0; C < ncomponents; C++)
+            for (int X = 0; X < width; X++, ++SampleId)
+            {
+              if (SRC_ALPHA[SampleId])
               {
-                acc[C] += a * read[C];
-                write[C] = (CppType)(acc[C] / (*tot_weight));
+                double alpha = SRC_ALPHA[SampleId] / 255.0;
+                NUM[SampleId] += alpha * SRC[SampleId];
+                DEN[SampleId] += alpha;
+                DST[SampleId] = (CppType)(NUM[SampleId] / DEN[SampleId]);
+                DST_ALPHA[SampleId] = 255.0;
               }
             }
           }
@@ -1754,69 +1757,74 @@ public:
 
     if (type == VororoiBlend)
     {
-      if (!BestDistance)
+      if (!best_distance)
       {
-        if (!BestDistance.resize(Read.dims, DTypes::FLOAT64, __FILE__, __LINE__))
+        if (!best_distance.resize(src.dims, DType(ncomponents, DTypes::FLOAT64), __FILE__, __LINE__))
           return false;
 
-        auto best_distance = (double*)BestDistance.c_ptr();
-        for (int I = 0, Tot = BestDistance.getTotalNumberOfSamples(); I < Tot; I++)
-          *best_distance++ = NumericLimits<double>::highest();
+        for (int C = 0; C < ncomponents; C++)
+        {
+          GetComponentSamples<Float64> samples(best_distance, C);
+          for (int I = 0, Tot = dims.innerProduct(); I < Tot; I++)
+            samples[I] = NumericLimits<double>::highest();
+        }
       }
-
-
-      auto best_distance = (Float64*)BestDistance.c_ptr();
 
       Point4d Px, Py, Pz;
       auto T = up_pixel_to_logic;
-      for (int Z = 0; Z < depth; Z++)
+
+      for (int C = 0; C < ncomponents; C++)
       {
-        Pz.x = T.mat[ 2] * Z + T.mat[ 3];
-        Pz.y = T.mat[ 6] * Z + T.mat[ 7];
-        Pz.z = T.mat[10] * Z + T.mat[11];
-        Pz.w = T.mat[14] * Z + T.mat[15];
+        int SampleId = 0;
+        GetComponentSamples<CppType> DST(dst, C); GetSamples<Uint8> DST_ALPHA(*dst.alpha);
+        GetComponentSamples<CppType> SRC(src, C); GetSamples<Uint8> SRC_ALPHA(*src.alpha);
+        GetComponentSamples<Float64> BEST_DISTANCE(best_distance,C);
 
-        for (int Y = 0; Y < height; Y++)
+        for (int Z = 0; Z < depth; Z++)
         {
-          if (aborted())
-            return false;
+          Pz.x = T.mat[ 2] * Z + T.mat[ 3];
+          Pz.y = T.mat[ 6] * Z + T.mat[ 7];
+          Pz.z = T.mat[10] * Z + T.mat[11];
+          Pz.w = T.mat[14] * Z + T.mat[15];
 
-          Py.x = Pz.x + T.mat[ 1] * Y;
-          Py.y = Pz.y + T.mat[ 5] * Y;
-          Py.z = Pz.z + T.mat[ 9] * Y;
-          Py.w = Pz.w + T.mat[13] * Y;
-
-          if (isEmptyLine())
+          for (int Y = 0; Y < height; Y++)
           {
-            read          += ncomponents_per_width;
-            write         += ncomponents_per_width;
-            alpha         += width;
-            best_distance += width;
-            continue;
-          }
+            if (aborted())
+              return false;
 
-          for (int X = 0; X < width; X++, read+=ncomponents, write+=ncomponents, alpha++, best_distance++)
-          {
-            if (*alpha)
+            Py.x = Pz.x + T.mat[ 1] * Y;
+            Py.y = Pz.y + T.mat[ 5] * Y;
+            Py.z = Pz.z + T.mat[ 9] * Y;
+            Py.w = Pz.w + T.mat[13] * Y;
+
+            if (isEmptyLine())
             {
-              //(T * Point3d(X, Y, Z) - logic_centroid).module2();
-              Px.x = T.mat[ 0] * X + Py.x;
-              Px.y = T.mat[ 4] * X + Py.y;
-              Px.z = T.mat[ 8] * X + Py.z;
-              Px.w = T.mat[12] * X + Py.w;
+              SampleId += width;
+              continue;
+            }
 
-              auto dx = (Px.x / Px.w) - logic_centroid.x;
-              auto dy = (Px.y / Px.w) - logic_centroid.y;
-              auto dz = (Px.z / Px.w) - logic_centroid.z;
-
-              double distance = dx*dx + dy*dy + dz*dz;
-
-              if (distance < (*best_distance))
+            for (int X = 0; X < width; X++, ++SampleId)
+            {
+              if (SRC_ALPHA[SampleId])
               {
-                (*best_distance) = distance;
+                //(T * Point3d(X, Y, Z) - logic_centroid).module2();
+                Px.x = T.mat[ 0] * X + Py.x;
+                Px.y = T.mat[ 4] * X + Py.y;
+                Px.z = T.mat[ 8] * X + Py.z;
+                Px.w = T.mat[12] * X + Py.w;
 
-                for (int C = 0; C < ncomponents; C++)
-                  write[C] = read[C];
+                auto dx = (Px.x / Px.w) - logic_centroid.x;
+                auto dy = (Px.y / Px.w) - logic_centroid.y;
+                auto dz = (Px.z / Px.w) - logic_centroid.z;
+
+                double distance = dx*dx + dy*dy + dz*dz;
+
+                if (distance < BEST_DISTANCE[SampleId])
+                {
+                  BEST_DISTANCE[SampleId] = distance;
+                  DST[SampleId] = SRC[SampleId];
+                  DST_ALPHA[SampleId] = 255.0;
+                }
               }
             }
           }
@@ -1832,16 +1840,16 @@ public:
 
 
 /////////////////////////////////////////////////////
-BlendBuffers::BlendBuffers(Type type, Aborted aborted){
-  pimpl = new Pimpl(this,type, aborted);
+BlendBuffers::BlendBuffers(Type type_, Aborted aborted_) : type(type_),aborted(aborted_) {
+  pimpl = new Pimpl();
 }
 
 BlendBuffers::~BlendBuffers() {
   delete pimpl;
 }
 
-void BlendBuffers::addArg(Array Read, Array Alpha, Matrix up_pixel_to_logic, Point3d logic_centroid){
-  ExecuteOnCppSamples(*pimpl, Read.dtype,Read, Alpha, up_pixel_to_logic, logic_centroid);
+void BlendBuffers::addBlendArg(Array src, Matrix up_pixel_to_logic, Point3d logic_centroid) {
+  ExecuteOnCppSamples(*pimpl, src.dtype, type, result,src, up_pixel_to_logic, logic_centroid, aborted);
 }
 
 
@@ -1917,14 +1925,14 @@ Array ArrayUtils::createTransformedAlpha(NdBox bounds, Matrix T, NdPoint dims, A
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
-void ArrayUtils::setBufferColor(Array& buffer, const Array& alpha, Color color)
+void ArrayUtils::setBufferColor(Array& buffer, Color color)
 {
   VisusAssert(buffer.dtype.isVectorOf(DTypes::UINT8));
 
   int   nbytes = buffer.dtype.getByteSize();
   auto  rgb = buffer.c_ptr();
 
-  if (!alpha)
+  if (!buffer.alpha)
   {
     Int64 offset = 0;
     for (auto P = ForEachPoint(buffer.dims); !P.end(); P.next(), offset++, rgb += nbytes)
@@ -1936,7 +1944,7 @@ void ArrayUtils::setBufferColor(Array& buffer, const Array& alpha, Color color)
   }
   else
   {
-    auto read_alpha = GetSamples<Uint8>(alpha);
+    auto read_alpha = GetSamples<Uint8>(*buffer.alpha);
 
     Int64 offset = 0;
     for (auto P = ForEachPoint(buffer.dims); !P.end(); P.next(), offset++, rgb += nbytes)

@@ -43,9 +43,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-
-
-
 ///////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API ArrayUtils
 {
@@ -338,10 +335,10 @@ public:
 public:
 
   //warpPerspective
-  static bool warpPerspective(Array& dst, Array& dst_alpha, Matrix T, Array src, Array src_alpha, Aborted aborted);
+  static bool warpPerspective(Array& dst, Matrix T, Array src, Aborted aborted);
 
   //setBufferColor
-  static void setBufferColor(Array& buffer, const Array& alpha, Color color);
+  static void setBufferColor(Array& buffer, Color color);
 
   //createTransformedAlpha
   static Array createTransformedAlpha(NdBox bounds, Matrix T, NdPoint dims, Aborted aborted);
@@ -360,7 +357,7 @@ public:
 
   VISUS_PIMPL_CLASS(BlendBuffers)
 
-    enum Type
+  enum Type
   {
     GenericBlend,
     NoBlend,
@@ -376,8 +373,13 @@ public:
   //destructor
   ~BlendBuffers();
 
-  //addArg
-  void addArg(Array buffer, Array alpha, Matrix up_pixel_to_logic = Matrix(), Point3d logic_centroid = Point3d());
+  //addBlendArg
+  void addBlendArg(Array arg, Matrix up_pixel_to_logic = Matrix(), Point3d logic_centroid = Point3d());
+
+private:
+
+  Type type;
+  Aborted aborted;
 
 };
 

@@ -75,8 +75,6 @@ static String SwigArrayTypeName   = "Visus::Array *";
 
 static PyThreadState* __main__thread_state__=nullptr;
 
-
-
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::ScopedAcquireGil() 
 {

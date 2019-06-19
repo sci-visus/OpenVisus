@@ -43,7 +43,7 @@ do
   
   rm -Rf $DIR/temp
   
-  echo "<dataset url='file://\$(CurrentFileDirectory)/$db/visus.idx' name= '$db'  />" >> $midx
+  echo "<dataset url='file://./$db/visus.idx' name= '$db'  />" >> $midx
   
 done
 

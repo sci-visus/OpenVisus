@@ -1931,7 +1931,7 @@ bool IdxDataset::nextQuery(SharedPtr<Query> query)
   auto Rfilter_query= query->filter_query;
 
   //merging will happen only in certain cases
-  query->buffer=Array();
+  query->buffer = Array();
 
   if (!this->setCurrentEndResolution(query))
   {
@@ -1939,7 +1939,7 @@ bool IdxDataset::nextQuery(SharedPtr<Query> query)
     return false;
   }
 
-  //try to erge
+  //try to mergeerge
   auto& Wbox=query->logic_box;
   if (Wbox.valid() && Rbox.valid())
   {

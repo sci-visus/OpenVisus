@@ -61,7 +61,7 @@ public:
     String                name;
     Color                 color;
     Matrix                M; //transformation matrix up <- dw
-    SharedPtr<IdxDataset> dataset;
+    SharedPtr<Dataset>    dataset;
     String                mosaic_filename_template;
   };
 
@@ -136,11 +136,13 @@ public:
   virtual bool nextQuery(SharedPtr<Query> QUERY) override;
 
   //sameLogicSpace
+#if 0
   bool sameLogicSpace(Child& child) const
   {
     auto vf = child.dataset;
     return child.M.isIdentity() && this->getBox() == vf->getBox() && this->getBitmask() == vf->getBitmask();
   }
+#endif
 
 public:
 
@@ -150,6 +152,14 @@ public:
 private:
 
   friend class QueryInputTerm;
+
+  enum DebugMode
+  {
+    DebugSaveImages = 0x01,
+    DebugSkipReading=0x02
+  };
+
+  int debug_mode = 0;
 
 #if VISUS_PYTHON
   SharedPtr<PythonEnginePool> python_engine_pool;

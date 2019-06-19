@@ -140,11 +140,11 @@ public:
   SharedPtr<AddressConversion> address_conversion;
 #endif
 
+  //for midx
   struct
   {
     String  name;
     Array   BUFFER;
-    Array   ALPHA;
     Matrix  PIXEL_TO_LOGIC;
     Matrix  LOGIC_TO_PIXEL;
     Point3d logic_centroid;

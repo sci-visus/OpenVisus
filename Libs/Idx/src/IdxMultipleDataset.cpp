@@ -259,7 +259,7 @@ public:
     if (!ret && !aborted())
       ThrowException("script does not assign 'output' value");
 
-    if (bool bDebug = false)
+    if (VF->debug_mode & IdxMultipleDataset::DebugSaveImages)
     {
       static int cont = 0;
       ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont++ << ".up.result.png", ret);
@@ -349,7 +349,8 @@ public:
 
     {
       ScopedReleaseGil release_gil;
-      ret = executeDownQuery(createDownQuery(expr1, expr2));
+      auto down_query = createDownQuery(expr1, expr2);
+      ret = executeDownQuery(down_query);
     }
 
     return engine->newPyObject(ret);
@@ -383,65 +384,50 @@ public:
     query->time    = QUERY->time;
     query->field   = field;
 
-    //special and simplier case
-    if (VF->sameLogicSpace(child))
+    //euristic to find delta in the hzcurve
+    //TODO!!!! this euristic produces too many samples
+
+    //ComputeVolume
+    auto ComputeVolume=[](Box3d value)->double
     {
-      query->start_resolution = QUERY->start_resolution;
-      query->end_resolutions  = QUERY->end_resolutions;
-      query->max_resolution   = QUERY->max_resolution;
-      query->position         = QUERY->position;
-      query->viewdep          = QUERY->viewdep;
-      query->clipping         = QUERY->clipping;
-    }
+      return
+        (value.size().x ? value.size().x : 1) *
+        (value.size().y ? value.size().y : 1) *
+        (value.size().z ? value.size().z : 1);
+    };
+
+    auto VOLUME = ComputeVolume(Position(   VF->getBox()).toAxisAlignedBox());
+    auto volume = ComputeVolume(Position(M, vf->getBox()).toAxisAlignedBox());
+    int delta_h = -(int)log2(VOLUME / volume);
+
+    //resolutions
+    if (!QUERY->start_resolution)
+      query->start_resolution = 0;
     else
+      query->start_resolution = Utils::clamp(QUERY->start_resolution + delta_h, 0, vf->getMaxResolution()); //probably a block query
+
+    std::set<int> end_resolutions;
+    for (auto END_RESOLUTION : QUERY->end_resolutions)
     {
-      //euristic to find delta in the hzcurve
-      //TODO!!!! this euristic produces too many samples
-
-      //ComputeVolume
-      auto ComputeVolume=[](Box3d value)->double
-      {
-        return
-          (value.size().x ? value.size().x : 1) *
-          (value.size().y ? value.size().y : 1) *
-          (value.size().z ? value.size().z : 1);
-      };
-
-      auto VOLUME = ComputeVolume(Position(   VF->getBox()).toAxisAlignedBox());
-      auto volume = ComputeVolume(Position(M, vf->getBox()).toAxisAlignedBox());
-      int delta_h = -(int)log2(VOLUME / volume);
-
-      //resolutions
-      if (!QUERY->start_resolution)
-        query->start_resolution = 0;
-      else
-        query->start_resolution = Utils::clamp(QUERY->start_resolution + delta_h, 0, vf->getMaxResolution()); //probably a block query
-
-      std::set<int> end_resolutions;
-      for (auto END_RESOLUTION : QUERY->end_resolutions)
-      {
-        auto end_resolution = Utils::clamp(END_RESOLUTION + delta_h, 0, vf->getMaxResolution());
-        end_resolutions.insert(end_resolution);
-      }
-      query->end_resolutions = std::vector<int>(end_resolutions.begin(), end_resolutions.end());
-      query->max_resolution = vf->getMaxResolution();
-
-      // WRONG, consider that M could have mat(3,0) | mat(3,1) | mat(3,2) !=0 and so I can have non-parallel axis
-      // i.e. computing the bounding box in position very far from the mapped region are wrong
-      // if you use this wrong version, for voronoi in 2d you will see some missing pieces around
-#if 0
-      query->position = Position(M.invert(), QUERY->position);
-#else
-
-      auto QUERY_T   = QUERY->position.getTransformation();
-      auto QUERY_BOX = QUERY->position.getBox();
-
-      //'shring' the QUERY_BOX to avoid inversion axis when Matrix has elements mat(3,0 | 1 | 1)!=0
-      QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).toAxisAlignedBox().getIntersection(QUERY_BOX);
-
-      query->position = Position(M.invert(), QUERY_T, QUERY_BOX);
-#endif
+      auto end_resolution = Utils::clamp(END_RESOLUTION + delta_h, 0, vf->getMaxResolution());
+      end_resolutions.insert(end_resolution);
     }
+    query->end_resolutions = std::vector<int>(end_resolutions.begin(), end_resolutions.end());
+    query->max_resolution = vf->getMaxResolution();
+
+    auto QUERY_T   = QUERY->position.getTransformation();
+    auto QUERY_BOX = QUERY->position.getBox();
+
+    // WRONG, consider that M could have mat(3,0) | mat(3,1) | mat(3,2) !=0 and so I can have non-parallel axis
+    // i.e. computing the bounding box in position very far from the mapped region are wrong because some axis of the quads can interect in some points
+    // and I have an "inversion of axis" 
+    // if you use this wrong version, for voronoi in 2d you will see some missing pieces around
+    // solution is to limit the QUERY_BOX into a more "local" one
+#if 1
+    QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).toAxisAlignedBox().getIntersection(QUERY_BOX);
+#endif
+
+    query->position = Position(M.invert(), QUERY_T, QUERY_BOX);
 
     //skip this argument since returns empty array
     if (!vf->beginQuery(query))
@@ -485,10 +471,10 @@ public:
     //NOTE if I cannot execute it probably reached max resolution for query, in that case I recycle old 'BUFFER'
     if (query->canExecute())
     {
-      if (bool bDebugSkipReading = false)
+      if (VF->debug_mode & IdxMultipleDataset::DebugSkipReading)
       {
         query->allocateBufferIfNeeded();
-        ArrayUtils::setBufferColor(query->buffer, Array(), VF->childs[name].color);
+        ArrayUtils::setBufferColor(query->buffer, VF->childs[name].color);
         query->buffer.layout = ""; //row major
         query->currentLevelReady();
       }
@@ -518,69 +504,49 @@ public:
     query->down_info.BUFFER.bounds = Position(M, query->buffer.bounds);
     query->down_info.BUFFER.clipping = Position(M, query->buffer.clipping);
 
-    query->down_info.ALPHA = Array(QUERY->nsamples, DTypes::UINT8);
-    query->down_info.ALPHA.fillWithValue(0);
-    query->down_info.ALPHA.shareProperties(query->down_info.BUFFER);
+    query->down_info.BUFFER.alpha = std::make_shared<Array>(QUERY->nsamples, DTypes::UINT8);
+    query->down_info.BUFFER.alpha->fillWithValue(0);
 
-    //FixScale
-    auto FixScale=[](Point3d vs) {
-      return Point3d(vs.x ? vs.x : 1, vs.y ? vs.y : 1, vs.z ? vs.z : 1);
-    };
-
-    Point3d BOX_SIZE = FixScale(QUERY->position.getBox().size());
-    Point3d box_size = FixScale(query->position.getBox().size());
-
-    Point3d BOX_ORIGIN = QUERY->position.getBox().p1;
-    Point3d box_origin = query->position.getBox().p1;
-
-    Point3d BUF_SCALE = FixScale(query->down_info.BUFFER.dims.toPoint3d());
-    Point3d buf_scale = FixScale(query->          buffer.dims.toPoint3d());
-
-    auto LOGIC_TO_PIXEL =
-      Matrix::scale(BUF_SCALE) *
-      Matrix::scale(BOX_SIZE.inv()) *
-      Matrix::translate(-BOX_ORIGIN) *
-      QUERY->position.getTransformation().invert();
+    auto PIXEL_TO_LOGIC =
+      QUERY->position.getTransformation() *
+      Matrix::translate(QUERY->position.getBox().p1) *
+      Matrix::nonZeroScale(QUERY->position.getBox().size()) *
+      Matrix::invNonZeroScale(query->down_info.BUFFER.dims.toPoint3d());
 
     auto pixel_to_logic =
       query->position.getTransformation() *
-      Matrix::translate(box_origin) *
-      Matrix::scale(box_size) *
-      Matrix::scale(buf_scale.inv());
+      Matrix::translate(query->position.getBox().p1) *
+      Matrix::nonZeroScale(query->position.getBox().size()) *
+      Matrix::invNonZeroScale(query->buffer.dims.toPoint3d());
 
     // Tperspective := PIXEL <- pixel
-    Matrix Tperspective;
-
-    if (VF->sameLogicSpace(child))
-    {
-      VisusAssert(QUERY->position == query->position);
-      Tperspective = Matrix::identity();
-    }
-    else
-    {
-      Tperspective = LOGIC_TO_PIXEL * M * pixel_to_logic;
-    }
+    auto LOGIC_TO_PIXEL = PIXEL_TO_LOGIC.invert();
+    Matrix Tperspective = LOGIC_TO_PIXEL * M * pixel_to_logic;
 
     //this will help to find voronoi seams betweeen images
     query->down_info.LOGIC_TO_PIXEL = LOGIC_TO_PIXEL;
-    query->down_info.PIXEL_TO_LOGIC = LOGIC_TO_PIXEL.invert();
+    query->down_info.PIXEL_TO_LOGIC = PIXEL_TO_LOGIC;
     query->down_info.logic_centroid = M * vf->getBox().center().toPoint3d();
 
     //limit the samples to good logic domain
     //explanation: for each pixel in dims, tranform it to the logic dataset box, if inside set the pixel to 1 otherwise set the pixel to 0
-    Array alpha = ArrayUtils::createTransformedAlpha(vf->getBox(), pixel_to_logic, query->buffer.dims, QUERY->aborted);
+    if (!query->buffer.alpha)
+      query->buffer.alpha = std::make_shared<Array>(ArrayUtils::createTransformedAlpha(vf->getBox(), pixel_to_logic, query->buffer.dims, QUERY->aborted));
+    else
+      VisusReleaseAssert(query->buffer.alpha->dims==query->buffer.dims);
 
     if (!QUERY->aborted())
     {
-      ArrayUtils::warpPerspective(query->down_info.BUFFER, query->down_info.ALPHA, Tperspective, query->buffer, alpha, QUERY->aborted);
+      ArrayUtils::warpPerspective(query->down_info.BUFFER, Tperspective, query->buffer, QUERY->aborted);
 
-      if (bool bDebugSaveFiles = false)
+      if (VF->debug_mode & IdxMultipleDataset::DebugSaveImages)
       {
         static int cont = 0;
         ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".dw." + name << "." << query->field.name << ".buffer.png", query->buffer);
+        ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".dw." + name << "." << query->field.name << ".alpha_.png", *query->buffer.alpha );
         ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".up." + name << "." << query->field.name << ".buffer.png", query->down_info.BUFFER);
-        ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".up." + name << "." << query->field.name << ".alpha_.png", query->down_info.ALPHA);
-        //ArrayUtils::setBufferColor(query->BUFFER, query->ALPHA, VF->childs[name].color);
+        ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".up." + name << "." << query->field.name << ".alpha_.png", *query->down_info.BUFFER.alpha);
+        //ArrayUtils::setBufferColor(query->BUFFER, VF->childs[name].color);
         cont++;
       }
     }
@@ -603,7 +569,10 @@ public:
       if (!argc)
       {
         for (auto it : VF->childs)
-          blend.addArg(Array(NdPoint(pdim), it.second.dataset->getDefaultField().dtype),Array());
+        {
+          auto arg = Array(NdPoint(pdim), it.second.dataset->getDefaultField().dtype);
+          blend.addBlendArg(arg);
+        }
       }
       else
       {
@@ -622,8 +591,8 @@ public:
 
         for (int I = 0, N = (int)PyList_Size(arg0); I < N; I++)
         {
-          auto buffer = engine->pythonObjectToArray(PyList_GetItem(arg0, I));
-          blend.addArg(buffer, Array());
+          auto arg = engine->pythonObjectToArray(PyList_GetItem(arg0, I));
+          blend.addBlendArg(arg);
         }
       }
 
@@ -638,52 +607,33 @@ public:
       ScopedReleaseGil release_gil;
 
       //this can run in parallel
-      bool bRunInParallel = VF->bServerMode? false:true;
-      if (!bRunInParallel)
+      CriticalSection blendlock;
+
+      std::vector< SharedPtr<Query> > queries;
+      queries.reserve(VF->childs.size());
+      for (auto it : VF->childs)
       {
-        for (auto it : VF->childs)
-        {
-          auto name = it.first;
-          auto fieldname = it.second.dataset->getDefaultField().name;
-          executeDownQuery(createDownQuery(name, fieldname));
-        }
+        auto name      = it.first;
+        auto fieldname = it.second.dataset->getDefaultField().name;
+        auto query=createDownQuery(name,fieldname);
+        if (query && !query->failed())
+          queries.push_back(query);
       }
-      else
+
+      //I don't see any advantage using OpenMP here
+      //bool bRunInParallel = false;// VF->bServerMode ? false : true;
+      //#pragma omp parallel for if(bRunInParallel) 
+      for (int I = 0; I<(int)queries.size(); I++)
       {
-        CriticalSection blendlock;
-        Semaphore ndone;
+        auto query = queries[I];
+        executeDownQuery(query);
 
-        std::vector< SharedPtr<Query> > queries;
-        queries.reserve(VF->childs.size());
-        for (auto it : VF->childs)
+        if (query->down_info.BUFFER && !query->aborted()) 
         {
-          auto name      = it.first;
-          auto fieldname = it.second.dataset->getDefaultField().name;
-          auto query=createDownQuery(name,fieldname);
-          if (query && !query->failed())
-            queries.push_back(query);
+          ScopedLock scopedlock(blendlock);
+          blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.logic_centroid);
+          ++num_args;
         }
-
-        //parallel only if OpenMP is enable
-        #pragma omp parallel for 
-        for (int I = 0; I<(int)queries.size(); I++)
-        {
-          auto query = queries[I];
-
-          executeDownQuery(query);
-
-          if (query->down_info.BUFFER && !query->aborted()) {
-
-            ScopedLock scopedlock(blendlock);
-            blend.addArg(query->down_info.BUFFER, query->down_info.ALPHA, query->down_info.PIXEL_TO_LOGIC, query->down_info.logic_centroid);
-            ++num_args;
-          }
-          ndone.up();
-        }
-
-        //wait completition... this is needed only if you are not using OpenMp which should do the syncronization by itself
-        for (int I = 0; I < (int)queries.size(); I++)
-          ndone.down();
       }
     }
     else
@@ -697,11 +647,11 @@ public:
         auto query = it.second;
 
         //failed/empty buffer
-        if (!query || !query->down_info.BUFFER)
-          continue;
-
-        blend.addArg(query->down_info.BUFFER, query->down_info.ALPHA, query->down_info.PIXEL_TO_LOGIC, query->down_info.logic_centroid);
-        ++num_args;
+        if (query && query->down_info.BUFFER && query->aborted())
+        {
+          blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.logic_centroid);
+          ++num_args;
+        }
       }
     }
      
@@ -768,6 +718,9 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////////
 IdxMultipleDataset::IdxMultipleDataset() {
+
+  this->debug_mode = 0;
+
 #if VISUS_PYTHON
   python_engine_pool = std::make_shared<PythonEnginePool>();
 #endif //VISUS_PYTHON
@@ -928,15 +881,15 @@ String IdxMultipleDataset::removeAliases(String url)
   //replace some alias
   auto URL = this->url;
 
-  String CurrentFileDirectory = URL.isFile() ? Path(URL.getPath()).getParent().toString() : "";
+  String cfd = URL.isFile() ? Path(URL.getPath()).getParent().toString() : "";
 
-  if (URL.isFile() && !CurrentFileDirectory.empty())
+  if (URL.isFile() && !cfd.empty())
   {
     if (Url(url).isFile() && StringUtils::startsWith(Url(url).getPath(), "./"))
-      url = CurrentFileDirectory + Url(url).getPath().substr(1);
+      url = cfd + Url(url).getPath().substr(1);
 
     if (StringUtils::contains(url, "$(CurrentFileDirectory)"))
-      url = StringUtils::replaceAll(url, "$(CurrentFileDirectory)", CurrentFileDirectory);
+      url = StringUtils::replaceAll(url, "$(CurrentFileDirectory)", cfd);
   }
   else if (URL.isRemote())
   {
@@ -997,7 +950,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
   }
   else
   {
-    child.dataset = std::dynamic_pointer_cast<IdxDataset>(LoadDatasetEx(url,this->config));
+    child.dataset = LoadDatasetEx(url,this->config);
   }
 
   if (!child.dataset) {
@@ -1072,19 +1025,19 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream,Matrix4 T)
     
     if (name == "dataset")
     {
-      istream.pushContext(name);
+      istream.pushContext("dataset");
 
       if (cbool(istream.readInline("enabled", "1"))) {
         parseDataset(istream, T);
       }
 
-      istream.popContext(name);
+      istream.popContext("dataset");
       continue;
     }
 
     if (name == "translate")
     {
-      istream.pushContext(name);
+      istream.pushContext("translate");
 
       if (cbool(istream.readInline("enabled", "1")))
       {
@@ -1094,13 +1047,13 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream,Matrix4 T)
         T *= Matrix::translate(Point3d(x, y, z));
         parseDatasets(istream, T);
       }
-      istream.popContext(name);
+      istream.popContext("translate");
       continue;
     }
 
     if (name == "rotate")
     {
-      istream.pushContext(name);
+      istream.pushContext("rotate");
 
       if (cbool(istream.readInline("enabled", "1")))
       {
@@ -1110,13 +1063,13 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream,Matrix4 T)
         T *= Matrix::rotate(Quaternion4d::fromEulerAngles(x, y, z));
         parseDatasets(istream, T);
       }
-      istream.popContext(name);
+      istream.popContext("rotate");
       continue;
     }
 
     if (name == "scale")
     {
-      istream.pushContext(name);
+      istream.pushContext("scale");
 
       if (cbool(istream.readInline("enabled", "1")))
       {
@@ -1127,16 +1080,20 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream,Matrix4 T)
         parseDatasets(istream, T);
       }
 
-      istream.popContext(name);
+      istream.popContext("scale");
       continue;
     }
 
-    istream.pushContext(name);
-    if (cbool(istream.readInline("enabled", "1")))
+    //pass throught
+    if (name != "field")
     {
-      parseDatasets(istream, T);
+      istream.pushContext(name);
+      if (cbool(istream.readInline("enabled", "1")))
+      {
+        parseDatasets(istream, T);
+      }
+      istream.popContext(name);
     }
-    istream.popContext(name);
   }
 }
 
@@ -1252,7 +1209,10 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   }
   
   if (childs.size() == 1)
-    IDXFILE.time_template = first->idxfile.time_template;
+  {
+    if (auto dataset=std::dynamic_pointer_cast<IdxDataset>(first))
+      IDXFILE.time_template = dataset->idxfile.time_template;
+  }
  
   //union of all timesteps
   for (auto it : childs)
@@ -1271,24 +1231,32 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   //if (pdim==2)
   //  this->kdquery_mode = KdQueryMode::UseQuery;
 
-  computeDefaultFields();
-
-  while (istream.pushContext("field"))
+  if (istream.getCurrentContext()->findChildWithName("field"))
   {
-    String name = istream.read("name"); VisusAssert(!name.empty());
+    this->fields.clear();
+    this->find_field.clear();
 
-    //I expect to find here CData node or Text node...
-    istream.pushContext("code");
-    String code = istream.readText(); VisusAssert(!code.empty());
-    istream.popContext("code");
+    while (istream.pushContext("field"))
+    {
+      String name = istream.readInline("name"); VisusAssert(!name.empty());
 
-    Field FIELD = getFieldByName(code); VisusAssert(FIELD.valid());
-    ParseStringParams parse(name);
-    FIELD.params = parse.params; //important for example in case I want to override the time
-    FIELD.setDescription(parse.without_params);
-    addField(FIELD);
+      //I expect to find here CData node or Text node...
+      istream.pushContext("code");
+      String code = istream.readText(); VisusAssert(!code.empty());
+      istream.popContext("code");
 
-    istream.popContext("field");
+      Field FIELD = getFieldByName(code); VisusAssert(FIELD.valid());
+      ParseStringParams parse(name);
+      FIELD.params = parse.params; //important for example in case I want to override the time
+      FIELD.setDescription(parse.without_params);
+      addField(FIELD);
+
+      istream.popContext("field");
+    }
+  }
+  else
+  {
+    computeDefaultFields();
   }
 
   return true;
@@ -1354,7 +1322,6 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> 
       {
         QUERY->nsamples = OUTPUT.dims;
         QUERY->logic_box = LogicBox();
-        QUERY->buffer = Array();
       }
 
       QUERY->buffer = OUTPUT;

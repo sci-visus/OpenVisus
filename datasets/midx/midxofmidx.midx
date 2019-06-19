@@ -1,6 +1,6 @@
 <dataset typename='IdxMultipleDataset'>
-  <dataset url='file://$(CurrentFileDirectory)/first.midx'  name='first'  />
-  <dataset url='file://$(CurrentFileDirectory)/second.midx' name='second' />
+  <dataset url='file://./first.midx'  name='first'  />
+  <dataset url='file://./second.midx' name='second' />
 </dataset>
 
 <!-- 

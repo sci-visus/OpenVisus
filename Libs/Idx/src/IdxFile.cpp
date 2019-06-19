@@ -283,13 +283,13 @@ void IdxFile::validate(Url url)
   //replace some alias
   if (url.valid() && url.isFile() && (StringUtils::contains(filename_template,"$(CurrentFileDirectory)") || StringUtils::startsWith(filename_template,"./")))
   {
-    String CurrentFileDirectory=Path(url.getPath()).getParent().toString();
-    if (!CurrentFileDirectory.empty())
+    String cfd=Path(url.getPath()).getParent().toString();
+    if (!cfd.empty())
     {
       if (StringUtils::startsWith(this->filename_template,"./"))
-        this->filename_template = StringUtils::replaceFirst(this->filename_template,"./",CurrentFileDirectory + "/");
+        this->filename_template = StringUtils::replaceFirst(this->filename_template,"./", cfd + "/");
 
-      this->filename_template = StringUtils::replaceAll(this->filename_template,"$(CurrentFileDirectory)",CurrentFileDirectory);
+      this->filename_template = StringUtils::replaceAll(this->filename_template,"$(CurrentFileDirectory)", cfd);
     }
   }  
 }

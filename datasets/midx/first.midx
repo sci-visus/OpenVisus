@@ -1,15 +1,14 @@
 <dataset typename='IdxMultipleDataset'>
 
-  <dataset url='file://$(CurrentFileDirectory)/A/visus.idx' name= 'A'  />
-  <dataset url='file://$(CurrentFileDirectory)/B/visus.idx' name= 'B'  />
-  <dataset url='file://$(CurrentFileDirectory)/C/visus.idx' name= 'C'  />
-  <dataset url='file://$(CurrentFileDirectory)/D/visus.idx' name= 'D'  />
+  <dataset url='file://./A/visus.idx' name= 'A'  />
+  <dataset url='file://./B/visus.idx' name= 'B'  />
+  <dataset url='file://./C/visus.idx' name= 'C'  />
+  <dataset url='file://./D/visus.idx' name= 'D'  />
   
   <!-- I'm adding a default field to let the user 'reuse' it in midxofmidx.midx -->
   <field>
     <!-- NOTE: since this avg is time independent and I want to cache in the same time slot, I'm overriding the time -->
     <name value="myavg?time=0"/>
-    <checksum value="myavg" />
     <code>
       <![CDATA[
         args=[];
