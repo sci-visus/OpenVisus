@@ -114,7 +114,7 @@ DatasetBitmask DatasetBitmask::guess(PointNi dims,bool makeRegularAsSoonAsPossib
   int pdim = dims.getPointDim();
 
   for (int D=0;D<pdim;D++) 
-    dims[D]=(PointNi::coord_t)Utils::getPowerOf2(dims[D]);
+    dims[D]=(Int64)Utils::getPowerOf2(dims[D]);
 
   //example V 00000 01010101
   if (makeRegularAsSoonAsPossible)

@@ -260,8 +260,8 @@ public:
     if (!logic_box.valid())
       return owner->readFailed(query);
 
-    PointNi::coord_t Width  = dataset->getBox().size()[0];
-    PointNi::coord_t Height = dataset->getBox().size()[1];
+    Int64 Width  = dataset->getBox().size()[0];
+    Int64 Height = dataset->getBox().size()[1];
 
     Url urlpath(owner->getPath());
     int z = cint(urlpath.getParam("z", "0"));

@@ -249,8 +249,8 @@ void Tutorial_6(String default_layout)
     }
 
     BoxNi world_box=dataset->getBox();
-    PointNi::coord_t Width =world_box.p2[0]-world_box.p1[0];VisusReleaseAssert(Width ==src_image.dims[0]);
-    PointNi::coord_t Height=world_box.p2[1]-world_box.p1[1];VisusReleaseAssert(Height==src_image.dims[1]);
+    Int64 Width =world_box.p2[0]-world_box.p1[0];VisusReleaseAssert(Width ==src_image.dims[0]);
+    Int64 Height=world_box.p2[1]-world_box.p1[1];VisusReleaseAssert(Height==src_image.dims[1]);
 
     //query box,example of generic query of generic bounding box (i.e. apply the inverse filter)
     BoxNi query_box;

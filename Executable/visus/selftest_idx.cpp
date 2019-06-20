@@ -140,11 +140,11 @@ public:
   
     //calculate number of samples per slice
     this->perslice=1;
-    PointNi::coord_t _stride=1;
+    Int64 _stride=1;
     this->stride = PointNi(pdim);
     for (int D=0;D<(pdim-1);D++)
     {
-      PointNi::coord_t num=user_box.p2[D]-user_box.p1[D];
+      Int64 num=user_box.p2[D]-user_box.p1[D];
       this->perslice*=num;
       stride[D]=_stride;
       _stride*=num;
@@ -284,7 +284,7 @@ protected:
 
   IdxDataset*           vf;
   DType                 dtype;
-  PointNi::coord_t      nslices;
+  Int64      nslices;
   Int64                 perslice;
   int                   pdim;
   PointNi               stride;

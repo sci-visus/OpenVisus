@@ -359,7 +359,7 @@ private:
       return dims;
     }
 
-    std::vector<PointNi::coord_t> ret;
+    std::vector<Int64> ret;
     int M = 0; for (int D = 0; D<dims.getPointDim(); D++)
     {
       if (dims[D]>1)

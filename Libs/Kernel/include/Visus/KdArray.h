@@ -88,7 +88,7 @@ public:
   }
 
   //return the middle
-  inline PointNi::coord_t getMiddle() {
+  inline Int64 getMiddle() {
     return (this->box.p1[split_bit]+this->box.p2[split_bit])>>1;
   }
 

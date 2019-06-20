@@ -145,7 +145,7 @@ public:
   inline PointNi deinterleave(BigInt z, int max_resolution) const {
     VisusAssert(valid());
     PointNi p(pdim);
-    PointNi::coord_t one = 1;
+    Int64 one = 1;
     for (PointNi shift=PointNi(pdim); z != 0; z >>= 1, max_resolution--)
     {
       int bit = (*this)[max_resolution];

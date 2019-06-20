@@ -68,7 +68,7 @@ IdxMosaicAccess::IdxMosaicAccess(IdxMultipleDataset* VF_, StringTree CONFIG)
     auto offset = it.second.M.getColumn(3).dropW();
     auto index = PointNi(pdim);
     for (int D = 0; D < pdim; D++)
-      index[D] = ((PointNi::coord_t)offset[D]) / dims[D];
+      index[D] = ((Int64)offset[D]) / dims[D];
 
     VisusAssert(!this->childs.count(index));
     this->childs[index].dataset=vf;

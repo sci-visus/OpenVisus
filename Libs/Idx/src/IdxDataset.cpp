@@ -354,7 +354,7 @@ public:
 
     int              numused=0;
     int              bit;
-    PointNi::coord_t delta;
+    Int64 delta;
     BoxNi            query_box        = query->logic_box;
     PointNi          stride           = query->nsamples.stride();
     PointNi          qshift           = query->logic_box.shift;
@@ -370,7 +370,7 @@ public:
       return false;
 
     //deltas
-    std::vector<PointNi::coord_t> fldeltas(max_resolution+1);
+    std::vector<Int64> fldeltas(max_resolution+1);
     for (int H = 0; H <= max_resolution; H++)
       fldeltas[H] = H? (hzorder.getLevelDelta(H)[bitmask[H]] >> 1) : 0;
 
@@ -527,7 +527,7 @@ public:
     PointNi p0     = Bbox.p1;
     PointNi shift  = Bbox.shift;
 
-    const auto points = (PointNi::coord_t*)query->point_coordinates->c_ptr();
+    const auto points = (Int64*)query->point_coordinates->c_ptr();
 
     switch (pdim)
     {
@@ -827,14 +827,14 @@ BoxNi IdxDataset::adjustFilterBox(Query* query,DatasetFilter* filter,BoxNi user_
   for (int D=0;D<pdim;D++) 
   {
     //what is the world step of the filter at the current resolution
-    PointNi::coord_t FILTERSTEP=filterstep[D];
+    Int64 FILTERSTEP=filterstep[D];
 
     //means only one sample so no alignment
     if (FILTERSTEP==1) 
       continue;
 
-    box.p1[D]=Utils::alignLeft(box.p1[D]  ,(PointNi::coord_t)0,FILTERSTEP);
-    box.p2[D]=Utils::alignLeft(box.p2[D]-1,(PointNi::coord_t)0,FILTERSTEP)+FILTERSTEP; 
+    box.p1[D]=Utils::alignLeft(box.p1[D]  ,(Int64)0,FILTERSTEP);
+    box.p2[D]=Utils::alignLeft(box.p2[D]-1,(Int64)0,FILTERSTEP)+FILTERSTEP; 
   }
 
   //since I've modified the box I need to do the intersection with the box again
@@ -1315,7 +1315,7 @@ PointNi IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frust
     for (int dataset_axis=0;dataset_axis<3;dataset_axis++)
     {
       double factor=(double)edge_size[dataset_axis]/(double)idx_size[dataset_axis];
-      PointNi::coord_t x=(PointNi::coord_t)(virtual_worlddim[dataset_axis]*factor);
+      Int64 x=(Int64)(virtual_worlddim[dataset_axis]*factor);
       nsamples[query_axis]=std::max(nsamples[query_axis],x);
     }
   }
@@ -1330,7 +1330,7 @@ PointNi IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frust
       Point2d p1=screen_points[unit_box_edges[E][0]];
       Point2d p2=screen_points[unit_box_edges[E][1]];
       double pixel_distance_on_screen=(p2-p1).module();
-      view_dependent_dims[query_axis]=std::max(view_dependent_dims[query_axis],(PointNi::coord_t)pixel_distance_on_screen);
+      view_dependent_dims[query_axis]=std::max(view_dependent_dims[query_axis],(Int64)pixel_distance_on_screen);
     }
 
     nsamples[0]=std::min(view_dependent_dims[0],nsamples[0]);
@@ -1373,7 +1373,7 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
   if (tot !=(nsamples[0]*nsamples[1]*nsamples[2]))
     return false;
 
-  if (!query->point_coordinates->resize(tot*pdim*sizeof(PointNi::coord_t),__FILE__,__LINE__))
+  if (!query->point_coordinates->resize(tot*pdim*sizeof(Int64),__FILE__,__LINE__))
     return false;
 
   //definition of a point query!
@@ -1390,13 +1390,13 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
   Point4d TDY_4d = T*DY; VisusAssert(TDY_4d.w==0.0); Point3d TDY  = TDY_4d.dropW();
   Point4d TDZ_4d = T*DZ; VisusAssert(TDZ_4d.w==0.0); Point3d TDZ  = TDZ_4d.dropW();
 
-  auto point_p = (PointNi::coord_t*)query->point_coordinates->c_ptr();
+  auto point_p = (Int64*)query->point_coordinates->c_ptr();
   Point3d PZ=TP0; for (int K=0;K<nsamples[2];++K,PZ+=TDZ) {
   Point3d PY =PZ; for (int J=0;J<nsamples[1];++J,PY+=TDY) {
   Point3d PX =PY; for (int I=0;I<nsamples[0];++I,PX+=TDX) {
-    *point_p++=(PointNi::coord_t)(PX.x);
-    *point_p++=(PointNi::coord_t)(PX.y);
-    *point_p++=(PointNi::coord_t)(PX.z);
+    *point_p++=(Int64)(PX.x);
+    *point_p++=(Int64)(PX.y);
+    *point_p++=(Int64)(PX.z);
   }}}
 
   //note: point queries are not mergeable, so it's box is invalid!
@@ -1578,7 +1578,7 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
 
   Int64 tot=query->nsamples.innerProduct();
 
-  const auto points = (PointNi::coord_t*)query->point_coordinates->c_ptr();
+  const auto points = (Int64*)query->point_coordinates->c_ptr();
   if (!query->point_coordinates || !query->point_coordinates->c_size() || !tot)
     return false;
 
@@ -1586,7 +1586,7 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
   VisusAssert(pdim<=3);//todo: other cases
   VisusAssert(query->start_resolution==0);//todo: othercases
   VisusAssert(maxh==this->getMaxResolution());//todo other cases!
-  VisusAssert((Int64)query->point_coordinates->c_size()>=query->nsamples.innerProduct()*(Int64)sizeof(PointNi::coord_t)*pdim);
+  VisusAssert((Int64)query->point_coordinates->c_size()>=query->nsamples.innerProduct()*(Int64)sizeof(Int64)*pdim);
 
   //first BigInt is hzaddress, second Int32 is offset inside buffer
   auto hzaddresses=std::vector< std::pair<BigInt,Int32> >(tot,std::make_pair(-1,0)); 
@@ -1603,7 +1603,7 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
     VisusAssert(false);
     #endif
 
-    const PointNi::coord_t* points_p=points;
+    const Int64* points_p=points;
     for (int N=0;N<tot;N++,points_p+=pdim) 
     {
       if (aborted()) return false;
@@ -1779,7 +1779,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
     DatasetBitmask bitmask = this->getBitmask();
     HzOrder hzorder(bitmask, query->max_resolution);
 
-    std::vector<PointNi::coord_t> fldeltas(max_resolution+1);
+    std::vector<Int64> fldeltas(max_resolution+1);
     for (int H = 0; H <= max_resolution; H++)
       fldeltas[H] = H? (hzorder.getLevelDelta(H)[bitmask[H]] >> 1) : 0;
 
@@ -1893,7 +1893,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
 
         //kd-traversal code
         int bit   = bitmask  [item.H];
-        PointNi::coord_t delta = fldeltas [item.H];
+        Int64 delta = fldeltas [item.H];
         ++item.H;
         item.box.p1[bit]+=delta;                         VisusAssert(item.box.isFullDim());PUSH();
         item.box.p1[bit]-=delta;item.box.p2[bit]-=delta; VisusAssert(item.box.isFullDim());PUSH();

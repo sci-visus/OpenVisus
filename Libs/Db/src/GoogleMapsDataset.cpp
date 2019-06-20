@@ -229,7 +229,7 @@ void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_q
 
   DatasetBitmask bitmask=this->getBitmask();
   int split_bit=bitmask[1+H - this->getDefaultBitsPerBlock()];
-  PointNi::coord_t middle=(box.p1[split_bit]+box.p2[split_bit])>>1;
+  Int64 middle=(box.p1[split_bit]+box.p2[split_bit])>>1;
 
   auto left_box  =box; left_box .p2[split_bit]=middle; 
   auto right_box =box; right_box.p1[split_bit]=middle; 
@@ -396,8 +396,8 @@ bool GoogleMapsDataset::openFromUrl(Url url)
 
   //any google level double the dimensions in x and y (i.e. i don't have even resolutions)
   PointNi overall_dims=PointNi::one(2);
-  overall_dims[0]=tile_nsamples.x * (((PointNi::coord_t)1)<<nlevels);
-  overall_dims[1]=tile_nsamples.y * (((PointNi::coord_t)1)<<nlevels);
+  overall_dims[0]=tile_nsamples.x * (((Int64)1)<<nlevels);
+  overall_dims[1]=tile_nsamples.y * (((Int64)1)<<nlevels);
 
   this->url=url.toString();
   this->bitmask=DatasetBitmask::guess(overall_dims);

@@ -101,10 +101,10 @@ bool Query::mergeSamples(LogicBox Wsamples, Array& Wbuffer, LogicBox Rsamples, A
   PointNi delta(pdim);
   for (int D = 0; D<pdim; D++)
   {
-    PointNi::coord_t lcm = Utils::leastCommonMultiple(Rsamples.delta[D], Wsamples.delta[D]);
+    Int64 lcm = Utils::leastCommonMultiple(Rsamples.delta[D], Wsamples.delta[D]);
 
-    PointNi::coord_t P1 = box.p1[D];
-    PointNi::coord_t P2 = box.p2[D];
+    Int64 P1 = box.p1[D];
+    Int64 P2 = box.p2[D];
 
     while (!Utils::isAligned(P1, Wsamples.p1[D], Wsamples.delta[D]) ||
       !Utils::isAligned(P1, Rsamples.p1[D], Rsamples.delta[D]))

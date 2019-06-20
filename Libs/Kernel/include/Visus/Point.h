@@ -1159,7 +1159,7 @@ inline PointNd convertTo(const PointNi& value) {
 
 template <>
 inline PointNi convertTo(const PointNd& value) {
-  return PointNi(value.toVector<PointNi::coord_t>());
+  return PointNi(value.toVector<Int64>());
 }
 
 

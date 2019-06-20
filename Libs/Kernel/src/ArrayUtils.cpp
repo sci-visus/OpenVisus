@@ -1115,7 +1115,7 @@ public:
     for (int D=0; D<pdim; D++)
       vs[D] = rdims[D] / (double)wdims[D];
 
-    PointNi w(pdim); PointNi::coord_t woffset = 0;
+    PointNi w(pdim); Int64 woffset = 0;
     PointNi r(pdim); PointNi          roffset(pdim);
     PointNi rstride = rdims.stride();
 
@@ -2529,12 +2529,12 @@ struct ConvolveOp
       // this is a trick to let the inner most loop executing only once
       to[0]=1; 
 
-      const PointNi::coord_t num_step_x=(Sdims[0])/1;
+      const Int64 num_step_x=(Sdims[0])/1;
 
       for (auto P = ForEachPoint(to); !P.end(); P.next())
       {
         // we take out the most inner loop for parallelization
-        for (PointNi::coord_t i=0;i<Sdims[0];i++) 
+        for (Int64 i=0;i<Sdims[0];i++) 
         {
           // copy P so that different threads don't modify the same variable P
           PointNi Q=P.pos; 
@@ -2618,7 +2618,7 @@ struct MedianHybridOp
       // this is a trick to let the inner most loop execute only once
       to[0]=1; 
 
-      const PointNi::coord_t num_step_x=(src_dims[0])/1;
+      const Int64 num_step_x=(src_dims[0])/1;
 
       Int64 krn_max_dim= krn_dims.maxsize();
 
@@ -2627,7 +2627,7 @@ struct MedianHybridOp
       for(auto p =ForEachPoint(to);!p.end();p.next())
       {
         // we take out the most inner loop for parallelization
-        for (PointNi::coord_t i=0;i<src_dims[0];i++)
+        for (Int64 i=0;i<src_dims[0];i++)
         {
           // copy P so that different threads don't modify the same variable P
           PointNi src_center=p.pos; 
@@ -2812,7 +2812,7 @@ struct MedianOp
       // this is a trick to let the inner most loop execute only once
       to[0]=1; 
 
-      const PointNi::coord_t num_step_x=(src_dims[0]);
+      const Int64 num_step_x=(src_dims[0]);
       Int64 size=krn_size.dims.maxsize()*2+1;
       Int64 neighborhood_size=krn_space==1?size:(krn_space==2?size*size:size*size*size);
       std::vector<SrcType> neighborhood_vals(neighborhood_size);
@@ -2820,7 +2820,7 @@ struct MedianOp
       for (auto p = ForEachPoint(to); !p.end(); p.next())
       {
         // we take out the most inner loop for parallelization
-        for (PointNi::coord_t i=0;i<src_dims[0];i++)
+        for (Int64 i=0;i<src_dims[0];i++)
         {
           // copy P so that different threads don't modify the same variable P
           PointNi src_center=p.pos; 

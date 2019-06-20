@@ -103,7 +103,7 @@ PointNi DatasetFilter::getFilterStep(int H,int MaxH) const
   //note the std::max.. don't want 0!
   PointNi filterstep=PointNi::one(pdim);
   for (int D=0;D<pdim;D++) 
-    filterstep[D]=std::max((PointNi::coord_t)1,step[D]*this->size);
+    filterstep[D]=std::max((Int64)1,step[D]*this->size);
 
   return filterstep;
 }
@@ -126,7 +126,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
   //the window size must be multiple of 2, otherwise I loose the filter alignment
   for (int D=0;D<pdim;D++)
   {
-    PointNi::coord_t size=SlidingWindow[D];
+    Int64 size=SlidingWindow[D];
     VisusAssert(size==1 || (size/2)*2==size);
   }
 
@@ -136,13 +136,13 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
     VisusInfo()<<"Applying filter to dataset resolution("<<H<<") ";
     int bit=bitmask[H];
       
-    PointNi::coord_t FILTERSTEP=this->getFilterStep(H,dataset->getMaxResolution())[bit];
+    Int64 FILTERSTEP=this->getFilterStep(H,dataset->getMaxResolution())[bit];
 
     //need to align the from so that the first sample is filter-aligned
     PointNi From = box.p1;
 
-    if (!Utils::isAligned(From[bit],(PointNi::coord_t)0,FILTERSTEP))
-      From[bit]=Utils::alignLeft(From[bit],(PointNi::coord_t)0,FILTERSTEP)+FILTERSTEP; 
+    if (!Utils::isAligned(From[bit],(Int64)0,FILTERSTEP))
+      From[bit]=Utils::alignLeft(From[bit],(Int64)0,FILTERSTEP)+FILTERSTEP; 
 
     PointNi To = box.p2;
     for (auto P = ForEachPoint(From, To, SlidingWindow); !P.end(); P.next())
@@ -158,7 +158,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
         continue;
 
       //I'm sure that since the From is filter-aligned, then P must be already aligned
-      VisusAssert(Utils::isAligned(sliding_window.p1[bit],(PointNi::coord_t)0,FILTERSTEP));
+      VisusAssert(Utils::isAligned(sliding_window.p1[bit],(Int64)0,FILTERSTEP));
 
       //important, i'm not using adjustBox because I'm sure it is already correct!
       auto read=std::make_shared<Query>(dataset,'r');
