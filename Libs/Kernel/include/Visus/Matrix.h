@@ -286,6 +286,11 @@ inline Point3d operator*(Point3d p,const Matrix3& T){
   return p.x*T.row(0)+p.y*T.row(1)+p.z*T.row(2);
 }
 
+inline Point2d operator*(const Matrix3& T, const Point2d& p) {
+  return (T * Point3d(p, 1)).dropHomogeneousCoordinate();
+}
+
+
 
 //////////////////////////////////////////////////////////
 class VISUS_KERNEL_API Matrix4 

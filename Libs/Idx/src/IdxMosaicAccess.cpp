@@ -129,11 +129,8 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
   if (bBlockTotallyInsideSingle)
   {
     //forward the block read to a single child
-    NdPoint p1, index = NdPoint::one(pdim);
-    for (int D = 0; D < VISUS_NDPOINT_DIM; D++) {
-      index[D] = QUERY->logic_box.p1[D] / dims[D];
-      p1[D] = QUERY->logic_box.p1[D] % dims[D];
-    }
+    auto index = QUERY->logic_box.p1.innerDiv(dims);
+    auto p1 = QUERY->logic_box.p1.innerMod(dims);
 
     auto it = childs.find(index);
     if (it == childs.end())

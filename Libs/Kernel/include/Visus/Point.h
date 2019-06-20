@@ -188,6 +188,31 @@ public:
   int biggest () const { return (x >  y) ? (0) : (1); }
   int smallest() const { return (x <= y) ? (0) : (1); }
 
+  //innerMultiply
+  inline Point2 innerMultiply(const Point2& other) const {
+    return Point2(x *other.x, y*other.y);
+  }
+
+  //innerDiv
+  inline Point2 innerDiv(const Point2& other) const {
+    return Point2(x / other.x, y / other.y);
+  }
+
+public:
+
+  //min,max 
+  static Point2 min(const Point2& a, const Point2& b) { return Point2(std::min(a[0], b[0]), std::min(a[1], b[1])); }
+  static Point2 max(const Point2& a, const Point2& b) { return Point2(std::max(a[0], b[0]), std::max(a[1], b[1])); }
+
+  //operator (<,<=,>,>=)
+  bool operator< (const Point2& b) const { const Point2& a = *this; return a[0] <  b[0] && a[1] <  b[1]; }
+  bool operator<=(const Point2& b) const { const Point2& a = *this; return a[0] <= b[0] && a[1] <= b[1]; }
+  bool operator> (const Point2& b) const { const Point2& a = *this; return a[0] >  b[0] && a[1] >  b[1]; }
+  bool operator>=(const Point2& b) const { const Point2& a = *this; return a[0] >= b[0] && a[1] >= b[1]; }
+
+
+public:
+
   //convert to string
   String toString() const
   {
@@ -260,7 +285,7 @@ public:
 
   //dropHomogeneousCoordinate
   Point2<T> dropHomogeneousCoordinate() const {
-    return Point2<T>(x / z, y / z);
+    return Point2<T>(x / (z? z: 1.0), y / (z ? z : 1.0));
   }
 
   //module*module
@@ -641,17 +666,13 @@ inline Point4d convertTo(const Point4i& value) {
 }
 
 
-#ifndef VISUS_NDPOINT_DIM
-  #define VISUS_NDPOINT_DIM 5
-#endif
-
 //////////////////////////////////////////////////////////////
 template <typename T>
 class PointN
 {
   int pdim = 0;
 
-  std::array<T, VISUS_NDPOINT_DIM> coords = std::array<T, VISUS_NDPOINT_DIM>({ {0,0,0,0,0} });
+  std::array<T, 5> coords = std::array<T, 5>({ {0,0,0,0,0} });
 
 public:
 
@@ -1033,6 +1054,13 @@ public:
     if (pdim >= 4 && !Utils::notoverflow_mul(ret, ret, get(3))) return -1;
     if (pdim >= 5 && !Utils::notoverflow_mul(ret, ret, get(4))) return -1;
     return ret;
+  }
+
+  //innerMod
+  template <typename = std::enable_if_t<std::is_integral<T>::value > >
+  PointN innerMod(const PointN& other) const {
+    VisusAssert(pdim == other.pdim);
+    return PointN(pdim, this->get(0) % other[0], this->get(1) % other[1], this->get(2) % other[2], this->get(3) % other[3], this->get(4) % other[4]);
   }
 
   //overflow (the 64 bit limit!)

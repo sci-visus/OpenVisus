@@ -231,4 +231,99 @@ double Polygon2d::area() const {
 }
 
 
+
+///////////////////////////////////////////////////////////////////////////
+Matrix3 Quad::findQuadHomography(const Quad& dst_quad, const Quad& src_quad)
+{
+  auto dst = dst_quad.points;
+  auto src = src_quad.points;
+
+  double P[8][9] = {
+    { -src[0].x, -src[0].y, -1,         0,         0,  0, src[0].x*dst[0].x, src[0].y*dst[0].x, -dst[0].x },
+    { 0,         0,  0, -src[0].x, -src[0].y, -1, src[0].x*dst[0].y, src[0].y*dst[0].y, -dst[0].y },
+    { -src[1].x, -src[1].y, -1,         0,         0,  0, src[1].x*dst[1].x, src[1].y*dst[1].x, -dst[1].x },
+    { 0,         0,  0, -src[1].x, -src[1].y, -1, src[1].x*dst[1].y, src[1].y*dst[1].y, -dst[1].y },
+    { -src[2].x, -src[2].y, -1,         0,         0,  0, src[2].x*dst[2].x, src[2].y*dst[2].x, -dst[2].x },
+    { 0,         0,  0, -src[2].x, -src[2].y, -1, src[2].x*dst[2].y, src[2].y*dst[2].y, -dst[2].y },
+    { -src[3].x, -src[3].y, -1,         0,         0,  0, src[3].x*dst[3].x, src[3].y*dst[3].x, -dst[3].x },
+    { 0,         0,  0, -src[3].x, -src[3].y, -1, src[3].x*dst[3].y, src[3].y*dst[3].y, -dst[3].y },
+  };
+
+  double* A = &P[0][0];
+  const int n = 9;
+  int i = 0, j = 0, m = n - 1;
+  while (i < m && j < n) {
+    int maxi = i;
+    for (int k = i + 1; k<m; k++) {
+      if (fabs(A[k*n + j]) > fabs(A[maxi*n + j])) {
+        maxi = k;
+      }
+    }
+    if (A[maxi*n + j] != 0) {
+      if (i != maxi)
+        for (int k = 0; k<n; k++) {
+          double aux = A[i*n + k];
+          A[i*n + k] = A[maxi*n + k];
+          A[maxi*n + k] = aux;
+        }
+      double A_ij = A[i*n + j];
+      for (int k = 0; k<n; k++) {
+        A[i*n + k] /= A_ij;
+      }
+      for (int u = i + 1; u< m; u++) {
+        double A_uj = A[u*n + j];
+        for (int k = 0; k<n; k++) {
+          A[u*n + k] -= A_uj*A[i*n + k];
+        }
+      }
+      i++;
+    }
+    j++;
+  }
+  for (int i = m - 2; i >= 0; i--) {
+    for (int j = i + 1; j<n - 1; j++) {
+      A[i*n + m] -= A[i*n + j] * A[j*n + m];
+    }
+  }
+
+  return Matrix3(
+    P[0][8], P[3][8], P[6][8],
+    P[1][8], P[4][8], P[7][8],
+    P[2][8], P[5][8], 1.0).transpose();
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+Polygon2d Quad::intersection(const Quad& A, const Quad& B)
+{
+  auto b1 = A.getBoundingBox();
+  auto b2 = B.getBoundingBox();
+  if (!b1.intersect(b2))
+    return Polygon2d();
+
+  auto T = findQuadHomography(Quad(1, 1), A);
+  auto clipped = Quad(T, B).clip(Rectangle2d(0, 0, 1, 1));
+  return Polygon2d(T.invert(), clipped);
+}
+
+///////////////////////////////////////////////////////////////////////////
+bool Quad::isConvex() const {
+
+  auto computeSign = [](Point2d p1, Point2d p2, Point2d p3) {
+    auto dx1 = p2.x - p1.x;
+    auto dy1 = p2.y - p1.y;
+    auto dx2 = p3.x - p2.x;
+    auto dy2 = p3.y - p2.y;
+    return ((dx1 * dy2 - dy1 * dx2) >= 0) ? +1 : -1;
+  };
+
+  auto s0 = computeSign(points[0], points[1], points[2]);
+  auto s1 = computeSign(points[1], points[2], points[3]);
+  auto s2 = computeSign(points[2], points[3], points[0]);
+  auto s3 = computeSign(points[3], points[0], points[1]);
+
+  return s0 == s1 && s1 == s2 && s2 == s3;
+};
+
+
 } //namespace Visus

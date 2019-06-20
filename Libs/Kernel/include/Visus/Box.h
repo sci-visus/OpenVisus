@@ -48,6 +48,174 @@ namespace Visus {
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
+class Box2
+{
+public:
+
+  typedef Point2<T> Point;
+
+  //points (see valid() function)
+  Point p1, p2;
+
+  //constructor
+  Box2() {
+  }
+
+  //constructor
+  Box2(Point p1_, Point p2_) : p1(p1_), p2(p2_) {
+  }
+
+  //return an invalid box
+  static Box2 invalid()
+  {
+    T L = NumericLimits<T>::lowest();
+    T H = NumericLimits<T>::highest();
+    return Box2(Point(H, H), Point(L, L));
+  }
+
+  //valid (note: an axis can have zero dimension, trick to store slices too)
+  bool valid() const {
+    return p1.valid() && p2.valid() && p1.x <= p2.x && p1.y <= p2.y;
+  }
+
+  //center
+  Point center() const {
+    return 0.5*(p1 + p2);
+  }
+
+  //size
+  Point size() const {
+    return p2 - p1;
+  }
+
+  //max size
+  T maxsize() const {
+    Point d = size(); return Utils::max(d.x, d.y);
+  }
+
+  //min size
+  T minsize() const {
+    Point d = size(); return Utils::min(d.x, d.y);
+  }
+
+  //middle
+  Point middle() const {
+    return 0.5*(p1 + p2);
+  }
+
+  //addPoint
+  void addPoint(Point p) {
+    this->p1 = Point::min(this->p1, p);
+    this->p2 = Point::max(this->p2, p);
+  }
+
+  //get point
+  Point getPoint(int idx) const
+  {
+    switch (idx)
+    {
+    case 0:return Point(p1.x, p1.y);
+    case 1:return Point(p2.x, p1.y);
+    case 2:return Point(p2.x, p2.y);
+    case 3:return Point(p1.x, p2.y);
+    }
+    VisusAssert(false);
+    return Point();
+  }
+
+  //getPoints
+  std::array<Point,4> getPoints() const {
+    return std::array<Point, 4>({
+      getPoint(0),getPoint(1),getPoint(2),getPoint(3)
+    });
+  }
+
+  //getPoint
+  Point getPoint(double alpha, double beta) const {
+    return p1 + Point(alpha*(p2.x - p1.x), beta*(p2.y - p1.y));
+  }
+
+  //test if a point is inside the box
+  bool containsPoint(Point p) const {
+    return this->p1 <= p && p <= this->p2;
+  }
+
+  //test if two box are equal
+  bool operator==(const Box2& b) const {
+    return p1 == b.p1 && p2 == b.p2;
+  }
+
+  //test equality
+  bool operator!=(const Box2& b) const {
+    return !(this->operator==(b));
+  }
+
+  //intersect
+  bool intersect(const Box2& other) const {
+    return valid() && other.valid() ? (p1 <= other.p2 && p2 >= other.p1) : false;
+  }
+
+  //get intersection of two boxes
+  Box2 getIntersection(const Box2& b) const {
+    Box2 ret;
+    ret.p1 = Point::max(this->p1, b.p1);
+    ret.p2 = Point::min(this->p2, b.p2);
+    return ret;
+  }
+
+  //get union of two boxes
+  Box2 getUnion(const Box2& b) const {
+    Box2 ret;
+    ret.p1 = Point::min(this->p1, b.p1);
+    ret.p2 = Point::max(this->p2, b.p2);
+    return ret;
+  }
+
+  //scaleAroundCenter
+  Box2 scaleAroundCenter(double scale)
+  {
+    Point center = this->center();
+    Point size = scale*(p2 - p1);
+    return Box2(center - size*0.5, center + size*0.5);
+  }
+
+public:
+
+  //construct from string
+  static Box2 parseFromString(String value)
+  {
+    Box2 ret;
+    std::istringstream parser(value);
+    parser >> ret.p1.x >> ret.p1.y;
+    parser >> ret.p2.x >> ret.p2.y;
+    return ret;
+  }
+
+  //construct to string
+  String toString() const {
+    return p1.toString() + " " + p2.toString();
+  }
+
+  //writeToObjectStream
+  void writeToObjectStream(ObjectStream& ostream)
+  {
+    ostream.write("p1", p1.toString());
+    ostream.write("p2", p2.toString());
+  }
+
+  //writeToObjectStream
+  void readFromObjectStream(ObjectStream& istream)
+  {
+    p1 = Point(istream.read("p1"));
+    p2 = Point(istream.read("p2"));
+  }
+
+}; //end class Box2
+
+  typedef Box2<double> Box2d;
+
+///////////////////////////////////////////////////////////////////
+template <typename T>
 class Box3
 {
 public:
@@ -76,6 +244,11 @@ public:
   //valid (note: an axis can have zero dimension, trick to store slices too)
   bool valid() const{
     return p1.valid() && p2.valid() && p1.x <= p2.x && p1.y <= p2.y  && p1.z <= p2.z;
+  }
+
+  //dropZ
+  Box2<T> dropZ() const {
+    return Box2<T>(p1.dropZ(),p2.dropZ());
   }
 
   //center
@@ -128,8 +301,8 @@ public:
   }
 
   //getPoints
-  std::vector<Point> getPoints() const {
-    return std::vector<Point>({
+  std::array<Point,8> getPoints() const {
+    return std::array<Point, 8>({
       getPoint(0),getPoint(1),getPoint(2),getPoint(3),getPoint(4),getPoint(5),getPoint(6),getPoint(7)
     });
   }
@@ -231,6 +404,42 @@ public:
 }; //end class Box3
 
 typedef Box3<double> Box3d;
+
+
+///////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API Hexahedral
+{
+public:
+
+  std::array<Point3d, 8> points;
+
+  //constructor
+  Hexahedral() {
+  }
+
+  //constructor
+  Hexahedral(const std::array<Point3d, 8>& points_) : points(points_) {
+  }
+
+  //constructor
+  template <class Transformation>
+  Hexahedral(const Transformation& T, const Box3d& box) {
+    auto points = box.getPoints();
+    for (int I = 0; I < 8; I++)
+      this->points[I] = T * points[I];
+  }
+
+  //volume
+  double volume() const {
+    Point3d diagonal(points[6] - points[0]);
+    return double(1.0 / 6.0) * diagonal.dot(
+      ((points[1] - points[0]).cross(points[2] - points[5])) +
+      ((points[4] - points[0]).cross(points[5] - points[7])) +
+      ((points[3] - points[0]).cross(points[7] - points[2])));
+  }
+};
+
+
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>

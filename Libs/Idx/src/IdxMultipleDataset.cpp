@@ -42,6 +42,7 @@ For support : support@visus.net
 #include <Visus/ThreadPool.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/IdxMosaicAccess.h>
+#include <Visus/Polygon.h>
 
 #if VISUS_PYTHON
 #include <Visus/Python.h>
@@ -1170,6 +1171,61 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   }
   else
   {
+    if (bool bNotLoosePixels = bMosaic? false :true)
+    {
+      VisusAssert(pdim <= 3);
+
+      //union of boxes
+      Box3d PHYSICAL_BOX = Box3d::invalid();
+      for (auto it : childs)
+      {
+        auto physical_box = Position(it.second.M, it.second.dataset->getBox()).toAxisAlignedBox();
+        PHYSICAL_BOX = PHYSICAL_BOX.getUnion(physical_box);
+      }
+
+      std::vector<double> DENSITY;
+      for (auto it : childs)
+      {
+        auto dataset = it.second.dataset;
+        auto M = it.second.M;
+        auto logic_box = Position(dataset->getBox()).toAxisAlignedBox();
+        auto tot_pixels = dataset->getBox().size().innerProduct();
+
+        if (pdim == 2)
+        {
+          auto physical_area = Quad(M.dropZ(), logic_box.dropZ()).area();
+          auto density = tot_pixels/ physical_area;
+          DENSITY.push_back(density);
+        }
+        else if (pdim == 3)
+        {
+          auto  physical_volume = Hexahedral(M,logic_box).volume();
+          auto density = tot_pixels/ physical_volume;
+          DENSITY.push_back(density);
+        }
+        else
+        {
+          VisusReleaseAssert(false) // todo
+        }
+      }
+
+      // try to keep the same number of pixels
+      // TOT_PIXELS[max_density] = PHYSICAL_VOLUMES[max_density] * pow(scale,pdim)
+      // DENSITY[max_density] = pow(scale,pdim)
+      auto max_density = std::distance(DENSITY.begin(), std::max_element(DENSITY.begin(), DENSITY.end()));
+      auto scale = pow(DENSITY[max_density], 1.0 / pdim);
+
+      auto T =
+        Matrix4::scale(Point3d(
+          pdim >= 1 ? scale : 1.0,
+          pdim >= 2 ? scale : 1.0,
+          pdim >= 3 ? scale : 1.0)) *
+        Matrix4::translate(-PHYSICAL_BOX.p1);
+
+      for (auto it : childs)
+        it.second.M = T * it.second.M;
+    }
+
     //union of boxes
     IDXFILE.box = NdBox::invalid(pdim);
     for (auto it : childs)

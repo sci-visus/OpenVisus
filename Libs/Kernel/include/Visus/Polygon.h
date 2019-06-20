@@ -98,10 +98,10 @@ public:
   }
 
   //getBoundingBox
-  Box3d getBoundingBox() const {
-    Box3d ret= Box3d::invalid();
+  Box2d getBoundingBox() const {
+    Box2d ret= Box2d::invalid();
     for (auto p:points) 
-      ret.addPoint(Point3d(p,0));
+      ret.addPoint(p);
     return ret;
   }
 
@@ -141,6 +141,91 @@ public:
   Polygon2d clip(const Rectangle2d& r) const;
 
 };
+
+
+//////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API Quad : public Polygon2d
+{
+public:
+
+  //constructor
+  Quad() {
+    points.resize(4);
+  }
+
+  //constructor
+  Quad(const Matrix3& H, const Quad& q) : Polygon2d(H, q.points) {
+  }
+
+
+  //constructor
+  Quad(Point2d p0, Point2d p1, Point2d p2, Point2d p3) : Polygon2d(p0, p1, p2, p3) {
+  }
+
+  //constructor
+  Quad(std::array<Point2d, 4> v) : Polygon2d(v[0], v[1], v[2], v[3]) {
+  }
+
+  //constructor
+  Quad(const Matrix3& H, std::array<Point2d, 4> points) : Quad(H, Quad(points)) {
+  }
+
+  //constructor
+  Quad(const Matrix3& H, const Box2d& box) : Quad(H, box.getPoints()) {
+  }
+
+  //constructor
+  Quad(int X, int Y, int W, int H) : Polygon2d(Point2d(X, Y), Point2d(X + W, Y), Point2d(X + W, Y + H), Point2d(X, Y + H)) {
+  }
+
+  //constructor
+  Quad(int W, int H) : Polygon2d(Point2d(0, 0), Point2d(W, 0), Point2d(W, H), Point2d(0, H)) {
+  }
+
+  //centroid
+  Point2d centroid() const {
+    return Polygon2d::centroid();
+  }
+
+  //getPoint
+  Point2d getPoint(int index) const {
+    return points[index];
+  }
+
+  //translate
+  Quad translate(Point2d vt) const {
+    return Quad(points[0] + vt, points[1] + vt, points[2] + vt, points[3] + vt);
+  }
+
+  //computeBoundingBox
+  static Box2d computeBoundingBox(const std::vector<Quad>& quads)
+  {
+    Box2d ret = Box2d::invalid();
+    for (int I = 0; I<(int)quads.size(); I++)
+      ret = ret.getUnion(quads[I].getBoundingBox());
+    return ret;
+  };
+
+  //findQuadHomography
+  static Matrix3 findQuadHomography(const Quad& dst, const Quad& src);
+
+  //FindQuadIntersection
+  static Polygon2d intersection(const Quad& A, const Quad& B);
+
+  //isConvex
+  bool isConvex() const;
+
+  //toString
+  String toString() const {
+    return StringUtils::format()
+      << points[0].x << " " << points[0].y << " "
+      << points[1].x << " " << points[1].y << " "
+      << points[2].x << " " << points[2].y << " "
+      << points[3].x << " " << points[3].y;
+  }
+
+};
+
 
 } //namespace Visus
 
