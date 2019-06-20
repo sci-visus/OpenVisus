@@ -42,7 +42,7 @@ For support : support@visus.net
 #include <Visus/Gui.h>
 
 #include <Visus/Frustum.h>
-
+ 
 #include <Visus/GLShader.h>
 #include <Visus/GLMaterial.h>
 #include <Visus/GLTexture.h>

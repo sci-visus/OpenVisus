@@ -742,6 +742,17 @@ public:
   }
 
   //constructor
+  explicit PointN(const std::vector<T>& src) :
+    PointN((int)src.size(),
+      src.size() >= 1 ? src[0] : 0,
+      src.size() >= 2 ? src[1] : 0,
+      src.size() >= 3 ? src[2] : 0,
+      src.size() >= 4 ? src[3] : 0,
+      src.size() >= 5 ? src[4] : 0) {
+  }
+
+
+  //constructor
   explicit PointN(int pdim) : PointN(pdim, 0, 0, 0, 0, 0) {
   }
 
@@ -764,16 +775,6 @@ public:
 
   //constructor
   explicit PointN(Point3<T> p) : PointN(p.x, p.y, p.z) {
-  }
-
-  //constructor
-  explicit PointN(const std::vector<T>& src) : 
-    PointN((int)src.size(),
-      src.size() >= 1 ? src[0] : 0,
-      src.size() >= 2 ? src[1] : 0,
-      src.size() >= 3 ? src[2] : 0,
-      src.size() >= 4 ? src[3] : 0,
-      src.size() >= 5 ? src[4] : 0) {
   }
 
   //getPointDim

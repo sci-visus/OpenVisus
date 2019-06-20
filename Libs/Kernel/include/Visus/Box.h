@@ -477,9 +477,9 @@ public:
 
   //return an invalid box
   static BoxN invalid(int pdim) {
-    T L = NumericLimits<T>::lowest();
-    T H = NumericLimits<T>::highest();
-    return BoxN(Point(pdim,H, H, H, H, H), Point(pdim, L, L, L, L, L));
+    return BoxN(
+      Point(std::vector<T>(pdim, NumericLimits<T>::highest())), 
+      Point(std::vector<T>(pdim, NumericLimits<T>::lowest())));
   }
 
   //valid
@@ -624,13 +624,9 @@ public:
   {
     int pdim = getPointDim();
     if (!pdim) return "";
-
     std::ostringstream out;
-    if (pdim >= 1) out <<        p1[0] << " " << p2[0];
-    if (pdim >= 2) out << " " << p1[1] << " " << p2[1];
-    if (pdim >= 3) out << " " << p1[2] << " " << p2[2];
-    if (pdim >= 4) out << " " << p1[3] << " " << p2[3];
-    if (pdim >= 5) out << " " << p1[4] << " " << p2[4];
+    for (int I = 0; I < pdim; I++) 
+      out << (I ? " " : "") << p1[I] << " " << p2[I];
     return out.str();
   }
 
