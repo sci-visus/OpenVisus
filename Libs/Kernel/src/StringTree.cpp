@@ -624,7 +624,7 @@ String StringTree::toJSONString(const StringTree& src, int nrec)
     out << "}," << std::endl;
     out << "childs: [ " << std::endl;
     {
-      I = 0; N = (int)src.childs.size(); 
+      int I = 0, N = (int)src.childs.size(); 
       for (const auto& child : src.childs)
       {
         out << toJSONString(*child, nrec + 1) << ((I != N - 1) ? "," : "") << std::endl;
