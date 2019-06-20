@@ -611,24 +611,30 @@ String StringTree::toJSONString(const StringTree& src, int nrec)
   std::ostringstream out;
 
   out << "{" << std::endl;
-  out << FormatJSON("name")      << " : " << FormatJSON(src.name) << ","<<std::endl;
-  out << FormatJSON("attributes") << " : { " << std::endl;
-
-  int I=0,N=(int)src.attributes.size();
-  for (const auto& it : src.attributes) {
-    out << FormatJSON(it.first) << " : " << FormatJSON(it.second) << ((I != N - 1) ? "," : "") << std::endl;
-    I++;
+  {
+    out << "name : " << FormatJSON(src.name) << "," << std::endl;
+    out << "attributes : { " << std::endl;
+    {
+      int I = 0, N = (int)src.attributes.size(); 
+      for (const auto& it : src.attributes) {
+        out << FormatJSON(it.first) << " : " << FormatJSON(it.second) << ((I != N - 1) ? "," : "") << std::endl;
+        I++;
+      }
+    }
+    out << "}," << std::endl;
+    out << "childs: [ " << std::endl;
+    {
+      I = 0; N = (int)src.childs.size(); 
+      for (const auto& child : src.childs)
+      {
+        out << toJSONString(*child, nrec + 1) << ((I != N - 1) ? "," : "") << std::endl;
+        I++;
+      }
+    }
+    out << "]" << std::endl;
   }
   out << "}" << std::endl;
 
-  out << FormatJSON("childs") << " : [ " << std::endl;
-  I = 0; N = (int)src.childs.size();
-  for (const auto& child : src.childs)
-  {
-    out << toJSONString(*child,nrec+1) << ((I != N - 1) ? "," : "") << std::endl;
-    I++;
-  }
-  out << "]" << std::endl;
   return out.str();
 }
 
