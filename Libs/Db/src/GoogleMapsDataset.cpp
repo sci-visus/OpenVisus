@@ -81,12 +81,12 @@ public:
   {
     auto coord=dataset->getTileCoordinate(query->start_address,query->end_address);
 
-    int X=coord.x;
-    int Y=coord.y;
-    int Z=coord.z;
+    auto X=coord.x;
+    auto Y=coord.y;
+    auto Z=coord.z;
 
     //mirror along Y
-    Y=(int)((1<<Z)-Y-1);
+    Y=(int)((Int64(1)<<Z)-Y-1);
       
     Url url=dataset->getUrl();
     url.params.clear();
@@ -104,7 +104,7 @@ public:
     //note [...,query] keep the query in memory
     NetService::push(netservice, request).when_ready([this, query](NetResponse response) {
 
-      NdPoint nsamples = NdPoint::one(2);
+      PointNi nsamples = PointNi::one(2);
       nsamples[0] = dataset->tile_nsamples.x;
       nsamples[1] = dataset->tile_nsamples.y;
 
@@ -185,7 +185,7 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query)
     return false;
   }
 
-  auto user_box= query->position.getNdBox().getIntersection(this->getBox());
+  auto user_box= query->position.getBoxNi().getIntersection(this->getBox());
 
   if (!user_box.isFullDim())
   {
@@ -207,12 +207,12 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query)
 
 
 //////////////////////////////////////////////////////////////
-void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<Query> query,NdBox box,BigInt id,int H,int end_resolution)
+void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<Query> query,BoxNi box,BigInt id,int H,int end_resolution)
 {
   if (query->aborted()) 
     return;
 
-  if (!box.getIntersection(query->position.getNdBox()).isFullDim())
+  if (!box.getIntersection(query->position.getBoxNi()).isFullDim())
     return;
 
   int samplesperblock=1<<this->getDefaultBitsPerBlock();
@@ -229,7 +229,7 @@ void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_q
 
   DatasetBitmask bitmask=this->getBitmask();
   int split_bit=bitmask[1+H - this->getDefaultBitsPerBlock()];
-  NdPoint::coord_t middle=(box.p1[split_bit]+box.p2[split_bit])>>1;
+  PointNi::coord_t middle=(box.p1[split_bit]+box.p2[split_bit])>>1;
 
   auto left_box  =box; left_box .p2[split_bit]=middle; 
   auto right_box =box; right_box.p1[split_bit]=middle; 
@@ -259,7 +259,7 @@ bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> q
 
   WaitAsync< Future<Void> > wait_async;
 
-  NdBox box=this->getBox();
+  BoxNi box=this->getBox();
 
   std::vector< SharedPtr<BlockQuery> > block_queries;
   kdTraverse(block_queries,query,box,/*id*/1,/*H*/this->getDefaultBitsPerBlock(),end_resolution);
@@ -347,7 +347,7 @@ Point3i GoogleMapsDataset::getTileCoordinate(BigInt start_address,BigInt end_add
   int    H=bitsperblock+Utils::getLog2(1+blocknum);
   VisusAssert((H % 2)==0);
   Int64  first_block_in_level=(((Int64)1)<<(H-bitsperblock))-1;
-  NdPoint tile_coord=bitmask.deinterleave(blocknum-first_block_in_level,H-bitsperblock);
+  PointNi tile_coord=bitmask.deinterleave(blocknum-first_block_in_level,H-bitsperblock);
 
   return Point3i(
     (int)(tile_coord[0]),
@@ -360,18 +360,18 @@ LogicBox GoogleMapsDataset::getAddressRangeBox(BigInt start_address,BigInt end_a
 {
   auto coord=getTileCoordinate(start_address,end_address);
 
-  int X=coord.x;
-  int Y=coord.y;
-  int Z=coord.z;
+  auto X=coord.x;
+  auto Y=coord.y;
+  auto Z=coord.z;
 
   int tile_width =(int)(this->getBox().p2[0])>>Z;
   int tile_height=(int)(this->getBox().p2[1])>>Z;
 
-  NdPoint delta=NdPoint::one(2);
+  PointNi delta=PointNi::one(2);
   delta[0]=tile_width /this->tile_nsamples.x;
   delta[1]=tile_height/this->tile_nsamples.y;
 
-  NdBox box(NdPoint(2), NdPoint::one(2));
+  BoxNi box(PointNi(2), PointNi::one(2));
   box.p1[0] = tile_width  * (X + 0); box.p2[0] = tile_width  * (X + 1);
   box.p1[1] = tile_height * (Y + 0); box.p2[1] = tile_height * (Y + 1);
 
@@ -395,14 +395,14 @@ bool GoogleMapsDataset::openFromUrl(Url url)
   }
 
   //any google level double the dimensions in x and y (i.e. i don't have even resolutions)
-  NdPoint overall_dims=NdPoint::one(2);
-  overall_dims[0]=tile_nsamples.x * (((NdPoint::coord_t)1)<<nlevels);
-  overall_dims[1]=tile_nsamples.y * (((NdPoint::coord_t)1)<<nlevels);
+  PointNi overall_dims=PointNi::one(2);
+  overall_dims[0]=tile_nsamples.x * (((PointNi::coord_t)1)<<nlevels);
+  overall_dims[1]=tile_nsamples.y * (((PointNi::coord_t)1)<<nlevels);
 
   this->url=url.toString();
   this->bitmask=DatasetBitmask::guess(overall_dims);
   this->default_bitsperblock=Utils::getLog2(tile_nsamples.x*tile_nsamples.y);
-  this->box=NdBox(NdPoint(0,0),overall_dims);
+  this->box=BoxNi(PointNi(0,0),overall_dims);
   this->timesteps=DatasetTimesteps();
   this->timesteps.addTimestep(0);
 
@@ -430,11 +430,11 @@ LogicBox GoogleMapsDataset::getLevelBox(int H)
   int ntiles_x=(int)(1<<Z);
   int ntiles_y=(int)(1<<Z);
 
-  NdPoint delta=NdPoint::one(2);
+  PointNi delta=PointNi::one(2);
   delta[0]=tile_width /this->tile_nsamples.x;
   delta[1]=tile_height/this->tile_nsamples.y;
     
-  NdBox box(NdPoint(0,0), NdPoint::one(1,1));
+  BoxNi box(PointNi(0,0), PointNi::one(1,1));
   box.p2[0] = ntiles_x*tile_width;
   box.p2[1] = ntiles_y*tile_height;
     
@@ -458,13 +458,13 @@ bool GoogleMapsDataset::setCurrentEndResolution(SharedPtr<Query> query)
   VisusAssert(query->start_resolution<=end_resolution);
   VisusAssert(end_resolution<=max_resolution);
   
-  auto user_box= query->position.getNdBox().getIntersection(this->getBox());
+  auto user_box= query->position.getBoxNi().getIntersection(this->getBox());
   VisusAssert(user_box.isFullDim());
 
   int H=end_resolution;
 
   LogicBox Lbox=getLevelBox(end_resolution);
-  NdBox box=Lbox.alignBox(user_box);
+  BoxNi box=Lbox.alignBox(user_box);
   if (!box.isFullDim())
     return false;
 

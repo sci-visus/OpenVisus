@@ -235,8 +235,8 @@ inline Point2<T> operator*(Value value, const Point2<T> &v) {
   return v*value;
 }
 
-typedef  Point2<int   > Point2i;
-typedef  Point2<float > Point2f;
+typedef  Point2<Int64>  Point2i;
+typedef  Point2<float>  Point2f;
 typedef  Point2<double> Point2d;
 
 template <>
@@ -455,18 +455,12 @@ inline Point3<T> operator*(Value value, const Point3<T> &v) {
   return v*value;
 }
 
-typedef  Point3<int  >  Point3i;
-typedef  Point3<Int64>  Point3i64;
+typedef  Point3<Int64>  Point3i;
 typedef  Point3<float>  Point3f;
 typedef  Point3<double> Point3d;
 
 template <>
 inline Point3d convertTo(const Point3i& value) {
-  return Point3d((double)value.x, (double)value.y, (double)value.z);
-}
-
-template <>
-inline Point3d convertTo(const Point3i64& value) {
   return Point3d((double)value.x, (double)value.y, (double)value.z);
 }
 
@@ -655,8 +649,8 @@ inline Point4<T> operator*(Value value, const Point4<T> &v) {
   return v*value;
 }
 
-typedef Point4<int   > Point4i;
-typedef Point4<float > Point4f;
+typedef Point4<Int64>  Point4i;
+typedef Point4<float>  Point4f;
 typedef Point4<double> Point4d;
 
 
@@ -1057,11 +1051,13 @@ public:
   }
 
   //innerMod
+#if !SWIG
   template <typename = std::enable_if_t<std::is_integral<T>::value > >
   PointN innerMod(const PointN& other) const {
     VisusAssert(pdim == other.pdim);
     return PointN(pdim, this->get(0) % other[0], this->get(1) % other[1], this->get(2) % other[2], this->get(3) % other[3], this->get(4) % other[4]);
   }
+#endif
 
   //overflow (the 64 bit limit!)
   inline bool overflow() const {
@@ -1140,8 +1136,6 @@ inline PointN<T> operator*(Value s, const PointN<T> &p) {
   return p * s;
 }
 
-
-
 template <typename T>
 inline typename PointN<T>::ForEachPoint ForEachPoint(PointN<T> from, PointN<T> to, PointN<T> step) {
   return typename PointN<T>::ForEachPoint(from, to, step);
@@ -1156,9 +1150,6 @@ inline typename PointN<T>::ForEachPoint ForEachPoint(PointN<T> dims) {
 
 typedef PointN<double> PointNd;
 typedef PointN<Int64>  PointNi;
-
-//backward compatible
-typedef PointNi NdPoint;
 
 template <>
 inline PointNd convertTo(const PointNi& value) {

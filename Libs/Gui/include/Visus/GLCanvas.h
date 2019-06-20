@@ -247,9 +247,9 @@ public:
   void setUniform(const GLUniform& uniform, int v1,int v2)                       {int location=program->getUniformLocation(uniform); if (location<0) return; glUniform2i(location,v1,v2);}
   void setUniform(const GLUniform& uniform, int v1,int v2,int v3)                {int location=program->getUniformLocation(uniform); if (location<0) return; glUniform3i(location,v1,v2,v3);}
   void setUniform(const GLUniform& uniform, int v1,int v2,int v3,int v4)         {int location=program->getUniformLocation(uniform); if (location<0) return; glUniform4i(location,v1,v2,v3,v4);}
-  void setUniform(const GLUniform& uniform, Point2i v)                           {setUniform(uniform,v.x,v.y);}
-  void setUniform(const GLUniform& uniform, Point3i v)                           {setUniform(uniform,v.x,v.y,v.z);}
-  void setUniform(const GLUniform& uniform, Point4i v)                           {setUniform(uniform,v.x,v.y,v.z,v.w);}
+  //void setUniform(const GLUniform& uniform, Point2i v)                         {setUniform(uniform,v.x,v.y);}
+  //void setUniform(const GLUniform& uniform, Point3i v)                         {setUniform(uniform,v.x,v.y,v.z);}
+  //void setUniform(const GLUniform& uniform, Point4i v)                         {setUniform(uniform,v.x,v.y,v.z,v.w);}
 
   void setUniform(const GLUniform& uniform, float v1)                            {int location=program->getUniformLocation(uniform); if (location<0) return; glUniform1f(location,v1);}
   void setUniform(const GLUniform& uniform, float v1,float v2)                   {int location=program->getUniformLocation(uniform); if (location<0) return; glUniform2f(location,v1,v2);}

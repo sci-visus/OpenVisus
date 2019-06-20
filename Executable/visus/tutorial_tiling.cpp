@@ -65,16 +65,16 @@ void TilingExample(IdxDataset* vf)
     //   the 1st level -> ntiles (1,1,1)
     //   the 2nd level -> ntiles (1,1,1)
     //   the 3rd level -> ntiles ...depends on the bitmask, could be (2,1,1) or (1,2,1) or whatever....
-    NdPoint ntiles=NdPoint::one(pdim);
+    PointNi ntiles=PointNi::one(pdim);
     int K=std::max(0,H-bitsperblock-1);
     for (int N=K;N>0;N--) ntiles[bitmask[N]]<<=1;
 
     //calculate number of samples inside each tile 
-    NdPoint dims=NdPoint::one(pdim);
+    PointNi dims=PointNi::one(pdim);
     for (int N=H-((H==bitsperblock)?0:1),M=0;M<bitsperblock;N--,M++) dims[bitmask[N]]<<=1;
 
     //calculate dimension of each tile
-    NdPoint dim=NdPoint::one(pdim);
+    PointNi dim=PointNi::one(pdim);
     for (int D=0;D<pdim;D++)
       dim[D]=bitmask.getPow2Dims()[D]/ntiles[D];
   
@@ -84,14 +84,14 @@ void TilingExample(IdxDataset* vf)
     for (auto tile = ForEachPoint(ntiles); !tile.end(); tile.next())
     {
       //this is the tile bounding box
-      NdPoint p1(pdim),p2=NdPoint::one(pdim);
+      PointNi p1(pdim),p2=PointNi::one(pdim);
       for (int D=0;D<pdim;D++) 
       {
         p1[D]=(tile.pos[D]  )*dim[D];
         p2[D]=(tile.pos[D]+1)*dim[D];
       }
         
-      NdBox box(p1,p2);
+      BoxNi box(p1,p2);
 
       //what is the corresponding Visus block number 
       BigInt block = (H==bitsperblock)? (0) : ((((BigInt)1)<<K) + HzOrder(bitmask,K).interleave(tile.pos));
@@ -119,7 +119,7 @@ void Tutorial_Tiling(String default_layout)
 
   //create a sample IdxDataset
   IdxFile idxfile;
-  idxfile.box = NdBox(NdPoint(0,0), NdPoint::one(32,8));
+  idxfile.box = BoxNi(PointNi(0,0), PointNi::one(32,8));
   {
     Field field("DATA",DTypes::UINT8);
     field.default_layout=default_layout;

@@ -346,9 +346,9 @@ public:
   ///////////////////////////////////////////////////////////////////////
   static void createNeighborStencil(const int offset,const Point3i &dims,int stencil[26])
   {
-    const int stridex=1;
-    const int stridey=dims.x;
-    const int stridez=dims.x*dims.y;
+    const int stridex=(int)(1);
+    const int stridey=(int)(dims.x);
+    const int stridez=(int)(dims.x*dims.y);
     int   qz =offset   /     stridez;
     int   qzr=offset   -  qz*stridez;
     int   qy =qzr         /     stridey;

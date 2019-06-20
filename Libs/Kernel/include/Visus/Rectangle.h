@@ -53,7 +53,7 @@ public:
 
   VISUS_CLASS(Rectangle2i)
 
-  int x=0, y = 0, width = 0, height = 0;
+  Int64 x=0, y = 0, width = 0, height = 0;
 
   //constructor
   Rectangle2i() {
@@ -240,7 +240,7 @@ public:
 
   //translate
   Rectangle2d translate(Point2i vt) const {
-    return translate(vt.x, vt.y);
+    return translate((double)vt.x, (double)vt.y);
   }
 
   //scale

@@ -124,9 +124,9 @@ public:
   static void getNeighbors(CppType *v[6], const CppType *p, CppType *data, const Point3i &dims)
   {
     VisusAssert(p>=data && p<data+dims.x*dims.y*dims.z);
-    const int stridex=1;
-    const int stridey=dims.x;
-    const int stridez=dims.x*dims.y;
+    const int stridex= (int)(1);
+    const int stridey= (int)(dims.x);
+    const int stridez= (int)(dims.x*dims.y);
 
     const CppType *q  =(const CppType*)(p   -  data);
     size_t   qz =(size_t)q   /     stridez;

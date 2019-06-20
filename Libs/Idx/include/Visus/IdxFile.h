@@ -62,7 +62,7 @@ public:
   DatasetBitmask bitmask;
 
   // bounding box of data stored in the file, with both box.from and box.to included (see Visus(Set/Get)Box) 
-  NdBox box;
+  BoxNi box;
 
   // the collection of fields stored inside this dataset (note if this is empty you can still use Dataset::getFieldByName(name) for dynamic fields)
   std::vector<Field> fields;

@@ -56,7 +56,7 @@ DatasetFilter::~DatasetFilter()
 
 
 ///////////////////////////////////////////////////////////////////////////////////
-NdPoint DatasetFilter::getFilterStep(int H,int MaxH) const
+PointNi DatasetFilter::getFilterStep(int H,int MaxH) const
 {
   /* Example ('-' means the same group for the filter): 
     
@@ -90,20 +90,20 @@ NdPoint DatasetFilter::getFilterStep(int H,int MaxH) const
 
   DatasetBitmask bitmask=dataset->getBitmask();
   int pdim = bitmask.getPointDim();
-  NdPoint step=bitmask.upgradeBox(bitmask.getPow2Box(),MaxH).size();
+  PointNi step=bitmask.upgradeBox(bitmask.getPow2Box(),MaxH).size();
   for (int K=0;K<H;K++)
   {
     int bit=bitmask[K];
     if (!K) 
-      step=step.rightShift(NdPoint::one(pdim));
+      step=step.rightShift(PointNi::one(pdim));
     else //
       step[bit]>>=1;
   }
 
   //note the std::max.. don't want 0!
-  NdPoint filterstep=NdPoint::one(pdim);
+  PointNi filterstep=PointNi::one(pdim);
   for (int D=0;D<pdim;D++) 
-    filterstep[D]=std::max((NdPoint::coord_t)1,step[D]*this->size);
+    filterstep[D]=std::max((PointNi::coord_t)1,step[D]*this->size);
 
   return filterstep;
 }
@@ -113,20 +113,20 @@ NdPoint DatasetFilter::getFilterStep(int H,int MaxH) const
 
 
 ///////////////////////////////////////////////////////////////////////////////
-bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> access,NdPoint SlidingWindow) const
+bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> access,PointNi SlidingWindow) const
 {
   //this works only for filter_size==2, otherwise the building of the sliding_window is very difficult
   VisusAssert(this->size==2);
 
   DatasetBitmask bitmask   = dataset->getBitmask();
-  NdBox          box       = dataset->getBox();
+  BoxNi          box       = dataset->getBox();
 
   int pdim = bitmask.getPointDim();
 
   //the window size must be multiple of 2, otherwise I loose the filter alignment
   for (int D=0;D<pdim;D++)
   {
-    NdPoint::coord_t size=SlidingWindow[D];
+    PointNi::coord_t size=SlidingWindow[D];
     VisusAssert(size==1 || (size/2)*2==size);
   }
 
@@ -136,19 +136,19 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
     VisusInfo()<<"Applying filter to dataset resolution("<<H<<") ";
     int bit=bitmask[H];
       
-    NdPoint::coord_t FILTERSTEP=this->getFilterStep(H,dataset->getMaxResolution())[bit];
+    PointNi::coord_t FILTERSTEP=this->getFilterStep(H,dataset->getMaxResolution())[bit];
 
     //need to align the from so that the first sample is filter-aligned
-    NdPoint From = box.p1;
+    PointNi From = box.p1;
 
-    if (!Utils::isAligned(From[bit],(NdPoint::coord_t)0,FILTERSTEP))
-      From[bit]=Utils::alignLeft(From[bit],(NdPoint::coord_t)0,FILTERSTEP)+FILTERSTEP; 
+    if (!Utils::isAligned(From[bit],(PointNi::coord_t)0,FILTERSTEP))
+      From[bit]=Utils::alignLeft(From[bit],(PointNi::coord_t)0,FILTERSTEP)+FILTERSTEP; 
 
-    NdPoint To = box.p2;
+    PointNi To = box.p2;
     for (auto P = ForEachPoint(From, To, SlidingWindow); !P.end(); P.next())
     {
       //this is the sliding window
-      NdBox sliding_window(P.pos,P.pos +SlidingWindow);
+      BoxNi sliding_window(P.pos,P.pos +SlidingWindow);
 
       //important! crop to the stored world box to be sure that the alignment with the filter is correct!
       sliding_window= sliding_window.getIntersection(box);
@@ -158,7 +158,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
         continue;
 
       //I'm sure that since the From is filter-aligned, then P must be already aligned
-      VisusAssert(Utils::isAligned(sliding_window.p1[bit],(NdPoint::coord_t)0,FILTERSTEP));
+      VisusAssert(Utils::isAligned(sliding_window.p1[bit],(PointNi::coord_t)0,FILTERSTEP));
 
       //important, i'm not using adjustBox because I'm sure it is already correct!
       auto read=std::make_shared<Query>(dataset,'r');

@@ -48,7 +48,7 @@ void Tutorial_3(String default_layout)
   auto dataset= LoadDataset("temp/tutorial_1.idx");
   VisusReleaseAssert(dataset);
   
-  NdBox world_box=dataset->getBox();
+  BoxNi world_box=dataset->getBox();
 
   //any time you need to read/write data from/to a Dataset I need a Access
   auto access=dataset->createAccess();
@@ -62,7 +62,7 @@ void Tutorial_3(String default_layout)
   VisusReleaseAssert(MaxH==12);
 
   //I want to read data from first slice Z=0
-  NdBox slice_box=world_box.getZSlab(0,1);
+  BoxNi slice_box=world_box.getZSlab(0,1);
 
   //create and read data for end_resolutions [8,12] (12==MaxH which is the very last available on disk)
   auto query=std::make_shared<Query>(dataset.get(),'r');

@@ -212,7 +212,7 @@ public:
 
 }; //end class Box2
 
-  typedef Box2<double> Box2d;
+typedef Box2<double> Box2d;
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
@@ -405,7 +405,6 @@ public:
 
 typedef Box3<double> Box3d;
 
-
 ///////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API Hexahedral
 {
@@ -438,8 +437,6 @@ public:
       ((points[3] - points[0]).cross(points[7] - points[2])));
   }
 };
-
-
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
@@ -673,9 +670,6 @@ public:
 
 typedef BoxN<double> BoxNd;
 typedef BoxN<Int64>  BoxNi;
-
-//backward compatible
-typedef BoxNi NdBox;
 
 
 } //namespace Visus

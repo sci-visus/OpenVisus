@@ -60,7 +60,7 @@ void Tutorial_1(String default_layout)
   //the data will be in the bounding box  p1(0,0,0) p2(16,16,16) (p1 included, p2 excluded) 
   {
     IdxFile idxfile;
-    idxfile.box=NdBox(NdPoint(0,0,0),NdPoint::one(16,16,16));
+    idxfile.box=BoxNi(PointNi(0,0,0),PointNi::one(16,16,16));
     {
       Field field("myfield",DTypes::UINT32);
       field.default_compression= "lz4";
@@ -82,7 +82,7 @@ void Tutorial_1(String default_layout)
   for (int nslice=0;nslice<16;nslice++)
   {
     //this is the bounding box of the region I'm going to write
-    NdBox slice_box=dataset->getBox().getZSlab(nslice,nslice+1);
+    BoxNi slice_box=dataset->getBox().getZSlab(nslice,nslice+1);
 
     //prepare the write query
     auto query=std::make_shared<Query>(dataset.get(),'w');

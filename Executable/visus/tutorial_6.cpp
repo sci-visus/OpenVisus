@@ -43,7 +43,7 @@ For support : support@visus.net
 using namespace Visus;
 
 //////////////////////////////////////////////////////////////////////////////////////
-static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DType in_dtype,NdPoint offset,int bitsperblock,String default_layout,String filter)
+static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DType in_dtype,PointNi offset,int bitsperblock,String default_layout,String filter)
 {
   int NS=img.dtype.ncomponents();DType Sdtype=img.dtype.get(0);
   int ND=in_dtype .ncomponents();DType Ddtype=in_dtype.get(0);
@@ -54,7 +54,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
   VisusReleaseAssert(tot>=0);
 
   //create the IdxDataset
-  NdBox userbox(offset, offset+img.dims);
+  BoxNi userbox(offset, offset+img.dims);
 
   IdxFile idxfile;
   idxfile.box=userbox;
@@ -132,7 +132,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
 //////////////////////////////////////////////////////////////////////////////////////
 Array createImageFromBuffer(Array src)
 {
-  NdPoint dims=src.dims;
+  PointNi dims=src.dims;
   Int64 tot=dims.innerProduct();
   int ncomponents=src.dtype.ncomponents();
   DType dtype=src.dtype;
@@ -189,11 +189,11 @@ Array createImageFromBuffer(Array src)
 //////////////////////////////////////////////////////////////////////////////////////
 void Tutorial_6(String default_layout)
 {
-  auto sliding_window_size=NdPoint::one(2).withX(32).withY(32);
+  auto sliding_window_size=PointNi::one(2).withX(32).withY(32);
 
   int bitsperblock=12;  //I want certain number of blocks
 
-  NdPoint dataset_offset(2);
+  PointNi dataset_offset(2);
   #if 1
   {
     dataset_offset[0]=12; //disalignment X
@@ -248,29 +248,29 @@ void Tutorial_6(String default_layout)
       filter->computeFilter(dataset->getDefaultTime(),field,access,sliding_window_size);
     }
 
-    NdBox world_box=dataset->getBox();
-    NdPoint::coord_t Width =world_box.p2[0]-world_box.p1[0];VisusReleaseAssert(Width ==src_image.dims[0]);
-    NdPoint::coord_t Height=world_box.p2[1]-world_box.p1[1];VisusReleaseAssert(Height==src_image.dims[1]);
+    BoxNi world_box=dataset->getBox();
+    PointNi::coord_t Width =world_box.p2[0]-world_box.p1[0];VisusReleaseAssert(Width ==src_image.dims[0]);
+    PointNi::coord_t Height=world_box.p2[1]-world_box.p1[1];VisusReleaseAssert(Height==src_image.dims[1]);
 
     //query box,example of generic query of generic bounding box (i.e. apply the inverse filter)
-    NdBox ndbox;
+    BoxNi query_box;
 
     if (Overall)
     {
-      ndbox = NdBox(
-        NdPoint     (dataset_offset[0]        , dataset_offset[1]),
-        NdPoint::one(dataset_offset[0] + Width, dataset_offset[1] + Height));
+      query_box = BoxNi(
+        PointNi     (dataset_offset[0]        , dataset_offset[1]),
+        PointNi::one(dataset_offset[0] + Width, dataset_offset[1] + Height));
     }
     else
     {
       // show that the query is reconstructed at all levels
-      ndbox = NdBox(
-        NdPoint     ((int)(dataset_offset[0] + 3.0f*Width / 6.0f), (int)(dataset_offset[1] + 3.0f*Height / 6.0f)),
-        NdPoint::one((int)(dataset_offset[0] + 4.0f*Width / 6.0f), (int)(dataset_offset[1] + 4.0f*Height / 6.0f)));
+      query_box = BoxNi(
+        PointNi     ((int)(dataset_offset[0] + 3.0f*Width / 6.0f), (int)(dataset_offset[1] + 3.0f*Height / 6.0f)),
+        PointNi::one((int)(dataset_offset[0] + 4.0f*Width / 6.0f), (int)(dataset_offset[1] + 4.0f*Height / 6.0f)));
     }
     
     auto query=std::make_shared<Query>(dataset.get(),'r');
-    query->position=ndbox;
+    query->position= query_box;
 
     query->filter.enabled=true;
     query->merge_mode=Query::InsertSamples;
@@ -304,12 +304,12 @@ void Tutorial_6(String default_layout)
       //verify the data only If I'm reading the final resolution
       if (query->cur_resolution==dataset->getMaxResolution())
       {
-        NdBox aligned_box= query->aligned_box;
+        BoxNi aligned_box= query->aligned_box;
 
         //need to shrink the query, at the final resolution the box of filtered query can be larger than what the user want
         auto original=std::make_shared<Array>();
         {
-          NdBox crop_box=aligned_box.translate(-dataset_offset);
+          BoxNi crop_box=aligned_box.translate(-dataset_offset);
           original=std::make_shared<Array>(ArrayUtils::crop(src_image,crop_box));
         }
 

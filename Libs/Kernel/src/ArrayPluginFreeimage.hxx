@@ -295,7 +295,7 @@ private:
 
     //dims
     {
-      NdPoint dims = NdPoint::one(2);
+      PointNi dims = PointNi::one(2);
       dims[0] = width;
       dims[1] = height;
       imginfo.writeString("dims", dims.toString());

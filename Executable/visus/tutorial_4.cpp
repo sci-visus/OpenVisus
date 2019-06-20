@@ -66,7 +66,7 @@ void Tutorial_4(String default_layout)
   idxfile.blocksperfile=8;
 
   //the box has dimension (8x4) which can grow in Y dinamically
-  idxfile.box=NdBox(NdPoint(0,0),NdPoint::one(8,4));
+  idxfile.box=BoxNi(PointNi(0,0),PointNi::one(8,4));
 
   //this is the bitmask I will use (NOTE: the regular expression {1}*, the data can grow in Y)
   idxfile.bitmask=DatasetBitmask("V01010{1}*");
@@ -85,7 +85,7 @@ void Tutorial_4(String default_layout)
   {
     auto access=dataset->createAccess();
 
-    NdBox write_box=dataset->getBox();
+    BoxNi write_box=dataset->getBox();
 
     Uint8 wbuffer[8*4]=
     {
@@ -143,7 +143,7 @@ void Tutorial_4(String default_layout)
     auto access=dataset->createAccess();
 
     //this is the region where I'm adding more detals (the box is expressed in the region of the "virtual" box)
-    NdBox fine_box(NdPoint(4,3),NdPoint::one(8,8));
+    BoxNi fine_box(PointNi(4,3),PointNi::one(8,8));
 
     //I'm using 1 bit more from the regex of the bitmask "V01010{1}*"
     int MaxH=dataset->getMaxResolution()+1;
@@ -209,7 +209,7 @@ void Tutorial_4(String default_layout)
 
     //P1 is equivalent to (3,1,0) with one less Y level
     //P2 is equivalent to (7,3,0) with one less Y level
-    NdBox box(NdPoint(3,2),NdPoint::one(8,7));
+    BoxNi box(PointNi(3,2),PointNi::one(8,7));
 
     //read all samples without the regex
     auto read_field=std::make_shared<Query>(dataset.get(),'r');
