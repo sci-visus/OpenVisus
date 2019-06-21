@@ -789,16 +789,6 @@ public:
     this->pdim = value;
   }
 
-  //withPointDim
-  PointN withPointDim(int new_pdim,T embed_value) const {
-    return PointN(new_pdim, 
-      pdim >= 1 ? get(0) : embed_value, 
-      pdim >= 2 ? get(1) : embed_value,
-      pdim >= 3 ? get(2) : embed_value,
-      pdim >= 4 ? get(3) : embed_value,
-      pdim >= 5 ? get(4) : embed_value);
-  }
-
   //constructor
   static inline PointN one(int pdim) {
     return PointN(pdim,1, 1, 1, 1, 1);
@@ -845,17 +835,6 @@ public:
       (pdim<5 || (Utils::isValidNumber(get(4))))))))))));
   }
 
-  //withValueOnAxis
-  PointN withValueOnAxis(int axis, T value) const {
-    PointN ret = *this; 
-    ret[axis] = value; 
-    return ret;
-  }
-
-  PointN withX(T value) { return withValueOnAxis(0, value); }
-  PointN withY(T value) { return withValueOnAxis(1, value); }
-  PointN withZ(T value) { return withValueOnAxis(2, value); }
-
   //get
   inline T& get(int i) {
     VisusAssert(i >= 0 && i < 5);
@@ -870,20 +849,17 @@ public:
 
   //set
   inline void set(int i, T value) {
-    VisusAssert(i >= 0 && i < 5);
-    coords[i]=value;
+    get(i) = value;
   }
 
   //operator[]
   const T& operator[](int i) const {
-    VisusAssert(i >= 0 && i < 5);
-    return coords[i];
+    return get(i);
   }
 
   //operator[]
   inline T& operator[](int i) {
-    VisusAssert(i >= 0 && i < 5);
-    return coords[i];
+    return get(i);
   }
 
   //operator-

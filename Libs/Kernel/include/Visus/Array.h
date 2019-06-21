@@ -178,17 +178,19 @@ public:
 
   //createView
   static Array createView(Array src, Int64 x, DType dtype, Int64 c_offset = 0){
-    return createView(src, PointNi::one(1).withX(x), dtype, c_offset);
+    PointNi dims = PointNi::one(1);
+    dims[0] = x;
+    return createView(src, dims, dtype, c_offset);
   }
 
   //createView
   static Array createView(Array src, Int64 x, Int64 y, DType dtype, Int64 c_offset = 0){
-    return createView(src, PointNi::one(2).withX(x).withY(y), dtype, c_offset);
+    return createView(src, PointNi::one(x,y), dtype, c_offset);
   }
 
   //createView
   static Array createView(Array src, Int64 x, Int64 y, Int64 z, DType dtype, Int64 c_offset = 0){
-    return createView(src, PointNi::one(3).withX(x).withY(y).withZ(z), dtype, c_offset);
+    return createView(src, PointNi::one(x,y,z), dtype, c_offset);
   }
 
 
@@ -251,17 +253,19 @@ public:
 
   //resize
   inline bool resize(Int64 x, DType dtype, const char* file, int line){
-    return resize(PointNi::one(1).withX(x), dtype, file, line);
+    auto dims = PointNi::one(1);
+    dims[0] = 1;
+    return resize(dims, dtype, file, line);
   }
 
   //resize
   inline bool resize(Int64 x, Int64 y, DType dtype, const char* file, int line){
-    return resize(PointNi::one(2).withX(x).withY(y), dtype, file, line);
+    return resize(PointNi::one(x,y), dtype, file, line);
   }
 
   //resize
   inline bool resize(Int64 x, Int64 y, Int64 z, DType dtype, const char* file, int line){
-    return resize(PointNi::one(3).withX(x).withY(y).withZ(z), dtype, file, line);
+    return resize(PointNi::one(x,y,z), dtype, file, line);
   }
 
   //getComponent

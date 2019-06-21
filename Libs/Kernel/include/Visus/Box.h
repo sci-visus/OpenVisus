@@ -590,7 +590,9 @@ public:
 
   //getSlab
   BoxN getSlab(int axis, T v1, T v2) const {
-    return BoxN(p1.withValueOnAxis(axis, v1), p2.withValueOnAxis(axis, v2));
+    auto p1 = this->p1; p1[axis] = v1;
+    auto p2 = this->p2; p2[axis] = v2;
+    return BoxN(p1,p2);
   }
 
   BoxN getXSlab(T x1, T x2) const { return getSlab(0, x1, x2); }

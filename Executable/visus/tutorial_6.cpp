@@ -189,7 +189,7 @@ Array createImageFromBuffer(Array src)
 //////////////////////////////////////////////////////////////////////////////////////
 void Tutorial_6(String default_layout)
 {
-  auto sliding_window_size=PointNi::one(2).withX(32).withY(32);
+  auto sliding_window_size=PointNi::one(32,32);
 
   int bitsperblock=12;  //I want certain number of blocks
 
