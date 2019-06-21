@@ -153,8 +153,8 @@ public:
     if ((p2[3] - p1[3]) == 0) p2[3] += 1;
     if ((p2[4] - p1[4]) == 0) p2[4] += 1;
 
-    p1.setPointDim(this->pdim);
-    p2.setPointDim(this->pdim);
+    p1.setPointDim(this->pdim, 0);
+    p2.setPointDim(this->pdim, 1);
 
     return BoxNi(p1, p2);
   }

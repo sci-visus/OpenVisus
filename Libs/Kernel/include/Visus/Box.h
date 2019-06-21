@@ -642,8 +642,8 @@ public:
   static BoxN parseFromOldFormatString(int pdim,String src)
   {
     auto tmp = BoxN::parseFromString(src);
-    tmp.p1.setPointDim(pdim);
-    tmp.p2.setPointDim(pdim);
+    tmp.p1.setPointDim(pdim, 0);
+    tmp.p2.setPointDim(pdim, 0);
     tmp.p2 += Point::one(pdim);
     return tmp;
   }

@@ -783,8 +783,10 @@ public:
   }
 
   //setPointDim
-  void setPointDim(int value) {
-    pdim = value;
+  void setPointDim(int value,T default_value) {
+    for (int I = this->pdim; I < value; I++)
+      get(I) = default_value;
+    this->pdim = value;
   }
 
   //withPointDim

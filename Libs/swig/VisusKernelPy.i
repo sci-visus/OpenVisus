@@ -24,11 +24,16 @@ using namespace Visus;
 
 %apply SWIGTYPE *DISOWN                { Visus::NetServerModule* disown};
 
-
-%template(VectorOfField) std::vector<Visus::Field>;
-%template(VectorOfArray) std::vector<Visus::Array>;
+%template(VectorInt)                       std::vector<int>;
+%template(VectorDouble)                    std::vector<double>;
+%template(VectorFloat)                     std::vector<float>;
+%template(VectorString)                    std::vector< std::string >;
+%template(PairDoubleDouble)                std::pair<double,double>;
+%template(PairIntDouble)                   std::pair<int,double>;
+%template(MapStringString)                 std::map< std::string , std::string >;
 
 %include <Visus/Kernel.h>
+	%template(VectorInt64)                     std::vector<Visus::Int64>;
 %include <Visus/StringMap.h>
 %include <Visus/Log.h>
 %include <Visus/HeapMemory.h>
@@ -61,7 +66,9 @@ using namespace Visus;
 %include <Visus/Range.h>
 %include <Visus/DType.h>
 %include <Visus/Field.h>
+	%template(VectorOfField) std::vector<Visus::Field>;
 %include <Visus/Array.h>
+	%template(VectorOfArray) std::vector<Visus::Array>;
 %include <Visus/ArrayUtils.h>
 %include <Visus/ArrayPlugin.h>
 

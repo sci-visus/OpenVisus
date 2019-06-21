@@ -225,6 +225,7 @@ public:
 
   //beginIO
   virtual void beginIO(String mode) override {
+    Access::beginIO(mode);
     this->mode = mode;
   }
 
@@ -232,6 +233,7 @@ public:
   virtual void endIO() override {
     closeFile("endIO");
     this->mode = "";
+    Access::endIO();
   }
 
   //readBlock
@@ -436,6 +438,7 @@ public:
 
   //beginIO
   virtual void beginIO(String mode) override  {
+    Access::beginIO(mode);
     this->mode = mode;
   }
 
@@ -443,6 +446,7 @@ public:
   virtual void endIO() override {
     closeFile("endIO");
     this->mode = "";
+    Access::endIO();
   }
 
   //readBlock

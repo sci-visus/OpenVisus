@@ -1629,7 +1629,7 @@ public:
     auto depth  = pdim >= 3 ? dims[2] : 1;
     auto ncomponents = dst.dtype.ncomponents();
 
-    #define isEmptyLine() (!SRC_ALPHA[SampleId]  && memcmp(&SRC_ALPHA[SampleId], &SRC_ALPHA[SampleId + 1], width - 1)==0)
+    #define isEmptyLine() (!SRC_ALPHA[SampleId]  && (width == 1 || memcmp(&SRC_ALPHA[SampleId], &SRC_ALPHA[SampleId + 1], width - 1)==0))
 
     if (type == GenericBlend)
     {

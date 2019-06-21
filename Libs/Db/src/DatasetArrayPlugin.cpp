@@ -250,7 +250,7 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
   //embedding in case I'm missing point-dims
   int pdim = query->nsamples.getPointDim();
   if (pdim>src.dims.getPointDim())
-    src.dims.setPointDim(pdim);
+    src.dims.setPointDim(pdim,1);
 
   if (query->nsamples!=src.dims)
   {

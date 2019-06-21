@@ -789,7 +789,7 @@ public:
 
     //embedding in case I'm missing point-dims (see interleaving)
     if (pdim>to_paste.dims.getPointDim())
-      to_paste.dims.setPointDim(pdim);
+      to_paste.dims.setPointDim(pdim, 1);
 
     BoxNi Dbox(PointNi(pdim), data.dims);
     BoxNi Sbox(PointNi(pdim), to_paste.dims);
@@ -801,8 +801,8 @@ public:
       else if (args[I] == "--source-box") {
         Sbox = BoxNi::parseFromOldFormatString(pdim, args[++I]);
         if (pdim > Sbox.getPointDim()) {
-          Sbox.p1.setPointDim(pdim);
-          Sbox.p2.setPointDim(pdim);
+          Sbox.p1.setPointDim(pdim,0);
+          Sbox.p2.setPointDim(pdim,1);
         }
       }
     }

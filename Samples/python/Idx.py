@@ -68,7 +68,6 @@ class TestIdx(unittest.TestCase):
 
 		bSaved=idxfile.save(self.filename)
 		self.assertTrue(bSaved)
-		
 		dataset=LoadDataset(self.filename)
 		self.assertIsNotNone(dataset)
 		access=dataset.createAccess()
