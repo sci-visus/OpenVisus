@@ -612,8 +612,8 @@ String StringTree::toJSONString(const StringTree& src, int nrec)
 
   out << "{" << std::endl;
   {
-    out << "name : " << FormatJSON(src.name) << "," << std::endl;
-    out << "attributes : { " << std::endl;
+    out << FormatJSON("name")      << " : " << FormatJSON(src.name) << "," << std::endl;
+    out << FormatJSON("attributes") << " : { " << std::endl;
     {
       int I = 0, N = (int)src.attributes.size(); 
       for (const auto& it : src.attributes) {
@@ -622,7 +622,7 @@ String StringTree::toJSONString(const StringTree& src, int nrec)
       }
     }
     out << "}," << std::endl;
-    out << "childs: [ " << std::endl;
+    out << FormatJSON("childs") << " : [ " << std::endl;
     {
       int I = 0, N = (int)src.childs.size(); 
       for (const auto& child : src.childs)
