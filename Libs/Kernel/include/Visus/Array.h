@@ -254,7 +254,7 @@ public:
   //resize
   inline bool resize(Int64 x, DType dtype, const char* file, int line){
     auto dims = PointNi::one(1);
-    dims[0] = 1;
+    dims[0] = x;
     return resize(dims, dtype, file, line);
   }
 
