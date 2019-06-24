@@ -127,9 +127,14 @@ public:
   virtual ~Array() {
   }
   
+  //valid (NOTE an array is valid even if it has zero samples, like in 'preview' mode)
+  bool valid() const {
+    return dtype.valid();
+  }
+
   //valid
   operator bool() const {
-    return dtype.valid();
+    return valid();
   }
 
   //getPointDim
@@ -139,17 +144,17 @@ public:
 
   //getWidth
   int getWidth() const {
-    return (int)dims[0];
+    return valid() ? (dims.getPointDim() >= 1 ? (int)dims[0] : 1) : 0;
   }
 
   //getHeight
   int getHeight() const {
-    return (int)dims[1];
+    return valid() ? (dims.getPointDim() >= 2 ? (int)dims[1] : 1) : 0;
   }
 
   //getDepth
   int getDepth() const {
-    return (int)dims[2];
+    return valid() ? (dims.getPointDim() >= 3 ? (int)dims[2] : 1) : 0;
   }
 
   //getTotalNumberOfSamples

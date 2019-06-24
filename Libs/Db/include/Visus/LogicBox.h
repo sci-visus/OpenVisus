@@ -91,7 +91,7 @@ public:
 
   //valid
   bool valid() const {
-    return nsamples[0]>0;
+    return nsamples.innerProduct() > 0;
   }
 
   //pixelToLogic
