@@ -430,10 +430,6 @@ public:
 
 #endif
 
-template <typename D, typename S>
-D convertTo(const S& value);
-
-
 } //namespace Visus
 
 #endif //__VISUS_UTILS_H__

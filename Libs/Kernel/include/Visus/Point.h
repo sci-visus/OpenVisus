@@ -248,12 +248,12 @@ typedef  Point2<float>  Point2f;
 typedef  Point2<double> Point2d;
 
 template <>
-inline Point2d convertTo(const Point2i& value) {
+inline Point2d convertTo< Point2d, Point2i>(const Point2i& value) {
   return value.castTo<Point2d>();
 }
 
 template <>
-inline Point2i convertTo(const Point2d& value) {
+inline Point2i convertTo< Point2i, Point2d>(const Point2d& value) {
   return value.castTo<Point2i>();
 }
 
@@ -481,7 +481,7 @@ typedef  Point3<float>  Point3f;
 typedef  Point3<double> Point3d;
 
 template <>
-inline Point3d convertTo(const Point3i& value) {
+inline Point3d convertTo<Point3d, Point3i>(const Point3i& value) {
   return value.castTo<Point3d>();
 }
 
@@ -684,12 +684,12 @@ inline Point4<T> operator*(Value value, const Point4<T>& v) {
 }
 
 template <>
-inline Point4d convertTo(const Point4i& value) {
+inline Point4d convertTo< Point4d, Point4i>(const Point4i& value) {
   return value.castTo<Point4d>();
 }
 
 template <>
-inline Point4i convertTo(const Point4d& value) {
+inline Point4i convertTo<Point4i, Point4d>(const Point4d& value) {
   return value.castTo<Point4i>();
 }
 
@@ -1223,7 +1223,8 @@ public:
 
 };//end class PointN
 typedef PointN<double> PointNd;
-typedef PointN<Int64>  NdPoint;
+typedef PointN <Int64> PointNi;
+typedef PointNi NdPoint;
 
 template <typename Value,typename T>
 inline PointN<T> operator*(Value s, const PointN<T> &p) {
@@ -1242,12 +1243,12 @@ inline typename PointN<T>::ForEachPoint ForEachPoint(PointN<T> dims) {
 }
 
 template <>
-inline PointNd convertTo(const NdPoint& value) {
+inline PointNd convertTo<PointNd, NdPoint>(const NdPoint& value) {
   return value.castTo<PointNd>();
 }
 
 template <>
-inline NdPoint convertTo(const PointNd& value) {
+inline NdPoint convertTo<NdPoint, PointNd>(const PointNd& value) {
   return value.castTo<NdPoint>();
 }
 

@@ -667,8 +667,18 @@ public:
 }; //end class BoxN
 
 typedef BoxN<double> BoxNd;
-typedef BoxN<Int64>  NdBox;
+typedef BoxN< Int64> BoxNi;
+typedef BoxNi        NdBox;
 
+template <>
+inline BoxNd convertTo< BoxNd, BoxNi>(const BoxNi& value) {
+  return BoxNd(convertTo<PointNd>(value.p1),convertTo<PointNd>(value.p2));
+}
+
+template <>
+inline BoxNi convertTo< BoxNi, BoxNd>(const BoxNd& value) {
+  return BoxNi(convertTo<PointNi>(value.p1), convertTo<PointNi>(value.p2));
+}
 
 } //namespace Visus
 
