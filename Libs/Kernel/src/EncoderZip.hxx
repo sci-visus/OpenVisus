@@ -72,7 +72,7 @@ public:
   }
 
   //encode
-  virtual SharedPtr<HeapMemory> encode(PointNi dims, DType dtype, SharedPtr<HeapMemory> decoded) override
+  virtual SharedPtr<HeapMemory> encode(NdPoint dims, DType dtype, SharedPtr<HeapMemory> decoded) override
   {
     if (!decoded)
       return SharedPtr<HeapMemory>();
@@ -93,7 +93,7 @@ public:
   }
 
   //decode
-  virtual SharedPtr<HeapMemory> decode(PointNi dims, DType dtype, SharedPtr<HeapMemory> encoded) override
+  virtual SharedPtr<HeapMemory> decode(NdPoint dims, DType dtype, SharedPtr<HeapMemory> encoded) override
   {
     if (!encoded)
       return SharedPtr<HeapMemory>();

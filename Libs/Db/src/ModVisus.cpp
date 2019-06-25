@@ -781,7 +781,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   //position
   if (action == "boxquery")
   {
-    query->position = Position(BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box")));
+    query->position = Position(NdBox::parseFromOldFormatString(pdim, request.url.getParam("box")));
   }
   else if (action == "pointquery")
   {

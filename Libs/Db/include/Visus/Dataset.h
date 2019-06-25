@@ -112,7 +112,7 @@ public:
   String                  dataset_body;
   DatasetBitmask          bitmask;
   int                     default_bitsperblock = 0;
-  BoxNi                   box;
+  NdBox                   box;
   DatasetTimesteps        timesteps;
   String                  default_scene;
 
@@ -174,7 +174,7 @@ public:
   }
 
   //getBox
-  BoxNi getBox() const {
+  NdBox getBox() const {
     return box;
   }
 
@@ -370,13 +370,13 @@ public:
   bool executePureRemoteQuery(SharedPtr<Query> query);
 
   //generateTiles (useful for conversion)
-  std::vector<BoxNi> generateTiles(int TileSize) const;
+  std::vector<NdBox> generateTiles(int TileSize) const;
 
   //readFullResolutionData
-  Array readFullResolutionData(SharedPtr<Access> access, Field field, double time, BoxNi box=BoxNi());
+  Array readFullResolutionData(SharedPtr<Access> access, Field field, double time, NdBox box=NdBox());
 
   //writeFullResolutionData
-  bool writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer,BoxNi box=BoxNi());
+  bool writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer,NdBox box=NdBox());
 
 public:
   

@@ -150,7 +150,7 @@ public:
     // </dataset>
 
     //where the samples will be in X Y Z, not a simply 1d array
-    // PointNi nsamples = HzOrder::getAddressRangeLayout(bitmask,start_address,end_address); 
+    // NdPoint nsamples = HzOrder::getAddressRangeLayout(bitmask,start_address,end_address); 
     // VisusAssert(nsamples.innerProduct()==cint64(end_address-start_address));
 
     auto bitmask = dataset->getBitmask();
@@ -277,7 +277,7 @@ public:
       if (query->aborted())
         break;
 
-      PointNi logic_pos = logic_box.pixelToLogic(loc.pos);
+      NdPoint logic_pos = logic_box.pixelToLogic(loc.pos);
 
       //mirror y
       logic_pos[1] = Height - logic_pos[1] - 1;
@@ -369,7 +369,7 @@ public:
       if (query->aborted())
         return owner->readFailed(query);
 
-      PointNi logic_pos = logic_box.pixelToLogic(loc.pos);
+      NdPoint logic_pos = logic_box.pixelToLogic(loc.pos);
 
       Point3d p(
         (logic_pos[0] - P0[0]) / (double)(Size[0]),

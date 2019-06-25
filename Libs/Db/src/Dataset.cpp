@@ -482,23 +482,23 @@ Future<Void> Dataset::writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery>
 }
 
 ////////////////////////////////////////////////
-std::vector<BoxNi> Dataset::generateTiles(int TileSize) const
+std::vector<NdBox> Dataset::generateTiles(int TileSize) const
 {
   auto pdim = this->getPointDim();
-  auto WindowSize = PointNi::one(pdim);
+  auto WindowSize = NdPoint::one(pdim);
   for (int D = 0; D < pdim; D++)
     WindowSize[D] = TileSize;
 
   auto box = this->getBox();
 
-  auto Tot = PointNi::one(pdim);
+  auto Tot = NdPoint::one(pdim);
   for (int D = 0; D < pdim; D++)
     Tot[D] = (Utils::alignRight(box.p2[D], box.p1[D], WindowSize[D]) - box.p1[D]) / WindowSize[D];
 
-  std::vector<BoxNi> ret;
+  std::vector<NdBox> ret;
   for (auto P = ForEachPoint(box.p1, box.p2, WindowSize); !P.end(); P.next())
   {
-    auto tile = BoxNi(P.pos, P.pos + WindowSize).getIntersection(this->getBox());
+    auto tile = NdBox(P.pos, P.pos + WindowSize).getIntersection(this->getBox());
 
     if (!tile.valid()) {
       VisusAssert(false);
@@ -511,9 +511,9 @@ std::vector<BoxNi> Dataset::generateTiles(int TileSize) const
 }
 
 ////////////////////////////////////////////////
-Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, double time, BoxNi box)
+Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, double time, NdBox box)
 {
-  if (box == BoxNi())
+  if (box == NdBox())
     box = this->box;
 
   auto query = std::make_shared<Query>(this, 'r');
@@ -534,10 +534,10 @@ Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, dou
 }
 
 ////////////////////////////////////////////////
-bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer, BoxNi box)
+bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer, NdBox box)
 {
-  if (box==BoxNi()) 
-    box=BoxNi(PointNi(buffer.getPointDim()), buffer.dims);
+  if (box==NdBox()) 
+    box=NdBox(NdPoint(buffer.getPointDim()), buffer.dims);
 
   auto query = std::make_shared<Query>(this, 'w');
 

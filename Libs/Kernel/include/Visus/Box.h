@@ -667,7 +667,7 @@ public:
 }; //end class BoxN
 
 typedef BoxN<double> BoxNd;
-typedef BoxN<Int64>  BoxNi;
+typedef BoxN<Int64>  NdBox;
 
 
 } //namespace Visus

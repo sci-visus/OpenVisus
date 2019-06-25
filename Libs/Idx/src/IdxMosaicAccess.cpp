@@ -66,7 +66,7 @@ IdxMosaicAccess::IdxMosaicAccess(IdxMultipleDataset* VF_, StringTree CONFIG)
   {
     auto vf = std::dynamic_pointer_cast<IdxDataset>(it.second.dataset); VisusAssert(vf);
     auto offset = it.second.M.getColumn(3).dropW();
-    auto index = PointNi(pdim);
+    auto index = NdPoint(pdim);
     for (int D = 0; D < pdim; D++)
       index[D] = ((Int64)offset[D]) / dims[D];
 
@@ -122,7 +122,7 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
   auto BLOCK = QUERY->start_address >> bitsperblock;
   auto first = childs.begin()->second.dataset;
   auto NBITS = VF->getMaxResolution() - first->getMaxResolution();
-  PointNi dims = first->getBox().p2;
+  NdPoint dims = first->getBox().p2;
 
   bool bBlockTotallyInsideSingle = (BLOCK >= ((BigInt)1 << NBITS));
 
@@ -196,12 +196,12 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
       if (!vf->executeQuery(access, query))
         continue;
 
-      auto pixel_p1 =      PointNi(pdim); auto logic_p1 = query->logic_box.pixelToLogic(pixel_p1); auto LOGIC_P1 = logic_p1 + offset; auto PIXEL_P1 = QUERY->logic_box.logicToPixel(LOGIC_P1);
+      auto pixel_p1 =      NdPoint(pdim); auto logic_p1 = query->logic_box.pixelToLogic(pixel_p1); auto LOGIC_P1 = logic_p1 + offset; auto PIXEL_P1 = QUERY->logic_box.logicToPixel(LOGIC_P1);
       auto pixel_p2 = query->buffer.dims; auto logic_p2 = query->logic_box.pixelToLogic(pixel_p2); auto LOGIC_P2 = logic_p2 + offset; auto PIXEL_p2 = QUERY->logic_box.logicToPixel(LOGIC_P2);
 
       ArrayUtils::insert(
-        QUERY->buffer, PIXEL_P1, PIXEL_p2, PointNi::one(pdim),
-        query->buffer, pixel_p1, pixel_p2, PointNi::one(pdim),
+        QUERY->buffer, PIXEL_P1, PIXEL_p2, NdPoint::one(pdim),
+        query->buffer, pixel_p1, pixel_p2, NdPoint::one(pdim),
         QUERY->aborted);
     }
 

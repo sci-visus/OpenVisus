@@ -149,7 +149,7 @@ SharedPtr<HeapMemory> ArrayUtils::encodeArray(String compression,Array array)
 
 
 //////////////////////////////////////////////////////////////
-Array ArrayUtils::decodeArray(String compression,PointNi dims,DType dtype,SharedPtr<HeapMemory> encoded)
+Array ArrayUtils::decodeArray(String compression,NdPoint dims,DType dtype,SharedPtr<HeapMemory> encoded)
 {
   compression = StringUtils::trim(StringUtils::toLower(compression));
 
@@ -185,7 +185,7 @@ Array ArrayUtils::decodeArray(StringMap metadata, SharedPtr<HeapMemory> encoded)
     return Array();
 
   auto compression = metadata.getValue("visus-compression");
-  auto nsamples = PointNi::parseDims(metadata.getValue("visus-nsamples"));
+  auto nsamples = NdPoint::parseDims(metadata.getValue("visus-nsamples"));
   auto dtype = DType::fromString(metadata.getValue("visus-dtype"));
   auto layout = metadata.getValue("visus-layout");
 
@@ -224,8 +224,8 @@ public:
 
   template <class Sample>
   bool execute(
-    Array& dst, PointNi wfrom, PointNi wto, PointNi wstep,
-    Array  src, PointNi rfrom, PointNi rto, PointNi rstep,
+    Array& dst, NdPoint wfrom, NdPoint wto, NdPoint wstep,
+    Array  src, NdPoint rfrom, NdPoint rto, NdPoint rstep,
     Aborted& aborted)
   {
     if (dst.dtype != src.dtype)
@@ -234,8 +234,8 @@ public:
     auto write = GetSamples<Sample>(dst);
     auto read  = GetSamples<Sample>(src);
 
-    PointNi wdims = dst.dims; PointNi wstride = wdims.stride();
-    PointNi rdims = src.dims; PointNi rstride = rdims.stride();
+    NdPoint wdims = dst.dims; NdPoint wstride = wdims.stride();
+    NdPoint rdims = src.dims; NdPoint rstride = rdims.stride();
 
     int sample_bitsize = dst.dtype.getBitSize();
 
@@ -256,15 +256,15 @@ public:
       }
     */
 
-    wstep = PointNi::max(wstep, PointNi::one(pdim));
-    rstep = PointNi::max(rstep, PointNi::one(pdim));
+    wstep = NdPoint::max(wstep, NdPoint::one(pdim));
+    rstep = NdPoint::max(rstep, NdPoint::one(pdim));
 
     //check arguments
-    VisusAssert(wfrom>=PointNi(pdim) && wfrom<=wto && wto<=wdims);
+    VisusAssert(wfrom>=NdPoint(pdim) && wfrom<=wto && wto<=wdims);
 
-    PointNi tot = PointNi::one(pdim);
-    PointNi wbegin(pdim); PointNi wdelta = PointNi::one(pdim);
-    PointNi rbegin(pdim); PointNi rdelta = PointNi::one(pdim);
+    NdPoint tot = NdPoint::one(pdim);
+    NdPoint wbegin(pdim); NdPoint wdelta = NdPoint::one(pdim);
+    NdPoint rbegin(pdim); NdPoint rdelta = NdPoint::one(pdim);
     for (int D = 0; D < pdim; D++)
     {
       //for offsets
@@ -285,7 +285,7 @@ public:
     }
 
     //if you have problems set this to false
-    PointNi ncontiguos(pdim);
+    NdPoint ncontiguos(pdim);
     if (bool bEnableContiguous = true)
     {
       for (int D = 0; D < pdim; D++)
@@ -307,9 +307,9 @@ public:
       }
     }
 
-    PointNi p(pdim);
-    PointNi woffset(pdim);
-    PointNi roffset(pdim);
+    NdPoint p(pdim);
+    NdPoint woffset(pdim);
+    NdPoint roffset(pdim);
 
     #define ForExpr(D) \
       woffset[D] = (D==(pdim-1)? 0 : woffset[D+1]) + wbegin[D]; \
@@ -343,8 +343,8 @@ public:
 };
 
 bool ArrayUtils::insert(
-  Array& dst, PointNi wfrom, PointNi wto, PointNi wstep,
-  Array  src, PointNi rfrom, PointNi rto, PointNi rstep, Aborted aborted)
+  Array& dst, NdPoint wfrom, NdPoint wto, NdPoint wstep,
+  Array  src, NdPoint rfrom, NdPoint rto, NdPoint rstep, Aborted aborted)
 {
   InsertArraySamples op;
   return NeedToCopySamples(op,src.dtype,dst, wfrom, wto, wstep, src, rfrom, rto, rstep, aborted);
@@ -357,11 +357,11 @@ class InterpolateArraySamples
 public:
 
   template <class Sample>
-  bool execute(Array& dst, PointNi from, PointNi to, PointNi step, Aborted& aborted)
+  bool execute(Array& dst, NdPoint from, NdPoint to, NdPoint step, Aborted& aborted)
   {
-    PointNi dims   = dst.dims;
+    NdPoint dims   = dst.dims;
     DType   dtype    = dst.dtype;
-    PointNi stride = dims.stride();
+    NdPoint stride = dims.stride();
 
     int sample_bitsize = dtype.getBitSize();
 
@@ -370,7 +370,7 @@ public:
 
     int pdim = from.getPointDim();
 
-    step = PointNi::max(step, PointNi::one(pdim));
+    step = NdPoint::max(step, NdPoint::one(pdim));
 
     for (int D = 0; D < pdim; D++)
     {
@@ -378,9 +378,9 @@ public:
       to[D] = Utils::alignRight(to[D], from[D], step[D]);
     }
 
-    PointNi w      (pdim);
-    PointNi r      (pdim); 
-    PointNi roffset(pdim);
+    NdPoint w      (pdim);
+    NdPoint r      (pdim); 
+    NdPoint roffset(pdim);
     Int64   woffset = 0;
 
     #define ForExpr(D) \
@@ -410,7 +410,7 @@ public:
 };
 
 
-bool ArrayUtils::interpolate(Array& dst, PointNi from, PointNi to, PointNi step, Aborted aborted)
+bool ArrayUtils::interpolate(Array& dst, NdPoint from, NdPoint to, NdPoint step, Aborted aborted)
 {
   InterpolateArraySamples op;
   return NeedToCopySamples(op,dst.dtype,dst, from, to, step, aborted);
@@ -420,41 +420,41 @@ bool ArrayUtils::interpolate(Array& dst, PointNi from, PointNi to, PointNi step,
 ///////////////////////////////////////////////////////////////////////////////
 Array ArrayUtils::splitAndGetFirst(Array src, int bit, Aborted aborted)
 {
-  PointNi dims = src.dims;
+  NdPoint dims = src.dims;
   VisusAssert((dims[bit] % 2) == 0); //todo!
   dims[bit] >>= 1;
   Array dst;
   if (!dst.resize(dims, src.dtype, __FILE__, __LINE__)) return Array();
   int pdim = src.getPointDim();
-  PointNi wfrom(pdim), wto = dst.dims, wstep = PointNi::one(pdim);
-  PointNi rfrom(pdim), rto = dst.dims, rstep = PointNi::one(pdim);
+  NdPoint wfrom(pdim), wto = dst.dims, wstep = NdPoint::one(pdim);
+  NdPoint rfrom(pdim), rto = dst.dims, rstep = NdPoint::one(pdim);
   return insert(dst, wfrom, wto, wstep, src, rfrom, rto, rstep, aborted)? dst : Array();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 Array ArrayUtils::splitAndGetSecond(Array src, int bit, Aborted aborted)
 {
-  PointNi dims = src.dims;
+  NdPoint dims = src.dims;
   VisusAssert((dims[bit] % 2) == 0); //todo!
   dims[bit] >>= 1;
   Array dst;
   if (!dst.resize(dims, src.dtype, __FILE__, __LINE__)) return Array();
   int pdim = src.getPointDim();
-  PointNi wfrom(pdim), wto = dst.dims, wstep = PointNi::one(pdim);
-  PointNi rfrom(pdim), rto = src.dims, rstep = PointNi::one(pdim); rfrom[bit] = dst.dims[bit];
+  NdPoint wfrom(pdim), wto = dst.dims, wstep = NdPoint::one(pdim);
+  NdPoint rfrom(pdim), rto = src.dims, rstep = NdPoint::one(pdim); rfrom[bit] = dst.dims[bit];
   return insert(dst, wfrom, wto, wstep, src, rfrom, rto, rstep, aborted)? dst : Array();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 Array ArrayUtils::upSample(Array src, int bit, Aborted aborted)
 {
-  PointNi dims = src.dims;
+  NdPoint dims = src.dims;
   dims[bit] <<= 1;
   Array dst;
   if (!dst.resize(dims, src.dtype, __FILE__, __LINE__)) return Array();
   int pdim = src.getPointDim();
-  PointNi wfrom(pdim), wto = dst.dims, wstep = PointNi::one(pdim); wstep[bit] <<= 1;
-  PointNi rfrom(pdim), rto = src.dims, rstep = PointNi::one(pdim);
+  NdPoint wfrom(pdim), wto = dst.dims, wstep = NdPoint::one(pdim); wstep[bit] <<= 1;
+  NdPoint rfrom(pdim), rto = src.dims, rstep = NdPoint::one(pdim);
   if (!insert(dst, wfrom, wto, wstep, src, rfrom, rto, rstep, aborted)) return Array();
   wfrom[bit] = 1;
   if (!insert(dst, wfrom, wto, wstep, src, rfrom, rto, rstep, aborted)) return Array();
@@ -464,22 +464,22 @@ Array ArrayUtils::upSample(Array src, int bit, Aborted aborted)
 ///////////////////////////////////////////////////////////////////////////////
 Array ArrayUtils::downSample(Array src, int bit, Aborted aborted)
 {
-  PointNi dims = src.dims;
+  NdPoint dims = src.dims;
   VisusAssert((dims[bit] % 2) == 0); //todo!
   dims[bit] >>= 1;
   Array dst;
   if (!dst.resize(dims, src.dtype, __FILE__, __LINE__)) return Array();
   int pdim = src.getPointDim();
-  PointNi wfrom(pdim), wto = dst.dims, wstep = PointNi::one(pdim);
-  PointNi rfrom(pdim), rto = src.dims, rstep = PointNi::one(pdim); rstep[bit] <<= 1;
+  NdPoint wfrom(pdim), wto = dst.dims, wstep = NdPoint::one(pdim);
+  NdPoint rfrom(pdim), rto = src.dims, rstep = NdPoint::one(pdim); rstep[bit] <<= 1;
   return insert(dst, wfrom, wto, wstep, src, rfrom, rto, rstep, aborted)? dst : Array();
 }
 
 //////////////////////////////////////////////////////
-Array ArrayUtils::crop(Array src, BoxNi box, Aborted aborted)
+Array ArrayUtils::crop(Array src, NdBox box, Aborted aborted)
 {
   int pdim = src.getPointDim();
-  bool bArgOk = box.isFullDim() && BoxNi(PointNi(pdim),src.dims).containsBox(box);
+  bool bArgOk = box.isFullDim() && NdBox(NdPoint(pdim),src.dims).containsBox(box);
 
   if (!bArgOk)
   {
@@ -491,27 +491,27 @@ Array ArrayUtils::crop(Array src, BoxNi box, Aborted aborted)
   if (!dst.resize(box.size(), src.dtype, __FILE__, __LINE__))
     return Array();
 
-  PointNi wfrom = PointNi(pdim), wto = dst.dims, wstep = PointNi::one(pdim);
-  PointNi rfrom = box.p1       , rto = box.p2  , rstep = PointNi::one(pdim);
+  NdPoint wfrom = NdPoint(pdim), wto = dst.dims, wstep = NdPoint::one(pdim);
+  NdPoint rfrom = box.p1       , rto = box.p2  , rstep = NdPoint::one(pdim);
   return insert(dst, wfrom, wto, wstep, src, rfrom, rto, rstep, aborted)? dst : Array();
 }
 
 //////////////////////////////////////////////////////
-bool ArrayUtils::paste(Array& dst, BoxNi Dbox, Array src, BoxNi Sbox, Aborted aborted)
+bool ArrayUtils::paste(Array& dst, NdBox Dbox, Array src, NdBox Sbox, Aborted aborted)
 {
   bool bArgOk = Sbox.isFullDim()
     && Dbox.isFullDim()
     && Sbox.size() == Dbox.size()
-    && BoxNi(PointNi(src.getPointDim()), src.dims).containsBox(Sbox)
-    && BoxNi(PointNi(dst.getPointDim()), dst.dims).containsBox(Dbox);
+    && NdBox(NdPoint(src.getPointDim()), src.dims).containsBox(Sbox)
+    && NdBox(NdPoint(dst.getPointDim()), dst.dims).containsBox(Dbox);
   if (!bArgOk) { 
     VisusAssert(aborted()); 
     return false; 
   }
 
   int pdim = src.getPointDim();
-  PointNi wfrom = Dbox.p1, wto = Dbox.p2, wstep = PointNi::one(pdim);
-  PointNi rfrom = Sbox.p1, rto = Sbox.p2, rstep = PointNi::one(pdim);
+  NdPoint wfrom = Dbox.p1, wto = Dbox.p2, wstep = NdPoint::one(pdim);
+  NdPoint rfrom = Sbox.p1, rto = Sbox.p2, rstep = NdPoint::one(pdim);
   return insert(dst, wfrom, wto, wstep, src, rfrom, rto, rstep, aborted);
 }
 
@@ -527,14 +527,14 @@ public:
 
     int pdim = src.getPointDim();
 
-    PointNi stride = src.dims.stride();
+    NdPoint stride = src.dims.stride();
     auto write=GetSamples<Sample>(dst);
     auto read =GetSamples<Sample>(src);
     for(auto loc =ForEachPoint(src.dims);!loc.end();loc.next())
     {
       if (aborted()) return false;
-      PointNi rloc = loc.pos;
-      PointNi wloc = loc.pos; wloc[axis] = src.dims[axis] - 1 - wloc[axis];
+      NdPoint rloc = loc.pos;
+      NdPoint wloc = loc.pos; wloc[axis] = src.dims[axis] - 1 - wloc[axis];
       Int64 rfrom = stride.dotProduct(rloc);
       Int64 wfrom = stride.dotProduct(wloc);
       write[wfrom]=read[rfrom];
@@ -564,7 +564,7 @@ Array ArrayUtils::interleave(std::vector<Array> v, Aborted aborted)
       return Array();
   }
 
-  PointNi dims = first.dims;
+  NdPoint dims = first.dims;
   DType dtype((int)v.size(), first.dtype);
 
   Array dst;
@@ -1094,9 +1094,9 @@ class ResampleArraySamples
 public:
 
   template <class Sample>
-  bool execute(Array& wbuffer, PointNi wdims, Array rbuffer, Aborted& aborted)
+  bool execute(Array& wbuffer, NdPoint wdims, Array rbuffer, Aborted& aborted)
   {
-    PointNi rdims = rbuffer.dims;
+    NdPoint rdims = rbuffer.dims;
     if (wdims == rdims)
       return ArrayUtils::deepCopy(wbuffer, rbuffer);
 
@@ -1115,9 +1115,9 @@ public:
     for (int D=0; D<pdim; D++)
       vs[D] = rdims[D] / (double)wdims[D];
 
-    PointNi w(pdim); Int64 woffset = 0;
-    PointNi r(pdim); PointNi          roffset(pdim);
-    PointNi rstride = rdims.stride();
+    NdPoint w(pdim); Int64 woffset = 0;
+    NdPoint r(pdim); NdPoint          roffset(pdim);
+    NdPoint rstride = rdims.stride();
 
     #define ForExpr(D) \
       for (w[D] = 0; w[D] < wdims[D]; w[D] += 1) { \
@@ -1146,7 +1146,7 @@ public:
 
 };
 
-Array ArrayUtils::resample(PointNi target_dims,Array rbuffer, Aborted aborted)
+Array ArrayUtils::resample(NdPoint target_dims,Array rbuffer, Aborted aborted)
 {
   Array wbuffer;
   ResampleArraySamples op;
@@ -1854,7 +1854,7 @@ void BlendBuffers::addBlendArg(Array src, Matrix up_pixel_to_logic, Point3d logi
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////
-Array ArrayUtils::createTransformedAlpha(BoxNi bounds, Matrix T, PointNi dims, Aborted aborted)
+Array ArrayUtils::createTransformedAlpha(NdBox bounds, Matrix T, NdPoint dims, Aborted aborted)
 {
   auto dst = Array(dims, DTypes::UINT8);
 
@@ -2409,7 +2409,7 @@ public:
   {
     int pdim = args.front().getPointDim();
 
-    if (!dst.resize(PointNi(pdim),dtype,__FILE__,__LINE__))
+    if (!dst.resize(NdPoint(pdim),dtype,__FILE__,__LINE__))
       return false;
 
     for (int I=0;I<(int)args.size();I++)
@@ -2491,8 +2491,8 @@ struct ConvolveOp
     int pdim = src.getPointDim();
 
     //dimensions (ignore where dims==1 i.e. where memory layout does not change (for example src has dims (1,200,300,1,1)->(200,300))
-    PointNi Sdims=PointNi::one(pdim); int Sspace=0;
-    PointNi Kdims=PointNi::one(pdim); int Kspace=0;
+    NdPoint Sdims=NdPoint::one(pdim); int Sspace=0;
+    NdPoint Kdims=NdPoint::one(pdim); int Kspace=0;
     for (int I=0;I<pdim;I++)
     {
       VisusAssert(src   .dims[I]>=1);
@@ -2505,9 +2505,9 @@ struct ConvolveOp
       Kdims[Kspace++]=kernel.dims[I];
     }
 
-    const PointNi Kcenter=Kdims.rightShift(1);
+    const NdPoint Kcenter=Kdims.rightShift(1);
 
-    if (!Kspace || !Sspace || Kspace>Sspace || ((Kcenter.leftShift(1))+PointNi::one(pdim))!=Kdims)
+    if (!Kspace || !Sspace || Kspace>Sspace || ((Kcenter.leftShift(1))+NdPoint::one(pdim))!=Kdims)
     {
       VisusAssert(aborted());
       return false;
@@ -2519,12 +2519,12 @@ struct ConvolveOp
     int ncomponents=src.dtype.ncomponents();
     for (int C=0;C<ncomponents;C++)
     {
-      PointNi        stride=Sdims.stride()*ncomponents;
+      NdPoint        stride=Sdims.stride()*ncomponents;
       const SrcType* src_p=((SrcType*)src.c_ptr())+C;
       Float64*       dst_p=((Float64*)dst.c_ptr())+C;
       const Float64* kernel_begin=(Float64*)kernel.c_ptr();
 
-      PointNi to=Sdims;
+      NdPoint to=Sdims;
 
       // this is a trick to let the inner most loop executing only once
       to[0]=1; 
@@ -2537,11 +2537,11 @@ struct ConvolveOp
         for (Int64 i=0;i<Sdims[0];i++) 
         {
           // copy P so that different threads don't modify the same variable P
-          PointNi Q=P.pos; 
+          NdPoint Q=P.pos; 
           Q[0]=i;
           Float64 sum=0.0;
           const Float64* kernel_p=kernel_begin;
-          PointNi Sp(pdim), Kp(pdim), Tp(pdim);
+          NdPoint Sp(pdim), Kp(pdim), Tp(pdim);
           //#define ForKernel(n) for (Kp[n]=0, Sp[n]=Q[n]-Kcenter[n]; Kp[n]<Kdims[n]; ++Kp[n], ++Sp[n]) { if (Sp[n]<0 || Sp[n]>=Sdims[n]) { int skip=1; int n1=n; while(n1-- != 0) skip *= Kdims[n1]; kernel_p += skip; continue; }
           #define ForKernel(n) for (Kp[n]=0, Sp[n]=Q[n]-Kcenter[n]; Kp[n]<Kdims[n]; ++Kp[n], ++Sp[n]) { Tp[n] = Sp[n] < 0 ? 0 : Sp[n]>=Sdims[n] ? Sdims[n]-1 : Sp[n];
           switch (Kspace)
@@ -2587,8 +2587,8 @@ struct MedianHybridOp
 
     int pdim = src.getPointDim();
 
-    PointNi src_dims=PointNi::one(pdim); int src_space = 0;
-    PointNi krn_dims=PointNi::one(pdim); int krn_space = 0;
+    NdPoint src_dims=NdPoint::one(pdim); int src_space = 0;
+    NdPoint krn_dims=NdPoint::one(pdim); int krn_space = 0;
     
     for (int i=0;i<pdim;i++)
     {
@@ -2609,10 +2609,10 @@ struct MedianHybridOp
     int ncomponents=src.dtype.ncomponents();
     for (int c=0;c<ncomponents;++c)
     {
-      const PointNi stride=src_dims.stride()*ncomponents;
+      const NdPoint stride=src_dims.stride()*ncomponents;
       const SrcType* src_ptr=reinterpret_cast<const SrcType*>(src.c_ptr())+c;
       SrcType* dst_ptr=reinterpret_cast<SrcType*>(dst.c_ptr())+c;
-      PointNi to=src_dims;
+      NdPoint to=src_dims;
 
 
       // this is a trick to let the inner most loop execute only once
@@ -2630,10 +2630,10 @@ struct MedianHybridOp
         for (Int64 i=0;i<src_dims[0];i++)
         {
           // copy P so that different threads don't modify the same variable P
-          PointNi src_center=p.pos; 
+          NdPoint src_center=p.pos; 
           src_center[0]=i;
-          PointNi src_point=src_center;
-          PointNi krn_point(pdim);
+          NdPoint src_point=src_center;
+          NdPoint krn_point(pdim);
           Int64 j=0; // j will be the number of neighbors at the end
           Int64 face_begin=-1,face_end=face_begin;
           Int64 edge_begin=-1,edge_end=edge_begin;
@@ -2660,7 +2660,7 @@ struct MedianHybridOp
             ForKernel(0)
               //neighborhood_vals[j++]=src_ptr[src_point[0]*stride[0]+src_point[1]*stride[1]];
               Int64 src_ptr_idx = src_point[0] * stride[0] + src_point[1] * stride[1];
-              PointNi d = src_point - src_center;
+              NdPoint d = src_point - src_center;
               d[0] = d[0] >= 0 ? d[0] : -d[0];
               d[1] = d[1] >= 0 ? d[1] : -d[1];
 
@@ -2685,7 +2685,7 @@ struct MedianHybridOp
             ForKernel(1)
             ForKernel(0)
               Int64 src_ptr_idx = src_point[0] * stride[0] + src_point[1] * stride[1] + src_point[2] * stride[2];
-              PointNi d = src_point - src_center;
+              NdPoint d = src_point - src_center;
               d[0] = d[0] >= 0 ? d[0] : -d[0];
               d[1] = d[1] >= 0 ? d[1] : -d[1];
               d[2] = d[2] >= 0 ? d[2] : -d[2];
@@ -2781,8 +2781,8 @@ struct MedianOp
 
     int pdim = src.getPointDim();
 
-    PointNi src_dims=PointNi::one(pdim);
-    PointNi krn_dims=PointNi::one(pdim);
+    NdPoint src_dims=NdPoint::one(pdim);
+    NdPoint krn_dims=NdPoint::one(pdim);
     int src_space=0;
     int krn_space=0;
     for (int i=0;i<pdim;i++)
@@ -2804,10 +2804,10 @@ struct MedianOp
     int ncomponents=src.dtype.ncomponents();
     for (int c=0;c<ncomponents;++c)
     {
-      const PointNi stride=src_dims.stride()*ncomponents;
+      const NdPoint stride=src_dims.stride()*ncomponents;
       const SrcType* src_ptr=reinterpret_cast<const SrcType*>(src.c_ptr())+c;
       SrcType* dst_ptr=reinterpret_cast<SrcType*>(dst.c_ptr())+c;
-      PointNi to=src_dims;
+      NdPoint to=src_dims;
 
       // this is a trick to let the inner most loop execute only once
       to[0]=1; 
@@ -2823,10 +2823,10 @@ struct MedianOp
         for (Int64 i=0;i<src_dims[0];i++)
         {
           // copy P so that different threads don't modify the same variable P
-          PointNi src_center=p.pos; 
+          NdPoint src_center=p.pos; 
           src_center[0]=i;
-          PointNi src_point=src_center;
-          PointNi krn_point(pdim);
+          NdPoint src_point=src_center;
+          NdPoint krn_point(pdim);
 
           // j will be the number of neighbors at the end
           Int64 j=0; 

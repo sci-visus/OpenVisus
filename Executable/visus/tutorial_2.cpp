@@ -50,14 +50,14 @@ void Tutorial_2(String default_layout)
   auto dataset= LoadDataset("temp/tutorial_1.idx");
   VisusReleaseAssert(dataset);
 
-  BoxNi world_box=dataset->getBox();
+  NdBox world_box=dataset->getBox();
 
   int pdim = 3;
 
   //check the data has dimension (16,16,16)
   VisusReleaseAssert(dataset->getDefaultField().dtype==(DTypes::UINT32)
-    &&  world_box.p1==PointNi(0,0,0)
-    &&  world_box.p2==PointNi::one(16,16,16));
+    &&  world_box.p1==NdPoint(0,0,0)
+    &&  world_box.p2==NdPoint::one(16,16,16));
 
   //any time you need to read/write data from/to a Dataset I need a Access
   auto access=dataset->createAccess();
@@ -66,7 +66,7 @@ void Tutorial_2(String default_layout)
   for (int nslice=0;nslice<16;nslice++)
   {
     //this is the bounding box of the region I want to read (i.e. a single slice)
-    BoxNi slice_box=world_box.getZSlab(nslice,nslice+1);
+    NdBox slice_box=world_box.getZSlab(nslice,nslice+1);
 
     //I should get a number of samples equals to the number of samples written in tutorial 1
     auto query=std::make_shared<Query>(dataset.get(),'r');

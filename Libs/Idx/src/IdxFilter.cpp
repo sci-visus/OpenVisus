@@ -61,12 +61,12 @@ static bool ComputeFilter(Dataset* dataset,Query* query,const FilterClass* filte
   DatasetBitmask   bitmask    = dataset->getBitmask();
   int              MaxH       = query->max_resolution;
   int              bit        = bitmask[H];
-  PointNi          dims       = query->nsamples;
-  PointNi          stride     = dims.stride();
+  NdPoint          dims       = query->nsamples;
+  NdPoint          stride     = dims.stride();
   int              filter_size = filter->getSize();
-  PointNi          filterstep = filter->getFilterStep(H,MaxH);
+  NdPoint          filterstep = filter->getFilterStep(H,MaxH);
   Int64 FILTERSTEP = filterstep[bit];
-  BoxNi            filter_domain  = bitmask.upgradeBox(query->filter.domain,MaxH);
+  NdBox            filter_domain  = bitmask.upgradeBox(query->filter.domain,MaxH);
 
   int pdim = bitmask.getPointDim();
   
@@ -75,7 +75,7 @@ static bool ComputeFilter(Dataset* dataset,Query* query,const FilterClass* filte
     return true; 
 
   //align again to filter (this is needed again for certain types of queries, such as query for visus blocks!)
-  BoxNi box=logic_box;
+  NdBox box=logic_box;
 
   //important! take only the good "samples", i.e. I do not want to do any filtering with samples
   //outside the valid region of the dataset
@@ -114,11 +114,11 @@ static bool ComputeFilter(Dataset* dataset,Query* query,const FilterClass* filte
   if (!box.isFullDim())
     return true;
 
-  PointNi from = logic_box.logicToPixel(box.p1);
-  PointNi to   = logic_box.logicToPixel(box.p2);
+  NdPoint from = logic_box.logicToPixel(box.p1);
+  NdPoint to   = logic_box.logicToPixel(box.p2);
 
   //see map... I can do this only because I know that filterstep is multiple of 2^query->shift
-  PointNi step = filterstep.rightShift(logic_box.shift);
+  NdPoint step = filterstep.rightShift(logic_box.shift);
 
   //I'm going to to the for loop for the filter nested inside
   Int64 FROM   = from[bit]; 

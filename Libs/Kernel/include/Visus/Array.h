@@ -61,7 +61,7 @@ public:
   DType dtype;
 
   //dimension of the image
-  PointNi dims;
+  NdPoint dims;
 
   //Url
   String url;
@@ -86,7 +86,7 @@ public:
   }
 
   //constructor
-  Array(PointNi dims, DType dtype, SharedPtr<HeapMemory> heap_ = SharedPtr<HeapMemory>()) 
+  Array(NdPoint dims, DType dtype, SharedPtr<HeapMemory> heap_ = SharedPtr<HeapMemory>()) 
     : heap(heap_ ? heap_ : std::make_shared<HeapMemory>())
   {
     if (!this->resize(dims, dtype, __FILE__, __LINE__)) 
@@ -95,21 +95,21 @@ public:
 
   //constructor
   Array(Int64 x, DType dtype, SharedPtr<HeapMemory> heap = SharedPtr<HeapMemory>())
-    : Array(PointNi::one(x, 1), dtype, heap) {
+    : Array(NdPoint::one(x, 1), dtype, heap) {
   }
 
   //constructor
   Array(Int64 x, Int64 y, DType dtype, SharedPtr<HeapMemory> heap = SharedPtr<HeapMemory>())
-    : Array(PointNi::one(x, y), dtype, heap) {
+    : Array(NdPoint::one(x, y), dtype, heap) {
   }
 
   //constructor
   Array(Int64 x, Int64 y, Int64 z, DType dtype, SharedPtr<HeapMemory> heap = SharedPtr<HeapMemory>())
-    : Array(PointNi::one(x, y,z), dtype, heap) {
+    : Array(NdPoint::one(x, y,z), dtype, heap) {
   }
 
   //constructor
-  Array(PointNi dims, DType dtype, String c_address, bool bSharedMem = false)
+  Array(NdPoint dims, DType dtype, String c_address, bool bSharedMem = false)
   {
     Uint8* c_ptr = (Uint8*)cuint64(c_address);
 
@@ -173,7 +173,7 @@ public:
 public:
 
   //createView
-  static Array createView(Array src, PointNi dims, DType dtype, Int64 c_offset = 0)
+  static Array createView(Array src, NdPoint dims, DType dtype, Int64 c_offset = 0)
   {
     Int64  ret_c_size = dtype.getByteSize(dims);
     Uint8* ret_c_ptr = (Uint8*)(src.c_ptr() + c_offset);
@@ -183,19 +183,19 @@ public:
 
   //createView
   static Array createView(Array src, Int64 x, DType dtype, Int64 c_offset = 0){
-    PointNi dims = PointNi::one(1);
+    NdPoint dims = NdPoint::one(1);
     dims[0] = x;
     return createView(src, dims, dtype, c_offset);
   }
 
   //createView
   static Array createView(Array src, Int64 x, Int64 y, DType dtype, Int64 c_offset = 0){
-    return createView(src, PointNi::one(x,y), dtype, c_offset);
+    return createView(src, NdPoint::one(x,y), dtype, c_offset);
   }
 
   //createView
   static Array createView(Array src, Int64 x, Int64 y, Int64 z, DType dtype, Int64 c_offset = 0){
-    return createView(src, PointNi::one(x,y,z), dtype, c_offset);
+    return createView(src, NdPoint::one(x,y,z), dtype, c_offset);
   }
 
 
@@ -248,7 +248,7 @@ public:
   }
 
   //resize
-  bool resize(PointNi dims, DType dtype, const char* file, int line)
+  bool resize(NdPoint dims, DType dtype, const char* file, int line)
   {
     if (!heap->resize(dtype.getByteSize(dims), file, line)) return false;
     this->dims = dims;
@@ -258,19 +258,19 @@ public:
 
   //resize
   inline bool resize(Int64 x, DType dtype, const char* file, int line){
-    auto dims = PointNi::one(1);
+    auto dims = NdPoint::one(1);
     dims[0] = x;
     return resize(dims, dtype, file, line);
   }
 
   //resize
   inline bool resize(Int64 x, Int64 y, DType dtype, const char* file, int line){
-    return resize(PointNi::one(x,y), dtype, file, line);
+    return resize(NdPoint::one(x,y), dtype, file, line);
   }
 
   //resize
   inline bool resize(Int64 x, Int64 y, Int64 z, DType dtype, const char* file, int line){
-    return resize(PointNi::one(x,y,z), dtype, file, line);
+    return resize(NdPoint::one(x,y,z), dtype, file, line);
   }
 
   //getComponent
@@ -498,7 +498,7 @@ class GetComponentSamples
 public:
 
   T*            ptr = nullptr;
-  PointNi       dims;
+  NdPoint       dims;
   Int64         tot=0;
   int           stride;
   int           C=0;

@@ -50,7 +50,7 @@ public:
 
   Dataset*      dataset;
   double        time;
-  BoxNi         box;
+  NdBox         box;
   Field         field;
   int           maxh; //default is write at max resolution!
   int           fromh;
@@ -79,7 +79,7 @@ public:
       else if (args[I]=="--box")
       {
         int pdim = dataset->getPointDim();
-        box=BoxNi::parseFromOldFormatString(pdim,args[++I]);
+        box=NdBox::parseFromOldFormatString(pdim,args[++I]);
         box= box.getIntersection(dataset->getBox());
         if (!box.isFullDim())
         {

@@ -475,7 +475,7 @@ IdxFile IdxFile::load(Url url)
 
     idxfile.version     = cint(map.getValue("(version)")); VisusAssert(idxfile.version>=1 && idxfile.version<=6);
     idxfile.bitmask     = DatasetBitmask(map.getValue("(bits)"));
-    idxfile.box         = BoxNi::parseFromOldFormatString(idxfile.bitmask.getPointDim(),map.getValue("(box)"));
+    idxfile.box         = NdBox::parseFromOldFormatString(idxfile.bitmask.getPointDim(),map.getValue("(box)"));
 
     //parse fields
     if (map.hasValue("(fields)"))
@@ -758,7 +758,7 @@ void IdxFile::readFromObjectStream(ObjectStream& istream)
 {
   this->version           = cint(istream.read("version"));
   this->bitmask = DatasetBitmask(istream.read("bitmask"));
-  this->box               = BoxNi::parseFromOldFormatString(this->bitmask.getPointDim(),istream.read("box"));
+  this->box               = NdBox::parseFromOldFormatString(this->bitmask.getPointDim(),istream.read("box"));
   this->bitsperblock      = cint(istream.read("bitsperblock"));
   this->blocksperfile     = cint(istream.read("blocksperfile"));
   this->block_interleaving= cint(istream.read("block_interleaving"));

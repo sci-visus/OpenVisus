@@ -99,7 +99,7 @@ bool RenderArrayNode::processInput()
     //compact dimension (example: 1 128 256 ->128 256 1)
     if (data->getDepth()>1 && (data->getWidth()==1 || data->getHeight()==1))
     {
-      this->data=Array(PointNi(std::max(data->getWidth(), data->getHeight()), data->getDepth()),data->dtype,data->heap);
+      this->data=Array(NdPoint(std::max(data->getWidth(), data->getHeight()), data->getDepth()),data->dtype,data->heap);
       this->data.shareProperties(*data);
     }
     else

@@ -55,7 +55,7 @@ public:
   {
   public:
     DType     dtype;
-    PointNi   dims;
+    NdPoint   dims;
     Range     array_range;
     Range     computed_range;
     double    average=0;
@@ -66,7 +66,7 @@ public:
   };
 
   DType                  dtype;
-  PointNi                dims;
+  NdPoint                dims;
   std::vector<Component> components;
 
   //default constructor

@@ -107,7 +107,7 @@ public:
 
     DType      dtype;
     Int64      offset = 0;
-    PointNi    dims;
+    NdPoint    dims;
 
     for (int I = 0; I<(int)args.size(); I++)
     {
@@ -123,7 +123,7 @@ public:
       }
       else if (args[I] == "--dims")
       {
-        dims = PointNi::parseDims(args[++I]);
+        dims = NdPoint::parseDims(args[++I]);
       }
       else if (args[I] == "--offset")
       {

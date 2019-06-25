@@ -87,7 +87,7 @@ DatasetBitmask::DatasetBitmask(String pattern) : max_resolution(0),pdim(0)
   this->max_resolution=(int)exploded.size()-1;
 
 
-  this->pow2_dims = PointNi::one(pdim);
+  this->pow2_dims = NdPoint::one(pdim);
   for (int I = 1; I < (int)regular_pattern.size(); I++)
   {
     int bit = regular_pattern[I] - '0';
@@ -109,7 +109,7 @@ DatasetBitmask::DatasetBitmask(String pattern) : max_resolution(0),pdim(0)
 
 
 //////////////////////////////////////////////////////////////////
-DatasetBitmask DatasetBitmask::guess(PointNi dims,bool makeRegularAsSoonAsPossible)
+DatasetBitmask DatasetBitmask::guess(NdPoint dims,bool makeRegularAsSoonAsPossible)
 {
   int pdim = dims.getPointDim();
 
@@ -120,7 +120,7 @@ DatasetBitmask DatasetBitmask::guess(PointNi dims,bool makeRegularAsSoonAsPossib
   if (makeRegularAsSoonAsPossible)
   {
     String ret;
-    while (dims!=PointNi::one(pdim))
+    while (dims!=NdPoint::one(pdim))
     {
       for (int D=pdim-1;D>=0;D--) 
       {
@@ -137,7 +137,7 @@ DatasetBitmask DatasetBitmask::guess(PointNi dims,bool makeRegularAsSoonAsPossib
   else
   {
     String ret="V";
-    while (dims!=PointNi::one(pdim))
+    while (dims!=NdPoint::one(pdim))
     {
       for (int D=0;D<pdim;D++)
       {

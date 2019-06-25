@@ -124,7 +124,7 @@ public:
       return false;
 
     //remove transformation
-    position = Position(position.withoutTransformation().getBoxNi().getIntersection(dataset->getBox()));
+    position = Position(position.withoutTransformation().getNdBox().getIntersection(dataset->getBox()));
     if (!position.valid()) 
       return false;
 
@@ -137,7 +137,7 @@ public:
     {
       ScopedWriteLock wlock(kdarray->lock);
 
-      kdarray->query_box = position.getBoxNi();
+      kdarray->query_box = position.getNdBox();
       kdarray->end_resolution = end_resolutions.back();
 
       this->bBlocksAreFullRes = std::dynamic_pointer_cast<GoogleMapsDataset>(dataset) ? true : false;
@@ -181,11 +181,11 @@ public:
     int pdim = bitmask.getPointDim();
 
     //pow2_box
-    PointNi pow2_dims=PointNi::one(pdim);
+    NdPoint pow2_dims=NdPoint::one(pdim);
     for (int H = 1; H <= dataset->getMaxResolution(); H++)
       pow2_dims[bitmask[H]] <<= 1;
 
-    BoxNi pow2_box(PointNi(pdim),pow2_dims);
+    NdBox pow2_box(NdPoint(pdim),pow2_dims);
 
     int max_resolution=dataset->getBitmask().getMaxResolution();
     VisusAssert(bitsperblock<=max_resolution);

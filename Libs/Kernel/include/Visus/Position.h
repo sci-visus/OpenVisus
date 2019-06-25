@@ -64,7 +64,7 @@ public:
   }
 
   //constructor
-  Position(BoxNi value) {
+  Position(NdBox value) {
     
     if (!value.isFullDim()) return;
     this->pdim = value.getPointDim();
@@ -80,7 +80,7 @@ public:
 
     this->box = BoxNd(p1, p2);
 
-    VisusAssert(getBoxNi()==value); //I should not loose any integer precision
+    VisusAssert(getNdBox()==value); //I should not loose any integer precision
   }
 
   //constructor
@@ -138,14 +138,14 @@ public:
     return box.toBox3();
   }
 
-  //getBoxNi
-  BoxNi getBoxNi() const {
+  //getNdBox
+  NdBox getNdBox() const {
     
     if (!valid())
-      return BoxNi::invalid(2);
+      return NdBox::invalid(2);
 
-    auto p1 = convertTo<PointNi>(box.p1);
-    auto p2 = convertTo<PointNi>(box.p2);
+    auto p1 = convertTo<NdPoint>(box.p1);
+    auto p2 = convertTo<NdPoint>(box.p2);
 
     if ((p2[0] - p1[0]) == 0) p2[0] += 1;
     if ((p2[1] - p1[1]) == 0) p2[1] += 1;
@@ -156,7 +156,7 @@ public:
     p1.setPointDim(this->pdim, 0);
     p2.setPointDim(this->pdim, 1);
 
-    return BoxNi(p1, p2);
+    return NdBox(p1, p2);
   }
 
   //withoutTransformation

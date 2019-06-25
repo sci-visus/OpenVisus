@@ -56,7 +56,7 @@ DatasetFilter::~DatasetFilter()
 
 
 ///////////////////////////////////////////////////////////////////////////////////
-PointNi DatasetFilter::getFilterStep(int H,int MaxH) const
+NdPoint DatasetFilter::getFilterStep(int H,int MaxH) const
 {
   /* Example ('-' means the same group for the filter): 
     
@@ -90,18 +90,18 @@ PointNi DatasetFilter::getFilterStep(int H,int MaxH) const
 
   DatasetBitmask bitmask=dataset->getBitmask();
   int pdim = bitmask.getPointDim();
-  PointNi step=bitmask.upgradeBox(bitmask.getPow2Box(),MaxH).size();
+  NdPoint step=bitmask.upgradeBox(bitmask.getPow2Box(),MaxH).size();
   for (int K=0;K<H;K++)
   {
     int bit=bitmask[K];
     if (!K) 
-      step=step.rightShift(PointNi::one(pdim));
+      step=step.rightShift(NdPoint::one(pdim));
     else //
       step[bit]>>=1;
   }
 
   //note the std::max.. don't want 0!
-  PointNi filterstep=PointNi::one(pdim);
+  NdPoint filterstep=NdPoint::one(pdim);
   for (int D=0;D<pdim;D++) 
     filterstep[D]=std::max((Int64)1,step[D]*this->size);
 
@@ -113,13 +113,13 @@ PointNi DatasetFilter::getFilterStep(int H,int MaxH) const
 
 
 ///////////////////////////////////////////////////////////////////////////////
-bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> access,PointNi SlidingWindow) const
+bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> access,NdPoint SlidingWindow) const
 {
   //this works only for filter_size==2, otherwise the building of the sliding_window is very difficult
   VisusAssert(this->size==2);
 
   DatasetBitmask bitmask   = dataset->getBitmask();
-  BoxNi          box       = dataset->getBox();
+  NdBox          box       = dataset->getBox();
 
   int pdim = bitmask.getPointDim();
 
@@ -139,16 +139,16 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
     Int64 FILTERSTEP=this->getFilterStep(H,dataset->getMaxResolution())[bit];
 
     //need to align the from so that the first sample is filter-aligned
-    PointNi From = box.p1;
+    NdPoint From = box.p1;
 
     if (!Utils::isAligned(From[bit],(Int64)0,FILTERSTEP))
       From[bit]=Utils::alignLeft(From[bit],(Int64)0,FILTERSTEP)+FILTERSTEP; 
 
-    PointNi To = box.p2;
+    NdPoint To = box.p2;
     for (auto P = ForEachPoint(From, To, SlidingWindow); !P.end(); P.next())
     {
       //this is the sliding window
-      BoxNi sliding_window(P.pos,P.pos +SlidingWindow);
+      NdBox sliding_window(P.pos,P.pos +SlidingWindow);
 
       //important! crop to the stored world box to be sure that the alignment with the filter is correct!
       sliding_window= sliding_window.getIntersection(box);

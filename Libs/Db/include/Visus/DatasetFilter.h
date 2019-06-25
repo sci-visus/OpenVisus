@@ -87,7 +87,7 @@ public:
   {return dtype;}
 
   //getFilterStep
-  PointNi getFilterStep(int H,int MaxH) const; 
+  NdPoint getFilterStep(int H,int MaxH) const; 
 
   //dropExtraComponentIfExists
   Array dropExtraComponentIfExists(Array src) const 
@@ -104,7 +104,7 @@ public:
   virtual bool computeFilter(Query* query,bool bInverse) const=0;
 
   //computeFilter
-  bool computeFilter(double time,Field field,SharedPtr<Access> access,PointNi SlidingWindow) const;
+  bool computeFilter(double time,Field field,SharedPtr<Access> access,NdPoint SlidingWindow) const;
 
 private:
 

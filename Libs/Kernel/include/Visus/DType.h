@@ -126,7 +126,7 @@ public:
   }
 
   //getBitSize
-  Int64 getBitSize(PointNi dims) const {
+  Int64 getBitSize(NdPoint dims) const {
     return getBitSize(dims.innerProduct());
   }
 
@@ -141,7 +141,7 @@ public:
   }
 
   //getByteSize
-  Int64 getByteSize(PointNi dims) const {
+  Int64 getByteSize(NdPoint dims) const {
     return getByteSize(dims.innerProduct());
   }
 

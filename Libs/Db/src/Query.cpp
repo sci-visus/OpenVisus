@@ -80,7 +80,7 @@ bool Query::mergeSamples(LogicBox Wsamples, Array& Wbuffer, LogicBox Rsamples, A
     return false;
 
   //cannot find intersection (i.e. no sample to merge)
-  BoxNi box = Wsamples.getIntersection(Rsamples);
+  NdBox box = Wsamples.getIntersection(Rsamples);
   if (!box.isFullDim())
     return false;
 
@@ -98,7 +98,7 @@ bool Query::mergeSamples(LogicBox Wsamples, Array& Wbuffer, LogicBox Rsamples, A
   */
 
   int pdim = Rbuffer.getPointDim();
-  PointNi delta(pdim);
+  NdPoint delta(pdim);
   for (int D = 0; D<pdim; D++)
   {
     Int64 lcm = Utils::leastCommonMultiple(Rsamples.delta[D], Wsamples.delta[D]);
@@ -139,16 +139,16 @@ bool Query::mergeSamples(LogicBox Wsamples, Array& Wbuffer, LogicBox Rsamples, A
   VisusAssert(Rbuffer.dims == Rsamples.nsamples);
   VisusAssert(Wbuffer.dtype == Rbuffer.dtype);
 
-  PointNi wfrom = Wsamples.logicToPixel(box.p1);
-  PointNi wto = Wsamples.logicToPixel(box.p2);
-  PointNi wstep = delta.rightShift(Wsamples.shift);
+  NdPoint wfrom = Wsamples.logicToPixel(box.p1);
+  NdPoint wto = Wsamples.logicToPixel(box.p2);
+  NdPoint wstep = delta.rightShift(Wsamples.shift);
 
-  PointNi rfrom = Rsamples.logicToPixel(box.p1);
-  PointNi rto = Rsamples.logicToPixel(box.p2);
-  PointNi rstep = delta.rightShift(Rsamples.shift);
+  NdPoint rfrom = Rsamples.logicToPixel(box.p1);
+  NdPoint rto = Rsamples.logicToPixel(box.p2);
+  NdPoint rstep = delta.rightShift(Rsamples.shift);
 
-  VisusAssert(PointNi::max(wfrom, PointNi(pdim)) == wfrom); wto = PointNi::min(wto, Wbuffer.dims); wstep = PointNi::min(wstep, Wbuffer.dims);
-  VisusAssert(PointNi::max(rfrom, PointNi(pdim)) == rfrom); rto = PointNi::min(rto, Rbuffer.dims); rstep = PointNi::min(rstep, Rbuffer.dims);
+  VisusAssert(NdPoint::max(wfrom, NdPoint(pdim)) == wfrom); wto = NdPoint::min(wto, Wbuffer.dims); wstep = NdPoint::min(wstep, Wbuffer.dims);
+  VisusAssert(NdPoint::max(rfrom, NdPoint(pdim)) == rfrom); rto = NdPoint::min(rto, Rbuffer.dims); rstep = NdPoint::min(rstep, Rbuffer.dims);
 
   //first insert samples in the right position!
   if (!ArrayUtils::insert(Wbuffer, wfrom, wto, wstep, Rbuffer, rfrom, rto, rstep, aborted))

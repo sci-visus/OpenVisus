@@ -65,10 +65,10 @@ public:
   virtual bool isLossy() const=0;
 
   //encode
-  virtual SharedPtr<HeapMemory> encode(PointNi dims,DType dtype, SharedPtr<HeapMemory> decoded)=0;
+  virtual SharedPtr<HeapMemory> encode(NdPoint dims,DType dtype, SharedPtr<HeapMemory> decoded)=0;
 
   //decode
-  virtual SharedPtr<HeapMemory> decode(PointNi dims,DType dtype, SharedPtr<HeapMemory> encoded)=0;
+  virtual SharedPtr<HeapMemory> decode(NdPoint dims,DType dtype, SharedPtr<HeapMemory> encoded)=0;
 
 };
 
