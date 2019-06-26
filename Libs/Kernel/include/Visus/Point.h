@@ -697,10 +697,6 @@ inline Point4i convertTo<Point4i, Point4d>(const Point4d& value) {
 template <typename T>
 class PointN
 {
-  int pdim = 0;
-
-  std::array<T, 5> coords = std::array<T, 5>({ {0,0,0,0,0} });
-
 public:
 
   typedef T coord_t;
@@ -708,7 +704,7 @@ public:
   //_____________________________________________________
   struct Compare
   {
-    inline bool operator()(const PointN& a, const  PointN& b) const {
+    bool operator()(const PointN& a, const  PointN& b) const {
       return a.coords < b.coords;
     }
   };
@@ -744,12 +740,12 @@ public:
     }
 
     //end
-    inline bool end() const {
+    bool end() const {
       return bEnd;
     }
 
     //next
-    inline void next()
+    void next()
     {
       if (!bEnd && ((pos[0] += step[0]) >= to[0]))
       {
@@ -765,164 +761,128 @@ public:
     }
   };
 
+  std::vector<T> coords;
 
   //default constructor
   PointN() {
   }
 
   //constructor
-  explicit PointN(int pdim_, T x, T y, T z, T u, T v)
-    : pdim(pdim_), coords({ {x,y,z,u,v} }) {
+  explicit PointN(const std::vector<T>& coords_)
+    : coords(coords_) {
   }
 
   //constructor
-  explicit PointN(const std::vector<T>& src) :
-    PointN((int)src.size(),
-      src.size() >= 1 ? src[0] : 0,
-      src.size() >= 2 ? src[1] : 0,
-      src.size() >= 3 ? src[2] : 0,
-      src.size() >= 4 ? src[3] : 0,
-      src.size() >= 5 ? src[4] : 0) {
+  explicit PointN(int pdim)
+    : coords(std::vector<T>(pdim, T(0))) {
   }
 
   //constructor
-  explicit PointN(int pdim) : PointN(pdim, 0, 0, 0, 0, 0) {
+  explicit PointN(const PointN& left, T right) :
+    coords(left.coords) {
+    this->coords.push_back(right);
   }
 
   //constructor
-  explicit PointN(const PointN& left, T right) {
-    *this = left;
-    this->push_back(right);
+  explicit PointN(T x, T y)
+    : coords({ x,y }) {
   }
 
   //constructor
-  explicit PointN(T x, T y) : PointN(2, x, y, 0, 0, 0) {
+  explicit PointN(T x, T y, T z)
+    : coords({ x,y,z }) {
   }
 
   //constructor
-  explicit PointN(T x, T y, T z) : PointN(3, x, y, z, 0, 0) {
+  explicit PointN(T x, T y, T z, T u)
+    : coords({ x,y,z,u }) {
   }
 
   //constructor
-  explicit PointN(T x, T y, T z, T u) : PointN(4, x, y, z, u, 0) {
+  explicit PointN(T x, T y, T z, T u, T v)
+    : coords({ x,y,z,u,v }) {
   }
 
   //constructor
-  explicit PointN(T x, T y, T z, T u, T v) : PointN(5, x, y, z, u, v) {
-  }
-
-  //constructor
-  explicit PointN(Point3<T> p) : PointN(p.x, p.y, p.z) {
-  }
-
-  //push_back
-  void push_back(T value) {
-    this->coords[pdim++] = value;
-  }
-
-  //pop_back
-  void pop_back() {
-    VisusAssert(pdim);
-    pdim--;
-  }
-
-  //back
-  T back() const {
-    VisusAssert(pdim);
-    return coords[pdim - 1];
-  }
-
-  //dropHomogeneousCoordinate
-  PointN dropHomogeneousCoordinate() const {
-    PointN ret(this->pdim-1);
-    for (int I = 0; I < this->pdim-1; I++)
-      ret[I] = this->get(I) / this->back();
-    return ret;
-  }
-
-  //castTo
-  template <typename Other>
-  Other castTo() const {
-    Other ret(pdim);
-    for (int I = 0; I < pdim; I++)
-      ret[I]=(typename Other::coord_t)coords[I];
-    return ret;
+  explicit PointN(Point3<T> p)
+    : coords({ p[0], p[1], p[2] }) {
   }
 
   //getPointDim
   int getPointDim() const {
-    return pdim;
+    return (int)coords.size();
+  }
+
+  //push_back
+  void push_back(T value) {
+    this->coords.push_back(value);
+  }
+
+  //pop_back
+  void pop_back() {
+    this->coords.pop_back();
+  }
+
+  //back
+  T back() const {
+    return this->coords.back();
+  }
+
+  //dropHomogeneousCoordinate
+  PointN dropHomogeneousCoordinate() const {
+    auto ret = applyOperation(*this, MulByCoeff<double>(1.0 / back()));
+    ret.pop_back();
+    return ret;
+  }
+
+  //castTo
+  template <typename OtherPointClass>
+  OtherPointClass castTo() const {
+    auto pdim = (int)coords.size();
+    auto ret = OtherPointClass(pdim);
+    for (int I = 0; I < pdim; I++)
+      ret[I] = (typename OtherPointClass::coord_t)get(I);
+    return ret;
   }
 
   //setPointDim
-  void setPointDim(int new_pdim, T default_value=0.0) {
-    auto old_pdim = this->pdim;
-    this->pdim = new_pdim;
-    for (int I = old_pdim; I < new_pdim; I++)
-      coords[I] = default_value;
+  void setPointDim(int new_pdim, T default_value = 0.0) {
+    this->coords.resize(new_pdim, default_value);
   }
 
   //constructor
-  static inline PointN one(int pdim) {
-    return PointN(pdim, 1, 1, 1, 1, 1);
+  static PointN one(int pdim) {
+    return PointN(std::vector<T>(pdim, T(1)));
   }
 
   //one
-  static inline PointN one(T x, T y) {
-    auto ret = PointN::one(2);
-    ret[0] = x;
-    ret[1] = y;
-    return ret;
+  static PointN one(T x, T y) {
+    return PointN(x, y);
   }
 
   //one
-  static inline PointN one(T x, T y, T z) {
-    auto ret = PointN::one(3);
-    ret[0] = x;
-    ret[1] = y;
-    ret[2] = z;
-    return ret;
+  static PointN one(T x, T y, T z) {
+    return PointN(x, y, z);
   }
 
   //toVector
-  template <typename Cast>
-  std::vector<Cast> toVector() const {
-    std::vector<Cast> ret(pdim);
-    for (int I = 0; I < pdim; I++)
-      ret[I] = (Cast)(coords[I]);
-    return ret;
-  }
-
-  //toArray
-  std::vector<T> toVector() const {
-    return std::vector<T>(coords.begin(), coords.begin() + pdim);
+  const std::vector<T>& toVector() const {
+    return coords;
   }
 
   //test if numers are ok
   bool valid() const {
-    return
-      (pdim < 1 || (Utils::isValidNumber(coords[0]) &&
-      (pdim < 2 || (Utils::isValidNumber(coords[1]) &&
-      (pdim < 3 || (Utils::isValidNumber(coords[2]) &&
-      (pdim < 4 || (Utils::isValidNumber(coords[3]) &&
-      (pdim < 5 || (Utils::isValidNumber(coords[4])))))))))));
+    return checkAll<ConditionValidNumber>(*this);
   }
 
   //get
-  inline T& get(int i) {
-    VisusAssert(i >= 0 && i < 5);
+  T& get(int i) {
     return coords[i];
   }
 
   //const
-  inline const T& get(int i) const {
-    VisusAssert(i >= 0 && i < 5);
+  const T& get(int i) const {
     return coords[i];
-  }
-
-  //set
-  inline void set(int i, T value) {
-    get(i) = value;
   }
 
   //operator[]
@@ -931,46 +891,29 @@ public:
   }
 
   //operator[]
-  inline T& operator[](int i) {
+  T& operator[](int i) {
     return get(i);
   }
 
   //operator-
   PointN operator-()  const {
-    return PointN(pdim, -coords[0], -coords[1], -coords[2], -coords[3], -coords[4]);
+    return applyOperation<NegOp>(*this);
   }
 
   //a+b
   PointN operator+(const PointN& other)  const {
-    VisusAssert(pdim == other.pdim);
-    return PointN(pdim,
-      coords[0] + other.coords[0],
-      coords[1] + other.coords[1],
-      coords[2] + other.coords[2],
-      coords[3] + other.coords[3],
-      coords[4] + other.coords[4]);
+    return applyOperation<AddOp>(*this, other);
   }
 
   //a-b
   PointN operator-(const PointN& other)  const {
-    VisusAssert(pdim == other.pdim);
-    return PointN(pdim,
-      coords[0] - other.coords[0],
-      coords[1] - other.coords[1],
-      coords[2] - other.coords[2],
-      coords[3] - other.coords[3],
-      coords[4] - other.coords[4]);
+    return applyOperation<SubOp>(*this, other);
   }
 
   //a*s
-  template <typename Value>
-  PointN operator*(Value value) const {
-    return PointN(pdim,
-      (T)(coords[0] * value),
-      (T)(coords[1] * value),
-      (T)(coords[2] * value),
-      (T)(coords[3] * value),
-      (T)(coords[4] * value));
+  template <typename Coeff>
+  PointN operator*(Coeff coeff) const {
+    return applyOperation(*this, MulByCoeff<Coeff>(coeff));
   }
 
   //a+=b
@@ -990,74 +933,45 @@ public:
 
   //a==b
   bool operator==(const PointN& other) const {
-    return
-      (this->pdim==other.pdim) && 
-      (this->pdim >= 1 ? coords[0] == other.coords[0] : true ) &&
-      (this->pdim >= 2 ? coords[1] == other.coords[1] : true ) &&
-      (this->pdim >= 3 ? coords[2] == other.coords[2] : true ) &&
-      (this->pdim >= 4 ? coords[3] == other.coords[3] : true ) &&
-      (this->pdim >= 5 ? coords[4] == other.coords[4] : true );
+    return coords == other.coords;;
   }
 
   //a!=b
   bool operator!=(const PointN& other) const {
-    return !(operator==(other));
+    return coords != other.coords;;
   }
 
   //min
   static PointN min(const PointN& a, const PointN& b) {
-    VisusAssert(a.pdim == b.pdim);
-    return PointN(a.pdim,
-      std::min(a.coords[0], b.coords[0]),
-      std::min(a.coords[1], b.coords[1]),
-      std::min(a.coords[2], b.coords[2]),
-      std::min(a.coords[3], b.coords[3]),
-      std::min(a.coords[4], b.coords[4]));
+    return applyOperation<MinOp>(a, b);
   }
 
   //max
   static PointN max(const PointN& a, const PointN& b) {
-    VisusAssert(a.pdim == b.pdim);
-    return PointN(a.pdim,
-      std::max(a.coords[0], b.coords[0]),
-      std::max(a.coords[1], b.coords[1]),
-      std::max(a.coords[2], b.coords[2]),
-      std::max(a.coords[3], b.coords[3]),
-      std::max(a.coords[4], b.coords[4]));
+    return applyOperation< MaxOp>(a, b);
   }
 
   //minsize
   T minsize() const {
-    return Utils::min(toVector());
+    return Utils::min(this->coords);
   }
 
   //maxsize
   T maxsize() const {
-    return Utils::max(toVector());
+    return Utils::max(this->coords);
   }
 
-  //operator (<,<=,>,>=)
-  bool operator< (const PointN& b) const { const PointN& a = *this; VisusAssert(a.pdim == b.pdim); return pdim <= 0 || (a[0] < b[0] && (pdim <= 1 || (a[1] < b[1] && (pdim <= 2 || (a[2] < b[2] && (pdim <= 3 || (a[3] < b[3] && (pdim <= 4 || (a[4] < b[4]))))))))); }
-  bool operator<=(const PointN& b) const { const PointN& a = *this; VisusAssert(a.pdim == b.pdim); return pdim <= 0 || (a[0] <= b[0] && (pdim <= 1 || (a[1] <= b[1] && (pdim <= 2 || (a[2] <= b[2] && (pdim <= 3 || (a[3] <= b[3] && (pdim <= 4 || (a[4] <= b[4]))))))))); }
-  bool operator> (const PointN& b) const { const PointN& a = *this; VisusAssert(a.pdim == b.pdim); return pdim <= 0 || (a[0] > b[0] && (pdim <= 1 || (a[1] > b[1] && (pdim <= 2 || (a[2] > b[2] && (pdim <= 3 || (a[3] > b[3] && (pdim <= 4 || (a[4] > b[4]))))))))); }
-  bool operator>=(const PointN& b) const { const PointN& a = *this; VisusAssert(a.pdim == b.pdim); return pdim <= 0 || (a[0] >= b[0] && (pdim <= 1 || (a[1] >= b[1] && (pdim <= 2 || (a[2] >= b[2] && (pdim <= 3 || (a[3] >= b[3] && (pdim <= 4 || (a[4] >= b[4]))))))))); }
-
-  static bool less(const PointN& a, const PointN& b) { return a < b; }
-  static bool lessEqual(const PointN& a, const PointN& b) { return a <= b; }
-  static bool greater(const PointN& a, const PointN& b) { return a > b; }
-  static bool greaterEqual(const PointN& a, const PointN& b) { return a >= b; }
+  //operator (<,<=,>,>=) (NOTE: it's different from lexigraphical order)
+  bool operator< (const PointN& b) const { return checkAll< ConditionL >(*this, b); }
+  bool operator<=(const PointN& b) const { return checkAll< ConditionLE>(*this, b); }
+  bool operator> (const PointN& b) const { return checkAll< ConditionG >(*this, b); }
+  bool operator>=(const PointN& b) const { return checkAll< ConditionGE>(*this, b); }
 
 public:
 
   //dot product
   T dot(const PointN& other) const {
-    VisusAssert(pdim == other.pdim);
-    return
-      (pdim >= 1 ? (coords[0] * other.coords[0]) : 0) +
-      (pdim >= 2 ? (coords[1] * other.coords[1]) : 0) +
-      (pdim >= 3 ? (coords[2] * other.coords[2]) : 0) +
-      (pdim >= 4 ? (coords[3] * other.coords[3]) : 0) +
-      (pdim >= 5 ? (coords[4] * other.coords[4]) : 0);
+    return accumulateOperation<AddOp>(T(0),innerMultiply(*this, other));
   }
 
   //dotProduct
@@ -1065,183 +979,138 @@ public:
     return dot(other);
   }
 
-  //leftShift
-  template <typename Value>
-  inline PointN leftShift(const Value& value) const {
-    return PointN(pdim,
-      coords[0] << value,
-      coords[1] << value,
-      coords[2] << value,
-      coords[3] << value,
-      coords[4] << value);
-  }
-
-  //leftShift
-  template <typename Other>
-  inline PointN leftShift(const PointN<Other>& value) const {
-    VisusAssert(pdim == value.pdim);
-    return PointN(pdim,
-      coords[0] << value.coords[0],
-      coords[1] << value.coords[1],
-      coords[2] << value.coords[2],
-      coords[3] << value.coords[3],
-      coords[4] << value.coords[4]);
-  }
-
-  //rightShift
-  template <typename Value>
-  inline PointN rightShift(const Value& value) const {
-    return PointN(pdim,
-      coords[0] >> value,
-      coords[1] >> value,
-      coords[2] >> value,
-      coords[3] >> value,
-      coords[4] >> value);
-  }
-
-  //rightShift
-  template <typename Other>
-  inline PointN rightShift(const PointN<Other>& value) const {
-    VisusAssert(pdim == value.pdim);
-    return PointN(pdim,
-      coords[0] >> value.coords[0],
-      coords[1] >> value.coords[1],
-      coords[2] >> value.coords[2],
-      coords[3] >> value.coords[3],
-      coords[4] >> value.coords[4]);
-  }
-
-  //getLog2
-  inline PointN getLog2() const {
-    return PointN(pdim,
-      Utils::getLog2(coords[0]),
-      Utils::getLog2(coords[1]),
-      Utils::getLog2(coords[2]),
-      Utils::getLog2(coords[3]),
-      Utils::getLog2(coords[4]));
-  }
-
   //stride 
-  inline PointN stride() const
+  PointN stride() const
   {
-    VisusAssert(!overflow());
-    PointN ret = one(pdim);
+    auto pdim = (int)coords.size();
+    auto ret = PointN(pdim);
     ret[0] = 1;
-    ret[1] = ret[0] * (pdim >= 1 ? this->coords[0] : 1);
-    ret[2] = ret[1] * (pdim >= 2 ? this->coords[1] : 1);
-    ret[3] = ret[2] * (pdim >= 3 ? this->coords[2] : 1);
-    ret[4] = ret[3] * (pdim >= 4 ? this->coords[3] : 1);
+    for (int I = 0; I < pdim - 1; I++)
+      ret[I + 1] = ret[I] * get(I);
     return ret;
   }
 
   //innerMultiply
-  inline PointN innerMultiply(const PointN& other) const {
-    VisusAssert(pdim == other.pdim);
-    return PointN(pdim,
-      this->coords[0] * other.coords[0],
-      this->coords[1] * other.coords[1],
-      this->coords[2] * other.coords[2],
-      this->coords[3] * other.coords[3],
-      this->coords[4] * other.coords[4]);
+  static PointN innerMultiply(const PointN& a, const PointN& b) {
+    return applyOperation<MulOp>(a, b);
+  }
+
+  //innerMultiply
+  PointN innerMultiply(const PointN& other) const {
+    return innerMultiply(*this, other);
   }
 
   //innerDiv
-  inline PointN innerDiv(const PointN& other) const {
-    VisusAssert(pdim == other.pdim);
-    return PointN(pdim,
-      this->coords[0] / other.coords[0],
-      this->coords[1] / other.coords[1],
-      this->coords[2] / other.coords[2],
-      this->coords[3] / other.coords[3],
-      this->coords[4] / other.coords[4]);
+  PointN innerDiv(const PointN& other) const {
+    return applyOperation<DivOp>(*this, other);
   }
 
-  //innerProduct (must return -1 in case of overflow)
+  //innerProduct 
   T innerProduct() const
   {
-    if (pdim == 0) return 0;
-    T ret = 1;
-    if (pdim >= 1 && !Utils::notoverflow_mul(ret, ret, coords[0])) return -1;
-    if (pdim >= 2 && !Utils::notoverflow_mul(ret, ret, coords[1])) return -1;
-    if (pdim >= 3 && !Utils::notoverflow_mul(ret, ret, coords[2])) return -1;
-    if (pdim >= 4 && !Utils::notoverflow_mul(ret, ret, coords[3])) return -1;
-    if (pdim >= 5 && !Utils::notoverflow_mul(ret, ret, coords[4])) return -1;
-    return ret;
+    auto pdim = getPointDim();
+    if (pdim == 0) 
+      return 0;
+
+    //check overflow
+#ifdef VISUS_DEBUG
+    T __acc__ = 1;
+    for (int I = 0; I < pdim; I++)
+      if (!Utils::safe_mul(__acc__, __acc__, coords[I]))
+        VisusAssert(false);
+#endif
+
+    return accumulateOperation<MulOp>(1, *this);
   }
 
   //innerMod
 #if !SWIG
+
+  //leftShift
+  template <typename = std::enable_if_t<std::is_integral<T>::value > >
+  PointN leftShift(const T & value) const {
+    return applyOperation(*this, LShiftByValue(value));
+  }
+
+  //rightShift
+  template <typename = std::enable_if_t<std::is_integral<T>::value > >
+  PointN rightShift(const T & value) const {
+    return applyOperation(*this, RShiftByValue(value));
+  }
+
+  //leftShift
+  template <typename = std::enable_if_t<std::is_integral<T>::value > >
+  PointN leftShift(const PointN & value) const {
+    return applyOperation<LShiftOp>(*this, value);
+  }
+
+  //rightShift
+  template <typename = std::enable_if_t<std::is_integral<T>::value > >
+  PointN rightShift(const PointN & value) const {
+    return applyOperation<RShiftOp>(*this, value);
+  }
+
+  //getLog2
+  template <typename = std::enable_if_t<std::is_integral<T>::value > >
+  PointN getLog2() const {
+    return applyOperation<Log2Op>(*this);
+  }
+
   template <typename = std::enable_if_t<std::is_integral<T>::value > >
   PointN innerMod(const PointN & other) const {
-    VisusAssert(pdim == other.pdim);
-    return PointN(pdim,
-      this->coords[0] % other.coords[0],
-      this->coords[1] % other.coords[1],
-      this->coords[2] % other.coords[2],
-      this->coords[3] % other.coords[3],
-      this->coords[4] % other.coords[4]);
+    return applyOperation<ModOp>(*this, other);
   }
 #endif
-
-  //overflow (the 64 bit limit!)
-  inline bool overflow() const {
-    return innerProduct() < 0;
-  }
 
 public:
 
   //toPoint3
   Point3<T> toPoint3() const {
+    auto coords = this->coords;
+    coords.resize(3);
     return Point3<T>(coords[0], coords[1], coords[2]);
   }
 
   //toPoint3i
-  inline Point3i toPoint3i() const {
-    return Point3i((int)coords[0], (int)coords[1], (int)coords[2]);
+  Point3i toPoint3i() const {
+    return toPoint3().castTo<Point3i>();
   }
 
   //toPoint3d
-  inline Point3d toPoint3d() const {
-    return Point3d((double)coords[0], (double)coords[1], (double)coords[2]);
+  Point3d toPoint3d() const {
+    return toPoint3().castTo<Point3d>();
   }
 
 public:
 
   //parseFromString
-  static inline PointN parseFromString(String src)
+  static PointN parseFromString(String src)
   {
-    PointN ret;
+    std::vector<T> ret;
     std::istringstream parser(src);
-    T value;
-    while (parser >> value)
-      ret[ret.pdim++] = value;
-    return ret;
+    T parsed; while (parser >> parsed)
+      ret.push_back(parsed);
+    return PointN(ret);
   }
 
   //parseDims
-  static inline PointN parseDims(String src)
+  static PointN parseDims(String src)
   {
-    PointN ret(0, 1, 1, 1, 1, 1);
-    std::istringstream parser(src);
-    T value;
-    while (parser >> value)
-      ret[ret.pdim++] = value;
+    auto ret = parseFromString(src);
 
     //backward compatible: remove unnecessary dimensions
-    while (ret.pdim && ret[ret.pdim - 1] == 1)
-      ret.pdim--;
+    while (ret.getPointDim() && ret.back() == T(1))
+      ret.pop_back();
 
     return ret;
   }
 
   //convert to string
-  inline String toString(String sep = " ") const {
+  String toString(String sep = " ") const {
+    auto pdim = (int)coords.size();
     std::ostringstream out;
-    if (pdim >= 1) out        << coords[0];
-    if (pdim >= 2) out << sep << coords[1];
-    if (pdim >= 3) out << sep << coords[2];
-    if (pdim >= 4) out << sep << coords[3];
-    if (pdim >= 5) out << sep << coords[4];
+    for (int I = 0; I < pdim; I++)
+      out << (I ? sep : "") << get(I);
     return out.str();
   }
 
@@ -1253,7 +1122,120 @@ public:
   }
 #endif
 
+private:
+
+  struct NegOp  { static T compute(T a) { return -a; } };
+  struct Log2Op { static T compute(T a) { return Utils::getLog2(a); } };
+
+  struct AddOp { static T compute(T a, T b) { return a + b; } };
+  struct SubOp { static T compute(T a, T b) { return a - b; } };
+  struct MulOp { static T compute(T a, T b) { return a * b; } };
+  struct DivOp { static T compute(T a, T b) { return a / b; } };
+  struct ModOp { static T compute(T a, T b) { return a % b; } };
+  struct MinOp { static T compute(T a, T b) { return std::min(a, b); } };
+  struct MaxOp { static T compute(T a, T b) { return std::max(a, b); } };
+
+  struct LShiftOp { static T compute(T a, T b) { return a << b; } };
+  struct RShiftOp { static T compute(T a, T b) { return a >> b; } };
+
+  struct ConditionL  { static bool isTrue(T a, T b) { return a <  b; } };
+  struct ConditionLE { static bool isTrue(T a, T b) { return a <= b; } };
+  struct ConditionG  { static bool isTrue(T a, T b) { return a >  b; } };
+  struct ConditionGE { static bool isTrue(T a, T b) { return a >= b; } };
+
+  struct ConditionValidNumber { static bool isTrue(T a) { return Utils::isValidNumber(a); } };
+
+  template <typename Coeff>
+  class MulByCoeff {
+  public:
+    Coeff value;
+    MulByCoeff(Coeff value_ = Coeff(0)) : value(value_) {}
+    T compute(T a) { return (T)(a * value); }
+  };
+
+  class LShiftByValue  {
+  public:
+    T value;
+    LShiftByValue(T value_ = T(0)) : value(value_) {}
+    T compute(T a) { return a << value; }
+  };
+
+  class RShiftByValue {
+  public:
+    T value;
+    RShiftByValue(T value_ = T(0)) : value(value_) {}
+    T compute(T a) { return a >> value; }
+  };
+
+  //applyOperation
+  template <typename Operation>
+  static PointN applyOperation(const PointN& a)
+  {
+    auto pdim = a.getPointDim();
+    PointN ret(pdim);
+    for (int I = 0; I < pdim; I++)
+      ret[I] = Operation::compute(a[I]);
+    return ret;
+  }
+
+  //applyOperation
+  template <typename Operation>
+  static PointN applyOperation(const PointN& a, Operation op)
+  {
+    auto pdim = a.getPointDim();
+    PointN ret(pdim);
+    for (int I = 0; I < pdim; I++)
+      ret[I] = op.compute(a[I]);
+    return ret;
+  }
+
+  //applyOperation
+  template <typename Operation>
+  static PointN applyOperation(const PointN& a, const PointN& b)
+  {
+    auto pdim = a.getPointDim();
+    VisusAssert(pdim == b.getPointDim());
+    PointN ret(pdim);
+    for (int I = 0; I < pdim; I++)
+      ret[I] = Operation::compute(a[I], b[I]);
+    return ret;
+  }
+
+  //checkAll
+  template <typename Condition>
+  static bool checkAll(const PointN& a) {
+    auto pdim = a.getPointDim();
+    for (int I = 0; I < pdim; I++)
+      if (!Condition::isTrue(a[I])) return false;
+    return true;
+  }
+
+  //checkAll
+  template <typename Condition>
+  static bool checkAll(const PointN& a, const PointN& b) {
+    auto pdim = a.getPointDim();
+    VisusAssert(pdim == b.getPointDim());
+    for (int I = 0; I < pdim; I++)
+      if (!Condition::isTrue(a[I], b[I])) return false;
+    return true;
+  }
+
+  //accumulateOperation
+  template <typename AccumulateOp>
+  static T accumulateOperation(T initial_value, const PointN& a)
+  {
+    T ret = initial_value;
+    auto pdim = a.getPointDim();
+    for (int I = 0; I < pdim; I++)
+      ret = AccumulateOp::compute(ret, a[I]);
+    return ret;
+  }
+
+
+
 };//end class PointN
+
+
 typedef PointN<double> PointNd;
 typedef PointN <Int64> PointNi;
 typedef PointNi NdPoint;
