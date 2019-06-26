@@ -527,7 +527,7 @@ public:
     NdPoint p0     = Bbox.p1;
     NdPoint shift  = Bbox.shift;
 
-    const auto points = (Int64*)query->point_coordinates->c_ptr();
+    const auto points = (Int64*)query->point_query.coordinates->c_ptr();
 
     switch (pdim)
     {
@@ -1247,15 +1247,16 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<Query> query)
   if (query->isPointQuery())
   {
     ret.url.setParam("action"  ,"pointquery");
-    ret.url.setParam("matrix"  ,query->position.getTransformation().toString());
-    ret.url.setParam("box"     ,query->position.getBox().toString());
+    ret.url.setParam("matrix"  ,query->position.T.toString());
+    ret.url.setParam("box"     ,query->position.box.toBox3().toString());
     ret.url.setParam("nsamples",query->nsamples.toString());
+    VisusInfo() << ret.url.toString();
   }
   else
   {
-    VisusAssert(query->position.getTransformation().isIdentity()); //todo
+    VisusAssert(query->position.T.isIdentity()); //todo
     ret.url.setParam("action","boxquery");
-    ret.url.setParam("box"   , query->position.getNdBox().toOldFormatString());
+    ret.url.setParam("box"   , query->position.getNdBox().withPointDim(this->getPointDim()).toOldFormatString());
   }
 
   ret.aborted=query->aborted;
@@ -1279,7 +1280,7 @@ NdPoint IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frust
   std::vector<Point3d> points;
   for (int I=0;I<8;I++)
   {
-    Point3d p=position.getTransformation() * position.getBox().getPoint(I);
+    Point3d p=position.T * position.box.toBox3().getPoint(I);
     points.push_back(p);
   }
 
@@ -1350,8 +1351,8 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
 
   Position position=query->position;
 
-  const Matrix& T=position.getTransformation();
-  Box3d box        =position.getBox();
+  const Matrix& T=position.T;
+  Box3d box        =position.box.toBox3();
 
   int pdim=this->getPointDim();
   VisusAssert(pdim==3); //why I need point queries in 2d... I'm asserting this because I do not create Query for 2d datasets 
@@ -1373,7 +1374,7 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
   if (tot !=(nsamples[0]*nsamples[1]*nsamples[2]))
     return false;
 
-  if (!query->point_coordinates->resize(tot*pdim*sizeof(Int64),__FILE__,__LINE__))
+  if (!query->point_query.coordinates->resize(tot*pdim*sizeof(Int64),__FILE__,__LINE__))
     return false;
 
   //definition of a point query!
@@ -1390,7 +1391,7 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
   Point4d TDY_4d = T*DY; VisusAssert(TDY_4d.w==0.0); Point3d TDY  = TDY_4d.dropW();
   Point4d TDZ_4d = T*DZ; VisusAssert(TDZ_4d.w==0.0); Point3d TDZ  = TDZ_4d.dropW();
 
-  auto point_p = (Int64*)query->point_coordinates->c_ptr();
+  auto point_p = (Int64*)query->point_query.coordinates->c_ptr();
   Point3d PZ=TP0; for (int K=0;K<nsamples[2];++K,PZ+=TDZ) {
   Point3d PY =PZ; for (int J=0;J<nsamples[1];++J,PY+=TDY) {
   Point3d PX =PY; for (int I=0;I<nsamples[0];++I,PX+=TDX) {
@@ -1414,8 +1415,8 @@ bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<Query> query)
   if (end_resolution<0)
     return false;
 
-  VisusAssert(query->position.getTransformation().isIdentity());
-  query->aligned_box=query->position.getNdBox();
+  VisusAssert(query->position.T.isIdentity());
+  query->aligned_box=query->position.getNdBox().withPointDim(this->getPointDim());
 
   if (!query->aligned_box.isFullDim())
     return false;
@@ -1495,19 +1496,22 @@ bool IdxDataset::beginQuery(SharedPtr<Query> query)
   if (!Dataset::beginQuery(query))
     return false;
 
-  bool bPointQuery = query->position.getPointDim() < this->getPointDim();
-  query->point_coordinates = bPointQuery ? std::make_shared<HeapMemory>() : SharedPtr<HeapMemory>();
+  auto dataset_dim = this->getPointDim();
 
-  if (!bPointQuery)
+  if (bool bPointQuery = dataset_dim == 3 && query->position.box.minsize() == 0)
   {
-    Matrix T = query->position.getTransformation();
+    query->point_query.coordinates = std::make_shared<HeapMemory>();
+  }
+  else
+  {
+    Matrix T = query->position.T;
     if (!T.isIdentity())
     {
       //clipping...
       if (this->getPointDim() == 3)
         query->clipping = query->position;
 
-      query->position = query->position.withoutTransformation().getNdBox().getIntersection(this->getBox());
+      query->position = query->position.withoutTransformation().getNdBox().withPointDim(this->getPointDim()).getIntersection(this->getBox());
     }
 
     if (query->filter.enabled)
@@ -1578,15 +1582,15 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
 
   Int64 tot=query->nsamples.innerProduct();
 
-  const auto points = (Int64*)query->point_coordinates->c_ptr();
-  if (!query->point_coordinates || !query->point_coordinates->c_size() || !tot)
+  const auto points = (Int64*)query->point_query.coordinates->c_ptr();
+  if (!query->point_query.coordinates || !query->point_query.coordinates->c_size() || !tot)
     return false;
 
   VisusAssert(access);
-  VisusAssert(pdim<=3);//todo: other cases
+  VisusAssert(pdim==3);//todo: other cases
   VisusAssert(query->start_resolution==0);//todo: othercases
   VisusAssert(maxh==this->getMaxResolution());//todo other cases!
-  VisusAssert((Int64)query->point_coordinates->c_size()>=query->nsamples.innerProduct()*(Int64)sizeof(Int64)*pdim);
+  VisusAssert((Int64)query->point_query.coordinates->c_size()>=query->nsamples.innerProduct()*(Int64)sizeof(Int64)*pdim);
 
   //first BigInt is hzaddress, second Int32 is offset inside buffer
   auto hzaddresses=std::vector< std::pair<BigInt,Int32> >(tot,std::make_pair(-1,0)); 
@@ -2059,7 +2063,7 @@ bool IdxDataset::upgradeBoxQueryMaxResolution(int maxh)
   int pdim = vf->idxfile.bitmask.getPointDim();
   
   //WRONG : I should not change box here
-  NdBox box = query->position.getNdBox();
+  NdBox box = query->position.getNdBox().withPointDim(this->getPointDim());
 
   while (query_maxh<maxh)
   {

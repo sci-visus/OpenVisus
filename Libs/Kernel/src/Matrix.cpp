@@ -304,7 +304,7 @@ void Matrix::getLookAt(Point3d& pos,Point3d& dir,Point3d& vup) const
 
 
 //////////////////////////////////////////////////////////
-Quaternion4d Matrix3::toQuaternion() const
+Quaternion Matrix3::toQuaternion() const
 {
   const Matrix3& m=*this;
 
@@ -354,19 +354,19 @@ Quaternion4d Matrix3::toQuaternion() const
     *apkQuat[k] = (kRot[k][i]+kRot[i][k])*fRoot;
   }
 
-  return Quaternion4d(qw, qx, qy, qz);
+  return Quaternion(qw, qx, qy, qz);
 }
 
 
 //////////////////////////////////////////////////////////
-Quaternion4d Matrix4::toQuaternion() const
+Quaternion Matrix::toQuaternion() const
 {
   return dropW().toQuaternion();
 }
 
 
 //////////////////////////////////////////////////////////
-Matrix3 Matrix3::rotate(const Quaternion4d& q)
+Matrix3 Matrix3::rotate(const Quaternion& q)
 {
   double kRot[3][3];
   double fTx  = 2.0f*q.x;double fTy  = 2.0f*q.y;double fTz  = 2.0f*q.z;
@@ -387,11 +387,10 @@ Matrix3 Matrix3::rotate(const Quaternion4d& q)
 
 
 //////////////////////////////////////////////////////////
-Matrix Matrix::rotate(const Quaternion4d& q)
+Matrix Matrix::rotate(const Quaternion& q)
 {
-  return Matrix4(Matrix3::rotate(q),Point3d(0,0,0));
+  return Matrix(Matrix3::rotate(q),Point3d(0,0,0));
 }
-
 
 
 //////////////////////////////////////////////////////////////////////
@@ -483,6 +482,81 @@ TRSMatrixDecomposition::TRSMatrixDecomposition(const Matrix& T)
   this->translate   = Point3d(T(0,3),T(1,3),T(2,3));
   this->rotate      = qdu.Q.toQuaternion();
   this->scale       = qdu.D;
+}
+
+
+//////////////////////////////////////////////////////////////////////
+MatrixNd MatrixNd::invert() const
+{
+  auto A = MatrixNd(*this);
+  auto S = PointNd(dim);
+  auto B = MatrixNd(dim);
+  auto X = std::vector<int>(dim);
+  auto ret = MatrixNd(A);
+
+  for (int I = 0; I < dim; I++)
+  {
+    X[I] = I;
+    double scalemax = 0.0;
+    for (int J = 0; J < dim; J++)
+      scalemax = std::max(scalemax, fabs(A(I, J)));
+    S[I] = scalemax;
+  }
+
+  int signDet = 1;
+  for (int K = 0; K < dim; K++)
+  {
+    double ratiomax = 0.0;
+    int jPivot = K;
+    for (int I = K; I < dim; I++)
+    {
+      double ratio = fabs(A(X[I], K)) / S[X[I]];
+      if (ratio > ratiomax) {
+        jPivot = I;
+        ratiomax = ratio;
+      }
+    }
+    int indexJ = X[K];
+    if (jPivot != K)
+    {
+      indexJ = X[jPivot];
+      X[jPivot] = X[K];
+      X[K] = indexJ;
+      signDet *= -1;
+    }
+
+    for (int I = (K + 1); I < dim; I++)
+    {
+      double coeff = A(X[I], K) / A(indexJ, K);
+      for (int J = (K + 1); J < dim; J++)
+      {
+        double value = A(X[I], J) - coeff * A(indexJ, J);
+        A(X[I], J) = value;
+      }
+
+      A(X[I], K) = coeff;
+      for (int J = 0; J < dim; J++)
+      {
+        double value = B(X[I], J) - A(X[I], K) * B(indexJ, J);
+        B(X[I], J) = value;
+      }
+    }
+  }
+
+  for (int K = 0; K < dim; K++)
+  {
+    double value = B(X[dim], K) / A(X[dim], dim);
+    ret(dim, K) = value;
+    for (int I = A.dim - 1; I >= 0; I--)
+    {
+      double sum = B(X[I], K);
+      for (int J = (I + 1); J < dim; J++)
+        sum -= A(X[I], J) * ret(J, K);
+      value = sum / A(X[I], I);
+      ret(I, K) = value;
+    }
+  }
+  return ret;
 }
 
 } //namespace Visus

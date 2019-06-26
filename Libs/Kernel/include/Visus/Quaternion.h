@@ -45,32 +45,31 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////////////////
-template <typename T>
-class Quaternion4
+class Quaternion
 {
 public:
 
-  VISUS_CLASS(Quaternion4)
+  VISUS_CLASS(Quaternion)
 
   //identity
-  T w = T(1), x = T(0), y = T(0), z = T(0);
+  double w = 1.0, x = 0.0, y = 0.0, z = 0.0;
 
   //default constructor
-  Quaternion4() {
+  Quaternion() {
   }
 
   //constructor
-  explicit Quaternion4(T w, T x, T y, T z) 
+  explicit Quaternion(double w, double x, double y, double z) 
   {
     //isNull?
-    if (w == T(0) && x == T(0) && y == T(0) && z == T(0))
+    if (w == 0.0 && x == 0.0 && y == 0.0 && z == 0.0)
     {
-      this->w = this->x = this->y = this->z = T(0);
+      this->w = this->x = this->y = this->z = 0.0;
       return;
     }
 
-    T mod2 = w * w + x * x + y * y + z * z; VisusAssert(mod2 > T(0));
-    T vs = (mod2==T(1)) ? T(1) : (T(1) / sqrt(mod2));
+    double mod2 = w * w + x * x + y * y + z * z; VisusAssert(mod2 > 0.0);
+    double vs = (mod2==1.0) ? 1.0 : (1.0 / sqrt(mod2));
     this->w = w * vs;
     this->x = x * vs;
     this->y = y * vs;
@@ -78,19 +77,19 @@ public:
   }
 
   //constructor
-  explicit Quaternion4(Point3<T> axis, T angle)
+  explicit Quaternion(Point3d axis, double angle)
   {
-    if (axis.x==T(0) && axis.y==T(0) && axis.z==T(0))
+    if (axis.x==0.0 && axis.y==0.0 && axis.z==0.0)
     {
-      this->w = this->x = this->y = this->z = T(0);
+      this->w = this->x = this->y = this->z = 0.0;
       return;
     }
 
     axis = axis.normalized();
 
-    T half_angle = T(0.5)*angle;
-    T c = cos(half_angle);
-    T s = sin(half_angle);
+    double half_angle = 0.5*angle;
+    double c = cos(half_angle);
+    double s = sin(half_angle);
     
     this->w = c;
     this->x = s * axis.x;
@@ -99,31 +98,30 @@ public:
   }
 
   //constructor from string
-  explicit Quaternion4(String value) {
+  explicit Quaternion(String value) {
     std::istringstream parser(value);
-    T w, x, y, z;
-    parser >> w >> x >> y >> z;
-    *this = Quaternion4(w, x, y, z);
+    double w, x, y, z; parser >> w >> x >> y >> z;
+    *this = Quaternion(w, x, y, z);
   }
 
   //isNull
   bool isNull() const {
-    return w == T(0) && x == T(0) && y == T(0) && z == T(0);
+    return w == 0.0 && x == 0.0 && y == 0.0 && z == 0.0;
   }
 
   //isIdentity
   bool isIdentity() const {
-    return w == T(1) && x == T(0) && y == T(0) && z == T(0);
+    return w == 1.0 && x == 0.0 && y == 0.0 && z == 0.0;
   }
 
   //identity
-  static Quaternion4 identity() {
-    return Quaternion4();
+  static Quaternion identity() {
+    return Quaternion();
   }
 
   //null
-  static Quaternion4 null() {
-    return Quaternion4(T(0), T(0), T(0), T(0));
+  static Quaternion null() {
+    return Quaternion(0.0, 0.0, 0.0, 0.0);
   }
 
   //convert to string
@@ -134,19 +132,19 @@ public:
   }
 
   //return the main axis of rotation
-  Point3<T> getAxis() const {
-    return x!=T(0) || y!=T(0) || z!=T(0) ? Point3<T>(x, y, z).normalized() : Point3<T>(0,0,1);
+  Point3d getAxis() const {
+    return x!=0.0 || y!=0.0 || z!=0.0 ? Point3d(x, y, z).normalized() : Point3d(0,0,1);
   }
 
   //return the angle of rotation
-   T getAngle() const {
-     return T(2)*acos(Utils::clamp(w, -T(1), +T(1)));
+   double getAngle() const {
+     return 2.0*acos(Utils::clamp(w, -1.0, +1.0));
   }
 
   //q1*q2
-   Quaternion4 operator*(const Quaternion4& q2) const
+   Quaternion operator*(const Quaternion& q2) const
   {
-    return Quaternion4(
+    return Quaternion(
       w * q2.w - x * q2.x - y * q2.y - z * q2.z,
       w * q2.x + x * q2.w + y * q2.z - z * q2.y,
       w * q2.y + y * q2.w + z * q2.x - x * q2.z,
@@ -154,31 +152,31 @@ public:
   }
 
   //operator==
-  bool operator==(const Quaternion4& other) const {
+  bool operator==(const Quaternion& other) const {
     return w == other.w && x == other.x && y == other.y && z == other.z;
   }
 
   //operator!=
-  bool operator!=(const Quaternion4& other) const {
+  bool operator!=(const Quaternion& other) const {
     return !(operator==(other));
   }
 
   //q1*=q2
-   Quaternion4& operator*=(const Quaternion4& q2) {
+   Quaternion& operator*=(const Quaternion& q2) {
     (*this) = (*this)*q2; return *this;
   }
 
   //toEulerAngles (https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles)
-  static Quaternion4 fromEulerAngles(T roll, T pitch, T yaw)
+  static Quaternion fromEulerAngles(double roll, double pitch, double yaw)
   {
-	  T t0 = cos(yaw   * T(0.5));
-	  T t1 = sin(yaw   * T(0.5));
-	  T t2 = cos(roll  * T(0.5));
-	  T t3 = sin(roll  * T(0.5));
-	  T t4 = cos(pitch * T(0.5));
-	  T t5 = sin(pitch * T(0.5));
+	  double t0 = cos(yaw   * 0.5);
+	  double t1 = sin(yaw   * 0.5);
+	  double t2 = cos(roll  * 0.5);
+	  double t3 = sin(roll  * 0.5);
+	  double t4 = cos(pitch * 0.5);
+	  double t5 = sin(pitch * 0.5);
 
-    return Quaternion4(
+    return Quaternion(
       t0 * t2 * t4 + t1 * t3 * t5,
       t0 * t3 * t4 - t1 * t2 * t5,
       t0 * t2 * t5 + t1 * t3 * t4,
@@ -186,57 +184,57 @@ public:
   }
 
   //toEulerAngles (https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles)
-  Point3<T> toEulerAngles() const 
+  Point3d toEulerAngles() const 
   {
-    T ysqr = y * y;
+    double ysqr = y * y;
 
 	  // roll (x-axis rotation)
-	  T t0 = +T(2) * (w * x + y * z);
-	  T t1 = +T(1) - T(2) * (x * x + ysqr);
-	  T roll = atan2(t0, t1);
+	  double t0 = +2.0 * (w * x + y * z);
+	  double t1 = +1.0 - 2.0 * (x * x + ysqr);
+	  double roll = atan2(t0, t1);
 
 	  // pitch (y-axis rotation)
-	  T t2 = +T(2) * (w * y - z * x);
-	  t2 = t2 >  T(1) ? T(1) : t2;
-	  t2 = t2 < -T(1) ? -T(1) : t2;
-	  T pitch = asin(t2);
+	  double t2 = +2.0 * (w * y - z * x);
+	  t2 = t2 >  1.0 ? 1.0 : t2;
+	  t2 = t2 < -1.0 ? -1.0 : t2;
+	  double pitch = asin(t2);
 
 	  // yaw (z-axis rotation)
-	  T t3 = +T(2) * (w * z + x * y);
-	  T t4 = +T(1) - T(2) * (ysqr + z * z);  
-	  T yaw = atan2(t3, t4);
+	  double t3 = +2.0 * (w * z + x * y);
+	  double t4 = +1.0 - 2.0 * (ysqr + z * z);  
+	  double yaw = atan2(t3, t4);
 
-    return Point3<T>(roll,pitch,yaw);
+    return Point3d(roll,pitch,yaw);
   }
 
   //conjugate
-  Quaternion4 conjugate() const {
-    return Quaternion4(w, -x, -y, -z);
+  Quaternion conjugate() const {
+    return Quaternion(w, -x, -y, -z);
   }
 
   //operator*
-  Point3<T> operator*(const Point3<T>& p) const 
+  Point3d operator*(const Point3d& p) const 
   {
-    const T t2 = +this->w * this->x;
-    const T t3 = +this->w * this->y;
-    const T t4 = +this->w * this->z;
-    const T t5 = -this->x * this->x;
-    const T t6 = +this->x * this->y;
-    const T t7 = +this->x * this->z;
-    const T t8 = -this->y * this->y;
-    const T t9 = +this->y * this->z;
-    const T t1 = -this->z * this->z;
+    auto t2 = +this->w * this->x;
+    auto t3 = +this->w * this->y;
+    auto t4 = +this->w * this->z;
+    auto t5 = -this->x * this->x;
+    auto t6 = +this->x * this->y;
+    auto t7 = +this->x * this->z;
+    auto t8 = -this->y * this->y;
+    auto t9 = +this->y * this->z;
+    auto t1 = -this->z * this->z;
 
-    T x = T(2) * ((t8 + t1) * p.x + (t6 - t4) * p.y + (t3 + t7) * p.z) + p.x;
-    T y = T(2) * ((t4 + t6) * p.x + (t5 + t1) * p.y + (t9 - t2) * p.z) + p.y;
-    T z = T(2) * ((t7 - t3) * p.x + (t2 + t9) * p.y + (t5 + t8) * p.z) + p.z;
+    auto x = 2.0 * ((t8 + t1) * p.x + (t6 - t4) * p.y + (t3 + t7) * p.z) + p.x;
+    auto y = 2.0 * ((t4 + t6) * p.x + (t5 + t1) * p.y + (t9 - t2) * p.z) + p.y;
+    auto z = 2.0 * ((t7 - t3) * p.x + (t2 + t9) * p.y + (t5 + t8) * p.z) + p.z;
 
-    return Point3<T>(x, y, z);
+    return Point3d(x, y, z);
   }
 
-}; //end class Quaternion4
+}; //end class Quaternion
 
-typedef Quaternion4<double> Quaternion4d;
+
 
 } //namespace Visus
 

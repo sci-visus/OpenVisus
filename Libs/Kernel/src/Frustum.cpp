@@ -53,11 +53,11 @@ double Frustum::computeDistance(const Position& obj,Point2d screen_point,bool bU
     return failed;
 
   Frustum frustum=*this;
-  frustum.multModelview(obj.getTransformation());
+  frustum.multModelview(obj.T);
 
   auto ray=FrustumMap(frustum).getRay(screen_point);
 
-  RayBoxIntersection intersection(ray,obj.getBox());
+  RayBoxIntersection intersection(ray,obj.box.toBox3());
 
   if (!intersection.valid)
     return failed;
@@ -84,9 +84,9 @@ double Frustum::computeZDistance(const Position& obj,bool bUseFarPoint) const
     return failed;
 
   Frustum frustum=*this;
-  frustum.multModelview(obj.getTransformation());
+  frustum.multModelview(obj.T);
 
-  Box3d box=obj.getBox();
+  Box3d box=obj.box.toBox3();
 
   std::vector<Point3d> p;
   p.reserve(8);

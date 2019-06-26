@@ -372,10 +372,10 @@ public:
     auto vf    = child.dataset; VisusAssert(vf);
     auto field = vf->getFieldByName(fieldname); VisusAssert(field.valid());
 
-    auto BOX = Position(M, vf->getBox()).toAxisAlignedBox();
+    auto BOX = Position(M, vf->getBox()).withoutTransformation().box.toBox3();
 
     //no intersection? just skip this down query
-    if (!QUERY->position.toAxisAlignedBox().intersect(BOX))
+    if (!QUERY->position.withoutTransformation().box.toBox3().intersect(BOX))
       return SharedPtr<Query>();
 
     auto query = std::make_shared<Query>(vf.get(), 'r');
@@ -397,8 +397,8 @@ public:
         (value.size().z ? value.size().z : 1);
     };
 
-    auto VOLUME = ComputeVolume(Position(   VF->getBox()).toAxisAlignedBox());
-    auto volume = ComputeVolume(Position(M, vf->getBox()).toAxisAlignedBox());
+    auto VOLUME = ComputeVolume(Position(   VF->getBox()).withoutTransformation().box.toBox3());
+    auto volume = ComputeVolume(Position(M, vf->getBox()).withoutTransformation().box.toBox3());
     int delta_h = -(int)log2(VOLUME / volume);
 
     //resolutions
@@ -416,8 +416,8 @@ public:
     query->end_resolutions = std::vector<int>(end_resolutions.begin(), end_resolutions.end());
     query->max_resolution = vf->getMaxResolution();
 
-    auto QUERY_T   = QUERY->position.getTransformation();
-    auto QUERY_BOX = QUERY->position.getBox();
+    auto QUERY_T   = QUERY->position.T;
+    auto QUERY_BOX = QUERY->position.box.toBox3();
 
     // WRONG, consider that M could have mat(3,0) | mat(3,1) | mat(3,2) !=0 and so I can have non-parallel axis
     // i.e. computing the bounding box in position very far from the mapped region are wrong because some axis of the quads can interect in some points
@@ -425,7 +425,7 @@ public:
     // if you use this wrong version, for voronoi in 2d you will see some missing pieces around
     // solution is to limit the QUERY_BOX into a more "local" one
 #if 1
-    QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).toAxisAlignedBox().getIntersection(QUERY_BOX);
+    QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).withoutTransformation().box.toBox3().getIntersection(QUERY_BOX);
 #endif
 
     query->position = Position(M.invert(), QUERY_T, QUERY_BOX);
@@ -509,15 +509,15 @@ public:
     query->down_info.BUFFER.alpha->fillWithValue(0);
 
     auto PIXEL_TO_LOGIC =
-      QUERY->position.getTransformation() *
-      Matrix::translate(QUERY->position.getBox().p1) *
-      Matrix::nonZeroScale(QUERY->position.getBox().size()) *
+      QUERY->position.T *
+      Matrix::translate(QUERY->position.box.toBox3().p1) *
+      Matrix::nonZeroScale(QUERY->position.box.toBox3().size()) *
       Matrix::invNonZeroScale(query->down_info.BUFFER.dims.toPoint3d());
 
     auto pixel_to_logic =
-      query->position.getTransformation() *
-      Matrix::translate(query->position.getBox().p1) *
-      Matrix::nonZeroScale(query->position.getBox().size()) *
+      query->position.T *
+      Matrix::translate(query->position.box.toBox3().p1) *
+      Matrix::nonZeroScale(query->position.box.toBox3().size()) *
       Matrix::invNonZeroScale(query->buffer.dims.toPoint3d());
 
     // Tperspective := PIXEL <- pixel
@@ -699,9 +699,9 @@ public:
     {
       if (output.dims[D] == 1 && QUERY->nsamples[D] > 1)
       {
-        auto box = output.bounds.getBox();
+        auto box = output.bounds.box.toBox3();
         box.p2[D] = box.p1[D];
-        output.bounds = Position(output.bounds.getTransformation(), box);
+        output.bounds = Position(output.bounds.T, box);
         output.clipping = Position::invalid(); //disable clipping
       }
     }
@@ -909,7 +909,7 @@ String IdxMultipleDataset::removeAliases(String url)
 
 
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
+void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix T)
 {
   VisusAssert(istream.getCurrentContext()->name == "dataset");
   String url = istream.readInline("url");
@@ -969,9 +969,9 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
     if (!value.empty())
     {
       if (StringUtils::split(value, " ").size() == 9)
-        child.M *= Matrix4(Matrix3(value));
+        child.M *= Matrix(Matrix3(value));
       else
-        child.M *= Matrix4(value);
+        child.M *= Matrix(value);
     }
 
     for (auto it : istream.getCurrentContext()->getChilds())
@@ -988,7 +988,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
         double x = Utils::degreeToRadiant(cdouble(it->readString("x", "0.0")));
         double y = Utils::degreeToRadiant(cdouble(it->readString("y", "0.0")));
         double z = Utils::degreeToRadiant(cdouble(it->readString("z", "0.0")));
-        child.M *= Matrix::rotate(Quaternion4d::fromEulerAngles(x, y, z));
+        child.M *= Matrix::rotate(Quaternion::fromEulerAngles(x, y, z));
       }
       else if (it->name == "scale")
       {
@@ -1016,7 +1016,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
 }
 
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDatasets(ObjectStream& istream,Matrix4 T)
+void IdxMultipleDataset::parseDatasets(ObjectStream& istream, Matrix T)
 {
   auto context = istream.getCurrentContext();
 
@@ -1061,7 +1061,7 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream,Matrix4 T)
         double x = Utils::degreeToRadiant(cdouble(istream.readInline("x", "0.0")));
         double y = Utils::degreeToRadiant(cdouble(istream.readInline("y", "0.0")));
         double z = Utils::degreeToRadiant(cdouble(istream.readInline("z", "0.0")));
-        T *= Matrix::rotate(Quaternion4d::fromEulerAngles(x, y, z));
+        T *= Matrix::rotate(Quaternion::fromEulerAngles(x, y, z));
         parseDatasets(istream, T);
       }
       istream.popContext("rotate");
@@ -1179,7 +1179,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       Box3d PHYSICAL_BOX = Box3d::invalid();
       for (auto it : childs)
       {
-        auto physical_box = Position(it.second.M, it.second.dataset->getBox()).toAxisAlignedBox();
+        auto physical_box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().box.toBox3();
         PHYSICAL_BOX = PHYSICAL_BOX.getUnion(physical_box);
       }
 
@@ -1188,7 +1188,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       {
         auto dataset = it.second.dataset;
         auto M = it.second.M;
-        auto logic_box = Position(dataset->getBox()).toAxisAlignedBox();
+        auto logic_box = Position(dataset->getBox()).withoutTransformation().box.toBox3();
         auto tot_pixels = dataset->getBox().size().innerProduct();
 
         if (pdim == 2)
@@ -1216,11 +1216,11 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       auto scale = pow(DENSITY[max_density], 1.0 / pdim);
 
       auto T =
-        Matrix4::scale(Point3d(
+        Matrix::scale(Point3d(
           pdim >= 1 ? scale : 1.0,
           pdim >= 2 ? scale : 1.0,
           pdim >= 3 ? scale : 1.0)) *
-        Matrix4::translate(-PHYSICAL_BOX.p1);
+        Matrix::translate(-PHYSICAL_BOX.p1);
 
       for (auto it : childs)
         it.second.M = T * it.second.M;
@@ -1230,7 +1230,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     IDXFILE.box = NdBox::invalid(pdim);
     for (auto it : childs)
     {
-      auto box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().getNdBox();
+      auto box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().getNdBox().withPointDim(pdim);
       IDXFILE.box = IDXFILE.box.getUnion(box);
     }
   }
@@ -1292,20 +1292,27 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     this->fields.clear();
     this->find_field.clear();
 
+    int generate_name = 0;
+
     while (istream.pushContext("field"))
     {
-      String name = istream.readInline("name"); VisusAssert(!name.empty());
+      String name = istream.readInline("name"); 
+      if (name.empty())
+        name = StringUtils::format() << "field_" + generate_name++;
 
       //I expect to find here CData node or Text node...
       istream.pushContext("code");
       String code = istream.readText(); VisusAssert(!code.empty());
       istream.popContext("code");
 
-      Field FIELD = getFieldByName(code); VisusAssert(FIELD.valid());
-      ParseStringParams parse(name);
-      FIELD.params = parse.params; //important for example in case I want to override the time
-      FIELD.setDescription(parse.without_params);
-      addField(FIELD);
+      Field FIELD = getFieldByName(code); 
+      if (FIELD.valid())
+      {
+        ParseStringParams parse(name);
+        FIELD.params = parse.params; //important for example in case I want to override the time
+        FIELD.setDescription(parse.without_params);
+        addField(FIELD);
+      }
 
       istream.popContext("field");
     }

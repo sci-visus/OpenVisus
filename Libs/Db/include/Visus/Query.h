@@ -156,8 +156,12 @@ public:
   std::map<String, SharedPtr<Query> >  down_queries;
 
   // for point queries
-  SharedPtr<HeapMemory> point_coordinates;
-
+  struct
+  {
+    SharedPtr<HeapMemory> coordinates;
+  }
+  point_query;
+  
   //constructor
   Query(Dataset* dataset,int mode);
 
@@ -173,7 +177,7 @@ public:
 
   //isPointQuery
   bool isPointQuery() const {
-    return point_coordinates ? true : false;
+    return point_query.coordinates ? true : false;
   }
 
   //isRunning

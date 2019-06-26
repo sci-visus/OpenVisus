@@ -109,9 +109,9 @@ public:
     //scrgiorgio: not sure this is correct!
     Matrix pixel_to_physic;
     pixel_to_physic=
-      this->data.bounds.getTransformation() *
-      Matrix::translate(this->data.bounds.getBox().p1) *
-      Matrix::scale(this->data.bounds.getBox().size()) *
+      this->data.bounds.T *
+      Matrix::translate(this->data.bounds.box.toBox3().p1) *
+      Matrix::scale(this->data.bounds.box.toBox3().size()) *
       Matrix::scale(dims.inv());
 
     TRSMatrixDecomposition trs(pixel_to_physic);
@@ -403,9 +403,9 @@ public:
     //scrgiorgio: not sure this is correct!
     Matrix pixel_to_physic;
     pixel_to_physic=
-      this->Data.bounds.getTransformation() *
-      Matrix::translate(this->Data.bounds.getBox().p1) *
-      Matrix::scale(this->Data.bounds.getBox().size()) *
+      this->Data.bounds.T *
+      Matrix::translate(this->Data.bounds.box.toBox3().p1) *
+      Matrix::scale(this->Data.bounds.box.toBox3().size()) *
       Matrix::scale(dims.inv());
     
     TRSMatrixDecomposition trs(pixel_to_physic);
@@ -439,9 +439,9 @@ public:
       ScopedLock lock(this->centerlines->lock);
       firstCluster->nodeid=this->centerlines->mkVert(Sphere(firstCluster->nodepos,diam/2));
 
-      Box3d geometric_box=this->centerlines->bounds.getBox();
+      Box3d geometric_box=this->centerlines->bounds.box.toBox3();
       geometric_box.addPoint(firstCluster->nodepos);
-      this->centerlines->bounds=Position(this->centerlines->bounds.getTransformation(),geometric_box);
+      this->centerlines->bounds=Position(this->centerlines->bounds.T,geometric_box);
     }
 
     return firstCluster;
@@ -460,9 +460,9 @@ public:
     //scrgiorgio: not sure this is correct!
     Matrix pixel_to_physic;
     pixel_to_physic=
-      this->Data.bounds.getTransformation() *
-      Matrix::translate(this->Data.bounds.getBox().p1) *
-      Matrix::scale(this->Data.bounds.getBox().size()) *
+      this->Data.bounds.T *
+      Matrix::translate(this->Data.bounds.box.toBox3().p1) *
+      Matrix::scale(this->Data.bounds.box.toBox3().size()) *
       Matrix::scale(dims.inv());
 
     TRSMatrixDecomposition trs(pixel_to_physic);
@@ -585,9 +585,9 @@ public:
           ScopedLock lock(this->centerlines->lock);
           newcluster.nodeid=this->centerlines->mkVert(Sphere(newpos,diam/2));
 
-          Box3d geometric_box=this->centerlines->bounds.getBox();
+          Box3d geometric_box=this->centerlines->bounds.box.toBox3();
           geometric_box.addPoint(newpos);
-          this->centerlines->bounds=Position(this->centerlines->bounds.getTransformation(),geometric_box);
+          this->centerlines->bounds=Position(this->centerlines->bounds.T,geometric_box);
           this->centerlines->mkEdge(newcluster.nodeid,cluster.nodeid,(Float32)(newpos-cluster.nodepos).module());
         }
 

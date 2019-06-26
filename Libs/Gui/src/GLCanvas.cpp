@@ -166,7 +166,7 @@ void GLCanvas::setUniformMatrix(const GLUniform& uniform,const Matrix3& T)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-void GLCanvas::setUniformMatrix(const GLUniform& uniform,const Matrix4& T)
+void GLCanvas::setUniformMatrix(const GLUniform& uniform,const Matrix& T)
 {
   int location=program->getUniformLocation(uniform); if (location<0) return; 
   const float fv[]={(float)T[ 0],(float)T[ 4],(float)T[ 8],(float)T[12],

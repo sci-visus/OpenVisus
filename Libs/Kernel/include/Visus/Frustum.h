@@ -174,13 +174,13 @@ public:
   double computeZDistance(const Position& obj,bool bUseFarPoint=false) const;
 
   //getViewportDirectTransformation (-1,+1)x(-1,+1) -> (x,x+width)x(y,y+height)
-  static Matrix4 getViewportDirectTransformation(const Viewport& viewport) 
+  static Matrix getViewportDirectTransformation(const Viewport& viewport)
   {
     double sx = viewport.width  / 2.0; double ox = viewport.x + viewport.width / 2.0;
     double sy = viewport.height / 2.0; double oy = viewport.y + viewport.height / 2.0;
     double sz = 1 / 2.0; double oz = 1 / 2.0;
 
-    return Matrix4(
+    return Matrix(
       sx, 0, 0, ox,
       0, sy, 0, oy,
       0, 0, sz, oz,
@@ -193,13 +193,13 @@ public:
   }
 
   //getViewportInverseTransformation
-  static Matrix4 getViewportInverseTransformation(const Viewport& viewport)
+  static Matrix getViewportInverseTransformation(const Viewport& viewport)
   {
     double sx = viewport.width  / 2.0; double ox = viewport.x + viewport.width  / 2.0;
     double sy = viewport.height / 2.0; double oy = viewport.y + viewport.height / 2.0;
     double sz = 1 / 2.0; double oz = 1 / 2.0;
 
-    return Matrix4(
+    return Matrix(
       1 / sx, 0, 0, -ox / sx,
       0, 1 / sy, 0, -oy / sy,
       0, 0, 1 / sz, -oz / sz,
@@ -207,7 +207,7 @@ public:
   }
 
   //getViewportInverseTransformation
-  Matrix4 getViewportInverseTransformation() const {
+  Matrix getViewportInverseTransformation() const {
     return getViewportInverseTransformation(viewport);
   }
 

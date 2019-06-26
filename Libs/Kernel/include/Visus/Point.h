@@ -790,6 +790,12 @@ public:
   }
 
   //constructor
+  explicit PointN(const PointN& left, T right) {
+    *this = left;
+    this->push_back(right);
+  }
+
+  //constructor
   explicit PointN(T x, T y) : PointN(2, x, y, 0, 0, 0) {
   }
 
@@ -809,6 +815,31 @@ public:
   explicit PointN(Point3<T> p) : PointN(p.x, p.y, p.z) {
   }
 
+  //push_back
+  void push_back(T value) {
+    this->coords[pdim++] = value;
+  }
+
+  //pop_back
+  void pop_back() {
+    VisusAssert(pdim);
+    pdim--;
+  }
+
+  //back
+  T back() const {
+    VisusAssert(pdim);
+    return coords[pdim - 1];
+  }
+
+  //dropHomogeneousCoordinate
+  PointN dropHomogeneousCoordinate() const {
+    PointN ret(this->pdim-1);
+    for (int I = 0; I < this->pdim-1; I++)
+      ret[I] = this->get(I) / this->back();
+    return ret;
+  }
+
   //castTo
   template <typename Other>
   Other castTo() const {
@@ -824,7 +855,7 @@ public:
   }
 
   //setPointDim
-  void setPointDim(int new_pdim, T default_value) {
+  void setPointDim(int new_pdim, T default_value=0.0) {
     auto old_pdim = this->pdim;
     this->pdim = new_pdim;
     for (int I = old_pdim; I < new_pdim; I++)
@@ -960,11 +991,12 @@ public:
   //a==b
   bool operator==(const PointN& other) const {
     return
-      coords[0] == other.coords[0] &&
-      coords[1] == other.coords[1] &&
-      coords[2] == other.coords[2] &&
-      coords[3] == other.coords[3] &&
-      coords[4] == other.coords[4];
+      (this->pdim==other.pdim) && 
+      (this->pdim >= 1 ? coords[0] == other.coords[0] : true ) &&
+      (this->pdim >= 2 ? coords[1] == other.coords[1] : true ) &&
+      (this->pdim >= 3 ? coords[2] == other.coords[2] : true ) &&
+      (this->pdim >= 4 ? coords[3] == other.coords[3] : true ) &&
+      (this->pdim >= 5 ? coords[4] == other.coords[4] : true );
   }
 
   //a!=b
@@ -1252,6 +1284,10 @@ inline NdPoint convertTo<NdPoint, PointNd>(const PointNd& value) {
   return value.castTo<NdPoint>();
 }
 
+template <>
+inline PointNd convertTo<PointNd, Point3d>(const Point3d& value) {
+  return PointNd(value[0], value[1], value[2]);
+}
 
 } //namespace Visus
 

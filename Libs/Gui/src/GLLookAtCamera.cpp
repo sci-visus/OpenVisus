@@ -238,7 +238,7 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt)
     {
       beginUpdate();
 
-      this->quaternion= Quaternion4d(axis,angle*defaultRotFactor) * this->quaternion;
+      this->quaternion= Quaternion(axis,angle*defaultRotFactor) * this->quaternion;
 
       if (bAutoOrthoParams)
         guessOrthoParams();
@@ -355,7 +355,7 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
 //////////////////////////////////////////////////////////////////////
 bool GLLookAtCamera::guessPosition(Position position,int ref) 
 {
-  Box3d bound=position.toAxisAlignedBox();
+  Box3d bound=position.withoutTransformation().box.toBox3();
 
   beginUpdate();
   {
@@ -379,7 +379,7 @@ bool GLLookAtCamera::guessPosition(Position position,int ref)
     }
 
     //at the beginning no rotation
-    this->quaternion= Quaternion4d();
+    this->quaternion= Quaternion();
   }
 
   guessOrthoParams();
@@ -409,7 +409,7 @@ void GLLookAtCamera::setLookAt(Point3d pos, Point3d center, Point3d vup)
     this->dir= (center - pos).normalized();
     this->vup= vup;
     this->centerOfRotation = center;
-    this->quaternion= Quaternion4d();
+    this->quaternion= Quaternion();
   }
   guessOrthoParams();
   endUpdate();
@@ -617,7 +617,7 @@ void GLLookAtCamera::readFromObjectStream(ObjectStream& istream)
     dir = Point3d(istream.read("dir"));
     vup = Point3d(istream.read("vup"));
     centerOfRotation = Point3d(istream.read("centerOfRotation"));
-    quaternion = Quaternion4d(istream.read("quaternion"));
+    quaternion = Quaternion(istream.read("quaternion"));
     return;
   }
 
@@ -627,7 +627,7 @@ void GLLookAtCamera::readFromObjectStream(ObjectStream& istream)
   pos              = Point3d(istream.read("pos"));
   dir              = Point3d(istream.read("dir"));
   vup              = Point3d(istream.read("vup"));
-  quaternion       = Quaternion4d(istream.read("quaternion"));
+  quaternion       = Quaternion(istream.read("quaternion"));
   centerOfRotation = Point3d(istream.read("centerOfRotation"));
   defaultRotFactor =cdouble(istream.read("defaultRotFactor"));
   defaultPanFactor =cdouble(istream.read("defaultPanFactor"));

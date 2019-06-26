@@ -79,9 +79,8 @@ public:
 
   //getBox
   Box3d getBox() const {
-
     auto position = Position(dataset->getBox());
-    return position.getBox();
+    return position.box.toBox3();
   }
 
   //getNodeBounds

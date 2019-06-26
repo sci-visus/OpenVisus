@@ -136,8 +136,8 @@ public:
   {return !(*this==other);}
 
   //toMatrix
-  Matrix4 toMatrix() const {
-    return Matrix4(
+  Matrix toMatrix() const {
+    return Matrix(
       x[0],y[0],z[0],c[0],
       x[1],y[1],z[1],c[1],
       x[2],y[2],z[2],c[2],

@@ -157,7 +157,7 @@ private:
 
   //modelview
   Point3d      pos,dir,vup;
-  Quaternion4d quaternion;
+  Quaternion quaternion;
   Point3d      centerOfRotation;
 
   //forward

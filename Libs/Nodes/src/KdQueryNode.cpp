@@ -103,6 +103,7 @@ public:
     if (mode == KdQueryMode::UseBlockQuery && !access)
       return false;
 
+    auto pdim = dataset->getPointDim();
     this->bitsperblock=access? access->bitsperblock : dataset->getDefaultBitsPerBlock();
 
     //publish interval
@@ -118,13 +119,13 @@ public:
     }
 
     //find intersection with dataset box
-    position=Position::shrink(Position(dataset->getBox()).withoutTransformation().getBox(),MatrixMap(Matrix::identity()),position);
+    position=Position::shrink(Position(dataset->getBox()).withoutTransformation().box.toBox3(),MatrixMap(Matrix::identity()),position);
 
     if (!position.valid()) 
       return false;
 
     //remove transformation
-    position = Position(position.withoutTransformation().getNdBox().getIntersection(dataset->getBox()));
+    position = Position(position.withoutTransformation().getNdBox().withPointDim(pdim).getIntersection(dataset->getBox()));
     if (!position.valid()) 
       return false;
 
@@ -137,7 +138,7 @@ public:
     {
       ScopedWriteLock wlock(kdarray->lock);
 
-      kdarray->query_box = position.getNdBox();
+      kdarray->query_box = position.getNdBox().withPointDim(pdim);
       kdarray->end_resolution = end_resolutions.back();
 
       this->bBlocksAreFullRes = std::dynamic_pointer_cast<GoogleMapsDataset>(dataset) ? true : false;

@@ -787,7 +787,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   {
     Matrix  map = Matrix(request.url.getParam("matrix"));
     Box3d   box = Box3d::parseFromString(request.url.getParam("box"));
-    query->position = (Position(map, box));
+    query->position = Position(map, box);
   }
   else
   {

@@ -69,8 +69,8 @@ LocalCoordinateSystem::LocalCoordinateSystem(const Matrix& T)
 ////////////////////////////////////////////////////////////////////
 LocalCoordinateSystem::LocalCoordinateSystem(const Position& pos)
 {
-  const Matrix& T=pos.getTransformation();
-  Box3d box=pos.getBox();
+  auto T=pos.T;
+  auto box=pos.box.toBox3();
   Point3d Pc=T * box.center();
   Point3d P0=T * box.getPoint(0);
   Point3d Px=T * box.getPoint(1);

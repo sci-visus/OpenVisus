@@ -153,7 +153,6 @@ private:
     widgets.dir.y->setText(std::to_string(dir.y).c_str());
     widgets.dir.z->setText(std::to_string(dir.z).c_str());
 
-
     widgets.vup.x->setText(std::to_string(vup.x).c_str());
     widgets.vup.y->setText(std::to_string(vup.y).c_str());
     widgets.vup.z->setText(std::to_string(vup.z).c_str());

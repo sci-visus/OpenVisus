@@ -475,6 +475,19 @@ public:
     return p1.getPointDim();
   }
 
+  //setPointDim
+  void setPointDim(int pdim) {
+    p1.setPointDim(pdim);
+    p2.setPointDim(pdim);
+  }
+
+  //withPointDim
+  BoxN withPointDim(int pdim) const {
+    auto ret = *this;
+    ret.setPointDim(pdim);
+    return ret;
+  }
+
   //return an invalid box
   static BoxN invalid(int pdim) {
     return BoxN(
@@ -643,11 +656,9 @@ public:
   //parseFromOldFormatString
   static BoxN parseFromOldFormatString(int pdim,String src)
   {
-    auto tmp = BoxN::parseFromString(src);
-    tmp.p1.setPointDim(pdim, 0);
-    tmp.p2.setPointDim(pdim, 0);
-    tmp.p2 += Point::one(pdim);
-    return tmp;
+    auto ret = BoxN::parseFromString(src).withPointDim(pdim);
+    ret.p2 += Point::one(pdim);
+    return ret;
   }
 
   //writeToObjectStream`
@@ -678,6 +689,11 @@ inline BoxNd convertTo< BoxNd, BoxNi>(const BoxNi& value) {
 template <>
 inline BoxNi convertTo< BoxNi, BoxNd>(const BoxNd& value) {
   return BoxNi(convertTo<PointNi>(value.p1), convertTo<PointNi>(value.p2));
+}
+
+template <>
+inline BoxNd convertTo< BoxNd, Box3d>(const Box3d& value) {
+  return BoxNd(convertTo<PointNd>(value.p1), convertTo<PointNd>(value.p2));
 }
 
 } //namespace Visus

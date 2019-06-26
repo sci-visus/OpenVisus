@@ -647,7 +647,7 @@ int Viewer::getWorldDimension() const
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Box3d Viewer::getWorldBoundingBox() const
 {
-  return getNodeBounds(getRoot()).toAxisAlignedBox();
+  return getNodeBounds(getRoot()).withoutTransformation().box.toBox3();
 }
 
 
@@ -694,7 +694,7 @@ Position Viewer::getNodeBounds(Node* node,bool bRecursive) const
     {
       Position child_bounds=getNodeBounds(child,true); 
       if (child_bounds.valid())
-        box=box.getUnion(child_bounds.toAxisAlignedBox());
+        box=box.getUnion(child_bounds.withoutTransformation().box.toBox3());
     }
     return Position(T,box);
   }
@@ -832,8 +832,8 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
 
     free_transform->objectChanged.connect([this,query_node](Position query_pos)
     {
-      auto T  =query_pos.getTransformation();
-      auto box=query_pos.getBox();
+      auto T  =query_pos.T;
+      auto box=query_pos.box.toBox3();
 
       TRSMatrixDecomposition trs(T);
 
@@ -887,7 +887,7 @@ void Viewer::beginFreeTransform(ModelViewNode* modelview_node)
 
     free_transform->objectChanged.connect([this,modelview_node,bounds](Position obj)
     {
-      Matrix T=obj.getTransformation() * bounds.getTransformation().invert();
+      Matrix T=obj.T * bounds.T.invert();
       modelview_node->setModelview(T);
       refreshData(modelview_node);
     });
@@ -2789,7 +2789,7 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
   query_node->setQuality(Query::DefaultQuality);
 
   {
-    Box3d box=dataset_node->getNodeBounds().toAxisAlignedBox();
+    Box3d box=dataset_node->getNodeBounds().withoutTransformation().box.toBox3();
     if (dim==3)
     {
       const double Scale=1.0;
@@ -2901,7 +2901,7 @@ KdQueryNode* Viewer::addKdQueryNode(Node* parent,DatasetNode* dataset_node,Strin
   query_node->setQuality(Query::DefaultQuality);
 
   {
-    Box3d box=dataset_node->getNodeBounds().toAxisAlignedBox();
+    Box3d box=dataset_node->getNodeBounds().withoutTransformation().box.toBox3();
     const double Scale=1.0;
     if (dataset_dim==3 && Scale!=1)  
       box=box.scaleAroundCenter(Scale);

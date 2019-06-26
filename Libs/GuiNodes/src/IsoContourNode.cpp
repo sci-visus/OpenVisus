@@ -214,14 +214,14 @@ public:
     if (!ExecuteOnCppSamples(op,this->data.dtype,*isocontour,data,isovalue,vertices_per_batch,aborted))
       return;
 
-    Box3d   box=data.bounds.getBox();
+    Box3d   box=data.bounds.box.toBox3();
     Point3i dims(data.getWidth(),data.getHeight(),data.getDepth());
 
     isocontour->field.array   = data; //pass through
     isocontour->field.texture = std::make_shared<GLTexture>(data);
     
     isocontour->bounds = Position(
-      data.bounds.getTransformation(),
+      data.bounds.T,
       /*--- begin_remap  box <- dims*/
       Matrix::translate(box.p1),
       Matrix::scale(Point3d(box.size().x/dims.x,box.size().y/dims.y,box.size().z/dims.z)),

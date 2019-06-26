@@ -275,7 +275,7 @@ public:
   void setUniformMatrix(const GLUniform& uniform,const Matrix3& T);
 
   //setUniformMatrix
-  void setUniformMatrix(const GLUniform& uniform,const Matrix4& T);
+  void setUniformMatrix(const GLUniform& uniform,const Matrix& T);
 
   //pushClippingBox
   void pushClippingBox(const Box3d& box)
@@ -297,8 +297,8 @@ public:
   void pushClippingBox(const Position& position)
   {
     Matrix save_modelview = getModelview();
-    multModelview(position.getTransformation());
-    pushClippingBox(position.getBox());
+    multModelview(position.T);
+    pushClippingBox(position.box.toBox3());
     loadModelview(save_modelview);
   }
 

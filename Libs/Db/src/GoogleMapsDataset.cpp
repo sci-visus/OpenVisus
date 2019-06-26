@@ -179,13 +179,13 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query)
   Position position=query->position;
 
   //not supported
-  if (!position.getTransformation().isIdentity())
+  if (!position.T.isIdentity())
   {
     query->setFailed("Position has non-identity transformation");
     return false;
   }
 
-  auto user_box= query->position.getNdBox().getIntersection(this->getBox());
+  auto user_box= query->position.getNdBox().withPointDim(this->getPointDim()).getIntersection(this->getBox());
 
   if (!user_box.isFullDim())
   {
@@ -212,7 +212,7 @@ void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_q
   if (query->aborted()) 
     return;
 
-  if (!box.getIntersection(query->position.getNdBox()).isFullDim())
+  if (!box.getIntersection(query->position.getNdBox().withPointDim(this->getPointDim())).isFullDim())
     return;
 
   int samplesperblock=1<<this->getDefaultBitsPerBlock();
@@ -458,7 +458,7 @@ bool GoogleMapsDataset::setCurrentEndResolution(SharedPtr<Query> query)
   VisusAssert(query->start_resolution<=end_resolution);
   VisusAssert(end_resolution<=max_resolution);
   
-  auto user_box= query->position.getNdBox().getIntersection(this->getBox());
+  auto user_box= query->position.getNdBox().withPointDim(this->getPointDim()).getIntersection(this->getBox());
   VisusAssert(user_box.isFullDim());
 
   int H=end_resolution;

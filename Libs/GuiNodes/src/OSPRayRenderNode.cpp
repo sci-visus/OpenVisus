@@ -138,7 +138,7 @@ public:
 
     VisusInfo() << data.bounds.toString();
 
-    const Box3d grid = data.bounds.toAxisAlignedBox();
+    const Box3d grid = data.bounds.withoutTransformation().box.toBox3();
 
     // Scale the smaller volumes we get while loading progressively to fill the true bounds
     // of the full dataset
@@ -229,8 +229,8 @@ public:
       gl.pushModelview();
       gl.pushProjection();
 
-      gl.setModelview(Matrix4::identity());
-      gl.setProjection(Matrix4::identity());
+      gl.setModelview(Matrix::identity());
+      gl.setProjection(Matrix::identity());
 
       gl.glRenderMesh(GLMesh::Quad(Point3d(-1, -1, 0.5), Point3d(1, -1, 0.5),
         Point3d(1, 1, 0.5), Point3d(-1, 1, 0.5), false, true));

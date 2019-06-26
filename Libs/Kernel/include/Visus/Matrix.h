@@ -266,10 +266,10 @@ public:
   }
 
   //rotate from quaternion
-  static Matrix3 rotate(const Quaternion4d& q);
+  static Matrix3 rotate(const Quaternion& q);
 
   //toQuaternion
-  Quaternion4d toQuaternion() const;
+  Quaternion toQuaternion() const;
 
   //scaleAroundCenter
   static Matrix3 scaleAroundCenter(Point2d center,double vs) {
@@ -289,7 +289,6 @@ inline Point3d operator*(Point3d p,const Matrix3& T){
 inline Point2d operator*(const Matrix3& T, const Point2d& p) {
   return (T * Point3d(p, 1)).dropHomogeneousCoordinate();
 }
-
 
 
 //////////////////////////////////////////////////////////
@@ -591,7 +590,7 @@ public:
   static Matrix4 rotate(Point3d axis,double angle);
 
   //rotate from quaternion
-  static Matrix4 rotate(const Quaternion4d& q);
+  static Matrix4 rotate(const Quaternion& q);
 
   //rotateAroundCenter
   static Matrix4 rotateAroundAxis(Point3d axis,double angle);
@@ -626,7 +625,7 @@ public:
   static Matrix4 viewport(int x,int y,int width,int height);
 
   //toQuaternion
-  Quaternion4d toQuaternion() const;
+  Quaternion toQuaternion() const;
 
   //swapColums
   Matrix4 swapColums(int C1,int C2) const
@@ -769,7 +768,7 @@ public:
 
   //equivalent to T(translate) * R(rotate)  * S(scale) 
   Point3d      translate;
-  Quaternion4d rotate;
+  Quaternion rotate;
   Point3d      scale;
 
   //constructor
@@ -831,6 +830,277 @@ public:
 
 };
 
+
+
+///////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API MatrixNd
+{
+public:
+
+  int dim = 0;
+  std::vector<double> mat;
+
+  //default constructor
+  MatrixNd() {
+  }
+
+  // constructor
+  MatrixNd(int dim_, std::vector<double> mat_) 
+    : dim(dim_), mat(mat_) {
+    VisusAssert(dim * dim == mat.size());
+  }
+
+  // constructor
+  MatrixNd(const MatrixNd& other) 
+    : MatrixNd(other.dim,other.mat) {
+  }
+
+  // constructor 
+  explicit MatrixNd(int dim) 
+    : MatrixNd(dim, std::vector<double>(dim* dim, 0.0)) {
+    for (int I = 0; I < dim; I++)
+      get(I, I) = 1.0;
+  }
+
+  // constructor 
+  explicit MatrixNd(double a00, double a01, double a10, double a11) 
+    : MatrixNd(2,{a00,a01,a10,a11})
+  {
+  }
+
+  // constructor
+  explicit MatrixNd(double a00, double a01, double a02, double a10, double a11, double a12, double a20, double a21, double a22)
+    : MatrixNd(3,{a00,a01,a02, a10,a11,a12, a20,a21,a22})
+  {
+  }
+
+  // constructor from STL std::vector<double>
+  explicit MatrixNd(const std::vector<double>& other) 
+    : MatrixNd((int)sqrt(other.size()),other) {
+  }
+
+  // constructor 
+  explicit MatrixNd(Matrix4& other) 
+    : MatrixNd(4,std::vector<double>(other.mat+0,other.mat+16)) {
+  }
+
+  // destructor
+  ~MatrixNd()  {
+  }
+
+  // operator[]
+  double& operator[](int i) {
+    return this->mat[i];
+  }
+
+  //operator[]
+  const double& operator[](int i) const {
+    return this->mat[i];
+  }
+
+  // get
+  double get(int r, int c) const {
+    VisusAssert (r >= 0 && r < dim && c >= 0 && c < dim);
+    return this->mat[r * dim + c];
+  }
+
+  // get
+  double& get(int r, int c) {
+    VisusAssert(r >= 0 && r < dim && c >= 0 && c < dim);
+    return this->mat[r * dim + c];
+  }
+
+  // access operator () (stating index is 0)
+  double operator()(int r, int c) const {
+    return get(r, c);
+  }
+
+  // access operator () (stating index is 0)
+  double& operator()(int r, int c) {
+    return get(r, c);
+  }
+
+  //getRow
+  PointNd getRow(int r) const
+  {
+    VisusAssert(r >= 0 && r < dim);
+    PointNd ret(this->dim);
+    for (int c = 0; c < dim; c++)
+      ret[c] = get(r, c);
+    return ret;
+  }
+
+  // getCol
+  PointNd getCol(int c) const
+  {
+    VisusAssert(c >= 0 && c < dim);
+    PointNd ret(this->dim);
+    for (int r = 0; r < dim; r++)
+      ret[r] = get(r, c);
+    return ret;
+  }
+
+  // transpose
+  MatrixNd transpose() const
+  {
+    MatrixNd ret(dim);
+    for (int i = 0; i < dim; ++i)
+      for (int j = 0; j < dim; ++j)
+        ret.get(i, j)= this->get(j, i);
+    return ret;
+  }
+
+  // assignment operator
+  MatrixNd& operator=(const MatrixNd& other)
+  {
+    this->dim = other.dim;
+    this->mat = other.mat;
+    return *this;
+  }
+
+  // strict equality operator
+  bool operator==(const MatrixNd& other) const {
+    return this->dim == other.dim && this->mat == other.mat;
+  }
+
+  // get a zero matrix
+  static MatrixNd zero(int dim) {
+    return MatrixNd(std::vector<double>(dim*dim,0.0));
+  }
+
+  // identity
+  static MatrixNd identity(int dim) {
+    return MatrixNd(dim);
+  }
+
+  // change dimension (can be less or greater than actual dimension)
+  MatrixNd withPointDim(int dim) const
+  {
+    MatrixNd ret(dim); 
+    auto N = std::min(this->dim,dim);
+    for (int r = 0; r < N; r++)
+      for (int c = 0; c < N; c++)
+        ret.get(r, c)=this->get(r, c);
+    return ret;
+  }
+
+  //setPointDim
+  void setPointDim(int dim) {
+    (*this) = this->withPointDim(dim);
+  }
+
+  // operator MatrixNd + MatrixNd
+  MatrixNd operator+(const MatrixNd& b) const
+  {
+    const MatrixNd& a = *this;
+    VisusAssert(a.dim == b.dim);
+    MatrixNd ret(dim);
+    for (int r = 0; r < dim; r++)
+      for (int c = 0; c < dim; c++)
+        ret(r, c) =  a(r, c) + b(r, c);
+    return ret;
+  }
+
+  //  operator MatrixNd - MatrixNd
+  MatrixNd operator-(const MatrixNd& b) const
+  {
+    const MatrixNd& a = *this;
+    VisusAssert(a.dim == b.dim);
+    MatrixNd ret(dim);
+    for (int r = 0; r < dim; r++)
+      for (int c = 0; c < dim; c++)
+        ret(r, c) =  a(r, c) - b(r, c);
+    return ret;
+  }
+
+  // operator MatrixNd * MatrixNd
+  MatrixNd operator*(const MatrixNd& b) const
+  {
+    const MatrixNd& a = *this;
+    VisusAssert(a.dim == b.dim);
+    auto ret=MatrixNd::zero(dim);
+    for (int i = 0; i < dim; ++i)
+      for (int j = 0; j < dim; ++j)
+        for (int k = 0; k < dim; ++k)
+          ret(i, j)+= a(i, k) * b(k, j);
+    return ret;
+  }
+
+  // scale
+  static MatrixNd scale(PointNd vs)
+  {
+    MatrixNd ret(vs.getPointDim()+1);
+    for (int I = 0; I < ret.dim - 1; I++)
+      ret(I, I) = vs[I];
+    return ret;
+  }
+
+  // translate
+  static MatrixNd translate(PointNd vt)
+  {
+    MatrixNd ret(vt.getPointDim()+1);
+    for (int R = 0; R < ret.dim - 1; R++)
+      ret(R, ret.dim - 1)=vt[R];
+    return ret;
+  }
+
+  // rotate
+  static MatrixNd rotate(int dim, int i, int j, double angle)
+  {
+    VisusAssert(i >= 0 && i < dim && j >= 0 && j < dim);
+    MatrixNd ret(dim);
+    ret(i, i) = +cos(angle); ret(i, j) = -sin(angle);
+    ret(j, i) = +sin(angle); ret(j, j) = +cos(angle);
+    return ret;
+  }
+
+  // MatrixNd * coeff
+  MatrixNd operator*(const double coeff)
+  {
+    MatrixNd ret(this->dim);
+    for (int r = 0; r < dim; ++r)
+      for (int c = 0; c < dim; ++c)
+        ret(r, c) =get(r, c) * coeff;
+    return ret;
+  }
+
+  // MatrixNd * PointNd
+  PointNd operator*(const PointNd& v) const
+  {
+    if (this->dim == v.getPointDim()) 
+    {
+      PointNd ret(dim);
+      for (int r = 0; r < dim; r++)
+        for (int c = 0; c < dim; c++)
+          ret[r] += (double)get(r, c) * v[c];
+      return ret;
+    }
+    
+    if (this->dim == v.getPointDim() + 1) {
+      return ((*this) * PointNd(v, 1.0)).dropHomogeneousCoordinate();
+    }
+
+    ThrowException("internal error");
+    return PointNd();
+  }
+
+  // invert matrix
+  MatrixNd invert() const;
+
+  // toString
+  String toString() const
+  {
+    std::ostringstream out;
+    out<<"[";
+    for (int i = 0; i < this->dim; i++)
+      for (int j = 0; j < this->dim; j++)
+        out << (i || j?", ":"") << get(i, j);
+    out<< "]";
+    return out.str();
+  }
+
+
+}; //end class
 
 } //namespace Visus
 

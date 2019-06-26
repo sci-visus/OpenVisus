@@ -231,13 +231,13 @@ bool GLOrthoCamera::guessPosition(Position position,int ref)
   Point3d C,X,Y,Z;
   Box3d bound;
 
-  if (position.getTransformation().isIdentity())
+  if (position.T.isIdentity())
   {
     C=Point3d(0,0,0);
     X=Point3d(1,0,0);
     Y=Point3d(0,1,0);
     Z=Point3d(0,0,1);
-    bound=position.getBox();
+    bound=position.box.toBox3();
   }
   else
   {

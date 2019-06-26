@@ -46,10 +46,12 @@ Position Position::withoutTransformation() const
   if (!this->valid())
     return Position::invalid();
 
-  Matrix T   = getTransformation();
-  Box3d  box = getBox();
+  if (T.isIdentity())
+    return Position(this->box);
 
+  //todo here!
   Box3d ret = Box3d::invalid();
+  Box3d  box = this->box.toBox3();
   for (int I = 0; I<8; I++)
     ret.addPoint(T * box.getPoint(I));
 
@@ -70,15 +72,15 @@ Position Position::shrink(const Box3d& dst_box,const LinearMap& map,Position pos
     return position;
 
   const LinearMap& T2(map);
-  MatrixMap T1(position.getTransformation());
-  Box3d       src_rvalue=position.getBox();
+  MatrixMap T1(position.T);
+  Box3d       src_rvalue=position.box.toBox3();
 
   Box3d shrinked_rvalue= Box3d::invalid();
 
   #define DIRECT(T2,T1,value)   (T2.applyDirectMap(T1.applyDirectMap(value)))
   #define INVERSE(T2,T1,value)  (T1.applyInverseMap(T2.applyInverseMap(value)))
 
-  int query_dim=position.getBox().minsize()>0? 3 : 2;
+  int query_dim=position.box.toBox3().minsize()>0? 3 : 2;
   if (query_dim==2)
   {
     int slice_axis=-1;
@@ -206,7 +208,7 @@ Position Position::shrink(const Box3d& dst_box,const LinearMap& map,Position pos
   if (shrinked_rvalue.valid())
     shrinked_rvalue=shrinked_rvalue.getIntersection(src_rvalue);
 
-  return Position(position.getTransformation(),shrinked_rvalue);
+  return Position(position.T,shrinked_rvalue);
 
   #undef DIRECT
   #undef INVERSE
@@ -218,8 +220,6 @@ void Position::writeToObjectStream(ObjectStream& ostream)
 {
   if (!valid())
     return;
-
-  ostream.writeInline("pdim",cstring(pdim));
 
   if (!T.isIdentity())
   {
@@ -238,8 +238,6 @@ void Position::readFromObjectStream(ObjectStream& istream)
 {
   this->T=Matrix::identity();
 
-  this->pdim=cint(istream.readInline("pdim"));
-
   if (istream.pushContext("T"))
   {
     this->T.readFromObjectStream(istream);
@@ -253,7 +251,6 @@ void Position::readFromObjectStream(ObjectStream& istream)
   }
   
 }
-
 
 } //namespace Visus
 
