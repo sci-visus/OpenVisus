@@ -164,7 +164,7 @@ public:
   //Quad
   template <typename Point>
   static GLMesh Quad(const Point& p1,const Point& p2,bool bNormal=false,bool bTexCoord=false)
-  {return Quad(Point(p1.x,p1.y),Point(p2.x,p1.y),Point(p2.x,p2.y),Point(p1.x,p2.y),bNormal,bTexCoord);}
+  {return Quad(Point(p1.x,p1.y), Point(p2.x,p1.y), Point(p2.x,p2.y), Point(p1.x,p2.y),bNormal,bTexCoord);}
 
   //Quad
   template <class Point>
@@ -173,7 +173,7 @@ public:
 
   //Lines
   template <class Point>
-  static GLMesh Lines(std::vector<Point> points) 
+  static GLMesh Lines(std::vector<Point> points)
   {
     GLMesh ret;
     ret.begin(GL_LINES);

@@ -114,8 +114,8 @@ public:
     this->world_pos=world_bounds.p1();
 
     this->Tproject=
-      Matrix3::scale(Point2d(1.0/world_bounds.width,1.0/world_bounds.height)) *
-      Matrix3::translate(Point2d(-world_bounds.x,-world_bounds.y));
+      Matrix::scale(Point2d(1.0/world_bounds.width,1.0/world_bounds.height)) *
+      Matrix::translate(Point2d(-world_bounds.x,-world_bounds.y));
     this->Tunproject=Tproject.invert();
     
     update();
@@ -128,12 +128,12 @@ public:
   }
 
   //getOrthoParams
-  Matrix3 getOrthoParams() const {
+  Matrix getOrthoParams() const {
     return Tproject;
   }
 
   //setOrthoParams
-  void setOrthoParams(Matrix3 value) {
+  void setOrthoParams(Matrix value) {
     Tproject=value;
     emit repaintNeeded();
   }
@@ -239,7 +239,7 @@ public:
     {
       auto w0=world_pos;
       auto w1=QUtils::convert<Point2d>(unproject(evt->pos()));
-      Tproject     = Tproject * Matrix3::translate(w1-w0);
+      Tproject     = Tproject * Matrix::translate(w1-w0);
       Tunproject = Tproject.invert();
       evt->accept();
     }
@@ -268,7 +268,7 @@ public:
   {
     auto vs=1+0.2*(evt->delta()/120);
     auto c0=world_pos;
-    Tproject   = Tproject * Matrix3::scaleAroundCenter(c0,vs);
+    Tproject   = Tproject * Matrix::scaleAroundCenter(c0,vs);
     Tunproject = Tproject.invert();
     update();
     emit repaintNeeded();
@@ -281,7 +281,8 @@ signals:
 
 private:
 
-  Matrix3     Tproject, Tunproject;
+  Matrix      Tproject =Matrix(3);
+  Matrix      Tunproject = Matrix(3);
   //modelview is always identity
   Rectangle2d world_bounds=Rectangle2d(0,0,1,1);
   Point2d     world_pos;

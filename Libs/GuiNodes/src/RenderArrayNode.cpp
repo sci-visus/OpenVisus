@@ -217,8 +217,11 @@ void RenderArrayNode::glRender(GLCanvas& gl)
     gl.multModelview(Matrix::scale(vs));
     if (shader->config.texture_dim==2)
     {
-      if      (box.p1.x==box.p2.x) gl.multModelview(Matrix(Point3d(0,1,0),Point3d(0,0,1),Point3d(1,0,0),Point3d(0,0,0)));
-      else if (box.p1.y==box.p2.y) gl.multModelview(Matrix(Point3d(1,0,0),Point3d(0,0,1),Point3d(0,1,0),Point3d(0,0,0)));
+      if (box.p1.x==box.p2.x) 
+        gl.multModelview(Matrix(Point3d(0,1,0),Point3d(0,0,1),Point3d(1,0,0),Point3d(0,0,0)));
+
+      else if (box.p1.y==box.p2.y) 
+        gl.multModelview(Matrix(Point3d(1,0,0),Point3d(0,0,1),Point3d(0,1,0),Point3d(0,0,0)));
     }
   }
 

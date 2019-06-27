@@ -372,10 +372,10 @@ public:
     auto vf    = child.dataset; VisusAssert(vf);
     auto field = vf->getFieldByName(fieldname); VisusAssert(field.valid());
 
-    auto BOX = Position(M, vf->getBox()).withoutTransformation().box.toBox3();
+    auto BOX = Position(M, vf->getBox()).withoutTransformation().toBox3();
 
     //no intersection? just skip this down query
-    if (!QUERY->position.withoutTransformation().box.toBox3().intersect(BOX))
+    if (!QUERY->position.withoutTransformation().toBox3().intersect(BOX))
       return SharedPtr<Query>();
 
     auto query = std::make_shared<Query>(vf.get(), 'r');
@@ -397,8 +397,8 @@ public:
         (value.size().z ? value.size().z : 1);
     };
 
-    auto VOLUME = ComputeVolume(Position(   VF->getBox()).withoutTransformation().box.toBox3());
-    auto volume = ComputeVolume(Position(M, vf->getBox()).withoutTransformation().box.toBox3());
+    auto VOLUME = ComputeVolume(Position(   VF->getBox()).withoutTransformation().toBox3());
+    auto volume = ComputeVolume(Position(M, vf->getBox()).withoutTransformation().toBox3());
     int delta_h = -(int)log2(VOLUME / volume);
 
     //resolutions
@@ -425,7 +425,7 @@ public:
     // if you use this wrong version, for voronoi in 2d you will see some missing pieces around
     // solution is to limit the QUERY_BOX into a more "local" one
 #if 1
-    QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).withoutTransformation().box.toBox3().getIntersection(QUERY_BOX);
+    QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).withoutTransformation().toBox3().getIntersection(QUERY_BOX);
 #endif
 
     query->position = Position(M.invert(), QUERY_T, QUERY_BOX);
@@ -969,9 +969,24 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix T)
     if (!value.empty())
     {
       if (StringUtils::split(value, " ").size() == 9)
-        child.M *= Matrix(Matrix3(value));
+      {
+        std::istringstream parser(value);
+        std::vector<double> v(9);
+        for (int I = 0; I < 9; I++)
+          parser >> v[I];
+
+        child.M = Matrix::identity(4);
+        child.M.mat = {
+          v[0], v[1], 0, v[2],
+          v[3], v[4], 0, v[5],
+             0,    0, 1,    0,
+          v[6], v[7], 0, v[8]
+        };
+      }
       else
-        child.M *= Matrix(value);
+      {
+        child.M *= Matrix::parseFromString(4, value);
+      }
     }
 
     for (auto it : istream.getCurrentContext()->getChilds())
@@ -1000,7 +1015,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix T)
 
       else if (it->name == "M")
       {
-        child.M *= Matrix(it->readString("value"));
+        child.M *= Matrix::parseFromString(4,it->readString("value"));
       }
     }
 
@@ -1009,7 +1024,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix T)
 
   //if mosaic then only an offset
   if (bMosaic)
-    VisusAssert(child.M.dropW() == Matrix3());
+    VisusAssert(child.M.withoutBack().isIdentity());
 
   addChild(child);
 
@@ -1149,7 +1164,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   this->bMosaic = cbool(istream.readInline("mosaic"));
 
-  parseDatasets(istream,Matrix::identity());
+  parseDatasets(istream, Matrix::identity(4));
 
   if (childs.empty())
   {
@@ -1179,7 +1194,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       Box3d PHYSICAL_BOX = Box3d::invalid();
       for (auto it : childs)
       {
-        auto physical_box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().box.toBox3();
+        auto physical_box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().toBox3();
         PHYSICAL_BOX = PHYSICAL_BOX.getUnion(physical_box);
       }
 
@@ -1188,7 +1203,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       {
         auto dataset = it.second.dataset;
         auto M = it.second.M;
-        auto logic_box = Position(dataset->getBox()).withoutTransformation().box.toBox3();
+        auto logic_box = Position(dataset->getBox()).withoutTransformation().toBox3();
         auto tot_pixels = dataset->getBox().size().innerProduct();
 
         if (pdim == 2)
@@ -1227,10 +1242,10 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     }
 
     //union of boxes
-    IDXFILE.box = NdBox::invalid(pdim);
+    IDXFILE.box = NdBox::invalid();
     for (auto it : childs)
     {
-      auto box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().getNdBox().withPointDim(pdim);
+      auto box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().castTo<NdBox>().withPointDim(pdim);
       IDXFILE.box = IDXFILE.box.getUnion(box);
     }
   }

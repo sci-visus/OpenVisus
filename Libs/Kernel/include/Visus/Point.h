@@ -169,11 +169,6 @@ public:
     return this->x*b.x + this->y*b.y;
   }
 
-  //dot product
-  T operator*(const Point2& b) const {
-    return this->dot(b);
-  }
-
   //access an item using an index
   T& operator[](int i) {
     VisusAssert(i >= 0 && i < 2); return i ? y : x;
@@ -373,8 +368,9 @@ public:
   }
 
   //a*f
-  Point3 operator*(T s) const {
-    return Point3(this->x*s, this->y*s, this->z*s);
+  template <typename Coeff>
+  Point3 operator*(Coeff coeff) const {
+    return Point3((T)(this->x* coeff), (T)(this->y* coeff), (T)(this->z*coeff));
   }
 
   //a*=f
@@ -396,11 +392,6 @@ public:
   //dot product
   T dot(const Point3&  b) const {
     return this->x*b.x + this->y*b.y + this->z*b.z;
-  }
-
-  //dot product
-  T operator*(const Point3& b) const {
-    return this->dot(b);
   }
 
   //access an item using an index
@@ -471,9 +462,9 @@ public:
 
 };//end class Point3
 
-template <typename Value, typename T>
-inline Point3<T> operator*(Value value, const Point3<T> &v) {
-  return v*value;
+template <typename Coeff, typename T>
+inline Point3<T> operator*(Coeff coeff, const Point3<T>& v) {
+  return v * coeff;
 }
 
 typedef  Point3<Int64>  Point3i;
@@ -510,6 +501,11 @@ public:
   }
 
   //constructor
+  explicit Point4(const std::vector<T> src) : x(src[0]), y(src[1]), z(src[2]), w(src[3]) {
+    VisusAssert(src.size() == 4);
+  }
+
+  //constructor
   explicit Point4(const std::array<T, 4>& src) : x(src[0]), y(src[1]), z(src[2]), w(src[3]) {
   }
 
@@ -529,8 +525,8 @@ public:
     return { {x,y,z,w} };
   }
 
-  //dropW
-  Point3<T> dropW() const {
+  //withoutBack
+  Point3<T> withoutBack() const {
     return Point3<T>(x, y, z);
   }
 
@@ -626,11 +622,6 @@ public:
   //dot product
   T dot(const Point4&  b) const {
     return x*b.x + y*b.y + z*b.z + w*b.w;
-  }
-
-  //dot product
-  T operator*(const Point4& b) const  {
-    return this->dot(b);
   }
 
   //access an item using an index
@@ -804,8 +795,18 @@ public:
   }
 
   //constructor
-  explicit PointN(Point3<T> p)
+  PointN(Point2<T> p)
+    : coords({ p[0], p[1] }) {
+  }
+
+  //constructor
+  PointN(Point3<T> p)
     : coords({ p[0], p[1], p[2] }) {
+  }
+
+  //constructor
+  PointN(Point4<T> p)
+    : coords({ p[0], p[1], p[2],p[3] }) {
   }
 
   //getPointDim
@@ -823,6 +824,13 @@ public:
     this->coords.pop_back();
   }
 
+  //withoutBack
+  PointN withoutBack() const {
+    auto ret = *this;
+    ret.pop_back();
+    return ret;
+  }
+
   //back
   T back() const {
     return this->coords.back();
@@ -830,18 +838,16 @@ public:
 
   //dropHomogeneousCoordinate
   PointN dropHomogeneousCoordinate() const {
-    auto ret = applyOperation(*this, MulByCoeff<double>(1.0 / back()));
-    ret.pop_back();
-    return ret;
+    return applyOperation(*this, MulByCoeff<double>(1.0 / back())).withoutBack();
   }
 
   //castTo
-  template <typename OtherPointClass>
-  OtherPointClass castTo() const {
+  template <typename Other>
+  Other castTo() const {
     auto pdim = (int)coords.size();
-    auto ret = OtherPointClass(pdim);
+    auto ret = Other(pdim);
     for (int I = 0; I < pdim; I++)
-      ret[I] = (typename OtherPointClass::coord_t)get(I);
+      ret[I] = (typename Other::coord_t)get(I);
     return ret;
   }
 
@@ -951,6 +957,39 @@ public:
     return applyOperation< MaxOp>(a, b);
   }
 
+  //module2
+  T module2() const {
+    return this->dot(*this);
+  }
+
+  //module
+  double module() const {
+    return std::sqrt((double)module2());
+  }
+
+  //distance between two points
+  double distance(const PointN& p) const {
+    return (p - *this).module();
+  }
+
+  //normalized
+  PointN normalized() const
+  {
+    T len = module();
+    if (!len) len = 1.0;
+    return (*this) * (1.0/len);
+  }
+
+  //abs
+  PointN abs() const {
+    return applyOperation<AbsOp>(*this);
+  }
+
+  //inv
+  PointN inv() const {
+    return applyOperation<InvOp>(*this);  
+  }
+
   //minsize
   T minsize() const {
     return Utils::min(this->coords);
@@ -971,7 +1010,7 @@ public:
 
   //dot product
   T dot(const PointN& other) const {
-    return accumulateOperation<AddOp>(T(0),innerMultiply(*this, other));
+    return accumulateOperation<AddOp>(T(0), this->innerMultiply(other));
   }
 
   //dotProduct
@@ -991,13 +1030,8 @@ public:
   }
 
   //innerMultiply
-  static PointN innerMultiply(const PointN& a, const PointN& b) {
-    return applyOperation<MulOp>(a, b);
-  }
-
-  //innerMultiply
   PointN innerMultiply(const PointN& other) const {
-    return innerMultiply(*this, other);
+    return applyOperation<MulOp>(*this, other);
   }
 
   //innerDiv
@@ -1064,11 +1098,20 @@ public:
 
 public:
 
+
+
   //toPoint3
   Point3<T> toPoint3() const {
     auto coords = this->coords;
     coords.resize(3);
     return Point3<T>(coords[0], coords[1], coords[2]);
+  }
+
+  //toPoint4
+  Point4<T> toPoint4() const {
+    auto coords = this->coords;
+    coords.resize(4);
+    return Point4<T>(coords[0], coords[1], coords[2],coords[3]);
   }
 
   //toPoint3i
@@ -1117,7 +1160,7 @@ public:
 #if !SWIG
   //operator<<
   friend std::ostream& operator<<(std::ostream& out, const PointN& p) {
-    out << "<" << p.tpString(",") << ">";
+    out << "<" << p.toString(",") << ">";
     return out;
   }
 #endif
@@ -1126,12 +1169,15 @@ private:
 
   struct NegOp  { static T compute(T a) { return -a; } };
   struct Log2Op { static T compute(T a) { return Utils::getLog2(a); } };
+  struct AbsOp  { static T compute(T a) { return a >= 0 ? +a : -a; } };
+  struct InvOp  { static T compute(T a) { return (T)(1.0 / a); } };
 
   struct AddOp { static T compute(T a, T b) { return a + b; } };
   struct SubOp { static T compute(T a, T b) { return a - b; } };
   struct MulOp { static T compute(T a, T b) { return a * b; } };
   struct DivOp { static T compute(T a, T b) { return a / b; } };
   struct ModOp { static T compute(T a, T b) { return a % b; } };
+
   struct MinOp { static T compute(T a, T b) { return std::min(a, b); } };
   struct MaxOp { static T compute(T a, T b) { return std::max(a, b); } };
 
@@ -1232,13 +1278,10 @@ private:
   }
 
 
-
 };//end class PointN
 
-
 typedef PointN<double> PointNd;
-typedef PointN <Int64> PointNi;
-typedef PointNi NdPoint;
+typedef PointN<Int64>  NdPoint;
 
 template <typename Value,typename T>
 inline PointN<T> operator*(Value s, const PointN<T> &p) {
@@ -1256,20 +1299,6 @@ inline typename PointN<T>::ForEachPoint ForEachPoint(PointN<T> dims) {
   return ForEachPoint(PointN<T>(pdim), dims, PointN<T>::one(pdim));
 }
 
-template <>
-inline PointNd convertTo<PointNd, NdPoint>(const NdPoint& value) {
-  return value.castTo<PointNd>();
-}
-
-template <>
-inline NdPoint convertTo<NdPoint, PointNd>(const PointNd& value) {
-  return value.castTo<NdPoint>();
-}
-
-template <>
-inline PointNd convertTo<PointNd, Point3d>(const Point3d& value) {
-  return PointNd(value[0], value[1], value[2]);
-}
 
 } //namespace Visus
 

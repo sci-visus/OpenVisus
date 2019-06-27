@@ -233,7 +233,7 @@ double Polygon2d::area() const {
 
 
 ///////////////////////////////////////////////////////////////////////////
-Matrix3 Quad::findQuadHomography(const Quad& dst_quad, const Quad& src_quad)
+Matrix Quad::findQuadHomography(const Quad& dst_quad, const Quad& src_quad)
 {
   auto dst = dst_quad.points;
   auto src = src_quad.points;
@@ -286,7 +286,7 @@ Matrix3 Quad::findQuadHomography(const Quad& dst_quad, const Quad& src_quad)
     }
   }
 
-  return Matrix3(
+  return Matrix(
     P[0][8], P[3][8], P[6][8],
     P[1][8], P[4][8], P[7][8],
     P[2][8], P[5][8], 1.0).transpose();

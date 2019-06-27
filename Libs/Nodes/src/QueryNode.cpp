@@ -247,7 +247,7 @@ bool QueryNode::processInput()
 
     //find intersection with dataset box
     if (!bDisableFindQUeryIntersectionWithDatasetBox)
-      position=Position::shrink(Position(dataset->getBox()).withoutTransformation().box.toBox3(),MatrixMap(Matrix::identity()),position);
+      position=Position::shrink(Position(dataset->getBox()).withoutTransformation().toBox3(),MatrixMap(Matrix::identity(4)),position);
 
     if (!position.valid()) 
     {

@@ -60,7 +60,7 @@ public:
   public:
     String                name;
     Color                 color;
-    Matrix                M; //transformation matrix up <- dw
+    Matrix                M = Matrix::identity(4); //transformation matrix up <- dw
     SharedPtr<Dataset>    dataset;
     String                mosaic_filename_template;
   };

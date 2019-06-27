@@ -1351,8 +1351,8 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
 
   Position position=query->position;
 
-  const Matrix& T=position.T;
-  Box3d box        =position.box.toBox3();
+  const auto& T=position.T;
+  Box3d box    =position.box.toBox3();
 
   int pdim=this->getPointDim();
   VisusAssert(pdim==3); //why I need point queries in 2d... I'm asserting this because I do not create Query for 2d datasets 
@@ -1387,9 +1387,9 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
   Point4d Z(0,0,1,0); Z[2]=box.p2[2]-box.p1.z; Point4d DZ=Z*(1.0 / (double)nsamples[2]); VisusAssert(Z.w==0.0 && DZ.w==0.0);
 
   Point4d TP0_4d = T*P0;                             Point3d TP0  = TP0_4d.dropHomogeneousCoordinate();
-  Point4d TDX_4d = T*DX; VisusAssert(TDX_4d.w==0.0); Point3d TDX  = TDX_4d.dropW();
-  Point4d TDY_4d = T*DY; VisusAssert(TDY_4d.w==0.0); Point3d TDY  = TDY_4d.dropW();
-  Point4d TDZ_4d = T*DZ; VisusAssert(TDZ_4d.w==0.0); Point3d TDZ  = TDZ_4d.dropW();
+  Point4d TDX_4d = T*DX; VisusAssert(TDX_4d.w==0.0); Point3d TDX  = TDX_4d.withoutBack();
+  Point4d TDY_4d = T*DY; VisusAssert(TDY_4d.w==0.0); Point3d TDY  = TDY_4d.withoutBack();
+  Point4d TDZ_4d = T*DZ; VisusAssert(TDZ_4d.w==0.0); Point3d TDZ  = TDZ_4d.withoutBack();
 
   auto point_p = (Int64*)query->point_query.coordinates->c_ptr();
   Point3d PZ=TP0; for (int K=0;K<nsamples[2];++K,PZ+=TDZ) {
@@ -1511,7 +1511,7 @@ bool IdxDataset::beginQuery(SharedPtr<Query> query)
       if (this->getPointDim() == 3)
         query->clipping = query->position;
 
-      query->position = query->position.withoutTransformation().getNdBox().withPointDim(this->getPointDim()).getIntersection(this->getBox());
+      query->position = query->position.withoutTransformation().castTo<NdBox>().withPointDim(this->getPointDim()).getIntersection(this->getBox());
     }
 
     if (query->filter.enabled)

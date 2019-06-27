@@ -488,11 +488,14 @@ public:
     return ret;
   }
 
+  //withoutBack
+  BoxN withoutBack() const {
+    return BoxN(p1.withoutBack(), p2.withoutBack());
+  }
+
   //return an invalid box
-  static BoxN invalid(int pdim) {
-    return BoxN(
-      Point(std::vector<T>(pdim, NumericLimits<T>::highest())), 
-      Point(std::vector<T>(pdim, NumericLimits<T>::lowest())));
+  static BoxN invalid() {
+    return BoxN();
   }
 
   //valid
@@ -532,8 +535,16 @@ public:
 
   //addPoint
   void addPoint(Point p) {
-    this->p1 = Point::min(this->p1, p);
-    this->p2 = Point::max(this->p2, p);
+    if (!this->valid())
+    {
+      this->p1 = p;
+      this->p2 = p;
+    }
+    else
+    {
+      this->p1 = Point::min(this->p1, p);
+      this->p2 = Point::max(this->p2, p);
+    }
   }
 
   //toBox3
@@ -617,6 +628,31 @@ public:
     return BoxN(p1 + vt, p2 + vt);
   }
 
+  //getPoints
+  std::vector<Point> getPoints() const {
+    auto pdim = getPointDim();
+    if (pdim == 0)
+      return std::vector<Point>();
+
+    if (pdim == 1)
+      return std::vector<Point>({ this->p1,this->p2 });
+
+    //recursive
+    std::vector<Point> ret;
+    for (auto point : withoutBack().getPoints())
+    {
+      ret.push_back(Point(point, this->p1.back()));
+      ret.push_back(Point(point, this->p2.back()));
+    }
+    return ret;
+  }
+
+  //castTo
+  template <typename Other>
+  Other castTo() const {
+    return Other(this->p1.castTo<typename Other::Point>(), this->p2.castTo<typename Other::Point>());
+  }
+
 public:
 
   //construct from string
@@ -631,7 +667,7 @@ public:
       v2.push_back(value2);
     }
 
-    return BoxN(Point(v1),Point(v2));
+    return BoxN(Point(v1), Point(v2));
   }
 
   //construct to string
@@ -678,23 +714,7 @@ public:
 }; //end class BoxN
 
 typedef BoxN<double> BoxNd;
-typedef BoxN< Int64> BoxNi;
-typedef BoxNi        NdBox;
-
-template <>
-inline BoxNd convertTo< BoxNd, BoxNi>(const BoxNi& value) {
-  return BoxNd(convertTo<PointNd>(value.p1),convertTo<PointNd>(value.p2));
-}
-
-template <>
-inline BoxNi convertTo< BoxNi, BoxNd>(const BoxNd& value) {
-  return BoxNi(convertTo<PointNi>(value.p1), convertTo<PointNi>(value.p2));
-}
-
-template <>
-inline BoxNd convertTo< BoxNd, Box3d>(const Box3d& value) {
-  return BoxNd(convertTo<PointNd>(value.p1), convertTo<PointNd>(value.p2));
-}
+typedef BoxN< Int64> NdBox;
 
 } //namespace Visus
 

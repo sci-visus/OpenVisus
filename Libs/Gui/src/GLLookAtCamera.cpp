@@ -228,11 +228,11 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt)
     else
         p2.z = R*R / 2 / sqrt(l2);
 
-    Matrix M = Matrix::lookAt(this->pos, this->pos + this->dir, this->vup).invert();
+    auto M = Matrix::lookAt(this->pos, this->pos + this->dir, this->vup).invert();
     Point3d a = (M * p1 - M * center).normalized();
     Point3d b = (M * p2 - M * center).normalized();
     Point3d axis = a.cross(b).normalized();
-    double angle = acos(a*b);
+    double angle = acos(a.dot(b));
 
     if (axis.module() && axis.valid())
     {
@@ -326,7 +326,7 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
       RayBoxIntersection intersection(ray,bound);
 
       if (intersection.valid)
-        this->setCenterOfRotation(ray.getPoint(0.5*(std::max(intersection.tmin,0.0)+intersection.tmax)));
+        this->setCenterOfRotation(ray.getPoint(0.5*(std::max(intersection.tmin,0.0)+intersection.tmax)).toPoint3());
 
       evt->accept();
       return ;
@@ -355,7 +355,7 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
 //////////////////////////////////////////////////////////////////////
 bool GLLookAtCamera::guessPosition(Position position,int ref) 
 {
-  Box3d bound=position.withoutTransformation().box.toBox3();
+  Box3d bound=position.withoutTransformation().toBox3();
 
   beginUpdate();
   {
@@ -468,8 +468,8 @@ void GLLookAtCamera::rotate(Point2d screen_center,double angle)
 
   FrustumMap map(temp);
   Point3d world_center=map.unprojectPoint(screen_center);
-  Matrix Trot = Matrix::translate(+1*world_center) * Matrix::rotate(dir,angle) * Matrix::translate(-1*world_center);
-  Matrix mv=Matrix::lookAt(this->pos,this->pos+this->dir,this->vup) * Trot;
+  auto Trot = Matrix::translate(+1*world_center) * Matrix::rotateAroundAxis(dir,angle) * Matrix::translate(-1*world_center);
+  auto mv= Matrix::lookAt(this->pos,this->pos+this->dir,this->vup) * Trot;
   Point3d POS,DIR,VUP;mv.getLookAt(POS,DIR,VUP);
   if (!POS.valid() || !DIR.valid() || !VUP.valid() || (POS==pos && DIR==dir && VUP==vup)) return;
 
@@ -502,8 +502,8 @@ Frustum GLLookAtCamera::getFrustum() const
 std::pair<double,double> GLLookAtCamera::guessNearFarDistance() const {
 
   Matrix  modelview_inverse = getFrustum().getModelview().invert();
-  Point3d camera_pos        =  modelview_inverse.getColumn(3).dropW();
-  Point3d lookat_dir        = -modelview_inverse.getColumn(2).dropW();
+  Point3d camera_pos        =  modelview_inverse.getCol(3).toPoint3();
+  Point3d lookat_dir        = -modelview_inverse.getCol(2).toPoint3();
 
   Plane   camera_plane(lookat_dir, camera_pos);
 

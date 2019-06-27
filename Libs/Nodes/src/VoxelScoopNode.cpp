@@ -107,8 +107,7 @@ public:
     const Point3d dims=this->data.dims.toPoint3d();
 
     //scrgiorgio: not sure this is correct!
-    Matrix pixel_to_physic;
-    pixel_to_physic=
+    auto pixel_to_physic=
       this->data.bounds.T *
       Matrix::translate(this->data.bounds.box.toBox3().p1) *
       Matrix::scale(this->data.bounds.box.toBox3().size()) *
@@ -401,8 +400,7 @@ public:
     const Point3d dims  =Data.dims.toPoint3d();
 
     //scrgiorgio: not sure this is correct!
-    Matrix pixel_to_physic;
-    pixel_to_physic=
+    auto pixel_to_physic=
       this->Data.bounds.T *
       Matrix::translate(this->Data.bounds.box.toBox3().p1) *
       Matrix::scale(this->Data.bounds.box.toBox3().size()) *
@@ -458,8 +456,7 @@ public:
 
 
     //scrgiorgio: not sure this is correct!
-    Matrix pixel_to_physic;
-    pixel_to_physic=
+    auto pixel_to_physic =
       this->Data.bounds.T *
       Matrix::translate(this->Data.bounds.box.toBox3().p1) *
       Matrix::scale(this->Data.bounds.box.toBox3().size()) *

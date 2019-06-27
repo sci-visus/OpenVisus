@@ -99,7 +99,7 @@ static void RenderVertex(GLCanvas& gl,GLPhongShader* shader,bool b2D,double radi
 {
   gl.pushModelview();
 
-  gl.multModelview(Matrix::translate(Point3d(p.x,p.y,p.z))*Matrix::scale(Point3d(radius,radius,radius)));
+  gl.multModelview(Matrix::translate(Point3d(p.x,p.y,p.z))* Matrix::scale(Point3d(radius,radius,radius)));
   if (b2D)
     shader->setUniformColor(gl,material.front.diffuse);
   else
@@ -119,7 +119,7 @@ void JTreeRenderNode::glRender(GLCanvas& gl)
   ScopedLock lock(this->graph->lock);
 
   bool minima_tree  = cbool(this->graph->properties.getValue("minima_tree"));
-  Matrix T          = this->graph->bounds.T;
+  auto T            = this->graph->bounds.T;
 
   std::vector<int>    roots;
   std::map<int,Color> roots_color;

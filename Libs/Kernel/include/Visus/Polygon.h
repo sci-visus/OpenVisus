@@ -77,7 +77,8 @@ public:
   }
 
   //constructor
-  Polygon2d(const Matrix3& H,const Polygon2d& other)   {
+  Polygon2d(const Matrix& H,const Polygon2d& other)   {
+    VisusAssert(H.getSpaceDim()==3);
     for (auto p : other.points)
       points.push_back((H*Point3d(p,1)).dropHomogeneousCoordinate());
   }
@@ -107,12 +108,12 @@ public:
 
   //translate
   Polygon2d translate(Point2d vt) const {
-    return Polygon2d(Matrix3::translate(vt),*this);
+    return Polygon2d(Matrix::translate(vt),*this);
   }
 
   //scale
   Polygon2d scale(Point2d vs) const {
-    return Polygon2d(Matrix3::scale(vs),*this);
+    return Polygon2d(Matrix::scale(vs),*this);
   }
 
   //centroid
@@ -154,7 +155,8 @@ public:
   }
 
   //constructor
-  Quad(const Matrix3& H, const Quad& q) : Polygon2d(H, q.points) {
+  Quad(const Matrix& H, const Quad& q) : Polygon2d(H, q.points) {
+    VisusAssert(H.getSpaceDim() == 3);
   }
 
 
@@ -167,11 +169,11 @@ public:
   }
 
   //constructor
-  Quad(const Matrix3& H, std::array<Point2d, 4> points) : Quad(H, Quad(points)) {
+  Quad(const Matrix& H, std::array<Point2d, 4> points) : Quad(H, Quad(points)) {
   }
 
   //constructor
-  Quad(const Matrix3& H, const Box2d& box) : Quad(H, box.getPoints()) {
+  Quad(const Matrix& H, const Box2d& box) : Quad(H, box.getPoints()) {
   }
 
   //constructor
@@ -207,7 +209,7 @@ public:
   };
 
   //findQuadHomography
-  static Matrix3 findQuadHomography(const Quad& dst, const Quad& src);
+  static Matrix findQuadHomography(const Quad& dst, const Quad& src);
 
   //FindQuadIntersection
   static Polygon2d intersection(const Quad& A, const Quad& B);

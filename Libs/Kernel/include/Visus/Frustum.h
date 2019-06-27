@@ -85,7 +85,7 @@ public:
   }
 
   //constructor
-  Frustum(const Viewport& viewport_,const Matrix& projection_,const Matrix& modelview_) 
+  Frustum(const Viewport& viewport_,const Matrix& projection_,const Matrix& modelview_)
     : viewport(viewport_) ,projection(projection_),modelview(modelview_) {
   }
 
@@ -128,9 +128,9 @@ public:
 
   //pickMatrix
   Matrix pickMatrix(double x, double y, double dx, double dy) const{
-    return (dx <= 0 || dy <= 0)? Matrix() : // If we don't have a valid region we return the identity
-           Matrix::translate(Point3d((getViewport().width-2*(x-getViewport().x))/dx,(getViewport().height-2*(y-getViewport().y))/dy,0)) * 
-           Matrix::scale(Point3d(getViewport().width/dx,getViewport().height/dy, 1));
+    return (dx <= 0 || dy <= 0)? Matrix::identity(4) : // If we don't have a valid region we return the identity
+      Matrix::translate(Point3d((getViewport().width-2*(x-getViewport().x))/dx,(getViewport().height-2*(y-getViewport().y))/dy,0)) *
+      Matrix::scale(Point3d(getViewport().width/dx,getViewport().height/dy, 1));
   }
 
 
@@ -224,15 +224,15 @@ public:
   //readFromObjectStream
   void readFromObjectStream(ObjectStream& istream) 
   {
-    loadModelview (Matrix  (istream.read("modelview" )));
-    loadProjection(Matrix  (istream.read("projection")));
+    loadModelview (Matrix::parseFromString(4,istream.read("modelview" )));
+    loadProjection(Matrix::parseFromString(4,istream.read("projection")));
     setViewport   (Viewport(istream.read("viewport"  )));
   }
 
 protected:
 
-  Matrix   modelview;
-  Matrix   projection;
+  Matrix   modelview = Matrix::identity(4);
+  Matrix   projection = Matrix::identity(4);
   Viewport viewport;
 
 };//end class
@@ -296,7 +296,7 @@ public:
   //applyDirectMap
   virtual Plane applyDirectMap(const Plane& h) const override
   {
-    Point4d p4(h.x,h.y,h.z,h.w);
+    Point4d p4(h.coords);
     p4 = p4 * modelview .Ti;
     p4 = p4 * projection.Ti;
     p4 = p4 * viewport  .Ti;
@@ -306,7 +306,7 @@ public:
   //applyDirectMap
   virtual Plane applyInverseMap(const Plane& h) const override
   {
-    Point4d p4(h.x,h.y,h.z,h.w);
+    Point4d p4(h.coords);
     p4 = p4*viewport  .T;
     p4 = p4*projection.T;
     p4 = p4*modelview .T;
@@ -348,10 +348,10 @@ public:
   }
 
   //return the ray
-  Ray3d getRay(Point2d p) const {
+  Ray getRay(Point2d p) const {
     Point3d P0= unprojectPoint(p,0.0);
     Point3d P1= unprojectPoint(p,1.0);
-    return Ray3d::fromTwoPoints(P0,P1);
+    return Ray::fromTwoPoints(P0,P1);
   }
 
 };

@@ -284,12 +284,12 @@ private:
     auto layout=new QFormLayout();
 
     //Matrix
-    layout->addRow("Matrix",widgets.T=GuiFactory::CreateMatrixView(Matrix::identity(),[this](const Matrix& T){
+    layout->addRow("Matrix",widgets.T=GuiFactory::CreateMatrixView(Matrix(4),[this](const Matrix& T){
       model->setObject(Position(T,model->getObject().box.toBox3()),true);
     }));
 
-    //Box
-    layout->addRow("Box",widgets.box=GuiFactory::CreateBox3dView(Box3d(),[this](const Box3d& box){
+    //BoxNd
+    layout->addRow("BoxNd",widgets.box=GuiFactory::CreateBox3dView(Box3d(),[this](const Box3d& box){
       model->setObject(Position(model->getObject().T,box),true);
     }));
 
@@ -345,7 +345,7 @@ private:
       LocalCoordinateSystem lcs=LocalCoordinateSystem(this->model->getObject()).toUniformSize();
       widgets.preview_frustum.setViewport(Viewport(0,0,(int)width,(int)height));
       widgets.preview_frustum.loadProjection(Matrix::ortho(-x,+x,-y,+y,-10,+10));
-      widgets.preview_frustum.loadModelview(Matrix::identity());
+      widgets.preview_frustum.loadModelview(Matrix::identity(4));
       widgets.preview_frustum.multModelview(Matrix::lookAt(Point3d(1,1,1),Point3d(0,0,0),Point3d(0,0,1)));
       widgets.preview_frustum.multModelview(Matrix(lcs.getXAxis(),lcs.getYAxis(),lcs.getZAxis(),lcs.getCenter()).invert());
     }    

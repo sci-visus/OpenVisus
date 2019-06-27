@@ -40,107 +40,10 @@ For support : support@visus.net
 
 namespace Visus {
 
-double Matrix::__identity__[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
-double Matrix::__zero__    [16] = {0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0};
-
-//////////////////////////////////////////////////////////////////////
-Matrix Matrix::identity() 
-  {return Matrix();}
-
-//////////////////////////////////////////////////////////////////////
-Matrix Matrix::zero() 
-  {return Matrix(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);}
-
-//////////////////////////////////////////////////////////////////////
-Matrix Matrix::scaleAndTranslate(Point3d vs,Point3d vt)
-{
-  return Matrix(vs.x,    0,    0, vt.x,
-                    0, vs.y,    0, vt.y,
-                    0,    0, vs.z, vt.z,
-                    0,    0,    0,   1);
-}
-
-//////////////////////////////////////////////////////////////////////
-  bool Matrix::isOrthogonal() const
-{
-  return (((mat[ 0]?1:0) + (mat[ 4]?1:0) + (mat[ 8]?1:0))<=1)
-     && (((mat[ 1]?1:0) + (mat[ 5]?1:0) + (mat[ 9]?1:0))<=1)
-     && (((mat[ 2]?1:0) + (mat[ 6]?1:0) + (mat[10]?1:0))<=1);
-}
-
-
-
-//////////////////////////////////////////////////////////////////////
-Matrix Matrix::transpose() const
-{
-  return Matrix 
-  (
-    mat[0],mat[4],mat[ 8],mat[12],
-    mat[1],mat[5],mat[ 9],mat[13],
-    mat[2],mat[6],mat[10],mat[14],
-    mat[3],mat[7],mat[11],mat[15]
-  );
-}
-
-//////////////////////////////////////////////////////////////////////
-double Matrix::determinant() const
-{
-  return 
-    mat[3] * mat[6] * mat[9]  * mat[12]-mat[2] * mat[7] * mat[9]  * mat[12]-mat[3] * mat[5] * mat[10] * mat[12]+mat[1] * mat[7]    * mat[10] * mat[12]+
-    mat[2] * mat[5] * mat[11] * mat[12]-mat[1] * mat[6] * mat[11] * mat[12]-mat[3] * mat[6] * mat[8]  * mat[13]+mat[2] * mat[7]    * mat[8]  * mat[13]+
-    mat[3] * mat[4] * mat[10] * mat[13]-mat[0] * mat[7] * mat[10] * mat[13]-mat[2] * mat[4] * mat[11] * mat[13]+mat[0] * mat[6]    * mat[11] * mat[13]+
-    mat[3] * mat[5] * mat[8]  * mat[14]-mat[1] * mat[7] * mat[8]  * mat[14]-mat[3] * mat[4] * mat[9]  * mat[14]+mat[0] * mat[7]    * mat[9]  * mat[14]+
-    mat[1] * mat[4] * mat[11] * mat[14]-mat[0] * mat[5] * mat[11] * mat[14]-mat[2] * mat[5] * mat[8]  * mat[15]+mat[1] * mat[6]    * mat[8]  * mat[15]+
-    mat[2] * mat[4] * mat[9]  * mat[15]-mat[0] * mat[6] * mat[9]  * mat[15]-mat[1] * mat[4] * mat[10] * mat[15]+mat[0] * mat[5]    * mat[10] * mat[15];
-}
-
-
-//////////////////////////////////////////////////////////////////////
-Matrix Matrix::invert() const
-{
-  if (isIdentity())
-    return *this;
-
-  double inv[16];
-  int i;
-  Matrix     _m=this->transpose();
-  double*  m=_m.mat;
-
-  inv[ 0] =  m[5]*m[10]*m[15] - m[5]*m[11]*m[14] - m[9]*m[6]*m[15]+ m[9]*m[7]*m[14] + m[13]*m[6]*m[11] - m[13]*m[7]*m[10];
-  inv[ 4] = -m[4]*m[10]*m[15] + m[4]*m[11]*m[14] + m[8]*m[6]*m[15]- m[8]*m[7]*m[14] - m[12]*m[6]*m[11] + m[12]*m[7]*m[10];
-  inv[ 8] =  m[4]*m[ 9]*m[15] - m[4]*m[11]*m[13] - m[8]*m[5]*m[15]+ m[8]*m[7]*m[13] + m[12]*m[5]*m[11] - m[12]*m[7]*m[ 9];
-  inv[12] = -m[4]*m[ 9]*m[14] + m[4]*m[10]*m[13] + m[8]*m[5]*m[14]- m[8]*m[6]*m[13] - m[12]*m[5]*m[10] + m[12]*m[6]*m[ 9];
-  inv[ 1] = -m[1]*m[10]*m[15] + m[1]*m[11]*m[14] + m[9]*m[2]*m[15]- m[9]*m[3]*m[14] - m[13]*m[2]*m[11] + m[13]*m[3]*m[10];
-  inv[ 5] =  m[0]*m[10]*m[15] - m[0]*m[11]*m[14] - m[8]*m[2]*m[15]+ m[8]*m[3]*m[14] + m[12]*m[2]*m[11] - m[12]*m[3]*m[10];
-  inv[ 9] = -m[0]*m[ 9]*m[15] + m[0]*m[11]*m[13] + m[8]*m[1]*m[15]- m[8]*m[3]*m[13] - m[12]*m[1]*m[11] + m[12]*m[3]*m[ 9];
-  inv[13] =  m[0]*m[ 9]*m[14] - m[0]*m[10]*m[13] - m[8]*m[1]*m[14]+ m[8]*m[2]*m[13] + m[12]*m[1]*m[10] - m[12]*m[2]*m[ 9];
-  inv[ 2] =  m[1]*m[ 6]*m[15] - m[1]*m[ 7]*m[14] - m[5]*m[2]*m[15]+ m[5]*m[3]*m[14] + m[13]*m[2]*m[ 7] - m[13]*m[3]*m[ 6];
-  inv[ 6] = -m[0]*m[ 6]*m[15] + m[0]*m[ 7]*m[14] + m[4]*m[2]*m[15]- m[4]*m[3]*m[14] - m[12]*m[2]*m[ 7] + m[12]*m[3]*m[ 6];
-  inv[10] =  m[0]*m[ 5]*m[15] - m[0]*m[ 7]*m[13] - m[4]*m[1]*m[15]+ m[4]*m[3]*m[13] + m[12]*m[1]*m[ 7] - m[12]*m[3]*m[ 5];
-  inv[14] = -m[0]*m[ 5]*m[14] + m[0]*m[ 6]*m[13] + m[4]*m[1]*m[14]- m[4]*m[2]*m[13] - m[12]*m[1]*m[ 6] + m[12]*m[2]*m[ 5];
-  inv[ 3] = -m[1]*m[ 6]*m[11] + m[1]*m[ 7]*m[10] + m[5]*m[2]*m[11]- m[5]*m[3]*m[10] - m[ 9]*m[2]*m[ 7] + m[ 9]*m[3]*m[ 6];
-  inv[ 7] =  m[0]*m[ 6]*m[11] - m[0]*m[ 7]*m[10] - m[4]*m[2]*m[11]+ m[4]*m[3]*m[10] + m[ 8]*m[2]*m[ 7] - m[ 8]*m[3]*m[ 6];
-  inv[11] = -m[0]*m[ 5]*m[11] + m[0]*m[ 7]*m[ 9] + m[4]*m[1]*m[11]- m[4]*m[3]*m[ 9] - m[ 8]*m[1]*m[ 7] + m[ 8]*m[3]*m[ 5];
-  inv[15] =  m[0]*m[ 5]*m[10] - m[0]*m[ 6]*m[ 9] - m[4]*m[1]*m[10]+ m[4]*m[2]*m[ 9] + m[ 8]*m[1]*m[ 6] - m[ 8]*m[2]*m[ 5];
-
-  double det = m[0]*inv[0] + m[1]*inv[4] + m[2]*inv[8] + m[3]*inv[12];
-    
-  if (!det)
-    return Matrix::identity();
-
-  det = 1.0/det;
-
-  Matrix ret;
-  for (i = 0; i < 16; i++) 
-    ret.mat[i] = inv[i] * det;
-
-  return ret.transpose();
-}
-
 //////////////////////////////////////////////////////////////////////
 Matrix Matrix::perspective(double fovy, double aspect, double zNear, double zFar)
 {
-  double m[4][4] ={{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
+  Matrix m = Matrix::identity(4);
   double sine, cotangent, deltaZ;
   double radians = fovy / 2 * Math::Pi / 180;
 
@@ -150,22 +53,21 @@ Matrix Matrix::perspective(double fovy, double aspect, double zNear, double zFar
     return Matrix();
 
   cotangent = cos(radians) / sine;
-  m[0][0] = cotangent / aspect;
-  m[1][1] = cotangent;
-  m[2][2] = -(zFar + zNear) / deltaZ;
-  m[2][3] = -1;
-  m[3][2] = -2 * zNear * zFar / deltaZ;
-  m[3][3] = 0;
+  m(0, 0) = cotangent / aspect;
+  m(1, 1) = cotangent;
+  m(2, 2) = -(zFar + zNear) / deltaZ;
+  m(2, 3) = -1;
+  m(3, 2) = -2 * zNear * zFar / deltaZ;
+  m(3, 3) = 0;
 
-  Matrix ret(&m[0][0]);
-  return ret.transpose();
+  return m.transpose();
 }
 
 //////////////////////////////////////////////////////////////////////
 Matrix Matrix::lookAt(Point3d Eye,Point3d Center,Point3d Up)
 {
   Point3d forward, side, up;
-  double m[4][4] = {{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}};
+  Matrix m = Matrix::identity(4);
 
   forward[0] = Center.x - Eye.x;
   forward[1] = Center.y - Eye.y;
@@ -184,98 +86,66 @@ Matrix Matrix::lookAt(Point3d Eye,Point3d Center,Point3d Up)
   /* Recompute up as: up = side x forward */
   up=side.cross(forward);
 
-  m[0][0] = side[0];
-  m[1][0] = side[1];
-  m[2][0] = side[2];
+  m(0, 0) = side[0];
+  m(1, 0) = side[1];
+  m(2, 0) = side[2];
 
-  m[0][1] = up[0];
-  m[1][1] = up[1];
-  m[2][1] = up[2];
+  m(0, 1) = up[0];
+  m(1, 1) = up[1];
+  m(2, 1) = up[2];
 
-  m[0][2] = -forward[0];
-  m[1][2] = -forward[1];
-  m[2][2] = -forward[2];
+  m(0, 2) = -forward[0];
+  m(1, 2) = -forward[1];
+  m(2, 2) = -forward[2];
 
-  Matrix ret(&m[0][0]);
-  return ret.transpose() * translate(-1*Eye);
-}
-
-//////////////////////////////////////////////////////////////////////
-Matrix Matrix::scale(Point3d s)
-{
-  return Matrix(  
-    s.x,  0,  0, 0,
-    0  ,s.y,  0, 0,
-    0  ,  0,s.z, 0,
-    0  ,  0,  0, 1);
-}
-
-//////////////////////////////////////////////////////////////////////
-Matrix Matrix::translate(Point3d t)
-{
-  return Matrix(
-    1,0,0,t.x,
-    0,1,0,t.y,
-    0,0,1,t.z,
-    0,0,0,1);
+  return m.transpose() * translate(-1*Eye);
 }
 
 
 
 //////////////////////////////////////////////////////////////////////
-Matrix Matrix::rotate(Point3d axis,double angle)
+Matrix Matrix::rotateAroundAxis(Point3d axis,double angle)
 {
-  axis=axis.normalized();
-  double x=axis.x;
-  double y=axis.y;
-  double z=axis.z;
+  axis = axis.normalized();
+  double x = axis.x;
+  double y = axis.y;
+  double z = axis.z;
 
   double c = cos(angle);
   double s = sin(angle);
 
   return Matrix(
-    x*x*(1 - c) +   c,  x*y*(1 - c) - z*s,  x*z*(1 - c) + y*s,  0,
-    y*x*(1 - c) + z*s,  y*y*(1 - c) +   c,  y*z*(1 - c) - x*s,  0,
-    x*z*(1 - c) - y*s,  y*z*(1 - c) + x*s,  z*z*(1 - c) +   c,  0,
-    0,0,0,1);
-}
-
-//////////////////////////////////////////////////////////////////////
-Matrix Matrix::rotateAroundAxis(Point3d axis,double angle)
-{
-  return Matrix::rotate(axis,angle);
+    x * x * (1 - c) + c, x * y * (1 - c) - z * s, x * z * (1 - c) + y * s, 0,
+    y * x * (1 - c) + z * s, y * y * (1 - c) + c, y * z * (1 - c) - x * s, 0,
+    x * z * (1 - c) - y * s, y * z * (1 - c) + x * s, z * z * (1 - c) + c, 0,
+    0, 0, 0, 1);
 }
 
 
 //////////////////////////////////////////////////////////////////////
 Matrix Matrix::frustum(double left, double right,double bottom, double top,double nearZ, double farZ)
 {
-  double m[16];
+  Matrix m = Matrix::identity(4);
   #define M(row,col)  m[col*4+row]
     M(0,0) = (2*nearZ) / (right-left); M(0,1) =                        0;  M(0,2) =   (right+left) / (right-left);  M(0,3) = 0;
     M(1,0) =                        0; M(1,1) = (2*nearZ) / (top-bottom);  M(1,2) =   (top+bottom) / (top-bottom);  M(1,3) = 0;
     M(2,0) =                        0; M(2,1) =                        0;  M(2,2) = -(farZ+nearZ) / ( farZ-nearZ);  M(2,3) =  -(2*farZ*nearZ) / (farZ-nearZ);
     M(3,0) =                        0; M(3,1) =                        0;  M(3,2) =                            -1;  M(3,3) = 0;
   #undef M
-  Matrix ret(m);
-  return ret.transpose();
+  return m.transpose();
 }
 
 //////////////////////////////////////////////////////////////////////
 Matrix Matrix::ortho(double left, double right,double bottom, double top,double nearZ, double farZ)
 {
-  double m[16];
+  Matrix m = Matrix::identity(4);
   #define M(row,col)  m[col*4+row]
-
     M(0,0) = 2 / (right-left);M(0,1) =                0;M(0,2) =                 0;M(0,3) = -(right+left) / (right-left);
     M(1,0) =                0;M(1,1) = 2 / (top-bottom);M(1,2) =                 0;M(1,3) = -(top+bottom) / (top-bottom);
     M(2,0) =                0;M(2,1) =                0;M(2,2) = -2 / (farZ-nearZ);M(2,3) = -(farZ+nearZ) / (farZ-nearZ);
     M(3,0) =                0;M(3,1) =                0;M(3,2) =                 0;M(3,3) = 1;
-    
   #undef M
-
-  Matrix ret(m);
-  return ret.transpose();
+  return m.transpose();
 }
 
 
@@ -290,25 +160,53 @@ Matrix Matrix::viewport(int x,int y,int width,int height)
     );
 }
 
+//////////////////////////////////////////////////////////////////////
+Matrix Matrix::scaleAroundAxis(Point3d axis, double k)
+{
+  return
+    Matrix(
+      1 + (k - 1) * axis.x * axis.x, (k - 1) * axis.x * axis.y, (k - 1) * axis.x * axis.z, 0,
+      (k - 1) * axis.x * axis.y, 1 + (k - 1) * axis.y * axis.y, (k - 1) * axis.y * axis.z, 0,
+      (k - 1) * axis.x * axis.z, (k - 1) * axis.y * axis.z, 1 + (k - 1) * axis.z * axis.z, 0,
+      0, 0, 0, 1);
+}
+
+//////////////////////////////////////////////////////////////////////
+Matrix Matrix::embed(int axis, double offset)
+{
+  VisusAssert(axis >= 0 && axis < 3);
+  Matrix ret = Matrix::identity(4);
+  const Point3d X(1, 0, 0);
+  const Point3d Y(0, 1, 0);
+  const Point3d Z(0, 0, 1);
+  const Point3d W(0, 0, 0);
+  if (axis == 0)
+    return Matrix::translate(axis, offset) * Matrix(Y, Z, X, W);
+  else if (axis == 1)
+    return Matrix::translate(axis, offset) * Matrix(X, Z, Y, W);
+  else
+    return Matrix::translate(axis, offset) * Matrix(X, Y, Z, W);
+}
+
   
 //////////////////////////////////////////////////////////////////////
 void Matrix::getLookAt(Point3d& pos,Point3d& dir,Point3d& vup) const
 {
-  Matrix T=this->invert();
-  const double* vmat=T.mat;
+  Matrix vmat =this->invert();
   pos=Point3d(  vmat[3], vmat[7], vmat[11]);
   dir=Point3d( -vmat[2],-vmat[6],-vmat[10]).normalized();
   vup=Point3d(  vmat[1], vmat[5], vmat[ 9]).normalized();
 }
 
 
-
 //////////////////////////////////////////////////////////
-Quaternion Matrix3::toQuaternion() const
+Quaternion Matrix::toQuaternion() const
 {
-  const Matrix3& m=*this;
+  VisusAssert(getSpaceDim() == 3 || getSpaceDim() == 4);
 
-  double kRot[3][3]=
+  const auto& m = *this;
+
+  double kRot[3][3] =
   {
     {m(0,0) , m(0,1) , m(0,2)},
     {m(1,0) , m(1,1) , m(1,2)},
@@ -317,79 +215,61 @@ Quaternion Matrix3::toQuaternion() const
 
   // Algorithm in Ken Shoemake's article in 1987 SIGGRAPH course notes
   // article "Quaternion Calculus and Fast Animation".
-   
-  double fTrace = kRot[0][0]+kRot[1][1]+kRot[2][2];
+
+  double fTrace = kRot[0][0] + kRot[1][1] + kRot[2][2];
   double fRoot;
-   
+
   double qw, qx, qy, qz;
 
-  if ( fTrace > 0.0 )
+  if (fTrace > 0.0)
   {
     // |w| > 1/2, may as well choose w > 1/2
     fRoot = (double)sqrt(fTrace + 1.0);  // 2w
-    qw = 0.5f*fRoot;
-    fRoot = 0.5f/fRoot;  // 1/(4w)
-    qx = (kRot[2][1]-kRot[1][2])*fRoot;
-    qy = (kRot[0][2]-kRot[2][0])*fRoot;
-    qz = (kRot[1][0]-kRot[0][1])*fRoot;
+    qw = 0.5f * fRoot;
+    fRoot = 0.5f / fRoot;  // 1/(4w)
+    qx = (kRot[2][1] - kRot[1][2]) * fRoot;
+    qy = (kRot[0][2] - kRot[2][0]) * fRoot;
+    qz = (kRot[1][0] - kRot[0][1]) * fRoot;
   }
   else
   {
     // |w| <= 1/2
     int s_iNext[3] = { 1, 2, 0 };
     int i = 0;
-    if ( kRot[1][1] > kRot[0][0] )
+    if (kRot[1][1] > kRot[0][0])
       i = 1;
-    if ( kRot[2][2] > kRot[i][i] )
+    if (kRot[2][2] > kRot[i][i])
       i = 2;
     int j = s_iNext[i];
     int k = s_iNext[j];
-   
-    fRoot = (double)sqrt(kRot[i][i]-kRot[j][j]-kRot[k][k] + 1.0);
+
+    fRoot = (double)sqrt(kRot[i][i] - kRot[j][j] - kRot[k][k] + 1.0);
     double* apkQuat[3] = { &qx, &qy, &qz };
     *apkQuat[i] = 0.5f * fRoot;
-    fRoot = (double)0.5f/fRoot;
-    qw = (kRot[k][j]-kRot[j][k])*fRoot;
-    *apkQuat[j] = (kRot[j][i]+kRot[i][j])*fRoot;
-    *apkQuat[k] = (kRot[k][i]+kRot[i][k])*fRoot;
+    fRoot = (double)0.5f / fRoot;
+    qw = (kRot[k][j] - kRot[j][k]) * fRoot;
+    *apkQuat[j] = (kRot[j][i] + kRot[i][j]) * fRoot;
+    *apkQuat[k] = (kRot[k][i] + kRot[i][k]) * fRoot;
   }
 
   return Quaternion(qw, qx, qy, qz);
 }
 
 
-//////////////////////////////////////////////////////////
-Quaternion Matrix::toQuaternion() const
-{
-  return dropW().toQuaternion();
-}
-
 
 //////////////////////////////////////////////////////////
-Matrix3 Matrix3::rotate(const Quaternion& q)
+Matrix Matrix::rotate(const Quaternion& q,Point3d vt)
 {
-  double kRot[3][3];
-  double fTx  = 2.0f*q.x;double fTy  = 2.0f*q.y;double fTz  = 2.0f*q.z;
-  double fTwx = fTx*q.w ;double fTwy = fTy*q.w ;double fTwz = fTz*q.w ;
-  double fTxx = fTx*q.x ;double fTxy = fTy*q.x ;double fTxz = fTz*q.x ;
-  double fTyy = fTy*q.y ;double fTyz = fTz*q.y ;double fTzz = fTz*q.z ;
+  double fTx = 2.0f * q.x; double fTy = 2.0f * q.y; double fTz = 2.0f * q.z;
+  double fTwx = fTx * q.w; double fTwy = fTy * q.w; double fTwz = fTz * q.w;
+  double fTxx = fTx * q.x; double fTxy = fTy * q.x; double fTxz = fTz * q.x;
+  double fTyy = fTy * q.y; double fTyz = fTz * q.y; double fTzz = fTz * q.z;
 
-  kRot[0][0] = 1.0f-(fTyy+fTzz);kRot[0][1] =      (fTxy-fTwz);kRot[0][2] =      (fTxz+fTwy);
-  kRot[1][0] =      (fTxy+fTwz);kRot[1][1] = 1.0f-(fTxx+fTzz);kRot[1][2] =      (fTyz-fTwx);
-  kRot[2][0] =      (fTxz-fTwy);kRot[2][1] =      (fTyz+fTwx);kRot[2][2] = 1.0f-(fTxx+fTyy);
-
-  return Matrix3(
-    kRot[0][0],kRot[0][1],kRot[0][2],
-    kRot[1][0],kRot[1][1],kRot[1][2],
-    kRot[2][0],kRot[2][1],kRot[2][2]);
-}
-
-
-
-//////////////////////////////////////////////////////////
-Matrix Matrix::rotate(const Quaternion& q)
-{
-  return Matrix(Matrix3::rotate(q),Point3d(0,0,0));
+  return Matrix(
+    1.0f - (fTyy + fTzz), (fTxy - fTwz), (fTxz + fTwy), vt.x,
+    (fTxy + fTwz), 1.0f - (fTxx + fTzz), (fTyz - fTwx), vt.y,
+    (fTxz - fTwy), (fTyz + fTwx), 1.0f - (fTxx + fTyy), vt.z,
+    0,0,0,1);
 }
 
 
@@ -447,8 +327,8 @@ QDUMatrixDecomposition::QDUMatrixDecomposition(const Matrix& T)
 
   if ( fDet < 0.0 )
   {
-    for (size_t iRow = 0; iRow < 3; iRow++)
-    for (size_t iCol = 0; iCol < 3; iCol++)
+    for (int iRow = 0; iRow < 3; iRow++)
+    for (int iCol = 0; iCol < 3; iCol++)
         kQ[iRow][iCol] = -kQ[iRow][iCol];
   }
 
@@ -469,7 +349,7 @@ QDUMatrixDecomposition::QDUMatrixDecomposition(const Matrix& T)
   this->U[1] = kR[0][2]*fInvD0;
   this->U[2] = kR[1][2]/this->D[1];
 
-  this->Q=Matrix();
+  this->Q= Matrix::identity(4);
   this->Q(0,0)=kQ[0][0];this->Q(0,1)=kQ[0][1];this->Q(0,2)=kQ[0][2];
   this->Q(1,0)=kQ[1][0];this->Q(1,1)=kQ[1][1];this->Q(1,2)=kQ[1][2];
   this->Q(2,0)=kQ[2][0];this->Q(2,1)=kQ[2][1];this->Q(2,2)=kQ[2][2];
@@ -484,79 +364,95 @@ TRSMatrixDecomposition::TRSMatrixDecomposition(const Matrix& T)
   this->scale       = qdu.D;
 }
 
+//////////////////////////////////////////////////////////////////////
+Matrix Matrix::submatrix(int row, int column) const
+{
+  Matrix result(this->dim - 1);
+  int subi = 0;
+  for (int i = 0; i < this->dim; i++) {
+    int subj = 0;
+    if (i == row) continue;
+    for (int j = 0; j < this->dim; j++) {
+      if (j == column) continue;
+      result(subi, subj) = operator()(i, j);
+      subj++;
+    }
+    subi++;
+  }
+  return result;
+}
 
 //////////////////////////////////////////////////////////////////////
-MatrixNd MatrixNd::invert() const
-{
-  auto A = MatrixNd(*this);
-  auto S = PointNd(dim);
-  auto B = MatrixNd(dim);
-  auto X = std::vector<int>(dim);
-  auto ret = MatrixNd(A);
+double Matrix::getMinor(int row, int column) const {
+  if (this->dim == 2)
+    return Matrix(get(1, 1), get(1, 0), get(0, 1), get(0, 0)).determinant();
+  else
+    return submatrix(row, column).determinant();
+}
 
-  for (int I = 0; I < dim; I++)
+//////////////////////////////////////////////////////////////////////
+double Matrix::cofactor(int row, int column) const {
+  double minor;
+
+  // special case for when our matrix is 2x2
+  if (this->dim == 2) {
+    if (row == 0 && column == 0) minor = get(1, 1);
+    else if (row == 1 && column == 1) minor = get(0, 0);
+    else if (row == 0 && column == 1) minor = get(1, 0);
+    else if (row == 1 && column == 0) minor = get(0, 1);
+  }
+  else
   {
-    X[I] = I;
-    double scalemax = 0.0;
-    for (int J = 0; J < dim; J++)
-      scalemax = std::max(scalemax, fabs(A(I, J)));
-    S[I] = scalemax;
+    minor = getMinor(row, column);
   }
 
-  int signDet = 1;
-  for (int K = 0; K < dim; K++)
-  {
-    double ratiomax = 0.0;
-    int jPivot = K;
-    for (int I = K; I < dim; I++)
-    {
-      double ratio = fabs(A(X[I], K)) / S[X[I]];
-      if (ratio > ratiomax) {
-        jPivot = I;
-        ratiomax = ratio;
-      }
-    }
-    int indexJ = X[K];
-    if (jPivot != K)
-    {
-      indexJ = X[jPivot];
-      X[jPivot] = X[K];
-      X[K] = indexJ;
-      signDet *= -1;
-    }
+  return (row + column) % 2 == 0 ? minor : -minor;
+}
 
-    for (int I = (K + 1); I < dim; I++)
-    {
-      double coeff = A(X[I], K) / A(indexJ, K);
-      for (int J = (K + 1); J < dim; J++)
-      {
-        double value = A(X[I], J) - coeff * A(indexJ, J);
-        A(X[I], J) = value;
-      }
-
-      A(X[I], K) = coeff;
-      for (int J = 0; J < dim; J++)
-      {
-        double value = B(X[I], J) - A(X[I], K) * B(indexJ, J);
-        B(X[I], J) = value;
-      }
-    }
-  }
-
-  for (int K = 0; K < dim; K++)
-  {
-    double value = B(X[dim], K) / A(X[dim], dim);
-    ret(dim, K) = value;
-    for (int I = A.dim - 1; I >= 0; I--)
-    {
-      double sum = B(X[I], K);
-      for (int J = (I + 1); J < dim; J++)
-        sum -= A(X[I], J) * ret(J, K);
-      value = sum / A(X[I], I);
-      ret(I, K) = value;
+//////////////////////////////////////////////////////////////////////
+Matrix Matrix::cofactorMatrix() const {
+  Matrix ret(this->dim);
+  for (int i = 0; i < this->dim; i++) {
+    for (int j = 0; j < this->dim; j++) {
+      ret(i, j) = cofactor(i, j);
     }
   }
   return ret;
+}
+
+//////////////////////////////////////////////////////////////////////
+Matrix Matrix::adjugate() const {
+  return cofactorMatrix().transpose();
+}
+
+//////////////////////////////////////////////////////////////////////
+double Matrix::determinant() const
+{
+  if (this->dim == 2)
+    return get(0, 0) * get(1, 1) - get(1, 0) * get(0, 1);
+
+  double ret = 0;
+  for (int c = 0; c < this->dim; c++) 
+    ret += pow(-1, c) * operator()(0, c) * submatrix(0, c).determinant();
+  return ret;
+}
+
+//////////////////////////////////////////////////////////////////////
+Matrix Matrix::invert() const
+{
+  if (isIdentity())
+    return *this;
+
+  if (isZero())
+    return *this;
+
+  double det = determinant();
+
+  //not invertible
+  if (det == 0)
+    return *this;
+
+  return adjugate() * (1.0 / det);
 }
 
 } //namespace Visus

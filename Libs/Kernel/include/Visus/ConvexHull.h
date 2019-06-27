@@ -111,9 +111,13 @@ public:
        \___/
     */
 
-    for (int I=0;I<(int)planes.size();I++)
+    for (auto plane : planes)
     {
-      double min_distance=planes[I].getDistance(Point3d(planes[I].x>=0?box.p1.x:box.p2.x , planes[I].y>=0?box.p1.y:box.p2.y , planes[I].z>=0?box.p1.z:box.p2.z));
+      VisusAssert(plane.getPointDim() == 4);
+      double min_distance= plane.getDistance(Point3d(
+        plane[0]>=0?box.p1.x:box.p2.x ,
+        plane[1]>=0?box.p1.y:box.p2.y ,
+        plane[2]>=0?box.p1.z:box.p2.z));
       if (min_distance>=0) return false;
     }
 

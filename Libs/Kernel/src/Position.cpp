@@ -41,21 +41,19 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////
-Position Position::withoutTransformation() const
+BoxNd Position::withoutTransformation() const
 {
   if (!this->valid())
-    return Position::invalid();
+    return BoxNd::invalid();
 
   if (T.isIdentity())
-    return Position(this->box);
+    return this->box;
 
-  //todo here!
-  Box3d ret = Box3d::invalid();
-  Box3d  box = this->box.toBox3();
-  for (int I = 0; I<8; I++)
-    ret.addPoint(T * box.getPoint(I));
-
-  return Position(ret);
+  auto ret = BoxNd::invalid();
+  auto points = this->box.getPoints();
+  for (auto point : points)
+    ret.addPoint(T * point);
+  return ret;
 }
 
 //////////////////////////////////////////////////
@@ -236,7 +234,7 @@ void Position::writeToObjectStream(ObjectStream& ostream)
 //////////////////////////////////////////////////
 void Position::readFromObjectStream(ObjectStream& istream)
 {
-  this->T=Matrix::identity();
+  this->T= Matrix::identity(4);
 
   if (istream.pushContext("T"))
   {

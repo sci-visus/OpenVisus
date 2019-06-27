@@ -47,9 +47,9 @@ static inline bool overlap1d(double __a,double __b,double __p,double __q)
 
 
 ///////////////////////////////////////////////////////////////////////////
-RayPlaneIntersection::RayPlaneIntersection(const Ray3d& ray,const Plane& plane4)  : valid(false),t(0)
+RayPlaneIntersection::RayPlaneIntersection(const Ray& ray,const Plane& plane4)  : valid(false),t(0)
 {
-  double t= -plane4.getDistance(ray.getOrigin())/(plane4.getNormal()*ray.getDirection());
+  double t= -plane4.getDistance(ray.getOrigin())/(plane4.getNormal().dot(ray.getDirection()));
   if (!Utils::isValidNumber(t)) return;
 
   this->valid=true;
@@ -58,29 +58,32 @@ RayPlaneIntersection::RayPlaneIntersection(const Ray3d& ray,const Plane& plane4)
 }
 
 ///////////////////////////////////////////////////////////////////////////
-RayBoxIntersection::RayBoxIntersection(const Ray3d& ray,const Box3d& box) : valid(false),tmin(0),tmax(0)
+RayBoxIntersection::RayBoxIntersection(const Ray& ray,const BoxNd& box) : valid(false),tmin(0),tmax(0)
 {
+  VisusAssert(ray.getPointDim() == 3);
+  VisusAssert(box.getPointDim() == 3);
+
   double& tmin=this->tmin;
   double& tmax=this->tmax;
 
   double txmin,txmax;
-  Point3d inv_direction=ray.getDirection().inv();
+  PointNd inv_direction=ray.getDirection().inv();
 
-  txmin  = ((inv_direction.x>=0? box.p1.x : box.p2.x) - ray.getOrigin().x) * inv_direction.x;
-  txmax  = ((inv_direction.x>=0? box.p2.x : box.p1.x) - ray.getOrigin().x) * inv_direction.x;
+  txmin  = ((inv_direction[0]>=0? box.p1[0] : box.p2[0]) - ray.getOrigin()[0]) * inv_direction[0];
+  txmax  = ((inv_direction[0]>=0? box.p2[0] : box.p1[0]) - ray.getOrigin()[0]) * inv_direction[0];
 
   tmin=txmin;
   tmax=txmax;
 
-  double tymin = ((inv_direction.y>=0? box.p1.y : box.p2.y) - ray.getOrigin().y) * inv_direction.y;
-  double tymax = ((inv_direction.y>=0? box.p2.y : box.p1.y) - ray.getOrigin().y) * inv_direction.y;
+  double tymin = ((inv_direction[1]>=0? box.p1[1] : box.p2[1]) - ray.getOrigin()[1]) * inv_direction[1];
+  double tymax = ((inv_direction[1]>=0? box.p2[1] : box.p1[1]) - ray.getOrigin()[1]) * inv_direction[1];
 
   if (!overlap1d(tmin,tmax,tymin,tymax)) return ;
   if (tymin > tmin) tmin = tymin;
   if (tymax < tmax) tmax = tymax;
 
-  double tzmin = ((inv_direction.z>=0? box.p1.z : box.p2.z) - ray.getOrigin().z) * inv_direction.z;
-  double tzmax = ((inv_direction.z>=0? box.p2.z : box.p1.z) - ray.getOrigin().z) * inv_direction.z;
+  double tzmin = ((inv_direction[2]>=0? box.p1[2] : box.p2[2]) - ray.getOrigin()[2]) * inv_direction[2];
+  double tzmax = ((inv_direction[2]>=0? box.p2[2] : box.p1[2]) - ray.getOrigin()[2]) * inv_direction[2];
 
   if (!overlap1d(tmin,tmax,tzmin,tzmax)) return ;
   if (tzmin > tmin) tmin = tzmin;
@@ -90,7 +93,7 @@ RayBoxIntersection::RayBoxIntersection(const Ray3d& ray,const Box3d& box) : vali
 }
 
 ///////////////////////////////////////////////////////////////////
-RaySphereIntersection::RaySphereIntersection(const Ray3d& ray,const Sphere& sp) : valid(false),tmin(0),tmax(0)
+RaySphereIntersection::RaySphereIntersection(const Ray& ray,const Sphere& sp) : valid(false),tmin(0),tmax(0)
 {
   // find intersection of ray p=(o + t*v) and sphere (|p-c|^2=r^2).
   //
@@ -109,10 +112,10 @@ RaySphereIntersection::RaySphereIntersection(const Ray3d& ray,const Sphere& sp) 
   //also please use FindRoots::solve()
   VisusAssert(false);
 
-  Point3d oc(ray.getOrigin() - sp.center);
+  auto oc=ray.getOrigin() - sp.center;
 
-  double B = ray.getDirection() * oc;  // B/2
-  double C = oc * oc - sp.radius * sp.radius;
+  double B = ray.getDirection().dot(oc);  // B/2
+  double C = oc.dot(oc) - sp.radius * sp.radius;
   double d = 4.0f * (B * B - C);
 
   if (d<0)
@@ -126,11 +129,11 @@ RaySphereIntersection::RaySphereIntersection(const Ray3d& ray,const Sphere& sp) 
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
-RaySegmentDistance::RaySegmentDistance(const Ray3d& ray,const Segment& segment) : distance(0),closest_ray_point(0,0,0),closest_segment_point(0,0,0)
+RaySegmentDistance::RaySegmentDistance(const Ray& ray,const Segment& segment) : distance(0),closest_ray_point(0,0,0),closest_segment_point(0,0,0)
 {
   //see http://www.geometrictools.com/LibMathematics/Distance/DistanceBody.html
 
-  Point3d diff  =  ray.getOrigin()- segment.getCenter();
+  auto   diff   =  ray.getOrigin()- segment.getCenter();
   double a01    = -ray.getDirection().dot(segment.getDirection());
   double b0     =  diff.dot(ray.getDirection());
   double b1     = -diff.dot(segment.getDirection());
@@ -292,11 +295,11 @@ RaySegmentDistance::RaySegmentDistance(const Ray3d& ray,const Segment& segment) 
 
 
 ////////////////////////////////////////////////////////////////////////////
-RayPointDistance::RayPointDistance(const Ray3d& ray,const Point3d& point) : distance(0),closest_ray_point(0,0,0)
+RayPointDistance::RayPointDistance(const Ray& ray,const PointNd& point) : distance(0),closest_ray_point(0,0,0)
 {
   // see http://www.geometrictools.com/LibMathematics/Distance/Distance.html
   
-  Point3d diff = point - ray.getOrigin();
+  auto diff = point - ray.getOrigin();
   
   double mRayParameter = ray.getDirection().dot(diff);
   
@@ -316,8 +319,10 @@ RayPointDistance::RayPointDistance(const Ray3d& ray,const Point3d& point) : dist
 
 
 /////////////////////////////////////////////////////////////////////////
-RayCircleDistance::RayCircleDistance(const Ray3d& ray,const Circle& circle) : distance(0),closest_ray_point(0,0,0),closest_circle_point(0,0,0)
+RayCircleDistance::RayCircleDistance(const Ray& ray,const Circle& circle) : distance(0),closest_ray_point(0,0,0),closest_circle_point(0,0,0)
 {
+  VisusAssert(ray.getPointDim() == 3);
+
   //see http://www.geometrictools.com/LibMathematics/Distance/Distance.html
 
   // Static distance queries.  Compute the distance from the point P to the
@@ -326,11 +331,11 @@ RayCircleDistance::RayCircleDistance(const Ray3d& ray,const Circle& circle) : di
   // all circle points are equidistant from P.  In this case the returned
   // point is (infinity,infinity,infinity).
 
-  Point3d diff = ray.getOrigin() - circle.getCenter();
+  auto   diff = ray.getOrigin() - circle.getCenter();
   double diffSqrLen = diff.module2();
   double MdM = ray.getDirection().module2();
   double DdM = diff.dot(ray.getDirection());
-  double NdM = circle.getNormal().dot(ray.getDirection());
+  double NdM = ray.getDirection().dot(circle.getNormal());
   double DdN = diff.dot(circle.getNormal());
 
   double a0 = DdM;
@@ -366,9 +371,9 @@ RayCircleDistance::RayCircleDistance(const Ray3d& ray,const Circle& circle) : di
   for (int i = 0; i < (int)polyroots.size(); ++i)
   {
     // Compute distance from P(t) to circle.
-    Point3d P = ray.getOrigin() + polyroots[i]*ray.getDirection();
+    auto P = ray.getOrigin() + polyroots[i]*ray.getDirection();
 
-    CirclePointDistance query=circle.getDistance(P);
+    CirclePointDistance query=circle.getDistance(P.toPoint3());
 
     double dist = query.distance;
     if (dist < min_dist)
@@ -385,12 +390,12 @@ RayCircleDistance::RayCircleDistance(const Ray3d& ray,const Circle& circle) : di
 
 
 ///////////////////////////////////////////////////////////////////
-RayLineDistance::RayLineDistance(const Ray3d& ray,const Line3d& line) : distance(0),closest_ray_point(0,0,0)
+RayLineDistance::RayLineDistance(const Ray& ray,const Line& line) : distance(0),closest_ray_point(0,0,0)
 {
   //http://www.geometrictools.com/LibMathematics/Distance/Wm5DistLine3Ray3.cpp
 
-  Point3d kDiff = line.getOrigin() - ray.getOrigin();
-  double a01 = -line.getDirection().dot(ray.getDirection());
+  auto kDiff = line.getOrigin() - ray.getOrigin();
+  double a01 = -ray.getDirection().dot(line.getDirection());
   double b0 = kDiff.dot(line.getDirection());
   double c = kDiff.module2();
   double det = fabs((double)1 - a01*a01);

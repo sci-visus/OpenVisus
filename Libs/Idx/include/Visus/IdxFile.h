@@ -61,7 +61,7 @@ public:
   //bitmask (example: 010101{01}*)
   DatasetBitmask bitmask;
 
-  // bounding box of data stored in the file, with both box.from and box.to included (see Visus(Set/Get)Box) 
+  // bounding box of data stored in the file, with both box.from and box.to included (see Visus(Set/Get)BoxNd) 
   NdBox box;
 
   // the collection of fields stored inside this dataset (note if this is empty you can still use Dataset::getFieldByName(name) for dynamic fields)

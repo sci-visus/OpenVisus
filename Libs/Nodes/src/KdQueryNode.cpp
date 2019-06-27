@@ -119,13 +119,13 @@ public:
     }
 
     //find intersection with dataset box
-    position=Position::shrink(Position(dataset->getBox()).withoutTransformation().box.toBox3(),MatrixMap(Matrix::identity()),position);
+    position=Position::shrink(Position(dataset->getBox()).withoutTransformation().toBox3(),MatrixMap(Matrix::identity(4)),position);
 
     if (!position.valid()) 
       return false;
 
     //remove transformation
-    position = Position(position.withoutTransformation().getNdBox().withPointDim(pdim).getIntersection(dataset->getBox()));
+    position = Position(position.withoutTransformation().castTo<NdBox>().withPointDim(pdim).getIntersection(dataset->getBox()));
     if (!position.valid()) 
       return false;
 

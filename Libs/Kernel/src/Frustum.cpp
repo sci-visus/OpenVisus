@@ -62,8 +62,8 @@ double Frustum::computeDistance(const Position& obj,Point2d screen_point,bool bU
   if (!intersection.valid)
     return failed;
 
-  Point3d p1=frustum.getModelview()*ray.getPoint(bUseFarPoint?intersection.tmax:intersection.tmin);
-  Point3d p2=frustum.getModelview()*ray.getPoint(0.0);
+  auto p1=frustum.getModelview()*ray.getPoint(bUseFarPoint?intersection.tmax:intersection.tmin);
+  auto p2=frustum.getModelview()*ray.getPoint(0.0);
 
   double ret=(p2-p1).module();
 

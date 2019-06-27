@@ -269,10 +269,7 @@ public:
   void setUniform(const GLUniform& uniform, Point4d v)                           {setUniform(uniform,(float)v.x,(float)v.y,(float)v.z,(float)v.w);}
 
   void setUniformColor(const GLUniform& uniform, const Color& color)             {setUniform(uniform,color.getRed(),color.getGreen(),color.getBlue(),color.getAlpha());}
-  void setUniformPlane(const GLUniform& uniform, const Plane& h)                 {setUniform(uniform,(float)h.x,(float)h.y,(float)h.z,(float)h.w);}
-
-  //setUniformMatrix
-  void setUniformMatrix(const GLUniform& uniform,const Matrix3& T);
+  void setUniformPlane(const GLUniform& uniform, const Plane& h)                 {VisusAssert(h.getPointDim()==4);setUniform(uniform,(float)h[0],(float)h[1],(float)h[2],(float)h[3]);}
 
   //setUniformMatrix
   void setUniformMatrix(const GLUniform& uniform,const Matrix& T);
@@ -280,7 +277,7 @@ public:
   //pushClippingBox
   void pushClippingBox(const Box3d& box)
   {
-    const Matrix& Ti = getModelview().invert();
+    auto Ti = Matrix(getModelview().invert());
     std::array<Plane, 6> planes = { {
       Plane(+1.0, 0.0, 0.0, -box.p1.x)*Ti,
       Plane(-1.0, 0.0, 0.0, +box.p2.x)*Ti,
@@ -296,7 +293,7 @@ public:
   //pushClippingBox
   void pushClippingBox(const Position& position)
   {
-    Matrix save_modelview = getModelview();
+    auto save_modelview = getModelview();
     multModelview(position.T);
     pushClippingBox(position.box.toBox3());
     loadModelview(save_modelview);
@@ -336,8 +333,9 @@ public:
   void popViewport();
 
   //getProjection
-  const Matrix& getProjection() const
-  {return this->projection.top();}
+  const Matrix& getProjection() const {
+    return this->projection.top();
+  }
 
   //setProjection
   void setProjection(const Matrix& value,bool bForce=false);
@@ -349,27 +347,32 @@ public:
   void popProjection();
 
   //loadProjection
-  void loadProjection(const Matrix& value)
-  {setProjection(value);}
+  void loadProjection(const Matrix& value){
+    setProjection(value);
+  }
 
   //multProjection
-  void multProjection(const Matrix& value)
-  {loadProjection(getProjection()*value);}
+  void multProjection(const Matrix& value){
+    loadProjection(getProjection()*value);
+  }
 
   //getModelview
-  const Matrix& getModelview() const
-  {return this->modelview.top();}
+  const Matrix& getModelview() const {
+    return this->modelview.top();
+  }
 
   //setModelview
   void setModelview(const Matrix& value,bool bForce=false);
 
   //loadModelview
-  void loadModelview(const Matrix& value)
-  {setModelview(value);}
+  void loadModelview(const Matrix& value) {
+    setModelview(value);
+  }
 
   //multModelview
-  void multModelview(const Matrix& value)
-  {loadModelview(getModelview()*value);}
+  void multModelview(const Matrix& value){
+    loadModelview(getModelview()*value);
+  }
 
   //pushModelview
   void pushModelview();

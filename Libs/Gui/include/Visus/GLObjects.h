@@ -56,7 +56,7 @@ public:
   Matrix T;
 
   //constructor
-  GLModelview(Matrix T_=Matrix::identity()) : T(T_) {
+  GLModelview(Matrix T_=Matrix::identity(4)) : T(T_) {
   }
 
   //destructor

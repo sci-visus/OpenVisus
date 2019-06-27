@@ -149,7 +149,6 @@ public:
 
 public:
 
-
   //writeToObjectStream
   void writeToObjectStream(ObjectStream& ostream);
 

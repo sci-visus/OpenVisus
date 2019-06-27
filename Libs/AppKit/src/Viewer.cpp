@@ -647,7 +647,7 @@ int Viewer::getWorldDimension() const
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Box3d Viewer::getWorldBoundingBox() const
 {
-  return getNodeBounds(getRoot()).withoutTransformation().box.toBox3();
+  return getNodeBounds(getRoot()).withoutTransformation().toBox3();
 }
 
 
@@ -667,7 +667,7 @@ Position Viewer::getNodeBounds(Node* node,bool bRecursive) const
       return ret;
   }
 
-  Matrix T;
+  auto T = Matrix::identity(4);
 
   //modelview_node::modelview is used only if it's NOT recursive call
   //stricly speaking , a transform node has as content its childs
@@ -694,7 +694,7 @@ Position Viewer::getNodeBounds(Node* node,bool bRecursive) const
     {
       Position child_bounds=getNodeBounds(child,true); 
       if (child_bounds.valid())
-        box=box.getUnion(child_bounds.withoutTransformation().box.toBox3());
+        box=box.getUnion(child_bounds.withoutTransformation().toBox3());
     }
     return Position(T,box);
   }
@@ -755,7 +755,7 @@ Frustum Viewer::computeNodeFrustum(Frustum frustum,Node* node) const
   {
     if (auto modelview_node=dynamic_cast<ModelViewNode*>(it))
     {
-      Matrix T=modelview_node->getModelview();
+      auto T=modelview_node->getModelview();
       frustum.multModelview(T);
     }
   }
@@ -839,7 +839,7 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
 
       if (trs.rotate.getAngle()==0)
       {
-        T=Matrix::identity();
+        T=Matrix::identity(4);
         for (int I=0;I<3;I++)
         {
           box.p1[I]=box.p1[I]*trs.scale[I]+trs.translate[I];
@@ -887,7 +887,7 @@ void Viewer::beginFreeTransform(ModelViewNode* modelview_node)
 
     free_transform->objectChanged.connect([this,modelview_node,bounds](Position obj)
     {
-      Matrix T=obj.T * bounds.T.invert();
+      auto T=obj.T * bounds.T.invert();
       modelview_node->setModelview(T);
       refreshData(modelview_node);
     });
@@ -2789,7 +2789,7 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
   query_node->setQuality(Query::DefaultQuality);
 
   {
-    Box3d box=dataset_node->getNodeBounds().withoutTransformation().box.toBox3();
+    Box3d box=dataset_node->getNodeBounds().withoutTransformation().toBox3();
     if (dim==3)
     {
       const double Scale=1.0;
@@ -2901,10 +2901,7 @@ KdQueryNode* Viewer::addKdQueryNode(Node* parent,DatasetNode* dataset_node,Strin
   query_node->setQuality(Query::DefaultQuality);
 
   {
-    Box3d box=dataset_node->getNodeBounds().withoutTransformation().box.toBox3();
-    const double Scale=1.0;
-    if (dataset_dim==3 && Scale!=1)  
-      box=box.scaleAroundCenter(Scale);
+    Box3d box=dataset_node->getNodeBounds().withoutTransformation().toBox3();
     query_node->setNodeBounds(Position(box));
   }
 

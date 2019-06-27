@@ -69,6 +69,7 @@ public:
   //setModelview
   void setModelview(const Matrix& value) {
     if (this->T==value) return;
+    VisusAssert(value.getSpaceDim() == 4);
     beginUpdate();
     this->T=value;
     endUpdate();
@@ -85,7 +86,7 @@ public:
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override {
     Node::readFromObjectStream(istream);
-    T=Matrix(istream.read("T"));
+    T= Matrix::parseFromString(4,istream.read("T"));
   }
 
   static ModelViewNode* castFrom(Node* obj) {
@@ -94,7 +95,7 @@ public:
 
 private:
 
-  Matrix T;
+  Matrix T = Matrix::identity(4);
 
 };
 

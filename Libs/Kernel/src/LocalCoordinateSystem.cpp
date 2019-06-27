@@ -60,6 +60,7 @@ LocalCoordinateSystem::LocalCoordinateSystem(Point3d center_,int axis)
 ////////////////////////////////////////////////////////////////////
 LocalCoordinateSystem::LocalCoordinateSystem(const Matrix& T)
 {
+  VisusAssert(T.getSpaceDim() == 4);
   this->x=Point3d(T.mat[ 0],T.mat[ 4],T.mat[ 8]); //c*this) * (1,0,0,0)
   this->y=Point3d(T.mat[ 1],T.mat[ 5],T.mat[ 9]); //(*this) * (0,1,0,0)
   this->z=Point3d(T.mat[ 2],T.mat[ 6],T.mat[10]); //(*this) * (0,0,1,0)

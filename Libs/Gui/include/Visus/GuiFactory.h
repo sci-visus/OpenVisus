@@ -622,8 +622,9 @@ namespace GuiFactory
     Widgets widgets;
 
     //constructor
-    MatrixView(Matrix value=Matrix::identity())
+    MatrixView(Matrix value= Matrix::identity(4))
     {
+      VisusAssert(value.getSpaceDim() == 4);
       auto layout = new QVBoxLayout();
 
       QGridLayout* row = new QGridLayout();
@@ -643,7 +644,7 @@ namespace GuiFactory
         }));
 
         row->addWidget(widgets.btIdentity = GuiFactory::CreateButton("Identity",[this](bool) {
-          setMatrix(Matrix::identity(),true); 
+          setMatrix(Matrix::identity(4),true); 
         }));
         layout->addLayout(row);
       }
@@ -688,7 +689,7 @@ namespace GuiFactory
 
     //getMatrix
     Matrix getMatrix() const {
-      Matrix ret;
+      auto ret = Matrix::identity(4);
       for (int R = 0; R < 4; R++)
         for (int C = 0; C < 4; C++)
           ret(R, C) = cdouble(widgets.text_box[R][C]->text());

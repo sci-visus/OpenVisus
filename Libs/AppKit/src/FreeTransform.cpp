@@ -82,7 +82,7 @@ void FreeTransform::doTranslate(Point3d vt)
     vt[1]*lcs.getAxis(1).normalized()+
     vt[2]*lcs.getAxis(2).normalized();
 
-  auto T=Matrix::translate(vt);
+  auto T= Matrix::translate(vt);
 
   
   setObject(Position(T,obj),true);
@@ -98,13 +98,12 @@ void FreeTransform::doRotate(Point3d vr)
   auto lcs=dragging.type? dragging.lcs   : this->lcs;
   auto obj=dragging.type? dragging.begin : this->obj;
 
-  auto T=Matrix::translate(+lcs.getCenter()) *
+  auto T= Matrix::translate(+lcs.getCenter()) *
     Matrix::rotateAroundAxis(lcs.getAxis(2).normalized(),vr.z) *
     Matrix::rotateAroundAxis(lcs.getAxis(1).normalized(),vr.y) *
     Matrix::rotateAroundAxis(lcs.getAxis(0).normalized(),vr.x) *
     Matrix::translate(-lcs.getCenter());
 
-  
   setObject(Position(T,obj),true);
 
   if (dragging.type)
@@ -119,7 +118,7 @@ void FreeTransform::doScale(Point3d vs,Point3d center)
 
   center=lcs.getPointRelativeToCenter(center);
 
-  auto T=Matrix::translate(+center) *
+  auto T= Matrix::translate(+center) *
     Matrix::scaleAroundAxis(lcs.getAxis(2).normalized(),vs.z) *
     Matrix::scaleAroundAxis(lcs.getAxis(1).normalized(),vs.y) *
     Matrix::scaleAroundAxis(lcs.getAxis(0).normalized(),vs.x) *
@@ -221,7 +220,7 @@ void FreeTransform::glMousePressEvent(const FrustumMap& map,QMouseEvent* evt)
         auto ray=unit_map.getRay(pos);
         if (!ray.valid()) continue;
 
-        Point3d circle_point=RayCircleDistance(ray,Circle(Point3d(),1.0,Point3d(0,0,0).set(A,1))).closest_circle_point;
+        Point3d circle_point=RayCircleDistance(ray,Circle(Point3d(),1.0,Point3d(0,0,0).set(A,1))).closest_circle_point.toPoint3();
         Point2d circle_point_onscreen=unit_map.projectPoint(circle_point); 
         if (NearBy(circle_point_onscreen,pos))
         {
@@ -282,7 +281,7 @@ void FreeTransform::glMouseMoveEvent(const FrustumMap& map,QMouseEvent* evt)
       auto ray=unit_map.getRay(pos);
       if (!ray.valid()) return ;
 
-      Point3d circle_point=RayCircleDistance(ray,Circle(Point3d(),1,Point3d(0,0,0).set(dragging.axis,1))).closest_circle_point;
+      Point3d circle_point=RayCircleDistance(ray,Circle(Point3d(),1,Point3d(0,0,0).set(dragging.axis,1))).closest_circle_point.toPoint3();
 
       double p1=dragging.p0;
       if      (dragging.axis==0)  p1=atan2(circle_point.z,circle_point.y); 
@@ -394,7 +393,7 @@ void FreeTransform::glRenderRotate(GLCanvas& gl)
 
     gl.pushModelview();
     gl.multModelview(Matrix(lcs.getXAxis(),lcs.getYAxis(),lcs.getZAxis(),lcs.getCenter()));
-    gl.multModelview(Matrix::rotate(Point3d(0,0,0).set(circle_rotation[A],1),Math::Pi/2));
+    gl.multModelview(Matrix::rotateAroundAxis(Point3d(0,0,0).set(circle_rotation[A],1),Math::Pi/2));
     GLWireCircle(1.0,Point2d(),line_color[A],line_width[A]).glRender(gl);
     gl.popModelview();
   }  

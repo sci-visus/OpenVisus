@@ -168,7 +168,8 @@ template <> inline Rectangle2d convert(const QRectF& r) {
 }
 
 
-template <> inline QTransform convert(const Matrix3& T) {
+template <> inline QTransform convert(const Matrix& T) {
+  VisusAssert(T.getSpaceDim() == 3);
   return QTransform(
     T(0,0),T(0,1),T(0,2),
     T(1,0),T(1,1),T(1,2),

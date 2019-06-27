@@ -141,7 +141,7 @@ public:
     return box;
   }
 
-  //Address -> Point
+  //Address -> PointNd
   inline NdPoint deinterleave(BigInt z, int max_resolution) const {
     VisusAssert(valid());
     NdPoint p(pdim);

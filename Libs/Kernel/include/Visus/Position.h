@@ -52,7 +52,7 @@ public:
 
   VISUS_CLASS(Position)
 
-  Matrix T;
+  Matrix T= Matrix::identity(4);
   BoxNd  box;
 
   //constructor
@@ -64,28 +64,29 @@ public:
   }
 
   //constructor
-  Position(Box3d value) : Position(convertTo<BoxNd>(value)) {
-    VisusAssert(box.toBox3() == value);
+  Position(Box3d value) : Position(BoxNd(value)) {
   }
 
   //constructor
-  Position(BoxNi value) : Position(convertTo<BoxNd>(value)) {
-    VisusAssert(getNdBox() ==value);
+  Position(NdBox value) : Position(value.castTo<BoxNd>()) {
   }
 
   //constructor
   Position(const Matrix& T0, const Position& other) : Position(other) {
     this->T = T0 * this->T;
+    VisusAssert(this->T.getSpaceDim() == 4);
   }
 
   //constructor
   Position(const Matrix& T0, const Matrix& T1, const Position& other) : Position(T1,other) {
     this->T = T0 * this->T;
+    VisusAssert(this->T.getSpaceDim() == 4);
   }
 
   //constructor
   Position(const Matrix& T0, const Matrix& T1, const Matrix& T2, const Position& other) : Position(T1,T2,other) {
     this->T = T0 * this->T;
+    VisusAssert(this->T.getSpaceDim() == 4);
   }
 
   //invalid
@@ -110,11 +111,11 @@ public:
 
   //getNdBox
   NdBox getNdBox() const {
-    return convertTo<BoxNi>(this->box);
+    return this->box.castTo<NdBox>();
   }
 
   //withoutTransformation
-  Position withoutTransformation() const;  
+  BoxNd withoutTransformation() const;
 
   //shrink i.e. map * (position.lvalue,position.rvalue') should be in dst_box, does not change position.lvalue
   static Position shrink(const Box3d& dst_box, const LinearMap& map, Position position);

@@ -110,12 +110,12 @@ public:
     int pdim = nsamples.getPointDim();
 
     if (!this->valid())
-      return NdBox::invalid(pdim);
+      return NdBox::invalid();
 
     value= value.getIntersection(*this);
 
     if (!value.isFullDim())
-      return NdBox::invalid(pdim);
+      return NdBox::invalid();
 
     //NOTE: i can move P2 to the right, since p2 is not included it it's aligned it wont' be moved
     //      if it's not aligned will be moved to the right, but all the extra samples wont't be "good" due to the delta

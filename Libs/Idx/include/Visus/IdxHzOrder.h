@@ -84,7 +84,7 @@ public:
   inline int getMaxResolution() const
   {return maxh;}
 
-  //Point -> Zaddress
+  //PointNd -> Zaddress
   /* EXAMPLE
                              01234
                              -----
@@ -125,7 +125,7 @@ public:
     return z;
   }
 
-  //Zaddress -> Point
+  //Zaddress -> PointNd
   inline NdPoint deinterleave(BigInt z) const
   {return bitmask.deinterleave(z,this->maxh);}
 
@@ -191,11 +191,11 @@ public:
     return hz;
   }
 
-  //Point -> HzAddress
+  //PointNd -> HzAddress
   inline BigInt getAddress(const NdPoint& p) const
   {return zAddressToHzAddress(interleave(p));}
 
-  //HzAddress -> Point
+  //HzAddress -> PointNd
   inline NdPoint getPoint(const BigInt& hz) const
   {return deinterleave(hzAddressToZAddress(hz));}
 

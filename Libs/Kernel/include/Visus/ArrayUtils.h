@@ -374,7 +374,7 @@ public:
   ~BlendBuffers();
 
   //addBlendArg
-  void addBlendArg(Array arg, Matrix up_pixel_to_logic = Matrix(), Point3d logic_centroid = Point3d());
+  void addBlendArg(Array arg, Matrix up_pixel_to_logic = Matrix::identity(4), Point3d logic_centroid = Point3d());
 
 private:
 
