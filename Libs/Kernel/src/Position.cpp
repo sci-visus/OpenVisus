@@ -37,8 +37,43 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/Position.h>
+#include <Visus/Polygon.h>
 
 namespace Visus {
+
+
+  //////////////////////////////////////////////////
+double Position::computeVolume() const {
+
+  if (!this->valid())
+    return 0.0;
+
+  auto pdim = box.getPointDim();
+
+  if (pdim == 2)
+  {
+    std::vector<Point2d> points;
+    for (auto point : this->box.getPoints())
+      points.push_back((T * point).toPoint2());
+    return Quad(points).area();
+  }
+  else if (pdim == pdim)
+  {
+    std::vector<Point3d> points;
+    for (auto point : this->box.getPoints())
+      points.push_back((T * point).toPoint3());
+
+    auto diagonal = points[6] - points[0];
+    return double(1.0 / 6.0) * diagonal.dot(
+      ((points[1] - points[0]).cross(points[2] - points[5])) +
+      ((points[4] - points[0]).cross(points[5] - points[7])) +
+      ((points[3] - points[0]).cross(points[7] - points[2])));
+  }
+
+  VisusAssert(false);
+  return 0.0;
+}
+
 
 //////////////////////////////////////////////////
 BoxNd Position::withoutTransformation() const
@@ -46,18 +81,15 @@ BoxNd Position::withoutTransformation() const
   if (!this->valid())
     return BoxNd::invalid();
 
-  if (T.isIdentity())
-    return this->box;
-
   auto ret = BoxNd::invalid();
   auto points = this->box.getPoints();
   for (auto point : points)
-    ret.addPoint(T * point);
+    ret.addPoint(T * point.toPoint3());
   return ret;
 }
 
 //////////////////////////////////////////////////
-Position Position::shrink(const Box3d& dst_box,const LinearMap& map,Position position) 
+Position Position::shrink(BoxNd dst_box,const LinearMap& map,Position position)
 {
   const int unit_box_edges[12][2]=
   {
@@ -66,6 +98,8 @@ Position Position::shrink(const Box3d& dst_box,const LinearMap& map,Position pos
     {0,4}, {1,5}, {2,6}, {3,7}
   };
 
+  dst_box.setPointDim(3);
+
   if (!position.valid())
     return position;
 
@@ -73,9 +107,8 @@ Position Position::shrink(const Box3d& dst_box,const LinearMap& map,Position pos
 
   const LinearMap& T2(map);
   MatrixMap T1(position.T);
-  Box3d       src_rvalue=position.box.toBox3();
-
-  Box3d shrinked_rvalue= Box3d::invalid();
+  auto src_rvalue=position.box.toBox3();
+  auto shrinked_rvalue= BoxNd::invalid();
 
   #define DIRECT(T2,T1,value)   (T2.applyDirectMap(T1.applyDirectMap(value)))
   #define INVERSE(T2,T1,value)  (T1.applyInverseMap(T2.applyInverseMap(value)))
@@ -103,7 +136,7 @@ Position Position::shrink(const Box3d& dst_box,const LinearMap& map,Position pos
     //points belonging to the plane
     for (int I=0;I<8;I++)
     {
-      Point3d p= dst_points[I];
+      Point3d p= dst_points[I].toPoint3();
       distances[I]=slice_plane_in_screen.getDistance(p);
       if (!distances[I]) 
       {
@@ -120,8 +153,8 @@ Position Position::shrink(const Box3d& dst_box,const LinearMap& map,Position pos
       int i2=unit_box_edges[E][1];double h2=distances[i2];
       if ((h1>0 && h2<0) || (h1<0 && h2>0))
       {
-        Point3d p1= dst_points[i1];h1=fabs(h1);
-        Point3d p2= dst_points[i2];h2=fabs(h2);
+        Point3d p1= dst_points[i1].toPoint3();h1=fabs(h1);
+        Point3d p2= dst_points[i2].toPoint3();h2=fabs(h2);
         double alpha =h2/(h1+h2);
         double beta  =h1/(h1+h2);
         Point3d p=INVERSE(T2,T1,Point4d(alpha*p1 + beta*p2,1.0)).dropHomogeneousCoordinate();
@@ -150,14 +183,14 @@ Position Position::shrink(const Box3d& dst_box,const LinearMap& map,Position pos
 
     //the second polyhedra (transformed to be in the first polyhedra system, i.e. position)
     Point3d V2[8];for (int I=0;I<8;I++) 
-      V2[I]=INVERSE(T2,T1,Point4d(dst_points[I],1.0)).dropHomogeneousCoordinate();
+      V2[I]=INVERSE(T2,T1,Point4d(dst_points[I].toPoint3(),1.0)).dropHomogeneousCoordinate();
   
     auto H2=dst_box.getPlanes(); 
     for (int H=0;H<6;H++) 
       H2[H]=INVERSE(T2,T1,H2[H]);
 
     //point of the first (second) polyhedra inside second (first) polyhedra
-    for (int V=0;V<8;V++) {if (isPointInsideHull(V1[V],H2)) {shrinked_rvalue.addPoint(V1[V]);}}
+    for (int V=0;V<8;V++) {if (isPointInsideHull(V1[V].toPoint3(),H2)) {shrinked_rvalue.addPoint(V1[V]);}}
     for (int V=0;V<8;V++) {if (isPointInsideHull(V2[V],H1)) {shrinked_rvalue.addPoint(V2[V]);}}
 
     //intersection of first polydra edges with second polyhedral planes
@@ -172,8 +205,8 @@ Position Position::shrink(const Box3d& dst_box,const LinearMap& map,Position pos
         int i2=unit_box_edges[E][1];double h2=distances[i2];
         if ((h1>0 && h2<0) || (h1<0 && h2>0))
         {
-          Point3d p1=V1[i1];h1=fabs(h1);
-          Point3d p2=V1[i2];h2=fabs(h2);
+          Point3d p1=V1[i1].toPoint3();h1=fabs(h1);
+          Point3d p2=V1[i2].toPoint3();h2=fabs(h2);
           double alpha =h2/(h1+h2);
           double beta  =h1/(h1+h2);
           Point3d p=alpha*p1+beta*p2;

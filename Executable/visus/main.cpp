@@ -1564,7 +1564,7 @@ public:
 
       VisusInfo() << "sec(" << sec << ")"
         << " avg(" << (T1.elapsedSec() / (nqueries+1)) << ")"
-        << " box(" << query_box.toString() << ") "
+        << " box(" << query_box.toString(/*bInterleave*/true) << ") "
         << " access.rok(" << stats.rok << "/" << ((double)(stats.rok) / sec) << ") "
         << " access.rfail(" << stats.rfail << "/" << ((double)(stats.rfail) / sec) << ") "
         << " io.nopen(" << io.nopen << "/" << ((double)(io.nopen) / sec) << ") "
@@ -1870,7 +1870,7 @@ public:
       auto t2 = clock();
       auto sec = (t2 - t1) / (float)CLOCKS_PER_SEC;
       SEC += sec;
-      VisusInfo() << "Done " << Slab << " of " << num_slabs << " bbox " << slice_box.toString() <<" in "<< sec <<"sec";
+      VisusInfo() << "Done " << Slab << " of " << num_slabs << " bbox " << slice_box.toString(/*bInterleave*/true) <<" in "<< sec <<"sec";
     }
 
     VisusInfo()<<"Wrote all slabs in " << SEC << "sec";

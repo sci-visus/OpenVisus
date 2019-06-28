@@ -437,7 +437,7 @@ public:
       ScopedLock lock(this->centerlines->lock);
       firstCluster->nodeid=this->centerlines->mkVert(Sphere(firstCluster->nodepos,diam/2));
 
-      Box3d geometric_box=this->centerlines->bounds.box.toBox3();
+      auto geometric_box=this->centerlines->bounds.box.toBox3();
       geometric_box.addPoint(firstCluster->nodepos);
       this->centerlines->bounds=Position(this->centerlines->bounds.T,geometric_box);
     }
@@ -582,7 +582,7 @@ public:
           ScopedLock lock(this->centerlines->lock);
           newcluster.nodeid=this->centerlines->mkVert(Sphere(newpos,diam/2));
 
-          Box3d geometric_box=this->centerlines->bounds.box.toBox3();
+          auto geometric_box=this->centerlines->bounds.box.toBox3();
           geometric_box.addPoint(newpos);
           this->centerlines->bounds=Position(this->centerlines->bounds.T,geometric_box);
           this->centerlines->mkEdge(newcluster.nodeid,cluster.nodeid,(Float32)(newpos-cluster.nodepos).module());

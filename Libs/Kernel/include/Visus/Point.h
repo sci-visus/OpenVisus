@@ -293,6 +293,7 @@ public:
     return Other((typename Other::coord_t)get(0), (typename Other::coord_t)get(1), (typename Other::coord_t)get(2));
   }
 
+
   //toVector
   std::vector<T> toVector() const {
     return std::vector<T>(coords.begin(), coords.end());
@@ -1103,7 +1104,12 @@ public:
 
 public:
 
-
+  //toPoint2
+  Point2<T> toPoint2() const {
+    auto coords = this->coords;
+    coords.resize(2);
+    return Point2<T>(coords[0], coords[1]);
+  }
 
   //toPoint3
   Point3<T> toPoint3() const {

@@ -99,8 +99,8 @@ public:
   }
 
   //getBoundingBox
-  Box2d getBoundingBox() const {
-    Box2d ret= Box2d::invalid();
+  BoxNd getBoundingBox() const {
+    BoxNd ret= BoxNd::invalid();
     for (auto p:points) 
       ret.addPoint(p);
     return ret;
@@ -173,7 +173,7 @@ public:
   }
 
   //constructor
-  Quad(const Matrix& H, const Box2d& box) : Quad(H, box.getPoints()) {
+  Quad(const Matrix& H, const BoxNd& box) : Quad(H,box.getPoints2()) {
   }
 
   //constructor
@@ -200,9 +200,9 @@ public:
   }
 
   //computeBoundingBox
-  static Box2d computeBoundingBox(const std::vector<Quad>& quads)
+  static BoxNd computeBoundingBox(const std::vector<Quad>& quads)
   {
-    Box2d ret = Box2d::invalid();
+    auto ret = BoxNd::invalid();
     for (int I = 0; I<(int)quads.size(); I++)
       ret = ret.getUnion(quads[I].getBoundingBox());
     return ret;

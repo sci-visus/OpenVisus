@@ -275,8 +275,10 @@ public:
   void setUniformMatrix(const GLUniform& uniform,const Matrix& T);
 
   //pushClippingBox
-  void pushClippingBox(const Box3d& box)
+  void pushClippingBox(BoxNd box)
   {
+    box.setPointDim(3);
+
     auto Ti = Matrix(getModelview().invert());
     std::array<Plane, 6> planes = { {
       Plane(+1.0, 0.0, 0.0, -box.p1[0])*Ti,

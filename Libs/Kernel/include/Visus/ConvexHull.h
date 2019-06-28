@@ -49,7 +49,7 @@ class VISUS_KERNEL_API ConvexHull
 {
   std::vector<Point3d> points;
   std::vector<Plane>   planes;
-  Box3d                aabb=Box3d::invalid();
+  BoxNd                aabb=BoxNd::invalid();
 
 public:
 
@@ -75,7 +75,7 @@ public:
   {return planes;}
 
   //getAxisAlignedBoundingBox
-  const Box3d& getAxisAlignedBoundingBox() const
+  const BoxNd& getAxisAlignedBoundingBox() const
   {return aabb;}
 
   //containsPoint
@@ -91,10 +91,12 @@ public:
   }
 
   //intersectBox
-  inline bool intersectBox(const Box3d& box) 
+  inline bool intersectBox(BoxNd box)
   {
     if (!this->aabb.valid() || !box.valid())
       return false;
+
+    box.setPointDim(3);
 
     //trivial and fast check if they overlap
     if (!this->aabb.intersect(box))

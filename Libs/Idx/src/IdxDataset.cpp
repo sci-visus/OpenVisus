@@ -1248,7 +1248,7 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<Query> query)
   {
     ret.url.setParam("action"  ,"pointquery");
     ret.url.setParam("matrix"  ,query->position.T.toString());
-    ret.url.setParam("box"     ,query->position.box.toBox3().toString());
+    ret.url.setParam("box"     ,query->position.box.toBox3().toString(/*bInterleave*/false));
     ret.url.setParam("nsamples",query->nsamples.toString());
     VisusInfo() << ret.url.toString();
   }
@@ -1279,7 +1279,7 @@ NdPoint IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frust
 
   std::vector<Point3d> points;
   for (auto p : position.box.toBox3().getPoints())
-    points.push_back(position.T * p);
+    points.push_back((position.T * p).toPoint3());
 
   std::vector<Point2d> screen_points;
   if (viewdep.valid())
@@ -1349,7 +1349,7 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
   Position position=query->position;
 
   const auto& T=position.T;
-  Box3d box    =position.box.toBox3();
+  auto box    =position.box.toBox3();
 
   int pdim=this->getPointDim();
   VisusAssert(pdim==3); //why I need point queries in 2d... I'm asserting this because I do not create Query for 2d datasets 

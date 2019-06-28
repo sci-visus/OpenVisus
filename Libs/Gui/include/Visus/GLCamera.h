@@ -104,7 +104,7 @@ public:
   virtual bool guessPosition(Position position,int ref=-1)=0;
 
   //guessPosition
-  bool guessPosition(Box3d box,int ref=-1) {
+  bool guessPosition(BoxNd box,int ref=-1) {
     return guessPosition(Position(box),ref);
   }
 

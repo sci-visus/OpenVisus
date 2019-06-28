@@ -172,7 +172,7 @@ public:
       url.setParam("idx", Path(path).getFileName());
       url.setParam("field", field);
       url.setParam("time", cstring(timestep));
-      url.setParam("box", block_logicbox.toString());
+      url.setParam("box", block_logicbox.toString(/*bInterleave*/true));
       VisusInfo() << url.toString();
 
       NetRequest request(url);
@@ -191,7 +191,7 @@ public:
       params += " --idx " + path;
       params += " --field " + field;
       params += " --time " + cstring(timestep);
-      params += " --box \"" + block_logicbox.toString() + "\"";
+      params += " --box \"" + block_logicbox.toString(/*bInterleave*/true) + "\"";
       VisusInfo() << params;
 
 #if WIN32

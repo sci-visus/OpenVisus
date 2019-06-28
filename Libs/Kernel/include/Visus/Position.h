@@ -60,11 +60,11 @@ public:
   }
 
   //constructor
-  Position(BoxNd value) : box(value) {
+  Position(const Matrix& T_ ,BoxNd box_) : T(T_), box(box_) {
   }
 
   //constructor
-  Position(Box3d value) : Position(BoxNd(value)) {
+  Position(BoxNd value) : box(value) {
   }
 
   //constructor
@@ -114,16 +114,19 @@ public:
     return this->box.castTo<NdBox>();
   }
 
+  //computeVolume
+  double computeVolume() const;
+
   //withoutTransformation
   BoxNd withoutTransformation() const;
 
   //shrink i.e. map * (position.lvalue,position.rvalue') should be in dst_box, does not change position.lvalue
-  static Position shrink(const Box3d& dst_box, const LinearMap& map, Position position);
+  static Position shrink(BoxNd dst_box, const LinearMap& map, Position position);
 
   //toString
   String toString() const {
     std::ostringstream out;
-    out  << "T(" << T.toString() << ") box(" << box.toString() << ")";
+    out  << "T(" << T.toString() << ") box(" << box.toString(/*bInterleave*/true) << ")";
     return out.str();
   }
 

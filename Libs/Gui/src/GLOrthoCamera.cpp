@@ -229,7 +229,7 @@ void GLOrthoCamera::glKeyPressEvent(QKeyEvent* evt)
 bool GLOrthoCamera::guessPosition(Position position,int ref)  
 {
   Point3d C,X,Y,Z;
-  Box3d bound;
+  auto bound = BoxNd(3);
 
   if (position.T.isIdentity())
   {

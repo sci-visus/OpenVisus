@@ -431,7 +431,7 @@ public:
   int getWorldDimension() const;
 
   //getWorldBoundingBox
-  Box3d getWorldBoundingBox() const;
+  BoxNd getWorldBoundingBox() const;
 
   //getNodeBounds
   Position getNodeBounds(Node* node, bool bRecursive = false) const;

@@ -129,7 +129,7 @@ public:
   virtual bool guessPosition(Position position,int ref=-1) override;
 
   //setBounds
-  void setBounds(Box3d box);
+  void setBounds(BoxNd box);
 
   //setLookAt
   void setLookAt(Point3d pos,Point3d center,Point3d vup);
@@ -144,7 +144,7 @@ public:
 
 private:
 
-  Box3d                  bound;
+  BoxNd                bound = BoxNd(3);
   bool                 bUseOrthoProjection=false;
   double               defaultRotFactor;
   double               defaultPanFactor;
@@ -157,7 +157,7 @@ private:
 
   //modelview
   Point3d      pos,dir,vup;
-  Quaternion quaternion;
+  Quaternion   quaternion;
   Point3d      centerOfRotation;
 
   //forward

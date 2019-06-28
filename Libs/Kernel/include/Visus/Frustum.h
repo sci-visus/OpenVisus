@@ -110,11 +110,11 @@ public:
   }
 
   //screen box
-  Box3d getScreenBox() const
+  BoxNd getScreenBox() const
   {
     Point3d p1(viewport.x                ,viewport.y                 ,0);
     Point3d p2(viewport.x +viewport.width,viewport.y +viewport.height,1);
-    return Box3d(p1,p2);
+    return BoxNd(p1,p2);
   }
 
   //load

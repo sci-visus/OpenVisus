@@ -57,8 +57,6 @@ using namespace Visus;
    %template(PointNf)    Visus::PointN<float>;
    %template(PointNd)    Visus::PointN<double>;
 %include <Visus/Box.h>
-   %template(Box2d)    Visus::Box2<double>;
-   %template(Box3d)    Visus::Box3<double>;
    %template(BoxNd)    Visus::BoxN<double>;
    %template(NdBox)    Visus::BoxN<Visus::Int64>;
 %include <Visus/Matrix.h>

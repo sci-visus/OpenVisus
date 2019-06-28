@@ -471,8 +471,8 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
       std::istringstream parse(args_zoom_to);
       parse >> x1 >> y1 >> x2 >> y2;
 
-      auto p1 = world_box.getAlphaPoint(x1, y1, 0).toPoint2();
-      auto p2 = world_box.getAlphaPoint(x2, y2, 0).toPoint2();
+      auto p1 = world_box.getAlphaPoint(PointNd(x1, y1, 0)).toPoint2();
+      auto p2 = world_box.getAlphaPoint(PointNd(x2, y2, 0)).toPoint2();
 
       ortho_params = GLOrthoParams(p1[0], p2[0], p1[1], p2[1], ortho_params.zNear, ortho_params.zFar);
 
@@ -645,7 +645,7 @@ int Viewer::getWorldDimension() const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Box3d Viewer::getWorldBoundingBox() const
+BoxNd Viewer::getWorldBoundingBox() const
 {
   return getNodeBounds(getRoot()).withoutTransformation().toBox3();
 }
@@ -689,7 +689,7 @@ Position Viewer::getNodeBounds(Node* node,bool bRecursive) const
   }
   else
   {
-    Box3d box= Box3d::invalid();
+    auto box= BoxNd::invalid();
     for (auto child : childs)
     {
       Position child_bounds=getNodeBounds(child,true); 
@@ -2789,12 +2789,12 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
   query_node->setQuality(Query::DefaultQuality);
 
   {
-    Box3d box=dataset_node->getNodeBounds().withoutTransformation().toBox3();
+    auto box=dataset_node->getNodeBounds().withoutTransformation().toBox3();
     if (dim==3)
     {
       const double Scale=1.0;
       if (Scale!=1)
-        box=box.scaleAroundCenter(Scale);
+        box=box.scaleAroundCenter(Scale).toBox3();
     }
     else
     {
@@ -2901,7 +2901,7 @@ KdQueryNode* Viewer::addKdQueryNode(Node* parent,DatasetNode* dataset_node,Strin
   query_node->setQuality(Query::DefaultQuality);
 
   {
-    Box3d box=dataset_node->getNodeBounds().withoutTransformation().toBox3();
+    auto box=dataset_node->getNodeBounds().withoutTransformation().toBox3();
     query_node->setNodeBounds(Position(box));
   }
 

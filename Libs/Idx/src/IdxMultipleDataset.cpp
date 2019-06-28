@@ -387,18 +387,8 @@ public:
 
     //euristic to find delta in the hzcurve
     //TODO!!!! this euristic produces too many samples
-
-    //ComputeVolume
-    auto ComputeVolume=[](Box3d value)->double
-    {
-      return
-        (value.size()[0] ? value.size()[0] : 1) *
-        (value.size()[1] ? value.size()[1] : 1) *
-        (value.size()[2] ? value.size()[2] : 1);
-    };
-
-    auto VOLUME = ComputeVolume(Position(   VF->getBox()).withoutTransformation().toBox3());
-    auto volume = ComputeVolume(Position(M, vf->getBox()).withoutTransformation().toBox3());
+    auto VOLUME = Position(   VF->getBox()).computeVolume();
+    auto volume = Position(M, vf->getBox()).computeVolume();
     int delta_h = -(int)log2(VOLUME / volume);
 
     //resolutions
@@ -425,7 +415,7 @@ public:
     // if you use this wrong version, for voronoi in 2d you will see some missing pieces around
     // solution is to limit the QUERY_BOX into a more "local" one
 #if 1
-    QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).withoutTransformation().toBox3().getIntersection(QUERY_BOX);
+    QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).withoutTransformation().toBox3().getIntersection(QUERY_BOX).toBox3();
 #endif
 
     query->position = Position(M.invert(), QUERY_T, QUERY_BOX);
@@ -511,13 +501,13 @@ public:
     auto PIXEL_TO_LOGIC =
       QUERY->position.T *
       Matrix::translate(QUERY->position.box.toBox3().p1) *
-      Matrix::nonZeroScale(QUERY->position.box.toBox3().size()) *
+      Matrix::nonZeroScale(QUERY->position.box.toBox3().size().toPoint3()) *
       Matrix::invNonZeroScale(query->down_info.BUFFER.dims.toPoint3d());
 
     auto pixel_to_logic =
       query->position.T *
       Matrix::translate(query->position.box.toBox3().p1) *
-      Matrix::nonZeroScale(query->position.box.toBox3().size()) *
+      Matrix::nonZeroScale(query->position.box.toBox3().size().toPoint3()) *
       Matrix::invNonZeroScale(query->buffer.dims.toPoint3d());
 
     // Tperspective := PIXEL <- pixel
@@ -1191,11 +1181,11 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       VisusAssert(pdim <= 3);
 
       //union of boxes
-      Box3d PHYSICAL_BOX = Box3d::invalid();
+      auto PHYSICAL_BOX = BoxNd::invalid();
       for (auto it : childs)
       {
         auto physical_box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().toBox3();
-        PHYSICAL_BOX = PHYSICAL_BOX.getUnion(physical_box);
+        PHYSICAL_BOX = PHYSICAL_BOX.getUnion(physical_box).toBox3();
       }
 
       std::vector<double> DENSITY;
@@ -1203,25 +1193,11 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       {
         auto dataset = it.second.dataset;
         auto M = it.second.M;
-        auto logic_box = Position(dataset->getBox()).withoutTransformation().toBox3();
+        auto logic_box = Position().withoutTransformation().toBox3();
         auto tot_pixels = dataset->getBox().size().innerProduct();
-
-        if (pdim == 2)
-        {
-          auto physical_area = Quad(M.dropZ(), logic_box.toBox2()).area();
-          auto density = tot_pixels/ physical_area;
-          DENSITY.push_back(density); 
-        }
-        else if (pdim == 3)
-        {
-          auto  physical_volume = Hexahedral(M,logic_box).volume();
-          auto density = tot_pixels/ physical_volume;
-          DENSITY.push_back(density);
-        }
-        else 
-        {
-          VisusReleaseAssert(false) // todo
-        }
+        auto volume = Position(M, dataset->getBox()).computeVolume();
+        auto density = tot_pixels / volume;
+        DENSITY.push_back(density);
       }
 
       // try to keep the same number of pixels

@@ -86,13 +86,13 @@ double Frustum::computeZDistance(const Position& obj,bool bUseFarPoint) const
   Frustum frustum=*this;
   frustum.multModelview(obj.T);
 
-  Box3d box=obj.box.toBox3();
+  auto box=obj.box.toBox3();
 
   std::vector<Point3d> p;
   p.reserve(8);
 
   for (auto it : box.getPoints())
-    p.push_back(frustum.getModelview() * it);
+    p.push_back((frustum.getModelview() * it).toPoint3());
 
   //note: camera "looks" along negative Z axis, so we must negate the z values.
   bool objInFront=false;

@@ -216,7 +216,7 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
 
     if (node->bDisplay && node->user_value)
     {
-      Box3d   box       = Position(node->box).box.toBox3();
+      auto   box       = Position(node->box).box.toBox3();
       Array displaydata = node->displaydata; 
 
       shader->setTexture(gl,std::dynamic_pointer_cast<GLTexture>(node->user_value));
@@ -255,7 +255,7 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
   if (config.texture_dim == 2)
   {
     for (auto node : rendered)
-      GLLineLoop(node->box.toBox3().getPoints(), Colors::Black, 3).glRender(gl);
+      GLLineLoop(node->box.castTo<BoxNd>().toBox3().getPoints(), Colors::Black, 3).glRender(gl);
   }
 #endif
 

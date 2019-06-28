@@ -104,10 +104,10 @@ public:
 
   //getBoxPoint
   std::vector<Point3d> getBoxPoints() const {
-    const Box3d box(Point3d(-1, -1, -1), Point3d(+1, +1, +1));
+    auto box= BoxNd(Point3d(-1, -1, -1), Point3d(+1, +1, +1));
     std::vector<Point3d> ret;
     for (auto point : box.getPoints())
-      ret.push_back(getPointRelativeToCenter(point));
+      ret.push_back(getPointRelativeToCenter(point.toPoint3()));
     return ret;
   }
 

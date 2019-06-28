@@ -285,11 +285,12 @@ private:
 
     //Matrix
     layout->addRow("Matrix",widgets.T=GuiFactory::CreateMatrixView(Matrix(4),[this](const Matrix& T){
-      model->setObject(Position(T,model->getObject().box.toBox3()),true);
+      model->setObject(Position(T,model->getObject().box.withPointDim(3)),true);
     }));
 
     //BoxNd
-    layout->addRow("BoxNd",widgets.box=GuiFactory::CreateBox3dView(Box3d(),[this](const Box3d& box){
+    layout->addRow("BoxNd",widgets.box=GuiFactory::CreateBox3dView(BoxNd(3),[this](BoxNd box){
+      box.setPointDim(3);
       model->setObject(Position(model->getObject().T,box),true);
     }));
 

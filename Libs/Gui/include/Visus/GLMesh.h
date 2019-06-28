@@ -81,42 +81,46 @@ public:
   void end();
 
   //vertex
-  inline void vertex(float x,float y,float z=0) {push(building.vertices,Point3f(x,y,z));}
-  inline void vertex(const Point2i& p) {vertex((float)p[0],(float)p[1],(float)  0);}
-  inline void vertex(const Point2f& p) {vertex((float)p[0],(float)p[1],(float)  0);}
-  inline void vertex(const Point2d& p) {vertex((float)p[0],(float)p[1],(float)  0);}
-  inline void vertex(const Point3i& p) {vertex((float)p[0],(float)p[1],(float)p[2]);}
-  inline void vertex(const Point3f& p) {vertex((float)p[0],(float)p[1],(float)p[2]);}
-  inline void vertex(const Point3d& p) {vertex((float)p[0],(float)p[1],(float)p[2]);}
-  template <typename T>
-  inline void vertex(T x,T y,T z=0)    {vertex((float)  x,(float)  y,(float)  z);}
+  void vertex(double x, double y, double z=0) {
+    push(building.vertices,Point3f((float)x, (float)y, (float)z));
+  }
 
   //normal
-  inline void normal(float x,float y,float z) {push(building.normals,Point3f(x,y,z));}
-  inline void normal(const Point2i& p) {normal((float)p[0],(float)p[1],(float)  0);}
-  inline void normal(const Point2f& p) {normal((float)p[0],(float)p[1],(float)  0);}
-  inline void normal(const Point2d& p) {normal((float)p[0],(float)p[1],(float)  0);}
-  inline void normal(const Point3i& p) {normal((float)p[0],(float)p[1],(float)p[2]);}
-  inline void normal(const Point3f& p) {normal((float)p[0],(float)p[1],(float)p[2]);}
-  inline void normal(const Point3d& p) {normal((float)p[0],(float)p[1],(float)p[2]);}
-  template <typename T>
-  inline void normal(T x,T y,T z=0)    {normal((float)  x,(float)  y,(float)  z);}
+  void normal(double x, double y, double z) { 
+    push(building.normals, Point3f((float)x, (float)y, (float)z)); 
+  }
 
   //color
-  inline void color(float R,float G,float B,float A=1.0f) {push(building.colors,Point4f(R,G,B,A));}
-  inline void color(const Color& c) {color(c.getRed(),c.getGreen(),c.getBlue(),c.getAlpha());}
+  void color(double R, double G, double B, double A = 1.0f) { 
+    push(building.colors, Point4f((float)(float)R, (float)G, (float)B, (float)A)); 
+  }
+
+  //color
+  void color(const Color& c) { 
+    color(c.getRed(), c.getGreen(), c.getBlue(), c.getAlpha()); 
+  }
 
   //texcoord2
-  inline void texcoord2(float x,float y)  {push(building.texcoords2f,Point2f(x,y));}
-  inline void texcoord2(const Point2i& p) {texcoord2((float)p[0],(float)p[1]);}
-  inline void texcoord2(const Point2f& p) {texcoord2((float)p[0],(float)p[1]);}
-  inline void texcoord2(const Point2d& p) {texcoord2((float)p[0],(float)p[1]);}
+  void texcoord2(double x, double y) { 
+    push(building.texcoords2f, Point2f((float)x, (float)y)); 
+  }
 
   //texcoord3
-  inline void texcoord3(float x,float y,float z) {push(building.texcoords3f,Point3f(x,y,z));}
-  inline void texcoord3(const Point3i& p) {texcoord3((float)p[0],(float)p[1],(float)p[2]);}
-  inline void texcoord3(const Point3f& p) {texcoord3((float)p[0],(float)p[1],(float)p[2]);}
-  inline void texcoord3(const Point3d& p) {texcoord3((float)p[0],(float)p[1],(float)p[2]);}
+  void texcoord3(double x, double y, double z) { 
+    push(building.texcoords3f, Point3f((float)x, (float)y, (float)z)); 
+  }
+
+  template <typename T> void vertex   (const Point2<T>& p) {vertex   ((double)p[0], (double)p[1], (double)  0);}
+  template <typename T> void vertex   (const Point3<T>& p) {vertex   ((double)p[0], (double)p[1], (double)p[2]);}
+  template <typename T> void normal   (const Point2<T>& p) {normal   ((double)p[0], (double)p[1], (double)  0);}
+  template <typename T> void normal   (const Point3<T>& p) {normal   ((double)p[0], (double)p[1], (double)p[2]);}
+  template <typename T> void texcoord2(const Point2<T>& p) {texcoord2((double)p[0], (double)p[1]) ;}
+  template <typename T> void texcoord3(const Point3<T>& p) {texcoord3((double)p[0], (double)p[1], (double)p[2]);}
+
+  template <typename T> void vertex   (PointN<T>  p) { p.setPointDim(3); vertex   ((double)p[0], (double)p[1], (double)p[2]); }
+  template <typename T> void normal   (PointN<T>  p) { p.setPointDim(3); normal   ((double)p[0], (double)p[1], (double)p[2]); }
+  template <typename T> void texcoord2(PointN<T>  p) { p.setPointDim(2); texcoord2((double)p[0], (double)p[1]); }
+  template <typename T> void texcoord3(PointN<T>  p) { p.setPointDim(3); texcoord3((double)p[0], (double)p[1], (double)p[2]); }
 
   //hasColorAttribute
   bool hasColorAttribute() const {
@@ -206,7 +210,8 @@ public:
   }
 
   //WireBox
-  static GLMesh WireBox(const Box3d& box) {
+  static GLMesh WireBox(BoxNd box) {
+    box.setPointDim(3);
     return WireBox(box.p1,box.p2);
   }
 
@@ -237,7 +242,8 @@ public:
   }
 
   //SolidBox
-  static GLMesh SolidBox(const Box3d& box,bool bNormal=true) {
+  static GLMesh SolidBox(BoxNd box,bool bNormal=true) {
+    box.setPointDim(3);
     return SolidBox(box.p1,box.p2,bNormal);
   } 
 
@@ -274,7 +280,8 @@ public:
   static GLMesh SolidSphere(const int N=32);
 
   //ColoredAxis
-  static GLMesh ColoredAxis(const Box3d& box) {
+  static GLMesh ColoredAxis(BoxNd box) {
+    box.setPointDim(3);
     auto points = box.getPoints();
     GLMesh ret;
     ret.begin(GL_LINES);
@@ -296,12 +303,12 @@ public:
     viewdir=viewdir*(-1); //need to go back to front (i.e. the opposite of viewdir)
 
     //render view dependent texture,unproject back screenpoints
-    const Box3d unit_box(Point3d(), Point3d(1,1,1));
+    auto unit_box = BoxNd(Point3d(0,0,0), Point3d(1,1,1));
 
     FrustumMap project(frustum);
-    Box3d screenbox= Box3d::invalid();
+    auto screenbox= BoxNd::invalid();
     for (auto p : unit_box.getPoints())
-      screenbox.addPoint(project.applyDirectMap(Point4d(p, 1.0)).dropHomogeneousCoordinate());
+      screenbox.addPoint(project.applyDirectMap(Point4d(p.toPoint3(), 1.0)).dropHomogeneousCoordinate());
 
     GLMesh ret;
     ret.begin(GL_QUADS);

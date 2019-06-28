@@ -55,10 +55,13 @@ public:
   Plane() {
   }
 
-  //default constructor
-  Plane(PointNd v) : PointNd(v) {
-    auto len = getNormal().module();
-    (*this) *= 1.0 / len;
+  //constructor
+  explicit Plane(std::vector<double> v) : PointNd(v) {
+    (*this) *= 1.0 / getNormal().module();
+  }
+
+  //constructor
+  explicit Plane(PointNd v) : Plane(v.coords) {
   }
 
   //constructor

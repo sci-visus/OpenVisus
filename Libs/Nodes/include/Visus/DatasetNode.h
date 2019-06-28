@@ -78,9 +78,8 @@ public:
   virtual void exitFromDataflow() override;
 
   //getBox
-  Box3d getBox() const {
-    auto position = Position(dataset->getBox());
-    return position.box.toBox3();
+  BoxNd getBox() const {
+    return dataset->getBox().castTo<BoxNd>();
   }
 
   //getNodeBounds

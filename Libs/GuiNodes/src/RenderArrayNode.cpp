@@ -205,10 +205,10 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   //in 2d I render the box (0,0)  x(1,1)
   gl.pushModelview();
   {
-    Box3d box=data.bounds.box.toBox3();
+    auto box=data.bounds.box.toBox3();
 
-    Point3d vt=box.p1;
-    Point3d vs=box.size();
+    Point3d vt=box.p1.toPoint3d();
+    Point3d vs=box.size().toPoint3();
     if (!vs[0]) vs[0]=1.0;
     if (!vs[1]) vs[1]=1.0;
     if (!vs[2]) vs[2]=1.0;
@@ -257,7 +257,7 @@ void RenderArrayNode::glRender(GLCanvas& gl)
     if (useViewDirection())
     {
       if (!data.clipping.valid())
-        gl.pushClippingBox(Box3d(Point3d(0,0,0),Point3d(1,1,1)));
+        gl.pushClippingBox(BoxNd(Point3d(0,0,0),Point3d(1,1,1)));
 
       gl.glRenderMesh(GLMesh::ViewDependentUnitVolume(gl.getFrustum(), nslices));
 

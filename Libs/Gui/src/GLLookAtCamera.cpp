@@ -355,18 +355,18 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
 //////////////////////////////////////////////////////////////////////
 bool GLLookAtCamera::guessPosition(Position position,int ref) 
 {
-  Box3d bound=position.withoutTransformation().toBox3();
+  auto bound=position.withoutTransformation().toBox3();
 
   beginUpdate();
   {
     this->bound=bound;
 
     this->bUseOrthoProjection=false;
-    this->centerOfRotation=bound.center();
+    this->centerOfRotation=bound.center().toPoint3();
 
     if (ref<0)
     {
-      this->pos = centerOfRotation +2.1f*bound.size();
+      this->pos = centerOfRotation +2.1*bound.size().toPoint3();
       this->dir =(centerOfRotation-pos).normalized();
       this->vup = Point3d(0,0,1);
     }
@@ -391,11 +391,11 @@ bool GLLookAtCamera::guessPosition(Position position,int ref)
 
 
 //////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::setBounds(Box3d value)
+void GLLookAtCamera::setBounds(BoxNd value)
 {
   beginUpdate();
   this->bound = value;
-  this->centerOfRotation = value.center();
+  this->centerOfRotation = value.center().toPoint3();
   endUpdate();
 }
 
@@ -574,7 +574,7 @@ void GLLookAtCamera::writeToObjectStream(ObjectStream& ostream)
     ostream.writeInline("time", "0");
 
     // write camera data
-    ostream.write("bound", bound.toString());
+    ostream.write("bound", bound.toString(/*bInterleave*/false));
     ostream.write("pos", pos.toString());
     ostream.write("dir", dir.toString());
     ostream.write("vup", vup.toString());
@@ -590,7 +590,7 @@ void GLLookAtCamera::writeToObjectStream(ObjectStream& ostream)
 
   GLCamera::writeToObjectStream(ostream);
 
-  ostream.write("bound",bound.toString());
+  ostream.write("bound",bound.toString(/*bInterleave*/false));
   ostream.write("pos",pos.toString());
   ostream.write("dir",dir.toString());
   ostream.write("vup",vup.toString());
@@ -612,7 +612,7 @@ void GLLookAtCamera::readFromObjectStream(ObjectStream& istream)
 {
   if (istream.isSceneMode())
   {
-    bound = Box3d::parseFromString(istream.read("bound"));
+    bound = BoxNd::parseFromString(istream.read("bound"),/*bInterleave*/false).toBox3();
     pos = Point3d(istream.read("pos"));
     dir = Point3d(istream.read("dir"));
     vup = Point3d(istream.read("vup"));
@@ -623,12 +623,12 @@ void GLLookAtCamera::readFromObjectStream(ObjectStream& istream)
 
   GLCamera::readFromObjectStream(istream);
 
-  bound            = Box3d::parseFromString(istream.read("bound"));
+  bound            = BoxNd::parseFromString(istream.read("bound"),/*bInterleave*/false).toBox3();
   pos              = Point3d(istream.read("pos"));
   dir              = Point3d(istream.read("dir"));
   vup              = Point3d(istream.read("vup"));
-  quaternion       = Quaternion(istream.read("quaternion"));
   centerOfRotation = Point3d(istream.read("centerOfRotation"));
+  quaternion       = Quaternion(istream.read("quaternion"));
   defaultRotFactor =cdouble(istream.read("defaultRotFactor"));
   defaultPanFactor =cdouble(istream.read("defaultPanFactor"));
   bDisableRotation =cbool  (istream.read("disableRotation"));

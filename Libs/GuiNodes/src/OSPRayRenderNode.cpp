@@ -138,7 +138,7 @@ public:
 
     VisusInfo() << data.bounds.toString();
 
-    const Box3d grid = data.bounds.withoutTransformation().toBox3();
+    auto grid = data.bounds.withoutTransformation().toBox3();
 
     // Scale the smaller volumes we get while loading progressively to fill the true bounds
     // of the full dataset
