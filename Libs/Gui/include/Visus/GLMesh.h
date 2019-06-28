@@ -275,14 +275,15 @@ public:
 
   //ColoredAxis
   static GLMesh ColoredAxis(const Box3d& box) {
+    auto points = box.getPoints();
     GLMesh ret;
     ret.begin(GL_LINES);
-    ret.color(Colors::Red  ); ret.vertex(box.getPoint(0));
-    ret.color(Colors::Red  ); ret.vertex(box.getPoint(1));
-    ret.color(Colors::Green); ret.vertex(box.getPoint(0));
-    ret.color(Colors::Green); ret.vertex(box.getPoint(3));
-    ret.color(Colors::Blue ); ret.vertex(box.getPoint(0));
-    ret.color(Colors::Blue ); ret.vertex(box.getPoint(4));
+    ret.color(Colors::Red  ); ret.vertex(points[0]);
+    ret.color(Colors::Red  ); ret.vertex(points[1]);
+    ret.color(Colors::Green); ret.vertex(points[0]);
+    ret.color(Colors::Green); ret.vertex(points[3]);
+    ret.color(Colors::Blue ); ret.vertex(points[0]);
+    ret.color(Colors::Blue ); ret.vertex(points[4]);
     ret.end();
     return ret;
   }
@@ -299,11 +300,8 @@ public:
 
     FrustumMap project(frustum);
     Box3d screenbox= Box3d::invalid();
-    for(int I=0;I<8;++I)
-    {
-      Point3d p=project.applyDirectMap(Point4d(unit_box.getPoint(I),1.0)).dropHomogeneousCoordinate();
-      screenbox.addPoint(p);
-    }
+    for (auto p : unit_box.getPoints())
+      screenbox.addPoint(project.applyDirectMap(Point4d(p, 1.0)).dropHomogeneousCoordinate());
 
     GLMesh ret;
     ret.begin(GL_QUADS);

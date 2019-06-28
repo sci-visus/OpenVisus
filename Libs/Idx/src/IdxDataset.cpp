@@ -1278,11 +1278,8 @@ NdPoint IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frust
   };
 
   std::vector<Point3d> points;
-  for (int I=0;I<8;I++)
-  {
-    Point3d p=position.T * position.box.toBox3().getPoint(I);
-    points.push_back(p);
-  }
+  for (auto p : position.box.toBox3().getPoints())
+    points.push_back(position.T * p);
 
   std::vector<Point2d> screen_points;
   if (viewdep.valid())

@@ -109,29 +109,19 @@ public:
     this->p2 = Point::max(this->p2, p);
   }
 
-  //get point
-  Point getPoint(int idx) const
-  {
-    switch (idx)
-    {
-    case 0:return Point(p1[0], p1[1]);
-    case 1:return Point(p2[0], p1[1]);
-    case 2:return Point(p2[0], p2[1]);
-    case 3:return Point(p1[0], p2[1]);
-    }
-    VisusAssert(false);
-    return Point();
-  }
 
   //getPoints
-  std::array<Point,4> getPoints() const {
-    return std::array<Point, 4>({
-      getPoint(0),getPoint(1),getPoint(2),getPoint(3)
+  std::vector<Point> getPoints() const {
+    return std::vector<Point>({
+      Point(p1[0], p1[1]),
+      Point(p2[0], p1[1]),
+      Point(p2[0], p2[1]),
+      Point(p1[0], p2[1])
     });
   }
 
-  //getPoint
-  Point getPoint(double alpha, double beta) const {
+  //getAlphaPoint
+  Point getAlphaPoint(double alpha, double beta) const {
     return p1 + Point(alpha*(p2[0] - p1[0]), beta*(p2[1] - p1[1]));
   }
 
@@ -282,33 +272,22 @@ public:
     this->p2 = Point::max(this->p2, p);
   }
 
-  //get point
-  Point getPoint(int idx) const
-  {
-    switch (idx)
-    {
-    case 0:return Point(p1[0], p1[1], p1[2]);
-    case 1:return Point(p2[0], p1[1], p1[2]);
-    case 2:return Point(p2[0], p2[1], p1[2]);
-    case 3:return Point(p1[0], p2[1], p1[2]);
-    case 4:return Point(p1[0], p1[1], p2[2]);
-    case 5:return Point(p2[0], p1[1], p2[2]);
-    case 6:return Point(p2[0], p2[1], p2[2]);
-    case 7:return Point(p1[0], p2[1], p2[2]);
-    }
-    VisusAssert(false);
-    return Point();
-  }
-
   //getPoints
-  std::array<Point,8> getPoints() const {
-    return std::array<Point, 8>({
-      getPoint(0),getPoint(1),getPoint(2),getPoint(3),getPoint(4),getPoint(5),getPoint(6),getPoint(7)
-    });
+  std::vector<Point> getPoints() const {
+    return {
+      Point(p1[0], p1[1], p1[2]),
+      Point(p2[0], p1[1], p1[2]),
+      Point(p2[0], p2[1], p1[2]),
+      Point(p1[0], p2[1], p1[2]),
+      Point(p1[0], p1[1], p2[2]),
+      Point(p2[0], p1[1], p2[2]),
+      Point(p2[0], p2[1], p2[2]),
+      Point(p1[0], p2[1], p2[2])
+    };
   }
 
-  //getPoint
-  Point getPoint(double alpha, double beta, double gamma) const {
+  //getAlphaPoint
+  Point getAlphaPoint(double alpha, double beta, double gamma) const {
     return p1 + Point(alpha*(p2[0] - p1[0]), beta*(p2[1] - p1[1]), gamma*(p2[2] - p1[2]));
   }
 
@@ -518,12 +497,12 @@ public:
     return p2 - p1;
   }
 
-  //max size
+  //maxsize
   T maxsize() const {
     return size().maxsize();
   }
 
-  //min size
+  //minsize
   T minsize() const {
     return size().minsize();
   }

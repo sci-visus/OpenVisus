@@ -69,6 +69,8 @@ Position Position::shrink(const Box3d& dst_box,const LinearMap& map,Position pos
   if (!position.valid())
     return position;
 
+  auto dst_points = dst_box.getPoints();
+
   const LinearMap& T2(map);
   MatrixMap T1(position.T);
   Box3d       src_rvalue=position.box.toBox3();
@@ -101,7 +103,7 @@ Position Position::shrink(const Box3d& dst_box,const LinearMap& map,Position pos
     //points belonging to the plane
     for (int I=0;I<8;I++)
     {
-      Point3d p=dst_box.getPoint(I);
+      Point3d p= dst_points[I];
       distances[I]=slice_plane_in_screen.getDistance(p);
       if (!distances[I]) 
       {
@@ -118,8 +120,8 @@ Position Position::shrink(const Box3d& dst_box,const LinearMap& map,Position pos
       int i2=unit_box_edges[E][1];double h2=distances[i2];
       if ((h1>0 && h2<0) || (h1<0 && h2>0))
       {
-        Point3d p1=dst_box.getPoint(i1);h1=fabs(h1);
-        Point3d p2=dst_box.getPoint(i2);h2=fabs(h2);
+        Point3d p1= dst_points[i1];h1=fabs(h1);
+        Point3d p2= dst_points[i2];h2=fabs(h2);
         double alpha =h2/(h1+h2);
         double beta  =h1/(h1+h2);
         Point3d p=INVERSE(T2,T1,Point4d(alpha*p1 + beta*p2,1.0)).dropHomogeneousCoordinate();
@@ -143,14 +145,14 @@ Position Position::shrink(const Box3d& dst_box,const LinearMap& map,Position pos
     VisusAssert(query_dim==3);
 
     //the first polyhedra (i.e. position)
-    Point3d V1[8]; for (int I=0;I<8;I++) V1[I]=src_rvalue.getPoint(I);
-    std::vector<Plane> H1=src_rvalue.getPlanes();
+    auto V1= src_rvalue.getPoints();
+    auto H1=src_rvalue.getPlanes();
 
     //the second polyhedra (transformed to be in the first polyhedra system, i.e. position)
     Point3d V2[8];for (int I=0;I<8;I++) 
-      V2[I]=INVERSE(T2,T1,Point4d(dst_box.getPoint(I),1.0)).dropHomogeneousCoordinate();
+      V2[I]=INVERSE(T2,T1,Point4d(dst_points[I],1.0)).dropHomogeneousCoordinate();
   
-    std::vector<Plane> H2=dst_box.getPlanes(); 
+    auto H2=dst_box.getPlanes(); 
     for (int H=0;H<6;H++) 
       H2[H]=INVERSE(T2,T1,H2[H]);
 

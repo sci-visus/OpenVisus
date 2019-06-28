@@ -471,8 +471,8 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
       std::istringstream parse(args_zoom_to);
       parse >> x1 >> y1 >> x2 >> y2;
 
-      auto p1 = world_box.getPoint(x1, y1, 0).toPoint2();
-      auto p2 = world_box.getPoint(x2, y2, 0).toPoint2();
+      auto p1 = world_box.getAlphaPoint(x1, y1, 0).toPoint2();
+      auto p2 = world_box.getAlphaPoint(x2, y2, 0).toPoint2();
 
       ortho_params = GLOrthoParams(p1[0], p2[0], p1[1], p2[1], ortho_params.zNear, ortho_params.zFar);
 

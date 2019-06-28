@@ -255,10 +255,7 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
   if (config.texture_dim == 2)
   {
     for (auto node : rendered)
-    {
-      Box3d   box = Position(node->box).box.toBox3();
-      GLLineLoop(std::vector<Point3d>({ box.getPoint(0),box.getPoint(1),box.getPoint(2),box.getPoint(3) }), Colors::Black, 3).glRender(gl);
-    }
+      GLLineLoop(node->box.toBox3().getPoints(), Colors::Black, 3).glRender(gl);
   }
 #endif
 

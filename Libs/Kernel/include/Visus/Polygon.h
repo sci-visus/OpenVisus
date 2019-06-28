@@ -159,17 +159,17 @@ public:
     VisusAssert(H.getSpaceDim() == 3);
   }
 
-
   //constructor
   Quad(Point2d p0, Point2d p1, Point2d p2, Point2d p3) : Polygon2d(p0, p1, p2, p3) {
   }
 
   //constructor
-  Quad(std::array<Point2d, 4> v) : Polygon2d(v[0], v[1], v[2], v[3]) {
+  Quad(std::vector<Point2d> v) : Polygon2d(v[0], v[1], v[2], v[3]) {
+    VisusAssert(points.size() == 4);
   }
 
   //constructor
-  Quad(const Matrix& H, std::array<Point2d, 4> points) : Quad(H, Quad(points)) {
+  Quad(const Matrix& H, std::vector<Point2d> points) : Quad(H, Quad(points)) {
   }
 
   //constructor

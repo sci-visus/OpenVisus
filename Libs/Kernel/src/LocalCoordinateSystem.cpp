@@ -72,11 +72,12 @@ LocalCoordinateSystem::LocalCoordinateSystem(const Position& pos)
 {
   auto T=pos.T;
   auto box=pos.box.toBox3();
+  auto points = box.getPoints();
   Point3d Pc=T * box.center();
-  Point3d P0=T * box.getPoint(0);
-  Point3d Px=T * box.getPoint(1);
-  Point3d Py=T * box.getPoint(3);
-  Point3d Pz=T * box.getPoint(4);
+  Point3d P0=T * points[0];
+  Point3d Px=T * points[1];
+  Point3d Py=T * points[3];
+  Point3d Pz=T * points[4];
   this->x=0.5*(Px-P0);
   this->y=0.5*(Py-P0);
   this->z=0.5*(Pz-P0);
