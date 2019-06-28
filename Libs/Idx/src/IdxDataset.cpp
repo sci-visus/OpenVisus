@@ -1278,7 +1278,7 @@ NdPoint IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frust
   };
 
   std::vector<Point3d> points;
-  for (auto p : position.box.toBox3().getPoints())
+  for (auto p : position.box.getPoints())
     points.push_back((position.T * p).toPoint3());
 
   std::vector<Point2d> screen_points;
@@ -1348,8 +1348,7 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
 
   Position position=query->position;
 
-  const auto& T=position.T;
-  auto box    =position.box.toBox3();
+
 
   int pdim=this->getPointDim();
   VisusAssert(pdim==3); //why I need point queries in 2d... I'm asserting this because I do not create Query for 2d datasets 
@@ -1378,6 +1377,10 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
   //P'=T* (P0 + I* X/nsamples[0] +  J * Y/nsamples[1] + K * Z/nsamples[2])
   //P'=T*P0 +(T*Stepx)*I + (T*Stepy)*J + (T*Stepz)*K
     
+  auto T = position.T;
+  auto box = position.box;
+  T.setSpaceDim(4);
+  box.setPointDim(3);
   Point4d P0(box.p1[0],box.p1[1],box.p1[2],1.0);
   Point4d X(1,0,0,0); X[0]=box.p2[0]-box.p1[0]; Point4d DX=X*(1.0 / (double)nsamples[0]); VisusAssert(X[3]==0.0 && DX[3]==0.0);
   Point4d Y(0,1,0,0); Y[1]=box.p2[1]-box.p1[1]; Point4d DY=Y*(1.0 / (double)nsamples[1]); VisusAssert(Y[3]==0.0 && DY[3]==0.0);

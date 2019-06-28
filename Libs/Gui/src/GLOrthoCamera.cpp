@@ -237,7 +237,8 @@ bool GLOrthoCamera::guessPosition(Position position,int ref)
     X=Point3d(1,0,0);
     Y=Point3d(0,1,0);
     Z=Point3d(0,0,1);
-    bound=position.box.toBox3();
+    bound=position.box;
+    bound.setPointDim(3);
   }
   else
   {
@@ -260,7 +261,9 @@ bool GLOrthoCamera::guessPosition(Position position,int ref)
   int W = getViewport().width ; if (!W) W=800;
   int H = getViewport().height; if (!H) H=800;
 
-  if (ref==0 || (ref<0 && bound.p1[0]==bound.p2[0] && bound.p1[1]!=bound.p2[1] && bound.p1[2]!=bound.p2[2]))
+  auto size = bound.size();
+
+  if (ref==0 || (ref<0 && !size[0] && size[1] && size[2]))
   {
     beginUpdate();
     this->pos=+C;
@@ -273,7 +276,7 @@ bool GLOrthoCamera::guessPosition(Position position,int ref)
     setOrthoParams(ortho_params);
     endUpdate();
   }
-  else if (ref==1 || (ref<0 && bound.p1[0]!=bound.p2[0] && bound.p1[1]==bound.p2[1] && bound.p1[2]!=bound.p2[2]))
+  else if (ref==1 || (ref<0 && size[0] && !size[1] && size[2]))
   {
     beginUpdate();
     this->pos=+C;

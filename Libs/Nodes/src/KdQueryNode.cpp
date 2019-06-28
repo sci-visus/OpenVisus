@@ -119,7 +119,7 @@ public:
     }
 
     //find intersection with dataset box
-    position=Position::shrink(Position(dataset->getBox()).withoutTransformation().toBox3(),MatrixMap(Matrix::identity(4)),position);
+    position=Position::shrink(dataset->getBox().castTo<BoxNd>(),MatrixMap(Matrix::identity(4)),position);
 
     if (!position.valid()) 
       return false;

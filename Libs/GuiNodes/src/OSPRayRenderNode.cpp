@@ -138,14 +138,15 @@ public:
 
     VisusInfo() << data.bounds.toString();
 
-    auto grid = data.bounds.withoutTransformation().toBox3();
+    auto grid = data.bounds.withoutTransformation();
+    grid.setPointDim(3);
 
     // Scale the smaller volumes we get while loading progressively to fill the true bounds
     // of the full dataset
     ospSet3f(volume, "gridSpacing",
-      (grid.p2.x - grid.p1.x) / data.getWidth(),
-      (grid.p2.y - grid.p1.y) / data.getHeight(),
-      (grid.p2.z - grid.p1.z) / data.getDepth());
+      (grid.p2[0] - grid.p1[0]) / data.getWidth(),
+      (grid.p2[1] - grid.p1[1]) / data.getHeight(),
+      (grid.p2[2] - grid.p1[2]) / data.getDepth());
 
     // TODO: This parameter should be exposed in the UI
     // Sampling rate will adjust the quality and cost of rendering,

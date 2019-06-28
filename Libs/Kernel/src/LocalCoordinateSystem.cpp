@@ -71,7 +71,7 @@ LocalCoordinateSystem::LocalCoordinateSystem(const Matrix& T)
 LocalCoordinateSystem::LocalCoordinateSystem(const Position& pos)
 {
   auto T=pos.T;
-  auto box=pos.box.toBox3();
+  auto box=pos.box;
   auto points = box.getPoints();
   Point3d Pc=T * box.center().toPoint3();
   Point3d P0= (T * points[0]).toPoint3();

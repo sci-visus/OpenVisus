@@ -267,13 +267,18 @@ void GLCanvas::popProjection() {
 }
 
 /////////////////////////////////////////////////////////////////////////////
-void GLCanvas::setModelview(const Matrix& value,bool bForce) {
-  if (!bForce && value==getModelview()) return;
+void GLCanvas::setModelview(Matrix value,bool bForce) 
+{
+  value.setSpaceDim(4);
+
+  if (!bForce && value==getModelview()) 
+    return;
+
   this->modelview.top()=value;
   if (auto shader=getShader()) 
   {
-    setUniformMatrix(shader->u_modelview_matrix,value);
-    setUniformMatrix(shader->u_normal_matrix ,value.invert().transpose().withoutBack());
+    setUniformMatrix(shader->u_modelview_matrix, value);
+    setUniformMatrix(shader->u_normal_matrix   , value.submatrix(3, 3).invert().transpose());
   }
 }
 

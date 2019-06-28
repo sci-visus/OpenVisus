@@ -177,9 +177,13 @@ public:
       }
     }
 
-    widgets.T->setMatrix(model->getObject().T); 
-    widgets.box->setValue(model->getObject().box.toBox3());
-
+    auto obj = model->getObject();
+    auto T = obj.T;
+    auto box=model->getObject().box;
+    T.setSpaceDim(4);
+    box.setPointDim(3);
+    widgets.T->setMatrix(T);
+    widgets.box->setValue(box);
   }
 
 private:

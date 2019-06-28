@@ -296,8 +296,10 @@ public:
   void pushClippingBox(const Position& position)
   {
     auto save_modelview = getModelview();
-    multModelview(position.T);
-    pushClippingBox(position.box.toBox3());
+    auto T = position.T;
+    T.setSpaceDim(4);
+    multModelview(T);
+    pushClippingBox(position.box);
     loadModelview(save_modelview);
   }
 
@@ -364,7 +366,7 @@ public:
   }
 
   //setModelview
-  void setModelview(const Matrix& value,bool bForce=false);
+  void setModelview(Matrix value,bool bForce=false);
 
   //loadModelview
   void loadModelview(const Matrix& value) {

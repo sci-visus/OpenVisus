@@ -105,7 +105,7 @@ public:
     {
       if (output.dims[D] == 1 && input.dims[D] > 1)
       {
-        auto box = output.bounds.box.toBox3();
+        auto box = output.bounds.box;
         box.p2[D] = box.p1[D];
         output.bounds = Position(output.bounds.T, box);
         output.clipping = Position::invalid(); //disable clipping

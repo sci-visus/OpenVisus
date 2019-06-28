@@ -214,19 +214,11 @@ public:
     if (!ExecuteOnCppSamples(op,this->data.dtype,*isocontour,data,isovalue,vertices_per_batch,aborted))
       return;
 
-    auto    box=data.bounds.box.toBox3();
-    Point3i dims(data.getWidth(),data.getHeight(),data.getDepth());
-
     isocontour->field.array   = data; //pass through
     isocontour->field.texture = std::make_shared<GLTexture>(data);
     
-    isocontour->bounds = Position(
-      data.bounds.T,
-      /*--- begin_remap  box <- dims*/
-      Matrix::translate(box.p1),
-      Matrix::scale(Point3d(box.size()[0]/dims[0],box.size()[1]/dims[1],box.size()[2]/dims[2])),
-      BoxNd(Point3d(0,0,0),Point3d(dims[0],dims[1],dims[2])) //RenderMeshNode NEEDS the vertices in this range (for computing normals on GPU)
-      /*--- end_remap ---*/ ); 
+    //RenderMeshNode NEEDS the vertices in this range (for computing normals on GPU)
+    isocontour->bounds = Position::compose(data.bounds,data.dims);; 
 
     //tell that the output has changed, if the port is not connected, this is a NOP!
     DataflowMessage msg;

@@ -842,6 +842,13 @@ public:
     return this->coords.back();
   }
 
+  //back
+#if !SWIG
+  T& back() {
+    return this->coords.back();
+  }
+#endif
+
   //dropHomogeneousCoordinate
   PointN dropHomogeneousCoordinate() const {
     return applyOperation(*this, MulByCoeff<double>(1.0 / back())).withoutBack();

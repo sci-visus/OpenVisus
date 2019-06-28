@@ -143,12 +143,14 @@ public:
     {
       this->p1 = p;
       this->p2 = p;
+      return;
     }
-    else
-    {
-      this->p1 = Point::min(this->p1, p);
-      this->p2 = Point::max(this->p2, p);
-    }
+    
+    auto pdim = std::max(p.getPointDim(), this->getPointDim());
+    p.setPointDim(pdim);
+    this->setPointDim(pdim);
+    this->p1 = Point::min(this->p1, p);
+    this->p2 = Point::max(this->p2, p);
   }
 
   //toBox3
@@ -182,25 +184,35 @@ public:
   }
 
   //get intersection of two boxes
-  BoxN getIntersection(const BoxN& b) const {
-    const BoxN& a = *this;
+  BoxN getIntersection(BoxN b) const {
+    auto a = *this;
     if (!a.valid()) return a;
     if (!b.valid()) return b;
-    BoxN ret;
-    ret.p1 = Point::max(a.p1, b.p1);
-    ret.p2 = Point::min(a.p2, b.p2);
-    return ret;
+
+    //must have the same dimension
+    auto pdim = std::max(a.getPointDim(),b.getPointDim());
+    a.setPointDim(pdim);
+    b.setPointDim(pdim);
+
+    return BoxN(
+      Point::max(a.p1, b.p1), 
+      Point::min(a.p2, b.p2));
   }
 
   //get union of two boxes
-  BoxN getUnion(const BoxN& b) const {
-    const BoxN& a = *this;
+  BoxN getUnion(BoxN b) const {
+    auto a = *this;
     if (!a.valid()) return b;
     if (!b.valid()) return a;
-    BoxN ret;
-    ret.p1 = Point::min(a.p1, b.p1);
-    ret.p2 = Point::max(a.p2, b.p2);
-    return ret;
+
+    //must have the same dimension
+    auto pdim = std::max(a.getPointDim(),b.getPointDim());
+    a.setPointDim(pdim);
+    b.setPointDim(pdim);
+
+    return BoxN(
+      Point::min(a.p1, b.p1),
+      Point::max(a.p2, b.p2));
   }
 
   //containsBox

@@ -370,14 +370,22 @@ Matrix Matrix::submatrix(int row, int column) const
 {
   Matrix result(this->dim - 1);
   int subi = 0;
-  for (int i = 0; i < this->dim; i++) {
+  for (int i = 0; i < this->dim; i++)
+  {
     int subj = 0;
-    if (i == row) continue;
-    for (int j = 0; j < this->dim; j++) {
-      if (j == column) continue;
-      result(subi, subj) = operator()(i, j);
+    
+    if (i == row) 
+      continue;
+    
+    for (int j = 0; j < this->dim; j++) 
+    {
+      if (j == column) 
+        continue;
+
+      result(subi, subj) = get(i, j);
       subj++;
     }
+
     subi++;
   }
   return result;

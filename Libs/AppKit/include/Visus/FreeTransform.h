@@ -103,7 +103,7 @@ public:
   }
 
   //setObject
-  bool setObject(const Position& obj,bool bEmitSignal=false);
+  bool setObject(Position obj,bool bEmitSignal=false);
 
   //getDragging
   const Dragging& getDragging() const {
@@ -117,16 +117,14 @@ public:
 
   //canRotate
   bool canRotate(int axis) const {
-    auto box=this->obj.box.toBox3();
-    return this->obj.valid() 
-      && !(box.p1[(axis+1)%3]==box.p2[(axis+1)%3] && box.p1[(axis+2)%3]==box.p2[(axis+2)%3]);
+    auto box=this->obj.box.withPointDim(3);
+    return this->obj.valid() && !(box.p1[(axis+1)%3]==box.p2[(axis+1)%3] && box.p1[(axis+2)%3]==box.p2[(axis+2)%3]);
   }
 
   //canScale
   bool canScale(int axis) const {
-    auto box=this->obj.box.toBox3();
-    return this->obj.valid() 
-      && !(box.p1[axis]==box.p2[axis]);
+    auto box=this->obj.box.withPointDim(3);
+    return this->obj.valid() && !(box.p1[axis]==box.p2[axis]);
   }
 
   //mouse events

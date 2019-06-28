@@ -255,22 +255,6 @@ public:
     return Matrix(dim);
   }
 
-  // change dimension (can be less or greater than actual dimension)
-  Matrix withPointDim(int dim) const
-  {
-    Matrix ret(dim);
-    auto N = std::min(this->dim, dim);
-    for (int r = 0; r < N; r++)
-      for (int c = 0; c < N; c++)
-        ret.get(r, c) = this->get(r, c);
-    return ret;
-  }
-
-  //setPointDim
-  void setPointDim(int dim) {
-    (*this) = this->withPointDim(dim);
-  }
-
   // operator Matrix + Matrix
   Matrix operator+(const Matrix& b) const
   {
@@ -410,19 +394,17 @@ public:
   }
 
   //nonZeroScale
-  static Matrix nonZeroScale(Point3d vs) {
-    return scale(Point3d(
-      vs[0] ? vs[0] : 1.0,
-      vs[1] ? vs[1] : 1.0,
-      vs[2] ? vs[2] : 1.0));
+  static Matrix nonZeroScale(PointNd vs) {
+    for (auto& it : vs.coords)
+      it = it ? it : 1.0;
+    return Matrix::scale(vs);
   }
 
   //invNonZeroScale
-  static Matrix invNonZeroScale(Point3d vs) {
-    return scale(Point3d(
-      vs[0] ? (1.0 / vs[0]) : 1.0,
-      vs[1] ? (1.0 / vs[1]) : 1.0,
-      vs[2] ? (1.0 / vs[2]) : 1.0));
+  static Matrix invNonZeroScale(PointNd vs) {
+    for (auto& it : vs.coords)
+      it = it ? (1.0 / it) : 1.0;
+    return Matrix::scale(vs);
   }
 
   // rotate
@@ -470,22 +452,39 @@ public:
   //embed (XY into a slice perpendicular to axis with certain offset)
   static Matrix embed(int axis, double offset);
 
-  //withoutBack
-  Matrix withoutBack() const
+  //setPointDim
+  void setSpaceDim(int dim) 
   {
-    VisusAssert(getSpaceDim()>0);
-    return withPointDim(getSpaceDim()-1);
+    if (dim == getSpaceDim())
+      return;
+
+    auto New = Matrix(dim);
+    auto Old = (*this);
+
+    int N = std::min(New.dim, Old.dim);
+    int R, C;
+
+    //copy inner avoiding right/bottom boundary
+    for (R = 0; R < N - 1; R++)
+      for (C = 0; C < N - 1; C++)
+        New(R, C) = Old(R, C);
+
+    //copy last column
+    for (R = 0; R < N - 1; R++)
+      New(R, New.dim - 1) = Old(R, Old.dim - 1);
+
+    //copy last row
+    for (C = 0; C < N - 1; C++)
+      New(New.dim - 1, C) = Old(Old.dim - 1, C);
+
+    if (N)
+      New(New.dim - 1, New.dim - 1) = Old(Old.dim - 1, Old.dim - 1);
+
+    (*this) = New;
   }
 
-  //dropZ
-  Matrix dropZ() const
-  {
-    VisusAssert(getSpaceDim() == 4);
-    return Matrix(
-      mat[0], mat[1], mat[3],
-      mat[4], mat[5], mat[7],
-      mat[12], mat[13], mat[15]);
-  }
+// Returns a submatrix of the current matrix, removing one row and column of the original matrix
+  Matrix submatrix(int row, int column) const;
 
 public:
 
@@ -526,9 +525,6 @@ public:
 
 private:
 
-  // Returns a submatrix of the current matrix, removing one row and column of the original matrix
-  Matrix submatrix(int row, int column) const;
-
   // Returns the minor of a matrix, which is the determinant of a submatrix
   double getMinor(int row, int column) const;
 
@@ -560,29 +556,36 @@ inline Matrix operator*(double coeff, const Matrix& T) {
 }
 
 
-inline PointNd operator*(const Matrix& T, const PointNd& v) 
+inline PointNd operator*(const Matrix& T, PointNd p) 
 {
-  if (T.dim == v.getPointDim())
+  auto sdim = T.getSpaceDim();
+  auto pdim = p.getPointDim();
+
+  if (pdim > sdim)
+    ThrowException("dimension not compatible");
+
+  if (pdim != sdim)
   {
-    PointNd ret(T.dim);
-    for (int r = 0; r < T.dim; r++)
-      for (int c = 0; c < T.dim; c++)
-        ret[r] += T.get(r, c) * v[c];
-    return ret;
+    p.setPointDim(sdim);
+    p.back() = 1; //homogeneous
   }
 
-  if (T.dim == v.getPointDim() + 1) 
-    return (T * PointNd(v, 1.0)).dropHomogeneousCoordinate();
+  auto ret=PointNd(T.dim);
+  for (int r = 0; r < T.dim; r++)
+    for (int c = 0; c < T.dim; c++)
+      ret[r] += T.get(r, c) * p[c];
 
-  ThrowException("dimension non compatible");
-  return PointNd();
+  if (pdim !=sdim)
+    ret=ret.dropHomogeneousCoordinate();
+
+  return ret;
 }
 
 inline PointNd operator*(const PointNd& v, const Matrix& T)
 {
   auto dim = v.getPointDim();
   VisusAssert(dim == T.getSpaceDim())
-    PointNd ret(dim);
+  PointNd ret(dim);
   for (int R = 0; R < dim; R++)
     ret += v[R] * T.getRow(R);
   return ret;

@@ -60,11 +60,14 @@ public:
   }
 
   //constructor
-  Position(const Matrix& T_ ,BoxNd box_) : T(T_), box(box_) {
+  Position(std::vector<Matrix> T, BoxNd box);
+
+  //constructor
+  Position(Matrix T, BoxNd box) : Position(std::vector<Matrix>({ T }), box) {
   }
 
   //constructor
-  Position(BoxNd value) : box(value) {
+  Position(BoxNd value) : Position({Matrix()}, value) {
   }
 
   //constructor
@@ -72,26 +75,40 @@ public:
   }
 
   //constructor
-  Position(const Matrix& T0, const Position& other) : Position(other) {
-    this->T = T0 * this->T;
-    VisusAssert(this->T.getSpaceDim() == 4);
+  Position(const Matrix& T0, const Position& other) : Position(std::vector<Matrix>({ T0,other.T }), other.box) {
   }
 
   //constructor
-  Position(const Matrix& T0, const Matrix& T1, const Position& other) : Position(T1,other) {
-    this->T = T0 * this->T;
-    VisusAssert(this->T.getSpaceDim() == 4);
+  Position(const Matrix& T0, const Matrix& T1, const Position& other) : Position(std::vector<Matrix>({ T0,T1,other.T }), other.box) {
   }
 
   //constructor
-  Position(const Matrix& T0, const Matrix& T1, const Matrix& T2, const Position& other) : Position(T1,T2,other) {
-    this->T = T0 * this->T;
-    VisusAssert(this->T.getSpaceDim() == 4);
+  Position(const Matrix& T0, const Matrix& T1, const Matrix& T2, const Position& other) : Position(std::vector<Matrix>({ T0,T1,T1, other.T }), other.box) {
   }
 
   //invalid
   static Position invalid() {
     return Position();
+  }
+
+  //compose
+  static Position compose(Position A, Position B)
+  {
+    return Position(std::vector<Matrix>({
+        A.T,
+        Matrix::nonZeroScale(A.box.p1),
+        Matrix::nonZeroScale(A.box.size()),
+        Matrix::invNonZeroScale(B.box.size()),
+        Matrix::translate(-B.box.p1),
+      }),
+      B.box
+    );
+  }
+
+  //compose
+  static Position compose(Position A, NdPoint dims) {
+    auto B = Position(NdBox(NdPoint(dims.getPointDim()), dims));
+    return compose(A, B);
   }
 
   //operator!=

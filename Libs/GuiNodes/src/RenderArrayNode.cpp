@@ -205,22 +205,17 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   //in 2d I render the box (0,0)  x(1,1)
   gl.pushModelview();
   {
-    auto box=data.bounds.box.toBox3();
+    auto box=data.bounds.box;
 
-    Point3d vt=box.p1.toPoint3d();
-    Point3d vs=box.size().toPoint3();
-    if (!vs[0]) vs[0]=1.0;
-    if (!vs[1]) vs[1]=1.0;
-    if (!vs[2]) vs[2]=1.0;
     gl.multModelview(data.bounds.T);
-    gl.multModelview(Matrix::translate(vt));
-    gl.multModelview(Matrix::scale(vs));
+    gl.multModelview(Matrix::translate(box.p1));
+    gl.multModelview(Matrix::nonZeroScale(box.size()));
     if (shader->config.texture_dim==2)
     {
-      if (box.p1[0]==box.p2[0]) 
+      if (!box.size()[0]) 
         gl.multModelview(Matrix(Point3d(0,1,0),Point3d(0,0,1),Point3d(1,0,0),Point3d(0,0,0)));
 
-      else if (box.p1[1]==box.p2[1]) 
+      else if (!box.size()[1]) 
         gl.multModelview(Matrix(Point3d(1,0,0),Point3d(0,0,1),Point3d(0,1,0),Point3d(0,0,0)));
     }
   }

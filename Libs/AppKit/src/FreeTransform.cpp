@@ -55,8 +55,15 @@ static bool NearBy(const Point2d& screen_p1,const Point2d& screen_p2,int toleran
 
 
 ////////////////////////////////////////////////////////////////////////////
-bool FreeTransform::setObject(const Position& obj,bool bEmitSignal)
+bool FreeTransform::setObject(Position obj,bool bEmitSignal)
 {
+  auto T   = obj.T;
+  auto box = obj.box;
+  T.setSpaceDim(4);
+  box.setPointDim(3);
+
+  obj = Position(T, box);
+
   beginUpdate();
   this->obj=obj;
   endUpdate();

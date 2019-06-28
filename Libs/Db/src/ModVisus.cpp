@@ -786,7 +786,9 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   else if (action == "pointquery")
   {
     auto  map = Matrix::parseFromString(4,request.url.getParam("matrix"));
-    auto  box = BoxNd::parseFromString(request.url.getParam("box"),/*bInterleave*/false).toBox3();
+    auto  box = BoxNd::parseFromString(request.url.getParam("box"),/*bInterleave*/false);
+    VisusAssert(pdim == 3);
+    box.setPointDim(3);
     query->position = Position(map, box);
   }
   else

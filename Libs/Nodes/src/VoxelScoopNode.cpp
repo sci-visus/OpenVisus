@@ -104,14 +104,7 @@ public:
   //getDiam2d
   double getDiam2d(const Point3d &seed,double threshold)
   {
-    const Point3d dims=this->data.dims.toPoint3d();
-
-    //scrgiorgio: not sure this is correct!
-    auto pixel_to_physic=
-      this->data.bounds.T *
-      Matrix::translate(this->data.bounds.box.toBox3().p1) *
-      Matrix::scale(this->data.bounds.box.toBox3().size()) *
-      Matrix::scale(dims.inv());
+    auto pixel_to_physic = Position::compose(this->data.bounds,this->data.dims).T;
 
     TRSMatrixDecomposition trs(pixel_to_physic);
 
@@ -396,15 +389,10 @@ public:
     //VisusInfo()<<"VoxelScoopNode::makeClusterFromSeed(%s)",seed.toString().c_str());
     typedef Uint8 Type;
 
-    const Point3i idims =Data.dims.toPoint3i();
-    const Point3d dims  =Data.dims.toPoint3d();
+    const Point3d dims = Data.dims.toPoint3d();
+    const Point3i idims = dims.castTo<Point3i>();
 
-    //scrgiorgio: not sure this is correct!
-    auto pixel_to_physic=
-      this->Data.bounds.T *
-      Matrix::translate(this->Data.bounds.box.toBox3().p1) *
-      Matrix::scale(this->Data.bounds.box.toBox3().size()) *
-      Matrix::scale(dims.inv());
+    auto pixel_to_physic = Position::compose(this->Data.bounds,Data.dims).T;
     
     TRSMatrixDecomposition trs(pixel_to_physic);
 
@@ -437,9 +425,9 @@ public:
       ScopedLock lock(this->centerlines->lock);
       firstCluster->nodeid=this->centerlines->mkVert(Sphere(firstCluster->nodepos,diam/2));
 
-      auto geometric_box=this->centerlines->bounds.box.toBox3();
-      geometric_box.addPoint(firstCluster->nodepos);
-      this->centerlines->bounds=Position(this->centerlines->bounds.T,geometric_box);
+      auto box=this->centerlines->bounds.box;
+      box.addPoint(firstCluster->nodepos);
+      this->centerlines->bounds=Position(this->centerlines->bounds.T, box);
     }
 
     return firstCluster;
@@ -451,16 +439,9 @@ public:
     //VisusInfo()<<"VoxelScoopNode::calculate");
     typedef Uint8 Type;
 
-    const Point3i idims =Data.dims.toPoint3i();
-    const Point3d  dims = Data.dims.toPoint3d();
+    auto idims = Data.dims.toPoint3i();
 
-
-    //scrgiorgio: not sure this is correct!
-    auto pixel_to_physic =
-      this->Data.bounds.T *
-      Matrix::translate(this->Data.bounds.box.toBox3().p1) *
-      Matrix::scale(this->Data.bounds.box.toBox3().size()) *
-      Matrix::scale(dims.inv());
+    auto pixel_to_physic = Position::compose(this->Data.bounds,Data.dims).T;
 
     TRSMatrixDecomposition trs(pixel_to_physic);
 
@@ -582,9 +563,9 @@ public:
           ScopedLock lock(this->centerlines->lock);
           newcluster.nodeid=this->centerlines->mkVert(Sphere(newpos,diam/2));
 
-          auto geometric_box=this->centerlines->bounds.box.toBox3();
-          geometric_box.addPoint(newpos);
-          this->centerlines->bounds=Position(this->centerlines->bounds.T,geometric_box);
+          auto box=this->centerlines->bounds.box;
+          box.addPoint(newpos);
+          this->centerlines->bounds=Position(this->centerlines->bounds.T, box);
           this->centerlines->mkEdge(newcluster.nodeid,cluster.nodeid,(Float32)(newpos-cluster.nodepos).module());
         }
 

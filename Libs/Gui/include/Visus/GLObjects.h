@@ -57,6 +57,7 @@ public:
 
   //constructor
   GLModelview(Matrix T_=Matrix::identity(4)) : T(T_) {
+    T.setSpaceDim(4);
   }
 
   //destructor
@@ -292,8 +293,8 @@ public:
   GLBox(const Position& position, const Color& fill_color, const Color& line_color, int line_width = 1)
     : GLStruct({
       std::make_shared<GLModelview>(position.T),
-      std::make_shared<GLPhongObject>(GLMesh::SolidBox(position.box.toBox3()), fill_color, 0),
-      std::make_shared<GLPhongObject>(GLMesh::WireBox(position.box.toBox3()), line_color, line_width)
+      std::make_shared<GLPhongObject>(GLMesh::SolidBox(position.box), fill_color, 0),
+      std::make_shared<GLPhongObject>(GLMesh::WireBox(position.box), line_color, line_width)
     }) {}
 
   //constructor

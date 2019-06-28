@@ -372,10 +372,10 @@ public:
     auto vf    = child.dataset; VisusAssert(vf);
     auto field = vf->getFieldByName(fieldname); VisusAssert(field.valid());
 
-    auto BOX = Position(M, vf->getBox()).withoutTransformation().toBox3();
+    auto BOX = Position(M, vf->getBox()).withoutTransformation();
 
     //no intersection? just skip this down query
-    if (!QUERY->position.withoutTransformation().toBox3().intersect(BOX))
+    if (!QUERY->position.withoutTransformation().intersect(BOX))
       return SharedPtr<Query>();
 
     auto query = std::make_shared<Query>(vf.get(), 'r');
@@ -407,7 +407,7 @@ public:
     query->max_resolution = vf->getMaxResolution();
 
     auto QUERY_T   = QUERY->position.T;
-    auto QUERY_BOX = QUERY->position.box.toBox3();
+    auto QUERY_BOX = QUERY->position.box;
 
     // WRONG, consider that M could have mat(3,0) | mat(3,1) | mat(3,2) !=0 and so I can have non-parallel axis
     // i.e. computing the bounding box in position very far from the mapped region are wrong because some axis of the quads can interect in some points
@@ -415,7 +415,7 @@ public:
     // if you use this wrong version, for voronoi in 2d you will see some missing pieces around
     // solution is to limit the QUERY_BOX into a more "local" one
 #if 1
-    QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).withoutTransformation().toBox3().getIntersection(QUERY_BOX).toBox3();
+    QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).withoutTransformation().getIntersection(QUERY_BOX);
 #endif
 
     query->position = Position(M.invert(), QUERY_T, QUERY_BOX);
@@ -498,17 +498,8 @@ public:
     query->down_info.BUFFER.alpha = std::make_shared<Array>(QUERY->nsamples, DTypes::UINT8);
     query->down_info.BUFFER.alpha->fillWithValue(0);
 
-    auto PIXEL_TO_LOGIC =
-      QUERY->position.T *
-      Matrix::translate(QUERY->position.box.toBox3().p1) *
-      Matrix::nonZeroScale(QUERY->position.box.toBox3().size().toPoint3()) *
-      Matrix::invNonZeroScale(query->down_info.BUFFER.dims.toPoint3d());
-
-    auto pixel_to_logic =
-      query->position.T *
-      Matrix::translate(query->position.box.toBox3().p1) *
-      Matrix::nonZeroScale(query->position.box.toBox3().size().toPoint3()) *
-      Matrix::invNonZeroScale(query->buffer.dims.toPoint3d());
+    auto PIXEL_TO_LOGIC = Position::compose(Position(QUERY->position), query->down_info.BUFFER.dims).T;
+    auto pixel_to_logic = Position::compose(Position(query->position), query->buffer.dims).T;
 
     // Tperspective := PIXEL <- pixel
     auto LOGIC_TO_PIXEL = PIXEL_TO_LOGIC.invert();
@@ -689,7 +680,7 @@ public:
     {
       if (output.dims[D] == 1 && QUERY->nsamples[D] > 1)
       {
-        auto box = output.bounds.box.toBox3();
+        auto box = output.bounds.box;
         box.p2[D] = box.p1[D];
         output.bounds = Position(output.bounds.T, box);
         output.clipping = Position::invalid(); //disable clipping
@@ -1014,7 +1005,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix T)
 
   //if mosaic then only an offset
   if (bMosaic)
-    VisusAssert(child.M.withoutBack().isIdentity());
+    VisusAssert(child.M.submatrix(child.M.getSpaceDim()-1,child.M.getSpaceDim()-1).isIdentity());
 
   addChild(child);
 
@@ -1184,8 +1175,8 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       auto PHYSICAL_BOX = BoxNd::invalid();
       for (auto it : childs)
       {
-        auto physical_box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().toBox3();
-        PHYSICAL_BOX = PHYSICAL_BOX.getUnion(physical_box).toBox3();
+        auto physical_box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation();
+        PHYSICAL_BOX = PHYSICAL_BOX.getUnion(physical_box);
       }
 
       std::vector<double> DENSITY;
@@ -1193,7 +1184,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       {
         auto dataset = it.second.dataset;
         auto M = it.second.M;
-        auto logic_box = Position().withoutTransformation().toBox3();
+        auto logic_box = Position().withoutTransformation();
         auto tot_pixels = dataset->getBox().size().innerProduct();
         auto volume = Position(M, dataset->getBox()).computeVolume();
         auto density = tot_pixels / volume;

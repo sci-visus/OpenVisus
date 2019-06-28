@@ -355,7 +355,8 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
 //////////////////////////////////////////////////////////////////////
 bool GLLookAtCamera::guessPosition(Position position,int ref) 
 {
-  auto bound=position.withoutTransformation().toBox3();
+  auto bound=position.withoutTransformation();
+  bound.setPointDim(3);
 
   beginUpdate();
   {
@@ -612,7 +613,8 @@ void GLLookAtCamera::readFromObjectStream(ObjectStream& istream)
 {
   if (istream.isSceneMode())
   {
-    bound = BoxNd::parseFromString(istream.read("bound"),/*bInterleave*/false).toBox3();
+    bound = BoxNd::parseFromString(istream.read("bound"),/*bInterleave*/false); 
+    bound.setPointDim(3);
     pos = Point3d(istream.read("pos"));
     dir = Point3d(istream.read("dir"));
     vup = Point3d(istream.read("vup"));
@@ -623,7 +625,8 @@ void GLLookAtCamera::readFromObjectStream(ObjectStream& istream)
 
   GLCamera::readFromObjectStream(istream);
 
-  bound            = BoxNd::parseFromString(istream.read("bound"),/*bInterleave*/false).toBox3();
+  bound = BoxNd::parseFromString(istream.read("bound"),/*bInterleave*/false);
+  bound.setPointDim(3);
   pos              = Point3d(istream.read("pos"));
   dir              = Point3d(istream.read("dir"));
   vup              = Point3d(istream.read("vup"));

@@ -647,7 +647,7 @@ int Viewer::getWorldDimension() const
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 BoxNd Viewer::getWorldBoundingBox() const
 {
-  return getNodeBounds(getRoot()).withoutTransformation().toBox3();
+  return getNodeBounds(getRoot()).withoutTransformation();
 }
 
 
@@ -694,7 +694,7 @@ Position Viewer::getNodeBounds(Node* node,bool bRecursive) const
     {
       Position child_bounds=getNodeBounds(child,true); 
       if (child_bounds.valid())
-        box=box.getUnion(child_bounds.withoutTransformation().toBox3());
+        box=box.getUnion(child_bounds.withoutTransformation());
     }
     return Position(T,box);
   }
@@ -833,7 +833,8 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
     free_transform->objectChanged.connect([this,query_node](Position query_pos)
     {
       auto T  =query_pos.T;
-      auto box=query_pos.box.toBox3();
+      auto box=query_pos.box;
+      box.setPointDim(3);
 
       TRSMatrixDecomposition trs(T);
 
@@ -2789,20 +2790,14 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
   query_node->setQuality(Query::DefaultQuality);
 
   {
-    auto box=dataset_node->getNodeBounds().withoutTransformation().toBox3();
-    if (dim==3)
+    auto box=dataset_node->getNodeBounds().withoutTransformation();
+    VisusAssert(dim == 2 || dim == 3);
+    if (dim== 2)
     {
-      const double Scale=1.0;
-      if (Scale!=1)
-        box=box.scaleAroundCenter(Scale).toBox3();
-    }
-    else
-    {
-      VisusAssert(dim==2);
-      const int ref=2;
-      double Z=box.center()[ref];
-      box.p1[ref]=Z;
-      box.p2[ref]=Z;
+      const int ref = 2;
+      auto Z = box.center()[ref];
+      box.p1[ref] = Z;
+      box.p2[ref] = Z;
     }
     query_node->setNodeBounds(Position(box));
   }
@@ -2899,11 +2894,7 @@ KdQueryNode* Viewer::addKdQueryNode(Node* parent,DatasetNode* dataset_node,Strin
   query_node->setAccessIndex(access_id);
   query_node->setViewDependentEnabled(true);
   query_node->setQuality(Query::DefaultQuality);
-
-  {
-    auto box=dataset_node->getNodeBounds().withoutTransformation().toBox3();
-    query_node->setNodeBounds(Position(box));
-  }
+  query_node->setNodeBounds(dataset_node->getNodeBounds().withoutTransformation());
 
   //TimeNode
   auto time_node=dataset_node->findChild<TimeNode*>();
