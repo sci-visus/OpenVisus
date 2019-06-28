@@ -165,8 +165,8 @@ SharedPtr<Viewer::Logo> Viewer::openScreenLogo(String key, String default_logo)
   ret->filename = filename;
   ret->tex = std::make_shared<GLTexture>(img);
   ret->tex->envmode = GL_MODULATE;
-  ret->pos.x = StringUtils::contains(key, "Left") ? 0 : 1;
-  ret->pos.y = StringUtils::contains(key, "Bottom") ? 0 : 1;
+  ret->pos[0] = StringUtils::contains(key, "Left") ? 0 : 1;
+  ret->pos[1] = StringUtils::contains(key, "Bottom") ? 0 : 1;
   ret->opacity = cdouble(config.readString(key + "/alpha", "0.5"));
   ret->border = Point2d(10, 10);
   return ret;
@@ -471,10 +471,10 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
       std::istringstream parse(args_zoom_to);
       parse >> x1 >> y1 >> x2 >> y2;
 
-      auto p1 = world_box.getPoint(x1, y1, 0).dropZ();
-      auto p2 = world_box.getPoint(x2, y2, 0).dropZ();
+      auto p1 = world_box.getPoint(x1, y1, 0).toPoint2();
+      auto p2 = world_box.getPoint(x2, y2, 0).toPoint2();
 
-      ortho_params = GLOrthoParams(p1.x, p2.x, p1.y, p2.y, ortho_params.zNear, ortho_params.zFar);
+      ortho_params = GLOrthoParams(p1[0], p2[0], p1[1], p2[1], ortho_params.zNear, ortho_params.zFar);
 
       VisusInfo() << std::fixed << "Setting"
         << " ortho_params("
@@ -482,8 +482,8 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
         << ortho_params.bottom << " " << ortho_params.top << " "
         << ortho_params.zNear << " " << ortho_params.zFar << ")"
         << " world_box("
-        << world_box.p1.x << " " << world_box.p1.y << " " << world_box.p1.z << " "
-        << world_box.p2.x << " " << world_box.p2.y << " " << world_box.p2.z << ")";
+        << world_box.p1[0] << " " << world_box.p1[1] << " " << world_box.p1[2] << " "
+        << world_box.p2[0] << " " << world_box.p2[1] << " " << world_box.p2[2] << ")";
 
 
       double W = glcamera->getViewport().width;

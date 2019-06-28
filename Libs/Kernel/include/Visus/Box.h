@@ -75,7 +75,7 @@ public:
 
   //valid (note: an axis can have zero dimension, trick to store slices too)
   bool valid() const {
-    return p1.valid() && p2.valid() && p1.x <= p2.x && p1.y <= p2.y;
+    return p1.valid() && p2.valid() && p1[0] <= p2[0] && p1[1] <= p2[1];
   }
 
   //center
@@ -90,12 +90,12 @@ public:
 
   //max size
   T maxsize() const {
-    Point d = size(); return Utils::max(d.x, d.y);
+    Point d = size(); return Utils::max(d[0], d[1]);
   }
 
   //min size
   T minsize() const {
-    Point d = size(); return Utils::min(d.x, d.y);
+    Point d = size(); return Utils::min(d[0], d[1]);
   }
 
   //middle
@@ -114,10 +114,10 @@ public:
   {
     switch (idx)
     {
-    case 0:return Point(p1.x, p1.y);
-    case 1:return Point(p2.x, p1.y);
-    case 2:return Point(p2.x, p2.y);
-    case 3:return Point(p1.x, p2.y);
+    case 0:return Point(p1[0], p1[1]);
+    case 1:return Point(p2[0], p1[1]);
+    case 2:return Point(p2[0], p2[1]);
+    case 3:return Point(p1[0], p2[1]);
     }
     VisusAssert(false);
     return Point();
@@ -132,7 +132,7 @@ public:
 
   //getPoint
   Point getPoint(double alpha, double beta) const {
-    return p1 + Point(alpha*(p2.x - p1.x), beta*(p2.y - p1.y));
+    return p1 + Point(alpha*(p2[0] - p1[0]), beta*(p2[1] - p1[1]));
   }
 
   //test if a point is inside the box
@@ -186,8 +186,8 @@ public:
   {
     Box2 ret;
     std::istringstream parser(value);
-    parser >> ret.p1.x >> ret.p1.y;
-    parser >> ret.p2.x >> ret.p2.y;
+    parser >> ret.p1[0] >> ret.p1[1];
+    parser >> ret.p2[0] >> ret.p2[1];
     return ret;
   }
 
@@ -243,12 +243,12 @@ public:
 
   //valid (note: an axis can have zero dimension, trick to store slices too)
   bool valid() const{
-    return p1.valid() && p2.valid() && p1.x <= p2.x && p1.y <= p2.y  && p1.z <= p2.z;
+    return p1.valid() && p2.valid() && p1[0] <= p2[0] && p1[1] <= p2[1]  && p1[2] <= p2[2];
   }
 
-  //dropZ
-  Box2<T> dropZ() const {
-    return Box2<T>(p1.dropZ(),p2.dropZ());
+  //toBox2
+  Box2<T> toBox2() const {
+    return Box2<T>(p1.toPoint2(),p2.toPoint2());
   }
 
   //center
@@ -263,12 +263,12 @@ public:
 
   //max size
   T maxsize() const {
-    Point d = size(); return Utils::max(d.x, d.y, d.z);
+    Point d = size(); return Utils::max(d[0], d[1], d[2]);
   }
 
   //min size
   T minsize() const {
-    Point d = size(); return Utils::min(d.x, d.y, d.z);
+    Point d = size(); return Utils::min(d[0], d[1], d[2]);
   }
 
   //middle
@@ -287,14 +287,14 @@ public:
   {
     switch (idx)
     {
-    case 0:return Point(p1.x, p1.y, p1.z);
-    case 1:return Point(p2.x, p1.y, p1.z);
-    case 2:return Point(p2.x, p2.y, p1.z);
-    case 3:return Point(p1.x, p2.y, p1.z);
-    case 4:return Point(p1.x, p1.y, p2.z);
-    case 5:return Point(p2.x, p1.y, p2.z);
-    case 6:return Point(p2.x, p2.y, p2.z);
-    case 7:return Point(p1.x, p2.y, p2.z);
+    case 0:return Point(p1[0], p1[1], p1[2]);
+    case 1:return Point(p2[0], p1[1], p1[2]);
+    case 2:return Point(p2[0], p2[1], p1[2]);
+    case 3:return Point(p1[0], p2[1], p1[2]);
+    case 4:return Point(p1[0], p1[1], p2[2]);
+    case 5:return Point(p2[0], p1[1], p2[2]);
+    case 6:return Point(p2[0], p2[1], p2[2]);
+    case 7:return Point(p1[0], p2[1], p2[2]);
     }
     VisusAssert(false);
     return Point();
@@ -309,7 +309,7 @@ public:
 
   //getPoint
   Point getPoint(double alpha, double beta, double gamma) const {
-    return p1 + Point(alpha*(p2.x - p1.x), beta*(p2.y - p1.y), gamma*(p2.z - p1.z));
+    return p1 + Point(alpha*(p2[0] - p1[0]), beta*(p2[1] - p1[1]), gamma*(p2[2] - p1[2]));
   }
 
   //test if a point is inside the box
@@ -353,12 +353,12 @@ public:
   {
     std::vector<Plane> ret;
     ret.reserve(6);
-    ret.push_back(Plane(-1, 0., 0., +this->p1.x)); //x<=box.p1.x
-    ret.push_back(Plane(+1, 0., 0., -this->p2.x)); //x>=box.p2.x
-    ret.push_back(Plane(0., -1., 0., +this->p1.y)); //y<=box.p1.y
-    ret.push_back(Plane(0., +1., 0., -this->p2.y)); //y>=box.p2.y
-    ret.push_back(Plane(0., 0., -1., +this->p1.z)); //z<=box.p1.z
-    ret.push_back(Plane(0., 0., +1., -this->p2.z)); //z>=box.p2.z
+    ret.push_back(Plane(-1, 0., 0., +this->p1[0])); //x<=box.p1[0]
+    ret.push_back(Plane(+1, 0., 0., -this->p2[0])); //x>=box.p2[0]
+    ret.push_back(Plane(0., -1., 0., +this->p1[1])); //y<=box.p1[1]
+    ret.push_back(Plane(0., +1., 0., -this->p2[1])); //y>=box.p2[1]
+    ret.push_back(Plane(0., 0., -1., +this->p1[2])); //z<=box.p1[2]
+    ret.push_back(Plane(0., 0., +1., -this->p2[2])); //z>=box.p2[2]
     return ret;
   }
 
@@ -377,8 +377,8 @@ public:
   {
     Box3 ret;
     std::istringstream parser(value);
-    parser >> ret.p1.x >> ret.p1.y >> ret.p1.z;
-    parser >> ret.p2.x >> ret.p2.y >> ret.p2.z;
+    parser >> ret.p1[0] >> ret.p1[1] >> ret.p1[2];
+    parser >> ret.p2[0] >> ret.p2[1] >> ret.p2[2];
     return ret;
   }
 

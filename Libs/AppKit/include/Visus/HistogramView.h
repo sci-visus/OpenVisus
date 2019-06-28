@@ -126,7 +126,7 @@ public:
       auto screenpos= project(pos);
 
       //render bin explanation
-      double alpha=histogram.getRange().from + pos.x*histogram.getRange().delta();
+      double alpha=histogram.getRange().from + pos[0]*histogram.getRange().delta();
       int    bin = histogram.findBin(alpha);
       String description=StringUtils::format()
         <<"value("<<alpha<<") "
@@ -139,8 +139,8 @@ public:
 
       //render cross
       painter.setPen(QColor(0,0,0,100));
-      painter.drawLine(QPointF(0,screenpos.y),QPointF(this->width(),screenpos.y));
-      painter.drawLine(QPointF(screenpos.x,0),QPointF(screenpos.x,this->height()));
+      painter.drawLine(QPointF(0,screenpos[1]),QPointF(this->width(),screenpos[1]));
+      painter.drawLine(QPointF(screenpos[0],0),QPointF(screenpos[0],this->height()));
     }
 
     renderBorders(painter);

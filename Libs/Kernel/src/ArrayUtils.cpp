@@ -1494,38 +1494,38 @@ public:
 
       for (int z = 0; z < depth; z++)
       {
-        Sz.x = Ti.mat[ 2] * z + Ti.mat[ 3];
-        Sz.y = Ti.mat[ 6] * z + Ti.mat[ 7];
-        Sz.z = Ti.mat[10] * z + Ti.mat[11];
-        Sz.w = Ti.mat[14] * z + Ti.mat[15];
+        Sz[0] = Ti.mat[ 2] * z + Ti.mat[ 3];
+        Sz[1] = Ti.mat[ 6] * z + Ti.mat[ 7];
+        Sz[2] = Ti.mat[10] * z + Ti.mat[11];
+        Sz[3] = Ti.mat[14] * z + Ti.mat[15];
 
         for (int y = 0; y < height; y++)
         {
           if (aborted())
             return false;
 
-          Sy.x = Ti.mat[ 1] * y + Sz.x;
-          Sy.y = Ti.mat[ 5] * y + Sz.y;
-          Sy.z = Ti.mat[ 9] * y + Sz.z;
-          Sy.w = Ti.mat[13] * y + Sz.w;
+          Sy[0] = Ti.mat[ 1] * y + Sz[0];
+          Sy[1] = Ti.mat[ 5] * y + Sz[1];
+          Sy[2] = Ti.mat[ 9] * y + Sz[2];
+          Sy[3] = Ti.mat[13] * y + Sz[3];
 
           for (int x = 0; x < width; x++, wfrom++)
           {
-            Sx.x = Ti.mat[ 0] * x + Sy.x;
-            Sx.y = Ti.mat[ 4] * x + Sy.y;
-            Sx.z = Ti.mat[ 8] * x + Sy.z;
-            Sx.w = Ti.mat[12] * x + Sy.w;
+            Sx[0] = Ti.mat[ 0] * x + Sy[0];
+            Sx[1] = Ti.mat[ 4] * x + Sy[1];
+            Sx[2] = Ti.mat[ 8] * x + Sy[2];
+            Sx[3] = Ti.mat[12] * x + Sy[3];
 
-            Sx.x = (int)(Sx.x / Sx.w);
-            Sx.y = (int)(Sx.y / Sx.w);
-            Sx.z = (int)(Sx.z / Sx.w);
+            Sx[0] = (int)(Sx[0] / Sx[3]);
+            Sx[1] = (int)(Sx[1] / Sx[3]);
+            Sx[2] = (int)(Sx[2] / Sx[3]);
 
             if (
-              Sx.x >= 0 && Sx.x < rdims[0] &&
-              Sx.y >= 0 && Sx.y < rdims[1] &&
-              Sx.z >= 0 && Sx.z < rdims[2])
+              Sx[0] >= 0 && Sx[0] < rdims[0] &&
+              Sx[1] >= 0 && Sx[1] < rdims[1] &&
+              Sx[2] >= 0 && Sx[2] < rdims[2])
             {
-              auto rfrom = int(Sx.x)*rstride[0] + int(Sx.y)*rstride[1] + int(Sx.z)*rstride[2];
+              auto rfrom = int(Sx[0])*rstride[0] + int(Sx[1])*rstride[1] + int(Sx[2])*rstride[2];
               write      [wfrom] = read      [rfrom];
               write_alpha[wfrom] = read_alpha[rfrom];
             }
@@ -1541,16 +1541,16 @@ public:
 
         auto S = Ti*Point3d(P.pos.toPoint3d());
 
-        S.x = (int)S.x;
-        S.y = (int)S.y;
-        S.z = (int)S.z;
+        S[0] = (int)S[0];
+        S[1] = (int)S[1];
+        S[2] = (int)S[2];
 
         if (
-          S.x >= 0 && S.x < rdims[0] &&
-          S.y >= 0 && S.y < rdims[1] &&
-          S.z >= 0 && S.z < rdims[2])
+          S[0] >= 0 && S[0] < rdims[0] &&
+          S[1] >= 0 && S[1] < rdims[1] &&
+          S[2] >= 0 && S[2] < rdims[2])
         {
-          auto rfrom = int(S.x)*rstride[0] + int(S.y)*rstride[1] + int(S.z)*rstride[2];
+          auto rfrom = int(S[0])*rstride[0] + int(S[1])*rstride[1] + int(S[2])*rstride[2];
           write      [wfrom] = read      [rfrom];
           write_alpha[wfrom] = read_alpha[rfrom];
         }
@@ -1782,20 +1782,20 @@ public:
 
         for (int Z = 0; Z < depth; Z++)
         {
-          Pz.x = T.mat[ 2] * Z + T.mat[ 3];
-          Pz.y = T.mat[ 6] * Z + T.mat[ 7];
-          Pz.z = T.mat[10] * Z + T.mat[11];
-          Pz.w = T.mat[14] * Z + T.mat[15];
+          Pz[0] = T.mat[ 2] * Z + T.mat[ 3];
+          Pz[1] = T.mat[ 6] * Z + T.mat[ 7];
+          Pz[2] = T.mat[10] * Z + T.mat[11];
+          Pz[3] = T.mat[14] * Z + T.mat[15];
 
           for (int Y = 0; Y < height; Y++)
           {
             if (aborted())
               return false;
 
-            Py.x = Pz.x + T.mat[ 1] * Y;
-            Py.y = Pz.y + T.mat[ 5] * Y;
-            Py.z = Pz.z + T.mat[ 9] * Y;
-            Py.w = Pz.w + T.mat[13] * Y;
+            Py[0] = Pz[0] + T.mat[ 1] * Y;
+            Py[1] = Pz[1] + T.mat[ 5] * Y;
+            Py[2] = Pz[2] + T.mat[ 9] * Y;
+            Py[3] = Pz[3] + T.mat[13] * Y;
 
             if (isEmptyLine())
             {
@@ -1808,14 +1808,14 @@ public:
               if (SRC_ALPHA[SampleId])
               {
                 //(T * Point3d(X, Y, Z) - logic_centroid).module2();
-                Px.x = T.mat[ 0] * X + Py.x;
-                Px.y = T.mat[ 4] * X + Py.y;
-                Px.z = T.mat[ 8] * X + Py.z;
-                Px.w = T.mat[12] * X + Py.w;
+                Px[0] = T.mat[ 0] * X + Py[0];
+                Px[1] = T.mat[ 4] * X + Py[1];
+                Px[2] = T.mat[ 8] * X + Py[2];
+                Px[3] = T.mat[12] * X + Py[3];
 
-                auto dx = (Px.x / Px.w) - logic_centroid.x;
-                auto dy = (Px.y / Px.w) - logic_centroid.y;
-                auto dz = (Px.z / Px.w) - logic_centroid.z;
+                auto dx = (Px[0] / Px[3]) - logic_centroid[0];
+                auto dy = (Px[1] / Px[3]) - logic_centroid[1];
+                auto dz = (Px[2] / Px[3]) - logic_centroid[2];
 
                 double distance = dx*dx + dy*dy + dz*dz;
 
@@ -1871,36 +1871,36 @@ Array ArrayUtils::createTransformedAlpha(NdBox bounds, Matrix T, NdPoint dims, A
     Point4d Px, Py, Pz;
     for (int z = 0; z < depth; z++) 
     {
-      Pz.x = T.mat[ 2] * z + T.mat[ 3];
-      Pz.y = T.mat[ 6] * z + T.mat[ 7];
-      Pz.z = T.mat[10] * z + T.mat[11];
-      Pz.w = T.mat[14] * z + T.mat[15];
+      Pz[0] = T.mat[ 2] * z + T.mat[ 3];
+      Pz[1] = T.mat[ 6] * z + T.mat[ 7];
+      Pz[2] = T.mat[10] * z + T.mat[11];
+      Pz[3] = T.mat[14] * z + T.mat[15];
 
       for (int y = 0; y < height; y++) 
       {
         if (aborted())
           return Array();
 
-        Py.x = Pz.x + T.mat[ 1] * y;
-        Py.y = Pz.y + T.mat[ 5] * y;
-        Py.z = Pz.z + T.mat[ 9] * y;
-        Py.w = Pz.w + T.mat[13] * y;
+        Py[0] = Pz[0] + T.mat[ 1] * y;
+        Py[1] = Pz[1] + T.mat[ 5] * y;
+        Py[2] = Pz[2] + T.mat[ 9] * y;
+        Py[3] = Pz[3] + T.mat[13] * y;
 
         for (int x = 0; x < width; x++, offset++)
         {
-          Px.x = T.mat[ 0] * x + Py.x;
-          Px.y = T.mat[ 4] * x + Py.y;
-          Px.z = T.mat[ 8] * x + Py.z;
-          Px.w = T.mat[12] * x + Py.w;
+          Px[0] = T.mat[ 0] * x + Py[0];
+          Px[1] = T.mat[ 4] * x + Py[1];
+          Px[2] = T.mat[ 8] * x + Py[2];
+          Px[3] = T.mat[12] * x + Py[3];
 
-          Px.x /= Px.w;
-          Px.y /= Px.w;
-          Px.z /= Px.w;
+          Px[0] /= Px[3];
+          Px[1] /= Px[3];
+          Px[2] /= Px[3];
 
           write[offset] = (
-            Px.x >= bounds.p1[0] && Px.x < bounds.p2[0] &&
-            Px.y >= bounds.p1[1] && Px.y < bounds.p2[1] &&
-            Px.z >= bounds.p1[2] && Px.z < bounds.p2[2]) ? 255 : 0;
+            Px[0] >= bounds.p1[0] && Px[0] < bounds.p2[0] &&
+            Px[1] >= bounds.p1[1] && Px[1] < bounds.p2[1] &&
+            Px[2] >= bounds.p1[2] && Px[2] < bounds.p2[2]) ? 255 : 0;
         }
       }
     }
@@ -1915,9 +1915,9 @@ Array ArrayUtils::createTransformedAlpha(NdBox bounds, Matrix T, NdPoint dims, A
       auto dw_logic = T * dw_pixel.pos.toPoint3d();
 
       write[offset] = (
-        dw_logic.x >= bounds.p1[0] && dw_logic.x < bounds.p2[0] &&
-        dw_logic.y >= bounds.p1[1] && dw_logic.y < bounds.p2[1] &&
-        dw_logic.z >= bounds.p1[2] && dw_logic.z < bounds.p2[2]) ? 255 : 0;
+        dw_logic[0] >= bounds.p1[0] && dw_logic[0] < bounds.p2[0] &&
+        dw_logic[1] >= bounds.p1[1] && dw_logic[1] < bounds.p2[1] &&
+        dw_logic[2] >= bounds.p1[2] && dw_logic[2] < bounds.p2[2]) ? 255 : 0;
     }
   }
 

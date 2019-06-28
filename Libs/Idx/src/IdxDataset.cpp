@@ -1378,26 +1378,26 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
     return false;
 
   //definition of a point query!
-  //P'=T* (P0 + I* X/nsamples.x +  J * Y/nsamples.y + K * Z/nsamples.z)
+  //P'=T* (P0 + I* X/nsamples[0] +  J * Y/nsamples[1] + K * Z/nsamples[2])
   //P'=T*P0 +(T*Stepx)*I + (T*Stepy)*J + (T*Stepz)*K
     
-  Point4d P0(box.p1.x,box.p1.y,box.p1.z,1.0);
-  Point4d X(1,0,0,0); X[0]=box.p2[0]-box.p1.x; Point4d DX=X*(1.0 / (double)nsamples[0]); VisusAssert(X.w==0.0 && DX.w==0.0);
-  Point4d Y(0,1,0,0); Y[1]=box.p2[1]-box.p1.y; Point4d DY=Y*(1.0 / (double)nsamples[1]); VisusAssert(Y.w==0.0 && DY.w==0.0);
-  Point4d Z(0,0,1,0); Z[2]=box.p2[2]-box.p1.z; Point4d DZ=Z*(1.0 / (double)nsamples[2]); VisusAssert(Z.w==0.0 && DZ.w==0.0);
+  Point4d P0(box.p1[0],box.p1[1],box.p1[2],1.0);
+  Point4d X(1,0,0,0); X[0]=box.p2[0]-box.p1[0]; Point4d DX=X*(1.0 / (double)nsamples[0]); VisusAssert(X[3]==0.0 && DX[3]==0.0);
+  Point4d Y(0,1,0,0); Y[1]=box.p2[1]-box.p1[1]; Point4d DY=Y*(1.0 / (double)nsamples[1]); VisusAssert(Y[3]==0.0 && DY[3]==0.0);
+  Point4d Z(0,0,1,0); Z[2]=box.p2[2]-box.p1[2]; Point4d DZ=Z*(1.0 / (double)nsamples[2]); VisusAssert(Z[3]==0.0 && DZ[3]==0.0);
 
-  Point4d TP0_4d = T*P0;                             Point3d TP0  = TP0_4d.dropHomogeneousCoordinate();
-  Point4d TDX_4d = T*DX; VisusAssert(TDX_4d.w==0.0); Point3d TDX  = TDX_4d.withoutBack();
-  Point4d TDY_4d = T*DY; VisusAssert(TDY_4d.w==0.0); Point3d TDY  = TDY_4d.withoutBack();
-  Point4d TDZ_4d = T*DZ; VisusAssert(TDZ_4d.w==0.0); Point3d TDZ  = TDZ_4d.withoutBack();
+  Point4d TP0_4d = T*P0;                              Point3d TP0  = TP0_4d.dropHomogeneousCoordinate();
+  Point4d TDX_4d = T*DX; VisusAssert(TDX_4d[3]==0.0); Point3d TDX  = TDX_4d.toPoint3();
+  Point4d TDY_4d = T*DY; VisusAssert(TDY_4d[3]==0.0); Point3d TDY  = TDY_4d.toPoint3();
+  Point4d TDZ_4d = T*DZ; VisusAssert(TDZ_4d[3]==0.0); Point3d TDZ  = TDZ_4d.toPoint3();
 
   auto point_p = (Int64*)query->point_query.coordinates->c_ptr();
   Point3d PZ=TP0; for (int K=0;K<nsamples[2];++K,PZ+=TDZ) {
   Point3d PY =PZ; for (int J=0;J<nsamples[1];++J,PY+=TDY) {
   Point3d PX =PY; for (int I=0;I<nsamples[0];++I,PX+=TDX) {
-    *point_p++=(Int64)(PX.x);
-    *point_p++=(Int64)(PX.y);
-    *point_p++=(Int64)(PX.z);
+    *point_p++=(Int64)(PX[0]);
+    *point_p++=(Int64)(PX[1]);
+    *point_p++=(Int64)(PX[2]);
   }}}
 
   //note: point queries are not mergeable, so it's box is invalid!

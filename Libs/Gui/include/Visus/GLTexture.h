@@ -76,13 +76,13 @@ public:
   virtual ~GLTexture();
   
   //width
-  int width() const {return dims.x;}
+  int width() const {return dims[0];}
 
   //height
-  int height() const {return dims.y;}
+  int height() const {return dims[1];}
 
   //depth
-  int depth() const {return dims.z;}
+  int depth() const {return dims[2];}
 
   //target
   QOpenGLTexture::Target target() const {

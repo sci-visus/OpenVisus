@@ -82,9 +82,9 @@ Position Position::shrink(const Box3d& dst_box,const LinearMap& map,Position pos
   if (query_dim==2)
   {
     int slice_axis=-1;
-    if (src_rvalue.p1.x==src_rvalue.p2.x) {if (slice_axis>=0) return Position::invalid();slice_axis=0;}
-    if (src_rvalue.p1.y==src_rvalue.p2.y) {if (slice_axis>=0) return Position::invalid();slice_axis=1;}
-    if (src_rvalue.p1.z==src_rvalue.p2.z) {if (slice_axis>=0) return Position::invalid();slice_axis=2;}
+    if (src_rvalue.p1[0]==src_rvalue.p2[0]) {if (slice_axis>=0) return Position::invalid();slice_axis=0;}
+    if (src_rvalue.p1[1]==src_rvalue.p2[1]) {if (slice_axis>=0) return Position::invalid();slice_axis=1;}
+    if (src_rvalue.p1[2]==src_rvalue.p2[2]) {if (slice_axis>=0) return Position::invalid();slice_axis=2;}
     VisusAssert(slice_axis>=0);
 
     VisusAssert(src_rvalue.p1[slice_axis]==src_rvalue.p2[slice_axis]);

@@ -358,7 +358,7 @@ public:
       auto pos=QUtils::convert<Point2d>(unproject(evt->pos()));
       for (auto fn : model->functions) {
         if (selection->isSelected(fn.get()))
-          fn->setValue(pos.x,pos.y);
+          fn->setValue(pos[0],pos[1]);
       }
 
       model->setNotDefault();
@@ -380,7 +380,7 @@ public:
       auto pos=QUtils::convert<Point2d>(unproject(evt->pos()));
       for (auto fn : model->functions) {
         if (selection->isSelected(fn.get()))
-          fn->setValue(last_pos.x,last_pos.y,pos.x,pos.y);
+          fn->setValue(last_pos[0],last_pos[1],pos[0],pos[1]);
       }
       model->setNotDefault();
       last_pos = pos;
@@ -446,11 +446,11 @@ public:
       auto screenpos= project(pos);
 
       painter.setPen(QColor(0,0,0,120));
-      painter.drawLine(QPointF(screenpos.x,0), QPointF(screenpos.x,this->height()));
-      painter.drawLine(QPointF(0,screenpos.y), QPointF(this->width(),screenpos.y));
+      painter.drawLine(QPointF(screenpos[0],0), QPointF(screenpos[0],this->height()));
+      painter.drawLine(QPointF(0,screenpos[1]), QPointF(this->width(),screenpos[1]));
 
-      int    x=Utils::clamp((int)round(pos.x*(nvalues-1)),0,nvalues-1);
-      double y=pos.y;
+      int    x=Utils::clamp((int)round(pos[0]*(nvalues-1)),0,nvalues-1);
+      double y=pos[1];
       painter.drawText(QPoint(2,this->height()-12),(StringUtils::format()<<"x("<<(int)x<<") y("<<y<<")").str().c_str());
     }
 

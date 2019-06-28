@@ -44,20 +44,20 @@ namespace Visus {
 ////////////////////////////////////////////////////////////////////////
 void GLOrthoParams::translate(const Point3d& vt)
 {
-  left   += vt.x; right += vt.x;
-  bottom += vt.y; top   += vt.y;
-  zNear   += vt.z; zFar += vt.z;
+  left   += vt[0]; right += vt[0];
+  bottom += vt[1]; top   += vt[1];
+  zNear   += vt[2]; zFar += vt[2];
 }
 
 ////////////////////////////////////////////////////////////////////////
 void GLOrthoParams::scaleAroundCenter(const Point3d& vs, const Point3d& center)
 {
-  left   = center.x + vs.x * (left   - center.x);
-  right  = center.x + vs.x * (right  - center.x);
-  bottom = center.y + vs.y * (bottom - center.y);
-  top    = center.y + vs.y * (top    - center.y);
-  zNear  = center.z + vs.z * (zNear  - center.z);
-  zFar   = center.z + vs.z * (zFar   - center.z);
+  left   = center[0] + vs[0] * (left   - center[0]);
+  right  = center[0] + vs[0] * (right  - center[0]);
+  bottom = center[1] + vs[1] * (bottom - center[1]);
+  top    = center[1] + vs[1] * (top    - center[1]);
+  zNear  = center[2] + vs[2] * (zNear  - center[2]);
+  zFar   = center[2] + vs[2] * (zFar   - center[2]);
 }
 
 
@@ -75,16 +75,16 @@ void GLOrthoParams::fixAspectRatio(double ratio)
   if (ratio <= 0) return;
   Point3d center = getCenter();
   Point3d size = getSize();
-  if (!size.x || !size.y || !size.z) return;
-  if (size.x / size.y <= ratio) size.x = size.y * ratio;
-  else                          size.y = size.x / ratio;
+  if (!size[0] || !size[1] || !size[2]) return;
+  if (size[0] / size[1] <= ratio) size[0] = size[1] * ratio;
+  else                          size[1] = size[0] / ratio;
   double coeffX = (left < right) ? +0.5 : -0.5;
   double coeffY = (bottom < top) ? +0.5 : -0.5;
   double coeffZ = (zNear < zFar) ? +0.5 : -0.5;
   *this = GLOrthoParams(
-    center.x - coeffX*size.x, center.x + coeffX*size.x,
-    center.y - coeffY*size.y, center.y + coeffY*size.y,
-    center.z - coeffZ*size.z, center.z + coeffZ*size.z);
+    center[0] - coeffX*size[0], center[0] + coeffX*size[0],
+    center[1] - coeffY*size[1], center[1] + coeffY*size[1],
+    center[2] - coeffZ*size[2], center[2] + coeffZ*size[2]);
 }
 
 ////////////////////////////////////////////////////////////////////////

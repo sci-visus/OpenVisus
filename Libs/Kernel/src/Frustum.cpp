@@ -97,11 +97,11 @@ double Frustum::computeZDistance(const Position& obj,bool bUseFarPoint) const
   //note: camera "looks" along negative Z axis, so we must negate the z values.
   bool objInFront=false;
   for (int i=0;i<8 && !objInFront;i++)
-    objInFront |= p[i].z<0.0;
+    objInFront |= p[i][2]<0.0;
 
   bool objBehind=false;
   for (int i=0;i<8 && !objBehind;i++)
-    objBehind |= p[i].z>=0.0;
+    objBehind |= p[i][2]>=0.0;
 
   if (!objInFront) 
   {
@@ -109,9 +109,9 @@ double Frustum::computeZDistance(const Position& obj,bool bUseFarPoint) const
   }
   else if (bUseFarPoint)
   {
-    double maxp=-p[0].z;
+    double maxp=-p[0][2];
     for (int i=1;i<8;i++)
-      maxp=std::max(maxp,-p[i].z);
+      maxp=std::max(maxp,-p[i][2]);
     return maxp;
   }
 
@@ -120,9 +120,9 @@ double Frustum::computeZDistance(const Position& obj,bool bUseFarPoint) const
   }
   else
   {
-    double minp=-p[0].z;
+    double minp=-p[0][2];
     for (int i=1;i<8;i++)
-      minp=std::min(minp,-p[i].z);
+      minp=std::min(minp,-p[i][2]);
     return minp;
   }
 }

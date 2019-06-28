@@ -144,7 +144,7 @@ bool RenderArrayNode::processInput()
   if (palette)
     this->palette_texture=std::make_shared<GLTexture>(palette->convertToArray());
 
-  Int64 tot_samples = (Int64)this->data_texture->dims.x * (Int64)this->data_texture->dims.y * (Int64)this->data_texture->dims.z;
+  Int64 tot_samples = (Int64)this->data_texture->dims[0] * (Int64)this->data_texture->dims[1] * (Int64)this->data_texture->dims[2];
 
   VisusInfo()<<"got array"
     <<" texture_dims("<<this->data_texture->dims.toString()<< ")"
@@ -209,18 +209,18 @@ void RenderArrayNode::glRender(GLCanvas& gl)
 
     Point3d vt=box.p1;
     Point3d vs=box.size();
-    if (!vs.x) vs.x=1.0;
-    if (!vs.y) vs.y=1.0;
-    if (!vs.z) vs.z=1.0;
+    if (!vs[0]) vs[0]=1.0;
+    if (!vs[1]) vs[1]=1.0;
+    if (!vs[2]) vs[2]=1.0;
     gl.multModelview(data.bounds.T);
     gl.multModelview(Matrix::translate(vt));
     gl.multModelview(Matrix::scale(vs));
     if (shader->config.texture_dim==2)
     {
-      if (box.p1.x==box.p2.x) 
+      if (box.p1[0]==box.p2[0]) 
         gl.multModelview(Matrix(Point3d(0,1,0),Point3d(0,0,1),Point3d(1,0,0),Point3d(0,0,0)));
 
-      else if (box.p1.y==box.p2.y) 
+      else if (box.p1[1]==box.p2[1]) 
         gl.multModelview(Matrix(Point3d(1,0,0),Point3d(0,0,1),Point3d(0,1,0),Point3d(0,0,0)));
     }
   }

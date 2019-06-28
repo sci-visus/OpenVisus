@@ -65,14 +65,14 @@ struct ComputeIsoContourOp
     const CppType* field=data.c_ptr<CppType*>();
 
     //no data set
-    if (!(dims.x*dims.y*dims.z) || !field)
+    if (!(dims[0]*dims[1]*dims[2]) || !field)
       return false;
 
     CppType* cell_data = isocontour.cell_array? isocontour.cell_array.c_ptr<CppType*>() : NULL;
 
     const int stridex=data.dtype.getByteSize()/sizeof(CppType);
-    const int stridey=stridex*dims.x;
-    const int stridez=stridey*dims.y;
+    const int stridey=stridex*dims[0];
+    const int stridez=stridey*dims[1];
 
     const int cube_strides[8]=
     {
@@ -88,9 +88,9 @@ struct ComputeIsoContourOp
 
     double v[12][3]; //vertices
 
-    for (int z=0;(z<dims.z-1);z++) {  
-    for (int y=0;(y<dims.y-1);y++) {
-    for (int x=0;(x<dims.x-1);x++) 
+    for (int z=0;(z<dims[2]-1);z++) {  
+    for (int y=0;(y<dims[1]-1);y++) {
+    for (int x=0;(x<dims[0]-1);x++) 
     {
       //stop signal!
       if (aborted())
@@ -224,8 +224,8 @@ public:
       data.bounds.T,
       /*--- begin_remap  box <- dims*/
       Matrix::translate(box.p1),
-      Matrix::scale(Point3d(box.size().x/dims.x,box.size().y/dims.y,box.size().z/dims.z)),
-      Box3d(Point3d(0,0,0),Point3d(dims.x,dims.y,dims.z)) //RenderMeshNode NEEDS the vertices in this range (for computing normals on GPU)
+      Matrix::scale(Point3d(box.size()[0]/dims[0],box.size()[1]/dims[1],box.size()[2]/dims[2])),
+      Box3d(Point3d(0,0,0),Point3d(dims[0],dims[1],dims[2])) //RenderMeshNode NEEDS the vertices in this range (for computing normals on GPU)
       /*--- end_remap ---*/ ); 
 
     //tell that the output has changed, if the port is not connected, this is a NOP!

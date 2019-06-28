@@ -99,9 +99,9 @@ void FreeTransform::doRotate(Point3d vr)
   auto obj=dragging.type? dragging.begin : this->obj;
 
   auto T= Matrix::translate(+lcs.getCenter()) *
-    Matrix::rotateAroundAxis(lcs.getAxis(2).normalized(),vr.z) *
-    Matrix::rotateAroundAxis(lcs.getAxis(1).normalized(),vr.y) *
-    Matrix::rotateAroundAxis(lcs.getAxis(0).normalized(),vr.x) *
+    Matrix::rotateAroundAxis(lcs.getAxis(2).normalized(),vr[2]) *
+    Matrix::rotateAroundAxis(lcs.getAxis(1).normalized(),vr[1]) *
+    Matrix::rotateAroundAxis(lcs.getAxis(0).normalized(),vr[0]) *
     Matrix::translate(-lcs.getCenter());
 
   setObject(Position(T,obj),true);
@@ -119,9 +119,9 @@ void FreeTransform::doScale(Point3d vs,Point3d center)
   center=lcs.getPointRelativeToCenter(center);
 
   auto T= Matrix::translate(+center) *
-    Matrix::scaleAroundAxis(lcs.getAxis(2).normalized(),vs.z) *
-    Matrix::scaleAroundAxis(lcs.getAxis(1).normalized(),vs.y) *
-    Matrix::scaleAroundAxis(lcs.getAxis(0).normalized(),vs.x) *
+    Matrix::scaleAroundAxis(lcs.getAxis(2).normalized(),vs[2]) *
+    Matrix::scaleAroundAxis(lcs.getAxis(1).normalized(),vs[1]) *
+    Matrix::scaleAroundAxis(lcs.getAxis(0).normalized(),vs[0]) *
     Matrix::translate(-center);
 
   setObject(Position(T,obj),true);
@@ -146,11 +146,11 @@ void FreeTransform::glMousePressEvent(const FrustumMap& map,QMouseEvent* evt)
     {
       if (canScale(A)) 
       { 
-        Point3d axis_p1_onscreen=map.applyDirectMap(Point4d(lcs.getMinAxisPoint(A),1.0)).dropHomogeneousCoordinate(); axis_p1_onscreen.z=0;
-        Point3d axis_p2_onscreen=map.applyDirectMap(Point4d(lcs.getMaxAxisPoint(A),1.0)).dropHomogeneousCoordinate(); axis_p2_onscreen.z=0;
+        Point3d axis_p1_onscreen=map.applyDirectMap(Point4d(lcs.getMinAxisPoint(A),1.0)).dropHomogeneousCoordinate(); axis_p1_onscreen[2]=0;
+        Point3d axis_p2_onscreen=map.applyDirectMap(Point4d(lcs.getMaxAxisPoint(A),1.0)).dropHomogeneousCoordinate(); axis_p2_onscreen[2]=0;
         Segment axis_onscreen=Segment(axis_p1_onscreen,axis_p2_onscreen);
-        bool p1_near=NearBy(axis_onscreen.p1.dropZ(),pos);
-        bool p2_near=NearBy(axis_onscreen.p2.dropZ(),pos);
+        bool p1_near=NearBy(axis_onscreen.p1.toPoint2(),pos);
+        bool p2_near=NearBy(axis_onscreen.p2.toPoint2(),pos);
         if (p1_near || p2_near)
         {
           //ambiguity
@@ -180,12 +180,12 @@ void FreeTransform::glMousePressEvent(const FrustumMap& map,QMouseEvent* evt)
     {
       if (canTranslate(A)) 
       {
-        Point3d axis_p1_onscreen=map.applyDirectMap(Point4d(lcs.getMinAxisPoint(A),1.0)).dropHomogeneousCoordinate(); axis_p1_onscreen.z=0;
-        Point3d axis_p2_onscreen=map.applyDirectMap(Point4d(lcs.getMaxAxisPoint(A),1.0)).dropHomogeneousCoordinate(); axis_p2_onscreen.z=0;
+        Point3d axis_p1_onscreen=map.applyDirectMap(Point4d(lcs.getMinAxisPoint(A),1.0)).dropHomogeneousCoordinate(); axis_p1_onscreen[2]=0;
+        Point3d axis_p2_onscreen=map.applyDirectMap(Point4d(lcs.getMaxAxisPoint(A),1.0)).dropHomogeneousCoordinate(); axis_p2_onscreen[2]=0;
         Segment axis_onscreen=Segment(axis_p1_onscreen,axis_p2_onscreen);
 
         double p0=axis_onscreen.getPointProjection(Point3d(pos)); //range is [0,1]
-        if (p0>0 && p0<1 && NearBy(axis_onscreen.getPoint(p0).dropZ(),pos))
+        if (p0>0 && p0<1 && NearBy(axis_onscreen.getPoint(p0).toPoint2(),pos))
         {
           //ambiguity
           if (this->dragging.type) 
@@ -234,9 +234,9 @@ void FreeTransform::glMousePressEvent(const FrustumMap& map,QMouseEvent* evt)
           dragging.type = Rotating;
           dragging.begin=this->obj;
           dragging.axis=A;
-          if      (A==0) dragging.p0=atan2(circle_point.z,circle_point.y);
-          else if (A==1) dragging.p0=atan2(circle_point.x,circle_point.z);
-          else if (A==2) dragging.p0=atan2(circle_point.y,circle_point.x);
+          if      (A==0) dragging.p0=atan2(circle_point[2],circle_point[1]);
+          else if (A==1) dragging.p0=atan2(circle_point[0],circle_point[2]);
+          else if (A==2) dragging.p0=atan2(circle_point[1],circle_point[0]);
           dragging.vr=Point3d(0,0,0);
           dragging.lcs=lcs;
         }
@@ -284,9 +284,9 @@ void FreeTransform::glMouseMoveEvent(const FrustumMap& map,QMouseEvent* evt)
       Point3d circle_point=RayCircleDistance(ray,Circle(Point3d(),1,Point3d(0,0,0).set(dragging.axis,1))).closest_circle_point.toPoint3();
 
       double p1=dragging.p0;
-      if      (dragging.axis==0)  p1=atan2(circle_point.z,circle_point.y); 
-      else if (dragging.axis==1)  p1=atan2(circle_point.x,circle_point.z);
-      else if (dragging.axis==2)  p1=atan2(circle_point.y,circle_point.x);
+      if      (dragging.axis==0)  p1=atan2(circle_point[2],circle_point[1]); 
+      else if (dragging.axis==1)  p1=atan2(circle_point[0],circle_point[2]);
+      else if (dragging.axis==2)  p1=atan2(circle_point[1],circle_point[0]);
       dragging.vr=Point3d(0,0,0).set(dragging.axis,p1-dragging.p0);
       doRotate(dragging.vr);
       break;

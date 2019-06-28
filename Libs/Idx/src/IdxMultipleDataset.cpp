@@ -392,9 +392,9 @@ public:
     auto ComputeVolume=[](Box3d value)->double
     {
       return
-        (value.size().x ? value.size().x : 1) *
-        (value.size().y ? value.size().y : 1) *
-        (value.size().z ? value.size().z : 1);
+        (value.size()[0] ? value.size()[0] : 1) *
+        (value.size()[1] ? value.size()[1] : 1) *
+        (value.size()[2] ? value.size()[2] : 1);
     };
 
     auto VOLUME = ComputeVolume(Position(   VF->getBox()).withoutTransformation().toBox3());
@@ -1208,9 +1208,9 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
         if (pdim == 2)
         {
-          auto physical_area = Quad(M.dropZ(), logic_box.dropZ()).area();
+          auto physical_area = Quad(M.dropZ(), logic_box.toBox2()).area();
           auto density = tot_pixels/ physical_area;
-          DENSITY.push_back(density);
+          DENSITY.push_back(density); 
         }
         else if (pdim == 3)
         {
@@ -1218,7 +1218,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
           auto density = tot_pixels/ physical_volume;
           DENSITY.push_back(density);
         }
-        else
+        else 
         {
           VisusReleaseAssert(false) // todo
         }

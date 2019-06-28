@@ -220,10 +220,10 @@ public:
   //toString
   String toString() const {
     return StringUtils::format()
-      << points[0].x << " " << points[0].y << " "
-      << points[1].x << " " << points[1].y << " "
-      << points[2].x << " " << points[2].y << " "
-      << points[3].x << " " << points[3].y;
+      << points[0][0] << " " << points[0][1] << " "
+      << points[1][0] << " " << points[1][1] << " "
+      << points[2][0] << " " << points[2][1] << " "
+      << points[3][0] << " " << points[3][1];
   }
 
 };

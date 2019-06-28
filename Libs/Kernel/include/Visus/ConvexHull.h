@@ -115,9 +115,9 @@ public:
     {
       VisusAssert(plane.getPointDim() == 4);
       double min_distance= plane.getDistance(Point3d(
-        plane[0]>=0?box.p1.x:box.p2.x ,
-        plane[1]>=0?box.p1.y:box.p2.y ,
-        plane[2]>=0?box.p1.z:box.p2.z));
+        plane[0]>=0?box.p1[0]:box.p2[0] ,
+        plane[1]>=0?box.p1[1]:box.p2[1] ,
+        plane[2]>=0?box.p1[2]:box.p2[2]));
       if (min_distance>=0) return false;
     }
 

@@ -112,8 +112,8 @@ public:
   //screen box
   Box3d getScreenBox() const
   {
-    Point3d p1(viewport.x               ,viewport.y                ,0);
-    Point3d p2(viewport.x+viewport.width,viewport.y+viewport.height,1);
+    Point3d p1(viewport.x                ,viewport.y                 ,0);
+    Point3d p2(viewport.x +viewport.width,viewport.y +viewport.height,1);
     return Box3d(p1,p2);
   }
 
@@ -176,7 +176,7 @@ public:
   //getViewportDirectTransformation (-1,+1)x(-1,+1) -> (x,x+width)x(y,y+height)
   static Matrix getViewportDirectTransformation(const Viewport& viewport)
   {
-    double sx = viewport.width  / 2.0; double ox = viewport.x + viewport.width / 2.0;
+    double sx = viewport.width  / 2.0; double ox = viewport.x + viewport.width  / 2.0;
     double sy = viewport.height / 2.0; double oy = viewport.y + viewport.height / 2.0;
     double sz = 1 / 2.0; double oz = 1 / 2.0;
 
@@ -289,7 +289,7 @@ public:
     p4 = viewport  .Ti * p4;
     p4 = projection.Ti * p4;
     p4 = modelview .Ti * p4;
-    if (!p4.w) p4.w=1;
+    if (!p4[3]) p4[3]=1;
     return p4;
   }
 
@@ -300,7 +300,7 @@ public:
     p4 = p4 * modelview .Ti;
     p4 = p4 * projection.Ti;
     p4 = p4 * viewport  .Ti;
-    return Plane(p4.x,p4.y,p4.z,p4.w);
+    return Plane(p4[0],p4[1],p4[2],p4[3]);
   }
 
   //applyDirectMap
@@ -310,7 +310,7 @@ public:
     p4 = p4*viewport  .T;
     p4 = p4*projection.T;
     p4 = p4*modelview .T;
-    return Plane(p4.x,p4.y,p4.z,p4.w);
+    return Plane(p4[0],p4[1],p4[2],p4[3]);
   }
 
   //applyDirectMapFromEye
@@ -328,23 +328,23 @@ public:
     Point4d p4(p);
     p4 = viewport  .Ti * p4;
     p4 = projection.Ti * p4;      
-    if (!p4.w) p4.w = 1;
+    if (!p4[3]) p4[3] = 1;
     return p4;
   }
 
   //projectPoint
   Point2d projectPoint(const Point3d& p) const{
-    return applyDirectMap(Point4d(p, 1.0)).dropHomogeneousCoordinate().dropZ();
+    return applyDirectMap(Point4d(p, 1.0)).dropHomogeneousCoordinate().toPoint2();
   }
 
   //unprojectPoint
   Point3d unprojectPoint(const Point2d& p, double Z = 0.0) const{
-    return applyInverseMap(Point4d(p.x, p.y, Z, 1.0)).dropHomogeneousCoordinate();
+    return applyInverseMap(Point4d(p[0], p[1], Z, 1.0)).dropHomogeneousCoordinate();
   }
 
   //unprojectPointToEye
   Point3d unprojectPointToEye(const Point2d& p, double Z = 0.0) const{
-    return applyInverseMapToEye(Point4d(p.x, p.y, Z, 1.0)).dropHomogeneousCoordinate();
+    return applyInverseMapToEye(Point4d(p[0], p[1], Z, 1.0)).dropHomogeneousCoordinate();
   }
 
   //return the ray

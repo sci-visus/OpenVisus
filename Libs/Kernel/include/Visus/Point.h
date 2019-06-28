@@ -55,39 +55,41 @@ public:
 
   typedef T coord_t;
 
-  T x = T(0), y = T(0);
+  std::array<T, 2> coords = std::array<T, 2>({ 0,0 });
 
   //default constructor
   Point2() {
   }
 
   //constructor
-  explicit Point2(T x_, T y_) : x(x_), y(y_) {
+  explicit Point2(T a, T b) : coords({ a,b }) {
+  }
+
+  //constructor
+  explicit Point2(const std::vector<T>& src) : Point2(src[0], src[1]) {
+    VisusAssert(src.size() == 2);
   }
 
   //constructor from string
   explicit Point2(String value) {
-    std::istringstream parser(value); parser >> x >> y;
+    std::istringstream parser(value); parser >> coords[0] >> coords[1];
   }
 
-  //constructor
-  explicit Point2(const std::array<T, 2>& src) : x(src[0]), y(src[1]) {
-  }
 
   //castTo
   template <typename Other>
   Other castTo() const {
-    return Other((typename Other::coord_t)x, (typename Other::coord_t)y);
+    return Other((typename Other::coord_t)get(0), (typename Other::coord_t)get(1));
   }
 
-  //toStdArray
-  std::array<T, 2> toStdArray() const {
-    return { {x,y} };
+  //toVector
+  std::vector<T> toVector() const {
+    return std::vector<T>(coords.begin(),coords.end());
   }
 
   //module*module
   T module2() const {
-    return x*x + y*y;
+    return coords[0]*coords[0] + coords[1]*coords[1];
   }
 
   //module
@@ -105,58 +107,58 @@ public:
   {
     T len = module();
     if (!len) len = 1.0;
-    return Point2(x / len, y / len);
+    return Point2(coords[0] / len, coords[1] / len);
   }
 
   //abs
   Point2 abs() const {
-    return Point2(x >= 0 ? +x : -x, y >= 0 ? +y : -y);
+    return Point2(coords[0] >= 0 ? +coords[0] : -coords[0], coords[1] >= 0 ? +coords[1] : -coords[1]);
   }
 
   //inv
   Point2 inv() const {
-    return Point2((T)(1.0 / x), (T)(1.0 / y));
+    return Point2((T)(1.0 / coords[0]), (T)(1.0 / coords[1]));
   }
 
   //-a
   Point2 operator-()  const {
-    return Point2(-this->x, -this->y);
+    return Point2(-this->coords[0], -this->coords[1]);
   }
 
   //a+b
   Point2 operator+(const Point2&  b)  const {
-    return Point2(this->x + b.x, this->y + b.y);
+    return Point2(this->coords[0] + b.coords[0], this->coords[1] + b.coords[1]);
   }
 
   //a+=b
   Point2& operator+=(const Point2&  b) {
-    this->x += b.x; this->y += b.y; return *this;
+    this->coords[0] += b.coords[0]; this->coords[1] += b.coords[1]; return *this;
   }
 
   //a-b
   Point2 operator-(const Point2&  b)  const {
-    return Point2(this->x - b.x, this->y - b.y);
+    return Point2(this->coords[0] - b.coords[0], this->coords[1] - b.coords[1]);
   }
 
   //a-=b
   Point2& operator-=(const Point2&  b) {
-    this->x -= b.x; this->y -= b.y; return *this;
+    this->coords[0] -= b.coords[0]; this->coords[1] -= b.coords[1]; return *this;
   }
 
   //a*f
   template <typename Value>
   Point2 operator*(Value value) const {
-    return Point2((T)(this->x*value), (T)(this->y*value));
+    return Point2((T)(this->coords[0]*value), (T)(this->coords[1]*value));
   }
 
   //a*=f
   Point2& operator*=(T s) {
-    this->x = this->x*s; this->y = this->y*s; return *this;
+    this->coords[0] = this->coords[0]*s; this->coords[1] = this->coords[1]*s; return *this;
   }
 
   //a==b
   bool operator==(const Point2& b) const {
-    return  x == b.x && y == b.y;
+    return  coords[0] == b.coords[0] && coords[1] == b.coords[1];
   }
 
   //a!=b
@@ -166,39 +168,49 @@ public:
 
   //dot product
   T dot(const Point2&  b) const {
-    return this->x*b.x + this->y*b.y;
+    return this->coords[0]*b.coords[0] + this->coords[1]*b.coords[1];
+  }
+
+  //access an item using an index
+  T& get(int i) {
+    return coords[i];
+  }
+
+  //access an item using an index
+  const T& get(int i) const {
+    return coords[i];
   }
 
   //access an item using an index
   T& operator[](int i) {
-    VisusAssert(i >= 0 && i < 2); return i ? y : x;
+    return get(i);
   }
 
   //access an item using an index
   const T& operator[](int i) const {
-    VisusAssert(i >= 0 && i < 2); return i ? y : x;
+    return get(i);
   }
 
   //test if numers are ok
   bool valid() const
   {
     return
-      Utils::isValidNumber(x) &&
-      Utils::isValidNumber(y);
+      Utils::isValidNumber(coords[0]) &&
+      Utils::isValidNumber(coords[1]);
   }
 
   // return index of smallest/largest value
-  int biggest () const { return (x >  y) ? (0) : (1); }
-  int smallest() const { return (x <= y) ? (0) : (1); }
+  int biggest () const { return (coords[0] >  coords[1]) ? (0) : (1); }
+  int smallest() const { return (coords[0] <= coords[1]) ? (0) : (1); }
 
   //innerMultiply
   inline Point2 innerMultiply(const Point2& other) const {
-    return Point2(x *other.x, y*other.y);
+    return Point2(coords[0] *other.coords[0], coords[1]*other.coords[1]);
   }
 
   //innerDiv
   inline Point2 innerDiv(const Point2& other) const {
-    return Point2(x / other.x, y / other.y);
+    return Point2(coords[0] / other.coords[0], coords[1] / other.coords[1]);
   }
 
 public:
@@ -220,37 +232,28 @@ public:
   String toString() const
   {
     std::ostringstream out;
-    out << this->x << " " << this->y;
+    out << this->coords[0] << " " << this->coords[1];
     return out.str();
   }
 
   //operator<<
 #if !SWIG
   friend std::ostream& operator<<(std::ostream &out, const Point2& p) {
-    out << "<" << p.x << "," << p.y << ">"; return out;
+    out << "<" << p.coords[0] << "," << p.coords[1] << ">"; return out;
   }
 #endif
 
 };//end class Point2
 
+
 template <typename Value, typename T>
-inline Point2<T> operator*(Value value, const Point2<T> &v) {
-  return v*value;
+inline Point2<T> operator*(Value value, const Point2<T>& v) {
+  return v * value;
 }
 
 typedef  Point2<Int64>  Point2i;
 typedef  Point2<float>  Point2f;
 typedef  Point2<double> Point2d;
-
-template <>
-inline Point2d convertTo< Point2d, Point2i>(const Point2i& value) {
-  return value.castTo<Point2d>();
-}
-
-template <>
-inline Point2i convertTo< Point2i, Point2d>(const Point2d& value) {
-  return value.castTo<Point2i>();
-}
 
 ////////////////////////////////////////////////////////////////////////
 template <typename T>
@@ -260,53 +263,54 @@ public:
 
   typedef T coord_t;
 
-  T x=T(0), y = T(0), z = T(0);
+  std::array<T, 3> coords = std::array<T, 3>({ 0,0,0 });
 
   //default constructor
   Point3() {
   }
 
   //constructor
-  explicit Point3(T x_, T y_, T z_ = T(0)) : x(x_), y(y_), z(z_) {
+  explicit Point3(T a, T b, T c = T(0)) :coords({a,b,c}) {
   }
 
   //constructor
-  explicit Point3(const Point2<T>& src, T z_ = T(0)) : x(src.x), y(src.y), z(z_) {
+  explicit Point3(const Point2<T>& src, T d = T(0)) : Point3(src.coords[0], src.coords[1],d) {
   }
 
   //constructor
-  explicit Point3(const std::array<T, 3>& src) : x(src[0]), y(src[1]), z(src[2]) {
+  explicit Point3(const std::vector<T>& src) : Point3(src[0],src[1],src[2]) {
+    VisusAssert(src.size() == 3);
   }
 
   //constructor from string
   explicit Point3(String value) {
-    std::istringstream parser(value); parser >> x >> y >> z;
+    std::istringstream parser(value); parser >> coords[0] >> coords[1] >> coords[2];
   }
 
   //castTo
   template <typename Other>
   Other castTo() const {
-    return Other((typename Other::coord_t)x, (typename Other::coord_t)y, (typename Other::coord_t)z);
+    return Other((typename Other::coord_t)get(0), (typename Other::coord_t)get(1), (typename Other::coord_t)get(2));
   }
 
-  //toStdArray
-  std::array<T,3> toStdArray() const {
-    return { {x,y,z} };
+  //toVector
+  std::vector<T> toVector() const {
+    return std::vector<T>(coords.begin(), coords.end());
   }
 
-  //dropZ
-  Point2<T> dropZ() const {
-    return Point2<T>(x, y);
+  //toPoint2
+  Point2<T> toPoint2() const {
+    return Point2<T>(coords[0], coords[1]);
   }
 
   //dropHomogeneousCoordinate
   Point2<T> dropHomogeneousCoordinate() const {
-    return Point2<T>(x / (z? z: 1.0), y / (z ? z : 1.0));
+    return Point2<T>(coords[0] / (coords[2]? coords[2]: 1.0), coords[1] / (coords[2] ? coords[2] : 1.0));
   }
 
   //module*module
   T module2() const {
-    return x*x + y*y + z*z;
+    return coords[0]*coords[0] + coords[1]*coords[1] + coords[2]*coords[2];
   }
 
   //module
@@ -324,17 +328,17 @@ public:
   {
     T len = module();
     if (len==T(0)) len = T(1);
-    return Point3((T)(x / len), (T)(y / len), (T)(z / len));
+    return Point3((T)(coords[0] / len), (T)(coords[1] / len), (T)(coords[2] / len));
   }
 
   //abs
   Point3 abs() const {
-    return Point3(x >= 0 ? +x : -x, y >= 0 ? +y : -y, z >= 0 ? +z : -z);
+    return Point3(coords[0] >= 0 ? +coords[0] : -coords[0], coords[1] >= 0 ? +coords[1] : -coords[1], coords[2] >= 0 ? +coords[2] : -coords[2]);
   }
 
   //inverse
   Point3 inv() const {
-    return Point3((T)(1.0 / x), (T)(1.0 / y), (T)(1.0 / z));
+    return Point3((T)(1.0 / coords[0]), (T)(1.0 / coords[1]), (T)(1.0 / coords[2]));
   }
 
   //+a
@@ -344,44 +348,44 @@ public:
 
   //-a
   Point3 operator-()  const {
-    return Point3(-this->x, -this->y, -this->z);
+    return Point3(-this->coords[0], -this->coords[1], -this->coords[2]);
   }
 
   //a+b
   Point3 operator+(const Point3&  b)  const {
-    return Point3(this->x + b.x, this->y + b.y, this->z + b.z);
+    return Point3(this->coords[0] + b.coords[0], this->coords[1] + b.coords[1], this->coords[2] + b.coords[2]);
   }
 
   //a+=b
   Point3& operator+=(const Point3&  b) {
-    this->x += b.x; this->y += b.y; this->z += b.z; return *this;
+    this->coords[0] += b.coords[0]; this->coords[1] += b.coords[1]; this->coords[2] += b.coords[2]; return *this;
   }
 
   //a-b
   Point3 operator-(const Point3&  b)  const {
-    return Point3(this->x - b.x, this->y - b.y, this->z - b.z);
+    return Point3(this->coords[0] - b.coords[0], this->coords[1] - b.coords[1], this->coords[2] - b.coords[2]);
   }
 
   //a-=b
   Point3& operator-=(const Point3&  b) {
-    this->x -= b.x; this->y -= b.y; this->z -= b.z; return *this;
+    this->coords[0] -= b.coords[0]; this->coords[1] -= b.coords[1]; this->coords[2] -= b.coords[2]; return *this;
   }
 
   //a*f
   template <typename Coeff>
   Point3 operator*(Coeff coeff) const {
-    return Point3((T)(this->x* coeff), (T)(this->y* coeff), (T)(this->z*coeff));
+    return Point3((T)(this->coords[0]* coeff), (T)(this->coords[1]* coeff), (T)(this->coords[2]*coeff));
   }
 
   //a*=f
   template <typename Value>
   Point3& operator*=(Value value) {
-    this->x = this->x*value; this->y = this->y*value; this->z = this->z*value; return *this;
+    this->coords[0] = this->coords[0]*value; this->coords[1] = this->coords[1]*value; this->coords[2] = this->coords[2]*value; return *this;
   }
 
   //a==b
   bool operator==(const Point3& b) const {
-    return  x == b.x && y == b.y && z == b.z;
+    return  coords[0] == b.coords[0] && coords[1] == b.coords[1] && coords[2] == b.coords[2];
   }
 
   //a!=b
@@ -391,17 +395,27 @@ public:
 
   //dot product
   T dot(const Point3&  b) const {
-    return this->x*b.x + this->y*b.y + this->z*b.z;
+    return this->coords[0]*b.coords[0] + this->coords[1]*b.coords[1] + this->coords[2]*b.coords[2];
+  }
+
+  //access an item using an index
+  T& get(int i) {
+    return coords[i];
+  }
+
+  //access an item using an index
+  const T& get(int i) const {
+    return coords[i];
   }
 
   //access an item using an index
   T& operator[](int i) {
-    VisusAssert(i >= 0 && i < 3); return (i == 0) ? (x) : (i == 1 ? y : z);
+    return get(i);
   }
 
   //access an item using an index
   const T& operator[](int i) const {
-    VisusAssert(i >= 0 && i < 3); return (i == 0) ? (x) : (i == 1 ? y : z);
+    return get(i);
   }
 
   //set
@@ -412,9 +426,9 @@ public:
   //cross product
   Point3 cross(const Point3& v) const {
     return Point3 (
-      y * v.z - v.y * z,
-      z * v.x - v.z * x,
-      x * v.y - v.x * y
+      coords[1] * v.coords[2] - v.coords[1] * coords[2],
+      coords[2] * v.coords[0] - v.coords[2] * coords[0],
+      coords[0] * v.coords[1] - v.coords[0] * coords[1]
     );
   }
 
@@ -422,14 +436,14 @@ public:
   bool valid() const
   {
     return
-      Utils::isValidNumber(x) &&
-      Utils::isValidNumber(y) &&
-      Utils::isValidNumber(z);
+      Utils::isValidNumber(coords[0]) &&
+      Utils::isValidNumber(coords[1]) &&
+      Utils::isValidNumber(coords[2]);
   }
 
   // return index of smallest/largest value
-  int biggest () const { return (x >  y) ? (x >  z ? 0 : 2) : (y >  z ? 1 : 2); }
-  int smallest() const { return (x <= y) ? (x <= z ? 0 : 2) : (y <= z ? 1 : 2); }
+  int biggest () const { return (coords[0] >  coords[1]) ? (coords[0] >  coords[2] ? 0 : 2) : (coords[1] >  coords[2] ? 1 : 2); }
+  int smallest() const { return (coords[0] <= coords[1]) ? (coords[0] <= coords[2] ? 0 : 2) : (coords[1] <= coords[2] ? 1 : 2); }
 
   //min,max 
   static Point3 min(const Point3& a, const Point3& b) { return Point3(std::min(a[0], b[0]), std::min(a[1], b[1]), std::min(a[2], b[2])); }
@@ -448,7 +462,7 @@ public:
   String toString() const
   {
     std::ostringstream out;
-    out << this->x << " " << this->y << " " << this->z;
+    out << this->coords[0] << " " << this->coords[1] << " " << this->coords[2];
     return out.str();
   }
 
@@ -456,11 +470,12 @@ public:
 #if !SWIG
   //operator<<
   friend std::ostream& operator<<(std::ostream &out,const Point3& p) {
-    out << "<" << p.x << "," << p.y << "," << p.z << ">"; return out;
+    out << "<" << p.coords[0] << "," << p.coords[1] << "," << p.coords[2] << ">"; return out;
   }
 #endif
 
 };//end class Point3
+
 
 template <typename Coeff, typename T>
 inline Point3<T> operator*(Coeff coeff, const Point3<T>& v) {
@@ -471,10 +486,6 @@ typedef  Point3<Int64>  Point3i;
 typedef  Point3<float>  Point3f;
 typedef  Point3<double> Point3d;
 
-template <>
-inline Point3d convertTo<Point3d, Point3i>(const Point3i& value) {
-  return value.castTo<Point3d>();
-}
 
 ///////////////////////////////////////////////////////////////////////////
 template <typename T>
@@ -484,63 +495,59 @@ public:
 
   typedef T coord_t;
 
-  T x= T(0), y = T(0), z = T(0), w = T(0);
+  std::array<T, 4> coords = std::array<T, 4>({ 0,0,0,0 });
 
   //default constructor
   Point4() {
   }
 
   //constructor
-  explicit Point4(T _x, T _y, T _z = 0, T _w = 0)
-    : x(_x), y(_y), z(_z), w(_w) {
+  explicit Point4(T a, T b, T c = 0, T d = 0)
+    : coords({ a,b,c,d } ) {
   }
 
   //constructor
-  explicit Point4(const Point3<T>& src, T _w = 0)
-    : x(src.x), y(src.y), z(src.z), w(_w) {
+  explicit Point4(const Point3<T>& src, T d = 0)
+    : Point4(src.coords[0], src.coords[1], src.coords[2], d) {
   }
 
   //constructor
-  explicit Point4(const std::vector<T> src) : x(src[0]), y(src[1]), z(src[2]), w(src[3]) {
+  explicit Point4(const std::vector<T> src) : Point4(src[0],src[1],src[2],src[3]) {
     VisusAssert(src.size() == 4);
-  }
-
-  //constructor
-  explicit Point4(const std::array<T, 4>& src) : x(src[0]), y(src[1]), z(src[2]), w(src[3]) {
   }
 
   //constructor from string
   explicit Point4(String value) {
-    std::istringstream parser(value); parser >> x >> y >> z >> w;
+    std::istringstream parser(value); parser >> coords[0] >> coords[1] >> coords[2] >> coords[3];
   }
 
   //castTo
   template <typename Other>
   Other castTo() const {
-    return Other((typename Other::coord_t)x, (typename Other::coord_t)y, (typename Other::coord_t)z, (typename Other::coord_t)w);
+    return Other((typename Other::coord_t)get(0), (typename Other::coord_t)get(1), (typename Other::coord_t)get(2), (typename Other::coord_t)get(3));
   }
 
-  //toStdArray
-  std::array<T, 4> toStdArray() const {
-    return { {x,y,z,w} };
+  //toVector
+  std::vector<T> toVector() const {
+    return std::vector<T>(coords.begin(), coords.end());
   }
 
-  //withoutBack
-  Point3<T> withoutBack() const {
-    return Point3<T>(x, y, z);
+  //toPoint3
+  Point3<T> toPoint3() const {
+    return Point3<T>(coords[0], coords[1], coords[2]);
   }
 
   //dropHomogeneousCoordinate
   Point3<T> dropHomogeneousCoordinate() const
   {
-    T W = this->w;
+    T W = this->coords[3];
     if (!W) W = 1;
-    return Point3<T>(x / W, y / W, z / W);
+    return Point3<T>(coords[0] / W, coords[1] / W, coords[2] / W);
   }
 
   //module2
   T module2() const {
-    return x*x + y*y + z*z + w*w;
+    return coords[0]*coords[0] + coords[1]*coords[1] + coords[2]*coords[2] + coords[3]*coords[3];
   }
 
   //module
@@ -559,48 +566,48 @@ public:
     T len = module();
     if (len==T(0)) return *this;
     auto vs = T(1) / len;
-    return Point4(x * vs, y * vs, z * vs, w * vs);
+    return Point4(coords[0] * vs, coords[1] * vs, coords[2] * vs, coords[3] * vs);
   }
 
   //abs
   Point4 abs() const {
-    return Point4(x >= 0 ? +x : -x, y >= 0 ? +y : -y, z >= 0 ? +z : -z, w >= 0 ? +w : -w);
+    return Point4(coords[0] >= 0 ? +coords[0] : -coords[0], coords[1] >= 0 ? +coords[1] : -coords[1], coords[2] >= 0 ? +coords[2] : -coords[2], coords[3] >= 0 ? +coords[3] : -coords[3]);
   }
 
   //inverse
   Point4 inv() const {
-    return Point4((T)(1.0 / x), T(1.0 / y), (T)(1.0 / z), (T)(1.0 / w));
+    return Point4((T)(1.0 / coords[0]), T(1.0 / coords[1]), (T)(1.0 / coords[2]), (T)(1.0 / coords[3]));
   }
 
   //operator-
   Point4 operator-()  const {
-    return Point4(-x, -y, -z, -w);
+    return Point4(-coords[0], -coords[1], -coords[2], -coords[3]);
   }
 
   //a+b
   Point4 operator+(const Point4& b)  const {
-    return Point4(x + b.x, y + b.y, z + b.z, w + b.w);
+    return Point4(coords[0] + b.coords[0], coords[1] + b.coords[1], coords[2] + b.coords[2], coords[3] + b.coords[3]);
   }
 
   //a+=b
   Point4& operator+=(const Point4&  b) {
-    x += b.x; y += b.y; z += b.z; w += b.w; return *this;
+    coords[0] += b.coords[0]; coords[1] += b.coords[1]; coords[2] += b.coords[2]; coords[3] += b.coords[3]; return *this;
   }
 
   //a-b
   Point4 operator-(const Point4&  b)  const{
-    return Point4(x - b.x, y - b.y, z - b.z, w - b.w);
+    return Point4(coords[0] - b.coords[0], coords[1] - b.coords[1], coords[2] - b.coords[2], coords[3] - b.coords[3]);
   }
 
   //a-=b
   Point4& operator-=(const Point4&  b) {
-    x -= b.x; y -= b.y; z -= b.z; w -= b.w; return *this;
+    coords[0] -= b.coords[0]; coords[1] -= b.coords[1]; coords[2] -= b.coords[2]; coords[3] -= b.coords[3]; return *this;
   }
 
   //a*f
   template <typename Value>
   Point4 operator*(Value value) const {
-    return Point4(x*value, y*value, z*value, w*value);
+    return Point4(coords[0]*value, coords[1]*value, coords[2]*value, coords[3]*value);
   }
 
   //a*=f
@@ -611,7 +618,7 @@ public:
 
   //a==b
   bool operator==(const Point4& b) const {
-    return  x == b.x && y == b.y && z == b.z && w == b.w;
+    return  coords[0] == b.coords[0] && coords[1] == b.coords[1] && coords[2] == b.coords[2] && coords[3] == b.coords[3];
   }
 
   //a!=b
@@ -621,27 +628,37 @@ public:
 
   //dot product
   T dot(const Point4&  b) const {
-    return x*b.x + y*b.y + z*b.z + w*b.w;
+    return coords[0]*b.coords[0] + coords[1]*b.coords[1] + coords[2]*b.coords[2] + coords[3]*b.coords[3];
+  }
+
+  //access an item using an index
+  T& get(int i) {
+    return coords[i];
+  }
+
+  //access an item using an index
+  const T& get(int i) const {
+    return coords[i];
   }
 
   //access an item using an index
   T& operator[](int i) {
-    VisusAssert(i >= 0 && i < 4); return i == 0 ? x : (i == 1 ? y : (i == 2 ? z : w));
+    return get(i);
   }
 
   //access an item using an index
   const T& operator[](int i) const {
-    VisusAssert(i >= 0 && i < 4); return i == 0 ? x : (i == 1 ? y : (i == 2 ? z : w));
+    return get(i);
   }
 
   //test if numers are ok
   bool valid() const
   {
     return
-      Utils::isValidNumber(x) &&
-      Utils::isValidNumber(y) &&
-      Utils::isValidNumber(z) &&
-      Utils::isValidNumber(w);
+      Utils::isValidNumber(coords[0]) &&
+      Utils::isValidNumber(coords[1]) &&
+      Utils::isValidNumber(coords[2]) &&
+      Utils::isValidNumber(coords[3]);
   }
 
 public:
@@ -650,7 +667,7 @@ public:
   String toString() const
   {
     std::ostringstream out;
-    out << this->x << " " << this->y << " " << this->z << " " << this->w;
+    out << this->coords[0] << " " << this->coords[1] << " " << this->coords[2] << " " << this->coords[3];
     return out.str();
   }
 
@@ -658,31 +675,22 @@ public:
 #if !SWIG
   //operator<<
   friend std::ostream& operator<<(std::ostream &out,const Point4& p)  {
-    out << "<" << p.x << "," << p.y << "," << p.z << "," << p.w << ">"; return out;
+    out << "<" << p.coords[0] << "," << p.coords[1] << "," << p.coords[2] << "," << p.coords[3] << ">"; return out;
   }
 #endif
 
 };//end class Point4
 
 
-typedef Point4<Int64>  Point4i;
-typedef Point4<float>  Point4f;
-typedef Point4<double> Point4d;
-
 template <typename Value, typename T>
 inline Point4<T> operator*(Value value, const Point4<T>& v) {
   return v * value;
 }
 
-template <>
-inline Point4d convertTo< Point4d, Point4i>(const Point4i& value) {
-  return value.castTo<Point4d>();
-}
+typedef  Point4<Int64>  Point4i;
+typedef  Point4<float>  Point4f;
+typedef  Point4<double> Point4d;
 
-template <>
-inline Point4i convertTo<Point4i, Point4d>(const Point4d& value) {
-  return value.castTo<Point4i>();
-}
 
 //////////////////////////////////////////////////////////////
 template <typename T>
@@ -775,38 +783,35 @@ public:
   }
 
   //constructor
-  explicit PointN(T x, T y)
-    : coords({ x,y }) {
+  explicit PointN(T a, T b)
+    : coords({ a,b }) {
   }
 
   //constructor
-  explicit PointN(T x, T y, T z)
-    : coords({ x,y,z }) {
+  explicit PointN(T a, T b, T c)
+    : coords({ a,b,c }) {
   }
 
   //constructor
-  explicit PointN(T x, T y, T z, T u)
-    : coords({ x,y,z,u }) {
+  explicit PointN(T a, T b, T c,T d)
+    : coords({ a,b,c,d }) {
   }
 
   //constructor
-  explicit PointN(T x, T y, T z, T u, T v)
-    : coords({ x,y,z,u,v }) {
+  explicit PointN(T a, T b, T c, T d,T e)
+    : coords({ a,b,c,d,e }) {
   }
 
   //constructor
-  PointN(Point2<T> p)
-    : coords({ p[0], p[1] }) {
+  PointN(Point2<T> p) : PointN(p.toVector()) {
   }
 
   //constructor
-  PointN(Point3<T> p)
-    : coords({ p[0], p[1], p[2] }) {
+  PointN(Point3<T> p) : PointN(p.toVector()) {
   }
 
   //constructor
-  PointN(Point4<T> p)
-    : coords({ p[0], p[1], p[2],p[3] }) {
+  PointN(Point4<T> p) : PointN(p.toVector()) {
   }
 
   //getPointDim
@@ -862,13 +867,13 @@ public:
   }
 
   //one
-  static PointN one(T x, T y) {
-    return PointN(x, y);
+  static PointN one(T a, T b) {
+    return PointN(a,b);
   }
 
   //one
-  static PointN one(T x, T y, T z) {
-    return PointN(x, y, z);
+  static PointN one(T a, T b, T c) {
+    return PointN(a,b,c);
   }
 
   //toVector
@@ -1280,13 +1285,14 @@ private:
 
 };//end class PointN
 
-typedef PointN<double> PointNd;
-typedef PointN<Int64>  NdPoint;
-
-template <typename Value,typename T>
-inline PointN<T> operator*(Value s, const PointN<T> &p) {
+template <typename Value, typename T>
+inline PointN<T> operator*(Value s, const PointN<T>& p) {
   return p * s;
 }
+
+typedef  PointN<double> PointNd;
+typedef  PointN<Int64>  NdPoint;
+
 
 template <typename T>
 inline typename PointN<T>::ForEachPoint ForEachPoint(PointN<T> from, PointN<T> to, PointN<T> step) {
@@ -1298,7 +1304,6 @@ inline typename PointN<T>::ForEachPoint ForEachPoint(PointN<T> dims) {
   auto pdim = dims.getPointDim();
   return ForEachPoint(PointN<T>(pdim), dims, PointN<T>::one(pdim));
 }
-
 
 } //namespace Visus
 

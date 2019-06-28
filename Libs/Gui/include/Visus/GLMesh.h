@@ -82,23 +82,23 @@ public:
 
   //vertex
   inline void vertex(float x,float y,float z=0) {push(building.vertices,Point3f(x,y,z));}
-  inline void vertex(const Point2i& p) {vertex((float)p.x,(float)p.y,(float)  0);}
-  inline void vertex(const Point2f& p) {vertex((float)p.x,(float)p.y,(float)  0);}
-  inline void vertex(const Point2d& p) {vertex((float)p.x,(float)p.y,(float)  0);}
-  inline void vertex(const Point3i& p) {vertex((float)p.x,(float)p.y,(float)p.z);}
-  inline void vertex(const Point3f& p) {vertex((float)p.x,(float)p.y,(float)p.z);}
-  inline void vertex(const Point3d& p) {vertex((float)p.x,(float)p.y,(float)p.z);}
+  inline void vertex(const Point2i& p) {vertex((float)p[0],(float)p[1],(float)  0);}
+  inline void vertex(const Point2f& p) {vertex((float)p[0],(float)p[1],(float)  0);}
+  inline void vertex(const Point2d& p) {vertex((float)p[0],(float)p[1],(float)  0);}
+  inline void vertex(const Point3i& p) {vertex((float)p[0],(float)p[1],(float)p[2]);}
+  inline void vertex(const Point3f& p) {vertex((float)p[0],(float)p[1],(float)p[2]);}
+  inline void vertex(const Point3d& p) {vertex((float)p[0],(float)p[1],(float)p[2]);}
   template <typename T>
   inline void vertex(T x,T y,T z=0)    {vertex((float)  x,(float)  y,(float)  z);}
 
   //normal
   inline void normal(float x,float y,float z) {push(building.normals,Point3f(x,y,z));}
-  inline void normal(const Point2i& p) {normal((float)p.x,(float)p.y,(float)  0);}
-  inline void normal(const Point2f& p) {normal((float)p.x,(float)p.y,(float)  0);}
-  inline void normal(const Point2d& p) {normal((float)p.x,(float)p.y,(float)  0);}
-  inline void normal(const Point3i& p) {normal((float)p.x,(float)p.y,(float)p.z);}
-  inline void normal(const Point3f& p) {normal((float)p.x,(float)p.y,(float)p.z);}
-  inline void normal(const Point3d& p) {normal((float)p.x,(float)p.y,(float)p.z);}
+  inline void normal(const Point2i& p) {normal((float)p[0],(float)p[1],(float)  0);}
+  inline void normal(const Point2f& p) {normal((float)p[0],(float)p[1],(float)  0);}
+  inline void normal(const Point2d& p) {normal((float)p[0],(float)p[1],(float)  0);}
+  inline void normal(const Point3i& p) {normal((float)p[0],(float)p[1],(float)p[2]);}
+  inline void normal(const Point3f& p) {normal((float)p[0],(float)p[1],(float)p[2]);}
+  inline void normal(const Point3d& p) {normal((float)p[0],(float)p[1],(float)p[2]);}
   template <typename T>
   inline void normal(T x,T y,T z=0)    {normal((float)  x,(float)  y,(float)  z);}
 
@@ -108,15 +108,15 @@ public:
 
   //texcoord2
   inline void texcoord2(float x,float y)  {push(building.texcoords2f,Point2f(x,y));}
-  inline void texcoord2(const Point2i& p) {texcoord2((float)p.x,(float)p.y);}
-  inline void texcoord2(const Point2f& p) {texcoord2((float)p.x,(float)p.y);}
-  inline void texcoord2(const Point2d& p) {texcoord2((float)p.x,(float)p.y);}
+  inline void texcoord2(const Point2i& p) {texcoord2((float)p[0],(float)p[1]);}
+  inline void texcoord2(const Point2f& p) {texcoord2((float)p[0],(float)p[1]);}
+  inline void texcoord2(const Point2d& p) {texcoord2((float)p[0],(float)p[1]);}
 
   //texcoord3
   inline void texcoord3(float x,float y,float z) {push(building.texcoords3f,Point3f(x,y,z));}
-  inline void texcoord3(const Point3i& p) {texcoord3((float)p.x,(float)p.y,(float)p.z);}
-  inline void texcoord3(const Point3f& p) {texcoord3((float)p.x,(float)p.y,(float)p.z);}
-  inline void texcoord3(const Point3d& p) {texcoord3((float)p.x,(float)p.y,(float)p.z);}
+  inline void texcoord3(const Point3i& p) {texcoord3((float)p[0],(float)p[1],(float)p[2]);}
+  inline void texcoord3(const Point3f& p) {texcoord3((float)p[0],(float)p[1],(float)p[2]);}
+  inline void texcoord3(const Point3d& p) {texcoord3((float)p[0],(float)p[1],(float)p[2]);}
 
   //hasColorAttribute
   bool hasColorAttribute() const {
@@ -164,7 +164,7 @@ public:
   //Quad
   template <typename Point>
   static GLMesh Quad(const Point& p1,const Point& p2,bool bNormal=false,bool bTexCoord=false)
-  {return Quad(Point(p1.x,p1.y), Point(p2.x,p1.y), Point(p2.x,p2.y), Point(p1.x,p2.y),bNormal,bTexCoord);}
+  {return Quad(Point(p1[0],p1[1]), Point(p2[0],p1[1]), Point(p2[0],p2[1]), Point(p1[0],p2[1]),bNormal,bTexCoord);}
 
   //Quad
   template <class Point>
@@ -191,18 +191,18 @@ public:
   static GLMesh WireBox(const Point& p1,const Point& p2)
   {
     return Lines(std::vector<Point>({
-      Point(p1.x,p1.y,p1.z), Point(p2.x,p1.y,p1.z),
-      Point(p1.x,p1.y,p1.z), Point(p1.x,p2.y,p1.z),
-      Point(p1.x,p1.y,p1.z), Point(p1.x,p1.y,p2.z),
-      Point(p2.x,p1.y,p1.z), Point(p2.x,p2.y,p1.z), 
-      Point(p2.x,p1.y,p1.z), Point(p2.x,p1.y,p2.z),
-      Point(p1.x,p2.y,p1.z), Point(p2.x,p2.y,p1.z),
-      Point(p1.x,p2.y,p1.z), Point(p1.x,p2.y,p2.z),
-      Point(p1.x,p1.y,p2.z), Point(p2.x,p1.y,p2.z),
-      Point(p1.x,p1.y,p2.z), Point(p1.x,p2.y,p2.z),
-      Point(p2.x,p2.y,p2.z), Point(p1.x,p2.y,p2.z),
-      Point(p2.x,p2.y,p2.z), Point(p2.x,p1.y,p2.z),
-      Point(p2.x,p2.y,p2.z), Point(p2.x,p2.y,p1.z)}));
+      Point(p1[0],p1[1],p1[2]), Point(p2[0],p1[1],p1[2]),
+      Point(p1[0],p1[1],p1[2]), Point(p1[0],p2[1],p1[2]),
+      Point(p1[0],p1[1],p1[2]), Point(p1[0],p1[1],p2[2]),
+      Point(p2[0],p1[1],p1[2]), Point(p2[0],p2[1],p1[2]), 
+      Point(p2[0],p1[1],p1[2]), Point(p2[0],p1[1],p2[2]),
+      Point(p1[0],p2[1],p1[2]), Point(p2[0],p2[1],p1[2]),
+      Point(p1[0],p2[1],p1[2]), Point(p1[0],p2[1],p2[2]),
+      Point(p1[0],p1[1],p2[2]), Point(p2[0],p1[1],p2[2]),
+      Point(p1[0],p1[1],p2[2]), Point(p1[0],p2[1],p2[2]),
+      Point(p2[0],p2[1],p2[2]), Point(p1[0],p2[1],p2[2]),
+      Point(p2[0],p2[1],p2[2]), Point(p2[0],p1[1],p2[2]),
+      Point(p2[0],p2[1],p2[2]), Point(p2[0],p2[1],p1[2])}));
   }
 
   //WireBox
@@ -214,9 +214,9 @@ public:
   template <typename Point>
   static GLMesh SolidBox(const Point& p1,const Point& p2,bool bNormal=true) {
 
-    float x1=(float)p1.x , x2=(float)p2.x;
-    float y1=(float)p1.y , y2=(float)p2.y;
-    float z1=(float)p1.z , z2=(float)p2.z;
+    float x1=(float)p1[0] , x2=(float)p2[0];
+    float y1=(float)p1[1] , y2=(float)p2[1];
+    float z1=(float)p1[2] , z2=(float)p2[2];
 
     GLMesh ret;
     ret.begin(GL_TRIANGLES);
@@ -311,11 +311,11 @@ public:
     {
       double alpha=Utils::clamp(I/(double)nslices,0.0,1.0);
       alpha=1-alpha;//back to front
-      double z=(1-alpha)*screenbox.p1.z+(alpha)*screenbox.p2.z;
-      Point3d v0=project.applyInverseMap(Point4d(screenbox.p1.x,screenbox.p1.y,z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v0); ret.vertex(v0); 
-      Point3d v1=project.applyInverseMap(Point4d(screenbox.p2.x,screenbox.p1.y,z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v1); ret.vertex(v1); 
-      Point3d v2=project.applyInverseMap(Point4d(screenbox.p2.x,screenbox.p2.y,z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v2); ret.vertex(v2); 
-      Point3d v3=project.applyInverseMap(Point4d(screenbox.p1.x,screenbox.p2.y,z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v3); ret.vertex(v3); 
+      double z=(1-alpha)*screenbox.p1[2]+(alpha)*screenbox.p2[2];
+      Point3d v0=project.applyInverseMap(Point4d(screenbox.p1[0],screenbox.p1[1],z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v0); ret.vertex(v0); 
+      Point3d v1=project.applyInverseMap(Point4d(screenbox.p2[0],screenbox.p1[1],z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v1); ret.vertex(v1); 
+      Point3d v2=project.applyInverseMap(Point4d(screenbox.p2[0],screenbox.p2[1],z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v2); ret.vertex(v2); 
+      Point3d v3=project.applyInverseMap(Point4d(screenbox.p1[0],screenbox.p2[1],z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v3); ret.vertex(v3); 
     }
     ret.end();
     return ret;

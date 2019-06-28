@@ -220,7 +220,7 @@ void GLCanvas::setUniformMaterial(GLShader& shader,const GLMaterial& material)
 /////////////////////////////////////////////////////////////////////////////
 void GLCanvas::setUniformLight(GLShader& shader,const Point4d& light_pos) 
 {
-  VisusAssert(light_pos.w==1); 
+  VisusAssert(light_pos[3]==1); 
   Point4d pos=getModelview()*light_pos;
   setUniform(shader.u_light_position,pos);
 }
@@ -500,7 +500,7 @@ void GLCanvas::setTextureInSlot(int slot,GLSampler& sampler,SharedPtr<GLTexture>
   glActiveTexture(GL_TEXTURE0);
 
   setUniform(sampler.u_sampler,slot);
-  setUniform(sampler.u_sampler_dims ,Point3d((double)texture->dims.x,(double)texture->dims.y,(double)texture->dims.z));
+  setUniform(sampler.u_sampler_dims ,texture->dims.castTo<Point3d>());
   setUniform(sampler.u_sampler_vs,texture->vs);
   setUniform(sampler.u_sampler_vt,texture->vt);
   setUniform(sampler.u_sampler_envmode,texture->envmode);

@@ -45,7 +45,7 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////////////////
-class Quaternion
+class Quaternion 
 {
 public:
 
@@ -79,7 +79,7 @@ public:
   //constructor
   explicit Quaternion(Point3d axis, double angle)
   {
-    if (axis.x==0.0 && axis.y==0.0 && axis.z==0.0)
+    if (axis[0]==0.0 && axis[1]==0.0 && axis[2]==0.0)
     {
       this->w = this->x = this->y = this->z = 0.0;
       return;
@@ -92,9 +92,9 @@ public:
     double s = sin(half_angle);
     
     this->w = c;
-    this->x = s * axis.x;
-    this->y = s * axis.y;
-    this->z = s * axis.z;
+    this->x = s * axis[0];
+    this->y = s * axis[1];
+    this->z = s * axis[2];
   }
 
   //constructor from string
@@ -102,6 +102,11 @@ public:
     std::istringstream parser(value);
     double w, x, y, z; parser >> w >> x >> y >> z;
     *this = Quaternion(w, x, y, z);
+  }
+
+  //operator[]
+  Point4d toPoint4d() const {
+    return Point4d(x,y,z,w);
   }
 
   //isNull
@@ -225,9 +230,9 @@ public:
     auto t9 = +this->y * this->z;
     auto t1 = -this->z * this->z;
 
-    auto x = 2.0 * ((t8 + t1) * p.x + (t6 - t4) * p.y + (t3 + t7) * p.z) + p.x;
-    auto y = 2.0 * ((t4 + t6) * p.x + (t5 + t1) * p.y + (t9 - t2) * p.z) + p.y;
-    auto z = 2.0 * ((t7 - t3) * p.x + (t2 + t9) * p.y + (t5 + t8) * p.z) + p.z;
+    auto x = 2.0 * ((t8 + t1) * p[0] + (t6 - t4) * p[1] + (t3 + t7) * p[2]) + p[0];
+    auto y = 2.0 * ((t4 + t6) * p[0] + (t5 + t1) * p[1] + (t9 - t2) * p[2]) + p[1];
+    auto z = 2.0 * ((t7 - t3) * p[0] + (t2 + t9) * p[1] + (t5 + t8) * p[2]) + p[2];
 
     return Point3d(x, y, z);
   }

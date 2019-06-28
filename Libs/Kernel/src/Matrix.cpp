@@ -69,13 +69,13 @@ Matrix Matrix::lookAt(Point3d Eye,Point3d Center,Point3d Up)
   Point3d forward, side, up;
   Matrix m = Matrix::identity(4);
 
-  forward[0] = Center.x - Eye.x;
-  forward[1] = Center.y - Eye.y;
-  forward[2] = Center.z - Eye.z;
+  forward[0] = Center[0] - Eye[0];
+  forward[1] = Center[1] - Eye[1];
+  forward[2] = Center[2] - Eye[2];
 
-  up[0] = Up.x;
-  up[1] = Up.y;
-  up[2] = Up.z;
+  up[0] = Up[0];
+  up[1] = Up[1];
+  up[2] = Up[2];
 
   forward=forward.normalized();
 
@@ -107,9 +107,9 @@ Matrix Matrix::lookAt(Point3d Eye,Point3d Center,Point3d Up)
 Matrix Matrix::rotateAroundAxis(Point3d axis,double angle)
 {
   axis = axis.normalized();
-  double x = axis.x;
-  double y = axis.y;
-  double z = axis.z;
+  double x = axis[0];
+  double y = axis[1];
+  double z = axis[2];
 
   double c = cos(angle);
   double s = sin(angle);
@@ -165,9 +165,9 @@ Matrix Matrix::scaleAroundAxis(Point3d axis, double k)
 {
   return
     Matrix(
-      1 + (k - 1) * axis.x * axis.x, (k - 1) * axis.x * axis.y, (k - 1) * axis.x * axis.z, 0,
-      (k - 1) * axis.x * axis.y, 1 + (k - 1) * axis.y * axis.y, (k - 1) * axis.y * axis.z, 0,
-      (k - 1) * axis.x * axis.z, (k - 1) * axis.y * axis.z, 1 + (k - 1) * axis.z * axis.z, 0,
+      1 + (k - 1) * axis[0] * axis[0], (k - 1) * axis[0] * axis[1], (k - 1) * axis[0] * axis[2], 0,
+      (k - 1) * axis[0] * axis[1], 1 + (k - 1) * axis[1] * axis[1], (k - 1) * axis[1] * axis[2], 0,
+      (k - 1) * axis[0] * axis[2], (k - 1) * axis[1] * axis[2], 1 + (k - 1) * axis[2] * axis[2], 0,
       0, 0, 0, 1);
 }
 
@@ -258,17 +258,18 @@ Quaternion Matrix::toQuaternion() const
 
 
 //////////////////////////////////////////////////////////
-Matrix Matrix::rotate(const Quaternion& q,Point3d vt)
+Matrix Matrix::rotate(const Quaternion& q_,Point3d vt)
 {
-  double fTx = 2.0f * q.x; double fTy = 2.0f * q.y; double fTz = 2.0f * q.z;
-  double fTwx = fTx * q.w; double fTwy = fTy * q.w; double fTwz = fTz * q.w;
-  double fTxx = fTx * q.x; double fTxy = fTy * q.x; double fTxz = fTz * q.x;
-  double fTyy = fTy * q.y; double fTyz = fTz * q.y; double fTzz = fTz * q.z;
+  auto q = q_.toPoint4d();
+  double fTx = 2.0f * q[0]; double fTy = 2.0f * q[1]; double fTz = 2.0f * q[2];
+  double fTwx = fTx * q[3]; double fTwy = fTy * q[3]; double fTwz = fTz * q[3];
+  double fTxx = fTx * q[0]; double fTxy = fTy * q[0]; double fTxz = fTz * q[0];
+  double fTyy = fTy * q[1]; double fTyz = fTz * q[1]; double fTzz = fTz * q[2];
 
   return Matrix(
-    1.0f - (fTyy + fTzz), (fTxy - fTwz), (fTxz + fTwy), vt.x,
-    (fTxy + fTwz), 1.0f - (fTxx + fTzz), (fTyz - fTwx), vt.y,
-    (fTxz - fTwy), (fTyz + fTwx), 1.0f - (fTxx + fTyy), vt.z,
+    1.0f - (fTyy + fTzz), (fTxy - fTwz), (fTxz + fTwy), vt[0],
+    (fTxy + fTwz), 1.0f - (fTxx + fTzz), (fTyz - fTwx), vt[1],
+    (fTxz - fTwy), (fTyz + fTwx), 1.0f - (fTxx + fTyy), vt[2],
     0,0,0,1);
 }
 

@@ -94,7 +94,7 @@ public:
 
   //getPointRelativeToCenter
   inline Point3d getPointRelativeToCenter(Point3d coeff) const
-  {return c + coeff.x*x + coeff.y*y + coeff.z*z;}
+  {return c + coeff[0]*x + coeff[1]*y + coeff[2]*z;}
 
   //getBoxPoint
   inline Point3d getBoxPoint(int idx) const
@@ -121,7 +121,7 @@ public:
   
   //scale
   inline LocalCoordinateSystem scale(Point3d vs) const
-  {return LocalCoordinateSystem(vs.x*getXAxis(),vs.y*getYAxis(),vs.z*getZAxis(),getCenter());}
+  {return LocalCoordinateSystem(vs[0]*getXAxis(),vs[1]*getYAxis(),vs[2]*getZAxis(),getCenter());}
 
   //translate
   inline LocalCoordinateSystem translate(Point3d vt) const

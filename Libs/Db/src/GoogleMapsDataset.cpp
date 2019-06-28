@@ -81,9 +81,9 @@ public:
   {
     auto coord=dataset->getTileCoordinate(query->start_address,query->end_address);
 
-    auto X=coord.x;
-    auto Y=coord.y;
-    auto Z=coord.z;
+    auto X=coord[0];
+    auto Y=coord[1];
+    auto Z=coord[2];
 
     //mirror along Y
     Y=(int)((Int64(1)<<Z)-Y-1);
@@ -105,8 +105,8 @@ public:
     NetService::push(netservice, request).when_ready([this, query](NetResponse response) {
 
       NdPoint nsamples = NdPoint::one(2);
-      nsamples[0] = dataset->tile_nsamples.x;
-      nsamples[1] = dataset->tile_nsamples.y;
+      nsamples[0] = dataset->tile_nsamples[0];
+      nsamples[1] = dataset->tile_nsamples[1];
 
       response.setHeader("visus-compression", dataset->tile_compression);
       response.setHeader("visus-nsamples", nsamples.toString());
@@ -360,16 +360,16 @@ LogicBox GoogleMapsDataset::getAddressRangeBox(BigInt start_address,BigInt end_a
 {
   auto coord=getTileCoordinate(start_address,end_address);
 
-  auto X=coord.x;
-  auto Y=coord.y;
-  auto Z=coord.z;
+  auto X=coord[0];
+  auto Y=coord[1];
+  auto Z=coord[2];
 
   int tile_width =(int)(this->getBox().p2[0])>>Z;
   int tile_height=(int)(this->getBox().p2[1])>>Z;
 
   NdPoint delta=NdPoint::one(2);
-  delta[0]=tile_width /this->tile_nsamples.x;
-  delta[1]=tile_height/this->tile_nsamples.y;
+  delta[0]=tile_width /this->tile_nsamples[0];
+  delta[1]=tile_height/this->tile_nsamples[1];
 
   NdBox box(NdPoint(2), NdPoint::one(2));
   box.p1[0] = tile_width  * (X + 0); box.p2[0] = tile_width  * (X + 1);
@@ -381,13 +381,13 @@ LogicBox GoogleMapsDataset::getAddressRangeBox(BigInt start_address,BigInt end_a
 //////////////////////////////////////////////////////////////
 bool GoogleMapsDataset::openFromUrl(Url url)
 {
-  this->tile_nsamples.x  = cint(url.getParam("tile_width" ,"256")); 
-  this->tile_nsamples.y  = cint(url.getParam("tile_height","256")); 
+  this->tile_nsamples[0]  = cint(url.getParam("tile_width" ,"256")); 
+  this->tile_nsamples[1]  = cint(url.getParam("tile_height","256")); 
   int   nlevels          = cint(url.getParam("nlevels","0"))    ; 
   this->tile_compression = url.getParam("compression","jpg")     ; 
   this->dtype            = DType::fromString(url.getParam("dtype","uint8[3]")); 
 
-  if (tile_nsamples.x<=0 || tile_nsamples.y<=0 || !nlevels || !dtype.valid() || tile_compression.empty())
+  if (tile_nsamples[0]<=0 || tile_nsamples[1]<=0 || !nlevels || !dtype.valid() || tile_compression.empty())
   {
     VisusAssert(false);
     this->invalidate();
@@ -396,12 +396,12 @@ bool GoogleMapsDataset::openFromUrl(Url url)
 
   //any google level double the dimensions in x and y (i.e. i don't have even resolutions)
   NdPoint overall_dims=NdPoint::one(2);
-  overall_dims[0]=tile_nsamples.x * (((Int64)1)<<nlevels);
-  overall_dims[1]=tile_nsamples.y * (((Int64)1)<<nlevels);
+  overall_dims[0]=tile_nsamples[0] * (((Int64)1)<<nlevels);
+  overall_dims[1]=tile_nsamples[1] * (((Int64)1)<<nlevels);
 
   this->url=url.toString();
   this->bitmask=DatasetBitmask::guess(overall_dims);
-  this->default_bitsperblock=Utils::getLog2(tile_nsamples.x*tile_nsamples.y);
+  this->default_bitsperblock=Utils::getLog2(tile_nsamples[0]*tile_nsamples[1]);
   this->box=NdBox(NdPoint(0,0),overall_dims);
   this->timesteps=DatasetTimesteps();
   this->timesteps.addTimestep(0);
@@ -431,8 +431,8 @@ LogicBox GoogleMapsDataset::getLevelBox(int H)
   int ntiles_y=(int)(1<<Z);
 
   NdPoint delta=NdPoint::one(2);
-  delta[0]=tile_width /this->tile_nsamples.x;
-  delta[1]=tile_height/this->tile_nsamples.y;
+  delta[0]=tile_width /this->tile_nsamples[0];
+  delta[1]=tile_height/this->tile_nsamples[1];
     
   NdBox box(NdPoint(0,0), NdPoint::one(1,1));
   box.p2[0] = ntiles_x*tile_width;

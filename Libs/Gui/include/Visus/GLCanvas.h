@@ -247,9 +247,9 @@ public:
   void setUniform(const GLUniform& uniform, int v1,int v2)                       {int location=program->getUniformLocation(uniform); if (location<0) return; glUniform2i(location,v1,v2);}
   void setUniform(const GLUniform& uniform, int v1,int v2,int v3)                {int location=program->getUniformLocation(uniform); if (location<0) return; glUniform3i(location,v1,v2,v3);}
   void setUniform(const GLUniform& uniform, int v1,int v2,int v3,int v4)         {int location=program->getUniformLocation(uniform); if (location<0) return; glUniform4i(location,v1,v2,v3,v4);}
-  //void setUniform(const GLUniform& uniform, Point2i v)                         {setUniform(uniform,v.x,v.y);}
-  //void setUniform(const GLUniform& uniform, Point3i v)                         {setUniform(uniform,v.x,v.y,v.z);}
-  //void setUniform(const GLUniform& uniform, Point4i v)                         {setUniform(uniform,v.x,v.y,v.z,v.w);}
+  //void setUniform(const GLUniform& uniform, Point2i v)                         {setUniform(uniform,v[0],v[1]);}
+  //void setUniform(const GLUniform& uniform, Point3i v)                         {setUniform(uniform,v[0],v[1],v[2]);}
+  //void setUniform(const GLUniform& uniform, Point4i v)                         {setUniform(uniform,v[0],v[1],v[2],v[3]);}
 
   void setUniform(const GLUniform& uniform, float v1)                            {int location=program->getUniformLocation(uniform); if (location<0) return; glUniform1f(location,v1);}
   void setUniform(const GLUniform& uniform, float v1,float v2)                   {int location=program->getUniformLocation(uniform); if (location<0) return; glUniform2f(location,v1,v2);}
@@ -261,12 +261,12 @@ public:
   void setUniform(const GLUniform& uniform, double v1,double v2,double v3)           {setUniform(uniform,(float)v1,(float)v2,(float)v3);}
   void setUniform(const GLUniform& uniform, double v1,double v2,double v3,double v4) {setUniform(uniform,(float)v1,(float)v2,(float)v3,(float)v4);}
 
-  void setUniform(const GLUniform& uniform, Point2f v)                           {setUniform(uniform,v.x,v.y);}
-  void setUniform(const GLUniform& uniform, Point3f v)                           {setUniform(uniform,v.x,v.y,v.z);}
-  void setUniform(const GLUniform& uniform, Point4f v)                           {setUniform(uniform,v.x,v.y,v.z,v.w);}
-  void setUniform(const GLUniform& uniform, Point2d v)                           {setUniform(uniform,(float)v.x,(float)v.y);}
-  void setUniform(const GLUniform& uniform, Point3d v)                           {setUniform(uniform,(float)v.x,(float)v.y,(float)v.z);}
-  void setUniform(const GLUniform& uniform, Point4d v)                           {setUniform(uniform,(float)v.x,(float)v.y,(float)v.z,(float)v.w);}
+  void setUniform(const GLUniform& uniform, Point2f v)                           {setUniform(uniform,v[0],v[1]);}
+  void setUniform(const GLUniform& uniform, Point3f v)                           {setUniform(uniform,v[0],v[1],v[2]);}
+  void setUniform(const GLUniform& uniform, Point4f v)                           {setUniform(uniform,v[0],v[1],v[2],v[3]);}
+  void setUniform(const GLUniform& uniform, Point2d v)                           {setUniform(uniform,(float)v[0],(float)v[1]);}
+  void setUniform(const GLUniform& uniform, Point3d v)                           {setUniform(uniform,(float)v[0],(float)v[1],(float)v[2]);}
+  void setUniform(const GLUniform& uniform, Point4d v)                           {setUniform(uniform,(float)v[0],(float)v[1],(float)v[2],(float)v[3]);}
 
   void setUniformColor(const GLUniform& uniform, const Color& color)             {setUniform(uniform,color.getRed(),color.getGreen(),color.getBlue(),color.getAlpha());}
   void setUniformPlane(const GLUniform& uniform, const Plane& h)                 {VisusAssert(h.getPointDim()==4);setUniform(uniform,(float)h[0],(float)h[1],(float)h[2],(float)h[3]);}
@@ -279,12 +279,12 @@ public:
   {
     auto Ti = Matrix(getModelview().invert());
     std::array<Plane, 6> planes = { {
-      Plane(+1.0, 0.0, 0.0, -box.p1.x)*Ti,
-      Plane(-1.0, 0.0, 0.0, +box.p2.x)*Ti,
-      Plane(0.0, +1.0, 0.0, -box.p1.y)*Ti,
-      Plane(0.0, -1.0, 0.0, +box.p2.y)*Ti,
-      Plane(0.0, 0.0, +1.0, -box.p1.z)*Ti,
-      Plane(0.0, 0.0, -1.0, +box.p2.z)*Ti
+      Plane(+1.0, 0.0, 0.0, -box.p1[0])*Ti,
+      Plane(-1.0, 0.0, 0.0, +box.p2[0])*Ti,
+      Plane(0.0, +1.0, 0.0, -box.p1[1])*Ti,
+      Plane(0.0, -1.0, 0.0, +box.p2[1])*Ti,
+      Plane(0.0, 0.0, +1.0, -box.p1[2])*Ti,
+      Plane(0.0, 0.0, -1.0, +box.p2[2])*Ti
     } };
     clipping_box.push(planes);
     setClippingBoxIfNeeded();

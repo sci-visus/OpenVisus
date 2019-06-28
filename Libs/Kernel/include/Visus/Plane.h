@@ -85,7 +85,7 @@ public:
   explicit Plane(Point3d p0,Point3d p1,Point3d p2)
   {
     auto n=(p1-p0).cross(p2-p0).normalized();
-    this->coords = { n.x,n.y,n.z };
+    this->coords = n.toVector();
     push_back(-(n.dot(p0)));
   }
 

@@ -266,7 +266,7 @@ public:
   //constructor
   template <typename Point>
   GLQuad(Point p1, Point p2, const Color& fill_color, const Color& line_color, int line_width = 1, SharedPtr<GLTexture> texture = SharedPtr<GLTexture>())
-    : GLQuad(Point(p1.x, p1.y), Point(p2.x, p1.y), Point(p2.x, p2.y), Point(p1.x, p2.y), fill_color, line_color, line_width, texture) {}
+    : GLQuad(Point(p1[0], p1[1]), Point(p2[0], p1[1]), Point(p2[0], p2[1]), Point(p1[0], p2[1]), fill_color, line_color, line_width, texture) {}
 
   //constructor
   template <typename Point>

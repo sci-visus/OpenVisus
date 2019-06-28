@@ -140,17 +140,17 @@ public:
 
   //project
   Point2d project(Point2d pos) const {
-    auto eye=(Tproject * Point3d(pos,1)).dropZ();
-    auto screenpos=Point2d(this->width()*eye.x,this->height()*eye.y);
-    screenpos.y=this->height()-screenpos.y-1; //mirror y
+    auto eye=(Tproject * Point3d(pos,1)).toPoint2();
+    auto screenpos=Point2d(this->width()*eye[0],this->height()*eye[1]);
+    screenpos[1]=this->height()-screenpos[1]-1; //mirror y
     return screenpos;
   }
 
   //unproject
   Point2d unproject(Point2d screenpos) const {
-    screenpos.y=this->height()-screenpos.y-1; //mirror y
-    auto eye=Point2d(screenpos.x/(double)this->width(),screenpos.y/(double)this->height());
-    return (Tunproject * Point3d(eye,1)).dropZ();
+    screenpos[1]=this->height()-screenpos[1]-1; //mirror y
+    auto eye=Point2d(screenpos[0]/(double)this->width(),screenpos[1]/(double)this->height());
+    return (Tunproject * Point3d(eye,1)).toPoint2();
   }
 
   //project

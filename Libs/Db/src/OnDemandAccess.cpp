@@ -401,9 +401,9 @@ public:
   template <typename CppType>
   inline CppType generateSample(const Point3d& p) const
   {
-    int xi = p.x*invstep;
-    int yi = p.y*invstep;
-    int zi = p.z*invstep;
+    int xi = p[0]*invstep;
+    int yi = p[1]*invstep;
+    int zi = p[2]*invstep;
     return (xi % 2 ^ (yi + 1) % 2 ^ zi % 2) ? 255 : 0;
   }
 };
@@ -422,8 +422,8 @@ public:
   template <typename CppType>
   inline CppType generateSample(const Point3d& p) const
   {
-    double x = p.x;
-    double y = p.y;
+    double x = p[0];
+    double y = p[1];
 
     //http://nuclear.mutantstargoat.com/articles/sdr_fract/
     const double scale = 2;

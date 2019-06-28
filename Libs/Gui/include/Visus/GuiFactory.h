@@ -474,9 +474,9 @@ namespace GuiFactory
     void setPoint(const Point3d& value,int precision=-1) {
 
       Point3d old_value=getPoint();
-      widgets.text_box[0]->setText(StringUtils::convertDoubleToString(value.x,precision).c_str());
-      widgets.text_box[1]->setText(StringUtils::convertDoubleToString(value.y,precision).c_str());
-      widgets.text_box[2]->setText(StringUtils::convertDoubleToString(value.z,precision).c_str());
+      widgets.text_box[0]->setText(StringUtils::convertDoubleToString(value[0],precision).c_str());
+      widgets.text_box[1]->setText(StringUtils::convertDoubleToString(value[1],precision).c_str());
+      widgets.text_box[2]->setText(StringUtils::convertDoubleToString(value[2],precision).c_str());
       auto new_value=getPoint();
       if (new_value!=old_value)
         emit valueChanged(new_value);
@@ -485,9 +485,9 @@ namespace GuiFactory
     //getPoint
     Point3d getPoint() const {
       Point3d ret;
-      ret.x=cdouble(widgets.text_box[0]->text());
-      ret.y=cdouble(widgets.text_box[1]->text());
-      ret.z=cdouble(widgets.text_box[2]->text());
+      ret[0]=cdouble(widgets.text_box[0]->text());
+      ret[1]=cdouble(widgets.text_box[1]->text());
+      ret[2]=cdouble(widgets.text_box[2]->text());
       return ret;
     }
 

@@ -108,18 +108,18 @@ public:
   //constructor: transform the default axis to the system X,Y,Z in P
   inline explicit Matrix(Point3d X, Point3d Y, Point3d Z, Point3d P)
     : Matrix(
-        X.x, Y.x, Z.x, P.x,
-        X.y, Y.y, Z.y, P.y,
-        X.z, Y.z, Z.z, P.z,
+        X[0], Y[0], Z[0], P[0],
+        X[1], Y[1], Z[1], P[1],
+        X[2], Y[2], Z[2], P[2],
         0, 0, 0, 1) {
   }
 
   //constructor
   Matrix(Point3d c0, Point3d c1, Point3d c2) 
     : Matrix(
-      c0.x, c1.x, c2.x,
-      c0.y, c1.y, c2.y, 
-      c0.z, c1.z, c2.z) {
+      c0[0], c1[0], c2[0],
+      c0[1], c1[1], c2[1],
+      c0[2], c1[2], c2[2]) {
   }
 
   // constructor
@@ -337,8 +337,8 @@ public:
   //translate
   static Matrix translate(Point2d vt) {
     return Matrix(
-      1, 0, vt.x,
-      0, 1, vt.y,
+      1, 0, vt[0],
+      0, 1, vt[1],
       0, 0, 1);
   }
 
@@ -346,9 +346,9 @@ public:
   static Matrix translate(Point3d vt)
   {
     return Matrix(
-      1, 0, 0, vt.x,
-      0, 1, 0, vt.y,
-      0, 0, 1, vt.z,
+      1, 0, 0, vt[0],
+      0, 1, 0, vt[1],
+      0, 0, 1, vt[2],
       0, 0, 0, 1);
   }
 
@@ -373,9 +373,9 @@ public:
   static Matrix scale(Point3d vs)
   {
     return Matrix(
-      vs.x, 0, 0, 0,
-      0, vs.y, 0, 0,
-      0, 0, vs.z, 0,
+      vs[0], 0, 0, 0,
+      0, vs[1], 0, 0,
+      0, 0, vs[2], 0,
       0, 0, 0, 1);
   }
 
@@ -391,8 +391,8 @@ public:
   //translate
   static Matrix scale(Point2d vs) {
     return Matrix(
-      vs.x, 0, 0,
-      0, vs.y, 0,
+      vs[0], 0, 0,
+      0, vs[1], 0,
       0, 0, 1);
   }
 
@@ -412,17 +412,17 @@ public:
   //nonZeroScale
   static Matrix nonZeroScale(Point3d vs) {
     return scale(Point3d(
-      vs.x ? vs.x : 1.0,
-      vs.y ? vs.y : 1.0,
-      vs.z ? vs.z : 1.0));
+      vs[0] ? vs[0] : 1.0,
+      vs[1] ? vs[1] : 1.0,
+      vs[2] ? vs[2] : 1.0));
   }
 
   //invNonZeroScale
   static Matrix invNonZeroScale(Point3d vs) {
     return scale(Point3d(
-      vs.x ? (1.0 / vs.x) : 1.0,
-      vs.y ? (1.0 / vs.y) : 1.0,
-      vs.z ? (1.0 / vs.z) : 1.0));
+      vs[0] ? (1.0 / vs[0]) : 1.0,
+      vs[1] ? (1.0 / vs[1]) : 1.0,
+      vs[2] ? (1.0 / vs[2]) : 1.0));
   }
 
   // rotate
