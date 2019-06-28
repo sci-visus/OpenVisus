@@ -114,7 +114,7 @@ public:
 
 
   //encode
-  virtual SharedPtr<HeapMemory> encode(NdPoint dims, DType dtype, SharedPtr<HeapMemory> decoded) override
+  virtual SharedPtr<HeapMemory> encode(PointNi dims, DType dtype, SharedPtr<HeapMemory> decoded) override
   {
     if (!decoded)
       return SharedPtr<HeapMemory>();
@@ -199,7 +199,7 @@ public:
   }
 
   //decode
-  virtual SharedPtr<HeapMemory> decode(NdPoint dims, DType dtype, SharedPtr<HeapMemory> encoded) override
+  virtual SharedPtr<HeapMemory> decode(PointNi dims, DType dtype, SharedPtr<HeapMemory> encoded) override
   {
     if (!encoded)
       return SharedPtr<HeapMemory>();
@@ -279,7 +279,7 @@ private:
 
   //Encode
   template<typename Type>
-  static bool Encode(FIBITMAP* dst, NdPoint dims, DType dtype, SharedPtr<HeapMemory> decoded)
+  static bool Encode(FIBITMAP* dst, PointNi dims, DType dtype, SharedPtr<HeapMemory> decoded)
   {
     int ncomponents = dtype.ncomponents();
     int Width = (int)dims[0];
@@ -310,7 +310,7 @@ private:
 
   //Decode
   template <typename Type>
-  static SharedPtr<HeapMemory> Decode(FIBITMAP* bitmap, NdPoint dims, DType dtype)
+  static SharedPtr<HeapMemory> Decode(FIBITMAP* bitmap, PointNi dims, DType dtype)
   {
     int ncomponents = dtype.ncomponents();
     int Width = (int)dims[0];
@@ -349,7 +349,7 @@ private:
 
 
   //compactDims
-  static NdPoint compactDims(NdPoint dims)
+  static PointNi compactDims(PointNi dims)
   {
     //"compact" dimension such that "1" are ignored
     //for example if dims(128,1,256) -> (128,256,1)
@@ -367,7 +367,7 @@ private:
     }
 
     ret.resize(3, 1);
-    return NdPoint::one(ret[0], ret[1], ret[2]);
+    return PointNi::one(ret[0], ret[1], ret[2]);
 
   }
 

@@ -56,7 +56,7 @@ namespace Visus {
 typedef struct
 {
   int    H;
-  NdBox  box;
+  BoxNi  box;
 }
 FastLoopStack;
 
@@ -109,13 +109,13 @@ public:
     auto& buffer=query->buffer;
     buffer.layout="";
 
-    NdBox   box = bitmask.upgradeBox(dataset->getBox(),maxh);
-    NdPoint dim = box.size();
+    BoxNi   box = bitmask.upgradeBox(dataset->getBox(),maxh);
+    PointNi dim = box.size();
 
     Float32* ptr=(Float32*)query->buffer.c_ptr();
     for (auto loc = ForEachPoint(buffer.dims); !loc.end(); loc.next())
     {
-      NdPoint pos=logic_box.pixelToLogic(loc.pos);
+      PointNi pos=logic_box.pixelToLogic(loc.pos);
       double x=(pos[0]-box.p1[0])/(double)(dim[0]);
       double y=(pos[1]-box.p1[1])/(double)(dim[1]);
       *ptr++=(Float32)Mandelbrot(x,y);
@@ -180,7 +180,7 @@ public:
       this->num = 1 << numbits; VisusAssert(this->num);
       this->pdim = bitmask.getPointDim();
 
-      if (!cached_points->resize(this->num * sizeof(NdPoint), __FILE__, __LINE__))
+      if (!cached_points->resize(this->num * sizeof(PointNi), __FILE__, __LINE__))
       {
         this->clear();
         return;
@@ -188,17 +188,17 @@ public:
 
       cached_points->fill(0);
 
-      NdPoint* ptr = (NdPoint*)cached_points->c_ptr();
+      PointNi* ptr = (PointNi*)cached_points->c_ptr();
 
       HzOrder hzorder(bitmask, H);
 
       //create the delta for points  
       for (BigInt zaddress = 0; zaddress < (this->num - 1); zaddress++, ptr++)
       {
-        NdPoint Pcur = hzorder.deinterleave(zaddress + 0);
-        NdPoint Pnex = hzorder.deinterleave(zaddress + 1);
+        PointNi Pcur = hzorder.deinterleave(zaddress + 0);
+        PointNi Pnex = hzorder.deinterleave(zaddress + 1);
 
-        (*ptr) = NdPoint(pdim);
+        (*ptr) = PointNi(pdim);
 
         //store the delta
         for (int D = 0; D < pdim; D++)
@@ -206,7 +206,7 @@ public:
       }
 
       //i want the last (FAKE and unused) element to be zero
-      (*ptr) = NdPoint(pdim);
+      (*ptr) = PointNi(pdim);
     }
 
     //destructor
@@ -221,7 +221,7 @@ public:
 
     //memsize
     inline int memsize() const {
-      return sizeof(NdPoint)*(this->num);
+      return sizeof(PointNi)*(this->num);
     }
 
     //clear
@@ -290,7 +290,7 @@ public:
       BigInt one=1;
       for (int i=0;i<dim;i++)
       {
-        NdPoint p(pdim);
+        PointNi p(pdim);
         p[D]=i;
         auto& pair=this->loc[D][i];
         pair.first=hzorder.interleave(p);
@@ -355,9 +355,9 @@ public:
     int              numused=0;
     int              bit;
     Int64 delta;
-    NdBox            query_box        = query->logic_box;
-    NdPoint          stride           = query->nsamples.stride();
-    NdPoint          qshift           = query->logic_box.shift;
+    BoxNi            query_box        = query->logic_box;
+    PointNi          stride           = query->nsamples.stride();
+    PointNi          qshift           = query->logic_box.shift;
     BigInt           numpoints;
     Aborted          aborted=query->aborted;
 
@@ -380,13 +380,13 @@ public:
         return false;
 
       LogicBox Lbox=vf->getLevelBox(hzorder,H);
-      NdPoint  lshift=Lbox.shift;
+      PointNi  lshift=Lbox.shift;
 
-      NdBox   zbox = (HzFrom!=0)? Bbox : Lbox;
+      BoxNi   zbox = (HzFrom!=0)? Bbox : Lbox;
       BigInt  hz   = hzorder.getAddress(zbox.p1);
 
-      NdBox user_box= query_box.getIntersection(zbox);
-      NdBox box=Lbox.alignBox(user_box);
+      BoxNi user_box= query_box.getIntersection(zbox);
+      BoxNi box=Lbox.alignBox(user_box);
       if (!box.isFullDim())
         continue;
      
@@ -426,9 +426,9 @@ public:
         {
           Int64    hzfrom = cint64(hz-HzFrom);
           Int64    num    = cint64(numpoints);
-          NdPoint* cc     = (NdPoint*)fllevel.cached_points->c_ptr();
-          const NdPoint  query_p1=query_box.p1;
-          NdPoint  P=item.box.p1;
+          PointNi* cc     = (PointNi*)fllevel.cached_points->c_ptr();
+          const PointNi  query_p1=query_box.p1;
+          PointNi  P=item.box.p1;
 
           ++numused;
 
@@ -517,15 +517,15 @@ public:
     DatasetBitmask bitmask       = vf->getBitmask();
     int            pdim          = vf->getPointDim();
     HzOrder        hzorder         (bitmask,query->max_resolution);
-    NdPoint        depth_mask    = hzorder.getLevelP2Included(query->getEndResolution());
+    PointNi        depth_mask    = hzorder.getLevelP2Included(query->getEndResolution());
 
     LogicBox Bbox=vf->getAddressRangeBox(block_query->start_address,block_query->end_address,query->max_resolution);
     if (!Bbox.valid())
       return false;
 
-    NdPoint stride = Rbuffer.dims.stride();
-    NdPoint p0     = Bbox.p1;
-    NdPoint shift  = Bbox.shift;
+    PointNi stride = Rbuffer.dims.stride();
+    PointNi p0     = Bbox.p1;
+    PointNi shift  = Bbox.shift;
 
     const auto points = (Int64*)query->point_query.coordinates->c_ptr();
 
@@ -581,8 +581,8 @@ IdxDataset::~IdxDataset(){
 ///////////////////////////////////////////////////////////
 LogicBox IdxDataset::getLevelBox(HzOrder& hzorder, int H)
 {
-  NdPoint delta = hzorder.getLevelDelta(H);
-  NdBox box(hzorder.getLevelP1(H),hzorder.getLevelP2Included(H) + delta);
+  PointNi delta = hzorder.getLevelDelta(H);
+  BoxNi box(hzorder.getLevelP1(H),hzorder.getLevelP2Included(H) + delta);
   auto ret=LogicBox(box, delta);
   VisusAssert(ret.valid());
   return ret;
@@ -804,7 +804,7 @@ bool IdxDataset::compressDataset(String compression)
 
 
 ///////////////////////////////////////////////////////////////////////////////////
-NdBox IdxDataset::adjustFilterBox(Query* query,DatasetFilter* filter,NdBox user_box,int H) 
+BoxNi IdxDataset::adjustFilterBox(Query* query,DatasetFilter* filter,BoxNi user_box,int H) 
 {
   int MaxH=query->max_resolution;
 
@@ -812,17 +812,17 @@ NdBox IdxDataset::adjustFilterBox(Query* query,DatasetFilter* filter,NdBox user_
   HzOrder hzorder(bitmask,MaxH);
   int pdim = bitmask.getPointDim();
 
-  NdPoint delta=hzorder.getLevelDelta(H);
+  PointNi delta=hzorder.getLevelDelta(H);
 
-  NdBox domain = bitmask.upgradeBox(query->filter.domain,MaxH);
+  BoxNi domain = bitmask.upgradeBox(query->filter.domain,MaxH);
 
   //important! for the filter alignment
-  NdBox box= user_box.getIntersection(domain);
+  BoxNi box= user_box.getIntersection(domain);
 
   if (!box.isFullDim())
     return box;
 
-  NdPoint filterstep=filter->getFilterStep(H,MaxH);
+  PointNi filterstep=filter->getFilterStep(H,MaxH);
 
   for (int D=0;D<pdim;D++) 
   {
@@ -864,7 +864,7 @@ LogicBox IdxDataset::getAddressRangeBox(BigInt HzFrom,BigInt HzTo,int max_resolu
   int end_resolution  =HzOrder::getAddressResolution(bitmask,HzTo-1);
   VisusAssert((HzFrom>0 && start_resolution==end_resolution) || (HzFrom==0 && start_resolution==0));
 
-  NdPoint delta(pdim);
+  PointNi delta(pdim);
   if (HzFrom==0)
   {
     int H=Utils::getLog2(HzTo-HzFrom);
@@ -876,7 +876,7 @@ LogicBox IdxDataset::getAddressRangeBox(BigInt HzFrom,BigInt HzTo,int max_resolu
     delta=hzorder.getLevelDelta(start_resolution);
   }
 
-  NdBox box(hzorder.getPoint(HzFrom),hzorder.getPoint(HzTo-1)+delta);
+  BoxNi box(hzorder.getPoint(HzFrom),hzorder.getPoint(HzTo-1)+delta);
 
   auto ret=LogicBox(box,delta);
   VisusAssert(ret.nsamples==HzOrder::getAddressRangeNumberOfSamples(bitmask,HzFrom,HzTo));
@@ -1268,7 +1268,7 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<Query> query)
 // (the default endh is the maximum resolution available)
 //*********************************************************************
 
-NdPoint IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frustum& viewdep,int end_resolution)
+PointNi IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frustum& viewdep,int end_resolution)
 {
   const int unit_box_edges[12][2]=
   {
@@ -1291,14 +1291,14 @@ NdPoint IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frust
 
   int pdim = bitmask.getPointDim();
 
-  NdPoint virtual_worlddim=NdPoint::one(pdim);
+  PointNi virtual_worlddim=PointNi::one(pdim);
   for (int H=1;H<=end_resolution;H++)
   {
     int bit=bitmask[H];
     virtual_worlddim[bit]<<=1;
   }
 
-  NdPoint nsamples=NdPoint::one(pdim);
+  PointNi nsamples=PointNi::one(pdim);
   for (int E=0;E<12;E++)
   {
     int query_axis=(E>=8)?2:(E&1?1:0);
@@ -1306,7 +1306,7 @@ NdPoint IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frust
     Point3d P2=points[unit_box_edges[E][1]];
     Point3d edge_size=(P2-P1).abs();
 
-    NdPoint idx_size   = this->getBox().size();
+    PointNi idx_size   = this->getBox().size();
 
     // need to project onto IJK  axis
     // I'm using this formula: x/virtual_worlddim[dataset_axis] = factor = edge_size[dataset_axis]/idx_size[dataset_axis]
@@ -1321,7 +1321,7 @@ NdPoint IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frust
   //view dependent, limit the nsamples to what the user can see on the screen!
   if (!screen_points.empty())
   {
-    NdPoint view_dependent_dims = NdPoint::one(pdim);
+    PointNi view_dependent_dims = PointNi::one(pdim);
     for (int E=0;E<12;E++)
     {
       int query_axis=(E>=8)?2:(E&1?1:0);
@@ -1451,26 +1451,26 @@ bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<Query> query)
   int pdim = bitmask.getPointDim();
 
   //I get twice the samples of the samples!
-  NdPoint DELTA=hzorder.getLevelDelta(end_resolution);
+  PointNi DELTA=hzorder.getLevelDelta(end_resolution);
   if (start_resolution==0 && end_resolution>0)
     DELTA[bitmask[end_resolution]]>>=1;
 
   bool bGotSamples=false;
-  NdPoint P1incl(pdim),P2incl(pdim);
+  PointNi P1incl(pdim),P2incl(pdim);
   for (int H=start_resolution;H<=end_resolution;H++)
   {
     int bit=bitmask[H];
 
     LogicBox Lbox=this->getLevelBox(hzorder,H);
 
-    NdBox box=Lbox.alignBox(query->aligned_box);
+    BoxNi box=Lbox.alignBox(query->aligned_box);
     if (!box.isFullDim())
       continue;
 
-    NdPoint p1incl=box.p1;
-    NdPoint p2incl=box.p2-Lbox.delta;
-    P1incl=bGotSamples? NdPoint::min(P1incl,p1incl) : p1incl;
-    P2incl=bGotSamples? NdPoint::max(P2incl,p2incl) : p2incl;
+    PointNi p1incl=box.p1;
+    PointNi p2incl=box.p2-Lbox.delta;
+    P1incl=bGotSamples? PointNi::min(P1incl,p1incl) : p1incl;
+    P2incl=bGotSamples? PointNi::max(P2incl,p2incl) : p2incl;
     bGotSamples=true;
   } 
 
@@ -1478,7 +1478,7 @@ bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<Query> query)
   if (!bGotSamples)
     return false;
 
-  NdBox BOX(P1incl,P2incl+DELTA);
+  BoxNi BOX(P1incl,P2incl+DELTA);
 
   auto logic_box=LogicBox(BOX,DELTA); 
   VisusAssert(logic_box.valid());
@@ -1511,7 +1511,7 @@ bool IdxDataset::beginQuery(SharedPtr<Query> query)
       if (this->getPointDim() == 3)
         query->clipping = query->position;
 
-      query->position = query->position.withoutTransformation().castTo<NdBox>().withPointDim(this->getPointDim()).getIntersection(this->getBox());
+      query->position = query->position.withoutTransformation().castTo<BoxNi>().withPointDim(this->getPointDim()).getIntersection(this->getBox());
     }
 
     if (query->filter.enabled)
@@ -1570,10 +1570,10 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
 
   int             pdim               = this->getPointDim();
   int             maxh               = query->max_resolution;
-  NdBox           bounds             = bitmask.upgradeBox(this->getBox(),maxh);
+  BoxNi           bounds             = bitmask.upgradeBox(this->getBox(),maxh);
   BigInt          last_bitmask       = ((BigInt)1)<<(maxh);
   HzOrder         hzorder            (bitmask,maxh);
-  NdPoint         depth_mask         = hzorder.getLevelP2Included(end_resolution);
+  PointNi         depth_mask         = hzorder.getLevelP2Included(end_resolution);
   int             bitsperblock       = access->bitsperblock;
   Aborted         aborted            = query->aborted;
 
@@ -1595,7 +1595,7 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
   //first BigInt is hzaddress, second Int32 is offset inside buffer
   auto hzaddresses=std::vector< std::pair<BigInt,Int32> >(tot,std::make_pair(-1,0)); 
 
-  NdPoint p(pdim);
+  PointNi p(pdim);
 
   //if this is not available I use the slower conversion p->zaddress->Hz
   if (!this->hzaddress_conversion_pointquery)
@@ -1715,7 +1715,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
     //need to go level by level to rebuild the original data (top-down)
     for (int H=cur_resolution+1; H<=end_resolution; H++)
     {
-      NdBox adjusted_box = adjustFilterBox(query.get(),filter.get(),query->aligned_box,H);
+      BoxNi adjusted_box = adjustFilterBox(query.get(),filter.get(),query->aligned_box,H);
 
       auto Wquery=std::make_shared<Query>(this,'r');
       Wquery->time=query->time;
@@ -1799,7 +1799,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
     for (int H=cur_resolution+1;!aborted() && H<=end_resolution;H++)
     {
       LogicBox Lbox=this->getLevelBox(hzorder,H);
-      NdBox box=Lbox.alignBox(query->logic_box);
+      BoxNi box=Lbox.alignBox(query->logic_box);
       if (!box.isFullDim())
         continue;
 
@@ -1988,7 +1988,7 @@ SharedPtr<IdxDataset> IdxDataset::createDatasetFromBuffer(String idx_filename, A
     field.default_layout = "rowmajor";
 
     IdxFile idxfile;
-    idxfile.box = NdBox(NdPoint(buffer.getPointDim()), buffer.dims);
+    idxfile.box = BoxNi(PointNi(buffer.getPointDim()), buffer.dims);
     idxfile.blocksperfile = -1; //one file per dataset
     idxfile.filename_template = StringUtils::format() << "./" << Path(idx_filename).getFileNameWithoutExtension() << ".bin";
     idxfile.fields.push_back(field);
@@ -2063,7 +2063,7 @@ bool IdxDataset::upgradeBoxQueryMaxResolution(int maxh)
   int pdim = vf->idxfile.bitmask.getPointDim();
   
   //WRONG : I should not change box here
-  NdBox box = query->position.getNdBox().withPointDim(this->getPointDim());
+  BoxNi box = query->position.getNdBox().withPointDim(this->getPointDim());
 
   while (query_maxh<maxh)
   {
@@ -2080,7 +2080,7 @@ bool IdxDataset::upgradeBoxQueryMaxResolution(int maxh)
   }
 
   this->shift=LogicBox::getShift(this->h_box,query->nsamples);
-  this->delta=NdPoint::one(pdim)<<this->shift;
+  this->delta=PointNi::one(pdim)<<this->shift;
 
   return true;
 }

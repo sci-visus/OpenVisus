@@ -346,7 +346,7 @@ public:
 
     //only getting dtype for field name
     if (!QUERY)
-      return engine->newPyObject(Array(NdPoint(pdim), field.dtype));
+      return engine->newPyObject(Array(PointNi(pdim), field.dtype));
 
     {
       ScopedReleaseGil release_gil;
@@ -552,7 +552,7 @@ public:
       {
         for (auto it : VF->childs)
         {
-          auto arg = Array(NdPoint(pdim), it.second.dataset->getDefaultField().dtype);
+          auto arg = Array(PointNi(pdim), it.second.dataset->getDefaultField().dtype);
           blend.addBlendArg(arg);
         }
       }
@@ -1163,7 +1163,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   auto sbox = istream.readInline("box");
   if (!sbox.empty())
   {
-    IDXFILE.box = NdBox::parseFromOldFormatString(pdim, sbox);
+    IDXFILE.box = BoxNi::parseFromOldFormatString(pdim, sbox);
   }
   else
   {
@@ -1209,10 +1209,10 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     }
 
     //union of boxes
-    IDXFILE.box = NdBox::invalid();
+    IDXFILE.box = BoxNi::invalid();
     for (auto it : childs)
     {
-      auto box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().castTo<NdBox>().withPointDim(pdim);
+      auto box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().castTo<BoxNi>().withPointDim(pdim);
       IDXFILE.box = IDXFILE.box.getUnion(box);
     }
   }
@@ -1223,8 +1223,8 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     auto BITMASK = DatasetBitmask::guess(IDXFILE.box.p2);
     auto bitmask = first->getBitmask();
 
-    NdPoint DIMS = BITMASK.getPow2Dims();
-    NdPoint dims = first->getBitmask().getPow2Dims();
+    PointNi DIMS = BITMASK.getPow2Dims();
+    PointNi dims = first->getBitmask().getPow2Dims();
     
     auto left  = DatasetBitmask::guess(DIMS.innerDiv(dims)).toString();
     auto right = bitmask.toString().substr(1);

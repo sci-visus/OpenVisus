@@ -1304,7 +1304,7 @@ inline PointN<T> operator*(Value s, const PointN<T>& p) {
 }
 
 typedef  PointN<double> PointNd;
-typedef  PointN<Int64>  NdPoint;
+typedef  PointN<Int64>  PointNi;
 
 
 template <typename T>

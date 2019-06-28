@@ -45,23 +45,23 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////
-class VISUS_DB_API LogicBox : public NdBox 
+class VISUS_DB_API LogicBox : public BoxNi 
 {
 public:
 
   VISUS_CLASS(LogicBox)
 
-  NdPoint nsamples;
-  NdPoint delta;
-  NdPoint shift;
+  PointNi nsamples;
+  PointNi delta;
+  PointNi shift;
 
   //default constructor
-  LogicBox() : NdBox(0) {
+  LogicBox() : BoxNi(0) {
   }
 
   //constructor
-  LogicBox(NdBox box_, NdPoint delta_) 
-    : NdBox(box_),delta(delta_),shift(delta_.getLog2())
+  LogicBox(BoxNi box_, PointNi delta_) 
+    : BoxNi(box_),delta(delta_),shift(delta_.getLog2())
   {
     int pdim = getPointDim();
 
@@ -70,22 +70,22 @@ public:
     VisusAssert(delta.innerProduct()>0);
 
     //calculate how many samples I will get
-    this->nsamples = NdPoint::one(pdim);
+    this->nsamples = PointNi::one(pdim);
     for (int D=0;D<pdim;D++)
       this->nsamples[D]=(this->p2[D]-this->p1[D])/this->delta[D];
 
     //probably overflow
-    if (this->nsamples.innerProduct()<=0 || !NdBox::isFullDim()) {
+    if (this->nsamples.innerProduct()<=0 || !BoxNi::isFullDim()) {
       *this=LogicBox();
       return;
     }
 
     //check alignment
     VisusAssert(
-      ((NdPoint::one(pdim).leftShift(this->shift))==this->delta) && 
-      (this->pixelToLogic(NdPoint(pdim))==this->p1) &&
+      ((PointNi::one(pdim).leftShift(this->shift))==this->delta) && 
+      (this->pixelToLogic(PointNi(pdim))==this->p1) &&
       (this->pixelToLogic(nsamples)==this->p2)  &&
-      (this->logicToPixel(this->p1)==NdPoint(pdim)) &&
+      (this->logicToPixel(this->p1)==PointNi(pdim)) &&
       (this->logicToPixel(this->p2)==nsamples)); 
   }
 
@@ -95,27 +95,27 @@ public:
   }
 
   //pixelToLogic
-  inline NdPoint pixelToLogic(const NdPoint& value) const {
+  inline PointNi pixelToLogic(const PointNi& value) const {
     return p1 + value.leftShift(shift);
   }
 
   //logicToPixel
-  inline NdPoint logicToPixel(const NdPoint& value) const {
+  inline PointNi logicToPixel(const PointNi& value) const {
     return (value-p1).rightShift(shift);
   }
 
   //alignBox
-  NdBox alignBox(NdBox value) const
+  BoxNi alignBox(BoxNi value) const
   {
     int pdim = nsamples.getPointDim();
 
     if (!this->valid())
-      return NdBox::invalid();
+      return BoxNi::invalid();
 
     value= value.getIntersection(*this);
 
     if (!value.isFullDim())
-      return NdBox::invalid();
+      return BoxNi::invalid();
 
     //NOTE: i can move P2 to the right, since p2 is not included it it's aligned it wont' be moved
     //      if it's not aligned will be moved to the right, but all the extra samples wont't be "good" due to the delta

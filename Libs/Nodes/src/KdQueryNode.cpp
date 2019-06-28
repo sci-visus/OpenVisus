@@ -125,7 +125,7 @@ public:
       return false;
 
     //remove transformation
-    position = Position(position.withoutTransformation().castTo<NdBox>().withPointDim(pdim).getIntersection(dataset->getBox()));
+    position = Position(position.withoutTransformation().castTo<BoxNi>().withPointDim(pdim).getIntersection(dataset->getBox()));
     if (!position.valid()) 
       return false;
 
@@ -182,11 +182,11 @@ public:
     int pdim = bitmask.getPointDim();
 
     //pow2_box
-    NdPoint pow2_dims=NdPoint::one(pdim);
+    PointNi pow2_dims=PointNi::one(pdim);
     for (int H = 1; H <= dataset->getMaxResolution(); H++)
       pow2_dims[bitmask[H]] <<= 1;
 
-    NdBox pow2_box(NdPoint(pdim),pow2_dims);
+    BoxNi pow2_box(PointNi(pdim),pow2_dims);
 
     int max_resolution=dataset->getBitmask().getMaxResolution();
     VisusAssert(bitsperblock<=max_resolution);

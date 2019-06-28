@@ -71,7 +71,7 @@ public:
   }
 
   //constructor
-  Position(NdBox value) : Position(value.castTo<BoxNd>()) {
+  Position(BoxNi value) : Position(value.castTo<BoxNd>()) {
   }
 
   //constructor
@@ -106,8 +106,8 @@ public:
   }
 
   //compose
-  static Position compose(Position A, NdPoint dims) {
-    auto B = Position(NdBox(NdPoint(dims.getPointDim()), dims));
+  static Position compose(Position A, PointNi dims) {
+    auto B = Position(BoxNi(PointNi(dims.getPointDim()), dims));
     return compose(A, B);
   }
 
@@ -127,8 +127,8 @@ public:
   }
 
   //getNdBox
-  NdBox getNdBox() const {
-    return this->box.castTo<NdBox>();
+  BoxNi getNdBox() const {
+    return this->box.castTo<BoxNi>();
   }
 
   //computeVolume

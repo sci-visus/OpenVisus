@@ -72,7 +72,7 @@ public:
 
   Array      buffer;
 
-  NdPoint    nsamples;
+  PointNi    nsamples;
   LogicBox   logic_box;
 
   //-1 guess progression
@@ -119,13 +119,13 @@ public:
   public:
     bool                     enabled = false;
     SharedPtr<DatasetFilter> value;
-    NdBox                    domain;
+    BoxNi                    domain;
   };
 
   Filter filter;
 
   //aligned_box (internal use only)
-  NdBox aligned_box;
+  BoxNi aligned_box;
 
   //filter_query (internal use only)
   SharedPtr<Query> filter_query;

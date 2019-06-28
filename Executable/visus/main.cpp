@@ -96,7 +96,7 @@ public:
     std::ostringstream out;
     out<<args[0]
       << " <filename.idx>" << std::endl
-      << "   [--box <NdBox>]" << std::endl
+      << "   [--box <BoxNi>]" << std::endl
       << "   [--fields <string>]" << std::endl
       << "   [--bitmask <string>]" << std::endl
       << "   [--bitsperblock <int>]" << std::endl
@@ -119,7 +119,7 @@ public:
     String filename = args[1];
 
     IdxFile idxfile;
-    idxfile.box = NdBox(NdPoint(data.getPointDim()), data.dims);
+    idxfile.box = BoxNi(PointNi(data.getPointDim()), data.dims);
     idxfile.fields.push_back(Field("data", data.dtype));
 
     for (int I = 2; I < (int)args.size(); I++)
@@ -128,7 +128,7 @@ public:
       {
         auto sbox = args[++I];
         int pdim = (int)StringUtils::split(sbox, " ", true).size() / 2; VisusAssert(pdim > 0);
-        idxfile.box = NdBox::parseFromOldFormatString(pdim, sbox);
+        idxfile.box = BoxNi::parseFromOldFormatString(pdim, sbox);
       }
 
       else if (args[I] == "--fields")
@@ -255,7 +255,7 @@ public:
     Field field = dataset->getDefaultField();
 
     int pdim = dataset->getPointDim();
-    NdPoint sliding_box = NdPoint::one(pdim);
+    PointNi sliding_box = PointNi::one(pdim);
 
     for (int I = 2; I<(int)args.size(); I++)
     {
@@ -767,8 +767,8 @@ public:
     std::ostringstream out;
     out << args[0]
       << " <filename> " << std::endl
-      << "   [--source-box      <NdBox>]" << std::endl
-      << "   [--destination-box <NdBox>]" << std::endl
+      << "   [--source-box      <BoxNi>]" << std::endl
+      << "   [--destination-box <BoxNi>]" << std::endl
       << "   [load_args]*" << std::endl;
     return out.str();
   }
@@ -791,15 +791,15 @@ public:
     if (pdim>to_paste.dims.getPointDim())
       to_paste.dims.setPointDim(pdim, 1);
 
-    NdBox Dbox(NdPoint(pdim), data.dims);
-    NdBox Sbox(NdPoint(pdim), to_paste.dims);
+    BoxNi Dbox(PointNi(pdim), data.dims);
+    BoxNi Sbox(PointNi(pdim), to_paste.dims);
     for (int I = 2; I<(int)args.size(); I++)
     {
       if (args[I] == "--destination-box")
-        Dbox = NdBox::parseFromOldFormatString(pdim,args[++I]);
+        Dbox = BoxNi::parseFromOldFormatString(pdim,args[++I]);
 
       else if (args[I] == "--source-box") {
-        Sbox = NdBox::parseFromOldFormatString(pdim, args[++I]);
+        Sbox = BoxNi::parseFromOldFormatString(pdim, args[++I]);
         if (pdim > Sbox.getPointDim()) {
           Sbox.p1.setPointDim(pdim,0);
           Sbox.p2.setPointDim(pdim,1);
@@ -901,7 +901,7 @@ public:
     std::ostringstream out;
     out << args[0]
       << "   [--dtype <DType>]" << std::endl
-      << "   [--dims <NdPoint>]" << std::endl;
+      << "   [--dims <PointNi>]" << std::endl;
     return out.str();
   }
 
@@ -912,7 +912,7 @@ public:
       ThrowException(StringUtils::format() << args[0] << " syntax error");
 
     DType   dtype = data.dtype;
-    NdPoint dims = data.dims;
+    PointNi dims = data.dims;
     for (int I = 1; I<(int)args.size(); I++)
     {
       if (args[I] == "--dtype")
@@ -923,7 +923,7 @@ public:
 
       if (args[I] == "--dims")
       {
-        dims = NdPoint::parseDims(args[++I]);
+        dims = PointNi::parseDims(args[++I]);
         continue;
       }
       
@@ -947,7 +947,7 @@ public:
   {
     std::ostringstream out;
     out << args[0]
-      << " <NdBox>" << std::endl;
+      << " <BoxNi>" << std::endl;
     return out.str();
   }
 
@@ -960,7 +960,7 @@ public:
     int pdim = data.getPointDim();
     String sbox = args[1];
 
-    NdBox box = NdBox::parseFromOldFormatString(pdim,sbox);
+    BoxNi box = BoxNi::parseFromOldFormatString(pdim,sbox);
     if (!box.isFullDim())
       ThrowException(StringUtils::format() << args[0] <<"  Invalid box " << sbox);
 
@@ -1764,7 +1764,7 @@ public:
       return Array();
     }
 
-    NdPoint dims            = NdPoint::one(512, 512, 512);
+    PointNi dims            = PointNi::one(512, 512, 512);
     int     num_slabs       = 128;
     String  dtype           = "int32";
     String  layout   = "";
@@ -1773,7 +1773,7 @@ public:
     {
       if (args[I] == "--dims")
       {
-        dims = NdPoint::parseDims(args[++I]);
+        dims = PointNi::parseDims(args[++I]);
         continue;
       }
 
@@ -1814,7 +1814,7 @@ public:
     //create the idx file
     {
       IdxFile idxfile;
-      idxfile.box = NdBox(NdPoint(3),dims);
+      idxfile.box = BoxNi(PointNi(3),dims);
       {
         Field field("myfield", DType::fromString(dtype));
         field.default_compression = ""; // no compression (in writing I should not use compression)
@@ -1841,7 +1841,7 @@ public:
       auto Z1 = Slab * slices_per_slab;
       auto Z2 =   Z1 + slices_per_slab;
 
-      NdBox slice_box = dataset->getBox().getZSlab(Z1,Z2);
+      BoxNi slice_box = dataset->getBox().getZSlab(Z1,Z2);
 
       //prepare the write query
       auto write = std::make_shared<Query>(dataset.get(), 'w');

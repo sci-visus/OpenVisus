@@ -52,7 +52,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(KdArrayNode)
 
   // box
-  NdBox box;    
+  BoxNi box;    
 
   //level
   int level=0;
@@ -126,7 +126,7 @@ public:
 #endif
 
   // (dataset) box 
-  NdBox box;  
+  BoxNi box;  
 
   //only for kd queries
   SharedPtr<KdArrayNode> root;
@@ -135,7 +135,7 @@ public:
   Position clipping;
 
   //current queried box
-  NdBox query_box;
+  BoxNi query_box;
 
   //current estimated end resolution
   int end_resolution;

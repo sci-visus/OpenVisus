@@ -75,7 +75,7 @@ public:
       return Array();
 
     DType    dtype;
-    NdPoint  dims;
+    PointNi  dims;
     int      value = 0;
 
     for (int I = 0; I<(int)args.size(); I++)
@@ -92,7 +92,7 @@ public:
       }
       else if (args[I] == "--dims")
       {
-        dims = NdPoint::parseDims(args[++I]);
+        dims = PointNi::parseDims(args[++I]);
         if (dims.innerProduct() <= 0)
         {
           VisusWarning() << "invalid --dims " << args[I];

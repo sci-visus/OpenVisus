@@ -118,7 +118,7 @@ private:
   bool setCurrentEndResolution(SharedPtr<Query> query);
 
   //kdTraverse
-  void kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<Query> query,NdBox box,BigInt id,int H,int end_resolution);
+  void kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<Query> query,BoxNi box,BigInt id,int H,int end_resolution);
 
 };
 

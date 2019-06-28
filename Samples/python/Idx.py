@@ -60,10 +60,10 @@ class TestIdx(unittest.TestCase):
 	# WriteIdx
 	def WriteIdx(self): 
 		
-		dataset_box=NdBox(NdPoint(0,0,0),NdPoint.one(16,16,16))
+		dataset_box=BoxNi(PointNi(0,0,0),PointNi.one(16,16,16))
 		
 		idxfile=IdxFile();
-		idxfile.box=NdBox(dataset_box)
+		idxfile.box=BoxNi(dataset_box)
 		idxfile.fields.push_back(Field("myfield",DType.fromString("uint32")))
 
 		bSaved=idxfile.save(self.filename)

@@ -92,30 +92,30 @@ public:
                              -----
                               8421
                              -----
-    interleave(NdPoint(0 0))= 0000= 0
-    interleave(NdPoint(1 0))= 0010= 2
-    interleave(NdPoint(2 0))= 1000= 8
-    interleave(NdPoint(3 0))= 1010=10
-    interleave(NdPoint(0 1))= 0001= 1
-    interleave(NdPoint(1 1))= 0011= 3
-    interleave(NdPoint(2 1))= 1001= 9
-    interleave(NdPoint(3 1))= 1011=11
-    interleave(NdPoint(0 2))= 0100= 4
-    interleave(NdPoint(1 2))= 0110= 6
-    interleave(NdPoint(2 2))= 1100=12
-    interleave(NdPoint(3 2))= 1110=14
-    interleave(NdPoint(0 3))= 0101= 5
-    interleave(NdPoint(1 3))= 0111= 7
-    interleave(NdPoint(2 3))= 1101=13
-    interleave(NdPoint(3 3))= 1111=15
+    interleave(PointNi(0 0))= 0000= 0
+    interleave(PointNi(1 0))= 0010= 2
+    interleave(PointNi(2 0))= 1000= 8
+    interleave(PointNi(3 0))= 1010=10
+    interleave(PointNi(0 1))= 0001= 1
+    interleave(PointNi(1 1))= 0011= 3
+    interleave(PointNi(2 1))= 1001= 9
+    interleave(PointNi(3 1))= 1011=11
+    interleave(PointNi(0 2))= 0100= 4
+    interleave(PointNi(1 2))= 0110= 6
+    interleave(PointNi(2 2))= 1100=12
+    interleave(PointNi(3 2))= 1110=14
+    interleave(PointNi(0 3))= 0101= 5
+    interleave(PointNi(1 3))= 0111= 7
+    interleave(PointNi(2 3))= 1101=13
+    interleave(PointNi(3 3))= 1111=15
   */
 
-  inline BigInt interleave(NdPoint p) const
+  inline BigInt interleave(PointNi p) const
   {
     VisusAssert(bitmask.valid());
     int maxh=this->maxh;
     BigInt z=0;
-    NdPoint zero(pdim);
+    PointNi zero(pdim);
     for (int shift=0;p!=zero;shift++,maxh--)
     {
       int bit=bitmask[maxh];
@@ -126,7 +126,7 @@ public:
   }
 
   //Zaddress -> PointNd
-  inline NdPoint deinterleave(BigInt z) const
+  inline PointNi deinterleave(BigInt z) const
   {return bitmask.deinterleave(z,this->maxh);}
 
   //getZStartAddress  (Replace the ..xxx.. into 0)
@@ -192,11 +192,11 @@ public:
   }
 
   //PointNd -> HzAddress
-  inline BigInt getAddress(const NdPoint& p) const
+  inline BigInt getAddress(const PointNi& p) const
   {return zAddressToHzAddress(interleave(p));}
 
   //HzAddress -> PointNd
-  inline NdPoint getPoint(const BigInt& hz) const
+  inline PointNi getPoint(const BigInt& hz) const
   {return deinterleave(hzAddressToZAddress(hz));}
 
 
@@ -212,10 +212,10 @@ public:
     Vxx10  getLevelDelta(3)=(2 2) 0
     Vxxx1  getLevelDelta(4)=(1 2) 1
   */
-  inline NdPoint getLevelDelta(int H) const
+  inline PointNi getLevelDelta(int H) const
   {
     VisusAssert(H>=0 && H<=maxh);
-    NdPoint p=NdPoint::one(pdim);
+    PointNi p=PointNi::one(pdim);
     if (!H) H=1;
     for (int K=maxh;K>=H;K--)
       p[bitmask[K]]<<=1;
@@ -234,10 +234,10 @@ public:
     Vxx10  getLevelP1(3)=V0010=(1,0)
     Vxxx1  getLevelP1(4)=V0001=(0,1)
   */
-  inline NdPoint getLevelP1(int H) const
+  inline PointNi getLevelP1(int H) const
   {
     VisusAssert(H>=0 && H<=maxh);
-    if (!H) return NdPoint(pdim);
+    if (!H) return PointNi(pdim);
     return deinterleave(getZStartAddress(H));
   }
 
@@ -253,10 +253,10 @@ public:
     Vxx10  getLevelP2Included(3)=V1110=(3,2)
     Vxxx1  getLevelP2Included(4)=V1111=(3,3)
   */
-  inline NdPoint getLevelP2Included(int H) const
+  inline PointNi getLevelP2Included(int H) const
   {
     VisusAssert(H>=0 && H<=maxh);
-    if (!H) return NdPoint(pdim);
+    if (!H) return PointNi(pdim);
     return deinterleave(getZEndAddress(H));
   }
 
@@ -269,10 +269,10 @@ public:
   }
 
   //getAddressRangeNumberOfSamples (i.e. samples for each axis)
-  static inline NdPoint getAddressRangeNumberOfSamples(const DatasetBitmask& bitmask,BigInt hzfrom,BigInt hzto)
+  static inline PointNi getAddressRangeNumberOfSamples(const DatasetBitmask& bitmask,BigInt hzfrom,BigInt hzto)
   {
     int bitsperblock=Utils::getLog2(cint64(hzto-hzfrom));
-    NdPoint nsamples=NdPoint::one(bitmask.getPointDim());
+    PointNi nsamples=PointNi::one(bitmask.getPointDim());
 
     //remember! block 1 has the same number of samples of block 0 and block 1 has hzResolution()=bitsperblock+1
     int H=(hzfrom!=0)? getAddressResolution(bitmask,hzfrom) : (bitsperblock+1); 
