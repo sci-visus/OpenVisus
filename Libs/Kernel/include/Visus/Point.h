@@ -1237,9 +1237,19 @@ private:
   {
     auto pdim = a.getPointDim();
     PointN ret(pdim);
-    for (int I = 0; I < pdim; I++)
-      ret[I] = Operation::compute(a[I]);
-    return ret;
+    switch (pdim)
+    {
+      case 5: ret[4] = Operation::compute(a[4]); /*following below*/
+      case 4: ret[3] = Operation::compute(a[3]); /*following below*/
+      case 3: ret[2] = Operation::compute(a[2]); /*following below*/
+      case 2: ret[1] = Operation::compute(a[1]); /*following below*/
+      case 1: ret[0] = Operation::compute(a[0]); /*following below*/
+      case 0: return ret;
+      default:
+        for (int I = 0; I < pdim; I++)
+          ret[I] = Operation::compute(a[I]);
+        return ret;
+    }
   }
 
   //applyOperation
@@ -1248,9 +1258,19 @@ private:
   {
     auto pdim = a.getPointDim();
     PointN ret(pdim);
-    for (int I = 0; I < pdim; I++)
-      ret[I] = op.compute(a[I]);
-    return ret;
+    switch (pdim)
+    {
+    case 5: ret[4] = op.compute(a[4]); /*following below*/
+    case 4: ret[3] = op.compute(a[3]); /*following below*/
+    case 3: ret[2] = op.compute(a[2]); /*following below*/
+    case 2: ret[1] = op.compute(a[1]); /*following below*/
+    case 1: ret[0] = op.compute(a[0]); /*following below*/
+    case 0: return ret;
+    default:
+      for (int I = 0; I < pdim; I++)
+        ret[I] = op.compute(a[I]);
+      return ret;
+    }
   }
 
   //applyOperation
@@ -1260,28 +1280,57 @@ private:
     auto pdim = a.getPointDim();
     VisusAssert(pdim == b.getPointDim());
     PointN ret(pdim);
-    for (int I = 0; I < pdim; I++)
-      ret[I] = Operation::compute(a[I], b[I]);
-    return ret;
+    switch (pdim)
+    {
+    case 5: ret[4] = Operation::compute(a[4], b[4]); /*following below*/
+    case 4: ret[3] = Operation::compute(a[3], b[3]); /*following below*/
+    case 3: ret[2] = Operation::compute(a[2], b[2]); /*following below*/
+    case 2: ret[1] = Operation::compute(a[1], b[1]); /*following below*/
+    case 1: ret[0] = Operation::compute(a[0], b[0]); /*following below*/
+    case 0: return ret;
+    default:
+      for (int I = 0; I < pdim; I++)
+        ret[I] = Operation::compute(a[I], b[I]);
+      return ret;
+    }
   }
 
   //checkAll
   template <typename Condition>
   static bool checkAll(const PointN& a) {
     auto pdim = a.getPointDim();
-    for (int I = 0; I < pdim; I++)
-      if (!Condition::isTrue(a[I])) return false;
-    return true;
+    switch (pdim)
+    {
+    case 5: if (!Condition::isTrue(a[4])) return false; /*following below*/
+    case 4: if (!Condition::isTrue(a[3])) return false; /*following below*/
+    case 3: if (!Condition::isTrue(a[2])) return false; /*following below*/
+    case 2: if (!Condition::isTrue(a[1])) return false; /*following below*/
+    case 1: if (!Condition::isTrue(a[0])) return false; /*following below*/
+    case 0: return true;
+    default:
+      for (int I = 0; I < pdim; I++)
+        if (!Condition::isTrue(a[I])) return false;
+      return true;
+    }
   }
 
   //checkAll
   template <typename Condition>
   static bool checkAll(const PointN& a, const PointN& b) {
     auto pdim = a.getPointDim();
-    VisusAssert(pdim == b.getPointDim());
-    for (int I = 0; I < pdim; I++)
-      if (!Condition::isTrue(a[I], b[I])) return false;
-    return true;
+    switch (pdim)
+    {
+    case 5: if (!Condition::isTrue(a[4], b[4])) return false; /*following below*/
+    case 4: if (!Condition::isTrue(a[3], b[3])) return false; /*following below*/
+    case 3: if (!Condition::isTrue(a[2], b[2])) return false; /*following below*/
+    case 2: if (!Condition::isTrue(a[1], b[1])) return false; /*following below*/
+    case 1: if (!Condition::isTrue(a[0], b[0])) return false; /*following below*/
+    case 0: return true;
+    default:
+      for (int I = 0; I < pdim; I++)
+        if (!Condition::isTrue(a[I], b[I])) return false;
+      return true;
+    }
   }
 
   //accumulateOperation
@@ -1290,11 +1339,20 @@ private:
   {
     T ret = initial_value;
     auto pdim = a.getPointDim();
-    for (int I = 0; I < pdim; I++)
-      ret = AccumulateOp::compute(ret, a[I]);
-    return ret;
+    switch (pdim)
+    {
+    case 5: ret = AccumulateOp::compute(ret, a[0]); ret = AccumulateOp::compute(ret, a[1]); ret = AccumulateOp::compute(ret, a[2]); ret = AccumulateOp::compute(ret, a[3]); ret = AccumulateOp::compute(ret, a[4]); return ret;
+    case 4: ret = AccumulateOp::compute(ret, a[0]); ret = AccumulateOp::compute(ret, a[1]); ret = AccumulateOp::compute(ret, a[2]); ret = AccumulateOp::compute(ret, a[3]); return ret;
+    case 3: ret = AccumulateOp::compute(ret, a[0]); ret = AccumulateOp::compute(ret, a[1]); ret = AccumulateOp::compute(ret, a[2]); return ret;
+    case 2: ret = AccumulateOp::compute(ret, a[0]); ret = AccumulateOp::compute(ret, a[1]); return ret;
+    case 1: ret = AccumulateOp::compute(ret, a[0]); return ret;
+    case 0: return ret;
+    default:
+      for (int I = 0; I < pdim; I++)
+        ret = AccumulateOp::compute(ret, a[I]);
+      return ret;
+    }
   }
-
 
 };//end class PointN
 

@@ -60,7 +60,7 @@ public:
 
   //applyInverseMap
   virtual PointNd applyInverseMap(PointNd p) const=0;
-  virtual Plane   applyInverseMap(Plane   h) const=0;
+  virtual Plane   applyInverseMap(Plane     h) const=0;
 
 };
 
