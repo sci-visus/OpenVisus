@@ -263,6 +263,7 @@ public:
     this->viewport   = MatrixMap(frustum.getViewportDirectTransformation(), frustum.getViewportInverseTransformation());
     this->projection = frustum.getProjection();
     this->modelview  = frustum.getModelview ();
+    VisusAssert(getSpaceDim() == 4);
   }
 
   //getFrustum
@@ -272,86 +273,97 @@ public:
   }
 #endif
 
+  //getSpaceDim
+  int getSpaceDim() const {
+    return modelview.getSpaceDim();
+  }
+
   //applyDirectMap
-  virtual Point4d applyDirectMap(const Point4d& p) const override
+  virtual PointNd applyDirectMap(PointNd p) const override 
   {
-    Point4d p4(p);
-    p4 = modelview .T * p4;
-    p4 = projection.T * p4;
-    p4 = viewport  .T * p4;
-    return p4;
+    if (p.getPointDim() < getSpaceDim()) 
+    {
+      p.setPointDim(getSpaceDim()); 
+      p.back() = 1;
+    }
+
+    return (viewport.T * (projection.T * (modelview.T * p)));
   }
 
   //applyInverseMap
-  virtual Point4d applyInverseMap(const Point4d& p) const override
+  virtual PointNd applyInverseMap(PointNd p) const override 
   {
-    Point4d p4(p);
-    p4 = viewport  .Ti * p4;
-    p4 = projection.Ti * p4;
-    p4 = modelview .Ti * p4;
-    if (!p4[3]) p4[3]=1;
-    return p4;
+    if (p.getPointDim() < getSpaceDim()) 
+    {
+      p.setPointDim(getSpaceDim()); 
+      p.back() = 1;
+    }
+
+    p = modelview .Ti * (projection.Ti * (viewport.Ti * p));
+    if (!p.back()) p.back()=1;
+    return p;
   }
 
   //applyDirectMap
-  virtual Plane applyDirectMap(const Plane& h) const override
+  virtual Plane applyDirectMap(Plane h) const override
   {
-    Point4d p4(h.coords);
-    p4 = p4 * modelview .Ti;
-    p4 = p4 * projection.Ti;
-    p4 = p4 * viewport  .Ti;
-    return Plane(p4[0],p4[1],p4[2],p4[3]);
+    VisusAssert(h.getSpaceDim() == getSpaceDim());
+    return Plane(((PointNd(h) * modelview.Ti) * projection.Ti) * viewport.Ti);
   }
 
   //applyDirectMap
-  virtual Plane applyInverseMap(const Plane& h) const override
+  virtual Plane applyInverseMap(Plane h) const override
   {
-    Point4d p4(h.coords);
-    p4 = p4*viewport  .T;
-    p4 = p4*projection.T;
-    p4 = p4*modelview .T;
-    return Plane(p4[0],p4[1],p4[2],p4[3]);
+    VisusAssert(h.getSpaceDim() == getSpaceDim());
+    return Plane(((PointNd(h) * viewport.T) * projection.T) * modelview.T);
   }
+
+public:
 
   //applyDirectMapFromEye
-  Point4d applyDirectMapFromEye(const Point4d& p) const 
+  PointNd applyDirectMapFromEye(PointNd p) const
   {
-    Point4d p4(p);
-    p4 = projection.T * p4;
-    p4 = viewport  .T * p4;
-    return p4;
+    if (p.getPointDim() < getSpaceDim())
+    {
+      p.setPointDim(getSpaceDim());
+      p.back() = 1;
+    }
+    return (viewport.T * (projection.T * p));
   }
 
   //applyInverseMapToEye
-  Point4d applyInverseMapToEye(const Point4d& p) const
+  PointNd applyInverseMapToEye(PointNd p) const
   {
-    Point4d p4(p);
-    p4 = viewport  .Ti * p4;
-    p4 = projection.Ti * p4;      
-    if (!p4[3]) p4[3] = 1;
-    return p4;
+    if (p.getPointDim() < getSpaceDim())
+    {
+      p.setPointDim(getSpaceDim());
+      p.back() = 1;
+    }
+    p = projection.Ti * (viewport.Ti * p);
+    if (!p.back()) p.back() = 1;
+    return p;
   }
 
   //projectPoint
-  Point2d projectPoint(const Point3d& p) const{
-    return applyDirectMap(Point4d(p, 1.0)).dropHomogeneousCoordinate().toPoint2();
+  Point2d projectPoint(Point3d p) const {
+    return applyDirectMap(PointNd(p,1.0)).dropHomogeneousCoordinate().toPoint2();
   }
 
   //unprojectPoint
-  Point3d unprojectPoint(const Point2d& p, double Z = 0.0) const{
-    return applyInverseMap(Point4d(p[0], p[1], Z, 1.0)).dropHomogeneousCoordinate();
+  Point3d unprojectPoint(Point2d p, double Z = 0.0) const{
+    return applyInverseMap(PointNd(p[0], p[1], Z, 1.0)).dropHomogeneousCoordinate().toPoint3();
   }
 
   //unprojectPointToEye
-  Point3d unprojectPointToEye(const Point2d& p, double Z = 0.0) const{
-    return applyInverseMapToEye(Point4d(p[0], p[1], Z, 1.0)).dropHomogeneousCoordinate();
+  Point3d unprojectPointToEye(Point2d p, double Z = 0.0) const{
+    return applyInverseMapToEye(PointNd(p[0], p[1], Z, 1.0)).dropHomogeneousCoordinate().toPoint3();
   }
 
   //return the ray
-  Ray getRay(Point2d p) const {
-    Point3d P0= unprojectPoint(p,0.0);
-    Point3d P1= unprojectPoint(p,1.0);
-    return Ray::fromTwoPoints(P0,P1);
+  Ray getRay(Point2d p) const  {
+    return Ray::fromTwoPoints(
+      unprojectPoint(p, 0.0), 
+      unprojectPoint(p, 1.0));
   }
 
 };

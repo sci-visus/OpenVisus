@@ -317,10 +317,10 @@ public:
       double alpha=Utils::clamp(I/(double)nslices,0.0,1.0);
       alpha=1-alpha;//back to front
       double z=(1-alpha)*screenbox.p1[2]+(alpha)*screenbox.p2[2];
-      Point3d v0=project.applyInverseMap(Point4d(screenbox.p1[0],screenbox.p1[1],z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v0); ret.vertex(v0); 
-      Point3d v1=project.applyInverseMap(Point4d(screenbox.p2[0],screenbox.p1[1],z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v1); ret.vertex(v1); 
-      Point3d v2=project.applyInverseMap(Point4d(screenbox.p2[0],screenbox.p2[1],z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v2); ret.vertex(v2); 
-      Point3d v3=project.applyInverseMap(Point4d(screenbox.p1[0],screenbox.p2[1],z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v3); ret.vertex(v3); 
+      auto v0=project.applyInverseMap(PointNd(screenbox.p1[0],screenbox.p1[1],z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v0); ret.vertex(v0); 
+      auto v1=project.applyInverseMap(PointNd(screenbox.p2[0],screenbox.p1[1],z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v1); ret.vertex(v1);
+      auto v2=project.applyInverseMap(PointNd(screenbox.p2[0],screenbox.p2[1],z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v2); ret.vertex(v2);
+      auto v3=project.applyInverseMap(PointNd(screenbox.p1[0],screenbox.p2[1],z,1.0)).dropHomogeneousCoordinate(); ret.texcoord3(v3); ret.vertex(v3);
     }
     ret.end();
     return ret;

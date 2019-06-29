@@ -247,9 +247,6 @@ public:
   void setUniform(const GLUniform& uniform, int v1,int v2)                       {int location=program->getUniformLocation(uniform); if (location<0) return; glUniform2i(location,v1,v2);}
   void setUniform(const GLUniform& uniform, int v1,int v2,int v3)                {int location=program->getUniformLocation(uniform); if (location<0) return; glUniform3i(location,v1,v2,v3);}
   void setUniform(const GLUniform& uniform, int v1,int v2,int v3,int v4)         {int location=program->getUniformLocation(uniform); if (location<0) return; glUniform4i(location,v1,v2,v3,v4);}
-  //void setUniform(const GLUniform& uniform, Point2i v)                         {setUniform(uniform,v[0],v[1]);}
-  //void setUniform(const GLUniform& uniform, Point3i v)                         {setUniform(uniform,v[0],v[1],v[2]);}
-  //void setUniform(const GLUniform& uniform, Point4i v)                         {setUniform(uniform,v[0],v[1],v[2],v[3]);}
 
   void setUniform(const GLUniform& uniform, float v1)                            {int location=program->getUniformLocation(uniform); if (location<0) return; glUniform1f(location,v1);}
   void setUniform(const GLUniform& uniform, float v1,float v2)                   {int location=program->getUniformLocation(uniform); if (location<0) return; glUniform2f(location,v1,v2);}
@@ -269,7 +266,7 @@ public:
   void setUniform(const GLUniform& uniform, Point4d v)                           {setUniform(uniform,(float)v[0],(float)v[1],(float)v[2],(float)v[3]);}
 
   void setUniformColor(const GLUniform& uniform, const Color& color)             {setUniform(uniform,color.getRed(),color.getGreen(),color.getBlue(),color.getAlpha());}
-  void setUniformPlane(const GLUniform& uniform, const Plane& h)                 {VisusAssert(h.getPointDim()==4);setUniform(uniform,(float)h[0],(float)h[1],(float)h[2],(float)h[3]);}
+  void setUniformPlane(const GLUniform& uniform, const Plane& h)                 {VisusAssert(h.getSpaceDim()==4);setUniform(uniform,(float)h[0],(float)h[1],(float)h[2],(float)h[3]);}
 
   //setUniformMatrix
   void setUniformMatrix(const GLUniform& uniform,const Matrix& T);

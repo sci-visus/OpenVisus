@@ -110,6 +110,16 @@ BoxNd Position::withoutTransformation() const
 }
 
 //////////////////////////////////////////////////
+static bool IsPointInsideHull(const PointNd point, const std::vector<Plane>& planes)
+{
+  const double epsilon = 1e-4;
+  bool bInside = true;
+  for (int I = 0; bInside && I < (int)planes.size(); I++)
+    bInside = planes[I].getDistance(point) < epsilon;
+  return bInside;
+};
+
+//////////////////////////////////////////////////
 Position Position::shrink(BoxNd dst_box,const LinearMap& map,Position position)
 {
   const int unit_box_edges[12][2]=
@@ -129,10 +139,7 @@ Position Position::shrink(BoxNd dst_box,const LinearMap& map,Position position)
   const LinearMap& T2(map);
   MatrixMap T1(position.T);
   auto src_rvalue=position.box.toBox3();
-  auto shrinked_rvalue= BoxNd::invalid();
-
-  #define DIRECT(T2,T1,value)   (T2.applyDirectMap(T1.applyDirectMap(value)))
-  #define INVERSE(T2,T1,value)  (T1.applyInverseMap(T2.applyInverseMap(value)))
+  auto shrinked_box= BoxNd::invalid();
 
   int query_dim=position.box.toBox3().minsize()>0? 3 : 2;
   if (query_dim==2)
@@ -146,10 +153,13 @@ Position Position::shrink(BoxNd dst_box,const LinearMap& map,Position position)
     VisusAssert(src_rvalue.p1[slice_axis]==src_rvalue.p2[slice_axis]);
     double slice_pos=src_rvalue.p1[slice_axis];
 
-    Plane slice_planes[3]={Plane(1,0,0,-slice_pos),Plane(0,1,0,-slice_pos),Plane(0,0,1,-slice_pos)};
+    Plane slice_planes[3]={
+      Plane(1,0,0,-slice_pos),
+      Plane(0,1,0,-slice_pos),
+      Plane(0,0,1,-slice_pos)};
 
     //how the plane is transformed by <T> (i.e. go to screen)
-    Plane slice_plane_in_screen=DIRECT(T2,T1,slice_planes[slice_axis]);
+    Plane slice_plane_in_screen= T2.applyDirectMap(T1.applyDirectMap(slice_planes[slice_axis]));
         
     //point classification
     double distances[8];
@@ -157,13 +167,13 @@ Position Position::shrink(BoxNd dst_box,const LinearMap& map,Position position)
     //points belonging to the plane
     for (int I=0;I<8;I++)
     {
-      Point3d p= dst_points[I].toPoint3();
+      auto p= dst_points[I];
       distances[I]=slice_plane_in_screen.getDistance(p);
       if (!distances[I]) 
       {
-        p=INVERSE(T2,T1,Point4d(p,1.0)).dropHomogeneousCoordinate();
+        p= T1.applyInverseMap(T2.applyInverseMap(p)).dropHomogeneousCoordinate();
         p[slice_axis]=slice_pos; //I know it must implicitely be on the Z plane! 
-        shrinked_rvalue.addPoint(p);
+        shrinked_box.addPoint(p);
       }
     }
 
@@ -174,27 +184,18 @@ Position Position::shrink(BoxNd dst_box,const LinearMap& map,Position position)
       int i2=unit_box_edges[E][1];double h2=distances[i2];
       if ((h1>0 && h2<0) || (h1<0 && h2>0))
       {
-        Point3d p1= dst_points[i1].toPoint3();h1=fabs(h1);
-        Point3d p2= dst_points[i2].toPoint3();h2=fabs(h2);
+        auto p1= dst_points[i1];h1=fabs(h1);
+        auto p2= dst_points[i2];h2=fabs(h2);
         double alpha =h2/(h1+h2);
         double beta  =h1/(h1+h2);
-        Point3d p=INVERSE(T2,T1,Point4d(alpha*p1 + beta*p2,1.0)).dropHomogeneousCoordinate();
+        auto p= T1.applyInverseMap(T2.applyInverseMap(alpha * p1 + beta * p2)).dropHomogeneousCoordinate();
         p[slice_axis]=slice_pos; //I know it must implicitely be on the Z plane! 
-        shrinked_rvalue.addPoint(p);
+        shrinked_box.addPoint(p);
       }
     }
   }
   else
   {
-    auto isPointInsideHull=[](const Point3d& point,const std::vector<Plane>& planes)
-    {
-		const double epsilon = 1e-4;
-      bool bInside=true;
-      for (int I=0;bInside && I<(int)planes.size();I++)
-        bInside=planes[I].getDistance(point)<epsilon;
-      return bInside;
-    };
-
     //see http://www.gamedev.net/community/forums/topic.asp?topic_id=224689
     VisusAssert(query_dim==3);
 
@@ -203,16 +204,17 @@ Position Position::shrink(BoxNd dst_box,const LinearMap& map,Position position)
     auto H1=src_rvalue.getPlanes();
 
     //the second polyhedra (transformed to be in the first polyhedra system, i.e. position)
-    Point3d V2[8];for (int I=0;I<8;I++) 
-      V2[I]=INVERSE(T2,T1,Point4d(dst_points[I].toPoint3(),1.0)).dropHomogeneousCoordinate();
+    PointNd V2[8];
+    for (int I=0;I<8;I++) 
+      V2[I]= T1.applyInverseMap(T2.applyInverseMap(dst_points[I])) .dropHomogeneousCoordinate();
   
     auto H2=dst_box.getPlanes(); 
     for (int H=0;H<6;H++) 
-      H2[H]=INVERSE(T2,T1,H2[H]);
+      H2[H]= T1.applyInverseMap(T2.applyInverseMap(H2[H]));
 
     //point of the first (second) polyhedra inside second (first) polyhedra
-    for (int V=0;V<8;V++) {if (isPointInsideHull(V1[V].toPoint3(),H2)) {shrinked_rvalue.addPoint(V1[V]);}}
-    for (int V=0;V<8;V++) {if (isPointInsideHull(V2[V],H1)) {shrinked_rvalue.addPoint(V2[V]);}}
+    for (int V=0;V<8;V++) {if (IsPointInsideHull(V1[V],H2)) {shrinked_box.addPoint(V1[V]);}}
+    for (int V=0;V<8;V++) {if (IsPointInsideHull(V2[V],H1)) {shrinked_box.addPoint(V2[V]);}}
 
     //intersection of first polydra edges with second polyhedral planes
     for (int H=0;H<6;H++)
@@ -226,12 +228,12 @@ Position Position::shrink(BoxNd dst_box,const LinearMap& map,Position position)
         int i2=unit_box_edges[E][1];double h2=distances[i2];
         if ((h1>0 && h2<0) || (h1<0 && h2>0))
         {
-          Point3d p1=V1[i1].toPoint3();h1=fabs(h1);
-          Point3d p2=V1[i2].toPoint3();h2=fabs(h2);
+          auto p1=V1[i1];h1=fabs(h1);
+          auto p2=V1[i2];h2=fabs(h2);
           double alpha =h2/(h1+h2);
           double beta  =h1/(h1+h2);
-          Point3d p=alpha*p1+beta*p2;
-          if (isPointInsideHull(p,H2)) {shrinked_rvalue.addPoint(p);}
+          auto p=alpha*p1+beta*p2;
+          if (IsPointInsideHull(p,H2)) {shrinked_box.addPoint(p);}
         }
       }
     }
@@ -248,24 +250,22 @@ Position Position::shrink(BoxNd dst_box,const LinearMap& map,Position position)
         int i2=unit_box_edges[E][1];double h2=distances[i2];
         if ((h1>0 && h2<0) || (h1<0 && h2>0))
         {
-          Point3d p1=V2[i1];h1=fabs(h1);
-          Point3d p2=V2[i2];h2=fabs(h2);
+          auto p1=V2[i1]; h1=fabs(h1);
+          auto p2=V2[i2]; h2=fabs(h2);
           double alpha =h2/(h1+h2);
           double beta  =h1/(h1+h2);
-          Point3d  p=alpha*p1+beta*p2;
-          if (isPointInsideHull(p,H1)) {shrinked_rvalue.addPoint(p);}
+          auto p=alpha*p1+beta*p2;
+          if (IsPointInsideHull(p,H1)) 
+            shrinked_box.addPoint(p);
         }
       }
     }
   }
 
-  if (shrinked_rvalue.valid())
-    shrinked_rvalue=shrinked_rvalue.getIntersection(src_rvalue);
+  if (shrinked_box.valid())
+    shrinked_box=shrinked_box.getIntersection(src_rvalue);
 
-  return Position(position.T,shrinked_rvalue);
-
-  #undef DIRECT
-  #undef INVERSE
+  return Position(position.T,shrinked_box);
 
 }
 

@@ -92,6 +92,11 @@ public:
     push_back(-(n.dot(p0)));
   }
 
+  //getSpaceDim
+  int getSpaceDim() const {
+    return (int)coords.size();
+  }
+
   //getNormal
   PointNd getNormal() const {
     return this->withoutBack();
@@ -115,6 +120,14 @@ public:
     auto N=getNormal();
     return V-(N *(V.dot(N)));
   }
+
+private:
+
+  //getPointDim
+  int getPointDim() const {
+    return PointNd::getPointDim();
+  }
+
 
 
 };//end class Plane

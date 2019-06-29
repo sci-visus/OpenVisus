@@ -115,7 +115,7 @@ public:
 
     for (auto plane : planes)
     {
-      VisusAssert(plane.getPointDim() == 4);
+      VisusAssert(plane.getSpaceDim() == 4);
       double min_distance= plane.getDistance(Point3d(
         plane[0]>=0?box.p1[0]:box.p2[0] ,
         plane[1]>=0?box.p1[1]:box.p2[1] ,

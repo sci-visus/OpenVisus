@@ -55,12 +55,12 @@ public:
   }
 
   //applyDirectMap
-  virtual Point4d applyDirectMap(const Point4d& p) const=0;
-  virtual Plane   applyDirectMap(const Plane&   h) const=0;
+  virtual PointNd applyDirectMap(PointNd p) const=0;
+  virtual Plane   applyDirectMap(Plane   h) const=0;
 
   //applyInverseMap
-  virtual Point4d applyInverseMap(const Point4d& p) const=0;
-  virtual Plane   applyInverseMap(const Plane&   h) const=0;
+  virtual PointNd applyInverseMap(PointNd p) const=0;
+  virtual Plane   applyInverseMap(Plane   h) const=0;
 
 };
 

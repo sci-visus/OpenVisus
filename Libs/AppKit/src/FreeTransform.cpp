@@ -153,8 +153,8 @@ void FreeTransform::glMousePressEvent(const FrustumMap& map,QMouseEvent* evt)
     {
       if (canScale(A)) 
       { 
-        Point3d axis_p1_onscreen=map.applyDirectMap(Point4d(lcs.getMinAxisPoint(A),1.0)).dropHomogeneousCoordinate(); axis_p1_onscreen[2]=0;
-        Point3d axis_p2_onscreen=map.applyDirectMap(Point4d(lcs.getMaxAxisPoint(A),1.0)).dropHomogeneousCoordinate(); axis_p2_onscreen[2]=0;
+        Point3d axis_p1_onscreen=map.applyDirectMap(Point4d(lcs.getMinAxisPoint(A),1.0)).dropHomogeneousCoordinate().toPoint3(); axis_p1_onscreen[2]=0;
+        Point3d axis_p2_onscreen=map.applyDirectMap(Point4d(lcs.getMaxAxisPoint(A),1.0)).dropHomogeneousCoordinate().toPoint3(); axis_p2_onscreen[2]=0;
         Segment axis_onscreen=Segment(axis_p1_onscreen,axis_p2_onscreen);
         bool p1_near=NearBy(axis_onscreen.p1.toPoint2(),pos);
         bool p2_near=NearBy(axis_onscreen.p2.toPoint2(),pos);
@@ -187,8 +187,8 @@ void FreeTransform::glMousePressEvent(const FrustumMap& map,QMouseEvent* evt)
     {
       if (canTranslate(A)) 
       {
-        Point3d axis_p1_onscreen=map.applyDirectMap(Point4d(lcs.getMinAxisPoint(A),1.0)).dropHomogeneousCoordinate(); axis_p1_onscreen[2]=0;
-        Point3d axis_p2_onscreen=map.applyDirectMap(Point4d(lcs.getMaxAxisPoint(A),1.0)).dropHomogeneousCoordinate(); axis_p2_onscreen[2]=0;
+        Point3d axis_p1_onscreen=map.applyDirectMap(Point4d(lcs.getMinAxisPoint(A),1.0)).dropHomogeneousCoordinate().toPoint3(); axis_p1_onscreen[2]=0;
+        Point3d axis_p2_onscreen=map.applyDirectMap(Point4d(lcs.getMaxAxisPoint(A),1.0)).dropHomogeneousCoordinate().toPoint3(); axis_p2_onscreen[2]=0;
         Segment axis_onscreen=Segment(axis_p1_onscreen,axis_p2_onscreen);
 
         double p0=axis_onscreen.getPointProjection(Point3d(pos)); //range is [0,1]

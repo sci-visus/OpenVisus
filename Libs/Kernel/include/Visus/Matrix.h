@@ -679,44 +679,58 @@ public:
 
   VISUS_CLASS(MatrixMap)
 
-  Matrix T  = Matrix::identity(4);
-  Matrix Ti = Matrix::identity(4);
+  Matrix T;
+  Matrix Ti;
 
   //constructor
-  MatrixMap()
-  {}
+  MatrixMap() {
+  }
 
   //constructor
-  MatrixMap(const Matrix& T_) : T(T_)
-  {
+  MatrixMap(const Matrix& T_) : T(T_) {
     Ti = T.invert();
   }
 
   //constructor
-  MatrixMap(const Matrix& T_, const Matrix& Ti_) : T(T_), Ti(Ti_)
-  {}
+  MatrixMap(const Matrix& T_, const Matrix& Ti_) : T(T_), Ti(Ti_) {
+  }
+
+  //getSpaceDim
+  int getSpaceDim() const {
+    return T.getSpaceDim();
+  }
 
   //applyDirectMap
-  virtual Point4d applyDirectMap(const Point4d& p) const
-  {
+  virtual PointNd applyDirectMap(PointNd p) const override {
+
+    if (p.getPointDim() < getSpaceDim())
+    {
+      p.setPointDim(getSpaceDim());
+      p.back() = 1;
+    }
+
     return T * p;
   }
 
   //applyInverseMap
-  virtual Point4d applyInverseMap(const Point4d& p) const
-  {
+  virtual PointNd applyInverseMap(PointNd p) const override  {
+    if (p.getPointDim() < getSpaceDim())
+    {
+      p.setPointDim(getSpaceDim());
+      p.back() = 1;
+    }
     return Ti * p;
   }
 
   //applyDirectMap
-  virtual Plane applyDirectMap(const Plane& h) const
-  {
+  virtual Plane applyDirectMap(Plane h) const override  {
+    VisusAssert(h.getSpaceDim() == getSpaceDim());
     return h * Matrix(Ti);
   }
 
   //applyDirectMap
-  virtual Plane applyInverseMap(const Plane& h) const
-  {
+  virtual Plane applyInverseMap(Plane h) const override  {
+    VisusAssert(h.getSpaceDim() == getSpaceDim());
     return h * Matrix(T);
   }
 
