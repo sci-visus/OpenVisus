@@ -266,17 +266,26 @@ public:
     VisusAssert(getSpaceDim() == 4);
   }
 
+  //getSpaceDim
+  virtual int getSpaceDim() const override {
+    auto ret = modelview.getSpaceDim();;
+    VisusAssert(ret == 4);
+    return ret;
+  }
+
+  //setSpaceDim
+  virtual void setSpaceDim(int value) {
+    VisusReleaseAssert(value == 4);
+    return;
+  }
+
+
   //getFrustum
 #if !SWIG
   const Frustum& getFrustum() const {
     return frustum;
   }
 #endif
-
-  //getSpaceDim
-  int getSpaceDim() const {
-    return modelview.getSpaceDim();
-  }
 
   //applyDirectMap
   virtual PointNd applyDirectMap(PointNd p) const override 

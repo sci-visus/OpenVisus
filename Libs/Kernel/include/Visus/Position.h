@@ -91,6 +91,26 @@ public:
     return Position();
   }
 
+  //getPointDim
+  int getPointDim() const {
+    return box.getPointDim();
+  }
+
+  //setPointDim
+  void setPointDim(int value) {
+    box.setPointDim(value);
+  }
+
+  //getSpaceDim
+  int getSpaceDim() const {
+    return T.getSpaceDim();
+  }
+
+  //setSpaceDim
+  void setSpaceDim(int value) {
+    T.setSpaceDim(value);
+  }
+
   //compose
   static Position compose(Position A, Position B)
   {
@@ -138,7 +158,7 @@ public:
   BoxNd withoutTransformation() const;
 
   //shrink i.e. map * (position.lvalue,position.rvalue') should be in dst_box, does not change position.lvalue
-  static Position shrink(BoxNd dst_box, const LinearMap& map, Position position);
+  static Position shrink(BoxNd dst_box, LinearMap& map, Position position);
 
   //toString
   String toString() const {

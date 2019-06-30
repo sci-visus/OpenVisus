@@ -147,7 +147,7 @@ public:
     Array   BUFFER;
     Matrix  PIXEL_TO_LOGIC = Matrix::identity(4);
     Matrix  LOGIC_TO_PIXEL = Matrix::identity(4);
-    Point3d logic_centroid;
+    PointNd logic_centroid;
 
     SharedPtr<Access> access;
   }

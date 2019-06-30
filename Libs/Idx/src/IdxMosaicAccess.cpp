@@ -65,11 +65,9 @@ IdxMosaicAccess::IdxMosaicAccess(IdxMultipleDataset* VF_, StringTree CONFIG)
   for (auto it : VF->childs)
   {
     auto vf = std::dynamic_pointer_cast<IdxDataset>(it.second.dataset); VisusAssert(vf);
-    auto offset = it.second.M.getCol(3).toPoint3();
-    auto index = PointNi(pdim);
-    for (int D = 0; D < pdim; D++)
-      index[D] = ((Int64)offset[D]) / dims[D];
-
+    VisusAssert(false);// need to check if this is correct
+    auto offset = it.second.M.getCol(pdim).castTo<PointNi>();
+    auto index = offset.innerDiv(dims);
     VisusAssert(!this->childs.count(index));
     this->childs[index].dataset=vf;
   }

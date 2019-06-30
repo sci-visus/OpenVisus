@@ -1455,7 +1455,7 @@ class WarpPerspective
 public:
 
   template <class Sample>
-  bool execute(Array& dst,const Matrix& T,Array src,Aborted& aborted)
+  bool execute(Array& dst,Matrix T,Array src,Aborted& aborted)
   {
     //not compatible
     if (dst.dtype != src.dtype) {
@@ -1471,8 +1471,8 @@ public:
 
     auto Ti=T.invert();
 
-    auto wdims = dst.dims; auto wstride=wdims.stride();
-    auto rdims = src.dims; auto rstride=rdims.stride();
+    auto wdims = dst.dims; 
+    auto rdims = src.dims; 
 
     VisusReleaseAssert(dst.alpha && dst.alpha->dtype == DTypes::UINT8);
     VisusReleaseAssert(src.alpha && src.alpha->dtype == DTypes::UINT8);
@@ -1486,35 +1486,40 @@ public:
 
     if (pdim <=3)
     {
-      int width  = pdim >= 1 ? wdims[0] : 1;
-      int height = pdim >= 2 ? wdims[1] : 1;
-      int depth  = pdim >= 3 ? wdims[2] : 1;
+      T.setSpaceDim(4);
+      Ti.setSpaceDim(4);
+      wdims.setPointDim(3, 1); auto wstride = wdims.stride();
+      rdims.setPointDim(3, 1); auto rstride = rdims.stride();
+
+      int width  = wdims[0];
+      int height = wdims[1];
+      int depth  = wdims[2];
 
       Point4d Sx,Sy,Sz;
 
       for (int z = 0; z < depth; z++)
       {
-        Sz[0] = Ti.mat[ 2] * z + Ti.mat[ 3];
-        Sz[1] = Ti.mat[ 6] * z + Ti.mat[ 7];
-        Sz[2] = Ti.mat[10] * z + Ti.mat[11];
-        Sz[3] = Ti.mat[14] * z + Ti.mat[15];
+        Sz[0] = Ti[ 2] * z + Ti[ 3];
+        Sz[1] = Ti[ 6] * z + Ti[ 7];
+        Sz[2] = Ti[10] * z + Ti[11];
+        Sz[3] = Ti[14] * z + Ti[15];
 
         for (int y = 0; y < height; y++)
         {
           if (aborted())
             return false;
 
-          Sy[0] = Ti.mat[ 1] * y + Sz[0];
-          Sy[1] = Ti.mat[ 5] * y + Sz[1];
-          Sy[2] = Ti.mat[ 9] * y + Sz[2];
-          Sy[3] = Ti.mat[13] * y + Sz[3];
+          Sy[0] = Ti[ 1] * y + Sz[0];
+          Sy[1] = Ti[ 5] * y + Sz[1];
+          Sy[2] = Ti[ 9] * y + Sz[2];
+          Sy[3] = Ti[13] * y + Sz[3];
 
           for (int x = 0; x < width; x++, wfrom++)
           {
-            Sx[0] = Ti.mat[ 0] * x + Sy[0];
-            Sx[1] = Ti.mat[ 4] * x + Sy[1];
-            Sx[2] = Ti.mat[ 8] * x + Sy[2];
-            Sx[3] = Ti.mat[12] * x + Sy[3];
+            Sx[0] = Ti[ 0] * x + Sy[0];
+            Sx[1] = Ti[ 4] * x + Sy[1];
+            Sx[2] = Ti[ 8] * x + Sy[2];
+            Sx[3] = Ti[12] * x + Sy[3];
 
             Sx[0] = (int)(Sx[0] / Sx[3]);
             Sx[1] = (int)(Sx[1] / Sx[3]);
@@ -1535,12 +1540,16 @@ public:
     }
     else
     {
+      auto wstride = wdims.stride();
+      auto rstride = rdims.stride();
+
       for (auto P = ForEachPoint(wdims); !P.end(); P.next(), ++wfrom)
       {
         if (aborted()) return false;
 
-        auto S = Ti*Point3d(P.pos.toPoint3d());
+        auto S = Ti* P.pos;
 
+        VisusAssert(false);//todo...
         S[0] = (int)S[0];
         S[1] = (int)S[1];
         S[2] = (int)S[2];
@@ -1588,7 +1597,7 @@ public:
 
   //execute
   template <class CppType>
-  bool execute(Type type, Array& dst, Array src, Matrix up_pixel_to_logic, Point3d logic_centroid, Aborted aborted )
+  bool execute(Type type, Array& dst, Array src, Matrix up_pixel_to_logic, PointNd logic_centroid, Aborted aborted)
   {
     if (!src) {
       VisusAssert(false);
@@ -1623,10 +1632,13 @@ public:
       return true;
 
     auto dims   = dst.dims;
-    auto pdim   = dims.getPointDim(); VisusReleaseAssert(pdim <= 3);
-    auto width  = pdim >= 1 ? dims[0] : 1;
-    auto height = pdim >= 2 ? dims[1] : 1;
-    auto depth  = pdim >= 3 ? dims[2] : 1;
+    auto pdim   = dims.getPointDim(); 
+    VisusReleaseAssert(pdim <= 3); //todo other cases
+    dims.setPointDim(3,1);
+
+    auto width  = dims[0];
+    auto height = dims[1];
+    auto depth  = dims[2];
     auto ncomponents = dst.dtype.ncomponents();
 
     #define isEmptyLine() (!SRC_ALPHA[SampleId]  && (width == 1 || memcmp(&SRC_ALPHA[SampleId], &SRC_ALPHA[SampleId + 1], width - 1)==0))
@@ -1772,6 +1784,7 @@ public:
 
       Point4d Px, Py, Pz;
       auto T = up_pixel_to_logic;
+      T.setSpaceDim(4);
 
       for (int C = 0; C < ncomponents; C++)
       {
@@ -1782,20 +1795,20 @@ public:
 
         for (int Z = 0; Z < depth; Z++)
         {
-          Pz[0] = T.mat[ 2] * Z + T.mat[ 3];
-          Pz[1] = T.mat[ 6] * Z + T.mat[ 7];
-          Pz[2] = T.mat[10] * Z + T.mat[11];
-          Pz[3] = T.mat[14] * Z + T.mat[15];
+          Pz[0] = T[ 2] * Z + T[ 3];
+          Pz[1] = T[ 6] * Z + T[ 7];
+          Pz[2] = T[10] * Z + T[11];
+          Pz[3] = T[14] * Z + T[15];
 
           for (int Y = 0; Y < height; Y++)
           {
             if (aborted())
               return false;
 
-            Py[0] = Pz[0] + T.mat[ 1] * Y;
-            Py[1] = Pz[1] + T.mat[ 5] * Y;
-            Py[2] = Pz[2] + T.mat[ 9] * Y;
-            Py[3] = Pz[3] + T.mat[13] * Y;
+            Py[0] = Pz[0] + T[ 1] * Y;
+            Py[1] = Pz[1] + T[ 5] * Y;
+            Py[2] = Pz[2] + T[ 9] * Y;
+            Py[3] = Pz[3] + T[13] * Y;
 
             if (isEmptyLine())
             {
@@ -1808,10 +1821,10 @@ public:
               if (SRC_ALPHA[SampleId])
               {
                 //(T * Point3d(X, Y, Z) - logic_centroid).module2();
-                Px[0] = T.mat[ 0] * X + Py[0];
-                Px[1] = T.mat[ 4] * X + Py[1];
-                Px[2] = T.mat[ 8] * X + Py[2];
-                Px[3] = T.mat[12] * X + Py[3];
+                Px[0] = T[ 0] * X + Py[0];
+                Px[1] = T[ 4] * X + Py[1];
+                Px[2] = T[ 8] * X + Py[2];
+                Px[3] = T[12] * X + Py[3];
 
                 auto dx = (Px[0] / Px[3]) - logic_centroid[0];
                 auto dy = (Px[1] / Px[3]) - logic_centroid[1];
@@ -1848,7 +1861,7 @@ BlendBuffers::~BlendBuffers() {
   delete pimpl;
 }
 
-void BlendBuffers::addBlendArg(Array src, Matrix up_pixel_to_logic, Point3d logic_centroid) {
+void BlendBuffers::addBlendArg(Array src, Matrix up_pixel_to_logic, PointNd logic_centroid) {
   ExecuteOnCppSamples(*pimpl, src.dtype, type, result,src, up_pixel_to_logic, logic_centroid, aborted);
 }
 
@@ -1864,34 +1877,38 @@ Array ArrayUtils::createTransformedAlpha(BoxNi bounds, Matrix T, PointNi dims, A
   int pdim = dims.getPointDim();
   if (pdim <= 3)
   {
-    int width  = pdim >= 1 ? dims[0] : 1;
-    int height = pdim >= 2 ? dims[1] : 1;
-    int depth  = pdim >= 3 ? dims[2] : 1;
+    T.setSpaceDim(4);
+    dims.setPointDim(3,1);
+    bounds.setPointDim(3);
+
+    int width  = dims[0];
+    int height = dims[1];
+    int depth  = dims[2];
 
     Point4d Px, Py, Pz;
     for (int z = 0; z < depth; z++) 
     {
-      Pz[0] = T.mat[ 2] * z + T.mat[ 3];
-      Pz[1] = T.mat[ 6] * z + T.mat[ 7];
-      Pz[2] = T.mat[10] * z + T.mat[11];
-      Pz[3] = T.mat[14] * z + T.mat[15];
+      Pz[0] = T[ 2] * z + T[ 3];
+      Pz[1] = T[ 6] * z + T[ 7];
+      Pz[2] = T[10] * z + T[11];
+      Pz[3] = T[14] * z + T[15];
 
       for (int y = 0; y < height; y++) 
       {
         if (aborted())
           return Array();
 
-        Py[0] = Pz[0] + T.mat[ 1] * y;
-        Py[1] = Pz[1] + T.mat[ 5] * y;
-        Py[2] = Pz[2] + T.mat[ 9] * y;
-        Py[3] = Pz[3] + T.mat[13] * y;
+        Py[0] = Pz[0] + T[ 1] * y;
+        Py[1] = Pz[1] + T[ 5] * y;
+        Py[2] = Pz[2] + T[ 9] * y;
+        Py[3] = Pz[3] + T[13] * y;
 
         for (int x = 0; x < width; x++, offset++)
         {
-          Px[0] = T.mat[ 0] * x + Py[0];
-          Px[1] = T.mat[ 4] * x + Py[1];
-          Px[2] = T.mat[ 8] * x + Py[2];
-          Px[3] = T.mat[12] * x + Py[3];
+          Px[0] = T[ 0] * x + Py[0];
+          Px[1] = T[ 4] * x + Py[1];
+          Px[2] = T[ 8] * x + Py[2];
+          Px[3] = T[12] * x + Py[3];
 
           Px[0] /= Px[3];
           Px[1] /= Px[3];
@@ -1912,8 +1929,9 @@ Array ArrayUtils::createTransformedAlpha(BoxNi bounds, Matrix T, PointNi dims, A
       if (aborted())
         return Array();
 
-      auto dw_logic = T * dw_pixel.pos.toPoint3d();
+      auto dw_logic = T * dw_pixel.pos;
 
+      VisusAssert(false);//todo
       write[offset] = (
         dw_logic[0] >= bounds.p1[0] && dw_logic[0] < bounds.p2[0] &&
         dw_logic[1] >= bounds.p1[1] && dw_logic[1] < bounds.p2[1] &&

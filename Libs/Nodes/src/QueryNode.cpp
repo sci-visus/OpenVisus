@@ -237,7 +237,8 @@ bool QueryNode::processInput()
     if (isViewDependentEnabled() && getViewDep().valid())
     {
       viewdep=getViewDep();
-      position=Position::shrink(viewdep.getScreenBox(),FrustumMap(viewdep),position);
+      auto frustum_map = FrustumMap(viewdep);
+      position=Position::shrink(viewdep.getScreenBox(), frustum_map,position);
       if (!position.valid())
       {
         publishDumbArray();
@@ -247,7 +248,11 @@ bool QueryNode::processInput()
 
     //find intersection with dataset box
     if (!bDisableFindQUeryIntersectionWithDatasetBox)
-      position=Position::shrink(dataset->getBox().castTo<BoxNd>(),MatrixMap(Matrix::identity(4)),position);
+    {
+      auto pdim = dataset->getPointDim();
+      auto matrix_map = MatrixMap(Matrix::identity(pdim));
+      position = Position::shrink(dataset->getBox().castTo<BoxNd>(), matrix_map, position);
+    }
 
     if (!position.valid()) 
     {

@@ -389,7 +389,7 @@ public:
     //VisusInfo()<<"VoxelScoopNode::makeClusterFromSeed(%s)",seed.toString().c_str());
     typedef Uint8 Type;
 
-    const Point3d dims = Data.dims.toPoint3d();
+    const Point3d dims = Data.dims.toPoint3().castTo<Point3d>();
     const Point3i idims = dims.castTo<Point3i>();
 
     auto pixel_to_physic = Position::compose(this->Data.bounds,Data.dims).T;
@@ -439,7 +439,7 @@ public:
     //VisusInfo()<<"VoxelScoopNode::calculate");
     typedef Uint8 Type;
 
-    auto idims = Data.dims.toPoint3i();
+    auto idims = Data.dims.toPoint3();
 
     auto pixel_to_physic = Position::compose(this->Data.bounds,Data.dims).T;
 

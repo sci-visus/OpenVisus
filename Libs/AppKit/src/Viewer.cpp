@@ -2734,7 +2734,7 @@ KdRenderArrayNode* Viewer::addKdRenderArrayNode(Node* parent,Node* data_provider
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String name,int dim,String fieldname,int access_id,String rendertype) 
+QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String name,int query_dim,String fieldname,int access_id,String rendertype)
 {
   if (!parent)
   {
@@ -2767,7 +2767,7 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
     String basename;
     if (rendertype=="isocontour") 
       basename="IsoContour";
-    else if (dim==3)                              
+    else if (query_dim ==3)
       basename="Volume";
     else
       basename="Slice"; 
@@ -2781,6 +2781,9 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
 
   int dataset_dim=dataset->getPointDim();
 
+  VisusAssert(query_dim <= dataset_dim);
+  VisusAssert(query_dim == 2 || query_dim == 3);
+
   //QueryNode
   auto query_node=new QueryNode(name);
   query_node->setVerbose(cint(config.readString("Configuration/QueryNode/verbose", "1")));
@@ -2791,13 +2794,10 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
 
   {
     auto box=dataset_node->getNodeBounds().withoutTransformation();
-    VisusAssert(dim == 2 || dim == 3);
-    if (dim== 2)
+    if (dataset_dim==3 && query_dim == 2)
     {
-      const int ref = 2;
-      auto Z = box.center()[ref];
-      box.p1[ref] = Z;
-      box.p2[ref] = Z;
+      auto Z = box.center()[2];
+      box=box.getZSlab(Z, Z);
     }
     query_node->setNodeBounds(Position(box));
   }
@@ -2847,7 +2847,7 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
       String default_palette_2d= config.readString("Configuration/VisusViewer/default_palette_2d","GrayOpaque");
       String default_palette_3d= config.readString("Configuration/VisusViewer/default_palette_3d","GrayTransparent");
       String default_render_type = config.readString("Configuration/VisusViewer/DefaultRenderNode/value", "");
-      addRenderArrayNode(query_node,scripting_node,dim==3?default_palette_3d:default_palette_2d, default_render_type);
+      addRenderArrayNode(query_node,scripting_node,query_dim==3?default_palette_3d:default_palette_2d, default_render_type);
     }
   }
   endUpdate();

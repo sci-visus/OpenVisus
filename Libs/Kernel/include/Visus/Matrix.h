@@ -53,10 +53,10 @@ namespace Visus {
 ///////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API Matrix
 {
-public:
-
   int dim = 0;
   std::vector<double> mat;
+
+public:
 
   //default constructor
   Matrix() {
@@ -135,7 +135,7 @@ public:
 
   //construct from string
   static Matrix parseFromString(int pdim, String value) {
-    if (value.empty()) return Matrix::identity(4);
+    if (value.empty()) return Matrix::identity(pdim);
     double parsed;
     std::vector<double> v;
     std::istringstream parser(value);
@@ -151,6 +151,37 @@ public:
   //getSpaceDim
   int getSpaceDim() const {
     return dim;
+  }
+
+  //setPointDim
+  void setSpaceDim(int dim)
+  {
+    if (dim == getSpaceDim())
+      return;
+
+    auto New = Matrix(dim);
+    auto Old = (*this);
+
+    int N = std::min(New.dim, Old.dim);
+    int R, C;
+
+    //copy inner avoiding right/bottom boundary
+    for (R = 0; R < N - 1; R++)
+      for (C = 0; C < N - 1; C++)
+        New(R, C) = Old(R, C);
+
+    //copy last column
+    for (R = 0; R < N - 1; R++)
+      New(R, New.dim - 1) = Old(R, Old.dim - 1);
+
+    //copy last row
+    for (C = 0; C < N - 1; C++)
+      New(New.dim - 1, C) = Old(Old.dim - 1, C);
+
+    if (N)
+      New(New.dim - 1, New.dim - 1) = Old(Old.dim - 1, Old.dim - 1);
+
+    (*this) = New;
   }
 
   //valid
@@ -256,10 +287,12 @@ public:
   }
 
   // operator Matrix + Matrix
-  Matrix operator+(const Matrix& b) const
+  Matrix operator+(Matrix b) const
   {
-    const Matrix& a = *this;
-    VisusAssert(a.dim == b.dim);
+    auto a = *this;
+    auto sdim = std::max(a.getSpaceDim(), b.getSpaceDim());
+    a.setSpaceDim(sdim);
+    b.setSpaceDim(sdim);
     Matrix ret(dim);
     for (int r = 0; r < dim; r++)
       for (int c = 0; c < dim; c++)
@@ -268,10 +301,12 @@ public:
   }
 
   //  operator Matrix - Matrix
-  Matrix operator-(const Matrix& b) const
+  Matrix operator-(Matrix b) const
   {
-    const Matrix& a = *this;
-    VisusAssert(a.dim == b.dim);
+    auto a = *this;
+    auto sdim = std::max(a.getSpaceDim(), b.getSpaceDim());
+    a.setSpaceDim(sdim);
+    b.setSpaceDim(sdim);
     Matrix ret(dim);
     for (int r = 0; r < dim; r++)
       for (int c = 0; c < dim; c++)
@@ -280,10 +315,12 @@ public:
   }
 
   // operator Matrix * Matrix
-  Matrix operator*(const Matrix& b) const
+  Matrix operator*(Matrix b) const
   {
-    const Matrix& a = *this;
-    VisusAssert(a.dim == b.dim);
+    auto a = *this;
+    auto sdim = std::max(a.getSpaceDim(), b.getSpaceDim());
+    a.setSpaceDim(sdim);
+    b.setSpaceDim(sdim);
     if (b.isIdentity()) return a;
     if (b.isIdentity()) return b;
     auto ret = Matrix::zero(dim);
@@ -317,25 +354,6 @@ public:
 
 public:
 
-
-  //translate
-  static Matrix translate(Point2d vt) {
-    return Matrix(
-      1, 0, vt[0],
-      0, 1, vt[1],
-      0, 0, 1);
-  }
-
-  //static translate
-  static Matrix translate(Point3d vt)
-  {
-    return Matrix(
-      1, 0, 0, vt[0],
-      0, 1, 0, vt[1],
-      0, 0, 1, vt[2],
-      0, 0, 0, 1);
-  }
-
   // translate
   static Matrix translate(PointNd vt)
   {
@@ -353,16 +371,6 @@ public:
     return Matrix::translate(vt);
   }
 
-  //static scale
-  static Matrix scale(Point3d vs)
-  {
-    return Matrix(
-      vs[0], 0, 0, 0,
-      0, vs[1], 0, 0,
-      0, 0, vs[2], 0,
-      0, 0, 0, 1);
-  }
-
   // scale
   static Matrix scale(PointNd vs)
   {
@@ -373,11 +381,10 @@ public:
   }
 
   //translate
-  static Matrix scale(Point2d vs) {
-    return Matrix(
-      vs[0], 0, 0,
-      0, vs[1], 0,
-      0, 0, 1);
+  static Matrix scale(int pdim, double scale) {
+    auto vs = PointNd(pdim);
+    for (int I = 0; I < pdim; I++) vs[I] = scale;
+    return Matrix::scale(vs);
   }
 
   //scaleAroundCenter
@@ -452,36 +459,6 @@ public:
   //embed (XY into a slice perpendicular to axis with certain offset)
   static Matrix embed(int axis, double offset);
 
-  //setPointDim
-  void setSpaceDim(int dim) 
-  {
-    if (dim == getSpaceDim())
-      return;
-
-    auto New = Matrix(dim);
-    auto Old = (*this);
-
-    int N = std::min(New.dim, Old.dim);
-    int R, C;
-
-    //copy inner avoiding right/bottom boundary
-    for (R = 0; R < N - 1; R++)
-      for (C = 0; C < N - 1; C++)
-        New(R, C) = Old(R, C);
-
-    //copy last column
-    for (R = 0; R < N - 1; R++)
-      New(R, New.dim - 1) = Old(R, Old.dim - 1);
-
-    //copy last row
-    for (C = 0; C < N - 1; C++)
-      New(New.dim - 1, C) = Old(Old.dim - 1, C);
-
-    if (N)
-      New(New.dim - 1, New.dim - 1) = Old(Old.dim - 1, Old.dim - 1);
-
-    (*this) = New;
-  }
 
 // Returns a submatrix of the current matrix, removing one row and column of the original matrix
   Matrix submatrix(int row, int column) const;
@@ -544,9 +521,10 @@ private:
 
 inline Matrix operator*(const Matrix& T, double coeff) 
 {
-  Matrix ret(T.dim);
-  for (int r = 0; r < T.dim; ++r)
-    for (int c = 0; c < T.dim; ++c)
+  auto sdim = T.getSpaceDim();
+  Matrix ret(sdim);
+  for (int r = 0; r < sdim; ++r)
+    for (int c = 0; c < sdim; ++c)
       ret(r, c) = T.get(r, c) * coeff;
   return ret;
 }
@@ -570,9 +548,9 @@ inline PointNd operator*(const Matrix& T, PointNd p)
     p.back() = 1; //homogeneous
   }
 
-  auto ret=PointNd(T.dim);
-  for (int r = 0; r < T.dim; r++)
-    for (int c = 0; c < T.dim; c++)
+  auto ret=PointNd(sdim);
+  for (int r = 0; r < sdim; r++)
+    for (int c = 0; c < sdim; c++)
       ret[r] += T.get(r, c) * p[c];
 
   if (pdim !=sdim)
@@ -580,6 +558,11 @@ inline PointNd operator*(const Matrix& T, PointNd p)
 
   return ret;
 }
+
+inline PointNd operator*(const Matrix& T, PointNi p) {
+  return T * p.castTo<PointNd>();
+}
+
 
 inline PointNd operator*(const PointNd& v, const Matrix& T)
 {
@@ -696,8 +679,15 @@ public:
   }
 
   //getSpaceDim
-  int getSpaceDim() const {
+  virtual int getSpaceDim() const override {
     return T.getSpaceDim();
+  }
+
+  //setSpaceDim
+  virtual void setSpaceDim(int value) {
+    VisusAssert(value >= this->getSpaceDim());
+    T.setSpaceDim(value);
+    Ti.setSpaceDim(value);
   }
 
   //applyDirectMap

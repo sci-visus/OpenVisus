@@ -44,7 +44,9 @@ namespace Visus {
   //////////////////////////////////////////////////
 Position::Position(std::vector<Matrix> Ts, BoxNd box)
 {
-  auto pdim = box.getPointDim(); VisusAssert(pdim > 0);
+  auto pdim = box.getPointDim(); 
+  if (pdim == 0)
+    return;
 
   auto sdim = pdim + 1;
 
@@ -105,7 +107,7 @@ BoxNd Position::withoutTransformation() const
   auto ret = BoxNd::invalid();
   auto points = this->box.getPoints();
   for (auto point : points)
-    ret.addPoint(T * point.toPoint3());
+    ret.addPoint(T * point);
   return ret;
 }
 
@@ -120,8 +122,11 @@ static bool IsPointInsideHull(const PointNd point, const std::vector<Plane>& pla
 };
 
 //////////////////////////////////////////////////
-Position Position::shrink(BoxNd dst_box,const LinearMap& map,Position position)
+Position Position::shrink(BoxNd dst_box,LinearMap& map,Position in_position)
 {
+  if (!in_position.valid())
+    return in_position;
+
   const int unit_box_edges[12][2]=
   {
     {0,1}, {1,2}, {2,3}, {3,0},
@@ -129,67 +134,68 @@ Position Position::shrink(BoxNd dst_box,const LinearMap& map,Position position)
     {0,4}, {1,5}, {2,6}, {3,7}
   };
 
+  //always working in 3d
   dst_box.setPointDim(3);
+  map.setSpaceDim(4);
 
-  if (!position.valid())
-    return position;
+  auto position = in_position;
+  position.setSpaceDim(4);
+  position.setPointDim(3);
 
   auto dst_points = dst_box.getPoints();
 
   const LinearMap& T2(map);
   MatrixMap T1(position.T);
-  auto src_rvalue=position.box.toBox3();
+  auto src_box=position.box.toBox3();
   auto shrinked_box= BoxNd::invalid();
 
-  int query_dim=position.box.toBox3().minsize()>0? 3 : 2;
-  if (query_dim==2)
+  int box_dim= src_box.minsize()>0? 3 : 2;
+  if (box_dim ==2)
   {
-    int slice_axis=-1;
-    if (src_rvalue.p1[0]==src_rvalue.p2[0]) {if (slice_axis>=0) return Position::invalid();slice_axis=0;}
-    if (src_rvalue.p1[1]==src_rvalue.p2[1]) {if (slice_axis>=0) return Position::invalid();slice_axis=1;}
-    if (src_rvalue.p1[2]==src_rvalue.p2[2]) {if (slice_axis>=0) return Position::invalid();slice_axis=2;}
-    VisusAssert(slice_axis>=0);
+    int slice_axis= src_box.minsize_index();
+    VisusAssert(slice_axis >= 0 && slice_axis<3);
+    VisusAssert(!src_box.size()[(slice_axis + 0) % 3]);
+    VisusAssert( src_box.size()[(slice_axis + 1) % 3]);
+    VisusAssert( src_box.size()[(slice_axis + 2) % 3]);
 
-    VisusAssert(src_rvalue.p1[slice_axis]==src_rvalue.p2[slice_axis]);
-    double slice_pos=src_rvalue.p1[slice_axis];
+    double slice_pos=src_box.p1[slice_axis];
 
-    Plane slice_planes[3]={
-      Plane(1,0,0,-slice_pos),
-      Plane(0,1,0,-slice_pos),
-      Plane(0,0,1,-slice_pos)};
+    auto slice_plane = PointNd(4);
+    slice_plane.back() = -slice_pos;
+    slice_plane[slice_axis] = 1;
 
     //how the plane is transformed by <T> (i.e. go to screen)
-    Plane slice_plane_in_screen= T2.applyDirectMap(T1.applyDirectMap(slice_planes[slice_axis]));
-        
+    Plane slice_plane_in_screen = T2.applyDirectMap(T1.applyDirectMap(Plane(slice_plane)));
+
     //point classification
     double distances[8];
 
     //points belonging to the plane
-    for (int I=0;I<8;I++)
+    for (int I = 0; I < 8; I++)
     {
-      auto p= dst_points[I];
-      distances[I]=slice_plane_in_screen.getDistance(p);
-      if (!distances[I]) 
+      auto p = dst_points[I];
+      distances[I] = slice_plane_in_screen.getDistance(p);
+      if (!distances[I])
       {
-        p= T1.applyInverseMap(T2.applyInverseMap(p)).dropHomogeneousCoordinate();
-        p[slice_axis]=slice_pos; //I know it must implicitely be on the Z plane! 
+        p = T1.applyInverseMap(T2.applyInverseMap(p)).dropHomogeneousCoordinate();
+        p[slice_axis] = slice_pos; //I know it must implicitely be on the Z plane! 
         shrinked_box.addPoint(p);
       }
     }
 
     //split edges
-    for (int E=0;E<12;E++)
+    for (int E = 0; E < 12; E++)
     {
-      int i1=unit_box_edges[E][0];double h1=distances[i1];
-      int i2=unit_box_edges[E][1];double h2=distances[i2];
-      if ((h1>0 && h2<0) || (h1<0 && h2>0))
+      int i1 = unit_box_edges[E][0]; double h1 = distances[i1];
+      int i2 = unit_box_edges[E][1]; double h2 = distances[i2];
+      if ((h1 > 0 && h2 < 0) || (h1 < 0 && h2>0))
       {
-        auto p1= dst_points[i1];h1=fabs(h1);
-        auto p2= dst_points[i2];h2=fabs(h2);
-        double alpha =h2/(h1+h2);
-        double beta  =h1/(h1+h2);
-        auto p= T1.applyInverseMap(T2.applyInverseMap(alpha * p1 + beta * p2)).dropHomogeneousCoordinate();
-        p[slice_axis]=slice_pos; //I know it must implicitely be on the Z plane! 
+        auto p1 = dst_points[i1]; h1 = fabs(h1);
+        auto p2 = dst_points[i2]; h2 = fabs(h2);
+        double alpha = h2 / (h1 + h2);
+        double beta = h1 / (h1 + h2);
+        auto p = T1.applyInverseMap(T2.applyInverseMap(alpha * p1 + beta * p2)).dropHomogeneousCoordinate();
+        p[slice_axis] = slice_pos; //I know it must implicitely be on the Z plane! 
         shrinked_box.addPoint(p);
       }
     }
@@ -197,75 +203,88 @@ Position Position::shrink(BoxNd dst_box,const LinearMap& map,Position position)
   else
   {
     //see http://www.gamedev.net/community/forums/topic.asp?topic_id=224689
-    VisusAssert(query_dim==3);
+    VisusAssert(box_dim == 3);
 
     //the first polyhedra (i.e. position)
-    auto V1= src_rvalue.getPoints();
-    auto H1=src_rvalue.getPlanes();
+    auto V1 = src_box.getPoints();
+    auto H1 = src_box.getPlanes();
 
     //the second polyhedra (transformed to be in the first polyhedra system, i.e. position)
     PointNd V2[8];
-    for (int I=0;I<8;I++) 
-      V2[I]= T1.applyInverseMap(T2.applyInverseMap(dst_points[I])) .dropHomogeneousCoordinate();
-  
-    auto H2=dst_box.getPlanes(); 
-    for (int H=0;H<6;H++) 
-      H2[H]= T1.applyInverseMap(T2.applyInverseMap(H2[H]));
+    for (int I = 0; I < 8; I++)
+      V2[I] = T1.applyInverseMap(T2.applyInverseMap(dst_points[I])).dropHomogeneousCoordinate();
+
+    auto H2 = dst_box.getPlanes();
+    for (int H = 0; H < 6; H++)
+      H2[H] = T1.applyInverseMap(T2.applyInverseMap(H2[H]));
 
     //point of the first (second) polyhedra inside second (first) polyhedra
-    for (int V=0;V<8;V++) {if (IsPointInsideHull(V1[V],H2)) {shrinked_box.addPoint(V1[V]);}}
-    for (int V=0;V<8;V++) {if (IsPointInsideHull(V2[V],H1)) {shrinked_box.addPoint(V2[V]);}}
+    for (int V = 0; V < 8; V++) {
+      if (IsPointInsideHull(V1[V], H2))
+        shrinked_box.addPoint(V1[V]);
+    }
+
+    for (int V = 0; V < 8; V++) {
+      if (IsPointInsideHull(V2[V], H1))
+        shrinked_box.addPoint(V2[V]);
+    }
 
     //intersection of first polydra edges with second polyhedral planes
-    for (int H=0;H<6;H++)
+    for (int H = 0; H < 6; H++)
     {
       double distances[8];
-      for (int V=0;V<8;V++) distances[V]=H2[H].getDistance(V1[V]);
-      
-      for (int E=0;E<12;E++)
+      for (int V = 0; V < 8; V++)
+        distances[V] = H2[H].getDistance(V1[V]);
+
+      for (int E = 0; E < 12; E++)
       {
-        int i1=unit_box_edges[E][0];double h1=distances[i1];
-        int i2=unit_box_edges[E][1];double h2=distances[i2];
-        if ((h1>0 && h2<0) || (h1<0 && h2>0))
+        int i1 = unit_box_edges[E][0]; double h1 = distances[i1];
+        int i2 = unit_box_edges[E][1]; double h2 = distances[i2];
+        if ((h1 > 0 && h2 < 0) || (h1 < 0 && h2>0))
         {
-          auto p1=V1[i1];h1=fabs(h1);
-          auto p2=V1[i2];h2=fabs(h2);
-          double alpha =h2/(h1+h2);
-          double beta  =h1/(h1+h2);
-          auto p=alpha*p1+beta*p2;
-          if (IsPointInsideHull(p,H2)) {shrinked_box.addPoint(p);}
+          auto p1 = V1[i1]; h1 = fabs(h1);
+          auto p2 = V1[i2]; h2 = fabs(h2);
+          double alpha = h2 / (h1 + h2);
+          double beta = h1 / (h1 + h2);
+          auto p = alpha * p1 + beta * p2;
+          if (IsPointInsideHull(p, H2))
+            shrinked_box.addPoint(p);
         }
       }
     }
 
     //intersection of second polyhedra edges with first polyhedral planes
-    for (int H=0;H<6;H++)
+    for (int H = 0; H < 6; H++)
     {
       double distances[8];
-      for (int V=0;V<8;V++) distances[V]=H1[H].getDistance(V2[V]);
-      
-      for (int E=0;E<12;E++)
+      for (int V = 0; V < 8; V++)
+        distances[V] = H1[H].getDistance(V2[V]);
+
+      for (int E = 0; E < 12; E++)
       {
-        int i1=unit_box_edges[E][0];double h1=distances[i1];
-        int i2=unit_box_edges[E][1];double h2=distances[i2];
-        if ((h1>0 && h2<0) || (h1<0 && h2>0))
+        int i1 = unit_box_edges[E][0]; double h1 = distances[i1];
+        int i2 = unit_box_edges[E][1]; double h2 = distances[i2];
+        if ((h1 > 0 && h2 < 0) || (h1 < 0 && h2>0))
         {
-          auto p1=V2[i1]; h1=fabs(h1);
-          auto p2=V2[i2]; h2=fabs(h2);
-          double alpha =h2/(h1+h2);
-          double beta  =h1/(h1+h2);
-          auto p=alpha*p1+beta*p2;
-          if (IsPointInsideHull(p,H1)) 
+          auto p1 = V2[i1]; h1 = fabs(h1);
+          auto p2 = V2[i2]; h2 = fabs(h2);
+          double alpha = h2 / (h1 + h2);
+          double beta = h1 / (h1 + h2);
+          auto p = alpha * p1 + beta * p2;
+          if (IsPointInsideHull(p, H1))
             shrinked_box.addPoint(p);
         }
       }
     }
   }
 
-  if (shrinked_box.valid())
-    shrinked_box=shrinked_box.getIntersection(src_rvalue);
+  if (!shrinked_box.valid())
+    return Position::invalid();
 
-  return Position(position.T,shrinked_box);
+  shrinked_box.setPointDim(in_position.box.getPointDim());
+  shrinked_box = shrinked_box.getIntersection(src_box);
+
+  return Position(in_position.T, shrinked_box);
 
 }
 

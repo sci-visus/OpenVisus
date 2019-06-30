@@ -508,7 +508,7 @@ public:
     //this will help to find voronoi seams betweeen images
     query->down_info.LOGIC_TO_PIXEL = LOGIC_TO_PIXEL;
     query->down_info.PIXEL_TO_LOGIC = PIXEL_TO_LOGIC;
-    query->down_info.logic_centroid = M * vf->getBox().center().toPoint3d();
+    query->down_info.logic_centroid = M * vf->getBox().center();
 
     //limit the samples to good logic domain
     //explanation: for each pixel in dims, tranform it to the logic dataset box, if inside set the pixel to 1 otherwise set the pixel to 0
@@ -890,7 +890,7 @@ String IdxMultipleDataset::removeAliases(String url)
 
 
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix T)
+void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix M)
 {
   VisusAssert(istream.getCurrentContext()->name == "dataset");
   String url = istream.readInline("url");
@@ -899,10 +899,8 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix T)
   String default_name = StringUtils::format() << "child_" << std::setw(4) << std::setfill('0') << cstring((int)this->childs.size());
 
   Child child;
-  child.M = T;
   child.name = StringUtils::trim(istream.readInline("name", istream.readInline("id"))); 
   child.color = Color::parseFromString(istream.readInline("color"));
-
   child.mosaic_filename_template = istream.readInline("filename_template");
 
   //override name if exist
@@ -940,63 +938,64 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix T)
     return;
   }
 
+  auto pdim = child.dataset->getPointDim();
+  auto sdim = pdim + 1;
+  M.setSpaceDim(sdim);
+  child.M = M;
+
   auto s_offset = istream.readInline("offset");
   if (!s_offset.empty())
-    child.M *= Matrix::translate(Point3d(s_offset));
+  {
+    auto M = Matrix::translate(PointNd::parseFromString(s_offset));
+    M.setSpaceDim(sdim);
+    child.M *= M;
+  }
 
   if (istream.pushContext("M"))
   {
     auto value = istream.readInline("value");
     if (!value.empty())
     {
-      if (StringUtils::split(value, " ").size() == 9)
-      {
-        std::istringstream parser(value);
-        std::vector<double> v(9);
-        for (int I = 0; I < 9; I++)
-          parser >> v[I];
-
-        child.M = Matrix::identity(4);
-        child.M.mat = {
-          v[0], v[1], 0, v[2],
-          v[3], v[4], 0, v[5],
-             0,    0, 1,    0,
-          v[6], v[7], 0, v[8]
-        };
-      }
-      else
-      {
-        child.M *= Matrix::parseFromString(4, value);
-      }
+      auto M =Matrix::parseFromString(value);
+      M.setSpaceDim(sdim);
+      child.M *= M;
     }
 
     for (auto it : istream.getCurrentContext()->getChilds())
     {
       if (it->name == "translate")
       {
-        double x = cdouble(it->readString("x", "0.0"));
-        double y = cdouble(it->readString("y", "0.0"));
-        double z = cdouble(it->readString("z", "0.0"));
-        child.M *= Matrix::translate(Point3d(x, y, z));
+        double x = cdouble(it->readString("x"));
+        double y = cdouble(it->readString("y"));
+        double z = cdouble(it->readString("z"));
+        auto M = Matrix::translate(PointNd(x,y,z));
+        M.setSpaceDim(sdim);
+        child.M *= M;
       }
       else if (it->name == "rotate")
       {
-        double x = Utils::degreeToRadiant(cdouble(it->readString("x", "0.0")));
-        double y = Utils::degreeToRadiant(cdouble(it->readString("y", "0.0")));
-        double z = Utils::degreeToRadiant(cdouble(it->readString("z", "0.0")));
-        child.M *= Matrix::rotate(Quaternion::fromEulerAngles(x, y, z));
+        double x = Utils::degreeToRadiant(cdouble(it->readString("x")));
+        double y = Utils::degreeToRadiant(cdouble(it->readString("y")));
+        double z = Utils::degreeToRadiant(cdouble(it->readString("z")));
+        auto M = Matrix::rotate(Quaternion::fromEulerAngles(x, y, z));
+        M.setSpaceDim(sdim);
+        child.M *= M;
       }
       else if (it->name == "scale")
       {
-        double x = cdouble(it->readString("x", "1.0"));
-        double y = cdouble(it->readString("y", "1.0"));
-        double z = cdouble(it->readString("z", "1.0"));
-        child.M *= Matrix::scale(Point3d(x, y, z));
+        double x = cdouble(it->readString("x"));
+        double y = cdouble(it->readString("y"));
+        double z = cdouble(it->readString("z"));
+        auto M = Matrix::nonZeroScale(PointNd(x, y, z));
+        M.setSpaceDim(sdim);
+        child.M *= M;
       }
 
       else if (it->name == "M")
       {
-        child.M *= Matrix::parseFromString(4,it->readString("value"));
+        auto M = Matrix::parseFromString(it->readString("value"));
+        M.setSpaceDim(sdim);
+        child.M *= M;
       }
     }
 
@@ -1007,6 +1006,9 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix T)
   if (bMosaic)
     VisusAssert(child.M.submatrix(child.M.getSpaceDim()-1,child.M.getSpaceDim()-1).isIdentity());
 
+  //VisusInfo() << "midx single M("<<child.M.toString()<<") box("<<child.dataset->box.toString(false)<<")";
+  //VisusInfo() << " bounds("<<Position(child.M,child.dataset->box).withoutTransformation().toString(false)<<")";
+
   addChild(child);
 
 }
@@ -1015,6 +1017,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix T)
 void IdxMultipleDataset::parseDatasets(ObjectStream& istream, Matrix T)
 {
   auto context = istream.getCurrentContext();
+  
 
   for (int I = 0; I < (int)context->getNumberOfChilds(); I++)
   {
@@ -1038,11 +1041,10 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream, Matrix T)
 
       if (cbool(istream.readInline("enabled", "1")))
       {
-        double x = cdouble(istream.readInline("x", "0.0"));
-        double y = cdouble(istream.readInline("y", "0.0"));
-        double z = cdouble(istream.readInline("z", "0.0"));
-        T *= Matrix::translate(Point3d(x, y, z));
-        parseDatasets(istream, T);
+        double x = cdouble(istream.readInline("x"));
+        double y = cdouble(istream.readInline("y"));
+        double z = cdouble(istream.readInline("z"));
+        parseDatasets(istream, T * Matrix::translate(Point3d(x, y, z)));
       }
       istream.popContext("translate");
       continue;
@@ -1054,11 +1056,10 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream, Matrix T)
 
       if (cbool(istream.readInline("enabled", "1")))
       {
-        double x = Utils::degreeToRadiant(cdouble(istream.readInline("x", "0.0")));
-        double y = Utils::degreeToRadiant(cdouble(istream.readInline("y", "0.0")));
-        double z = Utils::degreeToRadiant(cdouble(istream.readInline("z", "0.0")));
-        T *= Matrix::rotate(Quaternion::fromEulerAngles(x, y, z));
-        parseDatasets(istream, T);
+        double x = Utils::degreeToRadiant(cdouble(istream.readInline("x")));
+        double y = Utils::degreeToRadiant(cdouble(istream.readInline("y")));
+        double z = Utils::degreeToRadiant(cdouble(istream.readInline("z")));
+        parseDatasets(istream, T * Matrix::rotate(Quaternion::fromEulerAngles(x, y, z)));
       }
       istream.popContext("rotate");
       continue;
@@ -1070,11 +1071,10 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream, Matrix T)
 
       if (cbool(istream.readInline("enabled", "1")))
       {
-        double x = cdouble(istream.readInline("x", "1.0"));
-        double y = cdouble(istream.readInline("y", "1.0"));
-        double z = cdouble(istream.readInline("z", "1.0"));
-        T *= Matrix::scale(Point3d(x, y, z));
-        parseDatasets(istream, T);
+        double x = cdouble(istream.readInline("x"));
+        double y = cdouble(istream.readInline("y"));
+        double z = cdouble(istream.readInline("z"));
+        parseDatasets(istream, T * Matrix::nonZeroScale(PointNd(x, y, z)));
       }
 
       istream.popContext("scale");
@@ -1086,9 +1086,8 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream, Matrix T)
     {
       istream.pushContext(name);
       if (cbool(istream.readInline("enabled", "1")))
-      {
         parseDatasets(istream, T);
-      }
+
       istream.popContext(name);
     }
   }
@@ -1169,8 +1168,6 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   {
     if (bool bNotLoosePixels = bMosaic? false :true)
     {
-      VisusAssert(pdim <= 3);
-
       //union of boxes
       auto PHYSICAL_BOX = BoxNd::invalid();
       for (auto it : childs)
@@ -1184,10 +1181,9 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       {
         auto dataset = it.second.dataset;
         auto M = it.second.M;
-        auto logic_box = Position().withoutTransformation();
-        auto tot_pixels = dataset->getBox().size().innerProduct();
+        auto pixels = dataset->getBox().size().innerProduct();
         auto volume = Position(M, dataset->getBox()).computeVolume();
-        auto density = tot_pixels / volume;
+        auto density = pixels / volume;
         DENSITY.push_back(density);
       }
 
@@ -1196,12 +1192,10 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       // DENSITY[max_density] = pow(scale,pdim)
       auto max_density = std::distance(DENSITY.begin(), std::max_element(DENSITY.begin(), DENSITY.end()));
       auto scale = pow(DENSITY[max_density], 1.0 / pdim);
+      VisusInfo() << "Scale to not loose pixels " << scale << " #max_density("<<max_density<<")";
 
       auto T =
-        Matrix::scale(Point3d(
-          pdim >= 1 ? scale : 1.0,
-          pdim >= 2 ? scale : 1.0,
-          pdim >= 3 ? scale : 1.0)) *
+        Matrix::scale(pdim, scale) *
         Matrix::translate(-PHYSICAL_BOX.p1);
 
       for (auto it : childs)
@@ -1216,6 +1210,8 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       IDXFILE.box = IDXFILE.box.getUnion(box);
     }
   }
+
+  //VisusInfo() << "midx box is " << IDXFILE.box.toString(false);
 
   if (bMosaic)
   {

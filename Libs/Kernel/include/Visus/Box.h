@@ -127,9 +127,19 @@ public:
     return size().maxsize();
   }
 
+  //maxsize_index
+  int maxsize_index() const {
+    auto s = size(); return(int)std::distance(s.coords.begin(), std::max_element(s.coords.begin(), s.coords.end()));
+  }
+
   //minsize
   T minsize() const {
     return size().minsize();
+  }
+
+  //minsize_index
+  int minsize_index() const {
+    auto s = size(); return (int)std::distance(s.coords.begin(), std::min_element(s.coords.begin(), s.coords.end()));
   }
 
   //middle
@@ -269,23 +279,6 @@ public:
 
     return ret;
   }
-
-  //getPoints2
-  std::vector< Point2<T> > getPoints2() const {
-    std::vector< Point2<T> > ret;
-    for (auto it : getPoints())
-      ret.push_back(it.toPoint2());
-    return ret;
-  }
-
-  //getPoints2
-  std::vector< Point3<T> > getPoints3() const {
-    std::vector< Point3<T> > ret;
-    for (auto it : getPoints())
-      ret.push_back(it.toPoint3());
-    return ret;
-  }
-
 
   //getAlphaPoint
   Point getAlphaPoint(Point alpha) const {

@@ -54,6 +54,12 @@ public:
   virtual ~LinearMap(){
   }
 
+  //getSpaceDim
+  virtual int getSpaceDim() const = 0;
+
+  //setSpaceDim
+  virtual void setSpaceDim(int value) = 0;
+
   //applyDirectMap
   virtual PointNd applyDirectMap(PointNd p) const=0;
   virtual Plane   applyDirectMap(Plane   h) const=0;

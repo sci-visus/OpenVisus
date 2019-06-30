@@ -1132,16 +1132,6 @@ public:
     return Point4<T>(coords[0], coords[1], coords[2],coords[3]);
   }
 
-  //toPoint3i
-  Point3i toPoint3i() const {
-    return toPoint3().castTo<Point3i>();
-  }
-
-  //toPoint3d
-  Point3d toPoint3d() const {
-    return toPoint3().castTo<Point3d>();
-  }
-
 public:
 
   //parseFromString

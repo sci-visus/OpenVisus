@@ -59,7 +59,7 @@ public:
   LocalCoordinateSystem(Point3d center_, int axis);
 
   //constructor
-  LocalCoordinateSystem(const Matrix& T);
+  LocalCoordinateSystem(Matrix T);
 
   //constructor
   LocalCoordinateSystem(const Position& pos);
