@@ -281,8 +281,8 @@ Position Position::shrink(BoxNd dst_box,LinearMap& map,Position in_position)
   if (!shrinked_box.valid())
     return Position::invalid();
 
-  shrinked_box.setPointDim(in_position.box.getPointDim());
   shrinked_box = shrinked_box.getIntersection(src_box);
+  shrinked_box.setPointDim(in_position.box.getPointDim());
 
   return Position(in_position.T, shrinked_box);
 

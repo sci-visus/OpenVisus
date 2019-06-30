@@ -200,9 +200,13 @@ public:
     if (!b.valid()) return b;
 
     //must have the same dimension
+#if 1
+    VisusAssert(a.getPointDim() == b.getPointDim());
+#else
     auto pdim = std::max(a.getPointDim(),b.getPointDim());
     a.setPointDim(pdim);
     b.setPointDim(pdim);
+#endif
 
     return BoxN(
       Point::max(a.p1, b.p1), 
@@ -216,9 +220,13 @@ public:
     if (!b.valid()) return a;
 
     //must have the same dimension
+#if 1
+    VisusAssert(a.getPointDim() == b.getPointDim());
+#else
     auto pdim = std::max(a.getPointDim(),b.getPointDim());
     a.setPointDim(pdim);
     b.setPointDim(pdim);
+#endif
 
     return BoxN(
       Point::min(a.p1, b.p1),

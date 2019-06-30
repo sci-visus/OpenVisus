@@ -170,7 +170,7 @@ void GLCanvas::setUniformMatrix(const GLUniform& uniform,const Matrix& T)
   }
   else
   {
-    VisusAssert(T.getSpaceDim() == 4)
+    VisusAssert(T.getSpaceDim() == 4);
     {
       const float fv[] = { (float)T[0],(float)T[4],(float)T[8],(float)T[12],
                         (float)T[1],(float)T[5],(float)T[9],(float)T[13],

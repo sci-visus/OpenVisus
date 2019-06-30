@@ -1635,6 +1635,7 @@ public:
     auto pdim   = dims.getPointDim(); 
     VisusReleaseAssert(pdim <= 3); //todo other cases
     dims.setPointDim(3,1);
+    logic_centroid.setPointDim(3);
 
     auto width  = dims[0];
     auto height = dims[1];
@@ -1875,49 +1876,60 @@ Array ArrayUtils::createTransformedAlpha(BoxNi bounds, Matrix T, PointNi dims, A
   int offset = 0;
 
   int pdim = dims.getPointDim();
-  if (pdim <= 3)
-  {
-    T.setSpaceDim(4);
-    dims.setPointDim(3,1);
-    bounds.setPointDim(3);
 
+  if (pdim == 2)
+  {
+    int width  = dims[0];
+    int height = dims[1];
+
+    for (int y = 0; y < height; y++)
+    {
+      if (aborted())
+        return Array();
+
+      for (int x = 0; x < width; x++, offset++)
+      {
+        auto X = T[0] * x + T[1] * y + T[2];
+        auto Y = T[3] * x + T[4] * y + T[5];
+        auto W = T[6] * x + T[7] * y + T[8];
+
+        X /= W;
+        Y /= W;
+
+        write[offset] = (
+          X >= bounds.p1[0] && X < bounds.p2[0] &&
+          Y >= bounds.p1[1] && Y < bounds.p2[1]) ? 255 : 0;
+      }
+    }
+  }
+  else if (pdim == 3)
+  {
     int width  = dims[0];
     int height = dims[1];
     int depth  = dims[2];
 
-    Point4d Px, Py, Pz;
     for (int z = 0; z < depth; z++) 
     {
-      Pz[0] = T[ 2] * z + T[ 3];
-      Pz[1] = T[ 6] * z + T[ 7];
-      Pz[2] = T[10] * z + T[11];
-      Pz[3] = T[14] * z + T[15];
-
       for (int y = 0; y < height; y++) 
       {
         if (aborted())
           return Array();
 
-        Py[0] = Pz[0] + T[ 1] * y;
-        Py[1] = Pz[1] + T[ 5] * y;
-        Py[2] = Pz[2] + T[ 9] * y;
-        Py[3] = Pz[3] + T[13] * y;
-
         for (int x = 0; x < width; x++, offset++)
         {
-          Px[0] = T[ 0] * x + Py[0];
-          Px[1] = T[ 4] * x + Py[1];
-          Px[2] = T[ 8] * x + Py[2];
-          Px[3] = T[12] * x + Py[3];
+          auto X = T[ 0] * x + T[ 1] * y + T[ 2] * z + T[ 3];
+          auto Y = T[ 4] * x + T[ 5] * y + T[ 6] * z + T[ 7];
+          auto Z = T[ 8] * x + T[ 9] * y + T[10] * z + T[11] ;
+          auto W = T[12] * x + T[13] * y + T[14] * z + T[15];
 
-          Px[0] /= Px[3];
-          Px[1] /= Px[3];
-          Px[2] /= Px[3];
+          X /= W;
+          Y /= W;
+          Z /= W;
 
           write[offset] = (
-            Px[0] >= bounds.p1[0] && Px[0] < bounds.p2[0] &&
-            Px[1] >= bounds.p1[1] && Px[1] < bounds.p2[1] &&
-            Px[2] >= bounds.p1[2] && Px[2] < bounds.p2[2]) ? 255 : 0;
+            X >= bounds.p1[0] && X < bounds.p2[0] &&
+            Y >= bounds.p1[1] && Y < bounds.p2[1] &&
+            Z >= bounds.p1[2] && Z < bounds.p2[2]) ? 255 : 0;
         }
       }
     }

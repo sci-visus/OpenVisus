@@ -567,7 +567,7 @@ inline PointNd operator*(const Matrix& T, PointNi p) {
 inline PointNd operator*(const PointNd& v, const Matrix& T)
 {
   auto dim = v.getPointDim();
-  VisusAssert(dim == T.getSpaceDim())
+  VisusAssert(dim == T.getSpaceDim());
   PointNd ret(dim);
   for (int R = 0; R < dim; R++)
     ret += v[R] * T.getRow(R);
