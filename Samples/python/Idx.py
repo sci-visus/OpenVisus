@@ -60,7 +60,7 @@ class TestIdx(unittest.TestCase):
 	# WriteIdx
 	def WriteIdx(self): 
 		
-		dataset_box=BoxNi(PointNi(0,0,0),PointNi.one(16,16,16))
+		dataset_box=BoxNi(PointNi(0,0,0),PointNi(16,16,16))
 		
 		idxfile=IdxFile();
 		idxfile.box=BoxNi(dataset_box)

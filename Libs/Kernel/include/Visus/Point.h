@@ -22,7 +22,7 @@ contributors may be used to endorse or promote products derived from
 this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THEg
 IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 DISCLAIMED.IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
@@ -44,6 +44,7 @@ For support : support@visus.net
 
 #include <array>
 #include <algorithm>
+#include <type_traits>
 
 namespace Visus {
 
@@ -189,6 +190,11 @@ public:
   //access an item using an index
   const T& operator[](int i) const {
     return get(i);
+  }
+
+  //set
+  Point2& set(int i,T value){
+    get(i)=value; return *this;
   }
 
   //test if numers are ok
@@ -420,8 +426,8 @@ public:
   }
 
   //set
-  Point3& set(int index, T value) {
-    (*this)[index] = value; return *this;
+  Point3& set(int i,T value){
+    get(i)=value; return *this;
   }
 
   //cross product
@@ -650,6 +656,11 @@ public:
   //access an item using an index
   const T& operator[](int i) const {
     return get(i);
+  }
+
+  //set
+  Point4& set(int i,T value){
+    get(i)=value; return *this;
   }
 
   //test if numers are ok
@@ -904,6 +915,11 @@ public:
     return get(i);
   }
 
+  //set
+  PointN& set(int i,T value){
+    get(i)=value; return *this;
+  }
+
   //operator-
   PointN operator-()  const {
     return applyOperation<NegOp>(*this);
@@ -1069,36 +1085,36 @@ public:
 #if !SWIG
 
   //leftShift
-  template <typename = std::enable_if_t<std::is_integral<T>::value > >
+  template <typename = std::enable_if<std::is_integral<T>::value > >
   PointN leftShift(const T & value) const {
     return applyOperation(*this, LShiftByValue(value));
   }
 
   //rightShift
-  template <typename = std::enable_if_t<std::is_integral<T>::value > >
+  template <typename = std::enable_if<std::is_integral<T>::value > >
   PointN rightShift(const T & value) const {
     return applyOperation(*this, RShiftByValue(value));
   }
 
   //leftShift
-  template <typename = std::enable_if_t<std::is_integral<T>::value > >
+  template <typename = std::enable_if<std::is_integral<T>::value > >
   PointN leftShift(const PointN & value) const {
     return applyOperation<LShiftOp>(*this, value);
   }
 
   //rightShift
-  template <typename = std::enable_if_t<std::is_integral<T>::value > >
+  template <typename = std::enable_if<std::is_integral<T>::value > >
   PointN rightShift(const PointN & value) const {
     return applyOperation<RShiftOp>(*this, value);
   }
 
   //getLog2
-  template <typename = std::enable_if_t<std::is_integral<T>::value > >
+  template <typename = std::enable_if<std::is_integral<T>::value > >
   PointN getLog2() const {
     return applyOperation<Log2Op>(*this);
   }
 
-  template <typename = std::enable_if_t<std::is_integral<T>::value > >
+  template <typename = std::enable_if<std::is_integral<T>::value > >
   PointN innerMod(const PointN & other) const {
     return applyOperation<ModOp>(*this, other);
   }

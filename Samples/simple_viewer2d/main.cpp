@@ -66,7 +66,7 @@ public:
   DatasetNode*              dataset_node=nullptr;
   QueryNode*                query_node=nullptr;
   GLObject*                 render_node=nullptr;
-  Box3d                     dataset_box;
+  BoxNd                     dataset_box;
 
   SharedPtr<Dataflow>       dataflow;
   GLCanvas*                 glcanvas=nullptr;
@@ -170,7 +170,7 @@ public:
         postRedisplay();
       });
       glcamera->setViewport(Viewport(0,0,glcanvas->width(),glcanvas->height()));
-      glcamera->guessPosition(Box3d());
+      glcamera->guessPosition(BoxNd());
       glcamera->setRotationDisabled(true);
     }
     
@@ -204,7 +204,7 @@ public:
 
     this->dataflow->addNode(this->dataset_node = new DatasetNode("Dataset node"));
     this->dataset_node->setDataset(dataset);
-    this->dataset_box=dataset_node->getNodeBounds().toAxisAlignedBox();
+    this->dataset_box=dataset_node->getNodeBounds().withoutTransformation();
 
     if (dataset->getKdQueryMode()!=0)
     {

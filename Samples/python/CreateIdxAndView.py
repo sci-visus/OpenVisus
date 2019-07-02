@@ -41,7 +41,7 @@ if __name__ == '__main__':
 	
 	# (2) convert the image to idx file
 	idxfile=IdxFile()
-	idxfile.box=BoxNi(PointNi(0,0),PointNi.one(width,height))
+	idxfile.box=BoxNi(PointNi(0,0),PointNi(width,height))
 	idxfile.fields.push_back(Field("data",DType.fromString("uint8[{}]".format(nchannels))))
 	bOk=idxfile.save(idx_filename)
 	ASSERT(bOk)

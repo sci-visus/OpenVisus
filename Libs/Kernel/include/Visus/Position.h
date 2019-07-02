@@ -67,7 +67,7 @@ public:
   }
 
   //constructor
-  Position(BoxNd value) : Position({Matrix()}, value) {
+  Position(BoxNd value) : Position(Matrix(), value) {
   }
 
   //constructor

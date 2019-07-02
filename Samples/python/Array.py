@@ -53,13 +53,13 @@ class MyTestCase(unittest.TestCase):
 		A=numpy.zeros((height,width,ncomponents),dtype=numpy.float32)
 		
 		B=Array.fromNumPy(A,bShareMem=False)
-		self.assertEqual(B.dims,PointNi.one(ncomponents,width,height))
+		self.assertEqual(B.dims,PointNi(ncomponents,width,height))
 		self.assertEqual(B.dtype.toString(),"float32")
 		self.assertNotEqual(str(A.__array_interface__["data"][0]),B.c_address())
 		
-		# use TargetDim if you want the dtype to have multiple ncomponents
+		# use TargetDim if you want the dtype to have multiple ncompgnts
 		B=Array.fromNumPy(A,TargetDim=2,bShareMem=False)
-		self.assertEqual(B.dims,PointNi.one(width,height))
+		self.assertEqual(B.dims,PointNi(width,height))
 		self.assertEqual(B.dtype.toString(),"float32[3]")
 		self.assertNotEqual(str(A.__array_interface__["data"][0]),B.c_address())
 		
@@ -79,13 +79,13 @@ class MyTestCase(unittest.TestCase):
 		A=numpy.zeros((height,width,ncomponents),dtype=numpy.float32)
 		
 		B=Array.fromNumPy(A,bShareMem=True)
-		self.assertEqual(B.dims,PointNi.one(ncomponents,width,height))
+		self.assertEqual(B.dims,PointNi(ncomponents,width,height))
 		self.assertEqual(B.dtype.toString(),"float32")
 		self.assertEqual(str(A.__array_interface__["data"][0]),B.c_address())
 		
 		# use TargetDim if you want the dtype to have multiple ncomponents
 		B=Array.fromNumPy(A,TargetDim=2,bShareMem=True)
-		self.assertEqual(B.dims,PointNi.one(width,height))
+		self.assertEqual(B.dims,PointNi(width,height))
 		self.assertEqual(B.dtype.toString(),"float32[3]")
 		self.assertEqual(str(A.__array_interface__["data"][0]),B.c_address())
 
