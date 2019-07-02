@@ -121,9 +121,9 @@ int main(int argc, const char* argv[])
 
   auto query=std::make_shared<Query>(dataset.get(),'r');
 
-  NdBox my_box;
-  my_box.p1 = NdPoint     (p1_in[0], p1_in[1], p1_in[2]);
-  my_box.p2 = NdPoint::one(p2_in[0], p2_in[1], p2_in[2]);
+  BoxNi my_box;
+  my_box.p1 = PointNi     (p1_in[0], p1_in[1], p1_in[2]);
+  my_box.p2 = PointNi::one(p2_in[0], p2_in[1], p2_in[2]);
 
   VisusInfo() << "Box query " << my_box.p1.toString() << " p2 " << my_box.p2.toString()
               << " variable " << fieldname << " time " << timestate;

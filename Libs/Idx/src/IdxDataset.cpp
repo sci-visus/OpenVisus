@@ -1256,7 +1256,7 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<Query> query)
   {
     VisusAssert(query->position.T.isIdentity()); //todo
     ret.url.setParam("action","boxquery");
-    ret.url.setParam("box"   , query->position.getNdBox().withPointDim(this->getPointDim()).toOldFormatString());
+    ret.url.setParam("box"   , query->position.getBoxNi().withPointDim(this->getPointDim()).toOldFormatString());
   }
 
   ret.aborted=query->aborted;
@@ -1416,7 +1416,7 @@ bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<Query> query)
     return false;
 
   VisusAssert(query->position.T.isIdentity());
-  query->aligned_box=query->position.getNdBox().withPointDim(this->getPointDim());
+  query->aligned_box=query->position.getBoxNi().withPointDim(this->getPointDim());
 
   if (!query->aligned_box.isFullDim())
     return false;
@@ -2063,7 +2063,7 @@ bool IdxDataset::upgradeBoxQueryMaxResolution(int maxh)
   int pdim = vf->idxfile.bitmask.getPointDim();
   
   //WRONG : I should not change box here
-  BoxNi box = query->position.getNdBox().withPointDim(this->getPointDim());
+  BoxNi box = query->position.getBoxNi().withPointDim(this->getPointDim());
 
   while (query_maxh<maxh)
   {

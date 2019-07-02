@@ -140,7 +140,7 @@ public:
     {
       ScopedWriteLock wlock(kdarray->lock);
 
-      kdarray->query_box = position.getNdBox().withPointDim(pdim);
+      kdarray->query_box = position.getBoxNi().withPointDim(pdim);
       kdarray->end_resolution = end_resolutions.back();
 
       this->bBlocksAreFullRes = std::dynamic_pointer_cast<GoogleMapsDataset>(dataset) ? true : false;

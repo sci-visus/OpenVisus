@@ -135,8 +135,8 @@ public:
     return box.valid();
   }
 
-  //getNdBox
-  BoxNi getNdBox() const {
+  //getBoxNi
+  BoxNi getBoxNi() const {
     return this->box.castTo<BoxNi>();
   }
 
