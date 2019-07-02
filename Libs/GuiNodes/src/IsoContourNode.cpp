@@ -218,7 +218,7 @@ public:
     isocontour->field.texture = std::make_shared<GLTexture>(data);
     
     //RenderMeshNode NEEDS the vertices in this range (for computing normals on GPU)
-    isocontour->bounds = Position::compose(data.bounds,data.dims);; 
+    isocontour->bounds = Position(Position::compose(data.bounds,data.dims), BoxNi(PointNi(data.dims.getPointDim()),data.dims));
 
     //tell that the output has changed, if the port is not connected, this is a NOP!
     DataflowMessage msg;

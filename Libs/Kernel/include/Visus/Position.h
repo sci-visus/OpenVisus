@@ -112,23 +112,12 @@ public:
   }
 
   //compose
-  static Position compose(Position A, Position B)
-  {
-    return Position(std::vector<Matrix>({
-        A.T,
-        Matrix::nonZeroScale(A.box.p1),
-        Matrix::nonZeroScale(A.box.size()),
-        Matrix::invNonZeroScale(B.box.size()),
-        Matrix::translate(-B.box.p1),
-      }),
-      B.box
-    );
-  }
-
-  //compose
-  static Position compose(Position A, PointNi dims) {
-    auto B = Position(BoxNi(PointNi(dims.getPointDim()), dims));
-    return compose(A, B);
+  static Matrix compose(Position A, PointNi dims) {
+    return
+      A.T *
+      Matrix::translate(A.box.p1) *
+      Matrix::nonZeroScale(A.box.size()) *
+      Matrix::invNonZeroScale(dims.castTo<PointNd>());
   }
 
   //operator!=

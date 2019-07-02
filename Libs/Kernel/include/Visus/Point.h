@@ -1013,11 +1013,16 @@ public:
     return Utils::max(this->coords);
   }
 
+  bool checkAllLess        (const PointN& a, const PointN& b) const { return checkAll< ConditionL  >(a, b); }
+  bool checkAllLessEqual   (const PointN& a, const PointN& b) const { return checkAll< ConditionLE >(a, b); }
+  bool checkAllGreater     (const PointN& a, const PointN& b) const { return checkAll< ConditionG  >(a, b); }
+  bool checkAllGreaterEqual(const PointN& a, const PointN& b) const { return checkAll< ConditionGE >(a, b); }
+
   //operator (<,<=,>,>=) (NOTE: it's different from lexigraphical order)
-  bool operator< (const PointN& b) const { return checkAll< ConditionL >(*this, b); }
-  bool operator<=(const PointN& b) const { return checkAll< ConditionLE>(*this, b); }
-  bool operator> (const PointN& b) const { return checkAll< ConditionG >(*this, b); }
-  bool operator>=(const PointN& b) const { return checkAll< ConditionGE>(*this, b); }
+  bool operator< (const PointN& b) const { return checkAllLess        (*this, b); }
+  bool operator<=(const PointN& b) const { return checkAllLessEqual   (*this, b); }
+  bool operator> (const PointN& b) const { return checkAllGreater     (*this, b); }
+  bool operator>=(const PointN& b) const { return checkAllGreaterEqual(*this, b); }
 
 public:
 

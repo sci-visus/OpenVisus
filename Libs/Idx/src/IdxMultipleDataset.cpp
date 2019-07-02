@@ -498,8 +498,8 @@ public:
     query->down_info.BUFFER.alpha = std::make_shared<Array>(QUERY->nsamples, DTypes::UINT8);
     query->down_info.BUFFER.alpha->fillWithValue(0);
 
-    auto PIXEL_TO_LOGIC = Position::compose(Position(QUERY->position), query->down_info.BUFFER.dims).T;
-    auto pixel_to_logic = Position::compose(Position(query->position), query->buffer.dims).T;
+    auto PIXEL_TO_LOGIC = Position::compose(Position(QUERY->position), query->down_info.BUFFER.dims);
+    auto pixel_to_logic = Position::compose(Position(query->position), query->buffer.dims);
 
     // Tperspective := PIXEL <- pixel
     auto LOGIC_TO_PIXEL = PIXEL_TO_LOGIC.invert();

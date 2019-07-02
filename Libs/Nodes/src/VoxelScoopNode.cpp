@@ -104,7 +104,7 @@ public:
   //getDiam2d
   double getDiam2d(const Point3d &seed,double threshold)
   {
-    auto pixel_to_physic = Position::compose(this->data.bounds,this->data.dims).T;
+    auto pixel_to_physic = Position::compose(this->data.bounds,this->data.dims);
 
     TRSMatrixDecomposition trs(pixel_to_physic);
 
@@ -392,7 +392,7 @@ public:
     const Point3d dims = Data.dims.toPoint3().castTo<Point3d>();
     const Point3i idims = dims.castTo<Point3i>();
 
-    auto pixel_to_physic = Position::compose(this->Data.bounds,Data.dims).T;
+    auto pixel_to_physic = Position::compose(this->Data.bounds,Data.dims);
     
     TRSMatrixDecomposition trs(pixel_to_physic);
 
@@ -441,7 +441,7 @@ public:
 
     auto idims = Data.dims.toPoint3();
 
-    auto pixel_to_physic = Position::compose(this->Data.bounds,Data.dims).T;
+    auto pixel_to_physic = Position::compose(this->Data.bounds,Data.dims);
 
     TRSMatrixDecomposition trs(pixel_to_physic);
 

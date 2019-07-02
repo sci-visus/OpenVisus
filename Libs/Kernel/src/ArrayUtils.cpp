@@ -1476,61 +1476,58 @@ public:
 
     VisusReleaseAssert(dst.alpha && dst.alpha->dtype == DTypes::UINT8);
     VisusReleaseAssert(src.alpha && src.alpha->dtype == DTypes::UINT8);
+
     auto write = GetSamples<Sample>(dst); auto write_alpha = GetSamples<Uint8>(*dst.alpha);
     auto read  = GetSamples<Sample>(src); auto read_alpha  = GetSamples<Uint8>(*src.alpha);
 
     VisusAssert(dst.getPointDim() == src.getPointDim());
     auto pdim = dst.getPointDim();
 
+    auto wstride = wdims.stride();
+    auto rstride = rdims.stride();
+
     int wfrom = 0;
 
-    if (pdim <=3)
+    if (pdim == 2)
     {
-      T.setSpaceDim(4);
-      Ti.setSpaceDim(4);
-      wdims.setPointDim(3, 1); auto wstride = wdims.stride();
-      rdims.setPointDim(3, 1); auto rstride = rdims.stride();
-
-      int width  = wdims[0];
-      int height = wdims[1];
-      int depth  = wdims[2];
-
-      Point4d Sx,Sy,Sz;
-
-      for (int z = 0; z < depth; z++)
+      for (int y = 0; y < wdims[1]; y++)
       {
-        Sz[0] = Ti[ 2] * z + Ti[ 3];
-        Sz[1] = Ti[ 6] * z + Ti[ 7];
-        Sz[2] = Ti[10] * z + Ti[11];
-        Sz[3] = Ti[14] * z + Ti[15];
+        if (aborted())
+          return false;
 
-        for (int y = 0; y < height; y++)
+        for (int x = 0; x < wdims[0]; x++, wfrom++)
+        {
+          auto p = (Ti * PointNd(x,y)).castTo<PointNi>();
+          if (
+            p[0] >= 0 && p[0] < rdims[0] && 
+            p[1] >= 0 && p[1] < rdims[1])
+          {
+            auto rfrom = p.dot(rstride);
+            write[wfrom]       = read[rfrom];
+            write_alpha[wfrom] = read_alpha[rfrom];
+          }
+        }
+      }
+    }
+    else if (pdim <=3)
+    {
+      for (int z = 0; z < wdims[2]; z++)
+      {
+        for (int y = 0; y < wdims[1]; y++)
         {
           if (aborted())
             return false;
 
-          Sy[0] = Ti[ 1] * y + Sz[0];
-          Sy[1] = Ti[ 5] * y + Sz[1];
-          Sy[2] = Ti[ 9] * y + Sz[2];
-          Sy[3] = Ti[13] * y + Sz[3];
-
-          for (int x = 0; x < width; x++, wfrom++)
+          for (int x = 0; x < wdims[0]; x++, wfrom++)
           {
-            Sx[0] = Ti[ 0] * x + Sy[0];
-            Sx[1] = Ti[ 4] * x + Sy[1];
-            Sx[2] = Ti[ 8] * x + Sy[2];
-            Sx[3] = Ti[12] * x + Sy[3];
-
-            Sx[0] = (int)(Sx[0] / Sx[3]);
-            Sx[1] = (int)(Sx[1] / Sx[3]);
-            Sx[2] = (int)(Sx[2] / Sx[3]);
+            auto p = (Ti * PointNd(x, y, z)).castTo<PointNi>();
 
             if (
-              Sx[0] >= 0 && Sx[0] < rdims[0] &&
-              Sx[1] >= 0 && Sx[1] < rdims[1] &&
-              Sx[2] >= 0 && Sx[2] < rdims[2])
+              p[0] >= 0 && p[0] < rdims[0] && 
+              p[1] >= 0 && p[1] < rdims[1] && 
+              p[2] >= 0 && p[2] < rdims[2])
             {
-              auto rfrom = int(Sx[0])*rstride[0] + int(Sx[1])*rstride[1] + int(Sx[2])*rstride[2];
+              auto rfrom = p.dot(rstride);
               write      [wfrom] = read      [rfrom];
               write_alpha[wfrom] = read_alpha[rfrom];
             }
@@ -1540,16 +1537,15 @@ public:
     }
     else
     {
-      auto wstride = wdims.stride();
-      auto rstride = rdims.stride();
-
       for (auto P = ForEachPoint(wdims); !P.end(); P.next(), ++wfrom)
       {
-        if (aborted()) return false;
+        if (aborted()) 
+          return false;
 
         auto S = Ti* P.pos;
 
         VisusAssert(false);//todo...
+
         S[0] = (int)S[0];
         S[1] = (int)S[1];
         S[2] = (int)S[2];

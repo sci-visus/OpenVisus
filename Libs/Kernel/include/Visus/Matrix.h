@@ -548,13 +548,42 @@ inline PointNd operator*(const Matrix& T, PointNd p)
     p.back() = 1; //homogeneous
   }
 
-  auto ret=PointNd(sdim);
-  for (int r = 0; r < sdim; r++)
-    for (int c = 0; c < sdim; c++)
-      ret[r] += T.get(r, c) * p[c];
+  auto ret = PointNd(sdim);
 
-  if (pdim !=sdim)
-    ret=ret.dropHomogeneousCoordinate();
+  switch (sdim)
+  {
+    case 2:
+    {
+      ret[0] = T(0, 0) * p[0] + T(0, 1) * p[1];
+      ret[1] = T(1, 0) * p[0] + T(1, 1) * p[1];
+      break;
+    }
+    case 3:
+    {
+      ret[0] = T(0, 0) * p[0] + T(0, 1) * p[1] + T(0, 2) * p[2];
+      ret[1] = T(1, 0) * p[0] + T(1, 1) * p[1] + T(1, 2) * p[2];
+      ret[2] = T(2, 0) * p[0] + T(2, 1) * p[1] + T(2, 2) * p[2];
+      break;
+    }
+    case 4:
+    {
+      ret[0] = T(0, 0) * p[0] + T(0, 1) * p[1] + T(0, 2) * p[2] + T(0, 3) * p[3];
+      ret[1] = T(1, 0) * p[0] + T(1, 1) * p[1] + T(1, 2) * p[2] + T(1, 3) * p[3];
+      ret[2] = T(2, 0) * p[0] + T(2, 1) * p[1] + T(2, 2) * p[2] + T(2, 3) * p[3];
+      ret[3] = T(3, 0) * p[0] + T(3, 1) * p[1] + T(3, 2) * p[2] + T(3, 3) * p[3];
+      break;
+    }
+    default:
+    {
+      for (int r = 0; r < sdim; r++)
+        for (int c = 0; c < sdim; c++)
+          ret[r] += T.get(r, c) * p[c];
+      break;
+    }
+  }
+
+  if (pdim != sdim)
+    ret = ret.dropHomogeneousCoordinate();
 
   return ret;
 }
