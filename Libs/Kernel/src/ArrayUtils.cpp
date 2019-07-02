@@ -1779,7 +1779,7 @@ public:
         }
       }
 
-      Point4d Px, Py, Pz;
+      Point4d Px;
       auto T = up_pixel_to_logic;
       T.setSpaceDim(4);
 
@@ -1792,20 +1792,10 @@ public:
 
         for (int Z = 0; Z < depth; Z++)
         {
-          Pz[0] = T[ 2] * Z + T[ 3];
-          Pz[1] = T[ 6] * Z + T[ 7];
-          Pz[2] = T[10] * Z + T[11];
-          Pz[3] = T[14] * Z + T[15];
-
           for (int Y = 0; Y < height; Y++)
           {
             if (aborted())
               return false;
-
-            Py[0] = Pz[0] + T[ 1] * Y;
-            Py[1] = Pz[1] + T[ 5] * Y;
-            Py[2] = Pz[2] + T[ 9] * Y;
-            Py[3] = Pz[3] + T[13] * Y;
 
             if (isEmptyLine())
             {
@@ -1818,10 +1808,10 @@ public:
               if (SRC_ALPHA[SampleId])
               {
                 //(T * Point3d(X, Y, Z) - logic_centroid).module2();
-                Px[0] = T[ 0] * X + Py[0];
-                Px[1] = T[ 4] * X + Py[1];
-                Px[2] = T[ 8] * X + Py[2];
-                Px[3] = T[12] * X + Py[3];
+                Px[0] = T[ 0] * X + T[ 1] * Y + T[ 2] * Z + T[ 3];
+                Px[1] = T[ 4] * X + T[ 5] * Y + T[ 6] * Z + T[ 7];
+                Px[2] = T[ 8] * X + T[ 9] * Y + T[10] * Z + T[11];
+                Px[3] = T[12] * X + T[13] * Y + T[14] * Z + T[15];
 
                 auto dx = (Px[0] / Px[3]) - logic_centroid[0];
                 auto dy = (Px[1] / Px[3]) - logic_centroid[1];

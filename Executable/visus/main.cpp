@@ -1564,7 +1564,7 @@ public:
 
       VisusInfo() << "sec(" << sec << ")"
         << " avg(" << (T1.elapsedSec() / (nqueries+1)) << ")"
-        << " box(" << query_box.toString(/*bInterleave*/true) << ") "
+        << " box(" << query_box.toString() << ") "
         << " access.rok(" << stats.rok << "/" << ((double)(stats.rok) / sec) << ") "
         << " access.rfail(" << stats.rfail << "/" << ((double)(stats.rfail) / sec) << ") "
         << " io.nopen(" << io.nopen << "/" << ((double)(io.nopen) / sec) << ") "
@@ -1761,10 +1761,10 @@ public:
     if (FileUtils::existsDirectory(dirname))
     {
       ThrowException(StringUtils::format() << "Please empty the directory " << dirname.toString());
-      return Array();
+      return Array(); 
     }
 
-    PointNi dims            = PointNi::one(512, 512, 512);
+    PointNi dims            = PointNi(512, 512, 512);
     int     num_slabs       = 128;
     String  dtype           = "int32";
     String  layout   = "";

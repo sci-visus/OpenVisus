@@ -315,7 +315,7 @@ public:
 public:
 
   //construct from string
-  static BoxN parseFromString(String value,bool bInterleave)
+  static BoxN parseFromString(String value,bool bInterleave=true)
   {
     std::istringstream parser(value);
 
@@ -343,7 +343,7 @@ public:
   }
 
   //construct to string
-  String toString(bool bInterleave) const  
+  String toString(bool bInterleave=true) const  
   {
     int pdim = getPointDim();
     if (!pdim) return "";
@@ -374,7 +374,7 @@ public:
   //parseFromOldFormatString
   static BoxN parseFromOldFormatString(int pdim,String src)
   {
-    auto ret = BoxN::parseFromString(src,/*bInterleave*/true).withPointDim(pdim);
+    auto ret = BoxN::parseFromString(src).withPointDim(pdim);
     ret.p2 += Point::one(pdim);
     return ret;
   }

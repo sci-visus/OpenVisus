@@ -95,17 +95,17 @@ public:
 
   //constructor
   Array(Int64 x, DType dtype, SharedPtr<HeapMemory> heap = SharedPtr<HeapMemory>())
-    : Array(PointNi::one(x, 1), dtype, heap) {
+    : Array(PointNi(std::vector<Int64>({ x })), dtype, heap) {
   }
 
   //constructor
   Array(Int64 x, Int64 y, DType dtype, SharedPtr<HeapMemory> heap = SharedPtr<HeapMemory>())
-    : Array(PointNi::one(x, y), dtype, heap) {
+    : Array(PointNi(std::vector<Int64>({ x, y })), dtype, heap) {
   }
 
   //constructor
   Array(Int64 x, Int64 y, Int64 z, DType dtype, SharedPtr<HeapMemory> heap = SharedPtr<HeapMemory>())
-    : Array(PointNi::one(x, y,z), dtype, heap) {
+    : Array(PointNi(std::vector<Int64>({ x,y,z })), dtype, heap) {
   }
 
   //constructor
@@ -183,19 +183,17 @@ public:
 
   //createView
   static Array createView(Array src, Int64 x, DType dtype, Int64 c_offset = 0){
-    PointNi dims = PointNi::one(1);
-    dims[0] = x;
-    return createView(src, dims, dtype, c_offset);
+    return createView(src, PointNi(std::vector<Int64>({ x })), dtype, c_offset);
   }
 
   //createView
   static Array createView(Array src, Int64 x, Int64 y, DType dtype, Int64 c_offset = 0){
-    return createView(src, PointNi::one(x,y), dtype, c_offset);
+    return createView(src, PointNi(std::vector<Int64>({ x,y })), dtype, c_offset);
   }
 
   //createView
   static Array createView(Array src, Int64 x, Int64 y, Int64 z, DType dtype, Int64 c_offset = 0){
-    return createView(src, PointNi::one(x,y,z), dtype, c_offset);
+    return createView(src, PointNi(std::vector<Int64>({ x,y,z })), dtype, c_offset);
   }
 
 
@@ -258,19 +256,17 @@ public:
 
   //resize
   inline bool resize(Int64 x, DType dtype, const char* file, int line){
-    auto dims = PointNi::one(1);
-    dims[0] = x;
-    return resize(dims, dtype, file, line);
+    return resize(PointNi(std::vector<Int64>({ x })), dtype, file, line);
   }
 
   //resize
   inline bool resize(Int64 x, Int64 y, DType dtype, const char* file, int line){
-    return resize(PointNi::one(x,y), dtype, file, line);
+    return resize(PointNi(std::vector<Int64>({ x,y })), dtype, file, line);
   }
 
   //resize
   inline bool resize(Int64 x, Int64 y, Int64 z, DType dtype, const char* file, int line){
-    return resize(PointNi::one(x,y,z), dtype, file, line);
+    return resize(PointNi(std::vector<Int64>({ x,y,z })), dtype, file, line);
   }
 
   //getComponent

@@ -119,7 +119,7 @@ void Tutorial_Tiling(String default_layout)
 
   //create a sample IdxDataset
   IdxFile idxfile;
-  idxfile.box = BoxNi(PointNi(0,0), PointNi::one(32,8));
+  idxfile.box = BoxNi(PointNi(0,0), PointNi(32,8));
   {
     Field field("DATA",DTypes::UINT8);
     field.default_layout=default_layout;

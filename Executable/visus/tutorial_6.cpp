@@ -189,7 +189,7 @@ Array createImageFromBuffer(Array src)
 //////////////////////////////////////////////////////////////////////////////////////
 void Tutorial_6(String default_layout)
 {
-  auto sliding_window_size=PointNi::one(32,32);
+  auto sliding_window_size=PointNi(32,32);
 
   int bitsperblock=12;  //I want certain number of blocks
 
@@ -258,15 +258,15 @@ void Tutorial_6(String default_layout)
     if (Overall)
     {
       query_box = BoxNi(
-        PointNi     (dataset_offset[0]        , dataset_offset[1]),
-        PointNi::one(dataset_offset[0] + Width, dataset_offset[1] + Height));
+        PointNi(dataset_offset[0]        , dataset_offset[1]),
+        PointNi(dataset_offset[0] + Width, dataset_offset[1] + Height));
     }
     else
     {
       // show that the query is reconstructed at all levels
       query_box = BoxNi(
-        PointNi     ((int)(dataset_offset[0] + 3.0f*Width / 6.0f), (int)(dataset_offset[1] + 3.0f*Height / 6.0f)),
-        PointNi::one((int)(dataset_offset[0] + 4.0f*Width / 6.0f), (int)(dataset_offset[1] + 4.0f*Height / 6.0f)));
+        PointNi((int)(dataset_offset[0] + 3.0f*Width / 6.0f), (int)(dataset_offset[1] + 3.0f*Height / 6.0f)),
+        PointNi((int)(dataset_offset[0] + 4.0f*Width / 6.0f), (int)(dataset_offset[1] + 4.0f*Height / 6.0f)));
     }
     
     auto query=std::make_shared<Query>(dataset.get(),'r');

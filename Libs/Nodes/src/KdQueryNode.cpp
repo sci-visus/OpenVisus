@@ -127,7 +127,7 @@ public:
       return false;
 
     //remove transformation
-    position = Position(position.withoutTransformation().castTo<BoxNi>().withPointDim(pdim).getIntersection(dataset->getBox()));
+    position = Position(position.withoutTransformation().castTo<BoxNi>().getIntersection(dataset->getBox()));
     if (!position.valid()) 
       return false;
 
@@ -140,7 +140,7 @@ public:
     {
       ScopedWriteLock wlock(kdarray->lock);
 
-      kdarray->query_box = position.getBoxNi().withPointDim(pdim);
+      kdarray->query_box = position.getBoxNi();
       kdarray->end_resolution = end_resolutions.back();
 
       this->bBlocksAreFullRes = std::dynamic_pointer_cast<GoogleMapsDataset>(dataset) ? true : false;

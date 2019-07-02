@@ -145,8 +145,8 @@ public:
   {
     String  name;
     Array   BUFFER;
-    Matrix  PIXEL_TO_LOGIC = Matrix::identity(4);
-    Matrix  LOGIC_TO_PIXEL = Matrix::identity(4);
+    Matrix  PIXEL_TO_LOGIC;
+    Matrix  LOGIC_TO_PIXEL;
     PointNd logic_centroid;
 
     SharedPtr<Access> access;

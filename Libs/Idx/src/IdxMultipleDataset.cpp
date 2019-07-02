@@ -1206,7 +1206,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     IDXFILE.box = BoxNi::invalid();
     for (auto it : childs)
     {
-      auto box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().castTo<BoxNi>().withPointDim(pdim);
+      auto box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().castTo<BoxNi>();
       IDXFILE.box = IDXFILE.box.getUnion(box);
     }
   }

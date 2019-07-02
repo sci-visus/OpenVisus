@@ -57,7 +57,7 @@ void Tutorial_2(String default_layout)
   //check the data has dimension (16,16,16)
   VisusReleaseAssert(dataset->getDefaultField().dtype==(DTypes::UINT32)
     &&  world_box.p1==PointNi(0,0,0)
-    &&  world_box.p2==PointNi::one(16,16,16));
+    &&  world_box.p2==PointNi(16,16,16));
 
   //any time you need to read/write data from/to a Dataset I need a Access
   auto access=dataset->createAccess();

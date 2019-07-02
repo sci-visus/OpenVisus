@@ -185,7 +185,7 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query)
     return false;
   }
 
-  auto user_box= query->position.getBoxNi().withPointDim(this->getPointDim()).getIntersection(this->getBox());
+  auto user_box= query->position.getBoxNi().getIntersection(this->getBox());
 
   if (!user_box.isFullDim())
   {
@@ -212,7 +212,7 @@ void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_q
   if (query->aborted()) 
     return;
 
-  if (!box.getIntersection(query->position.getBoxNi().withPointDim(this->getPointDim())).isFullDim())
+  if (!box.getIntersection(query->position.getBoxNi()).isFullDim())
     return;
 
   int samplesperblock=1<<this->getDefaultBitsPerBlock();
@@ -434,7 +434,7 @@ LogicBox GoogleMapsDataset::getLevelBox(int H)
   delta[0]=tile_width /this->tile_nsamples[0];
   delta[1]=tile_height/this->tile_nsamples[1];
     
-  BoxNi box(PointNi(0,0), PointNi::one(1,1));
+  BoxNi box(PointNi(0,0), PointNi(1,1));
   box.p2[0] = ntiles_x*tile_width;
   box.p2[1] = ntiles_y*tile_height;
     
@@ -458,7 +458,7 @@ bool GoogleMapsDataset::setCurrentEndResolution(SharedPtr<Query> query)
   VisusAssert(query->start_resolution<=end_resolution);
   VisusAssert(end_resolution<=max_resolution);
   
-  auto user_box= query->position.getBoxNi().withPointDim(this->getPointDim()).getIntersection(this->getBox());
+  auto user_box= query->position.getBoxNi().getIntersection(this->getBox());
   VisusAssert(user_box.isFullDim());
 
   int H=end_resolution;

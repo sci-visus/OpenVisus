@@ -874,16 +874,6 @@ public:
     return PointN(std::vector<T>(pdim, T(1)));
   }
 
-  //one
-  static PointN one(T a, T b) {
-    return PointN(a,b);
-  }
-
-  //one
-  static PointN one(T a, T b, T c) {
-    return PointN(a,b,c);
-  }
-
   //toVector
   const std::vector<T>& toVector() const {
     return coords;

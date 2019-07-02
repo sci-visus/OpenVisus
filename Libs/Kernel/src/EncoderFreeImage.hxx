@@ -360,14 +360,10 @@ private:
     }
 
     std::vector<Int64> ret;
-    int M = 0; for (int D = 0; D<dims.getPointDim(); D++)
-    {
-      if (dims[D]>1)
-        ret.push_back(dims[D]);
-    }
-
-    ret.resize(3, 1);
-    return PointNi::one(ret[0], ret[1], ret[2]);
+    for (auto it : dims.coords)
+      if (it >1)
+        ret.push_back(it);
+    return PointNi(ret);
 
   }
 

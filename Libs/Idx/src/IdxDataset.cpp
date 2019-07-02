@@ -1256,7 +1256,7 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<Query> query)
   {
     VisusAssert(query->position.T.isIdentity()); //todo
     ret.url.setParam("action","boxquery");
-    ret.url.setParam("box"   , query->position.getBoxNi().withPointDim(this->getPointDim()).toOldFormatString());
+    ret.url.setParam("box"   , query->position.getBoxNi().toOldFormatString());
   }
 
   ret.aborted=query->aborted;
@@ -1511,7 +1511,7 @@ bool IdxDataset::beginQuery(SharedPtr<Query> query)
       if (this->getPointDim() == 3)
         query->clipping = query->position;
 
-      query->position = query->position.withoutTransformation().castTo<BoxNi>().withPointDim(this->getPointDim()).getIntersection(this->getBox());
+      query->position = query->position.withoutTransformation().castTo<BoxNi>().getIntersection(this->getBox());
     }
 
     if (query->filter.enabled)

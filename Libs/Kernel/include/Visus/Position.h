@@ -152,7 +152,7 @@ public:
   //toString
   String toString() const {
     std::ostringstream out;
-    out  << "T(" << T.toString() << ") box(" << box.toString(/*bInterleave*/true) << ")";
+    out  << "T(" << T.toString() << ") box(" << box.toString() << ")";
     return out.str();
   }
 
