@@ -43,6 +43,8 @@ For support : support@visus.net
 ////////////////////////////////////////////////////////////////////////
 int main(int argn,const char* argv[])
 {
+  std::vector<int> a({ 10,20 });
+
   using namespace Visus;
   SetCommandLine(argn, argv);
   GuiModule::createApplication();
