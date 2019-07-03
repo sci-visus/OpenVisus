@@ -472,4 +472,13 @@ macro(AddOpenVisusPythonLibraries OpenVisus_DIR)
 
 endmacro()
 
+# ///////////////////////////////////////////////////////////////
+macro(GitUpdateSubmodules)
+	find_package(Git REQUIRED)
+        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} RESULT_VARIABLE __result__)
+        if(NOT __result__ EQUAL "0")
+            message(FATAL_ERROR "git submodule update --init failed with ${__result__}, please checkout submodules")
+        endif()
+endmacro()
+
 
