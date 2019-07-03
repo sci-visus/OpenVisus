@@ -80,7 +80,7 @@ double Position::computeVolume() const {
       points.push_back((T * point).toPoint2());
     return Quad(points).area();
   }
-  else if (pdim == pdim)
+  else if (pdim == 3)
   {
     std::vector<Point3d> points;
     for (auto point : this->box.getPoints())
@@ -92,9 +92,12 @@ double Position::computeVolume() const {
       ((points[4] - points[0]).cross(points[5] - points[7])) +
       ((points[3] - points[0]).cross(points[7] - points[2])));
   }
-
-  VisusAssert(false);
-  return 0.0;
+  else
+  {
+    //todo...
+    VisusAssert(false);
+    return 0.0;
+  }
 }
 
 

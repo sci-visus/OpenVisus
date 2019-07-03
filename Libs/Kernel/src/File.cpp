@@ -213,7 +213,7 @@ public:
     this->cursor = -1;
     this->can_read = false;
     this->can_write = false;
-    this->filename = filename;
+    this->filename = "";
   }
 
   //size

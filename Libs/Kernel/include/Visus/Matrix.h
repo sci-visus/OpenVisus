@@ -713,7 +713,7 @@ public:
   }
 
   //setSpaceDim
-  virtual void setSpaceDim(int value) {
+  virtual void setSpaceDim(int value) override  {
     VisusAssert(value >= this->getSpaceDim());
     T.setSpaceDim(value);
     Ti.setSpaceDim(value);

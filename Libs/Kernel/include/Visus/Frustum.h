@@ -274,7 +274,7 @@ public:
   }
 
   //setSpaceDim
-  virtual void setSpaceDim(int value) {
+  virtual void setSpaceDim(int value) override {
     VisusReleaseAssert(value == 4);
     return;
   }

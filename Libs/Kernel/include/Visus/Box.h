@@ -309,7 +309,9 @@ public:
   //castTo
   template <typename Other>
   Other castTo() const {
-    return Other(this->p1.castTo<typename Other::Point>(), this->p2.castTo<typename Other::Point>());
+    return Other(
+                 this->p1.template castTo<typename Other::Point>(),
+                 this->p2.template castTo<typename Other::Point>());
   }
 
 public:

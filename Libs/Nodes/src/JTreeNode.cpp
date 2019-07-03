@@ -560,7 +560,7 @@ public:
   MyJob(JTreeNode* node_) : node(node_),data(node_->data) 
   {
     this->idims=data.dims.toPoint3();
-    this->ddims=data.dims.toPoint3().castTo<Point3d>();
+    this->ddims=data.dims.toPoint3().template castTo<Point3d>();
     this->minima_tree=node->minima_tree;
     this->threshold_min=node->threshold_min;
     this->threshold_max=node->threshold_max;
