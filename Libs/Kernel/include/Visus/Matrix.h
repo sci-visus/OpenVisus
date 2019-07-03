@@ -122,6 +122,19 @@ public:
       c0[2], c1[2], c2[2]) {
   }
 
+  //constructor
+  Matrix(Matrix Rot, PointNd t)
+    : Matrix(Rot.getSpaceDim() + 1) 
+  {
+    for (int R = 0; R < Rot.getSpaceDim(); R++)
+      for (int C = 0; C < Rot.getSpaceDim(); C++)
+        (*this)(R, C) = Rot(R, C);
+
+    for (int I = 0; I < t.getPointDim(); I++)
+      get(I,this->getSpaceDim()-1)=t[I];
+  }
+
+
   // constructor
   static Matrix parseFromString(String s) {
     if (s.empty()) return Matrix();
@@ -469,11 +482,9 @@ public:
   String toString() const
   {
     std::ostringstream out;
-    out << "[";
     for (int i = 0; i < this->dim; i++)
       for (int j = 0; j < this->dim; j++)
-        out << (i || j ? ", " : "") << get(i, j);
-    out << "]";
+        out << (i || j ? " " : "") << get(i, j);
     return out.str();
   }
 
@@ -485,7 +496,7 @@ public:
     {
       for (int C = 0; C < 4; C++)
         o << std::setprecision(precision) << std::fixed << (*this)(R, C) << " ";
-      o << "\n";
+      o << std::endl;
     }
     return o.str();
   }

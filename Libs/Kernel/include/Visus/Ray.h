@@ -105,6 +105,14 @@ public:
     return Ray::fromTwoPoints(M * getPoint(0), M * getPoint(1));
   }
 
+  //findIntersectionOnZeroPlane
+  PointNd findIntersectionOnZeroPlane() const {
+    VisusAssert(origin.getPointDim() == 3);
+    VisusAssert(direction[2] != T(0));
+    double alpha = -origin[2] / direction[2];
+    return getPoint(alpha);
+  }
+
 }; //end class Ray
 
 
