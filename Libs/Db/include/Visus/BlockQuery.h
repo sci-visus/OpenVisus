@@ -70,7 +70,7 @@ public:
 
   Array      buffer;
 
-  NdPoint    nsamples;
+  PointNi    nsamples;
   LogicBox   logic_box;
 
   Future<Void> done;

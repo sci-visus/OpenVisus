@@ -158,13 +158,6 @@ namespace Visus {}
 %include <std_set.i>
 %include <std_shared_ptr.i>
 
-%template(PairDoubleDouble)                std::pair<double,double>;
-%template(PairIntDouble)                   std::pair<int,double>;
-%template(VectorString)                    std::vector< std::string >;
-%template(VectorInt)                       std::vector<int>;
-%template(VectorDouble)                    std::vector<double>;
-%template(VectorFloat)                     std::vector<float>;
-%template(MapStringString)                 std::map< std::string , std::string >;
 
 //__________________________________________________________
 //RENAME

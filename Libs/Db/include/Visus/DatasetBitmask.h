@@ -65,7 +65,7 @@ public:
   DatasetBitmask(String pattern);
 
   //guess bitmask for a certain number of samples (will store the result in bitmask)
-  static DatasetBitmask guess(NdPoint dims, bool makeRegularAsSoonAsPossible = true);
+  static DatasetBitmask guess(PointNi dims, bool makeRegularAsSoonAsPossible = true);
 
   //invalid
   static inline DatasetBitmask invalid() {
@@ -98,13 +98,13 @@ public:
   }
 
   //getPow2Dims
-  inline const NdPoint& getPow2Dims() const {
+  inline const PointNi& getPow2Dims() const {
     return pow2_dims;
   }
 
   //getPow2Box
-  inline NdBox getPow2Box() const {
-    return NdBox(NdPoint(pdim), pow2_dims);
+  inline BoxNi getPow2Box() const {
+    return BoxNi(PointNi(pdim), pow2_dims);
   }
 
   //clear
@@ -128,7 +128,7 @@ public:
   }
 
   //upgradeBox
-  inline NdBox upgradeBox(NdBox box, int maxh) const
+  inline BoxNi upgradeBox(BoxNi box, int maxh) const
   {
     VisusAssert(maxh >= max_resolution);
     if (maxh == max_resolution) return box;
@@ -141,12 +141,12 @@ public:
     return box;
   }
 
-  //Address -> Point
-  inline NdPoint deinterleave(BigInt z, int max_resolution) const {
+  //Address -> PointNd
+  inline PointNi deinterleave(BigInt z, int max_resolution) const {
     VisusAssert(valid());
-    NdPoint p(pdim);
-    NdPoint::coord_t one = 1;
-    for (NdPoint shift=NdPoint(pdim); z != 0; z >>= 1, max_resolution--)
+    PointNi p(pdim);
+    Int64 one = 1;
+    for (PointNi shift=PointNi(pdim); z != 0; z >>= 1, max_resolution--)
     {
       int bit = (*this)[max_resolution];
       if ((z & 1) == 1) p[bit] |= one << shift[bit];
@@ -170,7 +170,7 @@ private:
   String           pattern;
   int              max_resolution=0;
   int              pdim = 0;
-  NdPoint          pow2_dims;
+  PointNi          pow2_dims;
   std::vector<int> exploded; 
 
 };

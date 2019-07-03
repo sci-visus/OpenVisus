@@ -150,7 +150,7 @@ public:
     // </dataset>
 
     //where the samples will be in X Y Z, not a simply 1d array
-    // NdPoint nsamples = HzOrder::getAddressRangeLayout(bitmask,start_address,end_address); 
+    // PointNi nsamples = HzOrder::getAddressRangeLayout(bitmask,start_address,end_address); 
     // VisusAssert(nsamples.innerProduct()==cint64(end_address-start_address));
 
     auto bitmask = dataset->getBitmask();
@@ -172,7 +172,7 @@ public:
       url.setParam("idx", Path(path).getFileName());
       url.setParam("field", field);
       url.setParam("time", cstring(timestep));
-      url.setParam("box", block_logicbox.toString());
+      url.setParam("box", block_logicbox.toString(/*bInterleave*/true));
       VisusInfo() << url.toString();
 
       NetRequest request(url);
@@ -191,7 +191,7 @@ public:
       params += " --idx " + path;
       params += " --field " + field;
       params += " --time " + cstring(timestep);
-      params += " --box \"" + block_logicbox.toString() + "\"";
+      params += " --box \"" + block_logicbox.toString(/*bInterleave*/true) + "\"";
       VisusInfo() << params;
 
 #if WIN32
@@ -260,8 +260,8 @@ public:
     if (!logic_box.valid())
       return owner->readFailed(query);
 
-    NdPoint::coord_t Width  = dataset->getBox().size()[0];
-    NdPoint::coord_t Height = dataset->getBox().size()[1];
+    Int64 Width  = dataset->getBox().size()[0];
+    Int64 Height = dataset->getBox().size()[1];
 
     Url urlpath(owner->getPath());
     int z = cint(urlpath.getParam("z", "0"));
@@ -277,7 +277,7 @@ public:
       if (query->aborted())
         break;
 
-      NdPoint logic_pos = logic_box.pixelToLogic(loc.pos);
+      PointNi logic_pos = logic_box.pixelToLogic(loc.pos);
 
       //mirror y
       logic_pos[1] = Height - logic_pos[1] - 1;
@@ -369,7 +369,7 @@ public:
       if (query->aborted())
         return owner->readFailed(query);
 
-      NdPoint logic_pos = logic_box.pixelToLogic(loc.pos);
+      PointNi logic_pos = logic_box.pixelToLogic(loc.pos);
 
       Point3d p(
         (logic_pos[0] - P0[0]) / (double)(Size[0]),
@@ -401,9 +401,9 @@ public:
   template <typename CppType>
   inline CppType generateSample(const Point3d& p) const
   {
-    int xi = p.x*invstep;
-    int yi = p.y*invstep;
-    int zi = p.z*invstep;
+    int xi = p[0]*invstep;
+    int yi = p[1]*invstep;
+    int zi = p[2]*invstep;
     return (xi % 2 ^ (yi + 1) % 2 ^ zi % 2) ? 255 : 0;
   }
 };
@@ -422,8 +422,8 @@ public:
   template <typename CppType>
   inline CppType generateSample(const Point3d& p) const
   {
-    double x = p.x;
-    double y = p.y;
+    double x = p[0];
+    double y = p[1];
 
     //http://nuclear.mutantstargoat.com/articles/sdr_fract/
     const double scale = 2;

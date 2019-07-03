@@ -89,8 +89,8 @@ void GLOrthoCamera::glMouseMoveEvent(QMouseEvent* evt)
   {
     //t1 and t2 are the old position, T1 and T2 are the touch position.
     FrustumMap map=needUnproject();
-    Point2d t1 = map.unprojectPoint(convertTo<Point2d>(last_mouse_pos[1])).dropZ(), T1 = map.unprojectPoint(convertTo<Point2d>(this->mouse.getButton(Qt::LeftButton).pos)).dropZ();
-    Point2d t2 = map.unprojectPoint(convertTo<Point2d>(last_mouse_pos[2])).dropZ(), T2 = map.unprojectPoint(convertTo<Point2d>(this->mouse.getButton(Qt::MidButton ).pos)).dropZ();
+    Point2d t1 = map.unprojectPoint(last_mouse_pos[1].castTo<Point2d>()).toPoint2(), T1 = map.unprojectPoint(this->mouse.getButton(Qt::LeftButton).pos.castTo<Point2d>()).toPoint2();
+    Point2d t2 = map.unprojectPoint(last_mouse_pos[2].castTo<Point2d>()).toPoint2(), T2 = map.unprojectPoint(this->mouse.getButton(Qt::MidButton ).pos.castTo<Point2d>()).toPoint2();
     Point2d center = (t1 + t2)*0.5;
 
     //since I'm handling both buttons here, I need to "freeze" the actual situation (otherwise I will replicate the transformation twice)
@@ -114,8 +114,8 @@ void GLOrthoCamera::glMouseMoveEvent(QMouseEvent* evt)
     [-b a ty] [y2] = [y4]
     [ 0 0  1] [ 1] = [1 ] 
     */
-    double x1 = t1.x-center.x, y1=t1.y-center.y, x2=t2.x-center.x, y2=t2.y-center.y;
-    double x3 = T1.x-center.x, y3=T1.y-center.y, x4=T2.x-center.x, y4=T2.y-center.y;
+    double x1 = t1[0]-center[0], y1=t1[1]-center[1], x2=t2[0]-center[0], y2=t2[1]-center[1];
+    double x3 = T1[0]-center[0], y3=T1[1]-center[1], x4=T2[0]-center[0], y4=T2[1]-center[1];
     double D  = ((y1-y2)*(y1-y2) + (x1-x2)*(x1-x2));
     double a  = ((y1-y2)*(y3-y4) + (x1-x2)*(x3-x4))/D;
     double b  = ((y1-y2)*(x3-x4) - (x1-x2)*(y3-y4))/D;
@@ -151,8 +151,8 @@ void GLOrthoCamera::glMouseMoveEvent(QMouseEvent* evt)
     Point2i p1 = last_mouse_pos[button];
     Point2i p2 = this->mouse.getButton(button).pos;
     last_mouse_pos[button] = p2;
-    Point2d t1 = map.unprojectPoint(convertTo<Point2d>(p1)).dropZ();
-    Point2d T1 = map.unprojectPoint(convertTo<Point2d>(p2)).dropZ();
+    Point2d t1 = map.unprojectPoint(p1.castTo<Point2d>()).toPoint2();
+    Point2d T1 = map.unprojectPoint(p2.castTo<Point2d>()).toPoint2();
 
     beginUpdate();
     {
@@ -178,7 +178,7 @@ void GLOrthoCamera::glMouseReleaseEvent(QMouseEvent* evt)
 void GLOrthoCamera::glWheelEvent(QWheelEvent* evt)
 {
   FrustumMap map=needUnproject();
-  Point2d center = map.unprojectPoint(Point2d(evt->x(),evt->y())).dropZ();
+  Point2d center = map.unprojectPoint(Point2d(evt->x(),evt->y())).toPoint2();
   double  vs     = evt->delta()>0 ? (1.0 / default_scale) : (default_scale);
 
   scale(vs,center);
@@ -208,7 +208,7 @@ void GLOrthoCamera::glKeyPressEvent(QKeyEvent* evt)
   {
     double vs=key=='+'? 1.0/default_scale : default_scale;
     auto ortho_params=getOrthoParams();
-    auto center=ortho_params.getCenter().dropZ();
+    auto center=ortho_params.getCenter().toPoint2();
     scale(vs,center);
     evt->accept();
     return;
@@ -229,15 +229,16 @@ void GLOrthoCamera::glKeyPressEvent(QKeyEvent* evt)
 bool GLOrthoCamera::guessPosition(Position position,int ref)  
 {
   Point3d C,X,Y,Z;
-  Box3d bound;
+  auto bound = BoxNd(3);
 
-  if (position.getTransformation().isIdentity())
+  if (position.T.isIdentity())
   {
     C=Point3d(0,0,0);
     X=Point3d(1,0,0);
     Y=Point3d(0,1,0);
     Z=Point3d(0,0,1);
-    bound=position.getBox();
+    bound=position.box;
+    bound.setPointDim(3);
   }
   else
   {
@@ -247,9 +248,9 @@ bool GLOrthoCamera::guessPosition(Position position,int ref)
     Y=lcs.getAxis(1);
     Z=lcs.getAxis(2);
 
-    bound.p2.x=X.module(); X=X.normalized();
-    bound.p2.y=Y.module(); Y=Y.normalized();
-    bound.p2.z=Z.module(); Z=Z.normalized();
+    bound.p2[0]=X.module(); X=X.normalized();
+    bound.p2[1]=Y.module(); Y=Y.normalized();
+    bound.p2[2]=Z.module(); Z=Z.normalized();
     bound.p1=-1*bound.p2;
 
     if (X[X.abs().biggest()]<0) X*=-1;
@@ -260,28 +261,30 @@ bool GLOrthoCamera::guessPosition(Position position,int ref)
   int W = getViewport().width ; if (!W) W=800;
   int H = getViewport().height; if (!H) H=800;
 
-  if (ref==0 || (ref<0 && bound.p1.x==bound.p2.x && bound.p1.y!=bound.p2.y && bound.p1.z!=bound.p2.z))
+  auto size = bound.size();
+
+  if (ref==0 || (ref<0 && !size[0] && size[1] && size[2]))
   {
     beginUpdate();
     this->pos=+C;
     this->dir=-X;
     this->vup=+Z;
     this->rotation_angle = 0.0;
-    double Xnear =-bound.p1.x,Xfar  =-bound.p2.x; if (Xnear==Xfar) {Xnear+=1;Xfar-=1;}
-    GLOrthoParams ortho_params = GLOrthoParams(bound.p1.y,bound.p2.y,bound.p1.z,bound.p2.z,Xnear,Xfar);
+    double Xnear =-bound.p1[0],Xfar  =-bound.p2[0]; if (Xnear==Xfar) {Xnear+=1;Xfar-=1;}
+    GLOrthoParams ortho_params = GLOrthoParams(bound.p1[1],bound.p2[1],bound.p1[2],bound.p2[2],Xnear,Xfar);
     ortho_params.fixAspectRatio((double)W/(double)H);
     setOrthoParams(ortho_params);
     endUpdate();
   }
-  else if (ref==1 || (ref<0 && bound.p1.x!=bound.p2.x && bound.p1.y==bound.p2.y && bound.p1.z!=bound.p2.z))
+  else if (ref==1 || (ref<0 && size[0] && !size[1] && size[2]))
   {
     beginUpdate();
     this->pos=+C;
     this->dir=+Y;
     this->vup=+Z;
     this->rotation_angle = 0.0;
-    double Ynear =+bound.p1.y,Yfar  =+bound.p2.y; if (Ynear==Yfar) {Ynear-=1;Yfar+=1;}
-    GLOrthoParams ortho_params(bound.p1.x,bound.p2.x,bound.p1.z,bound.p2.z,Ynear,Yfar);
+    double Ynear =+bound.p1[1],Yfar  =+bound.p2[1]; if (Ynear==Yfar) {Ynear-=1;Yfar+=1;}
+    GLOrthoParams ortho_params(bound.p1[0],bound.p2[0],bound.p1[2],bound.p2[2],Ynear,Yfar);
     ortho_params.fixAspectRatio((double)W/(double)H);
     setOrthoParams(ortho_params);
     endUpdate();
@@ -294,8 +297,8 @@ bool GLOrthoCamera::guessPosition(Position position,int ref)
     this->dir=-Z;
     this->vup=+Y;
     this->rotation_angle = 0.0;
-    double Znear =-bound.p1.z,Zfar  =-bound.p2.z; if (Znear==Zfar) {Znear+=1;Zfar-=1;}
-    GLOrthoParams ortho_params(bound.p1.x,bound.p2.x,bound.p1.y,bound.p2.y,Znear,Zfar);
+    double Znear =-bound.p1[2],Zfar  =-bound.p2[2]; if (Znear==Zfar) {Znear+=1;Zfar-=1;}
+    GLOrthoParams ortho_params(bound.p1[0],bound.p2[0],bound.p1[1],bound.p2[1],Znear,Zfar);
     ortho_params.fixAspectRatio((double)W/(double)H);
     setOrthoParams(ortho_params);
     endUpdate();
@@ -382,13 +385,13 @@ void GLOrthoCamera::refineToFinal()
       (double)getViewport().width /ortho_params.getWidth (),
       (double)getViewport().height/ortho_params.getHeight());
 
-    if (max_zoom>0 && std::max(pixel_per_sample.x,pixel_per_sample.y) > max_zoom)
+    if (max_zoom>0 && std::max(pixel_per_sample[0],pixel_per_sample[1]) > max_zoom)
     {
       timer.stop();
       return;
     }
 
-    if (min_zoom>0 && std::min(pixel_per_sample.x,pixel_per_sample.y) < min_zoom)
+    if (min_zoom>0 && std::min(pixel_per_sample[0],pixel_per_sample[1]) < min_zoom)
     {
       timer.stop();
       return;
@@ -404,7 +407,7 @@ void GLOrthoCamera::refineToFinal()
 ////////////////////////////////////////////////////////////////
 void GLOrthoCamera::translate(Point2d vt)
 {
-  if (!vt.x && !vt.y)
+  if (!vt[0] && !vt[1])
     return;
 
   this->ortho_params_final.translate(Point3d(vt));

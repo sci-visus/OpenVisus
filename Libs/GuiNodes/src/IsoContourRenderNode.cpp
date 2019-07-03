@@ -92,7 +92,7 @@ void IsoContourRenderNode::glRender(GLCanvas& gl)
   //field has 2 components I can use the second component to shop on top of the surface
 
   gl.pushModelview();
-  gl.multModelview(isocontour->bounds.getTransformation());
+  gl.multModelview(isocontour->bounds.T);
   Point3d pos,dir,vup;
   gl.getModelview().getLookAt(pos,dir,vup);
 

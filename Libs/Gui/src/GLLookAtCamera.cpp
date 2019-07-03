@@ -146,8 +146,8 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt)
   if (this->mouse.getButton(Qt::LeftButton).isDown && this->mouse.getButton(Qt::MidButton).isDown && (button==Qt::LeftButton || button==Qt::MidButton)) // 2-finger zoom/pan/rotate
   {
     //t1 and t2 are the old position, T1 and T2 are the touch position.
-    Point2d t1 = convertTo<Point2d>(last_mouse_pos[1]), T1 = convertTo<Point2d>(this->mouse.getButton(Qt::LeftButton).pos);
-    Point2d t2 = convertTo<Point2d>(last_mouse_pos[2]), T2 = convertTo<Point2d>(this->mouse.getButton(Qt::MidButton ).pos);
+    Point2d t1 = last_mouse_pos[1].castTo<Point2d>(), T1 = this->mouse.getButton(Qt::LeftButton).pos.castTo<Point2d>();
+    Point2d t2 = last_mouse_pos[2].castTo<Point2d>(), T2 = this->mouse.getButton(Qt::MidButton ).pos.castTo<Point2d>();
     Point2d center=(t1+t2)*0.5;
 
     /* what I want is as SCALE * TRANSLATE * ROTATE, the solution works only if I set a good center
@@ -166,8 +166,8 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt)
       [-b a ty] [y2] = [y4]
       [ 0 0  1] [ 1] = [1 ] */
 
-    double x1 = t1.x-center.x, y1=t1.y-center.y, x2=t2.x-center.x, y2=t2.y-center.y;
-    double x3 = T1.x-center.x, y3=T1.y-center.y, x4=T2.x-center.x, y4=T2.y-center.y;
+    double x1 = t1[0]-center[0], y1=t1[1]-center[1], x2=t2[0]-center[0], y2=t2[1]-center[1];
+    double x3 = T1[0]-center[0], y3=T1[1]-center[1], x4=T2[0]-center[0], y4=T2[1]-center[1];
     double D  = ((y1-y2)*(y1-y2) + (x1-x2)*(x1-x2));
     double a  = ((y1-y2)*(y3-y4) + (x1-x2)*(x3-x4))/D;
     double b  = ((y1-y2)*(x3-x4) - (x1-x2)*(y3-y4))/D;
@@ -213,32 +213,32 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt)
     temp.loadModelview(Matrix::lookAt(this->pos, this->pos+this->dir, this->vup));
     FrustumMap map(temp);
     Point3d center = map.unprojectPointToEye(map.projectPoint(centerOfRotation));
-    Point3d p1 = map.unprojectPointToEye(convertTo<Point2d>(screen_p1));
-    Point3d p2 = map.unprojectPointToEye(convertTo<Point2d>(screen_p2));
-    double x1 = p1.x - center.x, y1 = p1.y - center.y;
-    double x2 = p2.x - center.x, y2 = p2.y - center.y;
+    Point3d p1 = map.unprojectPointToEye(screen_p1.castTo<Point2d>());
+    Point3d p2 = map.unprojectPointToEye(screen_p2.castTo<Point2d>());
+    double x1 = p1[0] - center[0], y1 = p1[1] - center[1];
+    double x2 = p2[0] - center[0], y2 = p2[1] - center[1];
     double l1 = x1*x1 + y1*y1, l2 = x2*x2 + y2*y2;
     if (l1 < R*R/2)
-        p1.z = sqrt(R*R - l1);
+        p1[2] = sqrt(R*R - l1);
     else
-        p1.z = R*R / 2 / sqrt(l1);
+        p1[2] = R*R / 2 / sqrt(l1);
 
     if (l2 < R*R/2)
-        p2.z = sqrt(R*R - l2);
+        p2[2] = sqrt(R*R - l2);
     else
-        p2.z = R*R / 2 / sqrt(l2);
+        p2[2] = R*R / 2 / sqrt(l2);
 
-    Matrix M = Matrix::lookAt(this->pos, this->pos + this->dir, this->vup).invert();
+    auto M = Matrix::lookAt(this->pos, this->pos + this->dir, this->vup).invert();
     Point3d a = (M * p1 - M * center).normalized();
     Point3d b = (M * p2 - M * center).normalized();
     Point3d axis = a.cross(b).normalized();
-    double angle = acos(a*b);
+    double angle = acos(a.dot(b));
 
     if (axis.module() && axis.valid())
     {
       beginUpdate();
 
-      this->quaternion= Quaternion4d(axis,angle*defaultRotFactor) * this->quaternion;
+      this->quaternion= Quaternion(axis,angle*defaultRotFactor) * this->quaternion;
 
       if (bAutoOrthoParams)
         guessOrthoParams();
@@ -257,7 +257,7 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt)
     Point2i p2 = this->mouse.getButton(button).pos;
     last_mouse_pos[button] = p2;
 
-    pan(convertTo<Point2d>(p1),convertTo<Point2d>(p2));
+    pan(p1.castTo<Point2d>(),p2.castTo<Point2d>());
 
     evt->accept();
     return;
@@ -326,7 +326,7 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
       RayBoxIntersection intersection(ray,bound);
 
       if (intersection.valid)
-        this->setCenterOfRotation(ray.getPoint(0.5*(std::max(intersection.tmin,0.0)+intersection.tmax)));
+        this->setCenterOfRotation(ray.getPoint(0.5*(std::max(intersection.tmin,0.0)+intersection.tmax)).toPoint3());
 
       evt->accept();
       return ;
@@ -355,18 +355,19 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
 //////////////////////////////////////////////////////////////////////
 bool GLLookAtCamera::guessPosition(Position position,int ref) 
 {
-  Box3d bound=position.toAxisAlignedBox();
+  auto bound=position.withoutTransformation();
+  bound.setPointDim(3);
 
   beginUpdate();
   {
     this->bound=bound;
 
     this->bUseOrthoProjection=false;
-    this->centerOfRotation=bound.center();
+    this->centerOfRotation=bound.center().toPoint3();
 
     if (ref<0)
     {
-      this->pos = centerOfRotation +2.1f*bound.size();
+      this->pos = centerOfRotation +2.1*bound.size().toPoint3();
       this->dir =(centerOfRotation-pos).normalized();
       this->vup = Point3d(0,0,1);
     }
@@ -379,7 +380,7 @@ bool GLLookAtCamera::guessPosition(Position position,int ref)
     }
 
     //at the beginning no rotation
-    this->quaternion= Quaternion4d();
+    this->quaternion= Quaternion();
   }
 
   guessOrthoParams();
@@ -391,11 +392,11 @@ bool GLLookAtCamera::guessPosition(Position position,int ref)
 
 
 //////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::setBounds(Box3d value)
+void GLLookAtCamera::setBounds(BoxNd value)
 {
   beginUpdate();
   this->bound = value;
-  this->centerOfRotation = value.center();
+  this->centerOfRotation = value.center().toPoint3();
   endUpdate();
 }
 
@@ -409,7 +410,7 @@ void GLLookAtCamera::setLookAt(Point3d pos, Point3d center, Point3d vup)
     this->dir= (center - pos).normalized();
     this->vup= vup;
     this->centerOfRotation = center;
-    this->quaternion= Quaternion4d();
+    this->quaternion= Quaternion();
   }
   guessOrthoParams();
   endUpdate();
@@ -439,10 +440,10 @@ void GLLookAtCamera::pan(Point2d screen_p1,Point2d screen_p2)
   // how far the camera is from the volume
 
   if (right.valid())
-    this->pos -= (screen_p2.x - screen_p1.x) / getViewport().width * right * guessForwardFactor() * defaultPanFactor;
+    this->pos -= (screen_p2[0] - screen_p1[0]) / getViewport().width * right * guessForwardFactor() * defaultPanFactor;
 
   if (up.valid())
-    this->pos -= (screen_p2.y - screen_p1.y) / getViewport().height * up * guessForwardFactor() * defaultPanFactor;
+    this->pos -= (screen_p2[1] - screen_p1[1]) / getViewport().height * up * guessForwardFactor() * defaultPanFactor;
 
   if (bAutoOrthoParams)
     guessOrthoParams();
@@ -468,8 +469,8 @@ void GLLookAtCamera::rotate(Point2d screen_center,double angle)
 
   FrustumMap map(temp);
   Point3d world_center=map.unprojectPoint(screen_center);
-  Matrix Trot = Matrix::translate(+1*world_center) * Matrix::rotate(dir,angle) * Matrix::translate(-1*world_center);
-  Matrix mv=Matrix::lookAt(this->pos,this->pos+this->dir,this->vup) * Trot;
+  auto Trot = Matrix::translate(+1*world_center) * Matrix::rotateAroundAxis(dir,angle) * Matrix::translate(-1*world_center);
+  auto mv= Matrix::lookAt(this->pos,this->pos+this->dir,this->vup) * Trot;
   Point3d POS,DIR,VUP;mv.getLookAt(POS,DIR,VUP);
   if (!POS.valid() || !DIR.valid() || !VUP.valid() || (POS==pos && DIR==dir && VUP==vup)) return;
 
@@ -502,14 +503,14 @@ Frustum GLLookAtCamera::getFrustum() const
 std::pair<double,double> GLLookAtCamera::guessNearFarDistance() const {
 
   Matrix  modelview_inverse = getFrustum().getModelview().invert();
-  Point3d camera_pos        =  modelview_inverse.getColumn(3).dropW();
-  Point3d lookat_dir        = -modelview_inverse.getColumn(2).dropW();
+  Point3d camera_pos        =  modelview_inverse.getCol(3).toPoint3();
+  Point3d lookat_dir        = -modelview_inverse.getCol(2).toPoint3();
 
   Plane   camera_plane(lookat_dir, camera_pos);
 
   // compute the distance from the camera to the bounding box of the volume
-  Point3d volume_far_point ((lookat_dir.x >= 0) ? bound.p2.x : bound.p1.x, (lookat_dir.y >= 0) ? bound.p2.y : bound.p1.y, (lookat_dir.z >= 0) ? bound.p2.z : bound.p1.z);
-  Point3d volume_near_point((lookat_dir.x >= 0) ? bound.p1.x : bound.p2.x, (lookat_dir.y >= 0) ? bound.p1.y : bound.p2.y, (lookat_dir.z >= 0) ? bound.p1.z : bound.p2.z);
+  Point3d volume_far_point ((lookat_dir[0] >= 0) ? bound.p2[0] : bound.p1[0], (lookat_dir[1] >= 0) ? bound.p2[1] : bound.p1[1], (lookat_dir[2] >= 0) ? bound.p2[2] : bound.p1[2]);
+  Point3d volume_near_point((lookat_dir[0] >= 0) ? bound.p1[0] : bound.p2[0], (lookat_dir[1] >= 0) ? bound.p1[1] : bound.p2[1], (lookat_dir[2] >= 0) ? bound.p1[2] : bound.p2[2]);
 
   double near_dist = camera_plane.getDistance(volume_near_point);
   double far_dist  = camera_plane.getDistance(volume_far_point );
@@ -574,7 +575,7 @@ void GLLookAtCamera::writeToObjectStream(ObjectStream& ostream)
     ostream.writeInline("time", "0");
 
     // write camera data
-    ostream.write("bound", bound.toString());
+    ostream.write("bound", bound.toString(/*bInterleave*/false));
     ostream.write("pos", pos.toString());
     ostream.write("dir", dir.toString());
     ostream.write("vup", vup.toString());
@@ -590,7 +591,7 @@ void GLLookAtCamera::writeToObjectStream(ObjectStream& ostream)
 
   GLCamera::writeToObjectStream(ostream);
 
-  ostream.write("bound",bound.toString());
+  ostream.write("bound",bound.toString(/*bInterleave*/false));
   ostream.write("pos",pos.toString());
   ostream.write("dir",dir.toString());
   ostream.write("vup",vup.toString());
@@ -612,23 +613,25 @@ void GLLookAtCamera::readFromObjectStream(ObjectStream& istream)
 {
   if (istream.isSceneMode())
   {
-    bound = Box3d::parseFromString(istream.read("bound"));
+    bound = BoxNd::parseFromString(istream.read("bound"),/*bInterleave*/false); 
+    bound.setPointDim(3);
     pos = Point3d(istream.read("pos"));
     dir = Point3d(istream.read("dir"));
     vup = Point3d(istream.read("vup"));
     centerOfRotation = Point3d(istream.read("centerOfRotation"));
-    quaternion = Quaternion4d(istream.read("quaternion"));
+    quaternion = Quaternion(istream.read("quaternion"));
     return;
   }
 
   GLCamera::readFromObjectStream(istream);
 
-  bound            = Box3d::parseFromString(istream.read("bound"));
+  bound = BoxNd::parseFromString(istream.read("bound"),/*bInterleave*/false);
+  bound.setPointDim(3);
   pos              = Point3d(istream.read("pos"));
   dir              = Point3d(istream.read("dir"));
   vup              = Point3d(istream.read("vup"));
-  quaternion       = Quaternion4d(istream.read("quaternion"));
   centerOfRotation = Point3d(istream.read("centerOfRotation"));
+  quaternion       = Quaternion(istream.read("quaternion"));
   defaultRotFactor =cdouble(istream.read("defaultRotFactor"));
   defaultPanFactor =cdouble(istream.read("defaultPanFactor"));
   bDisableRotation =cbool  (istream.read("disableRotation"));

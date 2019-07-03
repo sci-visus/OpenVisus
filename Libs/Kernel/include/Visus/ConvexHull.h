@@ -49,7 +49,7 @@ class VISUS_KERNEL_API ConvexHull
 {
   std::vector<Point3d> points;
   std::vector<Plane>   planes;
-  Box3d                aabb=Box3d::invalid();
+  BoxNd                aabb=BoxNd::invalid();
 
 public:
 
@@ -75,7 +75,7 @@ public:
   {return planes;}
 
   //getAxisAlignedBoundingBox
-  const Box3d& getAxisAlignedBoundingBox() const
+  const BoxNd& getAxisAlignedBoundingBox() const
   {return aabb;}
 
   //containsPoint
@@ -91,10 +91,12 @@ public:
   }
 
   //intersectBox
-  inline bool intersectBox(const Box3d& box) 
+  inline bool intersectBox(BoxNd box)
   {
     if (!this->aabb.valid() || !box.valid())
       return false;
+
+    box.setPointDim(3);
 
     //trivial and fast check if they overlap
     if (!this->aabb.intersect(box))
@@ -111,9 +113,13 @@ public:
        \___/
     */
 
-    for (int I=0;I<(int)planes.size();I++)
+    for (auto plane : planes)
     {
-      double min_distance=planes[I].getDistance(Point3d(planes[I].x>=0?box.p1.x:box.p2.x , planes[I].y>=0?box.p1.y:box.p2.y , planes[I].z>=0?box.p1.z:box.p2.z));
+      VisusAssert(plane.getSpaceDim() == 4);
+      double min_distance= plane.getDistance(Point3d(
+        plane[0]>=0?box.p1[0]:box.p2[0] ,
+        plane[1]>=0?box.p1[1]:box.p2[1] ,
+        plane[2]>=0?box.p1[2]:box.p2[2]));
       if (min_distance>=0) return false;
     }
 

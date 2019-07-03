@@ -53,17 +53,17 @@ double Frustum::computeDistance(const Position& obj,Point2d screen_point,bool bU
     return failed;
 
   Frustum frustum=*this;
-  frustum.multModelview(obj.getTransformation());
+  frustum.multModelview(obj.T);
 
   auto ray=FrustumMap(frustum).getRay(screen_point);
 
-  RayBoxIntersection intersection(ray,obj.getBox());
+  RayBoxIntersection intersection(ray,obj.box);
 
   if (!intersection.valid)
     return failed;
 
-  Point3d p1=frustum.getModelview()*ray.getPoint(bUseFarPoint?intersection.tmax:intersection.tmin);
-  Point3d p2=frustum.getModelview()*ray.getPoint(0.0);
+  auto p1=frustum.getModelview()*ray.getPoint(bUseFarPoint?intersection.tmax:intersection.tmin);
+  auto p2=frustum.getModelview()*ray.getPoint(0.0);
 
   double ret=(p2-p1).module();
 
@@ -83,50 +83,51 @@ double Frustum::computeZDistance(const Position& obj,bool bUseFarPoint) const
   if (!obj.valid())
     return failed;
 
+  auto T = obj.T;
+  auto box = obj.box;
+  box.setPointDim(3);
+
   Frustum frustum=*this;
-  frustum.multModelview(obj.getTransformation());
+  frustum.multModelview(T);
 
-  Box3d box=obj.getBox();
-
-  std::vector<Point3d> p;
-  p.reserve(8);
-
-  for (auto it : box.getPoints())
-    p.push_back(frustum.getModelview() * it);
+  std::vector<PointNd> points;
+  for (auto point : box.getPoints())
+    points.push_back(frustum.getModelview() * point);
 
   //note: camera "looks" along negative Z axis, so we must negate the z values.
   bool objInFront=false;
-  for (int i=0;i<8 && !objInFront;i++)
-    objInFront |= p[i].z<0.0;
-
+  for (auto point : points)
+  {
+    objInFront = point[2] < 0.0;
+    if (objInFront) break;
+  }
+  
   bool objBehind=false;
-  for (int i=0;i<8 && !objBehind;i++)
-    objBehind |= p[i].z>=0.0;
+  for (auto point : points)
+  {
+    objBehind = point[2] >= 0.0;
+    if (objBehind) break;
+  }
 
   if (!objInFront) 
-  {
     return failed;
-  }
-  else if (bUseFarPoint)
+
+  if (bUseFarPoint)
   {
-    double maxp=-p[0].z;
+    double maxp=-points[0][2];
     for (int i=1;i<8;i++)
-      maxp=std::max(maxp,-p[i].z);
+      maxp=std::max(maxp,-points[i][2]);
     return maxp;
   }
 
-  if (objBehind) {
+  if (objBehind) 
     return 1.0E-6;
-  }
-  else
-  {
-    double minp=-p[0].z;
-    for (int i=1;i<8;i++)
-      minp=std::min(minp,-p[i].z);
-    return minp;
-  }
-}
 
+  double minp=-points[0][2];
+  for (int i=1;i<8;i++)
+    minp=std::min(minp,-points[i][2]);
+  return minp;
+}
 
 } //namespace Visus
 

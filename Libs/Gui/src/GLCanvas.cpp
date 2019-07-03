@@ -156,25 +156,32 @@ void GLCanvas::setShader(GLShader* value,bool bForce) {
 }
 
 /////////////////////////////////////////////////////////////////////////////
-void GLCanvas::setUniformMatrix(const GLUniform& uniform,const Matrix3& T)
+void GLCanvas::setUniformMatrix(const GLUniform& uniform,const Matrix& T)
 {
-  int location=program->getUniformLocation(uniform); if (location<0) return; 
-  const float fv[]={(float)T[0],(float)T[3],(float)T[6],
-                    (float)T[1],(float)T[4],(float)T[7],
-                    (float)T[2],(float)T[5],(float)T[8]};
-  glUniformMatrix3fv(location,1,false,fv); 
+  int location=program->getUniformLocation(uniform); 
+  if (location<0) return; 
+
+  if (T.getSpaceDim() == 3)
+  {
+    const float fv[] = { (float)T[0],(float)T[3],(float)T[6],
+                      (float)T[1],(float)T[4],(float)T[7],
+                      (float)T[2],(float)T[5],(float)T[8] };
+    glUniformMatrix3fv(location, 1, false, fv);
+  }
+  else
+  {
+    VisusAssert(T.getSpaceDim() == 4);
+    {
+      const float fv[] = { (float)T[0],(float)T[4],(float)T[8],(float)T[12],
+                        (float)T[1],(float)T[5],(float)T[9],(float)T[13],
+                        (float)T[2],(float)T[6],(float)T[10],(float)T[14],
+                        (float)T[3],(float)T[7],(float)T[11],(float)T[15] };
+      glUniformMatrix4fv(location, 1, false, fv);
+    }
+  }
 }
 
-/////////////////////////////////////////////////////////////////////////////
-void GLCanvas::setUniformMatrix(const GLUniform& uniform,const Matrix4& T)
-{
-  int location=program->getUniformLocation(uniform); if (location<0) return; 
-  const float fv[]={(float)T[ 0],(float)T[ 4],(float)T[ 8],(float)T[12],
-                    (float)T[ 1],(float)T[ 5],(float)T[ 9],(float)T[13],
-                    (float)T[ 2],(float)T[ 6],(float)T[10],(float)T[14],
-                    (float)T[ 3],(float)T[ 7],(float)T[11],(float)T[15]};
-  glUniformMatrix4fv(location,1,false,fv); 
-}
+
 
 
 
@@ -213,7 +220,7 @@ void GLCanvas::setUniformMaterial(GLShader& shader,const GLMaterial& material)
 /////////////////////////////////////////////////////////////////////////////
 void GLCanvas::setUniformLight(GLShader& shader,const Point4d& light_pos) 
 {
-  VisusAssert(light_pos.w==1); 
+  VisusAssert(light_pos[3]==1); 
   Point4d pos=getModelview()*light_pos;
   setUniform(shader.u_light_position,pos);
 }
@@ -260,13 +267,18 @@ void GLCanvas::popProjection() {
 }
 
 /////////////////////////////////////////////////////////////////////////////
-void GLCanvas::setModelview(const Matrix& value,bool bForce) {
-  if (!bForce && value==getModelview()) return;
+void GLCanvas::setModelview(Matrix value,bool bForce) 
+{
+  value.setSpaceDim(4);
+
+  if (!bForce && value==getModelview()) 
+    return;
+
   this->modelview.top()=value;
   if (auto shader=getShader()) 
   {
-    setUniformMatrix(shader->u_modelview_matrix,value);
-    setUniformMatrix(shader->u_normal_matrix ,value.invert().transpose().dropW());
+    setUniformMatrix(shader->u_modelview_matrix, value);
+    setUniformMatrix(shader->u_normal_matrix   , value.submatrix(3, 3).invert().transpose());
   }
 }
 
@@ -310,7 +322,7 @@ void GLCanvas::setHud()
   Frustum frustum;
   frustum.setViewport(Viewport(0,0,W,H));
   frustum.loadProjection(Matrix::ortho(0,W,0,H,-1,+1));
-  frustum.loadModelview(Matrix::identity());
+  frustum.loadModelview(Matrix::identity(4));
   setFrustum(frustum);
 }
 
@@ -493,7 +505,7 @@ void GLCanvas::setTextureInSlot(int slot,GLSampler& sampler,SharedPtr<GLTexture>
   glActiveTexture(GL_TEXTURE0);
 
   setUniform(sampler.u_sampler,slot);
-  setUniform(sampler.u_sampler_dims ,Point3d((double)texture->dims.x,(double)texture->dims.y,(double)texture->dims.z));
+  setUniform(sampler.u_sampler_dims ,texture->dims.castTo<Point3d>());
   setUniform(sampler.u_sampler_vs,texture->vs);
   setUniform(sampler.u_sampler_vt,texture->vt);
   setUniform(sampler.u_sampler_envmode,texture->envmode);
@@ -541,8 +553,8 @@ void GLCanvas::paintGL()
   glDepthFunc(GL_LESS);
 
   viewport  .push(Viewport(0,0,width(),height()));
-  projection.push(Matrix::identity());
-  modelview .push(Matrix::identity());
+  projection.push(Matrix::identity(4));
+  modelview .push(Matrix::identity(4));
   pointsize .push(1);
   linewidth .push(1);
   blend     .push(false);

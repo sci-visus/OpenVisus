@@ -8633,10 +8633,10 @@ The code is distributed under the MIT license, Copyright (c) 2009 Florian Loitsc
 
 For a detailed description of the algorithm see:
 
-[1] Loitsch, "Printing Floating-Point Numbers Quickly and Accurately with
+[1] Loitsch, "Printing Floating-PointNd Numbers Quickly and Accurately with
     Integers", Proceedings of the ACM SIGPLAN 2010 Conference on Programming
     Language Design and Implementation, PLDI 2010
-[2] Burger, Dybvig, "Printing Floating-Point Numbers Quickly and Accurately",
+[2] Burger, Dybvig, "Printing Floating-PointNd Numbers Quickly and Accurately",
     Proceedings of the ACM SIGPLAN 1996 Conference on Programming Language
     Design and Implementation, PLDI 1996
 */

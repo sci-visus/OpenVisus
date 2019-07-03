@@ -99,7 +99,7 @@ bool RenderArrayNode::processInput()
     //compact dimension (example: 1 128 256 ->128 256 1)
     if (data->getDepth()>1 && (data->getWidth()==1 || data->getHeight()==1))
     {
-      this->data=Array(NdPoint(std::max(data->getWidth(), data->getHeight()), data->getDepth()),data->dtype,data->heap);
+      this->data=Array(PointNi(std::max(data->getWidth(), data->getHeight()), data->getDepth()),data->dtype,data->heap);
       this->data.shareProperties(*data);
     }
     else
@@ -144,7 +144,7 @@ bool RenderArrayNode::processInput()
   if (palette)
     this->palette_texture=std::make_shared<GLTexture>(palette->convertToArray());
 
-  Int64 tot_samples = (Int64)this->data_texture->dims.x * (Int64)this->data_texture->dims.y * (Int64)this->data_texture->dims.z;
+  Int64 tot_samples = (Int64)this->data_texture->dims[0] * (Int64)this->data_texture->dims[1] * (Int64)this->data_texture->dims[2];
 
   VisusInfo()<<"got array"
     <<" texture_dims("<<this->data_texture->dims.toString()<< ")"
@@ -205,20 +205,18 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   //in 2d I render the box (0,0)  x(1,1)
   gl.pushModelview();
   {
-    Box3d box=data.bounds.getBox();
+    auto box=data.bounds.box;
 
-    Point3d vt=box.p1;
-    Point3d vs=box.size();
-    if (!vs.x) vs.x=1.0;
-    if (!vs.y) vs.y=1.0;
-    if (!vs.z) vs.z=1.0;
-    gl.multModelview(data.bounds.getTransformation());
-    gl.multModelview(Matrix::translate(vt));
-    gl.multModelview(Matrix::scale(vs));
+    gl.multModelview(data.bounds.T);
+    gl.multModelview(Matrix::translate(box.p1));
+    gl.multModelview(Matrix::nonZeroScale(box.size()));
     if (shader->config.texture_dim==2)
     {
-      if      (box.p1.x==box.p2.x) gl.multModelview(Matrix(Point3d(0,1,0),Point3d(0,0,1),Point3d(1,0,0),Point3d(0,0,0)));
-      else if (box.p1.y==box.p2.y) gl.multModelview(Matrix(Point3d(1,0,0),Point3d(0,0,1),Point3d(0,1,0),Point3d(0,0,0)));
+      if (!box.size()[0]) 
+        gl.multModelview(Matrix(Point3d(0,1,0),Point3d(0,0,1),Point3d(1,0,0),Point3d(0,0,0)));
+
+      else if (!box.size()[1]) 
+        gl.multModelview(Matrix(Point3d(1,0,0),Point3d(0,0,1),Point3d(0,1,0),Point3d(0,0,0)));
     }
   }
 
@@ -254,7 +252,7 @@ void RenderArrayNode::glRender(GLCanvas& gl)
     if (useViewDirection())
     {
       if (!data.clipping.valid())
-        gl.pushClippingBox(Box3d(Point3d(0,0,0),Point3d(1,1,1)));
+        gl.pushClippingBox(BoxNd(Point3d(0,0,0),Point3d(1,1,1)));
 
       gl.glRenderMesh(GLMesh::ViewDependentUnitVolume(gl.getFrustum(), nslices));
 

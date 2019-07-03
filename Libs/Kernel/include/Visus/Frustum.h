@@ -85,7 +85,7 @@ public:
   }
 
   //constructor
-  Frustum(const Viewport& viewport_,const Matrix& projection_,const Matrix& modelview_) 
+  Frustum(const Viewport& viewport_,const Matrix& projection_,const Matrix& modelview_)
     : viewport(viewport_) ,projection(projection_),modelview(modelview_) {
   }
 
@@ -110,11 +110,11 @@ public:
   }
 
   //screen box
-  Box3d getScreenBox() const
+  BoxNd getScreenBox() const
   {
-    Point3d p1(viewport.x               ,viewport.y                ,0);
-    Point3d p2(viewport.x+viewport.width,viewport.y+viewport.height,1);
-    return Box3d(p1,p2);
+    Point3d p1(viewport.x                ,viewport.y                 ,0);
+    Point3d p2(viewport.x +viewport.width,viewport.y +viewport.height,1);
+    return BoxNd(p1,p2);
   }
 
   //load
@@ -128,9 +128,9 @@ public:
 
   //pickMatrix
   Matrix pickMatrix(double x, double y, double dx, double dy) const{
-    return (dx <= 0 || dy <= 0)? Matrix() : // If we don't have a valid region we return the identity
-           Matrix::translate(Point3d((getViewport().width-2*(x-getViewport().x))/dx,(getViewport().height-2*(y-getViewport().y))/dy,0)) * 
-           Matrix::scale(Point3d(getViewport().width/dx,getViewport().height/dy, 1));
+    return (dx <= 0 || dy <= 0)? Matrix::identity(4) : // If we don't have a valid region we return the identity
+      Matrix::translate(Point3d((getViewport().width-2*(x-getViewport().x))/dx,(getViewport().height-2*(y-getViewport().y))/dy,0)) *
+      Matrix::scale(Point3d(getViewport().width/dx,getViewport().height/dy, 1));
   }
 
 
@@ -174,13 +174,13 @@ public:
   double computeZDistance(const Position& obj,bool bUseFarPoint=false) const;
 
   //getViewportDirectTransformation (-1,+1)x(-1,+1) -> (x,x+width)x(y,y+height)
-  static Matrix4 getViewportDirectTransformation(const Viewport& viewport) 
+  static Matrix getViewportDirectTransformation(const Viewport& viewport)
   {
-    double sx = viewport.width  / 2.0; double ox = viewport.x + viewport.width / 2.0;
+    double sx = viewport.width  / 2.0; double ox = viewport.x + viewport.width  / 2.0;
     double sy = viewport.height / 2.0; double oy = viewport.y + viewport.height / 2.0;
     double sz = 1 / 2.0; double oz = 1 / 2.0;
 
-    return Matrix4(
+    return Matrix(
       sx, 0, 0, ox,
       0, sy, 0, oy,
       0, 0, sz, oz,
@@ -193,13 +193,13 @@ public:
   }
 
   //getViewportInverseTransformation
-  static Matrix4 getViewportInverseTransformation(const Viewport& viewport)
+  static Matrix getViewportInverseTransformation(const Viewport& viewport)
   {
     double sx = viewport.width  / 2.0; double ox = viewport.x + viewport.width  / 2.0;
     double sy = viewport.height / 2.0; double oy = viewport.y + viewport.height / 2.0;
     double sz = 1 / 2.0; double oz = 1 / 2.0;
 
-    return Matrix4(
+    return Matrix(
       1 / sx, 0, 0, -ox / sx,
       0, 1 / sy, 0, -oy / sy,
       0, 0, 1 / sz, -oz / sz,
@@ -207,7 +207,7 @@ public:
   }
 
   //getViewportInverseTransformation
-  Matrix4 getViewportInverseTransformation() const {
+  Matrix getViewportInverseTransformation() const {
     return getViewportInverseTransformation(viewport);
   }
 
@@ -224,15 +224,15 @@ public:
   //readFromObjectStream
   void readFromObjectStream(ObjectStream& istream) 
   {
-    loadModelview (Matrix  (istream.read("modelview" )));
-    loadProjection(Matrix  (istream.read("projection")));
+    loadModelview (Matrix::parseFromString(4,istream.read("modelview" )));
+    loadProjection(Matrix::parseFromString(4,istream.read("projection")));
     setViewport   (Viewport(istream.read("viewport"  )));
   }
 
 protected:
 
-  Matrix   modelview;
-  Matrix   projection;
+  Matrix   modelview = Matrix::identity(4);
+  Matrix   projection = Matrix::identity(4);
   Viewport viewport;
 
 };//end class
@@ -263,7 +263,22 @@ public:
     this->viewport   = MatrixMap(frustum.getViewportDirectTransformation(), frustum.getViewportInverseTransformation());
     this->projection = frustum.getProjection();
     this->modelview  = frustum.getModelview ();
+    VisusAssert(getSpaceDim() == 4);
   }
+
+  //getSpaceDim
+  virtual int getSpaceDim() const override {
+    auto ret = modelview.getSpaceDim();;
+    VisusAssert(ret == 4);
+    return ret;
+  }
+
+  //setSpaceDim
+  virtual void setSpaceDim(int value) override {
+    VisusReleaseAssert(value == 4);
+    return;
+  }
+
 
   //getFrustum
 #if !SWIG
@@ -273,85 +288,91 @@ public:
 #endif
 
   //applyDirectMap
-  virtual Point4d applyDirectMap(const Point4d& p) const override
+  virtual PointNd applyDirectMap(PointNd p) const override 
   {
-    Point4d p4(p);
-    p4 = modelview .T * p4;
-    p4 = projection.T * p4;
-    p4 = viewport  .T * p4;
-    return p4;
+    if (p.getPointDim() < getSpaceDim()) 
+    {
+      p.setPointDim(getSpaceDim()); 
+      p.back() = 1;
+    }
+
+    return (viewport.T * (projection.T * (modelview.T * p)));
   }
 
   //applyInverseMap
-  virtual Point4d applyInverseMap(const Point4d& p) const override
+  virtual PointNd applyInverseMap(PointNd p) const override 
   {
-    Point4d p4(p);
-    p4 = viewport  .Ti * p4;
-    p4 = projection.Ti * p4;
-    p4 = modelview .Ti * p4;
-    if (!p4.w) p4.w=1;
-    return p4;
+    if (p.getPointDim() < getSpaceDim()) 
+    {
+      p.setPointDim(getSpaceDim()); 
+      p.back() = 1;
+    }
+
+    p = modelview .Ti * (projection.Ti * (viewport.Ti * p));
+    if (!p.back()) p.back()=1;
+    return p;
   }
 
   //applyDirectMap
-  virtual Plane applyDirectMap(const Plane& h) const override
+  virtual Plane applyDirectMap(Plane h) const override
   {
-    Point4d p4(h.x,h.y,h.z,h.w);
-    p4 = p4 * modelview .Ti;
-    p4 = p4 * projection.Ti;
-    p4 = p4 * viewport  .Ti;
-    return Plane(p4.x,p4.y,p4.z,p4.w);
+    VisusAssert(h.getSpaceDim() == getSpaceDim());
+    return Plane(((PointNd(h) * modelview.Ti) * projection.Ti) * viewport.Ti);
   }
 
   //applyDirectMap
-  virtual Plane applyInverseMap(const Plane& h) const override
+  virtual Plane applyInverseMap(Plane h) const override
   {
-    Point4d p4(h.x,h.y,h.z,h.w);
-    p4 = p4*viewport  .T;
-    p4 = p4*projection.T;
-    p4 = p4*modelview .T;
-    return Plane(p4.x,p4.y,p4.z,p4.w);
+    VisusAssert(h.getSpaceDim() == getSpaceDim());
+    return Plane(((PointNd(h) * viewport.T) * projection.T) * modelview.T);
   }
+
+public:
 
   //applyDirectMapFromEye
-  Point4d applyDirectMapFromEye(const Point4d& p) const 
+  PointNd applyDirectMapFromEye(PointNd p) const
   {
-    Point4d p4(p);
-    p4 = projection.T * p4;
-    p4 = viewport  .T * p4;
-    return p4;
+    if (p.getPointDim() < getSpaceDim())
+    {
+      p.setPointDim(getSpaceDim());
+      p.back() = 1;
+    }
+    return (viewport.T * (projection.T * p));
   }
 
   //applyInverseMapToEye
-  Point4d applyInverseMapToEye(const Point4d& p) const
+  PointNd applyInverseMapToEye(PointNd p) const
   {
-    Point4d p4(p);
-    p4 = viewport  .Ti * p4;
-    p4 = projection.Ti * p4;      
-    if (!p4.w) p4.w = 1;
-    return p4;
+    if (p.getPointDim() < getSpaceDim())
+    {
+      p.setPointDim(getSpaceDim());
+      p.back() = 1;
+    }
+    p = projection.Ti * (viewport.Ti * p);
+    if (!p.back()) p.back() = 1;
+    return p;
   }
 
   //projectPoint
-  Point2d projectPoint(const Point3d& p) const{
-    return applyDirectMap(Point4d(p, 1.0)).dropHomogeneousCoordinate().dropZ();
+  Point2d projectPoint(Point3d p) const {
+    return applyDirectMap(PointNd(p,1.0)).dropHomogeneousCoordinate().toPoint2();
   }
 
   //unprojectPoint
-  Point3d unprojectPoint(const Point2d& p, double Z = 0.0) const{
-    return applyInverseMap(Point4d(p.x, p.y, Z, 1.0)).dropHomogeneousCoordinate();
+  Point3d unprojectPoint(Point2d p, double Z = 0.0) const{
+    return applyInverseMap(PointNd(p[0], p[1], Z, 1.0)).dropHomogeneousCoordinate().toPoint3();
   }
 
   //unprojectPointToEye
-  Point3d unprojectPointToEye(const Point2d& p, double Z = 0.0) const{
-    return applyInverseMapToEye(Point4d(p.x, p.y, Z, 1.0)).dropHomogeneousCoordinate();
+  Point3d unprojectPointToEye(Point2d p, double Z = 0.0) const{
+    return applyInverseMapToEye(PointNd(p[0], p[1], Z, 1.0)).dropHomogeneousCoordinate().toPoint3();
   }
 
   //return the ray
-  Ray3d getRay(Point2d p) const {
-    Point3d P0= unprojectPoint(p,0.0);
-    Point3d P1= unprojectPoint(p,1.0);
-    return Ray3d::fromTwoPoints(P0,P1);
+  Ray getRay(Point2d p) const  {
+    return Ray::fromTwoPoints(
+      unprojectPoint(p, 0.0), 
+      unprojectPoint(p, 1.0));
   }
 
 };

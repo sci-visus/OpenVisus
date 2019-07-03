@@ -57,9 +57,9 @@ void PointCloud::scale(Point3d vs)
 {
   for (auto& point:points)
   {
-    point.x*=vs.x;
-    point.y*=vs.y;
-    point.z*=vs.z;
+    point[0]*=vs[0];
+    point[1]*=vs[1];
+    point[2]*=vs[2];
   }
 }
 
@@ -201,14 +201,14 @@ public:
     for (const Point3d& point : inliers)
     {
       Point3d v=point-C;
-      module.x=std::max(module.x,fabs(v.dot(X)));
-      module.y=std::max(module.y,fabs(v.dot(Y)));
-      module.z=std::max(module.z,fabs(v.dot(Z)));
+      module[0]=std::max(module[0],fabs(v.dot(X)));
+      module[1]=std::max(module[1],fabs(v.dot(Y)));
+      module[2]=std::max(module[2],fabs(v.dot(Z)));
     }
 
-    X=module.x * X;
-    Y=module.y * Y;
-    Z=module.z * Z;
+    X=module[0] * X;
+    Y=module[1] * Y;
+    Z=module[2] * Z;
     dst=LocalCoordinateSystem(X,Y,Z,C);
   }
 
@@ -233,13 +233,13 @@ private:
     for (int i = 0; i < (int)points.size(); i++)
     {
       const Point3d &P = points[i];
-      Point3d d = Point3d(P.x, P.y, P.z) - centroid;
-      scatter_matrix[0][0] += d.x*d.x;
-      scatter_matrix[0][1] += d.x*d.y;
-      scatter_matrix[0][2] += d.x*d.z;
-      scatter_matrix[1][1] += d.y*d.y;
-      scatter_matrix[1][2] += d.y*d.z;
-      scatter_matrix[2][2] += d.z*d.z;
+      Point3d d = Point3d(P[0], P[1], P[2]) - centroid;
+      scatter_matrix[0][0] += d[0]*d[0];
+      scatter_matrix[0][1] += d[0]*d[1];
+      scatter_matrix[0][2] += d[0]*d[2];
+      scatter_matrix[1][1] += d[1]*d[1];
+      scatter_matrix[1][2] += d[1]*d[2];
+      scatter_matrix[2][2] += d[2]*d[2];
     }
     scatter_matrix[1][0] = scatter_matrix[0][1];
     scatter_matrix[2][0] = scatter_matrix[0][2];

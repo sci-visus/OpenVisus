@@ -104,15 +104,7 @@ public:
   //getDiam2d
   double getDiam2d(const Point3d &seed,double threshold)
   {
-    const Point3d dims=this->data.dims.toPoint3d();
-
-    //scrgiorgio: not sure this is correct!
-    Matrix pixel_to_physic;
-    pixel_to_physic=
-      this->data.bounds.getTransformation() *
-      Matrix::translate(this->data.bounds.getBox().p1) *
-      Matrix::scale(this->data.bounds.getBox().size()) *
-      Matrix::scale(dims.inv());
+    auto pixel_to_physic = Position::compose(this->data.bounds,this->data.dims);
 
     TRSMatrixDecomposition trs(pixel_to_physic);
 
@@ -121,13 +113,13 @@ public:
     params.image_width    = (int)this->data.getWidth ();
     params.image_height   = (int)this->data.getHeight();
     params.image_length   = (int)this->data.getDepth ();
-    params.voxel_width    = trs.scale.x;
-    params.voxel_height   = trs.scale.y;
-    params.voxel_length   = trs.scale.z;
+    params.voxel_width    = trs.scale[0];
+    params.voxel_height   = trs.scale[1];
+    params.voxel_length   = trs.scale[2];
     params.threshold      = threshold;
-    params.origin_x       = seed.x*trs.scale.x-trs.translate.x;  // note: seed must be in scaled (physical) coordinates
-    params.origin_y       = seed.y*trs.scale.y-trs.translate.y;
-    params.origin_z       = seed.z*trs.scale.z-trs.translate.z;
+    params.origin_x       = seed[0]*trs.scale[0]-trs.translate[0];  // note: seed must be in scaled (physical) coordinates
+    params.origin_y       = seed[1]*trs.scale[1]-trs.translate[1];
+    params.origin_z       = seed[2]*trs.scale[2]-trs.translate[2];
     params.fit_percent    = 1.0;
     params.max_iterations = 6;
 
@@ -346,21 +338,21 @@ public:
   ///////////////////////////////////////////////////////////////////////
   static void createNeighborStencil(const int offset,const Point3i &dims,int stencil[26])
   {
-    const int stridex=1;
-    const int stridey=dims.x;
-    const int stridez=dims.x*dims.y;
+    const int stridex=(int)(1);
+    const int stridey=(int)(dims[0]);
+    const int stridez=(int)(dims[0]*dims[1]);
     int   qz =offset   /     stridez;
     int   qzr=offset   -  qz*stridez;
     int   qy =qzr         /     stridey;
     int   qyr=qzr         %     stridey;
     int   qx =qyr;
-    VisusAssert(offset==qx+qy*dims.x+qz*dims.x*dims.y);
+    VisusAssert(offset==qx+qy*dims[0]+qz*dims[0]*dims[1]);
     bool nz=qz>0;
     bool ny=qy>0;
     bool nx=qx>0;
-    bool pz=qz<dims.z-1;
-    bool py=qy<dims.y-1;
-    bool px=qx<dims.x-1;
+    bool pz=qz<dims[2]-1;
+    bool py=qy<dims[1]-1;
+    bool px=qx<dims[0]-1;
 
     stencil[0] =nz*ny*nx*(-stridez-stridey-stridex);
     stencil[1] =nz*ny*   (-stridez-stridey);
@@ -397,16 +389,10 @@ public:
     //VisusInfo()<<"VoxelScoopNode::makeClusterFromSeed(%s)",seed.toString().c_str());
     typedef Uint8 Type;
 
-    const Point3i idims =Data.dims.toPoint3i();
-    const Point3d dims  =Data.dims.toPoint3d();
+    const Point3d dims = Data.dims.toPoint3().castTo<Point3d>();
+    const Point3i idims = dims.castTo<Point3i>();
 
-    //scrgiorgio: not sure this is correct!
-    Matrix pixel_to_physic;
-    pixel_to_physic=
-      this->Data.bounds.getTransformation() *
-      Matrix::translate(this->Data.bounds.getBox().p1) *
-      Matrix::scale(this->Data.bounds.getBox().size()) *
-      Matrix::scale(dims.inv());
+    auto pixel_to_physic = Position::compose(this->Data.bounds,Data.dims);
     
     TRSMatrixDecomposition trs(pixel_to_physic);
 
@@ -414,8 +400,8 @@ public:
 
     //get pointer to data at seed location
     Type *data=reinterpret_cast<Type*>(Data.c_ptr());
-    Type *seedData=data+seed.z*(unsigned)(dims.x*dims.y)+seed.y*(unsigned)dims.x+seed.x;
-    VisusAssert(seedData<data+(unsigned)(dims.x*dims.y*dims.z));
+    Type *seedData=data+seed[2]*(unsigned)(dims[0]*dims[1])+seed[1]*(unsigned)dims[0]+seed[0];
+    VisusAssert(seedData<data+(unsigned)(dims[0]*dims[1]*dims[2]));
 
     //ignore already visited seeds
     if (visited[seedData].flag) 
@@ -439,9 +425,9 @@ public:
       ScopedLock lock(this->centerlines->lock);
       firstCluster->nodeid=this->centerlines->mkVert(Sphere(firstCluster->nodepos,diam/2));
 
-      Box3d geometric_box=this->centerlines->bounds.getBox();
-      geometric_box.addPoint(firstCluster->nodepos);
-      this->centerlines->bounds=Position(this->centerlines->bounds.getTransformation(),geometric_box);
+      auto box=this->centerlines->bounds.box;
+      box.addPoint(firstCluster->nodepos);
+      this->centerlines->bounds=Position(this->centerlines->bounds.T, box);
     }
 
     return firstCluster;
@@ -453,17 +439,9 @@ public:
     //VisusInfo()<<"VoxelScoopNode::calculate");
     typedef Uint8 Type;
 
-    const Point3i idims =Data.dims.toPoint3i();
-    const Point3d  dims = Data.dims.toPoint3d();
+    auto idims = Data.dims.toPoint3();
 
-
-    //scrgiorgio: not sure this is correct!
-    Matrix pixel_to_physic;
-    pixel_to_physic=
-      this->Data.bounds.getTransformation() *
-      Matrix::translate(this->Data.bounds.getBox().p1) *
-      Matrix::scale(this->Data.bounds.getBox().size()) *
-      Matrix::scale(dims.inv());
+    auto pixel_to_physic = Position::compose(this->Data.bounds,Data.dims);
 
     TRSMatrixDecomposition trs(pixel_to_physic);
 
@@ -553,22 +531,22 @@ public:
         {
           Type *elem=newcluster.elements[i];
           Point3d p=GraphUtils::toPoint(elem,data,idims,trs.scale,trs.translate);
-          MinP.x=std::min(MinP.x,p.x);
-          MinP.y=std::min(MinP.y,p.y);
-          MinP.z=std::min(MinP.z,p.z);
-          MaxP.x=std::max(MaxP.x,p.x);
-          MaxP.y=std::max(MaxP.y,p.y);
-          MaxP.z=std::max(MaxP.z,p.z);
+          MinP[0]=std::min(MinP[0],p[0]);
+          MinP[1]=std::min(MinP[1],p[1]);
+          MinP[2]=std::min(MinP[2],p[2]);
+          MaxP[0]=std::max(MaxP[0],p[0]);
+          MaxP[1]=std::max(MaxP[1],p[1]);
+          MaxP[2]=std::max(MaxP[2],p[2]);
           //double weight=*elem*inv_max;   //<ctc> ???
           double weight=*elem;
           tot_weight+=weight;
-          wavg.x=wavg.x+weight*p.x;
-          wavg.y=wavg.y+weight*p.y;
-          wavg.z=wavg.z+weight*p.z;
+          wavg[0]=wavg[0]+weight*p[0];
+          wavg[1]=wavg[1]+weight*p[1];
+          wavg[2]=wavg[2]+weight*p[2];
         }
-        wavg.x/=tot_weight;
-        wavg.y/=tot_weight;
-        wavg.z/=tot_weight;
+        wavg[0]/=tot_weight;
+        wavg[1]/=tot_weight;
+        wavg[2]/=tot_weight;
         newcluster.aabbsize=std::max(min_aabbsize,(MaxP-MinP).module());
 
         //determine pos of node: pt half way between prev and wavg (using eq 1 from paper).
@@ -585,9 +563,9 @@ public:
           ScopedLock lock(this->centerlines->lock);
           newcluster.nodeid=this->centerlines->mkVert(Sphere(newpos,diam/2));
 
-          Box3d geometric_box=this->centerlines->bounds.getBox();
-          geometric_box.addPoint(newpos);
-          this->centerlines->bounds=Position(this->centerlines->bounds.getTransformation(),geometric_box);
+          auto box=this->centerlines->bounds.box;
+          box.addPoint(newpos);
+          this->centerlines->bounds=Position(this->centerlines->bounds.T, box);
           this->centerlines->mkEdge(newcluster.nodeid,cluster.nodeid,(Float32)(newpos-cluster.nodepos).module());
         }
 
@@ -1059,7 +1037,7 @@ bool VoxelScoopNode::processInput()
       if (v.deleted) 
         continue;
 
-      const Point3i p((int)v.data.x,(int)v.data.y,(int)v.data.z); 
+      const Point3i p((int)v.data[0],(int)v.data[1],(int)v.data[2]); 
       if (bUseMinimaAsSeed) {if (v.in_degree ()==0)seeds.push_back(p);}
       if (bUseMaximaAsSeed) {if (v.out_degree()==0)seeds.push_back(p);}
     }

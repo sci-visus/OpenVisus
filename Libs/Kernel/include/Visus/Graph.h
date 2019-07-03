@@ -516,16 +516,16 @@ public:
   template<class Type>
   static Point3i toIPoint(const Type *p, const Type *data, const Point3i &dims)
   {
-    VisusAssert(p>=data && p<data+dims.x*dims.y*dims.z);
+    VisusAssert(p>=data && p<data+dims[0]*dims[1]*dims[2]);
     const Type *q  =(const Type*)(p   -  data);
-    size_t   qz =(size_t)q   /    (dims.x*dims.y*sizeof(Type));
-    size_t   qzr=(size_t)q   -  qz*dims.x*dims.y*sizeof(Type);
-    size_t   qy =qzr         /     dims.x;
-    size_t   qyr=qzr         %     dims.x;
+    size_t   qz =(size_t)q   /    (dims[0]*dims[1]*sizeof(Type));
+    size_t   qzr=(size_t)q   -  qz*dims[0]*dims[1]*sizeof(Type);
+    size_t   qy =qzr         /     dims[0];
+    size_t   qyr=qzr         %     dims[0];
     size_t   qx =qyr;
     // printf("p=%x,data=%x,q=p-data=%x(%u),dims=%s\n",p,data,q,q,dims.toString().c_str());
     // printf("ip=%s (qzr=%u)\n",Point3i(qx,qy,qz).toString().c_str(),qzr);
-    VisusAssert(p==(data+qx+qy*dims.x+qz*(dims.x*dims.y)));
+    VisusAssert(p==(data+qx+qy*dims[0]+qz*(dims[0]*dims[1])));
     return Point3i((int)qx,(int)qy,(int)qz);
   }
 
@@ -533,17 +533,17 @@ public:
   template<class Type>
   static Point3d toPoint(const Type *p, const Type *data, const Point3i &dims, const Point3d &scale, const Point3d &translate)
   {
-    VisusAssert(p>=data && p<data+dims.x*dims.y*dims.z);
+    VisusAssert(p>=data && p<data+dims[0]*dims[1]*dims[2]);
     const Type *q  =(const Type*)(p   -  data);
-    size_t   qz =(size_t)q   /    (dims.x*dims.y*sizeof(Type));
-    size_t   qzr=(size_t)q   -  qz*dims.x*dims.y*sizeof(Type);
-    size_t   qy =qzr         /     dims.x;
-    size_t   qyr=qzr         %     dims.x;
+    size_t   qz =(size_t)q   /    (dims[0]*dims[1]*sizeof(Type));
+    size_t   qzr=(size_t)q   -  qz*dims[0]*dims[1]*sizeof(Type);
+    size_t   qy =qzr         /     dims[0];
+    size_t   qyr=qzr         %     dims[0];
     size_t   qx =qyr;
     // printf("p=%x,data=%x,q=p-data=%x(%u),dims=%s\n",p,data,q,q,dims.toString().c_str());
     // printf("ip=%s (qzr=%u)\n",Point3i(qx,qy,qz).toString().c_str(),qzr);
-    VisusAssert(p==(data+qx+qy*dims.x+qz*(dims.x*dims.y)));
-    return Point3d(translate.x+qx*scale.x,translate.y+qy*scale.y,translate.z+qz*scale.z);
+    VisusAssert(p==(data+qx+qy*dims[0]+qz*(dims[0]*dims[1])));
+    return Point3d(translate[0]+qx*scale[0],translate[1]+qy*scale[1],translate[2]+qz*scale[2]);
   }
 
   //genDot

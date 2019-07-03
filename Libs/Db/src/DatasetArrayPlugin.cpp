@@ -50,7 +50,7 @@ public:
 
   Dataset*      dataset;
   double        time;
-  NdBox         box;
+  BoxNi         box;
   Field         field;
   int           maxh; //default is write at max resolution!
   int           fromh;
@@ -79,7 +79,7 @@ public:
       else if (args[I]=="--box")
       {
         int pdim = dataset->getPointDim();
-        box=NdBox::parseFromOldFormatString(pdim,args[++I]);
+        box=BoxNi::parseFromOldFormatString(pdim,args[++I]);
         box= box.getIntersection(dataset->getBox());
         if (!box.isFullDim())
         {
@@ -250,7 +250,7 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
   //embedding in case I'm missing point-dims
   int pdim = query->nsamples.getPointDim();
   if (pdim>src.dims.getPointDim())
-    src.dims.setPointDim(pdim);
+    src.dims.setPointDim(pdim,1);
 
   if (query->nsamples!=src.dims)
   {

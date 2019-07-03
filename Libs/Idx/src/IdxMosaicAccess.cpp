@@ -65,11 +65,9 @@ IdxMosaicAccess::IdxMosaicAccess(IdxMultipleDataset* VF_, StringTree CONFIG)
   for (auto it : VF->childs)
   {
     auto vf = std::dynamic_pointer_cast<IdxDataset>(it.second.dataset); VisusAssert(vf);
-    auto offset = it.second.M.getColumn(3).dropW();
-    auto index = NdPoint(pdim);
-    for (int D = 0; D < pdim; D++)
-      index[D] = ((NdPoint::coord_t)offset[D]) / dims[D];
-
+    VisusAssert(false);// need to check if this is correct
+    auto offset = it.second.M.getCol(pdim).castTo<PointNi>();
+    auto index = offset.innerDiv(dims);
     VisusAssert(!this->childs.count(index));
     this->childs[index].dataset=vf;
   }
@@ -122,18 +120,15 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
   auto BLOCK = QUERY->start_address >> bitsperblock;
   auto first = childs.begin()->second.dataset;
   auto NBITS = VF->getMaxResolution() - first->getMaxResolution();
-  NdPoint dims = first->getBox().p2;
+  PointNi dims = first->getBox().p2;
 
   bool bBlockTotallyInsideSingle = (BLOCK >= ((BigInt)1 << NBITS));
 
   if (bBlockTotallyInsideSingle)
   {
     //forward the block read to a single child
-    NdPoint p1, index = NdPoint::one(pdim);
-    for (int D = 0; D < VISUS_NDPOINT_DIM; D++) {
-      index[D] = QUERY->logic_box.p1[D] / dims[D];
-      p1[D] = QUERY->logic_box.p1[D] % dims[D];
-    }
+    auto index = QUERY->logic_box.p1.innerDiv(dims);
+    auto p1 = QUERY->logic_box.p1.innerMod(dims);
 
     auto it = childs.find(index);
     if (it == childs.end())
@@ -199,12 +194,12 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
       if (!vf->executeQuery(access, query))
         continue;
 
-      auto pixel_p1 =      NdPoint(pdim); auto logic_p1 = query->logic_box.pixelToLogic(pixel_p1); auto LOGIC_P1 = logic_p1 + offset; auto PIXEL_P1 = QUERY->logic_box.logicToPixel(LOGIC_P1);
+      auto pixel_p1 =      PointNi(pdim); auto logic_p1 = query->logic_box.pixelToLogic(pixel_p1); auto LOGIC_P1 = logic_p1 + offset; auto PIXEL_P1 = QUERY->logic_box.logicToPixel(LOGIC_P1);
       auto pixel_p2 = query->buffer.dims; auto logic_p2 = query->logic_box.pixelToLogic(pixel_p2); auto LOGIC_P2 = logic_p2 + offset; auto PIXEL_p2 = QUERY->logic_box.logicToPixel(LOGIC_P2);
 
       ArrayUtils::insert(
-        QUERY->buffer, PIXEL_P1, PIXEL_p2, NdPoint::one(pdim),
-        query->buffer, pixel_p1, pixel_p2, NdPoint::one(pdim),
+        QUERY->buffer, PIXEL_P1, PIXEL_p2, PointNi::one(pdim),
+        query->buffer, pixel_p1, pixel_p2, PointNi::one(pdim),
         QUERY->aborted);
     }
 

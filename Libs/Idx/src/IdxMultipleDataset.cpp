@@ -42,6 +42,7 @@ For support : support@visus.net
 #include <Visus/ThreadPool.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/IdxMosaicAccess.h>
+#include <Visus/Polygon.h>
 
 #if VISUS_PYTHON
 #include <Visus/Python.h>
@@ -345,7 +346,7 @@ public:
 
     //only getting dtype for field name
     if (!QUERY)
-      return engine->newPyObject(Array(NdPoint(pdim), field.dtype));
+      return engine->newPyObject(Array(PointNi(pdim), field.dtype));
 
     {
       ScopedReleaseGil release_gil;
@@ -371,10 +372,10 @@ public:
     auto vf    = child.dataset; VisusAssert(vf);
     auto field = vf->getFieldByName(fieldname); VisusAssert(field.valid());
 
-    auto BOX = Position(M, vf->getBox()).toAxisAlignedBox();
+    auto BOX = Position(M, vf->getBox()).withoutTransformation();
 
     //no intersection? just skip this down query
-    if (!QUERY->position.toAxisAlignedBox().intersect(BOX))
+    if (!QUERY->position.withoutTransformation().intersect(BOX))
       return SharedPtr<Query>();
 
     auto query = std::make_shared<Query>(vf.get(), 'r');
@@ -386,18 +387,8 @@ public:
 
     //euristic to find delta in the hzcurve
     //TODO!!!! this euristic produces too many samples
-
-    //ComputeVolume
-    auto ComputeVolume=[](Box3d value)->double
-    {
-      return
-        (value.size().x ? value.size().x : 1) *
-        (value.size().y ? value.size().y : 1) *
-        (value.size().z ? value.size().z : 1);
-    };
-
-    auto VOLUME = ComputeVolume(Position(   VF->getBox()).toAxisAlignedBox());
-    auto volume = ComputeVolume(Position(M, vf->getBox()).toAxisAlignedBox());
+    auto VOLUME = Position(   VF->getBox()).computeVolume();
+    auto volume = Position(M, vf->getBox()).computeVolume();
     int delta_h = -(int)log2(VOLUME / volume);
 
     //resolutions
@@ -415,8 +406,8 @@ public:
     query->end_resolutions = std::vector<int>(end_resolutions.begin(), end_resolutions.end());
     query->max_resolution = vf->getMaxResolution();
 
-    auto QUERY_T   = QUERY->position.getTransformation();
-    auto QUERY_BOX = QUERY->position.getBox();
+    auto QUERY_T   = QUERY->position.T;
+    auto QUERY_BOX = QUERY->position.box;
 
     // WRONG, consider that M could have mat(3,0) | mat(3,1) | mat(3,2) !=0 and so I can have non-parallel axis
     // i.e. computing the bounding box in position very far from the mapped region are wrong because some axis of the quads can interect in some points
@@ -424,7 +415,7 @@ public:
     // if you use this wrong version, for voronoi in 2d you will see some missing pieces around
     // solution is to limit the QUERY_BOX into a more "local" one
 #if 1
-    QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).toAxisAlignedBox().getIntersection(QUERY_BOX);
+    QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).withoutTransformation().getIntersection(QUERY_BOX);
 #endif
 
     query->position = Position(M.invert(), QUERY_T, QUERY_BOX);
@@ -507,17 +498,8 @@ public:
     query->down_info.BUFFER.alpha = std::make_shared<Array>(QUERY->nsamples, DTypes::UINT8);
     query->down_info.BUFFER.alpha->fillWithValue(0);
 
-    auto PIXEL_TO_LOGIC =
-      QUERY->position.getTransformation() *
-      Matrix::translate(QUERY->position.getBox().p1) *
-      Matrix::nonZeroScale(QUERY->position.getBox().size()) *
-      Matrix::invNonZeroScale(query->down_info.BUFFER.dims.toPoint3d());
-
-    auto pixel_to_logic =
-      query->position.getTransformation() *
-      Matrix::translate(query->position.getBox().p1) *
-      Matrix::nonZeroScale(query->position.getBox().size()) *
-      Matrix::invNonZeroScale(query->buffer.dims.toPoint3d());
+    auto PIXEL_TO_LOGIC = Position::compose(Position(QUERY->position), query->down_info.BUFFER.dims);
+    auto pixel_to_logic = Position::compose(Position(query->position), query->buffer.dims);
 
     // Tperspective := PIXEL <- pixel
     auto LOGIC_TO_PIXEL = PIXEL_TO_LOGIC.invert();
@@ -526,7 +508,7 @@ public:
     //this will help to find voronoi seams betweeen images
     query->down_info.LOGIC_TO_PIXEL = LOGIC_TO_PIXEL;
     query->down_info.PIXEL_TO_LOGIC = PIXEL_TO_LOGIC;
-    query->down_info.logic_centroid = M * vf->getBox().center().toPoint3d();
+    query->down_info.logic_centroid = M * vf->getBox().center();
 
     //limit the samples to good logic domain
     //explanation: for each pixel in dims, tranform it to the logic dataset box, if inside set the pixel to 1 otherwise set the pixel to 0
@@ -570,7 +552,7 @@ public:
       {
         for (auto it : VF->childs)
         {
-          auto arg = Array(NdPoint(pdim), it.second.dataset->getDefaultField().dtype);
+          auto arg = Array(PointNi(pdim), it.second.dataset->getDefaultField().dtype);
           blend.addBlendArg(arg);
         }
       }
@@ -698,9 +680,9 @@ public:
     {
       if (output.dims[D] == 1 && QUERY->nsamples[D] > 1)
       {
-        auto box = output.bounds.getBox();
+        auto box = output.bounds.box;
         box.p2[D] = box.p1[D];
-        output.bounds = Position(output.bounds.getTransformation(), box);
+        output.bounds = Position(output.bounds.T, box);
         output.clipping = Position::invalid(); //disable clipping
       }
     }
@@ -908,7 +890,7 @@ String IdxMultipleDataset::removeAliases(String url)
 
 
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
+void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix M)
 {
   VisusAssert(istream.getCurrentContext()->name == "dataset");
   String url = istream.readInline("url");
@@ -917,10 +899,8 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
   String default_name = StringUtils::format() << "child_" << std::setw(4) << std::setfill('0') << cstring((int)this->childs.size());
 
   Child child;
-  child.M = T;
   child.name = StringUtils::trim(istream.readInline("name", istream.readInline("id"))); 
   child.color = Color::parseFromString(istream.readInline("color"));
-
   child.mosaic_filename_template = istream.readInline("filename_template");
 
   //override name if exist
@@ -958,48 +938,64 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
     return;
   }
 
+  auto pdim = child.dataset->getPointDim();
+  auto sdim = pdim + 1;
+  M.setSpaceDim(sdim);
+  child.M = M;
+
   auto s_offset = istream.readInline("offset");
   if (!s_offset.empty())
-    child.M *= Matrix::translate(Point3d(s_offset));
+  {
+    auto M = Matrix::translate(PointNd::parseFromString(s_offset));
+    M.setSpaceDim(sdim);
+    child.M *= M;
+  }
 
   if (istream.pushContext("M"))
   {
     auto value = istream.readInline("value");
     if (!value.empty())
     {
-      if (StringUtils::split(value, " ").size() == 9)
-        child.M *= Matrix4(Matrix3(value));
-      else
-        child.M *= Matrix4(value);
+      auto M =Matrix::parseFromString(value);
+      M.setSpaceDim(sdim);
+      child.M *= M;
     }
 
     for (auto it : istream.getCurrentContext()->getChilds())
     {
       if (it->name == "translate")
       {
-        double x = cdouble(it->readString("x", "0.0"));
-        double y = cdouble(it->readString("y", "0.0"));
-        double z = cdouble(it->readString("z", "0.0"));
-        child.M *= Matrix::translate(Point3d(x, y, z));
+        double x = cdouble(it->readString("x"));
+        double y = cdouble(it->readString("y"));
+        double z = cdouble(it->readString("z"));
+        auto M = Matrix::translate(PointNd(x,y,z));
+        M.setSpaceDim(sdim);
+        child.M *= M;
       }
       else if (it->name == "rotate")
       {
-        double x = Utils::degreeToRadiant(cdouble(it->readString("x", "0.0")));
-        double y = Utils::degreeToRadiant(cdouble(it->readString("y", "0.0")));
-        double z = Utils::degreeToRadiant(cdouble(it->readString("z", "0.0")));
-        child.M *= Matrix::rotate(Quaternion4d::fromEulerAngles(x, y, z));
+        double x = Utils::degreeToRadiant(cdouble(it->readString("x")));
+        double y = Utils::degreeToRadiant(cdouble(it->readString("y")));
+        double z = Utils::degreeToRadiant(cdouble(it->readString("z")));
+        auto M = Matrix::rotate(Quaternion::fromEulerAngles(x, y, z));
+        M.setSpaceDim(sdim);
+        child.M *= M;
       }
       else if (it->name == "scale")
       {
-        double x = cdouble(it->readString("x", "1.0"));
-        double y = cdouble(it->readString("y", "1.0"));
-        double z = cdouble(it->readString("z", "1.0"));
-        child.M *= Matrix::scale(Point3d(x, y, z));
+        double x = cdouble(it->readString("x"));
+        double y = cdouble(it->readString("y"));
+        double z = cdouble(it->readString("z"));
+        auto M = Matrix::nonZeroScale(PointNd(x, y, z));
+        M.setSpaceDim(sdim);
+        child.M *= M;
       }
 
       else if (it->name == "M")
       {
-        child.M *= Matrix(it->readString("value"));
+        auto M = Matrix::parseFromString(it->readString("value"));
+        M.setSpaceDim(sdim);
+        child.M *= M;
       }
     }
 
@@ -1008,16 +1004,20 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix4 T)
 
   //if mosaic then only an offset
   if (bMosaic)
-    VisusAssert(child.M.dropW() == Matrix3());
+    VisusAssert(child.M.submatrix(child.M.getSpaceDim()-1,child.M.getSpaceDim()-1).isIdentity());
+
+  //VisusInfo() << "midx single M("<<child.M.toString()<<") box("<<child.dataset->box.toString(false)<<")";
+  //VisusInfo() << " bounds("<<Position(child.M,child.dataset->box).withoutTransformation().toString(false)<<")";
 
   addChild(child);
 
 }
 
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDatasets(ObjectStream& istream,Matrix4 T)
+void IdxMultipleDataset::parseDatasets(ObjectStream& istream, Matrix T)
 {
   auto context = istream.getCurrentContext();
+  
 
   for (int I = 0; I < (int)context->getNumberOfChilds(); I++)
   {
@@ -1041,11 +1041,10 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream,Matrix4 T)
 
       if (cbool(istream.readInline("enabled", "1")))
       {
-        double x = cdouble(istream.readInline("x", "0.0"));
-        double y = cdouble(istream.readInline("y", "0.0"));
-        double z = cdouble(istream.readInline("z", "0.0"));
-        T *= Matrix::translate(Point3d(x, y, z));
-        parseDatasets(istream, T);
+        double x = cdouble(istream.readInline("x"));
+        double y = cdouble(istream.readInline("y"));
+        double z = cdouble(istream.readInline("z"));
+        parseDatasets(istream, T * Matrix::translate(Point3d(x, y, z)));
       }
       istream.popContext("translate");
       continue;
@@ -1057,11 +1056,10 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream,Matrix4 T)
 
       if (cbool(istream.readInline("enabled", "1")))
       {
-        double x = Utils::degreeToRadiant(cdouble(istream.readInline("x", "0.0")));
-        double y = Utils::degreeToRadiant(cdouble(istream.readInline("y", "0.0")));
-        double z = Utils::degreeToRadiant(cdouble(istream.readInline("z", "0.0")));
-        T *= Matrix::rotate(Quaternion4d::fromEulerAngles(x, y, z));
-        parseDatasets(istream, T);
+        double x = Utils::degreeToRadiant(cdouble(istream.readInline("x")));
+        double y = Utils::degreeToRadiant(cdouble(istream.readInline("y")));
+        double z = Utils::degreeToRadiant(cdouble(istream.readInline("z")));
+        parseDatasets(istream, T * Matrix::rotate(Quaternion::fromEulerAngles(x, y, z)));
       }
       istream.popContext("rotate");
       continue;
@@ -1073,11 +1071,10 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream,Matrix4 T)
 
       if (cbool(istream.readInline("enabled", "1")))
       {
-        double x = cdouble(istream.readInline("x", "1.0"));
-        double y = cdouble(istream.readInline("y", "1.0"));
-        double z = cdouble(istream.readInline("z", "1.0"));
-        T *= Matrix::scale(Point3d(x, y, z));
-        parseDatasets(istream, T);
+        double x = cdouble(istream.readInline("x"));
+        double y = cdouble(istream.readInline("y"));
+        double z = cdouble(istream.readInline("z"));
+        parseDatasets(istream, T * Matrix::nonZeroScale(PointNd(x, y, z)));
       }
 
       istream.popContext("scale");
@@ -1089,9 +1086,8 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream,Matrix4 T)
     {
       istream.pushContext(name);
       if (cbool(istream.readInline("enabled", "1")))
-      {
         parseDatasets(istream, T);
-      }
+
       istream.popContext(name);
     }
   }
@@ -1148,7 +1144,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   this->bMosaic = cbool(istream.readInline("mosaic"));
 
-  parseDatasets(istream,Matrix::identity());
+  parseDatasets(istream, Matrix::identity(4));
 
   if (childs.empty())
   {
@@ -1166,18 +1162,56 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   auto sbox = istream.readInline("box");
   if (!sbox.empty())
   {
-    IDXFILE.box = NdBox::parseFromOldFormatString(pdim, sbox);
+    IDXFILE.box = BoxNi::parseFromOldFormatString(pdim, sbox);
   }
   else
   {
+    if (bool bNotLoosePixels = bMosaic? false :true)
+    {
+      //union of boxes
+      auto PHYSICAL_BOX = BoxNd::invalid();
+      for (auto it : childs)
+      {
+        auto physical_box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation();
+        PHYSICAL_BOX = PHYSICAL_BOX.getUnion(physical_box);
+      }
+
+      std::vector<double> DENSITY;
+      for (auto it : childs)
+      {
+        auto dataset = it.second.dataset;
+        auto M = it.second.M;
+        auto pixels = dataset->getBox().size().innerProduct();
+        auto volume = Position(M, dataset->getBox()).computeVolume();
+        auto density = pixels / volume;
+        DENSITY.push_back(density);
+      }
+
+      // try to keep the same number of pixels
+      // TOT_PIXELS[max_density] = PHYSICAL_VOLUMES[max_density] * pow(scale,pdim)
+      // DENSITY[max_density] = pow(scale,pdim)
+      auto max_density = std::distance(DENSITY.begin(), std::max_element(DENSITY.begin(), DENSITY.end()));
+      auto scale = pow(DENSITY[max_density], 1.0 / pdim);
+      VisusInfo() << "Scale to not loose pixels " << scale << " #max_density("<<max_density<<")";
+
+      auto T =
+        Matrix::scale(pdim, scale) *
+        Matrix::translate(-PHYSICAL_BOX.p1);
+
+      for (auto it : childs)
+        it.second.M = T * it.second.M;
+    }
+
     //union of boxes
-    IDXFILE.box = NdBox::invalid(pdim);
+    IDXFILE.box = BoxNi::invalid();
     for (auto it : childs)
     {
-      auto box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().getNdBox();
+      auto box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().castTo<BoxNi>();
       IDXFILE.box = IDXFILE.box.getUnion(box);
     }
   }
+
+  //VisusInfo() << "midx box is " << IDXFILE.box.toString(false);
 
   if (bMosaic)
   {
@@ -1185,8 +1219,8 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     auto BITMASK = DatasetBitmask::guess(IDXFILE.box.p2);
     auto bitmask = first->getBitmask();
 
-    NdPoint DIMS = BITMASK.getPow2Dims();
-    NdPoint dims = first->getBitmask().getPow2Dims();
+    PointNi DIMS = BITMASK.getPow2Dims();
+    PointNi dims = first->getBitmask().getPow2Dims();
     
     auto left  = DatasetBitmask::guess(DIMS.innerDiv(dims)).toString();
     auto right = bitmask.toString().substr(1);
@@ -1236,20 +1270,27 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     this->fields.clear();
     this->find_field.clear();
 
+    int generate_name = 0;
+
     while (istream.pushContext("field"))
     {
-      String name = istream.readInline("name"); VisusAssert(!name.empty());
+      String name = istream.readInline("name"); 
+      if (name.empty())
+        name = StringUtils::format() << "field_" + generate_name++;
 
       //I expect to find here CData node or Text node...
       istream.pushContext("code");
       String code = istream.readText(); VisusAssert(!code.empty());
       istream.popContext("code");
 
-      Field FIELD = getFieldByName(code); VisusAssert(FIELD.valid());
-      ParseStringParams parse(name);
-      FIELD.params = parse.params; //important for example in case I want to override the time
-      FIELD.setDescription(parse.without_params);
-      addField(FIELD);
+      Field FIELD = getFieldByName(code); 
+      if (FIELD.valid())
+      {
+        ParseStringParams parse(name);
+        FIELD.params = parse.params; //important for example in case I want to override the time
+        FIELD.setDescription(parse.without_params);
+        addField(FIELD);
+      }
 
       istream.popContext("field");
     }

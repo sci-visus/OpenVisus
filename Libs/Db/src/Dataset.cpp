@@ -74,10 +74,9 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& viewdep,Position po
       {0,4}, {1,5}, {2,6}, {3,7}
     };
 
-
     std::vector<Point3d> logic_points;
-    for (int I=0;I<8;I++)
-      logic_points.push_back(position.getTransformation() * position.getBox().getPoint(I));
+    for (auto p : position.box.toBox3().getPoints())
+      logic_points.push_back((position.T * p).toPoint3());
 
     std::vector<Point2d> screen_points;
     FrustumMap map(viewdep);
@@ -482,23 +481,23 @@ Future<Void> Dataset::writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery>
 }
 
 ////////////////////////////////////////////////
-std::vector<NdBox> Dataset::generateTiles(int TileSize) const
+std::vector<BoxNi> Dataset::generateTiles(int TileSize) const
 {
   auto pdim = this->getPointDim();
-  auto WindowSize = NdPoint::one(pdim);
+  auto WindowSize = PointNi::one(pdim);
   for (int D = 0; D < pdim; D++)
     WindowSize[D] = TileSize;
 
   auto box = this->getBox();
 
-  auto Tot = NdPoint::one(pdim);
+  auto Tot = PointNi::one(pdim);
   for (int D = 0; D < pdim; D++)
     Tot[D] = (Utils::alignRight(box.p2[D], box.p1[D], WindowSize[D]) - box.p1[D]) / WindowSize[D];
 
-  std::vector<NdBox> ret;
+  std::vector<BoxNi> ret;
   for (auto P = ForEachPoint(box.p1, box.p2, WindowSize); !P.end(); P.next())
   {
-    auto tile = NdBox(P.pos, P.pos + WindowSize).getIntersection(this->getBox());
+    auto tile = BoxNi(P.pos, P.pos + WindowSize).getIntersection(this->getBox());
 
     if (!tile.valid()) {
       VisusAssert(false);
@@ -511,9 +510,9 @@ std::vector<NdBox> Dataset::generateTiles(int TileSize) const
 }
 
 ////////////////////////////////////////////////
-Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, double time, NdBox box)
+Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, double time, BoxNi box)
 {
-  if (box == NdBox())
+  if (box == BoxNi())
     box = this->box;
 
   auto query = std::make_shared<Query>(this, 'r');
@@ -534,10 +533,10 @@ Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, dou
 }
 
 ////////////////////////////////////////////////
-bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer, NdBox box)
+bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer, BoxNi box)
 {
-  if (box==NdBox()) 
-    box=NdBox(NdPoint(buffer.getPointDim()), buffer.dims);
+  if (box==BoxNi()) 
+    box=BoxNi(PointNi(buffer.getPointDim()), buffer.dims);
 
   auto query = std::make_shared<Query>(this, 'w');
 

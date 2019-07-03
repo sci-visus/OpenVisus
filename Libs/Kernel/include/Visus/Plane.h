@@ -45,88 +45,89 @@ For support : support@visus.net
 namespace Visus {
 
 /////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Plane 
+class VISUS_KERNEL_API Plane : public PointNd
 {
 public:
 
   VISUS_CLASS(Plane)
 
-  double x,y,z,w;
-
   //default constructor
-  inline Plane() : x(0),y(0),z(1),w(0)
-    {}
+  Plane() {
+  }
 
   //constructor
-  inline explicit Plane(double X,double Y,double Z,double W) 
-  {
-    double len=sqrt(X*X + Y*Y + Z*Z); if (!len) len=1;
-    x=X/len;y=Y/len;z=Z/len;w=W/len; //normalize!
+  explicit Plane(std::vector<double> v) : PointNd(v) {
+    (*this) *= 1.0 / getNormal().module();
+  }
+
+  //constructor
+  explicit Plane(PointNd v) : Plane(v.coords) {
+  }
+
+  //constructor
+  explicit Plane(double X,double Y,double Z,double W) 
+    : Plane(PointNd(X,Y,Z,W)) {
   }
 
   //constructor from normal and distance
-  inline explicit Plane(Point3d n,double d) 
+  explicit Plane(PointNd n,double d) 
   {
-    n=n.normalized();
-    x=n.x;y=n.y;z=n.z;w=-d; 
+    this->coords = n.normalized().coords;
+    push_back(-d);
   }
 
   //constructor from normal and point
-  inline explicit Plane(Point3d n,Point3d p)
+  explicit Plane(PointNd n,PointNd p)
   {
     n=n.normalized();
-    x=n.x;
-    y=n.y;
-    z=n.z;
-    w=-(n*p);
+    this->coords = n.coords;
+    push_back(-(n.dot(p)));
   }
 
   //from 3 points
-  inline explicit Plane(Point3d p0,Point3d p1,Point3d p2)
+  explicit Plane(Point3d p0,Point3d p1,Point3d p2)
   {
-    Point3d n=(p1-p0).cross(p2-p0).normalized();
-    x=n.x;
-    y=n.y;
-    z=n.z;
-    w=-1*(n*p0);
+    auto n=(p1-p0).cross(p2-p0).normalized();
+    this->coords = n.toVector();
+    push_back(-(n.dot(p0)));
   }
 
-  //constructor from string
-  inline explicit Plane(String s)
-  {std::istringstream in(s);in>>x>>y>>z>>w;}
-
-  //toString
-  String toString() const
-  {std::ostringstream out;out<<x<<" "<<y<<" "<<z<<" "<<w;return out.str();}
+  //getSpaceDim
+  int getSpaceDim() const {
+    return (int)coords.size();
+  }
 
   //getNormal
-  inline Point3d getNormal() const 
-  {return Point3d(x,y,z);}
-
-
-  //getDistance
-  template <typename T>
-  inline T getDistance(T v[3]) const {
-    return T(x) * v[0] + T(y) * v[1] + T(z) * v[2] + T(w);
+  PointNd getNormal() const {
+    return this->withoutBack();
   }
 
   //getDistance
-  inline double getDistance(const Point3d& v) const 
-  {return x*v.x + y*v.y + z*v.z + w; }
+  inline double getDistance(const PointNd& v) const  {
+    return this->dot(PointNd(v, 1.0));
+  }
 
   //! projectPoint (see http://www.9math.com/book/projection-Point3d-plane)
-  inline Point3d projectPoint(Point3d P) const
+  inline PointNd projectPoint(PointNd P) const
   {
-    Point3d N=getNormal();
+    auto N=getNormal();
     return P-(N * getDistance(P));
   }
 
   //! projectVector (see http://www.gamedev.net/community/forums/topic.asp?topic_id=345149&whichpage=1&#2255698)
-  inline Point3d projectVector(Point3d V) const
+  inline PointNd projectVector(PointNd V) const
   {
-    Point3d N=getNormal();
-    return V-(N *(V*N));
+    auto N=getNormal();
+    return V-(N *(V.dot(N)));
   }
+
+private:
+
+  //getPointDim
+  int getPointDim() const {
+    return PointNd::getPointDim();
+  }
+
 
 
 };//end class Plane

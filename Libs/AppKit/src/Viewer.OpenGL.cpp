@@ -474,8 +474,8 @@ void Viewer::glRenderGestures(GLCanvas& gl)
     gl.pushDepthTest(false);
     gl.pushBlend(true);
 
-    Point2d p1= convertTo<Point2d>(b1.pos),P1= convertTo<Point2d>(b1.down);
-    Point2d p2= convertTo<Point2d>(b2.pos),P2= convertTo<Point2d>(b2.down);
+    Point2d p1= b1.pos.castTo<Point2d>(),P1= b1.down.castTo<Point2d>();
+    Point2d p2= b2.pos.castTo<Point2d>(),P2= b2.down.castTo<Point2d>();
 
     if (b1.isDown && b2.isDown) 
     {
@@ -517,8 +517,8 @@ void Viewer::glRenderLogos(GLCanvas& gl)
   {
     double ratio = logo->tex->width() / (double)logo->tex->height();
     Point2d p1(
-      logo->border.x + logo->pos.x*(W - 2 * logo->border.x - logo->tex->width()),
-      logo->border.y + logo->pos.y*(H - 2 * logo->border.y - logo->tex->height()));
+      logo->border[0] + logo->pos[0]*(W - 2 * logo->border[0] - logo->tex->width()),
+      logo->border[1] + logo->pos[1]*(H - 2 * logo->border[1] - logo->tex->height()));
 
     shader->setUniformColor(gl,Colors::White.withAlpha((float)logo->opacity));
     shader->setTexture(gl,logo->tex);

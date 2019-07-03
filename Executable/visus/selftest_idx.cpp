@@ -48,9 +48,9 @@ void Tutorial_4(String default_layout);
 void Tutorial_6(String default_layout);
 
 ////////////////////////////////////////////////////////////////////////////////////
-static NdBox GetRandomUserBox(int pdim,bool bFullBox)
+static BoxNi GetRandomUserBox(int pdim,bool bFullBox)
 {
-  NdBox ndbox(NdPoint(pdim),NdPoint::one(pdim));
+  BoxNi ret(PointNi(pdim),PointNi::one(pdim));
 
   for (int D=0;D<pdim;D++)
   {
@@ -60,12 +60,12 @@ static NdBox GetRandomUserBox(int pdim,bool bFullBox)
         if (bFullBox)
         {
           //from 16 to 256
-          ndbox.p2[D]=(((Int64)1)<<Utils::getRandInteger(4,8));
+          ret.p2[D]=(((Int64)1)<<Utils::getRandInteger(4,8));
         }
         else
         {
-          ndbox.p1[D]=Utils::getRandInteger(0                 , 254);
-          ndbox.p2[D]=Utils::getRandInteger(2+(int)ndbox.p1[D], 256);
+          ret.p1[D]=Utils::getRandInteger(0               , 254);
+          ret.p2[D]=Utils::getRandInteger(2+(int)ret.p1[D], 256);
         }
         break;
 
@@ -73,12 +73,12 @@ static NdBox GetRandomUserBox(int pdim,bool bFullBox)
         if (bFullBox)
         {
           //from 16 to 64
-          ndbox.p2[D]=((Int64)1) <<Utils::getRandInteger(4,6);
+          ret.p2[D]=((Int64)1) <<Utils::getRandInteger(4,6);
         }
         else
         {
-          ndbox.p1[D]=Utils::getRandInteger(0                 , 62);
-          ndbox.p2[D]=Utils::getRandInteger(2+(int)ndbox.p1[D], 64);
+          ret.p1[D]=Utils::getRandInteger(0               , 62);
+          ret.p2[D]=Utils::getRandInteger(2+(int)ret.p1[D], 64);
         }
         break;
 
@@ -86,29 +86,29 @@ static NdBox GetRandomUserBox(int pdim,bool bFullBox)
         if (bFullBox)
         {
           //from 16 to 32
-          ndbox.p2[D]=((Int64)1) <<Utils::getRandInteger(4,5);
+          ret.p2[D]=((Int64)1) <<Utils::getRandInteger(4,5);
         }
         else
         {
-          ndbox.p1[D]=Utils::getRandInteger(0                 , 30);
-          ndbox.p2[D]=Utils::getRandInteger(2+(int)ndbox.p1[D], 32);
+          ret.p1[D]=Utils::getRandInteger(0               , 30);
+          ret.p2[D]=Utils::getRandInteger(2+(int)ret.p1[D], 32);
         }
         break;
 
       case 5:
         if (bFullBox)
         {
-          ndbox.p2[D]=16;
+          ret.p2[D]=16;
         }
         else
         {
-          ndbox.p1[D]=Utils::getRandInteger(0                 , 14);
-          ndbox.p2[D]=Utils::getRandInteger(2+(int)ndbox.p1[D], 16);
+          ret.p1[D]=Utils::getRandInteger(0               , 14);
+          ret.p2[D]=Utils::getRandInteger(2+(int)ret.p1[D], 16);
         }
         break;
     }
   }
-  return ndbox;
+  return ret;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -140,11 +140,11 @@ public:
   
     //calculate number of samples per slice
     this->perslice=1;
-    NdPoint::coord_t _stride=1;
-    this->stride = NdPoint(pdim);
+    Int64 _stride=1;
+    this->stride = PointNi(pdim);
     for (int D=0;D<(pdim-1);D++)
     {
-      NdPoint::coord_t num=user_box.p2[D]-user_box.p1[D];
+      Int64 num=user_box.p2[D]-user_box.p1[D];
       this->perslice*=num;
       stride[D]=_stride;
       _stride*=num;
@@ -159,7 +159,7 @@ public:
       int cont=0;
       for (int N=0;N<nslices;N++)
       {
-        NdBox slice_box=getSliceBox(N);
+        BoxNi slice_box=getSliceBox(N);
 
         auto query=std::make_shared<Query>(vf,'w');
         query->field=field;
@@ -201,7 +201,7 @@ public:
     int                  firsth        = Utils::getRandInteger(0,maxh);
     int                  lasth         = Utils::getRandInteger(firsth,maxh);
     int                  deltah        = firsth==lasth?1:Utils::getRandInteger(1,lasth-firsth);
-    NdBox                box           = Utils::getRandInteger(0,1)?vf->getBitmask().upgradeBox(vf->getBox(),maxh):getRandomBox();
+    BoxNi                box           = Utils::getRandInteger(0,1)?vf->getBitmask().upgradeBox(vf->getBox(),maxh):getRandomBox();
     bool                 bInterpolate  = Utils::getRandInteger(0,1)?true:false;
     
     static int nactivation=0;
@@ -217,8 +217,8 @@ public:
       query->end_resolutions.push_back(h);
 
     Array buffer;
-    NdBox h_box;
-    NdPoint shift(pdim);
+    BoxNi h_box;
+    PointNi shift(pdim);
 
     //probably the bounding box cannot get samples
     if (!vf->beginQuery(query))
@@ -240,14 +240,14 @@ public:
       int nsample=0;
       for (auto loc = ForEachPoint(buffer.dims); !loc.end(); loc.next())
       {
-        NdPoint world_point=h_box.p1+((loc.pos).leftShift(shift));
+        PointNi world_point=h_box.p1+((loc.pos).leftShift(shift));
 
         //number of slice
         int N=(int)(world_point[pdim-1]-user_box.p1[pdim-1]);
 
         //position inside the slice buffer
         LogicBox samples=write_queries[N]->logic_box;
-        NdPoint P=samples.logicToPixel(world_point);
+        PointNi P=samples.logicToPixel(world_point);
         Int64 pos=stride.dotProduct(P);
         VisusReleaseAssert(CompareSamples(this->write_queries[N]->buffer,pos,buffer,nsample,1));
         nsample++;
@@ -262,19 +262,19 @@ public:
   }
 
   //return a random box inside the user_box (to exec read query)
-  NdBox getRandomBox()
+  BoxNi getRandomBox()
   {
-    NdBox ndbox(NdPoint(pdim),NdPoint::one(pdim));
+    BoxNi ret(PointNi(pdim),PointNi::one(pdim));
     for (int D=0;D<pdim;D++)
     {
-      ndbox.p1[D]=Utils::getRandInteger((int)user_box.p1[D],(int)user_box.p2[D]-1);
-      ndbox.p2[D]=Utils::getRandInteger((int)ndbox.p1[D]+1 ,(int)user_box.p2[D]  );
+      ret.p1[D]=Utils::getRandInteger((int)user_box.p1[D],(int)user_box.p2[D]-1);
+      ret.p2[D]=Utils::getRandInteger((int)ret.p1[D]+1 ,(int)user_box.p2[D]  );
     }
-    return ndbox;
+    return ret;
   }
 
   //getSliceBox
-  NdBox getSliceBox(int N) const {
+  BoxNi getSliceBox(int N) const {
     auto z1 = (int)user_box.p1[pdim - 1] + N;
     auto z2 = z1 + 1;
     return user_box.getSlab(pdim - 1, z1, z2);
@@ -284,11 +284,11 @@ protected:
 
   IdxDataset*           vf;
   DType                 dtype;
-  NdPoint::coord_t      nslices;
+  Int64      nslices;
   Int64                 perslice;
   int                   pdim;
-  NdPoint               stride;
-  NdBox                 user_box;
+  PointNi               stride;
+  BoxNi                 user_box;
   std::vector< SharedPtr<Query> >   write_queries;
 
 }; //end class 
@@ -342,7 +342,7 @@ void execTestIdx(int max_seconds)
       {
         for (int nbits=8;nbits<=64;nbits+=8)
         {
-          NdBox user_box = GetRandomUserBox(pdim,Utils::getRandInteger(0,1)?true:false);
+          BoxNi user_box = GetRandomUserBox(pdim,Utils::getRandInteger(0,1)?true:false);
 
           IdxFile idxfile;
           idxfile.box=user_box;
@@ -377,7 +377,7 @@ void execTestIdx(int max_seconds)
     //test 10 queries on a random field
     {
       int      pdim         = Utils::getRandInteger(2, 5);
-      NdBox    user_box     = GetRandomUserBox(pdim,Utils::getRandInteger(0,1)?true:false);
+      BoxNi    user_box     = GetRandomUserBox(pdim,Utils::getRandInteger(0,1)?true:false);
 
       IdxFile idxfile;
       idxfile.box=user_box;

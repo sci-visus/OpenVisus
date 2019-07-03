@@ -132,11 +132,11 @@ template <> inline QColor convert(const Color& c) {
 }
 
 template <> inline QPoint convert(const Point2i& p) {
-  return QPoint(p.x,p.y);
+  return QPoint(p[0],p[1]);
 }
 
 template <> inline QPointF convert(const Point2d& p) {
-  return QPointF(p.x,p.y);
+  return QPointF(p[0],p[1]);
 }
 
 template <> inline Point2d convert(const QPointF& p) {
@@ -168,7 +168,8 @@ template <> inline Rectangle2d convert(const QRectF& r) {
 }
 
 
-template <> inline QTransform convert(const Matrix3& T) {
+template <> inline QTransform convert(const Matrix& T) {
+  VisusAssert(T.getSpaceDim() == 3);
   return QTransform(
     T(0,0),T(0,1),T(0,2),
     T(1,0),T(1,1),T(1,2),

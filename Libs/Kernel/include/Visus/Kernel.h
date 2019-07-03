@@ -377,6 +377,11 @@ public:
 };
 
 
+template <typename D, typename S>
+D convertTo(const S& value);
+
+
+
 } //namespace Visus
 
 

@@ -83,7 +83,7 @@ GLTexture::~GLTexture()
     return;
 
   auto texture_id = this->texture_id;
-  auto size = this->dtype.getByteSize((Int64)this->dims.x*(Int64)this->dims.y*(Int64)this->dims.z);
+  auto size = this->dtype.getByteSize((Int64)this->dims[0]*(Int64)this->dims[1]*(Int64)this->dims[2]);
   this->texture_id = 0;
 
   if (auto do_with_context = GLDoWithContext::getSingleton())
@@ -128,7 +128,7 @@ GLuint GLTexture::textureId(GLCanvas& gl)
     VisusReleaseAssert(pixels);
   }
 
-  auto size = this->dtype.getByteSize((Int64)this->dims.x*(Int64)this->dims.y*(Int64)this->dims.z);
+  auto size = this->dtype.getByteSize((Int64)this->dims[0]*(Int64)this->dims[1]*(Int64)this->dims[2]);
 
   if (!GLInfo::getSingleton()->allocateMemory(size))
   {

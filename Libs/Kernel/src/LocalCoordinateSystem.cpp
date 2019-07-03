@@ -58,24 +58,26 @@ LocalCoordinateSystem::LocalCoordinateSystem(Point3d center_,int axis)
 }
 
 ////////////////////////////////////////////////////////////////////
-LocalCoordinateSystem::LocalCoordinateSystem(const Matrix& T)
+LocalCoordinateSystem::LocalCoordinateSystem(Matrix T)
 {
-  this->x=Point3d(T.mat[ 0],T.mat[ 4],T.mat[ 8]); //c*this) * (1,0,0,0)
-  this->y=Point3d(T.mat[ 1],T.mat[ 5],T.mat[ 9]); //(*this) * (0,1,0,0)
-  this->z=Point3d(T.mat[ 2],T.mat[ 6],T.mat[10]); //(*this) * (0,0,1,0)
-  this->c=Point3d(T.mat[ 3],T.mat[ 7],T.mat[11]); //(*this) * (0,0,0,1)
+  T.setSpaceDim(4);
+  this->x=Point3d(T[ 0],T[ 4],T[ 8]); //c*this) * (1,0,0,0)
+  this->y=Point3d(T[ 1],T[ 5],T[ 9]); //(*this) * (0,1,0,0)
+  this->z=Point3d(T[ 2],T[ 6],T[10]); //(*this) * (0,0,1,0)
+  this->c=Point3d(T[ 3],T[ 7],T[11]); //(*this) * (0,0,0,1)
 }
 
 ////////////////////////////////////////////////////////////////////
 LocalCoordinateSystem::LocalCoordinateSystem(const Position& pos)
 {
-  const Matrix& T=pos.getTransformation();
-  Box3d box=pos.getBox();
-  Point3d Pc=T * box.center();
-  Point3d P0=T * box.getPoint(0);
-  Point3d Px=T * box.getPoint(1);
-  Point3d Py=T * box.getPoint(3);
-  Point3d Pz=T * box.getPoint(4);
+  auto T=pos.T;
+  auto box=pos.box;
+  auto points = box.getPoints();
+  Point3d Pc=T * box.center().toPoint3();
+  Point3d P0= (T * points[0]).toPoint3();
+  Point3d Px= (T * points[1]).toPoint3();
+  Point3d Py= (T * points[3]).toPoint3();
+  Point3d Pz= (T * points[4]).toPoint3();
   this->x=0.5*(Px-P0);
   this->y=0.5*(Py-P0);
   this->z=0.5*(Pz-P0);

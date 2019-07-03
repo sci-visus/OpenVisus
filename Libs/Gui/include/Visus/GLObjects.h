@@ -56,7 +56,8 @@ public:
   Matrix T;
 
   //constructor
-  GLModelview(Matrix T_=Matrix::identity()) : T(T_) {
+  GLModelview(Matrix T_=Matrix::identity(4)) : T(T_) {
+    T.setSpaceDim(4);
   }
 
   //destructor
@@ -266,7 +267,7 @@ public:
   //constructor
   template <typename Point>
   GLQuad(Point p1, Point p2, const Color& fill_color, const Color& line_color, int line_width = 1, SharedPtr<GLTexture> texture = SharedPtr<GLTexture>())
-    : GLQuad(Point(p1.x, p1.y), Point(p2.x, p1.y), Point(p2.x, p2.y), Point(p1.x, p2.y), fill_color, line_color, line_width, texture) {}
+    : GLQuad(Point(p1[0], p1[1]), Point(p2[0], p1[1]), Point(p2[0], p2[1]), Point(p1[0], p2[1]), fill_color, line_color, line_width, texture) {}
 
   //constructor
   template <typename Point>
@@ -291,18 +292,18 @@ public:
   //constructor
   GLBox(const Position& position, const Color& fill_color, const Color& line_color, int line_width = 1)
     : GLStruct({
-      std::make_shared<GLModelview>(position.getTransformation()),
-      std::make_shared<GLPhongObject>(GLMesh::SolidBox(position.getBox()), fill_color, 0),
-      std::make_shared<GLPhongObject>(GLMesh::WireBox(position.getBox()), line_color, line_width)
+      std::make_shared<GLModelview>(position.T),
+      std::make_shared<GLPhongObject>(GLMesh::SolidBox(position.box), fill_color, 0),
+      std::make_shared<GLPhongObject>(GLMesh::WireBox(position.box), line_color, line_width)
     }) {}
 
   //constructor
-  GLBox(const Box3d& box, const Color& fill_color, const Color& line_color, int line_width = 1)
+  GLBox(const BoxNd& box, const Color& fill_color, const Color& line_color, int line_width = 1)
     : GLBox(Position(box), fill_color, line_color, line_width) {}
 
   //constructor
   GLBox(const Frustum& value, const Color& fill_color, const Color& line_color, int line_width = 1, double Near = -1, double Far = +1)
-    : GLBox(Position((value.getProjection() * value.getModelview()).invert(), Box3d(Point3d(-1, -1, Near), Point3d(+1, +1, Far))), fill_color, line_color, line_width) {}
+    : GLBox(Position((value.getProjection() * value.getModelview()).invert(), BoxNd(Point3d(-1, -1, Near), Point3d(+1, +1, Far))), fill_color, line_color, line_width) {}
 
 };
 
@@ -316,12 +317,12 @@ public:
   //constructor
   GLAxis(const Position& position, int line_width = 1)
     : GLStruct({
-      std::make_shared<GLModelview>(position.getTransformation()),
-      std::make_shared<GLPhongObject>(GLMesh::ColoredAxis(position.getBox()), Colors::White, line_width)
+      std::make_shared<GLModelview>(position.T),
+      std::make_shared<GLPhongObject>(GLMesh::ColoredAxis(position.box), Colors::White, line_width)
     }){}
 
   //constructor
-  GLAxis(const Box3d& box, int line_width = 1)
+  GLAxis(const BoxNd& box, int line_width = 1)
   : GLAxis(Position(box), line_width) {}
 
 };

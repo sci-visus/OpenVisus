@@ -72,7 +72,7 @@ public:
 
   Array      buffer;
 
-  NdPoint    nsamples;
+  PointNi    nsamples;
   LogicBox   logic_box;
 
   //-1 guess progression
@@ -119,13 +119,13 @@ public:
   public:
     bool                     enabled = false;
     SharedPtr<DatasetFilter> value;
-    NdBox                    domain;
+    BoxNi                    domain;
   };
 
   Filter filter;
 
   //aligned_box (internal use only)
-  NdBox aligned_box;
+  BoxNi aligned_box;
 
   //filter_query (internal use only)
   SharedPtr<Query> filter_query;
@@ -147,7 +147,7 @@ public:
     Array   BUFFER;
     Matrix  PIXEL_TO_LOGIC;
     Matrix  LOGIC_TO_PIXEL;
-    Point3d logic_centroid;
+    PointNd logic_centroid;
 
     SharedPtr<Access> access;
   }
@@ -156,8 +156,12 @@ public:
   std::map<String, SharedPtr<Query> >  down_queries;
 
   // for point queries
-  SharedPtr<HeapMemory> point_coordinates;
-
+  struct
+  {
+    SharedPtr<HeapMemory> coordinates;
+  }
+  point_query;
+  
   //constructor
   Query(Dataset* dataset,int mode);
 
@@ -173,7 +177,7 @@ public:
 
   //isPointQuery
   bool isPointQuery() const {
-    return point_coordinates ? true : false;
+    return point_query.coordinates ? true : false;
   }
 
   //isRunning

@@ -103,6 +103,7 @@ public:
     if (mode == KdQueryMode::UseBlockQuery && !access)
       return false;
 
+    auto pdim = dataset->getPointDim();
     this->bitsperblock=access? access->bitsperblock : dataset->getDefaultBitsPerBlock();
 
     //publish interval
@@ -112,19 +113,21 @@ public:
     //find intersection with view frustum
     if (viewdep.valid())
     {
-      position=Position::shrink(viewdep.getScreenBox(),FrustumMap(viewdep),position);
+      auto frustum_map = FrustumMap(viewdep);
+      position=Position::shrink(viewdep.getScreenBox(), frustum_map,position);
       if (!position.valid()) 
         return false;
     }
 
     //find intersection with dataset box
-    position=Position::shrink(Position(dataset->getBox()).withoutTransformation().getBox(),MatrixMap(Matrix::identity()),position);
+    auto matrix_map = MatrixMap(Matrix::identity(pdim));
+    position=Position::shrink(dataset->getBox().castTo<BoxNd>(), matrix_map,position);
 
     if (!position.valid()) 
       return false;
 
     //remove transformation
-    position = Position(position.withoutTransformation().getNdBox().getIntersection(dataset->getBox()));
+    position = Position(position.withoutTransformation().castTo<BoxNi>().getIntersection(dataset->getBox()));
     if (!position.valid()) 
       return false;
 
@@ -137,7 +140,7 @@ public:
     {
       ScopedWriteLock wlock(kdarray->lock);
 
-      kdarray->query_box = position.getNdBox();
+      kdarray->query_box = position.getBoxNi();
       kdarray->end_resolution = end_resolutions.back();
 
       this->bBlocksAreFullRes = std::dynamic_pointer_cast<GoogleMapsDataset>(dataset) ? true : false;
@@ -181,11 +184,11 @@ public:
     int pdim = bitmask.getPointDim();
 
     //pow2_box
-    NdPoint pow2_dims=NdPoint::one(pdim);
+    PointNi pow2_dims=PointNi::one(pdim);
     for (int H = 1; H <= dataset->getMaxResolution(); H++)
       pow2_dims[bitmask[H]] <<= 1;
 
-    NdBox pow2_box(NdPoint(pdim),pow2_dims);
+    BoxNi pow2_box(PointNi(pdim),pow2_dims);
 
     int max_resolution=dataset->getBitmask().getMaxResolution();
     VisusAssert(bitsperblock<=max_resolution);

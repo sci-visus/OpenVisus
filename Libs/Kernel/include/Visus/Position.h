@@ -52,50 +52,38 @@ public:
 
   VISUS_CLASS(Position)
 
+  Matrix T= Matrix::identity(4);
+  BoxNd  box;
+
   //constructor
   Position() {
   }
 
   //constructor
-  Position(Box3d value) {
-    if (!value.valid()) return;
-    this->box = value;
-    this->pdim = value.minsize() > 0 ? 3 : 2;
+  Position(std::vector<Matrix> T, BoxNd box);
+
+  //constructor
+  Position(Matrix T, BoxNd box) : Position(std::vector<Matrix>({ T }), box) {
   }
 
   //constructor
-  Position(NdBox value) {
-    
-    if (!value.isFullDim()) return;
-    this->pdim = value.getPointDim();
-
-    auto p1 = convertTo<PointNd>(value.p1);
-    auto p2 = convertTo<PointNd>(value.p2);
-
-    if ((p2[0] - p1[0]) == 1) p2[0] -= 1.0;
-    if ((p2[1] - p1[1]) == 1) p2[1] -= 1.0;
-    if ((p2[2] - p1[2]) == 1) p2[2] -= 1.0;
-    if ((p2[3] - p1[3]) == 1) p2[3] -= 1.0;
-    if ((p2[4] - p1[4]) == 1) p2[4] -= 1.0;
-
-    this->box = BoxNd(p1, p2);
-
-    VisusAssert(getNdBox()==value); //I should not loose any integer precision
+  Position(BoxNd value) : Position(Matrix(), value) {
   }
 
   //constructor
-  Position(const Matrix& T0, const Position& other) : Position(other) {
-    this->T = T0 * this->T;
+  Position(BoxNi value) : Position(value.castTo<BoxNd>()) {
   }
 
   //constructor
-  Position(const Matrix& T0, const Matrix& T1, const Position& other) : Position(T1,other) {
-    this->T = T0 * this->T;
+  Position(const Matrix& T0, const Position& other) : Position(std::vector<Matrix>({ T0,other.T }), other.box) {
   }
 
   //constructor
-  Position(const Matrix& T0, const Matrix& T1, const Matrix& T2, const Position& other) : Position(T1,T2,other) {
-    this->T = T0 * this->T;
+  Position(const Matrix& T0, const Matrix& T1, const Position& other) : Position(std::vector<Matrix>({ T0,T1,other.T }), other.box) {
+  }
+
+  //constructor
+  Position(const Matrix& T0, const Matrix& T1, const Matrix& T2, const Position& other) : Position(std::vector<Matrix>({ T0,T1,T1, other.T }), other.box) {
   }
 
   //invalid
@@ -105,12 +93,36 @@ public:
 
   //getPointDim
   int getPointDim() const {
-    return pdim;
+    return box.getPointDim();
+  }
+
+  //setPointDim
+  void setPointDim(int value) {
+    box.setPointDim(value);
+  }
+
+  //getSpaceDim
+  int getSpaceDim() const {
+    return T.getSpaceDim();
+  }
+
+  //setSpaceDim
+  void setSpaceDim(int value) {
+    T.setSpaceDim(value);
+  }
+
+  //compose
+  static Matrix compose(Position A, PointNi dims) {
+    return
+      A.T *
+      Matrix::translate(A.box.p1) *
+      Matrix::nonZeroScale(A.box.size()) *
+      Matrix::invNonZeroScale(dims.castTo<PointNd>());
   }
 
   //operator!=
   bool operator==(const Position& other) const {
-    return pdim==other.pdim && T==other.T && box==other.box;
+    return T==other.T && box==other.box;
   }
 
   //operator!=
@@ -120,60 +132,27 @@ public:
 
   //valid
   bool valid() const {
-    return pdim>0;
+    return box.valid();
   }
 
-  //getTransformation
-  Matrix getTransformation() const {
-    return T;
+  //getBoxNi
+  BoxNi getBoxNi() const {
+    return this->box.castTo<BoxNi>();
   }
 
-  //setTransformation
-  void setTransformation(const Matrix& value) {
-    this->T=value;
-  }
-
-  //getBox
-  Box3d getBox() const {
-    return box.toBox3();
-  }
-
-  //getNdBox
-  NdBox getNdBox() const {
-    
-    if (!valid())
-      return NdBox::invalid(2);
-
-    auto p1 = convertTo<PointNi>(box.p1);
-    auto p2 = convertTo<PointNi>(box.p2);
-
-    if ((p2[0] - p1[0]) == 0) p2[0] += 1;
-    if ((p2[1] - p1[1]) == 0) p2[1] += 1;
-    if ((p2[2] - p1[2]) == 0) p2[2] += 1;
-    if ((p2[3] - p1[3]) == 0) p2[3] += 1;
-    if ((p2[4] - p1[4]) == 0) p2[4] += 1;
-
-    p1.setPointDim(this->pdim);
-    p2.setPointDim(this->pdim);
-
-    return NdBox(p1, p2);
-  }
+  //computeVolume
+  double computeVolume() const;
 
   //withoutTransformation
-  Position withoutTransformation() const;  
-
-  //toAxisAlignedBox
-  Box3d toAxisAlignedBox() const {
-    return withoutTransformation().getBox();
-  }
+  BoxNd withoutTransformation() const;
 
   //shrink i.e. map * (position.lvalue,position.rvalue') should be in dst_box, does not change position.lvalue
-  static Position shrink(const Box3d& dst_box, const LinearMap& map, Position position);
+  static Position shrink(BoxNd dst_box, LinearMap& map, Position position);
 
   //toString
   String toString() const {
     std::ostringstream out;
-    out  << "T(" << getTransformation().toString() << ") box(" << getBox().toString() << ")";
+    out  << "T(" << T.toString() << ") box(" << box.toString() << ")";
     return out.str();
   }
 
@@ -185,14 +164,7 @@ public:
   //readFromObjectStream
   void readFromObjectStream(ObjectStream& istream) ;
 
-private:
-
-  int    pdim = 0;
-  Matrix T;
-  BoxNd  box;
-
 };
-
 
 
 } //namespace Visus

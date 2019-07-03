@@ -61,12 +61,12 @@ static bool ComputeFilter(Dataset* dataset,Query* query,const FilterClass* filte
   DatasetBitmask   bitmask    = dataset->getBitmask();
   int              MaxH       = query->max_resolution;
   int              bit        = bitmask[H];
-  NdPoint          dims       = query->nsamples;
-  NdPoint          stride     = dims.stride();
+  PointNi          dims       = query->nsamples;
+  PointNi          stride     = dims.stride();
   int              filter_size = filter->getSize();
-  NdPoint          filterstep = filter->getFilterStep(H,MaxH);
-  NdPoint::coord_t FILTERSTEP = filterstep[bit];
-  NdBox            filter_domain  = bitmask.upgradeBox(query->filter.domain,MaxH);
+  PointNi          filterstep = filter->getFilterStep(H,MaxH);
+  Int64 FILTERSTEP = filterstep[bit];
+  BoxNi            filter_domain  = bitmask.upgradeBox(query->filter.domain,MaxH);
 
   int pdim = bitmask.getPointDim();
   
@@ -75,7 +75,7 @@ static bool ComputeFilter(Dataset* dataset,Query* query,const FilterClass* filte
     return true; 
 
   //align again to filter (this is needed again for certain types of queries, such as query for visus blocks!)
-  NdBox box=logic_box;
+  BoxNi box=logic_box;
 
   //important! take only the good "samples", i.e. I do not want to do any filtering with samples
   //outside the valid region of the dataset
@@ -87,15 +87,15 @@ static bool ComputeFilter(Dataset* dataset,Query* query,const FilterClass* filte
   for (int D=0;D<pdim;D++) 
   {
     //what is the world step of the filter at the current resolution
-    NdPoint::coord_t FILTERSTEP=filterstep[D];
+    Int64 FILTERSTEP=filterstep[D];
 
     //means only one sample
     if (FILTERSTEP==1) 
       continue;
 
     //align the samples
-    NdPoint::coord_t P1incl=Utils::alignLeft(box.p1[D]  ,(NdPoint::coord_t)0,FILTERSTEP);
-    NdPoint::coord_t P2incl=Utils::alignLeft(box.p2[D]-1,(NdPoint::coord_t)0,FILTERSTEP);
+    Int64 P1incl=Utils::alignLeft(box.p1[D]  ,(Int64)0,FILTERSTEP);
+    Int64 P2incl=Utils::alignLeft(box.p2[D]-1,(Int64)0,FILTERSTEP);
     
     //if is the bit for the filter I need to be sure that all the filter window is available (see query-filter-explanation.gif)
     //i.e. is the window is made of 3 samples, the compute filter needs all 3 samples!
@@ -114,16 +114,16 @@ static bool ComputeFilter(Dataset* dataset,Query* query,const FilterClass* filte
   if (!box.isFullDim())
     return true;
 
-  NdPoint from = logic_box.logicToPixel(box.p1);
-  NdPoint to   = logic_box.logicToPixel(box.p2);
+  PointNi from = logic_box.logicToPixel(box.p1);
+  PointNi to   = logic_box.logicToPixel(box.p2);
 
   //see map... I can do this only because I know that filterstep is multiple of 2^query->shift
-  NdPoint step = filterstep.rightShift(logic_box.shift);
+  PointNi step = filterstep.rightShift(logic_box.shift);
 
   //I'm going to to the for loop for the filter nested inside
-  NdPoint::coord_t FROM   = from[bit]; 
-  NdPoint::coord_t TO     = to  [bit]; to[bit  ]=FROM+1;
-  NdPoint::coord_t STEP   = step[bit]; step[bit]=1;
+  Int64 FROM   = from[bit]; 
+  Int64 TO     = to  [bit]; to[bit  ]=FROM+1;
+  Int64 STEP   = step[bit]; step[bit]=1;
   
   //need to take care of physical distance among samples
   //Example. FilterSize==3
@@ -153,7 +153,7 @@ static bool ComputeFilter(Dataset* dataset,Query* query,const FilterClass* filte
     //CppType* vc=vb+PHY_NEXT_SAMPLE;
     //CppType* vd=vc+PHY_NEXT_SAMPLE;
 
-    for (NdPoint::coord_t LOC=FROM;LOC<TO;LOC+=STEP,va+=PHY_FILTER_WINDOW,vb+=PHY_FILTER_WINDOW)
+    for (Int64 LOC=FROM;LOC<TO;LOC+=STEP,va+=PHY_FILTER_WINDOW,vb+=PHY_FILTER_WINDOW)
     {
       if (bInverse)
         filter->applyInverse(va,vb);

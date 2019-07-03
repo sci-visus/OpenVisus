@@ -54,16 +54,16 @@ public:
   {
   public:
     BoundaryHor(double y_) : m_Y(y_) {}
-    bool isInside(const Point2d& pnt) const { return Comp()(pnt.y, m_Y); }	// return true if pnt.y is at the inside of the boundary
+    bool isInside(const Point2d& pnt) const { return Comp()(pnt[1], m_Y); }	// return true if pnt[1] is at the inside of the boundary
     Point2d intersect(const Point2d& p0, const Point2d& p1) const			// return intersection point of line p0...p1 with boundary
     {																	// assumes p0...p1 is not strictly horizontal
 
       Point2d d = p1 - p0;
-      double xslope = d.x / d.y;
+      double xslope = d[0] / d[1];
 
       Point2d r;
-      r.y = m_Y;
-      r.x = p0.x + xslope * (m_Y - p0.y);
+      r[1] = m_Y;
+      r[0] = p0[0] + xslope * (m_Y - p0[1]);
       return r;
     }
   private:
@@ -76,16 +76,16 @@ public:
   {
   public:
     BoundaryVert(double x_) : m_X(x_) {}
-    bool isInside(const Point2d& pnt) const { return Comp()(pnt.x, m_X); }
+    bool isInside(const Point2d& pnt) const { return Comp()(pnt[0], m_X); }
     Point2d intersect(const Point2d& p0, const Point2d& p1) const		// assumes p0...p1 is not strictly vertical
     {
 
       Point2d d = p1 - p0;
-      double yslope = d.y / d.x;
+      double yslope = d[1] / d[0];
 
       Point2d r;
-      r.x = m_X;
-      r.y = p0.y + yslope * (m_X - p0.x);
+      r[0] = m_X;
+      r[1] = p0[1] + yslope * (m_X - p0[0]);
       return r;
     }
   private:
@@ -179,10 +179,10 @@ public:
 
   // SutherlandHodgman algorithm
   ClipPolygon2d(const Rectangle2d& rect,const std::vector<Point2d>& polygon_)
-    : m_stageBottom(m_stageOut   , rect.p2().y)	
-    , m_stageLeft  (m_stageBottom, rect.p1().x)		
-    , m_stageTop   (m_stageLeft  , rect.p1().y)			
-    , m_stageRight (m_stageTop   , rect.p2().x)
+    : m_stageBottom(m_stageOut   , rect.p2()[1])	
+    , m_stageLeft  (m_stageBottom, rect.p1()[0])		
+    , m_stageTop   (m_stageLeft  , rect.p1()[1])			
+    , m_stageRight (m_stageTop   , rect.p2()[0])
     , polygon(polygon_)
   {
   }
@@ -222,13 +222,108 @@ double Polygon2d::area() const {
   for (int i = 0; i < N; i++) 
   {
     int j = (i + 1) % N;
-    area += points[i].x * points[j].y;
-    area -= points[i].y * points[j].x;
+    area += points[i][0] * points[j][1];
+    area -= points[i][1] * points[j][0];
   }
 
   area /= 2.0;
   return (area < 0 ? -area : area);
 }
+
+
+
+///////////////////////////////////////////////////////////////////////////
+Matrix Quad::findQuadHomography(const Quad& dst_quad, const Quad& src_quad)
+{
+  auto dst = dst_quad.points;
+  auto src = src_quad.points;
+
+  double P[8][9] = {
+    { -src[0][0], -src[0][1], -1,         0,         0,  0, src[0][0]*dst[0][0], src[0][1]*dst[0][0], -dst[0][0] },
+    { 0,         0,  0, -src[0][0], -src[0][1], -1, src[0][0]*dst[0][1], src[0][1]*dst[0][1], -dst[0][1] },
+    { -src[1][0], -src[1][1], -1,         0,         0,  0, src[1][0]*dst[1][0], src[1][1]*dst[1][0], -dst[1][0] },
+    { 0,         0,  0, -src[1][0], -src[1][1], -1, src[1][0]*dst[1][1], src[1][1]*dst[1][1], -dst[1][1] },
+    { -src[2][0], -src[2][1], -1,         0,         0,  0, src[2][0]*dst[2][0], src[2][1]*dst[2][0], -dst[2][0] },
+    { 0,         0,  0, -src[2][0], -src[2][1], -1, src[2][0]*dst[2][1], src[2][1]*dst[2][1], -dst[2][1] },
+    { -src[3][0], -src[3][1], -1,         0,         0,  0, src[3][0]*dst[3][0], src[3][1]*dst[3][0], -dst[3][0] },
+    { 0,         0,  0, -src[3][0], -src[3][1], -1, src[3][0]*dst[3][1], src[3][1]*dst[3][1], -dst[3][1] },
+  };
+
+  double* A = &P[0][0];
+  const int n = 9;
+  int i = 0, j = 0, m = n - 1;
+  while (i < m && j < n) {
+    int maxi = i;
+    for (int k = i + 1; k<m; k++) {
+      if (fabs(A[k*n + j]) > fabs(A[maxi*n + j])) {
+        maxi = k;
+      }
+    }
+    if (A[maxi*n + j] != 0) {
+      if (i != maxi)
+        for (int k = 0; k<n; k++) {
+          double aux = A[i*n + k];
+          A[i*n + k] = A[maxi*n + k];
+          A[maxi*n + k] = aux;
+        }
+      double A_ij = A[i*n + j];
+      for (int k = 0; k<n; k++) {
+        A[i*n + k] /= A_ij;
+      }
+      for (int u = i + 1; u< m; u++) {
+        double A_uj = A[u*n + j];
+        for (int k = 0; k<n; k++) {
+          A[u*n + k] -= A_uj*A[i*n + k];
+        }
+      }
+      i++;
+    }
+    j++;
+  }
+  for (int i = m - 2; i >= 0; i--) {
+    for (int j = i + 1; j<n - 1; j++) {
+      A[i*n + m] -= A[i*n + j] * A[j*n + m];
+    }
+  }
+
+  return Matrix(
+    P[0][8], P[3][8], P[6][8],
+    P[1][8], P[4][8], P[7][8],
+    P[2][8], P[5][8], 1.0).transpose();
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+Polygon2d Quad::intersection(const Quad& A, const Quad& B)
+{
+  auto b1 = A.getBoundingBox();
+  auto b2 = B.getBoundingBox();
+  if (!b1.intersect(b2))
+    return Polygon2d();
+
+  auto T = findQuadHomography(Quad(1, 1), A);
+  auto clipped = Quad(T, B).clip(Rectangle2d(0, 0, 1, 1));
+  return Polygon2d(T.invert(), clipped);
+}
+
+///////////////////////////////////////////////////////////////////////////
+bool Quad::isConvex() const {
+
+  auto computeSign = [](Point2d p1, Point2d p2, Point2d p3) {
+    auto dx1 = p2[0] - p1[0];
+    auto dy1 = p2[1] - p1[1];
+    auto dx2 = p3[0] - p2[0];
+    auto dy2 = p3[1] - p2[1];
+    return ((dx1 * dy2 - dy1 * dx2) >= 0) ? +1 : -1;
+  };
+
+  auto s0 = computeSign(points[0], points[1], points[2]);
+  auto s1 = computeSign(points[1], points[2], points[3]);
+  auto s2 = computeSign(points[2], points[3], points[0]);
+  auto s3 = computeSign(points[3], points[0], points[1]);
+
+  return s0 == s1 && s1 == s2 && s2 == s3;
+};
 
 
 } //namespace Visus

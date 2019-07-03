@@ -24,11 +24,16 @@ using namespace Visus;
 
 %apply SWIGTYPE *DISOWN                { Visus::NetServerModule* disown};
 
-
-%template(VectorOfField) std::vector<Visus::Field>;
-%template(VectorOfArray) std::vector<Visus::Array>;
+%template(VectorInt)                       std::vector<int>;
+%template(VectorDouble)                    std::vector<double>;
+%template(VectorFloat)                     std::vector<float>;
+%template(VectorString)                    std::vector< std::string >;
+%template(PairDoubleDouble)                std::pair<double,double>;
+%template(PairIntDouble)                   std::pair<int,double>;
+%template(MapStringString)                 std::map< std::string , std::string >;
 
 %include <Visus/Kernel.h>
+	%template(VectorInt64)                     std::vector<Visus::Int64>;
 %include <Visus/StringMap.h>
 %include <Visus/Log.h>
 %include <Visus/HeapMemory.h>
@@ -39,33 +44,36 @@ using namespace Visus;
 %include <Visus/VisusConfig.h>
 %include <Visus/Color.h>
 %include <Visus/Point.h> 
-   %template(Point2i)    Visus::Point2<int   > ;
-   %template(Point2f)    Visus::Point2<float > ;
-   %template(Point2d)    Visus::Point2<double> ;
-   %template(Point3i)    Visus::Point3<int  >  ;
-   %template(Point3f)    Visus::Point3<float>  ;
-   %template(Point3d)    Visus::Point3<double> ;
-   %template(Point4i)    Visus::Point4<int   > ;
-   %template(Point4f)    Visus::Point4<float > ;
-   %template(Point4d)    Visus::Point4<double> ;
-   %template(PointNi)    Visus::PointN<int >   ;
-   %template(PointNf)    Visus::PointN<float > ;
-   %template(PointNd)    Visus::PointN<double> ;
-   %template(NdPoint)    Visus::PointN< Visus::Int64 > ;
+
+   %template(Point2i)    Visus::Point2<Visus::Int64>;
+   %template(Point2f)    Visus::Point2<float>;
+   %template(Point2d)    Visus::Point2<double>;
+
+   %template(Point3i)    Visus::Point3<Visus::Int64>;
+   %template(Point3f)    Visus::Point3<float>;
+   %template(Point3d)    Visus::Point3<double>;
+
+   %template(Point4i)    Visus::Point4<Visus::Int64>;
+   %template(Point4f)    Visus::Point4<float>;
+   %template(Point4d)    Visus::Point4<double>;
+   
+   %template(PointNd)    Visus::PointN<double>;
+   %template(PointNi)    Visus::PointN<Visus::Int64>;
+
 %include <Visus/Box.h>
-   %template(Box3d)    Visus::Box3<double> ;
-   %template(Box3i)    Visus::Box3<int> ;
-   %template(BoxNd)    Visus::BoxN<double> ;
-   %template(NdBox)    Visus::BoxN< Visus::Int64 >;
+   %template(BoxNd)    Visus::BoxN<double>;
+   %template(BoxNi)    Visus::BoxN<Visus::Int64>;
+
 %include <Visus/Matrix.h>
 %include <Visus/Position.h>
 %include <Visus/Range.h>
 %include <Visus/DType.h>
 %include <Visus/Field.h>
+	%template(VectorOfField) std::vector<Visus::Field>;
 %include <Visus/Array.h>
+	%template(VectorOfArray) std::vector<Visus::Array>;
 %include <Visus/ArrayUtils.h>
 %include <Visus/ArrayPlugin.h>
-
 
 // _____________________________________________________
 // extend Array
@@ -114,14 +122,14 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
         src=numpy.ascontiguousarray(src)
       shape=src.__array_interface__["shape"]
       shape=tuple(reversed(shape))
-      dims=NdPoint.one(len(shape))
+      dims=PointNi.one(len(shape))
       for I in range(dims.getPointDim()): dims.set(I,shape[I])   
       typestr=src.__array_interface__["typestr"]
       dtype=DType(typestr[1]=="u", typestr[1]=="f", int(typestr[2])*8)
       c_address=str(src.__array_interface__["data"][0])
       ret=Array(dims,dtype,c_address,bShareMem)
       if TargetDim: 
-        dims=NdPoint.one(TargetDim)
+        dims=PointNi.one(TargetDim)
         for I in range(TargetDim): dims.set(I,ret.dims[ret.dims.getPointDim()-TargetDim+I])
         ret.resize(dims,DType(int(ret.dims.innerProduct()/dims.innerProduct()),ret.dtype), "Array::fromNumPy",0)
       return ret

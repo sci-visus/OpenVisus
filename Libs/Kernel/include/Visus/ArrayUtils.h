@@ -70,7 +70,7 @@ public:
   static SharedPtr<HeapMemory> encodeArray(String compression, Array value);
 
   //decodeArray
-  static Array decodeArray(String compression, NdPoint dims, DType dtype, SharedPtr<HeapMemory> encoded);
+  static Array decodeArray(String compression, PointNi dims, DType dtype, SharedPtr<HeapMemory> encoded);
 
   //decodeArray
   static Array decodeArray(StringMap metadata, SharedPtr<HeapMemory> encoded);
@@ -97,26 +97,26 @@ public:
 
   //insert
   static bool insert(
-    Array& wbuffer, NdPoint wfrom, NdPoint wto, NdPoint wstep,
-    Array  rbuffer, NdPoint rfrom, NdPoint rto, NdPoint rstep, Aborted aborted = Aborted());
+    Array& wbuffer, PointNi wfrom, PointNi wto, PointNi wstep,
+    Array  rbuffer, PointNi rfrom, PointNi rto, PointNi rstep, Aborted aborted = Aborted());
 
   // interpolate
-  static bool interpolate(Array& dst, NdPoint from, NdPoint to, NdPoint step, Aborted aborted = Aborted());
+  static bool interpolate(Array& dst, PointNi from, PointNi to, PointNi step, Aborted aborted = Aborted());
 
   //paste src image into dst image
-  static bool paste(Array& dst, NdBox Dbox, Array src, NdBox Sbox, Aborted aborted = Aborted());
+  static bool paste(Array& dst, BoxNi Dbox, Array src, BoxNi Sbox, Aborted aborted = Aborted());
 
   //paste
-  static bool paste(Array& dst, NdPoint offset, Array src, Aborted aborted = Aborted()) {
+  static bool paste(Array& dst, PointNi offset, Array src, Aborted aborted = Aborted()) {
     int pdim = src.getPointDim();
-    return paste(dst, NdBox(offset, offset + src.dims), src, NdBox(NdPoint(pdim), src.dims));
+    return paste(dst, BoxNi(offset, offset + src.dims), src, BoxNi(PointNi(pdim), src.dims));
   }
 
   //smartCast
   static Array smartCast(Array src, DType dtype, Aborted aborted = Aborted());
 
   //crop
-  static Array crop(Array src, NdBox box, Aborted aborted = Aborted());
+  static Array crop(Array src, BoxNi box, Aborted aborted = Aborted());
 
   //mirror
   static Array mirror(Array src, int axis, Aborted aborted = Aborted());
@@ -181,7 +181,7 @@ public:
   static Array div(double coeff, Array src, Aborted aborted = Aborted());
 
   //resample
-  static Array resample(NdPoint target_dims, const Array rbuffer, Aborted aborted = Aborted());
+  static Array resample(PointNi target_dims, const Array rbuffer, Aborted aborted = Aborted());
 
 public:
 
@@ -341,7 +341,7 @@ public:
   static void setBufferColor(Array& buffer, Color color);
 
   //createTransformedAlpha
-  static Array createTransformedAlpha(NdBox bounds, Matrix T, NdPoint dims, Aborted aborted);
+  static Array createTransformedAlpha(BoxNi bounds, Matrix T, PointNi dims, Aborted aborted);
 
 private:
 
@@ -374,7 +374,7 @@ public:
   ~BlendBuffers();
 
   //addBlendArg
-  void addBlendArg(Array arg, Matrix up_pixel_to_logic = Matrix(), Point3d logic_centroid = Point3d());
+  void addBlendArg(Array arg, Matrix up_pixel_to_logic = Matrix::identity(4), PointNd logic_centroid = PointNd());
 
 private:
 

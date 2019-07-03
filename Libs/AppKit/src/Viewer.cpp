@@ -165,8 +165,8 @@ SharedPtr<Viewer::Logo> Viewer::openScreenLogo(String key, String default_logo)
   ret->filename = filename;
   ret->tex = std::make_shared<GLTexture>(img);
   ret->tex->envmode = GL_MODULATE;
-  ret->pos.x = StringUtils::contains(key, "Left") ? 0 : 1;
-  ret->pos.y = StringUtils::contains(key, "Bottom") ? 0 : 1;
+  ret->pos[0] = StringUtils::contains(key, "Left") ? 0 : 1;
+  ret->pos[1] = StringUtils::contains(key, "Bottom") ? 0 : 1;
   ret->opacity = cdouble(config.readString(key + "/alpha", "0.5"));
   ret->border = Point2d(10, 10);
   return ret;
@@ -471,10 +471,10 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
       std::istringstream parse(args_zoom_to);
       parse >> x1 >> y1 >> x2 >> y2;
 
-      auto p1 = world_box.getPoint(x1, y1, 0).dropZ();
-      auto p2 = world_box.getPoint(x2, y2, 0).dropZ();
+      auto p1 = world_box.getAlphaPoint(PointNd(x1, y1, 0)).toPoint2();
+      auto p2 = world_box.getAlphaPoint(PointNd(x2, y2, 0)).toPoint2();
 
-      ortho_params = GLOrthoParams(p1.x, p2.x, p1.y, p2.y, ortho_params.zNear, ortho_params.zFar);
+      ortho_params = GLOrthoParams(p1[0], p2[0], p1[1], p2[1], ortho_params.zNear, ortho_params.zFar);
 
       VisusInfo() << std::fixed << "Setting"
         << " ortho_params("
@@ -482,8 +482,8 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
         << ortho_params.bottom << " " << ortho_params.top << " "
         << ortho_params.zNear << " " << ortho_params.zFar << ")"
         << " world_box("
-        << world_box.p1.x << " " << world_box.p1.y << " " << world_box.p1.z << " "
-        << world_box.p2.x << " " << world_box.p2.y << " " << world_box.p2.z << ")";
+        << world_box.p1[0] << " " << world_box.p1[1] << " " << world_box.p1[2] << " "
+        << world_box.p2[0] << " " << world_box.p2[1] << " " << world_box.p2[2] << ")";
 
 
       double W = glcamera->getViewport().width;
@@ -645,9 +645,9 @@ int Viewer::getWorldDimension() const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Box3d Viewer::getWorldBoundingBox() const
+BoxNd Viewer::getWorldBoundingBox() const
 {
-  return getNodeBounds(getRoot()).toAxisAlignedBox();
+  return getNodeBounds(getRoot()).withoutTransformation();
 }
 
 
@@ -667,7 +667,7 @@ Position Viewer::getNodeBounds(Node* node,bool bRecursive) const
       return ret;
   }
 
-  Matrix T;
+  auto T = Matrix::identity(4);
 
   //modelview_node::modelview is used only if it's NOT recursive call
   //stricly speaking , a transform node has as content its childs
@@ -689,12 +689,12 @@ Position Viewer::getNodeBounds(Node* node,bool bRecursive) const
   }
   else
   {
-    Box3d box= Box3d::invalid();
+    auto box= BoxNd::invalid();
     for (auto child : childs)
     {
       Position child_bounds=getNodeBounds(child,true); 
       if (child_bounds.valid())
-        box=box.getUnion(child_bounds.toAxisAlignedBox());
+        box=box.getUnion(child_bounds.withoutTransformation());
     }
     return Position(T,box);
   }
@@ -755,7 +755,7 @@ Frustum Viewer::computeNodeFrustum(Frustum frustum,Node* node) const
   {
     if (auto modelview_node=dynamic_cast<ModelViewNode*>(it))
     {
-      Matrix T=modelview_node->getModelview();
+      auto T=modelview_node->getModelview();
       frustum.multModelview(T);
     }
   }
@@ -832,14 +832,15 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
 
     free_transform->objectChanged.connect([this,query_node](Position query_pos)
     {
-      auto T  =query_pos.getTransformation();
-      auto box=query_pos.getBox();
+      auto T  =query_pos.T;
+      auto box=query_pos.box;
+      box.setPointDim(3);
 
       TRSMatrixDecomposition trs(T);
 
       if (trs.rotate.getAngle()==0)
       {
-        T=Matrix::identity();
+        T=Matrix::identity(4);
         for (int I=0;I<3;I++)
         {
           box.p1[I]=box.p1[I]*trs.scale[I]+trs.translate[I];
@@ -887,7 +888,7 @@ void Viewer::beginFreeTransform(ModelViewNode* modelview_node)
 
     free_transform->objectChanged.connect([this,modelview_node,bounds](Position obj)
     {
-      Matrix T=obj.getTransformation() * bounds.getTransformation().invert();
+      auto T=obj.T * bounds.T.invert();
       modelview_node->setModelview(T);
       refreshData(modelview_node);
     });
@@ -2733,7 +2734,7 @@ KdRenderArrayNode* Viewer::addKdRenderArrayNode(Node* parent,Node* data_provider
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String name,int dim,String fieldname,int access_id,String rendertype) 
+QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String name,int query_dim,String fieldname,int access_id,String rendertype)
 {
   if (!parent)
   {
@@ -2766,7 +2767,7 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
     String basename;
     if (rendertype=="isocontour") 
       basename="IsoContour";
-    else if (dim==3)                              
+    else if (query_dim ==3)
       basename="Volume";
     else
       basename="Slice"; 
@@ -2780,6 +2781,9 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
 
   int dataset_dim=dataset->getPointDim();
 
+  VisusAssert(query_dim <= dataset_dim);
+  VisusAssert(query_dim == 2 || query_dim == 3);
+
   //QueryNode
   auto query_node=new QueryNode(name);
   query_node->setVerbose(cint(config.readString("Configuration/QueryNode/verbose", "1")));
@@ -2789,20 +2793,11 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
   query_node->setQuality(Query::DefaultQuality);
 
   {
-    Box3d box=dataset_node->getNodeBounds().toAxisAlignedBox();
-    if (dim==3)
+    auto box=dataset_node->getNodeBounds().withoutTransformation();
+    if (dataset_dim==3 && query_dim == 2)
     {
-      const double Scale=1.0;
-      if (Scale!=1)
-        box=box.scaleAroundCenter(Scale);
-    }
-    else
-    {
-      VisusAssert(dim==2);
-      const int ref=2;
-      double Z=box.center()[ref];
-      box.p1[ref]=Z;
-      box.p2[ref]=Z;
+      auto Z = box.center()[2];
+      box=box.getZSlab(Z, Z);
     }
     query_node->setNodeBounds(Position(box));
   }
@@ -2852,7 +2847,7 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
       String default_palette_2d= config.readString("Configuration/VisusViewer/default_palette_2d","GrayOpaque");
       String default_palette_3d= config.readString("Configuration/VisusViewer/default_palette_3d","GrayTransparent");
       String default_render_type = config.readString("Configuration/VisusViewer/DefaultRenderNode/value", "");
-      addRenderArrayNode(query_node,scripting_node,dim==3?default_palette_3d:default_palette_2d, default_render_type);
+      addRenderArrayNode(query_node,scripting_node,query_dim==3?default_palette_3d:default_palette_2d, default_render_type);
     }
   }
   endUpdate();
@@ -2899,14 +2894,7 @@ KdQueryNode* Viewer::addKdQueryNode(Node* parent,DatasetNode* dataset_node,Strin
   query_node->setAccessIndex(access_id);
   query_node->setViewDependentEnabled(true);
   query_node->setQuality(Query::DefaultQuality);
-
-  {
-    Box3d box=dataset_node->getNodeBounds().toAxisAlignedBox();
-    const double Scale=1.0;
-    if (dataset_dim==3 && Scale!=1)  
-      box=box.scaleAroundCenter(Scale);
-    query_node->setNodeBounds(Position(box));
-  }
+  query_node->setNodeBounds(dataset_node->getNodeBounds().withoutTransformation());
 
   //TimeNode
   auto time_node=dataset_node->findChild<TimeNode*>();

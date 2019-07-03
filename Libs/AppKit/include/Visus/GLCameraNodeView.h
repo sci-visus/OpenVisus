@@ -145,18 +145,17 @@ private:
     Point3d pos,dir,vup;
     camera->getFrustum().getModelview().getLookAt(pos,dir,vup);
 
-    widgets.pos.x->setText(std::to_string(pos.x).c_str());
-    widgets.pos.y->setText(std::to_string(pos.y).c_str());
-    widgets.pos.z->setText(std::to_string(pos.z).c_str());
+    widgets.pos.x->setText(std::to_string(pos[0]).c_str());
+    widgets.pos.y->setText(std::to_string(pos[1]).c_str());
+    widgets.pos.z->setText(std::to_string(pos[2]).c_str());
 
-    widgets.dir.x->setText(std::to_string(dir.x).c_str());
-    widgets.dir.y->setText(std::to_string(dir.y).c_str());
-    widgets.dir.z->setText(std::to_string(dir.z).c_str());
+    widgets.dir.x->setText(std::to_string(dir[0]).c_str());
+    widgets.dir.y->setText(std::to_string(dir[1]).c_str());
+    widgets.dir.z->setText(std::to_string(dir[2]).c_str());
 
-
-    widgets.vup.x->setText(std::to_string(vup.x).c_str());
-    widgets.vup.y->setText(std::to_string(vup.y).c_str());
-    widgets.vup.z->setText(std::to_string(vup.z).c_str());
+    widgets.vup.x->setText(std::to_string(vup[0]).c_str());
+    widgets.vup.y->setText(std::to_string(vup[1]).c_str());
+    widgets.vup.z->setText(std::to_string(vup[2]).c_str());
 
     auto ortho_params=camera->getOrthoParams();
 

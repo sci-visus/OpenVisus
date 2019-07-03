@@ -201,15 +201,15 @@ public:
 
     if (bDragging)
     {
-      X += delta.x;
-      Y += delta.y;
+      X += delta[0];
+      Y += delta[1];
     }
     else
     {
-      if (mouse_cursor & Left) X += delta.x;
-      if (mouse_cursor & Top) Y += delta.y;
-      if (mouse_cursor & Right) W += delta.x;
-      if (mouse_cursor & Bottom) H += delta.y;
+      if (mouse_cursor & Left) X += delta[0];
+      if (mouse_cursor & Top) Y += delta[1];
+      if (mouse_cursor & Right) W += delta[0];
+      if (mouse_cursor & Bottom) H += delta[1];
     }
 
     this->setGeometry((int)X, (int)Y, (int)W, (int)H);
@@ -593,8 +593,8 @@ void DataflowFrameView::computeElasticLayout()
     double angle=A+(B-A)*(M>1?(N/(M-1.0)):0.5);
     p2=p2+Point2d(R*cos(angle),-R*sin(angle));
 
-    double dx=p2.x-p1.x;
-    double dy=p2.y-p1.y;
+    double dx=p2[0]-p1[0];
+    double dy=p2[1]-p1[1];
     double distance = sqrt(dx*dx+dy*dy);
     if (!distance) continue;
     double cos_alpha = dx / distance; input->frameview_bounds.x += 0.2 * distance * cos_alpha ;
@@ -616,8 +616,8 @@ void DataflowFrameView::computeElasticLayout()
     double angle=A+(B-A)*(M>1?(N/(M-1.0)):0.5);
     p1=p1+Point2d(R*cos(angle),R*sin(angle));
 
-    double dx=p2.x-p1.x;
-    double dy=p2.y-p1.y;
+    double dx=p2[0]-p1[0];
+    double dy=p2[1]-p1[1];
     double distance = sqrt(dx*dx+dy*dy);
     if (!distance) continue;
     double cos_alpha = dx / distance; output->frameview_bounds.x -= 0.2 * distance * cos_alpha ;
@@ -671,14 +671,14 @@ void DataflowFrameView::paintEvent(QPaintEvent* evt)
     for (auto it=from->inputs.begin();it!=from->inputs.end();it++)
     {
       Point2d pos=getInputPortPosition(it->second);
-      g.drawText(QPoint((int)pos.x,(int)pos.y)/*,Qt::AlignRight | Qt::AlignBottom*/,it->first.c_str());
+      g.drawText(QPoint((int)pos[0],(int)pos[1])/*,Qt::AlignRight | Qt::AlignBottom*/,it->first.c_str());
     }
 
     //draw output port labels and lines
     for (auto it=from->outputs.begin();it!=from->outputs.end();it++)
     {
       Point2d oport_position=getOutputPortPosition(it->second);
-      g.drawText(QPoint((int)oport_position.x,(int)oport_position.y)/*,Qt::AlignLeft | Qt::AlignBottom*/,it->first.c_str());
+      g.drawText(QPoint((int)oport_position[0],(int)oport_position[1])/*,Qt::AlignLeft | Qt::AlignBottom*/,it->first.c_str());
 
       for (auto jt=it->second->outputs.begin();jt!=it->second->outputs.end();jt++)
       {
@@ -690,8 +690,8 @@ void DataflowFrameView::paintEvent(QPaintEvent* evt)
         Point2d p3=p4-Point2d(R,0);
 
         QPainterPath path;
-        path.moveTo ((float)p1.x, (float)p1.y);
-        path.cubicTo((float)p2.x, (float)p2.y, (float)p3.x, (float)p3.y, (float)p4.x, (float)p4.y);
+        path.moveTo ((float)p1[0], (float)p1[1]);
+        path.cubicTo((float)p2[0], (float)p2[1], (float)p3[0], (float)p3[1], (float)p4[0], (float)p4[1]);
         g.strokePath(path, g.pen());
       }
     }

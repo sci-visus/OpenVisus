@@ -226,7 +226,7 @@ private:
   FrustumMap needUnproject()
   {
     Frustum temp(getFrustum());
-    temp.loadModelview(Matrix::identity()); // i don't want the modelview...
+    temp.loadModelview(Matrix::identity(4)); // i don't want the modelview...
     return FrustumMap(temp);
   }
 

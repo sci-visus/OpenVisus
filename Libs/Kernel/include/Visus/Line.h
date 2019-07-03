@@ -44,86 +44,44 @@ For support : support@visus.net
 
 namespace Visus {
 
-////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Line2d
-{
-public:
-
-  VISUS_CLASS(Line2d)
-
-  double a=0,b=0,c=0;
-
-  //constructor
-  Line2d(Point3d p) {
-    setCoefficients(p.x,p.y,p.z);
-  }
-
-  //constructor
-  Line2d(double a,double b,double c){
-    setCoefficients(a,b,c);
-  }
-
-  //setCoefficients
-  void setCoefficients(double a,double b,double c)
-  {
-    this->a=this->b=this->c=0;
-    double norm=sqrt(a*a+b*b);
-    if (!norm) return;
-    this->a=a/norm;
-    this->b=b/norm;
-    this->c=c/norm;
-  }
-
-  //valid
-  bool valid() const {
-    return a || b;
-  }
-
-  //getNormal
-  Point2d getNormal() const {
-    return Point2d(a,b);
-  }
-
-  //distance
-  double distance(Point2d p){
-    return a*p.x+b*p.y+c;
-  }
-
-};
 
 /////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Line3d
+class VISUS_KERNEL_API Line
 {
 public:
 
-  VISUS_CLASS(Line3d)
+  VISUS_CLASS(Line)
+
+  PointNd origin;
+  PointNd direction;
+
 
   //constructor
-  inline Line3d() :origin(0,0,0),direction(0,0,1)
+  inline Line() 
   {}
 
   //constructor
-  inline Line3d(Point3d origin_,Point3d direction_) :origin(origin_),direction(direction_.normalized())
+  inline Line(PointNd origin_, PointNd direction_) :origin(origin_),direction(direction_.normalized())
     {}
 
   //getCenter
-  inline Point3d getOrigin() const
-    {return origin;}
+  inline PointNd getOrigin() const {
+    return origin;
+  }
 
   //getDirection
-  inline Point3d getDirection() const
-    {return direction;}
+  inline PointNd getDirection() const {
+    return direction;
+  }
 
   //get a point to a certain distance
-  inline Point3d getPoint(double t) const
-    {return origin+t*direction;}
+  PointNd getPoint(double t) const {
+    return origin+t*direction;
+  }
 
-protected:
 
-  Point3d origin;
-  Point3d direction;
 
-}; //end class Line3d
+}; //end class Line
 
 
 } //namespace Visus

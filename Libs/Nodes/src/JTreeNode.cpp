@@ -123,10 +123,10 @@ public:
   ////////////////////////////////////////////////////////////
   static void getNeighbors(CppType *v[6], const CppType *p, CppType *data, const Point3i &dims)
   {
-    VisusAssert(p>=data && p<data+dims.x*dims.y*dims.z);
-    const int stridex=1;
-    const int stridey=dims.x;
-    const int stridez=dims.x*dims.y;
+    VisusAssert(p>=data && p<data+dims[0]*dims[1]*dims[2]);
+    const int stridex= (int)(1);
+    const int stridey= (int)(dims[0]);
+    const int stridez= (int)(dims[0]*dims[1]);
 
     const CppType *q  =(const CppType*)(p   -  data);
     size_t   qz =(size_t)q   /     stridez;
@@ -134,14 +134,14 @@ public:
     size_t   qy =qzr         /     stridey;
     size_t   qyr=qzr         %     stridey;
     size_t   qx =qyr;
-    VisusAssert(p==(data+qx+qy*dims.x+qz*(dims.x*dims.y)));
+    VisusAssert(p==(data+qx+qy*dims[0]+qz*(dims[0]*dims[1])));
 
     v[0]=qx==0       ?0:data+qx-1+ qy   *stridey+ qz   *stridez;
-    v[1]=qx==dims.x-1?0:data+qx+1+ qy   *stridey+ qz   *stridez;
+    v[1]=qx==dims[0]-1?0:data+qx+1+ qy   *stridey+ qz   *stridez;
     v[2]=qy==0       ?0:data+qx  +(qy-1)*stridey+ qz   *stridez;
-    v[3]=qy==dims.y-1?0:data+qx  +(qy+1)*stridey+ qz   *stridez;
+    v[3]=qy==dims[1]-1?0:data+qx  +(qy+1)*stridey+ qz   *stridez;
     v[4]=qz==0       ?0:data+qx  + qy   *stridey+(qz-1)*stridez;
-    v[5]=qz==dims.z-1?0:data+qx  + qy   *stridey+(qz+1)*stridez;
+    v[5]=qz==dims[2]-1?0:data+qx  + qy   *stridey+(qz+1)*stridez;
   }
 
   /////////////////////////////////////////////
@@ -222,7 +222,7 @@ public:
     Aborted& aborted
   )
   {
-    Int64 numvertices=dims.x*dims.y*dims.z;
+    Int64 numvertices=dims[0]*dims[1]*dims[2];
 
     //comparison
     bool (*comp_fcn)(CppType*,CppType*)=ptr_comp;
@@ -489,7 +489,7 @@ public:
     size_t   qz,qzr,qy,qyr,qx;
     ret.verts.resize(tree.verts.size());
 
-    Point3f invdims(1.0f/dims.x,1.0f/dims.y,1.0f/dims.z);
+    Point3f invdims(1.0f/dims[0],1.0f/dims[1],1.0f/dims[2]);
 
     for (int i=0;i<(int)tree.verts.size();i++)
     {
@@ -501,12 +501,12 @@ public:
       if (v.deleted) continue;
 
       q  =(const CppType*)(v.data-data);
-      qz =(size_t)q   /    (dims.x*dims.y);
-      qzr=(size_t)q   -  qz*dims.x*dims.y;
-      qy =qzr         /     dims.x;
-      qyr=qzr         %     dims.x;
+      qz =(size_t)q   /    (dims[0]*dims[1]);
+      qzr=(size_t)q   -  qz*dims[0]*dims[1];
+      qy =qzr         /     dims[0];
+      qyr=qzr         %     dims[0];
       qx =qyr;
-      ret.verts[i].data   =Point3f((float)qx*invdims.x,(float)qy*invdims.y,dims.z==1?0.0f:(float)qz*invdims.z);
+      ret.verts[i].data   =Point3f((float)qx*invdims[0],(float)qy*invdims[1],dims[2]==1?0.0f:(float)qz*invdims[2]);
 
       ret.verts[i].out    =v.out;
       ret.verts[i].in.resize(v.in.size());
@@ -559,8 +559,8 @@ public:
   //constructor
   MyJob(JTreeNode* node_) : node(node_),data(node_->data) 
   {
-    this->idims=data.dims.toPoint3i();
-    this->ddims=data.dims.toPoint3d();
+    this->idims=data.dims.toPoint3();
+    this->ddims=data.dims.toPoint3().template castTo<Point3d>();
     this->minima_tree=node->minima_tree;
     this->threshold_min=node->threshold_min;
     this->threshold_max=node->threshold_max;
@@ -607,9 +607,9 @@ public:
       {
         FGraph::Vertex &v=reduced_graph->verts[I];
         if (v.deleted) continue;
-        v.data.x*=(float)ddims.x;
-        v.data.y*=(float)ddims.y;
-        v.data.z*=(ddims.z==1?0.0f:(float)ddims.z);
+        v.data[0]*=(float)ddims[0];
+        v.data[1]*=(float)ddims[1];
+        v.data[2]*=(ddims[2]==1?0.0f:(float)ddims[2]);
       }
 
       VisusInfo()<<"Produced tree with "<<reduced_graph->verts.size()<<" verts and "<<reduced_graph->edges.size()<<" edges";

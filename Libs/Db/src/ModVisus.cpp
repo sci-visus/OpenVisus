@@ -781,13 +781,15 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   //position
   if (action == "boxquery")
   {
-    query->position = Position(NdBox::parseFromOldFormatString(pdim, request.url.getParam("box")));
+    query->position = Position(BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box")));
   }
   else if (action == "pointquery")
   {
-    Matrix  map = Matrix(request.url.getParam("matrix"));
-    Box3d   box = Box3d::parseFromString(request.url.getParam("box"));
-    query->position = (Position(map, box));
+    auto  map = Matrix::parseFromString(4,request.url.getParam("matrix"));
+    auto  box = BoxNd::parseFromString(request.url.getParam("box"),/*bInterleave*/false);
+    VisusAssert(pdim == 3);
+    box.setPointDim(3);
+    query->position = Position(map, box);
   }
   else
   {

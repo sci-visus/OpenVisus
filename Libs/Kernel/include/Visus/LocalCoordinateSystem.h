@@ -53,102 +53,117 @@ public:
   VISUS_CLASS(LocalCoordinateSystem)
 
   //constructor
-  LocalCoordinateSystem(Point3d x_=Point3d(1,0,0),Point3d y_=Point3d(0,1,0),Point3d z_=Point3d(0,0,1),Point3d c_=Point3d(0,0,0));
+  LocalCoordinateSystem(Point3d x_ = Point3d(1, 0, 0), Point3d y_ = Point3d(0, 1, 0), Point3d z_ = Point3d(0, 0, 1), Point3d c_ = Point3d(0, 0, 0));
 
   //constructor
-  LocalCoordinateSystem(Point3d center_,int axis);
+  LocalCoordinateSystem(Point3d center_, int axis);
 
   //constructor
-  LocalCoordinateSystem(const Matrix& T);
+  LocalCoordinateSystem(Matrix T);
 
   //constructor
   LocalCoordinateSystem(const Position& pos);
 
   //constructor
-  LocalCoordinateSystem(const Matrix& T,LocalCoordinateSystem& other) : LocalCoordinateSystem(T*other.toMatrix()) {
+  LocalCoordinateSystem(const Matrix& T, LocalCoordinateSystem& other) : LocalCoordinateSystem(T* other.toMatrix()) {
   }
 
   //invalid
-  static LocalCoordinateSystem invalid()
-  {return LocalCoordinateSystem(Point3d(),Point3d(),Point3d());}
+  static LocalCoordinateSystem invalid(){
+    return LocalCoordinateSystem(Point3d(), Point3d(), Point3d());
+  }
 
   //valid
-  inline bool valid() const
-  {return x.module2() && y.module2() && z.module2();}
+  bool valid() const{
+    return x.module2() && y.module2() && z.module2();
+  }
 
   //getCenter
-  inline const Point3d& getCenter() const
-  {return c;}
+  const Point3d& getCenter() const{
+    return c;
+  }
 
-  inline const Point3d& getXAxis() const {return x;}
-  inline const Point3d& getYAxis() const {return y;}
-  inline const Point3d& getZAxis() const {return z;}
+  const Point3d& getXAxis() const { return x; }
+  const Point3d& getYAxis() const { return y; }
+  const Point3d& getZAxis() const { return z; }
 
   //getAxis
-  inline const Point3d& getAxis(int axis) const
-  {return (axis==0)? (x) : (axis==1?y:z);}
+  const Point3d& getAxis(int axis) const{
+    return (axis == 0) ? (x) : (axis == 1 ? y : z);
+  }
 
   //setAxis
-  inline void setAxis(int axis,const Point3d& value) 
-  {((axis==0)? (x) : (axis==1?y:z))=value;}
+  void setAxis(int axis, const Point3d& value){
+    ((axis == 0) ? (x) : (axis == 1 ? y : z)) = value;
+  }
 
   //getPointRelativeToCenter
-  inline Point3d getPointRelativeToCenter(Point3d coeff) const
-  {return c + coeff.x*x + coeff.y*y + coeff.z*z;}
+  Point3d getPointRelativeToCenter(Point3d coeff) const{
+    return c + coeff[0] * x + coeff[1] * y + coeff[2] * z;
+  }
 
   //getBoxPoint
-  inline Point3d getBoxPoint(int idx) const
-  {const Box3d box(Point3d(-1,-1,-1),Point3d(+1,+1,+1));return getPointRelativeToCenter(box.getPoint(idx));}
+  std::vector<Point3d> getBoxPoints() const {
+    auto box= BoxNd(Point3d(-1, -1, -1), Point3d(+1, +1, +1));
+    std::vector<Point3d> ret;
+    for (auto point : box.getPoints())
+      ret.push_back(getPointRelativeToCenter(point.toPoint3()));
+    return ret;
+  }
 
   //getAxisPoint
-  inline Point3d getAxisPoint(int axis,double coeff) const
-  {return c + coeff*getAxis(axis);}
+  Point3d getAxisPoint(int axis, double coeff) const{
+    return c + coeff * getAxis(axis);
+  }
 
-  inline Point3d getMinAxisPoint(int axis) const {return getAxisPoint(axis,-1);}
-  inline Point3d getMaxAxisPoint(int axis) const {return getAxisPoint(axis,+1);}
-  inline Point3d getMinXPoint() const {return getMinAxisPoint(0);}
-  inline Point3d getMaxXPoint() const {return getMaxAxisPoint(0);}
-  inline Point3d getMinYPoint() const {return getMinAxisPoint(1);}
-  inline Point3d getMaxYPoint() const {return getMaxAxisPoint(1);}
-  inline Point3d getMinZPoint() const {return getMinAxisPoint(2);}
-  inline Point3d getMaxZPoint() const {return getMaxAxisPoint(2);}
+  Point3d getMinAxisPoint(int axis) const { return getAxisPoint(axis, -1); }
+  Point3d getMaxAxisPoint(int axis) const { return getAxisPoint(axis, +1); }
+  Point3d getMinXPoint() const { return getMinAxisPoint(0); }
+  Point3d getMaxXPoint() const { return getMaxAxisPoint(0); }
+  Point3d getMinYPoint() const { return getMinAxisPoint(1); }
+  Point3d getMaxYPoint() const { return getMaxAxisPoint(1); }
+  Point3d getMinZPoint() const { return getMinAxisPoint(2); }
+  Point3d getMaxZPoint() const { return getMaxAxisPoint(2); }
 
   //getPlane
-  inline Plane getPlane(int axis) const {return Plane(getAxis(axis),getCenter());}
-  inline Plane getXPlane()        const {return getPlane(0);}
-  inline Plane getYPlane()        const {return getPlane(1);}
-  inline Plane getZPlane()        const {return getPlane(2);}
-  
+  Plane getPlane(int axis) const { return Plane(getAxis(axis), getCenter()); }
+  Plane getXPlane()        const { return getPlane(0); }
+  Plane getYPlane()        const { return getPlane(1); }
+  Plane getZPlane()        const { return getPlane(2); }
+
   //scale
-  inline LocalCoordinateSystem scale(Point3d vs) const
-  {return LocalCoordinateSystem(vs.x*getXAxis(),vs.y*getYAxis(),vs.z*getZAxis(),getCenter());}
+  LocalCoordinateSystem scale(Point3d vs) const{
+    return LocalCoordinateSystem(vs[0] * getXAxis(), vs[1] * getYAxis(), vs[2] * getZAxis(), getCenter());
+  }
 
   //translate
-  inline LocalCoordinateSystem translate(Point3d vt) const
-  {return LocalCoordinateSystem(getXAxis(),getYAxis(),getZAxis(),getCenter()+vt);}
+  LocalCoordinateSystem translate(Point3d vt) const{
+    return LocalCoordinateSystem(getXAxis(), getYAxis(), getZAxis(), getCenter() + vt);
+  }
 
   //operator==
-  inline bool operator==(const LocalCoordinateSystem& other) const
-  {return c==other.c && x==other.x && y==other.y && z==other.z;}
+  bool operator==(const LocalCoordinateSystem& other) const{
+    return c == other.c && x == other.x && y == other.y && z == other.z;
+  }
 
   //operator==
-  inline bool operator!=(const LocalCoordinateSystem& other) const
-  {return !(*this==other);}
+  bool operator!=(const LocalCoordinateSystem& other) const{
+    return !(*this == other);
+  }
 
   //toMatrix
-  Matrix4 toMatrix() const {
-    return Matrix4(
-      x[0],y[0],z[0],c[0],
-      x[1],y[1],z[1],c[1],
-      x[2],y[2],z[2],c[2],
-      0,0,0,1);
+  Matrix toMatrix() const {
+    return Matrix(
+      x[0], y[0], z[0], c[0],
+      x[1], y[1], z[1], c[1],
+      x[2], y[2], z[2], c[2],
+      0, 0, 0, 1);
   }
 
   //toUniformSize
   LocalCoordinateSystem toUniformSize() const;
 
 public:
-
 
   //writeToObjectStream
   void writeToObjectStream(ObjectStream& ostream);

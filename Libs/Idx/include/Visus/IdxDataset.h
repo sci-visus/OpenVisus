@@ -106,7 +106,7 @@ public:
   }
 
   //adjustFilterBox
-  NdBox adjustFilterBox(Query* query,DatasetFilter* filter,NdBox box,int H);
+  BoxNi adjustFilterBox(Query* query,DatasetFilter* filter,BoxNi box,int H);
 
   //createEquivalentQuery
   SharedPtr<Query> createEquivalentQuery(int mode,SharedPtr<BlockQuery> block_query);
@@ -154,7 +154,7 @@ public:
 private:
 
   //guessPointQueryNumberOfSamples
-  NdPoint guessPointQueryNumberOfSamples(Position position, const Frustum& viewdep, int end_resolution);
+  PointNi guessPointQueryNumberOfSamples(Position position, const Frustum& viewdep, int end_resolution);
 
   //setCurrentEndResolution
   bool setCurrentEndResolution(SharedPtr<Query> query) {

@@ -172,10 +172,10 @@ private:
   Field createField(String operation_name);
 
   //parseDataset
-  void parseDataset(ObjectStream& istream, Matrix4 T);
+  void parseDataset(ObjectStream& istream, Matrix T);
 
   //parseDatasets
-  void parseDatasets(ObjectStream& istream,Matrix4 T);
+  void parseDatasets(ObjectStream& istream, Matrix T);
 
   //removeAliases
   String removeAliases(String url);

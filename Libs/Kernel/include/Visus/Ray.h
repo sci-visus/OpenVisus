@@ -51,25 +51,33 @@ namespace Visus {
 
 
 /////////////////////////////////////////////////////////////////////
-template <typename T>
-class Ray3
+class Ray
 {
 public:
 
-  VISUS_CLASS(Ray3)
+  VISUS_CLASS(Ray)
+
+  PointNd origin;
+  PointNd direction;
+
 
   //constructor
-  Ray3() :origin(T(0),T(0),T(0)),direction(T(0),T(0),T(1)) {
+  Ray() {
   }
 
   //constructor
-  Ray3(Point3<T> origin_, Point3<T> direction_)
+  Ray(PointNd origin_, PointNd direction_)
     :origin(origin_),direction(direction_.normalized()) {
   }
 
   //fromTwoPoints
-  static Ray3 fromTwoPoints(const Point3<T>& A, const Point3<T>& B) {
-    return Ray3(A,(B-A));
+  static Ray fromTwoPoints(const PointNd& A, const PointNd& B) {
+    return Ray(A,(B-A));
+  }
+
+  //getPointDim
+  int getPointDim() const {
+    return origin.getPointDim();
   }
 
   //valid
@@ -78,41 +86,28 @@ public:
   }
 
   //getOrigin
-  const Point3<T>& getOrigin() const {
+  const PointNd& getOrigin() const {
     return this->origin;
   }
 
   //getDirection
-  const Point3<T>& getDirection() const {
+  const PointNd& getDirection() const {
     return this->direction;
   }
 
   //get a point to a certain distance
-  Point3<T> getPoint(T alpha) const {
+  PointNd getPoint(double alpha) const {
     return origin+ alpha *direction;
   }
 
   //transformByMatrix 
-  Ray3 transformByMatrix(const Matrix&  M) const {
-    return Ray3::fromTwoPoints(M * getPoint(T(0)), M * getPoint(T(1)));
+  Ray transformByMatrix(const Matrix&  M) const {
+    return Ray::fromTwoPoints(M * getPoint(0), M * getPoint(1));
   }
 
-  //findIntersectionOnZeroPlane
-  Point3<T> findIntersectionOnZeroPlane() const
-  {
-    VisusReleaseAssert(direction.z!=T(0));
-    T alpha = -origin.z / direction.z;
-    return getPoint(alpha);
-  }
+}; //end class Ray
 
-protected:
 
-  Point3<T> origin;
-  Point3<T> direction; 
-
-}; //end class Ray3
-
-typedef Ray3<double> Ray3d;
 
 /////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API RayBoxIntersection
@@ -125,7 +120,7 @@ public:
   double tmin;
   double tmax;
 
-  RayBoxIntersection(const Ray3d& ray,const Box3d& box);
+  RayBoxIntersection(const Ray& ray,const BoxNd& box);
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -137,9 +132,9 @@ public:
 
   bool     valid;
   double   t;
-  Point3d  point;
+  PointNd    point;
 
-  RayPlaneIntersection(const Ray3d& ray,const Plane& plane);
+  RayPlaneIntersection(const Ray& ray,const Plane& plane);
 };
 
 
@@ -154,7 +149,7 @@ public:
   double tmin;
   double tmax;
 
-  RaySphereIntersection(const Ray3d& ray,const Sphere& sp);
+  RaySphereIntersection(const Ray& ray,const Sphere& sp);
 };
 
 
@@ -166,9 +161,9 @@ public:
   VISUS_CLASS(RayPointDistance)
 
   double   distance;
-  Point3d  closest_ray_point ;
+  PointNd    closest_ray_point ;
 
-  RayPointDistance(const Ray3d& ray,const Point3d& point);
+  RayPointDistance(const Ray& ray,const PointNd& point);
 };
 
 
@@ -179,11 +174,11 @@ public:
 
   VISUS_CLASS(RayLineDistance)
 
-  double   distance;
-  Point3d  closest_ray_point ;
-  Point3d  closest_line_point ;
+  double distance;
+  PointNd  closest_ray_point ;
+  PointNd  closest_line_point ;
 
-  RayLineDistance(const Ray3d& ray,const Line3d& line);
+  RayLineDistance(const Ray& ray,const Line& line);
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -193,11 +188,11 @@ public:
 
   VISUS_CLASS(RaySegmentDistance)
 
-  double   distance;
-  Point3d  closest_ray_point    ;
-  Point3d  closest_segment_point;
+  double distance;
+  PointNd  closest_ray_point    ;
+  PointNd  closest_segment_point;
 
-  RaySegmentDistance(const Ray3d& ray,const Segment& segment);
+  RaySegmentDistance(const Ray& ray,const Segment& segment);
 };
 
 /////////////////////////////////////////////////////////////////////
@@ -207,11 +202,11 @@ public:
 
   VISUS_CLASS(RayCircleDistance)
 
-  double   distance;
-  Point3d  closest_ray_point;
-  Point3d  closest_circle_point;
+  double distance;
+  PointNd  closest_ray_point;
+  PointNd  closest_circle_point;
 
-  RayCircleDistance(const Ray3d& ray,const Circle& circle);
+  RayCircleDistance(const Ray& ray,const Circle& circle);
 
 };
 

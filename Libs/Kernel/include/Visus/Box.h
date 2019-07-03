@@ -48,192 +48,6 @@ namespace Visus {
 
 ///////////////////////////////////////////////////////////////////
 template <typename T>
-class Box3
-{
-public:
-
-  typedef Point3<T> Point;
-
-  //points (see valid() function)
-  Point p1, p2;
-
-  //constructor
-  Box3() {
-  }
-
-  //constructor
-  Box3(Point p1_, Point p2_) : p1(p1_), p2(p2_) {
-  }
-
-  //return an invalid box
-  static Box3 invalid()
-  {
-    T L = NumericLimits<T>::lowest();
-    T H = NumericLimits<T>::highest();
-    return Box3(Point(H, H, H), Point(L, L, L));
-  }
-
-  //valid (note: an axis can have zero dimension, trick to store slices too)
-  bool valid() const{
-    return p1.valid() && p2.valid() && p1.x <= p2.x && p1.y <= p2.y  && p1.z <= p2.z;
-  }
-
-  //center
-  Point center() const {
-    return 0.5*(p1 + p2);
-  }
-
-  //size
-  Point size() const {
-    return p2 - p1;
-  }
-
-  //max size
-  T maxsize() const {
-    Point d = size(); return Utils::max(d.x, d.y, d.z);
-  }
-
-  //min size
-  T minsize() const {
-    Point d = size(); return Utils::min(d.x, d.y, d.z);
-  }
-
-  //middle
-  Point middle() const {
-    return 0.5*(p1 + p2);
-  }
-
-  //addPoint
-  void addPoint(Point p) {
-    this->p1 = Point::min(this->p1, p);
-    this->p2 = Point::max(this->p2, p);
-  }
-
-  //get point
-  Point getPoint(int idx) const
-  {
-    switch (idx)
-    {
-    case 0:return Point(p1.x, p1.y, p1.z);
-    case 1:return Point(p2.x, p1.y, p1.z);
-    case 2:return Point(p2.x, p2.y, p1.z);
-    case 3:return Point(p1.x, p2.y, p1.z);
-    case 4:return Point(p1.x, p1.y, p2.z);
-    case 5:return Point(p2.x, p1.y, p2.z);
-    case 6:return Point(p2.x, p2.y, p2.z);
-    case 7:return Point(p1.x, p2.y, p2.z);
-    }
-    VisusAssert(false);
-    return Point();
-  }
-
-  //getPoints
-  std::vector<Point> getPoints() const {
-    return std::vector<Point>({
-      getPoint(0),getPoint(1),getPoint(2),getPoint(3),getPoint(4),getPoint(5),getPoint(6),getPoint(7)
-    });
-  }
-
-  //getPoint
-  Point getPoint(double alpha, double beta, double gamma) const {
-    return p1 + Point(alpha*(p2.x - p1.x), beta*(p2.y - p1.y), gamma*(p2.z - p1.z));
-  }
-
-  //test if a point is inside the box
-  bool containsPoint(Point p) const {
-    return this->p1 <= p && p <= this->p2;
-  }
-
-  //test if two box are equal
-  bool operator==(const Box3& b) const {
-    return p1 == b.p1 && p2 == b.p2;
-  }
-
-  //test equality
-  bool operator!=(const Box3& b) const {
-    return !(this->operator==(b));
-  }
-
-  //intersect
-  bool intersect(const Box3& other) const {
-    return valid() && other.valid() ? (p1 <= other.p2 && p2 >= other.p1) : false;
-  }
-
-  //get intersection of two boxes
-  Box3 getIntersection(const Box3& b) const {
-    Box3 ret;
-    ret.p1 = Point::max(this->p1, b.p1);
-    ret.p2 = Point::min(this->p2, b.p2);
-    return ret;
-  }
-
-  //get union of two boxes
-  Box3 getUnion(const Box3& b) const {
-    Box3 ret;
-    ret.p1 = Point::min(this->p1, b.p1);
-    ret.p2 = Point::max(this->p2, b.p2);
-    return ret;
-  }
-
-  //return the planes (pointing outside)
-  std::vector<Plane> getPlanes() const
-  {
-    std::vector<Plane> ret;
-    ret.reserve(6);
-    ret.push_back(Plane(-1, 0., 0., +this->p1.x)); //x<=box.p1.x
-    ret.push_back(Plane(+1, 0., 0., -this->p2.x)); //x>=box.p2.x
-    ret.push_back(Plane(0., -1., 0., +this->p1.y)); //y<=box.p1.y
-    ret.push_back(Plane(0., +1., 0., -this->p2.y)); //y>=box.p2.y
-    ret.push_back(Plane(0., 0., -1., +this->p1.z)); //z<=box.p1.z
-    ret.push_back(Plane(0., 0., +1., -this->p2.z)); //z>=box.p2.z
-    return ret;
-  }
-
-  //scaleAroundCenter
-  Box3 scaleAroundCenter(double scale)
-  {
-    Point center = this->center();
-    Point size = scale*(p2 - p1);
-    return Box3(center - size*0.5, center + size*0.5);
-  }
-
-public:
-
-  //construct from string
-  static Box3 parseFromString(String value)
-  {
-    Box3 ret;
-    std::istringstream parser(value);
-    parser >> ret.p1.x >> ret.p1.y >> ret.p1.z;
-    parser >> ret.p2.x >> ret.p2.y >> ret.p2.z;
-    return ret;
-  }
-
-  //construct to string
-  String toString() const {
-    return p1.toString() + " " + p2.toString();
-  }
-
-  //writeToObjectStream
-  void writeToObjectStream(ObjectStream& ostream) 
-  {
-    ostream.write("p1", p1.toString());
-    ostream.write("p2", p2.toString());
-  }
-
-  //writeToObjectStream
-  void readFromObjectStream(ObjectStream& istream) 
-  {
-    p1 = Point(istream.read("p1"));
-    p2 = Point(istream.read("p2"));
-  }
-
-}; //end class Box3
-
-typedef Box3<double> Box3d;
-
-///////////////////////////////////////////////////////////////////
-template <typename T>
 class BoxN 
 {
 public:
@@ -260,20 +74,32 @@ public:
     VisusAssert(p1.getPointDim() == p2.getPointDim());
   }
 
-  //constructor
-  BoxN(Box3<T> box) : p1(box.p1), p2(box.p2) {
-  }
-
   //getPointDim
   int getPointDim() const {
     return p1.getPointDim();
   }
 
+  //setPointDim
+  void setPointDim(int pdim) {
+    p1.setPointDim(pdim);
+    p2.setPointDim(pdim);
+  }
+
+  //withPointDim
+  BoxN withPointDim(int pdim) const {
+    auto ret = *this;
+    ret.setPointDim(pdim);
+    return ret;
+  }
+
+  //withoutBack
+  BoxN withoutBack() const {
+    return BoxN(p1.withoutBack(), p2.withoutBack());
+  }
+
   //return an invalid box
-  static BoxN invalid(int pdim) {
-    T L = NumericLimits<T>::lowest();
-    T H = NumericLimits<T>::highest();
-    return BoxN(Point(pdim,H, H, H, H, H), Point(pdim, L, L, L, L, L));
+  static BoxN invalid() {
+    return BoxN();
   }
 
   //valid
@@ -296,14 +122,24 @@ public:
     return p2 - p1;
   }
 
-  //max size
+  //maxsize
   T maxsize() const {
     return size().maxsize();
   }
 
-  //min size
+  //maxsize_index
+  int maxsize_index() const {
+    auto s = size(); return(int)std::distance(s.coords.begin(), std::max_element(s.coords.begin(), s.coords.end()));
+  }
+
+  //minsize
   T minsize() const {
     return size().minsize();
+  }
+
+  //minsize_index
+  int minsize_index() const {
+    auto s = size(); return (int)std::distance(s.coords.begin(), std::min_element(s.coords.begin(), s.coords.end()));
   }
 
   //middle
@@ -313,13 +149,23 @@ public:
 
   //addPoint
   void addPoint(Point p) {
+    if (!this->valid())
+    {
+      this->p1 = p;
+      this->p2 = p;
+      return;
+    }
+    
+    auto pdim = std::max(p.getPointDim(), this->getPointDim());
+    p.setPointDim(pdim);
+    this->setPointDim(pdim);
     this->p1 = Point::min(this->p1, p);
     this->p2 = Point::max(this->p2, p);
   }
 
   //toBox3
-  Box3<T> toBox3() const {
-    return Box3<T>(p1.toPoint3(), p2.toPoint3());
+  BoxN toBox3() const {
+    return this->withPointDim(3);
   }
 
   //test if a point is inside the box
@@ -348,25 +194,43 @@ public:
   }
 
   //get intersection of two boxes
-  BoxN getIntersection(const BoxN& b) const {
-    const BoxN& a = *this;
+  BoxN getIntersection(BoxN b) const {
+    auto a = *this;
     if (!a.valid()) return a;
     if (!b.valid()) return b;
-    BoxN ret;
-    ret.p1 = Point::max(a.p1, b.p1);
-    ret.p2 = Point::min(a.p2, b.p2);
-    return ret;
+
+    //must have the same dimension
+#if 1
+    VisusAssert(a.getPointDim() == b.getPointDim());
+#else
+    auto pdim = std::max(a.getPointDim(),b.getPointDim());
+    a.setPointDim(pdim);
+    b.setPointDim(pdim);
+#endif
+
+    return BoxN(
+      Point::max(a.p1, b.p1), 
+      Point::min(a.p2, b.p2));
   }
 
   //get union of two boxes
-  BoxN getUnion(const BoxN& b) const {
-    const BoxN& a = *this;
+  BoxN getUnion(BoxN b) const {
+    auto a = *this;
     if (!a.valid()) return b;
     if (!b.valid()) return a;
-    BoxN ret;
-    ret.p1 = Point::min(a.p1, b.p1);
-    ret.p2 = Point::max(a.p2, b.p2);
-    return ret;
+
+    //must have the same dimension
+#if 1
+    VisusAssert(a.getPointDim() == b.getPointDim());
+#else
+    auto pdim = std::max(a.getPointDim(),b.getPointDim());
+    a.setPointDim(pdim);
+    b.setPointDim(pdim);
+#endif
+
+    return BoxN(
+      Point::min(a.p1, b.p1),
+      Point::max(a.p2, b.p2));
   }
 
   //containsBox
@@ -384,7 +248,9 @@ public:
 
   //getSlab
   BoxN getSlab(int axis, T v1, T v2) const {
-    return BoxN(p1.withValueOnAxis(axis, v1), p2.withValueOnAxis(axis, v2));
+    auto p1 = this->p1; p1[axis] = v1;
+    auto p2 = this->p2; p2[axis] = v2;
+    return BoxN(p1,p2);
   }
 
   BoxN getXSlab(T x1, T x2) const { return getSlab(0, x1, x2); }
@@ -396,36 +262,107 @@ public:
     return BoxN(p1 + vt, p2 + vt);
   }
 
+  //getPoints
+  std::vector<Point> getPoints() const {
+    auto pdim = getPointDim();
+    if (pdim == 0)
+      return std::vector<Point>();
+
+    if (pdim == 1)
+      return std::vector<Point>({ this->p1,this->p2 });
+
+    //note: the order is important for 2d and 3d
+    if (pdim == 2)
+      return std::vector<Point>({ Point(p1[0], p1[1]), Point(p2[0], p1[1]), Point(p2[0], p2[1]), Point(p1[0], p2[1])});
+      
+    //recursive
+    std::vector<Point> ret;
+
+    auto prev_points = withoutBack().getPoints();
+    for (auto point : prev_points)
+      ret.push_back(Point(point, this->p1.back()));
+
+    for (auto point : prev_points)
+      ret.push_back(Point(point, this->p2.back()));
+
+    return ret;
+  }
+
+  //getAlphaPoint
+  Point getAlphaPoint(Point alpha) const {
+    return this->p1 + alpha.innerMultiply(this->p2-this->p1);
+  }
+
+  //return the planes (pointing outside)
+  std::vector<Plane> getPlanes() const
+  {
+    int pdim = getPointDim();
+    std::vector<Plane> ret;
+    for (int I = 0; I < pdim; I++)
+    {
+      std::vector<double> h1(pdim + 1, 0.0);  h1[I] = (double)-1; h1.back() = (double)+this->p1[I]; ret.push_back(Plane(h1));
+      std::vector<double> h2(pdim + 1, 0.0);  h2[I] = (double)+1; h2.back() = (double)-this->p2[I]; ret.push_back(Plane(h2));
+    }
+    return ret;
+  }
+
+  //castTo
+  template <typename Other>
+  Other castTo() const {
+    return Other(
+                 this->p1.template castTo<typename Other::Point>(),
+                 this->p2.template castTo<typename Other::Point>());
+  }
+
 public:
 
   //construct from string
-  static BoxN parseFromString(String value)
+  static BoxN parseFromString(String value,bool bInterleave=true)
   {
     std::istringstream parser(value);
-    std::vector<T> v1, v2;
-    T value1, value2;
-    while (parser >> value1 >> value2)
-    {
-      v1.push_back(value1);
-      v2.push_back(value2);
-    }
 
-    return BoxN(Point(v1),Point(v2));
+    //x1 x2   y1 y2   z1 z2
+    if (bInterleave)
+    {
+      std::vector<T> v1, v2; T value1, value2;
+      while (parser >> value1 >> value2) {
+        v1.push_back(value1); v2.push_back(value2);
+      }
+      return BoxN(Point(v1), Point(v2));
+    }
+    //x1 y1 z1   x2 y2 z2
+    else
+    {
+      std::vector<T> v;  T parsed;
+      while (parser >> parsed)
+        v.push_back(parsed);
+      auto N = v.size() / 2;
+      VisusAssert(N * 2 == v.size());
+      return BoxN(
+        Point(std::vector<T>(v.begin(), v.begin() + N)),
+        Point(std::vector<T>(v.begin() + N, v.end())));
+    }
   }
 
   //construct to string
-  String toString() const  
+  String toString(bool bInterleave=true) const  
   {
     int pdim = getPointDim();
     if (!pdim) return "";
-
-    std::ostringstream out;
-    if (pdim >= 1) out <<        p1[0] << " " << p2[0];
-    if (pdim >= 2) out << " " << p1[1] << " " << p2[1];
-    if (pdim >= 3) out << " " << p1[2] << " " << p2[2];
-    if (pdim >= 4) out << " " << p1[3] << " " << p2[3];
-    if (pdim >= 5) out << " " << p1[4] << " " << p2[4];
-    return out.str();
+    
+    //x1 x2   y1 y2   z1 z2
+    if (bInterleave)
+    {
+      std::ostringstream out;
+      for (int I = 0; I < pdim; I++)
+        out << (I ? " " : "") << p1[I] << " " << p2[I];
+      return out.str();
+    }
+    //x1 y1 z1   x2 y2 z2
+    else
+    {
+      return StringUtils::format()<<p1.toString() << " " << p2.toString();
+    }
   }
 
   //toOldFormatString 
@@ -433,17 +370,15 @@ public:
   {
     auto tmp = (*this);
     tmp.p2 = tmp.p2 - Point::one(getPointDim());
-    return tmp.toString();
+    return tmp.toString(/*bInterleave*/true);
   }
 
   //parseFromOldFormatString
   static BoxN parseFromOldFormatString(int pdim,String src)
   {
-    auto tmp = BoxN::parseFromString(src);
-    tmp.p1.setPointDim(pdim);
-    tmp.p2.setPointDim(pdim);
-    tmp.p2 += Point::one(pdim);
-    return tmp;
+    auto ret = BoxN::parseFromString(src).withPointDim(pdim);
+    ret.p2 += Point::one(pdim);
+    return ret;
   }
 
   //writeToObjectStream`
@@ -460,14 +395,11 @@ public:
     p2 = Point::parseFromString(istream.read("p2"));
   }
 
+
 }; //end class BoxN
 
 typedef BoxN<double> BoxNd;
-typedef BoxN<Int64>  BoxNi;
-
-//backward compatible
-typedef BoxNi NdBox;
-
+typedef BoxN<Int64 > BoxNi;
 
 } //namespace Visus
 

@@ -346,7 +346,7 @@ namespace Utils
 
   //notoverflow_add, result=a+b overflow happens when (a+b)>MAX ---> b>MAX-a
   template <typename coord_t>
-  inline bool notoverflow_add(coord_t& result, const coord_t& a, const coord_t& b)
+  inline bool safe_add(coord_t& result, const coord_t& a, const coord_t& b)
   {
     if (!((a > 0 && b > 0) || (a < 0 && b < 0))) { result = a + b; return true; }
     if ((b > 0 ? +b : -b) > (NumericLimits<coord_t>::highest() - (a > 0 ? +a : -a))) return false;
@@ -356,13 +356,13 @@ namespace Utils
 
   //notoverflow_sub (result=a-b)
   template <typename coord_t>
-  inline bool notoverflow_sub(coord_t& result, const coord_t& a, const coord_t& b) {
-    return notoverflow_add(result, a, -b);
+  inline bool safe_sub(coord_t& result, const coord_t& a, const coord_t& b) {
+    return safe_add(result, a, -b);
   }
 
   //notoverflow_mul result=a*b overflow happens when (a*b)>MAX ----> b>MAX/a
   template <typename coord_t>
-  inline bool notoverflow_mul(coord_t& result, const coord_t& a, const coord_t& b)
+  inline bool safe_mul(coord_t& result, const coord_t& a, const coord_t& b)
   {
     if (!a || !b) { result = a*b; return true; }
     if ((b > 0 ? +b : -b) > (NumericLimits<coord_t>::highest() / (a > 0 ? +a : -a))) return false;
@@ -372,7 +372,7 @@ namespace Utils
 
   //notoverflow_lshift, result=a<<shift overflow happens when (a<<shift)> MAX ----> a > MAX>>shift
   template <typename coord_t>
-  inline bool notoverflow_lshift(coord_t& result, const coord_t& a, const coord_t& shift)
+  inline bool safe_lshift(coord_t& result, const coord_t& a, const coord_t& shift)
   {
     VisusAssert(shift >= 0);
     if (!a) { result = 0; return true; }
@@ -429,10 +429,6 @@ public:
 };
 
 #endif
-
-template <typename D, typename S>
-D convertTo(const S& value);
-
 
 } //namespace Visus
 

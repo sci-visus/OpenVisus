@@ -53,7 +53,7 @@ public:
 
   VISUS_CLASS(Rectangle2i)
 
-  int x=0, y = 0, width = 0, height = 0;
+  Int64 x=0, y = 0, width = 0, height = 0;
 
   //constructor
   Rectangle2i() {
@@ -66,10 +66,10 @@ public:
   //constructor
   Rectangle2i(Point2i p1, Point2i p2)
   {
-    this->x = p1.x;
-    this->y = p1.y;
-    this->width = p2.x - p1.x;
-    this->height = p2.y - p1.y;
+    this->x = p1[0];
+    this->y = p1[1];
+    this->width = p2[0] - p1[0];
+    this->height = p2[1] - p1[1];
   }
 
   //constructor from string
@@ -82,8 +82,8 @@ public:
   {
     if (!this->valid()) return other;
     if (!other.valid()) return *this;
-    Point2i p1(std::min(this->p1().x, other.p1().x), std::min(this->p1().y, other.p1().y));
-    Point2i p2(std::max(this->p2().x, other.p2().x), std::max(this->p2().y, other.p2().y));
+    Point2i p1(std::min(this->p1()[0], other.p1()[0]), std::min(this->p1()[1], other.p1()[1]));
+    Point2i p2(std::max(this->p2()[0], other.p2()[0]), std::max(this->p2()[1], other.p2()[1]));
     return Rectangle2i(p1, p2);
   }
 
@@ -92,8 +92,8 @@ public:
   {
     if (!this->valid()) return *this;
     if (!other.valid()) return other;
-    Point2i p1(std::max(this->p1().x, other.p1().x), std::max(this->p1().y, other.p1().y));
-    Point2i p2(std::min(this->p2().x, other.p2().x), std::min(this->p2().y, other.p2().y));
+    Point2i p1(std::max(this->p1()[0], other.p1()[0]), std::max(this->p1()[1], other.p1()[1]));
+    Point2i p2(std::min(this->p2()[0], other.p2()[0]), std::min(this->p2()[1], other.p2()[1]));
     return Rectangle2i(p1, p2);
   }
 
@@ -111,7 +111,7 @@ public:
 
   //containsPoint
   bool containsPoint(Point2i p) const {
-    return valid() && p.x >= x && p.x < (x + width) && p.y >= y && p.y < (y + height);
+    return valid() && p[0] >= x && p[0] < (x + width) && p[1] >= y && p[1] < (y + height);
   }
 
   //p1
@@ -192,10 +192,10 @@ public:
   //constructor
   Rectangle2d(Point2d p1, Point2d p2)
   {
-    x = std::min(p1.x, p2.x);
-    y = std::min(p1.y, p2.y);
-    width = fabs(p2.x - p1.x);
-    height = fabs(p2.y - p1.y);
+    x = std::min(p1[0], p2[0]);
+    y = std::min(p1[1], p2[1]);
+    width = fabs(p2[0] - p1[0]);
+    height = fabs(p2[1] - p1[1]);
   }
 
   //constructor from string
@@ -210,7 +210,7 @@ public:
 
   //containsPoint
   bool containsPoint(Point2d p) const {
-    return valid() && p.x >= x && p.x < (x + width) && p.y >= y && p.y < (y + height);
+    return valid() && p[0] >= x && p[0] < (x + width) && p[1] >= y && p[1] < (y + height);
   }
 
   //p1
@@ -240,7 +240,7 @@ public:
 
   //translate
   Rectangle2d translate(Point2i vt) const {
-    return translate(vt.x, vt.y);
+    return translate((double)vt[0], (double)vt[1]);
   }
 
   //scale
@@ -250,7 +250,7 @@ public:
 
   //scale
   Rectangle2d scale(const Point2d vs) const {
-    return scale(vs.x, vs.y);
+    return scale(vs[0], vs[1]);
   }
 
   //operator==

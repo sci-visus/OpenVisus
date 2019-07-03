@@ -474,9 +474,9 @@ namespace GuiFactory
     void setPoint(const Point3d& value,int precision=-1) {
 
       Point3d old_value=getPoint();
-      widgets.text_box[0]->setText(StringUtils::convertDoubleToString(value.x,precision).c_str());
-      widgets.text_box[1]->setText(StringUtils::convertDoubleToString(value.y,precision).c_str());
-      widgets.text_box[2]->setText(StringUtils::convertDoubleToString(value.z,precision).c_str());
+      widgets.text_box[0]->setText(StringUtils::convertDoubleToString(value[0],precision).c_str());
+      widgets.text_box[1]->setText(StringUtils::convertDoubleToString(value[1],precision).c_str());
+      widgets.text_box[2]->setText(StringUtils::convertDoubleToString(value[2],precision).c_str());
       auto new_value=getPoint();
       if (new_value!=old_value)
         emit valueChanged(new_value);
@@ -485,9 +485,9 @@ namespace GuiFactory
     //getPoint
     Point3d getPoint() const {
       Point3d ret;
-      ret.x=cdouble(widgets.text_box[0]->text());
-      ret.y=cdouble(widgets.text_box[1]->text());
-      ret.z=cdouble(widgets.text_box[2]->text());
+      ret[0]=cdouble(widgets.text_box[0]->text());
+      ret[1]=cdouble(widgets.text_box[1]->text());
+      ret[2]=cdouble(widgets.text_box[2]->text());
       return ret;
     }
 
@@ -526,8 +526,10 @@ namespace GuiFactory
     Widgets widgets;
 
     //constructor
-    Box3dView(Box3d value=Box3d())
+    Box3dView(BoxNd value=BoxNd(3))
     {
+      value.setPointDim(3);
+
       QVBoxLayout* layout=new QVBoxLayout();
 
       {
@@ -569,33 +571,35 @@ namespace GuiFactory
     }
 
     //setValue
-    void setValue(const Box3d& value,bool bForce=false) {
+    void setValue(BoxNd value,bool bForce=false) {
 
-      Box3d old_value=getValue();
-      widgets.p1->setPoint(value.p1);
-      widgets.p2->setPoint(value.p2);
-      Box3d new_value=getValue();
+      value.setPointDim(3);
+      auto old_value=getValue();
+      widgets.p1->setPoint(value.p1.toPoint3());
+      widgets.p2->setPoint(value.p2.toPoint3());
+      auto new_value=getValue();
 
       if (bForce || old_value!=new_value)
         emit valueChanged(new_value);
     }
 
     //getValue
-    Box3d getValue() const{
-      return Box3d(widgets.p1->getPoint(),widgets.p2->getPoint());
+    BoxNd getValue() const{
+      return BoxNd(widgets.p1->getPoint(),widgets.p2->getPoint());
     }
 
   signals:
 
     //valueChanged
-    void valueChanged(const Box3d& value);
+    void valueChanged(const BoxNd& value);
 
   };
 
 
   //CreateBox3dView
-  inline Box3dView* CreateBox3dView(Box3d value,std::function<void(Box3d)> callback=std::function<void(Box3d)>())
+  inline Box3dView* CreateBox3dView(BoxNd value,std::function<void(BoxNd)> callback=std::function<void(BoxNd)>())
   {
+    value.setPointDim(3);
     auto ret=new Box3dView(value);
     if (callback)
       Box3dView::connect(ret,&Box3dView::valueChanged,callback);
@@ -622,8 +626,9 @@ namespace GuiFactory
     Widgets widgets;
 
     //constructor
-    MatrixView(Matrix value=Matrix::identity())
+    MatrixView(Matrix value= Matrix::identity(4))
     {
+      VisusAssert(value.getSpaceDim() == 4);
       auto layout = new QVBoxLayout();
 
       QGridLayout* row = new QGridLayout();
@@ -643,7 +648,7 @@ namespace GuiFactory
         }));
 
         row->addWidget(widgets.btIdentity = GuiFactory::CreateButton("Identity",[this](bool) {
-          setMatrix(Matrix::identity(),true); 
+          setMatrix(Matrix::identity(4),true); 
         }));
         layout->addLayout(row);
       }
@@ -688,7 +693,7 @@ namespace GuiFactory
 
     //getMatrix
     Matrix getMatrix() const {
-      Matrix ret;
+      auto ret = Matrix::identity(4);
       for (int R = 0; R < 4; R++)
         for (int C = 0; C < 4; C++)
           ret(R, C) = cdouble(widgets.text_box[R][C]->text());
