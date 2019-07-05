@@ -5,6 +5,7 @@ set TARGET_FILENAME=${TARGET_FILENAME}
 
 set this_dir=%~dp0
 set PATH=%this_dir%\bin
+set PYTHONPATH=%this_dir%
 
 if NOT "%PYTHON_EXECUTABLE%" == "" (
 	set PATH=%PYTHON_EXECUTABLE%\..;%PATH%
@@ -20,8 +21,8 @@ if "%VISUS_GUI%" == "1" (
 	)
 )
 
-
 if "%VISUS_GUI%" == "1" (
+	set PATH=%Qt5_DIR%\bin;%PATH%
 	set QT_PLUGIN_PATH=%Qt5_DIR%\plugins
 )
 
