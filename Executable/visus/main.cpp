@@ -1500,7 +1500,7 @@ public:
     std::ostringstream out;
     out << args[0]
       << " <filename> [--query-dim value]" << std::endl
-      << "Example: " << args[0] << " C:/free/visus_dataset/2kbit1/zip/hzorder/visus.idx --query-dim 512";
+      << "Example: " << args[0] << " E:/google_sci/visus_dataset/2kbit1/zip/hzorder/visus.idx --query-dim 512";
     return out.str();
   }
   

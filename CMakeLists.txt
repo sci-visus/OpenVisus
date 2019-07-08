@@ -18,6 +18,12 @@ if (NOT (${CMAKE_VERSION} VERSION_LESS "3.13"))
   cmake_policy(SET CMP0078 OLD) #controls names of SWIG targets
 endif()
 
+# see https://cmake.org/cmake/help/git-stage/policy/CMP0086.html
+if ((${CMAKE_VERSION} GREATER_EQUAL  "3.14"))
+  cmake_policy(SET CMP0086 OLD)
+endif()
+
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)  
 
 PROJECT(OpenVisus) 
