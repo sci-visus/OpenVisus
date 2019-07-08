@@ -784,17 +784,13 @@ typedef  Point4<double> Point4d;
 template <typename __T__>
 class PointN
 {
+
+  int pdim = 0;
+  std::array<__T__, 5> coords = { 0,0,0,0,0 };
+
 public:
 
   typedef __T__ T;
-
-  //_____________________________________________________
-  struct Compare
-  {
-    bool operator()(const PointN& a, const  PointN& b) const {
-      return a.coords < b.coords;
-    }
-  };
 
   //_____________________________________________________
   class ForEachPoint
@@ -848,73 +844,77 @@ public:
     }
   };
 
-  std::vector<T> coords;
+
+  typedef typename std::array<T, 5>::iterator       iterator;
+  typedef typename std::array<T, 5>::const_iterator const_iterator;
 
   //default constructor
   PointN() {
   }
 
   //constructor
-  explicit PointN(const std::vector<T>& coords_)
-    : coords(coords_) {
+  explicit PointN(const std::vector<T>& v) {
+    for (auto it : v)
+      push_back(it);
   }
 
   //constructor
-  explicit PointN(int pdim)
-    : coords(std::vector<T>(pdim, T(0))) {
+  explicit PointN(int pdim_) : pdim(pdim_) {
   }
 
   //constructor
-  explicit PointN(const PointN& left, T right) :
-    coords(left.coords) {
-    this->coords.push_back(right);
+  explicit PointN(const PointN& left, T right) : PointN(left) {
+    push_back(right);
   }
 
   //constructor
-  explicit PointN(T a, T b)
-    : coords({ a,b }) {
+  explicit PointN(T a, T b) {
+    push_back(a);
+    push_back(b);
   }
 
   //constructor
-  explicit PointN(T a, T b, T c)
-    : coords({ a,b,c }) {
+  explicit PointN(T a, T b, T c) : PointN(a,b) {
+    push_back(c);
   }
 
   //constructor
-  explicit PointN(T a, T b, T c,T d)
-    : coords({ a,b,c,d }) {
+  explicit PointN(T a, T b, T c,T d) : PointN(a,b,c) {
+    push_back(d);
   }
 
   //constructor
-  explicit PointN(T a, T b, T c, T d,T e)
-    : coords({ a,b,c,d,e }) {
+  explicit PointN(T a, T b, T c, T d,T e) : PointN(a,b,c,d) {
+    push_back(e);
   }
 
   //constructor
-  PointN(Point2<T> p) : PointN(p.toVector()) {
+  PointN(Point2<T> p) : PointN(p.x,p.y) {
   }
 
   //constructor
-  PointN(Point3<T> p) : PointN(p.toVector()) {
+  PointN(Point3<T> p) : PointN(p.x, p.y,p.z) {
   }
 
   //constructor
-  PointN(Point4<T> p) : PointN(p.toVector()) {
+  PointN(Point4<T> p) : PointN(p.x, p.y, p.z,p.w) {
   }
 
   //getPointDim
   int getPointDim() const {
-    return (int)coords.size();
+    return pdim;
   }
 
   //push_back
   void push_back(T value) {
-    this->coords.push_back(value);
+    VisusAssert(pdim < 5);
+    coords[pdim++] = value;
   }
 
   //pop_back
   void pop_back() {
-    this->coords.pop_back();
+    VisusAssert(pdim > 0);
+    coords[pdim--] = 0;
   }
 
   //withoutBack
@@ -926,15 +926,51 @@ public:
 
   //back
   T back() const {
-    return this->coords.back();
+    VisusAssert(pdim > 0);
+    return coords[pdim - 1];
   }
 
   //back
 #if !SWIG
   T& back() {
-    return this->coords.back();
+    VisusAssert(pdim > 0);
+    return coords[pdim - 1];
   }
 #endif
+
+  //begin
+  const_iterator begin() const {
+    return coords.begin();
+  }
+
+  //begin
+  const_iterator end() const {
+    return coords.begin() + pdim;
+  }
+
+  //setPointDim
+  void setPointDim(int new_pdim, T default_value = 0.0) {
+    for (int I = pdim; I < new_pdim; I++)
+      get(I) = default_value;
+    pdim = new_pdim;
+  }
+
+  //get
+  T& get(int i) {
+    VisusAssert(i >= 0 && i < pdim);
+    return coords[i];
+  }
+
+  //const
+  const T& get(int i) const {
+    VisusAssert(i >= 0 && i < pdim);
+    return coords[i];
+  }
+
+  //a!=b
+  bool operator!=(const PointN& other) const {
+    return !(operator==(other));
+  }
 
   //dropHomogeneousCoordinate
   PointN dropHomogeneousCoordinate() const {
@@ -944,16 +980,11 @@ public:
   //castTo
   template <typename Other>
   Other castTo() const {
-    auto pdim = (int)coords.size();
+    auto pdim = getPointDim();
     auto ret = Other(pdim);
     for (int I = 0; I < pdim; I++)
       ret[I] = (typename Other::T)get(I);
     return ret;
-  }
-
-  //setPointDim
-  void setPointDim(int new_pdim, T default_value = 0.0) {
-    this->coords.resize(new_pdim, default_value);
   }
 
   //constructor
@@ -962,23 +993,13 @@ public:
   }
 
   //toVector
-  const std::vector<T>& toVector() const {
-    return coords;
+  std::vector<T> toVector() const {
+    return std::vector<T>(begin(),end());
   }
 
   //test if numers are ok
   bool valid() const {
     return checkAll<ConditionValidNumber>(*this);
-  }
-
-  //get
-  T& get(int i) {
-    return coords[i];
-  }
-
-  //const
-  const T& get(int i) const {
-    return coords[i];
   }
 
   //operator[]
@@ -1032,16 +1053,6 @@ public:
     return ((*this) = (*this) * s);
   }
 
-  //a==b
-  bool operator==(const PointN& other) const {
-    return coords == other.coords;;
-  }
-
-  //a!=b
-  bool operator!=(const PointN& other) const {
-    return coords != other.coords;;
-  }
-
   //min
   static PointN min(const PointN& a, const PointN& b) {
     return applyOperation<MinOp>(a, b);
@@ -1085,22 +1096,30 @@ public:
     return applyOperation<InvOp>(*this);  
   }
 
-  //minsize
-  T minsize() const {
-    return Utils::min(this->coords);
+#if !SWIG
+
+  //min_element
+  const_iterator min_element() const {
+    return std::min_element(begin(), end());
   }
 
-  //maxsize
-  T maxsize() const {
-    return Utils::max(this->coords);
+  //max_element
+  const_iterator max_element() const {
+    return std::max_element(begin(), end());
   }
 
+#endif
+
+  bool checkAllEqual       (const PointN& a, const PointN& b) const { return checkAll< ConditionE  >(a, b); }
   bool checkAllLess        (const PointN& a, const PointN& b) const { return checkAll< ConditionL  >(a, b); }
   bool checkAllLessEqual   (const PointN& a, const PointN& b) const { return checkAll< ConditionLE >(a, b); }
   bool checkAllGreater     (const PointN& a, const PointN& b) const { return checkAll< ConditionG  >(a, b); }
   bool checkAllGreaterEqual(const PointN& a, const PointN& b) const { return checkAll< ConditionGE >(a, b); }
 
   //operator (<,<=,>,>=) (NOTE: it's different from lexigraphical order)
+
+  bool operator==(const PointN& b) const { return (this->pdim == b.pdim) && checkAllEqual(*this, b);}
+
   bool operator< (const PointN& b) const { return checkAllLess        (*this, b); }
   bool operator<=(const PointN& b) const { return checkAllLessEqual   (*this, b); }
   bool operator> (const PointN& b) const { return checkAllGreater     (*this, b); }
@@ -1110,7 +1129,13 @@ public:
 
   //dot product
   T dot(const PointN& other) const {
-    return accumulateOperation<AddOp>(T(0), this->innerMultiply(other));
+    VisusAssert(pdim == other.pdim);
+    return
+      (pdim >= 1 ? (coords[0] * other.coords[0]) : 0) +
+      (pdim >= 2 ? (coords[1] * other.coords[1]) : 0) +
+      (pdim >= 3 ? (coords[2] * other.coords[2]) : 0) +
+      (pdim >= 4 ? (coords[3] * other.coords[3]) : 0) +
+      (pdim >= 5 ? (coords[4] * other.coords[4]) : 0);
   }
 
   //dotProduct
@@ -1121,7 +1146,7 @@ public:
   //stride 
   PointN stride() const
   {
-    auto pdim = (int)coords.size();
+    auto pdim = getPointDim();
     auto ret = PointN(pdim);
     ret[0] = 1;
     for (int I = 0; I < pdim - 1; I++)
@@ -1150,11 +1175,16 @@ public:
 #ifdef VISUS_DEBUG
     T __acc__ = 1;
     for (int I = 0; I < pdim; I++)
-      if (!Utils::safe_mul(__acc__, __acc__, coords[I]))
+      if (!Utils::safe_mul(__acc__, __acc__, get(I)))
         VisusAssert(false);
 #endif
 
-    return accumulateOperation<MulOp>(1, *this);
+    return
+      (pdim >= 1 ? coords[0] : 1) *
+      (pdim >= 2 ? coords[1] : 1) *
+      (pdim >= 3 ? coords[2] : 1) *
+      (pdim >= 4 ? coords[3] : 1) *
+      (pdim >= 5 ? coords[4] : 1);
   }
 
   //innerMod
@@ -1200,23 +1230,23 @@ public:
 
   //toPoint2
   Point2<T> toPoint2() const {
-    auto coords = this->coords;
-    coords.resize(2);
-    return Point2<T>(coords[0], coords[1]);
+    auto v = toVector();
+    v.resize(2);
+    return Point2<T>(v[0], v[1]);
   }
 
   //toPoint3
   Point3<T> toPoint3() const {
-    auto coords = this->coords;
-    coords.resize(3);
-    return Point3<T>(coords[0], coords[1], coords[2]);
+    auto v = toVector();
+    v.resize(3);
+    return Point3<T>(v[0], v[1], v[2]);
   }
 
   //toPoint4
   Point4<T> toPoint4() const {
-    auto coords = this->coords;
-    coords.resize(4);
-    return Point4<T>(coords[0], coords[1], coords[2],coords[3]);
+    auto v = toVector();
+    v.resize(4);
+    return Point4<T>(v[0], v[1], v[2],v[3]);
   }
 
 public:
@@ -1245,7 +1275,7 @@ public:
 
   //convert to string
   String toString(String sep = " ") const {
-    auto pdim = (int)coords.size();
+    auto pdim = getPointDim();
     std::ostringstream out;
     for (int I = 0; I < pdim; I++)
       out << (I ? sep : "") << get(I);
@@ -1279,6 +1309,7 @@ private:
   struct LShiftOp { static T compute(T a, T b) { return a << b; } };
   struct RShiftOp { static T compute(T a, T b) { return a >> b; } };
 
+  struct ConditionE  { static bool isTrue(T a, T b) { return a == b; } };
   struct ConditionL  { static bool isTrue(T a, T b) { return a <  b; } };
   struct ConditionLE { static bool isTrue(T a, T b) { return a <= b; } };
   struct ConditionG  { static bool isTrue(T a, T b) { return a >  b; } };
@@ -1312,42 +1343,26 @@ private:
   template <typename Operation>
   static PointN applyOperation(const PointN& a)
   {
-    auto pdim = a.getPointDim();
-    PointN ret(pdim);
-    switch (pdim)
-    {
-      case 5: ret[4] = Operation::compute(a[4]); /*following below*/
-      case 4: ret[3] = Operation::compute(a[3]); /*following below*/
-      case 3: ret[2] = Operation::compute(a[2]); /*following below*/
-      case 2: ret[1] = Operation::compute(a[1]); /*following below*/
-      case 1: ret[0] = Operation::compute(a[0]); /*following below*/
-      case 0: return ret;
-      default:
-        for (int I = 0; I < pdim; I++)
-          ret[I] = Operation::compute(a[I]);
-        return ret;
-    }
+    PointN ret(a.getPointDim());
+    ret.coords[0] = Operation::compute(a.coords[0]);
+    ret.coords[1] = Operation::compute(a.coords[1]);
+    ret.coords[2] = Operation::compute(a.coords[2]);
+    ret.coords[3] = Operation::compute(a.coords[3]);
+    ret.coords[4] = Operation::compute(a.coords[4]);
+    return ret;
   }
 
   //applyOperation
   template <typename Operation>
   static PointN applyOperation(const PointN& a, Operation op)
   {
-    auto pdim = a.getPointDim();
-    PointN ret(pdim);
-    switch (pdim)
-    {
-    case 5: ret[4] = op.compute(a[4]); /*following below*/
-    case 4: ret[3] = op.compute(a[3]); /*following below*/
-    case 3: ret[2] = op.compute(a[2]); /*following below*/
-    case 2: ret[1] = op.compute(a[1]); /*following below*/
-    case 1: ret[0] = op.compute(a[0]); /*following below*/
-    case 0: return ret;
-    default:
-      for (int I = 0; I < pdim; I++)
-        ret[I] = op.compute(a[I]);
-      return ret;
-    }
+    PointN ret(a.getPointDim());
+    ret.coords[0] = op.compute(a.coords[0]);
+    ret.coords[1] = op.compute(a.coords[1]);
+    ret.coords[2] = op.compute(a.coords[2]);
+    ret.coords[3] = op.compute(a.coords[3]);
+    ret.coords[4] = op.compute(a.coords[4]);
+    return ret;
   }
 
   //applyOperation
@@ -1357,78 +1372,37 @@ private:
     auto pdim = a.getPointDim();
     VisusAssert(pdim == b.getPointDim());
     PointN ret(pdim);
-    switch (pdim)
-    {
-    case 5: ret[4] = Operation::compute(a[4], b[4]); /*following below*/
-    case 4: ret[3] = Operation::compute(a[3], b[3]); /*following below*/
-    case 3: ret[2] = Operation::compute(a[2], b[2]); /*following below*/
-    case 2: ret[1] = Operation::compute(a[1], b[1]); /*following below*/
-    case 1: ret[0] = Operation::compute(a[0], b[0]); /*following below*/
-    case 0: return ret;
-    default:
-      for (int I = 0; I < pdim; I++)
-        ret[I] = Operation::compute(a[I], b[I]);
-      return ret;
-    }
+    ret.coords[0] = Operation::compute(a.coords[0], b.coords[0]);
+    ret.coords[1] = Operation::compute(a.coords[1], b.coords[1]);
+    ret.coords[2] = Operation::compute(a.coords[2], b.coords[2]);
+    ret.coords[3] = Operation::compute(a.coords[3], b.coords[3]);
+    ret.coords[4] = Operation::compute(a.coords[4], b.coords[4]);
+    return ret;
   }
 
   //checkAll
   template <typename Condition>
   static bool checkAll(const PointN& a) {
     auto pdim = a.getPointDim();
-    switch (pdim)
-    {
-    case 5: if (!Condition::isTrue(a[4])) return false; /*following below*/
-    case 4: if (!Condition::isTrue(a[3])) return false; /*following below*/
-    case 3: if (!Condition::isTrue(a[2])) return false; /*following below*/
-    case 2: if (!Condition::isTrue(a[1])) return false; /*following below*/
-    case 1: if (!Condition::isTrue(a[0])) return false; /*following below*/
-    case 0: return true;
-    default:
-      for (int I = 0; I < pdim; I++)
-        if (!Condition::isTrue(a[I])) return false;
-      return true;
-    }
+    return
+      (pdim < 1 || (Condition::isTrue(a.coords[0]) &&
+      (pdim < 2 || (Condition::isTrue(a.coords[1]) &&
+      (pdim < 3 || (Condition::isTrue(a.coords[2]) &&
+      (pdim < 4 || (Condition::isTrue(a.coords[3]) &&
+      (pdim < 5 || (Condition::isTrue(a.coords[4])))))))))));
   }
 
   //checkAll
   template <typename Condition>
   static bool checkAll(const PointN& a, const PointN& b) {
     auto pdim = a.getPointDim();
-    switch (pdim)
-    {
-    case 5: if (!Condition::isTrue(a[4], b[4])) return false; /*following below*/
-    case 4: if (!Condition::isTrue(a[3], b[3])) return false; /*following below*/
-    case 3: if (!Condition::isTrue(a[2], b[2])) return false; /*following below*/
-    case 2: if (!Condition::isTrue(a[1], b[1])) return false; /*following below*/
-    case 1: if (!Condition::isTrue(a[0], b[0])) return false; /*following below*/
-    case 0: return true;
-    default:
-      for (int I = 0; I < pdim; I++)
-        if (!Condition::isTrue(a[I], b[I])) return false;
-      return true;
-    }
-  }
-
-  //accumulateOperation
-  template <typename AccumulateOp>
-  static T accumulateOperation(T initial_value, const PointN& a)
-  {
-    T ret = initial_value;
-    auto pdim = a.getPointDim();
-    switch (pdim)
-    {
-    case 5: ret = AccumulateOp::compute(ret, a[0]); ret = AccumulateOp::compute(ret, a[1]); ret = AccumulateOp::compute(ret, a[2]); ret = AccumulateOp::compute(ret, a[3]); ret = AccumulateOp::compute(ret, a[4]); return ret;
-    case 4: ret = AccumulateOp::compute(ret, a[0]); ret = AccumulateOp::compute(ret, a[1]); ret = AccumulateOp::compute(ret, a[2]); ret = AccumulateOp::compute(ret, a[3]); return ret;
-    case 3: ret = AccumulateOp::compute(ret, a[0]); ret = AccumulateOp::compute(ret, a[1]); ret = AccumulateOp::compute(ret, a[2]); return ret;
-    case 2: ret = AccumulateOp::compute(ret, a[0]); ret = AccumulateOp::compute(ret, a[1]); return ret;
-    case 1: ret = AccumulateOp::compute(ret, a[0]); return ret;
-    case 0: return ret;
-    default:
-      for (int I = 0; I < pdim; I++)
-        ret = AccumulateOp::compute(ret, a[I]);
-      return ret;
-    }
+    VisusAssert(pdim == b.getPointDim());
+    return
+      (pdim < 1 || (Condition::isTrue(a.coords[0], b.coords[0]) &&
+      (pdim < 2 || (Condition::isTrue(a.coords[1], b.coords[1]) &&
+      (pdim < 3 || (Condition::isTrue(a.coords[2], b.coords[2]) &&
+      (pdim < 4 || (Condition::isTrue(a.coords[3], b.coords[3]) &&
+      (pdim < 5 || (Condition::isTrue(a.coords[4], b.coords[4])))))))))));
   }
 
 };//end class PointN

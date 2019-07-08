@@ -237,7 +237,7 @@ void RenderArrayNode::glRender(GLCanvas& gl)
     if (nslices <= 0)
     {
       double factor = useViewDirection() ? 2.5 : 1; //show a little more if use_view_direction!
-      nslices = (int)(data.dims.maxsize() * factor);
+      nslices = (int)(*data.dims.max_element() * factor);
     }
 
     //see https://github.com/sci-visus/visus/issues/99

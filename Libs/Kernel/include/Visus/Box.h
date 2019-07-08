@@ -124,22 +124,22 @@ public:
 
   //maxsize
   T maxsize() const {
-    return size().maxsize();
+    return *size().max_element();
   }
 
   //maxsize_index
   int maxsize_index() const {
-    auto s = size(); return(int)std::distance(s.coords.begin(), std::max_element(s.coords.begin(), s.coords.end()));
+    auto s = size(); return(int)std::distance(s.begin(), s.max_element());
   }
 
   //minsize
   T minsize() const {
-    return size().minsize();
+    return *size().min_element();
   }
 
   //minsize_index
   int minsize_index() const {
-    auto s = size(); return (int)std::distance(s.coords.begin(), std::min_element(s.coords.begin(), s.coords.end()));
+    auto s = size(); return (int)std::distance(s.begin(), s.min_element());
   }
 
   //middle

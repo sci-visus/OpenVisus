@@ -108,7 +108,7 @@ public:
   //findIntersectionOnZeroPlane
   PointNd findIntersectionOnZeroPlane() const {
     VisusAssert(origin.getPointDim() == 3);
-    VisusAssert(direction[2] != T(0));
+    VisusAssert(direction[2] != 0);
     double alpha = -origin[2] / direction[2];
     return getPoint(alpha);
   }

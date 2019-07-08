@@ -415,15 +415,15 @@ public:
 
   //nonZeroScale
   static Matrix nonZeroScale(PointNd vs) {
-    for (auto& it : vs.coords)
-      it = it ? it : 1.0;
+    for (int I = 0; I < vs.getPointDim(); I++)
+      vs[I] = vs[I] ? vs[I] : 1.0;
     return Matrix::scale(vs);
   }
 
   //invNonZeroScale
   static Matrix invNonZeroScale(PointNd vs) {
-    for (auto& it : vs.coords)
-      it = it ? (1.0 / it) : 1.0;
+    for (int I = 0; I < vs.getPointDim(); I++)
+      vs[I] = vs[I] ? (1.0 / vs[I]) : 1.0;
     return Matrix::scale(vs);
   }
 

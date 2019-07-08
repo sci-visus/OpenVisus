@@ -87,7 +87,16 @@ private:
   IdxMultipleDataset * VF;
   StringTree CONFIG;
 
-  std::map<PointNi, Child, PointNi::Compare > childs;
+
+  //_____________________________________________________
+  struct Compare
+  {
+    bool operator()(const PointNi& a, const  PointNi& b) const {
+      return a.toVector() < b.toVector();
+    }
+  };
+
+  std::map<PointNi, Child, Compare > childs;
 
   //getChildAccess
   SharedPtr<Access> getChildAccess(const Child& child) const;
