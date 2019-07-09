@@ -82,7 +82,7 @@ void Tutorial_1(String default_layout)
   for (int nslice=0;nslice<16;nslice++)
   {
     //this is the bounding box of the region I'm going to write
-    BoxNi slice_box=dataset->getBox().getZSlab(nslice,nslice+1);
+    BoxNi slice_box=dataset->getLogicBox().getZSlab(nslice,nslice+1);
 
     //prepare the write query
     auto query=std::make_shared<Query>(dataset.get(),'w');

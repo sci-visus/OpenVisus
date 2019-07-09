@@ -185,7 +185,7 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query)
     return false;
   }
 
-  auto user_box= query->position.getBoxNi().getIntersection(this->getBox());
+  auto user_box= query->position.getBoxNi().getIntersection(this->getLogicBox());
 
   if (!user_box.isFullDim())
   {
@@ -259,7 +259,7 @@ bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> q
 
   WaitAsync< Future<Void> > wait_async;
 
-  BoxNi box=this->getBox();
+  BoxNi box=this->getLogicBox();
 
   std::vector< SharedPtr<BlockQuery> > block_queries;
   kdTraverse(block_queries,query,box,/*id*/1,/*H*/this->getDefaultBitsPerBlock(),end_resolution);
@@ -365,8 +365,8 @@ LogicBox GoogleMapsDataset::getAddressRangeBox(BigInt start_address,BigInt end_a
   auto Y=coord[1];
   auto Z=coord[2];
 
-  int tile_width =(int)(this->getBox().p2[0])>>Z;
-  int tile_height=(int)(this->getBox().p2[1])>>Z;
+  int tile_width =(int)(this->getLogicBox().p2[0])>>Z;
+  int tile_height=(int)(this->getLogicBox().p2[1])>>Z;
 
   PointNi delta=PointNi::one(2);
   delta[0]=tile_width /this->tile_nsamples[0];
@@ -403,7 +403,7 @@ bool GoogleMapsDataset::openFromUrl(Url url)
   this->setUrl(url.toString());
   this->setBitmask(DatasetBitmask::guess(overall_dims));
   this->setDefaultBitsPerBlock(Utils::getLog2(tile_nsamples[0]*tile_nsamples[1]));
-  this->setBox(BoxNi(PointNi(0,0),overall_dims));
+  this->setLogicBox(BoxNi(PointNi(0,0),overall_dims));
 
   auto timesteps = DatasetTimesteps();
   timesteps.addTimestep(0);
@@ -427,8 +427,8 @@ LogicBox GoogleMapsDataset::getLevelBox(int H)
   VisusAssert((H%2)==0 && H>=bitsperblock);
   int Z=(H-bitsperblock)>>1;
     
-  int tile_width =(int)(this->getBox().p2[0])>>Z;
-  int tile_height=(int)(this->getBox().p2[1])>>Z;
+  int tile_width =(int)(this->getLogicBox().p2[0])>>Z;
+  int tile_height=(int)(this->getLogicBox().p2[1])>>Z;
     
   int ntiles_x=(int)(1<<Z);
   int ntiles_y=(int)(1<<Z);
@@ -461,7 +461,7 @@ bool GoogleMapsDataset::setCurrentEndResolution(SharedPtr<Query> query)
   VisusAssert(query->start_resolution<=end_resolution);
   VisusAssert(end_resolution<=max_resolution);
   
-  auto user_box= query->position.getBoxNi().getIntersection(this->getBox());
+  auto user_box= query->position.getBoxNi().getIntersection(this->getLogicBox());
   VisusAssert(user_box.isFullDim());
 
   int H=end_resolution;

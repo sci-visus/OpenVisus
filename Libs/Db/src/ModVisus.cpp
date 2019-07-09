@@ -594,8 +594,8 @@ NetResponse ModVisus::handleOpenSeaDragon(const NetRequest& request)
   if (dataset->getPointDim() != 2)
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset(" + dataset_name + ") has dimension !=2");
 
-  int w = (int)dataset->getBox().p2[0];
-  int h = (int)dataset->getBox().p2[1];
+  int w = (int)dataset->getLogicBox().p2[0];
+  int h = (int)dataset->getLogicBox().p2[1];
   int maxh = dataset->getBitmask().getMaxResolution();
   int bitsperblock = dataset->getDefaultBitsPerBlock();
 
@@ -771,7 +771,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   if (fromh == 0 && !bDisableFilters)
   {
     query->filter.enabled = true;
-    query->filter.domain = (bKdBoxQuery ? dataset->getBitmask().getPow2Box() : dataset->getBox());
+    query->filter.domain = (bKdBoxQuery ? dataset->getBitmask().getPow2Box() : dataset->getLogicBox());
   }
   else
   {

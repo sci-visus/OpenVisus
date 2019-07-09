@@ -123,7 +123,8 @@ public:
   virtual SharedPtr<Dataset> clone() const = 0;
 
   //copyDataset
-  static void copyDataset(Dataset* Dvf, SharedPtr<Access> Daccess, Field Dfield, double Dtime,
+  static void copyDataset(
+    Dataset* Dvf, SharedPtr<Access> Daccess, Field Dfield, double Dtime,
     Dataset* Svf, SharedPtr<Access> Saccess, Field Sfield, double Stime);
 
   //valid
@@ -156,26 +157,6 @@ public:
     this->bServerMode = value;
   }
 
-  //getBitmask
-  const DatasetBitmask& getBitmask() const {
-    return bitmask;
-  }
-
-  //setBitmask
-  void setBitmask(const DatasetBitmask& value) {
-    this->bitmask = value;
-  }
-
-  //getBox
-  const BoxNi& getBox() const {
-    return box;
-  }
-
-  //setBox
-  void setBox(const BoxNi& value) {
-    this->box = value;
-  }
-
   //getTimesteps
   const DatasetTimesteps& getTimesteps() const {
     return timesteps;
@@ -184,21 +165,6 @@ public:
   //setTimesteps
   void setTimesteps(const DatasetTimesteps& value) {
     this->timesteps = value;
-  }
-
-  //getDefaultBitsPerBlock
-  int getDefaultBitsPerBlock() const {
-    return default_bitsperblock;
-  }
-
-  //setDefaultBitsPerBlock
-  void setDefaultBitsPerBlock(int value) {
-    this->default_bitsperblock = value;
-  }
-
-  //getTotalnumberOfBlocks
-  BigInt getTotalnumberOfBlocks() const {
-    return (((BigInt)1) << getMaxResolution()) / (((Int64)1) << getDefaultBitsPerBlock());
   }
 
   //getConfig
@@ -230,16 +196,6 @@ public:
     return v.empty() ? StringTree() : *v[0];
   }
 
-  //getMaxResolution
-  int getMaxResolution() const {
-    return getBitmask().getMaxResolution();
-  }
-
-  //getPointDim
-  int getPointDim() const {
-    return getBitmask().getPointDim();
-  }
-
   //getKdQueryMode
   int getKdQueryMode() const {
     return kdquery_mode;
@@ -265,17 +221,6 @@ public:
     this->default_scene = value;
   }
 
-  //clearFields
-  void clearFields() {
-    this->fields.clear();
-    this->find_field.clear();
-  }
-
-  //getFields
-  std::vector<Field>& getFields() {
-    return fields;
-  }
-
   //getDatasetBody
   String getDatasetBody() const {
     return dataset_body.empty() ? getUrl().toString() : dataset_body;
@@ -289,8 +234,88 @@ public:
   // getDatasetInfos
   String getDatasetInfos() const;
 
-  //extractLevelImage
-  Array extractLevelImage(SharedPtr<Access> access, Field field, double time, int H);
+public:
+
+  //clearFields
+  void clearFields() {
+    this->fields.clear();
+    this->find_field.clear();
+  }
+
+  //getFields
+  std::vector<Field>& getFields() {
+    return fields;
+  }
+
+  //addField
+  void addField(String name, Field field) {
+    fields.push_back(field);
+    find_field[name] = field;
+  }
+
+  //addField
+  void addField(Field field) {
+    addField(field.name, field);
+  }
+
+  // getFieldByNameThrowEx
+  virtual Field getFieldByNameThrowEx(String name) const;
+
+  // getFieldByName
+  Field getFieldByName(String name) const;
+
+public:
+
+  //getPointDim
+  int getPointDim() const {
+    return bitmask.getPointDim();
+  }
+
+  //getBitmask
+  const DatasetBitmask& getBitmask() const {
+    return bitmask;
+  }
+
+  //setLogicBitmask
+  void setBitmask(const DatasetBitmask& value) {
+    this->bitmask = value;
+  }
+
+  //getBox
+  const BoxNi& getLogicBox() const {
+    return logic_box;
+  }
+
+  //setBox
+  void setLogicBox(const BoxNi& value) {
+    this->logic_box = value;
+  }
+
+  //getDefaultBitsPerBlock
+  int getDefaultBitsPerBlock() const {
+    return default_bitsperblock;
+  }
+
+  //setDefaultBitsPerBlock
+  void setDefaultBitsPerBlock(int value) {
+    this->default_bitsperblock = value;
+  }
+
+  //getTotalNumberOfBlocks
+  BigInt getTotalNumberOfBlocks() const {
+    return (((BigInt)1) << getMaxResolution()) / (((Int64)1) << getDefaultBitsPerBlock());
+  }
+
+  //getMaxResolution
+  int getMaxResolution() const {
+    return bitmask.getMaxResolution();
+  }
+
+  //getLevelBox
+  virtual LogicBox getLevelBox(int H) = 0;
+
+  //getAddressRangeBox
+  virtual LogicBox getAddressRangeBox(BigInt start_address, BigInt end_address) = 0;
 
 public:
 
@@ -298,7 +323,10 @@ public:
   virtual bool openFromUrl(Url url) = 0;
 
   //compressDataset
-  virtual bool compressDataset(String compression) = 0;
+  virtual bool compressDataset(String compression) {
+    VisusInfo() << "compression not enabled";
+    return false;
+  }
 
   //getInnerDatasets
   virtual std::map<String,SharedPtr<Dataset> > getInnerDatasets() const  {
@@ -308,35 +336,21 @@ public:
   //guessEndResolutions
   virtual std::vector<int> guessEndResolutions(const Frustum& viewdep, Position position, Query::Quality quality=Query::DefaultQuality, Query::Progression progression=Query::GuessProgression);
 
-  // getFieldByNameThrowEx
-  virtual Field getFieldByNameThrowEx(String name) const;
-
-  // getFieldByName
-  Field getFieldByName(String name) const {
-    try {
-      return getFieldByNameThrowEx(name);
-    }
-    catch (std::exception ex) {
-      return Field();
-    }
-  }
+public:
 
   //createAccess
-  virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false);
-
+  virtual SharedPtr<Access> createAccess(StringTree config = StringTree(), bool bForBlockQuery = false);
+  
   //createAccessForBlockQuery
-  SharedPtr<Access> createAccessForBlockQuery(StringTree config= StringTree()) {
-    return createAccess(config,true);
+  SharedPtr<Access> createAccessForBlockQuery(StringTree config = StringTree()) {
+    return createAccess(config, true);
   }
 
-  //getLevelBox
-  virtual LogicBox getLevelBox(int H)=0;
-
-  //getAddressRangeBox
-  virtual LogicBox getAddressRangeBox(BigInt start_address,BigInt end_address)=0;
+  //createRamAccess
+  SharedPtr<Access> createRamAccess(Int64 available, bool can_read = true, bool can_write = true);
 
   //readBlock  
-  virtual Future<Void> readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> query);
+  virtual Future<Void> readBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query);
 
   //writeBlock  
   virtual Future<Void> writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query);
@@ -355,6 +369,8 @@ public:
   virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) {
     return false;
   }
+
+public:
 
   //createQueryFilter (default: not supported)
   virtual SharedPtr<DatasetFilter> createQueryFilter(const Field& field) {
@@ -380,24 +396,11 @@ public:
     return NetRequest();
   }
 
-public:
-
-  //createRamAccess
-  SharedPtr<Access> createRamAccess(Int64 available, bool can_read = true, bool can_write = true);
-
-  //addField
-  void addField(String name, Field field) {
-    fields.push_back(field);
-    find_field[name] = field;
-  }
-
-  //addField
-  void addField(Field field) {
-    addField(field.name, field);
-  }
-
   //executePureRemoteQuery
   bool executePureRemoteQuery(SharedPtr<Query> query);
+
+public:
+
 
   //generateTiles (useful for conversion)
   std::vector<BoxNi> generateTiles(int TileSize) const;
@@ -407,6 +410,9 @@ public:
 
   //writeFullResolutionData
   bool writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer,BoxNi box=BoxNi());
+
+  //extractLevelImage
+  Array extractLevelImage(SharedPtr<Access> access, Field field, double time, int H);
 
 public:
   
@@ -430,7 +436,7 @@ private:
   std::vector<Field>      fields;
   std::map<String, Field> find_field;
   DatasetBitmask          bitmask;
-  BoxNi                   box;
+  BoxNi                   logic_box;
   String                  default_scene;
   int                     kdquery_mode = KdQueryMode::NotSpecified;
   bool                    bServerMode = false;

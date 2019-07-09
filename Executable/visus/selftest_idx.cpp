@@ -134,7 +134,7 @@ public:
     Field field=vf->getDefaultField();
     this->vf=vf;
     this->dtype=field.dtype;
-    this->user_box=vf->getBox();
+    this->user_box=vf->getLogicBox();
     this->pdim=vf->getPointDim();
     this->nslices=user_box.p2[pdim-1]-user_box.p1[pdim-1];
   
@@ -201,7 +201,7 @@ public:
     int                  firsth        = Utils::getRandInteger(0,maxh);
     int                  lasth         = Utils::getRandInteger(firsth,maxh);
     int                  deltah        = firsth==lasth?1:Utils::getRandInteger(1,lasth-firsth);
-    BoxNi                box           = Utils::getRandInteger(0,1)?vf->getBitmask().upgradeBox(vf->getBox(),maxh):getRandomBox();
+    BoxNi                box           = Utils::getRandInteger(0,1)?vf->getBitmask().upgradeBox(vf->getLogicBox(),maxh):getRandomBox();
     bool                 bInterpolate  = Utils::getRandInteger(0,1)?true:false;
     
     static int nactivation=0;

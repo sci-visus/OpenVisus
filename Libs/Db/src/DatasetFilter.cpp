@@ -119,7 +119,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
   VisusAssert(this->size==2);
 
   DatasetBitmask bitmask   = dataset->getBitmask();
-  BoxNi          box       = dataset->getBox();
+  BoxNi          box       = dataset->getLogicBox();
 
   int pdim = bitmask.getPointDim();
 

@@ -221,6 +221,17 @@ Field Dataset::getFieldByNameThrowEx(String fieldname) const
   return Field();
 }
 
+///////////////////////////////////////////////////////////
+Field Dataset::getFieldByName(String name) const {
+  try {
+    return getFieldByNameThrowEx(name);
+  }
+  catch (std::exception ex) {
+    return Field();
+  }
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////////////////
 static StringTree* FindDataset(String name, const StringTree& stree)
@@ -335,7 +346,7 @@ String Dataset::getDatasetInfos() const
   BigInt total_number_of_blocks  = total_number_of_samples>>bitsperblock;
 
   out<<"Visus file infos                                         "<<std::endl;
-  out<<"  Bounds                                                 "<< getBox().toOldFormatString()<<std::endl;
+  out<<"  Bounds                                                 "<< getLogicBox().toOldFormatString()<<std::endl;
   out<<"  Pow2 dims                                              "<<getBitmask().getPow2Dims().toString()<<std::endl;
   out<<"  number of samples                                      "<<total_number_of_samples<<std::endl;
   out<<"  number of blocks                                       "<<total_number_of_blocks<<std::endl;
@@ -479,7 +490,7 @@ std::vector<BoxNi> Dataset::generateTiles(int TileSize) const
   for (int D = 0; D < pdim; D++)
     WindowSize[D] = TileSize;
 
-  auto box = this->getBox();
+  auto box = this->getLogicBox();
 
   auto Tot = PointNi::one(pdim);
   for (int D = 0; D < pdim; D++)
@@ -488,7 +499,7 @@ std::vector<BoxNi> Dataset::generateTiles(int TileSize) const
   std::vector<BoxNi> ret;
   for (auto P = ForEachPoint(box.p1, box.p2, WindowSize); !P.end(); P.next())
   {
-    auto tile = BoxNi(P.pos, P.pos + WindowSize).getIntersection(this->getBox());
+    auto tile = BoxNi(P.pos, P.pos + WindowSize).getIntersection(this->getLogicBox());
 
     if (!tile.valid()) {
       VisusAssert(false);
@@ -504,7 +515,7 @@ std::vector<BoxNi> Dataset::generateTiles(int TileSize) const
 Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, double time, BoxNi box)
 {
   if (box == BoxNi())
-    box = this->box;
+    box = this->logic_box;
 
   auto query = std::make_shared<Query>(this, 'r');
 
@@ -725,8 +736,8 @@ void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield,
   VisusInfo()<<"  Source      Rurl("+Rvf->getUrl().toString() + ") Rfield("+Rfield.name+") Rtime("+cstring(Rtime)+")";
 
   auto num_blocks=std::min(
-    Wvf->getTotalnumberOfBlocks(),
-    Rvf->getTotalnumberOfBlocks());
+    Wvf->getTotalNumberOfBlocks(),
+    Rvf->getTotalNumberOfBlocks());
 
   Aborted aborted;
 

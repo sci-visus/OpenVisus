@@ -50,7 +50,7 @@ void Tutorial_2(String default_layout)
   auto dataset= LoadDataset("temp/tutorial_1.idx");
   VisusReleaseAssert(dataset);
 
-  BoxNi world_box=dataset->getBox();
+  BoxNi world_box=dataset->getLogicBox();
 
   int pdim = 3;
 

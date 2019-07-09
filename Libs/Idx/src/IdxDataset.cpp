@@ -109,7 +109,7 @@ public:
     auto& buffer=query->buffer;
     buffer.layout="";
 
-    BoxNi   box = bitmask.upgradeBox(dataset->getBox(),maxh);
+    BoxNi   box = bitmask.upgradeBox(dataset->getLogicBox(),maxh);
     PointNi dim = box.size();
 
     Float32* ptr=(Float32*)query->buffer.c_ptr();
@@ -686,7 +686,7 @@ bool IdxDataset::compressDataset(String compression)
   for (auto time : timesteps)
   {
     //for each file...
-    BigInt total_block = getTotalnumberOfBlocks();
+    BigInt total_block = getTotalNumberOfBlocks();
     BigInt tot_files = (total_block  / idxfile.blocksperfile) + ((total_block % idxfile.blocksperfile)? 1 : 0);
 
     for (BigInt fileid = 0; fileid < tot_files; fileid++)
@@ -791,7 +791,7 @@ bool IdxDataset::compressDataset(String compression)
   BigInt original_bytesize =0;
   for (auto field : idxfile.fields)
     original_bytesize += field.dtype.getByteSize();
-  original_bytesize *= this->getBox().size().innerProduct();
+  original_bytesize *= this->getLogicBox().size().innerProduct();
 
   auto ratio = overall_file_size/double(original_bytesize);
 
@@ -1030,7 +1030,7 @@ void IdxDataset::setIdxFile(IdxFile value)
 
   setBitmask(bitmask);
   setDefaultBitsPerBlock(value.bitsperblock);
-  setBox(value.box);
+  setLogicBox(value.box);
   setTimesteps(value.timesteps);
   
   setDefaultScene(value.scene);
@@ -1311,7 +1311,7 @@ PointNi IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frust
     Point3d P2=points[unit_box_edges[E][1]];
     Point3d edge_size=(P2-P1).abs();
 
-    PointNi idx_size   = this->getBox().size();
+    PointNi idx_size   = this->getLogicBox().size();
 
     // need to project onto IJK  axis
     // I'm using this formula: x/virtual_worlddim[dataset_axis] = factor = edge_size[dataset_axis]/idx_size[dataset_axis]
@@ -1516,7 +1516,7 @@ bool IdxDataset::beginQuery(SharedPtr<Query> query)
       if (this->getPointDim() == 3)
         query->clipping = query->position;
 
-      query->position = query->position.toAxisAlignedBox().castTo<BoxNi>().getIntersection(this->getBox());
+      query->position = query->position.toAxisAlignedBox().castTo<BoxNi>().getIntersection(this->getLogicBox());
     }
 
     if (query->filter.enabled)
@@ -1576,7 +1576,7 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
   auto bitmask = getBitmask();
   int             pdim               = this->getPointDim();
   int             maxh               = query->max_resolution;
-  BoxNi           bounds             = bitmask.upgradeBox(this->getBox(),maxh);
+  BoxNi           bounds             = bitmask.upgradeBox(this->getLogicBox(),maxh);
   BigInt          last_bitmask       = ((BigInt)1)<<(maxh);
   HzOrder         hzorder            (bitmask,maxh);
   PointNi         depth_mask         = hzorder.getLevelP2Included(end_resolution);
@@ -2030,7 +2030,7 @@ SharedPtr<IdxDataset> IdxDataset::createDatasetFromBuffer(String idx_filename, A
       r_access->beginRead();
       w_access->beginWrite();
 
-      for (BigInt blockid = 0, TotBlocks = dataset->getTotalnumberOfBlocks(); blockid <TotBlocks; blockid++)
+      for (BigInt blockid = 0, TotBlocks = dataset->getTotalNumberOfBlocks(); blockid <TotBlocks; blockid++)
       {
         auto hz1 = w_access->getStartAddress(blockid);
         auto hz2 = w_access->getEndAddress(blockid);

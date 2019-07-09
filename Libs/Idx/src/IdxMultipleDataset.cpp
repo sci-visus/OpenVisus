@@ -372,7 +372,7 @@ public:
     auto vf    = child.dataset; VisusAssert(vf);
     auto field = vf->getFieldByName(fieldname); VisusAssert(field.valid());
 
-    auto BOX = Position(M, vf->getBox()).toAxisAlignedBox();
+    auto BOX = Position(M, vf->getLogicBox()).toAxisAlignedBox();
 
     //no intersection? just skip this down query
     if (!QUERY->position.toAxisAlignedBox().intersect(BOX))
@@ -387,8 +387,8 @@ public:
 
     //euristic to find delta in the hzcurve
     //TODO!!!! this euristic produces too many samples
-    auto VOLUME = Position(   VF->getBox()).computeVolume();
-    auto volume = Position(M, vf->getBox()).computeVolume();
+    auto VOLUME = Position(   VF->getLogicBox()).computeVolume();
+    auto volume = Position(M, vf->getLogicBox()).computeVolume();
     int delta_h = -(int)log2(VOLUME / volume);
 
     //resolutions
@@ -415,7 +415,7 @@ public:
     // if you use this wrong version, for voronoi in 2d you will see some missing pieces around
     // solution is to limit the QUERY_BOX into a more "local" one
 #if 1
-    QUERY_BOX = Position(QUERY_T.invert(), M, vf->getBox()).toAxisAlignedBox().getIntersection(QUERY_BOX);
+    QUERY_BOX = Position(QUERY_T.invert(), M, vf->getLogicBox()).toAxisAlignedBox().getIntersection(QUERY_BOX);
 #endif
 
     query->position = Position(M.invert(), QUERY_T, QUERY_BOX);
@@ -508,12 +508,12 @@ public:
     //this will help to find voronoi seams betweeen images
     query->down_info.LOGIC_TO_PIXEL = LOGIC_TO_PIXEL;
     query->down_info.PIXEL_TO_LOGIC = PIXEL_TO_LOGIC;
-    query->down_info.logic_centroid = M * vf->getBox().center();
+    query->down_info.logic_centroid = M * vf->getLogicBox().center();
 
     //limit the samples to good logic domain
     //explanation: for each pixel in dims, tranform it to the logic dataset box, if inside set the pixel to 1 otherwise set the pixel to 0
     if (!query->buffer.alpha)
-      query->buffer.alpha = std::make_shared<Array>(ArrayUtils::createTransformedAlpha(vf->getBox(), pixel_to_logic, query->buffer.dims, QUERY->aborted));
+      query->buffer.alpha = std::make_shared<Array>(ArrayUtils::createTransformedAlpha(vf->getLogicBox(), pixel_to_logic, query->buffer.dims, QUERY->aborted));
     else
       VisusReleaseAssert(query->buffer.alpha->dims==query->buffer.dims);
 
@@ -1170,7 +1170,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       auto PHYSICAL_BOX = BoxNd::invalid();
       for (auto it : childs)
       {
-        auto physical_box = Position(it.second.M, it.second.dataset->getBox()).toAxisAlignedBox();
+        auto physical_box = Position(it.second.M, it.second.dataset->getLogicBox()).toAxisAlignedBox();
         PHYSICAL_BOX = PHYSICAL_BOX.getUnion(physical_box);
       }
 
@@ -1179,8 +1179,8 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       {
         auto dataset = it.second.dataset;
         auto M = it.second.M;
-        auto pixels = dataset->getBox().size().innerProduct();
-        auto volume = Position(M, dataset->getBox()).computeVolume();
+        auto pixels = dataset->getLogicBox().size().innerProduct();
+        auto volume = Position(M, dataset->getLogicBox()).computeVolume();
         auto density = pixels / volume;
         DENSITY.push_back(density);
       }
@@ -1204,7 +1204,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     IDXFILE.box = BoxNi::invalid();
     for (auto it : childs)
     {
-      auto box = Position(it.second.M, it.second.dataset->getBox()).toAxisAlignedBox().castTo<BoxNi>();
+      auto box = Position(it.second.M, it.second.dataset->getLogicBox()).toAxisAlignedBox().castTo<BoxNi>();
       IDXFILE.box = IDXFILE.box.getUnion(box);
     }
   }

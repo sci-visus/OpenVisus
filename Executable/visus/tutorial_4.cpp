@@ -85,7 +85,7 @@ void Tutorial_4(String default_layout)
   {
     auto access=dataset->createAccess();
 
-    BoxNi write_box=dataset->getBox();
+    BoxNi write_box=dataset->getLogicBox();
 
     Uint8 wbuffer[8*4]=
     {

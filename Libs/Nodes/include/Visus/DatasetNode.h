@@ -79,7 +79,7 @@ public:
 
   //getBox
   BoxNd getBox() const {
-    return dataset->getBox().castTo<BoxNd>();
+    return dataset->getLogicBox().castTo<BoxNd>();
   }
 
   //getNodeBounds

@@ -1444,7 +1444,7 @@ public:
     Aborted aborted;
     access->beginRead();
 
-    for (BigInt block_id = 0, nblocks = dataset->getTotalnumberOfBlocks(); ; block_id = (block_id + 1) % nblocks)
+    for (BigInt block_id = 0, nblocks = dataset->getTotalNumberOfBlocks(); ; block_id = (block_id + 1) % nblocks)
     { 
       auto read_block = std::make_shared<BlockQuery>(field, time, access->getStartAddress(block_id), access->getEndAddress(block_id), aborted);
 
@@ -1537,7 +1537,7 @@ public:
     VisusInfo() << "Testing query...";
 
     auto access = dataset->createAccess();
-    auto world_box = dataset->getBox();
+    auto world_box = dataset->getLogicBox();
 
     Time T1 = Time::now();
     for (int nqueries = 0;;nqueries++)
@@ -1841,7 +1841,7 @@ public:
       auto Z1 = Slab * slices_per_slab;
       auto Z2 =   Z1 + slices_per_slab;
 
-      BoxNi slice_box = dataset->getBox().getZSlab(Z1,Z2);
+      BoxNi slice_box = dataset->getLogicBox().getZSlab(Z1,Z2);
 
       //prepare the write query
       auto write = std::make_shared<Query>(dataset.get(), 'w');
@@ -1878,7 +1878,7 @@ public:
     if (bool bVerify=true)
     {
       auto read = std::make_shared<Query>(dataset.get(), 'r');
-      read->position = dataset->getBox();
+      read->position = dataset->getLogicBox();
       VisusReleaseAssert(dataset->beginQuery(read));
 
       Array buffer(read->nsamples, read->field.dtype);

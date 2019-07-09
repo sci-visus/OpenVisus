@@ -80,10 +80,10 @@ public:
       {
         int pdim = dataset->getPointDim();
         box=BoxNi::parseFromOldFormatString(pdim,args[++I]);
-        box= box.getIntersection(dataset->getBox());
+        box= box.getIntersection(dataset->getLogicBox());
         if (!box.isFullDim())
         {
-          VisusWarning()<<"invalid --box "<<args[I] << " intersection with "<< dataset->getBox().toOldFormatString();
+          VisusWarning()<<"invalid --box "<<args[I] << " intersection with "<< dataset->getLogicBox().toOldFormatString();
           return false;
         }
       }
@@ -142,8 +142,8 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
   
   ostream.writeInline("url",url);
   ostream.writeInline("format", dataset->getTypeName());
-  ostream.writeInline("size",dataset->getBox().size().toString());
-  ostream.writeInline("box", dataset->getBox().toOldFormatString());
+  ostream.writeInline("size",dataset->getLogicBox().size().toString());
+  ostream.writeInline("box", dataset->getLogicBox().toOldFormatString());
   ostream.writeInline("timesteps",cstring(dataset->getTimesteps().getMin())+" " + cstring(dataset->getTimesteps().getMax()));
   ostream.writeInline("bitsperblock",cstring(dataset->getDefaultBitsPerBlock()));
   ostream.writeInline("bitmask",dataset->getBitmask().toString());

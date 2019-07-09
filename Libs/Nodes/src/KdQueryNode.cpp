@@ -121,13 +121,13 @@ public:
 
     //find intersection with dataset box
     auto matrix_map = MatrixMap(Matrix::identity(pdim));
-    position=Position::shrink(dataset->getBox().castTo<BoxNd>(), matrix_map,position);
+    position=Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), matrix_map,position);
 
     if (!position.valid()) 
       return false;
 
     //remove transformation
-    position = Position(position.toAxisAlignedBox().castTo<BoxNi>().getIntersection(dataset->getBox()));
+    position = Position(position.toAxisAlignedBox().castTo<BoxNi>().getIntersection(dataset->getLogicBox()));
     if (!position.valid()) 
       return false;
 
@@ -234,7 +234,7 @@ public:
     {
       ScopedWriteLock wlock(rlock);
 
-      kdarray->box = dataset->getBox();
+      kdarray->box = dataset->getLogicBox();
       kdarray->clipping = position;
 
       kdarray->root = std::make_shared<KdArrayNode>();

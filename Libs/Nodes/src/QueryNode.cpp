@@ -251,7 +251,7 @@ bool QueryNode::processInput()
     {
       auto pdim = dataset->getPointDim();
       auto matrix_map = MatrixMap(Matrix::identity(pdim));
-      position = Position::shrink(dataset->getBox().castTo<BoxNd>(), matrix_map, position);
+      position = Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), matrix_map, position);
     }
 
     if (!position.valid()) 

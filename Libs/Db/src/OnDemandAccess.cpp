@@ -156,7 +156,7 @@ public:
     auto bitmask = dataset->getBitmask();
     auto timestep = query->time;
     auto field = query->field.name;
-    auto dataset_box = dataset->getBox();
+    auto dataset_box = dataset->getLogicBox();
     auto block_logicbox = query->logic_box;
 
     Time t1 = Time::now();
@@ -260,8 +260,8 @@ public:
     if (!logic_box.valid())
       return owner->readFailed(query);
 
-    Int64 Width  = dataset->getBox().size()[0];
-    Int64 Height = dataset->getBox().size()[1];
+    Int64 Width  = dataset->getLogicBox().size()[0];
+    Int64 Height = dataset->getLogicBox().size()[1];
 
     Url urlpath(owner->getPath());
     int z = cint(urlpath.getParam("z", "0"));
@@ -354,8 +354,8 @@ public:
     VisusAssert(dtype.getByteSize(1) == sizeof(CppType));
 
     //convert logic range to [0,1]
-    auto P0    = dataset->getBox().p1;
-    auto Size  = dataset->getBox().size();
+    auto P0    = dataset->getLogicBox().p1;
+    auto Size  = dataset->getLogicBox().size();
 
     auto& buffer = query->buffer;
     buffer.layout = this->layout;
