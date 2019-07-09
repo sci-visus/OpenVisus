@@ -197,6 +197,13 @@ public:
     (*this) = New;
   }
 
+  //withSpaceDim
+  Matrix withSpaceDim(int value) const {
+    auto ret = *this;
+    ret.setSpaceDim(value);
+    return ret;
+  }
+
   //valid
   bool valid() const
   {

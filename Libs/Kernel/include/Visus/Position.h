@@ -48,48 +48,48 @@ namespace Visus {
 /////////////////////////////////////////////////
 class VISUS_KERNEL_API Position 
 {
+  Matrix T = Matrix::identity(4);
+  BoxNd  box;
+
 public:
 
   VISUS_CLASS(Position)
-
-  Matrix T= Matrix::identity(4);
-  BoxNd  box;
 
   //constructor
   Position() {
   }
 
   //constructor
-  Position(std::vector<Matrix> T, BoxNd box);
-
-  //constructor
-  Position(Matrix T, BoxNd box) : Position(std::vector<Matrix>({ T }), box) {
-  }
-
-  //constructor
-  Position(BoxNd value) : Position(Matrix(), value) {
-  }
+  Position(BoxNd box);
 
   //constructor
   Position(BoxNi value) : Position(value.castTo<BoxNd>()) {
   }
 
   //constructor
-  Position(const Matrix& T0, const Position& other) : Position(std::vector<Matrix>({ T0,other.T }), other.box) {
+  Position(const Matrix& T0, const Position& other) : Position(other) {
+    prependTransformation(T0);
   }
 
   //constructor
-  Position(const Matrix& T0, const Matrix& T1, const Position& other) : Position(std::vector<Matrix>({ T0,T1,other.T }), other.box) {
+  Position(const Matrix& T0, const Matrix& T1, const Position& other) : Position(other) {
+    for (auto T : { T1,T0 })
+      prependTransformation(T);
   }
 
   //constructor
-  Position(const Matrix& T0, const Matrix& T1, const Matrix& T2, const Position& other) : Position(std::vector<Matrix>({ T0,T1,T1, other.T }), other.box) {
+  Position(const Matrix& T0, const Matrix& T1, const Matrix& T2, const Position& other) : Position(other) {
+    for (auto T : { T2,T1,T0 })
+      prependTransformation(T);
   }
 
   //invalid
   static Position invalid() {
     return Position();
   }
+
+  //prependTransformation
+  void prependTransformation(const Matrix& T);
 
   //getPointDim
   int getPointDim() const {
@@ -111,12 +111,12 @@ public:
     T.setSpaceDim(value);
   }
 
-  //compose
-  static Matrix compose(Position A, PointNi dims) {
+  //pixelToLogic
+  static Matrix pixelToLogic(Position logic_position, PointNi dims) {
     return
-      A.T *
-      Matrix::translate(A.box.p1) *
-      Matrix::nonZeroScale(A.box.size()) *
+      logic_position.T *
+      Matrix::translate(logic_position.box.p1) *
+      Matrix::nonZeroScale(logic_position.box.size()) *
       Matrix::invNonZeroScale(dims.castTo<PointNd>());
   }
 
@@ -135,6 +135,16 @@ public:
     return box.valid();
   }
 
+  //getTransformation
+  const Matrix& getTransformation() const {
+    return this->T;
+  }
+
+  //getBoxNd
+  const BoxNd& getBoxNd() const {
+    return this->box;
+  }
+
   //getBoxNi
   BoxNi getBoxNi() const {
     return this->box.castTo<BoxNi>();
@@ -146,8 +156,8 @@ public:
   //getPoints
   std::vector<PointNd> getPoints() const;
 
-  //withoutTransformation
-  BoxNd withoutTransformation() const {
+  //toAxisAlignedBox
+  BoxNd toAxisAlignedBox() const {
     return this->valid() ? BoxNd(getPoints()) : BoxNd::invalid();
   }
 

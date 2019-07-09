@@ -75,8 +75,8 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& viewdep,Position po
     };
 
     std::vector<Point3d> logic_points;
-    for (auto p : position.box.toBox3().getPoints())
-      logic_points.push_back((position.T * p).toPoint3());
+    for (auto p : position.getPoints())
+      logic_points.push_back(p.toPoint3());
 
     std::vector<Point2d> screen_points;
     FrustumMap map(viewdep);

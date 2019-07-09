@@ -355,7 +355,7 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
 //////////////////////////////////////////////////////////////////////
 bool GLLookAtCamera::guessPosition(Position position,int ref) 
 {
-  auto bound=position.withoutTransformation();
+  auto bound=position.toAxisAlignedBox();
   bound.setPointDim(3);
 
   beginUpdate();

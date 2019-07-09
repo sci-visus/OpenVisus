@@ -1247,8 +1247,8 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<Query> query)
   if (query->isPointQuery())
   {
     ret.url.setParam("action"  ,"pointquery");
-    ret.url.setParam("matrix"  ,query->position.T.toString());
-    ret.url.setParam("box"     ,query->position.box.toBox3().toString(/*bInterleave*/false));
+    ret.url.setParam("matrix"  ,query->position.getTransformation().toString());
+    ret.url.setParam("box"     ,query->position.getBoxNd().toBox3().toString(/*bInterleave*/false));
     ret.url.setParam("nsamples",query->nsamples.toString());
     VisusInfo() << ret.url.toString();
   }
@@ -1278,8 +1278,8 @@ PointNi IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frust
   };
 
   std::vector<Point3d> points;
-  for (auto p : position.box.getPoints())
-    points.push_back((position.T * p).toPoint3());
+  for (auto p : position.getPoints())
+    points.push_back(p.toPoint3());
 
   std::vector<Point2d> screen_points;
   if (viewdep.valid())
@@ -1377,8 +1377,8 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
   //P'=T* (P0 + I* X/nsamples[0] +  J * Y/nsamples[1] + K * Z/nsamples[2])
   //P'=T*P0 +(T*Stepx)*I + (T*Stepy)*J + (T*Stepz)*K
     
-  auto T = position.T;
-  auto box = position.box;
+  auto T = position.getTransformation();
+  auto box = position.getBoxNd();
   T.setSpaceDim(4);
   box.setPointDim(3);
   Point4d P0(box.p1[0],box.p1[1],box.p1[2],1.0);
@@ -1498,20 +1498,20 @@ bool IdxDataset::beginQuery(SharedPtr<Query> query)
 
   auto dataset_dim = this->getPointDim();
 
-  if (bool bPointQuery = dataset_dim == 3 && query->position.box.minsize() == 0)
+  if (bool bPointQuery = dataset_dim == 3 && query->position.getBoxNd().minsize() == 0)
   {
     query->point_query.coordinates = std::make_shared<HeapMemory>();
   }
   else
   {
-    Matrix T = query->position.T;
+    Matrix T = query->position.getTransformation();
     if (!T.isIdentity())
     {
       //clipping...
       if (this->getPointDim() == 3)
         query->clipping = query->position;
 
-      query->position = query->position.withoutTransformation().castTo<BoxNi>().getIntersection(this->getBox());
+      query->position = query->position.toAxisAlignedBox().castTo<BoxNi>().getIntersection(this->getBox());
     }
 
     if (query->filter.enabled)

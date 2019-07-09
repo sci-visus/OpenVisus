@@ -41,31 +41,25 @@ For support : support@visus.net
 
 namespace Visus {
 
-  //////////////////////////////////////////////////
-Position::Position(std::vector<Matrix> Ts, BoxNd box)
+//////////////////////////////////////////////////
+Position::Position(BoxNd box)
 {
-  auto pdim = box.getPointDim(); 
-  if (pdim == 0)
-    return;
-
-  auto sdim = pdim + 1;
-
-  for (auto T : Ts)
-    sdim = std::max(sdim, T.getSpaceDim());
-
-  for (auto& T : Ts)
-    T.setSpaceDim(sdim);
-
-  //right to left (just in case I have problems about numerical precision)
-  this->T = Matrix::identity(sdim);
-  for (int I = (int)Ts.size()-1; I >=0 ; I--)
-    this->T = Ts[I]* this->T;
-
+  auto pdim = box.getPointDim();
+  if (pdim == 0) return;
+  this->T = Matrix::identity(box.getPointDim()+1);
   this->box = box;
 }
 
-
   //////////////////////////////////////////////////
+void Position::prependTransformation(const Matrix& T)
+{
+  auto pdim = getPointDim(); 
+  if (pdim == 0) return;
+  this->T = T * this->T;
+}
+
+
+//////////////////////////////////////////////////
 double Position::computeVolume() const {
 
   if (!this->valid())

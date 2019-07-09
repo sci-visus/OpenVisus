@@ -372,10 +372,10 @@ public:
     auto vf    = child.dataset; VisusAssert(vf);
     auto field = vf->getFieldByName(fieldname); VisusAssert(field.valid());
 
-    auto BOX = Position(M, vf->getBox()).withoutTransformation();
+    auto BOX = Position(M, vf->getBox()).toAxisAlignedBox();
 
     //no intersection? just skip this down query
-    if (!QUERY->position.withoutTransformation().intersect(BOX))
+    if (!QUERY->position.toAxisAlignedBox().intersect(BOX))
       return SharedPtr<Query>();
 
     auto query = std::make_shared<Query>(vf.get(), 'r');
@@ -406,8 +406,8 @@ public:
     query->end_resolutions = std::vector<int>(end_resolutions.begin(), end_resolutions.end());
     query->max_resolution = vf->getMaxResolution();
 
-    auto QUERY_T   = QUERY->position.T;
-    auto QUERY_BOX = QUERY->position.box;
+    auto QUERY_T   = QUERY->position.getTransformation();
+    auto QUERY_BOX = QUERY->position.getBoxNd();
 
     // WRONG, consider that M could have mat(3,0) | mat(3,1) | mat(3,2) !=0 and so I can have non-parallel axis
     // i.e. computing the bounding box in position very far from the mapped region are wrong because some axis of the quads can interect in some points
@@ -415,7 +415,7 @@ public:
     // if you use this wrong version, for voronoi in 2d you will see some missing pieces around
     // solution is to limit the QUERY_BOX into a more "local" one
 #if 1
-    QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).withoutTransformation().getIntersection(QUERY_BOX);
+    QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).toAxisAlignedBox().getIntersection(QUERY_BOX);
 #endif
 
     query->position = Position(M.invert(), QUERY_T, QUERY_BOX);
@@ -498,8 +498,8 @@ public:
     query->down_info.BUFFER.alpha = std::make_shared<Array>(QUERY->nsamples, DTypes::UINT8);
     query->down_info.BUFFER.alpha->fillWithValue(0);
 
-    auto PIXEL_TO_LOGIC = Position::compose(Position(QUERY->position), query->down_info.BUFFER.dims);
-    auto pixel_to_logic = Position::compose(Position(query->position), query->buffer.dims);
+    auto PIXEL_TO_LOGIC = Position::pixelToLogic(Position(QUERY->position), query->down_info.BUFFER.dims);
+    auto pixel_to_logic = Position::pixelToLogic(Position(query->position), query->buffer.dims);
 
     // Tperspective := PIXEL <- pixel
     auto LOGIC_TO_PIXEL = PIXEL_TO_LOGIC.invert();
@@ -680,9 +680,9 @@ public:
     {
       if (output.dims[D] == 1 && QUERY->nsamples[D] > 1)
       {
-        auto box = output.bounds.box;
+        auto box = output.bounds.getBoxNd();
         box.p2[D] = box.p1[D];
-        output.bounds = Position(output.bounds.T, box);
+        output.bounds = Position(output.bounds.getTransformation(), box);
         output.clipping = Position::invalid(); //disable clipping
       }
     }
@@ -1007,7 +1007,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix M)
     VisusAssert(child.M.submatrix(child.M.getSpaceDim()-1,child.M.getSpaceDim()-1).isIdentity());
 
   //VisusInfo() << "midx single M("<<child.M.toString()<<") box("<<child.dataset->box.toString(false)<<")";
-  //VisusInfo() << " bounds("<<Position(child.M,child.dataset->box).withoutTransformation().toString(false)<<")";
+  //VisusInfo() << " bounds("<<Position(child.M,child.dataset->box).toAxisAlignedBox().toString(false)<<")";
 
   addChild(child);
 
@@ -1172,7 +1172,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       auto PHYSICAL_BOX = BoxNd::invalid();
       for (auto it : childs)
       {
-        auto physical_box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation();
+        auto physical_box = Position(it.second.M, it.second.dataset->getBox()).toAxisAlignedBox();
         PHYSICAL_BOX = PHYSICAL_BOX.getUnion(physical_box);
       }
 
@@ -1206,7 +1206,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     IDXFILE.box = BoxNi::invalid();
     for (auto it : childs)
     {
-      auto box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().castTo<BoxNi>();
+      auto box = Position(it.second.M, it.second.dataset->getBox()).toAxisAlignedBox().castTo<BoxNi>();
       IDXFILE.box = IDXFILE.box.getUnion(box);
     }
   }

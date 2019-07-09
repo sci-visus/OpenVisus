@@ -678,8 +678,9 @@ namespace GuiFactory
     }
 
     //setMatrix
-    void setMatrix(const Matrix& value, bool bForce = false)
+    void setMatrix(Matrix value, bool bForce = false)
     {
+      value.setSpaceDim(4);
       auto old_value = getMatrix();
       for (int R = 0; R < 4; R++) {
         for (int C = 0; C < 4; C++)

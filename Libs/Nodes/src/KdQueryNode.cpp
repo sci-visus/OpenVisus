@@ -127,7 +127,7 @@ public:
       return false;
 
     //remove transformation
-    position = Position(position.withoutTransformation().castTo<BoxNi>().getIntersection(dataset->getBox()));
+    position = Position(position.toAxisAlignedBox().castTo<BoxNi>().getIntersection(dataset->getBox()));
     if (!position.valid()) 
       return false;
 

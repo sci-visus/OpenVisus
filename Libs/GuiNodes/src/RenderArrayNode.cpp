@@ -205,9 +205,9 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   //in 2d I render the box (0,0)  x(1,1)
   gl.pushModelview();
   {
-    auto box=data.bounds.box;
+    auto box=data.bounds.getBoxNd();
 
-    gl.multModelview(data.bounds.T);
+    gl.multModelview(data.bounds.getTransformation());
     gl.multModelview(Matrix::translate(box.p1));
     gl.multModelview(Matrix::nonZeroScale(box.size()));
     if (shader->config.texture_dim==2)

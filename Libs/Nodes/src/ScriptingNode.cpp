@@ -105,9 +105,9 @@ public:
     {
       if (output.dims[D] == 1 && input.dims[D] > 1)
       {
-        auto box = output.bounds.box;
+        auto box = output.bounds.getBoxNd();
         box.p2[D] = box.p1[D];
-        output.bounds = Position(output.bounds.T, box);
+        output.bounds = Position(output.bounds.getTransformation(), box);
         output.clipping = Position::invalid(); //disable clipping
       }
     }

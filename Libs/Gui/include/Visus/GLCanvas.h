@@ -293,10 +293,8 @@ public:
   void pushClippingBox(const Position& position)
   {
     auto save_modelview = getModelview();
-    auto T = position.T;
-    T.setSpaceDim(4);
-    multModelview(T);
-    pushClippingBox(position.box);
+    multModelview(position.getTransformation().withSpaceDim(4));
+    pushClippingBox(position.getBoxNd());
     loadModelview(save_modelview);
   }
 

@@ -179,7 +179,7 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query)
   Position position=query->position;
 
   //not supported
-  if (!position.T.isIdentity())
+  if (!position.getTransformation().isIdentity())
   {
     query->setFailed("Position has non-identity transformation");
     return false;
