@@ -159,7 +159,7 @@ private:
     child->writeString("name", name);
     child->writeString("url", getDatasetUrl(name));
 
-    dataset->bServerMode = true;
+    dataset->setServerMode(true);
 
     //automatically add the childs of a multiple datasets
     int ret = 1;

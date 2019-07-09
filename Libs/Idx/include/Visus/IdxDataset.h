@@ -101,7 +101,7 @@ public:
 
   //getLevelBox
   virtual LogicBox getLevelBox(int H) override {
-    auto hzorder=HzOrder(bitmask,getMaxResolution());
+    auto hzorder=HzOrder(getBitmask(),getMaxResolution());
     return getLevelBox(hzorder,H);
   }
 

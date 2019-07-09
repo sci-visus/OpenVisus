@@ -791,7 +791,7 @@ bool IdxDataset::compressDataset(String compression)
   BigInt original_bytesize =0;
   for (auto field : idxfile.fields)
     original_bytesize += field.dtype.getByteSize();
-  original_bytesize *= this->box.size().innerProduct();
+  original_bytesize *= this->getBox().size().innerProduct();
 
   auto ratio = overall_file_size/double(original_bytesize);
 
@@ -809,6 +809,7 @@ BoxNi IdxDataset::adjustFilterBox(Query* query,DatasetFilter* filter,BoxNi user_
   int MaxH=query->max_resolution;
 
   //there are some case when I need alignment with pow2 box, for example when doing kdquery=box with filters
+  auto bitmask = getBitmask();
   HzOrder hzorder(bitmask,MaxH);
   int pdim = bitmask.getPointDim();
 
@@ -888,6 +889,7 @@ LogicBox IdxDataset::getAddressRangeBox(BigInt HzFrom,BigInt HzTo,int max_resolu
 ////////////////////////////////////////////////////////////////////////
 SharedPtr<Query> IdxDataset::createEquivalentQuery(int mode,SharedPtr<BlockQuery> block_query)
 {
+  auto bitmask = getBitmask();
   int fromh = HzOrder::getAddressResolution(bitmask,block_query->start_address);
   int toh   = HzOrder::getAddressResolution(bitmask,block_query->end_address-1);
   int maxh  = std::max(bitmask.getMaxResolution(),toh);
@@ -961,7 +963,7 @@ SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuer
   //no type, create default
   if (type.empty()) 
   {
-    Url url = config.readString("url", this->url.toString());
+    Url url = config.readString("url", getUrl().toString());
 
     //local disk access
     if (url.isFile())
@@ -1004,8 +1006,8 @@ bool IdxDataset::openFromUrl(Url url)
     return false;
   }
 
-  this->url = url;
-  this->dataset_body = idxfile.toString();
+  setUrl(url);
+  setDatasetBody(idxfile.toString());
   setIdxFile(idxfile);
   return true;
 }
@@ -1024,17 +1026,19 @@ void IdxDataset::setIdxFile(IdxFile value)
   VisusAssert(value.valid());
   this->idxfile=value;
 
-  this->bitmask= value.bitmask;
-  this->default_bitsperblock= value.bitsperblock;
-  this->box= value.box;
-  this->timesteps= value.timesteps;
+  auto bitmask = value.bitmask;
+
+  setBitmask(bitmask);
+  setDefaultBitsPerBlock(value.bitsperblock);
+  setBox(value.box);
+  setTimesteps(value.timesteps);
   
-  this->default_scene  = value.scene;
+  setDefaultScene(value.scene);
     
-  if (StringUtils::startsWith(this->default_scene, "."))
+  if (StringUtils::startsWith(value.scene, "."))
   {
-    auto dir = this->url.getPath().substr(0, this->url.getPath().find_last_of("/"));
-    this->default_scene = dir  + "/" + value.scene;
+    auto dir = getUrl().getPath().substr(0, getUrl().getPath().find_last_of("/"));
+    setDefaultScene(dir  + "/" + value.scene);
   }
 
   for (auto field : value.fields)
@@ -1042,7 +1046,7 @@ void IdxDataset::setIdxFile(IdxFile value)
 
   //cache address conversion
   {
-    auto key = this->bitmask.toString();
+    auto key = bitmask.toString();
     {
       ScopedLock lock(HZADDRESS_CONVERSION_BOXQUERY_LOCK);
       auto it = HZADDRESS_CONVERSION_BOXQUERY.find(key);
@@ -1052,7 +1056,7 @@ void IdxDataset::setIdxFile(IdxFile value)
 
     if (!this->hzaddress_conversion_boxquery)
     {
-      this->hzaddress_conversion_boxquery = std::make_shared<IdxBoxQueryHzAddressConversion>(this->bitmask);
+      this->hzaddress_conversion_boxquery = std::make_shared<IdxBoxQueryHzAddressConversion>(bitmask);
       {
         ScopedLock lock(HZADDRESS_CONVERSION_BOXQUERY_LOCK);
         HZADDRESS_CONVERSION_BOXQUERY[key] = this->hzaddress_conversion_boxquery;
@@ -1062,9 +1066,9 @@ void IdxDataset::setIdxFile(IdxFile value)
 
   //create the loc-cache only for 3d data, in 2d I know I'm not going to use it!
   //instead in 3d I will use it a lot (consider a slice in odd position)
-  if (value.bitmask.getPointDim() >= 3 && !this->hzaddress_conversion_pointquery)
+  if (bitmask.getPointDim() >= 3 && !this->hzaddress_conversion_pointquery)
   {
-    auto key = std::make_pair(this->bitmask.toString(), this->getMaxResolution());
+    auto key = std::make_pair(bitmask.toString(), this->getMaxResolution());
     {
       ScopedLock lock(HZADDRESS_CONVERSION_POINTQUERY_LOCK);
       auto it = HZADDRESS_CONVERSION_POINTQUERY.find(key);
@@ -1074,7 +1078,7 @@ void IdxDataset::setIdxFile(IdxFile value)
 
     if (!this->hzaddress_conversion_pointquery)
     {
-      this->hzaddress_conversion_pointquery = std::make_shared<IdxPointQueryHzAddressConversion>(this->bitmask,this->getMaxResolution());
+      this->hzaddress_conversion_pointquery = std::make_shared<IdxPointQueryHzAddressConversion>(bitmask,this->getMaxResolution());
       {
         ScopedLock lock(HZADDRESS_CONVERSION_POINTQUERY_LOCK);
         HZADDRESS_CONVERSION_POINTQUERY[key] = this->hzaddress_conversion_pointquery;
@@ -1289,6 +1293,7 @@ PointNi IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frust
       screen_points.push_back(map.projectPoint(points[I]));
   }
 
+  auto bitmask = getBitmask();
   int pdim = bitmask.getPointDim();
 
   PointNi virtual_worlddim=PointNi::one(pdim);
@@ -1568,6 +1573,7 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
 
   int end_resolution=query->getEndResolution();
 
+  auto bitmask = getBitmask();
   int             pdim               = this->getPointDim();
   int             maxh               = query->max_resolution;
   BoxNi           bounds             = bitmask.upgradeBox(this->getBox(),maxh);

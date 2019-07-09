@@ -143,17 +143,7 @@ SharedPtr<Access> Dataset::createRamAccess(Int64 available, bool can_read, bool 
   ret->can_read  = can_read;
   ret->can_write = can_write;
   ret->bitsperblock = this->getDefaultBitsPerBlock();
-
-  if (this->ram_access)
-  {
-    ret->shareMemoryWith(this->ram_access);
-  }
-  else
-  {
-    ret->setAvailableMemory(available);
-    this->ram_access = ret;
-  }
-
+  ret->setAvailableMemory(available);
   return ret;
 }
 
@@ -259,8 +249,9 @@ SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config)
     return SharedPtr<Dataset>();
 
   auto it=FindDataset(name, config);
+  config = it ? *it : StringTree();
 
-  Url url(it? it->readString("url") : name);
+  Url url(config.readString("url", name));
   if (!url.valid())
   {
     VisusWarning() << "LoadDataset(" << name << ") failed. Not a valid url";
@@ -319,9 +310,9 @@ SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config)
     return SharedPtr<Dataset>();
   }
 
-  ret->url = url;
-  ret->config = it? *it :StringTree();
-  ret->kdquery_mode = KdQueryMode::fromString(ret->config.readString("kdquery", url.getParam("kdquery")));
+  ret->setUrl(url);
+  ret->setConfig(config);
+  ret->setKdQueryMode(KdQueryMode::fromString(config.readString("kdquery", url.getParam("kdquery"))));
 
   if (!ret->openFromUrl(url.toString())) 
   {

@@ -56,7 +56,7 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
 
   this->config.writeString("url", url.toString());
 
-  bool disable_async = config.readBool("disable_async", dataset->bServerMode);
+  bool disable_async = config.readBool("disable_async", dataset->isServerMode());
 
   if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
     this->netservice = std::make_shared<NetService>(nconnections);

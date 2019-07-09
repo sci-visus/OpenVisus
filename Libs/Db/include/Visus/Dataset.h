@@ -108,23 +108,6 @@ class VISUS_DB_API Dataset
 {
 public:
 
-  Url                     url;
-  String                  dataset_body;
-  DatasetBitmask          bitmask;
-  int                     default_bitsperblock = 0;
-  BoxNi                   box;
-  DatasetTimesteps        timesteps;
-  String                  default_scene;
-
-  StringTree              config;
-  SharedPtr<RamAccess>    ram_access;
-  int                     kdquery_mode = KdQueryMode::NotSpecified;
-
-  std::vector<Field>      fields;
-  std::map<String, Field> find_field;
-
-  bool                    bServerMode = false;
-
   //constructor
   Dataset() {
   }
@@ -163,9 +146,14 @@ public:
     this->url = value;
   }
 
-  //setDatasetBody (internal use only)
-  void setDatasetBody(String value) {
-    this->dataset_body = value;
+  //isServerMode
+  bool isServerMode() const {
+    return bServerMode;
+  }
+
+  //setServerMode
+  void setServerMode(bool value) {
+    this->bServerMode = value;
   }
 
   //getBitmask
@@ -173,9 +161,19 @@ public:
     return bitmask;
   }
 
+  //setBitmask
+  void setBitmask(const DatasetBitmask& value) {
+    this->bitmask = value;
+  }
+
   //getBox
-  BoxNi getBox() const {
+  const BoxNi& getBox() const {
     return box;
+  }
+
+  //setBox
+  void setBox(const BoxNi& value) {
+    this->box = value;
   }
 
   //getTimesteps
@@ -183,9 +181,19 @@ public:
     return timesteps;
   }
 
+  //setTimesteps
+  void setTimesteps(const DatasetTimesteps& value) {
+    this->timesteps = value;
+  }
+
   //getDefaultBitsPerBlock
   int getDefaultBitsPerBlock() const {
     return default_bitsperblock;
+  }
+
+  //setDefaultBitsPerBlock
+  void setDefaultBitsPerBlock(int value) {
+    this->default_bitsperblock = value;
   }
 
   //getTotalnumberOfBlocks
@@ -196,6 +204,11 @@ public:
   //getConfig
   const StringTree& getConfig() const {
     return config;
+  }
+
+  //setConfig
+  void setConfig(const StringTree& value) {
+    this->config = value;
   }
 
   //getDefaultTime
@@ -242,12 +255,24 @@ public:
     return fields.empty()? Field() : fields.front();
   }
   
+  //getDefaultScene
   String getDefaultScene() const {
     return default_scene.empty()? "" : default_scene;
   }
 
+  //setDefaultScene
+  void setDefaultScene(String value) {
+    this->default_scene = value;
+  }
+
+  //clearFields
+  void clearFields() {
+    this->fields.clear();
+    this->find_field.clear();
+  }
+
   //getFields
-  std::vector<Field> getFields() const {
+  std::vector<Field>& getFields() {
     return fields;
   }
 
@@ -255,6 +280,11 @@ public:
   String getDatasetBody() const {
     return dataset_body.empty() ? getUrl().toString() : dataset_body;
   } 
+
+  //setDatasetBody
+  void setDatasetBody(String value) {
+    this->dataset_body = value;
+  }
 
   // getDatasetInfos
   String getDatasetInfos() const;
@@ -391,6 +421,20 @@ public:
   //readFromObjectStream
   void readFromObjectStream(ObjectStream& istream);
 
+private:
+
+  Url                     url;
+  String                  dataset_body;
+  StringTree              config;
+  DatasetTimesteps        timesteps;
+  std::vector<Field>      fields;
+  std::map<String, Field> find_field;
+  DatasetBitmask          bitmask;
+  BoxNi                   box;
+  String                  default_scene;
+  int                     kdquery_mode = KdQueryMode::NotSpecified;
+  bool                    bServerMode = false;
+  int                     default_bitsperblock = 0;
 };
 
 

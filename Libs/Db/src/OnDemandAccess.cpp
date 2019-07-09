@@ -75,7 +75,7 @@ public:
   OnDemandAccessExternalPimpl(OnDemandAccess* owner, Dataset* dataset)
     : OnDemandAccess::Pimpl(owner)
   {
-    if (!dataset->bServerMode)
+    if (!dataset->isServerMode())
     {
       if (auto nconnections = OnDemandAccess::Defaults::nconnections)
         this->netservice = std::make_shared<NetService>(nconnections);

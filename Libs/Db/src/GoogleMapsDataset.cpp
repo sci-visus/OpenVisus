@@ -66,7 +66,7 @@ public:
 
     this->config.writeString("url", url.toString());
 
-    bool disable_async = config.readBool("disable_async", dataset->bServerMode);
+    bool disable_async = config.readBool("disable_async", dataset->isServerMode());
 
     if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
       this->netservice = std::make_shared<NetService>(nconnections);
@@ -340,6 +340,7 @@ Point3i GoogleMapsDataset::getTileCoordinate(BigInt start_address,BigInt end_add
 {
   int bitsperblock=this->getDefaultBitsPerBlock();
   int samplesperblock=((BigInt)1)<<bitsperblock;
+  auto bitmask = getBitmask();
 
   VisusAssert(end_address==start_address+samplesperblock);
 
@@ -399,18 +400,20 @@ bool GoogleMapsDataset::openFromUrl(Url url)
   overall_dims[0]=tile_nsamples[0] * (((Int64)1)<<nlevels);
   overall_dims[1]=tile_nsamples[1] * (((Int64)1)<<nlevels);
 
-  this->url=url.toString();
-  this->bitmask=DatasetBitmask::guess(overall_dims);
-  this->default_bitsperblock=Utils::getLog2(tile_nsamples[0]*tile_nsamples[1]);
-  this->box=BoxNi(PointNi(0,0),overall_dims);
-  this->timesteps=DatasetTimesteps();
-  this->timesteps.addTimestep(0);
+  this->setUrl(url.toString());
+  this->setBitmask(DatasetBitmask::guess(overall_dims));
+  this->setDefaultBitsPerBlock(Utils::getLog2(tile_nsamples[0]*tile_nsamples[1]));
+  this->setBox(BoxNi(PointNi(0,0),overall_dims));
+
+  auto timesteps = DatasetTimesteps();
+  timesteps.addTimestep(0);
+  setTimesteps(timesteps);
 
   addField(Field("DATA",dtype));
 
   //UseQuery not supported? actually yes, but it's a nonsense since a query it's really a block query
-  if (this->kdquery_mode==KdQueryMode::UseQuery)
-    this->kdquery_mode=KdQueryMode::UseBlockQuery;
+  if (getKdQueryMode()==KdQueryMode::UseQuery)
+    setKdQueryMode(KdQueryMode::UseBlockQuery);
 
   return true;
 }

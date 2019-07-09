@@ -84,7 +84,7 @@ public:
       }
     }
 
-    bool disable_async = CONFIG.readBool("disable_async", VF->bServerMode);
+    bool disable_async = CONFIG.readBool("disable_async", VF->isServerMode());
 
     //TODO: special case when I can use the blocks
     //if (VF->childs.size() == 1 && VF->sameLogicSpace(VF->childs[0]))
@@ -202,7 +202,7 @@ public:
 
     VisusAssert(!VF->bMosaic);
 
-    this->engine = (!VF->bServerMode)? VF->python_engine_pool->createEngine() : std::make_shared<PythonEngine>();
+    this->engine = (!VF->isServerMode())? VF->python_engine_pool->createEngine() : std::make_shared<PythonEngine>();
 
     {
       ScopedAcquireGil acquire_gil;
@@ -246,7 +246,7 @@ public:
       engine->delModuleAttr("input");
     }
 
-    if (!VF->bServerMode)
+    if (!VF->isServerMode())
       VF->python_engine_pool->releaseEngine(this->engine);
   }
 
@@ -415,7 +415,7 @@ public:
     // if you use this wrong version, for voronoi in 2d you will see some missing pieces around
     // solution is to limit the QUERY_BOX into a more "local" one
 #if 1
-    QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).toAxisAlignedBox().getIntersection(QUERY_BOX);
+    QUERY_BOX = Position(QUERY_T.invert(), M, vf->getBox()).toAxisAlignedBox().getIntersection(QUERY_BOX);
 #endif
 
     query->position = Position(M.invert(), QUERY_T, QUERY_BOX);
@@ -728,7 +728,7 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
 
   if (type.empty())
   {
-    Url url = config.readString("url",this->url.toString());
+    Url url = config.readString("url",this->getUrl().toString());
 
     //local disk access
     if (url.isFile())
@@ -861,7 +861,7 @@ Field IdxMultipleDataset::createField(String operation_name)
 String IdxMultipleDataset::removeAliases(String url)
 {
   //replace some alias
-  auto URL = this->url;
+  auto URL = this->getUrl();
 
   String cfd = URL.isFile() ? Path(URL.getPath()).getParent().toString() : "";
 
@@ -923,14 +923,14 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix M)
     VisusReleaseAssert(!child.mosaic_filename_template.empty());
     child.mosaic_filename_template = removeAliases(child.mosaic_filename_template);
 
-    other->url = url;
+    other->setUrl(url);
     other->idxfile.filename_template = child.mosaic_filename_template;
     other->idxfile.validate(url); VisusAssert(other->idxfile.valid());
     child.dataset = other;
   }
   else
   {
-    child.dataset = LoadDatasetEx(url,this->config);
+    child.dataset = LoadDatasetEx(url,this->getConfig());
   }
 
   if (!child.dataset) {
@@ -1096,9 +1096,7 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream, Matrix T)
 ///////////////////////////////////////////////////////////
 void IdxMultipleDataset::computeDefaultFields()
 {
-  //fields
-  this->fields.clear();
-  this->find_field.clear();
+  clearFields();
 
   addField(createField("ArrayUtils.average"));
   addField(createField("ArrayUtils.add"));
@@ -1137,8 +1135,8 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   BODY.writeString("url", URL.toString());
 
-  this->url = URL;
-  this->dataset_body = BODY.toString();
+  setUrl(URL);
+  setDatasetBody(BODY.toString());
 
   ObjectStream istream(BODY, 'r');
 
@@ -1233,7 +1231,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     IDXFILE.fields = first->getFields();
     IDXFILE.bitsperblock = first->getDefaultBitsPerBlock();
 
-    IDXFILE.validate(this->url);
+    IDXFILE.validate(this->getUrl());
     VisusReleaseAssert(IDXFILE.valid());
 
     //VisusInfo() << "MIDX idxfile is the following" << std::endl << IDXFILE.toString();
@@ -1267,8 +1265,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   if (istream.getCurrentContext()->findChildWithName("field"))
   {
-    this->fields.clear();
-    this->find_field.clear();
+    clearFields();
 
     int generate_name = 0;
 
