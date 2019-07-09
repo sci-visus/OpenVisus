@@ -118,7 +118,7 @@ public:
       {
         std::ostringstream out;
         out<<"Query msec(" <<t1.elapsedMsec()<<") "
-        <<"level("<<N<<"/"<<query->end_resolutions.size()<<"/"<<query->cur_resolution<<"/"<<query->max_resolution<<") "
+        <<"level("<<N<<"/"<<query->end_resolutions.size()<<"/"<<query->cur_resolution<<"/"<<dataset->getMaxResolution()<<") "
         <<"dims(" <<buffer.dims.toString()<<") "
         <<"dtype("<<buffer.dtype.toString()<<") "
         <<"filter("<<(query->filter.value?query->filter.value->getName():"nullptr")<<") "

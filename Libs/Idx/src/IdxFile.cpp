@@ -203,7 +203,7 @@ void IdxFile::validate(Url url)
     return;
   }
 
-  if (!bitmask.hasRegExpr() && blocksperfile>(((BigInt)1)<<(bitmask.getMaxResolution()-bitsperblock)))
+  if (blocksperfile>(((BigInt)1)<<(bitmask.getMaxResolution()-bitsperblock)))
   {
     //this can happen with PIDX
     //VisusWarning()<<"wrong blockperfile("<<blocksperfile<<"), with bitmask.getMaxResolution()="<<bitmask.getMaxResolution()<<" and bitsperblock("<<bitsperblock<<")";

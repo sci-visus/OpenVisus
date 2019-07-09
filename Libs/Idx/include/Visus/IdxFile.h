@@ -58,7 +58,7 @@ public:
   //version
   int version=0;
 
-  //bitmask (example: 010101{01}*)
+  //bitmask (example: V010101)
   DatasetBitmask bitmask;
 
   // bounding box of data stored in the file, with both box.from and box.to included (see Visus(Set/Get)BoxNd) 

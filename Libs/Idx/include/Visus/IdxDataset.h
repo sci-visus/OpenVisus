@@ -88,22 +88,13 @@ public:
   static void tryRemoveLockAndCorruptedBinaryFiles(String directory);
 
   // removeFiles all files bolonging to this visus file 
-  void removeFiles(int maxh = -1);
+  void removeFiles();
 
   //compressDataset
   virtual bool compressDataset(String compression) override;
 
-  //getAddressRangeBox
-  LogicBox getAddressRangeBox(BigInt start_address,BigInt end_address, int max_resolution);
-
   //getLevelBox
-  LogicBox getLevelBox(HzOrder& hzorder, int H);
-
-  //getLevelBox
-  virtual LogicBox getLevelBox(int H) override {
-    auto hzorder=HzOrder(getBitmask(),getMaxResolution());
-    return getLevelBox(hzorder,H);
-  }
+  virtual LogicBox getLevelBox(int H) override;
 
   //adjustFilterBox
   BoxNi adjustFilterBox(Query* query,DatasetFilter* filter,BoxNi box,int H);
@@ -126,9 +117,7 @@ public:
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
 
   //getAddressRangeBox
-  virtual LogicBox getAddressRangeBox(BigInt start_address,BigInt end_address) override {
-    return getAddressRangeBox(start_address,end_address,-1);
-  }
+  virtual LogicBox getAddressRangeBox(BigInt start_address, BigInt end_address) override;
 
   //convertBlockQueryToRowMajor
   virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override;

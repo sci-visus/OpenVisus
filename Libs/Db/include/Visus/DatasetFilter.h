@@ -87,7 +87,7 @@ public:
   {return dtype;}
 
   //getFilterStep
-  PointNi getFilterStep(int H,int MaxH) const; 
+  PointNi getFilterStep(int H) const; 
 
   //dropExtraComponentIfExists
   Array dropExtraComponentIfExists(Array src) const 

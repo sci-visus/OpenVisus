@@ -129,8 +129,7 @@ class TestIdx(unittest.TestCase):
 		box=dataset.getBox()
 		access=dataset.createAccess()
 		field=dataset.getDefaultField()
-		MaxH=dataset.getBitmask().getMaxResolution()
-		self.assertEqual(MaxH,12) #in the bitmask_pattern "V012012012012" the very last bit of the bitmask is at position MaxH=12 
+		self.assertEqual(dataset.getMaxResolution(),12) #in the bitmask_pattern "V012012012012" the very last bit of the bitmask is at position MaxH=12 
 		
 		#I want to read data from first slice Z=0
 		slice_box=box.getZSlab(0,1);

@@ -404,7 +404,6 @@ public:
       end_resolutions.insert(end_resolution);
     }
     query->end_resolutions = std::vector<int>(end_resolutions.begin(), end_resolutions.end());
-    query->max_resolution = vf->getMaxResolution();
 
     auto QUERY_T   = QUERY->position.getTransformation();
     auto QUERY_BOX = QUERY->position.getBoxNd();

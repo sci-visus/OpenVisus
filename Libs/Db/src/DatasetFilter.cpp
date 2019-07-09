@@ -56,7 +56,7 @@ DatasetFilter::~DatasetFilter()
 
 
 ///////////////////////////////////////////////////////////////////////////////////
-PointNi DatasetFilter::getFilterStep(int H,int MaxH) const
+PointNi DatasetFilter::getFilterStep(int H) const
 {
   /* Example ('-' means the same group for the filter): 
     
@@ -90,7 +90,7 @@ PointNi DatasetFilter::getFilterStep(int H,int MaxH) const
 
   DatasetBitmask bitmask=dataset->getBitmask();
   int pdim = bitmask.getPointDim();
-  PointNi step=bitmask.upgradeBox(bitmask.getPow2Box(),MaxH).size();
+  PointNi step= bitmask.getPow2Box().size();
   for (int K=0;K<H;K++)
   {
     int bit=bitmask[K];
@@ -136,7 +136,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
     VisusInfo()<<"Applying filter to dataset resolution("<<H<<") ";
     int bit=bitmask[H];
       
-    Int64 FILTERSTEP=this->getFilterStep(H,dataset->getMaxResolution())[bit];
+    Int64 FILTERSTEP=this->getFilterStep(H)[bit];
 
     //need to align the from so that the first sample is filter-aligned
     PointNi From = box.p1;

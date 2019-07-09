@@ -52,7 +52,6 @@ public:
   double        time;
   BoxNi         box;
   Field         field;
-  int           maxh; //default is write at max resolution!
   int           fromh;
   int           toh;
   bool          bDisableFilters;
@@ -62,9 +61,8 @@ public:
   {
     this->time           = dataset->getDefaultTime();
     this->field          = dataset->getDefaultField();
-    this->maxh           = dataset->getMaxResolution(); //default is max resolution
-    this->fromh          = 0;
-    this->toh            = maxh;
+    this->fromh          = 0; //default is max resolution
+    this->toh            = dataset->getMaxResolution();
   }
 
   //exec
@@ -97,10 +95,6 @@ public:
           return false;
         }
       }
-      else if (args[I]=="--maxh")
-      {
-        maxh=cint(args[++I]);
-      }
       else if (args[I]=="--fromh")
       {
         fromh=cint(args[++I]);
@@ -115,9 +109,9 @@ public:
       }
     }
 
-    if (!(fromh<=toh && toh<=maxh))
+    if (!(fromh<=toh && toh<=dataset->getMaxResolution()))
     {
-      VisusWarning()<<"invalid --maxh "<<maxh<<" --fromh "<<fromh<<" --toh "<<toh;
+      VisusWarning()<<"invalid  --fromh "<<fromh<<" --toh "<<toh;
       return false;
     }
 
@@ -178,7 +172,6 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
   query->position=args.box;
   query->start_resolution=args.fromh;
   query->end_resolutions={args.toh};
-  query->max_resolution=args.maxh;
 
   if (args.bDisableFilters)
   {
@@ -239,7 +232,6 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
   query->position=args.box;
   query->start_resolution=args.fromh;
   query->end_resolutions={args.toh};
-  query->max_resolution=args.maxh;
 
   if (!dataset->beginQuery(query))
   {

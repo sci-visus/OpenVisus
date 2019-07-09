@@ -182,13 +182,8 @@ public:
     DatasetBitmask bitmask=dataset->getBitmask();
 
     int pdim = bitmask.getPointDim();
-
-    //pow2_box
-    PointNi pow2_dims=PointNi::one(pdim);
-    for (int H = 1; H <= dataset->getMaxResolution(); H++)
-      pow2_dims[bitmask[H]] <<= 1;
-
-    BoxNi pow2_box(PointNi(pdim),pow2_dims);
+    auto pow2_dims= bitmask.getPow2Dims();
+    auto pow2_box=bitmask.getPow2Box();
 
     int max_resolution=dataset->getBitmask().getMaxResolution();
     VisusAssert(bitsperblock<=max_resolution);

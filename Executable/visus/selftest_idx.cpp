@@ -44,7 +44,6 @@ using namespace Visus;
 void Tutorial_1(String default_layout);
 void Tutorial_2(String default_layout);
 void Tutorial_3(String default_layout);
-void Tutorial_4(String default_layout);
 void Tutorial_6(String default_layout);
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -201,7 +200,7 @@ public:
     int                  firsth        = Utils::getRandInteger(0,maxh);
     int                  lasth         = Utils::getRandInteger(firsth,maxh);
     int                  deltah        = firsth==lasth?1:Utils::getRandInteger(1,lasth-firsth);
-    BoxNi                box           = Utils::getRandInteger(0,1)?vf->getBitmask().upgradeBox(vf->getLogicBox(),maxh):getRandomBox();
+    BoxNi                box           = Utils::getRandInteger(0,1)? vf->getLogicBox() : getRandomBox();
     bool                 bInterpolate  = Utils::getRandInteger(0,1)?true:false;
     
     static int nactivation=0;
@@ -319,10 +318,7 @@ void execTestIdx(int max_seconds)
     //remove data from tutorial_1
     if (auto vf= LoadDataset<IdxDataset>("./temp/tutorial_1.idx"))
       vf->removeFiles();
- 
-    VisusInfo()<<"Running Tutorial_4...";
-    Tutorial_4(default_layout);
-    VisusInfo()<<"...done";
+
 
     VisusInfo()<<"Running Tutorial_6...";
     Tutorial_6(default_layout);

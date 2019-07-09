@@ -596,7 +596,7 @@ NetResponse ModVisus::handleOpenSeaDragon(const NetRequest& request)
 
   int w = (int)dataset->getLogicBox().p2[0];
   int h = (int)dataset->getLogicBox().p2[1];
-  int maxh = dataset->getBitmask().getMaxResolution();
+  int maxh = dataset->getMaxResolution();
   int bitsperblock = dataset->getDefaultBitsPerBlock();
 
   std::ostringstream out;
@@ -764,7 +764,6 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   query->field = field;
   query->start_resolution = fromh;
   query->end_resolutions = { endh };
-  query->max_resolution = maxh;
   query->aborted = Aborted(); //TODO: how can I get the aborted from network?
 
                               //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)

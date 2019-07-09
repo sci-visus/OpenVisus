@@ -100,8 +100,8 @@ public:
   std::function<void(Array)> incrementalPublish;
 
   /*
-    DatasetBitmask bitmask("V012{012}*);
-    V012012012012012012012012012012012...... 
+    DatasetBitmask
+    V012012012012012012012012012012012
     0-----------------------------max
              |         |
     start    current   end
@@ -111,7 +111,6 @@ public:
   int              start_resolution=0;
   int              cur_resolution=-1;
   std::vector<int> end_resolutions;
-  int              max_resolution=0;
   int              query_cursor=-1; 
 
   class VISUS_DB_API Filter
@@ -129,16 +128,6 @@ public:
 
   //filter_query (internal use only)
   SharedPtr<Query> filter_query;
-
-  //(internal use only)
-#if !SWIG
-  class AddressConversion {
-  public:
-    virtual ~AddressConversion() {}
-  };
-  CriticalSection              address_conversion_lock;
-  SharedPtr<AddressConversion> address_conversion;
-#endif
 
   //for midx
   struct

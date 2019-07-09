@@ -470,9 +470,8 @@ public:
 
     auto idxfile = vf->idxfile;
 
-    int maxh = vf->getMaxResolution();
-    HzOrder hzorder(idxfile.bitmask, maxh);
-    BigInt last_block = (hzorder.getAddress(hzorder.getLevelP2Included(maxh)) >> idxfile.bitsperblock) + 1;
+    HzOrder hzorder(idxfile.bitmask);
+    BigInt last_block = vf->getTotalNumberOfBlocks();
     int    samplesperblock = 1 << idxfile.bitsperblock;
 
     auto access = vf->createAccessForBlockQuery();

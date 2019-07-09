@@ -61,7 +61,8 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& viewdep,Position po
   if (progression==Query::GuessProgression)
     progression=(Query::Progression)(dataset_dim == 2 ? dataset_dim * 3 : dataset_dim * 4);
 
-  int final_resolution  = this->getMaxResolution();
+  auto maxh = this->getMaxResolution();
+  int final_resolution  = maxh;
   
   // valerio's algorithm, find the final view dependent resolution (endh)
   // (the default endh is the maximum resolution available)
@@ -110,7 +111,7 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& viewdep,Position po
       while (num>factor) 
         num>>=1;
       
-      int H=this->getMaxResolution();
+      int H= maxh;
       for (;num>1 && H>=0;H--)
       {
         if (bitmask[H]==dataset_axis) 
@@ -122,7 +123,7 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& viewdep,Position po
   }
 
   //quality
-  final_resolution=std::min(getMaxResolution(),quality+final_resolution);
+  final_resolution=std::min(maxh,quality+final_resolution);
 
   std::vector<int> ret;
   ret.push_back(std::max(0,final_resolution-progression)); 
@@ -341,9 +342,10 @@ String Dataset::getDatasetInfos() const
   std::ostringstream out;
 
   int bitsperblock=getDefaultBitsPerBlock();
+  int samplesperblock = 1 << bitsperblock;
 
-  BigInt total_number_of_samples = ((BigInt)1)<<bitmask.getMaxResolution();
-  BigInt total_number_of_blocks  = total_number_of_samples>>bitsperblock;
+  BigInt total_number_of_blocks  = getTotalNumberOfBlocks();
+  BigInt total_number_of_samples = total_number_of_blocks * samplesperblock;
 
   out<<"Visus file infos                                         "<<std::endl;
   out<<"  Bounds                                                 "<< getLogicBox().toOldFormatString()<<std::endl;
@@ -352,7 +354,6 @@ String Dataset::getDatasetInfos() const
   out<<"  number of blocks                                       "<<total_number_of_blocks<<std::endl;
   out<<"  timesteps                                              "<<std::endl<<getTimesteps().toString()<<std::endl;
   out<<"  bitmask                                                "<<bitmask.toString()<<std::endl;
-  out<<"  resolution range                                       [0,"<<bitmask.getMaxResolution()<<"]"<<std::endl;
 
   out<<"  Fields:"<<std::endl;
   for (auto field : this->fields)
@@ -522,8 +523,6 @@ Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, dou
   query->time = time;
   query->field = field;
   query->position = box;
-  query->max_resolution = getMaxResolution();
-  query->end_resolutions = { query->max_resolution };
 
   if (!beginQuery(query))
     return Array();
@@ -545,9 +544,6 @@ bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, dou
   query->time = time;
   query->field = field;
   query->position = box;
-  query->start_resolution = 0;
-  query->max_resolution = this->getMaxResolution();
-  query->end_resolutions = { query->max_resolution };
 
   if (!beginQuery(query))
     return false;
@@ -622,11 +618,8 @@ bool Dataset::beginQuery(SharedPtr<Query> query)
     query->end_resolutions={this->getMaxResolution()};
 
   #ifdef VISUS_DEBUG
-  if (!this->getBitmask().hasRegExpr())
-  {  
-    for (int I=0;I<(int)query->end_resolutions.size();I++)
-      VisusAssert(query->end_resolutions[I]<=this->getMaxResolution());
-  }
+  for (int I=0;I<(int)query->end_resolutions.size();I++)
+    VisusAssert(query->end_resolutions[I]<=this->getMaxResolution());
   #endif
 
   return true;
@@ -783,12 +776,11 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
   VisusAssert(access);
 
   auto pdim = this->getPointDim();
-  auto maxh = this->getMaxResolution();
   auto bitmask = this->getBitmask();
   auto bitsperblock = access->bitsperblock;
   auto nsamplesperblock = 1 << bitsperblock;
 
-  VisusAssert(H >= bitsperblock && H <= maxh);
+  VisusAssert(H >= bitsperblock);
 
   LogicBox level_box;
 

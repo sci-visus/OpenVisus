@@ -151,7 +151,6 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query)
     return false;
 
   VisusAssert(query->start_resolution==0);
-  VisusAssert(query->max_resolution==this->getBitmask().getMaxResolution());
 
   {
     std::set<int> good;
@@ -454,12 +453,10 @@ bool GoogleMapsDataset::setCurrentEndResolution(SharedPtr<Query> query)
     return false;
 
   VisusAssert(end_resolution % 2==0);
-
-  int max_resolution=query->max_resolution;
     
   //necessary condition
   VisusAssert(query->start_resolution<=end_resolution);
-  VisusAssert(end_resolution<=max_resolution);
+  VisusAssert(end_resolution<= getMaxResolution());
   
   auto user_box= query->position.getBoxNi().getIntersection(this->getLogicBox());
   VisusAssert(user_box.isFullDim());
