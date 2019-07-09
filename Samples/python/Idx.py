@@ -75,7 +75,7 @@ class TestIdx(unittest.TestCase):
 		sampleid=0
 		
 		for Z in range(0,16):
-			slice_box=dataset.getBox().getZSlab(Z,Z+1)
+			slice_box=dataset.getLogicBox().getZSlab(Z,Z+1)
 			
 			query=Query(dataset,ord('w'))
 			query.position=Position(slice_box)
@@ -99,7 +99,7 @@ class TestIdx(unittest.TestCase):
 		
 		dataset=LoadDataset(self.filename)
 		self.assertIsNotNone(dataset)
-		box=dataset.getBox()
+		box=dataset.getLogicBox()
 		field=dataset.getDefaultField()
 		access=dataset.createAccess()
 		
@@ -126,7 +126,7 @@ class TestIdx(unittest.TestCase):
 		dataset=LoadDataset(self.filename)
 		self.assertIsNotNone(dataset)
 		
-		box=dataset.getBox()
+		box=dataset.getLogicBox()
 		access=dataset.createAccess()
 		field=dataset.getDefaultField()
 		self.assertEqual(dataset.getMaxResolution(),12) #in the bitmask_pattern "V012012012012" the very last bit of the bitmask is at position MaxH=12 
