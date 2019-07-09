@@ -143,8 +143,13 @@ public:
   //computeVolume
   double computeVolume() const;
 
+  //getPoints
+  std::vector<PointNd> getPoints() const;
+
   //withoutTransformation
-  BoxNd withoutTransformation() const;
+  BoxNd withoutTransformation() const {
+    return this->valid() ? BoxNd(getPoints()) : BoxNd::invalid();
+  }
 
   //shrink i.e. map * (position.lvalue,position.rvalue') should be in dst_box, does not change position.lvalue
   static Position shrink(BoxNd dst_box, LinearMap& map, Position position);

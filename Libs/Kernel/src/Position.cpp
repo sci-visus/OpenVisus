@@ -100,19 +100,21 @@ double Position::computeVolume() const {
   }
 }
 
-
 //////////////////////////////////////////////////
-BoxNd Position::withoutTransformation() const
+std::vector<PointNd> Position::getPoints() const
 {
-  if (!this->valid())
-    return BoxNd::invalid();
+  std::vector<PointNd> ret;
 
-  auto ret = BoxNd::invalid();
+  if (!this->valid())
+    return ret;
+
   auto points = this->box.getPoints();
   for (auto point : points)
-    ret.addPoint(T * point);
+    ret.push_back(T * point);
+
   return ret;
 }
+
 
 //////////////////////////////////////////////////
 static bool IsPointInsideHull(const PointNd point, const std::vector<Plane>& planes)
