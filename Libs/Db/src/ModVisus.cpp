@@ -809,7 +809,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   //useful for kdquery=box (for example with discrete wavelets, don't want the extra channel)
   if (bKdBoxQuery)
   {
-    if (auto filter = query->filter.value)
+    if (auto filter = query->filter.dataset_filter)
       buffer = filter->dropExtraComponentIfExists(buffer);
   }
 

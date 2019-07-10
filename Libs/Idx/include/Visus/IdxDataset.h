@@ -122,8 +122,8 @@ public:
   //convertBlockQueryToRowMajor
   virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override;
 
-  //createQueryFilter
-  virtual SharedPtr<DatasetFilter> createQueryFilter(const Field& field) override;
+  //createFilter
+  virtual SharedPtr<DatasetFilter> createFilter(const Field& field) override;
 
   //beginQuery
   virtual bool beginQuery(SharedPtr<Query> query) override;

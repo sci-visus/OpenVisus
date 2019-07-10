@@ -120,7 +120,7 @@ public:
   virtual SharedPtr<Access> createAccess(StringTree CONFIG=StringTree(), bool bForBlockQuery = false) override;
 
   //createQueryFilter (not supported?!)
-  virtual SharedPtr<DatasetFilter> createQueryFilter(const Field& FIELD) override {
+  virtual SharedPtr<DatasetFilter> createFilter(const Field& FIELD) override {
     return SharedPtr<DatasetFilter>();
   }
 

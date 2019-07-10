@@ -829,8 +829,6 @@ LogicBox IdxDataset::getAddressRangeBox(BigInt HzFrom,BigInt HzTo)
   const DatasetBitmask& bitmask=this->idxfile.bitmask;
   int pdim = bitmask.getPointDim();
 
-  VisusAssert(toh<= getMaxResolution());
-
   HzOrder hzorder(bitmask);
 
   int start_resolution=HzOrder::getAddressResolution(bitmask,HzFrom);
@@ -1225,7 +1223,7 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<Query> query)
   }
   else
   {
-    VisusAssert(query->position.T.isIdentity()); //todo
+    VisusAssert(query->position.getTransformation().isIdentity()); //todo
     ret.url.setParam("action","boxquery");
     ret.url.setParam("box"   , query->position.getBoxNi().toOldFormatString());
   }
@@ -1320,8 +1318,6 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
 
   Position position=query->position;
 
-
-
   int pdim=this->getPointDim();
   VisusAssert(pdim==3); //why I need point queries in 2d... I'm asserting this because I do not create Query for 2d datasets 
 
@@ -1387,7 +1383,7 @@ bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<Query> query)
   if (end_resolution<0)
     return false;
 
-  VisusAssert(query->position.T.isIdentity());
+  VisusAssert(query->position.getTransformation().isIdentity());
   query->aligned_box=query->position.getBoxNi().withPointDim(this->getPointDim());
 
   if (!query->aligned_box.isFullDim())
@@ -1409,7 +1405,7 @@ bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<Query> query)
 
   //special case for query with filters
   //I need to go level by level [0,1,2,...] in order to reconstruct the original data
-  if (auto filter=query->filter.value)
+  if (auto filter=query->filter.dataset_filter)
   {
     //important to return the "final" number of samples (see execute for loop)
     query->aligned_box=this->adjustFilterBox(query.get(),filter.get(), query->aligned_box,end_resolution);
@@ -1487,8 +1483,8 @@ bool IdxDataset::beginQuery(SharedPtr<Query> query)
 
     if (query->filter.enabled)
     {
-      query->filter.value = this->createQueryFilter(query->field);
-      if (!query->filter.value)
+      query->filter.dataset_filter = createFilter(query->field);
+      if (!query->filter.dataset_filter)
         query->filter.enabled = false;
     }
   }
@@ -1675,7 +1671,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
     return false;
 
   //filter enabled... need to go level by level
-  if (auto filter=query->filter.value)
+  if (auto filter=query->filter.dataset_filter)
   {
     VisusAssert(bReading);
 
@@ -1699,12 +1695,12 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
       if (!this->beginQuery(Wquery))
       {
         VisusAssert(cur_resolution==-1);
-        VisusAssert(!query->filter_query);
+        VisusAssert(!query->filter.query);
         continue;
       }
 
       //try to merge previous results
-      if (auto Rquery= query->filter_query)
+      if (auto Rquery= query->filter.query)
       {
         //auto allocate buffers
         if (!Wquery->allocateBufferIfNeeded())
@@ -1725,19 +1721,19 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
       if (!filter->computeFilter(Wquery.get(),true))
         return false;
 
-      query->filter_query= Wquery;
+      query->filter.query= Wquery;
     }
 
     //cannot get samples yet... returning failed as a query without filters...
-    if (!query->filter_query)
+    if (!query->filter.query)
     {
       VisusAssert(false);//technically this should not happen since the outside query has got some samples
       return false;
     }
 
-    query->nsamples  = query->filter_query->nsamples;
-    query->logic_box = query->filter_query->logic_box;
-    query->buffer    = query->filter_query->buffer;
+    query->nsamples  = query->filter.query->nsamples;
+    query->logic_box = query->filter.query->logic_box;
+    query->buffer    = query->filter.query->buffer;
   }
   //execute with access
   else 
@@ -1901,7 +1897,7 @@ bool IdxDataset::nextQuery(SharedPtr<Query> query)
   auto Rcurrent_resolution=query->cur_resolution;
   auto Rbox    =query->logic_box;
   auto Rbuffer =query->buffer;
-  auto Rfilter_query= query->filter_query;
+  auto Rfilter_query= query->filter.query;
 
   //merging will happen only in certain cases
   query->buffer = Array();
@@ -1936,7 +1932,7 @@ bool IdxDataset::nextQuery(SharedPtr<Query> query)
     }
   }
 
-  query->filter_query=Rfilter_query;
+  query->filter.query=Rfilter_query;
   query->cur_resolution=(Rcurrent_resolution);
   return true;
 }

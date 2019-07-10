@@ -950,9 +950,10 @@ public:
 
   //setPointDim
   void setPointDim(int new_pdim, T default_value = 0.0) {
-    for (int I = pdim; I < new_pdim; I++)
+    auto old_pdim = this->pdim;
+    this->pdim = new_pdim;
+    for (int I = old_pdim; I < new_pdim; I++)
       get(I) = default_value;
-    pdim = new_pdim;
   }
 
   //get

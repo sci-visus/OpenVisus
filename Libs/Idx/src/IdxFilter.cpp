@@ -449,7 +449,7 @@ public:
 
 
 /////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<DatasetFilter> IdxDataset::createQueryFilter(const Field& field) 
+SharedPtr<DatasetFilter> IdxDataset::createFilter(const Field& field) 
 {
   String filter_name=field.filter;
 

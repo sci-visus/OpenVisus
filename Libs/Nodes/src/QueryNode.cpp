@@ -76,7 +76,7 @@ public:
       if (aborted() || !data)
         return;
 
-      if (auto filter=query->filter.value)
+      if (auto filter=query->filter.dataset_filter)
         data=filter->dropExtraComponentIfExists(data);
     
       DataflowMessage msg;
@@ -121,7 +121,7 @@ public:
         <<"level("<<N<<"/"<<query->end_resolutions.size()<<"/"<<query->cur_resolution<<"/"<<dataset->getMaxResolution()<<") "
         <<"dims(" <<buffer.dims.toString()<<") "
         <<"dtype("<<buffer.dtype.toString()<<") "
-        <<"filter("<<(query->filter.value?query->filter.value->getName():"nullptr")<<") "
+        <<"filter("<<(query->filter.dataset_filter?query->filter.dataset_filter->getName():"nullptr")<<") "
         <<"access("<<(access?"yes":"nullptr")<<") "
         <<"url("<<dataset->getUrl().toString()<<") ";
         VisusInfo()<<out.str();
@@ -138,7 +138,7 @@ public:
     if (aborted() || !output)
       return;
 
-    if (auto filter=query->filter.value)
+    if (auto filter=query->filter.dataset_filter)
       output=filter->dropExtraComponentIfExists(output);
     
     DataflowMessage msg;

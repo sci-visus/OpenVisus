@@ -243,7 +243,7 @@ void Tutorial_6(String default_layout)
 
     //apply the filter on a IDX file (i.e. rewrite all samples)
     {
-      auto filter=dataset->createQueryFilter(field);
+      auto filter=dataset->createFilter(field);
       VisusReleaseAssert(filter);
       filter->computeFilter(dataset->getDefaultTime(),field,access,sliding_window_size);
     }
@@ -286,7 +286,7 @@ void Tutorial_6(String default_layout)
       VisusReleaseAssert(dataset->executeQuery(access,query));
       
       auto buffer=query->buffer;
-      buffer=query->filter.value->dropExtraComponentIfExists(buffer);
+      buffer=query->filter.dataset_filter->dropExtraComponentIfExists(buffer);
       auto reconstructed=createImageFromBuffer(buffer);
       VisusReleaseAssert(reconstructed);
       

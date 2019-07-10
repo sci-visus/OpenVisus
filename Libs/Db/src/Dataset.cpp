@@ -58,22 +58,29 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& viewdep,Position po
 {
   int dataset_dim = this->getPointDim();
 
-  if (progression==Query::GuessProgression)
-    progression=(Query::Progression)(dataset_dim == 2 ? dataset_dim * 3 : dataset_dim * 4);
+  if (progression == Query::GuessProgression)
+    progression = (Query::Progression)(dataset_dim == 2 ? dataset_dim * 3 : dataset_dim * 4);
 
   auto maxh = this->getMaxResolution();
-  int final_resolution  = maxh;
-  
+  int final_resolution = maxh;
+
   // valerio's algorithm, find the final view dependent resolution (endh)
   // (the default endh is the maximum resolution available)
   if (viewdep.valid())
   {
-    const int unit_box_edges[12][2]=
+    const std::vector<Point2i> quad_edges =
     {
-      {0,1}, {1,2}, {2,3}, {3,0},
-      {4,5}, {5,6}, {6,7}, {7,4},
-      {0,4}, {1,5}, {2,6}, {3,7}
+      Point2i(0,1), Point2i(1,2), Point2i(2,3), Point2i(3,0)
     };
+
+    const std::vector<Point2i> cube_edges =
+    {
+      Point2i(0,1), Point2i(1,2), Point2i(2,3), Point2i(3,0),
+      Point2i(4,5), Point2i(5,6), Point2i(6,7), Point2i(7,4),
+      Point2i(0,4), Point2i(1,5), Point2i(2,6), Point2i(3,7)
+    };
+
+    auto edges = dataset_dim == 2 ? quad_edges : cube_edges;
 
     std::vector<Point3d> logic_points;
     for (auto p : position.getPoints())
@@ -81,53 +88,53 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& viewdep,Position po
 
     std::vector<Point2d> screen_points;
     FrustumMap map(viewdep);
-    for (int I=0;I<8;I++)
-      screen_points.push_back(map.projectPoint(logic_points[I]));
-  
-    int    longest_edge_on_screen           =-1;
-    double longest_pixel_distance_on_screen = 0;
-    for (int E=0;E<12;E++)
-    {
-      Point2d p1=screen_points[unit_box_edges[E][0]];
-      Point2d p2=screen_points[unit_box_edges[E][1]];
-      double pixel_distance_on_screen=(p2-p1).module();
+    for (auto logic_point : logic_points)
+      screen_points.push_back(map.projectPoint(logic_point));
 
-      if (longest_edge_on_screen==-1 || pixel_distance_on_screen>longest_pixel_distance_on_screen)
+    Point2i longest_edge;
+    double longest_pixel_distance_on_screen = NumericLimits<double>::lowest();
+    for (auto edge : edges)
+    {
+      Point2d p1 = screen_points[edge.x];
+      Point2d p2 = screen_points[edge.y];
+      double pixel_distance_on_screen = (p2 - p1).module();
+
+      if (pixel_distance_on_screen > longest_pixel_distance_on_screen)
       {
-        longest_edge_on_screen=E;
-        longest_pixel_distance_on_screen=pixel_distance_on_screen;
+        longest_edge = edge;
+        longest_pixel_distance_on_screen = pixel_distance_on_screen;
       }
     }
 
     //I match the highest resolution on dataset axis (it's just an euristic!)
-    DatasetBitmask bitmask=this->getBitmask();
-    Point3d logic_P1 = logic_points[unit_box_edges[longest_edge_on_screen][0]];
-    Point3d logic_P2 = logic_points[unit_box_edges[longest_edge_on_screen][1]];
-    for (int dataset_axis=0;dataset_axis<3;dataset_axis++)
+    DatasetBitmask bitmask = this->getBitmask();
+    Point3d logic_P1 = logic_points[longest_edge.x];
+    Point3d logic_P2 = logic_points[longest_edge.y];
+    for (int A = 0; A < dataset_dim; A++)
     {
-      double logic_distance=fabs(logic_P1[dataset_axis]-logic_P2[dataset_axis]);
-      double factor =logic_distance/longest_pixel_distance_on_screen;
-      Int64  num=Utils::getPowerOf2((Int64)factor);
-      while (num>factor) 
-        num>>=1;
-      
-      int H= maxh;
-      for (;num>1 && H>=0;H--)
+      double logic_distance = fabs(logic_P1[A] - logic_P2[A]);
+      double factor = logic_distance / longest_pixel_distance_on_screen;
+      Int64  num = Utils::getPowerOf2((Int64)factor);
+      while (num > factor)
+        num >>= 1;
+
+      int H = maxh;
+      for (; num > 1 && H >= 0; H--)
       {
-        if (bitmask[H]==dataset_axis) 
-          num>>=1;
+        if (bitmask[H] == A)
+          num >>= 1;
       }
 
-      final_resolution=std::min(final_resolution,H);
-    }  
+      final_resolution = std::min(final_resolution, H);
+    }
   }
 
   //quality
-  final_resolution=std::min(maxh,quality+final_resolution);
+  final_resolution = std::min(maxh, quality + final_resolution);
 
   std::vector<int> ret;
-  ret.push_back(std::max(0,final_resolution-progression)); 
-  
+  ret.push_back(std::max(0, final_resolution - progression));
+
   while (ret.back() != final_resolution)
     ret.push_back(std::min(final_resolution, ret.back() + dataset_dim));
 

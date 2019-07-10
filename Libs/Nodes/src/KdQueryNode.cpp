@@ -214,7 +214,7 @@ public:
     // otherwise is probably a kdquery=block with a remote url, the server will apply the filter
     if (access)
     {
-      if (auto filter=dataset->createQueryFilter(field))
+      if (auto filter=dataset->createFilter(field))
       {
         for (int H = 0; H <= end_resolution; H++)
         {
@@ -332,7 +332,7 @@ public:
         query->cur_resolution = node->resolution;
 
         //need to apply the filter, from now on I can display the data
-        auto filter = dataset->createQueryFilter(field);
+        auto filter = dataset->createFilter(field);
         if (aborted() || (filter && !filter->computeFilter(query.get(), true)))
           return;
 

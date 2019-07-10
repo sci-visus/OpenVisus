@@ -372,8 +372,8 @@ public:
 
 public:
 
-  //createQueryFilter (default: not supported)
-  virtual SharedPtr<DatasetFilter> createQueryFilter(const Field& field) {
+  //createFilter (default: not supported)
+  virtual SharedPtr<DatasetFilter> createFilter(const Field& field) {
     return SharedPtr<DatasetFilter>();
   }
 

@@ -199,7 +199,7 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
 
   auto dst=query->buffer;
 
-  if (auto filter=query->filter.value)
+  if (auto filter=query->filter.dataset_filter)
     dst=filter->dropExtraComponentIfExists(dst);
 
   VisusInfo()

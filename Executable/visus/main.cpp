@@ -293,7 +293,7 @@ public:
       sliding_box[D] = window_size;
 
     auto access = dataset->createAccess();
-    auto filter = dataset->createQueryFilter(field);
+    auto filter = dataset->createFilter(field);
     VisusInfo() << "starting conversion...";
     filter->computeFilter(time, field, access, sliding_box);
     return data;

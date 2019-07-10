@@ -109,9 +109,6 @@ PointNi DatasetFilter::getFilterStep(int H) const
 }
 
 
-
-
-
 ///////////////////////////////////////////////////////////////////////////////
 bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> access,PointNi SlidingWindow) const
 {
