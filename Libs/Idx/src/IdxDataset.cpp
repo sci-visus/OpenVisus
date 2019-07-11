@@ -998,7 +998,10 @@ void IdxDataset::setIdxFile(IdxFile value)
 
   setBitmask(bitmask);
   setDefaultBitsPerBlock(value.bitsperblock);
-  setLogicBox(value.box);
+  setLogicBox(value.logic_box);
+
+  VisusAssert(value.logic_to_physic.getSpaceDim()==bitmask.getPointDim()+1);
+  setPhysicPosition(Position(value.logic_to_physic,value.logic_box));
   setTimesteps(value.timesteps);
   
   setDefaultScene(value.scene);
@@ -1953,7 +1956,7 @@ SharedPtr<IdxDataset> IdxDataset::createDatasetFromBuffer(String idx_filename, A
     field.default_layout = "rowmajor";
 
     IdxFile idxfile;
-    idxfile.box = BoxNi(PointNi(buffer.getPointDim()), buffer.dims);
+    idxfile.logic_box = BoxNi(PointNi(buffer.getPointDim()), buffer.dims);
     idxfile.blocksperfile = -1; //one file per dataset
     idxfile.filename_template = StringUtils::format() << "./" << Path(idx_filename).getFileNameWithoutExtension() << ".bin";
     idxfile.fields.push_back(field);

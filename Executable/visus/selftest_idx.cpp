@@ -341,7 +341,7 @@ void execTestIdx(int max_seconds)
           BoxNi user_box = GetRandomUserBox(pdim,Utils::getRandInteger(0,1)?true:false);
 
           IdxFile idxfile;
-          idxfile.box=user_box;
+          idxfile.logic_box=user_box;
           {
             Field field("myfield",DType(true,false,nbits));
             field.default_layout=rowmajor?"rowmajor":"hzorder";
@@ -376,7 +376,7 @@ void execTestIdx(int max_seconds)
       BoxNi    user_box     = GetRandomUserBox(pdim,Utils::getRandInteger(0,1)?true:false);
 
       IdxFile idxfile;
-      idxfile.box=user_box;
+      idxfile.logic_box=user_box;
       {
         Field field("myfield",DType(Utils::getRandInteger(1,4),GetRandomDType()));
         field.default_layout=Utils::getRandInteger(0,1)?"rowmajor":"hzorder";

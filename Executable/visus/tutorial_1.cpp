@@ -60,7 +60,7 @@ void Tutorial_1(String default_layout)
   //the data will be in the bounding box  p1(0,0,0) p2(16,16,16) (p1 included, p2 excluded) 
   {
     IdxFile idxfile;
-    idxfile.box=BoxNi(PointNi(0,0,0),PointNi(16,16,16));
+    idxfile.logic_box=BoxNi(PointNi(0,0,0),PointNi(16,16,16));
     {
       Field field("myfield",DTypes::UINT32);
       field.default_compression= "lz4";

@@ -291,6 +291,16 @@ public:
     this->logic_box = value;
   }
 
+  //getPhysicPosition
+  Position getPhysicPosition() const {
+    return physic_position;
+  }
+
+  //setPhysicPosition
+  void setPhysicPosition(Position value) {
+    physic_position = value;
+  }
+
   //getDefaultBitsPerBlock
   int getDefaultBitsPerBlock() const {
     return default_bitsperblock;
@@ -437,6 +447,7 @@ private:
   std::map<String, Field> find_field;
   DatasetBitmask          bitmask;
   BoxNi                   logic_box;
+  Position                physic_position;
   String                  default_scene;
   int                     kdquery_mode = KdQueryMode::NotSpecified;
   bool                    bServerMode = false;

@@ -497,8 +497,8 @@ public:
     query->down_info.BUFFER.alpha = std::make_shared<Array>(QUERY->nsamples, DTypes::UINT8);
     query->down_info.BUFFER.alpha->fillWithValue(0);
 
-    auto PIXEL_TO_LOGIC = Position::pixelToLogic(Position(QUERY->position), query->down_info.BUFFER.dims);
-    auto pixel_to_logic = Position::pixelToLogic(Position(query->position), query->buffer.dims);
+    auto PIXEL_TO_LOGIC = Position::computeTransformation(Position(QUERY->position), query->down_info.BUFFER.dims);
+    auto pixel_to_logic = Position::computeTransformation(Position(query->position), query->buffer.dims);
 
     // Tperspective := PIXEL <- pixel
     auto LOGIC_TO_PIXEL = PIXEL_TO_LOGIC.invert();
@@ -1156,30 +1156,44 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   IdxFile& IDXFILE=this->idxfile;
 
   //the user specified the box?
-  auto sbox = istream.readInline("box");
-  if (!sbox.empty())
+  auto logic_box = istream.readInline("box");
+  if (!logic_box.empty())
   {
-    IDXFILE.box = BoxNi::parseFromOldFormatString(pdim, sbox);
+    IDXFILE.logic_box = BoxNi::parseFromOldFormatString(pdim, logic_box);
   }
   else
   {
-    if (bool bNotLoosePixels = bMosaic? false :true)
+    if (bMosaic)
+    {
+      IDXFILE.logic_box = BoxNi::invalid();
+      for (auto it : childs)
+      {
+        auto M = it.second.M;
+        auto dataset = it.second.dataset;
+        auto logic_box = Position(M, dataset->getLogicBox()).toAxisAlignedBox().castTo<BoxNi>();
+        IDXFILE.logic_box = IDXFILE.logic_box.getUnion(logic_box);
+      }
+    }
+    //try not to loose pixels
+    else
     {
       //union of boxes
       auto PHYSICAL_BOX = BoxNd::invalid();
       for (auto it : childs)
       {
-        auto physical_box = Position(it.second.M, it.second.dataset->getLogicBox()).toAxisAlignedBox();
-        PHYSICAL_BOX = PHYSICAL_BOX.getUnion(physical_box);
+        auto M = it.second.M;
+        auto dataset = it.second.dataset;
+        auto physical_position = Position(M, dataset->getPhysicPosition()).toAxisAlignedBox();
+        PHYSICAL_BOX = PHYSICAL_BOX.getUnion(physical_position);
       }
 
       std::vector<double> DENSITY;
       for (auto it : childs)
       {
-        auto dataset = it.second.dataset;
         auto M = it.second.M;
+        auto dataset = it.second.dataset;
         auto pixels = dataset->getLogicBox().size().innerProduct();
-        auto volume = Position(M, dataset->getLogicBox()).computeVolume();
+        auto volume = Position(M, dataset->getPhysicPosition()).computeVolume();
         auto density = pixels / volume;
         DENSITY.push_back(density);
       }
@@ -1191,29 +1205,48 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       auto scale = pow(DENSITY[max_density], 1.0 / pdim);
       VisusInfo() << "Scale to not loose pixels " << scale << " #max_density("<<max_density<<")";
 
-      auto T =
-        Matrix::scale(pdim, scale) *
-        Matrix::translate(-PHYSICAL_BOX.p1);
+      auto not_loose_pixels = Matrix::scale(pdim, scale) * Matrix::translate(-PHYSICAL_BOX.p1);
 
+      //todo, right now physic bounds is == logic box
+#if 1
+
+      auto LOGIC_BOX = BoxNi::invalid();
       for (auto it : childs)
-        it.second.M = T * it.second.M;
-    }
+      {
+        auto M = it.second.M;
+        auto dataset = it.second.dataset;
+        M = not_loose_pixels * M;
+        it.second.M = M;
+        auto logic_box = Position(M, dataset->getPhysicPosition()).toAxisAlignedBox().castTo<BoxNi>();
+        LOGIC_BOX = LOGIC_BOX.getUnion(logic_box);
+      }
 
-    //union of boxes
-    IDXFILE.box = BoxNi::invalid();
-    for (auto it : childs)
-    {
-      auto box = Position(it.second.M, it.second.dataset->getLogicBox()).toAxisAlignedBox().castTo<BoxNi>();
-      IDXFILE.box = IDXFILE.box.getUnion(box);
+      IDXFILE.logic_box = LOGIC_BOX;
+      IDXFILE.logic_to_physic = Matrix::identity(pdim+1);
+
+#else
+
+      //union of boxes
+      auto LOGIC_BOX = BoxNi::invalid();
+      for (auto it : childs)
+      {
+        auto M = it.second.M;
+        auto dataset = it.second.dataset;
+        auto logic_box = Position(not_loose_pixels, M,  dataset->getPhysicPosition()).toAxisAlignedBox().castTo<BoxNi>();
+        LOGIC_BOX = LOGIC_BOX.getUnion(logic_box);
+      }
+
+      IDXFILE.logic_box = LOGIC_BOX;
+      IDXFILE.logic_to_physic = Position::computeTransformation(Position(PHYSICAL_BOX),LOGIC_BOX);
+#endif
     }
   }
 
   //VisusInfo() << "midx box is " << IDXFILE.box.toString(false);
-
   if (bMosaic)
   {
     //i need the final right part to be as the child
-    auto BITMASK = DatasetBitmask::guess(IDXFILE.box.p2);
+    auto BITMASK = DatasetBitmask::guess(IDXFILE.logic_box.p2);
     auto bitmask = first->getBitmask();
 
     PointNi DIMS = BITMASK.getPow2Dims();

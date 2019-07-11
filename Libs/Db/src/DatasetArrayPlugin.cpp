@@ -136,8 +136,8 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
   
   ostream.writeInline("url",url);
   ostream.writeInline("format", dataset->getTypeName());
-  ostream.writeInline("size",dataset->getLogicBox().size().toString());
-  ostream.writeInline("box", dataset->getLogicBox().toOldFormatString());
+  ostream.writeInline("logic_box", dataset->getLogicBox().toOldFormatString());
+  ostream.writeInline("logic_size", dataset->getLogicBox().size().toString());
   ostream.writeInline("timesteps",cstring(dataset->getTimesteps().getMin())+" " + cstring(dataset->getTimesteps().getMax()));
   ostream.writeInline("bitsperblock",cstring(dataset->getDefaultBitsPerBlock()));
   ostream.writeInline("bitmask",dataset->getBitmask().toString());

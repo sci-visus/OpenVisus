@@ -111,13 +111,20 @@ public:
     T.setSpaceDim(value);
   }
 
-  //pixelToLogic
-  static Matrix pixelToLogic(Position logic_position, PointNi dims) {
+  //computeTransformation
+  static Matrix computeTransformation(Position dst, BoxNi src) {
     return
-      logic_position.T *
-      Matrix::translate(logic_position.box.p1) *
-      Matrix::nonZeroScale(logic_position.box.size()) *
-      Matrix::invNonZeroScale(dims.castTo<PointNd>());
+      dst.T *
+      Matrix::translate(dst.box.p1) *
+      Matrix::nonZeroScale(dst.box.size()) *
+      Matrix::invNonZeroScale(src.size().castTo<PointNd>()) *
+      Matrix::translate(-src.p1.castTo<PointNd>());
+  }
+
+
+  //computeTransformation
+  static Matrix computeTransformation(Position dst, PointNi dims) {
+    return computeTransformation(dst, BoxNi(PointNi(dims.getPointDim()), dims));
   }
 
   //operator!=

@@ -57,7 +57,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
   BoxNi userbox(offset, offset+img.dims);
 
   IdxFile idxfile;
-  idxfile.box=userbox;
+  idxfile.logic_box=userbox;
   {
     Field field("myfield",in_dtype);
     field.default_layout=default_layout;

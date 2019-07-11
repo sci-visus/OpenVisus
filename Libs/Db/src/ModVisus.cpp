@@ -577,86 +577,6 @@ NetResponse ModVisus::handleHtmlForPlugin(const NetRequest& request)
   return response;
 }
 
-///////////////////////////////////////////////////////////////////////////
-NetResponse ModVisus::handleOpenSeaDragon(const NetRequest& request)
-{
-  auto datasets=getDatasets();
-
-  String dataset_name = request.url.getParam("dataset");
-  String compression = request.url.getParam("compression", "png");
-  String debugMode = request.url.getParam("debugMode", "false");
-  String showNavigator = request.url.getParam("showNavigator", "true");
-
-  auto dataset = datasets->findDataset(dataset_name);
-  if (!dataset)
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
-
-  if (dataset->getPointDim() != 2)
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset(" + dataset_name + ") has dimension !=2");
-
-  int w = (int)dataset->getLogicBox().p2[0];
-  int h = (int)dataset->getLogicBox().p2[1];
-  int maxh = dataset->getMaxResolution();
-  int bitsperblock = dataset->getDefaultBitsPerBlock();
-
-  std::ostringstream out;
-  out
-    << "<html>" << std::endl
-    << "<head>" << std::endl
-    << "<meta charset='utf-8'>" << std::endl
-    << "<title>Visus OpenSeaDragon</title>" << std::endl
-    << "<script src='https://openseadragon.github.io/openseadragon/openseadragon.min.js'></script>" << std::endl
-    << "<style>.openseadragon {background-color: gray;}</style>" << std::endl
-    << "</head>" << std::endl
-
-    << "<body>" << std::endl
-    << "<div id='osd1' class='openseadragon' style='width:100%; height:100%;'>" << std::endl
-
-    << "<script type='text/javascript'>" << std::endl
-    << "base_url = window.location.protocol + '//' + window.location.host + '/mod_visus?action=boxquery&dataset=" << dataset_name << "&compression=" << compression << "';" << std::endl
-    << "w = " << w << ";" << std::endl
-    << "h = " << h << ";" << std::endl
-    << "maxh = " << maxh << ";" << std::endl
-    << "bitsperblock = " << bitsperblock << ";" << std::endl
-
-    //try to align as much as possible to the block shape: we know that a block
-    //has 2^bitsperblock samples. Assuming the bitmask is balanced at the end (i.e. V.....01010101)
-    //then we simply subdivide the domain in squares with tileSize^2=2^bitsperblock -> tileSize is about 2^(bitsperblock/2)
-
-    << "tileSize = Math.pow(2,bitsperblock/2);" << std::endl
-    << "minLevel=bitsperblock/2;" << std::endl
-    << "maxLevel=maxh/2;" << std::endl
-    << "OpenSeadragon({" << std::endl
-    << "  id: 'osd1'," << std::endl
-    << "  prefixUrl: 'https://raw.githubusercontent.com/openseadragon/svg-overlay/master/openseadragon/images/'," << std::endl
-    << "  showNavigator: " << showNavigator << "," << std::endl
-    << "  debugMode: " << debugMode << "," << std::endl
-    << "  tileSources: {" << std::endl
-    << "    height: h, width:  w, tileSize: tileSize, minLevel: minLevel, maxLevel: maxLevel," << std::endl
-    << "    getTileUrl: function(level,x,y) {" << std::endl
-
-    // trick to return an image with resolution (tileSize*tileSize) at a certain resolution
-    // when level=maxLevel I just use the tileSize
-    // when I go up one level I need to use 2*tileSize in order to have the same number of samples
-
-    << "      lvlTileSize = tileSize*Math.pow(2, maxLevel-level);" << std::endl
-    << "    	 x1 = Math.min(lvlTileSize*x,w); x2 = Math.min(x1 + lvlTileSize, w);" << std::endl
-    << "    	 y1 = Math.min(lvlTileSize*y,h); y2 = Math.min(y1 + lvlTileSize, h);" << std::endl
-    << "    	 return base_url" << std::endl
-    << "    	   + '&box='+x1+'%20'+(x2-1)+'%20'+(h -y2)+'%20'+(h-y1-1)" << std::endl
-    << "    		 + '&toh=' + level*2" << std::endl
-    << "    		 + '&maxh=' + maxh ;" << std::endl
-    << "}}});" << std::endl
-
-    << "</script>" << std::endl
-    << "</div>" << std::endl
-    << "</body>" << std::endl
-    << "</html>;" << std::endl;
-
-  NetResponse response(HttpStatus::STATUS_OK);
-  response.setHtmlBody(out.str());
-  return response;
-}
 
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
@@ -924,9 +844,6 @@ NetResponse ModVisus::handleRequest(NetRequest request)
 
   else if (action == "AddDataset" || action == "add_dataset")
     response = handleAddDataset(request);
-
-  else if (action == "openseadragon")
-    response = handleOpenSeaDragon(request);
 
   else if (action == "ping")
   {

@@ -119,7 +119,7 @@ public:
     String filename = args[1];
 
     IdxFile idxfile;
-    idxfile.box = BoxNi(PointNi(data.getPointDim()), data.dims);
+    idxfile.logic_box = BoxNi(PointNi(data.getPointDim()), data.dims);
     idxfile.fields.push_back(Field("data", data.dtype));
 
     for (int I = 2; I < (int)args.size(); I++)
@@ -128,7 +128,7 @@ public:
       {
         auto sbox = args[++I];
         int pdim = (int)StringUtils::split(sbox, " ", true).size() / 2; VisusAssert(pdim > 0);
-        idxfile.box = BoxNi::parseFromOldFormatString(pdim, sbox);
+        idxfile.logic_box = BoxNi::parseFromOldFormatString(pdim, sbox);
       }
 
       else if (args[I] == "--fields")
@@ -1813,7 +1813,7 @@ public:
     //create the idx file
     {
       IdxFile idxfile;
-      idxfile.box = BoxNi(PointNi(3),dims);
+      idxfile.logic_box = BoxNi(PointNi(3),dims);
       {
         Field field("myfield", DType::fromString(dtype));
         field.default_compression = ""; // no compression (in writing I should not use compression)

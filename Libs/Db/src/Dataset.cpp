@@ -355,7 +355,8 @@ String Dataset::getDatasetInfos() const
   BigInt total_number_of_samples = total_number_of_blocks * samplesperblock;
 
   out<<"Visus file infos                                         "<<std::endl;
-  out<<"  Bounds                                                 "<< getLogicBox().toOldFormatString()<<std::endl;
+  out<<"  Logic box                                              "<< getLogicBox().toOldFormatString()<<std::endl;
+  out <<" Physic position                                        "<< getPhysicPosition().toString() << std::endl;
   out<<"  Pow2 dims                                              "<<getBitmask().getPow2Dims().toString()<<std::endl;
   out<<"  number of samples                                      "<<total_number_of_samples<<std::endl;
   out<<"  number of blocks                                       "<<total_number_of_blocks<<std::endl;
