@@ -112,15 +112,15 @@ public:
     if (args.size() < 2)
       ThrowException(StringUtils::format() << args[0] <<"  syntax error");
 
-
-    if (!data || !data.getTotalNumberOfSamples())
-      ThrowException(StringUtils::format() << args[0] << " got empty array");
-
     String filename = args[1];
 
     IdxFile idxfile;
-    idxfile.box = BoxNi(PointNi(data.getPointDim()), data.dims);
-    idxfile.fields.push_back(Field("data", data.dtype));
+
+    if (data && data.getTotalNumberOfSamples())
+    {
+      idxfile.box = BoxNi(PointNi(data.getPointDim()), data.dims);
+      idxfile.fields.push_back(Field("data", data.dtype));
+    }
 
     for (int I = 2; I < (int)args.size(); I++)
     {
@@ -172,13 +172,62 @@ public:
       return Array();
     }
 
-    if (!IdxDataset::createDatasetFromBuffer(filename, data)) {
-      VisusError() << "Failed to create Dataset";
-      return Array();
+    //no need to write data
+    if (!data)
+      return data;
+
+    //try to write data
+    auto dataset = LoadDataset<IdxDataset>(filename);
+    if (!dataset)
+      ThrowException("cannot load dataset");
+
+    //write all data to RAM
+    auto ram_access = dataset->createRamAccess(/* no memory limit*/0);
+    ram_access->bDisableWriteLocks = true; //only one process is writing in sync
+    if (!dataset->writeFullResolutionData(ram_access, dataset->getDefaultField(), dataset->getDefaultTime(), data))
+      ThrowException("Failed to write full res data");
+
+    for (auto& field : dataset->getFields())
+      field.default_compression = "zip";
+
+    if (!dataset->idxfile.save(filename))
+      ThrowException("Failed to save idx file");
+
+    //read all data from RAM and write to DISK
+    //for each timestep...
+    for (auto time : dataset->getTimesteps().asVector())
+    {
+      //for each field...
+      for (auto& field : dataset->getFields())
+      {
+        auto r_access = ram_access;
+        auto w_access = dataset->createAccess();
+
+        r_access->beginRead();
+        w_access->beginWrite();
+
+        for (BigInt blockid = 0, TotBlocks = dataset->getTotalnumberOfBlocks(); blockid < TotBlocks; blockid++)
+        {
+          auto hz1 = w_access->getStartAddress(blockid);
+          auto hz2 = w_access->getEndAddress(blockid);
+          auto read_block = std::make_shared<BlockQuery>(field, time, hz1, hz2, Aborted());
+          if (dataset->readBlockAndWait(r_access, read_block))
+          {
+            auto write_block = std::make_shared<BlockQuery>(field, time, hz1, hz2, Aborted());
+            write_block->buffer = read_block->buffer;
+            if (!dataset->writeBlockAndWait(w_access, write_block))
+              ThrowException("Failed to write block");
+          }
+        }
+
+        r_access->endRead();
+        w_access->endWrite();
+      }
     }
 
     return data;
   }
+
 };
 
 ///////////////////////////////////////////////////////////////////////
