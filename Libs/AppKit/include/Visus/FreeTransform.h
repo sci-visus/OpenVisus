@@ -117,13 +117,13 @@ public:
 
   //canRotate
   bool canRotate(int axis) const {
-    auto box=this->obj.box.withPointDim(3);
+    auto box=this->obj.getBoxNd().withPointDim(3);
     return this->obj.valid() && !(box.p1[(axis+1)%3]==box.p2[(axis+1)%3] && box.p1[(axis+2)%3]==box.p2[(axis+2)%3]);
   }
 
   //canScale
   bool canScale(int axis) const {
-    auto box=this->obj.box.withPointDim(3);
+    auto box=this->obj.getBoxNd().withPointDim(3);
     return this->obj.valid() && !(box.p1[axis]==box.p2[axis]);
   }
 

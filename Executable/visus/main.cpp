@@ -115,10 +115,9 @@ public:
     String filename = args[1];
 
     IdxFile idxfile;
-
     if (data && data.getTotalNumberOfSamples())
     {
-      idxfile.box = BoxNi(PointNi(data.getPointDim()), data.dims);
+      idxfile.logic_box = BoxNi(PointNi(data.getPointDim()), data.dims);
       idxfile.fields.push_back(Field("data", data.dtype));
     }
 
@@ -128,7 +127,7 @@ public:
       {
         auto sbox = args[++I];
         int pdim = (int)StringUtils::split(sbox, " ", true).size() / 2; VisusAssert(pdim > 0);
-        idxfile.box = BoxNi::parseFromOldFormatString(pdim, sbox);
+        idxfile.logic_box = BoxNi::parseFromOldFormatString(pdim, sbox);
       }
 
       else if (args[I] == "--fields")
@@ -206,7 +205,7 @@ public:
         r_access->beginRead();
         w_access->beginWrite();
 
-        for (BigInt blockid = 0, TotBlocks = dataset->getTotalnumberOfBlocks(); blockid < TotBlocks; blockid++)
+        for (BigInt blockid = 0, TotBlocks = dataset->getTotalNumberOfBlocks(); blockid < TotBlocks; blockid++)
         {
           auto hz1 = w_access->getStartAddress(blockid);
           auto hz2 = w_access->getEndAddress(blockid);
@@ -342,7 +341,7 @@ public:
       sliding_box[D] = window_size;
 
     auto access = dataset->createAccess();
-    auto filter = dataset->createQueryFilter(field);
+    auto filter = dataset->createFilter(field);
     VisusInfo() << "starting conversion...";
     filter->computeFilter(time, field, access, sliding_box);
     return data;
@@ -519,9 +518,8 @@ public:
 
     auto idxfile = vf->idxfile;
 
-    int maxh = vf->getMaxResolution();
-    HzOrder hzorder(idxfile.bitmask, maxh);
-    BigInt last_block = (hzorder.getAddress(hzorder.getLevelP2Included(maxh)) >> idxfile.bitsperblock) + 1;
+    HzOrder hzorder(idxfile.bitmask);
+    BigInt last_block = vf->getTotalNumberOfBlocks();
     int    samplesperblock = 1 << idxfile.bitsperblock;
 
     auto access = vf->createAccessForBlockQuery();
@@ -1493,7 +1491,7 @@ public:
     Aborted aborted;
     access->beginRead();
 
-    for (BigInt block_id = 0, nblocks = dataset->getTotalnumberOfBlocks(); ; block_id = (block_id + 1) % nblocks)
+    for (BigInt block_id = 0, nblocks = dataset->getTotalNumberOfBlocks(); ; block_id = (block_id + 1) % nblocks)
     { 
       auto read_block = std::make_shared<BlockQuery>(field, time, access->getStartAddress(block_id), access->getEndAddress(block_id), aborted);
 
@@ -1586,7 +1584,7 @@ public:
     VisusInfo() << "Testing query...";
 
     auto access = dataset->createAccess();
-    auto world_box = dataset->getBox();
+    auto world_box = dataset->getLogicBox();
 
     Time T1 = Time::now();
     for (int nqueries = 0;;nqueries++)
@@ -1863,7 +1861,7 @@ public:
     //create the idx file
     {
       IdxFile idxfile;
-      idxfile.box = BoxNi(PointNi(3),dims);
+      idxfile.logic_box = BoxNi(PointNi(3),dims);
       {
         Field field("myfield", DType::fromString(dtype));
         field.default_compression = ""; // no compression (in writing I should not use compression)
@@ -1890,7 +1888,7 @@ public:
       auto Z1 = Slab * slices_per_slab;
       auto Z2 =   Z1 + slices_per_slab;
 
-      BoxNi slice_box = dataset->getBox().getZSlab(Z1,Z2);
+      BoxNi slice_box = dataset->getLogicBox().getZSlab(Z1,Z2);
 
       //prepare the write query
       auto write = std::make_shared<Query>(dataset.get(), 'w');
@@ -1927,7 +1925,7 @@ public:
     if (bool bVerify=true)
     {
       auto read = std::make_shared<Query>(dataset.get(), 'r');
-      read->position = dataset->getBox();
+      read->position = dataset->getLogicBox();
       VisusReleaseAssert(dataset->beginQuery(read));
 
       Array buffer(read->nsamples, read->field.dtype);

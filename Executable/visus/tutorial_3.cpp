@@ -48,7 +48,7 @@ void Tutorial_3(String default_layout)
   auto dataset= LoadDataset("temp/tutorial_1.idx");
   VisusReleaseAssert(dataset);
   
-  BoxNi world_box=dataset->getBox();
+  BoxNi world_box=dataset->getLogicBox();
 
   //any time you need to read/write data from/to a Dataset I need a Access
   auto access=dataset->createAccess();
@@ -56,10 +56,9 @@ void Tutorial_3(String default_layout)
   Field field=dataset->getDefaultField();
 
   //this is the maximum resolution of the Dataset 
-  int MaxH=dataset->getMaxResolution();
 
   //in the bitmask "V012012012012" the very last bit of the bitmask is at position MaxH=12 
-  VisusReleaseAssert(MaxH==12);
+  VisusReleaseAssert(dataset->getMaxResolution() ==12);
 
   //I want to read data from first slice Z=0
   BoxNi slice_box=world_box.getZSlab(0,1);

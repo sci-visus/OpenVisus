@@ -292,9 +292,9 @@ public:
   //constructor
   GLBox(const Position& position, const Color& fill_color, const Color& line_color, int line_width = 1)
     : GLStruct({
-      std::make_shared<GLModelview>(position.T),
-      std::make_shared<GLPhongObject>(GLMesh::SolidBox(position.box), fill_color, 0),
-      std::make_shared<GLPhongObject>(GLMesh::WireBox(position.box), line_color, line_width)
+      std::make_shared<GLModelview>(position.getTransformation()),
+      std::make_shared<GLPhongObject>(GLMesh::SolidBox(position.getBoxNd()), fill_color, 0),
+      std::make_shared<GLPhongObject>(GLMesh::WireBox(position.getBoxNd()), line_color, line_width)
     }) {}
 
   //constructor
@@ -317,8 +317,8 @@ public:
   //constructor
   GLAxis(const Position& position, int line_width = 1)
     : GLStruct({
-      std::make_shared<GLModelview>(position.T),
-      std::make_shared<GLPhongObject>(GLMesh::ColoredAxis(position.box), Colors::White, line_width)
+      std::make_shared<GLModelview>(position.getTransformation()),
+      std::make_shared<GLPhongObject>(GLMesh::ColoredAxis(position.getBoxNd()), Colors::White, line_width)
     }){}
 
   //constructor

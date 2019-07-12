@@ -66,7 +66,7 @@ public:
 
     this->config.writeString("url", url.toString());
 
-    bool disable_async = config.readBool("disable_async", dataset->bServerMode);
+    bool disable_async = config.readBool("disable_async", dataset->isServerMode());
 
     if (int nconnections = disable_async ? 0 : config.readInt("nconnections", 8))
       this->netservice = std::make_shared<NetService>(nconnections);
@@ -151,7 +151,6 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query)
     return false;
 
   VisusAssert(query->start_resolution==0);
-  VisusAssert(query->max_resolution==this->getBitmask().getMaxResolution());
 
   {
     std::set<int> good;
@@ -179,13 +178,13 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query)
   Position position=query->position;
 
   //not supported
-  if (!position.T.isIdentity())
+  if (!position.getTransformation().isIdentity())
   {
     query->setFailed("Position has non-identity transformation");
     return false;
   }
 
-  auto user_box= query->position.getBoxNi().getIntersection(this->getBox());
+  auto user_box= query->position.getBoxNi().getIntersection(this->getLogicBox());
 
   if (!user_box.isFullDim())
   {
@@ -259,7 +258,7 @@ bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> q
 
   WaitAsync< Future<Void> > wait_async;
 
-  BoxNi box=this->getBox();
+  BoxNi box=this->getLogicBox();
 
   std::vector< SharedPtr<BlockQuery> > block_queries;
   kdTraverse(block_queries,query,box,/*id*/1,/*H*/this->getDefaultBitsPerBlock(),end_resolution);
@@ -340,6 +339,7 @@ Point3i GoogleMapsDataset::getTileCoordinate(BigInt start_address,BigInt end_add
 {
   int bitsperblock=this->getDefaultBitsPerBlock();
   int samplesperblock=((BigInt)1)<<bitsperblock;
+  auto bitmask = getBitmask();
 
   VisusAssert(end_address==start_address+samplesperblock);
 
@@ -364,8 +364,8 @@ LogicBox GoogleMapsDataset::getAddressRangeBox(BigInt start_address,BigInt end_a
   auto Y=coord[1];
   auto Z=coord[2];
 
-  int tile_width =(int)(this->getBox().p2[0])>>Z;
-  int tile_height=(int)(this->getBox().p2[1])>>Z;
+  int tile_width =(int)(this->getLogicBox().p2[0])>>Z;
+  int tile_height=(int)(this->getLogicBox().p2[1])>>Z;
 
   PointNi delta=PointNi::one(2);
   delta[0]=tile_width /this->tile_nsamples[0];
@@ -399,18 +399,21 @@ bool GoogleMapsDataset::openFromUrl(Url url)
   overall_dims[0]=tile_nsamples[0] * (((Int64)1)<<nlevels);
   overall_dims[1]=tile_nsamples[1] * (((Int64)1)<<nlevels);
 
-  this->url=url.toString();
-  this->bitmask=DatasetBitmask::guess(overall_dims);
-  this->default_bitsperblock=Utils::getLog2(tile_nsamples[0]*tile_nsamples[1]);
-  this->box=BoxNi(PointNi(0,0),overall_dims);
-  this->timesteps=DatasetTimesteps();
-  this->timesteps.addTimestep(0);
+  this->setUrl(url.toString());
+  this->setBitmask(DatasetBitmask::guess(overall_dims));
+  this->setDefaultBitsPerBlock(Utils::getLog2(tile_nsamples[0]*tile_nsamples[1]));
+  this->setLogicBox(BoxNi(PointNi(0,0),overall_dims));
+  this->setPhysicPosition(BoxNd(PointNd(-180,-90),PointNd(+180,+90))); //http://www.satsig.net/lat_long.htm
+
+  auto timesteps = DatasetTimesteps();
+  timesteps.addTimestep(0);
+  setTimesteps(timesteps);
 
   addField(Field("DATA",dtype));
 
   //UseQuery not supported? actually yes, but it's a nonsense since a query it's really a block query
-  if (this->kdquery_mode==KdQueryMode::UseQuery)
-    this->kdquery_mode=KdQueryMode::UseBlockQuery;
+  if (getKdQueryMode()==KdQueryMode::UseQuery)
+    setKdQueryMode(KdQueryMode::UseBlockQuery);
 
   return true;
 }
@@ -424,8 +427,8 @@ LogicBox GoogleMapsDataset::getLevelBox(int H)
   VisusAssert((H%2)==0 && H>=bitsperblock);
   int Z=(H-bitsperblock)>>1;
     
-  int tile_width =(int)(this->getBox().p2[0])>>Z;
-  int tile_height=(int)(this->getBox().p2[1])>>Z;
+  int tile_width =(int)(this->getLogicBox().p2[0])>>Z;
+  int tile_height=(int)(this->getLogicBox().p2[1])>>Z;
     
   int ntiles_x=(int)(1<<Z);
   int ntiles_y=(int)(1<<Z);
@@ -451,14 +454,12 @@ bool GoogleMapsDataset::setCurrentEndResolution(SharedPtr<Query> query)
     return false;
 
   VisusAssert(end_resolution % 2==0);
-
-  int max_resolution=query->max_resolution;
     
   //necessary condition
   VisusAssert(query->start_resolution<=end_resolution);
-  VisusAssert(end_resolution<=max_resolution);
+  VisusAssert(end_resolution<= getMaxResolution());
   
-  auto user_box= query->position.getBoxNi().getIntersection(this->getBox());
+  auto user_box= query->position.getBoxNi().getIntersection(this->getLogicBox());
   VisusAssert(user_box.isFullDim());
 
   int H=end_resolution;

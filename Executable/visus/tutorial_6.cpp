@@ -57,7 +57,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
   BoxNi userbox(offset, offset+img.dims);
 
   IdxFile idxfile;
-  idxfile.box=userbox;
+  idxfile.logic_box=userbox;
   {
     Field field("myfield",in_dtype);
     field.default_layout=default_layout;
@@ -243,12 +243,12 @@ void Tutorial_6(String default_layout)
 
     //apply the filter on a IDX file (i.e. rewrite all samples)
     {
-      auto filter=dataset->createQueryFilter(field);
+      auto filter=dataset->createFilter(field);
       VisusReleaseAssert(filter);
       filter->computeFilter(dataset->getDefaultTime(),field,access,sliding_window_size);
     }
 
-    BoxNi world_box=dataset->getBox();
+    BoxNi world_box=dataset->getLogicBox();
     Int64 Width =world_box.p2[0]-world_box.p1[0];VisusReleaseAssert(Width ==src_image.dims[0]);
     Int64 Height=world_box.p2[1]-world_box.p1[1];VisusReleaseAssert(Height==src_image.dims[1]);
 
@@ -286,7 +286,7 @@ void Tutorial_6(String default_layout)
       VisusReleaseAssert(dataset->executeQuery(access,query));
       
       auto buffer=query->buffer;
-      buffer=query->filter.value->dropExtraComponentIfExists(buffer);
+      buffer=query->filter.dataset_filter->dropExtraComponentIfExists(buffer);
       auto reconstructed=createImageFromBuffer(buffer);
       VisusReleaseAssert(reconstructed);
       

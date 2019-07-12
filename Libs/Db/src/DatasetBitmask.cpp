@@ -43,7 +43,7 @@ namespace Visus {
 
 
 //////////////////////////////////////////////////////////////////
-DatasetBitmask::DatasetBitmask(String pattern) : max_resolution(0),pdim(0)
+DatasetBitmask::DatasetBitmask(String pattern) 
 {
   this->pattern=pattern;
 
@@ -52,61 +52,23 @@ DatasetBitmask::DatasetBitmask(String pattern) : max_resolution(0),pdim(0)
 
   if (pattern[0]!='V') {
     VisusAssert(false);
-    clear();return;
+    *this = DatasetBitmask();
+    return;
   }
     
-  String regular_pattern,regexpr_pattern;
-  int A=StringUtils::find(pattern,"{");
-  if (A>=0)
+  for (auto ch : pattern.substr(1))
   {
-    if (!StringUtils::endsWith(pattern,"}*"))
-    {
+    int bit= ch -'0';
+    if (bit<0) {
       VisusAssert(false);
-      clear();
+      *this=DatasetBitmask();
       return;
     }
-
-    regular_pattern=pattern.substr(0,A); 
-    regexpr_pattern=pattern.substr(A+1,pattern.size()-A-3);
-  }
-  else
-  {
-    regular_pattern=pattern;
-  }
-
-  this->pdim=0;
-  VisusAssert(regular_pattern[0]=='V');
-  this->exploded.push_back('V');
-  for (int I=1;I<(int)regular_pattern.size();I++) 
-  {
-    int bit=regular_pattern[I]-'0';
-    if (bit<0) {VisusAssert(false);clear();return;}
-    this->exploded.push_back(bit);
     this->pdim =std::max(this->pdim,bit+1);
-  }
-  this->max_resolution=(int)exploded.size()-1;
-
-
-  this->pow2_dims = PointNi::one(pdim);
-  for (int I = 1; I < (int)regular_pattern.size(); I++)
-  {
-    int bit = regular_pattern[I] - '0';
+    this->pow2_dims.setPointDim(pdim, 1);
     this->pow2_dims[bit] <<= 1;
   }
-
-  if (!regexpr_pattern.empty())
-  {
-    for (int I=0;exploded.size()<DatasetBitmaskMaxLen;I++) 
-    {
-      int bit=regexpr_pattern[I % regexpr_pattern.size()]-'0';
-      if (bit<0) {VisusAssert(false);clear();return;}
-      this->exploded.push_back(bit);
-      this->pdim =std::max(this->pdim,bit+1);
-    }
-  }
 }
-
-
 
 //////////////////////////////////////////////////////////////////
 DatasetBitmask DatasetBitmask::guess(PointNi dims,bool makeRegularAsSoonAsPossible)

@@ -53,11 +53,11 @@ double Frustum::computeDistance(const Position& obj,Point2d screen_point,bool bU
     return failed;
 
   Frustum frustum=*this;
-  frustum.multModelview(obj.T);
+  frustum.multModelview(obj.getTransformation());
 
   auto ray=FrustumMap(frustum).getRay(screen_point);
 
-  RayBoxIntersection intersection(ray,obj.box);
+  RayBoxIntersection intersection(ray,obj.getBoxNd());
 
   if (!intersection.valid)
     return failed;
@@ -83,16 +83,9 @@ double Frustum::computeZDistance(const Position& obj,bool bUseFarPoint) const
   if (!obj.valid())
     return failed;
 
-  auto T = obj.T;
-  auto box = obj.box;
-  box.setPointDim(3);
-
-  Frustum frustum=*this;
-  frustum.multModelview(T);
-
   std::vector<PointNd> points;
-  for (auto point : box.getPoints())
-    points.push_back(frustum.getModelview() * point);
+  for (auto point : obj.getPoints())
+    points.push_back(getModelview() * point);
 
   //note: camera "looks" along negative Z axis, so we must negate the z values.
   bool objInFront=false;
@@ -115,8 +108,8 @@ double Frustum::computeZDistance(const Position& obj,bool bUseFarPoint) const
   if (bUseFarPoint)
   {
     double maxp=-points[0][2];
-    for (int i=1;i<8;i++)
-      maxp=std::max(maxp,-points[i][2]);
+    for (auto point : points)
+      maxp=std::max(maxp,-point[2]);
     return maxp;
   }
 
@@ -124,8 +117,8 @@ double Frustum::computeZDistance(const Position& obj,bool bUseFarPoint) const
     return 1.0E-6;
 
   double minp=-points[0][2];
-  for (int i=1;i<8;i++)
-    minp=std::min(minp,-points[i][2]);
+  for (auto point : points)
+    minp=std::min(minp,-point[2]);
   return minp;
 }
 

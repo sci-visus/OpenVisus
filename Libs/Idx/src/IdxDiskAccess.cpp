@@ -120,8 +120,6 @@ static String GetFilenameV56(const IdxFile& idxfile, Field field, double time, B
   then %01x represents the less significant 4 bits of the address  (____________________BBBB)
   %02x represents about the middle 8 bits                     (____________BBBBBBBB____)
   %03x represents the most significant 12 bits                (BBBBBBBBBBBB____________)
-
-  IMPORTANT: the last one (%03x) can be used many times in case of regex expression(example V010101{01}*)
   */
 
   const int MaxFilenameLen = 1024;
@@ -950,7 +948,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
 
   // important!number of threads must be <=1 
 #if 1
-  bool disable_async = config.readBool("disable_async", dataset->bServerMode);
+  bool disable_async = config.readBool("disable_async", dataset->isServerMode());
   if (int nthreads = disable_async ? 0 : 1)
   {
     async_tpool = std::make_shared<ThreadPool>("IdxDiskAccess Thread", nthreads);

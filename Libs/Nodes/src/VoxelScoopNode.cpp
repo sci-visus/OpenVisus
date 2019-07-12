@@ -104,9 +104,9 @@ public:
   //getDiam2d
   double getDiam2d(const Point3d &seed,double threshold)
   {
-    auto pixel_to_physic = Position::compose(this->data.bounds,this->data.dims);
+    auto pixel_to_bounds = Position::computeTransformation(this->data.bounds,this->data.dims);
 
-    TRSMatrixDecomposition trs(pixel_to_physic);
+    TRSMatrixDecomposition trs(pixel_to_bounds);
 
     Fan::Params params;
     params.image          = this->data.c_ptr();
@@ -392,9 +392,9 @@ public:
     const Point3d dims = Data.dims.toPoint3().castTo<Point3d>();
     const Point3i idims = dims.castTo<Point3i>();
 
-    auto pixel_to_physic = Position::compose(this->Data.bounds,Data.dims);
+    auto pixel_to_bounds = Position::computeTransformation(this->Data.bounds,Data.dims);
     
-    TRSMatrixDecomposition trs(pixel_to_physic);
+    TRSMatrixDecomposition trs(pixel_to_bounds);
 
     //VisusInfo()<<"transforming seed, Tx=%s, Sx=%s, dims=%s",trs.translate.toString().c_str(),trs.scale.toString().c_str(),dims.toString().c_str());
 
@@ -425,9 +425,9 @@ public:
       ScopedLock lock(this->centerlines->lock);
       firstCluster->nodeid=this->centerlines->mkVert(Sphere(firstCluster->nodepos,diam/2));
 
-      auto box=this->centerlines->bounds.box;
+      auto box=this->centerlines->bounds.getBoxNd();
       box.addPoint(firstCluster->nodepos);
-      this->centerlines->bounds=Position(this->centerlines->bounds.T, box);
+      this->centerlines->bounds=Position(this->centerlines->bounds.getTransformation(), box);
     }
 
     return firstCluster;
@@ -441,9 +441,9 @@ public:
 
     auto idims = Data.dims.toPoint3();
 
-    auto pixel_to_physic = Position::compose(this->Data.bounds,Data.dims);
+    auto pixel_to_bounds = Position::computeTransformation(this->Data.bounds,Data.dims);
 
-    TRSMatrixDecomposition trs(pixel_to_physic);
+    TRSMatrixDecomposition trs(pixel_to_bounds);
 
     //VisusInfo()<<"transforming vertices, Sx=%s, dims=%s",trs.scale.toString().c_str(),dims.toString().c_str());
 
@@ -563,9 +563,9 @@ public:
           ScopedLock lock(this->centerlines->lock);
           newcluster.nodeid=this->centerlines->mkVert(Sphere(newpos,diam/2));
 
-          auto box=this->centerlines->bounds.box;
+          auto box=this->centerlines->bounds.getBoxNd();
           box.addPoint(newpos);
-          this->centerlines->bounds=Position(this->centerlines->bounds.T, box);
+          this->centerlines->bounds=Position(this->centerlines->bounds.getTransformation(), box);
           this->centerlines->mkEdge(newcluster.nodeid,cluster.nodeid,(Float32)(newpos-cluster.nodepos).module());
         }
 

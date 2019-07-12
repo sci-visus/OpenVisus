@@ -48,6 +48,8 @@ namespace Visus {
 //predeclaration
 class DatasetFilter;
 class Dataset;
+class Query;
+
 
 
 ////////////////////////////////////////////////////////
@@ -57,13 +59,29 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(Query)
 
+  //-1 guess progression
+  //0 means that you want to see only the final resolution
+  //>0 set some progression
+  enum Progression
+  {
+    GuessProgression = -1,
+    NoProgression = 0
+  };
+
+  //I estimate internally (see estimateEndH) what is the max resolution the user can see on the screen (depending also on the view frustum)
+  //you can ask to see less samples than the estimation by using a negative number
+  //you can ask to see more samples than the estimation by using a positive number
+  enum Quality
+  {
+    DefaultQuality = 0,
+  };
+
   //see mergeQueries
   enum MergeMode
   {
     InsertSamples,
     InterpolateSamples
   };
-
 
   Aborted    aborted;
 
@@ -75,23 +93,6 @@ public:
   PointNi    nsamples;
   LogicBox   logic_box;
 
-  //-1 guess progression
-  //0 means that you want to see only the final resolution
-  //>0 set some progression
-  enum Progression
-  {
-    GuessProgression=-1,
-    NoProgression=0
-  };
-
-  //I estimate internally (see estimateEndH) what is the max resolution the user can see on the screen (depending also on the view frustum)
-  //you can ask to see less samples than the estimation by using a negative number
-  //you can ask to see more samples than the estimation by using a positive number
-  enum Quality
-  {
-    DefaultQuality=0,
-  };
-
   int                        mode='r';
   MergeMode                  merge_mode=InsertSamples;
   Position                   position;
@@ -99,9 +100,12 @@ public:
   Position                   clipping;
   std::function<void(Array)> incrementalPublish;
 
+  //aligned_box (internal use only)
+  BoxNi aligned_box;
+
   /*
-    DatasetBitmask bitmask("V012{012}*);
-    V012012012012012012012012012012012...... 
+    DatasetBitmask
+    V012012012012012012012012012012012
     0-----------------------------max
              |         |
     start    current   end
@@ -111,36 +115,24 @@ public:
   int              start_resolution=0;
   int              cur_resolution=-1;
   std::vector<int> end_resolutions;
-  int              max_resolution=0;
   int              query_cursor=-1; 
 
-  class VISUS_DB_API Filter
-  {
-  public:
-    bool                     enabled = false;
-    SharedPtr<DatasetFilter> value;
-    BoxNi                    domain;
-  };
-
-  Filter filter;
-
-  //aligned_box (internal use only)
-  BoxNi aligned_box;
-
-  //filter_query (internal use only)
-  SharedPtr<Query> filter_query;
-
-  //(internal use only)
+  //for idx
 #if !SWIG
-  class AddressConversion {
-  public:
-    virtual ~AddressConversion() {}
-  };
-  CriticalSection              address_conversion_lock;
-  SharedPtr<AddressConversion> address_conversion;
+  struct
+  {
+    bool                     enabled = false;
+    SharedPtr<DatasetFilter> dataset_filter;
+    BoxNi                    domain;
+
+    //filter_query (internal use only)
+    SharedPtr<Query> query;
+  }
+  filter;
 #endif
 
   //for midx
+#if !SWIG
   struct
   {
     String  name;
@@ -154,6 +146,7 @@ public:
   down_info;
 
   std::map<String, SharedPtr<Query> >  down_queries;
+#endif
 
   // for point queries
   struct
@@ -173,7 +166,6 @@ public:
   Int64 getByteSize() const {
     return field.dtype.getByteSize(nsamples);
   }
-
 
   //isPointQuery
   bool isPointQuery() const {

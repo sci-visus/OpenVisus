@@ -133,7 +133,7 @@ public:
     Field field=vf->getDefaultField();
     this->vf=vf;
     this->dtype=field.dtype;
-    this->user_box=vf->getBox();
+    this->user_box=vf->getLogicBox();
     this->pdim=vf->getPointDim();
     this->nslices=user_box.p2[pdim-1]-user_box.p1[pdim-1];
   
@@ -200,7 +200,7 @@ public:
     int                  firsth        = Utils::getRandInteger(0,maxh);
     int                  lasth         = Utils::getRandInteger(firsth,maxh);
     int                  deltah        = firsth==lasth?1:Utils::getRandInteger(1,lasth-firsth);
-    BoxNi                box           = Utils::getRandInteger(0,1)?vf->getBitmask().upgradeBox(vf->getBox(),maxh):getRandomBox();
+    BoxNi                box           = Utils::getRandInteger(0,1)? vf->getLogicBox() : getRandomBox();
     bool                 bInterpolate  = Utils::getRandInteger(0,1)?true:false;
     
     static int nactivation=0;
@@ -318,7 +318,7 @@ void execTestIdx(int max_seconds)
     //remove data from tutorial_1
     if (auto vf= LoadDataset<IdxDataset>("./temp/tutorial_1.idx"))
       vf->removeFiles();
- 
+
     VisusInfo()<<"Running Tutorial_6...";
     Tutorial_6(default_layout);
     VisusInfo()<<"...done";
@@ -340,7 +340,7 @@ void execTestIdx(int max_seconds)
           BoxNi user_box = GetRandomUserBox(pdim,Utils::getRandInteger(0,1)?true:false);
 
           IdxFile idxfile;
-          idxfile.box=user_box;
+          idxfile.logic_box=user_box;
           {
             Field field("myfield",DType(true,false,nbits));
             field.default_layout=rowmajor?"rowmajor":"hzorder";
@@ -375,7 +375,7 @@ void execTestIdx(int max_seconds)
       BoxNi    user_box     = GetRandomUserBox(pdim,Utils::getRandInteger(0,1)?true:false);
 
       IdxFile idxfile;
-      idxfile.box=user_box;
+      idxfile.logic_box=user_box;
       {
         Field field("myfield",DType(Utils::getRandInteger(1,4),GetRandomDType()));
         field.default_layout=Utils::getRandInteger(0,1)?"rowmajor":"hzorder";

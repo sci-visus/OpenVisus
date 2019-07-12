@@ -52,7 +52,6 @@ public:
   double        time;
   BoxNi         box;
   Field         field;
-  int           maxh; //default is write at max resolution!
   int           fromh;
   int           toh;
   bool          bDisableFilters;
@@ -62,9 +61,8 @@ public:
   {
     this->time           = dataset->getDefaultTime();
     this->field          = dataset->getDefaultField();
-    this->maxh           = dataset->getMaxResolution(); //default is max resolution
-    this->fromh          = 0;
-    this->toh            = maxh;
+    this->fromh          = 0; //default is max resolution
+    this->toh            = dataset->getMaxResolution();
   }
 
   //exec
@@ -80,10 +78,10 @@ public:
       {
         int pdim = dataset->getPointDim();
         box=BoxNi::parseFromOldFormatString(pdim,args[++I]);
-        box= box.getIntersection(dataset->getBox());
+        box= box.getIntersection(dataset->getLogicBox());
         if (!box.isFullDim())
         {
-          VisusWarning()<<"invalid --box "<<args[I] << " intersection with "<< dataset->getBox().toOldFormatString();
+          VisusWarning()<<"invalid --box "<<args[I] << " intersection with "<< dataset->getLogicBox().toOldFormatString();
           return false;
         }
       }
@@ -96,10 +94,6 @@ public:
           VisusWarning()<<"invalid --field "<<sfield;
           return false;
         }
-      }
-      else if (args[I]=="--maxh")
-      {
-        maxh=cint(args[++I]);
       }
       else if (args[I]=="--fromh")
       {
@@ -115,9 +109,9 @@ public:
       }
     }
 
-    if (!(fromh<=toh && toh<=maxh))
+    if (!(fromh<=toh && toh<=dataset->getMaxResolution()))
     {
-      VisusWarning()<<"invalid --maxh "<<maxh<<" --fromh "<<fromh<<" --toh "<<toh;
+      VisusWarning()<<"invalid  --fromh "<<fromh<<" --toh "<<toh;
       return false;
     }
 
@@ -142,8 +136,8 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
   
   ostream.writeInline("url",url);
   ostream.writeInline("format", dataset->getTypeName());
-  ostream.writeInline("size",dataset->getBox().size().toString());
-  ostream.writeInline("box", dataset->getBox().toOldFormatString());
+  ostream.writeInline("logic_box", dataset->getLogicBox().toOldFormatString());
+  ostream.writeInline("logic_size", dataset->getLogicBox().size().toString());
   ostream.writeInline("timesteps",cstring(dataset->getTimesteps().getMin())+" " + cstring(dataset->getTimesteps().getMax()));
   ostream.writeInline("bitsperblock",cstring(dataset->getDefaultBitsPerBlock()));
   ostream.writeInline("bitmask",dataset->getBitmask().toString());
@@ -178,7 +172,6 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
   query->position=args.box;
   query->start_resolution=args.fromh;
   query->end_resolutions={args.toh};
-  query->max_resolution=args.maxh;
 
   if (args.bDisableFilters)
   {
@@ -206,7 +199,7 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
 
   auto dst=query->buffer;
 
-  if (auto filter=query->filter.value)
+  if (auto filter=query->filter.dataset_filter)
     dst=filter->dropExtraComponentIfExists(dst);
 
   VisusInfo()
@@ -239,7 +232,6 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
   query->position=args.box;
   query->start_resolution=args.fromh;
   query->end_resolutions={args.toh};
-  query->max_resolution=args.maxh;
 
   if (!dataset->beginQuery(query))
   {

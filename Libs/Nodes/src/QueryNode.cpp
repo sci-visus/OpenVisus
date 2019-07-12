@@ -76,7 +76,7 @@ public:
       if (aborted() || !data)
         return;
 
-      if (auto filter=query->filter.value)
+      if (auto filter=query->filter.dataset_filter)
         data=filter->dropExtraComponentIfExists(data);
     
       DataflowMessage msg;
@@ -118,10 +118,10 @@ public:
       {
         std::ostringstream out;
         out<<"Query msec(" <<t1.elapsedMsec()<<") "
-        <<"level("<<N<<"/"<<query->end_resolutions.size()<<"/"<<query->cur_resolution<<"/"<<query->max_resolution<<") "
+        <<"level("<<N<<"/"<<query->end_resolutions.size()<<"/"<<query->cur_resolution<<"/"<<dataset->getMaxResolution()<<") "
         <<"dims(" <<buffer.dims.toString()<<") "
         <<"dtype("<<buffer.dtype.toString()<<") "
-        <<"filter("<<(query->filter.value?query->filter.value->getName():"nullptr")<<") "
+        <<"filter("<<(query->filter.dataset_filter?query->filter.dataset_filter->getName():"nullptr")<<") "
         <<"access("<<(access?"yes":"nullptr")<<") "
         <<"url("<<dataset->getUrl().toString()<<") ";
         VisusInfo()<<out.str();
@@ -138,7 +138,7 @@ public:
     if (aborted() || !output)
       return;
 
-    if (auto filter=query->filter.value)
+    if (auto filter=query->filter.dataset_filter)
       output=filter->dropExtraComponentIfExists(output);
     
     DataflowMessage msg;
@@ -251,7 +251,7 @@ bool QueryNode::processInput()
     {
       auto pdim = dataset->getPointDim();
       auto matrix_map = MatrixMap(Matrix::identity(pdim));
-      position = Position::shrink(dataset->getBox().castTo<BoxNd>(), matrix_map, position);
+      position = Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), matrix_map, position);
     }
 
     if (!position.valid()) 

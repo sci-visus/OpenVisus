@@ -48,8 +48,7 @@ Query::Query(Dataset* dataset,int mode)
   this->mode           = mode;
   this->time           = dataset->getDefaultTime();
   this->field          = dataset->getDefaultField();
-  this->filter.domain  = dataset->getBox();
-  this->max_resolution = dataset->getMaxResolution();
+  this->filter.domain  = dataset->getLogicBox();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

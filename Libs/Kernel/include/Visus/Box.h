@@ -74,6 +74,13 @@ public:
     VisusAssert(p1.getPointDim() == p2.getPointDim());
   }
 
+  //construtor
+  BoxN(const std::vector<Point>& points) : BoxN()
+  {
+    for (auto point : points)
+      addPoint(point);
+  }
+
   //getPointDim
   int getPointDim() const {
     return p1.getPointDim();
@@ -97,7 +104,7 @@ public:
     return BoxN(p1.withoutBack(), p2.withoutBack());
   }
 
-  //return an invalid box
+  //return an invalid box (dimension 0, see addPoint)
   static BoxN invalid() {
     return BoxN();
   }

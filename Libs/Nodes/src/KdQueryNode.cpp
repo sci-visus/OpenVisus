@@ -121,13 +121,13 @@ public:
 
     //find intersection with dataset box
     auto matrix_map = MatrixMap(Matrix::identity(pdim));
-    position=Position::shrink(dataset->getBox().castTo<BoxNd>(), matrix_map,position);
+    position=Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), matrix_map,position);
 
     if (!position.valid()) 
       return false;
 
     //remove transformation
-    position = Position(position.withoutTransformation().castTo<BoxNi>().getIntersection(dataset->getBox()));
+    position = Position(position.toAxisAlignedBox().castTo<BoxNi>().getIntersection(dataset->getLogicBox()));
     if (!position.valid()) 
       return false;
 
@@ -182,13 +182,8 @@ public:
     DatasetBitmask bitmask=dataset->getBitmask();
 
     int pdim = bitmask.getPointDim();
-
-    //pow2_box
-    PointNi pow2_dims=PointNi::one(pdim);
-    for (int H = 1; H <= dataset->getMaxResolution(); H++)
-      pow2_dims[bitmask[H]] <<= 1;
-
-    BoxNi pow2_box(PointNi(pdim),pow2_dims);
+    auto pow2_dims= bitmask.getPow2Dims();
+    auto pow2_box=bitmask.getPow2Box();
 
     int max_resolution=dataset->getBitmask().getMaxResolution();
     VisusAssert(bitsperblock<=max_resolution);
@@ -219,7 +214,7 @@ public:
     // otherwise is probably a kdquery=block with a remote url, the server will apply the filter
     if (access)
     {
-      if (auto filter=dataset->createQueryFilter(field))
+      if (auto filter=dataset->createFilter(field))
       {
         for (int H = 0; H <= end_resolution; H++)
         {
@@ -234,7 +229,7 @@ public:
     {
       ScopedWriteLock wlock(rlock);
 
-      kdarray->box = dataset->getBox();
+      kdarray->box = dataset->getLogicBox();
       kdarray->clipping = position;
 
       kdarray->root = std::make_shared<KdArrayNode>();
@@ -337,7 +332,7 @@ public:
         query->cur_resolution = node->resolution;
 
         //need to apply the filter, from now on I can display the data
-        auto filter = dataset->createQueryFilter(field);
+        auto filter = dataset->createFilter(field);
         if (aborted() || (filter && !filter->computeFilter(query.get(), true)))
           return;
 

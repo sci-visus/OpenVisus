@@ -133,21 +133,33 @@ void IdxFile::validate(Url url)
   }
 
   //box
-  if (!box.isFullDim())
+  if (!logic_box.isFullDim())
   {
-    VisusWarning()<<"wrong box("<< box.toOldFormatString()<<")";
+    VisusWarning()<<"wrong box("<< logic_box.toOldFormatString()<<")";
     this->version=-1;
     return;
   }
 
   //bitmask
   if (bitmask.empty())
-    bitmask=DatasetBitmask::guess(box.p2);
+    bitmask=DatasetBitmask::guess(logic_box.p2);
 
   if (!bitmask.valid())
   {
     VisusWarning()<<"invalid bitmask";
     this->version=-1;
+    return;
+  }
+
+  auto pdim = bitmask.getPointDim();
+
+  if (logic_to_physic.getSpaceDim() == 0)
+    logic_to_physic = Matrix::identity(pdim+1);
+
+  if (logic_to_physic.getSpaceDim() != pdim + 1)
+  {
+    VisusWarning() << "wrong logic_to_physic(" << logic_to_physic.toString() << ")";
+    this->version = -1;
     return;
   }
 
@@ -203,7 +215,7 @@ void IdxFile::validate(Url url)
     return;
   }
 
-  if (!bitmask.hasRegExpr() && blocksperfile>(((BigInt)1)<<(bitmask.getMaxResolution()-bitsperblock)))
+  if (blocksperfile>(((BigInt)1)<<(bitmask.getMaxResolution()-bitsperblock)))
   {
     //this can happen with PIDX
     //VisusWarning()<<"wrong blockperfile("<<blocksperfile<<"), with bitmask.getMaxResolution()="<<bitmask.getMaxResolution()<<" and bitsperblock("<<bitsperblock<<")";
@@ -475,8 +487,11 @@ IdxFile IdxFile::load(Url url)
 
     idxfile.version     = cint(map.getValue("(version)")); VisusAssert(idxfile.version>=1 && idxfile.version<=6);
     idxfile.bitmask     = DatasetBitmask(map.getValue("(bits)"));
-    idxfile.box         = BoxNi::parseFromOldFormatString(idxfile.bitmask.getPointDim(),map.getValue("(box)"));
+    idxfile.logic_box   = BoxNi::parseFromOldFormatString(idxfile.bitmask.getPointDim(),map.getValue("(box)"));
 
+    auto pdim = idxfile.bitmask.getPointDim();
+    idxfile.logic_to_physic = map.hasValue("logic_to_physic")? Matrix::parseFromString(map.getValue("(logic_to_physic)")) : Matrix::identity(pdim + 1);
+      
     //parse fields
     if (map.hasValue("(fields)"))
       idxfile.fields=parseFields(map.getValue("(fields)"));
@@ -610,7 +625,10 @@ String IdxFile::toString() const
     std::ostringstream out;
 
     out<<"(version)\n"<<this->version<<"\n";
-    out<<"(box)\n"<< this->box.toOldFormatString()<<"\n";
+    out<<"(box)\n"<< this->logic_box.toOldFormatString()<<"\n";
+
+    if (!logic_to_physic.isIdentity())
+      out << "(logic_to_physic)\n" << this->logic_to_physic.toString() << "\n";
   
     //dump fields
     out<<"(fields)\n";
@@ -725,8 +743,13 @@ void IdxFile::writeToObjectStream(ObjectStream& ostream)
     ThrowException("internal error");
 
   ostream.write("version",cstring(this->version));
-  ostream.write("box", box.toOldFormatString());
-  ostream.write("bitmask",this->bitmask.toString());
+  ostream.write("bitmask", this->bitmask.toString());
+
+  ostream.write("box", logic_box.toOldFormatString());
+
+  if (!logic_to_physic.isIdentity())
+    ostream.write("logic_to_physic",this->logic_to_physic.toString());
+
   ostream.write("bitsperblock",cstring(this->bitsperblock));
   ostream.write("blocksperfile",cstring(this->blocksperfile));
   ostream.write("block_interleaving",cstring(this->block_interleaving));
@@ -758,7 +781,11 @@ void IdxFile::readFromObjectStream(ObjectStream& istream)
 {
   this->version           = cint(istream.read("version"));
   this->bitmask = DatasetBitmask(istream.read("bitmask"));
-  this->box               = BoxNi::parseFromOldFormatString(this->bitmask.getPointDim(),istream.read("box"));
+  this->logic_box          = BoxNi::parseFromOldFormatString(this->bitmask.getPointDim(),istream.read("box"));
+
+  auto pdim = this->bitmask.getPointDim();
+  this->logic_to_physic = Matrix::parseFromString(istream.read("logic_to_physic", Matrix::identity(pdim + 1).toString()));
+
   this->bitsperblock      = cint(istream.read("bitsperblock"));
   this->blocksperfile     = cint(istream.read("blocksperfile"));
   this->block_interleaving= cint(istream.read("block_interleaving"));

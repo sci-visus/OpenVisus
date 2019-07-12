@@ -138,7 +138,7 @@ public:
 
     VisusInfo() << data.bounds.toString();
 
-    auto grid = data.bounds.withoutTransformation();
+    auto grid = data.bounds.toAxisAlignedBox();
     grid.setPointDim(3);
 
     // Scale the smaller volumes we get while loading progressively to fill the true bounds

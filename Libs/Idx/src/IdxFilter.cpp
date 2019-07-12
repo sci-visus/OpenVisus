@@ -59,14 +59,13 @@ static bool ComputeFilter(Dataset* dataset,Query* query,const FilterClass* filte
   DType            dtype      = field.dtype;
   int              ncomponents= dtype.ncomponents();
   DatasetBitmask   bitmask    = dataset->getBitmask();
-  int              MaxH       = query->max_resolution;
   int              bit        = bitmask[H];
   PointNi          dims       = query->nsamples;
   PointNi          stride     = dims.stride();
   int              filter_size = filter->getSize();
-  PointNi          filterstep = filter->getFilterStep(H,MaxH);
+  PointNi          filterstep = filter->getFilterStep(H);
   Int64 FILTERSTEP = filterstep[bit];
-  BoxNi            filter_domain  = bitmask.upgradeBox(query->filter.domain,MaxH);
+  BoxNi            filter_domain  = query->filter.domain;
 
   int pdim = bitmask.getPointDim();
   
@@ -450,7 +449,7 @@ public:
 
 
 /////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<DatasetFilter> IdxDataset::createQueryFilter(const Field& field) 
+SharedPtr<DatasetFilter> IdxDataset::createFilter(const Field& field) 
 {
   String filter_name=field.filter;
 

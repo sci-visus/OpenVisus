@@ -59,7 +59,7 @@ IdxMosaicAccess::IdxMosaicAccess(IdxMultipleDataset* VF_, StringTree CONFIG)
   this->bitsperblock = VF->getDefaultBitsPerBlock();
 
   auto first = VF->childs.begin()->second.dataset;
-  auto dims = first->getBox().p2;
+  auto dims = first->getLogicBox().p2;
   int  pdim = first->getPointDim();
 
   for (auto it : VF->childs)
@@ -120,7 +120,7 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
   auto BLOCK = QUERY->start_address >> bitsperblock;
   auto first = childs.begin()->second.dataset;
   auto NBITS = VF->getMaxResolution() - first->getMaxResolution();
-  PointNi dims = first->getBox().p2;
+  PointNi dims = first->getLogicBox().p2;
 
   bool bBlockTotallyInsideSingle = (BLOCK >= ((BigInt)1 << NBITS));
 
@@ -137,7 +137,7 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
     auto vf = it->second.dataset;
     VisusAssert(vf);
 
-    auto hzfrom = HzOrder(vf->idxfile.bitmask, vf->getMaxResolution()).getAddress(p1);
+    auto hzfrom = HzOrder(vf->idxfile.bitmask).getAddress(p1);
 
     auto block_query = std::make_shared<BlockQuery>(QUERY->field, QUERY->time, hzfrom, hzfrom + ((BigInt)1 << bitsperblock), QUERY->aborted);
 
@@ -167,7 +167,7 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
     QUERY->buffer.layout = "";
 
     DatasetBitmask BITMASK = VF->idxfile.bitmask;
-    HzOrder HZORDER(BITMASK, VF->getMaxResolution());
+    HzOrder HZORDER(BITMASK);
 
     for (const auto& it : childs)
     {

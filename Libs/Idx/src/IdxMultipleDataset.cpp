@@ -84,7 +84,7 @@ public:
       }
     }
 
-    bool disable_async = CONFIG.readBool("disable_async", VF->bServerMode);
+    bool disable_async = CONFIG.readBool("disable_async", VF->isServerMode());
 
     //TODO: special case when I can use the blocks
     //if (VF->childs.size() == 1 && VF->sameLogicSpace(VF->childs[0]))
@@ -202,7 +202,7 @@ public:
 
     VisusAssert(!VF->bMosaic);
 
-    this->engine = (!VF->bServerMode)? VF->python_engine_pool->createEngine() : std::make_shared<PythonEngine>();
+    this->engine = (!VF->isServerMode())? VF->python_engine_pool->createEngine() : std::make_shared<PythonEngine>();
 
     {
       ScopedAcquireGil acquire_gil;
@@ -246,7 +246,7 @@ public:
       engine->delModuleAttr("input");
     }
 
-    if (!VF->bServerMode)
+    if (!VF->isServerMode())
       VF->python_engine_pool->releaseEngine(this->engine);
   }
 
@@ -372,10 +372,10 @@ public:
     auto vf    = child.dataset; VisusAssert(vf);
     auto field = vf->getFieldByName(fieldname); VisusAssert(field.valid());
 
-    auto BOX = Position(M, vf->getBox()).withoutTransformation();
+    auto BOX = Position(M, vf->getLogicBox()).toAxisAlignedBox();
 
     //no intersection? just skip this down query
-    if (!QUERY->position.withoutTransformation().intersect(BOX))
+    if (!QUERY->position.toAxisAlignedBox().intersect(BOX))
       return SharedPtr<Query>();
 
     auto query = std::make_shared<Query>(vf.get(), 'r');
@@ -387,8 +387,8 @@ public:
 
     //euristic to find delta in the hzcurve
     //TODO!!!! this euristic produces too many samples
-    auto VOLUME = Position(   VF->getBox()).computeVolume();
-    auto volume = Position(M, vf->getBox()).computeVolume();
+    auto VOLUME = Position(   VF->getLogicBox()).computeVolume();
+    auto volume = Position(M, vf->getLogicBox()).computeVolume();
     int delta_h = -(int)log2(VOLUME / volume);
 
     //resolutions
@@ -404,10 +404,9 @@ public:
       end_resolutions.insert(end_resolution);
     }
     query->end_resolutions = std::vector<int>(end_resolutions.begin(), end_resolutions.end());
-    query->max_resolution = vf->getMaxResolution();
 
-    auto QUERY_T   = QUERY->position.T;
-    auto QUERY_BOX = QUERY->position.box;
+    auto QUERY_T   = QUERY->position.getTransformation();
+    auto QUERY_BOX = QUERY->position.getBoxNd();
 
     // WRONG, consider that M could have mat(3,0) | mat(3,1) | mat(3,2) !=0 and so I can have non-parallel axis
     // i.e. computing the bounding box in position very far from the mapped region are wrong because some axis of the quads can interect in some points
@@ -415,7 +414,7 @@ public:
     // if you use this wrong version, for voronoi in 2d you will see some missing pieces around
     // solution is to limit the QUERY_BOX into a more "local" one
 #if 1
-    QUERY_BOX = Position(QUERY_T.invert(), M, vf->box).withoutTransformation().getIntersection(QUERY_BOX);
+    QUERY_BOX = Position(QUERY_T.invert(), M, vf->getLogicBox()).toAxisAlignedBox().getIntersection(QUERY_BOX);
 #endif
 
     query->position = Position(M.invert(), QUERY_T, QUERY_BOX);
@@ -498,8 +497,8 @@ public:
     query->down_info.BUFFER.alpha = std::make_shared<Array>(QUERY->nsamples, DTypes::UINT8);
     query->down_info.BUFFER.alpha->fillWithValue(0);
 
-    auto PIXEL_TO_LOGIC = Position::compose(Position(QUERY->position), query->down_info.BUFFER.dims);
-    auto pixel_to_logic = Position::compose(Position(query->position), query->buffer.dims);
+    auto PIXEL_TO_LOGIC = Position::computeTransformation(Position(QUERY->position), query->down_info.BUFFER.dims);
+    auto pixel_to_logic = Position::computeTransformation(Position(query->position), query->buffer.dims);
 
     // Tperspective := PIXEL <- pixel
     auto LOGIC_TO_PIXEL = PIXEL_TO_LOGIC.invert();
@@ -508,12 +507,12 @@ public:
     //this will help to find voronoi seams betweeen images
     query->down_info.LOGIC_TO_PIXEL = LOGIC_TO_PIXEL;
     query->down_info.PIXEL_TO_LOGIC = PIXEL_TO_LOGIC;
-    query->down_info.logic_centroid = M * vf->getBox().center();
+    query->down_info.logic_centroid = M * vf->getLogicBox().center();
 
     //limit the samples to good logic domain
     //explanation: for each pixel in dims, tranform it to the logic dataset box, if inside set the pixel to 1 otherwise set the pixel to 0
     if (!query->buffer.alpha)
-      query->buffer.alpha = std::make_shared<Array>(ArrayUtils::createTransformedAlpha(vf->getBox(), pixel_to_logic, query->buffer.dims, QUERY->aborted));
+      query->buffer.alpha = std::make_shared<Array>(ArrayUtils::createTransformedAlpha(vf->getLogicBox(), pixel_to_logic, query->buffer.dims, QUERY->aborted));
     else
       VisusReleaseAssert(query->buffer.alpha->dims==query->buffer.dims);
 
@@ -680,9 +679,9 @@ public:
     {
       if (output.dims[D] == 1 && QUERY->nsamples[D] > 1)
       {
-        auto box = output.bounds.box;
+        auto box = output.bounds.getBoxNd();
         box.p2[D] = box.p1[D];
-        output.bounds = Position(output.bounds.T, box);
+        output.bounds = Position(output.bounds.getTransformation(), box);
         output.clipping = Position::invalid(); //disable clipping
       }
     }
@@ -728,7 +727,7 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
 
   if (type.empty())
   {
-    Url url = config.readString("url",this->url.toString());
+    Url url = config.readString("url",this->getUrl().toString());
 
     //local disk access
     if (url.isFile())
@@ -861,7 +860,7 @@ Field IdxMultipleDataset::createField(String operation_name)
 String IdxMultipleDataset::removeAliases(String url)
 {
   //replace some alias
-  auto URL = this->url;
+  auto URL = this->getUrl();
 
   String cfd = URL.isFile() ? Path(URL.getPath()).getParent().toString() : "";
 
@@ -923,14 +922,14 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix M)
     VisusReleaseAssert(!child.mosaic_filename_template.empty());
     child.mosaic_filename_template = removeAliases(child.mosaic_filename_template);
 
-    other->url = url;
+    other->setUrl(url);
     other->idxfile.filename_template = child.mosaic_filename_template;
     other->idxfile.validate(url); VisusAssert(other->idxfile.valid());
     child.dataset = other;
   }
   else
   {
-    child.dataset = LoadDatasetEx(url,this->config);
+    child.dataset = LoadDatasetEx(url,this->getConfig());
   }
 
   if (!child.dataset) {
@@ -1007,7 +1006,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix M)
     VisusAssert(child.M.submatrix(child.M.getSpaceDim()-1,child.M.getSpaceDim()-1).isIdentity());
 
   //VisusInfo() << "midx single M("<<child.M.toString()<<") box("<<child.dataset->box.toString(false)<<")";
-  //VisusInfo() << " bounds("<<Position(child.M,child.dataset->box).withoutTransformation().toString(false)<<")";
+  //VisusInfo() << " bounds("<<Position(child.M,child.dataset->box).toAxisAlignedBox().toString(false)<<")";
 
   addChild(child);
 
@@ -1096,9 +1095,7 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream, Matrix T)
 ///////////////////////////////////////////////////////////
 void IdxMultipleDataset::computeDefaultFields()
 {
-  //fields
-  this->fields.clear();
-  this->find_field.clear();
+  clearFields();
 
   addField(createField("ArrayUtils.average"));
   addField(createField("ArrayUtils.add"));
@@ -1137,8 +1134,8 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   BODY.writeString("url", URL.toString());
 
-  this->url = URL;
-  this->dataset_body = BODY.toString();
+  setUrl(URL);
+  setDatasetBody(BODY.toString());
 
   ObjectStream istream(BODY, 'r');
 
@@ -1159,30 +1156,44 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   IdxFile& IDXFILE=this->idxfile;
 
   //the user specified the box?
-  auto sbox = istream.readInline("box");
-  if (!sbox.empty())
+  auto logic_box = istream.readInline("box");
+  if (!logic_box.empty())
   {
-    IDXFILE.box = BoxNi::parseFromOldFormatString(pdim, sbox);
+    IDXFILE.logic_box = BoxNi::parseFromOldFormatString(pdim, logic_box);
   }
   else
   {
-    if (bool bNotLoosePixels = bMosaic? false :true)
+    if (bMosaic)
+    {
+      IDXFILE.logic_box = BoxNi::invalid();
+      for (auto it : childs)
+      {
+        auto M = it.second.M;
+        auto dataset = it.second.dataset;
+        auto logic_box = Position(M, dataset->getLogicBox()).toAxisAlignedBox().castTo<BoxNi>();
+        IDXFILE.logic_box = IDXFILE.logic_box.getUnion(logic_box);
+      }
+    }
+    //try not to loose pixels
+    else
     {
       //union of boxes
       auto PHYSICAL_BOX = BoxNd::invalid();
       for (auto it : childs)
       {
-        auto physical_box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation();
-        PHYSICAL_BOX = PHYSICAL_BOX.getUnion(physical_box);
+        auto M = it.second.M;
+        auto dataset = it.second.dataset;
+        auto physical_position = Position(M, dataset->getPhysicPosition()).toAxisAlignedBox();
+        PHYSICAL_BOX = PHYSICAL_BOX.getUnion(physical_position);
       }
 
       std::vector<double> DENSITY;
       for (auto it : childs)
       {
-        auto dataset = it.second.dataset;
         auto M = it.second.M;
-        auto pixels = dataset->getBox().size().innerProduct();
-        auto volume = Position(M, dataset->getBox()).computeVolume();
+        auto dataset = it.second.dataset;
+        auto pixels = dataset->getLogicBox().size().innerProduct();
+        auto volume = Position(M, dataset->getPhysicPosition()).computeVolume();
         auto density = pixels / volume;
         DENSITY.push_back(density);
       }
@@ -1194,29 +1205,48 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       auto scale = pow(DENSITY[max_density], 1.0 / pdim);
       VisusInfo() << "Scale to not loose pixels " << scale << " #max_density("<<max_density<<")";
 
-      auto T =
-        Matrix::scale(pdim, scale) *
-        Matrix::translate(-PHYSICAL_BOX.p1);
+      auto not_loose_pixels = Matrix::scale(pdim, scale) * Matrix::translate(-PHYSICAL_BOX.p1);
 
+      //todo, right now physic bounds is == logic box
+#if 1
+
+      auto LOGIC_BOX = BoxNi::invalid();
       for (auto it : childs)
-        it.second.M = T * it.second.M;
-    }
+      {
+        auto M = it.second.M;
+        auto dataset = it.second.dataset;
+        M = not_loose_pixels * M;
+        it.second.M = M;
+        auto logic_box = Position(M, dataset->getPhysicPosition()).toAxisAlignedBox().castTo<BoxNi>();
+        LOGIC_BOX = LOGIC_BOX.getUnion(logic_box);
+      }
 
-    //union of boxes
-    IDXFILE.box = BoxNi::invalid();
-    for (auto it : childs)
-    {
-      auto box = Position(it.second.M, it.second.dataset->getBox()).withoutTransformation().castTo<BoxNi>();
-      IDXFILE.box = IDXFILE.box.getUnion(box);
+      IDXFILE.logic_box = LOGIC_BOX;
+      IDXFILE.logic_to_physic = Matrix::identity(pdim+1);
+
+#else
+
+      //union of boxes
+      auto LOGIC_BOX = BoxNi::invalid();
+      for (auto it : childs)
+      {
+        auto M = it.second.M;
+        auto dataset = it.second.dataset;
+        auto logic_box = Position(not_loose_pixels, M,  dataset->getPhysicPosition()).toAxisAlignedBox().castTo<BoxNi>();
+        LOGIC_BOX = LOGIC_BOX.getUnion(logic_box);
+      }
+
+      IDXFILE.logic_box = LOGIC_BOX;
+      IDXFILE.logic_to_physic = Position::computeTransformation(Position(PHYSICAL_BOX),LOGIC_BOX);
+#endif
     }
   }
 
   //VisusInfo() << "midx box is " << IDXFILE.box.toString(false);
-
   if (bMosaic)
   {
     //i need the final right part to be as the child
-    auto BITMASK = DatasetBitmask::guess(IDXFILE.box.p2);
+    auto BITMASK = DatasetBitmask::guess(IDXFILE.logic_box.p2);
     auto bitmask = first->getBitmask();
 
     PointNi DIMS = BITMASK.getPow2Dims();
@@ -1233,7 +1263,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     IDXFILE.fields = first->getFields();
     IDXFILE.bitsperblock = first->getDefaultBitsPerBlock();
 
-    IDXFILE.validate(this->url);
+    IDXFILE.validate(this->getUrl());
     VisusReleaseAssert(IDXFILE.valid());
 
     //VisusInfo() << "MIDX idxfile is the following" << std::endl << IDXFILE.toString();
@@ -1267,8 +1297,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   if (istream.getCurrentContext()->findChildWithName("field"))
   {
-    this->fields.clear();
-    this->find_field.clear();
+    clearFields();
 
     int generate_name = 0;
 

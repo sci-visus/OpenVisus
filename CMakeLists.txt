@@ -19,7 +19,7 @@ if (NOT (${CMAKE_VERSION} VERSION_LESS "3.13"))
 endif()
 
 # see https://cmake.org/cmake/help/git-stage/policy/CMP0086.html
-if ((${CMAKE_VERSION} GREATER_EQUAL  "3.14"))
+if (${CMAKE_VERSION} GREATER_EQUAL  "3.14")
   cmake_policy(SET CMP0086 OLD)
 endif()
 

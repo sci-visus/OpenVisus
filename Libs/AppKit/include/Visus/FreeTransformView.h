@@ -178,12 +178,8 @@ public:
     }
 
     auto obj = model->getObject();
-    auto T = obj.T;
-    auto box=model->getObject().box;
-    T.setSpaceDim(4);
-    box.setPointDim(3);
-    widgets.T->setMatrix(T);
-    widgets.box->setValue(box);
+    widgets.T->setMatrix(obj.getTransformation());
+    widgets.box->setValue(model->getObject().getBoxNd());
   }
 
 private:
@@ -289,13 +285,13 @@ private:
 
     //Matrix
     layout->addRow("Matrix",widgets.T=GuiFactory::CreateMatrixView(Matrix(4),[this](const Matrix& T){
-      model->setObject(Position(T,model->getObject().box.withPointDim(3)),true);
+      model->setObject(Position(T,model->getObject().getBoxNd().withPointDim(3)),true);
     }));
 
     //BoxNd
     layout->addRow("BoxNd",widgets.box=GuiFactory::CreateBox3dView(BoxNd(3),[this](BoxNd box){
       box.setPointDim(3);
-      model->setObject(Position(model->getObject().T,box),true);
+      model->setObject(Position(model->getObject().getTransformation(),box),true);
     }));
 
     auto ret=new QFrame();
