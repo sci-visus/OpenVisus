@@ -336,9 +336,9 @@ public:
     int              numused=0;
     int              bit;
     Int64 delta;
-    BoxNi            query_box        = query->logic_box;
+    BoxNi            query_box        = query->box_query.logic_box;
     PointNi          stride           = query->nsamples.stride();
-    PointNi          qshift           = query->logic_box.shift;
+    PointNi          qshift           = query->box_query.logic_box.shift;
     BigInt           numpoints;
     Aborted          aborted=query->aborted;
 
@@ -1091,11 +1091,18 @@ bool IdxDataset::mergeQueryWithBlock(SharedPtr<Query> query,SharedPtr<BlockQuery
     if (!Bbox.valid())
       return false;
 
-    auto Wbox=query->mode=='w'?        Bbox : query->logic_box;
-    auto Rbox=query->mode=='w'? query->logic_box :        Bbox;
+    auto Wbox = query->box_query.logic_box;
+    auto Rbox = Bbox;
 
-    auto& Wbuffer =query->mode=='w'?  block_query->buffer :       query->buffer;
-    auto& Rbuffer =query->mode=='w'?        query->buffer : block_query->buffer;
+    auto& Wbuffer = query->buffer;
+    auto& Rbuffer = block_query->buffer;
+
+    if (query->mode == 'w')
+    {
+      std::swap(Wbox, Rbox);
+      std::swap(Wbuffer,Rbuffer);
+    }
+
 
     if (HzFrom==0)
     {
@@ -1373,7 +1380,6 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
 
   //note: point queries are not mergeable, so it's box is invalid!
   query->nsamples=nsamples;
-  query->logic_box=LogicBox();
   query->buffer=Array();
   return true;
 }
@@ -1387,9 +1393,9 @@ bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<Query> query)
     return false;
 
   VisusAssert(query->position.getTransformation().isIdentity());
-  query->aligned_box=query->position.getBoxNi().withPointDim(this->getPointDim());
+  query->box_query.logic_aligned_box=query->position.getBoxNi().withPointDim(this->getPointDim());
 
-  if (!query->aligned_box.isFullDim())
+  if (!query->box_query.logic_aligned_box.isFullDim())
     return false;
 
   int start_resolution = query->start_resolution;
@@ -1411,7 +1417,7 @@ bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<Query> query)
   if (auto filter=query->filter.dataset_filter)
   {
     //important to return the "final" number of samples (see execute for loop)
-    query->aligned_box=this->adjustFilterBox(query.get(),filter.get(), query->aligned_box,end_resolution);
+    query->box_query.logic_aligned_box=this->adjustFilterBox(query.get(),filter.get(), query->box_query.logic_aligned_box,end_resolution);
   }
 
   //coompute the samples I will get
@@ -1433,7 +1439,7 @@ bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<Query> query)
 
     LogicBox Lbox=this->getLevelBox(H);
 
-    BoxNi box=Lbox.alignBox(query->aligned_box);
+    BoxNi box=Lbox.alignBox(query->box_query.logic_aligned_box);
     if (!box.isFullDim())
       continue;
 
@@ -1454,7 +1460,7 @@ bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<Query> query)
   VisusAssert(logic_box.valid());
 
   query->nsamples=logic_box.nsamples;
-  query->logic_box=logic_box;
+  query->box_query.logic_box=logic_box;
   query->buffer=Array();
   return true;
 }
@@ -1500,8 +1506,8 @@ bool IdxDataset::beginQuery(SharedPtr<Query> query)
 
   query->setRunning();
 
-  std::vector<int> end_resolutions=query->end_resolutions;
-  for (query->query_cursor=0;query->query_cursor<(int)end_resolutions.size();query->query_cursor++)
+  int N = (int)query->end_resolutions.size();
+  for (query->running_cursor = 0; query->running_cursor < N; query->running_cursor++)
   {
     if (this->setCurrentEndResolution(query))
       return true;
@@ -1650,7 +1656,7 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
   if (aborted())
     return false;
 
-  query->currentLevelReady();
+  query->setCurrentLevelReady();
   return true;
 }
 
@@ -1683,7 +1689,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
     //need to go level by level to rebuild the original data (top-down)
     for (int H=cur_resolution+1; H<=end_resolution; H++)
     {
-      BoxNi adjusted_box = adjustFilterBox(query.get(),filter.get(),query->aligned_box,H);
+      BoxNi adjusted_box = adjustFilterBox(query.get(),filter.get(),query->box_query.logic_aligned_box,H);
 
       auto Wquery=std::make_shared<Query>(this,'r');
       Wquery->time=query->time;
@@ -1734,9 +1740,9 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
       return false;
     }
 
-    query->nsamples  = query->filter.query->nsamples;
-    query->logic_box = query->filter.query->logic_box;
-    query->buffer    = query->filter.query->buffer;
+    query->nsamples            = query->filter.query->nsamples;
+    query->box_query.logic_box = query->filter.query->box_query.logic_box;
+    query->buffer              = query->filter.query->buffer;
   }
   //execute with access
   else 
@@ -1767,7 +1773,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
     for (int H=cur_resolution+1;!aborted() && H<=end_resolution;H++)
     {
       LogicBox Lbox=this->getLevelBox(H);
-      BoxNi box=Lbox.alignBox(query->logic_box);
+      BoxNi box=Lbox.alignBox(query->box_query.logic_box);
       if (!box.isFullDim())
         continue;
 
@@ -1883,7 +1889,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
       return false;
   }
 
-  query->currentLevelReady();
+  query->setCurrentLevelReady();
   return true;
 
   #undef PUSH 
@@ -1898,7 +1904,7 @@ bool IdxDataset::nextQuery(SharedPtr<Query> query)
     return false;
 
   auto Rcurrent_resolution=query->cur_resolution;
-  auto Rbox    =query->logic_box;
+  auto Rbox    =query->isPointQuery()? LogicBox() : query->box_query.logic_box;
   auto Rbuffer =query->buffer;
   auto Rfilter_query= query->filter.query;
 
@@ -1912,7 +1918,7 @@ bool IdxDataset::nextQuery(SharedPtr<Query> query)
   }
 
   //try to mergeerge
-  auto& Wbox=query->logic_box;
+  auto& Wbox= query->isPointQuery() ? LogicBox() : query->box_query.logic_box;
   if (Wbox.valid() && Rbox.valid())
   {
     if (!query->allocateBufferIfNeeded())

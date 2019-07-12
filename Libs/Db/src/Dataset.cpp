@@ -680,10 +680,10 @@ bool Dataset::nextQuery(SharedPtr<Query> query)
   }
 
   VisusAssert(query->isRunning());
-  ++query->query_cursor;
+  ++query->running_cursor;
 
   //reached the end?
-  if (query->query_cursor==query->end_resolutions.size())
+  if (query->running_cursor ==query->end_resolutions.size())
   {
     query->setOk();
     return false;
@@ -715,7 +715,7 @@ bool Dataset::executePureRemoteQuery(SharedPtr<Query> query)
 
   VisusAssert(buffer.dims==query->nsamples);
   query->buffer=buffer;
-  query->currentLevelReady();
+  query->setCurrentLevelReady();
   return true;
 }
 

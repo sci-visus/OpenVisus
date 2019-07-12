@@ -59,6 +59,15 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(Query)
 
+  /*
+    DatasetBitmask
+    V012012012012012012012012012012012
+    0-----------------------------max
+              |         |
+    start    current   end
+              |.......->|
+  */
+
   //-1 guess progression
   //0 means that you want to see only the final resolution
   //>0 set some progression
@@ -83,39 +92,41 @@ public:
     InterpolateSamples
   };
 
-  Aborted    aborted;
-
-  Field      field;
-  double     time = 0;
-
-  Array      buffer;
-
-  PointNi    nsamples;
-  LogicBox   logic_box;
-
-  int                        mode='r';
-  MergeMode                  merge_mode=InsertSamples;
+  int                        mode = 0;
+  Aborted                    aborted;
+  Field                      field;
+  double                     time = 0;
+  int                        start_resolution = 0;
+  std::vector<int>           end_resolutions;
   Position                   position;
   Frustum                    viewdep;
-  Position                   clipping;
+  MergeMode                  merge_mode = InsertSamples;
   std::function<void(Array)> incrementalPublish;
 
-  //aligned_box (internal use only)
-  BoxNi aligned_box;
+  PointNi                    nsamples; //available only after beginQuery
+  Array                      buffer;
+  Position                   clipping;
+  int                        cur_resolution = -1;
+  int                        running_cursor = -1;
 
-  /*
-    DatasetBitmask
-    V012012012012012012012012012012012
-    0-----------------------------max
-             |         |
-    start    current   end
-             |.......->|    
-  */
-  
-  int              start_resolution=0;
-  int              cur_resolution=-1;
-  std::vector<int> end_resolutions;
-  int              query_cursor=-1; 
+  // for box queries
+#if !SWIG
+  struct
+  {
+    BoxNi    logic_aligned_box;
+    LogicBox logic_box;
+  }
+  box_query;
+#endif
+
+  // for point queries
+#if !SWIG
+  struct
+  {
+    SharedPtr<HeapMemory> coordinates;
+  }
+  point_query;
+#endif
 
   //for idx
 #if !SWIG
@@ -144,16 +155,8 @@ public:
     SharedPtr<Access> access;
   }
   down_info;
-
   std::map<String, SharedPtr<Query> >  down_queries;
 #endif
-
-  // for point queries
-  struct
-  {
-    SharedPtr<HeapMemory> coordinates;
-  }
-  point_query;
   
   //constructor
   Query(Dataset* dataset,int mode);
@@ -165,6 +168,11 @@ public:
   //getByteSize
   Int64 getByteSize() const {
     return field.dtype.getByteSize(nsamples);
+  }
+
+  //isBoxQuery
+  bool isBoxQuery() const {
+    return !isPointQuery();
   }
 
   //isPointQuery
@@ -203,7 +211,7 @@ public:
   {
     if (failed()) return;
     VisusAssert(status==QueryCreated || status==QueryRunning || status==QueryOk);
-    this->query_cursor=(int)end_resolutions.size();
+    this->running_cursor =-1;
     this->status=QueryFailed;
     this->errormsg=msg;
   }
@@ -212,7 +220,7 @@ public:
   void setOk()
   {
     VisusAssert(status==QueryRunning);
-    this->query_cursor=(int)end_resolutions.size();
+    this->running_cursor = -1;
     this->status=QueryOk;
     this->errormsg="";
   }
@@ -224,32 +232,24 @@ public:
 
   //canNext
   bool canNext() const {
-    return status==QueryRunning && cur_resolution==end_resolutions[query_cursor];
+    return status==QueryRunning && cur_resolution==end_resolutions[running_cursor];
   }
 
   //canExecute
   bool canExecute() const {
-    return status==QueryRunning && cur_resolution<end_resolutions[query_cursor];
+    return status==QueryRunning && cur_resolution<end_resolutions[running_cursor];
   }
 
   //getEndResolution
   int getEndResolution() const {
 
     if (status!=QueryRunning) return -1;
-    VisusAssert(query_cursor>=0 && query_cursor<end_resolutions.size());
-    return end_resolutions[query_cursor];
+    VisusAssert(running_cursor >=0 && running_cursor <end_resolutions.size());
+    return end_resolutions[running_cursor];
   }
 
-  //currentLevelReady
-  void currentLevelReady() 
-  {
-    VisusAssert(status==QueryRunning);
-    VisusAssert(this->buffer.dims==this->nsamples);
-    VisusAssert(query_cursor>=0 && query_cursor<end_resolutions.size());
-    this->buffer.bounds   = this->position;
-    this->buffer.clipping = this->clipping;
-    this->cur_resolution=end_resolutions[query_cursor];
-  }
+  //setCurrentLevelReady
+  void setCurrentLevelReady();
 
   //allocateBufferIfNeeded
   bool allocateBufferIfNeeded();
@@ -261,10 +261,13 @@ public:
 
   //mergeSamples
   static bool mergeSamples(Query& write, Query& read, int merge_mode, Aborted aborted) {
-    return mergeSamples(write.logic_box, write.buffer, read.logic_box, read.buffer, merge_mode, aborted);
+    return mergeSamples(write.box_query.logic_box, write.buffer, read.box_query.logic_box, read.buffer, merge_mode, aborted);
   }
 
 private:
+
+
+  Dataset* dataset = nullptr;
 
   String errormsg="";
 

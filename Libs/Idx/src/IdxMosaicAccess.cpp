@@ -194,8 +194,8 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
       if (!vf->executeQuery(access, query))
         continue;
 
-      auto pixel_p1 =      PointNi(pdim); auto logic_p1 = query->logic_box.pixelToLogic(pixel_p1); auto LOGIC_P1 = logic_p1 + offset; auto PIXEL_P1 = QUERY->logic_box.logicToPixel(LOGIC_P1);
-      auto pixel_p2 = query->buffer.dims; auto logic_p2 = query->logic_box.pixelToLogic(pixel_p2); auto LOGIC_P2 = logic_p2 + offset; auto PIXEL_p2 = QUERY->logic_box.logicToPixel(LOGIC_P2);
+      auto pixel_p1 =      PointNi(pdim); auto logic_p1 = query->box_query.logic_box.pixelToLogic(pixel_p1); auto LOGIC_P1 = logic_p1 + offset; auto PIXEL_P1 = QUERY->logic_box.logicToPixel(LOGIC_P1);
+      auto pixel_p2 = query->buffer.dims; auto logic_p2 = query->box_query.logic_box.pixelToLogic(pixel_p2); auto LOGIC_P2 = logic_p2 + offset; auto PIXEL_p2 = QUERY->logic_box.logicToPixel(LOGIC_P2);
 
       ArrayUtils::insert(
         QUERY->buffer, PIXEL_P1, PIXEL_p2, PointNi::one(pdim),

@@ -466,7 +466,7 @@ public:
         query->allocateBufferIfNeeded();
         ArrayUtils::setBufferColor(query->buffer, VF->childs[name].color);
         query->buffer.layout = ""; //row major
-        query->currentLevelReady();
+        query->setCurrentLevelReady();
       }
       else
       {
@@ -1391,11 +1391,11 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> 
       if (OUTPUT.dims != QUERY->nsamples)
       {
         QUERY->nsamples = OUTPUT.dims;
-        QUERY->logic_box = LogicBox();
+        QUERY->box_query.logic_box = LogicBox();
       }
 
       QUERY->buffer = OUTPUT;
-      QUERY->currentLevelReady();
+      QUERY->setCurrentLevelReady();
       return true;
     }
   }

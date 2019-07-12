@@ -227,8 +227,8 @@ public:
     {
       VisusReleaseAssert(vf->executeQuery(access,query));
       buffer=query->buffer;
-      h_box=query->logic_box;
-      shift=query->logic_box.shift;
+      h_box=query->box_query.logic_box;
+      shift=query->box_query.logic_box.shift;
       if (!vf->nextQuery(query))
         break;
     }
@@ -245,7 +245,7 @@ public:
         int N=(int)(world_point[pdim-1]-user_box.p1[pdim-1]);
 
         //position inside the slice buffer
-        LogicBox samples=write_queries[N]->logic_box;
+        LogicBox samples=write_queries[N]->box_query.logic_box;
         PointNi P=samples.logicToPixel(world_point);
         Int64 pos=stride.dotProduct(P);
         VisusReleaseAssert(CompareSamples(this->write_queries[N]->buffer,pos,buffer,nsample,1));

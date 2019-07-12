@@ -42,13 +42,24 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////////////////////////////
-Query::Query(Dataset* dataset,int mode)
+Query::Query(Dataset* dataset_,int mode) : dataset(dataset_)
 {
   VisusAssert(mode=='r' || mode=='w');
   this->mode           = mode;
   this->time           = dataset->getDefaultTime();
   this->field          = dataset->getDefaultField();
   this->filter.domain  = dataset->getLogicBox();
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+void Query::setCurrentLevelReady()
+{
+  VisusAssert(status == QueryRunning);
+  VisusAssert(this->buffer.dims == this->nsamples);
+  VisusAssert(query_cursor >= 0 && query_cursor < end_resolutions.size());
+  this->buffer.bounds = this->position;
+  this->buffer.clipping = this->clipping;
+  this->cur_resolution = end_resolutions[running_cursor];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

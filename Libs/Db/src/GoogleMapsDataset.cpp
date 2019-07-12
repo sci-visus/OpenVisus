@@ -193,8 +193,8 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query)
   }
 
   query->setRunning();
-  std::vector<int> end_resolutions=query->end_resolutions;
-  for (query->query_cursor=0;query->query_cursor<(int)end_resolutions.size();query->query_cursor++)
+  int N = (int)query->end_resolutions.size();
+  for (query->running_cursor = 0; query->running_cursor < N; query->running_cursor++)
   {
     if (setCurrentEndResolution(query))
       return true;
@@ -277,7 +277,7 @@ bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> q
   access->endRead();
 
   wait_async.waitAllDone();
-  query->currentLevelReady();
+  query->setCurrentLevelReady();
   return true;
 }
 
@@ -304,7 +304,7 @@ bool GoogleMapsDataset::nextQuery(SharedPtr<Query> query)
 //////////////////////////////////////////////////////////////
 bool GoogleMapsDataset::mergeQueryWithBlock(SharedPtr<Query> query,SharedPtr<BlockQuery> blockquery) 
 {
-  return Query::mergeSamples(query->logic_box, query->buffer, blockquery->logic_box, blockquery->buffer, Query::InsertSamples, query->aborted);
+  return Query::mergeSamples(query->box_query.logic_box, query->buffer, blockquery->logic_box, blockquery->buffer, Query::InsertSamples, query->aborted);
 }
 
 //////////////////////////////////////////////////////////////
@@ -329,8 +329,10 @@ SharedPtr<Access> GoogleMapsDataset::createAccess(StringTree config, bool bForBl
 std::vector<int> GoogleMapsDataset::guessEndResolutions(const Frustum& viewdep,Position position,Query::Quality quality,Query::Progression progression)
 {
   std::vector<int> ret=Dataset::guessEndResolutions(viewdep,position,quality,progression);
+
   for (int I=0;I<(int)ret.size();I++)
     ret[I]=(ret[I]>>1)<<1; //i don't have even resolution 
+  
   return ret;
 }
 
@@ -471,7 +473,7 @@ bool GoogleMapsDataset::setCurrentEndResolution(SharedPtr<Query> query)
 
   LogicBox logic_box(box,Lbox.delta);
   query->nsamples=logic_box.nsamples;
-  query->logic_box=logic_box;
+  query->box_query.logic_box=logic_box;
   query->buffer=Array();
   return true;
 }

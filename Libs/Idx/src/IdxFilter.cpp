@@ -55,7 +55,7 @@ static bool ComputeFilter(Dataset* dataset,Query* query,const FilterClass* filte
   if (H==0)
     return true;
 
-  LogicBox         logic_box  = query->logic_box;
+  LogicBox         logic_box  = query->box_query.logic_box;
   DType            dtype      = field.dtype;
   int              ncomponents= dtype.ncomponents();
   DatasetBitmask   bitmask    = dataset->getBitmask();

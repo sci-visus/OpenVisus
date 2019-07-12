@@ -304,7 +304,7 @@ void Tutorial_6(String default_layout)
       //verify the data only If I'm reading the final resolution
       if (query->cur_resolution==dataset->getMaxResolution())
       {
-        BoxNi aligned_box= query->aligned_box;
+        BoxNi aligned_box= query->box_query.logic_aligned_box;
 
         //need to shrink the query, at the final resolution the box of filtered query can be larger than what the user want
         auto original=std::make_shared<Array>();
