@@ -49,6 +49,14 @@ Query::Query(Dataset* dataset_,int mode) : dataset(dataset_)
   this->time           = dataset->getDefaultTime();
   this->field          = dataset->getDefaultField();
   this->filter.domain  = dataset->getLogicBox();
+
+  if (isPointQuery())
+    this->point_query.coordinates = std::make_shared<HeapMemory>();
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+bool Query::isPointQuery() const {
+  return dataset->getPointDim() == 3 && this->position.getBoxNd().minsize() == 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

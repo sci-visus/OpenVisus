@@ -52,9 +52,6 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(QueryNode)
 
-  //internal use only
-  static bool bDisableFindQUeryIntersectionWithDatasetBox;
-
   //constructor
   QueryNode(String name="");
 

@@ -1472,18 +1472,12 @@ bool IdxDataset::beginQuery(SharedPtr<Query> query)
   if (!Dataset::beginQuery(query))
     return false;
 
-  auto dataset_dim = this->getPointDim();
-
-  if (bool bPointQuery = dataset_dim == 3 && query->position.getBoxNd().minsize() == 0)
-  {
-    query->point_query.coordinates = std::make_shared<HeapMemory>();
-  }
-  else
+  //remove transformation and enable clipping
+  if (!query->isPointQuery())
   {
     Matrix T = query->position.getTransformation();
     if (!T.isIdentity())
     {
-      //clipping...
       if (this->getPointDim() == 3)
         query->clipping = query->position;
 
@@ -1499,10 +1493,7 @@ bool IdxDataset::beginQuery(SharedPtr<Query> query)
   }
 
   if (!query->position.valid())
-  {
-    query->setFailed("position is wrong");
-    return false;
-  }
+    return query->setFailed("position is wrong");
 
   query->setRunning();
 
@@ -1513,8 +1504,7 @@ bool IdxDataset::beginQuery(SharedPtr<Query> query)
       return true;
   }
 
-  query->setFailed("cannot find an initial resolution");
-  return false;
+  return query->setFailed("cannot find an initial resolution");
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

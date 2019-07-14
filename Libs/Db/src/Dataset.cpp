@@ -572,63 +572,37 @@ bool Dataset::beginQuery(SharedPtr<Query> query)
     return false;
 
   if (!query->canBegin())
-  {
-    query->setFailed("query begin called many times");
-    return false;
-  }
+    return query->setFailed("query begin called many times");
 
   //if you want to set a buffer for 'w' queries, please do it after begin
   VisusAssert(!query->logic_box.valid() && !query->buffer);
 
   if (!this->valid() )
-  {
-    query->setFailed("query not valid");
-    return false;
-  }
+    return query->setFailed("query not valid");
 
   if (!query->field.valid())
-  {
-    query->setFailed("field not valid");
-    return false;
-  }
+    return query->setFailed("field not valid");
+     false;
 
   if (!query->position.valid())
-  {
-    query->setFailed("position not valid");
-    return false;
-  }
+    return query->setFailed("position not valid");
 
-  //if (query->viewdep && !query->viewdep->valid())
-  //{
-  //  query->setFailed("viewdep not valid");
-  //  return false;
-  //}
+  // override time from field
+  if (query->field.hasParam("time"))
+    query->time=cdouble(query->field.getParam("time"));  
 
-  //override time
-  {
-    // from field
-    if (query->field.hasParam("time"))
-      query->time=cdouble(query->field.getParam("time"));  
-
-    //from dataset url
-    if (this->getUrl().hasParam("time"))
-      query->time=cdouble(this->getUrl().getParam("time"));
-  }
-
+  // override time from dataset url
+  if (this->getUrl().hasParam("time"))
+    query->time=cdouble(this->getUrl().getParam("time"));
 
   if (!getTimesteps().containsTimestep(query->time))
-  {
-    query->setFailed("missing timestep");
-    return false;
-  }
+    return query->setFailed("missing timestep");
 
   if (query->end_resolutions.empty())
     query->end_resolutions={this->getMaxResolution()};
 
-  #ifdef VISUS_DEBUG
   for (int I=0;I<(int)query->end_resolutions.size();I++)
     VisusAssert(query->end_resolutions[I]<=this->getMaxResolution());
-  #endif
 
   return true;
 }

@@ -170,14 +170,12 @@ public:
     return field.dtype.getByteSize(nsamples);
   }
 
+  //isPointQuery
+  bool isPointQuery() const;
+
   //isBoxQuery
   bool isBoxQuery() const {
     return !isPointQuery();
-  }
-
-  //isPointQuery
-  bool isPointQuery() const {
-    return point_query.coordinates ? true : false;
   }
 
   //isRunning
@@ -207,22 +205,24 @@ public:
   }
 
   //setFailed
-  void setFailed(String msg) 
+  bool setFailed(String msg) 
   {
-    if (failed()) return;
+    if (failed()) return false;
     VisusAssert(status==QueryCreated || status==QueryRunning || status==QueryOk);
     this->running_cursor =-1;
     this->status=QueryFailed;
     this->errormsg=msg;
+    return false;
   }
 
   //setOk
-  void setOk()
+  bool setOk()
   {
     VisusAssert(status==QueryRunning);
     this->running_cursor = -1;
     this->status=QueryOk;
     this->errormsg="";
+    return true;
   }
 
   //canBegin

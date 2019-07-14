@@ -43,9 +43,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-bool QueryNode::bDisableFindQUeryIntersectionWithDatasetBox = false;
-
-
 ///////////////////////////////////////////////////////////////////////////
 class QueryNode::MyJob : public NodeJob
 {
@@ -231,47 +228,42 @@ bool QueryNode::processInput()
     query->field=dataset->getFieldByName(cstring(fieldname));
 
   //set position
-  Int64 max_query_size=0;
+  Frustum viewdep;
+  if (isViewDependentEnabled() && getViewDep().valid())
   {
-    Frustum viewdep;
-    if (isViewDependentEnabled() && getViewDep().valid())
-    {
-      viewdep=getViewDep();
-      auto frustum_map = FrustumMap(viewdep);
-      position=Position::shrink(viewdep.getScreenBox(), frustum_map,position);
-      if (!position.valid())
-      {
-        publishDumbArray();
-        return false;
-      }
-    }
-
-    //find intersection with dataset box
-    if (!bDisableFindQUeryIntersectionWithDatasetBox)
-    {
-      auto pdim = dataset->getPointDim();
-      auto matrix_map = MatrixMap(Matrix::identity(pdim));
-      position = Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), matrix_map, position);
-    }
-
-    if (!position.valid()) 
+    viewdep=getViewDep();
+    auto frustum_map = FrustumMap(viewdep);
+    position=Position::shrink(viewdep.getScreenBox(), frustum_map,position);
+    if (!position.valid())
     {
       publishDumbArray();
       return false;
     }
-
-
-    query->position=position;
-    query->viewdep=viewdep;
   }
 
+  //find intersection with dataset box
+  auto pdim = dataset->getPointDim();
+  auto matrix_map = MatrixMap(Matrix::identity(pdim));
+  position = Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), matrix_map, position);
+
+  if (!position.valid()) 
+  {
+    publishDumbArray();
+    return false;
+  }
+
+
+  query->position=position;
+  query->viewdep=viewdep;
+
   //end resolutions
-  query->end_resolutions=dataset->guessEndResolutions(query->viewdep,query->position,getQuality(),getProgression());
+  query->end_resolutions=dataset->guessEndResolutions(viewdep,query->position,getQuality(),getProgression());
  
   //failed for some reason
   if (!dataset->beginQuery(query)) 
     return false;
 
+  Int64 max_query_size = 0;
   addNodeJob(std::make_shared<MyJob>(this, dataset, access, query, max_query_size));
   return true;
 }

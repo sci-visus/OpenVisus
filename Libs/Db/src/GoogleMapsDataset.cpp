@@ -150,47 +150,32 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query)
   if (!Dataset::beginQuery(query))
     return false;
 
+  //writing is not supported
+  if (query->mode == 'w')
+    return query->setFailed("Writing mode not suppoted");
+
   VisusAssert(query->start_resolution==0);
 
+  std::set<int> good;
+  for (auto it : query->end_resolutions)
   {
-    std::set<int> good;
-    for (auto it : query->end_resolutions)
-    {
 
-      //i don't have odd resolutions
-      auto value = (it >> 1) << 1;
+    //i don't have odd resolutions
+    auto value = (it >> 1) << 1;
 
-      //resolution cannot be less than tile resolution
-      if (value>= getDefaultBitsPerBlock())
-        good.insert(value);
-    }
-
-    query->end_resolutions.assign(good.begin(),good.end());
+    //resolution cannot be less than tile resolution
+    if (value>= getDefaultBitsPerBlock())
+      good.insert(value);
   }
 
-  //writing is not supported
-  if (query->mode=='w')
-  {
-    query->setFailed("Writing mode not suppoted");
-    return false;
-  }
-
-  Position position=query->position;
+  query->end_resolutions.assign(good.begin(),good.end());
 
   //not supported
-  if (!position.getTransformation().isIdentity())
-  {
-    query->setFailed("Position has non-identity transformation");
-    return false;
-  }
+  if (!query->position.getTransformation().isIdentity())
+    return query->setFailed("Position has non-identity transformation");
 
-  auto user_box= query->position.getBoxNi().getIntersection(this->getLogicBox());
-
-  if (!user_box.isFullDim())
-  {
-    query->setFailed("user_box not valid");
-    return false;
-  }
+  if (!query->position.getBoxNi().getIntersection(this->getLogicBox()).isFullDim())
+    return query->setFailed("user_box not valid");
 
   query->setRunning();
   int N = (int)query->end_resolutions.size();
@@ -200,8 +185,7 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query)
       return true;
   }
 
-  query->setFailed("Cannot find a good initial resolution");
-  return false;
+  return query->setFailed("Cannot find a good initial resolution");
 }
 
 
