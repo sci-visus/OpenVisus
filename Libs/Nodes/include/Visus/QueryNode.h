@@ -129,35 +129,35 @@ public:
 
   //getNodeBounds
   virtual Position getNodeBounds() override {
-    return bounds;
+    return node_bounds;
   }
 
   //setNodeBounds
   void setNodeBounds(Position value,bool bForce=false) {
-    if (bounds==value && !bForce) return;
+    if (node_bounds ==value && !bForce) return;
     beginUpdate();
-    this->bounds=value;
+    this->node_bounds =value;
     endUpdate();
   }
 
-  //getQueryPosition
-  Position getQueryPosition() const {
-    return position;
+  //getQueryBounds
+  Position getQueryBounds() const {
+    return query_bounds;
   }
 
-  //setQueryPosition
-  void setQueryPosition(Position value) {
-    this->position=value;
+  //setQueryBounds
+  void setQueryBounds(Position value) {
+    this->query_bounds =value;
   }
 
-  //getViewDep
-  Frustum getViewDep() const {
-    return bViewDependentEnabled? viewdep : Frustum();
+  //nodeToScreen
+  Frustum nodeToScreen() const {
+    return bViewDependentEnabled? node_to_screen : Frustum();
   }
 
-  //setViewDep
-  void setViewDep(Frustum value) {
-    this->viewdep=value;
+  //setNodeToScreen
+  void setNodeToScreen(Frustum value) {
+    this->node_to_screen =value;
   }
 
   //isViewDependentEnabled
@@ -199,11 +199,11 @@ private:
   int                verbose = 0;
   int                accessindex=0;
   bool               bViewDependentEnabled = false;
-  Frustum            viewdep;
+  Frustum            node_to_screen;
   Query::Progression progression=Query::GuessProgression;
   Query::Quality     quality=Query::DefaultQuality;
-  Position           bounds=Position::invalid();
-  Position           position;
+  Position           node_bounds=Position::invalid();
+  Position           query_bounds;
 
   //modelChanged
   virtual void modelChanged() override {

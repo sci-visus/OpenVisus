@@ -171,10 +171,10 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query)
   query->end_resolutions.assign(good.begin(),good.end());
 
   //not supported
-  if (!query->position.getTransformation().isIdentity())
+  if (!query->logic_position.getTransformation().isIdentity())
     return query->setFailed("Position has non-identity transformation");
 
-  if (!query->position.getBoxNi().getIntersection(this->getLogicBox()).isFullDim())
+  if (!query->logic_position.getBoxNi().getIntersection(this->getLogicBox()).isFullDim())
     return query->setFailed("user_box not valid");
 
   query->setRunning();
@@ -195,7 +195,7 @@ void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_q
   if (query->aborted()) 
     return;
 
-  if (!box.getIntersection(query->position.getBoxNi()).isFullDim())
+  if (!box.getIntersection(query->logic_position.getBoxNi()).isFullDim())
     return;
 
   int samplesperblock=1<<this->getDefaultBitsPerBlock();
@@ -310,9 +310,9 @@ SharedPtr<Access> GoogleMapsDataset::createAccess(StringTree config, bool bForBl
 
 
 //////////////////////////////////////////////////////////////
-std::vector<int> GoogleMapsDataset::guessEndResolutions(const Frustum& viewdep,Position position,Query::Quality quality,Query::Progression progression)
+std::vector<int> GoogleMapsDataset::guessEndResolutions(const Frustum& logic_to_screen,Position logic_position,Query::Quality quality,Query::Progression progression)
 {
-  std::vector<int> ret=Dataset::guessEndResolutions(viewdep,position,quality,progression);
+  std::vector<int> ret=Dataset::guessEndResolutions(logic_to_screen, logic_position,quality,progression);
 
   for (int I=0;I<(int)ret.size();I++)
     ret[I]=(ret[I]>>1)<<1; //i don't have even resolution 
@@ -445,7 +445,7 @@ bool GoogleMapsDataset::setCurrentEndResolution(SharedPtr<Query> query)
   VisusAssert(query->start_resolution<=end_resolution);
   VisusAssert(end_resolution<= getMaxResolution());
   
-  auto user_box= query->position.getBoxNi().getIntersection(this->getLogicBox());
+  auto user_box= query->logic_position.getBoxNi().getIntersection(this->getLogicBox());
   VisusAssert(user_box.isFullDim());
 
   int H=end_resolution;

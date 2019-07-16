@@ -700,7 +700,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   //position
   if (action == "boxquery")
   {
-    query->position = Position(BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box")));
+    query->logic_position = Position(BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box")));
   }
   else if (action == "pointquery")
   {
@@ -708,7 +708,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
     auto  box = BoxNd::parseFromString(request.url.getParam("box"),/*bInterleave*/false);
     VisusAssert(pdim == 3);
     box.setPointDim(3);
-    query->position = Position(map, box);
+    query->logic_position = Position(map, box);
   }
   else
   {

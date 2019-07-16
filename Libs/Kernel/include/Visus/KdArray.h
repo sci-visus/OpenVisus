@@ -51,8 +51,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(KdArrayNode)
 
-  // box
-  BoxNi box;    
+  // logic_box
+  BoxNi logic_box;
 
   //level
   int level=0;
@@ -89,7 +89,7 @@ public:
 
   //return the middle
   inline Int64 getMiddle() {
-    return (this->box.p1[split_bit]+this->box.p2[split_bit])>>1;
+    return (this->logic_box.p1[split_bit]+this->logic_box.p2[split_bit])>>1;
   }
 
   //if leaf or not
@@ -126,13 +126,13 @@ public:
 #endif
 
   // (dataset) box 
-  BoxNi box;  
+  BoxNi logic_box;
 
   //only for kd queries
   SharedPtr<KdArrayNode> root;
 
   //clipping
-  Position clipping;
+  Position logic_clipping;
 
   //current queried box
   BoxNi query_box;
@@ -159,7 +159,7 @@ public:
 
   //isNodeVisible
   inline bool isNodeVisible(KdArrayNode* node) const {
-    return node->box.strictIntersect(this->box) && node->box.strictIntersect(this->query_box);
+    return node->logic_box.strictIntersect(this->logic_box) && node->logic_box.strictIntersect(this->query_box);
   }
 
   //enableCaching

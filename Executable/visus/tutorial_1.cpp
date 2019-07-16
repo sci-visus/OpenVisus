@@ -86,7 +86,7 @@ void Tutorial_1(String default_layout)
 
     //prepare the write query
     auto query=std::make_shared<Query>(dataset.get(),'w');
-    query->position=slice_box;
+    query->logic_position=slice_box;
     VisusReleaseAssert(dataset->beginQuery(query));
     VisusReleaseAssert(query->nsamples.innerProduct()==16*16);
 

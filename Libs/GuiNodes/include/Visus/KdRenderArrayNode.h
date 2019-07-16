@@ -164,7 +164,7 @@ public:
   virtual Position getNodeBounds() override
   {
     if (!kdarray) return Position::invalid();
-    return (kdarray->clipping.valid())? kdarray->clipping : Position(kdarray->root->box);
+    return (kdarray->logic_clipping.valid())? kdarray->logic_clipping : Position(kdarray->root->logic_box);
   }
 
   //from Node

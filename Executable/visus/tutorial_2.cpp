@@ -70,7 +70,7 @@ void Tutorial_2(String default_layout)
 
     //I should get a number of samples equals to the number of samples written in tutorial 1
     auto query=std::make_shared<Query>(dataset.get(),'r');
-    query->position=slice_box;
+    query->logic_position=slice_box;
     VisusReleaseAssert(dataset->beginQuery(query));
     VisusReleaseAssert(query->nsamples.innerProduct()==16*16);
 

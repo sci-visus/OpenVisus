@@ -60,9 +60,9 @@ public:
   SharedPtr<KdArray>            kdarray;
   double                        time=0;
   Field                         field;
-  Position                      position;
+  Position                      logic_position;
   int                           quality=0;
-  Frustum                       viewdep;
+  Frustum                       logic_to_screen;
   Time                          last_publish;
   int                           publish_interval=0;
   int                           bitsperblock=0;
@@ -96,7 +96,7 @@ public:
     if (!field.valid())
       return false;
 
-    if (!position.valid())
+    if (!logic_position.valid())
       return false;
 
     //i need an access for accessing block
@@ -111,28 +111,26 @@ public:
     this->publish_interval = dataset->getPointDim() == 3 ? 2000 : 200;
 
     //find intersection with view frustum
-    if (viewdep.valid())
+    if (logic_to_screen.valid())
     {
-      auto frustum_map = FrustumMap(viewdep);
-      position=Position::shrink(viewdep.getScreenBox(), frustum_map,position);
-      if (!position.valid()) 
+      logic_position =Position::shrink(logic_to_screen.getScreenBox(), FrustumMap(logic_to_screen), logic_position);
+      if (!logic_position.valid())
         return false;
     }
 
     //find intersection with dataset box
-    auto matrix_map = MatrixMap(Matrix::identity(pdim));
-    position=Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), matrix_map,position);
+    logic_position =Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), MatrixMap(Matrix::identity(pdim)), logic_position);
 
-    if (!position.valid()) 
+    if (!logic_position.valid())
       return false;
 
     //remove transformation
-    position = Position(position.toAxisAlignedBox().castTo<BoxNi>().getIntersection(dataset->getLogicBox()));
-    if (!position.valid()) 
+    logic_position = Position(logic_position.toAxisAlignedBox().castTo<BoxNi>().getIntersection(dataset->getLogicBox()));
+    if (!logic_position.valid())
       return false;
 
     //failed for some reason
-    std::vector<int> end_resolutions=dataset->guessEndResolutions(viewdep,position,(Query::Quality)quality,Query::NoProgression);
+    std::vector<int> end_resolutions=dataset->guessEndResolutions(logic_to_screen, logic_position,(Query::Quality)quality,Query::NoProgression);
     if (end_resolutions.empty()) 
       return false;
 
@@ -140,7 +138,7 @@ public:
     {
       ScopedWriteLock wlock(kdarray->lock);
 
-      kdarray->query_box = position.getBoxNi();
+      kdarray->query_box = logic_position.getBoxNi();
       kdarray->end_resolution = end_resolutions.back();
 
       this->bBlocksAreFullRes = std::dynamic_pointer_cast<GoogleMapsDataset>(dataset) ? true : false;
@@ -197,7 +195,7 @@ public:
     auto query=std::make_shared<Query>(dataset.get(), 'r');
     query->time=time;
     query->field=field;
-    query->position=pow2_box;
+    query->logic_position=pow2_box;
     query->end_resolutions={end_resolution};
     query->aborted=this->aborted;
 
@@ -229,12 +227,12 @@ public:
     {
       ScopedWriteLock wlock(rlock);
 
-      kdarray->box = dataset->getLogicBox();
-      kdarray->clipping = position;
+      kdarray->logic_box = dataset->getLogicBox();
+      kdarray->logic_clipping = logic_position;
 
       kdarray->root = std::make_shared<KdArrayNode>();
       kdarray->root->resolution = end_resolution;
-      kdarray->root->box = pow2_box;
+      kdarray->root->logic_box = pow2_box;
       kdarray->root->id = 1; //root has id equals to 1 (important for split)
       kdarray->root->blockdata   = Array(); //it's not a single block, it is block 0+1!
       kdarray->root->fullres     = fullres;
@@ -278,7 +276,7 @@ public:
         auto query = std::make_shared<Query>(dataset.get(), 'r');
         query->time = time;
         query->field = field;
-        query->position = node->box;
+        query->logic_position = node->logic_box;
         query->end_resolutions = { node->resolution };
         query->aborted = this->aborted;
 
@@ -534,7 +532,7 @@ public:
       auto query = std::make_shared<Query>(dataset.get(), 'r');
       query->time = time;
       query->field = field;
-      query->position = node->box;
+      query->logic_position = node->logic_box;
       query->end_resolutions = { node->resolution };
       query->aborted = this->aborted;
 
@@ -649,9 +647,10 @@ bool KdQueryNode::processInput()
   job->kdarray=kdarray;
   job->time=time;
   job->field=fieldname.empty()? dataset->getDefaultField() : dataset->getFieldByName(fieldname);
-  job->position=getQueryPosition();
   job->quality=getQuality();
-  job->viewdep=getViewDep();
+
+  job->logic_position = getQueryBounds();
+  job->logic_to_screen = nodeToScreen();
   
   if (!job->validate()) 
     return false;

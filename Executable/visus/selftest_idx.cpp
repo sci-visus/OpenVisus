@@ -162,7 +162,7 @@ public:
 
         auto query=std::make_shared<Query>(vf,'w');
         query->field=field;
-        query->position=slice_box;
+        query->logic_position=slice_box;
         VisusReleaseAssert(vf->beginQuery(query));
 
         Array buffer(query->nsamples,field.dtype);
@@ -182,7 +182,7 @@ public:
       for (int N=0;N<this->nslices;N++)
       {
         auto read_slice=std::make_shared<Query>(vf,'r');
-        read_slice->position=(getSliceBox(N));
+        read_slice->logic_position=(getSliceBox(N));
         VisusReleaseAssert(vf->beginQuery(read_slice));
         VisusReleaseAssert(vf->executeQuery(access,read_slice));
         VisusReleaseAssert(read_slice->nsamples.innerProduct()==this->perslice);
@@ -209,7 +209,7 @@ public:
     auto access=vf->createAccess();
 
     auto query=std::make_shared<Query>(vf,'r');
-    query->position=box;
+    query->logic_position=box;
     query->merge_mode=(bInterpolate?Query::InterpolateSamples : Query::InsertSamples);
 
     for (int h=firsth;h<=lasth;h=h+deltah)

@@ -461,7 +461,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
 
   if (!args_zoom_to.empty())
   {
-    auto world_box = this->getWorldBoundingBox();
+    auto world_box = this->getWorldBounds();
 
     if (auto glcamera = this->getGLCamera())
     {
@@ -645,7 +645,7 @@ int Viewer::getWorldDimension() const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-BoxNd Viewer::getWorldBoundingBox() const
+BoxNd Viewer::getWorldBounds() const
 {
   return getNodeBounds(getRoot()).toAxisAlignedBox();
 }
@@ -701,7 +701,7 @@ Position Viewer::getNodeBounds(Node* node,bool bRecursive) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Position Viewer::getNodeBoundsInAnotherSpace(Node* dst,Node* src) const
+Position Viewer::nodeToNode(Node* dst,Node* src) const
 {
   VisusAssert(dst && src && dst!=src);
   
@@ -749,7 +749,7 @@ Position Viewer::getNodeBoundsInAnotherSpace(Node* dst,Node* src) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Frustum Viewer::computeNodeFrustum(Frustum frustum,Node* node) const
+Frustum Viewer::nodeToScreen(Frustum frustum,Node* node) const
 {
   for (auto it : node->getPathFromRoot())
   {
@@ -764,9 +764,9 @@ Frustum Viewer::computeNodeFrustum(Frustum frustum,Node* node) const
 }
 
 //////////////////////////////////////////////////////////////////////
-Position Viewer::getQueryBoundsInDatasetSpace(QueryNode* query_node) const
+Position Viewer::getQueryBounds(QueryNode* query_node) const
 {
-  return getNodeBoundsInAnotherSpace(query_node->getDatasetNode(),query_node);
+  return nodeToNode(query_node->getDatasetNode(),query_node);
 }
 
 ////////////////////////////////////////////////////////////
@@ -781,7 +781,7 @@ Node* Viewer::findPick(Node* node,Point2d screen_point,bool bRecursive,double* o
   //I allow the picking of only queries
   if (QueryNode* query=dynamic_cast<QueryNode*>(node))
   {
-    Frustum  frustum = computeNodeFrustum(getGLCamera()->getFrustum(),node);
+    Frustum  frustum = nodeToScreen(getGLCamera()->getFrustum(),node);
     Position bounds  = getNodeBounds(node);
 
     double query_distance=frustum.computeDistance(bounds,screen_point,/*bUseFarPoint*/false);
@@ -830,10 +830,10 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
   {
     free_transform=std::make_shared<FreeTransform>();
 
-    free_transform->objectChanged.connect([this,query_node](Position query_pos)
+    free_transform->objectChanged.connect([this,query_node](Position query_bounds)
     {
-      auto T  =query_pos.getTransformation();
-      auto box=query_pos.getBoxNd().withPointDim(3);
+      auto T  = query_bounds.getTransformation();
+      auto box= query_bounds.getBoxNd().withPointDim(3);
 
       TRSMatrixDecomposition trs(T);
 
@@ -856,9 +856,9 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
         }
       }
 
-      query_pos=Position(T,box);
-      query_node->setNodeBounds(query_pos);
-      free_transform->setObject(query_pos);
+      query_bounds=Position(T,box);
+      query_node->setNodeBounds(query_bounds);
+      free_transform->setObject(query_bounds);
       refreshData(query_node);
     });
 
@@ -910,13 +910,13 @@ void Viewer::dataflowBeforeProcessInput(Node* node)
   if (auto query_node=dynamic_cast<QueryNode*>(node))
   {
     //overwrite the position, need to actualize it to the dataset since QueryNode works in dataset reference space
-    auto position=getQueryBoundsInDatasetSpace(query_node);
-    query_node->setQueryPosition(position);
+    auto position=getQueryBounds(query_node);
+    query_node->setQueryBounds(position);
 
     //overwrite the viewdep frustum, since QueryNode works in dataset reference space
     //NOTE: using the FINAL frusutm
-    auto viewdep=computeNodeFrustum(getGLCamera()->getFinalFrustum(),query_node->getDatasetNode());
-    query_node->setViewDep(viewdep);
+    auto node_to_screen=nodeToScreen(getGLCamera()->getFinalFrustum(),query_node->getDatasetNode());
+    query_node->setNodeToScreen(node_to_screen);
   }
 }
 
@@ -1219,7 +1219,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
 
     addDatasetNode(dataset,parent);
 
-    glcamera->guessPosition(getWorldBoundingBox());
+    glcamera->guessPosition(getWorldBounds());
 
     if (dataset && StringUtils::contains(dataset->getConfig().readString("mirror"), "x"))
       glcamera->mirror(0);
@@ -2551,8 +2551,8 @@ void Viewer::refreshData(Node* node)
       {
         if (auto query_node=dynamic_cast<QueryNode*>(it))
         {
-          Position position=getQueryBoundsInDatasetSpace(query_node);
-          if (position!=query_node->getQueryPosition())
+          Position position=getQueryBounds(query_node);
+          if (position!=query_node->getQueryBounds())
             dataflow->needProcessInput(query_node);
         }
       }
@@ -2791,14 +2791,15 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
   query_node->setProgression(Query::GuessProgression);
   query_node->setQuality(Query::DefaultQuality);
 
+  if (bool bPointQuery = dataset_dim==3 && query_dim == 2)
   {
-    auto box=dataset_node->getNodeBounds().toAxisAlignedBox();
-    if (dataset_dim==3 && query_dim == 2)
-    {
-      auto Z = box.center()[2];
-      box=box.getZSlab(Z, Z);
-    }
-    query_node->setNodeBounds(Position(box));
+    auto box = dataset_node->getNodeBounds().getBoxNd().withPointDim(3);
+    box.p1[2] = box.p2[2] = box.center()[2];
+    query_node->setNodeBounds(Position(dataset_node->getNodeBounds().getTransformation(),box));
+  }
+  else
+  {
+    query_node->setNodeBounds(dataset_node->getNodeBounds());
   }
 
   //FieldNode
@@ -2893,7 +2894,7 @@ KdQueryNode* Viewer::addKdQueryNode(Node* parent,DatasetNode* dataset_node,Strin
   query_node->setAccessIndex(access_id);
   query_node->setViewDependentEnabled(true);
   query_node->setQuality(Query::DefaultQuality);
-  query_node->setNodeBounds(dataset_node->getNodeBounds().toAxisAlignedBox());
+  query_node->setNodeBounds(dataset_node->getNodeBounds());
 
   //TimeNode
   auto time_node=dataset_node->findChild<TimeNode*>();

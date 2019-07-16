@@ -75,7 +75,7 @@ public:
 void Viewer::guessGLCameraPosition(int ref)  
 {
   if (auto glcamera=getGLCamera())
-    glcamera->guessPosition(this->getWorldBoundingBox(),ref);
+    glcamera->guessPosition(this->getWorldBounds(),ref);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,9 +156,9 @@ void Viewer::glCameraChangeEvent()
     if (auto query_node = dynamic_cast<QueryNode*>(node))
     {
       //IMPORTANT: refresh the data considering the FINAL frustum!
-      auto viewdep = computeNodeFrustum(getGLCamera()->getFinalFrustum(), query_node->getDatasetNode());
+      auto node_to_screen = nodeToScreen(getGLCamera()->getFinalFrustum(), query_node->getDatasetNode());
 
-      if (viewdep != query_node->getViewDep())
+      if (node_to_screen != query_node->nodeToScreen())
         dataflow->needProcessInput(query_node);
     }
   }
@@ -395,12 +395,12 @@ void Viewer::glRenderNodes(GLCanvas& gl)
     {
       if (auto globject = dynamic_cast<GLObject*>(node))
       {
-        Frustum frustum=computeNodeFrustum(getGLCamera()->getFrustum(),node);
+        auto node_to_screen=nodeToScreen(getGLCamera()->getFrustum(),node);
         Position bounds=getNodeBounds(node);
         bool bUseFarPoint=nqueue==2;
-        double distance=frustum.computeZDistance(bounds,bUseFarPoint);
+        double distance= node_to_screen.computeZDistance(bounds,bUseFarPoint);
         if (bOrthoCamera || distance>=0)
-          sorted_nodes.push_back(GLSortNode(nqueue,distance,frustum,globject));
+          sorted_nodes.push_back(GLSortNode(nqueue,distance, node_to_screen,globject));
       }
     }
   
@@ -449,7 +449,7 @@ void Viewer::glRenderSelection(GLCanvas& gl)
     if (bounds.valid())
     {
       gl.pushFrustum();
-      gl.setFrustum(computeNodeFrustum(getGLCamera()->getFrustum(),selection));
+      gl.setFrustum(nodeToScreen(getGLCamera()->getFrustum(),selection));
       GLBox(bounds,Colors::Transparent,Colors::Black.withAlpha(0.5)).glRender(gl);
       gl.popFrustum();
     }

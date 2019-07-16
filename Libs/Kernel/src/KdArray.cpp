@@ -198,16 +198,16 @@ void KdArray::split(KdArrayNode* node,int split_bit)
   node->left->up = node;
   node->left->level = node->level+1;
   node->left->resolution = node->resolution + 1;
-  node->left->box = node->box; 
-  node->left->box.p2[node->split_bit]=node->getMiddle();
+  node->left->logic_box = node->logic_box;
+  node->left->logic_box.p2[node->split_bit]=node->getMiddle();
   node->left->id=node->id*2;
 
   node->right=std::make_shared<KdArrayNode>();
   node->right->up = node;
   node->right->level = node->level+1;
   node->right->resolution = node->resolution + 1;
-  node->right->box = node->box; 
-  node->right->box.p1[node->split_bit]=node->getMiddle();
+  node->right->logic_box = node->logic_box;
+  node->right->logic_box.p1[node->split_bit]=node->getMiddle();
   node->right->id=node->id*2+1;
 
   onNodeEnter(node->left .get());

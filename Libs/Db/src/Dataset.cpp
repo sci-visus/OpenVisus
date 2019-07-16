@@ -54,7 +54,7 @@ VISUS_IMPLEMENT_SINGLETON_CLASS(DatasetFactory)
 
 
 /////////////////////////////////////////////////////////////////////////////
-std::vector<int> Dataset::guessEndResolutions(const Frustum& viewdep,Position position,Query::Quality quality,Query::Progression progression)
+std::vector<int> Dataset::guessEndResolutions(const Frustum& logic_to_screen,Position logic_position,Query::Quality quality,Query::Progression progression)
 {
   int dataset_dim = this->getPointDim();
 
@@ -66,7 +66,7 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& viewdep,Position po
 
   // valerio's algorithm, find the final view dependent resolution (endh)
   // (the default endh is the maximum resolution available)
-  if (viewdep.valid())
+  if (logic_to_screen.valid())
   {
     const std::vector<Point2i> quad_edges =
     {
@@ -83,11 +83,11 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& viewdep,Position po
     auto edges = dataset_dim == 2 ? quad_edges : cube_edges;
 
     std::vector<Point3d> logic_points;
-    for (auto p : position.getPoints())
+    for (auto p : logic_position.getPoints())
       logic_points.push_back(p.toPoint3());
 
     std::vector<Point2d> screen_points;
-    FrustumMap map(viewdep);
+    FrustumMap map(logic_to_screen);
     for (auto logic_point : logic_points)
       screen_points.push_back(map.projectPoint(logic_point));
 
@@ -530,7 +530,7 @@ Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, dou
 
   query->time = time;
   query->field = field;
-  query->position = box;
+  query->logic_position = box;
 
   if (!beginQuery(query))
     return Array();
@@ -551,7 +551,7 @@ bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, dou
 
   query->time = time;
   query->field = field;
-  query->position = box;
+  query->logic_position = box;
 
   if (!beginQuery(query))
     return false;
@@ -584,7 +584,7 @@ bool Dataset::beginQuery(SharedPtr<Query> query)
     return query->setFailed("field not valid");
      false;
 
-  if (!query->position.valid())
+  if (!query->logic_position.valid())
     return query->setFailed("position not valid");
 
   // override time from field

@@ -74,7 +74,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
   auto access=dataset->createAccess();
   
   auto write=std::make_shared<Query>(dataset.get(),'w');
-  write->position=userbox;
+  write->logic_position=userbox;
   VisusReleaseAssert(dataset->beginQuery(write));
   VisusReleaseAssert(write->nsamples==img.dims);
 
@@ -270,7 +270,7 @@ void Tutorial_6(String default_layout)
     }
     
     auto query=std::make_shared<Query>(dataset.get(),'r');
-    query->position= query_box;
+    query->logic_position= query_box;
 
     query->filter.enabled=true;
     query->merge_mode=Query::InsertSamples;

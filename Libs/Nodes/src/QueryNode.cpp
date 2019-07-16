@@ -204,9 +204,8 @@ bool QueryNode::processInput()
   query->filter.enabled=true;
   query->merge_mode=Query::InsertSamples;
 
-  //position
-  auto position=getQueryPosition();
-  if (!position.valid())
+  auto logic_position=getQueryBounds();
+  if (!logic_position.valid())
     return false;
 
   //time
@@ -227,14 +226,13 @@ bool QueryNode::processInput()
   if (fieldname)
     query->field=dataset->getFieldByName(cstring(fieldname));
 
-  //set position
-  Frustum viewdep;
-  if (isViewDependentEnabled() && getViewDep().valid())
+  Frustum node_to_screen;
+  if (isViewDependentEnabled() && nodeToScreen().valid())
   {
-    viewdep=getViewDep();
-    auto frustum_map = FrustumMap(viewdep);
-    position=Position::shrink(viewdep.getScreenBox(), frustum_map,position);
-    if (!position.valid())
+    node_to_screen = nodeToScreen();
+    auto frustum_map = FrustumMap(node_to_screen);
+    logic_position =Position::shrink(node_to_screen.getScreenBox(), frustum_map, logic_position);
+    if (!logic_position.valid())
     {
       publishDumbArray();
       return false;
@@ -244,20 +242,20 @@ bool QueryNode::processInput()
   //find intersection with dataset box
   auto pdim = dataset->getPointDim();
   auto matrix_map = MatrixMap(Matrix::identity(pdim));
-  position = Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), matrix_map, position);
+  logic_position = Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), matrix_map, logic_position);
 
-  if (!position.valid()) 
+  if (!logic_position.valid())
   {
     publishDumbArray();
     return false;
   }
 
 
-  query->position=position;
-  query->viewdep=viewdep;
+  query->logic_position= logic_position;
+  query->logic_to_screen = node_to_screen;
 
   //end resolutions
-  query->end_resolutions=dataset->guessEndResolutions(viewdep,query->position,getQuality(),getProgression());
+  query->end_resolutions=dataset->guessEndResolutions(node_to_screen, logic_position,getQuality(),getProgression());
  
   //failed for some reason
   if (!dataset->beginQuery(query)) 
@@ -317,11 +315,9 @@ void QueryNode::writeToObjectStream(ObjectStream& ostream)
   {
     // use same serialization for query which will include
     // a transformation matrix in case of rotated selection
-    ostream.pushContext("query");
     ostream.pushContext("bounds");
-    bounds.writeToObjectStream(ostream);
+    node_bounds.writeToObjectStream(ostream);
     ostream.popContext("bounds");
-    ostream.popContext("query");
     return;
   }
 
@@ -334,7 +330,7 @@ void QueryNode::writeToObjectStream(ObjectStream& ostream)
   ostream.write("quality",std::to_string(quality));
 
   ostream.pushContext("bounds");
-  bounds.writeToObjectStream(ostream);
+  node_bounds.writeToObjectStream(ostream);
   ostream.popContext("bounds");
 
   //position=fn(tree_position)
@@ -346,7 +342,7 @@ void QueryNode::readFromObjectStream(ObjectStream& istream)
   if (istream.isSceneMode())
   {
     istream.pushContext("bounds");
-    bounds.readFromObjectStream(istream);
+    node_bounds.readFromObjectStream(istream);
     istream.popContext("bounds");
     return;
   }
@@ -360,7 +356,7 @@ void QueryNode::readFromObjectStream(ObjectStream& istream)
   this->quality=(Query::Quality)cint(istream.read("quality"));
 
   istream.pushContext("bounds");
-  bounds.readFromObjectStream(istream);
+  node_bounds.readFromObjectStream(istream);
   istream.popContext("bounds");
 
   //position=fn(tree_position)

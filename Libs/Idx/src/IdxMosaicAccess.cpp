@@ -178,7 +178,7 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
       auto query = std::make_shared<Query>(vf.get(), 'r');
       query->time = QUERY->time;
       query->field = QUERY->field;
-      query->position = QUERY->logic_box.translate(-offset);
+      query->logic_position = QUERY->logic_box.translate(-offset);
       query->end_resolutions = { HZORDER.getAddressResolution(BITMASK, QUERY->end_address - 1) - NBITS };
       query->start_resolution = BLOCK ? query->end_resolutions[0] : 0;
 

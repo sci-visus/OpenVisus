@@ -140,7 +140,7 @@ public:
 private:
 
   //guessPointQueryNumberOfSamples
-  PointNi guessPointQueryNumberOfSamples(Position position, const Frustum& viewdep, int end_resolution);
+  PointNi guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, Position logic_position, int end_resolution);
 
   //setCurrentEndResolution
   bool setCurrentEndResolution(SharedPtr<Query> query) {

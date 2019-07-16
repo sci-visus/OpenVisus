@@ -97,16 +97,14 @@ void TilingExample(IdxDataset* vf)
       BigInt block = (H==bitsperblock)? (0) : ((((BigInt)1)<<K) + HzOrder(bitmask,K).interleave(tile.pos));
 
       //my check code (verify that the tile is really a query of a single block)
-      #ifdef VISUS_DEBUG
       {
         auto query=std::make_shared<Query>(vf,'r');
-        query->position=box;
+        query->logic_position =box;
         query->start_resolution=(H==bitsperblock?0:H);
         query->end_resolutions={H};
         VisusReleaseAssert(vf->beginQuery(query));
         VisusReleaseAssert(query->nsamples==dims);
       }
-      #endif
     }
   }
 }

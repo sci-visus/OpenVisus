@@ -164,7 +164,7 @@ public:
       glcamera->changed.connect([this](){
         if (query_node) 
         {
-          query_node->setViewDep(Frustum(glcamera->getFrustum()));
+          query_node->setNodeToScreen(Frustum(glcamera->getFrustum()));
           dataflow->needProcessInput(query_node);
         }
         postRedisplay();
@@ -204,7 +204,7 @@ public:
 
     this->dataflow->addNode(this->dataset_node = new DatasetNode("Dataset node"));
     this->dataset_node->setDataset(dataset);
-    this->dataset_box=dataset_node->getNodeBounds().withoutTransformation();
+    this->dataset_box=dataset_node->getNodeBounds().toAxisAlignedBox();
 
     if (dataset->getKdQueryMode()!=0)
     {
@@ -230,7 +230,7 @@ public:
     this->query_node->setViewDependentEnabled(true);
     this->query_node->setQuality(Query::DefaultQuality);
     this->query_node->setNodeBounds(dataset_box);
-    this->query_node->setQueryPosition(this->dataset_box);
+    this->query_node->setQueryBounds(this->dataset_box);
 
     this->glcamera->setViewport(Viewport(0,0,glcanvas->width(),(int)glcanvas->height()));
     this->glcamera->guessPosition(this->dataset_box);

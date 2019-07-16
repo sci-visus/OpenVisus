@@ -256,7 +256,7 @@ private:
         auto access=dataset->createAccess();
         auto query=std::make_shared<Query>(dataset.get(),'r');
         query->field= dataset->getFieldByName(widgets.selected_field.name);
-        query->position=this->model->getQueryPosition();
+        query->logic_position=this->model->getQueryBounds();
         query->time=time_node->getCurrentTime();
         query->end_resolutions.push_back(value);
 
@@ -298,12 +298,12 @@ private:
       auto access = dataset->createAccess();
       auto query = std::make_shared<Query>(dataset.get(), 'r');
       query->field = dataset->getFieldByName(widgets.selected_field.name);
-      query->position = this->model->getQueryPosition();
+      query->logic_position = this->model->getQueryBounds();
       query->time = time_node->getCurrentTime();
       query->end_resolutions.push_back(res_value);
       VisusReleaseAssert(dataset->beginQuery(query));
 
-      VisusInfo() << "position " << query->position.toString();
+      VisusInfo() << "position " << query->logic_position.toString();
 
       unsigned char* buffer = (unsigned char*)query->buffer.c_ptr();
       //read data

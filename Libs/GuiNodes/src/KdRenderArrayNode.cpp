@@ -175,13 +175,13 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
   config.texture_dim                 = kdarray->getDataDim();
   config.texture_nchannels           = kdarray->root->displaydata.dtype.ncomponents();
   config.palette_enabled             = palette_texture?true:false;
-  config.clippingbox_enabled         = kdarray->clipping.valid() || gl.hasClippingBox();
+  config.clippingbox_enabled         = kdarray->logic_clipping.valid() || gl.hasClippingBox();
   config.discard_if_zero_alpha       = bBlend? true : false;
   KdRenderArrayNodeShader* shader=KdRenderArrayNodeShader::getSingleton(config);
   gl.setShader(shader);
 
-  if (kdarray->clipping.valid())
-    gl.pushClippingBox(kdarray->clipping);
+  if (kdarray->logic_clipping.valid())
+    gl.pushClippingBox(kdarray->logic_clipping);
 
   gl.pushModelview();
 
@@ -216,7 +216,7 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
 
     if (node->bDisplay && node->user_value)
     {
-      auto   box       = node->box.castTo<BoxNd>();
+      auto   box        = node->logic_box.castTo<BoxNd>();
       Array displaydata = node->displaydata; 
 
       shader->setTexture(gl,std::dynamic_pointer_cast<GLTexture>(node->user_value));
@@ -264,7 +264,7 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
   gl.popBlend();
   gl.popModelview();
 
-  if (kdarray->clipping.valid())
+  if (kdarray->logic_clipping.valid())
     gl.popClippingBox();
 }
 

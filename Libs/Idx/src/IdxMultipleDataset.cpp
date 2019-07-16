@@ -375,7 +375,7 @@ public:
     auto BOX = Position(M, vf->getLogicBox()).toAxisAlignedBox();
 
     //no intersection? just skip this down query
-    if (!QUERY->position.toAxisAlignedBox().intersect(BOX))
+    if (!QUERY->logic_position.toAxisAlignedBox().intersect(BOX))
       return SharedPtr<Query>();
 
     auto query = std::make_shared<Query>(vf.get(), 'r');
@@ -405,8 +405,8 @@ public:
     }
     query->end_resolutions = std::vector<int>(end_resolutions.begin(), end_resolutions.end());
 
-    auto QUERY_T   = QUERY->position.getTransformation();
-    auto QUERY_BOX = QUERY->position.getBoxNd();
+    auto QUERY_T   = QUERY->logic_position.getTransformation();
+    auto QUERY_BOX = QUERY->logic_position.getBoxNd();
 
     // WRONG, consider that M could have mat(3,0) | mat(3,1) | mat(3,2) !=0 and so I can have non-parallel axis
     // i.e. computing the bounding box in position very far from the mapped region are wrong because some axis of the quads can interect in some points
@@ -417,7 +417,7 @@ public:
     QUERY_BOX = Position(QUERY_T.invert(), M, vf->getLogicBox()).toAxisAlignedBox().getIntersection(QUERY_BOX);
 #endif
 
-    query->position = Position(M.invert(), QUERY_T, QUERY_BOX);
+    query->logic_position = Position(M.invert(), QUERY_T, QUERY_BOX);
 
     //skip this argument since returns empty array
     if (!vf->beginQuery(query))
@@ -497,8 +497,8 @@ public:
     query->down_info.BUFFER.alpha = std::make_shared<Array>(QUERY->nsamples, DTypes::UINT8);
     query->down_info.BUFFER.alpha->fillWithValue(0);
 
-    auto PIXEL_TO_LOGIC = Position::computeTransformation(Position(QUERY->position), query->down_info.BUFFER.dims);
-    auto pixel_to_logic = Position::computeTransformation(Position(query->position), query->buffer.dims);
+    auto PIXEL_TO_LOGIC = Position::computeTransformation(Position(QUERY->logic_position), query->down_info.BUFFER.dims);
+    auto pixel_to_logic = Position::computeTransformation(Position(query->logic_position), query->buffer.dims);
 
     // Tperspective := PIXEL <- pixel
     auto LOGIC_TO_PIXEL = PIXEL_TO_LOGIC.invert();
@@ -670,8 +670,8 @@ public:
 
     //equivalent of: output->shareProperties(*input); (when no input array is available, as in the query)
     // this->layout   = other.layout;
-    output.bounds = QUERY->position;
-    output.clipping = QUERY->clipping;
+    output.bounds = QUERY->logic_position;
+    output.clipping = QUERY->logic_clipping;
 
     //a projection happened?
     int pdim = QUERY->nsamples.getPointDim();

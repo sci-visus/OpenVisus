@@ -871,7 +871,7 @@ SharedPtr<Query> IdxDataset::createEquivalentQuery(int mode,SharedPtr<BlockQuery
   ret->aborted=block_query->aborted;
   ret->time=block_query->time;
   ret->field=block_query->field;
-  ret->position=logic_box;
+  ret->logic_position=logic_box;
   ret->start_resolution=fromh;
   ret->end_resolutions={toh};
   return ret;
@@ -1226,16 +1226,16 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<Query> query)
   if (query->isPointQuery())
   {
     ret.url.setParam("action"  ,"pointquery");
-    ret.url.setParam("matrix"  ,query->position.getTransformation().toString());
-    ret.url.setParam("box"     ,query->position.getBoxNd().toBox3().toString(/*bInterleave*/false));
+    ret.url.setParam("matrix"  ,query->logic_position.getTransformation().toString());
+    ret.url.setParam("box"     ,query->logic_position.getBoxNd().toBox3().toString(/*bInterleave*/false));
     ret.url.setParam("nsamples",query->nsamples.toString());
     VisusInfo() << ret.url.toString();
   }
   else
   {
-    VisusAssert(query->position.getTransformation().isIdentity()); //todo
+    VisusAssert(query->logic_position.getTransformation().isIdentity()); //todo
     ret.url.setParam("action","boxquery");
-    ret.url.setParam("box"   , query->position.getBoxNi().toOldFormatString());
+    ret.url.setParam("box"   , query->logic_position.getBoxNi().toOldFormatString());
   }
 
   ret.aborted=query->aborted;
@@ -1247,7 +1247,7 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<Query> query)
 // (the default endh is the maximum resolution available)
 //*********************************************************************
 
-PointNi IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frustum& viewdep,int end_resolution)
+PointNi IdxDataset::guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, Position logic_position,int end_resolution)
 {
   const int unit_box_edges[12][2]=
   {
@@ -1256,16 +1256,16 @@ PointNi IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frust
     {0,4}, {1,5}, {2,6}, {3,7}
   };
 
-  std::vector<Point3d> points;
-  for (auto p : position.getPoints())
-    points.push_back(p.toPoint3());
+  std::vector<Point3d> logic_points;
+  for (auto p : logic_position.getPoints())
+    logic_points.push_back(p.toPoint3());
 
   std::vector<Point2d> screen_points;
-  if (viewdep.valid())
+  if (logic_to_screen.valid())
   {
-    FrustumMap map(viewdep);
+    FrustumMap map(logic_to_screen);
     for (int I=0;I<8;I++)
-      screen_points.push_back(map.projectPoint(points[I]));
+      screen_points.push_back(map.projectPoint(logic_points[I]));
   }
 
   auto bitmask = getBitmask();
@@ -1282,8 +1282,8 @@ PointNi IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frust
   for (int E=0;E<12;E++)
   {
     int query_axis=(E>=8)?2:(E&1?1:0);
-    Point3d P1=points[unit_box_edges[E][0]];
-    Point3d P2=points[unit_box_edges[E][1]];
+    Point3d P1= logic_points[unit_box_edges[E][0]];
+    Point3d P2= logic_points[unit_box_edges[E][1]];
     Point3d edge_size=(P2-P1).abs();
 
     PointNi idx_size   = this->getLogicBox().size();
@@ -1326,7 +1326,7 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
   if (end_resolution<0)
     return false;
 
-  Position position=query->position;
+  Position logic_position=query->logic_position;
 
   int pdim=this->getPointDim();
   VisusAssert(pdim==3); //why I need point queries in 2d... I'm asserting this because I do not create Query for 2d datasets 
@@ -1337,7 +1337,7 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
     return false;
   }
 
-  auto nsamples=guessPointQueryNumberOfSamples(position,query->viewdep,end_resolution);
+  auto nsamples=guessPointQueryNumberOfSamples(query->logic_to_screen, logic_position,end_resolution);
 
   //no samples or overflow
   if (nsamples.innerProduct()<=0)
@@ -1355,8 +1355,8 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
   //P'=T* (P0 + I* X/nsamples[0] +  J * Y/nsamples[1] + K * Z/nsamples[2])
   //P'=T*P0 +(T*Stepx)*I + (T*Stepy)*J + (T*Stepz)*K
     
-  auto T = position.getTransformation();
-  auto box = position.getBoxNd();
+  auto T = logic_position.getTransformation();
+  auto box = logic_position.getBoxNd();
   T.setSpaceDim(4);
   box.setPointDim(3);
   Point4d P0(box.p1[0],box.p1[1],box.p1[2],1.0);
@@ -1392,8 +1392,8 @@ bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<Query> query)
   if (end_resolution<0)
     return false;
 
-  VisusAssert(query->position.getTransformation().isIdentity());
-  query->box_query.logic_aligned_box=query->position.getBoxNi().withPointDim(this->getPointDim());
+  VisusAssert(query->logic_position.getTransformation().isIdentity());
+  query->box_query.logic_aligned_box=query->logic_position.getBoxNi().withPointDim(this->getPointDim());
 
   if (!query->box_query.logic_aligned_box.isFullDim())
     return false;
@@ -1475,13 +1475,13 @@ bool IdxDataset::beginQuery(SharedPtr<Query> query)
   //remove transformation and enable clipping
   if (!query->isPointQuery())
   {
-    Matrix T = query->position.getTransformation();
+    Matrix T = query->logic_position.getTransformation();
     if (!T.isIdentity())
     {
       if (this->getPointDim() == 3)
-        query->clipping = query->position;
+        query->logic_clipping = query->logic_position;
 
-      query->position = query->position.toAxisAlignedBox().castTo<BoxNi>().getIntersection(this->getLogicBox());
+      query->logic_position = query->logic_position.toAxisAlignedBox().castTo<BoxNi>().getIntersection(this->getLogicBox());
     }
 
     if (query->filter.enabled)
@@ -1492,7 +1492,7 @@ bool IdxDataset::beginQuery(SharedPtr<Query> query)
     }
   }
 
-  if (!query->position.valid())
+  if (!query->logic_position.valid())
     return query->setFailed("position is wrong");
 
   query->setRunning();
@@ -1684,7 +1684,7 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
       auto Wquery=std::make_shared<Query>(this,'r');
       Wquery->time=query->time;
       Wquery->field=query->field;
-      Wquery->position=adjusted_box;
+      Wquery->logic_position=adjusted_box;
       Wquery->end_resolutions={H};
       Wquery->filter.enabled=false;
       Wquery->merge_mode=merge_mode;

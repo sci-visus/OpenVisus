@@ -286,14 +286,14 @@ public:
   //endFreeTransform
   void endFreeTransform();
 
-  //getNodeBoundsInAnotherSpace
-  Position getNodeBoundsInAnotherSpace(Node* dst, Node* src) const;
+  //nodeToNode
+  Position nodeToNode(Node* dst, Node* src) const;
 
-  //getQueryBoundsInDatasetSpace
-  Position getQueryBoundsInDatasetSpace(QueryNode* query_node) const;
+  //getQueryBounds
+  Position getQueryBounds(QueryNode* query_node) const;
 
-  //computeNodeFrustum
-  Frustum computeNodeFrustum(Frustum frustum, Node* node) const;
+  //nodeToScreen
+  Frustum nodeToScreen(Frustum frustum, Node* node) const;
 
   //New
   void New();
@@ -430,8 +430,8 @@ public:
   //getWorldDimension
   int getWorldDimension() const;
 
-  //getWorldBoundingBox
-  BoxNd getWorldBoundingBox() const;
+  //getWorldBounds
+  BoxNd getWorldBounds() const;
 
   //getNodeBounds
   Position getNodeBounds(Node* node, bool bRecursive = false) const;

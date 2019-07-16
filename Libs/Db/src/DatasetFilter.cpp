@@ -161,7 +161,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
       auto read=std::make_shared<Query>(dataset,'r');
       read->time=time;
       read->field=field;
-      read->position=sliding_window;
+      read->logic_position=sliding_window;
       read->end_resolutions={H};
 
       if (!dataset->beginQuery(read))
@@ -218,7 +218,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
       auto write=std::make_shared<Query>(dataset,'w');
       write->time=time;
       write->field=field;
-      write->position=sliding_window;
+      write->logic_position=sliding_window;
       write->end_resolutions={H};
       if (!dataset->beginQuery(write))
         return false;

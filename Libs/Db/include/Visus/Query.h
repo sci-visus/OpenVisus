@@ -98,14 +98,15 @@ public:
   double                     time = 0;
   int                        start_resolution = 0;
   std::vector<int>           end_resolutions;
-  Position                   position;
-  Frustum                    viewdep;
   MergeMode                  merge_mode = InsertSamples;
   std::function<void(Array)> incrementalPublish;
 
+  Position                   logic_position;
+  Frustum                    logic_to_screen;
+  Position                   logic_clipping;
+
   PointNi                    nsamples; //available only after beginQuery
   Array                      buffer;
-  Position                   clipping;
   int                        cur_resolution = -1;
   int                        running_cursor = -1;
 
