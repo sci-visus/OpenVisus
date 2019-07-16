@@ -1491,8 +1491,16 @@ bool IdxDataset::beginQuery(SharedPtr<Query> query)
   int N = (int)query->end_resolutions.size();
   for (query->running_cursor = 0; query->running_cursor < N; query->running_cursor++)
   {
-    if (this->setCurrentEndResolution(query))
-      return true;
+    if (query->isPointQuery())
+    {
+      if (setPointQueryCurrentEndResolution(query))
+        return true;
+    }
+    else
+    {
+      if (setBoxQueryCurrentEndResolution(query))
+        return true;
+    }
   }
 
   return query->setFailed("cannot find an initial resolution");
@@ -1873,23 +1881,30 @@ bool IdxDataset::nextQuery(SharedPtr<Query> query)
   if (!Dataset::nextQuery(query))
     return false;
 
+  if (query->isPointQuery())
+  {
+    query->buffer = Array();
+
+    if (!this->setPointQueryCurrentEndResolution(query))
+      return query->setFailed("cannot set end resolution");
+
+    return true;
+  }
+
   auto Rcurrent_resolution=query->cur_resolution;
-  auto Rbox    =query->isPointQuery()? LogicBox() : query->box_query.logic_box;
+  auto Rbox    =query->box_query.logic_box;
   auto Rbuffer =query->buffer;
   auto Rfilter_query= query->filter.query;
 
   //merging will happen only in certain cases
   query->buffer = Array();
 
-  if (!this->setCurrentEndResolution(query))
-  {
-    query->setFailed("cannot set end resolution");
-    return false;
-  }
+  if (!this->setBoxQueryCurrentEndResolution(query))
+    return query->setFailed("cannot set end resolution");
 
   //try to mergeerge
-  auto& Wbox= query->isPointQuery() ? LogicBox() : query->box_query.logic_box;
-  if (Wbox.valid() && Rbox.valid())
+  auto& Wbox= query->box_query.logic_box;
+  if (query->merge_mode!=Query::DoNotMerge && Wbox.valid() && Rbox.valid())
   {
     if (!query->allocateBufferIfNeeded())
       return false;
@@ -1912,7 +1927,7 @@ bool IdxDataset::nextQuery(SharedPtr<Query> query)
   }
 
   query->filter.query=Rfilter_query;
-  query->cur_resolution=(Rcurrent_resolution);
+  query->cur_resolution=Rcurrent_resolution;
   return true;
 }
 

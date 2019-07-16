@@ -142,13 +142,6 @@ private:
   //guessPointQueryNumberOfSamples
   PointNi guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, Position logic_position, int end_resolution);
 
-  //setCurrentEndResolution
-  bool setCurrentEndResolution(SharedPtr<Query> query) {
-    return query->isPointQuery()?
-      setPointQueryCurrentEndResolution(query) : 
-      setBoxQueryCurrentEndResolution(query);
-  }
-
   //setBoxQueryCurrentEndResolution
   bool setBoxQueryCurrentEndResolution(SharedPtr<Query> query);
 

@@ -87,10 +87,10 @@ public:
   //see mergeQueries
   enum MergeMode
   {
+    DoNotMerge = 0,
     InsertSamples,
     InterpolateSamples
   };
-
 
   Dataset*                   dataset = nullptr;
   Field                      field;
