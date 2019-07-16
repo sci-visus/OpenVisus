@@ -153,7 +153,7 @@ void ModVisusAccess::flushBatch()
         response.setHeader("visus-dtype", query->field.dtype.toString());
 
       if (!response.hasHeader("visus-nsamples"))
-        response.setHeader("visus-nsamples", query->nsamples.toString());
+        response.setHeader("visus-nsamples", query->getNumberOfSamples().toString());
 
       if (query->aborted() || !response.isSuccessful())
       {

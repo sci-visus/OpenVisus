@@ -679,14 +679,12 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   if (!field.valid())
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Cannot find fieldname(" + fieldname + ")");
 
-  auto query = std::make_shared<Query>(dataset.get(), 'r');
-  query->time = time;
-  query->field = field;
+  //TODO: how can I get the aborted from network?
+  auto query = std::make_shared<Query>(dataset.get(), field, time,'r', Aborted());
   query->start_resolution = fromh;
   query->end_resolutions = { endh };
-  query->aborted = Aborted(); //TODO: how can I get the aborted from network?
 
-                              //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)
+  //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)
   if (fromh == 0 && !bDisableFilters)
   {
     query->filter.enabled = true;

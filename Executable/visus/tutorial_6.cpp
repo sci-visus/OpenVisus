@@ -271,7 +271,6 @@ void Tutorial_6(String default_layout)
     
     auto query=std::make_shared<Query>(dataset.get(),'r');
     query->logic_position= query_box;
-
     query->filter.enabled=true;
     query->merge_mode=Query::InsertSamples;
 

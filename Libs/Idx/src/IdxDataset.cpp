@@ -867,10 +867,7 @@ SharedPtr<Query> IdxDataset::createEquivalentQuery(int mode,SharedPtr<BlockQuery
   VisusAssert(logic_box.nsamples.innerProduct()==(block_query->end_address-block_query->start_address));
   VisusAssert(fromh==toh || block_query->start_address==0);
 
-  auto ret=std::make_shared<Query>(this,mode);
-  ret->aborted=block_query->aborted;
-  ret->time=block_query->time;
-  ret->field=block_query->field;
+  auto ret=std::make_shared<Query>(this, block_query->field, block_query->time,mode, block_query->aborted);
   ret->logic_position=logic_box;
   ret->start_resolution=fromh;
   ret->end_resolutions={toh};
@@ -1675,14 +1672,11 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
     {
       BoxNi adjusted_box = adjustFilterBox(query.get(),filter.get(),query->box_query.logic_aligned_box,H);
 
-      auto Wquery=std::make_shared<Query>(this,'r');
-      Wquery->time=query->time;
-      Wquery->field=query->field;
+      auto Wquery=std::make_shared<Query>(this, query->field, query->time,'r', query->aborted);
       Wquery->logic_position=adjusted_box;
       Wquery->end_resolutions={H};
       Wquery->filter.enabled=false;
       Wquery->merge_mode=merge_mode;
-      Wquery->aborted=query->aborted;
 
       //cannot get samples yet
       if (!this->beginQuery(Wquery))

@@ -254,10 +254,8 @@ private:
     widgets.resolution=GuiFactory::CreateIntegerSliderWidget(std::min(24, dataset->getMaxResolution()),1,dataset->getMaxResolution(), [this,resLabel,dimsLabel,dataset,time_node](int value)
     {
         auto access=dataset->createAccess();
-        auto query=std::make_shared<Query>(dataset.get(),'r');
-        query->field= dataset->getFieldByName(widgets.selected_field.name);
+        auto query=std::make_shared<Query>(dataset.get(), dataset->getFieldByName(widgets.selected_field.name), time_node->getCurrentTime(), 'r');
         query->logic_position=this->model->getQueryBounds();
-        query->time=time_node->getCurrentTime();
         query->end_resolutions.push_back(value);
 
         VisusReleaseAssert(dataset->beginQuery(query));
@@ -296,10 +294,8 @@ private:
       int res_value = this->widgets.resolution->value();
 
       auto access = dataset->createAccess();
-      auto query = std::make_shared<Query>(dataset.get(), 'r');
-      query->field = dataset->getFieldByName(widgets.selected_field.name);
+      auto query = std::make_shared<Query>(dataset.get(), dataset->getFieldByName(widgets.selected_field.name), time_node->getCurrentTime(),'r');
       query->logic_position = this->model->getQueryBounds();
-      query->time = time_node->getCurrentTime();
       query->end_resolutions.push_back(res_value);
       VisusReleaseAssert(dataset->beginQuery(query));
 

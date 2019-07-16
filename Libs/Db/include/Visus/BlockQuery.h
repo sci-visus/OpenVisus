@@ -67,21 +67,17 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(BlockQuery)
 
-  Aborted      aborted;
   Dataset*     dataset=nullptr;
   int          mode = 0;
   Field        field;
   double       time = 0;
+  BigInt       start_address = 0;
+  BigInt       end_address = 0;
+  Aborted      aborted;
 
+  LogicBox     logic_box;
   Array        buffer;
-
-
   Future<Void> done;
-
-  BigInt      start_address=0;
-  BigInt      end_address=0;
-  PointNi     nsamples;
-  LogicBox    logic_box;
 
   //constructor
   BlockQuery(Dataset* dataset, Field field, double time, BigInt start_address, BigInt end_address, int mode, Aborted aborted);
@@ -90,9 +86,14 @@ public:
   virtual ~BlockQuery() {
   }
 
+  //getNumberOfSamples
+  PointNi getNumberOfSamples() const {
+    return logic_box.nsamples;
+  }
+
   //getByteSize
   Int64 getByteSize() const {
-    return field.dtype.getByteSize(nsamples);
+    return field.dtype.getByteSize(getNumberOfSamples());
   }
 
   //getBlockNumber
@@ -106,30 +107,35 @@ public:
     this->status = QueryRunning;
   }
 
-  //ok
-  bool ok() const {
-    VisusAssert(status == QueryOk || status == QueryFailed); //call only when the blockquery is done
-    return status == QueryOk;
+  //getStatus
+  QueryStatus getStatus() const {
+    return status;
   }
 
-  //setOk
-  void setOk() {
-    VisusAssert(this->status == QueryCreated || this->status == QueryRunning);
-    this->status = QueryOk;
+  //setStatus
+  void setStatus(QueryStatus value) {
+    this->status = value;
     this->done.get_promise()->set_value(Void());
+  }
+
+  //ok
+  bool ok() const {
+    return getStatus() == QueryOk;
   }
 
   //failed
   bool failed() const {
-    VisusAssert(status == QueryOk || status == QueryFailed); //call only when the blockquery is done
-    return status == QueryFailed;
+    return getStatus() == QueryFailed;
+  }
+
+  //setOk
+  void setOk() {
+    setStatus(QueryOk);
   }
 
   //setOk
   void setFailed() {
-    VisusAssert(this->status == QueryCreated || this->status == QueryRunning);
-    this->status = QueryFailed;
-    this->done.get_promise()->set_value(Void());
+    setStatus(QueryFailed);
   }
 
   //allocateBufferIfNeeded
@@ -142,9 +148,6 @@ private:
 };
 
 
-//predeclaration
-class Dataset;
-class Access;
 
 
 

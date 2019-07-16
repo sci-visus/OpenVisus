@@ -99,7 +99,7 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
       blob.metadata.setValue("visus-dtype", query->field.dtype.toString());
 
     if (!blob.metadata.hasValue("visus-nsamples"))
-      blob.metadata.setValue("visus-nsamples", query->nsamples.toString());
+      blob.metadata.setValue("visus-nsamples", query->getNumberOfSamples().toString());
 
     if (query->aborted() || !blob.valid())
       return readFailed(query);

@@ -279,7 +279,7 @@ public:
     if (bVerbose)
       VisusInfo() << "Decoding buffer";
 
-    auto decoded = ArrayUtils::decodeArray(compression, query->nsamples, query->field.dtype, encoded);
+    auto decoded = ArrayUtils::decodeArray(compression, query->getNumberOfSamples(), query->field.dtype, encoded);
     if (!decoded)
       return failed("cannot decode the data");
 
@@ -490,13 +490,13 @@ public:
     if (bVerbose)
       VisusInfo() << "Decoding buffer";
 
-    auto decoded = ArrayUtils::decodeArray(compression, query->nsamples, query->field.dtype, encoded);
+    auto decoded = ArrayUtils::decodeArray(compression, query->getNumberOfSamples(), query->field.dtype, encoded);
     if (!decoded)
       return failed("cannot decode the data");
 
     decoded.layout = layout;
 
-    VisusAssert(decoded.dims == query->nsamples);
+    VisusAssert(decoded.dims == query->getNumberOfSamples());
     query->buffer = decoded;
 
     if (bVerbose)

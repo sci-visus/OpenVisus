@@ -200,17 +200,18 @@ bool QueryNode::processInput()
   if (!dataset)
     return false;
 
-  auto query=std::make_shared<Query>(dataset.get(),'r');
+  auto query=std::make_shared<Query>(
+    dataset.get(), 
+    fieldname ? dataset->getFieldByName(cstring(fieldname)) : dataset->getDefaultField(), 
+    time ? cdouble(time) : dataset->getDefaultTime(),
+    'r');
+
   query->filter.enabled=true;
   query->merge_mode=Query::InsertSamples;
 
   auto logic_position=getQueryBounds();
   if (!logic_position.valid())
     return false;
-
-  //time
-  if (time)
-    query->time=(cdouble(time));
 
   //create (and store in my class the access)
   if (!access)
@@ -221,10 +222,6 @@ bool QueryNode::processInput()
     else
       setAccess(dataset->createAccess());
   }
-
-  //field
-  if (fieldname)
-    query->field=dataset->getFieldByName(cstring(fieldname));
 
   Frustum node_to_screen;
   if (isViewDependentEnabled() && nodeToScreen().valid())

@@ -42,16 +42,19 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////////////////////////////
-Query::Query(Dataset* dataset_,int mode) : dataset(dataset_)
+Query::Query(Dataset* dataset_,Field field_,double time_,int mode_, Aborted aborted_) 
+  : dataset(dataset_),field(field_),time(time_),mode(mode_),aborted(aborted_)
 {
   VisusAssert(mode=='r' || mode=='w');
-  this->mode           = mode;
-  this->time           = dataset->getDefaultTime();
-  this->field          = dataset->getDefaultField();
   this->filter.domain  = dataset->getLogicBox();
 
   if (isPointQuery())
     this->point_query.coordinates = std::make_shared<HeapMemory>();
+}
+
+////////////////////////////////////////////////////////////////////////////////////
+Query::Query(Dataset* dataset, int mode, Aborted aborted)
+  : Query(dataset, dataset->getDefaultField(), dataset->getDefaultTime(), mode, aborted) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

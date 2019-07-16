@@ -48,13 +48,14 @@ BlockQuery::BlockQuery(Dataset* dataset_, Field field_, double time_, BigInt sta
   VisusAssert(mode == 'r' || mode == 'w');
   done = Promise<Void>().get_future();
 
-  this->logic_box = dataset->getAddressRangeBox(this->start_address, this->end_address);;
-  this->nsamples = logic_box.nsamples;
+  this->logic_box = dataset->getAddressRangeBox(this->start_address, this->end_address);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
 bool BlockQuery::allocateBufferIfNeeded()
 {
+  auto nsamples = getNumberOfSamples();
+
   if (!buffer)
   {
     if (!buffer.resize(nsamples, field.dtype, __FILE__, __LINE__))
@@ -66,7 +67,7 @@ bool BlockQuery::allocateBufferIfNeeded()
   else
   {
     //check buffer
-    VisusAssert(buffer.dims == this->nsamples);
+    VisusAssert(buffer.dims == nsamples);
     VisusAssert(buffer.dtype == field.dtype);
     VisusAssert(buffer.c_size() == getByteSize());
   }

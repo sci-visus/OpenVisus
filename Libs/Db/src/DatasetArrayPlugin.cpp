@@ -166,9 +166,7 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
 
   Time t1=Time::now();
 
-  auto query=std::make_shared<Query>(dataset.get(),'r');
-  query->time=args.time;
-  query->field=args.field;
+  auto query=std::make_shared<Query>(dataset.get(), args.field, args.time,'r');
   query->logic_position=args.box;
   query->start_resolution=args.fromh;
   query->end_resolutions={args.toh};
@@ -226,9 +224,7 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
   if (!args.exec(args_))
     return false;
 
-  auto query=std::make_shared<Query>(dataset.get(),'w');
-  query->time=args.time;
-  query->field=args.field;
+  auto query=std::make_shared<Query>(dataset.get(), args.field, args.time,'w');
   query->logic_position=args.box;
   query->start_resolution=args.fromh;
   query->end_resolutions={args.toh};

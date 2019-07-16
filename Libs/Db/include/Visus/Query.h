@@ -48,8 +48,7 @@ namespace Visus {
 //predeclaration
 class DatasetFilter;
 class Dataset;
-class Query;
-
+class Access;
 
 
 ////////////////////////////////////////////////////////
@@ -92,10 +91,13 @@ public:
     InterpolateSamples
   };
 
-  int                        mode = 0;
-  Aborted                    aborted;
+
+  Dataset*                   dataset = nullptr;
   Field                      field;
   double                     time = 0;
+  int                        mode = 0;
+  Aborted                    aborted;
+
   int                        start_resolution = 0;
   std::vector<int>           end_resolutions;
   MergeMode                  merge_mode = InsertSamples;
@@ -160,7 +162,10 @@ public:
 #endif
   
   //constructor
-  Query(Dataset* dataset,int mode);
+  Query(Dataset* dataset, Field field,double time, int mode,Aborted aborted=Aborted());
+
+  //constructor
+  Query(Dataset* dataset,int mode, Aborted aborted = Aborted());
 
   //destructor
   virtual ~Query() {
@@ -266,9 +271,6 @@ public:
   }
 
 private:
-
-
-  Dataset* dataset = nullptr;
 
   String errormsg="";
 

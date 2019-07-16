@@ -192,12 +192,9 @@ public:
         bitsperblock;
 
     //I use a box query to get the data
-    auto query=std::make_shared<Query>(dataset.get(), 'r');
-    query->time=time;
-    query->field=field;
+    auto query=std::make_shared<Query>(dataset.get(), field, time,'r', this->aborted);
     query->logic_position=pow2_box;
     query->end_resolutions={end_resolution};
-    query->aborted=this->aborted;
 
     if (!dataset->beginQuery(query)) 
       return false;
@@ -273,12 +270,9 @@ public:
         if (!node->up->fullres || !node->blockdata)
           return;
 
-        auto query = std::make_shared<Query>(dataset.get(), 'r');
-        query->time = time;
-        query->field = field;
+        auto query = std::make_shared<Query>(dataset.get(), field, time,'r', this->aborted);
         query->logic_position = node->logic_box;
         query->end_resolutions = { node->resolution };
-        query->aborted = this->aborted;
 
         if (aborted() || !dataset->beginQuery(query))
           return;
@@ -524,12 +518,9 @@ public:
       if (node->resolution != kdarray->end_resolution)
         continue;
 
-      auto query = std::make_shared<Query>(dataset.get(), 'r');
-      query->time = time;
-      query->field = field;
+      auto query = std::make_shared<Query>(dataset.get(), field, time,'r', this->aborted);
       query->logic_position = node->logic_box;
       query->end_resolutions = { node->resolution };
-      query->aborted = this->aborted;
 
       if (!dataset->beginQuery(query) || !query->allocateBufferIfNeeded())
         continue;

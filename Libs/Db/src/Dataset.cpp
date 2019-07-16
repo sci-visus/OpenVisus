@@ -469,10 +469,7 @@ Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, dou
   if (box == BoxNi())
     box = this->logic_box;
 
-  auto query = std::make_shared<Query>(this, 'r');
-
-  query->time = time;
-  query->field = field;
+  auto query = std::make_shared<Query>(this, field, time,  'r');
   query->logic_position = box;
 
   if (!beginQuery(query))
@@ -490,10 +487,7 @@ bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, dou
   if (box==BoxNi()) 
     box=BoxNi(PointNi(buffer.getPointDim()), buffer.dims);
 
-  auto query = std::make_shared<Query>(this, 'w');
-
-  query->time = time;
-  query->field = field;
+  auto query = std::make_shared<Query>(this, field, time,'w');
   query->logic_position = box;
 
   if (!beginQuery(query))

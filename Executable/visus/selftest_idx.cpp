@@ -130,9 +130,8 @@ public:
   //constructor (create random data per slice)
   SelfTest(IdxDataset* vf)
   {
-    Field field=vf->getDefaultField();
     this->vf=vf;
-    this->dtype=field.dtype;
+    this->dtype= vf->getDefaultField().dtype;
     this->user_box=vf->getLogicBox();
     this->pdim=vf->getPointDim();
     this->nslices=user_box.p2[pdim-1]-user_box.p1[pdim-1];
@@ -149,7 +148,7 @@ public:
       _stride*=num;
     }
 
-    VisusInfo()<<"Starting self test procedure on dataset field("<<field.name<<") pdim("<<vf->getPointDim()<<")";
+    VisusInfo()<<"Starting self test procedure on dataset pdim("<<vf->getPointDim()<<")";
 
     if (bool bWriteData=true)
     {
@@ -161,11 +160,10 @@ public:
         BoxNi slice_box=getSliceBox(N);
 
         auto query=std::make_shared<Query>(vf,'w');
-        query->field=field;
         query->logic_position=slice_box;
         VisusReleaseAssert(vf->beginQuery(query));
 
-        Array buffer(query->nsamples,field.dtype);
+        Array buffer(query->nsamples,dtype);
         for (int i=0;i<buffer.c_size();i++)
           buffer.c_ptr()[i]=cont++;
         query->buffer=buffer;
@@ -195,7 +193,6 @@ public:
   //execute a random query
   void executeRandomQuery()
   {
-    Field                field         = vf->getDefaultField();
     int                  maxh          = vf->getMaxResolution();
     int                  firsth        = Utils::getRandInteger(0,maxh);
     int                  lasth         = Utils::getRandInteger(firsth,maxh);

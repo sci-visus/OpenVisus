@@ -378,12 +378,9 @@ public:
     if (!QUERY->logic_position.toAxisAlignedBox().intersect(BOX))
       return SharedPtr<Query>();
 
-    auto query = std::make_shared<Query>(vf.get(), 'r');
+    auto query = std::make_shared<Query>(vf.get(), field, QUERY->time, 'r', QUERY->aborted);
     QUERY->down_queries[key] = query;
     query->down_info.name = name;
-    query->aborted = QUERY->aborted;
-    query->time    = QUERY->time;
-    query->field   = field;
 
     //euristic to find delta in the hzcurve
     //TODO!!!! this euristic produces too many samples
