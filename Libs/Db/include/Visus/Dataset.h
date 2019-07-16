@@ -312,19 +312,14 @@ public:
     return logic_to_physic;
   }
 
-  //logicToPhysic
-  Position logicToPhysic(Position logic) const {
-    return Position(logicToPhysic(),logic);
-  }
-
-  //logicToPhysic
-  Frustum logicToPhysic(Frustum physic_to_screen) const {
-    return Frustum(physic_to_screen, logicToPhysic());
-  }
-
   //physicToLogic
   Matrix physicToLogic() const {
     return physic_to_logic;
+  }
+
+  //logicToPhysic
+  Position logicToPhysic(Position logic) const {
+    return Position(logicToPhysic(),logic);
   }
 
   //physicToLogic
@@ -332,8 +327,13 @@ public:
     return Position(physicToLogic(), physic);
   }
 
-  //physicToLogic
-  Frustum physicToLogic(Frustum logic_to_screen) const {
+  //logicToScreen
+  Frustum logicToScreen(Frustum physic_to_screen) const {
+    return Frustum(physic_to_screen, logicToPhysic());
+  }
+
+  //physicToScreen
+  Frustum physicToScreen(Frustum logic_to_screen) const {
     return Frustum(logic_to_screen, physicToLogic());
   }
 

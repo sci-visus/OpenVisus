@@ -462,22 +462,38 @@ IdxFile IdxFile::load(Url url)
   IdxFile idxfile;
 
   //old text format
-  if (StringUtils::startsWith(content,"(version)"))
+  if (StringUtils::startsWith(content, "(version)"))
   {
     //parse the idx text format
     StringMap map;
 
-    std::vector<String> v=StringUtils::getLinesAndPurgeComments(content,"#");
-    String key,value;
-    for (int I=0;I<(int)v.size();I++)
+    std::vector<String> v = StringUtils::getLinesAndPurgeComments(content, "#");
+    String key, value;
+    for (int I = 0; I < (int)v.size(); I++)
     {
-      String line=StringUtils::trim(v[I]);
-      if (line.empty()) continue;
-      if (StringUtils::startsWith(line,"("))
-        {if (!key.empty()) map.setValue(key,StringUtils::trim(value));key=line;value=String();}
+      String line = StringUtils::trim(v[I]);
+      if (line.empty())
+        continue;
+
+      //comment
+      if (StringUtils::startsWith(line, "#"))
+        continue;
+
+      if (bool bIsKey = StringUtils::startsWith(line, "("))
+      {
+        //flush previous
+        if (!key.empty())
+          map.setValue(key, StringUtils::trim(value));
+
+        key   = StringUtils::trim(line);
+        value = String();
+      }
       else
-        {value=value + " " + line;}
+      {
+        value = value + " " + line;
+      }
     }
+
     if (!key.empty()) 
       map.setValue(key,StringUtils::trim(value));
 
@@ -490,7 +506,17 @@ IdxFile IdxFile::load(Url url)
     idxfile.logic_box   = BoxNi::parseFromOldFormatString(idxfile.bitmask.getPointDim(),map.getValue("(box)"));
 
     auto pdim = idxfile.bitmask.getPointDim();
-    idxfile.logic_to_physic = map.hasValue("logic_to_physic")? Matrix::parseFromString(map.getValue("(logic_to_physic)")) : Matrix::identity(pdim + 1);
+
+    idxfile.logic_to_physic = Matrix::identity(pdim + 1);
+    if (map.hasValue("(logic_to_physic)"))
+    {
+      idxfile.logic_to_physic = Matrix::parseFromString(map.getValue("(logic_to_physic)"));
+    }
+    else if (map.hasValue("(physic_box)"))
+    {
+      BoxNd physic_box = BoxNd::parseFromString(map.getValue("(physic_box)"));
+      idxfile.logic_to_physic = Position::computeTransformation(physic_box,idxfile.logic_box);
+    }
       
     //parse fields
     if (map.hasValue("(fields)"))

@@ -78,8 +78,7 @@ class TestIdx(unittest.TestCase):
 			slice_box=dataset.getLogicBox().getZSlab(Z,Z+1)
 			
 			query=Query(dataset,ord('w'))
-			query.position=Position(slice_box)
-			
+			query.logic_position=Position(slice_box)
 			self.assertTrue(dataset.beginQuery(query))
 			self.assertEqual(query.nsamples.innerProduct(),16*16)
 			
@@ -108,8 +107,7 @@ class TestIdx(unittest.TestCase):
 			slice_box=box.getZSlab(Z,Z+1)
 			
 			query=Query(dataset,ord('r'))
-			query.position=Position(slice_box)
-			
+			query.logic_position=Position(slice_box)
 			self.assertTrue(dataset.beginQuery(query))
 			self.assertEqual(query.nsamples.innerProduct(),16*16)
 			self.assertTrue(dataset.executeQuery(access,query))
@@ -136,7 +134,7 @@ class TestIdx(unittest.TestCase):
 		
 		#create and read data from VisusFIle up to resolution FinalH=8 (<MaxH)
 		query=Query(dataset,ord('r'))
-		query.position=Position(slice_box)
+		query.logic_position=Position(slice_box)
 		query.end_resolutions.push_back(8)
 		query.end_resolutions.push_back(12)
 		query.merge_mode=Query.InsertSamples

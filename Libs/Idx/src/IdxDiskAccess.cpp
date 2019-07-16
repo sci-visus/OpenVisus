@@ -286,7 +286,7 @@ public:
     decoded.layout = layout;
 
     //i'm reading the entire block stored on this
-    VisusAssert(decoded.dims == query->nsamples);
+    VisusAssert(decoded.dims == query->getNumberOfSamples());
     query->buffer = decoded;
 
     //for very old file I need to swap endian notation for FLOAT32

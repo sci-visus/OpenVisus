@@ -120,7 +120,7 @@ public:
       if (!decoded)
         return readFailed(query);
 
-      VisusAssert(decoded.dims == query->nsamples);
+      VisusAssert(decoded.dims  == query->getNumberOfSamples());
       VisusAssert(decoded.dtype == query->field.dtype);
       query->buffer = decoded;
 

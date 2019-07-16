@@ -307,7 +307,7 @@ public:
         auto end_address = (node->id + 1) << bitsperblock;
 
         auto blockquery = std::make_shared<BlockQuery>(dataset.get(), field, time, start_address, end_address, 'r', Aborted());
-        VisusAssert(blockquery->nsamples == node->blockdata.dims);
+        VisusAssert(blockquery->getNumberOfSamples() == node->blockdata.dims);
         blockquery->buffer = node->blockdata;
 
         if (aborted() || !dataset->mergeQueryWithBlock(query, blockquery))

@@ -88,7 +88,7 @@ String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid)
 ///////////////////////////////////////////////////////////////////////////////////////
 void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 {
-  VisusAssert((int)query->nsamples.innerProduct()==(1<<bitsperblock));
+  VisusAssert((int)query->getNumberOfSamples().innerProduct()==(1<<bitsperblock));
 
   cloud_storage->getBlob(netservice, Access::getFilename(query), query->aborted).when_ready([this, query](CloudStorage::Blob blob) {
 
@@ -108,7 +108,7 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
     if (!decoded)
       return readFailed(query);
 
-    VisusAssert(decoded.dims == query->nsamples);
+    VisusAssert(decoded.dims == query->getNumberOfSamples());
     VisusAssert(decoded.dtype == query->field.dtype);
     query->buffer = decoded;
 
@@ -120,7 +120,7 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 ///////////////////////////////////////////////////////////////////////////////////////
 void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
-  VisusAssert((int)query->nsamples.innerProduct()==(1<<bitsperblock));
+  VisusAssert((int)query->getNumberOfSamples().innerProduct()==(1<<bitsperblock));
 
   auto decoded=query->buffer;
   auto encoded=ArrayUtils::encodeArray(compression,decoded);

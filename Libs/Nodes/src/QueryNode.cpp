@@ -68,16 +68,20 @@ public:
     this->waiting_ready=std::make_shared<Semaphore>();
 
     //need custom doPublish for scripting since it will not always wish to wait for return receipt
-    this->query->incrementalPublish=[this](Array data)
+    this->query->incrementalPublish=[this](Array output)
     {
-      if (aborted() || !data)
+      if (aborted() || !output)
         return;
 
       if (auto filter=query->filter.dataset_filter)
-        data=filter->dropExtraComponentIfExists(data);
+        output =filter->dropExtraComponentIfExists(output);
+
+      //change refframe (Dataflow works in physic coordinates, Db in logic coordinates)
+      output.bounds   = dataset->logicToPhysic(output.bounds);
+      output.clipping = dataset->logicToPhysic(output.clipping);
     
       DataflowMessage msg;
-      msg.writeValue("data", data);
+      msg.writeValue("data", output);
 	    this->node->publish(msg);
     };
   }
@@ -149,6 +153,10 @@ public:
       msg.setReturnReceipt(return_receipt);
     }
 
+    //change refframe (Dataflow works in physic coordinates, Db in logic coordinates)
+    output.bounds   = dataset->logicToPhysic(output.bounds);
+    output.clipping = dataset->logicToPhysic(output.clipping);
+
     msg.writeValue("data",output);
 
     //only if the publish went well, I could wait
@@ -209,8 +217,8 @@ bool QueryNode::processInput()
   query->filter.enabled=true;
   query->merge_mode=Query::InsertSamples;
 
-  auto logic_position=getQueryBounds();
-  if (!logic_position.valid())
+  auto query_bounds=getQueryBounds();
+  if (!query_bounds.valid())
     return false;
 
   //create (and store in my class the access)
@@ -223,23 +231,24 @@ bool QueryNode::processInput()
       setAccess(dataset->createAccess());
   }
 
-  Frustum node_to_screen;
+  Frustum logic_to_screen;
   if (isViewDependentEnabled() && nodeToScreen().valid())
   {
-    node_to_screen = nodeToScreen();
-    auto frustum_map = FrustumMap(node_to_screen);
-    logic_position =Position::shrink(node_to_screen.getScreenBox(), frustum_map, logic_position);
-    if (!logic_position.valid())
+    auto physic_to_screen = nodeToScreen();
+    query_bounds =Position::shrink(physic_to_screen.getScreenBox(), FrustumMap(physic_to_screen), query_bounds);
+    if (!query_bounds.valid())
     {
       publishDumbArray();
       return false;
     }
+
+    logic_to_screen = dataset->logicToScreen(physic_to_screen);
   }
 
   //find intersection with dataset box
-  auto pdim = dataset->getPointDim();
-  auto matrix_map = MatrixMap(Matrix::identity(pdim));
-  logic_position = Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), matrix_map, logic_position);
+  auto logic_position  = dataset->physicToLogic(query_bounds);
+
+  logic_position = Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), MatrixMap(Matrix::identity(dataset->getPointDim())), logic_position);
 
   if (!logic_position.valid())
   {
@@ -247,12 +256,9 @@ bool QueryNode::processInput()
     return false;
   }
 
-
-  query->logic_position= logic_position;
-  query->logic_to_screen = node_to_screen;
-
-  //end resolutions
-  query->end_resolutions=dataset->guessEndResolutions(node_to_screen, logic_position,getQuality(),getProgression());
+  query->logic_position  = logic_position;
+  query->logic_to_screen = logic_to_screen;
+  query->end_resolutions = dataset->guessEndResolutions(logic_to_screen, logic_position, getQuality(), getProgression());
  
   //failed for some reason
   if (!dataset->beginQuery(query)) 

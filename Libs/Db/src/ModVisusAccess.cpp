@@ -168,7 +168,7 @@ void ModVisusAccess::flushBatch()
         continue;
       }
 
-      VisusAssert(decoded.dims == query->nsamples);
+      VisusAssert(decoded.dims  == query->getNumberOfSamples());
       VisusAssert(decoded.dtype == query->field.dtype);
       query->buffer = decoded;
 

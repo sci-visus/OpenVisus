@@ -51,11 +51,22 @@ Position::Position(BoxNd box)
 }
 
   //////////////////////////////////////////////////
-void Position::prependTransformation(const Matrix& T)
+void Position::prependTransformation(const Matrix& Left)
 {
   auto pdim = getPointDim(); 
   if (pdim == 0) return;
-  this->T = T * this->T;
+  this->T = Left * this->T;
+
+  auto sdim = getSpaceDim();
+
+  //only scale and translate
+#if 0
+  if (!T.isIdentity() && this->getPoints() == toAxisAlignedBox().getPoints())
+  {
+    this->box = toAxisAlignedBox();
+    this->T = Matrix::identity(sdim);
+  }
+#endif
 }
 
 
