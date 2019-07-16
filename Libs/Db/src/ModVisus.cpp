@@ -617,8 +617,8 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
   std::vector<NetResponse> responses;
   for (int I = 0; I < (int)start_address.size(); I++)
   {
-    auto block_query = std::make_shared<BlockQuery>(field, time, start_address[I], end_address[I], aborted);
-    wait_async.pushRunning(dataset->readBlock(access, block_query)).when_ready([block_query, &responses, dataset, compression](Void) {
+    auto block_query = std::make_shared<BlockQuery>(dataset.get(), field, time, start_address[I], end_address[I], 'r', aborted);
+    wait_async.pushRunning(dataset->executeBlockQuery(access, block_query)).when_ready([block_query, &responses, dataset, compression](Void) {
 
       if (block_query->failed())
       {

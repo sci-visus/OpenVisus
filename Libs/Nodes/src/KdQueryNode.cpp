@@ -312,14 +312,9 @@ public:
         auto start_address = (node->id) << bitsperblock;
         auto end_address = (node->id + 1) << bitsperblock;
 
-        //I don't need to execute the block query, I already have it
-        auto block_box = dataset->getAddressRangeBox(start_address, end_address);
-
-        auto blockquery = std::make_shared<BlockQuery>(field, time, start_address, end_address, Aborted());
-        blockquery->nsamples = block_box.nsamples;
-        blockquery->logic_box = block_box;
-        blockquery->buffer = node->blockdata;
+        auto blockquery = std::make_shared<BlockQuery>(dataset.get(), field, time, start_address, end_address, 'r', Aborted());
         VisusAssert(blockquery->nsamples == node->blockdata.dims);
+        blockquery->buffer = node->blockdata;
 
         if (aborted() || !dataset->mergeQueryWithBlock(query, blockquery))
           return;
@@ -424,8 +419,8 @@ public:
       auto start_address = (blocknum) << bitsperblock;
       auto end_address = (blocknum + 1) << bitsperblock;
 
-      auto blockquery = std::make_shared<BlockQuery>(field, time, start_address, end_address, this->aborted);
-      wait_async.pushRunning(dataset->readBlock(access, blockquery)).when_ready([this, blockquery, node, &rlock](Void) {
+      auto blockquery = std::make_shared<BlockQuery>(dataset.get(), field, time, start_address, end_address, 'r', this->aborted);
+      wait_async.pushRunning(dataset->executeBlockQuery(access, blockquery)).when_ready([this, blockquery, node, &rlock](Void) {
 
         if (aborted() || blockquery->failed())
           return;

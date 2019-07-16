@@ -251,13 +251,11 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
     }
   }
 
-#if VISUS_DEBUG
-  if (config.texture_dim == 2)
+  if (ApplicationInfo::debug && config.texture_dim == 2)
   {
     for (auto node : rendered)
-      GLLineLoop(node->box.getPoints(), Colors::Black, 3).glRender(gl);
+      GLLineLoop(node->logic_box.getPoints(), Colors::Black, 3).glRender(gl);
   }
-#endif
 
   gl.popDepthMask();
   gl.popDepthTest();

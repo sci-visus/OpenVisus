@@ -72,7 +72,7 @@ public:
 
   //readBlock 
   virtual void readBlock(SharedPtr<BlockQuery> up_query) override {
-    scheduleOp(ReadOp, 0, up_query);
+    scheduleOp('r', 0, up_query);
   }
 
   //writeBlock
@@ -87,16 +87,8 @@ public:
 
 private:
 
-  enum Op
-  {
-    InvalidOp,
-    ReadOp,
-    CacheOp
-  };
-
   typedef struct
   {
-    Op op=InvalidOp;
     int index=0;
     SharedPtr<BlockQuery> up_query;
     SharedPtr<BlockQuery> dw_query;
@@ -116,7 +108,7 @@ private:
   }
 
   //scheduleOp
-  void scheduleOp(Op op, int index, SharedPtr<BlockQuery> up_query);
+  void scheduleOp(int mode, int index, SharedPtr<BlockQuery> up_query);
   
   //runInBackground
   void runInBackground();

@@ -286,14 +286,14 @@ public:
   //endFreeTransform
   void endFreeTransform();
 
-  //nodeToNode
-  Position nodeToNode(Node* dst, Node* src) const;
+  //computeNodeToNode
+  Position computeNodeToNode(Node* dst, Node* src) const;
 
-  //getQueryBounds
-  Position getQueryBounds(QueryNode* query_node) const;
+  //computeQueryBounds
+  Position computeQueryBounds(QueryNode* query_node) const;
 
-  //nodeToScreen
-  Frustum nodeToScreen(Frustum frustum, Node* node) const;
+  //computeNodeToScreen
+  Frustum computeNodeToScreen(Frustum frustum, Node* node) const;
 
   //New
   void New();

@@ -66,7 +66,7 @@ public:
   DatasetNode*              dataset_node=nullptr;
   QueryNode*                query_node=nullptr;
   GLObject*                 render_node=nullptr;
-  BoxNd                     dataset_box;
+  Position                  dataset_bounds;
 
   SharedPtr<Dataflow>       dataflow;
   GLCanvas*                 glcanvas=nullptr;
@@ -204,7 +204,7 @@ public:
 
     this->dataflow->addNode(this->dataset_node = new DatasetNode("Dataset node"));
     this->dataset_node->setDataset(dataset);
-    this->dataset_box=dataset_node->getNodeBounds().toAxisAlignedBox();
+    this->dataset_bounds=dataset_node->getNodeBounds();
 
     if (dataset->getKdQueryMode()!=0)
     {
@@ -229,11 +229,11 @@ public:
     this->query_node->setProgression(Query::GuessProgression);
     this->query_node->setViewDependentEnabled(true);
     this->query_node->setQuality(Query::DefaultQuality);
-    this->query_node->setNodeBounds(dataset_box);
-    this->query_node->setQueryBounds(this->dataset_box);
+    this->query_node->setNodeBounds(dataset_bounds);
+    this->query_node->setQueryBounds(dataset_bounds);
 
     this->glcamera->setViewport(Viewport(0,0,glcanvas->width(),(int)glcanvas->height()));
-    this->glcamera->guessPosition(this->dataset_box);
+    this->glcamera->guessPosition(dataset_bounds);
 
     setTime(dataset->getDefaultTime());
     setFieldName(dataset->getDefaultField().name);

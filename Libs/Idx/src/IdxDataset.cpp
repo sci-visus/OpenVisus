@@ -346,7 +346,7 @@ public:
     FastLoopStack STACK[DatasetBitmaskMaxLen+1];
 
     //layout of the block
-    LogicBox Bbox=vf->getAddressRangeBox(block_query->start_address,block_query->end_address);
+    LogicBox Bbox= block_query->logic_box;
     if (!Bbox.valid())
       return false;
 
@@ -500,7 +500,7 @@ public:
     HzOrder        hzorder         (bitmask, maxh);
     PointNi        depth_mask    = hzorder.getLevelP2Included(query->getEndResolution());
 
-    LogicBox Bbox=vf->getAddressRangeBox(block_query->start_address,block_query->end_address);
+    LogicBox Bbox= block_query->logic_box;
     if (!Bbox.valid())
       return false;
 
@@ -689,8 +689,8 @@ bool IdxDataset::compressDataset(String compression)
           if (!FileUtils::existsFile(filename))
             continue;
 
-          auto read_block = std::make_shared<BlockQuery>(field, time, access->getStartAddress(blockid), access->getEndAddress(blockid), aborted);
-          if (readBlockAndWait(access, read_block))
+          auto read_block = std::make_shared<BlockQuery>(this, field, time, access->getStartAddress(blockid), access->getEndAddress(blockid), 'r', aborted);
+          if (executeBlockQueryAndWait(access, read_block))
           {
             file_blocks[F][B] = read_block->buffer;
             filenames.insert(filename);
@@ -732,10 +732,10 @@ bool IdxDataset::compressDataset(String compression)
         {
           if (auto buffer = file_blocks[F][B])
           {
-            auto write_block = std::make_shared<BlockQuery>(field, time, access->getStartAddress(blockid), access->getEndAddress(blockid), aborted);
+            auto write_block = std::make_shared<BlockQuery>(this, field, time, access->getStartAddress(blockid), access->getEndAddress(blockid), 'w', aborted);
             write_block->buffer = buffer;
 
-            if (!writeBlockAndWait(access, write_block))
+            if (!executeBlockQueryAndWait(access, write_block))
             {
               VisusError()<<"Fatal error writing field(" << F << ") block(" << blockid << ")";
               VisusAssert(false);
@@ -1081,28 +1081,22 @@ bool IdxDataset::mergeQueryWithBlock(SharedPtr<Query> query,SharedPtr<BlockQuery
     int            hstart=std::max(query->cur_resolution+1  ,HzOrder::getAddressResolution(bitmask,HzFrom));
     int            hend  =std::min(query->getEndResolution(),HzOrder::getAddressResolution(bitmask,HzTo-1));
 
-    //layout of the block
-#if 1
-    auto Bbox=this->getAddressRangeBox(block_query->start_address,block_query->end_address);
-#else
-    auto Bbox=block_query->samples;
-#endif
+    auto Bbox = block_query->logic_box;
 
     if (!Bbox.valid())
       return false;
 
-    auto Wbox = query->box_query.logic_box;
-    auto Rbox = Bbox;
+    auto Wbox    = query->box_query.logic_box;
+    auto Wbuffer = query->buffer;
 
-    auto& Wbuffer = query->buffer;
-    auto& Rbuffer = block_query->buffer;
+    auto Rbox    = Bbox;
+    auto Rbuffer = block_query->buffer;
 
     if (query->mode == 'w')
     {
       std::swap(Wbox, Rbox);
       std::swap(Wbuffer,Rbuffer);
     }
-
 
     if (HzFrom==0)
     {
@@ -1629,8 +1623,8 @@ bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<
     while (B<(int)hzaddresses.size() && (hzaddresses[B].first>=HzFrom && hzaddresses[B].first<HzTo))
       ++B;
 
-    auto block_query=std::make_shared<BlockQuery>(query->field,query->time,HzFrom,HzTo,aborted);
-    wait_async.pushRunning(this->readBlock(access, block_query)).when_ready([this, query, block_query,&hzaddresses, A, B, aborted](Void) {
+    auto block_query=std::make_shared<BlockQuery>(this, query->field,query->time,HzFrom,HzTo,'r', aborted);
+    wait_async.pushRunning(this->executeBlockQuery(access, block_query)).when_ready([this, query, block_query,&hzaddresses, A, B, aborted](Void) {
 
       if (aborted() || block_query->failed())
         return;
@@ -1797,11 +1791,11 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
           if (aborted())
             break;
 
-          auto read_block=std::make_shared<BlockQuery>(field,time,HzFrom,HzTo,aborted);
+          auto read_block=std::make_shared<BlockQuery>(this, field,time,HzFrom,HzTo,'r',aborted);
 
           if (bReading)
           {
-            wait_async.pushRunning(readBlock(access, read_block)).when_ready([this,query,read_block, aborted](Void)
+            wait_async.pushRunning(executeBlockQuery(access, read_block)).when_ready([this,query,read_block, aborted](Void)
             {
               //I don't care if the read fails...
               if (!aborted() && read_block->ok())
@@ -1814,30 +1808,22 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
             access->acquireWriteLock(read_block);
 
             //need to read and wait the block
-            readBlockAndWait(access, read_block);
+            executeBlockQueryAndWait(access, read_block);
 
             //WRITE block
-            auto write_block=std::make_shared<BlockQuery>(field,time,HzFrom,HzTo,aborted);
+            auto write_block=std::make_shared<BlockQuery>(this, field,time,HzFrom,HzTo,'w', aborted);
 
            //read ok
             if (read_block->ok())
-            {
-              write_block->buffer=read_block->buffer;
-            }
+              write_block->buffer = read_block->buffer;
             //I don't care if it fails... maybe does not exist
             else
-            {
-              write_block->nsamples=read_block->nsamples;
-              write_block->logic_box=read_block->logic_box;
-              write_block->buffer.layout=query->field.default_layout;
-              write_block->buffer.resize(write_block->nsamples,write_block->field.dtype,__FILE__,__LINE__);
-              write_block->buffer.fillWithValue(write_block->field.default_value);
-            }
+              write_block->allocateBufferIfNeeded();
 
             mergeQueryWithBlock(query,write_block);
 
             //need to write and wait for the block
-            writeBlockAndWait(access, write_block);
+            executeBlockQueryAndWait(access, write_block);
 
             //important! all writings are with a lease!
             access->releaseWriteLock(read_block);

@@ -209,12 +209,12 @@ public:
         {
           auto hz1 = w_access->getStartAddress(blockid);
           auto hz2 = w_access->getEndAddress(blockid);
-          auto read_block = std::make_shared<BlockQuery>(field, time, hz1, hz2, Aborted());
-          if (dataset->readBlockAndWait(r_access, read_block))
+          auto read_block = std::make_shared<BlockQuery>(dataset.get(), field, time, hz1, hz2, 'r', Aborted());
+          if (dataset->executeBlockQueryAndWait(r_access, read_block))
           {
-            auto write_block = std::make_shared<BlockQuery>(field, time, hz1, hz2, Aborted());
+            auto write_block = std::make_shared<BlockQuery>(dataset.get(), field, time, hz1, hz2, 'w', Aborted());
             write_block->buffer = read_block->buffer;
-            if (!dataset->writeBlockAndWait(w_access, write_block))
+            if (!dataset->executeBlockQueryAndWait(w_access, write_block))
               ThrowException("Failed to write block");
           }
         }
@@ -599,8 +599,8 @@ public:
 
         for (BigInt nblock = block_from; nblock<block_to; nblock++)
         {
-          auto read_block = std::make_shared<BlockQuery>(field, time, access->getStartAddress(nblock), access->getEndAddress(nblock), aborted);
-          if (!vf->readBlockAndWait(access, read_block))
+          auto read_block = std::make_shared<BlockQuery>(vf.get(), field, time, access->getStartAddress(nblock), access->getEndAddress(nblock), 'r', aborted);
+          if (!vf->executeBlockQueryAndWait(access, read_block))
             continue;
 
           //need to calculate since I already know it's invalid!
@@ -1252,7 +1252,7 @@ public:
 
     auto access=dataset->createAccessForBlockQuery();
 
-    auto block_query = std::make_shared<BlockQuery>(field, time, block_id *(((Int64)1) << access->bitsperblock), (block_id + 1)*(((Int64)1) << access->bitsperblock), Aborted());
+    auto block_query = std::make_shared<BlockQuery>(dataset.get(), field, time, block_id *(((Int64)1) << access->bitsperblock), (block_id + 1)*(((Int64)1) << access->bitsperblock), bWriting? 'w' : 'r', Aborted());
     ApplicationStats::io.readValues(true);
 
     auto t1 = Time::now();
@@ -1261,7 +1261,7 @@ public:
     if (bWriting)
     {
       access->beginWrite();
-      bool bOk = dataset->writeBlockAndWait(access, block_query);
+      bool bOk = dataset->executeBlockQueryAndWait(access, block_query);
       access->endWrite();
       if (!bOk)
         ThrowException(StringUtils::format() << args[0] <<" Failed to write block");
@@ -1270,7 +1270,7 @@ public:
     else
     {
       access->beginRead();
-      bool bOk = dataset->readBlockAndWait(access, block_query);
+      bool bOk = dataset->executeBlockQueryAndWait(access, block_query);
       access->endRead();
       if (!bOk)
         ThrowException(StringUtils::format() << args[0] <<" Failed to write block");
@@ -1493,9 +1493,9 @@ public:
 
     for (BigInt block_id = 0, nblocks = dataset->getTotalNumberOfBlocks(); ; block_id = (block_id + 1) % nblocks)
     { 
-      auto read_block = std::make_shared<BlockQuery>(field, time, access->getStartAddress(block_id), access->getEndAddress(block_id), aborted);
+      auto read_block = std::make_shared<BlockQuery>(dataset.get(), field, time, access->getStartAddress(block_id), access->getEndAddress(block_id), 'r', aborted);
 
-      if (!dataset->readBlockAndWait(access, read_block))
+      if (!dataset->executeBlockQueryAndWait(access, read_block))
         continue;
 
       auto block = read_block->buffer;

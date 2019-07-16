@@ -289,17 +289,55 @@ public:
   //setBox
   void setLogicBox(const BoxNi& value) {
     this->logic_box = value;
+    VisusAssert(!physic_position.valid());
   }
+
+public:
 
   //getPhysicPosition
   Position getPhysicPosition() const {
     return physic_position;
   }
 
-  //setPhysicPosition
+  //setPhysicPosition (to call after setLogicBox())
   void setPhysicPosition(Position value) {
-    physic_position = value;
+    VisusAssert(this->logic_box.valid());
+    this->physic_position = value;
+    this->logic_to_physic = Position::computeTransformation(value, getLogicBox());
+    this->physic_to_logic = this->logic_to_physic.invert();
   }
+
+  //logicToPhysic
+  Matrix logicToPhysic() const {
+    return logic_to_physic;
+  }
+
+  //logicToPhysic
+  Position logicToPhysic(Position logic) const {
+    return Position(logicToPhysic(),logic);
+  }
+
+  //logicToPhysic
+  Frustum logicToPhysic(Frustum physic_to_screen) const {
+    return Frustum(physic_to_screen, logicToPhysic());
+  }
+
+  //physicToLogic
+  Matrix physicToLogic() const {
+    return physic_to_logic;
+  }
+
+  //physicToLogic
+  Position physicToLogic(Position physic) const {
+    return Position(physicToLogic(), physic);
+  }
+
+  //physicToLogic
+  Frustum physicToLogic(Frustum logic_to_screen) const {
+    return Frustum(logic_to_screen, physicToLogic());
+  }
+
+public:
 
   //getDefaultBitsPerBlock
   int getDefaultBitsPerBlock() const {
@@ -360,19 +398,11 @@ public:
   SharedPtr<Access> createRamAccess(Int64 available, bool can_read = true, bool can_write = true);
 
   //readBlock  
-  virtual Future<Void> readBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query);
+  virtual Future<Void> executeBlockQuery(SharedPtr<Access> access, SharedPtr<BlockQuery> query);
 
-  //writeBlock  
-  virtual Future<Void> writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query);
-
-  //readBlockAndWait
-  bool readBlockAndWait(SharedPtr<Access> access, SharedPtr<BlockQuery> query) {
-    readBlock(access, query).get(); return query->ok();
-  }
-
-  //writeBlockAndWait
-  bool writeBlockAndWait(SharedPtr<Access> access, SharedPtr<BlockQuery> query) {
-    writeBlock(access, query).get(); return query->ok();
+  //executeBlockQueryAndWait
+  bool executeBlockQueryAndWait(SharedPtr<Access> access, SharedPtr<BlockQuery> query) {
+    executeBlockQuery(access, query).get(); return query->ok();
   }
 
   //convertBlockQueryToRowMajor
@@ -447,7 +477,8 @@ private:
   std::map<String, Field> find_field;
   DatasetBitmask          bitmask;
   BoxNi                   logic_box;
-  Position                physic_position;
+  Position                physic_position = Position::invalid();
+  Matrix                  logic_to_physic, physic_to_logic;
   String                  default_scene;
   int                     kdquery_mode = KdQueryMode::NotSpecified;
   bool                    bServerMode = false;

@@ -382,16 +382,18 @@ SharedPtr<Dataset> LoadDataset(String url) {
 
 
 ////////////////////////////////////////////////
-Future<Void> Dataset::readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
+Future<Void> Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
 {
   VisusAssert(access->isReading());
 
+  int mode = query->mode; 
   auto failed = [&]() {
+
     if (!access)
       query->setFailed();
     else
-      access->readFailed(query);
-
+      mode == 'r'? access->readFailed(query) : access->writeFailed(query);
+   
     return query->done;
   };
 
@@ -404,92 +406,33 @@ Future<Void> Dataset::readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> q
   if (!(query->start_address < query->end_address))
     return failed();
 
-  if (!access->can_read)
+  if ((mode == 'r' && !access->can_read) || (mode == 'w' && !access->can_write))
     return failed();
 
-  auto logic_box = getAddressRangeBox(query->start_address, query->end_address);
-  if (!logic_box.valid())
+  if (!query->logic_box.valid())
     return failed();
 
-  query->nsamples = logic_box.nsamples;
-  query->logic_box = logic_box;
+  if (mode == 'w' && !query->buffer)
+    return failed();
 
   //auto allocate buffer
   if (!query->allocateBufferIfNeeded())
     return failed();
 
-  //override time 
-  {
-    // dataset url
-    Url url = this->getUrl();
-    if (url.hasParam("time"))
-      query->time = cdouble(url.getParam("time"));
+  // override time  from dataset url
+  Url url = this->getUrl();
+  if (url.hasParam("time"))
+    query->time = cdouble(url.getParam("time"));
 
-    // from field
-    if (query->field.hasParam("time"))
-      query->time = cdouble(query->field.getParam("time"));
-  }
+  // override time  from from field
+  if (query->field.hasParam("time"))
+    query->time = cdouble(query->field.getParam("time"));
 
   query->setRunning();
-  access->readBlock(query);
+  mode=='r'? access->readBlock(query) : access->writeBlock(query);
   return query->done;
 }
 
-////////////////////////////////////////////////
-Future<Void> Dataset::writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query)
-{
-  VisusAssert(access->isWriting());
-
-  auto failed = [&]() {
-    if (!access)
-      query->setFailed();
-    else
-      access->readFailed(query);
-    return query->done;
-  };
-
-  if (!access)
-    return failed();
-
-  if (!query->field.valid())
-    return failed();
-
-  if (!(query->start_address < query->end_address))
-    return failed();
-
-  if (!access->can_write)
-    return failed();
-
-  if (!query->buffer)
-    return failed();
-
-  auto logic_box = getAddressRangeBox(query->start_address, query->end_address);
-  if (!logic_box.valid())
-    return failed();
-
-  query->nsamples = logic_box.nsamples;
-  query->logic_box = logic_box;
-
-  //check buffer
-  if (!query->allocateBufferIfNeeded())
-    return failed();
-
-  //override time
-  {
-    //from dataset url
-    Url url = this->getUrl();
-    if (url.hasParam("time"))
-      query->time = cdouble(url.getParam("time"));
-
-    //from field
-    if (query->field.hasParam("time"))
-      query->time = cdouble(query->field.getParam("time"));
-  }
-
-  query->setRunning();
-  access->writeBlock(query);
-  return query->done;
-}
 
 ////////////////////////////////////////////////
 std::vector<BoxNi> Dataset::generateTiles(int TileSize) const
@@ -575,7 +518,7 @@ bool Dataset::beginQuery(SharedPtr<Query> query)
     return query->setFailed("query begin called many times");
 
   //if you want to set a buffer for 'w' queries, please do it after begin
-  VisusAssert(!query->logic_box.valid() && !query->buffer);
+  VisusAssert(!query->buffer);
 
   if (!this->valid() )
     return query->setFailed("query not valid");
@@ -730,15 +673,15 @@ void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield,
     }
 
     //don't care, could be the block missing
-    auto read_block = std::make_shared<BlockQuery>(Rfield, Rtime, Raccess->getStartAddress(block_id), Raccess->getEndAddress(block_id), aborted);
+    auto read_block = std::make_shared<BlockQuery>(Rvf, Rfield, Rtime, Raccess->getStartAddress(block_id), Raccess->getEndAddress(block_id), 'r', aborted);
 
-    if (!Rvf->readBlockAndWait(Raccess, read_block))
+    if (!Rvf->executeBlockQueryAndWait(Raccess, read_block))
       continue; 
 
-    auto write_block = std::make_shared<BlockQuery>(Wfield, Wtime, Waccess->getStartAddress(block_id), Waccess->getEndAddress(block_id), aborted);
+    auto write_block = std::make_shared<BlockQuery>(Wvf, Wfield, Wtime, Waccess->getStartAddress(block_id), Waccess->getEndAddress(block_id), 'w', aborted);
     write_block->buffer = read_block->buffer;
 
-    if (!Wvf->writeBlockAndWait(Waccess, write_block))
+    if (!Wvf->executeBlockQueryAndWait(Waccess, write_block))
     {
       VisusInfo()<<"FAILED to write block("+cstring(block_id)<<")";
       continue;
@@ -784,12 +727,10 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
     auto hzfrom = block << bitsperblock;
     auto hzto = hzfrom + nsamplesperblock;
 
-    auto block_query = std::make_shared<BlockQuery>(field, time, hzfrom, hzto, Aborted());
+    auto block_query = std::make_shared<BlockQuery>(this, field, time, hzfrom, hzto, 'r', Aborted());
+    
 
-    auto block_box = getAddressRangeBox(hzfrom,hzto);
-    auto p1 = level_box.logicToPixel(block_box.p1);
-
-    this->readBlockAndWait(access, block_query);
+    this->executeBlockQueryAndWait(access, block_query);
 
     if (block_query->failed())
       continue;
@@ -817,6 +758,7 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
       for (int C = 0; C < src.dims[1]; C++) { setBlack(0, C); setBlack(W - 1, C); }
     }
 
+    auto p1 = level_box.logicToPixel(block_query->logic_box.p1);
     ArrayUtils::paste(ret, p1, src);
   }
 

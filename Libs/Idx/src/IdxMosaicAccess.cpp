@@ -139,7 +139,7 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
 
     auto hzfrom = HzOrder(vf->idxfile.bitmask).getAddress(p1);
 
-    auto block_query = std::make_shared<BlockQuery>(QUERY->field, QUERY->time, hzfrom, hzfrom + ((BigInt)1 << bitsperblock), QUERY->aborted);
+    auto block_query = std::make_shared<BlockQuery>(vf.get(), QUERY->field, QUERY->time, hzfrom, hzfrom + ((BigInt)1 << bitsperblock), 'r', QUERY->aborted);
 
     auto access = getChildAccess(it->second);
 
@@ -147,7 +147,7 @@ void IdxMosaicAccess::readBlock(SharedPtr<BlockQuery> QUERY)
       access->beginIO(this->getMode());
 
     //TODO: should I keep track of running queries in order to wait for them in the destructor?
-    vf->readBlock(access, block_query).when_ready([this, QUERY, block_query](Void) {
+    vf->executeBlockQuery(access, block_query).when_ready([this, QUERY, block_query](Void) {
 
       if (block_query->failed())
         return readFailed(QUERY); //failed

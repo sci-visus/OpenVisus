@@ -56,6 +56,10 @@ enum QueryStatus
 };
 
 
+//predeclaration
+class Dataset;
+
+
 ///////////////////////////////////////////////////////////////////////////////////////
 class VISUS_DB_API BlockQuery 
 {
@@ -63,37 +67,33 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(BlockQuery)
 
-  Aborted    aborted;
+  Aborted      aborted;
+  Dataset*     dataset=nullptr;
+  int          mode = 0;
+  Field        field;
+  double       time = 0;
 
-  Field      field;
-  double     time = 0;
+  Array        buffer;
 
-  Array      buffer;
-
-  PointNi    nsamples;
-  LogicBox   logic_box;
 
   Future<Void> done;
 
-  BigInt start_address=0;
-  BigInt end_address=0;
+  BigInt      start_address=0;
+  BigInt      end_address=0;
+  PointNi     nsamples;
+  LogicBox    logic_box;
 
   //constructor
-  BlockQuery(Field field_,double time_,BigInt start_address_,BigInt end_address_,Aborted aborted_) 
-    : field(field_), time(time_), aborted(aborted_),start_address(start_address_),end_address(end_address_) {
-    done = Promise<Void>().get_future();
-  }
+  BlockQuery(Dataset* dataset, Field field, double time, BigInt start_address, BigInt end_address, int mode, Aborted aborted);
 
   //destructor
   virtual ~BlockQuery() {
   }
 
-
   //getByteSize
   Int64 getByteSize() const {
     return field.dtype.getByteSize(nsamples);
   }
-
 
   //getBlockNumber
   BigInt getBlockNumber(int bitsperblock) const {

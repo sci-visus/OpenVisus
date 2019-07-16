@@ -701,7 +701,7 @@ Position Viewer::getNodeBounds(Node* node,bool bRecursive) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Position Viewer::nodeToNode(Node* dst,Node* src) const
+Position Viewer::computeNodeToNode(Node* dst,Node* src) const
 {
   VisusAssert(dst && src && dst!=src);
   
@@ -749,7 +749,7 @@ Position Viewer::nodeToNode(Node* dst,Node* src) const
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Frustum Viewer::nodeToScreen(Frustum frustum,Node* node) const
+Frustum Viewer::computeNodeToScreen(Frustum frustum,Node* node) const
 {
   for (auto it : node->getPathFromRoot())
   {
@@ -764,9 +764,9 @@ Frustum Viewer::nodeToScreen(Frustum frustum,Node* node) const
 }
 
 //////////////////////////////////////////////////////////////////////
-Position Viewer::getQueryBounds(QueryNode* query_node) const
+Position Viewer::computeQueryBounds(QueryNode* query_node) const
 {
-  return nodeToNode(query_node->getDatasetNode(),query_node);
+  return computeNodeToNode(query_node->getDatasetNode(),query_node);
 }
 
 ////////////////////////////////////////////////////////////
@@ -781,10 +781,10 @@ Node* Viewer::findPick(Node* node,Point2d screen_point,bool bRecursive,double* o
   //I allow the picking of only queries
   if (QueryNode* query=dynamic_cast<QueryNode*>(node))
   {
-    Frustum  frustum = nodeToScreen(getGLCamera()->getFrustum(),node);
-    Position bounds  = getNodeBounds(node);
+    Frustum  node_to_screen = computeNodeToScreen(getGLCamera()->getFrustum(),node);
+    Position node_bounds  = getNodeBounds(node);
 
-    double query_distance=frustum.computeDistance(bounds,screen_point,/*bUseFarPoint*/false);
+    double query_distance= node_to_screen.computeDistance(node_bounds,screen_point,/*bUseFarPoint*/false);
     if (query_distance>=0)
     {
       ret=query;
@@ -909,13 +909,13 @@ void Viewer::dataflowBeforeProcessInput(Node* node)
   //screen dependent (i.e. viewdep) Need to fix it considering also the tree and transformation nodes
   if (auto query_node=dynamic_cast<QueryNode*>(node))
   {
-    //overwrite the position, need to actualize it to the dataset since QueryNode works in dataset reference space
-    auto position=getQueryBounds(query_node);
-    query_node->setQueryBounds(position);
+    //overwrite the query_bounds, need to actualize it to the dataset since QueryNode works in dataset reference space
+    auto query_bounds=computeQueryBounds(query_node);
+    query_node->setQueryBounds(query_bounds);
 
     //overwrite the viewdep frustum, since QueryNode works in dataset reference space
     //NOTE: using the FINAL frusutm
-    auto node_to_screen=nodeToScreen(getGLCamera()->getFinalFrustum(),query_node->getDatasetNode());
+    auto node_to_screen=computeNodeToScreen(getGLCamera()->getFinalFrustum(),query_node->getDatasetNode());
     query_node->setNodeToScreen(node_to_screen);
   }
 }
@@ -2551,8 +2551,8 @@ void Viewer::refreshData(Node* node)
       {
         if (auto query_node=dynamic_cast<QueryNode*>(it))
         {
-          Position position=getQueryBounds(query_node);
-          if (position!=query_node->getQueryBounds())
+          Position query_bounds=computeQueryBounds(query_node);
+          if (query_bounds !=query_node->getQueryBounds())
             dataflow->needProcessInput(query_node);
         }
       }

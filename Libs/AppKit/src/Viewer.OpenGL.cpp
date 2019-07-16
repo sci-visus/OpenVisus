@@ -156,7 +156,7 @@ void Viewer::glCameraChangeEvent()
     if (auto query_node = dynamic_cast<QueryNode*>(node))
     {
       //IMPORTANT: refresh the data considering the FINAL frustum!
-      auto node_to_screen = nodeToScreen(getGLCamera()->getFinalFrustum(), query_node->getDatasetNode());
+      auto node_to_screen = computeNodeToScreen(getGLCamera()->getFinalFrustum(), query_node->getDatasetNode());
 
       if (node_to_screen != query_node->nodeToScreen())
         dataflow->needProcessInput(query_node);
@@ -395,7 +395,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
     {
       if (auto globject = dynamic_cast<GLObject*>(node))
       {
-        auto node_to_screen=nodeToScreen(getGLCamera()->getFrustum(),node);
+        auto node_to_screen= computeNodeToScreen(getGLCamera()->getFrustum(),node);
         Position bounds=getNodeBounds(node);
         bool bUseFarPoint=nqueue==2;
         double distance= node_to_screen.computeZDistance(bounds,bUseFarPoint);
@@ -449,7 +449,7 @@ void Viewer::glRenderSelection(GLCanvas& gl)
     if (bounds.valid())
     {
       gl.pushFrustum();
-      gl.setFrustum(nodeToScreen(getGLCamera()->getFrustum(),selection));
+      gl.setFrustum(computeNodeToScreen(getGLCamera()->getFrustum(),selection));
       GLBox(bounds,Colors::Transparent,Colors::Black.withAlpha(0.5)).glRender(gl);
       gl.popFrustum();
     }

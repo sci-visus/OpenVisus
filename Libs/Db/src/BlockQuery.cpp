@@ -41,6 +41,16 @@ For support : support@visus.net
 
 namespace Visus {
 
+////////////////////////////////////////////////////////////////////////////////////
+BlockQuery::BlockQuery(Dataset* dataset_, Field field_, double time_, BigInt start_address_, BigInt end_address_, int mode_,Aborted aborted_)
+  : dataset(dataset_), field(field_), time(time_), start_address(start_address_), end_address(end_address_),mode(mode_), aborted(aborted_) 
+{
+  VisusAssert(mode == 'r' || mode == 'w');
+  done = Promise<Void>().get_future();
+
+  this->logic_box = dataset->getAddressRangeBox(this->start_address, this->end_address);;
+  this->nsamples = logic_box.nsamples;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////
 bool BlockQuery::allocateBufferIfNeeded()
@@ -49,7 +59,9 @@ bool BlockQuery::allocateBufferIfNeeded()
   {
     if (!buffer.resize(nsamples, field.dtype, __FILE__, __LINE__))
       return false;
+
     buffer.fillWithValue(field.default_value);
+    buffer.layout = field.default_layout;
   }
   else
   {
