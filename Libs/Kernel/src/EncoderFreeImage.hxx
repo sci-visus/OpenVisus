@@ -360,9 +360,9 @@ private:
     }
 
     std::vector<Int64> ret;
-    for (auto it : dims.coords)
-      if (it >1)
-        ret.push_back(it);
+    for (int I = 0; I < dims.getPointDim(); I++)
+      if (dims[I] > 1)
+        ret.push_back(dims[I]);
     return PointNi(ret);
 
   }

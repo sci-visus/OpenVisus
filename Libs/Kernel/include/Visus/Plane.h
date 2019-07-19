@@ -61,7 +61,7 @@ public:
   }
 
   //constructor
-  explicit Plane(PointNd v) : Plane(v.coords) {
+  explicit Plane(const PointNd& v) : Plane(v.toVector()) {
   }
 
   //constructor
@@ -72,7 +72,7 @@ public:
   //constructor from normal and distance
   explicit Plane(PointNd n,double d) 
   {
-    this->coords = n.normalized().coords;
+    this->PointNd::operator=(PointNd(n.normalized()));
     push_back(-d);
   }
 
@@ -80,7 +80,7 @@ public:
   explicit Plane(PointNd n,PointNd p)
   {
     n=n.normalized();
-    this->coords = n.coords;
+    this->PointNd::operator=(PointNd(n.toVector()));
     push_back(-(n.dot(p)));
   }
 
@@ -88,13 +88,13 @@ public:
   explicit Plane(Point3d p0,Point3d p1,Point3d p2)
   {
     auto n=(p1-p0).cross(p2-p0).normalized();
-    this->coords = n.toVector();
+    this->PointNd::operator=(PointNd(n.toVector()));
     push_back(-(n.dot(p0)));
   }
 
   //getSpaceDim
   int getSpaceDim() const {
-    return (int)coords.size();
+    return PointNd::getPointDim();
   }
 
   //getNormal

@@ -114,9 +114,6 @@ public:
   //setIdxFile
   void setIdxFile(IdxFile value);
 
-  //createDatasetFromBuffer
-  static SharedPtr<IdxDataset> createDatasetFromBuffer(String idx_filename, Array buffer, String compression = "zip", Aborted aborted = Aborted());
-
 public:
 
   //openFromUrl

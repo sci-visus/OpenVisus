@@ -44,7 +44,6 @@ using namespace Visus;
 void Tutorial_1(String default_layout);
 void Tutorial_2(String default_layout);
 void Tutorial_3(String default_layout);
-void Tutorial_4(String default_layout);
 void Tutorial_6(String default_layout);
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -320,10 +319,6 @@ void execTestIdx(int max_seconds)
     if (auto vf= LoadDataset<IdxDataset>("./temp/tutorial_1.idx"))
       vf->removeFiles();
  
-    VisusInfo()<<"Running Tutorial_4...";
-    Tutorial_4(default_layout);
-    VisusInfo()<<"...done";
-
     VisusInfo()<<"Running Tutorial_6...";
     Tutorial_6(default_layout);
     VisusInfo()<<"...done";

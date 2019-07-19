@@ -2636,7 +2636,7 @@ struct MedianHybridOp
 
       const Int64 num_step_x=(src_dims[0])/1;
 
-      Int64 krn_max_dim= krn_dims.maxsize();
+      Int64 krn_max_dim= *krn_dims.max_element();
 
       // NOTE: in case of parallel processing, move this vector into the loop
       std::vector<SrcType> neighborhood_vals((krn_max_dim*2+1)*(krn_max_dim*2+1)*(krn_max_dim*2+1));
@@ -2829,7 +2829,7 @@ struct MedianOp
       to[0]=1; 
 
       const Int64 num_step_x=(src_dims[0]);
-      Int64 size=krn_size.dims.maxsize()*2+1;
+      Int64 size=(*krn_size.dims.max_element())*2+1;
       Int64 neighborhood_size=krn_space==1?size:(krn_space==2?size*size:size*size*size);
       std::vector<SrcType> neighborhood_vals(neighborhood_size);
 
