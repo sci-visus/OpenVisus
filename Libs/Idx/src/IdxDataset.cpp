@@ -795,7 +795,7 @@ bool IdxDataset::compressDataset(String compression)
 
   auto ratio = overall_file_size/double(original_bytesize);
 
-  VisusInfo()<<"Dataset compressed in "<<T1.elapsedSec()<<"sec"
+  VisusInfo()<<"Dataset compressed algorithm("<< compression <<") in "<<T1.elapsedSec()<<"sec"
     <<" original_bytesize("<<StringUtils::getStringFromByteSize(original_bytesize)<<")"
     <<" overall_file_size("<< StringUtils::getStringFromByteSize(overall_file_size)<<")"
     <<" ratio("<< ratio<<")";

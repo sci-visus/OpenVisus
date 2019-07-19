@@ -64,6 +64,8 @@ using namespace Visus;
    %template(BoxNd)    Visus::BoxN<double>;
    %template(BoxNi)    Visus::BoxN<Visus::Int64>;
 
+
+%include <Visus/Quaternion.h> 
 %include <Visus/Matrix.h>
 %include <Visus/Position.h>
 %include <Visus/Range.h>

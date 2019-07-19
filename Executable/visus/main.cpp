@@ -422,7 +422,8 @@ public:
     if (args.size() != 3)
       ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed 3 arguments");
 
-    String url = args[1]; auto dataset = LoadDataset(url); 
+    String url = args[1]; 
+    auto dataset = LoadDataset(url); 
     if (!dataset)  
       ThrowException(StringUtils::format() << args[0] <<"  LoadDataset(" << url << ") failed");
 
