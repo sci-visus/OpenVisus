@@ -53,7 +53,6 @@ For support : support@visus.net
 #include <Visus/Utils.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/IdxDiskAccess.h>
-#include <Visus/IdxMosaicAccess.h>
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/MultiplexAccess.h>
 
