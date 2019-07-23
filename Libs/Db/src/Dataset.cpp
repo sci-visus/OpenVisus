@@ -52,14 +52,13 @@ namespace Visus {
 VISUS_IMPLEMENT_SINGLETON_CLASS(DatasetFactory)
 
 
-
 /////////////////////////////////////////////////////////////////////////////
-std::vector<int> Dataset::guessEndResolutions(const Frustum& logic_to_screen,Position logic_position,Query::Quality quality,Query::Progression progression)
+std::vector<int> Dataset::guessEndResolutions(const Frustum& logic_to_screen,Position logic_position,QueryQuality quality,QueryProgression progression)
 {
   int dataset_dim = this->getPointDim();
 
-  if (progression == Query::GuessProgression)
-    progression = (Query::Progression)(dataset_dim == 2 ? dataset_dim * 3 : dataset_dim * 4);
+  if (progression == QueryGuessProgression)
+    progression = (QueryProgression)(dataset_dim == 2 ? dataset_dim * 3 : dataset_dim * 4);
 
   auto maxh = this->getMaxResolution();
   int final_resolution = maxh;
@@ -469,7 +468,7 @@ Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, dou
   if (box == BoxNi())
     box = this->logic_box;
 
-  auto query = std::make_shared<Query>(this, field, time,  'r');
+  auto query = std::make_shared<BoxQuery>(this, field, time,  'r');
   query->logic_position = box;
 
   if (!beginQuery(query))
@@ -487,7 +486,7 @@ bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, dou
   if (box==BoxNi()) 
     box=BoxNi(PointNi(buffer.getPointDim()), buffer.dims);
 
-  auto query = std::make_shared<Query>(this, field, time,'w');
+  auto query = std::make_shared<BoxQuery>(this, field, time,'w');
   query->logic_position = box;
 
   if (!beginQuery(query))
@@ -502,133 +501,8 @@ bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, dou
   return true;
 }
 
-////////////////////////////////////////////////
-bool Dataset::beginQuery(SharedPtr<Query> query)
-{
-  if (!query)
-    return false;
 
-  if (!query->canBegin())
-    return query->setFailed("query begin called many times");
 
-  //if you want to set a buffer for 'w' queries, please do it after begin
-  VisusAssert(!query->buffer);
-
-  if (!this->valid() )
-    return query->setFailed("query not valid");
-
-  if (!query->field.valid())
-    return query->setFailed("field not valid");
-     false;
-
-  if (!query->logic_position.valid())
-    return query->setFailed("position not valid");
-
-  // override time from field
-  if (query->field.hasParam("time"))
-    query->time=cdouble(query->field.getParam("time"));  
-
-  // override time from dataset url
-  if (this->getUrl().hasParam("time"))
-    query->time=cdouble(this->getUrl().getParam("time"));
-
-  if (!getTimesteps().containsTimestep(query->time))
-    return query->setFailed("missing timestep");
-
-  if (query->end_resolutions.empty())
-    query->end_resolutions={this->getMaxResolution()};
-
-  for (int I=0;I<(int)query->end_resolutions.size();I++)
-    VisusAssert(query->end_resolutions[I]<=this->getMaxResolution());
-
-  return true;
-}
-
-////////////////////////////////////////////////
-bool Dataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query)
-{
-  if (!query)
-    return false;
-
-  if (!query->canExecute())
-  {
-    query->setFailed("query is in non-executable status");
-    return false;
-  }
-
-  if (query->aborted()) 
-  {
-    query->setFailed("query aboted");
-    return false;
-  }
-
-  //for 'r' queries I can postpone the allocation
-  if (query->mode=='w' && !query->buffer)
-  {
-    query->setFailed("write buffer not set");
-    return false;
-  }
-
-  return true;
-}
-
-////////////////////////////////////////////////
-bool Dataset::nextQuery(SharedPtr<Query> query)
-{
-  if (!query)
-    return false;
-
-  if (!query->canNext())
-  {
-    query->setFailed("query cannot next");
-    return false;
-  }
-
-  if (query->aborted())
-  {
-    query->setFailed("query aborted");
-    return false;
-  }
-
-  VisusAssert(query->isRunning());
-  ++query->running_cursor;
-
-  //reached the end?
-  if (query->running_cursor ==query->end_resolutions.size())
-  {
-    query->setOk();
-    return false;
-  }
-  //continue running
-  else
-  {
-    return true;
-  }
-}
-
-////////////////////////////////////////////////
-bool Dataset::executePureRemoteQuery(SharedPtr<Query> query)
-{
-  auto request =createPureRemoteQueryNetRequest(query);
-  auto response=NetService::getNetResponse(request);
-
-  if (!response.isSuccessful())
-  {
-    query->setFailed((StringUtils::format()<<"network request failed errormsg("<<response.getErrorMessage()<<")").str());
-    return false;
-  }
-
-  auto buffer=response.getArrayBody();
-  if (!buffer) {
-    query->setFailed((StringUtils::format()<<"failed to decode body").str());
-    return false;
-  }
-
-  VisusAssert(buffer.dims==query->nsamples);
-  query->buffer=buffer;
-  query->setCurrentLevelReady();
-  return true;
-}
 
 ////////////////////////////////////////////////
 void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield, double Wtime,

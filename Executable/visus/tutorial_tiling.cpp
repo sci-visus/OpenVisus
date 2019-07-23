@@ -41,12 +41,12 @@ For support : support@visus.net
 using namespace Visus;
 
 /////////////////////////////////////////////////////////////////////////////////////
-void TilingExample(IdxDataset* vf)
+void TilingExample(IdxDataset* dataset)
 {
-  int maxh=vf->getMaxResolution();
+  int maxh=dataset->getMaxResolution();
 
-  int            bitsperblock    =  vf->getDefaultBitsPerBlock();
-  DatasetBitmask bitmask         =  vf->getBitmask();
+  int            bitsperblock    =  dataset->getDefaultBitsPerBlock();
+  DatasetBitmask bitmask         =  dataset->getBitmask();
   int            samplesperblock = 1<<bitsperblock;
 
   int pdim = bitmask.getPointDim();
@@ -98,11 +98,11 @@ void TilingExample(IdxDataset* vf)
 
       //my check code (verify that the tile is really a query of a single block)
       {
-        auto query=std::make_shared<Query>(vf,'r');
+        auto query=std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
         query->logic_position =box;
         query->start_resolution=(H==bitsperblock?0:H);
         query->end_resolutions={H};
-        VisusReleaseAssert(vf->beginQuery(query));
+        VisusReleaseAssert(dataset->beginQuery(query));
         VisusReleaseAssert(query->nsamples==dims);
       }
     }
@@ -128,9 +128,9 @@ void Tutorial_Tiling(String default_layout)
   idxfile.blocksperfile=1;
   VisusReleaseAssert(idxfile.save(filename));
 
-  auto vf= LoadDataset<IdxDataset>(filename);
-  VisusReleaseAssert(vf && vf->valid());
+  auto dataset= LoadDataset<IdxDataset>(filename);
+  VisusReleaseAssert(dataset && dataset->valid());
 
-  TilingExample(vf.get());
+  TilingExample(dataset.get());
 }
 

@@ -45,7 +45,7 @@ namespace Private {
 
 ///////////////////////////////////////////////////////////////////////////////
 template <typename CppType,class FilterClass>
-static bool ComputeFilter(Dataset* dataset,Query* query,const FilterClass* filter,bool bInverse)
+static bool ComputeFilter(Dataset* dataset,BoxQuery* query,const FilterClass* filter,bool bInverse)
 {
   const Field& field=query->field;
 
@@ -55,7 +55,7 @@ static bool ComputeFilter(Dataset* dataset,Query* query,const FilterClass* filte
   if (H==0)
     return true;
 
-  LogicBox         logic_box  = query->box_query.logic_box;
+  LogicBox         logic_box  = query->logic_box;
   DType            dtype      = field.dtype;
   int              ncomponents= dtype.ncomponents();
   DatasetBitmask   bitmask    = dataset->getBitmask();
@@ -186,7 +186,7 @@ public:
   {}
 
   //computeFilter
-  virtual bool computeFilter(Query* query,bool bInverse) const override
+  virtual bool computeFilter(BoxQuery* query,bool bInverse) const override
   {return ComputeFilter<CppType>(getDataset(),query,this,bInverse);}
 
 };
@@ -251,7 +251,7 @@ public:
   }
 
   //computeFilter
-  virtual bool computeFilter(Query* query,bool bInverse) const override
+  virtual bool computeFilter(BoxQuery* query,bool bInverse) const override
   {return ComputeFilter<CppType>(getDataset(),query,this,bInverse);}
 
 };
@@ -317,7 +317,7 @@ public:
   }
 
   //computeFilter
-  virtual bool computeFilter(Query* query,bool bInverse) const override
+  virtual bool computeFilter(BoxQuery* query,bool bInverse) const override
   {return ComputeFilter<CppType>(getDataset(),query,this,bInverse);}
 
 };
@@ -386,7 +386,7 @@ public:
   }
 
   //computeFilter
-  virtual bool computeFilter(Query* query,bool bInverse) const override
+  virtual bool computeFilter(BoxQuery* query,bool bInverse) const override
   {return ComputeFilter<CppType>(getDataset(),query,this,bInverse);}
 
 };
@@ -440,7 +440,7 @@ public:
   }
 
   //computeFilter
-  virtual bool computeFilter(Query* query,bool bInverse) const override
+  virtual bool computeFilter(BoxQuery* query,bool bInverse) const override
   {return ComputeFilter<CppType>(getDataset(),query,this,bInverse);}
 
 };

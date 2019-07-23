@@ -36,53 +36,22 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/IdxDataset.h>
+#include <Visus/PointQuery.h>
+#include <Visus/Dataset.h>
 
-using namespace Visus;
+namespace Visus {
 
 
-////////////////////////////////////////////////////////////////////////
-//read data from tutorial 1
-////////////////////////////////////////////////////////////////////////
-void Tutorial_2(String default_layout)
+////////////////////////////////////////////////////////////////////////////////////
+void PointQuery::setCurrentLevelReady()
 {
-  //read Dataset from tutorial 1
-  auto dataset= LoadDataset("temp/tutorial_1.idx");
-  VisusReleaseAssert(dataset);
-
-  BoxNi world_box=dataset->getLogicBox();
-
-  int pdim = 3;
-
-  //check the data has dimension (16,16,16)
-  VisusReleaseAssert(dataset->getDefaultField().dtype==(DTypes::UINT32)
-    &&  world_box.p1==PointNi(0,0,0)
-    &&  world_box.p2==PointNi(16,16,16));
-
-  //any time you need to read/write data from/to a Dataset I need a Access
-  auto access=dataset->createAccess();
-  
-  int cont=0;
-  for (int nslice=0;nslice<16;nslice++)
-  {
-    //this is the bounding box of the region I want to read (i.e. a single slice)
-    BoxNi slice_box=world_box.getZSlab(nslice,nslice+1);
-
-    //I should get a number of samples equals to the number of samples written in tutorial 1
-    auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-    query->logic_position=slice_box;
-    VisusReleaseAssert(dataset->beginQuery(query));
-    VisusReleaseAssert(query->nsamples.innerProduct()==16*16);
-
-    //read data from disk
-    VisusReleaseAssert(dataset->executeQuery(access,query));
-    VisusReleaseAssert(query->buffer.c_size()==sizeof(int)*16*16);
-
-    unsigned int* Src=(unsigned int*)query->buffer.c_ptr();
-    for (int I=0;I<16*16;I++,cont++)
-    {
-      VisusReleaseAssert(Src[I]==cont);
-    }
-  }
+  VisusAssert(isRunning());
+  VisusAssert(this->buffer.dims == this->nsamples);
+  VisusAssert(running_cursor >= 0 && running_cursor < end_resolutions.size());
+  this->buffer.bounds = this->logic_position;
+  this->buffer.clipping = this->logic_clipping;
+  this->cur_resolution = end_resolutions[running_cursor];
 }
+
+} //namespace Visus
 

@@ -154,14 +154,9 @@ void IdxFile::validate(Url url)
   auto pdim = bitmask.getPointDim();
 
   if (logic_to_physic.getSpaceDim() == 0)
-    logic_to_physic = Matrix::identity(pdim+1);
-
-  if (logic_to_physic.getSpaceDim() != pdim + 1)
-  {
-    VisusWarning() << "wrong logic_to_physic(" << logic_to_physic.toString() << ")";
-    this->version = -1;
-    return;
-  }
+    logic_to_physic = Matrix::identity(pdim + 1);
+  else
+    logic_to_physic.setSpaceDim(pdim + 1); //backward compatible
 
   //bitsperblock
   if (bitsperblock == 0)

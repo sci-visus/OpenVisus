@@ -36,53 +36,90 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/IdxDataset.h>
+#ifndef __VISUS_POINTQUERY_H
+#define __VISUS_POINTQUERY_H
 
-using namespace Visus;
+#include <Visus/Db.h>
+#include <Visus/Query.h>
+#include <Visus/Frustum.h>
 
+namespace Visus {
 
-////////////////////////////////////////////////////////////////////////
-//read data from tutorial 1
-////////////////////////////////////////////////////////////////////////
-void Tutorial_2(String default_layout)
+//predeclaration
+class Dataset;
+
+////////////////////////////////////////////////////////
+class VISUS_DB_API PointQuery : public Query
 {
-  //read Dataset from tutorial 1
-  auto dataset= LoadDataset("temp/tutorial_1.idx");
-  VisusReleaseAssert(dataset);
+public:
 
-  BoxNi world_box=dataset->getLogicBox();
+  VISUS_NON_COPYABLE_CLASS(PointQuery)
 
-  int pdim = 3;
+  int                        start_resolution = 0;
+  std::vector<int>           end_resolutions;
 
-  //check the data has dimension (16,16,16)
-  VisusReleaseAssert(dataset->getDefaultField().dtype==(DTypes::UINT32)
-    &&  world_box.p1==PointNi(0,0,0)
-    &&  world_box.p2==PointNi(16,16,16));
+  Position                   logic_position;
+  Frustum                    logic_to_screen;
+  Position                   logic_clipping;
 
-  //any time you need to read/write data from/to a Dataset I need a Access
-  auto access=dataset->createAccess();
-  
-  int cont=0;
-  for (int nslice=0;nslice<16;nslice++)
+  PointNi                    nsamples; //available only after beginQuery
+
+  int                        cur_resolution = -1;
+  int                        running_cursor = -1;
+
+  // for point queries
+  SharedPtr<HeapMemory>      points;
+
+  //constructor
+  PointQuery(Dataset* dataset, Field field, double time, int mode, Aborted aborted = Aborted())
+    : Query(dataset, field, time, mode, aborted)
   {
-    //this is the bounding box of the region I want to read (i.e. a single slice)
-    BoxNi slice_box=world_box.getZSlab(nslice,nslice+1);
-
-    //I should get a number of samples equals to the number of samples written in tutorial 1
-    auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-    query->logic_position=slice_box;
-    VisusReleaseAssert(dataset->beginQuery(query));
-    VisusReleaseAssert(query->nsamples.innerProduct()==16*16);
-
-    //read data from disk
-    VisusReleaseAssert(dataset->executeQuery(access,query));
-    VisusReleaseAssert(query->buffer.c_size()==sizeof(int)*16*16);
-
-    unsigned int* Src=(unsigned int*)query->buffer.c_ptr();
-    for (int I=0;I<16*16;I++,cont++)
-    {
-      VisusReleaseAssert(Src[I]==cont);
-    }
+    this->points = std::make_shared<HeapMemory>();
   }
-}
+
+  //destructor
+  virtual ~PointQuery() {
+  }
+
+  //getNumberOfSamples
+  virtual PointNi getNumberOfSamples() const override {
+    VisusAssert(isRunning());
+    return nsamples;
+  }
+
+  //setStatus
+  virtual void setStatus(QueryStatus status) override
+  {
+    Query::setStatus(status);
+    if (status == QueryOk || status == QueryFailed)
+      this->running_cursor = -1;
+  }
+
+  //canNext
+  bool canNext() const {
+    return isRunning() && cur_resolution == end_resolutions[running_cursor];
+  }
+
+  //canExecute
+  bool canExecute() const {
+    return isRunning() && cur_resolution < end_resolutions[running_cursor];
+  }
+
+  //getEndResolution
+  int getEndResolution() const {
+
+    if (!isRunning()) return -1;
+    VisusAssert(running_cursor >= 0 && running_cursor < end_resolutions.size());
+    return end_resolutions[running_cursor];
+  }
+
+  //setCurrentLevelReady
+  void setCurrentLevelReady();
+
+};
+
+
+} //namespace Visus
+
+#endif //__VISUS_POINTQUERY_H
 

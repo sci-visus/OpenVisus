@@ -2788,8 +2788,8 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
   query_node->setVerbose(cint(config.readString("Configuration/QueryNode/verbose", "1")));
   query_node->setAccessIndex(access_id);
   query_node->setViewDependentEnabled(true);
-  query_node->setProgression(Query::GuessProgression);
-  query_node->setQuality(Query::DefaultQuality);
+  query_node->setProgression(QueryGuessProgression);
+  query_node->setQuality(QueryDefaultQuality);
 
   if (bool bPointQuery = dataset_dim==3 && query_dim == 2)
   {
@@ -2893,7 +2893,7 @@ KdQueryNode* Viewer::addKdQueryNode(Node* parent,DatasetNode* dataset_node,Strin
   auto query_node=new KdQueryNode(name);
   query_node->setAccessIndex(access_id);
   query_node->setViewDependentEnabled(true);
-  query_node->setQuality(Query::DefaultQuality);
+  query_node->setQuality(QueryDefaultQuality);
   query_node->setNodeBounds(dataset_node->getNodeBounds());
 
   //TimeNode

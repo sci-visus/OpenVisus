@@ -43,16 +43,14 @@ namespace Visus {
 
 ////////////////////////////////////////////////////////////////////////////////////
 BlockQuery::BlockQuery(Dataset* dataset_, Field field_, double time_, BigInt start_address_, BigInt end_address_, int mode_,Aborted aborted_)
-  : dataset(dataset_), field(field_), time(time_), start_address(start_address_), end_address(end_address_),mode(mode_), aborted(aborted_) 
+  : Query(dataset_,field_,time_, mode_, aborted_), start_address(start_address_), end_address(end_address_)
 {
-  VisusAssert(mode == 'r' || mode == 'w');
-  done = Promise<Void>().get_future();
-
+ 
   this->logic_box = dataset->getAddressRangeBox(this->start_address, this->end_address);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool BlockQuery::allocateBufferIfNeeded()
+bool Query::allocateBufferIfNeeded()
 {
   auto nsamples = getNumberOfSamples();
 

@@ -145,21 +145,38 @@ public:
 
 
 //////////////////////////////////////////////////////////////
-bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query) 
+bool GoogleMapsDataset::beginQuery(SharedPtr<BoxQuery> query)
 {
-  if (!Dataset::beginQuery(query))
+  if (!query)
     return false;
 
-  //writing is not supported
+  if (!query->getStatus() == QueryCreated)
+    return query->setFailed("query begin called many times");
+
   if (query->mode == 'w')
     return query->setFailed("Writing mode not suppoted");
 
+  //if you want to set a buffer for 'w' queries, please do it after begin
+  VisusAssert(!query->buffer);
+
+  if (!this->valid())
+    return query->setFailed("query not valid");
+
+  if (!query->logic_position.valid())
+    return query->setFailed("position not valid");
+
+  if (query->end_resolutions.empty())
+    query->end_resolutions = { this->getMaxResolution() };
+
+  for (int I = 0; I < (int)query->end_resolutions.size(); I++)
+    VisusAssert(query->end_resolutions[I] <= this->getMaxResolution());
+
+  //writing is not supported
   VisusAssert(query->start_resolution==0);
 
   std::set<int> good;
   for (auto it : query->end_resolutions)
   {
-
     //i don't have odd resolutions
     auto value = (it >> 1) << 1;
 
@@ -190,7 +207,90 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<Query> query)
 
 
 //////////////////////////////////////////////////////////////
-void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<Query> query,BoxNi box,BigInt id,int H,int end_resolution)
+bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
+{
+  if (!query)
+    return false;
+
+  if (!query->canExecute())
+    return query->setFailed("query is in non-executable status");
+
+  if (query->aborted())
+    return query->setFailed("query aboted");
+
+  //for 'r' queries I can postpone the allocation
+  if (query->mode == 'w')
+    return query->setFailed("write not supported");
+
+  if (!query->allocateBufferIfNeeded())
+    return query->setFailed("cannot allocate buffer");
+
+  //always need an access.. the google server cannot handle pure remote queries (i.e. compose the tiles on server side)
+  if (!access)
+    access = std::make_shared<GoogleMapsAccess>(this);
+
+  int end_resolution = query->getEndResolution();
+  VisusAssert(end_resolution % 2 == 0);
+
+  WaitAsync< Future<Void> > wait_async;
+
+  BoxNi box = this->getLogicBox();
+
+  std::vector< SharedPtr<BlockQuery> > block_queries;
+  kdTraverse(block_queries, query, box,/*id*/1,/*H*/this->getDefaultBitsPerBlock(), end_resolution);
+
+  access->beginRead();
+  {
+    for (auto block_query : block_queries)
+    {
+      wait_async.pushRunning(executeBlockQuery(access, block_query)).when_ready([this, query, block_query](Void) {
+
+        if (!query->aborted() && block_query->ok())
+          mergeBoxQueryWithBlock(query, block_query);
+        });
+    }
+  }
+  access->endRead();
+
+  wait_async.waitAllDone();
+  query->setCurrentLevelReady();
+  return true;
+}
+
+//////////////////////////////////////////////////////////////
+bool GoogleMapsDataset::nextQuery(SharedPtr<BoxQuery> query)
+{
+  if (!query)
+    return false;
+
+  if (!query->canNext())
+    return query->setFailed("query cannot next");
+
+  if (query->aborted())
+    return query->setFailed("query aborted");
+
+  VisusAssert(query->isRunning());
+  ++query->running_cursor;
+
+  //reached the end?
+  if (query->running_cursor == query->end_resolutions.size())
+  {
+    query->setOk();
+    return false;
+  }
+
+  //merging is not supported
+  query->buffer = Array();
+
+  if (!setCurrentEndResolution(query))
+    return query->setFailed("cannot set end resolution");
+  
+  return true;
+}
+
+
+//////////////////////////////////////////////////////////////
+void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<BoxQuery> query,BoxNi box,BigInt id,int H,int end_resolution)
 {
   if (query->aborted()) 
     return;
@@ -221,74 +321,11 @@ void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_q
   kdTraverse(block_queries,query,right_box,id*2+1,H+1,end_resolution);
 }
 
-//////////////////////////////////////////////////////////////
-bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query) 
-{
-  if (!Dataset::executeQuery(access,query))
-    return false;
-
-  if (!query->allocateBufferIfNeeded())
-  {
-    query->setFailed("cannot allocate buffer");
-    return false;
-  }
-
-  //always need an access.. the google server cannot handle pure remote queries (i.e. compose the tiles on server side)
-  if (!access)
-    access=std::make_shared<GoogleMapsAccess>(this);  
-
-  int end_resolution=query->getEndResolution();
-  VisusAssert(end_resolution % 2==0);
-
-  WaitAsync< Future<Void> > wait_async;
-
-  BoxNi box=this->getLogicBox();
-
-  std::vector< SharedPtr<BlockQuery> > block_queries;
-  kdTraverse(block_queries,query,box,/*id*/1,/*H*/this->getDefaultBitsPerBlock(),end_resolution);
-
-  access->beginRead();
-  {
-    for (auto block_query : block_queries)
-    {
-      wait_async.pushRunning(executeBlockQuery(access,block_query)).when_ready([this,query, block_query](Void) {
-
-        if (!query->aborted() && block_query->ok())
-          mergeQueryWithBlock(query, block_query);
-      });
-    }
-  }
-  access->endRead();
-
-  wait_async.waitAllDone();
-  query->setCurrentLevelReady();
-  return true;
-}
 
 //////////////////////////////////////////////////////////////
-bool GoogleMapsDataset::nextQuery(SharedPtr<Query> query) 
+bool GoogleMapsDataset::mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> blockquery)
 {
-  if (!Dataset::nextQuery(query))
-    return false;
-
-  //merging is not supported
-  query->buffer= Array();
-
-  if (!setCurrentEndResolution(query))
-  {
-    query->setFailed("cannot set end resolution");
-    return false;
-  }
-  else
-  {
-    return true;
-  }
-}
-
-//////////////////////////////////////////////////////////////
-bool GoogleMapsDataset::mergeQueryWithBlock(SharedPtr<Query> query,SharedPtr<BlockQuery> blockquery) 
-{
-  return Query::mergeSamples(query->box_query.logic_box, query->buffer, blockquery->logic_box, blockquery->buffer, Query::InsertSamples, query->aborted);
+  return BoxQuery::mergeSamples(query->logic_box, query->buffer, blockquery->logic_box, blockquery->buffer, BoxQuery::InsertSamples, query->aborted);
 }
 
 //////////////////////////////////////////////////////////////
@@ -310,7 +347,7 @@ SharedPtr<Access> GoogleMapsDataset::createAccess(StringTree config, bool bForBl
 
 
 //////////////////////////////////////////////////////////////
-std::vector<int> GoogleMapsDataset::guessEndResolutions(const Frustum& logic_to_screen,Position logic_position,Query::Quality quality,Query::Progression progression)
+std::vector<int> GoogleMapsDataset::guessEndResolutions(const Frustum& logic_to_screen,Position logic_position,QueryQuality quality,QueryProgression progression)
 {
   std::vector<int> ret=Dataset::guessEndResolutions(logic_to_screen, logic_position,quality,progression);
 
@@ -389,7 +426,8 @@ bool GoogleMapsDataset::openFromUrl(Url url)
   this->setBitmask(DatasetBitmask::guess(overall_dims));
   this->setDefaultBitsPerBlock(Utils::getLog2(tile_nsamples[0]*tile_nsamples[1]));
   this->setLogicBox(BoxNi(PointNi(0,0),overall_dims));
-  this->setPhysicPosition(BoxNd(PointNd(-180,-90),PointNd(+180,+90))); //http://www.satsig.net/lat_long.htm
+  //this->setPhysicPosition(BoxNd(PointNd(-180,-90),PointNd(+180,+90))); //http://www.satsig.net/lat_long.htm
+  this->setPhysicPosition(BoxNi(PointNi(0, 0), overall_dims));
 
   auto timesteps = DatasetTimesteps();
   timesteps.addTimestep(0);
@@ -433,7 +471,7 @@ LogicBox GoogleMapsDataset::getLevelBox(int H)
 }
 
 //////////////////////////////////////////////////////////////
-bool GoogleMapsDataset::setCurrentEndResolution(SharedPtr<Query> query)
+bool GoogleMapsDataset::setCurrentEndResolution(SharedPtr<BoxQuery> query)
 {
   int end_resolution=query->getEndResolution(); 
   if (end_resolution<0) 
@@ -457,7 +495,7 @@ bool GoogleMapsDataset::setCurrentEndResolution(SharedPtr<Query> query)
 
   LogicBox logic_box(box,Lbox.delta);
   query->nsamples=logic_box.nsamples;
-  query->box_query.logic_box=logic_box;
+  query->logic_box=logic_box;
   query->buffer=Array();
   return true;
 }

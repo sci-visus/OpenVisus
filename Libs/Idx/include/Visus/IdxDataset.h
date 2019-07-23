@@ -97,10 +97,10 @@ public:
   virtual LogicBox getLevelBox(int H) override;
 
   //adjustFilterBox
-  BoxNi adjustFilterBox(Query* query,DatasetFilter* filter,BoxNi box,int H);
+  BoxNi adjustFilterBox(BoxQuery* query,DatasetFilter* filter,BoxNi box,int H);
 
-  //createEquivalentQuery
-  SharedPtr<Query> createEquivalentQuery(int mode,SharedPtr<BlockQuery> block_query);
+  //createEquivalentBoxQuery
+  SharedPtr<BoxQuery> createEquivalentBoxQuery(int mode,SharedPtr<BlockQuery> block_query);
 
   //setIdxFile
   void setIdxFile(IdxFile value);
@@ -122,20 +122,42 @@ public:
   //createFilter
   virtual SharedPtr<DatasetFilter> createFilter(const Field& field) override;
 
+public:
+
   //beginQuery
-  virtual bool beginQuery(SharedPtr<Query> query) override;
+  virtual bool beginQuery(SharedPtr<BoxQuery> query) override;
 
   //executeQuery
-  virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<Query> query) override;
+  virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
 
   //nextQuery
-  virtual bool nextQuery(SharedPtr<Query> query) override;
+  virtual bool nextQuery(SharedPtr<BoxQuery> query) override;
 
-  //mergeQueryWithBlock
-  virtual bool mergeQueryWithBlock(SharedPtr<Query> query,SharedPtr<BlockQuery> block_query) override;
+  //mergeBoxQueryWithBlock
+  virtual bool mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> block_query) override;
 
   //createNetRequest
-  virtual NetRequest createPureRemoteQueryNetRequest(SharedPtr<Query> query) override;
+  virtual NetRequest createPureRemoteQueryNetRequest(SharedPtr<BoxQuery> query) override;
+
+  //executePureRemoteQuery
+  virtual bool executePureRemoteQuery(SharedPtr<BoxQuery> query) override;
+
+public:
+
+  //beginQuery
+  virtual bool beginQuery(SharedPtr<PointQuery> query) override;
+
+  //executeQuery
+  virtual bool executeQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) override;
+
+  //nextQuery
+  virtual bool nextQuery(SharedPtr<PointQuery> query) override;
+
+  //createNetRequest
+  virtual NetRequest createPureRemoteQueryNetRequest(SharedPtr<PointQuery> query) override;
+
+  //executePureRemoteQuery
+  virtual bool executePureRemoteQuery(SharedPtr<PointQuery> query) override;
 
 private:
 
@@ -143,16 +165,10 @@ private:
   PointNi guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, Position logic_position, int end_resolution);
 
   //setBoxQueryCurrentEndResolution
-  bool setBoxQueryCurrentEndResolution(SharedPtr<Query> query);
+  bool setBoxQueryCurrentEndResolution(SharedPtr<BoxQuery> query);
 
   //setPointQueryCurrentEndResolution
-  bool setPointQueryCurrentEndResolution(SharedPtr<Query> query);
-
-  //executeBoxQuery
-  bool executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Query> query) ;
-
-  //executePointQuery
-  bool executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<Query> query) ;
+  bool setPointQueryCurrentEndResolution(SharedPtr<PointQuery> query);
 
 };
 

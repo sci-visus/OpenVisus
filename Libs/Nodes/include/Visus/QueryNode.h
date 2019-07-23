@@ -58,6 +58,9 @@ public:
   //destructor
   virtual ~QueryNode();
 
+  //createQuery
+  SharedPtr<Query> createQuery(int end_resolution=-1, bool bExecute = false);
+
   //processInput
   virtual bool processInput() override;
 
@@ -102,12 +105,12 @@ public:
   }
 
   //getProgression
-  Query::Progression getProgression() const {
+  QueryProgression getProgression() const {
     return progression;
   }
 
   //setProgression
-  void setProgression(Query::Progression value) {
+  void setProgression(QueryProgression value) {
     if (value==getProgression()) return;
     beginUpdate();
     this->progression=value;
@@ -115,12 +118,12 @@ public:
   }
 
   //getQuality
-  Query::Quality getQuality() const {
+  QueryQuality getQuality() const {
     return quality;
   }
 
   //setQuality
-  void setQuality(Query::Quality value) {
+  void setQuality(QueryQuality value) {
     if (value==getQuality()) return;
     beginUpdate();
     this->quality=value;
@@ -176,6 +179,7 @@ public:
   //exitFromDataflow (to avoid dataset stuck in memory)
   virtual void exitFromDataflow() override;
 
+  //castFrom
   static QueryNode* castFrom(Node* obj) {
     return dynamic_cast<QueryNode*>(obj);
   }
@@ -200,8 +204,8 @@ private:
   int                accessindex=0;
   bool               bViewDependentEnabled = false;
   Frustum            node_to_screen;
-  Query::Progression progression=Query::GuessProgression;
-  Query::Quality     quality=Query::DefaultQuality;
+  QueryProgression   progression=QueryGuessProgression;
+  QueryQuality       quality=QueryDefaultQuality;
   Position           node_bounds=Position::invalid();
   Position           query_bounds;
 

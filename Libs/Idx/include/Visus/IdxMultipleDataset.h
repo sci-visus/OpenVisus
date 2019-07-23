@@ -125,24 +125,15 @@ public:
   }
 
   //beginQuery
-  virtual bool beginQuery(SharedPtr<Query> QUERY) override {
+  virtual bool beginQuery(SharedPtr<BoxQuery> QUERY) override {
     return IdxDataset::beginQuery(QUERY);
   }
 
   //executeQuery
-  virtual bool executeQuery(SharedPtr<Access> ACCESS,SharedPtr<Query> QUERY) override;
+  virtual bool executeQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQuery> QUERY) override;
 
   //nextQuery
-  virtual bool nextQuery(SharedPtr<Query> QUERY) override;
-
-  //sameLogicSpace
-#if 0
-  bool sameLogicSpace(Child& child) const
-  {
-    auto vf = child.dataset;
-    return child.M.isIdentity() && this->getBox() == vf->getBox() && this->getBitmask() == vf->getBitmask();
-  }
-#endif
+  virtual bool nextQuery(SharedPtr<BoxQuery> QUERY) override;
 
 public:
 

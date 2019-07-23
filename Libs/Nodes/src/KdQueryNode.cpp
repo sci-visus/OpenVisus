@@ -130,7 +130,7 @@ public:
       return false;
 
     //failed for some reason
-    std::vector<int> end_resolutions=dataset->guessEndResolutions(logic_to_screen, logic_position,(Query::Quality)quality,Query::NoProgression);
+    std::vector<int> end_resolutions=dataset->guessEndResolutions(logic_to_screen, logic_position,(QueryQuality)quality,QueryNoProgression);
     if (end_resolutions.empty()) 
       return false;
 
@@ -192,7 +192,7 @@ public:
         bitsperblock;
 
     //I use a box query to get the data
-    auto query=std::make_shared<Query>(dataset.get(), field, time,'r', this->aborted);
+    auto query=std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
     query->logic_position=pow2_box;
     query->end_resolutions={end_resolution};
 
@@ -270,7 +270,7 @@ public:
         if (!node->up->fullres || !node->blockdata)
           return;
 
-        auto query = std::make_shared<Query>(dataset.get(), field, time,'r', this->aborted);
+        auto query = std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
         query->logic_position = node->logic_box;
         query->end_resolutions = { node->resolution };
 
@@ -310,7 +310,7 @@ public:
         VisusAssert(blockquery->getNumberOfSamples() == node->blockdata.dims);
         blockquery->buffer = node->blockdata;
 
-        if (aborted() || !dataset->mergeQueryWithBlock(query, blockquery))
+        if (aborted() || !dataset->mergeBoxQueryWithBlock(query, blockquery))
           return;
 
         fullres = query->buffer;
@@ -518,7 +518,7 @@ public:
       if (node->resolution != kdarray->end_resolution)
         continue;
 
-      auto query = std::make_shared<Query>(dataset.get(), field, time,'r', this->aborted);
+      auto query = std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
       query->logic_position = node->logic_box;
       query->end_resolutions = { node->resolution };
 

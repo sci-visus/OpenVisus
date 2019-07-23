@@ -85,7 +85,7 @@ void Tutorial_1(String default_layout)
     BoxNi slice_box=dataset->getLogicBox().getZSlab(nslice,nslice+1);
 
     //prepare the write query
-    auto query=std::make_shared<Query>(dataset.get(),'w');
+    auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
     query->logic_position=slice_box;
     VisusReleaseAssert(dataset->beginQuery(query));
     VisusReleaseAssert(query->nsamples.innerProduct()==16*16);

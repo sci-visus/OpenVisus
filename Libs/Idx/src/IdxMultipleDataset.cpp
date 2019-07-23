@@ -60,23 +60,23 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(IdxMultipleAccess)
 
-  IdxMultipleDataset* VF = nullptr;
+  IdxMultipleDataset* DATASET = nullptr;
   StringTree                                       CONFIG;
   std::map< std::pair<String, String>, StringTree> configs;
   SharedPtr<ThreadPool>                            thread_pool;
 
   //constructor
   IdxMultipleAccess(IdxMultipleDataset* VF_, StringTree CONFIG_)
-  : VF(VF_), CONFIG(CONFIG_)
+  : DATASET(VF_), CONFIG(CONFIG_)
   {
-    VisusAssert(!VF->bMosaic);
+    VisusAssert(!DATASET->bMosaic);
 
     this->name = CONFIG.readString("name", "IdxMultipleAccess");
     this->can_read = true;
     this->can_write = false;
-    this->bitsperblock = VF->getDefaultBitsPerBlock();
+    this->bitsperblock = DATASET->getDefaultBitsPerBlock();
 
-    for (auto child : VF->childs)
+    for (auto child : DATASET->childs)
     {
       auto name = child.first;
 
@@ -88,10 +88,10 @@ public:
       }
     }
 
-    bool disable_async = CONFIG.readBool("disable_async", VF->isServerMode());
+    bool disable_async = CONFIG.readBool("disable_async", DATASET->isServerMode());
 
     //TODO: special case when I can use the blocks
-    //if (VF->childs.size() == 1 && VF->sameLogicSpace(VF->childs[0]))
+    //if (DATASET->childs.size() == 1 && DATASET->sameLogicSpace(DATASET->childs[0]))
     //  ;
 
     if (int nthreads= disable_async ? 0 : 3)
@@ -107,7 +107,7 @@ public:
   //createDownAccess
   SharedPtr<Access> createDownAccess(String name, String fieldname) 
   {
-    auto dataset = VF->getChild(name).dataset;
+    auto dataset = DATASET->getChild(name).dataset;
     VisusAssert(dataset);
 
     SharedPtr<Access> ret;
@@ -122,7 +122,7 @@ public:
       config = it->second;
 
     config.inheritAttributeFrom(this->CONFIG);
-    bool bForBlockQuery = VF->getKdQueryMode() & KdQueryMode::UseBlockQuery ? true : false;
+    bool bForBlockQuery = DATASET->getKdQueryMode() & KdQueryMode::UseBlockQuery ? true : false;
     return dataset->createAccess(config, bForBlockQuery);
   }
 
@@ -143,12 +143,12 @@ public:
       To tell the truth i'm not sure if this solution would be different from what
       I'm doing right now (except that I can go async)
       */
-      auto QUERY = VF->createEquivalentQuery('r', BLOCKQUERY);
+      auto QUERY = DATASET->createEquivalentBoxQuery('r', BLOCKQUERY);
 
-      if (!VF->beginQuery(QUERY))
+      if (!DATASET->beginQuery(QUERY))
         return readFailed(BLOCKQUERY);
 
-      if (!VF->executeQuery(shared_from_this(), QUERY))
+      if (!DATASET->executeQuery(shared_from_this(), QUERY))
         return readFailed(BLOCKQUERY);
 
       BLOCKQUERY->buffer = QUERY->buffer;
@@ -189,38 +189,38 @@ public:
 
   };
 
-  IdxMultipleDataset* VF;
+  IdxMultipleDataset* DATASET;
   StringTree CONFIG;
   std::map<PointNi, Child, Child::Compare > childs;
 
 
   //constructor
   IdxMosaicAccess(IdxMultipleDataset* VF_, StringTree CONFIG = StringTree())
-    : VF(VF_)
+    : DATASET(VF_)
   {
-    VisusReleaseAssert(VF->bMosaic);
+    VisusReleaseAssert(DATASET->bMosaic);
 
-    if (!VF->valid())
+    if (!DATASET->valid())
       ThrowException("IdxDataset not valid");
 
     this->name = CONFIG.readString("name", "IdxMosaicAccess");
     this->CONFIG = CONFIG;
     this->can_read = StringUtils::find(CONFIG.readString("chmod", "rw"), "r") >= 0;
     this->can_write = StringUtils::find(CONFIG.readString("chmod", "rw"), "w") >= 0;
-    this->bitsperblock = VF->getDefaultBitsPerBlock();
+    this->bitsperblock = DATASET->getDefaultBitsPerBlock();
 
-    auto first = VF->childs.begin()->second.dataset;
+    auto first = DATASET->childs.begin()->second.dataset;
     auto dims = first->getLogicBox().p2;
     int  pdim = first->getPointDim();
 
-    for (auto it : VF->childs)
+    for (auto it : DATASET->childs)
     {
-      auto vf = std::dynamic_pointer_cast<IdxDataset>(it.second.dataset); VisusAssert(vf);
+      auto dataset = std::dynamic_pointer_cast<IdxDataset>(it.second.dataset); VisusAssert(dataset);
       VisusAssert(false);// need to check if this is correct
       auto offset = it.second.M.getCol(pdim).castTo<PointNi>();
       auto index = offset.innerDiv(dims);
       VisusAssert(!this->childs.count(index));
-      this->childs[index].dataset = vf;
+      this->childs[index].dataset = dataset;
     }
   }
 
@@ -265,10 +265,10 @@ public:
   {
     VisusAssert(isReading());
 
-    auto pdim = VF->getPointDim();
+    auto pdim = DATASET->getPointDim();
     auto BLOCK = QUERY->start_address >> bitsperblock;
     auto first = childs.begin()->second.dataset;
-    auto NBITS = VF->getMaxResolution() - first->getMaxResolution();
+    auto NBITS = DATASET->getMaxResolution() - first->getMaxResolution();
     PointNi dims = first->getLogicBox().p2;
 
     bool bBlockTotallyInsideSingle = (BLOCK >= ((BigInt)1 << NBITS));
@@ -283,12 +283,12 @@ public:
       if (it == childs.end())
         return readFailed(QUERY);
 
-      auto vf = it->second.dataset;
-      VisusAssert(vf);
+      auto dataset = it->second.dataset;
+      VisusAssert(dataset);
 
-      auto hzfrom = HzOrder(vf->idxfile.bitmask).getAddress(p1);
+      auto hzfrom = HzOrder(dataset->idxfile.bitmask).getAddress(p1);
 
-      auto block_query = std::make_shared<BlockQuery>(vf.get(), QUERY->field, QUERY->time, hzfrom, hzfrom + ((BigInt)1 << bitsperblock), 'r', QUERY->aborted);
+      auto block_query = std::make_shared<BlockQuery>(dataset.get(), QUERY->field, QUERY->time, hzfrom, hzfrom + ((BigInt)1 << bitsperblock), 'r', QUERY->aborted);
 
       auto access = getChildAccess(it->second);
 
@@ -296,7 +296,7 @@ public:
         access->beginIO(this->getMode());
 
       //TODO: should I keep track of running queries in order to wait for them in the destructor?
-      vf->executeBlockQuery(access, block_query).when_ready([this, QUERY, block_query](Void) {
+      dataset->executeBlockQuery(access, block_query).when_ready([this, QUERY, block_query](Void) {
 
         if (block_query->failed())
           return readFailed(QUERY); //failed
@@ -315,16 +315,16 @@ public:
       //row major
       QUERY->buffer.layout = "";
 
-      DatasetBitmask BITMASK = VF->idxfile.bitmask;
+      DatasetBitmask BITMASK = DATASET->idxfile.bitmask;
       HzOrder HZORDER(BITMASK);
 
       for (const auto& it : childs)
       {
-        auto vf = it.second.dataset;
+        auto dataset = it.second.dataset;
         auto offset = it.first.innerMultiply(dims);
         auto access = getChildAccess(it.second);
 
-        auto query = std::make_shared<Query>(vf.get(), QUERY->field, QUERY->time, 'r');
+        auto query = std::make_shared<BoxQuery>(dataset.get(), QUERY->field, QUERY->time, 'r');
         query->logic_position = QUERY->logic_box.translate(-offset);
         query->end_resolutions = { HZORDER.getAddressResolution(BITMASK, QUERY->end_address - 1) - NBITS };
         query->start_resolution = BLOCK ? query->end_resolutions[0] : 0;
@@ -332,17 +332,17 @@ public:
         if (access->isReading() || access->isWriting())
           access->endIO();
 
-        if (!vf->beginQuery(query))
+        if (!dataset->beginQuery(query))
           continue;
 
         if (!query->allocateBufferIfNeeded())
           continue;
 
-        if (!vf->executeQuery(access, query))
+        if (!dataset->executeQuery(access, query))
           continue;
 
-        auto pixel_p1 = PointNi(pdim); auto logic_p1 = query->box_query.logic_box.pixelToLogic(pixel_p1); auto LOGIC_P1 = logic_p1 + offset; auto PIXEL_P1 = QUERY->logic_box.logicToPixel(LOGIC_P1);
-        auto pixel_p2 = query->buffer.dims; auto logic_p2 = query->box_query.logic_box.pixelToLogic(pixel_p2); auto LOGIC_P2 = logic_p2 + offset; auto PIXEL_p2 = QUERY->logic_box.logicToPixel(LOGIC_P2);
+        auto pixel_p1 = PointNi(pdim); auto logic_p1 = query->logic_box.pixelToLogic(pixel_p1); auto LOGIC_P1 = logic_p1 + offset; auto PIXEL_P1 = QUERY->logic_box.logicToPixel(LOGIC_P1);
+        auto pixel_p2 = query->buffer.dims; auto logic_p2 = query->logic_box.pixelToLogic(pixel_p2); auto LOGIC_P2 = logic_p2 + offset; auto PIXEL_p2 = QUERY->logic_box.logicToPixel(LOGIC_P2);
 
         ArrayUtils::insert(
           QUERY->buffer, PIXEL_P1, PIXEL_p2, PointNi::one(pdim),
@@ -382,8 +382,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(QueryInputTerm)
 
-  IdxMultipleDataset*      VF;
-  Query*                   QUERY;
+  IdxMultipleDataset*      DATASET;
+  BoxQuery*                QUERY;
   SharedPtr<Access>        ACCESS;
 
   SharedPtr<PythonEngine>  engine;
@@ -397,12 +397,12 @@ public:
   incremental;
 
   //constructor
-  QueryInputTerm(IdxMultipleDataset* VF_, Query* QUERY_, SharedPtr<Access> ACCESS_, Aborted aborted_)
-    : VF(VF_), QUERY(QUERY_), ACCESS(ACCESS_), aborted(aborted_) {
+  QueryInputTerm(IdxMultipleDataset* VF_, BoxQuery* QUERY_, SharedPtr<Access> ACCESS_, Aborted aborted_)
+    : DATASET(VF_), QUERY(QUERY_), ACCESS(ACCESS_), aborted(aborted_) {
 
-    VisusAssert(!VF->bMosaic);
+    VisusAssert(!DATASET->bMosaic);
 
-    this->engine = (!VF->isServerMode())? VF->python_engine_pool->createEngine() : std::make_shared<PythonEngine>();
+    this->engine = (!DATASET->isServerMode())? DATASET->python_engine_pool->createEngine() : std::make_shared<PythonEngine>();
 
     {
       ScopedAcquireGil acquire_gil;
@@ -421,7 +421,7 @@ public:
 
       //for fieldname=function_of(QUERY->time) 
       //NOTE: for getFieldByName(), I think I can use the default timestep since I just want to know the dtype
-      engine->setModuleAttr("query_time", QUERY ? QUERY->time : VF->getTimesteps().getDefault());
+      engine->setModuleAttr("query_time", QUERY ? QUERY->time : DATASET->getTimesteps().getDefault());
 
       engine->addModuleFunction("doPublish", [this](PyObject *self, PyObject *args) {
         return doPublish(self, args);
@@ -446,8 +446,8 @@ public:
       engine->delModuleAttr("input");
     }
 
-    if (!VF->isServerMode())
-      VF->python_engine_pool->releaseEngine(this->engine);
+    if (!DATASET->isServerMode())
+      DATASET->python_engine_pool->releaseEngine(this->engine);
   }
 
   //computeOutput
@@ -460,7 +460,7 @@ public:
     if (!ret && !aborted())
       ThrowException("script does not assign 'output' value");
 
-    if (VF->debug_mode & IdxMultipleDataset::DebugSaveImages)
+    if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
     {
       static int cont = 0;
       ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont++ << ".up.result.png", ret);
@@ -494,10 +494,10 @@ public:
   {
     //example: input.timesteps
     if (expr1 == "timesteps")
-      return engine->newPyObject(VF->getTimesteps().asVector());
+      return engine->newPyObject(DATASET->getTimesteps().asVector());
 
-    auto vf = VF->getChild(expr1).dataset;
-    if (!vf)
+    auto dataset = DATASET->getChild(expr1).dataset;
+    if (!dataset)
       ThrowException(StringUtils::format() << "input['" << expr1 << "'] not found");
 
     auto ret = newDynamicObject([this, expr1](String expr2) {
@@ -509,21 +509,21 @@ public:
   //getAttr2
   PyObject* getAttr2(String expr1, String expr2)
   {
-    auto child_dataset = VF->getChild(expr1);
-    auto vf = child_dataset.dataset.get();
-    VisusAssert(vf);
+    auto child_dataset = DATASET->getChild(expr1);
+    auto dataset = child_dataset.dataset.get();
+    VisusAssert(dataset);
 
     auto M = child_dataset.M;
 
     //example: input.datasetname.timesteps
     if (expr2 == "timesteps")
-      return engine->newPyObject(vf->getTimesteps().asVector());
+      return engine->newPyObject(dataset->getTimesteps().asVector());
 
     //see https://github.com/sci-visus/visus-issues/issues/367 
-    //specify a vf  (see midxofmidx.midx)
+    //specify a dataset  (see midxofmidx.midx)
     //EXAMPLE: output = input.first   ['output=input.A.temperature'];
     //EXAMPLE: output = input.first.                 A.temperature 
-    if (auto midx = dynamic_cast<IdxMultipleDataset*>(vf))
+    if (auto midx = dynamic_cast<IdxMultipleDataset*>(dataset))
     {
       if (midx->getChild(expr2).dataset)
       {
@@ -537,12 +537,12 @@ public:
     Array ret;
 
     //execute a query (expr2 is the fieldname)
-    Field field = vf->getFieldByName(expr2);
+    Field field = dataset->getFieldByName(expr2);
 
     if (!field.valid())
       ThrowException(StringUtils::format() << "input['" << expr1 << "']['" << expr2 << "'] not found");
 
-    int pdim = VF->getPointDim();
+    int pdim = DATASET->getPointDim();
 
     //only getting dtype for field name
     if (!QUERY)
@@ -558,7 +558,7 @@ public:
   }
 
   //createDownQuery
-  SharedPtr<Query> createDownQuery(String name, String fieldname)
+  SharedPtr<BoxQuery> createDownQuery(String name, String fieldname)
   {
     auto key = name +"/"+fieldname;
 
@@ -567,37 +567,37 @@ public:
     if (it != QUERY->down_queries.end())
       return it->second;
 
-    auto child = VF->childs[name];
+    auto child = DATASET->childs[name];
     auto M     = child.M;
-    auto vf    = child.dataset; VisusAssert(vf);
-    auto field = vf->getFieldByName(fieldname); VisusAssert(field.valid());
+    auto dataset = child.dataset; VisusAssert(dataset);
+    auto field = dataset->getFieldByName(fieldname); VisusAssert(field.valid());
 
-    auto BOX = Position(M, vf->getLogicBox()).toAxisAlignedBox();
+    auto BOX = Position(M, dataset->getLogicBox()).toAxisAlignedBox();
 
     //no intersection? just skip this down query
     if (!QUERY->logic_position.toAxisAlignedBox().intersect(BOX))
-      return SharedPtr<Query>();
+      return SharedPtr<BoxQuery>();
 
-    auto query = std::make_shared<Query>(vf.get(), field, QUERY->time, 'r', QUERY->aborted);
+    auto query = std::make_shared<BoxQuery>(dataset.get(), field, QUERY->time, 'r', QUERY->aborted);
     QUERY->down_queries[key] = query;
     query->down_info.name = name;
 
     //euristic to find delta in the hzcurve
     //TODO!!!! this euristic produces too many samples
-    auto VOLUME = Position(   VF->getLogicBox()).computeVolume();
-    auto volume = Position(M, vf->getLogicBox()).computeVolume();
+    auto VOLUME = Position(   DATASET->getLogicBox()).computeVolume();
+    auto volume = Position(M, dataset->getLogicBox()).computeVolume();
     int delta_h = -(int)log2(VOLUME / volume);
 
     //resolutions
     if (!QUERY->start_resolution)
       query->start_resolution = 0;
     else
-      query->start_resolution = Utils::clamp(QUERY->start_resolution + delta_h, 0, vf->getMaxResolution()); //probably a block query
+      query->start_resolution = Utils::clamp(QUERY->start_resolution + delta_h, 0, dataset->getMaxResolution()); //probably a block query
 
     std::set<int> end_resolutions;
     for (auto END_RESOLUTION : QUERY->end_resolutions)
     {
-      auto end_resolution = Utils::clamp(END_RESOLUTION + delta_h, 0, vf->getMaxResolution());
+      auto end_resolution = Utils::clamp(END_RESOLUTION + delta_h, 0, dataset->getMaxResolution());
       end_resolutions.insert(end_resolution);
     }
     query->end_resolutions = std::vector<int>(end_resolutions.begin(), end_resolutions.end());
@@ -611,20 +611,20 @@ public:
     // if you use this wrong version, for voronoi in 2d you will see some missing pieces around
     // solution is to limit the QUERY_BOX into a more "local" one
 #if 1
-    QUERY_BOX = Position(QUERY_T.invert(), M, vf->getLogicBox()).toAxisAlignedBox().getIntersection(QUERY_BOX);
+    QUERY_BOX = Position(QUERY_T.invert(), M, dataset->getLogicBox()).toAxisAlignedBox().getIntersection(QUERY_BOX);
 #endif
 
     query->logic_position = Position(M.invert(), QUERY_T, QUERY_BOX);
 
     //skip this argument since returns empty array
-    if (!vf->beginQuery(query))
+    if (!dataset->beginQuery(query))
     {
       query->setFailed("cannot begin the query");
       return query;
     }
 
     //ignore missing timesteps
-    if (!vf->getTimesteps().containsTimestep(query->time))
+    if (!dataset->getTimesteps().containsTimestep(query->time))
     {
       VisusInfo() << "Missing timestep(" << query->time << ") for input['" << name << "." << field.name << "']...ignoring it";
       query->setFailed("missing timestep");
@@ -641,7 +641,7 @@ public:
   }
 
   //executeDownQuery
-  Array executeDownQuery(SharedPtr<Query> query)
+  Array executeDownQuery(SharedPtr<BoxQuery> query)
   {
     //VisusInfo() << Thread::getThreadId();
 
@@ -651,23 +651,23 @@ public:
 
     auto name = query->down_info.name;
 
-    auto child = VF->childs[name];
+    auto child = DATASET->childs[name];
     auto M = child.M;
-    auto vf = child.dataset; VisusAssert(vf);
+    auto dataset = child.dataset; VisusAssert(dataset);
 
     //NOTE if I cannot execute it probably reached max resolution for query, in that case I recycle old 'BUFFER'
     if (query->canExecute())
     {
-      if (VF->debug_mode & IdxMultipleDataset::DebugSkipReading)
+      if (DATASET->debug_mode & IdxMultipleDataset::DebugSkipReading)
       {
         query->allocateBufferIfNeeded();
-        ArrayUtils::setBufferColor(query->buffer, VF->childs[name].color);
+        ArrayUtils::setBufferColor(query->buffer, DATASET->childs[name].color);
         query->buffer.layout = ""; //row major
         query->setCurrentLevelReady();
       }
       else
       {
-        if (!vf->executeQuery(query->down_info.access, query))
+        if (!dataset->executeQuery(query->down_info.access, query))
         {
           query->setFailed("cannot execute the query");
           return Array();
@@ -704,12 +704,12 @@ public:
     //this will help to find voronoi seams betweeen images
     query->down_info.LOGIC_TO_PIXEL = LOGIC_TO_PIXEL;
     query->down_info.PIXEL_TO_LOGIC = PIXEL_TO_LOGIC;
-    query->down_info.logic_centroid = M * vf->getLogicBox().center();
+    query->down_info.logic_centroid = M * dataset->getLogicBox().center();
 
     //limit the samples to good logic domain
     //explanation: for each pixel in dims, tranform it to the logic dataset box, if inside set the pixel to 1 otherwise set the pixel to 0
     if (!query->buffer.alpha)
-      query->buffer.alpha = std::make_shared<Array>(ArrayUtils::createTransformedAlpha(vf->getLogicBox(), pixel_to_logic, query->buffer.dims, QUERY->aborted));
+      query->buffer.alpha = std::make_shared<Array>(ArrayUtils::createTransformedAlpha(dataset->getLogicBox(), pixel_to_logic, query->buffer.dims, QUERY->aborted));
     else
       VisusReleaseAssert(query->buffer.alpha->dims==query->buffer.dims);
 
@@ -717,14 +717,14 @@ public:
     {
       ArrayUtils::warpPerspective(query->down_info.BUFFER, Tperspective, query->buffer, QUERY->aborted);
 
-      if (VF->debug_mode & IdxMultipleDataset::DebugSaveImages)
+      if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
       {
         static int cont = 0;
         ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".dw." + name << "." << query->field.name << ".buffer.png", query->buffer);
         ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".dw." + name << "." << query->field.name << ".alpha_.png", *query->buffer.alpha );
         ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".up." + name << "." << query->field.name << ".buffer.png", query->down_info.BUFFER);
         ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".up." + name << "." << query->field.name << ".alpha_.png", *query->down_info.BUFFER.alpha);
-        //ArrayUtils::setBufferColor(query->BUFFER, VF->childs[name].color);
+        //ArrayUtils::setBufferColor(query->BUFFER, DATASET->childs[name].color);
         cont++;
       }
     }
@@ -737,7 +737,7 @@ public:
   {
     int argc = args ? (int)PyObject_Length(args) : 0;
 
-    int pdim = VF->getPointDim();
+    int pdim = DATASET->getPointDim();
 
     BlendBuffers blend(type, aborted);
 
@@ -746,7 +746,7 @@ public:
     {
       if (!argc)
       {
-        for (auto it : VF->childs)
+        for (auto it : DATASET->childs)
         {
           auto arg = Array(PointNi(pdim), it.second.dataset->getDefaultField().dtype);
           blend.addBlendArg(arg);
@@ -787,9 +787,9 @@ public:
       //this can run in parallel
       CriticalSection blendlock;
 
-      std::vector< SharedPtr<Query> > queries;
-      queries.reserve(VF->childs.size());
-      for (auto it : VF->childs)
+      std::vector< SharedPtr<BoxQuery> > queries;
+      queries.reserve(DATASET->childs.size());
+      for (auto it : DATASET->childs)
       {
         auto name      = it.first;
         auto fieldname = it.second.dataset->getDefaultField().name;
@@ -799,7 +799,7 @@ public:
       }
 
       //I don't see any advantage using OpenMP here
-      //bool bRunInParallel = false;// VF->bServerMode ? false : true;
+      //bool bRunInParallel = false;// DATASET->bServerMode ? false : true;
       //#pragma omp parallel for if(bRunInParallel) 
       for (int I = 0; I<(int)queries.size(); I++)
       {
@@ -1539,16 +1539,26 @@ std::map<String, SharedPtr<Dataset>> IdxMultipleDataset::getInnerDatasets() cons
 }
 
 ////////////////////////////////////////////////////////////////////////
-bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> QUERY)
+bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> QUERY)
 {
+  if (!QUERY)
+    return false;
+
+  if (!QUERY->canExecute())
+    return QUERY->setFailed("QUERY is in non-executable status");
+
+  if (QUERY->aborted())
+    return QUERY->setFailed("QUERY aboted");
+
+  //for 'r' queries I can postpone the allocation
+  if (QUERY->mode == 'w' && !QUERY->buffer)
+    return QUERY->setFailed("write buffer not set");
+
   //execute N-Query (independentely) and blend them
   if (!bMosaic)
   {
     if (auto multiple_access = std::dynamic_pointer_cast<IdxMultipleAccess>(access))
     {
-      if (!this->Dataset::executeQuery(access, QUERY))
-        return false;
-
       String error_msg;
       Array  OUTPUT;
 
@@ -1588,7 +1598,7 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> 
       if (OUTPUT.dims != QUERY->nsamples)
       {
         QUERY->nsamples = OUTPUT.dims;
-        QUERY->box_query.logic_box = LogicBox();
+        QUERY->logic_box = LogicBox();
       }
 
       QUERY->buffer = OUTPUT;
@@ -1597,17 +1607,17 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> 
     }
   }
 
-  // example: since I can handle blocks, I can even enable caching adding for example a RamAccess/DiskAcces to the top
-  if (access)
-    return IdxDataset::executeQuery(access, QUERY);
-
   // blending happens on the server
-  else
+  if (!access)
     return IdxDataset::executePureRemoteQuery(QUERY);
+
+  // example: since I can handle blocks, I can even enable caching adding for example a RamAccess/DiskAcces to the top
+  return IdxDataset::executeQuery(access, QUERY);
+    
 }
 
 ////////////////////////////////////////////////////////////////////////
-bool IdxMultipleDataset::nextQuery(SharedPtr<Query> QUERY)
+bool IdxMultipleDataset::nextQuery(SharedPtr<BoxQuery> QUERY)
 {
   if (!IdxDataset::nextQuery(QUERY))
     return false;
@@ -1615,10 +1625,10 @@ bool IdxMultipleDataset::nextQuery(SharedPtr<Query> QUERY)
   for (auto it : QUERY->down_queries)
   {
     auto  query   = it.second;
-    auto  vf      = this->childs[query->down_info.name].dataset; VisusAssert(vf);
+    auto  dataset = this->childs[query->down_info.name].dataset; VisusAssert(dataset);
 
     if (query && query->canNext())
-      vf->nextQuery(query);
+      dataset->nextQuery(query);
   }
 
   return true;

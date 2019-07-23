@@ -680,55 +680,74 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Cannot find fieldname(" + fieldname + ")");
 
   //TODO: how can I get the aborted from network?
-  auto query = std::make_shared<Query>(dataset.get(), field, time,'r', Aborted());
-  query->start_resolution = fromh;
-  query->end_resolutions = { endh };
 
-  //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)
-  if (fromh == 0 && !bDisableFilters)
-  {
-    query->filter.enabled = true;
-    query->filter.domain = (bKdBoxQuery ? dataset->getBitmask().getPow2Box() : dataset->getLogicBox());
-  }
-  else
-  {
-    query->filter.enabled = false;
-  }
+  Array buffer;
 
   //position
   if (action == "boxquery")
   {
+    auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r', Aborted());
+    query->start_resolution = fromh;
+    query->end_resolutions = { endh };
+
+    //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)
+    if (fromh == 0 && !bDisableFilters)
+    {
+      query->filter.enabled = true;
+      query->filter.domain = (bKdBoxQuery ? dataset->getBitmask().getPow2Box() : dataset->getLogicBox());
+    }
+    else
+    {
+      query->filter.enabled = false;
+    }
+
     query->logic_position = Position(BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box")));
+
+    //query failed
+    if (!dataset->beginQuery(query))
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
+
+    auto access = dataset->createAccess();
+    if (!dataset->executeQuery(access, query))
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
+
+    buffer = query->buffer;
+
+    //useful for kdquery=box (for example with discrete wavelets, don't want the extra channel)
+    if (bKdBoxQuery)
+    {
+      if (auto filter = query->filter.dataset_filter)
+        buffer = filter->dropExtraComponentIfExists(buffer);
+    }
+
+
   }
   else if (action == "pointquery")
   {
+    auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', Aborted());
+    query->start_resolution = fromh;
+    query->end_resolutions = { endh };
     auto  map = Matrix::parseFromString(4,request.url.getParam("matrix"));
     auto  box = BoxNd::parseFromString(request.url.getParam("box"),/*bInterleave*/false);
     VisusAssert(pdim == 3);
     box.setPointDim(3);
     query->logic_position = Position(map, box);
+
+    //query failed
+    if (!dataset->beginQuery(query))
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
+
+    auto access = dataset->createAccess();
+    if (!dataset->executeQuery(access, query))
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
+
+    buffer = query->buffer;
+
   }
   else
   {
     //TODO
     VisusAssert(false);
-  }
-
-  //query failed
-  if (!dataset->beginQuery(query))
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
-
-  auto access = dataset->createAccess();
-  if (!dataset->executeQuery(access, query))
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
-
-  auto buffer = query->buffer;
-
-  //useful for kdquery=box (for example with discrete wavelets, don't want the extra channel)
-  if (bKdBoxQuery)
-  {
-    if (auto filter = query->filter.dataset_filter)
-      buffer = filter->dropExtraComponentIfExists(buffer);
   }
 
   if (!palette.empty() && buffer.dtype.ncomponents() == 1)

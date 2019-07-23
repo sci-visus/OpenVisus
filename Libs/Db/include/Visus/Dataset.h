@@ -43,7 +43,9 @@ For support : support@visus.net
 #include <Visus/StringMap.h>
 #include <Visus/Frustum.h>
 #include <Visus/Access.h>
-#include <Visus/Query.h>
+#include <Visus/BlockQuery.h>
+#include <Visus/BoxQuery.h>
+#include <Visus/PointQuery.h>
 #include <Visus/DatasetBitmask.h>
 #include <Visus/DatasetTimesteps.h>
 #include <Visus/Path.h>
@@ -382,7 +384,7 @@ public:
   }
 
   //guessEndResolutions
-  virtual std::vector<int> guessEndResolutions(const Frustum& logic_to_screen, Position logic_position, Query::Quality quality=Query::DefaultQuality, Query::Progression progression=Query::GuessProgression);
+  virtual std::vector<int> guessEndResolutions(const Frustum& logic_to_screen, Position logic_position, QueryQuality quality=QueryDefaultQuality, QueryProgression progression=QueryGuessProgression);
 
 public:
 
@@ -410,34 +412,76 @@ public:
     return false;
   }
 
-public:
-
   //createFilter (default: not supported)
   virtual SharedPtr<DatasetFilter> createFilter(const Field& field) {
     return SharedPtr<DatasetFilter>();
   }
 
+
+public:
+
+  ////////////////////////////////////
+  //box query
+
   //beginQuery
-  virtual bool beginQuery(SharedPtr<Query> query);
+  virtual bool beginQuery(SharedPtr<BoxQuery> query) {
+    return false;
+  }
 
   //executeQuery
-  virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<Query> query);
+  virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) {
+    return false;
+  }
 
   //nextQuery
-  virtual bool nextQuery(SharedPtr<Query> query);
+  virtual bool nextQuery(SharedPtr<BoxQuery> query) {
+    return false;
+  }
 
-  //mergeQueryWithBlock
-  virtual bool mergeQueryWithBlock(SharedPtr<Query> query, SharedPtr<BlockQuery> block_query){
+  //mergeBoxQueryWithBlock
+  virtual bool mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query){
     return false;
   }
 
   //createPureRemoteQueryNetRequest
-  virtual NetRequest createPureRemoteQueryNetRequest(SharedPtr<Query> query) {
+  virtual NetRequest createPureRemoteQueryNetRequest(SharedPtr<BoxQuery> query) {
     return NetRequest();
   }
 
   //executePureRemoteQuery
-  bool executePureRemoteQuery(SharedPtr<Query> query);
+  virtual bool executePureRemoteQuery(SharedPtr<BoxQuery> query) {
+    return false;
+  }
+
+public:
+
+  ////////////////////////////////////
+  //point query
+
+  //beginQuery
+  virtual bool beginQuery(SharedPtr<PointQuery> query) {
+    return false;
+  }
+
+  //executeQuery
+  virtual bool executeQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) {
+    return false;
+  }
+
+  //nextQuery
+  virtual bool nextQuery(SharedPtr<PointQuery> query) {
+    return false;
+  }
+
+  //createPureRemoteQueryNetRequest
+  virtual NetRequest createPureRemoteQueryNetRequest(SharedPtr<PointQuery> query) {
+    return NetRequest();
+  }
+
+  //executePureRemoteQuery
+  virtual bool executePureRemoteQuery(SharedPtr<PointQuery> query) {
+    return false;
+  }
 
 public:
 

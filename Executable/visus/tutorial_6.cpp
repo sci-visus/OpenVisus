@@ -73,7 +73,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
 
   auto access=dataset->createAccess();
   
-  auto write=std::make_shared<Query>(dataset.get(),'w');
+  auto write=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
   write->logic_position=userbox;
   VisusReleaseAssert(dataset->beginQuery(write));
   VisusReleaseAssert(write->nsamples==img.dims);
@@ -269,10 +269,10 @@ void Tutorial_6(String default_layout)
         PointNi((int)(dataset_offset[0] + 4.0f*Width / 6.0f), (int)(dataset_offset[1] + 4.0f*Height / 6.0f)));
     }
     
-    auto query=std::make_shared<Query>(dataset.get(),'r');
+    auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
     query->logic_position= query_box;
     query->filter.enabled=true;
-    query->merge_mode=Query::InsertSamples;
+    query->merge_mode= BoxQuery::InsertSamples;
 
     //I go level by level for debugging
     for (int H=0;H<=dataset->getMaxResolution();H++)
@@ -303,7 +303,7 @@ void Tutorial_6(String default_layout)
       //verify the data only If I'm reading the final resolution
       if (query->cur_resolution==dataset->getMaxResolution())
       {
-        BoxNi aligned_box= query->box_query.logic_aligned_box;
+        BoxNi aligned_box= query->logic_aligned_box;
 
         //need to shrink the query, at the final resolution the box of filtered query can be larger than what the user want
         auto original=std::make_shared<Array>();

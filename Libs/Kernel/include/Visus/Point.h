@@ -914,7 +914,7 @@ public:
   //pop_back
   void pop_back() {
     VisusAssert(pdim > 0);
-    coords[pdim--] = 0;
+    coords[--pdim] = 0;
   }
 
   //withoutBack

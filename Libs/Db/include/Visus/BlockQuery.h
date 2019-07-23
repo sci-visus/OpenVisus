@@ -40,44 +40,22 @@ For support : support@visus.net
 #define __VISUS_BLOCK_QUERY_H
 
 #include <Visus/Db.h>
-#include <Visus/LogicBox.h>
-#include <Visus/Async.h>
+#include <Visus/QUery.h>
 
 namespace Visus {
 
 
-//////////////////////////////////////////////////////////////////////////
-enum QueryStatus
-{
-  QueryCreated = 0,
-  QueryRunning,
-  QueryFailed,
-  QueryOk
-};
-
-
-//predeclaration
-class Dataset;
-
-
 ///////////////////////////////////////////////////////////////////////////////////////
-class VISUS_DB_API BlockQuery 
+class VISUS_DB_API BlockQuery : public Query
 {
 public:
 
   VISUS_NON_COPYABLE_CLASS(BlockQuery)
 
-  Dataset*     dataset=nullptr;
-  int          mode = 0;
-  Field        field;
-  double       time = 0;
   BigInt       start_address = 0;
   BigInt       end_address = 0;
-  Aborted      aborted;
 
   LogicBox     logic_box;
-  Array        buffer;
-  Future<Void> done;
 
   //constructor
   BlockQuery(Dataset* dataset, Field field, double time, BigInt start_address, BigInt end_address, int mode, Aborted aborted);
@@ -87,13 +65,8 @@ public:
   }
 
   //getNumberOfSamples
-  PointNi getNumberOfSamples() const {
+  virtual PointNi getNumberOfSamples() const override {
     return logic_box.nsamples;
-  }
-
-  //getByteSize
-  Int64 getByteSize() const {
-    return field.dtype.getByteSize(getNumberOfSamples());
   }
 
   //getBlockNumber
@@ -101,55 +74,8 @@ public:
     return start_address >> bitsperblock;
   }
 
-  //setRunning
-  void setRunning() {
-    VisusAssert(status == QueryCreated);
-    this->status = QueryRunning;
-  }
-
-  //getStatus
-  QueryStatus getStatus() const {
-    return status;
-  }
-
-  //setStatus
-  void setStatus(QueryStatus value) {
-    this->status = value;
-    this->done.get_promise()->set_value(Void());
-  }
-
-  //ok
-  bool ok() const {
-    return getStatus() == QueryOk;
-  }
-
-  //failed
-  bool failed() const {
-    return getStatus() == QueryFailed;
-  }
-
-  //setOk
-  void setOk() {
-    setStatus(QueryOk);
-  }
-
-  //setOk
-  void setFailed() {
-    setStatus(QueryFailed);
-  }
-
-  //allocateBufferIfNeeded
-  bool allocateBufferIfNeeded();
-
-private:
-
-  QueryStatus status = QueryCreated;
 
 };
-
-
-
-
 
 
 } //namespace Visus

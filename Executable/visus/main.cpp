@@ -1598,7 +1598,7 @@ public:
         query_box.p2[I] = query_box.p1[I] + query_dim;
       }
 
-      auto query = std::make_shared<Query>(dataset.get(), 'r');
+      auto query = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(),dataset->getDefaultTime(), 'r');
       query->logic_position = query_box;
 
       VisusReleaseAssert(dataset->beginQuery(query));
@@ -1890,7 +1890,7 @@ public:
       BoxNi slice_box = dataset->getLogicBox().getZSlab(Z1,Z2);
 
       //prepare the write query
-      auto write = std::make_shared<Query>(dataset.get(), 'w');
+      auto write = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(),dataset->getDefaultTime(),'w');
       write->logic_position = slice_box;
       VisusReleaseAssert(dataset->beginQuery(write));
 
@@ -1923,7 +1923,7 @@ public:
 
     if (bool bVerify=true)
     {
-      auto read = std::make_shared<Query>(dataset.get(), 'r');
+      auto read = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
       read->logic_position = dataset->getLogicBox();
       VisusReleaseAssert(dataset->beginQuery(read));
 

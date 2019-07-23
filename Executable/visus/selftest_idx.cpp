@@ -128,12 +128,12 @@ class SelfTest
 public:
 
   //constructor (create random data per slice)
-  SelfTest(IdxDataset* vf)
+  SelfTest(IdxDataset* dataset)
   {
-    this->vf=vf;
-    this->dtype= vf->getDefaultField().dtype;
-    this->user_box=vf->getLogicBox();
-    this->pdim=vf->getPointDim();
+    this->dataset=dataset;
+    this->dtype= dataset->getDefaultField().dtype;
+    this->user_box=dataset->getLogicBox();
+    this->pdim=dataset->getPointDim();
     this->nslices=user_box.p2[pdim-1]-user_box.p1[pdim-1];
   
     //calculate number of samples per slice
@@ -148,41 +148,41 @@ public:
       _stride*=num;
     }
 
-    VisusInfo()<<"Starting self test procedure on dataset pdim("<<vf->getPointDim()<<")";
+    VisusInfo()<<"Starting self test procedure on dataset pdim("<<dataset->getPointDim()<<")";
 
     if (bool bWriteData=true)
     {
-      auto access=vf->createAccess();
+      auto access=dataset->createAccess();
 
       int cont=0;
       for (int N=0;N<nslices;N++)
       {
         BoxNi slice_box=getSliceBox(N);
 
-        auto query=std::make_shared<Query>(vf,'w');
+        auto query=std::make_shared<BoxQuery>(dataset,dataset->getDefaultField(),dataset->getDefaultTime(),'w');
         query->logic_position=slice_box;
-        VisusReleaseAssert(vf->beginQuery(query));
+        VisusReleaseAssert(dataset->beginQuery(query));
 
         Array buffer(query->nsamples,dtype);
         for (int i=0;i<buffer.c_size();i++)
           buffer.c_ptr()[i]=cont++;
         query->buffer=buffer;
 
-        VisusReleaseAssert(vf->executeQuery(access,query));
+        VisusReleaseAssert(dataset->executeQuery(access,query));
         this->write_queries.push_back(query);
       }
     }
 
     if (bool bVerifyData=true)
     {
-      auto access=vf->createAccess();
+      auto access=dataset->createAccess();
 
       for (int N=0;N<this->nslices;N++)
       {
-        auto read_slice=std::make_shared<Query>(vf,'r');
+        auto read_slice=std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
         read_slice->logic_position=(getSliceBox(N));
-        VisusReleaseAssert(vf->beginQuery(read_slice));
-        VisusReleaseAssert(vf->executeQuery(access,read_slice));
+        VisusReleaseAssert(dataset->beginQuery(read_slice));
+        VisusReleaseAssert(dataset->executeQuery(access,read_slice));
         VisusReleaseAssert(read_slice->nsamples.innerProduct()==this->perslice);
         VisusReleaseAssert(CompareSamples(write_queries[N]->buffer,0,read_slice->buffer,0,perslice));
         read_slice.reset();
@@ -193,21 +193,21 @@ public:
   //execute a random query
   void executeRandomQuery()
   {
-    int                  maxh          = vf->getMaxResolution();
+    int                  maxh          = dataset->getMaxResolution();
     int                  firsth        = Utils::getRandInteger(0,maxh);
     int                  lasth         = Utils::getRandInteger(firsth,maxh);
     int                  deltah        = firsth==lasth?1:Utils::getRandInteger(1,lasth-firsth);
-    BoxNi                box           = Utils::getRandInteger(0,1)? vf->getLogicBox() : getRandomBox();
+    BoxNi                box           = Utils::getRandInteger(0,1)? dataset->getLogicBox() : getRandomBox();
     bool                 bInterpolate  = Utils::getRandInteger(0,1)?true:false;
     
     static int nactivation=0;
     nactivation++;
 
-    auto access=vf->createAccess();
+    auto access=dataset->createAccess();
 
-    auto query=std::make_shared<Query>(vf,'r');
+    auto query=std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(),dataset->getDefaultTime(),'r');
     query->logic_position=box;
-    query->merge_mode=(bInterpolate?Query::InterpolateSamples : Query::InsertSamples);
+    query->merge_mode=(bInterpolate? BoxQuery::InterpolateSamples : BoxQuery::InsertSamples);
 
     for (int h=firsth;h<=lasth;h=h+deltah)
       query->end_resolutions.push_back(h);
@@ -217,16 +217,16 @@ public:
     PointNi shift(pdim);
 
     //probably the bounding box cannot get samples
-    if (!vf->beginQuery(query))
+    if (!dataset->beginQuery(query))
       return;
 
     while (true)
     {
-      VisusReleaseAssert(vf->executeQuery(access,query));
+      VisusReleaseAssert(dataset->executeQuery(access,query));
       buffer=query->buffer;
-      h_box=query->box_query.logic_box;
-      shift=query->box_query.logic_box.shift;
-      if (!vf->nextQuery(query))
+      h_box=query->logic_box;
+      shift=query->logic_box.shift;
+      if (!dataset->nextQuery(query))
         break;
     }
 
@@ -242,7 +242,7 @@ public:
         int N=(int)(world_point[pdim-1]-user_box.p1[pdim-1]);
 
         //position inside the slice buffer
-        LogicBox samples=write_queries[N]->box_query.logic_box;
+        LogicBox samples=write_queries[N]->logic_box;
         PointNi P=samples.logicToPixel(world_point);
         Int64 pos=stride.dotProduct(P);
         VisusReleaseAssert(CompareSamples(this->write_queries[N]->buffer,pos,buffer,nsample,1));
@@ -278,14 +278,14 @@ public:
 
 protected:
 
-  IdxDataset*           vf;
+  IdxDataset*           dataset;
   DType                 dtype;
   Int64      nslices;
   Int64                 perslice;
   int                   pdim;
   PointNi               stride;
   BoxNi                 user_box;
-  std::vector< SharedPtr<Query> >   write_queries;
+  std::vector< SharedPtr<BoxQuery> >   write_queries;
 
 }; //end class 
 
@@ -313,8 +313,8 @@ void execTestIdx(int max_seconds)
     VisusInfo()<<"...done";
 
     //remove data from tutorial_1
-    if (auto vf= LoadDataset<IdxDataset>("./temp/tutorial_1.idx"))
-      vf->removeFiles();
+    if (auto dataset= LoadDataset<IdxDataset>("./temp/tutorial_1.idx"))
+      dataset->removeFiles();
 
     VisusInfo()<<"Running Tutorial_6...";
     Tutorial_6(default_layout);
@@ -346,16 +346,16 @@ void execTestIdx(int max_seconds)
           }
           VisusReleaseAssert(idxfile.save("./temp/temp.idx"));
 
-          auto vf=LoadDataset<IdxDataset>("./temp/temp.idx");
-          VisusReleaseAssert(vf && vf->valid());
+          auto dataset=LoadDataset<IdxDataset>("./temp/temp.idx");
+          VisusReleaseAssert(dataset && dataset->valid());
 
           {
-            SelfTest selftest(vf.get());
+            SelfTest selftest(dataset.get());
             for (int n=0;n<10;n++) 
               selftest.executeRandomQuery();
           }
 
-          vf->removeFiles();
+          dataset->removeFiles();
         }
       }
     }
@@ -384,16 +384,16 @@ void execTestIdx(int max_seconds)
 
       VisusReleaseAssert(idxfile.save(idxfilename));
 
-      auto vf=LoadDataset<IdxDataset>(idxfilename);
-      VisusReleaseAssert(vf && vf->valid());
+      auto dataset=LoadDataset<IdxDataset>(idxfilename);
+      VisusReleaseAssert(dataset && dataset->valid());
       
       {
-        SelfTest selftest(vf.get());
+        SelfTest selftest(dataset.get());
         for (int n=0;n<10;n++) 
           selftest.executeRandomQuery();
       }
 
-      vf->removeFiles();
+      dataset->removeFiles();
     }
   }
 
