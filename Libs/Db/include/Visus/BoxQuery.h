@@ -87,7 +87,6 @@ public:
   std::vector<int>           end_resolutions;
 
   Position                   logic_position;
-  Frustum                    logic_to_screen;
   Position                   logic_clipping;
 
   PointNi                    nsamples; //available only after beginQuery

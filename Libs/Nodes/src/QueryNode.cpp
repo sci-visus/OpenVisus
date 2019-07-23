@@ -278,7 +278,6 @@ SharedPtr<Query> QueryNode::createQuery(int end_resolution,bool bExecute)
     query->filter.enabled = true;
     query->merge_mode = BoxQuery::InsertSamples;
     query->logic_position = logic_position;
-    query->logic_to_screen = logic_to_screen;
 
     if (end_resolution == -1)
       query->end_resolutions = dataset->guessEndResolutions(logic_to_screen, logic_position, getQuality(), getProgression());
