@@ -1231,7 +1231,7 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<PointQuery> que
   ret.url.setParam("time", url.getParam("time", cstring(query->time)));
   ret.url.setParam("compression", url.getParam("compression", "zip")); //for networking I prefer to use zip
   ret.url.setParam("field", query->field.name);
-  ret.url.setParam("fromh", cstring(query->start_resolution));
+  ret.url.setParam("fromh", cstring(0)); //backward compatible
   ret.url.setParam("toh", cstring(query->getEndResolution()));
   ret.url.setParam("maxh", cstring(getMaxResolution())); //backward compatible
 
@@ -1385,7 +1385,7 @@ bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<PointQuery> query)
   int pdim=this->getPointDim();
   VisusAssert(pdim==3); //why I need point queries in 2d... I'm asserting this because I do not create Query for 2d datasets 
 
-  if (!(query->start_resolution==0 && end_resolution<= getMaxResolution()))
+  if (!(end_resolution<=getMaxResolution()))
   {
     VisusAssert(false);
     return false;
@@ -1989,7 +1989,6 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
 
   VisusAssert(access);
   VisusAssert(pdim == 3);//todo: other cases
-  VisusAssert(query->start_resolution == 0);//todo: othercases
   VisusAssert((Int64)query->points->c_size() >= query->nsamples.innerProduct() * (Int64)sizeof(Int64) * pdim);
 
   //first BigInt is hzaddress, second Int32 is offset inside buffer

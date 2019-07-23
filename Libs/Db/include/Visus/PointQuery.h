@@ -55,7 +55,6 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(PointQuery)
 
-  int                        start_resolution = 0;
   std::vector<int>           end_resolutions;
 
   Position                   logic_position;

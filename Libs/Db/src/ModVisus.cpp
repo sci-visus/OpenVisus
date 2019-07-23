@@ -725,7 +725,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   else if (action == "pointquery")
   {
     auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', Aborted());
-    query->start_resolution = fromh;
+    VisusAssert(fromh == 0);
     query->end_resolutions = { endh };
     auto  map = Matrix::parseFromString(4,request.url.getParam("matrix"));
     auto  box = BoxNd::parseFromString(request.url.getParam("box"),/*bInterleave*/false);
