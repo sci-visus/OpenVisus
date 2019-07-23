@@ -94,7 +94,6 @@ public:
   int                        running_cursor = -1;
 
 
-  BoxNi                      logic_aligned_box;
   LogicBox                   logic_box;
 
   //see mergeQueries
@@ -114,9 +113,8 @@ public:
     bool                     enabled = false;
     SharedPtr<DatasetFilter> dataset_filter;
     BoxNi                    domain;
-
-    //filter_query (internal use only)
-    SharedPtr<BoxQuery> query;
+    BoxNi                    adjusted_logic_box;
+    SharedPtr<BoxQuery>      query;
   }
   filter;
 #endif

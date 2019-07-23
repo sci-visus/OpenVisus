@@ -1305,9 +1305,9 @@ bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<BoxQuery> query)
     return false;
 
   VisusAssert(query->logic_position.getTransformation().isIdentity());
-  query->logic_aligned_box=query->logic_position.getBoxNi().withPointDim(this->getPointDim());
+  auto logic_box=query->logic_position.getBoxNi().withPointDim(this->getPointDim());
 
-  if (!query->logic_aligned_box.isFullDim())
+  if (!logic_box.isFullDim())
     return false;
 
   int start_resolution = query->start_resolution;
@@ -1329,7 +1329,8 @@ bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<BoxQuery> query)
   if (auto filter=query->filter.dataset_filter)
   {
     //important to return the "final" number of samples (see execute for loop)
-    query->logic_aligned_box=this->adjustFilterBox(query.get(),filter.get(), query->logic_aligned_box,end_resolution);
+    logic_box = this->adjustFilterBox(query.get(), filter.get(), logic_box, end_resolution);
+    query->filter.adjusted_logic_box = logic_box;
   }
 
   //coompute the samples I will get
@@ -1351,7 +1352,7 @@ bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<BoxQuery> query)
 
     LogicBox Lbox=this->getLevelBox(H);
 
-    BoxNi box=Lbox.alignBox(query->logic_aligned_box);
+    BoxNi box=Lbox.alignBox(logic_box);
     if (!box.isFullDim())
       continue;
 
@@ -1368,12 +1369,11 @@ bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<BoxQuery> query)
 
   BoxNi BOX(P1incl,P2incl+DELTA);
 
-  auto logic_box=LogicBox(BOX,DELTA); 
-  VisusAssert(logic_box.valid());
-
-  query->nsamples=logic_box.nsamples;
-  query->logic_box=logic_box;
+  query->logic_box= LogicBox(BOX, DELTA);
+  query->nsamples = query->logic_box.nsamples;
+  VisusAssert(query->logic_box.valid());
   query->buffer=Array();
+
   return true;
 }
 
@@ -1489,10 +1489,10 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
     //need to go level by level to rebuild the original data (top-down)
     for (int H = cur_resolution + 1; H <= end_resolution; H++)
     {
-      BoxNi adjusted_box = adjustFilterBox(query.get(), filter.get(), query->logic_aligned_box, H);
+      BoxNi adjusted_logic_box = adjustFilterBox(query.get(), filter.get(), query->filter.adjusted_logic_box, H);
 
       auto Wquery = std::make_shared<BoxQuery>(this, query->field, query->time, 'r', query->aborted);
-      Wquery->logic_position = adjusted_box;
+      Wquery->logic_position = adjusted_logic_box;
       Wquery->end_resolutions = { H };
       Wquery->filter.enabled = false;
       Wquery->merge_mode = merge_mode;
