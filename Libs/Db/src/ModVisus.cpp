@@ -651,21 +651,12 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleQuery(const NetRequest& request)
 {
-  String dataset_name = request.url.getParam("dataset");
-  int maxh = cint(request.url.getParam("maxh"));
-  int fromh = cint(request.url.getParam("fromh"));
-  int endh = cint(request.url.getParam("toh"));
-  String fieldname = request.url.getParam("field");
-  double time = cdouble(request.url.getParam("time"));
-  String compression = request.url.getParam("compression");
-  bool   bDisableFilters = cbool(request.url.getParam("disable_filters"));
-  bool   bKdBoxQuery = request.url.getParam("kdquery") == "box";
-  String action = request.url.getParam("action");
-
-  String palette = request.url.getParam("palette");
-  double palette_min = cdouble(request.url.getParam("palette_min"));
-  double palette_max = cdouble(request.url.getParam("palette_max"));
-  String palette_interp = (request.url.getParam("palette_interp"));
+  auto dataset_name = request.url.getParam("dataset");
+  auto fromh = cint(request.url.getParam("fromh"));
+  auto endh = cint(request.url.getParam("toh"));
+  auto maxh = cint(request.url.getParam("maxh"));
+  auto time = cdouble(request.url.getParam("time"));
+  auto compression = request.url.getParam("compression");
 
   auto datasets=getDatasets();
 
@@ -675,6 +666,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
 
   int pdim = dataset->getPointDim();
 
+  String fieldname = request.url.getParam("field");
   Field field = fieldname.empty() ? dataset->getDefaultField() : dataset->getFieldByName(fieldname);
   if (!field.valid())
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Cannot find fieldname(" + fieldname + ")");
@@ -684,8 +676,12 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   Array buffer;
 
   //position
+  String action = request.url.getParam("action");
   if (action == "boxquery")
   {
+    bool   bDisableFilters = cbool(request.url.getParam("disable_filters"));
+    bool   bKdBoxQuery = request.url.getParam("kdquery") == "box";
+
     auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r', Aborted());
     query->start_resolution = fromh;
     query->end_resolutions = { endh };
@@ -724,25 +720,24 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   }
   else if (action == "pointquery")
   {
+    auto nsamples = PointNi::parseDims(request.url.getParam("nsamples"));
+
     auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', Aborted());
     VisusAssert(fromh == 0);
-    query->end_resolutions = { endh };
-    auto  map = Matrix::parseFromString(4,request.url.getParam("matrix"));
-    auto  box = BoxNd::parseFromString(request.url.getParam("box"),/*bInterleave*/false);
-    VisusAssert(pdim == 3);
-    box.setPointDim(3);
-    query->logic_position = Position(map, box);
+    query->end_resolution = endh;
 
-    //query failed
-    if (!dataset->beginQuery(query))
-      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
+    query->logic_position = Position(
+      Matrix::parseFromString(4, request.url.getParam("matrix")), 
+      BoxNd::parseFromString(request.url.getParam("box"),/*bInterleave*/false).withPointDim(3));
+
+    if (!query->setPoints(nsamples))
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->setPoints failed " + query->getLastErrorMsg());
 
     auto access = dataset->createAccess();
     if (!dataset->executeQuery(access, query))
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
 
     buffer = query->buffer;
-
   }
   else
   {
@@ -750,6 +745,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
     VisusAssert(false);
   }
 
+  String palette = request.url.getParam("palette");
   if (!palette.empty() && buffer.dtype.ncomponents() == 1)
   {
     TransferFunction tf;
@@ -764,6 +760,10 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
     }
     else
     {
+      double palette_min = cdouble(request.url.getParam("palette_min"));
+      double palette_max = cdouble(request.url.getParam("palette_max"));
+      String palette_interp = (request.url.getParam("palette_interp"));
+
       if (palette_min != palette_max)
         tf.input_range = ComputeRange::createCustom(palette_min, palette_max);
 

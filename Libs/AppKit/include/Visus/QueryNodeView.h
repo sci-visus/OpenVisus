@@ -201,6 +201,30 @@ public:
 
 private:
 
+  //createAndBeginQuery
+  SharedPtr<BoxQuery> createAndBeginQuery(QueryNode* node,int end_resolution)
+  {
+    auto dataset = node->getDataset();
+
+    if (!dataset)
+      return SharedPtr<BoxQuery>();
+
+    auto query_bounds = node->getQueryBounds();
+    //note: point query not supported!
+    VisusAssert(!(dataset->getPointDim() == 3 && query_bounds.getBoxNd().toBox3().minsize() == 0));
+
+    auto query = std::make_shared<BoxQuery>(dataset.get(), node->getField(), node->getTime(), 'r');
+    query->filter.enabled = true;
+    query->merge_mode = BoxQuery::InsertSamples;
+    query->logic_position = node->getQueryLogicPosition();
+    query->end_resolutions = { end_resolution };
+
+    if (!dataset->beginQuery(query))
+      return SharedPtr<BoxQuery>();
+
+    return query;
+  }
+
   //createExportWidget
   QWidget* createExportWidget()
   {
@@ -253,7 +277,8 @@ private:
     // TODO make a slot to update on query change
     widgets.end_resolution =GuiFactory::CreateIntegerSliderWidget(std::min(24, dataset->getMaxResolution()),1,dataset->getMaxResolution(), [this,resLabel,dimsLabel,dataset,time_node](int end_resolution)
     {
-        auto query= model->createQuery(end_resolution,/*bExecute*/false);
+        auto query= createAndBeginQuery(model,end_resolution);
+        if (!query) return;
         auto nsamples = query->getNumberOfSamples();
         resLabel->setText(String(StringUtils::format() << "Est. Size:  " << StringUtils::getStringFromByteSize(widgets.selected_field.dtype.getByteSize(nsamples))).c_str());
         dimsLabel->setText(String(StringUtils::format() << "[" + nsamples.toString("x") << "]").c_str());
@@ -274,7 +299,10 @@ private:
     connect(widgets.saveButton, &QPushButton::clicked, [this,dataset,time_node]()
     {
       int end_resolution = this->widgets.end_resolution->value();
-      auto query = model->createQuery(end_resolution,/*bExecute*/true);
+      auto query = createAndBeginQuery(model, end_resolution);
+      if (!query || !dataset->executeQuery(dataset->createAccess(), query))
+        return false;
+
       auto nsamples = query->getNumberOfSamples();
       String filename = StringUtils::format()<< widgets.fileEdit->text().toStdString() << nsamples.toString("_") << query->field.dtype.toString() << ".raw";
 

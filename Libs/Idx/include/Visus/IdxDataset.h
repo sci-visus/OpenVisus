@@ -144,14 +144,8 @@ public:
 
 public:
 
-  //beginQuery
-  virtual bool beginQuery(SharedPtr<PointQuery> query) override;
-
   //executeQuery
   virtual bool executeQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) override;
-
-  //nextQuery
-  virtual bool nextQuery(SharedPtr<PointQuery> query) override;
 
   //createNetRequest
   virtual NetRequest createPureRemoteQueryNetRequest(SharedPtr<PointQuery> query) override;
@@ -161,14 +155,10 @@ public:
 
 private:
 
-  //guessPointQueryNumberOfSamples
-  PointNi guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, Position logic_position, int end_resolution);
 
   //setBoxQueryCurrentEndResolution
   bool setBoxQueryCurrentEndResolution(SharedPtr<BoxQuery> query);
 
-  //setPointQueryCurrentEndResolution
-  bool setPointQueryCurrentEndResolution(SharedPtr<PointQuery> query);
 
 };
 

@@ -55,25 +55,14 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(PointQuery)
 
-  std::vector<int>           end_resolutions;
-
-  Position                   logic_position;
-  Frustum                    logic_to_screen;
-  Position                   logic_clipping;
-
-  PointNi                    nsamples; //available only after beginQuery
-
-  int                        cur_resolution = -1;
-  int                        running_cursor = -1;
-
-  // for point queries
-  SharedPtr<HeapMemory>      points;
+  int        end_resolution=-1;
+  Position   logic_position;
+  Array      points;
 
   //constructor
   PointQuery(Dataset* dataset, Field field, double time, int mode, Aborted aborted = Aborted())
     : Query(dataset, field, time, mode, aborted)
   {
-    this->points = std::make_shared<HeapMemory>();
   }
 
   //destructor
@@ -82,38 +71,11 @@ public:
 
   //getNumberOfSamples
   virtual PointNi getNumberOfSamples() const override {
-    VisusAssert(isRunning());
-    return nsamples;
+    return points.dims;
   }
 
-  //setStatus
-  virtual void setStatus(QueryStatus status) override
-  {
-    Query::setStatus(status);
-    if (status == QueryOk || status == QueryFailed)
-      this->running_cursor = -1;
-  }
-
-  //canNext
-  bool canNext() const {
-    return isRunning() && cur_resolution == end_resolutions[running_cursor];
-  }
-
-  //canExecute
-  bool canExecute() const {
-    return isRunning() && cur_resolution < end_resolutions[running_cursor];
-  }
-
-  //getEndResolution
-  int getEndResolution() const {
-
-    if (!isRunning()) return -1;
-    VisusAssert(running_cursor >= 0 && running_cursor < end_resolutions.size());
-    return end_resolutions[running_cursor];
-  }
-
-  //setCurrentLevelReady
-  void setCurrentLevelReady();
+  //setPoints
+  bool setPoints(PointNi nsamples);
 
 };
 

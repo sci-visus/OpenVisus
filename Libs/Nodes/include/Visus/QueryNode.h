@@ -58,20 +58,20 @@ public:
   //destructor
   virtual ~QueryNode();
 
-  //createQuery
-  SharedPtr<Query> createQuery(int end_resolution=-1, bool bExecute = false);
+  //getDataset()
+  SharedPtr<Dataset> getDataset();
+
+  //the dataflow dataset
+  DatasetNode* getDatasetNode();
+
+  //getField
+  Field getField();
+
+  //getTime
+  double getTime();
 
   //processInput
   virtual bool processInput() override;
-
-  //the dataflow dataset
-  virtual DatasetNode* getDatasetNode();
-
-  //getDataset()
-  virtual SharedPtr<Dataset> getDataset();
-
-  //getField
-  virtual Field getField();
 
   //isVerbose
   bool isVerbose() const {
@@ -153,10 +153,16 @@ public:
     this->query_bounds =value;
   }
 
+  //getQueryLogicPosition
+  Position getQueryLogicPosition();
+
   //nodeToScreen
   Frustum nodeToScreen() const {
     return bViewDependentEnabled? node_to_screen : Frustum();
   }
+
+  //logicToScreen
+  Frustum logicToScreen();
 
   //setNodeToScreen
   void setNodeToScreen(Frustum value) {

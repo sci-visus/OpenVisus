@@ -498,7 +498,7 @@ public:
     DatasetBitmask bitmask       = vf->getBitmask();
     int            pdim          = vf->getPointDim();
     HzOrder        hzorder         (bitmask, maxh);
-    PointNi        depth_mask    = hzorder.getLevelP2Included(query->getEndResolution());
+    PointNi        depth_mask    = hzorder.getLevelP2Included(query->end_resolution);
 
     LogicBox Bbox= block_query->logic_box;
     if (!Bbox.valid())
@@ -508,7 +508,7 @@ public:
     PointNi p0     = Bbox.p1;
     PointNi shift  = Bbox.shift;
 
-    const auto points = (Int64*)query->points->c_ptr();
+    auto points = (Int64*)query->points.c_ptr();
 
     switch (pdim)
     {
@@ -1232,13 +1232,13 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<PointQuery> que
   ret.url.setParam("compression", url.getParam("compression", "zip")); //for networking I prefer to use zip
   ret.url.setParam("field", query->field.name);
   ret.url.setParam("fromh", cstring(0)); //backward compatible
-  ret.url.setParam("toh", cstring(query->getEndResolution()));
+  ret.url.setParam("toh", cstring(query->end_resolution));
   ret.url.setParam("maxh", cstring(getMaxResolution())); //backward compatible
 
   ret.url.setParam("action"  ,"pointquery");
   ret.url.setParam("matrix"  ,query->logic_position.getTransformation().toString());
   ret.url.setParam("box"     ,query->logic_position.getBoxNd().toBox3().toString(/*bInterleave*/false));
-  ret.url.setParam("nsamples",query->nsamples.toString());
+  ret.url.setParam("nsamples",query->getNumberOfSamples().toString());
   VisusInfo() << ret.url.toString();  
   ret.aborted = query->aborted;
   return ret;
@@ -1288,155 +1288,14 @@ bool IdxDataset::executePureRemoteQuery(SharedPtr<PointQuery> query)
     return false;
   }
 
-  VisusAssert(buffer.dims == query->nsamples);
+  VisusAssert(buffer.dims == query->getNumberOfSamples());
   query->buffer = buffer;
-  query->setCurrentLevelReady();
+  query->buffer.bounds = query->logic_position;
   return true;
 }
 
 
 
-//*********************************************************************
-// valerio's algorithm, find the final view dependent resolution (endh)
-// (the default endh is the maximum resolution available)
-//*********************************************************************
-
-PointNi IdxDataset::guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, Position logic_position,int end_resolution)
-{
-  const int unit_box_edges[12][2]=
-  {
-    {0,1}, {1,2}, {2,3}, {3,0},
-    {4,5}, {5,6}, {6,7}, {7,4},
-    {0,4}, {1,5}, {2,6}, {3,7}
-  };
-
-  std::vector<Point3d> logic_points;
-  for (auto p : logic_position.getPoints())
-    logic_points.push_back(p.toPoint3());
-
-  std::vector<Point2d> screen_points;
-  if (logic_to_screen.valid())
-  {
-    FrustumMap map(logic_to_screen);
-    for (int I=0;I<8;I++)
-      screen_points.push_back(map.projectPoint(logic_points[I]));
-  }
-
-  auto bitmask = getBitmask();
-  int pdim = bitmask.getPointDim();
-
-  PointNi virtual_worlddim=PointNi::one(pdim);
-  for (int H=1;H<=end_resolution;H++)
-  {
-    int bit=bitmask[H];
-    virtual_worlddim[bit]<<=1;
-  }
-
-  PointNi nsamples=PointNi::one(pdim);
-  for (int E=0;E<12;E++)
-  {
-    int query_axis=(E>=8)?2:(E&1?1:0);
-    Point3d P1= logic_points[unit_box_edges[E][0]];
-    Point3d P2= logic_points[unit_box_edges[E][1]];
-    Point3d edge_size=(P2-P1).abs();
-
-    PointNi idx_size   = this->getLogicBox().size();
-
-    // need to project onto IJK  axis
-    // I'm using this formula: x/virtual_worlddim[dataset_axis] = factor = edge_size[dataset_axis]/idx_size[dataset_axis]
-    for (int dataset_axis=0;dataset_axis<3;dataset_axis++)
-    {
-      double factor=(double)edge_size[dataset_axis]/(double)idx_size[dataset_axis];
-      Int64 x=(Int64)(virtual_worlddim[dataset_axis]*factor);
-      nsamples[query_axis]=std::max(nsamples[query_axis],x);
-    }
-  }
-    
-  //view dependent, limit the nsamples to what the user can see on the screen!
-  if (!screen_points.empty())
-  {
-    PointNi view_dependent_dims = PointNi::one(pdim);
-    for (int E=0;E<12;E++)
-    {
-      int query_axis=(E>=8)?2:(E&1?1:0);
-      Point2d p1=screen_points[unit_box_edges[E][0]];
-      Point2d p2=screen_points[unit_box_edges[E][1]];
-      double pixel_distance_on_screen=(p2-p1).module();
-      view_dependent_dims[query_axis]=std::max(view_dependent_dims[query_axis],(Int64)pixel_distance_on_screen);
-    }
-
-    nsamples[0]=std::min(view_dependent_dims[0],nsamples[0]);
-    nsamples[1]=std::min(view_dependent_dims[1],nsamples[1]);
-    nsamples[2]=std::min(view_dependent_dims[2],nsamples[2]);
-  }
-
-  return nsamples;
-}
-
-/////////////////////////////////////////////////////////////////////////
-bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<PointQuery> query)
-{
-  int end_resolution = query->getEndResolution();
-  if (end_resolution<0)
-    return false;
-
-  Position logic_position=query->logic_position;
-
-  int pdim=this->getPointDim();
-  VisusAssert(pdim==3); //why I need point queries in 2d... I'm asserting this because I do not create Query for 2d datasets 
-
-  if (!(end_resolution<=getMaxResolution()))
-  {
-    VisusAssert(false);
-    return false;
-  }
-
-  auto nsamples=guessPointQueryNumberOfSamples(query->logic_to_screen, logic_position,end_resolution);
-
-  //no samples or overflow
-  if (nsamples.innerProduct()<=0)
-    return false;
-
-  //only 1-2-3 dim
-  Int64 tot = nsamples.innerProduct();
-  if (tot !=(nsamples[0]*nsamples[1]*nsamples[2]))
-    return false;
-
-  if (!query->points->resize(tot*pdim*sizeof(Int64),__FILE__,__LINE__))
-    return false;
-
-  //definition of a point query!
-  //P'=T* (P0 + I* X/nsamples[0] +  J * Y/nsamples[1] + K * Z/nsamples[2])
-  //P'=T*P0 +(T*Stepx)*I + (T*Stepy)*J + (T*Stepz)*K
-    
-  auto T = logic_position.getTransformation();
-  auto box = logic_position.getBoxNd();
-  T.setSpaceDim(4);
-  box.setPointDim(3);
-  Point4d P0(box.p1[0],box.p1[1],box.p1[2],1.0);
-  Point4d X(1,0,0,0); X[0]=box.p2[0]-box.p1[0]; Point4d DX=X*(1.0 / (double)nsamples[0]); VisusAssert(X[3]==0.0 && DX[3]==0.0);
-  Point4d Y(0,1,0,0); Y[1]=box.p2[1]-box.p1[1]; Point4d DY=Y*(1.0 / (double)nsamples[1]); VisusAssert(Y[3]==0.0 && DY[3]==0.0);
-  Point4d Z(0,0,1,0); Z[2]=box.p2[2]-box.p1[2]; Point4d DZ=Z*(1.0 / (double)nsamples[2]); VisusAssert(Z[3]==0.0 && DZ[3]==0.0);
-
-  Point4d TP0_4d = T*P0;                              Point3d TP0  = TP0_4d.dropHomogeneousCoordinate();
-  Point4d TDX_4d = T*DX; VisusAssert(TDX_4d[3]==0.0); Point3d TDX  = TDX_4d.toPoint3();
-  Point4d TDY_4d = T*DY; VisusAssert(TDY_4d[3]==0.0); Point3d TDY  = TDY_4d.toPoint3();
-  Point4d TDZ_4d = T*DZ; VisusAssert(TDZ_4d[3]==0.0); Point3d TDZ  = TDZ_4d.toPoint3();
-
-  auto point_p = (Int64*)query->points->c_ptr();
-  Point3d PZ=TP0; for (int K=0;K<nsamples[2];++K,PZ+=TDZ) {
-  Point3d PY =PZ; for (int J=0;J<nsamples[1];++J,PY+=TDY) {
-  Point3d PX =PY; for (int I=0;I<nsamples[0];++I,PX+=TDX) {
-    *point_p++=(Int64)(PX[0]);
-    *point_p++=(Int64)(PX[1]);
-    *point_p++=(Int64)(PX[2]);
-  }}}
-
-  //note: point queries are not mergeable, so it's box is invalid!
-  query->nsamples=nsamples;
-  query->buffer=Array();
-  return true;
-}
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -1890,9 +1749,17 @@ bool IdxDataset::nextQuery(SharedPtr<BoxQuery> query)
 }
 
 
-//////////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::beginQuery(SharedPtr<PointQuery> query)
+///////////////////////////////////////////////////////////////////////////////////////
+bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> query)  
 {
+  if (!query)
+    return false;
+
+  int pdim = this->getPointDim();
+
+  //why I need point queries in 2d... I'm asserting this because I do not create Query for 2d datasets 
+  VisusAssert(pdim == 3);
+
   if (!query)
     return false;
 
@@ -1923,36 +1790,16 @@ bool IdxDataset::beginQuery(SharedPtr<PointQuery> query)
   if (!getTimesteps().containsTimestep(query->time))
     return query->setFailed("missing timestep");
 
-  if (query->end_resolutions.empty())
-    query->end_resolutions = { this->getMaxResolution() };
+  if (query->end_resolution < 0)
+    query->end_resolution = this->getMaxResolution();
 
-  for (int I = 0; I < (int)query->end_resolutions.size(); I++)
-    VisusAssert(query->end_resolutions[I] <= this->getMaxResolution());
+  if (query->end_resolution < 0 || query->end_resolution>getMaxResolution())
+    return query->setFailed("wrong end_resolution");
 
-  if (!query->logic_position.valid())
-    return query->setFailed("position is wrong");
+  if (query->getNumberOfSamples().innerProduct() <= 0)
+    return query->setFailed("wrong nsamples");
 
   query->setRunning();
-
-  int N = (int)query->end_resolutions.size();
-  for (query->running_cursor = 0; query->running_cursor < N; query->running_cursor++)
-  {
-    if (setPointQueryCurrentEndResolution(query))
-      return true;
-  }
-  
-  return query->setFailed("cannot find an initial resolution");
-}
-
-
-///////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> query)  
-{
-  if (!query)
-    return false;
-
-  if (!query->canExecute())
-    return query->setFailed("query is in non-executable status");
 
   if (query->aborted())
     return query->setFailed("query aboted");
@@ -1965,31 +1812,22 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
     return Dataset::executePureRemoteQuery(query);
 
   VisusAssert(query->mode == 'r');
-  VisusAssert(access);
-
-  int end_resolution = query->getEndResolution();
 
   auto            bitmask = getBitmask();
-  int             pdim = this->getPointDim();
   BoxNi           bounds = this->getLogicBox();
   BigInt          last_bitmask = ((BigInt)1) << (getMaxResolution());
   auto            hzorder = HzOrder(bitmask);
-  PointNi         depth_mask = hzorder.getLevelP2Included(end_resolution);
+  PointNi         depth_mask = hzorder.getLevelP2Included(query->end_resolution);
   int             bitsperblock = access->bitsperblock;
   Aborted         aborted = query->aborted;
 
   if (!query->allocateBufferIfNeeded())
     return false;
 
-  Int64 tot = query->nsamples.innerProduct();
+  auto nsamples = query->getNumberOfSamples();
+  auto tot = nsamples.innerProduct();
 
-  const auto points = (Int64*)query->points->c_ptr();
-  if (!query->points || !query->points->c_size() || !tot)
-    return false;
-
-  VisusAssert(access);
-  VisusAssert(pdim == 3);//todo: other cases
-  VisusAssert((Int64)query->points->c_size() >= query->nsamples.innerProduct() * (Int64)sizeof(Int64) * pdim);
+  VisusAssert((Int64)query->points.c_size() == DTypes::INT64_RGB.getByteSize(nsamples));
 
   //first BigInt is hzaddress, second Int32 is offset inside buffer
   auto hzaddresses = std::vector< std::pair<BigInt, Int32> >(tot, std::make_pair(-1, 0));
@@ -2006,15 +1844,15 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
     VisusAssert(false);
 #endif
 
-    const Int64* points_p = points;
-    for (int N = 0; N < tot; N++, points_p += pdim)
+    auto SRC = (Int64*)query->points.c_ptr();
+    for (int N = 0; N < tot; N++, SRC += pdim)
     {
       if (aborted()) return false;
-      if (pdim >= 1) { p[0] = points_p[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; }
-      if (pdim >= 2) { p[1] = points_p[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; }
-      if (pdim >= 3) { p[2] = points_p[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; }
-      if (pdim >= 4) { p[3] = points_p[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; }
-      if (pdim >= 5) { p[4] = points_p[4]; if (!(p[4] >= bounds.p1[4] && p[4] < bounds.p2[4])) continue; p[4] &= depth_mask[4]; }
+      if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; }
+      if (pdim >= 2) { p[1] = SRC[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; }
+      if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; }
+      if (pdim >= 4) { p[3] = SRC[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; }
+      if (pdim >= 5) { p[4] = SRC[4]; if (!(p[4] >= bounds.p1[4] && p[4] < bounds.p2[4])) continue; p[4] &= depth_mask[4]; }
       hzaddresses[N] = std::make_pair(hzorder.getAddress(p), N);
     }
   }
@@ -2023,18 +1861,18 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
   {
     BigInt zaddress;
     int    shift;
-    auto   points_p = points;
+    auto   SRC = (Int64*)query->points.c_ptr();
     auto   loc = this->hzaddress_conversion_pointquery->loc;
 
-    for (int N = 0; N < tot; N++, points_p += pdim)
+    for (int N = 0; N < tot; N++, SRC += pdim)
     {
       if (aborted())
         return false;
-      if (pdim >= 1) { p[0] = points_p[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; shift = (loc[0][p[0]].second); zaddress = loc[0][p[0]].first; }
-      if (pdim >= 2) { p[1] = points_p[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; shift = std::min(shift, loc[1][p[1]].second); zaddress |= loc[1][p[1]].first; }
-      if (pdim >= 3) { p[2] = points_p[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; shift = std::min(shift, loc[2][p[2]].second); zaddress |= loc[2][p[2]].first; }
-      if (pdim >= 4) { p[3] = points_p[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; shift = std::min(shift, loc[3][p[3]].second); zaddress |= loc[3][p[3]].first; }
-      if (pdim >= 5) { p[4] = points_p[4]; if (!(p[4] >= bounds.p1[4] && p[4] < bounds.p2[4])) continue; p[4] &= depth_mask[4]; shift = std::min(shift, loc[4][p[4]].second); zaddress |= loc[4][p[4]].first; }
+      if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; shift = (loc[0][p[0]].second); zaddress = loc[0][p[0]].first; }
+      if (pdim >= 2) { p[1] = SRC[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; shift = std::min(shift, loc[1][p[1]].second); zaddress |= loc[1][p[1]].first; }
+      if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; shift = std::min(shift, loc[2][p[2]].second); zaddress |= loc[2][p[2]].first; }
+      if (pdim >= 4) { p[3] = SRC[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; shift = std::min(shift, loc[3][p[3]].second); zaddress |= loc[3][p[3]].first; }
+      if (pdim >= 5) { p[4] = SRC[4]; if (!(p[4] >= bounds.p1[4] && p[4] < bounds.p2[4])) continue; p[4] &= depth_mask[4]; shift = std::min(shift, loc[4][p[4]].second); zaddress |= loc[4][p[4]].first; }
       hzaddresses[N] = std::make_pair(((zaddress | last_bitmask) >> shift), N);
     }
   }
@@ -2080,38 +1918,9 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
   if (aborted())
     return false;
 
-  query->setCurrentLevelReady();
-  return true;
-}
 
-
-
-//////////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::nextQuery(SharedPtr<PointQuery> query)
-{
-  if (!query)
-    return false;
-
-  if (!query->canNext())
-    return query->setFailed("query cannot next");
-
-  if (query->aborted())
-    return query->setFailed("query aborted");
-
-  VisusAssert(query->isRunning());
-  ++query->running_cursor;
-
-  //reached the end?
-  if (query->running_cursor == query->end_resolutions.size())
-  {
-    query->setOk();
-    return false;
-  }
-
-  query->buffer = Array();
-
-  if (!this->setPointQueryCurrentEndResolution(query))
-    return query->setFailed("cannot set end resolution");
+  VisusAssert(query->buffer.dims == query->getNumberOfSamples());
+  query->buffer.bounds   = query->logic_position;
 
   return true;
 }

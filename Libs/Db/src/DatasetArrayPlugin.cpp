@@ -54,10 +54,10 @@ public:
   Field         field;
   int           fromh;
   int           toh;
-  bool          bDisableFilters;
+  bool          bDisableFilters=false;
 
   //constructor
-  DatasetArrayPluginParseArguments(Dataset* dataset_) : dataset(dataset_),bDisableFilters(false)
+  DatasetArrayPluginParseArguments(Dataset* dataset_) : dataset(dataset_)
   {
     this->time           = dataset->getDefaultTime();
     this->field          = dataset->getDefaultField();
