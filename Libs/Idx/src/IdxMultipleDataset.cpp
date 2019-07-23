@@ -424,7 +424,7 @@ public:
       engine->setModuleAttr("query_time", QUERY ? QUERY->time : DATASET->getTimesteps().getDefault());
 
       engine->addModuleFunction("doPublish", [this](PyObject *self, PyObject *args) {
-        return doPublish(self, args);
+        return doIncrementalPublish(self, args);
       });
 
       engine->addModuleFunction("voronoi",      [this](PyObject *self, PyObject *args) {return blendBuffers(self, args, BlendBuffers::VororoiBlend); });
@@ -665,8 +665,6 @@ public:
         query->buffer.layout = ""; //row major
 
         VisusAssert(query->buffer.dims == query->getNumberOfSamples());
-        query->buffer.bounds = query->logic_position;
-        query->buffer.clipping = query->logic_clipping;
         query->cur_resolution = query->end_resolutions[query->running_cursor];
 
       }
@@ -692,9 +690,6 @@ public:
     //create a brand new BUFFER for doing the warpPerspective
     query->down_info.BUFFER = Array(QUERY->nsamples, query->buffer.dtype);
     query->down_info.BUFFER.fillWithValue(query->field.default_value);
-    query->down_info.BUFFER.layout = ""; //row major
-    query->down_info.BUFFER.bounds = Position(M, query->buffer.bounds);
-    query->down_info.BUFFER.clipping = Position(M, query->buffer.clipping);
 
     query->down_info.BUFFER.alpha = std::make_shared<Array>(QUERY->nsamples, DTypes::UINT8);
     query->down_info.BUFFER.alpha->fillWithValue(0);
@@ -846,13 +841,13 @@ public:
     return engine->newPyObject(blend.result);
   }
 
-  //doPublish
-  PyObject* doPublish(PyObject *self, PyObject *args)
+  //doIncrementalPublish
+  PyObject* doIncrementalPublish(PyObject *self, PyObject *args)
   {
     auto output = engine->getModuleArrayAttr("output");
 
     if (!output || !QUERY || !QUERY->incrementalPublish)
-      return (PyObject*)nullptr;
+      return nullptr;
 
     //postpost a little?
     auto current_time = Time::now().getUTCMilliseconds();
@@ -860,38 +855,11 @@ public:
     {
       auto enlapsed_msec = current_time - incremental.last_publish_time;
       if (enlapsed_msec < incremental.max_publish_msec)
-        return (PyObject*)nullptr;
+        return nullptr;
     }
 
-    Array copy;
-    if (!ArrayUtils::deepCopy(copy, output)) {
-      VisusAssert(false);
-      return (PyObject*)nullptr;
-    }
-    output = copy;
-
-    //equivalent of: output->shareProperties(*input); (when no input array is available, as in the query)
-    // this->layout   = other.layout;
-    output.bounds = QUERY->logic_position;
-    output.clipping = QUERY->logic_clipping;
-
-    //a projection happened?
-    int pdim = QUERY->nsamples.getPointDim();
-    for (int D = 0; D < pdim; D++)
-    {
-      if (output.dims[D] == 1 && QUERY->nsamples[D] > 1)
-      {
-        auto box = output.bounds.getBoxNd();
-        box.p2[D] = box.p1[D];
-        output.bounds = Position(output.bounds.getTransformation(), box);
-        output.clipping = Position::invalid(); //disable clipping
-      }
-    }
-
-    incremental.last_publish_time = current_time;
     QUERY->incrementalPublish(output);
-
-    return (PyObject*)nullptr;
+    return nullptr;
   }
 
 };
@@ -1609,8 +1577,6 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuer
       QUERY->buffer = OUTPUT;
 
       VisusAssert(QUERY->buffer.dims == QUERY->getNumberOfSamples());
-      QUERY->buffer.bounds = QUERY->logic_position;
-      QUERY->buffer.clipping = QUERY->logic_clipping;
       QUERY->cur_resolution = QUERY->end_resolutions[QUERY->running_cursor];
       return true;
     }

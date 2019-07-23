@@ -76,11 +76,6 @@ public:
 
   Future<Void> done;
 
-  //internal use only
-#if !SWIG
-  std::function<void(Array)> incrementalPublish;
-#endif
-
   //constructor
   Query(Dataset* dataset_, Field field_, double time_, int mode_, Aborted aborted_)
     : dataset(dataset_), field(field_), time(time_), mode(mode_), aborted(aborted_)

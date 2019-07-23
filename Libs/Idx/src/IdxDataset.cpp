@@ -1265,10 +1265,7 @@ bool IdxDataset::executePureRemoteQuery(SharedPtr<BoxQuery> query)
 
   VisusAssert(buffer.dims == query->nsamples);
   query->buffer = buffer;
-  query->buffer.bounds = query->logic_position;
-  query->buffer.clipping = query->logic_clipping;
   query->cur_resolution = query->end_resolutions[query->running_cursor];
-
   return true;
 }
 
@@ -1293,7 +1290,6 @@ bool IdxDataset::executePureRemoteQuery(SharedPtr<PointQuery> query)
 
   VisusAssert(buffer.dims == query->getNumberOfSamples());
   query->buffer = buffer;
-  query->buffer.bounds = query->logic_position;
   return true;
 }
 
@@ -1424,12 +1420,7 @@ bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
   //remove transformation and enable clipping
   Matrix T = query->logic_position.getTransformation();
   if (!T.isIdentity())
-  {
-    if (this->getPointDim() == 3)
-      query->logic_clipping = query->logic_position;
-
     query->logic_position = query->logic_position.toAxisAlignedBox().castTo<BoxNi>().getIntersection(this->getLogicBox());
-  }
 
   if (query->filter.enabled)
   {
@@ -1688,8 +1679,6 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
   }
 
   VisusAssert(query->buffer.dims == query->getNumberOfSamples());
-  query->buffer.bounds = query->logic_position;
-  query->buffer.clipping = query->logic_clipping;
   query->cur_resolution = query->end_resolutions[query->running_cursor];
 
   return true;
@@ -1927,8 +1916,6 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
 
 
   VisusAssert(query->buffer.dims == query->getNumberOfSamples());
-  query->buffer.bounds   = query->logic_position;
-
   return true;
 }
 

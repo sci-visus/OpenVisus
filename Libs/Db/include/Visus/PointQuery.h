@@ -59,6 +59,11 @@ public:
   Position   logic_position;
   Array      points;
 
+  //internal use only
+#if !SWIG
+  std::function<void(Array)> incrementalPublish;
+#endif
+
   //constructor
   PointQuery(Dataset* dataset, Field field, double time, int mode, Aborted aborted = Aborted())
     : Query(dataset, field, time, mode, aborted)

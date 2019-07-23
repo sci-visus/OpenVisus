@@ -87,7 +87,6 @@ public:
   std::vector<int>           end_resolutions;
 
   Position                   logic_position;
-  Position                   logic_clipping;
 
   PointNi                    nsamples; //available only after beginQuery
 
@@ -136,6 +135,11 @@ public:
   down_info;
 
   std::map<String, SharedPtr<BoxQuery> >  down_queries;
+#endif
+
+  //internal use only
+#if !SWIG
+  std::function<void(Array)> incrementalPublish;
 #endif
 
   //constructor

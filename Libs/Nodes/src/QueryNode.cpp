@@ -62,9 +62,6 @@ public:
   bool                     verbose;
   SharedPtr<Semaphore>     waiting_ready = std::make_shared<Semaphore>();
 
-  //this will allow more parallelism since I start the next query before the previous one got rendered
-  bool                     bWaitReturnReceipt = false;
-
   //constructor
   MyJob(QueryNode* node_,SharedPtr<Dataset> dataset_,SharedPtr<Access> access_)
     : node(node_),dataset(dataset_),access(access_)
@@ -85,7 +82,9 @@ public:
   //runJob
   virtual void runJob() override
   {
-    if (bool bPointQuery = dataset->getPointDim() == 3 && logic_position.getBoxNd().toBox3().minsize() == 0)
+    int pdim = dataset->getPointDim();
+
+    if (bool bPointQuery = pdim == 3 && logic_position.getBoxNd().toBox3().minsize() == 0)
     {
       for (int N = 0; N < (int)end_resolutions.size(); N++)
       {
@@ -94,27 +93,24 @@ public:
         auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', this->aborted);
         query->logic_position = logic_position;
         query->end_resolution = end_resolutions[N];
-
-        //need custom doPublish for scripting since it will not always wish to wait for return receipt
-        query->incrementalPublish = [this](Array output) {
-          doIncrementalPublic(output);
-        };
-
         auto nsamples = dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution);
         query->setPoints(nsamples);
 
         if (aborted() || !dataset->executeQuery(access, query) || aborted())
           return;
         
-        auto oputput = query->buffer;
+        auto output = query->buffer;
 
         if (verbose)
         {
           VisusInfo() << "PointQuery msec(" << t1.elapsedMsec() << ") " << "level(" << N << "/" << end_resolutions.size() << "/" << end_resolutions[N] << "/" << dataset->getMaxResolution() << ") "
-            << "dims(" << oputput.dims.toString() << ") dtype(" << oputput.dtype.toString() << ") access(" << (access ? "yes" : "nullptr") << ") url(" << dataset->getUrl().toString() << ") ";
+            << "dims(" << output.dims.toString() << ") dtype(" << output.dtype.toString() << ") access(" << (access ? "yes" : "nullptr") << ") url(" << dataset->getUrl().toString() << ") ";
         }
 
-        doPublish(oputput);
+        DataflowMessage msg;
+        output.bounds = dataset->logicToPhysic(query->logic_position);
+        msg.writeValue("data", output);
+        node->publish(msg);
       }
     }
     else
@@ -122,16 +118,49 @@ public:
       auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r', this->aborted);
       query->filter.enabled = true;
       query->merge_mode = BoxQuery::InsertSamples;
-      query->logic_position = logic_position;
+      query->logic_position = this->logic_position;
       query->end_resolutions = this->end_resolutions;
-
-      //need custom doPublish for scripting since it will not always wish to wait for return receipt
-      query->incrementalPublish = [this, query](Array output) {
-        doIncrementalPublic(output, query->filter.dataset_filter);
-      };
 
       if (!dataset->beginQuery(query))
         return;
+
+      auto filter = query->filter.dataset_filter;
+      auto logic_clipping = (pdim == 3) ? this->logic_position : Position::invalid();
+
+      auto doPublish = [&](Array output) {
+
+        output = filter ? filter->dropExtraComponentIfExists(output) : output;
+
+        DataflowMessage msg;
+        output.bounds = dataset->logicToPhysic(query->logic_position);
+        output.clipping = dataset->logicToPhysic(logic_clipping);
+
+        //a projection happened?
+#if 1
+        if (query->nsamples != output.dims)
+        {
+          //disable clipping
+          output.clipping = Position::invalid();
+
+          //fix bounds
+          auto T   = output.bounds.getTransformation();
+          auto box = output.bounds.getBoxNd();
+          for (int D = 0; D < pdim; D++)
+          {
+            if (query->nsamples[D] > 1 && output.dims[D] == 1)
+              box.p2[D] = box.p1[D];
+          }
+          output.bounds = Position(T, box);
+        }
+#endif
+
+        msg.writeValue("data", output);
+        node->publish(msg);
+      };
+
+      query->incrementalPublish = [&](Array output) {
+        doPublish(output);
+      };
 
       this->end_resolutions = query->end_resolutions;
 
@@ -151,61 +180,11 @@ public:
             << "dims(" << output.dims.toString() << ") dtype(" << output.dtype.toString() << ") access(" << (access ? "yes" : "nullptr") << ") url(" << dataset->getUrl().toString() << ") ";
         }
 
-        if (auto filter = query->filter.dataset_filter)
-          output = filter->dropExtraComponentIfExists(output);
-
-        //publish the final result
         doPublish(output);
 
         if (!dataset->nextQuery(query))
             return;
       }
-    }
-  }
-
-  //doIncrementalPublic
-  void doIncrementalPublic(Array output, SharedPtr<DatasetFilter> filter= SharedPtr<DatasetFilter>())
-  {
-    if (aborted() || !output)
-      return;
-
-    if (filter)
-      output = filter->dropExtraComponentIfExists(output);
-
-    //change refframe (Dataflow works in physic coordinates, Db in logic coordinates)
-    output.bounds = dataset->logicToPhysic(output.bounds);
-    output.clipping = dataset->logicToPhysic(output.clipping);
-
-    DataflowMessage msg;
-    msg.writeValue("data", output);
-    this->node->publish(msg);
-  }
-
-  //doPublish
-  void doPublish(Array output)
-  {
-    DataflowMessage msg;
-
-    SharedPtr<ReturnReceipt> return_receipt;
-
-    //TODO: enable or disable return receipt?
-    if (bWaitReturnReceipt)
-    {
-      return_receipt = std::make_shared<ReturnReceipt>();
-      msg.setReturnReceipt(return_receipt);
-    }
-
-    //change refframe (Dataflow works in physic coordinates, Db in logic coordinates)
-    output.bounds   = dataset->logicToPhysic(output.bounds);
-    output.clipping = dataset->logicToPhysic(output.clipping);
-
-    msg.writeValue("data",output);
-
-    //only if the publish went well, I could wait
-    if (node->publish(msg))
-    {
-      if (return_receipt)
-        return_receipt->waitReady(waiting_ready);
     }
   }
 

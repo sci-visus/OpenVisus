@@ -255,8 +255,6 @@ bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuer
   wait_async.waitAllDone();
 
   VisusAssert(query->buffer.dims == query->getNumberOfSamples());
-  query->buffer.bounds = query->logic_position;
-  query->buffer.clipping = query->logic_clipping;
   query->cur_resolution = query->end_resolutions[query->running_cursor];
 
   return true;
