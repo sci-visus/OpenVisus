@@ -52,18 +52,6 @@ BoxQuery::BoxQuery(Dataset* dataset, Field field, double time, int mode, Aborted
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-void BoxQuery::setCurrentLevelReady()
-{
-  VisusAssert(isRunning());
-  VisusAssert(this->buffer.dims == this->nsamples);
-  VisusAssert(running_cursor >= 0 && running_cursor < end_resolutions.size());
-  this->buffer.bounds = this->logic_position;
-  this->buffer.clipping = this->logic_clipping;
-  this->cur_resolution = end_resolutions[running_cursor];
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////
 bool BoxQuery::mergeSamples(LogicBox Wsamples, Array& Wbuffer, LogicBox Rsamples, Array Rbuffer, int merge_mode, Aborted aborted)
 {
   if (!Wsamples.valid() || !Rsamples.valid())

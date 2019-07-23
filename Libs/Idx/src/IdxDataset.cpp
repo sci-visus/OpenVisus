@@ -1265,7 +1265,10 @@ bool IdxDataset::executePureRemoteQuery(SharedPtr<BoxQuery> query)
 
   VisusAssert(buffer.dims == query->nsamples);
   query->buffer = buffer;
-  query->setCurrentLevelReady();
+  query->buffer.bounds = query->logic_position;
+  query->buffer.clipping = query->logic_clipping;
+  query->cur_resolution = query->end_resolutions[query->running_cursor];
+
   return true;
 }
 
@@ -1684,7 +1687,11 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
       return false;
   }
 
-  query->setCurrentLevelReady();
+  VisusAssert(query->buffer.dims == query->getNumberOfSamples());
+  query->buffer.bounds = query->logic_position;
+  query->buffer.clipping = query->logic_clipping;
+  query->cur_resolution = query->end_resolutions[query->running_cursor];
+
   return true;
 
 #undef PUSH 

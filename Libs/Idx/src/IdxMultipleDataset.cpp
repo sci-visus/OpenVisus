@@ -663,7 +663,12 @@ public:
         query->allocateBufferIfNeeded();
         ArrayUtils::setBufferColor(query->buffer, DATASET->childs[name].color);
         query->buffer.layout = ""; //row major
-        query->setCurrentLevelReady();
+
+        VisusAssert(query->buffer.dims == query->getNumberOfSamples());
+        query->buffer.bounds = query->logic_position;
+        query->buffer.clipping = query->logic_clipping;
+        query->cur_resolution = query->end_resolutions[query->running_cursor];
+
       }
       else
       {
@@ -1602,7 +1607,11 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuer
       }
 
       QUERY->buffer = OUTPUT;
-      QUERY->setCurrentLevelReady();
+
+      VisusAssert(QUERY->buffer.dims == QUERY->getNumberOfSamples());
+      QUERY->buffer.bounds = QUERY->logic_position;
+      QUERY->buffer.clipping = QUERY->logic_clipping;
+      QUERY->cur_resolution = QUERY->end_resolutions[QUERY->running_cursor];
       return true;
     }
   }

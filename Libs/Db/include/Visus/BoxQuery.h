@@ -177,9 +177,6 @@ public:
     return end_resolutions[running_cursor];
   }
 
-  //setCurrentLevelReady
-  void setCurrentLevelReady();
-
   //mergeSamples
   static bool mergeSamples(LogicBox wbox, Array& wbuffer, LogicBox rbox, Array rbuffer, int merge_mode, Aborted aborted);
 
