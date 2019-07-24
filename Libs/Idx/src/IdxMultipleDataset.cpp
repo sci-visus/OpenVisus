@@ -663,9 +663,8 @@ public:
         query->allocateBufferIfNeeded();
         ArrayUtils::setBufferColor(query->buffer, DATASET->childs[name].color);
         query->buffer.layout = ""; //row major
-
         VisusAssert(query->buffer.dims == query->getNumberOfSamples());
-        query->cur_resolution = query->end_resolutions[query->running_cursor];
+        query->setCurrentResolution(query->getEndResolution());
 
       }
       else
@@ -684,14 +683,15 @@ public:
     }
 
     //already resampled
-    if (query->down_info.BUFFER && query->down_info.BUFFER.dims == QUERY->nsamples)
+    auto NSAMPLES = QUERY->getNumberOfSamples();
+    if (query->down_info.BUFFER && query->down_info.BUFFER.dims == NSAMPLES)
       return query->down_info.BUFFER;
 
     //create a brand new BUFFER for doing the warpPerspective
-    query->down_info.BUFFER = Array(QUERY->nsamples, query->buffer.dtype);
+    query->down_info.BUFFER = Array(NSAMPLES, query->buffer.dtype);
     query->down_info.BUFFER.fillWithValue(query->field.default_value);
 
-    query->down_info.BUFFER.alpha = std::make_shared<Array>(QUERY->nsamples, DTypes::UINT8);
+    query->down_info.BUFFER.alpha = std::make_shared<Array>(NSAMPLES, DTypes::UINT8);
     query->down_info.BUFFER.alpha->fillWithValue(0);
 
     auto PIXEL_TO_LOGIC = Position::computeTransformation(Position(QUERY->logic_position), query->down_info.BUFFER.dims);
@@ -1566,18 +1566,11 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuer
         }
       }
 
-      //can happen that I change the output dimensions from scripting
-      //NOTE: it will be unmergeable!
-      if (OUTPUT.dims != QUERY->nsamples)
-      {
-        QUERY->nsamples = OUTPUT.dims;
-        QUERY->logic_box = LogicBox();
-      }
-
+      //a projection happened? results will be unmergeable!
+      if (OUTPUT.dims != QUERY->logic_box.nsamples)
+        QUERY->merge_mode = BoxQuery::DoNotMerge;
       QUERY->buffer = OUTPUT;
-
-      VisusAssert(QUERY->buffer.dims == QUERY->getNumberOfSamples());
-      QUERY->cur_resolution = QUERY->end_resolutions[QUERY->running_cursor];
+      QUERY->setCurrentResolution(QUERY->getEndResolution());
       return true;
     }
   }
@@ -1592,9 +1585,9 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuer
 }
 
 ////////////////////////////////////////////////////////////////////////
-bool IdxMultipleDataset::nextQuery(SharedPtr<BoxQuery> QUERY)
+bool IdxMultipleDataset::beginQuery(SharedPtr<BoxQuery> QUERY)
 {
-  if (!IdxDataset::nextQuery(QUERY))
+  if (!IdxDataset::beginQuery(QUERY))
     return false;
 
   for (auto it : QUERY->down_queries)
@@ -1602,8 +1595,8 @@ bool IdxMultipleDataset::nextQuery(SharedPtr<BoxQuery> QUERY)
     auto  query   = it.second;
     auto  dataset = this->childs[query->down_info.name].dataset; VisusAssert(dataset);
 
-    if (query && query->canNext())
-      dataset->nextQuery(query);
+    if (query && query->canBegin())
+      dataset->beginQuery(query);
   }
 
   return true;

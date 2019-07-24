@@ -72,7 +72,7 @@ void Tutorial_2(String default_layout)
     auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
     query->logic_position=slice_box;
     VisusReleaseAssert(dataset->beginQuery(query));
-    VisusReleaseAssert(query->nsamples.innerProduct()==16*16);
+    VisusReleaseAssert(query->getNumberOfSamples()==PointNi(16,16,1));
 
     //read data from disk
     VisusReleaseAssert(dataset->executeQuery(access,query));

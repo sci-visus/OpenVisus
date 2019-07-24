@@ -433,11 +433,6 @@ public:
     return false;
   }
 
-  //nextQuery
-  virtual bool nextQuery(SharedPtr<BoxQuery> query) {
-    return false;
-  }
-
   //mergeBoxQueryWithBlock
   virtual bool mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query, SharedPtr<BlockQuery> block_query){
     return false;

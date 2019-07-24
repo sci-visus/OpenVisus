@@ -70,18 +70,19 @@ void Tutorial_3(String default_layout)
   query->merge_mode=BoxQuery::InsertSamples; //IMPORTANT: here you can also use bInterpolate=true
 
   VisusReleaseAssert(dataset->beginQuery(query));
-  VisusReleaseAssert(dataset->executeQuery(access,query));
-  VisusReleaseAssert(query->cur_resolution==8)
-  VisusReleaseAssert(dataset->nextQuery(query));
-  VisusReleaseAssert(dataset->executeQuery(access,query));
-  VisusReleaseAssert(query->cur_resolution==12);
+  VisusReleaseAssert(dataset->executeQuery(access, query));
+  VisusReleaseAssert(query->getCurrentResolution() == 8);
+
+  VisusReleaseAssert(dataset->beginQuery(query));
+  VisusReleaseAssert(dataset->executeQuery(access, query));
+  VisusReleaseAssert(query->getCurrentResolution() == 12);
 
   //I can verify the data is correct
-  unsigned int* slice_buffer=(unsigned int*)query->buffer.c_ptr();
+  GetSamples<Uint32> SRC(query->buffer);
   for (int I=0;I<16*16;I++) 
-    VisusReleaseAssert(slice_buffer[I]==I);
+    VisusReleaseAssert(SRC[I]==I);
 
-  VisusReleaseAssert(!dataset->nextQuery(query));
+  VisusReleaseAssert(!dataset->beginQuery(query));
 }
 
 

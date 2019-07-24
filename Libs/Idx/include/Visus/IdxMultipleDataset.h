@@ -125,15 +125,10 @@ public:
   }
 
   //beginQuery
-  virtual bool beginQuery(SharedPtr<BoxQuery> QUERY) override {
-    return IdxDataset::beginQuery(QUERY);
-  }
+  virtual bool beginQuery(SharedPtr<BoxQuery> QUERY) override;
 
   //executeQuery
   virtual bool executeQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQuery> QUERY) override;
-
-  //nextQuery
-  virtual bool nextQuery(SharedPtr<BoxQuery> QUERY) override;
 
 public:
 

@@ -49,7 +49,7 @@ static bool ComputeFilter(Dataset* dataset,BoxQuery* query,const FilterClass* fi
 {
   const Field& field=query->field;
 
-  int H= query->cur_resolution;
+  int H= query->getCurrentResolution();
 
   //nothing to do for very coarse resolution (H=0)
   if (H==0)
@@ -60,7 +60,7 @@ static bool ComputeFilter(Dataset* dataset,BoxQuery* query,const FilterClass* fi
   int              ncomponents= dtype.ncomponents();
   DatasetBitmask   bitmask    = dataset->getBitmask();
   int              bit        = bitmask[H];
-  PointNi          dims       = query->nsamples;
+  PointNi          dims       = query->getNumberOfSamples();
   PointNi          stride     = dims.stride();
   int              filter_size = filter->getSize();
   PointNi          filterstep = filter->getFilterStep(H);

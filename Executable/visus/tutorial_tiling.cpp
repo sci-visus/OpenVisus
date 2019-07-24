@@ -103,7 +103,7 @@ void TilingExample(IdxDataset* dataset)
         query->start_resolution=(H==bitsperblock?0:H);
         query->end_resolutions={H};
         VisusReleaseAssert(dataset->beginQuery(query));
-        VisusReleaseAssert(query->nsamples==dims);
+        VisusReleaseAssert(query->getNumberOfSamples()==dims);
       }
     }
   }

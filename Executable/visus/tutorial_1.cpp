@@ -88,13 +88,13 @@ void Tutorial_1(String default_layout)
     auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
     query->logic_position=slice_box;
     VisusReleaseAssert(dataset->beginQuery(query));
-    VisusReleaseAssert(query->nsamples.innerProduct()==16*16);
+    VisusReleaseAssert(query->getNumberOfSamples()==PointNi(16,16,1));
 
     //fill the buffers
-    Array buffer(query->nsamples,query->field.dtype);
-    unsigned int* Dst=(unsigned int*)buffer.c_ptr();
-    for (int I=0;I<16*16;I++) *Dst++=cont++;
-    query->buffer=buffer;
+    query->buffer = Array(query->getNumberOfSamples(),query->field.dtype);
+    GetSamples<Uint32> Dst(query->buffer);
+    for (int I=0;I<16*16;I++) 
+      Dst[I]=cont++;
 
     //execute the writing
     VisusReleaseAssert(dataset->executeQuery(access,query));

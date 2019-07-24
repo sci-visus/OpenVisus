@@ -108,16 +108,10 @@ public:
   //executeQuery
   virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
 
-  //nextQuery
-  virtual bool nextQuery(SharedPtr<BoxQuery> query) override;
-
   //mergeBoxQueryWithBlock
   virtual bool mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> blockquery) override;
 
 private:
-
-  //setCurrentEndResolution
-  bool setCurrentEndResolution(SharedPtr<BoxQuery> query);
 
   //kdTraverse
   void kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<BoxQuery> query,BoxNi box,BigInt id,int H,int end_resolution);

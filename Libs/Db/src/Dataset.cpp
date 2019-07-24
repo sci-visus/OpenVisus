@@ -492,7 +492,7 @@ bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, dou
   if (!beginQuery(query))
     return false;
 
-  VisusAssert(query->nsamples == buffer.dims);
+  VisusAssert(query->getNumberOfSamples() == buffer.dims);
   query->buffer = buffer;
 
   if (!executeQuery(access, query))

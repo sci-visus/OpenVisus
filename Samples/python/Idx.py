@@ -144,13 +144,13 @@ class TestIdx(unittest.TestCase):
 		self.assertTrue(dataset.beginQuery(query))
 		self.assertTrue(query.nsamples.innerProduct()>0)
 		self.assertTrue(dataset.executeQuery(access,query))
-		self.assertEqual(query.cur_resolution,8)
+		self.assertEqual(query.getCurrentResolution(),8)
 		
 		# end_resolution=12
-		self.assertTrue(dataset.nextQuery(query))
+		self.assertTrue(dataset.beginQuery(query))
 		self.assertEqual(query.nsamples.innerProduct(),16*16)
 		self.assertTrue(dataset.executeQuery(access,query))
-		self.assertEqual(query.cur_resolution,12)
+		self.assertEqual(query.getCurrentResolution(),12)
 		
 		#verify the data is correct
 		check=Array.toNumPy(query.buffer,bSqueeze=True,bShareMem=True)
@@ -161,7 +161,7 @@ class TestIdx(unittest.TestCase):
 				sampleid+=1 
 				
 		# finished
-		self.assertFalse(dataset.nextQuery(query)) 
+		self.assertFalse(dataset.beginQuery(query)) 
 
 
 # ////////////////////////////////////////////////////////

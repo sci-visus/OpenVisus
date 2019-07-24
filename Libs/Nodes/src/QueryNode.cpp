@@ -124,42 +124,8 @@ public:
       if (!dataset->beginQuery(query))
         return;
 
-      auto filter = query->filter.dataset_filter;
-      auto logic_clipping = (pdim == 3) ? this->logic_position : Position::invalid();
-
-      auto doPublish = [&](Array output) {
-
-        output = filter ? filter->dropExtraComponentIfExists(output) : output;
-
-        DataflowMessage msg;
-        output.bounds = dataset->logicToPhysic(query->logic_position);
-        output.clipping = dataset->logicToPhysic(logic_clipping);
-
-        //a projection happened?
-#if 1
-        if (query->nsamples != output.dims)
-        {
-          //disable clipping
-          output.clipping = Position::invalid();
-
-          //fix bounds
-          auto T   = output.bounds.getTransformation();
-          auto box = output.bounds.getBoxNd();
-          for (int D = 0; D < pdim; D++)
-          {
-            if (query->nsamples[D] > 1 && output.dims[D] == 1)
-              box.p2[D] = box.p1[D];
-          }
-          output.bounds = Position(T, box);
-        }
-#endif
-
-        msg.writeValue("data", output);
-        node->publish(msg);
-      };
-
       query->incrementalPublish = [&](Array output) {
-        doPublish(output);
+        doPublish(output,query);
       };
 
       this->end_resolutions = query->end_resolutions;
@@ -180,12 +146,49 @@ public:
             << "dims(" << output.dims.toString() << ") dtype(" << output.dtype.toString() << ") access(" << (access ? "yes" : "nullptr") << ") url(" << dataset->getUrl().toString() << ") ";
         }
 
-        doPublish(output);
+        doPublish(output, query);
 
-        if (!dataset->nextQuery(query))
+        if (!dataset->beginQuery(query))
             return;
       }
     }
+  }
+
+  //doPublish
+  void doPublish(Array output, SharedPtr<BoxQuery> query)
+  {
+    int pdim = dataset->getPointDim();
+
+    if (auto filter= query->filter.dataset_filter)
+      output = filter->dropExtraComponentIfExists(output);
+
+    DataflowMessage msg;
+    output.bounds = dataset->logicToPhysic(query->logic_position);
+
+    if (pdim==3)
+      output.clipping = dataset->logicToPhysic(this->logic_position);
+
+    //a projection happened?
+#if 1
+    if (query->logic_box.nsamples != output.dims)
+    {
+      //disable clipping
+      output.clipping = Position::invalid();
+
+      //fix bounds
+      auto T   = output.bounds.getTransformation();
+      auto box = output.bounds.getBoxNd();
+      for (int D = 0; D < pdim; D++)
+      {
+        if (query->logic_box.nsamples[D] > 1 && output.dims[D] == 1)
+          box.p2[D] = box.p1[D];
+      }
+      output.bounds = Position(T, box);
+    }
+#endif
+
+    msg.writeValue("data", output);
+    node->publish(msg);
   }
 
   //abort

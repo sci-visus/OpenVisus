@@ -73,26 +73,11 @@ class VISUS_DB_API BoxQuery : public Query
 {
 public:
 
-
-  /*
-  DatasetBitmask
-  V012012012012012012012012012012012
-  0-----------------------------max
-            |         |
-  start    current   end
-            |.......->|
-  */
-
   int                        start_resolution = 0;
   std::vector<int>           end_resolutions;
-
   Position                   logic_position;
 
-  PointNi                    nsamples; //available only after beginQuery
-
-  int                        cur_resolution = -1;
   int                        running_cursor = -1;
-
 
   LogicBox                   logic_box;
 
@@ -123,12 +108,12 @@ public:
 #if !SWIG
   struct
   {
-    String  name;
-    Array   BUFFER;
-    Matrix  PIXEL_TO_LOGIC;
-    Matrix  LOGIC_TO_PIXEL;
-    PointNd logic_centroid;
-    SharedPtr<Access> access;
+    String                   name;
+    Array                    BUFFER;
+    Matrix                   PIXEL_TO_LOGIC;
+    Matrix                   LOGIC_TO_PIXEL;
+    PointNd                  logic_centroid;
+    SharedPtr<Access>        access;
   }
   down_info;
 
@@ -149,34 +134,32 @@ public:
 
   //getNumberOfSamples
   virtual PointNi getNumberOfSamples() const override {
-    VisusAssert(isRunning());
-    return nsamples;
+    return canExecute() ? logic_box.nsamples : buffer.dims;
   }
 
-  //setStatus
-  virtual void setStatus(QueryStatus status) override
-  {
-    Query::setStatus(status);
-    if (status == QueryOk || status == QueryFailed)
-      this->running_cursor = -1;
+  //getCurrentResolution
+  int getCurrentResolution() const {
+    return this->cur_resolution;
   }
 
-  //canNext
-  bool canNext() const {
-    return isRunning() && cur_resolution == end_resolutions[running_cursor];
-  }
-
-  //canExecute
-  bool canExecute() const {
-    return isRunning() && cur_resolution < end_resolutions[running_cursor];
+  //setCurrentResolution
+  void setCurrentResolution(int value) {
+    this->cur_resolution = value;
   }
 
   //getEndResolution
   int getEndResolution() const {
+    return isRunning() ? end_resolutions[running_cursor] : -1;
+  }
 
-    if (!isRunning()) return -1;
-    VisusAssert(running_cursor >= 0 && running_cursor < end_resolutions.size());
-    return end_resolutions[running_cursor];
+  //canBegin
+  bool canBegin() const {
+    return (getStatus()==QueryCreated) || (getStatus()==QueryRunning && getCurrentResolution() == getEndResolution());
+  }
+
+  //canExecute
+  bool canExecute() const {
+    return isRunning() && getCurrentResolution() < getEndResolution();
   }
 
   //mergeSamples
@@ -186,6 +169,10 @@ public:
   static bool mergeSamples(BoxQuery& write, BoxQuery& read, int merge_mode, Aborted aborted) {
     return mergeSamples(write.logic_box, write.buffer, read.logic_box, read.buffer, merge_mode, aborted);
   }
+
+private:
+
+  int  cur_resolution = -1;
 
 };
 

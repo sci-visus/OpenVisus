@@ -76,7 +76,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
   auto write=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
   write->logic_position=userbox;
   VisusReleaseAssert(dataset->beginQuery(write));
-  VisusReleaseAssert(write->nsamples==img.dims);
+  VisusReleaseAssert(write->getNumberOfSamples()==img.dims);
 
   int N=std::min(NS,ND);
 
@@ -291,7 +291,7 @@ void Tutorial_6(String default_layout)
       
       //save the image
       {
-        int H=query->cur_resolution;
+        int H=query->getCurrentResolution();
 
         Path filename=Path(String("temp/")  + filters[NFilter] + "/" + StringUtils::replaceFirst(dtype.toString(),"*","_") + String(Overall ?"_all":"_piece"))
           .getChild("snapshot" + String(H<10?"0":"") + cstring(H)  + (".png"));
@@ -301,7 +301,7 @@ void Tutorial_6(String default_layout)
       }
 
       //verify the data only If I'm reading the final resolution
-      if (query->cur_resolution==dataset->getMaxResolution())
+      if (query->getCurrentResolution()==dataset->getMaxResolution())
       {
         BoxNi logic_box= query->filter.adjusted_logic_box;
 
@@ -328,7 +328,7 @@ void Tutorial_6(String default_layout)
         }
       }
 
-      if (!dataset->nextQuery(query))
+      if (!dataset->beginQuery(query))
         break;
     }
 

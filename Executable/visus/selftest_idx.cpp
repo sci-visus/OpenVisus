@@ -163,7 +163,7 @@ public:
         query->logic_position=slice_box;
         VisusReleaseAssert(dataset->beginQuery(query));
 
-        Array buffer(query->nsamples,dtype);
+        Array buffer(query->getNumberOfSamples(),dtype);
         for (int i=0;i<buffer.c_size();i++)
           buffer.c_ptr()[i]=cont++;
         query->buffer=buffer;
@@ -183,7 +183,7 @@ public:
         read_slice->logic_position=(getSliceBox(N));
         VisusReleaseAssert(dataset->beginQuery(read_slice));
         VisusReleaseAssert(dataset->executeQuery(access,read_slice));
-        VisusReleaseAssert(read_slice->nsamples.innerProduct()==this->perslice);
+        VisusReleaseAssert(read_slice->getNumberOfSamples().innerProduct()==this->perslice);
         VisusReleaseAssert(CompareSamples(write_queries[N]->buffer,0,read_slice->buffer,0,perslice));
         read_slice.reset();
       }
@@ -226,7 +226,7 @@ public:
       buffer=query->buffer;
       h_box=query->logic_box;
       shift=query->logic_box.shift;
-      if (!dataset->nextQuery(query))
+      if (!dataset->beginQuery(query))
         break;
     }
 

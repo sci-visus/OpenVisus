@@ -1895,11 +1895,11 @@ public:
       VisusReleaseAssert(dataset->beginQuery(write));
 
       int slab_num_samples = (int)(dims[0] * dims[1] * slices_per_slab);
-      VisusReleaseAssert(write->nsamples.innerProduct() == slab_num_samples);
+      VisusReleaseAssert(write->getNumberOfSamples().innerProduct() == slab_num_samples);
 
       //fill the buffers with some fake data
       {
-        Array buffer(write->nsamples, write->field.dtype);
+        Array buffer(write->getNumberOfSamples(), write->field.dtype);
 
         VisusAssert(dtype == "int32");
         GetSamples<Int32> samples(buffer);
@@ -1927,7 +1927,7 @@ public:
       read->logic_position = dataset->getLogicBox();
       VisusReleaseAssert(dataset->beginQuery(read));
 
-      Array buffer(read->nsamples, read->field.dtype);
+      Array buffer(read->getNumberOfSamples(), read->field.dtype);
       buffer.fillWithValue(0);
       read->buffer = buffer;
 

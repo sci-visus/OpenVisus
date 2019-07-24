@@ -213,7 +213,7 @@ public:
       {
         for (int H = 0; H <= end_resolution; H++)
         {
-          query->cur_resolution=(H);
+          query->setCurrentResolution(H);
           if (!filter->computeFilter(query.get(),true))
             return false;
         }
@@ -295,12 +295,12 @@ public:
 
         fullres = upsample;
 
-        VisusAssert(query->nsamples.innerProduct() == fullres.getTotalNumberOfSamples());
+        VisusAssert(query->getNumberOfSamples() == fullres.dims);
 
         //prepare to merge samples from current resolution
-        query->cur_resolution = (node->resolution - 1);
+        query->setCurrentResolution(node->resolution - 1);
 
-        VisusAssert(fullres.dims == query->nsamples);
+        VisusAssert(fullres.dims == query->getNumberOfSamples());
         query->buffer = fullres;
 
         auto start_address = (node->id) << bitsperblock;
@@ -316,7 +316,7 @@ public:
         fullres = query->buffer;
 
         //this is the latest resolution! needed also for filter->applyToQuery!
-        query->cur_resolution = node->resolution;
+        query->setCurrentResolution(node->resolution);
 
         //need to apply the filter, from now on I can display the data
         auto filter = dataset->createFilter(field);

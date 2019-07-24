@@ -193,7 +193,8 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
     VisusWarning()<<"!dataset->executeQuery()";
     return Array();
   }
-  VisusAssert(query->buffer.dims==query->nsamples);
+
+  VisusAssert(query->buffer.dims==query->getNumberOfSamples());
 
   auto dst=query->buffer;
 
@@ -236,13 +237,14 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
   }
 
   //embedding in case I'm missing point-dims
-  int pdim = query->nsamples.getPointDim();
+  auto nsamples = query->getNumberOfSamples();
+  int pdim = nsamples.getPointDim();
   if (pdim>src.dims.getPointDim())
     src.dims.setPointDim(pdim,1);
 
-  if (query->nsamples!=src.dims)
+  if (nsamples !=src.dims)
   {
-    VisusWarning()<<" query->dims returned ("<<query->nsamples.toString()<<") which is different from src.dims ("<<src.dims.toString()<<")";
+    VisusWarning()<<" query->dims returned ("<< nsamples.toString()<<") which is different from src.dims ("<<src.dims.toString()<<")";
     return false;
   }
 

@@ -130,9 +130,6 @@ public:
   //executeQuery
   virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
 
-  //nextQuery
-  virtual bool nextQuery(SharedPtr<BoxQuery> query) override;
-
   //mergeBoxQueryWithBlock
   virtual bool mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> block_query) override;
 
@@ -153,11 +150,7 @@ public:
   //executePureRemoteQuery
   virtual bool executePureRemoteQuery(SharedPtr<PointQuery> query) override;
 
-private:
 
-
-  //setBoxQueryCurrentEndResolution
-  bool setBoxQueryCurrentEndResolution(SharedPtr<BoxQuery> query);
 
 
 };

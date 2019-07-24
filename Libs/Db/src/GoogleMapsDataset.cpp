@@ -145,65 +145,91 @@ public:
 
 
 //////////////////////////////////////////////////////////////
+static std::vector<int> OnlyEvenResolutions(std::vector<int> values,int min_value)
+{
+  std::set<int> ret;
+  for (auto it : values)
+  {
+    auto value = (it >> 1) << 1;
+    if (value >= min_value)
+      ret.insert(value);
+  }
+  return std::vector<int>(ret.begin(), ret.end());
+
+}
+
+//////////////////////////////////////////////////////////////
 bool GoogleMapsDataset::beginQuery(SharedPtr<BoxQuery> query)
 {
   if (!query)
     return false;
 
-  if (!query->getStatus() == QueryCreated)
-    return query->setFailed("query begin called many times");
+  if (!this->valid())
+    return query->setFailed("Dataset url not valid");
 
   if (query->mode == 'w')
     return query->setFailed("Writing mode not suppoted");
 
-  //if you want to set a buffer for 'w' queries, please do it after begin
-  VisusAssert(!query->buffer);
+  if (!query->canBegin())
+    return query->setFailed("query cannot begin");
 
-  if (!this->valid())
-    return query->setFailed("query not valid");
+  if (query->aborted())
+    return query->setFailed("query aborted");
 
   if (!query->logic_position.valid())
-    return query->setFailed("position not valid");
-
-  if (query->end_resolutions.empty())
-    query->end_resolutions = { this->getMaxResolution() };
-
-  for (int I = 0; I < (int)query->end_resolutions.size(); I++)
-    VisusAssert(query->end_resolutions[I] <= this->getMaxResolution());
-
-  //writing is not supported
-  VisusAssert(query->start_resolution==0);
-
-  std::set<int> good;
-  for (auto it : query->end_resolutions)
-  {
-    //i don't have odd resolutions
-    auto value = (it >> 1) << 1;
-
-    //resolution cannot be less than tile resolution
-    if (value>= getDefaultBitsPerBlock())
-      good.insert(value);
-  }
-
-  query->end_resolutions.assign(good.begin(),good.end());
-
-  //not supported
-  if (!query->logic_position.getTransformation().isIdentity())
-    return query->setFailed("Position has non-identity transformation");
+    return query->setFailed("query logic position not valid");
 
   if (!query->logic_position.getBoxNi().getIntersection(this->getLogicBox()).isFullDim())
     return query->setFailed("user_box not valid");
 
-  query->setRunning();
-  int N = (int)query->end_resolutions.size();
-  for (query->running_cursor = 0; query->running_cursor < N; query->running_cursor++)
+  if (!query->logic_position.getTransformation().isIdentity())
+    return query->setFailed("Position has non-identity transformation");
+
+  if (query->start_resolution != 0)
+    return query->setFailed("query start position wrong");
+
+  if (query->end_resolutions.empty())
+    query->end_resolutions = { this->getMaxResolution() };
+
+  query->end_resolutions = OnlyEvenResolutions(query->end_resolutions, getDefaultBitsPerBlock());
+
+  for (int I = 0; I < (int)query->end_resolutions.size(); I++)
   {
-    if (setCurrentEndResolution(query))
-      return true;
+    if (query->end_resolutions[I]<0 || query->end_resolutions[I]>getMaxResolution())
+      return query->setFailed("wrong end resolution");
   }
 
-  return query->setFailed("Cannot find a good initial resolution");
+  auto entry_status = query->getStatus();
+  query->setRunning();
+  while (++query->running_cursor < (int)query->end_resolutions.size())
+  {
+    auto end_resolution = query->getEndResolution();
+    auto user_box = query->logic_position.getBoxNi().getIntersection(this->getLogicBox());
+    VisusAssert(user_box.isFullDim());
+
+    auto Lbox = getLevelBox(end_resolution);
+    auto box = Lbox.alignBox(user_box);
+
+    if (!box.isFullDim())
+      continue;
+
+    query->logic_box = LogicBox(box, Lbox.delta);
+
+    //merging is not supported, so I'm resetting the buffer
+    if (entry_status == QueryRunning)
+      query->buffer = Array();
+
+    break;
+  }
+
+  //advance succeded
+  if (query->running_cursor < (int)query->end_resolutions.size())
+    return true;
+
+  //reached the end
+  return query->setFailed("No more samples");
 }
+
 
 
 //////////////////////////////////////////////////////////////
@@ -255,39 +281,8 @@ bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuer
   wait_async.waitAllDone();
 
   VisusAssert(query->buffer.dims == query->getNumberOfSamples());
-  query->cur_resolution = query->end_resolutions[query->running_cursor];
+  query->setCurrentResolution(query->getEndResolution());
 
-  return true;
-}
-
-//////////////////////////////////////////////////////////////
-bool GoogleMapsDataset::nextQuery(SharedPtr<BoxQuery> query)
-{
-  if (!query)
-    return false;
-
-  if (!query->canNext())
-    return query->setFailed("query cannot next");
-
-  if (query->aborted())
-    return query->setFailed("query aborted");
-
-  VisusAssert(query->isRunning());
-  ++query->running_cursor;
-
-  //reached the end?
-  if (query->running_cursor == query->end_resolutions.size())
-  {
-    query->setOk();
-    return false;
-  }
-
-  //merging is not supported
-  query->buffer = Array();
-
-  if (!setCurrentEndResolution(query))
-    return query->setFailed("cannot set end resolution");
-  
   return true;
 }
 
@@ -473,35 +468,6 @@ LogicBox GoogleMapsDataset::getLevelBox(int H)
   return ret;
 }
 
-//////////////////////////////////////////////////////////////
-bool GoogleMapsDataset::setCurrentEndResolution(SharedPtr<BoxQuery> query)
-{
-  int end_resolution=query->getEndResolution(); 
-  if (end_resolution<0) 
-    return false;
-
-  VisusAssert(end_resolution % 2==0);
-    
-  //necessary condition
-  VisusAssert(query->start_resolution<=end_resolution);
-  VisusAssert(end_resolution<= getMaxResolution());
-  
-  auto user_box= query->logic_position.getBoxNi().getIntersection(this->getLogicBox());
-  VisusAssert(user_box.isFullDim());
-
-  int H=end_resolution;
-
-  LogicBox Lbox=getLevelBox(end_resolution);
-  BoxNi box=Lbox.alignBox(user_box);
-  if (!box.isFullDim())
-    return false;
-
-  LogicBox logic_box(box,Lbox.delta);
-  query->nsamples=logic_box.nsamples;
-  query->logic_box=logic_box;
-  query->buffer=Array();
-  return true;
-}
 
 } //namespace Visus
 
