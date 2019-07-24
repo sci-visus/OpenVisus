@@ -55,7 +55,7 @@ static bool ComputeFilter(Dataset* dataset,BoxQuery* query,const FilterClass* fi
   if (H==0)
     return true;
 
-  LogicBox         logic_box  = query->logic_box;
+  LogicSamples     logic_samples  = query->logic_samples;
   DType            dtype      = field.dtype;
   int              ncomponents= dtype.ncomponents();
   DatasetBitmask   bitmask    = dataset->getBitmask();
@@ -74,7 +74,7 @@ static bool ComputeFilter(Dataset* dataset,BoxQuery* query,const FilterClass* fi
     return true; 
 
   //align again to filter (this is needed again for certain types of queries, such as query for visus blocks!)
-  BoxNi box=logic_box;
+  BoxNi box= logic_samples.logic_box;
 
   //important! take only the good "samples", i.e. I do not want to do any filtering with samples
   //outside the valid region of the dataset
@@ -106,18 +106,18 @@ static bool ComputeFilter(Dataset* dataset,BoxQuery* query,const FilterClass* fi
     if (P2incl>=box.p2[D]) P2incl-=FILTERSTEP; VisusAssert(P2incl< box.p2[D]);
 
     box.p1[D]=P1incl;
-    box.p2[D]=P2incl+logic_box.delta[D];
+    box.p2[D]=P2incl+ logic_samples.delta[D];
   }
 
   //invalid box obtained!
   if (!box.isFullDim())
     return true;
 
-  PointNi from = logic_box.logicToPixel(box.p1);
-  PointNi to   = logic_box.logicToPixel(box.p2);
+  PointNi from = logic_samples.logicToPixel(box.p1);
+  PointNi to   = logic_samples.logicToPixel(box.p2);
 
   //see map... I can do this only because I know that filterstep is multiple of 2^query->shift
-  PointNi step = filterstep.rightShift(logic_box.shift);
+  PointNi step = filterstep.rightShift(logic_samples.shift);
 
   //I'm going to to the for loop for the filter nested inside
   Int64 FROM   = from[bit]; 

@@ -7,8 +7,8 @@ SET(RootSources
 )
 
 SET(QuerySources
-	./include/Visus/LogicBox.h
-	./src/LogicBox.cpp
+	./include/Visus/LogicSamples.h
+	./src/LogicSamples.cpp
 	./include/Visus/Query.h
 	./src/Query.cpp
 	./include/Visus/BlockQuery.h

@@ -193,7 +193,7 @@ public:
 
     //I use a box query to get the data
     auto query=std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
-    query->logic_position=pow2_box;
+    query->logic_box=pow2_box;
     query->end_resolutions={end_resolution};
 
     if (!dataset->beginQuery(query)) 
@@ -271,7 +271,7 @@ public:
           return;
 
         auto query = std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
-        query->logic_position = node->logic_box;
+        query->logic_box = node->logic_box;
         query->end_resolutions = { node->resolution };
 
         if (aborted() || !dataset->beginQuery(query))
@@ -519,7 +519,7 @@ public:
         continue;
 
       auto query = std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
-      query->logic_position = node->logic_box;
+      query->logic_box = node->logic_box;
       query->end_resolutions = { node->resolution };
 
       if (!dataset->beginQuery(query) || !query->allocateBufferIfNeeded())

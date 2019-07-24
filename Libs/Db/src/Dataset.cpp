@@ -408,7 +408,7 @@ Future<Void> Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<Block
   if ((mode == 'r' && !access->can_read) || (mode == 'w' && !access->can_write))
     return failed();
 
-  if (!query->logic_box.valid())
+  if (!query->logic_samples.valid())
     return failed();
 
   if (mode == 'w' && !query->buffer)
@@ -469,7 +469,7 @@ Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, dou
     box = this->logic_box;
 
   auto query = std::make_shared<BoxQuery>(this, field, time,  'r');
-  query->logic_position = box;
+  query->logic_box = box;
 
   if (!beginQuery(query))
     return Array();
@@ -487,7 +487,7 @@ bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, dou
     box=BoxNi(PointNi(buffer.getPointDim()), buffer.dims);
 
   auto query = std::make_shared<BoxQuery>(this, field, time,'w');
-  query->logic_position = box;
+  query->logic_box = box;
 
   if (!beginQuery(query))
     return false;
@@ -655,17 +655,17 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
 
   VisusAssert(H >= bitsperblock);
 
-  LogicBox level_box;
+  LogicSamples Lsamples;
 
   if (H == bitsperblock)
-    level_box = this->getAddressRangeBox(0, nsamplesperblock);
+    Lsamples = this->getAddressRangeSamples(0, nsamplesperblock);
   else
-    level_box = this->getLevelBox(H);
+    Lsamples = this->getLevelSamples(H);
 
   auto start_block = (H == bitsperblock) ? 0 : (1 << (H - bitsperblock - 1));
   auto block_per_level = std::max(1, start_block);
 
-  Array ret(level_box.nsamples, DTypes::UINT8_RGB);
+  Array ret(Lsamples.nsamples, DTypes::UINT8_RGB);
   ret.fillWithValue(0);
 
   access->beginRead();
@@ -706,7 +706,7 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
       for (int C = 0; C < src.dims[1]; C++) { setBlack(0, C); setBlack(W - 1, C); }
     }
 
-    auto p1 = level_box.logicToPixel(block_query->logic_box.p1);
+    auto p1 = Lsamples.logicToPixel(block_query->getLogicBox().p1);
     ArrayUtils::paste(ret, p1, src);
   }
 

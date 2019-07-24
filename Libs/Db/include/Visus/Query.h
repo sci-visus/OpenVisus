@@ -40,7 +40,7 @@ For support : support@visus.net
 #define __VISUS_QUERY_H
 
 #include <Visus/Db.h>
-#include <Visus/LogicBox.h>
+#include <Visus/LogicSamples.h>
 #include <Visus/Async.h>
 
 namespace Visus {

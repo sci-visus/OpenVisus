@@ -52,13 +52,13 @@ BoxQuery::BoxQuery(Dataset* dataset, Field field, double time, int mode, Aborted
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-bool BoxQuery::mergeSamples(LogicBox Wsamples, Array& Wbuffer, LogicBox Rsamples, Array Rbuffer, int merge_mode, Aborted aborted)
+bool BoxQuery::mergeSamples(LogicSamples Wsamples, Array& Wbuffer, LogicSamples Rsamples, Array Rbuffer, int merge_mode, Aborted aborted)
 {
   if (!Wsamples.valid() || !Rsamples.valid())
     return false;
 
   //cannot find intersection (i.e. no sample to merge)
-  BoxNi box = Wsamples.getIntersection(Rsamples);
+  BoxNi box = Wsamples.logic_box.getIntersection(Rsamples.logic_box);
   if (!box.isFullDim())
     return false;
 
@@ -84,12 +84,13 @@ bool BoxQuery::mergeSamples(LogicBox Wsamples, Array& Wbuffer, LogicBox Rsamples
     Int64 P1 = box.p1[D];
     Int64 P2 = box.p2[D];
 
-    while (!Utils::isAligned(P1, Wsamples.p1[D], Wsamples.delta[D]) ||
-      !Utils::isAligned(P1, Rsamples.p1[D], Rsamples.delta[D]))
+    while (
+      !Utils::isAligned(P1, Wsamples.logic_box.p1[D], Wsamples.delta[D]) ||
+      !Utils::isAligned(P1, Rsamples.logic_box.p1[D], Rsamples.delta[D]))
     {
       //NOTE: if the value is already aligned, alignRight does nothing
-      P1 = Utils::alignRight(P1, Wsamples.p1[D], Wsamples.delta[D]);
-      P1 = Utils::alignRight(P1, Rsamples.p1[D], Rsamples.delta[D]);
+      P1 = Utils::alignRight(P1, Wsamples.logic_box.p1[D], Wsamples.delta[D]);
+      P1 = Utils::alignRight(P1, Rsamples.logic_box.p1[D], Rsamples.delta[D]);
 
       //cannot find any alignment, going beyond the valid range
       if (P1 >= P2)

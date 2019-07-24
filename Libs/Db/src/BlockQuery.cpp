@@ -46,7 +46,7 @@ BlockQuery::BlockQuery(Dataset* dataset_, Field field_, double time_, BigInt sta
   : Query(dataset_,field_,time_, mode_, aborted_), start_address(start_address_), end_address(end_address_)
 {
  
-  this->logic_box = dataset->getAddressRangeBox(this->start_address, this->end_address);
+  this->logic_samples = dataset->getAddressRangeSamples(this->start_address, this->end_address);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

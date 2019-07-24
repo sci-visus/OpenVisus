@@ -157,7 +157,7 @@ public:
     auto timestep = query->time;
     auto field = query->field.name;
     auto dataset_box = dataset->getLogicBox();
-    auto block_logicbox = query->logic_box;
+    auto block_logicbox = query->getLogicBox();
 
     Time t1 = Time::now();
 
@@ -256,8 +256,8 @@ public:
     //    </access>
     // </dataset>
 
-    LogicBox logic_box = query->logic_box;
-    if (!logic_box.valid())
+    LogicSamples logic_samples = query->logic_samples;
+    if (!logic_samples.valid())
       return owner->readFailed(query);
 
     Int64 Width  = dataset->getLogicBox().size()[0];
@@ -277,7 +277,7 @@ public:
       if (query->aborted())
         break;
 
-      PointNi logic_pos = logic_box.pixelToLogic(loc.pos);
+      PointNi logic_pos = logic_samples.pixelToLogic(loc.pos);
 
       //mirror y
       logic_pos[1] = Height - logic_pos[1] - 1;
@@ -346,8 +346,8 @@ public:
   {
     Dataset* dataset = owner->getDataset();
 
-    LogicBox logic_box = query->logic_box;
-    if (!logic_box.valid())
+    LogicSamples logic_samples = query->logic_samples;
+    if (!logic_samples.valid())
       return owner->readFailed(query);
 
     DType dtype = query->field.dtype;
@@ -369,7 +369,7 @@ public:
       if (query->aborted())
         return owner->readFailed(query);
 
-      PointNi logic_pos = logic_box.pixelToLogic(loc.pos);
+      PointNi logic_pos = logic_samples.pixelToLogic(loc.pos);
 
       Point3d p(
         (logic_pos[0] - P0[0]) / (double)(Size[0]),

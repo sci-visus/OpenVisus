@@ -168,6 +168,11 @@ public:
     return this->valid() ? BoxNd(getPoints()) : BoxNd::invalid();
   }
 
+  //toDiscreteAxisAlignedBox
+  BoxNi toDiscreteAxisAlignedBox() const {
+    return toAxisAlignedBox().castTo<BoxNi>();
+  }
+
   //shrink i.e. map * (position.lvalue,position.rvalue') should be in dst_box, does not change position.lvalue
   static Position shrink(BoxNd dst_box, LinearMap& map, Position position);
 

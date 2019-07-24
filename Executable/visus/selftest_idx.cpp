@@ -160,7 +160,7 @@ public:
         BoxNi slice_box=getSliceBox(N);
 
         auto query=std::make_shared<BoxQuery>(dataset,dataset->getDefaultField(),dataset->getDefaultTime(),'w');
-        query->logic_position=slice_box;
+        query->logic_box=slice_box;
         VisusReleaseAssert(dataset->beginQuery(query));
 
         Array buffer(query->getNumberOfSamples(),dtype);
@@ -180,7 +180,7 @@ public:
       for (int N=0;N<this->nslices;N++)
       {
         auto read_slice=std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-        read_slice->logic_position=(getSliceBox(N));
+        read_slice->logic_box=(getSliceBox(N));
         VisusReleaseAssert(dataset->beginQuery(read_slice));
         VisusReleaseAssert(dataset->executeQuery(access,read_slice));
         VisusReleaseAssert(read_slice->getNumberOfSamples().innerProduct()==this->perslice);
@@ -206,7 +206,7 @@ public:
     auto access=dataset->createAccess();
 
     auto query=std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(),dataset->getDefaultTime(),'r');
-    query->logic_position=box;
+    query->logic_box=box;
     query->merge_mode=(bInterpolate? BoxQuery::InterpolateSamples : BoxQuery::InsertSamples);
 
     for (int h=firsth;h<=lasth;h=h+deltah)
@@ -224,8 +224,8 @@ public:
     {
       VisusReleaseAssert(dataset->executeQuery(access,query));
       buffer=query->buffer;
-      h_box=query->logic_box;
-      shift=query->logic_box.shift;
+      h_box=query->logic_samples.logic_box;
+      shift=query->logic_samples.shift;
       if (!dataset->beginQuery(query))
         break;
     }
@@ -242,7 +242,7 @@ public:
         int N=(int)(world_point[pdim-1]-user_box.p1[pdim-1]);
 
         //position inside the slice buffer
-        LogicBox samples=write_queries[N]->logic_box;
+        LogicSamples samples=write_queries[N]->logic_samples;
         PointNi P=samples.logicToPixel(world_point);
         Int64 pos=stride.dotProduct(P);
         VisusReleaseAssert(CompareSamples(this->write_queries[N]->buffer,pos,buffer,nsample,1));

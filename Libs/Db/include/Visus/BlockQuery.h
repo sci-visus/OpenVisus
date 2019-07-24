@@ -54,8 +54,7 @@ public:
 
   BigInt       start_address = 0;
   BigInt       end_address = 0;
-
-  LogicBox     logic_box;
+  LogicSamples logic_samples;
 
   //constructor
   BlockQuery(Dataset* dataset, Field field, double time, BigInt start_address, BigInt end_address, int mode, Aborted aborted);
@@ -66,14 +65,18 @@ public:
 
   //getNumberOfSamples
   virtual PointNi getNumberOfSamples() const override {
-    return logic_box.nsamples;
+    return logic_samples.nsamples;
+  }
+
+  //getLogicBox
+  BoxNi getLogicBox() const {
+    return logic_samples.logic_box;
   }
 
   //getBlockNumber
   BigInt getBlockNumber(int bitsperblock) const {
     return start_address >> bitsperblock;
   }
-
 
 };
 

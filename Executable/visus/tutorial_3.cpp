@@ -65,7 +65,7 @@ void Tutorial_3(String default_layout)
 
   //create and read data for end_resolutions [8,12] (12==MaxH which is the very last available on disk)
   auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
-  query->logic_position=slice_box;
+  query->logic_box=slice_box;
   query->end_resolutions={8,12};
   query->merge_mode=BoxQuery::InsertSamples; //IMPORTANT: here you can also use bInterpolate=true
 

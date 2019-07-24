@@ -276,8 +276,9 @@ public:
     if (bBlockTotallyInsideSingle)
     {
       //forward the block read to a single child
-      auto index = QUERY->logic_box.p1.innerDiv(dims);
-      auto p1 = QUERY->logic_box.p1.innerMod(dims);
+      auto P1    = QUERY->getLogicBox().p1;
+      auto index = P1.innerDiv(dims);
+      auto p1    = P1.innerMod(dims);
 
       auto it = childs.find(index);
       if (it == childs.end())
@@ -325,7 +326,7 @@ public:
         auto access = getChildAccess(it.second);
 
         auto query = std::make_shared<BoxQuery>(dataset.get(), QUERY->field, QUERY->time, 'r');
-        query->logic_position = QUERY->logic_box.translate(-offset);
+        query->logic_box = QUERY->getLogicBox().translate(-offset);
         query->end_resolutions = { HZORDER.getAddressResolution(BITMASK, QUERY->end_address - 1) - NBITS };
         query->start_resolution = BLOCK ? query->end_resolutions[0] : 0;
 
@@ -341,8 +342,8 @@ public:
         if (!dataset->executeQuery(access, query))
           continue;
 
-        auto pixel_p1 = PointNi(pdim); auto logic_p1 = query->logic_box.pixelToLogic(pixel_p1); auto LOGIC_P1 = logic_p1 + offset; auto PIXEL_P1 = QUERY->logic_box.logicToPixel(LOGIC_P1);
-        auto pixel_p2 = query->buffer.dims; auto logic_p2 = query->logic_box.pixelToLogic(pixel_p2); auto LOGIC_P2 = logic_p2 + offset; auto PIXEL_p2 = QUERY->logic_box.logicToPixel(LOGIC_P2);
+        auto pixel_p1 =      PointNi(pdim); auto logic_p1 = query->logic_samples.pixelToLogic(pixel_p1); auto LOGIC_P1 = logic_p1 + offset; auto PIXEL_P1 = QUERY->logic_samples.logicToPixel(LOGIC_P1);
+        auto pixel_p2 = query->buffer.dims; auto logic_p2 = query->logic_samples.pixelToLogic(pixel_p2); auto LOGIC_P2 = logic_p2 + offset; auto PIXEL_p2 = QUERY->logic_samples.logicToPixel(LOGIC_P2);
 
         ArrayUtils::insert(
           QUERY->buffer, PIXEL_P1, PIXEL_p2, PointNi::one(pdim),
@@ -575,7 +576,7 @@ public:
     auto BOX = Position(M, dataset->getLogicBox()).toAxisAlignedBox();
 
     //no intersection? just skip this down query
-    if (!QUERY->logic_position.toAxisAlignedBox().intersect(BOX))
+    if (!QUERY->logic_box.castTo<BoxNd>().intersect(BOX))
       return SharedPtr<BoxQuery>();
 
     auto query = std::make_shared<BoxQuery>(dataset.get(), field, QUERY->time, 'r', QUERY->aborted);
@@ -602,8 +603,7 @@ public:
     }
     query->end_resolutions = std::vector<int>(end_resolutions.begin(), end_resolutions.end());
 
-    auto QUERY_T   = QUERY->logic_position.getTransformation();
-    auto QUERY_BOX = QUERY->logic_position.getBoxNd();
+    auto QUERY_BOX = QUERY->logic_box.castTo<BoxNd>();
 
     // WRONG, consider that M could have mat(3,0) | mat(3,1) | mat(3,2) !=0 and so I can have non-parallel axis
     // i.e. computing the bounding box in position very far from the mapped region are wrong because some axis of the quads can interect in some points
@@ -611,10 +611,10 @@ public:
     // if you use this wrong version, for voronoi in 2d you will see some missing pieces around
     // solution is to limit the QUERY_BOX into a more "local" one
 #if 1
-    QUERY_BOX = Position(QUERY_T.invert(), M, dataset->getLogicBox()).toAxisAlignedBox().getIntersection(QUERY_BOX);
+    QUERY_BOX = Position(M, dataset->getLogicBox()).toAxisAlignedBox().getIntersection(QUERY_BOX);
 #endif
 
-    query->logic_position = Position(M.invert(), QUERY_T, QUERY_BOX);
+    query->logic_box = Position(M.invert(), QUERY_BOX).toDiscreteAxisAlignedBox();
 
     //skip this argument since returns empty array
     if (!dataset->beginQuery(query))
@@ -694,8 +694,8 @@ public:
     query->down_info.BUFFER.alpha = std::make_shared<Array>(NSAMPLES, DTypes::UINT8);
     query->down_info.BUFFER.alpha->fillWithValue(0);
 
-    auto PIXEL_TO_LOGIC = Position::computeTransformation(Position(QUERY->logic_position), query->down_info.BUFFER.dims);
-    auto pixel_to_logic = Position::computeTransformation(Position(query->logic_position), query->buffer.dims);
+    auto PIXEL_TO_LOGIC = Position::computeTransformation(Position(QUERY->logic_box), query->down_info.BUFFER.dims);
+    auto pixel_to_logic = Position::computeTransformation(Position(query->logic_box), query->buffer.dims);
 
     // Tperspective := PIXEL <- pixel
     auto LOGIC_TO_PIXEL = PIXEL_TO_LOGIC.invert();
@@ -1567,7 +1567,7 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuer
       }
 
       //a projection happened? results will be unmergeable!
-      if (OUTPUT.dims != QUERY->logic_box.nsamples)
+      if (OUTPUT.dims != QUERY->logic_samples.nsamples)
         QUERY->merge_mode = BoxQuery::DoNotMerge;
       QUERY->buffer = OUTPUT;
       QUERY->setCurrentResolution(QUERY->getEndResolution());

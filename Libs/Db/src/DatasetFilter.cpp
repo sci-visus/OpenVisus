@@ -159,7 +159,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
 
       //important, i'm not using adjustBox because I'm sure it is already correct!
       auto read=std::make_shared<BoxQuery>(dataset, field, time,'r');
-      read->logic_position=sliding_window;
+      read->logic_box=sliding_window;
       read->end_resolutions={H};
 
       if (!dataset->beginQuery(read))
@@ -214,7 +214,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
       #endif
 
       auto write=std::make_shared<BoxQuery>(dataset, field, time,'w');
-      write->logic_position=sliding_window;
+      write->logic_box=sliding_window;
       write->end_resolutions={H};
       if (!dataset->beginQuery(write))
         return false;

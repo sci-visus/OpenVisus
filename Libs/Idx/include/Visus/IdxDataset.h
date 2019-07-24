@@ -93,8 +93,8 @@ public:
   //compressDataset
   virtual bool compressDataset(String compression) override;
 
-  //getLevelBox
-  virtual LogicBox getLevelBox(int H) override;
+  //getLevelSamples
+  virtual LogicSamples getLevelSamples(int H) override;
 
   //adjustFilterBox
   BoxNi adjustFilterBox(BoxQuery* query,DatasetFilter* filter,BoxNi box,int H);
@@ -113,8 +113,8 @@ public:
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
 
-  //getAddressRangeBox
-  virtual LogicBox getAddressRangeBox(BigInt start_address, BigInt end_address) override;
+  //getAddressRangeSamples
+  virtual LogicSamples getAddressRangeSamples(BigInt start_address, BigInt end_address) override;
 
   //convertBlockQueryToRowMajor
   virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override;

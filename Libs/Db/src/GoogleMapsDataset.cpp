@@ -176,14 +176,11 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<BoxQuery> query)
   if (query->aborted())
     return query->setFailed("query aborted");
 
-  if (!query->logic_position.valid())
+  if (!query->logic_box.valid())
     return query->setFailed("query logic position not valid");
 
-  if (!query->logic_position.getBoxNi().getIntersection(this->getLogicBox()).isFullDim())
+  if (!query->logic_box.getIntersection(this->getLogicBox()).isFullDim())
     return query->setFailed("user_box not valid");
-
-  if (!query->logic_position.getTransformation().isIdentity())
-    return query->setFailed("Position has non-identity transformation");
 
   if (query->start_resolution != 0)
     return query->setFailed("query start position wrong");
@@ -204,16 +201,16 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<BoxQuery> query)
   while (++query->running_cursor < (int)query->end_resolutions.size())
   {
     auto end_resolution = query->getEndResolution();
-    auto user_box = query->logic_position.getBoxNi().getIntersection(this->getLogicBox());
+    auto user_box = query->logic_box.getIntersection(this->getLogicBox());
     VisusAssert(user_box.isFullDim());
 
-    auto Lbox = getLevelBox(end_resolution);
-    auto box = Lbox.alignBox(user_box);
+    auto Lsamples = getLevelSamples(end_resolution);
+    auto box = Lsamples.alignBox(user_box);
 
     if (!box.isFullDim())
       continue;
 
-    query->logic_box = LogicBox(box, Lbox.delta);
+    query->logic_samples = LogicSamples(box, Lsamples.delta);
 
     //merging is not supported, so I'm resetting the buffer
     if (entry_status == QueryRunning)
@@ -293,7 +290,7 @@ void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_q
   if (query->aborted()) 
     return;
 
-  if (!box.getIntersection(query->logic_position.getBoxNi()).isFullDim())
+  if (!box.getIntersection(query->logic_box).isFullDim())
     return;
 
   int samplesperblock=1<<this->getDefaultBitsPerBlock();
@@ -323,7 +320,7 @@ void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_q
 //////////////////////////////////////////////////////////////
 bool GoogleMapsDataset::mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> blockquery)
 {
-  return BoxQuery::mergeSamples(query->logic_box, query->buffer, blockquery->logic_box, blockquery->buffer, BoxQuery::InsertSamples, query->aborted);
+  return BoxQuery::mergeSamples(query->logic_samples, query->buffer, blockquery->logic_samples, blockquery->buffer, BoxQuery::InsertSamples, query->aborted);
 }
 
 //////////////////////////////////////////////////////////////
@@ -377,7 +374,7 @@ Point3i GoogleMapsDataset::getTileCoordinate(BigInt start_address,BigInt end_add
 }
 
 //////////////////////////////////////////////////////////////
-LogicBox GoogleMapsDataset::getAddressRangeBox(BigInt start_address,BigInt end_address)
+LogicSamples GoogleMapsDataset::getAddressRangeSamples(BigInt start_address,BigInt end_address)
 {
   auto coord=getTileCoordinate(start_address,end_address);
 
@@ -396,7 +393,7 @@ LogicBox GoogleMapsDataset::getAddressRangeBox(BigInt start_address,BigInt end_a
   box.p1[0] = tile_width  * (X + 0); box.p2[0] = tile_width  * (X + 1);
   box.p1[1] = tile_height * (Y + 0); box.p2[1] = tile_height * (Y + 1);
 
-  return LogicBox(box,delta);
+  return LogicSamples(box,delta);
 }
 
 //////////////////////////////////////////////////////////////
@@ -443,7 +440,7 @@ bool GoogleMapsDataset::openFromUrl(Url url)
 
 
 //////////////////////////////////////////////////////////////
-LogicBox GoogleMapsDataset::getLevelBox(int H)
+LogicSamples GoogleMapsDataset::getLevelSamples(int H)
 {
   int bitsperblock=this->getDefaultBitsPerBlock();
   VisusAssert((H%2)==0 && H>=bitsperblock);
@@ -463,7 +460,7 @@ LogicBox GoogleMapsDataset::getLevelBox(int H)
   box.p2[0] = ntiles_x*tile_width;
   box.p2[1] = ntiles_y*tile_height;
     
-  auto ret=LogicBox(box,delta);
+  auto ret=LogicSamples(box,delta);
   VisusAssert(ret.valid());
   return ret;
 }

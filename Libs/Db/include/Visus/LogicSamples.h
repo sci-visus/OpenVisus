@@ -36,8 +36,8 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_LOGIC_BOX_H
-#define __VISUS_LOGIC_BOX_H
+#ifndef __VISUS_LOGIC_SAMPLES_H
+#define __VISUS_LOGIC_SAMPLES_H
 
 #include <Visus/Db.h>
 #include <Visus/Array.h>
@@ -45,25 +45,26 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////
-class VISUS_DB_API LogicBox : public BoxNi 
+class VISUS_DB_API LogicSamples 
 {
 public:
 
-  VISUS_CLASS(LogicBox)
+  VISUS_CLASS(LogicSamples)
 
+  BoxNi   logic_box;
   PointNi nsamples;
   PointNi delta;
   PointNi shift;
 
   //default constructor
-  LogicBox() : BoxNi(0) {
+  LogicSamples() {
   }
 
   //constructor
-  LogicBox(BoxNi box_, PointNi delta_) 
-    : BoxNi(box_),delta(delta_),shift(delta_.getLog2())
+  LogicSamples(BoxNi logic_box_, PointNi delta_)
+    : logic_box(logic_box_),delta(delta_),shift(delta_.getLog2())
   {
-    int pdim = getPointDim();
+    int pdim = logic_box.getPointDim();
 
     //a zero delta will cause problems. you can have an endless loop
     //  for (pos=;pos<=;pos+=delta)
@@ -72,21 +73,26 @@ public:
     //calculate how many samples I will get
     this->nsamples = PointNi::one(pdim);
     for (int D=0;D<pdim;D++)
-      this->nsamples[D]=(this->p2[D]-this->p1[D])/this->delta[D];
+      this->nsamples[D]=(logic_box.p2[D]- logic_box.p1[D])/ this->delta[D];
 
     //probably overflow
-    if (this->nsamples.innerProduct()<=0 || !BoxNi::isFullDim()) {
-      *this=LogicBox();
+    if (this->nsamples.innerProduct()<=0 || !logic_box.isFullDim()) {
+      *this= LogicSamples();
       return;
     }
 
     //check alignment
     VisusAssert(
       ((PointNi::one(pdim).leftShift(this->shift))==this->delta) && 
-      (this->pixelToLogic(PointNi(pdim))==this->p1) &&
-      (this->pixelToLogic(nsamples)==this->p2)  &&
-      (this->logicToPixel(this->p1)==PointNi(pdim)) &&
-      (this->logicToPixel(this->p2)==nsamples)); 
+      (this->pixelToLogic(PointNi(pdim))==logic_box.p1) &&
+      (this->pixelToLogic(nsamples)== logic_box.p2)  &&
+      (this->logicToPixel(logic_box.p1)==PointNi(pdim)) &&
+      (this->logicToPixel(logic_box.p2)==nsamples));
+  }
+
+  //invalid
+  static LogicSamples invalid() {
+    return LogicSamples();
   }
 
   //valid
@@ -94,14 +100,24 @@ public:
     return nsamples.innerProduct() > 0;
   }
 
+  //operator==
+  bool operator==(const LogicSamples& other) const {
+    return logic_box == other.logic_box && nsamples == other.nsamples && delta == other.delta && shift == other.shift;
+  }
+
+  //operator!=
+  bool operator!=(const LogicSamples& other) const  {
+    return !(operator==(other));
+  }
+
   //pixelToLogic
   inline PointNi pixelToLogic(const PointNi& value) const {
-    return p1 + value.leftShift(shift);
+    return logic_box.p1 + value.leftShift(shift);
   }
 
   //logicToPixel
   inline PointNi logicToPixel(const PointNi& value) const {
-    return (value-p1).rightShift(shift);
+    return (value- logic_box.p1).rightShift(shift);
   }
 
   //alignBox
@@ -112,7 +128,7 @@ public:
     if (!this->valid())
       return BoxNi::invalid();
 
-    value= value.getIntersection(*this);
+    value= value.getIntersection(this->logic_box);
 
     if (!value.isFullDim())
       return BoxNi::invalid();
@@ -121,16 +137,15 @@ public:
     //      if it's not aligned will be moved to the right, but all the extra samples wont't be "good" due to the delta
     for (int D = 0; D < pdim; D++) 
     {
-      value.p1[D] = Utils::alignRight(value.p1[D], this->p1[D], this->delta[D]);
-      value.p2[D] = Utils::alignRight(value.p2[D], this->p1[D], this->delta[D]);
+      value.p1[D] = Utils::alignRight(value.p1[D], logic_box.p1[D], this->delta[D]);
+      value.p2[D] = Utils::alignRight(value.p2[D], logic_box.p1[D], this->delta[D]);
     }
     return value;
   }
 
 };
 
-
 } //namespace Visus
 
-#endif //__VISUS_LOGIC_BOX_H
+#endif //__VISUS_LOGIC_SAMPLES_H
 

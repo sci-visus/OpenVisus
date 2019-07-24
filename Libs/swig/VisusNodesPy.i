@@ -1,7 +1,7 @@
 %module(directors="1") VisusNodesPy
 
 %{ 
-#include <Visus/LogicBox.h>
+#include <Visus/LogicSamples.h>
 #include <Visus/Nodes.h>
 #include <Visus/Query.h>
 #include <Visus/BlockQuery.h>

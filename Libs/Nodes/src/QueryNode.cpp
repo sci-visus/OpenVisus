@@ -118,7 +118,7 @@ public:
       auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r', this->aborted);
       query->filter.enabled = true;
       query->merge_mode = BoxQuery::InsertSamples;
-      query->logic_position = this->logic_position;
+      query->logic_box = this->logic_position.toDiscreteAxisAlignedBox();
       query->end_resolutions = this->end_resolutions;
 
       if (!dataset->beginQuery(query))
@@ -163,14 +163,14 @@ public:
       output = filter->dropExtraComponentIfExists(output);
 
     DataflowMessage msg;
-    output.bounds = dataset->logicToPhysic(query->logic_position);
+    output.bounds = dataset->logicToPhysic(query->logic_box);
 
     if (pdim==3)
       output.clipping = dataset->logicToPhysic(this->logic_position);
 
     //a projection happened?
 #if 1
-    if (query->logic_box.nsamples != output.dims)
+    if (query->logic_samples.nsamples != output.dims)
     {
       //disable clipping
       output.clipping = Position::invalid();
@@ -180,7 +180,7 @@ public:
       auto box = output.bounds.getBoxNd();
       for (int D = 0; D < pdim; D++)
       {
-        if (query->logic_box.nsamples[D] > 1 && output.dims[D] == 1)
+        if (query->logic_samples.nsamples[D] > 1 && output.dims[D] == 1)
           box.p2[D] = box.p1[D];
       }
       output.bounds = Position(T, box);

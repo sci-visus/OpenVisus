@@ -30,7 +30,7 @@ using namespace Visus;
 
 %include <Visus/Db.h>
 %include <Visus/Access.h>
-%include <Visus/LogicBox.h>
+%include <Visus/LogicSamples.h>
 %include <Visus/Query.h>
 %include <Visus/BlockQuery.h>
 %include <Visus/BoxQuery.h>

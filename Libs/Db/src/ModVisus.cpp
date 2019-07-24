@@ -697,7 +697,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
       query->filter.enabled = false;
     }
 
-    query->logic_position = Position(BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box")));
+    query->logic_box = BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box"));
 
     //query failed
     if (!dataset->beginQuery(query))

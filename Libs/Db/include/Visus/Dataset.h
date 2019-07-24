@@ -361,11 +361,11 @@ public:
     return bitmask.getMaxResolution();
   }
 
-  //getLevelBox
-  virtual LogicBox getLevelBox(int H) = 0;
+  //getLevelSamples
+  virtual LogicSamples getLevelSamples(int H) = 0;
 
-  //getAddressRangeBox
-  virtual LogicBox getAddressRangeBox(BigInt start_address, BigInt end_address) = 0;
+  //getAddressRangeSamples
+  virtual LogicSamples getAddressRangeSamples(BigInt start_address, BigInt end_address) = 0;
 
 public:
 

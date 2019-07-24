@@ -101,8 +101,8 @@ public:
     int fromh = HzOrder::getAddressResolution(bitmask,query->start_address);
     int toh   = HzOrder::getAddressResolution(bitmask,query->end_address-1);
 
-    LogicBox logic_box=query->logic_box;
-    if (!logic_box.valid())
+    LogicSamples logic_samples=query->logic_samples;
+    if (!logic_samples.valid())
       return readFailed(query);
 
     auto& buffer=query->buffer;
@@ -114,7 +114,7 @@ public:
     Float32* ptr=(Float32*)query->buffer.c_ptr();
     for (auto loc = ForEachPoint(buffer.dims); !loc.end(); loc.next())
     {
-      PointNi pos=logic_box.pixelToLogic(loc.pos);
+      PointNi pos= logic_samples.pixelToLogic(loc.pos);
       double x=(pos[0]-box.p1[0])/(double)(dim[0]);
       double y=(pos[1]-box.p1[1])/(double)(dim[1]);
       *ptr++=(Float32)Mandelbrot(x,y);
@@ -336,9 +336,9 @@ public:
     int              numused=0;
     int              bit;
     Int64 delta;
-    BoxNi            query_box        = query->logic_box;
+    BoxNi            logic_box        = query->logic_samples.logic_box;
     PointNi          stride           = query->getNumberOfSamples().stride();
-    PointNi          qshift           = query->logic_box.shift;
+    PointNi          qshift           = query->logic_samples.shift;
     BigInt           numpoints;
     Aborted          aborted=query->aborted;
 
@@ -346,8 +346,8 @@ public:
     FastLoopStack STACK[DatasetBitmaskMaxLen+1];
 
     //layout of the block
-    LogicBox Bbox= block_query->logic_box;
-    if (!Bbox.valid())
+    auto block_logic_box= block_query->getLogicBox();
+    if (!block_logic_box.valid())
       return false;
 
     //deltas
@@ -360,14 +360,14 @@ public:
       if (aborted())
         return false;
 
-      LogicBox Lbox=vf->getLevelBox(H);
-      PointNi  lshift=Lbox.shift;
+      LogicSamples Lsamples=vf->getLevelSamples(H);
+      PointNi  lshift= Lsamples.shift;
 
-      BoxNi   zbox = (HzFrom!=0)? Bbox : Lbox;
+      BoxNi   zbox = (HzFrom!=0)? block_logic_box : Lsamples.logic_box;
       BigInt  hz   = hzorder.getAddress(zbox.p1);
 
-      BoxNi user_box= query_box.getIntersection(zbox);
-      BoxNi box=Lbox.alignBox(user_box);
+      BoxNi user_box= logic_box.getIntersection(zbox);
+      BoxNi box= Lsamples.alignBox(user_box);
       if (!box.isFullDim())
         continue;
      
@@ -407,7 +407,7 @@ public:
           Int64    hzfrom = cint64(hz-HzFrom);
           Int64    num    = cint64(numpoints);
           PointNi* cc     = (PointNi*)fllevel.cached_points->c_ptr();
-          const PointNi  query_p1=query_box.p1;
+          const PointNi  query_p1= logic_box.p1;
           PointNi  P=item.box.p1;
 
           ++numused;
@@ -500,13 +500,13 @@ public:
     HzOrder        hzorder         (bitmask, maxh);
     PointNi        depth_mask    = hzorder.getLevelP2Included(query->end_resolution);
 
-    LogicBox Bbox= block_query->logic_box;
-    if (!Bbox.valid())
+    LogicSamples block_samples= block_query->logic_samples;
+    if (!block_samples.valid())
       return false;
 
     PointNi stride = Rbuffer.dims.stride();
-    PointNi p0     = Bbox.p1;
-    PointNi shift  = Bbox.shift;
+    PointNi p0     = block_samples.logic_box.p1;
+    PointNi shift  = block_samples.shift;
 
     auto points = (Int64*)query->points.c_ptr();
 
@@ -560,12 +560,12 @@ IdxDataset::~IdxDataset(){
 }
 
 ///////////////////////////////////////////////////////////
-LogicBox IdxDataset::getLevelBox(int H)
+LogicSamples IdxDataset::getLevelSamples(int H)
 {
   HzOrder hzorder(getBitmask());
   PointNi delta = hzorder.getLevelDelta(H);
   BoxNi box(hzorder.getLevelP1(H),hzorder.getLevelP2Included(H) + delta);
-  auto ret=LogicBox(box, delta);
+  auto ret=LogicSamples(box, delta);
   VisusAssert(ret.valid());
   return ret;
 }
@@ -824,7 +824,7 @@ BoxNi IdxDataset::adjustFilterBox(BoxQuery* query,DatasetFilter* filter,BoxNi us
 
 
 //////////////////////////////////////////////////////////////////
-LogicBox IdxDataset::getAddressRangeBox(BigInt HzFrom,BigInt HzTo)
+LogicSamples IdxDataset::getAddressRangeSamples(BigInt HzFrom,BigInt HzTo)
 {
   const DatasetBitmask& bitmask=this->idxfile.bitmask;
   int pdim = bitmask.getPointDim();
@@ -849,7 +849,7 @@ LogicBox IdxDataset::getAddressRangeBox(BigInt HzFrom,BigInt HzTo)
 
   BoxNi box(hzorder.getPoint(HzFrom),hzorder.getPoint(HzTo-1)+delta);
 
-  auto ret=LogicBox(box,delta);
+  auto ret=LogicSamples(box,delta);
   VisusAssert(ret.nsamples==HzOrder::getAddressRangeNumberOfSamples(bitmask,HzFrom,HzTo));
   VisusAssert(ret.valid());
   return ret;
@@ -863,12 +863,12 @@ SharedPtr<BoxQuery> IdxDataset::createEquivalentBoxQuery(int mode,SharedPtr<Bloc
   int fromh = HzOrder::getAddressResolution(bitmask,block_query->start_address);
   int toh   = HzOrder::getAddressResolution(bitmask,block_query->end_address-1);
 
-  auto logic_box=block_query->logic_box;
-  VisusAssert(logic_box.nsamples.innerProduct()==(block_query->end_address-block_query->start_address));
+  auto block_samples=block_query->logic_samples;
+  VisusAssert(block_samples.nsamples.innerProduct()==(block_query->end_address-block_query->start_address));
   VisusAssert(fromh==toh || block_query->start_address==0);
 
   auto ret=std::make_shared<BoxQuery>(this, block_query->field, block_query->time,mode, block_query->aborted);
-  ret->logic_position=logic_box;
+  ret->logic_box= block_samples.logic_box;
   ret->start_resolution=fromh;
   ret->end_resolutions={toh};
   return ret;
@@ -1072,20 +1072,20 @@ bool IdxDataset::mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<Bloc
     int            hstart=std::max(query->getCurrentResolution() +1  ,HzOrder::getAddressResolution(bitmask,HzFrom));
     int            hend  =std::min(query->getEndResolution(),HzOrder::getAddressResolution(bitmask,HzTo-1));
 
-    auto Bbox = block_query->logic_box;
+    auto Bsamples = block_query->logic_samples;
 
-    if (!Bbox.valid())
+    if (!Bsamples.valid())
       return false;
 
-    auto Wbox    = query->logic_box;
+    auto Wsamples= query->logic_samples;
     auto Wbuffer = query->buffer;
 
-    auto Rbox    = Bbox;
+    auto Rsamples    = Bsamples;
     auto Rbuffer = block_query->buffer;
 
     if (query->mode == 'w')
     {
-      std::swap(Wbox, Rbox);
+      std::swap(Wsamples, Rsamples);
       std::swap(Wbuffer,Rbuffer);
     }
 
@@ -1111,29 +1111,29 @@ bool IdxDataset::mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<Bloc
 
       for (int H=hstart; !query->aborted() && H<=hend ; ++H)
       {
-        auto Lbox    = getLevelBox(H);
-        auto Lbuffer = Array(Lbox.nsamples,block_query->field.dtype);
+        auto Lsamples    = getLevelSamples(H);
+        auto Lbuffer = Array(Lsamples.nsamples,block_query->field.dtype);
 
         /*
         NOTE the pipeline is:
-             Wbox <- Lbox <- Rbox 
+             Wsamples <- Lsamples <- Rsamples 
 
-         but since it can be that Rbox writes only a subset of Lbox 
-         i.e.  I allocate Lbox buffer and one of its samples at position P is not written by Rbox
-               that sample P will overwrite some Wbox P' 
+         but since it can be that Rsamples writes only a subset of Lsamples 
+         i.e.  I allocate Lsamples buffer and one of its samples at position P is not written by Rsamples
+               that sample P will overwrite some Wsamples P' 
 
          For this reason I do at the beginning:
 
-          Lbox <- Wbox
+          LbLsamplesox <- Wsamples
 
-        int this way I'm sure that all Wbox P' are left unmodified
+        int this way I'm sure that all Wsamples P' are left unmodified
 
         Note also that merge can fail simply because there are no samples to merge at a certain level
         */
 
-        BoxQuery::mergeSamples(Lbox,Lbuffer,Wbox,Wbuffer,BoxQuery::InsertSamples,query->aborted);
-        BoxQuery::mergeSamples(Lbox,Lbuffer,Rbox,Rbuffer, BoxQuery::InsertSamples,query->aborted);
-        BoxQuery::mergeSamples(Wbox,Wbuffer,Lbox,Lbuffer, BoxQuery::InsertSamples,query->aborted);
+        BoxQuery::mergeSamples(Lsamples, Lbuffer, Wsamples,Wbuffer, BoxQuery::InsertSamples, query->aborted);
+        BoxQuery::mergeSamples(Lsamples, Lbuffer, Rsamples,Rbuffer, BoxQuery::InsertSamples, query->aborted);
+        BoxQuery::mergeSamples(Wsamples, Wbuffer, Lsamples,Lbuffer, BoxQuery::InsertSamples, query->aborted);
       }
 
       return query->aborted()? false : true;
@@ -1142,7 +1142,7 @@ bool IdxDataset::mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<Bloc
     {
       VisusAssert(hstart==hend);
 
-      return BoxQuery::mergeSamples(Wbox,Wbuffer,Rbox,Rbuffer, BoxQuery::InsertSamples,query->aborted);
+      return BoxQuery::mergeSamples(Wsamples,Wbuffer, Rsamples,Rbuffer, BoxQuery::InsertSamples,query->aborted);
     }
   }
   else
@@ -1201,6 +1201,7 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<BoxQuery> query
   NetRequest ret;
   ret.url = url.getProtocol() + "://" + url.getHostname() + ":" + cstring(url.getPort()) + "/mod_visus";
   ret.url.params = url.params;  //I may have some extra params I want to keep!
+  ret.url.setParam("action", "boxquery");
   ret.url.setParam("dataset", url.getParam("dataset"));
   ret.url.setParam("time", url.getParam("time", cstring(query->time)));
   ret.url.setParam("compression", url.getParam("compression", "zip")); //for networking I prefer to use zip
@@ -1208,10 +1209,7 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<BoxQuery> query
   ret.url.setParam("fromh", cstring(query->start_resolution));
   ret.url.setParam("toh", cstring(query->getEndResolution()));
   ret.url.setParam("maxh", cstring(getMaxResolution())); //backward compatible
-
-  VisusAssert(query->logic_position.getTransformation().isIdentity()); //todo
-  ret.url.setParam("action", "boxquery");
-  ret.url.setParam("box", query->logic_position.getBoxNi().toOldFormatString());
+  ret.url.setParam("box", query->logic_box.toOldFormatString());
   ret.aborted = query->aborted;
   return ret;
 }
@@ -1227,6 +1225,7 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<PointQuery> que
   NetRequest ret;
   ret.url = url.getProtocol() + "://" + url.getHostname() + ":" + cstring(url.getPort()) + "/mod_visus";
   ret.url.params = url.params;  //I may have some extra params I want to keep!
+  ret.url.setParam("action", "pointquery");
   ret.url.setParam("dataset", url.getParam("dataset"));
   ret.url.setParam("time", url.getParam("time", cstring(query->time)));
   ret.url.setParam("compression", url.getParam("compression", "zip")); //for networking I prefer to use zip
@@ -1234,8 +1233,6 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<PointQuery> que
   ret.url.setParam("fromh", cstring(0)); //backward compatible
   ret.url.setParam("toh", cstring(query->end_resolution));
   ret.url.setParam("maxh", cstring(getMaxResolution())); //backward compatible
-
-  ret.url.setParam("action"  ,"pointquery");
   ret.url.setParam("matrix"  ,query->logic_position.getTransformation().toString());
   ret.url.setParam("box"     ,query->logic_position.getBoxNd().toBox3().toString(/*bInterleave*/false));
   ret.url.setParam("nsamples",query->getNumberOfSamples().toString());
@@ -1313,7 +1310,7 @@ bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
   if (!query->field.valid())
     return query->setFailed("field not valid");
 
-  if (!query->logic_position.valid())
+  if (!query->logic_box.valid())
     return query->setFailed("position not valid");
 
   // override time from field
@@ -1339,12 +1336,7 @@ bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
   if (query->start_resolution > 0 && (query->end_resolutions.size() != 1 || query->start_resolution != query->end_resolutions[0]))
     return query->setFailed("wrong query start resolution");
 
-  //remove transformation 
-  Matrix T = query->logic_position.getTransformation();
-  if (!T.isIdentity())
-    query->logic_position = query->logic_position.toAxisAlignedBox().castTo<BoxNi>().getIntersection(this->getLogicBox());
-
-  if (!query->logic_position.valid())
+  if (!query->logic_box.valid())
     return query->setFailed("query logic_position is wrong");
 
   if (query->filter.enabled)
@@ -1363,7 +1355,7 @@ bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
   int pdim = this->getPointDim();
 
   auto Rcurrent_resolution = query->getCurrentResolution();
-  auto Rbox = query->logic_box;
+  auto Rsamples = query->logic_samples;
   auto Rbuffer = query->buffer;
   auto Rfilter_query = query->filter.query;
 
@@ -1373,7 +1365,7 @@ bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
   {
     auto start_resolution = query->start_resolution;
     auto end_resolution = query->getEndResolution();
-    auto logic_box = query->logic_position.getBoxNi().withPointDim(this->getPointDim());
+    auto logic_box = query->logic_box.withPointDim(this->getPointDim());
 
     //special case for query with filters
     //I need to go level by level [0,1,2,...] in order to reconstruct the original data
@@ -1395,14 +1387,14 @@ bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
     {
       int bit = bitmask[H];
 
-      LogicBox Lbox = this->getLevelBox(H);
+      LogicSamples Lsamples = this->getLevelSamples(H);
 
-      BoxNi box = Lbox.alignBox(logic_box);
+      BoxNi box = Lsamples.alignBox(logic_box);
       if (!box.isFullDim())
         continue;
 
       PointNi p1incl = box.p1;
-      PointNi p2incl = box.p2 - Lbox.delta;
+      PointNi p2incl = box.p2 - Lsamples.delta;
       P1incl = bGotSamples ? PointNi::min(P1incl, p1incl) : p1incl;
       P2incl = bGotSamples ? PointNi::max(P2incl, p2incl) : p2incl;
       bGotSamples = true;
@@ -1411,11 +1403,11 @@ bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
     if (!bGotSamples)
       continue;
 
-    query->logic_box = LogicBox(BoxNi(P1incl, P2incl + DELTA), DELTA);
-    VisusAssert(query->logic_box.valid());
+    query->logic_samples = LogicSamples(BoxNi(P1incl, P2incl + DELTA), DELTA);
+    VisusAssert(query->logic_samples.valid());
 
     //merge with previous resolution
-    if (query->merge_mode != BoxQuery::DoNotMerge && Rbox.valid() && Rbox.nsamples == Rbuffer.dims)
+    if (query->merge_mode != BoxQuery::DoNotMerge && Rsamples.valid() && Rsamples.nsamples == Rbuffer.dims)
     {
       //allocate a new buffer
       query->buffer = Array();
@@ -1423,9 +1415,9 @@ bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
       if (!query->allocateBufferIfNeeded())
         return query->setFailed("out of memory");
 
-      auto Wbox    = query->logic_box;
-      auto Wbuffer = query->buffer;
-      if (!BoxQuery::mergeSamples(Wbox, Wbuffer, Rbox, Rbuffer, query->merge_mode, query->aborted))
+      auto Wsamples    = query->logic_samples;
+      auto Wbuffer     = query->buffer;
+      if (!BoxQuery::mergeSamples(Wsamples, Wbuffer, Rsamples, Rbuffer, query->merge_mode, query->aborted))
       {
         if (query->aborted())
           return query->setFailed("query aborted");
@@ -1505,7 +1497,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
       BoxNi adjusted_logic_box = adjustFilterBox(query.get(), filter.get(), query->filter.adjusted_logic_box, H);
 
       auto Wquery = std::make_shared<BoxQuery>(this, query->field, query->time, 'r', query->aborted);
-      Wquery->logic_position = adjusted_logic_box;
+      Wquery->logic_box = adjusted_logic_box;
       Wquery->end_resolutions = { H };
       Wquery->filter.enabled = false;
       Wquery->merge_mode = merge_mode;
@@ -1550,8 +1542,8 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
       return false;
     }
 
-    query->logic_box = query->filter.query->logic_box;
-    query->buffer    = query->filter.query->buffer;
+    query->logic_samples = query->filter.query->logic_samples;
+    query->buffer        = query->filter.query->buffer;
   }
   //execute with access
   else
@@ -1581,15 +1573,15 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
     Aborted& aborted = query->aborted;
     for (int H = cur_resolution + 1; !aborted() && H <= end_resolution; H++)
     {
-      LogicBox Lbox = this->getLevelBox(H);
-      BoxNi box = Lbox.alignBox(query->logic_box);
+      LogicSamples Lsamples = this->getLevelSamples(H);
+      BoxNi box = Lsamples.alignBox(query->logic_samples.logic_box);
       if (!box.isFullDim())
         continue;
 
       //push first item
-      BigInt hz = hzorder.getAddress(Lbox.p1);
+      BigInt hz = hzorder.getAddress(Lsamples.logic_box.p1);
       {
-        item.box = Lbox;
+        item.box = Lsamples.logic_box;
         item.H = H ? 1 : 0;
         stack = STACK;
         PUSH();

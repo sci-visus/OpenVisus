@@ -94,11 +94,11 @@ public:
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
 
-  //getAddressRangeBox
-  virtual LogicBox getAddressRangeBox(BigInt start_address,BigInt end_address) override;
+  //getAddressRangeSamples
+  virtual LogicSamples getAddressRangeSamples(BigInt start_address,BigInt end_address) override;
 
-  //getLevelBox
-  virtual LogicBox getLevelBox(int H) override;
+  //getLevelSamples
+  virtual LogicSamples getLevelSamples(int H) override;
 
 public:
 

@@ -73,14 +73,6 @@ class VISUS_DB_API BoxQuery : public Query
 {
 public:
 
-  int                        start_resolution = 0;
-  std::vector<int>           end_resolutions;
-  Position                   logic_position;
-
-  int                        running_cursor = -1;
-
-  LogicBox                   logic_box;
-
   //see mergeQueries
   enum MergeMode
   {
@@ -89,7 +81,13 @@ public:
     InterpolateSamples
   };
 
-  MergeMode merge_mode = InsertSamples;
+  BoxNi                      logic_box;
+  int                        start_resolution = 0;
+  std::vector<int>           end_resolutions;
+  MergeMode                  merge_mode = InsertSamples;
+
+  int                        running_cursor = -1;
+  LogicSamples               logic_samples;
 
   //for idx
 #if !SWIG
@@ -134,7 +132,7 @@ public:
 
   //getNumberOfSamples
   virtual PointNi getNumberOfSamples() const override {
-    return canExecute() ? logic_box.nsamples : buffer.dims;
+    return canExecute() ? logic_samples.nsamples : buffer.dims;
   }
 
   //getCurrentResolution
@@ -163,11 +161,17 @@ public:
   }
 
   //mergeSamples
-  static bool mergeSamples(LogicBox wbox, Array& wbuffer, LogicBox rbox, Array rbuffer, int merge_mode, Aborted aborted);
+  static bool mergeSamples(
+    LogicSamples Wsamples, Array& Wbuffer, 
+    LogicSamples Rsamples, Array  Rbuffer, 
+    int merge_mode, Aborted aborted);
 
   //mergeSamples
-  static bool mergeSamples(BoxQuery& write, BoxQuery& read, int merge_mode, Aborted aborted) {
-    return mergeSamples(write.logic_box, write.buffer, read.logic_box, read.buffer, merge_mode, aborted);
+  static bool mergeSamples(BoxQuery& dst, BoxQuery& src, int merge_mode, Aborted aborted) {
+    return mergeSamples(
+      dst.logic_samples, dst.buffer,
+      src.logic_samples, src.buffer,
+      merge_mode, aborted);
   }
 
 private:
