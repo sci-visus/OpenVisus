@@ -272,7 +272,7 @@ void Tutorial_6(String default_layout)
     auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
     query->logic_box= query_box;
     query->filter.enabled=true;
-    query->merge_mode= BoxQuery::InsertSamples;
+    query->merge_mode= InsertSamples;
 
     //I go level by level for debugging
     for (int H=0;H<=dataset->getMaxResolution();H++)

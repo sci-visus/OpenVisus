@@ -327,8 +327,7 @@ public:
 
         auto query = std::make_shared<BoxQuery>(dataset.get(), QUERY->field, QUERY->time, 'r');
         query->logic_box = QUERY->getLogicBox().translate(-offset);
-        query->end_resolutions = { HZORDER.getAddressResolution(BITMASK, QUERY->end_address - 1) - NBITS };
-        query->start_resolution = BLOCK ? query->end_resolutions[0] : 0;
+        query->setResolutionRange(BLOCK ? query->end_resolutions[0] : 0, HZORDER.getAddressResolution(BITMASK, QUERY->end_address - 1) - NBITS );
 
         if (access->isReading() || access->isWriting())
           access->endIO();
@@ -595,13 +594,13 @@ public:
     else
       query->start_resolution = Utils::clamp(QUERY->start_resolution + delta_h, 0, dataset->getMaxResolution()); //probably a block query
 
-    std::set<int> end_resolutions;
+    std::set<int> resolutions;
     for (auto END_RESOLUTION : QUERY->end_resolutions)
     {
       auto end_resolution = Utils::clamp(END_RESOLUTION + delta_h, 0, dataset->getMaxResolution());
-      end_resolutions.insert(end_resolution);
+      resolutions.insert(end_resolution);
     }
-    query->end_resolutions = std::vector<int>(end_resolutions.begin(), end_resolutions.end());
+    query->end_resolutions = std::vector<int>(resolutions.begin(), resolutions.end());
 
     auto QUERY_BOX = QUERY->logic_box.castTo<BoxNd>();
 
@@ -664,7 +663,7 @@ public:
         ArrayUtils::setBufferColor(query->buffer, DATASET->childs[name].color);
         query->buffer.layout = ""; //row major
         VisusAssert(query->buffer.dims == query->getNumberOfSamples());
-        query->setCurrentResolution(query->getEndResolution());
+        query->setCurrentResolution(query->end_resolution);
 
       }
       else
@@ -1514,11 +1513,8 @@ std::map<String, SharedPtr<Dataset>> IdxMultipleDataset::getInnerDatasets() cons
 ////////////////////////////////////////////////////////////////////////
 bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> QUERY)
 {
-  if (!QUERY)
+  if (!QUERY || !QUERY->canExecute())
     return false;
-
-  if (!QUERY->canExecute())
-    return QUERY->setFailed("QUERY is in non-executable status");
 
   if (QUERY->aborted())
     return QUERY->setFailed("QUERY aboted");
@@ -1568,9 +1564,9 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuer
 
       //a projection happened? results will be unmergeable!
       if (OUTPUT.dims != QUERY->logic_samples.nsamples)
-        QUERY->merge_mode = BoxQuery::DoNotMerge;
+        QUERY->merge_mode = DoNotMergeSamples;
       QUERY->buffer = OUTPUT;
-      QUERY->setCurrentResolution(QUERY->getEndResolution());
+      QUERY->setCurrentResolution(QUERY->end_resolution);
       return true;
     }
   }
@@ -1595,7 +1591,7 @@ bool IdxMultipleDataset::beginQuery(SharedPtr<BoxQuery> QUERY)
     auto  query   = it.second;
     auto  dataset = this->childs[query->down_info.name].dataset; VisusAssert(dataset);
 
-    if (query && query->canBegin())
+    if (query)
       dataset->beginQuery(query);
   }
 

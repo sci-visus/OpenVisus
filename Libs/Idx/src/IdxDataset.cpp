@@ -869,8 +869,7 @@ SharedPtr<BoxQuery> IdxDataset::createEquivalentBoxQuery(int mode,SharedPtr<Bloc
 
   auto ret=std::make_shared<BoxQuery>(this, block_query->field, block_query->time,mode, block_query->aborted);
   ret->logic_box= block_samples.logic_box;
-  ret->start_resolution=fromh;
-  ret->end_resolutions={toh};
+  ret->setResolutionRange(fromh,toh);
   return ret;
 }
 
@@ -1131,9 +1130,9 @@ bool IdxDataset::mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<Bloc
         Note also that merge can fail simply because there are no samples to merge at a certain level
         */
 
-        BoxQuery::mergeSamples(Lsamples, Lbuffer, Wsamples,Wbuffer, BoxQuery::InsertSamples, query->aborted);
-        BoxQuery::mergeSamples(Lsamples, Lbuffer, Rsamples,Rbuffer, BoxQuery::InsertSamples, query->aborted);
-        BoxQuery::mergeSamples(Wsamples, Wbuffer, Lsamples,Lbuffer, BoxQuery::InsertSamples, query->aborted);
+        LogicSamples::merge(Lsamples, Lbuffer, Wsamples,Wbuffer, InsertSamples, query->aborted);
+        LogicSamples::merge(Lsamples, Lbuffer, Rsamples,Rbuffer, InsertSamples, query->aborted);
+        LogicSamples::merge(Wsamples, Wbuffer, Lsamples,Lbuffer, InsertSamples, query->aborted);
       }
 
       return query->aborted()? false : true;
@@ -1142,7 +1141,7 @@ bool IdxDataset::mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<Bloc
     {
       VisusAssert(hstart==hend);
 
-      return BoxQuery::mergeSamples(Wsamples,Wbuffer, Rsamples,Rbuffer, BoxQuery::InsertSamples,query->aborted);
+      return LogicSamples::merge(Wsamples,Wbuffer, Rsamples,Rbuffer, InsertSamples,query->aborted);
     }
   }
   else
@@ -1160,14 +1159,14 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<BoxQuery> query
   /*
     *****NOTE FOR REMOTE QUERIES:*****
 
-    I always restart from scratch so I will do Query0[0,end_resolutions[0]], Query1[0,end_resolutions[1]], Query2[0,end_resolutions[2]]  without any merging
+    I always restart from scratch so I will do Query0[0,resolutions[0]], Query1[0,resolutions[1]], Query2[0,resolutions[2]]  without any merging
     In this way I transfer a little more data on the network (without compression in the worst case the ratio is 2.0)
     but I can use lossy compression and jump levels
     in the old code I was using:
 
-      Query0[0,end_resolutions[0]  ]
-      Query1[0,end_resolutions[0]+1] <-- by merging prev_single and Query[end_resolutions[0]+1,end_resolutions[0]+1]
-      Query1[0,end_resolutions[0]+2] <-- by merging prev_single and Query[end_resolutions[0]+2,end_resolutions[0]+2]
+      Query0[0,resolutions[0]  ]
+      Query1[0,resolutions[0]+1] <-- by merging prev_single and Query[resolutions[0]+1,resolutions[0]+1]
+      Query1[0,resolutions[0]+2] <-- by merging prev_single and Query[resolutions[0]+2,resolutions[0]+2]
       ...
 
         -----------------------------
@@ -1262,7 +1261,7 @@ bool IdxDataset::executePureRemoteQuery(SharedPtr<BoxQuery> query)
 
   VisusAssert(buffer.dims == query->getNumberOfSamples());
   query->buffer = buffer;
-  query->setCurrentResolution(query->getEndResolution());
+  query->setCurrentResolution(query->end_resolution);
   return true;
 }
 
@@ -1295,14 +1294,11 @@ bool IdxDataset::executePureRemoteQuery(SharedPtr<PointQuery> query)
 //////////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
 {
-  if (!query)
+  if (!query || !query->canBegin())
     return false;
 
   if (!this->valid())
     return query->setFailed("query not valid");
-
-  if (!query->canBegin())
-    return query->setFailed("query cannot advance");
 
   if (query->aborted())
     return query->setFailed("query aborted");
@@ -1355,17 +1351,18 @@ bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
   int pdim = this->getPointDim();
 
   auto Rcurrent_resolution = query->getCurrentResolution();
-  auto Rsamples = query->logic_samples;
-  auto Rbuffer = query->buffer;
-  auto Rfilter_query = query->filter.query;
+  auto Rsamples            = query->logic_samples;
+  auto Rbuffer             = query->buffer;
+  auto Rfilter_query       = query->filter.query;
 
-  auto entry_status = query->getStatus();
-  query->setRunning();
-  while (++query->running_cursor < query->end_resolutions.size())
+  for (int I = Utils::find(query->end_resolutions, query->end_resolution) + 1; I < (int)query->end_resolutions.size(); I++)
   {
+    VisusAssert(query->end_resolution < query->end_resolutions[I]);
+    query->end_resolution = query->end_resolutions[I];
+
     auto start_resolution = query->start_resolution;
-    auto end_resolution = query->getEndResolution();
-    auto logic_box = query->logic_box.withPointDim(this->getPointDim());
+    auto end_resolution   = query->end_resolution;
+    auto logic_box        = query->logic_box.withPointDim(this->getPointDim());
 
     //special case for query with filters
     //I need to go level by level [0,1,2,...] in order to reconstruct the original data
@@ -1381,8 +1378,7 @@ bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
     if (start_resolution == 0 && end_resolution > 0)
       DELTA[bitmask[end_resolution]] >>= 1;
 
-    bool bGotSamples = false;
-    PointNi P1incl(pdim), P2incl(pdim);
+    PointNi P1incl, P2incl;
     for (int H = start_resolution; H <= end_resolution; H++)
     {
       int bit = bitmask[H];
@@ -1395,19 +1391,18 @@ bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
 
       PointNi p1incl = box.p1;
       PointNi p2incl = box.p2 - Lsamples.delta;
-      P1incl = bGotSamples ? PointNi::min(P1incl, p1incl) : p1incl;
-      P2incl = bGotSamples ? PointNi::max(P2incl, p2incl) : p2incl;
-      bGotSamples = true;
+      P1incl = P1incl.getPointDim() ? PointNi::min(P1incl, p1incl) : p1incl;
+      P2incl = P2incl.getPointDim() ? PointNi::max(P2incl, p2incl) : p2incl;
     }
 
-    if (!bGotSamples)
+    if (!P1incl.getPointDim())
       continue;
 
     query->logic_samples = LogicSamples(BoxNi(P1incl, P2incl + DELTA), DELTA);
     VisusAssert(query->logic_samples.valid());
 
     //merge with previous resolution
-    if (query->merge_mode != BoxQuery::DoNotMerge && Rsamples.valid() && Rsamples.nsamples == Rbuffer.dims)
+    if (query->merge_mode != DoNotMergeSamples && Rsamples.valid() && Rsamples.nsamples == Rbuffer.dims)
     {
       //allocate a new buffer
       query->buffer = Array();
@@ -1415,9 +1410,7 @@ bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
       if (!query->allocateBufferIfNeeded())
         return query->setFailed("out of memory");
 
-      auto Wsamples    = query->logic_samples;
-      auto Wbuffer     = query->buffer;
-      if (!BoxQuery::mergeSamples(Wsamples, Wbuffer, Rsamples, Rbuffer, query->merge_mode, query->aborted))
+      if (!LogicSamples::merge(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->merge_mode, query->aborted))
       {
         if (query->aborted())
           return query->setFailed("query aborted");
@@ -1430,20 +1423,18 @@ bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
       query->setCurrentResolution(Rcurrent_resolution);
     }
     //merging is disabled
-    else if (entry_status==QueryRunning)
+    else if (query->getStatus()==QueryRunning)
     {
       query->buffer = Array();
     }
 
-    break;
+    //succeded
+    query->setRunning();
+    return true;
   }
 
-  //advance succeded
-  if (query->running_cursor < query->end_resolutions.size())
-    return true;
-
   //reached the end
-  return query->setFailed("no more resolutions available");
+  return query->setFailed("no more samples");
 }
 
 
@@ -1452,11 +1443,8 @@ bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
 ///////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
 {
-  if (!query)
+  if (!query || !query->canExecute())
     return false;
-
-  if (!query->canExecute())
-    return query->setFailed("query is in non-executable status");
 
   if (query->aborted())
     return query->setFailed("query aboted");
@@ -1479,7 +1467,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
   double        time = query->time;
 
   int cur_resolution = query->getCurrentResolution();
-  int end_resolution = query->getEndResolution();
+  int end_resolution = query->end_resolution;
 
   if (!query->allocateBufferIfNeeded())
     return false;
@@ -1489,8 +1477,6 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
   {
     VisusAssert(bReading);
 
-    auto merge_mode = BoxQuery::InsertSamples;
-
     //need to go level by level to rebuild the original data (top-down)
     for (int H = cur_resolution + 1; H <= end_resolution; H++)
     {
@@ -1498,9 +1484,9 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
 
       auto Wquery = std::make_shared<BoxQuery>(this, query->field, query->time, 'r', query->aborted);
       Wquery->logic_box = adjusted_logic_box;
-      Wquery->end_resolutions = { H };
+      Wquery->setResolutionRange(0,H);
       Wquery->filter.enabled = false;
-      Wquery->merge_mode = merge_mode;
+      Wquery->merge_mode = InsertSamples;
 
       //cannot get samples yet
       if (!this->beginQuery(Wquery))
@@ -1513,17 +1499,11 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
       //try to merge previous results
       if (auto Rquery = query->filter.query)
       {
-        //auto allocate buffers
-        if (!Wquery->allocateBufferIfNeeded())
-          return false;
-
-        if (!BoxQuery::mergeSamples(*Wquery, *Rquery, merge_mode, query->aborted))
+        if (!Wquery->mergeWith(*Rquery, query->aborted))
         {
           VisusAssert(query->aborted());
           return false;
         }
-
-        Wquery->setCurrentResolution(Rquery->getCurrentResolution());
       }
 
       if (!this->executeQuery(access, Wquery))
@@ -1683,7 +1663,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
   }
 
   VisusAssert(query->buffer.dims == query->getNumberOfSamples());
-  query->setCurrentResolution(query->getEndResolution());
+  query->setCurrentResolution(query->end_resolution);
 
   return true;
 

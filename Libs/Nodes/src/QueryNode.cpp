@@ -55,7 +55,7 @@ public:
   Field                    field;
   double                   time;
   Position                 logic_position;
-  std::vector<int>         end_resolutions;
+  std::vector<int>         resolutions;
   Frustum                  logic_to_screen;
 
 
@@ -69,7 +69,7 @@ public:
     this->field = node->getField();
     this->time  = node->getTime();
     this->logic_position = node->getQueryLogicPosition();
-    this->end_resolutions = dataset->guessEndResolutions(node->logicToScreen(), logic_position, node->getQuality(), node->getProgression());
+    this->resolutions = dataset->guessEndResolutions(node->logicToScreen(), logic_position, node->getQuality(), node->getProgression());
     this->logic_to_screen = node->logicToScreen();
     this->verbose = node->isVerbose();
   }
@@ -86,13 +86,13 @@ public:
 
     if (bool bPointQuery = pdim == 3 && logic_position.getBoxNd().toBox3().minsize() == 0)
     {
-      for (int N = 0; N < (int)end_resolutions.size(); N++)
+      for (int N = 0; N < (int)resolutions.size(); N++)
       {
         Time t1 = Time::now();
 
         auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', this->aborted);
         query->logic_position = logic_position;
-        query->end_resolution = end_resolutions[N];
+        query->end_resolution = resolutions[N];
         auto nsamples = dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution);
         query->setPoints(nsamples);
 
@@ -103,7 +103,7 @@ public:
 
         if (verbose)
         {
-          VisusInfo() << "PointQuery msec(" << t1.elapsedMsec() << ") " << "level(" << N << "/" << end_resolutions.size() << "/" << end_resolutions[N] << "/" << dataset->getMaxResolution() << ") "
+          VisusInfo() << "PointQuery msec(" << t1.elapsedMsec() << ") " << "level(" << N << "/" << resolutions.size() << "/" << resolutions[N] << "/" << dataset->getMaxResolution() << ") "
             << "dims(" << output.dims.toString() << ") dtype(" << output.dtype.toString() << ") access(" << (access ? "yes" : "nullptr") << ") url(" << dataset->getUrl().toString() << ") ";
         }
 
@@ -117,9 +117,9 @@ public:
     {
       auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r', this->aborted);
       query->filter.enabled = true;
-      query->merge_mode = BoxQuery::InsertSamples;
+      query->merge_mode = InsertSamples;
       query->logic_box = this->logic_position.toDiscreteAxisAlignedBox();
-      query->end_resolutions = this->end_resolutions;
+      query->end_resolutions = this->resolutions;
 
       if (!dataset->beginQuery(query))
         return;
@@ -128,9 +128,9 @@ public:
         doPublish(output,query);
       };
 
-      this->end_resolutions = query->end_resolutions;
+      this->resolutions = query->end_resolutions;
 
-      for (int N = 0; N < (int)end_resolutions.size(); N++)
+      for (int N = 0; N < (int)resolutions.size(); N++)
       {
         Time t1 = Time::now();
 
@@ -142,7 +142,7 @@ public:
         if (verbose)
         {
           VisusInfo()<< "BoxQuery msec(" << t1.elapsedMsec() << ") "
-            << "level(" << N << "/" << end_resolutions.size() << "/" << end_resolutions[N] << "/" << dataset->getMaxResolution() << ") "
+            << "level(" << N << "/" << resolutions.size() << "/" << resolutions[N] << "/" << dataset->getMaxResolution() << ") "
             << "dims(" << output.dims.toString() << ") dtype(" << output.dtype.toString() << ") access(" << (access ? "yes" : "nullptr") << ") url(" << dataset->getUrl().toString() << ") ";
         }
 

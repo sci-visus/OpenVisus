@@ -683,8 +683,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
     bool   bKdBoxQuery = request.url.getParam("kdquery") == "box";
 
     auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r', Aborted());
-    query->start_resolution = fromh;
-    query->end_resolutions = { endh };
+    query->setResolutionRange(fromh, endh);
 
     //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)
     if (fromh == 0 && !bDisableFilters)

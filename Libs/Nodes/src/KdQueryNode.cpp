@@ -130,8 +130,8 @@ public:
       return false;
 
     //failed for some reason
-    std::vector<int> end_resolutions=dataset->guessEndResolutions(logic_to_screen, logic_position,(QueryQuality)quality,QueryNoProgression);
-    if (end_resolutions.empty()) 
+    auto resolutions=dataset->guessEndResolutions(logic_to_screen, logic_position,(QueryQuality)quality,QueryNoProgression);
+    if (resolutions.empty())
       return false;
 
     //need write lock here
@@ -139,7 +139,7 @@ public:
       ScopedWriteLock wlock(kdarray->lock);
 
       kdarray->query_box = logic_position.getBoxNi();
-      kdarray->end_resolution = end_resolutions.back();
+      kdarray->end_resolution = resolutions.back();
 
       this->bBlocksAreFullRes = std::dynamic_pointer_cast<GoogleMapsDataset>(dataset) ? true : false;
 
@@ -194,7 +194,7 @@ public:
     //I use a box query to get the data
     auto query=std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
     query->logic_box=pow2_box;
-    query->end_resolutions={end_resolution};
+    query->setResolutionRange(0,end_resolution);
 
     if (!dataset->beginQuery(query)) 
       return false;
@@ -272,7 +272,7 @@ public:
 
         auto query = std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
         query->logic_box = node->logic_box;
-        query->end_resolutions = { node->resolution };
+        query->setResolutionRange(0,node->resolution);
 
         if (aborted() || !dataset->beginQuery(query))
           return;
@@ -303,8 +303,8 @@ public:
         VisusAssert(fullres.dims == query->getNumberOfSamples());
         query->buffer = fullres;
 
-        auto start_address = (node->id) << bitsperblock;
-        auto end_address = (node->id + 1) << bitsperblock;
+        auto start_address = (node->id    ) << bitsperblock;
+        auto end_address   = (node->id + 1) << bitsperblock;
 
         auto blockquery = std::make_shared<BlockQuery>(dataset.get(), field, time, start_address, end_address, 'r', Aborted());
         VisusAssert(blockquery->getNumberOfSamples() == node->blockdata.dims);
@@ -520,7 +520,7 @@ public:
 
       auto query = std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
       query->logic_box = node->logic_box;
-      query->end_resolutions = { node->resolution };
+      query->setResolutionRange(0, node->resolution);
 
       if (!dataset->beginQuery(query) || !query->allocateBufferIfNeeded())
         continue;

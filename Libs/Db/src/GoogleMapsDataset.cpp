@@ -161,7 +161,7 @@ static std::vector<int> OnlyEvenResolutions(std::vector<int> values,int min_valu
 //////////////////////////////////////////////////////////////
 bool GoogleMapsDataset::beginQuery(SharedPtr<BoxQuery> query)
 {
-  if (!query)
+  if (!query || !query->canBegin())
     return false;
 
   if (!this->valid())
@@ -169,9 +169,6 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<BoxQuery> query)
 
   if (query->mode == 'w')
     return query->setFailed("Writing mode not suppoted");
-
-  if (!query->canBegin())
-    return query->setFailed("query cannot begin");
 
   if (query->aborted())
     return query->setFailed("query aborted");
@@ -196,11 +193,12 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<BoxQuery> query)
       return query->setFailed("wrong end resolution");
   }
 
-  auto entry_status = query->getStatus();
-  query->setRunning();
-  while (++query->running_cursor < (int)query->end_resolutions.size())
+  for (int I = Utils::find(query->end_resolutions, query->end_resolution) + 1; I< (int)query->end_resolutions.size(); I++)
   {
-    auto end_resolution = query->getEndResolution();
+    VisusAssert(query->end_resolution < query->end_resolutions[I]);
+    query->end_resolution = query->end_resolutions[I];
+
+    auto end_resolution = query->end_resolution;
     auto user_box = query->logic_box.getIntersection(this->getLogicBox());
     VisusAssert(user_box.isFullDim());
 
@@ -213,15 +211,13 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<BoxQuery> query)
     query->logic_samples = LogicSamples(box, Lsamples.delta);
 
     //merging is not supported, so I'm resetting the buffer
-    if (entry_status == QueryRunning)
+    if (query->getStatus() == QueryRunning)
       query->buffer = Array();
 
-    break;
-  }
-
-  //advance succeded
-  if (query->running_cursor < (int)query->end_resolutions.size())
+    //succeded
+    query->setRunning();
     return true;
+  }
 
   //reached the end
   return query->setFailed("No more samples");
@@ -232,11 +228,8 @@ bool GoogleMapsDataset::beginQuery(SharedPtr<BoxQuery> query)
 //////////////////////////////////////////////////////////////
 bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
 {
-  if (!query)
+  if (!query || !query->canExecute())
     return false;
-
-  if (!query->canExecute())
-    return query->setFailed("query is in non-executable status");
 
   if (query->aborted())
     return query->setFailed("query aboted");
@@ -252,7 +245,7 @@ bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuer
   if (!access)
     access = std::make_shared<GoogleMapsAccess>(this);
 
-  int end_resolution = query->getEndResolution();
+  int end_resolution = query->end_resolution;
   VisusAssert(end_resolution % 2 == 0);
 
   WaitAsync< Future<Void> > wait_async;
@@ -278,7 +271,7 @@ bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuer
   wait_async.waitAllDone();
 
   VisusAssert(query->buffer.dims == query->getNumberOfSamples());
-  query->setCurrentResolution(query->getEndResolution());
+  query->setCurrentResolution(query->end_resolution);
 
   return true;
 }
@@ -320,7 +313,7 @@ void GoogleMapsDataset::kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_q
 //////////////////////////////////////////////////////////////
 bool GoogleMapsDataset::mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> blockquery)
 {
-  return BoxQuery::mergeSamples(query->logic_samples, query->buffer, blockquery->logic_samples, blockquery->buffer, BoxQuery::InsertSamples, query->aborted);
+  return LogicSamples::merge(query->logic_samples, query->buffer, blockquery->logic_samples, blockquery->buffer, InsertSamples, query->aborted);
 }
 
 //////////////////////////////////////////////////////////////

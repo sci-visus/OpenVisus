@@ -207,7 +207,7 @@ public:
 
     auto query=std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(),dataset->getDefaultTime(),'r');
     query->logic_box=box;
-    query->merge_mode=(bInterpolate? BoxQuery::InterpolateSamples : BoxQuery::InsertSamples);
+    query->merge_mode=(bInterpolate? InterpolateSamples : InsertSamples);
 
     for (int h=firsth;h<=lasth;h=h+deltah)
       query->end_resolutions.push_back(h);

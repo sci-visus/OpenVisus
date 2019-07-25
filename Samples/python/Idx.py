@@ -135,12 +135,9 @@ class TestIdx(unittest.TestCase):
 		#create and read data from VisusFIle up to resolution FinalH=8 (<MaxH)
 		query=BoxQuery(dataset,dataset.getDefaultField(),dataset.getDefaultTime(),ord('r'))
 		query.logic_position=Position(slice_box)
-		query.end_resolutions.push_back(8)
-		query.end_resolutions.push_back(12)
-		query.merge_mode=BoxQuery.InsertSamples
+		query.end_resolutions={8,12}
 		
 		# end_resolution=8
-		
 		self.assertTrue(dataset.beginQuery(query))
 		self.assertTrue(query.nsamples.innerProduct()>0)
 		self.assertTrue(dataset.executeQuery(access,query))

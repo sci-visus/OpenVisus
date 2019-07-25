@@ -73,20 +73,11 @@ class VISUS_DB_API BoxQuery : public Query
 {
 public:
 
-  //see mergeQueries
-  enum MergeMode
-  {
-    DoNotMerge = 0,
-    InsertSamples,
-    InterpolateSamples
-  };
-
   BoxNi                      logic_box;
-  int                        start_resolution = 0;
-  std::vector<int>           end_resolutions;
   MergeMode                  merge_mode = InsertSamples;
-
-  int                        running_cursor = -1;
+  int                        start_resolution = 0;
+  int                        end_resolution = -1;
+  std::vector<int>           end_resolutions;
   LogicSamples               logic_samples;
 
   //for idx
@@ -147,31 +138,37 @@ public:
 
   //getEndResolution
   int getEndResolution() const {
-    return isRunning() ? end_resolutions[running_cursor] : -1;
+    return end_resolution;
+  }
+
+  //setEndResolution
+  void setResolutionRange(int A,int B) {
+    this->start_resolution = A;
+    this->end_resolutions = { B };
   }
 
   //canBegin
   bool canBegin() const {
-    return (getStatus()==QueryCreated) || (getStatus()==QueryRunning && getCurrentResolution() == getEndResolution());
+    return getStatus()==QueryCreated || (getStatus()==QueryRunning && cur_resolution == end_resolution);
   }
 
   //canExecute
   bool canExecute() const {
-    return isRunning() && getCurrentResolution() < getEndResolution();
+    return isRunning() && cur_resolution < end_resolution;
   }
 
-  //mergeSamples
-  static bool mergeSamples(
-    LogicSamples Wsamples, Array& Wbuffer, 
-    LogicSamples Rsamples, Array  Rbuffer, 
-    int merge_mode, Aborted aborted);
+  //mergeWith
+  bool mergeWith(BoxQuery& other, Aborted aborted) {
 
-  //mergeSamples
-  static bool mergeSamples(BoxQuery& dst, BoxQuery& src, int merge_mode, Aborted aborted) {
-    return mergeSamples(
-      dst.logic_samples, dst.buffer,
-      src.logic_samples, src.buffer,
-      merge_mode, aborted);
+    if (!allocateBufferIfNeeded())
+      return false;
+
+    if (!LogicSamples::merge(this->logic_samples, this->buffer, other.logic_samples, other.buffer, this->merge_mode, aborted))
+      return false;
+
+    setCurrentResolution(other.getCurrentResolution());
+    //note: start_resolution/end_resolution do not change
+    return true;
   }
 
 private:

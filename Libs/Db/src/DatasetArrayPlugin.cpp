@@ -168,8 +168,7 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
 
   auto query=std::make_shared<BoxQuery>(dataset.get(), args.field, args.time,'r');
   query->logic_box=args.box;
-  query->start_resolution=args.fromh;
-  query->end_resolutions={args.toh};
+  query->setResolutionRange(args.fromh, args.toh);
 
   if (args.bDisableFilters)
   {
@@ -227,8 +226,7 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
 
   auto query=std::make_shared<BoxQuery>(dataset.get(), args.field, args.time,'w');
   query->logic_box=args.box;
-  query->start_resolution=args.fromh;
-  query->end_resolutions={args.toh};
+  query->setResolutionRange(args.fromh,args.toh);
 
   if (!dataset->beginQuery(query))
   {

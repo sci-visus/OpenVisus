@@ -215,9 +215,8 @@ private:
 
     auto query = std::make_shared<BoxQuery>(dataset.get(), node->getField(), node->getTime(), 'r');
     query->filter.enabled = true;
-    query->merge_mode = BoxQuery::InsertSamples;
     query->logic_box = node->getQueryLogicPosition().toDiscreteAxisAlignedBox();
-    query->end_resolutions = { end_resolution };
+    query->setResolutionRange(0, end_resolution);
 
     if (!dataset->beginQuery(query))
       return SharedPtr<BoxQuery>();
