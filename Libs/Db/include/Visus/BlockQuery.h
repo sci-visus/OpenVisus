@@ -40,7 +40,7 @@ For support : support@visus.net
 #define __VISUS_BLOCK_QUERY_H
 
 #include <Visus/Db.h>
-#include <Visus/QUery.h>
+#include <Visus/Query.h>
 
 namespace Visus {
 

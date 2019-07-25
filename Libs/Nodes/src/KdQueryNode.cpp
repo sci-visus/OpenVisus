@@ -113,13 +113,15 @@ public:
     //find intersection with view frustum
     if (logic_to_screen.valid())
     {
-      logic_position =Position::shrink(logic_to_screen.getScreenBox(), FrustumMap(logic_to_screen), logic_position);
+      auto map = FrustumMap(logic_to_screen);
+      logic_position =Position::shrink(logic_to_screen.getScreenBox(), map, logic_position);
       if (!logic_position.valid())
         return false;
     }
 
     //find intersection with dataset box
-    logic_position =Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), MatrixMap(Matrix::identity(pdim)), logic_position);
+    auto map = MatrixMap(Matrix::identity(pdim));
+    logic_position =Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), map, logic_position);
 
     if (!logic_position.valid())
       return false;

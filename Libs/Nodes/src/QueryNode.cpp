@@ -286,14 +286,16 @@ Position QueryNode::getQueryLogicPosition()
   auto physic_to_screen = nodeToScreen();
   if (physic_to_screen.valid())
   {
-    query_bounds = Position::shrink(physic_to_screen.getScreenBox(), FrustumMap(physic_to_screen), query_bounds);
+    auto map = FrustumMap(physic_to_screen);
+    query_bounds = Position::shrink(physic_to_screen.getScreenBox(), map, query_bounds);
     if (!query_bounds.valid())
       return Position();
   }
 
   //find intersection with dataset box
   auto logic_position = dataset->physicToLogic(query_bounds);
-  logic_position = Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), MatrixMap(Matrix::identity(dataset->getPointDim())), logic_position);
+  auto map = MatrixMap(Matrix::identity(dataset->getPointDim()));
+  logic_position = Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), map, logic_position);
 
   if (!logic_position.valid())
     return Position();
