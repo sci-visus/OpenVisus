@@ -110,6 +110,12 @@ class VISUS_DB_API Dataset
 {
 public:
 
+  //this is needed for midx
+  Color color;
+
+  //this is needed for midx
+  Matrix logic_to_LOGIC;
+
   //constructor
   Dataset() {
   }

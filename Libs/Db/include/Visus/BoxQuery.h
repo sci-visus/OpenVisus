@@ -101,7 +101,7 @@ public:
     Array                    BUFFER;
     Matrix                   PIXEL_TO_LOGIC;
     Matrix                   LOGIC_TO_PIXEL;
-    PointNd                  logic_centroid;
+    PointNd                  LOGIC_CENTROID;
     SharedPtr<Access>        access;
   }
   down_info;

@@ -54,21 +54,10 @@ class VISUS_IDX_API IdxMultipleDataset  : public IdxDataset
 {
 public:
 
-  //___________________________________________________
-  class VISUS_IDX_API Child
-  {
-  public:
-    String                name;
-    Color                 color;
-    Matrix                M; //transformation matrix up <- dw
-    SharedPtr<Dataset>    dataset;
-    String                mosaic_filename_template;
-  };
-
   //bMosaic
   bool bMosaic = false;
 
-  std::map<String , Child > childs;
+  std::map<String , SharedPtr<Dataset> > down_datasets;
 
   //constructor
   IdxMultipleDataset();
@@ -89,18 +78,22 @@ public:
   }
 
   //getChild
-  Child getChild(String name) const {
-    auto it = childs.find(name); 
-    return it == childs.end() ? Child() : it->second;
+  SharedPtr<Dataset> getChild(String name) const {
+    auto it = down_datasets.find(name); 
+    return it == down_datasets.end() ? SharedPtr<Dataset>() : it->second;
   }
 
   //getFirstDataset
-  SharedPtr<Dataset> getFirstDataset() const {
-    return childs.empty()? SharedPtr<Dataset>() : childs.begin()->second.dataset;
+  SharedPtr<Dataset> getFirstChild() const {
+    return down_datasets.empty()? SharedPtr<Dataset>() : down_datasets.begin()->second;
   }
 
   //addChild
-  void addChild(Child value);
+  void addChild(String name, SharedPtr<Dataset> value)
+  {
+    VisusAssert(!down_datasets.count(name));
+    down_datasets[name] = value;
+  }
 
   //computeDefaultFields
   void computeDefaultFields();
@@ -111,7 +104,9 @@ public:
   virtual bool openFromUrl(Url URL) override;
 
   //getInnerDatasets
-  virtual std::map<String, SharedPtr<Dataset> > getInnerDatasets() const override;
+  virtual std::map<String, SharedPtr<Dataset> > getInnerDatasets() const override {
+    return down_datasets;
+  }
 
   // getFieldByNameThrowEx
   virtual Field getFieldByNameThrowEx(String name) const override;
