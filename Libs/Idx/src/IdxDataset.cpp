@@ -995,9 +995,7 @@ void IdxDataset::setIdxFile(IdxFile value)
   setBitmask(bitmask);
   setDefaultBitsPerBlock(value.bitsperblock);
   setLogicBox(value.logic_box);
-
-  VisusAssert(value.logic_to_physic.getSpaceDim()==bitmask.getPointDim()+1);
-  setPhysicPosition(Position(value.logic_to_physic,value.logic_box));
+  setPhysicPosition(value.bounds);
   setTimesteps(value.timesteps);
   
   setDefaultScene(value.scene);

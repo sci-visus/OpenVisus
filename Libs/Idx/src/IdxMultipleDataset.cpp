@@ -1046,7 +1046,7 @@ String IdxMultipleDataset::removeAliases(String url)
 
 
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix logic_to_LOGIC)
+void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix modelview)
 {
   VisusAssert(istream.getCurrentContext()->name == "dataset");
   String url = istream.readInline("url");
@@ -1055,9 +1055,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix logic_to_LOG
   String default_name = StringUtils::format() << "child_" << std::setw(4) << std::setfill('0') << cstring((int)this->down_datasets.size());
 
   String name = StringUtils::trim(istream.readInline("name", istream.readInline("id"))); 
-  Color  color = Color::parseFromString(istream.readInline("color"));
-  String mosaic_filename_template = istream.readInline("filename_template");
-
+  
   //override name if exist
   if (name.empty() || this->down_datasets.find(name) != this->down_datasets.end())
     name = default_name;
@@ -1066,7 +1064,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix logic_to_LOG
 
   //if mosaic all datasets are the same, I just need to know the IDX filename template
   SharedPtr<Dataset> child;
-  if (this->bMosaic && !down_datasets.empty() && !mosaic_filename_template.empty())
+  if (this->bMosaic && !down_datasets.empty() && istream.hasAttribute("filename_template"))
   {
     auto first = getFirstChild();
     auto other = std::dynamic_pointer_cast<IdxDataset>(first->clone());
@@ -1074,7 +1072,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix logic_to_LOG
     VisusReleaseAssert(other);
 
     //all the idx files are the same except for the IDX path
-    mosaic_filename_template =istream.readInline("filename_template");
+    String mosaic_filename_template =istream.readInline("filename_template");
 
     VisusReleaseAssert(!mosaic_filename_template.empty());
     mosaic_filename_template = removeAliases(mosaic_filename_template);
@@ -1094,132 +1092,90 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix logic_to_LOG
     return;
   }
 
-  child->color = color;
+  child->color = Color::parseFromString(istream.readInline("color"));;
+  auto sdim = child->getPointDim() + 1;
+  modelview.setSpaceDim(sdim);
 
-  auto pdim = child->getPointDim();
-  auto sdim = pdim + 1;
-  logic_to_LOGIC.setSpaceDim(sdim);
-  child->logic_to_LOGIC = logic_to_LOGIC;
-
-  auto s_offset = istream.readInline("offset");
-  if (!s_offset.empty())
-    child->logic_to_LOGIC *= Matrix::translate(PointNd::parseFromString(s_offset)).withSpaceDim(sdim);
+  //override physic_box 
+  if (istream.hasAttribute("physic_box"))
+  {
+    auto physic_box = BoxNd::parseFromString(istream.readInline("physic_box"));
+    child->setPhysicPosition(physic_box);
+  }
+  
+  // transform physic box
+  if (istream.hasAttribute("offset"))
+    modelview *= Matrix::translate(PointNd::parseFromString(istream.readInline("offset"))).withSpaceDim(sdim);
 
   if (istream.pushContext("M"))
   {
-    auto value = istream.readInline("value");
-    if (!value.empty())
-      child->logic_to_LOGIC *= Matrix::parseFromString(value).withSpaceDim(sdim);
+    if (istream.hasAttribute("value"))
+      modelview *= Matrix::parseFromString(istream.readInline("value")).withSpaceDim(sdim);
 
     for (auto it : istream.getCurrentContext()->getChilds())
     {
       if (it->name == "translate")
-      {
-        double tx = cdouble(it->readString("x"));
-        double ty = cdouble(it->readString("y"));
-        double tz = cdouble(it->readString("z"));
-        child->logic_to_LOGIC *= Matrix::translate(PointNd(tx, ty, tz)).withSpaceDim(sdim);
-      }
+        modelview *= Matrix::translate(PointNd(cdouble(it->readString("x")), cdouble(it->readString("y")), cdouble(it->readString("z")))).withSpaceDim(sdim);
+
       else if (it->name == "rotate")
-      {
-        double x = Utils::degreeToRadiant(cdouble(it->readString("x")));
-        double y = Utils::degreeToRadiant(cdouble(it->readString("y")));
-        double z = Utils::degreeToRadiant(cdouble(it->readString("z")));
-        child->logic_to_LOGIC *= Matrix::rotate(Quaternion::fromEulerAngles(x, y, z)).withSpaceDim(sdim);
-      }
+        modelview *= Matrix::rotate(Quaternion::fromEulerAngles(Utils::degreeToRadiant(cdouble(it->readString("x"))), Utils::degreeToRadiant(cdouble(it->readString("y"))), Utils::degreeToRadiant(cdouble(it->readString("z"))))).withSpaceDim(sdim);
+
       else if (it->name == "scale")
-      {
-        double sx = cdouble(it->readString("x"));
-        double sy = cdouble(it->readString("y"));
-        double sz = cdouble(it->readString("z"));
-        child->logic_to_LOGIC *= Matrix::nonZeroScale(PointNd(sx, sy, sz)).withSpaceDim(sdim);
-      }
+        modelview *= Matrix::nonZeroScale(PointNd(cdouble(it->readString("x")), cdouble(it->readString("y")), cdouble(it->readString("z")))).withSpaceDim(sdim);
 
       else if (it->name == "M")
-        child->logic_to_LOGIC *= Matrix::parseFromString(it->readString("value")).withSpaceDim(sdim);
+        modelview *= Matrix::parseFromString(it->readString("value")).withSpaceDim(sdim);
     }
 
     istream.popContext("M");
   }
 
-  //if mosaic then only an offset
-  if (bMosaic)
-  {
-    auto sdim = child->logic_to_LOGIC.getSpaceDim();
-    VisusAssert(child->logic_to_LOGIC.submatrix(sdim - 1, sdim - 1).isIdentity());
-  }
-
-  //VisusInfo() << "midx single logic_to_LOGIC("<<child->logic_to_LOGIC.toString()<<") box("<<child.dataset->box.toString(false)<<")";
-  //VisusInfo() << " LOGIC_BOX("<<Position(child->logic_to_LOGIC,child.dataset->box).toAxisAlignedBox().toString(false)<<")";
-
+  VisusAssert(modelview.getSpaceDim() == sdim);
+  child->setPhysicPosition(Position(modelview, child->getPhysicPosition()));
   addChild(name, child);
 
 }
 
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDatasets(ObjectStream& istream, Matrix T)
+void IdxMultipleDataset::parseDatasets(ObjectStream& istream, Matrix modelview)
 {
   auto context = istream.getCurrentContext();
-  
-
   for (int I = 0; I < (int)context->getNumberOfChilds(); I++)
   {
     auto name = context->getChild(I).name;
     
-    if (name == "dataset")
+    if (name=="dataset")
     {
       istream.pushContext("dataset");
-
-      if (cbool(istream.readInline("enabled", "1"))) {
-        parseDataset(istream, T);
-      }
-
+      if (cbool(istream.readInline("enabled", "1"))) 
+        parseDataset(istream, modelview);
       istream.popContext("dataset");
       continue;
     }
 
-    if (name == "translate")
+    if (name=="translate")
     {
       istream.pushContext("translate");
-
       if (cbool(istream.readInline("enabled", "1")))
-      {
-        double x = cdouble(istream.readInline("x"));
-        double y = cdouble(istream.readInline("y"));
-        double z = cdouble(istream.readInline("z"));
-        parseDatasets(istream, T * Matrix::translate(Point3d(x, y, z)));
-      }
+        parseDatasets(istream, modelview * Matrix::translate(Point3d(cdouble(istream.readInline("x")), cdouble(istream.readInline("y")), cdouble(istream.readInline("z")))));
       istream.popContext("translate");
       continue;
     }
 
-    if (name == "rotate")
+    if (name=="rotate")
     {
       istream.pushContext("rotate");
-
       if (cbool(istream.readInline("enabled", "1")))
-      {
-        double x = Utils::degreeToRadiant(cdouble(istream.readInline("x")));
-        double y = Utils::degreeToRadiant(cdouble(istream.readInline("y")));
-        double z = Utils::degreeToRadiant(cdouble(istream.readInline("z")));
-        parseDatasets(istream, T * Matrix::rotate(Quaternion::fromEulerAngles(x, y, z)));
-      }
+        parseDatasets(istream, modelview * Matrix::rotate(Quaternion::fromEulerAngles(Utils::degreeToRadiant(cdouble(istream.readInline("x"))), Utils::degreeToRadiant(cdouble(istream.readInline("y"))), Utils::degreeToRadiant(cdouble(istream.readInline("z"))))));
       istream.popContext("rotate");
       continue;
     }
 
-    if (name == "scale")
+    if (name=="scale")
     {
       istream.pushContext("scale");
-
       if (cbool(istream.readInline("enabled", "1")))
-      {
-        double x = cdouble(istream.readInline("x"));
-        double y = cdouble(istream.readInline("y"));
-        double z = cdouble(istream.readInline("z"));
-        parseDatasets(istream, T * Matrix::nonZeroScale(PointNd(x, y, z)));
-      }
-
+        parseDatasets(istream, modelview * Matrix::nonZeroScale(PointNd(cdouble(istream.readInline("x")), cdouble(istream.readInline("y")), cdouble(istream.readInline("z")))));
       istream.popContext("scale");
       continue;
     }
@@ -1229,7 +1185,7 @@ void IdxMultipleDataset::parseDatasets(ObjectStream& istream, Matrix T)
     {
       istream.pushContext(name);
       if (cbool(istream.readInline("enabled", "1")))
-        parseDatasets(istream, T);
+        parseDatasets(istream, modelview);
 
       istream.popContext(name);
     }
@@ -1272,6 +1228,8 @@ void IdxMultipleDataset::computeDefaultFields()
 ///////////////////////////////////////////////////////////
 bool IdxMultipleDataset::openFromUrl(Url URL)
 {
+  auto DATASET = this;
+
   StringTree BODY;
   if (!BODY.fromXmlString(Utils::loadTextDocument(URL.toString())))
     return false;
@@ -1296,18 +1254,27 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   auto first = getFirstChild();
   int pdim = first->getPointDim();
+  int sdim = pdim + 1;
 
-  IdxFile& IDXFILE=this->idxfile;
+  IdxFile& IDXFILE= DATASET->idxfile;
 
+  //for mosaic physic and logic are the same
   if (bMosaic)
   {
     auto LOGIC_BOX = BoxNd::invalid();
     for (auto it : down_datasets)
     {
       auto dataset = it.second;
+      VisusAssert(dataset->getPhysicPosition().getBoxNi() == dataset->getLogicBox());
+      dataset->logic_to_LOGIC = dataset->getPhysicPosition().getTransformation();
+      VisusAssert(dataset->logic_to_LOGIC.submatrix(sdim - 1, sdim - 1).isIdentity()); // only offset
       LOGIC_BOX = LOGIC_BOX.getUnion(Position(dataset->logic_to_LOGIC, dataset->getLogicBox()).toAxisAlignedBox());
     }
+
     IDXFILE.logic_box = LOGIC_BOX.castTo<BoxNi>();
+    IDXFILE.bounds    = LOGIC_BOX;
+
+    VisusAssert(IDXFILE.logic_box.p1 == PointNi(pdim));
 
     //i need the final right part to be as the child
     auto BITMASK = DatasetBitmask::guess(IDXFILE.logic_box.p2);
@@ -1327,7 +1294,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     IDXFILE.fields = first->getFields();
     IDXFILE.bitsperblock = first->getDefaultBitsPerBlock();
 
-    IDXFILE.validate(this->getUrl());
+    IDXFILE.validate(DATASET->getUrl());
     VisusReleaseAssert(IDXFILE.valid());
 
     //VisusInfo() << "MIDX idxfile is the following" << std::endl << IDXFILE.toString();
@@ -1336,75 +1303,110 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     return true;
   }
 
-  //the user specified the box?
-  auto logic_box = istream.readInline("box");
-  if (!logic_box.empty())
+  //set PHYSIC_BOX (union of physic boxes)
+  auto PHYSIC_BOX = BoxNd::invalid();
+  for (auto it : down_datasets)
   {
-    IDXFILE.logic_box = BoxNi::parseFromOldFormatString(pdim, logic_box);
+    auto dataset = it.second;
+    PHYSIC_BOX = PHYSIC_BOX.getUnion(dataset->getPhysicPosition().toAxisAlignedBox());
   }
-  else
+  IDXFILE.bounds = PHYSIC_BOX;
+
+  //set LOGIC_BOX (at the beginning is the PHYSIC_BOX) and logic_to_LOGIC
+  auto LOGIC_BOX = BoxNi(PointNi::zero(pdim),PointNi::one(pdim));
+  for (auto it : down_datasets)
   {
-    auto LOGIC_BOX = BoxNd::invalid();
-    std::vector<double> DENSITY;
-    for (auto it : down_datasets)
+    auto dataset   = it.second;
+    auto logic_box = dataset->getLogicBox();
+    auto bounds    = dataset->getPhysicPosition();
+
+    typedef std::pair<int, Point2i> Edge; //axis,A,B
+    std::vector< Edge> edges;
+
+    const std::vector<Edge> quad_edges = {
+      std::make_pair(0,Point2i(0,1)),
+      std::make_pair(1,Point2i(1,2)),
+      std::make_pair(0,Point2i(2,3)),
+      std::make_pair(1,Point2i(3,0)),
+    };
+
+    const std::vector<Edge> oct_edges = {
+        std::make_pair(0,Point2i(0,1)), 
+        std::make_pair(1,Point2i(1,2)),  
+        std::make_pair(0,Point2i(2,3)), 
+        std::make_pair(1,Point2i(3,0)),
+        std::make_pair(0,Point2i(4,5)), 
+        std::make_pair(1,Point2i(5,6)), 
+        std::make_pair(0,Point2i(6,7)), 
+        std::make_pair(1,Point2i(7,4)),
+        std::make_pair(2,Point2i(0,4)), 
+        std::make_pair(2,Point2i(1,5)), 
+        std::make_pair(2,Point2i(2,6)), 
+        std::make_pair(2,Point2i(3,7))
+    };
+
+    if (pdim == 2)
+      edges = quad_edges;
+    else if (pdim == 3)
+      edges = oct_edges;
+    else
+      ThrowException("todo");
+
+    auto points = bounds.getPoints();
+    for (auto edge : edges)
     {
-      auto dataset = it.second;
-      auto SINGLE_LOGIC_BOX = Position(dataset->logic_to_LOGIC, dataset->getLogicBox()).toAxisAlignedBox();
-      LOGIC_BOX = LOGIC_BOX.getUnion(SINGLE_LOGIC_BOX);
+      int axis   = edge.first;
+      PointNd  A = points[edge.second.x];
+      PointNd  B = points[edge.second.y];
 
-      auto tot_pixels = dataset->getLogicBox().size().innerProduct();
-      auto VOLUME = Position(dataset->logic_to_LOGIC, dataset->getPhysicPosition()).computeVolume();
-      auto density = tot_pixels / VOLUME;
-      DENSITY.push_back(density);
+      double npixels = (double)logic_box.size()[axis];
+
+      //project into DATASET AXIS and try not to loose pixels
+      //this is just an euristic
+      std::vector<double> PROJECTIONS;
+
+      for (int AXIS = 0; AXIS < pdim; AXIS++)
+        PROJECTIONS.push_back(fabs(B[AXIS] - A[AXIS]));
+
+      int AXIS = (int)std::distance(PROJECTIONS.begin(), std::max_element(PROJECTIONS.begin(), PROJECTIONS.end()));
+
+      while (true)
+      {  
+        double NPIXELS = (double)LOGIC_BOX.size()[AXIS];
+
+        if (PROJECTIONS [AXIS] / PHYSIC_BOX.size()[AXIS] >= (npixels / NPIXELS))
+          break;
+
+        LOGIC_BOX.p2[AXIS] *= 2;
+      }
     }
-
-    // try to keep the same number of pixels
-    // tot_pixels[max_density] = VOLUME[max_density] * pow(scale,pdim)
-    // DENSITY[max_density] = pow(scale,pdim)
-
-    auto max_density = std::distance(DENSITY.begin(), std::max_element(DENSITY.begin(), DENSITY.end()));
-    auto scale = pow(DENSITY[max_density], 1.0 / pdim);
-    VisusInfo() << "Scale to not loose pixels " << scale << " #max_density(" << max_density << ")";
-
-    auto not_loose_pixels = Matrix::scale(pdim, scale) * Matrix::translate(-LOGIC_BOX.p1);
-
-    LOGIC_BOX = BoxNd::invalid();
-    for (auto it : down_datasets)
-    {
-      auto dataset = it.second;
-      dataset->logic_to_LOGIC *= not_loose_pixels;
-      LOGIC_BOX = LOGIC_BOX.getUnion(Position(dataset->logic_to_LOGIC, dataset->getPhysicPosition()).toAxisAlignedBox());
-    }
-
-    IDXFILE.logic_box = LOGIC_BOX.castTo<BoxNi>();
   }
+  IDXFILE.logic_box = LOGIC_BOX.castTo<BoxNi>();
 
-  //logic_to_physic
-  IDXFILE.logic_to_physic = Matrix::identity(pdim + 1);
-  if (istream.hasAttribute("logic_to_physic"))
+  //set logic_to_LOGIC
+  for (auto it : down_datasets)
   {
-    IDXFILE.logic_to_physic = Matrix::parseFromString(istream.readInline("logic_to_physic"));
-  }
-  else if (istream.hasAttribute("physic_box"))
-  {
-    BoxNd physic_box = BoxNd::parseFromString(istream.readInline("physic_box"));
-    IDXFILE.logic_to_physic = Position::computeTransformation(physic_box, IDXFILE.logic_box);
+    auto dataset = it.second;
+    auto physic_to_PHYSIC = Matrix::identity(sdim);
+    auto PHYSIC_to_LOGIC = Position::computeTransformation(LOGIC_BOX, PHYSIC_BOX);
+    dataset->logic_to_LOGIC = PHYSIC_to_LOGIC * physic_to_PHYSIC * dataset->logicToPhysic();
   }
 
   //time
-  if (down_datasets.size() == 1)
   {
-    if (auto dataset=std::dynamic_pointer_cast<IdxDataset>(first))
-      IDXFILE.time_template = dataset->idxfile.time_template;
+    if (down_datasets.size() == 1)
+    {
+      if (auto dataset = std::dynamic_pointer_cast<IdxDataset>(first))
+        IDXFILE.time_template = dataset->idxfile.time_template;
+    }
+
+    //union of all timesteps
+    for (auto it : down_datasets)
+      IDXFILE.timesteps.addTimesteps(it.second->getTimesteps());
   }
- 
-  //union of all timesteps
-  for (auto it : down_datasets)
-    IDXFILE.timesteps.addTimesteps(it.second->getTimesteps());
 
   //this is to pass the validation, an midx has infinite run-time fields 
   IDXFILE.fields.push_back(Field("DATA", DTypes::UINT8));
-
   IDXFILE.validate(URL);
   VisusReleaseAssert(IDXFILE.valid());
 

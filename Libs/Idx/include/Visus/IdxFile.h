@@ -45,6 +45,7 @@ For support : support@visus.net
 #include <Visus/DatasetTimesteps.h>
 #include <Visus/Url.h>
 #include <Visus/Matrix.h>
+#include <Visus/Position.h>
 
 namespace Visus {
 
@@ -65,8 +66,8 @@ public:
   // bounding box of data stored in the file, with both box.from and box.to included (see Visus(Set/Get)BoxNd) 
   BoxNi logic_box;
 
-  //how logic map to physic
-  Matrix logic_to_physic;
+  //physic bounds
+  Position bounds;
 
   // the collection of fields stored inside this dataset (note if this is empty you can still use Dataset::getFieldByName(name) for dynamic fields)
   std::vector<Field> fields;

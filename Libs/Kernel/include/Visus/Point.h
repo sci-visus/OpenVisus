@@ -988,7 +988,12 @@ public:
     return ret;
   }
 
-  //constructor
+  //zero
+  static PointN zero(int pdim) {
+    return PointN(pdim);
+  }
+
+  //one
   static PointN one(int pdim) {
     return PointN(std::vector<T>(pdim, T(1)));
   }

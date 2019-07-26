@@ -415,10 +415,14 @@ bool GoogleMapsDataset::openFromUrl(Url url)
   this->setDefaultBitsPerBlock(Utils::getLog2(tile_nsamples[0]*tile_nsamples[1]));
   this->setLogicBox(BoxNi(PointNi(0,0),overall_dims));
 
+
+#if 1
+  this->setPhysicPosition(BoxNi(PointNi(0, 0), overall_dims));
+#else
   //using latitude [-90,+90] longiture [-180,+180]  
   //see //http://www.satsig.net/lat_long.htm
-  // this->setPhysicPosition(BoxNi(PointNi(0, 0), overall_dims));
-  this->setPhysicPosition(BoxNd(PointNd(-180,-90),PointNd(+180,+90))); 
+  this->setPhysicPosition(BoxNd(PointNd(-180, -90), PointNd(+180, +90)));
+#endif
 
   auto timesteps = DatasetTimesteps();
   timesteps.addTimestep(0);

@@ -112,15 +112,19 @@ public:
   }
 
   //computeTransformation
-  static Matrix computeTransformation(Position dst, BoxNi src) {
+  static Matrix computeTransformation(Position dst, BoxNd src) {
     return
       dst.T *
       Matrix::translate(dst.box.p1) *
       Matrix::nonZeroScale(dst.box.size()) *
-      Matrix::invNonZeroScale(src.size().castTo<PointNd>()) *
-      Matrix::translate(-src.p1.castTo<PointNd>());
+      Matrix::invNonZeroScale(src.size()) *
+      Matrix::translate(-src.p1);
   }
 
+  //computeTransformation
+  static Matrix computeTransformation(Position dst, BoxNi src) {
+    return computeTransformation(dst,src.castTo<BoxNd>());
+  }
 
   //computeTransformation
   static Matrix computeTransformation(Position dst, PointNi dims) {
