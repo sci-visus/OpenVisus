@@ -51,6 +51,12 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(KdArrayNode)
 
+  // id (root has id 1)
+  int id = 0;
+
+  //up
+  KdArrayNode* up = nullptr;
+
   // logic_box
   BoxNi logic_box;
 
@@ -60,40 +66,39 @@ public:
   // resolution
   int resolution=0;             
 
-  // id (root has id 1)
-  BigInt id=0;
-
   //if it has childs, what is the split bit
   int split_bit=-1;
-
-  //up
-  KdArrayNode* up=nullptr;
 
   //childs
   SharedPtr<KdArrayNode> left,right;
 
-  //buffers
+  //buffers (internals only)
   Array                fullres;
-  Array                displaydata;
   Array                blockdata;
+
   bool                 bDisplay=false;
-  SharedPtr<Object>    user_value;
+  Array                displaydata;
+  SharedPtr<Object>    texture;
 
   //default constructor
-  KdArrayNode() {
+  KdArrayNode(int id_=0) : id(id_){
+  }
+
+  //constructor
+  KdArrayNode(int id_, KdArrayNode* up_ ) : id(id_), up(up_),level(up_->level+1), resolution(up_->resolution+1) {
   }
 
   //destructor
   ~KdArrayNode() {
   }
 
-  //return the middle
-  inline Int64 getMiddle() {
+  //getLogicMiddle
+  Int64 getLogicMiddle() {
     return (this->logic_box.p1[split_bit]+this->logic_box.p2[split_bit])>>1;
   }
 
   //if leaf or not
-  inline bool isLeaf() const
+  bool isLeaf() const
   {
     //must have both childs or no childs
     VisusAssert((this->left && this->right) || (!this->left && !this->right));
@@ -101,14 +106,13 @@ public:
   }
 
   //c_size (estimation of buffers occupancy)
-  inline Int64 c_size() const
+  Int64 c_size() const
   {
     return 
       blockdata.c_size()
       + ((fullres && fullres.heap!=blockdata.heap) ? fullres.c_size() : 0)
       + ((displaydata && displaydata.heap!=blockdata.heap && displaydata.heap!=fullres.heap) ? displaydata.c_size() : 0);
   }
-
 
 };
 
@@ -125,30 +129,30 @@ public:
   RWLock lock;  
 #endif
 
-  // (dataset) box 
-  BoxNi logic_box;
-
   //only for kd queries
   SharedPtr<KdArrayNode> root;
 
-  //clipping
-  Position logic_clipping;
+  //logic_box (could be less that dataset pow2 logic box), typically is the user queried box
+  BoxNi logic_box;
 
-  //current queried box
-  BoxNi query_box;
+  //clipping
+  Position clipping;
+
+  //bounds
+  Position bounds;
 
   //current estimated end resolution
   int end_resolution;
 
   //constructor
-  KdArray(int datadim=0);
+  KdArray(int pdim=0);
 
   //destructor
   virtual ~KdArray();
 
-  //getDataDim
-  inline int getDataDim() const {
-    return datadim;
+  //getPointDim
+  int getPointDim() const {
+    return pdim;
   }
 
   //clearChilds
@@ -158,8 +162,8 @@ public:
   void split(KdArrayNode* node,int split_bit);
 
   //isNodeVisible
-  inline bool isNodeVisible(KdArrayNode* node) const {
-    return node->logic_box.strictIntersect(this->logic_box) && node->logic_box.strictIntersect(this->query_box);
+  bool isNodeVisible(KdArrayNode* node) const {
+    return node->logic_box.strictIntersect(this->logic_box);
   }
 
   //enableCaching
@@ -171,7 +175,8 @@ private:
   class SingleCache;
   class MultiCache;
   SharedPtr<MultiCache> cache;
-  int datadim;
+
+  int pdim;
 
   void onNodeEnter(KdArrayNode*);
   void onNodeExit (KdArrayNode*);

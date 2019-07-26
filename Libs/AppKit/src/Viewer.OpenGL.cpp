@@ -350,7 +350,7 @@ int Viewer::glGetRenderQueue(Node* node)
   if (auto kdarray_render_node=dynamic_cast<KdRenderArrayNode*>(node))
   {
     if (SharedPtr<KdArray> kdarray=kdarray_render_node->getKdArray())
-      return kdarray->getDataDim();  //2 or 3
+      return kdarray->getPointDim();  //2 or 3
     return DoNotDisplay;
   }
 

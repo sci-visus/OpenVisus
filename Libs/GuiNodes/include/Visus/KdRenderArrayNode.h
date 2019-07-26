@@ -157,14 +157,15 @@ public:
   }
 
   //getKdArray
-  SharedPtr<KdArray> getKdArray() const
-  {return kdarray;}
+  SharedPtr<KdArray> getKdArray() const {
+    return kdarray;
+  }
 
-  //getNodeBounds
+  //getNodeBounds (in physic coordinates)
   virtual Position getNodeBounds() override
   {
     if (!kdarray) return Position::invalid();
-    return (kdarray->logic_clipping.valid())? kdarray->logic_clipping : Position(kdarray->root->logic_box);
+    return (kdarray->clipping.valid())? kdarray->clipping : Position(kdarray->bounds);
   }
 
   //from Node

@@ -102,6 +102,10 @@ public:
   //writeInline
   void writeInline(String name, String value);
 
+
+  //hasAttribute
+  bool hasAttribute(String name);
+
   //readInline
   String readInline(String name, String default_value = "");
 

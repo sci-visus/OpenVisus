@@ -57,18 +57,19 @@ public:
     Array            displaydata;
   };
 
-  Int64                                          max_memory;
-  Int64                                          used_memory;
+  Int64                                          max_memory=0;
+  Int64                                          used_memory=0;
   std::list<Cached>                              list;
   std::map< BigInt, std::list<Cached>::iterator> map;
 
   //constructor
-  inline SingleCache() : max_memory(0),used_memory(0)
-  {}
+  SingleCache() {
+  }
 
   //contains
-  inline bool contains(KdArrayNode* node) const
-  {return map.find(node->id)!=map.end();}
+  bool contains(KdArrayNode* node) const {
+    return map.find(node->id)!=map.end();
+  }
 
   //push
   void push(KdArrayNode* node)
@@ -137,21 +138,23 @@ public:
   SingleCache fine_cache;
 
   //constructor
-  inline MultiCache() : cutoff(0)
-  {}
+  MultiCache() : cutoff(0) {
+  }
 
   //push
-  inline void push(KdArrayNode* node)
-  {(node->level<cutoff? coarse_cache : fine_cache).push(node);}
+  void push(KdArrayNode* node) {
+    (node->level < cutoff ? coarse_cache : fine_cache).push(node);
+  }
 
   //pop
-  inline void pop(KdArrayNode* node)
-  {(node->level<cutoff? coarse_cache : fine_cache).pop(node);}
+  void pop(KdArrayNode* node) {
+    (node->level < cutoff ? coarse_cache : fine_cache).pop(node);
+  }
 };
 
 
 ////////////////////////////////////////////////////////////////
-KdArray::KdArray(int datadim_) : datadim(datadim_) 
+KdArray::KdArray(int pdim_) : pdim(pdim_) 
 {}
 
 ////////////////////////////////////////////////////////////////
@@ -191,24 +194,15 @@ void KdArray::split(KdArrayNode* node,int split_bit)
   VisusAssert(node->isLeaf());
   VisusAssert(root->id==1);
 
-  
   node->split_bit = split_bit;
 
-  node->left=std::make_shared<KdArrayNode>();
-  node->left->up = node;
-  node->left->level = node->level+1;
-  node->left->resolution = node->resolution + 1;
+  node->left=std::make_shared<KdArrayNode>(node->id * 2 + 0, node);
   node->left->logic_box = node->logic_box;
-  node->left->logic_box.p2[node->split_bit]=node->getMiddle();
-  node->left->id=node->id*2;
+  node->left->logic_box.p2[node->split_bit]=node->getLogicMiddle();
 
-  node->right=std::make_shared<KdArrayNode>();
-  node->right->up = node;
-  node->right->level = node->level+1;
-  node->right->resolution = node->resolution + 1;
+  node->right=std::make_shared<KdArrayNode>(node->id * 2 + 1, node);
   node->right->logic_box = node->logic_box;
-  node->right->logic_box.p1[node->split_bit]=node->getMiddle();
-  node->right->id=node->id*2+1;
+  node->right->logic_box.p1[node->split_bit]=node->getLogicMiddle();
 
   onNodeEnter(node->left .get());
   onNodeEnter(node->right.get());

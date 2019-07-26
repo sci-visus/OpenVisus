@@ -1299,6 +1299,43 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   IdxFile& IDXFILE=this->idxfile;
 
+  if (bMosaic)
+  {
+    auto LOGIC_BOX = BoxNd::invalid();
+    for (auto it : down_datasets)
+    {
+      auto dataset = it.second;
+      LOGIC_BOX = LOGIC_BOX.getUnion(Position(dataset->logic_to_LOGIC, dataset->getLogicBox()).toAxisAlignedBox());
+    }
+    IDXFILE.logic_box = LOGIC_BOX.castTo<BoxNi>();
+
+    //i need the final right part to be as the child
+    auto BITMASK = DatasetBitmask::guess(IDXFILE.logic_box.p2);
+    auto bitmask = first->getBitmask();
+
+    PointNi DIMS = BITMASK.getPow2Dims();
+    PointNi dims = first->getBitmask().getPow2Dims();
+
+    auto left = DatasetBitmask::guess(DIMS.innerDiv(dims)).toString();
+    auto right = bitmask.toString().substr(1);
+    BITMASK = DatasetBitmask(left + right);
+    VisusReleaseAssert(BITMASK.getPow2Dims() == DIMS);
+    VisusReleaseAssert(StringUtils::endsWith(BITMASK.toString(), right));
+
+    IDXFILE.bitmask = BITMASK;
+    IDXFILE.timesteps = first->getTimesteps();
+    IDXFILE.fields = first->getFields();
+    IDXFILE.bitsperblock = first->getDefaultBitsPerBlock();
+
+    IDXFILE.validate(this->getUrl());
+    VisusReleaseAssert(IDXFILE.valid());
+
+    //VisusInfo() << "MIDX idxfile is the following" << std::endl << IDXFILE.toString();
+    setIdxFile(IDXFILE);
+
+    return true;
+  }
+
   //the user specified the box?
   auto logic_box = istream.readInline("box");
   if (!logic_box.empty())
@@ -1324,58 +1361,37 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     // try to keep the same number of pixels
     // tot_pixels[max_density] = VOLUME[max_density] * pow(scale,pdim)
     // DENSITY[max_density] = pow(scale,pdim)
-    if (!bMosaic)
+
+    auto max_density = std::distance(DENSITY.begin(), std::max_element(DENSITY.begin(), DENSITY.end()));
+    auto scale = pow(DENSITY[max_density], 1.0 / pdim);
+    VisusInfo() << "Scale to not loose pixels " << scale << " #max_density(" << max_density << ")";
+
+    auto not_loose_pixels = Matrix::scale(pdim, scale) * Matrix::translate(-LOGIC_BOX.p1);
+
+    LOGIC_BOX = BoxNd::invalid();
+    for (auto it : down_datasets)
     {
-      auto max_density = std::distance(DENSITY.begin(), std::max_element(DENSITY.begin(), DENSITY.end()));
-      auto scale = pow(DENSITY[max_density], 1.0 / pdim);
-      VisusInfo() << "Scale to not loose pixels " << scale << " #max_density(" << max_density << ")";
-
-      auto not_loose_pixels = Matrix::scale(pdim, scale) * Matrix::translate(-LOGIC_BOX.p1);
-
-      LOGIC_BOX = BoxNd::invalid();
-      for (auto it : down_datasets)
-      {
-        auto dataset = it.second;
-        dataset->logic_to_LOGIC *= not_loose_pixels;
-        auto SINGLE_LOGIC_BOX = Position(dataset->logic_to_LOGIC, dataset->getPhysicPosition()).toAxisAlignedBox();
-        LOGIC_BOX = LOGIC_BOX.getUnion(SINGLE_LOGIC_BOX);
-      }
+      auto dataset = it.second;
+      dataset->logic_to_LOGIC *= not_loose_pixels;
+      LOGIC_BOX = LOGIC_BOX.getUnion(Position(dataset->logic_to_LOGIC, dataset->getPhysicPosition()).toAxisAlignedBox());
     }
 
     IDXFILE.logic_box = LOGIC_BOX.castTo<BoxNi>();
   }
 
-
-  //VisusInfo() << "midx box is " << IDXFILE.box.toString(false);
-  if (bMosaic)
+  //logic_to_physic
+  IDXFILE.logic_to_physic = Matrix::identity(pdim + 1);
+  if (istream.hasAttribute("logic_to_physic"))
   {
-    //i need the final right part to be as the child
-    auto BITMASK = DatasetBitmask::guess(IDXFILE.logic_box.p2);
-    auto bitmask = first->getBitmask();
-
-    PointNi DIMS = BITMASK.getPow2Dims();
-    PointNi dims = first->getBitmask().getPow2Dims();
-    
-    auto left  = DatasetBitmask::guess(DIMS.innerDiv(dims)).toString();
-    auto right = bitmask.toString().substr(1);
-    BITMASK = DatasetBitmask(left + right);
-    VisusReleaseAssert(BITMASK.getPow2Dims()==DIMS);
-    VisusReleaseAssert(StringUtils::endsWith(BITMASK.toString(), right));
-
-    IDXFILE.bitmask = BITMASK;
-    IDXFILE.timesteps = first->getTimesteps();
-    IDXFILE.fields = first->getFields();
-    IDXFILE.bitsperblock = first->getDefaultBitsPerBlock();
-
-    IDXFILE.validate(this->getUrl());
-    VisusReleaseAssert(IDXFILE.valid());
-
-    //VisusInfo() << "MIDX idxfile is the following" << std::endl << IDXFILE.toString();
-    setIdxFile(IDXFILE);
-
-    return true;
+    IDXFILE.logic_to_physic = Matrix::parseFromString(istream.readInline("logic_to_physic"));
   }
-  
+  else if (istream.hasAttribute("physic_box"))
+  {
+    BoxNd physic_box = BoxNd::parseFromString(istream.readInline("physic_box"));
+    IDXFILE.logic_to_physic = Position::computeTransformation(physic_box, IDXFILE.logic_box);
+  }
+
+  //time
   if (down_datasets.size() == 1)
   {
     if (auto dataset=std::dynamic_pointer_cast<IdxDataset>(first))

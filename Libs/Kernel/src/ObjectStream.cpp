@@ -73,6 +73,12 @@ void ObjectStream::writeInline(String name,String value)
   getCurrentContext()->writeString(name,value);
 }
 
+
+/////////////////////////////////////////////////////////////
+bool ObjectStream::hasAttribute(String name) {
+  return getCurrentContext()->attributes.find(name) != getCurrentContext()->attributes.end();
+}
+
 /////////////////////////////////////////////////////////////
 String ObjectStream::readInline(String name,String default_value)
 {

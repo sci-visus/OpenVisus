@@ -118,7 +118,7 @@ public:
       auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r', this->aborted);
       query->filter.enabled = true;
       query->merge_mode = InsertSamples;
-      query->logic_box = this->logic_position.toDiscreteAxisAlignedBox();
+      query->logic_box = this->logic_position.toDiscreteAxisAlignedBox(); //remove transformation! (in doPublish I will add the physic clipping)
       query->end_resolutions = this->resolutions;
 
       if (!dataset->beginQuery(query))

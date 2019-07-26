@@ -414,8 +414,11 @@ bool GoogleMapsDataset::openFromUrl(Url url)
   this->setBitmask(DatasetBitmask::guess(overall_dims));
   this->setDefaultBitsPerBlock(Utils::getLog2(tile_nsamples[0]*tile_nsamples[1]));
   this->setLogicBox(BoxNi(PointNi(0,0),overall_dims));
-  //this->setPhysicPosition(BoxNd(PointNd(-180,-90),PointNd(+180,+90))); //http://www.satsig.net/lat_long.htm
-  this->setPhysicPosition(BoxNi(PointNi(0, 0), overall_dims));
+
+  //using latitude [-90,+90] longiture [-180,+180]  
+  //see //http://www.satsig.net/lat_long.htm
+  // this->setPhysicPosition(BoxNi(PointNi(0, 0), overall_dims));
+  this->setPhysicPosition(BoxNd(PointNd(-180,-90),PointNd(+180,+90))); 
 
   auto timesteps = DatasetTimesteps();
   timesteps.addTimestep(0);
