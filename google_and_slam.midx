@@ -1,0 +1,12 @@
+<dataset name="slam" typename='IdxMultipleDataset'>
+
+	<field name="voronoi">
+		<code>output=voronoi()</code>
+	</field>
+
+	<!-- dimx,dimy=1073741824 -->
+	<dataset name='google'  url='http://mt1.google.com/vt/lyrs=s?nlevels=22'         physic_box="-180.0 +180.0 -90.0 +90.0" />
+	
+	
+</dataset>
+
