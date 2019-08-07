@@ -45,8 +45,21 @@ namespace Visus {
 BlockQuery::BlockQuery(Dataset* dataset_, Field field_, double time_, BigInt start_address_, BigInt end_address_, int mode_,Aborted aborted_)
   : Query(dataset_,field_,time_, mode_, aborted_), start_address(start_address_), end_address(end_address_)
 {
- 
+  this->done = Promise<Void>().get_future();
   this->logic_samples = dataset->getAddressRangeSamples(this->start_address, this->end_address);
+}
+
+////////////////////////////////////////////////////////////////
+void BlockQuery::setStatus(QueryStatus value)
+{
+  if (this->status == value)
+    return;
+
+  Query::setStatus(value);
+
+  //final?
+  if (ok() || failed())
+    this->done.get_promise()->set_value(Void());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////

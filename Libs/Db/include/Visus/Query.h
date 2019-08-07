@@ -74,14 +74,11 @@ public:
 
   Array        buffer;
 
-  Future<Void> done;
-
   //constructor
   Query(Dataset* dataset_, Field field_, double time_, int mode_, Aborted aborted_)
     : dataset(dataset_), field(field_), time(time_), mode(mode_), aborted(aborted_)
   {
     VisusAssert(mode == 'r' || mode == 'w');
-    this->done = Promise<Void>().get_future();
   }
 
   //destructor
@@ -151,7 +148,7 @@ public:
   //allocateBufferIfNeeded
   bool allocateBufferIfNeeded();
 
-private:
+protected:
 
   QueryStatus status = QueryCreated;
 

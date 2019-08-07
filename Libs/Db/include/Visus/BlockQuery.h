@@ -56,12 +56,17 @@ public:
   BigInt       end_address = 0;
   LogicSamples logic_samples;
 
+  Future<Void> done;
+
   //constructor
   BlockQuery(Dataset* dataset, Field field, double time, BigInt start_address, BigInt end_address, int mode, Aborted aborted);
 
   //destructor
   virtual ~BlockQuery() {
   }
+
+  //setStatus
+  virtual void setStatus(QueryStatus value) override;
 
   //getNumberOfSamples
   virtual PointNi getNumberOfSamples() const override {

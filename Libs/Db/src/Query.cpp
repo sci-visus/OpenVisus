@@ -51,29 +51,21 @@ void Query::setStatus(QueryStatus value)
 
   switch (value)
   {
+    case QueryRunning:
+      VisusReleaseAssert(old_status == QueryCreated);
+      this->status = value;
+      return;
 
-  case QueryRunning:
-    VisusAssert(old_status == QueryCreated);
-    this->status = value;
-    return;
+    case QueryOk:
+      VisusReleaseAssert(old_status == QueryCreated || old_status == QueryRunning);
+      this->status = value;
+      return;
 
-  case QueryOk:
-    VisusAssert(old_status == QueryCreated || old_status == QueryRunning);
-    this->status = value;
-    this->done.get_promise()->set_value(Void());
-    return;
-
-  case QueryFailed:
-
-    VisusAssert(old_status == QueryCreated || old_status == QueryRunning || old_status ==QueryOk);
-    this->status = value;
-
-    if (old_status!=QueryOk)
-      this->done.get_promise()->set_value(Void());
-
-    return;
+    case QueryFailed:
+      VisusReleaseAssert(old_status == QueryCreated || old_status == QueryRunning);
+      this->status = value;
+      return;
   }
-
 }
 
 } //namespace Visus

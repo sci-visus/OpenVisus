@@ -219,8 +219,9 @@ bool GoogleMapsDataset::nextQuery(SharedPtr<BoxQuery> query)
     return true;
   }
 
-  //reached the end
-  return query->setFailed("No more samples");
+  //reached the end?
+  query->setOk();
+  return false;
 }
 
 

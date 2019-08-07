@@ -1432,7 +1432,8 @@ bool IdxDataset::nextQuery(SharedPtr<BoxQuery> query)
   }
 
   //reached the end
-  return query->setFailed("no more samples");
+  query->setOk();
+  return false;
 }
 
 

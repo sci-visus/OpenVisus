@@ -1351,38 +1351,45 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   //set LOGIC_BOX (at the beginning is the PHYSIC_BOX) and logic_to_LOGIC
   //project into DATASET AXIS and try not to loose pixels
   //this is just an euristic
-  auto VS = PointNd::zero(pdim);
-  for (auto it : down_datasets)
+  if (down_datasets.size() == 1)
   {
-    auto dataset = it.second;
-    auto logic_box = dataset->getLogicBox();
-    auto bounds = dataset->getPhysicPosition();
-
-    VisusAssert(pdim == 2 || pdim == 3);
-    auto PHYSIC_POINTS = bounds.getPoints();
-    for (auto edge : GetEdges(pdim))
-    {
-      int  axis = edge.first;
-      auto npixels = logic_box.size()[axis];
-
-      int AXIS = -1;
-      double PROJECTION = NumericLimits<double>::lowest();
-      for (int I = 0; I < pdim; I++)
-      {
-        auto projection = fabs(PHYSIC_POINTS[edge.second.y][I] - PHYSIC_POINTS[edge.second.x][I]);
-        if (projection > PROJECTION)
-        {
-          AXIS = I;
-          PROJECTION = projection;
-        }
-      }
-
-      //PROJECTION * vs = npixels
-      auto vs = npixels / PROJECTION;
-      VS[AXIS] = std::max(VS[AXIS], vs);
-    }
+    IDXFILE.logic_box = down_datasets.begin()->second->getLogicBox();
   }
-  IDXFILE.logic_box = BoxNd(PointNd::zero(pdim), VS.innerMultiply(PHYSIC_BOX.size())).castTo<BoxNi>();
+  else
+  {
+    auto VS = PointNd::zero(pdim);
+    for (auto it : down_datasets)
+    {
+      auto dataset = it.second;
+      auto logic_box = dataset->getLogicBox();
+      auto bounds = dataset->getPhysicPosition();
+
+      VisusAssert(pdim == 2 || pdim == 3);
+      auto PHYSIC_POINTS = bounds.getPoints();
+      for (auto edge : GetEdges(pdim))
+      {
+        int  axis = edge.first;
+        auto npixels = logic_box.size()[axis];
+
+        int AXIS = -1;
+        double PROJECTION = NumericLimits<double>::lowest();
+        for (int I = 0; I < pdim; I++)
+        {
+          auto projection = fabs(PHYSIC_POINTS[edge.second.y][I] - PHYSIC_POINTS[edge.second.x][I]);
+          if (projection > PROJECTION)
+          {
+            AXIS = I;
+            PROJECTION = projection;
+          }
+        }
+
+        //PROJECTION * vs = npixels
+        auto vs = npixels / PROJECTION;
+        VS[AXIS] = std::max(VS[AXIS], vs);
+      }
+    }
+    IDXFILE.logic_box = BoxNd(PointNd::zero(pdim), VS.innerMultiply(PHYSIC_BOX.size())).castTo<BoxNi>();
+  }
 
   //set logic_to_LOGIC
   for (auto it : down_datasets)
