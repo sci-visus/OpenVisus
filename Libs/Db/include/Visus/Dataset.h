@@ -429,8 +429,8 @@ public:
   ////////////////////////////////////
   //box query
 
-  //beginQuery
-  virtual bool beginQuery(SharedPtr<BoxQuery> query) {
+  //nextQuery
+  virtual bool nextQuery(SharedPtr<BoxQuery> query) {
     return false;
   }
 

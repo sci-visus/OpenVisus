@@ -159,7 +159,7 @@ static std::vector<int> OnlyEvenResolutions(std::vector<int> values,int min_valu
 }
 
 //////////////////////////////////////////////////////////////
-bool GoogleMapsDataset::beginQuery(SharedPtr<BoxQuery> query)
+bool GoogleMapsDataset::nextQuery(SharedPtr<BoxQuery> query)
 {
   if (!query || !query->canBegin())
     return false;

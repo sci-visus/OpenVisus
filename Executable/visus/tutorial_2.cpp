@@ -71,7 +71,7 @@ void Tutorial_2(String default_layout)
     //I should get a number of samples equals to the number of samples written in tutorial 1
     auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
     query->logic_box=slice_box;
-    VisusReleaseAssert(dataset->beginQuery(query));
+    VisusReleaseAssert(dataset->nextQuery(query));
     VisusReleaseAssert(query->getNumberOfSamples()==PointNi(16,16,1));
 
     //read data from disk

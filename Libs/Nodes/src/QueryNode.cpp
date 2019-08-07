@@ -121,7 +121,7 @@ public:
       query->logic_box = this->logic_position.toDiscreteAxisAlignedBox(); //remove transformation! (in doPublish I will add the physic clipping)
       query->end_resolutions = this->resolutions;
 
-      if (!dataset->beginQuery(query))
+      if (!dataset->nextQuery(query))
         return;
 
       query->incrementalPublish = [&](Array output) {
@@ -148,7 +148,7 @@ public:
 
         doPublish(output, query);
 
-        if (!dataset->beginQuery(query))
+        if (!dataset->nextQuery(query))
             return;
       }
     }

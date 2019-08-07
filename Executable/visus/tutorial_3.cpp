@@ -69,11 +69,11 @@ void Tutorial_3(String default_layout)
   query->end_resolutions={8,12};
   query->merge_mode=InsertSamples; 
 
-  VisusReleaseAssert(dataset->beginQuery(query));
+  VisusReleaseAssert(dataset->nextQuery(query));
   VisusReleaseAssert(dataset->executeQuery(access, query));
   VisusReleaseAssert(query->getCurrentResolution() == 8);
 
-  VisusReleaseAssert(dataset->beginQuery(query));
+  VisusReleaseAssert(dataset->nextQuery(query));
   VisusReleaseAssert(dataset->executeQuery(access, query));
   VisusReleaseAssert(query->getCurrentResolution() == 12);
 
@@ -82,7 +82,7 @@ void Tutorial_3(String default_layout)
   for (int I=0;I<16*16;I++) 
     VisusReleaseAssert(SRC[I]==I);
 
-  VisusReleaseAssert(!dataset->beginQuery(query));
+  VisusReleaseAssert(!dataset->nextQuery(query));
 }
 
 

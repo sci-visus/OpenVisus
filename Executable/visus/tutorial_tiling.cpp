@@ -101,7 +101,7 @@ void TilingExample(IdxDataset* dataset)
         auto query=std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
         query->logic_box =box;
         query->setResolutionRange(H == bitsperblock ? 0 : H, H);
-        VisusReleaseAssert(dataset->beginQuery(query));
+        VisusReleaseAssert(dataset->nextQuery(query));
         VisusReleaseAssert(query->getNumberOfSamples()==dims);
       }
     }

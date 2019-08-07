@@ -145,7 +145,7 @@ public:
       */
       auto QUERY = DATASET->createEquivalentBoxQuery('r', BLOCKQUERY);
 
-      if (!DATASET->beginQuery(QUERY))
+      if (!DATASET->nextQuery(QUERY))
         return readFailed(BLOCKQUERY);
 
       if (!DATASET->executeQuery(shared_from_this(), QUERY))
@@ -334,7 +334,7 @@ public:
         if (access->isReading() || access->isWriting())
           access->endIO();
 
-        if (!dataset->beginQuery(query))
+        if (!dataset->nextQuery(query))
           continue;
 
         if (!query->allocateBufferIfNeeded())
@@ -610,7 +610,7 @@ public:
     query->end_resolutions = std::vector<int>(resolutions.begin(), resolutions.end());
 
     //skip this argument since returns empty array
-    if (!dataset->beginQuery(query))
+    if (!dataset->nextQuery(query))
     {
       query->setFailed("cannot begin the query");
       return query;
@@ -1526,9 +1526,9 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuer
 }
 
 ////////////////////////////////////////////////////////////////////////
-bool IdxMultipleDataset::beginQuery(SharedPtr<BoxQuery> QUERY)
+bool IdxMultipleDataset::nextQuery(SharedPtr<BoxQuery> QUERY)
 {
-  if (!IdxDataset::beginQuery(QUERY))
+  if (!IdxDataset::nextQuery(QUERY))
     return false;
 
   for (auto it : QUERY->down_queries)
@@ -1537,7 +1537,7 @@ bool IdxMultipleDataset::beginQuery(SharedPtr<BoxQuery> QUERY)
     auto  dataset = this->down_datasets[query->down_info.name]; VisusAssert(dataset);
 
     if (query)
-      dataset->beginQuery(query);
+      dataset->nextQuery(query);
   }
 
   return true;

@@ -471,7 +471,7 @@ Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, dou
   auto query = std::make_shared<BoxQuery>(this, field, time,  'r');
   query->logic_box = box;
 
-  if (!beginQuery(query))
+  if (!nextQuery(query))
     return Array();
 
   if (!executeQuery(access, query))
@@ -489,7 +489,7 @@ bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, dou
   auto query = std::make_shared<BoxQuery>(this, field, time,'w');
   query->logic_box = box;
 
-  if (!beginQuery(query))
+  if (!nextQuery(query))
     return false;
 
   VisusAssert(query->getNumberOfSamples() == buffer.dims);

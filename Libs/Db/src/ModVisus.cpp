@@ -699,8 +699,8 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
     query->logic_box = BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box"));
 
     //query failed
-    if (!dataset->beginQuery(query))
-      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
+    if (!dataset->nextQuery(query))
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->nextQuery() failed " + query->getLastErrorMsg());
 
     auto access = dataset->createAccess();
     if (!dataset->executeQuery(access, query))

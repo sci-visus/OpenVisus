@@ -79,7 +79,7 @@ class TestIdx(unittest.TestCase):
 			
 			query=BoxQuery(dataset,dataset.getDefaultField(),dataset.getDefaultTime(),ord('w'))
 			query.logic_position=Position(slice_box)
-			self.assertTrue(dataset.beginQuery(query))
+			self.assertTrue(dataset.nextQuery(query))
 			self.assertEqual(query.nsamples.innerProduct(),16*16)
 			
 			buffer=Array(query.nsamples,query.field.dtype)
@@ -108,7 +108,7 @@ class TestIdx(unittest.TestCase):
 			
 			query=BoxQuery(dataset,dataset.getDefaultField(),dataset.getDefaultTime(),ord('r'))
 			query.logic_position=Position(slice_box)
-			self.assertTrue(dataset.beginQuery(query))
+			self.assertTrue(dataset.nextQuery(query))
 			self.assertEqual(query.nsamples.innerProduct(),16*16)
 			self.assertTrue(dataset.executeQuery(access,query))
 			
@@ -138,13 +138,13 @@ class TestIdx(unittest.TestCase):
 		query.end_resolutions={8,12}
 		
 		# end_resolution=8
-		self.assertTrue(dataset.beginQuery(query))
+		self.assertTrue(dataset.nextQuery(query))
 		self.assertTrue(query.nsamples.innerProduct()>0)
 		self.assertTrue(dataset.executeQuery(access,query))
 		self.assertEqual(query.getCurrentResolution(),8)
 		
 		# end_resolution=12
-		self.assertTrue(dataset.beginQuery(query))
+		self.assertTrue(dataset.nextQuery(query))
 		self.assertEqual(query.nsamples.innerProduct(),16*16)
 		self.assertTrue(dataset.executeQuery(access,query))
 		self.assertEqual(query.getCurrentResolution(),12)
@@ -158,7 +158,7 @@ class TestIdx(unittest.TestCase):
 				sampleid+=1 
 				
 		# finished
-		self.assertFalse(dataset.beginQuery(query)) 
+		self.assertFalse(dataset.nextQuery(query)) 
 
 
 # ////////////////////////////////////////////////////////

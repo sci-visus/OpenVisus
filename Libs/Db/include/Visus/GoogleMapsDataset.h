@@ -102,8 +102,8 @@ public:
 
 public:
 
-  //beginQuery
-  virtual bool beginQuery(SharedPtr<BoxQuery> query) override;
+  //nextQuery
+  virtual bool nextQuery(SharedPtr<BoxQuery> query) override;
 
   //executeQuery
   virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;

@@ -180,9 +180,9 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
     query->filter.enabled=true;
   }
 
-  if (!dataset->beginQuery(query))
+  if (!dataset->nextQuery(query))
   {
-    VisusWarning()<<"dataset->beginQuery() failed";
+    VisusWarning()<<"dataset->nextQuery() failed";
     return Array();
   }
 
@@ -228,9 +228,9 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
   query->logic_box=args.box;
   query->setResolutionRange(args.fromh,args.toh);
 
-  if (!dataset->beginQuery(query))
+  if (!dataset->nextQuery(query))
   {
-    VisusWarning()<<"dataset->beginQuery() failed";
+    VisusWarning()<<"dataset->nextQuery() failed";
     return false;
   }
 

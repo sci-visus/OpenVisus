@@ -145,7 +145,7 @@ int main(int argc, const char* argv[])
   // In case you use lower resolutions you might want to set a merge_mode
   query->merge_mode = Query::InterpolateSamples;
 
-  VisusReleaseAssert(dataset->beginQuery(query));
+  VisusReleaseAssert(dataset->nextQuery(query));
   while (true)
   {
     // Read the data

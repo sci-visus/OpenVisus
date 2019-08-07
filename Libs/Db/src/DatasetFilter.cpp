@@ -162,7 +162,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
       read->logic_box=sliding_window;
       read->setResolutionRange(0,H);
 
-      if (!dataset->beginQuery(read))
+      if (!dataset->nextQuery(read))
         return false;
 
       if (!dataset->executeQuery(access,read))
@@ -216,7 +216,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
       auto write=std::make_shared<BoxQuery>(dataset, field, time,'w');
       write->logic_box=sliding_window;
       write->setResolutionRange(0,H);
-      if (!dataset->beginQuery(write))
+      if (!dataset->nextQuery(write))
         return false;
 
       write->buffer=read->buffer;

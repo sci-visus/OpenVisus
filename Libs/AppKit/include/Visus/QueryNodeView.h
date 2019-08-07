@@ -201,8 +201,8 @@ public:
 
 private:
 
-  //createAndBeginQuery
-  SharedPtr<BoxQuery> createAndBeginQuery(QueryNode* node,int end_resolution)
+  //createQuery
+  SharedPtr<BoxQuery> createQuery(QueryNode* node,int end_resolution)
   {
     auto dataset = node->getDataset();
 
@@ -217,10 +217,6 @@ private:
     query->filter.enabled = true;
     query->logic_box = node->getQueryLogicPosition().toDiscreteAxisAlignedBox();
     query->setResolutionRange(0, end_resolution);
-
-    if (!dataset->beginQuery(query))
-      return SharedPtr<BoxQuery>();
-
     return query;
   }
 
@@ -276,8 +272,8 @@ private:
     // TODO make a slot to update on query change
     widgets.end_resolution =GuiFactory::CreateIntegerSliderWidget(std::min(24, dataset->getMaxResolution()),1,dataset->getMaxResolution(), [this,resLabel,dimsLabel,dataset,time_node](int end_resolution)
     {
-        auto query= createAndBeginQuery(model,end_resolution);
-        if (!query) return;
+        auto query= createQuery(model,end_resolution);
+        if (!query || !dataset->nextQuery(query)) return;
         auto nsamples = query->getNumberOfSamples();
         resLabel->setText(String(StringUtils::format() << "Est. Size:  " << StringUtils::getStringFromByteSize(widgets.selected_field.dtype.getByteSize(nsamples))).c_str());
         dimsLabel->setText(String(StringUtils::format() << "[" + nsamples.toString("x") << "]").c_str());
@@ -298,8 +294,8 @@ private:
     connect(widgets.saveButton, &QPushButton::clicked, [this,dataset,time_node]()
     {
       int end_resolution = this->widgets.end_resolution->value();
-      auto query = createAndBeginQuery(model, end_resolution);
-      if (!query || !dataset->executeQuery(dataset->createAccess(), query))
+      auto query = createQuery(model, end_resolution);
+      if (!query || !dataset->nextQuery(query) || !dataset->executeQuery(dataset->createAccess(), query))
         return false;
 
       auto nsamples = query->getNumberOfSamples();

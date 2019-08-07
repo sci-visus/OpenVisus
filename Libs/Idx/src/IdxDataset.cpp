@@ -890,7 +890,7 @@ bool IdxDataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query)
     return false;
 
   auto query= createEquivalentBoxQuery('r',block_query);
-  if (!this->beginQuery(query)) 
+  if (!this->nextQuery(query)) 
   {
     VisusAssert(false);
     return false;
@@ -1290,7 +1290,7 @@ bool IdxDataset::executePureRemoteQuery(SharedPtr<PointQuery> query)
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
+bool IdxDataset::nextQuery(SharedPtr<BoxQuery> query)
 {
   if (!query || !query->canBegin())
     return false;
@@ -1487,7 +1487,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
       Wquery->merge_mode = InsertSamples;
 
       //cannot get samples yet
-      if (!this->beginQuery(Wquery))
+      if (!this->nextQuery(Wquery))
       {
         VisusAssert(cur_resolution == -1);
         VisusAssert(!query->filter.query);

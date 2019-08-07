@@ -121,7 +121,7 @@ public:
     query->logic_box=pow2_box;
     query->setResolutionRange(0,end_resolution);
 
-    if (!dataset->beginQuery(query)) 
+    if (!dataset->nextQuery(query)) 
       return false;
 
     if (!dataset->executeQuery(access,query))
@@ -194,7 +194,7 @@ public:
         query->logic_box = node->logic_box;
         query->setResolutionRange(0,node->resolution);
 
-        if (aborted() || !dataset->beginQuery(query))
+        if (aborted() || !dataset->nextQuery(query))
           return;
 
         DatasetBitmask bitmask = dataset->getBitmask();
@@ -442,7 +442,7 @@ public:
       query->logic_box = node->logic_box;
       query->setResolutionRange(0, node->resolution);
 
-      if (!dataset->beginQuery(query) || !query->allocateBufferIfNeeded())
+      if (!dataset->nextQuery(query) || !query->allocateBufferIfNeeded())
         continue;
 
       //remote 'Query'

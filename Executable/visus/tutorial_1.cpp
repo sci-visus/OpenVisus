@@ -87,7 +87,7 @@ void Tutorial_1(String default_layout)
     //prepare the write query
     auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
     query->logic_box=slice_box;
-    VisusReleaseAssert(dataset->beginQuery(query));
+    VisusReleaseAssert(dataset->nextQuery(query));
     VisusReleaseAssert(query->getNumberOfSamples()==PointNi(16,16,1));
 
     //fill the buffers
