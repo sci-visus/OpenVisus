@@ -1225,6 +1225,42 @@ void IdxMultipleDataset::computeDefaultFields()
   }
 }
 
+typedef std::vector< std::pair<int, Point2i> > Edges;
+
+Edges GetEdges(int pdim)
+{
+  if (pdim == 2)
+  {
+    return Edges({
+      std::make_pair(0,Point2i(0,1)),
+      std::make_pair(1,Point2i(1,2)),
+      std::make_pair(0,Point2i(2,3)),
+      std::make_pair(1,Point2i(3,0)),
+      });
+  }
+
+  if (pdim == 3)
+  {
+    return Edges({
+        std::make_pair(0,Point2i(0,1)),
+        std::make_pair(1,Point2i(1,2)),
+        std::make_pair(0,Point2i(2,3)),
+        std::make_pair(1,Point2i(3,0)),
+        std::make_pair(0,Point2i(4,5)),
+        std::make_pair(1,Point2i(5,6)),
+        std::make_pair(0,Point2i(6,7)),
+        std::make_pair(1,Point2i(7,4)),
+        std::make_pair(2,Point2i(0,4)),
+        std::make_pair(2,Point2i(1,5)),
+        std::make_pair(2,Point2i(2,6)),
+        std::make_pair(2,Point2i(3,7))
+      });
+  }
+
+  ThrowException("internal error");
+  return Edges();
+};
+
 ///////////////////////////////////////////////////////////
 bool IdxMultipleDataset::openFromUrl(Url URL)
 {
@@ -1256,7 +1292,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   int pdim = first->getPointDim();
   int sdim = pdim + 1;
 
-  IdxFile& IDXFILE= DATASET->idxfile;
+  IdxFile& IDXFILE = DATASET->idxfile;
 
   //for mosaic physic and logic are the same
   if (bMosaic)
@@ -1272,7 +1308,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     }
 
     IDXFILE.logic_box = LOGIC_BOX.castTo<BoxNi>();
-    IDXFILE.bounds    = LOGIC_BOX;
+    IDXFILE.bounds = LOGIC_BOX;
 
     VisusAssert(IDXFILE.logic_box.p1 == PointNi(pdim));
 
@@ -1313,82 +1349,47 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   IDXFILE.bounds = PHYSIC_BOX;
 
   //set LOGIC_BOX (at the beginning is the PHYSIC_BOX) and logic_to_LOGIC
-  auto LOGIC_BOX = BoxNi(PointNi::zero(pdim),PointNi::one(pdim));
+  //project into DATASET AXIS and try not to loose pixels
+  //this is just an euristic
+  auto VS = PointNd::zero(pdim);
   for (auto it : down_datasets)
   {
-    auto dataset   = it.second;
+    auto dataset = it.second;
     auto logic_box = dataset->getLogicBox();
-    auto bounds    = dataset->getPhysicPosition();
+    auto bounds = dataset->getPhysicPosition();
 
-    typedef std::pair<int, Point2i> Edge; //axis,A,B
-    std::vector< Edge> edges;
-
-    const std::vector<Edge> quad_edges = {
-      std::make_pair(0,Point2i(0,1)),
-      std::make_pair(1,Point2i(1,2)),
-      std::make_pair(0,Point2i(2,3)),
-      std::make_pair(1,Point2i(3,0)),
-    };
-
-    const std::vector<Edge> oct_edges = {
-        std::make_pair(0,Point2i(0,1)), 
-        std::make_pair(1,Point2i(1,2)),  
-        std::make_pair(0,Point2i(2,3)), 
-        std::make_pair(1,Point2i(3,0)),
-        std::make_pair(0,Point2i(4,5)), 
-        std::make_pair(1,Point2i(5,6)), 
-        std::make_pair(0,Point2i(6,7)), 
-        std::make_pair(1,Point2i(7,4)),
-        std::make_pair(2,Point2i(0,4)), 
-        std::make_pair(2,Point2i(1,5)), 
-        std::make_pair(2,Point2i(2,6)), 
-        std::make_pair(2,Point2i(3,7))
-    };
-
-    if (pdim == 2)
-      edges = quad_edges;
-    else if (pdim == 3)
-      edges = oct_edges;
-    else
-      ThrowException("todo");
-
-    auto points = bounds.getPoints();
-    for (auto edge : edges)
+    VisusAssert(pdim == 2 || pdim == 3);
+    auto PHYSIC_POINTS = bounds.getPoints();
+    for (auto edge : GetEdges(pdim))
     {
-      int axis   = edge.first;
-      PointNd  A = points[edge.second.x];
-      PointNd  B = points[edge.second.y];
+      int  axis = edge.first;
+      auto npixels = logic_box.size()[axis];
 
-      double npixels = (double)logic_box.size()[axis];
-
-      //project into DATASET AXIS and try not to loose pixels
-      //this is just an euristic
-      std::vector<double> PROJECTIONS;
-
-      for (int AXIS = 0; AXIS < pdim; AXIS++)
-        PROJECTIONS.push_back(fabs(B[AXIS] - A[AXIS]));
-
-      int AXIS = (int)std::distance(PROJECTIONS.begin(), std::max_element(PROJECTIONS.begin(), PROJECTIONS.end()));
-
-      while (true)
-      {  
-        double NPIXELS = (double)LOGIC_BOX.size()[AXIS];
-
-        if (PROJECTIONS [AXIS] / PHYSIC_BOX.size()[AXIS] >= (npixels / NPIXELS))
-          break;
-
-        LOGIC_BOX.p2[AXIS] *= 2;
+      int AXIS = -1;
+      double PROJECTION = NumericLimits<double>::lowest();
+      for (int I = 0; I < pdim; I++)
+      {
+        auto projection = fabs(PHYSIC_POINTS[edge.second.y][I] - PHYSIC_POINTS[edge.second.x][I]);
+        if (projection > PROJECTION)
+        {
+          AXIS = I;
+          PROJECTION = projection;
+        }
       }
+
+      //PROJECTION * vs = npixels
+      auto vs = npixels / PROJECTION;
+      VS[AXIS] = std::max(VS[AXIS], vs);
     }
   }
-  IDXFILE.logic_box = LOGIC_BOX.castTo<BoxNi>();
+  IDXFILE.logic_box = BoxNd(PointNd::zero(pdim), VS.innerMultiply(PHYSIC_BOX.size())).castTo<BoxNi>();
 
   //set logic_to_LOGIC
   for (auto it : down_datasets)
   {
     auto dataset = it.second;
     auto physic_to_PHYSIC = Matrix::identity(sdim);
-    auto PHYSIC_to_LOGIC = Position::computeTransformation(LOGIC_BOX, PHYSIC_BOX);
+    auto PHYSIC_to_LOGIC = Position::computeTransformation(IDXFILE.logic_box, PHYSIC_BOX);
     dataset->logic_to_LOGIC = PHYSIC_to_LOGIC * physic_to_PHYSIC * dataset->logicToPhysic();
   }
 
@@ -1425,7 +1426,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
     while (istream.pushContext("field"))
     {
-      String name = istream.readInline("name"); 
+      String name = istream.readInline("name");
       if (name.empty())
         name = StringUtils::format() << "field_" + generate_name++;
 
@@ -1434,7 +1435,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       String code = istream.readText(); VisusAssert(!code.empty());
       istream.popContext("code");
 
-      Field FIELD = getFieldByName(code); 
+      Field FIELD = getFieldByName(code);
       if (FIELD.valid())
       {
         ParseStringParams parse(name);
