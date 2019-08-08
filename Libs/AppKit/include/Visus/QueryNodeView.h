@@ -273,7 +273,14 @@ private:
     widgets.end_resolution =GuiFactory::CreateIntegerSliderWidget(std::min(24, dataset->getMaxResolution()),1,dataset->getMaxResolution(), [this,resLabel,dimsLabel,dataset,time_node](int end_resolution)
     {
         auto query= createQuery(model,end_resolution);
-        if (!query || !dataset->nextQuery(query)) return;
+        if (!query) 
+          return;
+
+        dataset->beginQuery(query);
+
+        if (!query->isRunning())
+          return;
+        
         auto nsamples = query->getNumberOfSamples();
         resLabel->setText(String(StringUtils::format() << "Est. Size:  " << StringUtils::getStringFromByteSize(widgets.selected_field.dtype.getByteSize(nsamples))).c_str());
         dimsLabel->setText(String(StringUtils::format() << "[" + nsamples.toString("x") << "]").c_str());
@@ -295,7 +302,11 @@ private:
     {
       int end_resolution = this->widgets.end_resolution->value();
       auto query = createQuery(model, end_resolution);
-      if (!query || !dataset->nextQuery(query) || !dataset->executeQuery(dataset->createAccess(), query))
+      if (!query)
+        return false;
+
+      dataset->beginQuery(query);
+      if (!dataset->executeQuery(dataset->createAccess(), query))
         return false;
 
       auto nsamples = query->getNumberOfSamples();

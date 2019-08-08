@@ -147,9 +147,11 @@ bool RenderArrayNode::processInput()
   Int64 tot_samples = (Int64)this->data_texture->dims[0] * (Int64)this->data_texture->dims[1] * (Int64)this->data_texture->dims[2];
 
   VisusInfo()<<"got array"
-    <<" texture_dims("<<this->data_texture->dims.toString()<< ")"
-    <<" texture_dims("<<this->data_texture->dtype.toString()<<")"
-    <<" texture_dims("<<StringUtils::getStringFromByteSize(this->data_texture->dtype.getByteSize(tot_samples))<<")"
+    <<" texture("
+      << this->data_texture->dims.toString()<< "/"
+      << this->data_texture->dtype.toString()<<"/" \
+      << StringUtils::getStringFromByteSize(this->data_texture->dtype.getByteSize(tot_samples)) << "/"
+      << this->data_texture->dims.innerProduct()<<")"
     <<" bGotNewData("<<bGotNewData<<")"
     <<" msec("<<t1.elapsedMsec()<<")";
 

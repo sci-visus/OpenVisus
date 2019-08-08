@@ -890,7 +890,9 @@ bool IdxDataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query)
     return false;
 
   auto query= createEquivalentBoxQuery('r',block_query);
-  if (!this->nextQuery(query)) 
+  beginQuery(query);
+
+  if (!query->isRunning())
   {
     VisusAssert(false);
     return false;
@@ -1284,16 +1286,73 @@ bool IdxDataset::executePureRemoteQuery(SharedPtr<PointQuery> query)
 
   VisusAssert(buffer.dims == query->getNumberOfSamples());
   query->buffer = buffer;
+  query->setOk();
   return true;
 }
 
 
+//////////////////////////////////////////////////////////////////////////////////////////
+bool IdxDataset::setEndResolution(SharedPtr<BoxQuery> query, int value)
+{
+  auto bitmask = this->idxfile.bitmask;
+  HzOrder hzorder(bitmask);
+
+  VisusAssert(query->end_resolution < value);
+  query->end_resolution = value;
+
+  auto start_resolution = query->start_resolution;
+  auto end_resolution   = query->end_resolution;
+  auto logic_box        = query->logic_box.withPointDim(this->getPointDim());
+
+  //special case for query with filters
+  //I need to go level by level [0,1,2,...] in order to reconstruct the original data
+  if (auto filter = query->filter.dataset_filter)
+  {
+    //important to return the "final" number of samples (see execute for loop)
+    logic_box = this->adjustFilterBox(query.get(), filter.get(), logic_box, end_resolution);
+    query->filter.adjusted_logic_box = logic_box;
+  }
+
+  //I get twice the samples of the samples!
+  PointNi DELTA = hzorder.getLevelDelta(end_resolution);
+  if (start_resolution == 0 && end_resolution > 0)
+    DELTA[bitmask[end_resolution]] >>= 1;
+
+  PointNi P1incl, P2incl;
+  for (int H = start_resolution; H <= end_resolution; H++)
+  {
+    int bit = bitmask[H];
+
+    LogicSamples Lsamples = this->getLevelSamples(H);
+
+    BoxNi box = Lsamples.alignBox(logic_box);
+    if (!box.isFullDim())
+      continue;
+
+    PointNi p1incl = box.p1;
+    PointNi p2incl = box.p2 - Lsamples.delta;
+    P1incl = P1incl.getPointDim() ? PointNi::min(P1incl, p1incl) : p1incl;
+    P2incl = P2incl.getPointDim() ? PointNi::max(P2incl, p2incl) : p2incl;
+  }
+
+  if (!P1incl.getPointDim())
+    return false;
+
+  query->logic_samples = LogicSamples(BoxNi(P1incl, P2incl + DELTA), DELTA);
+  VisusAssert(query->logic_samples.valid());
+  return true;
+
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::nextQuery(SharedPtr<BoxQuery> query)
+void IdxDataset::beginQuery(SharedPtr<BoxQuery> query) 
 {
-  if (!query || !query->canBegin())
-    return false;
+  if (!query)
+    return;
+
+  if (query->getStatus() != QueryCreated)
+    return;
 
   if (!this->valid())
     return query->setFailed("query not valid");
@@ -1344,113 +1403,86 @@ bool IdxDataset::nextQuery(SharedPtr<BoxQuery> query)
     }
   }
 
-  auto bitmask = this->idxfile.bitmask;
-  HzOrder hzorder(bitmask);
-  int pdim = this->getPointDim();
-
-  auto Rcurrent_resolution = query->getCurrentResolution();
-  auto Rsamples            = query->logic_samples;
-  auto Rbuffer             = query->buffer;
-  auto Rfilter_query       = query->filter.query;
-
-  for (int I = Utils::find(query->end_resolutions, query->end_resolution) + 1; I < (int)query->end_resolutions.size(); I++)
+  for (auto end_resolution : query->end_resolutions)
   {
-    VisusAssert(query->end_resolution < query->end_resolutions[I]);
-    query->end_resolution = query->end_resolutions[I];
-
-    auto start_resolution = query->start_resolution;
-    auto end_resolution   = query->end_resolution;
-    auto logic_box        = query->logic_box.withPointDim(this->getPointDim());
-
-    //special case for query with filters
-    //I need to go level by level [0,1,2,...] in order to reconstruct the original data
-    if (auto filter = query->filter.dataset_filter)
+    if (setEndResolution(query, end_resolution))
     {
-      //important to return the "final" number of samples (see execute for loop)
-      logic_box = this->adjustFilterBox(query.get(), filter.get(), logic_box, end_resolution);
-      query->filter.adjusted_logic_box = logic_box;
+      query->setRunning();
+      return;
     }
-
-    //I get twice the samples of the samples!
-    PointNi DELTA = hzorder.getLevelDelta(end_resolution);
-    if (start_resolution == 0 && end_resolution > 0)
-      DELTA[bitmask[end_resolution]] >>= 1;
-
-    PointNi P1incl, P2incl;
-    for (int H = start_resolution; H <= end_resolution; H++)
-    {
-      int bit = bitmask[H];
-
-      LogicSamples Lsamples = this->getLevelSamples(H);
-
-      BoxNi box = Lsamples.alignBox(logic_box);
-      if (!box.isFullDim())
-        continue;
-
-      PointNi p1incl = box.p1;
-      PointNi p2incl = box.p2 - Lsamples.delta;
-      P1incl = P1incl.getPointDim() ? PointNi::min(P1incl, p1incl) : p1incl;
-      P2incl = P2incl.getPointDim() ? PointNi::max(P2incl, p2incl) : p2incl;
-    }
-
-    if (!P1incl.getPointDim())
-      continue;
-
-    query->logic_samples = LogicSamples(BoxNi(P1incl, P2incl + DELTA), DELTA);
-    VisusAssert(query->logic_samples.valid());
-
-    //merge with previous resolution
-    if (query->merge_mode != DoNotMergeSamples && Rsamples.valid() && Rsamples.nsamples == Rbuffer.dims)
-    {
-      //allocate a new buffer
-      query->buffer = Array();
-
-      if (!query->allocateBufferIfNeeded())
-        return query->setFailed("out of memory");
-
-      if (!LogicSamples::merge(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->merge_mode, query->aborted))
-      {
-        if (query->aborted())
-          return query->setFailed("query aborted");
-
-        VisusAssert(false);
-        return query->setFailed("Merging failed for unknown reasons");
-      }
-
-      query->filter.query = Rfilter_query;
-      query->setCurrentResolution(Rcurrent_resolution);
-    }
-    //merging is disabled
-    else if (query->getStatus()==QueryRunning)
-    {
-      query->buffer = Array();
-    }
-
-    //succeded
-    query->setRunning();
-    return true;
   }
 
-  //reached the end
-  query->setOk();
-  return false;
+  query->setFailed();
+
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////
+void IdxDataset::nextQuery(SharedPtr<BoxQuery> query)
+{
+  if (!query)
+    return;
 
+  if (!(query->isRunning() && query->getCurrentResolution() == query->getEndResolution()))
+    return;
+
+  //reached the end? 
+  if (query->end_resolution == query->end_resolutions.back())
+    return query->setOk();
+
+  auto Rcurrent_resolution = query->getCurrentResolution();
+  auto Rsamples = query->logic_samples;
+  auto Rbuffer = query->buffer;
+  auto Rfilter_query = query->filter.query;
+
+  int index = Utils::find(query->end_resolutions, query->end_resolution) + 1;
+  int end_resolution = query->end_resolutions[index];
+  VisusReleaseAssert(setEndResolution(query,end_resolution));
+
+  //asssume no merging
+  query->buffer = Array();
+
+  //try to merge with previous resolution
+  if (query->merge_mode != DoNotMergeSamples && Rsamples.valid() && Rsamples.nsamples == Rbuffer.dims)
+  {
+    if (!query->allocateBufferIfNeeded())
+      return query->setFailed("out of memory");
+
+    if (!LogicSamples::merge(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->merge_mode, query->aborted))
+    {
+      if (query->aborted())
+        return query->setFailed("query aborted");
+
+      VisusAssert(false);
+      return query->setFailed("Merging failed for unknown reasons");
+    }
+
+    query->filter.query = Rfilter_query;
+    query->setCurrentResolution(Rcurrent_resolution);
+  }
+}
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
 bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
 {
-  if (!query || !query->canExecute())
+  if (!query)
+    return false;
+
+  if (!(query->isRunning() && query->getCurrentResolution() < query->getEndResolution()))
     return false;
 
   if (query->aborted())
-    return query->setFailed("query aboted");
+  {
+    query->setFailed("query aboted");
+    return false;
+  }
 
   //for 'r' queries I can postpone the allocation
   if (query->mode == 'w' && !query->buffer)
-    return query->setFailed("write buffer not set");
+  {
+    query->setFailed("write buffer not set");
+    return false;
+  }
 
   if (!access)
     return executePureRemoteQuery(query);
@@ -1487,8 +1519,10 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
       Wquery->filter.enabled = false;
       Wquery->merge_mode = InsertSamples;
 
+      beginQuery(Wquery);
+
       //cannot get samples yet
-      if (!this->nextQuery(Wquery))
+      if (!Wquery->isRunning())
       {
         VisusAssert(cur_resolution == -1);
         VisusAssert(!query->filter.query);
@@ -1672,22 +1706,15 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
 }
 
 
+
 ///////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> query)  
+void IdxDataset::beginQuery(SharedPtr<PointQuery> query)
 {
   if (!query)
-    return false;
+    return;
 
-  int pdim = this->getPointDim();
-
-  //why I need point queries in 2d... I'm asserting this because I do not create Query for 2d datasets 
-  VisusAssert(pdim == 3);
-
-  if (!query)
-    return false;
-
-  if (!query->getStatus() == QueryCreated)
-    return query->setFailed("query begin called many times");
+  if (query->getStatus() != QueryCreated)
+    return;
 
   //if you want to set a buffer for 'w' queries, please do it after begin
   VisusAssert(!query->buffer);
@@ -1695,9 +1722,11 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
   if (!this->valid())
     return query->setFailed("query not valid");
 
+  if (getPointDim() != 3)
+    return query->setFailed("pointquery supported only in 3d so far");
+
   if (!query->field.valid())
     return query->setFailed("field not valid");
-  false;
 
   if (!query->logic_position.valid())
     return query->setFailed("position not valid");
@@ -1723,17 +1752,35 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
     return query->setFailed("wrong nsamples");
 
   query->setRunning();
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> query)  
+{
+  if (!query)
+    return false;
+
+  if (!query->isRunning())
+    return false;
 
   if (query->aborted())
-    return query->setFailed("query aboted");
+  {
+    query->setFailed("query aboted");
+    return false;
+  }
 
   //for 'r' queries I can postpone the allocation
   if (query->mode == 'w' && !query->buffer)
-    return query->setFailed("write buffer not set");
+  {
+    query->setFailed("write buffer not set");
+    return false;
+  }
 
   if (!access)
     return Dataset::executePureRemoteQuery(query);
 
+  //TODO
   VisusAssert(query->mode == 'r');
 
   auto            bitmask = getBitmask();
@@ -1745,7 +1792,10 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
   Aborted         aborted = query->aborted;
 
   if (!query->allocateBufferIfNeeded())
+  {
+    query->setFailed("out of memory"); 
     return false;
+  }
 
   auto nsamples = query->getNumberOfSamples();
   auto tot = nsamples.innerProduct();
@@ -1755,6 +1805,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
   //first BigInt is hzaddress, second Int32 is offset inside buffer
   auto hzaddresses = std::vector< std::pair<BigInt, Int32> >(tot, std::make_pair(-1, 0));
 
+  int pdim = this->getPointDim();
   PointNi p(pdim);
 
   //if this is not available I use the slower conversion p->zaddress->Hz
@@ -1770,7 +1821,10 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
     auto SRC = (Int64*)query->points.c_ptr();
     for (int N = 0; N < tot; N++, SRC += pdim)
     {
-      if (aborted()) return false;
+      if (aborted()) {
+        query->setFailed("query aborted"); 
+        return false;
+      }
       if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; }
       if (pdim >= 2) { p[1] = SRC[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; }
       if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; }
@@ -1789,8 +1843,10 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
 
     for (int N = 0; N < tot; N++, SRC += pdim)
     {
-      if (aborted())
+      if (aborted()) {
+        query->setFailed("query aborted"); 
         return false;
+      }
       if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; shift = (loc[0][p[0]].second); zaddress = loc[0][p[0]].first; }
       if (pdim >= 2) { p[1] = SRC[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; shift = std::min(shift, loc[1][p[1]].second); zaddress |= loc[1][p[1]].first; }
       if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; shift = std::min(shift, loc[2][p[2]].second); zaddress |= loc[2][p[2]].first; }
@@ -1838,11 +1894,13 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
 
   wait_async.waitAllDone();
 
-  if (aborted())
+  if (aborted()) {
+    query->setFailed("query aborted");
     return false;
-
+  }
 
   VisusAssert(query->buffer.dims == query->getNumberOfSamples());
+  query->setOk();
   return true;
 }
 

@@ -698,9 +698,10 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
 
     query->logic_box = BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box"));
 
-    //query failed
-    if (!dataset->nextQuery(query))
-      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->nextQuery() failed " + query->getLastErrorMsg());
+    dataset->beginQuery(query);
+
+    if (!query->isRunning())
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
 
     auto access = dataset->createAccess();
     if (!dataset->executeQuery(access, query))
@@ -721,8 +722,9 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   {
     auto nsamples = PointNi::parseDims(request.url.getParam("nsamples"));
 
-    auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', Aborted());
+
     VisusAssert(fromh == 0);
+    auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', Aborted());
     query->end_resolution = endh;
 
     query->logic_position = Position(
@@ -733,6 +735,12 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->setPoints failed " + query->getLastErrorMsg());
 
     auto access = dataset->createAccess();
+
+    dataset->beginQuery(query);
+
+    if (!query->isRunning())
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
+
     if (!dataset->executeQuery(access, query))
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
 

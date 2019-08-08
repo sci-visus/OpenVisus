@@ -122,17 +122,15 @@ public:
   }
 
   //setOk
-  bool setOk() {
+  void setOk() {
     setStatus(QueryOk);
-    return true;
   }
 
   //setOk
-  bool setFailed(String error_msg = "") {
+  void setFailed(String error_msg = "") {
     setStatus(QueryFailed);
     if (!error_msg.empty())
       setLastErrorMsg(error_msg);
-    return false;
   }
 
   //getLastErrorMsg

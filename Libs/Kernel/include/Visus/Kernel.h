@@ -182,14 +182,14 @@ VISUS_KERNEL_API void PrintMessageToTerminal(const String& value);
 VISUS_KERNEL_API bool VisusHasMessageLock();
 
 //ThrowExceptionEx
-VISUS_KERNEL_API void ThrowExceptionEx(String file,int line,String expr);
+VISUS_KERNEL_API void ThrowExceptionEx(String where,String what);
 
 
 #define __S1__(x) #x
 #define __S2__(x) __S1__(x)
 #define VisusHereInTheCode __FILE__ " : " __S2__(__LINE__)
 
-#define ThrowException(expr) (ThrowExceptionEx(__FILE__,__LINE__,expr))
+#define ThrowException(expr) (ThrowExceptionEx(VisusHereInTheCode,expr))
 
 #if !defined(SWIG) && !defined(VisusReleaseAssert)
 #  define VisusReleaseAssert(_Expression) { \

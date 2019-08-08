@@ -119,8 +119,11 @@ public:
     return SharedPtr<DatasetFilter>();
   }
 
+  //beginQuery
+  virtual void beginQuery(SharedPtr<BoxQuery> query) override;
+
   //nextQuery
-  virtual bool nextQuery(SharedPtr<BoxQuery> QUERY) override;
+  virtual void nextQuery(SharedPtr<BoxQuery> QUERY) override;
 
   //executeQuery
   virtual bool executeQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQuery> QUERY) override;

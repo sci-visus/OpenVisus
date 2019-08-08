@@ -1600,8 +1600,8 @@ public:
 
       auto query = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(),dataset->getDefaultTime(), 'r');
       query->logic_box = query_box;
-
-      VisusReleaseAssert(dataset->nextQuery(query));
+      dataset->beginQuery(query);
+      VisusReleaseAssert(query->isRunning());
       VisusReleaseAssert(dataset->executeQuery(access, query));
 
       auto sec = t1.elapsedSec();
@@ -1892,7 +1892,8 @@ public:
       //prepare the write query
       auto write = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(),dataset->getDefaultTime(),'w');
       write->logic_box = slice_box;
-      VisusReleaseAssert(dataset->nextQuery(write));
+      dataset->beginQuery(write);
+      VisusReleaseAssert(write->isRunning());
 
       int slab_num_samples = (int)(dims[0] * dims[1] * slices_per_slab);
       VisusReleaseAssert(write->getNumberOfSamples().innerProduct() == slab_num_samples);
@@ -1925,7 +1926,8 @@ public:
     {
       auto read = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
       read->logic_box = dataset->getLogicBox();
-      VisusReleaseAssert(dataset->nextQuery(read));
+      dataset->beginQuery(read);
+      VisusReleaseAssert(read->isRunning());
 
       Array buffer(read->getNumberOfSamples(), read->field.dtype);
       buffer.fillWithValue(0);

@@ -124,8 +124,11 @@ public:
 
 public:
 
+  //beginQuery
+  virtual void beginQuery(SharedPtr<BoxQuery> query) override;
+
   //nextQuery
-  virtual bool nextQuery(SharedPtr<BoxQuery> query) override;
+  virtual void nextQuery(SharedPtr<BoxQuery> query) override;
 
   //executeQuery
   virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
@@ -141,6 +144,9 @@ public:
 
 public:
 
+  //beginQuery
+  virtual void beginQuery(SharedPtr<PointQuery> query) override;
+
   //executeQuery
   virtual bool executeQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) override;
 
@@ -150,7 +156,8 @@ public:
   //executePureRemoteQuery
   virtual bool executePureRemoteQuery(SharedPtr<PointQuery> query) override;
 
-
+  //setEndResolution
+  bool setEndResolution(SharedPtr<BoxQuery> query, int value);
 
 
 };

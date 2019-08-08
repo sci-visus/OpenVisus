@@ -144,25 +144,37 @@ public:
 };
 
 
+
+
 //////////////////////////////////////////////////////////////
-static std::vector<int> OnlyEvenResolutions(std::vector<int> values,int min_value)
+bool GoogleMapsDataset::setEndResolution(SharedPtr<BoxQuery> query,int value)
 {
-  std::set<int> ret;
-  for (auto it : values)
-  {
-    auto value = (it >> 1) << 1;
-    if (value >= min_value)
-      ret.insert(value);
-  }
-  return std::vector<int>(ret.begin(), ret.end());
+  VisusAssert(query->end_resolution < value);
+  query->end_resolution = value;
+
+  auto end_resolution = query->end_resolution;
+  auto user_box = query->logic_box.getIntersection(this->getLogicBox());
+  VisusAssert(user_box.isFullDim());
+
+  auto Lsamples = getLevelSamples(end_resolution);
+  auto box = Lsamples.alignBox(user_box);
+
+  if (!box.isFullDim())
+    return false;
+
+  query->logic_samples = LogicSamples(box, Lsamples.delta);
+  return true;
 
 }
 
 //////////////////////////////////////////////////////////////
-bool GoogleMapsDataset::nextQuery(SharedPtr<BoxQuery> query)
+void GoogleMapsDataset::beginQuery(SharedPtr<BoxQuery> query)
 {
-  if (!query || !query->canBegin())
-    return false;
+  if (!query)
+    return;
+
+  if (query->getStatus() != QueryCreated)
+    return;
 
   if (!this->valid())
     return query->setFailed("Dataset url not valid");
@@ -185,62 +197,79 @@ bool GoogleMapsDataset::nextQuery(SharedPtr<BoxQuery> query)
   if (query->end_resolutions.empty())
     query->end_resolutions = { this->getMaxResolution() };
 
-  query->end_resolutions = OnlyEvenResolutions(query->end_resolutions, getDefaultBitsPerBlock());
-
-  for (int I = 0; I < (int)query->end_resolutions.size(); I++)
+  //only even resolution
   {
-    if (query->end_resolutions[I]<0 || query->end_resolutions[I]>getMaxResolution())
-      return query->setFailed("wrong end resolution");
+    std::set<int> good;
+    for (auto it : query->end_resolutions)
+    {
+      auto value = (it >> 1) << 1;
+      good.insert(Utils::clamp(value, getDefaultBitsPerBlock(), getMaxResolution()));
+    }
+
+    query->end_resolutions = std::vector<int>(good.begin(), good.end());
   }
 
-  for (int I = Utils::find(query->end_resolutions, query->end_resolution) + 1; I< (int)query->end_resolutions.size(); I++)
+  for (auto end_resolution : query->end_resolutions)
   {
-    VisusAssert(query->end_resolution < query->end_resolutions[I]);
-    query->end_resolution = query->end_resolutions[I];
-
-    auto end_resolution = query->end_resolution;
-    auto user_box = query->logic_box.getIntersection(this->getLogicBox());
-    VisusAssert(user_box.isFullDim());
-
-    auto Lsamples = getLevelSamples(end_resolution);
-    auto box = Lsamples.alignBox(user_box);
-
-    if (!box.isFullDim())
-      continue;
-
-    query->logic_samples = LogicSamples(box, Lsamples.delta);
-
-    //merging is not supported, so I'm resetting the buffer
-    if (query->getStatus() == QueryRunning)
-      query->buffer = Array();
-
-    //succeded
-    query->setRunning();
-    return true;
+    if (setEndResolution(query, end_resolution))
+    {
+      query->setRunning();
+      return;
+    }
   }
 
-  //reached the end?
-  query->setOk();
-  return false;
+  query->setFailed();
 }
 
+//////////////////////////////////////////////////////////////
+void GoogleMapsDataset::nextQuery(SharedPtr<BoxQuery> query)
+{
+  if (!query)
+    return;
+
+  if (!(query->isRunning() && query->getCurrentResolution() == query->getEndResolution()))
+    return;
+
+  //reached the end?
+  if (query->end_resolution == query->end_resolutions.back())
+    return query->setOk();
+
+  int I = Utils::find(query->end_resolutions, query->end_resolution) + 1;
+  auto end_resolution = query->end_resolutions[I];
+  VisusReleaseAssert(setEndResolution(query, end_resolution));
+
+  //merging is not supported, so I'm resetting the buffer
+  query->buffer = Array();
+}
 
 
 //////////////////////////////////////////////////////////////
 bool GoogleMapsDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
 {
-  if (!query || !query->canExecute())
+  if (!query)
+    return false;
+
+  if (!(query->isRunning() && query->getCurrentResolution() < query->getEndResolution()))
     return false;
 
   if (query->aborted())
-    return query->setFailed("query aboted");
+  {
+    query->setFailed("query aboted");
+    return false;
+  }
 
   //for 'r' queries I can postpone the allocation
   if (query->mode == 'w')
-    return query->setFailed("write not supported");
+  {
+    query->setFailed("write not supported");
+    return false;
+  }
 
   if (!query->allocateBufferIfNeeded())
-    return query->setFailed("cannot allocate buffer");
+  {
+    query->setFailed("cannot allocate buffer");
+    return false;
+  }
 
   //always need an access.. the google server cannot handle pure remote queries (i.e. compose the tiles on server side)
   if (!access)

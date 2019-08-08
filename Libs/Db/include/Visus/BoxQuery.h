@@ -147,11 +147,6 @@ public:
     this->end_resolutions = { B };
   }
 
-  //canBegin
-  bool canBegin() const {
-    return getStatus()==QueryCreated || (getStatus()==QueryRunning && cur_resolution == end_resolution);
-  }
-
   //canExecute
   bool canExecute() const {
     return isRunning() && cur_resolution < end_resolution;

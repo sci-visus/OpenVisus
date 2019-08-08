@@ -86,24 +86,25 @@ public:
 
     if (bool bPointQuery = pdim == 3 && logic_position.getBoxNd().toBox3().minsize() == 0)
     {
-      for (int N = 0; N < (int)resolutions.size(); N++)
+      for (int N = 0; N < (int)this->resolutions.size(); N++)
       {
         Time t1 = Time::now();
 
         auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', this->aborted);
         query->logic_position = logic_position;
-        query->end_resolution = resolutions[N];
+        query->end_resolution = this->resolutions[N];
         auto nsamples = dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution);
         query->setPoints(nsamples);
+        dataset->beginQuery(query);
 
-        if (aborted() || !dataset->executeQuery(access, query) || aborted())
+        if (!dataset->executeQuery(access, query))
           return;
         
         auto output = query->buffer;
 
         if (verbose)
         {
-          VisusInfo() << "PointQuery msec(" << t1.elapsedMsec() << ") " << "level(" << N << "/" << resolutions.size() << "/" << resolutions[N] << "/" << dataset->getMaxResolution() << ") "
+          VisusInfo() << "PointQuery msec(" << t1.elapsedMsec() << ") " << "level(" << N << "/" << this->resolutions.size() << "/" << this->resolutions[N] << "/" << dataset->getMaxResolution() << ") "
             << "dims(" << output.dims.toString() << ") dtype(" << output.dtype.toString() << ") access(" << (access ? "yes" : "nullptr") << ") url(" << dataset->getUrl().toString() << ") ";
         }
 
@@ -121,20 +122,20 @@ public:
       query->logic_box = this->logic_position.toDiscreteAxisAlignedBox(); //remove transformation! (in doPublish I will add the physic clipping)
       query->end_resolutions = this->resolutions;
 
-      if (!dataset->nextQuery(query))
-        return;
-
       query->incrementalPublish = [&](Array output) {
-        doPublish(output,query);
+        doPublish(output, query);
       };
 
-      this->resolutions = query->end_resolutions;
+      dataset->beginQuery(query);
 
-      for (int N = 0; N < (int)resolutions.size(); N++)
+      //could be that end_resolutions gets corrected (see google maps for example)
+      this->resolutions = query->end_resolutions; 
+
+      for (int N = 0; N < (int)this->resolutions.size(); N++)
       {
         Time t1 = Time::now();
 
-        if (aborted() || !dataset->executeQuery(access, query) || aborted())
+        if (aborted() || !query->isRunning() || !dataset->executeQuery(access, query) || aborted())
           return;
 
         auto output = query->buffer;
@@ -142,14 +143,12 @@ public:
         if (verbose)
         {
           VisusInfo()<< "BoxQuery msec(" << t1.elapsedMsec() << ") "
-            << "level(" << N << "/" << resolutions.size() << "/" << resolutions[N] << "/" << dataset->getMaxResolution() << ") "
+            << "level(" << N << "/" << this->resolutions.size() << "/" << this->resolutions[N] << "/" << dataset->getMaxResolution() << ") "
             << "dims(" << output.dims.toString() << ") dtype(" << output.dtype.toString() << ") access(" << (access ? "yes" : "nullptr") << ") url(" << dataset->getUrl().toString() << ") ";
         }
 
         doPublish(output, query);
-
-        if (!dataset->nextQuery(query))
-            return;
+        dataset->nextQuery(query);
       }
     }
   }

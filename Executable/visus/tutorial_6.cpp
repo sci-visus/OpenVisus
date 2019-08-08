@@ -75,7 +75,8 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
   
   auto write=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
   write->logic_box=userbox;
-  VisusReleaseAssert(dataset->nextQuery(write));
+  dataset->beginQuery(write);
+  VisusReleaseAssert(write->isRunning());
   VisusReleaseAssert(write->getNumberOfSamples()==img.dims);
 
   int N=std::min(NS,ND);
@@ -278,9 +279,10 @@ void Tutorial_6(String default_layout)
     for (int H=0;H<=dataset->getMaxResolution();H++)
       query->end_resolutions.push_back(H);
 
-    VisusReleaseAssert(dataset->nextQuery(query));
+    dataset->beginQuery(query);
+    VisusReleaseAssert(query->isRunning());
 
-    while (true)
+    while (query->isRunning())
     {
       VisusReleaseAssert(dataset->executeQuery(access,query));
       
@@ -328,8 +330,7 @@ void Tutorial_6(String default_layout)
         }
       }
 
-      if (!dataset->nextQuery(query))
-        break;
+      dataset->nextQuery(query);
     }
 
     dataset->removeFiles();

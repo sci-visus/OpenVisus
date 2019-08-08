@@ -429,9 +429,11 @@ public:
   ////////////////////////////////////
   //box query
 
+  virtual void beginQuery(SharedPtr<BoxQuery> query) {
+  }
+
   //nextQuery
-  virtual bool nextQuery(SharedPtr<BoxQuery> query) {
-    return false;
+  virtual void nextQuery(SharedPtr<BoxQuery> query) {
   }
 
   //executeQuery
@@ -461,6 +463,10 @@ public:
 
   //guessPointQueryNumberOfSamples
   PointNi guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, Position logic_position, int end_resolution);
+
+  //beginQuery
+  virtual void beginQuery(SharedPtr<PointQuery> query) {
+  }
 
   //executeQuery
   virtual bool executeQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) {

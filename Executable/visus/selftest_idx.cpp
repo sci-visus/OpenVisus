@@ -161,7 +161,8 @@ public:
 
         auto query=std::make_shared<BoxQuery>(dataset,dataset->getDefaultField(),dataset->getDefaultTime(),'w');
         query->logic_box=slice_box;
-        VisusReleaseAssert(dataset->nextQuery(query));
+        dataset->beginQuery(query);
+        VisusReleaseAssert(query->isRunning());
 
         Array buffer(query->getNumberOfSamples(),dtype);
         for (int i=0;i<buffer.c_size();i++)
@@ -181,7 +182,8 @@ public:
       {
         auto read_slice=std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
         read_slice->logic_box=(getSliceBox(N));
-        VisusReleaseAssert(dataset->nextQuery(read_slice));
+        dataset->beginQuery(read_slice);
+        VisusReleaseAssert(read_slice->isRunning());
         VisusReleaseAssert(dataset->executeQuery(access,read_slice));
         VisusReleaseAssert(read_slice->getNumberOfSamples().innerProduct()==this->perslice);
         VisusReleaseAssert(CompareSamples(write_queries[N]->buffer,0,read_slice->buffer,0,perslice));
@@ -217,17 +219,18 @@ public:
     PointNi shift(pdim);
 
     //probably the bounding box cannot get samples
-    if (!dataset->nextQuery(query))
+    dataset->beginQuery(query);
+
+    if (!query->isRunning())
       return;
 
-    while (true)
+    while (query->isRunning())
     {
       VisusReleaseAssert(dataset->executeQuery(access,query));
       buffer=query->buffer;
       h_box=query->logic_samples.logic_box;
       shift=query->logic_samples.shift;
-      if (!dataset->nextQuery(query))
-        break;
+      dataset->nextQuery(query);
     }
 
     VisusReleaseAssert(buffer);

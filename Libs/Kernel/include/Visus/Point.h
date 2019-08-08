@@ -394,6 +394,11 @@ public:
     return Point3((T)(1.0 / x), (T)(1.0 / y), (T)(1.0 / z));
   }
 
+  //innerProduct
+  T innerProduct() const {
+    return x * y * z;
+  }
+
   //+a
   const Point3& operator+()  const {
     return *this;

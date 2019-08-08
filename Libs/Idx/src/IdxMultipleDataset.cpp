@@ -144,10 +144,7 @@ public:
       I'm doing right now (except that I can go async)
       */
       auto QUERY = DATASET->createEquivalentBoxQuery('r', BLOCKQUERY);
-
-      if (!DATASET->nextQuery(QUERY))
-        return readFailed(BLOCKQUERY);
-
+      DATASET->beginQuery(QUERY);
       if (!DATASET->executeQuery(shared_from_this(), QUERY))
         return readFailed(BLOCKQUERY);
 
@@ -334,7 +331,9 @@ public:
         if (access->isReading() || access->isWriting())
           access->endIO();
 
-        if (!dataset->nextQuery(query))
+        dataset->beginQuery(query);
+
+        if (!query->isRunning())
           continue;
 
         if (!query->allocateBufferIfNeeded())
@@ -589,8 +588,7 @@ public:
 
     query->logic_box = Position(logic_to_LOGIC.invert(), QUERY_BOX).toDiscreteAxisAlignedBox();
 
-    //euristic to find delta in the hzcurve
-    //TODO!!!! this euristic produces too many samples
+    //euristic to find delta in the hzcurve (sometimes it produces too many samples)
     auto VOLUME = Position(                DATASET->getLogicBox()).computeVolume();
     auto volume = Position(logic_to_LOGIC, dataset->getLogicBox()).computeVolume();
     int delta_h = -(int)log2(VOLUME / volume);
@@ -610,7 +608,8 @@ public:
     query->end_resolutions = std::vector<int>(resolutions.begin(), resolutions.end());
 
     //skip this argument since returns empty array
-    if (!dataset->nextQuery(query))
+    dataset->beginQuery(query);
+    if (!query->isRunning())
     {
       query->setFailed("cannot begin the query");
       return query;
@@ -1225,41 +1224,6 @@ void IdxMultipleDataset::computeDefaultFields()
   }
 }
 
-typedef std::vector< std::pair<int, Point2i> > Edges;
-
-Edges GetEdges(int pdim)
-{
-  if (pdim == 2)
-  {
-    return Edges({
-      std::make_pair(0,Point2i(0,1)),
-      std::make_pair(1,Point2i(1,2)),
-      std::make_pair(0,Point2i(2,3)),
-      std::make_pair(1,Point2i(3,0)),
-      });
-  }
-
-  if (pdim == 3)
-  {
-    return Edges({
-        std::make_pair(0,Point2i(0,1)),
-        std::make_pair(1,Point2i(1,2)),
-        std::make_pair(0,Point2i(2,3)),
-        std::make_pair(1,Point2i(3,0)),
-        std::make_pair(0,Point2i(4,5)),
-        std::make_pair(1,Point2i(5,6)),
-        std::make_pair(0,Point2i(6,7)),
-        std::make_pair(1,Point2i(7,4)),
-        std::make_pair(2,Point2i(0,4)),
-        std::make_pair(2,Point2i(1,5)),
-        std::make_pair(2,Point2i(2,6)),
-        std::make_pair(2,Point2i(3,7))
-      });
-  }
-
-  ThrowException("internal error");
-  return Edges();
-};
 
 ///////////////////////////////////////////////////////////
 bool IdxMultipleDataset::openFromUrl(Url URL)
@@ -1348,15 +1312,13 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   }
   IDXFILE.bounds = PHYSIC_BOX;
 
-  //set LOGIC_BOX (at the beginning is the PHYSIC_BOX) and logic_to_LOGIC
-  //project into DATASET AXIS and try not to loose pixels
-  //this is just an euristic
   if (down_datasets.size() == 1)
   {
     IDXFILE.logic_box = down_datasets.begin()->second->getLogicBox();
   }
   else
   {
+    //euristic to set the  LOGIC_BOX trying not to loose pixels
     auto VS = PointNd::zero(pdim);
     for (auto it : down_datasets)
     {
@@ -1366,7 +1328,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
       VisusAssert(pdim == 2 || pdim == 3);
       auto PHYSIC_POINTS = bounds.getPoints();
-      for (auto edge : GetEdges(pdim))
+      for (auto edge : BoxNd::getEdges(pdim))
       {
         int  axis = edge.first;
         auto npixels = logic_box.size()[axis];
@@ -1465,15 +1427,24 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 ////////////////////////////////////////////////////////////////////////
 bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> QUERY)
 {
-  if (!QUERY || !QUERY->canExecute())
+  if (!QUERY)
+    return false;
+
+  if (!(QUERY->isRunning() && QUERY->getCurrentResolution() < QUERY->getEndResolution()))
     return false;
 
   if (QUERY->aborted())
-    return QUERY->setFailed("QUERY aboted");
+  {
+    QUERY->setFailed("QUERY aboted");
+    return false;
+  }
 
   //for 'r' queries I can postpone the allocation
   if (QUERY->mode == 'w' && !QUERY->buffer)
-    return QUERY->setFailed("write buffer not set");
+  {
+    QUERY->setFailed("write buffer not set");
+    return false;
+  }
 
   //execute N-Query (independentely) and blend them
   if (!bMosaic)
@@ -1533,21 +1504,38 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuer
 }
 
 ////////////////////////////////////////////////////////////////////////
-bool IdxMultipleDataset::nextQuery(SharedPtr<BoxQuery> QUERY)
+void IdxMultipleDataset::beginQuery(SharedPtr<BoxQuery> query) {
+  return IdxDataset::beginQuery(query);
+}
+
+////////////////////////////////////////////////////////////////////////
+void IdxMultipleDataset::nextQuery(SharedPtr<BoxQuery> QUERY)
 {
-  if (!IdxDataset::nextQuery(QUERY))
-    return false;
+  if (!QUERY)
+    return;
+
+  if (!(QUERY->isRunning() && QUERY->getCurrentResolution() == QUERY->getEndResolution()))
+    return;
+
+  //reached the end? 
+  if (QUERY->end_resolution == QUERY->end_resolutions.back())
+    return QUERY->setOk();
+
+  IdxDataset::nextQuery(QUERY);
+
+  //finished?
+  if (!QUERY->isRunning())
+    return;
 
   for (auto it : QUERY->down_queries)
   {
     auto  query   = it.second;
     auto  dataset = this->down_datasets[query->down_info.name]; VisusAssert(dataset);
 
-    if (query)
+    //can advance to the next level?
+    if (query && query->isRunning() && query->getCurrentResolution() == query->getEndResolution())
       dataset->nextQuery(query);
   }
-
-  return true;
 }
 
 ////////////////////////////////////////////////////////////////////////

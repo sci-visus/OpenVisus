@@ -120,9 +120,7 @@ public:
     auto query=std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
     query->logic_box=pow2_box;
     query->setResolutionRange(0,end_resolution);
-
-    if (!dataset->nextQuery(query)) 
-      return false;
+    dataset->beginQuery(query);
 
     if (!dataset->executeQuery(access,query))
       return false;
@@ -194,7 +192,12 @@ public:
         query->logic_box = node->logic_box;
         query->setResolutionRange(0,node->resolution);
 
-        if (aborted() || !dataset->nextQuery(query))
+        if (aborted())
+          return;
+
+        dataset->beginQuery(query);
+
+        if (!query->isRunning())
           return;
 
         DatasetBitmask bitmask = dataset->getBitmask();
@@ -442,7 +445,9 @@ public:
       query->logic_box = node->logic_box;
       query->setResolutionRange(0, node->resolution);
 
-      if (!dataset->nextQuery(query) || !query->allocateBufferIfNeeded())
+      dataset->beginQuery(query);
+
+      if (!query->isRunning() || !query->allocateBufferIfNeeded())
         continue;
 
       //remote 'Query'

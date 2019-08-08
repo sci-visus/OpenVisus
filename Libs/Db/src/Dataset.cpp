@@ -45,6 +45,7 @@ For support : support@visus.net
 #include <Visus/FilterAccess.h>
 #include <Visus/NetService.h>
 #include <Visus/VisusConfig.h>
+#include <Visus/Polygon.h>
 
 
 namespace Visus {
@@ -61,26 +62,11 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& logic_to_screen,Pos
     progression = (QueryProgression)(dataset_dim == 2 ? dataset_dim * 3 : dataset_dim * 4);
 
   auto maxh = this->getMaxResolution();
-  int final_resolution = maxh;
+  int endh = maxh;
+  DatasetBitmask bitmask = this->getBitmask();
 
-  // valerio's algorithm, find the final view dependent resolution (endh)
-  // (the default endh is the maximum resolution available)
   if (logic_to_screen.valid())
   {
-    const std::vector<Point2i> quad_edges =
-    {
-      Point2i(0,1), Point2i(1,2), Point2i(2,3), Point2i(3,0)
-    };
-
-    const std::vector<Point2i> cube_edges =
-    {
-      Point2i(0,1), Point2i(1,2), Point2i(2,3), Point2i(3,0),
-      Point2i(4,5), Point2i(5,6), Point2i(6,7), Point2i(7,4),
-      Point2i(0,4), Point2i(1,5), Point2i(2,6), Point2i(3,7)
-    };
-
-    auto edges = dataset_dim == 2 ? quad_edges : cube_edges;
-
     std::vector<Point3d> logic_points;
     for (auto p : logic_position.getPoints())
       logic_points.push_back(p.toPoint3());
@@ -90,52 +76,77 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& logic_to_screen,Pos
     for (auto logic_point : logic_points)
       screen_points.push_back(map.projectPoint(logic_point));
 
-    Point2i longest_edge;
-    double longest_pixel_distance_on_screen = NumericLimits<double>::lowest();
-    for (auto edge : edges)
+    if (dataset_dim == 2)
     {
-      Point2d p1 = screen_points[edge.x];
-      Point2d p2 = screen_points[edge.y];
-      double pixel_distance_on_screen = (p2 - p1).module();
+      //scrgiorgio euristic for 2d
+      VisusReleaseAssert(logic_points.size() == 4);
+      VisusReleaseAssert(screen_points.size() == 4);
 
-      if (pixel_distance_on_screen > longest_pixel_distance_on_screen)
-      {
-        longest_edge = edge;
-        longest_pixel_distance_on_screen = pixel_distance_on_screen;
-      }
+      std::vector<Point2d> screen_points;
+      FrustumMap map(logic_to_screen);
+      for (auto logic_point : logic_points)
+        screen_points.push_back(map.projectPoint(Point3d(logic_point)));
+
+      auto AREA = logic_position.computeVolume();
+      auto area = Quad(screen_points).area();
+
+      //maxh -- AREA == endh -- area
+      endh = std::max(0,maxh - (int)round(log2(AREA / area)));
     }
-
-    //I match the highest resolution on dataset axis (it's just an euristic!)
-    DatasetBitmask bitmask = this->getBitmask();
-    Point3d logic_P1 = logic_points[longest_edge.x];
-    Point3d logic_P2 = logic_points[longest_edge.y];
-    for (int A = 0; A < dataset_dim; A++)
+    else if (dataset_dim == 3)
     {
-      double logic_distance = fabs(logic_P1[A] - logic_P2[A]);
-      double factor = logic_distance / longest_pixel_distance_on_screen;
-      Int64  num = Utils::getPowerOf2((Int64)factor);
-      while (num > factor)
-        num >>= 1;
-
-      int H = maxh;
-      for (; num > 1 && H >= 0; H--)
+      // valerio's algorithm, find the final view dependent resolution (endh)
+      // (the default endh is the maximum resolution available)
+      //NOTE: this works for slices and volumes
+      std::pair<Point3d,Point3d> longest_edge;
+      double longest_pixel_distance_on_screen = NumericLimits<double>::lowest();
+      for (auto edge : BoxNi::getEdges(dataset_dim))
       {
-        if (bitmask[H] == A)
-          num >>= 1;
+        Point2d p1 = screen_points[edge.second.x];
+        Point2d p2 = screen_points[edge.second.y];
+        double pixel_distance_on_screen = (p2 - p1).module();
+
+        if (pixel_distance_on_screen > longest_pixel_distance_on_screen)
+        {
+          longest_edge = std::make_pair(logic_points[edge.second.x], logic_points[edge.second.y]);
+          longest_pixel_distance_on_screen = pixel_distance_on_screen;
+        }
       }
 
-      final_resolution = std::min(final_resolution, H);
+      //I match the highest resolution on dataset axis (it's just an euristic!)
+      for (int A = 0; A < dataset_dim; A++)
+      {
+        double logic_distance = fabs(longest_edge.first[A] - longest_edge.second[A]);
+        double factor = logic_distance / longest_pixel_distance_on_screen;
+        Int64  num = Utils::getPowerOf2((Int64)factor);
+        while (num > factor)
+          num >>= 1;
+
+        int H = maxh;
+        for (; num > 1 && H >= 0; H--)
+        {
+          if (bitmask[H] == A)
+            num >>= 1;
+        }
+
+        endh = std::min(endh, H);
+      }
+
+    }
+    else
+    {
+      ThrowException("internal error");
     }
   }
 
-  //quality
-  final_resolution = std::min(maxh, quality + final_resolution);
+  //quality can increase or decrease endh
+  endh = std::min(maxh, quality + endh);
 
   std::vector<int> ret;
-  ret.push_back(std::max(0, final_resolution - progression));
+  ret.push_back(std::max(0, endh - progression));
 
-  while (ret.back() != final_resolution)
-    ret.push_back(std::min(final_resolution, ret.back() + dataset_dim));
+  while (ret.back() != endh)
+    ret.push_back(std::min(endh, ret.back() + dataset_dim));
 
   return ret;
 }
@@ -471,8 +482,7 @@ Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, dou
   auto query = std::make_shared<BoxQuery>(this, field, time,  'r');
   query->logic_box = box;
 
-  if (!nextQuery(query))
-    return Array();
+  beginQuery(query);
 
   if (!executeQuery(access, query))
     return Array();
@@ -489,7 +499,9 @@ bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, dou
   auto query = std::make_shared<BoxQuery>(this, field, time,'w');
   query->logic_box = box;
 
-  if (!nextQuery(query))
+  beginQuery(query);
+
+  if (!query->isRunning())
     return false;
 
   VisusAssert(query->getNumberOfSamples() == buffer.dims);
