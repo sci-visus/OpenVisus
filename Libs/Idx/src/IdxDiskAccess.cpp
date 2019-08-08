@@ -634,6 +634,7 @@ private:
     //ExrCompression =0x05,
     PngCompression = 0x06,
     Lz4Compression = 0x07,
+    ZfpCompression = 0x08,
     CompressionMask = 0x0f
   };
 
@@ -728,6 +729,7 @@ private:
         case ZipCompression:return "zip"; break;
         case JpgCompression:return "jpg"; break;
         case PngCompression:return "png"; break;
+        case ZfpCompression:return "zfp"; break;
         default: VisusAssert(false); return "";
       }
     }
@@ -740,6 +742,7 @@ private:
       else if (value == "zip") flags |= ZipCompression;
       else if (value == "jpg") flags |= JpgCompression;
       else if (value == "png") flags |= PngCompression;
+      else if (value == "zfp") flags |= ZfpCompression;
       else VisusAssert(false);
     }
 

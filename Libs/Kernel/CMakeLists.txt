@@ -2,10 +2,10 @@
 find_package(Git)
 if(GIT_FOUND)
 	execute_process(
-		COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD 
-		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
+		COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 		OUTPUT_VARIABLE GIT_REVISION OUTPUT_STRIP_TRAILING_WHITESPACE)
-		
+
 	if (NOT GIT_REVISION STREQUAL "")
 		add_definitions(-DGIT_REVISION=${GIT_REVISION})
 		message(STATUS "${GIT_EXECUTABLE} Current GIT_REVISION ${GIT_REVISION}")
@@ -26,7 +26,7 @@ if (NOT (WIN32 OR APPLE))
 endif()
 
 source_group("" FILES
-	./include/Visus/Kernel.h 
+	./include/Visus/Kernel.h
 	./src/Kernel.cpp
 	./src/Kernel.mm
 )
@@ -36,14 +36,14 @@ source_group("Core" FILES
 	./include/Visus/Async.h
 	./include/Visus/BigInt.h
 	./include/Visus/ByteOrder.h
-	./src/ByteOrder.cpp	
+	./src/ByteOrder.cpp
 	./include/Visus/Color.h
 	./src/Color.cpp
 	./include/Visus/Diff.h
 	./src/Diff.cpp
 	./include/Visus/DirectoryIterator.h
-	./src/DirectoryIterator.cpp	
-	./src/DirectoryIterator.mm	
+	./src/DirectoryIterator.cpp
+	./src/DirectoryIterator.mm
 	./include/Visus/File.h
 	./src/File.cpp
 	./include/Visus/HeapMemory.h
@@ -84,21 +84,21 @@ source_group("Core" FILES
 	./include/Visus/SharedLibrary.h
 	./src/SharedLibrary.cpp
 	./include/Visus/json.hpp)
-	
+
 
 source_group("Thread" FILES
 	./include/Visus/CriticalSection.h
-	./src/CriticalSection.cpp	
+	./src/CriticalSection.cpp
 	./include/Visus/Semaphore.h
 	./src/Semaphore.cpp
 	./include/Visus/Thread.h
-	./src/Thread.cpp 
+	./src/Thread.cpp
 	./include/Visus/ThreadPool.h
-	./src/ThreadPool.cpp 
+	./src/ThreadPool.cpp
 )
 
 source_group("Geometry" FILES
-	./include/Visus/Matrix.h 
+	./include/Visus/Matrix.h
 	./src/Matrix.cpp
 	./include/Visus/Box.h
 	./include/Visus/Circle.h
@@ -160,7 +160,7 @@ source_group("Array"  FILES
 	./include/Visus/TransferFunction.h
 	./src/TransferFunction.cpp
 	./src/TransferFunction.Defaults.cpp)
-	
+
 source_group("Array\\Plugin" FILES
 	./include/Visus/ArrayPlugin.h
 	./src/ArrayPlugin.cpp
@@ -174,10 +174,11 @@ source_group("Encoder" FILES
 	./src/EncoderId.hxx
 	./src/EncoderZip.hxx
 	./src/EncoderLz4.hxx
+	./src/EncoderZfp.hxx
 	./src/EncoderFreeImage.hxx)
 
 
-source_group("Misc" FILES 
+source_group("Misc" FILES
 	./include/Visus/PointCloud.h
 	./include/Visus/Graph.h
 	./include/Visus/UnionFind.h
@@ -232,7 +233,7 @@ file(GLOB Sources
 	${PyExamples}
 	${MMFiles}
 	${CondaFiles}
-	include/Visus/*.* 
+	include/Visus/*.*
 	src/*.cpp src/*.hxx
 )
 
@@ -241,7 +242,7 @@ AddLibrary(VisusKernel SHARED ${Sources})
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs)
 
-target_link_libraries(VisusKernel PRIVATE cryptlite dtl lz4 tinyxml zlib)
+target_link_libraries(VisusKernel PRIVATE cryptlite dtl lz4 tinyxml zlib zfp)
 
 
 # openmp
@@ -287,7 +288,7 @@ if(WIN32)
 	target_link_libraries(VisusKernel PUBLIC Psapi.lib Iphlpapi.lib DbgHelp.lib Ws2_32.lib)
 
 elseif(APPLE)
-	target_link_libraries(VisusKernel PUBLIC 
+	target_link_libraries(VisusKernel PUBLIC
 		"-framework CoreFoundation" "-framework Foundation" "-framework AppKit" "-framework IOKit"
 		"-framework CoreAudio" "-framework CoreMIDI" "-framework QuartzCore" "-framework AudioToolbox")
 
