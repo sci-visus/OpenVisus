@@ -9,12 +9,16 @@ namespace mg {
 /* Forward/inverse zfp lifting in 1D */
 template <typename t> void FLift(t* P, int S);
 template <typename t> void ILift(t* P, int S);
+template <typename t> void FLiftRev(t* P, int S);
+template <typename t> void ILiftRev(t* P, int S);
 
 /* zfp transform in 3D. The input is assumed to be in row-major order. */
 template <typename t> void ForwardZfp(t* P);
 template <typename t> void InverseZfp(t* P);
 template <typename t, int S = 4> void ForwardZfp2D(t* P);
 template <typename t, int S = 4> void InverseZfp2D(t* P);
+template <typename t, int S = 4> void ForwardZfpRev2D(t* P);
+template <typename t, int S = 4> void InverseZfpRev2D(t* P);
 
 /* Reorder coefficients within a zfp block, and convert them from/to negabinary */
 template <typename t, typename u> void ForwardShuffle(t* IBlock, u* UBlock);

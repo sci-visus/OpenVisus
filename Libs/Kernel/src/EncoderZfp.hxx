@@ -207,19 +207,31 @@ namespace Visus {
           }
           /* zfp transform */
           if (d == 3) {
-            if (dtype.getBitSize() / nc > 32) {
-              mg::ForwardZfp(i64block);
+            if (dtype.getBitSize() / nc > 32) { // > 32 bits
+              if (dtype.isDecimal()) 
+                mg::ForwardZfp(i64block);
+              else 
+                mg::ForwardZfpRev(i64block);
               mg::ForwardShuffle(i64block, u64block);
-            } else {
-              mg::ForwardZfp(i32block);
+            } else { // <= 32 bits
+              if (dtype.isDecimal()) 
+                mg::ForwardZfp(i32block);
+              else 
+                mg::ForwardZfpRev(i32block);
               mg::ForwardShuffle(i32block, u32block);
             }
           } else if (d == 2) {
             if (dtype.getBitSize() / nc > 32) {
-              mg::ForwardZfp2D(i64block);
+              if (dtype.isDecimal())
+                mg::ForwardZfp2D(i64block);
+              else
+                mg::ForwardZfpRev2D(i64block);
               mg::ForwardShuffle2D(i64block, u64block);
             } else {
-              mg::ForwardZfp2D(i32block);
+              if (dtype.isDecimal())
+                mg::ForwardZfp2D(i32block);
+              else
+                mg::ForwardZfpRev2D(i32block);
               mg::ForwardShuffle2D(i32block, u32block);
             }
           }
@@ -323,18 +335,30 @@ namespace Visus {
               if (d == 3) {
                 if (dtype.getBitSize() / nc > 32) {
                   mg::InverseShuffle(u64block, i64block);
-                  mg::InverseZfp(i64block);
-                } else {
+                  if (dtype.isDecimal())
+                    mg::InverseZfp(i64block);
+                  else
+                    mg::InverseZfpRev(i64block);
+                } else { // <= 32 bits
                   mg::InverseShuffle(u32block, i32block);
-                  mg::InverseZfp(i32block);
+                  if (dtype.isDecimal())
+                    mg::InverseZfp(i32block);
+                  else
+                    mg::InverseZfpRev(i32block);
                 }
               } else if (d == 2) {
                 if (dtype.getBitSize() / nc > 32) {
                   mg::InverseShuffle2D(u64block, i64block);
-                  mg::InverseZfp2D(i64block);
-                } else {
+                  if (dtype.isDecimal())
+                    mg::InverseZfp2D(i64block);
+                  else
+                    mg::InverseZfpRev2D(i64block);
+                } else { // <= 32 bits
                   mg::InverseShuffle2D(u32block, i32block);
-                  mg::InverseZfp2D(i32block);
+                  if (dtype.isDecimal())
+                    mg::InverseZfp2D(i32block);
+                  else
+                    mg::InverseZfpRev2D(i32block);
                 }
               }
               /* dequantize */

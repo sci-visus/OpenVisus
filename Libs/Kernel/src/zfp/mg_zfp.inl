@@ -48,6 +48,39 @@ ILift(t* P, int S) {
   P[0 * S] = X; P[1 * S] = Y; P[2 * S] = Z; P[3 * S] = W;
 }
 
+// revertible transform
+/*
+** high-order Lorenzo transform
+** ( 1  0  0  0) (x)
+** (-1  1  0  0) (y)
+** ( 1 -2  1  0) (z)
+** (-1  3 -3  1) (w)
+*/
+template <typename t> void
+FLiftRev(t* P, int S) {
+  t X = P[0 * S], Y = P[1 * S], Z = P[2 * S], W = P[3 * S];
+  W -= Z; Z -= Y; Y -= X;
+  W -= Z; Z -= Y;
+  W -= Z;
+  P[0 * S] = X; P[1 * S] = Y; P[2 * S] = Z; P[3 * S] = W;
+}
+
+/*
+** high-order Lorenzo transform (P4 Pascal matrix)
+** ( 1  0  0  0) (x)
+** ( 1  1  0  0) (y)
+** ( 1  2  1  0) (z)
+** ( 1  3  3  1) (w)
+*/
+template <typename t> void
+ILiftRev(t* P, int S) {
+  t X = P[0 * S], Y = P[1 * S], Z = P[2 * S], W = P[3 * S];
+  W += Z;
+  Z += Y; W += Z;
+  Y += X; Z += Y; W += Z;
+  P[0 * S] = X; P[1 * S] = Y; P[2 * S] = Z; P[3 * S] = W;
+}
+
 template <typename t> void
 ForwardZfp(t* P) {
   assert(P);
@@ -65,6 +98,23 @@ ForwardZfp(t* P) {
       FLift(P + 1 * X + 4 * Y, 16);
 }
 
+template <typename t> void
+ForwardZfpRev(t* P) {
+  assert(P);
+  /* transform along X */
+  for (int Z = 0; Z < 4; ++Z)
+    for (int Y = 0; Y < 4; ++Y)
+      FLiftRev(P + 4 * Y + 16 * Z, 1);
+  /* transform along Y */
+  for (int X = 0; X < 4; ++X)
+    for (int Z = 0; Z < 4; ++Z)
+      FLiftRev(P + 16 * Z + 1 * X, 4);
+  /* transform along Z */
+  for (int Y = 0; Y < 4; ++Y)
+    for (int X = 0; X < 4; ++X)
+      FLiftRev(P + 1 * X + 4 * Y, 16);
+}
+
 template <typename t, int S> void
 ForwardZfp2D(t* P) {
   assert(P);
@@ -74,6 +124,17 @@ ForwardZfp2D(t* P) {
   /* transform along Y */
   for (int X = 0; X < S; ++X)
     FLift(P + 1 * X, S);
+}
+
+template <typename t, int S> void
+ForwardZfpRev2D(t* P) {
+  assert(P);
+  /* transform along X */
+  for (int Y = 0; Y < S; ++Y)
+    FLiftRev(P + S * Y, 1);
+  /* transform along Y */
+  for (int X = 0; X < S; ++X)
+    FLiftRev(P + 1 * X, S);
 }
 
 template <typename t> void
@@ -93,6 +154,23 @@ InverseZfp(t* P) {
       ILift(P + 4 * Y + 16 * Z, 1);
 }
 
+template <typename t> void
+InverseZfpRev(t* P) {
+  assert(P);
+  /* transform along Z */
+  for (int Y = 0; Y < 4; ++Y)
+    for (int X = 0; X < 4; ++X)
+      ILiftRev(P + 1 * X + 4 * Y, 16);
+  /* transform along y */
+  for (int X = 0; X < 4; ++X)
+    for (int Z = 0; Z < 4; ++Z)
+      ILiftRev(P + 16 * Z + 1 * X, 4);
+  /* transform along X */
+  for (int Z = 0; Z < 4; ++Z)
+    for (int Y = 0; Y < 4; ++Y)
+      ILiftRev(P + 4 * Y + 16 * Z, 1);
+}
+
 template <typename t, int S> void
 InverseZfp2D(t* P) {
   assert(P);
@@ -102,6 +180,17 @@ InverseZfp2D(t* P) {
   /* transform along X */
   for (int Y = 0; Y < S; ++Y)
     ILift(P + S * Y, 1);
+}
+
+template <typename t, int S> void
+InverseZfpRev2D(t* P) {
+  assert(P);
+  /* transform along y */
+  for (int X = 0; X < S; ++X)
+    ILiftRev(P + 1 * X, S);
+  /* transform along X */
+  for (int Y = 0; Y < S; ++Y)
+    ILiftRev(P + S * Y, 1);
 }
 
 /*
