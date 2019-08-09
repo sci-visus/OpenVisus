@@ -159,10 +159,7 @@ private:
   Field createField(String operation_name);
 
   //parseDataset
-  void parseDataset(ObjectStream& istream, Matrix T);
-
-  //parseDatasets
-  void parseDatasets(ObjectStream& istream, Matrix T);
+  void parseDataset(ObjectStream& istream);
 
   //removeAliases
   String removeAliases(String url);

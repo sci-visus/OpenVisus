@@ -1045,9 +1045,8 @@ String IdxMultipleDataset::removeAliases(String url)
 
 
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix modelview)
+void IdxMultipleDataset::parseDataset(ObjectStream& istream)
 {
-  VisusAssert(istream.getCurrentContext()->name == "dataset");
   String url = istream.readInline("url");
   VisusAssert(!url.empty());
 
@@ -1093,7 +1092,8 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix modelview)
 
   child->color = Color::parseFromString(istream.readInline("color"));;
   auto sdim = child->getPointDim() + 1;
-  modelview.setSpaceDim(sdim);
+
+  
 
   //override physic_box 
   if (istream.hasAttribute("physic_box"))
@@ -1101,95 +1101,51 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream, Matrix modelview)
     auto physic_box = BoxNd::parseFromString(istream.readInline("physic_box"));
     child->setPhysicPosition(physic_box);
   }
+  else if (istream.hasAttribute("quad"))
+  {
+    //in midx physic coordinates
+    VisusReleaseAssert(child->getPointDim() == 2);
+    auto W = (int)child->getLogicBox().size()[0];
+    auto H = (int)child->getLogicBox().size()[1];
+    auto dst = Quad::fromString(istream.readInline("quad"));
+    auto src = Quad(W,H);
+    auto T   = Quad::findQuadHomography(dst, src);
+    child->setPhysicPosition(Position(T,BoxNd(PointNd(0,0),PointNd(W,H))));
+  }
   
   // transform physic box
+  Matrix physic_to_PHYSIC(sdim);
   if (istream.hasAttribute("offset"))
-    modelview *= Matrix::translate(PointNd::parseFromString(istream.readInline("offset"))).withSpaceDim(sdim);
+    physic_to_PHYSIC *= Matrix::translate(PointNd::parseFromString(istream.readInline("offset"))).withSpaceDim(sdim);
 
   if (istream.pushContext("M"))
   {
     if (istream.hasAttribute("value"))
-      modelview *= Matrix::parseFromString(istream.readInline("value")).withSpaceDim(sdim);
+      physic_to_PHYSIC *= Matrix::parseFromString(istream.readInline("value")).withSpaceDim(sdim);
 
     for (auto it : istream.getCurrentContext()->getChilds())
     {
       if (it->name == "translate")
-        modelview *= Matrix::translate(PointNd(cdouble(it->readString("x")), cdouble(it->readString("y")), cdouble(it->readString("z")))).withSpaceDim(sdim);
+        physic_to_PHYSIC *= Matrix::translate(PointNd(cdouble(it->readString("x")), cdouble(it->readString("y")), cdouble(it->readString("z")))).withSpaceDim(sdim);
 
       else if (it->name == "rotate")
-        modelview *= Matrix::rotate(Quaternion::fromEulerAngles(Utils::degreeToRadiant(cdouble(it->readString("x"))), Utils::degreeToRadiant(cdouble(it->readString("y"))), Utils::degreeToRadiant(cdouble(it->readString("z"))))).withSpaceDim(sdim);
+        physic_to_PHYSIC *= Matrix::rotate(Quaternion::fromEulerAngles(Utils::degreeToRadiant(cdouble(it->readString("x"))), Utils::degreeToRadiant(cdouble(it->readString("y"))), Utils::degreeToRadiant(cdouble(it->readString("z"))))).withSpaceDim(sdim);
 
       else if (it->name == "scale")
-        modelview *= Matrix::nonZeroScale(PointNd(cdouble(it->readString("x")), cdouble(it->readString("y")), cdouble(it->readString("z")))).withSpaceDim(sdim);
+        physic_to_PHYSIC *= Matrix::nonZeroScale(PointNd(cdouble(it->readString("x")), cdouble(it->readString("y")), cdouble(it->readString("z")))).withSpaceDim(sdim);
 
       else if (it->name == "M")
-        modelview *= Matrix::parseFromString(it->readString("value")).withSpaceDim(sdim);
+        physic_to_PHYSIC *= Matrix::parseFromString(it->readString("value")).withSpaceDim(sdim);
     }
 
     istream.popContext("M");
   }
 
-  VisusAssert(modelview.getSpaceDim() == sdim);
-  child->setPhysicPosition(Position(modelview, child->getPhysicPosition()));
+  child->setPhysicPosition(Position(physic_to_PHYSIC, child->getPhysicPosition()));
   addChild(name, child);
-
 }
 
-///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDatasets(ObjectStream& istream, Matrix modelview)
-{
-  auto context = istream.getCurrentContext();
-  for (int I = 0; I < (int)context->getNumberOfChilds(); I++)
-  {
-    auto name = context->getChild(I).name;
-    
-    if (name=="dataset")
-    {
-      istream.pushContext("dataset");
-      if (cbool(istream.readInline("enabled", "1"))) 
-        parseDataset(istream, modelview);
-      istream.popContext("dataset");
-      continue;
-    }
 
-    if (name=="translate")
-    {
-      istream.pushContext("translate");
-      if (cbool(istream.readInline("enabled", "1")))
-        parseDatasets(istream, modelview * Matrix::translate(Point3d(cdouble(istream.readInline("x")), cdouble(istream.readInline("y")), cdouble(istream.readInline("z")))));
-      istream.popContext("translate");
-      continue;
-    }
-
-    if (name=="rotate")
-    {
-      istream.pushContext("rotate");
-      if (cbool(istream.readInline("enabled", "1")))
-        parseDatasets(istream, modelview * Matrix::rotate(Quaternion::fromEulerAngles(Utils::degreeToRadiant(cdouble(istream.readInline("x"))), Utils::degreeToRadiant(cdouble(istream.readInline("y"))), Utils::degreeToRadiant(cdouble(istream.readInline("z"))))));
-      istream.popContext("rotate");
-      continue;
-    }
-
-    if (name=="scale")
-    {
-      istream.pushContext("scale");
-      if (cbool(istream.readInline("enabled", "1")))
-        parseDatasets(istream, modelview * Matrix::nonZeroScale(PointNd(cdouble(istream.readInline("x")), cdouble(istream.readInline("y")), cdouble(istream.readInline("z")))));
-      istream.popContext("scale");
-      continue;
-    }
-
-    //pass throught
-    if (name != "field")
-    {
-      istream.pushContext(name);
-      if (cbool(istream.readInline("enabled", "1")))
-        parseDatasets(istream, modelview);
-
-      istream.popContext(name);
-    }
-  }
-}
 
 ///////////////////////////////////////////////////////////
 void IdxMultipleDataset::computeDefaultFields()
@@ -1243,9 +1199,18 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   this->bMosaic = cbool(istream.readInline("mosaic"));
 
-  this->bSlam = istream.getCurrentContext()->findChildWithName("slam") ? true : false;
+  if (istream.pushContext("slam"))
+  {
+    this->bSlam = true;
+    istream.popContext("slam");
+  }
 
-  parseDatasets(istream, Matrix::identity(4));
+  while (istream.pushContext("dataset"))
+  {
+    if (cbool(istream.readInline("enabled", "1")))
+      parseDataset(istream);
+    istream.popContext("dataset");
+  }
 
   if (down_datasets.empty())
   {
@@ -1316,14 +1281,15 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   //LOGIC_BOX
   BoxNi LOGIC_BOX;
-  if (istream.hasAttribute("box"))
+  if (istream.hasAttribute("logic_box"))
   {
-    LOGIC_BOX = BoxNi::parseFromOldFormatString(pdim, istream.readInline("box"));
+    LOGIC_BOX = BoxNi::parseFromString(istream.readInline("logic_box"));
   }
   else if (down_datasets.size() == 1)
   {
     LOGIC_BOX = down_datasets.begin()->second->getLogicBox();
   }
+  //backward compatible
   else if (this->bSlam)
   {
     LOGIC_BOX = PHYSIC_BOX.castTo<BoxNi>();
