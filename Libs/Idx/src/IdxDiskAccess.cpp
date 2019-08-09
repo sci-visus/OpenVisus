@@ -634,7 +634,7 @@ private:
     //ExrCompression =0x05,
     PngCompression = 0x06,
     Lz4Compression = 0x07,
-    ZfpCompression = 0x08,
+    ZfpCompression = 0x08,    
     CompressionMask = 0x0f
   };
 

@@ -72,6 +72,7 @@ namespace Visus {
     //encode
     virtual SharedPtr<HeapMemory> encode(PointNi dims, DType dtype, SharedPtr<HeapMemory> decoded) override
     {
+      // TODO: compare this and the approach where we compress 4x4x4 blocks before doing idx subsampling
       if (!decoded)
         return SharedPtr<HeapMemory>();
 
@@ -82,13 +83,13 @@ namespace Visus {
         return SharedPtr<HeapMemory>();
       mg::bitstream bs; InitWrite(&bs, mg::buffer(encoded->c_ptr(), encoded->c_size()));
 
-      const uint8_t* src = decoded->c_ptr();
+      FILE* fp = fopen("input.raw", "wb");
+      uint8_t* src = decoded->c_ptr();
       int d = dims.getPointDim(); // dimension (2 or 3) TODO: 1D?
       int nblocksz = d > 2  ? int((dims[2] + 3) / 4) : 1;
       int nblocksy = int((dims[1] + 3) / 4), nblocksx = int((dims[0] + 3) / 4);
       int nc = dtype.ncomponents();
-      //bool special = (nc == 3 || nc == 4) && (dtype.isVectorOf(DTypes::INT8) || dtype.isVectorOf(DTypes::UINT8));
-      bool special = false;
+      bool special = (nc == 3 || nc == 4) && (dtype.isVectorOf(DTypes::INT8) || dtype.isVectorOf(DTypes::UINT8));
       for (int pz = 0; pz < nblocksz; ++pz) {
       for (int py = 0; py < nblocksy; ++py) {
       for (int px = 0; px < nblocksx; ++px) { /* for each block */
@@ -148,56 +149,42 @@ namespace Visus {
               mg::PadBlock(i32block, mx, my, mz);
             }
           } else if (d == 2) {
-            if (special) { // for RGB and RGBA-like types, we use the 3D transform
-              if (c == 0) {
-                for (int by = 0; by < my; ++by) { for (int bx = 0; bx < mx; ++bx) {
-                  int yy = dy + by, xx = dx + bx;
-                  i32block[0 * 16 + by * 4 + bx] = ((const int8_t*)src)[nc * (yy * dims[0] + xx) + 0]; 
-                  i32block[1 * 16 + by * 4 + bx] = ((const int8_t*)src)[nc * (yy * dims[0] + xx) + 1];
-                  i32block[2 * 16 + by * 4 + bx] = ((const int8_t*)src)[nc * (yy * dims[0] + xx) + 2]; 
-                  if (nc == 4)
-                    i32block[3 * 16 + by * 4 + bx] = ((const int8_t*)src)[nc * (yy * dims[0] + xx) + 3]; }
-                }
-                mg::PadBlock(i32block, mx, my, mz);
+            if (dtype.isVectorOf(DTypes::FLOAT64)) {
+              for (int by = 0; by < 4; ++by) { for (int bx = 0; bx < 4; ++bx) {
+                int yy = dy + by, xx = dx + bx;
+                f64block[by * 4 + bx] = ((const double*)src)[nc * (yy * dims[0] + xx) + c]; }
               }
-            } else {
-              if (dtype.isVectorOf(DTypes::FLOAT64)) {
-                for (int by = 0; by < 4; ++by) { for (int bx = 0; bx < 4; ++bx) {
-                  int yy = dy + by, xx = dx + bx;
-                  f64block[by * 4 + bx] = ((const double*)src)[nc * (yy * dims[0] + xx) + c]; }
-                }
-                mg::PadBlock2D(f64block, mx, my);
-              } else if (dtype.isVectorOf(DTypes::FLOAT32)) {
-                for (int by = 0; by < 4; ++by) { for (int bx = 0; bx < 4; ++bx) {
-                  int yy = dy + by, xx = dx + bx;
-                  f32block[by * 4 + bx] = ((const float*)src)[nc * (yy * dims[0] + xx) + c]; }
-                }
-                mg::PadBlock2D(f32block, mx, my);
-              } else if (dtype.isVectorOf(DTypes::INT64) || dtype.isVectorOf(DTypes::UINT64)) {
-                for (int by = 0; by < 4; ++by) { for (int bx = 0; bx < 4; ++bx) {
-                  int yy = dy + by, xx = dx + bx;
-                  i64block[by * 4 + bx] = ((const int64_t*)src)[nc * (yy * dims[0] + xx) + c]; }
-                }
-                mg::PadBlock2D(i64block, mx, my);
-              } else if (dtype.isVectorOf(DTypes::INT32) || dtype.isVectorOf(DTypes::UINT32)) {
-                for (int by = 0; by < 4; ++by) { for (int bx = 0; bx < 4; ++bx) {
-                  int yy = dy + by, xx = dx + bx;
-                  i32block[by * 4 + bx] = ((const int32_t*)src)[nc * (yy * dims[0] + xx) + c]; }
-                }
-                mg::PadBlock2D(i32block, mx, my);
-              } else if (dtype.isVectorOf(DTypes::INT16) || dtype.isVectorOf(DTypes::UINT16)) {
-                for (int by = 0; by < 4; ++by) { for (int bx = 0; bx < 4; ++bx) {
-                  int yy = dy + by, xx = dx + bx;
-                  i32block[by * 4 + bx] = ((const int16_t*)src)[nc * (yy * dims[0] + xx) + c]; }
-                }
-                mg::PadBlock2D(i32block, mx, my);
-              } else if (dtype.isVectorOf(DTypes::INT8) || dtype.isVectorOf(DTypes::UINT8)) {
-                for (int by = 0; by < 4; ++by) { for (int bx = 0; bx < 4; ++bx) {
-                  int yy = dy + by, xx = dx + bx;
-                  i32block[by * 4 + bx] = ((const int8_t*)src)[nc * (yy * dims[0] + xx) + c]; }
-                }
-                mg::PadBlock2D(i32block, mx, my);
+              mg::PadBlock2D(f64block, mx, my);
+            } else if (dtype.isVectorOf(DTypes::FLOAT32)) {
+              for (int by = 0; by < 4; ++by) { for (int bx = 0; bx < 4; ++bx) {
+                int yy = dy + by, xx = dx + bx;
+                f32block[by * 4 + bx] = ((const float*)src)[nc * (yy * dims[0] + xx) + c]; }
               }
+              mg::PadBlock2D(f32block, mx, my);
+            } else if (dtype.isVectorOf(DTypes::INT64) || dtype.isVectorOf(DTypes::UINT64)) {
+              for (int by = 0; by < 4; ++by) { for (int bx = 0; bx < 4; ++bx) {
+                int yy = dy + by, xx = dx + bx;
+                i64block[by * 4 + bx] = ((const int64_t*)src)[nc * (yy * dims[0] + xx) + c]; }
+              }
+              mg::PadBlock2D(i64block, mx, my);
+            } else if (dtype.isVectorOf(DTypes::INT32) || dtype.isVectorOf(DTypes::UINT32)) {
+              for (int by = 0; by < 4; ++by) { for (int bx = 0; bx < 4; ++bx) {
+                int yy = dy + by, xx = dx + bx;
+                i32block[by * 4 + bx] = ((const int32_t*)src)[nc * (yy * dims[0] + xx) + c]; }
+              }
+              mg::PadBlock2D(i32block, mx, my);
+            } else if (dtype.isVectorOf(DTypes::INT16) || dtype.isVectorOf(DTypes::UINT16)) {
+              for (int by = 0; by < 4; ++by) { for (int bx = 0; bx < 4; ++bx) {
+                int yy = dy + by, xx = dx + bx;
+                i32block[by * 4 + bx] = ((const int16_t*)src)[nc * (yy * dims[0] + xx) + c]; }
+              }
+              mg::PadBlock2D(i32block, mx, my);
+            } else if (dtype.isVectorOf(DTypes::INT8) || dtype.isVectorOf(DTypes::UINT8)) {
+              for (int by = 0; by < 4; ++by) { for (int bx = 0; bx < 4; ++bx) {
+                int yy = dy + by, xx = dx + bx;
+                i32block[by * 4 + bx] = ((const int8_t*)src)[nc * (yy * dims[0] + xx) + c]; }
+              }
+              mg::PadBlock2D(i32block, mx, my);
             }
           }
           /* quantize */
@@ -237,10 +224,7 @@ namespace Visus {
               mg::ForwardShuffle(i32block, u32block);
             }
           } else if (d == 2) {
-            if (special) {
-              mg::ForwardZfp(i32block);
-              mg::ForwardShuffle(i32block, u32block);
-            } else if (dtype.getBitSize() / nc > 32) {
+            if (dtype.getBitSize() / nc > 32) {
               //if (dtype.isDecimal())
                 mg::ForwardZfp2D(i64block);
               //else
@@ -261,28 +245,27 @@ namespace Visus {
           // 16-bit signed integers (stored as int16_t) and 16-bit unsigned integers (stored as uint16_t)
           //  8-bit signed integers (stored as  int8_t) and  8-bit unsigned integers (stored as  uint8_t)          
           int nbitplanes = 64;
-          if (dtype.isVectorOf(DTypes::INT32) || dtype.isVectorOf(DTypes::UINT32))
+          if (dtype.isVectorOf(DTypes::INT32) || dtype.isVectorOf(DTypes::UINT32) || dtype.isVectorOf(DTypes::FLOAT32))
             nbitplanes = 32;
           else if (dtype.isVectorOf(DTypes::INT16) || dtype.isVectorOf(DTypes::UINT16))
             nbitplanes = 16 + d + 1;
           else if (dtype.isVectorOf(DTypes::INT8) || dtype.isVectorOf(DTypes::UINT8))
-            nbitplanes = 8 + d + special + 1;
+            nbitplanes = 8 + d + 1;
           int8_t n = 0;
           if (dtype.isVectorOf(DTypes::FLOAT64))
             mg::Write(&bs, emax + mg::traits<double>::ExpBias, mg::traits<double>::ExpBits);
           else if (dtype.isVectorOf(DTypes::FLOAT32))
             mg::Write(&bs, emax + mg::traits<float>::ExpBias, mg::traits<float>::ExpBits);
           if (dtype.getBitSize() / nc > 32) {
-            for (int bp = nbitplanes - 1; bp >= 0; --bp)
+            for (int bp = nbitplanes - 1; bp >= 16; --bp)
               mg::Encode(d, u64block, bp, int64_t(2e9), n, &bs); // TODO: 2e9?
           } else {
-            for (int bp = nbitplanes - 1; bp >= 0; --bp)
-              mg::Encode(d + special, u32block, bp, int64_t(2e9), n, &bs);
+            for (int bp = nbitplanes - 1; bp >= 16; --bp)
+              mg::Encode(d, u32block, bp, int64_t(2e9), n, &bs);
           }
         } // end component loop
       }}} // end block loop
       mg::Flush(&bs);
-      std::cout << "bit stream size = " << encoded_bound << " " << Size(bs) << "\n";
       if (!encoded->resize(mg::Size(bs), __FILE__, __LINE__))
         return SharedPtr<HeapMemory>();
 
@@ -295,7 +278,7 @@ namespace Visus {
       static int counter = 0;
       if (!encoded)
         return SharedPtr<HeapMemory>();
-
+      FILE* fp = fopen("decode.txt", "w");
       auto decoded = std::make_shared<HeapMemory>();
       if (!decoded->resize(dtype.getByteSize(dims), __FILE__, __LINE__))
         return SharedPtr<HeapMemory>();
@@ -337,20 +320,20 @@ namespace Visus {
               else if (dtype.isVectorOf(DTypes::FLOAT32))
                 emax = (int)mg::Read(&bs, mg::traits<float>::ExpBits) - mg::traits<float>::ExpBias;
               int nbitplanes = 64;
-              if (dtype.isVectorOf(DTypes::INT32) || dtype.isVectorOf(DTypes::UINT32))
+              if (dtype.isVectorOf(DTypes::INT32) || dtype.isVectorOf(DTypes::UINT32) || dtype.isVectorOf(DTypes::FLOAT32))
                 nbitplanes = 32;
               else if (dtype.isVectorOf(DTypes::INT16) || dtype.isVectorOf(DTypes::UINT16))
                 nbitplanes = 16 + d + 1;
               else if (dtype.isVectorOf(DTypes::INT8) || dtype.isVectorOf(DTypes::UINT8))
-                nbitplanes = 8 + d + special + 1;
+                nbitplanes = 8 + d + 1;
               int8_t n = 0;
               if (dtype.getBitSize() / nc > 32) {
-                for (int bp = nbitplanes - 1; bp >= 0; --bp)
+                for (int bp = nbitplanes - 1; bp >= 16; --bp)
                   mg::Decode(d, u64block, bp, int64_t(2e9), n, &bs); // TODO: 2e9?
               }
               else {
-                for (int bp = nbitplanes - 1; bp >= 0; --bp)
-                  mg::Decode(d + special, u32block, bp, int64_t(2e9), n, &bs);
+                for (int bp = nbitplanes - 1; bp >= 16; --bp)
+                  mg::Decode(d, u32block, bp, int64_t(2e9), n, &bs);
               }
               /* zfp inverse transform */
               if (d == 3) {
@@ -368,10 +351,7 @@ namespace Visus {
                     //mg::InverseZfpRev(i32block);
                 }
               } else if (d == 2) {
-                if (special) {
-                  mg::InverseShuffle(u32block, i32block);
-                  mg::InverseZfp(i32block);
-                } else if (dtype.getBitSize() / nc > 32) {
+                if (dtype.getBitSize() / nc > 32) {
                   mg::InverseShuffle2D(u64block, i64block);
                   //if (dtype.isDecimal())
                     mg::InverseZfp2D(i64block);
@@ -433,60 +413,48 @@ namespace Visus {
                 }
               }
               else if (d == 2) {
-                if (special) { // for RGB and RGBA-like types, we use the 3D transform
-                  if (c == 0) {
-                    for (int by = 0; by < my; ++by) { for (int bx = 0; bx < mx; ++bx) {
-                      int yy = dy + by, xx = dx + bx;
-                      ((int8_t*)dst)[nc * (yy * dims[0] + xx) + 0] = i32block[0 * 16 + by * 4 + bx];
-                      ((int8_t*)dst)[nc * (yy * dims[0] + xx) + 1] = i32block[1 * 16 + by * 4 + bx];
-                      ((int8_t*)dst)[nc * (yy * dims[0] + xx) + 2] = i32block[2 * 16 + by * 4 + bx]; 
-                      if (nc == 4)
-                        ((int8_t*)dst)[nc * (yy * dims[0] + xx) + 3] = i32block[3 * 16 + by * 4 + bx]; }
-                    }
+                if (dtype.isVectorOf(DTypes::FLOAT64)) {
+                  for (int by = 0; by < my; ++by) { for (int bx = 0; bx < mx; ++bx) {
+                    int yy = dy + by, xx = dx + bx;
+                    ((double*)dst)[nc * (yy * (dims[0]) + xx) + c] = f64block[by * 4 + bx]; }
                   }
-                } else {
-                  if (dtype.isVectorOf(DTypes::FLOAT64)) {
-                    for (int by = 0; by < my; ++by) { for (int bx = 0; bx < mx; ++bx) {
-                      int yy = dy + by, xx = dx + bx;
-                      ((double*)dst)[nc * (yy * (dims[0]) + xx) + c] = f64block[by * 4 + bx]; }
-                    }
-                  } else if (dtype.isVectorOf(DTypes::FLOAT32)) {
-                    for (int by = 0; by < my; ++by) { for (int bx = 0; bx < mx; ++bx) {
-                      int yy = dy + by, xx = dx + bx;
-                      ((float*)dst)[nc * (yy * (dims[0]) + xx) + c] = f32block[by * 4 + bx]; }
-                    }
-                  } else if (dtype.isVectorOf(DTypes::INT64) || dtype.isVectorOf(DTypes::UINT64)) {
-                    for (int by = 0; by < my; ++by) { for (int bx = 0; bx < mx; ++bx) {
-                      int yy = dy + by, xx = dx + bx;
-                      ((int64_t*)dst)[nc * (yy * (dims[0]) + xx) + c] = i64block[by * 4 + bx]; }
-                    }
-                  } else if (dtype.isVectorOf(DTypes::INT32) || dtype.isVectorOf(DTypes::UINT32)) {
-                    for (int by = 0; by < my; ++by) { for (int bx = 0; bx < mx; ++bx) {
-                      int yy = dy + by, xx = dx + bx;
-                      ((int32_t*)dst)[nc * (yy * dims[0] + xx) + c] = i32block[by * 4 + bx]; }
-                    }
-                  } else if (dtype.isVectorOf(DTypes::INT16) || dtype.isVectorOf(DTypes::UINT16)) {
-                    for (int by = 0; by < my; ++by) { for (int bx = 0; bx < mx; ++bx) {
-                      int yy = dy + by, xx = dx + bx;
-                      ((int16_t*)dst)[nc * (yy * dims[0] + xx) + c] = (int16_t)i32block[by * 4 + bx]; }
-                    }
-                  } else if (dtype.isVectorOf(DTypes::INT8) || dtype.isVectorOf(DTypes::UINT8)) {
-                    for (int by = 0; by < my; ++by) { for (int bx = 0; bx < mx; ++bx) {
-                      int yy = dy + by, xx = dx + bx;
-                      ((int8_t*)dst)[nc * (yy * dims[0] + xx) + c] = (int8_t)i32block[by * 4 + bx]; }
-                    }
+                } else if (dtype.isVectorOf(DTypes::FLOAT32)) {
+                  for (int by = 0; by < my; ++by) { for (int bx = 0; bx < mx; ++bx) {
+                    int yy = dy + by, xx = dx + bx;
+                    ((float*)dst)[nc * (yy * (dims[0]) + xx) + c] = f32block[by * 4 + bx]; }
+                  }
+                } else if (dtype.isVectorOf(DTypes::INT64) || dtype.isVectorOf(DTypes::UINT64)) {
+                  for (int by = 0; by < my; ++by) { for (int bx = 0; bx < mx; ++bx) {
+                    int yy = dy + by, xx = dx + bx;
+                    ((int64_t*)dst)[nc * (yy * (dims[0]) + xx) + c] = i64block[by * 4 + bx]; }
+                  }
+                } else if (dtype.isVectorOf(DTypes::INT32) || dtype.isVectorOf(DTypes::UINT32)) {
+                  for (int by = 0; by < my; ++by) { for (int bx = 0; bx < mx; ++bx) {
+                    int yy = dy + by, xx = dx + bx;
+                    ((int32_t*)dst)[nc * (yy * dims[0] + xx) + c] = i32block[by * 4 + bx]; }
+                  }
+                } else if (dtype.isVectorOf(DTypes::INT16) || dtype.isVectorOf(DTypes::UINT16)) {
+                  for (int by = 0; by < my; ++by) { for (int bx = 0; bx < mx; ++bx) {
+                    int yy = dy + by, xx = dx + bx;
+                    ((int16_t*)dst)[nc * (yy * dims[0] + xx) + c] = (int16_t)i32block[by * 4 + bx]; }
+                  }
+                } else if (dtype.isVectorOf(DTypes::INT8) || dtype.isVectorOf(DTypes::UINT8)) {
+                  for (int by = 0; by < my; ++by) { for (int bx = 0; bx < mx; ++bx) {
+                    int yy = dy + by, xx = dx + bx;
+                    ((int8_t*)dst)[nc * (yy * dims[0] + xx) + c] = (int8_t)i32block[by * 4 + bx]; }
                   }
                 }
               }
             }
           }
         }
-      } // end block loop
+      } // end block loops
       return decoded;
+      fclose(fp);
     }
   };
 
 } //namespace Visus
 
-#endif //VISUS_LZ4_ENCODER_H
+#endif //VISUS_ZFP_ENCODER_H
 
