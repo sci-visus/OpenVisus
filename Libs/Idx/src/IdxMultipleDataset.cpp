@@ -567,31 +567,35 @@ public:
 
     auto dataset = DATASET->down_datasets[name]; VisusAssert(dataset);
     auto field = dataset->getFieldByName(fieldname); VisusAssert(field.valid());
-    auto logic_to_LOGIC = dataset->logic_to_LOGIC;
 
-    auto LOGIC_MAPPED_REGION = Position(logic_to_LOGIC, dataset->getLogicBox()).toAxisAlignedBox();
+    auto QUERY_LOGIC_BOX = QUERY->logic_box.castTo<BoxNd>();
 
     //no intersection? just skip this down query
-    if (!QUERY->logic_box.castTo<BoxNd>().intersect(LOGIC_MAPPED_REGION))
+    auto VALID_LOGIC_REGION = Position(dataset->logic_to_LOGIC, dataset->getLogicBox()).toAxisAlignedBox();
+    if (!QUERY_LOGIC_BOX.intersect(VALID_LOGIC_REGION))
       return SharedPtr<BoxQuery>();
+
+    // consider that logic_to_logic could have mat(3,0) | mat(3,1) | mat(3,2) !=0 and so I can have non-parallel axis
+    // using directly the QUERY_LOGIC_BOX could result in missing pieces for example in voronoi
+    // solution is to limit the QUERY_LOGIC_BOX to the valid mapped region
+#if 1
+    QUERY_LOGIC_BOX = QUERY_LOGIC_BOX.getIntersection(VALID_LOGIC_REGION);
+#endif
+
+    auto LOGIC_to_logic = dataset->logic_to_LOGIC.invert();
+    auto query_logic_box = Position(LOGIC_to_logic, QUERY_LOGIC_BOX).toDiscreteAxisAlignedBox();
+    auto valid_logic_region = dataset->getLogicBox();
+    query_logic_box = query_logic_box.getIntersection(valid_logic_region);
+
+    //euristic to find delta in the hzcurve (sometimes it produces too many samples)
+    auto VOLUME = Position(DATASET->getLogicBox()).computeVolume();
+    auto volume = Position(dataset->logic_to_LOGIC, dataset->getLogicBox()).computeVolume();
+    int delta_h = -(int)log2(VOLUME / volume);
 
     auto query = std::make_shared<BoxQuery>(dataset.get(), field, QUERY->time, 'r', QUERY->aborted);
     QUERY->down_queries[key] = query;
     query->down_info.name = name;
-
-    auto QUERY_BOX = QUERY->logic_box.castTo<BoxNd>();
-
-    // consider that logic_to_logic could have mat(3,0) | mat(3,1) | mat(3,2) !=0 and so I can have non-parallel axis
-    // using directly the QUERY_BOX could result in missing pieces for example in voronoi
-    // solution is to limit the QUERY_BOX to the valid mapped region
-    QUERY_BOX = QUERY_BOX.getIntersection(LOGIC_MAPPED_REGION);
-
-    query->logic_box = Position(logic_to_LOGIC.invert(), QUERY_BOX).toDiscreteAxisAlignedBox();
-
-    //euristic to find delta in the hzcurve (sometimes it produces too many samples)
-    auto VOLUME = Position(                DATASET->getLogicBox()).computeVolume();
-    auto volume = Position(logic_to_LOGIC, dataset->getLogicBox()).computeVolume();
-    int delta_h = -(int)log2(VOLUME / volume);
+    query->logic_box = query_logic_box;
 
     //resolutions
     if (!QUERY->start_resolution)
@@ -687,15 +691,13 @@ public:
     auto PIXEL_TO_LOGIC = Position::computeTransformation(Position(QUERY->logic_box), query->down_info.BUFFER.dims);
     auto pixel_to_logic = Position::computeTransformation(Position(query->logic_box), query->buffer.dims);
 
-    // Tperspective := PIXEL <- pixel
-    auto logic_to_LOGIC = dataset->logic_to_LOGIC;
     auto LOGIC_TO_PIXEL = PIXEL_TO_LOGIC.invert();
-    Matrix Tperspective = LOGIC_TO_PIXEL * logic_to_LOGIC * pixel_to_logic;
+    Matrix pixel_to_PIXEL = LOGIC_TO_PIXEL * dataset->logic_to_LOGIC * pixel_to_logic;
 
     //this will help to find voronoi seams betweeen images
     query->down_info.LOGIC_TO_PIXEL = LOGIC_TO_PIXEL;
     query->down_info.PIXEL_TO_LOGIC = PIXEL_TO_LOGIC;
-    query->down_info.LOGIC_CENTROID = logic_to_LOGIC * dataset->getLogicBox().center();
+    query->down_info.LOGIC_CENTROID = dataset->logic_to_LOGIC * dataset->getLogicBox().center();
 
     //limit the samples to good logic domain
     //explanation: for each pixel in dims, tranform it to the logic dataset box, if inside set the pixel to 1 otherwise set the pixel to 0
@@ -706,7 +708,7 @@ public:
 
     if (!QUERY->aborted())
     {
-      ArrayUtils::warpPerspective(query->down_info.BUFFER, Tperspective, query->buffer, QUERY->aborted);
+      ArrayUtils::warpPerspective(query->down_info.BUFFER, pixel_to_PIXEL, query->buffer, QUERY->aborted);
 
       if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
       {
@@ -1090,7 +1092,7 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream)
     return;
   }
 
-  child->color = Color::parseFromString(istream.readInline("color"));;
+  child->color = Color::parseFromString(istream.readInline("color", Color::random().toString()));;
   auto sdim = child->getPointDim() + 1;
 
   

@@ -143,7 +143,8 @@ private:
   enum DebugMode
   {
     DebugSaveImages = 0x01,
-    DebugSkipReading=0x02
+    DebugSkipReading=0x02,
+    DebugAll=0xff
   };
 
   int debug_mode = 0;
