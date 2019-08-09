@@ -45,7 +45,7 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////////////////
-class Quaternion 
+class VISUS_KERNEL_API Quaternion
 {
 public:
 
