@@ -1243,6 +1243,8 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   this->bMosaic = cbool(istream.readInline("mosaic"));
 
+  this->bSlam = istream.getCurrentContext()->findChildWithName("slam") ? true : false;
+
   parseDatasets(istream, Matrix::identity(4));
 
   if (down_datasets.empty())
@@ -1310,48 +1312,64 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     auto dataset = it.second;
     PHYSIC_BOX = PHYSIC_BOX.getUnion(dataset->getPhysicPosition().toAxisAlignedBox());
   }
-  IDXFILE.bounds = PHYSIC_BOX;
+  IDXFILE.bounds = Position(PHYSIC_BOX);
 
-  if (down_datasets.size() == 1)
+  //LOGIC_BOX
+  BoxNi LOGIC_BOX;
+  if (istream.hasAttribute("box"))
   {
-    IDXFILE.logic_box = down_datasets.begin()->second->getLogicBox();
+    LOGIC_BOX = BoxNi::parseFromOldFormatString(pdim, istream.readInline("box"));
+  }
+  else if (down_datasets.size() == 1)
+  {
+    LOGIC_BOX = down_datasets.begin()->second->getLogicBox();
+  }
+  else if (this->bSlam)
+  {
+    LOGIC_BOX = PHYSIC_BOX.castTo<BoxNi>();
+  }
+  else if (bool bAssumeUniformScaling = false)
+  {
+    // logic_tot_pixels = physic_volume * pow(scale,pdim)
+    // density = pow(scale,pdim)
+    double VS = NumericLimits<double>::lowest();
+    for (auto it : down_datasets)
+    {
+      auto dataset = it.second;
+      auto logic_tot_pixels = Position(dataset->getLogicBox()).computeVolume();
+      auto physic_volume = dataset->getPhysicPosition().computeVolume();
+      auto density = logic_tot_pixels / physic_volume;
+      auto vs = pow(density, 1.0 / pdim);
+      VS = std::max(VS, vs);
+    }
+    LOGIC_BOX = Position(Matrix::scale(pdim, VS), Matrix::translate(-PHYSIC_BOX.p1), PHYSIC_BOX).toAxisAlignedBox().castTo<BoxNi>();
   }
   else
   {
-    //euristic to set the  LOGIC_BOX trying not to loose pixels
+    // logic_npixels' / logic_npixels = physic_module' / physic_module
+    // physic_module' * vs = logic_npixels'
+    // vs = logic_npixels / physic_module
     auto VS = PointNd::zero(pdim);
     for (auto it : down_datasets)
     {
       auto dataset = it.second;
-      auto logic_box = dataset->getLogicBox();
-      auto bounds = dataset->getPhysicPosition();
-
-      VisusAssert(pdim == 2 || pdim == 3);
-      auto PHYSIC_POINTS = bounds.getPoints();
       for (auto edge : BoxNd::getEdges(pdim))
       {
-        int  axis = edge.first;
-        auto npixels = logic_box.size()[axis];
-
-        int AXIS = -1;
-        double PROJECTION = NumericLimits<double>::lowest();
-        for (int I = 0; I < pdim; I++)
-        {
-          auto projection = fabs(PHYSIC_POINTS[edge.second.y][I] - PHYSIC_POINTS[edge.second.x][I]);
-          if (projection > PROJECTION)
-          {
-            AXIS = I;
-            PROJECTION = projection;
-          }
-        }
-
-        //PROJECTION * vs = npixels
-        auto vs = npixels / PROJECTION;
-        VS[AXIS] = std::max(VS[AXIS], vs);
+        auto logic_num_pixels = dataset->getLogicBox().size()[edge.axis];
+        auto physic_points    = dataset->getPhysicPosition().getPoints();
+        auto physic_edge      = physic_points[edge.index1] - physic_points[edge.index0];
+        auto physic_axis      = physic_edge.abs().max_element_index();
+        auto physic_module    = physic_edge.module();
+        auto density          = logic_num_pixels / physic_module;
+        auto vs               = density;
+        VS[physic_axis] = std::max(VS[physic_axis], vs);
       }
     }
-    IDXFILE.logic_box = BoxNd(PointNd::zero(pdim), VS.innerMultiply(PHYSIC_BOX.size())).castTo<BoxNi>();
+    LOGIC_BOX = Position(Matrix::scale(VS), Matrix::translate(-PHYSIC_BOX.p1), PHYSIC_BOX).toAxisAlignedBox().castTo<BoxNi>();
   }
+
+  IDXFILE.logic_box = LOGIC_BOX;
+  VisusInfo() << "midx logic_box " << IDXFILE.logic_box.toString();
 
   //set logic_to_LOGIC
   for (auto it : down_datasets)
@@ -1360,6 +1378,12 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     auto physic_to_PHYSIC = Matrix::identity(sdim);
     auto PHYSIC_to_LOGIC = Position::computeTransformation(IDXFILE.logic_box, PHYSIC_BOX);
     dataset->logic_to_LOGIC = PHYSIC_to_LOGIC * physic_to_PHYSIC * dataset->logicToPhysic();
+
+    //here you should see more or less the same number of pixels
+    auto logic_box = dataset->getLogicBox();
+    auto LOGIC_PIXELS = Position(dataset->logic_to_LOGIC, logic_box).computeVolume();
+    auto logic_pixels = Position(logic_box).computeVolume();
+    VisusInfo() << "   midx single idx density logic_pixels("<< logic_pixels <<") LOGIC_PIXELS("<< LOGIC_PIXELS <<") LOGIC_PIXELS/logic_pixels("<< LOGIC_PIXELS/logic_pixels <<")";
   }
 
   //time

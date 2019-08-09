@@ -186,6 +186,18 @@ namespace Utils
     return max(a, max(b, c, d, e));
   }
 
+  //min_element_index
+  template <typename T>
+  inline T min_element_index(const std::vector<T>& vec) {
+    return vec.empty() ? -1 : std::distance(vec.begin(), std::min_element(vec.begin(), vec.end()));
+  }
+
+  //max_element_index
+  template <typename T>
+  inline T max_element_index(const std::vector<T>& vec) {
+    return vec.empty() ? -1 : std::distance(vec.begin(), std::max_element(vec.begin(), vec.end()));
+  }
+
   //getRandInteger
   inline int getRandInteger(const int& a, const int& b) {
     return a + ((rand()) % (1 + b - a));

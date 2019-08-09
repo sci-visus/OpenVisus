@@ -57,6 +57,9 @@ public:
   //bMosaic
   bool bMosaic = false;
 
+  //bSlam
+  bool bSlam = false;
+
   std::map<String , SharedPtr<Dataset> > down_datasets;
 
   //constructor

@@ -297,34 +297,43 @@ public:
 
 
   //getEdges
-  typedef std::vector< std::pair<int, Point2i> > Edges;
+  class Edge
+  {
+  public:
+    int axis;
+    int index0;
+    int index1;
+    Edge(int axis_ = 0, int index0_ = 0, int index1_ = 0) : axis(axis_), index0(index0_), index1(index1_) {}
+  };
+
+  typedef std::vector<Edge> Edges;
   static Edges getEdges(int pdim)
   {
     if (pdim == 2)
     {
       return Edges({
-        std::make_pair(0,Point2i(0,1)),
-        std::make_pair(1,Point2i(1,2)),
-        std::make_pair(0,Point2i(2,3)),
-        std::make_pair(1,Point2i(3,0)),
+        Edge(0,0,1),
+        Edge(1,1,2),
+        Edge(0,2,3),
+        Edge(1,3,0),
         });
     }
 
     if (pdim == 3)
     {
       return Edges({
-          std::make_pair(0,Point2i(0,1)),
-          std::make_pair(1,Point2i(1,2)),
-          std::make_pair(0,Point2i(2,3)),
-          std::make_pair(1,Point2i(3,0)),
-          std::make_pair(0,Point2i(4,5)),
-          std::make_pair(1,Point2i(5,6)),
-          std::make_pair(0,Point2i(6,7)),
-          std::make_pair(1,Point2i(7,4)),
-          std::make_pair(2,Point2i(0,4)),
-          std::make_pair(2,Point2i(1,5)),
-          std::make_pair(2,Point2i(2,6)),
-          std::make_pair(2,Point2i(3,7))
+          Edge(0,0,1),
+          Edge(1,1,2),
+          Edge(0,2,3),
+          Edge(1,3,0),
+          Edge(0,4,5),
+          Edge(1,5,6),
+          Edge(0,6,7),
+          Edge(1,7,4),
+          Edge(2,0,4),
+          Edge(2,1,5),
+          Edge(2,2,6),
+          Edge(2,3,7)
         });
     }
 

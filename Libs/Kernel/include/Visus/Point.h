@@ -255,7 +255,6 @@ public:
   bool operator> (const Point2& b) const { const Point2& a = *this; return a[0] >  b[0] && a[1] >  b[1]; }
   bool operator>=(const Point2& b) const { const Point2& a = *this; return a[0] >= b[0] && a[1] >= b[1]; }
 
-
 public:
 
   //convert to string
@@ -1120,6 +1119,16 @@ public:
   }
 
 #endif
+
+  //min_element_index
+  int min_element_index() const {
+    return getPointDim()? (int)std::distance(begin(), min_element()) : -1;
+  }
+
+  //max_element_index
+  int max_element_index() const {
+    return getPointDim() ? (int)std::distance(begin(), max_element()) : -1;
+  }
 
   bool checkAllEqual       (const PointN& a, const PointN& b) const { return checkAll< ConditionE  >(a, b); }
   bool checkAllLess        (const PointN& a, const PointN& b) const { return checkAll< ConditionL  >(a, b); }

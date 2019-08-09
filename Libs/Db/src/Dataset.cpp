@@ -99,17 +99,15 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& logic_to_screen,Pos
       // (the default endh is the maximum resolution available)
       //NOTE: this works for slices and volumes
       std::pair<Point3d,Point3d> longest_edge;
-      double longest_pixel_distance_on_screen = NumericLimits<double>::lowest();
+      double longest_screen_distance = NumericLimits<double>::lowest();
       for (auto edge : BoxNi::getEdges(dataset_dim))
       {
-        Point2d p1 = screen_points[edge.second.x];
-        Point2d p2 = screen_points[edge.second.y];
-        double pixel_distance_on_screen = (p2 - p1).module();
+        double screen_distance = (screen_points[edge.index1] - screen_points[edge.index0]).module();
 
-        if (pixel_distance_on_screen > longest_pixel_distance_on_screen)
+        if (screen_distance > longest_screen_distance)
         {
-          longest_edge = std::make_pair(logic_points[edge.second.x], logic_points[edge.second.y]);
-          longest_pixel_distance_on_screen = pixel_distance_on_screen;
+          longest_edge = std::make_pair(logic_points[edge.index0], logic_points[edge.index1]);
+          longest_screen_distance = screen_distance;
         }
       }
 
@@ -117,7 +115,7 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& logic_to_screen,Pos
       for (int A = 0; A < dataset_dim; A++)
       {
         double logic_distance = fabs(longest_edge.first[A] - longest_edge.second[A]);
-        double factor = logic_distance / longest_pixel_distance_on_screen;
+        double factor = logic_distance / longest_screen_distance;
         Int64  num = Utils::getPowerOf2((Int64)factor);
         while (num > factor)
           num >>= 1;
