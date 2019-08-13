@@ -88,28 +88,19 @@ public:
   static void tryRemoveLockAndCorruptedBinaryFiles(String directory);
 
   // removeFiles all files bolonging to this visus file 
-  void removeFiles(int maxh = -1);
+  void removeFiles();
 
   //compressDataset
   virtual bool compressDataset(String compression) override;
 
-  //getAddressRangeBox
-  LogicBox getAddressRangeBox(BigInt start_address,BigInt end_address, int max_resolution);
-
-  //getLevelBox
-  LogicBox getLevelBox(HzOrder& hzorder, int H);
-
-  //getLevelBox
-  virtual LogicBox getLevelBox(int H) override {
-    auto hzorder=HzOrder(bitmask,getMaxResolution());
-    return getLevelBox(hzorder,H);
-  }
+  //getLevelSamples
+  virtual LogicSamples getLevelSamples(int H) override;
 
   //adjustFilterBox
-  BoxNi adjustFilterBox(Query* query,DatasetFilter* filter,BoxNi box,int H);
+  BoxNi adjustFilterBox(BoxQuery* query,DatasetFilter* filter,BoxNi box,int H);
 
-  //createEquivalentQuery
-  SharedPtr<Query> createEquivalentQuery(int mode,SharedPtr<BlockQuery> block_query);
+  //createEquivalentBoxQuery
+  SharedPtr<BoxQuery> createEquivalentBoxQuery(int mode,SharedPtr<BlockQuery> block_query);
 
   //setIdxFile
   void setIdxFile(IdxFile value);
@@ -122,55 +113,52 @@ public:
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
 
-  //getAddressRangeBox
-  virtual LogicBox getAddressRangeBox(BigInt start_address,BigInt end_address) override {
-    return getAddressRangeBox(start_address,end_address,-1);
-  }
+  //getAddressRangeSamples
+  virtual LogicSamples getAddressRangeSamples(BigInt start_address, BigInt end_address) override;
 
   //convertBlockQueryToRowMajor
   virtual bool convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query) override;
 
-  //createQueryFilter
-  virtual SharedPtr<DatasetFilter> createQueryFilter(const Field& field) override;
+  //createFilter
+  virtual SharedPtr<DatasetFilter> createFilter(const Field& field) override;
+
+public:
 
   //beginQuery
-  virtual bool beginQuery(SharedPtr<Query> query) override;
-
-  //executeQuery
-  virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<Query> query) override;
+  virtual void beginQuery(SharedPtr<BoxQuery> query) override;
 
   //nextQuery
-  virtual bool nextQuery(SharedPtr<Query> query) override;
+  virtual void nextQuery(SharedPtr<BoxQuery> query) override;
 
-  //mergeQueryWithBlock
-  virtual bool mergeQueryWithBlock(SharedPtr<Query> query,SharedPtr<BlockQuery> block_query) override;
+  //executeQuery
+  virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
+
+  //mergeBoxQueryWithBlock
+  virtual bool mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> block_query) override;
 
   //createNetRequest
-  virtual NetRequest createPureRemoteQueryNetRequest(SharedPtr<Query> query) override;
+  virtual NetRequest createPureRemoteQueryNetRequest(SharedPtr<BoxQuery> query) override;
 
-private:
+  //executePureRemoteQuery
+  virtual bool executePureRemoteQuery(SharedPtr<BoxQuery> query) override;
 
-  //guessPointQueryNumberOfSamples
-  PointNi guessPointQueryNumberOfSamples(Position position, const Frustum& viewdep, int end_resolution);
+public:
 
-  //setCurrentEndResolution
-  bool setCurrentEndResolution(SharedPtr<Query> query) {
-    return query->isPointQuery()?
-      setPointQueryCurrentEndResolution(query) : 
-      setBoxQueryCurrentEndResolution(query);
-  }
+  //beginQuery
+  virtual void beginQuery(SharedPtr<PointQuery> query) override;
 
-  //setBoxQueryCurrentEndResolution
-  bool setBoxQueryCurrentEndResolution(SharedPtr<Query> query);
+  //executeQuery
+  virtual bool executeQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) override;
 
-  //setPointQueryCurrentEndResolution
-  bool setPointQueryCurrentEndResolution(SharedPtr<Query> query);
+  //createNetRequest
+  virtual NetRequest createPureRemoteQueryNetRequest(SharedPtr<PointQuery> query) override;
 
-  //executeBoxQuery
-  bool executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Query> query) ;
+  //executePureRemoteQuery
+  virtual bool executePureRemoteQuery(SharedPtr<PointQuery> query) override;
 
-  //executePointQuery
-  bool executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<Query> query) ;
+  //setEndResolution
+  bool setEndResolution(SharedPtr<BoxQuery> query, int value);
+
 
 };
 

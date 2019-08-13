@@ -36,9 +36,18 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/LogicBox.h>
+#include <Visus/BoxQuery.h>
+#include <Visus/Dataset.h>
 
 namespace Visus {
+
+
+////////////////////////////////////////////////////////////////////////////////////
+BoxQuery::BoxQuery(Dataset* dataset, Field field, double time, int mode, Aborted aborted)
+  :Query(dataset, field, time, mode, aborted)
+{
+  this->filter.domain = dataset->getLogicBox();
+}
 
 
 

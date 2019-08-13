@@ -255,7 +255,6 @@ public:
   bool operator> (const Point2& b) const { const Point2& a = *this; return a[0] >  b[0] && a[1] >  b[1]; }
   bool operator>=(const Point2& b) const { const Point2& a = *this; return a[0] >= b[0] && a[1] >= b[1]; }
 
-
 public:
 
   //convert to string
@@ -392,6 +391,11 @@ public:
   //inverse
   Point3 inv() const {
     return Point3((T)(1.0 / x), (T)(1.0 / y), (T)(1.0 / z));
+  }
+
+  //innerProduct
+  T innerProduct() const {
+    return x * y * z;
   }
 
   //+a
@@ -786,7 +790,7 @@ class PointN
 {
 
   int pdim = 0;
-  std::array<__T__, 5> coords = { 0,0,0,0,0 };
+  std::array<__T__, 5> coords = std::array<__T__, 5>({ 0,0,0,0,0 });
 
 public:
 
@@ -914,7 +918,7 @@ public:
   //pop_back
   void pop_back() {
     VisusAssert(pdim > 0);
-    coords[pdim--] = 0;
+    coords[--pdim] = 0;
   }
 
   //withoutBack
@@ -950,9 +954,10 @@ public:
 
   //setPointDim
   void setPointDim(int new_pdim, T default_value = 0.0) {
-    for (int I = pdim; I < new_pdim; I++)
+    auto old_pdim = this->pdim;
+    this->pdim = new_pdim;
+    for (int I = old_pdim; I < new_pdim; I++)
       get(I) = default_value;
-    pdim = new_pdim;
   }
 
   //get
@@ -987,7 +992,12 @@ public:
     return ret;
   }
 
-  //constructor
+  //zero
+  static PointN zero(int pdim) {
+    return PointN(pdim);
+  }
+
+  //one
   static PointN one(int pdim) {
     return PointN(std::vector<T>(pdim, T(1)));
   }
@@ -1109,6 +1119,16 @@ public:
   }
 
 #endif
+
+  //min_element_index
+  int min_element_index() const {
+    return getPointDim()? (int)std::distance(begin(), min_element()) : -1;
+  }
+
+  //max_element_index
+  int max_element_index() const {
+    return getPointDim() ? (int)std::distance(begin(), max_element()) : -1;
+  }
 
   bool checkAllEqual       (const PointN& a, const PointN& b) const { return checkAll< ConditionE  >(a, b); }
   bool checkAllLess        (const PointN& a, const PointN& b) const { return checkAll< ConditionL  >(a, b); }

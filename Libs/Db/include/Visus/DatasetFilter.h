@@ -41,13 +41,13 @@ For support : support@visus.net
 
 #include <Visus/Db.h>
 #include <Visus/Array.h>
-#include <Visus/Query.h>
 
 namespace Visus {
 
 //predeclaration
 class Dataset;
 class Access;
+class BoxQuery;
 
 ////////////////////////////////////////////////////////
 class VISUS_DB_API DatasetFilter
@@ -87,7 +87,7 @@ public:
   {return dtype;}
 
   //getFilterStep
-  PointNi getFilterStep(int H,int MaxH) const; 
+  PointNi getFilterStep(int H) const; 
 
   //dropExtraComponentIfExists
   Array dropExtraComponentIfExists(Array src) const 
@@ -101,7 +101,7 @@ public:
   }
 
   //computeFilter
-  virtual bool computeFilter(Query* query,bool bInverse) const=0;
+  virtual bool computeFilter(BoxQuery* query,bool bInverse) const=0;
 
   //computeFilter
   bool computeFilter(double time,Field field,SharedPtr<Access> access,PointNi SlidingWindow) const;

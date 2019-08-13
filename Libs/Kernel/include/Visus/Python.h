@@ -184,9 +184,6 @@ public:
   //pythonObjectToArray
   Array pythonObjectToArray(PyObject* py_object);
 
-  //getLastErrorMessage
-  static String getLastErrorMessage();
-
   //convertToString
   static String convertToString(PyObject* value);
 

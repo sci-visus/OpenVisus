@@ -41,12 +41,12 @@ For support : support@visus.net
 using namespace Visus;
 
 /////////////////////////////////////////////////////////////////////////////////////
-void TilingExample(IdxDataset* vf)
+void TilingExample(IdxDataset* dataset)
 {
-  int maxh=vf->getMaxResolution();
+  int maxh=dataset->getMaxResolution();
 
-  int            bitsperblock    =  vf->getDefaultBitsPerBlock();
-  DatasetBitmask bitmask         =  vf->getBitmask();
+  int            bitsperblock    =  dataset->getDefaultBitsPerBlock();
+  DatasetBitmask bitmask         =  dataset->getBitmask();
   int            samplesperblock = 1<<bitsperblock;
 
   int pdim = bitmask.getPointDim();
@@ -97,16 +97,14 @@ void TilingExample(IdxDataset* vf)
       BigInt block = (H==bitsperblock)? (0) : ((((BigInt)1)<<K) + HzOrder(bitmask,K).interleave(tile.pos));
 
       //my check code (verify that the tile is really a query of a single block)
-      #ifdef VISUS_DEBUG
       {
-        auto query=std::make_shared<Query>(vf,'r');
-        query->position=box;
-        query->start_resolution=(H==bitsperblock?0:H);
-        query->end_resolutions={H};
-        VisusReleaseAssert(vf->beginQuery(query));
-        VisusReleaseAssert(query->nsamples==dims);
+        auto query=std::make_shared<BoxQuery>(dataset, dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
+        query->logic_box =box;
+        query->setResolutionRange(H == bitsperblock ? 0 : H, H);
+        dataset->beginQuery(query);
+        VisusReleaseAssert(query->isRunning());
+        VisusReleaseAssert(query->getNumberOfSamples()==dims);
       }
-      #endif
     }
   }
 }
@@ -119,7 +117,7 @@ void Tutorial_Tiling(String default_layout)
 
   //create a sample IdxDataset
   IdxFile idxfile;
-  idxfile.box = BoxNi(PointNi(0,0), PointNi(32,8));
+  idxfile.logic_box = BoxNi(PointNi(0,0), PointNi(32,8));
   {
     Field field("DATA",DTypes::UINT8);
     field.default_layout=default_layout;
@@ -130,9 +128,9 @@ void Tutorial_Tiling(String default_layout)
   idxfile.blocksperfile=1;
   VisusReleaseAssert(idxfile.save(filename));
 
-  auto vf= LoadDataset<IdxDataset>(filename);
-  VisusReleaseAssert(vf && vf->valid());
+  auto dataset= LoadDataset<IdxDataset>(filename);
+  VisusReleaseAssert(dataset && dataset->valid());
 
-  TilingExample(vf.get());
+  TilingExample(dataset.get());
 }
 

@@ -40,113 +40,50 @@ For support : support@visus.net
 #define __VISUS_BLOCK_QUERY_H
 
 #include <Visus/Db.h>
-#include <Visus/LogicBox.h>
-#include <Visus/Async.h>
+#include <Visus/Query.h>
 
 namespace Visus {
 
 
-//////////////////////////////////////////////////////////////////////////
-enum QueryStatus
-{
-  QueryCreated = 0,
-  QueryRunning,
-  QueryFailed,
-  QueryOk
-};
-
-
 ///////////////////////////////////////////////////////////////////////////////////////
-class VISUS_DB_API BlockQuery 
+class VISUS_DB_API BlockQuery : public Query
 {
 public:
 
   VISUS_NON_COPYABLE_CLASS(BlockQuery)
 
-  Aborted    aborted;
-
-  Field      field;
-  double     time = 0;
-
-  Array      buffer;
-
-  PointNi    nsamples;
-  LogicBox   logic_box;
+  BigInt       start_address = 0;
+  BigInt       end_address = 0;
+  LogicSamples logic_samples;
 
   Future<Void> done;
 
-  BigInt start_address=0;
-  BigInt end_address=0;
-
   //constructor
-  BlockQuery(Field field_,double time_,BigInt start_address_,BigInt end_address_,Aborted aborted_) 
-    : field(field_), time(time_), aborted(aborted_),start_address(start_address_),end_address(end_address_) {
-    done = Promise<Void>().get_future();
-  }
+  BlockQuery(Dataset* dataset, Field field, double time, BigInt start_address, BigInt end_address, int mode, Aborted aborted);
 
   //destructor
   virtual ~BlockQuery() {
   }
 
+  //setStatus
+  virtual void setStatus(QueryStatus value) override;
 
-  //getByteSize
-  Int64 getByteSize() const {
-    return field.dtype.getByteSize(nsamples);
+  //getNumberOfSamples
+  virtual PointNi getNumberOfSamples() const override {
+    return logic_samples.nsamples;
   }
 
+  //getLogicBox
+  BoxNi getLogicBox() const {
+    return logic_samples.logic_box;
+  }
 
   //getBlockNumber
   BigInt getBlockNumber(int bitsperblock) const {
     return start_address >> bitsperblock;
   }
 
-  //setRunning
-  void setRunning() {
-    VisusAssert(status == QueryCreated);
-    this->status = QueryRunning;
-  }
-
-  //ok
-  bool ok() const {
-    VisusAssert(status == QueryOk || status == QueryFailed); //call only when the blockquery is done
-    return status == QueryOk;
-  }
-
-  //setOk
-  void setOk() {
-    VisusAssert(this->status == QueryCreated || this->status == QueryRunning);
-    this->status = QueryOk;
-    this->done.get_promise()->set_value(Void());
-  }
-
-  //failed
-  bool failed() const {
-    VisusAssert(status == QueryOk || status == QueryFailed); //call only when the blockquery is done
-    return status == QueryFailed;
-  }
-
-  //setOk
-  void setFailed() {
-    VisusAssert(this->status == QueryCreated || this->status == QueryRunning);
-    this->status = QueryFailed;
-    this->done.get_promise()->set_value(Void());
-  }
-
-  //allocateBufferIfNeeded
-  bool allocateBufferIfNeeded();
-
-private:
-
-  QueryStatus status = QueryCreated;
-
 };
-
-
-//predeclaration
-class Dataset;
-class Access;
-
-
 
 
 } //namespace Visus

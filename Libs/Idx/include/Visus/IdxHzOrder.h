@@ -50,7 +50,7 @@ namespace Visus {
 LOW-LEVEL mapping functions. Remember this schema
 
       ZADDRESS           HZADDRESS
-       V010101{01}*      
+       V010101      
    H=0  000000                   0
    H=1  100000                   1
    H=2  x10000                  1x
@@ -58,8 +58,6 @@ LOW-LEVEL mapping functions. Remember this schema
    H=4  xxx100                1xxx
    H=5  xxxx10               1xxxx
    H=6  xxxxx1              1xxxxx
-   H=7  xxxxxx{1}          1xxxxxx
-   H=8  xxxxxx{x1}        1xxxxxxx  (can explode regex)
 * ------------------------------------------------------- */
 
 class VISUS_IDX_API HzOrder
@@ -69,20 +67,26 @@ public:
   VISUS_CLASS(HzOrder)
 
   //default constructor
-  HzOrder()
-  {}
+  HzOrder() {
+  }
 
   //constructor
-  inline HzOrder(const DatasetBitmask& bitmask_,int maxh_) : bitmask(bitmask_),maxh(maxh_),pdim(bitmask_.getPointDim())
-  {}
+  HzOrder(const DatasetBitmask& bitmask_,int maxh_) : bitmask(bitmask_),maxh(maxh_),pdim(bitmask_.getPointDim()) {
+  }
+
+  //constructor
+  HzOrder(const DatasetBitmask& bitmask_) : HzOrder(bitmask_,bitmask_.getMaxResolution()) {
+  }
 
   //getBitmask
-  const DatasetBitmask& getBitmask() const
-  {return bitmask;}
+  const DatasetBitmask& getBitmask() const {
+    return bitmask;
+  }
 
   //getMaxResolution
-  inline int getMaxResolution() const
-  {return maxh;}
+  int getMaxResolution() const {
+    return maxh;
+  }
 
   //PointNd -> Zaddress
   /* EXAMPLE
@@ -110,7 +114,7 @@ public:
     interleave(PointNi(3 3))= 1111=15
   */
 
-  inline BigInt interleave(PointNi p) const
+  BigInt interleave(PointNi p) const
   {
     VisusAssert(bitmask.valid());
     int maxh=this->maxh;
@@ -126,8 +130,9 @@ public:
   }
 
   //Zaddress -> PointNd
-  inline PointNi deinterleave(BigInt z) const
-  {return bitmask.deinterleave(z,this->maxh);}
+  PointNi deinterleave(BigInt z) const {
+    return bitmask.deinterleave(z,this->maxh);
+  }
 
   //getZStartAddress  (Replace the ..xxx.. into 0)
   /*  
@@ -143,7 +148,7 @@ public:
     Vxx10 getZStartAddress(3)= 0010= 2
     Vxxx1 getZStartAddress(4)= 0001= 1
   */
-  inline BigInt getZStartAddress(int H) const
+  BigInt getZStartAddress(int H) const
   {
     VisusAssert(H>=0 && H<=maxh);
     return H? ((BigInt)1)<<(maxh-H) : 0;
@@ -163,14 +168,14 @@ public:
     Vxx10 getZEndAddress(3)= 1110=14
     Vxxx1 getZEndAddress(4)= 1111=15
   */
-  inline BigInt getZEndAddress(int H) const
+  BigInt getZEndAddress(int H) const
   {
     VisusAssert(H>=0 && H<=maxh);
     return H? ((((BigInt)1)<<maxh)-getZStartAddress(H)) : (0);
   }
 
   //Zaddress -> HzAddress (see table above)
-  inline BigInt zAddressToHzAddress(BigInt z) const
+  BigInt zAddressToHzAddress(BigInt z) const
   {
     BigInt last_bitmask=((BigInt)1)<<maxh; //a "1" enter in the left
     z |= last_bitmask;
@@ -181,7 +186,7 @@ public:
   }
 
   //HzAddress -> Zaddress (see table above)
-  inline BigInt hzAddressToZAddress(BigInt hz) const
+  BigInt hzAddressToZAddress(BigInt hz) const
   {
     BigInt last_bitmask=((BigInt)1)<<maxh;
     hz <<= 1;
@@ -192,13 +197,14 @@ public:
   }
 
   //PointNd -> HzAddress
-  inline BigInt getAddress(const PointNi& p) const
-  {return zAddressToHzAddress(interleave(p));}
+  BigInt getAddress(const PointNi& p) const {
+    return zAddressToHzAddress(interleave(p));
+  }
 
   //HzAddress -> PointNd
-  inline PointNi getPoint(const BigInt& hz) const
-  {return deinterleave(hzAddressToZAddress(hz));}
-
+  PointNi getPoint(const BigInt& hz) const {
+    return deinterleave(hzAddressToZAddress(hz));
+  }
 
   //getLevelDelta (count the right 0 and the blocking 1)
   /*
@@ -212,7 +218,7 @@ public:
     Vxx10  getLevelDelta(3)=(2 2) 0
     Vxxx1  getLevelDelta(4)=(1 2) 1
   */
-  inline PointNi getLevelDelta(int H) const
+  PointNi getLevelDelta(int H) const
   {
     VisusAssert(H>=0 && H<=maxh);
     PointNi p=PointNi::one(pdim);
@@ -234,7 +240,7 @@ public:
     Vxx10  getLevelP1(3)=V0010=(1,0)
     Vxxx1  getLevelP1(4)=V0001=(0,1)
   */
-  inline PointNi getLevelP1(int H) const
+  PointNi getLevelP1(int H) const
   {
     VisusAssert(H>=0 && H<=maxh);
     if (!H) return PointNi(pdim);
@@ -253,7 +259,7 @@ public:
     Vxx10  getLevelP2Included(3)=V1110=(3,2)
     Vxxx1  getLevelP2Included(4)=V1111=(3,3)
   */
-  inline PointNi getLevelP2Included(int H) const
+  PointNi getLevelP2Included(int H) const
   {
     VisusAssert(H>=0 && H<=maxh);
     if (!H) return PointNi(pdim);
@@ -261,7 +267,7 @@ public:
   }
 
   //the right-most "1" set (the bit that will become the V in the right shift in a bitmask such as V010101...)
-  static inline int getAddressResolution(const DatasetBitmask& bitmask,BigInt hz)
+  static int getAddressResolution(const DatasetBitmask& bitmask,BigInt hz)
   {
     int ret=0;
     while (hz!=0) {ret++;hz>>=1;}
@@ -269,7 +275,7 @@ public:
   }
 
   //getAddressRangeNumberOfSamples (i.e. samples for each axis)
-  static inline PointNi getAddressRangeNumberOfSamples(const DatasetBitmask& bitmask,BigInt hzfrom,BigInt hzto)
+  static PointNi getAddressRangeNumberOfSamples(const DatasetBitmask& bitmask,BigInt hzfrom,BigInt hzto)
   {
     int bitsperblock=Utils::getLog2(cint64(hzto-hzfrom));
     PointNi nsamples=PointNi::one(bitmask.getPointDim());

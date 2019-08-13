@@ -89,7 +89,7 @@ if __name__ == '__main__':
 	
 	if add_python_node:
 		root=viewer.getRoot()
-		world_box=viewer.getWorldBoundingBox()
+		world_box=viewer.getWorldBounds()
 		
 		VISUS_REGISTER_NODE_CLASS("MyPythonNode")
 		pynode=MyPythonNode()

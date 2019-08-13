@@ -89,7 +89,7 @@ public:
     QSlider* quality;
     
     // Export
-    QSlider* resolution;
+    QSlider* end_resolution;
     Field selected_field;
     QLineEdit* fileEdit;
     QPushButton* saveButton;
@@ -141,7 +141,7 @@ public:
         sub->addWidget(widgets.progression.noprogression=GuiFactory::CreateCheckBox(false,"No Progression"));
         sub->addWidget(widgets.progression.user.enabled=GuiFactory::CreateCheckBox(false,"User value"));
         sub->addLayout(GuiFactory::CreateIntegerSliderAndShowToolTip(widgets.progression.user.set,6,1,32,[this](int value) {
-          this->model->setProgression((Query::Progression)widgets.progression.user.set->value());
+          this->model->setProgression((QueryProgression)widgets.progression.user.set->value());
         }));
 
         auto group=new QButtonGroup(layout);
@@ -152,11 +152,11 @@ public:
 
         connect(group, static_cast<void(QButtonGroup::*)(QAbstractButton *)>(&QButtonGroup::buttonClicked),[this](QAbstractButton *button){ 
           if (button==widgets.progression.guess) 
-            this->model->setProgression(Query::GuessProgression);
+            this->model->setProgression(QueryGuessProgression);
           else if (button==widgets.progression.noprogression)
-            this->model->setProgression(Query::NoProgression);
+            this->model->setProgression(QueryNoProgression);
           else
-            this->model->setProgression((Query::Progression)widgets.progression.user.set->value());
+            this->model->setProgression((QueryProgression)widgets.progression.user.set->value());
         });
 
         layout->addRow("Progression",sub);
@@ -164,7 +164,7 @@ public:
 
       //quality
       layout->addRow("Quality",GuiFactory::CreateIntegerSliderAndShowToolTip(widgets.quality,model->getQuality(),-12,+12,[this](int value){
-        this->model->setQuality((Query::Quality)value);
+        this->model->setQuality((QueryQuality)value);
       }));
 
       //access
@@ -200,6 +200,25 @@ public:
   }
 
 private:
+
+  //createQuery
+  SharedPtr<BoxQuery> createQuery(QueryNode* node,int end_resolution)
+  {
+    auto dataset = node->getDataset();
+
+    if (!dataset)
+      return SharedPtr<BoxQuery>();
+
+    auto query_bounds = node->getQueryBounds();
+    //note: point query not supported!
+    VisusAssert(!(dataset->getPointDim() == 3 && query_bounds.getBoxNd().toBox3().minsize() == 0));
+
+    auto query = std::make_shared<BoxQuery>(dataset.get(), node->getField(), node->getTime(), 'r');
+    query->filter.enabled = true;
+    query->logic_box = node->getQueryLogicPosition().toDiscreteAxisAlignedBox();
+    query->setResolutionRange(0, end_resolution);
+    return query;
+  }
 
   //createExportWidget
   QWidget* createExportWidget()
@@ -251,37 +270,25 @@ private:
     dimsLabel->setFixedWidth(100);
     
     // TODO make a slot to update on query change
-    widgets.resolution=GuiFactory::CreateIntegerSliderWidget(std::min(24, dataset->getMaxResolution()),1,dataset->getMaxResolution(), [this,resLabel,dimsLabel,dataset,time_node](int value)
+    widgets.end_resolution =GuiFactory::CreateIntegerSliderWidget(std::min(24, dataset->getMaxResolution()),1,dataset->getMaxResolution(), [this,resLabel,dimsLabel,dataset,time_node](int end_resolution)
     {
-        auto access=dataset->createAccess();
-        auto query=std::make_shared<Query>(dataset.get(),'r');
-        query->field= dataset->getFieldByName(widgets.selected_field.name);
-        query->position=this->model->getQueryPosition();
-        query->time=time_node->getCurrentTime();
-        query->end_resolutions.push_back(value);
+        auto query= createQuery(model,end_resolution);
+        if (!query) 
+          return;
 
-        VisusReleaseAssert(dataset->beginQuery(query));
-      
-        auto num_samples = query->nsamples.innerProduct();
-        std::stringstream ss;
-        ss<<"Est. Size:  ";
-        ss.precision(3);
-        ss<<std::fixed<<widgets.selected_field.dtype.getByteSize(query->nsamples)/1000000.0;
-        ss<<"MB";
-        resLabel->setText(ss.str().c_str());
-      
-        std::stringstream ss_dims;
-        ss_dims<<"["<<query->nsamples[0];
-        for(int I=1; I<dataset->getPointDim(); I++)
-          ss_dims<<"x"<<query->nsamples[I];
-        ss_dims<<"]";
-        dimsLabel->setText(ss_dims.str().c_str());
-    
+        dataset->beginQuery(query);
+
+        if (!query->isRunning())
+          return;
+        
+        auto nsamples = query->getNumberOfSamples();
+        resLabel->setText(String(StringUtils::format() << "Est. Size:  " << StringUtils::getStringFromByteSize(widgets.selected_field.dtype.getByteSize(nsamples))).c_str());
+        dimsLabel->setText(String(StringUtils::format() << "[" + nsamples.toString("x") << "]").c_str());
     });
     
-    emit(widgets.resolution->valueChanged(std::min(24, dataset->getMaxResolution())));
+    emit(widgets.end_resolution->valueChanged(std::min(24, dataset->getMaxResolution())));
     
-    resRow->addWidget(widgets.resolution);
+    resRow->addWidget(widgets.end_resolution);
     resRow->addWidget(dimsLabel);
     resRow->addWidget(resLabel);
     
@@ -293,50 +300,34 @@ private:
     
     connect(widgets.saveButton, &QPushButton::clicked, [this,dataset,time_node]()
     {
-      int res_value = this->widgets.resolution->value();
+      int end_resolution = this->widgets.end_resolution->value();
+      auto query = createQuery(model, end_resolution);
+      if (!query)
+        return false;
 
-      auto access = dataset->createAccess();
-      auto query = std::make_shared<Query>(dataset.get(), 'r');
-      query->field = dataset->getFieldByName(widgets.selected_field.name);
-      query->position = this->model->getQueryPosition();
-      query->time = time_node->getCurrentTime();
-      query->end_resolutions.push_back(res_value);
-      VisusReleaseAssert(dataset->beginQuery(query));
+      dataset->beginQuery(query);
+      if (!dataset->executeQuery(dataset->createAccess(), query))
+        return false;
 
-      VisusInfo() << "position " << query->position.toString();
-
-      unsigned char* buffer = (unsigned char*)query->buffer.c_ptr();
-      //read data
-      VisusReleaseAssert(dataset->executeQuery(access, query));
-
-      std::stringstream filename;
-      filename << widgets.fileEdit->text().toStdString();
-      for (int I = 0; I < dataset->getPointDim(); I++)
-        filename << "_" << query->nsamples[I];
-      filename << query->field.dtype.toString();
-      //filename << "_t_" << query->time;
-      //filename << "_f_" << query->field.name;
-      filename << ".raw";
+      auto nsamples = query->getNumberOfSamples();
+      String filename = StringUtils::format()<< widgets.fileEdit->text().toStdString() << nsamples.toString("_") << query->field.dtype.toString() << ".raw";
 
       File data_file;
-      if (data_file.createAndOpen(filename.str(),"rw"))
+      if (data_file.createAndOpen(filename,"rw"))
       {
         if (!data_file.write(0, query->buffer.c_size(), query->buffer.c_ptr()))
         {
-          VisusWarning() << "write error on file " << filename.str();
+          VisusWarning() << "write error on file " << filename;
           return false;
         }
-
       }
       else
       {
-        VisusWarning() << "file.open(" << filename.str() << ",\"rb\") failed";
+        VisusWarning() << "file.open(" << filename << ",\"rb\") failed";
       }
 
       QMessageBox::information(nullptr, "Success", "Data saved on disk");
-
-      VisusInfo() << "Wrote data size " << query->buffer.c_size() << " in raw file " << filename.str();
-
+      VisusInfo() << "Wrote data size " << query->buffer.c_size() << " in raw file " << filename;
       return true;
     });
 
@@ -364,11 +355,11 @@ private:
     widgets.enable_viewdep->setChecked(model->isViewDependentEnabled());
 
     int progression=model->getProgression();
-    if (progression==Query::GuessProgression) {
+    if (progression==QueryGuessProgression) {
       widgets.progression.guess->setChecked(true);
       widgets.progression.user.set->setEnabled(false);
     }
-    else if (progression==Query::NoProgression) {
+    else if (progression==QueryNoProgression) {
       widgets.progression.noprogression->setChecked(true);
       widgets.progression.user.set->setEnabled(false);
     }

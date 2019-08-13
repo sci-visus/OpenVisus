@@ -54,21 +54,11 @@ class VISUS_IDX_API IdxMultipleDataset  : public IdxDataset
 {
 public:
 
-  //___________________________________________________
-  class VISUS_IDX_API Child
-  {
-  public:
-    String                name;
-    Color                 color;
-    Matrix                M; //transformation matrix up <- dw
-    SharedPtr<Dataset>    dataset;
-    String                mosaic_filename_template;
-  };
-
   //bMosaic
   bool bMosaic = false;
 
-  std::map<String , Child > childs;
+  //bSlam
+  bool bSlam = false;
 
   //constructor
   IdxMultipleDataset();
@@ -89,18 +79,22 @@ public:
   }
 
   //getChild
-  Child getChild(String name) const {
-    auto it = childs.find(name); 
-    return it == childs.end() ? Child() : it->second;
+  SharedPtr<Dataset> getChild(String name) const {
+    auto it = down_datasets.find(name); 
+    return it == down_datasets.end() ? SharedPtr<Dataset>() : it->second;
   }
 
   //getFirstDataset
-  SharedPtr<Dataset> getFirstDataset() const {
-    return childs.empty()? SharedPtr<Dataset>() : childs.begin()->second.dataset;
+  SharedPtr<Dataset> getFirstChild() const {
+    return down_datasets.empty()? SharedPtr<Dataset>() : down_datasets.begin()->second;
   }
 
   //addChild
-  void addChild(Child value);
+  void addChild(String name, SharedPtr<Dataset> value)
+  {
+    VisusAssert(!down_datasets.count(name));
+    down_datasets[name] = value;
+  }
 
   //computeDefaultFields
   void computeDefaultFields();
@@ -111,7 +105,9 @@ public:
   virtual bool openFromUrl(Url URL) override;
 
   //getInnerDatasets
-  virtual std::map<String, SharedPtr<Dataset> > getInnerDatasets() const override;
+  virtual std::map<String, SharedPtr<Dataset> > getInnerDatasets() const override {
+    return down_datasets;
+  }
 
   // getFieldByNameThrowEx
   virtual Field getFieldByNameThrowEx(String name) const override;
@@ -120,29 +116,18 @@ public:
   virtual SharedPtr<Access> createAccess(StringTree CONFIG=StringTree(), bool bForBlockQuery = false) override;
 
   //createQueryFilter (not supported?!)
-  virtual SharedPtr<DatasetFilter> createQueryFilter(const Field& FIELD) override {
+  virtual SharedPtr<DatasetFilter> createFilter(const Field& FIELD) override {
     return SharedPtr<DatasetFilter>();
   }
 
   //beginQuery
-  virtual bool beginQuery(SharedPtr<Query> QUERY) override {
-    return IdxDataset::beginQuery(QUERY);
-  }
-
-  //executeQuery
-  virtual bool executeQuery(SharedPtr<Access> ACCESS,SharedPtr<Query> QUERY) override;
+  virtual void beginQuery(SharedPtr<BoxQuery> query) override;
 
   //nextQuery
-  virtual bool nextQuery(SharedPtr<Query> QUERY) override;
+  virtual void nextQuery(SharedPtr<BoxQuery> QUERY) override;
 
-  //sameLogicSpace
-#if 0
-  bool sameLogicSpace(Child& child) const
-  {
-    auto vf = child.dataset;
-    return child.M.isIdentity() && this->getBox() == vf->getBox() && this->getBitmask() == vf->getBitmask();
-  }
-#endif
+  //executeQuery
+  virtual bool executeQuery(SharedPtr<Access> ACCESS,SharedPtr<BoxQuery> QUERY) override;
 
 public:
 
@@ -156,7 +141,8 @@ private:
   enum DebugMode
   {
     DebugSaveImages = 0x01,
-    DebugSkipReading=0x02
+    DebugSkipReading=0x02,
+    DebugAll=0xff
   };
 
   int debug_mode = 0;
@@ -172,10 +158,7 @@ private:
   Field createField(String operation_name);
 
   //parseDataset
-  void parseDataset(ObjectStream& istream, Matrix T);
-
-  //parseDatasets
-  void parseDatasets(ObjectStream& istream, Matrix T);
+  void parseDataset(ObjectStream& istream);
 
   //removeAliases
   String removeAliases(String url);

@@ -1,0 +1,15 @@
+<dataset name="slam" typename='IdxMultipleDataset'>
+
+	<field name="voronoi">
+		<code>output=voronoi()</code>
+	</field>
+
+	<!-- logic dimensions 1073741824^2 -->
+	<dataset name='google'  url='http://mt1.google.com/vt/lyrs=s?nlevels=22'  physic_box="0.0 1.0 0.0 1.0" />
+		
+	
+	<!-- already in 0,1 range  -->
+	<dataset name='slam' url='E:\google_sci\visus_slam\TaylorGrant\VisusSlamFiles\visus.midx' />
+	
+</dataset>
+

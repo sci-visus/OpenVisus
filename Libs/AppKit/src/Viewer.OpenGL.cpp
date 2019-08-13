@@ -47,6 +47,8 @@ For support : support@visus.net
 #include <Visus/ModelViewNode.h>
 #include <Visus/IsoContourRenderNode.h>
 
+#include <Visus/IdxMultipleDataset.h>
+
 #include <QApplication>
 
 namespace Visus {
@@ -75,7 +77,7 @@ public:
 void Viewer::guessGLCameraPosition(int ref)  
 {
   if (auto glcamera=getGLCamera())
-    glcamera->guessPosition(this->getWorldBoundingBox(),ref);
+    glcamera->guessPosition(this->getWorldBounds(),ref);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -156,9 +158,9 @@ void Viewer::glCameraChangeEvent()
     if (auto query_node = dynamic_cast<QueryNode*>(node))
     {
       //IMPORTANT: refresh the data considering the FINAL frustum!
-      auto viewdep = computeNodeFrustum(getGLCamera()->getFinalFrustum(), query_node->getDatasetNode());
+      auto node_to_screen = computeNodeToScreen(getGLCamera()->getFinalFrustum(), query_node->getDatasetNode());
 
-      if (viewdep != query_node->getViewDep())
+      if (node_to_screen != query_node->nodeToScreen())
         dataflow->needProcessInput(query_node);
     }
   }
@@ -350,7 +352,7 @@ int Viewer::glGetRenderQueue(Node* node)
   if (auto kdarray_render_node=dynamic_cast<KdRenderArrayNode*>(node))
   {
     if (SharedPtr<KdArray> kdarray=kdarray_render_node->getKdArray())
-      return kdarray->getDataDim();  //2 or 3
+      return kdarray->getPointDim();  //2 or 3
     return DoNotDisplay;
   }
 
@@ -367,6 +369,8 @@ int Viewer::glGetRenderQueue(Node* node)
 
   return DoNotDisplay;
 }
+
+
 
 /////////////////////////////////////////////////////////////////////////////////////
 void Viewer::glRenderNodes(GLCanvas& gl)
@@ -395,21 +399,45 @@ void Viewer::glRenderNodes(GLCanvas& gl)
     {
       if (auto globject = dynamic_cast<GLObject*>(node))
       {
-        Frustum frustum=computeNodeFrustum(getGLCamera()->getFrustum(),node);
+        auto node_to_screen= computeNodeToScreen(getGLCamera()->getFrustum(),node);
         Position bounds=getNodeBounds(node);
-        bool bUseFarPoint=nqueue==2;
-        double distance=frustum.computeZDistance(bounds,bUseFarPoint);
+        bool bUseFarPoint=(nqueue==2);
+        double distance= node_to_screen.computeZDistance(bounds,bUseFarPoint);
         if (bOrthoCamera || distance>=0)
-          sorted_nodes.push_back(GLSortNode(nqueue,distance,frustum,globject));
+          sorted_nodes.push_back(GLSortNode(nqueue,distance, node_to_screen,globject));
       }
     }
-  
+
     if (auto dataset_node=dynamic_cast<DatasetNode*>(node))
     {
       if (dataset_node->showBounds())
       {
         auto bounds=getNodeBounds(dataset_node);
         GLBox(bounds,Colors::Transparent,Colors::Black.withAlpha(0.5)).glRender(gl);
+      }
+
+      auto dataset = dataset_node->getDataset();
+
+      //render annotations
+      if (!dataset->annotations.empty())
+      {
+        auto frustum = computeNodeToScreen(getGLCamera()->getFrustum(), dataset_node);
+        auto map = FrustumMap(frustum);
+
+        for (auto annotation : dataset->annotations)
+        {
+          if (auto poi = std::dynamic_pointer_cast<PointOfInterest>(annotation))
+          {
+            auto screen_pos = map.projectPoint(Point3d(poi->pos));
+            auto screen1 = screen_pos - Point2d(poi->size / 2, poi->size / 2);
+            auto screen2 = screen_pos + Point2d(poi->size / 2, poi->size / 2);
+            huds.push_back(std::make_shared<GLQuad>(screen1, screen2, Colors::Yellow.withAlpha(0.3f), Colors::Black.withAlpha(0.3f), 1));
+          }
+          else
+          {
+            VisusAssert(false);
+          }
+        }
       }
     }
 
@@ -438,6 +466,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
     gl.popDepthTest();
     gl.popFrustum();
   }  
+
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -449,7 +478,7 @@ void Viewer::glRenderSelection(GLCanvas& gl)
     if (bounds.valid())
     {
       gl.pushFrustum();
-      gl.setFrustum(computeNodeFrustum(getGLCamera()->getFrustum(),selection));
+      gl.setFrustum(computeNodeToScreen(getGLCamera()->getFrustum(),selection));
       GLBox(bounds,Colors::Transparent,Colors::Black.withAlpha(0.5)).glRender(gl);
       gl.popFrustum();
     }
@@ -533,6 +562,8 @@ void Viewer::glRenderLogos(GLCanvas& gl)
 /////////////////////////////////////////////////////////////////////////////////////
 void Viewer::glRender(GLCanvas& gl)
 {
+  huds.clear();
+
   gl.setViewport(Viewport(0,0,this->width(),this->height()));
   gl.glClearColor(background_color);
   gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -549,8 +580,26 @@ void Viewer::glRender(GLCanvas& gl)
   if (free_transform)
     free_transform->glRender(gl);
 
+  // render huds
+  if (!huds.empty())
+  {
+    gl.pushFrustum();
+    gl.setHud();
+    gl.pushBlend(true);
+    gl.pushDepthTest(false);
+
+    for (auto it : huds)
+      it->glRender(gl);
+
+    gl.popBlend();
+    gl.popDepthTest();
+    gl.popFrustum();
+  }
+
   glRenderGestures(gl);
   glRenderLogos(gl);
+
+  huds.clear();
 }
 
 

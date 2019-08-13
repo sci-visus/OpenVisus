@@ -53,7 +53,6 @@ For support : support@visus.net
 #include <Visus/Utils.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/IdxDiskAccess.h>
-#include <Visus/IdxMosaicAccess.h>
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/MultiplexAccess.h>
 
@@ -115,10 +114,9 @@ public:
     String filename = args[1];
 
     IdxFile idxfile;
-
     if (data && data.getTotalNumberOfSamples())
     {
-      idxfile.box = BoxNi(PointNi(data.getPointDim()), data.dims);
+      idxfile.logic_box = BoxNi(PointNi(data.getPointDim()), data.dims);
       idxfile.fields.push_back(Field("data", data.dtype));
     }
 
@@ -128,7 +126,7 @@ public:
       {
         auto sbox = args[++I];
         int pdim = (int)StringUtils::split(sbox, " ", true).size() / 2; VisusAssert(pdim > 0);
-        idxfile.box = BoxNi::parseFromOldFormatString(pdim, sbox);
+        idxfile.logic_box = BoxNi::parseFromOldFormatString(pdim, sbox);
       }
 
       else if (args[I] == "--fields")
@@ -206,16 +204,16 @@ public:
         r_access->beginRead();
         w_access->beginWrite();
 
-        for (BigInt blockid = 0, TotBlocks = dataset->getTotalnumberOfBlocks(); blockid < TotBlocks; blockid++)
+        for (BigInt blockid = 0, TotBlocks = dataset->getTotalNumberOfBlocks(); blockid < TotBlocks; blockid++)
         {
           auto hz1 = w_access->getStartAddress(blockid);
           auto hz2 = w_access->getEndAddress(blockid);
-          auto read_block = std::make_shared<BlockQuery>(field, time, hz1, hz2, Aborted());
-          if (dataset->readBlockAndWait(r_access, read_block))
+          auto read_block = std::make_shared<BlockQuery>(dataset.get(), field, time, hz1, hz2, 'r', Aborted());
+          if (dataset->executeBlockQueryAndWait(r_access, read_block))
           {
-            auto write_block = std::make_shared<BlockQuery>(field, time, hz1, hz2, Aborted());
+            auto write_block = std::make_shared<BlockQuery>(dataset.get(), field, time, hz1, hz2, 'w', Aborted());
             write_block->buffer = read_block->buffer;
-            if (!dataset->writeBlockAndWait(w_access, write_block))
+            if (!dataset->executeBlockQueryAndWait(w_access, write_block))
               ThrowException("Failed to write block");
           }
         }
@@ -342,7 +340,7 @@ public:
       sliding_box[D] = window_size;
 
     auto access = dataset->createAccess();
-    auto filter = dataset->createQueryFilter(field);
+    auto filter = dataset->createFilter(field);
     VisusInfo() << "starting conversion...";
     filter->computeFilter(time, field, access, sliding_box);
     return data;
@@ -520,9 +518,8 @@ public:
 
     auto idxfile = vf->idxfile;
 
-    int maxh = vf->getMaxResolution();
-    HzOrder hzorder(idxfile.bitmask, maxh);
-    BigInt last_block = (hzorder.getAddress(hzorder.getLevelP2Included(maxh)) >> idxfile.bitsperblock) + 1;
+    HzOrder hzorder(idxfile.bitmask);
+    BigInt last_block = vf->getTotalNumberOfBlocks();
     int    samplesperblock = 1 << idxfile.bitsperblock;
 
     auto access = vf->createAccessForBlockQuery();
@@ -602,8 +599,8 @@ public:
 
         for (BigInt nblock = block_from; nblock<block_to; nblock++)
         {
-          auto read_block = std::make_shared<BlockQuery>(field, time, access->getStartAddress(nblock), access->getEndAddress(nblock), aborted);
-          if (!vf->readBlockAndWait(access, read_block))
+          auto read_block = std::make_shared<BlockQuery>(vf.get(), field, time, access->getStartAddress(nblock), access->getEndAddress(nblock), 'r', aborted);
+          if (!vf->executeBlockQueryAndWait(access, read_block))
             continue;
 
           //need to calculate since I already know it's invalid!
@@ -1255,7 +1252,7 @@ public:
 
     auto access=dataset->createAccessForBlockQuery();
 
-    auto block_query = std::make_shared<BlockQuery>(field, time, block_id *(((Int64)1) << access->bitsperblock), (block_id + 1)*(((Int64)1) << access->bitsperblock), Aborted());
+    auto block_query = std::make_shared<BlockQuery>(dataset.get(), field, time, block_id *(((Int64)1) << access->bitsperblock), (block_id + 1)*(((Int64)1) << access->bitsperblock), bWriting? 'w' : 'r', Aborted());
     ApplicationStats::io.readValues(true);
 
     auto t1 = Time::now();
@@ -1264,7 +1261,7 @@ public:
     if (bWriting)
     {
       access->beginWrite();
-      bool bOk = dataset->writeBlockAndWait(access, block_query);
+      bool bOk = dataset->executeBlockQueryAndWait(access, block_query);
       access->endWrite();
       if (!bOk)
         ThrowException(StringUtils::format() << args[0] <<" Failed to write block");
@@ -1273,7 +1270,7 @@ public:
     else
     {
       access->beginRead();
-      bool bOk = dataset->readBlockAndWait(access, block_query);
+      bool bOk = dataset->executeBlockQueryAndWait(access, block_query);
       access->endRead();
       if (!bOk)
         ThrowException(StringUtils::format() << args[0] <<" Failed to write block");
@@ -1494,11 +1491,11 @@ public:
     Aborted aborted;
     access->beginRead();
 
-    for (BigInt block_id = 0, nblocks = dataset->getTotalnumberOfBlocks(); ; block_id = (block_id + 1) % nblocks)
+    for (BigInt block_id = 0, nblocks = dataset->getTotalNumberOfBlocks(); ; block_id = (block_id + 1) % nblocks)
     { 
-      auto read_block = std::make_shared<BlockQuery>(field, time, access->getStartAddress(block_id), access->getEndAddress(block_id), aborted);
+      auto read_block = std::make_shared<BlockQuery>(dataset.get(), field, time, access->getStartAddress(block_id), access->getEndAddress(block_id), 'r', aborted);
 
-      if (!dataset->readBlockAndWait(access, read_block))
+      if (!dataset->executeBlockQueryAndWait(access, read_block))
         continue;
 
       auto block = read_block->buffer;
@@ -1587,7 +1584,7 @@ public:
     VisusInfo() << "Testing query...";
 
     auto access = dataset->createAccess();
-    auto world_box = dataset->getBox();
+    auto world_box = dataset->getLogicBox();
 
     Time T1 = Time::now();
     for (int nqueries = 0;;nqueries++)
@@ -1602,10 +1599,10 @@ public:
         query_box.p2[I] = query_box.p1[I] + query_dim;
       }
 
-      auto query = std::make_shared<Query>(dataset.get(), 'r');
-      query->position = query_box;
-
-      VisusReleaseAssert(dataset->beginQuery(query));
+      auto query = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(),dataset->getDefaultTime(), 'r');
+      query->logic_box = query_box;
+      dataset->beginQuery(query);
+      VisusReleaseAssert(query->isRunning());
       VisusReleaseAssert(dataset->executeQuery(access, query));
 
       auto sec = t1.elapsedSec();
@@ -1864,7 +1861,7 @@ public:
     //create the idx file
     {
       IdxFile idxfile;
-      idxfile.box = BoxNi(PointNi(3),dims);
+      idxfile.logic_box = BoxNi(PointNi(3),dims);
       {
         Field field("myfield", DType::fromString(dtype));
         field.default_compression = ""; // no compression (in writing I should not use compression)
@@ -1891,19 +1888,20 @@ public:
       auto Z1 = Slab * slices_per_slab;
       auto Z2 =   Z1 + slices_per_slab;
 
-      BoxNi slice_box = dataset->getBox().getZSlab(Z1,Z2);
+      BoxNi slice_box = dataset->getLogicBox().getZSlab(Z1,Z2);
 
       //prepare the write query
-      auto write = std::make_shared<Query>(dataset.get(), 'w');
-      write->position = slice_box;
-      VisusReleaseAssert(dataset->beginQuery(write));
+      auto write = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(),dataset->getDefaultTime(),'w');
+      write->logic_box = slice_box;
+      dataset->beginQuery(write);
+      VisusReleaseAssert(write->isRunning());
 
       int slab_num_samples = (int)(dims[0] * dims[1] * slices_per_slab);
-      VisusReleaseAssert(write->nsamples.innerProduct() == slab_num_samples);
+      VisusReleaseAssert(write->getNumberOfSamples().innerProduct() == slab_num_samples);
 
       //fill the buffers with some fake data
       {
-        Array buffer(write->nsamples, write->field.dtype);
+        Array buffer(write->getNumberOfSamples(), write->field.dtype);
 
         VisusAssert(dtype == "int32");
         GetSamples<Int32> samples(buffer);
@@ -1927,11 +1925,12 @@ public:
 
     if (bool bVerify=true)
     {
-      auto read = std::make_shared<Query>(dataset.get(), 'r');
-      read->position = dataset->getBox();
-      VisusReleaseAssert(dataset->beginQuery(read));
+      auto read = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
+      read->logic_box = dataset->getLogicBox();
+      dataset->beginQuery(read);
+      VisusReleaseAssert(read->isRunning());
 
-      Array buffer(read->nsamples, read->field.dtype);
+      Array buffer(read->getNumberOfSamples(), read->field.dtype);
       buffer.fillWithValue(0);
       read->buffer = buffer;
 

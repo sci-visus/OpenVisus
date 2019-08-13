@@ -73,7 +73,7 @@ ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
     }
   }
 
-  bool disable_async = dataset->bServerMode || config.readBool("disable_async", false);
+  bool disable_async = dataset->isServerMode() || config.readBool("disable_async", false);
   if (!disable_async)
   {
     int nconnections = config.readInt("nconnections", (num_queries_per_request == 1)? (8) : (2));
@@ -153,7 +153,7 @@ void ModVisusAccess::flushBatch()
         response.setHeader("visus-dtype", query->field.dtype.toString());
 
       if (!response.hasHeader("visus-nsamples"))
-        response.setHeader("visus-nsamples", query->nsamples.toString());
+        response.setHeader("visus-nsamples", query->getNumberOfSamples().toString());
 
       if (query->aborted() || !response.isSuccessful())
       {
@@ -168,7 +168,7 @@ void ModVisusAccess::flushBatch()
         continue;
       }
 
-      VisusAssert(decoded.dims == query->nsamples);
+      VisusAssert(decoded.dims  == query->getNumberOfSamples());
       VisusAssert(decoded.dtype == query->field.dtype);
       query->buffer = decoded;
 

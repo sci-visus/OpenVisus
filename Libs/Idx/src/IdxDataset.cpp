@@ -100,22 +100,21 @@ public:
 
     int fromh = HzOrder::getAddressResolution(bitmask,query->start_address);
     int toh   = HzOrder::getAddressResolution(bitmask,query->end_address-1);
-    int maxh  = std::max(bitmask.getMaxResolution(),toh);
 
-    LogicBox logic_box=query->logic_box;
-    if (!logic_box.valid())
+    LogicSamples logic_samples=query->logic_samples;
+    if (!logic_samples.valid())
       return readFailed(query);
 
     auto& buffer=query->buffer;
     buffer.layout="";
 
-    BoxNi   box = bitmask.upgradeBox(dataset->getBox(),maxh);
+    BoxNi   box = dataset->getLogicBox();
     PointNi dim = box.size();
 
     Float32* ptr=(Float32*)query->buffer.c_ptr();
     for (auto loc = ForEachPoint(buffer.dims); !loc.end(); loc.next())
     {
-      PointNi pos=logic_box.pixelToLogic(loc.pos);
+      PointNi pos= logic_samples.pixelToLogic(loc.pos);
       double x=(pos[0]-box.p1[0])/(double)(dim[0]);
       double y=(pos[1]-box.p1[1])/(double)(dim[1]);
       *ptr++=(Float32)Mandelbrot(x,y);
@@ -155,7 +154,7 @@ public:
 }; 
 
 ////////////////////////////////////////////////////////
-class IdxBoxQueryHzAddressConversion : public Query::AddressConversion
+class IdxBoxQueryHzAddressConversion 
 {
 public:
 
@@ -240,30 +239,14 @@ public:
   {
     int maxh = bitmask.getMaxResolution();
     while (maxh >= this->levels.size())
-      addLevel();
-  }
-
-
-  //createCloneConversion
-  IdxBoxQueryHzAddressConversion(const IdxBoxQueryHzAddressConversion& other,int maxh) 
-  {
-    this->bitmask = other.bitmask;
-    this->levels = other.levels;
-
-    while (maxh>=this->levels.size())
-      addLevel();
-  }
-
-  //addLevel
-  void addLevel() {
-    this->levels.push_back(std::make_shared<Level>(bitmask, (int)this->levels.size()));
+      this->levels.push_back(std::make_shared<Level>(bitmask, (int)this->levels.size()));
   }
 
 
 };
 
 ////////////////////////////////////////////////////////
-class IdxPointQueryHzAddressConversion : public Query::AddressConversion
+class IdxPointQueryHzAddressConversion 
 {
 public:
 
@@ -272,12 +255,13 @@ public:
   std::vector< std::pair<BigInt,Int32>* > loc;
 
   //create
-  IdxPointQueryHzAddressConversion(DatasetBitmask bitmask,int MaxH)
+  IdxPointQueryHzAddressConversion(DatasetBitmask bitmask)
   {
     //todo cases for which I'm using regexp
+    auto MaxH = bitmask.getMaxResolution();
     BigInt last_bitmask = ((BigInt)1)<<MaxH;
 
-    HzOrder hzorder(bitmask,MaxH);
+    HzOrder hzorder(bitmask);
     int pdim = bitmask.getPointDim();
     loc.resize(pdim);
   
@@ -312,12 +296,12 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////
-class InsertBlockQueryHzOrderSamples 
+class InsertBlockQueryHzOrderSamplesToBoxQuery
 {
 public:
 
   template <class Sample>
-  bool execute(IdxDataset*  vf,Query* query,BlockQuery* block_query)
+  bool execute(IdxDataset*  vf,BoxQuery* query,BlockQuery* block_query)
   {
     #define PUSH()  (*((stack)++))=(item)
     #define POP()   (item)=(*(--(stack)))
@@ -329,11 +313,11 @@ public:
     bool bInvertOrder=query->mode=='w';
 
     DatasetBitmask bitmask=vf->getBitmask();
-    int            max_resolution=query->max_resolution;
+    int            max_resolution=vf->getMaxResolution();
     BigInt         HzFrom=block_query->start_address;
     BigInt         HzTo  =block_query->end_address;
-    HzOrder        hzorder(bitmask,max_resolution);
-    int            hstart=std::max(query->cur_resolution+1 ,HzOrder::getAddressResolution(bitmask,HzFrom));
+    HzOrder        hzorder(bitmask);
+    int            hstart=std::max(query->getCurrentResolution()+1 ,HzOrder::getAddressResolution(bitmask,HzFrom));
     int            hend  =std::min(query->getEndResolution(),HzOrder::getAddressResolution(bitmask,HzTo-1));
     int            samplesperblock=(int)cint64(HzTo-HzFrom);
     int            bitsperblock= Utils::getLog2(samplesperblock);
@@ -346,18 +330,15 @@ public:
     if (bInvertOrder)
       std::swap(Wbox,Rbox);
 
-    if (!query->address_conversion)
-    {
-      ScopedLock lock(query->address_conversion_lock);
-      query->address_conversion = std::make_shared<IdxBoxQueryHzAddressConversion>(*vf->hzaddress_conversion_boxquery,max_resolution);
-    }
+    auto address_conversion = vf->hzaddress_conversion_boxquery;
+    VisusReleaseAssert(address_conversion);
 
     int              numused=0;
     int              bit;
     Int64 delta;
-    BoxNi            query_box        = query->logic_box;
-    PointNi          stride           = query->nsamples.stride();
-    PointNi          qshift           = query->logic_box.shift;
+    BoxNi            logic_box        = query->logic_samples.logic_box;
+    PointNi          stride           = query->getNumberOfSamples().stride();
+    PointNi          qshift           = query->logic_samples.shift;
     BigInt           numpoints;
     Aborted          aborted=query->aborted;
 
@@ -365,8 +346,8 @@ public:
     FastLoopStack STACK[DatasetBitmaskMaxLen+1];
 
     //layout of the block
-    LogicBox Bbox=vf->getAddressRangeBox(block_query->start_address,block_query->end_address,max_resolution);
-    if (!Bbox.valid())
+    auto block_logic_box= block_query->getLogicBox();
+    if (!block_logic_box.valid())
       return false;
 
     //deltas
@@ -379,20 +360,19 @@ public:
       if (aborted())
         return false;
 
-      LogicBox Lbox=vf->getLevelBox(hzorder,H);
-      PointNi  lshift=Lbox.shift;
+      LogicSamples Lsamples=vf->getLevelSamples(H);
+      PointNi  lshift= Lsamples.shift;
 
-      BoxNi   zbox = (HzFrom!=0)? Bbox : Lbox;
+      BoxNi   zbox = (HzFrom!=0)? block_logic_box : Lsamples.logic_box;
       BigInt  hz   = hzorder.getAddress(zbox.p1);
 
-      BoxNi user_box= query_box.getIntersection(zbox);
-      BoxNi box=Lbox.alignBox(user_box);
+      BoxNi user_box= logic_box.getIntersection(zbox);
+      BoxNi box= Lsamples.alignBox(user_box);
       if (!box.isFullDim())
         continue;
      
-      auto conv = std::dynamic_pointer_cast<IdxBoxQueryHzAddressConversion>(query->address_conversion);
-      VisusAssert(conv->levels[H]);
-      const auto& fllevel = *(conv->levels[H]);
+      VisusAssert(address_conversion->levels[H]);
+      const auto& fllevel = *(address_conversion->levels[H]);
       int cachable = std::min(fllevel.num,samplesperblock);
     
       //i need this to "split" the fast loop in two chunks
@@ -427,7 +407,7 @@ public:
           Int64    hzfrom = cint64(hz-HzFrom);
           Int64    num    = cint64(numpoints);
           PointNi* cc     = (PointNi*)fllevel.cached_points->c_ptr();
-          const PointNi  query_p1=query_box.p1;
+          const PointNi  query_p1= logic_box.p1;
           PointNi  P=item.box.p1;
 
           ++numused;
@@ -493,7 +473,7 @@ public:
 
   //operator()
   template <class Sample>
-  bool execute(IdxDataset* vf,Query* query,BlockQuery* block_query,std::pair<BigInt,Int32>* A,std::pair<BigInt,Int32>* B,Aborted aborted)
+  bool execute(IdxDataset* vf,PointQuery* query,BlockQuery* block_query,std::pair<BigInt,Int32>* A,std::pair<BigInt,Int32>* B,Aborted aborted)
   {
     BigInt HzFrom = block_query->start_address;
     BigInt HzTo   = block_query->end_address;
@@ -514,20 +494,21 @@ public:
     }
 
     VisusAssert(Rbuffer.layout.empty());
+    int            maxh          = vf->getMaxResolution();
     DatasetBitmask bitmask       = vf->getBitmask();
     int            pdim          = vf->getPointDim();
-    HzOrder        hzorder         (bitmask,query->max_resolution);
-    PointNi        depth_mask    = hzorder.getLevelP2Included(query->getEndResolution());
+    HzOrder        hzorder         (bitmask, maxh);
+    PointNi        depth_mask    = hzorder.getLevelP2Included(query->end_resolution);
 
-    LogicBox Bbox=vf->getAddressRangeBox(block_query->start_address,block_query->end_address,query->max_resolution);
-    if (!Bbox.valid())
+    LogicSamples block_samples= block_query->logic_samples;
+    if (!block_samples.valid())
       return false;
 
     PointNi stride = Rbuffer.dims.stride();
-    PointNi p0     = Bbox.p1;
-    PointNi shift  = Bbox.shift;
+    PointNi p0     = block_samples.logic_box.p1;
+    PointNi shift  = block_samples.shift;
 
-    const auto points = (Int64*)query->point_query.coordinates->c_ptr();
+    auto points = (Int64*)query->points.c_ptr();
 
     switch (pdim)
     {
@@ -579,11 +560,12 @@ IdxDataset::~IdxDataset(){
 }
 
 ///////////////////////////////////////////////////////////
-LogicBox IdxDataset::getLevelBox(HzOrder& hzorder, int H)
+LogicSamples IdxDataset::getLevelSamples(int H)
 {
+  HzOrder hzorder(getBitmask());
   PointNi delta = hzorder.getLevelDelta(H);
   BoxNi box(hzorder.getLevelP1(H),hzorder.getLevelP2Included(H) + delta);
-  auto ret=LogicBox(box, delta);
+  auto ret=LogicSamples(box, delta);
   VisusAssert(ret.valid());
   return ret;
 }
@@ -615,13 +597,10 @@ void IdxDataset::tryRemoveLockAndCorruptedBinaryFiles(String directory)
 }
 
 ////////////////////////////////////////////////////////////////////////
-void IdxDataset::removeFiles(int maxh)
+void IdxDataset::removeFiles()
 {
-  if (maxh<0) 
-    maxh=idxfile.bitmask.getMaxResolution();
-
-  HzOrder hzorder(idxfile.bitmask,maxh);
-  BigInt tot_blocks= hzorder.getAddress(hzorder.getLevelP2Included(maxh))>>idxfile.bitsperblock;
+  HzOrder hzorder(idxfile.bitmask);
+  BigInt tot_blocks= getTotalNumberOfBlocks();
   auto  samplesperblock=1<<idxfile.bitsperblock;
   auto  access=std::make_shared<IdxDiskAccess>(this);
 
@@ -686,7 +665,7 @@ bool IdxDataset::compressDataset(String compression)
   for (auto time : timesteps)
   {
     //for each file...
-    BigInt total_block = getTotalnumberOfBlocks();
+    BigInt total_block = getTotalNumberOfBlocks();
     BigInt tot_files = (total_block  / idxfile.blocksperfile) + ((total_block % idxfile.blocksperfile)? 1 : 0);
 
     for (BigInt fileid = 0; fileid < tot_files; fileid++)
@@ -710,8 +689,8 @@ bool IdxDataset::compressDataset(String compression)
           if (!FileUtils::existsFile(filename))
             continue;
 
-          auto read_block = std::make_shared<BlockQuery>(field, time, access->getStartAddress(blockid), access->getEndAddress(blockid), aborted);
-          if (readBlockAndWait(access, read_block))
+          auto read_block = std::make_shared<BlockQuery>(this, field, time, access->getStartAddress(blockid), access->getEndAddress(blockid), 'r', aborted);
+          if (executeBlockQueryAndWait(access, read_block))
           {
             file_blocks[F][B] = read_block->buffer;
             filenames.insert(filename);
@@ -753,10 +732,10 @@ bool IdxDataset::compressDataset(String compression)
         {
           if (auto buffer = file_blocks[F][B])
           {
-            auto write_block = std::make_shared<BlockQuery>(field, time, access->getStartAddress(blockid), access->getEndAddress(blockid), aborted);
+            auto write_block = std::make_shared<BlockQuery>(this, field, time, access->getStartAddress(blockid), access->getEndAddress(blockid), 'w', aborted);
             write_block->buffer = buffer;
 
-            if (!writeBlockAndWait(access, write_block))
+            if (!executeBlockQueryAndWait(access, write_block))
             {
               VisusError()<<"Fatal error writing field(" << F << ") block(" << blockid << ")";
               VisusAssert(false);
@@ -791,7 +770,7 @@ bool IdxDataset::compressDataset(String compression)
   BigInt original_bytesize =0;
   for (auto field : idxfile.fields)
     original_bytesize += field.dtype.getByteSize();
-  original_bytesize *= this->box.size().innerProduct();
+  original_bytesize *= this->getLogicBox().size().innerProduct();
 
   auto ratio = overall_file_size/double(original_bytesize);
 
@@ -804,17 +783,16 @@ bool IdxDataset::compressDataset(String compression)
 
 
 ///////////////////////////////////////////////////////////////////////////////////
-BoxNi IdxDataset::adjustFilterBox(Query* query,DatasetFilter* filter,BoxNi user_box,int H) 
+BoxNi IdxDataset::adjustFilterBox(BoxQuery* query,DatasetFilter* filter,BoxNi user_box,int H) 
 {
-  int MaxH=query->max_resolution;
-
   //there are some case when I need alignment with pow2 box, for example when doing kdquery=box with filters
-  HzOrder hzorder(bitmask,MaxH);
+  auto bitmask = getBitmask();
+  HzOrder hzorder(bitmask);
   int pdim = bitmask.getPointDim();
 
   PointNi delta=hzorder.getLevelDelta(H);
 
-  BoxNi domain = bitmask.upgradeBox(query->filter.domain,MaxH);
+  BoxNi domain = query->filter.domain;
 
   //important! for the filter alignment
   BoxNi box= user_box.getIntersection(domain);
@@ -822,7 +800,7 @@ BoxNi IdxDataset::adjustFilterBox(Query* query,DatasetFilter* filter,BoxNi user_
   if (!box.isFullDim())
     return box;
 
-  PointNi filterstep=filter->getFilterStep(H,MaxH);
+  PointNi filterstep=filter->getFilterStep(H);
 
   for (int D=0;D<pdim;D++) 
   {
@@ -846,19 +824,12 @@ BoxNi IdxDataset::adjustFilterBox(Query* query,DatasetFilter* filter,BoxNi user_
 
 
 //////////////////////////////////////////////////////////////////
-LogicBox IdxDataset::getAddressRangeBox(BigInt HzFrom,BigInt HzTo,int max_resolution)
+LogicSamples IdxDataset::getAddressRangeSamples(BigInt HzFrom,BigInt HzTo)
 {
   const DatasetBitmask& bitmask=this->idxfile.bitmask;
   int pdim = bitmask.getPointDim();
 
-  if (max_resolution<0)
-  {
-    int fromh = HzOrder::getAddressResolution(bitmask,HzFrom);
-    int toh   = HzOrder::getAddressResolution(bitmask,HzTo-1);
-    max_resolution = std::max(bitmask.getMaxResolution(),toh);
-  }
-
-  HzOrder hzorder(bitmask,max_resolution);
+  HzOrder hzorder(bitmask);
 
   int start_resolution=HzOrder::getAddressResolution(bitmask,HzFrom);
   int end_resolution  =HzOrder::getAddressResolution(bitmask,HzTo-1);
@@ -878,7 +849,7 @@ LogicBox IdxDataset::getAddressRangeBox(BigInt HzFrom,BigInt HzTo,int max_resolu
 
   BoxNi box(hzorder.getPoint(HzFrom),hzorder.getPoint(HzTo-1)+delta);
 
-  auto ret=LogicBox(box,delta);
+  auto ret=LogicSamples(box,delta);
   VisusAssert(ret.nsamples==HzOrder::getAddressRangeNumberOfSamples(bitmask,HzFrom,HzTo));
   VisusAssert(ret.valid());
   return ret;
@@ -886,24 +857,19 @@ LogicBox IdxDataset::getAddressRangeBox(BigInt HzFrom,BigInt HzTo,int max_resolu
 
 
 ////////////////////////////////////////////////////////////////////////
-SharedPtr<Query> IdxDataset::createEquivalentQuery(int mode,SharedPtr<BlockQuery> block_query)
+SharedPtr<BoxQuery> IdxDataset::createEquivalentBoxQuery(int mode,SharedPtr<BlockQuery> block_query)
 {
+  auto bitmask = getBitmask();
   int fromh = HzOrder::getAddressResolution(bitmask,block_query->start_address);
   int toh   = HzOrder::getAddressResolution(bitmask,block_query->end_address-1);
-  int maxh  = std::max(bitmask.getMaxResolution(),toh);
 
-  auto logic_box=block_query->logic_box;
-  VisusAssert(logic_box.nsamples.innerProduct()==(block_query->end_address-block_query->start_address));
+  auto block_samples=block_query->logic_samples;
+  VisusAssert(block_samples.nsamples.innerProduct()==(block_query->end_address-block_query->start_address));
   VisusAssert(fromh==toh || block_query->start_address==0);
 
-  auto ret=std::make_shared<Query>(this,mode);
-  ret->aborted=block_query->aborted;
-  ret->time=block_query->time;
-  ret->field=block_query->field;
-  ret->position=logic_box;
-  ret->start_resolution=fromh;
-  ret->end_resolutions={toh};
-  ret->max_resolution=maxh;
+  auto ret=std::make_shared<BoxQuery>(this, block_query->field, block_query->time,mode, block_query->aborted);
+  ret->logic_box= block_samples.logic_box;
+  ret->setResolutionRange(fromh,toh);
   return ret;
 }
 
@@ -923,18 +889,20 @@ bool IdxDataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query)
   if (!ArrayUtils::deepCopy(row_major,block_query->buffer)) 
     return false;
 
-  auto query=createEquivalentQuery('r',block_query);
-  if (!this->beginQuery(query)) 
+  auto query= createEquivalentBoxQuery('r',block_query);
+  beginQuery(query);
+
+  if (!query->isRunning())
   {
     VisusAssert(false);
     return false;
   }
 
   //as the query has not already been executed!
-  query->cur_resolution=query->start_resolution-1;
+  query->setCurrentResolution(query->start_resolution-1);
   query->buffer=row_major; 
   
-  if (!mergeQueryWithBlock(query,block_query))
+  if (!mergeBoxQueryWithBlock(query,block_query))
   {
     if (!block_query->aborted()) VisusAssert(false);
     return false;
@@ -961,7 +929,7 @@ SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuer
   //no type, create default
   if (type.empty()) 
   {
-    Url url = config.readString("url", this->url.toString());
+    Url url = config.readString("url", getUrl().toString());
 
     //local disk access
     if (url.isFile())
@@ -1004,8 +972,8 @@ bool IdxDataset::openFromUrl(Url url)
     return false;
   }
 
-  this->url = url;
-  this->dataset_body = idxfile.toString();
+  setUrl(url);
+  setDatasetBody(idxfile.toString());
   setIdxFile(idxfile);
   return true;
 }
@@ -1024,17 +992,20 @@ void IdxDataset::setIdxFile(IdxFile value)
   VisusAssert(value.valid());
   this->idxfile=value;
 
-  this->bitmask= value.bitmask;
-  this->default_bitsperblock= value.bitsperblock;
-  this->box= value.box;
-  this->timesteps= value.timesteps;
+  auto bitmask = value.bitmask;
+
+  setBitmask(bitmask);
+  setDefaultBitsPerBlock(value.bitsperblock);
+  setLogicBox(value.logic_box);
+  setDatasetBounds(value.bounds);
+  setTimesteps(value.timesteps);
   
-  this->default_scene  = value.scene;
+  setDefaultScene(value.scene);
     
-  if (StringUtils::startsWith(this->default_scene, "."))
+  if (StringUtils::startsWith(value.scene, "."))
   {
-    auto dir = this->url.getPath().substr(0, this->url.getPath().find_last_of("/"));
-    this->default_scene = dir  + "/" + value.scene;
+    auto dir = getUrl().getPath().substr(0, getUrl().getPath().find_last_of("/"));
+    setDefaultScene(dir  + "/" + value.scene);
   }
 
   for (auto field : value.fields)
@@ -1042,7 +1013,7 @@ void IdxDataset::setIdxFile(IdxFile value)
 
   //cache address conversion
   {
-    auto key = this->bitmask.toString();
+    auto key = bitmask.toString();
     {
       ScopedLock lock(HZADDRESS_CONVERSION_BOXQUERY_LOCK);
       auto it = HZADDRESS_CONVERSION_BOXQUERY.find(key);
@@ -1052,7 +1023,7 @@ void IdxDataset::setIdxFile(IdxFile value)
 
     if (!this->hzaddress_conversion_boxquery)
     {
-      this->hzaddress_conversion_boxquery = std::make_shared<IdxBoxQueryHzAddressConversion>(this->bitmask);
+      this->hzaddress_conversion_boxquery = std::make_shared<IdxBoxQueryHzAddressConversion>(bitmask);
       {
         ScopedLock lock(HZADDRESS_CONVERSION_BOXQUERY_LOCK);
         HZADDRESS_CONVERSION_BOXQUERY[key] = this->hzaddress_conversion_boxquery;
@@ -1062,9 +1033,9 @@ void IdxDataset::setIdxFile(IdxFile value)
 
   //create the loc-cache only for 3d data, in 2d I know I'm not going to use it!
   //instead in 3d I will use it a lot (consider a slice in odd position)
-  if (value.bitmask.getPointDim() >= 3 && !this->hzaddress_conversion_pointquery)
+  if (bitmask.getPointDim() >= 3 && !this->hzaddress_conversion_pointquery)
   {
-    auto key = std::make_pair(this->bitmask.toString(), this->getMaxResolution());
+    auto key = std::make_pair(bitmask.toString(), this->getMaxResolution());
     {
       ScopedLock lock(HZADDRESS_CONVERSION_POINTQUERY_LOCK);
       auto it = HZADDRESS_CONVERSION_POINTQUERY.find(key);
@@ -1074,7 +1045,7 @@ void IdxDataset::setIdxFile(IdxFile value)
 
     if (!this->hzaddress_conversion_pointquery)
     {
-      this->hzaddress_conversion_pointquery = std::make_shared<IdxPointQueryHzAddressConversion>(this->bitmask,this->getMaxResolution());
+      this->hzaddress_conversion_pointquery = std::make_shared<IdxPointQueryHzAddressConversion>(bitmask);
       {
         ScopedLock lock(HZADDRESS_CONVERSION_POINTQUERY_LOCK);
         HZADDRESS_CONVERSION_POINTQUERY[key] = this->hzaddress_conversion_pointquery;
@@ -1085,14 +1056,8 @@ void IdxDataset::setIdxFile(IdxFile value)
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::mergeQueryWithBlock(SharedPtr<Query> query,SharedPtr<BlockQuery> block_query)
+bool IdxDataset::mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> block_query)
 {
-  if (query->isPointQuery())
-  {
-    VisusAssert(false);
-    return false;
-  }
-
   if (!query->allocateBufferIfNeeded())
     return false;
 
@@ -1101,27 +1066,27 @@ bool IdxDataset::mergeQueryWithBlock(SharedPtr<Query> query,SharedPtr<BlockQuery
     VisusAssert(query->field.dtype==block_query->field.dtype);
 
     DatasetBitmask bitmask=this->getBitmask();
-    int            max_resolution=query->max_resolution;
     BigInt         HzFrom=block_query->start_address;
     BigInt         HzTo  =block_query->end_address;
-    int            hstart=std::max(query->cur_resolution+1  ,HzOrder::getAddressResolution(bitmask,HzFrom));
+    int            hstart=std::max(query->getCurrentResolution() +1  ,HzOrder::getAddressResolution(bitmask,HzFrom));
     int            hend  =std::min(query->getEndResolution(),HzOrder::getAddressResolution(bitmask,HzTo-1));
 
-    //layout of the block
-#if 1
-    auto Bbox=this->getAddressRangeBox(block_query->start_address,block_query->end_address,max_resolution);
-#else
-    auto Bbox=block_query->samples;
-#endif
+    auto Bsamples = block_query->logic_samples;
 
-    if (!Bbox.valid())
+    if (!Bsamples.valid())
       return false;
 
-    auto Wbox=query->mode=='w'?        Bbox : query->logic_box;
-    auto Rbox=query->mode=='w'? query->logic_box :        Bbox;
+    auto Wsamples= query->logic_samples;
+    auto Wbuffer = query->buffer;
 
-    auto& Wbuffer =query->mode=='w'?  block_query->buffer :       query->buffer;
-    auto& Rbuffer =query->mode=='w'?        query->buffer : block_query->buffer;
+    auto Rsamples    = Bsamples;
+    auto Rbuffer = block_query->buffer;
+
+    if (query->mode == 'w')
+    {
+      std::swap(Wsamples, Rsamples);
+      std::swap(Wbuffer,Rbuffer);
+    }
 
     if (HzFrom==0)
     {
@@ -1143,33 +1108,31 @@ bool IdxDataset::mergeQueryWithBlock(SharedPtr<Query> query,SharedPtr<BlockQuery
 
       */
 
-      HzOrder hzorder(bitmask,max_resolution);
-
       for (int H=hstart; !query->aborted() && H<=hend ; ++H)
       {
-        auto Lbox    = getLevelBox(hzorder,H);
-        auto Lbuffer = Array(Lbox.nsamples,block_query->field.dtype);
+        auto Lsamples    = getLevelSamples(H);
+        auto Lbuffer = Array(Lsamples.nsamples,block_query->field.dtype);
 
         /*
         NOTE the pipeline is:
-             Wbox <- Lbox <- Rbox 
+             Wsamples <- Lsamples <- Rsamples 
 
-         but since it can be that Rbox writes only a subset of Lbox 
-         i.e.  I allocate Lbox buffer and one of its samples at position P is not written by Rbox
-               that sample P will overwrite some Wbox P' 
+         but since it can be that Rsamples writes only a subset of Lsamples 
+         i.e.  I allocate Lsamples buffer and one of its samples at position P is not written by Rsamples
+               that sample P will overwrite some Wsamples P' 
 
          For this reason I do at the beginning:
 
-          Lbox <- Wbox
+          LbLsamplesox <- Wsamples
 
-        int this way I'm sure that all Wbox P' are left unmodified
+        int this way I'm sure that all Wsamples P' are left unmodified
 
         Note also that merge can fail simply because there are no samples to merge at a certain level
         */
 
-        Query::mergeSamples(Lbox,Lbuffer,Wbox,Wbuffer,Query::InsertSamples,query->aborted);
-        Query::mergeSamples(Lbox,Lbuffer,Rbox,Rbuffer,Query::InsertSamples,query->aborted);
-        Query::mergeSamples(Wbox,Wbuffer,Lbox,Lbuffer,Query::InsertSamples,query->aborted);
+        LogicSamples::merge(Lsamples, Lbuffer, Wsamples,Wbuffer, InsertSamples, query->aborted);
+        LogicSamples::merge(Lsamples, Lbuffer, Rsamples,Rbuffer, InsertSamples, query->aborted);
+        LogicSamples::merge(Wsamples, Wbuffer, Lsamples,Lbuffer, InsertSamples, query->aborted);
       }
 
       return query->aborted()? false : true;
@@ -1178,33 +1141,32 @@ bool IdxDataset::mergeQueryWithBlock(SharedPtr<Query> query,SharedPtr<BlockQuery
     {
       VisusAssert(hstart==hend);
 
-      return Query::mergeSamples(Wbox,Wbuffer,Rbox,Rbuffer,Query::InsertSamples,query->aborted);
+      return LogicSamples::merge(Wsamples,Wbuffer, Rsamples,Rbuffer, InsertSamples,query->aborted);
     }
   }
   else
   {
-    InsertBlockQueryHzOrderSamples op;
+    InsertBlockQueryHzOrderSamplesToBoxQuery op;
     return NeedToCopySamples(op,query->field.dtype,this,query.get(),block_query.get());
   }
 }
 
-/////////////////////////////////////////////////////////////////////////
-NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<Query> query)
-{
-  //todo writing
-  VisusAssert(query->mode=='r');
 
-  /* 
+
+/////////////////////////////////////////////////////////////////////////
+NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<BoxQuery> query)
+{
+  /*
     *****NOTE FOR REMOTE QUERIES:*****
 
-    I always restart from scratch so I will do Query0[0,end_resolutions[0]], Query1[0,end_resolutions[1]], Query2[0,end_resolutions[2]]  without any merging
-    In this way I transfer a little more data on the network (without compression in the worst case the ratio is 2.0)  
-    but I can use lossy compression and jump levels 
+    I always restart from scratch so I will do Query0[0,resolutions[0]], Query1[0,resolutions[1]], Query2[0,resolutions[2]]  without any merging
+    In this way I transfer a little more data on the network (without compression in the worst case the ratio is 2.0)
+    but I can use lossy compression and jump levels
     in the old code I was using:
 
-      Query0[0,end_resolutions[0]  ]
-      Query1[0,end_resolutions[0]+1] <-- by merging prev_single and Query[end_resolutions[0]+1,end_resolutions[0]+1]
-      Query1[0,end_resolutions[0]+2] <-- by merging prev_single and Query[end_resolutions[0]+2,end_resolutions[0]+2]
+      Query0[0,resolutions[0]  ]
+      Query1[0,resolutions[0]+1] <-- by merging prev_single and Query[resolutions[0]+1,resolutions[0]+1]
+      Query1[0,resolutions[0]+2] <-- by merging prev_single and Query[resolutions[0]+2,resolutions[0]+2]
       ...
 
         -----------------------------
@@ -1230,562 +1192,388 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<Query> query)
   */
 
 
+  VisusAssert(query->mode == 'r');
+
+  //important for IdxMultipleDataset... the url can be different
+  Url url = this->getUrl();
+
+  NetRequest ret;
+  ret.url = url.getProtocol() + "://" + url.getHostname() + ":" + cstring(url.getPort()) + "/mod_visus";
+  ret.url.params = url.params;  //I may have some extra params I want to keep!
+  ret.url.setParam("action", "boxquery");
+  ret.url.setParam("dataset", url.getParam("dataset"));
+  ret.url.setParam("time", url.getParam("time", cstring(query->time)));
+  ret.url.setParam("compression", url.getParam("compression", "zip")); //for networking I prefer to use zip
+  ret.url.setParam("field", query->field.name);
+  ret.url.setParam("fromh", cstring(query->start_resolution));
+  ret.url.setParam("toh", cstring(query->getEndResolution()));
+  ret.url.setParam("maxh", cstring(getMaxResolution())); //backward compatible
+  ret.url.setParam("box", query->logic_box.toOldFormatString());
+  ret.aborted = query->aborted;
+  return ret;
+}
+
+/////////////////////////////////////////////////////////////////////////
+NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<PointQuery> query)
+{
+  VisusAssert(query->mode == 'r');
+
   //important for IdxMultipleDataset... the url can be different
   Url url=this->getUrl();
 
   NetRequest ret;
-  ret.url=url.getProtocol() + "://" + url.getHostname() + ":" + cstring(url.getPort()) + "/mod_visus";
-  ret.url.params=url.params;  //I may have some extra params I want to keep!
-  ret.url.setParam("dataset"    ,url.getParam("dataset"));
-  ret.url.setParam("time"       ,url.getParam("time",cstring(query->time)));
-  ret.url.setParam("compression",url.getParam("compression","zip")); //for networking I prefer to use zip
-  ret.url.setParam("field"      ,query->field.name);
-  ret.url.setParam("fromh"      ,cstring(query->start_resolution));
-  ret.url.setParam("toh"        ,cstring(query->getEndResolution()));
-  ret.url.setParam("maxh"       ,cstring(query->max_resolution));
-
-  if (query->isPointQuery())
-  {
-    ret.url.setParam("action"  ,"pointquery");
-    ret.url.setParam("matrix"  ,query->position.T.toString());
-    ret.url.setParam("box"     ,query->position.box.toBox3().toString(/*bInterleave*/false));
-    ret.url.setParam("nsamples",query->nsamples.toString());
-    VisusInfo() << ret.url.toString();
-  }
-  else
-  {
-    VisusAssert(query->position.T.isIdentity()); //todo
-    ret.url.setParam("action","boxquery");
-    ret.url.setParam("box"   , query->position.getBoxNi().toOldFormatString());
-  }
-
-  ret.aborted=query->aborted;
+  ret.url = url.getProtocol() + "://" + url.getHostname() + ":" + cstring(url.getPort()) + "/mod_visus";
+  ret.url.params = url.params;  //I may have some extra params I want to keep!
+  ret.url.setParam("action", "pointquery");
+  ret.url.setParam("dataset", url.getParam("dataset"));
+  ret.url.setParam("time", url.getParam("time", cstring(query->time)));
+  ret.url.setParam("compression", url.getParam("compression", "zip")); //for networking I prefer to use zip
+  ret.url.setParam("field", query->field.name);
+  ret.url.setParam("fromh", cstring(0)); //backward compatible
+  ret.url.setParam("toh", cstring(query->end_resolution));
+  ret.url.setParam("maxh", cstring(getMaxResolution())); //backward compatible
+  ret.url.setParam("matrix"  ,query->logic_position.getTransformation().toString());
+  ret.url.setParam("box"     ,query->logic_position.getBoxNd().toBox3().toString(/*bInterleave*/false));
+  ret.url.setParam("nsamples",query->getNumberOfSamples().toString());
+  VisusInfo() << ret.url.toString();  
+  ret.aborted = query->aborted;
   return ret;
 }
 
-//*********************************************************************
-// valerio's algorithm, find the final view dependent resolution (endh)
-// (the default endh is the maximum resolution available)
-//*********************************************************************
 
-PointNi IdxDataset::guessPointQueryNumberOfSamples(Position position,const Frustum& viewdep,int end_resolution)
+////////////////////////////////////////////////
+bool IdxDataset::executePureRemoteQuery(SharedPtr<BoxQuery> query)
 {
-  const int unit_box_edges[12][2]=
-  {
-    {0,1}, {1,2}, {2,3}, {3,0},
-    {4,5}, {5,6}, {6,7}, {7,4},
-    {0,4}, {1,5}, {2,6}, {3,7}
-  };
+  auto request = createPureRemoteQueryNetRequest(query);
+  auto response = NetService::getNetResponse(request);
 
-  std::vector<Point3d> points;
-  for (auto p : position.box.getPoints())
-    points.push_back((position.T * p).toPoint3());
-
-  std::vector<Point2d> screen_points;
-  if (viewdep.valid())
+  if (!response.isSuccessful())
   {
-    FrustumMap map(viewdep);
-    for (int I=0;I<8;I++)
-      screen_points.push_back(map.projectPoint(points[I]));
+    query->setFailed((StringUtils::format() << "network request failed errormsg(" << response.getErrorMessage() << ")").str());
+    return false;
   }
 
-  int pdim = bitmask.getPointDim();
-
-  PointNi virtual_worlddim=PointNi::one(pdim);
-  for (int H=1;H<=end_resolution;H++)
-  {
-    int bit=bitmask[H];
-    virtual_worlddim[bit]<<=1;
+  auto buffer = response.getArrayBody();
+  if (!buffer) {
+    query->setFailed((StringUtils::format() << "failed to decode body").str());
+    return false;
   }
 
-  PointNi nsamples=PointNi::one(pdim);
-  for (int E=0;E<12;E++)
-  {
-    int query_axis=(E>=8)?2:(E&1?1:0);
-    Point3d P1=points[unit_box_edges[E][0]];
-    Point3d P2=points[unit_box_edges[E][1]];
-    Point3d edge_size=(P2-P1).abs();
-
-    PointNi idx_size   = this->getBox().size();
-
-    // need to project onto IJK  axis
-    // I'm using this formula: x/virtual_worlddim[dataset_axis] = factor = edge_size[dataset_axis]/idx_size[dataset_axis]
-    for (int dataset_axis=0;dataset_axis<3;dataset_axis++)
-    {
-      double factor=(double)edge_size[dataset_axis]/(double)idx_size[dataset_axis];
-      Int64 x=(Int64)(virtual_worlddim[dataset_axis]*factor);
-      nsamples[query_axis]=std::max(nsamples[query_axis],x);
-    }
-  }
-    
-  //view dependent, limit the nsamples to what the user can see on the screen!
-  if (!screen_points.empty())
-  {
-    PointNi view_dependent_dims = PointNi::one(pdim);
-    for (int E=0;E<12;E++)
-    {
-      int query_axis=(E>=8)?2:(E&1?1:0);
-      Point2d p1=screen_points[unit_box_edges[E][0]];
-      Point2d p2=screen_points[unit_box_edges[E][1]];
-      double pixel_distance_on_screen=(p2-p1).module();
-      view_dependent_dims[query_axis]=std::max(view_dependent_dims[query_axis],(Int64)pixel_distance_on_screen);
-    }
-
-    nsamples[0]=std::min(view_dependent_dims[0],nsamples[0]);
-    nsamples[1]=std::min(view_dependent_dims[1],nsamples[1]);
-    nsamples[2]=std::min(view_dependent_dims[2],nsamples[2]);
-  }
-
-  return nsamples;
+  VisusAssert(buffer.dims == query->getNumberOfSamples());
+  query->buffer = buffer;
+  query->setCurrentResolution(query->end_resolution);
+  return true;
 }
 
-/////////////////////////////////////////////////////////////////////////
-bool IdxDataset::setPointQueryCurrentEndResolution(SharedPtr<Query> query)
+
+////////////////////////////////////////////////
+bool IdxDataset::executePureRemoteQuery(SharedPtr<PointQuery> query)
 {
-  int end_resolution = query->getEndResolution();
-  if (end_resolution<0)
-    return false;
+  auto request = createPureRemoteQueryNetRequest(query);
+  auto response = NetService::getNetResponse(request);
 
-  Position position=query->position;
-
-
-
-  int pdim=this->getPointDim();
-  VisusAssert(pdim==3); //why I need point queries in 2d... I'm asserting this because I do not create Query for 2d datasets 
-
-  if (!(query->start_resolution==0 && end_resolution<=query->max_resolution && this->getMaxResolution()==query->max_resolution))
+  if (!response.isSuccessful())
   {
-    VisusAssert(false);
+    query->setFailed((StringUtils::format() << "network request failed errormsg(" << response.getErrorMessage() << ")").str());
     return false;
   }
 
-  auto nsamples=guessPointQueryNumberOfSamples(position,query->viewdep,end_resolution);
-
-  //no samples or overflow
-  if (nsamples.innerProduct()<=0)
+  auto buffer = response.getArrayBody();
+  if (!buffer) {
+    query->setFailed((StringUtils::format() << "failed to decode body").str());
     return false;
+  }
 
-  //only 1-2-3 dim
-  Int64 tot = nsamples.innerProduct();
-  if (tot !=(nsamples[0]*nsamples[1]*nsamples[2]))
-    return false;
-
-  if (!query->point_query.coordinates->resize(tot*pdim*sizeof(Int64),__FILE__,__LINE__))
-    return false;
-
-  //definition of a point query!
-  //P'=T* (P0 + I* X/nsamples[0] +  J * Y/nsamples[1] + K * Z/nsamples[2])
-  //P'=T*P0 +(T*Stepx)*I + (T*Stepy)*J + (T*Stepz)*K
-    
-  auto T = position.T;
-  auto box = position.box;
-  T.setSpaceDim(4);
-  box.setPointDim(3);
-  Point4d P0(box.p1[0],box.p1[1],box.p1[2],1.0);
-  Point4d X(1,0,0,0); X[0]=box.p2[0]-box.p1[0]; Point4d DX=X*(1.0 / (double)nsamples[0]); VisusAssert(X[3]==0.0 && DX[3]==0.0);
-  Point4d Y(0,1,0,0); Y[1]=box.p2[1]-box.p1[1]; Point4d DY=Y*(1.0 / (double)nsamples[1]); VisusAssert(Y[3]==0.0 && DY[3]==0.0);
-  Point4d Z(0,0,1,0); Z[2]=box.p2[2]-box.p1[2]; Point4d DZ=Z*(1.0 / (double)nsamples[2]); VisusAssert(Z[3]==0.0 && DZ[3]==0.0);
-
-  Point4d TP0_4d = T*P0;                              Point3d TP0  = TP0_4d.dropHomogeneousCoordinate();
-  Point4d TDX_4d = T*DX; VisusAssert(TDX_4d[3]==0.0); Point3d TDX  = TDX_4d.toPoint3();
-  Point4d TDY_4d = T*DY; VisusAssert(TDY_4d[3]==0.0); Point3d TDY  = TDY_4d.toPoint3();
-  Point4d TDZ_4d = T*DZ; VisusAssert(TDZ_4d[3]==0.0); Point3d TDZ  = TDZ_4d.toPoint3();
-
-  auto point_p = (Int64*)query->point_query.coordinates->c_ptr();
-  Point3d PZ=TP0; for (int K=0;K<nsamples[2];++K,PZ+=TDZ) {
-  Point3d PY =PZ; for (int J=0;J<nsamples[1];++J,PY+=TDY) {
-  Point3d PX =PY; for (int I=0;I<nsamples[0];++I,PX+=TDX) {
-    *point_p++=(Int64)(PX[0]);
-    *point_p++=(Int64)(PX[1]);
-    *point_p++=(Int64)(PX[2]);
-  }}}
-
-  //note: point queries are not mergeable, so it's box is invalid!
-  query->nsamples=nsamples;
-  query->logic_box=LogicBox();
-  query->buffer=Array();
+  VisusAssert(buffer.dims == query->getNumberOfSamples());
+  query->buffer = buffer;
+  query->setOk();
   return true;
 }
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::setBoxQueryCurrentEndResolution(SharedPtr<Query> query)
+bool IdxDataset::setEndResolution(SharedPtr<BoxQuery> query, int value)
 {
-  int end_resolution = query->getEndResolution();
-  if (end_resolution<0)
-    return false;
+  auto bitmask = this->idxfile.bitmask;
+  HzOrder hzorder(bitmask);
 
-  VisusAssert(query->position.T.isIdentity());
-  query->aligned_box=query->position.getBoxNi().withPointDim(this->getPointDim());
+  VisusAssert(query->end_resolution < value);
+  query->end_resolution = value;
 
-  if (!query->aligned_box.isFullDim())
-    return false;
-
-  int start_resolution = query->start_resolution;
-  int max_resolution   = query->max_resolution;
-
-  if (!(0<=start_resolution && start_resolution<=end_resolution && end_resolution<=max_resolution && this->getMaxResolution()<=max_resolution))
-  {
-    //AAG: why force a crash here? VisusAssert(false);
-    return false;
-  }
-
-  if (start_resolution>0 && start_resolution!=end_resolution)
-  {
-    VisusAssert(false);
-    return false;
-  }
+  auto start_resolution = query->start_resolution;
+  auto end_resolution   = query->end_resolution;
+  auto logic_box        = query->logic_box.withPointDim(this->getPointDim());
 
   //special case for query with filters
   //I need to go level by level [0,1,2,...] in order to reconstruct the original data
-  if (auto filter=query->filter.value)
+  if (auto filter = query->filter.dataset_filter)
   {
     //important to return the "final" number of samples (see execute for loop)
-    query->aligned_box=this->adjustFilterBox(query.get(),filter.get(), query->aligned_box,end_resolution);
+    logic_box = this->adjustFilterBox(query.get(), filter.get(), logic_box, end_resolution);
+    query->filter.adjusted_logic_box = logic_box;
   }
 
-  //coompute the samples I will get
-  DatasetBitmask bitmask=this->idxfile.bitmask;
-  HzOrder hzorder(bitmask,max_resolution);
-
-  int pdim = bitmask.getPointDim();
-
   //I get twice the samples of the samples!
-  PointNi DELTA=hzorder.getLevelDelta(end_resolution);
-  if (start_resolution==0 && end_resolution>0)
-    DELTA[bitmask[end_resolution]]>>=1;
+  PointNi DELTA = hzorder.getLevelDelta(end_resolution);
+  if (start_resolution == 0 && end_resolution > 0)
+    DELTA[bitmask[end_resolution]] >>= 1;
 
-  bool bGotSamples=false;
-  PointNi P1incl(pdim),P2incl(pdim);
-  for (int H=start_resolution;H<=end_resolution;H++)
+  PointNi P1incl, P2incl;
+  for (int H = start_resolution; H <= end_resolution; H++)
   {
-    int bit=bitmask[H];
+    int bit = bitmask[H];
 
-    LogicBox Lbox=this->getLevelBox(hzorder,H);
+    LogicSamples Lsamples = this->getLevelSamples(H);
 
-    BoxNi box=Lbox.alignBox(query->aligned_box);
+    BoxNi box = Lsamples.alignBox(logic_box);
     if (!box.isFullDim())
       continue;
 
-    PointNi p1incl=box.p1;
-    PointNi p2incl=box.p2-Lbox.delta;
-    P1incl=bGotSamples? PointNi::min(P1incl,p1incl) : p1incl;
-    P2incl=bGotSamples? PointNi::max(P2incl,p2incl) : p2incl;
-    bGotSamples=true;
-  } 
+    PointNi p1incl = box.p1;
+    PointNi p2incl = box.p2 - Lsamples.delta;
+    P1incl = P1incl.getPointDim() ? PointNi::min(P1incl, p1incl) : p1incl;
+    P2incl = P2incl.getPointDim() ? PointNi::max(P2incl, p2incl) : p2incl;
+  }
 
-  //probably overflow
-  if (!bGotSamples)
+  if (!P1incl.getPointDim())
     return false;
 
-  BoxNi BOX(P1incl,P2incl+DELTA);
-
-  auto logic_box=LogicBox(BOX,DELTA); 
-  VisusAssert(logic_box.valid());
-
-  query->nsamples=logic_box.nsamples;
-  query->logic_box=logic_box;
-  query->buffer=Array();
+  query->logic_samples = LogicSamples(BoxNi(P1incl, P2incl + DELTA), DELTA);
+  VisusAssert(query->logic_samples.valid());
   return true;
+
 }
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::beginQuery(SharedPtr<Query> query)
+void IdxDataset::beginQuery(SharedPtr<BoxQuery> query) 
 {
-  if (!Dataset::beginQuery(query))
-    return false;
+  if (!query)
+    return;
 
-  auto dataset_dim = this->getPointDim();
+  if (query->getStatus() != QueryCreated)
+    return;
 
-  if (bool bPointQuery = dataset_dim == 3 && query->position.box.minsize() == 0)
+  if (!this->valid())
+    return query->setFailed("query not valid");
+
+  if (query->aborted())
+    return query->setFailed("query aborted");
+
+  if (!query->field.valid())
+    return query->setFailed("field not valid");
+
+  if (!query->logic_box.valid())
+    return query->setFailed("position not valid");
+
+  // override time from field
+  if (query->field.hasParam("time"))
+    query->time = cdouble(query->field.getParam("time"));
+
+  // override time from dataset url
+  if (this->getUrl().hasParam("time"))
+    query->time = cdouble(this->getUrl().getParam("time"));
+
+  if (!getTimesteps().containsTimestep(query->time))
+    return query->setFailed("missing timestep");
+
+  if (query->end_resolutions.empty())
+    query->end_resolutions = { this->getMaxResolution() };
+
+  for (int I = 0; I < (int)query->end_resolutions.size(); I++)
   {
-    query->point_query.coordinates = std::make_shared<HeapMemory>();
+    if (query->end_resolutions[I] <0 || query->end_resolutions[I]> this->getMaxResolution())
+      return query->setFailed("wrong end resolution");
   }
-  else
+
+  if (query->start_resolution > 0 && (query->end_resolutions.size() != 1 || query->start_resolution != query->end_resolutions[0]))
+    return query->setFailed("wrong query start resolution");
+
+  if (!query->logic_box.valid())
+    return query->setFailed("query logic_position is wrong");
+
+  if (query->filter.enabled)
   {
-    Matrix T = query->position.T;
-    if (!T.isIdentity())
+    if (!query->filter.dataset_filter)
     {
-      //clipping...
-      if (this->getPointDim() == 3)
-        query->clipping = query->position;
+      query->filter.dataset_filter = createFilter(query->field);
 
-      query->position = query->position.withoutTransformation().castTo<BoxNi>().getIntersection(this->getBox());
-    }
-
-    if (query->filter.enabled)
-    {
-      query->filter.value = this->createQueryFilter(query->field);
-      if (!query->filter.value)
+      if (!query->filter.dataset_filter)
         query->filter.enabled = false;
     }
   }
 
-  if (!query->position.valid())
+  for (auto end_resolution : query->end_resolutions)
   {
-    query->setFailed("position is wrong");
-    return false;
+    if (setEndResolution(query, end_resolution))
+    {
+      query->setRunning();
+      return;
+    }
   }
 
-  query->setRunning();
+  query->setFailed();
 
-  std::vector<int> end_resolutions=query->end_resolutions;
-  for (query->query_cursor=0;query->query_cursor<(int)end_resolutions.size();query->query_cursor++)
-  {
-    if (this->setCurrentEndResolution(query))
-      return true;
-  }
-
-  query->setFailed("cannot find an initial resolution");
-  return false;
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////
+void IdxDataset::nextQuery(SharedPtr<BoxQuery> query)
+{
+  if (!query)
+    return;
+
+  if (!(query->isRunning() && query->getCurrentResolution() == query->getEndResolution()))
+    return;
+
+  //reached the end? 
+  if (query->end_resolution == query->end_resolutions.back())
+    return query->setOk();
+
+  auto Rcurrent_resolution = query->getCurrentResolution();
+  auto Rsamples = query->logic_samples;
+  auto Rbuffer = query->buffer;
+  auto Rfilter_query = query->filter.query;
+
+  int index = Utils::find(query->end_resolutions, query->end_resolution) + 1;
+  int end_resolution = query->end_resolutions[index];
+  VisusReleaseAssert(setEndResolution(query,end_resolution));
+
+  //asssume no merging
+  query->buffer = Array();
+
+  //try to merge with previous resolution
+  if (query->merge_mode != DoNotMergeSamples && Rsamples.valid() && Rsamples.nsamples == Rbuffer.dims)
+  {
+    if (!query->allocateBufferIfNeeded())
+      return query->setFailed("out of memory");
+
+    if (!LogicSamples::merge(query->logic_samples, query->buffer, Rsamples, Rbuffer, query->merge_mode, query->aborted))
+    {
+      if (query->aborted())
+        return query->setFailed("query aborted");
+
+      VisusAssert(false);
+      return query->setFailed("Merging failed for unknown reasons");
+    }
+
+    query->filter.query = Rfilter_query;
+    query->setCurrentResolution(Rcurrent_resolution);
+  }
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query)  
+bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> query)
 {
-  if (!Dataset::executeQuery(access,query))
+  if (!query)
     return false;
 
-  if (access)
-  {
-    return query->isPointQuery() ?
-      executePointQueryWithAccess(access,query) : 
-      executeBoxQueryWithAccess(access,query);
-  }
-  //pure remote query 
-  else
-  {
-    return Dataset::executePureRemoteQuery(query);
-  }
-}
+  if (!(query->isRunning() && query->getCurrentResolution() < query->getEndResolution()))
+    return false;
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::executePointQueryWithAccess(SharedPtr<Access> access,SharedPtr<Query> query)
-{
-  VisusAssert(query->mode=='r');
+  if (query->aborted())
+  {
+    query->setFailed("query aboted");
+    return false;
+  }
+
+  //for 'r' queries I can postpone the allocation
+  if (query->mode == 'w' && !query->buffer)
+  {
+    query->setFailed("write buffer not set");
+    return false;
+  }
+
+  if (!access)
+    return executePureRemoteQuery(query);
+
   VisusAssert(access);
 
-  int end_resolution=query->getEndResolution();
+#define PUSH()  (*((stack)++))=(item)
+#define POP()   (item)=(*(--(stack)))
+#define EMPTY() ((stack)==(STACK))
 
-  int             pdim               = this->getPointDim();
-  int             maxh               = query->max_resolution;
-  BoxNi           bounds             = bitmask.upgradeBox(this->getBox(),maxh);
-  BigInt          last_bitmask       = ((BigInt)1)<<(maxh);
-  HzOrder         hzorder            (bitmask,maxh);
-  PointNi         depth_mask         = hzorder.getLevelP2Included(end_resolution);
-  int             bitsperblock       = access->bitsperblock;
-  Aborted         aborted            = query->aborted;
+  int           bReading = query->mode == 'r';
+  const Field& field = query->field;
+  double        time = query->time;
 
-  if (!query->allocateBufferIfNeeded())
-    return false;
-
-  Int64 tot=query->nsamples.innerProduct();
-
-  const auto points = (Int64*)query->point_query.coordinates->c_ptr();
-  if (!query->point_query.coordinates || !query->point_query.coordinates->c_size() || !tot)
-    return false;
-
-  VisusAssert(access);
-  VisusAssert(pdim==3);//todo: other cases
-  VisusAssert(query->start_resolution==0);//todo: othercases
-  VisusAssert(maxh==this->getMaxResolution());//todo other cases!
-  VisusAssert((Int64)query->point_query.coordinates->c_size()>=query->nsamples.innerProduct()*(Int64)sizeof(Int64)*pdim);
-
-  //first BigInt is hzaddress, second Int32 is offset inside buffer
-  auto hzaddresses=std::vector< std::pair<BigInt,Int32> >(tot,std::make_pair(-1,0)); 
-
-  PointNi p(pdim);
-
-  //if this is not available I use the slower conversion p->zaddress->Hz
-  if (!this->hzaddress_conversion_pointquery)
-  {
-    VisusWarning()<<"The hzaddress_conversion_pointquery has not been created, so loc-by-loc queries will be a lot slower!!!!";
-
-    //so you investigate why it's happening! .... I think only for the iphone could make sense....
-    #if WIN32 && VISUS_DEBUG
-    VisusAssert(false);
-    #endif
-
-    const Int64* points_p=points;
-    for (int N=0;N<tot;N++,points_p+=pdim) 
-    {
-      if (aborted()) return false;
-      if (pdim>=1) {p[0]=points_p[0]; if (!(p[0]>=bounds.p1[0] && p[0]<bounds.p2[0])) continue; p[0] &= depth_mask[0];}
-      if (pdim>=2) {p[1]=points_p[1]; if (!(p[1]>=bounds.p1[1] && p[1]<bounds.p2[1])) continue; p[1] &= depth_mask[1];}
-      if (pdim>=3) {p[2]=points_p[2]; if (!(p[2]>=bounds.p1[2] && p[2]<bounds.p2[2])) continue; p[2] &= depth_mask[2];}
-      if (pdim>=4) {p[3]=points_p[3]; if (!(p[3]>=bounds.p1[3] && p[3]<bounds.p2[3])) continue; p[3] &= depth_mask[3];}
-      if (pdim>=5) {p[4]=points_p[4]; if (!(p[4]>=bounds.p1[4] && p[4]<bounds.p2[4])) continue; p[4] &= depth_mask[4];}
-      hzaddresses[N]=std::make_pair(hzorder.getAddress(p),N);
-    }
-  }
-  //the conversion from point to Hz will be faster
-  else
-  {
-    BigInt zaddress;
-    int    shift;
-    auto   points_p=points;
-    auto   loc=this->hzaddress_conversion_pointquery->loc;
-
-    for (int N=0;N<tot;N++,points_p+=pdim) 
-    {
-      if (aborted()) 
-        return false;
-      if (pdim>=1) {p[0]=points_p[0]; if (!(p[0]>=bounds.p1[0] && p[0]<bounds.p2[0])) continue; p[0] &= depth_mask[0]; shift=        (      loc[0][p[0]].second) ; zaddress =loc[0][p[0]].first;}
-      if (pdim>=2) {p[1]=points_p[1]; if (!(p[1]>=bounds.p1[1] && p[1]<bounds.p2[1])) continue; p[1] &= depth_mask[1]; shift=std::min(shift,loc[1][p[1]].second) ; zaddress|=loc[1][p[1]].first;}
-      if (pdim>=3) {p[2]=points_p[2]; if (!(p[2]>=bounds.p1[2] && p[2]<bounds.p2[2])) continue; p[2] &= depth_mask[2]; shift=std::min(shift,loc[2][p[2]].second) ; zaddress|=loc[2][p[2]].first;}
-      if (pdim>=4) {p[3]=points_p[3]; if (!(p[3]>=bounds.p1[3] && p[3]<bounds.p2[3])) continue; p[3] &= depth_mask[3]; shift=std::min(shift,loc[3][p[3]].second) ; zaddress|=loc[3][p[3]].first;}
-      if (pdim>=5) {p[4]=points_p[4]; if (!(p[4]>=bounds.p1[4] && p[4]<bounds.p2[4])) continue; p[4] &= depth_mask[4]; shift=std::min(shift,loc[4][p[4]].second) ; zaddress|=loc[4][p[4]].first;}
-      hzaddresses[N]=std::make_pair(((zaddress | last_bitmask)>>shift),N);
-    }
-  }
-
-  //sort the address 
-  std::sort(hzaddresses.begin(),hzaddresses.end());
-
-  //do the for loop block aligned
-  WaitAsync< Future<Void> > wait_async;
-
-  access->beginRead();
-  for (int A=0,B=0 ; !aborted() &&  A< (int)hzaddresses.size() ; A=B)
-  {
-    if (hzaddresses[A].first<0) {
-      while (B<(int)hzaddresses.size() && hzaddresses[B].first<0)
-        ++B;
-      continue;
-    }
-
-    //align to the block
-    BigInt HzFrom    = (hzaddresses[A].first>>bitsperblock)<<bitsperblock;
-    BigInt HzTo      = HzFrom+(((BigInt)1)<<bitsperblock);
-    VisusAssert(hzaddresses[A].first>=HzFrom && hzaddresses[A].first<HzTo);
-
-    //end of the block
-    while (B<(int)hzaddresses.size() && (hzaddresses[B].first>=HzFrom && hzaddresses[B].first<HzTo))
-      ++B;
-
-    auto block_query=std::make_shared<BlockQuery>(query->field,query->time,HzFrom,HzTo,aborted);
-    wait_async.pushRunning(this->readBlock(access, block_query)).when_ready([this, query, block_query,&hzaddresses, A, B, aborted](Void) {
-
-      if (aborted() || block_query->failed())
-        return;
-
-      InsertBlockQuerySamplesIntoPointQuery op;
-      NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get(), &hzaddresses[0] + A, &hzaddresses[0] + B, aborted);
-    }); 
-  }
-  access->endRead();
-
-  wait_async.waitAllDone();
-
-  if (aborted())
-    return false;
-
-  query->currentLevelReady();
-  return true;
-}
-
-////////////////////////////////////////////////////////////////////////
-bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Query> query) 
-{
-  VisusAssert(access);
-
-  #define PUSH()  (*((stack)++))=(item)
-  #define POP()   (item)=(*(--(stack)))
-  #define EMPTY() ((stack)==(STACK))
-
-  int           bReading     = query->mode=='r';
-  const Field&  field        = query->field;
-  double        time         = query->time;
-
-  int cur_resolution=query->cur_resolution;
-  int end_resolution=query->getEndResolution();
-  int max_resolution=query->max_resolution;
+  int cur_resolution = query->getCurrentResolution();
+  int end_resolution = query->end_resolution;
 
   if (!query->allocateBufferIfNeeded())
     return false;
 
   //filter enabled... need to go level by level
-  if (auto filter=query->filter.value)
+  if (auto filter = query->filter.dataset_filter)
   {
     VisusAssert(bReading);
 
-    Query::MergeMode merge_mode=Query::InsertSamples;
-
     //need to go level by level to rebuild the original data (top-down)
-    for (int H=cur_resolution+1; H<=end_resolution; H++)
+    for (int H = cur_resolution + 1; H <= end_resolution; H++)
     {
-      BoxNi adjusted_box = adjustFilterBox(query.get(),filter.get(),query->aligned_box,H);
+      BoxNi adjusted_logic_box = adjustFilterBox(query.get(), filter.get(), query->filter.adjusted_logic_box, H);
 
-      auto Wquery=std::make_shared<Query>(this,'r');
-      Wquery->time=query->time;
-      Wquery->field=query->field;
-      Wquery->position=adjusted_box;
-      Wquery->end_resolutions={H};
-      Wquery->max_resolution=max_resolution;
-      Wquery->filter.enabled=false;
-      Wquery->merge_mode=merge_mode;
-      Wquery->aborted=query->aborted;
+      auto Wquery = std::make_shared<BoxQuery>(this, query->field, query->time, 'r', query->aborted);
+      Wquery->logic_box = adjusted_logic_box;
+      Wquery->setResolutionRange(0,H);
+      Wquery->filter.enabled = false;
+      Wquery->merge_mode = InsertSamples;
+
+      beginQuery(Wquery);
 
       //cannot get samples yet
-      if (!this->beginQuery(Wquery))
+      if (!Wquery->isRunning())
       {
-        VisusAssert(cur_resolution==-1);
-        VisusAssert(!query->filter_query);
+        VisusAssert(cur_resolution == -1);
+        VisusAssert(!query->filter.query);
         continue;
       }
 
       //try to merge previous results
-      if (auto Rquery= query->filter_query)
+      if (auto Rquery = query->filter.query)
       {
-        //auto allocate buffers
-        if (!Wquery->allocateBufferIfNeeded())
-          return false;
-
-        if (!Query::mergeSamples(*Wquery,*Rquery,merge_mode,query->aborted))
+        if (!Wquery->mergeWith(*Rquery, query->aborted))
         {
           VisusAssert(query->aborted());
           return false;
         }
-
-        Wquery->cur_resolution = Rquery->cur_resolution;
       }
 
       if (!this->executeQuery(access, Wquery))
         return false;
 
-      if (!filter->computeFilter(Wquery.get(),true))
+      if (!filter->computeFilter(Wquery.get(), true))
         return false;
 
-      query->filter_query= Wquery;
+      query->filter.query = Wquery;
     }
 
     //cannot get samples yet... returning failed as a query without filters...
-    if (!query->filter_query)
+    if (!query->filter.query)
     {
       VisusAssert(false);//technically this should not happen since the outside query has got some samples
       return false;
     }
 
-    query->nsamples  = query->filter_query->nsamples;
-    query->logic_box = query->filter_query->logic_box;
-    query->buffer    = query->filter_query->buffer;
+    query->logic_samples = query->filter.query->logic_samples;
+    query->buffer        = query->filter.query->buffer;
   }
   //execute with access
-  else 
+  else
   {
     int bitsperblock = access->bitsperblock;
     VisusAssert(bitsperblock);
-  
-    FastLoopStack  item,*stack=NULL;
-    FastLoopStack  STACK[DatasetBitmaskMaxLen+1];
+
+    FastLoopStack  item, * stack = NULL;
+    FastLoopStack  STACK[DatasetBitmaskMaxLen + 1];
 
     DatasetBitmask bitmask = this->getBitmask();
-    HzOrder hzorder(bitmask, query->max_resolution);
+    HzOrder hzorder(bitmask);
 
-    std::vector<Int64> fldeltas(max_resolution+1);
+    int max_resolution = getMaxResolution();
+    std::vector<Int64> fldeltas(max_resolution + 1);
     for (int H = 0; H <= max_resolution; H++)
-      fldeltas[H] = H? (hzorder.getLevelDelta(H)[bitmask[H]] >> 1) : 0;
+      fldeltas[H] = H ? (hzorder.getLevelDelta(H)[bitmask[H]] >> 1) : 0;
 
     WaitAsync< Future<Void> > wait_async;
 
@@ -1796,53 +1584,53 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
 
     //do the loop up to the end or until a stop signal
     Aborted& aborted = query->aborted;
-    for (int H=cur_resolution+1;!aborted() && H<=end_resolution;H++)
+    for (int H = cur_resolution + 1; !aborted() && H <= end_resolution; H++)
     {
-      LogicBox Lbox=this->getLevelBox(hzorder,H);
-      BoxNi box=Lbox.alignBox(query->logic_box);
+      LogicSamples Lsamples = this->getLevelSamples(H);
+      BoxNi box = Lsamples.alignBox(query->logic_samples.logic_box);
       if (!box.isFullDim())
         continue;
 
       //push first item
-      BigInt hz = hzorder.getAddress(Lbox.p1);
+      BigInt hz = hzorder.getAddress(Lsamples.logic_box.p1);
       {
-        item.box = Lbox;
-        item.H   = H?1:0;
-        stack    = STACK;
+        item.box = Lsamples.logic_box;
+        item.H = H ? 1 : 0;
+        stack = STACK;
         PUSH();
       }
-    
+
       while (!EMPTY())
       {
         POP();
-        
+
         // no intersection
-        if (!item.box.strictIntersect(box)) 
+        if (!item.box.strictIntersect(box))
         {
-          hz+=(((BigInt)1)<<(H-item.H));
+          hz += (((BigInt)1) << (H - item.H));
           continue;
         }
 
         // intersection with hz-block!
-        if ((H-item.H)<=bitsperblock)
+        if ((H - item.H) <= bitsperblock)
         {
-          BigInt HzFrom = (hz>>bitsperblock)<<bitsperblock;
-          BigInt HzTo   = HzFrom+(((BigInt)1)<<bitsperblock);
-          VisusAssert(hz>=HzFrom && hz<HzTo);
+          BigInt HzFrom = (hz >> bitsperblock) << bitsperblock;
+          BigInt HzTo = HzFrom + (((BigInt)1) << bitsperblock);
+          VisusAssert(hz >= HzFrom && hz < HzTo);
 
           if (aborted())
             break;
 
-          auto read_block=std::make_shared<BlockQuery>(field,time,HzFrom,HzTo,aborted);
+          auto read_block = std::make_shared<BlockQuery>(this, field, time, HzFrom, HzTo, 'r', aborted);
 
           if (bReading)
           {
-            wait_async.pushRunning(readBlock(access, read_block)).when_ready([this,query,read_block, aborted](Void)
-            {
-              //I don't care if the read fails...
-              if (!aborted() && read_block->ok())
-                mergeQueryWithBlock(query, read_block);
-            });
+            wait_async.pushRunning(executeBlockQuery(access, read_block)).when_ready([this, query, read_block, aborted](Void)
+              {
+                //I don't care if the read fails...
+                if (!aborted() && read_block->ok())
+                  mergeBoxQueryWithBlock(query, read_block);
+              });
           }
           else
           {
@@ -1850,58 +1638,50 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
             access->acquireWriteLock(read_block);
 
             //need to read and wait the block
-            readBlockAndWait(access, read_block);
+            executeBlockQueryAndWait(access, read_block);
 
             //WRITE block
-            auto write_block=std::make_shared<BlockQuery>(field,time,HzFrom,HzTo,aborted);
+            auto write_block = std::make_shared<BlockQuery>(this, field, time, HzFrom, HzTo, 'w', aborted);
 
-           //read ok
+            //read ok
             if (read_block->ok())
-            {
-              write_block->buffer=read_block->buffer;
-            }
+              write_block->buffer = read_block->buffer;
             //I don't care if it fails... maybe does not exist
             else
-            {
-              write_block->nsamples=read_block->nsamples;
-              write_block->logic_box=read_block->logic_box;
-              write_block->buffer.layout=query->field.default_layout;
-              write_block->buffer.resize(write_block->nsamples,write_block->field.dtype,__FILE__,__LINE__);
-              write_block->buffer.fillWithValue(write_block->field.default_value);
-            }
+              write_block->allocateBufferIfNeeded();
 
-            mergeQueryWithBlock(query,write_block);
+            mergeBoxQueryWithBlock(query, write_block);
 
             //need to write and wait for the block
-            writeBlockAndWait(access, write_block);
+            executeBlockQueryAndWait(access, write_block);
 
             //important! all writings are with a lease!
             access->releaseWriteLock(read_block);
 
             if (aborted() || write_block->failed()) {
-              bReading? access->endRead() : access->endReadWrite();
+              bReading ? access->endRead() : access->endReadWrite();
               return false;
             }
           }
 
           // I know that block 0 convers several hz-levels from [0 to bitsperblock]
-          if (HzFrom==0)
+          if (HzFrom == 0)
           {
-            H=bitsperblock;
+            H = bitsperblock;
             break;
           }
 
-          hz+=((BigInt)1)<<(H-item.H);
+          hz += ((BigInt)1) << (H - item.H);
           continue;
         }
 
         //kd-traversal code
-        int bit   = bitmask  [item.H];
-        Int64 delta = fldeltas [item.H];
+        int bit = bitmask[item.H];
+        Int64 delta = fldeltas[item.H];
         ++item.H;
-        item.box.p1[bit]+=delta;                         VisusAssert(item.box.isFullDim());PUSH();
-        item.box.p1[bit]-=delta;item.box.p2[bit]-=delta; VisusAssert(item.box.isFullDim());PUSH();
-         
+        item.box.p1[bit] += delta;                         VisusAssert(item.box.isFullDim()); PUSH();
+        item.box.p1[bit] -= delta; item.box.p2[bit] -= delta; VisusAssert(item.box.isFullDim()); PUSH();
+
       } //while (stack!=STACK)
 
     } //for 
@@ -1915,101 +1695,215 @@ bool IdxDataset::executeBoxQueryWithAccess(SharedPtr<Access> access,SharedPtr<Qu
       return false;
   }
 
-  query->currentLevelReady();
+  VisusAssert(query->buffer.dims == query->getNumberOfSamples());
+  query->setCurrentResolution(query->end_resolution);
+
   return true;
 
-  #undef PUSH 
-  #undef POP  
-  #undef EMPTY
+#undef PUSH 
+#undef POP  
+#undef EMPTY 
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
-bool IdxDataset::nextQuery(SharedPtr<Query> query)
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+void IdxDataset::beginQuery(SharedPtr<PointQuery> query)
 {
-  if (!Dataset::nextQuery(query))
+  if (!query)
+    return;
+
+  if (query->getStatus() != QueryCreated)
+    return;
+
+  //if you want to set a buffer for 'w' queries, please do it after begin
+  VisusAssert(!query->buffer);
+
+  if (!this->valid())
+    return query->setFailed("query not valid");
+
+  if (getPointDim() != 3)
+    return query->setFailed("pointquery supported only in 3d so far");
+
+  if (!query->field.valid())
+    return query->setFailed("field not valid");
+
+  if (!query->logic_position.valid())
+    return query->setFailed("position not valid");
+
+  // override time from field
+  if (query->field.hasParam("time"))
+    query->time = cdouble(query->field.getParam("time"));
+
+  // override time from dataset url
+  if (this->getUrl().hasParam("time"))
+    query->time = cdouble(this->getUrl().getParam("time"));
+
+  if (!getTimesteps().containsTimestep(query->time))
+    return query->setFailed("missing timestep");
+
+  if (query->end_resolution < 0)
+    query->end_resolution = this->getMaxResolution();
+
+  if (query->end_resolution < 0 || query->end_resolution>getMaxResolution())
+    return query->setFailed("wrong end_resolution");
+
+  if (query->getNumberOfSamples().innerProduct() <= 0)
+    return query->setFailed("wrong nsamples");
+
+  query->setRunning();
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////
+bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> query)  
+{
+  if (!query)
     return false;
 
-  auto Rcurrent_resolution=query->cur_resolution;
-  auto Rbox    =query->logic_box;
-  auto Rbuffer =query->buffer;
-  auto Rfilter_query= query->filter_query;
+  if (!query->isRunning())
+    return false;
 
-  //merging will happen only in certain cases
-  query->buffer = Array();
-
-  if (!this->setCurrentEndResolution(query))
+  if (query->aborted())
   {
-    query->setFailed("cannot set end resolution");
+    query->setFailed("query aboted");
     return false;
   }
 
-  //try to mergeerge
-  auto& Wbox=query->logic_box;
-  if (Wbox.valid() && Rbox.valid())
+  //for 'r' queries I can postpone the allocation
+  if (query->mode == 'w' && !query->buffer)
   {
-    if (!query->allocateBufferIfNeeded())
-      return false;
+    query->setFailed("write buffer not set");
+    return false;
+  }
 
-    auto Wbuffer=query->buffer;
-    if (!Query::mergeSamples(Wbox,Wbuffer,Rbox,Rbuffer,query->merge_mode,query->aborted))
+  if (!access)
+    return Dataset::executePureRemoteQuery(query);
+
+  //TODO
+  VisusAssert(query->mode == 'r');
+
+  auto            bitmask = getBitmask();
+  BoxNi           bounds = this->getLogicBox();
+  BigInt          last_bitmask = ((BigInt)1) << (getMaxResolution());
+  auto            hzorder = HzOrder(bitmask);
+  PointNi         depth_mask = hzorder.getLevelP2Included(query->end_resolution);
+  int             bitsperblock = access->bitsperblock;
+  Aborted         aborted = query->aborted;
+
+  if (!query->allocateBufferIfNeeded())
+  {
+    query->setFailed("out of memory"); 
+    return false;
+  }
+
+  auto nsamples = query->getNumberOfSamples();
+  auto tot = nsamples.innerProduct();
+
+  VisusAssert((Int64)query->points.c_size() == DTypes::INT64_RGB.getByteSize(nsamples));
+
+  //first BigInt is hzaddress, second Int32 is offset inside buffer
+  auto hzaddresses = std::vector< std::pair<BigInt, Int32> >(tot, std::make_pair(-1, 0));
+
+  int pdim = this->getPointDim();
+  PointNi p(pdim);
+
+  //if this is not available I use the slower conversion p->zaddress->Hz
+  if (!this->hzaddress_conversion_pointquery)
+  {
+    VisusWarning() << "The hzaddress_conversion_pointquery has not been created, so loc-by-loc queries will be a lot slower!!!!";
+
+    //so you investigate why it's happening! .... I think only for the iphone could make sense....
+#if WIN32 && VISUS_DEBUG
+    VisusAssert(false);
+#endif
+
+    auto SRC = (Int64*)query->points.c_ptr();
+    for (int N = 0; N < tot; N++, SRC += pdim)
     {
-      if (query->aborted())
-      {
-        query->setFailed("query aborted");
+      if (aborted()) {
+        query->setFailed("query aborted"); 
         return false;
       }
-      else
-      {
-        VisusAssert(false);
-        query->setFailed("Merging failed for unknown reasons");
+      if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; }
+      if (pdim >= 2) { p[1] = SRC[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; }
+      if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; }
+      if (pdim >= 4) { p[3] = SRC[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; }
+      if (pdim >= 5) { p[4] = SRC[4]; if (!(p[4] >= bounds.p1[4] && p[4] < bounds.p2[4])) continue; p[4] &= depth_mask[4]; }
+      hzaddresses[N] = std::make_pair(hzorder.getAddress(p), N);
+    }
+  }
+  //the conversion from point to Hz will be faster
+  else
+  {
+    BigInt zaddress;
+    int    shift;
+    auto   SRC = (Int64*)query->points.c_ptr();
+    auto   loc = this->hzaddress_conversion_pointquery->loc;
+
+    for (int N = 0; N < tot; N++, SRC += pdim)
+    {
+      if (aborted()) {
+        query->setFailed("query aborted"); 
         return false;
       }
+      if (pdim >= 1) { p[0] = SRC[0]; if (!(p[0] >= bounds.p1[0] && p[0] < bounds.p2[0])) continue; p[0] &= depth_mask[0]; shift = (loc[0][p[0]].second); zaddress = loc[0][p[0]].first; }
+      if (pdim >= 2) { p[1] = SRC[1]; if (!(p[1] >= bounds.p1[1] && p[1] < bounds.p2[1])) continue; p[1] &= depth_mask[1]; shift = std::min(shift, loc[1][p[1]].second); zaddress |= loc[1][p[1]].first; }
+      if (pdim >= 3) { p[2] = SRC[2]; if (!(p[2] >= bounds.p1[2] && p[2] < bounds.p2[2])) continue; p[2] &= depth_mask[2]; shift = std::min(shift, loc[2][p[2]].second); zaddress |= loc[2][p[2]].first; }
+      if (pdim >= 4) { p[3] = SRC[3]; if (!(p[3] >= bounds.p1[3] && p[3] < bounds.p2[3])) continue; p[3] &= depth_mask[3]; shift = std::min(shift, loc[3][p[3]].second); zaddress |= loc[3][p[3]].first; }
+      if (pdim >= 5) { p[4] = SRC[4]; if (!(p[4] >= bounds.p1[4] && p[4] < bounds.p2[4])) continue; p[4] &= depth_mask[4]; shift = std::min(shift, loc[4][p[4]].second); zaddress |= loc[4][p[4]].first; }
+      hzaddresses[N] = std::make_pair(((zaddress | last_bitmask) >> shift), N);
     }
   }
 
-  query->filter_query=Rfilter_query;
-  query->cur_resolution=(Rcurrent_resolution);
-  return true;
-}
+  //sort the address 
+  std::sort(hzaddresses.begin(), hzaddresses.end());
 
+  //do the for loop block aligned
+  WaitAsync< Future<Void> > wait_async;
 
-///////////////////////////////////////////////////
-#if 0
-bool IdxDataset::upgradeBoxQueryMaxResolution(int maxh)
-{
-  VisusAssert(false);//this function is not used anymore
-
-  int query_maxh=query->max_resolution;
-
-  //necessary condition
-  VisusAssert(vf->idxfile.bitmask.hasRegExpr());
-  VisusAssert(vf->idxfile.bitmask.getMaxResolution()<query_maxh && query_maxh<maxh);
-
-
-  int pdim = vf->idxfile.bitmask.getPointDim();
-  
-  //WRONG : I should not change box here
-  BoxNi box = query->position.getBoxNi().withPointDim(this->getPointDim());
-
-  while (query_maxh<maxh)
+  access->beginRead();
+  for (int A = 0, B = 0; !aborted() && A < (int)hzaddresses.size(); A = B)
   {
-    ++query_maxh;
-    int bit=vf->idxfile.bitmask[query_maxh];
+    if (hzaddresses[A].first < 0) {
+      while (B < (int)hzaddresses.size() && hzaddresses[B].first < 0)
+        ++B;
+      continue;
+    }
 
-    box.from[bit]<<=1;
-    box.to  [bit]<<=1;
+    //align to the block
+    BigInt HzFrom = (hzaddresses[A].first >> bitsperblock) << bitsperblock;
+    BigInt HzTo = HzFrom + (((BigInt)1) << bitsperblock);
+    VisusAssert(hzaddresses[A].first >= HzFrom && hzaddresses[A].first < HzTo);
 
-    this->h_box.from[bit]<<=1;
-    this->h_box.to  [bit]<<=1;
+    //end of the block
+    while (B < (int)hzaddresses.size() && (hzaddresses[B].first >= HzFrom && hzaddresses[B].first < HzTo))
+      ++B;
 
-    query->max_resolution=(query_maxh); //WRONG! I cannot change max resolution here
+    auto block_query = std::make_shared<BlockQuery>(this, query->field, query->time, HzFrom, HzTo, 'r', aborted);
+    wait_async.pushRunning(this->executeBlockQuery(access, block_query)).when_ready([this, query, block_query, &hzaddresses, A, B, aborted](Void) {
+
+      if (aborted() || block_query->failed())
+        return;
+
+      InsertBlockQuerySamplesIntoPointQuery op;
+      NeedToCopySamples(op, query->field.dtype, this, query.get(), block_query.get(), &hzaddresses[0] + A, &hzaddresses[0] + B, aborted);
+      });
+  }
+  access->endRead();
+
+  wait_async.waitAllDone();
+
+  if (aborted()) {
+    query->setFailed("query aborted");
+    return false;
   }
 
-  this->shift=LogicBox::getShift(this->h_box,query->nsamples);
-  this->delta=PointNi::one(pdim)<<this->shift;
-
+  VisusAssert(query->buffer.dims == query->getNumberOfSamples());
+  query->setOk();
   return true;
 }
-#endif
+
+
 
 } //namespace Visus

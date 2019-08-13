@@ -230,6 +230,28 @@ public:
       << points[3][0] << " " << points[3][1];
   }
 
+  //toString10
+  String toString10() const {
+    return StringUtils::format()
+      << cstring10(points[0][0]) << " " << cstring10(points[0][1]) << " "
+      << cstring10(points[1][0]) << " " << cstring10(points[1][1]) << " "
+      << cstring10(points[2][0]) << " " << cstring10(points[2][1]) << " "
+      << cstring10(points[3][0]) << " " << cstring10(points[3][1]);
+  }
+
+  //toString
+  static Quad fromString(String s) {
+    Quad ret;
+    std::istringstream parser(s);
+    parser 
+      >> ret.points[0][0] >> ret.points[0][1]
+      >> ret.points[1][0] >> ret.points[1][1]
+      >> ret.points[2][0] >> ret.points[2][1]
+      >> ret.points[3][0] >> ret.points[3][1];
+    return ret;
+  }
+
+
 };
 
 

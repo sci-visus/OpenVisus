@@ -113,10 +113,10 @@ void MultiplexAccess::printStatistics()
 }
 
 ///////////////////////////////////////////////////////
-void MultiplexAccess::scheduleOp(Op op, int index, SharedPtr<BlockQuery> up_query)
+void MultiplexAccess::scheduleOp(int mode, int index, SharedPtr<BlockQuery> up_query)
 {
   //find the first who can read
-  if (op == ReadOp)
+  if (mode == 'r')
   {
     while (isGoodIndex(index) && !dw_access[index]->can_read)
       index++;
@@ -130,7 +130,7 @@ void MultiplexAccess::scheduleOp(Op op, int index, SharedPtr<BlockQuery> up_quer
   //find the first who can write
   else
   {
-    VisusAssert(op == CacheOp);
+    VisusAssert(mode == 'w');
 
     while (isGoodIndex(index) && !dw_access[index]->can_write)
       index--;
@@ -141,20 +141,18 @@ void MultiplexAccess::scheduleOp(Op op, int index, SharedPtr<BlockQuery> up_quer
     }
   }
 
-  auto dw_query = std::make_shared<BlockQuery>(up_query->field, up_query->time, up_query->start_address, up_query->end_address, up_query->aborted);
-  dw_query->nsamples  = up_query->nsamples;
-  dw_query->logic_box = up_query->logic_box;
-  dw_query->buffer    = up_query->buffer;
+  auto dw_query = std::make_shared<BlockQuery>(dataset, up_query->field, up_query->time, up_query->start_address, up_query->end_address, mode, up_query->aborted);
+  VisusAssert(dw_query->getNumberOfSamples() ==up_query->getNumberOfSamples());
+  VisusAssert(dw_query->logic_samples == up_query->logic_samples);
+  dw_query->buffer = up_query->buffer;
 
   {
     ScopedLock lock(this->lock);
 
     Pending pending;
-    pending.op = op;
     pending.index = index;
     pending.up_query = up_query;
     pending.dw_query = dw_query;
-
     pendings.push_back(pending);
     something_happened.up();
   }
@@ -170,11 +168,12 @@ std::vector<String> MultiplexAccess::getNextMode(std::vector<Pending>& pendings)
 
   for (int I = 0; I < pendings.size(); I++)
   {
-    auto op       = pendings[I].op;    VisusAssert(op == ReadOp || op == CacheOp);
     auto index    = pendings[I].index; VisusAssert(isGoodIndex(index));
     auto up_query = pendings[I].up_query;
-
-    if (op == ReadOp)
+    auto mode     = pendings[I].dw_query->mode;    
+    
+    VisusAssert(mode == 'r' || mode == 'w');
+    if (mode == 'r')
       bRead[index] = true;
     else
       bWrite[index] = true;
@@ -238,20 +237,19 @@ void MultiplexAccess::runInBackground()
 
     for (auto it : pendings)
     {
-      auto op       = it.op;
       auto index    = it.index;
       auto up_query = it.up_query;
       auto dw_query = it.dw_query;
 
       //need to read
-      if (op == ReadOp) 
+      if (dw_query->mode == 'r')
       {
-        dataset->readBlock(dw_access[index],dw_query).when_ready([this, up_query, dw_query, index](Void)
+        dataset->executeBlockQuery(dw_access[index],dw_query).when_ready([this, up_query, dw_query, index](Void)
         {
           //if fails try the next index
           if (dw_query->failed())
           {
-            scheduleOp(ReadOp, index + 1, up_query);
+            scheduleOp('r', index + 1, up_query);
           }
           //I need to write to upper access (i.e. caching)
           else
@@ -259,11 +257,11 @@ void MultiplexAccess::runInBackground()
             VisusAssert(dw_query->ok());
             VisusAssert(up_query->start_address == dw_query->start_address);
             VisusAssert(up_query->end_address == dw_query->end_address);
-            VisusAssert(up_query->nsamples == dw_query->nsamples);
-            VisusAssert(up_query->logic_box == dw_query->logic_box);
+            VisusAssert(up_query->getNumberOfSamples() == dw_query->getNumberOfSamples());
+            VisusAssert(up_query->logic_samples == dw_query->logic_samples);
 
             up_query->buffer = dw_query->buffer;
-            scheduleOp(CacheOp, index - 1, up_query);
+            scheduleOp('w', index - 1, up_query);
           }
         });
       }
@@ -271,11 +269,11 @@ void MultiplexAccess::runInBackground()
       //need to cache
       else
       {
-        VisusAssert(op == CacheOp);
+        VisusAssert(dw_query->mode == 'w');
 
         //if fails or not I don't care, I try to cache to upper levels anyway
-        dataset->writeBlock(dw_access[index],dw_query).when_ready([this, up_query, dw_query, index](Void) {
-          scheduleOp(CacheOp, index - 1, up_query);
+        dataset->executeBlockQuery(dw_access[index],dw_query).when_ready([this, up_query, dw_query, index](Void) {
+          scheduleOp('w', index - 1, up_query);
         });
       }
     }

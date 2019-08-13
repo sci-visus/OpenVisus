@@ -233,7 +233,7 @@ void RamAccess::readBlock(SharedPtr<BlockQuery> query)
 {
   //check alignment!
   VisusAssert((query->start_address % getSamplesPerBlock()) == 0);
-  VisusAssert(query->nsamples.innerProduct() == getSamplesPerBlock());
+  VisusAssert(query->getNumberOfSamples().innerProduct() == getSamplesPerBlock());
 
   return shared->read(query)? readOk(query):readFailed(query);
 }
@@ -243,7 +243,7 @@ void RamAccess::writeBlock(SharedPtr<BlockQuery> query)
 {
   //check alignment!
   VisusAssert((query->start_address % getSamplesPerBlock()) == 0);
-  VisusAssert(query->nsamples.innerProduct() == getSamplesPerBlock());
+  VisusAssert(query->getNumberOfSamples().innerProduct() == getSamplesPerBlock());
 
   return shared->write(query)? writeOk(query):writeFailed(query);
 }

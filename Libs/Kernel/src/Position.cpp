@@ -41,31 +41,36 @@ For support : support@visus.net
 
 namespace Visus {
 
-  //////////////////////////////////////////////////
-Position::Position(std::vector<Matrix> Ts, BoxNd box)
+//////////////////////////////////////////////////
+Position::Position(BoxNd box)
 {
-  auto pdim = box.getPointDim(); 
-  if (pdim == 0)
-    return;
-
-  auto sdim = pdim + 1;
-
-  for (auto T : Ts)
-    sdim = std::max(sdim, T.getSpaceDim());
-
-  for (auto& T : Ts)
-    T.setSpaceDim(sdim);
-
-  //right to left (just in case I have problems about numerical precision)
-  this->T = Matrix::identity(sdim);
-  for (int I = (int)Ts.size()-1; I >=0 ; I--)
-    this->T = Ts[I]* this->T;
-
+  auto pdim = box.getPointDim();
+  if (pdim == 0) return;
+  this->T = Matrix::identity(box.getPointDim()+1);
   this->box = box;
 }
 
-
   //////////////////////////////////////////////////
+void Position::prependTransformation(const Matrix& Left)
+{
+  auto pdim = getPointDim(); 
+  if (pdim == 0) return;
+  this->T = Left * this->T;
+
+  auto sdim = getSpaceDim();
+
+  //only scale and translate
+#if 0
+  if (!T.isIdentity() && this->getPoints() == toAxisAlignedBox().getPoints())
+  {
+    this->box = toAxisAlignedBox();
+    this->T = Matrix::identity(sdim);
+  }
+#endif
+}
+
+
+//////////////////////////////////////////////////
 double Position::computeVolume() const {
 
   if (!this->valid())
@@ -100,19 +105,21 @@ double Position::computeVolume() const {
   }
 }
 
-
 //////////////////////////////////////////////////
-BoxNd Position::withoutTransformation() const
+std::vector<PointNd> Position::getPoints() const
 {
-  if (!this->valid())
-    return BoxNd::invalid();
+  std::vector<PointNd> ret;
 
-  auto ret = BoxNd::invalid();
+  if (!this->valid())
+    return ret;
+
   auto points = this->box.getPoints();
   for (auto point : points)
-    ret.addPoint(T * point);
+    ret.push_back(T * point);
+
   return ret;
 }
+
 
 //////////////////////////////////////////////////
 static bool IsPointInsideHull(const PointNd point, const std::vector<Plane>& planes)

@@ -36,77 +36,53 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_IDX_MOSAIC_ACCESS_H
-#define __VISUS_IDX_MOSAIC_ACCESS_H
-
-#include <Visus/Idx.h>
-#include <Visus/Access.h>
-#include <Visus/DatasetBitmask.h>
+#include <Visus/PointQuery.h>
+#include <Visus/Dataset.h>
 
 namespace Visus {
 
-//predeclaration
-class IdxDataset;
-class IdxMultipleDataset;
-
-//////////////////////////////////////////////////////
-class VISUS_IDX_API IdxMosaicAccess : public Access
+////////////////////////////////////////////////////////////////////
+bool PointQuery::setPoints(PointNi nsamples)
 {
-public:
+  //no samples or overflow
+  if (nsamples.innerProduct() <= 0)
+    return false;
 
-  VISUS_NON_COPYABLE_CLASS(IdxMosaicAccess)
+  if (!this->logic_position.valid())
+    return false;
 
+  if (!this->points.resize(nsamples,DTypes::INT64_RGB, __FILE__, __LINE__))
+    return false;
 
-  //constructor
-  IdxMosaicAccess(IdxMultipleDataset* VF, StringTree CONFIG = StringTree());
+  //definition of a point query!
+  //P'=T* (P0 + I* X/nsamples[0] +  J * Y/nsamples[1] + K * Z/nsamples[2])
+  //P'=T*P0 +(T*Stepx)*I + (T*Stepy)*J + (T*Stepz)*K
 
-  //destructor
-  virtual ~IdxMosaicAccess();
+  auto T   = this->logic_position.getTransformation().withSpaceDim(4);
+  auto box = this->logic_position.getBoxNd().withPointDim(3);
 
-  //beginIO
-  virtual void beginIO(String mode) override;
+  Point4d P0(box.p1[0], box.p1[1], box.p1[2], 1.0);
+  Point4d X(1, 0, 0, 0); X[0] = box.p2[0] - box.p1[0]; Point4d DX = X * (1.0 / (double)nsamples[0]); VisusAssert(X[3] == 0.0 && DX[3] == 0.0);
+  Point4d Y(0, 1, 0, 0); Y[1] = box.p2[1] - box.p1[1]; Point4d DY = Y * (1.0 / (double)nsamples[1]); VisusAssert(Y[3] == 0.0 && DY[3] == 0.0);
+  Point4d Z(0, 0, 1, 0); Z[2] = box.p2[2] - box.p1[2]; Point4d DZ = Z * (1.0 / (double)nsamples[2]); VisusAssert(Z[3] == 0.0 && DZ[3] == 0.0);
 
-  //endIO
-  virtual void endIO() override;
+  Point4d TP0_4d = T * P0;                                Point3d TP0 = TP0_4d.dropHomogeneousCoordinate();
+  Point4d TDX_4d = T * DX; VisusAssert(TDX_4d[3] == 0.0); Point3d TDX = TDX_4d.toPoint3();
+  Point4d TDY_4d = T * DY; VisusAssert(TDY_4d[3] == 0.0); Point3d TDY = TDY_4d.toPoint3();
+  Point4d TDZ_4d = T * DZ; VisusAssert(TDZ_4d[3] == 0.0); Point3d TDZ = TDZ_4d.toPoint3();
 
-  //readBlock
-  virtual void readBlock(SharedPtr<BlockQuery> QUERY) override;
+  auto DST = (Int64*)this->points.c_ptr();
+  Point3d PZ = TP0; for (int K = 0; K < nsamples[2]; ++K, PZ += TDZ) {
+  Point3d PY = PZ;  for (int J = 0; J < nsamples[1]; ++J, PY += TDY) {
+  Point3d PX = PY;  for (int I = 0; I < nsamples[0]; ++I, PX += TDX) {
+    *DST++ = (Int64)(PX[0]);
+    *DST++ = (Int64)(PX[1]);
+    *DST++ = (Int64)(PX[2]);
+  }}}
 
-  //writeBlock
-  virtual void writeBlock(SharedPtr<BlockQuery> QUERY) override;
+  return true;
+}
 
-private:
-
-  class VISUS_IDX_API Child
-  {
-  public:
-    SharedPtr<IdxDataset> dataset;
-    SharedPtr<Access>     access;
-  };
-
-  IdxMultipleDataset * VF;
-  StringTree CONFIG;
-
-
-  //_____________________________________________________
-  struct Compare
-  {
-    bool operator()(const PointNi& a, const  PointNi& b) const {
-      return a.toVector() < b.toVector();
-    }
-  };
-
-  std::map<PointNi, Child, Compare > childs;
-
-  //getChildAccess
-  SharedPtr<Access> getChildAccess(const Child& child) const;
-
-};
 
 } //namespace Visus
-
-
-#endif //__VISUS_IDX_MOSAIC_ACCESS_H
-
-
 

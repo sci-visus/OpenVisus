@@ -56,7 +56,7 @@ DatasetFilter::~DatasetFilter()
 
 
 ///////////////////////////////////////////////////////////////////////////////////
-PointNi DatasetFilter::getFilterStep(int H,int MaxH) const
+PointNi DatasetFilter::getFilterStep(int H) const
 {
   /* Example ('-' means the same group for the filter): 
     
@@ -90,7 +90,7 @@ PointNi DatasetFilter::getFilterStep(int H,int MaxH) const
 
   DatasetBitmask bitmask=dataset->getBitmask();
   int pdim = bitmask.getPointDim();
-  PointNi step=bitmask.upgradeBox(bitmask.getPow2Box(),MaxH).size();
+  PointNi step= bitmask.getPow2Box().size();
   for (int K=0;K<H;K++)
   {
     int bit=bitmask[K];
@@ -109,9 +109,6 @@ PointNi DatasetFilter::getFilterStep(int H,int MaxH) const
 }
 
 
-
-
-
 ///////////////////////////////////////////////////////////////////////////////
 bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> access,PointNi SlidingWindow) const
 {
@@ -119,7 +116,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
   VisusAssert(this->size==2);
 
   DatasetBitmask bitmask   = dataset->getBitmask();
-  BoxNi          box       = dataset->getBox();
+  BoxNi          box       = dataset->getLogicBox();
 
   int pdim = bitmask.getPointDim();
 
@@ -136,7 +133,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
     VisusInfo()<<"Applying filter to dataset resolution("<<H<<") ";
     int bit=bitmask[H];
       
-    Int64 FILTERSTEP=this->getFilterStep(H,dataset->getMaxResolution())[bit];
+    Int64 FILTERSTEP=this->getFilterStep(H)[bit];
 
     //need to align the from so that the first sample is filter-aligned
     PointNi From = box.p1;
@@ -161,14 +158,11 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
       VisusAssert(Utils::isAligned(sliding_window.p1[bit],(Int64)0,FILTERSTEP));
 
       //important, i'm not using adjustBox because I'm sure it is already correct!
-      auto read=std::make_shared<Query>(dataset,'r');
-      read->time=time;
-      read->field=field;
-      read->position=sliding_window;
-      read->end_resolutions={H};
+      auto read=std::make_shared<BoxQuery>(dataset, field, time,'r');
+      read->logic_box=sliding_window;
+      read->setResolutionRange(0,H);
 
-      if (!dataset->beginQuery(read))
-        return false;
+      dataset->beginQuery(read);
 
       if (!dataset->executeQuery(access,read))
         return false;
@@ -218,12 +212,13 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
       }
       #endif
 
-      auto write=std::make_shared<Query>(dataset,'w');
-      write->time=time;
-      write->field=field;
-      write->position=sliding_window;
-      write->end_resolutions={H};
-      if (!dataset->beginQuery(write))
+      auto write=std::make_shared<BoxQuery>(dataset, field, time,'w');
+      write->logic_box=sliding_window;
+      write->setResolutionRange(0,H);
+
+      dataset->beginQuery(write);
+
+      if (!write->isRunning())
         return false;
 
       write->buffer=read->buffer;

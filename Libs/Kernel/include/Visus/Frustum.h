@@ -89,6 +89,12 @@ public:
     : viewport(viewport_) ,projection(projection_),modelview(modelview_) {
   }
 
+
+  //constructor
+  Frustum(const Frustum& other, const Matrix& right) : Frustum(other){
+    this->multModelview(right);
+  }
+
   //operator==
   bool operator==(const Frustum& other) const {
     return modelview==other.modelview && projection==other.projection && viewport==other.viewport;

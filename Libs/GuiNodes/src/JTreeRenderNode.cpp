@@ -119,7 +119,7 @@ void JTreeRenderNode::glRender(GLCanvas& gl)
   ScopedLock lock(this->graph->lock);
 
   bool minima_tree  = cbool(this->graph->properties.getValue("minima_tree"));
-  auto T            = this->graph->bounds.T;
+  auto T            = this->graph->bounds.getTransformation();
 
   std::vector<int>    roots;
   std::map<int,Color> roots_color;

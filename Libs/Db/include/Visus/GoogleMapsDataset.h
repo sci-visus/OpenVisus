@@ -89,36 +89,38 @@ public:
   }
 
   //guessEndResolutions
-  virtual std::vector<int> guessEndResolutions(const Frustum& viewdep, Position position, Query::Quality quality = Query::DefaultQuality, Query::Progression progression = Query::GuessProgression) override;
+  virtual std::vector<int> guessEndResolutions(const Frustum& logic_to_screen, Position logic_position, QueryQuality quality = QueryDefaultQuality, QueryProgression progression = QueryGuessProgression) override;
 
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;
 
-  //getAddressRangeBox
-  virtual LogicBox getAddressRangeBox(BigInt start_address,BigInt end_address) override;
+  //getAddressRangeSamples
+  virtual LogicSamples getAddressRangeSamples(BigInt start_address,BigInt end_address) override;
+
+  //getLevelSamples
+  virtual LogicSamples getLevelSamples(int H) override;
+
+public:
 
   //beginQuery
-  virtual bool beginQuery(SharedPtr<Query> query) override;
-
-  //executeQuery
-  virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<Query> query) override;
+  virtual void beginQuery(SharedPtr<BoxQuery> query) override;
 
   //nextQuery
-  virtual bool nextQuery(SharedPtr<Query> query) override;
+  virtual void nextQuery(SharedPtr<BoxQuery> query) override;
 
-  //mergeWithBlockQuery
-  virtual bool mergeQueryWithBlock(SharedPtr<Query> query,SharedPtr<BlockQuery> blockquery) override;
+  //executeQuery
+  virtual bool executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuery> query) override;
 
-  //getLevelBox
-  virtual LogicBox getLevelBox(int H) override;
+  //mergeBoxQueryWithBlock
+  virtual bool mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> blockquery) override;
 
 private:
 
-  //setCurrentEndResolution
-  bool setCurrentEndResolution(SharedPtr<Query> query);
+  //setEndResolution
+  bool setEndResolution(SharedPtr<BoxQuery> query,int value);
 
   //kdTraverse
-  void kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<Query> query,BoxNi box,BigInt id,int H,int end_resolution);
+  void kdTraverse(std::vector< SharedPtr<BlockQuery> >& block_queries,SharedPtr<BoxQuery> query,BoxNi box,BigInt id,int H,int end_resolution);
 
 };
 

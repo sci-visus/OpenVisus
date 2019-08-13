@@ -64,7 +64,7 @@ static bool isNodeVisible(const SharedPtr<KdArray>& kdarray,KdArrayNode* node)
     return false;
 
   //don't allow any overlapping (i.e. if of any of my parents is currently displayed, I cannot show the current node)
-  if (kdarray->getDataDim()==3)
+  if (kdarray->getPointDim()==3)
   {
     for (KdArrayNode* up=node->up;up;up=up->up)
       if (up->bDisplay) return false;
@@ -131,21 +131,21 @@ bool KdRenderArrayNode::processInput()
       if (node->bDisplay)
       {
         //need to write lock here
-        if (!node->user_value)
+        if (!node->texture)
         {
           auto texture=std::make_shared<GLTexture>(node->displaydata);
           texture->vs=vs;
           texture->vt=vt;
           {
             //ScopedWriteLock wlock(rlock); Don't NEED wlock since I'm the only one to use the texture variable
-            node->user_value = texture;
+            node->texture = texture;
           }
         }
       }
-      else if (node->user_value)
+      else if (node->texture)
       {
         //ScopedWriteLock wlock(rlock); Don't NEED wlock since I'm the only one to use the texture variable
-        node->user_value.reset();
+        node->texture.reset();
       }
 
       if (node->right) stack.push(node->right );
@@ -172,18 +172,23 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
   bool  bBlend    = palette_texture || bHasAlpha;
 
   KdRenderArrayNodeShader::Config config;
-  config.texture_dim                 = kdarray->getDataDim();
+  config.texture_dim                 = kdarray->getPointDim();
   config.texture_nchannels           = kdarray->root->displaydata.dtype.ncomponents();
   config.palette_enabled             = palette_texture?true:false;
   config.clippingbox_enabled         = kdarray->clipping.valid() || gl.hasClippingBox();
   config.discard_if_zero_alpha       = bBlend? true : false;
-  KdRenderArrayNodeShader* shader=KdRenderArrayNodeShader::getSingleton(config);
+  auto shader=KdRenderArrayNodeShader::getSingleton(config);
   gl.setShader(shader);
 
+  auto logic_to_physic = Position::computeTransformation(kdarray->bounds, kdarray->logic_box);
+
+  //clipping is in physic coordinates
   if (kdarray->clipping.valid())
     gl.pushClippingBox(kdarray->clipping);
 
+  //instead from now on I'm displaying stuff in logic coordinates
   gl.pushModelview();
+  gl.multModelview(logic_to_physic);
 
   gl.pushBlend(bBlend);
   gl.pushDepthTest(config.texture_dim==2?false:true);
@@ -214,12 +219,12 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
   {
     SharedPtr<KdArrayNode> node=stack.top(); stack.pop();
 
-    if (node->bDisplay && node->user_value)
+    if (node->bDisplay && node->texture)
     {
-      auto   box       = node->box.castTo<BoxNd>();
+      auto   box        = node->logic_box.castTo<BoxNd>();
       Array displaydata = node->displaydata; 
 
-      shader->setTexture(gl,std::dynamic_pointer_cast<GLTexture>(node->user_value));
+      shader->setTexture(gl,std::dynamic_pointer_cast<GLTexture>(node->texture));
 
       //2d
       if (config.texture_dim==2)
@@ -240,24 +245,22 @@ void KdRenderArrayNode::glRender(GLCanvas& gl)
     }
     else
     {
-      node->user_value.reset();
+      node->texture.reset();
     }
 
     if (!node->isLeaf())
     {
-      bool bSwapOrder=config.texture_dim==3 && viewpos[node->split_bit]<node->getMiddle();
+      bool bSwapOrder=config.texture_dim==3 && viewpos[node->split_bit]<node->getLogicMiddle();
       stack.push(bSwapOrder? node->left  : node->right);
       stack.push(bSwapOrder? node->right : node->left );
     }
   }
 
-#if VISUS_DEBUG
-  if (config.texture_dim == 2)
+  if (ApplicationInfo::debug && config.texture_dim == 2)
   {
     for (auto node : rendered)
-      GLLineLoop(node->box.getPoints(), Colors::Black, 3).glRender(gl);
+      GLLineLoop(node->logic_box.getPoints(), Colors::Black, 3).glRender(gl);
   }
-#endif
 
   gl.popDepthMask();
   gl.popDepthTest();

@@ -529,7 +529,7 @@ String PythonEngine::convertToString(PyObject* value)
 }
 
 ///////////////////////////////////////////////////////////////////////////
-String PythonEngine::getLastErrorMessage()
+static String GetLastPythonErrorMessage(bool bClear)
 {
   //see http://www.solutionscan.org/154789-python
   auto err = PyErr_Occurred();
@@ -542,8 +542,8 @@ String PythonEngine::getLastErrorMessage()
   std::ostringstream out;
 
   out << "Python error: " 
-    << convertToString(type) << " "
-    << convertToString(value) << " ";
+    << PythonEngine::convertToString(type) << " "
+    << PythonEngine::convertToString(value) << " ";
 
   auto module_name = PyString_FromString("traceback");
   auto module = PyImport_Import(module_name);
@@ -554,10 +554,13 @@ String PythonEngine::getLastErrorMessage()
   {
     if (auto descr = PyObject_CallFunctionObjArgs(fn, type, value, traceback, NULL))
     {
-      out << convertToString(descr);
+      out << PythonEngine::convertToString(descr);
       Py_DECREF(descr);
     }
   }
+
+  if (bClear)
+    PyErr_Clear();
 
   return out.str();
 }
@@ -592,9 +595,8 @@ void PythonEngine::execCode(String s)
   {
     if (PyErr_Occurred())
     {
-      auto  error_msg = getLastErrorMessage();
-      PyErr_Clear();
-      VisusInfo() << "Python error "<< error_msg;
+      String error_msg = StringUtils::format() << "Python error code:\n" << s << "\nError:\n" << GetLastPythonErrorMessage(true);
+      VisusInfo() << error_msg;
       ThrowException(error_msg);
     }
   }
@@ -617,8 +619,8 @@ PyObject* PythonEngine::evalCode(String s)
   {
     if (PyErr_Occurred())
     {
-      auto  error_msg = getLastErrorMessage();
-      PyErr_Clear();
+      String error_msg = StringUtils::format() << "Python error code:\n" << s << "\nError:\n" << GetLastPythonErrorMessage(true);
+      VisusInfo() << error_msg;
       ThrowException(error_msg);
     }
   }

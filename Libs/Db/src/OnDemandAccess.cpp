@@ -75,7 +75,7 @@ public:
   OnDemandAccessExternalPimpl(OnDemandAccess* owner, Dataset* dataset)
     : OnDemandAccess::Pimpl(owner)
   {
-    if (!dataset->bServerMode)
+    if (!dataset->isServerMode())
     {
       if (auto nconnections = OnDemandAccess::Defaults::nconnections)
         this->netservice = std::make_shared<NetService>(nconnections);
@@ -156,8 +156,8 @@ public:
     auto bitmask = dataset->getBitmask();
     auto timestep = query->time;
     auto field = query->field.name;
-    auto dataset_box = dataset->getBox();
-    auto block_logicbox = query->logic_box;
+    auto dataset_box = dataset->getLogicBox();
+    auto block_logicbox = query->getLogicBox();
 
     Time t1 = Time::now();
 
@@ -256,12 +256,12 @@ public:
     //    </access>
     // </dataset>
 
-    LogicBox logic_box = query->logic_box;
-    if (!logic_box.valid())
+    LogicSamples logic_samples = query->logic_samples;
+    if (!logic_samples.valid())
       return owner->readFailed(query);
 
-    Int64 Width  = dataset->getBox().size()[0];
-    Int64 Height = dataset->getBox().size()[1];
+    Int64 Width  = dataset->getLogicBox().size()[0];
+    Int64 Height = dataset->getLogicBox().size()[1];
 
     Url urlpath(owner->getPath());
     int z = cint(urlpath.getParam("z", "0"));
@@ -277,7 +277,7 @@ public:
       if (query->aborted())
         break;
 
-      PointNi logic_pos = logic_box.pixelToLogic(loc.pos);
+      PointNi logic_pos = logic_samples.pixelToLogic(loc.pos);
 
       //mirror y
       logic_pos[1] = Height - logic_pos[1] - 1;
@@ -346,16 +346,16 @@ public:
   {
     Dataset* dataset = owner->getDataset();
 
-    LogicBox logic_box = query->logic_box;
-    if (!logic_box.valid())
+    LogicSamples logic_samples = query->logic_samples;
+    if (!logic_samples.valid())
       return owner->readFailed(query);
 
     DType dtype = query->field.dtype;
     VisusAssert(dtype.getByteSize(1) == sizeof(CppType));
 
     //convert logic range to [0,1]
-    auto P0    = dataset->getBox().p1;
-    auto Size  = dataset->getBox().size();
+    auto P0    = dataset->getLogicBox().p1;
+    auto Size  = dataset->getLogicBox().size();
 
     auto& buffer = query->buffer;
     buffer.layout = this->layout;
@@ -369,7 +369,7 @@ public:
       if (query->aborted())
         return owner->readFailed(query);
 
-      PointNi logic_pos = logic_box.pixelToLogic(loc.pos);
+      PointNi logic_pos = logic_samples.pixelToLogic(loc.pos);
 
       Point3d p(
         (logic_pos[0] - P0[0]) / (double)(Size[0]),

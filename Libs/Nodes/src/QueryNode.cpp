@@ -43,9 +43,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-bool QueryNode::bDisableFindQUeryIntersectionWithDatasetBox = false;
-
-
 ///////////////////////////////////////////////////////////////////////////
 class QueryNode::MyJob : public NodeJob
 {
@@ -54,35 +51,27 @@ public:
   QueryNode*               node;
   SharedPtr<Dataset>       dataset;
   SharedPtr<Access>        access;
-  SharedPtr<Query>         query;
-  bool                     verbose;
-  SharedPtr<Semaphore>     waiting_ready;
-  Int64                    max_query_size;
 
-  //this will allow more parallelism since I start the next query before the previous one got rendered
-  bool                     bWaitReturnReceipt = false;
+  Field                    field;
+  double                   time;
+  Position                 logic_position;
+  std::vector<int>         resolutions;
+  Frustum                  logic_to_screen;
+
+
+  bool                     verbose;
+  SharedPtr<Semaphore>     waiting_ready = std::make_shared<Semaphore>();
 
   //constructor
-  MyJob(QueryNode* node_,SharedPtr<Dataset> dataset_,SharedPtr<Access> access_,SharedPtr<Query> query_,Int64 max_query_size_=0)
-    : node(node_),dataset(dataset_),access(access_),query(query_),max_query_size(max_query_size_)
+  MyJob(QueryNode* node_,SharedPtr<Dataset> dataset_,SharedPtr<Access> access_)
+    : node(node_),dataset(dataset_),access(access_)
   {
-    this->query->aborted=this->aborted;
-    this->verbose=node->isVerbose();
-    this->waiting_ready=std::make_shared<Semaphore>();
-
-    //need custom doPublish for scripting since it will not always wish to wait for return receipt
-    this->query->incrementalPublish=[this](Array data)
-    {
-      if (aborted() || !data)
-        return;
-
-      if (auto filter=query->filter.value)
-        data=filter->dropExtraComponentIfExists(data);
-    
-      DataflowMessage msg;
-      msg.writeValue("data", data);
-	    this->node->publish(msg);
-    };
+    this->field = node->getField();
+    this->time  = node->getTime();
+    this->logic_position = node->getQueryLogicPosition();
+    this->resolutions = dataset->guessEndResolutions(node->logicToScreen(), logic_position, node->getQuality(), node->getProgression());
+    this->logic_to_screen = node->logicToScreen();
+    this->verbose = node->isVerbose();
   }
 
   //destructor
@@ -93,76 +82,112 @@ public:
   //runJob
   virtual void runJob() override
   {
-    for (int N=0;;N++)
+    int pdim = dataset->getPointDim();
+
+    if (bool bPointQuery = pdim == 3 && logic_position.getBoxNd().toBox3().minsize() == 0)
     {
-      if (aborted())
-        return;
-
-      //if too many samples (they wouldn't fit on gpu anyway), end the job
-      if (max_query_size>0 && query->nsamples.innerProduct()*query->field.dtype.getByteSize() > max_query_size)
-        return;
-
-      Time t1=Time::now();
-      if (aborted())
-        return;
-
-      if (!dataset->executeQuery(access,query))
-        return;
-
-      if (aborted())
-        return;
-
-      auto buffer=query->buffer;
-      
-      if (verbose)
+      for (int N = 0; N < (int)this->resolutions.size(); N++)
       {
-        std::ostringstream out;
-        out<<"Query msec(" <<t1.elapsedMsec()<<") "
-        <<"level("<<N<<"/"<<query->end_resolutions.size()<<"/"<<query->cur_resolution<<"/"<<query->max_resolution<<") "
-        <<"dims(" <<buffer.dims.toString()<<") "
-        <<"dtype("<<buffer.dtype.toString()<<") "
-        <<"filter("<<(query->filter.value?query->filter.value->getName():"nullptr")<<") "
-        <<"access("<<(access?"yes":"nullptr")<<") "
-        <<"url("<<dataset->getUrl().toString()<<") ";
-        VisusInfo()<<out.str();
+        Time t1 = Time::now();
+
+        auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', this->aborted);
+        query->logic_position = logic_position;
+        query->end_resolution = this->resolutions[N];
+        auto nsamples = dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution);
+        query->setPoints(nsamples);
+        dataset->beginQuery(query);
+
+        if (!dataset->executeQuery(access, query))
+          return;
+        
+        auto output = query->buffer;
+
+        if (verbose)
+        {
+          VisusInfo() << "PointQuery msec(" << t1.elapsedMsec() << ") " << "level(" << N << "/" << this->resolutions.size() << "/" << this->resolutions[N] << "/" << dataset->getMaxResolution() << ") "
+            << "dims(" << output.dims.toString() << ") dtype(" << output.dtype.toString() << ") access(" << (access ? "yes" : "nullptr") << ") url(" << dataset->getUrl().toString() << ") ";
         }
 
-      //publish the final result
-      doPublish(buffer);
+        DataflowMessage msg;
+        output.bounds = dataset->logicToPhysic(query->logic_position);
+        msg.writeValue("data", output);
+        node->publish(msg);
+      }
+    }
+    else
+    {
+      auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r', this->aborted);
+      query->filter.enabled = true;
+      query->merge_mode = InsertSamples;
+      query->logic_box = this->logic_position.toDiscreteAxisAlignedBox(); //remove transformation! (in doPublish I will add the physic clipping)
+      query->end_resolutions = this->resolutions;
+
+      query->incrementalPublish = [&](Array output) {
+        doPublish(output, query);
+      };
+
+      dataset->beginQuery(query);
+
+      //could be that end_resolutions gets corrected (see google maps for example)
+      this->resolutions = query->end_resolutions; 
+
+      for (int N = 0; N < (int)this->resolutions.size(); N++)
+      {
+        Time t1 = Time::now();
+
+        if (aborted() || !query->isRunning() || !dataset->executeQuery(access, query) || aborted())
+          return;
+
+        auto output = query->buffer;
+
+        if (verbose)
+        {
+          VisusInfo()<< "BoxQuery msec(" << t1.elapsedMsec() << ") "
+            << "level(" << N << "/" << this->resolutions.size() << "/" << this->resolutions[N] << "/" << dataset->getMaxResolution() << ") "
+            << "dims(" << output.dims.toString() << ") dtype(" << output.dtype.toString() << ") access(" << (access ? "yes" : "nullptr") << ") url(" << dataset->getUrl().toString() << ") ";
+        }
+
+        doPublish(output, query);
+        dataset->nextQuery(query);
+      }
     }
   }
 
   //doPublish
-  void doPublish(Array output)
+  void doPublish(Array output, SharedPtr<BoxQuery> query)
   {
-    if (aborted() || !output)
-      return;
+    int pdim = dataset->getPointDim();
 
-    if (auto filter=query->filter.value)
-      output=filter->dropExtraComponentIfExists(output);
-    
+    if (auto filter= query->filter.dataset_filter)
+      output = filter->dropExtraComponentIfExists(output);
+
     DataflowMessage msg;
+    output.bounds = dataset->logicToPhysic(query->logic_box);
 
-    SharedPtr<ReturnReceipt> return_receipt;
+    if (pdim==3)
+      output.clipping = dataset->logicToPhysic(this->logic_position);
 
-    //TODO: enable or disable return receipt?
-    if (bWaitReturnReceipt)
+    //a projection happened?
+#if 1
+    if (query->logic_samples.nsamples != output.dims)
     {
-      return_receipt = std::make_shared<ReturnReceipt>();
-      msg.setReturnReceipt(return_receipt);
+      //disable clipping
+      output.clipping = Position::invalid();
+
+      //fix bounds
+      auto T   = output.bounds.getTransformation();
+      auto box = output.bounds.getBoxNd();
+      for (int D = 0; D < pdim; D++)
+      {
+        if (query->logic_samples.nsamples[D] > 1 && output.dims[D] == 1)
+          box.p2[D] = box.p1[D];
+      }
+      output.bounds = Position(T, box);
     }
+#endif
 
-    msg.writeValue("data",output);
-
-    //only if the publish went well, I could wait
-    if (node->publish(msg))
-    {
-      if (return_receipt)
-        return_receipt->waitReady(waiting_ready);
-    }
-
-    if (!dataset->nextQuery(query))
-      return;
+    msg.writeValue("data", output);
+    node->publish(msg);
   }
 
   //abort
@@ -190,89 +215,120 @@ QueryNode::~QueryNode(){
 }
 
 ///////////////////////////////////////////////////////////////////////////
+Field QueryNode::getField()
+{
+  VisusAssert(VisusHasMessageLock());
+  auto dataset = getDataset();
+  if (!dataset)
+    return Field();
+
+  auto fieldname = readValue<String>("fieldname");
+  return fieldname? dataset->getFieldByName(cstring(fieldname)) : dataset->getDefaultField();
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+double QueryNode::getTime()
+{
+  VisusAssert(VisusHasMessageLock());
+  auto dataset = getDataset();
+  if (!dataset)
+    return 0.0;
+
+  auto time = readValue<double>("time");
+  return time ? cdouble(time) : dataset->getDefaultTime();
+}
+
+
+//////////////////////////////////////////////////////////////////
+DatasetNode* QueryNode::getDatasetNode()
+{
+  VisusAssert(VisusHasMessageLock());
+  if (!isInputConnected("dataset")) return nullptr;
+  return dynamic_cast<DatasetNode*>((*getInputPort("dataset")->inputs.begin())->getNode());
+}
+
+//////////////////////////////////////////////////////////////////
+SharedPtr<Dataset> QueryNode::getDataset() 
+{
+  VisusAssert(VisusHasMessageLock());
+  return readValue<Dataset>("dataset");
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+Frustum QueryNode::logicToScreen()  
+{
+  auto dataset = getDataset();
+  if (!dataset)
+    return Frustum();
+
+  auto physic_to_screen = nodeToScreen();
+  if (!physic_to_screen.valid())
+    return Frustum();
+
+  return dataset->logicToScreen(physic_to_screen);
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+Position QueryNode::getQueryLogicPosition() 
+{
+  auto dataset = getDataset();
+  if (!dataset)
+    return Position();
+
+  auto query_bounds = getQueryBounds();
+  if (!query_bounds.valid())
+    return Position();
+
+  auto physic_to_screen = nodeToScreen();
+  if (physic_to_screen.valid())
+  {
+    auto map = FrustumMap(physic_to_screen);
+    query_bounds = Position::shrink(physic_to_screen.getScreenBox(), map, query_bounds);
+    if (!query_bounds.valid())
+      return Position();
+  }
+
+  //find intersection with dataset box
+  auto logic_position = dataset->physicToLogic(query_bounds);
+  auto map = MatrixMap(Matrix::identity(dataset->getPointDim()));
+  logic_position = Position::shrink(dataset->getLogicBox().castTo<BoxNd>(), map, logic_position);
+
+  if (!logic_position.valid())
+    return Position();
+
+  return logic_position;
+}
+
+///////////////////////////////////////////////////////////////////////////
 bool QueryNode::processInput()
 {
   abortProcessing();
 
-  //important to do before readValue
-  auto dataset          = readValue<Dataset>("dataset");
-  auto time             = readValue<double>("time");
-  auto fieldname        = readValue<String>("fieldname");
+  auto failed = [&]() {
+    publishDumbArray();
+    return false;
+  };
 
-  //I always need a dataset
+  auto dataset = getDataset();
   if (!dataset)
-    return false;
-
-  auto query=std::make_shared<Query>(dataset.get(),'r');
-  query->filter.enabled=true;
-  query->merge_mode=Query::InsertSamples;
-
-  //position
-  auto position=getQueryPosition();
-  if (!position.valid())
-    return false;
-
-  //time
-  if (time)
-    query->time=(cdouble(time));
+    return failed();
 
   //create (and store in my class the access)
-  if (!access)
+  if (!this->access)
   {
-    std::vector<StringTree*> access_configs=dataset->getAccessConfigs();
-    if (accessindex>=0 && accessindex<(int)access_configs.size())
-      setAccess(dataset->createAccess(*access_configs[accessindex]));
+    auto access_configs = dataset->getAccessConfigs();
+
+    if (this->accessindex >= 0 && this->accessindex < (int)access_configs.size())
+      setAccess(dataset->createAccess(*access_configs[this->accessindex]));
     else
       setAccess(dataset->createAccess());
   }
-
-  //field
-  if (fieldname)
-    query->field=dataset->getFieldByName(cstring(fieldname));
-
-  //set position
-  Int64 max_query_size=0;
-  {
-    Frustum viewdep;
-    if (isViewDependentEnabled() && getViewDep().valid())
-    {
-      viewdep=getViewDep();
-      auto frustum_map = FrustumMap(viewdep);
-      position=Position::shrink(viewdep.getScreenBox(), frustum_map,position);
-      if (!position.valid())
-      {
-        publishDumbArray();
-        return false;
-      }
-    }
-
-    //find intersection with dataset box
-    if (!bDisableFindQUeryIntersectionWithDatasetBox)
-    {
-      auto pdim = dataset->getPointDim();
-      auto matrix_map = MatrixMap(Matrix::identity(pdim));
-      position = Position::shrink(dataset->getBox().castTo<BoxNd>(), matrix_map, position);
-    }
-
-    if (!position.valid()) 
-    {
-      publishDumbArray();
-      return false;
-    }
-
-
-    query->position=position;
-    query->viewdep=viewdep;
-  }
-
-  //end resolutions
-  query->end_resolutions=dataset->guessEndResolutions(query->viewdep,query->position,getQuality(),getProgression());
  
-  //failed for some reason
-  if (!dataset->beginQuery(query)) 
-    return false;
+  addNodeJob(std::make_shared<MyJob>(this, dataset, access));
 
-  addNodeJob(std::make_shared<MyJob>(this, dataset, access, query, max_query_size));
   return true;
 }
 
@@ -287,29 +343,6 @@ void QueryNode::publishDumbArray()
   publish(msg);
 }
 
-//////////////////////////////////////////////////////////////////
-DatasetNode* QueryNode::getDatasetNode()
-{
-  VisusAssert(VisusHasMessageLock());
-  if (!isInputConnected("dataset")) return nullptr;
-  return dynamic_cast<DatasetNode*>((*getInputPort("dataset")->inputs.begin())->getNode());
-}
-
-//////////////////////////////////////////////////////////////////
-SharedPtr<Dataset> QueryNode::getDataset()
-{
-  VisusAssert(VisusHasMessageLock());
-  return readValue<Dataset>("dataset");
-}
-
-//////////////////////////////////////////////////////////////////
-Field QueryNode::getField()
-{
-  Dataset* dataset=getDataset().get(); 
-  if (!dataset) return Field();
-  String fieldname=cstring(readValue<String>("fieldname"));
-  return dataset->getFieldByName(fieldname);
-}
 
 //////////////////////////////////////////////////////////////////
 void QueryNode::exitFromDataflow() 
@@ -325,11 +358,9 @@ void QueryNode::writeToObjectStream(ObjectStream& ostream)
   {
     // use same serialization for query which will include
     // a transformation matrix in case of rotated selection
-    ostream.pushContext("query");
     ostream.pushContext("bounds");
-    bounds.writeToObjectStream(ostream);
+    node_bounds.writeToObjectStream(ostream);
     ostream.popContext("bounds");
-    ostream.popContext("query");
     return;
   }
 
@@ -342,7 +373,7 @@ void QueryNode::writeToObjectStream(ObjectStream& ostream)
   ostream.write("quality",std::to_string(quality));
 
   ostream.pushContext("bounds");
-  bounds.writeToObjectStream(ostream);
+  node_bounds.writeToObjectStream(ostream);
   ostream.popContext("bounds");
 
   //position=fn(tree_position)
@@ -354,7 +385,7 @@ void QueryNode::readFromObjectStream(ObjectStream& istream)
   if (istream.isSceneMode())
   {
     istream.pushContext("bounds");
-    bounds.readFromObjectStream(istream);
+    node_bounds.readFromObjectStream(istream);
     istream.popContext("bounds");
     return;
   }
@@ -364,11 +395,11 @@ void QueryNode::readFromObjectStream(ObjectStream& istream)
   this->verbose = cint(istream.read("verbose"));
   this->accessindex=cint(istream.read("accessindex"));
   this->bViewDependentEnabled=cbool(istream.read("view_dependent"));
-  this->progression=(Query::Progression)cint(istream.read("progression"));
-  this->quality=(Query::Quality)cint(istream.read("quality"));
+  this->progression=(QueryProgression)cint(istream.read("progression"));
+  this->quality=(QueryQuality)cint(istream.read("quality"));
 
   istream.pushContext("bounds");
-  bounds.readFromObjectStream(istream);
+  node_bounds.readFromObjectStream(istream);
   istream.popContext("bounds");
 
   //position=fn(tree_position)

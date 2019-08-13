@@ -77,7 +77,7 @@ public:
   }
 
   //doPublish
-  void doPublish(Array output, bool bIncremental = false)
+  void doPublish(Array output, bool bIncremental)
   {
     if (aborted())
       return;
@@ -100,22 +100,28 @@ public:
     output.shareProperties(input);
 
     //a projection happened?
-    int pdim = input.dims.getPointDim();
-    for (int D = 0; D < pdim; D++)
+#if 1
+    if (input.dims != output.dims)
     {
-      if (output.dims[D] == 1 && input.dims[D] > 1)
+      //disable clipping
+      output.clipping = Position::invalid(); 
+
+      //fix bounds
+      auto T   = output.bounds.getTransformation();
+      auto box = output.bounds.getBoxNd();
+      for (int D = 0; D < input.dims.getPointDim(); D++)
       {
-        auto box = output.bounds.box;
-        box.p2[D] = box.p1[D];
-        output.bounds = Position(output.bounds.T, box);
-        output.clipping = Position::invalid(); //disable clipping
+        if (input.dims[D] > 1 && output.dims[D] == 1)
+          box.p2[D] = box.p1[D];
       }
+      output.bounds = Position(T, box);
     }
+#endif
 
     if (!bIncremental)
     {
       ScopedAcquireGil acquire_gil;
-      engine->printMessage(StringUtils::format() << "Array " << output.dims.toString());
+      engine->printMessage(StringUtils::format() << "Array " << output.dims.toString()<<"\n");
     }
 
     DataflowMessage msg;
@@ -145,7 +151,7 @@ public:
     //pass throught
     if (code.empty())
     {
-      doPublish(input);
+      doPublish(input,false);
       return;
     }
 
@@ -158,7 +164,7 @@ public:
       engine->addModuleFunction("doPublish", [this](PyObject *self, PyObject *args)
       {
         auto output = engine->getModuleArrayAttr("output");
-        doPublish(output,/*bIncremental*/true);
+        doPublish(output,true);
         return (PyObject*)nullptr;
       });
 
@@ -174,7 +180,7 @@ public:
       return;
     }
 
-    doPublish(output);
+    doPublish(output,false);
   }
 
 };

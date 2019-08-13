@@ -45,28 +45,27 @@ namespace Private {
 
 ///////////////////////////////////////////////////////////////////////////////
 template <typename CppType,class FilterClass>
-static bool ComputeFilter(Dataset* dataset,Query* query,const FilterClass* filter,bool bInverse)
+static bool ComputeFilter(Dataset* dataset,BoxQuery* query,const FilterClass* filter,bool bInverse)
 {
   const Field& field=query->field;
 
-  int H= query->cur_resolution;
+  int H= query->getCurrentResolution();
 
   //nothing to do for very coarse resolution (H=0)
   if (H==0)
     return true;
 
-  LogicBox         logic_box  = query->logic_box;
+  LogicSamples     logic_samples  = query->logic_samples;
   DType            dtype      = field.dtype;
   int              ncomponents= dtype.ncomponents();
   DatasetBitmask   bitmask    = dataset->getBitmask();
-  int              MaxH       = query->max_resolution;
   int              bit        = bitmask[H];
-  PointNi          dims       = query->nsamples;
+  PointNi          dims       = query->getNumberOfSamples();
   PointNi          stride     = dims.stride();
   int              filter_size = filter->getSize();
-  PointNi          filterstep = filter->getFilterStep(H,MaxH);
+  PointNi          filterstep = filter->getFilterStep(H);
   Int64 FILTERSTEP = filterstep[bit];
-  BoxNi            filter_domain  = bitmask.upgradeBox(query->filter.domain,MaxH);
+  BoxNi            filter_domain  = query->filter.domain;
 
   int pdim = bitmask.getPointDim();
   
@@ -75,7 +74,7 @@ static bool ComputeFilter(Dataset* dataset,Query* query,const FilterClass* filte
     return true; 
 
   //align again to filter (this is needed again for certain types of queries, such as query for visus blocks!)
-  BoxNi box=logic_box;
+  BoxNi box= logic_samples.logic_box;
 
   //important! take only the good "samples", i.e. I do not want to do any filtering with samples
   //outside the valid region of the dataset
@@ -107,18 +106,18 @@ static bool ComputeFilter(Dataset* dataset,Query* query,const FilterClass* filte
     if (P2incl>=box.p2[D]) P2incl-=FILTERSTEP; VisusAssert(P2incl< box.p2[D]);
 
     box.p1[D]=P1incl;
-    box.p2[D]=P2incl+logic_box.delta[D];
+    box.p2[D]=P2incl+ logic_samples.delta[D];
   }
 
   //invalid box obtained!
   if (!box.isFullDim())
     return true;
 
-  PointNi from = logic_box.logicToPixel(box.p1);
-  PointNi to   = logic_box.logicToPixel(box.p2);
+  PointNi from = logic_samples.logicToPixel(box.p1);
+  PointNi to   = logic_samples.logicToPixel(box.p2);
 
   //see map... I can do this only because I know that filterstep is multiple of 2^query->shift
-  PointNi step = filterstep.rightShift(logic_box.shift);
+  PointNi step = filterstep.rightShift(logic_samples.shift);
 
   //I'm going to to the for loop for the filter nested inside
   Int64 FROM   = from[bit]; 
@@ -187,7 +186,7 @@ public:
   {}
 
   //computeFilter
-  virtual bool computeFilter(Query* query,bool bInverse) const override
+  virtual bool computeFilter(BoxQuery* query,bool bInverse) const override
   {return ComputeFilter<CppType>(getDataset(),query,this,bInverse);}
 
 };
@@ -252,7 +251,7 @@ public:
   }
 
   //computeFilter
-  virtual bool computeFilter(Query* query,bool bInverse) const override
+  virtual bool computeFilter(BoxQuery* query,bool bInverse) const override
   {return ComputeFilter<CppType>(getDataset(),query,this,bInverse);}
 
 };
@@ -318,7 +317,7 @@ public:
   }
 
   //computeFilter
-  virtual bool computeFilter(Query* query,bool bInverse) const override
+  virtual bool computeFilter(BoxQuery* query,bool bInverse) const override
   {return ComputeFilter<CppType>(getDataset(),query,this,bInverse);}
 
 };
@@ -387,7 +386,7 @@ public:
   }
 
   //computeFilter
-  virtual bool computeFilter(Query* query,bool bInverse) const override
+  virtual bool computeFilter(BoxQuery* query,bool bInverse) const override
   {return ComputeFilter<CppType>(getDataset(),query,this,bInverse);}
 
 };
@@ -441,7 +440,7 @@ public:
   }
 
   //computeFilter
-  virtual bool computeFilter(Query* query,bool bInverse) const override
+  virtual bool computeFilter(BoxQuery* query,bool bInverse) const override
   {return ComputeFilter<CppType>(getDataset(),query,this,bInverse);}
 
 };
@@ -450,7 +449,7 @@ public:
 
 
 /////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<DatasetFilter> IdxDataset::createQueryFilter(const Field& field) 
+SharedPtr<DatasetFilter> IdxDataset::createFilter(const Field& field) 
 {
   String filter_name=field.filter;
 

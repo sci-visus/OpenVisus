@@ -57,7 +57,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
   BoxNi userbox(offset, offset+img.dims);
 
   IdxFile idxfile;
-  idxfile.box=userbox;
+  idxfile.logic_box=userbox;
   {
     Field field("myfield",in_dtype);
     field.default_layout=default_layout;
@@ -73,10 +73,11 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
 
   auto access=dataset->createAccess();
   
-  auto write=std::make_shared<Query>(dataset.get(),'w');
-  write->position=userbox;
-  VisusReleaseAssert(dataset->beginQuery(write));
-  VisusReleaseAssert(write->nsamples==img.dims);
+  auto write=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
+  write->logic_box=userbox;
+  dataset->beginQuery(write);
+  VisusReleaseAssert(write->isRunning());
+  VisusReleaseAssert(write->getNumberOfSamples()==img.dims);
 
   int N=std::min(NS,ND);
 
@@ -243,12 +244,12 @@ void Tutorial_6(String default_layout)
 
     //apply the filter on a IDX file (i.e. rewrite all samples)
     {
-      auto filter=dataset->createQueryFilter(field);
+      auto filter=dataset->createFilter(field);
       VisusReleaseAssert(filter);
       filter->computeFilter(dataset->getDefaultTime(),field,access,sliding_window_size);
     }
 
-    BoxNi world_box=dataset->getBox();
+    BoxNi world_box=dataset->getLogicBox();
     Int64 Width =world_box.p2[0]-world_box.p1[0];VisusReleaseAssert(Width ==src_image.dims[0]);
     Int64 Height=world_box.p2[1]-world_box.p1[1];VisusReleaseAssert(Height==src_image.dims[1]);
 
@@ -269,30 +270,30 @@ void Tutorial_6(String default_layout)
         PointNi((int)(dataset_offset[0] + 4.0f*Width / 6.0f), (int)(dataset_offset[1] + 4.0f*Height / 6.0f)));
     }
     
-    auto query=std::make_shared<Query>(dataset.get(),'r');
-    query->position= query_box;
-
+    auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'r');
+    query->logic_box= query_box;
     query->filter.enabled=true;
-    query->merge_mode=Query::InsertSamples;
+    query->merge_mode= InsertSamples;
 
     //I go level by level for debugging
     for (int H=0;H<=dataset->getMaxResolution();H++)
       query->end_resolutions.push_back(H);
 
-    VisusReleaseAssert(dataset->beginQuery(query));
+    dataset->beginQuery(query);
+    VisusReleaseAssert(query->isRunning());
 
-    while (true)
+    while (query->isRunning())
     {
       VisusReleaseAssert(dataset->executeQuery(access,query));
       
       auto buffer=query->buffer;
-      buffer=query->filter.value->dropExtraComponentIfExists(buffer);
+      buffer=query->filter.dataset_filter->dropExtraComponentIfExists(buffer);
       auto reconstructed=createImageFromBuffer(buffer);
       VisusReleaseAssert(reconstructed);
       
       //save the image
       {
-        int H=query->cur_resolution;
+        int H=query->getCurrentResolution();
 
         Path filename=Path(String("temp/")  + filters[NFilter] + "/" + StringUtils::replaceFirst(dtype.toString(),"*","_") + String(Overall ?"_all":"_piece"))
           .getChild("snapshot" + String(H<10?"0":"") + cstring(H)  + (".png"));
@@ -302,14 +303,14 @@ void Tutorial_6(String default_layout)
       }
 
       //verify the data only If I'm reading the final resolution
-      if (query->cur_resolution==dataset->getMaxResolution())
+      if (query->getCurrentResolution()==dataset->getMaxResolution())
       {
-        BoxNi aligned_box= query->aligned_box;
+        BoxNi logic_box= query->filter.adjusted_logic_box;
 
         //need to shrink the query, at the final resolution the box of filtered query can be larger than what the user want
         auto original=std::make_shared<Array>();
         {
-          BoxNi crop_box=aligned_box.translate(-dataset_offset);
+          BoxNi crop_box= logic_box.translate(-dataset_offset);
           original=std::make_shared<Array>(ArrayUtils::crop(src_image,crop_box));
         }
 
@@ -329,8 +330,7 @@ void Tutorial_6(String default_layout)
         }
       }
 
-      if (!dataset->nextQuery(query))
-        break;
+      dataset->nextQuery(query);
     }
 
     dataset->removeFiles();

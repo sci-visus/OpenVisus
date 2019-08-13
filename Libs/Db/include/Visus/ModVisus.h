@@ -104,7 +104,6 @@ private:
   NetResponse handleHtmlForPlugin    (const NetRequest& request);
   NetResponse handleBlockQuery       (const NetRequest& request);
   NetResponse handleQuery            (const NetRequest& request);
-  NetResponse handleOpenSeaDragon    (const NetRequest& request);
 
 };
 

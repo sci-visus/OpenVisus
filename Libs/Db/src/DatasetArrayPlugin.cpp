@@ -52,19 +52,17 @@ public:
   double        time;
   BoxNi         box;
   Field         field;
-  int           maxh; //default is write at max resolution!
   int           fromh;
   int           toh;
-  bool          bDisableFilters;
+  bool          bDisableFilters=false;
 
   //constructor
-  DatasetArrayPluginParseArguments(Dataset* dataset_) : dataset(dataset_),bDisableFilters(false)
+  DatasetArrayPluginParseArguments(Dataset* dataset_) : dataset(dataset_)
   {
     this->time           = dataset->getDefaultTime();
     this->field          = dataset->getDefaultField();
-    this->maxh           = dataset->getMaxResolution(); //default is max resolution
-    this->fromh          = 0;
-    this->toh            = maxh;
+    this->fromh          = 0; //default is max resolution
+    this->toh            = dataset->getMaxResolution();
   }
 
   //exec
@@ -80,10 +78,10 @@ public:
       {
         int pdim = dataset->getPointDim();
         box=BoxNi::parseFromOldFormatString(pdim,args[++I]);
-        box= box.getIntersection(dataset->getBox());
+        box= box.getIntersection(dataset->getLogicBox());
         if (!box.isFullDim())
         {
-          VisusWarning()<<"invalid --box "<<args[I] << " intersection with "<< dataset->getBox().toOldFormatString();
+          VisusWarning()<<"invalid --box "<<args[I] << " intersection with "<< dataset->getLogicBox().toOldFormatString();
           return false;
         }
       }
@@ -96,10 +94,6 @@ public:
           VisusWarning()<<"invalid --field "<<sfield;
           return false;
         }
-      }
-      else if (args[I]=="--maxh")
-      {
-        maxh=cint(args[++I]);
       }
       else if (args[I]=="--fromh")
       {
@@ -115,9 +109,9 @@ public:
       }
     }
 
-    if (!(fromh<=toh && toh<=maxh))
+    if (!(fromh<=toh && toh<=dataset->getMaxResolution()))
     {
-      VisusWarning()<<"invalid --maxh "<<maxh<<" --fromh "<<fromh<<" --toh "<<toh;
+      VisusWarning()<<"invalid  --fromh "<<fromh<<" --toh "<<toh;
       return false;
     }
 
@@ -142,8 +136,8 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
   
   ostream.writeInline("url",url);
   ostream.writeInline("format", dataset->getTypeName());
-  ostream.writeInline("size",dataset->getBox().size().toString());
-  ostream.writeInline("box", dataset->getBox().toOldFormatString());
+  ostream.writeInline("logic_box", dataset->getLogicBox().toOldFormatString());
+  ostream.writeInline("logic_size", dataset->getLogicBox().size().toString());
   ostream.writeInline("timesteps",cstring(dataset->getTimesteps().getMin())+" " + cstring(dataset->getTimesteps().getMax()));
   ostream.writeInline("bitsperblock",cstring(dataset->getDefaultBitsPerBlock()));
   ostream.writeInline("bitmask",dataset->getBitmask().toString());
@@ -172,13 +166,9 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
 
   Time t1=Time::now();
 
-  auto query=std::make_shared<Query>(dataset.get(),'r');
-  query->time=args.time;
-  query->field=args.field;
-  query->position=args.box;
-  query->start_resolution=args.fromh;
-  query->end_resolutions={args.toh};
-  query->max_resolution=args.maxh;
+  auto query=std::make_shared<BoxQuery>(dataset.get(), args.field, args.time,'r');
+  query->logic_box=args.box;
+  query->setResolutionRange(args.fromh, args.toh);
 
   if (args.bDisableFilters)
   {
@@ -190,11 +180,7 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
     query->filter.enabled=true;
   }
 
-  if (!dataset->beginQuery(query))
-  {
-    VisusWarning()<<"dataset->beginQuery() failed";
-    return Array();
-  }
+  dataset->beginQuery(query);
 
   auto access=dataset->createAccess();
   if (!dataset->executeQuery(access,query))
@@ -202,11 +188,12 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
     VisusWarning()<<"!dataset->executeQuery()";
     return Array();
   }
-  VisusAssert(query->buffer.dims==query->nsamples);
+
+  VisusAssert(query->buffer.dims==query->getNumberOfSamples());
 
   auto dst=query->buffer;
 
-  if (auto filter=query->filter.value)
+  if (auto filter=query->filter.dataset_filter)
     dst=filter->dropExtraComponentIfExists(dst);
 
   VisusInfo()
@@ -233,28 +220,27 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
   if (!args.exec(args_))
     return false;
 
-  auto query=std::make_shared<Query>(dataset.get(),'w');
-  query->time=args.time;
-  query->field=args.field;
-  query->position=args.box;
-  query->start_resolution=args.fromh;
-  query->end_resolutions={args.toh};
-  query->max_resolution=args.maxh;
+  auto query=std::make_shared<BoxQuery>(dataset.get(), args.field, args.time,'w');
+  query->logic_box=args.box;
+  query->setResolutionRange(args.fromh,args.toh);
 
-  if (!dataset->beginQuery(query))
+  dataset->beginQuery(query);
+
+  if (!query->isRunning())
   {
     VisusWarning()<<"dataset->beginQuery() failed";
     return false;
   }
 
   //embedding in case I'm missing point-dims
-  int pdim = query->nsamples.getPointDim();
+  auto nsamples = query->getNumberOfSamples();
+  int pdim = nsamples.getPointDim();
   if (pdim>src.dims.getPointDim())
     src.dims.setPointDim(pdim,1);
 
-  if (query->nsamples!=src.dims)
+  if (nsamples !=src.dims)
   {
-    VisusWarning()<<" query->dims returned ("<<query->nsamples.toString()<<") which is different from src.dims ("<<src.dims.toString()<<")";
+    VisusWarning()<<" query->dims returned ("<< nsamples.toString()<<") which is different from src.dims ("<<src.dims.toString()<<")";
     return false;
   }
 

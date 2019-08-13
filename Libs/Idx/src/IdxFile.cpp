@@ -122,32 +122,44 @@ String IdxFile::guessFilenameTemplate(Url url)
 void IdxFile::validate(Url url)
 {
   //version
-  if (this->version==0)
-    this->version=VISUS_IDX_FILE_DEFAULT_VERSION;
+  if (this->version == 0)
+    this->version = VISUS_IDX_FILE_DEFAULT_VERSION;
 
-  if (version<=0)
+  if (version <= 0)
   {
-    VisusInfo()<<"Wrong version("<<version<<")";
-    this->version=-1;
+    VisusInfo() << "Wrong version(" << version << ")";
+    this->version = -1;
     return;
   }
 
   //box
-  if (!box.isFullDim())
+  if (!logic_box.isFullDim())
   {
-    VisusWarning()<<"wrong box("<< box.toOldFormatString()<<")";
-    this->version=-1;
+    VisusWarning() << "wrong box(" << logic_box.toOldFormatString() << ")";
+    this->version = -1;
     return;
   }
 
   //bitmask
   if (bitmask.empty())
-    bitmask=DatasetBitmask::guess(box.p2);
+    bitmask = DatasetBitmask::guess(logic_box.p2);
 
   if (!bitmask.valid())
   {
-    VisusWarning()<<"invalid bitmask";
-    this->version=-1;
+    VisusWarning() << "invalid bitmask";
+    this->version = -1;
+    return;
+  }
+
+  auto pdim = bitmask.getPointDim();
+
+  if (!this->bounds.valid())
+    this->bounds = this->logic_box;
+
+  if (bounds.getSpaceDim() != (pdim + 1) || bounds.getPointDim() != pdim)
+  {
+    VisusWarning() << "invalid bounds";
+    this->version = -1;
     return;
   }
 
@@ -203,7 +215,7 @@ void IdxFile::validate(Url url)
     return;
   }
 
-  if (!bitmask.hasRegExpr() && blocksperfile>(((BigInt)1)<<(bitmask.getMaxResolution()-bitsperblock)))
+  if (blocksperfile>(((BigInt)1)<<(bitmask.getMaxResolution()-bitsperblock)))
   {
     //this can happen with PIDX
     //VisusWarning()<<"wrong blockperfile("<<blocksperfile<<"), with bitmask.getMaxResolution()="<<bitmask.getMaxResolution()<<" and bitsperblock("<<bitsperblock<<")";
@@ -450,22 +462,38 @@ IdxFile IdxFile::load(Url url)
   IdxFile idxfile;
 
   //old text format
-  if (StringUtils::startsWith(content,"(version)"))
+  if (StringUtils::startsWith(content, "(version)"))
   {
     //parse the idx text format
     StringMap map;
 
-    std::vector<String> v=StringUtils::getLinesAndPurgeComments(content,"#");
-    String key,value;
-    for (int I=0;I<(int)v.size();I++)
+    std::vector<String> v = StringUtils::getLinesAndPurgeComments(content, "#");
+    String key, value;
+    for (int I = 0; I < (int)v.size(); I++)
     {
-      String line=StringUtils::trim(v[I]);
-      if (line.empty()) continue;
-      if (StringUtils::startsWith(line,"("))
-        {if (!key.empty()) map.setValue(key,StringUtils::trim(value));key=line;value=String();}
+      String line = StringUtils::trim(v[I]);
+      if (line.empty())
+        continue;
+
+      //comment
+      if (StringUtils::startsWith(line, "#"))
+        continue;
+
+      if (bool bIsKey = StringUtils::startsWith(line, "("))
+      {
+        //flush previous
+        if (!key.empty())
+          map.setValue(key, StringUtils::trim(value));
+
+        key   = StringUtils::trim(line);
+        value = String();
+      }
       else
-        {value=value + " " + line;}
+      {
+        value = value + " " + line;
+      }
     }
+
     if (!key.empty()) 
       map.setValue(key,StringUtils::trim(value));
 
@@ -475,7 +503,26 @@ IdxFile IdxFile::load(Url url)
 
     idxfile.version     = cint(map.getValue("(version)")); VisusAssert(idxfile.version>=1 && idxfile.version<=6);
     idxfile.bitmask     = DatasetBitmask(map.getValue("(bits)"));
-    idxfile.box         = BoxNi::parseFromOldFormatString(idxfile.bitmask.getPointDim(),map.getValue("(box)"));
+    idxfile.logic_box   = BoxNi::parseFromOldFormatString(idxfile.bitmask.getPointDim(),map.getValue("(box)"));
+
+    auto pdim = idxfile.bitmask.getPointDim();
+
+    if (map.hasValue("(physic_box)"))
+    {
+      idxfile.bounds = BoxNd::parseFromString(map.getValue("(physic_box)"));
+      idxfile.bounds.setSpaceDim(pdim+1);
+    }
+
+    else if (map.hasValue("(logic_to_physic)"))
+    {
+      auto logic_to_physic = Matrix::parseFromString(map.getValue("(logic_to_physic)"));
+      idxfile.bounds = Position(logic_to_physic, idxfile.logic_box);
+      idxfile.bounds.setSpaceDim(pdim + 1);
+    }
+    else
+    {
+      idxfile.bounds = idxfile.logic_box;
+    }
 
     //parse fields
     if (map.hasValue("(fields)"))
@@ -610,7 +657,11 @@ String IdxFile::toString() const
     std::ostringstream out;
 
     out<<"(version)\n"<<this->version<<"\n";
-    out<<"(box)\n"<< this->box.toOldFormatString()<<"\n";
+    out<<"(box)\n"<< this->logic_box.toOldFormatString()<<"\n";
+
+    auto logic_to_physic = Position::computeTransformation(this->bounds,this->logic_box);
+    if (!logic_to_physic.isIdentity())
+      out << "(logic_to_physic)\n" << logic_to_physic.toString() << "\n";
   
     //dump fields
     out<<"(fields)\n";
@@ -725,8 +776,14 @@ void IdxFile::writeToObjectStream(ObjectStream& ostream)
     ThrowException("internal error");
 
   ostream.write("version",cstring(this->version));
-  ostream.write("box", box.toOldFormatString());
-  ostream.write("bitmask",this->bitmask.toString());
+  ostream.write("bitmask", this->bitmask.toString());
+
+  ostream.write("box", logic_box.toOldFormatString()); 
+
+  auto logic_to_physic = Position::computeTransformation(this->bounds,this->logic_box);
+  if (!logic_to_physic.isIdentity())
+    ostream.write("logic_to_physic",logic_to_physic.toString());
+
   ostream.write("bitsperblock",cstring(this->bitsperblock));
   ostream.write("blocksperfile",cstring(this->blocksperfile));
   ostream.write("block_interleaving",cstring(this->block_interleaving));
@@ -758,7 +815,16 @@ void IdxFile::readFromObjectStream(ObjectStream& istream)
 {
   this->version           = cint(istream.read("version"));
   this->bitmask = DatasetBitmask(istream.read("bitmask"));
-  this->box               = BoxNi::parseFromOldFormatString(this->bitmask.getPointDim(),istream.read("box"));
+  this->logic_box          = BoxNi::parseFromOldFormatString(this->bitmask.getPointDim(),istream.read("box"));
+
+  auto pdim = this->bitmask.getPointDim();
+
+  if (istream.hasAttribute("logic_to_physic"))
+  {
+    auto logic_to_physic = Matrix::parseFromString(istream.read("logic_to_physic", Matrix::identity(pdim + 1).toString()));
+    this->bounds = Position(logic_to_physic, this->logic_box);
+  }
+
   this->bitsperblock      = cint(istream.read("bitsperblock"));
   this->blocksperfile     = cint(istream.read("blocksperfile"));
   this->block_interleaving= cint(istream.read("block_interleaving"));

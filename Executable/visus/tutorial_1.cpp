@@ -60,7 +60,7 @@ void Tutorial_1(String default_layout)
   //the data will be in the bounding box  p1(0,0,0) p2(16,16,16) (p1 included, p2 excluded) 
   {
     IdxFile idxfile;
-    idxfile.box=BoxNi(PointNi(0,0,0),PointNi(16,16,16));
+    idxfile.logic_box=BoxNi(PointNi(0,0,0),PointNi(16,16,16));
     {
       Field field("myfield",DTypes::UINT32);
       field.default_compression= "lz4";
@@ -82,19 +82,20 @@ void Tutorial_1(String default_layout)
   for (int nslice=0;nslice<16;nslice++)
   {
     //this is the bounding box of the region I'm going to write
-    BoxNi slice_box=dataset->getBox().getZSlab(nslice,nslice+1);
+    BoxNi slice_box=dataset->getLogicBox().getZSlab(nslice,nslice+1);
 
     //prepare the write query
-    auto query=std::make_shared<Query>(dataset.get(),'w');
-    query->position=slice_box;
-    VisusReleaseAssert(dataset->beginQuery(query));
-    VisusReleaseAssert(query->nsamples.innerProduct()==16*16);
+    auto query=std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(), dataset->getDefaultTime(), 'w');
+    query->logic_box=slice_box;
+    dataset->beginQuery(query);
+    VisusReleaseAssert(query->isRunning());
+    VisusReleaseAssert(query->getNumberOfSamples()==PointNi(16,16,1));
 
     //fill the buffers
-    Array buffer(query->nsamples,query->field.dtype);
-    unsigned int* Dst=(unsigned int*)buffer.c_ptr();
-    for (int I=0;I<16*16;I++) *Dst++=cont++;
-    query->buffer=buffer;
+    query->buffer = Array(query->getNumberOfSamples(),query->field.dtype);
+    GetSamples<Uint32> Dst(query->buffer);
+    for (int I=0;I<16*16;I++) 
+      Dst[I]=cont++;
 
     //execute the writing
     VisusReleaseAssert(dataset->executeQuery(access,query));

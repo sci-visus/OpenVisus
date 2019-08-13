@@ -75,12 +75,12 @@ class TestIdx(unittest.TestCase):
 		sampleid=0
 		
 		for Z in range(0,16):
-			slice_box=dataset.getBox().getZSlab(Z,Z+1)
+			slice_box=dataset.getLogicBox().getZSlab(Z,Z+1)
 			
-			query=Query(dataset,ord('w'))
-			query.position=Position(slice_box)
-			
-			self.assertTrue(dataset.beginQuery(query))
+			query=BoxQuery(dataset,dataset.getDefaultField(),dataset.getDefaultTime(),ord('w'))
+			query.logic_position=Position(slice_box)
+			dataset.beginQuery(query)
+			self.assertTrue(query.isRunning())
 			self.assertEqual(query.nsamples.innerProduct(),16*16)
 			
 			buffer=Array(query.nsamples,query.field.dtype)
@@ -99,7 +99,7 @@ class TestIdx(unittest.TestCase):
 		
 		dataset=LoadDataset(self.filename)
 		self.assertIsNotNone(dataset)
-		box=dataset.getBox()
+		box=dataset.getLogicBox()
 		field=dataset.getDefaultField()
 		access=dataset.createAccess()
 		
@@ -107,10 +107,10 @@ class TestIdx(unittest.TestCase):
 		for Z in range(0,16):
 			slice_box=box.getZSlab(Z,Z+1)
 			
-			query=Query(dataset,ord('r'))
-			query.position=Position(slice_box)
-			
-			self.assertTrue(dataset.beginQuery(query))
+			query=BoxQuery(dataset,dataset.getDefaultField(),dataset.getDefaultTime(),ord('r'))
+			query.logic_position=Position(slice_box)
+			dataset.beginQuery(query)
+			self.assertTrue(query.isRunning())
 			self.assertEqual(query.nsamples.innerProduct(),16*16)
 			self.assertTrue(dataset.executeQuery(access,query))
 			
@@ -126,34 +126,32 @@ class TestIdx(unittest.TestCase):
 		dataset=LoadDataset(self.filename)
 		self.assertIsNotNone(dataset)
 		
-		box=dataset.getBox()
+		box=dataset.getLogicBox()
 		access=dataset.createAccess()
 		field=dataset.getDefaultField()
-		MaxH=dataset.getBitmask().getMaxResolution()
-		self.assertEqual(MaxH,12) #in the bitmask_pattern "V012012012012" the very last bit of the bitmask is at position MaxH=12 
+		self.assertEqual(dataset.getMaxResolution(),12) #in the bitmask_pattern "V012012012012" the very last bit of the bitmask is at position MaxH=12 
 		
 		#I want to read data from first slice Z=0
 		slice_box=box.getZSlab(0,1);
 		
 		#create and read data from VisusFIle up to resolution FinalH=8 (<MaxH)
-		query=Query(dataset,ord('r'))
-		query.position=Position(slice_box)
-		query.end_resolutions.push_back(8)
-		query.end_resolutions.push_back(12)
-		query.merge_mode=Query.InsertSamples
+		query=BoxQuery(dataset,dataset.getDefaultField(),dataset.getDefaultTime(),ord('r'))
+		query.logic_position=Position(slice_box)
+		query.end_resolutions={8,12}
 		
 		# end_resolution=8
-		
-		self.assertTrue(dataset.beginQuery(query))
+		dataset.beginQuery(query)
+		self.assertTrue(query.isRunning())
 		self.assertTrue(query.nsamples.innerProduct()>0)
 		self.assertTrue(dataset.executeQuery(access,query))
-		self.assertEqual(query.cur_resolution,8)
+		self.assertEqual(query.getCurrentResolution(),8)
 		
 		# end_resolution=12
-		self.assertTrue(dataset.nextQuery(query))
+		dataset.nextQuery(query)
+		self.assertTrue(query.isRunning())
 		self.assertEqual(query.nsamples.innerProduct(),16*16)
 		self.assertTrue(dataset.executeQuery(access,query))
-		self.assertEqual(query.cur_resolution,12)
+		self.assertEqual(query.getCurrentResolution(),12)
 		
 		#verify the data is correct
 		check=Array.toNumPy(query.buffer,bSqueeze=True,bShareMem=True)
@@ -162,9 +160,6 @@ class TestIdx(unittest.TestCase):
 			for X in range(0,16):
 				self.assertEqual(check[Y,X],sampleid)
 				sampleid+=1 
-				
-		# finished
-		self.assertFalse(dataset.nextQuery(query)) 
 
 
 # ////////////////////////////////////////////////////////

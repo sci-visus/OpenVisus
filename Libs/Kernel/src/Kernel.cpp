@@ -52,6 +52,7 @@ For support : support@visus.net
 
 #include <assert.h>
 #include <type_traits>
+#include <iomanip>
 
 #include <fstream>
 #include <iostream>
@@ -180,6 +181,13 @@ const char** Private::CommandLine::argv ;
 static String visus_config_commandline_filename;
 
 ///////////////////////////////////////////////////////////////////////////////
+String cstring10(double value) {
+  std::ostringstream out;
+  out << std::setprecision(std::numeric_limits<double>::max_digits10) << value;
+  return out.str();
+}
+
+///////////////////////////////////////////////////////////////////////////////
 void SetCommandLine(int argn, const char** argv)
 {
   Private::CommandLine::argn = argn;
@@ -228,15 +236,15 @@ void VisusAssertFailed(const char* file,int line,const char* expr)
   if (ApplicationInfo::debug)
     Utils::breakInDebugger();
   else
-    ThrowExceptionEx(file,line,expr);
+    ThrowExceptionEx(StringUtils::format()<<file << ":" << line,expr);
 }
 
 
 //////////////////////////////////////////////////////
-void ThrowExceptionEx(String file, int line, String expr)
+void ThrowExceptionEx(String where, String what)
 {
   std::ostringstream out;
-  out << "Visus throwing exception file(" << file << ") line(" << line << ") expr(" << expr << ")...";
+  out << "Visus throwing exception where(" << where << ") what(" << what << ")";
   String msg = out.str();
   throw std::runtime_error(msg);
 }

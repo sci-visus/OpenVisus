@@ -159,7 +159,7 @@ private:
     child->writeString("name", name);
     child->writeString("url", getDatasetUrl(name));
 
-    dataset->bServerMode = true;
+    dataset->setServerMode(true);
 
     //automatically add the childs of a multiple datasets
     int ret = 1;
@@ -577,86 +577,6 @@ NetResponse ModVisus::handleHtmlForPlugin(const NetRequest& request)
   return response;
 }
 
-///////////////////////////////////////////////////////////////////////////
-NetResponse ModVisus::handleOpenSeaDragon(const NetRequest& request)
-{
-  auto datasets=getDatasets();
-
-  String dataset_name = request.url.getParam("dataset");
-  String compression = request.url.getParam("compression", "png");
-  String debugMode = request.url.getParam("debugMode", "false");
-  String showNavigator = request.url.getParam("showNavigator", "true");
-
-  auto dataset = datasets->findDataset(dataset_name);
-  if (!dataset)
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
-
-  if (dataset->getPointDim() != 2)
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset(" + dataset_name + ") has dimension !=2");
-
-  int w = (int)dataset->getBox().p2[0];
-  int h = (int)dataset->getBox().p2[1];
-  int maxh = dataset->getBitmask().getMaxResolution();
-  int bitsperblock = dataset->getDefaultBitsPerBlock();
-
-  std::ostringstream out;
-  out
-    << "<html>" << std::endl
-    << "<head>" << std::endl
-    << "<meta charset='utf-8'>" << std::endl
-    << "<title>Visus OpenSeaDragon</title>" << std::endl
-    << "<script src='https://openseadragon.github.io/openseadragon/openseadragon.min.js'></script>" << std::endl
-    << "<style>.openseadragon {background-color: gray;}</style>" << std::endl
-    << "</head>" << std::endl
-
-    << "<body>" << std::endl
-    << "<div id='osd1' class='openseadragon' style='width:100%; height:100%;'>" << std::endl
-
-    << "<script type='text/javascript'>" << std::endl
-    << "base_url = window.location.protocol + '//' + window.location.host + '/mod_visus?action=boxquery&dataset=" << dataset_name << "&compression=" << compression << "';" << std::endl
-    << "w = " << w << ";" << std::endl
-    << "h = " << h << ";" << std::endl
-    << "maxh = " << maxh << ";" << std::endl
-    << "bitsperblock = " << bitsperblock << ";" << std::endl
-
-    //try to align as much as possible to the block shape: we know that a block
-    //has 2^bitsperblock samples. Assuming the bitmask is balanced at the end (i.e. V.....01010101)
-    //then we simply subdivide the domain in squares with tileSize^2=2^bitsperblock -> tileSize is about 2^(bitsperblock/2)
-
-    << "tileSize = Math.pow(2,bitsperblock/2);" << std::endl
-    << "minLevel=bitsperblock/2;" << std::endl
-    << "maxLevel=maxh/2;" << std::endl
-    << "OpenSeadragon({" << std::endl
-    << "  id: 'osd1'," << std::endl
-    << "  prefixUrl: 'https://raw.githubusercontent.com/openseadragon/svg-overlay/master/openseadragon/images/'," << std::endl
-    << "  showNavigator: " << showNavigator << "," << std::endl
-    << "  debugMode: " << debugMode << "," << std::endl
-    << "  tileSources: {" << std::endl
-    << "    height: h, width:  w, tileSize: tileSize, minLevel: minLevel, maxLevel: maxLevel," << std::endl
-    << "    getTileUrl: function(level,x,y) {" << std::endl
-
-    // trick to return an image with resolution (tileSize*tileSize) at a certain resolution
-    // when level=maxLevel I just use the tileSize
-    // when I go up one level I need to use 2*tileSize in order to have the same number of samples
-
-    << "      lvlTileSize = tileSize*Math.pow(2, maxLevel-level);" << std::endl
-    << "    	 x1 = Math.min(lvlTileSize*x,w); x2 = Math.min(x1 + lvlTileSize, w);" << std::endl
-    << "    	 y1 = Math.min(lvlTileSize*y,h); y2 = Math.min(y1 + lvlTileSize, h);" << std::endl
-    << "    	 return base_url" << std::endl
-    << "    	   + '&box='+x1+'%20'+(x2-1)+'%20'+(h -y2)+'%20'+(h-y1-1)" << std::endl
-    << "    		 + '&toh=' + level*2" << std::endl
-    << "    		 + '&maxh=' + maxh ;" << std::endl
-    << "}}});" << std::endl
-
-    << "</script>" << std::endl
-    << "</div>" << std::endl
-    << "</body>" << std::endl
-    << "</html>;" << std::endl;
-
-  NetResponse response(HttpStatus::STATUS_OK);
-  response.setHtmlBody(out.str());
-  return response;
-}
 
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
@@ -697,8 +617,8 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
   std::vector<NetResponse> responses;
   for (int I = 0; I < (int)start_address.size(); I++)
   {
-    auto block_query = std::make_shared<BlockQuery>(field, time, start_address[I], end_address[I], aborted);
-    wait_async.pushRunning(dataset->readBlock(access, block_query)).when_ready([block_query, &responses, dataset, compression](Void) {
+    auto block_query = std::make_shared<BlockQuery>(dataset.get(), field, time, start_address[I], end_address[I], 'r', aborted);
+    wait_async.pushRunning(dataset->executeBlockQuery(access, block_query)).when_ready([block_query, &responses, dataset, compression](Void) {
 
       if (block_query->failed())
       {
@@ -731,21 +651,12 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 ///////////////////////////////////////////////////////////////////////////
 NetResponse ModVisus::handleQuery(const NetRequest& request)
 {
-  String dataset_name = request.url.getParam("dataset");
-  int maxh = cint(request.url.getParam("maxh"));
-  int fromh = cint(request.url.getParam("fromh"));
-  int endh = cint(request.url.getParam("toh"));
-  String fieldname = request.url.getParam("field");
-  double time = cdouble(request.url.getParam("time"));
-  String compression = request.url.getParam("compression");
-  bool   bDisableFilters = cbool(request.url.getParam("disable_filters"));
-  bool   bKdBoxQuery = request.url.getParam("kdquery") == "box";
-  String action = request.url.getParam("action");
-
-  String palette = request.url.getParam("palette");
-  double palette_min = cdouble(request.url.getParam("palette_min"));
-  double palette_max = cdouble(request.url.getParam("palette_max"));
-  String palette_interp = (request.url.getParam("palette_interp"));
+  auto dataset_name = request.url.getParam("dataset");
+  auto fromh = cint(request.url.getParam("fromh"));
+  auto endh = cint(request.url.getParam("toh"));
+  auto maxh = cint(request.url.getParam("maxh"));
+  auto time = cdouble(request.url.getParam("time"));
+  auto compression = request.url.getParam("compression");
 
   auto datasets=getDatasets();
 
@@ -755,41 +666,85 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
 
   int pdim = dataset->getPointDim();
 
+  String fieldname = request.url.getParam("field");
   Field field = fieldname.empty() ? dataset->getDefaultField() : dataset->getFieldByName(fieldname);
   if (!field.valid())
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Cannot find fieldname(" + fieldname + ")");
 
-  auto query = std::make_shared<Query>(dataset.get(), 'r');
-  query->time = time;
-  query->field = field;
-  query->start_resolution = fromh;
-  query->end_resolutions = { endh };
-  query->max_resolution = maxh;
-  query->aborted = Aborted(); //TODO: how can I get the aborted from network?
+  //TODO: how can I get the aborted from network?
 
-                              //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)
-  if (fromh == 0 && !bDisableFilters)
-  {
-    query->filter.enabled = true;
-    query->filter.domain = (bKdBoxQuery ? dataset->getBitmask().getPow2Box() : dataset->getBox());
-  }
-  else
-  {
-    query->filter.enabled = false;
-  }
+  Array buffer;
 
   //position
+  String action = request.url.getParam("action");
   if (action == "boxquery")
   {
-    query->position = Position(BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box")));
+    bool   bDisableFilters = cbool(request.url.getParam("disable_filters"));
+    bool   bKdBoxQuery = request.url.getParam("kdquery") == "box";
+
+    auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r', Aborted());
+    query->setResolutionRange(fromh, endh);
+
+    //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)
+    if (fromh == 0 && !bDisableFilters)
+    {
+      query->filter.enabled = true;
+      query->filter.domain = (bKdBoxQuery ? dataset->getBitmask().getPow2Box() : dataset->getLogicBox());
+    }
+    else
+    {
+      query->filter.enabled = false;
+    }
+
+    query->logic_box = BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box"));
+
+    dataset->beginQuery(query);
+
+    if (!query->isRunning())
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
+
+    auto access = dataset->createAccess();
+    if (!dataset->executeQuery(access, query))
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
+
+    buffer = query->buffer;
+
+    //useful for kdquery=box (for example with discrete wavelets, don't want the extra channel)
+    if (bKdBoxQuery)
+    {
+      if (auto filter = query->filter.dataset_filter)
+        buffer = filter->dropExtraComponentIfExists(buffer);
+    }
+
+
   }
   else if (action == "pointquery")
   {
-    auto  map = Matrix::parseFromString(4,request.url.getParam("matrix"));
-    auto  box = BoxNd::parseFromString(request.url.getParam("box"),/*bInterleave*/false);
-    VisusAssert(pdim == 3);
-    box.setPointDim(3);
-    query->position = Position(map, box);
+    auto nsamples = PointNi::parseDims(request.url.getParam("nsamples"));
+
+
+    VisusAssert(fromh == 0);
+    auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', Aborted());
+    query->end_resolution = endh;
+
+    query->logic_position = Position(
+      Matrix::parseFromString(4, request.url.getParam("matrix")), 
+      BoxNd::parseFromString(request.url.getParam("box"),/*bInterleave*/false).withPointDim(3));
+
+    if (!query->setPoints(nsamples))
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->setPoints failed " + query->getLastErrorMsg());
+
+    auto access = dataset->createAccess();
+
+    dataset->beginQuery(query);
+
+    if (!query->isRunning())
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
+
+    if (!dataset->executeQuery(access, query))
+      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
+
+    buffer = query->buffer;
   }
   else
   {
@@ -797,23 +752,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
     VisusAssert(false);
   }
 
-  //query failed
-  if (!dataset->beginQuery(query))
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
-
-  auto access = dataset->createAccess();
-  if (!dataset->executeQuery(access, query))
-    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
-
-  auto buffer = query->buffer;
-
-  //useful for kdquery=box (for example with discrete wavelets, don't want the extra channel)
-  if (bKdBoxQuery)
-  {
-    if (auto filter = query->filter.value)
-      buffer = filter->dropExtraComponentIfExists(buffer);
-  }
-
+  String palette = request.url.getParam("palette");
   if (!palette.empty() && buffer.dtype.ncomponents() == 1)
   {
     TransferFunction tf;
@@ -828,6 +767,10 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
     }
     else
     {
+      double palette_min = cdouble(request.url.getParam("palette_min"));
+      double palette_max = cdouble(request.url.getParam("palette_max"));
+      String palette_interp = (request.url.getParam("palette_interp"));
+
       if (palette_min != palette_max)
         tf.input_range = ComputeRange::createCustom(palette_min, palette_max);
 
@@ -925,9 +868,6 @@ NetResponse ModVisus::handleRequest(NetRequest request)
 
   else if (action == "AddDataset" || action == "add_dataset")
     response = handleAddDataset(request);
-
-  else if (action == "openseadragon")
-    response = handleOpenSeaDragon(request);
 
   else if (action == "ping")
   {

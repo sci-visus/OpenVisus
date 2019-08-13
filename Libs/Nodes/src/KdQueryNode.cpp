@@ -52,110 +52,33 @@ class KdQueryJob : public NodeJob
 {
 public:
 
-  Node*                         node = nullptr;
+  KdQueryNode*                  node = nullptr;
 
-  int                           mode=KdQueryMode::NotSpecified;
-  SharedPtr<Dataset>            dataset;
-  SharedPtr<Access>             access;
+  bool                          verbose = false;
+
+  int                           kdquery_mode =KdQueryMode::NotSpecified;
+
   SharedPtr<KdArray>            kdarray;
-  double                        time=0;
+  SharedPtr<Access>             access;
+
+  SharedPtr<Dataset>            dataset;
   Field                         field;
-  Position                      position;
-  int                           quality=0;
-  Frustum                       viewdep;
-  Time                          last_publish;
+  double                        time=0;
+  Position                      logic_position;
+
+  Time                          last_publish = Time::now();
   int                           publish_interval=0;
+  
   int                           bitsperblock=0;
   bool                          bBlocksAreFullRes=false;
-  bool                          verbose=false;
-  StringTree                    config;
-  
+
   //constructor
-  KdQueryJob(Node* node_,int mode_, StringTree config = StringTree()) : node(node_), mode(mode_)
-  {
-    this->config = config;
-    this->verbose = cbool(this->config.readString("verbose", "0"));
+  KdQueryJob() {
+ 
   }
 
   //destructor
   virtual ~KdQueryJob() {
-  }
-
-  //validate
-  virtual bool validate()
-  {
-    if (!dataset)
-      return false;
-
-    if (!kdarray)
-      return false;
-
-    if (!dataset->getTimesteps().containsTimestep(time))
-      return false;
-
-    if (!field.valid())
-      return false;
-
-    if (!position.valid())
-      return false;
-
-    //i need an access for accessing block
-    if (mode == KdQueryMode::UseBlockQuery && !access)
-      return false;
-
-    auto pdim = dataset->getPointDim();
-    this->bitsperblock=access? access->bitsperblock : dataset->getDefaultBitsPerBlock();
-
-    //publish interval
-    this->last_publish=Time::now();
-    this->publish_interval = dataset->getPointDim() == 3 ? 2000 : 200;
-
-    //find intersection with view frustum
-    if (viewdep.valid())
-    {
-      auto frustum_map = FrustumMap(viewdep);
-      position=Position::shrink(viewdep.getScreenBox(), frustum_map,position);
-      if (!position.valid()) 
-        return false;
-    }
-
-    //find intersection with dataset box
-    auto matrix_map = MatrixMap(Matrix::identity(pdim));
-    position=Position::shrink(dataset->getBox().castTo<BoxNd>(), matrix_map,position);
-
-    if (!position.valid()) 
-      return false;
-
-    //remove transformation
-    position = Position(position.withoutTransformation().castTo<BoxNi>().getIntersection(dataset->getBox()));
-    if (!position.valid()) 
-      return false;
-
-    //failed for some reason
-    std::vector<int> end_resolutions=dataset->guessEndResolutions(viewdep,position,(Query::Quality)quality,Query::NoProgression);
-    if (end_resolutions.empty()) 
-      return false;
-
-    //need write lock here
-    {
-      ScopedWriteLock wlock(kdarray->lock);
-
-      kdarray->query_box = position.getBoxNi();
-      kdarray->end_resolution = end_resolutions.back();
-
-      this->bBlocksAreFullRes = std::dynamic_pointer_cast<GoogleMapsDataset>(dataset) ? true : false;
-
-      //TODO enable also for UseBlockQuery?
-      if (mode == KdQueryMode::UseQuery)
-      {
-        //all levels from [0,cutoff) will be cached without any memory limitations
-        //there will be 2^cutoff-1 kdnodes  (8->255 , 9->511, 10->1024)
-        int cutoff = 10;
-        kdarray->enableCaching(cutoff, StringUtils::getByteSizeFromString("20mb"));
-      }
-    }
-
-    return true;
   }
 
   //publish
@@ -182,32 +105,22 @@ public:
     DatasetBitmask bitmask=dataset->getBitmask();
 
     int pdim = bitmask.getPointDim();
-
-    //pow2_box
-    PointNi pow2_dims=PointNi::one(pdim);
-    for (int H = 1; H <= dataset->getMaxResolution(); H++)
-      pow2_dims[bitmask[H]] <<= 1;
-
-    BoxNi pow2_box(PointNi(pdim),pow2_dims);
+    auto pow2_dims= bitmask.getPow2Dims();
+    auto pow2_box=bitmask.getPow2Box();
 
     int max_resolution=dataset->getBitmask().getMaxResolution();
     VisusAssert(bitsperblock<=max_resolution);
 
     int end_resolution=
-      (this->mode==KdQueryMode::UseBlockQuery && !bBlocksAreFullRes)? 
+      (this->kdquery_mode ==KdQueryMode::UseBlockQuery && !bBlocksAreFullRes)?
         std::min(bitsperblock + 1,max_resolution) : //I'm reading block 0+1 for block mode when the blocks are not fullres
         bitsperblock;
 
     //I use a box query to get the data
-    auto query=std::make_shared<Query>(dataset.get(), 'r');
-    query->time=time;
-    query->field=field;
-    query->position=pow2_box;
-    query->end_resolutions={end_resolution};
-    query->aborted=this->aborted;
-
-    if (!dataset->beginQuery(query)) 
-      return false;
+    auto query=std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
+    query->logic_box=pow2_box;
+    query->setResolutionRange(0,end_resolution);
+    dataset->beginQuery(query);
 
     if (!dataset->executeQuery(access,query))
       return false;
@@ -219,11 +132,11 @@ public:
     // otherwise is probably a kdquery=block with a remote url, the server will apply the filter
     if (access)
     {
-      if (auto filter=dataset->createQueryFilter(field))
+      if (auto filter=dataset->createFilter(field))
       {
         for (int H = 0; H <= end_resolution; H++)
         {
-          query->cur_resolution=(H);
+          query->setCurrentResolution(H);
           if (!filter->computeFilter(query.get(),true))
             return false;
         }
@@ -233,14 +146,9 @@ public:
 
     {
       ScopedWriteLock wlock(rlock);
-
-      kdarray->box = dataset->getBox();
-      kdarray->clipping = position;
-
-      kdarray->root = std::make_shared<KdArrayNode>();
+      kdarray->root = std::make_shared<KdArrayNode>(1); //root has id equals to 1 (important for split)
       kdarray->root->resolution = end_resolution;
-      kdarray->root->box = pow2_box;
-      kdarray->root->id = 1; //root has id equals to 1 (important for split)
+      kdarray->root->logic_box = pow2_box;
       kdarray->root->blockdata   = Array(); //it's not a single block, it is block 0+1!
       kdarray->root->fullres     = fullres;
       kdarray->root->displaydata = displaydata;
@@ -254,7 +162,7 @@ public:
   void computeFullRes(KdArrayNode* node, ScopedReadLock& rlock)
   {
     //nothing to do
-    if (mode == KdQueryMode::UseQuery)
+    if (kdquery_mode == KdQueryMode::UseQuery)
       return;
 
     if (aborted() || !node)
@@ -280,14 +188,16 @@ public:
         if (!node->up->fullres || !node->blockdata)
           return;
 
-        auto query = std::make_shared<Query>(dataset.get(), 'r');
-        query->time = time;
-        query->field = field;
-        query->position = node->box;
-        query->end_resolutions = { node->resolution };
-        query->aborted = this->aborted;
+        auto query = std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
+        query->logic_box = node->logic_box;
+        query->setResolutionRange(0,node->resolution);
 
-        if (aborted() || !dataset->beginQuery(query))
+        if (aborted())
+          return;
+
+        dataset->beginQuery(query);
+
+        if (!query->isRunning())
           return;
 
         DatasetBitmask bitmask = dataset->getBitmask();
@@ -308,36 +218,31 @@ public:
 
         fullres = upsample;
 
-        VisusAssert(query->nsamples.innerProduct() == fullres.getTotalNumberOfSamples());
+        VisusAssert(query->getNumberOfSamples() == fullres.dims);
 
         //prepare to merge samples from current resolution
-        query->cur_resolution = (node->resolution - 1);
+        query->setCurrentResolution(node->resolution - 1);
 
-        VisusAssert(fullres.dims == query->nsamples);
+        VisusAssert(fullres.dims == query->getNumberOfSamples());
         query->buffer = fullres;
 
-        auto start_address = (node->id) << bitsperblock;
-        auto end_address = (node->id + 1) << bitsperblock;
+        auto start_address = BigInt(node->id    ) << bitsperblock;
+        auto end_address   = BigInt(node->id + 1) << bitsperblock;
 
-        //I don't need to execute the block query, I already have it
-        auto block_box = dataset->getAddressRangeBox(start_address, end_address);
-
-        auto blockquery = std::make_shared<BlockQuery>(field, time, start_address, end_address, Aborted());
-        blockquery->nsamples = block_box.nsamples;
-        blockquery->logic_box = block_box;
+        auto blockquery = std::make_shared<BlockQuery>(dataset.get(), field, time, start_address, end_address, 'r', Aborted());
+        VisusAssert(blockquery->getNumberOfSamples() == node->blockdata.dims);
         blockquery->buffer = node->blockdata;
-        VisusAssert(blockquery->nsamples == node->blockdata.dims);
 
-        if (aborted() || !dataset->mergeQueryWithBlock(query, blockquery))
+        if (aborted() || !dataset->mergeBoxQueryWithBlock(query, blockquery))
           return;
 
         fullres = query->buffer;
 
         //this is the latest resolution! needed also for filter->applyToQuery!
-        query->cur_resolution = node->resolution;
+        query->setCurrentResolution(node->resolution);
 
         //need to apply the filter, from now on I can display the data
-        auto filter = dataset->createQueryFilter(field);
+        auto filter = dataset->createFilter(field);
         if (aborted() || (filter && !filter->computeFilter(query.get(), true)))
           return;
 
@@ -427,12 +332,12 @@ public:
         continue;
 
       //retrieve the block data
-      auto blocknum = bBlocksAreFullRes ? node->id - 1 : node->id; //IF !bBlocksAreFullRes node->id is the block number (considering that root has blocks 0 and 1)
+      auto blocknum = BigInt(bBlocksAreFullRes ? node->id - 1 : node->id); //IF !bBlocksAreFullRes node->id is the block number (considering that root has blocks 0 and 1)
       auto start_address = (blocknum) << bitsperblock;
       auto end_address = (blocknum + 1) << bitsperblock;
 
-      auto blockquery = std::make_shared<BlockQuery>(field, time, start_address, end_address, this->aborted);
-      wait_async.pushRunning(dataset->readBlock(access, blockquery)).when_ready([this, blockquery, node, &rlock](Void) {
+      auto blockquery = std::make_shared<BlockQuery>(dataset.get(), field, time, start_address, end_address, 'r', this->aborted);
+      wait_async.pushRunning(dataset->executeBlockQuery(access, blockquery)).when_ready([this, blockquery, node, &rlock](Void) {
 
         if (aborted() || blockquery->failed())
           return;
@@ -536,14 +441,13 @@ public:
       if (node->resolution != kdarray->end_resolution)
         continue;
 
-      auto query = std::make_shared<Query>(dataset.get(), 'r');
-      query->time = time;
-      query->field = field;
-      query->position = node->box;
-      query->end_resolutions = { node->resolution };
-      query->aborted = this->aborted;
+      auto query = std::make_shared<BoxQuery>(dataset.get(), field, time,'r', this->aborted);
+      query->logic_box = node->logic_box;
+      query->setResolutionRange(0, node->resolution);
 
-      if (!dataset->beginQuery(query) || !query->allocateBufferIfNeeded())
+      dataset->beginQuery(query);
+
+      if (!query->isRunning() || !query->allocateBufferIfNeeded())
         continue;
 
       //remote 'Query'
@@ -553,7 +457,7 @@ public:
 
         wait_async.pushRunning(NetService::push(netservice, *request)).when_ready([this, query, node, &rlock](NetResponse response) {
 
-          VisusAssert(mode == KdQueryMode::UseQuery);
+          VisusAssert(kdquery_mode == KdQueryMode::UseQuery);
 
           if (this->aborted() || !response.isSuccessful())
             return;
@@ -603,7 +507,7 @@ public:
   //runJob
   virtual void runJob() override
   {
-    if (mode == KdQueryMode::UseBlockQuery)
+    if (kdquery_mode == KdQueryMode::UseBlockQuery)
       runJobUsingBlockQuery();
     else
       runJobUsingQuery();
@@ -645,22 +549,69 @@ bool KdQueryNode::processInput()
     }
   }
 
+  if (!kdarray)
+    return false;
+
   if (!dataset)
     return false;
 
-  auto job=std::make_shared<KdQueryJob>(this, kdquery_mode);
+  if (!dataset->getTimesteps().containsTimestep(time))
+    return false;
+
+  auto field = fieldname.empty() ? dataset->getDefaultField() : dataset->getFieldByName(fieldname);
+  if (!field.valid())
+    return false;
+
+  auto logic_position = getQueryLogicPosition();
+  if (!logic_position.valid())
+    return false;
+
+  //i need an access for accessing block
+  if (kdquery_mode == KdQueryMode::UseBlockQuery && !access)
+    return false;
+
+  auto resolutions = dataset->guessEndResolutions(this->logicToScreen(), logic_position, getQuality(), QueryNoProgression);
+  if (resolutions.empty())
+    return false;
+
+  auto job=std::make_shared<KdQueryJob>();
+  job->node = this;
+  job->kdquery_mode = kdquery_mode;
+  job->publish_interval = dataset->getPointDim() == 3 ? 2000 : 200;
   job->dataset=dataset;
   job->access=access;
   job->kdarray=kdarray;
   job->time=time;
-  job->field=fieldname.empty()? dataset->getDefaultField() : dataset->getFieldByName(fieldname);
-  job->position=getQueryPosition();
-  job->quality=getQuality();
-  job->viewdep=getViewDep();
-  
-  if (!job->validate()) 
-    return false;
-  
+  job->field=field;
+  job->logic_position = logic_position;
+  job->bitsperblock = access ? access->bitsperblock : dataset->getDefaultBitsPerBlock();
+
+  //need write lock here
+  {
+    ScopedWriteLock wlock(kdarray->lock);
+
+    kdarray->end_resolution = resolutions.back();
+
+    //remove transformation, I will add the physic clipping below
+    auto logic_box = logic_position.toAxisAlignedBox().castTo<BoxNi>();
+    kdarray->logic_box = logic_box;
+
+    //physic coordinates
+    kdarray->clipping = dataset->logicToPhysic(logic_position);
+    kdarray->bounds   = dataset->logicToPhysic(logic_box);
+
+    job->bBlocksAreFullRes = std::dynamic_pointer_cast<GoogleMapsDataset>(dataset) ? true : false;
+
+    //TODO enable also for UseBlockQuery?
+    if (kdquery_mode == KdQueryMode::UseQuery)
+    {
+      //all levels from [0,cutoff) will be cached without any memory limitations
+      //there will be 2^cutoff-1 kdnodes  (8->255 , 9->511, 10->1024)
+      const int caching_cutoff = 10;
+      kdarray->enableCaching(caching_cutoff, StringUtils::getByteSizeFromString("20mb"));
+    }
+  }
+
   addNodeJob(job);
   return true;
 } 

@@ -147,9 +147,11 @@ bool RenderArrayNode::processInput()
   Int64 tot_samples = (Int64)this->data_texture->dims[0] * (Int64)this->data_texture->dims[1] * (Int64)this->data_texture->dims[2];
 
   VisusInfo()<<"got array"
-    <<" texture_dims("<<this->data_texture->dims.toString()<< ")"
-    <<" texture_dims("<<this->data_texture->dtype.toString()<<")"
-    <<" texture_dims("<<StringUtils::getStringFromByteSize(this->data_texture->dtype.getByteSize(tot_samples))<<")"
+    <<" texture("
+      << this->data_texture->dims.toString()<< "/"
+      << this->data_texture->dtype.toString()<<"/" \
+      << StringUtils::getStringFromByteSize(this->data_texture->dtype.getByteSize(tot_samples)) << "/"
+      << this->data_texture->dims.innerProduct()<<")"
     <<" bGotNewData("<<bGotNewData<<")"
     <<" msec("<<t1.elapsedMsec()<<")";
 
@@ -205,9 +207,9 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   //in 2d I render the box (0,0)  x(1,1)
   gl.pushModelview();
   {
-    auto box=data.bounds.box;
+    auto box=data.bounds.getBoxNd();
 
-    gl.multModelview(data.bounds.T);
+    gl.multModelview(data.bounds.getTransformation());
     gl.multModelview(Matrix::translate(box.p1));
     gl.multModelview(Matrix::nonZeroScale(box.size()));
     if (shader->config.texture_dim==2)

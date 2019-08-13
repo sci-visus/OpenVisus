@@ -36,122 +36,51 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef VISUS_OBJECT_STREAM_H__
-#define VISUS_OBJECT_STREAM_H__
+#ifndef __VISUS_POINTQUERY_H
+#define __VISUS_POINTQUERY_H
 
-#include <Visus/Kernel.h>
-#include <Visus/StringMap.h>
-#include <Visus/Singleton.h>
-
-#include <stack>
-#include <vector>
-#include <iostream>
+#include <Visus/Db.h>
+#include <Visus/Query.h>
+#include <Visus/Frustum.h>
 
 namespace Visus {
 
 //predeclaration
-class StringTree;
+class Dataset;
 
-
-
-  /////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API ObjectStream 
+////////////////////////////////////////////////////////
+class VISUS_DB_API PointQuery : public Query
 {
 public:
 
-  VISUS_CLASS(ObjectStream)
+  VISUS_NON_COPYABLE_CLASS(PointQuery)
 
-  StringMap run_time_options;
-
-  //constructor
-  ObjectStream() : mode(0) {
-  }
+  int        end_resolution=-1;
+  Position   logic_position;
+  Array      points;
 
   //constructor
-  ObjectStream(StringTree& root_,int mode_) : mode(0) {
-    open(root_,mode_);
+  PointQuery(Dataset* dataset, Field field, double time, int mode, Aborted aborted = Aborted())
+    : Query(dataset, field, time, mode, aborted)
+  {
   }
 
   //destructor
-  virtual ~ObjectStream(){
-    close();
+  virtual ~PointQuery() {
   }
 
-  //open
-  void open(StringTree& root,int mode);
-
-  //close
-  void close();
-
-  //getCurrentDepth
-  int getCurrentDepth(){
-    return (int)stack.size();
+  //getNumberOfSamples
+  virtual PointNi getNumberOfSamples() const override {
+    return points.dims;
   }
 
-  //getCurrentContext
-  StringTree* getCurrentContext(){
-    return stack.top().context;
-  }
-
-  // pushContext
-  bool pushContext(String context_name);
-
-  //popContext
-  bool popContext(String context_name);
-
-  //writeInline
-  void writeInline(String name, String value);
-
-
-  //hasAttribute
-  bool hasAttribute(String name);
-
-  //readInline
-  String readInline(String name, String default_value = "");
-
-  //write
-  void write(String name, String value);
-
-  //read
-  String read(String name, String default_value = "");
-
-  //writeText
-  void writeText(const String& value, bool bCData = false);
-
-  //readText
-  String readText();
-
-public:
-
-  //setSceneMode
-  void setSceneMode(bool value) {
-    run_time_options.setValue("scene_mode",cstring(value));
-  }
-
-  //isSceneMode
-  bool isSceneMode() const {
-    return cbool(run_time_options.getValue("scene_mode"));
-  }
-
-private:
-
-  int mode;
-
-  class StackItem
-  {
-  public:
-    StringTree*                  context;
-    std::map<String,StringTree*> next_child;
-    StackItem(StringTree* context_=nullptr) : context(context_) {}
-  };
-  std::stack<StackItem> stack;
+  //setPoints
+  bool setPoints(PointNi nsamples);
 
 };
 
-  
+
 } //namespace Visus
 
-
-#endif //VISUS_OBJECT_STREAM_H__
-
+#endif //__VISUS_POINTQUERY_H
 

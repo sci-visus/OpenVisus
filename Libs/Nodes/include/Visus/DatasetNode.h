@@ -77,14 +77,14 @@ public:
   //exitFromDataflow
   virtual void exitFromDataflow() override;
 
-  //getBox
-  BoxNd getBox() const {
-    return dataset->getBox().castTo<BoxNd>();
+  //getLogicBox
+  BoxNi getLogicBox() const {
+    return dataset->getLogicBox();
   }
 
   //getNodeBounds
   virtual Position getNodeBounds() override {
-    return dataset? Position(getBox()) : Position::invalid();
+    return dataset? dataset->getDatasetBounds() : Position::invalid();
   }
 
   //showBounds

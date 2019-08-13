@@ -129,7 +129,7 @@ public:
   virtual bool guessPosition(Position position,int ref=-1) override;
 
   //setBounds
-  void setBounds(BoxNd box);
+  void setBounds(BoxNd logic_box);
 
   //setLookAt
   void setLookAt(Point3d pos,Point3d center,Point3d vup);

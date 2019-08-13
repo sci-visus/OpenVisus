@@ -61,37 +61,45 @@ int main(int argc, const char* argv[])
 
   auto args=ApplicationInfo::args;
 
-  std::string dataset_url = "http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1";
-  std::string fieldname = "";
-  std::string outname = "dump";
+  String dataset_url = "http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1";
+  String fieldname = "";
+  String outname = "dump";
 
-  int p1_in[3] = {0,0,0};
-  int p2_in[3] = {64,64,64};
-  int res = -1;
+  Point3i p1_in, p2_in;
+  int end_resolution = -1;
 
-  int timestate = 0;
+  double timestate = 0;
 
   for (int I=1;I<(int)args.size();)
   {
     String cmd=StringUtils::toLower(args[I++]);
+
     if (StringUtils::startsWith(cmd,"--"))
       cmd=cmd.substr(2);
 
     if(cmd=="dataset")
       dataset_url = args[I];
-    else if(cmd=="p1")
-      sscanf(args[I].c_str(), "%ux%ux%u", &p1_in[0], &p1_in[1], &p1_in[2]);
+
+    else if (cmd == "p1")
+      p1_in = Point3i(args[I]);
+
     else if(cmd=="p2")
-      sscanf(args[I].c_str(), "%ux%ux%u", &p2_in[0], &p2_in[1], &p2_in[2]);
+      p2_in= Point3i(args[I]);
+
     else if(cmd=="time")
-      timestate = atoi(args[I].c_str());
+      timestate = cdouble(args[I]);
+
     else if(cmd=="field")
       fieldname = args[I];
+
     else if(cmd=="res")
-      res = atoi(args[I].c_str());
+      end_resolution = cint(args[I]);
+
     else if(cmd=="out")
       outname = args[I];
-    else if(cmd=="help"){
+
+    else if(cmd=="help")
+    {
       VisusInfo() << " example_query " << std::endl
       << "   [--dataset dataset_url]" << std::endl
       << "   [--field <string>]" << std::endl
@@ -107,77 +115,58 @@ int main(int argc, const char* argv[])
   auto dataset=LoadDataset(dataset_url);
   VisusReleaseAssert(dataset);
 
-  auto world_box=dataset->getBox();
-
+  auto world_box=dataset->getLogicBox();
   auto max_resolution = dataset->getMaxResolution();
 
-  if(res==-1) res=max_resolution;
+  if(end_resolution ==-1) 
+    end_resolution =max_resolution;
 
-  VisusInfo() << "Data size: " << world_box.p1.toString() << " " << world_box.p2.toString()
-    << " max res: " << max_resolution;
+  VisusInfo() << "Data size: " << world_box.p1.toString() << " " << world_box.p2.toString() << " max res: " << end_resolution;
 
   //any time you need to read/write data from/to a Dataset create an Access
   auto access=dataset->createAccess();
 
   auto query=std::make_shared<Query>(dataset.get(),'r');
 
-  BoxNi my_box;
-  my_box.p1 = PointNi(p1_in[0], p1_in[1], p1_in[2]);
-  my_box.p2 = PointNi(p2_in[0], p2_in[1], p2_in[2]);
+  BoxNi my_box(p1_in, p2_in);
 
-  VisusInfo() << "Box query " << my_box.p1.toString() << " p2 " << my_box.p2.toString()
-              << " variable " << fieldname << " time " << timestate;
+  VisusInfo() << "Box query " << my_box.p1.toString() << " p2 " << my_box.p2.toString() << " variable " << fieldname << " time " << timestate;
 
-  query->position = my_box;
+  query->logic_position = my_box;
+  query->field = !fieldname.empty()? dataset->getFieldByName(fieldname) : dataset->getDefaultField();
 
-  // Choose the field
-  Field field;
-
-  if(fieldname!="")
-    field = dataset->getFieldByName(fieldname);
-  else
-    field = dataset->getDefaultField();
-
-  query->field = field;
-
-  // Set timestep
   query->time = timestate;
 
   // Set resolution levels
-  query->start_resolution = 0;
-  query->end_resolutions.push_back(res);
-
   // You can add multiple resolutions values to end_resolutions
-  // To execute queries at different resolutions and work on these progressive results use:
-  // dataset->nextQuery(query);
+  query->start_resolution = 0;
+  query->end_resolutions.push_back(end_resolution);
 
   // In case you use lower resolutions you might want to set a merge_mode
-  // query->merge_mode = Query::InterpolateSamples;
+  query->merge_mode = Query::InterpolateSamples;
 
-  query->max_resolution = max_resolution;
+  VisusReleaseAssert(dataset->nextQuery(query));
+  while (true)
+  {
+    // Read the data
+    VisusReleaseAssert(dataset->executeQuery(access, query));
 
-  VisusReleaseAssert(dataset->beginQuery(query));
-
-  // Read the data
-  VisusReleaseAssert(dataset->executeQuery(access,query));
+    if (!dataset->nextQuery(query))
+      break;
+  }
 
   Array data = query->buffer;
 
   // Here we dump the data on disk in a .raw file
-  if( data.c_ptr() != NULL)
-    VisusInfo() << "Dumping data bytes " << data.c_size();
-  else{
-    VisusInfo() << "ERROR: No data";
-    VisusReleaseAssert(false);
-  }
+  VisusInfo() << "Dumping data bytes " << data.c_size();
 
   std::stringstream ss;
-  ss << outname << "_" << query->buffer.getWidth() << "_"
-     << query->buffer.getHeight() << "_" << query->buffer.getDepth() << "_" << field.dtype.toString() << ".raw";
-
+  ss << outname << "_" << query->buffer.getWidth() << "_" << query->buffer.getHeight() << "_" << query->buffer.getDepth() << "_" << query->field.dtype.toString() << ".raw";
   std::ofstream out_file;
   out_file.open(ss.str(), std::ios::out | std::ios::binary);
   out_file.write( (char*)data.c_ptr(), data.c_size());
   out_file.close();
+
+  return 0;
 }
 

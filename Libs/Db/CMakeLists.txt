@@ -7,12 +7,16 @@ SET(RootSources
 )
 
 SET(QuerySources
-	./include/Visus/LogicBox.h
-	./include/Visus/BlockQuery.h
+	./include/Visus/LogicSamples.h
+	./src/LogicSamples.cpp
 	./include/Visus/Query.h
-	./src/LogicBox.cpp
-	./src/BlockQuery.cpp
 	./src/Query.cpp
+	./include/Visus/BlockQuery.h
+	./src/BlockQuery.cpp
+	./include/Visus/BoxQuery.h
+	./src/BoxQuery.cpp
+	./include/Visus/PointQuery.h
+	./src/PointQuery.cpp
 )
 
 SET(DatasetSources

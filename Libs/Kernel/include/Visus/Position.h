@@ -48,48 +48,48 @@ namespace Visus {
 /////////////////////////////////////////////////
 class VISUS_KERNEL_API Position 
 {
+  Matrix T = Matrix::identity(4);
+  BoxNd  box;
+
 public:
 
   VISUS_CLASS(Position)
-
-  Matrix T= Matrix::identity(4);
-  BoxNd  box;
 
   //constructor
   Position() {
   }
 
   //constructor
-  Position(std::vector<Matrix> T, BoxNd box);
-
-  //constructor
-  Position(Matrix T, BoxNd box) : Position(std::vector<Matrix>({ T }), box) {
-  }
-
-  //constructor
-  Position(BoxNd value) : Position(Matrix(), value) {
-  }
+  Position(BoxNd box);
 
   //constructor
   Position(BoxNi value) : Position(value.castTo<BoxNd>()) {
   }
 
   //constructor
-  Position(const Matrix& T0, const Position& other) : Position(std::vector<Matrix>({ T0,other.T }), other.box) {
+  Position(const Matrix& T0, const Position& other) : Position(other) {
+    prependTransformation(T0);
   }
 
   //constructor
-  Position(const Matrix& T0, const Matrix& T1, const Position& other) : Position(std::vector<Matrix>({ T0,T1,other.T }), other.box) {
+  Position(const Matrix& T0, const Matrix& T1, const Position& other) : Position(other) {
+    for (auto T : { T1,T0 })
+      prependTransformation(T);
   }
 
   //constructor
-  Position(const Matrix& T0, const Matrix& T1, const Matrix& T2, const Position& other) : Position(std::vector<Matrix>({ T0,T1,T1, other.T }), other.box) {
+  Position(const Matrix& T0, const Matrix& T1, const Matrix& T2, const Position& other) : Position(other) {
+    for (auto T : { T2,T1,T0 })
+      prependTransformation(T);
   }
 
   //invalid
   static Position invalid() {
     return Position();
   }
+
+  //prependTransformation
+  void prependTransformation(const Matrix& T);
 
   //getPointDim
   int getPointDim() const {
@@ -111,13 +111,24 @@ public:
     T.setSpaceDim(value);
   }
 
-  //compose
-  static Matrix compose(Position A, PointNi dims) {
+  //computeTransformation
+  static Matrix computeTransformation(Position dst, BoxNd src) {
     return
-      A.T *
-      Matrix::translate(A.box.p1) *
-      Matrix::nonZeroScale(A.box.size()) *
-      Matrix::invNonZeroScale(dims.castTo<PointNd>());
+      dst.T *
+      Matrix::translate(dst.box.p1) *
+      Matrix::nonZeroScale(dst.box.size()) *
+      Matrix::invNonZeroScale(src.size()) *
+      Matrix::translate(-src.p1);
+  }
+
+  //computeTransformation
+  static Matrix computeTransformation(Position dst, BoxNi src) {
+    return computeTransformation(dst,src.castTo<BoxNd>());
+  }
+
+  //computeTransformation
+  static Matrix computeTransformation(Position dst, PointNi dims) {
+    return computeTransformation(dst, BoxNi(PointNi(dims.getPointDim()), dims));
   }
 
   //operator!=
@@ -135,6 +146,16 @@ public:
     return box.valid();
   }
 
+  //getTransformation
+  const Matrix& getTransformation() const {
+    return this->T;
+  }
+
+  //getBoxNd
+  const BoxNd& getBoxNd() const {
+    return this->box;
+  }
+
   //getBoxNi
   BoxNi getBoxNi() const {
     return this->box.castTo<BoxNi>();
@@ -143,8 +164,18 @@ public:
   //computeVolume
   double computeVolume() const;
 
-  //withoutTransformation
-  BoxNd withoutTransformation() const;
+  //getPoints
+  std::vector<PointNd> getPoints() const;
+
+  //toAxisAlignedBox
+  BoxNd toAxisAlignedBox() const {
+    return this->valid() ? BoxNd(getPoints()) : BoxNd::invalid();
+  }
+
+  //toDiscreteAxisAlignedBox
+  BoxNi toDiscreteAxisAlignedBox() const {
+    return toAxisAlignedBox().castTo<BoxNi>();
+  }
 
   //shrink i.e. map * (position.lvalue,position.rvalue') should be in dst_box, does not change position.lvalue
   static Position shrink(BoxNd dst_box, LinearMap& map, Position position);

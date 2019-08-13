@@ -74,6 +74,13 @@ public:
     VisusAssert(p1.getPointDim() == p2.getPointDim());
   }
 
+  //construtor
+  BoxN(const std::vector<Point>& points) : BoxN()
+  {
+    for (auto point : points)
+      addPoint(point);
+  }
+
   //getPointDim
   int getPointDim() const {
     return p1.getPointDim();
@@ -97,7 +104,7 @@ public:
     return BoxN(p1.withoutBack(), p2.withoutBack());
   }
 
-  //return an invalid box
+  //return an invalid box (dimension 0, see addPoint)
   static BoxN invalid() {
     return BoxN();
   }
@@ -162,7 +169,7 @@ public:
     this->p1 = Point::min(this->p1, p);
     this->p2 = Point::max(this->p2, p);
   }
-
+  
   //toBox3
   BoxN toBox3() const {
     return this->withPointDim(3);
@@ -287,6 +294,53 @@ public:
 
     return ret;
   }
+
+
+  //getEdges
+  class Edge
+  {
+  public:
+    int axis;
+    int index0;
+    int index1;
+    Edge(int axis_ = 0, int index0_ = 0, int index1_ = 0) : axis(axis_), index0(index0_), index1(index1_) {}
+  };
+
+  typedef std::vector<Edge> Edges;
+  static Edges getEdges(int pdim)
+  {
+    if (pdim == 2)
+    {
+      return Edges({
+        Edge(0,0,1),
+        Edge(1,1,2),
+        Edge(0,2,3),
+        Edge(1,3,0),
+        });
+    }
+
+    if (pdim == 3)
+    {
+      return Edges({
+          Edge(0,0,1),
+          Edge(1,1,2),
+          Edge(0,2,3),
+          Edge(1,3,0),
+          Edge(0,4,5),
+          Edge(1,5,6),
+          Edge(0,6,7),
+          Edge(1,7,4),
+          Edge(2,0,4),
+          Edge(2,1,5),
+          Edge(2,2,6),
+          Edge(2,3,7)
+        });
+    }
+
+    ThrowException("internal error");
+    return Edges();
+  };
+
 
   //getAlphaPoint
   Point getAlphaPoint(Point alpha) const {

@@ -107,11 +107,12 @@ void DiskAccess::readBlock(SharedPtr<BlockQuery> query)
   if (!file.read(0,encoded->c_size(), encoded->c_ptr()))
     return readFailed(query);
 
-  auto decoded=ArrayUtils::decodeArray(this->compression,query->nsamples,query->field.dtype, encoded);
+  auto nsamples = query->getNumberOfSamples();
+  auto decoded=ArrayUtils::decodeArray(this->compression,nsamples,query->field.dtype, encoded);
   if (!decoded)
     return readFailed(query);
 
-  VisusAssert(decoded.dims==query->nsamples);
+  VisusAssert(decoded.dims==query->getNumberOfSamples());
   decoded.layout=""; //rowmajor
   query->buffer=decoded;
 

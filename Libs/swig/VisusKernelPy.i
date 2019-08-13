@@ -70,6 +70,10 @@ using namespace Visus;
 %include <Visus/Matrix.h>
 %include <Visus/Polygon.h>
 %include <Visus/Position.h>
+%include <Visus/Quaternion.h>
+%include <Visus/Polygon.h>
+   %template(VectorPoint2d)  std::vector<Visus::Point2d>;
+
 %include <Visus/Range.h>
 %include <Visus/DType.h>
 %include <Visus/Field.h>

@@ -385,7 +385,7 @@ String StringTree::readString(String key,String default_value) const
   else
   {
     VisusAssert(!key.empty());
-    return attributes.getValue(key,default_value);
+    return getAttribute(key,default_value);
   }
 }
 
@@ -412,7 +412,7 @@ void StringTree::writeString(String key,String value)
   else
   {
     VisusAssert(!key.empty());
-    this->attributes.setValue(key,value);
+    setAttribute(key,value);
   }
 }
 

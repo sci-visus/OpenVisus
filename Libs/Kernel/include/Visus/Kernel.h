@@ -155,6 +155,8 @@ VISUS_KERNEL_API inline Uint64     cuint64(const String& s) { return s.empty() ?
 VISUS_KERNEL_API inline String     cstring(SharedPtr<String> v) { return v ? *v : ""; }
 VISUS_KERNEL_API inline double     cdouble(SharedPtr<double> v) { return v ? *v : 0.0; }
 
+VISUS_KERNEL_API String cstring10(double value);
+
 #if !SWIG
 namespace Private {
 class VISUS_KERNEL_API CommandLine
@@ -182,14 +184,14 @@ VISUS_KERNEL_API void PrintMessageToTerminal(const String& value);
 VISUS_KERNEL_API bool VisusHasMessageLock();
 
 //ThrowExceptionEx
-VISUS_KERNEL_API void ThrowExceptionEx(String file,int line,String expr);
+VISUS_KERNEL_API void ThrowExceptionEx(String where,String what);
 
 
 #define __S1__(x) #x
 #define __S2__(x) __S1__(x)
 #define VisusHereInTheCode __FILE__ " : " __S2__(__LINE__)
 
-#define ThrowException(expr) (ThrowExceptionEx(__FILE__,__LINE__,expr))
+#define ThrowException(expr) (ThrowExceptionEx(VisusHereInTheCode,expr))
 
 #if !defined(SWIG) && !defined(VisusReleaseAssert)
 #  define VisusReleaseAssert(_Expression) { \

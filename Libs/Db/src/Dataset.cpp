@@ -45,6 +45,7 @@ For support : support@visus.net
 #include <Visus/FilterAccess.h>
 #include <Visus/NetService.h>
 #include <Visus/VisusConfig.h>
+#include <Visus/Polygon.h>
 
 
 namespace Visus {
@@ -52,83 +53,127 @@ namespace Visus {
 VISUS_IMPLEMENT_SINGLETON_CLASS(DatasetFactory)
 
 
+/////////////////////////////////////////////////////////////////////////////
+void Dataset::readAnnotationsFromObjectStream(ObjectStream istream)
+{
+  if (istream.pushContext("annotations"))
+  {
+    while (istream.pushContext("annotation"))
+    {
+      auto type = istream.readInline("type");
+      if (type == "magnet")
+      {
+        auto poi = std::make_shared<PointOfInterest>();
+        poi->pos = Point2d(cdouble(istream.readInline("x")), cdouble(istream.readInline("y")));
+        poi->text = istream.readInline("text");
+        poi->size = cint(istream.readInline("size", "10"));
+        poi->line_color = Color::parseFromString(istream.readInline("line_color", Colors::Yellow.withAlpha(0.3f).toString()));
+        poi->fill_color = Color::parseFromString(istream.readInline("fill_color", Colors::Black.withAlpha(0.3f).toString()));
+        this->annotations.push_back(poi);
+      }
+      else
+      {
+        VisusAssert(false);
+      }
+      istream.popContext("annotation");
+    }
+
+    istream.popContext("annotations");
+  }
+}
 
 /////////////////////////////////////////////////////////////////////////////
-std::vector<int> Dataset::guessEndResolutions(const Frustum& viewdep,Position position,Query::Quality quality,Query::Progression progression)
+std::vector<int> Dataset::guessEndResolutions(const Frustum& logic_to_screen,Position logic_position,QueryQuality quality,QueryProgression progression)
 {
   int dataset_dim = this->getPointDim();
 
-  if (progression==Query::GuessProgression)
-    progression=(Query::Progression)(dataset_dim == 2 ? dataset_dim * 3 : dataset_dim * 4);
+  if (progression == QueryGuessProgression)
+    progression = (QueryProgression)(dataset_dim == 2 ? dataset_dim * 3 : dataset_dim * 4);
 
-  int final_resolution  = this->getMaxResolution();
-  
-  // valerio's algorithm, find the final view dependent resolution (endh)
-  // (the default endh is the maximum resolution available)
-  if (viewdep.valid())
+  auto maxh = this->getMaxResolution();
+  int endh = maxh;
+  DatasetBitmask bitmask = this->getBitmask();
+
+  if (logic_to_screen.valid())
   {
-    const int unit_box_edges[12][2]=
-    {
-      {0,1}, {1,2}, {2,3}, {3,0},
-      {4,5}, {5,6}, {6,7}, {7,4},
-      {0,4}, {1,5}, {2,6}, {3,7}
-    };
-
     std::vector<Point3d> logic_points;
-    for (auto p : position.box.toBox3().getPoints())
-      logic_points.push_back((position.T * p).toPoint3());
+    for (auto p : logic_position.getPoints())
+      logic_points.push_back(p.toPoint3());
 
     std::vector<Point2d> screen_points;
-    FrustumMap map(viewdep);
-    for (int I=0;I<8;I++)
-      screen_points.push_back(map.projectPoint(logic_points[I]));
-  
-    int    longest_edge_on_screen           =-1;
-    double longest_pixel_distance_on_screen = 0;
-    for (int E=0;E<12;E++)
-    {
-      Point2d p1=screen_points[unit_box_edges[E][0]];
-      Point2d p2=screen_points[unit_box_edges[E][1]];
-      double pixel_distance_on_screen=(p2-p1).module();
+    FrustumMap map(logic_to_screen);
+    for (auto logic_point : logic_points)
+      screen_points.push_back(map.projectPoint(logic_point));
 
-      if (longest_edge_on_screen==-1 || pixel_distance_on_screen>longest_pixel_distance_on_screen)
-      {
-        longest_edge_on_screen=E;
-        longest_pixel_distance_on_screen=pixel_distance_on_screen;
-      }
+    if (dataset_dim == 2)
+    {
+      //scrgiorgio euristic for 2d
+      VisusReleaseAssert(logic_points.size() == 4);
+      VisusReleaseAssert(screen_points.size() == 4);
+
+      std::vector<Point2d> screen_points;
+      FrustumMap map(logic_to_screen);
+      for (auto logic_point : logic_points)
+        screen_points.push_back(map.projectPoint(Point3d(logic_point)));
+
+      auto AREA = logic_position.computeVolume();
+      auto area = Quad(screen_points).area();
+
+      //maxh -- AREA == endh -- area
+      endh = std::max(0,maxh - (int)round(log2(AREA / area)));
     }
-
-    //I match the highest resolution on dataset axis (it's just an euristic!)
-    DatasetBitmask bitmask=this->getBitmask();
-    Point3d logic_P1 = logic_points[unit_box_edges[longest_edge_on_screen][0]];
-    Point3d logic_P2 = logic_points[unit_box_edges[longest_edge_on_screen][1]];
-    for (int dataset_axis=0;dataset_axis<3;dataset_axis++)
+    else if (dataset_dim == 3)
     {
-      double logic_distance=fabs(logic_P1[dataset_axis]-logic_P2[dataset_axis]);
-      double factor =logic_distance/longest_pixel_distance_on_screen;
-      Int64  num=Utils::getPowerOf2((Int64)factor);
-      while (num>factor) 
-        num>>=1;
-      
-      int H=this->getMaxResolution();
-      for (;num>1 && H>=0;H--)
+      // valerio's algorithm, find the final view dependent resolution (endh)
+      // (the default endh is the maximum resolution available)
+      //NOTE: this works for slices and volumes
+      std::pair<Point3d,Point3d> longest_edge;
+      double longest_screen_distance = NumericLimits<double>::lowest();
+      for (auto edge : BoxNi::getEdges(dataset_dim))
       {
-        if (bitmask[H]==dataset_axis) 
-          num>>=1;
+        double screen_distance = (screen_points[edge.index1] - screen_points[edge.index0]).module();
+
+        if (screen_distance > longest_screen_distance)
+        {
+          longest_edge = std::make_pair(logic_points[edge.index0], logic_points[edge.index1]);
+          longest_screen_distance = screen_distance;
+        }
       }
 
-      final_resolution=std::min(final_resolution,H);
-    }  
+      //I match the highest resolution on dataset axis (it's just an euristic!)
+      for (int A = 0; A < dataset_dim; A++)
+      {
+        double logic_distance = fabs(longest_edge.first[A] - longest_edge.second[A]);
+        double factor = logic_distance / longest_screen_distance;
+        Int64  num = Utils::getPowerOf2((Int64)factor);
+        while (num > factor)
+          num >>= 1;
+
+        int H = maxh;
+        for (; num > 1 && H >= 0; H--)
+        {
+          if (bitmask[H] == A)
+            num >>= 1;
+        }
+
+        endh = std::min(endh, H);
+      }
+
+    }
+    else
+    {
+      ThrowException("internal error");
+    }
   }
 
-  //quality
-  final_resolution=std::min(getMaxResolution(),quality+final_resolution);
+  //quality can increase or decrease endh
+  endh = std::min(maxh, quality + endh);
 
   std::vector<int> ret;
-  ret.push_back(std::max(0,final_resolution-progression)); 
-  
-  while (ret.back() != final_resolution)
-    ret.push_back(std::min(final_resolution, ret.back() + dataset_dim));
+  ret.push_back(std::max(0, endh - progression));
+
+  while (ret.back() != endh)
+    ret.push_back(std::min(endh, ret.back() + dataset_dim));
 
   return ret;
 }
@@ -143,17 +188,7 @@ SharedPtr<Access> Dataset::createRamAccess(Int64 available, bool can_read, bool 
   ret->can_read  = can_read;
   ret->can_write = can_write;
   ret->bitsperblock = this->getDefaultBitsPerBlock();
-
-  if (this->ram_access)
-  {
-    ret->shareMemoryWith(this->ram_access);
-  }
-  else
-  {
-    ret->setAvailableMemory(available);
-    this->ram_access = ret;
-  }
-
+  ret->setAvailableMemory(available);
   return ret;
 }
 
@@ -231,6 +266,17 @@ Field Dataset::getFieldByNameThrowEx(String fieldname) const
   return Field();
 }
 
+///////////////////////////////////////////////////////////
+Field Dataset::getFieldByName(String name) const {
+  try {
+    return getFieldByNameThrowEx(name);
+  }
+  catch (std::exception ex) {
+    return Field();
+  }
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////////////////
 static StringTree* FindDataset(String name, const StringTree& stree)
@@ -259,8 +305,9 @@ SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config)
     return SharedPtr<Dataset>();
 
   auto it=FindDataset(name, config);
+  config = it ? *it : StringTree();
 
-  Url url(it? it->readString("url") : name);
+  Url url(config.readString("url", name));
   if (!url.valid())
   {
     VisusWarning() << "LoadDataset(" << name << ") failed. Not a valid url";
@@ -319,9 +366,9 @@ SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config)
     return SharedPtr<Dataset>();
   }
 
-  ret->url = url;
-  ret->config = it? *it :StringTree();
-  ret->kdquery_mode = KdQueryMode::fromString(ret->config.readString("kdquery", url.getParam("kdquery")));
+  ret->setUrl(url);
+  ret->setConfig(config);
+  ret->setKdQueryMode(KdQueryMode::fromString(config.readString("kdquery", url.getParam("kdquery"))));
 
   if (!ret->openFromUrl(url.toString())) 
   {
@@ -339,18 +386,19 @@ String Dataset::getDatasetInfos() const
   std::ostringstream out;
 
   int bitsperblock=getDefaultBitsPerBlock();
+  int samplesperblock = 1 << bitsperblock;
 
-  BigInt total_number_of_samples = ((BigInt)1)<<bitmask.getMaxResolution();
-  BigInt total_number_of_blocks  = total_number_of_samples>>bitsperblock;
+  BigInt total_number_of_blocks  = getTotalNumberOfBlocks();
+  BigInt total_number_of_samples = total_number_of_blocks * samplesperblock;
 
   out<<"Visus file infos                                         "<<std::endl;
-  out<<"  Bounds                                                 "<< getBox().toOldFormatString()<<std::endl;
+  out<<"  Logic box                                              "<< getLogicBox().toOldFormatString()<<std::endl;
+  out <<" Physic position                                        "<< getDatasetBounds().toString() << std::endl;
   out<<"  Pow2 dims                                              "<<getBitmask().getPow2Dims().toString()<<std::endl;
   out<<"  number of samples                                      "<<total_number_of_samples<<std::endl;
   out<<"  number of blocks                                       "<<total_number_of_blocks<<std::endl;
   out<<"  timesteps                                              "<<std::endl<<getTimesteps().toString()<<std::endl;
   out<<"  bitmask                                                "<<bitmask.toString()<<std::endl;
-  out<<"  resolution range                                       [0,"<<bitmask.getMaxResolution()<<"]"<<std::endl;
 
   out<<"  Fields:"<<std::endl;
   for (auto field : this->fields)
@@ -371,16 +419,18 @@ SharedPtr<Dataset> LoadDataset(String url) {
 
 
 ////////////////////////////////////////////////
-Future<Void> Dataset::readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
+Future<Void> Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
 {
   VisusAssert(access->isReading());
 
+  int mode = query->mode; 
   auto failed = [&]() {
+
     if (!access)
       query->setFailed();
     else
-      access->readFailed(query);
-
+      mode == 'r'? access->readFailed(query) : access->writeFailed(query);
+   
     return query->done;
   };
 
@@ -393,92 +443,33 @@ Future<Void> Dataset::readBlock(SharedPtr<Access> access,SharedPtr<BlockQuery> q
   if (!(query->start_address < query->end_address))
     return failed();
 
-  if (!access->can_read)
+  if ((mode == 'r' && !access->can_read) || (mode == 'w' && !access->can_write))
     return failed();
 
-  auto logic_box = getAddressRangeBox(query->start_address, query->end_address);
-  if (!logic_box.valid())
+  if (!query->logic_samples.valid())
     return failed();
 
-  query->nsamples = logic_box.nsamples;
-  query->logic_box = logic_box;
+  if (mode == 'w' && !query->buffer)
+    return failed();
 
   //auto allocate buffer
   if (!query->allocateBufferIfNeeded())
     return failed();
 
-  //override time 
-  {
-    // dataset url
-    Url url = this->getUrl();
-    if (url.hasParam("time"))
-      query->time = cdouble(url.getParam("time"));
+  // override time  from dataset url
+  Url url = this->getUrl();
+  if (url.hasParam("time"))
+    query->time = cdouble(url.getParam("time"));
 
-    // from field
-    if (query->field.hasParam("time"))
-      query->time = cdouble(query->field.getParam("time"));
-  }
+  // override time  from from field
+  if (query->field.hasParam("time"))
+    query->time = cdouble(query->field.getParam("time"));
 
   query->setRunning();
-  access->readBlock(query);
+  mode=='r'? access->readBlock(query) : access->writeBlock(query);
   return query->done;
 }
 
-////////////////////////////////////////////////
-Future<Void> Dataset::writeBlock(SharedPtr<Access> access, SharedPtr<BlockQuery> query)
-{
-  VisusAssert(access->isWriting());
-
-  auto failed = [&]() {
-    if (!access)
-      query->setFailed();
-    else
-      access->readFailed(query);
-    return query->done;
-  };
-
-  if (!access)
-    return failed();
-
-  if (!query->field.valid())
-    return failed();
-
-  if (!(query->start_address < query->end_address))
-    return failed();
-
-  if (!access->can_write)
-    return failed();
-
-  if (!query->buffer)
-    return failed();
-
-  auto logic_box = getAddressRangeBox(query->start_address, query->end_address);
-  if (!logic_box.valid())
-    return failed();
-
-  query->nsamples = logic_box.nsamples;
-  query->logic_box = logic_box;
-
-  //check buffer
-  if (!query->allocateBufferIfNeeded())
-    return failed();
-
-  //override time
-  {
-    //from dataset url
-    Url url = this->getUrl();
-    if (url.hasParam("time"))
-      query->time = cdouble(url.getParam("time"));
-
-    //from field
-    if (query->field.hasParam("time"))
-      query->time = cdouble(query->field.getParam("time"));
-  }
-
-  query->setRunning();
-  access->writeBlock(query);
-  return query->done;
-}
 
 ////////////////////////////////////////////////
 std::vector<BoxNi> Dataset::generateTiles(int TileSize) const
@@ -488,7 +479,7 @@ std::vector<BoxNi> Dataset::generateTiles(int TileSize) const
   for (int D = 0; D < pdim; D++)
     WindowSize[D] = TileSize;
 
-  auto box = this->getBox();
+  auto box = this->getLogicBox();
 
   auto Tot = PointNi::one(pdim);
   for (int D = 0; D < pdim; D++)
@@ -497,7 +488,7 @@ std::vector<BoxNi> Dataset::generateTiles(int TileSize) const
   std::vector<BoxNi> ret;
   for (auto P = ForEachPoint(box.p1, box.p2, WindowSize); !P.end(); P.next())
   {
-    auto tile = BoxNi(P.pos, P.pos + WindowSize).getIntersection(this->getBox());
+    auto tile = BoxNi(P.pos, P.pos + WindowSize).getIntersection(this->getLogicBox());
 
     if (!tile.valid()) {
       VisusAssert(false);
@@ -513,18 +504,12 @@ std::vector<BoxNi> Dataset::generateTiles(int TileSize) const
 Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, double time, BoxNi box)
 {
   if (box == BoxNi())
-    box = this->box;
+    box = this->logic_box;
 
-  auto query = std::make_shared<Query>(this, 'r');
+  auto query = std::make_shared<BoxQuery>(this, field, time,  'r');
+  query->logic_box = box;
 
-  query->time = time;
-  query->field = field;
-  query->position = box;
-  query->max_resolution = getMaxResolution();
-  query->end_resolutions = { query->max_resolution };
-
-  if (!beginQuery(query))
-    return Array();
+  beginQuery(query);
 
   if (!executeQuery(access, query))
     return Array();
@@ -538,19 +523,15 @@ bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, dou
   if (box==BoxNi()) 
     box=BoxNi(PointNi(buffer.getPointDim()), buffer.dims);
 
-  auto query = std::make_shared<Query>(this, 'w');
+  auto query = std::make_shared<BoxQuery>(this, field, time,'w');
+  query->logic_box = box;
 
-  query->time = time;
-  query->field = field;
-  query->position = box;
-  query->start_resolution = 0;
-  query->max_resolution = this->getMaxResolution();
-  query->end_resolutions = { query->max_resolution };
+  beginQuery(query);
 
-  if (!beginQuery(query))
+  if (!query->isRunning())
     return false;
 
-  VisusAssert(query->nsamples == buffer.dims);
+  VisusAssert(query->getNumberOfSamples() == buffer.dims);
   query->buffer = buffer;
 
   if (!executeQuery(access, query))
@@ -559,162 +540,88 @@ bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, dou
   return true;
 }
 
-////////////////////////////////////////////////
-bool Dataset::beginQuery(SharedPtr<Query> query)
+
+
+//*********************************************************************
+// valerio's algorithm, find the final view dependent resolution (endh)
+// (the default endh is the maximum resolution available)
+//*********************************************************************
+
+PointNi Dataset::guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, Position logic_position, int end_resolution)
 {
-  if (!query)
-    return false;
+  auto bitmask = getBitmask();
+  int pdim = bitmask.getPointDim();
 
-  if (!query->canBegin())
+  if (!logic_position.valid())
+    return PointNi(pdim);
+
+  const int unit_box_edges[12][2] =
   {
-    query->setFailed("query begin called many times");
-    return false;
-  }
+    {0,1}, {1,2}, {2,3}, {3,0},
+    {4,5}, {5,6}, {6,7}, {7,4},
+    {0,4}, {1,5}, {2,6}, {3,7}
+  };
 
-  //if you want to set a buffer for 'w' queries, please do it after begin
-  VisusAssert(!query->logic_box.valid() && !query->buffer);
+  std::vector<Point3d> logic_points;
+  for (auto p : logic_position.getPoints())
+    logic_points.push_back(p.toPoint3());
 
-  if (!this->valid() )
+  std::vector<Point2d> screen_points;
+  if (logic_to_screen.valid())
   {
-    query->setFailed("query not valid");
-    return false;
+    FrustumMap map(logic_to_screen);
+    for (int I = 0; I < 8; I++)
+      screen_points.push_back(map.projectPoint(logic_points[I]));
   }
 
-  if (!query->field.valid())
+  PointNi virtual_worlddim = PointNi::one(pdim);
+  for (int H = 1; H <= end_resolution; H++)
   {
-    query->setFailed("field not valid");
-    return false;
+    int bit = bitmask[H];
+    virtual_worlddim[bit] <<= 1;
   }
 
-  if (!query->position.valid())
+  PointNi nsamples = PointNi::one(pdim);
+  for (int E = 0; E < 12; E++)
   {
-    query->setFailed("position not valid");
-    return false;
+    int query_axis = (E >= 8) ? 2 : (E & 1 ? 1 : 0);
+    Point3d P1 = logic_points[unit_box_edges[E][0]];
+    Point3d P2 = logic_points[unit_box_edges[E][1]];
+    Point3d edge_size = (P2 - P1).abs();
+
+    PointNi idx_size = this->getLogicBox().size();
+
+    // need to project onto IJK  axis
+    // I'm using this formula: x/virtual_worlddim[dataset_axis] = factor = edge_size[dataset_axis]/idx_size[dataset_axis]
+    for (int dataset_axis = 0; dataset_axis < 3; dataset_axis++)
+    {
+      double factor = (double)edge_size[dataset_axis] / (double)idx_size[dataset_axis];
+      Int64 x = (Int64)(virtual_worlddim[dataset_axis] * factor);
+      nsamples[query_axis] = std::max(nsamples[query_axis], x);
+    }
   }
 
-  //if (query->viewdep && !query->viewdep->valid())
-  //{
-  //  query->setFailed("viewdep not valid");
-  //  return false;
-  //}
-
-  //override time
+  //view dependent, limit the nsamples to what the user can see on the screen!
+  if (!screen_points.empty())
   {
-    // from field
-    if (query->field.hasParam("time"))
-      query->time=cdouble(query->field.getParam("time"));  
+    PointNi view_dependent_dims = PointNi::one(pdim);
+    for (int E = 0; E < 12; E++)
+    {
+      int query_axis = (E >= 8) ? 2 : (E & 1 ? 1 : 0);
+      Point2d p1 = screen_points[unit_box_edges[E][0]];
+      Point2d p2 = screen_points[unit_box_edges[E][1]];
+      double pixel_distance_on_screen = (p2 - p1).module();
+      view_dependent_dims[query_axis] = std::max(view_dependent_dims[query_axis], (Int64)pixel_distance_on_screen);
+    }
 
-    //from dataset url
-    if (this->getUrl().hasParam("time"))
-      query->time=cdouble(this->getUrl().getParam("time"));
+    nsamples[0] = std::min(view_dependent_dims[0], nsamples[0]);
+    nsamples[1] = std::min(view_dependent_dims[1], nsamples[1]);
+    nsamples[2] = std::min(view_dependent_dims[2], nsamples[2]);
   }
 
-
-  if (!getTimesteps().containsTimestep(query->time))
-  {
-    query->setFailed("missing timestep");
-    return false;
-  }
-
-  if (query->end_resolutions.empty())
-    query->end_resolutions={this->getMaxResolution()};
-
-  #ifdef VISUS_DEBUG
-  if (!this->getBitmask().hasRegExpr())
-  {  
-    for (int I=0;I<(int)query->end_resolutions.size();I++)
-      VisusAssert(query->end_resolutions[I]<=this->getMaxResolution());
-  }
-  #endif
-
-  return true;
+  return nsamples;
 }
 
-////////////////////////////////////////////////
-bool Dataset::executeQuery(SharedPtr<Access> access,SharedPtr<Query> query)
-{
-  if (!query)
-    return false;
-
-  if (!query->canExecute())
-  {
-    query->setFailed("query is in non-executable status");
-    return false;
-  }
-
-  if (query->aborted()) 
-  {
-    query->setFailed("query aboted");
-    return false;
-  }
-
-  //for 'r' queries I can postpone the allocation
-  if (query->mode=='w' && !query->buffer)
-  {
-    query->setFailed("write buffer not set");
-    return false;
-  }
-
-  return true;
-}
-
-////////////////////////////////////////////////
-bool Dataset::nextQuery(SharedPtr<Query> query)
-{
-  if (!query)
-    return false;
-
-  if (!query->canNext())
-  {
-    query->setFailed("query cannot next");
-    return false;
-  }
-
-  if (query->aborted())
-  {
-    query->setFailed("query aborted");
-    return false;
-  }
-
-  VisusAssert(query->isRunning());
-  ++query->query_cursor;
-
-  //reached the end?
-  if (query->query_cursor==query->end_resolutions.size())
-  {
-    query->setOk();
-    return false;
-  }
-  //continue running
-  else
-  {
-    return true;
-  }
-}
-
-////////////////////////////////////////////////
-bool Dataset::executePureRemoteQuery(SharedPtr<Query> query)
-{
-  auto request =createPureRemoteQueryNetRequest(query);
-  auto response=NetService::getNetResponse(request);
-
-  if (!response.isSuccessful())
-  {
-    query->setFailed((StringUtils::format()<<"network request failed errormsg("<<response.getErrorMessage()<<")").str());
-    return false;
-  }
-
-  auto buffer=response.getArrayBody();
-  if (!buffer) {
-    query->setFailed((StringUtils::format()<<"failed to decode body").str());
-    return false;
-  }
-
-  VisusAssert(buffer.dims==query->nsamples);
-  query->buffer=buffer;
-  query->currentLevelReady();
-  return true;
-}
 
 ////////////////////////////////////////////////
 void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield, double Wtime,
@@ -734,8 +641,8 @@ void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield,
   VisusInfo()<<"  Source      Rurl("+Rvf->getUrl().toString() + ") Rfield("+Rfield.name+") Rtime("+cstring(Rtime)+")";
 
   auto num_blocks=std::min(
-    Wvf->getTotalnumberOfBlocks(),
-    Rvf->getTotalnumberOfBlocks());
+    Wvf->getTotalNumberOfBlocks(),
+    Rvf->getTotalNumberOfBlocks());
 
   Aborted aborted;
 
@@ -753,15 +660,15 @@ void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield,
     }
 
     //don't care, could be the block missing
-    auto read_block = std::make_shared<BlockQuery>(Rfield, Rtime, Raccess->getStartAddress(block_id), Raccess->getEndAddress(block_id), aborted);
+    auto read_block = std::make_shared<BlockQuery>(Rvf, Rfield, Rtime, Raccess->getStartAddress(block_id), Raccess->getEndAddress(block_id), 'r', aborted);
 
-    if (!Rvf->readBlockAndWait(Raccess, read_block))
+    if (!Rvf->executeBlockQueryAndWait(Raccess, read_block))
       continue; 
 
-    auto write_block = std::make_shared<BlockQuery>(Wfield, Wtime, Waccess->getStartAddress(block_id), Waccess->getEndAddress(block_id), aborted);
+    auto write_block = std::make_shared<BlockQuery>(Wvf, Wfield, Wtime, Waccess->getStartAddress(block_id), Waccess->getEndAddress(block_id), 'w', aborted);
     write_block->buffer = read_block->buffer;
 
-    if (!Wvf->writeBlockAndWait(Waccess, write_block))
+    if (!Wvf->executeBlockQueryAndWait(Waccess, write_block))
     {
       VisusInfo()<<"FAILED to write block("+cstring(block_id)<<")";
       continue;
@@ -781,24 +688,23 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
   VisusAssert(access);
 
   auto pdim = this->getPointDim();
-  auto maxh = this->getMaxResolution();
   auto bitmask = this->getBitmask();
   auto bitsperblock = access->bitsperblock;
   auto nsamplesperblock = 1 << bitsperblock;
 
-  VisusAssert(H >= bitsperblock && H <= maxh);
+  VisusAssert(H >= bitsperblock);
 
-  LogicBox level_box;
+  LogicSamples Lsamples;
 
   if (H == bitsperblock)
-    level_box = this->getAddressRangeBox(0, nsamplesperblock);
+    Lsamples = this->getAddressRangeSamples(0, nsamplesperblock);
   else
-    level_box = this->getLevelBox(H);
+    Lsamples = this->getLevelSamples(H);
 
   auto start_block = (H == bitsperblock) ? 0 : (1 << (H - bitsperblock - 1));
   auto block_per_level = std::max(1, start_block);
 
-  Array ret(level_box.nsamples, DTypes::UINT8_RGB);
+  Array ret(Lsamples.nsamples, DTypes::UINT8_RGB);
   ret.fillWithValue(0);
 
   access->beginRead();
@@ -808,12 +714,10 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
     auto hzfrom = block << bitsperblock;
     auto hzto = hzfrom + nsamplesperblock;
 
-    auto block_query = std::make_shared<BlockQuery>(field, time, hzfrom, hzto, Aborted());
+    auto block_query = std::make_shared<BlockQuery>(this, field, time, hzfrom, hzto, 'r', Aborted());
+    
 
-    auto block_box = getAddressRangeBox(hzfrom,hzto);
-    auto p1 = level_box.logicToPixel(block_box.p1);
-
-    this->readBlockAndWait(access, block_query);
+    this->executeBlockQueryAndWait(access, block_query);
 
     if (block_query->failed())
       continue;
@@ -841,6 +745,7 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
       for (int C = 0; C < src.dims[1]; C++) { setBlack(0, C); setBlack(W - 1, C); }
     }
 
+    auto p1 = Lsamples.logicToPixel(block_query->getLogicBox().p1);
     ArrayUtils::paste(ret, p1, src);
   }
 

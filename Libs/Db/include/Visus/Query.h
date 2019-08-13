@@ -40,160 +40,97 @@ For support : support@visus.net
 #define __VISUS_QUERY_H
 
 #include <Visus/Db.h>
-#include <Visus/BlockQuery.h>
-#include <Visus/Frustum.h>
+#include <Visus/LogicSamples.h>
+#include <Visus/Async.h>
 
 namespace Visus {
 
+
 //predeclaration
-class DatasetFilter;
 class Dataset;
 
+//////////////////////////////////////////////////////////////////////////
+enum QueryStatus
+{
+  QueryCreated = 0,
+  QueryRunning,
+  QueryFailed,
+  QueryOk
+};
 
-////////////////////////////////////////////////////////
-class VISUS_DB_API Query 
+
+///////////////////////////////////////////////////////////////////////////////////////
+class VISUS_DB_API Query
 {
 public:
 
   VISUS_NON_COPYABLE_CLASS(Query)
 
-  //see mergeQueries
-  enum MergeMode
-  {
-    InsertSamples,
-    InterpolateSamples
-  };
+  Dataset* dataset = nullptr;
+  int          mode = 0;
+  Field        field;
+  double       time = 0;
+  Aborted      aborted;
 
+  Array        buffer;
 
-  Aborted    aborted;
-
-  Field      field;
-  double     time = 0;
-
-  Array      buffer;
-
-  PointNi    nsamples;
-  LogicBox   logic_box;
-
-  //-1 guess progression
-  //0 means that you want to see only the final resolution
-  //>0 set some progression
-  enum Progression
-  {
-    GuessProgression=-1,
-    NoProgression=0
-  };
-
-  //I estimate internally (see estimateEndH) what is the max resolution the user can see on the screen (depending also on the view frustum)
-  //you can ask to see less samples than the estimation by using a negative number
-  //you can ask to see more samples than the estimation by using a positive number
-  enum Quality
-  {
-    DefaultQuality=0,
-  };
-
-  int                        mode='r';
-  MergeMode                  merge_mode=InsertSamples;
-  Position                   position;
-  Frustum                    viewdep;
-  Position                   clipping;
-  std::function<void(Array)> incrementalPublish;
-
-  /*
-    DatasetBitmask bitmask("V012{012}*);
-    V012012012012012012012012012012012...... 
-    0-----------------------------max
-             |         |
-    start    current   end
-             |.......->|    
-  */
-  
-  int              start_resolution=0;
-  int              cur_resolution=-1;
-  std::vector<int> end_resolutions;
-  int              max_resolution=0;
-  int              query_cursor=-1; 
-
-  class VISUS_DB_API Filter
-  {
-  public:
-    bool                     enabled = false;
-    SharedPtr<DatasetFilter> value;
-    BoxNi                    domain;
-  };
-
-  Filter filter;
-
-  //aligned_box (internal use only)
-  BoxNi aligned_box;
-
-  //filter_query (internal use only)
-  SharedPtr<Query> filter_query;
-
-  //(internal use only)
-#if !SWIG
-  class AddressConversion {
-  public:
-    virtual ~AddressConversion() {}
-  };
-  CriticalSection              address_conversion_lock;
-  SharedPtr<AddressConversion> address_conversion;
-#endif
-
-  //for midx
-  struct
-  {
-    String  name;
-    Array   BUFFER;
-    Matrix  PIXEL_TO_LOGIC;
-    Matrix  LOGIC_TO_PIXEL;
-    PointNd logic_centroid;
-
-    SharedPtr<Access> access;
-  }
-  down_info;
-
-  std::map<String, SharedPtr<Query> >  down_queries;
-
-  // for point queries
-  struct
-  {
-    SharedPtr<HeapMemory> coordinates;
-  }
-  point_query;
-  
   //constructor
-  Query(Dataset* dataset,int mode);
+  Query(Dataset* dataset_, Field field_, double time_, int mode_, Aborted aborted_)
+    : dataset(dataset_), field(field_), time(time_), mode(mode_), aborted(aborted_)
+  {
+    VisusAssert(mode == 'r' || mode == 'w');
+  }
 
   //destructor
   virtual ~Query() {
   }
 
+  //getNumberOfSamples
+  virtual PointNi getNumberOfSamples() const = 0;
+
   //getByteSize
   Int64 getByteSize() const {
-    return field.dtype.getByteSize(nsamples);
+    return field.dtype.getByteSize(getNumberOfSamples());
   }
 
-
-  //isPointQuery
-  bool isPointQuery() const {
-    return point_query.coordinates ? true : false;
+  //getStatus
+  QueryStatus getStatus() const {
+    return status;
   }
 
-  //isRunning
-  bool isRunning() const {
-    return status==QueryRunning;
-  }
+  //setStatus
+  virtual void setStatus(QueryStatus value);
 
-  //setRunning
-  void setRunning() {
-    VisusAssert(status==QueryCreated);
-    this->status=QueryRunning;
+  //ok
+  bool ok() const {
+    return getStatus() == QueryOk;
   }
 
   //failed
   bool failed() const {
-    return status==QueryFailed;
+    return getStatus() == QueryFailed;
+  }
+
+  //running
+  bool isRunning() const {
+    return getStatus() == QueryRunning;
+  }
+
+  //setRunning
+  void setRunning() {
+    setStatus(QueryRunning);
+  }
+
+  //setOk
+  void setOk() {
+    setStatus(QueryOk);
+  }
+
+  //setOk
+  void setFailed(String error_msg = "") {
+    setStatus(QueryFailed);
+    if (!error_msg.empty())
+      setLastErrorMsg(error_msg);
   }
 
   //getLastErrorMsg
@@ -201,85 +138,20 @@ public:
     return errormsg;
   }
 
-  //ok
-  bool ok() const {
-    return status==QueryOk;
-  }
-
-  //setFailed
-  void setFailed(String msg) 
-  {
-    if (failed()) return;
-    VisusAssert(status==QueryCreated || status==QueryRunning || status==QueryOk);
-    this->query_cursor=(int)end_resolutions.size();
-    this->status=QueryFailed;
-    this->errormsg=msg;
-  }
-
-  //setOk
-  void setOk()
-  {
-    VisusAssert(status==QueryRunning);
-    this->query_cursor=(int)end_resolutions.size();
-    this->status=QueryOk;
-    this->errormsg="";
-  }
-
-  //canBegin
-  bool canBegin() const {
-    return status==QueryCreated;
-  }
-
-  //canNext
-  bool canNext() const {
-    return status==QueryRunning && cur_resolution==end_resolutions[query_cursor];
-  }
-
-  //canExecute
-  bool canExecute() const {
-    return status==QueryRunning && cur_resolution<end_resolutions[query_cursor];
-  }
-
-  //getEndResolution
-  int getEndResolution() const {
-
-    if (status!=QueryRunning) return -1;
-    VisusAssert(query_cursor>=0 && query_cursor<end_resolutions.size());
-    return end_resolutions[query_cursor];
-  }
-
-  //currentLevelReady
-  void currentLevelReady() 
-  {
-    VisusAssert(status==QueryRunning);
-    VisusAssert(this->buffer.dims==this->nsamples);
-    VisusAssert(query_cursor>=0 && query_cursor<end_resolutions.size());
-    this->buffer.bounds   = this->position;
-    this->buffer.clipping = this->clipping;
-    this->cur_resolution=end_resolutions[query_cursor];
+  //setLastErrorMsg
+  void setLastErrorMsg(String value) {
+    errormsg = value;
   }
 
   //allocateBufferIfNeeded
   bool allocateBufferIfNeeded();
 
-public:
-
-  //mergeSamples
-  static bool mergeSamples(LogicBox wbox, Array& wbuffer, LogicBox rbox, Array rbuffer, int merge_mode, Aborted aborted);
-
-  //mergeSamples
-  static bool mergeSamples(Query& write, Query& read, int merge_mode, Aborted aborted) {
-    return mergeSamples(write.logic_box, write.buffer, read.logic_box, read.buffer, merge_mode, aborted);
-  }
-
-private:
-
-  String errormsg="";
+protected:
 
   QueryStatus status = QueryCreated;
 
+  String errormsg = "";
 };
-
 
 
 } //namespace Visus
