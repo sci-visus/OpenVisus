@@ -60,8 +60,6 @@ public:
   //bSlam
   bool bSlam = false;
 
-  std::map<String , SharedPtr<Dataset> > down_datasets;
-
   //constructor
   IdxMultipleDataset();
 

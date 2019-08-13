@@ -47,6 +47,8 @@ For support : support@visus.net
 #include <Visus/ModelViewNode.h>
 #include <Visus/IsoContourRenderNode.h>
 
+#include <Visus/IdxMultipleDataset.h>
+
 #include <QApplication>
 
 namespace Visus {
@@ -368,6 +370,8 @@ int Viewer::glGetRenderQueue(Node* node)
   return DoNotDisplay;
 }
 
+
+
 /////////////////////////////////////////////////////////////////////////////////////
 void Viewer::glRenderNodes(GLCanvas& gl)
 {
@@ -397,19 +401,43 @@ void Viewer::glRenderNodes(GLCanvas& gl)
       {
         auto node_to_screen= computeNodeToScreen(getGLCamera()->getFrustum(),node);
         Position bounds=getNodeBounds(node);
-        bool bUseFarPoint=nqueue==2;
+        bool bUseFarPoint=(nqueue==2);
         double distance= node_to_screen.computeZDistance(bounds,bUseFarPoint);
         if (bOrthoCamera || distance>=0)
           sorted_nodes.push_back(GLSortNode(nqueue,distance, node_to_screen,globject));
       }
     }
-  
+
     if (auto dataset_node=dynamic_cast<DatasetNode*>(node))
     {
       if (dataset_node->showBounds())
       {
         auto bounds=getNodeBounds(dataset_node);
         GLBox(bounds,Colors::Transparent,Colors::Black.withAlpha(0.5)).glRender(gl);
+      }
+
+      auto dataset = dataset_node->getDataset();
+
+      //render annotations
+      if (!dataset->annotations.empty())
+      {
+        auto frustum = computeNodeToScreen(getGLCamera()->getFrustum(), dataset_node);
+        auto map = FrustumMap(frustum);
+
+        for (auto annotation : dataset->annotations)
+        {
+          if (auto poi = std::dynamic_pointer_cast<PointOfInterest>(annotation))
+          {
+            auto screen_pos = map.projectPoint(Point3d(poi->pos));
+            auto screen1 = screen_pos - Point2d(poi->size / 2, poi->size / 2);
+            auto screen2 = screen_pos + Point2d(poi->size / 2, poi->size / 2);
+            huds.push_back(std::make_shared<GLQuad>(screen1, screen2, Colors::Yellow.withAlpha(0.3f), Colors::Black.withAlpha(0.3f), 1));
+          }
+          else
+          {
+            VisusAssert(false);
+          }
+        }
       }
     }
 
@@ -438,6 +466,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
     gl.popDepthTest();
     gl.popFrustum();
   }  
+
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -533,6 +562,8 @@ void Viewer::glRenderLogos(GLCanvas& gl)
 /////////////////////////////////////////////////////////////////////////////////////
 void Viewer::glRender(GLCanvas& gl)
 {
+  huds.clear();
+
   gl.setViewport(Viewport(0,0,this->width(),this->height()));
   gl.glClearColor(background_color);
   gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -549,8 +580,26 @@ void Viewer::glRender(GLCanvas& gl)
   if (free_transform)
     free_transform->glRender(gl);
 
+  // render huds
+  if (!huds.empty())
+  {
+    gl.pushFrustum();
+    gl.setHud();
+    gl.pushBlend(true);
+    gl.pushDepthTest(false);
+
+    for (auto it : huds)
+      it->glRender(gl);
+
+    gl.popBlend();
+    gl.popDepthTest();
+    gl.popFrustum();
+  }
+
   glRenderGestures(gl);
   glRenderLogos(gl);
+
+  huds.clear();
 }
 
 

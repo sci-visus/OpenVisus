@@ -54,6 +54,35 @@ VISUS_IMPLEMENT_SINGLETON_CLASS(DatasetFactory)
 
 
 /////////////////////////////////////////////////////////////////////////////
+void Dataset::readAnnotationsFromObjectStream(ObjectStream istream)
+{
+  if (istream.pushContext("annotations"))
+  {
+    while (istream.pushContext("annotation"))
+    {
+      auto type = istream.readInline("type");
+      if (type == "magnet")
+      {
+        auto poi = std::make_shared<PointOfInterest>();
+        poi->pos = Point2d(cdouble(istream.readInline("x")), cdouble(istream.readInline("y")));
+        poi->text = istream.readInline("text");
+        poi->size = cint(istream.readInline("size", "10"));
+        poi->line_color = Color::parseFromString(istream.readInline("line_color", Colors::Yellow.withAlpha(0.3f).toString()));
+        poi->fill_color = Color::parseFromString(istream.readInline("fill_color", Colors::Black.withAlpha(0.3f).toString()));
+        this->annotations.push_back(poi);
+      }
+      else
+      {
+        VisusAssert(false);
+      }
+      istream.popContext("annotation");
+    }
+
+    istream.popContext("annotations");
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////
 std::vector<int> Dataset::guessEndResolutions(const Frustum& logic_to_screen,Position logic_position,QueryQuality quality,QueryProgression progression)
 {
   int dataset_dim = this->getPointDim();
@@ -364,7 +393,7 @@ String Dataset::getDatasetInfos() const
 
   out<<"Visus file infos                                         "<<std::endl;
   out<<"  Logic box                                              "<< getLogicBox().toOldFormatString()<<std::endl;
-  out <<" Physic position                                        "<< getPhysicPosition().toString() << std::endl;
+  out <<" Physic position                                        "<< getDatasetBounds().toString() << std::endl;
   out<<"  Pow2 dims                                              "<<getBitmask().getPow2Dims().toString()<<std::endl;
   out<<"  number of samples                                      "<<total_number_of_samples<<std::endl;
   out<<"  number of blocks                                       "<<total_number_of_blocks<<std::endl;

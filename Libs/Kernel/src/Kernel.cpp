@@ -52,6 +52,7 @@ For support : support@visus.net
 
 #include <assert.h>
 #include <type_traits>
+#include <iomanip>
 
 #include <fstream>
 #include <iostream>
@@ -178,6 +179,13 @@ int          Private::CommandLine::argn=0;
 const char** Private::CommandLine::argv ;
 
 static String visus_config_commandline_filename;
+
+///////////////////////////////////////////////////////////////////////////////
+String cstring10(double value) {
+  std::ostringstream out;
+  out << std::setprecision(std::numeric_limits<double>::max_digits10) << value;
+  return out.str();
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 void SetCommandLine(int argn, const char** argv)

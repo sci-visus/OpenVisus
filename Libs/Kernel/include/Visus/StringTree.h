@@ -58,7 +58,7 @@ public:
   String name;
 
   //attributes
-  StringMap attributes;
+  std::vector< std::pair<String, String> > attributes;
 
   // constructor
   StringTree(String name_ = "") : name(name_){
@@ -89,6 +89,40 @@ public:
 
   //operator=
   StringTree& operator=(const StringTree& other);
+
+
+  //hasAttribute
+  bool hasAttribute(String name) const
+  {
+    for (int I = 0; I < attributes.size(); I++) {
+      if (attributes[I].first == name)
+        return true;
+    }
+    return false;
+  }
+
+  //getAttribute
+  String getAttribute(String name, String default_value="") const
+  {
+    for (int I = 0; I < this->attributes.size(); I++) {
+      if (attributes[I].first == name)
+        return attributes[I].second;
+    }
+    return default_value;
+  }
+
+  //setAttribute
+  void setAttribute(String name, String value)
+  {
+    for (int I = 0; I < this->attributes.size(); I++) {
+      if (attributes[I].first == name) {
+        attributes[I].second = value;
+        return;
+      }
+    }
+    attributes.push_back(std::make_pair(name,value));
+  }
+
 
   //clear
   void clear()
@@ -201,14 +235,14 @@ public:
   int getMaxDepth();
 
   //inheritAttributeFrom
-  void inheritAttributeFrom(const StringTree& other)  
+  void inheritAttributeFrom(const StringTree& other,bool bOverwriteIfExists)  
   {
     for (auto it : other.attributes)
     {
       String key   = it.first;
       String value = it.second;
-      if (this->attributes.find(key) == this->attributes.end())
-        this->attributes.setValue(key,value);
+      if (bOverwriteIfExists || !hasAttribute(key))
+        setAttribute(key,value);
     }
   }
 

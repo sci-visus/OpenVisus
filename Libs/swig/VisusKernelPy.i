@@ -5,6 +5,7 @@
 #include <Visus/Log.h>
 #include <Visus/VisusConfig.h>
 #include <Visus/NetServer.h>
+#include <Visus/Polygon.h>
 using namespace Visus;
 %}
 
@@ -67,6 +68,9 @@ using namespace Visus;
 %include <Visus/Matrix.h>
 %include <Visus/Position.h>
 %include <Visus/Quaternion.h>
+%include <Visus/Polygon.h>
+   %template(VectorPoint2d)  std::vector<Visus::Point2d>;
+
 %include <Visus/Range.h>
 %include <Visus/DType.h>
 %include <Visus/Field.h>

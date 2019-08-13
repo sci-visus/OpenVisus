@@ -56,6 +56,50 @@ namespace Visus {
 //predeclaration
 class RamAccess;
 
+////////////////////////////////////////////////////////
+class VISUS_DB_API Annotation
+{
+public:
+
+  //constructor
+  virtual ~Annotation() {
+  }
+
+  //clone
+  virtual SharedPtr<Annotation> clone() const = 0;
+
+  //prependModelview
+  virtual void prependModelview(Matrix T) = 0;
+};
+
+///////////////////////////////////////////////////////
+class VISUS_DB_API PointOfInterest : public Annotation
+{
+public:
+
+  Point2d pos;
+  String  text;
+  int     size = 0;
+  Color   line_color;
+  Color   fill_color;
+
+  //destructor
+  virtual ~PointOfInterest() {
+  }
+
+  //clone
+  virtual SharedPtr<Annotation> clone() const override {
+    return std::make_shared<PointOfInterest>(*this);
+  }
+
+  //prependModelview
+  virtual void prependModelview(Matrix T) override {
+    VisusAssert(T.getSpaceDim() == 3);
+    this->pos = (T * PointNd(this->pos)).toPoint2();
+  }
+
+};
+
 
 ////////////////////////////////////////////////////////
 class VISUS_DB_API KdQueryMode
@@ -104,7 +148,6 @@ private:
   KdQueryMode() = delete;
 };
 
-
 ////////////////////////////////////////////////////////
 class VISUS_DB_API Dataset 
 {
@@ -113,8 +156,16 @@ public:
   //this is needed for midx
   Color color;
 
+
+  //this is needed for midx
+  std::map<String, SharedPtr<Dataset> > down_datasets;
+
+
   //this is needed for midx
   Matrix logic_to_LOGIC;
+
+  //annotations
+  std::vector< SharedPtr< Annotation> > annotations;
 
   //constructor
   Dataset() {
@@ -134,6 +185,9 @@ public:
   static void copyDataset(
     Dataset* Dvf, SharedPtr<Access> Daccess, Field Dfield, double Dtime,
     Dataset* Svf, SharedPtr<Access> Saccess, Field Sfield, double Stime);
+
+  //readAnnotationsFromObjectStream
+  void readAnnotationsFromObjectStream(ObjectStream istream);
 
   //valid
   bool valid() const {
@@ -297,20 +351,20 @@ public:
   //setBox
   void setLogicBox(const BoxNi& value) {
     this->logic_box = value;
-    VisusAssert(!physic_position.valid());
+    VisusAssert(!dataset_bounds.valid());
   }
 
 public:
 
-  //getPhysicPosition
-  Position getPhysicPosition() const {
-    return physic_position;
+  //getDatasetBounds
+  Position getDatasetBounds() const {
+    return dataset_bounds;
   }
 
-  //setPhysicPosition (to call after setLogicBox())
-  void setPhysicPosition(Position value) {
+  //setDatasetBounds (to call after setLogicBox())
+  void setDatasetBounds(Position value) {
     VisusAssert(this->logic_box.valid());
-    this->physic_position = value;
+    this->dataset_bounds = value;
     this->logic_to_physic = Position::computeTransformation(value, getLogicBox());
     this->physic_to_logic = this->logic_to_physic.invert();
   }
@@ -521,7 +575,7 @@ private:
   std::map<String, Field> find_field;
   DatasetBitmask          bitmask;
   BoxNi                   logic_box;
-  Position                physic_position = Position::invalid();
+  Position                dataset_bounds = Position::invalid();
   Matrix                  logic_to_physic, physic_to_logic;
   String                  default_scene;
   int                     kdquery_mode = KdQueryMode::NotSpecified;

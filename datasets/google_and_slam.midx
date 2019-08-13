@@ -5,10 +5,11 @@
 	</field>
 
 	<!-- logic dimensions 1073741824^2 -->
-	<dataset name='google'  url='http://mt1.google.com/vt/lyrs=s?nlevels=22'  physic_box="-180.0 +180.0 -90.0 +90.0" />
+	<dataset name='google'  url='http://mt1.google.com/vt/lyrs=s?nlevels=22'  physic_box="0.0 1.0 0.0 1.0" />
+		
 	
-	<dataset name='slam' url='E:\google_sci\visus_slam\TaylorGrant\VisusSlamFiles\visus.midx' physic_box="-170.0 +150 -80.0 -30.0" />
-	
+	<!-- already in 0,1 range  -->
+	<dataset name='slam' url='E:\google_sci\visus_slam\TaylorGrant\VisusSlamFiles\visus.midx' />
 	
 </dataset>
 

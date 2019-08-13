@@ -447,11 +447,11 @@ bool GoogleMapsDataset::openFromUrl(Url url)
 
 
 #if 1
-  this->setPhysicPosition(BoxNi(PointNi(0, 0), overall_dims));
+  this->setDatasetBounds(BoxNi(PointNi(0, 0), overall_dims));
 #else
   //using latitude [-90,+90] longiture [-180,+180]  
   //see //http://www.satsig.net/lat_long.htm
-  this->setPhysicPosition(BoxNd(PointNd(-180, -90), PointNd(+180, +90)));
+  this->setDatasetBounds(BoxNd(PointNd(-180, -90), PointNd(+180, +90)));
 #endif
 
   auto timesteps = DatasetTimesteps();

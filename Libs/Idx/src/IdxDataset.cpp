@@ -997,7 +997,7 @@ void IdxDataset::setIdxFile(IdxFile value)
   setBitmask(bitmask);
   setDefaultBitsPerBlock(value.bitsperblock);
   setLogicBox(value.logic_box);
-  setPhysicPosition(value.bounds);
+  setDatasetBounds(value.bounds);
   setTimesteps(value.timesteps);
   
   setDefaultScene(value.scene);

@@ -169,7 +169,7 @@ public:
     this->p1 = Point::min(this->p1, p);
     this->p2 = Point::max(this->p2, p);
   }
-
+  
   //toBox3
   BoxN toBox3() const {
     return this->withPointDim(3);

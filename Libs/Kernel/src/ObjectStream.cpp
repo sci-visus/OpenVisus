@@ -75,17 +75,25 @@ void ObjectStream::writeInline(String name,String value)
 
 
 /////////////////////////////////////////////////////////////
-bool ObjectStream::hasAttribute(String name) {
-  return getCurrentContext()->attributes.find(name) != getCurrentContext()->attributes.end();
+bool ObjectStream::hasAttribute(String name) 
+{
+  const auto& attributes = getCurrentContext()->attributes;
+  for (int I = 0; I < attributes.size(); I++) {
+    if (attributes[I].first == name)
+      return true;
+  }
+  return false;
 }
 
 /////////////////////////////////////////////////////////////
 String ObjectStream::readInline(String name,String default_value)
 {
-  if (getCurrentContext()->attributes.find(name)!=getCurrentContext()->attributes.end())
-    return getCurrentContext()->readString(name);
-  else
-    return default_value;
+  const auto& attributes = getCurrentContext()->attributes;
+  for (int I = 0; I < attributes.size(); I++) {
+    if (attributes[I].first == name)
+      return attributes[I].second;
+  }
+  return default_value;
 }
 
 /////////////////////////////////////////////////////////////

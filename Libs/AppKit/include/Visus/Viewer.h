@@ -936,6 +936,10 @@ signals:
 
   void postFlushMessages();
 
+private:
+
+  std::vector< SharedPtr<GLObject> > huds;
+
 }; //end class
 
 

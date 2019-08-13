@@ -121,7 +121,7 @@ public:
     if (it != configs.end())
       config = it->second;
 
-    config.inheritAttributeFrom(this->CONFIG);
+    config.inheritAttributeFrom(this->CONFIG,false);
     bool bForBlockQuery = DATASET->getKdQueryMode() & KdQueryMode::UseBlockQuery ? true : false;
     return dataset->createAccess(config, bForBlockQuery);
   }
@@ -1095,13 +1095,11 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream)
   child->color = Color::parseFromString(istream.readInline("color", Color::random().toString()));;
   auto sdim = child->getPointDim() + 1;
 
-  
-
   //override physic_box 
   if (istream.hasAttribute("physic_box"))
   {
     auto physic_box = BoxNd::parseFromString(istream.readInline("physic_box"));
-    child->setPhysicPosition(physic_box);
+    child->setDatasetBounds(physic_box);
   }
   else if (istream.hasAttribute("quad"))
   {
@@ -1112,41 +1110,54 @@ void IdxMultipleDataset::parseDataset(ObjectStream& istream)
     auto dst = Quad::fromString(istream.readInline("quad"));
     auto src = Quad(W,H);
     auto T   = Quad::findQuadHomography(dst, src);
-    child->setPhysicPosition(Position(T,BoxNd(PointNd(0,0),PointNd(W,H))));
+    child->setDatasetBounds(Position(T,BoxNd(PointNd(0,0),PointNd(W,H))));
   }
   
   // transform physic box
-  Matrix physic_to_PHYSIC(sdim);
+  Matrix modelview(sdim);
   if (istream.hasAttribute("offset"))
-    physic_to_PHYSIC *= Matrix::translate(PointNd::parseFromString(istream.readInline("offset"))).withSpaceDim(sdim);
+    modelview *= Matrix::translate(PointNd::parseFromString(istream.readInline("offset"))).withSpaceDim(sdim);
 
   if (istream.pushContext("M"))
   {
     if (istream.hasAttribute("value"))
-      physic_to_PHYSIC *= Matrix::parseFromString(istream.readInline("value")).withSpaceDim(sdim);
+      modelview *= Matrix::parseFromString(istream.readInline("value")).withSpaceDim(sdim);
 
     for (auto it : istream.getCurrentContext()->getChilds())
     {
       if (it->name == "translate")
-        physic_to_PHYSIC *= Matrix::translate(PointNd(cdouble(it->readString("x")), cdouble(it->readString("y")), cdouble(it->readString("z")))).withSpaceDim(sdim);
+        modelview *= Matrix::translate(PointNd(cdouble(it->readString("x")), cdouble(it->readString("y")), cdouble(it->readString("z")))).withSpaceDim(sdim);
 
       else if (it->name == "rotate")
-        physic_to_PHYSIC *= Matrix::rotate(Quaternion::fromEulerAngles(Utils::degreeToRadiant(cdouble(it->readString("x"))), Utils::degreeToRadiant(cdouble(it->readString("y"))), Utils::degreeToRadiant(cdouble(it->readString("z"))))).withSpaceDim(sdim);
+        modelview *= Matrix::rotate(Quaternion::fromEulerAngles(Utils::degreeToRadiant(cdouble(it->readString("x"))), Utils::degreeToRadiant(cdouble(it->readString("y"))), Utils::degreeToRadiant(cdouble(it->readString("z"))))).withSpaceDim(sdim);
 
       else if (it->name == "scale")
-        physic_to_PHYSIC *= Matrix::nonZeroScale(PointNd(cdouble(it->readString("x")), cdouble(it->readString("y")), cdouble(it->readString("z")))).withSpaceDim(sdim);
+        modelview *= Matrix::nonZeroScale(PointNd(cdouble(it->readString("x")), cdouble(it->readString("y")), cdouble(it->readString("z")))).withSpaceDim(sdim);
 
       else if (it->name == "M")
-        physic_to_PHYSIC *= Matrix::parseFromString(it->readString("value")).withSpaceDim(sdim);
+        modelview *= Matrix::parseFromString(it->readString("value")).withSpaceDim(sdim);
     }
 
     istream.popContext("M");
   }
+  
+  //refresh dataset bounds
+  auto bounds = child->getDatasetBounds();
+  child->setDatasetBounds(Position(modelview, bounds));
 
-  child->setPhysicPosition(Position(physic_to_PHYSIC, child->getPhysicPosition()));
+  //update annotation positions by modelview
+  if (!child->annotations.empty())
+  {
+    for (auto annotation : child->annotations)
+    {
+      auto ANNOTATION = annotation->clone();
+      ANNOTATION->prependModelview(modelview);
+      this->annotations.push_back(ANNOTATION);
+    }
+  }
+
   addChild(name, child);
 }
-
 
 
 ///////////////////////////////////////////////////////////
@@ -1207,6 +1218,8 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     istream.popContext("slam");
   }
 
+  readAnnotationsFromObjectStream(istream);
+
   while (istream.pushContext("dataset"))
   {
     if (cbool(istream.readInline("enabled", "1")))
@@ -1234,8 +1247,8 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     for (auto it : down_datasets)
     {
       auto dataset = it.second;
-      VisusAssert(dataset->getPhysicPosition().getBoxNi() == dataset->getLogicBox());
-      dataset->logic_to_LOGIC = dataset->getPhysicPosition().getTransformation();
+      VisusAssert(dataset->getDatasetBounds().getBoxNi() == dataset->getLogicBox());
+      dataset->logic_to_LOGIC = dataset->getDatasetBounds().getTransformation();
       VisusAssert(dataset->logic_to_LOGIC.submatrix(sdim - 1, sdim - 1).isIdentity()); // only offset
       LOGIC_BOX = LOGIC_BOX.getUnion(Position(dataset->logic_to_LOGIC, dataset->getLogicBox()).toAxisAlignedBox());
     }
@@ -1274,11 +1287,19 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   //set PHYSIC_BOX (union of physic boxes)
   auto PHYSIC_BOX = BoxNd::invalid();
-  for (auto it : down_datasets)
+  if (istream.hasAttribute("physic_box"))
   {
-    auto dataset = it.second;
-    PHYSIC_BOX = PHYSIC_BOX.getUnion(dataset->getPhysicPosition().toAxisAlignedBox());
+    PHYSIC_BOX = BoxNd::parseFromString(istream.readInline("physic_box"));
   }
+  else
+  {
+    for (auto it : down_datasets)
+    {
+      auto dataset = it.second;
+      PHYSIC_BOX = PHYSIC_BOX.getUnion(dataset->getDatasetBounds().toAxisAlignedBox());
+    }
+  }
+  VisusInfo() << "MIDX physic_box " << PHYSIC_BOX.toString();
   IDXFILE.bounds = Position(PHYSIC_BOX);
 
   //LOGIC_BOX
@@ -1305,7 +1326,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     {
       auto dataset = it.second;
       auto logic_tot_pixels = Position(dataset->getLogicBox()).computeVolume();
-      auto physic_volume = dataset->getPhysicPosition().computeVolume();
+      auto physic_volume = dataset->getDatasetBounds().computeVolume();
       auto density = logic_tot_pixels / physic_volume;
       auto vs = pow(density, 1.0 / pdim);
       VS = std::max(VS, vs);
@@ -1324,7 +1345,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       for (auto edge : BoxNd::getEdges(pdim))
       {
         auto logic_num_pixels = dataset->getLogicBox().size()[edge.axis];
-        auto physic_points    = dataset->getPhysicPosition().getPoints();
+        auto physic_points    = dataset->getDatasetBounds().getPoints();
         auto physic_edge      = physic_points[edge.index1] - physic_points[edge.index0];
         auto physic_axis      = physic_edge.abs().max_element_index();
         auto physic_module    = physic_edge.module();
@@ -1337,7 +1358,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   }
 
   IDXFILE.logic_box = LOGIC_BOX;
-  VisusInfo() << "midx logic_box " << IDXFILE.logic_box.toString();
+  VisusInfo() << "MIDX logic_box " << IDXFILE.logic_box.toString();
 
   //set logic_to_LOGIC
   for (auto it : down_datasets)
@@ -1351,7 +1372,8 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     auto logic_box = dataset->getLogicBox();
     auto LOGIC_PIXELS = Position(dataset->logic_to_LOGIC, logic_box).computeVolume();
     auto logic_pixels = Position(logic_box).computeVolume();
-    VisusInfo() << "   midx single idx density logic_pixels("<< logic_pixels <<") LOGIC_PIXELS("<< LOGIC_PIXELS <<") LOGIC_PIXELS/logic_pixels("<< LOGIC_PIXELS/logic_pixels <<")";
+    auto ratio = logic_pixels / LOGIC_PIXELS; //ratio>1 means you are loosing pixels, ratio=1 is perfect, ratio<1 that you have more pixels than needed and you will interpolate
+    VisusInfo() << "  "<<it.first<<" logic_pixels("<< logic_pixels <<") LOGIC_PIXELS("<< LOGIC_PIXELS <<") logic_pixels/LOGIC_PIXELS("<< ratio <<")";
   }
 
   //time
@@ -1413,6 +1435,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     computeDefaultFields();
   }
 
+  VisusInfo() << ""; //empty line
   return true;
 }
 

@@ -84,7 +84,7 @@ public:
 
   //getNodeBounds
   virtual Position getNodeBounds() override {
-    return dataset? dataset->getPhysicPosition() : Position::invalid();
+    return dataset? dataset->getDatasetBounds() : Position::invalid();
   }
 
   //showBounds
