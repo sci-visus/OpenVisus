@@ -519,7 +519,7 @@ static TiXmlElement* ToXmlElement(const StringTree& src)
     const StringTree& child = src.getChild(I);
     if (child.isCDataSectionNode())
     {
-      VisusAssert(child.attributes.size() == 1 && child.attributes.hasValue("value") && child.getNumberOfChilds() == 0);
+      VisusAssert(child.attributes.size() == 1 && child.hasAttribute("value") && child.getNumberOfChilds() == 0);
       String text = child.readString("value");
       TiXmlText * ti_xml_text = new TiXmlText(text.c_str());
       ti_xml_text->SetCDATA(true);
@@ -527,7 +527,7 @@ static TiXmlElement* ToXmlElement(const StringTree& src)
     }
     else if (child.isTextNode())
     {
-      VisusAssert(child.attributes.size() == 1 && child.attributes.hasValue("value") && child.getNumberOfChilds() == 0);
+      VisusAssert(child.attributes.size() == 1 && child.hasAttribute("value") && child.getNumberOfChilds() == 0);
       String text = child.readString("value");
       TiXmlText * ti_xml_text = new TiXmlText(text.c_str());
       ti_xml_text->SetCDATA(false);
