@@ -863,7 +863,7 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////
 IdxMultipleDataset::IdxMultipleDataset() {
 
-  this->debug_mode = 0;
+  this->debug_mode = 0;// DebugSkipReading;
 
 #if VISUS_PYTHON
   python_engine_pool = std::make_shared<PythonEnginePool>();

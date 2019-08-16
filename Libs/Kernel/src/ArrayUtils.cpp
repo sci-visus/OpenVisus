@@ -1449,6 +1449,7 @@ Array ArrayUtils::hueSaturationBrightness(Array src, double hue, double saturati
   return HueSaturationBrightness(src, hue, saturation, brightness, aborted).exec();
 }
 
+
 ////////////////////////////////////////////////////////
 class WarpPerspective
 {
@@ -1490,20 +1491,32 @@ public:
 
     if (pdim == 2)
     {
-      for (int y = 0; y < wdims[1]; y++)
+      Int64 rfrom;
+      double py[3], px[3];
+      Int64 X, Y;
+
+      for (Y = 0; Y < wdims[1]; Y++)
       {
         if (aborted())
           return false;
 
-        for (int x = 0; x < wdims[0]; x++, wfrom++)
+        py[0] = Ti[1] * Y + Ti[2];
+        py[1] = Ti[4] * Y + Ti[5];
+        py[2] = Ti[7] * Y + Ti[8];
+
+        for (X = 0; X < wdims[0]; X++, wfrom++)
         {
-          auto p = (Ti * PointNd(x,y)).castTo<PointNi>();
-          if (
-            p[0] >= 0 && p[0] < rdims[0] && 
-            p[1] >= 0 && p[1] < rdims[1])
+          px[0] = Ti[0] * X + py[0];
+          px[1] = Ti[3] * X + py[1];
+          px[2] = Ti[6] * X + py[2];
+
+          px[0] /= px[2];
+          px[1] /= px[2];
+
+          if (px[0] >= 0 && px[0] < rdims[0] && px[1] >= 0 && px[1] < rdims[1])
           {
-            auto rfrom = p.dot(rstride);
-            write[wfrom]       = read[rfrom];
+            rfrom = Int64(px[0]) * rstride[0] + Int64(px[1]) * rstride[1];
+            write      [wfrom] = read      [rfrom];
             write_alpha[wfrom] = read_alpha[rfrom];
           }
         }
@@ -1511,23 +1524,42 @@ public:
     }
     else if (pdim <=3)
     {
-      for (int z = 0; z < wdims[2]; z++)
+      double px[3], py[3], pz[3];
+      Int64 X,Y,Z,rfrom;
+      for (Z = 0; Z < wdims[2]; Z++)
       {
-        for (int y = 0; y < wdims[1]; y++)
+        pz[0] = Ti[ 2] * Z + Ti[ 3];
+        pz[1] = Ti[ 6] * Z + Ti[ 7];
+        pz[2] = Ti[10] * Z + Ti[11];
+        pz[3] = Ti[14] * Z + Ti[15];
+
+        for (Y = 0; Y < wdims[1]; Y++)
         {
           if (aborted())
             return false;
 
-          for (int x = 0; x < wdims[0]; x++, wfrom++)
+          py[0] = Ti[ 1] * Y + pz[0];
+          py[1] = Ti[ 5] * Y + pz[1];
+          py[2] = Ti[ 9] * Y + pz[2];
+          py[3] = Ti[13] * Y + pz[3];
+
+          for (X = 0; X < wdims[0]; X++, wfrom++)
           {
-            auto p = (Ti * PointNd(x, y, z)).castTo<PointNi>();
+            px[0] = Ti[ 0] * X + py[0];
+            px[1] = Ti[ 4] * X + py[1];
+            px[2] = Ti[ 8] * X + py[2];
+            px[3] = Ti[12] * X + py[3];
+
+            px[0] /= px[3];
+            px[1] /= px[3];
+            px[2] /= px[3];
 
             if (
-              p[0] >= 0 && p[0] < rdims[0] && 
-              p[1] >= 0 && p[1] < rdims[1] && 
-              p[2] >= 0 && p[2] < rdims[2])
+              px[0] >= 0 && px[0] < rdims[0] &&
+              px[1] >= 0 && px[1] < rdims[1] &&
+              px[2] >= 0 && px[2] < rdims[2])
             {
-              auto rfrom = p.dot(rstride);
+              rfrom = Int64(px[0]) * rstride[0] + Int64(px[1]) * rstride[1] + Int64(px[2]) * rstride[2];
               write      [wfrom] = read      [rfrom];
               write_alpha[wfrom] = read_alpha[rfrom];
             }
@@ -1773,52 +1805,52 @@ public:
 
         for (int C = 0; C < ncomponents; C++)
         {
-          GetComponentSamples<Float64> samples(best_distance, C);
+          GetComponentSamples<Float64> DST(best_distance, C);
           for (int I = 0, Tot = dims.innerProduct(); I < Tot; I++)
-            samples[I] = NumericLimits<double>::highest();
+            DST[I] = NumericLimits<double>::highest();
         }
       }
 
-      Point4d Px;
+
       auto T = up_pixel_to_logic;
-      T.setSpaceDim(4);
 
-      for (int C = 0; C < ncomponents; C++)
+      if (pdim == 2)
       {
-        int SampleId = 0;
-        GetComponentSamples<CppType> DST(dst, C); GetSamples<Uint8> DST_ALPHA(*dst.alpha);
-        GetComponentSamples<CppType> SRC(src, C); GetSamples<Uint8> SRC_ALPHA(*src.alpha);
-        GetComponentSamples<Float64> BEST_DISTANCE(best_distance,C);
-
-        for (int Z = 0; Z < depth; Z++)
+        for (int C = 0; C < ncomponents; C++)
         {
-          for (int Y = 0; Y < height; Y++)
+          int SampleId = 0;
+          GetComponentSamples<CppType> DST(dst, C); GetSamples<Uint8> DST_ALPHA(*dst.alpha);
+          GetComponentSamples<CppType> SRC(src, C); GetSamples<Uint8> SRC_ALPHA(*src.alpha);
+          GetComponentSamples<Float64> BEST_DISTANCE(best_distance, C);
+
+          Int64 X, Y;
+          double py[3], px[3], distance;
+
+          for (Y = 0; Y < height; Y++)
           {
             if (aborted())
               return false;
 
-            if (isEmptyLine())
-            {
-              SampleId += width;
-              continue;
-            }
+            py[0] = T[1] * Y + T[2];
+            py[1] = T[4] * Y + T[5];
+            py[2] = T[7] * Y + T[8];
 
-            for (int X = 0; X < width; X++, ++SampleId)
+            for (X = 0; X < width; X++, ++SampleId)
             {
               if (SRC_ALPHA[SampleId])
               {
-                //(T * Point3d(X, Y, Z) - logic_centroid).module2();
-                Px[0] = T[ 0] * X + T[ 1] * Y + T[ 2] * Z + T[ 3];
-                Px[1] = T[ 4] * X + T[ 5] * Y + T[ 6] * Z + T[ 7];
-                Px[2] = T[ 8] * X + T[ 9] * Y + T[10] * Z + T[11];
-                Px[3] = T[12] * X + T[13] * Y + T[14] * Z + T[15];
+                //(T * Point3d(X, Y) - logic_centroid).module2();
+                px[0] = T[0] * X + py[0];
+                px[1] = T[3] * X + py[1];
+                px[2] = T[6] * X + py[2];
 
-                auto dx = (Px[0] / Px[3]) - logic_centroid[0];
-                auto dy = (Px[1] / Px[3]) - logic_centroid[1];
-                auto dz = (Px[2] / Px[3]) - logic_centroid[2];
+                px[0] /= px[2];
+                px[1] /= px[2];
 
-                double distance = dx*dx + dy*dy + dz*dz;
+                px[0] -= logic_centroid[0];
+                px[1] -= logic_centroid[1];
 
+                distance = px[0] * px[0] + px[1] * px[1];
                 if (distance < BEST_DISTANCE[SampleId])
                 {
                   BEST_DISTANCE[SampleId] = distance;
@@ -1830,6 +1862,77 @@ public:
           }
         }
       }
+      else if (pdim==3)
+      {
+        for (int C = 0; C < ncomponents; C++)
+        {
+          int SampleId = 0;
+          GetComponentSamples<CppType> DST(dst, C); GetSamples<Uint8> DST_ALPHA(*dst.alpha);
+          GetComponentSamples<CppType> SRC(src, C); GetSamples<Uint8> SRC_ALPHA(*src.alpha);
+          GetComponentSamples<Float64> BEST_DISTANCE(best_distance, C);
+
+          Int64 X, Y, Z;
+          double pz[4], py[4], px[4], distance;
+
+          for (Z = 0; Z < depth; Z++)
+          {
+            pz[0] = T[ 2] * Z + T[ 3];
+            pz[1] = T[ 6] * Z + T[ 7];
+            pz[2] = T[10] * Z + T[11];
+            pz[3] = T[14] * Z + T[15];
+
+            for (Y = 0; Y < height; Y++)
+            {
+              if (aborted())
+                return false;
+
+              if (isEmptyLine())
+              {
+                SampleId += width;
+                continue;
+              }
+
+              py[0] = T[ 1] * Y + pz[0];
+              py[1] = T[ 5] * Y + pz[1];
+              py[2] = T[ 9] * Y + pz[2];
+              py[3] = T[13] * Y + pz[3];
+
+              for (X = 0; X < width; X++, ++SampleId)
+              {
+                if (SRC_ALPHA[SampleId])
+                {
+                  //(T * Point3d(X, Y, Z) - logic_centroid).module2();
+                  px[0] = T[ 0] * X + py[0];
+                  px[1] = T[ 4] * X + py[1];
+                  px[2] = T[ 8] * X + py[2];
+                  px[3] = T[12] * X + py[3];
+
+                  px[0] /= px[3]; 
+                  px[1] /= px[3]; 
+                  px[2] /= px[3]; 
+
+                  px[0] -= logic_centroid[0];
+                  px[1] -= logic_centroid[1];
+                  px[2] -= logic_centroid[2];
+
+                  distance = px[0] * px[0] + px[1] * px[1] + px[2] * px[2];
+                  if (distance < BEST_DISTANCE[SampleId])
+                  {
+                    BEST_DISTANCE[SampleId] = distance;
+                    DST[SampleId] = SRC[SampleId];
+                    DST_ALPHA[SampleId] = 255.0;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      else
+      {
+       ThrowException("internal error");
+      }
+
       return true;
     }
 
@@ -1868,23 +1971,30 @@ Array ArrayUtils::createTransformedAlpha(BoxNi bounds, Matrix T, PointNi dims, A
     int width  = dims[0];
     int height = dims[1];
 
-    for (int y = 0; y < height; y++)
+    Int64 X, Y;
+    double py[3], px[3];
+
+    for (Y = 0; Y < height; Y++)
     {
       if (aborted())
         return Array();
 
-      for (int x = 0; x < width; x++, offset++)
-      {
-        auto X = T[0] * x + T[1] * y + T[2];
-        auto Y = T[3] * x + T[4] * y + T[5];
-        auto W = T[6] * x + T[7] * y + T[8];
+      py[0] = T[1] * Y + T[2];
+      py[1] = T[4] * Y + T[5];
+      py[2] = T[7] * Y + T[8];
 
-        X /= W;
-        Y /= W;
+      for (X = 0; X < width; X++, offset++)
+      {
+        px[0] = T[0] * X + py[0];
+        px[1] = T[3] * X + py[1];
+        px[2] = T[6] * X + py[2];
+
+        px[0] /= px[2];
+        px[1] /= px[2];
 
         write[offset] = (
-          X >= bounds.p1[0] && X < bounds.p2[0] &&
-          Y >= bounds.p1[1] && Y < bounds.p2[1]) ? 255 : 0;
+          px[0] >= bounds.p1[0] && px[0] < bounds.p2[0] &&
+          px[1] >= bounds.p1[1] && px[1] < bounds.p2[1]) ? 255 : 0;
       }
     }
   }
@@ -1894,28 +2004,41 @@ Array ArrayUtils::createTransformedAlpha(BoxNi bounds, Matrix T, PointNi dims, A
     int height = dims[1];
     int depth  = dims[2];
 
-    for (int z = 0; z < depth; z++) 
+    Int64 X, Y, Z;
+    double px[4], py[4], pz[4];
+
+    for (Z = 0; Z < depth; Z++)
     {
-      for (int y = 0; y < height; y++) 
+      pz[0] = T[ 2] * Z + T[ 3];
+      pz[1] = T[ 6] * Z + T[ 7];
+      pz[2] = T[10] * Z + T[11];
+      pz[3] = T[14] * Z + T[15];
+
+      for (Y = 0; Y < height; Y++)
       {
         if (aborted())
           return Array();
 
-        for (int x = 0; x < width; x++, offset++)
-        {
-          auto X = T[ 0] * x + T[ 1] * y + T[ 2] * z + T[ 3];
-          auto Y = T[ 4] * x + T[ 5] * y + T[ 6] * z + T[ 7];
-          auto Z = T[ 8] * x + T[ 9] * y + T[10] * z + T[11] ;
-          auto W = T[12] * x + T[13] * y + T[14] * z + T[15];
+        py[0] = T[ 1] * Y + pz[0];
+        py[1] = T[ 5] * Y + pz[1];
+        py[2] = T[ 9] * Y + pz[2];
+        py[3] = T[13] * Y + pz[3];
 
-          X /= W;
-          Y /= W;
-          Z /= W;
+        for (X = 0; X < width; X++, offset++)
+        {
+          px[0] = T[ 0] * X + py[0];
+          px[1] = T[ 4] * X + py[1];
+          px[2] = T[ 8] * X + py[2];
+          px[3] = T[12] * X + py[3];
+
+          px[0] /= px[3];
+          px[1] /= px[3];
+          px[2] /= px[3];
 
           write[offset] = (
-            X >= bounds.p1[0] && X < bounds.p2[0] &&
-            Y >= bounds.p1[1] && Y < bounds.p2[1] &&
-            Z >= bounds.p1[2] && Z < bounds.p2[2]) ? 255 : 0;
+            px[0] >= bounds.p1[0] && px[0] < bounds.p2[0] &&
+            px[1] >= bounds.p1[1] && px[1] < bounds.p2[1] &&
+            px[2] >= bounds.p1[2] && px[2] < bounds.p2[2]) ? 255 : 0;
         }
       }
     }
