@@ -1952,6 +1952,7 @@ BlendBuffers::~BlendBuffers() {
 }
 
 void BlendBuffers::addBlendArg(Array src, Matrix up_pixel_to_logic, PointNd logic_centroid) {
+  ++nargs;
   ExecuteOnCppSamples(*pimpl, src.dtype, type, result,src, up_pixel_to_logic, logic_centroid, aborted);
 }
 

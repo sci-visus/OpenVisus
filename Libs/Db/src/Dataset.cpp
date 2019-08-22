@@ -52,30 +52,87 @@ namespace Visus {
 
 VISUS_IMPLEMENT_SINGLETON_CLASS(DatasetFactory)
 
+class SVG
+{
+public:
+
+  //ParsePoint
+  static Point2d ParsePoint(String s)
+  {
+    auto v = StringUtils::split(s, ",");
+    v.resize(2, "0.0");
+    return Point2d(cdouble(v[0]), cdouble(v[1]));
+  }
+
+  //ParsePoint
+  static std::vector<Point2d> ParsePoints(String s)
+  {
+    std::vector<Point2d> ret;
+    for (auto it : StringUtils::split(s, " "))
+      ret.push_back(ParsePoint(it));
+    return ret;
+  }
+
+  //ParseColor
+  static Color ParseColor(ObjectStream& istream, String name,Color default_value=Colors::Black)
+  {
+    auto s = istream.readInline(name);
+    if (s.empty())
+      return default_value;
+
+    //example #rrggbb
+    if (StringUtils::startsWith(s, "#"))
+      s = s.substr(1);
+
+    s.resize(6, '0');
+
+    int R = strtol(s.substr(0, 2).c_str(), nullptr, 16);
+    int G = strtol(s.substr(2, 2).c_str(), nullptr, 16);
+    int B = strtol(s.substr(4, 2).c_str(), nullptr, 16);
+
+    auto alpha = cdouble(istream.readInline(name + "-opacity", "1.0"));
+    return Color(R,G,B).withAlpha(alpha);
+  }
+};
+
 
 /////////////////////////////////////////////////////////////////////////////
-void Dataset::readAnnotationsFromObjectStream(ObjectStream istream)
+void Dataset::readAnnotationsFromObjectStream(ObjectStream& istream)
 {
   if (istream.pushContext("annotations"))
   {
-    while (istream.pushContext("annotation"))
+    for (auto it : istream.getCurrentContext()->getChilds())
     {
-      auto type = istream.readInline("type");
-      if (type == "magnet")
+      auto type = it->name;
+      istream.pushContext(type);
+
+      if (type == "poi")
       {
-        auto poi = std::make_shared<PointOfInterest>();
-        poi->pos = Point2d(cdouble(istream.readInline("x")), cdouble(istream.readInline("y")));
-        poi->text = istream.readInline("text");
-        poi->size = cint(istream.readInline("size", "10"));
-        poi->line_color = Color::parseFromString(istream.readInline("line_color", Colors::Yellow.withAlpha(0.3f).toString()));
-        poi->fill_color = Color::parseFromString(istream.readInline("fill_color", Colors::Black.withAlpha(0.3f).toString()));
-        this->annotations.push_back(poi);
+        auto annotation = std::make_shared<PointOfInterest>();
+        annotation->point = SVG::ParsePoint(istream.readInline("point"));
+        annotation->text = istream.readInline("text");
+        annotation->screen_size = cint(istream.readInline("screen-size", cstring(10)));
+        annotation->stroke = SVG::ParseColor(istream,"stroke", Colors::Yellow.withAlpha(0.3f));
+        annotation->stroke_width = cint(istream.readInline("stroke-width",cstring(1)));
+        annotation->fill = SVG::ParseColor(istream,"fill",Colors::Black.withAlpha(0.3f));
+        this->annotations.push_back(annotation);
+      }
+      else if (type == "polygon")
+      {
+        //<polygon points="200,10 250,190 160,210" style="fill:lime;stroke:purple;stroke-width:1" />
+        auto annotation = std::make_shared<PolygonAnnotation>();
+        annotation->points = SVG::ParsePoints(istream.readInline("points"));
+        annotation->stroke = SVG::ParseColor(istream, "stroke", Colors::Yellow.withAlpha(0.3f));
+        annotation->stroke_width = cint(istream.readInline("stroke-width", cstring(1)));
+        annotation->fill = SVG::ParseColor(istream, "fill", Colors::Black.withAlpha(0.3f));
+        this->annotations.push_back(annotation);
       }
       else
       {
         VisusAssert(false);
       }
-      istream.popContext("annotation");
+
+      istream.popContext(type);
     }
 
     istream.popContext("annotations");

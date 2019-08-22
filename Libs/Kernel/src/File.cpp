@@ -187,13 +187,11 @@ public:
       return false;
     }
 
+    ++ApplicationStats::io.nopen;
     this->can_read = bRead;
     this->can_write = bWrite;
     this->filename = filename;
     this->cursor = 0;
-
-    ApplicationStats::io.trackOpen();
-
     return true;
   }
 
@@ -266,11 +264,10 @@ public:
         return false;
       }
 
+      ApplicationStats::io.wbytes+=n;
       remaining -= n;
       buffer += n;
     }
-
-    ApplicationStats::io.trackWriteOperation(tot);
 
     if (this->cursor >= 0)
       this->cursor += tot;
@@ -306,11 +303,10 @@ public:
         return false;
       }
 
+      ApplicationStats::io.rbytes+=n;
       remaining -= n;
       buffer += n;
     }
-
-    ApplicationStats::io.trackReadOperation(tot);
 
     if (this->cursor >= 0)
       this->cursor += tot;
@@ -420,6 +416,7 @@ public:
       return false;
     }
 
+    ++ApplicationStats::io.nopen;
     this->can_read = bRead;
     this->can_write = bWrite;
     this->filename = filename;
@@ -502,11 +499,10 @@ public:
         return false;
       }
 
+      ApplicationStats::io.wbytes+=n;
       remaining -= n;
       buffer += n;
     }
-
-    ApplicationStats::io.trackWriteOperation(tot);
 
     if (this->cursor >= 0)
       this->cursor += tot;
@@ -540,11 +536,10 @@ public:
         return false;
       }
 
+      ApplicationStats::io.rbytes+=n;
       remaining -= n;
       buffer += n;
     }
-
-    ApplicationStats::io.trackReadOperation(tot);
 
     if (this->cursor >= 0)
       this->cursor += tot;
@@ -628,7 +623,7 @@ public:
   }
 
   //open
-  virtual bool open(String path, String mode, File::Options options) override
+  virtual bool open(String filename, String mode, File::Options options) override
   {
     close();
 
@@ -683,12 +678,11 @@ public:
       return false;
     }
 
-    this->filename = "";
+
+    ++ApplicationStats::io.nopen;
+    this->filename = filename;
     this->can_read  = mode.find("r") != String::npos;
     this->can_write = mode.find("w") != String::npos;
-
-    ApplicationStats::io.trackOpen();
-
     return true;
   }
 
@@ -745,7 +739,7 @@ public:
 
     memcpy(mem + pos, buffer, (size_t)tot);
 
-    ApplicationStats::io.trackWriteOperation(tot);
+    ApplicationStats::io.wbytes+=tot;
     return true; 
   }
 
@@ -756,8 +750,7 @@ public:
       return false;
 
     memcpy(buffer, mem + pos, (size_t)tot);
-
-    ApplicationStats::io.trackReadOperation(tot);
+    ApplicationStats::io.rbytes+=tot;
     return true;
   }
 
@@ -783,17 +776,15 @@ bool File::open(String filename, String mode, Options options)
 {
   close();
 
-  if (options & PreferMemoryMapping)
-    pimpl.reset(new MemoryMappedFile());
-
-  //don't see any advantage using Win32File
 #if WIN32
-  if (!pimpl && (options & PreferWin32Api))
-    pimpl.reset(new Win32File());
+  //don't see any advantage using Win32File
+  pimpl.reset(new PosixFile());
+  //pimpl.reset(new Win32File());
+  //pimpl.reset(new MemoryMappedFile());
+#else
+  pimpl.reset(new PosixFile());
+  //pimpl.reset(new MemoryMappedFile());
 #endif
-
-  if (!pimpl)
-    pimpl.reset(new PosixFile());
 
   if (!pimpl->open(filename, mode, options)) {
     pimpl.reset();

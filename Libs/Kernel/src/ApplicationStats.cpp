@@ -40,11 +40,11 @@ For support : support@visus.net
 
 namespace Visus {
 
-ApplicationStats::Single ApplicationStats::io;
-ApplicationStats::Single ApplicationStats::net;
-std::atomic<int>         ApplicationStats::num_cpu_jobs(0);
-std::atomic<int>         ApplicationStats::num_net_jobs(0);
-std::atomic<int>         ApplicationStats::num_threads(0);
+IOApplicationStats  ApplicationStats::io;
+NetApplicationStats ApplicationStats::net;
+std::atomic<int>    ApplicationStats::num_cpu_jobs(0);
+std::atomic<int>    ApplicationStats::num_net_jobs(0);
+std::atomic<int>    ApplicationStats::num_threads(0);
 
 } //namespace Visus
 

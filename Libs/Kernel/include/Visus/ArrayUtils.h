@@ -373,6 +373,11 @@ public:
   //destructor
   ~BlendBuffers();
 
+  //getNumberOfArgs
+  int getNumberOfArgs() const {
+    return nargs;
+  }
+
   //addBlendArg
   void addBlendArg(Array arg, Matrix up_pixel_to_logic = Matrix::identity(4), PointNd logic_centroid = PointNd());
 
@@ -380,6 +385,7 @@ private:
 
   Type type;
   Aborted aborted;
+  int nargs;
 
 };
 

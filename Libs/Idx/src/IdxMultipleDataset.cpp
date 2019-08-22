@@ -353,10 +353,12 @@ public:
 
       if (bool bPrintStats = false)
       {
-        auto stats = ApplicationStats::io.readValues(true);
         VisusInfo() << "!!! BLOCK " << BLOCK << " inside " << (bBlockTotallyInsideSingle ? "yes" : "no")
-          << " nopen(" << stats.nopen << ") rbytes(" << StringUtils::getStringFromByteSize(stats.rbytes) << ")  wbytes(" << StringUtils::getStringFromByteSize(stats.wbytes) << ")"
+          << " nopen(" << (Int64)ApplicationStats::io.nopen << ")"
+          <<" rbytes(" << StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.rbytes) << ")"
+          <<" wbytes(" << StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.wbytes) << ")"
           << " msec(" << t1.elapsedMsec() << ")";
+        ApplicationStats::io.reset();
       }
 
       return QUERY->aborted() ? readFailed(QUERY) : readOk(QUERY);
@@ -459,7 +461,7 @@ public:
 
     auto ret = engine->getModuleArrayAttr("output");
     if (!ret && !aborted())
-      ThrowException("script does not assign 'output' value");
+      ThrowException("empty 'output' value");
 
     if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
     {
@@ -770,15 +772,13 @@ public:
       return engine->newPyObject(blend.result);
     }
 
-    int num_args = 0;
-
     //special case: empty argument means all default fields of midx
     if (!argc)
     {
       ScopedReleaseGil release_gil;
 
-      //this can run in parallel
-      CriticalSection blendlock;
+
+      VisusInfo() << "BLEND BUFFERS";
 
       std::vector< SharedPtr<BoxQuery> > queries;
       queries.reserve(DATASET->down_datasets.size());
@@ -792,20 +792,34 @@ public:
       }
 
       //I don't see any advantage using OpenMP here
-      //bool bRunInParallel = false;// DATASET->bServerMode ? false : true;
-      //#pragma omp parallel for if(bRunInParallel) 
+      //bool bRunInParallel = !DATASET->isServerMode();
+      //#pragma omp parallel for if(bRunInParallel), num_threads(1)>
       for (int I = 0; I<(int)queries.size(); I++)
       {
         auto query = queries[I];
-        executeDownQuery(query);
 
-        if (query->down_info.BUFFER && !query->aborted()) 
-        {
-          ScopedLock scopedlock(blendlock);
-          blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.LOGIC_CENTROID);
-          ++num_args;
-        }
+        auto t1 = Time::now();
+        executeDownQuery(query);
+        auto msec_execute = t1.elapsedMsec();
+
+        VisusInfo() << "  " << I << " " << "query(" << query->getNumberOfSamples() << ") QUERY(" << QUERY->getNumberOfSamples() << ") msec_execute("<< msec_execute <<")";
       }
+
+      //blend (cannot be run in parallel)
+      for (int I = 0; I < (int)queries.size(); I++)
+      {
+        auto query = queries[I];
+
+        if (!query->down_info.BUFFER || query->aborted())
+          continue;
+
+        auto t1 = Time::now();
+        blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.LOGIC_CENTROID);
+        auto msec_blend = t1.elapsedMsec();
+        VisusInfo() << "  " << I << " " << "query(" << query->getNumberOfSamples() << ") QUERY(" << QUERY->getNumberOfSamples() << ") msec_blend(" << msec_blend << ")";
+      }
+
+      VisusInfo() << "";
     }
     else
     {
@@ -819,19 +833,16 @@ public:
 
         //failed/empty buffer
         if (query && query->down_info.BUFFER && query->aborted())
-        {
           blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.LOGIC_CENTROID);
-          ++num_args;
-        }
       }
     }
      
-    if (!num_args) {
-      PythonEngine::setError("empty argument");
-      return (PyObject*)nullptr;
-    }
-
-    return engine->newPyObject(blend.result);
+    
+    //empty result
+    if (!blend.getNumberOfArgs())
+      return engine->newPyObject(Array());
+    else
+      return engine->newPyObject(blend.result);
   }
 
   //doIncrementalPublish
@@ -863,7 +874,7 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////
 IdxMultipleDataset::IdxMultipleDataset() {
 
-  this->debug_mode = 0;// DebugSkipReading;
+  this->debug_mode = DebugSkipReading;
 
 #if VISUS_PYTHON
   python_engine_pool = std::make_shared<PythonEnginePool>();
@@ -947,7 +958,6 @@ Field IdxMultipleDataset::getFieldByNameThrowEx(String FIELDNAME) const
 
 
 }
-
 
 
 

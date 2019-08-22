@@ -1253,7 +1253,7 @@ public:
     auto access=dataset->createAccessForBlockQuery();
 
     auto block_query = std::make_shared<BlockQuery>(dataset.get(), field, time, block_id *(((Int64)1) << access->bitsperblock), (block_id + 1)*(((Int64)1) << access->bitsperblock), bWriting? 'w' : 'r', Aborted());
-    ApplicationStats::io.readValues(true);
+    ApplicationStats::io.reset();
 
     auto t1 = Time::now();
 
@@ -1277,9 +1277,11 @@ public:
       ret=block_query->buffer;
     }
 
-
-    auto stats=ApplicationStats::io.readValues(true);
-    VisusInfo() << (bWriting?"Wrote":"Read")<< " block("<<block_id<< ") in msec(" << t1.elapsedMsec() << ") nopen(" << stats.nopen << ") rbytes(" << StringUtils::getStringFromByteSize(stats.rbytes) << ") wbytes(" << StringUtils::getStringFromByteSize(stats.wbytes) << ")";
+    VisusInfo() << (bWriting?"Wrote":"Read")<< " block("<<block_id<< ") in msec(" << t1.elapsedMsec() << ")"
+      <<" nopen(" << ApplicationStats::io.nopen << ")"
+      <<" rbytes(" << StringUtils::getStringFromByteSize(ApplicationStats::io.rbytes) << ")"
+      <<" wbytes(" << StringUtils::getStringFromByteSize(ApplicationStats::io.wbytes) << ")";
+    ApplicationStats::io.reset();
     return ret;
   }
 
@@ -1582,44 +1584,37 @@ public:
     srand((unsigned int)Time::now().getTimeStamp());
 
     VisusInfo() << "Testing query...";
-
     auto access = dataset->createAccess();
-    auto world_box = dataset->getLogicBox();
+
+    int TileSize = 1024;
+    auto tiles = dataset->generateTiles(TileSize);
 
     Time T1 = Time::now();
-    for (int nqueries = 0;;nqueries++)
+    Time Tstats = Time::now();
+
+    for (int TileId = 0; TileId < tiles.size(); TileId++)
     {
-      Time t1 = Time::now();
+      auto tile = tiles[TileId];
+      auto buffer = dataset->readFullResolutionData(access, dataset->getDefaultField(), dataset->getDefaultTime(), tile);
+      if (!buffer)
+        continue;
 
-      auto query_box = world_box;
+      VisusInfo() << "Done " << TileId << " of "<<tiles.size();
 
-      for (int I = 0; I < dataset->getPointDim(); I++)
+      if (Tstats.elapsedSec() > 3.0)
       {
-        query_box.p1[I] = Utils::getRandInteger(0, (int)world_box.p2[I] - query_dim);
-        query_box.p2[I] = query_box.p1[I] + query_dim;
+        auto sec = Tstats.elapsedSec();
+        VisusInfo()
+          << " ndone(" << TileId << "/" << tiles.size() << ")"
+          << " io.nopen(" << ApplicationStats::io.nopen << "/" << Int64(ApplicationStats::io.nopen / sec) << ") "
+          << " io.rbytes(" << StringUtils::getStringFromByteSize(ApplicationStats::io.rbytes) << "/" << StringUtils::getStringFromByteSize(Int64(ApplicationStats::io.rbytes / sec)) << "persec) "
+          << " io.wbytes(" << StringUtils::getStringFromByteSize(ApplicationStats::io.wbytes) << "/" << StringUtils::getStringFromByteSize(Int64(ApplicationStats::io.wbytes / sec)) << "persec) ";
+        ApplicationStats::io.reset();
+        Tstats = Time::now();
       }
-
-      auto query = std::make_shared<BoxQuery>(dataset.get(), dataset->getDefaultField(),dataset->getDefaultTime(), 'r');
-      query->logic_box = query_box;
-      dataset->beginQuery(query);
-      VisusReleaseAssert(query->isRunning());
-      VisusReleaseAssert(dataset->executeQuery(access, query));
-
-      auto sec = t1.elapsedSec();
-      auto stats = access ? access->statistics : Access::Statistics();
-      auto io = ApplicationStats::io.readValues(true);
-
-      VisusInfo() << "sec(" << sec << ")"
-        << " avg(" << (T1.elapsedSec() / (nqueries+1)) << ")"
-        << " box(" << query_box.toString() << ") "
-        << " access.rok(" << stats.rok << "/" << ((double)(stats.rok) / sec) << ") "
-        << " access.rfail(" << stats.rfail << "/" << ((double)(stats.rfail) / sec) << ") "
-        << " io.nopen(" << io.nopen << "/" << ((double)(io.nopen) / sec) << ") "
-        << " io.rbytes(" << double(io.rbytes) / (1024 * 1024) << "kb/" << double(io.rbytes) / (sec * 1024 * 1024) << "kb) "
-        << " io.wbytes(" << double(io.wbytes) / (1024 * 1024) << "kb/" << double(io.wbytes) / (sec * 1024 * 1024) << "kb) ";
     }
 
-
+    VisusInfo() << "Test done in " << T1.elapsedSec();
     return data;
   }
 };
@@ -2015,13 +2010,13 @@ public:
     wait_async.waitAllDone();
 
     auto sec = t1.elapsedSec();
-    auto stats = ApplicationStats::net.readValues(true);
 
     VisusInfo() << "All done in " << sec << "sec";
     VisusInfo()
       << " Num request/sec " << double(nrequests) / sec << ") "
-      << " read  " << StringUtils::getStringFromByteSize(stats.rbytes) << " bytes/sec " << double(stats.rbytes) / (sec) << ") "
-      << " write " << StringUtils::getStringFromByteSize(stats.wbytes) << " bytes/sec " << double(stats.wbytes) / (sec) << ") ";
+      << " read  " << StringUtils::getStringFromByteSize(ApplicationStats::net.rbytes) << " bytes/sec " << double(ApplicationStats::net.rbytes) / (sec) << ") "
+      << " write " << StringUtils::getStringFromByteSize(ApplicationStats::net.wbytes) << " bytes/sec " << double(ApplicationStats::net.wbytes) / (sec) << ") ";
+    ApplicationStats::net.reset();
 
     return data;
   }

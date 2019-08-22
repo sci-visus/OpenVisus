@@ -282,6 +282,24 @@ public:
 
 };
 
+
+///////////////////////////////////////////////////////////
+class VISUS_GUI_API GLPolygon : public GLStruct
+{
+public:
+
+  VISUS_CLASS(GLPolygon)
+
+    //constructor
+    template <typename Point>
+  GLPolygon(const std::vector<Point>& points, const Color& fill_color, const Color& line_color, int line_width = 1)
+    : GLStruct({
+      std::make_shared<GLPhongObject>(GLMesh::Polygon(points, /*bNormal*/false), fill_color,0),
+      std::make_shared<GLPhongObject>(GLMesh::LineLoop(points), line_color, line_width)
+      }) {}
+
+};
+
 ///////////////////////////////////////////////////////////
 class VISUS_GUI_API GLBox : public GLStruct
 {

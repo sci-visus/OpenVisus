@@ -54,9 +54,7 @@ public:
   enum Options
   {
     NoOptions=0,
-    MustCreateFile=0x01,
-    PreferMemoryMapping=0x02,
-    PreferWin32Api=0x04
+    MustCreateFile=0x01
   };
 
   //__________________________________________________________________

@@ -175,6 +175,31 @@ public:
   static GLMesh Quad(const std::vector<Point>& points,bool bNormal=false,bool bTexCoord=false)
   {VisusAssert(points.size()==4);return Quad<Point>(points[0],points[1],points[2],points[3],bNormal,bTexCoord);}
 
+
+  //Polygon
+  template <class Point>
+  static GLMesh Polygon(const std::vector<Point>& points, bool bNormal = false)
+  {
+    if (points.size() == 3)
+      return Quad(points[0], points[1], points[2], points[2], bNormal);
+
+    if (points.size() == 4)
+      return Quad(points[0], points[1], points[2], points[3], bNormal);
+
+    GLMesh ret;
+#ifdef GL_POLYGON
+    ret.begin(GL_POLYGON);
+    for (auto point : points)
+    {
+      if (bNormal) ret.normal(0, 0, 1);
+      ret.vertex(point);
+    }
+    ret.end();
+#endif
+
+    return ret;
+  }
+
   //Lines
   template <class Point>
   static GLMesh Lines(std::vector<Point> points)

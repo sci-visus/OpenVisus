@@ -585,9 +585,9 @@ String StringUtils::getStringFromByteSize(Int64 size)
 
   std::ostringstream out;
   if      (size==(Int64)-1)  out<<"-1";
-  else if (size>=GB)              out<< std::fixed << std::setprecision(1)<<((double)size/(double)GB)<<"gb";
-  else if (size>=MB)              out<< std::fixed << std::setprecision(1)<<((double)size/(double)MB)<<"mb";
-  else if (size>=KB)              out<< std::fixed << std::setprecision(1)<<((double)size/(double)KB)<<"kb";
+  else if (size>=GB)              out<< std::fixed << std::setprecision(1)<<((double)size/(double)GB)<<"GB";
+  else if (size>=MB)              out<< std::fixed << std::setprecision(1)<<((double)size/(double)MB)<<"MB";
+  else if (size>=KB)              out<< std::fixed << std::setprecision(1)<<((double)size/(double)KB)<<"KB";
   else                            out<< size;
   return out.str();
 }

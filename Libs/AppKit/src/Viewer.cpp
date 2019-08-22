@@ -586,8 +586,8 @@ void Viewer::idle()
     else
     {
       running.t1=Time::now();
-      ApplicationStats::io .readValues(true);
-      ApplicationStats::net.readValues(true);
+      ApplicationStats::io.reset();
+      ApplicationStats::net.reset();
       //QApplication::setOverrideCursor(Qt::BusyCursor);
     }
   }
@@ -601,17 +601,15 @@ void Viewer::idle()
 
   out <<"nthreads(" << thread_nrunning   << ") ";
 
-  auto io=ApplicationStats::io.readValues(false);
   out << "IO("
-    << StringUtils::getStringFromByteSize(io.nopen ) << "/"
-    << StringUtils::getStringFromByteSize(io.rbytes ) << "/"
-    << StringUtils::getStringFromByteSize(io.wbytes) << ") ";
+    << StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.nopen ) << "/"
+    << StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.rbytes ) << "/"
+    << StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.wbytes) << ") ";
 
-  auto net=ApplicationStats::net.readValues(false);
   out << "NET("
-    << StringUtils::getStringFromByteSize(net.nopen ) << "/"
-    << StringUtils::getStringFromByteSize(net.rbytes ) << "/"
-    << StringUtils::getStringFromByteSize(net.wbytes) << ") ";
+    << StringUtils::getStringFromByteSize((Int64)ApplicationStats::net.nopen ) << "/"
+    << StringUtils::getStringFromByteSize((Int64)ApplicationStats::net.rbytes ) << "/"
+    << StringUtils::getStringFromByteSize((Int64)ApplicationStats::net.wbytes) << ") ";
 
   out << "RAM("
     << StringUtils::getStringFromByteSize(RamResource::getSingleton()->getVisusUsedMemory()) + "/"

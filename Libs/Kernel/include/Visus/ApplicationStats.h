@@ -47,6 +47,52 @@ For support : support@visus.net
 
 namespace Visus {
 
+
+////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API IOApplicationStats
+{
+public:
+
+
+  std::atomic<Int64> nopen = 0;
+  std::atomic<Int64> rbytes = 0;
+  std::atomic<Int64> wbytes = 0;
+
+  //constructor
+  IOApplicationStats() {
+  }
+
+  //reset
+  void reset() {
+    nopen = 0;
+    rbytes = 0;
+    wbytes = 0;
+  }
+};
+
+
+////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API NetApplicationStats
+{
+public:
+
+  std::atomic<Int64> nopen = 0;
+  std::atomic<Int64> rbytes = 0;
+  std::atomic<Int64> wbytes = 0;
+
+  //constructor
+  NetApplicationStats() {
+  }
+
+  //reset
+  void reset() {
+    nopen = 0;
+    rbytes = 0;
+    wbytes = 0;
+  }
+};
+
+
 //////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API ApplicationStats
 {
@@ -54,55 +100,11 @@ public:
 
   VISUS_CLASS(ApplicationStats)
 
-  //________________________________________________________________
-  class VISUS_KERNEL_API Single
-  {
-  public:
-
-    class Values
-    {
-    public:
-      Int64 nopen = 0;
-      Int64 rbytes = 0;
-      Int64 wbytes = 0;
-    };
-
-    CriticalSection    lock;
-    Values             values;
-
-    //constructor
-    Single() {
-    }
-
-    //readValues
-    Values readValues(bool bReset) {
-      ScopedLock lock(this->lock);
-      auto ret = this->values;
-      if (bReset) this->values = Values();
-      return ret;
-    }
-
-    //trackOpen
-    void trackOpen() {
-      ScopedLock lock(this->lock); ++values.nopen;
-    }
-
-    //trackReadOperation
-    void trackReadOperation(Int64 nbytes) {
-      ScopedLock lock(this->lock); values.rbytes += nbytes;
-    }
-
-    //trackWriteOperation
-    void trackWriteOperation(Int64 nbytes) {
-      ScopedLock lock(this->lock); values.wbytes += nbytes;
-    }
-  };
-
-  static Single           io;
-  static Single           net;
-  static std::atomic<int> num_cpu_jobs;
-  static std::atomic<int> num_net_jobs;
-  static std::atomic<int> num_threads;
+  static IOApplicationStats   io;
+  static NetApplicationStats  net;
+  static std::atomic<int>     num_cpu_jobs;
+  static std::atomic<int>     num_net_jobs;
+  static std::atomic<int>     num_threads;
 
 private:
 

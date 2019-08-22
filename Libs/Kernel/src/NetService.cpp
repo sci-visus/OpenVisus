@@ -237,13 +237,14 @@ public:
       connection->response.body = std::make_shared<HeapMemory>();
 
     size_t tot = size * nmemb;
+    ApplicationStats::net.rbytes+=tot;
+
     Int64 oldsize = connection->response.body->c_size();
     if (!connection->response.body->resize(oldsize + tot, __FILE__, __LINE__))
     {
       VisusAssert(false); return 0;
     }
     memcpy(connection->response.body->c_ptr() + oldsize, chunk, tot);
-    ApplicationStats::net.trackReadOperation(tot);
     return tot;
   }
 
@@ -254,9 +255,10 @@ public:
 
     size_t& offset = connection->buffer_offset;
     size_t tot = std::min((size_t)connection->request.body->c_size() - offset, size * nmemb);
+    ApplicationStats::net.wbytes+=tot;
+
     memcpy(chunk, connection->request.body->c_ptr() + offset, tot);
     offset += tot;
-    ApplicationStats::net.trackWriteOperation(tot);
     return tot;
   }
 
@@ -449,7 +451,7 @@ public:
           request->statistics.run_t1 = Time::now();
           connection->first_byte = false;
           connection->setNetRequest(*request, promise);
-          ApplicationStats::net.trackOpen();
+          ++ApplicationStats::net.nopen;
         }
         owner->waiting = still_waiting;
       }

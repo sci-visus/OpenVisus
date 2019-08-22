@@ -61,6 +61,10 @@ class VISUS_DB_API Annotation
 {
 public:
 
+  Color   stroke;
+  int     stroke_width = 1;
+  Color   fill;
+
   //constructor
   virtual ~Annotation() {
   }
@@ -77,11 +81,9 @@ class VISUS_DB_API PointOfInterest : public Annotation
 {
 public:
 
-  Point2d pos;
+  Point2d point;
+  int     screen_size = 0;
   String  text;
-  int     size = 0;
-  Color   line_color;
-  Color   fill_color;
 
   //destructor
   virtual ~PointOfInterest() {
@@ -95,11 +97,36 @@ public:
   //prependModelview
   virtual void prependModelview(Matrix T) override {
     VisusAssert(T.getSpaceDim() == 3);
-    this->pos = (T * PointNd(this->pos)).toPoint2();
+    this->point = (T * PointNd(this->point)).toPoint2();
   }
 
 };
 
+
+///////////////////////////////////////////////////////
+class VISUS_DB_API PolygonAnnotation : public Annotation
+{
+public:
+
+  std::vector<Point2d> points;
+
+  //destructor
+  virtual ~PolygonAnnotation() {
+  }
+
+  //clone
+  virtual SharedPtr<Annotation> clone() const override {
+    return std::make_shared<PolygonAnnotation>(*this);
+  }
+
+  //prependModelview
+  virtual void prependModelview(Matrix T) override {
+    VisusAssert(T.getSpaceDim() == 3);
+    for (auto& point : points)
+      point = (T * PointNd(point)).toPoint2();
+  }
+
+};
 
 ////////////////////////////////////////////////////////
 class VISUS_DB_API KdQueryMode
@@ -187,7 +214,7 @@ public:
     Dataset* Svf, SharedPtr<Access> Saccess, Field Sfield, double Stime);
 
   //readAnnotationsFromObjectStream
-  void readAnnotationsFromObjectStream(ObjectStream istream);
+  void readAnnotationsFromObjectStream(ObjectStream& istream);
 
   //valid
   bool valid() const {
