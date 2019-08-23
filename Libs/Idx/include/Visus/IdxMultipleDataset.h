@@ -157,11 +157,15 @@ private:
   //createField
   Field createField(String operation_name);
 
-  //parseDataset
-  void parseDataset(ObjectStream& istream);
 
   //removeAliases
   String removeAliases(String url);
+
+  //parseDataset
+  void parseDataset(StringTree* cur, Matrix T);
+
+  //parseDatasets
+  void parseDatasets(StringTree* cur,Matrix T);
 
 
 };

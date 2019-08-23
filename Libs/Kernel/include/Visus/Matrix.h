@@ -342,7 +342,7 @@ public:
     a.setSpaceDim(sdim);
     b.setSpaceDim(sdim);
     if (b.isIdentity()) return a;
-    if (b.isIdentity()) return b;
+    if (a.isIdentity()) return b;
     auto ret = Matrix::zero(dim);
     for (int i = 0; i < dim; ++i)
       for (int j = 0; j < dim; ++j)

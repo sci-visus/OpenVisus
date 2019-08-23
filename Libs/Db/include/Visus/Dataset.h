@@ -50,83 +50,13 @@ For support : support@visus.net
 #include <Visus/DatasetTimesteps.h>
 #include <Visus/Path.h>
 #include <Visus/NetMessage.h>
+#include <Visus/Annotation.h>
 
 namespace Visus {
 
 //predeclaration
 class RamAccess;
 
-////////////////////////////////////////////////////////
-class VISUS_DB_API Annotation
-{
-public:
-
-  Color   stroke;
-  int     stroke_width = 1;
-  Color   fill;
-
-  //constructor
-  virtual ~Annotation() {
-  }
-
-  //clone
-  virtual SharedPtr<Annotation> clone() const = 0;
-
-  //prependModelview
-  virtual void prependModelview(Matrix T) = 0;
-};
-
-///////////////////////////////////////////////////////
-class VISUS_DB_API PointOfInterest : public Annotation
-{
-public:
-
-  Point2d point;
-  int     screen_size = 0;
-  String  text;
-
-  //destructor
-  virtual ~PointOfInterest() {
-  }
-
-  //clone
-  virtual SharedPtr<Annotation> clone() const override {
-    return std::make_shared<PointOfInterest>(*this);
-  }
-
-  //prependModelview
-  virtual void prependModelview(Matrix T) override {
-    VisusAssert(T.getSpaceDim() == 3);
-    this->point = (T * PointNd(this->point)).toPoint2();
-  }
-
-};
-
-
-///////////////////////////////////////////////////////
-class VISUS_DB_API PolygonAnnotation : public Annotation
-{
-public:
-
-  std::vector<Point2d> points;
-
-  //destructor
-  virtual ~PolygonAnnotation() {
-  }
-
-  //clone
-  virtual SharedPtr<Annotation> clone() const override {
-    return std::make_shared<PolygonAnnotation>(*this);
-  }
-
-  //prependModelview
-  virtual void prependModelview(Matrix T) override {
-    VisusAssert(T.getSpaceDim() == 3);
-    for (auto& point : points)
-      point = (T * PointNd(point)).toPoint2();
-  }
-
-};
 
 ////////////////////////////////////////////////////////
 class VISUS_DB_API KdQueryMode
@@ -212,9 +142,6 @@ public:
   static void copyDataset(
     Dataset* Dvf, SharedPtr<Access> Daccess, Field Dfield, double Dtime,
     Dataset* Svf, SharedPtr<Access> Saccess, Field Sfield, double Stime);
-
-  //readAnnotationsFromObjectStream
-  void readAnnotationsFromObjectStream(ObjectStream& istream);
 
   //valid
   bool valid() const {

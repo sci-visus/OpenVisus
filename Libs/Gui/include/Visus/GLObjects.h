@@ -143,7 +143,7 @@ public:
 
   VISUS_CLASS(GLStruct)
 
-    std::vector< SharedPtr<GLObject> > v;
+  std::vector< SharedPtr<GLObject> > v;
 
   //constructor
   GLStruct(const std::vector< SharedPtr<GLObject> >& v_ = std::vector< SharedPtr<GLObject> >()) : v(v_) {
@@ -151,6 +151,11 @@ public:
 
   //destructor
   virtual ~GLStruct() {
+  }
+
+  //push_back
+  void push_back(SharedPtr<GLObject> value) {
+    v.push_back(value);
   }
 
   //glRender
@@ -178,6 +183,11 @@ public:
   template <typename Point>
   GLLine(const Point& p1_,const Point& p2_,const Color& color_,int line_width_=1) 
     : GLPhongObject(GLMesh::Lines(std::vector<Point>({p1_,p2_})),color_,line_width_) {}
+
+  //destructor
+  virtual ~GLLine() {
+  }
+
 };
 
 /////////////////////////////////////////////////////////////////////////
@@ -191,6 +201,11 @@ public:
   template <typename Point>
   GLLines(const std::vector<Point>& points_,const Color& color_,int line_width_=1) 
     : GLPhongObject(GLMesh::Lines(points_),color_,line_width_) {}
+
+  //destructor
+  virtual ~GLLines() {
+  }
+
 };
 
 /////////////////////////////////////////////////////////////////////////
@@ -204,6 +219,11 @@ public:
   template <typename Point>
   GLLineStrip(const std::vector<Point>& vertices_,const Color& color_,int line_width_=1) 
     : GLPhongObject(GLMesh::LineStrip(vertices_),color_,line_width_) {}
+
+  //destructor
+  virtual ~GLLineStrip() {
+  }
+
 };
 
 /////////////////////////////////////////////////////////////////////////
@@ -217,6 +237,10 @@ public:
   template <typename Point>
   GLCubicBezier(Point A, Point B, Point C, Point D,Color color=Colors::Black,int line_width=1,const int nsegments=32)
     : GLLineStrip(bezier(A,B,C,D,nsegments),color,line_width) {}
+
+  //destructor
+  virtual ~GLCubicBezier() {
+  }
 
 private:
 
@@ -247,6 +271,10 @@ public:
   GLLineLoop(const std::vector<Point>& vertices,const Color& color,int line_width=1) 
     : GLPhongObject(GLMesh::LineLoop(vertices),color,line_width) {}
 
+  //destructor
+  virtual ~GLLineLoop() {
+  }
+
 };
 
 ///////////////////////////////////////////////////////////
@@ -258,11 +286,10 @@ public:
 
   //constructor
   template <typename Point>
-  GLQuad(const Point& p1, const Point& p2, const Point& p3, const Point& p4, const Color& fill_color, const Color& line_color, int line_width = 1, SharedPtr<GLTexture> texture = SharedPtr<GLTexture>())
-    : GLStruct({
-      std::make_shared<GLPhongObject>(GLMesh::Quad(p1, p2, p3, p4, false, texture ? true : false), fill_color, 0, texture),
-      std::make_shared<GLPhongObject>(GLMesh::LineLoop(std::vector<Point>({ p1,p2,p3,p4 })), line_color, line_width)
-  }) {}
+  GLQuad(const Point& p1, const Point& p2, const Point& p3, const Point& p4, const Color& fill_color, const Color& line_color, int line_width = 1, SharedPtr<GLTexture> texture = SharedPtr<GLTexture>()) {
+    push_back(std::make_shared<GLPhongObject>(GLMesh::Quad(p1, p2, p3, p4, false, texture ? true : false), fill_color, 0, texture));
+    push_back(std::make_shared<GLPhongObject>(GLMesh::LineLoop(std::vector<Point>({ p1,p2,p3,p4 })), line_color, line_width));
+  }
 
   //constructor
   template <typename Point>
@@ -280,6 +307,9 @@ public:
     : GLQuad(points[0], points[1], points[2], points[3], fill_color, line_color, line_width, texture) {}
 
 
+  //destructor
+  virtual ~GLQuad() {
+  }
 };
 
 
@@ -290,13 +320,16 @@ public:
 
   VISUS_CLASS(GLPolygon)
 
-    //constructor
-    template <typename Point>
-  GLPolygon(const std::vector<Point>& points, const Color& fill_color, const Color& line_color, int line_width = 1)
-    : GLStruct({
-      std::make_shared<GLPhongObject>(GLMesh::Polygon(points, /*bNormal*/false), fill_color,0),
-      std::make_shared<GLPhongObject>(GLMesh::LineLoop(points), line_color, line_width)
-      }) {}
+  //constructor
+  GLPolygon(const std::vector<Point2d>& points, const Color& fill_color, const Color& line_color, int line_width = 1) 
+  {
+    push_back(std::make_shared<GLPhongObject>(GLMesh::Polygon(points, /*bNormal*/false), fill_color, 0));
+    push_back(std::make_shared<GLPhongObject>(GLMesh::LineLoop(points), line_color, line_width));
+  }
+
+  //destructor
+  virtual ~GLPolygon() {
+  }
 
 };
 
@@ -308,12 +341,11 @@ public:
   VISUS_CLASS(GLBox)
 
   //constructor
-  GLBox(const Position& position, const Color& fill_color, const Color& line_color, int line_width = 1)
-    : GLStruct({
-      std::make_shared<GLModelview>(position.getTransformation()),
-      std::make_shared<GLPhongObject>(GLMesh::SolidBox(position.getBoxNd()), fill_color, 0),
-      std::make_shared<GLPhongObject>(GLMesh::WireBox(position.getBoxNd()), line_color, line_width)
-    }) {}
+  GLBox(const Position& position, const Color& fill_color, const Color& line_color, int line_width = 1) {
+    push_back(std::make_shared<GLModelview>(position.getTransformation()));
+    push_back(std::make_shared<GLPhongObject>(GLMesh::SolidBox(position.getBoxNd()), fill_color, 0));
+    push_back(std::make_shared<GLPhongObject>(GLMesh::WireBox(position.getBoxNd()), line_color, line_width));
+  }
 
   //constructor
   GLBox(const BoxNd& box, const Color& fill_color, const Color& line_color, int line_width = 1)
@@ -323,6 +355,9 @@ public:
   GLBox(const Frustum& value, const Color& fill_color, const Color& line_color, int line_width = 1, double Near = -1, double Far = +1)
     : GLBox(Position((value.getProjection() * value.getModelview()).invert(), BoxNd(Point3d(-1, -1, Near), Point3d(+1, +1, Far))), fill_color, line_color, line_width) {}
 
+  //destructor
+  virtual ~GLBox() {
+  }
 };
 
 /////////////////////////////////////////////////////////////////////////
@@ -333,15 +368,18 @@ public:
   VISUS_CLASS(GLAxis)
 
   //constructor
-  GLAxis(const Position& position, int line_width = 1)
-    : GLStruct({
-      std::make_shared<GLModelview>(position.getTransformation()),
-      std::make_shared<GLPhongObject>(GLMesh::ColoredAxis(position.getBoxNd()), Colors::White, line_width)
-    }){}
+  GLAxis(const Position& position, int line_width = 1){
+    push_back(std::make_shared<GLModelview>(position.getTransformation()));
+    push_back(std::make_shared<GLPhongObject>(GLMesh::ColoredAxis(position.getBoxNd()), Colors::White, line_width));
+  }
 
   //constructor
   GLAxis(const BoxNd& box, int line_width = 1)
   : GLAxis(Position(box), line_width) {}
+
+  //GLAxis
+  virtual ~GLAxis() {
+  }
 
 };
 
@@ -353,12 +391,15 @@ public:
   VISUS_CLASS(GLWireCircle)
 
   //constructor
-  GLWireCircle(double R = 1, Point2d center = Point2d(0, 0), const Color& color = Colors::Black, int line_width = 1)
-    : GLStruct({
-      std::make_shared<GLModelview>(Matrix::translate(Point3d(center))),
-      std::make_shared<GLModelview>(Matrix::scale(Point3d(R, R, R))),
-      std::make_shared<GLPhongObject>(*createMesh(), color, line_width)
-    }) {}
+  GLWireCircle(double R = 1, Point2d center = Point2d(0, 0), const Color& color = Colors::Black, int line_width = 1) {
+    push_back(std::make_shared<GLModelview>(Matrix::translate(Point3d(center))));
+    push_back(std::make_shared<GLModelview>(Matrix::scale(Point3d(R, R, R))));
+    push_back(std::make_shared<GLPhongObject>(*createMesh(), color, line_width));
+  }
+
+  //destructor
+  virtual ~GLWireCircle() {
+  }
 
 private:
 
@@ -377,12 +418,16 @@ public:
   VISUS_CLASS(GLSolidCircle)
 
   //constructor
-  GLSolidCircle(double R = 1, Point2d center = Point2d(0, 0), const Color& color = Colors::Black)
-    : GLStruct({
-      std::make_shared<GLModelview>(Matrix::translate(Point3d(center))),
-      std::make_shared<GLModelview>(Matrix::scale(Point3d(R, R, R))),
-      std::make_shared<GLPhongObject>(*createMesh(), color)
-  }) {}
+  GLSolidCircle(double R = 1, Point2d center = Point2d(0, 0), const Color& color = Colors::Black){
+    push_back(std::make_shared<GLModelview>(Matrix::translate(Point3d(center))));
+    push_back(std::make_shared<GLModelview>(Matrix::scale(Point3d(R, R, R))));
+    push_back(std::make_shared<GLPhongObject>(*createMesh(), color));
+  }
+
+  //destructor
+  virtual ~GLSolidCircle() {
+
+  }
 
 private:
 
@@ -402,17 +447,19 @@ public:
 
 
   //constructor
-  GLSolidSphere(double R = 1, Point3d center = Point3d(0, 0,0), const Color& color = Colors::Black)
-    : GLStruct({
-    std::make_shared<GLModelview>(Matrix::translate(center)),
-    std::make_shared<GLModelview>(Matrix::scale(Point3d(R, R, R))),
-    std::make_shared<GLPhongObject>(*createMesh(), color)
-      }) {}
-
+  GLSolidSphere(double R = 1, Point3d center = Point3d(0, 0,0), const Color& color = Colors::Black){
+    push_back(std::make_shared<GLModelview>(Matrix::translate(center)));
+    push_back(std::make_shared<GLModelview>(Matrix::scale(Point3d(R, R, R))));
+    push_back(std::make_shared<GLPhongObject>(*createMesh(), color));
+  }
 
   //constructor
   GLSolidSphere(double R, Point2d center, const Color& color = Colors::Black)
     : GLSolidSphere(R,Point3d(center),color) {
+  }
+
+  //destructor
+  virtual ~GLSolidSphere(){
   }
 
 private:

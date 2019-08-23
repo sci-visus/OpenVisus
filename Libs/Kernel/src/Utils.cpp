@@ -150,8 +150,11 @@ bool Utils::saveTextDocument(String filename,String content)
   VisusAssert(Url(filename).isFile());
 
   Path path(filename);
-  if (path.empty()) 
+  if (path.empty())
+  {
+    VisusInfo() << "Failed to save text document " << filename << " , path is empty";
     return false;
+  }
 
   String fullpath=path.toString();
   std::ofstream file(fullpath.c_str(), std::ios::binary);
@@ -162,8 +165,11 @@ bool Utils::saveTextDocument(String filename,String content)
     FileUtils::createDirectory(path.getParent());
     file.open(fullpath.c_str(), std::ios::binary);
 
-    if (!file.is_open()) 
+    if (!file.is_open())
+    {
+      VisusInfo() << "Failed to save text document " << filename <<" "<< strerror(errno);
       return false;
+    }
   }
 
   file.write(content.c_str(),content.size());

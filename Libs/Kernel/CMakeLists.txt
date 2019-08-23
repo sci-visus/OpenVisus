@@ -196,7 +196,9 @@ source_group("Misc" FILES
 	./include/Visus/PointCloud.h
 	./include/Visus/Graph.h
 	./include/Visus/UnionFind.h
-	./src/PointCloud.cpp)
+	./src/PointCloud.cpp
+	./include/Visus/Annotation.h
+	./src/Annotation.cpp)
 
 IF (WIN32 OR APPLE)
 	file(GLOB MM_FILES src/*.mm)

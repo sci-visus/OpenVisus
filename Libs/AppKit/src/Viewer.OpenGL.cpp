@@ -429,17 +429,19 @@ void Viewer::glRenderNodes(GLCanvas& gl)
           if (auto poi = std::dynamic_pointer_cast<PointOfInterest>(annotation))
           {
             auto screen_pos = map.projectPoint(Point3d(poi->point));
-            huds.push_back(std::make_shared<GLQuad>(
-              screen_pos - Point2d(poi->screen_size / 2, poi->screen_size / 2),
-              screen_pos + Point2d(poi->screen_size / 2, poi->screen_size / 2), 
-              poi->fill, poi->stroke, poi->stroke_width));
+            auto obj = std::make_shared<GLQuad>(
+              screen_pos - Point2d(poi->magnet_size / 2, poi->magnet_size / 2),
+              screen_pos + Point2d(poi->magnet_size / 2, poi->magnet_size / 2),
+              poi->fill, poi->stroke, poi->stroke_width);
+            huds.push_back(obj);
           }
           else if (auto polygon = std::dynamic_pointer_cast<PolygonAnnotation>(annotation))
           {
             std::vector<Point2d> screen_points;
             for (auto it : polygon->points)
               screen_points.push_back(map.projectPoint(Point3d(it)));
-            huds.push_back(std::make_shared<GLPolygon>(screen_points, poi->fill, poi->stroke, poi->stroke_width));
+            auto obj = std::make_shared<GLPolygon>(screen_points, polygon->fill, polygon->stroke, polygon->stroke_width);
+            huds.push_back(obj);
           }
           else
           {

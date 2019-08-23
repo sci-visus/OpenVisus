@@ -92,11 +92,38 @@ public:
   }
 
   //parseFromString
-  static Color parseFromString(String value) 
+  static Color parseFromString(String s,Color default_value=Color()) 
   {
-    std::istringstream parser(value);
-    int R,G,B,A;parser>>R>>G>>B>>A;
-    return Color(R,G,B,A);
+    if (s.empty())
+      return default_value;
+
+    //backward compatible
+    if (StringUtils::startsWith(s, "0x"))
+      s = "#" + s.substr(2);
+
+    //hexadecimal format
+    if (StringUtils::startsWith(s, "#"))
+    {
+      s = s.substr(1);
+
+      //rrggbbaa
+      int A = 255;
+      if (s.size() >= 8)
+        A = strtol(s.substr(6, 2).c_str(), nullptr, 16);
+
+      s.resize(6, '0');
+      int R = strtol(s.substr(0, 2).c_str(), nullptr, 16);
+      int G = strtol(s.substr(2, 2).c_str(), nullptr, 16);
+      int B = strtol(s.substr(4, 2).c_str(), nullptr, 16);
+      return Color(R, G, B, A);
+    }
+    // rr gg bb aa
+    else
+    {
+      std::istringstream parser(s);
+      int R=0, G = 0, B = 0, A=255; parser >> R >> G >> B >> A;
+      return Color(R, G, B, A);
+    }
   }
 
   //createFromUint32 (format 0xRRGGBBAA)
@@ -243,30 +270,36 @@ public:
 public:
 
   //toString
-  String toString() const 
+  String toString(bool bHex = true) const
   {
-    Color rgb=toRGB();
-    std::ostringstream o; 
-    o<<(int)(255.0*rgb.get(0))<<" ";
-    o<<(int)(255.0*rgb.get(1))<<" ";
-    o<<(int)(255.0*rgb.get(2))<<" ";
-    o<<(int)(255.0*rgb.get(3)); 
-    return o.str();
+    Color rgb = toRGB();
+
+    std::stringstream out;
+
+    //#rrggbbaa
+    if (bHex)
+    {
+      out << "#" << std::hex
+        << std::setfill('0') << std::setw(2) << (int)(255.0 * rgb.get(0))
+        << std::setfill('0') << std::setw(2) << (int)(255.0 * rgb.get(1))
+        << std::setfill('0') << std::setw(2) << (int)(255.0 * rgb.get(2))
+        << std::setfill('0') << std::setw(2) << (int)(255.0 * rgb.get(3));
+    }
+    //rr gg bb aa
+    else
+    {
+      out 
+        << (int)(255.0 * rgb.get(0)) << " "
+        << (int)(255.0 * rgb.get(1)) << " "
+        << (int)(255.0 * rgb.get(2)) << " "
+        << (int)(255.0 * rgb.get(3));
+    }
+
+    return out.str();
   }
 
-  //toHexString (0xRRGGBBAA)
-  String toHexString() const
-  {
-    Color rgb=toRGB();
-    std::stringstream stream;
-    stream <<"0x"<<std::hex
-    <<std::setfill('0')<<std::setw(2)<<(int)(255.0*rgb.get(0))
-    <<std::setfill('0')<<std::setw(2)<<(int)(255.0*rgb.get(1))
-    <<std::setfill('0')<<std::setw(2)<<(int)(255.0*rgb.get(2))
-    <<std::setfill('0')<<std::setw(2)<<(int)(255.0*rgb.get(3));
-    return stream.str();
-  }
-  
+
+
   //writeToObjectStream
   void writeToObjectStream(ObjectStream& ostream) 
   {

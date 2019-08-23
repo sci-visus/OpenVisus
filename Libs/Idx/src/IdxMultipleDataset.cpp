@@ -777,9 +777,6 @@ public:
     {
       ScopedReleaseGil release_gil;
 
-
-      VisusInfo() << "BLEND BUFFERS";
-
       std::vector< SharedPtr<BoxQuery> > queries;
       queries.reserve(DATASET->down_datasets.size());
       for (auto it : DATASET->down_datasets)
@@ -791,18 +788,18 @@ public:
           queries.push_back(query);
       }
 
+      //VisusInfo() << "BLEND BUFFERS #queries " << queries.size() <<" LOGIC_BOX "<< QUERY->logic_box.toString();
+
       //I don't see any advantage using OpenMP here
       //bool bRunInParallel = !DATASET->isServerMode();
       //#pragma omp parallel for if(bRunInParallel), num_threads(1)>
       for (int I = 0; I<(int)queries.size(); I++)
       {
         auto query = queries[I];
-
-        auto t1 = Time::now();
+        //auto t1 = Time::now();
         executeDownQuery(query);
-        auto msec_execute = t1.elapsedMsec();
-
-        VisusInfo() << "  " << I << " " << "query(" << query->getNumberOfSamples() << ") QUERY(" << QUERY->getNumberOfSamples() << ") msec_execute("<< msec_execute <<")";
+        //auto msec_execute = t1.elapsedMsec();
+        //VisusInfo() << "  " << I << " " << "query(" << query->getNumberOfSamples() << ") QUERY(" << QUERY->getNumberOfSamples() << ") msec_execute("<< msec_execute <<")";
       }
 
       //blend (cannot be run in parallel)
@@ -813,13 +810,11 @@ public:
         if (!query->down_info.BUFFER || query->aborted())
           continue;
 
-        auto t1 = Time::now();
+        //auto t1 = Time::now();
         blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.LOGIC_CENTROID);
-        auto msec_blend = t1.elapsedMsec();
-        VisusInfo() << "  " << I << " " << "query(" << query->getNumberOfSamples() << ") QUERY(" << QUERY->getNumberOfSamples() << ") msec_blend(" << msec_blend << ")";
+        //auto msec_blend = t1.elapsedMsec();
+        //VisusInfo() << "  " << I << " " << "query(" << query->getNumberOfSamples() << ") QUERY(" << QUERY->getNumberOfSamples() << ") msec_blend(" << msec_blend << ")";
       }
-
-      VisusInfo() << "";
     }
     else
     {
@@ -874,7 +869,7 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////
 IdxMultipleDataset::IdxMultipleDataset() {
 
-  this->debug_mode = DebugSkipReading;
+  this->debug_mode = 0;// DebugSkipReading;
 
 #if VISUS_PYTHON
   python_engine_pool = std::make_shared<PythonEnginePool>();
@@ -1057,120 +1052,6 @@ String IdxMultipleDataset::removeAliases(String url)
 
 
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDataset(ObjectStream& istream)
-{
-  String url = istream.readInline("url");
-  VisusAssert(!url.empty());
-
-  String default_name = StringUtils::format() << "child_" << std::setw(4) << std::setfill('0') << cstring((int)this->down_datasets.size());
-
-  String name = StringUtils::trim(istream.readInline("name", istream.readInline("id"))); 
-  
-  //override name if exist
-  if (name.empty() || this->down_datasets.find(name) != this->down_datasets.end())
-    name = default_name;
-
-  url= removeAliases(url);
-
-  //if mosaic all datasets are the same, I just need to know the IDX filename template
-  SharedPtr<Dataset> child;
-  if (this->bMosaic && !down_datasets.empty() && istream.hasAttribute("filename_template"))
-  {
-    auto first = getFirstChild();
-    auto other = std::dynamic_pointer_cast<IdxDataset>(first->clone());
-    VisusReleaseAssert(first);
-    VisusReleaseAssert(other);
-
-    //all the idx files are the same except for the IDX path
-    String mosaic_filename_template =istream.readInline("filename_template");
-
-    VisusReleaseAssert(!mosaic_filename_template.empty());
-    mosaic_filename_template = removeAliases(mosaic_filename_template);
-
-    other->setUrl(url);
-    other->idxfile.filename_template = mosaic_filename_template;
-    other->idxfile.validate(url); VisusAssert(other->idxfile.valid());
-    child = other;
-  }
-  else
-  {
-    child = LoadDatasetEx(url,this->getConfig());
-  }
-
-  if (!child) {
-    VisusReleaseAssert(false);
-    return;
-  }
-
-  child->color = Color::parseFromString(istream.readInline("color", Color::random().toString()));;
-  auto sdim = child->getPointDim() + 1;
-
-  //override physic_box 
-  if (istream.hasAttribute("physic_box"))
-  {
-    auto physic_box = BoxNd::parseFromString(istream.readInline("physic_box"));
-    child->setDatasetBounds(physic_box);
-  }
-  else if (istream.hasAttribute("quad"))
-  {
-    //in midx physic coordinates
-    VisusReleaseAssert(child->getPointDim() == 2);
-    auto W = (int)child->getLogicBox().size()[0];
-    auto H = (int)child->getLogicBox().size()[1];
-    auto dst = Quad::fromString(istream.readInline("quad"));
-    auto src = Quad(W,H);
-    auto T   = Quad::findQuadHomography(dst, src);
-    child->setDatasetBounds(Position(T,BoxNd(PointNd(0,0),PointNd(W,H))));
-  }
-  
-  // transform physic box
-  Matrix modelview(sdim);
-  if (istream.hasAttribute("offset"))
-    modelview *= Matrix::translate(PointNd::parseFromString(istream.readInline("offset"))).withSpaceDim(sdim);
-
-  if (istream.pushContext("M"))
-  {
-    if (istream.hasAttribute("value"))
-      modelview *= Matrix::parseFromString(istream.readInline("value")).withSpaceDim(sdim);
-
-    for (auto it : istream.getCurrentContext()->getChilds())
-    {
-      if (it->name == "translate")
-        modelview *= Matrix::translate(PointNd(cdouble(it->readString("x")), cdouble(it->readString("y")), cdouble(it->readString("z")))).withSpaceDim(sdim);
-
-      else if (it->name == "rotate")
-        modelview *= Matrix::rotate(Quaternion::fromEulerAngles(Utils::degreeToRadiant(cdouble(it->readString("x"))), Utils::degreeToRadiant(cdouble(it->readString("y"))), Utils::degreeToRadiant(cdouble(it->readString("z"))))).withSpaceDim(sdim);
-
-      else if (it->name == "scale")
-        modelview *= Matrix::nonZeroScale(PointNd(cdouble(it->readString("x")), cdouble(it->readString("y")), cdouble(it->readString("z")))).withSpaceDim(sdim);
-
-      else if (it->name == "M")
-        modelview *= Matrix::parseFromString(it->readString("value")).withSpaceDim(sdim);
-    }
-
-    istream.popContext("M");
-  }
-  
-  //refresh dataset bounds
-  auto bounds = child->getDatasetBounds();
-  child->setDatasetBounds(Position(modelview, bounds));
-
-  //update annotation positions by modelview
-  if (!child->annotations.empty())
-  {
-    for (auto annotation : child->annotations)
-    {
-      auto ANNOTATION = annotation->clone();
-      ANNOTATION->prependModelview(modelview);
-      this->annotations.push_back(ANNOTATION);
-    }
-  }
-
-  addChild(name, child);
-}
-
-
-///////////////////////////////////////////////////////////
 void IdxMultipleDataset::computeDefaultFields()
 {
   clearFields();
@@ -1195,10 +1076,212 @@ void IdxMultipleDataset::computeDefaultFields()
     for (auto field : it.second->getFields())
     {
       auto arg = getInputName(it.first, field.name);
-      Field FIELD = getFieldByName("output=" + arg  + ";");
+      Field FIELD = getFieldByName("output=" + arg + ";");
       VisusAssert(FIELD.valid());
       FIELD.setDescription(it.first + "/" + field.getDescription());
       addField(FIELD);
+    }
+  }
+}
+
+
+///////////////////////////////////////////////////////////
+void IdxMultipleDataset::parseDataset(StringTree* cur,Matrix modelview)
+{
+  String url = cur->getAttribute("url");
+  VisusAssert(!url.empty());
+
+  String default_name = StringUtils::format() << "child_" << std::setw(4) << std::setfill('0') << cstring((int)this->down_datasets.size());
+
+  String name = StringUtils::trim(cur->getAttribute("name", cur->getAttribute("id")));
+  
+  //override name if exist
+  if (name.empty() || this->down_datasets.find(name) != this->down_datasets.end())
+    name = default_name;
+
+  url= removeAliases(url);
+
+  //if mosaic all datasets are the same, I just need to know the IDX filename template
+  SharedPtr<Dataset> child;
+  if (this->bMosaic && !down_datasets.empty() && cur->hasAttribute("filename_template"))
+  {
+    auto first = getFirstChild();
+    auto other = std::dynamic_pointer_cast<IdxDataset>(first->clone());
+    VisusReleaseAssert(first);
+    VisusReleaseAssert(other);
+
+    //all the idx files are the same except for the IDX path
+    String mosaic_filename_template = cur->getAttribute("filename_template");
+
+    VisusReleaseAssert(!mosaic_filename_template.empty());
+    mosaic_filename_template = removeAliases(mosaic_filename_template);
+
+    other->setUrl(url);
+    other->idxfile.filename_template = mosaic_filename_template;
+    other->idxfile.validate(url); VisusAssert(other->idxfile.valid());
+    child = other;
+  }
+  else
+  {
+    child = LoadDatasetEx(url,this->getConfig());
+  }
+
+  if (!child) {
+    VisusReleaseAssert(false);
+    return;
+  }
+
+  child->color = Color::parseFromString(cur->getAttribute("color", Color::random().toString()));;
+  auto sdim = child->getPointDim() + 1;
+
+  //override physic_box 
+  if (cur->hasAttribute("physic_box"))
+  {
+    auto physic_box = BoxNd::parseFromString(cur->getAttribute("physic_box"));
+    child->setDatasetBounds(physic_box);
+  }
+  else if (cur->hasAttribute("quad"))
+  {
+    //in midx physic coordinates
+    VisusReleaseAssert(child->getPointDim() == 2);
+    auto W = (int)child->getLogicBox().size()[0];
+    auto H = (int)child->getLogicBox().size()[1];
+    auto dst = Quad::fromString(cur->getAttribute("quad"));
+    auto src = Quad(W,H);
+    auto T   = Quad::findQuadHomography(dst, src);
+    child->setDatasetBounds(Position(T,BoxNd(PointNd(0,0),PointNd(W,H))));
+  }
+  
+  // transform physic box
+  modelview.setSpaceDim(sdim);
+
+  //refresh dataset bounds
+  auto bounds = child->getDatasetBounds();
+  child->setDatasetBounds(Position(modelview, bounds));
+
+  //update annotation positions by modelview
+  if (!child->annotations.empty())
+  {
+    for (auto annotation : child->annotations)
+    {
+      auto ANNOTATION = annotation->clone();
+      ANNOTATION->prependModelview(modelview);
+      this->annotations.push_back(ANNOTATION);
+    }
+  }
+
+  addChild(name, child);
+}
+
+
+
+///////////////////////////////////////////////////////////
+void IdxMultipleDataset::parseDatasets(StringTree* cur, Matrix MODELVIEW)
+{
+  for (auto child : cur->getChilds())
+  {
+    if (!cbool(child->getAttribute("enabled","1")))
+      continue;
+
+    auto modelview = MODELVIEW;
+
+    if (child->name == "svg")
+    {
+      this->annotations=ParseAnnotations(child);
+
+      for (auto& annotation : this->annotations)
+        annotation->prependModelview(modelview);
+
+      continue;
+    }
+
+    if (child->name == "translate")
+    {
+      double tx = cdouble(child->getAttribute("x"));
+      double ty = cdouble(child->getAttribute("y"));
+      double tz = cdouble(child->getAttribute("z"));
+      modelview *= Matrix::translate(PointNd(tx, ty, tz));
+      parseDatasets(child, modelview);
+      continue;
+    }
+
+    if (child->name == "scale")
+    {
+      double sx = cdouble(child->getAttribute("x"));
+      double sy = cdouble(child->getAttribute("y"));
+      double sz = cdouble(child->getAttribute("z"));
+      modelview *= Matrix::nonZeroScale(PointNd(sx, sy, sz));
+      parseDatasets(child, modelview);
+      continue;
+    }
+
+    if (child->name == "rotate")
+    {
+      double rx = Utils::degreeToRadiant(cdouble(child->getAttribute("x")));
+      double ry = Utils::degreeToRadiant(cdouble(child->getAttribute("y")));
+      double rz = Utils::degreeToRadiant(cdouble(child->getAttribute("z")));
+      modelview *= Matrix::rotate(Quaternion::fromEulerAngles(rx, ry, rz));
+      parseDatasets(child, modelview);
+      continue;
+    }
+
+    if (child->name == "transform" || child->name=="M")
+    {
+      modelview *= Matrix::parseFromString(child->getAttribute("value"));
+      parseDatasets(child, modelview);
+      continue;
+    }
+
+    if (child->name == "dataset")
+    {
+      //this is for mosaic
+      if (child->hasAttribute("offset"))
+      {
+        auto vt = PointNd::parseFromString(cur->getAttribute("offset"));
+        modelview *= Matrix::translate(vt);
+      }
+
+      //this applies "before the dataset
+      if (auto tranform = child->findChildWithName("M"))
+      {
+        if (tranform->hasAttribute("value"))
+          modelview *= Matrix::parseFromString(tranform->getAttribute("value"));
+
+        for (auto it : tranform->getChilds())
+        {
+          if (it->name == "translate")
+          {
+            double tx = cdouble(it->getAttribute("x"));
+            double ty = cdouble(it->getAttribute("y"));
+            double tz = cdouble(it->getAttribute("z"));
+            modelview *= Matrix::translate(PointNd(tx, ty, tz));
+          }
+
+          else if (it->name == "rotate")
+          {
+            double rx = Utils::degreeToRadiant(cdouble(child->getAttribute("x")));
+            double ry = Utils::degreeToRadiant(cdouble(child->getAttribute("y")));
+            double rz = Utils::degreeToRadiant(cdouble(child->getAttribute("z")));
+            modelview *= Matrix::rotate(Quaternion::fromEulerAngles(rx, ry, rz));
+          }
+
+          else if (it->name == "scale")
+          {
+            double sx = cdouble(it->getAttribute("x"));
+            double sy = cdouble(it->getAttribute("y"));
+            double sz = cdouble(it->getAttribute("z"));
+            modelview *= Matrix::nonZeroScale(PointNd(sx, sy, sz));
+          }
+
+          else if (it->name == "transform" || it->name=="M")
+          {
+            modelview *= Matrix::parseFromString(it->getAttribute("value"));
+          }
+        }
+      }
+
+      parseDataset(child,modelview);
+      continue;
     }
   }
 }
@@ -1228,14 +1311,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     istream.popContext("slam");
   }
 
-  readAnnotationsFromObjectStream(istream);
-
-  while (istream.pushContext("dataset"))
-  {
-    if (cbool(istream.readInline("enabled", "1")))
-      parseDataset(istream);
-    istream.popContext("dataset");
-  }
+  parseDatasets(istream.getCurrentContext(),Matrix());
 
   if (down_datasets.empty())
   {

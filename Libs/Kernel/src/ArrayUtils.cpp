@@ -1522,9 +1522,9 @@ public:
         }
       }
     }
-    else if (pdim <=3)
+    else if (pdim == 3)
     {
-      double px[3], py[3], pz[3];
+      double px[4], py[4], pz[4];
       Int64 X,Y,Z,rfrom;
       for (Z = 0; Z < wdims[2]; Z++)
       {
