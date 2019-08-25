@@ -15,7 +15,6 @@ BUILD_DIR=${BUILD_DIR:-${SOURCE_DIR}/build}
 
 # you can enable/disable certain options 
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
-VISUS_OPENMP=${VISUS_OPENMP:-1}
 VISUS_NET=${VISUS_NET:-1}
 VISUS_IMAGE=${VISUS_IMAGE:-1}
 VISUS_PYTHON=${VISUS_PYTHON:-1}
@@ -140,7 +139,6 @@ declare -a cmake_opts
 cmake_opts+=(-GXcode)
 
 AddCMakeOption -DCMAKE_BUILD_TYPE   "${CMAKE_BUILD_TYPE}"
-AddCMakeOption -DVISUS_OPENMP       "${VISUS_OPENMP}"
 AddCMakeOption -DVISUS_NET          "${VISUS_NET}"
 AddCMakeOption -DVISUS_IMAGE        "${VISUS_IMAGE}"
 

@@ -44,7 +44,6 @@ include(FindPackageHandleStandardArgs)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMake)
 
 option(BUILD_SHARED_LIBS "Build the shared library"  ON)
-option(VISUS_OPENMP      "Enable OpenMP"             OFF)
 option(VISUS_NET         "Enable net"                ON) 
 option(VISUS_IMAGE       "Enable image"              ON)  
 option(VISUS_PYTHON      "Enable python"             ON) 

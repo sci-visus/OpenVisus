@@ -7,7 +7,6 @@ cd build
 
 cmake ^
    -G "%CMAKE_GENERATOR%" ^
-   -DVISUS_OPENMP=0 ^
    -DVISUS_GUI=0 ^
    -DPYTHON_VERSION="%PY_VER%" ^
    -DPYTHON_EXECUTABLE="%PYTHON%" ^

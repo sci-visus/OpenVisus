@@ -11,7 +11,6 @@ fi
 SOURCE_DIR=$(pwd)
 BUILD_DIR=${SOURCE_DIR}/build_conda
 CMAKE_BUILD_TYPE=RelWithDebInfo
-VISUS_OPENMP=0
 VISUS_MODVISUS=1
 VISUS_GUI=0 # todo: can Qt5 work?
 
@@ -59,7 +58,6 @@ cd ${BUILD_DIR}
 
 declare -a cmake_opts
 cmake_opts+=(-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
-cmake_opts+=(-DVISUS_OPENMP=${VISUS_OPENMP})
 cmake_opts+=(-DPYTHON_EXECUTABLE=${PYTHON}) 
 cmake_opts+=(-DPYTHON_VERSION=${PY_VER})
 

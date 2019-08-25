@@ -790,9 +790,31 @@ public:
 
       //VisusInfo() << "BLEND BUFFERS #queries " << queries.size() <<" LOGIC_BOX "<< QUERY->logic_box.toString();
 
+
+
       //I don't see any advantage using OpenMP here
+      /*
+
+      NTHREADS DESCRIPTION TIMING
+      test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 4096
+      0  RAMMap-EmptyStandy(PosixFile) 563 SkipReading 303
+      4  RAMMap-EmptyStandy(PosixFile) 570 SkipReading 311
+
+      test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 2048
+      0  RAMMap-EmptyStandy(PosixFile) 600 DebugSkipReading 230
+      4  RAMMap-EmptyStandy(PosixFile) 597 DebugSkipReading 231
+
+      test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 1024
+      0  RAMMap-EmptyStandy(PosixFile) 1004 DebugSkipReading 187   RAMMap-EmptyStandy(Win32FILE) 1015 RAMMap-EmptyStandy(MappedFile) 1055
+      4  RAMMap-EmptyStandy(PosixFile)  810 DebugSkipReading 189
+
+      test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 512
+      0  RAMMap-EmptyStandy(PosixFile)  912 DebugSkipReading 160
+      4  RAMMap-EmptyStandy(PosixFile)  904 DebugSkipReading 162
+
+      */
       //bool bRunInParallel = !DATASET->isServerMode();
-      //#pragma omp parallel for if(bRunInParallel), num_threads(1)>
+      //#pragma omp parallel for if(bRunInParallel), num_threads(4)
       for (int I = 0; I<(int)queries.size(); I++)
       {
         auto query = queries[I];

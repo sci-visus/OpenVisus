@@ -1564,7 +1564,7 @@ public:
     if (!dataset)
       ThrowException(StringUtils::format() << args[0] << "  cannot LoadDataset " << filename);
 
-    int    query_dim=512;
+    int    query_dim = dataset->getPointDim() == 2 ? 4096 : 512;
 
     for (int I=2;I<(int)args.size();I++)
     {
@@ -1586,8 +1586,7 @@ public:
     VisusInfo() << "Testing query...";
     auto access = dataset->createAccess();
 
-    int TileSize = 1024;
-    auto tiles = dataset->generateTiles(TileSize);
+    auto tiles = dataset->generateTiles(query_dim);
 
     Time T1 = Time::now();
     Time Tstats = Time::now();

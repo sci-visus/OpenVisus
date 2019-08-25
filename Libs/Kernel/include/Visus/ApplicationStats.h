@@ -53,18 +53,19 @@ class VISUS_KERNEL_API IOApplicationStats
 {
 public:
 
+  VISUS_NON_COPYABLE_CLASS(IOApplicationStats)
 
-  std::atomic<Int64> nopen = 0;
-  std::atomic<Int64> rbytes = 0;
-  std::atomic<Int64> wbytes = 0;
+  std::atomic<Int64> nopen;
+  std::atomic<Int64> rbytes;
+  std::atomic<Int64> wbytes;
 
   //constructor
-  IOApplicationStats() {
+  IOApplicationStats() : nopen(0),rbytes(0), wbytes(0) {
   }
 
   //reset
   void reset() {
-    nopen = 0;
+    nopen  = 0;
     rbytes = 0;
     wbytes = 0;
   }
@@ -76,17 +77,19 @@ class VISUS_KERNEL_API NetApplicationStats
 {
 public:
 
-  std::atomic<Int64> nopen = 0;
-  std::atomic<Int64> rbytes = 0;
-  std::atomic<Int64> wbytes = 0;
+  VISUS_NON_COPYABLE_CLASS(NetApplicationStats)
+
+  std::atomic<Int64> nopen;
+  std::atomic<Int64> rbytes;
+  std::atomic<Int64> wbytes;
 
   //constructor
-  NetApplicationStats() {
+  NetApplicationStats() : nopen(0), rbytes(0), wbytes(0) {
   }
 
   //reset
   void reset() {
-    nopen = 0;
+    nopen  = 0;
     rbytes = 0;
     wbytes = 0;
   }
