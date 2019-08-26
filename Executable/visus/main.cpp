@@ -1564,7 +1564,7 @@ public:
     if (!dataset)
       ThrowException(StringUtils::format() << args[0] << "  cannot LoadDataset " << filename);
 
-    int    query_dim = dataset->getPointDim() == 2 ? 4096 : 512;
+    int    query_dim = dataset->getPointDim() == 2 ? 2048 : 512;
 
     for (int I=2;I<(int)args.size();I++)
     {
