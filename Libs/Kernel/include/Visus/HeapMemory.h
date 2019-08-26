@@ -77,8 +77,13 @@ public:
   //shrink (so that c_capacity()==c_size())
   bool shrink();
 
+  //hasConstantValue
+  bool hasConstantValue(Uint8 value) const;
+
   //isAllZero
-  bool isAllZero() const;
+  bool isAllZero() const {
+    return hasConstantValue(0);
+  }
 
   //c_capacity
   inline Int64 c_capacity() const{

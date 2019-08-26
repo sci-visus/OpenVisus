@@ -340,9 +340,6 @@ public:
   //setBufferColor
   static void setBufferColor(Array& buffer, Color color);
 
-  //createTransformedAlpha
-  static Array createTransformedAlpha(BoxNi bounds, Matrix T, PointNi dims, Aborted aborted);
-
 private:
 
   ArrayUtils() = delete;

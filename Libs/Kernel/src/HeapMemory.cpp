@@ -113,11 +113,14 @@ bool HeapMemory::shrink()
 }
 
 ////////////////////////////////////////////////////////
-bool HeapMemory::isAllZero() const
+bool HeapMemory::hasConstantValue(Uint8 value) const
 {
   const Uint8* buf  = this->c_ptr();
   Int64        size = this->c_size();
-  return (!size) || (buf[0]==0 && memcmp(buf, buf + 1, (size_t)size - 1)==0);
+  if (!size)
+    return true;
+  else
+    return buf[0]== value && memcmp(buf, buf + 1, (size_t)size - 1)==0;
 }
 
 

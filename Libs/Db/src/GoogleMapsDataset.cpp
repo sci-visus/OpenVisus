@@ -460,8 +460,8 @@ bool GoogleMapsDataset::openFromUrl(Url url)
 
   addField(Field("DATA",dtype));
 
-  //UseQuery not supported? actually yes, but it's a nonsense since a query it's really a block query
-  if (getKdQueryMode()==KdQueryMode::UseQuery)
+  //UseBoxQuery not supported? actually yes, but it's a nonsense since a query it's really a block query
+  if (getKdQueryMode() == KdQueryMode::UseBoxQuery)
     setKdQueryMode(KdQueryMode::UseBlockQuery);
 
   return true;

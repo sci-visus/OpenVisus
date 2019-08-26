@@ -196,6 +196,10 @@ public:
     return createView(src, PointNi(std::vector<Int64>({ x,y,z })), dtype, c_offset);
   }
 
+  //isAllZero
+  inline bool hasConstantValue(Uint8 value) const {
+    return heap->hasConstantValue(value);
+  }
 
   //isAllZero
   inline bool isAllZero() const{

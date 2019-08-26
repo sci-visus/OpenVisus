@@ -67,7 +67,7 @@ public:
   {
     NotSpecified = 0x00,
     UseBlockQuery = 0x01,
-    UseQuery = 0x02
+    UseBoxQuery = 0x02
   };
 
   //fromString
@@ -79,7 +79,7 @@ public:
       return KdQueryMode::UseBlockQuery;
 
     if (value == "box")
-      return KdQueryMode::UseQuery;
+      return KdQueryMode::UseBoxQuery;
 
     if (cbool(value))
       return KdQueryMode::UseBlockQuery;

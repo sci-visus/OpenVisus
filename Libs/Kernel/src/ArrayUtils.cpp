@@ -40,6 +40,8 @@ For support : support@visus.net
 #include <Visus/Encoder.h>
 #include <Visus/Log.h>
 #include <Visus/Color.h>
+#include <Visus/Path.h>
+#include <Visus/File.h>
 
 namespace Visus {
 
@@ -105,6 +107,8 @@ bool ArrayUtils::saveImage(String url,Array src,std::vector<String> args)
 {
   if (!src)
     return false;
+
+  FileUtils::createDirectory(Path(url).getParent());
 
   for (auto plugin : ArrayPlugins::getSingleton()->values)
   {
@@ -1957,112 +1961,6 @@ void BlendBuffers::addBlendArg(Array src, Matrix up_pixel_to_logic, PointNd logi
 }
 
 
-/////////////////////////////////////////////////////////////////////////////////////////////
-Array ArrayUtils::createTransformedAlpha(BoxNi bounds, Matrix T, PointNi dims, Aborted aborted)
-{
-  auto dst = Array(dims, DTypes::UINT8);
-
-  GetSamples<Uint8> write(dst);
-  int offset = 0;
-
-  int pdim = dims.getPointDim();
-
-  if (pdim == 2)
-  {
-    int width  = dims[0];
-    int height = dims[1];
-
-    Int64 X, Y;
-    double py[3], px[3];
-
-    for (Y = 0; Y < height; Y++)
-    {
-      if (aborted())
-        return Array();
-
-      py[0] = T[1] * Y + T[2];
-      py[1] = T[4] * Y + T[5];
-      py[2] = T[7] * Y + T[8];
-
-      for (X = 0; X < width; X++, offset++)
-      {
-        px[0] = T[0] * X + py[0];
-        px[1] = T[3] * X + py[1];
-        px[2] = T[6] * X + py[2];
-
-        px[0] /= px[2];
-        px[1] /= px[2];
-
-        write[offset] = (
-          px[0] >= bounds.p1[0] && px[0] < bounds.p2[0] &&
-          px[1] >= bounds.p1[1] && px[1] < bounds.p2[1]) ? 255 : 0;
-      }
-    }
-  }
-  else if (pdim == 3)
-  {
-    int width  = dims[0];
-    int height = dims[1];
-    int depth  = dims[2];
-
-    Int64 X, Y, Z;
-    double px[4], py[4], pz[4];
-
-    for (Z = 0; Z < depth; Z++)
-    {
-      pz[0] = T[ 2] * Z + T[ 3];
-      pz[1] = T[ 6] * Z + T[ 7];
-      pz[2] = T[10] * Z + T[11];
-      pz[3] = T[14] * Z + T[15];
-
-      for (Y = 0; Y < height; Y++)
-      {
-        if (aborted())
-          return Array();
-
-        py[0] = T[ 1] * Y + pz[0];
-        py[1] = T[ 5] * Y + pz[1];
-        py[2] = T[ 9] * Y + pz[2];
-        py[3] = T[13] * Y + pz[3];
-
-        for (X = 0; X < width; X++, offset++)
-        {
-          px[0] = T[ 0] * X + py[0];
-          px[1] = T[ 4] * X + py[1];
-          px[2] = T[ 8] * X + py[2];
-          px[3] = T[12] * X + py[3];
-
-          px[0] /= px[3];
-          px[1] /= px[3];
-          px[2] /= px[3];
-
-          write[offset] = (
-            px[0] >= bounds.p1[0] && px[0] < bounds.p2[0] &&
-            px[1] >= bounds.p1[1] && px[1] < bounds.p2[1] &&
-            px[2] >= bounds.p1[2] && px[2] < bounds.p2[2]) ? 255 : 0;
-        }
-      }
-    }
-  }
-  else
-  {
-    for (auto dw_pixel = ForEachPoint(dims); !dw_pixel.end(); dw_pixel.next(), offset++)
-    {
-      if (aborted())
-        return Array();
-
-      auto dw_logic = T * dw_pixel.pos;
-
-      VisusAssert(false);//todo
-      write[offset] = (
-        dw_logic[0] >= bounds.p1[0] && dw_logic[0] < bounds.p2[0] &&
-        dw_logic[1] >= bounds.p1[1] && dw_logic[1] < bounds.p2[1] &&
-        dw_logic[2] >= bounds.p1[2] && dw_logic[2] < bounds.p2[2]) ? 255 : 0;
-    }
-  }
-
-  return dst;
-}
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 void ArrayUtils::setBufferColor(Array& buffer, Color color)

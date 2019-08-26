@@ -704,9 +704,12 @@ public:
     //limit the samples to good logic domain
     //explanation: for each pixel in dims, tranform it to the logic dataset box, if inside set the pixel to 1 otherwise set the pixel to 0
     if (!query->buffer.alpha)
-      query->buffer.alpha = std::make_shared<Array>(ArrayUtils::createTransformedAlpha(dataset->getLogicBox(), pixel_to_logic, query->buffer.dims, QUERY->aborted));
-    else
-      VisusReleaseAssert(query->buffer.alpha->dims==query->buffer.dims);
+    {
+      query->buffer.alpha = std::make_shared<Array>(query->buffer.dims,DTypes::UINT8);
+      query->buffer.alpha->fillWithValue(255);
+    }
+    
+    VisusReleaseAssert(query->buffer.alpha->dims==query->buffer.dims);
 
     if (!QUERY->aborted())
     {
@@ -790,27 +793,21 @@ public:
 
       //VisusInfo() << "BLEND BUFFERS #queries " << queries.size() <<" LOGIC_BOX "<< QUERY->logic_box.toString();
 
-
-
-      //I don't see any advantage using OpenMP here
       /*
 
-      NTHREADS DESCRIPTION TIMING
-      test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 4096
-      0  RAMMap-EmptyStandy(PosixFile) 563 SkipReading 303
-      4  RAMMap-EmptyStandy(PosixFile) 570 SkipReading 311
+      num-threads==0 (==OpenMP disabled)
 
-      test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 2048
-      0  RAMMap-EmptyStandy(PosixFile) 600 DebugSkipReading 230
-      4  RAMMap-EmptyStandy(PosixFile) 597 DebugSkipReading 231
+        test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 512
+        FlushedCache(PosixFile)  891 SkipReading 136
 
-      test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 1024
-      0  RAMMap-EmptyStandy(PosixFile) 1004 DebugSkipReading 187   RAMMap-EmptyStandy(Win32FILE) 1015 RAMMap-EmptyStandy(MappedFile) 1055
-      4  RAMMap-EmptyStandy(PosixFile)  810 DebugSkipReading 189
+        test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 1024
+        FlushedCache(PosixFile) 734 SkipReading 171
 
-      test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 512
-      0  RAMMap-EmptyStandy(PosixFile)  912 DebugSkipReading 160
-      4  RAMMap-EmptyStandy(PosixFile)  904 DebugSkipReading 162
+        test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 2048
+        FlushedCache(PosixFile) 567 SkipReading 206
+
+        test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 4096
+        FlushedCache(PosixFile) 538 SkipReading 281
 
       */
       //bool bRunInParallel = !DATASET->isServerMode();
@@ -1507,7 +1504,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   //for non-mosaic I cannot use block query
   //if (pdim==2)
-  //  this->kdquery_mode = KdQueryMode::UseQuery;
+  //  this->kdquery_mode = KdQueryMode::UseBoxQuery;
 
   if (istream.getCurrentContext()->findChildWithName("field"))
   {

@@ -162,7 +162,7 @@ public:
   void computeFullRes(KdArrayNode* node, ScopedReadLock& rlock)
   {
     //nothing to do
-    if (kdquery_mode == KdQueryMode::UseQuery)
+    if (kdquery_mode == KdQueryMode::UseBoxQuery)
       return;
 
     if (aborted() || !node)
@@ -457,7 +457,7 @@ public:
 
         wait_async.pushRunning(NetService::push(netservice, *request)).when_ready([this, query, node, &rlock](NetResponse response) {
 
-          VisusAssert(kdquery_mode == KdQueryMode::UseQuery);
+          VisusAssert(kdquery_mode == KdQueryMode::UseBoxQuery);
 
           if (this->aborted() || !response.isSuccessful())
             return;
@@ -528,7 +528,7 @@ bool KdQueryNode::processInput()
   if (kdquery_mode==KdQueryMode::NotSpecified) 
     kdquery_mode=KdQueryMode::UseBlockQuery;
 
-  VisusAssert(kdquery_mode==KdQueryMode::UseQuery || kdquery_mode==KdQueryMode::UseBlockQuery);
+  VisusAssert(kdquery_mode==KdQueryMode::UseBoxQuery || kdquery_mode==KdQueryMode::UseBlockQuery);
 
   //I cannot recycle the current kdarray
   if (!kdarray || !(dataset && this->dataset==dataset && this->time==time && this->fieldname==fieldname))
@@ -603,7 +603,7 @@ bool KdQueryNode::processInput()
     job->bBlocksAreFullRes = std::dynamic_pointer_cast<GoogleMapsDataset>(dataset) ? true : false;
 
     //TODO enable also for UseBlockQuery?
-    if (kdquery_mode == KdQueryMode::UseQuery)
+    if (kdquery_mode == KdQueryMode::UseBoxQuery)
     {
       //all levels from [0,cutoff) will be cached without any memory limitations
       //there will be 2^cutoff-1 kdnodes  (8->255 , 9->511, 10->1024)
