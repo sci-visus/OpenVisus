@@ -269,13 +269,16 @@ if (VISUS_PYTHON)
 		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "PYTHONPATH=${OpenVisus_DIR}/..")
 	endmacro()
 	
-	AddOpenVisusTest(VisusTestPyDataflow COMMAND "${PYTHON_EXECUTABLE}"    "${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Dataflow.py")
-	AddOpenVisusTest(VisusTestPyArray    COMMAND "${PYTHON_EXECUTABLE}"    "${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Array.py")
-	AddOpenVisusTest(VisusTestPyIdx      COMMAND "${PYTHON_EXECUTABLE}"    "${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py")
-	AddOpenVisusTest(VisusTestPyXIdx     COMMAND "${PYTHON_EXECUTABLE}"    "${CMAKE_CURRENT_SOURCE_DIR}/Samples/python/Idx.py")
+	AddOpenVisusTest(VisusTestPyDataflow   COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Dataflow.py"        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+	AddOpenVisusTest(VisusTestPyArray      COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Array.py"           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+	AddOpenVisusTest(VisusTestPyIdx        COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Idx.py"             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+	AddOpenVisusTest(VisusTestPyXIdx       COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Idx.py"             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+	
+	AddOpenVisusTest(VisusDataConversion1 COMMAND "${PYTHON_EXECUTABLE}"     "Samples/python/DataConversion1.py" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+	AddOpenVisusTest(VisusDataConversion2 COMMAND "${PYTHON_EXECUTABLE}"     "Samples/python/DataConversion2.py" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 	# disabled: takes too much time, in case you modify some core IDX class you can run it manually
-	# AddOpenVisusTest(NAME VisusTestIdx COMMAND "$<TARGET_FILE:visus>"     "${CMAKE_CURRENT_SOURCE_DIR}" --test-idx --max-seconds 300)
+	# AddOpenVisusTest(NAME VisusTestIdx COMMAND "$<TARGET_FILE:visus>"     "." --test-idx --max-seconds 300     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 	
 endif()
 

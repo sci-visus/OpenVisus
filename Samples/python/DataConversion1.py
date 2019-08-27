@@ -1,25 +1,21 @@
 import sys
-from skimage import io
 from OpenVisus import *
 import numpy as np
 
-def ASSERT(cond):
-	if not cond: raise Exception("Assert failed")	
-		
+
 if __name__ == '__main__':
 	
 	""" 
 	Example of data conversion:
 	
-	Input is a TIF stack of images
+	Input is a 3d images (replace by whatever you have)
 	
 	Ouput is an IDX
 	For each source slice the original data is shifted by 5 pixels:
-		first slice is shifted by (0,0)
-		second slice is shifted by (5,0)
-		third slice is shifted by (10,0)
+		first  slice is shifted by ( 0,0)
+		second slice is shifted by ( 5,0)
+		third  slice is shifted by (10,0)
 		...
-		
 	"""
 
 	SetCommandLine("__main__")
@@ -28,41 +24,53 @@ if __name__ == '__main__':
 	# trick to speed up the conversion
 	os.environ["VISUS_DISABLE_WRITE_LOCK"]="1"
 	
-	img = io.imread('data.tif')
-	print(img.shape)
+	# numpy display is Z,Y,X
+	width,height,depth=2,3,4
+	img = np.zeros((depth,height,width),dtype=np.uint16)
+	if not (img.shape[0]==depth and img.shape[1]==height and img.shape[2]==width):
+		raise Exception("Assert failed")	
 	
 	idx_name='./tmp/visus.idx'
-	depth, height, width = img.shape[0], img.shape[1],img.shape[2]
 	print("image",idx_name,"has dimensions",width,height,depth)
 	
 	# to disable offset just set this to 0
 	offset_x=5
 	
-	dims=NdPoint.one(int(width + offset_x*depth),int(height),int(depth))
+	# numpy dtype -> OpenVisus dtype
+	typestr=img.__array_interface__["typestr"]
+	dtype=DType(typestr[1]=="u", typestr[1]=="f", int(typestr[2])*8)      	
+	
+	dims=PointNi(int(width + offset_x*depth),int(height),int(depth))
 	idx_file = IdxFile()
-	idx_file.box=NdBox(NdPoint(0,0,0),dims)
-	idx_file.fields.push_back(Field('channel0',DType.fromString("uint16")))
+	idx_file.logic_box=BoxNi(PointNi(0,0,0),dims)
+	idx_file.fields.push_back(Field('channel0',dtype))
 	success = idx_file.save(idx_name)
-	ASSERT(success)
+	if not success:
+		raise Exception("Assert failed")	
+			
 	print("Created IDX file")
 	
 	dataset=LoadDataset(idx_name)
 	access=dataset.createAccess()
-	ASSERT(dataset)
+	if not dataset:
+		raise Exception("Assert failed")	
   
 	for Z in range(0,depth):
 		
 		print("Processing slice %d" % Z)
 		data = img[Z,:,:]
 		
-		slice_box=dataset.getBox().getZSlab(Z,Z+1)
-		ASSERT(slice_box.size()[0]==dims[0] and slice_box.size()[1]==dims[1])
+		slice_box=dataset.getLogicBox().getZSlab(Z,Z+1)
+		if not (slice_box.size()[0]==dims[0] and slice_box.size()[1]==dims[1]):
+			raise Exception("Assert failed")	
 			
-		query=Query(dataset,ord('w'))
-		query.position=Position(slice_box)
-		ASSERT(dataset.beginQuery(query))
+		query=BoxQuery(dataset,dataset.getDefaultField(),dataset.getDefaultTime(),ord('w'))
+		query.logic_box=slice_box
+		dataset.beginQuery(query)
+		if not query.isRunning():
+			raise Exception("Assert failed")	
 
-		buffer=Array(query.nsamples,query.field.dtype)
+		buffer=Array(query.getNumberOfSamples(),query.field.dtype)
 		buffer.fillWithValue(0)
 		
 		fill=Array.toNumPy(buffer,bSqueeze=True,bShareMem=True)
@@ -73,11 +81,12 @@ if __name__ == '__main__':
 		fill[y1:y2,x1:x2]=data
 			
 		query.buffer=buffer
-		ASSERT(dataset.executeQuery(access,query))	
+		if not (dataset.executeQuery(access,query))	:
+			raise Exception("Assert failed")
 		
-		# disable these two lines after debugging
-		ArrayUtils.saveImageUINT8("tmp/slice%d.orig.png" % (Z,),Array.fromNumPy(data))
-		ArrayUtils.saveImageUINT8("tmp/slice%d.offset.png" % (Z,),Array.fromNumPy(fill))
+		# enable/disable these two lines after debugging
+		# ArrayUtils.saveImageUINT8("tmp/slice%d.orig.png" % (Z,),Array.fromNumPy(data))
+		# ArrayUtils.saveImageUINT8("tmp/slice%d.offset.png" % (Z,),Array.fromNumPy(fill))
 	
 	IdxModule.detach()
 	print("Done with conversion")
