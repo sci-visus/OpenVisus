@@ -92,7 +92,7 @@ public:
       }
       else if (args[I] == "--dims")
       {
-        dims = PointNi::parseDims(args[++I]);
+        dims = PointNi::parseFromString(args[++I]);
         if (dims.innerProduct() <= 0)
         {
           VisusWarning() << "invalid --dims " << args[I];

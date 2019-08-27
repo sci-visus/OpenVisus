@@ -48,17 +48,6 @@ int main(int argn,const char* argv[])
   GuiModule::createApplication();
   AppKitModule::attach();
 
-  SharedPtr<NetServer> server;
-
-  auto args = ApplicationInfo::args;
-  if (std::find(args.begin(), args.end(), String("--server")) != args.end())
-  {
-    auto modvisus = new ModVisus();
-    modvisus->configureDatasets();
-    server = std::make_shared<NetServer>(10000, modvisus);
-    server->runInBackground();
-  }
-
   {
     UniquePtr<Viewer> viewer(new Viewer());
     viewer->configureFromCommandLine(ApplicationInfo::args);

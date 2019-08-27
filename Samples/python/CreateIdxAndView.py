@@ -1,12 +1,10 @@
-
 import sys
 import cv2
 from OpenVisus import *
 
-if VISUS_GUI:
-	from VisusGuiPy      import *
-	from VisusGuiNodesPy import *
-	from VisusAppKitPy   import *
+from VisusGuiPy      import *
+from VisusGuiNodesPy import *
+from VisusAppKitPy   import *
 
 def ASSERT(cond):
 	if not cond: raise Exception("Assert failed")	
@@ -24,10 +22,7 @@ if __name__ == '__main__':
 	SetCommandLine("__main__")
 	GuiModule.createApplication()
 	
-	if VISUS_GUI:
-		AppKitModule.attach()
-	else:
-		IdxModule.attach()
+	AppKitModule.attach()
 	
 	img_filename="datasets/cat/rgb.png"
 	idx_filename="temp/visus.idx"
@@ -41,7 +36,7 @@ if __name__ == '__main__':
 	
 	# (2) convert the image to idx file
 	idxfile=IdxFile()
-	idxfile.box=BoxNi(PointNi(0,0),PointNi(width,height))
+	idxfile.logic_box=BoxNi(PointNi(0,0),PointNi(width,height))
 	idxfile.fields.push_back(Field("data",DType.fromString("uint8[{}]".format(nchannels))))
 	bOk=idxfile.save(idx_filename)
 	ASSERT(bOk)
@@ -51,36 +46,25 @@ if __name__ == '__main__':
 		
 	array=Array.fromNumPy(img,TargetDim=2,bShareMem=True)
 	access=dataset.createAccess()
-	field=dataset.getDefaultField()
-	time=dataset.getDefaultTime()
-	bOk=dataset.writeFullResolutionData(access,field,time,array)
+	bOk=dataset.writeFullResolutionData(access,dataset.getDefaultField(),dataset.getDefaultTime(),array)
 	ASSERT(bOk)
 	
 	# (3) view the idx in visus viewer...
-	if VISUS_GUI:
-	
-		viewer=Viewer()
-		viewer.openFile(idx_filename)	
-		viewer.setMinimal()
+	viewer=Viewer()
+	viewer.openFile(idx_filename)	
+	viewer.setMinimal()
 		
-		# ... with some little python scripting
-		viewer.setScriptingCode("""
+	# ... with some little python scripting
+	viewer.setScriptingCode("""
 import cv2,numpy
-
 pdim=input.dims.getPointDim()
 img=Array.toNumPy(input,bShareMem=True)
-
 img=cv2.Laplacian(img,cv2.CV_64F)
-
 output=Array.fromNumPy(img,TargetDim=pdim)
-	""".strip())
-		
-		GuiModule.execApplication()
-		
-	if VISUS_GUI:
-		AppKitModule.detach()
-	else:
-		IdxModule.detach()
+""".strip())
+	
+	GuiModule.execApplication()
+	AppKitModule.detach()
 
 	
 	

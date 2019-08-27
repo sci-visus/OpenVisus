@@ -1281,18 +1281,6 @@ public:
     return PointN(ret);
   }
 
-  //parseDims
-  static PointN parseDims(String src)
-  {
-    auto ret = parseFromString(src);
-
-    //backward compatible: remove unnecessary dimensions
-    while (ret.getPointDim() && ret.back() == T(1))
-      ret.pop_back();
-
-    return ret;
-  }
-
   //convert to string
   String toString(String sep = " ") const {
     auto pdim = getPointDim();

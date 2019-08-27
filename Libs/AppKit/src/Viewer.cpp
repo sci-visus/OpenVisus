@@ -333,6 +333,13 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
     {
       bMinimal = true;
     }
+    else if (args[I] == "--server")
+    {
+      auto modvisus = new ModVisus();
+      modvisus->configureDatasets();
+      this->server = std::make_shared<NetServer>(10000, modvisus);
+      this->server->runInBackground();
+    }
     else if (args[I] == "--internal-network-test-11")
     {
       auto master = this;

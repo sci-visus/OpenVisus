@@ -103,7 +103,8 @@ private:
   NetResponse handleAddDataset       (const NetRequest& request);
   NetResponse handleHtmlForPlugin    (const NetRequest& request);
   NetResponse handleBlockQuery       (const NetRequest& request);
-  NetResponse handleQuery            (const NetRequest& request);
+  NetResponse handleBoxQuery         (const NetRequest& request);
+  NetResponse handlePointQuery       (const NetRequest& request);
 
 };
 

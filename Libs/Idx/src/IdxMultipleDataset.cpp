@@ -1631,7 +1631,7 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuer
 
   // blending happens on the server
   if (!access)
-    return IdxDataset::executePureRemoteQuery(QUERY);
+    return executeBoxQueryOnServer(QUERY);
 
   // example: since I can handle blocks, I can even enable caching adding for example a RamAccess/DiskAcces to the top
   return IdxDataset::executeQuery(access, QUERY);

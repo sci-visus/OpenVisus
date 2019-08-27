@@ -454,15 +454,13 @@ public:
     return false;
   }
 
-  //createPureRemoteQueryNetRequest
-  virtual NetRequest createPureRemoteQueryNetRequest(SharedPtr<BoxQuery> query) {
+  //createBoxQueryRequest
+  virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) {
     return NetRequest();
   }
 
-  //executePureRemoteQuery
-  virtual bool executePureRemoteQuery(SharedPtr<BoxQuery> query) {
-    return false;
-  }
+  //executeBoxQueryOnServer
+  virtual bool executeBoxQueryOnServer(SharedPtr<BoxQuery> query);
 
 public:
 
@@ -481,18 +479,15 @@ public:
     return false;
   }
 
-  //createPureRemoteQueryNetRequest
-  virtual NetRequest createPureRemoteQueryNetRequest(SharedPtr<PointQuery> query) {
+  //createPointQueryRequest
+  virtual NetRequest createPointQueryRequest(SharedPtr<PointQuery> query) {
     return NetRequest();
   }
 
-  //executePureRemoteQuery
-  virtual bool executePureRemoteQuery(SharedPtr<PointQuery> query) {
-    return false;
-  }
+  //executePointQueryOnServer
+  virtual bool executePointQueryOnServer(SharedPtr<PointQuery> query);
 
 public:
-
 
   //generateTiles (useful for conversion)
   std::vector<BoxNi> generateTiles(int TileSize) const;

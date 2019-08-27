@@ -51,6 +51,7 @@ For support : support@visus.net
 #include <Visus/NetSocket.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/VisusConfig.h>
+#include <Visus/NetServer.h>
 
 #include <QMainWindow>
 #include <QMenuBar>
@@ -939,6 +940,8 @@ signals:
 private:
 
   std::vector< SharedPtr<GLObject> > huds;
+  SharedPtr<NetServer> server;
+
 
 }; //end class
 

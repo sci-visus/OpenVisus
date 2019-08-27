@@ -136,11 +136,8 @@ public:
   //mergeBoxQueryWithBlock
   virtual bool mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<BlockQuery> block_query) override;
 
-  //createNetRequest
-  virtual NetRequest createPureRemoteQueryNetRequest(SharedPtr<BoxQuery> query) override;
-
-  //executePureRemoteQuery
-  virtual bool executePureRemoteQuery(SharedPtr<BoxQuery> query) override;
+  //createBoxQueryRequest
+  virtual NetRequest createBoxQueryRequest(SharedPtr<BoxQuery> query) override;
 
 public:
 
@@ -150,11 +147,8 @@ public:
   //executeQuery
   virtual bool executeQuery(SharedPtr<Access> access, SharedPtr<PointQuery> query) override;
 
-  //createNetRequest
-  virtual NetRequest createPureRemoteQueryNetRequest(SharedPtr<PointQuery> query) override;
-
-  //executePureRemoteQuery
-  virtual bool executePureRemoteQuery(SharedPtr<PointQuery> query) override;
+  //createPointQueryRequest
+  virtual NetRequest createPointQueryRequest(SharedPtr<PointQuery> query) override;
 
   //setEndResolution
   bool setEndResolution(SharedPtr<BoxQuery> query, int value);

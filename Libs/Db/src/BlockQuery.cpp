@@ -75,13 +75,17 @@ bool Query::allocateBufferIfNeeded()
     buffer.fillWithValue(field.default_value);
     buffer.layout = field.default_layout;
   }
-  else
-  {
-    //check buffer
-    VisusAssert(buffer.dims == nsamples);
-    VisusAssert(buffer.dtype == field.dtype);
-    VisusAssert(buffer.c_size() == getByteSize());
-  }
+
+  //check buffer
+  VisusAssert(buffer.dtype == field.dtype);
+  VisusAssert(buffer.c_size() == getByteSize());
+
+  //this covers the case when the user specify a 3d array for a 3d datasets
+  //or for pointqueries 
+#if 1
+  VisusAssert(buffer.dims.innerProduct() == nsamples.innerProduct());
+  buffer.dims = nsamples;
+#endif
 
   return true;
 }

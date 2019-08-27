@@ -968,7 +968,7 @@ public:
 
       if (args[I] == "--dims")
       {
-        dims = PointNi::parseDims(args[++I]);
+        dims = PointNi::parseFromString(args[++I]);
         continue;
       }
       
@@ -1809,7 +1809,7 @@ public:
     {
       if (args[I] == "--dims")
       {
-        dims = PointNi::parseDims(args[++I]);
+        dims = PointNi::parseFromString(args[++I]);
         continue;
       }
 

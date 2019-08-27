@@ -649,7 +649,7 @@ NetResponse ModVisus::handleBlockQuery(const NetRequest& request)
 }
 
 ///////////////////////////////////////////////////////////////////////////
-NetResponse ModVisus::handleQuery(const NetRequest& request)
+NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
 {
   auto dataset_name = request.url.getParam("dataset");
   auto fromh = cint(request.url.getParam("fromh"));
@@ -658,7 +658,7 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
   auto time = cdouble(request.url.getParam("time"));
   auto compression = request.url.getParam("compression");
 
-  auto datasets=getDatasets();
+  auto datasets = getDatasets();
 
   auto dataset = datasets->findDataset(dataset_name);
   if (!dataset)
@@ -675,82 +675,43 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
 
   Array buffer;
 
-  //position
-  String action = request.url.getParam("action");
-  if (action == "boxquery")
+  bool   bDisableFilters = cbool(request.url.getParam("disable_filters"));
+  bool   bKdBoxQuery = request.url.getParam("kdquery") == "box";
+
+  auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r', Aborted());
+  query->setResolutionRange(fromh, endh);
+
+  //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)
+  if (fromh == 0 && !bDisableFilters)
   {
-    bool   bDisableFilters = cbool(request.url.getParam("disable_filters"));
-    bool   bKdBoxQuery = request.url.getParam("kdquery") == "box";
-
-    auto query = std::make_shared<BoxQuery>(dataset.get(), field, time, 'r', Aborted());
-    query->setResolutionRange(fromh, endh);
-
-    //I apply the filter on server side only for the first coarse query (more data need to be processed on client side)
-    if (fromh == 0 && !bDisableFilters)
-    {
-      query->filter.enabled = true;
-      query->filter.domain = (bKdBoxQuery ? dataset->getBitmask().getPow2Box() : dataset->getLogicBox());
-    }
-    else
-    {
-      query->filter.enabled = false;
-    }
-
-    query->logic_box = BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box"));
-
-    dataset->beginQuery(query);
-
-    if (!query->isRunning())
-      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
-
-    auto access = dataset->createAccess();
-    if (!dataset->executeQuery(access, query))
-      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
-
-    buffer = query->buffer;
-
-    //useful for kdquery=box (for example with discrete wavelets, don't want the extra channel)
-    if (bKdBoxQuery)
-    {
-      if (auto filter = query->filter.dataset_filter)
-        buffer = filter->dropExtraComponentIfExists(buffer);
-    }
-
-
-  }
-  else if (action == "pointquery")
-  {
-    auto nsamples = PointNi::parseDims(request.url.getParam("nsamples"));
-
-
-    VisusAssert(fromh == 0);
-    auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', Aborted());
-    query->end_resolution = endh;
-
-    query->logic_position = Position(
-      Matrix::parseFromString(4, request.url.getParam("matrix")), 
-      BoxNd::parseFromString(request.url.getParam("box"),/*bInterleave*/false).withPointDim(3));
-
-    if (!query->setPoints(nsamples))
-      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->setPoints failed " + query->getLastErrorMsg());
-
-    auto access = dataset->createAccess();
-
-    dataset->beginQuery(query);
-
-    if (!query->isRunning())
-      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
-
-    if (!dataset->executeQuery(access, query))
-      return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
-
-    buffer = query->buffer;
+    query->filter.enabled = true;
+    query->filter.domain = (bKdBoxQuery ? dataset->getBitmask().getPow2Box() : dataset->getLogicBox());
   }
   else
   {
-    //TODO
-    VisusAssert(false);
+    query->filter.enabled = false;
   }
+
+  query->logic_box = BoxNi::parseFromOldFormatString(pdim, request.url.getParam("box"));
+
+  dataset->beginQuery(query);
+
+  if (!query->isRunning())
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
+
+  auto access = dataset->createAccess();
+  if (!dataset->executeQuery(access, query))
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
+
+  buffer = query->buffer;
+
+  //useful for kdquery=box (for example with discrete wavelets, don't want the extra channel)
+  if (bKdBoxQuery)
+  {
+    if (auto filter = query->filter.dataset_filter)
+      buffer = filter->dropExtraComponentIfExists(buffer);
+  }
+
 
   String palette = request.url.getParam("palette");
   if (!palette.empty() && buffer.dtype.ncomponents() == 1)
@@ -762,7 +723,101 @@ NetResponse ModVisus::handleQuery(const NetRequest& request)
       VisusInfo() << "invalid palette specified: " << palette;
       VisusInfo() << "use one of:";
       std::vector<String> tf_defaults = TransferFunction::getDefaults();
-      for (int i = 0; i<tf_defaults.size(); i++)
+      for (int i = 0; i < tf_defaults.size(); i++)
+        VisusInfo() << "\t" << tf_defaults[i];
+    }
+    else
+    {
+      double palette_min = cdouble(request.url.getParam("palette_min"));
+      double palette_max = cdouble(request.url.getParam("palette_max"));
+      String palette_interp = (request.url.getParam("palette_interp"));
+
+      if (palette_min != palette_max)
+        tf.input_range = ComputeRange::createCustom(palette_min, palette_max);
+
+      if (!palette_interp.empty())
+        tf.interpolation.set(palette_interp);
+
+      buffer = tf.applyToArray(buffer);
+      if (!buffer)
+        return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "palette failed");
+    }
+  }
+
+  NetResponse response(HttpStatus::STATUS_OK);
+  if (!response.setArrayBody(compression, buffer))
+    return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "NetResponse encodeBuffer failed");
+
+  return response;
+
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+NetResponse ModVisus::handlePointQuery(const NetRequest& request)
+{
+  auto dataset_name = request.url.getParam("dataset");
+  auto fromh = cint(request.url.getParam("fromh"));
+  auto endh = cint(request.url.getParam("toh"));
+  auto maxh = cint(request.url.getParam("maxh"));
+  auto time = cdouble(request.url.getParam("time"));
+  auto compression = request.url.getParam("compression");
+
+  auto datasets = getDatasets();
+
+  auto dataset = datasets->findDataset(dataset_name);
+  if (!dataset)
+    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
+
+  int pdim = dataset->getPointDim();
+
+  String fieldname = request.url.getParam("field");
+  Field field = fieldname.empty() ? dataset->getDefaultField() : dataset->getFieldByName(fieldname);
+  if (!field.valid())
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Cannot find fieldname(" + fieldname + ")");
+
+  //TODO: how can I get the aborted from network?
+
+  Array buffer;
+
+  auto nsamples = PointNi::parseFromString(request.url.getParam("nsamples"));
+  VisusAssert(nsamples.getPointDim() == 3);
+
+  VisusAssert(fromh == 0);
+  auto query = std::make_shared<PointQuery>(dataset.get(), field, time, 'r', Aborted());
+  query->end_resolution = endh;
+
+  query->logic_position = Position(
+    Matrix::parseFromString(4, request.url.getParam("matrix")), 
+    BoxNd::parseFromString(request.url.getParam("box"),/*bInterleave*/false).withPointDim(3));
+
+  if (!query->setPoints(nsamples))
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->setPoints failed " + query->getLastErrorMsg());
+
+  auto access = dataset->createAccess();
+
+  dataset->beginQuery(query);
+
+  if (!query->isRunning())
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->beginQuery() failed " + query->getLastErrorMsg());
+
+  if (!dataset->executeQuery(access, query))
+    return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->executeQuery() failed " + query->getLastErrorMsg());
+
+  buffer = query->buffer;
+
+
+  String palette = request.url.getParam("palette");
+  if (!palette.empty() && buffer.dtype.ncomponents() == 1)
+  {
+    TransferFunction tf;
+    if (!tf.setDefault(palette))
+    {
+      VisusAssert(false);
+      VisusInfo() << "invalid palette specified: " << palette;
+      VisusInfo() << "use one of:";
+      std::vector<String> tf_defaults = TransferFunction::getDefaults();
+      for (int i = 0; i < tf_defaults.size(); i++)
         VisusInfo() << "\t" << tf_defaults[i];
     }
     else
@@ -845,8 +900,11 @@ NetResponse ModVisus::handleRequest(NetRequest request)
   if (action == "rangequery" || action == "blockquery")
     response = handleBlockQuery(request);
 
-  else if (action == "query" || action == "boxquery" || action == "pointquery")
-    response = handleQuery(request);
+  else if (action == "query" || action == "boxquery")
+    response = handleBoxQuery(request);
+
+  else if (action == "pointquery")
+    response = handlePointQuery(request);
 
   else if (action == "readdataset" || action == "read_dataset")
     response = handleReadDataset(request);

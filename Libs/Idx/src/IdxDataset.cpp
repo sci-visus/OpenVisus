@@ -1154,7 +1154,7 @@ bool IdxDataset::mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedPtr<Bloc
 
 
 /////////////////////////////////////////////////////////////////////////
-NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<BoxQuery> query)
+NetRequest IdxDataset::createBoxQueryRequest(SharedPtr<BoxQuery> query)
 {
   /*
     *****NOTE FOR REMOTE QUERIES:*****
@@ -1214,7 +1214,7 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<BoxQuery> query
 }
 
 /////////////////////////////////////////////////////////////////////////
-NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<PointQuery> query)
+NetRequest IdxDataset::createPointQueryRequest(SharedPtr<PointQuery> query)
 {
   VisusAssert(query->mode == 'r');
 
@@ -1240,55 +1240,6 @@ NetRequest IdxDataset::createPureRemoteQueryNetRequest(SharedPtr<PointQuery> que
   return ret;
 }
 
-
-////////////////////////////////////////////////
-bool IdxDataset::executePureRemoteQuery(SharedPtr<BoxQuery> query)
-{
-  auto request = createPureRemoteQueryNetRequest(query);
-  auto response = NetService::getNetResponse(request);
-
-  if (!response.isSuccessful())
-  {
-    query->setFailed((StringUtils::format() << "network request failed errormsg(" << response.getErrorMessage() << ")").str());
-    return false;
-  }
-
-  auto buffer = response.getArrayBody();
-  if (!buffer) {
-    query->setFailed((StringUtils::format() << "failed to decode body").str());
-    return false;
-  }
-
-  VisusAssert(buffer.dims == query->getNumberOfSamples());
-  query->buffer = buffer;
-  query->setCurrentResolution(query->end_resolution);
-  return true;
-}
-
-
-////////////////////////////////////////////////
-bool IdxDataset::executePureRemoteQuery(SharedPtr<PointQuery> query)
-{
-  auto request = createPureRemoteQueryNetRequest(query);
-  auto response = NetService::getNetResponse(request);
-
-  if (!response.isSuccessful())
-  {
-    query->setFailed((StringUtils::format() << "network request failed errormsg(" << response.getErrorMessage() << ")").str());
-    return false;
-  }
-
-  auto buffer = response.getArrayBody();
-  if (!buffer) {
-    query->setFailed((StringUtils::format() << "failed to decode body").str());
-    return false;
-  }
-
-  VisusAssert(buffer.dims == query->getNumberOfSamples());
-  query->buffer = buffer;
-  query->setOk();
-  return true;
-}
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -1485,7 +1436,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access, SharedPtr<BoxQuery> quer
   }
 
   if (!access)
-    return executePureRemoteQuery(query);
+    return executeBoxQueryOnServer(query);
 
   VisusAssert(access);
 
@@ -1778,7 +1729,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
   }
 
   if (!access)
-    return Dataset::executePureRemoteQuery(query);
+    return executePointQueryOnServer(query);
 
   //TODO
   VisusAssert(query->mode == 'r');

@@ -186,7 +186,7 @@ Array ArrayUtils::decodeArray(StringMap metadata, SharedPtr<HeapMemory> encoded)
     return Array();
 
   auto compression = metadata.getValue("visus-compression");
-  auto nsamples = PointNi::parseDims(metadata.getValue("visus-nsamples"));
+  auto nsamples = PointNi::parseFromString(metadata.getValue("visus-nsamples"));
   auto dtype = DType::fromString(metadata.getValue("visus-dtype"));
   auto layout = metadata.getValue("visus-layout");
 

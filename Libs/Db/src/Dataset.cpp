@@ -217,6 +217,70 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
 }
 
 
+////////////////////////////////////////////////////////////////////
+bool Dataset::executeBoxQueryOnServer(SharedPtr<BoxQuery> query)
+{
+  auto request = createBoxQueryRequest(query);
+
+  if (!request.valid())
+  {
+    query->setFailed((StringUtils::format() << "cannot create box query request").str());
+    return false;
+  }
+
+  auto response = NetService::getNetResponse(request);
+
+  if (!response.isSuccessful())
+  {
+    query->setFailed((StringUtils::format() << "network request failed errormsg(" << response.getErrorMessage() << ")").str());
+    return false;
+  }
+
+  auto buffer = response.getArrayBody();
+  if (!buffer) {
+    query->setFailed((StringUtils::format() << "failed to decode body").str());
+    return false;
+  }
+
+  VisusAssert(buffer.dims == query->getNumberOfSamples());
+  query->buffer = buffer;
+  query->setCurrentResolution(query->end_resolution);
+  return true;
+}
+
+////////////////////////////////////////////////////////////////////
+bool Dataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
+{
+  auto request = createPointQueryRequest(query);
+
+  if (!request.valid())
+  {
+    query->setFailed((StringUtils::format() << "cannot create point query request").str());
+    return false;
+  }
+
+  auto response = NetService::getNetResponse(request);
+
+  if (!response.isSuccessful())
+  {
+    query->setFailed((StringUtils::format() << "network request failed errormsg(" << response.getErrorMessage() << ")").str());
+    return false;
+  }
+
+  auto buffer = response.getArrayBody();
+  if (!buffer) {
+    query->setFailed((StringUtils::format() << "failed to decode body").str());
+    return false;
+  }
+
+  buffer.dims.setPointDim(3, 1);
+  VisusAssert(buffer.dims == query->getNumberOfSamples());
+  query->buffer = buffer;
+  query->setOk();
+  return true;
+}
+
+
 ///////////////////////////////////////////////////////////
 Field Dataset::getFieldByNameThrowEx(String fieldname) const
 {

@@ -453,7 +453,7 @@ public:
       //remote 'Query'
       if (netservice)
       {
-        auto request = std::make_shared<NetRequest>(dataset->createPureRemoteQueryNetRequest(query));
+        auto request = std::make_shared<NetRequest>(dataset->createBoxQueryRequest(query));
 
         wait_async.pushRunning(NetService::push(netservice, *request)).when_ready([this, query, node, &rlock](NetResponse response) {
 
