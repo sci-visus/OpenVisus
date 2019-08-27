@@ -87,7 +87,7 @@ public:
 
   //prependModelview
   virtual void prependModelview(Matrix T) override {
-    VisusAssert(T.getSpaceDim() == 3);
+    T.setSpaceDim(3);
     this->point = (T * PointNd(this->point)).toPoint2();
   }
 
@@ -112,7 +112,7 @@ public:
 
   //prependModelview
   virtual void prependModelview(Matrix T) override {
-    VisusAssert(T.getSpaceDim() == 3);
+    T.setSpaceDim(3);
     for (auto& point : points)
       point = (T * PointNd(point)).toPoint2();
   }

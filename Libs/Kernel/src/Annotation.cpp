@@ -124,7 +124,7 @@ public:
     auto poi = std::make_shared<PointOfInterest>();
     poi->point = parsePoint(attributes.getValue("point"));
     poi->text = attributes.getValue("text");
-    poi->magnet_size = cint(attributes.getValue("magnet-size"));
+    poi->magnet_size = cint(attributes.getValue("magnet-size", "20"));
     poi->stroke = parseColor(attributes, "stroke");
     poi->stroke_width = cint(attributes.getValue("stroke-width"));
     poi->fill = parseColor(attributes, "fill");
