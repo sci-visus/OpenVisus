@@ -124,16 +124,15 @@ bool ArrayUtils::saveImage(String url,Array src,std::vector<String> args)
 }
 
 //////////////////////////////////////////////////////////////
-SharedPtr<HeapMemory> ArrayUtils::encodeArray(String compression,Array array)
+SharedPtr<HeapMemory> ArrayUtils::encodeArray(String compression_specs,Array array)
 {
-  compression = StringUtils::trim(StringUtils::toLower(compression));
-
   if (!array) {
     VisusAssert(false);
     return SharedPtr<HeapMemory>();
   }
 
-  Encoder* encoder=Encoders::getSingleton()->getEncoder(compression);
+  std::vector<String> options;
+  auto encoder=Encoders::getSingleton()->getEncoder(compression_specs, options);
   if (!encoder) 
   {
     VisusAssert(false);
@@ -142,7 +141,7 @@ SharedPtr<HeapMemory> ArrayUtils::encodeArray(String compression,Array array)
 
   //if encoder fails, just copy the array
   auto decoded=array.heap;
-  auto encoded=encoder->encode(array.dims,array.dtype,decoded);
+  auto encoded=encoder->encode(array.dims,array.dtype,decoded, options);
   if (!encoded) {
     VisusAssert(false);
     return SharedPtr<HeapMemory>();
@@ -153,10 +152,8 @@ SharedPtr<HeapMemory> ArrayUtils::encodeArray(String compression,Array array)
 
 
 //////////////////////////////////////////////////////////////
-Array ArrayUtils::decodeArray(String compression,PointNi dims,DType dtype,SharedPtr<HeapMemory> encoded)
+Array ArrayUtils::decodeArray(String compression_specs,PointNi dims,DType dtype,SharedPtr<HeapMemory> encoded)
 {
-  compression = StringUtils::trim(StringUtils::toLower(compression));
-
   if (!encoded) {
     VisusAssert(false);
     return Array();
@@ -165,14 +162,14 @@ Array ArrayUtils::decodeArray(String compression,PointNi dims,DType dtype,Shared
   if (dims.innerProduct()<=0 || !dtype.valid())
     return Array();
 
-
-  auto decoder=Encoders::getSingleton()->getEncoder(compression);
+  std::vector<String> options;
+  auto decoder=Encoders::getSingleton()->getEncoder(compression_specs, options);
   if (!decoder) {
     VisusAssert(false);
     return Array();
   }
   
-  auto decoded=decoder->decode(dims,dtype,encoded);
+  auto decoded=decoder->decode(dims,dtype,encoded, options);
   if (!decoded)
     return Array();
 

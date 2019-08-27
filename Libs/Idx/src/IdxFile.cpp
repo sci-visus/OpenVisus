@@ -271,14 +271,6 @@ void IdxFile::validate(Url url)
       VisusWarning()<<"unknown field.default_layout("<<field.default_layout<<")";
       field.default_layout="hzorder";
     }
-
-    //check that if we use a LOSSY (for example jpg) I need QueryData::RowMajor
-    bool bRowMajor=field.default_layout.empty();
-    if (!bRowMajor && Encoders::getSingleton()->getEncoder(field.default_compression)->isLossy())
-    {
-      VisusWarning()<<"The field "<<field.name<<" has a lossy default_compression with a non row-major layout, something is wrong";
-      field.default_compression = "lz4";
-    }
   }
 
   //filename_template

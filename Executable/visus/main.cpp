@@ -475,8 +475,6 @@ public:
       ThrowException(StringUtils::format() << args[0] <<"  LoadDataset(" << url << ") failed");
 
     String compression = args[2];
-    if (!Encoders::getSingleton()->getEncoder(compression))
-      ThrowException(StringUtils::format() << args[0] <<"  encoder(" << compression << ") does not exists");
 
     if (!dataset->compressDataset(compression))
       ThrowException(StringUtils::format() << args[0] <<" Compression failed");
@@ -1474,13 +1472,10 @@ public:
     String filename = args[1];
     auto dataset = LoadDataset(filename);
 
-    String compression = args[2];
-
-    if (!Encoders::getSingleton()->getEncoder(compression))
-      ThrowException(StringUtils::format() << args[0] << "  failed to create encoder " << compression << "");
-
     if (!dataset)
       ThrowException(StringUtils::format() << args[0] << "  failed to read dataset (LoadDataset(" << filename << ") failed)");
+
+    String compression = args[2];
 
     auto access = dataset->createAccessForBlockQuery();
     auto field  = dataset->getDefaultField();
