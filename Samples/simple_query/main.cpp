@@ -126,33 +126,30 @@ int main(int argc, const char* argv[])
   //any time you need to read/write data from/to a Dataset create an Access
   auto access=dataset->createAccess();
 
-  auto query=std::make_shared<Query>(dataset.get(),'r');
+  BoxNi logic_box(p1_in, p2_in);
 
-  BoxNi my_box(p1_in, p2_in);
+  VisusInfo() << "Box query " << logic_box.p1.toString() << " p2 " << logic_box.p2.toString() << " variable " << fieldname << " time " << timestate;
 
-  VisusInfo() << "Box query " << my_box.p1.toString() << " p2 " << my_box.p2.toString() << " variable " << fieldname << " time " << timestate;
-
-  query->logic_position = my_box;
-  query->field = !fieldname.empty()? dataset->getFieldByName(fieldname) : dataset->getDefaultField();
-
-  query->time = timestate;
+  auto field = !fieldname.empty() ? dataset->getFieldByName(fieldname) : dataset->getDefaultField();
+  auto query=std::make_shared<BoxQuery>(dataset.get(), field, timestate,'r');
+  query->logic_box = logic_box;
 
   // Set resolution levels
   // You can add multiple resolutions values to end_resolutions
-  query->start_resolution = 0;
-  query->end_resolutions.push_back(end_resolution);
+  query->setResolutionRange(0, end_resolution);
 
   // In case you use lower resolutions you might want to set a merge_mode
-  query->merge_mode = Query::InterpolateSamples;
+  query->merge_mode = InterpolateSamples;
 
-  VisusReleaseAssert(dataset->nextQuery(query));
+  dataset->beginQuery(query);
+
   while (true)
   {
     // Read the data
-    VisusReleaseAssert(dataset->executeQuery(access, query));
-
-    if (!dataset->nextQuery(query))
+    if (!dataset->executeQuery(access, query))
       break;
+
+    dataset->nextQuery(query);
   }
 
   Array data = query->buffer;

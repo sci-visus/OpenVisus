@@ -232,3 +232,15 @@ BUILD_DIR=$(pwd)/build/docker/leap      PYTHON_VERSION=3.6.1 DOCKER_IMAGE=opensu
 ```
 
 
+## Commit, Continuous Integration deploy
+
+Edit the file conda/openvisus/meta.yaml and increase the Tag version number (line 3)
+
+Commit, tag the current commit and push to origin:
+
+```
+TAG=...insert your tag number here...
+git commit -a -m "New tag"
+git tag -a $TAG -m "$TAG"
+git push origin $TAG
+```

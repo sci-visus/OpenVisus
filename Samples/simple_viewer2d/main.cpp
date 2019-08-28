@@ -226,9 +226,9 @@ public:
     }
 
     this->query_node->setAccessIndex(0);
-    this->query_node->setProgression(Query::GuessProgression);
+    this->query_node->setProgression(QueryGuessProgression);
     this->query_node->setViewDependentEnabled(true);
-    this->query_node->setQuality(Query::DefaultQuality);
+    this->query_node->setQuality(QueryDefaultQuality);
     this->query_node->setNodeBounds(dataset_bounds);
     this->query_node->setQueryBounds(dataset_bounds);
 
