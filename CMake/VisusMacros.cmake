@@ -324,7 +324,13 @@ macro(AddSwigLibrary WrappedLib SwigFile)
 		endif()
 	
 		SetupCommonTargetOptions(${RealName})
-		SetTargetOutputDirectory(${RealName} OpenVisus/bin lib)
+		
+		# this won't work, the swig libraries should be in OpenVisus otherwise
+		# sometimes the python import does not work
+		# for example new swig does this in certain cases:
+		# from . import _VisusKernelPy
+		# SetTargetOutputDirectory(${RealName} OpenVisus/bin lib)
+		SetTargetOutputDirectory(${RealName}   OpenVisus     lib)
 	
 		target_link_libraries(${RealName} PUBLIC ${WrappedLib})
 		set_target_properties(${RealName} PROPERTIES FOLDER Swig/)

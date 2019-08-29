@@ -54,7 +54,9 @@ function NeedPython {
 	fi
 
 	# pyenv does not support 3.7.x  maxosx 10.(12|13)
-	if (( PYTHON_MAJOR_VERSION > 2 )); then
+	#if (( PYTHON_MAJOR_VERSION > 2 )); then
+	# scrgiorgio: since I'm having problems with pyenv and python2.7 and libssh I switched to these precompiled homebrew formula
+	if (( 1 == 1 )) ; then
 
 		PYTHON_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
 		package_name=python${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}
