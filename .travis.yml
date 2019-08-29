@@ -181,6 +181,7 @@ matrix:
 script:
    - |
      gem install xcpretty 
+     echo "Building travis TRAVIS_TAG(${TRAVIS_TAG}) "
      cd "${TRAVIS_BUILD_DIR}" 
      ./build.sh
 

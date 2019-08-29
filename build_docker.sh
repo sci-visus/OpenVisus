@@ -55,7 +55,7 @@ fi
 
 # this is needed to forward the deploy to the docker image (where I have a python to do the deploy)
 # deploy to pypi | github
-if [[ "$TRAVIS" == "1" && "${TRAVIS_TAG}" != "" ]] ; then
+if [[ "${TRAVIS_TAG}" != "" ]] ; then
 
 	if [[ "${OSX}" == "1" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]] ; then
 		docker_opts+=(-e DEPLOY_PYPI=1)
