@@ -415,11 +415,11 @@ class AppleDeploy:
 
 		self.locals={}
 		
-		for filename in self.findAllBinaries():
+		for filename in self.__findAllBinaries():
 			self.__addLocal(filename)
 			
-		# note: findAllBinaries need to be re-executed
-		for filename in self.findAllBinaries():
+		# note: __findAllBinaries need to be re-executed
+		for filename in self.__findAllBinaries():
 			
 			deps=self.__extractDeps(filename)
 			
@@ -587,7 +587,7 @@ def Main(argv):
 		return 0
 	
 	# _____________________________________________
-	if action=="MakeSelfContainedStep":	
+	if action=="PostInstallStep":	
 
 		print("Executing",action,"cwd",os.getcwd(),"args",argv)
 		
