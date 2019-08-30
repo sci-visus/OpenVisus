@@ -225,7 +225,7 @@ if (1)
 			# macdeployqt does not allow to choose the 'layout' of the app
 			if (PYTHON_EXECUTABLE)
 				install(CODE "
-					execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisus_INSTALL_DIR}/Deploy.py MakeSelfContainedStep RESULT_VARIABLE retcode)
+					execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisus_INSTALL_DIR}/Deploy.py PostInstallStep RESULT_VARIABLE retcode)
 					if(NOT \"\${retcode}\" STREQUAL \"0\")
 						message(FATAL_ERROR \"Fatal error executing make self contained\")
 					endif()")
