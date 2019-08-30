@@ -258,16 +258,22 @@ class DeployUtils:
 
 	# CreateScript
 	@staticmethod
-	def CreateScript(template_filename,script_filename,target_filename):
+	def CreateScript(template_filename,target_filename):
 		
 		if WIN32:
-			exe_extension, script_extension=".exe",".bat"
+			script_extension = ".bat"
+			target_filename = target_filename + ".exe"
+		elif APPLE:
+			script_extension=".command" 
+			target_filename = target_filename + ".app/Contents/MacOS/" + os.path.basename(target_filename) 
 		else:	
-			exe_extension, script_extension="",".command" if APPLE else ".sh"
+			script_extension=".sh"
+			target_filename = target_filename + ""
 			
-		script_filename = script_filename + script_extension
-		target_filename = target_filename + exe_extension
-			
+		script_filename = os.path.basename(target_filename) + script_extension
+		
+		print("Creating script","script_filename",script_filename,"target_filename",target_filename)
+
 		content=DeployUtils.ReadTextFile(template_filename + script_extension)
 
 		content=content.replace("${VISUS_GUI}","1" if VISUS_GUI else "0")
@@ -347,8 +353,8 @@ class AppleDeploy:
 		deps=[dep for dep in deps if os.path.basename(filename)!=os.path.basename(dep)]
 		return deps
 	
-	# __hasLocal
-	def __hasLocal(self,filename):
+	# __findLocal
+	def __findLocal(self,filename):
 		key=os.path.basename(filename)
 		return self.locals[key] if key in self.locals else None
 				
@@ -356,7 +362,7 @@ class AppleDeploy:
 	def __addLocal(self,filename):
 		
 		# already added 
-		if self.__hasLocal(filename): 
+		if self.__findLocal(filename): 
 			return
 		
 		key=os.path.basename(filename)
@@ -373,7 +379,7 @@ class AppleDeploy:
 	def __addGlobal(self,dep):
 		
 		# it's already a local
-		if self.__hasLocal(dep):
+		if self.__findLocal(dep):
 			return
 		
 		# wrong file
@@ -438,12 +444,13 @@ class AppleDeploy:
 				else:
 					return os.path.basename(filename)
 			
-			DeployUtils.ExecuteCommand(["chmod","u+w",filename])
+			DeployUtils.ExecuteCommand(["chmod","u+rwx",filename])
 			DeployUtils.ExecuteCommand(['install_name_tool','-id','@rpath/' + getRPathBaseName(filename),filename])
 
 			# example QtOpenGL.framework/Versions/5/QtOpenGL
 			for dep in deps:
-				if self.__hasLocal(dep): 
+				local=self.__findLocal(dep)
+				if local: 
 					DeployUtils.ExecuteCommand(['install_name_tool','-change',dep,"@rpath/"+ getRPathBaseName(local),filename])
 
 			DeployUtils.ExecuteCommand(['install_name_tool','-add_rpath','@loader_path',filename])
@@ -588,36 +595,20 @@ def Main(argv):
 	
 	# _____________________________________________
 	if action=="PostInstallStep":	
-
 		print("Executing",action,"cwd",os.getcwd(),"args",argv)
-		
-		try:
-			if WIN32:
-				raise Exception("not supported")
-			elif APPLE:
-				AppleDeploy().copyExternalDependenciesAndFixRPaths()
-			else:
-				LinuxDeploy().fixRPaths()		
-
-		except Exception as e:
-			traceback.print_exc()
-			return -1
-
+		if WIN32:
+			raise Exception("not supported")
+		elif APPLE:
+			AppleDeploy().copyExternalDependenciesAndFixRPaths()
+		else:
+			LinuxDeploy().fixRPaths()		
 		print("done",action)
 		return 0
 	
 	# _____________________________________________
 	if action=="DistStep":
-
 		print("Executing",action,"cwd",os.getcwd(),"args",argv)
-
-		try:
-			DeployUtils.Dist()
-
-		except Exception as e:
-			traceback.print_exc()
-			return -1
-
+		DeployUtils.Dist()
 		print("done",action,glob.glob('dist/*'))
 		return 0
 
@@ -625,28 +616,27 @@ def Main(argv):
 	if action=="configure":
 
 		print("Executing",action,"cwd",os.getcwd(),"args",argv)
-
-		try:
-			DeployUtils.CreateScript("CMake/script","visus","bin/visus")
-
-			if VISUS_GUI:
-				DeployUtils.CreateScript("CMake/script","visusviewer","bin/visusviewer")
-				DeployUtils.UsePyQt()
-
-		except Exception as e:
-			traceback.print_exc()
-			return -1
-
+		DeployUtils.CreateScript("CMake/script","bin/visus")
+		if VISUS_GUI:
+			DeployUtils.CreateScript("CMake/script","bin/visusviewer")
+			DeployUtils.UsePyQt()
 		print("done",action)
 		return 0
 
-	print("Error in arguments")
-	return -1
-
+	raise Exception("Unknown argument " + action)
 
 # ////////////////////////////////////////////////////////////////////////////////////////////////
 if __name__ == '__main__':
-	retcode=Main(sys.argv)
-	sys.exit(retcode)
+	
+	try:		
+		retcode=Main(sys.argv)
+		sys.exit(retcode)
+		
+	except Exception as e:
+		print(e)
+		traceback.print_exc(file=sys.stdout)
+		sys.exit(-1)
+		
+
 
 
