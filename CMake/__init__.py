@@ -2,12 +2,15 @@ import sys,os
 
 OpenVisus_Dir=os.path.dirname(os.path.abspath(__file__))
 
+# this is equivalent to add something to PYTHONPATH
+# seems to work only for windows
 for it in (".","bin"):
 	dir = os.path.join(OpenVisus_Dir,it)
 	if not dir in sys.path and os.path.isdir(dir):
 		sys.path.append(dir)
 		
 VISUS_GUI=os.path.isfile(os.path.join(OpenVisus_Dir,"QT_VERSION"))
+
 
 if os.path.isfile(os.path.join(OpenVisus_Dir,"VisusKernelPy.py")) :
 	from VisusKernelPy import *

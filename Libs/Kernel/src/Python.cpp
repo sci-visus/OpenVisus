@@ -259,9 +259,9 @@ PythonEngine::PythonEngine(bool bVerbose)
   auto builtins = PyEval_GetBuiltins(); VisusAssert(builtins);
   PyDict_SetItemString(this->globals, "__builtins__", builtins);
 
-  //add the directory of the executable
   if (runningInsidePyMain())
   {
+    //thing to do, OpenVisus package has already been found
     if (bVerbose)
       VisusInfo() << "Visus is extending Python";
   }
@@ -270,26 +270,15 @@ PythonEngine::PythonEngine(bool bVerbose)
     if (bVerbose)
       VisusInfo() << "Visus is embedding Python";
 
-    //try to find where OpenVisus package files are
-    {
-      auto bin_dir = KnownPaths::BinaryDirectory.toString();
-
-      //this is for shared library
-      //addSysPath(bin_dir, bVerbose);
-
-      //this is for OpenVisus  package 
-      addSysPath(bin_dir + "/../..", bVerbose);
-    }
+    //add value PYTHONPATH in order to find the OpenVisus directory
+    addSysPath(KnownPaths::BinaryDirectory.toString() + "/../..", bVerbose);
   }
 
-  if (auto VISUS_PYTHON_SYS_PATH=getenv("VISUS_PYTHON_SYS_PATH"))
-    addSysPath(VISUS_PYTHON_SYS_PATH,bVerbose);
 
 	if (bVerbose)
     VisusInfo() << "Trying to import OpenVisus...";
 
   execCode("from OpenVisus import *");
-
 
   if (bVerbose)
     VisusInfo() << "...imported OpenVisus";
