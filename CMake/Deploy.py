@@ -325,9 +325,9 @@ class AppleDeploy:
 		
 		# apps
 		for it in glob.glob("bin/*.app"):
-		bin="%s/Contents/MacOS/%s" % (it,DeployUtils.GetFilenameWithoutExtension(it))
-		if os.path.isfile(bin):
-			ret+=[bin]	
+			bin="%s/Contents/MacOS/%s" % (it,DeployUtils.GetFilenameWithoutExtension(it))
+			if os.path.isfile(bin):
+				ret+=[bin]	
 			
 		# frameworks
 		for it in glob.glob("bin/*.framework"):

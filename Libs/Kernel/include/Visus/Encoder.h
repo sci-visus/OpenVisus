@@ -65,10 +65,10 @@ public:
   virtual bool isLossy() const=0;
 
   //encode
-  virtual SharedPtr<HeapMemory> encode(PointNi dims,DType dtype, SharedPtr<HeapMemory> decoded, std::vector<String> options)=0;
+  virtual SharedPtr<HeapMemory> encode(PointNi dims,DType dtype, SharedPtr<HeapMemory> decoded)=0;
 
   //decode
-  virtual SharedPtr<HeapMemory> decode(PointNi dims,DType dtype, SharedPtr<HeapMemory> encoded, std::vector<String> options)=0;
+  virtual SharedPtr<HeapMemory> decode(PointNi dims,DType dtype, SharedPtr<HeapMemory> encoded)=0;
 
 };
 
@@ -80,52 +80,20 @@ public:
 
   VISUS_DECLARE_SINGLETON_CLASS(Encoders)
 
-  //addEncoder
-  void addEncoder(String key,SharedPtr<Encoder> value)
-  {
-    VisusAssert(encoders.find(key)==encoders.end());
-    VisusAssert(key.find('-') == std::string::npos);
-    encoders[key]=value;
-  }
+  typedef std::function<SharedPtr<Encoder>(String)> Creator;
+
+  //registerEncoder
+  void registerEncoder(String key, Creator creator);
 
   //getEncoder
-  Encoder* getEncoder(String compression_specs,std::vector<String>& options) const
-  {
-    //NOTE: the compression_specs is in this format:
-    //  key | key-option1 | key-option1,option2 | key-option1,option2,option3 | ...
-    //  so the first separator is a '-', the options separator is ','
-
-    String key;
-    auto hyphen = compression_specs.find('-');
-    if (hyphen == std::string::npos)
-    {
-      key = compression_specs;
-    }
-    else
-    { 
-      key = compression_specs.substr(0, hyphen);
-
-      for (auto it : StringUtils::split(compression_specs.substr(hyphen + 1), ","))
-      {
-        auto option = StringUtils::trim(it);
-        if (!option.empty())
-          options.push_back(option);
-      }
-    }
-    
-    key = StringUtils::trim(StringUtils::toLower(key));
-    auto it=encoders.find(key);
-    return it!=encoders.end()? it->second.get() : nullptr;
-  }
+  SharedPtr<Encoder> createEncoder(String specs) const;
 
 private:
 
-  std::map<String, SharedPtr<Encoder> > encoders;
-
+  std::vector< std::pair<String, Creator > > creators;
 
   //constructor
   Encoders();
-
 
 };
 

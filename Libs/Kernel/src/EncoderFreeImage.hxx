@@ -57,29 +57,122 @@ public:
   VISUS_CLASS(FreeImageEncoder)
 
   //constructor
-  FreeImageEncoder(String encoder_name_) : encoder_name(encoder_name_)
+  FreeImageEncoder(String specs)
   {
     encode_flags = 0;
     decode_flags = 0;
 
-    if (encoder_name == "png")
+    auto options = StringUtils::split(specs,"-");
+
+    //example: png | png-bestcompression png-nocompression
+    if (options[0]=="png")
     {
-      encode_flags = PNG_Z_DEFAULT_COMPRESSION;
-      decode_flags = 0;
+      encoder_name = "png";
+
+      for (auto it : options)
+      {
+        if (it == "PNG_Z_BEST_SPEED")
+          encode_flags |= PNG_Z_BEST_SPEED;
+
+        else if (it == "PNG_Z_BEST_COMPRESSION")
+          encode_flags |= PNG_Z_BEST_COMPRESSION;
+
+        else if (it == "PNG_Z_NO_COMPRESSION")
+          encode_flags |= PNG_Z_NO_COMPRESSION;
+      }
+
+      if (!encode_flags)
+        encode_flags = PNG_Z_DEFAULT_COMPRESSION;
+
     }
-    else if (encoder_name == "jpg")
+    else if (options[0]=="jpg")
     {
-      encode_flags = JPEG_QUALITYNORMAL | JPEG_SUBSAMPLING_420;
-      decode_flags = JPEG_FAST;
+      encoder_name = "jpg";
+
+      for (auto it : options)
+      {
+        if (it == "JPEG_QUALITYSUPERB")
+          encode_flags |= JPEG_QUALITYSUPERB;
+
+        else if (it == "JPEG_QUALITYGOOD")
+          encode_flags |= JPEG_QUALITYGOOD;
+
+        else if (it == "JPEG_QUALITYNORMAL")
+          encode_flags |= JPEG_QUALITYNORMAL;
+
+        else if (it == "JPEG_QUALITYAVERAGE")
+          encode_flags |= JPEG_QUALITYAVERAGE;
+
+        else if (it == "JPEG_QUALITYBAD")
+          encode_flags |= JPEG_QUALITYBAD;
+
+        else if (it == "JPEG_PROGRESSIVE")
+          encode_flags |= JPEG_PROGRESSIVE;
+
+        else if (it == "JPEG_SUBSAMPLING_411")
+          encode_flags |= JPEG_SUBSAMPLING_411;
+
+        else if (it == "JPEG_SUBSAMPLING_420")
+          encode_flags |= JPEG_SUBSAMPLING_420;
+
+        else if (it == "JPEG_SUBSAMPLING_422")
+          encode_flags |= JPEG_SUBSAMPLING_422;
+
+        else if (it == "JPEG_SUBSAMPLING_444")
+          encode_flags |= JPEG_SUBSAMPLING_444;
+
+        else if (it == "JPEG_OPTIMIZE")
+          encode_flags |= JPEG_OPTIMIZE;
+
+        else if (it == "JPEG_BASELINE")
+          encode_flags |= JPEG_BASELINE;
+      }
+
+      if (!encode_flags)
+        encode_flags = JPEG_DEFAULT;
+
+      if (!decode_flags)
+        decode_flags = JPEG_FAST;
     }
-    else if (encoder_name == "tif")
+
+    //example: tif tif-deflate tif-jpeg
+    else if (options[0] == "tif")
     {
-      encode_flags = TIFF_DEFLATE; //or TIFF_JPEG for lossy
-      decode_flags = 0;
+      encoder_name = "tif";
+
+      for (auto it : options)
+      {
+        if (it == "TIFF_PACKBITS")
+          encode_flags |= TIFF_PACKBITS;
+
+        else if (it == "TIFF_ADOBE_DEFLATE")
+          encode_flags |= TIFF_ADOBE_DEFLATE;
+
+        else if (it == "TIFF_DEFLATE")
+          encode_flags |= TIFF_DEFLATE;
+
+        else if (it == "TIFF_NONE")
+          encode_flags |= TIFF_NONE;
+
+        else if (it == "TIFF_LZW")
+          encode_flags |= TIFF_LZW;
+
+        else if (it == "TIFF_JPEG")
+          encode_flags |= TIFF_JPEG; //lossy
+
+        else if (it == "TIFF_LOGLUV")
+          encode_flags |= TIFF_LOGLUV;
+      }
+
+      if (!encode_flags)
+        encode_flags= TIFF_DEFLATE;
+
+      if (!decode_flags)
+        decode_flags = 0;
     }
     else
     {
-      VisusAssert(false);
+      ThrowException("internal error");
     }
 
   }
@@ -114,7 +207,7 @@ public:
 
 
   //encode
-  virtual SharedPtr<HeapMemory> encode(PointNi dims, DType dtype, SharedPtr<HeapMemory> decoded, std::vector<String> options) override
+  virtual SharedPtr<HeapMemory> encode(PointNi dims, DType dtype, SharedPtr<HeapMemory> decoded) override
   {
     if (!decoded)
       return SharedPtr<HeapMemory>();
@@ -199,7 +292,7 @@ public:
   }
 
   //decode
-  virtual SharedPtr<HeapMemory> decode(PointNi dims, DType dtype, SharedPtr<HeapMemory> encoded, std::vector<String> options) override
+  virtual SharedPtr<HeapMemory> decode(PointNi dims, DType dtype, SharedPtr<HeapMemory> encoded) override
   {
     if (!encoded)
       return SharedPtr<HeapMemory>();

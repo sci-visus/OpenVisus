@@ -57,13 +57,35 @@ public:
 
   VISUS_CLASS(ZipEncoder)
 
-    //constructor
-    ZipEncoder()
-  {}
+  int compression_level=0;
+
+  //constructor
+  ZipEncoder(String specs)
+  {
+    auto options = StringUtils::split(specs, "-");
+
+    for (auto it : options)
+    {
+      if (it == "Z_NO_COMPRESSION")
+        compression_level |= Z_NO_COMPRESSION;
+
+      else if (it == "Z_BEST_SPEED")
+        compression_level |= Z_BEST_SPEED;
+
+      else if (it == "Z_BEST_COMPRESSION")
+        compression_level |= Z_BEST_COMPRESSION;
+
+      else if (it == "Z_DEFAULT_COMPRESSION")
+        compression_level |= Z_DEFAULT_COMPRESSION;
+    }
+
+    if (!compression_level)
+      compression_level = Z_DEFAULT_COMPRESSION;
+  }
 
   //destructor
-  virtual ~ZipEncoder()
-  {}
+  virtual ~ZipEncoder() {
+  }
 
   //isLossy
   virtual bool isLossy() const override
@@ -72,7 +94,7 @@ public:
   }
 
   //encode
-  virtual SharedPtr<HeapMemory> encode(PointNi dims, DType dtype, SharedPtr<HeapMemory> decoded, std::vector<String> options) override
+  virtual SharedPtr<HeapMemory> encode(PointNi dims, DType dtype, SharedPtr<HeapMemory> decoded) override
   {
     if (!decoded)
       return SharedPtr<HeapMemory>();
@@ -83,7 +105,7 @@ public:
     if (!encoded->resize(zbound, __FILE__, __LINE__))
       return SharedPtr<HeapMemory>();
 
-    if (ZLib::compress2(encoded->c_ptr(), &zbound, decoded->c_ptr(), (ZLib::uLong)decoded->c_size(), Z_DEFAULT_COMPRESSION) != Z_OK)
+    if (ZLib::compress2(encoded->c_ptr(), &zbound, decoded->c_ptr(), (ZLib::uLong)decoded->c_size(), compression_level) != Z_OK)
       return SharedPtr<HeapMemory>();
 
     if (!encoded->resize(zbound, __FILE__, __LINE__))
@@ -93,7 +115,7 @@ public:
   }
 
   //decode
-  virtual SharedPtr<HeapMemory> decode(PointNi dims, DType dtype, SharedPtr<HeapMemory> encoded, std::vector<String> options) override
+  virtual SharedPtr<HeapMemory> decode(PointNi dims, DType dtype, SharedPtr<HeapMemory> encoded) override
   {
     if (!encoded)
       return SharedPtr<HeapMemory>();

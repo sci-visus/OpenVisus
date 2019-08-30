@@ -132,7 +132,7 @@ SharedPtr<HeapMemory> ArrayUtils::encodeArray(String compression_specs,Array arr
   }
 
   std::vector<String> options;
-  auto encoder=Encoders::getSingleton()->getEncoder(compression_specs, options);
+  auto encoder=Encoders::getSingleton()->createEncoder(compression_specs);
   if (!encoder) 
   {
     VisusAssert(false);
@@ -141,7 +141,7 @@ SharedPtr<HeapMemory> ArrayUtils::encodeArray(String compression_specs,Array arr
 
   //if encoder fails, just copy the array
   auto decoded=array.heap;
-  auto encoded=encoder->encode(array.dims,array.dtype,decoded, options);
+  auto encoded=encoder->encode(array.dims,array.dtype,decoded);
   if (!encoded) {
     VisusAssert(false);
     return SharedPtr<HeapMemory>();
@@ -162,14 +162,13 @@ Array ArrayUtils::decodeArray(String compression_specs,PointNi dims,DType dtype,
   if (dims.innerProduct()<=0 || !dtype.valid())
     return Array();
 
-  std::vector<String> options;
-  auto decoder=Encoders::getSingleton()->getEncoder(compression_specs, options);
+  auto decoder=Encoders::getSingleton()->createEncoder(compression_specs);
   if (!decoder) {
     VisusAssert(false);
     return Array();
   }
   
-  auto decoded=decoder->decode(dims,dtype,encoded, options);
+  auto decoded=decoder->decode(dims,dtype,encoded);
   if (!decoded)
     return Array();
 

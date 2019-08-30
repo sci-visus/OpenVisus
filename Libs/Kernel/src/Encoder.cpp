@@ -54,18 +54,54 @@ VISUS_IMPLEMENT_SINGLETON_CLASS(Encoders)
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 Encoders::Encoders()
 {
-  addEncoder(""   , std::make_shared<IdEncoder>());
-  addEncoder("raw", std::make_shared<IdEncoder>());
-  addEncoder("bin", std::make_shared<IdEncoder>());
-  addEncoder("lz4", std::make_shared<LZ4Encoder>());
-  addEncoder("zip", std::make_shared<ZipEncoder>());
+  registerEncoder(""   , [](String specs) {return std::make_shared<IdEncoder>(specs); });
+  registerEncoder("raw", [](String specs) {return std::make_shared<IdEncoder>(specs); });
+  registerEncoder("bin", [](String specs) {return std::make_shared<IdEncoder>(specs); });
+  registerEncoder("lz4", [](String specs) {return std::make_shared<LZ4Encoder>(specs); });
+  registerEncoder("zip", [](String specs) {return std::make_shared<ZipEncoder>(specs); });
 
 #if VISUS_IMAGE
-  addEncoder("png", std::make_shared<FreeImageEncoder>("png"));
-  addEncoder("jpg", std::make_shared<FreeImageEncoder>("jpg"));
-  addEncoder("tif", std::make_shared<FreeImageEncoder>("tif"));
+  registerEncoder("png", [](String specs) {return std::make_shared<FreeImageEncoder>(specs); });
+  registerEncoder("jpg", [](String specs) {return std::make_shared<FreeImageEncoder>(specs); });
+  registerEncoder("tif", [](String specs) {return std::make_shared<FreeImageEncoder>(specs); });
 #endif
 
+}
+
+////////////////////////////////////////////////////////////////
+void Encoders::registerEncoder(String key, Creator creator)
+{
+  key = StringUtils::trim(key);
+
+  creators.push_back(std::make_pair(key, creator));
+
+  //find the creator with more "in-common" characters
+  // example, if we had two creators "jpeg" and "jpeg-experimental" and I do createEncoder("jpeg-experimental-100,200,300")"
+  // then I will call std::make_shared<JPegExperimental>("jpeg-experimental-100,200,300");
+  //see https://github.com/sci-visus/OpenVisus/issues/82
+  std::sort(creators.begin(), creators.end(), [](std::pair<String, Creator>& a, std::pair<String, Creator>& b) {
+    return a.first.size() > b.first.size();
+  });
+
+}
+
+////////////////////////////////////////////////////////////////
+SharedPtr<Encoder> Encoders::createEncoder(String specs) const
+{
+  specs = StringUtils::trim(specs);
+
+  for (auto it : creators)
+  {
+    auto key = it.first;
+    if (StringUtils::startsWith(specs, key))
+    {
+      auto creator = it.second;
+      return creator(specs);
+    }
+  }
+
+  //not found
+  return SharedPtr<Encoder>();
 }
 
 

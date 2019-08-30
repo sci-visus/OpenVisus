@@ -57,8 +57,8 @@ public:
 
   VISUS_CLASS(LZ4Encoder)
 
-    //constructor
-    LZ4Encoder() {
+  //constructor
+  LZ4Encoder(String specs) {
   }
 
   //destructor
@@ -71,7 +71,7 @@ public:
   }
 
   //encode
-  virtual SharedPtr<HeapMemory> encode(PointNi dims, DType dtype, SharedPtr<HeapMemory> decoded, std::vector<String> options) override
+  virtual SharedPtr<HeapMemory> encode(PointNi dims, DType dtype, SharedPtr<HeapMemory> decoded) override
   {
     if (!decoded)
       return SharedPtr<HeapMemory>();
@@ -99,7 +99,7 @@ public:
   }
 
   //decode
-  virtual SharedPtr<HeapMemory> decode(PointNi dims, DType dtype, SharedPtr<HeapMemory> encoded, std::vector<String> options) override
+  virtual SharedPtr<HeapMemory> decode(PointNi dims, DType dtype, SharedPtr<HeapMemory> encoded) override
   {
     if (!encoded)
       return SharedPtr<HeapMemory>();
