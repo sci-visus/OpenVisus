@@ -251,14 +251,10 @@ class DeployUtils:
 		# for windowss see VisusGui.i (%pythonbegin section, I'm using sys.path)
 		if WIN32:
 			pass
-		elif APPLE:
-			deploy=AppleDeploy()
-			for filename in deploy.findAllBinaries():
-				deploy.addRPath(filename,os.path.join(Qt5_DIR,"lib"))	
+		elif APPLE:	
+			AppleDeploy().addRPath(os.path.join(Qt5_DIR,"lib"))
 		else:
-			deploy=LinuxDeploy()
-			for filename in deploy.findAllBinaries():
-			 	deploy.setRPath(filename,[os.path.join(Qt5_DIR,"lib")])
+			LinuxDeploy().fixRPaths([os.path.join(Qt5_DIR,"lib")])
 
 	# CreateScript
 	@staticmethod
@@ -318,36 +314,31 @@ class AppleDeploy:
 	# constructor
 	def __init__(self):
 		pass
-		
-	#findApps
-	def findApps(self):
+
+
+	# __findAllBinaries
+	def __findAllBinaries(self):	
 		ret=[]
+		
+		ret+=DeployUtils.RecursiveFindFiles('.', '*.so')
+		ret+=DeployUtils.RecursiveFindFiles('.', '*.dylib')
+		
+		# apps
 		for it in glob.glob("bin/*.app"):
-			bin="%s/Contents/MacOS/%s" % (it,DeployUtils.GetFilenameWithoutExtension(it))
-			if os.path.isfile(bin):
-				ret+=[bin]
-		return ret
-		
-	# findFrameworks
-	def findFrameworks(self):
-		ret=[]
+		bin="%s/Contents/MacOS/%s" % (it,DeployUtils.GetFilenameWithoutExtension(it))
+		if os.path.isfile(bin):
+			ret+=[bin]	
+			
+		# frameworks
 		for it in glob.glob("bin/*.framework"):
 			file="%s/Versions/Current/%s" % (it,DeployUtils.GetFilenameWithoutExtension(it))  
 			if os.path.isfile(os.path.realpath(file)):
-				ret+=[file]
-		return ret
-		
-	# findAllBinaries
-	def findAllBinaries(self):	
-		ret=[]
-		ret+=DeployUtils.RecursiveFindFiles('bin', '*.dylib')
-		ret+=DeployUtils.RecursiveFindFiles('bin', '*.so')
-		ret+=self.findApps()
-		ret+=self.findFrameworks()
+				ret+=[file]			
+
 		return ret
   
-	# extractDeps
-	def extractDeps(self,filename):
+	# __extractDeps
+	def __extractDeps(self,filename):
 		output=DeployUtils.GetCommandOutput(['otool', '-L' , filename])
 		lines=output.split('\n')[1:]
 		deps=[line.strip().split(' ', 1)[0].strip() for line in lines]
@@ -356,16 +347,16 @@ class AppleDeploy:
 		deps=[dep for dep in deps if os.path.basename(filename)!=os.path.basename(dep)]
 		return deps
 	
-	# findLocal
-	def findLocal(self,filename):
+	# __hasLocal
+	def __hasLocal(self,filename):
 		key=os.path.basename(filename)
 		return self.locals[key] if key in self.locals else None
 				
-	# addLocal
-	def addLocal(self,filename):
+	# __addLocal
+	def __addLocal(self,filename):
 		
 		# already added 
-		if self.findLocal(filename): 
+		if self.__hasLocal(filename): 
 			return
 		
 		key=os.path.basename(filename)
@@ -374,22 +365,23 @@ class AppleDeploy:
 		
 		self.locals[key]=filename
 		
-		deps=self.extractDeps(filename)
-
-		for dep in deps:
-			self.addDependency(dep)
+		for dep in self.__extractDeps(filename):
+			self.__addGlobal(dep)
 				
 		
-	# addDependency
-	def addDependency(self,dep):
+	# __addGlobal
+	def __addGlobal(self,dep):
 		
-		# already added as local
-		if self.findLocal(dep):
+		# it's already a local
+		if self.__hasLocal(dep):
 			return
-			
+		
+		# wrong file
+		if not os.path.isfile(dep) or not dep.startswith("/"):
+			return
+		
 		# ignoring the OS system libraries
-		bGlobal=os.path.isfile(dep) and dep.startswith("/") and not (dep.startswith("/System") or dep.startswith("/lib") or dep.startswith("/usr/lib"))
-		if not bGlobal:
+		if dep.startswith("/System") or dep.startswith("/lib") or dep.startswith("/usr/lib"):
 			return
 			
 		# I don't want to copy Python dependency
@@ -406,30 +398,30 @@ class AppleDeploy:
 			framework_dir=dep.split(".framework")[0]+".framework"
 			DeployUtils.CopyDirectory(framework_dir,"bin")
 			filename="bin/" + os.path.basename(framework_dir) + dep.split(".framework")[1]
-			self.addLocal(filename) # now a global becomes a local one
+			self.__addLocal(filename) # now a global becomes a local one
 			return
 			
 		if dep.endswith(".dylib") or dep.endswith(".so"):
 			filename="bin/" + os.path.basename(dep)
 			DeployUtils.CopyFile(dep,filename)
-			self.addLocal(filename) # now a global becomes a local one
+			self.__addLocal(filename) # now a global becomes a local one
 			return 
 		
 		raise Exception("Unknonw dependency %s file file" % (dep,))	
 			
 
-
-	# makeSelfContained
-	def makeSelfContained(self):
+	# copyExternalDependenciesAndFixRPaths
+	def copyExternalDependenciesAndFixRPaths(self):
 
 		self.locals={}
 		
 		for filename in self.findAllBinaries():
-			self.addLocal(filename)
+			self.__addLocal(filename)
 			
+		# note: findAllBinaries need to be re-executed
 		for filename in self.findAllBinaries():
 			
-			deps=self.extractDeps(filename)
+			deps=self.__extractDeps(filename)
 			
 			if bVerbose:
 				print("")
@@ -439,7 +431,7 @@ class AppleDeploy:
 					print("#\t",dep)
 				print("")
 				
-			def getBaseName(filename):
+			def getRPathBaseName(filename):
 				if ".framework" in filename:
 					# example: /bla/bla/ QtOpenGL.framework/Versions/5/QtOpenGL -> QtOpenGL.framework/Versions/5/QtOpenGL
 					return os.path.basename(filename.split(".framework")[0]+".framework") + filename.split(".framework")[1]   
@@ -447,26 +439,28 @@ class AppleDeploy:
 					return os.path.basename(filename)
 			
 			DeployUtils.ExecuteCommand(["chmod","u+w",filename])
-			DeployUtils.ExecuteCommand(['install_name_tool','-id','@rpath/' + getBaseName(filename),filename])
+			DeployUtils.ExecuteCommand(['install_name_tool','-id','@rpath/' + getRPathBaseName(filename),filename])
 
 			# example QtOpenGL.framework/Versions/5/QtOpenGL
 			for dep in deps:
-				local=self.findLocal(dep)
-				if local: 
-					DeployUtils.ExecuteCommand(['install_name_tool','-change',dep,"@rpath/"+ getBaseName(local),filename])
+				if self.__hasLocal(dep): 
+					DeployUtils.ExecuteCommand(['install_name_tool','-change',dep,"@rpath/"+ getRPathBaseName(local),filename])
 
 			DeployUtils.ExecuteCommand(['install_name_tool','-add_rpath','@loader_path',filename])
 			
-			# how to go from a executable in ./bin/** to ./bin
-			A=os.path.realpath("./bin")
-			B=os.path.dirname(os.path.realpath(filename))
-			if A!=B: 
-				N=len(B.split("/"))-len(A.split("/"))	
-				DeployUtils.ExecuteCommand(['install_name_tool','-add_rpath','@loader_path' +  "/.." * N,filename])
+			# how to go from a executable in ./** to ./bin
+			root=os.path.realpath("")
+			curr=os.path.dirname(os.path.realpath(filename))
+			N=len(curr.split("/"))-len(root.split("/"))	
+			DeployUtils.ExecuteCommand(['install_name_tool','-add_rpath','@loader_path' +  ("/.." * N) + "/bin",filename])
+
 
 	# addRPath
-	def addRPath(self,filename,value):
-		DeployUtils.ExecuteCommand(["install_name_tool","-add_rpath",value,filename])
+	def addRPath(self,value):
+		for filename in self.__findAllBinaries():
+			DeployUtils.ExecuteCommand(["install_name_tool","-add_rpath",value,filename])	
+		
+		
 		
 # ///////////////////////////////////////
 class LinuxDeploy:
@@ -551,35 +545,30 @@ To debug
 		pass
 
 
-	# findApps
-	def findApps(self):	
-		return [it for it in glob.glob("bin/*") if os.path.isfile(it) and not os.path.splitext(it)[1]]
-		
-	# findAllBinaries
-	def findAllBinaries(self):
-		ret=[]
-		ret+=DeployUtils.RecursiveFindFiles('bin', '*.so')
-		ret+=self.findApps()
-		return ret
+	# fixRPaths (NOTE: I'm not really copying any external dependency, just adding rpath, so the DLLs should be already self contained)
+	def fixRPaths(self,external_rpaths=[]):
 
-	# setRPath
-	def setRPath(self,filename,v):
-		v+=['$ORIGIN']
+		binaries=[]
 		
-		# add rpapath to bin
-		A=os.path.realpath("./bin")
-		B=os.path.dirname(os.path.realpath(filename))
-		if A!=B:
-			N=len(B.split("/"))-len(A.split("/"))	
-			v+=['$ORIGIN' +  "/.." * N]			
+		# *.so
+		binaries+=DeployUtils.RecursiveFindFiles('.', '*.so')
 		
-		DeployUtils.ExecuteCommand(["patchelf", "--set-rpath", ":".join(v) , filename])
+		# executables in bin
+		binaries+=[it for it in glob.glob("bin/*") if os.path.isfile(it) and not os.path.splitext(it)[1]]
 
+		for filename in binaries:
+			
+			v=['$ORIGIN']
 
-	# makeSelfContained
-	def makeSelfContained(self):
-		for filename in self.findAllBinaries():
-			self.setRPath(filename,[])
+			root=os.path.realpath(".")
+			curr=os.path.dirname(os.path.realpath(filename))
+			N=len(curr.split("/"))-len(root.split("/"))	
+			v+=['$ORIGIN' +  ("/.." * N) + "/bin"]	
+			
+			if external_rpaths:
+				v+=external_rpaths
+				
+			DeployUtils.ExecuteCommand(["patchelf", "--set-rpath", ":".join(v) , filename])
 
 
 
@@ -606,11 +595,9 @@ def Main(argv):
 			if WIN32:
 				raise Exception("not supported")
 			elif APPLE:
-				deploy=AppleDeploy()
-				deploy.makeSelfContained()
+				AppleDeploy().copyExternalDependenciesAndFixRPaths()
 			else:
-				deploy=LinuxDeploy()
-				deploy.makeSelfContained()		
+				LinuxDeploy().fixRPaths()		
 
 		except Exception as e:
 			traceback.print_exc()
