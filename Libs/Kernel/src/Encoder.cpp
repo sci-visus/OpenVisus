@@ -79,7 +79,7 @@ void Encoders::registerEncoder(String key, Creator creator)
   // example, if we had two creators "jpeg" and "jpeg-experimental" and I do createEncoder("jpeg-experimental-100,200,300")"
   // then I will call std::make_shared<JPegExperimental>("jpeg-experimental-100,200,300");
   //see https://github.com/sci-visus/OpenVisus/issues/82
-  std::sort(creators.begin(), creators.end(), [](std::pair<String, Creator>& a, std::pair<String, Creator>& b) {
+  std::sort(creators.begin(), creators.end(), [](const std::pair<String, Creator>& a, const std::pair<String, Creator>& b) {
     return a.first.size() > b.first.size();
   });
 
