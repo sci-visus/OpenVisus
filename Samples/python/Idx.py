@@ -63,7 +63,7 @@ class TestIdx(unittest.TestCase):
 		dataset_box=BoxNi(PointNi(0,0,0),PointNi(16,16,16))
 		
 		idxfile=IdxFile();
-		idxfile.box=BoxNi(dataset_box)
+		idxfile.logic_box=BoxNi(dataset_box)
 		idxfile.fields.push_back(Field("myfield",DType.fromString("uint32")))
 
 		bSaved=idxfile.save(self.filename)
@@ -78,12 +78,12 @@ class TestIdx(unittest.TestCase):
 			slice_box=dataset.getLogicBox().getZSlab(Z,Z+1)
 			
 			query=BoxQuery(dataset,dataset.getDefaultField(),dataset.getDefaultTime(),ord('w'))
-			query.logic_position=Position(slice_box)
+			query.logic_box=slice_box
 			dataset.beginQuery(query)
 			self.assertTrue(query.isRunning())
-			self.assertEqual(query.nsamples.innerProduct(),16*16)
+			self.assertEqual(query.getNumberOfSamples().innerProduct(),16*16)
 			
-			buffer=Array(query.nsamples,query.field.dtype)
+			buffer=Array(query.getNumberOfSamples(),query.field.dtype)
 			query.buffer=buffer
 			
 			fill=Array.toNumPy(buffer,bSqueeze=True,bShareMem=True)
@@ -108,10 +108,10 @@ class TestIdx(unittest.TestCase):
 			slice_box=box.getZSlab(Z,Z+1)
 			
 			query=BoxQuery(dataset,dataset.getDefaultField(),dataset.getDefaultTime(),ord('r'))
-			query.logic_position=Position(slice_box)
+			query.logic_box=slice_box
 			dataset.beginQuery(query)
 			self.assertTrue(query.isRunning())
-			self.assertEqual(query.nsamples.innerProduct(),16*16)
+			self.assertEqual(query.getNumberOfSamples().innerProduct(),16*16)
 			self.assertTrue(dataset.executeQuery(access,query))
 			
 			check=Array.toNumPy(query.buffer,bSqueeze=True,bShareMem=True)
@@ -136,20 +136,21 @@ class TestIdx(unittest.TestCase):
 		
 		#create and read data from VisusFIle up to resolution FinalH=8 (<MaxH)
 		query=BoxQuery(dataset,dataset.getDefaultField(),dataset.getDefaultTime(),ord('r'))
-		query.logic_position=Position(slice_box)
-		query.end_resolutions={8,12}
+		query.logic_box=slice_box
+		query.end_resolutions.push_back(8)
+		query.end_resolutions.push_back(12)
 		
 		# end_resolution=8
 		dataset.beginQuery(query)
 		self.assertTrue(query.isRunning())
-		self.assertTrue(query.nsamples.innerProduct()>0)
+		self.assertTrue(query.getNumberOfSamples().innerProduct()>0)
 		self.assertTrue(dataset.executeQuery(access,query))
 		self.assertEqual(query.getCurrentResolution(),8)
 		
 		# end_resolution=12
 		dataset.nextQuery(query)
 		self.assertTrue(query.isRunning())
-		self.assertEqual(query.nsamples.innerProduct(),16*16)
+		self.assertEqual(query.getNumberOfSamples().innerProduct(),16*16)
 		self.assertTrue(dataset.executeQuery(access,query))
 		self.assertEqual(query.getCurrentResolution(),12)
 		
@@ -166,8 +167,5 @@ class TestIdx(unittest.TestCase):
 if __name__ == '__main__':
 	SetCommandLine("__main__")
 	IdxModule.attach()
-	errors=unittest.main(exit=False).result.errors
+	unittest.main(exit=True)
 	IdxModule.detach()
-	print("All done ("+str(len(errors))+" errors)")
-	sys.exit(len(errors)>0)
-

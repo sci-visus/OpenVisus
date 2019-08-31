@@ -71,5 +71,6 @@ if __name__ == '__main__':
 	else:
 		IdxModule.detach()
 
+	sys.exit(0)
 	
 	

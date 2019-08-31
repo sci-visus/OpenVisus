@@ -272,7 +272,7 @@ if (VISUS_PYTHON)
 	AddOpenVisusTest(VisusTestPyDataflow   COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Dataflow.py"        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 	AddOpenVisusTest(VisusTestPyArray      COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Array.py"           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 	AddOpenVisusTest(VisusTestPyIdx        COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Idx.py"             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-	AddOpenVisusTest(VisusTestPyXIdx       COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Idx.py"             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+	AddOpenVisusTest(VisusTestPyXIdx       COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/XIdx.py"            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 	
 	AddOpenVisusTest(VisusDataConversion1 COMMAND "${PYTHON_EXECUTABLE}"     "Samples/python/DataConversion1.py" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 	AddOpenVisusTest(VisusDataConversion2 COMMAND "${PYTHON_EXECUTABLE}"     "Samples/python/DataConversion2.py" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

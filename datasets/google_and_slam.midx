@@ -9,7 +9,7 @@
 		
 	
 	<!-- already in 0,1 range  -->
-	<dataset name='slam' url='D:/google_sci/visus_slam/Alfalfa/VisusSlamFiles/visus.midx' />
+	<dataset name='slam' url='D:/GoogleSci/visus_slam/Alfalfa/VisusSlamFiles/visus.midx' />
 	
 </dataset>
 

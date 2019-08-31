@@ -90,3 +90,4 @@ if __name__ == '__main__':
 	
 	IdxModule.detach()
 	print("Done with conversion")
+	sys.exit(0)
