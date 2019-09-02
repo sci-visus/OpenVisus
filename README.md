@@ -234,7 +234,8 @@ BUILD_DIR=$(pwd)/build/docker/leap      PYTHON_VERSION=3.6.1 DOCKER_IMAGE=opensu
 
 ## Commit, Continuous Integration deploy
 
-Edit the file conda/openvisus/meta.yaml and increase the Tag version number (line 3)
+Edit the file `conda/openvisus/meta.yaml` and increase the Tag version number (line 3)
+Edit the file `CMake/setup.py` and increase the Tag version number ()
 
 Commit, tag the current commit and push to origin:
 
