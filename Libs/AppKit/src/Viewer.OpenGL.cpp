@@ -419,6 +419,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
       auto dataset = dataset_node->getDataset();
 
       //render annotations
+#if 0
       if (!dataset->annotations.empty())
       {
         auto frustum = computeNodeToScreen(getGLCamera()->getFrustum(), dataset_node);
@@ -449,6 +450,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
           }
         }
       }
+#endif
     }
 
     for (auto child : node->getChilds())

@@ -6,6 +6,8 @@
 #include <Visus/VisusConfig.h>
 #include <Visus/NetServer.h>
 #include <Visus/Polygon.h>
+#include <Visus/File.h>
+#include <Visus/Time.h>
 using namespace Visus;
 %}
 
@@ -45,6 +47,10 @@ using namespace Visus;
 %include <Visus/VisusConfig.h>
 %include <Visus/Color.h>
 %include <Visus/Point.h> 
+
+%include <Visus/Path.h>
+%include <Visus/File.h>
+%include <Visus/Time.h>
 
    %template(Point2i)    Visus::Point2<Visus::Int64>;
    %template(Point2f)    Visus::Point2<float>;

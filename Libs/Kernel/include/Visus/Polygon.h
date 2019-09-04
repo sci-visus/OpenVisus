@@ -221,6 +221,49 @@ public:
   //isConvex
   bool isConvex() const;
 
+
+
+  //wrongAngles
+  bool wrongAngles() const
+  {
+    auto GoodAngle = [](Point2d A, Point2d B, Point2d C)
+    {
+      auto v0 = (A - B).normalized();
+      auto v1 = (C - B).normalized();
+      auto dot = Utils::clamp(v0.dot(v1), -1.0, +1.0);
+      auto angle = Utils::radiantToDegree(acos(dot)); //returns a value from 0 to 180
+      return fabs(angle - 90) < 40.0;
+    };
+
+    return (!(
+      GoodAngle(this->points[0], this->points[1], this->points[2]) &&
+      GoodAngle(this->points[1], this->points[2], this->points[3]) &&
+      GoodAngle(this->points[2], this->points[3], this->points[0]) &&
+      GoodAngle(this->points[3], this->points[0], this->points[1])));
+  }
+
+  //wrongScale
+  bool wrongScale(int width, int height) const
+  {
+    auto A = this->points[0].distance(this->points[1]);
+    auto B = this->points[1].distance(this->points[2]);
+    auto C = this->points[2].distance(this->points[3]);
+    auto D = this->points[3].distance(this->points[0]);
+
+    auto AlmostSame = [&](double A, double B) {
+      return (Utils::max(A, B) / Utils::min(A, B)) <= 1.99;
+    };
+
+    auto ratio = width / double(height);
+    return (!(
+      AlmostSame(A, C) &&
+      AlmostSame(B, D) &&
+      AlmostSame(A, (B * ratio)) &&
+      AlmostSame(A, (D * ratio)) &&
+      AlmostSame(C, (B * ratio)) &&
+      AlmostSame(C, (D * ratio))));
+  }
+
   //toString
   String toString(String coord_sep = " ", String point_sep = " ") const {
     return StringUtils::format()
