@@ -1094,19 +1094,7 @@ public:
       ThrowException(StringUtils::format() << args[0] <<" request to --interleave but a sample is not byte aligned");
 
     //need to interleave (the input for example is RRRRR...GGGGG...BBBBB and I really need RGBRGBRGB)
-    int ncomponents = data.dtype.ncomponents();
-    if (ncomponents <= 1)
-      return data;
-
-    std::vector<Array> v;
-    for (int I = 0; I<ncomponents; I++)
-    {
-      DType component_dtype = data.dtype.get(I);
-      Int64 offset = I*component_dtype.getByteSize(data.dims);
-      v.push_back(Array::createView(data, data.dims, component_dtype, offset));
-    }
-
-    return ArrayUtils::interleave(v);
+    return ArrayUtils::interleave(data);
   }
 };
 

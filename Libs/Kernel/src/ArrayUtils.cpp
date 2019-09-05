@@ -579,7 +579,27 @@ Array ArrayUtils::interleave(std::vector<Array> v, Aborted aborted)
 
   dst.shareProperties(v[0]);
   return dst;
+}
 
+///////////////////////////////////////////////////////////////////////////////
+Array ArrayUtils::interleave(Array data, Aborted aborted)
+{
+  //need to interleave (the input for example is RRRRR...GGGGG...BBBBB and I really need RGBRGBRGB)
+  int ncomponents = data.dtype.ncomponents();
+  if (ncomponents <= 1)
+    return data;
+
+  std::vector<Array> v;
+  for (int I = 0; I < ncomponents; I++)
+  {
+    if (aborted())
+      return Array();
+    DType component_dtype = data.dtype.get(I);
+    Int64 offset = I * component_dtype.getByteSize(data.dims);
+    v.push_back(Array::createView(data, data.dims, component_dtype, offset));
+  }
+
+  return ArrayUtils::interleave(v, aborted);
 }
 
 

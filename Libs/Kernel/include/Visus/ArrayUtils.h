@@ -95,6 +95,9 @@ public:
   //interleave
   static Array interleave(std::vector<Array> v, Aborted aborted = Aborted());
 
+  //interleave
+  static Array interleave(Array src, Aborted aborted = Aborted());
+
   //insert
   static bool insert(
     Array& wbuffer, PointNi wfrom, PointNi wto, PointNi wstep,
