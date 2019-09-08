@@ -325,16 +325,10 @@ macro(AddSwigLibrary WrappedLib SwigFile)
 	
 		SetupCommonTargetOptions(${RealName})
 		
-		if (WIN32)
-			# for windows I have the *.pyd files and *.dll in the same "bin" directory
-			# otherwise it won't work
-			SetTargetOutputDirectory(${RealName} OpenVisus/bin lib)
-		else()
-			# for osx/linux for some platforms (osx/python2.7) I have the problem that
-			# the swig generated *.py file and *.so must be in the same OpenVisus/ root directory
-			# otherwise it won't work (since swig auto-generate "from . import _VisusKernelPy")
-			SetTargetOutputDirectory(${RealName}   OpenVisus     lib)
-		endif()
+		# I have the problem that
+		# the swig generated *.py file and *.so must be in the same OpenVisus/ root directory
+		# otherwise it won't work (since swig auto-generate "from . import _VisusKernelPy")
+		SetTargetOutputDirectory(${RealName}   OpenVisus     lib)
 		
 		target_link_libraries(${RealName} PUBLIC ${WrappedLib})
 		set_target_properties(${RealName} PROPERTIES FOLDER Swig/)

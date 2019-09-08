@@ -177,12 +177,6 @@ if (1)
 	install(DIRECTORY       datasets                                      DESTINATION ${OpenVisus_DIR}/)
 	install(FILES           datasets/visus.config                         DESTINATION ${OpenVisus_DIR}/)
 
-	# script
-	install(FILES           ${OpenVisus_DIR}/visus${SCRIPT_EXT}           DESTINATION ${OpenVisus_DIR}/ PERMISSIONS WORLD_READ WORLD_EXECUTE)
-	if (VISUS_GUI)
-		install(FILES       ${OpenVisus_DIR}/visusviewer${SCRIPT_EXT}     DESTINATION ${OpenVisus_DIR}/ PERMISSIONS WORLD_READ WORLD_EXECUTE)
-	endif()
-
 	# copy needed windows *.dll
 	if (WIN32)
 		if (OpenMP_FOUND)

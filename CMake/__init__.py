@@ -1,16 +1,16 @@
-import sys,os
+import sys,os,platform
 
 OpenVisus_Dir=os.path.dirname(os.path.abspath(__file__))
 
-# this is equivalent to add something to PYTHONPATH
-# seems to work only for windows
-for it in (".","bin"):
-	dir = os.path.join(OpenVisus_Dir,it)
-	if not dir in sys.path and os.path.isdir(dir):
-		sys.path.append(dir)
-		
+WIN32=platform.system()=="Windows" or platform.system()=="win32"
 VISUS_GUI=os.path.isfile(os.path.join(OpenVisus_Dir,"QT_VERSION"))
 
+# need to allow windows to find DLLs in bin/ directory
+# for osx/unix i use the rpath trick
+if WIN32:
+	for dir in [os.path.join(OpenVisus_Dir,it) for it in (".","bin")]:
+		os.environ['PATH'] = dir + os.pathsep + os.environ['PATH']
+		sys.path.append(dir)
 
 if os.path.isfile(os.path.join(OpenVisus_Dir,"VisusKernelPy.py")) :
 	from VisusKernelPy import *
