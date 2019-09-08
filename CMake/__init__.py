@@ -7,10 +7,9 @@ VISUS_GUI=os.path.isfile(os.path.join(OpenVisus_Dir,"QT_VERSION"))
 
 # need to allow windows to find DLLs in bin/ directory
 # for osx/unix i use the rpath trick
-if WIN32:
-	for dir in [os.path.join(OpenVisus_Dir,it) for it in (".","bin")]:
-		os.environ['PATH'] = dir + os.pathsep + os.environ['PATH']
-		sys.path.append(dir)
+for dir in [os.path.join(OpenVisus_Dir,it) for it in (".","bin")]:
+	os.environ['PATH'] = dir + os.pathsep + os.environ['PATH']
+	sys.path.append(dir)
 
 if os.path.isfile(os.path.join(OpenVisus_Dir,"VisusKernelPy.py")) :
 	from VisusKernelPy import *

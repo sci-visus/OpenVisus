@@ -797,30 +797,30 @@ public:
 
       num-threads==0 (==OpenMP disabled)
 
-        test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 512
+        test-query-speed Alfalfa\visus.midx --query-dim 512
         FlushedCache(PosixFile)  891 SkipReading 136 DELTA=755
 
-        test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 1024
+        test-query-speed Alfalfa\visus.midx --query-dim 1024
         FlushedCache(PosixFile) 734 SkipReading 171 DELTA=563
 
-        test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 2048
+        test-query-speed Alfalfa\visus.midx --query-dim 2048
         FlushedCache(PosixFile) 567 SkipReading 206 DELTA=361
 
-        test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 4096
+        test-query-speed Alfalfa\visus.midx --query-dim 4096
         FlushedCache(PosixFile) 538 SkipReading 281 DELTA=257
 
       num-threads=4
 
-        test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 512
+        test-query-speed Alfalfa\visus.midx --query-dim 512
         FlushedCache(PosixFile)  793  DebugSkipReading 105 DELTA=688
 
-        test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 1024
+        test-query-speed Alfalfa\visus.midx --query-dim 1024
         FlushedCache(PosixFile)  647 DebugSkipReading 121 DELTA=526
 
-        test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 2048
+        test-query-speed Alfalfa\visus.midx --query-dim 2048
         FlushedCache(PosixFile) 516 DebugSkipReading 138 DELTA=378
 
-        test-query-speed D:\google_sci\visus_slam\Alfalfa\VisusSlamFiles\visus.midx --query-dim 4096
+        test-query-speed Alfalfa\visus.midx --query-dim 4096
         FlushedCache(PosixFile) 463 DebugSkipReading 178 DELTA=285
 
 
