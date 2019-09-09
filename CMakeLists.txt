@@ -156,6 +156,7 @@ if (VISUS_GUI)
 	GenerateScript(${CMAKE_CURRENT_SOURCE_DIR}/CMake/script ${OpenVisus_DIR}/visusviewer ${OpenVisus_DIR}/bin/visusviewer)
 endif()
 
+add_subdirectory(ExternalLibs)
 add_subdirectory(Libs)
 add_subdirectory(Executable)
 

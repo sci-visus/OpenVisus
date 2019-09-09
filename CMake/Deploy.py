@@ -270,7 +270,7 @@ class DeployUtils:
 			script_extension=".sh"
 			target_filename = target_filename + ""
 			
-		script_filename = os.path.basename(target_filename) + script_extension
+		script_filename = DeployUtils.GetFilenameWithoutExtension(target_filename) + script_extension
 		
 		print("Creating script","script_filename",script_filename,"target_filename",target_filename)
 

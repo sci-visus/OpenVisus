@@ -24,3 +24,11 @@ else()
 	target_link_libraries(VisusGui PUBLIC GL GLU X11)
 endif()
 
+
+if (VISUS_PYTHON)
+	AddSwigLibrary(VisusGui ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiPy.i 
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+endif()
+  

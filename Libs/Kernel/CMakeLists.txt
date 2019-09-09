@@ -12,21 +12,6 @@ if(GIT_FOUND)
 	endif()
 endif()
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/cryptlite   ${CMAKE_CURRENT_BINARY_DIR}/cryptlite)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/dtl         ${CMAKE_CURRENT_BINARY_DIR}/dtl)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/lz4         ${CMAKE_CURRENT_BINARY_DIR}/lz4)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/tinyxml     ${CMAKE_CURRENT_BINARY_DIR}/tinyxml)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/zlib        ${CMAKE_CURRENT_BINARY_DIR}/zlib)
-
-if (VISUS_NET)		
-	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/libressl ${CMAKE_CURRENT_BINARY_DIR}/libressl)
-	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/curl     ${CMAKE_CURRENT_BINARY_DIR}/curl)
-endif() 
-
-if (VISUS_IMAGE)
-	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/FreeImage ${CMAKE_CURRENT_BINARY_DIR}/FreeImage)
-endif()
-
 if (NOT (WIN32 OR APPLE))
 
   include(CheckIncludeFiles)
@@ -205,15 +190,18 @@ IF (WIN32 OR APPLE)
 endif()
 
 
-file(GLOB PyFiles    ./include/Visus/swigpyrun.h  ./include/Visus/Python.h ./src/Python.cpp)
-file(GLOB PyCMake    ${CMAKE_CURRENT_SOURCE_DIR}/../../CMake/*.py)
-file(GLOB PyExamples ${CMAKE_CURRENT_SOURCE_DIR}/../../Samples/python/*.py)
+file(GLOB PyFiles       ./include/Visus/swigpyrun.h  ./include/Visus/Python.h ./src/Python.cpp)
+file(GLOB CMakeFiles    ../CMakeList.txt ../../CMakeLists.txt ../../CMake/*)
+file(GLOB PyExamples    ../../Samples/python/*.py)
+
+source_group("CMake"           FILES   ${CMakeFiles})
 source_group("Python"          FILES   ${PyFiles})
-source_group("Python\\CMake"   FILES   ${PyCMake})
 source_group("Python\\Samples" FILES ${PyExamples})
 	
 file(GLOB Sources 
-	${PyFiles} ${PyCMake} ${PyExamples}
+	${PyFiles} 
+	${CMakeFiles} 
+	${PyExamples}
 	${MM_FILES}
 	include/Visus/*.* 
 	src/*.cpp src/*.hxx
@@ -222,6 +210,7 @@ file(GLOB Sources
 AddLibrary(VisusKernel SHARED ${Sources})
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs)
 
 target_link_libraries(VisusKernel PRIVATE cryptlite dtl lz4 tinyxml zlib)
 
@@ -280,6 +269,11 @@ else()
   endif()
 	target_link_libraries(VisusKernel PUBLIC  pthread)
 
+endif()
+
+if (VISUS_PYTHON)
+	AddSwigLibrary(VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
+		"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
 endif()
 
 

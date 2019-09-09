@@ -159,7 +159,7 @@ endmacro()
 
 
 # ///////////////////////////////////////////////////
-macro(AddInternalLibrary Name)
+macro(AddExternalLibrary Name)
 
 	add_library(${Name} STATIC ${ARGN})
 
@@ -173,6 +173,9 @@ macro(AddInternalLibrary Name)
 	endif()
 
 	DisableTargetWarnings(${Name})
+	
+	set_target_properties(${Name} PROPERTIES FOLDER "ExternalLibs/")
+
 endmacro()
 
 # ///////////////////////////////////////////////////
