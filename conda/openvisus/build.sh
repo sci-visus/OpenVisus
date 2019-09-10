@@ -10,7 +10,7 @@ fi
 # unless you add them to build/enviroment in meta.yml
 SOURCE_DIR=$(pwd)
 BUILD_DIR=${SOURCE_DIR}/build_conda
-CMAKE_BUILD_TYPE=RelWithDebInfo
+CMAKE_BUILD_TYPE=Release
 VISUS_MODVISUS=1
 VISUS_GUI=0 # todo: can Qt5 work?
 
@@ -95,7 +95,7 @@ if (( VISUS_GUI == 1 )) ; then
 fi
 
 cmake ${cmake_opts[@]} ${SOURCE_DIR}
-cmake --build ./ --target "all"   --config ${CMAKE_BUILD_TYPE}
+cmake --build ./ --target all     --config ${CMAKE_BUILD_TYPE}
 cmake --build .  --target install --config ${CMAKE_BUILD_TYPE}
 
 # install into conda python

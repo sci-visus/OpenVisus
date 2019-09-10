@@ -586,15 +586,15 @@ def Main(argv):
 	
 	os.chdir(OpenVisus_DIR)
 
-	action=argv[1]
+	action=argv[1].upper()
 
 	# _____________________________________________
-	if action=="dirname":
+	if action=="DIRNAME":
 		print(OpenVisus_DIR)
 		return 0
 	
 	# _____________________________________________
-	if action=="PostInstallStep":	
+	if action=="POSTINSTALL":	
 		print("Executing",action,"cwd",os.getcwd(),"args",argv)
 		if WIN32:
 			raise Exception("not supported")
@@ -606,14 +606,14 @@ def Main(argv):
 		return 0
 	
 	# _____________________________________________
-	if action=="DistStep":
+	if action=="DIST":
 		print("Executing",action,"cwd",os.getcwd(),"args",argv)
 		DeployUtils.Dist()
 		print("done",action,glob.glob('dist/*'))
 		return 0
 
 	# _____________________________________________
-	if action=="configure":
+	if action=="CONFIGURE":
 
 		print("Executing",action,"cwd",os.getcwd(),"args",argv)
 		DeployUtils.CreateScript("CMake/script","bin/visus")

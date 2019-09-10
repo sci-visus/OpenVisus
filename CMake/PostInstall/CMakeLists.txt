@@ -1,2 +1,2 @@
 
-CMakePostInstallStep()
+CMakePostInstall()

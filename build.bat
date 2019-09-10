@@ -3,7 +3,7 @@
 set THIS_DIR=%cd%
 
 if "%CMAKE_BUILD_TYPE%"=="" (
-	set CMAKE_BUILD_TYPE=RelWithDebInfo
+	set CMAKE_BUILD_TYPE=Release
 )
 
 if "%CMAKE_EXECUTABLE%"=="" (
@@ -80,7 +80,7 @@ REM run test step
  
 REM dist step
 if NOT "%APPVEYOR%"=="" (
-	"%CMAKE_EXECUTABLE%" --build . --target dist   --config %CMAKE_BUILD_TYPE%
+	"%CMAKE_EXECUTABLE%" --build . --target DIST   --config %CMAKE_BUILD_TYPE%
 )
 
 REM test OpenVisus 

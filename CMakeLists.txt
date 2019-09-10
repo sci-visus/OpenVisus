@@ -30,7 +30,7 @@ PROJECT(OpenVisus)
 
 if (NOT CMAKE_CONFIGURATION_TYPES)
 	if(NOT DEFINED CMAKE_BUILD_TYPE)
-	  set(CMAKE_BUILD_TYPE "RelWithDebInfo")
+	  set(CMAKE_BUILD_TYPE "Release")
 	endif()
 endif()
 
@@ -190,7 +190,7 @@ if (1)
 
 
 	# ____________________________________________
-	macro(CMakePostInstallStep)
+	macro(CMakePostInstall)
 	
 		# fix the problem with <CONFIG> inside
 		string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" OpenVisus_INSTALL_DIR  "${OpenVisus_DIR}")
@@ -220,7 +220,7 @@ if (1)
 			# macdeployqt does not allow to choose the 'layout' of the app
 			if (PYTHON_EXECUTABLE)
 				install(CODE "
-					execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisus_INSTALL_DIR}/Deploy.py PostInstallStep RESULT_VARIABLE retcode)
+					execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisus_INSTALL_DIR}/Deploy.py POSTINSTALL RESULT_VARIABLE retcode)
 					if(NOT \"\${retcode}\" STREQUAL \"0\")
 						message(FATAL_ERROR \"Fatal error executing make self contained\")
 					endif()")
@@ -239,16 +239,16 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** dist (to call after INSTALL) ***
 if (VISUS_PYTHON)
-	add_custom_target(dist COMMAND ${PYTHON_EXECUTABLE} -u \"${OpenVisus_DIR}/Deploy.py\" DistStep)
-	set_property(TARGET dist PROPERTY FOLDER CMakePredefinedTargets)
+	add_custom_target(DIST COMMAND ${PYTHON_EXECUTABLE} -u \"${OpenVisus_DIR}/Deploy.py\" DIST)
+	set_property(TARGET DIST PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 
 
 # //////////////////////////////////////////////////////////////
-# *** configure (to call after INSTALL, create scripts and forse use of PyQt) ***
+# *** CONFIGURE (to call after INSTALL, create scripts and forse use of PyQt) ***
 if (VISUS_PYTHON)
-	add_custom_target(configure COMMAND ${PYTHON_EXECUTABLE} -u \"${OpenVisus_DIR}/Deploy.py\" configure)
-	set_property(TARGET configure PROPERTY FOLDER CMakePredefinedTargets)
+	add_custom_target(CONFIGURE COMMAND ${PYTHON_EXECUTABLE} -u \"${OpenVisus_DIR}/Deploy.py\" CONFIGURE)
+	set_property(TARGET CONFIGURE PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 
 

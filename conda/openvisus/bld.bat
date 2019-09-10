@@ -1,5 +1,5 @@
 if "%CMAKE_BUILD_TYPE%"=="" (
- 	set CMAKE_BUILD_TYPE=RelWithDebInfo
+ 	set CMAKE_BUILD_TYPE=Release
 )
 
 mkdir build 
@@ -19,7 +19,7 @@ if errorlevel 1 exit 1
 cmake --build . --target INSTALL   --config %CMAKE_BUILD_TYPE%
 if errorlevel 1 exit 1
 
-cmake --build . --target dist      --config %CMAKE_BUILD_TYPE%
+cmake --build . --target DIST      --config %CMAKE_BUILD_TYPE%
 if errorlevel 1 exit 1
 
 cd %CMAKE_BUILD_TYPE%\OpenVisus

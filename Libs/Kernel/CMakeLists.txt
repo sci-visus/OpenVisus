@@ -186,23 +186,53 @@ source_group("Misc" FILES
 	./src/Annotation.cpp)
 
 IF (WIN32 OR APPLE)
-	file(GLOB MM_FILES src/*.mm)
+	file(GLOB MMFiles src/*.mm)
 endif()
 
 
-file(GLOB PyFiles       ./include/Visus/swigpyrun.h  ./include/Visus/Python.h ./src/Python.cpp)
-file(GLOB CMakeFiles    ../CMakeList.txt ../../CMakeLists.txt ../../CMake/*)
-file(GLOB PyExamples    ../../Samples/python/*.py)
+file(GLOB PyFiles       
+	./include/Visus/swigpyrun.h  
+	./include/Visus/Python.h 
+	./src/Python.cpp)
+source_group("Python" FILES   ${PyFiles})
 
-source_group("CMake"           FILES   ${CMakeFiles})
-source_group("Python"          FILES   ${PyFiles})
-source_group("Python\\Samples" FILES ${PyExamples})
-	
+
+
+file(GLOB RootFiles     
+	../../.appveyor.yml
+	../../.travis.yml
+	../../.circleci/config.yml
+	../../build.bat
+	../../build.sh
+	../../build_conda.sh
+	../../build_docker.sh
+	../../build_osx.sh
+	../../CMakeLists.txt
+	../../Doxyfile.in
+	../../LICENCE
+	../../README.md*)
+source_group("" FILES   ${RootFiles})
+
+file(GLOB CMakeFiles    
+	../../CMake/*.py
+	../../CMake/*.cmake
+	../../CMake/script.*
+)
+source_group("CMake" FILES   ${CMakeFiles})
+
+file(GLOB PyExamples ../../Samples/python/*.py)
+source_group("Python\\Samples" FILES   ${PyExamples})
+
+file(GLOB CondaFiles ../../conda/openvisus/*)
+source_group("conda" FILES   ${CondaFiles})
+
 file(GLOB Sources 
+	${RootFiles}
 	${PyFiles} 
 	${CMakeFiles} 
 	${PyExamples}
-	${MM_FILES}
+	${MMFiles}
+	${CondaFiles}
 	include/Visus/*.* 
 	src/*.cpp src/*.hxx
 )

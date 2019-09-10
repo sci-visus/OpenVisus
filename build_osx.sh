@@ -14,7 +14,7 @@ SOURCE_DIR=$(pwd)
 BUILD_DIR=${BUILD_DIR:-${SOURCE_DIR}/build}
 
 # you can enable/disable certain options 
-CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-RelWithDebInfo}
+CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Release}
 VISUS_NET=${VISUS_NET:-1}
 VISUS_IMAGE=${VISUS_IMAGE:-1}
 VISUS_PYTHON=${VISUS_PYTHON:-1}
@@ -169,9 +169,9 @@ if (( 1 == 1 )) ; then
 	cmake ${cmake_opts[@]} ${SOURCE_DIR}
 
 	if (( TRAVIS == 1 )) ; then
-		cmake --build ./ --target "ALL_BUILD" --config ${CMAKE_BUILD_TYPE} | xcpretty -c
+		cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE} | xcpretty -c
 	else
-		cmake --build ./ --target "ALL_BUILD" --config ${CMAKE_BUILD_TYPE}
+		cmake --build ./ --target ALL_BUILD --config ${CMAKE_BUILD_TYPE}
 	fi	
 fi
 
@@ -190,21 +190,21 @@ fi
 # dist
 if (( DEPLOY_PYPI == 1 || DEPLOY_GITHUB == 1 )) ; then
 	BeginSection "CMake dist step"
-	cmake --build . --target dist --config ${CMAKE_BUILD_TYPE}
+	cmake --build . --target DIST --config ${CMAKE_BUILD_TYPE}
 fi
 
 # cmake tests (dont care if it fails)
 if (( VISUS_PYTHON == 1 )) ; then
 	BeginSection "Test OpenVisus (cmake)"
-	cmake --build  ./ --target  "RUN_TESTS" --config ${CMAKE_BUILD_TYPE}	 && :
+	cmake --build  ./ --target RUN_TESTS --config ${CMAKE_BUILD_TYPE}	 && :
 fi
 
 # cmake external app (dont care if it fails)
 if (( 1 == 1 )) ; then
 	BeginSection "Test OpenVisus (cmake external app)"
-	cmake --build      ./ --target   simple_query    --config ${CMAKE_BUILD_TYPE}  && :
+	cmake --build      ./ --target simple_query    --config ${CMAKE_BUILD_TYPE}  && :
 	if (( VISUS_GUI == 1 )) ; then
-		cmake --build   ./ --target   simple_viewer2d --config ${CMAKE_BUILD_TYPE}  && :
+		cmake --build   ./ --target simple_viewer2d --config ${CMAKE_BUILD_TYPE}  && :
 	fi	
 fi
 

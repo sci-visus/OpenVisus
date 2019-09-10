@@ -33,18 +33,7 @@ macro(DownloadAndUncompress url check_exist working_directory)
 	endif()
 endmacro()
 
-# ///////////////////////////////////////////////////
-macro(SetTargetOutputDirectory Name BinDir LibDir)
-	if (CMAKE_CONFIGURATION_TYPES)
-		set_target_properties(${Name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/${BinDir}) 
-		set_target_properties(${Name} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/${LibDir}) 
-		set_target_properties(${Name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/${BinDir}) 		
-	else()
-		set_target_properties(${Name} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${BinDir}) 
-		set_target_properties(${Name} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${LibDir}) 
-		set_target_properties(${Name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${BinDir}) 
-	endif()
-endmacro()
+
 
 # ///////////////////////////////////////////////////
 macro(InstallTarget Name IncDir BinDir LibDir)
@@ -76,6 +65,16 @@ macro(DisableTargetWarnings Name)
 	endif()
 endmacro()
 
+# /////////////////////////////////////////////////////////////
+macro(DisableIncrementalLinking Name)
+	if (WIN32)
+		foreach (CONFIG DEBUG RELEASE RELWITHDEBINFO MINRELSIZE)
+			set_property(TARGET ${Name} APPEND_STRING PROPERTY LINK_FLAGS_${CONFIG} " /INCREMENTAL:NO") #useless incremental for swig 
+		endforeach()
+	endif()
+endmacro()
+
+
 # //////////////////////////////////////////////////////////////////////////
 macro(SetupCommonTargetOptions Name)
 
@@ -92,7 +91,9 @@ macro(SetupCommonTargetOptions Name)
 
 	if (WIN32)
 
-		target_compile_options(${Name} PRIVATE /MP)
+		# this seem to block windows 10
+		# target_compile_options(${Name} PRIVATE /MP)
+
 		target_compile_options(${Name} PRIVATE /bigobj)		
 		# see http://msdn.microsoft.com/en-us/library/windows/desktop/ms683219(v=vs.85).aspx
 		target_compile_options(${Name} PRIVATE -DPSAPI_VERSION=1)
@@ -164,7 +165,15 @@ macro(AddExternalLibrary Name)
 	add_library(${Name} STATIC ${ARGN})
 
 	SetupCommonTargetOptions(${Name})
-	SetTargetOutputDirectory(${Name} bin lib)
+
+	# see https://stackoverflow.com/questions/56514533/how-to-specify-the-output-directory-of-a-given-dll
+	if (CMAKE_CONFIGURATION_TYPES)
+		set_target_properties(${Name} PROPERTIES  	
+			ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/ExternalLib )
+	else()
+		set_target_properties(${Name} PROPERTIES	
+			ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/ExternalLib ) 
+	endif()
 
 	# this fixes the problem of static symbols conflicting with dynamic lib
 	# example: dynamic libcrypto conflicting with internal static libcrypto
@@ -208,7 +217,18 @@ macro(AddLibrary Name LibraryType)
 
 	LinkPythonToLibrary(${Name})
 	SetupCommonTargetOptions(${Name})
-	SetTargetOutputDirectory(${Name} OpenVisus/bin OpenVisus/lib)
+
+	if (CMAKE_CONFIGURATION_TYPES)
+		set_target_properties(${Name} PROPERTIES 
+			LIBRARY_OUTPUT_DIRECTORY     ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/bin
+			RUNTIME_OUTPUT_DIRECTORY     ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/bin
+			ARCHIVE_OUTPUT_DIRECTORY     ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/lib) 		
+	else()
+		set_target_properties(${Name} PROPERTIES 
+			LIBRARY_OUTPUT_DIRECTORY      ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/bin
+			RUNTIME_OUTPUT_DIRECTORY      ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/bin	
+			ARCHIVE_OUTPUT_DIRECTORY      ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/lib) 
+	endif()
 
 	# InstallTarget(${Name} Libs/Db/include/Visus OpenVisus/bin OpenVisus/lib)
 	if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -262,10 +282,19 @@ macro(AddExecutable Name)
 
 	LinkPythonToExecutable(${Name})
 	SetupCommonTargetOptions(${Name})
-	SetTargetOutputDirectory(${Name} OpenVisus/bin OpenVisus/lib)
+
+	if (CMAKE_CONFIGURATION_TYPES)
+		set_target_properties(${Name} PROPERTIES  
+			RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/bin) 		
+	else()
+		set_target_properties(${Name} PROPERTIES
+			RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/bin) 
+	endif()
 
 	set_target_properties(${Name} PROPERTIES FOLDER "Executable/")
 endmacro()
+
+
 
 # ///////////////////////////////////////////////////
 macro(AddSwigLibrary WrappedLib SwigFile)
@@ -309,32 +338,47 @@ macro(AddSwigLibrary WrappedLib SwigFile)
 		endif()
 			
 		if (TARGET _${NamePy})
-			set(RealName _${NamePy})
+			set(Name _${NamePy})
 		else()
-			set(RealName ${NamePy})
+			set(Name ${NamePy})
 		endif()
 
-		target_compile_definitions(${RealName}  PRIVATE SWIG_TYPE_TABLE=OpenVisus)
-		target_compile_definitions(${RealName}  PRIVATE VISUS_PYTHON=1)
+		target_compile_definitions(${Name}  PRIVATE SWIG_TYPE_TABLE=OpenVisus)
+		target_compile_definitions(${Name}  PRIVATE VISUS_PYTHON=1)
 
-		LinkPythonToLibrary(${RealName})
+		LinkPythonToLibrary(${Name})
 	
 		# disable warnings
 		if (WIN32)
-			target_compile_definitions(${RealName}  PRIVATE /W0)
+			target_compile_definitions(${Name}  PRIVATE /W0)
 		else()
-			set_target_properties(${RealName} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
+			set_target_properties(${Name} PROPERTIES COMPILE_FLAGS "${BUILD_FLAGS} -w")
 		endif()
 	
-		SetupCommonTargetOptions(${RealName})
+		SetupCommonTargetOptions(${Name})
 		
 		# I have the problem that
 		# the swig generated *.py file and *.so must be in the same OpenVisus/ root directory
-		# otherwise it won't work (since swig auto-generate "from . import _VisusKernelPy")
-		SetTargetOutputDirectory(${RealName}   OpenVisus     lib)
+		# otherwise it won't work (since swig auto-generate "from . import _VisusKernelPy")     )
+
+		if (CMAKE_CONFIGURATION_TYPES)
+			set_target_properties(${Name} PROPERTIES 
+				LIBRARY_OUTPUT_DIRECTORY     ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus
+				RUNTIME_OUTPUT_DIRECTORY     ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus 
+				ARCHIVE_OUTPUT_DIRECTORY     ${CMAKE_BINARY_DIR}/$<CONFIG>/swig) 		
+		else()
+			set_target_properties(${Name} PROPERTIES 
+				LIBRARY_OUTPUT_DIRECTORY      ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus 
+				RUNTIME_OUTPUT_DIRECTORY      ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus
+				ARCHIVE_OUTPUT_DIRECTORY      ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/swig) 
+		endif()
+
 		
-		target_link_libraries(${RealName} PUBLIC ${WrappedLib})
-		set_target_properties(${RealName} PROPERTIES FOLDER Swig/)
+		target_link_libraries(${Name} PUBLIC ${WrappedLib})
+		set_target_properties(${Name} PROPERTIES FOLDER Swig/)
+		DisableIncrementalLinking(${Name})
+		# set_property(TARGET ${Name} APPEND_STRING PROPERTY LINK_FLAGS_${CONFIG} " /pdb:none") # do I need it for debugging?
+
 	endif()
 	
 endmacro()
@@ -380,104 +424,6 @@ macro(InstallDirectoryIfExists src dst)
 	endif()
 endmacro()
 
-# //////////////////////////////////////////////////////////////////////////////////
-macro(AddImportedOpenVisusLibrary OpenVisus_DIR Name Dependencies)
-
-	string(REPLACE "OpenVisus::" "" base_name ${Name})
-
-	if (WIN32)
-		set(lib_release "${OpenVisus_DIR}/lib/Visus${base_name}.lib")
-		set(lib_debug   "${OpenVisus_DIR}/debug/lib/Visus${base_name}.lib")
-	elseif (APPLE)
-		set(lib_release "${OpenVisus_DIR}/bin/libVisus${base_name}.dylib")
-		set(lib_debug   "${OpenVisus_DIR}/debug/bin/libVisus${base_name}.dylib")	
-	else()
-		set(lib_release "${OpenVisus_DIR}/bin/libVisus${base_name}.so")
-		set(lib_debug   "${OpenVisus_DIR}/debug/bin/libVisus${base_name}.so")	
-	endif()
-
-	if (EXISTS "${lib_release}")
-
-		if (NOT EXISTS "${OpenVisus_DIR}/debug")
-			set(lib_debug   "${lib_release}")
-		endif()		
-
-		add_library(${Name} SHARED IMPORTED GLOBAL)
-		set_target_properties(${Name} PROPERTIES INTERFACE_LINK_LIBRARIES "${Dependencies}") 
-		set_target_properties(${Name} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${OpenVisus_DIR}/include/Kernel;${OpenVisus_DIR}/include/${base_name}") 
-
-		# multiconfigurations
-		if (CMAKE_CONFIGURATION_TYPES)
-	
-			set_target_properties(${Name} PROPERTIES IMPORTED_CONFIGURATIONS "Debug")
-			set_target_properties(${Name} PROPERTIES IMPORTED_CONFIGURATIONS "Release")
-			set_target_properties(${Name} PROPERTIES IMPORTED_CONFIGURATIONS "RelWithDebInfo")
-		
-			# note: IMPORTED_<names> are different!
-			if (WIN32)
-	  			set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB_DEBUG             "${lib_debug}")
-		  		set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB_RELEASE           "${lib_release}")
-		  		set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB_RELWITHDEBINFO    "${lib_release}")		
-			else()
-	  			set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_DEBUG           "${lib_debug}")
-		  		set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_RELEASE         "${lib_release}")
-		  		set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION_RELWITHDEBINFO  "${lib_release}")	
-			endif()	
-		
-		else()
-			if (WIN32)
-				set_target_properties(${Name} PROPERTIES IMPORTED_IMPLIB                   "${lib_release}")
-			else()
-				set_target_properties(${Name} PROPERTIES IMPORTED_LOCATION                 "${lib_release}")
-			endif()
-		endif()
-	endif()
-
-endmacro()
-
-# ///////////////////////////////////////////////////////////////
-macro(AddOpenVisusPythonLibraries OpenVisus_DIR)
-
-	if (EXISTS "${OpenVisus_DIR}/PYTHON_VERSION")
-
-		SET(VISUS_PYTHON  "1" CACHE INTERNAL "VISUS_PYTHON")
-
-		# force the version to be the same
-		file(READ ${OpenVisus_DIR}/PYTHON_VERSION PYTHON_VERSION) 
-		string(STRIP ${PYTHON_VERSION} PYTHON_VERSION)
-
-		FindPythonLibrary()
-		AddImportedOpenVisusLibrary(${OpenVisus_DIR} OpenVisus::Kernel "OpenVisus::Python")
-		set_target_properties(OpenVisus::Kernel PROPERTIES INTERFACE_COMPILE_DEFINITIONS VISUS_PYTHON=1)
-	else()
-		ForceUnset(VISUS_PYTHON)
-		AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Kernel "")
-	endif()
-
-	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Dataflow "OpenVisus::Kernel")
-	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::XIdx     "OpenVisus::Kernel")
-	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Db       "OpenVisus::Kernel")
-	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Idx      "OpenVisus::Db")
-	AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Nodes    "OpenVisus::Idx")
-	
-	if (EXISTS "${OpenVisus_DIR}/QT_VERSION")
-		SET(VISUS_GUI  "1" CACHE INTERNAL "VISUS_PYTHON")
-		find_package(Qt5 OPTIONAL_COMPONENTS Core Widgets Gui OpenGL QUIET)
-		if (Qt5_FOUND)
-			if (WIN32)
-				string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
-			endif()
-			AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::Gui       "OpenVisus::Kernel;Qt5::Core;Qt5::Widgets;Qt5::Gui;Qt5::OpenGL")
-			AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::GuiNodes  "OpenVisus::Gui;OpenVisus::Dataflow")
-			AddImportedOpenVisusLibrary(${OpenVisus_DIR}  OpenVisus::AppKit    "OpenVisus::Gui;OpenVisus::Dataflow;OpenVisus::Nodes;OpenVisus::GuiNodes")
-		else()
-			message(STATUS "Qt5 not found, disabling it")
-		endif()
-	else()
-		ForceUnset(VISUS_GUI)
-	endif()
-
-endmacro()
 
 # ///////////////////////////////////////////////////////////////
 macro(GitUpdateSubmodules)
