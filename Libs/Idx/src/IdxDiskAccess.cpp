@@ -468,7 +468,8 @@ public:
     const BlockHeader& block_header = getBlockHeader(query->field, blockid);
     Int64 block_offset = block_header.getOffset();
     Int32 block_size   = block_header.getSize();
-    String compression = block_header.getCompression();
+    //String compression = block_header.getCompression();
+    String compression = query->field.default_compression;
     String layout      = block_header.getLayout();
 
     if (bVerbose)
@@ -738,11 +739,11 @@ private:
     void setCompression(String value) 
     {
       if      (value.empty())  flags |= NoCompression;
-      else if (value == "lz4") flags |= Lz4Compression;
-      else if (value == "zip") flags |= ZipCompression;
-      else if (value == "jpg") flags |= JpgCompression;
-      else if (value == "png") flags |= PngCompression;
-      else if (value == "zfp") flags |= ZfpCompression;
+      else if (StringUtils::startsWith(value, "lz4")) flags |= Lz4Compression;
+      else if (StringUtils::startsWith(value, "zip")) flags |= ZipCompression;
+      else if (StringUtils::startsWith(value, "jpg")) flags |= JpgCompression;
+      else if (StringUtils::startsWith(value, "png")) flags |= PngCompression;
+      else if (StringUtils::startsWith(value, "zfp")) flags |= ZfpCompression;
       else VisusAssert(false);
     }
 

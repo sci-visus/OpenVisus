@@ -52,12 +52,22 @@ namespace Visus {
   //////////////////////////////////////////////////////////////
   class VISUS_KERNEL_API ZfpEncoder : public Encoder
   {
+    int num_bit_planes=0;
   public:
 
     VISUS_CLASS(ZfpEncoder)
 
       //constructor
-      ZfpEncoder() {
+    ZfpEncoder(String specs) {
+      auto options = StringUtils::split(specs, "-");
+      for (auto it : options)
+      {
+        Int64 temp;
+        bool success = StringUtils::tryParse(it, temp);
+        if (success) {
+          num_bit_planes = (int)temp;
+        }
+      }
     }
 
     //destructor
@@ -72,20 +82,16 @@ namespace Visus {
     //encode
     virtual SharedPtr<HeapMemory> encode(PointNi dims, DType dtype, SharedPtr<HeapMemory> decoded) override
     {
-      // TODO: compare this and the approach where we compress 4x4x4 blocks before doing idx subsampling
       if (!decoded)
         return SharedPtr<HeapMemory>();
-
-      auto encoded_bound = (int)decoded->c_size(); // TODO: may not be conservative enough
-
+      auto encoded_bound = ((int)decoded->c_size()) * 3 / 2; // TODO: may not be conservative enough
       auto encoded = std::make_shared<HeapMemory>();
       if (!encoded->resize(encoded_bound, __FILE__, __LINE__))
         return SharedPtr<HeapMemory>();
       mg::bitstream bs; InitWrite(&bs, mg::buffer(encoded->c_ptr(), encoded->c_size()));
 
-      FILE* fp = fopen("input.raw", "wb");
       uint8_t* src = decoded->c_ptr();
-      int d = dims.getPointDim(); // dimension (2 or 3) TODO: 1D?
+      int d = dims.getPointDim(); 
       int nblocksz = d > 2  ? int((dims[2] + 3) / 4) : 1;
       int nblocksy = int((dims[1] + 3) / 4), nblocksx = int((dims[0] + 3) / 4);
       int nc = dtype.ncomponents();
@@ -211,30 +217,18 @@ namespace Visus {
           /* zfp transform */
           if (d == 3) {
             if (dtype.getBitSize() / nc > 32) { // > 32 bits
-              //if (dtype.isDecimal()) 
-                mg::ForwardZfp(i64block);
-              //else 
-              //  mg::ForwardZfpRev(i64block);
+              mg::ForwardZfp(i64block);
               mg::ForwardShuffle(i64block, u64block);
             } else { // <= 32 bits
-              //if (dtype.isDecimal()) 
-                mg::ForwardZfp(i32block);
-              //else 
-              //  mg::ForwardZfpRev(i32block);
+              mg::ForwardZfp(i32block);
               mg::ForwardShuffle(i32block, u32block);
             }
           } else if (d == 2) {
             if (dtype.getBitSize() / nc > 32) {
-              //if (dtype.isDecimal())
-                mg::ForwardZfp2D(i64block);
-              //else
-              //  mg::ForwardZfpRev2D(i64block);
+              mg::ForwardZfp2D(i64block);
               mg::ForwardShuffle2D(i64block, u64block);
             } else {
-              //if (dtype.isDecimal())
-                mg::ForwardZfp2D(i32block);
-              //else
-              //  mg::ForwardZfpRev2D(i32block);
+              mg::ForwardZfp2D(i32block);
               mg::ForwardShuffle2D(i32block, u32block);
             }
           }
@@ -257,11 +251,11 @@ namespace Visus {
           else if (dtype.isVectorOf(DTypes::FLOAT32))
             mg::Write(&bs, emax + mg::traits<float>::ExpBias, mg::traits<float>::ExpBits);
           if (dtype.getBitSize() / nc > 32) {
-            for (int bp = nbitplanes - 1; bp >= 16; --bp)
-              mg::Encode(d, u64block, bp, int64_t(2e9), n, &bs); // TODO: 2e9?
+            for (int bp = nbitplanes - 1, b = 0; bp >= 0 && b < num_bit_planes; --bp, ++b)
+              mg::Encode(d, u64block, bp, encoded_bound * 8, n, &bs);
           } else {
-            for (int bp = nbitplanes - 1; bp >= 16; --bp)
-              mg::Encode(d, u32block, bp, int64_t(2e9), n, &bs);
+            for (int bp = nbitplanes - 1, b = 0; bp >= 0 && b < num_bit_planes; --bp, ++b)
+              mg::Encode(d, u32block, bp, encoded_bound * 8, n, &bs);
           }
         } // end component loop
       }}} // end block loop
@@ -278,7 +272,6 @@ namespace Visus {
       static int counter = 0;
       if (!encoded)
         return SharedPtr<HeapMemory>();
-      FILE* fp = fopen("decode.txt", "w");
       auto decoded = std::make_shared<HeapMemory>();
       if (!decoded->resize(dtype.getByteSize(dims), __FILE__, __LINE__))
         return SharedPtr<HeapMemory>();
@@ -328,41 +321,29 @@ namespace Visus {
                 nbitplanes = 8 + d + 1;
               int8_t n = 0;
               if (dtype.getBitSize() / nc > 32) {
-                for (int bp = nbitplanes - 1; bp >= 16; --bp)
-                  mg::Decode(d, u64block, bp, int64_t(2e9), n, &bs); // TODO: 2e9?
+                for (int bp = nbitplanes - 1, b = 0; bp >= 0 && b < num_bit_planes; --bp, ++b)
+                  mg::Decode(d, u64block, bp, encoded->c_size() * 8, n, &bs);
               }
               else {
-                for (int bp = nbitplanes - 1; bp >= 16; --bp)
-                  mg::Decode(d, u32block, bp, int64_t(2e9), n, &bs);
+                for (int bp = nbitplanes - 1, b = 0; bp >= 0 && b < num_bit_planes; --bp, ++b)
+                  mg::Decode(d, u32block, bp, encoded->c_size() * 8, n, &bs);
               }
               /* zfp inverse transform */
               if (d == 3) {
                 if (dtype.getBitSize() / nc > 32) {
                   mg::InverseShuffle(u64block, i64block);
-                  //if (dtype.isDecimal())
-                    mg::InverseZfp(i64block);
-                  //else
-                  //  mg::InverseZfpRev(i64block);
+                  mg::InverseZfp(i64block);
                 } else { // <= 32 bits
                   mg::InverseShuffle(u32block, i32block);
-                  //if (dtype.isDecimal())
-                    mg::InverseZfp(i32block);
-                  //else
-                    //mg::InverseZfpRev(i32block);
+                  mg::InverseZfp(i32block);
                 }
               } else if (d == 2) {
                 if (dtype.getBitSize() / nc > 32) {
                   mg::InverseShuffle2D(u64block, i64block);
-                  //if (dtype.isDecimal())
-                    mg::InverseZfp2D(i64block);
-                  //else
-                    //mg::InverseZfpRev2D(i64block);
+                  mg::InverseZfp2D(i64block);
                 } else { // <= 32 bits
                   mg::InverseShuffle2D(u32block, i32block);
-                  //if (dtype.isDecimal())
-                    mg::InverseZfp2D(i32block);
-                  //else
-                    //mg::InverseZfpRev2D(i32block);
+                  mg::InverseZfp2D(i32block);
                 }
               }
               /* dequantize */
@@ -450,7 +431,6 @@ namespace Visus {
         }
       } // end block loops
       return decoded;
-      fclose(fp);
     }
   };
 
