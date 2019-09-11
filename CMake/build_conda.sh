@@ -108,7 +108,7 @@ if [[ "${TRAVIS_TAG}" != "" ]] ; then
 	anaconda -t ${ANACONDA_TOKEN} upload "${CONDA_BUILD_FILENAME}"
 fi
 
-echo "OpenVisus build_conda.sh finished"
+echo "OpenVisus CMake/build_conda.sh finished"
 
 
 

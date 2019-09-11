@@ -34,12 +34,12 @@ matrix:
     # ///////////////////////////////// manylinux 
 
     # example of to compile:
-    # PYTHON_VERSION=3.6.1 DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64 BUILD_DIR=$(pwd)/build/manylinux ./build.sh
+    # PYTHON_VERSION=3.6.1 DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64 BUILD_DIR=$(pwd)/build/manylinux ./CMake/build.sh
 
     # Example to compile step by step:
     # sudo docker run -ti -v $(pwd):/home/OpenVisus quay.io/pypa/manylinux1_x86_64 /bin/bash
     # cd /home/OpenVisus 
-    # PYTHON_VERSION=3.6.1 BUILD_DIR=$(pwd)/build/manylinux ./build.sh     
+    # PYTHON_VERSION=3.6.1 BUILD_DIR=$(pwd)/build/manylinux ./CMake/build.sh     
     
     - os: linux
       dist: trusty
@@ -65,7 +65,7 @@ matrix:
 
     # Example to compile by hand
     # sudo docker run -ti  -v $(pwd):/home/OpenVisus $DOCKER_IMAGE /bin/bash
-    # cd /home/OpenVisus && PYTHON_VERSION=3.61 ./build.sh 
+    # cd /home/OpenVisus && PYTHON_VERSION=3.61 ./CMake/build.sh 
 
     - os: linux
       dist: trusty
@@ -142,7 +142,7 @@ matrix:
     # ///////////////////////////////// trusty:conda
 
     # Example to compile by hand
-    # USE_CONDA=1 PYTHON_VERSION=3.6 ./build.sh
+    # USE_CONDA=1 PYTHON_VERSION=3.6 ./CMake/build.sh
 
     - os: linux
       dist: trusty
@@ -162,7 +162,7 @@ matrix:
 
     # ///////////////////////////////// osx:conda 
     # Example to compile by hand
-    # USE_CONDA=1 PYTHON_VERSION=3.6 ./build.sh
+    # USE_CONDA=1 PYTHON_VERSION=3.6 ./CMake/build.sh
 
     - os: osx
       osx_image: xcode9.4
@@ -186,5 +186,5 @@ script:
      gem install xcpretty 
      echo "Building travis TRAVIS_TAG(${TRAVIS_TAG}) "
      cd "${TRAVIS_BUILD_DIR}" 
-     ./build.sh
+     ./CMake/build.sh
 

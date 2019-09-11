@@ -165,7 +165,7 @@ REM *** change path as needed ***
 set PYTHON_EXECUTABLE=C:\Python37\python.exe
 set CMAKE_EXECUTABLE=C:\Program Files\CMake\bin\cmake.exe
 set QT5_DIR=c:\Qt\5.11.2\msvc2015_64\lib\cmake\Qt5
-.\build.bat
+.\CMake\build.bat
 ```
 
 To test if it's working:
@@ -191,7 +191,7 @@ Build the repository:
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-build.sh
+./CMake/build.sh
 ```
 
 To test if it's working:
@@ -209,7 +209,7 @@ Build the repository:
 ```
 git clone https://github.com/sci-visus/OpenVisus
 cd OpenVisus
-./build.sh
+./CMake/build.sh
 ```
 
 To test if it's working:
@@ -224,11 +224,11 @@ Note that on linux you can even compile using docker. An example is:
 
 
 ```
-BUILD_DIR=$(pwd)/build/docker/manylinux PYTHON_VERSION=3.6.1 DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64 ./build_docker.sh
-BUILD_DIR=$(pwd)/build/docker/trusty    PYTHON_VERSION=3.6.1 DOCKER_IMAGE=ubuntu:trusty                  ./build_docker.sh
-BUILD_DIR=$(pwd)/build/docker/bionic    PYTHON_VERSION=3.6.1 DOCKER_IMAGE=ubuntu:bionic                  ./build_docker.sh
-BUILD_DIR=$(pwd)/build/docker/xenial    PYTHON_VERSION=3.6.1 DOCKER_IMAGE=ubuntu:xenial                  ./build_docker.sh
-BUILD_DIR=$(pwd)/build/docker/leap      PYTHON_VERSION=3.6.1 DOCKER_IMAGE=opensuse:leap                  ./build_docker.sh
+BUILD_DIR=$(pwd)/build/docker/manylinux PYTHON_VERSION=3.6.1 DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64 ./CMake/build_docker.sh
+BUILD_DIR=$(pwd)/build/docker/trusty    PYTHON_VERSION=3.6.1 DOCKER_IMAGE=ubuntu:trusty                  ./CMake/build_docker.sh
+BUILD_DIR=$(pwd)/build/docker/bionic    PYTHON_VERSION=3.6.1 DOCKER_IMAGE=ubuntu:bionic                  ./CMake/build_docker.sh
+BUILD_DIR=$(pwd)/build/docker/xenial    PYTHON_VERSION=3.6.1 DOCKER_IMAGE=ubuntu:xenial                  ./CMake/build_docker.sh
+BUILD_DIR=$(pwd)/build/docker/leap      PYTHON_VERSION=3.6.1 DOCKER_IMAGE=opensuse:leap                  ./CMake/build_docker.sh
 ```
 
 

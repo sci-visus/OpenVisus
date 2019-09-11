@@ -245,7 +245,7 @@ if (( DEPLOY_PYPI == 1 )) ; then
 	${PYTHON_EXECUTABLE} -m twine upload --skip-existing "${WHEEL_FILENAME}"
 fi
 
-echo "OpenVisus build_osx.sh finished"
+echo "OpenVisus CMake/build_osx.sh finished"
 
 
 

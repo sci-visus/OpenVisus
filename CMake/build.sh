@@ -12,19 +12,19 @@ set -o pipefail
 
 # forward to Docker (rehentrant)
 if [[ "${DOCKER_IMAGE}" != "" ]] ; then
-	./build_docker.sh
+	./CMake/build_docker.sh
 	exit 0
 fi
 
 # forward to conda (non rehentrant)
 if [[ "${USE_CONDA}" == "1" ]] ; then 
-	./build_conda.sh
+	./CMake/build_conda.sh
 	exit 0
 fi
 
 # forward to osx (non rehentrant)
 if [ "$(uname)" == "Darwin" ]; then
-	./build_osx.sh
+	./CMake/build_osx.sh
 	exit 0
 fi
 
@@ -625,7 +625,7 @@ if (( DEPLOY_GITHUB == 1 )) ; then
 		"https://uploads.github.com/repos/sci-visus/OpenVisus/releases/$id/assets?name=$(basename ${filename})"
 fi
 
-echo "OpenVisus build.sh finished"
+echo "OpenVisus CMake/build.sh finished"
 
 
 
