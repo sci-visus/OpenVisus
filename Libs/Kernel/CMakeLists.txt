@@ -191,14 +191,14 @@ IF (WIN32 OR APPLE)
 endif()
 
 
-file(GLOB PyFiles       
-	./include/Visus/swigpyrun.h  
-	./include/Visus/Python.h 
+file(GLOB PyFiles
+	./include/Visus/swigpyrun.h
+	./include/Visus/Python.h
 	./src/Python.cpp)
 source_group("Python" FILES   ${PyFiles})
 
 
-file(GLOB RootFiles     
+file(GLOB RootFiles
 	../../.appveyor.yml
 	../../.travis.yml
 	../../.circleci/config.yml
@@ -213,7 +213,7 @@ file(GLOB RootFiles
 	../../README.md*)
 source_group("" FILES   ${RootFiles})
 
-file(GLOB CMakeFiles    
+file(GLOB CMakeFiles
 	../../CMake/*.py
 	../../CMake/*.cmake
 	../../CMake/script.*
@@ -226,10 +226,10 @@ source_group("Python\\Samples" FILES   ${PyExamples})
 file(GLOB CondaFiles ../../conda/openvisus/*)
 source_group("conda" FILES   ${CondaFiles})
 
-file(GLOB Sources 
+file(GLOB Sources
 	${RootFiles}
-	${PyFiles} 
-	${CMakeFiles} 
+	${PyFiles}
+	${CMakeFiles}
 	${PyExamples}
 	${MMFiles}
 	${CondaFiles}
@@ -302,7 +302,7 @@ else()
 endif()
 
 if (VISUS_PYTHON)
-	AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
+	AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i
 		"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
 endif()
 
