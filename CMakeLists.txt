@@ -71,8 +71,11 @@ message(STATUS "VISUS_GUINODES    ${VISUS_GUINODES}")
 message(STATUS "VISUS_OSPRAY      ${VISUS_OSPRAY}")
 message(STATUS "VISUS_APPKIT      ${VISUS_APPKIT}")
 
+# To activate the slam:
+#    git submodule init 
+#    git submodule update --init Libs/Slam
 
-if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Libs/Slam)
+if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Libs/Slam/CMakeLists.txt)
 	set(VISUS_SLAM ON)
 	message(STATUS "VISUS_SLAM        ${VISUS_SLAM}")
 endif()
