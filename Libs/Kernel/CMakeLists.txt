@@ -302,7 +302,7 @@ else()
 endif()
 
 if (VISUS_PYTHON)
-	AddSwigLibrary(VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
+	AddSwigLibrary(VisusKernelPy VisusKernel ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusKernelPy.i 
 		"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
 endif()
 

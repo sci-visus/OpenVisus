@@ -1,0 +1,3 @@
+[submodule "Libs/Slam"]
+	path = Libs/Slam
+	url = git@github.com:sci-visus/VisusSlam
