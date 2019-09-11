@@ -16,22 +16,15 @@ WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 LINUX=not APPLE and not WIN32
 
-OpenVisus_DIR=os.path.dirname(os.path.abspath(__file__))
+this_dir=os.path.dirname(os.path.abspath(__file__))
 
-VISUS_GUI=True if os.path.isfile(os.path.join(OpenVisus_DIR,"QT_VERSION")) else False
-
+VISUS_GUI=True if os.path.isfile(os.path.join(this_dir,"QT_VERSION")) else False
 
 """
 Fix the problem about shared library path finding
 
 on windows: it seems sufficient to modify the sys.path before importing the module.
 Example (see __init__.py):
-
-OpenVisus_Dir=os.path.dirname(os.path.abspath(__file__))
-for it in (".","bin"):
-	dir = os.path.join(OpenVisus_Dir,it)
-	if not dir in sys.path and os.path.isdir(dir):
-		sys.path.append(dir)
 
 on osx sys.path does not seem to work. Even changing the DYLIB_LIBRARY_PATH
 seems not to work. SO the only viable solution seems to be to modify the Rpath
@@ -584,13 +577,13 @@ import traceback
 # ////////////////////////////////////////////////////////////////////////////////////////////////
 def Main(argv):
 	
-	os.chdir(OpenVisus_DIR)
+	os.chdir(this_dir)
 
 	action=argv[1].upper()
 
 	# _____________________________________________
 	if action=="DIRNAME":
-		print(OpenVisus_DIR)
+		print(this_dir)
 		return 0
 	
 	# _____________________________________________

@@ -33,5 +33,6 @@ if (VISUS_APPKIT)
 	add_subdirectory(AppKit)
 endif()
 
-
-
+if (VISUS_SLAM)
+	add_subdirectory(Slam)
+endif()

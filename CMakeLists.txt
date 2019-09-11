@@ -23,7 +23,6 @@ if (POLICY CMP0086)
   cmake_policy(SET CMP0086 OLD)
 endif()
 
-
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)  
 
 PROJECT(OpenVisus) 
@@ -71,6 +70,13 @@ message(STATUS "VISUS_NODES       ${VISUS_NODES}")
 message(STATUS "VISUS_GUINODES    ${VISUS_GUINODES}")
 message(STATUS "VISUS_OSPRAY      ${VISUS_OSPRAY}")
 message(STATUS "VISUS_APPKIT      ${VISUS_APPKIT}")
+
+
+if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Libs/Slam)
+	set(VISUS_SLAM ON)
+	message(STATUS "VISUS_SLAM        ${VISUS_SLAM}")
+endif()
+
 
 if (VISUS_PYTHON)
 	FindPythonLibrary()
@@ -132,28 +138,28 @@ else()
 endif()
 
 if (CMAKE_CONFIGURATION_TYPES)
-	set(OpenVisus_DIR ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus)
+	set(InstallDir ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus)
 else()
-	set(OpenVisus_DIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus)
+	set(InstallDir ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus)
 endif()
 
 if (VISUS_PYTHON)
-	file(GENERATE   OUTPUT ${OpenVisus_DIR}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
-	file(GENERATE   OUTPUT ${OpenVisus_DIR}/Deploy.py      INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/Deploy.py)
-	file(GENERATE   OUTPUT ${OpenVisus_DIR}/__init__.py    INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/__init__.py)
-	file(GENERATE   OUTPUT ${OpenVisus_DIR}/__main__.py    INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/__main__.py)
-	file(GENERATE   OUTPUT ${OpenVisus_DIR}/setup.py       INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py)
+	file(GENERATE   OUTPUT ${InstallDir}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+	file(GENERATE   OUTPUT ${InstallDir}/Deploy.py      INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/Deploy.py)
+	file(GENERATE   OUTPUT ${InstallDir}/__init__.py    INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/__init__.py)
+	file(GENERATE   OUTPUT ${InstallDir}/__main__.py    INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/__main__.py)
+	file(GENERATE   OUTPUT ${InstallDir}/setup.py       INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py)
 endif()
 
 if (VISUS_GUI)
-	file(GENERATE OUTPUT ${OpenVisus_DIR}/QT_VERSION       CONTENT "${Qt5Core_VERSION_STRING}")
+	file(GENERATE OUTPUT ${InstallDir}/QT_VERSION       CONTENT "${Qt5Core_VERSION_STRING}")
 endif()	
 
 # create scripts
-GenerateScript("${CMAKE_CURRENT_SOURCE_DIR}/CMake/script" ${OpenVisus_DIR}/visus       ${OpenVisus_DIR}/bin/visus)
+GenerateScript("${CMAKE_CURRENT_SOURCE_DIR}/CMake/script" ${InstallDir}/visus       ${InstallDir}/bin/visus)
 
 if (VISUS_GUI)
-	GenerateScript(${CMAKE_CURRENT_SOURCE_DIR}/CMake/script ${OpenVisus_DIR}/visusviewer ${OpenVisus_DIR}/bin/visusviewer)
+	GenerateScript(${CMAKE_CURRENT_SOURCE_DIR}/CMake/script ${InstallDir}/visusviewer ${InstallDir}/bin/visusviewer)
 endif()
 
 add_subdirectory(ExternalLibs)
@@ -169,23 +175,23 @@ if (1)
 	#	set (CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install " CACHE PATH "default install path" FORCE )
 	#endif()
 	
-	install(FILES           LICENSE                                       DESTINATION ${OpenVisus_DIR}/)
-	install(FILES           README.md                                     DESTINATION ${OpenVisus_DIR}/)
-	install(FILES           CMake/OpenVisusConfig.cmake                   DESTINATION ${OpenVisus_DIR}/)
-	install(DIRECTORY       Copyrights                                    DESTINATION ${OpenVisus_DIR}/)
-	install(DIRECTORY       Samples                                       DESTINATION ${OpenVisus_DIR}/)
-	install(DIRECTORY       CMake                                         DESTINATION ${OpenVisus_DIR}/)
-	install(DIRECTORY       datasets                                      DESTINATION ${OpenVisus_DIR}/)
-	install(FILES           datasets/visus.config                         DESTINATION ${OpenVisus_DIR}/)
+	install(FILES           LICENSE                                       DESTINATION ${InstallDir}/)
+	install(FILES           README.md                                     DESTINATION ${InstallDir}/)
+	install(FILES           CMake/OpenVisusConfig.cmake                   DESTINATION ${InstallDir}/)
+	install(DIRECTORY       Copyrights                                    DESTINATION ${InstallDir}/)
+	install(DIRECTORY       Samples                                       DESTINATION ${InstallDir}/)
+	install(DIRECTORY       CMake                                         DESTINATION ${InstallDir}/)
+	install(DIRECTORY       datasets                                      DESTINATION ${InstallDir}/)
+	install(FILES           datasets/visus.config                         DESTINATION ${InstallDir}/)
 
 	# copy needed windows *.dll
 	if (WIN32)
 		if (OpenMP_FOUND)
 			set(CMAKE_INSTALL_OPENMP_LIBRARIES 1)
 		endif()	
-		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ${OpenVisus_DIR}/bin)
+		set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ${InstallDir}/bin)
 		include(InstallRequiredSystemLibraries)
-		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ${OpenVisus_DIR}/bin)	
+		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ${InstallDir}/bin)	
 	endif()
 
 
@@ -193,14 +199,14 @@ if (1)
 	macro(CMakePostInstall)
 	
 		# fix the problem with <CONFIG> inside
-		string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" OpenVisus_INSTALL_DIR  "${OpenVisus_DIR}")
+		string(REPLACE "$<CONFIG>" "\${CMAKE_INSTALL_CONFIG_NAME}" OpenVisus_INSTALL_DIR  "${InstallDir}")
 
 		# copy Qt5 plugins
 		if (VISUS_GUI AND Qt5_PLUGIN_PATH)
-			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/iconengines    ${OpenVisus_DIR}/bin/Qt/plugins/)
-			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/platforms      ${OpenVisus_DIR}/bin/Qt/plugins/)
-			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/printsupport   ${OpenVisus_DIR}/bin/Qt/plugins/)
-			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/styles         ${OpenVisus_DIR}/bin/Qt/plugins/)	
+			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/iconengines    ${InstallDir}/bin/Qt/plugins/)
+			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/platforms      ${InstallDir}/bin/Qt/plugins/)
+			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/printsupport   ${InstallDir}/bin/Qt/plugins/)
+			InstallDirectoryIfExists(${Qt5_PLUGIN_PATH}/styles         ${InstallDir}/bin/Qt/plugins/)	
 		endif()
 
 		if (WIN32)
@@ -239,7 +245,7 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** dist (to call after INSTALL) ***
 if (VISUS_PYTHON)
-	add_custom_target(DIST COMMAND ${PYTHON_EXECUTABLE} -u \"${OpenVisus_DIR}/Deploy.py\" DIST)
+	add_custom_target(DIST COMMAND ${PYTHON_EXECUTABLE} -u \"${InstallDir}/Deploy.py\" DIST)
 	set_property(TARGET DIST PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 
@@ -247,7 +253,7 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** CONFIGURE (to call after INSTALL, create scripts and forse use of PyQt) ***
 if (VISUS_PYTHON)
-	add_custom_target(CONFIGURE COMMAND ${PYTHON_EXECUTABLE} -u \"${OpenVisus_DIR}/Deploy.py\" CONFIGURE)
+	add_custom_target(CONFIGURE COMMAND ${PYTHON_EXECUTABLE} -u \"${InstallDir}/Deploy.py\" CONFIGURE)
 	set_property(TARGET CONFIGURE PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 
@@ -261,7 +267,7 @@ if (VISUS_PYTHON)
 	macro(AddOpenVisusTest Name)
 		add_test(NAME ${Name} ${ARGN})
 		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "CTEST_OUTPUT_ON_FAILURE=1")
-		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "PYTHONPATH=${OpenVisus_DIR}/..")
+		set_property(TEST ${Name} APPEND PROPERTY ENVIRONMENT "PYTHONPATH=${InstallDir}/..")
 	endmacro()
 	
 	AddOpenVisusTest(VisusTestPyDataflow   COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Dataflow.py"        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
@@ -303,7 +309,7 @@ if (1)
 				-DPYTHON_LIBRARY=${PYTHON_LIBRARY}
 				-DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIRS}
 				-DQt5_DIR="${Qt5_DIR}" 
-				-DOpenVisus_DIR=${OpenVisus_DIR}
+				-DOpenVisus_DIR=${InstallDir}
 			COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/"  --config ${CMAKE_BUILD_TYPE})
 
 		set_target_properties(${Name} PROPERTIES FOLDER CMakeTargets/)

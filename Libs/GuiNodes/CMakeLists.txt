@@ -17,11 +17,10 @@ if (VISUS_OSPRAY)
 endif()
 
 if (VISUS_PYTHON)
-	AddSwigLibrary(VisusGuiNodes ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiNodesPy.i 
+	AddSwigLibrary(VisusGuiNodesPy VisusGuiNodes ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiNodesPy.i 
 		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Kernel/include"
 		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Dataflow/include"
 		"-I${CMAKE_CURRENT_SOURCE_DIR}/../Gui/include"
 		"-I${CMAKE_CURRENT_SOURCE_DIR}/include")
-
 endif()
 
