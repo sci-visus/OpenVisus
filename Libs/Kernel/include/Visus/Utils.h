@@ -67,6 +67,16 @@ namespace Utils
     v.erase(std::find(v.begin(), v.end(), value));
   }
 
+  //select
+  template <typename T>
+  inline std::vector<T> select(const std::vector<T>& v, std::function<bool(T)> predicate)
+  {
+    std::vector<T> ret;
+    std::copy_if(v.begin(), v.end(), std::back_inserter(ret), predicate);
+    return ret;
+  }
+
+
   //isByteAligned
   inline bool isByteAligned(Int64 bit) {
     return (bit & 0x07) ? false : true;

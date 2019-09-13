@@ -728,15 +728,17 @@ private:
 
   static VISUS_NEWOBJECT(FIBITMAP*) ArrayToFreeImage(Array& src)
   {
-    Int64 width = (Int64)src.dims[0];
-    Int64 height = (Int64)src.dims[1];
-    DType dtype = src.dtype;
+    auto dims = Utils::select<Int64>(src.dims.toVector(), [](Int64 value) {return value > 1; });
 
-    if (src.getTotalNumberOfSamples() != width*height)
+    if (dims.size()!=2)
     {
-      VisusWarning() << "data in input is not 2d";
+      VisusWarning() << "data input is not 2d, dims("<< src.dims.toString()<<")";
       return nullptr;
     }
+
+    Int64 width  = dims[0];
+    Int64 height = dims[1];
+    DType dtype = src.dtype;
 
     FREE_IMAGE_TYPE type = FIT_UNKNOWN;
     int bpp = 0;

@@ -55,6 +55,9 @@ VISUS_IMPLEMENT_SINGLETON_CLASS(DatasetFactory)
 /////////////////////////////////////////////////////////////////////////////
 std::vector<int> Dataset::guessEndResolutions(const Frustum& logic_to_screen,Position logic_position,QueryQuality quality,QueryProgression progression)
 {
+  if (!logic_position.valid())
+    return std::vector<int>();
+
   int dataset_dim = this->getPointDim();
 
   if (progression == QueryGuessProgression)
