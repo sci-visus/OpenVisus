@@ -41,7 +41,104 @@ For support : support@visus.net
 
 namespace Visus {
 
+
+/////////////////////////////////////////////////////////////////////////////
+class KdRenderArrayNodeShader : public GLShader
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(KdRenderArrayNodeShader)
+
+    VISUS_DECLARE_SHADER_CLASS(VISUS_GUI_NODES_API, KdRenderArrayNodeShader)
+
+    //_____________________________________________________________
+    class Config
+  {
+  public:
+    int  texture_dim = 0;
+    int  texture_nchannels = 0; //(1) luminance (2) luminance+alpha (3) rgb (4) rgba
+    bool clippingbox_enabled = false;
+    bool palette_enabled = false;
+    bool discard_if_zero_alpha = false;
+
+    //constructor
+    Config() {
+    }
+
+    //valid
+    bool valid() const {
+      return (texture_dim == 2 || texture_dim == 3) && (texture_nchannels >= 1 && texture_nchannels <= 4);
+    }
+
+    //getId
+    int getId() const
+    {
+      VisusAssert(valid());
+      int ret = 0, shift = 0;
+      ret |= (texture_dim) << shift; shift += 2;
+      ret |= (texture_nchannels) << shift; shift += 3;
+      ret |= (clippingbox_enabled ? 1 : 0) << shift++;
+      ret |= (palette_enabled ? 1 : 0) << shift++;
+      ret |= (discard_if_zero_alpha ? 1 : 0) << shift++;
+      return ret;
+    }
+
+  };
+
+  Config config;
+
+  //constructor
+  KdRenderArrayNodeShader(const Config& config_) : GLShader(":/KdRenderArrayShader.glsl"), config(config_)
+  {
+    addDefine("CLIPPINGBOX_ENABLED", cstring(config.clippingbox_enabled ? 1 : 0));
+    addDefine("TEXTURE_DIM", cstring(config.texture_dim));
+    addDefine("TEXTURE_NCHANNELS", cstring(config.texture_nchannels));
+    addDefine("PALETTE_ENABLED", cstring(config.palette_enabled ? 1 : 0));
+    addDefine("DISCARD_IF_ZERO_ALPHA", cstring(config.discard_if_zero_alpha ? 1 : 0));
+
+    u_sampler = addSampler("u_sampler");
+    u_palette_sampler = addSampler("u_palette_sampler");
+  }
+
+  //destructor
+  virtual ~KdRenderArrayNodeShader() {
+  }
+
+  //getSingleton
+  static KdRenderArrayNodeShader* getSingleton(Config config) {
+    return Shaders::getSingleton()->get(config.getId(), config);
+  }
+
+  //setTexture
+  void setTexture(GLCanvas& gl, SharedPtr<GLTexture> value) {
+    gl.setTexture(u_sampler, value);
+  }
+
+  //setPaletteTexture 
+  void setPaletteTexture(GLCanvas& gl, SharedPtr<GLTexture> value) {
+    VisusAssert(config.palette_enabled);
+    gl.setTextureInSlot(1, u_palette_sampler, value);
+  }
+
+private:
+
+  GLSampler u_sampler;
+  GLSampler u_palette_sampler;
+};
+
+
+
 VISUS_IMPLEMENT_SHADER_CLASS(VISUS_GUI_NODES_API, KdRenderArrayNodeShader)
+
+void KdRenderArrayNode::allocShaders()
+{
+  KdRenderArrayNodeShader::Shaders::allocSingleton();
+}
+
+void KdRenderArrayNode::releaseShaders()
+{
+  KdRenderArrayNodeShader::Shaders::releaseSingleton();
+}
 
 /////////////////////////////////////////////////////////////////////////
 static bool isNodeFillingVisibleSpace(const SharedPtr<KdArray>& kdarray,KdArrayNode* node) 

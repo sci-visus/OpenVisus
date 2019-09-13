@@ -37,9 +37,102 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/IsoContourRenderNode.h>
-#include <Visus/IsoContourShader.h>
 
 namespace Visus {
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+class IsoContourShader : public GLShader
+{
+public:
+
+  VISUS_NON_COPYABLE_CLASS(IsoContourShader)
+
+  VISUS_DECLARE_SHADER_CLASS(VISUS_GUI_NODES_API, IsoContourShader)
+
+  //________________________________________________
+  class Config
+  {
+  public:
+
+    bool palette_enabled;
+    bool vertex_color_index_enabled;
+
+    //constructor
+    Config() : palette_enabled(false), vertex_color_index_enabled(false)
+    {}
+
+    //valid
+    bool valid() const
+    {
+      return true;
+    }
+
+    //getId
+    int getId() const
+    {
+      VisusAssert(valid());
+      int ret = 0, shift = 0;
+      ret |= (palette_enabled ? 1 : 0) << shift++;
+      ret |= (vertex_color_index_enabled ? 1 : 0) << shift++;
+      return ret;
+    }
+  };
+
+  Config config;
+
+  //constructor
+  IsoContourShader(const Config& config_) :
+    GLShader(":/IsoContourShader.glsl"),
+    config(config_)
+  {
+    addDefine("PALETTE_ENABLED", cstring(config.palette_enabled ? 1 : 0));
+    addDefine("VERTEX_COLOR_INDEX_ENABLED", cstring(config.vertex_color_index_enabled ? 1 : 0));
+
+    u_sampler = addSampler("u_sampler");
+    u_palette_sampler = addSampler("u_palette_sampler");
+  }
+
+  //destructor
+  virtual ~IsoContourShader()
+  {}
+
+  //getSingleton
+  static IsoContourShader* getSingleton(const Config& config)
+  {
+    return Shaders::getSingleton()->get(config.getId(), config);
+  }
+
+  //setTexture
+  void setTexture(GLCanvas& gl, SharedPtr<GLTexture> value) {
+    gl.setTexture(u_sampler, value);
+  }
+
+  //setPaletteTexture 
+  //(NOTE: the shader will use the 'g'/'[1]' component of field in case texture has ncomponents>=2. if it has only one that it will use 'r')
+  void setPaletteTexture(GLCanvas& gl, SharedPtr<GLTexture> value)
+  {
+    VisusAssert(config.palette_enabled);
+    gl.setTextureInSlot(1, u_palette_sampler, value);
+  }
+
+private:
+
+  GLSampler u_sampler;
+  GLSampler u_palette_sampler;
+
+};
+
+VISUS_IMPLEMENT_SHADER_CLASS(VISUS_GUI_NODES_API, IsoContourShader)
+
+void IsoContourRenderNode::allocShaders()
+{
+  IsoContourShader::Shaders::allocSingleton();
+}
+
+void IsoContourRenderNode::releaseShaders()
+{
+  IsoContourShader::Shaders::allocSingleton();
+}
 
 ///////////////////////////////////////////////////////////////////////////
 IsoContourRenderNode::IsoContourRenderNode(String name) : Node(name) 

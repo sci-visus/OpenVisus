@@ -386,6 +386,9 @@ public:
   //addGLCameraNode
   GLCameraNode* addGLCameraNode(SharedPtr<GLCamera> glcamera, Node* parent = nullptr);
 
+  //addGLCameraNode
+  GLCameraNode* addGLCameraNode(String type);
+
   //guessGLCameraPosition
   void guessGLCameraPosition(int ref_ = -1);
 

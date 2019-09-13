@@ -2615,14 +2615,30 @@ GLCameraNode* Viewer::addGLCameraNode(SharedPtr<GLCamera> glcamera,Node* parent)
   return glcamera_node;
 }
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+GLCameraNode* Viewer::addGLCameraNode(String type)
+{
+  type = StringUtils::toLower(type);
+
+  if (type == "lookat")
+  {
+    return addGLCameraNode(std::make_shared<GLLookAtCamera>());
+  }
+  else if (type == "ortho")
+  {
+    return addGLCameraNode(std::make_shared<GLOrthoCamera>());
+  }
+  else
+  {
+    ThrowException("internal error");
+    return nullptr;
+  }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 IsoContourNode* Viewer::addIsoContourNode(Node* parent,Node* data_provider,double isovalue) 
 {
-  if (!data_provider)
-    data_provider=parent;
-
-  VisusAssert(parent && data_provider && data_provider->hasOutputPort("data"));
-
   //IsoContourNode
   auto build_isocontour=new IsoContourNode("Marching cube");
   {
@@ -2653,7 +2669,12 @@ IsoContourNode* Viewer::addIsoContourNode(Node* parent,Node* data_provider,doubl
     addNode(parent,palette_node);
     addNode(parent,render_node);
 
-    connectPorts(data_provider,"data",build_isocontour);
+    if (data_provider)
+    {
+      VisusAssert(data_provider->hasOutputPort("data"));
+      connectPorts(data_provider, "data", build_isocontour);
+    }
+
     connectPorts(build_isocontour,"data",render_node);
     connectPorts(build_isocontour,"data",palette_node); //enable statistics
     connectPorts(palette_node,"palette",render_node);

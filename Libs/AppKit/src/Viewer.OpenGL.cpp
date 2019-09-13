@@ -299,6 +299,7 @@ void Viewer::glCanvasMouseReleaseEvent(QMouseEvent* evt)
     }
   }
 
+
   widgets.glcanvas->postRedisplay();  //needed for gesture render
 }
 

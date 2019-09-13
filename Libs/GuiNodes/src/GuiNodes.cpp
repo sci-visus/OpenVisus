@@ -45,7 +45,6 @@ For support : support@visus.net
 #include <Visus/OSPRayRenderNode.h>
 #include <Visus/KdRenderArrayNode.h>
 #include <Visus/JTreeRenderNode.h>
-#include <Visus/IsoContourShader.h>
 
 #if VISUS_OSPRAY
 #include <ospray/ospray.h>
@@ -63,7 +62,6 @@ namespace Visus {
 
 bool GuiNodesModule::bAttached = false;
 
-
 /////////////////////////////////////////////////////
 void GuiNodesModule::attach()
 {
@@ -79,9 +77,9 @@ void GuiNodesModule::attach()
   GuiModule::attach();
   DataflowModule::attach();
 
-  IsoContourShader::Shaders::allocSingleton();
-  KdRenderArrayNodeShader::Shaders::allocSingleton();
-  RenderArrayNodeShader::Shaders::allocSingleton();
+  IsoContourRenderNode::allocShaders();
+  KdRenderArrayNode::allocShaders();
+  RenderArrayNode::allocShaders();
 
   VISUS_REGISTER_NODE_CLASS(GLCameraNode);
   VISUS_REGISTER_NODE_CLASS(IsoContourNode);
@@ -101,7 +99,6 @@ void GuiNodesModule::attach()
   VisusInfo() << "Attached GuiNodesModule";
 }
 
-
 //////////////////////////////////////////////
 void GuiNodesModule::detach()
 {
@@ -114,9 +111,9 @@ void GuiNodesModule::detach()
 
   GuiNodesCleanUpResources();
 
-  IsoContourShader::Shaders::releaseSingleton();
-  KdRenderArrayNodeShader::Shaders::releaseSingleton();
-  RenderArrayNodeShader::Shaders::releaseSingleton();
+  IsoContourRenderNode::releaseShaders();
+  KdRenderArrayNode::releaseShaders();
+  RenderArrayNode::releaseShaders();
 
   GuiModule::detach();
   DataflowModule::detach();

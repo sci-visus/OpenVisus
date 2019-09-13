@@ -49,14 +49,70 @@ For support : support@visus.net
 namespace Visus {
 
 ///////////////////////////////////////////////////////////////////////////////////////
-struct ComputeIsoContourOp
+class MarchingCube
 {
-  double data_min=NumericLimits<double>::highest();
-  double data_max=NumericLimits<double>::lowest ();
+public:
 
-  template <class CppType>
-  bool execute(IsoContour& isocontour,Array& data,double isovalue,int vertices_per_batch,Aborted aborted) 
+  Array   data;
+  double  isovalue;
+  int     vertices_per_batch= 16 * 1024;
+  Aborted aborted;
+
+  SharedPtr< IsoContour> isocontour;
+
+  //constructor
+  MarchingCube() {
+  }
+
+  //setData
+  void setData(Array data)
   {
+    this->data = data;
+
+    this->isocontour = std::make_shared<IsoContour>();
+
+    this->isocontour->field.array = data; //pass through
+    this->isocontour->field.texture = std::make_shared<GLTexture>(data);
+
+    //IsoContourenderNode NEEDS the vertices in this range (for computing normals on GPU)
+    auto pdim = data.dims.getPointDim();
+
+    if (!data.bounds.valid())
+      isocontour->bounds = BoxNd(PointNd(0, 0, 0), PointNd(1, 1, 1));
+
+    auto pixel_to_bounds = Position::computeTransformation(data.bounds, data.dims);
+    isocontour->bounds = Position(pixel_to_bounds, BoxNi(PointNi(pdim), data.dims));
+  }
+
+  //setIsoValue
+  void setIsoValue(double value) {
+    this->isovalue = value;
+  }
+
+  //enableVoxelUsed
+  void enableVoxelUsed() {
+    this->isocontour->voxel_used = Array(this->data.dims, this->data.dtype);
+    this->isocontour->voxel_used.fillWithValue(0);
+  }
+
+  //disableVoxelUsed
+  void disableVoxelUsed() {
+    this->isocontour->voxel_used = Array();
+  }
+
+  //execute
+  template <class CppType>
+  bool execute() 
+  {
+    auto t1 = Time::now();
+
+    //std::ofstream out("test.obj");
+
+    IsoContour& isocontour = *this->isocontour;
+
+    int ntriangles = 0;
+    isocontour.data_range = Range::invalid();
+
     // see http://local.wasp.uwa.edu.au/~pbourke/geometry/polygonise/
     isocontour.begin(GL_TRIANGLES,vertices_per_batch);
 
@@ -68,7 +124,7 @@ struct ComputeIsoContourOp
     if (!(dims[0]*dims[1]*dims[2]) || !field)
       return false;
 
-    CppType* cell_data = isocontour.cell_array? isocontour.cell_array.c_ptr<CppType*>() : NULL;
+    CppType* voxel_used = isocontour.voxel_used ? isocontour.voxel_used.c_ptr<CppType*>() : NULL;
 
     const int stridex=data.dtype.getByteSize()/sizeof(CppType);
     const int stridey=stridex*dims[0];
@@ -98,8 +154,8 @@ struct ComputeIsoContourOp
 
       int index=x*stridex+y*stridey+z*stridez;
 
-      data_min=std::min(data_min,(double)field[index]);
-      data_max=std::max(data_max,(double)field[index]);
+      isocontour.data_range.from=std::min(isocontour.data_range.from,(double)field[index]);
+      isocontour.data_range.to  =std::max(isocontour.data_range.to  ,(double)field[index]);
 
       //field values
       double values[8]=
@@ -129,8 +185,8 @@ struct ComputeIsoContourOp
       if (!et) 
         continue;
 
-      if (cell_data)
-        cell_data[index] = 1;
+      if (voxel_used)
+        voxel_used[index] = 1;
 
       double cube_points[8][3]=
       {
@@ -171,11 +227,20 @@ struct ComputeIsoContourOp
         const double* p0=v[triangle_table[L][i  ]]; isocontour.vertex(float(p0[0]),float(p0[1]),float(p0[2]));
         const double* p1=v[triangle_table[L][i+1]]; isocontour.vertex(float(p1[0]),float(p1[1]),float(p1[2]));
         const double* p2=v[triangle_table[L][i+2]]; isocontour.vertex(float(p2[0]),float(p2[1]),float(p2[2]));
+
+        //out << "v " << p0[0] << " " << p0[1] << " " << p0[2] << std::endl;
+        //out << "v " << p1[0] << " " << p1[1] << " " << p1[2] << std::endl;
+        //out << "v " << p2[0] << " " << p2[1] << " " << p2[2] << std::endl;
+        //out << "f " << (ntriangles * 3 + 1) << " " << (ntriangles * 3 + 2) << " " << (ntriangles * 3 + 3)<<std::endl;
+        ++ntriangles;
       }
     }}}
 
     isocontour.end();
-    
+
+    //out.close();
+     
+    VisusInfo() << "Marching cube on data("<<data.dims.toString()<<") ntriangles("<< ntriangles<<") done in " << t1.elapsedMsec() << "msec";
     return true;
   }
 };
@@ -185,14 +250,21 @@ class IsoContourNode::MyJob : public NodeJob
 {
 public:
 
-  Node*                    node;
-  int                      vertices_per_batch;
-  double                   isovalue;
-  Array                    data;
+  Node*          node;
+  MarchingCube   mc;
 
   //constructor
-  MyJob(Node* node_, double isovalue_, Array data_) 
-    : node(node_), vertices_per_batch(16*1024), isovalue(isovalue_), data(data_) {
+  MyJob(Node* node, double isovalue, Array data)  
+  {
+    this->node = node;
+
+    mc.setData(data);
+    mc.setIsoValue(isovalue);
+    mc.aborted = this->aborted;
+
+    if (node->isOutputConnected("cell_array"))
+      mc.enableVoxelUsed();
+
   }
 
   //destructor
@@ -202,33 +274,14 @@ public:
   //runJob (i will work only on the first component, leaving untouched the others)
   virtual void runJob() override
   {
-    auto isocontour=std::make_shared<IsoContour>();
-    if (node->isOutputConnected("cell_array"))
-    {
-      isocontour->cell_array = Array(data.dims, data.dtype);
-      isocontour->cell_array.fillWithValue(0);
-    }
-
-    ComputeIsoContourOp op;
-
-    if (!ExecuteOnCppSamples(op,this->data.dtype,*isocontour,data,isovalue,vertices_per_batch,aborted))
+    if (!ExecuteOnCppSamples(this->mc,this->mc.data.dtype))
       return;
 
-    isocontour->field.array   = data; //pass through
-    isocontour->field.texture = std::make_shared<GLTexture>(data);
-    
-    //RenderMeshNode NEEDS the vertices in this range (for computing normals on GPU)
-    auto pdim = data.dims.getPointDim();
-    auto pixel_to_bounds = Position::computeTransformation(data.bounds, data.dims);
-    auto pixel_box = BoxNi(PointNi(pdim), data.dims);
-    isocontour->bounds = Position(pixel_to_bounds, pixel_box);
+    auto isocontour = mc.isocontour;
 
     //tell that the output has changed, if the port is not connected, this is a NOP!
     DataflowMessage msg;
     msg.writeValue("data", isocontour);
-    msg.writeValue("cell_array",isocontour->cell_array);
-    msg.writeValue("data_min",op.data_min);
-    msg.writeValue("data_max",op.data_max);
     node->publish(msg);
   }
 
@@ -251,19 +304,16 @@ IsoContourNode::~IsoContourNode()
 ///////////////////////////////////////////////////////////////////////
 void IsoContourNode::messageHasBeenPublished(DataflowMessage msg)
 {
-  auto data_min= *msg.readValue<double>("data_min");
-  auto data_max= *msg.readValue<double>("data_max");
+  auto isocontour= msg.readValue<IsoContour>("data");
   
   //avoid rehentrant code
-  if (this->data_range.from!=data_min || this->data_range.to!= data_max)
+  if (isocontour && this->data_range!= isocontour->data_range)
   {
     beginUpdate();
-    this->data_range=Range(data_min, data_max,0.0);
+    this->data_range= isocontour->data_range;
     endUpdate();
   }
 }
-
-
 
 ///////////////////////////////////////////////////////////////////////
 bool IsoContourNode::processInput()

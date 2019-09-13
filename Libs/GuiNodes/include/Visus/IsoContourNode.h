@@ -54,6 +54,8 @@ public:
 
   VISUS_CLASS(IsoContour)
 
+  Range data_range;
+
   struct
   {
     Array                array;
@@ -62,7 +64,7 @@ public:
   field;
 
   Position bounds;
-  Array    cell_array; // 1 if a voxel contributes to the isosurface; 0 otherwise
+  Array    voxel_used; // 1 if a voxel contributes to the isosurface; 0 otherwise
 
   //constructor
   IsoContour() {
@@ -93,6 +95,12 @@ public:
   //getDataRange
   Range getDataRange() const {
     return data_range;
+  }
+
+  //setData
+  void setData(Array value) {
+    getInputPort("data")->writeValue(std::make_shared<Array>(value));
+    dataflow->needProcessInput(this);
   }
 
   //isoValue

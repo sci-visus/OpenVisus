@@ -3,8 +3,17 @@
 %{ 
 #include <Visus/Gui.h>
 #include <Visus/GLObjects.h>
-#include <Visus/PythonNode.h>
 #include <Visus/Dataflow.h>
+#include <Visus/GLCameraNode.h>
+#include <Visus/IsoContourNode.h>
+#include <Visus/IsoContourRenderNode.h>
+#include <Visus/RenderArrayNode.h>
+#include <Visus/KdRenderArrayNode.h>
+#include <Visus/PythonNode.h>
+#include <Visus/GLCamera.h>
+#include <Visus/GLOrthoCamera.h>
+#include <Visus/GLLookAtCamera.h>
+
 using namespace Visus;
 %}
 
@@ -18,6 +27,13 @@ using namespace Visus;
 #define slots   
 
 %include <Visus/GuiNodes.h>
+
+%include <Visus/GLCameraNode.h>
+%include <Visus/IsoContourNode.h>
+%include <Visus/IsoContourRenderNode.h>
+%include <Visus/RenderArrayNode.h>
+%include <Visus/KdRenderArrayNode.h>
+%include <Visus/PythonNode.h>
 
 ///////////////////////////////////////////////////////////////
 //allow rendering inside main GLCanvas (problem of multi-inheritance Node and GLObject)
@@ -43,4 +59,4 @@ using namespace Visus;
 %feature("nodirector") Visus::PythonNode::writeToObjectStream;
 %feature("nodirector") Visus::PythonNode::readFromObjectStream;
 
-%include <Visus/PythonNode.h>
+

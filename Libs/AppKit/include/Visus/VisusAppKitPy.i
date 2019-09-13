@@ -7,12 +7,18 @@
 #include <Visus/Viewer.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/IdxMultipleDataset.h>
+#include <Visus/IsoContourRenderNode.h>
 #include <Visus/Nodes.h>
+#include <Visus/GLCamera.h>
+#include <Visus/GLOrthoCamera.h>
+#include <Visus/GLLookAtCamera.h>
 using namespace Visus;
 %}
 
 //VISUS_DISOWN | DISOWN_FOR_DIRECTOR
 %apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::Node* disown };
+
+%feature("director") Visus::VisusViewer;
 
 %import  <Visus/VisusKernelPy.i>
 

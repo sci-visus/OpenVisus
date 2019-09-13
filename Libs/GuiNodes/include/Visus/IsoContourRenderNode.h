@@ -88,6 +88,13 @@ public:
 
 public:
 
+  //shaders
+  static void allocShaders();
+  static void releaseShaders();
+
+
+public:
+
   //writeToObjectStream
   virtual void writeToObjectStream(ObjectStream& ostream) override;
 
