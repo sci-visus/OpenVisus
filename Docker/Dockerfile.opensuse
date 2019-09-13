@@ -9,8 +9,8 @@ RUN zypper --non-interactive install git
 RUN git clone -b${GIT_BRANCH} https://github.com/sci-visus/OpenVisus.git /home/OpenVisus  
 
 WORKDIR /home/OpenVisus 
-RUN chmod +x ./build.sh 
-RUN ./build.sh
+RUN chmod +x ./CMake/build.sh 
+RUN ./CMake/build.sh
 
 
 

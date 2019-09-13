@@ -71,7 +71,7 @@ docker push visus/$TAG
 
 From the OpenVisus code directory, create a container and try to build:
 ```
-docker run -it -v $(pwd):/home/OpenVisus --expose=80 -p 8080:80 --name manylinux quay.io/pypa/manylinux1_x86_64 /bin/bash -ic "cd /home/OpenVisus && export BUILD_DIR=/home/OpenVisus/build/manylinux && ./build.sh"
+docker run -it -v $(pwd):/home/OpenVisus --expose=80 -p 8080:80 --name manylinux quay.io/pypa/manylinux1_x86_64 /bin/bash -ic "cd /home/OpenVisus && export BUILD_DIR=/home/OpenVisus/build/manylinux && ./CMake/build.sh"
 ```
 
 If it fails, start and connect to the container to debug:
@@ -80,5 +80,5 @@ docker start manylinux
 docker exec -it manylinux /bin/bash
 cd /home/OpenVisus
 export BUILD_DIR=/home/OpenVisus/build/manylinux
-./build.sh
+./CMake/build.sh
 ```

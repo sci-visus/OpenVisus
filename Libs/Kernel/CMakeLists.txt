@@ -197,16 +197,15 @@ file(GLOB PyFiles
 source_group("Python" FILES   ${PyFiles})
 
 
-
 file(GLOB RootFiles     
 	../../.appveyor.yml
 	../../.travis.yml
 	../../.circleci/config.yml
-	../../build.bat
-	../../build.sh
-	../../build_conda.sh
-	../../build_docker.sh
-	../../build_osx.sh
+	../../CMake/build.bat
+	../../CMake/build.sh
+	../../CMake/build_conda.sh
+	../../CMake/build_docker.sh
+	../../CMake/build_osx.sh
 	../../CMakeLists.txt
 	../../Doxyfile.in
 	../../LICENCE

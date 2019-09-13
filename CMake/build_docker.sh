@@ -3,7 +3,7 @@
 # to debug:
 # sudo docker run -ti -v $(pwd):/root/OpenVisus quay.io/pypa/manylinux1_x86_64 /bin/bash
 # cd /root/OpenVisus
-# BUILD_DIR=$(pwd)/build_docker ./build.sh
+# BUILD_DIR=$(pwd)/build_docker ./CMake/build.sh
 
 
 # very verbose
@@ -71,13 +71,13 @@ fi
 
 sudo docker run -d -ti --name mydocker ${docker_opts[@]} ${DOCKER_IMAGE} /bin/bash
 
-sudo docker exec mydocker /bin/bash -c "cd /root/OpenVisus && ./build.sh"
+sudo docker exec mydocker /bin/bash -c "cd /root/OpenVisus && ./CMake/build.sh"
 
 # fix permissions
 sudo chown -R "$USER":"$USER" ${BUILD_DIR} 1>/dev/null && :
 sudo chmod -R u+rwx           ${BUILD_DIR} 1>/dev/null && :
 
-echo "OpenVisus build_docker.sh finished"
+echo "OpenVisus CMake/build_docker.sh finished"
 
 
 

@@ -46,7 +46,7 @@ init:
 build_script:
   - cmd: choco install -y --allow-empty-checksums swig 
   - cmd: cd %APPVEYOR_BUILD_FOLDER% 
-  - cmd: .\build.bat 
+  - cmd: .\CMake\build.bat 
   - cmd: echo [distutils]                                 > %USERPROFILE%\\.pypirc
   - cmd: echo index-servers =                            >> %USERPROFILE%\\.pypirc
   - cmd: echo     pypi                                   >> %USERPROFILE%\\.pypirc
