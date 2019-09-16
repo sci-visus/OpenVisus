@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include "mg_bitstream.h"
 
 namespace mg {
 
