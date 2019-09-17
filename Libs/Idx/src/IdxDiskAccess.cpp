@@ -468,7 +468,8 @@ public:
     const BlockHeader& block_header = getBlockHeader(query->field, blockid);
     Int64 block_offset = block_header.getOffset();
     Int32 block_size   = block_header.getSize();
-    String compression = block_header.getCompression();
+    //String compression = block_header.getCompression();
+    String compression = query->field.default_compression;
     String layout      = block_header.getLayout();
 
     if (bVerbose)
@@ -634,6 +635,7 @@ private:
     //ExrCompression =0x05,
     PngCompression = 0x06,
     Lz4Compression = 0x07,
+    ZfpCompression = 0x08,    
     CompressionMask = 0x0f
   };
 
@@ -728,6 +730,7 @@ private:
         case ZipCompression:return "zip"; break;
         case JpgCompression:return "jpg"; break;
         case PngCompression:return "png"; break;
+        case ZfpCompression:return "zfp"; break;
         default: VisusAssert(false); return "";
       }
     }
@@ -736,10 +739,11 @@ private:
     void setCompression(String value) 
     {
       if      (value.empty())  flags |= NoCompression;
-      else if (value == "lz4") flags |= Lz4Compression;
-      else if (value == "zip") flags |= ZipCompression;
-      else if (value == "jpg") flags |= JpgCompression;
-      else if (value == "png") flags |= PngCompression;
+      else if (StringUtils::startsWith(value, "lz4")) flags |= Lz4Compression;
+      else if (StringUtils::startsWith(value, "zip")) flags |= ZipCompression;
+      else if (StringUtils::startsWith(value, "jpg")) flags |= JpgCompression;
+      else if (StringUtils::startsWith(value, "png")) flags |= PngCompression;
+      else if (StringUtils::startsWith(value, "zfp")) flags |= ZfpCompression;
       else VisusAssert(false);
     }
 
