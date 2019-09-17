@@ -54,18 +54,18 @@ else:
 #define signals public
 #define slots   
 
-
-
 %include <Visus/Gui.h>
 %include <Visus/GLObject.h>
+
+%shared_ptr(Visus::GLMesh)
 %include <Visus/GLMesh.h>
+
 %include <Visus/GLObjects.h>
 %include <Visus/GLCanvas.h>
 
 %shared_ptr(Visus::GLCamera)
 %shared_ptr(Visus::GLOrthoCamera)
 %shared_ptr(Visus::GLLookAtCamera)
-
 %include <Visus/GLCamera.h>
 %include <Visus/GLOrthoCamera.h>
 %include <Visus/GLLookAtCamera.h>

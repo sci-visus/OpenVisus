@@ -83,6 +83,9 @@ public:
     endUpdate();
   }
 
+  //setIsoContour
+  void setIsoContour(SharedPtr<IsoContour> contour, SharedPtr<Palette> palette=SharedPtr<Palette>());
+
   //dataflow
   virtual bool processInput() override;
 

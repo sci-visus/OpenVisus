@@ -411,10 +411,10 @@ public:
   KdQueryNode* addKdQueryNode(Node* parent, DatasetNode* dataset_node, String name = "", String fieldname = "", int access_id = 0);
 
   //addIsoContourNode
-  IsoContourNode* addIsoContourNode(Node* parent, Node* data_provider = nullptr, double isovalue = 0.0);
+  IsoContourNode* addIsoContourNode(Node* parent = nullptr, Node* data_provider = nullptr, double isovalue = 0.0);
 
   //addRenderArrayNode
-  Node* addRenderArrayNode(Node* parent, Node* data_provider = nullptr, String default_palette = "", String render_type="");
+  Node* addRenderArrayNode(Node* parent = nullptr, Node* data_provider = nullptr, String default_palette = "", String render_type="");
 
   //addKdRenderArrayNode
   KdRenderArrayNode* addKdRenderArrayNode(Node* parent, Node* data_provider = nullptr);

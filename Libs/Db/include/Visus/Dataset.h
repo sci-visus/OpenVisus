@@ -493,10 +493,10 @@ public:
   std::vector<BoxNi> generateTiles(int TileSize) const;
 
   //readFullResolutionData
-  Array readFullResolutionData(SharedPtr<Access> access, Field field, double time, BoxNi box=BoxNi());
+  Array readFullResolutionData(SharedPtr<Access> access, Field field, double time, BoxNi logic_box =BoxNi());
 
   //writeFullResolutionData
-  bool writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer,BoxNi box=BoxNi());
+  bool writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer,BoxNi logic_box =BoxNi());
 
   //extractLevelImage
   Array extractLevelImage(SharedPtr<Access> access, Field field, double time, int H);

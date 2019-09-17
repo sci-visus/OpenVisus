@@ -157,6 +157,110 @@ public:
 };
 
 
+//////////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API SingleTransferFunction
+{
+public:
+
+  VISUS_CLASS(SingleTransferFunction)
+
+  String              name;
+  Color               color;
+  std::vector<double> values;
+
+  //constructor (identity function)
+  SingleTransferFunction(int nsamples = 256)
+  {
+    for (int I = 0; I < nsamples; I++)
+      values.push_back(I / (double)(nsamples - 1));
+  }
+
+  //constructor (identity function)
+  SingleTransferFunction(String name, Color color = Colors::Black, int nsamples = 256) : SingleTransferFunction(nsamples)
+  {
+    this->name = name;
+    this->color = color;
+  }
+
+  //destructor
+  virtual ~SingleTransferFunction() {
+  }
+
+  //size
+  inline int size() const {
+    return (int)values.size();
+  }
+
+  //resize
+  void resize(int value)
+  {
+    if (value == this->size()) return;
+    std::vector<double> values(value);
+    for (int I = 0; I < value; I++)
+      values[I] = this->getValue(I / (double)(value - 1));
+    this->values = values;
+  }
+
+  //getValue (x must be in range [0,1])
+  double getValue(double x) const
+  {
+    int N = size();
+    if (!N) {
+      VisusAssert(false);
+      return 0;
+    }
+
+    x = Utils::clamp(x * (N - 1), 0.0, N - 1.0);
+
+    int i_x1 = Utils::clamp((int)std::floor(x), 0, N - 1);
+    int i_x2 = Utils::clamp((int)std::ceil(x), 0, N - 1);
+
+    if (i_x1 == i_x2)
+    {
+      return values[(int)i_x1];
+    }
+    else
+    {
+      double alpha = (i_x2 - x) / (double)(i_x2 - i_x1);
+      double beta = 1 - alpha;
+      return alpha * values[i_x1] + beta * values[i_x2];
+    }
+  }
+
+  //setValue (x and y in range [0,1])
+  void setValue(double x1, double y1, double x2, double y2)
+  {
+    if (x2 < x1) { std::swap(x1, x2); std::swap(y1, y2); }
+    int N = (int)size();
+    x1 = Utils::clamp(x1, 0.0, 1.0); y1 = Utils::clamp(y1, 0.0, 1.0); int i_x1 = Utils::clamp((int)(round(x1 * (N - 1))), 0, N - 1);
+    x2 = Utils::clamp(x2, 0.0, 1.0); y2 = Utils::clamp(y2, 0.0, 1.0); int i_x2 = Utils::clamp((int)(round(x2 * (N - 1))), 0, N - 1);
+    this->values[i_x1] = y1;
+    this->values[i_x2] = y2;
+    //interpolate
+    for (int K = i_x1 + 1; K < i_x2; K++)
+    {
+      float beta = (K - i_x1) / (float)(i_x2 - i_x1);
+      float alpha = (1 - beta);
+      values[K] = alpha * values[i_x1] + beta * values[i_x2];
+    }
+  }
+
+  //setValue (x and y in range [0,1])
+  void setValue(double x, double y) {
+    setValue(x, y, x, y);
+  }
+
+public:
+
+  //writeToObjectStream
+  void writeToObjectStream(ObjectStream& ostream);
+
+  //readFromObjectStream
+  void readFromObjectStream(ObjectStream& istream);
+
+};
+
+
 ////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API TransferFunction : public Model
 {
@@ -164,108 +268,7 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(TransferFunction)
 
-  //________________________________________________________________
-  class VISUS_KERNEL_API Single
-  {
-  public:
-
-    VISUS_CLASS(Single)
-
-    String              name;
-    Color               color;
-    std::vector<double> values;
-
-    //constructor (identity function)
-    Single(int nsamples = 256) 
-    {
-      for (int I = 0; I<nsamples; I++)
-        values.push_back(I / (double)(nsamples - 1));
-    }
-
-    //constructor (identity function)
-    Single(String name , Color color = Colors::Black, int nsamples = 256) : Single(nsamples)
-    {
-      this->name = name;
-      this->color = color;
-    }
-
-    //destructor
-    virtual ~Single() {
-    }
-
-    //size
-    inline int size() const {
-      return (int)values.size();
-    }
-
-    //resize
-    void resize(int value)
-    {
-      if (value == this->size()) return;
-      std::vector<double> values(value);
-      for (int I = 0; I<value; I++) 
-        values[I] = this->getValue(I / (double)(value - 1));
-      this->values = values;
-    }
-
-    //getValue (x must be in range [0,1])
-    double getValue(double x) const
-    {
-      int N = size();
-      if (!N) {
-        VisusAssert(false);
-        return 0;
-      }
-
-      x = Utils::clamp(x*(N - 1), 0.0, N - 1.0);
-
-      int i_x1 = Utils::clamp((int)std::floor(x), 0, N - 1);
-      int i_x2 = Utils::clamp((int)std::ceil(x), 0, N - 1);
-
-      if (i_x1 == i_x2)
-      {
-        return values[(int)i_x1];
-      }
-      else
-      {
-        double alpha = (i_x2 - x) / (double)(i_x2 - i_x1);
-        double beta = 1 - alpha;
-        return alpha * values[i_x1] + beta * values[i_x2];
-      }
-    }
-
-    //setValue (x and y in range [0,1])
-    void setValue(double x1, double y1, double x2, double y2)
-    {
-      if (x2<x1)  {std::swap(x1, x2); std::swap(y1, y2);}
-      int N = (int)size();
-      x1 = Utils::clamp(x1, 0.0, 1.0); y1 = Utils::clamp(y1, 0.0, 1.0); int i_x1 = Utils::clamp((int)(round(x1*(N - 1))), 0, N - 1);
-      x2 = Utils::clamp(x2, 0.0, 1.0); y2 = Utils::clamp(y2, 0.0, 1.0); int i_x2 = Utils::clamp((int)(round(x2*(N - 1))), 0, N - 1);
-      this->values[i_x1] = y1;
-      this->values[i_x2] = y2;
-      //interpolate
-      for (int K = i_x1 + 1; K < i_x2; K++)
-      {
-        float beta = (K - i_x1) / (float)(i_x2 - i_x1);
-        float alpha = (1 - beta);
-        values[K] = alpha * values[i_x1] + beta * values[i_x2];
-      }
-    }
-
-    //setValue (x and y in range [0,1])
-    void setValue(double x, double y) {
-      setValue(x, y, x, y);
-    }
-
-  public:
-
-    //writeToObjectStream
-    void writeToObjectStream(ObjectStream& ostream);
-
-    //readFromObjectStream
-    void readFromObjectStream(ObjectStream& istream);
-
-  };
+  typedef SingleTransferFunction Single;
 
   String default_name;
 

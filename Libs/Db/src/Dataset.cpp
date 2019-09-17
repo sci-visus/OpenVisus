@@ -538,30 +538,31 @@ std::vector<BoxNi> Dataset::generateTiles(int TileSize) const
 }
 
 ////////////////////////////////////////////////
-Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, double time, BoxNi box)
+Array Dataset::readFullResolutionData(SharedPtr<Access> access, Field field, double time, BoxNi logic_box)
 {
-  if (box == BoxNi())
-    box = this->logic_box;
+  if (logic_box == BoxNi())
+    logic_box = this->logic_box;
 
   auto query = std::make_shared<BoxQuery>(this, field, time,  'r');
-  query->logic_box = box;
+  query->logic_box = logic_box;
 
   beginQuery(query);
 
   if (!executeQuery(access, query))
     return Array();
 
+  query->buffer.bounds = Position(logicToPhysic(),logic_box);
   return query->buffer;
 }
 
 ////////////////////////////////////////////////
-bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer, BoxNi box)
+bool Dataset::writeFullResolutionData(SharedPtr<Access> access, Field field, double time, Array buffer, BoxNi logic_box)
 {
-  if (box==BoxNi()) 
-    box=BoxNi(PointNi(buffer.getPointDim()), buffer.dims);
+  if (logic_box ==BoxNi())
+    logic_box =BoxNi(PointNi(buffer.getPointDim()), buffer.dims);
 
   auto query = std::make_shared<BoxQuery>(this, field, time,'w');
-  query->logic_box = box;
+  query->logic_box = logic_box;
 
   beginQuery(query);
 

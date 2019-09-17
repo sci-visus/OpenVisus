@@ -150,21 +150,26 @@ void main()
   vec4 frag_color =TEXTURE(v_texcoord);
   
   #if PALETTE_ENABLED
+
     #if TEXTURE_NCHANNELS==1
       frag_color=PALETTE(frag_color.r);
+
     #elif TEXTURE_NCHANNELS==2
       frag_color.rgb=PALETTE(frag_color.r).rgb;
       frag_color.a  =PALETTE(frag_color.a).a;
+
     #elif TEXTURE_NCHANNELS==3
       frag_color.r=PALETTE(frag_color.r).r;
       frag_color.g=PALETTE(frag_color.g).g;
       frag_color.b=PALETTE(frag_color.b).b;
       frag_color.a=1.0;
+
     #elif TEXTURE_NCHANNELS==4
       frag_color.r=PALETTE(frag_color.r).r;
       frag_color.g=PALETTE(frag_color.g).g;
       frag_color.b=PALETTE(frag_color.b).b;
       frag_color.a=PALETTE(frag_color.a).a;
+
     #endif
   #endif
 

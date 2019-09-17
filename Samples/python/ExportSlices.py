@@ -1,14 +1,14 @@
 import os,sys
 
-from OpenVisus       import *
-from VisusGuiPy      import *
+from OpenVisus	   import *
+from VisusGuiPy	  import *
 from VisusGuiNodesPy import *
 from VisusAppKitPy   import *
 	
 import PyQt5
-from   PyQt5.QtCore    import *
+from   PyQt5.QtCore	import *
 from   PyQt5.QtWidgets import *
-from   PyQt5.QtGui     import *
+from   PyQt5.QtGui	 import *
 import PyQt5.sip  as  sip
 
 import numpy
@@ -18,22 +18,75 @@ import cv2
 def Assert(cond):
 	if not cond:
 		raise Exception("internal error")
+		
+# //////////////////////////////////////////////
+class NumPyUtils:
+	
+	@staticmethod
+	def swapRedBlue(img):
+		Assert(len(img.shape)==3) #YXC
+		ret=img.copy()
+		ret[:,:,0],ret[:,:,2]=img[:,:,2],img[:,:,0]
+		return ret
+
+	@staticmethod
+	def interleaveChannels(channels):
+		shape=channels[0].shape + (len(channels),)
+		ret=numpy.zeros(shape,dtype=channels[0].dtype)
+		pdim=len(channels[0].shape)
+		for C in range(len(channels)):
+			if pdim==2:
+				ret[:,:,C]=channels[C] # YXC
+			elif pdim==3:
+				ret[:,:,:,C]=channels[C] # ZYXC
+			else:
+				raise Exception("internal error")
+		return ret 
+
+	@staticmethod
+	def convertToGrayScale(data):	
+		Assert(isinstance(data,numpy.ndarray))
+		R,G,B=data[:,:,:,0],data[:,:,:,1] ,data[:,:,:,2]
+		return (0.299 * R + 0.587 * G + 0.114 * B).astype(data.dtype)
+
+	@staticmethod
+	def addAlphaChannel(data):
+		Assert(isinstance(data,numpy.ndarray))
+		dtype=data.dtype
+		channels = [data[:,:,:,C] for C in range(data.shape[-1])]
+		alpha=numpy.zeros(channels[0].shape,dtype=dtype)
+		return channels + [alpha,]
+
+	@staticmethod
+	def showImage(img,max_preview_size=1024):
+		
+		if max_preview_size:	
+		
+			w,h=img.shape[1],img.shape[0]
+			r=h/float(w)
+			if w>h:
+				w=min([w,max_preview_size])
+				h=int(w*r)
+			else:
+				h=min([h,max_preview_size])
+				w=int(h/r)
+				
+			img=cv2.resize(img,(w,h))
+			
+			# imshow does not support RGBA images
+		if len(img.shape)>=3 and img.shape[2]==4:
+			A=img[:,:,3].astype("float32")*(1.0/255.0)
+			img=NumPyUtils.interleaveChannels([
+				numpy.multiply(img[:,:,0],A).astype(R.dtype),
+				numpy.multiply(img[:,:,1],A).astype(G.dtype),
+				numpy.multiply(img[:,:,2],A).astype(B.dtype)])
+		
+		cv2.imshow("img",img)
+		cv2.waitKey(1) # wait 1 msec just to allow the image to appear
+
 
 # //////////////////////////////////////////////
-def ShowPreview(img,m=1024):
-		w,h=img.shape[1],img.shape[0]
-		r=h/float(w)
-		if w>h:
-			w=min([w,m])
-			h=int(w*r)
-		else:
-			h=min([h,m])
-			w=int(h/r)
-		cv2.imshow("img",cv2.resize(img,(w,h)))
-		cv2.waitKey(1)
-
-# //////////////////////////////////////////////
-class Movie:
+class PyMovie:
 
 	# constructor
 	def __init__(self,filename):
@@ -46,128 +99,172 @@ class Movie:
 		if self.out:
 			self.out.release()
 
-	# write
-	def write(self,img):
-
+	# writeFrame
+	def writeFrame(self,img):
 		if self.out is None:
 			self.width,self.height=img.shape[1],img.shape[0]
 			self.out = cv2.VideoWriter(self.filename,cv2.VideoWriter_fourcc(*'DIVX'), 15, (self.width,self.height))
-
-		ShowPreview(img)
+		NumPyUtils.showImage(img)
 		self.out.write(img)
 
-	# read
-	def read(self):
+	# readFrame
+	def readFrame(self):
 		if self.input is None:
 			self.input=cv2.VideoCapture(self.filename)
 		success,img=self.input.read()
 		if not success: return None
 		self.width,self.height=img.shape[1],img.shape[0]
 		return img
+		
+	# compose
+	def compose(self, args, axis=1):
 
-# //////////////////////////////////////////////
-def ExportSlices(filename,dataset,logic_box,axis,vs=[1,1,1],delta=1):
+		while True:
 
-	access=dataset.createAccess()
-	field=dataset.getDefaultField()
-	time=dataset.getDefaultTime()
-
-	out=Movie(filename)
-
-	offsets=range(logic_box.p1[axis],logic_box.p2[axis],delta)
-	for I,offset in enumerate(offsets):
-
-		print("Doing","I","of",len(offsets))
-
-		query_box=BoxNi(logic_box)
-		query_box.p1.set(axis,offset+0)
-		query_box.p2.set(axis,offset+1)
-
-		img=dataset.readFullResolutionData(access, field, time, query_box)
-
-		# resize to respect the aspect ratio
-		size=[int(vs[I]*img.dims[I]) for I in range(3)]
-
-		if axis==0:
-			img.resize(PointNi(img.dims[1],img.dims[2]),img.dtype,__file__,0)
-			img=cv2.resize(img.toNumPy(img,bShareMem=True),(size[1],size[2]))
-
-		elif axis==1:
-			img.resize(PointNi(img.dims[0],img.dims[2]),img.dtype,__file__,0)
-			img=cv2.resize(img.toNumPy(img,bShareMem=True),(size[0],size[2]))
-
-		else:
-			img.resize(PointNi(img.dims[0],img.dims[1]),img.dtype,__file__,0)
-			img=cv2.resize(img.toNumPy(img,bShareMem=True),(size[0],size[1]))
-
-		img=cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-		out.write(img)
-
-	out.release()
-
-
-# //////////////////////////////////////////////
-def ComposeMovies(out,args,axis=1):
-
-	while True:
-
-		images=[]
-		for input,x1,x2,y1,y2 in args:
-			img=input.read()
-			if img is None: continue 
-			w,h=img.shape[1],img.shape[0]
-			img=img[
-				int(float(y1)*h):int(float(y2)*h),
-				int(float(x1)*w):int(float(x2)*w),
-				:] # crop
-			images.append(img)
+			images=[]
 			
-		if not images:
-			out.release()
-			return
+			for in_movie,x1,x2,y1,y2 in args:
+				img=in_movie.readFrame()
+				
+				if img is None: 
+					continue 
+				
+				# select a portion of the video	
+				w,h=img.shape[1],img.shape[0]
+				images.append(img[
+					int(float(y1)*h):int(float(y2)*h),
+					int(float(x1)*w):int(float(x2)*w),
+					:] )
+				
+			if not images:
+				out_movie.release()
+				return
 
-		out.write(numpy.concatenate(images, axis=axis))
+			out_movie.writeFrame(numpy.concatenate(images, axis=axis))
 
 
 
 # ////////////////////////////////////////////////////////////////
-def ShowIsoSurface(dataset,isovalue,physic_box,x1,x2,y1,y2,z1,z2):
-
-    logic_box=dataset.getLogicBox()
-    logic_to_physic=Position.computeTransformation(Position(physic_box),logic_box)
-
-    W,H,D=logic_box.size()[0],logic_box.size()[1],logic_box.size()[2]
+class PyViewer(Viewer):
 	
-    logic_box=BoxNi(
-        PointNi(int(x1*W),int(y1*H),int(z1*D)),
-        PointNi(int(x2*W),int(y2*H),int(z2*D)))
+	# constructor
+	def __init__(self):	
+		super(PyViewer, self).__init__()
+		self.setMinimal()
+		self.addGLCameraNode("lookat")	
+		
+	# run
+	def run(self):
+		bounds=self.getWorldBounds()
+		self.getGLCamera().guessPosition(bounds)	
+		GuiModule.execApplication()		
+		
+	# addVolumeRender
+	def addVolumeRender(self, data, bounds):
+		
+		t1=Time.now()
+		print("Adding Volume render...")	
+		
+		Assert(isinstance(data,numpy.ndarray))
+		data=Array.fromNumPy(data,TargetDim=3,bounds=bounds)
+		
+		node=RenderArrayNode()
+		node.setLightingEnabled(False)
+		node.setPaletteEnabled(False)
+		node.setData(data)
+		self.addNode(self.getRoot(), node)
+		
+		print("done in ",t1.elapsedMsec(),"msec")
+		
+		
+	# addIsoSurface
+	def addIsoSurface(self, data, bounds, isovalue):
 
-    bounds=Position(logic_to_physic,Position(logic_box))
+		Assert(isinstance(data,numpy.ndarray))
+		
+		data=Array.fromNumPy(data,TargetDim=3,bounds=bounds)
 
-    print("Extracting full resolutin data...")
-    data=dataset.readFullResolutionData(dataset.createAccess(), dataset.getDefaultField(), dataset.getDefaultTime(),logic_box)
-    print("done")
+		print("Extracting isocontour...")
+		t1=Time.now()
+		isocontour=MarchingCube(data,isovalue).run()
+		print("done in ",t1.elapsedMsec(),"msec")
 
-    data=Array.toNumPy(data)
-    Assert(data.dtype==numpy.uint8)
+		node=IsoContourRenderNode()	
+		node.setIsoContour(isocontour)
+		self.addNode(self.getRoot(),node)
+		
+		print("Added IsoContourRenderNode")	
+		
+		
 
-    # convert to grayscale
-    Assert(data.shape[3]==3 and data.dtype==numpy.uint8) # RGB
-    R,G,B=[data[:,:,:,I] for I in range(3)]
-    data=(0.299 * R + 0.587 * G + 0.114 * B).astype('uint8')
+# //////////////////////////////////////////////
+class PyDataset(object):
+	
+	# constructor
+	def __init__(self,url):
+		self.dataset = LoadDataset(url)
+		
+	# __getattr__
+	def __getattr__(self,attr):
+	    return getattr(self.dataset, attr)	
+	    
+	# readData
+	def readData(self,logic_box):
+		t1=Time.now()
+		
+		# in alpha coordinate
+		if type(logic_box) in [list, tuple]: 
+			alpha=logic_box
+			logic_box=BoxNi(
+					PointNi(int(alpha[0]*self.getLogicBox().size()[0]),int(alpha[2]*self.getLogicBox().size()[1]),int(alpha[4]*self.getLogicBox().size()[2])),
+					PointNi(int(alpha[1]*self.getLogicBox().size()[0]),int(alpha[3]*self.getLogicBox().size()[1]),int(alpha[5]*self.getLogicBox().size()[2])))
 
-    # finally show in OpenVisus
-    viewer=Viewer()
-    viewer.setMinimal()
-    viewer.addGLCameraNode("lookat")
-    node=viewer.addIsoContourNode(viewer.getRoot(),None)
-    data=Array.fromNumPy(data)
-    data.bounds=bounds	
-    node.setData(data)
-    node.setIsoValue(isovalue)
-    glcamera=viewer.getGLCamera()
-    glcamera.guessPosition(bounds)
-    return viewer
+		print("Extracting full resolution data...","logic_box",logic_box.toString())
+		data=self.dataset.readFullResolutionData(self.createAccess(), self.getDefaultField(), self.getDefaultTime(),logic_box)
+		
+		# compact dimension
+		if True:
+			dims=[data.dims[I] for I in range(data.dims.getPointDim()) if data.dims[I]>1 ]
+			data.resize(PointNi(dims),data.dtype,__file__,0)
+			
+		print("done in %dmsec dims(%s) bounds(%s)" % (t1.elapsedMsec(),data.dims.toString(),data.bounds.toString()))
+		return Array.toNumPy(data),Position(data.bounds)	
+		
+	# readSlice
+	def readSlice(self,axis,offset):
+		logic_box=BoxNi(self.getLogicBox())
+		logic_box.p1.set(axis,offset+0)
+		logic_box.p2.set(axis,offset+1)	
+		data, physic_bounds=self.readData(logic_box)
+		return (data,logic_box,physic_bounds.toAxisAlignedBox())
+		
+	# readSlices
+	def readSlices(self, axis, delta=1):
+		offsets=range(self.getLogicBox()	.p1[axis],self.getLogicBox().p2[axis],delta)
+		for I,offset in enumerate(offsets):
+			print("Doing","I","of",len(offsets))
+			yield self.readSlice(axis,offset)	
+			
+	# exportSlicesToMovie
+	def exportSlicesToMovie(self,out_movie, axis,preserve_ratio=True):
+		
+		for img, logic_box, physic_box in self.readSlices(axis):
+			
+			# resize to preserve the right ratio
+			if preserve_ratio:
+				density=[float(logic_box.size()[I])/float(physic_box.size()[I]) for I in range(3)]
+				max_density=max(density)
+				num_pixels=[int(physic_box.size()[I] * max_density) for I in range(3)]
+				perm=((1,2,0),(0,2,1),(0,1,2))
+				X,Y=perm[axis][0],perm[axis][1]				
+				new_size=(num_pixels[X],num_pixels[Y])
+				img=cv2.resize(img,new_size)
+
+			out_movie.writeFrame(NumPyUtils.swapRedBlue(img))
+			
+		out_movie.release()			
+		
+	
 
 # //////////////////////////////////////////////
 def Main(argv):
@@ -177,45 +274,67 @@ def Main(argv):
 	
 	SetCommandLine("__main__")
 	GuiModule.createApplication()
-	AppKitModule.attach()  		
+	AppKitModule.attach()  	
+		
+	old_dataset=PyDataset(r"D:\GoogleSci\visus_dataset\male\visus.idx")
+	new_dataset=PyDataset(r"D:\GoogleSci\visus_dataset\male\RAW\Fullcolor\fullbody\VisusSlamFiles\visus.idx")
 
-	old=LoadDataset(r"D:\GoogleSci\visus_dataset\male\visus.idx")
-	new=LoadDataset(r"D:\GoogleSci\visus_dataset\male\RAW\Fullcolor\fullbody\VisusSlamFiles\visus.idx")
-
-	Assert(old and new)
+	Assert(old_dataset)
+	Assert(new_dataset)
 	
-	logic_box =BoxNi(PointNi(3),PointNi(2048,1216,1878))
-	physic_box=BoxNd(PointNd(3),PointNd(675.84,401.28,1871.00))	
-
 	if False:
 		
-		vs=(1.0,1.0,3.019008)
+		old_dataset.exportSlicesToMovie(PyMovie("All_z0.avi"), axis=2)
+		new_dataset.exportSlicesToMovie(PyMovie("All_z1.avi"), axis=2)
 		
-		ExportSlices("All_z0.avi",old, old.getLogicBox(), axis=2, vs=vs, delta=1)
-		ExportSlices("All_z1.avi",new, new.getLogicBox(), axis=2, vs=vs, delta=1)
-
-		ExportSlices("All_x0.avi",old, old.getLogicBox(), axis=0, vs=vs, delta=1)
-		ExportSlices("All_x1.avi",new, new.getLogicBox(), axis=0, vs=vs, delta=1)
-
-		ExportSlices("All_y0.avi",old, old.getLogicBox(), axis=1, vs=vs, delta=1)
-		ExportSlices("All_y1.avi",new, new.getLogicBox(), axis=1, vs=vs, delta=1)
-
-	if False:
-
-		ComposeMovies(Movie("Up_x0.avi"),[(Movie("All_x0.avi"),0.0,1.0, 0.0,0.4),(Movie("All_x1.avi"),0.0,1.0, 0.0,0.4) ])
-		ComposeMovies(Movie("Up_y0.avi"),[(Movie("All_y0.avi"),0.0,1.0, 0.0,0.4),(Movie("All_y1.avi"),0.0,1.0, 0.0,0.4) ])
+		old_dataset.exportSlicesToMovie(PyMovie("All_x0.avi"), axis=0)
+		new_dataset.exportSlicesToMovie(PyMovie("All_x1.avi"), axis=0)
 		
-		ComposeMovies(Movie("Dw_x0.avi"),[(Movie("All_x0.avi"),0.0,1.0, 0.6,1.0),(Movie("All_x1.avi"),0.0,1.0, 0.6,1.0) ])
-		ComposeMovies(Movie("Dw_y0.avi"),[(Movie("All_y0.avi"),0.0,1.0, 0.6,1.0),(Movie("All_y1.avi"),0.0,1.0, 0.6,1.0) ])
+		old_dataset.exportSlicesToMovie(PyMovie("All_y0.avi"), axis=1)
+		new_dataset.exportSlicesToMovie(PyMovie("All_y1.avi"), axis=1)
+
+		PyMovie("Up_x0.avi").compose([(PyMovie("All_x0.avi"),0.0,1.0, 0.0,0.4), (PyMovie("All_x1.avi"),0.0,1.0, 0.0,0.4) ])	
+		PyMovie("Dw_x0.avi").compose([(PyMovie("All_x0.avi"),0.0,1.0, 0.6,1.0), (PyMovie("All_x1.avi"),0.0,1.0, 0.6,1.0) ])	
+		
+		PyMovie("Up_y0.avi").compose([(PyMovie("All_y0.avi"),0.0,1.0, 0.0,0.4), (PyMovie("All_y1.avi"),0.0,1.0, 0.0,0.4) ])
+		PyMovie("Dw_y0.avi").compose([(PyMovie("All_y0.avi"),0.0,1.0, 0.6,1.0), (PyMovie("All_y1.avi"),0.0,1.0, 0.6,1.0) ])
 			
+	if True:
+		
+		dataset=old_dataset
+		
+		viewer=PyViewer()
+		data,bounds=dataset.readData((0.35,0.65, 0.18,0.82, 0.0,0.2))
+		viewer.addIsoSurface(NumPyUtils.convertToGrayScale(data), bounds, 100.0)
+		viewer.run()
+	
 	if False:
-		viewer=ShowIsoSurface(old,100.0,physic_box,0.35,0.65, 0.18,0.82, 0.0,0.2)
-        viewer=ShowIsoSurface(new,100.0,physic_box,0.35,0.65, 0.15,0.85, 0.0,0.2)
-		GuiModule.execApplication()
-		viewer=None  
+		
+		dataset=old_dataset
+		debug_mode=False
+		
+		viewer=PyViewer()
+		data, bounds=dataset.readData((0.30, 0.70, 0.1,0.83, 0.0,0.22))	# (0.0, 0.4, 0.1,0.8, 0.0,0.3)
+		
+		# wherever the red component is predominant, keep it
+		print("Setting up alpha channel")
+		R,G,B,A=NumPyUtils.addAlphaChannel(data)
+		A[:,:,:]=0
+		A[R>G ]=255
+		A[R>B ]=255
+		A[R<76]=0
+
+		data=NumPyUtils.interleaveChannels((R,G,B,A))
+
+		if debug_mode:
+			for Z in range(data.shape[0]):
+				NumPyUtils.showImage("Debug",NumPyUtils.swapRedBlue(data[Z,:,:,:])) 
+				cv2.waitKey()		
+			
+		viewer.addVolumeRender(data, bounds)
+		viewer.run()
 	
 	AppKitModule.detach()
-
 	print("ALL DONE")
 	sys.stdin.read(1)
 	sys.exit(0)	

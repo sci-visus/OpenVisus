@@ -77,6 +77,9 @@ public:
     VisusAssert(VisusHasMessageLock()); return data;
   }
 
+  //setData
+  void setData(Array value,SharedPtr<Palette> palette= SharedPtr<Palette>());
+
   //getDataDimension
   int getDataDimension() const {
     VisusAssert(VisusHasMessageLock()); 
@@ -112,6 +115,12 @@ public:
     endUpdate();
   }
 
+  //getPalette
+  SharedPtr<Palette> getPalette() const {
+    VisusAssert(VisusHasMessageLock());
+    return palette;
+  }
+
   //paletteEnabled
   bool paletteEnabled() const {
     return palette_enabled;
@@ -119,7 +128,10 @@ public:
 
   //setPaletteEnabled
   void setPaletteEnabled(bool value) {
-    if (palette_enabled == value) return;
+    
+    if (palette_enabled == value) 
+      return;
+    
     beginUpdate();
     this->palette_enabled = value;
     endUpdate();

@@ -76,6 +76,29 @@ public:
 
 };
 
+///////////////////////////////////////////////////////////////////////////////////////
+class VISUS_GUI_NODES_API MarchingCube
+{
+public:
+
+
+  Array    data;
+  double   isovalue = 0;
+  bool     enable_vortex_used = false;
+  int      vertices_per_batch = 16 * 1024;
+  Aborted  aborted;
+
+  //constructor
+  MarchingCube(Array data_,double isovalue_, Aborted aborted_=Aborted())
+    : data(data_),isovalue(isovalue_),aborted(aborted_) {
+  }
+
+  //run
+  SharedPtr<IsoContour> run();
+
+
+};
+
 ////////////////////////////////////////////////////////////////////
 class VISUS_GUI_NODES_API IsoContourNode : public Node
 {

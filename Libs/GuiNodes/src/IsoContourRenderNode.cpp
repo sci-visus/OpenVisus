@@ -131,7 +131,7 @@ void IsoContourRenderNode::allocShaders()
 
 void IsoContourRenderNode::releaseShaders()
 {
-  IsoContourShader::Shaders::allocSingleton();
+  IsoContourShader::Shaders::releaseSingleton();
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -148,30 +148,30 @@ IsoContourRenderNode::~IsoContourRenderNode() {
 }
 
 ///////////////////////////////////////////////////////////////////////////
+void IsoContourRenderNode::setIsoContour(SharedPtr<IsoContour> value, SharedPtr<Palette> palette)
+{
+  this->isocontour = value;
+
+  if (value && palette && value->field.array.dtype.ncomponents() >= 2)
+  {
+    this->palette = palette;
+    this->palette_texture = std::make_shared<GLTexture>(palette->convertToArray());
+  }
+  else
+  {
+    this->palette.reset();
+    this->palette_texture.reset();
+  }
+
+}
+
+///////////////////////////////////////////////////////////////////////////
 bool IsoContourRenderNode::processInput()
 {
   auto isocontour  = readValue<IsoContour>("data");
   auto palette     = readValue<Palette>("palette");
-
-  bool bEnablePalette=palette && isocontour && isocontour->field.array.dtype.ncomponents()>=2;
-  if (!bEnablePalette)
-    palette.reset();
-
-  this->palette.reset();
-  this->palette_texture.reset();
-  this->isocontour.reset();
-  
-  if (!isocontour)
-    return false;
-
-  this->isocontour=isocontour;
-
-  if (palette)
-  {
-    this->palette=palette;
-    this->palette_texture=std::make_shared<GLTexture>(palette->convertToArray());
-  }
-  return true;
+  setIsoContour(isocontour, palette);
+  return isocontour ? true : false;
 }
 
 /////////////////////////////////////////////////////////////

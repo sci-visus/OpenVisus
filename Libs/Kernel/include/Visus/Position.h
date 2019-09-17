@@ -59,6 +59,10 @@ public:
   Position() {
   }
 
+  //copy constructor
+  Position(const Position& other) : T(other.T),box(other.box) {
+  }
+
   //constructor
   Position(BoxNd box);
 

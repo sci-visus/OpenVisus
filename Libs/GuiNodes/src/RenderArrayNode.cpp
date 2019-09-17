@@ -175,95 +175,104 @@ RenderArrayNode::~RenderArrayNode()
 {}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool RenderArrayNode::processInput()
+void RenderArrayNode::setData(Array value,SharedPtr<Palette> palette)
 {
-  Time t1=Time::now();
+  VisusAssert(VisusHasMessageLock());
 
-  //I want to sign the input return receipt only after the rendering
-  auto return_receipt = createPassThroughtReceipt();
-  auto palette        = readValue<Palette>("palette");
-  auto data           = readValue<Array>("data");
+  Time t1 = Time::now();
 
-  //so far I can apply the transfer function on the GPU only if the data is atomic
-  bool bPaletteEnabled = paletteEnabled() || (palette && data && data->dtype.ncomponents()==1);
-  if (!bPaletteEnabled) 
-    palette.reset();
-
-  //request to flush all
-  if (!data || !data->dims.innerProduct() || !data->dtype.valid())
+  if (!value || !value.dims.innerProduct() || !value.dtype.valid())
   {
-    this->return_receipt.reset();
-    this->data=Array();
+    this->data = Array();
     this->data_texture.reset();
     this->palette.reset();
     this->palette_texture.reset();
-    return false;
+    return;
   }
 
-  this->return_receipt=return_receipt;
-
-  bool bGotNewData=(data->heap!=this->data.heap);
-  if (bGotNewData)
+  //compact dimension (example: 1 128 256 ->128 256 1)
+  if (value.getDepth() > 1 && (value.getWidth() == 1 || value.getHeight() == 1))
   {
-    //compact dimension (example: 1 128 256 ->128 256 1)
-    if (data->getDepth()>1 && (data->getWidth()==1 || data->getHeight()==1))
-    {
-      this->data=Array(PointNi(std::max(data->getWidth(), data->getHeight()), data->getDepth()),data->dtype,data->heap);
-      this->data.shareProperties(*data);
-    }
-    else
-    {
-      this->data=*data;
-    }
+    auto tmp = Array(PointNi(std::max(value.getWidth(), value.getHeight()), value.getDepth()), value.dtype, value.heap);
+    tmp.shareProperties(value);
+    value = tmp;
   }
 
-  std::vector< std::pair<double,double> > vs_t(4,std::make_pair(1.0,0.0));
+  std::vector< std::pair<double, double> > vs_t(4, std::make_pair(1.0, 0.0));
 
   //TODO: this range stuff can be slow and blocking...
-  if (!data->dtype.isVectorOf(DTypes::UINT8))
+  if (!value.dtype.isVectorOf(DTypes::UINT8))
   {
-    int ncomponents=data->dtype.ncomponents();
+    int ncomponents = value.dtype.ncomponents();
     if (palette)
     {
-      for (int C=0;C<std::min(4,ncomponents);C++)
-        vs_t[C]=palette->input_range.doCompute(*data,C).getScaleTranslate();
+      for (int C = 0; C < std::min(4, ncomponents); C++)
+        vs_t[C] = palette->input_range.doCompute(value, C).getScaleTranslate();
     }
     else
     {
       //create a default input normalization
       ComputeRange input_range;
-      vs_t[0] = ncomponents>=1? input_range.doCompute(*data,0).getScaleTranslate() : std::make_pair(1.0,0.0);
-      vs_t[1] = ncomponents>=3? input_range.doCompute(*data,1).getScaleTranslate() : vs_t[0];
-      vs_t[2] = ncomponents>=3? input_range.doCompute(*data,2).getScaleTranslate() : vs_t[0];
-      vs_t[3] = ncomponents>=4? input_range.doCompute(*data,3).getScaleTranslate() : vs_t[3];
+      vs_t[0] = ncomponents >= 1 ? input_range.doCompute(value, 0).getScaleTranslate() : std::make_pair(/*scale*/1.0, /*translate*/0.0);
+      vs_t[1] = ncomponents >= 3 ? input_range.doCompute(value, 1).getScaleTranslate() : vs_t[0];
+      vs_t[2] = ncomponents >= 3 ? input_range.doCompute(value, 2).getScaleTranslate() : vs_t[0];
+      vs_t[3] = ncomponents >= 4 ? input_range.doCompute(value, 3).getScaleTranslate() : vs_t[3];
     }
   }
 
+  bool bGotNewData = (value.heap != this->data.heap);
+
+  this->data = value;
+
   if (!this->data_texture || bGotNewData)
-    this->data_texture=std::make_shared<GLTexture>(this->data);
+    this->data_texture = std::make_shared<GLTexture>(value);
 
-  this->data_texture->minfilter=this->minifyFilter();
-  this->data_texture->magfilter=this->magnifyFilter();
+  this->data_texture->minfilter = this->minifyFilter();
+  this->data_texture->magfilter = this->magnifyFilter();
 
-  this->data_texture->vs=Point4d(vs_t[0].first ,vs_t[1].first ,vs_t[2].first ,vs_t[3].first );
-  this->data_texture->vt=Point4d(vs_t[0].second,vs_t[1].second,vs_t[2].second,vs_t[3].second);
+  this->data_texture->vs = Point4d(vs_t[0].first,  vs_t[1].first,  vs_t[2].first,  vs_t[3].first);
+  this->data_texture->vt = Point4d(vs_t[0].second, vs_t[1].second, vs_t[2].second, vs_t[3].second);
 
-  this->palette=palette;
+  this->palette = palette;
 
   if (palette)
-    this->palette_texture=std::make_shared<GLTexture>(palette->convertToArray());
+    this->palette_texture = std::make_shared<GLTexture>(palette->convertToArray());
 
-  Int64 tot_samples = (Int64)this->data_texture->dims[0] * (Int64)this->data_texture->dims[1] * (Int64)this->data_texture->dims[2];
+  VisusInfo() << "got array"
+    << " texture("
+    << this->data_texture->dims.toString() << "/"
+    << this->data_texture->dtype.toString() << "/" \
+    << StringUtils::getStringFromByteSize(this->data_texture->dtype.getByteSize(this->data_texture->dims)) << "/"
+    << this->data_texture->dims.innerProduct() << ")"
+    << " bGotNewData(" << bGotNewData << ")"
+    << " msec(" << t1.elapsedMsec() << ")";
+}
 
-  VisusInfo()<<"got array"
-    <<" texture("
-      << this->data_texture->dims.toString()<< "/"
-      << this->data_texture->dtype.toString()<<"/" \
-      << StringUtils::getStringFromByteSize(this->data_texture->dtype.getByteSize(tot_samples)) << "/"
-      << this->data_texture->dims.innerProduct()<<")"
-    <<" bGotNewData("<<bGotNewData<<")"
-    <<" msec("<<t1.elapsedMsec()<<")";
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool RenderArrayNode::processInput()
+{
+  //I want to sign the input return receipt only after the rendering
+  auto return_receipt = createPassThroughtReceipt();
+  auto palette        = readValue<Palette>("palette");
+  auto data           = readValue<Array>("data");
+
+  this->return_receipt.reset();
+
+  if (!data || !data->dims.innerProduct() || !data->dtype.valid())
+  {
+    setData(Array());
+    return false;
+  }
+
+  //so far I can apply the transfer function on the GPU only if the data is atomic
+  //TODO: i can support even 3 and 4 component arrays
+  bool bPaletteEnabled = paletteEnabled() || (palette && data->dtype.ncomponents() == 1);
+  if (!bPaletteEnabled)
+    palette.reset();
+
+  this->return_receipt = return_receipt;
+  setData(*data, palette);
   return true;
 }
 
@@ -273,7 +282,7 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   if (!data_texture) 
     return;
 
-  SharedPtr<ReturnReceipt> return_receipt=this->return_receipt;
+  auto return_receipt=this->return_receipt;
   this->return_receipt.reset();
 
   //need to upload a new palette?

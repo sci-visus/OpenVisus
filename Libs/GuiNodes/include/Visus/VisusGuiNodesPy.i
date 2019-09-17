@@ -29,8 +29,11 @@ using namespace Visus;
 %include <Visus/GuiNodes.h>
 
 %include <Visus/GLCameraNode.h>
+
+%shared_ptr(Visus::IsoContour)
 %include <Visus/IsoContourNode.h>
 %include <Visus/IsoContourRenderNode.h>
+
 %include <Visus/RenderArrayNode.h>
 %include <Visus/KdRenderArrayNode.h>
 %include <Visus/PythonNode.h>

@@ -2639,6 +2639,9 @@ GLCameraNode* Viewer::addGLCameraNode(String type)
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 IsoContourNode* Viewer::addIsoContourNode(Node* parent,Node* data_provider,double isovalue) 
 {
+  if (!parent)
+    parent = getRoot();
+
   //IsoContourNode
   auto build_isocontour=new IsoContourNode("Marching cube");
   {
@@ -2687,10 +2690,8 @@ IsoContourNode* Viewer::addIsoContourNode(Node* parent,Node* data_provider,doubl
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 Node* Viewer::addRenderArrayNode(Node* parent,Node* data_provider,String default_palette,String render_type)  
 {
-  if (!data_provider)
-    data_provider=parent;
-
-  VisusAssert(parent && data_provider && data_provider->hasOutputPort("data"));
+  if (!parent)
+    parent = getRoot();
 
   Node* ret;
   
@@ -2718,11 +2719,16 @@ Node* Viewer::addRenderArrayNode(Node* parent,Node* data_provider,String default
       addNode(parent,palette_node);
 
     addNode(parent, ret);
-    connectPorts(data_provider,"data", ret);
+
+    if (data_provider)
+      connectPorts(data_provider,"data", ret);
 
     if (palette_node)
     {
-      connectPorts(data_provider,"data",palette_node); //enable statistics
+      //enable statistics
+      if (data_provider)
+        connectPorts(data_provider,"data",palette_node); 
+
       connectPorts(palette_node,"palette", ret);
     }
   }

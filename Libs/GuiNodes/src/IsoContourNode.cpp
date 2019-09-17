@@ -38,7 +38,6 @@ For support : support@visus.net
 
 #include <Visus/IsoContourNode.h>
 #include <Visus/Dataflow.h>
-#include <Visus/IsoContourTables.h>
 
 #if __GNUC__ && !__APPLE__
 #pragma GCC diagnostic ignored "-Wnarrowing"
@@ -48,202 +47,475 @@ For support : support@visus.net
 
 namespace Visus {
 
-///////////////////////////////////////////////////////////////////////////////////////
-class MarchingCube
+
+const int edge_table[256] =
+{
+  0x0  , 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
+  0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00,
+  0x190, 0x99 , 0x393, 0x29a, 0x596, 0x49f, 0x795, 0x69c,
+  0x99c, 0x895, 0xb9f, 0xa96, 0xd9a, 0xc93, 0xf99, 0xe90,
+  0x230, 0x339, 0x33 , 0x13a, 0x636, 0x73f, 0x435, 0x53c,
+  0xa3c, 0xb35, 0x83f, 0x936, 0xe3a, 0xf33, 0xc39, 0xd30,
+  0x3a0, 0x2a9, 0x1a3, 0xaa , 0x7a6, 0x6af, 0x5a5, 0x4ac,
+  0xbac, 0xaa5, 0x9af, 0x8a6, 0xfaa, 0xea3, 0xda9, 0xca0,
+  0x460, 0x569, 0x663, 0x76a, 0x66 , 0x16f, 0x265, 0x36c,
+  0xc6c, 0xd65, 0xe6f, 0xf66, 0x86a, 0x963, 0xa69, 0xb60,
+  0x5f0, 0x4f9, 0x7f3, 0x6fa, 0x1f6, 0xff , 0x3f5, 0x2fc,
+  0xdfc, 0xcf5, 0xfff, 0xef6, 0x9fa, 0x8f3, 0xbf9, 0xaf0,
+  0x650, 0x759, 0x453, 0x55a, 0x256, 0x35f, 0x55 , 0x15c,
+  0xe5c, 0xf55, 0xc5f, 0xd56, 0xa5a, 0xb53, 0x859, 0x950,
+  0x7c0, 0x6c9, 0x5c3, 0x4ca, 0x3c6, 0x2cf, 0x1c5, 0xcc ,
+  0xfcc, 0xec5, 0xdcf, 0xcc6, 0xbca, 0xac3, 0x9c9, 0x8c0,
+  0x8c0, 0x9c9, 0xac3, 0xbca, 0xcc6, 0xdcf, 0xec5, 0xfcc,
+  0xcc , 0x1c5, 0x2cf, 0x3c6, 0x4ca, 0x5c3, 0x6c9, 0x7c0,
+  0x950, 0x859, 0xb53, 0xa5a, 0xd56, 0xc5f, 0xf55, 0xe5c,
+  0x15c, 0x55 , 0x35f, 0x256, 0x55a, 0x453, 0x759, 0x650,
+  0xaf0, 0xbf9, 0x8f3, 0x9fa, 0xef6, 0xfff, 0xcf5, 0xdfc,
+  0x2fc, 0x3f5, 0xff , 0x1f6, 0x6fa, 0x7f3, 0x4f9, 0x5f0,
+  0xb60, 0xa69, 0x963, 0x86a, 0xf66, 0xe6f, 0xd65, 0xc6c,
+  0x36c, 0x265, 0x16f, 0x66 , 0x76a, 0x663, 0x569, 0x460,
+  0xca0, 0xda9, 0xea3, 0xfaa, 0x8a6, 0x9af, 0xaa5, 0xbac,
+  0x4ac, 0x5a5, 0x6af, 0x7a6, 0xaa , 0x1a3, 0x2a9, 0x3a0,
+  0xd30, 0xc39, 0xf33, 0xe3a, 0x936, 0x83f, 0xb35, 0xa3c,
+  0x53c, 0x435, 0x73f, 0x636, 0x13a, 0x33 , 0x339, 0x230,
+  0xe90, 0xf99, 0xc93, 0xd9a, 0xa96, 0xb9f, 0x895, 0x99c,
+  0x69c, 0x795, 0x49f, 0x596, 0x29a, 0x393, 0x99 , 0x190,
+  0xf00, 0xe09, 0xd03, 0xc0a, 0xb06, 0xa0f, 0x905, 0x80c,
+  0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x0
+};
+
+const int triangle_table[256][16] =
+{
+  {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 1, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {1, 8, 3, 9, 8, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {1, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 8, 3, 1, 2, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {9, 2, 10, 0, 2, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {2, 8, 3, 2, 10, 8, 10, 9, 8, -1, -1, -1, -1, -1, -1, -1},
+  {3, 11, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 11, 2, 8, 11, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {1, 9, 0, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {1, 11, 2, 1, 9, 11, 9, 8, 11, -1, -1, -1, -1, -1, -1, -1},
+  {3, 10, 1, 11, 10, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 10, 1, 0, 8, 10, 8, 11, 10, -1, -1, -1, -1, -1, -1, -1},
+  {3, 9, 0, 3, 11, 9, 11, 10, 9, -1, -1, -1, -1, -1, -1, -1},
+  {9, 8, 10, 10, 8, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {4, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {4, 3, 0, 7, 3, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 1, 9, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {4, 1, 9, 4, 7, 1, 7, 3, 1, -1, -1, -1, -1, -1, -1, -1},
+  {1, 2, 10, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {3, 4, 7, 3, 0, 4, 1, 2, 10, -1, -1, -1, -1, -1, -1, -1},
+  {9, 2, 10, 9, 0, 2, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1},
+  {2, 10, 9, 2, 9, 7, 2, 7, 3, 7, 9, 4, -1, -1, -1, -1},
+  {8, 4, 7, 3, 11, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {11, 4, 7, 11, 2, 4, 2, 0, 4, -1, -1, -1, -1, -1, -1, -1},
+  {9, 0, 1, 8, 4, 7, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1},
+  {4, 7, 11, 9, 4, 11, 9, 11, 2, 9, 2, 1, -1, -1, -1, -1},
+  {3, 10, 1, 3, 11, 10, 7, 8, 4, -1, -1, -1, -1, -1, -1, -1},
+  {1, 11, 10, 1, 4, 11, 1, 0, 4, 7, 11, 4, -1, -1, -1, -1},
+  {4, 7, 8, 9, 0, 11, 9, 11, 10, 11, 0, 3, -1, -1, -1, -1},
+  {4, 7, 11, 4, 11, 9, 9, 11, 10, -1, -1, -1, -1, -1, -1, -1},
+  {9, 5, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {9, 5, 4, 0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 5, 4, 1, 5, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {8, 5, 4, 8, 3, 5, 3, 1, 5, -1, -1, -1, -1, -1, -1, -1},
+  {1, 2, 10, 9, 5, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {3, 0, 8, 1, 2, 10, 4, 9, 5, -1, -1, -1, -1, -1, -1, -1},
+  {5, 2, 10, 5, 4, 2, 4, 0, 2, -1, -1, -1, -1, -1, -1, -1},
+  {2, 10, 5, 3, 2, 5, 3, 5, 4, 3, 4, 8, -1, -1, -1, -1},
+  {9, 5, 4, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 11, 2, 0, 8, 11, 4, 9, 5, -1, -1, -1, -1, -1, -1, -1},
+  {0, 5, 4, 0, 1, 5, 2, 3, 11, -1, -1, -1, -1, -1, -1, -1},
+  {2, 1, 5, 2, 5, 8, 2, 8, 11, 4, 8, 5, -1, -1, -1, -1},
+  {10, 3, 11, 10, 1, 3, 9, 5, 4, -1, -1, -1, -1, -1, -1, -1},
+  {4, 9, 5, 0, 8, 1, 8, 10, 1, 8, 11, 10, -1, -1, -1, -1},
+  {5, 4, 0, 5, 0, 11, 5, 11, 10, 11, 0, 3, -1, -1, -1, -1},
+  {5, 4, 8, 5, 8, 10, 10, 8, 11, -1, -1, -1, -1, -1, -1, -1},
+  {9, 7, 8, 5, 7, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {9, 3, 0, 9, 5, 3, 5, 7, 3, -1, -1, -1, -1, -1, -1, -1},
+  {0, 7, 8, 0, 1, 7, 1, 5, 7, -1, -1, -1, -1, -1, -1, -1},
+  {1, 5, 3, 3, 5, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {9, 7, 8, 9, 5, 7, 10, 1, 2, -1, -1, -1, -1, -1, -1, -1},
+  {10, 1, 2, 9, 5, 0, 5, 3, 0, 5, 7, 3, -1, -1, -1, -1},
+  {8, 0, 2, 8, 2, 5, 8, 5, 7, 10, 5, 2, -1, -1, -1, -1},
+  {2, 10, 5, 2, 5, 3, 3, 5, 7, -1, -1, -1, -1, -1, -1, -1},
+  {7, 9, 5, 7, 8, 9, 3, 11, 2, -1, -1, -1, -1, -1, -1, -1},
+  {9, 5, 7, 9, 7, 2, 9, 2, 0, 2, 7, 11, -1, -1, -1, -1},
+  {2, 3, 11, 0, 1, 8, 1, 7, 8, 1, 5, 7, -1, -1, -1, -1},
+  {11, 2, 1, 11, 1, 7, 7, 1, 5, -1, -1, -1, -1, -1, -1, -1},
+  {9, 5, 8, 8, 5, 7, 10, 1, 3, 10, 3, 11, -1, -1, -1, -1},
+  {5, 7, 0, 5, 0, 9, 7, 11, 0, 1, 0, 10, 11, 10, 0, -1},
+  {11, 10, 0, 11, 0, 3, 10, 5, 0, 8, 0, 7, 5, 7, 0, -1},
+  {11, 10, 5, 7, 11, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {10, 6, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 8, 3, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {9, 0, 1, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {1, 8, 3, 1, 9, 8, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1},
+  {1, 6, 5, 2, 6, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {1, 6, 5, 1, 2, 6, 3, 0, 8, -1, -1, -1, -1, -1, -1, -1},
+  {9, 6, 5, 9, 0, 6, 0, 2, 6, -1, -1, -1, -1, -1, -1, -1},
+  {5, 9, 8, 5, 8, 2, 5, 2, 6, 3, 2, 8, -1, -1, -1, -1},
+  {2, 3, 11, 10, 6, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {11, 0, 8, 11, 2, 0, 10, 6, 5, -1, -1, -1, -1, -1, -1, -1},
+  {0, 1, 9, 2, 3, 11, 5, 10, 6, -1, -1, -1, -1, -1, -1, -1},
+  {5, 10, 6, 1, 9, 2, 9, 11, 2, 9, 8, 11, -1, -1, -1, -1},
+  {6, 3, 11, 6, 5, 3, 5, 1, 3, -1, -1, -1, -1, -1, -1, -1},
+  {0, 8, 11, 0, 11, 5, 0, 5, 1, 5, 11, 6, -1, -1, -1, -1},
+  {3, 11, 6, 0, 3, 6, 0, 6, 5, 0, 5, 9, -1, -1, -1, -1},
+  {6, 5, 9, 6, 9, 11, 11, 9, 8, -1, -1, -1, -1, -1, -1, -1},
+  {5, 10, 6, 4, 7, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {4, 3, 0, 4, 7, 3, 6, 5, 10, -1, -1, -1, -1, -1, -1, -1},
+  {1, 9, 0, 5, 10, 6, 8, 4, 7, -1, -1, -1, -1, -1, -1, -1},
+  {10, 6, 5, 1, 9, 7, 1, 7, 3, 7, 9, 4, -1, -1, -1, -1},
+  {6, 1, 2, 6, 5, 1, 4, 7, 8, -1, -1, -1, -1, -1, -1, -1},
+  {1, 2, 5, 5, 2, 6, 3, 0, 4, 3, 4, 7, -1, -1, -1, -1},
+  {8, 4, 7, 9, 0, 5, 0, 6, 5, 0, 2, 6, -1, -1, -1, -1},
+  {7, 3, 9, 7, 9, 4, 3, 2, 9, 5, 9, 6, 2, 6, 9, -1},
+  {3, 11, 2, 7, 8, 4, 10, 6, 5, -1, -1, -1, -1, -1, -1, -1},
+  {5, 10, 6, 4, 7, 2, 4, 2, 0, 2, 7, 11, -1, -1, -1, -1},
+  {0, 1, 9, 4, 7, 8, 2, 3, 11, 5, 10, 6, -1, -1, -1, -1},
+  {9, 2, 1, 9, 11, 2, 9, 4, 11, 7, 11, 4, 5, 10, 6, -1},
+  {8, 4, 7, 3, 11, 5, 3, 5, 1, 5, 11, 6, -1, -1, -1, -1},
+  {5, 1, 11, 5, 11, 6, 1, 0, 11, 7, 11, 4, 0, 4, 11, -1},
+  {0, 5, 9, 0, 6, 5, 0, 3, 6, 11, 6, 3, 8, 4, 7, -1},
+  {6, 5, 9, 6, 9, 11, 4, 7, 9, 7, 11, 9, -1, -1, -1, -1},
+  {10, 4, 9, 6, 4, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {4, 10, 6, 4, 9, 10, 0, 8, 3, -1, -1, -1, -1, -1, -1, -1},
+  {10, 0, 1, 10, 6, 0, 6, 4, 0, -1, -1, -1, -1, -1, -1, -1},
+  {8, 3, 1, 8, 1, 6, 8, 6, 4, 6, 1, 10, -1, -1, -1, -1},
+  {1, 4, 9, 1, 2, 4, 2, 6, 4, -1, -1, -1, -1, -1, -1, -1},
+  {3, 0, 8, 1, 2, 9, 2, 4, 9, 2, 6, 4, -1, -1, -1, -1},
+  {0, 2, 4, 4, 2, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {8, 3, 2, 8, 2, 4, 4, 2, 6, -1, -1, -1, -1, -1, -1, -1},
+  {10, 4, 9, 10, 6, 4, 11, 2, 3, -1, -1, -1, -1, -1, -1, -1},
+  {0, 8, 2, 2, 8, 11, 4, 9, 10, 4, 10, 6, -1, -1, -1, -1},
+  {3, 11, 2, 0, 1, 6, 0, 6, 4, 6, 1, 10, -1, -1, -1, -1},
+  {6, 4, 1, 6, 1, 10, 4, 8, 1, 2, 1, 11, 8, 11, 1, -1},
+  {9, 6, 4, 9, 3, 6, 9, 1, 3, 11, 6, 3, -1, -1, -1, -1},
+  {8, 11, 1, 8, 1, 0, 11, 6, 1, 9, 1, 4, 6, 4, 1, -1},
+  {3, 11, 6, 3, 6, 0, 0, 6, 4, -1, -1, -1, -1, -1, -1, -1},
+  {6, 4, 8, 11, 6, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {7, 10, 6, 7, 8, 10, 8, 9, 10, -1, -1, -1, -1, -1, -1, -1},
+  {0, 7, 3, 0, 10, 7, 0, 9, 10, 6, 7, 10, -1, -1, -1, -1},
+  {10, 6, 7, 1, 10, 7, 1, 7, 8, 1, 8, 0, -1, -1, -1, -1},
+  {10, 6, 7, 10, 7, 1, 1, 7, 3, -1, -1, -1, -1, -1, -1, -1},
+  {1, 2, 6, 1, 6, 8, 1, 8, 9, 8, 6, 7, -1, -1, -1, -1},
+  {2, 6, 9, 2, 9, 1, 6, 7, 9, 0, 9, 3, 7, 3, 9, -1},
+  {7, 8, 0, 7, 0, 6, 6, 0, 2, -1, -1, -1, -1, -1, -1, -1},
+  {7, 3, 2, 6, 7, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {2, 3, 11, 10, 6, 8, 10, 8, 9, 8, 6, 7, -1, -1, -1, -1},
+  {2, 0, 7, 2, 7, 11, 0, 9, 7, 6, 7, 10, 9, 10, 7, -1},
+  {1, 8, 0, 1, 7, 8, 1, 10, 7, 6, 7, 10, 2, 3, 11, -1},
+  {11, 2, 1, 11, 1, 7, 10, 6, 1, 6, 7, 1, -1, -1, -1, -1},
+  {8, 9, 6, 8, 6, 7, 9, 1, 6, 11, 6, 3, 1, 3, 6, -1},
+  {0, 9, 1, 11, 6, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {7, 8, 0, 7, 0, 6, 3, 11, 0, 11, 6, 0, -1, -1, -1, -1},
+  {7, 11, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {7, 6, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {3, 0, 8, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 1, 9, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {8, 1, 9, 8, 3, 1, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1},
+  {10, 1, 2, 6, 11, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {1, 2, 10, 3, 0, 8, 6, 11, 7, -1, -1, -1, -1, -1, -1, -1},
+  {2, 9, 0, 2, 10, 9, 6, 11, 7, -1, -1, -1, -1, -1, -1, -1},
+  {6, 11, 7, 2, 10, 3, 10, 8, 3, 10, 9, 8, -1, -1, -1, -1},
+  {7, 2, 3, 6, 2, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {7, 0, 8, 7, 6, 0, 6, 2, 0, -1, -1, -1, -1, -1, -1, -1},
+  {2, 7, 6, 2, 3, 7, 0, 1, 9, -1, -1, -1, -1, -1, -1, -1},
+  {1, 6, 2, 1, 8, 6, 1, 9, 8, 8, 7, 6, -1, -1, -1, -1},
+  {10, 7, 6, 10, 1, 7, 1, 3, 7, -1, -1, -1, -1, -1, -1, -1},
+  {10, 7, 6, 1, 7, 10, 1, 8, 7, 1, 0, 8, -1, -1, -1, -1},
+  {0, 3, 7, 0, 7, 10, 0, 10, 9, 6, 10, 7, -1, -1, -1, -1},
+  {7, 6, 10, 7, 10, 8, 8, 10, 9, -1, -1, -1, -1, -1, -1, -1},
+  {6, 8, 4, 11, 8, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {3, 6, 11, 3, 0, 6, 0, 4, 6, -1, -1, -1, -1, -1, -1, -1},
+  {8, 6, 11, 8, 4, 6, 9, 0, 1, -1, -1, -1, -1, -1, -1, -1},
+  {9, 4, 6, 9, 6, 3, 9, 3, 1, 11, 3, 6, -1, -1, -1, -1},
+  {6, 8, 4, 6, 11, 8, 2, 10, 1, -1, -1, -1, -1, -1, -1, -1},
+  {1, 2, 10, 3, 0, 11, 0, 6, 11, 0, 4, 6, -1, -1, -1, -1},
+  {4, 11, 8, 4, 6, 11, 0, 2, 9, 2, 10, 9, -1, -1, -1, -1},
+  {10, 9, 3, 10, 3, 2, 9, 4, 3, 11, 3, 6, 4, 6, 3, -1},
+  {8, 2, 3, 8, 4, 2, 4, 6, 2, -1, -1, -1, -1, -1, -1, -1},
+  {0, 4, 2, 4, 6, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {1, 9, 0, 2, 3, 4, 2, 4, 6, 4, 3, 8, -1, -1, -1, -1},
+  {1, 9, 4, 1, 4, 2, 2, 4, 6, -1, -1, -1, -1, -1, -1, -1},
+  {8, 1, 3, 8, 6, 1, 8, 4, 6, 6, 10, 1, -1, -1, -1, -1},
+  {10, 1, 0, 10, 0, 6, 6, 0, 4, -1, -1, -1, -1, -1, -1, -1},
+  {4, 6, 3, 4, 3, 8, 6, 10, 3, 0, 3, 9, 10, 9, 3, -1},
+  {10, 9, 4, 6, 10, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {4, 9, 5, 7, 6, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 8, 3, 4, 9, 5, 11, 7, 6, -1, -1, -1, -1, -1, -1, -1},
+  {5, 0, 1, 5, 4, 0, 7, 6, 11, -1, -1, -1, -1, -1, -1, -1},
+  {11, 7, 6, 8, 3, 4, 3, 5, 4, 3, 1, 5, -1, -1, -1, -1},
+  {9, 5, 4, 10, 1, 2, 7, 6, 11, -1, -1, -1, -1, -1, -1, -1},
+  {6, 11, 7, 1, 2, 10, 0, 8, 3, 4, 9, 5, -1, -1, -1, -1},
+  {7, 6, 11, 5, 4, 10, 4, 2, 10, 4, 0, 2, -1, -1, -1, -1},
+  {3, 4, 8, 3, 5, 4, 3, 2, 5, 10, 5, 2, 11, 7, 6, -1},
+  {7, 2, 3, 7, 6, 2, 5, 4, 9, -1, -1, -1, -1, -1, -1, -1},
+  {9, 5, 4, 0, 8, 6, 0, 6, 2, 6, 8, 7, -1, -1, -1, -1},
+  {3, 6, 2, 3, 7, 6, 1, 5, 0, 5, 4, 0, -1, -1, -1, -1},
+  {6, 2, 8, 6, 8, 7, 2, 1, 8, 4, 8, 5, 1, 5, 8, -1},
+  {9, 5, 4, 10, 1, 6, 1, 7, 6, 1, 3, 7, -1, -1, -1, -1},
+  {1, 6, 10, 1, 7, 6, 1, 0, 7, 8, 7, 0, 9, 5, 4, -1},
+  {4, 0, 10, 4, 10, 5, 0, 3, 10, 6, 10, 7, 3, 7, 10, -1},
+  {7, 6, 10, 7, 10, 8, 5, 4, 10, 4, 8, 10, -1, -1, -1, -1},
+  {6, 9, 5, 6, 11, 9, 11, 8, 9, -1, -1, -1, -1, -1, -1, -1},
+  {3, 6, 11, 0, 6, 3, 0, 5, 6, 0, 9, 5, -1, -1, -1, -1},
+  {0, 11, 8, 0, 5, 11, 0, 1, 5, 5, 6, 11, -1, -1, -1, -1},
+  {6, 11, 3, 6, 3, 5, 5, 3, 1, -1, -1, -1, -1, -1, -1, -1},
+  {1, 2, 10, 9, 5, 11, 9, 11, 8, 11, 5, 6, -1, -1, -1, -1},
+  {0, 11, 3, 0, 6, 11, 0, 9, 6, 5, 6, 9, 1, 2, 10, -1},
+  {11, 8, 5, 11, 5, 6, 8, 0, 5, 10, 5, 2, 0, 2, 5, -1},
+  {6, 11, 3, 6, 3, 5, 2, 10, 3, 10, 5, 3, -1, -1, -1, -1},
+  {5, 8, 9, 5, 2, 8, 5, 6, 2, 3, 8, 2, -1, -1, -1, -1},
+  {9, 5, 6, 9, 6, 0, 0, 6, 2, -1, -1, -1, -1, -1, -1, -1},
+  {1, 5, 8, 1, 8, 0, 5, 6, 8, 3, 8, 2, 6, 2, 8, -1},
+  {1, 5, 6, 2, 1, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {1, 3, 6, 1, 6, 10, 3, 8, 6, 5, 6, 9, 8, 9, 6, -1},
+  {10, 1, 0, 10, 0, 6, 9, 5, 0, 5, 6, 0, -1, -1, -1, -1},
+  {0, 3, 8, 5, 6, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {10, 5, 6, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {11, 5, 10, 7, 5, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {11, 5, 10, 11, 7, 5, 8, 3, 0, -1, -1, -1, -1, -1, -1, -1},
+  {5, 11, 7, 5, 10, 11, 1, 9, 0, -1, -1, -1, -1, -1, -1, -1},
+  {10, 7, 5, 10, 11, 7, 9, 8, 1, 8, 3, 1, -1, -1, -1, -1},
+  {11, 1, 2, 11, 7, 1, 7, 5, 1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 8, 3, 1, 2, 7, 1, 7, 5, 7, 2, 11, -1, -1, -1, -1},
+  {9, 7, 5, 9, 2, 7, 9, 0, 2, 2, 11, 7, -1, -1, -1, -1},
+  {7, 5, 2, 7, 2, 11, 5, 9, 2, 3, 2, 8, 9, 8, 2, -1},
+  {2, 5, 10, 2, 3, 5, 3, 7, 5, -1, -1, -1, -1, -1, -1, -1},
+  {8, 2, 0, 8, 5, 2, 8, 7, 5, 10, 2, 5, -1, -1, -1, -1},
+  {9, 0, 1, 5, 10, 3, 5, 3, 7, 3, 10, 2, -1, -1, -1, -1},
+  {9, 8, 2, 9, 2, 1, 8, 7, 2, 10, 2, 5, 7, 5, 2, -1},
+  {1, 3, 5, 3, 7, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 8, 7, 0, 7, 1, 1, 7, 5, -1, -1, -1, -1, -1, -1, -1},
+  {9, 0, 3, 9, 3, 5, 5, 3, 7, -1, -1, -1, -1, -1, -1, -1},
+  {9, 8, 7, 5, 9, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {5, 8, 4, 5, 10, 8, 10, 11, 8, -1, -1, -1, -1, -1, -1, -1},
+  {5, 0, 4, 5, 11, 0, 5, 10, 11, 11, 3, 0, -1, -1, -1, -1},
+  {0, 1, 9, 8, 4, 10, 8, 10, 11, 10, 4, 5, -1, -1, -1, -1},
+  {10, 11, 4, 10, 4, 5, 11, 3, 4, 9, 4, 1, 3, 1, 4, -1},
+  {2, 5, 1, 2, 8, 5, 2, 11, 8, 4, 5, 8, -1, -1, -1, -1},
+  {0, 4, 11, 0, 11, 3, 4, 5, 11, 2, 11, 1, 5, 1, 11, -1},
+  {0, 2, 5, 0, 5, 9, 2, 11, 5, 4, 5, 8, 11, 8, 5, -1},
+  {9, 4, 5, 2, 11, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {2, 5, 10, 3, 5, 2, 3, 4, 5, 3, 8, 4, -1, -1, -1, -1},
+  {5, 10, 2, 5, 2, 4, 4, 2, 0, -1, -1, -1, -1, -1, -1, -1},
+  {3, 10, 2, 3, 5, 10, 3, 8, 5, 4, 5, 8, 0, 1, 9, -1},
+  {5, 10, 2, 5, 2, 4, 1, 9, 2, 9, 4, 2, -1, -1, -1, -1},
+  {8, 4, 5, 8, 5, 3, 3, 5, 1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 4, 5, 1, 0, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {8, 4, 5, 8, 5, 3, 9, 0, 5, 0, 3, 5, -1, -1, -1, -1},
+  {9, 4, 5, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {4, 11, 7, 4, 9, 11, 9, 10, 11, -1, -1, -1, -1, -1, -1, -1},
+  {0, 8, 3, 4, 9, 7, 9, 11, 7, 9, 10, 11, -1, -1, -1, -1},
+  {1, 10, 11, 1, 11, 4, 1, 4, 0, 7, 4, 11, -1, -1, -1, -1},
+  {3, 1, 4, 3, 4, 8, 1, 10, 4, 7, 4, 11, 10, 11, 4, -1},
+  {4, 11, 7, 9, 11, 4, 9, 2, 11, 9, 1, 2, -1, -1, -1, -1},
+  {9, 7, 4, 9, 11, 7, 9, 1, 11, 2, 11, 1, 0, 8, 3, -1},
+  {11, 7, 4, 11, 4, 2, 2, 4, 0, -1, -1, -1, -1, -1, -1, -1},
+  {11, 7, 4, 11, 4, 2, 8, 3, 4, 3, 2, 4, -1, -1, -1, -1},
+  {2, 9, 10, 2, 7, 9, 2, 3, 7, 7, 4, 9, -1, -1, -1, -1},
+  {9, 10, 7, 9, 7, 4, 10, 2, 7, 8, 7, 0, 2, 0, 7, -1},
+  {3, 7, 10, 3, 10, 2, 7, 4, 10, 1, 10, 0, 4, 0, 10, -1},
+  {1, 10, 2, 8, 7, 4, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {4, 9, 1, 4, 1, 7, 7, 1, 3, -1, -1, -1, -1, -1, -1, -1},
+  {4, 9, 1, 4, 1, 7, 0, 8, 1, 8, 7, 1, -1, -1, -1, -1},
+  {4, 0, 3, 7, 4, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {4, 8, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {9, 10, 8, 10, 11, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {3, 0, 9, 3, 9, 11, 11, 9, 10, -1, -1, -1, -1, -1, -1, -1},
+  {0, 1, 10, 0, 10, 8, 8, 10, 11, -1, -1, -1, -1, -1, -1, -1},
+  {3, 1, 10, 11, 3, 10, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {1, 2, 11, 1, 11, 9, 9, 11, 8, -1, -1, -1, -1, -1, -1, -1},
+  {3, 0, 9, 3, 9, 11, 1, 2, 9, 2, 11, 9, -1, -1, -1, -1},
+  {0, 2, 11, 8, 0, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {3, 2, 11, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {2, 3, 8, 2, 8, 10, 10, 8, 9, -1, -1, -1, -1, -1, -1, -1},
+  {9, 10, 2, 0, 9, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {2, 3, 8, 2, 8, 10, 0, 1, 8, 1, 10, 8, -1, -1, -1, -1},
+  {1, 10, 2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {1, 3, 8, 9, 1, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 9, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+  {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}
+};
+
+
+class MarchingCubeOp : public MarchingCube
 {
 public:
 
-  Array   data;
-  double  isovalue;
-  int     vertices_per_batch= 16 * 1024;
-  Aborted aborted;
-
-  SharedPtr< IsoContour> isocontour;
+  SharedPtr<IsoContour> isocontour = std::make_shared<IsoContour>();
+  int ntriangles = 0;
 
   //constructor
-  MarchingCube() {
+  MarchingCubeOp(MarchingCube& specs) : MarchingCube(specs){
   }
 
-  //setData
-  void setData(Array data)
-  {
-    this->data = data;
-
-    this->isocontour = std::make_shared<IsoContour>();
-
-    this->isocontour->field.array = data; //pass through
-    this->isocontour->field.texture = std::make_shared<GLTexture>(data);
-
-    //IsoContourenderNode NEEDS the vertices in this range (for computing normals on GPU)
-    auto pdim = data.dims.getPointDim();
-
-    if (!data.bounds.valid())
-      isocontour->bounds = BoxNd(PointNd(0, 0, 0), PointNd(1, 1, 1));
-
-    auto pixel_to_bounds = Position::computeTransformation(data.bounds, data.dims);
-    isocontour->bounds = Position(pixel_to_bounds, BoxNi(PointNi(pdim), data.dims));
-  }
-
-  //setIsoValue
-  void setIsoValue(double value) {
-    this->isovalue = value;
-  }
-
-  //enableVoxelUsed
-  void enableVoxelUsed() {
-    this->isocontour->voxel_used = Array(this->data.dims, this->data.dtype);
-    this->isocontour->voxel_used.fillWithValue(0);
-  }
-
-  //disableVoxelUsed
-  void disableVoxelUsed() {
-    this->isocontour->voxel_used = Array();
-  }
-
-  //execute
+  //doRun
   template <class CppType>
-  bool execute() 
+  bool execute()
   {
     auto t1 = Time::now();
 
-    //std::ofstream out("test.obj");
+    auto& isocontour = *this->isocontour;
 
-    IsoContour& isocontour = *this->isocontour;
+    if (!data.bounds.valid())
+      data.bounds = BoxNd(PointNd(0, 0, 0), PointNd(1, 1, 1));
 
-    int ntriangles = 0;
+    isocontour.field.array   = data; //pass through
+    isocontour.field.texture = std::make_shared<GLTexture>(data);
+
+    //IsoContourenderNode NEEDS the vertices in this range (for computing normals on GPU)
+    auto pdim = data.dims.getPointDim();
+    isocontour.bounds = Position(Position::computeTransformation(data.bounds, data.dims), BoxNi(PointNi(pdim), data.dims));
+
+    CppType* voxel_used = nullptr;
+    if (enable_vortex_used)
+    {
+      isocontour.voxel_used = Array(data.dims, data.dtype);
+      isocontour.voxel_used.fillWithValue(0);
+      voxel_used = isocontour.voxel_used.c_ptr<CppType*>();
+    }
+
     isocontour.data_range = Range::invalid();
 
     // see http://local.wasp.uwa.edu.au/~pbourke/geometry/polygonise/
-    isocontour.begin(GL_TRIANGLES,vertices_per_batch);
+    isocontour.begin(GL_TRIANGLES, vertices_per_batch);
 
-    Point3i dims(data.getWidth(),data.getHeight(),data.getDepth());
+    Point3i dims(data.getWidth(), data.getHeight(), data.getDepth());
 
-    const CppType* field=data.c_ptr<CppType*>();
+    const CppType* field = data.c_ptr<CppType*>();
 
     //no data set
-    if (!(dims[0]*dims[1]*dims[2]) || !field)
+    if (!(dims[0] * dims[1] * dims[2]) || !field)
       return false;
 
-    CppType* voxel_used = isocontour.voxel_used ? isocontour.voxel_used.c_ptr<CppType*>() : NULL;
+    const int stridex = data.dtype.getByteSize() / sizeof(CppType);
+    const int stridey = stridex * dims[0];
+    const int stridez = stridey * dims[1];
 
-    const int stridex=data.dtype.getByteSize()/sizeof(CppType);
-    const int stridey=stridex*dims[0];
-    const int stridez=stridey*dims[1];
-
-    const int cube_strides[8]=
+    const int cube_strides[8] =
     {
-      0,                         //(x  ,y  ,z  )
-      stridex,                   //(x+1,y  ,z  )
-      stridex+stridey,           //(x+1,y+1,z  )
-      stridey,                   //(x  ,y+1,z  )
-      stridez,                   //(x  ,y  ,z+1)
-      stridex+stridez,           //(x+1,y  ,z+1)
-      stridex+stridey+stridez,   //(x_1,y+1,z+1)
-      stridey+stridez            //(x  ,y+1,z+1)
+      0,                           //(x  ,y  ,z  )
+      stridex,                     //(x+1,y  ,z  )
+      stridex + stridey,           //(x+1,y+1,z  )
+      stridey,                     //(x  ,y+1,z  )
+      stridez,                     //(x  ,y  ,z+1)
+      stridex + stridez,           //(x+1,y  ,z+1)
+      stridex + stridey + stridez, //(x_1,y+1,z+1)
+      stridey + stridez            //(x  ,y+1,z+1)
     };
 
     double v[12][3]; //vertices
 
-    for (int z=0;(z<dims[2]-1);z++) {  
-    for (int y=0;(y<dims[1]-1);y++) {
-    for (int x=0;(x<dims[0]-1);x++) 
+    for (int z = 0; (z < dims[2] - 1); z++)
     {
-      //stop signal!
-      if (aborted())
-        return false;
-
-      int index=x*stridex+y*stridey+z*stridez;
-
-      isocontour.data_range.from=std::min(isocontour.data_range.from,(double)field[index]);
-      isocontour.data_range.to  =std::max(isocontour.data_range.to  ,(double)field[index]);
-
-      //field values
-      double values[8]=
+      for (int y = 0; (y < dims[1] - 1); y++)
       {
-        (double)field[index+cube_strides[0]], 
-        (double)field[index+cube_strides[1]], 
-        (double)field[index+cube_strides[2]], 
-        (double)field[index+cube_strides[3]],
-        (double)field[index+cube_strides[4]] , 
-        (double)field[index+cube_strides[5]] , 
-        (double)field[index+cube_strides[6]], 
-        (double)field[index+cube_strides[7]]
-      };
+        for (int x = 0; (x < dims[0] - 1); x++)
+        {
+          //stop signal!
+          if (aborted())
+            return false;
 
-      int L =
-         (values[0]<isovalue?  1:0)
-        |(values[1]<isovalue?  2:0)
-        |(values[2]<isovalue?  4:0)
-        |(values[3]<isovalue?  8:0)
-        |(values[4]<isovalue? 16:0)
-        |(values[5]<isovalue? 32:0)
-        |(values[6]<isovalue? 64:0)
-        |(values[7]<isovalue?128:0);
+          int index = x * stridex + y * stridey + z * stridez;
 
-      int et=edge_table[L];
+          isocontour.data_range.from = std::min(isocontour.data_range.from, (double)field[index]);
+          isocontour.data_range.to = std::max(isocontour.data_range.to, (double)field[index]);
 
-      if (!et) 
-        continue;
+          //field values
+          double values[8] =
+          {
+            (double)field[index + cube_strides[0]],
+            (double)field[index + cube_strides[1]],
+            (double)field[index + cube_strides[2]],
+            (double)field[index + cube_strides[3]],
+            (double)field[index + cube_strides[4]] ,
+            (double)field[index + cube_strides[5]] ,
+            (double)field[index + cube_strides[6]],
+            (double)field[index + cube_strides[7]]
+          };
 
-      if (voxel_used)
-        voxel_used[index] = 1;
+          int L =
+              (values[0] < isovalue ? 1 : 0)
+            | (values[1] < isovalue ? 2 : 0)
+            | (values[2] < isovalue ? 4 : 0)
+            | (values[3] < isovalue ? 8 : 0)
+            | (values[4] < isovalue ? 16 : 0)
+            | (values[5] < isovalue ? 32 : 0)
+            | (values[6] < isovalue ? 64 : 0)
+            | (values[7] < isovalue ? 128 : 0);
 
-      double cube_points[8][3]=
-      {
-        {(double)x  ,(double)y  ,(double)z  }, 
-        {(double)x+1,(double)y  ,(double)z  }, 
-        {(double)x+1,(double)y+1,(double)z  }, 
-        {(double)x  ,(double)y+1,(double)z  }, 
-        {(double)x  ,(double)y  ,(double)z+1}, 
-        {(double)x+1,(double)y  ,(double)z+1}, 
-        {(double)x+1,(double)y+1,(double)z+1}, 
-        {(double)x  ,(double)y+1,(double)z+1}
-      };
+          int et = edge_table[L];
 
-      #define INTERPOLATE(d,a,b) \
-      { \
-        const double alpha=((values[a]==values[b])?(0.5):(isovalue-values[a])/(values[b]-values[a]));\
-        v[d][0]=cube_points[a][0] + alpha*(cube_points[b][0]-cube_points[a][0]);\
-        v[d][1]=cube_points[a][1] + alpha*(cube_points[b][1]-cube_points[a][1]);\
-        v[d][2]=cube_points[a][2] + alpha*(cube_points[b][2]-cube_points[a][2]);\
-      }\
-      /* -- */
+          if (!et)
+            continue;
 
-      if (et &    1) INTERPOLATE( 0,0,1);
-      if (et &    2) INTERPOLATE( 1,1,2);
-      if (et &    4) INTERPOLATE( 2,2,3);
-      if (et &    8) INTERPOLATE( 3,3,0);
-      if (et &   16) INTERPOLATE( 4,4,5);
-      if (et &   32) INTERPOLATE( 5,5,6);
-      if (et &   64) INTERPOLATE( 6,6,7);
-      if (et &  128) INTERPOLATE( 7,7,4);
-      if (et &  256) INTERPOLATE( 8,0,4);
-      if (et &  512) INTERPOLATE( 9,1,5);
-      if (et & 1024) INTERPOLATE(10,2,6);
-      if (et & 2048) INTERPOLATE(11,3,7);
+          if (voxel_used)
+            voxel_used[index] = 1;
 
-      for (int i=0;triangle_table[L][i]!=-1;i+=3) 
-      {
-        const double* p0=v[triangle_table[L][i  ]]; isocontour.vertex(float(p0[0]),float(p0[1]),float(p0[2]));
-        const double* p1=v[triangle_table[L][i+1]]; isocontour.vertex(float(p1[0]),float(p1[1]),float(p1[2]));
-        const double* p2=v[triangle_table[L][i+2]]; isocontour.vertex(float(p2[0]),float(p2[1]),float(p2[2]));
+          double cube_points[8][3] =
+          {
+            {(double)x  ,(double)y  ,(double)z  },
+            {(double)x + 1,(double)y  ,(double)z  },
+            {(double)x + 1,(double)y + 1,(double)z  },
+            {(double)x  ,(double)y + 1,(double)z  },
+            {(double)x  ,(double)y  ,(double)z + 1},
+            {(double)x + 1,(double)y  ,(double)z + 1},
+            {(double)x + 1,(double)y + 1,(double)z + 1},
+            {(double)x  ,(double)y + 1,(double)z + 1}
+          };
 
-        //out << "v " << p0[0] << " " << p0[1] << " " << p0[2] << std::endl;
-        //out << "v " << p1[0] << " " << p1[1] << " " << p1[2] << std::endl;
-        //out << "v " << p2[0] << " " << p2[1] << " " << p2[2] << std::endl;
-        //out << "f " << (ntriangles * 3 + 1) << " " << (ntriangles * 3 + 2) << " " << (ntriangles * 3 + 3)<<std::endl;
-        ++ntriangles;
+#define INTERPOLATE(d,a,b) \
+    { \
+      const double alpha=((values[a]==values[b])?(0.5):(isovalue-values[a])/(values[b]-values[a]));\
+      v[d][0]=cube_points[a][0] + alpha*(cube_points[b][0]-cube_points[a][0]);\
+      v[d][1]=cube_points[a][1] + alpha*(cube_points[b][1]-cube_points[a][1]);\
+      v[d][2]=cube_points[a][2] + alpha*(cube_points[b][2]-cube_points[a][2]);\
+    }\
+    /* -- */
+
+          if (et & 1) INTERPOLATE(0, 0, 1);
+          if (et & 2) INTERPOLATE(1, 1, 2);
+          if (et & 4) INTERPOLATE(2, 2, 3);
+          if (et & 8) INTERPOLATE(3, 3, 0);
+          if (et & 16) INTERPOLATE(4, 4, 5);
+          if (et & 32) INTERPOLATE(5, 5, 6);
+          if (et & 64) INTERPOLATE(6, 6, 7);
+          if (et & 128) INTERPOLATE(7, 7, 4);
+          if (et & 256) INTERPOLATE(8, 0, 4);
+          if (et & 512) INTERPOLATE(9, 1, 5);
+          if (et & 1024) INTERPOLATE(10, 2, 6);
+          if (et & 2048) INTERPOLATE(11, 3, 7);
+
+          for (int i = 0; triangle_table[L][i] != -1; i += 3)
+          {
+            const double* p0 = v[triangle_table[L][i]]; isocontour.vertex(float(p0[0]), float(p0[1]), float(p0[2]));
+            const double* p1 = v[triangle_table[L][i + 1]]; isocontour.vertex(float(p1[0]), float(p1[1]), float(p1[2]));
+            const double* p2 = v[triangle_table[L][i + 2]]; isocontour.vertex(float(p2[0]), float(p2[1]), float(p2[2]));
+            ++ntriangles;
+          }
+        }
       }
-    }}}
+    }
 
     isocontour.end();
-
-    //out.close();
-     
-    VisusInfo() << "Marching cube on data("<<data.dims.toString()<<") ntriangles("<< ntriangles<<") done in " << t1.elapsedMsec() << "msec";
+    VisusInfo() << "Marching cube on data(" << data.dims.toString() << ") ntriangles(" << ntriangles << ") done in " << t1.elapsedMsec() << "msec";
     return true;
   }
 };
+
+
+SharedPtr<IsoContour> MarchingCube::run() 
+{
+  MarchingCubeOp op(*this);
+  return ExecuteOnCppSamples(op, data.dtype) ? op.isocontour : SharedPtr<IsoContour>();
+}
 
 ///////////////////////////////////////////////////////////////////////
 class IsoContourNode::MyJob : public NodeJob
@@ -254,17 +526,10 @@ public:
   MarchingCube   mc;
 
   //constructor
-  MyJob(Node* node, double isovalue, Array data)  
+  MyJob(Node* node_, Array data, double isovalue)
+    : node(node_),mc(data,isovalue,this->aborted)
   {
-    this->node = node;
-
-    mc.setData(data);
-    mc.setIsoValue(isovalue);
-    mc.aborted = this->aborted;
-
-    if (node->isOutputConnected("cell_array"))
-      mc.enableVoxelUsed();
-
+    mc.enable_vortex_used= node->isOutputConnected("cell_array");
   }
 
   //destructor
@@ -274,15 +539,13 @@ public:
   //runJob (i will work only on the first component, leaving untouched the others)
   virtual void runJob() override
   {
-    if (!ExecuteOnCppSamples(this->mc,this->mc.data.dtype))
-      return;
-
-    auto isocontour = mc.isocontour;
-
     //tell that the output has changed, if the port is not connected, this is a NOP!
-    DataflowMessage msg;
-    msg.writeValue("data", isocontour);
-    node->publish(msg);
+    if (auto isocontour = mc.run())
+    {
+      DataflowMessage msg;
+      msg.writeValue("data", isocontour);
+      node->publish(msg);
+    }
   }
 
 };
@@ -324,7 +587,7 @@ bool IsoContourNode::processInput()
   if (!data || !data->dtype.valid())
     return false;
   
-  addNodeJob(std::make_shared<MyJob>(this,isovalue,*data));
+  addNodeJob(std::make_shared<MyJob>(this, *data,isovalue));
   return true;
 }
 

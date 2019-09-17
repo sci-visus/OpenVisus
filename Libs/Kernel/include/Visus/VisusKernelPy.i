@@ -8,6 +8,8 @@
 #include <Visus/Polygon.h>
 #include <Visus/File.h>
 #include <Visus/Time.h>
+#include <Visus/TransferFunction.h>
+
 using namespace Visus;
 %}
 
@@ -129,7 +131,7 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
    toNumPy = staticmethod(toNumPy)
    
    # ////////////////////////////////////////////////////////
-   def fromNumPy(src,TargetDim=0,bShareMem=False):
+   def fromNumPy(src,TargetDim=0,bShareMem=False,bounds=None):
       import numpy
       if src.__array_interface__["strides"] is not None: 
         if bShareMem: raise Exception("numpy array is not memory contiguous","src.__array_interface__['strides']",src.__array_interface__["strides"],"bShareMem",bShareMem)
@@ -146,11 +148,14 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
         dims=PointNi.one(TargetDim)
         for I in range(TargetDim): dims.set(I,ret.dims[ret.dims.getPointDim()-TargetDim+I])
         ret.resize(dims,DType(int(ret.dims.innerProduct()/dims.innerProduct()),ret.dtype), "Array::fromNumPy",0)
+      if bounds is not None: ret.bounds=bounds
       return ret
    fromNumPy = staticmethod(fromNumPy)
 %}
 }; //%extend Visus::Array {
 
-
+	
+%shared_ptr(Visus::TransferFunction)
+%include <Visus/TransferFunction.h>
 
 %include <Visus/NetServer.h>
