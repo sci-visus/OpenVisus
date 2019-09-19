@@ -174,6 +174,7 @@ source_group("Encoder" FILES
 	./src/EncoderId.hxx
 	./src/EncoderZip.hxx
 	./src/EncoderLz4.hxx
+	./src/EncoderZfp.hxx
 	./src/EncoderFreeImage.hxx)
 
 
@@ -241,7 +242,7 @@ AddLibrary(VisusKernel SHARED ${Sources})
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs)
 
-target_link_libraries(VisusKernel PRIVATE cryptlite dtl lz4 tinyxml zlib)
+target_link_libraries(VisusKernel PRIVATE cryptlite dtl lz4 tinyxml zlib zfp)
 
 
 # openmp

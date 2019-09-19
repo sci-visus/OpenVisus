@@ -42,6 +42,7 @@ For support : support@visus.net
 #include "EncoderId.hxx"
 #include "EncoderLz4.hxx"
 #include "EncoderZip.hxx"
+#include "EncoderZfp.hxx"
 
 #if VISUS_IMAGE
 #include "EncoderFreeImage.hxx"
@@ -59,6 +60,7 @@ Encoders::Encoders()
   registerEncoder("bin", [](String specs) {return std::make_shared<IdEncoder>(specs); });
   registerEncoder("lz4", [](String specs) {return std::make_shared<LZ4Encoder>(specs); });
   registerEncoder("zip", [](String specs) {return std::make_shared<ZipEncoder>(specs); });
+  registerEncoder("zfp", [](String specs) {return std::make_shared<ZfpEncoder>(specs); });
 
 #if VISUS_IMAGE
   registerEncoder("png", [](String specs) {return std::make_shared<FreeImageEncoder>(specs); });
