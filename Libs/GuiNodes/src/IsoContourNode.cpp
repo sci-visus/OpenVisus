@@ -48,7 +48,7 @@ For support : support@visus.net
 namespace Visus {
 
 
-const int edge_table[256] =
+static const int EdgeTable[256] =
 {
   0x0  , 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
   0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00,
@@ -84,7 +84,7 @@ const int edge_table[256] =
   0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x0
 };
 
-const int triangle_table[256][16] =
+static const int TriangleTable[256][16] =
 {
   {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
   {0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
@@ -364,38 +364,35 @@ public:
 
     auto& isocontour = *this->isocontour;
 
+    //no data set
+    if (!data || !data.dims.innerProduct() || !data.dtype.valid())
+      return false;
+
     if (!data.bounds.valid())
       data.bounds = BoxNd(PointNd(0, 0, 0), PointNd(1, 1, 1));
 
-    isocontour.field.array   = data; //pass through
-    isocontour.field.texture = std::make_shared<GLTexture>(data);
+    auto dims = data.dims;
 
-    //IsoContourenderNode NEEDS the vertices in this range (for computing normals on GPU)
-    auto pdim = data.dims.getPointDim();
-    isocontour.bounds = Position(Position::computeTransformation(data.bounds, data.dims), BoxNi(PointNi(pdim), data.dims));
+    VisusReleaseAssert(data.dtype.ncomponents()==1);
+    isocontour.field = data;
+    isocontour.range = ArrayUtils::computeRange(data, 0, aborted);
 
+    //IsoContourenderNode NEEDS the vertices in pixel domain (for computing normals on GPU)
     CppType* voxel_used = nullptr;
     if (enable_vortex_used)
     {
-      isocontour.voxel_used = Array(data.dims, data.dtype);
+      isocontour.voxel_used = Array(isocontour.field.dims, isocontour.field.dtype);
       isocontour.voxel_used.fillWithValue(0);
       voxel_used = isocontour.voxel_used.c_ptr<CppType*>();
     }
 
-    isocontour.data_range = Range::invalid();
-
     // see http://local.wasp.uwa.edu.au/~pbourke/geometry/polygonise/
-    isocontour.begin(GL_TRIANGLES, vertices_per_batch);
+    auto& mesh = isocontour.mesh;
+    mesh.begin(GL_TRIANGLES, vertices_per_batch);
 
-    Point3i dims(data.getWidth(), data.getHeight(), data.getDepth());
+    const CppType* field = isocontour.field.c_ptr<CppType*>();
 
-    const CppType* field = data.c_ptr<CppType*>();
-
-    //no data set
-    if (!(dims[0] * dims[1] * dims[2]) || !field)
-      return false;
-
-    const int stridex = data.dtype.getByteSize() / sizeof(CppType);
+    const int stridex = 1;
     const int stridey = stridex * dims[0];
     const int stridez = stridey * dims[1];
 
@@ -425,9 +422,6 @@ public:
 
           int index = x * stridex + y * stridey + z * stridez;
 
-          isocontour.data_range.from = std::min(isocontour.data_range.from, (double)field[index]);
-          isocontour.data_range.to = std::max(isocontour.data_range.to, (double)field[index]);
-
           //field values
           double values[8] =
           {
@@ -451,7 +445,7 @@ public:
             | (values[6] < isovalue ? 64 : 0)
             | (values[7] < isovalue ? 128 : 0);
 
-          int et = edge_table[L];
+          int et = EdgeTable[L];
 
           if (!et)
             continue;
@@ -461,17 +455,17 @@ public:
 
           double cube_points[8][3] =
           {
-            {(double)x  ,(double)y  ,(double)z  },
-            {(double)x + 1,(double)y  ,(double)z  },
-            {(double)x + 1,(double)y + 1,(double)z  },
-            {(double)x  ,(double)y + 1,(double)z  },
-            {(double)x  ,(double)y  ,(double)z + 1},
-            {(double)x + 1,(double)y  ,(double)z + 1},
+            {(double)x    ,(double)y    ,(double)z    },
+            {(double)x + 1,(double)y    ,(double)z    },
+            {(double)x + 1,(double)y + 1,(double)z    },
+            {(double)x    ,(double)y + 1,(double)z    },
+            {(double)x    ,(double)y    ,(double)z + 1},
+            {(double)x + 1,(double)y    ,(double)z + 1},
             {(double)x + 1,(double)y + 1,(double)z + 1},
-            {(double)x  ,(double)y + 1,(double)z + 1}
+            {(double)x    ,(double)y + 1,(double)z + 1}
           };
 
-#define INTERPOLATE(d,a,b) \
+    #define INTERPOLATE(d,a,b) \
     { \
       const double alpha=((values[a]==values[b])?(0.5):(isovalue-values[a])/(values[b]-values[a]));\
       v[d][0]=cube_points[a][0] + alpha*(cube_points[b][0]-cube_points[a][0]);\
@@ -480,32 +474,33 @@ public:
     }\
     /* -- */
 
-          if (et & 1) INTERPOLATE(0, 0, 1);
-          if (et & 2) INTERPOLATE(1, 1, 2);
-          if (et & 4) INTERPOLATE(2, 2, 3);
-          if (et & 8) INTERPOLATE(3, 3, 0);
-          if (et & 16) INTERPOLATE(4, 4, 5);
-          if (et & 32) INTERPOLATE(5, 5, 6);
-          if (et & 64) INTERPOLATE(6, 6, 7);
-          if (et & 128) INTERPOLATE(7, 7, 4);
-          if (et & 256) INTERPOLATE(8, 0, 4);
-          if (et & 512) INTERPOLATE(9, 1, 5);
+          if (et &    1) INTERPOLATE( 0, 0, 1);
+          if (et &    2) INTERPOLATE( 1, 1, 2);
+          if (et &    4) INTERPOLATE( 2, 2, 3);
+          if (et &    8) INTERPOLATE( 3, 3, 0);
+          if (et &   16) INTERPOLATE( 4, 4, 5);
+          if (et &   32) INTERPOLATE( 5, 5, 6);
+          if (et &   64) INTERPOLATE( 6, 6, 7);
+          if (et &  128) INTERPOLATE( 7, 7, 4);
+          if (et &  256) INTERPOLATE( 8, 0, 4);
+          if (et &  512) INTERPOLATE( 9, 1, 5);
           if (et & 1024) INTERPOLATE(10, 2, 6);
           if (et & 2048) INTERPOLATE(11, 3, 7);
 
-          for (int i = 0; triangle_table[L][i] != -1; i += 3)
+          for (int i = 0; TriangleTable[L][i] != -1; i += 3)
           {
-            const double* p0 = v[triangle_table[L][i]]; isocontour.vertex(float(p0[0]), float(p0[1]), float(p0[2]));
-            const double* p1 = v[triangle_table[L][i + 1]]; isocontour.vertex(float(p1[0]), float(p1[1]), float(p1[2]));
-            const double* p2 = v[triangle_table[L][i + 2]]; isocontour.vertex(float(p2[0]), float(p2[1]), float(p2[2]));
+            const double* p0 = v[TriangleTable[L][i]]; mesh.vertex(float(p0[0]), float(p0[1]), float(p0[2]));
+            const double* p1 = v[TriangleTable[L][i + 1]]; mesh.vertex(float(p1[0]), float(p1[1]), float(p1[2]));
+            const double* p2 = v[TriangleTable[L][i + 2]]; mesh.vertex(float(p2[0]), float(p2[1]), float(p2[2]));
             ++ntriangles;
           }
         }
       }
     }
 
-    isocontour.end();
-    VisusInfo() << "Marching cube on data(" << data.dims.toString() << ") ntriangles(" << ntriangles << ") done in " << t1.elapsedMsec() << "msec";
+    mesh.end();
+
+    VisusInfo() << "Marching cube on first(" << dims.toString() << ") ntriangles(" << ntriangles << ") done in " << t1.elapsedMsec() << "msec";
     return true;
   }
 };
@@ -522,26 +517,39 @@ class IsoContourNode::MyJob : public NodeJob
 {
 public:
 
-  Node*          node;
-  MarchingCube   mc;
+  Node*  node;
+  Array  data;
+  double isovalue;
+  bool   enable_vortex_used;
 
   //constructor
-  MyJob(Node* node_, Array data, double isovalue)
-    : node(node_),mc(data,isovalue,this->aborted)
+  MyJob(Node* node_, Array data_, double isovalue_)
+    : node(node_),data(data_),isovalue(isovalue_)
   {
-    mc.enable_vortex_used= node->isOutputConnected("cell_array");
+    enable_vortex_used= node->isOutputConnected("cell_array");
   }
 
   //destructor
   virtual ~MyJob() {
   }
 
-  //runJob (i will work only on the first component, leaving untouched the others)
+  //runJob
   virtual void runJob() override
   {
+    //if I receive a multi-component array I will use:
+    //  the first for isocontour computation (and later GPU normal computation)
+    //  all the others for displaying some colors on top of the surface
+    auto components = ArrayUtils::split(data, aborted);
+
+    MarchingCube mc(components[0], isovalue, this->aborted);
+    mc.enable_vortex_used = enable_vortex_used;
+
     //tell that the output has changed, if the port is not connected, this is a NOP!
     if (auto isocontour = mc.run())
     {
+      Utils::pop_front(components);
+      isocontour->second_field = ArrayUtils::interleave(components, aborted);
+
       DataflowMessage msg;
       msg.writeValue("data", isocontour);
       node->publish(msg);
@@ -570,10 +578,10 @@ void IsoContourNode::messageHasBeenPublished(DataflowMessage msg)
   auto isocontour= msg.readValue<IsoContour>("data");
   
   //avoid rehentrant code
-  if (isocontour && this->data_range!= isocontour->data_range)
+  if (isocontour && this->field_range!= isocontour->range)
   {
     beginUpdate();
-    this->data_range= isocontour->data_range;
+    this->field_range = isocontour->range;
     endUpdate();
   }
 }
@@ -607,8 +615,6 @@ void IsoContourNode::readFromObjectStream(ObjectStream& istream)
 
   isovalue=cdouble(istream.read("isovalue"));
 }
-
-
 
 } //namespace Visus
 

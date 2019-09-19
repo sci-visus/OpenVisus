@@ -49,7 +49,6 @@ VISUS_IMPLEMENT_SINGLETON_CLASS(GLDoWithContext)
 /////////////////////////////////////////////////////////////////////////////
 GLCanvas::GLCanvas() 
 {
-  glprograms.resize(4096);
   QOpenGLWidget::setMouseTracking(true); 
 }
 
@@ -137,11 +136,15 @@ void GLCanvas::setShader(GLShader* value,bool bForce) {
   
   if (value)
   {
-    int shader_id=shader->getId(); VisusAssert(shader_id<glprograms.size());
-    program=glprograms[shader_id];
+    int program_id=shader->__program_id__; 
+
+    if (program_id >= glprograms.size())
+      glprograms.resize(program_id+1);
+
+    this->program=glprograms[program_id];
 
     if (!program)
-      program=glprograms[shader_id]=std::make_shared<GLProgram>(this,*shader);
+      program=glprograms[program_id]=std::make_shared<GLProgram>(this,*shader);
 
     program->bind();
     setProjection(getProjection(),/*bForce*/true);

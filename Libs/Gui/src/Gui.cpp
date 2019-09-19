@@ -148,7 +148,7 @@ void GuiModule::attach()
   GLSharedContext::allocSingleton();
   GLInfo::allocSingleton();
   GLDoWithContext::allocSingleton();
-  GLPhongShader::Shaders::allocSingleton();
+  GLPhongShader::allocShaders();
 
   //show qt resources
 #if 0
@@ -183,7 +183,7 @@ void GuiModule::detach()
   GLInfo::releaseSingleton();
   GLDoWithContext::releaseSingleton();
   GLSharedContext::releaseSingleton();
-  GLPhongShader::Shaders::releaseSingleton();
+  GLPhongShader::releaseShaders();
 
   KernelModule::detach();
 
@@ -197,8 +197,8 @@ void GuiModule::createApplication()
 {
   QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 
-  VisusAssert(!qapp && Private::CommandLine::argn != 0);
-  qapp=new QApplication(Private::CommandLine::argn, (char**)Private::CommandLine::argv);
+  VisusAssert(!qapp && CommandLine::argn != 0);
+  qapp=new QApplication(CommandLine::argn, (char**)CommandLine::argv);
   qapp->setAttribute(Qt::AA_UseHighDpiPixmaps, true);
 
   //otherwise volume render looks bad on my old macbook pro

@@ -66,7 +66,7 @@ public:
 
   //hasChild
   bool hasChild(XIdxElement* child) const {
-    return std::find(childs.begin(), childs.end(), child) == childs.end();
+    return std::find(childs.begin(), childs.end(), child) != childs.end();
   }
 
   //addEdge

@@ -230,15 +230,19 @@ public:
     this->dimensions[0] = (int)(values.size() / stride);
 
     if (stride > 1) 
-      this->dimensions[1] = stride; //scrgiorgio ???
+      this->dimensions[1] = stride; 
   }
 
   //addValue
-  void addValue(double val, int stride=1){
+  void addValue(double val, int stride=1)
+  {
     this->values.push_back(val);
-    dimensions.resize(stride);
-    dimensions[0] = (int)(values.size()/stride);
-    dimensions[1] = stride;
+    
+    this->dimensions.resize(stride);
+    this->dimensions[0] = (int)(values.size()/stride);
+
+    if (stride>1)
+      this->dimensions[1] = stride;
   }
   
   //getXPathPrefix

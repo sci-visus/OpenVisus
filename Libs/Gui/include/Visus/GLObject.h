@@ -54,15 +54,10 @@ class VISUS_GUI_API GLObject
 {
 public:
 
-  VISUS_CLASS(GLObject)
+  VISUS_NON_COPYABLE_CLASS(GLObject)
 
   //constructor
   GLObject() {
-  }
-
-  //copy constructor
-  GLObject(const GLObject& other) {
-    *this=other;
   }
 
   //destructor
@@ -78,13 +73,8 @@ public:
   }
 
   //glSetRenderQueue
-  virtual void glSetRenderQueue(int value)
-  {this->default_render_queue=value;}
-
-  //operator=
-  GLObject& operator=(const GLObject& other) {
-    this->default_render_queue=other.default_render_queue;
-    return *this;
+  virtual void glSetRenderQueue(int value) {
+    this->default_render_queue=value;
   }
 
   //glMousePressEvent
@@ -103,7 +93,7 @@ public:
   virtual void glWheelEvent(const FrustumMap& map, QWheelEvent* evt){
   }
 
-private:
+protected:
 
   int default_render_queue=-1;
 

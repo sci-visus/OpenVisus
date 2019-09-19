@@ -40,6 +40,38 @@ For support : support@visus.net
 
 namespace Visus {
 
+
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////
+class IsoContourShaderConfig
+{
+public:
+
+  int second_field_nchannels=0;
+
+  //constructor
+  IsoContourShaderConfig() {
+  }
+
+  //valid
+  bool valid() const {
+    return true;
+  }
+
+  //operator<
+  bool operator<(const IsoContourShaderConfig& other) const {
+    return this->key() < other.key();
+  }
+
+private:
+
+  //key
+  std::tuple<int> key() const {
+    return std::make_tuple(second_field_nchannels);
+  }
+
+};
+
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 class IsoContourShader : public GLShader
 {
@@ -47,49 +79,26 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(IsoContourShader)
 
-  VISUS_DECLARE_SHADER_CLASS(VISUS_GUI_NODES_API, IsoContourShader)
+  typedef IsoContourShaderConfig Config;
 
-  //________________________________________________
-  class Config
-  {
-  public:
-
-    bool palette_enabled;
-    bool vertex_color_index_enabled;
-
-    //constructor
-    Config() : palette_enabled(false), vertex_color_index_enabled(false)
-    {}
-
-    //valid
-    bool valid() const
-    {
-      return true;
-    }
-
-    //getId
-    int getId() const
-    {
-      VisusAssert(valid());
-      int ret = 0, shift = 0;
-      ret |= (palette_enabled ? 1 : 0) << shift++;
-      ret |= (vertex_color_index_enabled ? 1 : 0) << shift++;
-      return ret;
-    }
-  };
+  static std::map<Config, IsoContourShader*> shaders;
 
   Config config;
+
+  GLSampler u_field;
+  GLSampler u_second_field;
+  GLSampler u_palette;
 
   //constructor
   IsoContourShader(const Config& config_) :
     GLShader(":/IsoContourShader.glsl"),
     config(config_)
   {
-    addDefine("PALETTE_ENABLED", cstring(config.palette_enabled ? 1 : 0));
-    addDefine("VERTEX_COLOR_INDEX_ENABLED", cstring(config.vertex_color_index_enabled ? 1 : 0));
+    addDefine("SECOND_FIELD_NCHANNELS", cstring(config.second_field_nchannels));
 
-    u_sampler = addSampler("u_sampler");
-    u_palette_sampler = addSampler("u_palette_sampler");
+    u_field = addSampler("u_field");
+    u_second_field = addSampler("u_second_field");
+    u_palette = addSampler("u_palette");
   }
 
   //destructor
@@ -99,39 +108,27 @@ public:
   //getSingleton
   static IsoContourShader* getSingleton(const Config& config)
   {
-    return Shaders::getSingleton()->get(config.getId(), config);
+    auto it = shaders.find(config);
+    if (it != shaders.end()) return it->second;
+    auto ret = new IsoContourShader(config);
+    shaders[config] = ret;
+    return ret;
   }
 
-  //setTexture
-  void setTexture(GLCanvas& gl, SharedPtr<GLTexture> value) {
-    gl.setTexture(u_sampler, value);
-  }
-
-  //setPaletteTexture 
-  //(NOTE: the shader will use the 'g'/'[1]' component of field in case texture has ncomponents>=2. if it has only one that it will use 'r')
-  void setPaletteTexture(GLCanvas& gl, SharedPtr<GLTexture> value)
-  {
-    VisusAssert(config.palette_enabled);
-    gl.setTextureInSlot(1, u_palette_sampler, value);
-  }
-
-private:
-
-  GLSampler u_sampler;
-  GLSampler u_palette_sampler;
 
 };
 
-VISUS_IMPLEMENT_SHADER_CLASS(VISUS_GUI_NODES_API, IsoContourShader)
+std::map<IsoContourShader::Config, IsoContourShader*> IsoContourShader::shaders;
 
 void IsoContourRenderNode::allocShaders()
 {
-  IsoContourShader::Shaders::allocSingleton();
 }
 
 void IsoContourRenderNode::releaseShaders()
 {
-  IsoContourShader::Shaders::releaseSingleton();
+  for (auto it : IsoContourShader::shaders)
+    delete it.second;
+  IsoContourShader::shaders.clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -139,8 +136,6 @@ IsoContourRenderNode::IsoContourRenderNode(String name) : Node(name)
 {
   addInputPort("data");
   addInputPort("palette"); //if provided, can color the vertices by (say) height
-
-  this->material=GLMaterial::createRandom();
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -148,21 +143,9 @@ IsoContourRenderNode::~IsoContourRenderNode() {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-void IsoContourRenderNode::setIsoContour(SharedPtr<IsoContour> value, SharedPtr<Palette> palette)
+void IsoContourRenderNode::setIsoContour(SharedPtr<IsoContour> value)
 {
   this->isocontour = value;
-
-  if (value && palette && value->field.array.dtype.ncomponents() >= 2)
-  {
-    this->palette = palette;
-    this->palette_texture = std::make_shared<GLTexture>(palette->convertToArray());
-  }
-  else
-  {
-    this->palette.reset();
-    this->palette_texture.reset();
-  }
-
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -170,40 +153,67 @@ bool IsoContourRenderNode::processInput()
 {
   auto isocontour  = readValue<IsoContour>("data");
   auto palette     = readValue<Palette>("palette");
-  setIsoContour(isocontour, palette);
+
+  setPalette(palette);
+  setIsoContour(isocontour);
+
   return isocontour ? true : false;
 }
 
 /////////////////////////////////////////////////////////////
 void IsoContourRenderNode::glRender(GLCanvas& gl)
 {
-  if (!isocontour || !isocontour->field.texture) 
+  if (!isocontour) 
     return;
 
   //gpu normals (first component for computing normals, second component for applying palette)
   //I can calculate the normals on GPU, eventually if the incoming 
   //field has 2 components I can use the second component to shop on top of the surface
 
+  //NOT: isocontour mesh vertices are in data.dims space
+  auto data = isocontour->field;
+  auto T = Position::computeTransformation(data.bounds, data.dims);
+
   gl.pushModelview();
-  gl.multModelview(isocontour->bounds.getTransformation());
+  gl.multModelview(T);
   Point3d pos,dir,vup;
   gl.getModelview().getLookAt(pos,dir,vup);
 
-  IsoContourShader::Config shader_config;
-  shader_config.palette_enabled=this->palette_texture?true:false;
+  IsoContourShader::Config config;
+  config.second_field_nchannels = isocontour->second_field.dtype.ncomponents();
 
-  IsoContourShader* shader=IsoContourShader::getSingleton(shader_config);
+  auto shader=IsoContourShader::getSingleton(config);
   gl.setShader(shader);
-  gl.setUniformMaterial(*shader,material);
+  gl.setUniformMaterial(*shader, config.second_field_nchannels? GLMaterial() : this->material);
   gl.setUniformLight(*shader,Point4d(pos,1.0));
 
-  if (palette_texture)
-    shader->setPaletteTexture(gl,palette_texture);
+  //upload main field (for gpu normal computation)
+  {
+    VisusAssert(shader->u_field.valid());
+    auto& tex = isocontour->field.texture;
+    if (!tex) tex = std::make_shared<GLTexture>(isocontour->field);
+    gl.setTexture(shader->u_field, std::dynamic_pointer_cast<GLTexture>(tex));
+  }
 
-  //this is to compute normals on gpu
-  shader->setTexture(gl, isocontour->field.texture);
+  //upload second field
+  if (isocontour->second_field)
+  {
+    VisusAssert(shader->u_second_field.valid());
+    auto& tex = isocontour->second_field.texture;
+    if (!tex) tex = std::make_shared<GLTexture>(isocontour->second_field);
+    gl.setTextureInSlot(1, shader->u_second_field, std::dynamic_pointer_cast<GLTexture>(tex));
+  }
 
-  gl.glRenderMesh(*isocontour);
+  //upload palette
+  if (isocontour->second_field)
+  {
+    VisusAssert(shader->u_palette.valid());
+    auto& tex = palette->texture;
+    if (!tex) tex = std::make_shared<GLTexture>(palette->convertToArray());
+    gl.setTextureInSlot(2, shader->u_palette, std::dynamic_pointer_cast<GLTexture>(tex));
+  }
+
+  gl.glRenderMesh(isocontour->mesh);
   gl.popModelview();
 }
 
@@ -215,6 +225,8 @@ void IsoContourRenderNode::writeToObjectStream(ObjectStream& ostream)
   ostream.pushContext("material");
   material.writeToObjectStream(ostream);
   ostream.popContext("material");
+
+  //todo: save the palette
 }
 
 /////////////////////////////////////////////////////////////
@@ -225,6 +237,8 @@ void IsoContourRenderNode::readFromObjectStream(ObjectStream& istream)
   istream.pushContext("material");
   material.readFromObjectStream(istream);
   istream.popContext("material");
+
+  //todo: save the palette
 }
 
 

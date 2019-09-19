@@ -54,32 +54,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-////////////////////////////////////////////////////////
-#define VISUS_DECLARE_SHADER_CLASS(Api,ClassName) \
-  class Api Shaders \
-  {\
-  private:\
-    typedef std::map< int, SharedPtr<ClassName> > Map; Map map;\
-    Shaders() {} \
-  public:\
-    VISUS_DECLARE_SINGLETON_CLASS(Shaders)\
-    template <typename ArgClass>\
-    ClassName* get(const int& id,const ArgClass& arg)\
-    {\
-      auto it=map.find(id);\
-      if (it!=map.end()) return it->second.get();\
-      ClassName* ret=new ClassName(arg);\
-      map[id].reset(ret);\
-      return ret;\
-    }\
-  };\
-  /*--*/
-
-#define VISUS_IMPLEMENT_SHADER_CLASS(Api,ClassName) \
-  VISUS_IMPLEMENT_SINGLETON_CLASS(ClassName::Shaders)\
-  /*--*/
-
-  
   ////////////////////////////////////////////////////////
 class VISUS_GUI_API GLUniform
 {
@@ -97,6 +71,11 @@ public:
   //constructor
   inline GLUniform(String name_,int id_) : name(name_),id(id_)
   {}
+
+  //valid
+  bool valid() const {
+    return id >= 0;
+  }
   
   //operator==
   bool operator==(const GLUniform& other) const
@@ -149,6 +128,11 @@ public:
     else {VisusAssert(false);}
   }
 
+  //valid
+  bool valid() const {
+    return id >= 0;
+  }
+
   //operator==
   bool operator==(const GLAttribute& other) const
   {return name==other.name;}
@@ -172,6 +156,12 @@ public:
   //construtor
   GLSampler() 
   {}
+
+
+  //valid
+  bool valid() const {
+    return u_sampler.valid();
+  }
 
 };
 
@@ -224,7 +214,6 @@ private:
 };
 
 
-
 ////////////////////////////////////////////////////////
 class VISUS_GUI_API GLShader 
 {
@@ -232,7 +221,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(GLShader)
 
-  int                         id;
+  //internal use only
+  int                         __program_id__ =0;
 
   String                      filename;
   String                      source;
@@ -275,10 +265,6 @@ public:
   virtual ~GLShader() {
   }
 
-  //getId
-  int getId() const
-  {return id;}
-
   //addDefine
   void addDefine(String key,String value);
 
@@ -291,13 +277,6 @@ public:
   //addSampler
   GLSampler addSampler(String key);
 
-private:
-
-  //GLSHADER_ID
-  static int& GLSHADER_ID() {
-    static int ret=0;
-    return ret;
-  }
 
 }; //end class
 

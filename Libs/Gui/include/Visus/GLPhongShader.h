@@ -47,6 +47,48 @@ namespace Visus {
 
 class GLCanvas;
 
+
+////////////////////////////////////////////////////////
+class VISUS_GUI_API GLPhongShaderConfig
+{
+public:
+
+  bool lighting_enabled;
+  bool color_attribute_enabled;
+  bool clippingbox_enabled;
+  bool texture_enabled;
+
+  //constructor
+  GLPhongShaderConfig(bool lighting_enable_ = false, bool color_attribute_enabled = false, bool clippingbox_enabled = false, bool texture_enabled = false) :
+    lighting_enabled(lighting_enable_), color_attribute_enabled(color_attribute_enabled), clippingbox_enabled(clippingbox_enabled), texture_enabled(texture_enabled){
+  }
+
+  //valid
+  bool valid() const {
+    return !(lighting_enabled && color_attribute_enabled);
+  }
+
+  //withXXXXEnabled
+  GLPhongShaderConfig& withLightingEnabled(bool value = true) { lighting_enabled = value; return *this; }
+  GLPhongShaderConfig& withColorAttributeEnabled(bool value = true) { color_attribute_enabled = value; return *this; }
+  GLPhongShaderConfig& withClippingBoxEnabled(bool value = true) { clippingbox_enabled = value; return *this; }
+  GLPhongShaderConfig& withTextureEnabled(bool value = true) { texture_enabled = value; return *this; }
+
+  //operator< (for map)
+  bool operator<(const GLPhongShaderConfig& other) const {
+    return this->key() < other.key();
+  }
+
+private:
+
+  //key
+  std::tuple<bool, bool, bool, bool> key() const {
+    return std::make_tuple(lighting_enabled, color_attribute_enabled, clippingbox_enabled, texture_enabled);
+  }
+
+
+};
+
 ////////////////////////////////////////////////////////
 class VISUS_GUI_API GLPhongShader: public GLShader
 {
@@ -54,49 +96,21 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(GLPhongShader)
 
-  VISUS_DECLARE_SHADER_CLASS(VISUS_GUI_API,GLPhongShader)
-
-  //_________________________________________________________
-  class VISUS_GUI_API Config
-  {
-  public:
-
-    bool lighting_enabled;
-    bool color_attribute_enabled;
-    bool clippingbox_enabled;
-    bool texture_enabled;
-
-    //constructor
-    Config(bool lighting_enable_=false,bool color_attribute_enabled=false,bool clippingbox_enabled=false,bool texture_enabled=false) : 
-      lighting_enabled(lighting_enable_),color_attribute_enabled(color_attribute_enabled),clippingbox_enabled(clippingbox_enabled),texture_enabled(texture_enabled)
-    {}
-
-    //valid
-    bool valid() const
-    {return !(lighting_enabled && color_attribute_enabled);}
-
-    //withXXXXEnabled
-    Config& withLightingEnabled      (bool value=true) {lighting_enabled       =value;return *this;}
-    Config& withColorAttributeEnabled(bool value=true) {color_attribute_enabled=value;return *this;}
-    Config& withClippingBoxEnabled   (bool value=true) {clippingbox_enabled    =value;return *this;}
-    Config& withTextureEnabled       (bool value=true) {texture_enabled        =value;return *this;}
-
-    //getId
-    int getId() const;
-  };
+  typedef GLPhongShaderConfig Config;
 
   Config config;
-
-    //constructor
-  GLPhongShader(const Config& config);
 
   //destructor
   virtual ~GLPhongShader();
 
+  //constructor
+  static void allocShaders();
+
+  //releaseShaders
+  static void releaseShaders();
+
   //getSingleton
-  static GLPhongShader* getSingleton(const Config& config=Config()) {
-    return Shaders::getSingleton()->get(config.getId(),config);
-  }
+  static GLPhongShader* getSingleton(const Config& config = Config());
 
   //setUniformColor
   void setUniformColor(GLCanvas& gl,const Color& color);
@@ -110,6 +124,11 @@ private:
 
   //config.texture_enabled
   GLSampler   u_sampler;
+
+  static std::map< Config, GLPhongShader* > shaders;
+
+  //constructor
+  GLPhongShader(const Config& config);
   
 };
 

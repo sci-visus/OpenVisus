@@ -46,9 +46,16 @@ For support : support@visus.net
 namespace Visus {
 
 ///////////////////////////////////////////////////////////////
-class VISUS_GUI_NODES_API PythonNode : public Node, public GLObject
+class VISUS_GUI_NODES_API PythonNode : 
+  public Node
+
+#if !SWIG
+  ,public GLObject
+#endif
 {
 public:
+
+  VISUS_NON_COPYABLE_CLASS(PythonNode)
 
   Position node_bounds;
 
@@ -80,8 +87,43 @@ public:
     this->node_bounds = value;
   }
 
+public:
+
+  //replicate most of the API of GLOBject to expose them to python
+
+  //glGetRenderQueue
+  virtual int glGetRenderQueue() const override {
+    return GLObject::glGetRenderQueue();
+  }
+
+  //glSetRenderQueue
+  virtual void glSetRenderQueue(int value) override {
+    GLObject::glSetRenderQueue(value);
+  }
+
+  //glMousePressEvent
+  virtual void glMousePressEvent(const FrustumMap& map, QMouseEvent* evt) override {
+    GLObject::glMousePressEvent(map,evt);
+  }
+
+  //mouseMoveEvent
+  virtual void glMouseMoveEvent(const FrustumMap& map, QMouseEvent* evt) override {
+    GLObject::glMouseMoveEvent(map, evt);
+  }
+
+  //mouseReleaseEvent
+  virtual void glMouseReleaseEvent(const FrustumMap& map, QMouseEvent* evt) override {
+    GLObject::glMouseReleaseEvent(map, evt);
+  }
+
+  //wheelEvent
+  virtual void glWheelEvent(const FrustumMap& map, QWheelEvent* evt) override {
+    GLObject::glWheelEvent(map, evt);
+  }
+
   //glRender
   virtual void glRender(GLCanvas& gl) override {
+    //implement your own method here
   }
 
 };

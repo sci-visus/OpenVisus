@@ -102,7 +102,6 @@ class MyTestCase(unittest.TestCase):
 
 # ////////////////////////////////////////////////////////
 if __name__ == '__main__':
-	print("All done")
 	SetCommandLine("__main__")
 	KernelModule.attach()
 	unittest.main(exit=True)

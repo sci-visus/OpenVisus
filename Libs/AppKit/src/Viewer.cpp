@@ -2003,7 +2003,8 @@ public:
 
     if (node) 
     {
-      this->encoded = std::make_shared<StringTree>(node->getTypeName());
+      String type_name = node->getTypeName();
+      this->encoded = std::make_shared<StringTree>(type_name);
       ObjectStream ostream(*this->encoded, 'w');
       node->writeToObjectStream(ostream);
       ostream.close();

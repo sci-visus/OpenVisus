@@ -81,6 +81,9 @@ public:
   //for midx
   SharedPtr<Array> alpha;
 
+  //texture
+  SharedPtr<Object> texture;
+
   //constructor
   Array() {
   }

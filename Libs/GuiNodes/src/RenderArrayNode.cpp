@@ -42,6 +42,41 @@ For support : support@visus.net
 
 namespace Visus {
 
+  /////////////////////////////////////////////////////////////////////////////
+class RenderArrayNodeShaderConfig
+{
+public:
+
+  int  texture_dim = 0;       //2 or 3
+  int  texture_nchannels = 0; //(1) luminance (2) luminance+alpha (3) rgb (4) rgba
+  bool clippingbox_enabled = false;
+  bool palette_enabled = false;
+  bool lighting_enabled = false;
+  bool discard_if_zero_alpha = false;
+
+  //constructor
+  RenderArrayNodeShaderConfig() {}
+
+  //valid
+  bool valid() const {
+    return (texture_dim == 2 || texture_dim == 3) && (texture_nchannels >= 1 && texture_nchannels <= 4);
+  }
+
+  //operator<
+  bool operator<(const RenderArrayNodeShaderConfig& other) const {
+    return this->key() < other.key();
+  }
+
+private:
+
+  //key
+  std::tuple<int, int, bool, bool, bool, bool> key() const {
+    VisusAssert(valid());
+    return std::make_tuple(texture_dim, texture_nchannels, clippingbox_enabled, palette_enabled, lighting_enabled, discard_if_zero_alpha);
+  }
+
+};
+
 /////////////////////////////////////////////////////////////////////////////
 class RenderArrayNodeShader : public GLShader
 {
@@ -49,43 +84,9 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(RenderArrayNodeShader)
 
-  VISUS_DECLARE_SHADER_CLASS(VISUS_GUI_NODES_API, RenderArrayNodeShader)
+  typedef RenderArrayNodeShaderConfig Config;
 
-  //___________________________________________________________
-  class Config
-  {
-  public:
-
-    int  texture_dim = 0;       //2 or 3
-    int  texture_nchannels = 0; //(1) luminance (2) luminance+alpha (3) rgb (4) rgba
-    bool clippingbox_enabled = false;
-    bool palette_enabled = false;
-    bool lighting_enabled = false;
-    bool discard_if_zero_alpha = false;
-
-    //constructor
-    Config() {}
-
-    //valid
-    bool valid() const {
-      return (texture_dim == 2 || texture_dim == 3) && (texture_nchannels >= 1 && texture_nchannels <= 4);
-    }
-
-    //getId
-    int getId() const
-    {
-      VisusAssert(valid());
-      int ret = 0, shift = 0;
-      ret |= (texture_dim) << shift; shift += 2;
-      ret |= (texture_nchannels) << shift; shift += 3;
-      ret |= (clippingbox_enabled ? 1 : 0) << shift++;
-      ret |= (palette_enabled ? 1 : 0) << shift++;
-      ret |= (lighting_enabled ? 1 : 0) << shift++;
-      ret |= (discard_if_zero_alpha ? 1 : 0) << shift++;
-      return ret;
-    }
-
-  };
+  static std::map<Config, RenderArrayNodeShader*> shaders;
 
   Config config;
 
@@ -112,7 +113,11 @@ public:
 
   //getSingleton
   static RenderArrayNodeShader* getSingleton(const Config& config) {
-    return Shaders::getSingleton()->get(config.getId(), config);
+    auto it = shaders.find(config);
+    if (it != shaders.end()) return it->second;
+    auto ret = new RenderArrayNodeShader(config);
+    shaders[config] = ret;
+    return ret;
   }
 
   //setTexture
@@ -140,17 +145,19 @@ private:
 
 };
 
-VISUS_IMPLEMENT_SHADER_CLASS(VISUS_GUI_NODES_API, RenderArrayNodeShader)
+std::map<RenderArrayNodeShader::Config, RenderArrayNodeShader*> RenderArrayNodeShader::shaders;
 
 
 void RenderArrayNode::allocShaders()
 {
-  RenderArrayNodeShader::Shaders::allocSingleton();
+  //nothing to do
 }
 
 void RenderArrayNode::releaseShaders()
 {
-  RenderArrayNodeShader::Shaders::releaseSingleton();
+  for (auto it : RenderArrayNodeShader::shaders)
+    delete it.second;
+  RenderArrayNodeShader::shaders.clear();
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////

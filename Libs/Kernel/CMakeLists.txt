@@ -201,11 +201,6 @@ file(GLOB RootFiles
 	../../.appveyor.yml
 	../../.travis.yml
 	../../.circleci/config.yml
-	../../CMake/build.bat
-	../../CMake/build.sh
-	../../CMake/build_conda.sh
-	../../CMake/build_docker.sh
-	../../CMake/build_osx.sh
 	../../CMakeLists.txt
 	../../Doxyfile.in
 	../../LICENCE
@@ -216,6 +211,11 @@ file(GLOB CMakeFiles
 	../../CMake/*.py
 	../../CMake/*.cmake
 	../../CMake/script.*
+	../../CMake/build.bat
+	../../CMake/build.sh
+	../../CMake/build_conda.sh
+	../../CMake/build_docker.sh
+	../../CMake/build_osx.sh
 )
 source_group("CMake" FILES   ${CMakeFiles})
 

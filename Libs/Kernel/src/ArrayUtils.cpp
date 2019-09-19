@@ -557,6 +557,9 @@ Array ArrayUtils::interleave(std::vector<Array> v, Aborted aborted)
   if (v.empty())
     return Array();
 
+  if (v.size() == 1)
+    return v[0];
+
   Array& first = v[0];
   for (int I = 0; I < (int)v.size(); I++)
   {
@@ -600,6 +603,19 @@ Array ArrayUtils::interleave(Array data, Aborted aborted)
   }
 
   return ArrayUtils::interleave(v, aborted);
+}
+
+/////////////////////////////////////////////////////////////////////
+std::vector<Array> ArrayUtils::split(Array src, Aborted aborted)
+{
+  std::vector<Array> ret;
+  for (int C : Utils::range(src.dtype.ncomponents()))
+  {
+    auto component = src.getComponent(C);
+    component.shareProperties(src);
+    ret.push_back(component);
+  }
+  return ret;
 }
 
 
@@ -873,18 +889,7 @@ Array ArrayUtils::cast(Array src, DType dtype, Aborted aborted)
   return CastArray(src, dtype, aborted);
 }
 
-/////////////////////////////////////////////////////////////////////
-Array ArrayUtils::selectComponents(Array src, std::vector<int> v, Aborted aborted) 
-{
-  int N = src.dtype.ncomponents();
-  std::vector<Array> components;
-  for (int C : v)
-  {
-    if (C>=0 && C<N)
-      components.push_back(src.getComponent(C));
-  }
-  return ArrayUtils::interleave(components, aborted);
-}
+
 
 /////////////////////////////////////////////////////////////////////
 template <typename CppType>

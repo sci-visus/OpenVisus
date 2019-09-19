@@ -1,6 +1,7 @@
 import OpenVisus
 import unittest
 import filecmp
+
 from OpenVisus import *
 
 class TextXIdx(unittest.TestCase):

@@ -158,14 +158,12 @@ VISUS_KERNEL_API inline double     cdouble(SharedPtr<double> v) { return v ? *v 
 VISUS_KERNEL_API String cstring10(double value);
 
 #if !SWIG
-namespace Private {
 class VISUS_KERNEL_API CommandLine
 {
 public:
   static int argn;
   static const char** argv;
 };
-}; //namespace Private
 #endif
 
 //(default values for swig)

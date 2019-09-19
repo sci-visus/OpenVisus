@@ -290,6 +290,9 @@ public:
   //functions
   std::vector< SharedPtr<Single> > functions;
 
+  //texture
+  SharedPtr<Object> texture;
+
   //constructor
   TransferFunction(String default_name = "") {
     if (!default_name.empty())

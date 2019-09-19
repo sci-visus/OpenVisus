@@ -116,13 +116,13 @@ private:
   //refreshGui
   void refreshGui()
   {
-    Range range=model->getDataRange();
+    Range range=model->getFieldRange();
     if (!range.delta())
       range=Range::numeric_limits<double>();
 
     widgets.slider->setRange(range);
-    widgets.slider->setValue(model->isoValue());
-    widgets.value->setText(cstring(model->isoValue()).c_str());
+    widgets.slider->setValue(model->getIsoValue());
+    widgets.value->setText(cstring(model->getIsoValue()).c_str());
     widgets.data_min->setText(cstring(range.from).c_str());
     widgets.data_max->setText(cstring(range.to  ).c_str());
   }

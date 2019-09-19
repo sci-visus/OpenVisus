@@ -175,8 +175,8 @@ static_assert(sizeof(S133) == 133, "internal error");
 static_assert(sizeof(off_t) == 8, "internal error");
 #endif
 
-int          Private::CommandLine::argn=0;
-const char** Private::CommandLine::argv ;
+int          CommandLine::argn=0;
+const char** CommandLine::argv ;
 
 static String visus_config_commandline_filename;
 
@@ -190,8 +190,8 @@ String cstring10(double value) {
 ///////////////////////////////////////////////////////////////////////////////
 void SetCommandLine(int argn, const char** argv)
 {
-  Private::CommandLine::argn = argn;
-  Private::CommandLine::argv = argv;
+  CommandLine::argn = argn;
+  CommandLine::argv = argv;
 
   // parse command line
   for (int I = 0; I < argn; I++)

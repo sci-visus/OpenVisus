@@ -67,7 +67,7 @@ public:
    
   //getNodeBounds
   virtual Position getNodeBounds() override {
-    return isocontour? isocontour->bounds : Position::invalid();
+    return isocontour? isocontour->field.bounds : Position::invalid();
   }
 
   //getMaterial
@@ -83,8 +83,27 @@ public:
     endUpdate();
   }
 
+  //getIsoContour
+  SharedPtr<IsoContour> getIsoContour() const {
+    return isocontour;
+  }
+
   //setIsoContour
-  void setIsoContour(SharedPtr<IsoContour> contour, SharedPtr<Palette> palette=SharedPtr<Palette>());
+  void setIsoContour(SharedPtr<IsoContour> contour);
+
+  //getPalette
+  SharedPtr<Palette> getPalette() const {
+    return palette;
+  }
+
+  //getPalette
+  void setPalette(SharedPtr<Palette> value)  {
+    value->texture.reset(); //force regeneration
+    beginUpdate();
+    this->palette = value;
+    endUpdate();
+  }
+
 
   //dataflow
   virtual bool processInput() override;
@@ -108,10 +127,9 @@ private:
 
   SharedPtr<IsoContour> isocontour;
 
-  GLMaterial            material;
+  GLMaterial            material = GLMaterial::createRandom();;
 
-  SharedPtr<Palette>    palette;
-  SharedPtr<GLTexture>  palette_texture;
+  SharedPtr<Palette>    palette=std::make_shared<Palette>("grayopaque");
 
 };
 

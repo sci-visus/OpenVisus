@@ -76,6 +76,25 @@ namespace Utils
     return ret;
   }
 
+  //range
+  inline std::vector<int> range(int A, int B, int S)
+  {
+    std::vector<int> ret;
+    for (int I = A; I < B; I += S)
+      ret.push_back(I);
+    return ret;
+  }
+
+  //range
+  inline std::vector<int> range(int B) {
+    return range(0, B, 1);
+  }
+
+  //pop_front
+  template <typename T>
+  inline void pop_front(std::vector<T>& v) {
+    v.erase(v.begin());
+  }
 
   //isByteAligned
   inline bool isByteAligned(Int64 bit) {

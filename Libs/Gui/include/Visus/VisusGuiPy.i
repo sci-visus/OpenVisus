@@ -57,7 +57,6 @@ else:
 %include <Visus/Gui.h>
 %include <Visus/GLObject.h>
 
-%shared_ptr(Visus::GLMesh)
 %include <Visus/GLMesh.h>
 
 %include <Visus/GLObjects.h>

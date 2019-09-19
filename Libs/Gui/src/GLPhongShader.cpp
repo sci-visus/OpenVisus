@@ -41,19 +41,8 @@ For support : support@visus.net
 
 namespace Visus {
 
-VISUS_IMPLEMENT_SHADER_CLASS(VISUS_GUI_API, GLPhongShader)
+std::map< GLPhongShader::Config, GLPhongShader* > GLPhongShader::shaders;
 
-///////////////////////////////////////////////
-int GLPhongShader::Config::getId() const
-{
-  VisusAssert(valid());
-  int ret=0,shift=0;
-  ret|=(lighting_enabled            ?1:0)<<shift++;  
-  ret|=(color_attribute_enabled     ?1:0)<<shift++; 
-  ret|=(clippingbox_enabled         ?1:0)<<shift++; 
-  ret|=(texture_enabled             ?1:0)<<shift++;
-  return ret;
-}
 
 ///////////////////////////////////////////////
 GLPhongShader::GLPhongShader(const Config& config_) : 
@@ -73,6 +62,27 @@ GLPhongShader::GLPhongShader(const Config& config_) :
 GLPhongShader::~GLPhongShader(){
 }
 
+///////////////////////////////////////////////
+void GLPhongShader::allocShaders() {
+
+}
+
+///////////////////////////////////////////////
+void GLPhongShader::releaseShaders()
+{
+  for (auto it : shaders)
+    delete it.second;
+  shaders.clear();
+}
+
+///////////////////////////////////////////////
+GLPhongShader* GLPhongShader::getSingleton(const Config& config) {
+  auto it = shaders.find(config);
+  if (it != shaders.end()) return it->second;
+  GLPhongShader* ret = new GLPhongShader(config);
+  shaders[config] = ret;
+  return ret;
+}
 
 ///////////////////////////////////////////////
 void GLPhongShader::setUniformColor(GLCanvas& gl,const Color& color) {

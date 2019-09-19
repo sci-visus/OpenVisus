@@ -319,6 +319,7 @@ public:
 #endif
 
 
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 OSPRayRenderNode::OSPRayRenderNode(String name) : Node(name)
 {
@@ -332,6 +333,21 @@ OSPRayRenderNode::OSPRayRenderNode(String name) : Node(name)
 OSPRayRenderNode::~OSPRayRenderNode()
 {
   delete pimpl;
+}
+
+void OSPRayRenderNode::initEngine()
+{
+#if VISUS_OSPRAY
+  if (ospInit(&CommandLine::argn, CommandLine::argv) != OSP_NO_ERROR)
+    ThrowException("Failed to initialize OSPRay");
+#endif
+}
+
+void OSPRayRenderNode::shutdownEngine()
+{
+#if VISUS_OSPRAY
+  ospShutdown();
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////

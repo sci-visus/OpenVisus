@@ -57,7 +57,13 @@ GLProgram::GLProgram(QOpenGLWidget* gl,const GLShader& shader)
     for (auto it : shader.defines)
       out<<"#define "<<it.first<<" "<<it.second<<"\n";
     out<<body;
-    bool bOk=vertexshader->compileSourceCode(out.str().c_str());VisusAssert(bOk);
+    String content = out.str();
+    if (!vertexshader->compileSourceCode(content.c_str()))
+    {
+      String url = StringUtils::format() << "GLshader.vertex_shader." << shader.__program_id__ << ".error.txt";
+      Utils::saveTextDocument(url, content);
+      VisusAssert(false);
+    }
   }
   
   fragmentshader=new QOpenGLShader(QOpenGLShader::Fragment, gl);
@@ -67,7 +73,13 @@ GLProgram::GLProgram(QOpenGLWidget* gl,const GLShader& shader)
     for (auto it : shader.defines)
       out<<"#define "<<it.first<<" "<<it.second<<"\n";
     out<<body;
-    bool bOk=fragmentshader->compileSourceCode(out.str().c_str());VisusAssert(bOk);
+    auto content = out.str();
+    if (!fragmentshader->compileSourceCode(content.c_str()))
+    {
+      String url = StringUtils::format() << "GLshader.fragment_shader." << shader.__program_id__ << ".error.txt";
+      Utils::saveTextDocument(url, content);
+      VisusAssert(false);
+    }
   }
 
   program = new QOpenGLShaderProgram();
@@ -113,8 +125,11 @@ GLProgram::~GLProgram()
   }
 }
 
+
+static int __PROGRAM_ID__ = 0;
+
 ///////////////////////////////////////////////
-GLShader::GLShader(String filename_) : filename(filename_),id(GLSHADER_ID()++)
+GLShader::GLShader(String filename_) : filename(filename_),__program_id__(__PROGRAM_ID__++)
 {
   this->source=QUtils::LoadTextFileFromResources(this->filename);
 

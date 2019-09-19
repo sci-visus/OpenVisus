@@ -110,17 +110,25 @@ public:
     push(building.texcoords3f, Point3f((float)x, (float)y, (float)z)); 
   }
 
-  template <typename T> void vertex   (const Point2<T>& p) {vertex   ((double)p[0], (double)p[1], (double)  0);}
-  template <typename T> void vertex   (const Point3<T>& p) {vertex   ((double)p[0], (double)p[1], (double)p[2]);}
-  template <typename T> void normal   (const Point2<T>& p) {normal   ((double)p[0], (double)p[1], (double)  0);}
-  template <typename T> void normal   (const Point3<T>& p) {normal   ((double)p[0], (double)p[1], (double)p[2]);}
-  template <typename T> void texcoord2(const Point2<T>& p) {texcoord2((double)p[0], (double)p[1]) ;}
-  template <typename T> void texcoord3(const Point3<T>& p) {texcoord3((double)p[0], (double)p[1], (double)p[2]);}
+  void vertex(const Point2f& p) { vertex(p[0], p[1], 0); }
+  void vertex(const Point2d& p) { vertex(p[0], p[1], 0); }
+  void vertex(const Point3f& p) { vertex(p[0], p[1], p[2]); }
+  void vertex(const Point3d& p) { vertex(p[0], p[1], p[2]); }
+  void vertex(const PointNd& p) { vertex(p.toPoint3()); }
 
-  template <typename T> void vertex   (PointN<T>  p) { p.setPointDim(3); vertex   ((double)p[0], (double)p[1], (double)p[2]); }
-  template <typename T> void normal   (PointN<T>  p) { p.setPointDim(3); normal   ((double)p[0], (double)p[1], (double)p[2]); }
-  template <typename T> void texcoord2(PointN<T>  p) { p.setPointDim(2); texcoord2((double)p[0], (double)p[1]); }
-  template <typename T> void texcoord3(PointN<T>  p) { p.setPointDim(3); texcoord3((double)p[0], (double)p[1], (double)p[2]); }
+  void normal(const Point2f& p) { normal(p[0], p[1], 0); }
+  void normal(const Point2d& p) { normal(p[0], p[1], 0); }
+  void normal(const Point3f& p) { normal(p[0], p[1], p[2]); }
+  void normal(const Point3d& p) { normal(p[0], p[1], p[2]); }
+  void normal(const PointNd& p) { normal(p.toPoint3()); }
+
+  void texcoord2(const Point2f& p) { texcoord2(p[0], p[1]); }
+  void texcoord2(const Point2d& p) { texcoord2(p[0], p[1]); }
+  void texcoord2(const PointNd& p) { texcoord2(p.toPoint2()); }
+
+  void texcoord3(const Point3f& p) { texcoord3(p[0], p[1], p[2]); }
+  void texcoord3(const Point3d& p) { texcoord3(p[0], p[1], p[2]); }
+  void texcoord3(const PointNd& p) { texcoord3(p.toPoint3()); }
 
   //hasColorAttribute
   bool hasColorAttribute() const {
@@ -140,6 +148,16 @@ public:
     return ret;
   }
 
+  static GLMesh LineLoop(const std::vector<Point2d>& points) {
+    return LineLoop<Point2d>(points);
+  }
+
+  static GLMesh LineLoop(const std::vector<Point3d>& points) {
+    return LineLoop<Point3d>(points);
+  }
+
+public:
+
   //LineStrip
   template <class Point>
   static GLMesh LineStrip(const std::vector<Point>& points) {
@@ -151,7 +169,16 @@ public:
     return ret;
   }
 
-  //Quad
+  static GLMesh LineStrip(const std::vector<Point2d>& points) {
+    return LineStrip<Point2d>(points);
+  }
+
+  static GLMesh LineStrip(const std::vector<Point3d>& points) {
+    return LineStrip<Point3d>(points);
+  }
+
+public:
+
   template <class Point>
   static GLMesh Quad(const Point& p1,const Point& p2,const Point& p3,const Point& p4,bool bNormal=false,bool bTexCoord=false)
   {
@@ -165,20 +192,22 @@ public:
     return ret;
   }
 
-  //Quad
-  template <typename Point>
-  static GLMesh Quad(const Point& p1,const Point& p2,bool bNormal=false,bool bTexCoord=false)
-  {return Quad(Point(p1[0],p1[1]), Point(p2[0],p1[1]), Point(p2[0],p2[1]), Point(p1[0],p2[1]),bNormal,bTexCoord);}
+  static GLMesh Quad(const Point2d& p1, const Point2d& p2, const Point2d& p3, const Point2d& p4, bool bNormal = false, bool bTexCoord = false) {
+    return Quad<Point2d>(p1, p1, p2, p3, bNormal, bTexCoord);
+  }
 
-  //Quad
-  template <class Point>
-  static GLMesh Quad(const std::vector<Point>& points,bool bNormal=false,bool bTexCoord=false)
-  {VisusAssert(points.size()==4);return Quad<Point>(points[0],points[1],points[2],points[3],bNormal,bTexCoord);}
+  static GLMesh Quad(const Point2d& p1,const Point2d& p2,bool bNormal=false,bool bTexCoord=false) {
+    return Quad<Point2d>(Point2d(p1[0],p1[1]), Point2d(p2[0],p1[1]), Point2d(p2[0],p2[1]), Point2d(p1[0],p2[1]),bNormal,bTexCoord);
+  }
 
+  static GLMesh Quad(const std::vector<Point2d>& points, bool bNormal = false, bool bTexCoord = false) {
+    return Quad<Point2d>(points[0], points[1], points[2], points[3], bNormal, bTexCoord);
+  }
+
+public:
 
   //Polygon
-  template <class Point>
-  static GLMesh Polygon(const std::vector<Point>& points, bool bNormal = false)
+  static GLMesh Polygon(const std::vector<Point2d>& points, bool bNormal = false)
   {
     if (points.size() == 3)
       return Quad(points[0], points[1], points[2], points[2], bNormal);
@@ -200,9 +229,11 @@ public:
     return ret;
   }
 
+public:
+
   //Lines
   template <class Point>
-  static GLMesh Lines(std::vector<Point> points)
+  static GLMesh Lines(const std::vector<Point>& points)
   {
     GLMesh ret;
     ret.begin(GL_LINES);
@@ -214,35 +245,49 @@ public:
     ret.end();
     return ret;
   }
+  
+  static GLMesh Lines(const std::vector<Point2d>& points) {
+    return Lines<Point2d>(points);
+  }
+
+  static GLMesh Lines(const std::vector<Point3d>& points) {
+    return Lines<Point3d>(points);
+  }
+
+  static GLMesh Lines(const std::vector<PointNd>& points) {
+    return Lines<PointNd>(points);
+  }
+
+public:
 
   //WireBox
-  template <typename Point>
-  static GLMesh WireBox(const Point& p1,const Point& p2)
+  static GLMesh WireBox(const Point3d& p1,const Point3d& p2)
   {
-    return Lines(std::vector<Point>({
-      Point(p1[0],p1[1],p1[2]), Point(p2[0],p1[1],p1[2]),
-      Point(p1[0],p1[1],p1[2]), Point(p1[0],p2[1],p1[2]),
-      Point(p1[0],p1[1],p1[2]), Point(p1[0],p1[1],p2[2]),
-      Point(p2[0],p1[1],p1[2]), Point(p2[0],p2[1],p1[2]), 
-      Point(p2[0],p1[1],p1[2]), Point(p2[0],p1[1],p2[2]),
-      Point(p1[0],p2[1],p1[2]), Point(p2[0],p2[1],p1[2]),
-      Point(p1[0],p2[1],p1[2]), Point(p1[0],p2[1],p2[2]),
-      Point(p1[0],p1[1],p2[2]), Point(p2[0],p1[1],p2[2]),
-      Point(p1[0],p1[1],p2[2]), Point(p1[0],p2[1],p2[2]),
-      Point(p2[0],p2[1],p2[2]), Point(p1[0],p2[1],p2[2]),
-      Point(p2[0],p2[1],p2[2]), Point(p2[0],p1[1],p2[2]),
-      Point(p2[0],p2[1],p2[2]), Point(p2[0],p2[1],p1[2])}));
+    return Lines(std::vector<Point3d>({
+      Point3d(p1[0],p1[1],p1[2]), Point3d(p2[0],p1[1],p1[2]),
+      Point3d(p1[0],p1[1],p1[2]), Point3d(p1[0],p2[1],p1[2]),
+      Point3d(p1[0],p1[1],p1[2]), Point3d(p1[0],p1[1],p2[2]),
+      Point3d(p2[0],p1[1],p1[2]), Point3d(p2[0],p2[1],p1[2]),
+      Point3d(p2[0],p1[1],p1[2]), Point3d(p2[0],p1[1],p2[2]),
+      Point3d(p1[0],p2[1],p1[2]), Point3d(p2[0],p2[1],p1[2]),
+      Point3d(p1[0],p2[1],p1[2]), Point3d(p1[0],p2[1],p2[2]),
+      Point3d(p1[0],p1[1],p2[2]), Point3d(p2[0],p1[1],p2[2]),
+      Point3d(p1[0],p1[1],p2[2]), Point3d(p1[0],p2[1],p2[2]),
+      Point3d(p2[0],p2[1],p2[2]), Point3d(p1[0],p2[1],p2[2]),
+      Point3d(p2[0],p2[1],p2[2]), Point3d(p2[0],p1[1],p2[2]),
+      Point3d(p2[0],p2[1],p2[2]), Point3d(p2[0],p2[1],p1[2])}));
   }
 
   //WireBox
   static GLMesh WireBox(BoxNd box) {
     box.setPointDim(3);
-    return WireBox(box.p1,box.p2);
+    return WireBox(box.p1.toPoint3(),box.p2.toPoint3());
   }
 
+public:
+
   //SolidBox
-  template <typename Point>
-  static GLMesh SolidBox(const Point& p1,const Point& p2,bool bNormal=true) {
+  static GLMesh SolidBox(const Point3d& p1,const Point3d& p2,bool bNormal=true) {
 
     float x1=(float)p1[0] , x2=(float)p2[0];
     float y1=(float)p1[1] , y2=(float)p2[1];
@@ -269,8 +314,10 @@ public:
   //SolidBox
   static GLMesh SolidBox(BoxNd box,bool bNormal=true) {
     box.setPointDim(3);
-    return SolidBox(box.p1,box.p2,bNormal);
+    return SolidBox(box.p1.toPoint3(),box.p2.toPoint3(),bNormal);
   } 
+
+public:
 
   //WireCircle
   static GLMesh WireCircle(const int N=32)

@@ -44,35 +44,27 @@ For support : support@visus.net
 #include <Visus/Range.h>
 #include <Visus/GLTexture.h>
 #include <Visus/GLMesh.h>
+#include <Visus/TransferFunction.h>
 
 namespace Visus {
 
 ////////////////////////////////////////////////////////////////////
-class VISUS_GUI_NODES_API IsoContour : public GLMesh 
+class VISUS_GUI_NODES_API IsoContour 
 {
 public:
 
-  VISUS_CLASS(IsoContour)
+  VISUS_NON_COPYABLE_CLASS(IsoContour)
 
-  Range data_range;
+  GLMesh                      mesh;
+  Array                       field;
+  Array                       second_field; //this is used to color the surface 
+  Range                       range; //field range
+  Array                       voxel_used; // 1 if a voxel contributes to the isosurface; 0 otherwise
 
-  struct
-  {
-    Array                array;
-    SharedPtr<GLTexture> texture;
-  }
-  field;
-
-  Position bounds;
-  Array    voxel_used; // 1 if a voxel contributes to the isosurface; 0 otherwise
-
-  //constructor
+  //cosntructor
   IsoContour() {
   }
 
-  //destructor
-  virtual ~IsoContour() {
-  }
 
 };
 
@@ -115,19 +107,19 @@ public:
   //processInput
   virtual bool processInput() override;
 
-  //getDataRange
-  Range getDataRange() const {
-    return data_range;
+  //getFieldRange
+  Range getFieldRange() const {
+    return field_range;
   }
 
-  //setData
-  void setData(Array value) {
+  //setField
+  void setField(Array value) {
     getInputPort("data")->writeValue(std::make_shared<Array>(value));
     dataflow->needProcessInput(this);
   }
 
-  //isoValue
-  double isoValue() const {
+  //getIsoValue
+  double getIsoValue() const {
     return isovalue;
   }
 
@@ -151,7 +143,7 @@ private:
 
   class MyJob;
 
-  Range data_range;
+  Range field_range;
 
   double isovalue=0;
 

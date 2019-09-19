@@ -45,10 +45,8 @@ For support : support@visus.net
 #include <Visus/OSPRayRenderNode.h>
 #include <Visus/KdRenderArrayNode.h>
 #include <Visus/JTreeRenderNode.h>
+#include <Visus/PythonNode.h>
 
-#if VISUS_OSPRAY
-#include <ospray/ospray.h>
-#endif
 
 void GuiNodesInitResources() {
   Q_INIT_RESOURCE(GuiNodes);
@@ -88,13 +86,9 @@ void GuiNodesModule::attach()
   VISUS_REGISTER_NODE_CLASS(OSPRayRenderNode);
   VISUS_REGISTER_NODE_CLASS(KdRenderArrayNode);
   VISUS_REGISTER_NODE_CLASS(JTreeRenderNode);
+  VISUS_REGISTER_NODE_CLASS(PythonNode);
 
-#if VISUS_OSPRAY
-  const char *argv[] = { "visus_app" };
-  int argc = 1;
-  if (ospInit(&argc, argv) != OSP_NO_ERROR)
-    ThrowException("Failed to initialize OSPRay");
-#endif
+  OSPRayRenderNode::initEngine();
 
   VisusInfo() << "Attached GuiNodesModule";
 }
@@ -118,9 +112,8 @@ void GuiNodesModule::detach()
   GuiModule::detach();
   DataflowModule::detach();
 
-#if VISUS_OSPRAY
-  ospShutdown();
-#endif
+  OSPRayRenderNode::shutdownEngine();
+
 
   VisusInfo() << "Detached GuiNodesModule";
 }

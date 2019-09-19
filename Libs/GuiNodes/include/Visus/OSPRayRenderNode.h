@@ -63,6 +63,12 @@ public:
   //destructor
   virtual ~OSPRayRenderNode();
 
+  //initEngine
+  static void initEngine();
+
+  //shutdownEngine
+  static void shutdownEngine();
+
   //getData
   Array getData() const {
     VisusAssert(VisusHasMessageLock()); return data;

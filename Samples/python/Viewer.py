@@ -2,16 +2,25 @@
 import sys, os
 
 from OpenVisus       import *
+
+# IMPORTANT for WIndows
+# Mixing C++ Qt5 and PyQt5 won't work in Windows/DEBUG mode
+# because forcing the use of PyQt5 means to use only release libraries (example: Qt5Core.dll)
+# but I'm in need of the missing debug version (example: Qt5Cored.dll)
+# as you know, python (release) does not work with debugging versions, unless you recompile all from scratch
+
+# on windows rememeber to INSTALL and CONFIGURE
+
+
 from VisusGuiPy      import *
 from VisusGuiNodesPy import *
 from VisusAppKitPy   import *
-	
+
 import PyQt5
 from   PyQt5.QtCore    import *
 from   PyQt5.QtWidgets import *
 from   PyQt5.QtGui     import *
-import PyQt5.sip  as  sip
-
+import PyQt5.sip
 
 # ///////////////////////////////////////////////////////////
 class MyWidget(QWidget):
@@ -50,10 +59,10 @@ class MyPythonNode(PythonNode):
 		GL_QUADS=0x0007
 		mesh=GLMesh()
 		mesh.begin(GL_QUADS);
-		mesh.vertex(Point3d( 0,0));
-		mesh.vertex(Point3d(50,0));
-		mesh.vertex(Point3d(50,50));
-		mesh.vertex(Point3d( 0,50));
+		mesh.vertex( 0, 0)
+		mesh.vertex(50, 0)
+		mesh.vertex(50,50)
+		mesh.vertex( 0,50)
 		mesh.end();
 
 		obj=GLPhongObject()
@@ -82,24 +91,21 @@ if __name__ == '__main__':
 
 	# example of adding a PyQt5 widget to C++ Qt
 	mywidget=MyWidget()
-	viewer.addDockWidget("MyWidget",ToCppQtWidget(sip.unwrapinstance(mywidget)))
+	viewer.addDockWidget("MyWidget",ToCppQtWidget(PyQt5.sip.unwrapinstance(mywidget)))
 
 	# example of adding a python node to the dataflow
-	add_python_node=True
+	root=viewer.getRoot()
+	world_box=viewer.getWorldBounds()
 	
-	if add_python_node:
-		root=viewer.getRoot()
-		world_box=viewer.getWorldBounds()
-		
-		VISUS_REGISTER_NODE_CLASS("MyPythonNode")
-		pynode=MyPythonNode()
-		pynode.glSetRenderQueue(999)
-		pynode.setNodeBounds(Position(world_box))
-		viewer.addNode(root,pynode)
+	VISUS_REGISTER_NODE_CLASS("MyPythonNode")
+	pynode=MyPythonNode()
+	pynode.glSetRenderQueue(999)
+	pynode.setNodeBounds(Position(world_box))
+	viewer.addNode(root,pynode)
 
-		# pynode will get the data from the query
-		query_node=viewer.findNodeByName("Volume 1")
-		viewer.connectPorts(query_node,"data","data",pynode)
+	# pynode will get the data from the query
+	query_node=viewer.findNodeByName("Volume 1")
+	viewer.connectPorts(query_node,"data","data",pynode)
 	 
 	GuiModule.execApplication()
 	viewer=None  

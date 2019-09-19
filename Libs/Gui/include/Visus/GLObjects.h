@@ -51,7 +51,7 @@ class VISUS_GUI_API GLModelview : public GLObject
 {
 public:
 
-  VISUS_CLASS(GLModelview)
+  VISUS_NON_COPYABLE_CLASS(GLModelview)
 
   Matrix T;
 
@@ -76,7 +76,7 @@ class VISUS_GUI_API GLPhongObject : public GLObject
 {
 public:
 
-  VISUS_CLASS(GLPhongObject)
+  VISUS_NON_COPYABLE_CLASS(GLPhongObject)
 
   int                  line_width=1;
   Color                color=Colors::White;
@@ -141,7 +141,7 @@ class VISUS_GUI_API GLStruct : public GLObject
 {
 public:
 
-  VISUS_CLASS(GLStruct)
+  VISUS_NON_COPYABLE_CLASS(GLStruct)
 
   std::vector< SharedPtr<GLObject> > v;
 
@@ -177,12 +177,19 @@ class VISUS_GUI_API GLLine : public GLPhongObject
 {
 public:
 
-  VISUS_CLASS(GLLine)
+  VISUS_NON_COPYABLE_CLASS(GLLine)
 
   //constructor
-  template <typename Point>
-  GLLine(const Point& p1_,const Point& p2_,const Color& color_,int line_width_=1) 
-    : GLPhongObject(GLMesh::Lines(std::vector<Point>({p1_,p2_})),color_,line_width_) {}
+  GLLine(const Point2d& p1_,const Point2d& p2_,const Color& color_,int line_width_=1)
+    : GLPhongObject(GLMesh::Lines(std::vector<Point2d>({p1_,p2_})),color_,line_width_) {}
+
+  //constructor
+  GLLine(const Point3d& p1_, const Point3d& p2_, const Color& color_, int line_width_ = 1)
+    : GLPhongObject(GLMesh::Lines(std::vector<Point3d>({ p1_,p2_ })), color_, line_width_) {}
+
+  //constructor
+  GLLine(const PointNd& p1_, const PointNd& p2_, const Color& color_, int line_width_ = 1)
+    : GLPhongObject(GLMesh::Lines({ p1_,p2_ }), color_, line_width_) {}
 
   //destructor
   virtual ~GLLine() {
@@ -195,12 +202,19 @@ class VISUS_GUI_API GLLines : public GLPhongObject
 {
 public:
 
-  VISUS_CLASS(GLLines)
+  VISUS_NON_COPYABLE_CLASS(GLLines)
 
   //constructor
-  template <typename Point>
-  GLLines(const std::vector<Point>& points_,const Color& color_,int line_width_=1) 
+  GLLines(const std::vector<Point2d>& points_,const Color& color_,int line_width_=1) 
     : GLPhongObject(GLMesh::Lines(points_),color_,line_width_) {}
+
+  //constructor
+  GLLines(const std::vector<Point3d>& points_, const Color& color_, int line_width_ = 1)
+    : GLPhongObject(GLMesh::Lines(points_), color_, line_width_) {}
+
+  //constructor
+  GLLines(const std::vector<PointNd>& points_, const Color& color_, int line_width_ = 1)
+    : GLPhongObject(GLMesh::Lines(points_), color_, line_width_) {}
 
   //destructor
   virtual ~GLLines() {
@@ -213,12 +227,20 @@ class VISUS_GUI_API GLLineStrip : public GLPhongObject
 {
 public:
 
-  VISUS_CLASS(GLLineStrip)
+  VISUS_NON_COPYABLE_CLASS(GLLineStrip)
 
   //constructor
-  template <typename Point>
-  GLLineStrip(const std::vector<Point>& vertices_,const Color& color_,int line_width_=1) 
+  GLLineStrip(const std::vector<Point2d>& vertices_,const Color& color_,int line_width_=1) 
     : GLPhongObject(GLMesh::LineStrip(vertices_),color_,line_width_) {}
+
+  //constructor
+  GLLineStrip(const std::vector<Point3d>& vertices_, const Color& color_, int line_width_ = 1)
+    : GLPhongObject(GLMesh::LineStrip(vertices_), color_, line_width_) {}
+
+
+  //constructor
+  GLLineStrip(const std::vector<PointNd>& vertices_, const Color& color_, int line_width_ = 1)
+    : GLPhongObject(GLMesh::LineStrip(vertices_), color_, line_width_) {}
 
   //destructor
   virtual ~GLLineStrip() {
@@ -231,11 +253,10 @@ class VISUS_GUI_API GLCubicBezier : public GLLineStrip
 {
 public:
 
-  VISUS_CLASS(GLCubicBezier)
+  VISUS_NON_COPYABLE_CLASS(GLCubicBezier)
 
   //constructor
-  template <typename Point>
-  GLCubicBezier(Point A, Point B, Point C, Point D,Color color=Colors::Black,int line_width=1,const int nsegments=32)
+  GLCubicBezier(Point2d A, Point2d B, Point2d C, Point2d D,Color color=Colors::Black,int line_width=1,const int nsegments=32)
     : GLLineStrip(bezier(A,B,C,D,nsegments),color,line_width) {}
 
   //destructor
@@ -244,9 +265,8 @@ public:
 
 private:
 
-  template <typename Point>
-  static std::vector<Point> bezier(Point A, Point B, Point C, Point D,int nsegments) {
-    std::vector<Point> ret;
+  static std::vector<Point2d> bezier(Point2d A, Point2d B, Point2d C, Point2d D,int nsegments) {
+    std::vector<Point2d> ret;
     ret.reserve(nsegments);
     for (int I=0;I<nsegments;I++)
     {
@@ -264,12 +284,19 @@ class VISUS_GUI_API GLLineLoop : public GLPhongObject
 {
 public:
 
-  VISUS_CLASS(GLLineLoop)
+  VISUS_NON_COPYABLE_CLASS(GLLineLoop)
 
   //constructor
-  template <typename Point>
-  GLLineLoop(const std::vector<Point>& vertices,const Color& color,int line_width=1) 
+  GLLineLoop(const std::vector<Point2d>& vertices,const Color& color,int line_width=1) 
     : GLPhongObject(GLMesh::LineLoop(vertices),color,line_width) {}
+
+  //constructor
+  GLLineLoop(const std::vector<Point3d>& vertices, const Color& color, int line_width = 1)
+    : GLPhongObject(GLMesh::LineLoop(vertices), color, line_width) {}
+
+  //constructor
+  GLLineLoop(const std::vector<PointNd>& vertices, const Color& color, int line_width = 1)
+    : GLPhongObject(GLMesh::LineLoop(vertices), color, line_width) {}
 
   //destructor
   virtual ~GLLineLoop() {
@@ -282,28 +309,24 @@ class VISUS_GUI_API GLQuad : public GLStruct
 {
 public:
 
-  VISUS_CLASS(GLQuad)
+  VISUS_NON_COPYABLE_CLASS(GLQuad)
 
   //constructor
-  template <typename Point>
-  GLQuad(const Point& p1, const Point& p2, const Point& p3, const Point& p4, const Color& fill_color, const Color& line_color, int line_width = 1, SharedPtr<GLTexture> texture = SharedPtr<GLTexture>()) {
+  GLQuad(const Point2d& p1, const Point2d& p2, const Point2d& p3, const Point2d& p4, const Color& fill_color, const Color& line_color, int line_width = 1, SharedPtr<GLTexture> texture = SharedPtr<GLTexture>()) {
     push_back(std::make_shared<GLPhongObject>(GLMesh::Quad(p1, p2, p3, p4, false, texture ? true : false), fill_color, 0, texture));
-    push_back(std::make_shared<GLPhongObject>(GLMesh::LineLoop(std::vector<Point>({ p1,p2,p3,p4 })), line_color, line_width));
+    push_back(std::make_shared<GLPhongObject>(GLMesh::LineLoop(std::vector<Point2d>({ p1,p2,p3,p4 })), line_color, line_width));
   }
 
   //constructor
-  template <typename Point>
-  GLQuad(Point p1, Point p2, const Color& fill_color, const Color& line_color, int line_width = 1, SharedPtr<GLTexture> texture = SharedPtr<GLTexture>())
-    : GLQuad(Point(p1[0], p1[1]), Point(p2[0], p1[1]), Point(p2[0], p2[1]), Point(p1[0], p2[1]), fill_color, line_color, line_width, texture) {}
+  GLQuad(Point2d p1, Point2d p2, const Color& fill_color, const Color& line_color, int line_width = 1, SharedPtr<GLTexture> texture = SharedPtr<GLTexture>())
+    : GLQuad(Point2d(p1[0], p1[1]), Point2d(p2[0], p1[1]), Point2d(p2[0], p2[1]), Point2d(p1[0], p2[1]), fill_color, line_color, line_width, texture) {}
 
   //constructor
-  template <typename Point>
-  GLQuad(const std::vector<Point>& points, const Color& fill_color, const Color& line_color, int line_width = 1, SharedPtr<GLTexture> texture = SharedPtr<GLTexture>())
+  GLQuad(const std::vector<Point2d>& points, const Color& fill_color, const Color& line_color, int line_width = 1, SharedPtr<GLTexture> texture = SharedPtr<GLTexture>())
     : GLQuad(points[0], points[1], points[2], points[3], fill_color, line_color, line_width, texture) {}
 
   //constructor
-  template <typename Point>
-  GLQuad(const std::array<Point,4>& points, const Color& fill_color, const Color& line_color, int line_width = 1, SharedPtr<GLTexture> texture = SharedPtr<GLTexture>())
+  GLQuad(const std::array<Point2d,4>& points, const Color& fill_color, const Color& line_color, int line_width = 1, SharedPtr<GLTexture> texture = SharedPtr<GLTexture>())
     : GLQuad(points[0], points[1], points[2], points[3], fill_color, line_color, line_width, texture) {}
 
 
@@ -318,7 +341,7 @@ class VISUS_GUI_API GLPolygon : public GLStruct
 {
 public:
 
-  VISUS_CLASS(GLPolygon)
+  VISUS_NON_COPYABLE_CLASS(GLPolygon)
 
   //constructor
   GLPolygon(const std::vector<Point2d>& points, const Color& fill_color, const Color& line_color, int line_width = 1) 
@@ -338,7 +361,7 @@ class VISUS_GUI_API GLBox : public GLStruct
 {
 public:
 
-  VISUS_CLASS(GLBox)
+  VISUS_NON_COPYABLE_CLASS(GLBox)
 
   //constructor
   GLBox(const Position& position, const Color& fill_color, const Color& line_color, int line_width = 1) {
@@ -365,7 +388,7 @@ class VISUS_GUI_API GLAxis : public GLStruct
 {
 public:
 
-  VISUS_CLASS(GLAxis)
+  VISUS_NON_COPYABLE_CLASS(GLAxis)
 
   //constructor
   GLAxis(const Position& position, int line_width = 1){
@@ -388,7 +411,7 @@ class VISUS_GUI_API GLWireCircle : public GLStruct
 {
 public:
 
-  VISUS_CLASS(GLWireCircle)
+  VISUS_NON_COPYABLE_CLASS(GLWireCircle)
 
   //constructor
   GLWireCircle(double R = 1, Point2d center = Point2d(0, 0), const Color& color = Colors::Black, int line_width = 1) {
@@ -415,7 +438,7 @@ class VISUS_GUI_API GLSolidCircle : public GLStruct
 {
 public:
 
-  VISUS_CLASS(GLSolidCircle)
+  VISUS_NON_COPYABLE_CLASS(GLSolidCircle)
 
   //constructor
   GLSolidCircle(double R = 1, Point2d center = Point2d(0, 0), const Color& color = Colors::Black){
@@ -443,7 +466,7 @@ class VISUS_GUI_API GLSolidSphere : public GLStruct
 {
 public:
 
-  VISUS_CLASS(GLSolidSphere)
+  VISUS_NON_COPYABLE_CLASS(GLSolidSphere)
 
 
   //constructor

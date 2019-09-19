@@ -44,6 +44,13 @@ class NumPyUtils:
 		return ret 
 
 	@staticmethod
+	def splitChannels(data):
+		N=len(data.shape)
+		if N==3: return [data[  :,:,C] for C in range(data.shape[-1])]
+		if N==4: return [data[:,:,:,C] for C in range(data.shape[-1])]
+		raise Exception("internal error")	
+
+	@staticmethod
 	def convertToGrayScale(data):	
 		Assert(isinstance(data,numpy.ndarray))
 		R,G,B=data[:,:,:,0],data[:,:,:,1] ,data[:,:,:,2]
@@ -178,16 +185,20 @@ class PyViewer(Viewer):
 		
 		
 	# addIsoSurface
-	def addIsoSurface(self, data, bounds, isovalue):
+	def addIsoSurface(self, field=None, second_field=None, isovalue=0, bounds=None):
 
-		Assert(isinstance(data,numpy.ndarray))
+		Assert(isinstance(field,numpy.ndarray))
 		
-		data=Array.fromNumPy(data,TargetDim=3,bounds=bounds)
+		field=Array.fromNumPy(field,TargetDim=3,bounds=bounds)
 
 		print("Extracting isocontour...")
 		t1=Time.now()
-		isocontour=MarchingCube(data,isovalue).run()
+		isocontour=MarchingCube(field,isovalue).run()
 		print("done in ",t1.elapsedMsec(),"msec")
+		
+		if second_field is not None:
+			isocontour.second_field=Array.fromNumPy(second_field,TargetDim=3,bounds=bounds)
+					
 
 		node=IsoContourRenderNode()	
 		node.setIsoContour(isocontour)
@@ -282,6 +293,10 @@ def Main(argv):
 	Assert(old_dataset)
 	Assert(new_dataset)
 	
+	flag_tatoo=(0.04, 0.95, 0.05,0.73, 0.15,0.15+0.1)	
+	head=(0.35,0.65, 0.18,0.82, 0.0,0.2)	
+	left_arm=(0.0, 0.4, 0.1,0.8, 0.0,0.3)
+	
 	if False:
 		
 		old_dataset.exportSlicesToMovie(PyMovie("All_z0.avi"), axis=2)
@@ -299,31 +314,29 @@ def Main(argv):
 		PyMovie("Up_y0.avi").compose([(PyMovie("All_y0.avi"),0.0,1.0, 0.0,0.4), (PyMovie("All_y1.avi"),0.0,1.0, 0.0,0.4) ])
 		PyMovie("Dw_y0.avi").compose([(PyMovie("All_y0.avi"),0.0,1.0, 0.6,1.0), (PyMovie("All_y1.avi"),0.0,1.0, 0.6,1.0) ])
 			
-	if True:
-		
-		dataset=old_dataset
-		
-		viewer=PyViewer()
-		data,bounds=dataset.readData((0.35,0.65, 0.18,0.82, 0.0,0.2))
-		viewer.addIsoSurface(NumPyUtils.convertToGrayScale(data), bounds, 100.0)
-		viewer.run()
-	
 	if False:
 		
-		dataset=old_dataset
-		debug_mode=False
-		
+		dataset=new_dataset
 		viewer=PyViewer()
-		data, bounds=dataset.readData((0.30, 0.70, 0.1,0.83, 0.0,0.22))	# (0.0, 0.4, 0.1,0.8, 0.0,0.3)
+		RGB,bounds=dataset.readData(flag_tatoo)
+		R,G,B=NumPyUtils.splitChannels(RGB)
+		viewer.addIsoSurface(field=R, second_field=RGB, isovalue=100.0, bounds=bounds)
+		viewer.run()
+	
+	if True:
+		
+		dataset=new_dataset
+		debug_mode=False
+		viewer=PyViewer()
+		data, bounds=dataset.readData(left_arm)	
 		
 		# wherever the red component is predominant, keep it
 		print("Setting up alpha channel")
 		R,G,B,A=NumPyUtils.addAlphaChannel(data)
-		A[:,:,:]=0
-		A[R>G ]=255
-		A[R>B ]=255
-		A[R<76]=0
-
+		A[R>100]=255
+		A[G>R]=0
+		A[B>R]=0				
+		
 		data=NumPyUtils.interleaveChannels((R,G,B,A))
 
 		if debug_mode:

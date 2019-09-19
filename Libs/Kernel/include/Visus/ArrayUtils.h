@@ -98,6 +98,9 @@ public:
   //interleave
   static Array interleave(Array src, Aborted aborted = Aborted());
 
+  //split
+  static std::vector<Array> split(Array src, Aborted aborted = Aborted());
+
   //insert
   static bool insert(
     Array& wbuffer, PointNi wfrom, PointNi wto, PointNi wstep,
@@ -138,9 +141,6 @@ public:
 
   //cast
   static Array cast(Array src, DType dtype, Aborted aborted = Aborted());
-
-  //selectComponents (equivalent to numpy numpy[A:B])
-  static Array selectComponents(Array src, std::vector<int> v, Aborted aborted = Aborted());
 
   //sqrt
   static Array sqrt(Array src, Aborted aborted = Aborted());
