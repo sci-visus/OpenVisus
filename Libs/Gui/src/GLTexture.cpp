@@ -97,6 +97,48 @@ GLTexture::~GLTexture()
 }
 
 ///////////////////////////////////////////////
+//scrgiorgio: 0 means to disable compression (i.e. that kind of compression is not supported)
+
+#ifndef GL_COMPRESSED_RGB
+#define GL_COMPRESSED_RGB 0
+#endif
+
+#ifndef GL_COMPRESSED_RGBA
+#define GL_COMPRESSED_RGBA 0
+#endif
+
+#ifndef GL_COMPRESSED_RGB_S3TC_DXT1_EXT
+#define GL_COMPRESSED_RGB_S3TC_DXT1_EXT 0
+#endif
+
+#ifndef GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
+#define GL_COMPRESSED_RGBA_S3TC_DXT5_EXT 0
+#endif
+
+#ifndef GL_COMPRESSED_RGB8_ETC2
+#define GL_COMPRESSED_RGB8_ETC2 0
+#endif
+
+#ifndef GL_COMPRESSED_RGBA8_ETC2_EAC
+#define GL_COMPRESSED_RGBA8_ETC2_EAC 0
+#endif
+
+#ifndef GL_LUMINANCE32F_ARB
+#define GL_LUMINANCE32F_ARB 0
+#endif
+
+#ifndef GL_LUMINANCE_ALPHA32F_ARB
+#define GL_LUMINANCE_ALPHA32F_ARB 0
+#endif
+
+#ifndef GL_RGB32F
+#define GL_RGB32F 0
+#endif
+
+#ifndef GL_RGBA32F
+#define GL_RGBA32F 0
+#endif
+
 GLuint GLTexture::textureId(GLCanvas& gl)
 {
   if (texture_id)
@@ -130,6 +172,7 @@ GLuint GLTexture::textureId(GLCanvas& gl)
   auto target = this->target();
   auto ncomponents = this->dtype.ncomponents();
   auto fullsize = this->dtype.getByteSize((Int64)this->dims[0] * (Int64)this->dims[1] * (Int64)this->dims[2]);
+
 
   const int uint8_textureFormats[][5] = {
     {0, GL_LUMINANCE ,GL_LUMINANCE_ALPHA,GL_RGB ,GL_RGBA},                    //NoCompression

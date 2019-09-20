@@ -790,7 +790,7 @@ class PointN
 {
 
   int pdim = 0;
-  std::array<__T__, 5> coords = std::array<__T__, 5>({ 0,0,0,0,0 });
+  std::array<__T__, 5> coords = { 0,0,0,0,0 };
 
 public:
 
