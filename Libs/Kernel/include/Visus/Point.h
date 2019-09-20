@@ -790,7 +790,14 @@ class PointN
 {
 
   int pdim = 0;
+
+#if WIN32 || _APPLE_
   std::array<__T__, 5> coords = { 0,0,0,0,0 };
+#elif __APPLE__
+  std::array<__T__, 5> coords = { 0,0,0,0,0 };
+#else
+  std::array<__T__, 5> coords = std::array<__T__, 5>({ 0,0,0,0,0 });
+#endif
 
 public:
 
