@@ -235,7 +235,8 @@ void GLInfo::setOsTotalMemory(Int64 value)
 }
 
 ///////////////////////////////////////////////
-bool GLInfo::allocateMemory(Int64 reqsize)
+#if 0
+bool GLInfo::allocateOpenGLMemory(Int64 reqsize)
 {
   VisusAssert(reqsize>=0);
 
@@ -264,9 +265,11 @@ bool GLInfo::allocateMemory(Int64 reqsize)
     return true;
   }
 }
+#endif
 
 ///////////////////////////////////////////////
-bool GLInfo::freeMemory(Int64 reqsize)
+#if 0
+bool GLInfo::freeOpenGLMemory(Int64 reqsize)
 {
   VisusAssert(reqsize>=0);
 
@@ -280,6 +283,15 @@ bool GLInfo::freeMemory(Int64 reqsize)
     this->visus_used_memory-=reqsize;
     return true;
   }
+}
+#endif
+
+
+///////////////////////////////////////////////
+void GLInfo::addVisusUsedMemory(Int64 reqsize)
+{
+  ScopedLock lock(this->lock);
+  this->visus_used_memory += reqsize;
 }
 
 } //namespace

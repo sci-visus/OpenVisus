@@ -1,5 +1,5 @@
 import sys
-import Deploy 
+import OpenVisus.PyDeploy 
 
 if __name__ == '__main__':
-	Deploy.Main(sys.argv)
+	PyDeploy.Main(sys.argv)

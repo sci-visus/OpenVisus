@@ -95,19 +95,24 @@ public:
     const size_t npaletteSamples = 256;
     std::vector<float> tfnColors(3 * npaletteSamples, 0.f);
     std::vector<float> tfnOpacities(npaletteSamples, 0.f);
-    for (size_t i = 0; i < npaletteSamples; ++i) {
+
+    for (size_t i = 0; i < npaletteSamples; ++i) 
+    {
       const float x = static_cast<float>(i) / npaletteSamples;
+
       // Assumes functions = {R, G, B, A}
-      for (size_t j = 0; j < 3; ++j) {
+      for (size_t j = 0; j < 3; ++j) 
         tfnColors[i * 3 + j] = palette->functions[j]->getValue(x);
-      }
+
       tfnOpacities[i] = palette->functions[3]->getValue(x);
     }
 
     OSPData colorsData = ospNewData(tfnColors.size() / 3, OSP_FLOAT3, tfnColors.data());
     ospCommit(colorsData);
+
     OSPData opacityData = ospNewData(tfnOpacities.size(), OSP_FLOAT, tfnOpacities.data());
     ospCommit(opacityData);
+
     ospSetData(transferFcn, "colors", colorsData);
     ospSetData(transferFcn, "opacities", opacityData);
 
@@ -115,7 +120,8 @@ public:
     ospSet2f(transferFcn, "valueRange", 0.f, 255.f);
     ospCommit(transferFcn);
 
-    if (volume) {
+    if (volume) 
+    {
       ospRemoveVolume(world, volume);
       ospRelease(volume);
       // Not actually releasing the Array, just OSPRay's Data struct
@@ -124,14 +130,13 @@ public:
 
     volume = ospNewVolume("shared_structured_volume");
     const OSPDataType ospDType = dtypeToOSPDtype(data.dtype);
-    // The OSP_DATA_SHARED_BUFFER flag tells OSPRay to not copy the data
-    // internally, but to just share the pointer with us.
-    volumeData = ospNewData(data.getTotalNumberOfSamples(), ospDType,
-      data.c_ptr(), OSP_DATA_SHARED_BUFFER);
+
+    // The OSP_DATA_SHARED_BUFFER flag tells OSPRay to not copy the data , but to just share the pointer with us.
+    volumeData = ospNewData(data.getTotalNumberOfSamples(), ospDType,data.c_ptr(), OSP_DATA_SHARED_BUFFER);
 
     // TODO: How to get the value range of the array?
     ospSet2f(volume, "voxelRange", 0.f, 255.f);
-    ospSetString(volume, "voxelType", ospDTypeStr(ospDType).c_str());
+    ospSetString(volume, "voxelType", ospDTypeStr(ospDType).c_str()); //scrgiorgio: seems ospray does not support multi-channel VR
     ospSet3i(volume, "dimensions", data.getWidth(), data.getHeight(), data.getDepth());
     ospSetData(volume, "voxelData", volumeData);
     ospSetObject(volume, "transferFunction", transferFcn);
@@ -158,7 +163,7 @@ public:
     ospAddVolume(world, volume);
     ospCommit(world);
 
-    this->data    = *data;
+    this->data    = data;
     this->palette = palette;
   }
 
@@ -178,7 +183,7 @@ public:
     const auto invCamera = gl.getModelview().invert();
     const auto eyePos = invCamera * Point4d(0.f, 0.f, 0.f, 1.f);
     const auto eyeDir = invCamera * Point4d(0.f, 0.f, -1.f, 0.f);
-    const auto upDir = invCamera * Point4d(0.f, 1.f, 0.f, 0.f);
+    const auto upDir  = invCamera * Point4d(0.f, 1.f, 0.f, 0.f);
 
     ospSet3f(camera, "pos", eyePos.x, eyePos.y, eyePos.z);
     ospSet3f(camera, "dir", eyeDir.x, eyeDir.y, eyeDir.z);
@@ -261,29 +266,46 @@ private:
   std::array<int, 2>  imgDims = { -1,-1 };
 
   //dtypeToOSPDtype
-  static OSPDataType dtypeToOSPDtype(const DType &t) {
-    if (t == DTypes::INT8   ) return OSP_CHAR;
-    if (t == DTypes::INT16  ) return OSP_USHORT;
-    if (t == DTypes::INT32  ) return OSP_INT;
-    if (t == DTypes::INT64  ) return OSP_LONG;
-    if (t == DTypes::UINT8  ) return OSP_UCHAR;
-    if (t == DTypes::UINT16 ) return OSP_SHORT;
-    if (t == DTypes::UINT32 ) return OSP_UINT;
-    if (t == DTypes::UINT64 ) return OSP_ULONG;
-    if (t == DTypes::FLOAT32) return OSP_FLOAT;
-    if (t == DTypes::FLOAT64) return OSP_DOUBLE;
+  static OSPDataType dtypeToOSPDtype(const DType& dtype) {
+
+    if (dtype == DTypes::INT8) return OSP_CHAR;
+
+    if (dtype == DTypes::UINT8     ) return OSP_UCHAR;
+    if (dtype == DTypes::UINT8_GA  ) return OSP_UCHAR2;
+    if (dtype == DTypes::UINT8_RGB ) return OSP_UCHAR3;
+    if (dtype == DTypes::UINT8_RGBA) return OSP_UCHAR4;
+
+    if (dtype == DTypes::UINT16) return OSP_SHORT;
+    if (dtype == DTypes::INT16 ) return OSP_USHORT;
+
+    if (dtype == DTypes::INT32 ) return OSP_INT;
+    if (dtype == DTypes::UINT32) return OSP_UINT;
+
+    if (dtype == DTypes::INT64  ) return OSP_LONG;
+    if (dtype == DTypes::UINT64 ) return OSP_ULONG;
+
+    if (dtype == DTypes::FLOAT32     ) return OSP_FLOAT;
+    if (dtype == DTypes::FLOAT32_GA  ) return OSP_FLOAT2;
+    if (dtype == DTypes::FLOAT32_RGB ) return OSP_FLOAT3;
+    if (dtype == DTypes::FLOAT32_RGBA) return OSP_FLOAT4;
+
+    if (dtype == DTypes::FLOAT64) return OSP_DOUBLE;
+
     ThrowException("Unsupported Visus Datatype");
     return (OSPDataType)0;
   }
 
   //ospDTypeStr
-  static String ospDTypeStr(const OSPDataType t) {
-    switch (t) {
-      case OSP_UCHAR: return "uchar";
+  static String ospDTypeStr(const OSPDataType t) 
+  {
+    switch (t) 
+    {
+      case OSP_UCHAR:  return "uchar";
+      case OSP_SHORT:  return "short";
       case OSP_USHORT: return "ushort";
-      case OSP_SHORT: return "short";
-      case OSP_FLOAT: return "float";
+      case OSP_FLOAT: return  "float";
       case OSP_DOUBLE: return "double";
+
       default: break;
     }
     ThrowException("Unsupported data type for OSPVolume");

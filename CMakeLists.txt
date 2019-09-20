@@ -147,11 +147,14 @@ else()
 endif()
 
 if (VISUS_PYTHON)
-	file(GENERATE   OUTPUT ${InstallDir}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
-	file(GENERATE   OUTPUT ${InstallDir}/Deploy.py      INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/Deploy.py)
-	file(GENERATE   OUTPUT ${InstallDir}/__init__.py    INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/__init__.py)
-	file(GENERATE   OUTPUT ${InstallDir}/__main__.py    INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/__main__.py)
-	file(GENERATE   OUTPUT ${InstallDir}/setup.py       INPUT   ${CMAKE_CURRENT_SOURCE_DIR}/CMake/setup.py)
+	file(GENERATE OUTPUT ${InstallDir}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
+
+	file(GLOB __py_files__ CMake/*.py)
+	foreach(__it__ ${__py_files__})
+		get_filename_component(__base_name__ ${__it__} NAME)
+		file(GENERATE   OUTPUT ${InstallDir}/${__base_name__}  INPUT ${__it__})
+	endforeach()
+
 endif()
 
 if (VISUS_GUI)
@@ -229,7 +232,7 @@ if (1)
 			# macdeployqt does not allow to choose the 'layout' of the app
 			if (PYTHON_EXECUTABLE)
 				install(CODE "
-					execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisus_INSTALL_DIR}/Deploy.py POSTINSTALL RESULT_VARIABLE retcode)
+					execute_process(COMMAND ${PYTHON_EXECUTABLE} ${OpenVisus_INSTALL_DIR}/PyDeploy.py POSTINSTALL RESULT_VARIABLE retcode)
 					if(NOT \"\${retcode}\" STREQUAL \"0\")
 						message(FATAL_ERROR \"Fatal error executing make self contained\")
 					endif()")
@@ -248,7 +251,7 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** dist (to call after INSTALL) ***
 if (VISUS_PYTHON)
-	add_custom_target(DIST COMMAND ${PYTHON_EXECUTABLE} -u \"${InstallDir}/Deploy.py\" DIST)
+	add_custom_target(DIST COMMAND ${PYTHON_EXECUTABLE} -u \"${InstallDir}/PyDeploy.py\" DIST)
 	set_property(TARGET DIST PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 
@@ -256,7 +259,7 @@ endif()
 # //////////////////////////////////////////////////////////////
 # *** CONFIGURE (to call after INSTALL, create scripts and forse use of PyQt) ***
 if (VISUS_PYTHON)
-	add_custom_target(CONFIGURE COMMAND ${PYTHON_EXECUTABLE} -u \"${InstallDir}/Deploy.py\" CONFIGURE)
+	add_custom_target(CONFIGURE COMMAND ${PYTHON_EXECUTABLE} -u \"${InstallDir}/PyDeploy.py\" CONFIGURE)
 	set_property(TARGET CONFIGURE PROPERTY FOLDER CMakePredefinedTargets)
 endif()
 

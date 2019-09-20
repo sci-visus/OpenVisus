@@ -57,6 +57,14 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(GLTexture)
 
+  enum Compression
+  {
+    NoCompression = 0,
+    GenericCompression,
+    S3TCCompression,
+    ETC2Compression
+  };
+
   Point3i                       dims;
   DType                         dtype;
   int                           minfilter= GL_LINEAR;
@@ -65,6 +73,8 @@ public:
   int                           envmode  = GL_REPLACE;
   Point4d                       vs       = Point4d(1,1,1,1);
   Point4d                       vt       = Point4d(0,0,0,0);
+
+  Compression                   compression = NoCompression;
 
   //constructor
   GLTexture(Array src);

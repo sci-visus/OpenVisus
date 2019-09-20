@@ -90,12 +90,11 @@ GLTexture::~GLTexture()
   {
     do_with_context->push_back([size, texture_id]()
     {
-      GLInfo::getSingleton()->freeMemory(size);
+      //GLInfo::getSingleton()->freeOpenGLMemory(size);
       glDeleteTextures(1, &texture_id);
     });
   }
 }
-
 
 ///////////////////////////////////////////////
 GLuint GLTexture::textureId(GLCanvas& gl)
@@ -128,24 +127,46 @@ GLuint GLTexture::textureId(GLCanvas& gl)
     VisusReleaseAssert(pixels);
   }
 
-  auto size = this->dtype.getByteSize((Int64)this->dims[0]*(Int64)this->dims[1]*(Int64)this->dims[2]);
+  auto target = this->target();
+  auto ncomponents = this->dtype.ncomponents();
+  auto fullsize = this->dtype.getByteSize((Int64)this->dims[0] * (Int64)this->dims[1] * (Int64)this->dims[2]);
 
-  if (!GLInfo::getSingleton()->allocateMemory(size))
+  const int uint8_textureFormats[][5] = {
+    {0, GL_LUMINANCE ,GL_LUMINANCE_ALPHA,GL_RGB ,GL_RGBA},                    //NoCompression
+    {0,0,0,GL_COMPRESSED_RGB,GL_COMPRESSED_RGBA},                             //GenericCompression
+    {0,0,0,GL_COMPRESSED_RGB_S3TC_DXT1_EXT,GL_COMPRESSED_RGBA_S3TC_DXT5_EXT}, //S3TCCompression
+    {0,0,0,GL_COMPRESSED_RGB8_ETC2,GL_COMPRESSED_RGBA8_ETC2_EAC},             //ETC2Compression
+  };
+
+  //todo: make sure they works...
+  const int float32_textureFormats[][5] = {
+    {0, GL_LUMINANCE32F_ARB ,GL_LUMINANCE_ALPHA32F_ARB,GL_RGB32F,GL_RGBA32F }, //NoCompression
+    {0,0,0,GL_COMPRESSED_RGB,GL_COMPRESSED_RGBA},                              //GenericCompression 
+    {0,0,0,GL_COMPRESSED_RGB_S3TC_DXT1_EXT,GL_COMPRESSED_RGBA_S3TC_DXT5_EXT},  //S3TCCompression    
+    {0,0,0,GL_COMPRESSED_RGB8_ETC2,GL_COMPRESSED_RGBA8_ETC2_EAC},              //ETC2Compression    
+  };
+
+  //this->compression = S3TCCompression;
+
+  const auto& textureFormats = dtype.isVectorOf(DTypes::UINT8) ?
+    uint8_textureFormats :
+    float32_textureFormats;
+
+  auto textureFormat = (QOpenGLTexture::TextureFormat)textureFormats[this->compression][ncomponents];
+  if (!textureFormat)
   {
-    VisusInfo() << "Failed to upload texture Failed to allocate gpu memory (" + StringUtils::getStringFromByteSize(size) + "), GLCreateTexture::setArray failed";
-    return 0;
+    this->compression = NoCompression;
+    textureFormat = (QOpenGLTexture::TextureFormat)textureFormats[this->compression][ncomponents];
   }
 
-  int target = this->target();
-
-  int ncomponents = this->dtype.ncomponents();
-  int textureFormat;
-
-  //TODO HERE! I'm wasting texture memory
-  if (dtype.isVectorOf(DTypes::UINT8))
-    textureFormat = (QOpenGLTexture::TextureFormat)std::vector<int>({ 0, GL_RGB8 ,GL_RGBA8  , GL_RGB8 ,GL_RGBA8 })[ncomponents];
-  else
-    textureFormat = (QOpenGLTexture::TextureFormat)std::vector<int>({ 0, GL_RGB32F ,GL_RGBA32F,GL_RGB32F,GL_RGBA32F })[ncomponents];
+  //i cannot know in advance with texture compression how much memory i'm going to use
+#if 0
+  if (!GLInfo::getSingleton()->allocateOpenGLMemory(fullsize))
+  {
+    VisusInfo() << "Failed to upload texture Failed to allocate gpu memory (" + StringUtils::getStringFromByteSize(fullsize) + "), GLCreateTexture::setArray failed";
+    return 0;
+  }
+#endif
 
   auto sourceFormat = std::vector<int>({ 0,GL_LUMINANCE,GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA })[ncomponents];
   auto sourceType = dtype.isVectorOf(DTypes::UINT8) ? GL_UNSIGNED_BYTE : GL_FLOAT;
@@ -175,12 +196,7 @@ GLuint GLTexture::textureId(GLCanvas& gl)
     gl.glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     if (target == QOpenGLTexture::Target3D)
-    
-#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)  
       gl.glTexImage3D(target, 0, textureFormat, dims[0], dims[1], dims[2], 0, sourceFormat, sourceType, pixels);
-#else
-      gl.glTexImage3D(target, 0, textureFormat, dims[0], dims[1], dims[2], 0, sourceFormat, sourceType, pixels);
-#endif
     else
       gl.glTexImage2D(target, 0, textureFormat, dims[0], dims[1], 0, sourceFormat, sourceType, pixels);
   }
@@ -189,13 +205,35 @@ GLuint GLTexture::textureId(GLCanvas& gl)
   {
     VisusInfo() << "Failed to create texture";
 
-    GLInfo::getSingleton()->freeMemory(size);
+    //see not above for allocate Memory
+#if 0
+    GLInfo::getSingleton()->freeOpenGLMemory(fullsize);
+#endif
 
     if (texture_id)
     {
       gl.glDeleteTextures(1, &texture_id);
       texture_id = 0;
     }
+  }
+
+  if (texture_id)
+  {
+    GLint gpusize = fullsize;
+    if (compression != NoCompression)
+    {
+      GLint compressed;
+      glGetTexLevelParameteriv(target, 0, GL_TEXTURE_COMPRESSED_ARB, &compressed);
+      if (compressed == GL_TRUE)
+        glGetTexLevelParameteriv(target, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE_ARB, &gpusize);
+    }
+
+    GLInfo::getSingleton()->addVisusUsedMemory(gpusize);
+
+    VisusInfo() << (gpusize==fullsize?"Non compressed":"Compressed")<<" texture"
+      << " fullsize(" << StringUtils::getStringFromByteSize(fullsize) << ")"
+      << " gpusize(" << gpusize << ")"
+      << " ratio(" << (100.0 * double(gpusize) / double(fullsize)) << "%)";
   }
 
   if (save_original_alignment!=1)

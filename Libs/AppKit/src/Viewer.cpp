@@ -2695,7 +2695,7 @@ Node* Viewer::addRenderArrayNode(Node* parent,Node* data_provider,String default
     parent = getRoot();
 
   Node* ret;
-  
+
   if (render_type == "ospray" || config.readString("Configuration/VisusViewer/DefaultRenderNode/value") == "ospray")
   {
     ret = new OSPRayRenderNode("OSPray Render Node");
@@ -2710,7 +2710,7 @@ Node* Viewer::addRenderArrayNode(Node* parent,Node* data_provider,String default
     ret = render_node;
   }
 
-  auto palette_node=default_palette.empty()? nullptr : new PaletteNode("Palette",default_palette);
+  auto palette_node=default_palette.empty()? nullptr : new PaletteNode("Palette",default_palette); 
 
   beginUpdate();
   {

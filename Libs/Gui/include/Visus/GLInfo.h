@@ -80,11 +80,14 @@ public:
   //setOsTotalMemory
   void setOsTotalMemory(Int64 value);
 
-  //allocateMemory
-  bool allocateMemory(Int64 reqsize);
+  //allocateOpenGLMemory
+  //bool allocateOpenGLMemory(Int64 reqsize);
 
-  //freeMemory
-  bool freeMemory(Int64 reqsize);
+  //freeOpenGLMemory
+  //bool freeOpenGLMemory(Int64 reqsize);
+
+  //addVisusUsedMemory
+  void addVisusUsedMemory(Int64 size);
 
   //getGpuUsedMemory
   Int64 getGpuUsedMemory();
