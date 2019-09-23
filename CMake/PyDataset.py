@@ -109,8 +109,13 @@ class PyDataset(object):
 	def __getattr__(self,attr):
 	    return getattr(self.dataset, attr)	
 	    
+	# createAccess
+	def createAccess(self):
+		return self.dataset.createAccess()
+
 	# readData
-	def readData(self,box, quality=0):
+	# NOTE: if resolution <=0 that it is used as a delta i.e. resolution=dataset.getMaxResolution()+resolution
+	def readData(self,box, resolution=0,time=None, field=None):
 		t1=Time.now()
 		
 		# in alpha coordinate
@@ -121,14 +126,23 @@ class PyDataset(object):
 					PointNi(int(alpha[1]*self.getLogicBox().size()[0]),int(alpha[3]*self.getLogicBox().size()[1]),int(alpha[5]*self.getLogicBox().size()[2])))
 		else:
 			logic_box=box
+			
+		if time is None:
+			time=self.getDefaultTime()
+			
+		if field is None:
+			field=self.getDefaultField()
 
 		# read data
-		query = BoxQuery(self.dataset, self.getDefaultField(), self.getDefaultTime(),  ord('r'))
+		query = BoxQuery(self.dataset,field ,time ,  ord('r'))
 		query.logic_box = logic_box
-		query.end_resolutions.push_back(self.dataset.getMaxResolution() + quality)
+		resolution=resolution if resolution>0 else self.dataset.getMaxResolution()+resolution
+		query.end_resolutions.push_back(resolution)
 		self.dataset.beginQuery(query)
 		print("Extracting data...","logic_box",logic_box.toString(),"dims",query.getNumberOfSamples().toString())
-		self.dataset.executeQuery(self.createAccess(), query)
+		if not self.dataset.executeQuery(self.createAccess(), query):
+			raise Exception("query error %s" % (query.getLastErrorMsg(),))					
+			
 		query.buffer.bounds = Position(self.dataset.logicToPhysic(),Position(logic_box))
 		data=query.buffer
 		
@@ -137,7 +151,7 @@ class PyDataset(object):
 			dims=[data.dims[I] for I in range(data.dims.getPointDim()) if data.dims[I]>1 ]
 			data.resize(PointNi(dims),data.dtype,__file__,0)
 			
-		print("done in %dmsec dims(%s) bounds(%s)" % (t1.elapsedMsec(),data.dims.toString(),data.bounds.toString()))
+		print("done in %dmsec dims(%s) bounds(%s) dtype(%s)" % (t1.elapsedMsec(),data.dims.toString(),data.bounds.toString(),data.dtype.toString()))
 		return Array.toNumPy(data),Position(data.bounds)	
 		
 	# readSlice

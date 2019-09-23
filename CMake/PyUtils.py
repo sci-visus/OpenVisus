@@ -140,7 +140,14 @@ def SplitChannels(data):
 # //////////////////////////////////////////////
 def ConvertToGrayScale(data):	
 	Assert(isinstance(data,numpy.ndarray))
-	R,G,B=data[:,:,:,0],data[:,:,:,1] ,data[:,:,:,2]
+	if len(data.shape)==3:
+		# 2D data
+		R,G,B=data[:,:,0],data[:,:,1],data[:,:,2]
+	elif len(data.shape)==4:
+		# 3D data
+		R,G,B=data[:,:,:,0],data[:,:,:,1] ,data[:,:,:,2]
+	else:
+		raise Exception("internal error")
 	return (0.299 * R + 0.587 * G + 0.114 * B).astype(data.dtype)
 	
 # ////////////////////////////////////////////////////////////////////////////////
