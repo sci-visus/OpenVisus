@@ -42,7 +42,6 @@ VISUS_GUI=${VISUS_GUI:-1}
 
 PYTHON_VERSION=${PYTHON_VERSION:-3.6.6}
 
-
 # //////////////////////////////////////////////////////
 # return the next word after the pattern and parse the version in the format MAJOR.MINOR.whatever
 function GetVersionFromCommand {	

@@ -55,18 +55,16 @@ fi
 
 # this is needed to forward the deploy to the docker image (where I have a python to do the deploy)
 # deploy to pypi | github
-if [[ "${TRAVIS_TAG}" != "" ]] ; then
+if (( DEPLOY_PYPI == 1 )) ; then
+	docker_opts+=(-e DEPLOY_PYPI=${DEPLOY_PYPI})
+	docker_opts+=(-e PYPI_USERNAME=${PYPI_USERNAME})
+	docker_opts+=(-e PYPI_PASSWORD=${PYPI_PASSWORD})
+fi
 
-	if [[ "${OSX}" == "1" || "${DOCKER_IMAGE}" == "quay.io/pypa/manylinux1_x86_64" ]] ; then
-		docker_opts+=(-e DEPLOY_PYPI=1)
-		docker_opts+=(-e PYPI_USERNAME=${PYPI_USERNAME})
-		docker_opts+=(-e PYPI_PASSWORD=${PYPI_PASSWORD})
-	fi
-
-	# disabled deploy to github
-	# docker_opts+=(-e DEPLOY_GITHUB=1)
-	# docker_opts+=(-e GITHUB_API_TOKEN=${GITHUB_API_TOKEN})
-	# docker_opts+=(-e TRAVIS_TAG=${TRAVIS_TAG})
+if (( DEPLOY_GITHUB == 1 )) ; then
+	docker_opts+=(-e DEPLOY_GITHUB=${DEPLOY_GITHUB})
+	docker_opts+=(-e GITHUB_API_TOKEN=${GITHUB_API_TOKEN})
+	docker_opts+=(-e TRAVIS_TAG=${TRAVIS_TAG})
 fi
 
 sudo docker run -d -ti --name mydocker ${docker_opts[@]} ${DOCKER_IMAGE} /bin/bash

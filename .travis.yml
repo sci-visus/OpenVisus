@@ -184,7 +184,9 @@ matrix:
 script:
    - |
      gem install xcpretty 
-     echo "Building travis TRAVIS_TAG(${TRAVIS_TAG}) "
+     if [[ "${TRAVIS_TAG}" != "" && "${TRAVIS_OS_NAME}" == "osx"                            ]]; then export DEPLOY_PYPI=1 ; fi
+     if [[ "${TRAVIS_TAG}" != "" && "${DOCKER_IMAGE}"   == "quay.io/pypa/manylinux1_x86_64" ]]; then export DEPLOY_PYPI=1 ; fi
+     echo "Building travis TRAVIS_TAG(${TRAVIS_TAG})  DEPLOY_PYPI(${DEPLOY_PYPI}) "
      cd "${TRAVIS_BUILD_DIR}" 
      ./CMake/build.sh
 
