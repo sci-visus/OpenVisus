@@ -116,7 +116,7 @@ private:
   //refreshGui
   void refreshGui()
   {
-    Range range=model->getFieldRange();
+    Range range=model->getLastFieldRange();
     if (!range.delta())
       range=Range::numeric_limits<double>();
 

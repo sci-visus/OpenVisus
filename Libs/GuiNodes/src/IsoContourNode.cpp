@@ -578,12 +578,8 @@ void IsoContourNode::messageHasBeenPublished(DataflowMessage msg)
   auto isocontour= msg.readValue<IsoContour>("data");
   
   //avoid rehentrant code
-  if (isocontour && this->field_range!= isocontour->range)
-  {
-    beginUpdate();
-    this->field_range = isocontour->range;
-    endUpdate();
-  }
+  if (isocontour)
+    this->last_field_range = isocontour->range;
 }
 
 ///////////////////////////////////////////////////////////////////////

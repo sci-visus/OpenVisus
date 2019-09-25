@@ -56,9 +56,7 @@ void FieldNode::setFieldName(String value)
   if (this->fieldname== value)
     return;
 
-  beginUpdate();
-  this->fieldname= value;
-  endUpdate();
+  setProperty(this->fieldname, value);
 } 
 
 ///////////////////////////////////////////////////////////////////////////////////////////

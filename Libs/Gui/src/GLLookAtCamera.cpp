@@ -95,12 +95,10 @@ void GLLookAtCamera::setUseOrthoProjection(bool value)
 //////////////////////////////////////////////////////////////////////
 void GLLookAtCamera::setOrthoParams(GLOrthoParams value) 
 {
-  if (this->ortho_params==value)
+  if (getOrthoParams()==value)
     return;
 
-  beginUpdate();
-  this->ortho_params = value;
-  endUpdate();
+  setProperty(this->ortho_params, value);
 }
 
 //////////////////////////////////////////////////////////////////////

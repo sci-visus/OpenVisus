@@ -81,9 +81,7 @@ public:
   //setVerbose
   void setVerbose(int value) {
     if (this->verbose == value) return;
-    this->beginUpdate();
-    this->verbose = value;
-    this->endUpdate();
+    this->setProperty(verbose, value);
   }
 
   //getAccessIndex
@@ -93,10 +91,8 @@ public:
 
   //setAccessIndex
   void setAccessIndex(int value) {
-    this->beginUpdate();
-    this->accessindex=value;
-    setAccess(SharedPtr<Access>());
-    this->endUpdate();
+    this->setProperty(this->accessindex, value);
+    this->access.reset();
   }
 
   //setAccess
@@ -112,9 +108,7 @@ public:
   //setProgression
   void setProgression(QueryProgression value) {
     if (value==getProgression()) return;
-    beginUpdate();
-    this->progression=value;
-    endUpdate();
+    setProperty(this->progression, value);
   }
 
   //getQuality
@@ -125,9 +119,7 @@ public:
   //setQuality
   void setQuality(QueryQuality value) {
     if (value==getQuality()) return;
-    beginUpdate();
-    this->quality=value;
-    endUpdate();
+    setProperty(this->quality, value);
   }
 
   //getNodeBounds
@@ -138,9 +130,7 @@ public:
   //setNodeBounds
   void setNodeBounds(Position value,bool bForce=false) {
     if (node_bounds ==value && !bForce) return;
-    beginUpdate();
-    this->node_bounds =value;
-    endUpdate();
+    setProperty(this->node_bounds, value);
   }
 
   //getQueryBounds
@@ -177,9 +167,7 @@ public:
   //setViewDependentEnabled
   void setViewDependentEnabled(bool value) {
     if (bViewDependentEnabled ==value) return;
-    beginUpdate();
-    this->bViewDependentEnabled =value;
-    endUpdate();
+    setProperty(this->bViewDependentEnabled, value);
   }
 
   //exitFromDataflow (to avoid dataset stuck in memory)

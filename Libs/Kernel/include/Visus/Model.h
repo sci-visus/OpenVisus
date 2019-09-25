@@ -115,6 +115,13 @@ public:
     }
   }
 
+  template <typename Value>
+  void setProperty(Value& dst, Value src) {
+    beginUpdate();
+    dst = src;
+    endUpdate();
+  }
+
   //addView
   void addView(BaseView* value) {
     this->views.push_back(value);

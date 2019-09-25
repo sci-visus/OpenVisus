@@ -107,9 +107,9 @@ public:
   //processInput
   virtual bool processInput() override;
 
-  //getFieldRange
-  Range getFieldRange() const {
-    return field_range;
+  //getLastFieldRange
+  Range getLastFieldRange() const {
+    return last_field_range;
   }
 
   //setField
@@ -126,9 +126,7 @@ public:
   //setIsoValue
   void setIsoValue(double value) {
     if (isovalue==value) return;
-    beginUpdate();
-    this->isovalue=value;
-    endUpdate();
+    setProperty(this->isovalue, value);
   }
 
 public:
@@ -143,7 +141,7 @@ private:
 
   class MyJob;
 
-  Range field_range;
+  Range last_field_range;
 
   double isovalue=0;
 

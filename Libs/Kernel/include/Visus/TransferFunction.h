@@ -60,7 +60,15 @@ public:
   };
 
   //InterpolationMode
-  InterpolationMode()  {
+  InterpolationMode(Type type_= Default) : type(type_)  {
+  }
+
+  //InterpolationMode
+  static InterpolationMode fromString(String s) {
+    if      (s == "Default")  return Default;
+    else if (s == "Flat")     return Flat;
+    else if (s == "Inverted") return Inverted;
+    return Default;
   }
 
   //toString
@@ -73,14 +81,6 @@ public:
       case Default :
       default      : return "Default";
     }
-  }
-
-  //set
-  void set(const String &name)
-  {
-    if      (name=="Default" ) type=Default;
-    else if (name=="Flat"    ) type=Flat;
-    else if (name=="Inverted") type=Inverted;
   }
 
   //get

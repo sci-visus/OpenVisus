@@ -60,9 +60,7 @@ void TimeNode::setCurrentTime(double value,bool bDoPublish)
   //NOTE: I accept even value if not in timesteps...
   if (this->current_time!=value)
   {
-    beginUpdate();
-    this->current_time=value;
-    endUpdate();
+    setProperty(this->current_time, value);
 
     if (bDoPublish)
       doPublish();
@@ -75,9 +73,7 @@ void TimeNode::setUserRange(const Range& value)
   if (this->user_range==value)
     return;
 
-  beginUpdate();
-  this->user_range=value;
-  endUpdate();
+  setProperty(this->user_range, value);
 
   doPublish();
 }
@@ -88,10 +84,7 @@ void TimeNode::setPlayMsec(int value)
   if (this->play_msec==value)
     return;
 
-  beginUpdate();
-  this->play_msec=value;
-  endUpdate();
-
+  setProperty(this->play_msec, value);
   //doPublish();
 }
 

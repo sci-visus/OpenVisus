@@ -95,9 +95,7 @@ public:
   //setShowBounds
   void setShowBounds(bool value) {
     if (show_bounds==value) return;
-    beginUpdate();
-    this->show_bounds=value;
-    endUpdate();
+    setProperty(this->show_bounds, value);
   }
 
   static DatasetNode* castFrom(Node* obj) {

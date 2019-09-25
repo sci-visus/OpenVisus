@@ -110,9 +110,7 @@ public:
   //setLightingEnabled
   void setLightingEnabled(bool value) {
     if (lighting_enabled == value) return;
-    beginUpdate();
-    this->lighting_enabled = value;
-    endUpdate();
+    setProperty(this->lighting_enabled, value);
   }
 
   //getPalette
@@ -132,9 +130,7 @@ public:
     if (palette_enabled == value) 
       return;
     
-    beginUpdate();
-    this->palette_enabled = value;
-    endUpdate();
+    setProperty(this->palette_enabled, value);
   }
 
   //useViewDirection
@@ -145,9 +141,7 @@ public:
   //setUseViewDirection
   void setUseViewDirection(bool value) {
     if (use_view_direction == value) return;
-    beginUpdate();
-    this->use_view_direction = value;
-    endUpdate();
+    setProperty(this->use_view_direction, value);
   }
 
   //maxNumSlices
@@ -158,9 +152,7 @@ public:
   //setMaxNumSlices
   void setMaxNumSlices(int value) {
     if (max_num_slices == value) return;
-    beginUpdate();
-    this->max_num_slices = value;
-    endUpdate();
+    setProperty(this->max_num_slices, value);
   }
 
   //minifyFilter
@@ -171,9 +163,7 @@ public:
   //setMinifyFilter
   void setMinifyFilter(int value) {
     if (minify_filter == value) return;
-    beginUpdate();
-    this->minify_filter = value;
-    endUpdate();
+    setProperty(this->minify_filter, value);
   }
 
   //magnifyFilter
@@ -184,9 +174,7 @@ public:
   //setMagnifyFilter
   void setMagnifyFilter(int value) {
     if (magnify_filter == value) return;
-    beginUpdate();
-    this->magnify_filter = value;
-    endUpdate();
+    setProperty(this->magnify_filter, value);
   }
 
   //glRender

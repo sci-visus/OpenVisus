@@ -78,17 +78,13 @@ public:
   //setMaxPublishMSec
   void setMaxPublishMSec(int value) {
     if (this->max_publish_msec == value) return;
-    beginUpdate();
-    this->max_publish_msec = value;
-    endUpdate();
+    setProperty(this->max_publish_msec, value);
   }
 
   //setCode
   void setCode(String code) {
     if (this->code == code) return;
-    beginUpdate();
-    this->code = code;
-    endUpdate();
+    setProperty(this->code, code);
   }
 
   //addUserInput

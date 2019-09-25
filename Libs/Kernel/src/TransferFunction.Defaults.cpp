@@ -798,12 +798,8 @@ std::vector<String> TransferFunction::getDefaults()
 ////////////////////////////////////////////////////////////////////////////
 void TransferFunction::setNotDefault()
 {
-  if (default_name.empty())
-    return;
-
-  beginUpdate();
-  this->default_name="";
-  endUpdate();
+  if (default_name.empty()) return;
+  setProperty(this->default_name,String(""));
 }
 
 ////////////////////////////////////////////////////////////////////////////

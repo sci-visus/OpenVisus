@@ -83,39 +83,39 @@ public:
       QFormLayout* layout=new QFormLayout();
       
       layout->addRow("color_by_component",widgets.color_by_component=GuiFactory::CreateCheckBox(model->color_by_component,"",[this](int value){
-        model->beginUpdate(); model->color_by_component=value; model->endUpdate();
+        model->setProperty(model->color_by_component,(bool)value);
       }));
 
       layout->addRow("draw_saddles",widgets.draw_saddles=GuiFactory::CreateCheckBox(model->draw_saddles,"",[this](int value){
-        model->beginUpdate(); model->draw_saddles=value; model->endUpdate();
+        model->setProperty(model->draw_saddles, (bool)value);
       }));
 
       layout->addRow("draw_extrema",widgets.draw_extrema=GuiFactory::CreateCheckBox(model->draw_extrema,"",[this](int value){
-        model->beginUpdate(); model->draw_extrema=value; model->endUpdate();
+        model->setProperty(model->draw_extrema, (bool)value);
       }));
 
       layout->addRow("draw_edges",widgets.draw_edges=GuiFactory::CreateCheckBox(model->draw_edges,"",[this](int value){
-        model->beginUpdate(); model->draw_edges=value; model->endUpdate();
+        model->setProperty(model->draw_edges, (bool)value);
       }));
 
       layout->addRow("b2D",widgets.b2D=GuiFactory::CreateCheckBox(model->b2D,"",[this](int value){
-        model->beginUpdate(); model->b2D=value; model->endUpdate();
+        model->setProperty(model->b2D, (bool)value);
       }));
 
       layout->addRow("radius",widgets.radius=GuiFactory::CreateDoubleSliderWidget(model->radius,Range(0.1,10, 0),[this](double value){
-        model->beginUpdate(); model->radius=value; model->endUpdate();
+        model->setProperty(model->radius,value);
       }));
 
       layout->addRow("min_material",widgets.min_material=GuiFactory::CreateGLMaterialView(model->min_material,[this](GLMaterial value){
-        model->beginUpdate(); model->min_material=value; model->endUpdate();
+        model->setProperty(model->min_material,value);
       }));
 
       layout->addRow("max_material",widgets.max_material=GuiFactory::CreateGLMaterialView(model->max_material,[this](GLMaterial value){
-        model->beginUpdate(); model->max_material=value; model->endUpdate();
+        model->setProperty(model->max_material,value);
       }));
 
       layout->addRow("saddle_material",widgets.saddle_material=GuiFactory::CreateGLMaterialView(model->saddle_material,[this](GLMaterial value){
-        model->beginUpdate(); model->saddle_material=value; model->endUpdate();
+        model->setProperty(model->saddle_material,value);
       }));
 
       setLayout(layout);

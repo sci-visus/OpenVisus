@@ -70,9 +70,7 @@ public:
   void setModelview(const Matrix& value) {
     if (this->T==value) return;
     VisusAssert(value.getSpaceDim() == 4);
-    beginUpdate();
-    this->T=value;
-    endUpdate();
+    setProperty(this->T, value);
   }
 
 public:

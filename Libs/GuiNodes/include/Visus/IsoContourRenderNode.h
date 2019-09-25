@@ -78,9 +78,7 @@ public:
   //setMaterial
   void setMaterial(GLMaterial value) {
     if (this->material==value) return;
-    beginUpdate();
-    this->material=value;
-    endUpdate();
+    setProperty(this->material, value);
   }
 
   //getIsoContour
@@ -99,11 +97,8 @@ public:
   //getPalette
   void setPalette(SharedPtr<Palette> value)  {
     value->texture.reset(); //force regeneration
-    beginUpdate();
-    this->palette = value;
-    endUpdate();
+    setProperty(this->palette, value);
   }
-
 
   //dataflow
   virtual bool processInput() override;

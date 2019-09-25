@@ -84,31 +84,31 @@ public:
 
       
       layout->addRow("simplify",widgets.simplify=GuiFactory::CreateCheckBox(model->simplify,"",[this](int value){
-        model->beginUpdate(); model->simplify=value; model->endUpdate();
+        model->setProperty(model->simplify, (bool)value);
       }));
 
       layout->addRow("min_length",widgets.min_length=GuiFactory::CreateDoubleTextBoxWidget(model->min_length,[this](double value){
-        model->beginUpdate(); model->min_length=value; model->endUpdate();
+        model->setProperty(model->min_length, value);
       }));
 
       layout->addRow("min_ratio",widgets.min_ratio=GuiFactory::CreateDoubleTextBoxWidget(model->min_ratio,[this](double value){
-        model->beginUpdate(); model->min_ratio=value; model->endUpdate();
+        model->setProperty(model->min_ratio, value);
       }));
 
       layout->addRow("threshold",widgets.threshold=GuiFactory::CreateDoubleTextBoxWidget(model->threshold,[this](double value){
-        model->beginUpdate(); model->threshold=value; model->endUpdate();
+        model->setProperty(model->threshold, value);
       }));
 
       layout->addRow("bUseMinimaAsSeed",widgets.bUseMinimaAsSeed=GuiFactory::CreateCheckBox(model->bUseMinimaAsSeed,"",[this](int value){
-        model->beginUpdate(); model->bUseMinimaAsSeed=value; model->endUpdate();
+        model->setProperty(model->bUseMinimaAsSeed, (bool)value);
       }));
 
       layout->addRow("bUseMaximaAsSeed",widgets.bUseMaximaAsSeed=GuiFactory::CreateCheckBox(model->bUseMaximaAsSeed,"",[this](int value){
-        model->beginUpdate(); model->bUseMaximaAsSeed=value; model->endUpdate();
+        model->setProperty(model->bUseMaximaAsSeed, (bool)value);
       }));
 
       layout->addRow("min_diam",widgets.min_diam=GuiFactory::CreateDoubleTextBoxWidget(model->min_diam,[this](double value){
-        model->beginUpdate(); model->min_diam=value; model->endUpdate();
+        model->setProperty(model->min_diam, value);
       }));
 
       setLayout(layout);

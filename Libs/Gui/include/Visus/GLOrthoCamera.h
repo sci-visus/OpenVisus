@@ -102,9 +102,7 @@ public:
   //setRotationDisabled
   void setRotationDisabled(bool value) {
     if (bDisableRotation==value) return;
-    beginUpdate();
-    bDisableRotation=value;
-    endUpdate();
+    setProperty(bDisableRotation, value);
   }
 
   //getMaxZoom
@@ -115,9 +113,7 @@ public:
   //setMaxZoom
   void setMaxZoom(double value) {
     if (max_zoom==value) return;
-    beginUpdate();
-    max_zoom=value;
-    endUpdate();
+    setProperty(max_zoom, value);
   }
   
 
@@ -129,9 +125,7 @@ public:
   //setMinZoom
   void setMinZoom(double value) {
     if (min_zoom==value) return;
-    beginUpdate();
-    min_zoom=value;
-    endUpdate();
+    setProperty(min_zoom, value);
   }
 
   //mirror

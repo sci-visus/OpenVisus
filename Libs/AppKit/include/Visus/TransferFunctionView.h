@@ -792,9 +792,7 @@ private:
     value.custom_range.from = cdouble(widgets.input.normalization.custom_range.from->text());
     value.custom_range.to = cdouble(widgets.input.normalization.custom_range.to->text());
     value.custom_range.step = model->output_dtype.isDecimal() ? 0.0 : 1.0;
-    model->beginUpdate();
-    model->input_range = value;
-    model->endUpdate();
+    model->setProperty(model->input_range, value);
   }
 
   //refreshGui
@@ -874,32 +872,23 @@ public:
       layout->addWidget(new QLabel("Output dtype"));
       layout->addWidget(widgets.dtype = GuiFactory::CreateComboBox(model->output_dtype.toString().c_str(),{"uint8","float32","float64"},[this](String s){
           DType value=DType::fromString(s);
-          this->model->beginUpdate();
-          this->model->output_dtype=value;
-          this->model->endUpdate();
+          model->setProperty(model->output_dtype,value);
           update();
       }));
 
       layout->addWidget(new QLabel("Range from"));
       layout->addWidget(widgets.range_from = GuiFactory::CreateDoubleTextBoxWidget(model->output_range.from,[this](double value){
-
-        this->model->beginUpdate();
-          this->model->output_range=Range(value,model->output_range.to,0);
-          this->model->endUpdate();
+        model->setProperty(model->output_range,Range(value,model->output_range.to,0));
       }));
 
       layout->addWidget(new QLabel("Range to"));
       layout->addWidget(widgets.range_to = GuiFactory::CreateDoubleTextBoxWidget(model->output_range.to,[this](double value){
-        this->model->beginUpdate();
-          this->model->output_range = Range(model->output_range.from,value,0);
-          this->model->endUpdate();
+        model->setProperty(model->output_range , Range(model->output_range.from,value,0));
         }));
 
       layout->addWidget(new QLabel("Attenuation"));
       layout->addWidget(widgets.attenuation=GuiFactory::CreateDoubleSliderWidget(model->attenuation,Range(0,1,0),[this](double value){
-        this->model->beginUpdate();
-        this->model->attenuation=value;
-        this->model->endUpdate();
+        model->setProperty(model->attenuation,value);
       }));
 
       setLayout(layout);
@@ -1004,9 +993,7 @@ public:
         {
           auto values = InterpolationMode::getValues();
           auto combo = GuiFactory::CreateComboBox(values[0], values, [this](String type) {
-            this->model->beginUpdate();
-            this->model->interpolation.set(type);
-            this->model->endUpdate();
+            this->model->setProperty(this->model->interpolation,InterpolationMode::fromString(type));
           });
           combo->setCurrentText(this->model->interpolation.toString().c_str());
           row->addWidget(widgets.default_interpolation = combo);

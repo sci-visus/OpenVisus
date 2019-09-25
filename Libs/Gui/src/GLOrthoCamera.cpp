@@ -155,9 +155,7 @@ void GLOrthoCamera::glMouseMoveEvent(QMouseEvent* evt)
     Point2d T1 = map.unprojectPoint(p2.castTo<Point2d>()).toPoint2();
 
     beginUpdate();
-    {
-      translate(t1 - T1);
-    }
+    translate(t1 - T1);
     endUpdate();
 
     evt->accept();
@@ -216,9 +214,7 @@ void GLOrthoCamera::glKeyPressEvent(QKeyEvent* evt)
 
   if (key==Qt::Key_M) 
   {
-    beginUpdate();
-    smooth=smooth? 0 : 0.90;
-    endUpdate();
+    setProperty(smooth, smooth ? 0 : 0.90);
     evt->accept();
     return;
   }
@@ -398,9 +394,7 @@ void GLOrthoCamera::refineToFinal()
     }
   }
 
-  beginUpdate();
-  this->ortho_params=ortho_params;
-  endUpdate();
+  setProperty(this->ortho_params, ortho_params);
 }
 
 
@@ -417,12 +411,10 @@ void GLOrthoCamera::translate(Point2d vt)
 ////////////////////////////////////////////////////////////////
 void GLOrthoCamera::rotate(double quantity)
 {
-  if (!quantity)
+  if (!quantity || bDisableRotation)
     return;
 
-  beginUpdate();
-  this->rotation_angle += bDisableRotation ? 0.0 : quantity;
-  endUpdate();
+  setProperty(this->rotation_angle, this->rotation_angle + bDisableRotation ? 0.0 : quantity);
 }
 
 

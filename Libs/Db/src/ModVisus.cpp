@@ -736,7 +736,7 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
         tf.input_range = ComputeRange::createCustom(palette_min, palette_max);
 
       if (!palette_interp.empty())
-        tf.interpolation.set(palette_interp);
+        tf.interpolation=InterpolationMode::fromString(palette_interp);
 
       buffer = tf.applyToArray(buffer);
       if (!buffer)
@@ -830,7 +830,7 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
         tf.input_range = ComputeRange::createCustom(palette_min, palette_max);
 
       if (!palette_interp.empty())
-        tf.interpolation.set(palette_interp);
+        tf.interpolation=InterpolationMode::fromString(palette_interp);
 
       buffer = tf.applyToArray(buffer);
       if (!buffer)

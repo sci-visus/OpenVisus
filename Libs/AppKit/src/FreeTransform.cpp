@@ -61,9 +61,7 @@ bool FreeTransform::setObject(Position obj,bool bEmitSignal)
     obj.getTransformation().withSpaceDim(4), 
     obj.getBoxNd().withPointDim(3));
 
-  beginUpdate();
-  this->obj=obj;
-  endUpdate();
+  setProperty(this->obj, obj);
 
   if (!dragging.type)
     this->lcs=LocalCoordinateSystem(this->obj).toUniformSize();

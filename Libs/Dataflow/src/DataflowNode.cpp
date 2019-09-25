@@ -96,9 +96,7 @@ void Node::setName(String new_value)
   if (old_value==new_value)
     return;
 
-  beginUpdate();
-  this->name=new_value;
-  endUpdate();
+  setProperty(this->name, new_value);
 
   if (dataflow)
   {
@@ -116,9 +114,7 @@ void Node::setHidden(bool new_value)
   if (old_value==new_value)
     return;
 
-  beginUpdate();
-  this->hidden=new_value;
-  endUpdate();
+  setProperty(this->hidden, new_value);
 
   if (dataflow)
   {

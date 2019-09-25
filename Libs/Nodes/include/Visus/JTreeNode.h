@@ -67,9 +67,7 @@ public:
   //setMinimaTree
   void setMinimaTree(bool value) {
     if (minima_tree==value) return;
-    beginUpdate();
-    minima_tree=value;
-    endUpdate();
+    setProperty(minima_tree, value);
     recompute();
   }
 
@@ -81,9 +79,7 @@ public:
   //setMinPersistence
   void setMinPersistence(double value) {
     if (min_persistence==value) return;
-    beginUpdate();
-    min_persistence=value;
-    endUpdate();
+    setProperty(min_persistence, value);
     recompute(false);
   }
 
@@ -95,9 +91,7 @@ public:
   //setReduceMinMax
   void setReduceMinMax(bool value) {
     if (reduce_minmax==value) return;
-    beginUpdate();
-    reduce_minmax=value;
-    endUpdate();
+    setProperty(reduce_minmax, value);
     recompute(false);
   }
 
@@ -109,9 +103,7 @@ public:
   //setThresholdMin
   void setThresholdMin(double value) {
     if (threshold_min==value) return;
-    beginUpdate();
-    threshold_min=value;
-    endUpdate();
+    setProperty(threshold_min, value);
     recompute();
   }
 
@@ -124,9 +116,7 @@ public:
   //setThresholdMax
   void setThresholdMax(double value) {
     if (threshold_max==value) return;
-    beginUpdate();
-    threshold_max=value;
-    endUpdate();
+    setProperty(threshold_max, value);
     recompute();
   }
 
@@ -138,9 +128,7 @@ public:
   //setAutoThreshold
   void setAutoThreshold(bool value) {
     if (auto_threshold==value) return;
-    beginUpdate();
-    auto_threshold=value;
-    endUpdate();
+    setProperty(auto_threshold, value);
     recompute();
   }
 
