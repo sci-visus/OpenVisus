@@ -213,9 +213,21 @@ public:
   //showLicences
   void showLicences();
 
-  //createAction
 #if !SWIG
-  virtual SharedPtr<Action> createAction(String TypeName) override;
+
+  //beginUpdate
+  virtual void beginUpdate() override {
+    pushAction(StringTree("Transaction"));
+  }
+
+  //endUpdate
+  virtual void endUpdate() override {
+    popAction();
+  }
+
+  //executeAction
+  void executeAction(StringTree action,bool bRedo);
+
 #endif
 
   //getModel
@@ -501,17 +513,6 @@ public:
   }
 
 private:
-
-  class DropProcessing;
-  class SetFastRendering;
-  class AddNode;
-  class RemoveNode;
-  class MoveNode;
-  class SetSelection;
-  class ConnectPorts;
-  class DisconnectPorts;
-  class ChangeNode;
-  class RefreshData;
 
   //setBlueMenu
   static void setBlueMenu(QMenu* menu)

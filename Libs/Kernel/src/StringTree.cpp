@@ -399,13 +399,12 @@ void StringTree::writeString(String key,String value)
     {
       VisusAssert(false); return;
     }
-    StringTree* cursor = const_cast<StringTree*>(this),*next=nullptr;
+    StringTree* cursor = const_cast<StringTree*>(this);
     for (int I = 0; I < (int)vkey.size() - 1; I++)
     {
-      next = cursor->findChildWithName(vkey[I]);
-      if (!next)
-        next = cursor->addChild(StringTree(vkey[I]));
-      cursor = next;
+      if (!cursor->findChildWithName(vkey[I]))
+        cursor->addChild(StringTree(vkey[I]));
+      cursor = cursor->findChildWithName(vkey[I]);
     }
     cursor->writeString(vkey.back(), value);
   }

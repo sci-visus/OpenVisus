@@ -159,147 +159,6 @@ class UndoableModel : public Model
 {
 public:
 
-  //________________________________________________________
-  class Action
-  {
-  public:
-
-    Time time=Time::now();
-
-    String TypeName;
-
-    //constructor
-    Action(String TypeName_) : TypeName(TypeName_) {
-    }
-
-    //destructor
-    virtual ~Action() {
-    }
-
-    //getTypeName
-    String getTypeName() const {
-      return TypeName;
-    }
-
-    //redo
-    virtual void redo(Target* target)=0;
-
-    //undo
-    virtual void undo(Target* target)=0;
-
-    //write
-    virtual void write(Target* target,ObjectStream& ostream)  {
-      ostream.writeInline("UTC",cstring(time.getUTCMilliseconds()));
-    }
-
-    //read
-    virtual void read(Target* target,ObjectStream& istream) {
-      this->time=Time(cint64(istream.readInline("UTC")));
-    }
-
-  };
-
-  //_______________________________________________________
-  class Transaction : public Action
-  {
-  public:
-
-    std::vector< SharedPtr<Action> > actions;
-
-    //constructor
-    Transaction() : Action("Transaction"){
-    }
-
-    //destructor
-    virtual ~Transaction()
-    {}
-
-    //redo
-    virtual void redo(Target* target) override
-    {
-      target->beginUpdate();
-      for (auto action : this->actions)
-        action->redo(target);
-      target->endUpdate();
-    }
-
-    //undo
-    virtual void undo(Target* target) override
-    {
-      auto actions=this->actions;
-      std::reverse(actions.begin(),actions.end());
-      target->beginUpdate();
-      for (auto action : actions)
-        action->undo(target); 
-      target->endUpdate();
-    }
-
-    //empty
-    bool empty() const {
-      return actions.empty();
-    }
-
-    //simplify
-    void simplify() 
-    {
-      auto actions=this->actions;
-      this->actions.clear();
-
-      for (auto action : actions) 
-      {
-        if (auto group=std::dynamic_pointer_cast<Transaction>(action)) 
-        {
-          group->simplify();
-          for (auto inner : group->actions)
-            this->actions.push_back(inner);
-        }
-        else
-        {
-          this->actions.push_back(action);
-        }
-      }
-    }
-
-    //write
-    virtual void write(Target* target,ObjectStream& ostream) override
-    {
-      Action::write(target,ostream);
-      for (auto action : this->actions)
-      {
-        String TypeName=action->TypeName;
-        ostream.pushContext(TypeName);
-        action->write(target,ostream);
-        ostream.popContext(TypeName);
-      }
-    }
-
-    //read
-    virtual void read(Target* target,ObjectStream& istream) override
-    {
-      Action::read(target,istream);
-      this->actions.clear();
-      for (int I=0;I<istream.getCurrentContext()->getNumberOfChilds();I++)
-      {
-        if (istream.getCurrentContext()->getChild(I).isHashNode())
-          continue;
-
-        String TypeName=istream.getCurrentContext()->getChild(I).name;
-        auto action=target->createAction(TypeName); 
-        VisusAssert(action);
-        this->actions.push_back(action);
-
-        istream.pushContext(TypeName);
-        action->read(target,istream);
-        istream.popContext(TypeName);
-      }
-    }
-
-  private:
-
-    VISUS_NON_COPYABLE_CLASS(Transaction)
-
-  };
-
   //constructor
   UndoableModel() {
   }
@@ -308,36 +167,20 @@ public:
   virtual ~UndoableModel() {
   }
 
-  //createAction
-  virtual SharedPtr<Action> createAction(String TypeName)=0;
-
   //target
   Target* target() {
     return dynamic_cast<Target*>(this);
   }
-
-  //beginUpdate
-  virtual void beginUpdate() override {
-    pushAction(std::make_shared<Transaction>());
-  }
-
-  //endUpdate
-   virtual void endUpdate() override  {
-    popAction();
-  }
-
+  
   //pushAction
-  void pushAction(SharedPtr<Action> action) 
+  void pushAction(StringTree _action_) 
   {
+    auto action = std::make_shared<StringTree>(_action_);
+
     if (stack.empty())
-    {
       this->Model::beginUpdate();
-    }
-    else if (auto group = std::dynamic_pointer_cast<Transaction>(stack.top()))
-    {
-      action->time=Time::now();
-      group->actions.push_back(action);
-    }
+    else 
+      topAction()->addChild(action);
 
     stack.push(action);
   }
@@ -345,14 +188,30 @@ public:
   //popAction
   void popAction() 
   {
-    auto action=stack.top();
+    auto action= topAction();
     stack.pop();
 
     if (stack.empty())
     {
-      addActionToHistory(action);
+      history.push_back(action);
+
+      if (!bUndoing && !bRedoing)
+      {
+        undo_redo.resize(n_undo_redo++);
+        undo_redo.push_back(action);
+      }
+
+      if (log.is_open())
+        log << action->toString() << std::endl << std::endl;
+
       this->Model::endUpdate();
     }
+  }
+
+
+  //topAction
+  SharedPtr<StringTree> topAction() const {
+    return stack.top();
   }
 
   //clearHistory
@@ -361,7 +220,7 @@ public:
     VisusAssert(stack.empty());
     this->history.clear();
     this->log.close();
-    this->stack = std::stack< SharedPtr<Action> >();
+    this->stack = std::stack< SharedPtr<StringTree> >();
     this->undo_redo.clear();
     this->n_undo_redo = 0;
     this->bUndoing = false;
@@ -369,13 +228,8 @@ public:
   }
 
   //getHistory
-  const std::vector< SharedPtr<Action> >& getHistory() const {
+  std::vector< SharedPtr<StringTree> > getHistory() const {
     return history;
-  }
-
-  //getTopAction
-  SharedPtr<Action> getTopAction() const {
-    return stack.empty()? SharedPtr<Action>() : stack.top();
   }
 
   //canUndo
@@ -383,42 +237,34 @@ public:
     return !undo_redo.empty() && n_undo_redo>0;
   }
 
+
+  //canRedo
+  bool canRedo() const {
+    return !undo_redo.empty() && n_undo_redo < undo_redo.size();
+  }
+
   //undo
   bool undo() {
     VisusAssert(VisusHasMessageLock());
     VisusAssert(!bUndoing && !bRedoing);
-
-    if (!canUndo()) 
-      return false;
-
+    if (!canUndo()) return false;
     auto action=undo_redo[--n_undo_redo];
-
     bUndoing=true;
-    action->undo(target());
+    target()->executeAction(*action,false);
     bUndoing=false;
-
     return true;
   }
 
-  //canRedo
-  bool canRedo() const {
-    return !undo_redo.empty() && n_undo_redo<undo_redo.size();
-  }
 
   //redo
   bool redo() {
     VisusAssert(VisusHasMessageLock());
     VisusAssert(!bUndoing && !bRedoing) ;
-
-    if (!canRedo()) 
-      return false;
-
+    if (!canRedo())  return false;
     auto action=undo_redo[n_undo_redo++];
-
     bRedoing=true;
-    action->redo(target());
+    target()->executeAction(*action, true);
     bRedoing=false;
-
     return true;
   }
 
@@ -434,42 +280,13 @@ public:
   
 private:
 
-  std::vector< SharedPtr<Action> > history;
-  std::ofstream                    log;
-
-  std::stack< SharedPtr<Action> >  stack;
-  std::vector< SharedPtr<Action> > undo_redo;
-  int                              n_undo_redo=0;
-  bool                             bUndoing=false;
-  bool                             bRedoing=false;
-
-  //addActionToHistory
-  void addActionToHistory(SharedPtr<Action> action) 
-  {
-    if (auto transaction=std::dynamic_pointer_cast<Transaction>(action))
-    {
-      transaction->simplify();
-      if (transaction->empty())
-        return;
-    }
-
-    history.push_back(action);
-
-    if (!bUndoing && !bRedoing)
-    {
-      undo_redo.resize(n_undo_redo++);
-      undo_redo.push_back(action);
-    }
-
-    if (log.is_open())
-    {
-      StringTree stree(action->getTypeName());
-      ObjectStream ostream(stree, 'w');
-      action->write(target(),ostream);
-      ostream.close(); 
-      log<<stree.toString()<<std::endl<<std::endl;
-    }
-  }
+  std::vector< SharedPtr<StringTree> > history;
+  std::ofstream                        log;
+  std::stack< SharedPtr<StringTree> >  stack;
+  std::vector< SharedPtr<StringTree> > undo_redo;
+  int                                  n_undo_redo=0;
+  bool                                 bUndoing=false;
+  bool                                 bRedoing=false;
 
 };
 

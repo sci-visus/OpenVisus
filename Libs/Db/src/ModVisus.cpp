@@ -151,7 +151,8 @@ private:
   {
     datasets_map[name] = dataset;
 
-    StringTree* child = dst.addChild(StringTree("dataset"));
+    auto child = std::make_shared<StringTree>("dataset");
+    dst.addChild(child);
 
     //for example kdquery=true could be maintained!
     child->attributes = dataset->getConfig().attributes;
@@ -254,10 +255,8 @@ private:
       return 0;
     }  
     scenes_map[name] = scene;
+    dst.addChild(StringTree("scene","name",name,"url", getSceneUrl(name)));
 
-    StringTree* child = dst.addChild(StringTree("scene"));
-    child->writeString("name", name);
-    child->writeString("url", getSceneUrl(name));
     return 1;
   }
 

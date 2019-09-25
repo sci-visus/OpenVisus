@@ -328,9 +328,9 @@ private:
     default:              VisusAssert(false);
     }
 
-    StringTree* fields = imginfo.addChild(StringTree("fields"));
-    StringTree* field = fields->addChild(StringTree("field"));
-    field->writeString("dtype", dtype.toString());
+    auto fields = std::make_shared<StringTree>("fields");
+    fields->addChild(StringTree("field", "dtype", dtype.toString()));
+    imginfo.addChild(fields);
   }
 
   static Array FreeImageToArray(FIBITMAP* bitmap_)

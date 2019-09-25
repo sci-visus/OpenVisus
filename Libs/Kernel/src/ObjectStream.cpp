@@ -43,7 +43,9 @@ namespace Visus {
 
 /////////////////////////////////////////////////////////////
 void ObjectStream::writeText(const String& value,bool bCData)
-{bCData?getCurrentContext()->addCDataSectionNode(value):getCurrentContext()->addTextNode(value);}
+{
+  getCurrentContext()->writeText(value, bCData);
+}
 
 /////////////////////////////////////////////////////////////
 String ObjectStream::readText()

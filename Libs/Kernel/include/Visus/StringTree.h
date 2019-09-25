@@ -220,9 +220,14 @@ public:
   }
 
   //addChild
-  StringTree* addChild(const StringTree& child) {
+  void addChild(SharedPtr<StringTree> child) {
+    childs.push_back(child);
+  }
+
+  //addChild
+  void addChild(const StringTree& child) {
     childs.push_back(std::make_shared<StringTree>(child)); 
-    return childs.back().get();
+    //return childs.back().get();
   }
 
   //findChildWithName
@@ -285,6 +290,12 @@ public:
   //addCommentNode
   void addCommentNode(String text){
     addChild(StringTree("#comment", "value", text));
+  }
+
+  //writeText
+  void writeText(const String& value,bool bCData)
+  {
+    bCData ? addCDataSectionNode(value) : addTextNode(value);
   }
 
   //collapseTextAndCData (backward compatible, collect all text in TextNode and CDataSectionNode)
