@@ -228,9 +228,8 @@ public:
   }
 
   //constructor
-  SetSelection(Node* value) : SetSelection()
-  {
-    this->value = value ? value->getUUID() : "";
+  SetSelection(String value_) : SetSelection() {
+    this->value = value_;
   }
 
   //destructor
@@ -263,20 +262,20 @@ public:
 
   String     parent;
   String     node;
-  int        index = -1;
   StringTree encoded;
+  int        index = -1;
 
   //constructor
   AddNode() : Action("AddNode")  {
   }
 
   //constructor
-  AddNode(Node* parent, Node* node, int index = -1) : AddNode()
+  AddNode(String parent_, String node_, StringTree encoded_,int index_ = -1) : AddNode()
   {
-    this->parent = parent ? parent->getUUID() : "";
-    this->index = index;
-    this->node = node ? node->getUUID() : "";
-    this->encoded = EncodeNode(node);
+    this->parent = parent_;
+    this->node = node_;
+    this->encoded = encoded_;
+    this->index = index_;
   }
 
   //destructor
@@ -315,20 +314,17 @@ class RemoveNode : public Action
 {
 public:
 
-  String     parent;
+
   String     node;
-  int        index;
 
   //constructor
   RemoveNode() : Action("RemoveNode") {
   }
 
   //destructor
-  RemoveNode(Node* node) : RemoveNode()
+  RemoveNode(String node_) : RemoveNode()
   {
-    this->node    = node->getUUID();
-    this->parent  = node->getParent()? node->getParent()->getUUID() : "";
-    this->index   = node->getIndexInParent();
+    this->node    = node_;
   }
 
   //destructor
@@ -346,17 +342,13 @@ public:
   //writeToObjectStream
   virtual void writeToObjectStream(ObjectStream& ostream) override
   {
-    ostream.writeInline("parent", parent);
     ostream.writeInline("node",  node);
-    ostream.writeInline("index", cstring(index));
   }
 
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override
   {
-    this->parent = istream.readInline("parent");
     this->node = istream.readInline("node");
-    this->index = cint(istream.readInline("index", "-1"));
   }
 
 };
@@ -373,10 +365,10 @@ public:
   }
 
   //constructor
-  MoveNode(Node* dst, Node* src, int index = -1) : MoveNode()
+  MoveNode(String dst_, String src_, int index = -1) : MoveNode()
   {
-    this->dst = dst->getUUID();
-    this->src = src->getUUID();
+    this->dst = dst_;
+    this->src = src_;
     this->index = index;
   }
 
@@ -524,8 +516,8 @@ public:
   }
 
   //constructor
-  RefreshData(Node* node) : RefreshData(){
-    this->node = node? node->getUUID() : "";
+  RefreshData(String node_) : RefreshData(){
+    this->node = node_;
   }
 
   //destructor
@@ -1076,8 +1068,8 @@ void Viewer::moveNode(Node* dst, Node* src, int index)
     return;
 
   pushAction(
-    std::make_shared<MoveNode>(dst, src, index)->toStringTree(),
-    std::make_shared<MoveNode>(src->getParent(),src,src->getIndexInParent())->toStringTree());
+    std::make_shared<MoveNode>(getUUID(dst)             , getUUID(src),                   index)->toStringTree(),
+    std::make_shared<MoveNode>(getUUID(src->getParent()), getUUID(src), src->getIndexInParent())->toStringTree());
   dataflow->moveNode(dst, src, index);
   popAction();
 
@@ -1885,8 +1877,8 @@ void Viewer::setSelection(Node* value)
     return;
 
   pushAction(
-    std::make_shared<SetSelection>(    value)->toStringTree(),
-    std::make_shared<SetSelection>(old_value)->toStringTree());
+    std::make_shared<SetSelection>(getUUID(    value))->toStringTree(),
+    std::make_shared<SetSelection>(getUUID(old_value))->toStringTree());
   dataflow->setSelection(value);
   popAction();
 
@@ -1967,8 +1959,8 @@ void Viewer::addNode(Node* parent,Node* node,int index)
   {
     dropSelection();
     pushAction(
-      std::make_shared<AddNode>(parent,node,index)->toStringTree(),
-      std::make_shared<RemoveNode>(node)->toStringTree());
+      std::make_shared<AddNode>(getUUID(parent),getUUID(node),EncodeNode(node),index)->toStringTree(),
+      std::make_shared<RemoveNode>(getUUID(node))->toStringTree());
     dataflow->addNode(parent,node,index);
     popAction();
   }
@@ -2022,8 +2014,8 @@ void Viewer::removeNode(Node* NODE)
     VisusAssert(node->isOrphan());
 
     pushAction(
-      std::make_shared<RemoveNode>(node)->toStringTree(),
-      std::make_shared<AddNode>(node->getParent(),node,node->getIndexInParent())->toStringTree());
+      std::make_shared<RemoveNode>(getUUID(node))->toStringTree(),
+      std::make_shared<AddNode>(getUUID(node->getParent()),getUUID(node),EncodeNode(node),node->getIndexInParent())->toStringTree());
     {
       //don't care about disconnecting slots, the node is going to be deallocated
       dataflow->removeNode(node);
@@ -2104,8 +2096,8 @@ void Viewer::autoConnectPorts()
 void Viewer::refreshData(Node* node)
 {
   pushAction(
-    std::make_shared<RefreshData>(node)->toStringTree(),
-    std::make_shared<RefreshData>(node)->toStringTree());
+    std::make_shared<RefreshData>(getUUID(node))->toStringTree(),
+    std::make_shared<RefreshData>(getUUID(node))->toStringTree());
 
   if (node)
   {
@@ -2722,7 +2714,7 @@ void Viewer::writeToObjectStream(ObjectStream& ostream)
     {
       if (node->getParent()) continue;
       ostream.pushContext("AddNode");
-      AddNode(nullptr, node, -1).writeToObjectStream(ostream);
+      AddNode(getUUID(nullptr), getUUID(node), EncodeNode(node), -1).writeToObjectStream(ostream);
       ostream.popContext("AddNode");
     }
 
@@ -2732,7 +2724,7 @@ void Viewer::writeToObjectStream(ObjectStream& ostream)
       if (node == root) continue;
       VisusAssert(node->getParent());
       ostream.pushContext("AddNode");
-      AddNode(node->getParent(), node, -1).writeToObjectStream(ostream);
+      AddNode(getUUID(node->getParent()), getUUID(node), EncodeNode(node), -1).writeToObjectStream(ostream);
       ostream.popContext("AddNode");
     }
 
@@ -2757,7 +2749,7 @@ void Viewer::writeToObjectStream(ObjectStream& ostream)
     if (auto selection=getSelection())
     {
       ostream.pushContext("SetSelection");
-      SetSelection(selection).writeToObjectStream(ostream);
+      SetSelection(getUUID(selection)).writeToObjectStream(ostream);
       ostream.popContext("SetSelection");
     }
   }
