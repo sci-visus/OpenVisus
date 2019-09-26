@@ -356,11 +356,11 @@ void QueryNode::writeToObjectStream(ObjectStream& ostream)
 {
   Node::writeToObjectStream(ostream);
 
-  ostream.write("verbose", cstring(verbose));
-  ostream.write("accessindex",cstring(accessindex));
-  ostream.write("view_dependent",cstring(bViewDependentEnabled));
-  ostream.write("progression",std::to_string(progression));
-  ostream.write("quality",std::to_string(quality));
+  ostream.writeValue("verbose", cstring(verbose));
+  ostream.writeValue("accessindex",cstring(accessindex));
+  ostream.writeValue("view_dependent",cstring(bViewDependentEnabled));
+  ostream.writeValue("progression",std::to_string(progression));
+  ostream.writeValue("quality",std::to_string(quality));
 
   ostream.pushContext("bounds");
   node_bounds.writeToObjectStream(ostream);
@@ -374,11 +374,11 @@ void QueryNode::readFromObjectStream(ObjectStream& istream)
 {
   Node::readFromObjectStream(istream);
 
-  this->verbose = cint(istream.read("verbose"));
-  this->accessindex=cint(istream.read("accessindex"));
-  this->bViewDependentEnabled=cbool(istream.read("view_dependent"));
-  this->progression=(QueryProgression)cint(istream.read("progression"));
-  this->quality=(QueryQuality)cint(istream.read("quality"));
+  this->verbose = cint(istream.readValue("verbose"));
+  this->accessindex=cint(istream.readValue("accessindex"));
+  this->bViewDependentEnabled=cbool(istream.readValue("view_dependent"));
+  this->progression=(QueryProgression)cint(istream.readValue("progression"));
+  this->quality=(QueryQuality)cint(istream.readValue("quality"));
 
   istream.pushContext("bounds");
   node_bounds.readFromObjectStream(istream);

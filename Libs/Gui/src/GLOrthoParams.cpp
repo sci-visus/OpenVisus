@@ -120,12 +120,12 @@ void GLOrthoParams::fixAspectRatio(const Viewport& old_value, const Viewport& ne
 ////////////////////////////////////////////////////////////////////////
 void GLOrthoParams::writeToObjectStream(ObjectStream& ostream) 
 {
-  ostream.writeInline("left", cstring(left));
-  ostream.writeInline("right", cstring(right));
-  ostream.writeInline("bottom", cstring(bottom));
-  ostream.writeInline("top", cstring(top));
-  ostream.writeInline("zNear", cstring(zNear));
-  ostream.writeInline("zFar", cstring(zFar));
+  ostream.writeString("left", cstring(left));
+  ostream.writeString("right", cstring(right));
+  ostream.writeString("bottom", cstring(bottom));
+  ostream.writeString("top", cstring(top));
+  ostream.writeString("zNear", cstring(zNear));
+  ostream.writeString("zFar", cstring(zFar));
 }
 
 ////////////////////////////////////////////////////////////////////////

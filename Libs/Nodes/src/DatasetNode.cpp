@@ -86,12 +86,12 @@ void DatasetNode::writeToObjectStream(ObjectStream& ostream)
   if (dataset)
   {
     ostream.pushContext("dataset");
-    ostream.writeInline("TypeName",dataset->getTypeName());
+    ostream.writeString("TypeName",dataset->getTypeName());
     dataset->writeToObjectStream(ostream);
     ostream.popContext("dataset");
   }
 
-  ostream.write("show_bounds",cstring(show_bounds));
+  ostream.writeValue("show_bounds",cstring(show_bounds));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -107,7 +107,7 @@ void DatasetNode::readFromObjectStream(ObjectStream& istream)
     istream.popContext("dataset");
   }
 
-  show_bounds=cbool(istream.read("show_bounds"));
+  show_bounds=cbool(istream.readValue("show_bounds"));
 }
 
 } //namespace Visus

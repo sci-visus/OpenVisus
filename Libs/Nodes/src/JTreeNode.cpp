@@ -736,12 +736,12 @@ void JTreeNode::writeToObjectStream(ObjectStream& ostream)
 {
   Node::writeToObjectStream(ostream);
 
-  ostream.write("minima_tree",cstring(minima_tree));
-  ostream.write("min_persistence",cstring(min_persistence));
-  ostream.write("reduce_minmax",cstring(reduce_minmax));
-  ostream.write("threshold_min",cstring(threshold_min));
-  ostream.write("threshold_max",cstring(threshold_max));
-  ostream.write("auto_threshold",cstring(auto_threshold));
+  ostream.writeValue("minima_tree",cstring(minima_tree));
+  ostream.writeValue("min_persistence",cstring(min_persistence));
+  ostream.writeValue("reduce_minmax",cstring(reduce_minmax));
+  ostream.writeValue("threshold_min",cstring(threshold_min));
+  ostream.writeValue("threshold_max",cstring(threshold_max));
+  ostream.writeValue("auto_threshold",cstring(auto_threshold));
 }
 
 ////////////////////////////////////////////////////////////
@@ -749,12 +749,12 @@ void JTreeNode::readFromObjectStream(ObjectStream& istream)
 {
   Node::readFromObjectStream(istream);
 
-  minima_tree=cbool(istream.read("minima_tree"));
-  min_persistence=cdouble(istream.read("min_persistence"));
-  reduce_minmax=cbool(istream.read("reduce_minmax"));
-  threshold_min=cdouble(istream.read("threshold_min"));
-  threshold_max=cdouble(istream.read("threshold_max"));
-  auto_threshold=cbool(istream.read("auto_threshold"));
+  minima_tree=cbool(istream.readValue("minima_tree"));
+  min_persistence=cdouble(istream.readValue("min_persistence"));
+  reduce_minmax=cbool(istream.readValue("reduce_minmax"));
+  threshold_min=cdouble(istream.readValue("threshold_min"));
+  threshold_max=cdouble(istream.readValue("threshold_max"));
+  auto_threshold=cbool(istream.readValue("auto_threshold"));
 }
 
 } //namespace Visus

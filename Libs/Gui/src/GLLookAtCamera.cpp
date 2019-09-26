@@ -334,7 +334,6 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
       StringTree stree(this->getTypeName());
       ObjectStream ostream(stree, 'w');
       this->writeToObjectStream(ostream);
-      ostream.close();
       VisusInfo() << stree.toXmlString();
       evt->accept();
       return;
@@ -563,17 +562,17 @@ void GLLookAtCamera::writeToObjectStream(ObjectStream& ostream)
 {
   GLCamera::writeToObjectStream(ostream);
 
-  ostream.write("bound",bound.toString(/*bInterleave*/false));
-  ostream.write("pos",pos.toString());
-  ostream.write("dir",dir.toString());
-  ostream.write("vup",vup.toString());
-  ostream.write("quaternion",quaternion.toString());
-  ostream.write("centerOfRotation",centerOfRotation.toString());
-  ostream.write("defaultRotFactor",cstring(defaultRotFactor));
-  ostream.write("defaultPanFactor",cstring(defaultPanFactor));
-  ostream.write("disableRotation",cstring(bDisableRotation));
-  ostream.write("bUseOrthoProjection",cstring(bUseOrthoProjection));
-  ostream.write("bAutoOrthoParams",cstring(bAutoOrthoParams));
+  ostream.writeValue("bound",bound.toString(/*bInterleave*/false));
+  ostream.writeValue("pos",pos.toString());
+  ostream.writeValue("dir",dir.toString());
+  ostream.writeValue("vup",vup.toString());
+  ostream.writeValue("quaternion",quaternion.toString());
+  ostream.writeValue("centerOfRotation",centerOfRotation.toString());
+  ostream.writeValue("defaultRotFactor",cstring(defaultRotFactor));
+  ostream.writeValue("defaultPanFactor",cstring(defaultPanFactor));
+  ostream.writeValue("disableRotation",cstring(bDisableRotation));
+  ostream.writeValue("bUseOrthoProjection",cstring(bUseOrthoProjection));
+  ostream.writeValue("bAutoOrthoParams",cstring(bAutoOrthoParams));
 
   ostream.pushContext("ortho_params");
   ortho_params.writeToObjectStream(ostream);
@@ -585,18 +584,18 @@ void GLLookAtCamera::readFromObjectStream(ObjectStream& istream)
 {
   GLCamera::readFromObjectStream(istream);
 
-  bound = BoxNd::parseFromString(istream.read("bound"),/*bInterleave*/false);
+  bound = BoxNd::parseFromString(istream.readValue("bound"),/*bInterleave*/false);
   bound.setPointDim(3);
-  pos              = Point3d(istream.read("pos"));
-  dir              = Point3d(istream.read("dir"));
-  vup              = Point3d(istream.read("vup"));
-  centerOfRotation = Point3d(istream.read("centerOfRotation"));
-  quaternion       = Quaternion(istream.read("quaternion"));
-  defaultRotFactor =cdouble(istream.read("defaultRotFactor"));
-  defaultPanFactor =cdouble(istream.read("defaultPanFactor"));
-  bDisableRotation =cbool  (istream.read("disableRotation"));
-  bUseOrthoProjection=cbool (istream.read("bUseOrthoProjection"));
-  bAutoOrthoParams=cbool(istream.read("bAutoOrthoParams","1"));
+  pos              = Point3d(istream.readValue("pos"));
+  dir              = Point3d(istream.readValue("dir"));
+  vup              = Point3d(istream.readValue("vup"));
+  centerOfRotation = Point3d(istream.readValue("centerOfRotation"));
+  quaternion       = Quaternion(istream.readValue("quaternion"));
+  defaultRotFactor =cdouble(istream.readValue("defaultRotFactor"));
+  defaultPanFactor =cdouble(istream.readValue("defaultPanFactor"));
+  bDisableRotation =cbool  (istream.readValue("disableRotation"));
+  bUseOrthoProjection=cbool (istream.readValue("bUseOrthoProjection"));
+  bAutoOrthoParams=cbool(istream.readValue("bAutoOrthoParams","1"));
 
   istream.pushContext("ortho_params");
   ortho_params.readFromObjectStream(istream);

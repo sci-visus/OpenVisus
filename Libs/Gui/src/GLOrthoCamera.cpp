@@ -435,16 +435,16 @@ void GLOrthoCamera::writeToObjectStream(ObjectStream& ostream)
 
   GLCamera::writeToObjectStream(ostream);
 
-  ostream.write("default_scale",cstring(default_scale));
-  ostream.write("disable_rotation",cstring(bDisableRotation));
-  ostream.write("rotation_angle", cstring(rotation_angle));
-  ostream.write("max_zoom",cstring(max_zoom));
-  ostream.write("min_zoom",cstring(min_zoom));
-  ostream.write("smooth",cstring(smooth));
+  ostream.writeValue("default_scale",cstring(default_scale));
+  ostream.writeValue("disable_rotation",cstring(bDisableRotation));
+  ostream.writeValue("rotation_angle", cstring(rotation_angle));
+  ostream.writeValue("max_zoom",cstring(max_zoom));
+  ostream.writeValue("min_zoom",cstring(min_zoom));
+  ostream.writeValue("smooth",cstring(smooth));
 
-  ostream.write("pos",pos.toString());
-  ostream.write("dir",dir.toString());
-  ostream.write("vup",vup.toString());
+  ostream.writeValue("pos",pos.toString());
+  ostream.writeValue("dir",dir.toString());
+  ostream.writeValue("vup",vup.toString());
 
   ostream.pushContext("ortho_params");
   ortho_params.writeToObjectStream(ostream);
@@ -456,16 +456,16 @@ void GLOrthoCamera::readFromObjectStream(ObjectStream& istream)
 {
   GLCamera::readFromObjectStream(istream);
 
-  pos=Point3d(istream.read("pos","0  0  0"));
-  dir=Point3d(istream.read("dir","0  0 -1"));
-  vup=Point3d(istream.read("vup","0  1  0"));
+  pos=Point3d(istream.readValue("pos","0  0  0"));
+  dir=Point3d(istream.readValue("dir","0  0 -1"));
+  vup=Point3d(istream.readValue("vup","0  1  0"));
 
-  default_scale=cdouble(istream.read("default_scale"));
-  bDisableRotation=cbool(istream.read("disable_rotation"));
-  rotation_angle=cdouble(istream.read("rotation_angle"));
-  max_zoom=cdouble(istream.read("max_zoom"));
-  min_zoom=cdouble(istream.read("min_zoom"));
-  smooth=cdouble(istream.read("smooth"));
+  default_scale=cdouble(istream.readValue("default_scale"));
+  bDisableRotation=cbool(istream.readValue("disable_rotation"));
+  rotation_angle=cdouble(istream.readValue("rotation_angle"));
+  max_zoom=cdouble(istream.readValue("max_zoom"));
+  min_zoom=cdouble(istream.readValue("min_zoom"));
+  smooth=cdouble(istream.readValue("smooth"));
 
   istream.pushContext("ortho_params");
   {

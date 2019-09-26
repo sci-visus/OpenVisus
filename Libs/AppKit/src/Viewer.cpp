@@ -2247,8 +2247,8 @@ StatisticsNode* Viewer::addStatisticsNode(Node* parent,Node* data_provider)
 /////////////////////////////////////////////////////////////
 void Viewer::writeToObjectStream(ObjectStream& ostream)
 {
-  ostream.writeInline("version", cstring(ApplicationInfo::version));
-  ostream.writeInline("git_revision", ApplicationInfo::git_revision);
+  ostream.writeString("version", cstring(ApplicationInfo::version));
+  ostream.writeString("git_revision", ApplicationInfo::git_revision);
 
   if (bool bSaveHistory = cbool(ostream.run_time_options.getValue("bSaveHistory")))
   {

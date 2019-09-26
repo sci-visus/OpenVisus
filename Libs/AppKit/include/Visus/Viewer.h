@@ -157,21 +157,21 @@ public:
     //writeToObjectStream
     void writeToObjectStream(ObjectStream& ostream)
     {
-      ostream.write("title", title);
-      ostream.write("panels", panels);
-      ostream.write("bHideTitleBar", cstring(bHideTitleBar));
-      ostream.write("bHideMenus", cstring(bHideMenus));
-      ostream.write("screen_bounds", screen_bounds.toString());
+      ostream.writeValue("title", title);
+      ostream.writeValue("panels", panels);
+      ostream.writeValue("bHideTitleBar", cstring(bHideTitleBar));
+      ostream.writeValue("bHideMenus", cstring(bHideMenus));
+      ostream.writeValue("screen_bounds", screen_bounds.toString());
     }
 
     //readFromObjectStream
     void readFromObjectStream(ObjectStream& istream)
     {
-      title = istream.read("title");
-      panels = istream.read("panels");
-      bHideTitleBar = cbool(istream.read("bHideTitleBar"));
-      bHideMenus = cbool(istream.read("bHideMenus"));
-      screen_bounds = Rectangle2d(istream.read("screen_bounds"));
+      title = istream.readValue("title");
+      panels = istream.readValue("panels");
+      bHideTitleBar = cbool(istream.readValue("bHideTitleBar"));
+      bHideMenus = cbool(istream.readValue("bHideMenus"));
+      screen_bounds = Rectangle2d(istream.readValue("screen_bounds"));
     }
 
   };

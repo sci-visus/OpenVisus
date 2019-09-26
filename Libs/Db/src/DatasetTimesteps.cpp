@@ -49,15 +49,15 @@ void DatasetTimesteps::writeToObjectStream(ObjectStream& ostream)
     if (getAt(I).a==getAt(I).b)
     {
       ostream.pushContext("Timestep");
-      ostream.write("when",cstring(getAt(I).a));
+      ostream.writeValue("when",cstring(getAt(I).a));
       ostream.popContext("Timestep");
     }
     else
     {
       ostream.pushContext("IRange");
-      ostream.write("a",cstring(getAt(I).a));
-      ostream.write("b",cstring(getAt(I).b));
-      ostream.write("step",cstring(getAt(I).step));
+      ostream.writeValue("a",cstring(getAt(I).a));
+      ostream.writeValue("b",cstring(getAt(I).b));
+      ostream.writeValue("step",cstring(getAt(I).step));
       ostream.popContext("IRange");
     }
   }
@@ -74,16 +74,16 @@ void DatasetTimesteps::readFromObjectStream(ObjectStream& istream)
     if (name=="Timestep")
     {
     istream.pushContext("Timestep");
-    int t=cint(istream.read("when"));
+    int t=cint(istream.readValue("when"));
     values.push_back(IRange(t,t,1));
     istream.popContext("Timestep");
     }
     else if (name=="IRange")
     {
       istream.pushContext("IRange");
-      int a=cint(istream.read("a"));
-      int b=cint(istream.read("b"));
-      int step=cint(istream.read("step"));
+      int a=cint(istream.readValue("a"));
+      int b=cint(istream.readValue("b"));
+      int step=cint(istream.readValue("step"));
       istream.popContext("IRange");
       values.push_back(IRange(a,b,step));
     }

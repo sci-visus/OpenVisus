@@ -111,19 +111,19 @@ LocalCoordinateSystem LocalCoordinateSystem::toUniformSize() const
 ////////////////////////////////////////////////////////////////////
 void LocalCoordinateSystem::writeToObjectStream(ObjectStream& ostream) 
 {
-  ostream.write("x",x.toString());
-  ostream.write("y",y.toString());
-  ostream.write("z",z.toString());
-  ostream.write("c",c.toString());
+  ostream.writeValue("x",x.toString());
+  ostream.writeValue("y",y.toString());
+  ostream.writeValue("z",z.toString());
+  ostream.writeValue("c",c.toString());
 }
 
 ////////////////////////////////////////////////////////////////////
 void LocalCoordinateSystem::readFromObjectStream(ObjectStream& istream) 
 {
-  x=Point3d(istream.read("x"));
-  y=Point3d(istream.read("y"));
-  z=Point3d(istream.read("z"));
-  c=Point3d(istream.read("c"));
+  x=Point3d(istream.readValue("x"));
+  y=Point3d(istream.readValue("y"));
+  z=Point3d(istream.readValue("z"));
+  c=Point3d(istream.readValue("c"));
 }
 
 

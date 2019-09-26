@@ -275,10 +275,10 @@ public:
   virtual void writeToObjectStream(ObjectStream& ostream) override
   {
     XIdxElement::writeToObjectStream(ostream);
-    ostream.writeInline("Format", format_type.toString());
-    ostream.writeInline("DType", dtype.toString());
-    ostream.writeInline("Endian", endian_type.toString());
-    ostream.writeInline("Dimensions", StringUtils::join(dimensions));
+    ostream.writeString("Format", format_type.toString());
+    ostream.writeString("DType", dtype.toString());
+    ostream.writeString("Endian", endian_type.toString());
+    ostream.writeString("Dimensions", StringUtils::join(dimensions));
 
     writeChild<DataSource>(ostream, "DataSource", this->data_source);
 

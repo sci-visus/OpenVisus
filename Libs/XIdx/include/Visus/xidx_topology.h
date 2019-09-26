@@ -142,8 +142,8 @@ public:
   {
     XIdxElement::writeToObjectStream(ostream);
 
-    ostream.writeInline("Type", type.toString());
-    ostream.writeInline("Dimensions", StringUtils::join(dimensions));
+    ostream.writeString("Type", type.toString());
+    ostream.writeString("Dimensions", StringUtils::join(dimensions));
 
     for (auto child : this->attributes)
       writeChild<Attribute>(ostream, "Attribute", child);

@@ -64,19 +64,19 @@ GLMaterial GLMaterial::createRandom()
 void GLMaterial::writeToObjectStream(ObjectStream& ostream) 
 {
   ostream.pushContext("front");
-  ostream.write("ambient"  ,front.ambient.toString());
-  ostream.write("diffuse"  ,front.diffuse.toString());
-  ostream.write("specular" ,front.specular.toString());
-  ostream.write("emission" ,front.emission.toString());
-  ostream.write("shininess",cstring(front.shininess));
+  ostream.writeValue("ambient"  ,front.ambient.toString());
+  ostream.writeValue("diffuse"  ,front.diffuse.toString());
+  ostream.writeValue("specular" ,front.specular.toString());
+  ostream.writeValue("emission" ,front.emission.toString());
+  ostream.writeValue("shininess",cstring(front.shininess));
   ostream.popContext("front");
 
   ostream.pushContext("back");
-  ostream.write("ambient"  ,back.ambient.toString());
-  ostream.write("diffuse"  ,back.diffuse.toString());
-  ostream.write("specular" ,back.specular.toString());
-  ostream.write("emission" ,back.emission.toString());
-  ostream.write("shininess",cstring(back.shininess));
+  ostream.writeValue("ambient"  ,back.ambient.toString());
+  ostream.writeValue("diffuse"  ,back.diffuse.toString());
+  ostream.writeValue("specular" ,back.specular.toString());
+  ostream.writeValue("emission" ,back.emission.toString());
+  ostream.writeValue("shininess",cstring(back.shininess));
   ostream.popContext("back");
 }
 
@@ -84,18 +84,18 @@ void GLMaterial::writeToObjectStream(ObjectStream& ostream)
 void GLMaterial::readFromObjectStream(ObjectStream& istream) 
 {
   istream.pushContext("front");
-  front.ambient  =Color::parseFromString(istream.read("ambient"));
-  front.diffuse  =Color::parseFromString(istream.read("diffuse"));
-  front.specular =Color::parseFromString(istream.read("specular"));
-  front.emission =Color::parseFromString(istream.read("emission"));
-  front.shininess=cint(istream.read("shininess"));
+  front.ambient  =Color::parseFromString(istream.readValue("ambient"));
+  front.diffuse  =Color::parseFromString(istream.readValue("diffuse"));
+  front.specular =Color::parseFromString(istream.readValue("specular"));
+  front.emission =Color::parseFromString(istream.readValue("emission"));
+  front.shininess=cint(istream.readValue("shininess"));
   istream.popContext("front");
 
   istream.pushContext("back");
-  back.ambient  =Color::parseFromString(istream.read("ambient"));
-  back.diffuse  =Color::parseFromString(istream.read("diffuse"));
-  back.specular =Color::parseFromString(istream.read("specular"));
-  back.emission =Color::parseFromString(istream.read("emission"));
+  back.ambient  =Color::parseFromString(istream.readValue("ambient"));
+  back.diffuse  =Color::parseFromString(istream.readValue("diffuse"));
+  back.specular =Color::parseFromString(istream.readValue("specular"));
+  back.emission =Color::parseFromString(istream.readValue("emission"));
   istream.popContext("back");
 }
 

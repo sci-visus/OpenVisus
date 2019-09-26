@@ -147,10 +147,10 @@ public:
   //writeToObjectStream
   void writeToObjectStream(ObjectStream& ostream) 
   {
-    ostream.writeInline("x", cstring(x));
-    ostream.writeInline("y", cstring(y));
-    ostream.writeInline("width", cstring(width));
-    ostream.writeInline("height", cstring(height));
+    ostream.writeString("x", cstring(x));
+    ostream.writeString("y", cstring(y));
+    ostream.writeString("width", cstring(width));
+    ostream.writeString("height", cstring(height));
   }
 
   //readFromObjectStream
@@ -266,10 +266,10 @@ public:
   //writeToObjectStream
   void writeToObjectStream(ObjectStream& ostream) 
   {
-    ostream.writeInline("x", cstring(x));
-    ostream.writeInline("y", cstring(y));
-    ostream.writeInline("width", cstring(width));
-    ostream.writeInline("height", cstring(height));
+    ostream.writeString("x", cstring(x));
+    ostream.writeString("y", cstring(y));
+    ostream.writeString("width", cstring(width));
+    ostream.writeString("height", cstring(height));
   }
 
   //readFromObjectStream

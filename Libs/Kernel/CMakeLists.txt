@@ -54,8 +54,6 @@ source_group("Core" FILES
 	./src/Log.cpp
 	./include/Visus/Model.h
 	./include/Visus/NumericLimits.h
-	./include/Visus/ObjectStream.h
-	./src/ObjectStream.cpp
 	./include/Visus/Path.h
 	./src/Path.cpp
 	./include/Visus/RamResource.h

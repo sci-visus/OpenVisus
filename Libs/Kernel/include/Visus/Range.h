@@ -43,6 +43,7 @@ For support : support@visus.net
 #include <Visus/NumericLimits.h>
 #include <Visus/Utils.h>
 #include <Visus/Aborted.h>
+#include <Visus/StringTree.h>
 
 #include <algorithm>
 
@@ -172,17 +173,17 @@ public:
   //writeToObjectStream
   void writeToObjectStream(ObjectStream& ostream) 
   {
-    ostream.write("from", cstring(this->from));
-    ostream.write("to", cstring(this->to));
-    ostream.write("step", cstring(this->step));
+    ostream.writeValue("from", cstring(this->from));
+    ostream.writeValue("to", cstring(this->to));
+    ostream.writeValue("step", cstring(this->step));
   }
 
   //readFromObjectStream
   void readFromObjectStream(ObjectStream& istream) 
   {
-    this->from = (double)cdouble(istream.read("from"));
-    this->to = (double)cdouble(istream.read("to"));
-    this->step = (double)cdouble(istream.read("step"));
+    this->from = (double)cdouble(istream.readValue("from"));
+    this->to = (double)cdouble(istream.readValue("to"));
+    this->step = (double)cdouble(istream.readValue("step"));
   }
 
 };

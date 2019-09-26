@@ -795,7 +795,7 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
 //////////////////////////////////////////////////////////////////////////
 void Dataset::writeToObjectStream(ObjectStream& ostream)
 {
-  ostream.write("url",this->getUrl().toString());
+  ostream.writeValue("url",this->getUrl().toString());
 
   //I want to save it to retrieve it on a different computer
   if (!config.empty())
@@ -809,7 +809,7 @@ void Dataset::writeToObjectStream(ObjectStream& ostream)
 //////////////////////////////////////////////////////////////////////////
 void Dataset::readFromObjectStream(ObjectStream& istream)
 {
-  String url = istream.read("url");
+  String url = istream.readValue("url");
 
   if (istream.pushContext("config"))
   {

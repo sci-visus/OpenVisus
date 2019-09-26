@@ -43,29 +43,29 @@ namespace Visus {
 ////////////////////////////////////////////////////
 void Field::writeToObjectStream(ObjectStream& ostream)
 {
-  ostream.write("name",name);
+  ostream.writeValue("name",name);
 
   if (!description.empty())
-    ostream.write("description",description);
+    ostream.writeValue("description",description);
 
   ostream.pushContext("dtype");
   dtype.writeToObjectStream(ostream); 
   ostream.popContext("dtype");
 
   if (!index.empty())
-   ostream.write("index",index);
+   ostream.writeValue("index",index);
 
   if (!default_compression.empty())
-   ostream.write("default_compression",default_compression);
+   ostream.writeValue("default_compression",default_compression);
 
   if (!default_layout.empty())
-    ostream.write("default_layout",default_layout);
+    ostream.writeValue("default_layout",default_layout);
 
   if (default_value!=0)
-    ostream.write("default_value",cstring(default_value));
+    ostream.writeValue("default_value",cstring(default_value));
 
   if (!filter.empty())
-    ostream.write("filter",filter);
+    ostream.writeValue("filter",filter);
 
   //params
   if (!params.empty())
@@ -73,7 +73,7 @@ void Field::writeToObjectStream(ObjectStream& ostream)
     ostream.pushContext("params");
     {
       for (auto it=params.begin();it!=params.end();it++)
-        ostream.write(it->first,it->second);
+        ostream.writeValue(it->first,it->second);
     }
     ostream.popContext("params");
   }
@@ -82,18 +82,18 @@ void Field::writeToObjectStream(ObjectStream& ostream)
 ////////////////////////////////////////////////////
 void Field::readFromObjectStream(ObjectStream& istream)
 {
-  this->name=istream.read("name");
-  this->description=istream.read("description");
+  this->name=istream.readValue("name");
+  this->description=istream.readValue("description");
 
   istream.pushContext("dtype");
   this->dtype.readFromObjectStream(istream); 
   istream.popContext("dtype");
 
-  this->index=cint(istream.read("index"));
-  this->default_compression=istream.read("default_compression");
-  this->default_layout=istream.read("default_layout");
-  this->default_value=cint(istream.read("default_value","0"));
-  this->filter=istream.read("filter");
+  this->index=cint(istream.readValue("index"));
+  this->default_compression=istream.readValue("default_compression");
+  this->default_layout=istream.readValue("default_layout");
+  this->default_value=cint(istream.readValue("default_value","0"));
+  this->filter=istream.readValue("filter");
 
   this->params.clear();
   if (istream.pushContext("params"))
@@ -104,7 +104,7 @@ void Field::readFromObjectStream(ObjectStream& istream)
         continue;
 
       String key=child->name;
-      String value=istream.read(key);
+      String value=istream.readValue(key);
       params.setValue(key,value);
     }
     istream.popContext("params");

@@ -110,7 +110,7 @@ public:
   {
     XIdxElement::writeToObjectStream(ostream);
 
-    //ostream.writeInline("Name", name);
+    //ostream.writeString("Name", name);
 
     for (auto child : groups) 
     {
@@ -123,8 +123,8 @@ public:
         String filename = XIdxFormatString(file_pattern + "/meta.xidx", child->domain_index);
 
         ostream.pushContext("xi:include");
-        ostream.writeInline("href", filename.c_str());
-        ostream.writeInline("xpointer", "xpointer(//Xidx/Group/Group)");
+        ostream.writeString("href", filename.c_str());
+        ostream.writeString("xpointer", "xpointer(//Xidx/Group/Group)");
         ostream.popContext("xi:include");
 
         {

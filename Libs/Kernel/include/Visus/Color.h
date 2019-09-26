@@ -304,10 +304,10 @@ public:
   void writeToObjectStream(ObjectStream& ostream) 
   {
     Color rgb=toRGB();
-    ostream.writeInline("r",cstring((int)(255.0*rgb.get(0))));
-    ostream.writeInline("g",cstring((int)(255.0*rgb.get(1))));
-    ostream.writeInline("b",cstring((int)(255.0*rgb.get(2))));
-    ostream.writeInline("a",cstring((int)(255.0*rgb.get(3))));
+    ostream.writeString("r",cstring((int)(255.0*rgb.get(0))));
+    ostream.writeString("g",cstring((int)(255.0*rgb.get(1))));
+    ostream.writeString("b",cstring((int)(255.0*rgb.get(2))));
+    ostream.writeString("a",cstring((int)(255.0*rgb.get(3))));
   }
   
   //readFromObjectStream

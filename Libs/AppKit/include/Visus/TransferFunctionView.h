@@ -527,7 +527,6 @@ private:
     StringTree stree(model->getTypeName());
     ObjectStream ostream(stree, 'w');
     model->writeToObjectStream(ostream);
-    ostream.close();
     auto content=stree.toXmlString();
     widgets.textedit->setText(content.c_str());
   }
@@ -549,7 +548,6 @@ private:
     auto tf = std::make_shared<TransferFunction>();
     ObjectStream istream(stree, 'r');
     tf->readFromObjectStream(istream);
-    istream.close();
 
     TransferFunction::copy(*this->model,*tf);
   }
@@ -655,7 +653,6 @@ private:
     }
     ObjectStream istream(stree, 'r');
     tf->readFromObjectStream(istream);
-    istream.close();
 
     TransferFunction::copy(*this->model,*tf);
   }

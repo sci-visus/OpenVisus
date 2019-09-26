@@ -86,7 +86,7 @@ void GLCameraNode::writeToObjectStream(ObjectStream& ostream)
   if (glcamera)
   {
     ostream.pushContext("glcamera");
-    ostream.writeInline("TypeName",glcamera->getTypeName());
+    ostream.writeString("TypeName",glcamera->getTypeName());
     glcamera->writeToObjectStream(ostream);;
     ostream.popContext("glcamera");
   }

@@ -103,7 +103,7 @@ public:
   //writeToObjectStream
   virtual void writeToObjectStream(ObjectStream& ostream) {
     if(name.size())
-      ostream.writeInline("Name", name);
+      ostream.writeString("Name", name);
   }
 
   //readFromObjectStream

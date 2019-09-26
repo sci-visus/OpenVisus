@@ -54,7 +54,7 @@ public:
   //writeToObjectStream
   virtual void writeToObjectStream(ObjectStream& ostream) override {
     XIdxElement::writeToObjectStream(ostream);
-    ostream.writeInline("Value", value);
+    ostream.writeString("Value", value);
   }
 
   //readFromObjectStream

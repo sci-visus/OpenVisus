@@ -222,17 +222,17 @@ public:
   //writeToObjectStream
   void writeToObjectStream(ObjectStream& ostream) 
   {
-    ostream.write("modelview" ,getModelview ().toString());
-    ostream.write("projection",getProjection().toString());
-    ostream.write("viewport"  ,getViewport  ().toString());
+    ostream.writeValue("modelview" ,getModelview ().toString());
+    ostream.writeValue("projection",getProjection().toString());
+    ostream.writeValue("viewport"  ,getViewport  ().toString());
   }
 
   //readFromObjectStream
   void readFromObjectStream(ObjectStream& istream) 
   {
-    loadModelview (Matrix::parseFromString(4,istream.read("modelview" )));
-    loadProjection(Matrix::parseFromString(4,istream.read("projection")));
-    setViewport   (Viewport(istream.read("viewport"  )));
+    loadModelview (Matrix::parseFromString(4,istream.readValue("modelview" )));
+    loadProjection(Matrix::parseFromString(4,istream.readValue("projection")));
+    setViewport   (Viewport(istream.readValue("viewport"  )));
   }
 
 protected:

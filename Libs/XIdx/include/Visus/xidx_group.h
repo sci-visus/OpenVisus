@@ -287,14 +287,14 @@ public:
   {
     XIdxElement::writeToObjectStream(ostream);
 
-    ostream.writeInline("Name", name);
-    ostream.writeInline("Type", group_type.toString());
-    ostream.writeInline("VariabilityType", variability_type.toString());
+    ostream.writeString("Name", name);
+    ostream.writeString("Type", group_type.toString());
+    ostream.writeString("VariabilityType", variability_type.toString());
     if(file_pattern.size())
-      ostream.writeInline("FilePattern", file_pattern.c_str());
+      ostream.writeString("FilePattern", file_pattern.c_str());
 
     if(variability_type.value!=VariabilityType::STATIC_VARIABILITY_TYPE)
-      ostream.writeInline("DomainIndex", Visus::cstring(domain_index));
+      ostream.writeString("DomainIndex", Visus::cstring(domain_index));
 
     for (auto child : data_sources)
       writeChild<DataSource>(ostream, "DataSource", child);
@@ -318,8 +318,8 @@ public:
         String filename = XIdxFormatString(file_pattern + "/meta.xidx", child->domain_index);
 
         ostream.pushContext("xi:include");
-        ostream.writeInline("href", filename.c_str());
-        ostream.writeInline("xpointer", "xpointer(//Xidx/Group/Group)");
+        ostream.writeString("href", filename.c_str());
+        ostream.writeString("xpointer", "xpointer(//Xidx/Group/Group)");
         ostream.popContext("xi:include");
 
         {

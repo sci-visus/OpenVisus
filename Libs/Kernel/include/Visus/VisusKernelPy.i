@@ -47,7 +47,6 @@ using namespace Visus;
 %include <Visus/Log.h>
 %include <Visus/HeapMemory.h>
 %include <Visus/Singleton.h>
-%include <Visus/ObjectStream.h>
 %include <Visus/Aborted.h>
 %include <Visus/StringTree.h>
 

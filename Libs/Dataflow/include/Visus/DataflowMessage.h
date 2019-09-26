@@ -42,7 +42,7 @@ For support : support@visus.net
 #include <Visus/DataflowModule.h>
 #include <Visus/Semaphore.h>
 #include <Visus/CriticalSection.h>
-#include <Visus/ObjectStream.h>
+#include <Visus/StringTree.h>
 #include <Visus/Array.h>
 
 #include <set>

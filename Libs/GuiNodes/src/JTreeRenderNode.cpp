@@ -218,12 +218,12 @@ void JTreeRenderNode::writeToObjectStream(ObjectStream& ostream)
 {
   Node::writeToObjectStream(ostream);
 
-  ostream.write("color_by_component",cstring(color_by_component));
-  ostream.write("draw_saddles",cstring(draw_saddles));
-  ostream.write("draw_extrema",cstring(draw_extrema));
-  ostream.write("draw_edges",cstring(draw_edges));
-  ostream.write("b2D",cstring(b2D));
-  ostream.write("radius",cstring(radius));
+  ostream.writeValue("color_by_component",cstring(color_by_component));
+  ostream.writeValue("draw_saddles",cstring(draw_saddles));
+  ostream.writeValue("draw_extrema",cstring(draw_extrema));
+  ostream.writeValue("draw_edges",cstring(draw_edges));
+  ostream.writeValue("b2D",cstring(b2D));
+  ostream.writeValue("radius",cstring(radius));
 
   ostream.pushContext("min_material");
   min_material.writeToObjectStream(ostream);
@@ -243,12 +243,12 @@ void JTreeRenderNode::readFromObjectStream(ObjectStream& istream)
 {
   Node::readFromObjectStream(istream);
 
-  color_by_component=cbool(istream.read("color_by_component"));
-  draw_saddles=cbool(istream.read("draw_saddles"));
-  draw_extrema=cbool(istream.read("draw_extrema"));
-  draw_edges=cbool(istream.read("draw_edges"));
-  b2D=cbool(istream.read("b2D"));
-  radius=cdouble(istream.read("radius"));
+  color_by_component=cbool(istream.readValue("color_by_component"));
+  draw_saddles=cbool(istream.readValue("draw_saddles"));
+  draw_extrema=cbool(istream.readValue("draw_extrema"));
+  draw_edges=cbool(istream.readValue("draw_edges"));
+  b2D=cbool(istream.readValue("b2D"));
+  radius=cdouble(istream.readValue("radius"));
 
   istream.pushContext("min_material");
   min_material.readFromObjectStream(istream);

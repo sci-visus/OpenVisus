@@ -601,7 +601,7 @@ void IsoContourNode::writeToObjectStream(ObjectStream& ostream)
 {
   Node::writeToObjectStream(ostream);
 
-  ostream.write("isovalue",cstring(isovalue));
+  ostream.writeValue("isovalue",cstring(isovalue));
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -609,7 +609,7 @@ void IsoContourNode::readFromObjectStream(ObjectStream& istream)
 {
   Node::readFromObjectStream(istream);
 
-  isovalue=cdouble(istream.read("isovalue"));
+  isovalue=cdouble(istream.readValue("isovalue"));
 }
 
 } //namespace Visus

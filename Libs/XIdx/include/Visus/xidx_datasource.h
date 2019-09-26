@@ -60,7 +60,7 @@ public:
   virtual void writeToObjectStream(ObjectStream& ostream) override
   {
     XIdxElement::writeToObjectStream(ostream);
-    ostream.writeInline("Url", url);
+    ostream.writeString("Url", url);
     // TODO write content only if datasource is "inline"
     //writeUrlContent(ostream);
 

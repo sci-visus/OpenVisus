@@ -171,7 +171,7 @@ public:
   {
     XIdxElement::writeToObjectStream(ostream);
 
-    ostream.writeInline("Center", center_type.toString());
+    ostream.writeString("Center", center_type.toString());
 
     for (auto child : data_items)
       writeChild<DataItem>(ostream, "DataItem", child);

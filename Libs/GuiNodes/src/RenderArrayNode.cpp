@@ -410,12 +410,12 @@ void RenderArrayNode::writeToObjectStream(ObjectStream& ostream)
 {
   Node::writeToObjectStream(ostream);
 
-  ostream.write("lighting_enabled",cstring(lighting_enabled));
-  ostream.write("palette_enabled",cstring(palette_enabled));
-  ostream.write("use_view_direction",cstring(use_view_direction));
-  ostream.write("max_num_slices",cstring(max_num_slices));
-  ostream.write("magnify_filter",cstring(magnify_filter));
-  ostream.write("minify_filter",cstring(minify_filter));
+  ostream.writeValue("lighting_enabled",cstring(lighting_enabled));
+  ostream.writeValue("palette_enabled",cstring(palette_enabled));
+  ostream.writeValue("use_view_direction",cstring(use_view_direction));
+  ostream.writeValue("max_num_slices",cstring(max_num_slices));
+  ostream.writeValue("magnify_filter",cstring(magnify_filter));
+  ostream.writeValue("minify_filter",cstring(minify_filter));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -423,12 +423,12 @@ void RenderArrayNode::readFromObjectStream(ObjectStream& istream)
 {
   Node::readFromObjectStream(istream);
 
-  this->lighting_enabled=cbool(istream.read("lighting_enabled"));
-  this->palette_enabled=cbool(istream.read("palette_enabled"));
-  this->use_view_direction=cbool(istream.read("use_view_direction"));
-  this->max_num_slices=cint(istream.read("max_num_slices"));
-  this->magnify_filter=cint(istream.read("magnify_filter"));
-  this->minify_filter=cint(istream.read("minify_filter"));
+  this->lighting_enabled=cbool(istream.readValue("lighting_enabled"));
+  this->palette_enabled=cbool(istream.readValue("palette_enabled"));
+  this->use_view_direction=cbool(istream.readValue("use_view_direction"));
+  this->max_num_slices=cint(istream.readValue("max_num_slices"));
+  this->magnify_filter=cint(istream.readValue("magnify_filter"));
+  this->minify_filter=cint(istream.readValue("minify_filter"));
 }
  
 

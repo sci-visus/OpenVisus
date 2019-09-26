@@ -160,7 +160,7 @@ public:
   {
     XIdxElement::writeToObjectStream(ostream);
 
-    ostream.writeInline("Type", type.toString());
+    ostream.writeString("Type", type.toString());
 
     for (auto child : data_items)
       writeChild<DataItem>(ostream, "DataItem", child);

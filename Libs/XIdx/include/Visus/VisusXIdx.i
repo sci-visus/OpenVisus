@@ -61,7 +61,6 @@ using namespace Visus;
 %include <Visus/Kernel.h>
 %include <Visus/StringMap.h>
 %include <Visus/Singleton.h>
-%include <Visus/ObjectStream.h>
 
 %include <Visus/xidx_element.h>
 %include <Visus/xidx_datasource.h>

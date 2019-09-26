@@ -438,15 +438,15 @@ public:
   //writeToObjectStream`
   void writeToObjectStream(ObjectStream& ostream) 
   {
-    ostream.write("p1", p1.toString());
-    ostream.write("p2", p2.toString());
+    ostream.writeValue("p1", p1.toString());
+    ostream.writeValue("p2", p2.toString());
   }
 
   //writeToObjectStream
   void readFromObjectStream(ObjectStream& istream) 
   {
-    p1 = Point::parseFromString(istream.read("p1"));
-    p2 = Point::parseFromString(istream.read("p2"));
+    p1 = Point::parseFromString(istream.readValue("p1"));
+    p2 = Point::parseFromString(istream.readValue("p2"));
   }
 
 

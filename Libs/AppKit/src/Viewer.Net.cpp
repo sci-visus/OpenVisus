@@ -49,7 +49,7 @@ void Viewer::sendNetMessage(SharedPtr<NetConnection> netsnd,void* obj)
 
   StringTree stree(obj->getTypeName(obj));
   ObjectStream ostream(stree, 'w');
-  ostream.writeInline("request_id",cstring(++netsnd->request_id));
+  ostream.writeString("request_id",cstring(++netsnd->request_id));
   obj->writeToObjectStream(ostream);
   ostream.close();
   NetRequest request(netsnd->url);

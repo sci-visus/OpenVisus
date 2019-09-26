@@ -119,16 +119,16 @@ void RGBAColorMap::convertToArray(Array& dst,int nsamples,InterpolationMode::Typ
 /////////////////////////////////////////////////////////////////
 void RGBAColorMap::writeToObjectStream(ObjectStream& ostream)
 {
-  ostream.writeInline("name",this->name);
+  ostream.writeString("name",this->name);
   for (int I=0;I<(int)points.size();I++)
   {
     const Point& point=points[I];
     ostream.pushContext("Point");
-    ostream.writeInline("x",cstring(point.x));
-    ostream.writeInline("r",cstring(point.color.getRed()));
-    ostream.writeInline("g",cstring(point.color.getGreen()));
-    ostream.writeInline("b",cstring(point.color.getBlue()));
-    ostream.writeInline("o",cstring(point.color.getAlpha()));
+    ostream.writeString("x",cstring(point.x));
+    ostream.writeString("r",cstring(point.color.getRed()));
+    ostream.writeString("g",cstring(point.color.getGreen()));
+    ostream.writeString("b",cstring(point.color.getBlue()));
+    ostream.writeString("o",cstring(point.color.getAlpha()));
     ostream.popContext("Point");
   }
 
@@ -166,8 +166,8 @@ void RGBAColorMap::readFromObjectStream(ObjectStream& istream)
 /////////////////////////////////////////////////////////////////////
 void TransferFunction::Single::writeToObjectStream(ObjectStream& ostream)
 {
-  ostream.write("name", name);
-  ostream.write("color", color.toString());
+  ostream.writeValue("name", name);
+  ostream.writeValue("color", color.toString());
 
   ostream.pushContext("values");
   {
@@ -185,8 +185,8 @@ void TransferFunction::Single::writeToObjectStream(ObjectStream& ostream)
 /////////////////////////////////////////////////////////////////////
 void TransferFunction::Single::readFromObjectStream(ObjectStream& istream)
 {
-  name = istream.read("name");
-  color = Color::parseFromString(istream.read("color"));
+  name = istream.readValue("name");
+  color = Color::parseFromString(istream.readValue("color"));
 
   this->values.clear();
 
@@ -554,13 +554,13 @@ void TransferFunction::writeToObjectStream(ObjectStream& ostream)
   bool bDefault=default_name.empty()?false:true;
 
   if (bDefault)
-    ostream.writeInline("name",default_name);
+    ostream.writeString("name",default_name);
 
-  ostream.writeInline("attenuation",cstring(attenuation));
+  ostream.writeString("attenuation",cstring(attenuation));
 
   ostream.pushContext("input");
   {
-    ostream.writeInline("mode",cstring(input_range.mode));
+    ostream.writeString("mode",cstring(input_range.mode));
     if (input_range.custom_range.delta()>0)
     {
       ostream.pushContext("custom_range");
@@ -572,7 +572,7 @@ void TransferFunction::writeToObjectStream(ObjectStream& ostream)
 
   ostream.pushContext("output");
   {
-    ostream.writeInline("dtype",output_dtype.toString());
+    ostream.writeString("dtype",output_dtype.toString());
     ostream.pushContext("range");
     output_range.writeToObjectStream(ostream);
     ostream.popContext("range");

@@ -118,7 +118,7 @@ void TimeNode::writeToObjectStream(ObjectStream& ostream)
 {
   Node::writeToObjectStream(ostream);
 
-  ostream.write("current_time",cstring(current_time));
+  ostream.writeValue("current_time",cstring(current_time));
 
   ostream.pushContext("timesteps");
   timesteps.writeToObjectStream(ostream);
@@ -131,7 +131,7 @@ void TimeNode::writeToObjectStream(ObjectStream& ostream)
     ostream.popContext("user_range");
   }
 
-  ostream.write("play_msec",cstring(play_msec));
+  ostream.writeValue("play_msec",cstring(play_msec));
 }
 
 //////////////////////////////////////////////////
@@ -139,7 +139,7 @@ void TimeNode::readFromObjectStream(ObjectStream& istream)
 {
   Node::readFromObjectStream(istream);
 
-  current_time=cdouble(istream.read("current_time"));
+  current_time=cdouble(istream.readValue("current_time"));
 
   if (istream.pushContext("timesteps"))
   {
@@ -154,7 +154,7 @@ void TimeNode::readFromObjectStream(ObjectStream& istream)
     istream.popContext("user_range");
   }
 
-  play_msec=cint(istream.read("play_msec","1000"));
+  play_msec=cint(istream.readValue("play_msec","1000"));
 }
 
 

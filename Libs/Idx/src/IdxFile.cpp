@@ -763,19 +763,19 @@ void IdxFile::writeToObjectStream(ObjectStream& ostream)
  if (!this->valid())
     ThrowException("internal error");
 
-  ostream.write("version",cstring(this->version));
-  ostream.write("bitmask", this->bitmask.toString());
+  ostream.writeValue("version",cstring(this->version));
+  ostream.writeValue("bitmask", this->bitmask.toString());
 
-  ostream.write("box", logic_box.toOldFormatString()); 
+  ostream.writeValue("box", logic_box.toOldFormatString()); 
 
   auto logic_to_physic = Position::computeTransformation(this->bounds,this->logic_box);
   if (!logic_to_physic.isIdentity())
-    ostream.write("logic_to_physic",logic_to_physic.toString());
+    ostream.writeValue("logic_to_physic",logic_to_physic.toString());
 
-  ostream.write("bitsperblock",cstring(this->bitsperblock));
-  ostream.write("blocksperfile",cstring(this->blocksperfile));
-  ostream.write("block_interleaving",cstring(this->block_interleaving));
-  ostream.write("filename_template",filename_template);
+  ostream.writeValue("bitsperblock",cstring(this->bitsperblock));
+  ostream.writeValue("blocksperfile",cstring(this->blocksperfile));
+  ostream.writeValue("block_interleaving",cstring(this->block_interleaving));
+  ostream.writeValue("filename_template",filename_template);
   
   ostream.pushContext("fields");
   for (int I=0;I<(int)fields.size();I++)
@@ -789,7 +789,7 @@ void IdxFile::writeToObjectStream(ObjectStream& ostream)
   if (!this->time_template.empty())
   {
     ostream.pushContext("Timesteps");
-    ostream.write("filename_template",this->time_template);
+    ostream.writeValue("filename_template",this->time_template);
     timesteps.writeToObjectStream(ostream);
     ostream.popContext("Timesteps");
   }
@@ -799,22 +799,22 @@ void IdxFile::writeToObjectStream(ObjectStream& ostream)
 //////////////////////////////////////////////////////////////////////////////
 void IdxFile::readFromObjectStream(ObjectStream& istream)
 {
-  this->version           = cint(istream.read("version"));
-  this->bitmask = DatasetBitmask(istream.read("bitmask"));
-  this->logic_box          = BoxNi::parseFromOldFormatString(this->bitmask.getPointDim(),istream.read("box"));
+  this->version           = cint(istream.readValue("version"));
+  this->bitmask = DatasetBitmask(istream.readValue("bitmask"));
+  this->logic_box          = BoxNi::parseFromOldFormatString(this->bitmask.getPointDim(),istream.readValue("box"));
 
   auto pdim = this->bitmask.getPointDim();
 
   if (istream.hasAttribute("logic_to_physic"))
   {
-    auto logic_to_physic = Matrix::parseFromString(istream.read("logic_to_physic", Matrix::identity(pdim + 1).toString()));
+    auto logic_to_physic = Matrix::parseFromString(istream.readValue("logic_to_physic", Matrix::identity(pdim + 1).toString()));
     this->bounds = Position(logic_to_physic, this->logic_box);
   }
 
-  this->bitsperblock      = cint(istream.read("bitsperblock"));
-  this->blocksperfile     = cint(istream.read("blocksperfile"));
-  this->block_interleaving= cint(istream.read("block_interleaving"));
-  this->filename_template = istream.read("filename_template");
+  this->bitsperblock      = cint(istream.readValue("bitsperblock"));
+  this->blocksperfile     = cint(istream.readValue("blocksperfile"));
+  this->block_interleaving= cint(istream.readValue("block_interleaving"));
+  this->filename_template = istream.readValue("filename_template");
 
   this->fields.clear();
   istream.pushContext("fields");
@@ -831,7 +831,7 @@ void IdxFile::readFromObjectStream(ObjectStream& istream)
 
   if (istream.pushContext("Timesteps"))
   {
-    this->time_template=istream.read("filename_template");
+    this->time_template=istream.readValue("filename_template");
     this->timesteps.readFromObjectStream(istream);
     istream.popContext("Timesteps");
   }

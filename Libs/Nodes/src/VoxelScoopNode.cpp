@@ -1056,13 +1056,13 @@ void VoxelScoopNode::writeToObjectStream(ObjectStream& ostream)
 {
   Node::writeToObjectStream(ostream);
 
-  ostream.write("simplify",cstring(simplify));
-  ostream.write("min_length",cstring(min_length));
-  ostream.write("min_ratio",cstring(min_ratio)); 
-  ostream.write("threshold",cstring(threshold));
-  ostream.write("bUseMinimaAsSeed",cstring(bUseMinimaAsSeed));
-  ostream.write("bUseMaximaAsSeed",cstring(bUseMaximaAsSeed));
-  ostream.write("min_diam",cstring(min_diam));
+  ostream.writeValue("simplify",cstring(simplify));
+  ostream.writeValue("min_length",cstring(min_length));
+  ostream.writeValue("min_ratio",cstring(min_ratio)); 
+  ostream.writeValue("threshold",cstring(threshold));
+  ostream.writeValue("bUseMinimaAsSeed",cstring(bUseMinimaAsSeed));
+  ostream.writeValue("bUseMaximaAsSeed",cstring(bUseMaximaAsSeed));
+  ostream.writeValue("min_diam",cstring(min_diam));
 }
 
 /////////////////////////////////////////////////////////////
@@ -1070,13 +1070,13 @@ void VoxelScoopNode::readFromObjectStream(ObjectStream& istream)
 {
   Node::readFromObjectStream(istream);
 
-  simplify=cbool(istream.read("simplify"));
-  min_length=cdouble(istream.read("min_length"));
-  min_ratio=cdouble(istream.read("min_ratio"));
-  threshold=cdouble(istream.read("threshold"));
-  bUseMinimaAsSeed=cbool(istream.read("bUseMinimaAsSeed"));
-  bUseMaximaAsSeed=cbool(istream.read("bUseMaximaAsSeed"));
-  min_diam=cdouble(istream.read("min_diam"));
+  simplify=cbool(istream.readValue("simplify"));
+  min_length=cdouble(istream.readValue("min_length"));
+  min_ratio=cdouble(istream.readValue("min_ratio"));
+  threshold=cdouble(istream.readValue("threshold"));
+  bUseMinimaAsSeed=cbool(istream.readValue("bUseMinimaAsSeed"));
+  bUseMaximaAsSeed=cbool(istream.readValue("bUseMaximaAsSeed"));
+  min_diam=cdouble(istream.readValue("min_diam"));
 }
 
 } //namespace Visus

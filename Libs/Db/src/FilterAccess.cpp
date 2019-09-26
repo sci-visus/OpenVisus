@@ -70,10 +70,10 @@ FilterAccess::FilterAccess(Dataset* dataset,StringTree config)
       continue;
 
     FilterAccessCondition condition;
-    condition.from   = sub->readBigInt("from",0);
-    condition.to     = sub->readBigInt("to"  ,0);
-    condition.step   = sub->readBigInt("step",condition.to-condition.from );
-    condition.full   = sub->readBigInt("full",condition.step              );
+    condition.from   = sub->readInt64("from",0);
+    condition.to     = sub->readInt64("to"  ,0);
+    condition.step   = sub->readInt64("step",condition.to-condition.from );
+    condition.full   = sub->readInt64("full",condition.step              );
     this->addCondition(condition);
   }
 }

@@ -421,13 +421,13 @@ SharedPtr<DataflowValue> Node::previewInput(String iport)
 void Node::writeToObjectStream(ObjectStream& ostream)
 {
   if (!uuid.empty()) 
-    ostream.writeInline("uuid",uuid);
+    ostream.writeString("uuid",uuid);
 
   if (!name.empty())
-    ostream.writeInline("name",name);
+    ostream.writeString("name",name);
 
   if (hidden)
-    ostream.writeInline("hidden",cstring(hidden));
+    ostream.writeString("hidden",cstring(hidden));
 }
 
 ////////////////////////////////////////////////////////////
@@ -444,7 +444,6 @@ StringTree Node::encode()
   StringTree stree(this->getTypeName());
   ObjectStream ostream(stree, 'w');
   writeToObjectStream(ostream);
-  ostream.close();
   return stree;
 }
 
@@ -456,7 +455,6 @@ Node* Node::decode(StringTree encoded)
   auto ret = NodeFactory::getSingleton()->createInstance(TypeName);
   VisusAssert(ret);
   ret->readFromObjectStream(istream);
-  istream.close();
   return ret;
 }
 

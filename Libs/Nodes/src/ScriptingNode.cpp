@@ -442,7 +442,7 @@ void ScriptingNode::writeToObjectStream(ObjectStream& ostream)
 {
   Node::writeToObjectStream(ostream);
 
-  ostream.write("max_publish_msec", cstring(max_publish_msec));
+  ostream.writeValue("max_publish_msec", cstring(max_publish_msec));
 
   if (!code.empty())
   {
@@ -457,7 +457,7 @@ void ScriptingNode::readFromObjectStream(ObjectStream& istream)
 {
   Node::readFromObjectStream(istream);
 
-  max_publish_msec=cint(istream.read("max_publish_msec", cstring(this->max_publish_msec)));
+  max_publish_msec=cint(istream.readValue("max_publish_msec", cstring(this->max_publish_msec)));
   setCode(istream.readText("code"));
 }
 
