@@ -74,10 +74,7 @@ void FieldNode::doPublish()
 void FieldNode::writeToObjectStream(ObjectStream& ostream)
 {
   Node::writeToObjectStream(ostream);
-
-  ostream.pushContext("fieldname");
-  ostream.writeText(getFieldName());
-  ostream.popContext("fieldname");
+  ostream.writeText("fieldname",getFieldName());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
