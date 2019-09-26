@@ -50,7 +50,7 @@ For support : support@visus.net
 #include <Visus/Thread.h>
 #include <Visus/NetSocket.h>
 #include <Visus/ApplicationInfo.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 #include <Visus/NetServer.h>
 
 #include <QMainWindow>
@@ -193,6 +193,11 @@ public:
     return "Viewer";
   }
 
+  //getUUID
+  String getUUID(Node* node) const {
+    return node ? node->getUUID() : "";
+  }
+
   //this is needed for swig
   void* c_ptr() {
     return this;
@@ -216,17 +221,13 @@ public:
 #if !SWIG
 
   //beginUpdate
-  virtual void beginUpdate() override {
-    pushAction(StringTree("Transaction"));
-  }
+  virtual void beginUpdate() override;
 
   //endUpdate
-  virtual void endUpdate() override {
-    popAction();
-  }
+  virtual void endUpdate() override;
 
   //executeAction
-  void executeAction(StringTree action,bool bRedo);
+  void executeAction(StringTree action);
 
 #endif
 
@@ -371,12 +372,6 @@ public:
 
   //saveFile
   bool saveFile(String filename, bool bSaveHistory = false, bool bShowDialogs = true);
-
-  //openScene
-  bool openScene(String url, Node* parent = nullptr, bool bShowUrlDialogIfNeeded = false);
-
-  //saveScene
-  bool saveScene(String filename, bool bShowDialogs = true);
 
   //takeSnapshot
   bool takeSnapshot(bool bOnlyCanvas = false, String filename = "");

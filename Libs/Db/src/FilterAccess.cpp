@@ -64,17 +64,16 @@ FilterAccess::FilterAccess(Dataset* dataset,StringTree config)
   this->name=config.readString("name");
 
   //parse conditions
-  for (int i=0;i<(int)config.getNumberOfChilds();i++)
+  for (auto sub : config.getChilds())
   {
-    StringTree& sub=config.getChild(i);
-    if (sub.name!="condition")
+    if (sub->name!="condition")
       continue;
 
     FilterAccessCondition condition;
-    condition.from   = sub.readBigInt("from",0);
-    condition.to     = sub.readBigInt("to"  ,0);
-    condition.step   = sub.readBigInt("step",condition.to-condition.from );
-    condition.full   = sub.readBigInt("full",condition.step              );
+    condition.from   = sub->readBigInt("from",0);
+    condition.to     = sub->readBigInt("to"  ,0);
+    condition.step   = sub->readBigInt("step",condition.to-condition.from );
+    condition.full   = sub->readBigInt("full",condition.step              );
     this->addCondition(condition);
   }
 }

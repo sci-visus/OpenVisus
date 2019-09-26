@@ -45,7 +45,7 @@ For support : support@visus.net
 #include <Visus/File.h>
 #include <Visus/Encoder.h>
 #include <Visus/UUID.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/NetService.h>
 #include <Visus/SharedLibrary.h>

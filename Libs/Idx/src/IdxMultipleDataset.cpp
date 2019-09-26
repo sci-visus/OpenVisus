@@ -121,7 +121,15 @@ public:
     if (it != configs.end())
       config = it->second;
 
-    config.inheritAttributeFrom(this->CONFIG,false);
+    //inerits attributes from CONFIG
+    for (auto it : this->CONFIG.attributes)
+    {
+      auto key = it.first;
+      auto value = it.second;
+      if (!config.hasAttribute(key))
+        config.setAttribute(key,value);
+    }
+
     bool bForBlockQuery = DATASET->getKdQueryMode() & KdQueryMode::UseBlockQuery ? true : false;
     return dataset->createAccess(config, bForBlockQuery);
   }
@@ -1221,7 +1229,7 @@ void IdxMultipleDataset::parseDatasets(StringTree* cur, Matrix MODELVIEW)
 
     if (child->name == "svg")
     {
-      this->annotations=ParseAnnotations(child);
+      this->annotations=ParseAnnotations(child.get());
 
       for (auto& annotation : this->annotations)
         annotation->prependModelview(modelview);
@@ -1235,7 +1243,7 @@ void IdxMultipleDataset::parseDatasets(StringTree* cur, Matrix MODELVIEW)
       double ty = cdouble(child->getAttribute("y"));
       double tz = cdouble(child->getAttribute("z"));
       modelview *= Matrix::translate(PointNd(tx, ty, tz));
-      parseDatasets(child, modelview);
+      parseDatasets(child.get(), modelview);
       continue;
     }
 
@@ -1245,7 +1253,7 @@ void IdxMultipleDataset::parseDatasets(StringTree* cur, Matrix MODELVIEW)
       double sy = cdouble(child->getAttribute("y"));
       double sz = cdouble(child->getAttribute("z"));
       modelview *= Matrix::nonZeroScale(PointNd(sx, sy, sz));
-      parseDatasets(child, modelview);
+      parseDatasets(child.get(), modelview);
       continue;
     }
 
@@ -1255,14 +1263,14 @@ void IdxMultipleDataset::parseDatasets(StringTree* cur, Matrix MODELVIEW)
       double ry = Utils::degreeToRadiant(cdouble(child->getAttribute("y")));
       double rz = Utils::degreeToRadiant(cdouble(child->getAttribute("z")));
       modelview *= Matrix::rotate(Quaternion::fromEulerAngles(rx, ry, rz));
-      parseDatasets(child, modelview);
+      parseDatasets(child.get(), modelview);
       continue;
     }
 
     if (child->name == "transform" || child->name=="M")
     {
       modelview *= Matrix::parseFromString(child->getAttribute("value"));
-      parseDatasets(child, modelview);
+      parseDatasets(child.get(), modelview);
       continue;
     }
 
@@ -1314,7 +1322,7 @@ void IdxMultipleDataset::parseDatasets(StringTree* cur, Matrix MODELVIEW)
         }
       }
 
-      parseDataset(child,modelview);
+      parseDataset(child.get(),modelview);
       continue;
     }
   }
@@ -1534,9 +1542,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
         name = StringUtils::format() << "field_" + generate_name++;
 
       //I expect to find here CData node or Text node...
-      istream.pushContext("code");
-      String code = istream.readText(); VisusAssert(!code.empty());
-      istream.popContext("code");
+      String code = istream.readText("code"); VisusAssert(!code.empty());
 
       Field FIELD = getFieldByName(code);
       if (FIELD.valid())

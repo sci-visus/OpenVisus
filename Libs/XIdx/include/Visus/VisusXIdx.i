@@ -2,6 +2,7 @@
 
 %{
 #include <Visus/Kernel.h>
+#include <Visus/StringTree.h>
 #include <Visus/VisusXIdx.h>
 using namespace Visus;
 %}

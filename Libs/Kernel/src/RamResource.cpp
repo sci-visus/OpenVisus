@@ -39,7 +39,7 @@ For support : support@visus.net
 #include <Visus/RamResource.h>
 #include <Visus/Utils.h>
 #include <Visus/Log.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 #include <Visus/StringUtils.h>
 
 #if WIN32

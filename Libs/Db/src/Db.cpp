@@ -43,7 +43,7 @@ For support : support@visus.net
 #include <Visus/GoogleMapsDataset.h>
 #include <Visus/DatasetArrayPlugin.h>
 #include <Visus/OnDemandAccess.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 
 namespace Visus {
 

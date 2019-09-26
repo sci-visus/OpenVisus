@@ -118,19 +118,25 @@ public:
   //writeText
   void writeText(const String& value, bool bCData = false);
 
+  //writeText
+  void writeText(String name, const String& value, bool bCData = false) {
+    pushContext(name);
+    writeText(value);
+    popContext(name);
+  }
+
   //readText
   String readText();
 
-public:
-
-  //setSceneMode
-  void setSceneMode(bool value) {
-    run_time_options.setValue("scene_mode",cstring(value));
-  }
-
-  //isSceneMode
-  bool isSceneMode() const {
-    return cbool(run_time_options.getValue("scene_mode"));
+  //readText
+  String readText(String name) {
+    String ret;
+    if (pushContext(name))
+    {
+      ret = readText();
+      popContext(name);
+    }
+    return ret;
   }
 
 private:

@@ -38,7 +38,7 @@ For support : support@visus.net
 
 #include <Visus/GLInfo.h>
 #include <Visus/GLCanvas.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 
 #if __APPLE__
   #include <OpenGL/CGLTypes.h>

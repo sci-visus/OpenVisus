@@ -60,6 +60,9 @@ public:
   //attributes
   std::vector< std::pair<String, String> > attributes;
 
+  //childs
+  std::vector< SharedPtr<StringTree> > childs;
+
   // constructor
   StringTree(String name_ = "") : name(name_){
   }
@@ -70,8 +73,7 @@ public:
   }
 
   //constructor
-  StringTree(String name_, String attr_k1, String attr_v1, String attr_k2, String attr_v2) : name(name_)
-  {
+  StringTree(String name_, String attr_k1, String attr_v1, String attr_k2, String attr_v2) : name(name_) {
     writeString(attr_k1, attr_v1); writeString(attr_k2, attr_v2);
   }
 
@@ -88,8 +90,14 @@ public:
   bool fromXmlString(String content, bool bEnablePostProcessing = true);
 
   //operator=
-  StringTree& operator=(const StringTree& other);
-
+  StringTree& operator=(const StringTree& other) {
+    this->name = other.name;
+    this->attributes = other.attributes;
+    this->childs.clear();
+    for (int I = 0; I < other.childs.size(); I++)
+      this->childs.push_back(std::make_shared<StringTree>(*other.childs[I]));
+    return *this;
+  }
 
   //hasAttribute
   bool hasAttribute(String name) const
@@ -123,11 +131,42 @@ public:
     attributes.push_back(std::make_pair(name,value));
   }
 
+  //getChilds
+  const std::vector< SharedPtr<StringTree> >& getChilds() const {
+    return childs;
+  }
+
+  //addChild
+  void addChild(SharedPtr<StringTree> child) {
+    childs.push_back(child);
+  }
+
+#if !SWIG
+
+  //addChild
+  void addChild(const StringTree& child) {
+    addChild(std::make_shared<StringTree>(child));
+  }
+
+  //withChild
+  StringTree& withChild(SharedPtr<StringTree> child) {
+    addChild(child);
+    return *this;
+  }
+
+  //withChild
+  StringTree& withChild(const StringTree& child) {
+    addChild(child);
+    return *this;
+  }
+
+#endif
 
   //clear
   void clear()
   {
-    attributes.clear(); childs.clear();
+    attributes.clear(); 
+    childs.clear();
   }
 
   //empty
@@ -181,53 +220,9 @@ public:
     return (int)childs.size();
   }
 
-  //getChilds
-  const std::vector<StringTree*> getChilds() const {
-    std::vector<StringTree*> ret;
-    for (auto child : this->childs)
-      ret.push_back(child.get());
-    return ret;
-  }
-
   //getChild
-  const StringTree& getChild(int index) const {
-    return *childs[index];
-  }
-
-  //getChild
-  StringTree& getChild(int index) {
-    return *childs[index];
-  }
-
-  //getFirstChild
-  const StringTree& getFirstChild() const {
-    return *childs.front();
-  }
-
-  //getFirstChild
-  StringTree& getFirstChild() {
-    return *childs.front();
-  }
-
-  //getLastChild
-  const StringTree& getLastChild() const {
-    return *childs.back();
-  }
-
-  //getLastChild
-  StringTree& getLastChild(){
-    return *childs.back();
-  }
-
-  //addChild
-  void addChild(SharedPtr<StringTree> child) {
-    childs.push_back(child);
-  }
-
-  //addChild
-  void addChild(const StringTree& child) {
-    childs.push_back(std::make_shared<StringTree>(child)); 
-    //return childs.back().get();
+  SharedPtr<StringTree> getChild(int I) const {
+    return childs[I];
   }
 
   //findChildWithName
@@ -239,18 +234,6 @@ public:
   //getMaxDepth
   int getMaxDepth();
 
-  //inheritAttributeFrom
-  void inheritAttributeFrom(const StringTree& other,bool bOverwriteIfExists)  
-  {
-    for (auto it : other.attributes)
-    {
-      String key   = it.first;
-      String value = it.second;
-      if (bOverwriteIfExists || !hasAttribute(key))
-        setAttribute(key,value);
-    }
-  }
-
   //internal use only
   static StringTree postProcess(const StringTree& src);
 
@@ -261,27 +244,6 @@ public:
     return !name.empty() && name[0] == '#';
   }
 
-  //isTextNode
-  bool isTextNode() const{
-    return name == "#text";
-  }
-
-  //addTextNode
-  void addTextNode(String text){
-    addChild(StringTree("#text", "value", text));
-  }
-
-  //isCDataSectionNode
-  bool isCDataSectionNode() const
-  {
-    return name == "#cdata-section";
-  }
-
-  //addCDataSectionNode
-  void addCDataSectionNode(String text){
-    addChild(StringTree("#cdata-section", "value", text));
-  }
-
   //isCommentNode
   bool isCommentNode() const{
     return name == "#comment";
@@ -289,17 +251,26 @@ public:
 
   //addCommentNode
   void addCommentNode(String text){
-    addChild(StringTree("#comment", "value", text));
+    childs.push_back(std::make_shared<StringTree>("#comment", "value", text));
+  }
+
+  //readText
+  String readText() const;
+
+  //writeText
+  void writeText(const String& text,bool bCData = false) {
+    if (bCData)
+      childs.push_back(std::make_shared<StringTree>("#cdata-section", "value", text));
+    else
+      childs.push_back(std::make_shared<StringTree>("#text", "value", text));
   }
 
   //writeText
-  void writeText(const String& value,bool bCData)
-  {
-    bCData ? addCDataSectionNode(value) : addTextNode(value);
+  void writeText(String name, const String& value, bool bCData = false) {
+    auto child = std::make_shared<StringTree>(name);
+    child->writeText(value,bCData);
+    childs.push_back(child);
   }
-
-  //collapseTextAndCData (backward compatible, collect all text in TextNode and CDataSectionNode)
-  String collapseTextAndCData() const;
 
 public:
 
@@ -324,13 +295,64 @@ public:
 
 private:
 
-  //childs
-  std::vector< SharedPtr<StringTree> > childs;
-
   //toJSONString
   static String toJSONString(const StringTree& stree, int nrec);
  
 }; //end class
+
+
+
+//////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API ConfigFile : public StringTree
+{
+public:
+
+  //constructor
+  ConfigFile(String name = "ConfigFile") : StringTree(name) {
+  }
+
+  //destructor
+  ~ConfigFile() {
+  }
+
+  //getFilename
+  String getFilename() const {
+    return filename;
+  }
+
+  //load
+  bool load(String filename, bool bEnablePostProcessing = true);
+
+  //reload
+  bool reload(bool bEnablePostProcessing = true) {
+    return load(filename, bEnablePostProcessing);
+  }
+
+  //save
+  bool save();
+
+
+private:
+
+  String filename;
+
+};
+
+//////////////////////////////////////////////////////////////////////
+#if !SWIG
+namespace Private {
+  class VISUS_KERNEL_API VisusConfig : public ConfigFile
+  {
+  public:
+
+    VISUS_DECLARE_SINGLETON_CLASS(VisusConfig)
+
+    //constructor
+    VisusConfig() : ConfigFile("visus_config") {
+    }
+  };
+} //namespace Private
+#endif
 
 
 } //namespace Visus

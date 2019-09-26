@@ -42,7 +42,7 @@ For support : support@visus.net
 #include <Visus/File.h>
 #include <Visus/DirectoryIterator.h>
 #include <Visus/DatasetFilter.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 #include <Visus/OnDemandAccess.h>
 
 #ifdef WIN32
@@ -1000,14 +1000,6 @@ void IdxDataset::setIdxFile(IdxFile value)
   setDatasetBounds(value.bounds);
   setTimesteps(value.timesteps);
   
-  setDefaultScene(value.scene);
-    
-  if (StringUtils::startsWith(value.scene, "."))
-  {
-    auto dir = getUrl().getPath().substr(0, getUrl().getPath().find_last_of("/"));
-    setDefaultScene(dir  + "/" + value.scene);
-  }
-
   for (auto field : value.fields)
     addField(field);
 

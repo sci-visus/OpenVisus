@@ -68,9 +68,9 @@ void DatasetTimesteps::readFromObjectStream(ObjectStream& istream)
 {
   this->values.clear();
 
-  for (int I=0;I<istream.getCurrentContext()->getNumberOfChilds();I++)
+  for (auto child : istream.getCurrentContext()->childs)
   {
-    String name=istream.getCurrentContext()->getChild(I).name;
+    String name= child->name;
     if (name=="Timestep")
     {
     istream.pushContext("Timestep");

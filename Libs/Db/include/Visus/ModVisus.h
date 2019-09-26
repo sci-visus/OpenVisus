@@ -43,7 +43,7 @@ For support : support@visus.net
 #include <Visus/NetMessage.h>
 #include <Visus/NetServer.h>
 #include <Visus/Log.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 #include <Visus/CriticalSection.h>
 
 namespace Visus {
@@ -97,9 +97,7 @@ private:
   //all requests
   NetResponse handleReload           (const NetRequest& request);
   NetResponse handleReadDataset      (const NetRequest& request);
-  NetResponse handleReadScene        (const NetRequest& request);
   NetResponse handleGetListOfDatasets(const NetRequest& request);
-  NetResponse handleGetListOfScenes  (const NetRequest& request);
   NetResponse handleAddDataset       (const NetRequest& request);
   NetResponse handleHtmlForPlugin    (const NetRequest& request);
   NetResponse handleBlockQuery       (const NetRequest& request);

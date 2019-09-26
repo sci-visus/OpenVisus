@@ -221,10 +221,6 @@ void Viewer::createActions()
     saveFile(""); 
   }));
   
-  addAction(actions.SaveSceneAs = GuiFactory::CreateAction("Export scene as...",this, [this]() {
-    saveScene("");
-  }));
-  
   addAction(actions.SaveHistoryAs = GuiFactory::CreateAction("Save history as...",this, [this]() {
     bool bSaveHistory=true;
     saveFile("",bSaveHistory); 
@@ -446,37 +442,25 @@ void Viewer::createActions()
 ////////////////////////////////////////////////////////////
 void Viewer::createBookmarks(QMenu* dst,const StringTree& src)
 {
-  for (int I=0;I<(int)src.getNumberOfChilds();I++)
+  for (auto child : src.childs)
   {
-    const StringTree& child=src.getChild(I);
-
-    if (child.name=="dataset")
+    if (child->name=="dataset")
     {
       //NOTE: i'm using name and not url because I can have multiple dataset with the same url (example: cached, no cached)
-      String url=child.readString("name",child.readString("url"));
+      String url=child->readString("name",child->readString("url"));
       VisusAssert(!url.empty());
       dst->addAction(GuiFactory::CreateAction(StringUtils::replaceAll(url, "&", "&&").c_str(), this, [this, url]() {
         openFile(url); 
       }));
     }
-    else if (child.name == "scene")
+    else if (child->name=="group")
     {
-      String name = child.readString("name"); VisusAssert(!name.empty());
-      String url   = child.readString("url"); VisusAssert(!url.empty() && (StringUtils::endsWith(url, ".xml") || StringUtils::endsWith(url, ".scn")));
-      name = StringUtils::replaceAll(name, "&", "&&");
-
-      dst->addAction(GuiFactory::CreateAction(name.c_str(), this, [this, url]() {
-        openFile(url);
-      }));
-    }
-    else if (child.name=="group")
-    {
-      QMenu* submenu=dst->addMenu(child.readString("name",child.name).c_str());
-      createBookmarks(submenu,child);
+      QMenu* submenu=dst->addMenu(child->readString("name",child->name).c_str());
+      createBookmarks(submenu,*child);
     }
     else
     {
-      createBookmarks(dst,child);
+      createBookmarks(dst, *child);
     }
   }
 }

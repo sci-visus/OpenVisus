@@ -3,12 +3,14 @@
 %{ 
 #include <Visus/Array.h>
 #include <Visus/Log.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 #include <Visus/NetServer.h>
 #include <Visus/Polygon.h>
 #include <Visus/File.h>
 #include <Visus/Time.h>
 #include <Visus/TransferFunction.h>
+#include <Visus/StringTree.h>
+#include <Visus/StringTree.h>
 
 using namespace Visus;
 %}
@@ -19,6 +21,8 @@ using namespace Visus;
 %include <Visus/VisusPy.i>
 
 %shared_ptr(Visus::HeapMemory)
+%shared_ptr(Visus::StringTree)
+%shared_ptr(Visus::ConfigFile)
 
 //VISUS_NEWOBJECT
 //%newobject Visus::ClassName::MethodName;
@@ -46,7 +50,8 @@ using namespace Visus;
 %include <Visus/ObjectStream.h>
 %include <Visus/Aborted.h>
 %include <Visus/StringTree.h>
-%include <Visus/VisusConfig.h>
+
+%include <Visus/StringTree.h>
 %include <Visus/Color.h>
 %include <Visus/Point.h> 
 

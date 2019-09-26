@@ -49,7 +49,7 @@ void ObjectStream::writeText(const String& value,bool bCData)
 
 /////////////////////////////////////////////////////////////
 String ObjectStream::readText()
-{return getCurrentContext()->collapseTextAndCData();}
+{return getCurrentContext()->readText();}
 
 
 /////////////////////////////////////////////////////////////
@@ -103,8 +103,9 @@ bool ObjectStream::pushContext(String context_name)
 {
   if (mode=='w')
   {
-    getCurrentContext()->addChild(StringTree(context_name));
-    this->stack.push(StackItem(&getCurrentContext()->getLastChild()));
+    auto child = std::make_shared<StringTree>(context_name);
+    getCurrentContext()->addChild(child);
+    this->stack.push(StackItem(child.get()));
     return true;
   }
   else

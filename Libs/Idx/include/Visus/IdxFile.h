@@ -90,9 +90,6 @@ public:
   //in case there is time
   String time_template;
   
-  //in case there is scene
-  String scene;
-
   //constructor
   IdxFile(int version_=0);
 

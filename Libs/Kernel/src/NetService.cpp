@@ -40,7 +40,7 @@ For support : support@visus.net
 #include <Visus/NetSocket.h>
 #include <Visus/Path.h>
 #include <Visus/File.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 #include <Visus/Thread.h>
 
 #include <thread>

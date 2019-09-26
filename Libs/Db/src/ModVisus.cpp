@@ -38,12 +38,11 @@ For support : support@visus.net
 
 #include <Visus/ModVisus.h>
 #include <Visus/Dataset.h>
-#include <Visus/Scene.h>
 #include <Visus/DatasetFilter.h>
 #include <Visus/File.h>
 #include <Visus/TransferFunction.h>
 #include <Visus/NetService.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 #include <Visus/ApplicationInfo.h>
 
 namespace Visus {
@@ -68,11 +67,6 @@ public:
     addDatasets(datasets, config, config);
     datasets_xml_body  = datasets.toXmlString();
     datasets_json_body = datasets.toJSONString();
-
-    StringTree scenes("scenes");
-    addDatasets(scenes, config, config);
-    scenes_xml_body = scenes.toXmlString();
-    scenes_json_body = scenes.toJSONString();
   }
 
   //destructor
@@ -84,19 +78,9 @@ public:
     return (int)datasets_map.size();
   }
 
-  //getNumberOfScenes
-  int getNumberOfScenes() const {
-    return (int)scenes_map.size();
-  }
-
   //getDatasetUrl
   String getDatasetUrl(String name) const {
     return "$(protocol)://$(hostname):$(port)/mod_visus?action=readdataset&dataset=" + name;
-  }
-
-  //getSceneUrl
-  String getSceneUrl(String name) const {
-    return "$(protocol)://$(hostname):$(port)/mod_visus?action=readscene&scene=" + name;
   }
 
   //getDatasetsBody
@@ -108,15 +92,6 @@ public:
       return datasets_xml_body;
   }
 
-  //getScenesBody
-  String getScenesBody(String format = "xml") const
-  {
-    if (format == "json")
-      return scenes_json_body;
-    else
-      return scenes_xml_body;
-  }
-
   //findDataset
   SharedPtr<Dataset> findDataset(String name) const
   {
@@ -124,23 +99,11 @@ public:
     return (it != datasets_map.end()) ? it->second : SharedPtr<Dataset>();
   }
 
-  //find
-  SharedPtr<Scene> findScene(String name) const
-  {
-    auto it = scenes_map.find(name);
-    return it != scenes_map.end() ? it->second : SharedPtr<Scene>();
-  }
-
 private:
 
   VISUS_NON_COPYABLE_CLASS(Datasets)
 
   typedef std::map<String, SharedPtr<Dataset > > DatasetMap;
-  typedef std::map<String, SharedPtr<Scene > >   SceneMap;
-
-  SceneMap          scenes_map;
-  String            scenes_xml_body;
-  String            scenes_json_body;
 
   DatasetMap        datasets_map;
   String            datasets_xml_body;
@@ -231,33 +194,9 @@ private:
     }
 
     //flattening the hierarchy!
-    if (cursor.name != "scene")
-    {
-      for (auto child : cursor.getChilds())
-        ret += addScenes(dst, config, *child);
-      return ret;
-    }
-
-    //just ignore those with empty names or not public
-    String name = cursor.readString("name");
-    bool is_public = StringUtils::contains(cursor.readString("permissions"), "public");
-    if (name.empty() || !is_public)
-      return 0;
-
-    auto scene = LoadSceneEx(name, config);
-    if (!scene) {
-      VisusWarning() << "LoadScene(" << name << ") failed, skipping it";
-      return 0;
-    }
-
-    if (scenes_map.find(name) != scenes_map.end()) {
-      VisusWarning() << "Scene name(" << name << ") already exists, skipping it";
-      return 0;
-    }  
-    scenes_map[name] = scene;
-    dst.addChild(StringTree("scene","name",name,"url", getSceneUrl(name)));
-
-    return 1;
+    for (auto child : cursor.getChilds())
+      ret += addScenes(dst, config, *child);
+    return ret;
   }
 
 };
@@ -328,7 +267,6 @@ bool ModVisus::configureDatasets(const ConfigFile& config)
 
   VisusInfo() << "ModVisus::configure dynamic(" << dynamic << ") config_filename(" << config_filename << ")...";
   VisusInfo() << "/mod_visus?action=list\n" << datasets->getDatasetsBody();
-  VisusInfo() << "/mod_visus?action=list_scenes\n" << datasets->getScenesBody();
 
   return true;
 }
@@ -353,7 +291,7 @@ bool ModVisus::reload()
     this->config_timestamp = FileUtils::getTimeLastModified(this->config_filename);
   }
 
-  VisusInfo() << "modvisus config file changed config_filename(" << this->config_filename << ") #datasets(" << datasets->getNumberOfDatasets() << ") #scenes(" << datasets->getNumberOfScenes() << ")";
+  VisusInfo() << "modvisus config file changed config_filename(" << this->config_filename << ") #datasets(" << datasets->getNumberOfDatasets() << ")";
   return true;
 }
 
@@ -472,30 +410,11 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
           stree->writeString("url", datasets->getDatasetUrl(prefix));
         }
         for (auto child : stree->getChilds())
-          stack.push(std::make_pair(prefix, child));
+          stack.push(std::make_pair(prefix, child.get()));
       }
       body = stree.toString();
     }
   }
-
-  response.setTextBody(body,/*bHasBinary*/true);
-  return response;
-}
-
-///////////////////////////////////////////////////////////////////////////
-NetResponse ModVisus::handleReadScene(const NetRequest& request)
-{
-  String scene_name = request.url.getParam("scene");
-
-  auto datasets=getDatasets();
-  auto scene = datasets->findScene(scene_name);
-  if (!scene)
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find scene(" + scene_name + ")");
-
-  NetResponse response(HttpStatus::STATUS_OK);
-  response.setHeader("visus-git-revision", ApplicationInfo::git_revision);
-
-  auto body = scene->getSceneBody();
 
   response.setTextBody(body,/*bHasBinary*/true);
   return response;
@@ -516,33 +435,6 @@ NetResponse ModVisus::handleGetListOfDatasets(const NetRequest& request)
     response.setXmlBody(datasets->getDatasetsBody(format));
   else if (format == "json")
     response.setJSONBody(datasets->getDatasetsBody(format));
-  else
-    return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "wrong format(" + format + ")");
-
-  if (!hostname.empty())
-    response.setTextBody(StringUtils::replaceAll(response.getTextBody(), "$(hostname)", hostname));
-
-  if (!port.empty())
-    response.setTextBody(StringUtils::replaceAll(response.getTextBody(), "$(port)", port));
-
-  return response;
-}
-
-///////////////////////////////////////////////////////////////////////////
-NetResponse ModVisus::handleGetListOfScenes(const NetRequest& request)
-{
-  String format = request.url.getParam("format", "xml");
-  String hostname = request.url.getParam("hostname"); //trick if you want $(localhost):$(port) to be replaced with what the client has
-  String port = request.url.getParam("port");
-
-  NetResponse response(HttpStatus::STATUS_OK);
-
-  auto datasets=getDatasets();
-
-  if (format == "xml")
-    response.setXmlBody(datasets->getScenesBody(format));
-  else if (format == "json")
-    response.setJSONBody(datasets->getScenesBody(format));
   else
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "wrong format(" + format + ")");
 
@@ -855,7 +747,6 @@ NetResponse ModVisus::handleRequest(NetRequest request)
     String user_agent = StringUtils::toLower(request.getHeader("User-Agent"));
 
     bool bSpecifyDataset = request.url.hasParam("dataset");
-    bool bSpecifyScene = request.url.hasParam("scene");
     bool bCommercialBrower = !user_agent.empty() && !StringUtils::contains(user_agent, "visus");
 
     if (bCommercialBrower)
@@ -863,10 +754,6 @@ NetResponse ModVisus::handleRequest(NetRequest request)
       if (bSpecifyDataset)
       {
         request.url.setParam("action", "plugin");
-      }
-      else if (bSpecifyScene)
-      {
-        request.url.setParam("action", "readscene");
       }
       else
       {
@@ -879,10 +766,6 @@ NetResponse ModVisus::handleRequest(NetRequest request)
       if (bSpecifyDataset)
       {
         request.url.setParam("action", "readdataset");
-      }
-      else if (bSpecifyScene)
-      {
-        request.url.setParam("action", "readscene");
       }
       else
       {
@@ -908,17 +791,11 @@ NetResponse ModVisus::handleRequest(NetRequest request)
   else if (action == "readdataset" || action == "read_dataset")
     response = handleReadDataset(request);
 
-  else if (action == "readscene" || action == "read_scene")
-    response = handleReadScene(request);
-
   else if (action == "plugin")
     response = handleHtmlForPlugin(request);
 
   else if (action == "list")
     response = handleGetListOfDatasets(request);
-
-  else if (action == "listscenes" || action == "list_scenes")
-    response = handleGetListOfScenes(request);
 
   else if (action == "configure_datasets" || action == "configure" || action == "reload")
     response = handleReload(request);

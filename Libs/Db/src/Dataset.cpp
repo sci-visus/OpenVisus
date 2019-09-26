@@ -44,7 +44,7 @@ For support : support@visus.net
 #include <Visus/RamAccess.h>
 #include <Visus/FilterAccess.h>
 #include <Visus/NetService.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 #include <Visus/Polygon.h>
 
 
@@ -814,7 +814,7 @@ void Dataset::readFromObjectStream(ObjectStream& istream)
   if (istream.pushContext("config"))
   {
     VisusAssert(istream.getCurrentContext()->getNumberOfChilds() == 1);
-    this->config = istream.getCurrentContext()->getChild(0);
+    this->config = *istream.getCurrentContext()->getChild(0);
     istream.popContext("config");
   }
 

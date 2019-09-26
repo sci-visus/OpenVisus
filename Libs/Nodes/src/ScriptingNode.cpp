@@ -37,7 +37,7 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/ScriptingNode.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 
 #if VISUS_PYTHON
 #include <Visus/Python.h>
@@ -458,12 +458,7 @@ void ScriptingNode::readFromObjectStream(ObjectStream& istream)
   Node::readFromObjectStream(istream);
 
   max_publish_msec=cint(istream.read("max_publish_msec", cstring(this->max_publish_msec)));
-
-  if (istream.pushContext("code"))
-  {
-    setCode(istream.readText());
-    istream.popContext("code");
-  }
+  setCode(istream.readText("code"));
 }
 
 } //namespace Visus

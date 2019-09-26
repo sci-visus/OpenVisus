@@ -39,7 +39,7 @@ For support : support@visus.net
 #include <Visus/QueryNode.h>
 #include <Visus/DatasetFilter.h>
 #include <Visus/Dataflow.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 
 namespace Visus {
 
@@ -354,16 +354,6 @@ void QueryNode::exitFromDataflow()
 //////////////////////////////////////////////////////////////////
 void QueryNode::writeToObjectStream(ObjectStream& ostream) 
 {
-  if (ostream.isSceneMode())
-  {
-    // use same serialization for query which will include
-    // a transformation matrix in case of rotated selection
-    ostream.pushContext("bounds");
-    node_bounds.writeToObjectStream(ostream);
-    ostream.popContext("bounds");
-    return;
-  }
-
   Node::writeToObjectStream(ostream);
 
   ostream.write("verbose", cstring(verbose));
@@ -382,14 +372,6 @@ void QueryNode::writeToObjectStream(ObjectStream& ostream)
 //////////////////////////////////////////////////////////////////
 void QueryNode::readFromObjectStream(ObjectStream& istream) 
 {
-  if (istream.isSceneMode())
-  {
-    istream.pushContext("bounds");
-    node_bounds.readFromObjectStream(istream);
-    istream.popContext("bounds");
-    return;
-  }
-
   Node::readFromObjectStream(istream);
 
   this->verbose = cint(istream.read("verbose"));

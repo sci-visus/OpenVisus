@@ -79,8 +79,6 @@ source_group("Core" FILES
 	./src/ApplicationStats.cpp
 	./include/Visus/ApplicationInfo.h
 	./src/ApplicationInfo.cpp
-	./include/Visus/VisusConfig.h
-	./src/VisusConfig.cpp
 	./include/Visus/SharedLibrary.h
 	./src/SharedLibrary.cpp
 	./include/Visus/json.hpp)

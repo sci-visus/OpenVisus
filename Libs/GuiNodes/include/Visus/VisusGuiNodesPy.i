@@ -2,6 +2,7 @@
 
 %{ 
 #include <Visus/Gui.h>
+#include <Visus/StringTree.h>
 #include <Visus/GLObjects.h>
 #include <Visus/Dataflow.h>
 #include <Visus/GLCameraNode.h>

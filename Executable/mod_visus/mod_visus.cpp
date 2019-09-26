@@ -41,7 +41,7 @@ For support : support@visus.net
 #include <Visus/Path.h>
 #include <Visus/Idx.h>
 #include <Visus/ApplicationInfo.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 
 #if WIN32
 

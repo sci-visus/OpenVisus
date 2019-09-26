@@ -171,56 +171,24 @@ public:
   Target* target() {
     return dynamic_cast<Target*>(this);
   }
-  
-  //pushAction
-  void pushAction(StringTree _action_) 
+
+  //enableLog
+  bool enableLog(String filename)
   {
-    auto action = std::make_shared<StringTree>(_action_);
-
-    if (stack.empty())
-      this->Model::beginUpdate();
-    else 
-      topAction()->addChild(action);
-
-    stack.push(action);
-  }
-
-  //popAction
-  void popAction() 
-  {
-    auto action= topAction();
-    stack.pop();
-
-    if (stack.empty())
-    {
-      history.push_back(action);
-
-      if (!bUndoing && !bRedoing)
-      {
-        undo_redo.resize(n_undo_redo++);
-        undo_redo.push_back(action);
-      }
-
-      if (log.is_open())
-        log << action->toString() << std::endl << std::endl;
-
-      this->Model::endUpdate();
-    }
-  }
-
-
-  //topAction
-  SharedPtr<StringTree> topAction() const {
-    return stack.top();
+    if (log.is_open()) return true;
+    log.open(filename.c_str(), std::fstream::out);
+    log.rdbuf()->pubsetbuf(0, 0);
+    log.rdbuf()->pubsetbuf(0, 0);
+    return true;
   }
 
   //clearHistory
   void clearHistory()
   {
-    VisusAssert(stack.empty());
     this->history.clear();
     this->log.close();
-    this->stack = std::stack< SharedPtr<StringTree> >();
+    this->redos = std::stack<StringTree>();
+    this->undos = std::stack<StringTree>();
     this->undo_redo.clear();
     this->n_undo_redo = 0;
     this->bUndoing = false;
@@ -228,8 +196,69 @@ public:
   }
 
   //getHistory
-  std::vector< SharedPtr<StringTree> > getHistory() const {
+  const std::vector<StringTree>& getHistory() const {
     return history;
+  }
+
+public:
+
+  //topRedo
+  StringTree& topRedo() {
+    return redos.top();
+  }
+
+  //topUndo
+  StringTree& topUndo() {
+    return undos.top();
+  }
+
+  //pushAction
+  void pushAction(StringTree redo,StringTree undo) 
+  {
+    auto action = std::make_pair(redo,undo);
+
+    if (redos.empty())
+    {
+      this->Model::beginUpdate();
+    }
+    else
+    {
+      topRedo().childs.insert(topRedo().childs.end  (), std::make_shared<StringTree>(redo)); //at the end 
+      topUndo().childs.insert(topUndo().childs.begin(), std::make_shared<StringTree>(undo)); //at the beginning
+    }
+
+    redos.push(redo);
+    undos.push(undo);
+  }
+
+  //popAction
+  void popAction() 
+  {
+    auto redo = topRedo(); redos.pop();
+    auto undo = topUndo(); undos.pop();
+
+    if (redos.empty())
+    {
+      history.push_back(redo);
+
+      if (!bUndoing && !bRedoing)
+      {
+        undo_redo.resize(n_undo_redo++);
+        undo_redo.push_back(std::make_pair(undo,redo));
+      }
+
+      if (log.is_open())
+        log << redo.toString() << std::endl << std::endl;
+
+      this->Model::endUpdate();
+    }
+  }
+
+public:
+
+  //canRedo
+  bool canRedo() const {
+    return !undo_redo.empty() && n_undo_redo < undo_redo.size();
   }
 
   //canUndo
@@ -237,10 +266,16 @@ public:
     return !undo_redo.empty() && n_undo_redo>0;
   }
 
-
-  //canRedo
-  bool canRedo() const {
-    return !undo_redo.empty() && n_undo_redo < undo_redo.size();
+  //redo
+  bool redo() {
+    VisusAssert(VisusHasMessageLock());
+    VisusAssert(!bUndoing && !bRedoing);
+    if (!canRedo())  return false;
+    auto action = undo_redo[n_undo_redo++];
+    bRedoing = true;
+    target()->executeAction(action.first);
+    bRedoing = false;
+    return true;
   }
 
   //undo
@@ -250,43 +285,23 @@ public:
     if (!canUndo()) return false;
     auto action=undo_redo[--n_undo_redo];
     bUndoing=true;
-    target()->executeAction(*action,false);
+    target()->executeAction(action.second);
     bUndoing=false;
     return true;
   }
 
-
-  //redo
-  bool redo() {
-    VisusAssert(VisusHasMessageLock());
-    VisusAssert(!bUndoing && !bRedoing) ;
-    if (!canRedo())  return false;
-    auto action=undo_redo[n_undo_redo++];
-    bRedoing=true;
-    target()->executeAction(*action, true);
-    bRedoing=false;
-    return true;
-  }
-
-  //enableLog
-  bool enableLog(String filename) 
-  {
-    if (log.is_open()) return true;
-    log.open(filename.c_str(),std::fstream::out);
-    log.rdbuf()->pubsetbuf(0,0);
-    log.rdbuf()->pubsetbuf(0,0);
-    return true;
-  }
-  
 private:
 
-  std::vector< SharedPtr<StringTree> > history;
-  std::ofstream                        log;
-  std::stack< SharedPtr<StringTree> >  stack;
-  std::vector< SharedPtr<StringTree> > undo_redo;
-  int                                  n_undo_redo=0;
-  bool                                 bUndoing=false;
-  bool                                 bRedoing=false;
+  typedef std::pair<StringTree, StringTree> UndoRedo;
+
+  std::vector<StringTree> history;
+  std::ofstream           log;
+  std::stack<StringTree>  redos;
+  std::stack<StringTree>  undos;
+  std::vector<UndoRedo>   undo_redo;
+  int                     n_undo_redo=0;
+  bool                    bUndoing=false;
+  bool                    bRedoing=false;
 
 };
 

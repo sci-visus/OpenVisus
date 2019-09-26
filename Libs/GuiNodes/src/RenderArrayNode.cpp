@@ -38,7 +38,7 @@ For support : support@visus.net
 
 #include <Visus/RenderArrayNode.h>
 #include <Visus/GLCanvas.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 
 namespace Visus {
 
@@ -408,17 +408,6 @@ void RenderArrayNode::glRender(GLCanvas& gl)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 void RenderArrayNode::writeToObjectStream(ObjectStream& ostream)
 {
-  if (ostream.isSceneMode())
-  {
-    ostream.pushContext("render");
-    ostream.writeInline("type", "volume_slicer");
-    ostream.write("lighting_enabled", cstring(lighting_enabled));
-    ostream.write("use_view_direction", cstring(use_view_direction));
-    ostream.write("max_num_slices", cstring(max_num_slices));
-    ostream.popContext("render");
-    return;
-  }
-
   Node::writeToObjectStream(ostream);
 
   ostream.write("lighting_enabled",cstring(lighting_enabled));
@@ -432,14 +421,6 @@ void RenderArrayNode::writeToObjectStream(ObjectStream& ostream)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 void RenderArrayNode::readFromObjectStream(ObjectStream& istream)
 {
-  if (istream.isSceneMode())
-  {
-    this->lighting_enabled = cbool(istream.read("lighting_enabled"));
-    this->use_view_direction = cbool(istream.read("use_view_direction"));
-    this->max_num_slices = cint(istream.read("max_num_slices"));
-    return;
-  }
-
   Node::readFromObjectStream(istream);
 
   this->lighting_enabled=cbool(istream.read("lighting_enabled"));

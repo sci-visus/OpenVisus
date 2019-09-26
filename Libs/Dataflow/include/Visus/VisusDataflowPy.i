@@ -1,6 +1,7 @@
 %module(directors="1") VisusDataflowPy
 
 %{ 
+#include <Visus/StringTree.h>
 #include <Visus/DataflowModule.h>
 #include <Visus/DataflowMessage.h>
 #include <Visus/DataflowPort.h>

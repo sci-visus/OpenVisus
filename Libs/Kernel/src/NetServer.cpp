@@ -37,7 +37,7 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/NetServer.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/Log.h>
 

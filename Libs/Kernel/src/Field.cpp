@@ -98,12 +98,12 @@ void Field::readFromObjectStream(ObjectStream& istream)
   this->params.clear();
   if (istream.pushContext("params"))
   {
-    for (int I=0;I<istream.getCurrentContext()->getNumberOfChilds();I++)
+    for (auto child : istream.getCurrentContext()->childs)
     {
-      if (istream.getCurrentContext()->getChild(I).isHashNode())
+      if (child->isHashNode())
         continue;
 
-      String key=istream.getCurrentContext()->getChild(I).name;
+      String key=child->name;
       String value=istream.read(key);
       params.setValue(key,value);
     }

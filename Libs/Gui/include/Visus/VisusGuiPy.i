@@ -5,6 +5,7 @@
 #include <Visus/Frustum.h>
 #include <Visus/GLCanvas.h>
 #include <Visus/GLObjects.h>
+#include <Visus/StringTree.h>
 
 #include <Visus/GLCamera.h>
 #include <Visus/GLOrthoCamera.h>

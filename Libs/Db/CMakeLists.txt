@@ -34,11 +34,6 @@ SET(DatasetSources
 	./src/GoogleMapsDataset.cpp
 )
 
-SET(SceneSources
-	./include/Visus/Scene.h
-	./src/Scene.cpp
-)
-
 SET(AccessSources
 	./include/Visus/Access.h
 	./include/Visus/CloudStorageAccess.h
@@ -61,7 +56,6 @@ SET(AccessSources
 source_group(""         FILES ${RootSources})
 source_group("Access"   FILES ${AccessSources})
 source_group("Dataset"  FILES ${DatasetSources})
-source_group("Scene"    FILES ${SceneSources})
 source_group("Query"    FILES ${QuerySources})
 
 file(GLOB Sources include/Visus/*.h src/*.cpp)

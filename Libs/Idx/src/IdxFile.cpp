@@ -46,7 +46,7 @@ For support : support@visus.net
 #include <Visus/IdxHzOrder.h>
 #include <Visus/IdxDiskAccess.h>
 #include <Visus/NetService.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 
 #define VISUS_IDX_FILE_DEFAULT_VERSION 6
 
@@ -523,7 +523,6 @@ IdxFile IdxFile::load(Url url)
     idxfile.bitsperblock      = cint(map.getValue("(bitsperblock)"));
     idxfile.blocksperfile     = cint(map.getValue("(blocksperfile)"));
     idxfile.filename_template = map.getValue("(filename_template)");
-    idxfile.scene             = map.getValue("(scene)");
 
     if (map.hasValue("(interleave)"))
       idxfile.block_interleaving=cint(map.getValue("(interleave)"));
@@ -745,9 +744,6 @@ String IdxFile::toString() const
         filename_template=StringUtils::replaceFirst(filename_template,saving_directory,".");
     }
   
-    if(this->scene!="")
-      out<<"(scene)\n"<<this->scene<<"\n";
-    
     out<<"(filename_template)\n"<<filename_template<<"\n";
 
     return out.str();
@@ -779,8 +775,6 @@ void IdxFile::writeToObjectStream(ObjectStream& ostream)
   ostream.write("bitsperblock",cstring(this->bitsperblock));
   ostream.write("blocksperfile",cstring(this->blocksperfile));
   ostream.write("block_interleaving",cstring(this->block_interleaving));
-  if(scene!="")
-    ostream.write("scene",scene);
   ostream.write("filename_template",filename_template);
   
   ostream.pushContext("fields");
@@ -820,7 +814,6 @@ void IdxFile::readFromObjectStream(ObjectStream& istream)
   this->bitsperblock      = cint(istream.read("bitsperblock"));
   this->blocksperfile     = cint(istream.read("blocksperfile"));
   this->block_interleaving= cint(istream.read("block_interleaving"));
-  this->scene             = istream.read("scene");
   this->filename_template = istream.read("filename_template");
 
   this->fields.clear();

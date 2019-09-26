@@ -38,7 +38,7 @@ For support : support@visus.net
 
 #include <Visus/OSPRayRenderNode.h>
 #include <Visus/GLCanvas.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 #include <Visus/GLPhongShader.h>
 #include <Visus/DType.h>
 #include <Visus/Kernel.h>

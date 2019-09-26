@@ -12,6 +12,7 @@
 #include <Visus/GLCamera.h>
 #include <Visus/GLOrthoCamera.h>
 #include <Visus/GLLookAtCamera.h>
+#include <Visus/StringTree.h>
 using namespace Visus;
 %}
 

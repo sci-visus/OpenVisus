@@ -54,17 +54,15 @@ MultiplexAccess::MultiplexAccess(Dataset* dataset,StringTree config)
   this->can_write      = false; 
   this->bitsperblock   = 0;
 
-  for (int i=0;i<(int)config.getNumberOfChilds();i++)
+  for (auto child_config : config.childs)
   {
-    if (config.getChild(i).name!="access")
+    if (child_config->name!="access")
       continue;
 
-    auto child_config = config.getChild(i);
+    if (!child_config->hasValue("url"))
+      child_config->writeString("url",url.toString());
 
-    if (!child_config.hasValue("url"))
-      child_config.writeString("url",url.toString());
-
-    auto child=dataset->createAccess(child_config);
+    auto child=dataset->createAccess(*child_config);
     if (!child)
       ThrowException("wrong child access");
 

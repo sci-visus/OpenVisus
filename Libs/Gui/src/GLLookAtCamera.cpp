@@ -561,32 +561,6 @@ void GLLookAtCamera::guessOrthoParams()
 //////////////////////////////////////////////////////////////////////
 void GLLookAtCamera::writeToObjectStream(ObjectStream& ostream) 
 {
-  if (ostream.isSceneMode())
-  {
-    ostream.writeInline("type", "lookAt");
-    // TODO generalize keyframes interpolation
-    ostream.pushContext("keyframes");
-    ostream.writeInline("interpolation", "linear");
-
-    // TODO Loop through the keyframes
-    ostream.pushContext("keyframe");
-    ostream.writeInline("time", "0");
-
-    // write camera data
-    ostream.write("bound", bound.toString(/*bInterleave*/false));
-    ostream.write("pos", pos.toString());
-    ostream.write("dir", dir.toString());
-    ostream.write("vup", vup.toString());
-    ostream.write("centerOfRotation", centerOfRotation.toString());
-    ostream.write("quaternion", quaternion.toString());
-
-    ostream.popContext("keyframe");
-    // end keyframes loop
-
-    ostream.popContext("keyframes");
-    return;
-  }
-
   GLCamera::writeToObjectStream(ostream);
 
   ostream.write("bound",bound.toString(/*bInterleave*/false));
@@ -609,18 +583,6 @@ void GLLookAtCamera::writeToObjectStream(ObjectStream& ostream)
 //////////////////////////////////////////////////////////////////////
 void GLLookAtCamera::readFromObjectStream(ObjectStream& istream) 
 {
-  if (istream.isSceneMode())
-  {
-    bound = BoxNd::parseFromString(istream.read("bound"),/*bInterleave*/false); 
-    bound.setPointDim(3);
-    pos = Point3d(istream.read("pos"));
-    dir = Point3d(istream.read("dir"));
-    vup = Point3d(istream.read("vup"));
-    centerOfRotation = Point3d(istream.read("centerOfRotation"));
-    quaternion = Quaternion(istream.read("quaternion"));
-    return;
-  }
-
   GLCamera::readFromObjectStream(istream);
 
   bound = BoxNd::parseFromString(istream.read("bound"),/*bInterleave*/false);

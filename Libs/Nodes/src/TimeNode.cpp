@@ -116,29 +116,6 @@ void TimeNode::doPublish(SharedPtr<ReturnReceipt> return_receipt)
 //////////////////////////////////////////////////
 void TimeNode::writeToObjectStream(ObjectStream& ostream) 
 {
-  if (ostream.isSceneMode())
-  {
-    ostream.pushContext("timestep");
-
-    ostream.pushContext("keyframes");
-    ostream.writeInline("interpolation", "none");
-
-    // TODO loop through the keyframes for this object
-    ostream.pushContext("keyframe");
-    ostream.writeInline("time", "0");
-
-    ostream.pushContext("time");
-    ostream.writeInline("value", cstring(current_time));
-    ostream.popContext("time");
-
-    ostream.popContext("keyframe");
-    ostream.popContext("keyframes");
-    // TODO end loop
-
-    ostream.popContext("timestep");
-    return;
-  }
-
   Node::writeToObjectStream(ostream);
 
   ostream.write("current_time",cstring(current_time));

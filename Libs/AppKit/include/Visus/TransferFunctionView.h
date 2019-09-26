@@ -583,16 +583,17 @@ private:
       RGBAColorMap rgba_colormap;
       if (StringTree* controlpoints=stree.findChildWithName("Object/Object"))
       {
-        for (int I=0;I<controlpoints->getNumberOfChilds();I++)
+        for (auto controlpoint : controlpoints->childs)
         {
-          std::vector<StringTree*> fields=controlpoints->getChild(I).findAllChildsWithName("Field",false);
+          auto fields= controlpoint->findAllChildsWithName("Field",false);
 
-          if (fields.size()!=2) continue;
+          if (fields.size()!=2) 
+            continue;
 
           VisusAssert(fields[0]->readString("name")=="colors");
           VisusAssert(fields[1]->readString("name")=="position");
-          String colors  =        fields[0]->collapseTextAndCData();
-          double position=cdouble(fields[1]->collapseTextAndCData());
+          String colors  =        fields[0]->readText();
+          double position=cdouble(fields[1]->readText());
           rgba_colormap.points.push_back(RGBAColorMap::Point(position, Color::parseFromString(colors)));
         }
         rgba_colormap.refreshMinMax();
@@ -608,11 +609,10 @@ private:
       bool useColorVarMax=false; double colorVarMax=0;
       bool isFloatRange=false;
     
-      for (int I=0;I<stree.getNumberOfChilds();I++)
+      for (auto child : stree.childs)
       {
-        StringTree& child=stree.getChild(I);
-        String name=child.readString("name");
-        String text=child.collapseTextAndCData();
+        String name=child->readString("name");
+        String text=child->readText();
 
         if (name=="freeformOpacity")
         {
@@ -626,7 +626,7 @@ private:
         else if (name=="opacityAttenuation") attenuation    = cdouble(text);
         else if (name=="colorVarMin")
         {
-          isFloatRange = (child.readString("type")=="float");
+          isFloatRange = (child->readString("type")=="float");
           colorVarMin  = cdouble(text);
         }
         else if (name=="colorVarMax"       ) colorVarMax    = cdouble(text);

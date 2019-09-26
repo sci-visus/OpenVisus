@@ -56,8 +56,8 @@ public:
   //doParse
   void doParse()
   {
-    for (auto child : tree->getChilds())
-      acceptGeneric(child, StringMap());
+    for (auto child : tree->childs)
+      acceptGeneric(child.get(), StringMap());
   }
 
   //parsePoint
@@ -114,8 +114,8 @@ public:
   //acceptGroup
   void acceptGroup(StringTree* cur, const StringMap& attributes)
   {
-    for (auto child : cur->getChilds())
-      acceptGeneric(child, attributes);
+    for (auto child : cur->childs)
+      acceptGeneric(child.get(), attributes);
   }
 
   //acceptPoi

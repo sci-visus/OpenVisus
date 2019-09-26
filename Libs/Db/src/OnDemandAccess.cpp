@@ -42,7 +42,7 @@ For support : support@visus.net
 #include <Visus/DatasetBitmask.h>
 #include <Visus/Dataset.h>
 #include <Visus/Path.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 
 #if WIN32
 

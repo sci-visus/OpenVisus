@@ -48,6 +48,8 @@ For support : support@visus.net
 #include <algorithm>
 #include <iomanip>
 
+
+
 namespace Visus {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,10 +69,11 @@ private:
     aliases.setValue(key,value);
 
     //an alias can have childs too!
-    for (int I=0;I<(int)src.getNumberOfChilds();I++)  
+    for (auto src_child : src.childs)  
     {
-      dst.addChild(StringTree());
-      accept(dst.getLastChild(),src.getChild(I),templates,aliases);
+      auto dst_child = std::make_shared<StringTree>();
+      dst.addChild(dst_child);
+      accept(*dst_child,*src_child,templates,aliases);
     }
 
     return aliases;
@@ -121,8 +124,9 @@ private:
     //expand the template corrent into dst
     for (int I=0;I<(int)templates[template_name]->getNumberOfChilds();I++) 
     {
-      dst.addChild(StringTree());
-      accept(dst.getLastChild(),templates[template_name]->getChild(I),templates,aliases);
+      auto child = std::make_shared<StringTree>();
+      dst.addChild(child);
+      accept(*child,*templates[template_name]->childs[I],templates,aliases);
     }
   }
 
@@ -149,10 +153,11 @@ private:
     {
       VisusAssert(inplace.attributes.empty());
 
-      for (auto child : inplace.getChilds())
+      for (auto child : inplace.childs)
       {
-        dst.addChild(StringTree());
-        accept(dst.getLastChild(), *child, templates, aliases);
+        auto dst_child = std::make_shared<StringTree>();
+        dst.addChild(dst_child);
+        accept(*dst_child, *child, templates, aliases);
       }
     }
     else
@@ -190,13 +195,13 @@ private:
     else if (condition_expr == "!linux") bCondition = ApplicationInfo::platform_name != "linux";
     else bCondition = cbool(condition_expr);
 
-    for (auto child : src.getChilds())
+    for (auto child : src.childs)
     {
       if (child->name == "then")
       {
         if (bCondition)
         {
-          for (auto then_child : child->getChilds())
+          for (auto then_child : child->childs)
           {
             StringTree tmp;
             accept(tmp, *then_child, templates, aliases);
@@ -208,7 +213,7 @@ private:
       {
         if (!bCondition)
         {
-          for (auto else_child : child->getChilds())
+          for (auto else_child : child->childs)
           {
             StringTree tmp;
             accept(tmp, *else_child, templates, aliases);
@@ -273,42 +278,40 @@ private:
       }
 
       //childs
-      for (int I=0;I<(int)src.getNumberOfChilds();I++) 
+      for (auto child : src.childs) 
       {
-        StringTree& child=src.getChild(I);
-
-        if (child.name=="alias")
+        if (child->name=="alias")
         {
-          aliases=acceptAlias(dst,child,templates,aliases);
+          aliases=acceptAlias(dst,*child,templates,aliases);
           continue;
         }
 
-        if (child.name=="template")
+        if (child->name=="template")
         {
-          templates=acceptDefineTemplate(dst,child,templates,aliases);
+          templates=acceptDefineTemplate(dst, *child,templates,aliases);
           continue;
         }
 
-        if (child.name=="call")
+        if (child->name=="call")
         {
-          acceptCallTemplate(dst,child,templates,aliases);
+          acceptCallTemplate(dst, *child,templates,aliases);
           continue;
         }
 
-        if (child.name=="include")
+        if (child->name=="include")
         {
-          acceptInclude(dst,child,templates,aliases);
+          acceptInclude(dst, *child,templates,aliases);
           continue;
         }
 
-        if (child.name == "if")
+        if (child->name == "if")
         {
-          acceptIf(dst, child, templates, aliases);
+          acceptIf(dst, *child, templates, aliases);
           continue;
         }
 
         dst.addChild(StringTree());
-        accept(dst.getLastChild(),child,templates,aliases);
+        accept(*dst.childs.back(), *child,templates,aliases);
       }
     }
 
@@ -341,28 +344,19 @@ StringTree StringTree::postProcess(const StringTree& src)
 }
 
 /////////////////////////////////////////////////
-String StringTree::collapseTextAndCData() const
+String StringTree::readText() const
 {
   std::ostringstream out;
   for (int I=0;I<childs.size();I++)
   {
-    if      (childs[I]->isTextNode())         out<<childs[I]->readString("value");
-    else if (childs[I]->isCDataSectionNode()) out<<childs[I]->readString("value");
+    if (childs[I]->name=="#text")         
+      out<<childs[I]->readString("value");
+    
+    else if (childs[I]->name== "#cdata-section") 
+      out<<childs[I]->readString("value");
   }
   return out.str();
 }
-
-/////////////////////////////////////////////////
-StringTree& StringTree::operator=(const StringTree& other)
-{
-  this->name      =other.name;
-  this->attributes=other.attributes;
-  this->childs.clear();
-  for (int I=0;I<other.childs.size();I++)
-    this->childs.push_back(std::make_shared<StringTree>(*other.childs[I]));
-  return *this;
-}
-
 
 
 /////////////////////////////////////////////////
@@ -478,8 +472,8 @@ std::vector<StringTree*> StringTree::findAllChildsWithName(String name,bool bRec
 int StringTree::getMaxDepth()
 {
   int ret=0;
-  for (int I=0;I<getNumberOfChilds();I++)
-    ret=std::max(ret,1+getChild(I).getMaxDepth());
+  for (auto child : this->childs)
+    ret=std::max(ret,1+ child->getMaxDepth());
   return ret;
 }
 
@@ -513,28 +507,27 @@ static TiXmlElement* ToXmlElement(const StringTree& src)
     dst->SetAttribute(key.c_str(), value.c_str());
   }
 
-  for (int I = 0; I<src.getNumberOfChilds(); I++)
+  for (auto child : src.childs)
   {
-    const StringTree& child = src.getChild(I);
-    if (child.isCDataSectionNode())
+    if (child->name== "#cdata-section")
     {
-      VisusAssert(child.attributes.size() == 1 && child.hasAttribute("value") && child.getNumberOfChilds() == 0);
-      String text = child.readString("value");
+      VisusAssert(child->attributes.size() == 1 && child->hasAttribute("value") && child->getNumberOfChilds() == 0);
+      String text = child->readString("value");
       TiXmlText * ti_xml_text = new TiXmlText(text.c_str());
       ti_xml_text->SetCDATA(true);
       dst->LinkEndChild(ti_xml_text);
     }
-    else if (child.isTextNode())
+    else if (child->name=="#text")
     {
-      VisusAssert(child.attributes.size() == 1 && child.hasAttribute("value") && child.getNumberOfChilds() == 0);
-      String text = child.readString("value");
+      VisusAssert(child->attributes.size() == 1 && child->hasAttribute("value") && child->getNumberOfChilds() == 0);
+      String text = child->readString("value");
       TiXmlText * ti_xml_text = new TiXmlText(text.c_str());
       ti_xml_text->SetCDATA(false);
       dst->LinkEndChild(ti_xml_text);
     }
     else
     {
-      dst->LinkEndChild(ToXmlElement(src.getChild(I)));
+      dst->LinkEndChild(ToXmlElement(*child));
     }
   }
 
@@ -652,10 +645,7 @@ static StringTree FromXmlElement(TiXmlElement* src)
     {
       if (const char* xml_text = child_text->Value())
       {
-        if (child_text->CDATA())
-          dst.addCDataSectionNode(xml_text);
-        else
-          dst.addTextNode(xml_text);
+        dst.writeText(xml_text, child_text->CDATA());
       }
     }
     else if (const TiXmlComment* child_comment = child->ToComment())
@@ -701,6 +691,43 @@ bool StringTree::fromXmlString(String content, bool bEnablePostProcessing)
   return true;
 }
 
+
+VISUS_IMPLEMENT_SINGLETON_CLASS(Private::VisusConfig)
+
+//////////////////////////////////////////////////////////////
+bool ConfigFile::load(String filename, bool bEnablePostProcessing)
+{
+  if (filename.empty()) {
+    VisusAssert(false);
+    return false;
+  }
+
+  String body = Utils::loadTextDocument(filename);
+
+  StringTree temp(this->name);
+  if (!temp.fromXmlString(body, bEnablePostProcessing))
+  {
+    VisusWarning() << "visus config content is wrong or empty";
+    return false;
+  }
+
+  this->filename = filename;
+  this->StringTree::operator=(temp);
+
+  return true;
+}
+
+//////////////////////////////////////////////////////////////
+bool ConfigFile::save()
+{
+  if (this->filename.empty())
+    return false;
+
+  if (!Utils::saveTextDocument(filename, this->StringTree::toXmlString()))
+    return false;
+
+  return true;
+}
 
 } //namespace Visus
 

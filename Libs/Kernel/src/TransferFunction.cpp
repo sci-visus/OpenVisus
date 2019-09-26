@@ -189,13 +189,10 @@ void TransferFunction::Single::readFromObjectStream(ObjectStream& istream)
   color = Color::parseFromString(istream.read("color"));
 
   this->values.clear();
-  istream.pushContext("values");
-  {
-    std::istringstream in(istream.readText());
-    double value; while (in >> value)
-      values.push_back(value);
-  }
-  istream.popContext("values");
+
+  std::istringstream in(istream.readText("values"));
+  double value; while (in >> value)
+    values.push_back(value);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -554,30 +551,6 @@ Array TransferFunction::applyToArray(Array src,Aborted aborted)
 /////////////////////////////////////////////////////////////////////
 void TransferFunction::writeToObjectStream(ObjectStream& ostream)
 {
-  if (ostream.isSceneMode())
-  {
-    ostream.pushContext("palette");
-    ostream.writeInline("attenuation", cstring(attenuation));
-
-    ostream.pushContext("output");
-    {
-      ostream.writeInline("dtype", output_dtype.toString());
-      ostream.pushContext("range");
-      output_range.writeToObjectStream(ostream);
-      ostream.popContext("range");
-    }
-    ostream.popContext("output");
-
-    for (auto fn : functions)
-    {
-      ostream.pushContext("function");
-      fn->writeToObjectStream(ostream);
-      ostream.popContext("function");
-    }
-    ostream.popContext("palette");
-    return;
-  }
-
   bool bDefault=default_name.empty()?false:true;
 
   if (bDefault)
@@ -620,58 +593,6 @@ void TransferFunction::writeToObjectStream(ObjectStream& ostream)
 /////////////////////////////////////////////////////////////////////
 void TransferFunction::readFromObjectStream(ObjectStream& istream)
 {
-  if (istream.isSceneMode())
-  {
-
-    this->functions.clear();
-
-    this->default_name = istream.readInline("name");
-
-    bool bDefault = default_name.empty() ? false : true;
-
-    this->attenuation = cdouble(istream.readInline("attenuation", "0.0"));
-
-    if (istream.pushContext("input"))
-    {
-      input_range.mode = (ComputeRange::Mode)cint(istream.readInline("input.normalization"));
-      if (istream.pushContext("custom_range"))
-      {
-        input_range.custom_range.readFromObjectStream(istream);
-        istream.popContext("custom_range");
-      }
-      istream.popContext("input");
-    }
-
-    if (istream.pushContext("output"))
-    {
-      output_dtype = DType::fromString(istream.readInline("dtype"));
-
-      if (istream.pushContext("range"))
-      {
-        output_range.readFromObjectStream(istream);
-        istream.popContext("range");
-      }
-      istream.popContext("output");
-    }
-
-    if (bDefault)
-    {
-      setDefault(default_name);
-    }
-    else
-    {
-      setNotDefault();
-      while (istream.pushContext("function"))
-      {
-        auto single = std::make_shared<Single>();
-        single->readFromObjectStream(istream);
-        istream.popContext("function");
-        functions.push_back(single);
-      }
-    }
-    return;
-  }
-
   this->functions.clear();
   
   this->default_name=istream.readInline("name");

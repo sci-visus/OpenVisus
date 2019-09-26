@@ -87,7 +87,6 @@ public:
   //inverted
   Diff inverted() const;
 
-
   //applyDirect
   std::vector<String> applyDirect(const std::vector<String>& before) const;
 

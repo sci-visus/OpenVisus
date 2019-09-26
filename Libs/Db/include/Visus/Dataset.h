@@ -227,16 +227,6 @@ public:
     return fields.empty()? Field() : fields.front();
   }
   
-  //getDefaultScene
-  String getDefaultScene() const {
-    return default_scene.empty()? "" : default_scene;
-  }
-
-  //setDefaultScene
-  void setDefaultScene(String value) {
-    this->default_scene = value;
-  }
-
   //getDatasetBody
   String getDatasetBody() const {
     return dataset_body.empty() ? getUrl().toString() : dataset_body;
@@ -526,7 +516,6 @@ private:
   BoxNi                   logic_box;
   Position                dataset_bounds = Position::invalid();
   Matrix                  logic_to_physic, physic_to_logic;
-  String                  default_scene;
   int                     kdquery_mode = KdQueryMode::NotSpecified;
   bool                    bServerMode = false;
   int                     default_bitsperblock = 0;

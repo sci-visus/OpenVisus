@@ -5,7 +5,7 @@
 #include <Visus/IdxFile.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/IdxMultipleDataset.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 using namespace Visus;
 %}
 

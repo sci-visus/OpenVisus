@@ -44,7 +44,7 @@ For support : support@visus.net
 #include <Visus/BlockQuery.h>
 #include <Visus/Encoder.h>
 #include <Visus/IdxHzOrder.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/ByteOrder.h>
 

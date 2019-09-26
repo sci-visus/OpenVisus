@@ -11,7 +11,7 @@
 #include <Visus/DatasetFilter.h>
 #include <Visus/Dataset.h>
 #include <Visus/ModVisus.h>
-#include <Visus/VisusConfig.h>
+#include <Visus/StringTree.h>
 
 using namespace Visus;
 %}
