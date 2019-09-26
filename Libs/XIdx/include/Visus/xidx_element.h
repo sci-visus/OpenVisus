@@ -108,7 +108,7 @@ public:
 
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) {
-    name = istream.readInline("Name", name);
+    name = istream.readString("Name", name);
   }
 
   //writeChilds

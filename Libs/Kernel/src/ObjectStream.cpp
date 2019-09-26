@@ -88,7 +88,7 @@ bool ObjectStream::hasAttribute(String name)
 }
 
 /////////////////////////////////////////////////////////////
-String ObjectStream::readInline(String name,String default_value)
+String ObjectStream::readString(String name,String default_value)
 {
   const auto& attributes = getCurrentContext()->attributes;
   for (int I = 0; I < attributes.size(); I++) {
@@ -157,7 +157,7 @@ String ObjectStream::read(String name,String default_value)
   if (!pushContext(name))
     return default_value;
 
-  String ret=readInline("value",default_value);
+  String ret=readString("value",default_value);
   popContext(name);
   return ret;
 }

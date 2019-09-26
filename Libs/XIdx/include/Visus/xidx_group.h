@@ -339,10 +339,10 @@ public:
   {
     XIdxElement::readFromObjectStream(istream);
 
-    this->group_type = GroupType::fromString(istream.readInline("Type"));
-    this->variability_type = VariabilityType::fromString(istream.readInline("VariabilityType"));
-    this->file_pattern = istream.readInline("FilePattern");
-    this->domain_index = cint(istream.readInline("DomainIndex"));
+    this->group_type = GroupType::fromString(istream.readString("Type"));
+    this->variability_type = VariabilityType::fromString(istream.readString("VariabilityType"));
+    this->file_pattern = istream.readString("FilePattern");
+    this->domain_index = cint(istream.readString("DomainIndex"));
 
     while (auto child = readChild<DataSource>(istream,"DataSource"))
       addDataSource(child);
@@ -355,7 +355,7 @@ public:
 
     if (istream.pushContext("Domain"))
     {
-      auto type = DomainType::fromString(istream.readInline("Type"));
+      auto type = DomainType::fromString(istream.readString("Type"));
       auto child=Domain::createDomain(type);
       child->readFromObjectStream(istream);
       istream.popContext("Domain");
@@ -367,7 +367,7 @@ public:
 
     while (istream.pushContext("xi:include"))
     {
-      auto filename = istream.readInline("href");
+      auto filename = istream.readString("href");
 
       StringTree stree;
       if (!stree.fromXmlString(Utils::loadTextDocument(filename)))

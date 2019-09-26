@@ -313,10 +313,10 @@ public:
   //readFromObjectStream
   void readFromObjectStream(ObjectStream& istream) 
   {
-    int R=cint(istream.readInline("r"));
-    int G=cint(istream.readInline("g"));
-    int B=cint(istream.readInline("b"));
-    int A=cint(istream.readInline("a"));
+    int R=cint(istream.readString("r"));
+    int G=cint(istream.readString("g"));
+    int B=cint(istream.readString("b"));
+    int A=cint(istream.readString("a"));
     (*this)=Color(R,G,B,A);
   }
 

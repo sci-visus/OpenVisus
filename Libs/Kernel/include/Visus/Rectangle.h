@@ -156,10 +156,10 @@ public:
   //readFromObjectStream
   void readFromObjectStream(ObjectStream& istream) 
   {
-    x = cint(istream.readInline("x"));
-    y = cint(istream.readInline("y"));
-    width = cint(istream.readInline("width"));
-    height = cint(istream.readInline("height"));
+    x = cint(istream.readString("x"));
+    y = cint(istream.readString("y"));
+    width = cint(istream.readString("width"));
+    height = cint(istream.readString("height"));
   }
 
   //convert to string
@@ -275,10 +275,10 @@ public:
   //readFromObjectStream
   void readFromObjectStream(ObjectStream& istream) 
   {
-    x = cdouble(istream.readInline("x"));
-    y = cdouble(istream.readInline("y"));
-    width = cdouble(istream.readInline("width"));
-    height = cdouble(istream.readInline("height"));
+    x = cdouble(istream.readString("x"));
+    y = cdouble(istream.readString("y"));
+    width = cdouble(istream.readString("width"));
+    height = cdouble(istream.readString("height"));
   }
 
   //convert to string

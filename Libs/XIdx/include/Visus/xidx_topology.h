@@ -157,9 +157,9 @@ public:
   {
     XIdxElement::readFromObjectStream(istream);
 
-    this->type = TopologyType::fromString(istream.readInline("Type"));
+    this->type = TopologyType::fromString(istream.readString("Type"));
 
-    for (auto dim : StringUtils::split(istream.readInline("Dimensions")))
+    for (auto dim : StringUtils::split(istream.readString("Dimensions")))
       this->dimensions.push_back(cint(dim));
 
     while (auto child=readChild<Attribute>(istream,"Attribute"))

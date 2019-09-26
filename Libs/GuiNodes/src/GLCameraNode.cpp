@@ -105,7 +105,7 @@ void GLCameraNode::readFromObjectStream(ObjectStream& istream)
   if (!this->glcamera)
   {
     SharedPtr<GLCamera> value;
-    auto TypeName = istream.readInline("TypeName");
+    auto TypeName = istream.readString("TypeName");
     if (TypeName == "GLLookAtCamera")
       value = std::make_shared<GLLookAtCamera>();
     else if (TypeName == "GLOrthoCamera")

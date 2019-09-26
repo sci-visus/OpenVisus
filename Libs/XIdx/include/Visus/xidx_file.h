@@ -148,7 +148,7 @@ public:
 
     while (istream.pushContext("xi:include"))
     {
-      auto filename = istream.readInline("href");
+      auto filename = istream.readString("href");
 
       StringTree stree;
       if (!stree.fromXmlString(Utils::loadTextDocument(filename)))

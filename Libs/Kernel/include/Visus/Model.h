@@ -244,7 +244,7 @@ public:
       if (!bUndoing && !bRedoing)
       {
         undo_redo.resize(n_undo_redo++);
-        undo_redo.push_back(std::make_pair(undo,redo));
+        undo_redo.push_back(std::make_pair(redo,undo));
       }
 
       if (log.is_open())
@@ -271,9 +271,9 @@ public:
     VisusAssert(VisusHasMessageLock());
     VisusAssert(!bUndoing && !bRedoing);
     if (!canRedo())  return false;
-    auto action = undo_redo[n_undo_redo++];
+    auto action = undo_redo[n_undo_redo++].first;
     bRedoing = true;
-    target()->executeAction(action.first);
+    target()->executeAction(action);
     bRedoing = false;
     return true;
   }
@@ -283,9 +283,9 @@ public:
     VisusAssert(VisusHasMessageLock());
     VisusAssert(!bUndoing && !bRedoing);
     if (!canUndo()) return false;
-    auto action=undo_redo[--n_undo_redo];
+    auto action=undo_redo[--n_undo_redo].second;
     bUndoing=true;
-    target()->executeAction(action.second);
+    target()->executeAction(action);
     bUndoing=false;
     return true;
   }

@@ -106,8 +106,8 @@ public:
   //hasAttribute
   bool hasAttribute(String name);
 
-  //readInline
-  String readInline(String name, String default_value = "");
+  //readString
+  String readString(String name, String default_value = "");
 
   //write
   void write(String name, String value);

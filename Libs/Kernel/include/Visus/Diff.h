@@ -97,7 +97,7 @@ public:
   }
 
   //applyToTarget
-  void applyToTarget(Model* model,bool bDirect) const
+  void applyToTarget(Model* model,bool bDirect=true) const
   {
     const Diff& diff=*this;
 

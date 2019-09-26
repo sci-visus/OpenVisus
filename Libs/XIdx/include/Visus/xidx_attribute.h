@@ -60,7 +60,7 @@ public:
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override {
     XIdxElement::readFromObjectStream(istream);
-    this->value = istream.readInline("Value");
+    this->value = istream.readString("Value");
   }
   
 };

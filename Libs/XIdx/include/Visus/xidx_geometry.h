@@ -196,7 +196,7 @@ public:
   {
     XIdxElement::readFromObjectStream(istream);
 
-    this->type = GeometryType::fromString(istream.readInline("Type"));
+    this->type = GeometryType::fromString(istream.readString("Type"));
 
     while (auto child = readChild<DataItem>(istream,"DataItem"))
       addDataItem(child);

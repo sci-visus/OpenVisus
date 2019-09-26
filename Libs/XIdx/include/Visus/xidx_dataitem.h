@@ -296,11 +296,11 @@ public:
   {
     XIdxElement::readFromObjectStream(istream);
 
-    this->format_type = FormatType::fromString(istream.readInline("Format"));
-    this->dtype       =      DType::fromString(istream.readInline("DType"));
-    this->endian_type =  Endianess::fromString(istream.readInline("Endian"));
+    this->format_type = FormatType::fromString(istream.readString("Format"));
+    this->dtype       =      DType::fromString(istream.readString("DType"));
+    this->endian_type =  Endianess::fromString(istream.readString("Endian"));
 
-    for (auto it : StringUtils::split(istream.readInline("Dimensions")))
+    for (auto it : StringUtils::split(istream.readString("Dimensions")))
       this->dimensions.push_back(cint(it));
 
     for (auto it : StringUtils::split(istream.readText()))

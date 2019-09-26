@@ -1345,7 +1345,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   ObjectStream istream(BODY, 'r');
 
-  this->bMosaic = cbool(istream.readInline("mosaic"));
+  this->bMosaic = cbool(istream.readString("mosaic"));
 
   if (istream.pushContext("slam"))
   {
@@ -1417,7 +1417,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   auto PHYSIC_BOX = BoxNd::invalid();
   if (istream.hasAttribute("physic_box"))
   {
-    PHYSIC_BOX = BoxNd::parseFromString(istream.readInline("physic_box"));
+    PHYSIC_BOX = BoxNd::parseFromString(istream.readString("physic_box"));
   }
   else
   {
@@ -1434,7 +1434,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   BoxNi LOGIC_BOX;
   if (istream.hasAttribute("logic_box"))
   {
-    LOGIC_BOX = BoxNi::parseFromString(istream.readInline("logic_box"));
+    LOGIC_BOX = BoxNi::parseFromString(istream.readString("logic_box"));
   }
   else if (down_datasets.size() == 1)
   {
@@ -1537,7 +1537,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
     while (istream.pushContext("field"))
     {
-      String name = istream.readInline("name");
+      String name = istream.readString("name");
       if (name.empty())
         name = StringUtils::format() << "field_" + generate_name++;
 

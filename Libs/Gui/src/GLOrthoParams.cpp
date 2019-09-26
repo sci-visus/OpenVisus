@@ -131,12 +131,12 @@ void GLOrthoParams::writeToObjectStream(ObjectStream& ostream)
 ////////////////////////////////////////////////////////////////////////
 void GLOrthoParams::readFromObjectStream(ObjectStream& istream) 
 {
-  left   = cdouble(istream.readInline("left"));
-  right  = cdouble(istream.readInline("right"));
-  bottom = cdouble(istream.readInline("bottom"));
-  top    = cdouble(istream.readInline("top"));
-  zNear  = cdouble(istream.readInline("zNear"));
-  zFar   = cdouble(istream.readInline("zFar"));
+  left   = cdouble(istream.readString("left"));
+  right  = cdouble(istream.readString("right"));
+  bottom = cdouble(istream.readString("bottom"));
+  top    = cdouble(istream.readString("top"));
+  zNear  = cdouble(istream.readString("zNear"));
+  zFar   = cdouble(istream.readString("zFar"));
 }
 
 

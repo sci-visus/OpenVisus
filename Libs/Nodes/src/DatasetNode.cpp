@@ -101,7 +101,7 @@ void DatasetNode::readFromObjectStream(ObjectStream& istream)
 
   if (istream.pushContext("dataset"))
   {
-    auto TypeName = istream.readInline("TypeName");
+    auto TypeName = istream.readString("TypeName");
     dataset=DatasetFactory::getSingleton()->createInstance(TypeName);
     dataset->readFromObjectStream(istream);
     istream.popContext("dataset");

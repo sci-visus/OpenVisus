@@ -137,17 +137,17 @@ void RGBAColorMap::writeToObjectStream(ObjectStream& ostream)
 /////////////////////////////////////////////////////////////////
 void RGBAColorMap::readFromObjectStream(ObjectStream& istream)
 {
-  this->name=istream.readInline("name");
+  this->name=istream.readString("name");
   VisusAssert(!name.empty());
 
   this->points.clear();
   while (istream.pushContext("Point"))
   {
-    double x=cdouble(istream.readInline("x"));
-    double o=cdouble(istream.readInline("o"));
-    double r=cdouble(istream.readInline("r"));
-    double g=cdouble(istream.readInline("g"));
-    double b=cdouble(istream.readInline("b"));
+    double x=cdouble(istream.readString("x"));
+    double o=cdouble(istream.readString("o"));
+    double r=cdouble(istream.readString("r"));
+    double g=cdouble(istream.readString("g"));
+    double b=cdouble(istream.readString("b"));
     VisusAssert(points.empty() || points.back().x<=x);
 
     Point point;
@@ -595,15 +595,15 @@ void TransferFunction::readFromObjectStream(ObjectStream& istream)
 {
   this->functions.clear();
   
-  this->default_name=istream.readInline("name");
+  this->default_name=istream.readString("name");
 
   bool bDefault=default_name.empty()?false:true;
 
-  this->attenuation=cdouble(istream.readInline("attenuation","0.0"));
+  this->attenuation=cdouble(istream.readString("attenuation","0.0"));
 
   if (istream.pushContext("input"))
   {
-    input_range.mode=(ComputeRange::Mode)cint(istream.readInline("input.normalization"));
+    input_range.mode=(ComputeRange::Mode)cint(istream.readString("input.normalization"));
     if (istream.pushContext("custom_range"))
     {
       input_range.custom_range.readFromObjectStream(istream);
@@ -614,7 +614,7 @@ void TransferFunction::readFromObjectStream(ObjectStream& istream)
 
   if (istream.pushContext("output"))
   {
-    output_dtype=DType::fromString(istream.readInline("dtype"));
+    output_dtype=DType::fromString(istream.readString("dtype"));
 
     if (istream.pushContext("range"))
     {

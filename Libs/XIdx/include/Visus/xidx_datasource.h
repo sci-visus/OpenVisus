@@ -69,7 +69,7 @@ public:
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override {
     XIdxElement::readFromObjectStream(istream);
-    this->url  = istream.readInline("Url");
+    this->url  = istream.readString("Url");
   }
 
 private:

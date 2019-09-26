@@ -174,7 +174,7 @@ public:
   {
     XIdxElement::readFromObjectStream(istream);
 
-    this->type = DomainType::fromString(istream.readInline("Type"));
+    this->type = DomainType::fromString(istream.readString("Type"));
 
     // have to remove the default data_item created by the constructor
     // TODO improve this ensureDataItem() mechanism

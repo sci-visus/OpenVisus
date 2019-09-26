@@ -302,6 +302,12 @@ public:
   //readFromObjectStream
   virtual void readFromObjectStream(ObjectStream& istream) override;
 
+  //encode
+  StringTree encode();
+
+  //decode
+  static VISUS_NEWOBJECT(Node*) decode(StringTree encoded);
+
 protected:
 
   friend class Dataflow;

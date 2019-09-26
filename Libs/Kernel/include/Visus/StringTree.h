@@ -68,13 +68,23 @@ public:
   }
 
   //constructor
-  StringTree(String name_, String attr_k1, String attr_v1) : name(name_){
-    writeString(attr_k1, attr_v1);
+  StringTree(String name, String k1, String v1) : StringTree(name) {
+    writeString(k1, v1);
   }
 
   //constructor
-  StringTree(String name_, String attr_k1, String attr_v1, String attr_k2, String attr_v2) : name(name_) {
-    writeString(attr_k1, attr_v1); writeString(attr_k2, attr_v2);
+  StringTree(String name, String k1, String v1, String k2, String v2) : StringTree(name, k1, v1) {
+    writeString(k2, v2);
+  }
+
+  //constructor
+  StringTree(String name, String k1, String v1, String k2, String v2, String k3, String v3) : StringTree(name, k1, v1, k2, v2) {
+    writeString(k3, v3);
+  }
+
+  //constructor
+  StringTree(String name, String k1, String v1, String k2, String v2, String k3, String v3, String k4, String v4) : StringTree(name, k1, v1, k2, v2, k3, v3) {
+    writeString(k4, v4);
   }
 
   //copy constructor
@@ -263,6 +273,14 @@ public:
       childs.push_back(std::make_shared<StringTree>("#cdata-section", "value", text));
     else
       childs.push_back(std::make_shared<StringTree>("#text", "value", text));
+  }
+
+  //readText
+  String readText(String name) const {
+    if (auto child = findChildWithName(name))
+      return child->readText();
+    else
+      return "";
   }
 
   //writeText

@@ -97,573 +97,7 @@ namespace Visus {
 String Viewer::Defaults::panels = "left center";
 bool   Viewer::Defaults::show_logos = true;
 
-/////////////////////////////////////////////////////////////
-static StringTree EncodeNode(Node* node)
-{
-  StringTree stree(node->getTypeName());
-  ObjectStream ostream(stree, 'w');
-  node->writeToObjectStream(ostream);
-  ostream.close();
-  return stree;
-}
 
-VISUS_NEWOBJECT(Node*) DecodeNode(StringTree encoded)
-{
-  ObjectStream istream(encoded, 'r');
-  auto TypeName = istream.readInline("TypeName", encoded.name);
-  auto ret = NodeFactory::getSingleton()->createInstance(TypeName); 
-  VisusAssert(ret);
-  ret->readFromObjectStream(istream);
-  istream.close();
-  return ret;
-}
-
-
-
-/////////////////////////////////////////////////////////////
-class Action
-{
-public:
-
-  Time time = Time::now();
-
-  String TypeName;
-
-  //constructor
-  Action(String TypeName_) : TypeName(TypeName_) {
-  }
-
-  //destructor
-  virtual ~Action() {
-  }
-
-  //toStringTree
-  StringTree toStringTree() {
-    StringTree ret(TypeName);
-    ObjectStream out(ret, 'w');
-    this->writeToObjectStream(out);
-    return ret;
-  }
-
-  //getTypeName
-  String getTypeName() const {
-    return TypeName;
-  }
-
-  //redo
-  virtual void execute(Viewer* target) = 0;
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) = 0;
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) = 0;
-
-};
-
-class DropProcessing : public Action
-{
-public:
-
-  //constructor
-  DropProcessing() : Action("DropProcessing") {
-  }
-
-  //destructor
-  virtual ~DropProcessing() {
-  }
-
-  //redo
-  virtual void execute(Viewer* viewer) override {
-    viewer->dropProcessing();
-  }
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override {
-  }
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override {
-  }
-};
-
-class SetFastRendering : public Action
-{
-public:
-
-  bool value;
-
-  //constructor
-  SetFastRendering(bool value_ = false) : Action("SetFastRendering"), value(value_) {
-  }
-
-  //destructor
-  virtual ~SetFastRendering() {
-  }
-
-  //redo
-  virtual void execute(Viewer* viewer) override {
-    viewer->setFastRendering(value);
-  }
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override {
-    ostream.writeInline("value", cstring(value));
-  }
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override {
-    this->value = cbool(istream.readInline("value"));
-  }
-
-};
-
-class SetSelection : public Action
-{
-public:
-
-  String value;
-
-  SetSelection() : Action("SetSelection")  {
-  }
-
-  //constructor
-  SetSelection(String value_) : SetSelection() {
-    this->value = value_;
-  }
-
-  //destructor
-  virtual ~SetSelection() {
-  }
-
-  //execute
-  virtual void execute(Viewer* viewer) override {
-    Node* value = viewer->findNodeByUUID(this->value);
-    viewer->setSelection(value);
-  }
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
-  {
-    ostream.writeInline("value", value);
-  }
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
-  {
-    this->value = istream.readInline("value");
-  }
-
-};
-
-class AddNode : public Action
-{
-public:
-
-  String     parent;
-  String     node;
-  StringTree encoded;
-  int        index = -1;
-
-  //constructor
-  AddNode() : Action("AddNode")  {
-  }
-
-  //constructor
-  AddNode(String parent_, String node_, StringTree encoded_,int index_ = -1) : AddNode()
-  {
-    this->parent = parent_;
-    this->node = node_;
-    this->encoded = encoded_;
-    this->index = index_;
-  }
-
-  //destructor
-  virtual ~AddNode() {
-  }
-
-  //redo
-  virtual void execute(Viewer* viewer) override
-  {
-    Node* parent = viewer->findNodeByUUID(this->parent);
-    auto node=DecodeNode(encoded);
-    viewer->addNode(parent, node, index); 
-  }
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
-  {
-    ostream.writeInline("parent", parent);
-    ostream.writeInline("node", node);
-    ostream.writeInline("index", cstring(index));
-    ostream.getCurrentContext()->addChild(encoded);
-  }
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
-  {
-    this->parent = istream.readInline("parent");
-    this->node = istream.readInline("node");
-    this->index = cint(istream.readInline("index", "-1"));
-    this->encoded = *istream.getCurrentContext()->getChild(0);
-  }
-
-};
-
-class RemoveNode : public Action
-{
-public:
-
-
-  String     node;
-
-  //constructor
-  RemoveNode() : Action("RemoveNode") {
-  }
-
-  //destructor
-  RemoveNode(String node_) : RemoveNode()
-  {
-    this->node    = node_;
-  }
-
-  //destructor
-  virtual ~RemoveNode() {
-  }
-
-  //execute
-  virtual void execute(Viewer* viewer) override
-  {
-    Node* node = viewer->findNodeByUUID(this->node);
-    VisusAssert(node);
-    viewer->removeNode(node);
-  }
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
-  {
-    ostream.writeInline("node",  node);
-  }
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
-  {
-    this->node = istream.readInline("node");
-  }
-
-};
-
-class MoveNode : public Action
-{
-public:
-
-  String dst;
-  String src;
-  int    index = -1;
-
-  MoveNode() : Action("MoveNode") {
-  }
-
-  //constructor
-  MoveNode(String dst_, String src_, int index = -1) : MoveNode()
-  {
-    this->dst = dst_;
-    this->src = src_;
-    this->index = index;
-  }
-
-  //destructor
-  virtual ~MoveNode() {
-  }
-
-  //redo
-  virtual void execute(Viewer* viewer) override {
-    Node* src = viewer->findNodeByUUID(this->src);
-    Node* dst = viewer->findNodeByUUID(this->dst);
-    viewer->moveNode(dst, src, index);
-  }
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
-  {
-    ostream.writeInline("dst", dst);
-    ostream.writeInline("src", src);
-    ostream.writeInline("index", cstring(index));
-  }
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
-  {
-    this->dst = istream.readInline("dst");
-    this->src = istream.readInline("src");
-    this->index = cint(istream.readInline("index", "-1"));
-  }
-};
-
-class ConnectPorts : public Action
-{
-public:
-
-  String  from;
-  String  oport;
-  String  iport;
-  String  to;
-
-  ConnectPorts() : Action("ConnectPorts") {
-  }
-
-  //constructor
-  ConnectPorts(Node* from, String oport, String iport, Node* to) : ConnectPorts()
-  {
-    this->from = from->getUUID();
-    this->oport = oport;
-    this->iport = iport;
-    this->to = to->getUUID();
-  }
-
-  //destructor
-  virtual ~ConnectPorts() {
-  }
-
-  //redo
-  virtual void execute(Viewer* viewer) override {
-    Node* from = viewer->findNodeByUUID(this->from);
-    Node* to  = viewer->findNodeByUUID(this->to);
-    viewer->connectPorts(from, oport, iport, to);
-  }
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
-  {
-    ostream.writeInline("from", this->from);
-    ostream.writeInline("oport", this->oport);
-    ostream.writeInline("iport", this->iport);
-    ostream.writeInline("to", this->to);
-  }
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
-  {
-    this->from = istream.readInline("from"); 
-    this->oport = istream.readInline("oport"); 
-    this->iport = istream.readInline("iport"); 
-    this->to   = istream.readInline("to"); 
-  }
-
-};
-
-class DisconnectPorts : public Action
-{
-public:
-
-  String from;
-  String oport;
-  String iport;
-  String to;
-
-  //constructor
-  DisconnectPorts() : Action("DisconnectPorts") {
-  }
-
-  //constructor
-  DisconnectPorts(Node* from, String oport, String iport, Node* to)
-    : DisconnectPorts()
-  {
-    this->from = from->getUUID();
-    this->oport = oport;
-    this->iport = iport;
-    this->to = to->getUUID();
-  }
-
-  //destructor
-  virtual ~DisconnectPorts() {
-  }
-
-  //redo
-  virtual void execute(Viewer* viewer) override {
-    Node* from = viewer->findNodeByUUID(this->from);
-    Node* to = viewer->findNodeByUUID(this->to);
-    viewer->disconnectPorts(from, oport, iport, to);
-  }
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
-  {
-    ostream.writeInline("from", this->from);
-    ostream.writeInline("oport", this->oport);
-    ostream.writeInline("iport", this->iport);
-    ostream.writeInline("to", this->to);
-  }
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
-  {
-    this->from = istream.readInline("from"); 
-    this->oport = istream.readInline("oport"); 
-    this->iport = istream.readInline("iport"); 
-    this->to = istream.readInline("to"); 
-  }
-
-};
-
-class RefreshData : public Action
-{
-public:
-
-  String node;
-
-  RefreshData() : Action("RefreshData") {
-  }
-
-  //constructor
-  RefreshData(String node_) : RefreshData(){
-    this->node = node_;
-  }
-
-  //destructor
-  virtual ~RefreshData() {
-  }
-
-  //redo
-  virtual void execute(Viewer* viewer) override {
-    auto node = viewer->findNodeByUUID(this->node);
-    viewer->refreshData(node);
-  }
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
-  {
-    ostream.writeInline("node", this->node);
-  }
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
-  {
-    this->node = istream.readInline("node");
-  }
-};
-
-class ChangeNode : public Action
-{
-public:
-
-  String node;
-  String patch;
-
-  ChangeNode() : Action("ChangeNode") {
-  }
-
-  //constructorf
-  ChangeNode(String node, String patch) : ChangeNode(){
-    this->node = node;
-    this->patch = patch;
-  }
-
-  //destructor
-  virtual ~ChangeNode() {
-  }
-
-  //redo
-  virtual void execute(Viewer* viewer) override
-  {
-    auto node = viewer->findNodeByUUID(this->node); VisusAssert(node);
-    auto diff = Diff(StringUtils::getNonEmptyLines(this->patch));
-    diff.applyToTarget(node, true);
-  }
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
-  {
-    ostream.writeInline("node", this->node);
-    ostream.writeText("patch",this->patch,/*bCData*/true);
-  }
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
-  {
-    this->node = istream.readInline("node");
-    this->patch = istream.readText("patch");
-  }
-
-};
-
-///////////////////////////////////////////////////////////
-class Transaction : public Action
-{
-public:
-
-  std::vector<StringTree> actions;
-
-  //constructor
-  Transaction() : Action("Transaction") {
-  }
-
-  //destructor
-  virtual ~Transaction() {
-  }
-
-  //redo
-  virtual void execute(Viewer* viewer) override {
-    viewer->beginUpdate();
-    for (auto action : this->actions)
-      viewer->executeAction(action);
-    viewer->endUpdate();
-  }
-
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override {
-    for (auto action : actions)
-      ostream.getCurrentContext()->addChild(action);
-  }
-
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override {
-    for (auto child : istream.getCurrentContext()->childs)
-    {
-      if (!child->isHashNode())
-        this->actions.push_back(*child);
-    }
-  }
-};
-
-
-//executeAction
-void Viewer::executeAction(StringTree stree)
-{
-  static std::map< String, std::function< SharedPtr<Action>() > > creator;
-
-  if (creator.empty())
-  {
-    creator["Transaction"] = []() {return std::make_shared<Transaction>(); };
-    creator["DropProcessing"] = []() {return std::make_shared<DropProcessing>(); };
-    creator["SetFastRendering"] = []() {return std::make_shared<SetFastRendering>(); };
-    creator["AddNode"] = []() {return std::make_shared<AddNode>(); };
-    creator["RemoveNode"] = []() {return std::make_shared<RemoveNode>(); };
-    creator["MoveNode"] = []() {return std::make_shared<MoveNode>(); };
-    creator["SetSelection"] = []() {return std::make_shared<SetSelection>(); };
-    creator["ConnectPorts"] = []() {return std::make_shared<ConnectPorts>(); };
-    creator["DisconnectPorts"] = []() {return std::make_shared<DisconnectPorts>(); };
-    creator["ChangeNode"] = []() {return std::make_shared<ChangeNode>(); };
-    creator["RefreshData"] = []() {return std::make_shared<RefreshData>(); };
-  }
-
-  auto action = creator[stree.name]();
-  ObjectStream istream(stree, 'r');
-  action->readFromObjectStream(istream);
-  action->execute(this);
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-void Viewer::beginUpdate() {
-  pushAction(
-    std::make_shared<Transaction>()->toStringTree(),
-    std::make_shared<Transaction>()->toStringTree());
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-void Viewer::endUpdate() {
-  popAction();
-}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 SharedPtr<Viewer::Logo> Viewer::openScreenLogo(String key, String default_logo)
@@ -756,6 +190,120 @@ Viewer::~Viewer()
   RedirectLog = nullptr;
   setDataflow(nullptr);
 }
+
+
+////////////////////////////////////////////////////////////
+void Viewer::executeAction(StringTree action)
+{
+  if (action.name == "Transaction")
+  {
+    this->beginUpdate();
+    for (auto child : action.childs)
+    {
+      if (!child->isHashNode())
+        executeAction(*child);
+    }
+    this->endUpdate();
+    return;
+  }
+
+  if (action.name == "DropProcessing")
+  {
+    this->dropProcessing();
+    return;
+  }
+
+  if (action.name == "SetFastRendering")
+  {
+    auto value = action.readBool("value");
+    setFastRendering(value);
+    return;
+  }
+
+  if (action.name == "RefreshData")
+  {
+    auto node = findNodeByUUID(action.readString("node"));
+    refreshData(node);
+    return;
+  }
+
+  if (action.name == "SetSelection")
+  {
+    auto node = findNodeByUUID(action.readString("node"));
+    setSelection(node);
+    return;
+  }
+
+  if (action.name == "ConnectPorts")
+  {
+    auto from = findNodeByUUID(action.readString("from"));
+    auto oport = action.readString("oport");
+    auto iport = action.readString("iport");
+    auto to = findNodeByUUID(action.readString("to"));
+    connectPorts(from, oport, iport, to);
+    return;
+  }
+
+  if (action.name == "DisconnectPorts")
+  {
+    auto from = findNodeByUUID(action.readString("from"));
+    auto oport = action.readString("oport");
+    auto iport = action.readString("iport");
+    auto to = findNodeByUUID(action.readString("to"));
+    disconnectPorts(from, oport, iport, to);
+    return;
+  }
+
+  if (action.name == "AddNode")
+  {
+    auto parent = findNodeByUUID(action.readString("parent"));
+    auto node = Node::decode(*action.getChild(0));
+    auto index = action.readInt("index", -1);
+    addNode(parent, node, index);
+    return;
+  }
+
+  if (action.name == "RemoveNode")
+  {
+    auto node = findNodeByUUID(action.readString("node"));
+    removeNode(node);
+    return;
+  }
+
+  if (action.name == "MoveNode")
+  {
+    auto src = findNodeByUUID(action.readString("dst"));
+    auto dst = findNodeByUUID(action.readString("src"));
+    auto index = action.readInt("index", -1);
+    moveNode(dst, src, index);
+
+    return;
+  }
+
+  if (action.name == "ChangeNode")
+  {
+    auto node = findNodeByUUID(action.readString("node"));
+    auto patch = action.readText("patch");
+    auto diff = Diff(StringUtils::getNonEmptyLines(patch));
+    diff.applyToTarget(node);
+    return;
+  }
+
+  ThrowException("internal error");
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+void Viewer::beginUpdate() {
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+void Viewer::endUpdate() {
+  popAction();
+}
+
 
 ////////////////////////////////////////////////////////////
 void Viewer::setMinimal()
@@ -1068,8 +616,8 @@ void Viewer::moveNode(Node* dst, Node* src, int index)
     return;
 
   pushAction(
-    std::make_shared<MoveNode>(getUUID(dst)             , getUUID(src),                   index)->toStringTree(),
-    std::make_shared<MoveNode>(getUUID(src->getParent()), getUUID(src), src->getIndexInParent())->toStringTree());
+    StringTree("MoveNode", "dst", getUUID(dst)             , "src", getUUID(src), "index",                   cstring(index)),
+    StringTree("MoveNode", "dst", getUUID(src->getParent()), "src", getUUID(src), "index", cstring(src->getIndexInParent())));
   dataflow->moveNode(dst, src, index);
   popAction();
 
@@ -1845,8 +1393,8 @@ void Viewer::setAutoRefresh(AutoRefresh value)  {
 void Viewer::dropProcessing()
 {
   pushAction(
-    std::make_shared<DropProcessing>()->toStringTree(),
-    std::make_shared<DropProcessing>()->toStringTree());
+    StringTree("DropProcessing"),
+    StringTree("DropProcessing"));
   {
     dataflow->abortProcessing();
     dataflow->joinProcessing();
@@ -1859,10 +1407,12 @@ void Viewer::dropProcessing()
 ////////////////////////////////////////////////////////////////////
 void Viewer::setFastRendering(bool value)
 {
-  if (bFastRendering==value)  return;
+  if (bFastRendering == value)  
+    return;
+
   pushAction(
-    std::make_shared<SetFastRendering>( value)->toStringTree(),
-    std::make_shared<SetFastRendering>(!value)->toStringTree());
+    StringTree("SetFastRendering", "value", cstring( value)),
+    StringTree("SetFastRendering", "value", cstring(!value)));
   bFastRendering=value;
   popAction();
   postRedisplay();
@@ -1877,8 +1427,8 @@ void Viewer::setSelection(Node* value)
     return;
 
   pushAction(
-    std::make_shared<SetSelection>(getUUID(    value))->toStringTree(),
-    std::make_shared<SetSelection>(getUUID(old_value))->toStringTree());
+    StringTree("SetSelection", "node", getUUID(value)),
+    StringTree("SetSelection", "node", getUUID(old_value)));
   dataflow->setSelection(value);
   popAction();
 
@@ -1932,7 +1482,7 @@ void Viewer::addNode(Node* parent,Node* node,int index)
 
   node->begin_update.connect([this,node](){
     pushAction(
-      StringTree("ChangeNode", "node", node->getUUID()).withChild(EncodeNode(node)), 
+      StringTree("ChangeNode", "node", node->getUUID()).withChild(node->encode()),
       StringTree("ChangeNode", "node", node->getUUID()));
   });
 
@@ -1942,7 +1492,7 @@ void Viewer::addNode(Node* parent,Node* node,int index)
     auto& undo = topUndo(); VisusAssert(undo.name == "ChangeNode");
 
     auto before= *redo.getChild(0);
-    auto after = EncodeNode(node);
+    auto after = node->encode();
 
     auto diff = Diff(
       StringUtils::getNonEmptyLines(before.toXmlString()),
@@ -1959,8 +1509,8 @@ void Viewer::addNode(Node* parent,Node* node,int index)
   {
     dropSelection();
     pushAction(
-      std::make_shared<AddNode>(getUUID(parent),getUUID(node),EncodeNode(node),index)->toStringTree(),
-      std::make_shared<RemoveNode>(getUUID(node))->toStringTree());
+      StringTree("AddNode","parent",getUUID(parent), "index",cstring(index)).withChild(node->encode()),
+      StringTree("RemoveNode","node",getUUID(node)));
     dataflow->addNode(parent,node,index);
     popAction();
   }
@@ -2014,8 +1564,8 @@ void Viewer::removeNode(Node* NODE)
     VisusAssert(node->isOrphan());
 
     pushAction(
-      std::make_shared<RemoveNode>(getUUID(node))->toStringTree(),
-      std::make_shared<AddNode>(getUUID(node->getParent()),getUUID(node),EncodeNode(node),node->getIndexInParent())->toStringTree());
+      StringTree("RemoveNode","node",getUUID(node)),
+      StringTree("AddNode","parent",getUUID(node->getParent()),"index",cstring(node->getIndexInParent())).withChild(node->encode()));
     {
       //don't care about disconnecting slots, the node is going to be deallocated
       dataflow->removeNode(node);
@@ -2030,23 +1580,23 @@ void Viewer::removeNode(Node* NODE)
 }
 
 ////////////////////////////////////////////////////////////////////
-void Viewer::connectPorts(Node* from,String oport_name,String iport_name,Node* to)
+void Viewer::connectPorts(Node* from,String oport,String iport,Node* to)
 {
   pushAction(
-    std::make_shared<ConnectPorts>(from,oport_name,iport_name,to)->toStringTree(),
-    std::make_shared<DisconnectPorts>(from, oport_name, iport_name, to)->toStringTree());
-  dataflow->connectPorts(from,oport_name,iport_name,to);
+    StringTree("ConnectPorts",    "from", getUUID(from), "oport", oport, "iport", iport, "to", getUUID(to)),
+    StringTree("DisconnectPorts", "from", getUUID(from), "oport", oport, "iport", iport, "to", getUUID(to)));
+  dataflow->connectPorts(from, oport, iport,to);
   popAction();
   postRedisplay();
 }
 
 ////////////////////////////////////////////////////////////////////
-void Viewer::disconnectPorts(Node* from,String oport_name,String iport_name,Node* to)
+void Viewer::disconnectPorts(Node* from,String oport,String iport,Node* to)
 {
   pushAction(
-    std::make_shared<DisconnectPorts>(from,oport_name,iport_name,to)->toStringTree(),
-    std::make_shared<ConnectPorts>(from, oport_name, iport_name, to)->toStringTree());
-  dataflow->disconnectPorts(from,oport_name,iport_name,to);
+    StringTree("DisconnectPorts", "from", getUUID(from), "oport", oport, "iport", iport, "to", getUUID(to)),
+    StringTree("ConnectPorts"   , "from", getUUID(from), "oport", oport, "iport", iport, "to", getUUID(to)));
+  dataflow->disconnectPorts(from, oport, iport,to);
   popAction();
   postRedisplay();
 }
@@ -2096,8 +1646,8 @@ void Viewer::autoConnectPorts()
 void Viewer::refreshData(Node* node)
 {
   pushAction(
-    std::make_shared<RefreshData>(getUUID(node))->toStringTree(),
-    std::make_shared<RefreshData>(getUUID(node))->toStringTree());
+    StringTree("RefreshData", "node", getUUID(node)),
+    StringTree("RefreshData", "node", getUUID(node)));
 
   if (node)
   {
@@ -2713,9 +2263,7 @@ void Viewer::writeToObjectStream(ObjectStream& ostream)
     for (auto node : dataflow->getNodes())
     {
       if (node->getParent()) continue;
-      ostream.pushContext("AddNode");
-      AddNode(getUUID(nullptr), getUUID(node), EncodeNode(node), -1).writeToObjectStream(ostream);
-      ostream.popContext("AddNode");
+      ostream.getCurrentContext()->addChild(StringTree("AddNode").withChild(node->encode()));
     }
 
     //then the nodes in the tree...important the order! parents before childs
@@ -2723,9 +2271,7 @@ void Viewer::writeToObjectStream(ObjectStream& ostream)
     {
       if (node == root) continue;
       VisusAssert(node->getParent());
-      ostream.pushContext("AddNode");
-      AddNode(getUUID(node->getParent()), getUUID(node), EncodeNode(node), -1).writeToObjectStream(ostream);
-      ostream.popContext("AddNode");
+      ostream.getCurrentContext()->addChild(StringTree("AddNode","parent", getUUID(node->getParent())).withChild(node->encode()));
     }
 
     //ConnectPorts actions
@@ -2737,29 +2283,22 @@ void Viewer::writeToObjectStream(ObjectStream& ostream)
         for (auto IT = oport->outputs.begin(); IT != oport->outputs.end(); IT++)
         {
           auto iport = (*IT);
-
-          ostream.pushContext("ConnectPorts");
-          ConnectPorts(oport->getNode(), oport->getName(), iport->getName(), iport->getNode()).writeToObjectStream(ostream);
-          ostream.popContext("ConnectPorts");
+          ostream.getCurrentContext()->addChild(StringTree("ConnectPorts","from", getUUID(oport->getNode()),"oport", oport->getName(),"iport", iport->getName(),"to", getUUID(iport->getNode())));
         }
       }
     }
 
     //selection
-    if (auto selection=getSelection())
-    {
-      ostream.pushContext("SetSelection");
-      SetSelection(getUUID(selection)).writeToObjectStream(ostream);
-      ostream.popContext("SetSelection");
-    }
+    if (auto selection = getSelection())
+      ostream.getCurrentContext()->addChild(StringTree("SetSelection","node", getUUID(selection)));
   }
 }
 
 /////////////////////////////////////////////////////////////
 void Viewer::readFromObjectStream(ObjectStream& istream)
 {
-  double version = cdouble(istream.readInline("version"));
-  String git_revision = istream.readInline("git_revision");
+  double version = cdouble(istream.readString("version"));
+  String git_revision = istream.readString("git_revision");
 
   for (auto child : istream.getCurrentContext()->childs)
   {

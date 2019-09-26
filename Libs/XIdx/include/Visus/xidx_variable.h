@@ -185,7 +185,7 @@ public:
   {
     XIdxElement::readFromObjectStream(istream);
 
-    this->center_type = CenterType::fromString(istream.readInline("Center"));
+    this->center_type = CenterType::fromString(istream.readString("Center"));
 
     while (auto child = readChild<DataItem>(istream, "DataItem"))
       addDataItem(child);

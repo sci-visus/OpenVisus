@@ -433,9 +433,31 @@ void Node::writeToObjectStream(ObjectStream& ostream)
 ////////////////////////////////////////////////////////////
 void Node::readFromObjectStream(ObjectStream& istream)
 {
-  this->uuid=istream.readInline("uuid");
-  this->name=istream.readInline("name");
-  this->hidden=cbool(istream.readInline("hidden"));
+  this->uuid=istream.readString("uuid");
+  this->name=istream.readString("name");
+  this->hidden=cbool(istream.readString("hidden"));
+}
+
+////////////////////////////////////////////////////////////
+StringTree Node::encode()
+{
+  StringTree stree(this->getTypeName());
+  ObjectStream ostream(stree, 'w');
+  writeToObjectStream(ostream);
+  ostream.close();
+  return stree;
+}
+
+////////////////////////////////////////////////////////////
+Node* Node::decode(StringTree encoded)
+{
+  ObjectStream istream(encoded, 'r');
+  auto TypeName = istream.readString("TypeName", encoded.name);
+  auto ret = NodeFactory::getSingleton()->createInstance(TypeName);
+  VisusAssert(ret);
+  ret->readFromObjectStream(istream);
+  istream.close();
+  return ret;
 }
 
 //////////////////////////////////////////////////////////
