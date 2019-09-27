@@ -371,7 +371,7 @@ public:
 public:
 
   //construct from string
-  static BoxN parseFromString(String value,bool bInterleave=true)
+  static BoxN fromString(String value,bool bInterleave=true)
   {
     std::istringstream parser(value);
 
@@ -430,7 +430,7 @@ public:
   //parseFromOldFormatString
   static BoxN parseFromOldFormatString(int pdim,String src)
   {
-    auto ret = BoxN::parseFromString(src).withPointDim(pdim);
+    auto ret = BoxN::fromString(src).withPointDim(pdim);
     ret.p2 += Point::one(pdim);
     return ret;
   }
@@ -445,8 +445,8 @@ public:
   //writeTo
   void readFrom(StringTree& in) 
   {
-    p1 = Point::parseFromString(in.readValue("p1"));
-    p2 = Point::parseFromString(in.readValue("p2"));
+    p1 = Point::fromString(in.readValue("p1"));
+    p2 = Point::fromString(in.readValue("p2"));
   }
 
 

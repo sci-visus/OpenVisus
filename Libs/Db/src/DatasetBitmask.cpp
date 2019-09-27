@@ -43,31 +43,30 @@ namespace Visus {
 
 
 //////////////////////////////////////////////////////////////////
-DatasetBitmask::DatasetBitmask(String pattern) 
+DatasetBitmask DatasetBitmask::fromString(String pattern)
 {
-  this->pattern=pattern;
-
   if (pattern.empty())
-    return;
+    return DatasetBitmask();
 
   if (pattern[0]!='V') {
     VisusAssert(false);
-    *this = DatasetBitmask();
-    return;
+    return DatasetBitmask();
   }
     
+  DatasetBitmask ret;
+  ret.pattern = pattern;
   for (auto ch : pattern.substr(1))
   {
     int bit= ch -'0';
     if (bit<0) {
       VisusAssert(false);
-      *this=DatasetBitmask();
-      return;
+      return DatasetBitmask();
     }
-    this->pdim =std::max(this->pdim,bit+1);
-    this->pow2_dims.setPointDim(pdim, 1);
-    this->pow2_dims[bit] <<= 1;
+    ret.pdim =std::max(ret.pdim,bit+1);
+    ret.pow2_dims.setPointDim(ret.pdim, 1);
+    ret.pow2_dims[bit] <<= 1;
   }
+  return ret;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -93,7 +92,7 @@ DatasetBitmask DatasetBitmask::guess(PointNi dims,bool makeRegularAsSoonAsPossib
         }
       }
     }
-    return DatasetBitmask("V" + StringUtils::reverse(ret));
+    return DatasetBitmask::fromString("V" + StringUtils::reverse(ret));
   }
   //example V 01010101 00000
   else
@@ -110,7 +109,7 @@ DatasetBitmask DatasetBitmask::guess(PointNi dims,bool makeRegularAsSoonAsPossib
         }
       }
     }
-    return DatasetBitmask(ret);
+    return DatasetBitmask::fromString(ret);
   }
 }
 

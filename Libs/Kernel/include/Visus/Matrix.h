@@ -136,7 +136,7 @@ public:
 
 
   // constructor
-  static Matrix parseFromString(String s) {
+  static Matrix fromString(String s) {
     if (s.empty()) return Matrix();
     std::vector<double> v;
     double parsed;
@@ -147,7 +147,7 @@ public:
   }
 
   //construct from string
-  static Matrix parseFromString(int pdim, String value) {
+  static Matrix fromString(int pdim, String value) {
     if (value.empty()) return Matrix::identity(pdim);
     double parsed;
     std::vector<double> v;
@@ -515,7 +515,7 @@ public:
 
   //writeTo
   void readFrom(StringTree& in) {
-    (*this) = Matrix::parseFromString(in.readValue("matrix"));
+    (*this) = Matrix::fromString(in.readValue("matrix"));
   }
 
 private:

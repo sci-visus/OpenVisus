@@ -181,7 +181,7 @@ void TransferFunction::Single::writeTo(StringTree& out)
 void TransferFunction::Single::readFrom(StringTree& in)
 {
   name = in.readValue("name");
-  color = Color::parseFromString(in.readValue("color"));
+  color = Color::fromString(in.readValue("color"));
 
   this->values.clear();
 

@@ -230,8 +230,8 @@ public:
   //readFrom
   void readFrom(StringTree& in) 
   {
-    loadModelview (Matrix::parseFromString(4,in.readValue("modelview" )));
-    loadProjection(Matrix::parseFromString(4,in.readValue("projection")));
+    loadModelview (Matrix::fromString(4,in.readValue("modelview" )));
+    loadProjection(Matrix::fromString(4,in.readValue("projection")));
     setViewport   (Viewport(in.readValue("viewport"  )));
   }
 

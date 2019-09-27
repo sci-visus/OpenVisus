@@ -80,7 +80,7 @@ public:
   //parseColor
   static Color parseColor(const StringMap& attributes, String name)
   {
-    auto color = Color::parseFromString(attributes.getValue(name));
+    auto color = Color::fromString(attributes.getValue(name));
     auto A = cdouble(attributes.getValue(name + "-opacity", "1.0"));
     return color.withAlpha(float(A));
   }

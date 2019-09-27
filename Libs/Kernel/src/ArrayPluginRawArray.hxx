@@ -123,7 +123,7 @@ public:
       }
       else if (args[I] == "--dims")
       {
-        dims = PointNi::parseFromString(args[++I]);
+        dims = PointNi::fromString(args[++I]);
       }
       else if (args[I] == "--offset")
       {

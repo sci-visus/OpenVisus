@@ -590,7 +590,7 @@ private:
           VisusAssert(fields[1]->readString("name")=="position");
           String colors  =        fields[0]->readText();
           double position=cdouble(fields[1]->readText());
-          rgba_colormap.points.push_back(RGBAColorMap::Point(position, Color::parseFromString(colors)));
+          rgba_colormap.points.push_back(RGBAColorMap::Point(position, Color::fromString(colors)));
         }
         rgba_colormap.refreshMinMax();
       }

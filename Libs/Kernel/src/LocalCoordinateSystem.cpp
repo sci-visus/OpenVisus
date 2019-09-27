@@ -120,10 +120,10 @@ void LocalCoordinateSystem::writeTo(StringTree& out)
 ////////////////////////////////////////////////////////////////////
 void LocalCoordinateSystem::readFrom(StringTree& in) 
 {
-  x=Point3d(in.readValue("x"));
-  y=Point3d(in.readValue("y"));
-  z=Point3d(in.readValue("z"));
-  c=Point3d(in.readValue("c"));
+  x=Point3d::fromString(in.readValue("x"));
+  y=Point3d::fromString(in.readValue("y"));
+  z=Point3d::fromString(in.readValue("z"));
+  c=Point3d::fromString(in.readValue("c"));
 }
 
 

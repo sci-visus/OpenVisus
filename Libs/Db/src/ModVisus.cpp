@@ -671,7 +671,7 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
 
   Array buffer;
 
-  auto nsamples = PointNi::parseFromString(request.url.getParam("nsamples"));
+  auto nsamples = PointNi::fromString(request.url.getParam("nsamples"));
   VisusAssert(nsamples.getPointDim() == 3);
 
   VisusAssert(fromh == 0);
@@ -679,8 +679,8 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
   query->end_resolution = endh;
 
   query->logic_position = Position(
-    Matrix::parseFromString(4, request.url.getParam("matrix")), 
-    BoxNd::parseFromString(request.url.getParam("box"),/*bInterleave*/false).withPointDim(3));
+    Matrix::fromString(4, request.url.getParam("matrix")), 
+    BoxNd::fromString(request.url.getParam("box"),/*bInterleave*/false).withPointDim(3));
 
   if (!query->setPoints(nsamples))
     return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "dataset->setPoints failed " + query->getLastErrorMsg());

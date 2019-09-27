@@ -1173,13 +1173,13 @@ void IdxMultipleDataset::parseDataset(StringTree* cur,Matrix modelview)
     return;
   }
 
-  child->color = Color::parseFromString(cur->getAttribute("color", Color::random().toString()));;
+  child->color = Color::fromString(cur->getAttribute("color", Color::random().toString()));;
   auto sdim = child->getPointDim() + 1;
 
   //override physic_box 
   if (cur->hasAttribute("physic_box"))
   {
-    auto physic_box = BoxNd::parseFromString(cur->getAttribute("physic_box"));
+    auto physic_box = BoxNd::fromString(cur->getAttribute("physic_box"));
     child->setDatasetBounds(physic_box);
   }
   else if (cur->hasAttribute("quad"))
@@ -1269,7 +1269,7 @@ void IdxMultipleDataset::parseDatasets(StringTree* cur, Matrix MODELVIEW)
 
     if (child->name == "transform" || child->name=="M")
     {
-      modelview *= Matrix::parseFromString(child->getAttribute("value"));
+      modelview *= Matrix::fromString(child->getAttribute("value"));
       parseDatasets(child.get(), modelview);
       continue;
     }
@@ -1279,7 +1279,7 @@ void IdxMultipleDataset::parseDatasets(StringTree* cur, Matrix MODELVIEW)
       //this is for mosaic
       if (child->hasAttribute("offset"))
       {
-        auto vt = PointNd::parseFromString(cur->getAttribute("offset"));
+        auto vt = PointNd::fromString(cur->getAttribute("offset"));
         modelview *= Matrix::translate(vt);
       }
 
@@ -1287,7 +1287,7 @@ void IdxMultipleDataset::parseDatasets(StringTree* cur, Matrix MODELVIEW)
       if (auto tranform = child->findChildWithName("M"))
       {
         if (tranform->hasAttribute("value"))
-          modelview *= Matrix::parseFromString(tranform->getAttribute("value"));
+          modelview *= Matrix::fromString(tranform->getAttribute("value"));
 
         for (auto it : tranform->getChilds())
         {
@@ -1317,7 +1317,7 @@ void IdxMultipleDataset::parseDatasets(StringTree* cur, Matrix MODELVIEW)
 
           else if (it->name == "transform" || it->name=="M")
           {
-            modelview *= Matrix::parseFromString(it->getAttribute("value"));
+            modelview *= Matrix::fromString(it->getAttribute("value"));
           }
         }
       }
@@ -1390,7 +1390,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
     auto left = DatasetBitmask::guess(DIMS.innerDiv(dims)).toString();
     auto right = bitmask.toString().substr(1);
-    BITMASK = DatasetBitmask(left + right);
+    BITMASK = DatasetBitmask::fromString(left + right);
     VisusReleaseAssert(BITMASK.getPow2Dims() == DIMS);
     VisusReleaseAssert(StringUtils::endsWith(BITMASK.toString(), right));
 
@@ -1412,7 +1412,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   auto PHYSIC_BOX = BoxNd::invalid();
   if (in.hasAttribute("physic_box"))
   {
-    PHYSIC_BOX = BoxNd::parseFromString(in.readString("physic_box"));
+    PHYSIC_BOX = BoxNd::fromString(in.readString("physic_box"));
   }
   else
   {
@@ -1429,7 +1429,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   BoxNi LOGIC_BOX;
   if (in.hasAttribute("logic_box"))
   {
-    LOGIC_BOX = BoxNi::parseFromString(in.readString("logic_box"));
+    LOGIC_BOX = BoxNi::fromString(in.readString("logic_box"));
   }
   else if (down_datasets.size() == 1)
   {

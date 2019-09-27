@@ -494,20 +494,20 @@ IdxFile IdxFile::load(Url url)
       it->second=StringUtils::trim(it->second);
 
     idxfile.version     = cint(map.getValue("(version)")); VisusAssert(idxfile.version>=1 && idxfile.version<=6);
-    idxfile.bitmask     = DatasetBitmask(map.getValue("(bits)"));
+    idxfile.bitmask     = DatasetBitmask::fromString(map.getValue("(bits)"));
     idxfile.logic_box   = BoxNi::parseFromOldFormatString(idxfile.bitmask.getPointDim(),map.getValue("(box)"));
 
     auto pdim = idxfile.bitmask.getPointDim();
 
     if (map.hasValue("(physic_box)"))
     {
-      idxfile.bounds = BoxNd::parseFromString(map.getValue("(physic_box)"));
+      idxfile.bounds = BoxNd::fromString(map.getValue("(physic_box)"));
       idxfile.bounds.setSpaceDim(pdim+1);
     }
 
     else if (map.hasValue("(logic_to_physic)"))
     {
-      auto logic_to_physic = Matrix::parseFromString(map.getValue("(logic_to_physic)"));
+      auto logic_to_physic = Matrix::fromString(map.getValue("(logic_to_physic)"));
       idxfile.bounds = Position(logic_to_physic, idxfile.logic_box);
       idxfile.bounds.setSpaceDim(pdim + 1);
     }
@@ -796,14 +796,14 @@ void IdxFile::writeTo(StringTree& out)
 void IdxFile::readFrom(StringTree& in)
 {
   this->version           = cint(in.readValue("version"));
-  this->bitmask = DatasetBitmask(in.readValue("bitmask"));
+  this->bitmask = DatasetBitmask::fromString(in.readValue("bitmask"));
   this->logic_box          = BoxNi::parseFromOldFormatString(this->bitmask.getPointDim(),in.readValue("box"));
 
   auto pdim = this->bitmask.getPointDim();
 
   if (in.hasAttribute("logic_to_physic"))
   {
-    auto logic_to_physic = Matrix::parseFromString(in.readValue("logic_to_physic", Matrix::identity(pdim + 1).toString()));
+    auto logic_to_physic = Matrix::fromString(in.readValue("logic_to_physic", Matrix::identity(pdim + 1).toString()));
     this->bounds = Position(logic_to_physic, this->logic_box);
   }
 

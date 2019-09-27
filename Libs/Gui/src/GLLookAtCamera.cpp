@@ -581,13 +581,13 @@ void GLLookAtCamera::readFrom(StringTree& in)
 {
   GLCamera::readFrom(in);
 
-  bound = BoxNd::parseFromString(in.readValue("bound"),/*bInterleave*/false);
+  bound = BoxNd::fromString(in.readValue("bound"),/*bInterleave*/false);
   bound.setPointDim(3);
-  pos              = Point3d(in.readValue("pos"));
-  dir              = Point3d(in.readValue("dir"));
-  vup              = Point3d(in.readValue("vup"));
-  centerOfRotation = Point3d(in.readValue("centerOfRotation"));
-  quaternion       = Quaternion(in.readValue("quaternion"));
+  pos              = Point3d::fromString(in.readValue("pos"));
+  dir              = Point3d::fromString(in.readValue("dir"));
+  vup              = Point3d::fromString(in.readValue("vup"));
+  centerOfRotation = Point3d::fromString(in.readValue("centerOfRotation"));
+  quaternion       = Quaternion::fromString(in.readValue("quaternion"));
   defaultRotFactor =cdouble(in.readValue("defaultRotFactor"));
   defaultPanFactor =cdouble(in.readValue("defaultPanFactor"));
   bDisableRotation =cbool  (in.readValue("disableRotation"));

@@ -148,7 +148,7 @@ Viewer::Viewer(String title) : QMainWindow()
 
   setWindowTitle(title.c_str());
 
-  this->background_color=Color::parseFromString(config.readString("Configuration/VisusViewer/background_color", Colors::DarkBlue.toString()));
+  this->background_color=Color::fromString(config.readString("Configuration/VisusViewer/background_color", Colors::DarkBlue.toString()));
 
   //logos
   {

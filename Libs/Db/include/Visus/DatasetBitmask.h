@@ -61,7 +61,7 @@ public:
 
   //constructor
   //example with only regular: V0101
-  DatasetBitmask(String pattern);
+  static DatasetBitmask fromString(String pattern);
 
   //guess bitmask for a certain number of samples (will store the result in bitmask)
   static DatasetBitmask guess(PointNi dims, bool makeRegularAsSoonAsPossible = true);
@@ -137,7 +137,7 @@ public:
 
   //operator+
   static DatasetBitmask add(const DatasetBitmask& a,const DatasetBitmask& b)  {
-    return a.valid() && b.valid() ? DatasetBitmask(a.pattern + b.pattern.substr(1)) : DatasetBitmask::invalid();
+    return a.valid() && b.valid() ? DatasetBitmask::fromString(a.pattern + b.pattern.substr(1)) : DatasetBitmask::invalid();
   }
 
 private:

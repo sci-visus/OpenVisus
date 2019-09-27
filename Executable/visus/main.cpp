@@ -133,7 +133,7 @@ public:
         idxfile.fields = IdxFile::parseFields(args[++I]);
 
       else if (args[I] == "--bits" || args[I] == "--bitmask_pattern" || args[I] == "--bitmask")
-        idxfile.bitmask = DatasetBitmask(args[++I]);
+        idxfile.bitmask = DatasetBitmask::fromString(args[++I]);
 
       else if (args[I] == "--bitsperblock")
         idxfile.bitsperblock = cint(args[++I]);
@@ -963,7 +963,7 @@ public:
 
       if (args[I] == "--dims")
       {
-        dims = PointNi::parseFromString(args[++I]);
+        dims = PointNi::fromString(args[++I]);
         continue;
       }
       
@@ -1792,7 +1792,7 @@ public:
     {
       if (args[I] == "--dims")
       {
-        dims = PointNi::parseFromString(args[++I]);
+        dims = PointNi::fromString(args[++I]);
         continue;
       }
 

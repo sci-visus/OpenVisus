@@ -91,8 +91,8 @@ public:
     this->v[3]=Utils::clamp(this->v[3],a,b);
   }
 
-  //parseFromString
-  static Color parseFromString(String s,Color default_value=Color()) 
+  //fromString
+  static Color fromString(String s,Color default_value=Color()) 
   {
     if (s.empty())
       return default_value;

@@ -453,9 +453,9 @@ void GLOrthoCamera::readFrom(StringTree& in)
 {
   GLCamera::readFrom(in);
 
-  pos=Point3d(in.readValue("pos","0  0  0"));
-  dir=Point3d(in.readValue("dir","0  0 -1"));
-  vup=Point3d(in.readValue("vup","0  1  0"));
+  pos=Point3d::fromString(in.readValue("pos","0  0  0"));
+  dir=Point3d::fromString(in.readValue("dir","0  0 -1"));
+  vup=Point3d::fromString(in.readValue("vup","0  1  0"));
 
   default_scale=cdouble(in.readValue("default_scale"));
   bDisableRotation=cbool(in.readValue("disable_rotation"));

@@ -84,7 +84,7 @@ public:
   //readFrom
   virtual void readFrom(StringTree& in) override {
     Node::readFrom(in);
-    T= Matrix::parseFromString(4,in.readValue("T"));
+    T= Matrix::fromString(4,in.readValue("T"));
   }
 
   static ModelViewNode* castFrom(Node* obj) {

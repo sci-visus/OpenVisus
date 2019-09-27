@@ -88,19 +88,19 @@ void GLMaterial::readFrom(StringTree& in)
 {
   if (auto child = in.getChild("front"))
   {
-    this->front.ambient = Color::parseFromString(child->readValue("ambient"));
-    this->front.diffuse = Color::parseFromString(child->readValue("diffuse"));
-    this->front.specular = Color::parseFromString(child->readValue("specular"));
-    this->front.emission = Color::parseFromString(child->readValue("emission"));
+    this->front.ambient = Color::fromString(child->readValue("ambient"));
+    this->front.diffuse = Color::fromString(child->readValue("diffuse"));
+    this->front.specular = Color::fromString(child->readValue("specular"));
+    this->front.emission = Color::fromString(child->readValue("emission"));
     this->front.shininess = cint(child->readValue("shininess"));
   }
 
   if (auto child = in.getChild("back"))
   {
-    this->back.ambient = Color::parseFromString(child->readValue("ambient"));
-    this->back.diffuse = Color::parseFromString(child->readValue("diffuse"));
-    this->back.specular = Color::parseFromString(child->readValue("specular"));
-    this->back.emission = Color::parseFromString(child->readValue("emission"));
+    this->back.ambient = Color::fromString(child->readValue("ambient"));
+    this->back.diffuse = Color::fromString(child->readValue("diffuse"));
+    this->back.specular = Color::fromString(child->readValue("specular"));
+    this->back.emission = Color::fromString(child->readValue("emission"));
     this->back.shininess = cint(child->readValue("shininess"));
   }
 }

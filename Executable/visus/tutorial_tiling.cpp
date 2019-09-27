@@ -123,7 +123,7 @@ void Tutorial_Tiling(String default_layout)
     field.default_layout=default_layout;
     idxfile.fields.push_back(field);
   }
-  idxfile.bitmask=DatasetBitmask("V00101010");
+  idxfile.bitmask=DatasetBitmask::fromString("V00101010");
   idxfile.bitsperblock=2;
   idxfile.blocksperfile=1;
   VisusReleaseAssert(idxfile.save(filename));

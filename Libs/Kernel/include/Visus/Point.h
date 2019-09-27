@@ -71,17 +71,14 @@ public:
     VisusAssert(src.size() == 2);
   }
 
-  //constructor from string
-  explicit Point2(String value) {
-    std::istringstream parser(value); parser >> x >> y;
+  //fromString
+  static Point2 fromString(String value) {
+    Point2 ret;
+    std::istringstream parser(value); parser >> ret.x >> ret.y;
+    return ret;
   }
 
-  //parseFromString
-  static Point2 parseFromString(String value) {
-    return Point2(value);
-  }
-
-  //parseFromString
+  //fromString
   static Point2 one(int pdim) {
     VisusAssert(pdim == 2);
     return Point2(1, 1);
@@ -311,17 +308,14 @@ public:
     VisusAssert(src.size() == 3);
   }
 
-  //constructor from string
-  explicit Point3(String value) {
-    std::istringstream parser(value); parser >> x >> y >> z;
+  //fromString
+  static Point3 fromString(String value) {
+    Point3 ret;
+    std::istringstream parser(value); parser >> ret.x >> ret.y >> ret.z;
+    return ret;
   }
 
-  //parseFromString
-  static Point3 parseFromString(String value) {
-    return Point3(value);
-  }
-
-  //parseFromString
+  //fromString
   static Point3 one(int pdim) {
     VisusAssert(pdim == 3);
     return Point3(1, 1, 1);
@@ -576,16 +570,13 @@ public:
   }
 
   //constructor from string
-  explicit Point4(String value) {
-    std::istringstream parser(value); parser >> x >> y >> z >> w;
+  static Point4 fromString(String value) {
+    Point4 ret;
+    std::istringstream parser(value); parser >> ret.x >> ret.y >> ret.z >> ret.w;
+    return ret;
   }
 
-  //parseFromString
-  static Point4 parseFromString(String value) {
-    return Point4(value);
-  }
-
-  //parseFromString
+  //fromString
   static Point4 one(int pdim) {
     VisusAssert(pdim == 4);
     return Point4(1, 1, 1, 1);
@@ -660,9 +651,6 @@ public:
   Point4 inv() const {
     return Point4((T)(1.0 / x), T(1.0 / y), (T)(1.0 / z), (T)(1.0 / w));
   }
-
-
-
 
   //operator-
   Point4 operator-()  const {
@@ -1278,8 +1266,8 @@ public:
 
 public:
 
-  //parseFromString
-  static PointN parseFromString(String src)
+  //fromString
+  static PointN fromString(String src)
   {
     std::vector<T> ret;
     std::istringstream parser(src);

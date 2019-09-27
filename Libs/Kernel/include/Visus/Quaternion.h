@@ -98,10 +98,11 @@ public:
   }
 
   //constructor from string
-  explicit Quaternion(String value) {
+  static Quaternion fromString(String value) {
+    Quaternion ret;
     std::istringstream parser(value);
-    double w, x, y, z; parser >> w >> x >> y >> z;
-    *this = Quaternion(w, x, y, z);
+    parser >> ret.w >> ret.x >> ret.y >> ret.z;
+    return ret;
   }
 
   //operator[]
