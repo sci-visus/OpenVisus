@@ -160,9 +160,7 @@ void CpuPaletteNode::readFromObjectStream(ObjectStream& istream)
   Node::readFromObjectStream(istream);
 
   istream.pushContext("transfer_function");
-  transfer_function->beginUpdate();
   transfer_function->readFromObjectStream(istream);
-  transfer_function->endUpdate();
   istream.popContext("transfer_function");
 }
 

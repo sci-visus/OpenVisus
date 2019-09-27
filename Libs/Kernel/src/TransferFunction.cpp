@@ -120,16 +120,16 @@ void RGBAColorMap::convertToArray(Array& dst,int nsamples,InterpolationMode::Typ
 void RGBAColorMap::writeToObjectStream(ObjectStream& ostream)
 {
   ostream.writeString("name",this->name);
-  for (int I=0;I<(int)points.size();I++)
+  for (auto point : points)
   {
-    const Point& point=points[I];
-    ostream.pushContext("Point");
-    ostream.writeString("x",cstring(point.x));
-    ostream.writeString("r",cstring(point.color.getRed()));
-    ostream.writeString("g",cstring(point.color.getGreen()));
-    ostream.writeString("b",cstring(point.color.getBlue()));
-    ostream.writeString("o",cstring(point.color.getAlpha()));
-    ostream.popContext("Point");
+    if (auto child = ostream.getCurrentContext()->addChild("Point"))
+    {
+      child->writeString("x", cstring(point.x));
+      child->writeString("r", cstring(point.color.getRed()));
+      child->writeString("g", cstring(point.color.getGreen()));
+      child->writeString("b", cstring(point.color.getBlue()));
+      child->writeString("o", cstring(point.color.getAlpha()));
+    }
   }
 
 }
@@ -169,17 +169,13 @@ void TransferFunction::Single::writeToObjectStream(ObjectStream& ostream)
   ostream.writeValue("name", name);
   ostream.writeValue("color", color.toString());
 
-  ostream.pushContext("values");
+  std::ostringstream out;
+  for (int I = 0; I < (int)values.size(); I++)
   {
-    std::ostringstream out;
-    for (int I = 0; I<(int)values.size(); I++)
-    {
-      if (I % 16 == 0) out << std::endl;
-      out << values[I] << " ";
-    }
-    ostream.writeText(out.str());
+    if (I % 16 == 0) out << std::endl;
+    out << values[I] << " ";
   }
-  ostream.popContext("values");
+  ostream.getCurrentContext()->writeText("values", out.str());
 }
 
 /////////////////////////////////////////////////////////////////////

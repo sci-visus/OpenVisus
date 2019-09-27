@@ -445,11 +445,7 @@ void ScriptingNode::writeToObjectStream(ObjectStream& ostream)
   ostream.writeValue("max_publish_msec", cstring(max_publish_msec));
 
   if (!code.empty())
-  {
-    ostream.pushContext("code");
-    ostream.writeText(code);
-    ostream.popContext("code");
-  }
+    ostream.writeText("code", code);
 }
 
 ///////////////////////////////////////////////////////////////////////

@@ -799,11 +799,7 @@ void Dataset::writeToObjectStream(ObjectStream& ostream)
 
   //I want to save it to retrieve it on a different computer
   if (!config.empty())
-  {
-    ostream.pushContext("config");
-    ostream.getCurrentContext()->addChild(this->config);
-    ostream.popContext("config");
-  }
+    ostream.getCurrentContext()->addChild("config")->addChild(this->config);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -811,11 +807,10 @@ void Dataset::readFromObjectStream(ObjectStream& istream)
 {
   String url = istream.readValue("url");
 
-  if (istream.pushContext("config"))
+  if (auto config=istream.getCurrentContext()->getChild("config"))
   {
-    VisusAssert(istream.getCurrentContext()->getNumberOfChilds() == 1);
-    this->config = *istream.getCurrentContext()->getChild(0);
-    istream.popContext("config");
+    VisusAssert(config->getNumberOfChilds() == 1);
+    this->config = *config->getFirstChild();
   }
 
   if (!this->openFromUrl(url))

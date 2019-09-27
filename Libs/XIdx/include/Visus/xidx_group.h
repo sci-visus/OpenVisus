@@ -317,10 +317,11 @@ public:
       {
         String filename = XIdxFormatString(file_pattern + "/meta.xidx", child->domain_index);
 
-        ostream.pushContext("xi:include");
-        ostream.writeString("href", filename.c_str());
-        ostream.writeString("xpointer", "xpointer(//Xidx/Group/Group)");
-        ostream.popContext("xi:include");
+        if (auto xi_include = ostream.getCurrentContext()->addChild("xi:include"))
+        {
+          xi_include->writeString("href", filename.c_str());
+          xi_include->writeString("xpointer", "xpointer(//Xidx/Group/Group)");
+        }
 
         {
           StringTree stree(child->getTypeName());
@@ -365,9 +366,9 @@ public:
     while (auto child = readChild<Group>(istream,"Group"))
       addGroup(child);
 
-    while (istream.pushContext("xi:include"))
+    for (auto xi_include : istream.getCurrentContext()->getChilds("xi:include"))
     {
-      auto filename = istream.readString("href");
+      auto filename = xi_include->readString("href");
 
       StringTree stree;
       if (!stree.fromXmlString(Utils::loadTextDocument(filename)))
@@ -378,7 +379,7 @@ public:
         ObjectStream istream(stree, 'r');
         child->readFromObjectStream(istream);
       }
-      istream.popContext("xi:include");
+
       addGroup(child);
     }
 

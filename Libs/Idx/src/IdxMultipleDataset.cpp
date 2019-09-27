@@ -1347,11 +1347,8 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   this->bMosaic = cbool(istream.readString("mosaic"));
 
-  if (istream.pushContext("slam"))
-  {
+  if (istream.getCurrentContext()->getChild("slam"))
     this->bSlam = true;
-    istream.popContext("slam");
-  }
 
   parseDatasets(istream.getCurrentContext(),Matrix());
 
@@ -1535,14 +1532,14 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
     int generate_name = 0;
 
-    while (istream.pushContext("field"))
+    for (auto child : istream.getCurrentContext()->getChilds("field"))
     {
-      String name = istream.readString("name");
+      String name = child->readString("name");
       if (name.empty())
         name = StringUtils::format() << "field_" + generate_name++;
 
       //I expect to find here CData node or Text node...
-      String code = istream.readText("code"); VisusAssert(!code.empty());
+      String code = child->readText("code"); VisusAssert(!code.empty());
 
       Field FIELD = getFieldByName(code);
       if (FIELD.valid())
@@ -1552,8 +1549,6 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
         FIELD.setDescription(parse.without_params);
         addField(FIELD);
       }
-
-      istream.popContext("field");
     }
   }
   else

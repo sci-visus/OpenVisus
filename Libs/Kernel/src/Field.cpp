@@ -68,12 +68,11 @@ void Field::writeToObjectStream(ObjectStream& ostream)
   //params
   if (!params.empty())
   {
-    ostream.pushContext("params");
+    if (auto params=ostream.getCurrentContext()->addChild("params"))
     {
-      for (auto it=params.begin();it!=params.end();it++)
-        ostream.writeValue(it->first,it->second);
+      for (auto it : this->params)
+        params->writeValue(it.first,it.second);
     }
-    ostream.popContext("params");
   }
 }
 
@@ -92,18 +91,16 @@ void Field::readFromObjectStream(ObjectStream& istream)
   this->filter=istream.readValue("filter");
 
   this->params.clear();
-  if (istream.pushContext("params"))
-  {
-    for (auto child : istream.getCurrentContext()->childs)
-    {
-      if (child->isHashNode())
-        continue;
 
-      String key=child->name;
-      String value=istream.readValue(key);
-      params.setValue(key,value);
+  if (auto params=istream.getCurrentContext()->getChild("params"))
+  {
+    for (auto param : params->childs)
+    {
+      if (param->isHashNode()) continue;
+      String key= param->name;
+      String value= param->readValue(key);
+      this->params.setValue(key,value);
     }
-    istream.popContext("params");
   }
 
 }

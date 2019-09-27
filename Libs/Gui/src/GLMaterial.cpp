@@ -63,40 +63,46 @@ GLMaterial GLMaterial::createRandom()
 ///////////////////////////////////////////////
 void GLMaterial::writeToObjectStream(ObjectStream& ostream) 
 {
-  ostream.pushContext("front");
-  ostream.writeValue("ambient"  ,front.ambient.toString());
-  ostream.writeValue("diffuse"  ,front.diffuse.toString());
-  ostream.writeValue("specular" ,front.specular.toString());
-  ostream.writeValue("emission" ,front.emission.toString());
-  ostream.writeValue("shininess",cstring(front.shininess));
-  ostream.popContext("front");
+  if (auto child = ostream.getCurrentContext()->addChild("front"))
+  {
+    child->writeValue("ambient", front.ambient.toString());
+    child->writeValue("diffuse", front.diffuse.toString());
+    child->writeValue("specular", front.specular.toString());
+    child->writeValue("emission", front.emission.toString());
+    child->writeValue("shininess", cstring(front.shininess));
+  }
 
-  ostream.pushContext("back");
-  ostream.writeValue("ambient"  ,back.ambient.toString());
-  ostream.writeValue("diffuse"  ,back.diffuse.toString());
-  ostream.writeValue("specular" ,back.specular.toString());
-  ostream.writeValue("emission" ,back.emission.toString());
-  ostream.writeValue("shininess",cstring(back.shininess));
-  ostream.popContext("back");
+  if (auto child = ostream.getCurrentContext()->addChild("back"))
+  {
+    child->writeValue("ambient", back.ambient.toString());
+    child->writeValue("diffuse", back.diffuse.toString());
+    child->writeValue("specular", back.specular.toString());
+    child->writeValue("emission", back.emission.toString());
+    child->writeValue("shininess", cstring(back.shininess));
+  }
+
 }
 
 ///////////////////////////////////////////////
 void GLMaterial::readFromObjectStream(ObjectStream& istream) 
 {
-  istream.pushContext("front");
-  front.ambient  =Color::parseFromString(istream.readValue("ambient"));
-  front.diffuse  =Color::parseFromString(istream.readValue("diffuse"));
-  front.specular =Color::parseFromString(istream.readValue("specular"));
-  front.emission =Color::parseFromString(istream.readValue("emission"));
-  front.shininess=cint(istream.readValue("shininess"));
-  istream.popContext("front");
+  if (auto child = istream.getCurrentContext()->getChild("front"))
+  {
+    this->front.ambient = Color::parseFromString(child->readValue("ambient"));
+    this->front.diffuse = Color::parseFromString(child->readValue("diffuse"));
+    this->front.specular = Color::parseFromString(child->readValue("specular"));
+    this->front.emission = Color::parseFromString(child->readValue("emission"));
+    this->front.shininess = cint(child->readValue("shininess"));
+  }
 
-  istream.pushContext("back");
-  back.ambient  =Color::parseFromString(istream.readValue("ambient"));
-  back.diffuse  =Color::parseFromString(istream.readValue("diffuse"));
-  back.specular =Color::parseFromString(istream.readValue("specular"));
-  back.emission =Color::parseFromString(istream.readValue("emission"));
-  istream.popContext("back");
+  if (auto child = istream.getCurrentContext()->getChild("back"))
+  {
+    this->back.ambient = Color::parseFromString(child->readValue("ambient"));
+    this->back.diffuse = Color::parseFromString(child->readValue("diffuse"));
+    this->back.specular = Color::parseFromString(child->readValue("specular"));
+    this->back.emission = Color::parseFromString(child->readValue("emission"));
+    this->back.shininess = cint(child->readValue("shininess"));
+  }
 }
 
 } //namespace

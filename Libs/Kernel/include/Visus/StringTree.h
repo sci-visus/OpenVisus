@@ -181,6 +181,13 @@ public:
 
 #endif
 
+  //addChild
+  SharedPtr<StringTree> addChild(String name) {
+    auto ret = std::make_shared<StringTree>(name);
+    addChild(ret);
+    return ret;
+  }
+
   //clear
   void clear()
   {
@@ -258,11 +265,40 @@ public:
     return childs[I];
   }
 
+  //getChild
+  SharedPtr<StringTree> getChild(String name) const {
+    for (auto child : childs)
+      if (child->name == name)
+        return child;
+    return SharedPtr<StringTree>();
+  }
+
+
+  //getChild
+  std::vector< SharedPtr<StringTree> > getChilds(String name) const {
+    std::vector< SharedPtr<StringTree> > ret;
+    for (auto child : childs)
+      if (child->name == name)
+        ret.push_back(child);
+    return ret;
+  }
+
+  //getFirstChild
+  SharedPtr<StringTree> getFirstChild() const {
+    return getChild(0);
+  }
+
   //findChildWithName
   StringTree* findChildWithName(String name, StringTree* prev = NULL) const;
 
   //findAllChildsWithName
   std::vector<StringTree*> findAllChildsWithName(String name, bool bRecursive=true) const;
+
+
+  //findChildsWithName
+  std::vector<StringTree*> findChildsWithName(String name) const {
+    return findAllChildsWithName(name, false);
+  }
 
   //getMaxDepth
   int getMaxDepth();
@@ -317,6 +353,11 @@ public:
   //write
   void writeValue(String name, String value) {
     addChild(StringTree(name, "value", value));
+  }
+
+  StringTree& withValue(String name, String value) {
+    writeValue(name, value);
+    return *this;
   }
 
   //read
