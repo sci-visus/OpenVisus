@@ -147,10 +147,7 @@ void PaletteNode::exitFromDataflow() {
 void PaletteNode::writeToObjectStream(ObjectStream& out) 
 {
   Node::writeToObjectStream(out);
-
-  out.pushContext("palette");
-  palette->writeToObjectStream(out);
-  out.popContext("palette");
+  out.writeObject("palette",*palette);
 }
 
 
@@ -158,10 +155,7 @@ void PaletteNode::writeToObjectStream(ObjectStream& out)
 void PaletteNode::readFromObjectStream(ObjectStream& in) 
 {
   Node::readFromObjectStream(in);
-
-  in.pushContext("palette");
-  palette->readFromObjectStream(in);
-  in.popContext("palette");
+  in.readObject("palette",*palette);
 }
 
 ///////////////////////////////////////////////////////////////////////

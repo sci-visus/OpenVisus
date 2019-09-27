@@ -141,13 +141,13 @@ void RGBAColorMap::readFromObjectStream(ObjectStream& in)
   VisusAssert(!name.empty());
 
   this->points.clear();
-  while (in.pushContext("Point"))
+  for (auto P : in.getCurrentContext()->getChilds("Point"))
   {
-    double x=cdouble(in.readString("x"));
-    double o=cdouble(in.readString("o"));
-    double r=cdouble(in.readString("r"));
-    double g=cdouble(in.readString("g"));
-    double b=cdouble(in.readString("b"));
+    double x=cdouble(P->readString("x"));
+    double o=cdouble(P->readString("o"));
+    double r=cdouble(P->readString("r"));
+    double g=cdouble(P->readString("g"));
+    double b=cdouble(P->readString("b"));
     VisusAssert(points.empty() || points.back().x<=x);
 
     Point point;
@@ -155,7 +155,6 @@ void RGBAColorMap::readFromObjectStream(ObjectStream& in)
     point.color=Color((float)r,(float)g,(float)b,(float)o);
         
     this->points.push_back(point);
-    in.popContext("Point");
   }
   VisusAssert(!points.empty());
   refreshMinMax();
@@ -555,29 +554,23 @@ void TransferFunction::writeToObjectStream(ObjectStream& out)
 
   out.writeString("attenuation",cstring(attenuation));
 
-  out.pushContext("input");
+  if (auto Input = out.getCurrentContext()->addChild("input"))
   {
-    out.writeString("mode",cstring(input_range.mode));
-    if (input_range.custom_range.delta()>0)
-      out.writeObject("custom_range", input_range.custom_range);
+    Input->writeString("mode", cstring(input_range.mode));
+    if (input_range.custom_range.delta() > 0)
+      Input->writeObject("custom_range", input_range.custom_range);
   }
-  out.popContext("input");
 
-  out.pushContext("output");
+  if (auto Output = out.getCurrentContext()->addChild("output"))
   {
-    out.writeString("dtype",output_dtype.toString());
-    out.writeObject("range", output_range);
+    Output->writeString("dtype", output_dtype.toString());
+    Output->writeObject("range", output_range);
   }
-  out.popContext("output");
 
   if (!bDefault)
   {
     for (auto fn : functions)
-    {
-      out.pushContext("function");
-      fn->writeToObjectStream(out);
-      out.popContext("function");
-    }
+      out.writeObject("function", *fn);
   }
 }
 
@@ -592,18 +585,16 @@ void TransferFunction::readFromObjectStream(ObjectStream& in)
 
   this->attenuation=cdouble(in.readString("attenuation","0.0"));
 
-  if (in.pushContext("input"))
+  if (auto Input = in.getCurrentContext()->getChild("input"))
   {
-    input_range.mode=(ComputeRange::Mode)cint(in.readString("input.normalization"));
-    in.readObject("custom_range", input_range.custom_range);
-    in.popContext("input");
+    input_range.mode=(ComputeRange::Mode)cint(Input->readString("input.normalization"));
+    Input->readObject("custom_range", input_range.custom_range);
   }
 
-  if (in.pushContext("output"))
+  if (auto Output = in.getCurrentContext()->getChild("output"))
   {
-    output_dtype=DType::fromString(in.readString("dtype"));
-    in.readObject("range", output_range);
-    in.popContext("output");
+    output_dtype=DType::fromString(Output->readString("dtype"));
+    Output->readObject("range", output_range);
   }
 
   if (bDefault)
@@ -613,11 +604,11 @@ void TransferFunction::readFromObjectStream(ObjectStream& in)
   else
   {
     setNotDefault();
-    while (in.pushContext("function"))
+
+    for (auto child : in.getCurrentContext()->getChilds("function"))
     {
       auto single = std::make_shared<Single>();
-      single->readFromObjectStream(in);
-      in.popContext("function");
+      single->readFromObjectStream(ObjectStream(*child,'r'));
       functions.push_back(single);
     }
   }

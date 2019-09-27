@@ -148,20 +148,14 @@ bool CpuPaletteNode::processInput()
 void CpuPaletteNode::writeToObjectStream(ObjectStream& out)
 {
   Node::writeToObjectStream(out);
-
-  out.pushContext("transfer_function");
-  transfer_function->writeToObjectStream(out);
-  out.popContext("transfer_function");
+  out.writeObject("transfer_function",*transfer_function);
 }
 
 ///////////////////////////////////////////////////////////////////////
 void CpuPaletteNode::readFromObjectStream(ObjectStream& in)
 {
   Node::readFromObjectStream(in);
-
-  in.pushContext("transfer_function");
-  transfer_function->readFromObjectStream(in);
-  in.popContext("transfer_function");
+  in.readObject("transfer_function",*transfer_function);
 }
 
 

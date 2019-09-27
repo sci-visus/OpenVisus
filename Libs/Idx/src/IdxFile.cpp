@@ -777,17 +777,19 @@ void IdxFile::writeToObjectStream(ObjectStream& out)
   out.writeValue("block_interleaving",cstring(this->block_interleaving));
   out.writeValue("filename_template",filename_template);
   
-  out.pushContext("fields");
-  for (int I=0;I<(int)fields.size();I++)
-    out.writeObject("field", fields[I]);
-  out.popContext("fields");
+  if (auto Fields = out.getCurrentContext()->addChild("fields"))
+  {
+    for (auto field : this->fields)
+      Fields->writeObject("field", field);
+  }
 
   if (!this->time_template.empty())
   {
-    out.pushContext("Timesteps");
-    out.writeValue("filename_template",this->time_template);
-    timesteps.writeToObjectStream(out);
-    out.popContext("Timesteps");
+    if (auto TimeSteps = out.getCurrentContext()->addChild("Timesteps"))
+    {
+      TimeSteps->writeValue("filename_template", this->time_template);
+      timesteps.writeToObjectStream(ObjectStream(*TimeSteps,'w'));
+    }
   }
 }
 
@@ -813,24 +815,22 @@ void IdxFile::readFromObjectStream(ObjectStream& in)
   this->filename_template = in.readValue("filename_template");
 
   this->fields.clear();
-  in.pushContext("fields");
-  while (in.pushContext("field"))
-  {
-    Field field;
-    field.readFromObjectStream(in);
-    if (!field.valid())
-      ThrowException("field not valid");
 
-    this->fields.push_back(field);
-    in.popContext("field");
+  if (auto fields = in.getChild("fields"))
+  {
+    for (auto child : fields->getChilds("field"))
+    {
+      Field field;
+      field.readFromObjectStream(ObjectStream(*child, 'r'));
+      VisusReleaseAssert(field.valid());
+      this->fields.push_back(field);
+    }
   }
-  in.popContext("fields");
 
-  if (in.pushContext("Timesteps"))
+  if (auto Timesteps = in.getChild("Timesteps"))
   {
-    this->time_template=in.readValue("filename_template");
-    this->timesteps.readFromObjectStream(in);
-    in.popContext("Timesteps");
+    this->time_template= Timesteps->readValue("filename_template");
+    this->timesteps.readFromObjectStream(ObjectStream(*Timesteps,'r'));
   }
 }
 

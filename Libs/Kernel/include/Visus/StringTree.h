@@ -253,6 +253,70 @@ public:
     writeString(key, cstring(value));
   }
 
+
+  //readText
+  String readText() const;
+
+  //writeText
+  void writeText(const String& text, bool bCData = false) {
+    if (bCData)
+      childs.push_back(std::make_shared<StringTree>("#cdata-section", "value", text));
+    else
+      childs.push_back(std::make_shared<StringTree>("#text", "value", text));
+  }
+
+  //readText
+  String readText(String name) const {
+    if (auto child = findChildWithName(name))
+      return child->readText();
+    else
+      return "";
+  }
+
+  //writeText
+  void writeText(String name, const String& value, bool bCData = false) {
+    auto child = std::make_shared<StringTree>(name);
+    child->writeText(value, bCData);
+    childs.push_back(child);
+  }
+
+
+  //write
+  void writeValue(String name, String value) {
+    addChild(StringTree(name, "value", value));
+  }
+
+  StringTree& withValue(String name, String value) {
+    writeValue(name, value);
+    return *this;
+  }
+
+  //read
+  String readValue(String name, String default_value = "")
+  {
+    auto child = findChildWithName(name);
+    return child ? child->readString("value", default_value) : default_value;
+  }
+
+  //readObject
+  template <class Object>
+  bool readObject(String name, Object& obj)
+  {
+    auto child = getChild(name);
+    if (!child) return false;
+    obj.readFromObjectStream(ObjectStream(*child, 'r'));
+  }
+
+  //writeObject
+  template <class Object>
+  void writeObject(String name, Object& obj,String TypeName="")
+  {
+    auto child = addChild(name);
+    if (!TypeName.empty())
+      child->writeString("TypeName", TypeName);
+    obj.writeToObjectStream(ObjectStream(*child, 'w'));
+  }
+
 public:
 
   //getNumberOfChilds
@@ -323,50 +387,6 @@ public:
     childs.push_back(std::make_shared<StringTree>("#comment", "value", text));
   }
 
-  //readText
-  String readText() const;
-
-  //writeText
-  void writeText(const String& text,bool bCData = false) {
-    if (bCData)
-      childs.push_back(std::make_shared<StringTree>("#cdata-section", "value", text));
-    else
-      childs.push_back(std::make_shared<StringTree>("#text", "value", text));
-  }
-
-  //readText
-  String readText(String name) const {
-    if (auto child = findChildWithName(name))
-      return child->readText();
-    else
-      return "";
-  }
-
-  //writeText
-  void writeText(String name, const String& value, bool bCData = false) {
-    auto child = std::make_shared<StringTree>(name);
-    child->writeText(value,bCData);
-    childs.push_back(child);
-  }
-
-
-  //write
-  void writeValue(String name, String value) {
-    addChild(StringTree(name, "value", value));
-  }
-
-  StringTree& withValue(String name, String value) {
-    writeValue(name, value);
-    return *this;
-  }
-
-  //read
-  String readValue(String name, String default_value = "")
-  {
-    auto child = findChildWithName(name);
-    return child ? child->readString("value", default_value) : default_value;
-  }
-
 public:
 
   //toXmlString
@@ -422,51 +442,6 @@ public:
   //getCurrentContext
   StringTree* getCurrentContext() const {
     return stack.top().context;
-  }
-
-  // pushContext
-  bool pushContext(String context_name)
-  {
-    if (mode == 'w')
-    {
-      auto child = std::make_shared<StringTree>(context_name);
-      getCurrentContext()->addChild(child);
-      this->stack.push(StackItem(child.get()));
-      return true;
-    }
-    else
-    {
-      StackItem stack_item;
-
-      //need to keep track of the current child, first time I'm pushing this context
-      if (stack.top().next_child.find(context_name) == stack.top().next_child.end())
-      {
-        stack_item.context = getCurrentContext()->findChildWithName(context_name, nullptr);
-      }
-      //...already used, I need to start from the next child
-      else
-      {
-        stack_item.context = stack.top().next_child[context_name];
-      }
-
-      //cannot find or finished
-      if (!stack_item.context)
-        return false;
-
-      //next time I will use the next sibling
-      stack.top().next_child[context_name] = getCurrentContext()->findChildWithName(context_name, stack_item.context);
-      this->stack.push(stack_item);
-      return true;
-    }
-  }
-
-  //popContext
-  bool popContext(String context_name)
-  {
-    VisusAssert(mode == 'w' || mode == 'r');
-    VisusAssert(getCurrentContext()->name == context_name);
-    this->stack.pop();
-    return true;
   }
 
 public:
@@ -526,21 +501,29 @@ public:
     writeString(key, cstring(value));
   }
 
+
+  //writeObject
+  template <class Object>
+  void writeObject(Object& obj) {
+    obj.writeToObjectStream(*this);
+  }
+
+  //readObject
+  template <class Object>
+  void readObject(Object& obj) {
+    obj.readFromObjectStream(*this);
+  }
+
   //writeObject
   template <typename Value>
-  void writeObject(String name, Value& value) {
-    pushContext(name);
-    value.writeToObjectStream(*this);
-    popContext(name);
+  void writeObject(String name, Value& value,String TypeName="") {
+    getCurrentContext()->writeObject(name, value, TypeName);
   }
 
   //readObject
   template <typename Value>
   bool readObject(String name, Value& value) {
-    if (!pushContext(name)) return false;
-    value.readFromObjectStream(*this);
-    popContext(name);
-    return true;
+    return getCurrentContext()->readObject(name, value);
   }
 
   //write
@@ -571,6 +554,16 @@ public:
   //readText
   String readText(String name) {
     return getCurrentContext()->readText(name);
+  }
+
+  //addChild
+  SharedPtr<StringTree> addChild(String name) {
+    return getCurrentContext()->addChild(name);
+  }
+
+  //getChild
+  SharedPtr<StringTree> getChild(String name) {
+    return getCurrentContext()->getChild(name);
   }
 
 private:

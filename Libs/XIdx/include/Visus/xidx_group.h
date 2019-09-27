@@ -354,12 +354,11 @@ public:
     while (auto child = readChild<Variable>(in,"Variable"))
       addVariable(child);
 
-    if (in.pushContext("Domain"))
+    if (auto Domain=in.getChild("Domain"))
     {
-      auto type = DomainType::fromString(in.readString("Type"));
+      auto type = DomainType::fromString(Domain->readString("Type"));
       auto child=Domain::createDomain(type);
-      child->readFromObjectStream(in);
-      in.popContext("Domain");
+      child->readFromObjectStream(ObjectStream(*Domain,'r'));
       setDomain(child);
     }
 

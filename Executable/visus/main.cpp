@@ -656,11 +656,7 @@ public:
     StringTree stree("fields");
     ObjectStream out(stree,'w');
     for (auto field : vf->getFields())
-    {
-      out.pushContext("field");
-      field.writeToObjectStream(out);
-      out.popContext("field");
-    }
+      out.writeObject("field", field);
     VisusInfo() << stree.toString();
 
     return data;

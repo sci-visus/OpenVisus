@@ -84,12 +84,7 @@ void DatasetNode::writeToObjectStream(ObjectStream& out)
   Node::writeToObjectStream(out);
 
   if (dataset)
-  {
-    out.pushContext("dataset");
-    out.writeString("TypeName",dataset->getTypeName());
-    dataset->writeToObjectStream(out);
-    out.popContext("dataset");
-  }
+    out.writeObject("dataset",*dataset, dataset->getTypeName());
 
   out.writeValue("show_bounds",cstring(show_bounds));
 }
@@ -99,12 +94,11 @@ void DatasetNode::readFromObjectStream(ObjectStream& in)
 {
   Node::readFromObjectStream(in);
 
-  if (in.pushContext("dataset"))
+  if (auto child = in.getChild("dataset"))
   {
-    auto TypeName = in.readString("TypeName");
+    auto TypeName = child->readString("TypeName");
     dataset=DatasetFactory::getSingleton()->createInstance(TypeName);
-    dataset->readFromObjectStream(in);
-    in.popContext("dataset");
+    dataset->readFromObjectStream(ObjectStream(*child,'r'));
   }
 
   show_bounds=cbool(in.readValue("show_bounds"));

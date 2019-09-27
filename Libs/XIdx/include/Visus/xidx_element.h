@@ -114,23 +114,15 @@ public:
   //writeChilds
   template <typename T>
   void writeChild(ObjectStream& out,String name, T* child) {
-    if (!child) return;
-    out.pushContext(name);
-    child->writeToObjectStream(out);
-    out.popContext(name);
+    if (child) out.writeObject(name,*child);
   }
 
   //readChilds
   template <typename T>
-  VISUS_NEWOBJECT(T*) readChild(ObjectStream& in, String name) {
-    
-    if (!in.pushContext(name))
-      return nullptr;
-
-    auto ret = new T();
-    ret->readFromObjectStream(in);
-    in.popContext(name);
-    return ret;
+  VISUS_NEWOBJECT(T*) readChild(ObjectStream& in, String name) 
+  {
+    UniquePtr<T> ret(new T());
+    return in.readObject(name, *ret)? ret.release() : nullptr;
   }
 
 private:

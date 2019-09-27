@@ -84,12 +84,7 @@ void GLCameraNode::writeToObjectStream(ObjectStream& out)
   Node::writeToObjectStream(out);
 
   if (glcamera)
-  {
-    out.pushContext("glcamera");
-    out.writeString("TypeName",glcamera->getTypeName());
-    glcamera->writeToObjectStream(out);;
-    out.popContext("glcamera");
-  }
+    out.writeObject("glcamera",*glcamera, glcamera->getTypeName());
 
   //bDebugFrustum
 }
@@ -99,30 +94,28 @@ void GLCameraNode::readFromObjectStream(ObjectStream& in)
 {
   Node::readFromObjectStream(in);
 
-  in.pushContext("glcamera");
-
-  if (!this->glcamera)
+  if (auto child = in.getChild("glcamera"))
   {
-    SharedPtr<GLCamera> value;
-    auto TypeName = in.readString("TypeName");
-    if (TypeName == "GLLookAtCamera")
-      value = std::make_shared<GLLookAtCamera>();
-    else if (TypeName == "GLOrthoCamera")
-      value = std::make_shared<GLOrthoCamera>();
-    else
-      VisusAssert(false);
+    auto TypeName = child->readString("TypeName");
 
-    setGLCamera(value);
-  }
-  else
-  {
-    
+    if (!this->glcamera)
+    {
+      if (TypeName == "GLLookAtCamera")
+        setGLCamera(std::make_shared<GLLookAtCamera>());
+
+      else if (TypeName == "GLOrthoCamera")
+          setGLCamera(std::make_shared<GLOrthoCamera>());
+
+      else
+        VisusAssert(false);
+    }
+
+    VisusReleaseAssert(glcamera->getTypeName()==TypeName);
+
     this->glcamera->beginUpdate();
-    this->glcamera->readFromObjectStream(in);
+    this->glcamera->readFromObjectStream(ObjectStream(*child,'r'));
     this->glcamera->endUpdate();
-    
   }
-  in.popContext("glcamera");
 }
   
 } //namespace Visus
