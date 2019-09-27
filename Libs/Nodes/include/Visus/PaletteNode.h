@@ -85,10 +85,10 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override;
+  virtual void writeToObjectStream(ObjectStream& out) override;
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override;
+  virtual void readFromObjectStream(ObjectStream& in) override;
 
   static PaletteNode* castFrom(Node* obj) {
     return dynamic_cast<PaletteNode*>(obj);

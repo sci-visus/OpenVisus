@@ -352,33 +352,33 @@ void QueryNode::exitFromDataflow()
 }
 
 //////////////////////////////////////////////////////////////////
-void QueryNode::writeToObjectStream(ObjectStream& ostream) 
+void QueryNode::writeToObjectStream(ObjectStream& out) 
 {
-  Node::writeToObjectStream(ostream);
+  Node::writeToObjectStream(out);
 
-  ostream.writeValue("verbose", cstring(verbose));
-  ostream.writeValue("accessindex",cstring(accessindex));
-  ostream.writeValue("view_dependent",cstring(bViewDependentEnabled));
-  ostream.writeValue("progression",std::to_string(progression));
-  ostream.writeValue("quality",std::to_string(quality));
+  out.writeValue("verbose", cstring(verbose));
+  out.writeValue("accessindex",cstring(accessindex));
+  out.writeValue("view_dependent",cstring(bViewDependentEnabled));
+  out.writeValue("progression",std::to_string(progression));
+  out.writeValue("quality",std::to_string(quality));
 
-  ostream.writeObject("bounds", node_bounds);
+  out.writeObject("bounds", node_bounds);
 
   //position=fn(tree_position)
 }
 
 //////////////////////////////////////////////////////////////////
-void QueryNode::readFromObjectStream(ObjectStream& istream) 
+void QueryNode::readFromObjectStream(ObjectStream& in) 
 {
-  Node::readFromObjectStream(istream);
+  Node::readFromObjectStream(in);
 
-  this->verbose = cint(istream.readValue("verbose"));
-  this->accessindex=cint(istream.readValue("accessindex"));
-  this->bViewDependentEnabled=cbool(istream.readValue("view_dependent"));
-  this->progression=(QueryProgression)cint(istream.readValue("progression"));
-  this->quality=(QueryQuality)cint(istream.readValue("quality"));
+  this->verbose = cint(in.readValue("verbose"));
+  this->accessindex=cint(in.readValue("accessindex"));
+  this->bViewDependentEnabled=cbool(in.readValue("view_dependent"));
+  this->progression=(QueryProgression)cint(in.readValue("progression"));
+  this->quality=(QueryQuality)cint(in.readValue("quality"));
 
-  istream.readObject("bounds", node_bounds);
+  in.readObject("bounds", node_bounds);
 
   //position=fn(tree_position)
 }

@@ -71,21 +71,21 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  virtual void writeToObjectStream(ObjectStream& out) override
   {
     data_items.back()->values = this->values;
     // TODO The user should set the dimensionality of the list (not here)
     if(data_items.back()->dimensions.size() == 0)
       data_items.back()->dimensions.push_back((int)this->values.size());
-    Domain::writeToObjectStream(ostream);
+    Domain::writeToObjectStream(out);
 
   }
   
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override 
+  virtual void readFromObjectStream(ObjectStream& in) override 
   {
-    Domain::readFromObjectStream(istream);
-//    for (auto it : StringUtils::split(istream.readText()))
+    Domain::readFromObjectStream(in);
+//    for (auto it : StringUtils::split(in.readText()))
 //      this->values.push_back(cdouble(it));
 
     this->values = data_items.back()->values;

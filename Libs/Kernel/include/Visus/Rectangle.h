@@ -145,21 +145,21 @@ public:
   }
 
   //writeToObjectStream
-  void writeToObjectStream(ObjectStream& ostream) 
+  void writeToObjectStream(ObjectStream& out) 
   {
-    ostream.writeString("x", cstring(x));
-    ostream.writeString("y", cstring(y));
-    ostream.writeString("width", cstring(width));
-    ostream.writeString("height", cstring(height));
+    out.writeString("x", cstring(x));
+    out.writeString("y", cstring(y));
+    out.writeString("width", cstring(width));
+    out.writeString("height", cstring(height));
   }
 
   //readFromObjectStream
-  void readFromObjectStream(ObjectStream& istream) 
+  void readFromObjectStream(ObjectStream& in) 
   {
-    x = cint(istream.readString("x"));
-    y = cint(istream.readString("y"));
-    width = cint(istream.readString("width"));
-    height = cint(istream.readString("height"));
+    x = cint(in.readString("x"));
+    y = cint(in.readString("y"));
+    width = cint(in.readString("width"));
+    height = cint(in.readString("height"));
   }
 
   //convert to string
@@ -264,21 +264,21 @@ public:
   }
 
   //writeToObjectStream
-  void writeToObjectStream(ObjectStream& ostream) 
+  void writeToObjectStream(ObjectStream& out) 
   {
-    ostream.writeString("x", cstring(x));
-    ostream.writeString("y", cstring(y));
-    ostream.writeString("width", cstring(width));
-    ostream.writeString("height", cstring(height));
+    out.writeString("x", cstring(x));
+    out.writeString("y", cstring(y));
+    out.writeString("width", cstring(width));
+    out.writeString("height", cstring(height));
   }
 
   //readFromObjectStream
-  void readFromObjectStream(ObjectStream& istream) 
+  void readFromObjectStream(ObjectStream& in) 
   {
-    x = cdouble(istream.readString("x"));
-    y = cdouble(istream.readString("y"));
-    width = cdouble(istream.readString("width"));
-    height = cdouble(istream.readString("height"));
+    x = cdouble(in.readString("x"));
+    y = cdouble(in.readString("y"));
+    width = cdouble(in.readString("width"));
+    height = cdouble(in.readString("height"));
   }
 
   //convert to string

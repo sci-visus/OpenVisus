@@ -1052,31 +1052,31 @@ bool VoxelScoopNode::processInput()
 
 
 /////////////////////////////////////////////////////////////
-void VoxelScoopNode::writeToObjectStream(ObjectStream& ostream)
+void VoxelScoopNode::writeToObjectStream(ObjectStream& out)
 {
-  Node::writeToObjectStream(ostream);
+  Node::writeToObjectStream(out);
 
-  ostream.writeValue("simplify",cstring(simplify));
-  ostream.writeValue("min_length",cstring(min_length));
-  ostream.writeValue("min_ratio",cstring(min_ratio)); 
-  ostream.writeValue("threshold",cstring(threshold));
-  ostream.writeValue("bUseMinimaAsSeed",cstring(bUseMinimaAsSeed));
-  ostream.writeValue("bUseMaximaAsSeed",cstring(bUseMaximaAsSeed));
-  ostream.writeValue("min_diam",cstring(min_diam));
+  out.writeValue("simplify",cstring(simplify));
+  out.writeValue("min_length",cstring(min_length));
+  out.writeValue("min_ratio",cstring(min_ratio)); 
+  out.writeValue("threshold",cstring(threshold));
+  out.writeValue("bUseMinimaAsSeed",cstring(bUseMinimaAsSeed));
+  out.writeValue("bUseMaximaAsSeed",cstring(bUseMaximaAsSeed));
+  out.writeValue("min_diam",cstring(min_diam));
 }
 
 /////////////////////////////////////////////////////////////
-void VoxelScoopNode::readFromObjectStream(ObjectStream& istream)
+void VoxelScoopNode::readFromObjectStream(ObjectStream& in)
 {
-  Node::readFromObjectStream(istream);
+  Node::readFromObjectStream(in);
 
-  simplify=cbool(istream.readValue("simplify"));
-  min_length=cdouble(istream.readValue("min_length"));
-  min_ratio=cdouble(istream.readValue("min_ratio"));
-  threshold=cdouble(istream.readValue("threshold"));
-  bUseMinimaAsSeed=cbool(istream.readValue("bUseMinimaAsSeed"));
-  bUseMaximaAsSeed=cbool(istream.readValue("bUseMaximaAsSeed"));
-  min_diam=cdouble(istream.readValue("min_diam"));
+  simplify=cbool(in.readValue("simplify"));
+  min_length=cdouble(in.readValue("min_length"));
+  min_ratio=cdouble(in.readValue("min_ratio"));
+  threshold=cdouble(in.readValue("threshold"));
+  bUseMinimaAsSeed=cbool(in.readValue("bUseMinimaAsSeed"));
+  bUseMaximaAsSeed=cbool(in.readValue("bUseMaximaAsSeed"));
+  min_diam=cdouble(in.readValue("min_diam"));
 }
 
 } //namespace Visus

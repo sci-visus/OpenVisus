@@ -42,20 +42,20 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////////////////////
-void DatasetTimesteps::writeToObjectStream(ObjectStream& ostream) 
+void DatasetTimesteps::writeToObjectStream(ObjectStream& out) 
 {
   for (int I=0;I<size();I++)
   {
     if (getAt(I).a==getAt(I).b)
     {
-      if (auto Timestep = ostream.getCurrentContext()->addChild("Timestep"))
+      if (auto Timestep = out.getCurrentContext()->addChild("Timestep"))
       {
         Timestep->writeValue("when", cstring(getAt(I).a));
       }
     }
     else
     {
-      if (auto IRange = ostream.getCurrentContext()->addChild("IRange"))
+      if (auto IRange = out.getCurrentContext()->addChild("IRange"))
       {
         IRange->writeValue("a", cstring(getAt(I).a));
         IRange->writeValue("b", cstring(getAt(I).b));
@@ -66,11 +66,11 @@ void DatasetTimesteps::writeToObjectStream(ObjectStream& ostream)
 }
 
 //////////////////////////////////////////////////////////////////
-void DatasetTimesteps::readFromObjectStream(ObjectStream& istream) 
+void DatasetTimesteps::readFromObjectStream(ObjectStream& in) 
 {
   this->values.clear();
 
-  for (auto child : istream.getCurrentContext()->childs)
+  for (auto child : in.getCurrentContext()->childs)
   {
     if (child->name =="Timestep")
     {

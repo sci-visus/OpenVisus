@@ -61,9 +61,9 @@ GLMaterial GLMaterial::createRandom()
 }
 
 ///////////////////////////////////////////////
-void GLMaterial::writeToObjectStream(ObjectStream& ostream) 
+void GLMaterial::writeToObjectStream(ObjectStream& out) 
 {
-  if (auto child = ostream.getCurrentContext()->addChild("front"))
+  if (auto child = out.getCurrentContext()->addChild("front"))
   {
     child->writeValue("ambient", front.ambient.toString());
     child->writeValue("diffuse", front.diffuse.toString());
@@ -72,7 +72,7 @@ void GLMaterial::writeToObjectStream(ObjectStream& ostream)
     child->writeValue("shininess", cstring(front.shininess));
   }
 
-  if (auto child = ostream.getCurrentContext()->addChild("back"))
+  if (auto child = out.getCurrentContext()->addChild("back"))
   {
     child->writeValue("ambient", back.ambient.toString());
     child->writeValue("diffuse", back.diffuse.toString());
@@ -84,9 +84,9 @@ void GLMaterial::writeToObjectStream(ObjectStream& ostream)
 }
 
 ///////////////////////////////////////////////
-void GLMaterial::readFromObjectStream(ObjectStream& istream) 
+void GLMaterial::readFromObjectStream(ObjectStream& in) 
 {
-  if (auto child = istream.getCurrentContext()->getChild("front"))
+  if (auto child = in.getCurrentContext()->getChild("front"))
   {
     this->front.ambient = Color::parseFromString(child->readValue("ambient"));
     this->front.diffuse = Color::parseFromString(child->readValue("diffuse"));
@@ -95,7 +95,7 @@ void GLMaterial::readFromObjectStream(ObjectStream& istream)
     this->front.shininess = cint(child->readValue("shininess"));
   }
 
-  if (auto child = istream.getCurrentContext()->getChild("back"))
+  if (auto child = in.getCurrentContext()->getChild("back"))
   {
     this->back.ambient = Color::parseFromString(child->readValue("ambient"));
     this->back.diffuse = Color::parseFromString(child->readValue("diffuse"));

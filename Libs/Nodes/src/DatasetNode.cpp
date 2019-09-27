@@ -79,35 +79,35 @@ void DatasetNode::exitFromDataflow()
 {Node::exitFromDataflow();}
 
 //////////////////////////////////////////////////////////////////////////
-void DatasetNode::writeToObjectStream(ObjectStream& ostream) 
+void DatasetNode::writeToObjectStream(ObjectStream& out) 
 {
-  Node::writeToObjectStream(ostream);
+  Node::writeToObjectStream(out);
 
   if (dataset)
   {
-    ostream.pushContext("dataset");
-    ostream.writeString("TypeName",dataset->getTypeName());
-    dataset->writeToObjectStream(ostream);
-    ostream.popContext("dataset");
+    out.pushContext("dataset");
+    out.writeString("TypeName",dataset->getTypeName());
+    dataset->writeToObjectStream(out);
+    out.popContext("dataset");
   }
 
-  ostream.writeValue("show_bounds",cstring(show_bounds));
+  out.writeValue("show_bounds",cstring(show_bounds));
 }
 
 //////////////////////////////////////////////////////////////////////////
-void DatasetNode::readFromObjectStream(ObjectStream& istream) 
+void DatasetNode::readFromObjectStream(ObjectStream& in) 
 {
-  Node::readFromObjectStream(istream);
+  Node::readFromObjectStream(in);
 
-  if (istream.pushContext("dataset"))
+  if (in.pushContext("dataset"))
   {
-    auto TypeName = istream.readString("TypeName");
+    auto TypeName = in.readString("TypeName");
     dataset=DatasetFactory::getSingleton()->createInstance(TypeName);
-    dataset->readFromObjectStream(istream);
-    istream.popContext("dataset");
+    dataset->readFromObjectStream(in);
+    in.popContext("dataset");
   }
 
-  show_bounds=cbool(istream.readValue("show_bounds"));
+  show_bounds=cbool(in.readValue("show_bounds"));
 }
 
 } //namespace Visus

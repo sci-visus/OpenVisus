@@ -171,19 +171,19 @@ public:
 public:
 
   //writeToObjectStream
-  void writeToObjectStream(ObjectStream& ostream) 
+  void writeToObjectStream(ObjectStream& out) 
   {
-    ostream.writeValue("from", cstring(this->from));
-    ostream.writeValue("to", cstring(this->to));
-    ostream.writeValue("step", cstring(this->step));
+    out.writeValue("from", cstring(this->from));
+    out.writeValue("to", cstring(this->to));
+    out.writeValue("step", cstring(this->step));
   }
 
   //readFromObjectStream
-  void readFromObjectStream(ObjectStream& istream) 
+  void readFromObjectStream(ObjectStream& in) 
   {
-    this->from = (double)cdouble(istream.readValue("from"));
-    this->to = (double)cdouble(istream.readValue("to"));
-    this->step = (double)cdouble(istream.readValue("step"));
+    this->from = (double)cdouble(in.readValue("from"));
+    this->to = (double)cdouble(in.readValue("to"));
+    this->step = (double)cdouble(in.readValue("step"));
   }
 
 };

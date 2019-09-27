@@ -155,23 +155,23 @@ public:
     }
 
     //writeToObjectStream
-    void writeToObjectStream(ObjectStream& ostream)
+    void writeToObjectStream(ObjectStream& out)
     {
-      ostream.writeValue("title", title);
-      ostream.writeValue("panels", panels);
-      ostream.writeValue("bHideTitleBar", cstring(bHideTitleBar));
-      ostream.writeValue("bHideMenus", cstring(bHideMenus));
-      ostream.writeValue("screen_bounds", screen_bounds.toString());
+      out.writeValue("title", title);
+      out.writeValue("panels", panels);
+      out.writeValue("bHideTitleBar", cstring(bHideTitleBar));
+      out.writeValue("bHideMenus", cstring(bHideMenus));
+      out.writeValue("screen_bounds", screen_bounds.toString());
     }
 
     //readFromObjectStream
-    void readFromObjectStream(ObjectStream& istream)
+    void readFromObjectStream(ObjectStream& in)
     {
-      title = istream.readValue("title");
-      panels = istream.readValue("panels");
-      bHideTitleBar = cbool(istream.readValue("bHideTitleBar"));
-      bHideMenus = cbool(istream.readValue("bHideMenus"));
-      screen_bounds = Rectangle2d(istream.readValue("screen_bounds"));
+      title = in.readValue("title");
+      panels = in.readValue("panels");
+      bHideTitleBar = cbool(in.readValue("bHideTitleBar"));
+      bHideMenus = cbool(in.readValue("bHideMenus"));
+      screen_bounds = Rectangle2d(in.readValue("screen_bounds"));
     }
 
   };
@@ -489,10 +489,10 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override;
+  virtual void writeToObjectStream(ObjectStream& out) override;
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& ostream) override;
+  virtual void readFromObjectStream(ObjectStream& out) override;
 
 public:
 

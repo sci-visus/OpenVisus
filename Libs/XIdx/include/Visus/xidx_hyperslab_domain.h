@@ -79,22 +79,22 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  virtual void writeToObjectStream(ObjectStream& out) override
   {
-    ListDomain::writeToObjectStream(ostream);
+    ListDomain::writeToObjectStream(out);
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  virtual void readFromObjectStream(ObjectStream& in) override
   {
-    ListDomain::readFromObjectStream(istream);
+    ListDomain::readFromObjectStream(in);
     // TODO generalize for many slabs
     if(values.size()==3){
       start = values[0];
       step  = values[1];
       count = (int)values[2];
     }
-//    std::istringstream parse(istream.readText());
+//    std::istringstream parse(in.readText());
 //    parse >> start >> step >> count;
   }
 

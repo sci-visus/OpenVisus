@@ -57,25 +57,25 @@ public:
 public:
   
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  virtual void writeToObjectStream(ObjectStream& out) override
   {
-    XIdxElement::writeToObjectStream(ostream);
-    ostream.writeString("Url", url);
+    XIdxElement::writeToObjectStream(out);
+    out.writeString("Url", url);
     // TODO write content only if datasource is "inline"
-    //writeUrlContent(ostream);
+    //writeUrlContent(out);
 
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override {
-    XIdxElement::readFromObjectStream(istream);
-    this->url  = istream.readString("Url");
+  virtual void readFromObjectStream(ObjectStream& in) override {
+    XIdxElement::readFromObjectStream(in);
+    this->url  = in.readString("Url");
   }
 
 private:
 
   //writeUrlContent
-  void writeUrlContent(ObjectStream& ostream)
+  void writeUrlContent(ObjectStream& out)
   {
     auto content = Utils::loadTextDocument(this->url);
     if (content.empty())
@@ -84,7 +84,7 @@ private:
     //write the content in another file
     if (use_cdata)
     {
-      ostream.writeText(content, /*cdata*/true);
+      out.writeText(content, /*cdata*/true);
       return;
     }
 
@@ -93,7 +93,7 @@ private:
     if (!stree.fromXmlString(content))
       ThrowException("Invalid xml data");
 
-    ostream.getCurrentContext()->addChild(stree);
+    out.getCurrentContext()->addChild(stree);
   }
 
 };

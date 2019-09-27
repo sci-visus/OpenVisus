@@ -418,43 +418,43 @@ SharedPtr<DataflowValue> Node::previewInput(String iport)
 }
 
 ////////////////////////////////////////////////////////////
-void Node::writeToObjectStream(ObjectStream& ostream)
+void Node::writeToObjectStream(ObjectStream& out)
 {
   if (!uuid.empty()) 
-    ostream.writeString("uuid",uuid);
+    out.writeString("uuid",uuid);
 
   if (!name.empty())
-    ostream.writeString("name",name);
+    out.writeString("name",name);
 
   if (hidden)
-    ostream.writeString("hidden",cstring(hidden));
+    out.writeString("hidden",cstring(hidden));
 }
 
 ////////////////////////////////////////////////////////////
-void Node::readFromObjectStream(ObjectStream& istream)
+void Node::readFromObjectStream(ObjectStream& in)
 {
-  this->uuid=istream.readString("uuid");
-  this->name=istream.readString("name");
-  this->hidden=cbool(istream.readString("hidden"));
+  this->uuid=in.readString("uuid");
+  this->name=in.readString("name");
+  this->hidden=cbool(in.readString("hidden"));
 }
 
 ////////////////////////////////////////////////////////////
 StringTree Node::encode()
 {
   StringTree stree(this->getTypeName());
-  ObjectStream ostream(stree, 'w');
-  writeToObjectStream(ostream);
+  ObjectStream out(stree, 'w');
+  writeToObjectStream(out);
   return stree;
 }
 
 ////////////////////////////////////////////////////////////
 Node* Node::decode(StringTree encoded)
 {
-  ObjectStream istream(encoded, 'r');
-  auto TypeName = istream.readString("TypeName", encoded.name);
+  ObjectStream in(encoded, 'r');
+  auto TypeName = in.readString("TypeName", encoded.name);
   auto ret = NodeFactory::getSingleton()->createInstance(TypeName);
   VisusAssert(ret);
-  ret->readFromObjectStream(istream);
+  ret->readFromObjectStream(in);
   return ret;
 }
 

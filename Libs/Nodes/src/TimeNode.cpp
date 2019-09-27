@@ -114,33 +114,33 @@ void TimeNode::doPublish(SharedPtr<ReturnReceipt> return_receipt)
 }
 
 //////////////////////////////////////////////////
-void TimeNode::writeToObjectStream(ObjectStream& ostream) 
+void TimeNode::writeToObjectStream(ObjectStream& out) 
 {
-  Node::writeToObjectStream(ostream);
+  Node::writeToObjectStream(out);
 
-  ostream.writeValue("current_time",cstring(current_time));
+  out.writeValue("current_time",cstring(current_time));
 
-  ostream.writeObject("timesteps", timesteps);
+  out.writeObject("timesteps", timesteps);
 
   if (user_range!=timesteps.getRange())
-    ostream.writeObject("user_range", user_range);
+    out.writeObject("user_range", user_range);
 
-  ostream.writeValue("play_msec",cstring(play_msec));
+  out.writeValue("play_msec",cstring(play_msec));
 }
 
 //////////////////////////////////////////////////
-void TimeNode::readFromObjectStream(ObjectStream& istream) 
+void TimeNode::readFromObjectStream(ObjectStream& in) 
 {
-  Node::readFromObjectStream(istream);
+  Node::readFromObjectStream(in);
 
-  current_time=cdouble(istream.readValue("current_time"));
+  current_time=cdouble(in.readValue("current_time"));
 
-  istream.readObject("timesteps", timesteps);
+  in.readObject("timesteps", timesteps);
 
   user_range=timesteps.getRange();
-  istream.readObject("user_range", user_range);
+  in.readObject("user_range", user_range);
 
-  play_msec=cint(istream.readValue("play_msec","1000"));
+  play_msec=cint(in.readValue("play_msec","1000"));
 }
 
 

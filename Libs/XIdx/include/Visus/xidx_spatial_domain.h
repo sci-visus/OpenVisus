@@ -102,22 +102,22 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  virtual void writeToObjectStream(ObjectStream& out) override
   {
-    Domain::writeToObjectStream(ostream);
-    writeChild<Topology>(ostream,"Topology",topology);
-    writeChild<Geometry>(ostream, "Geometry", geometry);
+    Domain::writeToObjectStream(out);
+    writeChild<Topology>(out,"Topology",topology);
+    writeChild<Geometry>(out, "Geometry", geometry);
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  virtual void readFromObjectStream(ObjectStream& in) override
   {
-    Domain::readFromObjectStream(istream);
+    Domain::readFromObjectStream(in);
 
-    if (auto topology = readChild<Topology>(istream, "Topology"))
+    if (auto topology = readChild<Topology>(in, "Topology"))
       setTopology(topology);
 
-    if (auto geometry = readChild<Geometry>(istream, "Geometry"))
+    if (auto geometry = readChild<Geometry>(in, "Geometry"))
       setGeometry(geometry);
   }
 

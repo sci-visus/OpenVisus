@@ -220,19 +220,19 @@ public:
 public:
 
   //writeToObjectStream
-  void writeToObjectStream(ObjectStream& ostream) 
+  void writeToObjectStream(ObjectStream& out) 
   {
-    ostream.writeValue("modelview" ,getModelview ().toString());
-    ostream.writeValue("projection",getProjection().toString());
-    ostream.writeValue("viewport"  ,getViewport  ().toString());
+    out.writeValue("modelview" ,getModelview ().toString());
+    out.writeValue("projection",getProjection().toString());
+    out.writeValue("viewport"  ,getViewport  ().toString());
   }
 
   //readFromObjectStream
-  void readFromObjectStream(ObjectStream& istream) 
+  void readFromObjectStream(ObjectStream& in) 
   {
-    loadModelview (Matrix::parseFromString(4,istream.readValue("modelview" )));
-    loadProjection(Matrix::parseFromString(4,istream.readValue("projection")));
-    setViewport   (Viewport(istream.readValue("viewport"  )));
+    loadModelview (Matrix::parseFromString(4,in.readValue("modelview" )));
+    loadProjection(Matrix::parseFromString(4,in.readValue("projection")));
+    setViewport   (Viewport(in.readValue("viewport"  )));
   }
 
 protected:

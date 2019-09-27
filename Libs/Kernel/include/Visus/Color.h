@@ -301,22 +301,22 @@ public:
 
 
   //writeToObjectStream
-  void writeToObjectStream(ObjectStream& ostream) 
+  void writeToObjectStream(ObjectStream& out) 
   {
     Color rgb=toRGB();
-    ostream.writeString("r",cstring((int)(255.0*rgb.get(0))));
-    ostream.writeString("g",cstring((int)(255.0*rgb.get(1))));
-    ostream.writeString("b",cstring((int)(255.0*rgb.get(2))));
-    ostream.writeString("a",cstring((int)(255.0*rgb.get(3))));
+    out.writeString("r",cstring((int)(255.0*rgb.get(0))));
+    out.writeString("g",cstring((int)(255.0*rgb.get(1))));
+    out.writeString("b",cstring((int)(255.0*rgb.get(2))));
+    out.writeString("a",cstring((int)(255.0*rgb.get(3))));
   }
   
   //readFromObjectStream
-  void readFromObjectStream(ObjectStream& istream) 
+  void readFromObjectStream(ObjectStream& in) 
   {
-    int R=cint(istream.readString("r"));
-    int G=cint(istream.readString("g"));
-    int B=cint(istream.readString("b"));
-    int A=cint(istream.readString("a"));
+    int R=cint(in.readString("r"));
+    int G=cint(in.readString("g"));
+    int B=cint(in.readString("b"));
+    int A=cint(in.readString("a"));
     (*this)=Color(R,G,B,A);
   }
 

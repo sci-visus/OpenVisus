@@ -167,30 +167,30 @@ public:
 public:
   
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  virtual void writeToObjectStream(ObjectStream& out) override
   {
-    XIdxElement::writeToObjectStream(ostream);
+    XIdxElement::writeToObjectStream(out);
 
-    ostream.writeString("Center", center_type.toString());
+    out.writeString("Center", center_type.toString());
 
     for (auto child : data_items)
-      writeChild<DataItem>(ostream, "DataItem", child);
+      writeChild<DataItem>(out, "DataItem", child);
 
     for (auto child : attributes)
-      writeChild<Attribute>(ostream, "Attribute", child);
+      writeChild<Attribute>(out, "Attribute", child);
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  virtual void readFromObjectStream(ObjectStream& in) override
   {
-    XIdxElement::readFromObjectStream(istream);
+    XIdxElement::readFromObjectStream(in);
 
-    this->center_type = CenterType::fromString(istream.readString("Center"));
+    this->center_type = CenterType::fromString(in.readString("Center"));
 
-    while (auto child = readChild<DataItem>(istream, "DataItem"))
+    while (auto child = readChild<DataItem>(in, "DataItem"))
       addDataItem(child);
 
-    while (auto child = readChild<Attribute>(istream, "Attribute"))
+    while (auto child = readChild<Attribute>(in, "Attribute"))
       addAttribute(child);
   }
 

@@ -272,44 +272,44 @@ public:
 public:
   
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  virtual void writeToObjectStream(ObjectStream& out) override
   {
-    XIdxElement::writeToObjectStream(ostream);
-    ostream.writeString("Format", format_type.toString());
-    ostream.writeString("DType", dtype.toString());
-    ostream.writeString("Endian", endian_type.toString());
-    ostream.writeString("Dimensions", StringUtils::join(dimensions));
+    XIdxElement::writeToObjectStream(out);
+    out.writeString("Format", format_type.toString());
+    out.writeString("DType", dtype.toString());
+    out.writeString("Endian", endian_type.toString());
+    out.writeString("Dimensions", StringUtils::join(dimensions));
 
-    writeChild<DataSource>(ostream, "DataSource", this->data_source);
+    writeChild<DataSource>(out, "DataSource", this->data_source);
 
     for (auto child : this->attributes)
-      writeChild<Attribute>(ostream, "Attribute", child);
+      writeChild<Attribute>(out, "Attribute", child);
 
     if(this->values.size())
-      ostream.writeText(StringUtils::join(this->values));
+      out.writeText(StringUtils::join(this->values));
     if(this->text.size())
-      ostream.writeText(this->text);
+      out.writeText(this->text);
   };
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  virtual void readFromObjectStream(ObjectStream& in) override
   {
-    XIdxElement::readFromObjectStream(istream);
+    XIdxElement::readFromObjectStream(in);
 
-    this->format_type = FormatType::fromString(istream.readString("Format"));
-    this->dtype       =      DType::fromString(istream.readString("DType"));
-    this->endian_type =  Endianess::fromString(istream.readString("Endian"));
+    this->format_type = FormatType::fromString(in.readString("Format"));
+    this->dtype       =      DType::fromString(in.readString("DType"));
+    this->endian_type =  Endianess::fromString(in.readString("Endian"));
 
-    for (auto it : StringUtils::split(istream.readString("Dimensions")))
+    for (auto it : StringUtils::split(in.readString("Dimensions")))
       this->dimensions.push_back(cint(it));
 
-    for (auto it : StringUtils::split(istream.readText()))
+    for (auto it : StringUtils::split(in.readText()))
       this->values.push_back(cdouble(it));
 
-    if (auto child = readChild<DataSource>(istream,"DataSource"))
+    if (auto child = readChild<DataSource>(in,"DataSource"))
       setDataSource(child);
 
-    while (auto child = readChild<Attribute>(istream,"Attribute"))
+    while (auto child = readChild<Attribute>(in,"Attribute"))
       addAttribute(child);
   }
   

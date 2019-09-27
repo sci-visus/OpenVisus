@@ -383,10 +383,10 @@ public:
   }
 
   //writeToObjectStream
-  void writeToObjectStream(ObjectStream& ostream);
+  void writeToObjectStream(ObjectStream& out);
 
   //readFromObjectStream
-  void readFromObjectStream(ObjectStream& istream);
+  void readFromObjectStream(ObjectStream& in);
 
 private:
 
@@ -540,8 +540,8 @@ public:
     if (!pushContext(name)) return false;
     value.readFromObjectStream(*this);
     popContext(name);
+    return true;
   }
-
 
   //write
   void writeValue(String name, String value) {

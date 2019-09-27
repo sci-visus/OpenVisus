@@ -76,15 +76,15 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override {
-    Node::writeToObjectStream(ostream);
-    ostream.writeValue("T",T.toString());
+  virtual void writeToObjectStream(ObjectStream& out) override {
+    Node::writeToObjectStream(out);
+    out.writeValue("T",T.toString());
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override {
-    Node::readFromObjectStream(istream);
-    T= Matrix::parseFromString(4,istream.readValue("T"));
+  virtual void readFromObjectStream(ObjectStream& in) override {
+    Node::readFromObjectStream(in);
+    T= Matrix::parseFromString(4,in.readValue("T"));
   }
 
   static ModelViewNode* castFrom(Node* obj) {

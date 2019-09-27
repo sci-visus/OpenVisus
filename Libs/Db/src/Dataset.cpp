@@ -793,21 +793,21 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
 }
 
 //////////////////////////////////////////////////////////////////////////
-void Dataset::writeToObjectStream(ObjectStream& ostream)
+void Dataset::writeToObjectStream(ObjectStream& out)
 {
-  ostream.writeValue("url",this->getUrl().toString());
+  out.writeValue("url",this->getUrl().toString());
 
   //I want to save it to retrieve it on a different computer
   if (!config.empty())
-    ostream.getCurrentContext()->addChild("config")->addChild(this->config);
+    out.getCurrentContext()->addChild("config")->addChild(this->config);
 }
 
 //////////////////////////////////////////////////////////////////////////
-void Dataset::readFromObjectStream(ObjectStream& istream)
+void Dataset::readFromObjectStream(ObjectStream& in)
 {
-  String url = istream.readValue("url");
+  String url = in.readValue("url");
 
-  if (auto config=istream.getCurrentContext()->getChild("config"))
+  if (auto config=in.getCurrentContext()->getChild("config"))
   {
     VisusAssert(config->getNumberOfChilds() == 1);
     this->config = *config->getFirstChild();

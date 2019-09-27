@@ -181,13 +181,13 @@ public:
 public:
 
   //writeToObjectStream
-  void writeToObjectStream(ObjectStream& ostream)  {
-    ostream.writeValue("description",this->description);
+  void writeToObjectStream(ObjectStream& out)  {
+    out.writeValue("description",this->description);
   }
 
   //readFromObjectStream
-  void readFromObjectStream(ObjectStream& istream)  {
-    *this=DType::fromString(istream.readValue("description"));
+  void readFromObjectStream(ObjectStream& in)  {
+    *this=DType::fromString(in.readValue("description"));
   }
 
 private:

@@ -101,35 +101,35 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) {
+  virtual void writeToObjectStream(ObjectStream& out) {
     if(name.size())
-      ostream.writeString("Name", name);
+      out.writeString("Name", name);
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) {
-    name = istream.readString("Name", name);
+  virtual void readFromObjectStream(ObjectStream& in) {
+    name = in.readString("Name", name);
   }
 
   //writeChilds
   template <typename T>
-  void writeChild(ObjectStream& ostream,String name, T* child) {
+  void writeChild(ObjectStream& out,String name, T* child) {
     if (!child) return;
-    ostream.pushContext(name);
-    child->writeToObjectStream(ostream);
-    ostream.popContext(name);
+    out.pushContext(name);
+    child->writeToObjectStream(out);
+    out.popContext(name);
   }
 
   //readChilds
   template <typename T>
-  VISUS_NEWOBJECT(T*) readChild(ObjectStream& istream, String name) {
+  VISUS_NEWOBJECT(T*) readChild(ObjectStream& in, String name) {
     
-    if (!istream.pushContext(name))
+    if (!in.pushContext(name))
       return nullptr;
 
     auto ret = new T();
-    ret->readFromObjectStream(istream);
-    istream.popContext(name);
+    ret->readFromObjectStream(in);
+    in.popContext(name);
     return ret;
   }
 

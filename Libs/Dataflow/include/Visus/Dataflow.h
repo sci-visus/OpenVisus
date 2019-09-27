@@ -239,10 +239,10 @@ public:
 public:
 
   //writeToObjectStream
-  void writeToObjectStream(ObjectStream& ostream) ;
+  void writeToObjectStream(ObjectStream& out) ;
 
   //readFromObjectStream
-  void readFromObjectStream(ObjectStream& istream) ;
+  void readFromObjectStream(ObjectStream& in) ;
 
 private:
 

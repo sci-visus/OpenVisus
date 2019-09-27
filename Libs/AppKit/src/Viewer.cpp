@@ -1327,12 +1327,12 @@ bool Viewer::saveFile(String url,bool bSaveHistory,bool bShowDialogs)
     url=url+".xml";
 
   StringTree stree(this->getTypeName());
-  ObjectStream ostream(stree,'w');
-  ostream.run_time_options.setValue("bSaveHistory",cstring(bSaveHistory));
+  ObjectStream out(stree,'w');
+  out.run_time_options.setValue("bSaveHistory",cstring(bSaveHistory));
 
   try
   {
-    this->writeToObjectStream(ostream);
+    this->writeToObjectStream(out);
     String xmlcontent=stree.toString();
     if (!Utils::saveTextDocument(url,xmlcontent))
     {
@@ -2245,15 +2245,15 @@ StatisticsNode* Viewer::addStatisticsNode(Node* parent,Node* data_provider)
 }
 
 /////////////////////////////////////////////////////////////
-void Viewer::writeToObjectStream(ObjectStream& ostream)
+void Viewer::writeToObjectStream(ObjectStream& out)
 {
-  ostream.writeString("version", cstring(ApplicationInfo::version));
-  ostream.writeString("git_revision", ApplicationInfo::git_revision);
+  out.writeString("version", cstring(ApplicationInfo::version));
+  out.writeString("git_revision", ApplicationInfo::git_revision);
 
-  if (bool bSaveHistory = cbool(ostream.run_time_options.getValue("bSaveHistory")))
+  if (bool bSaveHistory = cbool(out.run_time_options.getValue("bSaveHistory")))
   {
     for (auto action : getHistory())
-      ostream.getCurrentContext()->addChild(action);
+      out.getCurrentContext()->addChild(action);
   }
   else
   {
@@ -2263,7 +2263,7 @@ void Viewer::writeToObjectStream(ObjectStream& ostream)
     for (auto node : dataflow->getNodes())
     {
       if (node->getParent()) continue;
-      ostream.getCurrentContext()->addChild(StringTree("AddNode").withChild(node->encode()));
+      out.getCurrentContext()->addChild(StringTree("AddNode").withChild(node->encode()));
     }
 
     //then the nodes in the tree...important the order! parents before childs
@@ -2271,7 +2271,7 @@ void Viewer::writeToObjectStream(ObjectStream& ostream)
     {
       if (node == root) continue;
       VisusAssert(node->getParent());
-      ostream.getCurrentContext()->addChild(StringTree("AddNode","parent", getUUID(node->getParent())).withChild(node->encode()));
+      out.getCurrentContext()->addChild(StringTree("AddNode","parent", getUUID(node->getParent())).withChild(node->encode()));
     }
 
     //ConnectPorts actions
@@ -2283,24 +2283,24 @@ void Viewer::writeToObjectStream(ObjectStream& ostream)
         for (auto IT = oport->outputs.begin(); IT != oport->outputs.end(); IT++)
         {
           auto iport = (*IT);
-          ostream.getCurrentContext()->addChild(StringTree("ConnectPorts","from", getUUID(oport->getNode()),"oport", oport->getName(),"iport", iport->getName(),"to", getUUID(iport->getNode())));
+          out.getCurrentContext()->addChild(StringTree("ConnectPorts","from", getUUID(oport->getNode()),"oport", oport->getName(),"iport", iport->getName(),"to", getUUID(iport->getNode())));
         }
       }
     }
 
     //selection
     if (auto selection = getSelection())
-      ostream.getCurrentContext()->addChild(StringTree("SetSelection","node", getUUID(selection)));
+      out.getCurrentContext()->addChild(StringTree("SetSelection","node", getUUID(selection)));
   }
 }
 
 /////////////////////////////////////////////////////////////
-void Viewer::readFromObjectStream(ObjectStream& istream)
+void Viewer::readFromObjectStream(ObjectStream& in)
 {
-  double version = cdouble(istream.readString("version"));
-  String git_revision = istream.readString("git_revision");
+  double version = cdouble(in.readString("version"));
+  String git_revision = in.readString("git_revision");
 
-  for (auto child : istream.getCurrentContext()->childs)
+  for (auto child : in.getCurrentContext()->childs)
   {
     if (child->isHashNode())
       continue;

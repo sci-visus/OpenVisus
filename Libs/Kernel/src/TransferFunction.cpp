@@ -117,12 +117,12 @@ void RGBAColorMap::convertToArray(Array& dst,int nsamples,InterpolationMode::Typ
 }
 
 /////////////////////////////////////////////////////////////////
-void RGBAColorMap::writeToObjectStream(ObjectStream& ostream)
+void RGBAColorMap::writeToObjectStream(ObjectStream& out)
 {
-  ostream.writeString("name",this->name);
+  out.writeString("name",this->name);
   for (auto point : points)
   {
-    if (auto child = ostream.getCurrentContext()->addChild("Point"))
+    if (auto child = out.getCurrentContext()->addChild("Point"))
     {
       child->writeString("x", cstring(point.x));
       child->writeString("r", cstring(point.color.getRed()));
@@ -135,19 +135,19 @@ void RGBAColorMap::writeToObjectStream(ObjectStream& ostream)
 }
 
 /////////////////////////////////////////////////////////////////
-void RGBAColorMap::readFromObjectStream(ObjectStream& istream)
+void RGBAColorMap::readFromObjectStream(ObjectStream& in)
 {
-  this->name=istream.readString("name");
+  this->name=in.readString("name");
   VisusAssert(!name.empty());
 
   this->points.clear();
-  while (istream.pushContext("Point"))
+  while (in.pushContext("Point"))
   {
-    double x=cdouble(istream.readString("x"));
-    double o=cdouble(istream.readString("o"));
-    double r=cdouble(istream.readString("r"));
-    double g=cdouble(istream.readString("g"));
-    double b=cdouble(istream.readString("b"));
+    double x=cdouble(in.readString("x"));
+    double o=cdouble(in.readString("o"));
+    double r=cdouble(in.readString("r"));
+    double g=cdouble(in.readString("g"));
+    double b=cdouble(in.readString("b"));
     VisusAssert(points.empty() || points.back().x<=x);
 
     Point point;
@@ -155,7 +155,7 @@ void RGBAColorMap::readFromObjectStream(ObjectStream& istream)
     point.color=Color((float)r,(float)g,(float)b,(float)o);
         
     this->points.push_back(point);
-    istream.popContext("Point");
+    in.popContext("Point");
   }
   VisusAssert(!points.empty());
   refreshMinMax();
@@ -164,31 +164,32 @@ void RGBAColorMap::readFromObjectStream(ObjectStream& istream)
 
 
 /////////////////////////////////////////////////////////////////////
-void TransferFunction::Single::writeToObjectStream(ObjectStream& ostream)
+void TransferFunction::Single::writeToObjectStream(ObjectStream& out)
 {
-  ostream.writeValue("name", name);
-  ostream.writeValue("color", color.toString());
-
-  std::ostringstream out;
-  for (int I = 0; I < (int)values.size(); I++)
+  std::ostringstream ss;
+  for (int I = 0; I < (int)this->values.size(); I++)
   {
-    if (I % 16 == 0) out << std::endl;
-    out << values[I] << " ";
+    if (I % 16 == 0) ss << std::endl;
+    ss << this->values[I] << " ";
   }
-  ostream.getCurrentContext()->writeText("values", out.str());
+
+  out.writeValue("name", name);
+  out.writeValue("color", color.toString());
+  out.getCurrentContext()->writeText("values", ss.str());
 }
 
 /////////////////////////////////////////////////////////////////////
-void TransferFunction::Single::readFromObjectStream(ObjectStream& istream)
+void TransferFunction::Single::readFromObjectStream(ObjectStream& in)
 {
-  name = istream.readValue("name");
-  color = Color::parseFromString(istream.readValue("color"));
+  name = in.readValue("name");
+  color = Color::parseFromString(in.readValue("color"));
 
   this->values.clear();
 
-  std::istringstream in(istream.readText("values"));
-  double value; while (in >> value)
-    values.push_back(value);
+  std::istringstream ss(in.readText("values"));
+  double value; 
+  while (ss >> value)
+    this->values.push_back(value);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -545,64 +546,64 @@ Array TransferFunction::applyToArray(Array src,Aborted aborted)
 
 
 /////////////////////////////////////////////////////////////////////
-void TransferFunction::writeToObjectStream(ObjectStream& ostream)
+void TransferFunction::writeToObjectStream(ObjectStream& out)
 {
   bool bDefault=default_name.empty()?false:true;
 
   if (bDefault)
-    ostream.writeString("name",default_name);
+    out.writeString("name",default_name);
 
-  ostream.writeString("attenuation",cstring(attenuation));
+  out.writeString("attenuation",cstring(attenuation));
 
-  ostream.pushContext("input");
+  out.pushContext("input");
   {
-    ostream.writeString("mode",cstring(input_range.mode));
+    out.writeString("mode",cstring(input_range.mode));
     if (input_range.custom_range.delta()>0)
-      ostream.writeObject("custom_range", input_range.custom_range);
+      out.writeObject("custom_range", input_range.custom_range);
   }
-  ostream.popContext("input");
+  out.popContext("input");
 
-  ostream.pushContext("output");
+  out.pushContext("output");
   {
-    ostream.writeString("dtype",output_dtype.toString());
-    ostream.writeObject("range", output_range);
+    out.writeString("dtype",output_dtype.toString());
+    out.writeObject("range", output_range);
   }
-  ostream.popContext("output");
+  out.popContext("output");
 
   if (!bDefault)
   {
     for (auto fn : functions)
     {
-      ostream.pushContext("function");
-      fn->writeToObjectStream(ostream);
-      ostream.popContext("function");
+      out.pushContext("function");
+      fn->writeToObjectStream(out);
+      out.popContext("function");
     }
   }
 }
 
 /////////////////////////////////////////////////////////////////////
-void TransferFunction::readFromObjectStream(ObjectStream& istream)
+void TransferFunction::readFromObjectStream(ObjectStream& in)
 {
   this->functions.clear();
   
-  this->default_name=istream.readString("name");
+  this->default_name=in.readString("name");
 
   bool bDefault=default_name.empty()?false:true;
 
-  this->attenuation=cdouble(istream.readString("attenuation","0.0"));
+  this->attenuation=cdouble(in.readString("attenuation","0.0"));
 
-  if (istream.pushContext("input"))
+  if (in.pushContext("input"))
   {
-    input_range.mode=(ComputeRange::Mode)cint(istream.readString("input.normalization"));
-    istream.readObject("custom_range", input_range.custom_range);
-    istream.popContext("input");
+    input_range.mode=(ComputeRange::Mode)cint(in.readString("input.normalization"));
+    in.readObject("custom_range", input_range.custom_range);
+    in.popContext("input");
   }
 
-  if (istream.pushContext("output"))
+  if (in.pushContext("output"))
   {
-    output_dtype=DType::fromString(istream.readString("dtype"));
-    istream.readObject("range", output_range);
-    istream.popContext("output");
+    output_dtype=DType::fromString(in.readString("dtype"));
+    in.readObject("range", output_range);
+    in.popContext("output");
   }
 
   if (bDefault)
@@ -612,11 +613,11 @@ void TransferFunction::readFromObjectStream(ObjectStream& istream)
   else
   {
     setNotDefault();
-    while (istream.pushContext("function"))
+    while (in.pushContext("function"))
     {
       auto single = std::make_shared<Single>();
-      single->readFromObjectStream(istream);
-      istream.popContext("function");
+      single->readFromObjectStream(in);
+      in.popContext("function");
       functions.push_back(single);
     }
   }

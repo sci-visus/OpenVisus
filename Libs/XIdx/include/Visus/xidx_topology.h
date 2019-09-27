@@ -138,34 +138,34 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  virtual void writeToObjectStream(ObjectStream& out) override
   {
-    XIdxElement::writeToObjectStream(ostream);
+    XIdxElement::writeToObjectStream(out);
 
-    ostream.writeString("Type", type.toString());
-    ostream.writeString("Dimensions", StringUtils::join(dimensions));
+    out.writeString("Type", type.toString());
+    out.writeString("Dimensions", StringUtils::join(dimensions));
 
     for (auto child : this->attributes)
-      writeChild<Attribute>(ostream, "Attribute", child);
+      writeChild<Attribute>(out, "Attribute", child);
 
     for (auto child : this->data_items)
-      writeChild<DataItem>(ostream, "DataItem", child);
+      writeChild<DataItem>(out, "DataItem", child);
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  virtual void readFromObjectStream(ObjectStream& in) override
   {
-    XIdxElement::readFromObjectStream(istream);
+    XIdxElement::readFromObjectStream(in);
 
-    this->type = TopologyType::fromString(istream.readString("Type"));
+    this->type = TopologyType::fromString(in.readString("Type"));
 
-    for (auto dim : StringUtils::split(istream.readString("Dimensions")))
+    for (auto dim : StringUtils::split(in.readString("Dimensions")))
       this->dimensions.push_back(cint(dim));
 
-    while (auto child=readChild<Attribute>(istream,"Attribute"))
+    while (auto child=readChild<Attribute>(in,"Attribute"))
       addAttribute(child);
 
-    while (auto child = readChild<DataItem>(istream, "DataItem"))
+    while (auto child = readChild<DataItem>(in, "DataItem"))
       addDataItem(child);
   }
   

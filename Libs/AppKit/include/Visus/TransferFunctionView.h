@@ -525,8 +525,8 @@ private:
   void refreshGui() {
 
     StringTree stree(model->getTypeName());
-    ObjectStream ostream(stree, 'w');
-    model->writeToObjectStream(ostream);
+    ObjectStream out(stree, 'w');
+    model->writeToObjectStream(out);
     auto content=stree.toXmlString();
     widgets.textedit->setText(content.c_str());
   }
@@ -546,8 +546,8 @@ private:
       return;
     }
     auto tf = std::make_shared<TransferFunction>();
-    ObjectStream istream(stree, 'r');
-    tf->readFromObjectStream(istream);
+    ObjectStream in(stree, 'r');
+    tf->readFromObjectStream(in);
 
     TransferFunction::copy(*this->model,*tf);
   }
@@ -651,8 +651,8 @@ private:
       VisusAssert(false);
       return;
     }
-    ObjectStream istream(stree, 'r');
-    tf->readFromObjectStream(istream);
+    ObjectStream in(stree, 'r');
+    tf->readFromObjectStream(in);
 
     TransferFunction::copy(*this->model,*tf);
   }

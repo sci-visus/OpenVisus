@@ -79,16 +79,16 @@ bool FunnelNode::processInput()
 
 
 ////////////////////////////////////////////////////////////////////////
-void FunnelNode::writeToObjectStream(ObjectStream& ostream)
+void FunnelNode::writeToObjectStream(ObjectStream& out)
 {
-  Node::writeToObjectStream(ostream);
+  Node::writeToObjectStream(out);
   VisusAssert(false); //todo: i need to read write input output ports
 }
 
 ////////////////////////////////////////////////////////////////////////
-void FunnelNode::readFromObjectStream(ObjectStream& istream)
+void FunnelNode::readFromObjectStream(ObjectStream& in)
 {
-  Node::readFromObjectStream(istream);
+  Node::readFromObjectStream(in);
   VisusAssert(false); //todo: i need to read write input output ports
 }
 

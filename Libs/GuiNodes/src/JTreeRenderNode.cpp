@@ -214,37 +214,37 @@ void JTreeRenderNode::glRender(GLCanvas& gl)
 
 
 /////////////////////////////////////////////////////////////
-void JTreeRenderNode::writeToObjectStream(ObjectStream& ostream)
+void JTreeRenderNode::writeToObjectStream(ObjectStream& out)
 {
-  Node::writeToObjectStream(ostream);
+  Node::writeToObjectStream(out);
 
-  ostream.writeValue("color_by_component",cstring(color_by_component));
-  ostream.writeValue("draw_saddles",cstring(draw_saddles));
-  ostream.writeValue("draw_extrema",cstring(draw_extrema));
-  ostream.writeValue("draw_edges",cstring(draw_edges));
-  ostream.writeValue("b2D",cstring(b2D));
-  ostream.writeValue("radius",cstring(radius));
+  out.writeValue("color_by_component",cstring(color_by_component));
+  out.writeValue("draw_saddles",cstring(draw_saddles));
+  out.writeValue("draw_extrema",cstring(draw_extrema));
+  out.writeValue("draw_edges",cstring(draw_edges));
+  out.writeValue("b2D",cstring(b2D));
+  out.writeValue("radius",cstring(radius));
 
-  ostream.writeObject("min_material", min_material);
-  ostream.writeObject("max_material", max_material);
-  ostream.writeObject("saddle_material", saddle_material);
+  out.writeObject("min_material", min_material);
+  out.writeObject("max_material", max_material);
+  out.writeObject("saddle_material", saddle_material);
 }
 
 /////////////////////////////////////////////////////////////
-void JTreeRenderNode::readFromObjectStream(ObjectStream& istream)
+void JTreeRenderNode::readFromObjectStream(ObjectStream& in)
 {
-  Node::readFromObjectStream(istream);
+  Node::readFromObjectStream(in);
 
-  color_by_component=cbool(istream.readValue("color_by_component"));
-  draw_saddles=cbool(istream.readValue("draw_saddles"));
-  draw_extrema=cbool(istream.readValue("draw_extrema"));
-  draw_edges=cbool(istream.readValue("draw_edges"));
-  b2D=cbool(istream.readValue("b2D"));
-  radius=cdouble(istream.readValue("radius"));
+  color_by_component=cbool(in.readValue("color_by_component"));
+  draw_saddles=cbool(in.readValue("draw_saddles"));
+  draw_extrema=cbool(in.readValue("draw_extrema"));
+  draw_edges=cbool(in.readValue("draw_edges"));
+  b2D=cbool(in.readValue("b2D"));
+  radius=cdouble(in.readValue("radius"));
 
-  istream.readObject("min_material", min_material);
-  istream.readObject("max_material", max_material);
-  istream.readObject("saddle_material", saddle_material);
+  in.readObject("min_material", min_material);
+  in.readObject("max_material", max_material);
+  in.readObject("saddle_material", saddle_material);
 }
 
 

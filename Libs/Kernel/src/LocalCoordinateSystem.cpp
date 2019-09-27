@@ -109,21 +109,21 @@ LocalCoordinateSystem LocalCoordinateSystem::toUniformSize() const
 }
 
 ////////////////////////////////////////////////////////////////////
-void LocalCoordinateSystem::writeToObjectStream(ObjectStream& ostream) 
+void LocalCoordinateSystem::writeToObjectStream(ObjectStream& out) 
 {
-  ostream.writeValue("x",x.toString());
-  ostream.writeValue("y",y.toString());
-  ostream.writeValue("z",z.toString());
-  ostream.writeValue("c",c.toString());
+  out.writeValue("x",x.toString());
+  out.writeValue("y",y.toString());
+  out.writeValue("z",z.toString());
+  out.writeValue("c",c.toString());
 }
 
 ////////////////////////////////////////////////////////////////////
-void LocalCoordinateSystem::readFromObjectStream(ObjectStream& istream) 
+void LocalCoordinateSystem::readFromObjectStream(ObjectStream& in) 
 {
-  x=Point3d(istream.readValue("x"));
-  y=Point3d(istream.readValue("y"));
-  z=Point3d(istream.readValue("z"));
-  c=Point3d(istream.readValue("c"));
+  x=Point3d(in.readValue("x"));
+  y=Point3d(in.readValue("y"));
+  z=Point3d(in.readValue("z"));
+  c=Point3d(in.readValue("c"));
 }
 
 

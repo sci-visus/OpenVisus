@@ -77,18 +77,18 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  virtual void writeToObjectStream(ObjectStream& out) override
   {
-    Domain::writeToObjectStream(ostream);
+    Domain::writeToObjectStream(out);
     for (auto child : this->axis)
-      writeChild<Axis>(ostream, "Axis", child);
+      writeChild<Axis>(out, "Axis", child);
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  virtual void readFromObjectStream(ObjectStream& in) override
   {
-    Domain::readFromObjectStream(istream);
-    while (auto child = readChild<Axis>(istream,"Axis"))
+    Domain::readFromObjectStream(in);
+    while (auto child = readChild<Axis>(in,"Axis"))
       addAxis(child);
   }
 };

@@ -105,8 +105,8 @@ public:
       return;
 
     StringTree stree(model->getTypeName());
-    ObjectStream ostream(stree, 'w');
-    model->writeToObjectStream(ostream);
+    ObjectStream out(stree, 'w');
+    model->writeToObjectStream(out);
 
     std::vector<String> curr = StringUtils::getNonEmptyLines(stree.toXmlString());
     std::vector<String> next = bDirect? diff.applyDirect(curr) : diff.applyInverse(curr);
@@ -122,10 +122,9 @@ public:
       ThrowException(error_msg);
     }
 
-    ObjectStream istream(stree,'r');
-
+    ObjectStream in(stree,'r');
     model->beginUpdate();
-    model->readFromObjectStream(istream);
+    model->readFromObjectStream(in);
     model->endUpdate();
   }
 

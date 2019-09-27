@@ -438,23 +438,23 @@ void ScriptingNode::guessPresets(Array input)
 }
 
 ///////////////////////////////////////////////////////////////////////
-void ScriptingNode::writeToObjectStream(ObjectStream& ostream)
+void ScriptingNode::writeToObjectStream(ObjectStream& out)
 {
-  Node::writeToObjectStream(ostream);
+  Node::writeToObjectStream(out);
 
-  ostream.writeValue("max_publish_msec", cstring(max_publish_msec));
+  out.writeValue("max_publish_msec", cstring(max_publish_msec));
 
   if (!code.empty())
-    ostream.writeText("code", code);
+    out.writeText("code", code);
 }
 
 ///////////////////////////////////////////////////////////////////////
-void ScriptingNode::readFromObjectStream(ObjectStream& istream)
+void ScriptingNode::readFromObjectStream(ObjectStream& in)
 {
-  Node::readFromObjectStream(istream);
+  Node::readFromObjectStream(in);
 
-  max_publish_msec=cint(istream.readValue("max_publish_msec", cstring(this->max_publish_msec)));
-  setCode(istream.readText("code"));
+  max_publish_msec=cint(in.readValue("max_publish_msec", cstring(this->max_publish_msec)));
+  setCode(in.readText("code"));
 }
 
 } //namespace Visus

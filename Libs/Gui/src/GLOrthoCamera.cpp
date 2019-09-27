@@ -430,42 +430,41 @@ void GLOrthoCamera::scale(double vs,Point2d center)
 
 
  ////////////////////////////////////////////////////////////////
-void GLOrthoCamera::writeToObjectStream(ObjectStream& ostream) 
+void GLOrthoCamera::writeToObjectStream(ObjectStream& out) 
 {
+  GLCamera::writeToObjectStream(out);
 
-  GLCamera::writeToObjectStream(ostream);
+  out.writeValue("default_scale",cstring(default_scale));
+  out.writeValue("disable_rotation",cstring(bDisableRotation));
+  out.writeValue("rotation_angle", cstring(rotation_angle));
+  out.writeValue("max_zoom",cstring(max_zoom));
+  out.writeValue("min_zoom",cstring(min_zoom));
+  out.writeValue("smooth",cstring(smooth));
 
-  ostream.writeValue("default_scale",cstring(default_scale));
-  ostream.writeValue("disable_rotation",cstring(bDisableRotation));
-  ostream.writeValue("rotation_angle", cstring(rotation_angle));
-  ostream.writeValue("max_zoom",cstring(max_zoom));
-  ostream.writeValue("min_zoom",cstring(min_zoom));
-  ostream.writeValue("smooth",cstring(smooth));
+  out.writeValue("pos",pos.toString());
+  out.writeValue("dir",dir.toString());
+  out.writeValue("vup",vup.toString());
 
-  ostream.writeValue("pos",pos.toString());
-  ostream.writeValue("dir",dir.toString());
-  ostream.writeValue("vup",vup.toString());
-
-  ostream.writeObject("ortho_params", ortho_params);
+  out.writeObject("ortho_params", ortho_params);
 }
 
 ////////////////////////////////////////////////////////////////
-void GLOrthoCamera::readFromObjectStream(ObjectStream& istream) 
+void GLOrthoCamera::readFromObjectStream(ObjectStream& in) 
 {
-  GLCamera::readFromObjectStream(istream);
+  GLCamera::readFromObjectStream(in);
 
-  pos=Point3d(istream.readValue("pos","0  0  0"));
-  dir=Point3d(istream.readValue("dir","0  0 -1"));
-  vup=Point3d(istream.readValue("vup","0  1  0"));
+  pos=Point3d(in.readValue("pos","0  0  0"));
+  dir=Point3d(in.readValue("dir","0  0 -1"));
+  vup=Point3d(in.readValue("vup","0  1  0"));
 
-  default_scale=cdouble(istream.readValue("default_scale"));
-  bDisableRotation=cbool(istream.readValue("disable_rotation"));
-  rotation_angle=cdouble(istream.readValue("rotation_angle"));
-  max_zoom=cdouble(istream.readValue("max_zoom"));
-  min_zoom=cdouble(istream.readValue("min_zoom"));
-  smooth=cdouble(istream.readValue("smooth"));
+  default_scale=cdouble(in.readValue("default_scale"));
+  bDisableRotation=cbool(in.readValue("disable_rotation"));
+  rotation_angle=cdouble(in.readValue("rotation_angle"));
+  max_zoom=cdouble(in.readValue("max_zoom"));
+  min_zoom=cdouble(in.readValue("min_zoom"));
+  smooth=cdouble(in.readValue("smooth"));
 
-  istream.readObject("ortho_params", this->ortho_params);
+  in.readObject("ortho_params", this->ortho_params);
 
   this->ortho_params_final = this->ortho_params;
 }

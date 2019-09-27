@@ -132,18 +132,18 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
   }
 
   StringTree ret("stat");
-  ObjectStream ostream(ret, 'w');
+  ObjectStream out(ret, 'w');
   
-  ostream.writeString("url",url);
-  ostream.writeString("format", dataset->getTypeName());
-  ostream.writeString("logic_box", dataset->getLogicBox().toOldFormatString());
-  ostream.writeString("logic_size", dataset->getLogicBox().size().toString());
-  ostream.writeString("timesteps",cstring(dataset->getTimesteps().getMin())+" " + cstring(dataset->getTimesteps().getMax()));
-  ostream.writeString("bitsperblock",cstring(dataset->getDefaultBitsPerBlock()));
-  ostream.writeString("bitmask",dataset->getBitmask().toString());
+  out.writeString("url",url);
+  out.writeString("format", dataset->getTypeName());
+  out.writeString("logic_box", dataset->getLogicBox().toOldFormatString());
+  out.writeString("logic_size", dataset->getLogicBox().size().toString());
+  out.writeString("timesteps",cstring(dataset->getTimesteps().getMin())+" " + cstring(dataset->getTimesteps().getMax()));
+  out.writeString("bitsperblock",cstring(dataset->getDefaultBitsPerBlock()));
+  out.writeString("bitmask",dataset->getBitmask().toString());
 
   for (auto field : dataset->getFields())
-    ostream.writeObject("field", field);
+    out.writeObject("field", field);
 
   return ret;
 }

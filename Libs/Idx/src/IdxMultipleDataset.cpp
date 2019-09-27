@@ -1343,14 +1343,14 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   setUrl(URL);
   setDatasetBody(BODY.toString());
 
-  ObjectStream istream(BODY, 'r');
+  ObjectStream in(BODY, 'r');
 
-  this->bMosaic = cbool(istream.readString("mosaic"));
+  this->bMosaic = cbool(in.readString("mosaic"));
 
-  if (istream.getCurrentContext()->getChild("slam"))
+  if (in.getCurrentContext()->getChild("slam"))
     this->bSlam = true;
 
-  parseDatasets(istream.getCurrentContext(),Matrix());
+  parseDatasets(in.getCurrentContext(),Matrix());
 
   if (down_datasets.empty())
   {
@@ -1412,9 +1412,9 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   //set PHYSIC_BOX (union of physic boxes)
   auto PHYSIC_BOX = BoxNd::invalid();
-  if (istream.hasAttribute("physic_box"))
+  if (in.hasAttribute("physic_box"))
   {
-    PHYSIC_BOX = BoxNd::parseFromString(istream.readString("physic_box"));
+    PHYSIC_BOX = BoxNd::parseFromString(in.readString("physic_box"));
   }
   else
   {
@@ -1429,9 +1429,9 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   //LOGIC_BOX
   BoxNi LOGIC_BOX;
-  if (istream.hasAttribute("logic_box"))
+  if (in.hasAttribute("logic_box"))
   {
-    LOGIC_BOX = BoxNi::parseFromString(istream.readString("logic_box"));
+    LOGIC_BOX = BoxNi::parseFromString(in.readString("logic_box"));
   }
   else if (down_datasets.size() == 1)
   {
@@ -1526,13 +1526,13 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   //if (pdim==2)
   //  this->kdquery_mode = KdQueryMode::UseBoxQuery;
 
-  if (istream.getCurrentContext()->findChildWithName("field"))
+  if (in.getCurrentContext()->findChildWithName("field"))
   {
     clearFields();
 
     int generate_name = 0;
 
-    for (auto child : istream.getCurrentContext()->getChilds("field"))
+    for (auto child : in.getCurrentContext()->getChilds("field"))
     {
       String name = child->readString("name");
       if (name.empty())

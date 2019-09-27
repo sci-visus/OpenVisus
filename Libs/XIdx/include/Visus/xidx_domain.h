@@ -156,34 +156,34 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  virtual void writeToObjectStream(ObjectStream& out) override
   {
-    XIdxElement::writeToObjectStream(ostream);
+    XIdxElement::writeToObjectStream(out);
 
-    ostream.writeString("Type", type.toString());
+    out.writeString("Type", type.toString());
 
     for (auto child : data_items)
-      writeChild<DataItem>(ostream, "DataItem", child);
+      writeChild<DataItem>(out, "DataItem", child);
 
     for (auto child : attributes)
-      writeChild<Attribute>(ostream, "Attribute",child);
+      writeChild<Attribute>(out, "Attribute",child);
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  virtual void readFromObjectStream(ObjectStream& in) override
   {
-    XIdxElement::readFromObjectStream(istream);
+    XIdxElement::readFromObjectStream(in);
 
-    this->type = DomainType::fromString(istream.readString("Type"));
+    this->type = DomainType::fromString(in.readString("Type"));
 
     // have to remove the default data_item created by the constructor
     // TODO improve this ensureDataItem() mechanism
     data_items.clear();
 
-    while (auto child = readChild<DataItem>(istream,"DataItem"))
+    while (auto child = readChild<DataItem>(in,"DataItem"))
       addDataItem(child);
 
-    while (auto child = readChild<Attribute>(istream, "Attribute"))
+    while (auto child = readChild<Attribute>(in, "Attribute"))
       addAttribute(child);
   }
 

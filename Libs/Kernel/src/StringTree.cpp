@@ -478,19 +478,19 @@ int StringTree::getMaxDepth()
 }
 
 /////////////////////////////////////////////////
-void StringTree::writeToObjectStream(ObjectStream& ostream)
+void StringTree::writeToObjectStream(ObjectStream& out)
 {
-  StringTree* dst=ostream.getCurrentContext();
+  StringTree* dst=out.getCurrentContext();
   StringTree* src=this;
   VisusAssert(dst->empty() && (dst->name.empty() || dst->name==src->name));
   *dst=*src;
 }
 
 /////////////////////////////////////////////////
-void StringTree::readFromObjectStream(ObjectStream& istream)
+void StringTree::readFromObjectStream(ObjectStream& in)
 {
   StringTree* dst=this;
-  StringTree* src=istream.getCurrentContext();
+  StringTree* src=in.getCurrentContext();
   VisusAssert(dst->empty() && (dst->name.empty() || dst->name==src->name));
   *dst=*src;
 }

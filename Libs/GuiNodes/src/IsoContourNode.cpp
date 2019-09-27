@@ -597,19 +597,17 @@ bool IsoContourNode::processInput()
 
 
 ///////////////////////////////////////////////////////////////////////
-void IsoContourNode::writeToObjectStream(ObjectStream& ostream)
+void IsoContourNode::writeToObjectStream(ObjectStream& out)
 {
-  Node::writeToObjectStream(ostream);
-
-  ostream.writeValue("isovalue",cstring(isovalue));
+  Node::writeToObjectStream(out);
+  out.writeValue("isovalue",cstring(isovalue));
 }
 
 ///////////////////////////////////////////////////////////////////////
-void IsoContourNode::readFromObjectStream(ObjectStream& istream) 
+void IsoContourNode::readFromObjectStream(ObjectStream& in) 
 {
-  Node::readFromObjectStream(istream);
-
-  isovalue=cdouble(istream.readValue("isovalue"));
+  Node::readFromObjectStream(in);
+  isovalue=cdouble(in.readValue("isovalue"));
 }
 
 } //namespace Visus

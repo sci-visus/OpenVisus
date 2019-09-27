@@ -52,15 +52,15 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override {
-    XIdxElement::writeToObjectStream(ostream);
-    ostream.writeString("Value", value);
+  virtual void writeToObjectStream(ObjectStream& out) override {
+    XIdxElement::writeToObjectStream(out);
+    out.writeString("Value", value);
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override {
-    XIdxElement::readFromObjectStream(istream);
-    this->value = istream.readString("Value");
+  virtual void readFromObjectStream(ObjectStream& in) override {
+    XIdxElement::readFromObjectStream(in);
+    this->value = in.readString("Value");
   }
   
 };

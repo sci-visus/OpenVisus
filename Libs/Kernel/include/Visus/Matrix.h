@@ -509,13 +509,13 @@ public:
   }
 
   //writeToObjectStream
-  void writeToObjectStream(ObjectStream& ostream) {
-    ostream.writeValue("matrix", this->toString());
+  void writeToObjectStream(ObjectStream& out) {
+    out.writeValue("matrix", this->toString());
   }
 
   //writeToObjectStream
-  void readFromObjectStream(ObjectStream& istream) {
-    (*this) = Matrix::parseFromString(istream.readValue("matrix"));
+  void readFromObjectStream(ObjectStream& in) {
+    (*this) = Matrix::parseFromString(in.readValue("matrix"));
   }
 
 private:

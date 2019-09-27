@@ -1910,13 +1910,13 @@ struct input_adapter_protocol
 using input_adapter_t = std::shared_ptr<input_adapter_protocol>;
 
 /*!
-Input adapter for a (caching) istream. Ignores a UFT Byte Order Mark at
+Input adapter for a (caching) in. Ignores a UFT Byte Order Mark at
 beginning of input. Does not support changing the underlying std::streambuf
 in mid-input. Maintains underlying std::istream and std::streambuf to support
 subsequent use of standard std::istream operations to process any input
 characters following those used in parsing the JSON input.  Clears the
 std::istream flags; any input errors (e.g., EOF) will be detected by the first
-subsequent call for input from the std::istream.
+subsequent call for input from the std::in.
 */
 class input_stream_adapter : public input_adapter_protocol
 {

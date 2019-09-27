@@ -48,10 +48,10 @@ void Viewer::sendNetMessage(SharedPtr<NetConnection> netsnd,void* obj)
 #else
 
   StringTree stree(obj->getTypeName(obj));
-  ObjectStream ostream(stree, 'w');
-  ostream.writeString("request_id",cstring(++netsnd->request_id));
-  obj->writeToObjectStream(ostream);
-  ostream.close();
+  ObjectStream out(stree, 'w');
+  out.writeString("request_id",cstring(++netsnd->request_id));
+  obj->writeToObjectStream(out);
+  out.close();
   NetRequest request(netsnd->url);
   request.setTextBody(stree.toString());
 
@@ -150,11 +150,11 @@ bool Viewer::addNetRcv(int port)
         VisusAssert(false); //TODO
   #else
 
-      String TypeName = istream.getCurrentContext()->name;
+      String TypeName = in.getCurrentContext()->name;
       VisusAssert(!TypeName.empty());
       SharedPtr<Object> obj(ObjectFactory::getSingleton()->createInstance<Object>(TypeName));  VisusAssert(obj);
-      obj->readFromObjectStream(istream);
-      istream.close();
+      obj->readFromObjectStream(in);
+      in.close();
 
       if (auto update_glcamera=dynamic_cast<UpdateGLCamera*>(action.get()))
       {

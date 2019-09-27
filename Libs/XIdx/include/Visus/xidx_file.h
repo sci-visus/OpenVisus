@@ -87,9 +87,9 @@ public:
     if (!stree.fromXmlString(Utils::loadTextDocument(filename)))
       return nullptr;
 
-    ObjectStream istream(stree, 'r');
+    ObjectStream in(stree, 'r');
     auto ret = new XIdxFile("");
-    ret->readFromObjectStream(istream);
+    ret->readFromObjectStream(in);
     return ret;
   }
 
@@ -97,8 +97,8 @@ public:
   bool save(String filename)
   {
     StringTree stree(this->getTypeName());
-    ObjectStream ostream(stree, 'w');
-    this->writeToObjectStream(ostream);
+    ObjectStream out(stree, 'w');
+    this->writeToObjectStream(out);
     Utils::saveTextDocument(filename, stree.toString());
     return true;
   }
@@ -106,23 +106,23 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  virtual void writeToObjectStream(ObjectStream& out) override
   {
-    XIdxElement::writeToObjectStream(ostream);
+    XIdxElement::writeToObjectStream(out);
 
-    //ostream.writeString("Name", name);
+    //out.writeString("Name", name);
 
     for (auto child : groups) 
     {
       if (file_pattern.empty())
       {
-        writeChild<Group>(ostream, "Group", child);
+        writeChild<Group>(out, "Group", child);
       }
       else
       {
         String filename = XIdxFormatString(file_pattern + "/meta.xidx", child->domain_index);
 
-        if(auto xi_include = ostream.getCurrentContext()->addChild("xi:include"))
+        if(auto xi_include = out.getCurrentContext()->addChild("xi:include"))
         {
           xi_include->writeString("href", filename.c_str());
           xi_include->writeString("xpointer", "xpointer(//Xidx/Group/Group)");
@@ -131,7 +131,7 @@ public:
         {
           StringTree stree(child->getTypeName());
           ObjectStream ostream(stree, 'w');
-          child->writeToObjectStream(ostream);
+          child->writeToObjectStream(out);
           auto content = stree.toString();
           Utils::saveTextDocument(filename,content);
         }
@@ -140,14 +140,14 @@ public:
   };
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  virtual void readFromObjectStream(ObjectStream& in) override
   {
-    XIdxElement::readFromObjectStream(istream);
+    XIdxElement::readFromObjectStream(in);
 
-    while (auto child = readChild<Group>(istream,"Group"))
+    while (auto child = readChild<Group>(in,"Group"))
       addGroup(child);
 
-    for (auto xi_include : istream.getCurrentContext()->getChilds("xi:include"))
+    for (auto xi_include : in.getCurrentContext()->getChilds("xi:include"))
     {
       auto filename = xi_include->readString("href");
 
@@ -158,7 +158,7 @@ public:
       auto child = new Group();
       {
         ObjectStream istream(stree, 'r');
-        child->readFromObjectStream(istream);
+        child->readFromObjectStream(in);
       }
       addGroup(child);
     }

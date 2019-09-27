@@ -41,34 +41,34 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////
-void Field::writeToObjectStream(ObjectStream& ostream)
+void Field::writeToObjectStream(ObjectStream& out)
 {
-  ostream.writeValue("name",name);
+  out.writeValue("name",name);
 
   if (!description.empty())
-    ostream.writeValue("description",description);
+    out.writeValue("description",description);
 
-  ostream.writeObject("dtype", dtype);
+  out.writeObject("dtype", dtype);
 
   if (!index.empty())
-   ostream.writeValue("index",index);
+   out.writeValue("index",index);
 
   if (!default_compression.empty())
-   ostream.writeValue("default_compression",default_compression);
+   out.writeValue("default_compression",default_compression);
 
   if (!default_layout.empty())
-    ostream.writeValue("default_layout",default_layout);
+    out.writeValue("default_layout",default_layout);
 
   if (default_value!=0)
-    ostream.writeValue("default_value",cstring(default_value));
+    out.writeValue("default_value",cstring(default_value));
 
   if (!filter.empty())
-    ostream.writeValue("filter",filter);
+    out.writeValue("filter",filter);
 
   //params
   if (!params.empty())
   {
-    if (auto params=ostream.getCurrentContext()->addChild("params"))
+    if (auto params=out.getCurrentContext()->addChild("params"))
     {
       for (auto it : this->params)
         params->writeValue(it.first,it.second);
@@ -77,22 +77,22 @@ void Field::writeToObjectStream(ObjectStream& ostream)
 }
 
 ////////////////////////////////////////////////////
-void Field::readFromObjectStream(ObjectStream& istream)
+void Field::readFromObjectStream(ObjectStream& in)
 {
-  this->name=istream.readValue("name");
-  this->description=istream.readValue("description");
+  this->name=in.readValue("name");
+  this->description=in.readValue("description");
 
-  istream.readObject("dtype", this->dtype);
+  in.readObject("dtype", this->dtype);
 
-  this->index=cint(istream.readValue("index"));
-  this->default_compression=istream.readValue("default_compression");
-  this->default_layout=istream.readValue("default_layout");
-  this->default_value=cint(istream.readValue("default_value","0"));
-  this->filter=istream.readValue("filter");
+  this->index=cint(in.readValue("index"));
+  this->default_compression=in.readValue("default_compression");
+  this->default_layout=in.readValue("default_layout");
+  this->default_value=cint(in.readValue("default_value","0"));
+  this->filter=in.readValue("filter");
 
   this->params.clear();
 
-  if (auto params=istream.getCurrentContext()->getChild("params"))
+  if (auto params=in.getCurrentContext()->getChild("params"))
   {
     for (auto param : params->childs)
     {

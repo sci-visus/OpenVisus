@@ -299,23 +299,23 @@ Position Position::shrink(BoxNd dst_box,LinearMap& map,Position in_position)
 }
 
 //////////////////////////////////////////////////
-void Position::writeToObjectStream(ObjectStream& ostream)
+void Position::writeToObjectStream(ObjectStream& out)
 {
   if (!valid())
     return;
 
   if (!T.isIdentity())
-    ostream.writeObject("T", T);
+    out.writeObject("T", T);
   
-  ostream.writeObject("box", this->box);
+  out.writeObject("box", this->box);
 }
 
 //////////////////////////////////////////////////
-void Position::readFromObjectStream(ObjectStream& istream)
+void Position::readFromObjectStream(ObjectStream& in)
 {
   this->T= Matrix::identity(4);
-  istream.readObject("T", this->T);
-  istream.readObject("box", this->box);
+  in.readObject("T", this->T);
+  in.readObject("box", this->box);
   
 }
 

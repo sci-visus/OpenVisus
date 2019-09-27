@@ -118,25 +118,25 @@ void GLOrthoParams::fixAspectRatio(const Viewport& old_value, const Viewport& ne
 }
 
 ////////////////////////////////////////////////////////////////////////
-void GLOrthoParams::writeToObjectStream(ObjectStream& ostream) 
+void GLOrthoParams::writeToObjectStream(ObjectStream& out) 
 {
-  ostream.writeString("left", cstring(left));
-  ostream.writeString("right", cstring(right));
-  ostream.writeString("bottom", cstring(bottom));
-  ostream.writeString("top", cstring(top));
-  ostream.writeString("zNear", cstring(zNear));
-  ostream.writeString("zFar", cstring(zFar));
+  out.writeString("left", cstring(left));
+  out.writeString("right", cstring(right));
+  out.writeString("bottom", cstring(bottom));
+  out.writeString("top", cstring(top));
+  out.writeString("zNear", cstring(zNear));
+  out.writeString("zFar", cstring(zFar));
 }
 
 ////////////////////////////////////////////////////////////////////////
-void GLOrthoParams::readFromObjectStream(ObjectStream& istream) 
+void GLOrthoParams::readFromObjectStream(ObjectStream& in) 
 {
-  left   = cdouble(istream.readString("left"));
-  right  = cdouble(istream.readString("right"));
-  bottom = cdouble(istream.readString("bottom"));
-  top    = cdouble(istream.readString("top"));
-  zNear  = cdouble(istream.readString("zNear"));
-  zFar   = cdouble(istream.readString("zFar"));
+  left   = cdouble(in.readString("left"));
+  right  = cdouble(in.readString("right"));
+  bottom = cdouble(in.readString("bottom"));
+  top    = cdouble(in.readString("top"));
+  zNear  = cdouble(in.readString("zNear"));
+  zFar   = cdouble(in.readString("zFar"));
 }
 
 

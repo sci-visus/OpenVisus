@@ -585,8 +585,8 @@ IdxFile IdxFile::load(Url url)
       return IdxFile::invalid();
     }
 
-    ObjectStream istream(stree,'r');
-    idxfile.readFromObjectStream(istream);
+    ObjectStream in(stree,'r');
+    idxfile.readFromObjectStream(in);
     idxfile.validate(url);
     if (!idxfile.valid())
     {
@@ -751,86 +751,86 @@ String IdxFile::toString() const
   else
   {
     StringTree stree("IdxFile");
-    ObjectStream ostream(stree,'w');
-    const_cast<IdxFile*>(this)->writeToObjectStream(ostream);
+    ObjectStream out(stree,'w');
+    const_cast<IdxFile*>(this)->writeToObjectStream(out);
     return stree.toString();
   }
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void IdxFile::writeToObjectStream(ObjectStream& ostream)
+void IdxFile::writeToObjectStream(ObjectStream& out)
 {
  if (!this->valid())
     ThrowException("internal error");
 
-  ostream.writeValue("version",cstring(this->version));
-  ostream.writeValue("bitmask", this->bitmask.toString());
+  out.writeValue("version",cstring(this->version));
+  out.writeValue("bitmask", this->bitmask.toString());
 
-  ostream.writeValue("box", logic_box.toOldFormatString()); 
+  out.writeValue("box", logic_box.toOldFormatString()); 
 
   auto logic_to_physic = Position::computeTransformation(this->bounds,this->logic_box);
   if (!logic_to_physic.isIdentity())
-    ostream.writeValue("logic_to_physic",logic_to_physic.toString());
+    out.writeValue("logic_to_physic",logic_to_physic.toString());
 
-  ostream.writeValue("bitsperblock",cstring(this->bitsperblock));
-  ostream.writeValue("blocksperfile",cstring(this->blocksperfile));
-  ostream.writeValue("block_interleaving",cstring(this->block_interleaving));
-  ostream.writeValue("filename_template",filename_template);
+  out.writeValue("bitsperblock",cstring(this->bitsperblock));
+  out.writeValue("blocksperfile",cstring(this->blocksperfile));
+  out.writeValue("block_interleaving",cstring(this->block_interleaving));
+  out.writeValue("filename_template",filename_template);
   
-  ostream.pushContext("fields");
+  out.pushContext("fields");
   for (int I=0;I<(int)fields.size();I++)
-    ostream.writeObject("field", fields[I]);
-  ostream.popContext("fields");
+    out.writeObject("field", fields[I]);
+  out.popContext("fields");
 
   if (!this->time_template.empty())
   {
-    ostream.pushContext("Timesteps");
-    ostream.writeValue("filename_template",this->time_template);
-    timesteps.writeToObjectStream(ostream);
-    ostream.popContext("Timesteps");
+    out.pushContext("Timesteps");
+    out.writeValue("filename_template",this->time_template);
+    timesteps.writeToObjectStream(out);
+    out.popContext("Timesteps");
   }
 }
 
 
 //////////////////////////////////////////////////////////////////////////////
-void IdxFile::readFromObjectStream(ObjectStream& istream)
+void IdxFile::readFromObjectStream(ObjectStream& in)
 {
-  this->version           = cint(istream.readValue("version"));
-  this->bitmask = DatasetBitmask(istream.readValue("bitmask"));
-  this->logic_box          = BoxNi::parseFromOldFormatString(this->bitmask.getPointDim(),istream.readValue("box"));
+  this->version           = cint(in.readValue("version"));
+  this->bitmask = DatasetBitmask(in.readValue("bitmask"));
+  this->logic_box          = BoxNi::parseFromOldFormatString(this->bitmask.getPointDim(),in.readValue("box"));
 
   auto pdim = this->bitmask.getPointDim();
 
-  if (istream.hasAttribute("logic_to_physic"))
+  if (in.hasAttribute("logic_to_physic"))
   {
-    auto logic_to_physic = Matrix::parseFromString(istream.readValue("logic_to_physic", Matrix::identity(pdim + 1).toString()));
+    auto logic_to_physic = Matrix::parseFromString(in.readValue("logic_to_physic", Matrix::identity(pdim + 1).toString()));
     this->bounds = Position(logic_to_physic, this->logic_box);
   }
 
-  this->bitsperblock      = cint(istream.readValue("bitsperblock"));
-  this->blocksperfile     = cint(istream.readValue("blocksperfile"));
-  this->block_interleaving= cint(istream.readValue("block_interleaving"));
-  this->filename_template = istream.readValue("filename_template");
+  this->bitsperblock      = cint(in.readValue("bitsperblock"));
+  this->blocksperfile     = cint(in.readValue("blocksperfile"));
+  this->block_interleaving= cint(in.readValue("block_interleaving"));
+  this->filename_template = in.readValue("filename_template");
 
   this->fields.clear();
-  istream.pushContext("fields");
-  while (istream.pushContext("field"))
+  in.pushContext("fields");
+  while (in.pushContext("field"))
   {
     Field field;
-    field.readFromObjectStream(istream);
+    field.readFromObjectStream(in);
     if (!field.valid())
       ThrowException("field not valid");
 
     this->fields.push_back(field);
-    istream.popContext("field");
+    in.popContext("field");
   }
-  istream.popContext("fields");
+  in.popContext("fields");
 
-  if (istream.pushContext("Timesteps"))
+  if (in.pushContext("Timesteps"))
   {
-    this->time_template=istream.readValue("filename_template");
-    this->timesteps.readFromObjectStream(istream);
-    istream.popContext("Timesteps");
+    this->time_template=in.readValue("filename_template");
+    this->timesteps.readFromObjectStream(in);
+    in.popContext("Timesteps");
   }
 }
 

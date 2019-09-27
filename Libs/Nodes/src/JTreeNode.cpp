@@ -732,29 +732,29 @@ void JTreeNode::updateAutoThreshold()
 
 
 ////////////////////////////////////////////////////////////
-void JTreeNode::writeToObjectStream(ObjectStream& ostream)
+void JTreeNode::writeToObjectStream(ObjectStream& out)
 {
-  Node::writeToObjectStream(ostream);
+  Node::writeToObjectStream(out);
 
-  ostream.writeValue("minima_tree",cstring(minima_tree));
-  ostream.writeValue("min_persistence",cstring(min_persistence));
-  ostream.writeValue("reduce_minmax",cstring(reduce_minmax));
-  ostream.writeValue("threshold_min",cstring(threshold_min));
-  ostream.writeValue("threshold_max",cstring(threshold_max));
-  ostream.writeValue("auto_threshold",cstring(auto_threshold));
+  out.writeValue("minima_tree",cstring(minima_tree));
+  out.writeValue("min_persistence",cstring(min_persistence));
+  out.writeValue("reduce_minmax",cstring(reduce_minmax));
+  out.writeValue("threshold_min",cstring(threshold_min));
+  out.writeValue("threshold_max",cstring(threshold_max));
+  out.writeValue("auto_threshold",cstring(auto_threshold));
 }
 
 ////////////////////////////////////////////////////////////
-void JTreeNode::readFromObjectStream(ObjectStream& istream)
+void JTreeNode::readFromObjectStream(ObjectStream& in)
 {
-  Node::readFromObjectStream(istream);
+  Node::readFromObjectStream(in);
 
-  minima_tree=cbool(istream.readValue("minima_tree"));
-  min_persistence=cdouble(istream.readValue("min_persistence"));
-  reduce_minmax=cbool(istream.readValue("reduce_minmax"));
-  threshold_min=cdouble(istream.readValue("threshold_min"));
-  threshold_max=cdouble(istream.readValue("threshold_max"));
-  auto_threshold=cbool(istream.readValue("auto_threshold"));
+  minima_tree=cbool(in.readValue("minima_tree"));
+  min_persistence=cdouble(in.readValue("min_persistence"));
+  reduce_minmax=cbool(in.readValue("reduce_minmax"));
+  threshold_min=cdouble(in.readValue("threshold_min"));
+  threshold_max=cdouble(in.readValue("threshold_max"));
+  auto_threshold=cbool(in.readValue("auto_threshold"));
 }
 
 } //namespace Visus

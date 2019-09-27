@@ -283,41 +283,41 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  virtual void writeToObjectStream(ObjectStream& out) override
   {
-    XIdxElement::writeToObjectStream(ostream);
+    XIdxElement::writeToObjectStream(out);
 
-    ostream.writeString("Name", name);
-    ostream.writeString("Type", group_type.toString());
-    ostream.writeString("VariabilityType", variability_type.toString());
+    out.writeString("Name", name);
+    out.writeString("Type", group_type.toString());
+    out.writeString("VariabilityType", variability_type.toString());
     if(file_pattern.size())
-      ostream.writeString("FilePattern", file_pattern.c_str());
+      out.writeString("FilePattern", file_pattern.c_str());
 
     if(variability_type.value!=VariabilityType::STATIC_VARIABILITY_TYPE)
-      ostream.writeString("DomainIndex", Visus::cstring(domain_index));
+      out.writeString("DomainIndex", Visus::cstring(domain_index));
 
     for (auto child : data_sources)
-      writeChild<DataSource>(ostream, "DataSource", child);
+      writeChild<DataSource>(out, "DataSource", child);
 
-    writeChild<Domain>(ostream, "Domain",domain);
+    writeChild<Domain>(out, "Domain",domain);
 
     for (auto child : attributes)
-      writeChild<Attribute>(ostream, "Attribute", child);
+      writeChild<Attribute>(out, "Attribute", child);
 
     for (auto child : variables)
-      writeChild<Variable>(ostream, "Variable",child);
+      writeChild<Variable>(out, "Variable",child);
 
     for (auto child : groups) 
     {
       if (file_pattern.empty())
       {
-        writeChild<Group>(ostream, "Group", child);
+        writeChild<Group>(out, "Group", child);
       }
       else
       {
         String filename = XIdxFormatString(file_pattern + "/meta.xidx", child->domain_index);
 
-        if (auto xi_include = ostream.getCurrentContext()->addChild("xi:include"))
+        if (auto xi_include = out.getCurrentContext()->addChild("xi:include"))
         {
           xi_include->writeString("href", filename.c_str());
           xi_include->writeString("xpointer", "xpointer(//Xidx/Group/Group)");
@@ -326,7 +326,7 @@ public:
         {
           StringTree stree(child->getTypeName());
           ObjectStream ostream(stree, 'w');
-          child->writeToObjectStream(ostream);
+          child->writeToObjectStream(out);
           auto content = stree.toString();
           Utils::saveTextDocument(filename,content);
         }
@@ -336,37 +336,37 @@ public:
   };
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  virtual void readFromObjectStream(ObjectStream& in) override
   {
-    XIdxElement::readFromObjectStream(istream);
+    XIdxElement::readFromObjectStream(in);
 
-    this->group_type = GroupType::fromString(istream.readString("Type"));
-    this->variability_type = VariabilityType::fromString(istream.readString("VariabilityType"));
-    this->file_pattern = istream.readString("FilePattern");
-    this->domain_index = cint(istream.readString("DomainIndex"));
+    this->group_type = GroupType::fromString(in.readString("Type"));
+    this->variability_type = VariabilityType::fromString(in.readString("VariabilityType"));
+    this->file_pattern = in.readString("FilePattern");
+    this->domain_index = cint(in.readString("DomainIndex"));
 
-    while (auto child = readChild<DataSource>(istream,"DataSource"))
+    while (auto child = readChild<DataSource>(in,"DataSource"))
       addDataSource(child);
 
-    while (auto child = readChild<Attribute>(istream,"Attribute"))
+    while (auto child = readChild<Attribute>(in,"Attribute"))
       addAttribute(child);
 
-    while (auto child = readChild<Variable>(istream,"Variable"))
+    while (auto child = readChild<Variable>(in,"Variable"))
       addVariable(child);
 
-    if (istream.pushContext("Domain"))
+    if (in.pushContext("Domain"))
     {
-      auto type = DomainType::fromString(istream.readString("Type"));
+      auto type = DomainType::fromString(in.readString("Type"));
       auto child=Domain::createDomain(type);
-      child->readFromObjectStream(istream);
-      istream.popContext("Domain");
+      child->readFromObjectStream(in);
+      in.popContext("Domain");
       setDomain(child);
     }
 
-    while (auto child = readChild<Group>(istream,"Group"))
+    while (auto child = readChild<Group>(in,"Group"))
       addGroup(child);
 
-    for (auto xi_include : istream.getCurrentContext()->getChilds("xi:include"))
+    for (auto xi_include : in.getCurrentContext()->getChilds("xi:include"))
     {
       auto filename = xi_include->readString("href");
 
@@ -377,7 +377,7 @@ public:
       auto child = new Group();
       {
         ObjectStream istream(stree, 'r');
-        child->readFromObjectStream(istream);
+        child->readFromObjectStream(in);
       }
 
       addGroup(child);

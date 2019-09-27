@@ -145,12 +145,12 @@ public:
   virtual void glRender(GLCanvas& gl) override;
 
   //writeToObjectStream (to implement if needed!)
-  virtual void writeToObjectStream(ObjectStream& ostream) override {
+  virtual void writeToObjectStream(ObjectStream& out) override {
     VisusAssert(false);
   }
 
   //readFromObjectStream (to implement if needed!)
-  virtual void readFromObjectStream(ObjectStream& istream) override {
+  virtual void readFromObjectStream(ObjectStream& in) override {
     VisusAssert(false);
   }
 

@@ -135,10 +135,10 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) = 0;
+  virtual void writeToObjectStream(ObjectStream& out) = 0;
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) = 0;
+  virtual void readFromObjectStream(ObjectStream& in) = 0;
 
 protected:
 

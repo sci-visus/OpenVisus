@@ -406,29 +406,29 @@ void RenderArrayNode::glRender(GLCanvas& gl)
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RenderArrayNode::writeToObjectStream(ObjectStream& ostream)
+void RenderArrayNode::writeToObjectStream(ObjectStream& out)
 {
-  Node::writeToObjectStream(ostream);
+  Node::writeToObjectStream(out);
 
-  ostream.writeValue("lighting_enabled",cstring(lighting_enabled));
-  ostream.writeValue("palette_enabled",cstring(palette_enabled));
-  ostream.writeValue("use_view_direction",cstring(use_view_direction));
-  ostream.writeValue("max_num_slices",cstring(max_num_slices));
-  ostream.writeValue("magnify_filter",cstring(magnify_filter));
-  ostream.writeValue("minify_filter",cstring(minify_filter));
+  out.writeValue("lighting_enabled",cstring(lighting_enabled));
+  out.writeValue("palette_enabled",cstring(palette_enabled));
+  out.writeValue("use_view_direction",cstring(use_view_direction));
+  out.writeValue("max_num_slices",cstring(max_num_slices));
+  out.writeValue("magnify_filter",cstring(magnify_filter));
+  out.writeValue("minify_filter",cstring(minify_filter));
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RenderArrayNode::readFromObjectStream(ObjectStream& istream)
+void RenderArrayNode::readFromObjectStream(ObjectStream& in)
 {
-  Node::readFromObjectStream(istream);
+  Node::readFromObjectStream(in);
 
-  this->lighting_enabled=cbool(istream.readValue("lighting_enabled"));
-  this->palette_enabled=cbool(istream.readValue("palette_enabled"));
-  this->use_view_direction=cbool(istream.readValue("use_view_direction"));
-  this->max_num_slices=cint(istream.readValue("max_num_slices"));
-  this->magnify_filter=cint(istream.readValue("magnify_filter"));
-  this->minify_filter=cint(istream.readValue("minify_filter"));
+  this->lighting_enabled=cbool(in.readValue("lighting_enabled"));
+  this->palette_enabled=cbool(in.readValue("palette_enabled"));
+  this->use_view_direction=cbool(in.readValue("use_view_direction"));
+  this->max_num_slices=cint(in.readValue("max_num_slices"));
+  this->magnify_filter=cint(in.readValue("magnify_filter"));
+  this->minify_filter=cint(in.readValue("minify_filter"));
 }
  
 

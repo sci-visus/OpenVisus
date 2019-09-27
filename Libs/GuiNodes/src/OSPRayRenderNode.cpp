@@ -417,15 +417,15 @@ void OSPRayRenderNode::glRender(GLCanvas& gl)
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void OSPRayRenderNode::writeToObjectStream(ObjectStream& ostream)
+void OSPRayRenderNode::writeToObjectStream(ObjectStream& out)
 {
-  Node::writeToObjectStream(ostream);
+  Node::writeToObjectStream(out);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void OSPRayRenderNode::readFromObjectStream(ObjectStream& istream)
+void OSPRayRenderNode::readFromObjectStream(ObjectStream& in)
 {
-  Node::readFromObjectStream(istream);
+  Node::readFromObjectStream(in);
 }
 
 } //namespace Visus

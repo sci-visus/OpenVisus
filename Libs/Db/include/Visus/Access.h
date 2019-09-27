@@ -219,12 +219,12 @@ public:
   }
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) {
+  virtual void writeToObjectStream(ObjectStream& out) {
     ThrowException("not supported");
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) {
+  virtual void readFromObjectStream(ObjectStream& in) {
     ThrowException("not supported");
   }
 

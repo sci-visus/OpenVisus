@@ -144,24 +144,24 @@ void PaletteNode::exitFromDataflow() {
 }
 
 ///////////////////////////////////////////////////////////////////////
-void PaletteNode::writeToObjectStream(ObjectStream& ostream) 
+void PaletteNode::writeToObjectStream(ObjectStream& out) 
 {
-  Node::writeToObjectStream(ostream);
+  Node::writeToObjectStream(out);
 
-  ostream.pushContext("palette");
-  palette->writeToObjectStream(ostream);
-  ostream.popContext("palette");
+  out.pushContext("palette");
+  palette->writeToObjectStream(out);
+  out.popContext("palette");
 }
 
 
 ///////////////////////////////////////////////////////////////////////
-void PaletteNode::readFromObjectStream(ObjectStream& istream) 
+void PaletteNode::readFromObjectStream(ObjectStream& in) 
 {
-  Node::readFromObjectStream(istream);
+  Node::readFromObjectStream(in);
 
-  istream.pushContext("palette");
-  palette->readFromObjectStream(istream);
-  istream.popContext("palette");
+  in.pushContext("palette");
+  palette->readFromObjectStream(in);
+  in.popContext("palette");
 }
 
 ///////////////////////////////////////////////////////////////////////

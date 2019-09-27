@@ -479,14 +479,14 @@ void Dataflow::disconnectPorts(Node* from,String oport_name,String iport_name,No
 
 
 /////////////////////////////////////////////////////////
-void Dataflow::writeToObjectStream(ObjectStream& ostream)
+void Dataflow::writeToObjectStream(ObjectStream& out)
 {
   VisusAssert(false);
 }
 
 
 /////////////////////////////////////////////////////////
-void Dataflow::readFromObjectStream(ObjectStream& istream)
+void Dataflow::readFromObjectStream(ObjectStream& in)
 {
   VisusAssert(false);
 }

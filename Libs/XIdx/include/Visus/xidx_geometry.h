@@ -181,24 +181,24 @@ public:
 public:
 
   //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& ostream) override
+  virtual void writeToObjectStream(ObjectStream& out) override
   {
-    XIdxElement::writeToObjectStream(ostream);
+    XIdxElement::writeToObjectStream(out);
 
-    ostream.writeString("Type", type.toString());
+    out.writeString("Type", type.toString());
 
     for (auto child : this->data_items)
-      writeChild<DataItem>(ostream,"DataItem",child);
+      writeChild<DataItem>(out,"DataItem",child);
   }
 
   //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& istream) override
+  virtual void readFromObjectStream(ObjectStream& in) override
   {
-    XIdxElement::readFromObjectStream(istream);
+    XIdxElement::readFromObjectStream(in);
 
-    this->type = GeometryType::fromString(istream.readString("Type"));
+    this->type = GeometryType::fromString(in.readString("Type"));
 
-    while (auto child = readChild<DataItem>(istream,"DataItem"))
+    while (auto child = readChild<DataItem>(in,"DataItem"))
       addDataItem(child);
   }
 
