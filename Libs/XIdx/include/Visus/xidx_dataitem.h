@@ -280,14 +280,16 @@ public:
     out.writeString("Endian", endian_type.toString());
     out.writeString("Dimensions", StringUtils::join(dimensions));
 
-    writeChild<DataSource>(out, "DataSource", this->data_source);
+    if (this->data_source)
+      out.writeObject("DataSource",*this->data_source);
 
-    for (auto child : this->attributes)
-      writeChild<Attribute>(out, "Attribute", child);
+    for (auto attribute : this->attributes)
+      out.writeObject("Attribute", *attribute);
 
-    if(this->values.size())
+    if (this->values.size())
       out.writeText(StringUtils::join(this->values));
-    if(this->text.size())
+
+    if (this->text.size())
       out.writeText(this->text);
   };
 
@@ -306,11 +308,19 @@ public:
     for (auto it : StringUtils::split(in.readText()))
       this->values.push_back(cdouble(it));
 
-    if (auto child = readChild<DataSource>(in,"DataSource"))
-      setDataSource(child);
+    if (auto child = in.getChild("DataSource"))
+    {
+      auto data_source = new DataSource();
+      data_source->readFrom(*child);
+      setDataSource(data_source);
+    }
 
-    while (auto child = readChild<Attribute>(in,"Attribute"))
-      addAttribute(child);
+    for (auto child : in.getChilds("Attribute"))
+    {
+      auto attribute=new Attribute();
+      attribute->readFrom(*child);
+      addAttribute(attribute);
+    }
   }
   
 };

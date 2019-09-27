@@ -188,7 +188,7 @@ public:
     out.writeString("Type", type.toString());
 
     for (auto child : this->data_items)
-      writeChild<DataItem>(out,"DataItem",child);
+      out.writeObject("DataItem",*child);
   }
 
   //readFrom
@@ -198,8 +198,12 @@ public:
 
     this->type = GeometryType::fromString(in.readString("Type"));
 
-    while (auto child = readChild<DataItem>(in,"DataItem"))
-      addDataItem(child);
+    for (auto child : in.getChilds("DataItem"))
+    {
+      auto data_item = new DataItem();
+      data_item->readFrom(*child);
+      addDataItem(data_item );
+    }
   }
 
 };

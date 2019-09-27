@@ -36,7 +36,6 @@ using namespace Visus;
 //VISUS_NEWOBJECT
 %newobject Visus::Domain::createDomain;
 %newobject Visus::IdxFile::load;
-%newobject Visus::XIdxElement::readChild;
 
 %template(VectorOfAttribute)       std::vector<Visus::Attribute*>;
 %template(VectorOfDataItem)        std::vector<Visus::DataItem*>;

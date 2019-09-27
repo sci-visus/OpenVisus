@@ -63,7 +63,6 @@ public:
     out.writeString("Url", url);
     // TODO write content only if datasource is "inline"
     //writeUrlContent(out);
-
   }
 
   //readFrom

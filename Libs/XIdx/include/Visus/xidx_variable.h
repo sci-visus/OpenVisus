@@ -173,11 +173,11 @@ public:
 
     out.writeString("Center", center_type.toString());
 
-    for (auto child : data_items)
-      writeChild<DataItem>(out, "DataItem", child);
+    for (auto data_item : data_items)
+      out.writeObject("DataItem", *data_item);
 
-    for (auto child : attributes)
-      writeChild<Attribute>(out, "Attribute", child);
+    for (auto attribute : attributes)
+      out.writeObject("Attribute", *attribute);
   }
 
   //readFrom
@@ -187,11 +187,19 @@ public:
 
     this->center_type = CenterType::fromString(in.readString("Center"));
 
-    while (auto child = readChild<DataItem>(in, "DataItem"))
-      addDataItem(child);
+    for (auto child : in.getChilds("DataItem"))
+    {
+      auto data_item = new DataItem();
+      data_item->readFrom(*child);
+      addDataItem(data_item);
+    }
 
-    while (auto child = readChild<Attribute>(in, "Attribute"))
-      addAttribute(child);
+    for (auto child : in.getChilds("Attribute"))
+    {
+      auto attribute = new Attribute();
+      attribute->readFrom(*child);
+      addAttribute(attribute);
+    }
   }
 
 private:

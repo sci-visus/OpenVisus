@@ -163,10 +163,10 @@ public:
     out.writeString("Type", type.toString());
 
     for (auto child : data_items)
-      writeChild<DataItem>(out, "DataItem", child);
+      out.writeObject("DataItem",*child);
 
     for (auto child : attributes)
-      writeChild<Attribute>(out, "Attribute",child);
+      out.writeObject("Attribute",*child);
   }
 
   //readFrom
@@ -180,11 +180,19 @@ public:
     // TODO improve this ensureDataItem() mechanism
     data_items.clear();
 
-    while (auto child = readChild<DataItem>(in,"DataItem"))
-      addDataItem(child);
+    for (auto child : in.getChilds("DataItem"))
+    {
+      auto data_item = new DataItem();
+      data_item->readFrom(*child);
+      addDataItem(data_item);
+    }
 
-    while (auto child = readChild<Attribute>(in, "Attribute"))
-      addAttribute(child);
+    for (auto child : in.getChilds("Attribute"))
+    {
+      auto attribute = new Attribute();
+      attribute->readFrom(*child);
+      addAttribute(attribute);
+    }
   }
 
 };

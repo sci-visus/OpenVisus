@@ -80,16 +80,22 @@ public:
   virtual void writeTo(StringTree& out) override
   {
     Domain::writeTo(out);
-    for (auto child : this->axis)
-      writeChild<Axis>(out, "Axis", child);
+
+    for (auto axis : this->axis)
+      out.writeObject("Axis", *axis);
   }
 
   //readFrom
   virtual void readFrom(StringTree& in) override
   {
     Domain::readFrom(in);
-    while (auto child = readChild<Axis>(in,"Axis"))
-      addAxis(child);
+
+    for (auto child : in.getChilds("Axis"))
+    {
+      auto axis = new Axis();
+      axis->readFrom(*child);
+      addAxis(axis);
+    }
   }
 };
 

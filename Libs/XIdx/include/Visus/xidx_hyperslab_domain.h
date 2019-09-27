@@ -88,14 +88,14 @@ public:
   virtual void readFrom(StringTree& in) override
   {
     ListDomain::readFrom(in);
+
     // TODO generalize for many slabs
-    if(values.size()==3){
+    if(values.size()==3)
+    {
       start = values[0];
       step  = values[1];
       count = (int)values[2];
     }
-//    std::istringstream parse(in.readText());
-//    parse >> start >> step >> count;
   }
 
 };

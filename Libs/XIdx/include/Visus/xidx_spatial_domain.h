@@ -105,8 +105,12 @@ public:
   virtual void writeTo(StringTree& out) override
   {
     Domain::writeTo(out);
-    writeChild<Topology>(out,"Topology",topology);
-    writeChild<Geometry>(out, "Geometry", geometry);
+
+    if (topology)
+      out.writeObject("Topology",*topology);
+
+    if (geometry)
+      out.writeObject("Geometry", *geometry);
   }
 
   //readFrom
@@ -114,11 +118,19 @@ public:
   {
     Domain::readFrom(in);
 
-    if (auto topology = readChild<Topology>(in, "Topology"))
+    if (auto child = in.getChild("Topology"))
+    {
+      auto topology = new Topology();
+      topology->readFrom(*child);
       setTopology(topology);
+    }
 
-    if (auto geometry = readChild<Geometry>(in, "Geometry"))
+    if (auto child = in.getChild("Geometry"))
+    {
+      auto geometry = new Geometry();
+      geometry->readFrom(*child);
       setGeometry(geometry);
+    } 
   }
 
 };

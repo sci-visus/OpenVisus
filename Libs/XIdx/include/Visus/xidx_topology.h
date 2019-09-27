@@ -145,11 +145,11 @@ public:
     out.writeString("Type", type.toString());
     out.writeString("Dimensions", StringUtils::join(dimensions));
 
-    for (auto child : this->attributes)
-      writeChild<Attribute>(out, "Attribute", child);
+    for (auto attribute : this->attributes)
+      out.writeObject("Attribute", *attribute);
 
-    for (auto child : this->data_items)
-      writeChild<DataItem>(out, "DataItem", child);
+    for (auto data_item : this->data_items)
+      out.writeObject("DataItem", *data_item);
   }
 
   //readFrom
@@ -162,11 +162,19 @@ public:
     for (auto dim : StringUtils::split(in.readString("Dimensions")))
       this->dimensions.push_back(cint(dim));
 
-    while (auto child=readChild<Attribute>(in,"Attribute"))
-      addAttribute(child);
+    for (auto child : in.getChilds("Attribute"))
+    {
+      auto attribute = new Attribute();
+      attribute->readFrom(*child);
+      addAttribute(attribute);
+    }
 
-    while (auto child = readChild<DataItem>(in, "DataItem"))
-      addDataItem(child);
+    for (auto child : in.getChilds("DataItem"))
+    {
+      auto data_item = new DataItem();
+      data_item->readFrom(*child);
+      addDataItem(data_item);
+    }
   }
   
 };

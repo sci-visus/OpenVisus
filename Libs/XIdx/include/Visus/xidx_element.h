@@ -111,20 +111,6 @@ public:
     name = in.readString("Name", name);
   }
 
-  //writeChilds
-  template <typename T>
-  void writeChild(StringTree& out,String name, T* child) {
-    if (child) out.writeObject(name,*child);
-  }
-
-  //readChilds
-  template <typename T>
-  VISUS_NEWOBJECT(T*) readChild(StringTree& in, String name) 
-  {
-    UniquePtr<T> ret(new T());
-    return in.readObject(name, *ret)? ret.release() : nullptr;
-  }
-
 private:
 
   XIdxElement*              parent = nullptr;

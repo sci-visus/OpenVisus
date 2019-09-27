@@ -290,32 +290,34 @@ public:
     out.writeString("Name", name);
     out.writeString("Type", group_type.toString());
     out.writeString("VariabilityType", variability_type.toString());
-    if(file_pattern.size())
+
+    if(!file_pattern.empty())
       out.writeString("FilePattern", file_pattern.c_str());
 
-    if(variability_type.value!=VariabilityType::STATIC_VARIABILITY_TYPE)
+    if (variability_type.value!=VariabilityType::STATIC_VARIABILITY_TYPE)
       out.writeString("DomainIndex", Visus::cstring(domain_index));
 
-    for (auto child : data_sources)
-      writeChild<DataSource>(out, "DataSource", child);
+    for (auto data_source : data_sources)
+      out.writeObject("DataSource", *data_source);
 
-    writeChild<Domain>(out, "Domain",domain);
+    if (domain)
+      out.writeObject("Domain",*domain);
 
-    for (auto child : attributes)
-      writeChild<Attribute>(out, "Attribute", child);
+    for (auto attribute : attributes)
+      out.writeObject("Attribute", *attribute);
 
-    for (auto child : variables)
-      writeChild<Variable>(out, "Variable",child);
+    for (auto variable : variables)
+      out.writeObject("Variable", *variable);
 
-    for (auto child : groups) 
+    for (auto group : groups) 
     {
       if (file_pattern.empty())
       {
-        writeChild<Group>(out, "Group", child);
+        out.writeObject("Group", *group);
       }
       else
       {
-        String filename = XIdxFormatString(file_pattern + "/meta.xidx", child->domain_index);
+        String filename = XIdxFormatString(file_pattern + "/meta.xidx", group->domain_index);
 
         if (auto xi_include = out.addChild("xi:include"))
         {
@@ -324,12 +326,11 @@ public:
         }
 
         {
-          StringTree out(child->getTypeName());
-          child->writeTo(out);
+          StringTree out(group->getTypeName());
+          group->writeTo(out);
           auto content = out.toString();
           Utils::saveTextDocument(filename,content);
         }
-
       }
     }
   };
@@ -344,14 +345,26 @@ public:
     this->file_pattern = in.readString("FilePattern");
     this->domain_index = cint(in.readString("DomainIndex"));
 
-    while (auto child = readChild<DataSource>(in,"DataSource"))
-      addDataSource(child);
+    for (auto child : in.getChilds("DataSource"))
+    {
+      auto data_source = new DataSource();
+      data_source->readFrom(*child);
+      addDataSource(data_source);
+    }
 
-    while (auto child = readChild<Attribute>(in,"Attribute"))
-      addAttribute(child);
+    for (auto child : in.getChilds("Attribute"))
+    {
+      auto attribute = new Attribute();
+      attribute->readFrom(*child);
+      addAttribute(attribute);
+    }
 
-    while (auto child = readChild<Variable>(in,"Variable"))
-      addVariable(child);
+    for (auto child : in.getChilds("Variable"))
+    {
+      auto variable = new Variable();
+      variable->readFrom(*child);
+      addVariable(variable);
+    }
 
     if (auto Domain=in.getChild("Domain"))
     {
@@ -361,8 +374,12 @@ public:
       setDomain(child);
     }
 
-    while (auto child = readChild<Group>(in,"Group"))
-      addGroup(child);
+    for (auto child : in.getChilds("Group"))
+    {
+      auto group = new Group();
+      group->readFrom(*child);
+      addGroup(group);
+    }
 
     for (auto xi_include : in.getChilds("xi:include"))
     {

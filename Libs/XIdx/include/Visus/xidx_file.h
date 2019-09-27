@@ -114,7 +114,7 @@ public:
     {
       if (file_pattern.empty())
       {
-        writeChild<Group>(out, "Group", child);
+        out.writeObject("Group",*child);
       }
       else
       {
@@ -141,8 +141,12 @@ public:
   {
     XIdxElement::readFrom(in);
 
-    while (auto child = readChild<Group>(in,"Group"))
-      addGroup(child);
+    for (auto child : in.getChilds("Group"))
+    {
+      auto group = new Group();
+      group->readFrom(*child);
+      addGroup(group);
+    }
 
     for (auto xi_include : in.getChilds("xi:include"))
     {
