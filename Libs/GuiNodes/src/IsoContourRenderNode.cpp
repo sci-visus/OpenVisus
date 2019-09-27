@@ -231,10 +231,7 @@ void IsoContourRenderNode::writeToObjectStream(ObjectStream& ostream)
 void IsoContourRenderNode::readFromObjectStream(ObjectStream& istream)
 {
   Node::readFromObjectStream(istream);
-
-  istream.pushContext("material");
-  material.readFromObjectStream(istream);
-  istream.popContext("material");
+  istream.readObject("material", material);
 
   //todo: save the palette
 }

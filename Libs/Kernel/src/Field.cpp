@@ -83,9 +83,7 @@ void Field::readFromObjectStream(ObjectStream& istream)
   this->name=istream.readValue("name");
   this->description=istream.readValue("description");
 
-  istream.pushContext("dtype");
-  this->dtype.readFromObjectStream(istream); 
-  istream.popContext("dtype");
+  istream.readObject("dtype", this->dtype);
 
   this->index=cint(istream.readValue("index"));
   this->default_compression=istream.readValue("default_compression");

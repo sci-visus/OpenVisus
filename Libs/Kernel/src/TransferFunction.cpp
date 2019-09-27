@@ -598,23 +598,14 @@ void TransferFunction::readFromObjectStream(ObjectStream& istream)
   if (istream.pushContext("input"))
   {
     input_range.mode=(ComputeRange::Mode)cint(istream.readString("input.normalization"));
-    if (istream.pushContext("custom_range"))
-    {
-      input_range.custom_range.readFromObjectStream(istream);
-      istream.popContext("custom_range");
-    }
+    istream.readObject("custom_range", input_range.custom_range);
     istream.popContext("input");
   }
 
   if (istream.pushContext("output"))
   {
     output_dtype=DType::fromString(istream.readString("dtype"));
-
-    if (istream.pushContext("range"))
-    {
-      output_range.readFromObjectStream(istream);
-      istream.popContext("range");
-    }
+    istream.readObject("range", output_range);
     istream.popContext("output");
   }
 

@@ -595,9 +595,7 @@ void GLLookAtCamera::readFromObjectStream(ObjectStream& istream)
   bUseOrthoProjection=cbool (istream.readValue("bUseOrthoProjection"));
   bAutoOrthoParams=cbool(istream.readValue("bAutoOrthoParams","1"));
 
-  istream.pushContext("ortho_params");
-  ortho_params.readFromObjectStream(istream);
-  istream.popContext("ortho_params");
+  istream.readObject("ortho_params", ortho_params);
 }
   
 

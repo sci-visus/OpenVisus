@@ -816,7 +816,8 @@ void IdxFile::readFromObjectStream(ObjectStream& istream)
   istream.pushContext("fields");
   while (istream.pushContext("field"))
   {
-    Field field;field.readFromObjectStream(istream);
+    Field field;
+    field.readFromObjectStream(istream);
     if (!field.valid())
       ThrowException("field not valid");
 

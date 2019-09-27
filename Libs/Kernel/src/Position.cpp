@@ -314,18 +314,8 @@ void Position::writeToObjectStream(ObjectStream& ostream)
 void Position::readFromObjectStream(ObjectStream& istream)
 {
   this->T= Matrix::identity(4);
-
-  if (istream.pushContext("T"))
-  {
-    this->T.readFromObjectStream(istream);
-    istream.popContext("T");
-  }
-
-  if (istream.pushContext("box"))
-  {
-    this->box.readFromObjectStream(istream);
-    istream.popContext("box");
-  }
+  istream.readObject("T", this->T);
+  istream.readObject("box", this->box);
   
 }
 

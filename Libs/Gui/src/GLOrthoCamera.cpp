@@ -465,14 +465,9 @@ void GLOrthoCamera::readFromObjectStream(ObjectStream& istream)
   min_zoom=cdouble(istream.readValue("min_zoom"));
   smooth=cdouble(istream.readValue("smooth"));
 
-  istream.pushContext("ortho_params");
-  {
-    GLOrthoParams value;
-    value.readFromObjectStream(istream);
-    this->ortho_params       = value;
-    this->ortho_params_final = value;
-  }
-  istream.popContext("ortho_params");
+  istream.readObject("ortho_params", this->ortho_params);
+
+  this->ortho_params_final = this->ortho_params;
 }
   
 

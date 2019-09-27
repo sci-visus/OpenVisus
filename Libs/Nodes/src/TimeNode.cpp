@@ -135,18 +135,10 @@ void TimeNode::readFromObjectStream(ObjectStream& istream)
 
   current_time=cdouble(istream.readValue("current_time"));
 
-  if (istream.pushContext("timesteps"))
-  {
-    timesteps.readFromObjectStream(istream);
-    istream.popContext("timesteps");
-  }
+  istream.readObject("timesteps", timesteps);
 
   user_range=timesteps.getRange();
-  if (istream.pushContext("user_range"))
-  {
-    user_range.readFromObjectStream(istream);
-    istream.popContext("user_range");
-  }
+  istream.readObject("user_range", user_range);
 
   play_msec=cint(istream.readValue("play_msec","1000"));
 }

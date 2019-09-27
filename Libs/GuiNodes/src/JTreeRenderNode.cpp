@@ -242,17 +242,9 @@ void JTreeRenderNode::readFromObjectStream(ObjectStream& istream)
   b2D=cbool(istream.readValue("b2D"));
   radius=cdouble(istream.readValue("radius"));
 
-  istream.pushContext("min_material");
-  min_material.readFromObjectStream(istream);
-  istream.popContext("min_material");
-
-  istream.pushContext("max_material");
-  max_material.readFromObjectStream(istream);
-  istream.popContext("max_material");
-
-  istream.pushContext("saddle_material");
-  saddle_material.readFromObjectStream(istream);
-  istream.popContext("saddle_material");
+  istream.readObject("min_material", min_material);
+  istream.readObject("max_material", max_material);
+  istream.readObject("saddle_material", saddle_material);
 }
 
 

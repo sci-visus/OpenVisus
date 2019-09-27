@@ -378,9 +378,7 @@ void QueryNode::readFromObjectStream(ObjectStream& istream)
   this->progression=(QueryProgression)cint(istream.readValue("progression"));
   this->quality=(QueryQuality)cint(istream.readValue("quality"));
 
-  istream.pushContext("bounds");
-  node_bounds.readFromObjectStream(istream);
-  istream.popContext("bounds");
+  istream.readObject("bounds", node_bounds);
 
   //position=fn(tree_position)
 }
