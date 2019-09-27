@@ -81,10 +81,10 @@ int main(int argc, const char* argv[])
       dataset_url = args[I];
 
     else if (cmd == "p1")
-      p1_in = Point3i(args[I]);
+      p1_in = Point3i::fromString(args[I]);
 
     else if(cmd=="p2")
-      p2_in= Point3i(args[I]);
+      p2_in= Point3i::fromString(args[I]);
 
     else if(cmd=="time")
       timestate = cdouble(args[I]);

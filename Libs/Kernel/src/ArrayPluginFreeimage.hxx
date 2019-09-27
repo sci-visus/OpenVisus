@@ -728,17 +728,33 @@ private:
 
   static VISUS_NEWOBJECT(FIBITMAP*) ArrayToFreeImage(Array& src)
   {
-    auto dims = Utils::select<Int64>(src.dims.toVector(), [](Int64 value) {return value > 1; });
+    Int64 width  = 0;
+    Int64 height = 0;
+    DType dtype = src.dtype;
 
-    if (dims.size()!=2)
-    {
-      VisusWarning() << "data input is not 2d, dims("<< src.dims.toString()<<")";
+    if (src.dims.innerProduct() <= 0) {
+      VisusWarning() << "data input is not 2d, dims(" << src.dims.toString() << ")";
       return nullptr;
     }
 
-    Int64 width  = dims[0];
-    Int64 height = dims[1];
-    DType dtype = src.dtype;
+    if (src.dims.getPointDim() == 1)
+    {
+      width = src.dims[0];
+      height = 1;
+    }
+    else if (src.dims.getPointDim() == 2)
+    {
+      width  = src.dims[0];
+      height = src.dims[1];
+    }
+    else if (src.dims.getPointDim() >=3)
+    {
+      //compress dimensions but keeping the layout 
+      std::vector<Int64> dims = Utils::select<Int64>(src.dims.toVector(), [](Int64 value) {return value > 1; });
+      while (dims.size() < 2) dims.push_back(1);
+      width  = dims[0];
+      height = dims[1];
+    }
 
     FREE_IMAGE_TYPE type = FIT_UNKNOWN;
     int bpp = 0;
