@@ -305,15 +305,9 @@ void Position::writeToObjectStream(ObjectStream& ostream)
     return;
 
   if (!T.isIdentity())
-  {
-    ostream.pushContext("T");
-    T.writeToObjectStream(ostream);
-    ostream.popContext("T");
-  }
+    ostream.writeObject("T", T);
   
-  ostream.pushContext("box");
-  this->box.writeToObjectStream(ostream);
-  ostream.popContext("box");
+  ostream.writeObject("box", this->box);
 }
 
 //////////////////////////////////////////////////

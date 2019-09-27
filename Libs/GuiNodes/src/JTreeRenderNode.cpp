@@ -225,17 +225,9 @@ void JTreeRenderNode::writeToObjectStream(ObjectStream& ostream)
   ostream.writeValue("b2D",cstring(b2D));
   ostream.writeValue("radius",cstring(radius));
 
-  ostream.pushContext("min_material");
-  min_material.writeToObjectStream(ostream);
-  ostream.popContext("min_material");
-
-  ostream.pushContext("max_material");
-  max_material.writeToObjectStream(ostream);
-  ostream.popContext("max_material");
-
-  ostream.pushContext("saddle_material");
-  saddle_material.writeToObjectStream(ostream);
-  ostream.popContext("saddle_material");
+  ostream.writeObject("min_material", min_material);
+  ostream.writeObject("max_material", max_material);
+  ostream.writeObject("saddle_material", saddle_material);
 }
 
 /////////////////////////////////////////////////////////////

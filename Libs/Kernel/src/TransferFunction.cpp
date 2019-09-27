@@ -562,20 +562,14 @@ void TransferFunction::writeToObjectStream(ObjectStream& ostream)
   {
     ostream.writeString("mode",cstring(input_range.mode));
     if (input_range.custom_range.delta()>0)
-    {
-      ostream.pushContext("custom_range");
-      input_range.custom_range.writeToObjectStream(ostream);
-      ostream.popContext("custom_range");
-    }
+      ostream.writeObject("custom_range", input_range.custom_range);
   }
   ostream.popContext("input");
 
   ostream.pushContext("output");
   {
     ostream.writeString("dtype",output_dtype.toString());
-    ostream.pushContext("range");
-    output_range.writeToObjectStream(ostream);
-    ostream.popContext("range");
+    ostream.writeObject("range", output_range);
   }
   ostream.popContext("output");
 

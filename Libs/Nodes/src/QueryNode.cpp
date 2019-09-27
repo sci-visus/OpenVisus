@@ -362,9 +362,7 @@ void QueryNode::writeToObjectStream(ObjectStream& ostream)
   ostream.writeValue("progression",std::to_string(progression));
   ostream.writeValue("quality",std::to_string(quality));
 
-  ostream.pushContext("bounds");
-  node_bounds.writeToObjectStream(ostream);
-  ostream.popContext("bounds");
+  ostream.writeObject("bounds", node_bounds);
 
   //position=fn(tree_position)
 }

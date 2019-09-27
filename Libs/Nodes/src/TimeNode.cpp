@@ -120,16 +120,10 @@ void TimeNode::writeToObjectStream(ObjectStream& ostream)
 
   ostream.writeValue("current_time",cstring(current_time));
 
-  ostream.pushContext("timesteps");
-  timesteps.writeToObjectStream(ostream);
-  ostream.popContext("timesteps");
+  ostream.writeObject("timesteps", timesteps);
 
   if (user_range!=timesteps.getRange())
-  {
-    ostream.pushContext("user_range");
-    user_range.writeToObjectStream(ostream);
-    ostream.popContext("user_range");
-  }
+    ostream.writeObject("user_range", user_range);
 
   ostream.writeValue("play_msec",cstring(play_msec));
 }

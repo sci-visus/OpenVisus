@@ -485,6 +485,23 @@ public:
     writeString(key, cstring(value));
   }
 
+  //writeObject
+  template <typename Value>
+  void writeObject(String name, Value& value) {
+    pushContext(name);
+    value.writeToObjectStream(*this);
+    popContext(name);
+  }
+
+  //readObject
+  template <typename Value>
+  bool readObject(String name, Value& value) {
+    if (!pushContext(name)) return false;
+    value.readFromObjectStream(*this);
+    popContext(name);
+  }
+
+
   //write
   void writeValue(String name, String value) {
     getCurrentContext()->writeValue(name, value);

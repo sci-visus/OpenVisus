@@ -574,9 +574,7 @@ void GLLookAtCamera::writeToObjectStream(ObjectStream& ostream)
   ostream.writeValue("bUseOrthoProjection",cstring(bUseOrthoProjection));
   ostream.writeValue("bAutoOrthoParams",cstring(bAutoOrthoParams));
 
-  ostream.pushContext("ortho_params");
-  ortho_params.writeToObjectStream(ostream);
-  ostream.popContext("ortho_params");
+  ostream.writeObject("ortho_params", ortho_params);
 }
 
 //////////////////////////////////////////////////////////////////////

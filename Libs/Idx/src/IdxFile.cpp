@@ -779,11 +779,7 @@ void IdxFile::writeToObjectStream(ObjectStream& ostream)
   
   ostream.pushContext("fields");
   for (int I=0;I<(int)fields.size();I++)
-  {
-    ostream.pushContext("field");
-    fields[I].writeToObjectStream(ostream);
-    ostream.popContext("field");
-  }
+    ostream.writeObject("field", fields[I]);
   ostream.popContext("fields");
 
   if (!this->time_template.empty())

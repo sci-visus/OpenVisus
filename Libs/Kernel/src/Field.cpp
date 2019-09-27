@@ -48,9 +48,7 @@ void Field::writeToObjectStream(ObjectStream& ostream)
   if (!description.empty())
     ostream.writeValue("description",description);
 
-  ostream.pushContext("dtype");
-  dtype.writeToObjectStream(ostream); 
-  ostream.popContext("dtype");
+  ostream.writeObject("dtype", dtype);
 
   if (!index.empty())
    ostream.writeValue("index",index);

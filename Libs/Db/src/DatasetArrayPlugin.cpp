@@ -143,11 +143,7 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
   ostream.writeString("bitmask",dataset->getBitmask().toString());
 
   for (auto field : dataset->getFields())
-  {
-    ostream.pushContext("field");
-    field.writeToObjectStream(ostream);
-    ostream.popContext("field");
-  }
+    ostream.writeObject("field", field);
 
   return ret;
 }

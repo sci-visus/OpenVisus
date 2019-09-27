@@ -446,9 +446,7 @@ void GLOrthoCamera::writeToObjectStream(ObjectStream& ostream)
   ostream.writeValue("dir",dir.toString());
   ostream.writeValue("vup",vup.toString());
 
-  ostream.pushContext("ortho_params");
-  ortho_params.writeToObjectStream(ostream);
-  ostream.popContext("ortho_params");
+  ostream.writeObject("ortho_params", ortho_params);
 }
 
 ////////////////////////////////////////////////////////////////
