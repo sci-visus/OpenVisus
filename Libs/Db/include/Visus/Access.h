@@ -218,13 +218,13 @@ public:
     VisusInfo()<< "wok(" << statistics.wok << ") wfail(" << statistics.wfail << ")";
   }
 
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) {
+  //writeTo
+  virtual void writeTo(StringTree& out) {
     ThrowException("not supported");
   }
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) {
+  //readFrom
+  virtual void readFrom(StringTree& in) {
     ThrowException("not supported");
   }
 

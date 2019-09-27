@@ -438,9 +438,9 @@ void ScriptingNode::guessPresets(Array input)
 }
 
 ///////////////////////////////////////////////////////////////////////
-void ScriptingNode::writeToObjectStream(ObjectStream& out)
+void ScriptingNode::writeTo(StringTree& out)
 {
-  Node::writeToObjectStream(out);
+  Node::writeTo(out);
 
   out.writeValue("max_publish_msec", cstring(max_publish_msec));
 
@@ -449,9 +449,9 @@ void ScriptingNode::writeToObjectStream(ObjectStream& out)
 }
 
 ///////////////////////////////////////////////////////////////////////
-void ScriptingNode::readFromObjectStream(ObjectStream& in)
+void ScriptingNode::readFrom(StringTree& in)
 {
-  Node::readFromObjectStream(in);
+  Node::readFrom(in);
 
   max_publish_msec=cint(in.readValue("max_publish_msec", cstring(this->max_publish_msec)));
   setCode(in.readText("code"));

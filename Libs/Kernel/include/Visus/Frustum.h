@@ -219,16 +219,16 @@ public:
 
 public:
 
-  //writeToObjectStream
-  void writeToObjectStream(ObjectStream& out) 
+  //writeTo
+  void writeTo(StringTree& out) 
   {
     out.writeValue("modelview" ,getModelview ().toString());
     out.writeValue("projection",getProjection().toString());
     out.writeValue("viewport"  ,getViewport  ().toString());
   }
 
-  //readFromObjectStream
-  void readFromObjectStream(ObjectStream& in) 
+  //readFrom
+  void readFrom(StringTree& in) 
   {
     loadModelview (Matrix::parseFromString(4,in.readValue("modelview" )));
     loadProjection(Matrix::parseFromString(4,in.readValue("projection")));

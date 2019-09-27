@@ -218,18 +218,18 @@ void IsoContourRenderNode::glRender(GLCanvas& gl)
 }
 
 /////////////////////////////////////////////////////////////
-void IsoContourRenderNode::writeToObjectStream(ObjectStream& out)
+void IsoContourRenderNode::writeTo(StringTree& out)
 {
-  Node::writeToObjectStream(out);
+  Node::writeTo(out);
   out.writeObject("material", material);
 
   //todo: save the palette
 }
 
 /////////////////////////////////////////////////////////////
-void IsoContourRenderNode::readFromObjectStream(ObjectStream& in)
+void IsoContourRenderNode::readFrom(StringTree& in)
 {
-  Node::readFromObjectStream(in);
+  Node::readFrom(in);
   in.readObject("material", material);
   //todo: save the palette
 }

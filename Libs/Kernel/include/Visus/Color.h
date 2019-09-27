@@ -300,8 +300,8 @@ public:
 
 
 
-  //writeToObjectStream
-  void writeToObjectStream(ObjectStream& out) 
+  //writeTo
+  void writeTo(StringTree& out) 
   {
     Color rgb=toRGB();
     out.writeString("r",cstring((int)(255.0*rgb.get(0))));
@@ -310,8 +310,8 @@ public:
     out.writeString("a",cstring((int)(255.0*rgb.get(3))));
   }
   
-  //readFromObjectStream
-  void readFromObjectStream(ObjectStream& in) 
+  //readFrom
+  void readFrom(StringTree& in) 
   {
     int R=cint(in.readString("r"));
     int G=cint(in.readString("g"));

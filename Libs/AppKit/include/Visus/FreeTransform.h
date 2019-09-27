@@ -144,13 +144,13 @@ public:
   //glRender
   virtual void glRender(GLCanvas& gl) override;
 
-  //writeToObjectStream (to implement if needed!)
-  virtual void writeToObjectStream(ObjectStream& out) override {
+  //writeTo (to implement if needed!)
+  virtual void writeTo(StringTree& out) override {
     VisusAssert(false);
   }
 
-  //readFromObjectStream (to implement if needed!)
-  virtual void readFromObjectStream(ObjectStream& in) override {
+  //readFrom (to implement if needed!)
+  virtual void readFrom(StringTree& in) override {
     VisusAssert(false);
   }
 

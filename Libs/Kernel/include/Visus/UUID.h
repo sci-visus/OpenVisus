@@ -45,8 +45,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-class ObjectStream;
-
 ////////////////////////////////////////////////////
 class VISUS_KERNEL_API UUIDGenerator
 {

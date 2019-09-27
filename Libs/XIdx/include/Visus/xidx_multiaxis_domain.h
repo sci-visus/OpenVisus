@@ -76,18 +76,18 @@ public:
 
 public:
 
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) override
+  //writeTo
+  virtual void writeTo(StringTree& out) override
   {
-    Domain::writeToObjectStream(out);
+    Domain::writeTo(out);
     for (auto child : this->axis)
       writeChild<Axis>(out, "Axis", child);
   }
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) override
+  //readFrom
+  virtual void readFrom(StringTree& in) override
   {
-    Domain::readFromObjectStream(in);
+    Domain::readFrom(in);
     while (auto child = readChild<Axis>(in,"Axis"))
       addAxis(child);
   }

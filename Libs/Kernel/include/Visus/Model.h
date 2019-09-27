@@ -134,11 +134,11 @@ public:
 
 public:
 
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) = 0;
+  //writeTo
+  virtual void writeTo(StringTree& out) = 0;
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) = 0;
+  //readFrom
+  virtual void readFrom(StringTree& in) = 0;
 
 protected:
 
@@ -185,7 +185,7 @@ public:
   //clearHistory
   void clearHistory()
   {
-    this->history.clear();
+    this->history=StringTree();
     this->log.close();
     this->redos = std::stack<StringTree>();
     this->undos = std::stack<StringTree>();
@@ -196,7 +196,7 @@ public:
   }
 
   //getHistory
-  const std::vector<StringTree>& getHistory() const {
+  const StringTree& getHistory() const {
     return history;
   }
 
@@ -239,7 +239,7 @@ public:
 
     if (redos.empty())
     {
-      history.push_back(redo);
+      history.addChild(redo);
 
       if (!bUndoing && !bRedoing)
       {
@@ -294,7 +294,7 @@ private:
 
   typedef std::pair<StringTree, StringTree> UndoRedo;
 
-  std::vector<StringTree> history;
+  StringTree              history;
   std::ofstream           log;
   std::stack<StringTree>  redos;
   std::stack<StringTree>  undos;

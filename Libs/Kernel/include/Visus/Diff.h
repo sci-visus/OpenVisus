@@ -104,15 +104,14 @@ public:
     if (diff.empty())
       return;
 
-    StringTree stree(model->getTypeName());
-    ObjectStream out(stree, 'w');
-    model->writeToObjectStream(out);
+    StringTree out(model->getTypeName());
+    model->writeTo(out);
 
-    std::vector<String> curr = StringUtils::getNonEmptyLines(stree.toXmlString());
+    std::vector<String> curr = StringUtils::getNonEmptyLines(out.toXmlString());
     std::vector<String> next = bDirect? diff.applyDirect(curr) : diff.applyInverse(curr);
 
-    stree=StringTree();
-    if (!stree.fromXmlString(StringUtils::join(next,"\r\n")))
+    StringTree in;
+    if (!in.fromXmlString(StringUtils::join(next,"\r\n")))
     {
       String error_msg=StringUtils::format()<<"Error ApplyPatch::applyPatch()\r\n"
         <<"diff:\r\n" <<"[["<<diff.toString()<<"]]\r\n"
@@ -122,9 +121,8 @@ public:
       ThrowException(error_msg);
     }
 
-    ObjectStream in(stree,'r');
     model->beginUpdate();
-    model->readFromObjectStream(in);
+    model->readFrom(in);
     model->endUpdate();
   }
 

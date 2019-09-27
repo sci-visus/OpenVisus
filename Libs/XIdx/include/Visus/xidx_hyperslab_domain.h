@@ -78,16 +78,16 @@ public:
 
 public:
 
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) override
+  //writeTo
+  virtual void writeTo(StringTree& out) override
   {
-    ListDomain::writeToObjectStream(out);
+    ListDomain::writeTo(out);
   }
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) override
+  //readFrom
+  virtual void readFrom(StringTree& in) override
   {
-    ListDomain::readFromObjectStream(in);
+    ListDomain::readFrom(in);
     // TODO generalize for many slabs
     if(values.size()==3){
       start = values[0];

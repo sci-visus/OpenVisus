@@ -597,16 +597,16 @@ bool IsoContourNode::processInput()
 
 
 ///////////////////////////////////////////////////////////////////////
-void IsoContourNode::writeToObjectStream(ObjectStream& out)
+void IsoContourNode::writeTo(StringTree& out)
 {
-  Node::writeToObjectStream(out);
+  Node::writeTo(out);
   out.writeValue("isovalue",cstring(isovalue));
 }
 
 ///////////////////////////////////////////////////////////////////////
-void IsoContourNode::readFromObjectStream(ObjectStream& in) 
+void IsoContourNode::readFrom(StringTree& in) 
 {
-  Node::readFromObjectStream(in);
+  Node::readFrom(in);
   isovalue=cdouble(in.readValue("isovalue"));
 }
 

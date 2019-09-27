@@ -188,19 +188,18 @@ public:
   //toString
   String toString() const
   {
-    StringTree stree("DatasetTimesteps");
-    ObjectStream out(stree,'w');
-    const_cast<DatasetTimesteps*>(this)->writeToObjectStream(out);
-    return stree.toString();
+    StringTree out("DatasetTimesteps");
+    const_cast<DatasetTimesteps*>(this)->writeTo(out);
+    return out.toString();
   }
 
 public:
 
-  //writeToObjectStream
-  void writeToObjectStream(ObjectStream& out);
+  //writeTo
+  void writeTo(StringTree& out);
 
-  //readFromObjectStream
-  void readFromObjectStream(ObjectStream& in);
+  //readFrom
+  void readFrom(StringTree& in);
 
 private:
 

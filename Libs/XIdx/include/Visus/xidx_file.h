@@ -83,32 +83,30 @@ public:
   //load
   static VISUS_NEWOBJECT(XIdxFile*) load(String filename)
   {
-    StringTree stree;
-    if (!stree.fromXmlString(Utils::loadTextDocument(filename)))
+    StringTree in;
+    if (!in.fromXmlString(Utils::loadTextDocument(filename)))
       return nullptr;
 
-    ObjectStream in(stree, 'r');
     auto ret = new XIdxFile("");
-    ret->readFromObjectStream(in);
+    ret->readFrom(in);
     return ret;
   }
 
   //save
   bool save(String filename)
   {
-    StringTree stree(this->getTypeName());
-    ObjectStream out(stree, 'w');
-    this->writeToObjectStream(out);
-    Utils::saveTextDocument(filename, stree.toString());
+    StringTree out(this->getTypeName());
+    this->writeTo(out);
+    Utils::saveTextDocument(filename, out.toString());
     return true;
   }
 
 public:
 
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) override
+  //writeTo
+  virtual void writeTo(StringTree& out) override
   {
-    XIdxElement::writeToObjectStream(out);
+    XIdxElement::writeTo(out);
 
     //out.writeString("Name", name);
 
@@ -122,44 +120,40 @@ public:
       {
         String filename = XIdxFormatString(file_pattern + "/meta.xidx", child->domain_index);
 
-        if(auto xi_include = out.getCurrentContext()->addChild("xi:include"))
+        if(auto xi_include = out.addChild("xi:include"))
         {
           xi_include->writeString("href", filename.c_str());
           xi_include->writeString("xpointer", "xpointer(//Xidx/Group/Group)");
         }
 
         {
-          StringTree stree(child->getTypeName());
-          ObjectStream ostream(stree, 'w');
-          child->writeToObjectStream(out);
-          auto content = stree.toString();
+          StringTree out(child->getTypeName());
+          child->writeTo(out);
+          auto content = out.toString();
           Utils::saveTextDocument(filename,content);
         }
       }
     }
   };
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) override
+  //readFrom
+  virtual void readFrom(StringTree& in) override
   {
-    XIdxElement::readFromObjectStream(in);
+    XIdxElement::readFrom(in);
 
     while (auto child = readChild<Group>(in,"Group"))
       addGroup(child);
 
-    for (auto xi_include : in.getCurrentContext()->getChilds("xi:include"))
+    for (auto xi_include : in.getChilds("xi:include"))
     {
       auto filename = xi_include->readString("href");
 
-      StringTree stree;
-      if (!stree.fromXmlString(Utils::loadTextDocument(filename)))
+      StringTree in;
+      if (!in.fromXmlString(Utils::loadTextDocument(filename)))
         ThrowException("internal error");
 
       auto child = new Group();
-      {
-        ObjectStream istream(stree, 'r');
-        child->readFromObjectStream(in);
-      }
+      child->readFrom(in);
       addGroup(child);
     }
 

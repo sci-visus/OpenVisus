@@ -100,26 +100,26 @@ public:
 
 public:
 
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) {
+  //writeTo
+  virtual void writeTo(StringTree& out) {
     if(name.size())
       out.writeString("Name", name);
   }
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) {
+  //readFrom
+  virtual void readFrom(StringTree& in) {
     name = in.readString("Name", name);
   }
 
   //writeChilds
   template <typename T>
-  void writeChild(ObjectStream& out,String name, T* child) {
+  void writeChild(StringTree& out,String name, T* child) {
     if (child) out.writeObject(name,*child);
   }
 
   //readChilds
   template <typename T>
-  VISUS_NEWOBJECT(T*) readChild(ObjectStream& in, String name) 
+  VISUS_NEWOBJECT(T*) readChild(StringTree& in, String name) 
   {
     UniquePtr<T> ret(new T());
     return in.readObject(name, *ret)? ret.release() : nullptr;

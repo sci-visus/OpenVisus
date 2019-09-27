@@ -155,10 +155,10 @@ public:
   
 public:
 
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) override
+  //writeTo
+  virtual void writeTo(StringTree& out) override
   {
-    XIdxElement::writeToObjectStream(out);
+    XIdxElement::writeTo(out);
 
     out.writeString("Type", type.toString());
 
@@ -169,10 +169,10 @@ public:
       writeChild<Attribute>(out, "Attribute",child);
   }
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) override
+  //readFrom
+  virtual void readFrom(StringTree& in) override
   {
-    XIdxElement::readFromObjectStream(in);
+    XIdxElement::readFrom(in);
 
     this->type = DomainType::fromString(in.readString("Type"));
 

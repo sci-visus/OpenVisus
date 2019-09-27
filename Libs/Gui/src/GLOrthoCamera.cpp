@@ -430,9 +430,9 @@ void GLOrthoCamera::scale(double vs,Point2d center)
 
 
  ////////////////////////////////////////////////////////////////
-void GLOrthoCamera::writeToObjectStream(ObjectStream& out) 
+void GLOrthoCamera::writeTo(StringTree& out) 
 {
-  GLCamera::writeToObjectStream(out);
+  GLCamera::writeTo(out);
 
   out.writeValue("default_scale",cstring(default_scale));
   out.writeValue("disable_rotation",cstring(bDisableRotation));
@@ -449,9 +449,9 @@ void GLOrthoCamera::writeToObjectStream(ObjectStream& out)
 }
 
 ////////////////////////////////////////////////////////////////
-void GLOrthoCamera::readFromObjectStream(ObjectStream& in) 
+void GLOrthoCamera::readFrom(StringTree& in) 
 {
-  GLCamera::readFromObjectStream(in);
+  GLCamera::readFrom(in);
 
   pos=Point3d(in.readValue("pos","0  0  0"));
   dir=Point3d(in.readValue("dir","0  0 -1"));

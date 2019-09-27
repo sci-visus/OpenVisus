@@ -47,13 +47,12 @@ void Viewer::sendNetMessage(SharedPtr<NetConnection> netsnd,void* obj)
   VisusAssert(false);
 #else
 
-  StringTree stree(obj->getTypeName(obj));
-  ObjectStream out(stree, 'w');
+  StringTree out(obj->getTypeName(obj));
   out.writeString("request_id",cstring(++netsnd->request_id));
-  obj->writeToObjectStream(out);
+  obj->writeTo(out);
   out.close();
   NetRequest request(netsnd->url);
-  request.setTextBody(stree.toString());
+  request.setTextBody(out.toString());
 
   {
     ScopedLock lock(netsnd->requests_lock);
@@ -137,23 +136,21 @@ bool Viewer::addNetRcv(int port)
         <<std::endl
         <<std::endl;
 
-      StringTree stree;
-      if (!stree.fromXmlString(request.getTextBody()))
+      StringTree in;
+      if (!in.fromXmlString(request.getTextBody()))
       {
         VisusAssert(false);
         return;
       }
 
-      ObjectStream istream(stree, 'r');
-
   #if 1
         VisusAssert(false); //TODO
   #else
 
-      String TypeName = in.getCurrentContext()->name;
+      String TypeName = in.name;
       VisusAssert(!TypeName.empty());
       SharedPtr<Object> obj(ObjectFactory::getSingleton()->createInstance<Object>(TypeName));  VisusAssert(obj);
-      obj->readFromObjectStream(in);
+      obj->readFrom(in);
       in.close();
 
       if (auto update_glcamera=dynamic_cast<UpdateGLCamera*>(action.get()))

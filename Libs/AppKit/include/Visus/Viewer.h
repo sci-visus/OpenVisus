@@ -154,8 +154,8 @@ public:
       this->show_logos = Defaults::show_logos;
     }
 
-    //writeToObjectStream
-    void writeToObjectStream(ObjectStream& out)
+    //writeTo
+    void writeTo(StringTree& out)
     {
       out.writeValue("title", title);
       out.writeValue("panels", panels);
@@ -164,8 +164,8 @@ public:
       out.writeValue("screen_bounds", screen_bounds.toString());
     }
 
-    //readFromObjectStream
-    void readFromObjectStream(ObjectStream& in)
+    //readFrom
+    void readFrom(StringTree& in)
     {
       title = in.readValue("title");
       panels = in.readValue("panels");
@@ -488,11 +488,11 @@ public:
 
 public:
 
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) override;
+  //writeTo
+  virtual void writeTo(StringTree& out) override;
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& out) override;
+  //readFrom
+  virtual void readFrom(StringTree& out) override;
 
 public:
 

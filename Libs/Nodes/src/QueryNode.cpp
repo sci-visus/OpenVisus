@@ -352,9 +352,9 @@ void QueryNode::exitFromDataflow()
 }
 
 //////////////////////////////////////////////////////////////////
-void QueryNode::writeToObjectStream(ObjectStream& out) 
+void QueryNode::writeTo(StringTree& out) 
 {
-  Node::writeToObjectStream(out);
+  Node::writeTo(out);
 
   out.writeValue("verbose", cstring(verbose));
   out.writeValue("accessindex",cstring(accessindex));
@@ -368,9 +368,9 @@ void QueryNode::writeToObjectStream(ObjectStream& out)
 }
 
 //////////////////////////////////////////////////////////////////
-void QueryNode::readFromObjectStream(ObjectStream& in) 
+void QueryNode::readFrom(StringTree& in) 
 {
-  Node::readFromObjectStream(in);
+  Node::readFrom(in);
 
   this->verbose = cint(in.readValue("verbose"));
   this->accessindex=cint(in.readValue("accessindex"));

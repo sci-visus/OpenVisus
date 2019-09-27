@@ -732,9 +732,9 @@ void JTreeNode::updateAutoThreshold()
 
 
 ////////////////////////////////////////////////////////////
-void JTreeNode::writeToObjectStream(ObjectStream& out)
+void JTreeNode::writeTo(StringTree& out)
 {
-  Node::writeToObjectStream(out);
+  Node::writeTo(out);
 
   out.writeValue("minima_tree",cstring(minima_tree));
   out.writeValue("min_persistence",cstring(min_persistence));
@@ -745,9 +745,9 @@ void JTreeNode::writeToObjectStream(ObjectStream& out)
 }
 
 ////////////////////////////////////////////////////////////
-void JTreeNode::readFromObjectStream(ObjectStream& in)
+void JTreeNode::readFrom(StringTree& in)
 {
-  Node::readFromObjectStream(in);
+  Node::readFrom(in);
 
   minima_tree=cbool(in.readValue("minima_tree"));
   min_persistence=cdouble(in.readValue("min_persistence"));

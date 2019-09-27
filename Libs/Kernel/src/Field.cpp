@@ -41,7 +41,7 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////
-void Field::writeToObjectStream(ObjectStream& out)
+void Field::writeTo(StringTree& out)
 {
   out.writeValue("name",name);
 
@@ -68,7 +68,7 @@ void Field::writeToObjectStream(ObjectStream& out)
   //params
   if (!params.empty())
   {
-    if (auto params=out.getCurrentContext()->addChild("params"))
+    if (auto params=out.addChild("params"))
     {
       for (auto it : this->params)
         params->writeValue(it.first,it.second);
@@ -77,7 +77,7 @@ void Field::writeToObjectStream(ObjectStream& out)
 }
 
 ////////////////////////////////////////////////////
-void Field::readFromObjectStream(ObjectStream& in)
+void Field::readFrom(StringTree& in)
 {
   this->name=in.readValue("name");
   this->description=in.readValue("description");
@@ -92,7 +92,7 @@ void Field::readFromObjectStream(ObjectStream& in)
 
   this->params.clear();
 
-  if (auto params=in.getCurrentContext()->getChild("params"))
+  if (auto params=in.getChild("params"))
   {
     for (auto param : params->childs)
     {

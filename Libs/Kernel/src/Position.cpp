@@ -299,7 +299,7 @@ Position Position::shrink(BoxNd dst_box,LinearMap& map,Position in_position)
 }
 
 //////////////////////////////////////////////////
-void Position::writeToObjectStream(ObjectStream& out)
+void Position::writeTo(StringTree& out)
 {
   if (!valid())
     return;
@@ -311,7 +311,7 @@ void Position::writeToObjectStream(ObjectStream& out)
 }
 
 //////////////////////////////////////////////////
-void Position::readFromObjectStream(ObjectStream& in)
+void Position::readFrom(StringTree& in)
 {
   this->T= Matrix::identity(4);
   in.readObject("T", this->T);

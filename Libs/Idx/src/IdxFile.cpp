@@ -577,16 +577,15 @@ IdxFile IdxFile::load(Url url)
   //new xml format
   else
   {
-    StringTree stree;
-    if (!stree.fromXmlString(content))
+    StringTree in;
+    if (!in.fromXmlString(content))
     {
       VisusInfo()<<"idx file is wrong";
       VisusAssert(false);
       return IdxFile::invalid();
     }
 
-    ObjectStream in(stree,'r');
-    idxfile.readFromObjectStream(in);
+    idxfile.readFrom(in);
     idxfile.validate(url);
     if (!idxfile.valid())
     {
@@ -750,15 +749,14 @@ String IdxFile::toString() const
   }
   else
   {
-    StringTree stree("IdxFile");
-    ObjectStream out(stree,'w');
-    const_cast<IdxFile*>(this)->writeToObjectStream(out);
-    return stree.toString();
+    StringTree out("IdxFile");
+    const_cast<IdxFile*>(this)->writeTo(out);
+    return out.toString();
   }
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void IdxFile::writeToObjectStream(ObjectStream& out)
+void IdxFile::writeTo(StringTree& out)
 {
  if (!this->valid())
     ThrowException("internal error");
@@ -777,7 +775,7 @@ void IdxFile::writeToObjectStream(ObjectStream& out)
   out.writeValue("block_interleaving",cstring(this->block_interleaving));
   out.writeValue("filename_template",filename_template);
   
-  if (auto Fields = out.getCurrentContext()->addChild("fields"))
+  if (auto Fields = out.addChild("fields"))
   {
     for (auto field : this->fields)
       Fields->writeObject("field", field);
@@ -785,17 +783,17 @@ void IdxFile::writeToObjectStream(ObjectStream& out)
 
   if (!this->time_template.empty())
   {
-    if (auto TimeSteps = out.getCurrentContext()->addChild("Timesteps"))
+    if (auto TimeSteps = out.addChild("Timesteps"))
     {
       TimeSteps->writeValue("filename_template", this->time_template);
-      timesteps.writeToObjectStream(ObjectStream(*TimeSteps,'w'));
+      timesteps.writeTo(*TimeSteps);
     }
   }
 }
 
 
 //////////////////////////////////////////////////////////////////////////////
-void IdxFile::readFromObjectStream(ObjectStream& in)
+void IdxFile::readFrom(StringTree& in)
 {
   this->version           = cint(in.readValue("version"));
   this->bitmask = DatasetBitmask(in.readValue("bitmask"));
@@ -821,7 +819,7 @@ void IdxFile::readFromObjectStream(ObjectStream& in)
     for (auto child : fields->getChilds("field"))
     {
       Field field;
-      field.readFromObjectStream(ObjectStream(*child, 'r'));
+      field.readFrom(*child);
       VisusReleaseAssert(field.valid());
       this->fields.push_back(field);
     }
@@ -830,7 +828,7 @@ void IdxFile::readFromObjectStream(ObjectStream& in)
   if (auto Timesteps = in.getChild("Timesteps"))
   {
     this->time_template= Timesteps->readValue("filename_template");
-    this->timesteps.readFromObjectStream(ObjectStream(*Timesteps,'r'));
+    this->timesteps.readFrom(*Timesteps);
   }
 }
 

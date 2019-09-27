@@ -75,15 +75,15 @@ public:
 
 public:
 
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) override {
-    Node::writeToObjectStream(out);
+  //writeTo
+  virtual void writeTo(StringTree& out) override {
+    Node::writeTo(out);
     out.writeValue("T",T.toString());
   }
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) override {
-    Node::readFromObjectStream(in);
+  //readFrom
+  virtual void readFrom(StringTree& in) override {
+    Node::readFrom(in);
     T= Matrix::parseFromString(4,in.readValue("T"));
   }
 

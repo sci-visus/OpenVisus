@@ -406,9 +406,9 @@ void RenderArrayNode::glRender(GLCanvas& gl)
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RenderArrayNode::writeToObjectStream(ObjectStream& out)
+void RenderArrayNode::writeTo(StringTree& out)
 {
-  Node::writeToObjectStream(out);
+  Node::writeTo(out);
 
   out.writeValue("lighting_enabled",cstring(lighting_enabled));
   out.writeValue("palette_enabled",cstring(palette_enabled));
@@ -419,9 +419,9 @@ void RenderArrayNode::writeToObjectStream(ObjectStream& out)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RenderArrayNode::readFromObjectStream(ObjectStream& in)
+void RenderArrayNode::readFrom(StringTree& in)
 {
-  Node::readFromObjectStream(in);
+  Node::readFrom(in);
 
   this->lighting_enabled=cbool(in.readValue("lighting_enabled"));
   this->palette_enabled=cbool(in.readValue("palette_enabled"));

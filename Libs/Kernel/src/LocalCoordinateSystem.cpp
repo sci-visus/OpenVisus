@@ -109,7 +109,7 @@ LocalCoordinateSystem LocalCoordinateSystem::toUniformSize() const
 }
 
 ////////////////////////////////////////////////////////////////////
-void LocalCoordinateSystem::writeToObjectStream(ObjectStream& out) 
+void LocalCoordinateSystem::writeTo(StringTree& out) 
 {
   out.writeValue("x",x.toString());
   out.writeValue("y",y.toString());
@@ -118,7 +118,7 @@ void LocalCoordinateSystem::writeToObjectStream(ObjectStream& out)
 }
 
 ////////////////////////////////////////////////////////////////////
-void LocalCoordinateSystem::readFromObjectStream(ObjectStream& in) 
+void LocalCoordinateSystem::readFrom(StringTree& in) 
 {
   x=Point3d(in.readValue("x"));
   y=Point3d(in.readValue("y"));

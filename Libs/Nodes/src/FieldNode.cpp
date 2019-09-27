@@ -71,16 +71,16 @@ void FieldNode::doPublish()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-void FieldNode::writeToObjectStream(ObjectStream& out)
+void FieldNode::writeTo(StringTree& out)
 {
-  Node::writeToObjectStream(out);
+  Node::writeTo(out);
   out.writeText("fieldname",getFieldName());
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-void FieldNode::readFromObjectStream(ObjectStream& in)
+void FieldNode::readFrom(StringTree& in)
 {
-  Node::readFromObjectStream(in);
+  Node::readFrom(in);
   this->fieldname = in.readText("fieldname");
 }
 

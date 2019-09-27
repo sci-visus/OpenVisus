@@ -56,26 +56,26 @@ public:
   
 public:
   
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) override
+  //writeTo
+  virtual void writeTo(StringTree& out) override
   {
-    XIdxElement::writeToObjectStream(out);
+    XIdxElement::writeTo(out);
     out.writeString("Url", url);
     // TODO write content only if datasource is "inline"
     //writeUrlContent(out);
 
   }
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) override {
-    XIdxElement::readFromObjectStream(in);
+  //readFrom
+  virtual void readFrom(StringTree& in) override {
+    XIdxElement::readFrom(in);
     this->url  = in.readString("Url");
   }
 
 private:
 
   //writeUrlContent
-  void writeUrlContent(ObjectStream& out)
+  void writeUrlContent(StringTree& out)
   {
     auto content = Utils::loadTextDocument(this->url);
     if (content.empty())
@@ -93,7 +93,7 @@ private:
     if (!stree.fromXmlString(content))
       ThrowException("Invalid xml data");
 
-    out.getCurrentContext()->addChild(stree);
+    out.addChild(stree);
   }
 
 };

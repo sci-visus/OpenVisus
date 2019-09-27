@@ -145,16 +145,16 @@ bool CpuPaletteNode::processInput()
 
 
 ///////////////////////////////////////////////////////////////////////
-void CpuPaletteNode::writeToObjectStream(ObjectStream& out)
+void CpuPaletteNode::writeTo(StringTree& out)
 {
-  Node::writeToObjectStream(out);
+  Node::writeTo(out);
   out.writeObject("transfer_function",*transfer_function);
 }
 
 ///////////////////////////////////////////////////////////////////////
-void CpuPaletteNode::readFromObjectStream(ObjectStream& in)
+void CpuPaletteNode::readFrom(StringTree& in)
 {
-  Node::readFromObjectStream(in);
+  Node::readFrom(in);
   in.readObject("transfer_function",*transfer_function);
 }
 

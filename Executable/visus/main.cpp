@@ -653,11 +653,10 @@ public:
 
     VisusInfo() << "done fixFieldsRange";
 
-    StringTree stree("fields");
-    ObjectStream out(stree,'w');
+    StringTree out("fields");
     for (auto field : vf->getFields())
       out.writeObject("field", field);
-    VisusInfo() << stree.toString();
+    VisusInfo() << out.toString();
 
     return data;
   }

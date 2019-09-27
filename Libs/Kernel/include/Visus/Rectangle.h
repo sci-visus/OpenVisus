@@ -144,8 +144,8 @@ public:
     return !(operator==(other));
   }
 
-  //writeToObjectStream
-  void writeToObjectStream(ObjectStream& out) 
+  //writeTo
+  void writeTo(StringTree& out) 
   {
     out.writeString("x", cstring(x));
     out.writeString("y", cstring(y));
@@ -153,8 +153,8 @@ public:
     out.writeString("height", cstring(height));
   }
 
-  //readFromObjectStream
-  void readFromObjectStream(ObjectStream& in) 
+  //readFrom
+  void readFrom(StringTree& in) 
   {
     x = cint(in.readString("x"));
     y = cint(in.readString("y"));
@@ -263,8 +263,8 @@ public:
     return !(operator==(other));
   }
 
-  //writeToObjectStream
-  void writeToObjectStream(ObjectStream& out) 
+  //writeTo
+  void writeTo(StringTree& out) 
   {
     out.writeString("x", cstring(x));
     out.writeString("y", cstring(y));
@@ -272,8 +272,8 @@ public:
     out.writeString("height", cstring(height));
   }
 
-  //readFromObjectStream
-  void readFromObjectStream(ObjectStream& in) 
+  //readFrom
+  void readFrom(StringTree& in) 
   {
     x = cdouble(in.readString("x"));
     y = cdouble(in.readString("y"));

@@ -114,9 +114,9 @@ void TimeNode::doPublish(SharedPtr<ReturnReceipt> return_receipt)
 }
 
 //////////////////////////////////////////////////
-void TimeNode::writeToObjectStream(ObjectStream& out) 
+void TimeNode::writeTo(StringTree& out) 
 {
-  Node::writeToObjectStream(out);
+  Node::writeTo(out);
 
   out.writeValue("current_time",cstring(current_time));
 
@@ -129,9 +129,9 @@ void TimeNode::writeToObjectStream(ObjectStream& out)
 }
 
 //////////////////////////////////////////////////
-void TimeNode::readFromObjectStream(ObjectStream& in) 
+void TimeNode::readFrom(StringTree& in) 
 {
-  Node::readFromObjectStream(in);
+  Node::readFrom(in);
 
   current_time=cdouble(in.readValue("current_time"));
 

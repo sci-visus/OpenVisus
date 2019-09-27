@@ -435,15 +435,15 @@ public:
     return ret;
   }
 
-  //writeToObjectStream`
-  void writeToObjectStream(ObjectStream& out) 
+  //writeTo`
+  void writeTo(StringTree& out) 
   {
     out.writeValue("p1", p1.toString());
     out.writeValue("p2", p2.toString());
   }
 
-  //writeToObjectStream
-  void readFromObjectStream(ObjectStream& in) 
+  //writeTo
+  void readFrom(StringTree& in) 
   {
     p1 = Point::parseFromString(in.readValue("p1"));
     p2 = Point::parseFromString(in.readValue("p2"));

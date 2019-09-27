@@ -53,8 +53,7 @@ For support : support@visus.net
 
 namespace Visus {
 
-//predeclaration
-class ObjectStream;
+
 
 ///////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API StringTree 
@@ -304,7 +303,8 @@ public:
   {
     auto child = getChild(name);
     if (!child) return false;
-    obj.readFromObjectStream(ObjectStream(*child, 'r'));
+    obj.readFrom(*child);
+    return true;
   }
 
   //writeObject
@@ -314,7 +314,7 @@ public:
     auto child = addChild(name);
     if (!TypeName.empty())
       child->writeString("TypeName", TypeName);
-    obj.writeToObjectStream(ObjectStream(*child, 'w'));
+    obj.writeTo(*child);
   }
 
 public:
@@ -402,12 +402,6 @@ public:
     return toXmlString();
   }
 
-  //writeToObjectStream
-  void writeToObjectStream(ObjectStream& out);
-
-  //readFromObjectStream
-  void readFromObjectStream(ObjectStream& in);
-
 private:
 
   //toJSONString
@@ -415,171 +409,6 @@ private:
  
 }; //end class
 
-
-
-  /////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API ObjectStream
-{
-public:
-
-  VISUS_CLASS(ObjectStream)
-
-  StringMap run_time_options;
-
-  //constructor
-  ObjectStream(StringTree& root, int mode) : mode(0) {
-    VisusAssert(mode == 'w' || mode == 'r');
-    VisusReleaseAssert(!root.name.empty());
-    this->mode = mode;
-    this->stack = std::stack<StackItem>();
-    this->stack.push(StackItem(&root));
-  }
-
-  //destructor
-  virtual ~ObjectStream() {
-  }
-
-  //getCurrentContext
-  StringTree* getCurrentContext() const {
-    return stack.top().context;
-  }
-
-public:
-
-  //hasAttribute
-  bool hasAttribute(String name) {
-    return getCurrentContext()->hasAttribute(name);
-  }
-
-  //readString
-  String readString(String name, String default_value = "") const  {
-    return getCurrentContext()->readString(name, default_value);
-  }
-
-  //writeString
-  void writeString(String name, String value) {
-    getCurrentContext()->writeString(name,value);
-  }
-
-  //readInt
-  bool readBool(String key, bool default_value = false) const {
-    return cbool(readString(key, cstring(default_value)));
-  }
-
-  //writeBool
-  void writeBool(String key, bool value) {
-    writeString(key, cstring(value));
-  }
-
-  //readInt
-  int readInt(String key, int default_value = 0) const {
-    return cint(readString(key, cstring(default_value)));
-  }
-
-  //writeInt
-  void writeInt(String key, int value) {
-    writeString(key, cstring(value));
-  }
-
-  //readInt64
-  Int64 readInt64(String key, Int64 default_value = 0) const {
-    return cint64(readString(key, cstring(default_value)));
-  }
-
-  //writeInt64
-  void writeInt64(String key, Int64 value) {
-    writeString(key, cstring(value));
-  }
-
-  //readDouble
-  double readDouble(String key, double default_value = 0) const {
-    return cdouble(readString(key, cstring(default_value)));
-  }
-
-  //writeDouble
-  void writeDouble(String key, double value) {
-    writeString(key, cstring(value));
-  }
-
-
-  //writeObject
-  template <class Object>
-  void writeObject(Object& obj) {
-    obj.writeToObjectStream(*this);
-  }
-
-  //readObject
-  template <class Object>
-  void readObject(Object& obj) {
-    obj.readFromObjectStream(*this);
-  }
-
-  //writeObject
-  template <typename Value>
-  void writeObject(String name, Value& value,String TypeName="") {
-    getCurrentContext()->writeObject(name, value, TypeName);
-  }
-
-  //readObject
-  template <typename Value>
-  bool readObject(String name, Value& value) {
-    return getCurrentContext()->readObject(name, value);
-  }
-
-  //write
-  void writeValue(String name, String value) {
-    getCurrentContext()->writeValue(name, value);
-  }
-
-  //read
-  String readValue(String name, String default_value = "") {
-    return getCurrentContext()->readValue(name, default_value);
-  }
-
-  //writeText
-  void writeText(const String& value, bool bCData = false) {
-    getCurrentContext()->writeText(value, bCData);
-  }
-
-  //writeText
-  void writeText(String name, const String& value, bool bCData = false) {
-    getCurrentContext()->writeText(name, value, bCData);
-  }
-
-  //readText
-  String readText() {
-    return getCurrentContext()->readText();
-  }
-
-  //readText
-  String readText(String name) {
-    return getCurrentContext()->readText(name);
-  }
-
-  //addChild
-  SharedPtr<StringTree> addChild(String name) {
-    return getCurrentContext()->addChild(name);
-  }
-
-  //getChild
-  SharedPtr<StringTree> getChild(String name) {
-    return getCurrentContext()->getChild(name);
-  }
-
-private:
-
-  int mode;
-
-  class StackItem
-  {
-  public:
-    StringTree* context;
-    std::map<String, StringTree*> next_child;
-    StackItem(StringTree* context_ = nullptr) : context(context_) {}
-  };
-  std::stack<StackItem> stack;
-
-};
 
 
 

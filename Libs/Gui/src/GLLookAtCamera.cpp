@@ -331,10 +331,9 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
     }
     case Qt::Key_P:
     {
-      StringTree stree(this->getTypeName());
-      ObjectStream out(stree, 'w');
-      this->writeToObjectStream(out);
-      VisusInfo() << stree.toXmlString();
+      StringTree out(this->getTypeName());
+      this->writeTo(out);
+      VisusInfo() << out.toXmlString();
       evt->accept();
       return;
     }
@@ -558,9 +557,9 @@ void GLLookAtCamera::guessOrthoParams()
 
 
 //////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::writeToObjectStream(ObjectStream& out) 
+void GLLookAtCamera::writeTo(StringTree& out) 
 {
-  GLCamera::writeToObjectStream(out);
+  GLCamera::writeTo(out);
 
   out.writeValue("bound",bound.toString(/*bInterleave*/false));
   out.writeValue("pos",pos.toString());
@@ -578,9 +577,9 @@ void GLLookAtCamera::writeToObjectStream(ObjectStream& out)
 }
 
 //////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::readFromObjectStream(ObjectStream& in) 
+void GLLookAtCamera::readFrom(StringTree& in) 
 {
-  GLCamera::readFromObjectStream(in);
+  GLCamera::readFrom(in);
 
   bound = BoxNd::parseFromString(in.readValue("bound"),/*bInterleave*/false);
   bound.setPointDim(3);

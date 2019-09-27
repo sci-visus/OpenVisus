@@ -166,10 +166,10 @@ public:
 
 public:
   
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) override
+  //writeTo
+  virtual void writeTo(StringTree& out) override
   {
-    XIdxElement::writeToObjectStream(out);
+    XIdxElement::writeTo(out);
 
     out.writeString("Center", center_type.toString());
 
@@ -180,10 +180,10 @@ public:
       writeChild<Attribute>(out, "Attribute", child);
   }
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) override
+  //readFrom
+  virtual void readFrom(StringTree& in) override
   {
-    XIdxElement::readFromObjectStream(in);
+    XIdxElement::readFrom(in);
 
     this->center_type = CenterType::fromString(in.readString("Center"));
 

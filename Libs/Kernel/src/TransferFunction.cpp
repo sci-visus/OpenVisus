@@ -117,12 +117,12 @@ void RGBAColorMap::convertToArray(Array& dst,int nsamples,InterpolationMode::Typ
 }
 
 /////////////////////////////////////////////////////////////////
-void RGBAColorMap::writeToObjectStream(ObjectStream& out)
+void RGBAColorMap::writeTo(StringTree& out)
 {
   out.writeString("name",this->name);
   for (auto point : points)
   {
-    if (auto child = out.getCurrentContext()->addChild("Point"))
+    if (auto child = out.addChild("Point"))
     {
       child->writeString("x", cstring(point.x));
       child->writeString("r", cstring(point.color.getRed()));
@@ -135,13 +135,13 @@ void RGBAColorMap::writeToObjectStream(ObjectStream& out)
 }
 
 /////////////////////////////////////////////////////////////////
-void RGBAColorMap::readFromObjectStream(ObjectStream& in)
+void RGBAColorMap::readFrom(StringTree& in)
 {
   this->name=in.readString("name");
   VisusAssert(!name.empty());
 
   this->points.clear();
-  for (auto P : in.getCurrentContext()->getChilds("Point"))
+  for (auto P : in.getChilds("Point"))
   {
     double x=cdouble(P->readString("x"));
     double o=cdouble(P->readString("o"));
@@ -163,7 +163,7 @@ void RGBAColorMap::readFromObjectStream(ObjectStream& in)
 
 
 /////////////////////////////////////////////////////////////////////
-void TransferFunction::Single::writeToObjectStream(ObjectStream& out)
+void TransferFunction::Single::writeTo(StringTree& out)
 {
   std::ostringstream ss;
   for (int I = 0; I < (int)this->values.size(); I++)
@@ -174,11 +174,11 @@ void TransferFunction::Single::writeToObjectStream(ObjectStream& out)
 
   out.writeValue("name", name);
   out.writeValue("color", color.toString());
-  out.getCurrentContext()->writeText("values", ss.str());
+  out.writeText("values", ss.str());
 }
 
 /////////////////////////////////////////////////////////////////////
-void TransferFunction::Single::readFromObjectStream(ObjectStream& in)
+void TransferFunction::Single::readFrom(StringTree& in)
 {
   name = in.readValue("name");
   color = Color::parseFromString(in.readValue("color"));
@@ -545,7 +545,7 @@ Array TransferFunction::applyToArray(Array src,Aborted aborted)
 
 
 /////////////////////////////////////////////////////////////////////
-void TransferFunction::writeToObjectStream(ObjectStream& out)
+void TransferFunction::writeTo(StringTree& out)
 {
   bool bDefault=default_name.empty()?false:true;
 
@@ -554,14 +554,14 @@ void TransferFunction::writeToObjectStream(ObjectStream& out)
 
   out.writeString("attenuation",cstring(attenuation));
 
-  if (auto Input = out.getCurrentContext()->addChild("input"))
+  if (auto Input = out.addChild("input"))
   {
     Input->writeString("mode", cstring(input_range.mode));
     if (input_range.custom_range.delta() > 0)
       Input->writeObject("custom_range", input_range.custom_range);
   }
 
-  if (auto Output = out.getCurrentContext()->addChild("output"))
+  if (auto Output = out.addChild("output"))
   {
     Output->writeString("dtype", output_dtype.toString());
     Output->writeObject("range", output_range);
@@ -575,7 +575,7 @@ void TransferFunction::writeToObjectStream(ObjectStream& out)
 }
 
 /////////////////////////////////////////////////////////////////////
-void TransferFunction::readFromObjectStream(ObjectStream& in)
+void TransferFunction::readFrom(StringTree& in)
 {
   this->functions.clear();
   
@@ -585,13 +585,13 @@ void TransferFunction::readFromObjectStream(ObjectStream& in)
 
   this->attenuation=cdouble(in.readString("attenuation","0.0"));
 
-  if (auto Input = in.getCurrentContext()->getChild("input"))
+  if (auto Input = in.getChild("input"))
   {
     input_range.mode=(ComputeRange::Mode)cint(Input->readString("input.normalization"));
     Input->readObject("custom_range", input_range.custom_range);
   }
 
-  if (auto Output = in.getCurrentContext()->getChild("output"))
+  if (auto Output = in.getChild("output"))
   {
     output_dtype=DType::fromString(Output->readString("dtype"));
     Output->readObject("range", output_range);
@@ -605,10 +605,10 @@ void TransferFunction::readFromObjectStream(ObjectStream& in)
   {
     setNotDefault();
 
-    for (auto child : in.getCurrentContext()->getChilds("function"))
+    for (auto child : in.getChilds("function"))
     {
       auto single = std::make_shared<Single>();
-      single->readFromObjectStream(ObjectStream(*child,'r'));
+      single->readFrom(*child);
       functions.push_back(single);
     }
   }

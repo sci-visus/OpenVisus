@@ -170,16 +170,16 @@ public:
 
 public:
 
-  //writeToObjectStream
-  void writeToObjectStream(ObjectStream& out) 
+  //writeTo
+  void writeTo(StringTree& out) 
   {
     out.writeValue("from", cstring(this->from));
     out.writeValue("to", cstring(this->to));
     out.writeValue("step", cstring(this->step));
   }
 
-  //readFromObjectStream
-  void readFromObjectStream(ObjectStream& in) 
+  //readFrom
+  void readFrom(StringTree& in) 
   {
     this->from = (double)cdouble(in.readValue("from"));
     this->to = (double)cdouble(in.readValue("to"));

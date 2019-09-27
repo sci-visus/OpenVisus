@@ -74,11 +74,11 @@ public:
     return this->bounds;
   }
 
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) override;
+  //writeTo
+  virtual void writeTo(StringTree& out) override;
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) override;
+  //readFrom
+  virtual void readFrom(StringTree& in) override;
 
 private:
 

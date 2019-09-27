@@ -148,11 +148,11 @@ public:
   //convertToArray
   void convertToArray(Array& dst,int nsamples,InterpolationMode::Type type=InterpolationMode::Default);
 
-  //writeToObjectStream
-  void writeToObjectStream(ObjectStream& out);
+  //writeTo
+  void writeTo(StringTree& out);
 
-  //readFromObjectStream
-  void readFromObjectStream(ObjectStream& in);
+  //readFrom
+  void readFrom(StringTree& in);
 
 };
 
@@ -252,11 +252,11 @@ public:
 
 public:
 
-  //writeToObjectStream
-  void writeToObjectStream(ObjectStream& out);
+  //writeTo
+  void writeTo(StringTree& out);
 
-  //readFromObjectStream
-  void readFromObjectStream(ObjectStream& in);
+  //readFrom
+  void readFrom(StringTree& in);
 
 };
 
@@ -352,11 +352,11 @@ public:
 
 public:
 
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) override;
+  //writeTo
+  virtual void writeTo(StringTree& out) override;
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) override;
+  //readFrom
+  virtual void readFrom(StringTree& in) override;
   
 };
 

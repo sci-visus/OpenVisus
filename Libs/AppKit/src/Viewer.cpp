@@ -276,7 +276,6 @@ void Viewer::executeAction(StringTree action)
     auto dst = findNodeByUUID(action.readString("src"));
     auto index = action.readInt("index", -1);
     moveNode(dst, src, index);
-
     return;
   }
 
@@ -1201,8 +1200,8 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   //xml means a Viewer dataflow
   if (StringUtils::endsWith(url,".xml"))
   {
-    StringTree stree;
-    if (!stree.fromXmlString(Utils::loadTextDocument(url)))
+    StringTree in;
+    if (!in.fromXmlString(Utils::loadTextDocument(url)))
     {
       VisusAssert(false);
       return false;
@@ -1213,8 +1212,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
 
     try
     {
-      ObjectStream stream(stree, 'r');
-      this->readFromObjectStream(stream);
+      this->readFrom(in);
     }
     catch (std::exception ex)
     {
@@ -1326,22 +1324,21 @@ bool Viewer::saveFile(String url,bool bSaveHistory,bool bShowDialogs)
   if (Path(url).getExtension().empty())
     url=url+".xml";
 
-  StringTree stree(this->getTypeName());
-  ObjectStream out(stree,'w');
-  out.run_time_options.setValue("bSaveHistory",cstring(bSaveHistory));
-
   try
   {
-    this->writeToObjectStream(out);
-    String xmlcontent=stree.toString();
-    if (!Utils::saveTextDocument(url,xmlcontent))
+    if (bSaveHistory)
     {
-      if (bShowDialogs) 
-      {
-        String errmsg=StringUtils::format()<<"Failed to save file " << url;
-        QMessageBox::information(this,"Error",errmsg.c_str());
-      }
-      return false;
+      auto out = getHistory();
+      out.name = this->getTypeName();
+      out.writeString("version", cstring(ApplicationInfo::version));
+      out.writeString("git_revision", ApplicationInfo::git_revision);
+    }
+    else
+    {
+      StringTree out(this->getTypeName());
+      this->writeTo(out);
+      if (!Utils::saveTextDocument(url, out.toString()))
+        ThrowException("saveTextDocument failed");
     }
   }
   catch (std::exception ex)
@@ -2245,62 +2242,54 @@ StatisticsNode* Viewer::addStatisticsNode(Node* parent,Node* data_provider)
 }
 
 /////////////////////////////////////////////////////////////
-void Viewer::writeToObjectStream(ObjectStream& out)
+void Viewer::writeTo(StringTree& out)
 {
   out.writeString("version", cstring(ApplicationInfo::version));
   out.writeString("git_revision", ApplicationInfo::git_revision);
 
-  if (bool bSaveHistory = cbool(out.run_time_options.getValue("bSaveHistory")))
+  //first dump the nodes without parent... NOTE: the first one is always the getRoot()
+  auto root = dataflow->getRoot();
+  VisusAssert(root == dataflow->getNodes()[0]);
+  for (auto node : dataflow->getNodes())
   {
-    for (auto action : getHistory())
-      out.getCurrentContext()->addChild(action);
+    if (node->getParent()) continue;
+    out.addChild(StringTree("AddNode").withChild(node->encode()));
   }
-  else
+
+  //then the nodes in the tree...important the order! parents before childs
+  for (auto node : root->breadthFirstSearch())
   {
-    //first dump the nodes without parent... NOTE: the first one is always the getRoot()
-    auto root = dataflow->getRoot();
-    VisusAssert(root == dataflow->getNodes()[0]);
-    for (auto node : dataflow->getNodes())
-    {
-      if (node->getParent()) continue;
-      out.getCurrentContext()->addChild(StringTree("AddNode").withChild(node->encode()));
-    }
+    if (node == root) continue;
+    VisusAssert(node->getParent());
+    out.addChild(StringTree("AddNode","parent", getUUID(node->getParent())).withChild(node->encode()));
+  }
 
-    //then the nodes in the tree...important the order! parents before childs
-    for (auto node : root->breadthFirstSearch())
+  //ConnectPorts actions
+  for (auto node : dataflow->getNodes())
+  {
+    for (auto OT = node->outputs.begin(); OT != node->outputs.end(); OT++)
     {
-      if (node == root) continue;
-      VisusAssert(node->getParent());
-      out.getCurrentContext()->addChild(StringTree("AddNode","parent", getUUID(node->getParent())).withChild(node->encode()));
-    }
-
-    //ConnectPorts actions
-    for (auto node : dataflow->getNodes())
-    {
-      for (auto OT = node->outputs.begin(); OT != node->outputs.end(); OT++)
+      auto oport = OT->second;
+      for (auto IT = oport->outputs.begin(); IT != oport->outputs.end(); IT++)
       {
-        auto oport = OT->second;
-        for (auto IT = oport->outputs.begin(); IT != oport->outputs.end(); IT++)
-        {
-          auto iport = (*IT);
-          out.getCurrentContext()->addChild(StringTree("ConnectPorts","from", getUUID(oport->getNode()),"oport", oport->getName(),"iport", iport->getName(),"to", getUUID(iport->getNode())));
-        }
+        auto iport = (*IT);
+        out.addChild(StringTree("ConnectPorts","from", getUUID(oport->getNode()),"oport", oport->getName(),"iport", iport->getName(),"to", getUUID(iport->getNode())));
       }
     }
-
-    //selection
-    if (auto selection = getSelection())
-      out.getCurrentContext()->addChild(StringTree("SetSelection","node", getUUID(selection)));
   }
+
+  //selection
+  if (auto selection = getSelection())
+    out.addChild(StringTree("SetSelection","node", getUUID(selection)));
 }
 
 /////////////////////////////////////////////////////////////
-void Viewer::readFromObjectStream(ObjectStream& in)
+void Viewer::readFrom(StringTree& in)
 {
   double version = cdouble(in.readString("version"));
   String git_revision = in.readString("git_revision");
 
-  for (auto child : in.getCurrentContext()->childs)
+  for (auto child : in.childs)
   {
     if (child->isHashNode())
       continue;
@@ -2308,7 +2297,6 @@ void Viewer::readFromObjectStream(ObjectStream& in)
     this->executeAction(*child);
   }
 }
-
 
 } //namespace Visus
 

@@ -131,8 +131,7 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
     return StringTree();
   }
 
-  StringTree ret("stat");
-  ObjectStream out(ret, 'w');
+  StringTree out("stat");
   
   out.writeString("url",url);
   out.writeString("format", dataset->getTypeName());
@@ -145,7 +144,7 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
   for (auto field : dataset->getFields())
     out.writeObject("field", field);
 
-  return ret;
+  return out;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

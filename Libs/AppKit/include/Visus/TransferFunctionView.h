@@ -524,10 +524,9 @@ private:
   //refreshGui
   void refreshGui() {
 
-    StringTree stree(model->getTypeName());
-    ObjectStream out(stree, 'w');
-    model->writeToObjectStream(out);
-    auto content=stree.toXmlString();
+    StringTree out(model->getTypeName());
+    model->writeTo(out);
+    auto content= out.toXmlString();
     widgets.textedit->setText(content.c_str());
   }
 
@@ -539,15 +538,14 @@ private:
 
     String content = cstring(widgets.textedit->toPlainText());
 
-    StringTree stree;
-    if (!stree.fromXmlString(content))
+    StringTree in;
+    if (!in.fromXmlString(content))
     {
       VisusAssert(false);
       return;
     }
     auto tf = std::make_shared<TransferFunction>();
-    ObjectStream in(stree, 'r');
-    tf->readFromObjectStream(in);
+    tf->readFrom(in);
 
     TransferFunction::copy(*this->model,*tf);
   }
@@ -573,13 +571,13 @@ private:
     }
   
     //special case for Visit transfer function
-    StringTree stree;
-    if (stree.fromXmlString(content) && stree.name=="Object")
+    StringTree in;
+    if (in.fromXmlString(content) && in.name=="Object")
     {
       VisusInfo()<<"Loading Visit transfer function";
     
       RGBAColorMap rgba_colormap;
-      if (StringTree* controlpoints=stree.findChildWithName("Object/Object"))
+      if (StringTree* controlpoints= in.findChildWithName("Object/Object"))
       {
         for (auto controlpoint : controlpoints->childs)
         {
@@ -607,7 +605,7 @@ private:
       bool useColorVarMax=false; double colorVarMax=0;
       bool isFloatRange=false;
     
-      for (auto child : stree.childs)
+      for (auto child : in.childs)
       {
         String name=child->readString("name");
         String text=child->readText();
@@ -645,14 +643,13 @@ private:
     }
 
     auto tf = std::make_shared<TransferFunction>();
-    stree=StringTree();
-    if (!stree.fromXmlString(content))
+    in =StringTree();
+    if (!in.fromXmlString(content))
     {
       VisusAssert(false);
       return;
     }
-    ObjectStream in(stree, 'r');
-    tf->readFromObjectStream(in);
+    tf->readFrom(in);
 
     TransferFunction::copy(*this->model,*tf);
   }

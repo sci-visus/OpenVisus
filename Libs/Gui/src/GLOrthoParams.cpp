@@ -118,7 +118,7 @@ void GLOrthoParams::fixAspectRatio(const Viewport& old_value, const Viewport& ne
 }
 
 ////////////////////////////////////////////////////////////////////////
-void GLOrthoParams::writeToObjectStream(ObjectStream& out) 
+void GLOrthoParams::writeTo(StringTree& out) 
 {
   out.writeString("left", cstring(left));
   out.writeString("right", cstring(right));
@@ -129,7 +129,7 @@ void GLOrthoParams::writeToObjectStream(ObjectStream& out)
 }
 
 ////////////////////////////////////////////////////////////////////////
-void GLOrthoParams::readFromObjectStream(ObjectStream& in) 
+void GLOrthoParams::readFrom(StringTree& in) 
 {
   left   = cdouble(in.readString("left"));
   right  = cdouble(in.readString("right"));

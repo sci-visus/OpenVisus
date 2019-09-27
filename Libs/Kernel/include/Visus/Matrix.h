@@ -508,13 +508,13 @@ public:
     return o.str();
   }
 
-  //writeToObjectStream
-  void writeToObjectStream(ObjectStream& out) {
+  //writeTo
+  void writeTo(StringTree& out) {
     out.writeValue("matrix", this->toString());
   }
 
-  //writeToObjectStream
-  void readFromObjectStream(ObjectStream& in) {
+  //writeTo
+  void readFrom(StringTree& in) {
     (*this) = Matrix::parseFromString(in.readValue("matrix"));
   }
 

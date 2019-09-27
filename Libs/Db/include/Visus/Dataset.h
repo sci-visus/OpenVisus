@@ -498,11 +498,11 @@ public:
     return getDatasetBody();
   }
 
-  //writeToObjectStream
-  void writeToObjectStream(ObjectStream& out);
+  //writeTo
+  void writeTo(StringTree& out);
 
-  //readFromObjectStream
-  void readFromObjectStream(ObjectStream& in);
+  //readFrom
+  void readFrom(StringTree& in);
 
 private:
 

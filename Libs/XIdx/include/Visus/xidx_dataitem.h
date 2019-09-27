@@ -271,10 +271,10 @@ public:
 
 public:
   
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) override
+  //writeTo
+  virtual void writeTo(StringTree& out) override
   {
-    XIdxElement::writeToObjectStream(out);
+    XIdxElement::writeTo(out);
     out.writeString("Format", format_type.toString());
     out.writeString("DType", dtype.toString());
     out.writeString("Endian", endian_type.toString());
@@ -291,10 +291,10 @@ public:
       out.writeText(this->text);
   };
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) override
+  //readFrom
+  virtual void readFrom(StringTree& in) override
   {
-    XIdxElement::readFromObjectStream(in);
+    XIdxElement::readFrom(in);
 
     this->format_type = FormatType::fromString(in.readString("Format"));
     this->dtype       =      DType::fromString(in.readString("DType"));

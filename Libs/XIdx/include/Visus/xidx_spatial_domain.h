@@ -101,18 +101,18 @@ public:
 
 public:
 
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) override
+  //writeTo
+  virtual void writeTo(StringTree& out) override
   {
-    Domain::writeToObjectStream(out);
+    Domain::writeTo(out);
     writeChild<Topology>(out,"Topology",topology);
     writeChild<Geometry>(out, "Geometry", geometry);
   }
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) override
+  //readFrom
+  virtual void readFrom(StringTree& in) override
   {
-    Domain::readFromObjectStream(in);
+    Domain::readFrom(in);
 
     if (auto topology = readChild<Topology>(in, "Topology"))
       setTopology(topology);

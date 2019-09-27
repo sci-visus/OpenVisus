@@ -51,15 +51,15 @@ public:
 
 public:
 
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) override {
-    XIdxElement::writeToObjectStream(out);
+  //writeTo
+  virtual void writeTo(StringTree& out) override {
+    XIdxElement::writeTo(out);
     out.writeString("Value", value);
   }
 
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) override {
-    XIdxElement::readFromObjectStream(in);
+  //readFrom
+  virtual void readFrom(StringTree& in) override {
+    XIdxElement::readFrom(in);
     this->value = in.readString("Value");
   }
   

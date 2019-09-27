@@ -418,7 +418,7 @@ SharedPtr<DataflowValue> Node::previewInput(String iport)
 }
 
 ////////////////////////////////////////////////////////////
-void Node::writeToObjectStream(ObjectStream& out)
+void Node::writeTo(StringTree& out)
 {
   if (!uuid.empty()) 
     out.writeString("uuid",uuid);
@@ -431,7 +431,7 @@ void Node::writeToObjectStream(ObjectStream& out)
 }
 
 ////////////////////////////////////////////////////////////
-void Node::readFromObjectStream(ObjectStream& in)
+void Node::readFrom(StringTree& in)
 {
   this->uuid=in.readString("uuid");
   this->name=in.readString("name");
@@ -441,20 +441,18 @@ void Node::readFromObjectStream(ObjectStream& in)
 ////////////////////////////////////////////////////////////
 StringTree Node::encode()
 {
-  StringTree stree(this->getTypeName());
-  ObjectStream out(stree, 'w');
-  writeToObjectStream(out);
-  return stree;
+  StringTree out(this->getTypeName());
+  writeTo(out);
+  return out;
 }
 
 ////////////////////////////////////////////////////////////
-Node* Node::decode(StringTree encoded)
+Node* Node::decode(StringTree in)
 {
-  ObjectStream in(encoded, 'r');
-  auto TypeName = in.readString("TypeName", encoded.name);
+  auto TypeName = in.readString("TypeName", in.name);
   auto ret = NodeFactory::getSingleton()->createInstance(TypeName);
   VisusAssert(ret);
-  ret->readFromObjectStream(in);
+  ret->readFrom(in);
   return ret;
 }
 

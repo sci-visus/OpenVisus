@@ -1052,9 +1052,9 @@ bool VoxelScoopNode::processInput()
 
 
 /////////////////////////////////////////////////////////////
-void VoxelScoopNode::writeToObjectStream(ObjectStream& out)
+void VoxelScoopNode::writeTo(StringTree& out)
 {
-  Node::writeToObjectStream(out);
+  Node::writeTo(out);
   out.writeValue("simplify",cstring(simplify));
   out.writeValue("min_length",cstring(min_length));
   out.writeValue("min_ratio",cstring(min_ratio)); 
@@ -1065,9 +1065,9 @@ void VoxelScoopNode::writeToObjectStream(ObjectStream& out)
 }
 
 /////////////////////////////////////////////////////////////
-void VoxelScoopNode::readFromObjectStream(ObjectStream& in)
+void VoxelScoopNode::readFrom(StringTree& in)
 {
-  Node::readFromObjectStream(in);
+  Node::readFrom(in);
   simplify=cbool(in.readValue("simplify"));
   min_length=cdouble(in.readValue("min_length"));
   min_ratio=cdouble(in.readValue("min_ratio"));

@@ -79,9 +79,9 @@ void DatasetNode::exitFromDataflow()
 {Node::exitFromDataflow();}
 
 //////////////////////////////////////////////////////////////////////////
-void DatasetNode::writeToObjectStream(ObjectStream& out) 
+void DatasetNode::writeTo(StringTree& out) 
 {
-  Node::writeToObjectStream(out);
+  Node::writeTo(out);
 
   if (dataset)
     out.writeObject("dataset",*dataset, dataset->getTypeName());
@@ -90,15 +90,15 @@ void DatasetNode::writeToObjectStream(ObjectStream& out)
 }
 
 //////////////////////////////////////////////////////////////////////////
-void DatasetNode::readFromObjectStream(ObjectStream& in) 
+void DatasetNode::readFrom(StringTree& in) 
 {
-  Node::readFromObjectStream(in);
+  Node::readFrom(in);
 
-  if (auto child = in.getChild("dataset"))
+  if (auto Dataset = in.getChild("dataset"))
   {
-    auto TypeName = child->readString("TypeName");
+    auto TypeName = Dataset->readString("TypeName");
     dataset=DatasetFactory::getSingleton()->createInstance(TypeName);
-    dataset->readFromObjectStream(ObjectStream(*child,'r'));
+    dataset->readFrom(*Dataset);
   }
 
   show_bounds=cbool(in.readValue("show_bounds"));

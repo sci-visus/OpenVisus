@@ -144,17 +144,17 @@ void PaletteNode::exitFromDataflow() {
 }
 
 ///////////////////////////////////////////////////////////////////////
-void PaletteNode::writeToObjectStream(ObjectStream& out) 
+void PaletteNode::writeTo(StringTree& out) 
 {
-  Node::writeToObjectStream(out);
+  Node::writeTo(out);
   out.writeObject("palette",*palette);
 }
 
 
 ///////////////////////////////////////////////////////////////////////
-void PaletteNode::readFromObjectStream(ObjectStream& in) 
+void PaletteNode::readFrom(StringTree& in) 
 {
-  Node::readFromObjectStream(in);
+  Node::readFrom(in);
   in.readObject("palette",*palette);
 }
 

@@ -1334,23 +1334,21 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 {
   auto DATASET = this;
 
-  StringTree BODY;
-  if (!BODY.fromXmlString(Utils::loadTextDocument(URL.toString())))
+  StringTree in;
+  if (!in.fromXmlString(Utils::loadTextDocument(URL.toString())))
     return false;
 
-  BODY.writeString("url", URL.toString());
+  in.writeString("url", URL.toString());
 
   setUrl(URL);
-  setDatasetBody(BODY.toString());
-
-  ObjectStream in(BODY, 'r');
+  setDatasetBody(in.toString());
 
   this->bMosaic = cbool(in.readString("mosaic"));
 
-  if (in.getCurrentContext()->getChild("slam"))
+  if (in.getChild("slam"))
     this->bSlam = true;
 
-  parseDatasets(in.getCurrentContext(),Matrix());
+  parseDatasets(&in,Matrix());
 
   if (down_datasets.empty())
   {
@@ -1526,13 +1524,13 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   //if (pdim==2)
   //  this->kdquery_mode = KdQueryMode::UseBoxQuery;
 
-  if (in.getCurrentContext()->findChildWithName("field"))
+  if (in.findChildWithName("field"))
   {
     clearFields();
 
     int generate_name = 0;
 
-    for (auto child : in.getCurrentContext()->getChilds("field"))
+    for (auto child : in.getChilds("field"))
     {
       String name = child->readString("name");
       if (name.empty())

@@ -477,25 +477,6 @@ int StringTree::getMaxDepth()
   return ret;
 }
 
-/////////////////////////////////////////////////
-void StringTree::writeToObjectStream(ObjectStream& out)
-{
-  StringTree* dst=out.getCurrentContext();
-  StringTree* src=this;
-  VisusAssert(dst->empty() && (dst->name.empty() || dst->name==src->name));
-  *dst=*src;
-}
-
-/////////////////////////////////////////////////
-void StringTree::readFromObjectStream(ObjectStream& in)
-{
-  StringTree* dst=this;
-  StringTree* src=in.getCurrentContext();
-  VisusAssert(dst->empty() && (dst->name.empty() || dst->name==src->name));
-  *dst=*src;
-}
-
-
 static TiXmlElement* ToXmlElement(const StringTree& src)
 {
   TiXmlElement* dst = new TiXmlElement(src.name.c_str());

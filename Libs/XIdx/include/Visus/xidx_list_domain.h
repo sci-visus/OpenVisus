@@ -70,21 +70,21 @@ public:
 
 public:
 
-  //writeToObjectStream
-  virtual void writeToObjectStream(ObjectStream& out) override
+  //writeTo
+  virtual void writeTo(StringTree& out) override
   {
     data_items.back()->values = this->values;
     // TODO The user should set the dimensionality of the list (not here)
     if(data_items.back()->dimensions.size() == 0)
       data_items.back()->dimensions.push_back((int)this->values.size());
-    Domain::writeToObjectStream(out);
+    Domain::writeTo(out);
 
   }
   
-  //readFromObjectStream
-  virtual void readFromObjectStream(ObjectStream& in) override 
+  //readFrom
+  virtual void readFrom(StringTree& in) override 
   {
-    Domain::readFromObjectStream(in);
+    Domain::readFrom(in);
 //    for (auto it : StringUtils::split(in.readText()))
 //      this->values.push_back(cdouble(it));
 

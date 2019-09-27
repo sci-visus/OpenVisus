@@ -79,9 +79,9 @@ void GLCameraNode::setGLCamera(SharedPtr<GLCamera> value)
 }
 
 //////////////////////////////////////////////////
-void GLCameraNode::writeToObjectStream(ObjectStream& out) 
+void GLCameraNode::writeTo(StringTree& out) 
 {
-  Node::writeToObjectStream(out);
+  Node::writeTo(out);
 
   if (glcamera)
     out.writeObject("glcamera",*glcamera, glcamera->getTypeName());
@@ -90,9 +90,9 @@ void GLCameraNode::writeToObjectStream(ObjectStream& out)
 }
 
 //////////////////////////////////////////////////
-void GLCameraNode::readFromObjectStream(ObjectStream& in) 
+void GLCameraNode::readFrom(StringTree& in) 
 {
-  Node::readFromObjectStream(in);
+  Node::readFrom(in);
 
   if (auto child = in.getChild("glcamera"))
   {
@@ -113,7 +113,7 @@ void GLCameraNode::readFromObjectStream(ObjectStream& in)
     VisusReleaseAssert(glcamera->getTypeName()==TypeName);
 
     this->glcamera->beginUpdate();
-    this->glcamera->readFromObjectStream(ObjectStream(*child,'r'));
+    this->glcamera->readFrom(*child);
     this->glcamera->endUpdate();
   }
 }

@@ -214,9 +214,9 @@ void JTreeRenderNode::glRender(GLCanvas& gl)
 
 
 /////////////////////////////////////////////////////////////
-void JTreeRenderNode::writeToObjectStream(ObjectStream& out)
+void JTreeRenderNode::writeTo(StringTree& out)
 {
-  Node::writeToObjectStream(out);
+  Node::writeTo(out);
 
   out.writeValue("color_by_component",cstring(color_by_component));
   out.writeValue("draw_saddles",cstring(draw_saddles));
@@ -231,9 +231,9 @@ void JTreeRenderNode::writeToObjectStream(ObjectStream& out)
 }
 
 /////////////////////////////////////////////////////////////
-void JTreeRenderNode::readFromObjectStream(ObjectStream& in)
+void JTreeRenderNode::readFrom(StringTree& in)
 {
-  Node::readFromObjectStream(in);
+  Node::readFrom(in);
 
   color_by_component=cbool(in.readValue("color_by_component"));
   draw_saddles=cbool(in.readValue("draw_saddles"));
