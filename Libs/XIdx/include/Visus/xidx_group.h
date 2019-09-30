@@ -283,7 +283,7 @@ public:
 public:
 
   //writeTo
-  virtual void writeTo(StringTree& out) override
+  virtual void writeTo(StringTree& out) const override
   {
     XIdxElement::writeTo(out);
 
@@ -383,14 +383,11 @@ public:
 
     for (auto xi_include : in.getChilds("xi:include"))
     {
-      auto filename = xi_include->readString("href");
-
-      StringTree in;
-      if (!in.fromXmlString(Utils::loadTextDocument(filename)))
-        ThrowException("internal error");
-
+      auto content = Utils::loadTextDocument(xi_include->readString("href"));
+      StringTree tmp = StringTree::fromString(content);
+      VisusAssert(tmp.valid());
       auto child = new Group();
-      child->readFrom(in);
+      child->readFrom(tmp);
 
       addGroup(child);
     }

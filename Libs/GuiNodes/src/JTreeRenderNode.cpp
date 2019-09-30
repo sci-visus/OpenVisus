@@ -214,7 +214,7 @@ void JTreeRenderNode::glRender(GLCanvas& gl)
 
 
 /////////////////////////////////////////////////////////////
-void JTreeRenderNode::writeTo(StringTree& out)
+void JTreeRenderNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
 

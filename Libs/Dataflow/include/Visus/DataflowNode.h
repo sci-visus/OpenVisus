@@ -133,13 +133,13 @@ public:
     return parent;
   }
 
-  //isHidden
-  bool isHidden() const {
-    return hidden;
+  //isVisible
+  bool isVisible() const {
+    return visible;
   }
 
-  //setHidden
-  void setHidden(bool value);
+  //setVisible
+  void setVisible(bool value);
 
   //getChilds
   const std::vector<Node*>& getChilds()  const {
@@ -297,7 +297,7 @@ public:
 public:
 
   //writeTo
-  virtual void writeTo(StringTree& out) override;
+  virtual void writeTo(StringTree& out) const override;
 
   //readFrom
   virtual void readFrom(StringTree& in) override;
@@ -315,7 +315,7 @@ protected:
   Dataflow*                    dataflow;
   String                       uuid;
   String                       name;
-  bool                         hidden;
+  bool                         visible;
   Node*                        parent;
   std::vector<Node*>           childs;
 

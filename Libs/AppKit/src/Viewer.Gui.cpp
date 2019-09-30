@@ -144,7 +144,7 @@ void Viewer::createToolBar()
     tab->addAction(actions.RefreshData);
     tab->addWidget(widgets.toolbar->auto_refresh.check = GuiFactory::CreateCheckBox(false, "Auto refresh", [this](int value) {
       auto auto_refresh = getAutoRefresh();
-      auto_refresh.bEnabled = value ? true : false;
+      auto_refresh.enabled = value ? true : false;
       setAutoRefresh(auto_refresh);
 
     }));
@@ -338,13 +338,13 @@ void Viewer::createActions()
 
     String name = cstring(QInputDialog::getText(this, "Insert the name:", "", QLineEdit::Normal, selection->getName().c_str()));
     if (name.empty()) return;
-    setName(selection, name);
+    setNodeName(selection, name);
   }));
 
   addAction(actions.ShowHideNode=GuiFactory::CreateAction("Hide node",this, QIcon(":/eye.png"), [this]() {
     auto selection = getSelection();
     if (!selection) return;
-    setHidden(selection, !selection->isHidden());
+    setNodeVisible(selection, selection->isVisible());
   }));
 
   addAction(actions.AddGroup=GuiFactory::CreateAction("Add Group",this, QIcon(":/group.png"), [this]() {
@@ -642,7 +642,7 @@ void Viewer::refreshActions()
   actions.RenameNode->setEnabled(selection?true:false);
 
   actions.ShowHideNode->setEnabled(selection?true:false);
-  actions.ShowHideNode->setText(selection && selection->isHidden()? "Show node" : "Hide Node");
+  actions.ShowHideNode->setText(selection && selection->isVisible()? "Hide node" : "Show Node");
   
   actions.Undo->setEnabled(canUndo());
   actions.Redo->setEnabled(canRedo());

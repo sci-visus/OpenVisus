@@ -51,12 +51,12 @@ FilterAccess::FilterAccess(Dataset* dataset,StringTree config)
   this->can_read       = StringUtils::find(chmod,"r")>=0;
   this->can_write      = StringUtils::find(chmod,"w")>=0;
 
-  auto target_access = *config.findChildWithName("access");
+  auto target_access = config.getChild("access");
 
-  if (!target_access.hasValue("url"))
-    target_access.writeString("url",url.toString());
+  if (!target_access->hasValue("url"))
+    target_access->writeString("url",url.toString());
 
-  this->target=dataset->createAccess(target_access);
+  this->target=dataset->createAccess(*target_access);
   if (!this->target)
     ThrowException("Invalid <access> for FilterAccess");
 

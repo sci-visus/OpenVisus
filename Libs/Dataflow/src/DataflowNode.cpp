@@ -45,7 +45,7 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////
-Node::Node(String name) :  name(name),dataflow(nullptr),hidden(false),parent(nullptr)
+Node::Node(String name) :  name(name),dataflow(nullptr),visible(true),parent(nullptr)
 {
   this->uuid=UUIDGenerator::getSingleton()->create();
 }
@@ -106,15 +106,15 @@ void Node::setName(String new_value)
 }
 
 //////////////////////////////////////////////////////////
-void Node::setHidden(bool new_value)
+void Node::setVisible(bool new_value)
 {
   VisusAssert(VisusHasMessageLock());
 
-  auto old_value=isHidden();
+  auto old_value=isVisible();
   if (old_value==new_value)
     return;
 
-  setProperty(this->hidden, new_value);
+  setProperty(this->visible, new_value);
 
   if (dataflow)
   {
@@ -418,7 +418,7 @@ SharedPtr<DataflowValue> Node::previewInput(String iport)
 }
 
 ////////////////////////////////////////////////////////////
-void Node::writeTo(StringTree& out)
+void Node::writeTo(StringTree& out) const
 {
   if (!uuid.empty()) 
     out.writeString("uuid",uuid);
@@ -426,8 +426,8 @@ void Node::writeTo(StringTree& out)
   if (!name.empty())
     out.writeString("name",name);
 
-  if (hidden)
-    out.writeString("hidden",cstring(hidden));
+  if (!visible)
+    out.writeString("visible",cstring(visible));
 }
 
 ////////////////////////////////////////////////////////////
@@ -435,7 +435,7 @@ void Node::readFrom(StringTree& in)
 {
   this->uuid=in.readString("uuid");
   this->name=in.readString("name");
-  this->hidden=cbool(in.readString("hidden"));
+  this->visible=in.readBool("visible",true);
 }
 
 ////////////////////////////////////////////////////////////

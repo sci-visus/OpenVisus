@@ -136,8 +136,8 @@ bool Viewer::addNetRcv(int port)
         <<std::endl
         <<std::endl;
 
-      StringTree in;
-      if (!in.fromXmlString(request.getTextBody()))
+      StringTree in=StringTree::fromString(request.getTextBody());
+      if (!in.valid())
       {
         VisusAssert(false);
         return;

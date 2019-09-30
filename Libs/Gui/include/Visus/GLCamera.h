@@ -114,7 +114,7 @@ public:
 public:
 
   //writeTo
-  virtual void writeTo(StringTree& out) override {
+  virtual void writeTo(StringTree& out) const  override {
   }
 
   //readFrom

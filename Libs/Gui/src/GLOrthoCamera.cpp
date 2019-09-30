@@ -430,7 +430,7 @@ void GLOrthoCamera::scale(double vs,Point2d center)
 
 
  ////////////////////////////////////////////////////////////////
-void GLOrthoCamera::writeTo(StringTree& out) 
+void GLOrthoCamera::writeTo(StringTree& out) const
 {
   GLCamera::writeTo(out);
 

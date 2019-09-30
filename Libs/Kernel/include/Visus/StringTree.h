@@ -50,10 +50,7 @@ For support : support@visus.net
 #include <iostream>
 #include <vector>
 
-
 namespace Visus {
-
-
 
 ///////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API StringTree 
@@ -77,22 +74,22 @@ public:
 
   //constructor
   StringTree(String name, String k1, String v1) : StringTree(name) {
-    writeString(k1, v1);
+    write(k1, v1);
   }
 
   //constructor
   StringTree(String name, String k1, String v1, String k2, String v2) : StringTree(name, k1, v1) {
-    writeString(k2, v2);
+    write(k2, v2);
   }
 
   //constructor
   StringTree(String name, String k1, String v1, String k2, String v2, String k3, String v3) : StringTree(name, k1, v1, k2, v2) {
-    writeString(k3, v3);
+    write(k3, v3);
   }
 
   //constructor
   StringTree(String name, String k1, String v1, String k2, String v2, String k3, String v3, String k4, String v4) : StringTree(name, k1, v1, k2, v2, k3, v3) {
-    writeString(k4, v4);
+    write(k4, v4);
   }
 
   //copy constructor
@@ -104,8 +101,13 @@ public:
   virtual ~StringTree(){
   }
 
-  //fromXmlString
-  bool fromXmlString(String content, bool bEnablePostProcessing = true);
+  //valid
+  bool valid() const {
+    return !name.empty();
+  }
+
+  //fromString
+  static StringTree fromString(String content, bool bEnablePostProcessing = true);
 
   //operator=
   StringTree& operator=(const StringTree& other) {
@@ -155,48 +157,32 @@ public:
   }
 
   //addChild
-  void addChild(SharedPtr<StringTree> child) {
+  StringTree& addChild(SharedPtr<StringTree> child) {
     childs.push_back(child);
+    return *this;
   }
 
 #if !SWIG
-
   //addChild
-  void addChild(const StringTree& child) {
-    addChild(std::make_shared<StringTree>(child));
+  StringTree& addChild(const StringTree& child) {
+    return addChild(std::make_shared<StringTree>(child));
   }
-
-  //withChild
-  StringTree& withChild(SharedPtr<StringTree> child) {
-    addChild(child);
-    return *this;
-  }
-
-  //withChild
-  StringTree& withChild(const StringTree& child) {
-    addChild(child);
-    return *this;
-  }
-
 #endif
 
   //addChild
   SharedPtr<StringTree> addChild(String name) {
-    auto ret = std::make_shared<StringTree>(name);
-    addChild(ret);
-    return ret;
+    auto cursor = NormalizeW(this, name);
+    auto child = std::make_shared<StringTree>(name);
+    cursor->addChild(child);
+    return child;
   }
+
 
   //clear
   void clear()
   {
     attributes.clear(); 
     childs.clear();
-  }
-
-  //empty
-  bool empty() const {
-    return attributes.empty() && childs.empty();
   }
 
   //hasValue
@@ -206,94 +192,107 @@ public:
 
 public:
 
-  //read
-  String readString(String key, String default_value = "") const;
+  //write
+  StringTree& write(String key, String value);
 
   //writeString
-  void writeString(String key, String value);
+  StringTree& writeString(String key, String value) {
+    return write(key, value);
+  }
+
+  //write
+  StringTree& write(String key, bool value) {
+    return write(key, cstring(value));
+  }
+
+  //write
+  StringTree& write(String key, int value) {
+    return write(key, cstring(value));
+  }
+
+  //write
+  StringTree& write(String key, Int64 value) {
+    return write(key, cstring(value));
+  }
+
+  //write
+  StringTree& write(String key, double value) {
+    return write(key, cstring(value));
+  }
+
+  //write
+  template <class Value>
+  StringTree& write(String key, const Value& value) {
+    return write(key, value.toString());
+  }
+
+  //read
+  String read(String key, String default_value = "") const;
+
+  //readString
+  String readString(String key, String default_value = "") const {
+    return read(key, default_value);
+  }
 
   //readInt
   bool readBool(String key, bool default_value = false) const {
-    return cbool(readString(key, cstring(default_value)));
-  }
-
-  //writeBool
-  void writeBool(String key, bool value) {
-    writeString(key, cstring(value));
+    return cbool(read(key, cstring(default_value)));
   }
 
   //readInt
   int readInt(String key, int default_value = 0) const {
-    return cint(readString(key, cstring(default_value)));
-  }
-
-  //writeInt
-  void writeInt(String key, int value) {
-    writeString(key, cstring(value));
+    return cint(read(key, cstring(default_value)));
   }
 
   //readInt64
   Int64 readInt64(String key, Int64 default_value = 0) const {
-    return cint64(readString(key, cstring(default_value)));
-  }
-
-  //writeInt64
-  void writeInt64(String key, Int64 value) {
-    writeString(key, cstring(value));
+    return cint64(read(key, cstring(default_value)));
   }
 
   //readDouble
   double readDouble(String key, double default_value = 0) const {
-    return cdouble(readString(key, cstring(default_value)));
+    return cdouble(read(key, cstring(default_value)));
   }
-
-  //writeDouble
-  void writeDouble(String key, double value) {
-    writeString(key, cstring(value));
-  }
-
 
   //readText
   String readText() const;
 
   //writeText
-  void writeText(const String& text, bool bCData = false) {
+  StringTree& writeText(const String& text, bool bCData = false) {
     if (bCData)
       childs.push_back(std::make_shared<StringTree>("#cdata-section", "value", text));
     else
       childs.push_back(std::make_shared<StringTree>("#text", "value", text));
+    return *this;
   }
 
   //readText
   String readText(String name) const {
-    if (auto child = findChildWithName(name))
+    if (auto child = getChild(name))
       return child->readText();
     else
       return "";
   }
 
   //writeText
-  void writeText(String name, const String& value, bool bCData = false) {
-    auto child = std::make_shared<StringTree>(name);
-    child->writeText(value, bCData);
-    childs.push_back(child);
-  }
+  StringTree& writeText(String name, const String& value, bool bCData = false) {
 
+    auto cursor = NormalizeW(this,name);
+    cursor->addChild(name)->writeText(value,bCData);
+    return *this;
+  }
 
   //write
-  void writeValue(String name, String value) {
-    addChild(StringTree(name, "value", value));
-  }
-
-  StringTree& withValue(String name, String value) {
-    writeValue(name, value);
+  StringTree& writeValue(String name, String value) {
+    auto cursor = NormalizeW(this, name);
+    cursor->addChild(name)->writeString("value", value);
     return *this;
   }
 
   //read
   String readValue(String name, String default_value = "")
   {
-    auto child = findChildWithName(name);
+    auto child = getChild(name);
     return child ? child->readString("value", default_value) : default_value;
   }
 
@@ -309,12 +308,14 @@ public:
 
   //writeObject
   template <class Object>
-  void writeObject(String name, Object& obj,String TypeName="")
+  StringTree& writeObject(String name, Object& obj,String TypeName="")
   {
-    auto child = addChild(name);
+    auto cursor=NormalizeW(this,name);
+    auto child = cursor->addChild(name);
     if (!TypeName.empty())
-      child->writeString("TypeName", TypeName);
+      child->write("TypeName", TypeName);
     obj.writeTo(*child);
+    return *this;
   }
 
 public:
@@ -329,43 +330,19 @@ public:
     return childs[I];
   }
 
-  //getChild
-  SharedPtr<StringTree> getChild(String name) const {
-    for (auto child : childs)
-      if (child->name == name)
-        return child;
-    return SharedPtr<StringTree>();
-  }
-
-
-  //getChild
-  std::vector< SharedPtr<StringTree> > getChilds(String name) const {
-    std::vector< SharedPtr<StringTree> > ret;
-    for (auto child : childs)
-      if (child->name == name)
-        ret.push_back(child);
-    return ret;
-  }
-
   //getFirstChild
   SharedPtr<StringTree> getFirstChild() const {
     return getChild(0);
   }
 
-  //findChildWithName
-  StringTree* findChildWithName(String name, StringTree* prev = NULL) const;
+  //getChild
+  SharedPtr<StringTree> getChild(String name) const;
 
-  //findAllChildsWithName
-  std::vector<StringTree*> findAllChildsWithName(String name, bool bRecursive=true) const;
+  //getChild
+  std::vector< SharedPtr<StringTree> > getChilds(String name) const;
 
-
-  //findChildsWithName
-  std::vector<StringTree*> findChildsWithName(String name) const {
-    return findAllChildsWithName(name, false);
-  }
-
-  //getMaxDepth
-  int getMaxDepth();
+  //getAllChilds
+  std::vector<StringTree*> getAllChilds(String name) const;
 
   //internal use only
   static StringTree postProcess(const StringTree& src);
@@ -407,8 +384,13 @@ private:
   //toJSONString
   static String toJSONString(const StringTree& stree, int nrec);
  
-}; //end class
+  //NormalizeR
+  static const StringTree* NormalizeR(const StringTree* cursor, String& key);
 
+  //NormalizeW
+  static StringTree* NormalizeW(StringTree* cursor, String& key);
+
+}; //end class
 
 
 

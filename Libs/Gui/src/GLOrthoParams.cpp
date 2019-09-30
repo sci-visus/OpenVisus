@@ -118,7 +118,7 @@ void GLOrthoParams::fixAspectRatio(const Viewport& old_value, const Viewport& ne
 }
 
 ////////////////////////////////////////////////////////////////////////
-void GLOrthoParams::writeTo(StringTree& out) 
+void GLOrthoParams::writeTo(StringTree& out) const
 {
   out.writeString("left", cstring(left));
   out.writeString("right", cstring(right));

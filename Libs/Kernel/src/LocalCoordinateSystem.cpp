@@ -109,7 +109,7 @@ LocalCoordinateSystem LocalCoordinateSystem::toUniformSize() const
 }
 
 ////////////////////////////////////////////////////////////////////
-void LocalCoordinateSystem::writeTo(StringTree& out) 
+void LocalCoordinateSystem::writeTo(StringTree& out) const
 {
   out.writeValue("x",x.toString());
   out.writeValue("y",y.toString());

@@ -110,8 +110,8 @@ public:
     std::vector<String> curr = StringUtils::getNonEmptyLines(out.toXmlString());
     std::vector<String> next = bDirect? diff.applyDirect(curr) : diff.applyInverse(curr);
 
-    StringTree in;
-    if (!in.fromXmlString(StringUtils::join(next,"\r\n")))
+    StringTree in=StringTree::fromString(StringUtils::join(next, "\r\n"));
+    if (!in.valid())
     {
       String error_msg=StringUtils::format()<<"Error ApplyPatch::applyPatch()\r\n"
         <<"diff:\r\n" <<"[["<<diff.toString()<<"]]\r\n"

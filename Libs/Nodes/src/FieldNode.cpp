@@ -71,7 +71,7 @@ void FieldNode::doPublish()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-void FieldNode::writeTo(StringTree& out)
+void FieldNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
   out.writeText("fieldname",getFieldName());

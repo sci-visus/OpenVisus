@@ -49,6 +49,7 @@ For support : support@visus.net
 #include <Visus/Canvas.h>
 #include <Visus/ArrayStatisticsView.h>
 #include <Visus/CollapsibleSection.h>
+#include <Visus/RGBAColorMap.h>
 
 #include <QApplication>
 #include <QFontDatabase>
@@ -126,16 +127,15 @@ private:
     VisusAssert(model);
     this->img.reset();
 
-    int nfunctions = (int)model->functions.size();
+    int nfunctions = model->getNumberOfFunctions();
     if (!(nfunctions>=1 && nfunctions<=4))
       return;
 
-    int nsamples = (int)model->size();
+    int nsamples = model->getNumberOfSamples();
     if (!nsamples)
       return;
 
-    double attenuation=model->attenuation;
-
+    double attenuation=model->getAttenuation();
     std::vector<double>* R=(nfunctions>=1)? &model->functions[0]->values : nullptr;
     std::vector<double>* G=(nfunctions>=2)? &model->functions[1]->values : nullptr;
     std::vector<double>* B=(nfunctions>=3)? &model->functions[2]->values : nullptr;
@@ -228,7 +228,7 @@ public:
   }
 
   //isSelected
-  bool isSelected(TransferFunction::Single* fn)
+  bool isSelected(SingleTransferFunction* fn)
   {
     int F=0; 
     for (auto it : model->functions) 
@@ -339,29 +339,41 @@ public:
     update();
   }
 
+  //getSelectedFunctions
+  std::vector<int> getSelectedFunctions() const
+  {
+    std::vector<int> ret;
+    for (auto F = 0; F < model->functions.size(); F++)
+    {
+      auto fn = model->functions[F];
+      if (selection->isSelected(fn.get()))
+        ret.push_back(F);
+    }
+    return ret;
+  }
+
   //mousePressEvent
   virtual void mousePressEvent(QMouseEvent* evt) override 
   {
     // painting functions
     if (model && evt->button()==Qt::LeftButton && model->functions.size())
     { 
-      model->beginUpdate();
+      model->pushAction(
+        StringTree("Transaction"),
+        StringTree("Transaction"));
 
+#if 0
       //do not send too much updates
       dragging.reset(new QTimer());
       connect(dragging.get(),&QTimer::timeout,[this](){
-        model->endUpdate();
-        model->beginUpdate(); 
+        model->popAction();
+        model->pushAction(); 
       });
       dragging->start(500);
+#endif
 
-      auto pos=QUtils::convert<Point2d>(unproject(evt->pos()));
-      for (auto fn : model->functions) {
-        if (selection->isSelected(fn.get()))
-          fn->setValue(pos[0],pos[1]);
-      }
-
-      model->setNotDefault();
+      auto pos = QUtils::convert<Point2d>(unproject(evt->pos()));
+      model->drawLine(pos,pos, getSelectedFunctions());
       last_pos = pos;
     }
     else
@@ -378,11 +390,7 @@ public:
     if (dragging)
     {
       auto pos=QUtils::convert<Point2d>(unproject(evt->pos()));
-      for (auto fn : model->functions) {
-        if (selection->isSelected(fn.get()))
-          fn->setValue(last_pos[0],last_pos[1],pos[0],pos[1]);
-      }
-      model->setNotDefault();
+      model->drawLine(last_pos, pos, getSelectedFunctions());
       last_pos = pos;
     }
     else
@@ -399,7 +407,7 @@ public:
   {
     if (dragging)
     {
-      model->endUpdate();
+      model->popAction();
       dragging.reset();
     }
     else
@@ -420,17 +428,17 @@ public:
     renderBackground(painter);
     renderGrid(painter);
 
-    int nvalues=(int)model->size();
+    int nsamples=model->getNumberOfSamples();
 
     if (bool bRenderFunctions=true)
     {
       for (auto fn : model->functions)
       {
-        std::vector<QPointF> points(nvalues);
+        std::vector<QPointF> points(nsamples);
 
-        for (int I = 0; I < nvalues; I++)
+        for (int I = 0; I < nsamples; I++)
         {
-          double x=I/(double)(nvalues-1);
+          double x=I/(double)(nsamples -1);
           double y=fn->values[I];
           points[I] = project(QPointF(x,y));
         }
@@ -449,7 +457,7 @@ public:
       painter.drawLine(QPointF(screenpos[0],0), QPointF(screenpos[0],this->height()));
       painter.drawLine(QPointF(0,screenpos[1]), QPointF(this->width(),screenpos[1]));
 
-      int    x=Utils::clamp((int)round(pos[0]*(nvalues-1)),0,nvalues-1);
+      int    x=Utils::clamp((int)round(pos[0]*(nsamples -1)),0, nsamples -1);
       double y=pos[1];
       painter.drawText(QPoint(2,this->height()-12),(StringUtils::format()<<"x("<<(int)x<<") y("<<y<<")").str().c_str());
     }
@@ -537,17 +545,8 @@ private:
       return;
 
     String content = cstring(widgets.textedit->toPlainText());
-
-    StringTree in;
-    if (!in.fromXmlString(content))
-    {
-      VisusAssert(false);
-      return;
-    }
-    auto tf = std::make_shared<TransferFunction>();
-    tf->readFrom(in);
-
-    TransferFunction::copy(*this->model,*tf);
+    auto other = TransferFunction::fromString(content);
+    (*this->model) = *other;
   }
 
   //doOpen
@@ -571,34 +570,31 @@ private:
     }
   
     //special case for Visit transfer function
-    StringTree in;
-    if (in.fromXmlString(content) && in.name=="Object")
+    StringTree in=StringTree::fromString(content);
+    if (in.valid() && in.name=="Object")
     {
       VisusInfo()<<"Loading Visit transfer function";
     
       RGBAColorMap rgba_colormap;
-      if (StringTree* controlpoints= in.findChildWithName("Object/Object"))
+      if (auto controlpoints= in.getChild("Object/Object"))
       {
         for (auto controlpoint : controlpoints->childs)
         {
-          auto fields= controlpoint->findAllChildsWithName("Field",false);
+          auto fields= controlpoint->getChilds("Field");
 
           if (fields.size()!=2) 
             continue;
 
           VisusAssert(fields[0]->readString("name")=="colors");
           VisusAssert(fields[1]->readString("name")=="position");
-          String colors  =        fields[0]->readText();
+          Color color  = Color::fromString(fields[0]->readText());
           double position=cdouble(fields[1]->readText());
-          rgba_colormap.points.push_back(RGBAColorMap::Point(position, Color::fromString(colors)));
+          rgba_colormap.setColorAt(position, color);
         }
-        rgba_colormap.refreshMinMax();
       }
-      VisusAssert(!rgba_colormap.points.empty());
 
-      const int N=256;
-      Array src;
-      rgba_colormap.convertToArray(src, N);
+      const int nsamples=256;
+      Array src=rgba_colormap.toArray(nsamples);
 
       double attenuation=1.0;
       bool useColorVarMin=false; double colorVarMin=0;
@@ -614,15 +610,18 @@ private:
         {
           auto alpha=GetComponentSamples<Uint8>(src,3);
           std::istringstream istream(text);
-          for (int I=0;I<N;I++) {
-            int val; istream >> val;
+          for (int I=0;I< nsamples;I++) {
+            int val; 
+            istream >> val;
             alpha[I] = (Uint8) val;
           }
         }
-        else if (name=="opacityAttenuation") attenuation    = cdouble(text);
+        else if (name=="opacityAttenuation") 
+          attenuation    = cdouble(text);
+
         else if (name=="colorVarMin")
         {
-          isFloatRange = (child->readString("type")=="float");
+          isFloatRange = child->readString("type")=="float";
           colorVarMin  = cdouble(text);
         }
         else if (name=="colorVarMax"       ) colorVarMax    = cdouble(text);
@@ -630,28 +629,24 @@ private:
         else if (name=="useColorVarMin"    ) useColorVarMin = cbool(text);
       }
 
-      {
-        this->model->beginUpdate();
-        this->model->setFromArray(src,/*default_name*/"");
-        this->model->output_dtype=isFloatRange? DTypes::FLOAT32_RGBA : DTypes::UINT8_RGBA;
-        this->model->attenuation=attenuation;
-        if (useColorVarMax || useColorVarMin)
-          this->model->input_range= ComputeRange::createCustom(colorVarMin, colorVarMax);
-        this->model->endUpdate();
-      }
-      return;
-    }
+      auto other=TransferFunction::fromArray(src);
+      if (useColorVarMax || useColorVarMin)
+        other->setInputRange(ComputeRange::createCustom(colorVarMin, colorVarMax));
+      other->setOutputDType(isFloatRange ? DTypes::FLOAT32_RGBA : DTypes::UINT8_RGBA);
+      other->setAttenutation(attenuation);
 
-    auto tf = std::make_shared<TransferFunction>();
-    in =StringTree();
-    if (!in.fromXmlString(content))
+      *this->model = *other;
+    }
+    else
     {
-      VisusAssert(false);
-      return;
+      auto other = TransferFunction::fromString(content);
+      if (!other)
+      {
+        VisusAssert(false);
+        return;
+      }
+      *this->model = *other;
     }
-    tf->readFrom(in);
-
-    TransferFunction::copy(*this->model,*tf);
   }
 
   //doSave
@@ -743,14 +738,11 @@ public:
 
       layout->addWidget(new QLabel("X axis"));
 
-      auto normalization = model->input_range;
+      auto normalization = model->getInputRange();
       
       layout->addWidget(new QLabel("Num samples"));
-      layout->addWidget(widgets.nsamples = GuiFactory::CreateIntegerTextBoxWidget((int)model->size(), [this](int nsamples) {
-        model->beginUpdate();
-        for (auto fn : model->functions)
-          fn->resize(nsamples);
-        model->endUpdate();
+      layout->addWidget(widgets.nsamples = GuiFactory::CreateIntegerTextBoxWidget((int)model->getNumberOfSamples(), [this](int nsamples) {
+        model->setNumberOfSamples(nsamples);
       }));
 
       std::vector<String> options={"Use Array Range","Compute Range Per Component", "Compute Overall Range","Use Custom Range"};
@@ -781,19 +773,19 @@ private:
   //updateInputNormalization
   void updateInputNormalization()
   {
-    auto value = model->input_range;
+    auto value = model->getInputRange();
     value.mode = (ComputeRange::Mode)widgets.input.normalization.mode->currentIndex();
     value.custom_range.from = cdouble(widgets.input.normalization.custom_range.from->text());
     value.custom_range.to = cdouble(widgets.input.normalization.custom_range.to->text());
-    value.custom_range.step = model->output_dtype.isDecimal() ? 0.0 : 1.0;
-    model->setProperty(model->input_range, value);
+    value.custom_range.step = model->getOutputDType().isDecimal() ? 0.0 : 1.0;
+    model->setInputRange(value);
   }
 
   //refreshGui
   void refreshGui()
   {
-    auto normalization = model->input_range;
-    widgets.nsamples->setText(cstring(model->size()).c_str());
+    auto normalization = model->getInputRange();
+    widgets.nsamples->setText(cstring(model->getNumberOfSamples()).c_str());
     widgets.input.normalization.mode->setCurrentIndex(normalization.mode);
 
     auto& dst = widgets.input.normalization.custom_range;
@@ -860,29 +852,29 @@ public:
 
       layout->addWidget(new QLabel("Number functions"));
       layout->addWidget(widgets.nfunctions = GuiFactory::CreateIntegerTextBoxWidget((int)model->functions.size(), [this](int value) {
-        this->model->setNumberOfFunctions(value);
+        model->setNumberOfFunctions(std::max(1, value));
       }));
 
       layout->addWidget(new QLabel("Output dtype"));
-      layout->addWidget(widgets.dtype = GuiFactory::CreateComboBox(model->output_dtype.toString().c_str(),{"uint8","float32","float64"},[this](String s){
+      layout->addWidget(widgets.dtype = GuiFactory::CreateComboBox(model->getOutputDType().toString().c_str(),{"uint8","float32","float64"},[this](String s){
           DType value=DType::fromString(s);
-          model->setProperty(model->output_dtype,value);
+          model->setOutputDType(value);
           update();
       }));
 
       layout->addWidget(new QLabel("Range from"));
-      layout->addWidget(widgets.range_from = GuiFactory::CreateDoubleTextBoxWidget(model->output_range.from,[this](double value){
-        model->setProperty(model->output_range,Range(value,model->output_range.to,0));
+      layout->addWidget(widgets.range_from = GuiFactory::CreateDoubleTextBoxWidget(model->getOutputRange().from,[this](double value){
+        model->setOutputRange(Range(value,model->getOutputRange().to,0));
       }));
 
       layout->addWidget(new QLabel("Range to"));
-      layout->addWidget(widgets.range_to = GuiFactory::CreateDoubleTextBoxWidget(model->output_range.to,[this](double value){
-        model->setProperty(model->output_range , Range(model->output_range.from,value,0));
+      layout->addWidget(widgets.range_to = GuiFactory::CreateDoubleTextBoxWidget(model->getOutputRange().to,[this](double value){
+        model->setOutputRange(Range(model->getOutputRange().from,value,0));
         }));
 
       layout->addWidget(new QLabel("Attenuation"));
-      layout->addWidget(widgets.attenuation=GuiFactory::CreateDoubleSliderWidget(model->attenuation,Range(0,1,0),[this](double value){
-        model->setProperty(model->attenuation,value);
+      layout->addWidget(widgets.attenuation=GuiFactory::CreateDoubleSliderWidget(model->getAttenuation(),Range(0,1,0),[this](double value){
+        model->setAttenutation(value);
       }));
 
       setLayout(layout);
@@ -896,10 +888,11 @@ private:
   void refreshGui()
   {
     widgets.nfunctions->setText(cstring((int)model->functions.size()).c_str());
-    widgets.dtype->setCurrentText(model->output_dtype.toString().c_str());
-    widgets.range_from->setText(cstring(model->output_range.from).c_str());
-    widgets.range_to->setText(cstring(model->output_range.to).c_str());
-    widgets.attenuation->setValue(model->attenuation);
+    widgets.dtype->setCurrentText(model->getOutputDType().toString().c_str());
+    widgets.range_from->setText(cstring(model->getOutputRange().from).c_str());
+    widgets.range_to->setText(cstring(model->getOutputRange().to).c_str());
+    widgets.attenuation->setValue(model->getAttenuation());
+    widgets.attenuation->setValue(model->getAttenuation());
   }
 
   //modelChanged
@@ -924,7 +917,6 @@ public:
   public:
     TransferFunctionColorBarView*             colorbar=nullptr;
     TransferFunctionSelectedFunctionsView*    selection=nullptr;
-    QComboBox*                                default_interpolation=nullptr;
     QComboBox*                                default_palette=nullptr;
     QToolButton*                              btImport=nullptr;
     QToolButton*                              btExport=nullptr;
@@ -977,20 +969,10 @@ public:
         row->addWidget(new QLabel("Set default"));
         {
           auto combo=GuiFactory::CreateComboBox(TransferFunction::getDefaults()[0],TransferFunction::getDefaults(),[this](String name){
-            this->model->setDefault(name);
+            (*this->model)= *TransferFunction::getDefault(name);
           });
-          combo->setCurrentText(this->model->default_name.c_str()); 
+          combo->setCurrentText(this->model->getDefaultName().c_str()); 
           row->addWidget(widgets.default_palette=combo);
-        }
-
-        row->addWidget(new QLabel("Interpolation"));
-        {
-          auto values = InterpolationMode::getValues();
-          auto combo = GuiFactory::CreateComboBox(values[0], values, [this](String type) {
-            this->model->setProperty(this->model->interpolation,InterpolationMode::fromString(type));
-          });
-          combo->setCurrentText(this->model->interpolation.toString().c_str());
-          row->addWidget(widgets.default_interpolation = combo);
         }
 
         row->addWidget(widgets.show_checkboard=GuiFactory::CreateCheckBox(true,"Show alpha",[this](int value){

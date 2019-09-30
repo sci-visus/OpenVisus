@@ -42,25 +42,21 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////////////////////
-void DatasetTimesteps::writeTo(StringTree& out) 
+void DatasetTimesteps::writeTo(StringTree& out)  const
 {
   for (int I=0;I<size();I++)
   {
     if (getAt(I).a==getAt(I).b)
     {
-      if (auto Timestep = out.addChild("Timestep"))
-      {
-        Timestep->writeValue("when", cstring(getAt(I).a));
-      }
+      out.addChild(StringTree("Timestep")
+        .write("when", cstring(getAt(I).a)));
     }
     else
     {
-      if (auto IRange = out.addChild("IRange"))
-      {
-        IRange->writeValue("a", cstring(getAt(I).a));
-        IRange->writeValue("b", cstring(getAt(I).b));
-        IRange->writeValue("step", cstring(getAt(I).step));
-      }
+      out.addChild(StringTree("IRange")
+        .write("a", cstring(getAt(I).a))
+        .write("b", cstring(getAt(I).b))
+        .write("step", cstring(getAt(I).step)));
     }
   }
 }
@@ -74,14 +70,14 @@ void DatasetTimesteps::readFrom(StringTree& in)
   {
     if (child->name =="Timestep")
     {
-      int t=cint(child->readValue("when"));
+      int t=cint(child->read("when"));
       values.push_back(IRange(t,t,1));
     }
     else if (child->name =="IRange")
     {
-      int a=cint(child->readValue("a"));
-      int b=cint(child->readValue("b"));
-      int step=cint(child->readValue("step"));
+      int a=cint(child->read("a"));
+      int b=cint(child->read("b"));
+      int step=cint(child->read("step"));
       values.push_back(IRange(a,b,step));
     }
   }

@@ -557,7 +557,7 @@ void GLLookAtCamera::guessOrthoParams()
 
 
 //////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::writeTo(StringTree& out) 
+void GLLookAtCamera::writeTo(StringTree& out) const
 {
   GLCamera::writeTo(out);
 

@@ -540,7 +540,7 @@ bool KdQueryNode::processInput()
     this->setAccess(SharedPtr<Access>());
     if (dataset)
     {
-      std::vector<StringTree*> access_configs=dataset->getAccessConfigs();
+      auto access_configs=dataset->getAccessConfigs();
       int accessindex=getAccessIndex();
       if (accessindex>=0 && accessindex<(int)access_configs.size())
         this->setAccess(dataset->createAccess(*access_configs[accessindex]));

@@ -153,6 +153,8 @@ source_group("Array"  FILES
 	./src/Statistics.cpp
 	./include/Visus/Histogram.h
 	./src/Histogram.cpp
+	./include/Visus/RGBAColorMap.h
+	./src/RGBAColorMap.cpp
 	./include/Visus/TransferFunction.h
 	./src/TransferFunction.cpp
 	./src/TransferFunction.Defaults.cpp)

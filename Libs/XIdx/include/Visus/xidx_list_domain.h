@@ -71,7 +71,7 @@ public:
 public:
 
   //writeTo
-  virtual void writeTo(StringTree& out) override
+  virtual void writeTo(StringTree& out) const override
   {
     data_items.back()->values = this->values;
 

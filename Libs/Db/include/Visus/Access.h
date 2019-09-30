@@ -219,7 +219,7 @@ public:
   }
 
   //writeTo
-  virtual void writeTo(StringTree& out) {
+  virtual void writeTo(StringTree& out) const {
     ThrowException("not supported");
   }
 

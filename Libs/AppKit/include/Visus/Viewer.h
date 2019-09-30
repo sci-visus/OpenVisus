@@ -110,7 +110,7 @@ public:
 class VISUS_APPKIT_API Viewer :
   public QMainWindow,
   public Dataflow::Listener,
-  public UndoableModel<Viewer>
+  public UndoableModel
 {
   Q_OBJECT
 
@@ -120,9 +120,8 @@ public:
   class VISUS_APPKIT_API AutoRefresh
   {
   public:
-    bool bEnabled = false;
-    int msec = 0;
-    SharedPtr<QTimer> timer;
+    bool enabled = false;
+    int  msec = 0;
   };
 
   //_____________________________________________________________
@@ -155,7 +154,7 @@ public:
     }
 
     //writeTo
-    void writeTo(StringTree& out)
+    void writeTo(StringTree& out) const
     {
       out.writeValue("title", title);
       out.writeValue("panels", panels);
@@ -218,18 +217,8 @@ public:
   //showLicences
   void showLicences();
 
-#if !SWIG
-
-  //beginUpdate
-  virtual void beginUpdate() override;
-
-  //endUpdate
-  virtual void endUpdate() override;
-
   //executeAction
-  void executeAction(StringTree action);
-
-#endif
+  virtual void executeAction(StringTree action) override;
 
   //getModel
   Dataflow* getDataflow() {
@@ -312,11 +301,11 @@ public:
   //New
   void New();
 
-  //setName
-  void setName(Node* node, String value);
+  //setNodeName
+  void setNodeName(Node* node, String value);
 
-  //setHidden
-  void setHidden(Node* node, bool value);
+  //setNodeVisible
+  void setNodeVisible(Node* node, bool value);
 
   //addNode
   void addNode(Node* parent, Node* VISUS_DISOWN(node), int index = -1);
@@ -489,7 +478,7 @@ public:
 public:
 
   //writeTo
-  virtual void writeTo(StringTree& out) override;
+  virtual void writeTo(StringTree& out) const override;
 
   //readFrom
   virtual void readFrom(StringTree& out) override;
@@ -823,6 +812,7 @@ private:
   Connections                           netsnd;
   Color                                 background_color;
   AutoRefresh                           auto_refresh;
+  SharedPtr<QTimer>                     auto_refresh_timer;
   ConfigFile                            config;
 
   struct

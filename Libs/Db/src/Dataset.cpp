@@ -170,10 +170,10 @@ SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
 {
   VisusAssert(this->valid());
 
-  if (config.empty())
+  if (!config.valid())
     config = getDefaultAccessConfig();
 
-  if (config.empty()) {
+  if (!config.valid()) {
     VisusAssert(!bForBlockQuery);
     return SharedPtr<Access>();
   }
@@ -318,7 +318,7 @@ Field Dataset::getFieldByName(String name) const {
 ////////////////////////////////////////////////////////////////////////////////////
 static StringTree* FindDataset(String name, const StringTree& stree)
 {
-  auto all_datasets = stree.findAllChildsWithName("dataset");
+  auto all_datasets = stree.getAllChilds("dataset");
   for (auto it : all_datasets)
   {
     if (it->readString("name") == name)
@@ -793,12 +793,12 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
 }
 
 //////////////////////////////////////////////////////////////////////////
-void Dataset::writeTo(StringTree& out)
+void Dataset::writeTo(StringTree& out) const
 {
   out.writeValue("url",this->getUrl().toString());
 
   //I want to save it to retrieve it on a different computer
-  if (!config.empty())
+  if (config.valid())
     out.addChild("config")->addChild(this->config);
 }
 

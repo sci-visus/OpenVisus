@@ -622,9 +622,6 @@ inline bool ExecuteOnCppSamples(Operation& op,DType dtype,Args&&... args)
 #endif //if !SWIG
 
 
-
-
-
 /////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API ComputeRange
 {
@@ -647,7 +644,17 @@ public:
   Range custom_range; 
 
   //constructor
-  ComputeRange(Mode mode_=UseArrayRange) : mode(mode_){
+  ComputeRange(Mode mode_=UseArrayRange, Range custom_range_=Range()) : mode(mode_),custom_range(custom_range_) {
+  }
+
+  //operator==
+  bool operator==(const ComputeRange& other) const {
+    return mode == other.mode && custom_range == other.custom_range;
+  }
+
+  //operator!=
+  bool operator!=(const ComputeRange& other) const {
+    return !(operator==(other));
   }
 
   //createCustom

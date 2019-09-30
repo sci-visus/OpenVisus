@@ -79,7 +79,7 @@ void GLCameraNode::setGLCamera(SharedPtr<GLCamera> value)
 }
 
 //////////////////////////////////////////////////
-void GLCameraNode::writeTo(StringTree& out) 
+void GLCameraNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
 
@@ -112,9 +112,7 @@ void GLCameraNode::readFrom(StringTree& in)
 
     VisusReleaseAssert(glcamera->getTypeName()==TypeName);
 
-    this->glcamera->beginUpdate();
     this->glcamera->readFrom(*child);
-    this->glcamera->endUpdate();
   }
 }
   

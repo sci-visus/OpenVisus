@@ -195,18 +195,6 @@ Viewer::~Viewer()
 ////////////////////////////////////////////////////////////
 void Viewer::executeAction(StringTree action)
 {
-  if (action.name == "Transaction")
-  {
-    this->beginUpdate();
-    for (auto child : action.childs)
-    {
-      if (!child->isHashNode())
-        executeAction(*child);
-    }
-    this->endUpdate();
-    return;
-  }
-
   if (action.name == "DropProcessing")
   {
     this->dropProcessing();
@@ -231,6 +219,29 @@ void Viewer::executeAction(StringTree action)
   {
     auto node = findNodeByUUID(action.readString("node"));
     setSelection(node);
+    return;
+  }
+
+  if (action.name == "SetNodeName") {
+    auto node = findNodeByUUID(action.readString("node"));
+    auto value = action.readString("value");
+    setNodeName(node, value);
+    return;
+  }
+
+  if (action.name == "SetNodeVisible") {
+    auto node = findNodeByUUID(action.readString("node"));
+    auto value = action.readBool("value");
+    setNodeVisible(node, value);
+    return;
+  }
+
+  if (action.name == "SetAutoRefresh")
+  {
+    AutoRefresh auto_refresh = getAutoRefresh();
+    auto_refresh.enabled = action.readBool("enabled");
+    auto_refresh.msec = action.readInt("msec");
+    setAutoRefresh(auto_refresh);
     return;
   }
 
@@ -288,19 +299,7 @@ void Viewer::executeAction(StringTree action)
     return;
   }
 
-  ThrowException("internal error");
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-void Viewer::beginUpdate() {
-  pushAction(
-    StringTree("Transaction"),
-    StringTree("Transaction"));
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-void Viewer::endUpdate() {
-  popAction();
+  return UndoableModel::executeAction(action);
 }
 
 
@@ -360,7 +359,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
 
   String open_filename;
   {
-    auto configs = config.findAllChildsWithName("dataset");
+    auto configs = config.getAllChilds("dataset");
     if (!configs.empty())
     {
       String dataset_url = configs[0]->readString("url"); VisusAssert(!dataset_url.empty());
@@ -1176,8 +1175,8 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   //config means a visus.config: merge bookmarks and load first entry (ignore configuration)
   if (StringUtils::endsWith(url,".config"))
   {
-    StringTree stree;
-    if (!stree.fromXmlString(Utils::loadTextDocument(url)))
+    StringTree stree=StringTree::fromString(Utils::loadTextDocument(url));
+    if (!stree.valid())
     {
       VisusAssert(false);
       return false;
@@ -1187,7 +1186,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
       config.addChild(stree.getChild(i));
 
     //load first bookmark from new config
-    auto children=stree.findAllChildsWithName("dataset",true);
+    auto children=stree.getAllChilds("dataset");
     if (!children.empty())
     {
       url=children[0]->readString("name",children[0]->readString("url"));VisusAssert(!url.empty());
@@ -1200,8 +1199,8 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   //xml means a Viewer dataflow
   if (StringUtils::endsWith(url,".xml"))
   {
-    StringTree in;
-    if (!in.fromXmlString(Utils::loadTextDocument(url)))
+    StringTree in=StringTree::fromString(Utils::loadTextDocument(url));
+    if (!in.valid())
     {
       VisusAssert(false);
       return false;
@@ -1234,8 +1233,8 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   //gidx means group of idx: open them all
   if (StringUtils::endsWith(url,".gidx"))
   {
-    StringTree stree;
-    if (!stree.fromXmlString(Utils::loadTextDocument(url)))
+    StringTree stree=StringTree::fromString(Utils::loadTextDocument(url));
+    if (!stree.valid())
     {
       VisusAssert(false);
       return false;
@@ -1273,7 +1272,9 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
     parent = dataflow->getRoot();
   }
   
-  beginUpdate();
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
   {
     //add new GLCameraNode
     auto glcamera=getGLCamera();
@@ -1299,7 +1300,7 @@ bool Viewer::openFile(String url,Node* parent,bool bShowUrlDialogIfNeeded)
       glcamera->mirror(1);
 
   }
-  endUpdate();
+  popAction();
 
   if (widgets.treeview)
     widgets.treeview->expandAll();
@@ -1365,23 +1366,27 @@ bool Viewer::saveFile(String url,bool bSaveHistory,bool bShowDialogs)
 ////////////////////////////////////////////////////////////
 void Viewer::setAutoRefresh(AutoRefresh value)  {
 
-  value.timer.reset();
+  //useless call
+  if (value.msec == auto_refresh.msec && value.enabled == auto_refresh.enabled)
+    return;
 
-  beginUpdate();
+  pushAction(
+    StringTree("SetAutoRefresh").write("enabled",value.enabled).write("msec",value.msec),
+    StringTree("SetAutoRefresh").write("enabled", this->auto_refresh.enabled).write("msec", auto_refresh.msec));
   {
     this->auto_refresh = value;
-    widgets.toolbar->auto_refresh.check->setChecked(value.bEnabled);
+    widgets.toolbar->auto_refresh.check->setChecked(value.enabled);
     widgets.toolbar->auto_refresh.msec->setText(cstring(value.msec).c_str());
   }
-  endUpdate();
+  popAction();
 
-  if (auto_refresh.bEnabled && auto_refresh.msec)
+  if (auto_refresh.enabled && auto_refresh.msec)
   {
-    this->auto_refresh.timer = std::make_shared<QTimer>();
-    QObject::connect(this->auto_refresh.timer.get(), &QTimer::timeout, [this]() {
+    this->auto_refresh_timer = std::make_shared<QTimer>();
+    QObject::connect(this->auto_refresh_timer.get(), &QTimer::timeout, [this]() {
       refreshData();
     });
-    this->auto_refresh.timer->start(this->auto_refresh.msec);
+    this->auto_refresh_timer->start(this->auto_refresh.msec);
   }
 
 }
@@ -1444,28 +1449,42 @@ void Viewer::setSelection(Node* value)
 }
 
 //////////////////////////////////////////////////////////
-void Viewer::setName(Node* node,String value)
+void Viewer::setNodeName(Node* node,String value)
 {
-  if (node->getName()==value) 
+  if (!node || node->getName()==value) 
     return;
 
-  beginUpdate();
-  node->setName(value);
-  endUpdate();
+  pushAction(
+    StringTree("SetNodeName").writeString("node", getUUID(node)).writeString("value", value),
+    StringTree("SetNodeName").writeString("node", getUUID(node)).writeString("value", node->getName()));
+  {
+    node->setName(value);
+  }
+  popAction();
+
   postRedisplay();
 }
 
 //////////////////////////////////////////////////////////
-void Viewer::setHidden(Node* node,bool value)
+void Viewer::setNodeVisible(Node* node,bool new_value)
 {
-  if (node->isHidden()==value) 
+  if (!node)
     return;
 
-  beginUpdate();
-  dropProcessing();
-  for (auto it : node->breadthFirstSearch())
-    node->setHidden(value);
-  endUpdate();
+  auto old_value = node->isVisible();
+
+  if (old_value == new_value)
+    return;
+
+  pushAction(
+    StringTree("SetNodeVisible").writeString("node", getUUID(node)).write("value", new_value),
+    StringTree("SetNodeVisible").writeString("node", getUUID(node)).write("value", old_value));
+  {
+    dropProcessing();
+    for (auto it : node->breadthFirstSearch())
+      node->setVisible(new_value);
+  }
+  popAction();
 
   refreshActions();
   postRedisplay();
@@ -1479,7 +1498,7 @@ void Viewer::addNode(Node* parent,Node* node,int index)
 
   node->begin_update.connect([this,node](){
     pushAction(
-      StringTree("ChangeNode", "node", node->getUUID()).withChild(node->encode()),
+      StringTree("ChangeNode", "node", node->getUUID()).addChild(node->encode()),
       StringTree("ChangeNode", "node", node->getUUID()));
   });
 
@@ -1502,16 +1521,21 @@ void Viewer::addNode(Node* parent,Node* node,int index)
     popAction();
   });
 
-  beginUpdate();
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
   {
     dropSelection();
+
     pushAction(
-      StringTree("AddNode","parent",getUUID(parent), "index",cstring(index)).withChild(node->encode()),
-      StringTree("RemoveNode","node",getUUID(node)));
-    dataflow->addNode(parent,node,index);
+      StringTree("AddNode").write("parent",getUUID(parent)).write("index",index).addChild(node->encode()),
+      StringTree("RemoveNode").write("node",getUUID(node)));
+    {
+      dataflow->addNode(parent, node, index);
+    }
     popAction();
   }
-  endUpdate();
+  popAction();
   
   if (auto glcamera_node=dynamic_cast<GLCameraNode*>(node))
     attachGLCamera(glcamera_node->getGLCamera());
@@ -1525,7 +1549,9 @@ void Viewer::removeNode(Node* NODE)
   if (!NODE)
     return;
 
-  beginUpdate();
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
 
   dropProcessing();
   dropSelection();
@@ -1562,7 +1588,7 @@ void Viewer::removeNode(Node* NODE)
 
     pushAction(
       StringTree("RemoveNode","node",getUUID(node)),
-      StringTree("AddNode","parent",getUUID(node->getParent()),"index",cstring(node->getIndexInParent())).withChild(node->encode()));
+      StringTree("AddNode","parent",getUUID(node->getParent()),"index",cstring(node->getIndexInParent())).addChild(node->encode()));
     {
       //don't care about disconnecting slots, the node is going to be deallocated
       dataflow->removeNode(node);
@@ -1571,7 +1597,7 @@ void Viewer::removeNode(Node* NODE)
   }
 
   autoConnectPorts();
-  endUpdate();
+  popAction();
 
   postRedisplay();
 }
@@ -1601,7 +1627,9 @@ void Viewer::disconnectPorts(Node* from,String oport,String iport,Node* to)
 ////////////////////////////////////////////////////////////////////////
 void Viewer::autoConnectPorts()
 {
-  beginUpdate();
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
 
   for (auto node : getRoot()->breadthFirstSearch())
   {
@@ -1635,7 +1663,7 @@ void Viewer::autoConnectPorts()
     }
   }
 
-  endUpdate();
+  popAction();
   postRedisplay();
 }
 
@@ -1683,22 +1711,26 @@ void Viewer::refreshData(Node* node)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Node* Viewer::addGroupNode(Node* parent,String name)  
+Node* Viewer::addGroupNode(Node* parent, String name)
 {
   if (!parent)
-    parent=getRoot();
+    parent = getRoot();
 
   if (name.empty())
   {
-    name=cstring(QInputDialog::getText(this,"Insert the group name:","",QLineEdit::Normal,""));
-    if (name.empty()) 
+    name = cstring(QInputDialog::getText(this, "Insert the group name:", "", QLineEdit::Normal, ""));
+    if (name.empty())
       return nullptr;
   }
 
-  auto group_node=new Node(name);
-  beginUpdate();
-  addNode(parent,group_node,0);
-  endUpdate();
+  auto group_node = new Node(name);
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
+  {
+    addNode(parent, group_node, 0);
+  }
+  popAction();
 
   return group_node;
 } 
@@ -1711,9 +1743,11 @@ GLCameraNode* Viewer::addGLCameraNode(SharedPtr<GLCamera> glcamera,Node* parent)
 
   auto glcamera_node=new GLCameraNode(glcamera);
 
-  beginUpdate();
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
   addNode(parent,glcamera_node,/*index*/0);
-  endUpdate();
+  popAction();
 
   return glcamera_node;
 }
@@ -1766,7 +1800,9 @@ IsoContourNode* Viewer::addIsoContourNode(Node* parent,Node* data_provider,doubl
   //marching cube, the second as a second field to color the vertices of the marching cube
   auto palette_node=new PaletteNode("Palette","GrayOpaque");
 
-  beginUpdate();
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
   {
     dropSelection();
 
@@ -1784,7 +1820,7 @@ IsoContourNode* Viewer::addIsoContourNode(Node* parent,Node* data_provider,doubl
     connectPorts(build_isocontour,"data",palette_node); //enable statistics
     connectPorts(palette_node,"palette",render_node);
   }
-  endUpdate();
+  popAction();
 
   return build_isocontour;
 }
@@ -1813,7 +1849,9 @@ Node* Viewer::addRenderArrayNode(Node* parent,Node* data_provider,String default
 
   auto palette_node=default_palette.empty()? nullptr : new PaletteNode("Palette",default_palette); 
 
-  beginUpdate();
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
   {
     dropSelection();
 
@@ -1834,7 +1872,7 @@ Node* Viewer::addRenderArrayNode(Node* parent,Node* data_provider,String default
       connectPorts(palette_node,"palette", ret);
     }
   }
-  endUpdate();
+  popAction();
 
   return ret;
 }
@@ -1850,7 +1888,9 @@ KdRenderArrayNode* Viewer::addKdRenderArrayNode(Node* parent,Node* data_provider
   auto render_node =new KdRenderArrayNode("KdRender");
   auto palette_node=new PaletteNode("Palette","GrayOpaque");
 
-  beginUpdate();
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
   {
     dropSelection();
     addNode(parent,palette_node);
@@ -1859,7 +1899,7 @@ KdRenderArrayNode* Viewer::addKdRenderArrayNode(Node* parent,Node* data_provider
     //connectPorts(data_provider,"data",palette_node); enable statistics
     connectPorts(palette_node,render_node);
   }
-  endUpdate();
+  popAction();
 
   return render_node;
 }
@@ -1943,7 +1983,9 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
   if (!time_node)
     time_node=new TimeNode("time",dataset->getDefaultTime(),dataset->getTimesteps());
 
-  beginUpdate();
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
   {
     addNode(parent,query_node);
     addNode(query_node,field_node);
@@ -1982,7 +2024,7 @@ QueryNode* Viewer::addQueryNode(Node* parent,DatasetNode* dataset_node,String na
       addRenderArrayNode(query_node,scripting_node,query_dim==3?default_palette_3d:default_palette_2d, default_render_type);
     }
   }
-  endUpdate();
+  popAction();
 
   return query_node;
 }
@@ -2041,7 +2083,9 @@ KdQueryNode* Viewer::addKdQueryNode(Node* parent,DatasetNode* dataset_node,Strin
   auto render_node =new KdRenderArrayNode("KdRender");
   auto palette_node=new PaletteNode("Palette","GrayOpaque");
 
-  beginUpdate();
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
   { 
     addNode(parent,query_node);
     addNode(query_node,field_node);
@@ -2058,7 +2102,7 @@ KdQueryNode* Viewer::addKdQueryNode(Node* parent,DatasetNode* dataset_node,Strin
     connectPorts(palette_node,"palette",render_node);
     connectPorts(query_node,"data",render_node);
   }
-  endUpdate();
+  popAction();
 
   return query_node;
 }
@@ -2085,7 +2129,9 @@ DatasetNode* Viewer::addDatasetNode(SharedPtr<Dataset> dataset,Node* parent)
   String default_rendertype= config.readString("Configuration/VisusViewer/render","");
   String rendertype=StringUtils::toLower(dataset->getConfig().readString("rendertype",default_rendertype));
 
-  beginUpdate();
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
   {
     dropSelection();
 
@@ -2103,7 +2149,7 @@ DatasetNode* Viewer::addDatasetNode(SharedPtr<Dataset> dataset,Node* parent)
 
     this->refreshData();
   }
-  endUpdate();
+  popAction();
 
   return dataset_node;
 }
@@ -2116,7 +2162,9 @@ ModelViewNode* Viewer::addModelViewNode(Node* parent,bool bInsert)
 
   auto modelview_node=new ModelViewNode("Transform");
 
-  beginUpdate();
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
   {
     if (bInsert)
     {
@@ -2132,7 +2180,7 @@ ModelViewNode* Viewer::addModelViewNode(Node* parent,bool bInsert)
       addNode(parent,modelview_node);
     }
   }
-  endUpdate();
+  popAction();
   return modelview_node;
 }
 
@@ -2150,7 +2198,9 @@ ScriptingNode* Viewer::addScriptingNode(Node* parent,Node* data_provider)
   auto scripting_node=new ScriptingNode("Scripting");
   scripting_node->setMaxPublishMSec(cint(config.readString("Configuration/ScriptingNode/max_publish_msec", cstring(scripting_node->getMaxPublishMSec()))));
 
-  beginUpdate();
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
   {
     dropSelection();
     addNode(parent,scripting_node);
@@ -2158,7 +2208,7 @@ ScriptingNode* Viewer::addScriptingNode(Node* parent,Node* data_provider)
 
     connectPorts(data_provider,"data",scripting_node);
   }
-  endUpdate();
+  popAction();
 
   return scripting_node;
 }
@@ -2174,28 +2224,32 @@ CpuPaletteNode* Viewer::addCpuTransferFunctionNode(Node* parent,Node* data_provi
 
   VisusAssert(data_provider->hasOutputPort("data"));
 
-  //CpuPaletteNode
-  auto transfer_node=new CpuPaletteNode("CPU Transfer Function");
+
+  //guess number of functions
+  int num_functions = 1;
+  if (DataflowPortValue * last_published = dataflow->guessLastPublished(data_provider->getOutputPort("data")))
   {
-    //guess number of functions
-    int num_functions=1;
-    if (DataflowPortValue* last_published=dataflow->guessLastPublished(data_provider->getOutputPort("data")))
-    {
-      if (auto last_data=std::dynamic_pointer_cast<Array>(last_published->value))
-        num_functions=last_data->dtype.ncomponents();
-    }
-
-    transfer_node->getTransferFunction()->setNumberOfFunctions(num_functions);
+    if (auto last_data = std::dynamic_pointer_cast<Array>(last_published->value))
+      num_functions = last_data->dtype.ncomponents();
   }
+  
+  //create a transfer function
+  auto tf = TransferFunction::getDefault("GrayOpaque");
+  tf->setNumberOfFunctions(num_functions);
 
-  beginUpdate();
+  //CpuPaletteNode
+  auto transfer_node=new CpuPaletteNode("CPU Transfer Function", tf);
+
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
   {
     dropSelection();
     addNode(parent,transfer_node);
     addRenderArrayNode(parent,transfer_node,/*no need for a palette*/"");
     connectPorts(data_provider,"data",transfer_node);
   }
-  endUpdate();
+  popAction();
 
   return transfer_node;
 }
@@ -2207,7 +2261,10 @@ PaletteNode* Viewer::addPaletteNode(Node* parent,String palette)
     parent=getRoot();
 
   auto palette_node=new PaletteNode("Palette",palette);
-  beginUpdate();
+
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
   {
     dropSelection();
     addNode(parent,palette_node,1);
@@ -2216,7 +2273,7 @@ PaletteNode* Viewer::addPaletteNode(Node* parent,String palette)
     if (parent->hasOutputPort("data"))
       connectPorts(parent,"data",palette_node);
   }
-  endUpdate();
+  popAction();
   return palette_node;
 }
 
@@ -2231,18 +2288,21 @@ StatisticsNode* Viewer::addStatisticsNode(Node* parent,Node* data_provider)
 
   VisusAssert(data_provider->hasOutputPort("data"));
   auto statistics_node=new StatisticsNode("Statistics");
-  beginUpdate();
+
+  pushAction(
+    StringTree("Transaction"),
+    StringTree("Transaction"));
   {
     dropSelection();
     addNode(parent,statistics_node);
     connectPorts(data_provider,"data",statistics_node);
   }
-  endUpdate();
+  popAction();
   return statistics_node;
 }
 
 /////////////////////////////////////////////////////////////
-void Viewer::writeTo(StringTree& out)
+void Viewer::writeTo(StringTree& out) const
 {
   out.writeString("version", cstring(ApplicationInfo::version));
   out.writeString("git_revision", ApplicationInfo::git_revision);
@@ -2253,7 +2313,7 @@ void Viewer::writeTo(StringTree& out)
   for (auto node : dataflow->getNodes())
   {
     if (node->getParent()) continue;
-    out.addChild(StringTree("AddNode").withChild(node->encode()));
+    out.addChild(StringTree("AddNode").addChild(node->encode()));
   }
 
   //then the nodes in the tree...important the order! parents before childs
@@ -2261,7 +2321,7 @@ void Viewer::writeTo(StringTree& out)
   {
     if (node == root) continue;
     VisusAssert(node->getParent());
-    out.addChild(StringTree("AddNode","parent", getUUID(node->getParent())).withChild(node->encode()));
+    out.addChild(StringTree("AddNode","parent", getUUID(node->getParent())).addChild(node->encode()));
   }
 
   //ConnectPorts actions

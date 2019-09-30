@@ -46,116 +46,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API InterpolationMode
-{
-public:
-
-  VISUS_CLASS(InterpolationMode)
-
-  enum Type {
-    Default,
-    Flat,
-    Inverted
-  };
-
-  //InterpolationMode
-  InterpolationMode(Type type_= Default) : type(type_)  {
-  }
-
-  //InterpolationMode
-  static InterpolationMode fromString(String s) {
-    if      (s == "Default")  return Default;
-    else if (s == "Flat")     return Flat;
-    else if (s == "Inverted") return Inverted;
-    return Default;
-  }
-
-  //toString
-  String toString() const
-  {
-    switch (type)
-    {
-      case Flat    : return "Flat";
-      case Inverted: return "Inverted";
-      case Default :
-      default      : return "Default";
-    }
-  }
-
-  //get
-  Type get() { 
-    return type; 
-  }
-
-  //getValues
-  static std::vector<String> getValues(){
-    return { "Default" ,"Flat","Inverted" };
-  }
-
-private:
-
-  Type type=Default;
-
-};
-
-
-/////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API RGBAColorMap 
-{
-public:
-
-  VISUS_CLASS(RGBAColorMap)
-
-  class VISUS_KERNEL_API Point
-  {
-  public:
-    double x;
-    Color color;
-    inline Point() : x(0) {}
-    inline Point(double x_,Color color_) : x(x_),color(color_) {}
-  };
-
-  String            name;
-  double            min_x=0,max_x=0;
-  std::vector<Point> points;
-
-  //constructor
-  RGBAColorMap() {
-  }
-
-  //constructor
-  RGBAColorMap(String name,const double* values,size_t num);
-
-  //destructor
-  ~RGBAColorMap() {
-  }
-
-  //refreshMinMax
-  void refreshMinMax() {
-    min_x=NumericLimits<double>::highest();
-    max_x=NumericLimits<double>::lowest ();
-    for (int I=0;I<(int)points.size();I++)
-    {
-      min_x=std::min(min_x,points[I].x);
-      max_x=std::max(max_x,points[I].x);
-    }
-  }
-
-  //getColor
-  Color getColor(double alpha,InterpolationMode::Type type=InterpolationMode::Default);
-
-  //convertToArray
-  void convertToArray(Array& dst,int nsamples,InterpolationMode::Type type=InterpolationMode::Default);
-
-  //writeTo
-  void writeTo(StringTree& out);
-
-  //readFrom
-  void readFrom(StringTree& in);
-
-};
-
 
 //////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API SingleTransferFunction
@@ -168,43 +58,36 @@ public:
   Color               color;
   std::vector<double> values;
 
-  //constructor (identity function)
-  SingleTransferFunction(int nsamples = 256)
-  {
-    for (int I = 0; I < nsamples; I++)
-      values.push_back(I / (double)(nsamples - 1));
+  //constructor
+  SingleTransferFunction() {
   }
 
   //constructor (identity function)
-  SingleTransferFunction(String name, Color color = Colors::Black, int nsamples = 256) : SingleTransferFunction(nsamples)
-  {
-    this->name = name;
-    this->color = color;
+  SingleTransferFunction(String name_, Color color_ = Colors::Black, std::vector<double> values_=std::vector<double>(256,0.0))
+    : name(name_),color(color_),values(values_) {
   }
 
   //destructor
   virtual ~SingleTransferFunction() {
   }
 
-  //size
-  inline int size() const {
+  //getNumberOfSamples
+  inline int getNumberOfSamples() const {
     return (int)values.size();
   }
 
-  //resize
-  void resize(int value)
-  {
-    if (value == this->size()) return;
+  //setNumberOfSamples
+  void setNumberOfSamples(int value) {
     std::vector<double> values(value);
     for (int I = 0; I < value; I++)
-      values[I] = this->getValue(I / (double)(value - 1));
+      values[I] = getValue(I / (double)(value - 1));
     this->values = values;
   }
 
   //getValue (x must be in range [0,1])
   double getValue(double x) const
   {
-    int N = size();
+    int N = getNumberOfSamples();
     if (!N) {
       VisusAssert(false);
       return 0;
@@ -216,67 +99,233 @@ public:
     int i_x2 = Utils::clamp((int)std::ceil(x), 0, N - 1);
 
     if (i_x1 == i_x2)
-    {
       return values[(int)i_x1];
-    }
-    else
-    {
-      double alpha = (i_x2 - x) / (double)(i_x2 - i_x1);
-      double beta = 1 - alpha;
-      return alpha * values[i_x1] + beta * values[i_x2];
-    }
-  }
 
-  //setValue (x and y in range [0,1])
-  void setValue(double x1, double y1, double x2, double y2)
-  {
-    if (x2 < x1) { std::swap(x1, x2); std::swap(y1, y2); }
-    int N = (int)size();
-    x1 = Utils::clamp(x1, 0.0, 1.0); y1 = Utils::clamp(y1, 0.0, 1.0); int i_x1 = Utils::clamp((int)(round(x1 * (N - 1))), 0, N - 1);
-    x2 = Utils::clamp(x2, 0.0, 1.0); y2 = Utils::clamp(y2, 0.0, 1.0); int i_x2 = Utils::clamp((int)(round(x2 * (N - 1))), 0, N - 1);
-    this->values[i_x1] = y1;
-    this->values[i_x2] = y2;
-    //interpolate
-    for (int K = i_x1 + 1; K < i_x2; K++)
-    {
-      float beta = (K - i_x1) / (float)(i_x2 - i_x1);
-      float alpha = (1 - beta);
-      values[K] = alpha * values[i_x1] + beta * values[i_x2];
-    }
-  }
-
-  //setValue (x and y in range [0,1])
-  void setValue(double x, double y) {
-    setValue(x, y, x, y);
+    double alpha = (i_x2 - x) / (double)(i_x2 - i_x1);
+    double beta = 1 - alpha;
+    return alpha * values[i_x1] + beta * values[i_x2];
   }
 
 public:
 
   //writeTo
-  void writeTo(StringTree& out);
+  void writeTo(StringTree& out) const
+  {
+    std::ostringstream ss;
+    for (int I = 0; I < (int)this->values.size(); I++)
+    {
+      if (I % 16 == 0) ss << std::endl;
+      ss << this->values[I] << " ";
+    }
+
+    out.writeValue("name", name);
+    out.writeValue("color", color.toString());
+    out.writeText("values", ss.str());
+  }
 
   //readFrom
-  void readFrom(StringTree& in);
+  void readFrom(StringTree& in)
+  {
+    name = in.readValue("name");
+    color = Color::fromString(in.readValue("color"));
+
+    this->values.clear();
+
+    std::istringstream ss(in.readText("values"));
+    double value;
+    while (ss >> value)
+      this->values.push_back(value);
+  }
+
+  //encode
+  StringTree encode(String root_name) const {
+    StringTree out(root_name);
+    writeTo(out);
+    return out;
+  }
+
+  //decode
+  void decode(StringTree in) {
+    readFrom(in);
+  }
 
 };
 
 
 ////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API TransferFunction : public Model
+class VISUS_KERNEL_API TransferFunction : public UndoableModel
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(TransferFunction)
+  //functions
+  std::vector< SharedPtr<SingleTransferFunction> > functions;
 
-  typedef SingleTransferFunction Single;
+  //texture
+  SharedPtr<Object> texture;
 
+  //constructor
+  TransferFunction() {
+  }
+
+  //copy constructor
+  TransferFunction(const TransferFunction& other) {
+    operator=(other);
+  }
+
+  //destructor
+  virtual ~TransferFunction() {
+  }
+
+  //fromArray
+  static SharedPtr<TransferFunction> fromArray(Array src);
+
+  //fromString
+  static SharedPtr<TransferFunction> fromString(String content);
+
+  //getDefault
+  static SharedPtr<TransferFunction> getDefault(String default_name, const int nsamples=256);
+
+  //guessName
+  static String guessName(int I) {
+    return std::vector<String>({ "Red","Green","Blue","Alpha",cstring(I) })[Utils::clamp(I, 0, 4)];
+  }
+
+  //guessColor
+  static Color guessColor(int I) {
+    return std::vector<Color>({ Colors::Red, Colors::Green, Colors::Blue, Colors::Gray,Color::random() })[Utils::clamp(I, 0, 4)];
+  }
+
+  //getNumberOfSamples
+  int getNumberOfSamples() const {
+    return functions.empty() ? 0 : functions[0]->getNumberOfSamples();
+  }
+
+  //setNumberOfSamples
+  void setNumberOfSamples(int value);
+
+  //getNumberOfFunctions
+  int getNumberOfFunctions() const {
+    return (int)functions.size();
+  }
+
+  //setNumberOfFunctions
+  void setNumberOfFunctions(int value);
+
+  //valid
+  bool valid() const {
+    return getNumberOfSamples() > 0 && getNumberOfFunctions() >0;
+  }
+
+  //getTypeName
+  virtual String getTypeName() const  override {
+    return "TransferFunction";
+  }
+
+  //executeAction
+  virtual void executeAction(StringTree action) override;
+
+  //operator=
+  TransferFunction& operator=(const TransferFunction& other);
+
+  //isDefault
+  bool isDefault() const {
+    return !default_name.empty();
+  }
+
+  //getDefaultName
+  String getDefaultName() const {
+    return default_name;
+  }
+
+  //getAttenuation
+  double getAttenuation() const {
+    return attenuation;
+  }
+
+  //setAttenutation
+  void setAttenutation(double value) {
+    setProperty("attenuation", value, this->attenuation);
+  }
+
+  //getInputRange
+  ComputeRange getInputRange() const {
+    return input_range;
+  }
+
+  //setInputRange
+  void setInputRange(ComputeRange new_value);
+
+  //getOutputDType
+  DType getOutputDType() const {
+    return output_dtype;
+  }
+
+  //setOutputDType
+  void setOutputDType(DType value) {
+    setProperty("output_dtype", value, this->output_dtype);
+  }
+
+  //getOutputRange
+  Range getOutputRange() const {
+    return output_range;
+  }
+
+  //setOutputRange
+  void setOutputRange(Range value) {
+    setProperty("output_range", value, this->output_range);
+  }
+
+  //clearFunctions
+  void clearFunctions();
+
+  //addFunction
+  void addFunction(SharedPtr<SingleTransferFunction> fn);
+
+  //removeFunction
+  void removeFunction(int index);
+
+  //getDefaults
+  static std::vector<String> getDefaults();
+
+  //drawLine (x and y in range [0,1])
+  void drawLine(Point2d p1, Point2d p2, std::vector<int> selected);
+
+public:
+
+  //toArray
+  Array toArray() const;
+
+public:
+
+  //importTransferFunction
+  static TransferFunction importTransferFunction(String content);
+
+  //exportTransferFunction
+  bool exportTransferFunction(String filename);
+
+
+public:
+
+  //writeTo
+  virtual void writeTo(StringTree& out) const override;
+
+  //readFrom
+  virtual void readFrom(StringTree& in) override;
+
+  //encode
+  StringTree encode() const {
+    StringTree out;
+    writeTo(out);
+    return out;
+  }
+
+private:
+
+  //default_name
   String default_name;
 
   //see https://github.com/sci-visus/visus-issues/issues/260
   double attenuation = 0.0;
-
-  //interpolation
-  InterpolationMode interpolation;
 
   //input_range
   ComputeRange input_range;
@@ -287,77 +336,25 @@ public:
   //how to map the range [0,1] to some user range
   Range output_range = Range(0, 255, 1);
 
-  //functions
-  std::vector< SharedPtr<Single> > functions;
 
-  //texture
-  SharedPtr<Object> texture;
-
-  //constructor
-  TransferFunction(String default_name = "") {
-    if (!default_name.empty())
-      setDefault(default_name);
+  //setProperty
+  template <typename Value>
+  void setProperty(String name, Value& new_value, const Value& old_value)
+  {
+    if (new_value == old_value) return;
+    pushAction(
+      StringTree("SetProperty").write("name", name).write("value", new_value),
+      StringTree("SetProperty").write("name", name).write("value", old_value));
+    new_value = new_value;
+    popAction();
   }
 
-  //destructor
-  virtual ~TransferFunction() {
+
+  //fullAssign
+  const StringTree fullAssign(const TransferFunction& src) {
+    return StringTree("Assign").addChild(src.encode());
   }
 
-  //getTypeName
-  virtual String getTypeName() const  override {
-    return "TransferFunction";
-  }
-
-  //size
-  int size() const {
-    return functions.empty() ? 0 : functions[0]->size();
-  }
-
-  //addFunction
-  SharedPtr<Single> addFunction(String name, Color color, int nsamples = 256);
-
-  //setNumberOfFunctions
-  void setNumberOfFunctions(int value, std::vector<String> names = { "R","G","B","A" }, std::vector<Color> colors = { Colors::Red,Colors::Green,Colors::Blue,Colors::Gray });
-
-  //getDefaults
-  static std::vector<String> getDefaults();
-
-  //setDefault
-  bool setDefault(String default_name);
-
-  //setNotDefault
-  void setNotDefault();
-
-  //copyFrom
-  static void copy(TransferFunction& dst, const TransferFunction& src);
-
-public:
-
-  //applyToArray
-  Array applyToArray(Array src, Aborted aborted = Aborted());
-
-public:
-
-  //setFromArray
-  bool setFromArray(Array src, String default_name, std::vector<String> names = {"R","G","B","A"}, std::vector<Color> colors = { Colors::Red,Colors::Green,Colors::Blue,Colors::Gray });
-
-  //convertToArray
-  Array convertToArray() const;
-
-  //importTransferFunction
-  bool importTransferFunction(String url);
-
-  //exportTransferFunction
-  bool exportTransferFunction(String filename);
-
-public:
-
-  //writeTo
-  virtual void writeTo(StringTree& out) override;
-
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
-  
 };
 
 typedef TransferFunction Palette;

@@ -381,22 +381,23 @@ public:
     if (args.size() == 2)
     {
       //xml file with url and xml for access creation
-      StringTree stree;
-      if (!stree.fromXmlString(Utils::loadTextDocument(args[1])))
+      auto content = Utils::loadTextDocument(args[1]);
+      StringTree stree=StringTree::fromString(content);
+      if (!stree.valid())
       {
         VisusAssert(false);
         return Array();
       }
 
-      if (auto src = stree.findChildWithName("src")) {
+      if (auto src = stree.getChild("src")) {
         Surl = src->readString("url");
-        if (auto access = src->findChildWithName("access"))
+        if (auto access = src->getChild("access"))
           Sconfig = *access;
       }
 
-      if (auto dst = stree.findChildWithName("dst")) {
+      if (auto dst = stree.getChild("dst")) {
         Durl = dst->readString("url");
-        if (auto access = dst->findChildWithName("access"))
+        if (auto access = dst->getChild("access"))
           Dconfig = *access;
       }
     }
@@ -1115,7 +1116,7 @@ public:
 
     String filename = args[1];
     StringTree info = ArrayUtils::statImage(filename);
-    if (info.empty())
+    if (!info.valid())
       ThrowException(StringUtils::format() << args[0] <<"  Could not open " << filename);
 
     VisusInfo() << std::endl << info.toString();

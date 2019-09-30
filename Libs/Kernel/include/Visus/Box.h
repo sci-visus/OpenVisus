@@ -436,7 +436,7 @@ public:
   }
 
   //writeTo`
-  void writeTo(StringTree& out) 
+  void writeTo(StringTree& out) const
   {
     out.writeValue("p1", p1.toString());
     out.writeValue("p2", p2.toString());

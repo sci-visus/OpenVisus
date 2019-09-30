@@ -299,7 +299,7 @@ Position Position::shrink(BoxNd dst_box,LinearMap& map,Position in_position)
 }
 
 //////////////////////////////////////////////////
-void Position::writeTo(StringTree& out)
+void Position::writeTo(StringTree& out) const
 {
   if (!valid())
     return;

@@ -15,7 +15,7 @@ def ASSERT(cond):
 def runSingleDatasetServer(name,idx_filename,port=10000,dynamic=False):
 	
 	config=ConfigFile()
-	bOk=config.fromXmlString("""
+	bOk=config.fromString("""
 <visus>
 	<Configuration>
 		<ModVisus dynamic="{}" />

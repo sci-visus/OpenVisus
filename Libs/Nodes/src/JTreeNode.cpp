@@ -732,7 +732,7 @@ void JTreeNode::updateAutoThreshold()
 
 
 ////////////////////////////////////////////////////////////
-void JTreeNode::writeTo(StringTree& out)
+void JTreeNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
 

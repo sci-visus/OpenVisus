@@ -45,16 +45,14 @@ For support : support@visus.net
 namespace Visus {
 
   /////////////////////////////////////////////////////////////////////////
-static void SetHidden(QTreeWidgetItem* widget,bool bHidden)
+static void SetWidgetVisible(QTreeWidgetItem* widget,bool value)
 {
-#if 1
-  widget->setForeground(0, QBrush(QColor(0, 0, 0, bHidden ? 60 : 255)));
-  for (int I = 0; I < widget->childCount(); I++)
-    SetHidden(widget->child(I),bHidden);
-#else
   //if I set to disabled, the node cannot be selected
-  widget->setDisabled(bHidden);
-#endif
+  //widget->setDisabled(!value);
+
+  widget->setForeground(0, QBrush(QColor(0, 0, 0, value ? 255 : 60)));
+  for (int I = 0; I < widget->childCount(); I++)
+    SetWidgetVisible(widget->child(I), value);
 }
 
 
@@ -90,7 +88,7 @@ QTreeWidgetItem* DataflowTreeView::createTreeWidgetItem(Node* node)
   get_node[widget]=node;
   widget->setText(0,node->getName().c_str());
   widget->setIcon(0,getIcon(node));
-  SetHidden(widget, node->isHidden());
+  SetWidgetVisible(widget, node->isVisible());
   return widget;
 }
 
@@ -142,7 +140,7 @@ void DataflowTreeView::dataflowSetName(Node* node,String old_value,String new_va
 void DataflowTreeView::dataflowSetHidden(Node* node,bool ,bool ) 
 {
   if (QTreeWidgetItem* widget = getWidget(node))
-    SetHidden(widget, node->isHidden());
+    SetWidgetVisible(widget, !node->isVisible());
 }
 
 

@@ -76,7 +76,7 @@ public:
 public:
 
   //writeTo
-  virtual void writeTo(StringTree& out) override {
+  virtual void writeTo(StringTree& out) const override {
     Node::writeTo(out);
     out.writeValue("T",T.toString());
   }

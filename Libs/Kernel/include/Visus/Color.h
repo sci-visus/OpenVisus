@@ -301,7 +301,7 @@ public:
 
 
   //writeTo
-  void writeTo(StringTree& out) 
+  void writeTo(StringTree& out) const
   {
     Color rgb=toRGB();
     out.writeString("r",cstring((int)(255.0*rgb.get(0))));

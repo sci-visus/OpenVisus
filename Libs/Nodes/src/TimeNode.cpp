@@ -74,7 +74,6 @@ void TimeNode::setUserRange(const Range& value)
     return;
 
   setProperty(this->user_range, value);
-
   doPublish();
 }
 
@@ -114,7 +113,7 @@ void TimeNode::doPublish(SharedPtr<ReturnReceipt> return_receipt)
 }
 
 //////////////////////////////////////////////////
-void TimeNode::writeTo(StringTree& out) 
+void TimeNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
 

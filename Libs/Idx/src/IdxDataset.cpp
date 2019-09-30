@@ -921,7 +921,7 @@ SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuer
 {
   VisusAssert(this->valid());
 
-  if (config.empty())
+  if (!config.valid())
     config = getDefaultAccessConfig();
 
   String type =StringUtils::toLower(config.readString("type"));

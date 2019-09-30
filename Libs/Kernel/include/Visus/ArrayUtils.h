@@ -43,6 +43,10 @@ For support : support@visus.net
 
 namespace Visus {
 
+
+//predeclaration
+class TransferFunction;
+
 ///////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API ArrayUtils
 {
@@ -342,6 +346,11 @@ public:
 
   //setBufferColor
   static void setBufferColor(Array& buffer, Color color);
+
+public:
+
+  //applyTransferFunction
+  static Array applyTransferFunction(SharedPtr<TransferFunction> tf, Array src, Aborted aborted= Aborted());
 
 private:
 

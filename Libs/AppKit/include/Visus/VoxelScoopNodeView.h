@@ -82,7 +82,6 @@ public:
     {
       QFormLayout* layout=new QFormLayout();
 
-      
       layout->addRow("simplify",widgets.simplify=GuiFactory::CreateCheckBox(model->simplify,"",[this](int value){
         model->setProperty(model->simplify, (bool)value);
       }));

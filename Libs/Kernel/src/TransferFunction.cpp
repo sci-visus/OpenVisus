@@ -38,239 +38,331 @@ For support : support@visus.net
 
 #include <Visus/TransferFunction.h>
 
-
 namespace Visus {
 
-
-/////////////////////////////////////////////////////////////////
-RGBAColorMap::RGBAColorMap(String name_ ,const double* values,size_t num) : name(name_)
-{
-  VisusAssert(!name.empty());
-
-  this->points.clear();
-  
-  for (size_t I=0;I<num;I+=4,values+=4)
-  {
-    double x=values[0];
-    double r=values[2];
-    double g=values[3];
-    double b=values[4];
-    double a=1;
-    VisusAssert(points.empty() || points.back().x<=x);
-
-    Point point;
-    point.x=x;
-    point.color=Color((float)r,(float)g,(float)b,(float)a);
-    this->points.push_back(point);
-  }
-  VisusAssert(!points.empty());
-  refreshMinMax(); 
-}
-
-
-/////////////////////////////////////////////////////////////////
-Color RGBAColorMap::getColor(double alpha,InterpolationMode::Type type)
-{
-  VisusAssert(alpha>=0 && alpha<=1);
-  double x = min_x+alpha*(max_x-min_x);
-
-  for (int I=0;I<(int)(points.size()-1);I++)
-  {
-    const Point& p0=points[I+0];
-    const Point& p1=points[I+1];
-      
-    if (p0.x<=x && x<=p1.x)
-    {
-      if (type==InterpolationMode::Flat) 
-        return p0.color;
-
-      alpha=(x-p0.x)/(p1.x-p0.x);
-      if (type==InterpolationMode::Inverted)
-        alpha=1-alpha;
-
-      Color c0=p0.color.toCieLab();
-      Color c1=p1.color.toCieLab();
-      Color ret=Color::interpolate((Float32)(1-alpha),c0,(Float32)alpha,c1).toRGB();
-      return ret;
-    }
-  }
-
-  VisusAssert(false);
-  return Colors::Black;
-}
-
-/////////////////////////////////////////////////////////////////
-void RGBAColorMap::convertToArray(Array& dst,int nsamples,InterpolationMode::Type interpolation)
-{
-  dst.resize(nsamples,DTypes::UINT8_RGBA,__FILE__,__LINE__);
-
-  Uint8* DST=dst.c_ptr();
-  for (int I=0;I<nsamples;I++)
-  {
-    double alpha=I/(double)(nsamples-1);
-    Color color=getColor(alpha,interpolation);
-    *DST++=(Uint8)(255*color.getRed  ());
-    *DST++=(Uint8)(255*color.getGreen());
-    *DST++=(Uint8)(255*color.getBlue ());
-    *DST++=(Uint8)(255*color.getAlpha());
-  }
-}
-
-/////////////////////////////////////////////////////////////////
-void RGBAColorMap::writeTo(StringTree& out)
-{
-  out.writeString("name",this->name);
-  for (auto point : points)
-  {
-    if (auto child = out.addChild("Point"))
-    {
-      child->writeString("x", cstring(point.x));
-      child->writeString("r", cstring(point.color.getRed()));
-      child->writeString("g", cstring(point.color.getGreen()));
-      child->writeString("b", cstring(point.color.getBlue()));
-      child->writeString("o", cstring(point.color.getAlpha()));
-    }
-  }
-
-}
-
-/////////////////////////////////////////////////////////////////
-void RGBAColorMap::readFrom(StringTree& in)
-{
-  this->name=in.readString("name");
-  VisusAssert(!name.empty());
-
-  this->points.clear();
-  for (auto P : in.getChilds("Point"))
-  {
-    double x=cdouble(P->readString("x"));
-    double o=cdouble(P->readString("o"));
-    double r=cdouble(P->readString("r"));
-    double g=cdouble(P->readString("g"));
-    double b=cdouble(P->readString("b"));
-    VisusAssert(points.empty() || points.back().x<=x);
-
-    Point point;
-    point.x=x;
-    point.color=Color((float)r,(float)g,(float)b,(float)o);
-        
-    this->points.push_back(point);
-  }
-  VisusAssert(!points.empty());
-  refreshMinMax();
-}
-
-
-
 /////////////////////////////////////////////////////////////////////
-void TransferFunction::Single::writeTo(StringTree& out)
+SharedPtr<TransferFunction> TransferFunction::fromArray(Array src)
 {
-  std::ostringstream ss;
-  for (int I = 0; I < (int)this->values.size(); I++)
+  int nfunctions = src.dtype.ncomponents();
+  int nsamples = (int)src.dims[0];
+
+  src = ArrayUtils::smartCast(src, DType(src.dtype.ncomponents(), DTypes::FLOAT64));
+
+  auto ret=std::make_shared<TransferFunction>();
+  for (int F = 0; F < nfunctions; F++)
   {
-    if (I % 16 == 0) ss << std::endl;
-    ss << this->values[I] << " ";
+    auto component = src.getComponent(F);
+    VisusAssert(component.c_size() == sizeof(Float64) * nsamples);
+    std::vector<double> values(component.c_ptr<Float64*>(), component.c_ptr<Float64*>() + nsamples);
+    ret->addFunction(std::make_shared<SingleTransferFunction>(guessName(F), guessColor(F), values));
   }
-
-  out.writeValue("name", name);
-  out.writeValue("color", color.toString());
-  out.writeText("values", ss.str());
-}
-
-/////////////////////////////////////////////////////////////////////
-void TransferFunction::Single::readFrom(StringTree& in)
-{
-  name = in.readValue("name");
-  color = Color::fromString(in.readValue("color"));
-
-  this->values.clear();
-
-  std::istringstream ss(in.readText("values"));
-  double value; 
-  while (ss >> value)
-    this->values.push_back(value);
-}
-
-////////////////////////////////////////////////////////////////////
-SharedPtr<TransferFunction::Single> TransferFunction::addFunction(String name, Color color, int nsamples) 
-{
-  auto ret = functions.empty() ? std::make_shared<Single>(nsamples) : std::make_shared<Single>(size());
-  ret->name = name;
-  ret->color = color;
-
-  beginUpdate();
-  functions.push_back(ret);
-  endUpdate();
 
   return ret;
 }
 
-////////////////////////////////////////////////////////////////////
-void TransferFunction::setNumberOfFunctions(int value,std::vector<String> names,std::vector<Color> colors)
+/////////////////////////////////////////////////////////////////////
+SharedPtr<TransferFunction> TransferFunction::fromString(String content)
 {
-  value = std::max(1, value);
-  if (value == functions.size()) return;
-
-  beginUpdate();
+  StringTree in=StringTree::fromString(content);
+  if (!in.valid())
   {
-    while (functions.size() < value)
+    VisusAssert(false);
+    return SharedPtr<TransferFunction>();
+  }
+
+  auto ret = std::make_shared<TransferFunction>();
+  ret->readFrom(in);
+  return ret;
+}
+
+  ////////////////////////////////////////////////////////////////////
+void TransferFunction::executeAction(StringTree action)
+{
+  if (action.name == "AddFunction")
+  {
+    auto single = std::make_shared<SingleTransferFunction>();
+    single->readFrom(action);
+    addFunction(single);
+    return;
+  }
+
+  if (action.name == "RemoveFunction")
+  {
+    int index = action.readInt("index");
+    removeFunction(index);
+    return;
+  }
+
+  if (action.name == "ClearFunctions")
+  {
+    clearFunctions();
+    return;
+  }
+
+  if (action.name == "SetNumberOfSamples")
+  {
+    auto value = action.readInt("value");
+    setNumberOfSamples(value);
+    return;
+  }
+
+  if (action.name == "SetNumberOfFunctions")
+  {
+    auto value = action.readInt("value");
+    setNumberOfFunctions(value);
+    return;
+  }
+
+  if (action.name == "Assign")
+  {
+    TransferFunction other;
+    other.readFrom(*action.getFirstChild());
+    (*this) = other;
+    return;
+  }
+
+  if (action.name == "DrawLine")
+  {
+    auto p1 = Point2d::fromString(action.read("p1"));
+    auto p2 = Point2d::fromString(action.read("p2"));
+    std::vector<int> selected;
+    for (auto it : StringUtils::split(action.read("selected")))
+      selected.push_back(cint(it));
+    drawLine(p1, p2, selected);
+    return;
+  }
+
+  if (action.name == "SetProperty")
+  {
+    auto name = action.readString("name");
+
+    if (name == "attenuation")
     {
-      auto single = functions.empty() ? std::make_shared<Single>() : std::make_shared<Single>(size());
-      single->name =  functions.size()<names.size() ? names[functions.size()] : cstring((int)functions.size());
-      single->color = functions.size()<colors.size() ? colors[functions.size()] : Color::random();
-      functions.push_back(single);
+      auto value = action.readDouble("value");
+      setAttenutation(value);
+      return;
     }
 
-    while (functions.size()>value)
-      functions.pop_back();
+    if (name == "input_range")
+    {
+      ComputeRange compute_range;
+      compute_range.mode = (ComputeRange::Mode)action.readInt("mode");
+      compute_range.custom_range = Range::fromString(action.readString("custom_range"));
+      setInputRange(compute_range);
+      return;
+    }
+
+    if (name == "output_dtype")
+    {
+      auto value = DType::fromString(action.readString("value"));
+      setOutputDType(value);
+      return;
+    }
+
+    if (name == "output_range")
+    {
+      auto value = Range::fromString(action.readString("value"));
+      setOutputRange(value);
+      return;
+    }
   }
-  endUpdate();
+
+  UndoableModel::executeAction(action);
+}
+
+
+////////////////////////////////////////////////////////////////////
+void TransferFunction::addFunction(SharedPtr<SingleTransferFunction> fn)
+{
+  if (!functions.empty())
+    fn->setNumberOfSamples(getNumberOfSamples());
+
+  auto nsamples = fn->values.size();
+
+  pushAction(
+    fn->encode("AddFunction"),
+    fullAssign(*this));
+  {
+    this->default_name = "";
+    functions.push_back(fn);
+  }
+  popAction();
+}
+
+
+
+////////////////////////////////////////////////////////////////////
+void TransferFunction::removeFunction(int index)
+{
+  auto fn = functions[index];
+
+  pushAction(
+    StringTree("RemoveFunction").write("index", index),
+    fullAssign(*this));
+  {
+    this->default_name = "";
+    this->functions.erase(this->functions.begin() + index);
+  }
+  popAction();
 }
 
 ////////////////////////////////////////////////////////////////////
-void TransferFunction::copy(TransferFunction& dst,const TransferFunction& src)
+void TransferFunction::clearFunctions()
 {
-  if (&dst==&src)
+  if (functions.empty())
     return;
 
-  dst.beginUpdate();
+  pushAction(
+    StringTree("ClearFunctions"),
+    fullAssign(*this));
   {
-    dst.input_range=src.input_range;
-    dst.output_dtype=src.output_dtype;
-    dst.output_range=src.output_range;
-    dst.default_name=src.default_name;
-    dst.attenuation=src.attenuation;
-
-    dst.functions.clear();
-    for (auto fn : src.functions)
-      dst.functions.push_back(std::make_shared<Single>(*fn));
+    this->default_name = "";
+    this->functions.clear();
   }
-  dst.endUpdate();
+  popAction();
 }
 
+////////////////////////////////////////////////////////////////////////////////
+void TransferFunction::setNumberOfSamples(int value)
+{
+  if (value == this->getNumberOfSamples())
+    return;
 
+  pushAction(
+    StringTree("SetNumberOfSamples").write("value", value),
+    fullAssign(*this));
+  {
+    for (auto fn : functions)
+      fn->setNumberOfSamples(value);
+  }
+  popAction();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void TransferFunction::setNumberOfFunctions(int value)
+{
+  if (getNumberOfSamples() == value)
+    return;
+
+  pushAction(
+    StringTree("SetNumberOfFunctions").write("value", value),
+    fullAssign(*this));
+  {
+    this->functions.resize(std::min(value,this->getNumberOfFunctions()));
+
+    while (getNumberOfFunctions() < value)
+    {
+      int nsamples = functions.empty()? 256 : getNumberOfSamples();
+      addFunction(std::make_shared<SingleTransferFunction>(guessName(getNumberOfFunctions()), guessColor(getNumberOfFunctions()), std::vector<double>(nsamples, 0.0)));
+    }
+  }
+  popAction();
+}
 
 
 /////////////////////////////////////////////////////////////////////
-Array TransferFunction::convertToArray() const
+TransferFunction& TransferFunction::operator=(const TransferFunction& other)
 {
-  int nfun =(int)functions.size();
-  if (!nfun)
+  pushAction(
+    fullAssign(other),
+    fullAssign(*this));
+  {
+    this->default_name = other.default_name;
+
+    this->attenuation = other.attenuation;
+    this->input_range = other.input_range;
+    this->output_dtype = other.output_dtype;
+    this->output_range = other.output_range;
+
+    this->functions.clear();
+    for (auto fn : other.functions)
+      this->functions.push_back(std::make_shared<SingleTransferFunction>(*fn));
+  }
+  popAction();
+
+  return *this;
+}
+
+
+////////////////////////////////////////////////////////////////////
+void TransferFunction::drawLine(Point2d p1, Point2d p2, std::vector<int> selected)
+{
+  if (selected.empty())
+    return;
+
+  if (p2.x < p1.x)
+    std::swap(p1, p2);
+
+  int N = (int)getNumberOfSamples();
+  p1.x = Utils::clamp(p1.x, 0.0, 1.0); p1.y = Utils::clamp(p1.y, 0.0, 1.0);
+  p2.x = Utils::clamp(p2.x, 0.0, 1.0); p2.y = Utils::clamp(p2.y, 0.0, 1.0);
+
+  int i_x1 = Utils::clamp((int)(round(p1.x * (N - 1))), 0, N - 1);
+  int i_x2 = Utils::clamp((int)(round(p2.x * (N - 1))), 0, N - 1);
+
+  pushAction(
+    StringTree("DrawLine").write("p1", p1).write("p2", p2).write("selected", StringUtils::join(selected)),
+    fullAssign(*this));
+  {
+    this->default_name = "";
+
+    for (int F = 0; F < (int)functions.size(); F++)
+    {
+      auto fn = functions[F];
+      if (Utils::find(selected, F) < 0)
+        continue;
+
+      fn->values[i_x1] = p1.y;
+      fn->values[i_x2] = p2.y;
+
+      //interpolate if needed
+      for (int K = i_x1 + 1; K < i_x2; K++)
+      {
+        double beta = (K - i_x1) / (double)(i_x2 - i_x1);
+        double alpha = (1 - beta);
+        fn->values[K] = alpha * p1.y + beta * p2.y;
+      }
+    }
+  }
+  popAction();
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+void TransferFunction::setInputRange(ComputeRange new_value)
+{
+  auto old_value = this->input_range;
+  if (old_value == new_value) return;
+
+  pushAction(
+    StringTree("SetProperty").write("name", String("input_range")).write("mode", cstring(new_value.mode)).write("custom_range", new_value.custom_range.toString()),
+    StringTree("SetProperty").write("name", String("input_range")).write("mode", cstring(old_value.mode)).write("custom_range", old_value.custom_range.toString()));
+  {
+    this->input_range = new_value;
+  }
+  popAction();
+}
+
+/////////////////////////////////////////////////////////////////////
+Array TransferFunction::toArray() const
+{
+  int nfunctions =(int)functions.size();
+  if (!nfunctions)
     return Array();
 
   Array ret;
 
-  int nsamples=size();
+  int nsamples=getNumberOfSamples();
 
-  std::vector<double> alpha(nfun,1.0);
-  for (int F=0;F<nfun;F++) 
+  std::vector<double> alpha(nfunctions,1.0);
+  for (int F=0;F< nfunctions;F++)
   {
     //RGBA palette
-    if (attenuation && nfun==4 && F==3)
+    if (attenuation && nfunctions ==4 && F==3)
       alpha[F]=1.0-attenuation;
 
     //luminance+alpha
-    else if (attenuation && nfun==2 && F==1)
+    else if (attenuation && nfunctions ==2 && F==1)
       alpha[F]=1.0-attenuation;
   }
 
@@ -279,10 +371,10 @@ Array TransferFunction::convertToArray() const
 
   if (output_dtype==DTypes::UINT8)
   {
-    if (!ret.resize(nsamples,DType(nfun,DTypes::UINT8),__FILE__,__LINE__)) 
+    if (!ret.resize(nsamples,DType(nfunctions,DTypes::UINT8),__FILE__,__LINE__))
       return Array();
 
-    for (int F=0;F<nfun;F++)
+    for (int F=0;F< nfunctions;F++)
     {
       auto fn=functions[F];
       GetComponentSamples<Uint8> write(ret,F);
@@ -292,10 +384,10 @@ Array TransferFunction::convertToArray() const
   }
   else
   {
-    if (!ret.resize(nsamples,DType(nfun,DTypes::FLOAT32),__FILE__,__LINE__)) 
+    if (!ret.resize(nsamples,DType(nfunctions,DTypes::FLOAT32),__FILE__,__LINE__))
       return Array();
 
-    for (int F=0;F<nfun;F++)
+    for (int F=0;F< nfunctions;F++)
     {
       auto fn=functions[F];
       GetComponentSamples<Float32> write(ret,F);
@@ -307,61 +399,70 @@ Array TransferFunction::convertToArray() const
   return ret;
 }
 
+
 ///////////////////////////////////////////////////////////
-bool TransferFunction::importTransferFunction(String url)
+TransferFunction TransferFunction::importTransferFunction(String url)
 {
-  if (url.empty())
-    return false;
+  /*
+  <nsamples> 
+  R G B A
+  R G B A
+  ...
+  */
 
-  String content=Utils::loadTextDocument(url);
+  String content = Utils::loadTextDocument(url);
 
-  std::vector<String> lines=StringUtils::getNonEmptyLines(content);
-  if (lines.empty())  
+  std::vector<String> lines = StringUtils::getNonEmptyLines(content);
+  if (lines.empty())
   {
-    VisusWarning()<<"content is empty"; 
-    return false;
+    VisusWarning() << "content is empty";
+    return TransferFunction();
   }
-  
-  int nsamples=cint(lines[0]);
+
+  int nsamples = cint(lines[0]);
+  int nfunctions = 4;
   lines.erase(lines.begin());
-  if (lines.size()!= nsamples)
+  if (lines.size() != nsamples)
   {
-    VisusWarning()<<"content is of incorrect length";
-    return false;
+    VisusWarning() << "content is of incorrect length";
+    return TransferFunction();
   }
 
-  beginUpdate();
-  {
-    this->functions.clear();
-    addFunction("Red"  ,Colors::Red  , nsamples);
-    addFunction("Green",Colors::Green, nsamples);
-    addFunction("Blue" ,Colors::Blue , nsamples);
-    addFunction("Alpha",Colors::Gray , nsamples);
+  TransferFunction ret;
+  ret.output_dtype=DTypes::UINT8;
+  ret.output_range=Range(0, 255, 1);
 
-    double N= nsamples -1.0;
-    for (int I=0;I<nsamples;I++)
+  for (int F = 0; F < nfunctions; F++)
+    ret.functions.push_back(std::make_shared<SingleTransferFunction>(guessName(F), guessColor(F), std::vector<double>(nsamples, 0.0)));
+
+  for (int I = 0; I < nsamples; I++)
+  {
+    std::istringstream istream(lines[I]);
+
+    for (int F = 0; F < nfunctions; F++)
     {
-      std::istringstream istream(lines[I]);
-      for (auto fn : functions)
-      {
-        int value;istream>>value;
-        fn->values[I]=value/N;
-      }
+      double value;
+      istream >> value;
+      value = value / (nsamples - 1.0);
+      ret.functions[F]->values[I] = value;
     }
-
-    this->output_dtype=DTypes::UINT8;
-    this->output_range=Range(0,255,1);
-    this->attenuation=0.0;
   }
-  endUpdate();
 
-  return true;
+  return ret;
 }
+
 
 ///////////////////////////////////////////////////////////
 bool TransferFunction::exportTransferFunction(String filename="")
 {
-  int nsamples = size();
+  /*
+  <nsamples>
+  R G B A
+  R G B A
+  ...
+  */
+
+  int nsamples = getNumberOfSamples();
 
   if (!nsamples) 
     return false;
@@ -371,7 +472,10 @@ bool TransferFunction::exportTransferFunction(String filename="")
   for (int I=0;I<nsamples;I++)
   {
     for (auto fn : functions)
-      out<<(int)(fn->values[I]*(nsamples-1))<<" ";
+    {
+      int value = (int)(fn->values[I] * (nsamples - 1));
+      out << value << " ";
+    }
     out<<std::endl;
   }
 
@@ -384,193 +488,29 @@ bool TransferFunction::exportTransferFunction(String filename="")
   return true;
 }
 
-/////////////////////////////////////////////////////////////////////
-bool TransferFunction::setFromArray(Array src,String default_name,std::vector<String> names,std::vector<Color> colors)
-{
-  int nfunctions =src.dtype.ncomponents();
-  int N          =(int)src.dims[0];
-
-  beginUpdate();
-  {
-    functions.clear();
-    for (int F = 0; F < nfunctions; F++)
-    {
-      auto single = std::make_shared<Single>(N);
-      single->name  = functions.size()<names.size() ? names[functions.size()] : cstring((int)functions.size());
-      single->color = functions.size()<colors.size() ? colors[functions.size()] : Color::random();
-      functions.push_back(single);
-    }
-  
-    if (src.dtype.isVectorOf(DTypes::UINT8)) 
-    {
-      const Uint8* SRC=src.c_ptr();
-      for (int I=0;I<N;I++)
-      {
-        for (int F=0;F<nfunctions;F++)
-          functions[F]->values[I]=(*SRC++)/255.0;
-      }
-
-      this->default_name=default_name;
-    }
-    else if (src.dtype.isVectorOf(DTypes::FLOAT32)) 
-    {
-      const Float32* SRC=(const Float32*)src.c_ptr();
-      for (int I=0;I<N;I++)
-      {
-        for (int F=0;F<nfunctions;F++)
-          functions[F]->values[I]=(*SRC++);
-      }
-
-      this->default_name=default_name;
-    }
-    else if (src.dtype.isVectorOf(DTypes::FLOAT64)) 
-    {
-      const Float64* SRC=(const Float64*)src.c_ptr();
-      for (int I=0;I<N;I++)
-      {
-        for (int F=0;F<nfunctions;F++)
-          functions[F]->values[I]=(*SRC++);
-      }
-
-      this->default_name=default_name;
-    }
-    else
-    {
-      VisusAssert(false);
-    }
-
-  }
-  endUpdate();
-  return true;
-}
-
 
 /////////////////////////////////////////////////////////////////////
-template <typename SrcType>
-struct ExecuteProcessingInnerOp
-{
-  template <typename DstType>
-  bool execute(TransferFunction& tf, Array& dst, Array src, Aborted aborted)
-  {
-    int num_fn = (int)tf.functions.size();
-    if (!num_fn)
-      return false;
-
-    int src_ncomponents = (int)src.dtype.ncomponents();
-    if (!src_ncomponents)
-      return false;
-
-    DType dst_dtype = tf.output_dtype;
-    if (!(dst_dtype == DTypes::UINT8 || dst_dtype == DTypes::FLOAT32 || dst_dtype == DTypes::FLOAT64))
-    {
-      VisusAssert(false);
-      return false;
-    }
-
-    Int64 tot = src.getTotalNumberOfSamples();
-
-    //example: f(a,b,c)   -> f(a) f(b) f(c)
-    int dst_ncomponents = 0;
-    if (num_fn == 1)
-      dst_ncomponents = src_ncomponents;
-
-    //example: (f,g,h)(a) -> f(a) g(a) h(a)
-    else if (src_ncomponents == 1)
-      dst_ncomponents = num_fn;
-    
-    else
-      dst_ncomponents = std::min(num_fn, src_ncomponents);
-
-    if (!dst_ncomponents)
-      return false;
-
-    dst_dtype = DType(dst_ncomponents, dst_dtype);
-
-    if (!dst.resize(src.dims, dst_dtype, __FILE__, __LINE__))
-      return false;
-
-    for (int I = 0; I < dst_ncomponents; I++)
-    {
-      auto F = Utils::clamp(I, 0, num_fn          - 1); auto FUN = tf.functions[F];
-      auto D = Utils::clamp(I, 0, dst_ncomponents - 1); auto DST = GetComponentSamples<DstType>(dst, D);
-      auto S = Utils::clamp(I, 0, src_ncomponents - 1); auto SRC = GetComponentSamples<SrcType>(src, S);
-
-      dst.dtype=dst.dtype.withDTypeRange(tf.output_range,I);
-      auto  vs_t = tf.input_range.doCompute(src, SRC.C, aborted).getScaleTranslate();
-
-      Range dst_range = tf.output_range;
-
-      double src_vs = vs_t.first;
-      double src_vt = vs_t.second;
-
-      double dst_vs = dst_range.delta();
-      double dst_vt = dst_range.from;
-
-      for (int I = 0; I < tot; I++)
-      {
-        if (aborted())
-          return false;
-
-        double x = src_vs* SRC[I] + src_vt;
-        double y = FUN->getValue(x);
-        DST[I] = (DstType)(dst_vs*y + dst_vt);
-      }
-    }
-
-    dst.shareProperties(src);
-    return true;
-  }
-};
-
-
-struct ExecuteProcessingOp
-{
-  template <typename SrcType>
-  bool execute(TransferFunction& tf, Array& dst, Array src, Aborted aborted) {
-    ExecuteProcessingInnerOp<SrcType> op;
-    return ExecuteOnCppSamples(op, tf.output_dtype, tf, dst, src, aborted);
-  }
-};
-
-
-Array TransferFunction::applyToArray(Array src,Aborted aborted)
-{
-  if (!src)
-    return src;
-
-  Array dst;
-  ExecuteProcessingOp op;
-  return ExecuteOnCppSamples(op,src.dtype,*this,dst,src,aborted)? dst : Array();
-}
-
-
-/////////////////////////////////////////////////////////////////////
-void TransferFunction::writeTo(StringTree& out)
+void TransferFunction::writeTo(StringTree& out) const
 {
   bool bDefault=default_name.empty()?false:true;
 
-  if (bDefault)
-    out.writeString("name",default_name);
+  if (isDefault())
+    out.write("name", default_name);
 
-  out.writeString("attenuation",cstring(attenuation));
+  out.write("nsamples", getNumberOfSamples());
 
-  if (auto Input = out.addChild("input"))
-  {
-    Input->writeString("mode", cstring(input_range.mode));
-    if (input_range.custom_range.delta() > 0)
-      Input->writeObject("custom_range", input_range.custom_range);
-  }
+  out.write("attenuation",cstring(attenuation));
+    
+  out.write("input/mode", cstring(input_range.mode));
+  out.write("input/custom_range", input_range.custom_range);
 
-  if (auto Output = out.addChild("output"))
-  {
-    Output->writeString("dtype", output_dtype.toString());
-    Output->writeObject("range", output_range);
-  }
+  out.write("output/dtype", output_dtype.toString());
+  out.write("output/range", output_range);
 
-  if (!bDefault)
+  if (!isDefault())
   {
     for (auto fn : functions)
-      out.writeObject("function", *fn);
+      fn->writeTo(*out.addChild("function"));
   }
 }
 
@@ -578,43 +518,33 @@ void TransferFunction::writeTo(StringTree& out)
 void TransferFunction::readFrom(StringTree& in)
 {
   this->functions.clear();
-  
-  this->default_name=in.readString("name");
 
-  bool bDefault=default_name.empty()?false:true;
+  this->default_name = in.readString("name");
+  bool bDefault = default_name.empty() ? false : true;
+
+  int nsamples = in.readInt("nsamples");
+
+  if (bDefault)
+    (*this) = *getDefault(default_name, nsamples);
 
   this->attenuation=cdouble(in.readString("attenuation","0.0"));
 
-  if (auto Input = in.getChild("input"))
-  {
-    input_range.mode=(ComputeRange::Mode)cint(Input->readString("input.normalization"));
-    Input->readObject("custom_range", input_range.custom_range);
-  }
+  this->input_range.mode=(ComputeRange::Mode)cint(in.readString("input/mode"));
+  this->input_range.custom_range=Range::fromString(in.read("input/custom_range"));
 
-  if (auto Output = in.getChild("output"))
-  {
-    output_dtype=DType::fromString(Output->readString("dtype"));
-    Output->readObject("range", output_range);
-  }
+  this->output_dtype=DType::fromString(in.readString("output/dtype"));
+  this->output_range=Range::fromString(in.read("output/range"));
 
-  if (bDefault)
+  if (!bDefault)
   {
-     setDefault(default_name);
-  }
-  else
-  {
-    setNotDefault();
-
-    for (auto child : in.getChilds("function"))
+    for (auto Function : in.getChilds("function"))
     {
-      auto single = std::make_shared<Single>();
-      single->readFrom(*child);
+      auto single = std::make_shared<SingleTransferFunction>();
+      single->readFrom(*Function);
       functions.push_back(single);
     }
   }
 }
-
-
 
 } //namespace Visus
 

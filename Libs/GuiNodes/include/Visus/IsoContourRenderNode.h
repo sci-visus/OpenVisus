@@ -113,7 +113,7 @@ public:
 public:
 
   //writeTo
-  virtual void writeTo(StringTree& out) override;
+  virtual void writeTo(StringTree& out) const override;
 
   //readFrom
   virtual void readFrom(StringTree& in) override;
@@ -124,7 +124,7 @@ private:
 
   GLMaterial            material = GLMaterial::createRandom();;
 
-  SharedPtr<Palette>    palette=std::make_shared<Palette>("grayopaque");
+  SharedPtr<Palette>    palette=Palette::getDefault("grayopaque");
 
 };
 

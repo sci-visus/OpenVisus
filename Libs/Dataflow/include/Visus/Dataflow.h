@@ -239,7 +239,7 @@ public:
 public:
 
   //writeTo
-  void writeTo(StringTree& out) ;
+  void writeTo(StringTree& out) const;
 
   //readFrom
   void readFrom(StringTree& in) ;

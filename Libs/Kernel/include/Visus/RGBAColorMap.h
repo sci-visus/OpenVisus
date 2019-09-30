@@ -36,71 +36,112 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Field.h>
+#ifndef VISUS_RGBA_COLORMAP_H
+#define VISUS_RGBA_COLORMAP_H
+
+#include <Visus/Kernel.h>
+#include <Visus/Model.h>
+#include <Visus/Color.h>
+#include <Visus/Array.h>
 
 namespace Visus {
 
-////////////////////////////////////////////////////
-void Field::writeTo(StringTree& out) const
+////////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API InterpolationMode
 {
-  out.writeValue("name",name);
+public:
 
-  if (!description.empty())
-    out.writeValue("description",description);
+  VISUS_CLASS(InterpolationMode)
 
-  out.writeObject("dtype", dtype);
+    enum Type {
+    Default,
+    Flat,
+    Inverted
+  };
 
-  if (!index.empty())
-   out.writeValue("index",index);
-
-  if (!default_compression.empty())
-   out.writeValue("default_compression",default_compression);
-
-  if (!default_layout.empty())
-    out.writeValue("default_layout",default_layout);
-
-  if (default_value!=0)
-    out.writeValue("default_value",cstring(default_value));
-
-  if (!filter.empty())
-    out.writeValue("filter",filter);
-
-  //params
-  if (!params.empty())
-  {
-    for (auto it : this->params)
-      out.writeValue("params/" + it.first,it.second);
+  //InterpolationMode
+  InterpolationMode(Type type_ = Default) : type(type_) {
   }
-}
 
-////////////////////////////////////////////////////
-void Field::readFrom(StringTree& in)
-{
-  this->name=in.readValue("name");
-  this->description=in.readValue("description");
+  //InterpolationMode
+  static InterpolationMode fromString(String s) {
+    if (s == "Default")  return Default;
+    else if (s == "Flat")     return Flat;
+    else if (s == "Inverted") return Inverted;
+    return Default;
+  }
 
-  in.readObject("dtype", this->dtype);
-
-  this->index=cint(in.readValue("index"));
-  this->default_compression=in.readValue("default_compression");
-  this->default_layout=in.readValue("default_layout");
-  this->default_value=cint(in.readValue("default_value","0"));
-  this->filter=in.readValue("filter");
-
-  this->params.clear();
-
-  if (auto params=in.getChild("params"))
+  //toString
+  String toString() const
   {
-    for (auto param : params->childs)
+    switch (type)
     {
-      if (param->isHashNode()) continue;
-      String key= param->name;
-      String value= param->readValue(key);
-      this->params.setValue(key,value);
+    case Flat: return "Flat";
+    case Inverted: return "Inverted";
+    case Default:
+    default: return "Default";
     }
   }
 
-}
+  //get
+  Type get() {
+    return type;
+  }
 
-} //namespace Visus 
+  //getValues
+  static std::vector<String> getValues() {
+    return { "Default" ,"Flat","Inverted" };
+  }
+
+private:
+
+  Type type = Default;
+
+};
+
+
+/////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API RGBAColorMap
+{
+public:
+
+  VISUS_CLASS(RGBAColorMap)
+
+  typedef std::pair<double, Color> Point;
+
+  double             min_x = NumericLimits<double>::highest();
+  double             max_x = NumericLimits<double>::lowest();
+  std::vector<Point> colors;
+  InterpolationMode::Type interpolation = InterpolationMode::Default;
+
+  //constructor
+  RGBAColorMap() {
+  }
+
+  //constructor
+  RGBAColorMap(const double* values, size_t num);
+
+  //destructor
+  ~RGBAColorMap() {
+  }
+
+  //setColorAt
+  void setColorAt(double x, Color color) {
+    VisusAssert(colors.empty() || colors.back().first <= x);
+    this->colors.push_back(std::make_pair(x,color));
+    min_x = std::min(min_x, x);
+    max_x = std::max(max_x, x);
+  }
+
+  //colorAt
+  Color colorAt(double x) const;
+
+  //toArray
+  Array toArray(int nsamples) const;
+
+};
+
+} //namespace Visus
+
+#endif //VISUS_RGBA_COLORMAP_H
 

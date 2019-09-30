@@ -1052,7 +1052,7 @@ bool VoxelScoopNode::processInput()
 
 
 /////////////////////////////////////////////////////////////
-void VoxelScoopNode::writeTo(StringTree& out)
+void VoxelScoopNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
   out.writeValue("simplify",cstring(simplify));

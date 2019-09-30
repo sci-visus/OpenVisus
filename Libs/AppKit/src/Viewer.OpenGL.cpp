@@ -114,7 +114,7 @@ void Viewer::attachGLCamera(SharedPtr<GLCamera> value)
   widgets.glcanvas->glcamera =value;
 
   AutoRefresh auto_refresh;
-  auto_refresh.bEnabled = std::dynamic_pointer_cast<GLOrthoCamera>(value) ? true : false;
+  auto_refresh.enabled = std::dynamic_pointer_cast<GLOrthoCamera>(value) ? true : false;
   auto_refresh.msec = 0;
   setAutoRefresh(auto_refresh);
 
@@ -146,7 +146,7 @@ void Viewer::glCameraChangeEvent()
     return;
 
   auto auto_refresh = getAutoRefresh();
-  if (!auto_refresh.bEnabled)
+  if (!auto_refresh.enabled)
     return;
 
   //see the setAutoRefresh with its timer
@@ -389,7 +389,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
     Node* node=stack.top().second;
     stack.pop();
 
-    if (!node || node->isHidden())
+    if (!node || !node->isVisible())
       continue;
 
     if (auto modelview_node=dynamic_cast<ModelViewNode*>(node))

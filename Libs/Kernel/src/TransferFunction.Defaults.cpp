@@ -37,9 +37,12 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/TransferFunction.h>
+#include <Visus/RGBAColorMap.h>
 #include <Visus/StringUtils.h>
 
 namespace Visus {
+
+namespace Private {
 
 static unsigned char banded_data[1024]={
   0x6c,0x00,0xab,0x00,  0x64,0x00,0xab,0x01,  0x65,0x00,0xac,0x02,  0x6c,0x00,0xc1,0x03,  0x6e,0x00,0xc3,0x04,  0x6f,0x00,0xc5,0x05,  0x6d,0x00,0xc7,0x06,  0x6a,0x00,0xc9,0x07,  
@@ -426,9 +429,6 @@ static unsigned char lut16_data[1024]={
   0x00,0x00,0x00,0xf8,  0x00,0x00,0x00,0xf9,  0x00,0x00,0x00,0xfa,  0x00,0x00,0x00,0xfb,  0x00,0x00,0x00,0xfc,  0x00,0x00,0x00,0xfd,  0x00,0x00,0x00,0xfe,  0x00,0x00,0x00,0xff
 };
 
-////////////////////////////////////////////////////////////////////////////
-namespace RGBAColorMaps {
-
 double BlueGreenDivergent[]={
 0.000000,0.082353,0.133333,0.278431,
 0.050000,0.105882,0.196078,0.321569,
@@ -494,7 +494,6 @@ double AsymmetricBlueGreenDivergent[]={
 0.980000,0.188235,0.239216,0.458824,
 1.000000,0.172549,0.203922,0.431373};
 
-
 double GreenGold[]={
 0.000000,0.000000,0.000000,0.000000,
 0.020000,0.039216,0.149020,0.058824,
@@ -529,7 +528,6 @@ double GreenGold[]={
 0.950000,0.141176,0.011765,0.000000,
 1.000000,0.000000,0.000000,0.000000};
 
-
 double LinearGreen[]={
 0.000000,0.180392,0.200000,0.164706,
 0.050000,0.219608,0.290196,0.152941,
@@ -552,7 +550,6 @@ double LinearGreen[]={
 0.900000,0.949020,0.988235,0.694118,
 0.950000,0.992157,1.000000,0.800000,
 1.000000,1.000000,0.992157,0.901961};
-
 
 double LinearTurquois[]={
 0.000000,0.980392,1.000000,0.988235,
@@ -579,8 +576,6 @@ double LinearTurquois[]={
 0.980000,0.121569,0.047059,0.219608,
 1.000000,0.058824,0.023529,0.101961};
 
-
-  
 double MutedBlueGreen[]={
 0.000000,0.109804,0.274510,0.301961,
 0.020000,0.129412,0.309804,0.341176,
@@ -609,7 +604,6 @@ double MutedBlueGreen[]={
 0.900000,0.294118,0.450980,0.333333,
 0.950000,0.211765,0.349020,0.254902,
 1.000000,0.152941,0.278431,0.196078};
-
 
 double ExtendedCoolWarm[]={
 0,0.0196078,0.188235,0.380392,
@@ -699,7 +693,6 @@ double LinearYellow[]={
 0.950000,0.400000,0.039216,0.058824,
 1.000000,0.301961,0.047059,0.090196};
 
-
 double LinearGray5[]={
 0.000000,0.941176,0.941176,0.894118,
 0.050000,0.878431,0.878431,0.807843,
@@ -722,7 +715,6 @@ double LinearGray5[]={
 0.900000,0.301961,0.250980,0.239216,
 0.950000,0.250980,0.203922,0.200000,
 1.000000,0.219608,0.180392,0.176471};
-
 
 double LinearGray4[]={
 0.000000,1.000000,0.968627,0.960784,
@@ -750,168 +742,191 @@ double LinearGray4[]={
 0.950000,0.286275,0.298039,0.411765,
 1.000000,0.286275,0.282353,0.388235};
 
-std::map< String, SharedPtr<RGBAColorMap> > values= std::map< String , SharedPtr<RGBAColorMap> >({  
-  {"BlueGreenDivergent",std::make_shared<RGBAColorMap>("BlueGreenDivergent",BlueGreenDivergent,sizeof(BlueGreenDivergent)/sizeof(double))},
-  {"AsymmetricBlueGreenDivergent",std::make_shared<RGBAColorMap>("AsymmetricBlueGreenDivergent",AsymmetricBlueGreenDivergent,sizeof(AsymmetricBlueGreenDivergent)/sizeof(double))},
-  {"GreenGold",std::make_shared<RGBAColorMap>("GreenGold",GreenGold,sizeof(GreenGold)/sizeof(double))},
-  {"LinearGreen",std::make_shared<RGBAColorMap>("LinearGreen",LinearGreen,sizeof(LinearGreen)/sizeof(double))},
-  {"LinearTurquois",std::make_shared<RGBAColorMap>("LinearTurquois",LinearTurquois,sizeof(LinearTurquois)/sizeof(double))},
-  {"MutedBlueGreen",std::make_shared<RGBAColorMap>("MutedBlueGreen",MutedBlueGreen,sizeof(MutedBlueGreen)/sizeof(double))},
-  {"ExtendedCoolWarm",std::make_shared<RGBAColorMap>("ExtendedCoolWarm",ExtendedCoolWarm,sizeof(ExtendedCoolWarm)/sizeof(double))},
-  {"AsymmetricBlueOrangeDivergent",std::make_shared<RGBAColorMap>("AsymmetricBlueOrangeDivergent",AsymmetricBlueOrangeDivergent,sizeof(AsymmetricBlueOrangeDivergent)/sizeof(double))},
-  {"LinearYellow",std::make_shared<RGBAColorMap>("LinearYellow",LinearYellow,sizeof(LinearYellow)/sizeof(double))},
-  {"LinearGray5",std::make_shared<RGBAColorMap>("LinearGray5",LinearGray5,sizeof(LinearGray5)/sizeof(double))},
-  {"LinearGray4",std::make_shared<RGBAColorMap>("LinearGray4",LinearGray4,sizeof(LinearGray4)/sizeof(double))}
-});  
-
-
-
-} //RGBAColorMaps
+} //namespace Private
 
 
 ////////////////////////////////////////////////////////////////////////////
 std::vector<String> TransferFunction::getDefaults()
 {
-  std::vector<String> ret;
-  ret.push_back("GrayOpaque");
-  ret.push_back("GrayTransparent");
-  ret.push_back("Hsl");
-  ret.push_back("Banded");
-  ret.push_back("BRY");
-  ret.push_back("BGRY");
-  ret.push_back("Gamma");
-  ret.push_back("Hot1");
-  ret.push_back("Hot2");
-  ret.push_back("Ice");
-  ret.push_back("Lighthues");
-  ret.push_back("Rich");
-  ret.push_back("SmoothRich");
-  ret.push_back("Lut16");
-
-  for (auto it : RGBAColorMaps::values)
-    ret.push_back(it.first);
-
-  return ret;
+  return {
+    "GrayOpaque",
+    "GrayTransparent",
+    "Hsl",
+    "Banded",
+    "BRY",
+    "BGRY",
+    "Gamma",
+    "Hot1",
+    "Hot2",
+    "Ice",
+    "Lighthues",
+    "Rich",
+    "SmoothRich",
+    "Lut16",
+    "BlueGreenDivergent",
+    "AsymmetricBlueGreenDivergent",
+    "GreenGold",
+    "LinearGreen",
+    "LinearTurquois",
+    "MutedBlueGreen",
+    "ExtendedCoolWarm",
+    "AsymmetricBlueOrangeDivergent",
+    "LinearYellow",
+    "LinearGray5",
+    "LinearGray4"
+  };
 }
 
 
 ////////////////////////////////////////////////////////////////////////////
-void TransferFunction::setNotDefault()
+SharedPtr<TransferFunction> TransferFunction::getDefault(String default_name, const int nsamples)
 {
-  if (default_name.empty()) return;
-  setProperty(this->default_name,String(""));
-}
+  using namespace Private;
 
-////////////////////////////////////////////////////////////////////////////
-bool TransferFunction::setDefault(String default_name)
-{
-  default_name=StringUtils::toLower(default_name);
+  default_name = StringUtils::toLower(default_name);
 
-  if (default_name=="grayopaque") 
+  if (default_name == "grayopaque")
   {
-    beginUpdate();
-    const int N=256;
-    functions.clear();
-    addFunction("Red"  ,Colors::Red   ,N);
-    addFunction("Green",Colors::Green ,N);
-    addFunction("Blue" ,Colors::Blue  ,N);
-    addFunction("Alpha",Colors::Gray  ,N);
+    auto ret=std::make_shared<TransferFunction>();
+    int nfunctions = 4;
+    for (int F = 0; F < nfunctions; F++)
+      ret->functions.push_back(std::make_shared<SingleTransferFunction>(guessName(F), guessColor(F), std::vector<double>(nsamples, 0.0)));
 
-    for (int I=0;I<N;I++)
+    for (int I = 0; I < nsamples; I++)
     {
-      double alpha=I/(N-1.0);
-      this->functions[0]->values[I]=alpha;
-      this->functions[1]->values[I]=alpha;
-      this->functions[2]->values[I]=alpha;
-      this->functions[3]->values[I]=1.0;
+      double alpha = I / (nsamples - 1.0);
+
+      for (int F = 0; F < nfunctions - 1; F++)
+        ret->functions[F]->values[I] = alpha;
+
+      ret->functions.back()->values[I] = 1.0;
     }
-    this->default_name=default_name;
-    endUpdate();
-    return true;
+    return ret;
   }
 
-  if (default_name=="graytransparent")
+  if (default_name == "graytransparent")
   {
-    beginUpdate();
-    const int N=256;
-    functions.clear();
-    addFunction("Red"  ,Colors::Red   ,N);
-    addFunction("Green",Colors::Green ,N);
-    addFunction("Blue" ,Colors::Blue  ,N);
-    addFunction("Alpha",Colors::Gray  ,N);
-    for (int I=0;I<N;I++)
+    auto ret = std::make_shared<TransferFunction>();
+
+    int nfunctions = 4;
+    for (int F = 0; F < nfunctions; F++)
+      ret->functions.push_back(std::make_shared<SingleTransferFunction>(guessName(F), guessColor(F), std::vector<double>(nsamples, 0.0)));
+
+    for (int I = 0; I < nsamples; I++)
     {
-      double alpha=I/(N-1.0);
-      this->functions[0]->values[I]=alpha;
-      this->functions[1]->values[I]=alpha;
-      this->functions[2]->values[I]=alpha;
-      this->functions[3]->values[I]=alpha*alpha;
+      double alpha = I / (nsamples - 1.0);
+
+      for (int F = 0; F < nfunctions - 1; F++)
+        ret->functions[F]->values[I] = alpha;
+
+      ret->functions.back()->values[I] = alpha * alpha;
     }
-    this->default_name=default_name;
-    endUpdate();
-    return true;
+
+    return ret;
   }
 
-  if (default_name=="hsl")
+  if (default_name == "hsl")
   {
-    beginUpdate();
-    const int N=256;
-    functions.clear();
-    addFunction("Red"  ,Colors::Red   ,N);
-    addFunction("Green",Colors::Green ,N);
-    addFunction("Blue" ,Colors::Blue  ,N);
-    addFunction("Alpha",Colors::Gray  ,N);
-    for (int I=0;I<N;I++)
+    auto ret = std::make_shared<TransferFunction>();
+
+    int nfunctions = 4;
+    for (int F = 0; F < nfunctions; F++)
+      ret->functions.push_back(std::make_shared<SingleTransferFunction>(guessName(F), guessColor(F), std::vector<double>(nsamples, 0.0)));
+
+    for (int I = 0; I < nsamples; I++)
     {
-      double alpha=I/(N-1.0);
-      Color color=Color((float)alpha,0.5f,1.0f,1.0f,Color::HLSType).toRGB();
-      this->functions[0]->values[I]=color.getRed();
-      this->functions[1]->values[I]=color.getGreen();
-      this->functions[2]->values[I]=color.getBlue();
-      this->functions[3]->values[I]=color.getAlpha();
+      double alpha = I / (nsamples - 1.0);
+      Color color = Color((float)alpha, 0.5f, 1.0f, 1.0f, Color::HLSType).toRGB();
+      ret->functions[0]->values[I] = color.getRed();
+      ret->functions[1]->values[I] = color.getGreen();
+      ret->functions[2]->values[I] = color.getBlue();
+      ret->functions[3]->values[I] = color.getAlpha();
     }
-    this->default_name=default_name;
-    endUpdate();
-    return true;
+
+    return ret;
   }
 
-  auto setRGBA = [&](unsigned char* buffer,size_t buffer_size) {
-    beginUpdate(); 
-    Array src(256, DTypes::UINT8_RGBA, SharedPtr<HeapMemory>(HeapMemory::createUnmanaged(buffer, buffer_size)));
-    setFromArray(src, default_name); 
-    endUpdate(); 
-    return true;
+  auto FromRGBA = [&](unsigned char* buffer) {
+    return TransferFunction::fromArray(Array(nsamples, DTypes::UINT8_RGBA, HeapMemory::createUnmanaged(buffer, sizeof(buffer))));
   };
 
-  if (default_name=="banded"    )  return setRGBA(banded_data    ,sizeof(banded_data));
-  if (default_name=="bry"       )  return setRGBA(bry_data       ,sizeof(bry_data));
-  if (default_name=="bgry"      )  return setRGBA(bgry_data      ,sizeof(bgry_data));
-  if (default_name=="gamma"     )  return setRGBA(gamma_data     ,sizeof(gamma_data));
-  if (default_name=="hot1"      )  return setRGBA(hot1_data      ,sizeof(hot1_data));
-  if (default_name=="hot2"      )  return setRGBA(hot2_data      ,sizeof(hot2_data));
-  if (default_name=="ice"       )  return setRGBA(ice_data       ,sizeof(ice_data));
-  if (default_name=="lighthues" )  return setRGBA(lighthues_data ,sizeof(lighthues_data));
-  if (default_name=="rich"      )  return setRGBA(rich_data      ,sizeof(rich_data));
-  if (default_name=="smoothrich")  return setRGBA(smoothrich_data,sizeof(smoothrich_data));
-  if (default_name=="lut16"     )  return setRGBA(lut16_data     ,sizeof(lut16_data));
-  
-  //colormaps
-  for (auto it : RGBAColorMaps::values)
-  {
-    if (default_name==StringUtils::toLower(it.first))
-    {
-      beginUpdate();
-      Array src;
-      it.second->convertToArray(src,256,interpolation.get());
-      setFromArray(src,default_name);
-      endUpdate();
-      return true;
-    }
-  }
+  if (default_name == "banded")  
+    return FromRGBA(banded_data);
 
+  if (default_name == "bry")  
+    return FromRGBA(bry_data);
+
+  if (default_name == "bgry")  
+    return FromRGBA(bgry_data);
+
+  if (default_name == "gamma")  
+    return FromRGBA(gamma_data);
+
+  if (default_name == "hot1")  
+    return FromRGBA(hot1_data);
+
+  if (default_name == "hot2")  
+    return FromRGBA(hot2_data);
+
+  if (default_name == "ice")  
+    return FromRGBA(ice_data);
+
+  if (default_name == "lighthues")  
+    return FromRGBA(lighthues_data);
+
+  if (default_name == "rich")  
+    return FromRGBA(rich_data);
+
+  if (default_name == "smoothrich")  
+    return FromRGBA(smoothrich_data);
+
+  if (default_name == "lut16")  
+    return FromRGBA(lut16_data);
+
+
+  auto fromRGBAColorMap = [&](const double* buffer) {
+    return TransferFunction::fromArray(RGBAColorMap(buffer, sizeof(buffer) / sizeof(double)).toArray(nsamples));
+  };
+
+  if (default_name == "BlueGreenDivergent")
+    return fromRGBAColorMap(BlueGreenDivergent);
+
+  if (default_name == "AsymmetricBlueGreenDivergent")
+    return fromRGBAColorMap(AsymmetricBlueGreenDivergent);
+
+  if (default_name == "GreenGold")
+    return fromRGBAColorMap(GreenGold);
+
+  if (default_name == "LinearGreen")
+    return fromRGBAColorMap(LinearGreen);
+
+  if (default_name == "LinearTurquois")
+    return fromRGBAColorMap(LinearTurquois);
+
+  if (default_name == "MutedBlueGreen")
+    return fromRGBAColorMap(MutedBlueGreen);
+
+  if (default_name == "ExtendedCoolWarm")
+    return fromRGBAColorMap(ExtendedCoolWarm);
+
+  if (default_name == "AsymmetricBlueOrangeDivergent")
+    return fromRGBAColorMap(AsymmetricBlueOrangeDivergent);
+
+  if (default_name == "LinearYellow")
+    return fromRGBAColorMap(LinearYellow);
+
+  if (default_name == "LinearGray5")
+    return fromRGBAColorMap(LinearGray5);
+
+  if (default_name == "LinearGray4")
+    return fromRGBAColorMap(LinearGray4);
+
+  //not found
   VisusAssert(false);
-  return false;
+  return SharedPtr<TransferFunction>();
 }
+
+
  
 } //namespace Visus
 

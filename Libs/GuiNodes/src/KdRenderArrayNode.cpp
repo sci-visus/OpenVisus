@@ -210,11 +210,11 @@ bool KdRenderArrayNode::processInput()
     if (palette && dtype.ncomponents()==1)
     {
       this->palette=palette;
-      this->palette_texture=std::make_shared<GLTexture>(palette->convertToArray());
+      this->palette_texture=std::make_shared<GLTexture>(palette->toArray());
 
       if (!dtype.isVectorOf(DTypes::UINT8))
       {
-        auto input_range=palette? palette->input_range : ComputeRange();
+        auto input_range=palette? palette->getInputRange() : ComputeRange();
         for (int I=0;I<std::min(4,dtype.ncomponents());I++)
         {
           //NOTE if I had to compute the dynamic range I will use only root data

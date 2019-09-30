@@ -597,7 +597,7 @@ bool IsoContourNode::processInput()
 
 
 ///////////////////////////////////////////////////////////////////////
-void IsoContourNode::writeTo(StringTree& out)
+void IsoContourNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
   out.writeValue("isovalue",cstring(isovalue));

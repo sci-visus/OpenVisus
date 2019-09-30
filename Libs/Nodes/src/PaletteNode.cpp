@@ -76,7 +76,8 @@ PaletteNode::PaletteNode(String name,String default_palette) : Node(name)
   //to enable statistics, connect it
   addInputPort("data"); 
   addOutputPort("palette");
-  setPalette(std::make_shared<Palette>(default_palette));
+
+  setPalette(Palette::getDefault(default_palette));
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -127,7 +128,7 @@ bool PaletteNode::processInput()
   if (views.empty())
     return false;
 
-  addNodeJob(std::make_shared<ComputeStatsJob>(this,*data,palette->input_range));
+  addNodeJob(std::make_shared<ComputeStatsJob>(this,*data,palette->getInputRange()));
   return true;
 }
 
@@ -144,7 +145,7 @@ void PaletteNode::exitFromDataflow() {
 }
 
 ///////////////////////////////////////////////////////////////////////
-void PaletteNode::writeTo(StringTree& out) 
+void PaletteNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
   out.writeObject("palette",*palette);

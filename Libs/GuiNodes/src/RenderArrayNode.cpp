@@ -214,7 +214,7 @@ void RenderArrayNode::setData(Array value,SharedPtr<Palette> palette)
     if (palette)
     {
       for (int C = 0; C < std::min(4, ncomponents); C++)
-        vs_t[C] = palette->input_range.doCompute(value, C).getScaleTranslate();
+        vs_t[C] = palette->getInputRange().doCompute(value, C).getScaleTranslate();
     }
     else
     {
@@ -243,7 +243,7 @@ void RenderArrayNode::setData(Array value,SharedPtr<Palette> palette)
   this->palette = palette;
 
   if (palette)
-    this->palette_texture = std::make_shared<GLTexture>(palette->convertToArray());
+    this->palette_texture = std::make_shared<GLTexture>(palette->toArray());
 
   VisusInfo() << "got array"
     << " texture("
@@ -406,7 +406,7 @@ void RenderArrayNode::glRender(GLCanvas& gl)
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RenderArrayNode::writeTo(StringTree& out)
+void RenderArrayNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
 

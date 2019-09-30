@@ -48,8 +48,6 @@ For support : support@visus.net
 #include <algorithm>
 #include <iomanip>
 
-
-
 namespace Visus {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -140,8 +138,8 @@ private:
     String url=src.readString("url");
     VisusAssert(!url.empty());
 
-    StringTree inplace;
-    if (!inplace.fromXmlString(Utils::loadTextDocument(url)))
+    StringTree inplace=StringTree::fromString(Utils::loadTextDocument(url));
+    if (!inplace.valid())
     {
       VisusInfo()<<"cannot load document "<<url;
       VisusAssert(false);
@@ -328,7 +326,7 @@ public:
     aliases.setValue("BinaryDirectory"        , KnownPaths::BinaryDirectory          .toString());
     aliases.setValue("CurrentWorkingDirectory", KnownPaths::CurrentWorkingDirectory().toString());
 
-    StringTree dst;
+    StringTree dst(src.name);
     accept(dst,src,templates,aliases);
     return dst;
   }
@@ -343,6 +341,73 @@ StringTree StringTree::postProcess(const StringTree& src)
   return dst;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+const StringTree* StringTree::NormalizeR(const StringTree* cursor, String& key)
+{
+  if (!StringUtils::contains(key, "/"))
+    return cursor;
+
+  auto v = StringUtils::split(key, "/");
+
+  for (int I = 0; cursor && I < (int)v.size() - 1; I++)
+  {
+    bool bFound = false;
+    for (auto child : cursor->childs)
+    {
+      if (child->name == v[I]) {
+        cursor = child.get();
+        bFound = true;
+        break;
+      }
+    }
+
+    if (!bFound)
+      cursor = nullptr;
+  }
+
+  if (!cursor)
+    return nullptr;
+
+  key = v.back();
+  return cursor;
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+StringTree* StringTree::NormalizeW(StringTree* cursor, String& key)
+{
+  if (!StringUtils::contains(key, "/"))
+    return cursor;
+
+  auto v = StringUtils::split(key, "/");
+
+  for (int I = 0; cursor && I < (int)v.size() - 1; I++)
+  {
+    bool bFound = false;
+    for (auto child : cursor->childs)
+    {
+      if (child->name == v[I]) {
+        cursor = child.get();
+        bFound = true;
+        break;
+      }
+    }
+
+    //automatically create a new one
+    if (!bFound)
+    {
+      auto sub_child = std::make_shared<StringTree>(v[I]);
+      cursor->addChild(sub_child);
+      cursor = sub_child.get();
+    }
+  }
+
+  VisusAssert(cursor);
+  key = v.back();
+  return cursor;
+}
+
+
 /////////////////////////////////////////////////
 String StringTree::readText() const
 {
@@ -350,133 +415,74 @@ String StringTree::readText() const
   for (int I=0;I<childs.size();I++)
   {
     if (childs[I]->name=="#text")         
-      out<<childs[I]->readString("value");
+      out<<childs[I]->read("value");
     
     else if (childs[I]->name== "#cdata-section") 
-      out<<childs[I]->readString("value");
+      out<<childs[I]->read("value");
   }
   return out.str();
 }
 
 
 /////////////////////////////////////////////////
-String StringTree::readString(String key,String default_value) const
+String StringTree::read(String key,String default_value) const
 {
-  if (StringUtils::contains(key, "/"))
-  {
-    std::vector<String> vkey = StringUtils::split(key, "/");
-    if (vkey.empty())
-    {
-      VisusAssert(false);
-      return default_value;
-    }
-    StringTree* cursor = const_cast<StringTree*>(this);
-    for (int I = 0; cursor && I < (int)vkey.size() - 1; I++)
-      cursor = cursor->findChildWithName(vkey[I]);
-
-    return cursor ? cursor->readString(vkey.back(), default_value) : default_value;
-  }
-  else
-  {
-    VisusAssert(!key.empty());
-    return getAttribute(key,default_value);
-  }
+  VisusAssert(!key.empty());
+  auto cursor=NormalizeR(this,key);
+  return cursor? cursor->getAttribute(key, default_value) : default_value;
 }
 
 /////////////////////////////////////////////////
-void StringTree::writeString(String key,String value)
+StringTree& StringTree::write(String key,String value)
 {
-  if (StringUtils::contains(key, "/"))
-  {
-    std::vector<String> vkey = StringUtils::split(key, "/");
-    if (vkey.empty())
-    {
-      VisusAssert(false); return;
-    }
-    StringTree* cursor = const_cast<StringTree*>(this);
-    for (int I = 0; I < (int)vkey.size() - 1; I++)
-    {
-      if (!cursor->findChildWithName(vkey[I]))
-        cursor->addChild(StringTree(vkey[I]));
-      cursor = cursor->findChildWithName(vkey[I]);
-    }
-    cursor->writeString(vkey.back(), value);
-  }
-  else
-  {
-    VisusAssert(!key.empty());
-    setAttribute(key,value);
-  }
+  VisusAssert(!key.empty());
+  auto cursor = NormalizeW(this, key);
+  cursor->setAttribute(key, value);
+  return *this;
 }
 
 /////////////////////////////////////////////////
-StringTree* StringTree::findChildWithName(String name,StringTree* prev) const
+SharedPtr<StringTree> StringTree::getChild(String name) const
 {
-  if (StringUtils::contains(name, "/"))
+  auto cursor = NormalizeR(this, name);
+  for (auto child : cursor->childs)
   {
-    std::vector<String> vname = StringUtils::split(name, "/");
-    if (vname.empty())
-    {
-      VisusAssert(false);
-      return nullptr;
-    }
-    StringTree* cursor = const_cast<StringTree*>(this);
-    for (int I = 0; cursor && I < (int)vname.size() - 1; I++)
-      cursor = cursor->findChildWithName(vname[I]);
-
-    return cursor ? cursor->findChildWithName(vname.back(), prev) : nullptr;
+    if (child->name == name)
+      return child;
   }
-  else
-  {
-    int I=0;
-
-    if (prev)
-    {
-      for (;I<(int)childs.size();I++)
-      {
-        if (childs[I].get()==prev) 
-        {
-          I++;
-          break;
-        }
-      }
-    }
-
-    for (;I<(int)childs.size();I++)
-    {
-      if (childs[I]->name==name) 
-        return const_cast<StringTree*>(childs[I].get());
-    }
-
-    return NULL; //not found
-  }
+  return nullptr;
 }
 
 /////////////////////////////////////////////////
-std::vector<StringTree*> StringTree::findAllChildsWithName(String name,bool bRecursive) const
+std::vector< SharedPtr<StringTree> > StringTree::getChilds(String name) const {
+  std::vector< SharedPtr<StringTree> > ret;
+  auto cursor = NormalizeR(this, name);
+  if (!cursor) return ret;
+  for (auto child : cursor->childs)
+    if (child->name == name)
+      ret.push_back(child);
+  return ret;
+}
+
+
+/////////////////////////////////////////////////
+std::vector<StringTree*> StringTree::getAllChilds(String name) const
 {
   std::vector<StringTree*> ret;
-  for (int I=0;I<(int)childs.size();I++)
+
+  for (auto child:childs)
   {
-    if (name.empty() || childs[I]->name==name) ret.push_back(const_cast<StringTree*>(childs[I].get()));
-    if (bRecursive)
-    {
-      std::vector<StringTree*> sub=childs[I]->findAllChildsWithName(name,true);
-      ret.insert(ret.end(),sub.begin(),sub.end());
-    }
+    if (name.empty() || child->name==name) 
+      ret.push_back(child.get());
+
+    auto tmp=child->getAllChilds(name);
+    ret.insert(ret.end(), tmp.begin(), tmp.end());
   }
   return ret;
 }
 
-/////////////////////////////////////////////////
-int StringTree::getMaxDepth()
-{
-  int ret=0;
-  for (auto child : this->childs)
-    ret=std::max(ret,1+ child->getMaxDepth());
-  return ret;
-}
 
+/////////////////////////////////////////////////
 static TiXmlElement* ToXmlElement(const StringTree& src)
 {
   TiXmlElement* dst = new TiXmlElement(src.name.c_str());
@@ -577,7 +583,6 @@ static String FormatJSON(String str)
   return "\"" + nStr + "\"";
 };
 
-
 /////////////////////////////////////////////////
 String StringTree::toJSONString(const StringTree& src, int nrec) 
 {
@@ -641,35 +646,32 @@ static StringTree FromXmlElement(TiXmlElement* src)
   return dst;
 }
 
-
-
-
 ////////////////////////////////////////////////////////////
-bool StringTree::fromXmlString(String content, bool bEnablePostProcessing)
+StringTree StringTree::fromString(String content, bool bEnablePostProcessing)
 {
   if (content.empty())
   {
-    VisusWarning() << "StringTree::fromXmlString failed because of empty content";
-    return false;
+    VisusWarning() << "StringTree::fromString failed because of empty content";
+    return StringTree();
   }
 
   TiXmlDocument xmldoc;
   xmldoc.Parse(content.c_str());
   if (xmldoc.Error())
   {
-    VisusWarning() << "Failed StringTree::fromXmlString failed"
+    VisusWarning() << "Failed StringTree::fromString failed"
       << " ErrorRow(" << xmldoc.ErrorRow() << ")"
       << " ErrorCol(" << xmldoc.ErrorCol() << ")"
       << " ErrorDesc(" << xmldoc.ErrorDesc() << ")";
     return false;
   }
 
-  (*this) = FromXmlElement(xmldoc.FirstChildElement());
+  auto ret = FromXmlElement(xmldoc.FirstChildElement());
 
   if (bEnablePostProcessing)
-    *this = StringTree::postProcess(*this);
+    ret = StringTree::postProcess(ret);
 
-  return true;
+  return ret;
 }
 
 
@@ -683,17 +685,18 @@ bool ConfigFile::load(String filename, bool bEnablePostProcessing)
     return false;
   }
 
-  String body = Utils::loadTextDocument(filename);
-
-  StringTree temp(this->name);
-  if (!temp.fromXmlString(body, bEnablePostProcessing))
+  String content = Utils::loadTextDocument(filename);
+  StringTree temp=StringTree::fromString(content, bEnablePostProcessing);
+  if (!temp.valid())
   {
     VisusWarning() << "visus config content is wrong or empty";
     return false;
   }
 
+  auto keep_name = this->name;
   this->filename = filename;
   this->StringTree::operator=(temp);
+  this->name= keep_name;
 
   return true;
 }

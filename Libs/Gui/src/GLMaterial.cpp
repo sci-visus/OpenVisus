@@ -61,48 +61,36 @@ GLMaterial GLMaterial::createRandom()
 }
 
 ///////////////////////////////////////////////
-void GLMaterial::writeTo(StringTree& out) 
+void GLMaterial::writeTo(StringTree& out) const
 {
-  if (auto child = out.addChild("front"))
-  {
-    child->writeValue("ambient", front.ambient.toString());
-    child->writeValue("diffuse", front.diffuse.toString());
-    child->writeValue("specular", front.specular.toString());
-    child->writeValue("emission", front.emission.toString());
-    child->writeValue("shininess", cstring(front.shininess));
-  }
+  out.write("front/ambient", front.ambient.toString());
+  out.write("front/diffuse", front.diffuse.toString());
+  out.write("front/specular", front.specular.toString());
+  out.write("front/emission", front.emission.toString());
+  out.write("front/shininess", cstring(front.shininess));
 
-  if (auto child = out.addChild("back"))
-  {
-    child->writeValue("ambient", back.ambient.toString());
-    child->writeValue("diffuse", back.diffuse.toString());
-    child->writeValue("specular", back.specular.toString());
-    child->writeValue("emission", back.emission.toString());
-    child->writeValue("shininess", cstring(back.shininess));
-  }
-
+  out.write("back/ambient", back.ambient.toString());
+  out.write("back/diffuse", back.diffuse.toString());
+  out.write("back/specular", back.specular.toString());
+  out.write("back/emission", back.emission.toString());
+  out.write("back/shininess", cstring(back.shininess));
 }
 
 ///////////////////////////////////////////////
 void GLMaterial::readFrom(StringTree& in) 
 {
-  if (auto child = in.getChild("front"))
-  {
-    this->front.ambient = Color::fromString(child->readValue("ambient"));
-    this->front.diffuse = Color::fromString(child->readValue("diffuse"));
-    this->front.specular = Color::fromString(child->readValue("specular"));
-    this->front.emission = Color::fromString(child->readValue("emission"));
-    this->front.shininess = cint(child->readValue("shininess"));
-  }
 
-  if (auto child = in.getChild("back"))
-  {
-    this->back.ambient = Color::fromString(child->readValue("ambient"));
-    this->back.diffuse = Color::fromString(child->readValue("diffuse"));
-    this->back.specular = Color::fromString(child->readValue("specular"));
-    this->back.emission = Color::fromString(child->readValue("emission"));
-    this->back.shininess = cint(child->readValue("shininess"));
-  }
+  this->front.ambient = Color::fromString(in.read("front/ambient"));
+  this->front.diffuse = Color::fromString(in.read("front/diffuse"));
+  this->front.specular = Color::fromString(in.read("front/specular"));
+  this->front.emission = Color::fromString(in.read("front/emission"));
+  this->front.shininess = cint(in.read("front/shininess"));
+
+  this->back.ambient = Color::fromString(in.read("back/ambient"));
+  this->back.diffuse = Color::fromString(in.read("back/diffuse"));
+  this->back.specular = Color::fromString(in.read("back/specular"));
+  this->back.emission = Color::fromString(in.read("back/emission"));
+  this->back.shininess = cint(in.read("back/shininess"));
 }
 
 } //namespace

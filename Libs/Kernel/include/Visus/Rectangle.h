@@ -145,7 +145,7 @@ public:
   }
 
   //writeTo
-  void writeTo(StringTree& out) 
+  void writeTo(StringTree& out) const
   {
     out.writeString("x", cstring(x));
     out.writeString("y", cstring(y));
@@ -264,7 +264,7 @@ public:
   }
 
   //writeTo
-  void writeTo(StringTree& out) 
+  void writeTo(StringTree& out) const
   {
     out.writeString("x", cstring(x));
     out.writeString("y", cstring(y));

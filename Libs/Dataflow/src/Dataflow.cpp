@@ -76,7 +76,7 @@ Dataflow::~Dataflow()
 ////////////////////////////////////////////////////////////////////////////
 void Dataflow::processInput(Node* node)
 {
-  if (node->isHidden())
+  if (!node->isVisible())
     return;
 
   for (auto it : listeners)
@@ -479,7 +479,7 @@ void Dataflow::disconnectPorts(Node* from,String oport_name,String iport_name,No
 
 
 /////////////////////////////////////////////////////////
-void Dataflow::writeTo(StringTree& out)
+void Dataflow::writeTo(StringTree& out) const
 {
   VisusAssert(false);
 }

@@ -53,7 +53,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(CpuPaletteNode)
 
   //constructor
-  CpuPaletteNode(String name="",String default_palette="GrayOpaque");
+  CpuPaletteNode(String name="",SharedPtr<TransferFunction> fn=SharedPtr<TransferFunction>());
 
   //destructor
   virtual ~CpuPaletteNode();
@@ -75,7 +75,7 @@ public:
   }
 
   //writeTo
-  virtual void writeTo(StringTree& out) override;
+  virtual void writeTo(StringTree& out) const override;
 
   //readFrom
   virtual void readFrom(StringTree& in) override;

@@ -220,7 +220,7 @@ public:
 public:
 
   //writeTo
-  void writeTo(StringTree& out) 
+  void writeTo(StringTree& out) const
   {
     out.writeValue("modelview" ,getModelview ().toString());
     out.writeValue("projection",getProjection().toString());

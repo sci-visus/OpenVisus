@@ -79,7 +79,7 @@ bool FunnelNode::processInput()
 
 
 ////////////////////////////////////////////////////////////////////////
-void FunnelNode::writeTo(StringTree& out)
+void FunnelNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
   VisusAssert(false); //todo: i need to read write input output ports

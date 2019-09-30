@@ -202,8 +202,8 @@ public:
   }
 
   //getAccessConfigs
-  std::vector<StringTree*> getAccessConfigs() const {
-    return config.findAllChildsWithName("access", false);
+  std::vector< SharedPtr<StringTree> > getAccessConfigs() const {
+    return config.getChilds("access");
   }
 
   //getDefaultAccessConfig
@@ -499,7 +499,7 @@ public:
   }
 
   //writeTo
-  void writeTo(StringTree& out);
+  void writeTo(StringTree& out) const;
 
   //readFrom
   void readFrom(StringTree& in);

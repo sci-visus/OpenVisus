@@ -351,7 +351,7 @@ SharedPtr<Access> GoogleMapsDataset::createAccess(StringTree config, bool bForBl
 {
   VisusAssert(this->valid());
 
-  if (config.empty())
+  if (!config.valid())
     config = getDefaultAccessConfig();
 
   String type = StringUtils::toLower(config.readString("type"));

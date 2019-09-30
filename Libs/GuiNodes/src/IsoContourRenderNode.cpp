@@ -209,7 +209,7 @@ void IsoContourRenderNode::glRender(GLCanvas& gl)
   {
     VisusAssert(shader->u_palette.valid());
     auto& tex = palette->texture;
-    if (!tex) tex = std::make_shared<GLTexture>(palette->convertToArray());
+    if (!tex) tex = std::make_shared<GLTexture>(palette->toArray());
     gl.setTextureInSlot(2, shader->u_palette, std::dynamic_pointer_cast<GLTexture>(tex));
   }
 
@@ -218,7 +218,7 @@ void IsoContourRenderNode::glRender(GLCanvas& gl)
 }
 
 /////////////////////////////////////////////////////////////
-void IsoContourRenderNode::writeTo(StringTree& out)
+void IsoContourRenderNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
   out.writeObject("material", material);

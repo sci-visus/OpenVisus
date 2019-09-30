@@ -79,7 +79,7 @@ void DatasetNode::exitFromDataflow()
 {Node::exitFromDataflow();}
 
 //////////////////////////////////////////////////////////////////////////
-void DatasetNode::writeTo(StringTree& out) 
+void DatasetNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
 

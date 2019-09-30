@@ -352,7 +352,7 @@ void QueryNode::exitFromDataflow()
 }
 
 //////////////////////////////////////////////////////////////////
-void QueryNode::writeTo(StringTree& out) 
+void QueryNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
 

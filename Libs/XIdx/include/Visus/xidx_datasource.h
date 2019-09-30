@@ -57,7 +57,7 @@ public:
 public:
   
   //writeTo
-  virtual void writeTo(StringTree& out) override
+  virtual void writeTo(StringTree& out) const override
   {
     XIdxElement::writeTo(out);
     out.writeString("Url", url);
@@ -88,8 +88,8 @@ private:
     }
 
     //must be xml data
-    StringTree stree;
-    if (!stree.fromXmlString(content))
+    StringTree stree = StringTree::fromString(content);
+    if (!stree.valid())
       ThrowException("Invalid xml data");
 
     out.addChild(stree);

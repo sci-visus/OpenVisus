@@ -76,11 +76,13 @@ public:
     this->step = step;
   }
 
-  //constructor
-  Range(const String& value)
+  //fromString
+  static Range fromString(const String& value)
   {
+    Range ret;
     std::istringstream in(value);
-    in >> from >> to >> step;
+    in >> ret.from >> ret.to >> ret.step;
+    return ret;
   }
 
   //numeric_limits
@@ -171,7 +173,7 @@ public:
 public:
 
   //writeTo
-  void writeTo(StringTree& out) 
+  void writeTo(StringTree& out) const
   {
     out.writeValue("from", cstring(this->from));
     out.writeValue("to", cstring(this->to));

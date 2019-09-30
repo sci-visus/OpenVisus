@@ -45,15 +45,17 @@ class CpuPaletteNode::MyJob : public NodeJob
 {
 public:
 
-  CpuPaletteNode*            node;
-  Array                      input;
-  SharedPtr<ReturnReceipt>   return_receipt;
-  bool                       bDataOutputPortConnected;
+  CpuPaletteNode*             node;
+  SharedPtr<TransferFunction> tf;
+  Array                       input;
+  SharedPtr<ReturnReceipt>    return_receipt;
+  bool                        bDataOutputPortConnected;
 
   //constructor
   MyJob(CpuPaletteNode* node_,Array input_,SharedPtr<ReturnReceipt> return_receipt_) 
     : node(node_), input(input_),return_receipt(return_receipt_)
   {
+    this->tf = node->getTransferFunction();
     this->bDataOutputPortConnected=node->isOutputConnected("data");
   }
 
@@ -68,7 +70,7 @@ public:
     if (!valid() || aborted() || !input)
       return;
 
-    Array output=node->transfer_function->applyToArray(input,this->aborted);
+    Array output=ArrayUtils::applyTransferFunction(tf, input,this->aborted);
 
     if (!output)
       return;
@@ -82,14 +84,13 @@ public:
 
 
 ///////////////////////////////////////////////////////////////////////
-CpuPaletteNode::CpuPaletteNode(String name,String default_palette)  : Node(name)
+CpuPaletteNode::CpuPaletteNode(String name,SharedPtr<TransferFunction> tf)  : Node(name)
 {
   addInputPort("data");
   addOutputPort("data");
 
-  auto tf=std::make_shared<TransferFunction>();
-  tf->setDefault(default_palette);
-  setTransferFunction(tf);
+  if (tf)
+    setTransferFunction(tf);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -145,7 +146,7 @@ bool CpuPaletteNode::processInput()
 
 
 ///////////////////////////////////////////////////////////////////////
-void CpuPaletteNode::writeTo(StringTree& out)
+void CpuPaletteNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
   out.writeObject("transfer_function",*transfer_function);

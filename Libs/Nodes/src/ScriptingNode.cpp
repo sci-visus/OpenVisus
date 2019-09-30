@@ -438,7 +438,7 @@ void ScriptingNode::guessPresets(Array input)
 }
 
 ///////////////////////////////////////////////////////////////////////
-void ScriptingNode::writeTo(StringTree& out)
+void ScriptingNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
 

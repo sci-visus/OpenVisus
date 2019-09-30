@@ -115,6 +115,7 @@ public:
     }
   }
 
+  //setProperty
   template <typename Value>
   void setProperty(Value& dst, Value src) {
     beginUpdate();
@@ -135,7 +136,7 @@ public:
 public:
 
   //writeTo
-  virtual void writeTo(StringTree& out) = 0;
+  virtual void writeTo(StringTree& out) const  = 0;
 
   //readFrom
   virtual void readFrom(StringTree& in) = 0;
@@ -154,8 +155,7 @@ private:
 
 
 ////////////////////////////////////////////////////////////////
-template <class Target>
-class UndoableModel : public Model
+class VISUS_KERNEL_API UndoableModel : public Model
 {
 public:
 
@@ -165,11 +165,6 @@ public:
 
   //destructor
   virtual ~UndoableModel() {
-  }
-
-  //target
-  Target* target() {
-    return dynamic_cast<Target*>(this);
   }
 
   //enableLog
@@ -185,7 +180,7 @@ public:
   //clearHistory
   void clearHistory()
   {
-    this->history=StringTree();
+    this->history = StringTree();
     this->log.close();
     this->redos = std::stack<StringTree>();
     this->undos = std::stack<StringTree>();
@@ -213,17 +208,17 @@ public:
   }
 
   //pushAction
-  void pushAction(StringTree redo,StringTree undo) 
+  void pushAction(StringTree redo, StringTree undo)
   {
-    auto action = std::make_pair(redo,undo);
+    auto action = std::make_pair(redo, undo);
 
     if (redos.empty())
     {
       this->Model::beginUpdate();
     }
-    else
+    else if (topRedo().name=="Transaction")
     {
-      topRedo().childs.insert(topRedo().childs.end  (), std::make_shared<StringTree>(redo)); //at the end 
+      topRedo().childs.insert(topRedo().childs.end(), std::make_shared<StringTree>(redo)); //at the end 
       topUndo().childs.insert(topUndo().childs.begin(), std::make_shared<StringTree>(undo)); //at the beginning
     }
 
@@ -232,7 +227,7 @@ public:
   }
 
   //popAction
-  void popAction() 
+  void popAction()
   {
     auto redo = topRedo(); redos.pop();
     auto undo = topUndo(); undos.pop();
@@ -244,7 +239,7 @@ public:
       if (!bUndoing && !bRedoing)
       {
         undo_redo.resize(n_undo_redo++);
-        undo_redo.push_back(std::make_pair(redo,undo));
+        undo_redo.push_back(std::make_pair(redo, undo));
       }
 
       if (log.is_open())
@@ -253,6 +248,7 @@ public:
       this->Model::endUpdate();
     }
   }
+
 
 public:
 
@@ -273,7 +269,7 @@ public:
     if (!canRedo())  return false;
     auto action = undo_redo[n_undo_redo++].first;
     bRedoing = true;
-    target()->executeAction(action);
+    executeAction(action);
     bRedoing = false;
     return true;
   }
@@ -285,9 +281,29 @@ public:
     if (!canUndo()) return false;
     auto action=undo_redo[--n_undo_redo].second;
     bUndoing=true;
-    target()->executeAction(action);
+    executeAction(action);
     bUndoing=false;
     return true;
+  }
+
+public:
+
+  //executeAction
+  virtual void executeAction(StringTree action)
+  {
+    if (action.name == "Transaction")
+    {
+      this->beginUpdate();
+      for (auto child : action.childs)
+      {
+        if (!child->isHashNode())
+          executeAction(*child);
+      }
+      this->endUpdate();
+      return;
+    }
+
+    ThrowException("internal error, unknown action " + action.name);
   }
 
 private:

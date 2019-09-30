@@ -83,10 +83,8 @@ public:
   //load
   static VISUS_NEWOBJECT(XIdxFile*) load(String filename)
   {
-    StringTree in;
-    if (!in.fromXmlString(Utils::loadTextDocument(filename)))
-      return nullptr;
-
+    StringTree in=StringTree::fromString(Utils::loadTextDocument(filename));
+    if (!in.valid()) return nullptr;
     auto ret = new XIdxFile("");
     ret->readFrom(in);
     return ret;
@@ -104,7 +102,7 @@ public:
 public:
 
   //writeTo
-  virtual void writeTo(StringTree& out) override
+  virtual void writeTo(StringTree& out) const override
   {
     XIdxElement::writeTo(out);
 
@@ -151,9 +149,8 @@ public:
     for (auto xi_include : in.getChilds("xi:include"))
     {
       auto filename = xi_include->readString("href");
-
-      StringTree in;
-      if (!in.fromXmlString(Utils::loadTextDocument(filename)))
+      StringTree in=StringTree::fromString(Utils::loadTextDocument(filename));
+      if (!in.valid())
         ThrowException("internal error");
 
       auto child = new Group();

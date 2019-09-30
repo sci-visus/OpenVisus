@@ -181,7 +181,7 @@ public:
 public:
 
   //writeTo
-  void writeTo(StringTree& out)  {
+  void writeTo(StringTree& out) const {
     out.writeValue("description",this->description);
   }
 

@@ -172,7 +172,7 @@ public:
         std::map<int,String> access_options;
         if (auto dataset=model->getDataset())
         {
-          std::vector<StringTree*> access_configs=dataset->getAccessConfigs();
+          auto access_configs=dataset->getAccessConfigs();
           for (int I=0;I<(int)access_configs.size();I++)
           {
             String name=access_configs[I]->readString("name","Access["+cstring(I)+"]");

@@ -36,71 +36,72 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#include <Visus/Field.h>
+#include <Visus/RGBAColorMap.h>
 
 namespace Visus {
 
-////////////////////////////////////////////////////
-void Field::writeTo(StringTree& out) const
+
+/////////////////////////////////////////////////////////////////
+RGBAColorMap::RGBAColorMap(const double* values, size_t num) 
 {
-  out.writeValue("name",name);
-
-  if (!description.empty())
-    out.writeValue("description",description);
-
-  out.writeObject("dtype", dtype);
-
-  if (!index.empty())
-   out.writeValue("index",index);
-
-  if (!default_compression.empty())
-   out.writeValue("default_compression",default_compression);
-
-  if (!default_layout.empty())
-    out.writeValue("default_layout",default_layout);
-
-  if (default_value!=0)
-    out.writeValue("default_value",cstring(default_value));
-
-  if (!filter.empty())
-    out.writeValue("filter",filter);
-
-  //params
-  if (!params.empty())
+  for (size_t I = 0; I < num; I += 4, values += 4)
   {
-    for (auto it : this->params)
-      out.writeValue("params/" + it.first,it.second);
+    double x = values[0];
+    double r = values[2];
+    double g = values[3];
+    double b = values[4];
+    double a = 1;
+    setColorAt(x, Color((float)r, (float)g, (float)b, (float)a));
   }
 }
 
-////////////////////////////////////////////////////
-void Field::readFrom(StringTree& in)
+/////////////////////////////////////////////////////////////////
+Color RGBAColorMap::colorAt(double x) const
 {
-  this->name=in.readValue("name");
-  this->description=in.readValue("description");
+  x = Utils::clamp(x, min_x, max_x);
 
-  in.readObject("dtype", this->dtype);
-
-  this->index=cint(in.readValue("index"));
-  this->default_compression=in.readValue("default_compression");
-  this->default_layout=in.readValue("default_layout");
-  this->default_value=cint(in.readValue("default_value","0"));
-  this->filter=in.readValue("filter");
-
-  this->params.clear();
-
-  if (auto params=in.getChild("params"))
+  for (int I = 0; I < (int)(colors.size() - 1); I++)
   {
-    for (auto param : params->childs)
-    {
-      if (param->isHashNode()) continue;
-      String key= param->name;
-      String value= param->readValue(key);
-      this->params.setValue(key,value);
-    }
+    const auto& p0 = colors[I + 0]; auto x0 = p0.first; auto c0 = p0.second.toCieLab();
+    const auto& p1 = colors[I + 1]; auto x1 = p1.first; auto c1 = p1.second.toCieLab();
+
+    if (!(x0 <= x && x <= x1))
+      continue;
+
+    if (interpolation == InterpolationMode::Flat)
+      return p0.second;
+
+    auto alpha = (x - x0) / (x1 - x0);
+    if (interpolation == InterpolationMode::Inverted)
+      alpha = 1 - alpha;
+
+    return Color::interpolate((Float32)(1 - alpha), c0, (Float32)alpha, c1).toRGB();
   }
 
+  VisusAssert(false);
+  return Colors::Black;
 }
 
-} //namespace Visus 
+/////////////////////////////////////////////////////////////////
+Array RGBAColorMap::toArray(int nsamples) const
+{
+  Array ret(nsamples, DTypes::UINT8_RGBA);
+
+  Uint8* DST = ret.c_ptr();
+  for (int I = 0; I < nsamples; I++)
+  {
+    double alpha = I / (double)(nsamples - 1);
+    double x = min_x + alpha * (max_x - min_x);
+    Color color = colorAt(x);
+    *DST++ = (Uint8)(255 * color.getRed());
+    *DST++ = (Uint8)(255 * color.getGreen());
+    *DST++ = (Uint8)(255 * color.getBlue());
+    *DST++ = (Uint8)(255 * color.getAlpha());
+  }
+
+  return ret;
+}
+
+
+} //namespace Visus
 

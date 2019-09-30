@@ -417,7 +417,7 @@ void OSPRayRenderNode::glRender(GLCanvas& gl)
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void OSPRayRenderNode::writeTo(StringTree& out)
+void OSPRayRenderNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
 }

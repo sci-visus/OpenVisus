@@ -103,19 +103,19 @@ public:
       }));
 
       layout->addRow("radius",widgets.radius=GuiFactory::CreateDoubleSliderWidget(model->radius,Range(0.1,10, 0),[this](double value){
-        model->setProperty(model->radius,value);
+        model->setProperty(model->radius, value);
       }));
 
       layout->addRow("min_material",widgets.min_material=GuiFactory::CreateGLMaterialView(model->min_material,[this](GLMaterial value){
-        model->setProperty(model->min_material,value);
+        model->setProperty(model->min_material, value);
       }));
 
       layout->addRow("max_material",widgets.max_material=GuiFactory::CreateGLMaterialView(model->max_material,[this](GLMaterial value){
-        model->setProperty(model->max_material,value);
+        model->setProperty(model->max_material, value);
       }));
 
       layout->addRow("saddle_material",widgets.saddle_material=GuiFactory::CreateGLMaterialView(model->saddle_material,[this](GLMaterial value){
-        model->setProperty(model->saddle_material,value);
+        model->setProperty(model->saddle_material, value);
       }));
 
       setLayout(layout);

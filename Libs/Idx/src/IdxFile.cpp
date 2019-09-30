@@ -577,8 +577,8 @@ IdxFile IdxFile::load(Url url)
   //new xml format
   else
   {
-    StringTree in;
-    if (!in.fromXmlString(content))
+    StringTree in=StringTree::fromString(content);
+    if (!in.valid())
     {
       VisusInfo()<<"idx file is wrong";
       VisusAssert(false);
@@ -756,38 +756,37 @@ String IdxFile::toString() const
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void IdxFile::writeTo(StringTree& out)
+void IdxFile::writeTo(StringTree& out) const
 {
- if (!this->valid())
+  if (!this->valid())
     ThrowException("internal error");
 
-  out.writeValue("version",cstring(this->version));
+  out.writeValue("version", cstring(this->version));
   out.writeValue("bitmask", this->bitmask.toString());
 
-  out.writeValue("box", logic_box.toOldFormatString()); 
+  out.writeValue("box", logic_box.toOldFormatString());
 
-  auto logic_to_physic = Position::computeTransformation(this->bounds,this->logic_box);
+  auto logic_to_physic = Position::computeTransformation(this->bounds, this->logic_box);
   if (!logic_to_physic.isIdentity())
-    out.writeValue("logic_to_physic",logic_to_physic.toString());
+    out.writeValue("logic_to_physic", logic_to_physic.toString());
 
-  out.writeValue("bitsperblock",cstring(this->bitsperblock));
-  out.writeValue("blocksperfile",cstring(this->blocksperfile));
-  out.writeValue("block_interleaving",cstring(this->block_interleaving));
-  out.writeValue("filename_template",filename_template);
-  
-  if (auto Fields = out.addChild("fields"))
+  out.writeValue("bitsperblock", cstring(this->bitsperblock));
+  out.writeValue("blocksperfile", cstring(this->blocksperfile));
+  out.writeValue("block_interleaving", cstring(this->block_interleaving));
+  out.writeValue("filename_template", filename_template);
+
+  if (!this->fields.empty())
   {
+    auto Fields = *out.addChild("fields");
     for (auto field : this->fields)
-      Fields->writeObject("field", field);
+      Fields.writeObject("field", field);
   }
 
   if (!this->time_template.empty())
   {
-    if (auto TimeSteps = out.addChild("Timesteps"))
-    {
-      TimeSteps->writeValue("filename_template", this->time_template);
-      timesteps.writeTo(*TimeSteps);
-    }
+    auto TimeSteps = *out.addChild("TimeSteps");
+    TimeSteps.write("filename_template", this->time_template);
+    timesteps.writeTo(TimeSteps);
   }
 }
 

@@ -145,7 +145,7 @@ public:
   virtual void glRender(GLCanvas& gl) override;
 
   //writeTo (to implement if needed!)
-  virtual void writeTo(StringTree& out) override {
+  virtual void writeTo(StringTree& out) const override {
     VisusAssert(false);
   }
 

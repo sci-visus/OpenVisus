@@ -243,7 +243,7 @@ public:
 
     //with thousansands of childs I don't want to create ThreadPool or NetService
     auto config = StringTree();
-    config.writeBool("disable_async", true);
+    config.write("disable_async", true);
     auto ret = child.dataset->createAccess(config,/*bForBlockQuery*/true);
     const_cast<Child&>(child).access = ret;
     return ret;
@@ -928,11 +928,11 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
 {
   VisusAssert(this->valid());
 
-  if (config.empty())
+  if (!config.valid())
     config = getDefaultAccessConfig();
 
   //consider I can have thousands of childs (NOTE: this attribute should be "inherited" from child)
-  config.writeBool("disable_async", true); 
+  config.write("disable_async", true);
 
   String type = StringUtils::toLower(config.readString("type"));
 
@@ -961,7 +961,7 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
   }
 
   //IdxMosaicAccess
-  if (type == "idxmosaicaccess" || (bMosaic && (config.empty() || type.empty())))
+  if (type == "idxmosaicaccess" || (bMosaic && (!config.valid() || type.empty())))
   {
     VisusReleaseAssert(bMosaic);
     return std::make_shared<IdxMosaicAccess>(this, config);
@@ -1284,7 +1284,7 @@ void IdxMultipleDataset::parseDatasets(StringTree* cur, Matrix MODELVIEW)
       }
 
       //this applies "before the dataset
-      if (auto tranform = child->findChildWithName("M"))
+      if (auto tranform = child->getChild("M"))
       {
         if (tranform->hasAttribute("value"))
           modelview *= Matrix::fromString(tranform->getAttribute("value"));
@@ -1334,8 +1334,9 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 {
   auto DATASET = this;
 
-  StringTree in;
-  if (!in.fromXmlString(Utils::loadTextDocument(URL.toString())))
+  auto CONTENT = Utils::loadTextDocument(URL.toString());
+  StringTree in=StringTree::fromString(CONTENT);
+  if (!in.valid())
     return false;
 
   in.writeString("url", URL.toString());
@@ -1524,7 +1525,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   //if (pdim==2)
   //  this->kdquery_mode = KdQueryMode::UseBoxQuery;
 
-  if (in.findChildWithName("field"))
+  if (in.getChild("field"))
   {
     clearFields();
 

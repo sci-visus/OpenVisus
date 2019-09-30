@@ -318,9 +318,9 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
   }
   else if (request.url.hasParam("xml"))
   {
-    String xml = request.url.getParam("xml");
-
-    if (!stree.fromXmlString(xml))
+    String content = request.url.getParam("xml");
+    stree = StringTree::fromString(content);
+    if (!stree.valid())
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Cannot decode xml");
   }
 
@@ -391,8 +391,8 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
   //fix urls (this is needed for midx where I need to remap urls)
   if (bool bIsXml = StringUtils::startsWith(body, "<"))
   {
-    StringTree stree;
-    if (stree.fromXmlString(body))
+    StringTree stree=StringTree::fromString(body);
+    if (!stree.valid())
     {
       VisusReleaseAssert(stree.name=="dataset");
       stree.writeString("name", dataset_name);
@@ -607,8 +607,8 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
   String palette = request.url.getParam("palette");
   if (!palette.empty() && buffer.dtype.ncomponents() == 1)
   {
-    TransferFunction tf;
-    if (!tf.setDefault(palette))
+    auto tf=TransferFunction::getDefault(palette);
+    if (!tf)
     {
       VisusAssert(false);
       VisusInfo() << "invalid palette specified: " << palette;
@@ -621,15 +621,11 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
     {
       double palette_min = cdouble(request.url.getParam("palette_min"));
       double palette_max = cdouble(request.url.getParam("palette_max"));
-      String palette_interp = (request.url.getParam("palette_interp"));
 
       if (palette_min != palette_max)
-        tf.input_range = ComputeRange::createCustom(palette_min, palette_max);
+        tf->setInputRange(ComputeRange::createCustom(palette_min, palette_max));
 
-      if (!palette_interp.empty())
-        tf.interpolation=InterpolationMode::fromString(palette_interp);
-
-      buffer = tf.applyToArray(buffer);
+      buffer = ArrayUtils::applyTransferFunction(tf, buffer);
       if (!buffer)
         return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "palette failed");
     }
@@ -701,8 +697,8 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
   String palette = request.url.getParam("palette");
   if (!palette.empty() && buffer.dtype.ncomponents() == 1)
   {
-    TransferFunction tf;
-    if (!tf.setDefault(palette))
+    auto tf=TransferFunction::getDefault(palette);
+    if (!tf)
     {
       VisusAssert(false);
       VisusInfo() << "invalid palette specified: " << palette;
@@ -715,15 +711,11 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
     {
       double palette_min = cdouble(request.url.getParam("palette_min"));
       double palette_max = cdouble(request.url.getParam("palette_max"));
-      String palette_interp = (request.url.getParam("palette_interp"));
 
       if (palette_min != palette_max)
-        tf.input_range = ComputeRange::createCustom(palette_min, palette_max);
+        tf->setInputRange(ComputeRange::createCustom(palette_min, palette_max));
 
-      if (!palette_interp.empty())
-        tf.interpolation=InterpolationMode::fromString(palette_interp);
-
-      buffer = tf.applyToArray(buffer);
+      buffer = ArrayUtils::applyTransferFunction(tf, buffer);
       if (!buffer)
         return NetResponseError(HttpStatus::STATUS_INTERNAL_SERVER_ERROR, "palette failed");
     }
