@@ -40,7 +40,3 @@ if False:
 	
 	if os.path.isfile(os.path.join(this_dir,"VisusAppKitPy.py")) :
 		from VisusAppKitPy import *
-
-# VisusSlam submodule
-if os.path.isfile(os.path.join(this_dir,"VisusSlamPy.py")) :
-	from VisusSlamPy import *
