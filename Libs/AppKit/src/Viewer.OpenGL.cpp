@@ -120,11 +120,18 @@ void Viewer::attachGLCamera(SharedPtr<GLCamera> value)
 
   int W=widgets.glcanvas->width ();
   int H=widgets.glcanvas->height();
-  Viewport viewport(0,0,W,H);
-  widgets.glcanvas->glcamera->setViewport(Viewport(viewport));
-  widgets.glcanvas->glcamera->changed.connect(widgets.glcanvas->glcamera_changed_slot=[this](){
+  widgets.glcanvas->glcamera->setViewport(Viewport(0, 0, W, H));
+
+  //for final frustum (which is part of the GLCamera model)
+  widgets.glcanvas->glcamera->end_update.connect(widgets.glcanvas->glcamera_end_update_slot=[this](){
     glCameraChangeEvent();
   });
+
+  //for interpolated frustum (which is not part of the GLCamera model)
+  widgets.glcanvas->glcamera->redisplay_needed.connect(widgets.glcanvas->glcamera_redisplay_needed_slot = [this]() {
+    postRedisplay();
+  });
+
   postRedisplay();
 }
 
@@ -134,7 +141,9 @@ void Viewer::detachGLCamera()
   if (!widgets.glcanvas->glcamera)
     return;
   
-  widgets.glcanvas->glcamera->changed.disconnect(widgets.glcanvas->glcamera_changed_slot);
+  widgets.glcanvas->glcamera->end_update.disconnect(widgets.glcanvas->glcamera_end_update_slot);
+  widgets.glcanvas->glcamera->redisplay_needed.disconnect(widgets.glcanvas->glcamera_redisplay_needed_slot);
+
   widgets.glcanvas->glcamera=nullptr;
 }
 
@@ -149,7 +158,7 @@ void Viewer::glCameraChangeEvent()
   if (!auto_refresh.enabled)
     return;
 
-  //see the setAutoRefresh with its timer
+  //the auto refresh timer will automaticall do what it's needed
   if (auto_refresh.msec>0)
     return;
 
@@ -192,7 +201,7 @@ void Viewer::glCanvasMousePressEvent(QMouseEvent* evt)
   
   if (free_transform)
   {
-    free_transform->glMousePressEvent(FrustumMap(glcamera->getFrustum()),evt);
+    free_transform->glMousePressEvent(FrustumMap(glcamera->getCurrentFrustum()),evt);
     if (evt->isAccepted()) {
       postRedisplay();
       return;
@@ -200,7 +209,9 @@ void Viewer::glCanvasMousePressEvent(QMouseEvent* evt)
   }
 
   glcamera->glMousePressEvent(evt);
-  widgets.glcanvas->postRedisplay();//needed for gesture render
+
+  //needed for gesture render
+  postRedisplay();
 }
 
 ////////////////////////////////////////////////////////////
@@ -214,7 +225,7 @@ void Viewer::glCanvasMouseMoveEvent(QMouseEvent* evt)
 
   if (free_transform)
   {
-    free_transform->glMouseMoveEvent(FrustumMap(glcamera->getFrustum()),evt);
+    free_transform->glMouseMoveEvent(FrustumMap(glcamera->getCurrentFrustum()),evt);
     if (evt->isAccepted()) {
       postRedisplay();
       return;
@@ -236,7 +247,7 @@ void Viewer::glCanvasMouseReleaseEvent(QMouseEvent* evt)
 
   if (free_transform)
   {
-    free_transform->glMouseReleaseEvent(FrustumMap(glcamera->getFrustum()),evt);
+    free_transform->glMouseReleaseEvent(FrustumMap(glcamera->getCurrentFrustum()),evt);
     if (evt->isAccepted()) 
     {
       setFastRendering(false);
@@ -299,8 +310,8 @@ void Viewer::glCanvasMouseReleaseEvent(QMouseEvent* evt)
     }
   }
 
-
-  widgets.glcanvas->postRedisplay();  //needed for gesture render
+  //needed for gesture render
+  postRedisplay();  
 }
 
 ////////////////////////////////////////////////////////////
@@ -382,7 +393,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
 
   std::vector<GLSortNode> sorted_nodes;
   std::stack< std::pair<Frustum,Node*> > stack;
-  stack.push(std::make_pair(glcamera->getFrustum(),getRoot()));
+  stack.push(std::make_pair(glcamera->getCurrentFrustum(),getRoot()));
   while (!stack.empty())
   {
     Frustum frustum=stack.top().first;
@@ -400,7 +411,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
     {
       if (auto globject = dynamic_cast<GLObject*>(node))
       {
-        auto node_to_screen= computeNodeToScreen(getGLCamera()->getFrustum(),node);
+        auto node_to_screen= computeNodeToScreen(getGLCamera()->getCurrentFrustum(),node);
         Position bounds=getNodeBounds(node);
         bool bUseFarPoint=(nqueue==2);
         double distance= node_to_screen.computeZDistance(bounds,bUseFarPoint);
@@ -491,7 +502,7 @@ void Viewer::glRenderSelection(GLCanvas& gl)
     if (bounds.valid())
     {
       gl.pushFrustum();
-      gl.setFrustum(computeNodeToScreen(getGLCamera()->getFrustum(),selection));
+      gl.setFrustum(computeNodeToScreen(getGLCamera()->getCurrentFrustum(),selection));
       GLBox(bounds,Colors::Transparent,Colors::Black.withAlpha(0.5)).glRender(gl);
       gl.popFrustum();
     }
@@ -585,7 +596,7 @@ void Viewer::glRender(GLCanvas& gl)
   if (!glcamera)
     return;
 
-  gl.setFrustum(glcamera->getFrustum());
+  gl.setFrustum(glcamera->getCurrentFrustum());
 
   glRenderNodes(gl);
   glRenderSelection(gl);

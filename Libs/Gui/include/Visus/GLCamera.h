@@ -53,6 +53,10 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(GLCamera)
 
+#if !SWIG
+  Signal<void()> redisplay_needed;
+#endif
+
   //constructor
   GLCamera() 
   {}
@@ -76,13 +80,11 @@ public:
   //keyboard glKeyPressEvent
   virtual void glKeyPressEvent(QKeyEvent* evt)=0;
 
-  //getFrustum
-  virtual Frustum getFrustum() const=0;
+  //getCurrentFrustum
+  virtual Frustum getCurrentFrustum() const = 0;
   
   //getFinalFrustum
-  virtual Frustum getFinalFrustum() const {
-    return getFrustum();
-  }
+  virtual Frustum getFinalFrustum() const = 0;
 
   //getOrthoParams
   virtual GLOrthoParams getOrthoParams() const=0;
@@ -114,6 +116,20 @@ public:
 
   //readFrom
   virtual void readFrom(StringTree& in) override  {
+  }
+
+private:
+
+  //beginUpdate
+  virtual void beginUpdate() override {
+    UndoableModel::beginUpdate();
+  }
+
+  //endUpdate
+  virtual void endUpdate() override {
+    UndoableModel::endUpdate();
+    if (!isUpdating())
+      redisplay_needed.emitSignal();
   }
 
 

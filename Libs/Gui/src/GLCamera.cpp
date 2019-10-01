@@ -44,7 +44,7 @@ namespace Visus {
 //////////////////////////////////////////////////
 void GLCamera::glRender(GLCanvas& gl) 
 {
-  GLBox(getFrustum(),Colors::Transparent,Colors::Black).glRender(gl);
+  GLBox(getCurrentFrustum(),Colors::Transparent,Colors::Black).glRender(gl);
 }
 
 } //namespace

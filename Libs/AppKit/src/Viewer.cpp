@@ -863,7 +863,7 @@ Node* Viewer::findPick(Node* node,Point2d screen_point,bool bRecursive,double* o
   //I allow the picking of only queries
   if (QueryNode* query=dynamic_cast<QueryNode*>(node))
   {
-    Frustum  node_to_screen = computeNodeToScreen(getGLCamera()->getFrustum(),node);
+    Frustum  node_to_screen = computeNodeToScreen(getGLCamera()->getCurrentFrustum(),node);
     Position node_bounds  = getNodeBounds(node);
 
     double query_distance= node_to_screen.computeDistance(node_bounds,screen_point,/*bUseFarPoint*/false);
@@ -904,7 +904,7 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
   if (!bounds.valid())
   {
     free_transform.reset();
-    widgets.glcanvas->postRedisplay();
+    postRedisplay();
     return;
   }
 
@@ -1502,7 +1502,7 @@ void Viewer::addNode(Node* parent,Node* node,int index)
       StringTree("ChangeNode", "node", node->getUUID()));
   });
 
-  node->changed.connect([this,node](){
+  node->end_update.connect([this,node](){
 
     auto& redo = topRedo(); VisusAssert(redo.name == "ChangeNode");
     auto& undo = topUndo(); VisusAssert(undo.name == "ChangeNode");

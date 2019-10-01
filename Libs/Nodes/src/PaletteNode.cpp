@@ -91,7 +91,7 @@ void PaletteNode::setPalette(SharedPtr<Palette> value)
   if (this->palette) 
   {
     this->palette->begin_update.disconnect(this->palette_begin_update_slot);
-    this->palette->changed.disconnect(this->palette_changed_slot);
+    this->palette->end_update.disconnect(this->palette_end_update_slot);
   }
 
   this->palette=value;
@@ -103,7 +103,7 @@ void PaletteNode::setPalette(SharedPtr<Palette> value)
       beginUpdate();
     });
 
-    this->palette->changed.connect(this->palette_changed_slot=[this](){
+    this->palette->end_update.connect(this->palette_end_update_slot =[this](){
       endUpdate();
     });
   }

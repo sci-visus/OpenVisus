@@ -222,7 +222,7 @@ public:
   }
 
   //executeAction
-  virtual void executeAction(StringTree action) override;
+  virtual void executeAction(StringTree in) override;
 
   //operator=
   TransferFunction& operator=(const TransferFunction& other);
@@ -303,7 +303,6 @@ public:
   //exportTransferFunction
   bool exportTransferFunction(String filename);
 
-
 public:
 
   //writeTo
@@ -311,13 +310,6 @@ public:
 
   //readFrom
   virtual void readFrom(StringTree& in) override;
-
-  //encode
-  StringTree encode() const {
-    StringTree out;
-    writeTo(out);
-    return out;
-  }
 
 private:
 
@@ -336,23 +328,9 @@ private:
   //how to map the range [0,1] to some user range
   Range output_range = Range(0, 255, 1);
 
-
-  //setProperty
-  template <typename Value>
-  void setProperty(String name, Value& new_value, const Value& old_value)
-  {
-    if (new_value == old_value) return;
-    pushAction(
-      StringTree("SetProperty").write("name", name).write("value", new_value),
-      StringTree("SetProperty").write("name", name).write("value", old_value));
-    new_value = new_value;
-    popAction();
-  }
-
-
   //fullAssign
-  const StringTree fullAssign(const TransferFunction& src) {
-    return StringTree("Assign").addChild(src.encode());
+  StringTree fullUndo() {
+    return EncodeObject(this,"Assign");
   }
 
 };

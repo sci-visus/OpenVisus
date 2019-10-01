@@ -71,8 +71,8 @@ public:
 
   Signal<void()> begin_update;
 
-  //changed
-  Signal<void()> changed;
+  //end_update
+  Signal<void()> end_update;
 
   //destroyed
   Signal<void()> destroyed;
@@ -111,7 +111,7 @@ public:
     if (!--nbegin) 
     {
       modelChanged();
-      this->changed.emitSignal();
+      this->end_update.emitSignal();
     }
   }
 
@@ -249,6 +249,19 @@ public:
     }
   }
 
+  //setProperty
+  template <typename Value>
+  void setProperty(String name, Value& new_value, const Value& old_value)
+  {
+    if (new_value == old_value) return;
+    pushAction(
+      StringTree("SetProperty").write("name", name).write("value", new_value),
+      StringTree("SetProperty").write("name", name).write("value", old_value));
+    new_value = new_value;
+    popAction();
+  }
+
+
 
 public:
 
@@ -357,7 +370,7 @@ public:
     if (this->model) 
     {
       this->model->removeView(this);
-      this->model->changed.disconnect(changed_slot);
+      this->model->end_update.disconnect(changed_slot);
       this->model->Model::destroyed.disconnect(destroyed_slot);
     }
 
@@ -365,7 +378,7 @@ public:
 
     if (this->model) 
     {
-      this->model->changed.connect(changed_slot=Slot<void()>([this] {
+      this->model->end_update.connect(changed_slot=Slot<void()>([this] {
         modelChanged();
       }));
 

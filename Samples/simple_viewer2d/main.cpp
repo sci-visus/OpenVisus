@@ -129,7 +129,7 @@ public:
       {
         gl.glClearColor(0,0,0,1);
         gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        gl.setFrustum(glcamera->getFrustum());
+        gl.setFrustum(glcamera->getCurrentFrustum());
 
         if (render_node)
           render_node->glRender(gl);
@@ -161,14 +161,22 @@ public:
     //glcamera
     {
       glcamera=std::make_shared<GLOrthoCamera>();
-      glcamera->changed.connect([this](){
+      
+      //this is for the "final" frustum
+      glcamera->end_update.connect([this](){
         if (query_node) 
         {
-          query_node->setNodeToScreen(Frustum(glcamera->getFrustum()));
+          query_node->setNodeToScreen(Frustum(glcamera->getFinalFrustum()));
           dataflow->needProcessInput(query_node);
         }
         postRedisplay();
       });
+      
+      //this is for the current frustum (interpolated between start and final)
+      glcamera->redisplay_needed.connect([this](){
+      	postRedisplay();
+      }); 
+      
       glcamera->setViewport(Viewport(0,0,glcanvas->width(),glcanvas->height()));
       glcamera->guessPosition(BoxNd());
       glcamera->setRotationDisabled(true);

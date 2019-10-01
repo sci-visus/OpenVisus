@@ -105,7 +105,7 @@ void CpuPaletteNode::setTransferFunction(SharedPtr<TransferFunction> value)
   if (this->transfer_function)
   {
     this->transfer_function->begin_update.disconnect(this->transfer_function_begin_update_slot);
-    this->transfer_function->changed.disconnect(this->transfer_function_changed_slot);
+    this->transfer_function->end_update.disconnect(this->transfer_function_changed_slot);
   }
 
   this->transfer_function=value;
@@ -116,7 +116,7 @@ void CpuPaletteNode::setTransferFunction(SharedPtr<TransferFunction> value)
       this->beginUpdate();
     });
 
-    this->transfer_function->changed.connect(this->transfer_function_changed_slot=[this](){
+    this->transfer_function->end_update.connect(this->transfer_function_changed_slot=[this](){
       this->endUpdate();
     });
   }

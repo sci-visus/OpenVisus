@@ -98,7 +98,7 @@ private:
   SharedPtr<Palette> palette;
 
   Slot<void()>       palette_begin_update_slot;
-  Slot<void()>       palette_changed_slot;
+  Slot<void()>       palette_end_update_slot;
 
   //doPublish
   void doPublish() 

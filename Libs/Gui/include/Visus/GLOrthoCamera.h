@@ -54,25 +54,18 @@ public:
   VISUS_NON_COPYABLE_CLASS(GLOrthoCamera)
 
   //constructor
-  GLOrthoCamera(double default_scale = 1.3) : default_scale(default_scale) 
-  {
-    last_mouse_pos.resize(GLMouse::getNumberOfButtons());
-    QObject::connect(&timer,&QTimer::timeout,[this]{
-      refineToFinal();
-    });
-    timer.setInterval(0);
-  }
+  GLOrthoCamera(double default_scale = 1.3);
 
   //destructor
-  virtual ~GLOrthoCamera() {
-    VisusAssert(VisusHasMessageLock());
-    timer.stop();
-  }
+  virtual ~GLOrthoCamera();
 
   //getTypeName
   virtual String getTypeName() const override {
     return "GLOrthoCamera";
   }
+
+  //executeAction
+  virtual void executeAction(StringTree in) override;
 
   //getLookAt
   void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const {
@@ -82,27 +75,19 @@ public:
   }
 
   //setLookAt
-  void setLookAt(Point3d pos, Point3d dir, Point3d vup)
-  {
-    beginUpdate();
-    this->pos = pos;
-    this->dir = dir;
-    this->vup = vup;
-    endUpdate();
-  }
+  void setLookAt(Point3d pos, Point3d dir, Point3d vup);
 
   //guessPosition
   virtual bool guessPosition(BoxNd bound, int ref = -1) override;
 
-  //isRotationDisabled
-  bool isRotationDisabled() const {
-    return bDisableRotation;
+  //setDisableRotation
+  void setDisableRotation(bool value) {
+    setProperty("disable_rotation", this->disable_rotation, value);
   }
 
-  //setRotationDisabled
-  void setRotationDisabled(bool value) {
-    if (bDisableRotation==value) return;
-    setProperty(bDisableRotation, value);
+  //isRotationDisabled
+  bool isRotationDisabled() const {
+    return disable_rotation;
   }
 
   //getMaxZoom
@@ -112,11 +97,9 @@ public:
 
   //setMaxZoom
   void setMaxZoom(double value) {
-    if (max_zoom==value) return;
-    setProperty(max_zoom, value);
+    setProperty("max_zoom", this->max_zoom, value);
   }
   
-
   //getMinZoom
   double getMinZoom() const {
     return min_zoom;
@@ -124,12 +107,34 @@ public:
 
   //setMinZoom
   void setMinZoom(double value) {
-    if (min_zoom==value) return;
-    setProperty(min_zoom, value);
+    setProperty("min_zoom", min_zoom, value);
   }
 
   //mirror
   virtual void mirror(int ref) override;
+
+  //translate
+  void translate(Point2d vt);
+
+  //moveLeft
+  void moveLeft() {
+    translate(Point2d(-getOrthoParams().getWidth(), 0.0));
+  }
+
+  //moveRight
+  void moveRight() {
+    translate(Point2d(+getOrthoParams().getWidth(), 0));
+  }
+
+  //moveUp
+  void moveUp() {
+    translate(Point2d(0, +getOrthoParams().getHeight()));
+  }
+
+  //moveDown
+  void moveDown() {
+    translate(Point2d(0, -getOrthoParams().getHeight()));
+  }
 
   //scale
   void scale(double vs,Point2d center);
@@ -139,12 +144,27 @@ public:
     scale(default_scale,center);
   }
 
+  //scale
+  void scale(double vs) {
+    scale(vs, getOrthoParams().getCenter().toPoint2());
+  }
+
+  //zoomIn
+  void zoomIn() {
+    scale(1.0 / default_scale);
+  }
+
+  //scale(Qt::Key_Plus ? 1.0 / default_scale : default_scale);
+  void zoomOut() {
+    scale(default_scale);
+  }
+
   //rotate
   void rotate(double quantity);
 
   //getOrthoParams
   virtual GLOrthoParams getOrthoParams() const override {
-     return ortho_params; 
+     return ortho_params_current; 
   }
 
   //setOrthoParams
@@ -152,21 +172,34 @@ public:
 
   //getViewport
   virtual Viewport getViewport() const override {
-    return getFrustum().getViewport();
+    return this->viewport;
   }
 
   //setViewport
   virtual void setViewport(Viewport value) override;
 
-  //getFrustum
-  virtual Frustum getFrustum() const override {
-    return getFrustum(ortho_params);
-  }
+  //getCurrentFrustum
+  virtual Frustum getCurrentFrustum() const override;
 
   //getFinalFrustum
-  virtual Frustum getFinalFrustum() const override {
-    return getFrustum(ortho_params_final);
+  virtual Frustum getFinalFrustum() const override;
+
+  //getSmooth
+  double getSmooth() const {
+    return smooth;
   }
+
+  //setSmooth
+  void setSmooth(double value) {
+    setProperty("smooth", this->smooth, value);
+  }
+
+  //toggleSmooth
+  void toggleSmooth() {
+    setSmooth(getSmooth()? 0.0 : 0.90);
+  }
+
+public:
 
   //glMousePressEvent
   virtual void glMousePressEvent(QMouseEvent* evt) override;
@@ -183,7 +216,6 @@ public:
   //glKeyPressEvent
   virtual void glKeyPressEvent(QKeyEvent* evt) override;
 
-
 public:
 
   //writeTo
@@ -195,7 +227,7 @@ public:
 private:
 
   double                smooth=0.90;
-  bool                  bDisableRotation = false;
+  bool                  disable_rotation = false;
   double                default_scale;
   double                rotation_angle = 0;
   double                max_zoom = 0;
@@ -208,28 +240,26 @@ private:
   Point3d               dir = Point3d(0, 0,-1);
   Point3d               vup = Point3d(0, 1, 0);
 
-  GLOrthoParams         ortho_params;
+  GLOrthoParams         ortho_params_current;
   GLOrthoParams         ortho_params_final;
 
-  QTimer                timer;
-
-  //translate
-  void translate(Point2d vt);
+  SharedPtr<QTimer>     timer;
 
   //needUnproject
-  FrustumMap needUnproject()
+  FrustumMap needUnprojectInScreenSpace()
   {
-    Frustum temp(getFrustum());
+    Frustum temp(getCurrentFrustum());
     temp.loadModelview(Matrix::identity(4)); // i don't want the modelview...
     return FrustumMap(temp);
   }
 
+  //interpolateToFinal
+  void interpolateToFinal();
 
-  //getFrustum
-  Frustum getFrustum(GLOrthoParams ortho_params) const ;
-
-  //refineToFinal
-  void refineToFinal();
+  //fullUndo
+  StringTree fullUndo() {
+    return EncodeObject(this, "Assign");
+  }
 
 }; //end class
 

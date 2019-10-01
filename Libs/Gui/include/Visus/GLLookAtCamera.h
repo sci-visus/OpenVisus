@@ -63,7 +63,7 @@ public:
   }
 
   //executeAction
-  virtual void executeAction(StringTree action) override;
+  virtual void executeAction(StringTree in) override;
 
   //getTypeName
   virtual String getTypeName() const override {
@@ -110,8 +110,13 @@ public:
   //setViewport
   virtual void setViewport(Viewport value) override;
 
-  //getFrustum
-  virtual Frustum getFrustum() const override;
+  //getCurrentFrustum
+  virtual Frustum getFinalFrustum() const override;
+
+  //getCurrentFrustum
+  virtual Frustum getCurrentFrustum() const override {
+    return getFinalFrustum();
+  }
 
   //glMousePressEvent
   virtual void glMousePressEvent(QMouseEvent* evt) override;
@@ -156,7 +161,7 @@ public:
 
 private:
 
-  BoxNd                bound = BoxNd(3);
+  BoxNd                bounds = BoxNd(3);
   bool                 use_ortho_projection=false;
   double               rotation_factor;
   double               pan_factor;
@@ -180,6 +185,11 @@ private:
 
   //guessOrthoParams
   void guessOrthoParams();
+  
+  //fullUndo
+  StringTree fullUndo() {
+    return EncodeObject(this, "Assign");
+  }
 
 
 };//end class

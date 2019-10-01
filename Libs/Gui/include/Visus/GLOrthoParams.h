@@ -67,6 +67,19 @@ public:
     return ret;
   }
 
+  //interpolate
+  static GLOrthoParams interpolate(double alpha, GLOrthoParams A, double beta, GLOrthoParams B)
+  {
+    GLOrthoParams ret;
+    ret.left   = alpha * A.left   + beta * B.left;
+    ret.right  = alpha * A.right  + beta * B.right;
+    ret.bottom = alpha * A.bottom + beta * B.bottom;
+    ret.top    = alpha * A.top    + beta * B.top;
+    ret.zNear  = alpha * A.zNear  + beta * B.zNear;
+    ret.zFar   = alpha * A.zFar   + beta * B.zFar;
+    return ret;
+  }
+
   //operator==
   bool operator==(const GLOrthoParams& other) const
   {

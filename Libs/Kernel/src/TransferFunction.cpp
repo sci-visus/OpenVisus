@@ -76,98 +76,106 @@ SharedPtr<TransferFunction> TransferFunction::fromString(String content)
 }
 
   ////////////////////////////////////////////////////////////////////
-void TransferFunction::executeAction(StringTree action)
+void TransferFunction::executeAction(StringTree in)
 {
-  if (action.name == "AddFunction")
+  if (in.name == "Assign")
   {
-    auto single = std::make_shared<SingleTransferFunction>();
-    single->readFrom(action);
-    addFunction(single);
+    readFrom(in);
+
+    TransferFunction other;
+    other.readFrom(in);
+    (*this) = other;
     return;
   }
 
-  if (action.name == "RemoveFunction")
-  {
-    int index = action.readInt("index");
-    removeFunction(index);
-    return;
-  }
-
-  if (action.name == "ClearFunctions")
+  if (in.name == "ClearFunctions")
   {
     clearFunctions();
     return;
   }
 
-  if (action.name == "SetNumberOfSamples")
+
+  if (in.name == "AddFunction")
   {
-    auto value = action.readInt("value");
-    setNumberOfSamples(value);
+    auto single = std::make_shared<SingleTransferFunction>();
+    single->readFrom(in);
+    addFunction(single);
     return;
   }
 
-  if (action.name == "SetNumberOfFunctions")
+  if (in.name == "RemoveFunction")
   {
-    auto value = action.readInt("value");
-    setNumberOfFunctions(value);
+    int index = in.readInt("index");
+    removeFunction(index);
     return;
   }
 
-  if (action.name == "Assign")
+  if (in.name == "DrawLine")
   {
-    TransferFunction other;
-    other.readFrom(*action.getFirstChild());
-    (*this) = other;
-    return;
-  }
-
-  if (action.name == "DrawLine")
-  {
-    auto p1 = Point2d::fromString(action.read("p1"));
-    auto p2 = Point2d::fromString(action.read("p2"));
+    auto p1 = Point2d::fromString(in.read("p1"));
+    auto p2 = Point2d::fromString(in.read("p2"));
     std::vector<int> selected;
-    for (auto it : StringUtils::split(action.read("selected")))
+    for (auto it : StringUtils::split(in.read("selected")))
       selected.push_back(cint(it));
     drawLine(p1, p2, selected);
     return;
   }
 
-  if (action.name == "SetProperty")
+  if (in.name == "SetProperty")
   {
-    auto name = action.readString("name");
+    auto name = in.readString("name");
 
-    if (name == "attenuation")
+
+    if (name == "num_samples")
     {
-      auto value = action.readDouble("value");
-      setAttenutation(value);
+      auto value = in.readInt("value");
+      setNumberOfSamples(value);
+      return;
+    }
+
+    if (in.name == "num_functions")
+    {
+      auto value = in.readInt("value");
+      setNumberOfFunctions(value);
       return;
     }
 
     if (name == "input_range")
     {
       ComputeRange compute_range;
-      compute_range.mode = (ComputeRange::Mode)action.readInt("mode");
-      compute_range.custom_range = Range::fromString(action.readString("custom_range"));
+      compute_range.mode = (ComputeRange::Mode)in.readInt("mode");
+      compute_range.custom_range = Range::fromString(in.readString("custom_range"));
       setInputRange(compute_range);
       return;
     }
 
     if (name == "output_dtype")
     {
-      auto value = DType::fromString(action.readString("value"));
+      auto value = DType::fromString(in.readString("value"));
       setOutputDType(value);
       return;
     }
 
     if (name == "output_range")
     {
-      auto value = Range::fromString(action.readString("value"));
+      auto value = Range::fromString(in.readString("value"));
       setOutputRange(value);
       return;
     }
+
+    if (name == "attenuation")
+    {
+      auto value = in.readDouble("value");
+      setAttenutation(value);
+      return;
+    }
+
+
+    ThrowException("internal error");
+
   }
 
-  UndoableModel::executeAction(action);
+  UndoableModel::executeAction(in);
 }
 
 
@@ -181,7 +189,7 @@ void TransferFunction::addFunction(SharedPtr<SingleTransferFunction> fn)
 
   pushAction(
     fn->encode("AddFunction"),
-    fullAssign(*this));
+    fullUndo());
   {
     this->default_name = "";
     functions.push_back(fn);
@@ -198,7 +206,7 @@ void TransferFunction::removeFunction(int index)
 
   pushAction(
     StringTree("RemoveFunction").write("index", index),
-    fullAssign(*this));
+    fullUndo());
   {
     this->default_name = "";
     this->functions.erase(this->functions.begin() + index);
@@ -214,7 +222,7 @@ void TransferFunction::clearFunctions()
 
   pushAction(
     StringTree("ClearFunctions"),
-    fullAssign(*this));
+    fullUndo());
   {
     this->default_name = "";
     this->functions.clear();
@@ -229,8 +237,8 @@ void TransferFunction::setNumberOfSamples(int value)
     return;
 
   pushAction(
-    StringTree("SetNumberOfSamples").write("value", value),
-    fullAssign(*this));
+    StringTree("SetProperty").write("name","num_samples").write("value", cstring(value)),
+    fullUndo());
   {
     for (auto fn : functions)
       fn->setNumberOfSamples(value);
@@ -245,8 +253,8 @@ void TransferFunction::setNumberOfFunctions(int value)
     return;
 
   pushAction(
-    StringTree("SetNumberOfFunctions").write("value", value),
-    fullAssign(*this));
+    StringTree("SetProperty").write("name","num_functions").write("value", value),
+    fullUndo());
   {
     this->functions.resize(std::min(value,this->getNumberOfFunctions()));
 
@@ -264,8 +272,8 @@ void TransferFunction::setNumberOfFunctions(int value)
 TransferFunction& TransferFunction::operator=(const TransferFunction& other)
 {
   pushAction(
-    fullAssign(other),
-    fullAssign(*this));
+    EncodeObject(&other,"Assign"),
+    fullUndo());
   {
     this->default_name = other.default_name;
 
@@ -302,7 +310,7 @@ void TransferFunction::drawLine(Point2d p1, Point2d p2, std::vector<int> selecte
 
   pushAction(
     StringTree("DrawLine").write("p1", p1).write("p2", p2).write("selected", StringUtils::join(selected)),
-    fullAssign(*this));
+    fullUndo());
   {
     this->default_name = "";
 
@@ -520,11 +528,11 @@ void TransferFunction::readFrom(StringTree& in)
   this->functions.clear();
 
   this->default_name = in.readString("name");
-  bool bDefault = default_name.empty() ? false : true;
+  bool is_default = default_name.empty() ? false : true;
 
   int nsamples = in.readInt("nsamples");
 
-  if (bDefault)
+  if (is_default)
     (*this) = *getDefault(default_name, nsamples);
 
   this->attenuation=cdouble(in.readString("attenuation","0.0"));
@@ -535,7 +543,7 @@ void TransferFunction::readFrom(StringTree& in)
   this->output_dtype=DType::fromString(in.readString("output/dtype"));
   this->output_range=Range::fromString(in.read("output/range"));
 
-  if (!bDefault)
+  if (!is_default)
   {
     for (auto Function : in.getChilds("function"))
     {

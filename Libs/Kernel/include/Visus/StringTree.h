@@ -196,6 +196,11 @@ public:
   //write
   StringTree& write(String key, String value);
 
+  //write
+  StringTree& write(String key, const char* value) {
+    return write(key, String(value));
+  }
+
   //writeString
   StringTree& writeString(String key, String value) {
     return write(key, value);
@@ -394,7 +399,7 @@ private:
 }; //end class
 
 template <class Object>
-inline StringTree EncodeObject(Object* obj, String TypeName)
+inline StringTree EncodeObject(const Object* obj, String TypeName)
 {
   if (!obj) return StringTree();
   StringTree ret(TypeName);
@@ -404,7 +409,7 @@ inline StringTree EncodeObject(Object* obj, String TypeName)
 
 
 template <class Object>
-inline StringTree EncodeObject(Object* obj) {
+inline StringTree EncodeObject(const Object* obj) {
   return obj ? EncodeObject(obj,obj->getTypeName()) : StringTree();
 }
 

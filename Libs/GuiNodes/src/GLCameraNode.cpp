@@ -61,7 +61,7 @@ void GLCameraNode::setGLCamera(SharedPtr<GLCamera> value)
   if (this->glcamera)
   {
     this->glcamera->begin_update.disconnect(glcamera_begin_update_slot);
-    this->glcamera->changed.disconnect(glcamera_changed_slot);
+    this->glcamera->end_update.disconnect(glcamera_end_update_slot);
   }
 
   this->glcamera=value;
@@ -72,7 +72,7 @@ void GLCameraNode::setGLCamera(SharedPtr<GLCamera> value)
       this->beginUpdate();
     });
 
-    this->glcamera->changed.connect(glcamera_changed_slot=[this](){
+    this->glcamera->end_update.connect(glcamera_end_update_slot =[this](){
       this->endUpdate();
     });
   }

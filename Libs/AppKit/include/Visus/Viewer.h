@@ -676,7 +676,8 @@ private:
     UniquePtr<QTimer>   mouse_timer;
 
     SharedPtr<GLCamera> glcamera = nullptr;
-    Slot<void()>        glcamera_changed_slot;
+    Slot<void()>        glcamera_end_update_slot;
+    Slot<void()>        glcamera_redisplay_needed_slot;
   };
 
   //________________________________________________________

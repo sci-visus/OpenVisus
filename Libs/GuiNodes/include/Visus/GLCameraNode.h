@@ -78,7 +78,7 @@ private:
 
   SharedPtr<GLCamera> glcamera;
   Slot<void()>        glcamera_begin_update_slot;
-  Slot<void()>        glcamera_changed_slot;
+  Slot<void()>        glcamera_end_update_slot;
 
 }; //end class
 

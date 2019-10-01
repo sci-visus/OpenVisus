@@ -41,23 +41,133 @@ For support : support@visus.net
 
 namespace Visus {
 
-//////////////////////////////////////////////////
-void GLOrthoCamera::mirror(int ref)
+ //////////////////////////////////////////////////
+GLOrthoCamera::GLOrthoCamera(double default_scale) : default_scale(default_scale)
 {
-  if (ref == 0) {
-    auto ortho_params=getOrthoParams();
-    std::swap(ortho_params.left,ortho_params.right);
-    setOrthoParams(ortho_params);
+  this->smooth = 0.3;
+  last_mouse_pos.resize(GLMouse::getNumberOfButtons());
+}
+
+//////////////////////////////////////////////////
+GLOrthoCamera::~GLOrthoCamera() {
+  VisusAssert(VisusHasMessageLock());
+  timer.reset();
+}
+
+  //////////////////////////////////////////////////
+void GLOrthoCamera::executeAction(StringTree in) 
+{
+  if (in.name == "Assign")
+  {
+    this->readFrom(in);
     return;
   }
 
-  if (ref == 1) 
+  if (in.name == "SetLookAt")
   {
-    auto ortho_params=getOrthoParams();
-    std::swap(ortho_params.top,ortho_params.bottom);
-    setOrthoParams(ortho_params);
+    auto pos = Point3d::fromString(in.readString("pos"));
+    auto dir = Point3d::fromString(in.readString("dir"));
+    auto vup = Point3d::fromString(in.readString("vup"));
+    setLookAt(pos, dir, vup);
     return;
   }
+
+  if (in.name == "Translate")
+  {
+    auto vt = Point2d::fromString(in.readString("value"));
+    translate(vt);
+    return;
+  }
+
+  if (in.name == "Scale")
+  {
+    auto vs = in.readDouble("vs");
+    auto center = Point2d::fromString(in.readString("center"));
+    scale(vs, center);
+    return;
+  }
+
+  if (in.name == "Rotate")
+  {
+    auto quantity = in.readDouble("value");
+    rotate(quantity);
+    return;
+  }
+
+  if (in.name == "GuessPosition")
+  {
+    auto p1 = Point3d::fromString(in.readString("p1"));
+    auto p2 = Point3d::fromString(in.readString("p2"));
+    auto ref = in.readInt("ref");
+    guessPosition(BoxNd(p1, p2), ref);
+    return;
+  }
+
+  if (in.name == "SetProperty")
+  {
+    auto name = in.readString("name");
+
+    if (name == "ortho_params")
+    {
+      auto value = GLOrthoParams::fromString(in.readString("value"));
+      setOrthoParams(value);
+      return;
+    }
+
+    if (name == "viewport")
+    {
+      auto value = Viewport::fromString(in.readString("value"));
+      setViewport(value);
+      return;
+    }
+
+    if (name == "min_zoom")
+    {
+      auto value = in.readDouble("value");
+      setMinZoom(value);
+      return;
+    }
+
+    if (name == "max_zoom")
+    {
+      auto value = in.readDouble("value");
+      setMaxZoom(value);
+      return;
+    }
+
+    if (name == "smooth")
+    {
+      auto value = in.readDouble("value");
+      setSmooth(value);
+      return;
+    }
+
+    if (name == "disable_rotation")
+    {
+      auto value = in.readDouble("value");
+      setDisableRotation(value);
+      return;
+    }
+
+    ThrowException("internal error");
+  }
+
+  return GLCamera::executeAction(in);
+}
+
+
+  //////////////////////////////////////////////////
+void GLOrthoCamera::mirror(int ref)
+{
+  auto value = getOrthoParams();
+
+  if (ref == 0) 
+    std::swap(value.left, value.right);
+
+  else if (ref == 1) 
+    std::swap(value.top, value.bottom);
+
+  setOrthoParams(value);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -85,10 +195,14 @@ void GLOrthoCamera::glMouseMoveEvent(QMouseEvent* evt)
   int W=getViewport().width;
   int H=getViewport().height;
 
-  if (this->mouse.getButton(Qt::LeftButton).isDown && this->mouse.getButton(Qt::MidButton).isDown && (button==Qt::LeftButton || button==Qt::MidButton))
+#if 0
+  if (
+      this->mouse.getButton(Qt::LeftButton).isDown && 
+      this->mouse.getButton(Qt::MidButton).isDown && 
+      (button==Qt::LeftButton || button==Qt::MidButton))
   {
     //t1 and t2 are the old position, T1 and T2 are the touch position.
-    FrustumMap map=needUnproject();
+    FrustumMap map=needUnprojectInScreenSpace();
     Point2d t1 = map.unprojectPoint(last_mouse_pos[1].castTo<Point2d>()).toPoint2(), T1 = map.unprojectPoint(this->mouse.getButton(Qt::LeftButton).pos.castTo<Point2d>()).toPoint2();
     Point2d t2 = map.unprojectPoint(last_mouse_pos[2].castTo<Point2d>()).toPoint2(), T2 = map.unprojectPoint(this->mouse.getButton(Qt::MidButton ).pos.castTo<Point2d>()).toPoint2();
     Point2d center = (t1 + t2)*0.5;
@@ -133,35 +247,31 @@ void GLOrthoCamera::glMouseMoveEvent(QMouseEvent* evt)
 
     double vs = 1.0/sqrt(a*a + b*b);
 
-    beginUpdate();
+    pushAction(???);
     {
       scale(vs, center);
       translate(-Point2d(tx, ty));
       rotate(-atan2(b, a));
     }
-    endUpdate();
+    popAction();
 
     evt->accept();
     return;
   }
+#endif
 
-  else if (this->mouse.getButton(Qt::LeftButton).isDown && button==Qt::LeftButton)
+  if (this->mouse.getButton(Qt::LeftButton).isDown && button==Qt::LeftButton)
   {
-    FrustumMap map=needUnproject();
+    FrustumMap map= needUnprojectInScreenSpace();
     Point2i p1 = last_mouse_pos[button];
     Point2i p2 = this->mouse.getButton(button).pos;
     last_mouse_pos[button] = p2;
     Point2d t1 = map.unprojectPoint(p1.castTo<Point2d>()).toPoint2();
     Point2d T1 = map.unprojectPoint(p2.castTo<Point2d>()).toPoint2();
-
-    beginUpdate();
     translate(t1 - T1);
-    endUpdate();
-
     evt->accept();
     return;
   }
-
 }
 
 ////////////////////////////////////////////////////////////////
@@ -175,12 +285,10 @@ void GLOrthoCamera::glMouseReleaseEvent(QMouseEvent* evt)
 ////////////////////////////////////////////////////////////////
 void GLOrthoCamera::glWheelEvent(QWheelEvent* evt)
 {
-  FrustumMap map=needUnproject();
+  FrustumMap map= needUnprojectInScreenSpace();
   Point2d center = map.unprojectPoint(Point2d(evt->x(),evt->y())).toPoint2();
   double  vs     = evt->delta()>0 ? (1.0 / default_scale) : (default_scale);
-
   scale(vs,center);
-
   evt->accept();
 }
 
@@ -189,220 +297,295 @@ void GLOrthoCamera::glKeyPressEvent(QKeyEvent* evt)
 {
   int key=evt->key();
 
-  if (key == Qt::Key_Left || key == Qt::Key_Right || key == Qt::Key_Up || key == Qt::Key_Down) 
+  if (key == Qt::Key_Left)
   {
-    auto ortho_params=getOrthoParams();
-    double dx=0,dy=0;
-    if (key==Qt::Key_Left ) dx=-ortho_params.getWidth();
-    if (key==Qt::Key_Right) dx=+ortho_params.getWidth();
-    if (key==Qt::Key_Up   ) dy=+ortho_params.getHeight();
-    if (key==Qt::Key_Down ) dy=-ortho_params.getHeight();
-    translate(Point2d(dx,dy)); 
+    moveLeft();
+    evt->accept();
+    return;
+  }
+
+  if (key == Qt::Key_Right)
+  {
+    moveRight();
+    evt->accept();
+    return;
+  }
+
+  if (key == Qt::Key_Up)
+  {
+    moveUp();
+    evt->accept();
+    return;
+  }
+
+
+  if (key == Qt::Key_Down) 
+  {
+    moveDown();
     evt->accept(); 
     return; 
   }
 
-  if (key==Qt::Key_Minus || key==Qt::Key_Plus)
+  if (key == Qt::Key_Plus)
   {
-    double vs=key=='+'? 1.0/default_scale : default_scale;
-    auto ortho_params=getOrthoParams();
-    auto center=ortho_params.getCenter().toPoint2();
-    scale(vs,center);
+    zoomIn();
+    evt->accept();
+    return;
+  }
+
+  if (key == Qt::Key_Minus)
+  {
+    zoomOut();
     evt->accept();
     return;
   }
 
   if (key==Qt::Key_M) 
   {
-    setProperty(smooth, smooth ? 0 : 0.90);
+    toggleSmooth();
     evt->accept();
     return;
   }
 }
-
 
 ////////////////////////////////////////////////////////////////
 bool GLOrthoCamera::guessPosition(BoxNd bound,int ref)
 {
   bound.setPointDim(3);
 
-  auto C=Point3d(0,0,0);
-  auto X=Point3d(1,0,0);
-  auto Y=Point3d(0,1,0);
-  auto Z=Point3d(0,0,1);
-  
   int W = getViewport().width ; if (!W) W=800;
   int H = getViewport().height; if (!H) H=800;
 
   auto size = bound.size();
 
-  if (ref==0 || (ref<0 && !size[0] && size[1] && size[2]))
+  pushAction(
+    StringTree("GuessPosition").write("p1", bound.p1.toString()).write("p2", bound.p2.toString()).write("ref",ref),
+    EncodeObject(this, "Assign"));
   {
-    beginUpdate();
-    this->pos=+C;
-    this->dir=-X;
-    this->vup=+Z;
-    this->rotation_angle = 0.0;
-    double Xnear =-bound.p1[0],Xfar  =-bound.p2[0]; if (Xnear==Xfar) {Xnear+=1;Xfar-=1;}
-    GLOrthoParams ortho_params = GLOrthoParams(bound.p1[1],bound.p2[1],bound.p1[2],bound.p2[2],Xnear,Xfar);
-    ortho_params.fixAspectRatio((double)W/(double)H);
-    setOrthoParams(ortho_params);
-    endUpdate();
+    if (ref == 0 || (ref < 0 && !size[0] && size[1] && size[2]))
+    {
+      this->pos = Point3d(0, 0, 0);
+      this->dir = -Point3d(1, 0, 0);
+      this->vup = +Point3d(0, 0, 1);
+      this->rotation_angle = 0.0;
+      double Xnear = -bound.p1[0];
+      double Xfar  = -bound.p2[0];
+      if (Xnear == Xfar) { Xnear += 1; Xfar -= 1; }
+      auto params = GLOrthoParams(bound.p1[1], bound.p2[1], bound.p1[2], bound.p2[2], Xnear, Xfar);
+      params.fixAspectRatio((double)W / (double)H);
+      setOrthoParams(params);
+    }
+    else if (ref == 1 || (ref < 0 && size[0] && !size[1] && size[2]))
+    {
+      this->pos = Point3d(0, 0, 0);
+      this->dir = +Point3d(0, 1, 0);
+      this->vup = +Point3d(0, 0, 1);
+      this->rotation_angle = 0.0;
+      double Ynear = +bound.p1[1];
+      double Yfar  = +bound.p2[1];
+      if (Ynear == Yfar) { Ynear -= 1; Yfar += 1; }
+      auto params = GLOrthoParams(bound.p1[0], bound.p2[0], bound.p1[2], bound.p2[2], Ynear, Yfar);
+      params.fixAspectRatio((double)W / (double)H);
+      setOrthoParams(params);
+    }
+    else
+    {
+      VisusAssert(ref < 0 || ref == 2);
+      this->pos = Point3d(0, 0, 0);
+      this->dir = -Point3d(0, 0, 1);
+      this->vup = +Point3d(0, 1, 0);
+      this->rotation_angle = 0.0;
+      double Znear = -bound.p1[2];
+      double Zfar  = -bound.p2[2];
+      if (Znear == Zfar) { Znear += 1; Zfar -= 1; }
+      auto params = GLOrthoParams(bound.p1[0], bound.p2[0], bound.p1[1], bound.p2[1], Znear, Zfar);
+      params.fixAspectRatio((double)W / (double)H);
+      setOrthoParams(params);
+    }
   }
-  else if (ref==1 || (ref<0 && size[0] && !size[1] && size[2]))
-  {
-    beginUpdate();
-    this->pos=+C;
-    this->dir=+Y;
-    this->vup=+Z;
-    this->rotation_angle = 0.0;
-    double Ynear =+bound.p1[1],Yfar  =+bound.p2[1]; if (Ynear==Yfar) {Ynear-=1;Yfar+=1;}
-    GLOrthoParams ortho_params(bound.p1[0],bound.p2[0],bound.p1[2],bound.p2[2],Ynear,Yfar);
-    ortho_params.fixAspectRatio((double)W/(double)H);
-    setOrthoParams(ortho_params);
-    endUpdate();
-  }
-  else
-  {
-    VisusAssert(ref<0 || ref==2);
-    beginUpdate();
-    this->pos=+C;
-    this->dir=-Z;
-    this->vup=+Y;
-    this->rotation_angle = 0.0;
-    double Znear =-bound.p1[2],Zfar  =-bound.p2[2]; if (Znear==Zfar) {Znear+=1;Zfar-=1;}
-    GLOrthoParams ortho_params(bound.p1[0],bound.p2[0],bound.p1[1],bound.p2[1],Znear,Zfar);
-    ortho_params.fixAspectRatio((double)W/(double)H);
-    setOrthoParams(ortho_params);
-    endUpdate();
-  }
+  popAction();
 
   return true;
 }
 
-
 //////////////////////////////////////////////////
-void GLOrthoCamera::setOrthoParams(GLOrthoParams value)
+void GLOrthoCamera::setOrthoParams(GLOrthoParams new_value)
 {
   VisusAssert(VisusHasMessageLock());
 
-  timer.stop();
+  timer.reset();
 
-  if (getOrthoParams()==value) 
+  auto old_value = getOrthoParams();
+  if (old_value  == new_value)
     return;
 
-  beginUpdate();
-  this->ortho_params       = value;
-  this->ortho_params_final = value; 
-  endUpdate();
+  pushAction(
+    StringTree("SetProperty").write("name", "ortho_params").write("value", new_value.toString()),
+    EncodeObject(this, "Assign"));
+  {
+    this->ortho_params_final = new_value;
+    this->ortho_params_current = new_value;
+  }
+  popAction();
 }
 
 //////////////////////////////////////////////////
-void GLOrthoCamera::setViewport(Viewport new_viewport)
+void GLOrthoCamera::setViewport(Viewport new_value)
 {
-  auto old_viewport=this->viewport;
-  if (old_viewport==new_viewport) 
+  auto old_value=this->viewport;
+  if (old_value == new_value)
     return;
 
-  auto ortho_params=getOrthoParams();
-  ortho_params.fixAspectRatio(old_viewport, new_viewport);
+  auto params=getOrthoParams();
+  params.fixAspectRatio(old_value, new_value);
 
-  beginUpdate();
-  this->viewport=new_viewport;
-  setOrthoParams(ortho_params);
-  endUpdate();
+  pushAction(
+    StringTree("SetProperty").write("name","viewport").write("value",new_value.toString()),
+    EncodeObject(this, "Assign"));
+  {
+    this->viewport = new_value;
+    setOrthoParams(params);
+  }
+  popAction();
 }
 
 ////////////////////////////////////////////////////////////////
-Frustum GLOrthoCamera::getFrustum(GLOrthoParams ortho_params) const
+Frustum GLOrthoCamera::getCurrentFrustum() const
 {
   Frustum ret;
-
-  ret.loadProjection(ortho_params.getProjectionMatrix(true));
-  ret.multProjection(Matrix::rotateAroundCenter(ortho_params.getCenter(),Point3d(0,0,1),rotation_angle));
-
+  ret.loadProjection(ortho_params_current.getProjectionMatrix(true));
+  ret.multProjection(Matrix::rotateAroundCenter(ortho_params_current.getCenter(),Point3d(0,0,1),rotation_angle));
   ret.loadModelview(Matrix::lookAt(pos,pos+dir,vup));
-  
   ret.setViewport(this->viewport);
+  return ret;
+}
 
+////////////////////////////////////////////////////////////////
+Frustum GLOrthoCamera::getFinalFrustum() const
+{
+  Frustum ret;
+  ret.loadProjection(ortho_params_final.getProjectionMatrix(true));
+  ret.multProjection(Matrix::rotateAroundCenter(ortho_params_final.getCenter(), Point3d(0, 0, 1), rotation_angle));
+  ret.loadModelview(Matrix::lookAt(pos, pos + dir, vup));
+  ret.setViewport(this->viewport);
   return ret;
 }
 
 
 ////////////////////////////////////////////////////////////////
-void GLOrthoCamera::refineToFinal() 
+void GLOrthoCamera::setLookAt(Point3d pos, Point3d dir, Point3d vup)
 {
-  VisusAssert(VisusHasMessageLock());
-
-  if (smooth>0 && !timer.isActive()) 
-    timer.start();
-
-  GLOrthoParams ortho_params;
-  ortho_params.left    = (smooth) * this->ortho_params.left   + (1-smooth) * this->ortho_params_final.left;
-  ortho_params.right   = (smooth) * this->ortho_params.right  + (1-smooth) * this->ortho_params_final.right;
-  ortho_params.bottom  = (smooth) * this->ortho_params.bottom + (1-smooth) * this->ortho_params_final.bottom;
-  ortho_params.top     = (smooth) * this->ortho_params.top    + (1-smooth) * this->ortho_params_final.top;
-  ortho_params.zNear   = (smooth) * this->ortho_params.zNear  + (1-smooth) * this->ortho_params_final.zNear;
-  ortho_params.zFar    = (smooth) * this->ortho_params.zFar   + (1-smooth) * this->ortho_params_final.zFar;
-
-  if (ortho_params==this->ortho_params || ortho_params==this->ortho_params_final)  
+  pushAction(
+    StringTree("SetLookAt").write("pos", pos.toString()).write("dir", dir.toString()).write("vup", vup.toString()),
+    fullUndo());
   {
-    ortho_params=this->ortho_params_final;
-    timer.stop();
+    this->pos = pos;
+    this->dir = dir;
+    this->vup = vup;
   }
-
-  //limit the zoom to actual pixels visible 
-  if ((max_zoom>0 || min_zoom>0) && getViewport().valid())
-  {
-    Point2d pixel_per_sample(
-      (double)getViewport().width /ortho_params.getWidth (),
-      (double)getViewport().height/ortho_params.getHeight());
-
-    if (max_zoom>0 && std::max(pixel_per_sample[0],pixel_per_sample[1]) > max_zoom)
-    {
-      timer.stop();
-      return;
-    }
-
-    if (min_zoom>0 && std::min(pixel_per_sample[0],pixel_per_sample[1]) < min_zoom)
-    {
-      timer.stop();
-      return;
-    }
-  }
-
-  setProperty(this->ortho_params, ortho_params);
+  popAction();
 }
 
 
 ////////////////////////////////////////////////////////////////
 void GLOrthoCamera::translate(Point2d vt)
 {
-  if (!vt[0] && !vt[1])
-    return;
+  if (vt==Point2d()) return;
 
-  this->ortho_params_final.translate(Point3d(vt));
-  refineToFinal();
+  pushAction(
+    StringTree("Translate").write("value",vt.toString()),
+    fullUndo());
+  {
+    this->ortho_params_final.translate(Point3d(vt));
+    interpolateToFinal();
+  }
+  popAction();
 }
 
 ////////////////////////////////////////////////////////////////
 void GLOrthoCamera::rotate(double quantity)
 {
-  if (!quantity || bDisableRotation)
-    return;
+  if (!quantity || disable_rotation) return;
 
-  setProperty(this->rotation_angle, this->rotation_angle + bDisableRotation ? 0.0 : quantity);
+  pushAction(
+    StringTree("Rotate").write("value", quantity),
+    fullUndo());
+  {
+    this->rotation_angle += quantity;
+  }
+  popAction();
 }
 
 
 ////////////////////////////////////////////////////////////////
 void GLOrthoCamera::scale(double vs,Point2d center)
 {
-  if (vs==1 || vs==0)
+  if (vs==1 || vs==0) 
     return;
 
-  this->ortho_params_final.scaleAroundCenter(Point3d(vs,vs,1.0),Point3d(center));
-  refineToFinal();
+  pushAction(
+    StringTree("Scale").write("vs", cstring(vs)).write("center",center.toString()),
+    fullUndo());
+  {
+    this->ortho_params_final.scaleAroundCenter(Point3d(vs, vs, 1.0), Point3d(center));
+    interpolateToFinal();
+  }
+  popAction();
+}
+
+
+
+////////////////////////////////////////////////////////////////
+void GLOrthoCamera::interpolateToFinal()
+{
+  VisusAssert(VisusHasMessageLock());
+
+  //schedule next updates
+  if (smooth > 0 && !timer)
+  {
+    this->timer = std::make_shared<QTimer>();
+    QObject::connect(timer.get(), &QTimer::timeout, [this] {
+      VisusInfo()<<"interpolating";
+      interpolateToFinal();
+    });
+    this->timer->setInterval(1000); //as much as possible
+    this->timer->start();
+  }
+
+  GLOrthoParams value = GLOrthoParams::interpolate(smooth, this->ortho_params_current, 1 - smooth, this->ortho_params_final);
+
+  if (bool bReachedTheEnd = (value == this->ortho_params_current) || (value == this->ortho_params_final))
+  {
+    value = this->ortho_params_final;
+    this->timer.reset();
+  }
+
+  //limit the zoom to actual pixels visible 
+  if ((max_zoom > 0 || min_zoom > 0) && getViewport().valid())
+  {
+    Point2d pixel_per_sample(
+      (double)getViewport().width / value.getWidth(),
+      (double)getViewport().height / value.getHeight());
+
+    if (bool bTooMuchZoom = max_zoom > 0 && std::max(pixel_per_sample[0], pixel_per_sample[1]) > max_zoom)
+    {
+      this->timer.reset();
+      return;
+    }
+
+    if (bool bTooLessZoom = (min_zoom > 0 && std::min(pixel_per_sample[0], pixel_per_sample[1]) < min_zoom))
+    {
+      this->timer.reset();
+      return;
+    }
+  }
+
+  //technically ortho_params_current is not part of the "model" so I'm not
+  //communicate the changes to the outside
+  //pushAction(...)
+  this->ortho_params_current = value;
+  this->redisplay_needed.emitSignal();
+  //popAction()
 }
 
 
@@ -411,18 +594,18 @@ void GLOrthoCamera::writeTo(StringTree& out) const
 {
   GLCamera::writeTo(out);
 
-  out.writeValue("default_scale",cstring(default_scale));
-  out.writeValue("disable_rotation",cstring(bDisableRotation));
-  out.writeValue("rotation_angle", cstring(rotation_angle));
-  out.writeValue("max_zoom",cstring(max_zoom));
-  out.writeValue("min_zoom",cstring(min_zoom));
-  out.writeValue("smooth",cstring(smooth));
-
   out.writeValue("pos",pos.toString());
   out.writeValue("dir",dir.toString());
   out.writeValue("vup",vup.toString());
 
-  out.writeObject("ortho_params", ortho_params);
+  out.writeValue("ortho_params", ortho_params_final.toString());
+  out.writeValue("rotation_angle", cstring(rotation_angle));
+
+  out.writeValue("default_scale", cstring(default_scale));
+  out.writeValue("disable_rotation", cstring(disable_rotation));
+  out.writeValue("max_zoom", cstring(max_zoom));
+  out.writeValue("min_zoom", cstring(min_zoom));
+  out.writeValue("smooth", cstring(smooth));
 }
 
 ////////////////////////////////////////////////////////////////
@@ -430,23 +613,22 @@ void GLOrthoCamera::readFrom(StringTree& in)
 {
   GLCamera::readFrom(in);
 
-  pos=Point3d::fromString(in.readValue("pos","0  0  0"));
-  dir=Point3d::fromString(in.readValue("dir","0  0 -1"));
-  vup=Point3d::fromString(in.readValue("vup","0  1  0"));
+  this->pos=Point3d::fromString(in.readValue("pos","0  0  0"));
+  this->dir=Point3d::fromString(in.readValue("dir","0  0 -1"));
+  this->vup=Point3d::fromString(in.readValue("vup","0  1  0"));
 
-  default_scale=cdouble(in.readValue("default_scale"));
-  bDisableRotation=cbool(in.readValue("disable_rotation"));
-  rotation_angle=cdouble(in.readValue("rotation_angle"));
-  max_zoom=cdouble(in.readValue("max_zoom"));
-  min_zoom=cdouble(in.readValue("min_zoom"));
-  smooth=cdouble(in.readValue("smooth"));
+  this->ortho_params_final = GLOrthoParams::fromString(in.readValue("ortho_params"));
+  this->rotation_angle = cdouble(in.readValue("rotation_angle"));
 
-  in.readObject("ortho_params", this->ortho_params);
+  this->default_scale=cdouble(in.readValue("default_scale"));
+  this->disable_rotation=cbool(in.readValue("disable_rotation"));
+  this->max_zoom=cdouble(in.readValue("max_zoom"));
+  this->min_zoom=cdouble(in.readValue("min_zoom"));
+  this->smooth=cdouble(in.readValue("smooth"));
 
-  this->ortho_params_final = this->ortho_params;
+  this->ortho_params_current = this->ortho_params_final;
+
 }
   
-
-
 } //namespace
 
