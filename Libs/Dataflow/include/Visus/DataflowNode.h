@@ -302,12 +302,6 @@ public:
   //readFrom
   virtual void readFrom(StringTree& in) override;
 
-  //encode
-  StringTree encode();
-
-  //decode
-  static VISUS_NEWOBJECT(Node*) decode(StringTree encoded);
-
 protected:
 
   friend class Dataflow;

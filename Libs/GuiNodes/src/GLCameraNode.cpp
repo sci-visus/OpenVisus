@@ -84,7 +84,7 @@ void GLCameraNode::writeTo(StringTree& out) const
   Node::writeTo(out);
 
   if (glcamera)
-    out.writeObject("glcamera",*glcamera, glcamera->getTypeName());
+    out.writeObject("glcamera",*glcamera, glcamera-> getTypeName());
 
   //bDebugFrustum
 }

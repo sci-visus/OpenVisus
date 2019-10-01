@@ -92,7 +92,7 @@ public:
   }
 
   //guessPosition
-  virtual bool guessPosition(Position position, int ref = -1) override;
+  virtual bool guessPosition(BoxNd bound, int ref = -1) override;
 
   //isRotationDisabled
   bool isRotationDisabled() const {

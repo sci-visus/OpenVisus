@@ -222,38 +222,15 @@ void GLOrthoCamera::glKeyPressEvent(QKeyEvent* evt)
 
 
 ////////////////////////////////////////////////////////////////
-bool GLOrthoCamera::guessPosition(Position position,int ref)  
+bool GLOrthoCamera::guessPosition(BoxNd bound,int ref)
 {
-  Point3d C,X,Y,Z;
-  auto bound = BoxNd(3);
+  bound.setPointDim(3);
 
-  if (position.getTransformation().isIdentity())
-  {
-    C=Point3d(0,0,0);
-    X=Point3d(1,0,0);
-    Y=Point3d(0,1,0);
-    Z=Point3d(0,0,1);
-    bound=position.getBoxNd();
-    bound.setPointDim(3);
-  }
-  else
-  {
-    LocalCoordinateSystem lcs(position);
-    C=lcs.getCenter();
-    X=lcs.getAxis(0);
-    Y=lcs.getAxis(1);
-    Z=lcs.getAxis(2);
-
-    bound.p2[0]=X.module(); X=X.normalized();
-    bound.p2[1]=Y.module(); Y=Y.normalized();
-    bound.p2[2]=Z.module(); Z=Z.normalized();
-    bound.p1=-1*bound.p2;
-
-    if (X[X.abs().biggest()]<0) X*=-1;
-    if (Y[Y.abs().biggest()]<0) Y*=-1;
-    if (Z[Z.abs().biggest()]<0) Z*=-1;
-  }
-
+  auto C=Point3d(0,0,0);
+  auto X=Point3d(1,0,0);
+  auto Y=Point3d(0,1,0);
+  auto Z=Point3d(0,0,1);
+  
   int W = getViewport().width ; if (!W) W=800;
   int H = getViewport().height; if (!H) H=800;
 

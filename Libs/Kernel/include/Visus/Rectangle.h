@@ -203,6 +203,14 @@ public:
     std::istringstream parser(value); parser >> x >> y >> width >> height;
   }
 
+  //fromString
+  static Rectangle2d fromString(String s) {
+    Rectangle2d ret;
+    std::istringstream parser(s);
+    parser >> ret.x >> ret.y >> ret.width >> ret.height;
+    return ret;
+  }
+
   //valid
   bool valid() const {
     return width > 0 && height > 0;

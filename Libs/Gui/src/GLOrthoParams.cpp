@@ -105,7 +105,7 @@ GLOrthoParams GLOrthoParams::split(const Rectangle2d& S) const
 ////////////////////////////////////////////////////////////////////////
 void GLOrthoParams::fixAspectRatio(const Viewport& old_value, const Viewport& new_value)
 {
-  int OldW = old_value.width, NewW = new_value.width;
+  int OldW = old_value.width,  NewW = new_value.width;
   int OldH = old_value.height, NewH = new_value.height;
 
   if (!NewW || !NewH)

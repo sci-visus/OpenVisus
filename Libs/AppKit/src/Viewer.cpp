@@ -268,7 +268,7 @@ void Viewer::executeAction(StringTree action)
   if (action.name == "AddNode")
   {
     auto parent = findNodeByUUID(action.readString("parent"));
-    auto node = Node::decode(*action.getChild(0));
+    auto node = DecodeObject<Node>(*action.getChild(0), [](String TypeName) {return NodeFactory::getSingleton()->createInstance(TypeName); });
     auto index = action.readInt("index", -1);
     addNode(parent, node, index);
     return;
@@ -1498,7 +1498,7 @@ void Viewer::addNode(Node* parent,Node* node,int index)
 
   node->begin_update.connect([this,node](){
     pushAction(
-      StringTree("ChangeNode", "node", node->getUUID()).addChild(node->encode()),
+      StringTree("ChangeNode", "node", node->getUUID()).addChild(EncodeObject(node)),
       StringTree("ChangeNode", "node", node->getUUID()));
   });
 
@@ -1508,7 +1508,7 @@ void Viewer::addNode(Node* parent,Node* node,int index)
     auto& undo = topUndo(); VisusAssert(undo.name == "ChangeNode");
 
     auto before= *redo.getChild(0);
-    auto after = node->encode();
+    auto after = EncodeObject(node);
 
     auto diff = Diff(
       StringUtils::getNonEmptyLines(before.toXmlString()),
@@ -1528,7 +1528,7 @@ void Viewer::addNode(Node* parent,Node* node,int index)
     dropSelection();
 
     pushAction(
-      StringTree("AddNode").write("parent",getUUID(parent)).write("index",index).addChild(node->encode()),
+      StringTree("AddNode").write("parent",getUUID(parent)).write("index",index).addChild(EncodeObject(node)),
       StringTree("RemoveNode").write("node",getUUID(node)));
     {
       dataflow->addNode(parent, node, index);
@@ -1588,7 +1588,7 @@ void Viewer::removeNode(Node* NODE)
 
     pushAction(
       StringTree("RemoveNode","node",getUUID(node)),
-      StringTree("AddNode","parent",getUUID(node->getParent()),"index",cstring(node->getIndexInParent())).addChild(node->encode()));
+      StringTree("AddNode","parent",getUUID(node->getParent()),"index",cstring(node->getIndexInParent())).addChild(EncodeObject(node)));
     {
       //don't care about disconnecting slots, the node is going to be deallocated
       dataflow->removeNode(node);
@@ -2313,7 +2313,7 @@ void Viewer::writeTo(StringTree& out) const
   for (auto node : dataflow->getNodes())
   {
     if (node->getParent()) continue;
-    out.addChild(StringTree("AddNode").addChild(node->encode()));
+    out.addChild(StringTree("AddNode").addChild(EncodeObject(node)));
   }
 
   //then the nodes in the tree...important the order! parents before childs
@@ -2321,7 +2321,7 @@ void Viewer::writeTo(StringTree& out) const
   {
     if (node == root) continue;
     VisusAssert(node->getParent());
-    out.addChild(StringTree("AddNode","parent", getUUID(node->getParent())).addChild(node->encode()));
+    out.addChild(StringTree("AddNode","parent", getUUID(node->getParent())).addChild(EncodeObject(node)));
   }
 
   //ConnectPorts actions

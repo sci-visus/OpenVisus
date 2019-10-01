@@ -438,24 +438,6 @@ void Node::readFrom(StringTree& in)
   this->visible=in.readBool("visible",true);
 }
 
-////////////////////////////////////////////////////////////
-StringTree Node::encode()
-{
-  StringTree out(this->getTypeName());
-  writeTo(out);
-  return out;
-}
-
-////////////////////////////////////////////////////////////
-Node* Node::decode(StringTree in)
-{
-  auto TypeName = in.readString("TypeName", in.name);
-  auto ret = NodeFactory::getSingleton()->createInstance(TypeName);
-  VisusAssert(ret);
-  ret->readFrom(in);
-  return ret;
-}
-
 //////////////////////////////////////////////////////////
 SharedPtr<ReturnReceipt> Node::createPassThroughtReceipt()
 {

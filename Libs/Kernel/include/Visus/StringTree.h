@@ -49,6 +49,7 @@ For support : support@visus.net
 #include <vector>
 #include <iostream>
 #include <vector>
+#include <functional>
 
 namespace Visus {
 
@@ -392,7 +393,30 @@ private:
 
 }; //end class
 
+template <class Object>
+inline StringTree EncodeObject(Object* obj, String TypeName)
+{
+  if (!obj) return StringTree();
+  StringTree ret(TypeName);
+  obj->writeTo(ret);
+  return ret;
+}
 
+
+template <class Object>
+inline StringTree EncodeObject(Object* obj) {
+  return obj ? EncodeObject(obj,obj->getTypeName()) : StringTree();
+}
+
+template <class Object>
+inline Object* DecodeObject(StringTree in,std::function<Object*(String)> creator)
+{
+  auto TypeName = in.name;
+  UniquePtr<Object> ret(creator(TypeName));
+  if (!ret) return nullptr;
+  ret->readFrom(in);
+  return ret.release();
+}
 
 //////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API ConfigFile : public StringTree

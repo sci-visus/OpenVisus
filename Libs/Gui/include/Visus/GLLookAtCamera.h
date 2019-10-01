@@ -52,8 +52,8 @@ public:
   VISUS_NON_COPYABLE_CLASS(GLLookAtCamera)
 
   //constructor
-  GLLookAtCamera(double defaultRotFactor_=5.2,double defaultPanFactor_=30.0) 
-    : defaultRotFactor(defaultRotFactor_),defaultPanFactor(defaultPanFactor_)
+  GLLookAtCamera(double rotation_factor_=5.2,double pan_factor_=30.0)
+    : rotation_factor(rotation_factor_),pan_factor(pan_factor_)
   {
     last_mouse_pos.resize(GLMouse::getNumberOfButtons());
   }
@@ -62,6 +62,9 @@ public:
   virtual ~GLLookAtCamera() {
   }
 
+  //executeAction
+  virtual void executeAction(StringTree action) override;
+
   //getTypeName
   virtual String getTypeName() const override {
     return "GLLookAtCamera";
@@ -69,7 +72,7 @@ public:
 
   //getCenterOfRotation
   Point3d getCenterOfRotation() const {
-    return centerOfRotation;
+    return center_of_rotation;
   }
 
   //set center of rotation
@@ -77,19 +80,19 @@ public:
 
   //isUsingOrthoProjection
   inline bool isUsingOrthoProjection() const {
-    return bUseOrthoProjection;
+    return use_ortho_projection;
   }
 
   //setUseOrthoProjection
   void setUseOrthoProjection(bool value);
 
-  //isAutoOrthoParams
-  bool isAutoOrthoParams() const {
-    return bAutoOrthoParams;
+  //isOrthoParamsFixed
+  bool isOrthoParamsFixed() const {
+    return ortho_params_fixed;
   }
 
   //setAutoOrthoParams
-  void setAutoOrthoParams(bool value) ;
+  void setOrthoParamsFixed(bool value) ;
 
   //getOrthoParams
   virtual GLOrthoParams getOrthoParams() const override {
@@ -126,13 +129,22 @@ public:
   virtual void glKeyPressEvent(QKeyEvent* evt) override;
 
   //guessPosition
-  virtual bool guessPosition(Position position,int ref=-1) override;
+  virtual bool guessPosition(BoxNd value,int ref=-1) override;
 
   //setBounds
   void setBounds(BoxNd logic_box);
 
   //setLookAt
   void setLookAt(Point3d pos,Point3d center,Point3d vup);
+
+  //moveInWorld
+  void moveInWorld(Point3d vt);
+
+  //rotate
+  void rotateAroundScreenCenter(double angle, Point2d screen_center);
+
+  //rotateAroundWorldAxis
+  void rotateAroundWorldAxis(double angle, Point3d axis);
 
 public:
 
@@ -145,29 +157,20 @@ public:
 private:
 
   BoxNd                bound = BoxNd(3);
-  bool                 bUseOrthoProjection=false;
-  double               defaultRotFactor;
-  double               defaultPanFactor;
-  bool                 bDisableRotation=false;
-  bool                 bAutoOrthoParams=true;
+  bool                 use_ortho_projection=false;
+  double               rotation_factor;
+  double               pan_factor;
+  bool                 disable_rotation=false;
   std::vector<Point2i> last_mouse_pos;
   GLMouse              mouse;
   Viewport             viewport;
   GLOrthoParams        ortho_params;
+  bool                 ortho_params_fixed = false;
 
   //modelview
   Point3d      pos,dir,vup;
   Quaternion   quaternion;
-  Point3d      centerOfRotation;
-
-  //forward
-  void forward(double factor);
-
-  //pan
-  void pan(Point2d screen_p1,Point2d screen_p2);
-
-  //rotate
-  void rotate(Point2d screen_center,double angle);
+  Point3d      center_of_rotation;
 
   //guessNearFarDistance
   std::pair<double,double> guessNearFarDistance() const;

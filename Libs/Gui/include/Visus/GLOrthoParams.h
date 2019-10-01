@@ -58,6 +58,15 @@ public:
     : left(left_),right(right_),bottom(bottom_),top(top_),zNear(zNear_),zFar(zFar_)
   {}
 
+  //fromString
+  static GLOrthoParams fromString(String s)
+  {
+    GLOrthoParams ret;
+    std::istringstream parser(s);
+    parser >> ret.left >> ret.right >> ret.top >> ret.bottom >> ret.zNear >> ret.zFar;
+    return ret;
+  }
+
   //operator==
   bool operator==(const GLOrthoParams& other) const
   {

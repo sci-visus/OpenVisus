@@ -47,19 +47,19 @@ For support : support@visus.net
 namespace Visus {
 
 /////////////////////////////////////////////////////////////////
-class VISUS_GUI_API GLCamera : public Model
+class VISUS_GUI_API GLCamera : public UndoableModel
 {
 public:
 
   VISUS_NON_COPYABLE_CLASS(GLCamera)
 
   //constructor
-  inline GLCamera() 
+  GLCamera() 
   {}
 
   //destructor
-  virtual ~GLCamera()
-  {}
+  virtual ~GLCamera() {
+  }
 
   //glMousePressEvent
   virtual void glMousePressEvent(QMouseEvent* evt)=0;
@@ -101,12 +101,7 @@ public:
   }
 
   //guessPosition
-  virtual bool guessPosition(Position position,int ref=-1)=0;
-
-  //guessPosition
-  bool guessPosition(BoxNd box,int ref=-1) {
-    return guessPosition(Position(box),ref);
-  }
+  virtual bool guessPosition(BoxNd box, int ref = -1) = 0;
 
   //glRender
   virtual void glRender(GLCanvas& gl);
