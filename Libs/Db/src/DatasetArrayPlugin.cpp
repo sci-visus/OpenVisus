@@ -220,8 +220,17 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
   if (!args.exec(args_))
     return false;
 
+  if (!args.box.valid())
+  {
+    auto pdim = dataset->getPointDim();
+    args.box = BoxNi(PointNi::zero(pdim), src.dims);
+    if (dataset->getLogicBox()!=args.box)
+      VisusInfo() << "You did not specify logic box and input data has logic box !=dataset->getLogicBox()";
+  }
+
   auto query=std::make_shared<BoxQuery>(dataset.get(), args.field, args.time,'w');
   query->logic_box=args.box;
+
   query->setResolutionRange(args.fromh,args.toh);
 
   dataset->beginQuery(query);

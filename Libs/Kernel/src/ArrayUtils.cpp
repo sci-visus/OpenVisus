@@ -1844,8 +1844,10 @@ public:
         for (int C = 0; C < ncomponents; C++)
         {
           int SampleId = 0;
-          GetComponentSamples<CppType> DST(dst, C); GetSamples<Uint8> DST_ALPHA(*dst.alpha);
-          GetComponentSamples<CppType> SRC(src, C); GetSamples<Uint8> SRC_ALPHA(*src.alpha);
+          GetComponentSamples<CppType> DST(dst, C); 
+          GetComponentSamples<CppType> SRC(src, C); 
+          GetSamples<Uint8> DST_ALPHA(*dst.alpha);
+          GetSamples<Uint8> SRC_ALPHA(*src.alpha);
           GetComponentSamples<Float64> BEST_DISTANCE(best_distance, C);
 
           Int64 X, Y;

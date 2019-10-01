@@ -52,8 +52,8 @@ if __name__ == '__main__':
 	else:
 		IdxModule.attach()
 	
-	srv1=runSingleDatasetServer("cat1","file://datasets/cat/visus.idx",port=10000,dynamic=False)
-	srv2=runSingleDatasetServer("cat2","file://datasets/cat/visus.idx",port=10001,dynamic=False)
+	srv1=runSingleDatasetServer("cat1","file://datasets/cat/rgb.idx",port=10000,dynamic=False)
+	srv2=runSingleDatasetServer("cat2","file://datasets/cat/rgb.idx",port=10001,dynamic=False)
 	
 	# (2) view the idx in visus viewer...
 	if VISUS_GUI:
