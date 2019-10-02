@@ -78,22 +78,11 @@ SharedPtr<TransferFunction> TransferFunction::fromString(String content)
   ////////////////////////////////////////////////////////////////////
 void TransferFunction::executeAction(StringTree in)
 {
-  if (in.name == "Assign")
-  {
-    readFrom(in);
-
-    TransferFunction other;
-    other.readFrom(in);
-    (*this) = other;
-    return;
-  }
-
   if (in.name == "ClearFunctions")
   {
     clearFunctions();
     return;
   }
-
 
   if (in.name == "AddFunction")
   {
@@ -170,12 +159,9 @@ void TransferFunction::executeAction(StringTree in)
       return;
     }
 
-
-    ThrowException("internal error");
-
   }
 
-  UndoableModel::executeAction(in);
+  Model::executeAction(in);
 }
 
 
@@ -187,14 +173,14 @@ void TransferFunction::addFunction(SharedPtr<SingleTransferFunction> fn)
 
   auto nsamples = fn->values.size();
 
-  pushAction(
+  beginUpdate(
     fn->encode("AddFunction"),
     fullUndo());
   {
     this->default_name = "";
     functions.push_back(fn);
   }
-  popAction();
+  endUpdate();
 }
 
 
@@ -204,14 +190,14 @@ void TransferFunction::removeFunction(int index)
 {
   auto fn = functions[index];
 
-  pushAction(
+  beginUpdate(
     StringTree("RemoveFunction").write("index", index),
     fullUndo());
   {
     this->default_name = "";
     this->functions.erase(this->functions.begin() + index);
   }
-  popAction();
+  endUpdate();
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -220,14 +206,14 @@ void TransferFunction::clearFunctions()
   if (functions.empty())
     return;
 
-  pushAction(
+  beginUpdate(
     StringTree("ClearFunctions"),
     fullUndo());
   {
     this->default_name = "";
     this->functions.clear();
   }
-  popAction();
+  endUpdate();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -236,14 +222,14 @@ void TransferFunction::setNumberOfSamples(int value)
   if (value == this->getNumberOfSamples())
     return;
 
-  pushAction(
+  beginUpdate(
     StringTree("SetProperty").write("name","num_samples").write("value", cstring(value)),
     fullUndo());
   {
     for (auto fn : functions)
       fn->setNumberOfSamples(value);
   }
-  popAction();
+  endUpdate();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -252,7 +238,7 @@ void TransferFunction::setNumberOfFunctions(int value)
   if (getNumberOfSamples() == value)
     return;
 
-  pushAction(
+  beginUpdate(
     StringTree("SetProperty").write("name","num_functions").write("value", value),
     fullUndo());
   {
@@ -264,15 +250,15 @@ void TransferFunction::setNumberOfFunctions(int value)
       addFunction(std::make_shared<SingleTransferFunction>(guessName(getNumberOfFunctions()), guessColor(getNumberOfFunctions()), std::vector<double>(nsamples, 0.0)));
     }
   }
-  popAction();
+  endUpdate();
 }
 
 
 /////////////////////////////////////////////////////////////////////
 TransferFunction& TransferFunction::operator=(const TransferFunction& other)
 {
-  pushAction(
-    EncodeObject(&other,"Assign"),
+  beginUpdate(
+    other.encode("Assign"),
     fullUndo());
   {
     this->default_name = other.default_name;
@@ -286,7 +272,7 @@ TransferFunction& TransferFunction::operator=(const TransferFunction& other)
     for (auto fn : other.functions)
       this->functions.push_back(std::make_shared<SingleTransferFunction>(*fn));
   }
-  popAction();
+  endUpdate();
 
   return *this;
 }
@@ -308,7 +294,7 @@ void TransferFunction::drawLine(Point2d p1, Point2d p2, std::vector<int> selecte
   int i_x1 = Utils::clamp((int)(round(p1.x * (N - 1))), 0, N - 1);
   int i_x2 = Utils::clamp((int)(round(p2.x * (N - 1))), 0, N - 1);
 
-  pushAction(
+  beginUpdate(
     StringTree("DrawLine").write("p1", p1).write("p2", p2).write("selected", StringUtils::join(selected)),
     fullUndo());
   {
@@ -332,7 +318,7 @@ void TransferFunction::drawLine(Point2d p1, Point2d p2, std::vector<int> selecte
       }
     }
   }
-  popAction();
+  endUpdate();
 }
 
 
@@ -342,13 +328,13 @@ void TransferFunction::setInputRange(ComputeRange new_value)
   auto old_value = this->input_range;
   if (old_value == new_value) return;
 
-  pushAction(
+  beginUpdate(
     StringTree("SetProperty").write("name", String("input_range")).write("mode", cstring(new_value.mode)).write("custom_range", new_value.custom_range.toString()),
     StringTree("SetProperty").write("name", String("input_range")).write("mode", cstring(old_value.mode)).write("custom_range", old_value.custom_range.toString()));
   {
     this->input_range = new_value;
   }
-  popAction();
+  endUpdate();
 }
 
 /////////////////////////////////////////////////////////////////////

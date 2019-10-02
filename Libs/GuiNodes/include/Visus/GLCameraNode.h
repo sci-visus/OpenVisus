@@ -58,6 +58,9 @@ public:
   //destructor
   virtual ~GLCameraNode();
 
+  //executeAction
+  virtual void executeAction(StringTree action) override;
+
   //getGLCamera
   SharedPtr<GLCamera> getGLCamera() const {
     return glcamera;

@@ -54,13 +54,41 @@ TimeNode::~TimeNode()
 {
 }
 
+
+//////////////////////////////////////////////////////////////////////////
+void TimeNode::executeAction(StringTree action)
+{
+  if (action.name == "SetProperty")
+  {
+    auto name = action.readString("name");
+
+    if (name == "current_time") {
+      setCurrentTime(action.readDouble("value"));
+      return;
+    }
+
+    if (name == "user_range") {
+      setUserRange(Range::fromString(action.readString("value")));
+      return;
+    }
+
+    if (name == "play_msec") {
+      setPlayMsec(action.readInt("value"));
+      return;
+    }
+
+  }
+
+  return Node::executeAction(action);
+}
+
 //////////////////////////////////////////////////
 void TimeNode::setCurrentTime(double value,bool bDoPublish)
 {
   //NOTE: I accept even value if not in timesteps...
   if (this->current_time!=value)
   {
-    setProperty(this->current_time, value);
+    setProperty("current_time", this->current_time, value);
 
     if (bDoPublish)
       doPublish();
@@ -73,17 +101,15 @@ void TimeNode::setUserRange(const Range& value)
   if (this->user_range==value)
     return;
 
-  setProperty(this->user_range, value);
+  setProperty("user_range", this->user_range, value);
   doPublish();
 }
 
 //////////////////////////////////////////////////
 void TimeNode::setPlayMsec(int value)
 {
-  if (this->play_msec==value)
-    return;
-
-  setProperty(this->play_msec, value);
+  if (this->play_msec==value) return;
+  setProperty("play_msec", this->play_msec, value);
   //doPublish();
 }
 

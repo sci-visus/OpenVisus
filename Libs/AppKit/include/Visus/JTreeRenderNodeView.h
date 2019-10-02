@@ -82,40 +82,40 @@ public:
     {
       QFormLayout* layout=new QFormLayout();
       
-      layout->addRow("color_by_component",widgets.color_by_component=GuiFactory::CreateCheckBox(model->color_by_component,"",[this](int value){
-        model->setProperty(model->color_by_component,(bool)value);
+      layout->addRow("color_by_component",widgets.color_by_component=GuiFactory::CreateCheckBox(model->colorByComponent(),"",[this](int value){
+        model->setColorByComponent((bool)value);
       }));
 
-      layout->addRow("draw_saddles",widgets.draw_saddles=GuiFactory::CreateCheckBox(model->draw_saddles,"",[this](int value){
-        model->setProperty(model->draw_saddles, (bool)value);
+      layout->addRow("draw_saddles",widgets.draw_saddles=GuiFactory::CreateCheckBox(model->drawSaddles(),"",[this](int value){
+        model->setDrawSaddles((bool)value);
       }));
 
-      layout->addRow("draw_extrema",widgets.draw_extrema=GuiFactory::CreateCheckBox(model->draw_extrema,"",[this](int value){
-        model->setProperty(model->draw_extrema, (bool)value);
+      layout->addRow("draw_extrema",widgets.draw_extrema=GuiFactory::CreateCheckBox(model->drawExtrema(),"",[this](int value){
+        model->setDrawExtrema((bool)value);
       }));
 
-      layout->addRow("draw_edges",widgets.draw_edges=GuiFactory::CreateCheckBox(model->draw_edges,"",[this](int value){
-        model->setProperty(model->draw_edges, (bool)value);
+      layout->addRow("draw_edges",widgets.draw_edges=GuiFactory::CreateCheckBox(model->drawEdges(),"",[this](int value){
+        model->setDrawEdges((bool)value);
       }));
 
-      layout->addRow("b2D",widgets.b2D=GuiFactory::CreateCheckBox(model->b2D,"",[this](int value){
-        model->setProperty(model->b2D, (bool)value);
+      layout->addRow("is_2d",widgets.is_2d =GuiFactory::CreateCheckBox(model->is2d(),"",[this](int value){
+        model->set2d((bool)value);
       }));
 
-      layout->addRow("radius",widgets.radius=GuiFactory::CreateDoubleSliderWidget(model->radius,Range(0.1,10, 0),[this](double value){
-        model->setProperty(model->radius, value);
+      layout->addRow("radius",widgets.radius=GuiFactory::CreateDoubleSliderWidget(model->getRadius(),Range(0.1,10, 0),[this](double value){
+        model->setRadius(value);
       }));
 
-      layout->addRow("min_material",widgets.min_material=GuiFactory::CreateGLMaterialView(model->min_material,[this](GLMaterial value){
-        model->setProperty(model->min_material, value);
+      layout->addRow("min_material",widgets.min_material=GuiFactory::CreateGLMaterialView(model->getMinMaterial(),[this](GLMaterial value){
+        model->setMinMaterial(value);
       }));
 
-      layout->addRow("max_material",widgets.max_material=GuiFactory::CreateGLMaterialView(model->max_material,[this](GLMaterial value){
-        model->setProperty(model->max_material, value);
+      layout->addRow("max_material",widgets.max_material=GuiFactory::CreateGLMaterialView(model->getMaxMaterial(),[this](GLMaterial value){
+        model->setMaxMaterial(value);
       }));
 
-      layout->addRow("saddle_material",widgets.saddle_material=GuiFactory::CreateGLMaterialView(model->saddle_material,[this](GLMaterial value){
-        model->setProperty(model->saddle_material, value);
+      layout->addRow("saddle_material",widgets.saddle_material=GuiFactory::CreateGLMaterialView(model->getSaddleMaterial(),[this](GLMaterial value){
+        model->setSaddleMaterial(value);
       }));
 
       setLayout(layout);
@@ -132,7 +132,7 @@ private:
     QCheckBox* draw_saddles=nullptr;
     QCheckBox* draw_extrema=nullptr;
     QCheckBox* draw_edges=nullptr;
-    QCheckBox* b2D=nullptr;
+    QCheckBox* is_2d =nullptr;
     DoubleSlider* radius=nullptr;
     GuiFactory::GLMaterialView* min_material=nullptr;
     GuiFactory::GLMaterialView* max_material=nullptr;
@@ -144,15 +144,15 @@ private:
   ///refreshGui
   void refreshGui()
   {
-    widgets.color_by_component->setChecked(model->color_by_component);
-    widgets.draw_saddles->setChecked(model->draw_saddles);
-    widgets.draw_extrema->setChecked(model->draw_extrema);
-    widgets.draw_edges->setChecked(model->draw_edges);
-    widgets.b2D->setChecked(model->b2D);
-    widgets.radius->setValue(model->radius);
-    widgets.min_material->setMaterial(model->min_material);
-    widgets.max_material->setMaterial(model->max_material);
-    widgets.saddle_material->setMaterial(model->saddle_material);
+    widgets.color_by_component->setChecked(model->colorByComponent());
+    widgets.draw_saddles->setChecked(model->drawSaddles());
+    widgets.draw_extrema->setChecked(model->drawExtrema());
+    widgets.draw_edges->setChecked(model->drawEdges());
+    widgets.is_2d->setChecked(model->is2d());
+    widgets.radius->setValue(model->getRadius());
+    widgets.min_material->setMaterial(model->getMinMaterial());
+    widgets.max_material->setMaterial(model->getMaxMaterial());
+    widgets.saddle_material->setMaterial(model->getSaddleMaterial());
   }
 
   //modelChanged

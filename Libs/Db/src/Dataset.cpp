@@ -53,7 +53,7 @@ namespace Visus {
 VISUS_IMPLEMENT_SINGLETON_CLASS(DatasetFactory)
 
 /////////////////////////////////////////////////////////////////////////////
-std::vector<int> Dataset::guessEndResolutions(const Frustum& logic_to_screen,Position logic_position,QueryQuality quality,QueryProgression progression)
+std::vector<int> Dataset::guessEndResolutions(const Frustum& logic_to_screen,Position logic_position,int quality, int progression)
 {
   if (!logic_position.valid())
     return std::vector<int>();
@@ -61,7 +61,7 @@ std::vector<int> Dataset::guessEndResolutions(const Frustum& logic_to_screen,Pos
   int dataset_dim = this->getPointDim();
 
   if (progression == QueryGuessProgression)
-    progression = (QueryProgression)(dataset_dim == 2 ? dataset_dim * 3 : dataset_dim * 4);
+    progression = dataset_dim == 2 ? dataset_dim * 3 : dataset_dim * 4;
 
   auto maxh = this->getMaxResolution();
   int endh = maxh;
@@ -430,7 +430,7 @@ String Dataset::getDatasetInfos() const
 
   out<<"Visus file infos                                         "<<std::endl;
   out<<"  Logic box                                              "<< getLogicBox().toOldFormatString()<<std::endl;
-  out <<" Physic position                                        "<< getDatasetBounds().toString() << std::endl;
+  out <<" Physic position                                        "<< " T " <<getDatasetBounds().getTransformation().toString()<< " box " << getDatasetBounds().getBoxNd().toString() << std::endl;
   out<<"  Pow2 dims                                              "<<getBitmask().getPow2Dims().toString()<<std::endl;
   out<<"  number of samples                                      "<<total_number_of_samples<<std::endl;
   out<<"  number of blocks                                       "<<total_number_of_blocks<<std::endl;

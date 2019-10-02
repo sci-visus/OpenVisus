@@ -184,13 +184,6 @@ public:
   //shrink i.e. map * (position.lvalue,position.rvalue') should be in dst_box, does not change position.lvalue
   static Position shrink(BoxNd dst_box, LinearMap& map, Position position);
 
-  //toString
-  String toString() const {
-    std::ostringstream out;
-    out  << "T(" << T.toString() << ") box(" << box.toString() << ")";
-    return out.str();
-  }
-
 public:
 
   //writeTo

@@ -143,9 +143,59 @@ IsoContourRenderNode::~IsoContourRenderNode() {
 }
 
 ///////////////////////////////////////////////////////////////////////////
+void IsoContourRenderNode::executeAction(StringTree action)
+{
+  if (action.name == "SetProperty")
+  {
+    auto name = action.readString("name");
+    if (name == "palette")
+    {
+      SharedPtr<Palette> palette;
+      if (action.getNumberOfChilds() > 0)
+        palette = Decode<Palette>(*action.getFirstChild());
+      setPalette(palette);
+      return;
+    }
+
+    if (name == "material")
+    {
+      setMaterial(*Decode<GLMaterial>(*action.getFirstChild()));
+      return;
+      return;
+    }
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////
+void IsoContourRenderNode::setMaterial(GLMaterial new_value) {
+  setObjectProperty("material", this->material, new_value);
+}
+
+///////////////////////////////////////////////////////////////////////////
 void IsoContourRenderNode::setIsoContour(SharedPtr<IsoContour> value)
 {
   this->isocontour = value;
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+void IsoContourRenderNode::setPalette(SharedPtr<Palette> value) {
+  if (this->palette == value)
+    return;
+
+  value->texture.reset(); //force regeneration
+
+  auto redo = StringTree("SetProperty").write("name", "palette");
+  if (palette)
+    redo.addChild(palette->encode());
+
+  beginUpdate(
+    redo,
+    fullUndo());
+  {
+    this->palette = value;
+  }
+  endUpdate();
 }
 
 ///////////////////////////////////////////////////////////////////////////

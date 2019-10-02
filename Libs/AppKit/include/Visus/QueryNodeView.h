@@ -141,7 +141,7 @@ public:
         sub->addWidget(widgets.progression.noprogression=GuiFactory::CreateCheckBox(false,"No Progression"));
         sub->addWidget(widgets.progression.user.enabled=GuiFactory::CreateCheckBox(false,"User value"));
         sub->addLayout(GuiFactory::CreateIntegerSliderAndShowToolTip(widgets.progression.user.set,6,1,32,[this](int value) {
-          this->model->setProgression((QueryProgression)widgets.progression.user.set->value());
+          this->model->setProgression(widgets.progression.user.set->value());
         }));
 
         auto group=new QButtonGroup(layout);

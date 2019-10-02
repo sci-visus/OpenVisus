@@ -42,7 +42,7 @@
 
 #define VISUS_XIDX_CLASS(Name) \
   VISUS_CLASS(Name)\
-  virtual String getTypeName() override {return #Name;} \
+  virtual String getTypeName() {return #Name;} \
   /*--*/
 
 #include <vector>

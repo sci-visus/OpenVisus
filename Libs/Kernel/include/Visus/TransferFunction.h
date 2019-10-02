@@ -153,7 +153,7 @@ public:
 
 
 ////////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API TransferFunction : public UndoableModel
+class VISUS_KERNEL_API TransferFunction : public Model
 {
 public:
 
@@ -195,6 +195,11 @@ public:
     return std::vector<Color>({ Colors::Red, Colors::Green, Colors::Blue, Colors::Gray,Color::random() })[Utils::clamp(I, 0, 4)];
   }
 
+  //getTypeName
+  virtual String getTypeName() const override {
+    return "TransferFunction";
+  }
+
   //getNumberOfSamples
   int getNumberOfSamples() const {
     return functions.empty() ? 0 : functions[0]->getNumberOfSamples();
@@ -214,11 +219,6 @@ public:
   //valid
   bool valid() const {
     return getNumberOfSamples() > 0 && getNumberOfFunctions() >0;
-  }
-
-  //getTypeName
-  virtual String getTypeName() const  override {
-    return "TransferFunction";
   }
 
   //executeAction
@@ -327,11 +327,6 @@ private:
 
   //how to map the range [0,1] to some user range
   Range output_range = Range(0, 255, 1);
-
-  //fullAssign
-  StringTree fullUndo() {
-    return EncodeObject(this,"Assign");
-  }
 
 };
 

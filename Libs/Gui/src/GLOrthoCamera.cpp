@@ -55,104 +55,96 @@ GLOrthoCamera::~GLOrthoCamera() {
 }
 
   //////////////////////////////////////////////////
-void GLOrthoCamera::executeAction(StringTree in) 
+void GLOrthoCamera::executeAction(StringTree action) 
 {
-  if (in.name == "Assign")
+  if (action.name == "SetLookAt")
   {
-    this->readFrom(in);
-    return;
-  }
-
-  if (in.name == "SetLookAt")
-  {
-    auto pos = Point3d::fromString(in.readString("pos"));
-    auto dir = Point3d::fromString(in.readString("dir"));
-    auto vup = Point3d::fromString(in.readString("vup"));
+    auto pos = Point3d::fromString(action.readString("pos"));
+    auto dir = Point3d::fromString(action.readString("dir"));
+    auto vup = Point3d::fromString(action.readString("vup"));
     setLookAt(pos, dir, vup);
     return;
   }
 
-  if (in.name == "Translate")
+  if (action.name == "Translate")
   {
-    auto vt = Point2d::fromString(in.readString("value"));
+    auto vt = Point2d::fromString(action.readString("value"));
     translate(vt);
     return;
   }
 
-  if (in.name == "Scale")
+  if (action.name == "Scale")
   {
-    auto vs = in.readDouble("vs");
-    auto center = Point2d::fromString(in.readString("center"));
+    auto vs = action.readDouble("vs");
+    auto center = Point2d::fromString(action.readString("center"));
     scale(vs, center);
     return;
   }
 
-  if (in.name == "Rotate")
+  if (action.name == "Rotate")
   {
-    auto quantity = in.readDouble("value");
+    auto quantity = action.readDouble("value");
     rotate(quantity);
     return;
   }
 
-  if (in.name == "GuessPosition")
+  if (action.name == "GuessPosition")
   {
-    auto p1 = Point3d::fromString(in.readString("p1"));
-    auto p2 = Point3d::fromString(in.readString("p2"));
-    auto ref = in.readInt("ref");
+    auto p1 = Point3d::fromString(action.readString("p1"));
+    auto p2 = Point3d::fromString(action.readString("p2"));
+    auto ref = action.readInt("ref");
     guessPosition(BoxNd(p1, p2), ref);
     return;
   }
 
-  if (in.name == "SetProperty")
+  if (action.name == "SetProperty")
   {
-    auto name = in.readString("name");
+    auto name = action.readString("name");
 
     if (name == "ortho_params")
     {
-      auto value = GLOrthoParams::fromString(in.readString("value"));
+      auto value = GLOrthoParams::fromString(action.readString("value"));
       setOrthoParams(value);
       return;
     }
 
     if (name == "viewport")
     {
-      auto value = Viewport::fromString(in.readString("value"));
+      auto value = Viewport::fromString(action.readString("value"));
       setViewport(value);
       return;
     }
 
     if (name == "min_zoom")
     {
-      auto value = in.readDouble("value");
+      auto value = action.readDouble("value");
       setMinZoom(value);
       return;
     }
 
     if (name == "max_zoom")
     {
-      auto value = in.readDouble("value");
+      auto value = action.readDouble("value");
       setMaxZoom(value);
       return;
     }
 
     if (name == "smooth")
     {
-      auto value = in.readDouble("value");
+      auto value = action.readDouble("value");
       setSmooth(value);
       return;
     }
 
     if (name == "disable_rotation")
     {
-      auto value = in.readDouble("value");
+      auto value = action.readDouble("value");
       setDisableRotation(value);
       return;
     }
-
-    ThrowException("internal error");
   }
 
-  return GLCamera::executeAction(in);
+  return GLCamera::executeAction(action);
 }
 
 
@@ -182,9 +174,9 @@ bool GLOrthoCamera::guessPosition(BoxNd bound,int ref)
 
   auto size = bound.size();
 
-  pushAction(
+  beginUpdate(
     StringTree("GuessPosition").write("p1", bound.p1.toString()).write("p2", bound.p2.toString()).write("ref",ref),
-    EncodeObject(this, "Assign"));
+    fullUndo());
   {
     if (ref == 0 || (ref < 0 && !size[0] && size[1] && size[2]))
     {
@@ -221,7 +213,7 @@ bool GLOrthoCamera::guessPosition(BoxNd bound,int ref)
       setOrthoParams(GLOrthoParams(bound.p1[0], bound.p2[0], bound.p1[1], bound.p2[1], Znear, Zfar).withAspectRatio(W, H));
     }
   }
-  popAction();
+  endUpdate();
 
   return true;
 }
@@ -237,14 +229,14 @@ void GLOrthoCamera::setOrthoParams(GLOrthoParams new_value)
   if (old_value  == new_value)
     return;
 
-  pushAction(
+  beginUpdate(
     StringTree("SetProperty").write("name", "ortho_params").write("value", new_value.toString()),
-    EncodeObject(this, "Assign"));
+    fullUndo());
   {
     this->ortho_params_final = checkZoomRange(new_value);
     this->ortho_params_current = ortho_params_final;
   }
-  popAction();
+  endUpdate();
 }
 
 //////////////////////////////////////////////////
@@ -256,14 +248,14 @@ void GLOrthoCamera::setViewport(Viewport new_value)
 
   auto params=getOrthoParams().withAspectRatio(old_value, new_value);
 
-  pushAction(
+  beginUpdate(
     StringTree("SetProperty").write("name","viewport").write("value",new_value.toString()),
-    EncodeObject(this, "Assign"));
+    fullUndo());
   {
     this->viewport = new_value;
     setOrthoParams(params);
   }
-  popAction();
+  endUpdate();
 }
 
 ////////////////////////////////////////////////////////////////
@@ -291,7 +283,7 @@ Frustum GLOrthoCamera::getFinalFrustum() const
 ////////////////////////////////////////////////////////////////
 void GLOrthoCamera::setLookAt(Point3d pos, Point3d dir, Point3d vup)
 {
-  pushAction(
+  beginUpdate(
     StringTree("SetLookAt").write("pos", pos.toString()).write("dir", dir.toString()).write("vup", vup.toString()),
     fullUndo());
   {
@@ -299,7 +291,7 @@ void GLOrthoCamera::setLookAt(Point3d pos, Point3d dir, Point3d vup)
     this->dir = dir;
     this->vup = vup;
   }
-  popAction();
+  endUpdate();
 }
 
 ////////////////////////////////////////////////////////////////
@@ -307,14 +299,14 @@ void GLOrthoCamera::translate(Point2d vt)
 {
   if (vt==Point2d()) return;
 
-  pushAction(
+  beginUpdate(
     StringTree("Translate").write("value",vt.toString()),
     fullUndo());
   {
     this->ortho_params_final.translate(Point3d(vt));
     interpolateToFinal();
   }
-  popAction();
+  endUpdate();
 }
 
 ////////////////////////////////////////////////////////////////
@@ -322,13 +314,13 @@ void GLOrthoCamera::rotate(double quantity)
 {
   if (!quantity || disable_rotation) return;
 
-  pushAction(
+  beginUpdate(
     StringTree("Rotate").write("value", quantity),
     fullUndo());
   {
     this->rotation_angle += quantity;
   }
-  popAction();
+  endUpdate();
 }
 
 ////////////////////////////////////////////////////////////////
@@ -382,7 +374,7 @@ void GLOrthoCamera::scale(double vs,Point2d center)
   if (vs==1 || vs==0) 
     return;
 
-  pushAction(
+  beginUpdate(
     StringTree("Scale").write("vs", cstring(vs)).write("center",center.toString()),
     fullUndo());
   {
@@ -391,7 +383,7 @@ void GLOrthoCamera::scale(double vs,Point2d center)
     this->ortho_params_final=checkZoomRange(value);
     interpolateToFinal();
   }
-  popAction();
+  endUpdate();
 }
 
 ////////////////////////////////////////////////////////////////
@@ -471,13 +463,13 @@ void GLOrthoCamera::glMouseMoveEvent(QMouseEvent* evt)
 
     double vs = 1.0 / sqrt(a * a + b * b);
 
-    pushAction(? ? ? );
+    beginUpdate(? ? ? );
     {
       scale(vs, center);
       translate(-Point2d(tx, ty));
       rotate(-atan2(b, a));
     }
-    popAction();
+    endUpdate();
 
     evt->accept();
     return;
@@ -591,9 +583,9 @@ void GLOrthoCamera::interpolateToFinal()
 
   //technically ortho_params_current is not part of the "model" so I'm not
   //communicate the changes to the outside
-  //pushAction(...)
+  //beginUpdate(...)
   ortho_params_current = GLOrthoParams::interpolate(smooth, this->ortho_params_current, 1 - smooth, this->ortho_params_final);
-  //popAction()
+  //endUpdate()
 
   this->redisplay_needed.emitSignal();
 

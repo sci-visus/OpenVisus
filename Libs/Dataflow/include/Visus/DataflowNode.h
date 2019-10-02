@@ -107,8 +107,12 @@ public:
   //destructor (please remove from the dataflow before destroying!)
   virtual ~Node();
 
+
   //getTypeName
   virtual String getTypeName() const override;
+
+  //executeAction
+  virtual void executeAction(StringTree action) override;
 
   //getOsDependentTypeName
   virtual String getOsDependentTypeName() const {

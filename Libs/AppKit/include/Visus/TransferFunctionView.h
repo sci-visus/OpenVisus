@@ -358,16 +358,14 @@ public:
     // painting functions
     if (model && evt->button()==Qt::LeftButton && model->functions.size())
     { 
-      model->pushAction(
-        StringTree("Transaction"),
-        StringTree("Transaction"));
+      model->beginTransaction();
 
 #if 0
       //do not send too much updates
       dragging.reset(new QTimer());
       connect(dragging.get(),&QTimer::timeout,[this](){
-        model->popAction();
-        model->pushAction(); 
+        model->endTransaction();
+        model->beginTransaction(); 
       });
       dragging->start(500);
 #endif
@@ -407,7 +405,7 @@ public:
   {
     if (dragging)
     {
-      model->popAction();
+      model->endTransaction();
       dragging.reset();
     }
     else
@@ -532,7 +530,7 @@ private:
   //refreshGui
   void refreshGui() {
 
-    StringTree out(model->getTypeName());
+    StringTree out("TransferFunction");
     model->writeTo(out);
     auto content= out.toXmlString();
     widgets.textedit->setText(content.c_str());

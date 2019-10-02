@@ -58,6 +58,9 @@ public:
   //DatasetNode
   virtual ~DatasetNode();
 
+  //executeAction
+  virtual void executeAction(StringTree action) override;
+
   //getDataset
   SharedPtr<Dataset> getDataset() const {
     return this->dataset;
@@ -94,8 +97,7 @@ public:
 
   //setShowBounds
   void setShowBounds(bool value) {
-    if (show_bounds==value) return;
-    setProperty(this->show_bounds, value);
+    setProperty("show_bounds", this->show_bounds, value);
   }
 
   static DatasetNode* castFrom(Node* obj) {

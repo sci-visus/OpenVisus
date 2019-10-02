@@ -59,6 +59,9 @@ public:
   //destructor
   ~JTreeNode();
 
+  //executeAction
+  virtual void executeAction(StringTree action) override;
+ 
   //getMinimaTree
   bool getMinimaTree() const {
     return minima_tree;
@@ -67,7 +70,7 @@ public:
   //setMinimaTree
   void setMinimaTree(bool value) {
     if (minima_tree==value) return;
-    setProperty(minima_tree, value);
+    setProperty("minima_tree", minima_tree, value);
     recompute();
   }
 
@@ -79,7 +82,7 @@ public:
   //setMinPersistence
   void setMinPersistence(double value) {
     if (min_persistence==value) return;
-    setProperty(min_persistence, value);
+    setProperty("min_persistence", min_persistence, value);
     recompute(false);
   }
 
@@ -91,7 +94,7 @@ public:
   //setReduceMinMax
   void setReduceMinMax(bool value) {
     if (reduce_minmax==value) return;
-    setProperty(reduce_minmax, value);
+    setProperty("reduce_minmax", reduce_minmax, value);
     recompute(false);
   }
 
@@ -103,7 +106,7 @@ public:
   //setThresholdMin
   void setThresholdMin(double value) {
     if (threshold_min==value) return;
-    setProperty(threshold_min, value);
+    setProperty("threshold_min", threshold_min, value);
     recompute();
   }
 
@@ -116,7 +119,7 @@ public:
   //setThresholdMax
   void setThresholdMax(double value) {
     if (threshold_max==value) return;
-    setProperty(threshold_max, value);
+    setProperty("threshold_max", threshold_max, value);
     recompute();
   }
 
@@ -128,7 +131,7 @@ public:
   //setAutoThreshold
   void setAutoThreshold(bool value) {
     if (auto_threshold==value) return;
-    setProperty(auto_threshold, value);
+    setProperty("auto_threshold", auto_threshold, value);
     recompute();
   }
 

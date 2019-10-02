@@ -39,7 +39,6 @@ For support : support@visus.net
 #include <Visus/Diff.h>
 #include <Visus/StringUtils.h>
 
-
 #include <dtl/variables.hpp>
 #include <dtl/functors.hpp>
 #include <dtl/Sequence.hpp>
@@ -49,6 +48,7 @@ For support : support@visus.net
 #include <dtl/Diff3.hpp>
 
 namespace Visus {
+
 
 /////////////////////////////////////////////////////////////////
 Diff::Diff(const std::vector<String>& A,const std::vector<String>& B)
@@ -204,6 +204,7 @@ String Diff::toString() const
   }
   return out.str();    
 }
+
 
 
 } //namespace Visus

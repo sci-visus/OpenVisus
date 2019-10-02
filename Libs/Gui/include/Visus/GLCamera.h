@@ -47,7 +47,7 @@ For support : support@visus.net
 namespace Visus {
 
 /////////////////////////////////////////////////////////////////
-class VISUS_GUI_API GLCamera : public UndoableModel
+class VISUS_GUI_API GLCamera : public Model
 {
 public:
 
@@ -66,6 +66,9 @@ public:
   //destructor
   virtual ~GLCamera() {
   }
+
+  //getTypeName
+  virtual String getTypeName() const override = 0;
 
   //glMousePressEvent
   virtual void glMousePressEvent(QMouseEvent* evt)=0;
@@ -122,18 +125,10 @@ public:
 
 private:
 
-  //beginUpdate
-  virtual void beginUpdate() override {
-    UndoableModel::beginUpdate();
+  //modelChanged
+  virtual void modelChanged() override {
+    redisplay_needed.emitSignal();
   }
-
-  //endUpdate
-  virtual void endUpdate() override {
-    UndoableModel::endUpdate();
-    if (!isUpdating())
-      redisplay_needed.emitSignal();
-  }
-
 
 };//end class
 

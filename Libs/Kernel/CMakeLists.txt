@@ -53,6 +53,7 @@ source_group("Core" FILES
 	./include/Visus/Log.h
 	./src/Log.cpp
 	./include/Visus/Model.h
+	./include/Visus/Model.cpp
 	./include/Visus/NumericLimits.h
 	./include/Visus/Path.h
 	./src/Path.cpp

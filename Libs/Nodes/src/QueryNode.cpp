@@ -214,6 +214,58 @@ QueryNode::QueryNode(String name) : Node(name)
 QueryNode::~QueryNode(){
 }
 
+
+
+///////////////////////////////////////////////////////////////////////////
+void QueryNode::executeAction(StringTree action)
+{
+  if (action.name == "SetProperty")
+  {
+    auto name = action.readString("name");
+
+
+    if (name == "verbose")
+    {
+      setVerbose(action.readBool("value"));
+      return;
+    }
+
+    if (name == "accessindex")
+    {
+      setAccessIndex(action.readInt("value"));
+      return;
+    }
+
+    if (name == "view_dependent_enabled")
+    {
+      setViewDependentEnabled(action.readBool("value"));
+      return;
+    }
+
+    if (name == "progression")
+    {
+      setProgression(action.readInt("value"));
+      return;
+    }
+
+    if (name == "quality")
+    {
+      setQuality(action.readInt("value"));
+      return;
+    }
+
+    if (name == "node_bounds")
+    {
+      setNodeBounds(*Decode<Position>(*action.getFirstChild()));
+      return;
+    }
+
+  }
+
+  return Node::executeAction(action);
+
+}
+
 ///////////////////////////////////////////////////////////////////////////
 Field QueryNode::getField()
 {
@@ -358,7 +410,7 @@ void QueryNode::writeTo(StringTree& out) const
 
   out.writeValue("verbose", cstring(verbose));
   out.writeValue("accessindex",cstring(accessindex));
-  out.writeValue("view_dependent",cstring(bViewDependentEnabled));
+  out.writeValue("view_dependent",cstring(view_dependent_enabled));
   out.writeValue("progression",std::to_string(progression));
   out.writeValue("quality",std::to_string(quality));
 
@@ -374,9 +426,9 @@ void QueryNode::readFrom(StringTree& in)
 
   this->verbose = cint(in.readValue("verbose"));
   this->accessindex=cint(in.readValue("accessindex"));
-  this->bViewDependentEnabled=cbool(in.readValue("view_dependent"));
-  this->progression=(QueryProgression)cint(in.readValue("progression"));
-  this->quality=(QueryQuality)cint(in.readValue("quality"));
+  this->view_dependent_enabled =cbool(in.readValue("view_dependent"));
+  this->progression=cint(in.readValue("progression"));
+  this->quality=cint(in.readValue("quality"));
 
   in.readObject("bounds", node_bounds);
 

@@ -110,7 +110,7 @@ public:
 class VISUS_APPKIT_API Viewer :
   public QMainWindow,
   public Dataflow::Listener,
-  public UndoableModel
+  public Model
 {
   Q_OBJECT
 
@@ -186,6 +186,7 @@ public:
 
   //destructor
   virtual ~Viewer();
+
 
   //getTypeName
   virtual String getTypeName() const override {

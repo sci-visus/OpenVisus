@@ -143,7 +143,6 @@ void Viewer::detachGLCamera()
   
   widgets.glcanvas->glcamera->end_update.disconnect(widgets.glcanvas->glcamera_end_update_slot);
   widgets.glcanvas->glcamera->redisplay_needed.disconnect(widgets.glcanvas->glcamera_redisplay_needed_slot);
-
   widgets.glcanvas->glcamera=nullptr;
 }
 

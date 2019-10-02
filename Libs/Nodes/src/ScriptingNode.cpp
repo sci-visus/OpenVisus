@@ -202,6 +202,29 @@ ScriptingNode::~ScriptingNode()
 {
 }
 
+
+//////////////////////////////////////////////////////////////////////////
+void ScriptingNode::executeAction(StringTree action)
+{
+  if (action.name == "SetProperty")
+  {
+    auto name = action.readString("name");
+
+    if (name == "max_publish_msec") {
+      setMaxPublishMSec(action.readInt("max_publish_msec"));
+      return;
+    }
+
+    if (name == "code") {
+      setCode(action.readString("code"));
+      return;
+    }
+
+  }
+
+  return Node::executeAction(action);
+}
+
 ///////////////////////////////////////////////////////////////////////
 bool ScriptingNode::processInput()
 {

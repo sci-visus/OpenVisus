@@ -62,6 +62,9 @@ public:
   //destructor
   virtual ~IsoContourRenderNode();
 
+  //executeAction
+  virtual void executeAction(StringTree action);
+
   //glRender
   virtual void glRender(GLCanvas& gl) override;
    
@@ -76,10 +79,7 @@ public:
   }
 
   //setMaterial
-  void setMaterial(GLMaterial value) {
-    if (this->material==value) return;
-    setProperty(this->material, value);
-  }
+  void setMaterial(GLMaterial new_value);
 
   //getIsoContour
   SharedPtr<IsoContour> getIsoContour() const {
@@ -95,10 +95,7 @@ public:
   }
 
   //getPalette
-  void setPalette(SharedPtr<Palette> value)  {
-    value->texture.reset(); //force regeneration
-    setProperty(this->palette, value);
-  }
+  void setPalette(SharedPtr<Palette> value);
 
   //dataflow
   virtual bool processInput() override;

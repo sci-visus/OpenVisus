@@ -50,13 +50,31 @@ FieldNode::FieldNode(String name) : Node(name)
 FieldNode::~FieldNode()
 {}
 
+
+///////////////////////////////////////////////////////////////////////////////////////////
+void FieldNode::executeAction(StringTree action)
+{
+  if (action.name == "SetProperty")
+  {
+    auto name = action.readString("name");
+
+    if (name == "fieldname") {
+      setFieldName(action.readString("value"));
+      return;
+    }
+
+  }
+
+  return Node::executeAction(action);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////
 void FieldNode::setFieldName(String value)
 {
   if (this->fieldname== value)
     return;
 
-  setProperty(this->fieldname, value);
+  setProperty("fieldname", this->fieldname, value);
 } 
 
 ///////////////////////////////////////////////////////////////////////////////////////////

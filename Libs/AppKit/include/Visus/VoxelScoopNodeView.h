@@ -82,32 +82,32 @@ public:
     {
       QFormLayout* layout=new QFormLayout();
 
-      layout->addRow("simplify",widgets.simplify=GuiFactory::CreateCheckBox(model->simplify,"",[this](int value){
-        model->setProperty(model->simplify, (bool)value);
+      layout->addRow("simplify",widgets.simplify=GuiFactory::CreateCheckBox(model->doSimplify(),"",[this](int value){
+        model->setSimplify((bool)value);
       }));
 
-      layout->addRow("min_length",widgets.min_length=GuiFactory::CreateDoubleTextBoxWidget(model->min_length,[this](double value){
-        model->setProperty(model->min_length, value);
+      layout->addRow("min_length",widgets.min_length=GuiFactory::CreateDoubleTextBoxWidget(model->getMinLength(),[this](double value){
+        model->setMinLength(value);
       }));
 
-      layout->addRow("min_ratio",widgets.min_ratio=GuiFactory::CreateDoubleTextBoxWidget(model->min_ratio,[this](double value){
-        model->setProperty(model->min_ratio, value);
+      layout->addRow("min_ratio",widgets.min_ratio=GuiFactory::CreateDoubleTextBoxWidget(model->getMinRatio(),[this](double value){
+        model->setMinRatio(value);
       }));
 
-      layout->addRow("threshold",widgets.threshold=GuiFactory::CreateDoubleTextBoxWidget(model->threshold,[this](double value){
-        model->setProperty(model->threshold, value);
+      layout->addRow("threshold", widgets.threshold=GuiFactory::CreateDoubleTextBoxWidget(model->getThreshold(),[this](double value){
+        model->setThreshold(value);
       }));
 
-      layout->addRow("bUseMinimaAsSeed",widgets.bUseMinimaAsSeed=GuiFactory::CreateCheckBox(model->bUseMinimaAsSeed,"",[this](int value){
-        model->setProperty(model->bUseMinimaAsSeed, (bool)value);
+      layout->addRow("use_minima_as_seed",widgets.use_minima_as_seed =GuiFactory::CreateCheckBox(model->useMinimaAsSeed(),"",[this](int value){
+        model->setUseMinimaAsSeed((bool)value);
       }));
 
-      layout->addRow("bUseMaximaAsSeed",widgets.bUseMaximaAsSeed=GuiFactory::CreateCheckBox(model->bUseMaximaAsSeed,"",[this](int value){
-        model->setProperty(model->bUseMaximaAsSeed, (bool)value);
+      layout->addRow("use_maxima_as_seed",widgets.use_maxima_as_seed =GuiFactory::CreateCheckBox(model->useMaximaAsSeed(),"",[this](int value){
+        model->setUseMaximaAsSeed((bool)value);
       }));
 
-      layout->addRow("min_diam",widgets.min_diam=GuiFactory::CreateDoubleTextBoxWidget(model->min_diam,[this](double value){
-        model->setProperty(model->min_diam, value);
+      layout->addRow("min_diam",widgets.min_diam=GuiFactory::CreateDoubleTextBoxWidget(model->getMinDiam(),[this](double value){
+        model->setMinDiam(value);
       }));
 
       setLayout(layout);
@@ -124,8 +124,8 @@ private:
     QLineEdit* min_length=nullptr;
     QLineEdit* min_ratio=nullptr;
     QLineEdit* threshold=nullptr;
-    QCheckBox* bUseMinimaAsSeed=nullptr;
-    QCheckBox* bUseMaximaAsSeed=nullptr;
+    QCheckBox* use_minima_as_seed =nullptr;
+    QCheckBox* use_maxima_as_seed=nullptr;
     QLineEdit* min_diam=nullptr;
   };
 
@@ -134,13 +134,13 @@ private:
   ///refreshGui
   void refreshGui()
   {
-    widgets.simplify->setChecked(model->simplify);
-    widgets.min_length->setText(cstring(model->min_length).c_str());
-    widgets.min_ratio->setText(cstring(model->min_ratio).c_str());
-    widgets.threshold->setText(cstring(model->threshold).c_str());
-    widgets.bUseMinimaAsSeed->setChecked(model->bUseMinimaAsSeed);
-    widgets.bUseMaximaAsSeed->setChecked(model->bUseMaximaAsSeed);
-    widgets.min_diam->setText(cstring(model->min_diam).c_str());
+    widgets.simplify->setChecked(model->doSimplify());
+    widgets.min_length->setText(cstring(model->getMinLength()).c_str());
+    widgets.min_ratio->setText(cstring(model->getMinRatio()).c_str());
+    widgets.threshold->setText(cstring(model->getThreshold()).c_str());
+    widgets.use_minima_as_seed->setChecked(model->useMinimaAsSeed());
+    widgets.use_maxima_as_seed->setChecked(model->useMaximaAsSeed());
+    widgets.min_diam->setText(cstring(model->getMinDiam()).c_str());
   }
 
   //modelChanged

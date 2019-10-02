@@ -104,6 +104,9 @@ public:
   //destructor
   virtual ~IsoContourNode();
 
+  //executeAction
+  virtual void executeAction(StringTree action) override;
+
   //processInput
   virtual bool processInput() override;
 
@@ -125,8 +128,7 @@ public:
 
   //setIsoValue
   void setIsoValue(double value) {
-    if (isovalue==value) return;
-    setProperty(this->isovalue, value);
+    setProperty("isovalue", this->isovalue, value);
   }
 
 public:

@@ -58,6 +58,9 @@ public:
   //destructor
   virtual ~CpuPaletteNode();
 
+  //executeAction
+  virtual void executeAction(StringTree action);
+
   //processInput
   virtual bool processInput() override;
 

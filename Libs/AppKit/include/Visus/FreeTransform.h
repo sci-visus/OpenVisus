@@ -93,7 +93,7 @@ public:
   }
 
   //getTypeName
-  virtual String getTypeName() const override{
+  virtual String getTypeName() const override {
     return "FreeTransform";
   }
 
@@ -144,19 +144,18 @@ public:
   //glRender
   virtual void glRender(GLCanvas& gl) override;
 
+public:
+
   //writeTo (to implement if needed!)
-  virtual void writeTo(StringTree& out) const override {
-    VisusAssert(false);
-  }
+  virtual void writeTo(StringTree& out) const override;
 
   //readFrom (to implement if needed!)
-  virtual void readFrom(StringTree& in) override {
-    VisusAssert(false);
-  }
+  virtual void readFrom(StringTree& in) override;
 
 private:
 
   Position              obj;
+
   LocalCoordinateSystem lcs;
   Dragging              dragging;
 

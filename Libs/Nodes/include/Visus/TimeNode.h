@@ -58,6 +58,9 @@ public:
   //destructor
   virtual ~TimeNode();
 
+  //executeAction
+  virtual void executeAction(StringTree action) override;
+
   //getCurrentTime
   inline double getCurrentTime() const
   {return current_time;}

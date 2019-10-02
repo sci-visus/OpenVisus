@@ -77,19 +77,84 @@ public:
 
   typedef Visus::Graph< GraphNode,GraphEdge > TrimGraph;
 
-  bool    simplify=true;
-  double  min_length=10.0;
-  double  min_ratio=1.00;  
-  double  threshold=42;
-  bool    bUseMinimaAsSeed=false;
-  bool    bUseMaximaAsSeed=false;
-  double  min_diam=0.75; 
-
   //constructor
   VoxelScoopNode(String name="");
 
   //destructor
   ~VoxelScoopNode() {
+  }
+
+  //executeAction
+  virtual void  executeAction(StringTree action) override;
+
+  //doSimplify
+  bool doSimplify() const {
+    return simplify;
+  }
+
+  //setSimplify
+  void setSimplify(bool value) {
+    setProperty("simplify", this->simplify, value);
+  }
+
+  //getMinLength
+  double getMinLength() const {
+    return min_length;
+  }
+
+  //setMinLength
+  void setMinLength(double value) {
+    setProperty("min_length", min_length, value);
+  }
+
+  //getMinRatio
+  double getMinRatio() const {
+    return min_ratio;
+  }
+
+  //setMinRatio
+  void setMinRatio(double value) {
+    setProperty("min_ratio", this->min_ratio, value);
+  }
+
+  //getThreshold
+  double getThreshold() const {
+    return threshold;
+  }
+
+  //setMinRatio
+  void setThreshold(double value) {
+    setProperty("threshold", this->threshold, value);
+  }
+
+  //useMinimaAsSeed
+  bool useMinimaAsSeed() const {
+    return use_minima_as_seed;
+  }
+
+  //setUseMinimaAsSeed
+  void setUseMinimaAsSeed(bool value) {
+    setProperty("use_minima_as_seed",this->use_minima_as_seed,value);
+  }
+
+  //useMaximaAsSeed
+  bool useMaximaAsSeed() const {
+    return use_maxima_as_seed;
+  }
+
+  //setUseMaximaAsSeed
+  void setUseMaximaAsSeed(bool value) {
+    setProperty("use_maxima_as_seed", this->use_maxima_as_seed, value);
+  }
+
+  //getMinDiam
+  double getMinDiam() const {
+    return min_diam;
+  }
+
+  //setMinDiam
+  void setMinDiam(double value) {
+    setProperty("min_diam", this->min_diam, value);
   }
 
   //processInput
@@ -112,6 +177,15 @@ private:
 
   class MyJob;
   friend class MyJob;
+
+  bool    simplify = true;
+  double  min_length = 10.0;
+  double  min_ratio = 1.00;
+  double  threshold = 42;
+  bool    use_minima_as_seed = false;
+  bool    use_maxima_as_seed = false;
+  double  min_diam = 0.75;
+
 
   //the data on which I need to do voxelscoop calculation
   Array data;

@@ -72,6 +72,9 @@ public:
   //destructor
   virtual ~RenderArrayNode();
 
+  //executeAction
+  virtual void executeAction(StringTree action) override;
+
   //getData
   Array getData() const {
     VisusAssert(VisusHasMessageLock()); return data;
@@ -98,8 +101,13 @@ public:
   }
 
   //getLightingMaterial
-  GLMaterial& getLightingMaterial() {
+  GLMaterial getLightingMaterial() {
     return lighting_material;
+  }
+
+  //setLightingMaterial
+  void setLightingMaterial(GLMaterial value) {
+    setObjectProperty("lighting_material", this->lighting_material, value);
   }
 
   //lightingEnabled
@@ -109,8 +117,7 @@ public:
 
   //setLightingEnabled
   void setLightingEnabled(bool value) {
-    if (lighting_enabled == value) return;
-    setProperty(this->lighting_enabled, value);
+    setProperty("lighting_enabled", this->lighting_enabled, value);
   }
 
   //getPalette
@@ -126,11 +133,7 @@ public:
 
   //setPaletteEnabled
   void setPaletteEnabled(bool value) {
-    
-    if (palette_enabled == value) 
-      return;
-    
-    setProperty(this->palette_enabled, value);
+    setProperty("palette_enabled", this->palette_enabled, value);
   }
 
   //useViewDirection
@@ -140,8 +143,7 @@ public:
 
   //setUseViewDirection
   void setUseViewDirection(bool value) {
-    if (use_view_direction == value) return;
-    setProperty(this->use_view_direction, value);
+    setProperty("use_view_direction", this->use_view_direction, value);
   }
 
   //maxNumSlices
@@ -151,8 +153,7 @@ public:
 
   //setMaxNumSlices
   void setMaxNumSlices(int value) {
-    if (max_num_slices == value) return;
-    setProperty(this->max_num_slices, value);
+    setProperty("max_num_slices", this->max_num_slices, value);
   }
 
   //minifyFilter
@@ -162,8 +163,7 @@ public:
 
   //setMinifyFilter
   void setMinifyFilter(int value) {
-    if (minify_filter == value) return;
-    setProperty(this->minify_filter, value);
+    setProperty("minify_filter", this->minify_filter, value);
   }
 
   //magnifyFilter
@@ -173,8 +173,7 @@ public:
 
   //setMagnifyFilter
   void setMagnifyFilter(int value) {
-    if (magnify_filter == value) return;
-    setProperty(this->magnify_filter, value);
+    setProperty("magnify_filter", this->magnify_filter, value);
   }
 
   //glRender
@@ -210,14 +209,12 @@ private:
   SharedPtr<GLTexture>        palette_texture;
 
   GLMaterial lighting_material;
-
-  bool   lighting_enabled=false;
-  bool   palette_enabled=false;
-  bool   use_view_direction=false;
-
-  int    max_num_slices=0;
-  int    minify_filter=GL_LINEAR;
-  int    magnify_filter=GL_LINEAR;
+  bool       lighting_enabled=false;
+  bool       palette_enabled=false;
+  bool       use_view_direction=false;
+  int        max_num_slices=0;
+  int        minify_filter=GL_LINEAR;
+  int        magnify_filter=GL_LINEAR;
 
 
 }; //end class

@@ -54,6 +54,23 @@ DatasetNode::~DatasetNode()
   
 
 //////////////////////////////////////////////////////////////////////////
+void DatasetNode::executeAction(StringTree action)
+{
+  if (action.name == "SetProperty")
+  {
+    auto name = action.readString("name");
+
+    if (name == "show_bounds") {
+      setShowBounds(action.readBool("value"));
+      return;
+    }
+
+  }
+
+  return Node::executeAction(action);
+}
+
+//////////////////////////////////////////////////////////////////////////
 void DatasetNode::setDataset(SharedPtr<Dataset> dataset,bool bPublish)
 {
   this->dataset=dataset;
@@ -84,7 +101,11 @@ void DatasetNode::writeTo(StringTree& out) const
   Node::writeTo(out);
 
   if (dataset)
-    out.writeObject("dataset",*dataset, dataset->getTypeName());
+  {
+    auto child = out.addChild(name);
+    child->write("TypeName", dataset->getTypeName());
+    dataset->writeTo(*child);
+  }
 
   out.writeValue("show_bounds",cstring(show_bounds));
 }

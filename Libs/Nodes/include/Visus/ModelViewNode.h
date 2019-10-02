@@ -61,6 +61,9 @@ public:
   virtual ~ModelViewNode() {
   }
 
+  //executeAction
+  virtual void executeAction(StringTree action) override;
+
   //getModelview
   const Matrix& getModelview() const {
     return T;
@@ -70,7 +73,7 @@ public:
   void setModelview(const Matrix& value) {
     if (this->T==value) return;
     VisusAssert(value.getSpaceDim() == 4);
-    setProperty(this->T, value);
+    setProperty("T", this->T, value);
   }
 
 public:

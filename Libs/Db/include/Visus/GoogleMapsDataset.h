@@ -89,7 +89,7 @@ public:
   }
 
   //guessEndResolutions
-  virtual std::vector<int> guessEndResolutions(const Frustum& logic_to_screen, Position logic_position, QueryQuality quality = QueryDefaultQuality, QueryProgression progression = QueryGuessProgression) override;
+  virtual std::vector<int> guessEndResolutions(const Frustum& logic_to_screen, Position logic_position, int quality = QueryDefaultQuality, int progression = QueryGuessProgression) override;
 
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;

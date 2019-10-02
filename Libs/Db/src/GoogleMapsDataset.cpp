@@ -365,7 +365,7 @@ SharedPtr<Access> GoogleMapsDataset::createAccess(StringTree config, bool bForBl
 
 
 //////////////////////////////////////////////////////////////
-std::vector<int> GoogleMapsDataset::guessEndResolutions(const Frustum& logic_to_screen,Position logic_position,QueryQuality quality,QueryProgression progression)
+std::vector<int> GoogleMapsDataset::guessEndResolutions(const Frustum& logic_to_screen,Position logic_position,int quality, int progression)
 {
   std::vector<int> ret=Dataset::guessEndResolutions(logic_to_screen, logic_position,quality,progression);
 

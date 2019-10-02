@@ -641,6 +641,43 @@ JTreeNode::JTreeNode(String name)  : Node(name)
 JTreeNode::~JTreeNode() {
 }
 
+
+////////////////////////////////////////////////////////////
+void JTreeNode::executeAction(StringTree action)
+{
+  if (action.name == "SetProperty")
+  {
+    auto name = action.readString("name");
+
+    if (name == "minima_tree") {
+      setMinimaTree(action.readBool("value"));
+      return;
+    }
+    if (name == "min_persistence") {
+      setMinPersistence(action.readDouble("value"));
+      return;
+    }
+    if (name == "reduce_minmax") {
+      setReduceMinMax(action.readBool("value"));
+      return;
+    }
+    if (name == "threshold_min") {
+      setThresholdMin(action.readDouble("value"));
+      return;
+    }
+    if (name == "threshold_max") {
+      setThresholdMax(action.readDouble("value"));
+      return;
+    }
+    if (name == "auto_threshold") {
+      setAutoThreshold(action.readBool("value"));
+      return;
+    }
+  }
+
+  return Node::executeAction(action);
+}
+
 ////////////////////////////////////////////////////////////
 bool JTreeNode::recompute(bool bFull)
 {

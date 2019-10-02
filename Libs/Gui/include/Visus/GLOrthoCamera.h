@@ -60,7 +60,7 @@ public:
   virtual ~GLOrthoCamera();
 
   //getTypeName
-  virtual String getTypeName() const override {
+  virtual String getTypeName() const {
     return "GLOrthoCamera";
   }
 
@@ -255,11 +255,6 @@ private:
 
   //interpolateToFinal
   void interpolateToFinal();
-
-  //fullUndo
-  StringTree fullUndo() {
-    return EncodeObject(this, "Assign");
-  }
 
   //checkZoomRange
   GLOrthoParams checkZoomRange(GLOrthoParams value) const;

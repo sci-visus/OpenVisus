@@ -61,7 +61,9 @@ bool FreeTransform::setObject(Position obj,bool bEmitSignal)
     obj.getTransformation().withSpaceDim(4), 
     obj.getBoxNd().withPointDim(3));
 
-  setProperty(this->obj, obj);
+  beginUpdate();
+  this->obj = obj;
+  endUpdate();
 
   if (!dragging.type)
     this->lcs=LocalCoordinateSystem(this->obj).toUniformSize();
@@ -86,7 +88,6 @@ void FreeTransform::doTranslate(Point3d vt)
 
   auto T= Matrix::translate(vt);
 
-  
   setObject(Position(T,obj),true);
 
   if (dragging.type)
@@ -470,6 +471,14 @@ void FreeTransform::glRender(GLCanvas& gl)
 }
 
 
+////////////////////////////////////////////////////////////////////////////
+void FreeTransform::writeTo(StringTree& out) const {
+  out.writeObject("obj", this->obj);}
+
+////////////////////////////////////////////////////////////////////////////
+void FreeTransform::readFrom(StringTree& in) {
+  in.readObject("obj", this->obj);
+}
 
 } //namespace Visus
 

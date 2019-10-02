@@ -64,6 +64,28 @@ String Node::getTypeName() const
   return NodeFactory::getSingleton()->getTypeName(*this);
 }
 
+////////////////////////////////////////////////////////////
+void Node::executeAction(StringTree action) {
+  
+  if (action.name == "SetProperty")
+  {
+    auto name = action.readString("name");
+    if (name == "name")
+    {
+      setName(action.readString("value"));
+      return;
+    }
+
+    if (name == "visible")
+    {
+      setVisible(action.readBool("value"));
+      return;
+    }
+  }
+  
+  return Model::executeAction(action);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////
 void Node::addChild(Node* child,int index)
@@ -96,7 +118,7 @@ void Node::setName(String new_value)
   if (old_value==new_value)
     return;
 
-  setProperty(this->name, new_value);
+  setProperty("name", this->name, new_value);
 
   if (dataflow)
   {
@@ -114,7 +136,7 @@ void Node::setVisible(bool new_value)
   if (old_value==new_value)
     return;
 
-  setProperty(this->visible, new_value);
+  setProperty("visible", this->visible, new_value);
 
   if (dataflow)
   {
@@ -167,12 +189,12 @@ std::vector<Node*> Node::breadthFirstSearch() const
   traversal.push_back(this);
   while (!traversal.empty())
   {
-    const Node* cursor=traversal.front();
+    auto cursor=traversal.front();
     traversal.pop_front();
+
     ret.push_back(const_cast<Node*>(cursor));
-    const std::vector<Node*>& childs=cursor->childs;
-    for (int I=0;I<(int)childs.size();I++)
-      traversal.push_back(childs[I]);
+    for (auto child : cursor->childs)
+      traversal.push_back(child);
   }
   return ret;
 }
@@ -181,10 +203,10 @@ std::vector<Node*> Node::breadthFirstSearch() const
 ////////////////////////////////////////////////////////////////////////////
 Node* Node::findChildWithName(String name) const
 {
-  for (int I=0;I<(int)childs.size();I++)
+  for (auto child : childs)
   {
-    if (childs[I]->name==name) 
-      return childs[I];
+    if (child->name==name)
+      return child;
   }
   return nullptr;
 }

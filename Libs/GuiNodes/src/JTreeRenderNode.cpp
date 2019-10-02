@@ -71,6 +71,62 @@ JTreeRenderNode::JTreeRenderNode(String name)
 JTreeRenderNode::~JTreeRenderNode()
 {
 }
+////////////////////////////////////////////////////////////
+void JTreeRenderNode::executeAction(StringTree action)
+{
+  if (action.name == "SetProperty")
+  {
+    auto name = action.readString("name");
+
+    if (name == "color_by_component") {
+      setColorByComponent(action.readBool("value"));
+      return;
+    }
+
+    if (name == "draw_saddles") {
+      setDrawSaddles(action.readBool("value"));
+      return;
+    }
+
+    if (name == "draw_extrema") {
+      setDrawExtrema(action.readBool("value"));
+      return;
+    }
+
+    if (name == "draw_edges") {
+      setDrawEdges(action.readBool("value"));
+      return;
+    }
+
+    if (name == "is_2d") {
+      set2d(action.readBool("value"));
+      return;
+    }
+
+    if (name == "radius") {
+      setRadius(action.readDouble("value"));
+      return;
+    }
+
+    if (name == "min_material") {
+      setMinMaterial(*Decode<GLMaterial>(*action.getFirstChild()));
+      return;
+    }
+
+    if (name == "max_material") {
+      setMaxMaterial(*Decode<GLMaterial>(*action.getFirstChild()));
+      return;
+    }
+
+    if (name == "saddle_material") {
+      setSaddleMaterial(*Decode<GLMaterial>(*action.getFirstChild()));
+      return;
+    }
+  }
+
+
+  return Node::executeAction(action);
+}
 
 ////////////////////////////////////////////////////////////
 Position JTreeRenderNode::getNodeBounds() 
@@ -133,13 +189,13 @@ void JTreeRenderNode::glRender(GLCanvas& gl)
     }
   }
 
-  gl.pushDepthTest(!b2D);
+  gl.pushDepthTest(!is_2d);
   gl.pushCullFace(GL_BACK);
 
-  GLPhongShader* shader=GLPhongShader::getSingleton(GLPhongShader::Config().withLightingEnabled(b2D?false:true));
+  GLPhongShader* shader=GLPhongShader::getSingleton(GLPhongShader::Config().withLightingEnabled(is_2d ?false:true));
   gl.setShader(shader);
 
-  if (bool bEnableLighting=b2D?false:true)
+  if (bool bEnableLighting= is_2d ?false:true)
   {
     Point3d pos,dir,vup;
     gl.getModelview().getLookAt(pos,dir,vup);
@@ -163,7 +219,7 @@ void JTreeRenderNode::glRender(GLCanvas& gl)
       {
         int j=component.back(); component.pop_back();
         const FGraph::Vertex &v=graph->verts[j];  
-        RenderVertex(gl,shader,b2D,radius,T*v.data,material);
+        RenderVertex(gl,shader, is_2d,radius,T*v.data,material);
 
         int in_degree =v.in_degree();
         for (int k=0;k<in_degree;k++) 
@@ -179,9 +235,9 @@ void JTreeRenderNode::glRender(GLCanvas& gl)
       if (v.deleted) continue;
       int in_degree  =v.in_degree();
       int out_degree =v.out_degree();
-      if      (draw_saddles && in_degree>0 && out_degree>0) RenderVertex(gl,shader,b2D,radius,T*v.data,saddle_material);
-      else if (draw_extrema && in_degree==0)                RenderVertex(gl,shader,b2D,radius,T*v.data,minima_tree?min_material : max_material);
-      else if (draw_extrema && out_degree==0)               RenderVertex(gl,shader,b2D,radius,T*v.data,minima_tree?max_material : min_material);
+      if      (draw_saddles && in_degree>0 && out_degree>0) RenderVertex(gl,shader, is_2d,radius,T*v.data,saddle_material);
+      else if (draw_extrema && in_degree==0)                RenderVertex(gl,shader, is_2d,radius,T*v.data,minima_tree?min_material : max_material);
+      else if (draw_extrema && out_degree==0)               RenderVertex(gl,shader, is_2d,radius,T*v.data,minima_tree?max_material : min_material);
     }
   }
 
@@ -222,7 +278,7 @@ void JTreeRenderNode::writeTo(StringTree& out) const
   out.writeValue("draw_saddles",cstring(draw_saddles));
   out.writeValue("draw_extrema",cstring(draw_extrema));
   out.writeValue("draw_edges",cstring(draw_edges));
-  out.writeValue("b2D",cstring(b2D));
+  out.writeValue("is_2d",cstring(is_2d));
   out.writeValue("radius",cstring(radius));
 
   out.writeObject("min_material", min_material);
@@ -239,7 +295,7 @@ void JTreeRenderNode::readFrom(StringTree& in)
   draw_saddles=cbool(in.readValue("draw_saddles"));
   draw_extrema=cbool(in.readValue("draw_extrema"));
   draw_edges=cbool(in.readValue("draw_edges"));
-  b2D=cbool(in.readValue("b2D"));
+  is_2d =cbool(in.readValue("is_2d"));
   radius=cdouble(in.readValue("radius"));
 
   in.readObject("min_material", min_material);

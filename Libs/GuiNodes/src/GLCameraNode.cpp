@@ -55,6 +55,24 @@ GLCameraNode::~GLCameraNode()
   setGLCamera(nullptr);
 }
 
+
+//////////////////////////////////////////////////
+void GLCameraNode::executeAction(StringTree action) 
+{
+  if (action.name == "Change")
+  {
+    auto target = action.readString("target");
+
+    if (target == "glcamera")
+    {
+      auto camera_action = *action.getFirstChild();
+      getGLCamera()->executeAction(camera_action);
+      return;
+    }
+  }
+
+  return Node::executeAction(action);
+}
 //////////////////////////////////////////////////
 void GLCameraNode::setGLCamera(SharedPtr<GLCamera> value) 
 {
@@ -69,11 +87,17 @@ void GLCameraNode::setGLCamera(SharedPtr<GLCamera> value)
   if (this->glcamera) 
   {
     this->glcamera->begin_update.connect(glcamera_begin_update_slot=[this](){
-      this->beginUpdate();
+      beginUpdate(
+        StringTree("Change").write("target", "glcamera"),
+        StringTree("Change").write("target", "glcamera"));
     });
 
     this->glcamera->end_update.connect(glcamera_end_update_slot =[this](){
-      this->endUpdate();
+      VisusAssert(topRedo().name == "Change" && topRedo().readString("target") == "glcamera");
+      VisusAssert(topUndo().name == "Change" && topUndo().readString("target") == "glcamera");
+      this->topRedo().addChild(glcamera->topRedo());
+      this->topUndo().addChild(glcamera->topUndo());
+      endUpdate();
     });
   }
 }
@@ -84,7 +108,11 @@ void GLCameraNode::writeTo(StringTree& out) const
   Node::writeTo(out);
 
   if (glcamera)
-    out.writeObject("glcamera",*glcamera, glcamera-> getTypeName());
+  {
+    auto child = out.addChild(name);
+    child->write("TypeName", glcamera->getTypeName());
+    glcamera->writeTo(*child);
+  }
 
   //bDebugFrustum
 }

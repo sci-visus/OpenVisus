@@ -40,5 +40,23 @@ For support : support@visus.net
 
 namespace Visus {
 
+////////////////////////////////////////////////////////////
+void ModelViewNode::executeAction(StringTree action)
+{
+  if (action.name == "SetProperty")
+  {
+    auto name = action.readString("name");
+
+    if (name == "T") {
+      setModelview(Matrix::fromString(action.readString("value")));
+      return;
+    }
+
+  }
+
+  return Node::executeAction(action);
+
+}
+
 
 } //namespace Visus

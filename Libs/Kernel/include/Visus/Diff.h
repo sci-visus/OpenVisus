@@ -47,7 +47,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-
 //////////////////////////////////////////////////////////
 class VISUS_KERNEL_API Diff 
 {
@@ -96,35 +95,6 @@ public:
     return before;
   }
 
-  //applyToTarget
-  void applyToTarget(Model* model,bool bDirect=true) const
-  {
-    const Diff& diff=*this;
-
-    if (diff.empty())
-      return;
-
-    StringTree out(model->getTypeName());
-    model->writeTo(out);
-
-    std::vector<String> curr = StringUtils::getNonEmptyLines(out.toXmlString());
-    std::vector<String> next = bDirect? diff.applyDirect(curr) : diff.applyInverse(curr);
-
-    StringTree in=StringTree::fromString(StringUtils::join(next, "\r\n"));
-    if (!in.valid())
-    {
-      String error_msg=StringUtils::format()<<"Error ApplyPatch::applyPatch()\r\n"
-        <<"diff:\r\n" <<"[["<<diff.toString()<<"]]\r\n"
-        <<"curr:\r\n" <<"[["<<StringUtils::join(curr,"\r\n")<<"]]\r\n"
-        <<"next:\r\n" <<"[["<<StringUtils::join(next,"\r\n")<<"]]\r\n\r\n";
-
-      ThrowException(error_msg);
-    }
-
-    model->beginUpdate();
-    model->readFrom(in);
-    model->endUpdate();
-  }
 
   //toString
   String toString() const;

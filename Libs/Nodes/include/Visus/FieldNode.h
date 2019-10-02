@@ -59,6 +59,9 @@ public:
   //destructor
   virtual ~FieldNode();
 
+  //executeAction
+  virtual void executeAction(StringTree action) override;
+
   //getFieldName
   String getFieldName() const {
     return fieldname;

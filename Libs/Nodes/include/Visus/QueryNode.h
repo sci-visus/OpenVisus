@@ -58,6 +58,9 @@ public:
   //destructor
   virtual ~QueryNode();
 
+  //executeAction
+  virtual void executeAction(StringTree action) override;
+     
   //getDataset()
   SharedPtr<Dataset> getDataset();
 
@@ -80,8 +83,7 @@ public:
 
   //setVerbose
   void setVerbose(int value) {
-    if (this->verbose == value) return;
-    this->setProperty(verbose, value);
+    this->setProperty("verbose", verbose, value);
   }
 
   //getAccessIndex
@@ -91,7 +93,7 @@ public:
 
   //setAccessIndex
   void setAccessIndex(int value) {
-    this->setProperty(this->accessindex, value);
+    this->setProperty("accessindex", this->accessindex, value);
     this->access.reset();
   }
 
@@ -101,25 +103,23 @@ public:
   }
 
   //getProgression
-  QueryProgression getProgression() const {
+  int getProgression() const {
     return progression;
   }
 
   //setProgression
-  void setProgression(QueryProgression value) {
-    if (value==getProgression()) return;
-    setProperty(this->progression, value);
+  void setProgression(int value) {
+    setProperty("progression", this->progression, value);
   }
 
   //getQuality
-  QueryQuality getQuality() const {
+  int getQuality() const {
     return quality;
   }
 
   //setQuality
-  void setQuality(QueryQuality value) {
-    if (value==getQuality()) return;
-    setProperty(this->quality, value);
+  void setQuality(int value) {
+    setProperty("quality", this->quality, value);
   }
 
   //getNodeBounds
@@ -130,7 +130,7 @@ public:
   //setNodeBounds
   void setNodeBounds(Position value,bool bForce=false) {
     if (node_bounds ==value && !bForce) return;
-    setProperty(this->node_bounds, value);
+    setObjectProperty("node_bounds", this->node_bounds, value);
   }
 
   //getQueryBounds
@@ -148,7 +148,7 @@ public:
 
   //nodeToScreen
   Frustum nodeToScreen() const {
-    return bViewDependentEnabled? node_to_screen : Frustum();
+    return view_dependent_enabled ? node_to_screen : Frustum();
   }
 
   //logicToScreen
@@ -161,13 +161,13 @@ public:
 
   //isViewDependentEnabled
   bool isViewDependentEnabled() const {
-    return bViewDependentEnabled;
+    return view_dependent_enabled;
   }
 
   //setViewDependentEnabled
   void setViewDependentEnabled(bool value) {
-    if (bViewDependentEnabled ==value) return;
-    setProperty(this->bViewDependentEnabled, value);
+    if (view_dependent_enabled ==value) return;
+    setProperty("view_dependent_enabled", this->view_dependent_enabled, value);
   }
 
   //exitFromDataflow (to avoid dataset stuck in memory)
@@ -194,13 +194,16 @@ private:
   class MyJob;
   friend class MyJob;
 
+  //properties
   int                verbose = 0;
   int                accessindex=0;
-  bool               bViewDependentEnabled = false;
+  bool               view_dependent_enabled = false;
+  int                progression = QueryGuessProgression;
+  int                quality = QueryDefaultQuality;
+  Position           node_bounds = Position::invalid();
+
+  //run time derived properties
   Frustum            node_to_screen;
-  QueryProgression   progression=QueryGuessProgression;
-  QueryQuality       quality=QueryDefaultQuality;
-  Position           node_bounds=Position::invalid();
   Position           query_bounds;
 
   //modelChanged

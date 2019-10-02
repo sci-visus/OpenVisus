@@ -185,12 +185,7 @@ private:
 
   //guessOrthoParams
   void guessOrthoParams();
-  
-  //fullUndo
-  StringTree fullUndo() {
-    return EncodeObject(this, "Assign");
-  }
-
+ 
 
 };//end class
 

@@ -573,6 +573,23 @@ IsoContourNode::~IsoContourNode()
 {}
 
 ///////////////////////////////////////////////////////////////////////
+void IsoContourNode::executeAction(StringTree action)
+{
+  if (action.name == "SetProperty")
+  {
+    auto name = action.readString("name");
+
+    if (name == "isovalue")
+    {
+      setIsoValue(action.readDouble("isovalue"));
+      return;
+    }
+  }
+
+  return Node::executeAction(action);
+}
+
+///////////////////////////////////////////////////////////////////////
 void IsoContourNode::messageHasBeenPublished(DataflowMessage msg)
 {
   auto isocontour= msg.readValue<IsoContour>("data");

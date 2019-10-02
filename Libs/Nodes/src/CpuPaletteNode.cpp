@@ -100,6 +100,22 @@ CpuPaletteNode::~CpuPaletteNode()
 }
 
 ///////////////////////////////////////////////////////////////////////
+void CpuPaletteNode::executeAction(StringTree action)
+{
+  if (action.name == "Change")
+  {
+    auto target = action.readString("target");
+    if (target == "transfer_function")
+    {
+      transfer_function->executeAction(*action.getFirstChild());
+      return;
+    }
+  }
+
+  return Node::executeAction(action);
+}
+
+///////////////////////////////////////////////////////////////////////
 void CpuPaletteNode::setTransferFunction(SharedPtr<TransferFunction> value)
 {
   if (this->transfer_function)
@@ -113,11 +129,18 @@ void CpuPaletteNode::setTransferFunction(SharedPtr<TransferFunction> value)
   if (this->transfer_function)
   {
     this->transfer_function->begin_update.connect(this->transfer_function_begin_update_slot=[this](){
-      this->beginUpdate();
+      beginUpdate(
+        StringTree("Change").write("target", "transfer_function"),
+        StringTree("Change").write("target", "transfer_function"));
     });
 
     this->transfer_function->end_update.connect(this->transfer_function_changed_slot=[this](){
-      this->endUpdate();
+
+      VisusAssert(topUndo().name == "Change" && topUndo().readString("target") == "transfer_function");
+      VisusAssert(topRedo().name == "Change" && topRedo().readString("target") == "transfer_function");
+      this->topUndo().addChild(transfer_function->topRedo());
+      this->topUndo().addChild(transfer_function->topUndo());
+      endUpdate();
     });
   }
 }

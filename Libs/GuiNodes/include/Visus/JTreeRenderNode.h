@@ -57,22 +57,104 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(JTreeRenderNode)
 
-  //properties
-  double         radius=2.5;
-  GLMaterial     min_material;
-  GLMaterial     max_material;
-  GLMaterial     saddle_material; 
-  bool           draw_edges=false;
-  bool           draw_extrema=false;
-  bool           draw_saddles=false;
-  bool           b2D=false;
-  bool           color_by_component=true;
-
   // construct a join tree or a split tree
   JTreeRenderNode(String name=""); 
 
   //destructor
   virtual ~JTreeRenderNode();
+
+  //executeAction
+  virtual void executeAction(StringTree action) override;
+
+  //getRadius
+  double getRadius() const {
+    return radius;
+  }
+
+  //setRadius
+  void setRadius(double value) {
+    setProperty("radius", this->radius, value);
+  }
+
+  //getMinMaterial
+  GLMaterial getMinMaterial() const {
+    return min_material;
+  }
+
+  //setMinMaterial
+  void setMinMaterial(GLMaterial value) {
+    setObjectProperty("min_material", this->min_material, value);
+  }
+
+  //getMaxMaterial
+  GLMaterial getMaxMaterial() const {
+    return max_material;
+  }
+
+  //setMaxMaterial
+  void setMaxMaterial(GLMaterial value) {
+    setObjectProperty("max_material", this->max_material, value);
+  }
+
+  //getSaddleMaterial
+  GLMaterial getSaddleMaterial() const {
+    return saddle_material;
+  }
+
+  //setSaddleMaterial
+  void setSaddleMaterial(GLMaterial value) {
+    setObjectProperty("saddle_material", this->saddle_material, value);
+  }
+
+  //drawEdges
+  bool drawEdges() const {
+    return draw_edges;
+  }
+
+  //setDrawEdges
+  void setDrawEdges(bool value) {
+    setProperty("draw_edges", this->draw_edges, value);
+  }
+
+  //drawExtrema
+  bool drawExtrema() const {
+    return draw_extrema;
+  }
+
+  //setDrawExtrema
+  void setDrawExtrema(bool value) {
+    setProperty("draw_extrema", this->draw_extrema, value);
+  }
+
+  //drawSaddles
+  bool drawSaddles() const{
+    return draw_saddles;
+  }
+
+  //setDrawSaddles
+  void setDrawSaddles(bool value) {
+    setProperty("draw_saddles", this->draw_saddles, value);
+  }
+
+  //is2d
+  bool is2d() const {
+    return is_2d;
+  }
+
+  //set2d
+  void set2d(bool value) {
+    setProperty("is_2d", this->is_2d, value);
+  }
+
+  //colorByComponent
+  bool colorByComponent() const{
+    return color_by_component;
+  }
+
+  //setColorByComponent
+  void setColorByComponent(bool value) {
+    setProperty("color_by_component", this->color_by_component, value);
+  }
 
   //glRender
   virtual void glRender(GLCanvas& gl) override;
@@ -85,7 +167,7 @@ public:
 
   //glGetRenderQueue
   virtual int glGetRenderQueue() const override {
-    return b2D? 9900 : -1;
+    return is_2d ? 9900 : -1;
   }
 
 public:
@@ -99,6 +181,16 @@ public:
 private:
 
   SharedPtr<FGraph> graph; 
+
+  double         radius = 2.5;
+  GLMaterial     min_material;
+  GLMaterial     max_material;
+  GLMaterial     saddle_material;
+  bool           draw_edges = false;
+  bool           draw_extrema = false;
+  bool           draw_saddles = false;
+  bool           is_2d = false;
+  bool           color_by_component = true;
 
 }; //end class
 

@@ -314,12 +314,10 @@ public:
 
   //writeObject
   template <class Object>
-  StringTree& writeObject(String name, Object& obj,String TypeName="")
+  StringTree& writeObject(String name, Object& obj)
   {
     auto cursor=NormalizeW(this,name);
     auto child = cursor->addChild(name);
-    if (!TypeName.empty())
-      child->write("TypeName", TypeName);
     obj.writeTo(*child);
     return *this;
   }
@@ -338,7 +336,12 @@ public:
 
   //getFirstChild
   SharedPtr<StringTree> getFirstChild() const {
-    return getChild(0);
+    return childs.front();
+  }
+
+  //getFirstChild
+  SharedPtr<StringTree> getLastChild() const {
+    return childs.back();
   }
 
   //getChild
@@ -398,30 +401,23 @@ private:
 
 }; //end class
 
-template <class Object>
-inline StringTree EncodeObject(const Object* obj, String TypeName)
+//////////////////////////////////////////////////////////////////////
+template <class Value>
+StringTree Encode(const Value& value, String root_name="Object")
 {
-  if (!obj) return StringTree();
-  StringTree ret(TypeName);
-  obj->writeTo(ret);
+  StringTree ret(root_name);
+  value.writeTo(ret);
   return ret;
 }
 
-
-template <class Object>
-inline StringTree EncodeObject(const Object* obj) {
-  return obj ? EncodeObject(obj,obj->getTypeName()) : StringTree();
-}
-
-template <class Object>
-inline Object* DecodeObject(StringTree in,std::function<Object*(String)> creator)
+template <class Value>
+inline SharedPtr<Value> Decode(StringTree in)
 {
-  auto TypeName = in.name;
-  UniquePtr<Object> ret(creator(TypeName));
-  if (!ret) return nullptr;
+  auto ret = std::make_shared<Value>();
   ret->readFrom(in);
-  return ret.release();
+  return ret;
 }
+
 
 //////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API ConfigFile : public StringTree

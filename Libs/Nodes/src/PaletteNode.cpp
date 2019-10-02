@@ -100,10 +100,16 @@ void PaletteNode::setPalette(SharedPtr<Palette> value)
   {
     // a change in the palette means a change in the node 
     this->palette->begin_update.connect(this->palette_begin_update_slot=[this](){
-      beginUpdate();
+      beginUpdate(
+        StringTree("Change").write("target", "palette"),
+        StringTree("Change").write("target", "palette"));
     });
 
-    this->palette->end_update.connect(this->palette_end_update_slot =[this](){
+    this->palette->end_update.connect(this->palette_end_update_slot = [this]() {
+      VisusAssert(topRedo().name == "Change" && topRedo().readString("target") == "palette");
+      VisusAssert(topUndo().name == "Change" && topUndo().readString("target") == "palette");
+      topRedo().addChild(palette->topRedo());
+      topUndo().addChild(palette->topUndo());
       endUpdate();
     });
   }

@@ -182,6 +182,46 @@ RenderArrayNode::~RenderArrayNode()
 {}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
+void RenderArrayNode::executeAction(StringTree action)
+{
+  if (action.name == "SetProperty")
+  {
+    auto name = action.readString("name");
+
+    if (name == "lighting_material") {
+      setLightingMaterial(*Decode<GLMaterial>(*action.getFirstChild()));
+      return;
+    }
+    if (name == "lighting_enabled") {
+      setLightingEnabled(action.readBool("value"));
+      return;
+    }
+    if (name == "palette_enabled") {
+      setPaletteEnabled(action.readBool("value"));
+      return;
+    }
+    if (name == "use_view_direction") {
+      setUseViewDirection(action.readBool("value"));
+      return;
+    }
+    if (name == "max_num_slices") {
+      setMaxNumSlices(action.readInt("value"));
+      return;
+    }
+    if (name == "minify_filter") {
+      setMinifyFilter(action.readInt("value"));
+      return;
+    }
+    if (name == "magnify_filter") {
+      setMagnifyFilter(action.readInt("value"));
+      return;
+    }
+  }
+
+  return Node::executeAction(action);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 void RenderArrayNode::setData(Array value,SharedPtr<Palette> palette)
 {
   VisusAssert(VisusHasMessageLock());

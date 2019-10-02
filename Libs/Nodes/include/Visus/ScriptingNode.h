@@ -64,6 +64,8 @@ public:
   //destructor
   virtual ~ScriptingNode();
 
+  //executeAction
+  virtual void executeAction(StringTree action) override;
 
   //getCode
   String getCode() {
@@ -77,14 +79,12 @@ public:
 
   //setMaxPublishMSec
   void setMaxPublishMSec(int value) {
-    if (this->max_publish_msec == value) return;
-    setProperty(this->max_publish_msec, value);
+    setProperty("max_publish_msec", this->max_publish_msec, value);
   }
 
   //setCode
   void setCode(String code) {
-    if (this->code == code) return;
-    setProperty(this->code, code);
+    setProperty("code", this->code, code);
   }
 
   //addUserInput

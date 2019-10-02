@@ -81,47 +81,131 @@ public:
   std::vector<BaseView*> views;
 
   //constructor
-  Model() {
-  }
+  Model();
 
   //destructor
-  virtual ~Model() {
-    destroyed.emitSignal();
-    VisusAssert(destroyed.empty());
-  }
+  virtual ~Model();
 
   //getTypeName
-  virtual String getTypeName() const = 0;
+  virtual String getTypeName() const  = 0;
+
+public:
+
+  //enableLog
+  bool enableLog(String filename);
+
+  //clearHistory
+  void clearHistory();
+
+  //getHistory
+  const StringTree& getHistory() const {
+    return history;
+  }
+  
+public:
 
   //isUpdating
   inline bool isUpdating() const {
-    return nbegin>0;
+    return redos.size() > 0;
+  }
+
+  //topRedo
+  StringTree& topRedo() {
+    return redos.top();
+  }
+
+  //topUndo
+  StringTree& topUndo() {
+    return undos.top();
   }
 
   //beginUpdate
-  virtual void beginUpdate() 
-  {
-    if (!nbegin++)
-      begin_update.emitSignal();
-  }
+  void beginUpdate(StringTree redo, StringTree undo);
 
   //endUpdate
-  virtual void endUpdate() 
+  void endUpdate();
+
+  //in case you do not want to use actions
+  void beginUpdate()
   {
-    if (!--nbegin) 
-    {
-      modelChanged();
-      this->end_update.emitSignal();
-    }
+    //note only the root action is important
+    beginUpdate(
+      StringTree("DiffAction").addChild(isUpdating()? StringTree() : this->encode()),
+      StringTree("DiffAction"));
   }
+
+  //beginTransaction
+  void beginTransaction() {
+    beginUpdate(
+      StringTree("Transaction"),
+      StringTree("Transaction"));
+  }
+
+  //endTransaction
+  void endTransaction() {
+    endUpdate();
+  }
+
+public:
 
   //setProperty
   template <typename Value>
-  void setProperty(Value& dst, Value src) {
-    beginUpdate();
-    dst = src;
+  void setProperty(String name, Value& old_value, const Value& new_value)
+  {
+    if (old_value == new_value)
+      return;
+    
+    beginUpdate(
+      StringTree("SetProperty").write("name", name).write("value", new_value),
+      StringTree("SetProperty").write("name", name).write("value", old_value));
+    {
+      old_value = new_value;
+    }
     endUpdate();
   }
+
+
+  //setObjectProperty
+  template <typename Value>
+  void setObjectProperty(String name, Value& old_value, const Value& new_value)
+  {
+    if (old_value == new_value)
+      return;
+
+    beginUpdate(
+      StringTree("SetProperty").write("name", name).addChild(Encode(new_value, "Value")),
+      StringTree("SetProperty").write("name", name).addChild(Encode(old_value, "Value")));
+    {
+      old_value = new_value;
+    }
+    endUpdate();
+  }
+
+
+public:
+
+    //executeAction
+  virtual void executeAction(StringTree action);
+
+public:
+
+  //canRedo
+  bool canRedo() const {
+    return !undo_redo.empty() && n_undo_redo < undo_redo.size();
+  }
+
+  //canUndo
+  bool canUndo() const {
+    return !undo_redo.empty() && n_undo_redo > 0;
+  }
+
+  //redo
+  bool redo();
+
+  //undo
+  bool undo();
+
+public:
 
   //addView
   void addView(BaseView* value) {
@@ -143,180 +227,21 @@ public:
 
 protected:
 
+  //fullUndo
+  StringTree fullUndo() {
+    return this->encode("Assign");
+  }
+
   //modelChanged
   virtual void modelChanged() {
   }
 
-private:
-
-  int nbegin=0;
-
-};
-
-
-////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API UndoableModel : public Model
-{
 public:
 
-  //constructor
-  UndoableModel() {
-  }
-
-  //destructor
-  virtual ~UndoableModel() {
-  }
-
-  //enableLog
-  bool enableLog(String filename)
-  {
-    if (log.is_open()) return true;
-    log.open(filename.c_str(), std::fstream::out);
-    log.rdbuf()->pubsetbuf(0, 0);
-    log.rdbuf()->pubsetbuf(0, 0);
-    return true;
-  }
-
-  //clearHistory
-  void clearHistory()
-  {
-    this->history = StringTree();
-    this->log.close();
-    this->redos = std::stack<StringTree>();
-    this->undos = std::stack<StringTree>();
-    this->undo_redo.clear();
-    this->n_undo_redo = 0;
-    this->bUndoing = false;
-    this->bRedoing = false;
-  }
-
-  //getHistory
-  const StringTree& getHistory() const {
-    return history;
-  }
-
-public:
-
-  //topRedo
-  StringTree& topRedo() {
-    return redos.top();
-  }
-
-  //topUndo
-  StringTree& topUndo() {
-    return undos.top();
-  }
-
-  //pushAction
-  void pushAction(StringTree redo, StringTree undo)
-  {
-    auto action = std::make_pair(redo, undo);
-
-    if (redos.empty())
-    {
-      this->Model::beginUpdate();
-    }
-    else if (topRedo().name=="Transaction")
-    {
-      topRedo().childs.insert(topRedo().childs.end(), std::make_shared<StringTree>(redo)); //at the end 
-      topUndo().childs.insert(topUndo().childs.begin(), std::make_shared<StringTree>(undo)); //at the beginning
-    }
-
-    redos.push(redo);
-    undos.push(undo);
-  }
-
-  //popAction
-  void popAction()
-  {
-    auto redo = topRedo(); redos.pop();
-    auto undo = topUndo(); undos.pop();
-
-    if (redos.empty())
-    {
-      history.addChild(redo);
-
-      if (!bUndoing && !bRedoing)
-      {
-        undo_redo.resize(n_undo_redo++);
-        undo_redo.push_back(std::make_pair(redo, undo));
-      }
-
-      if (log.is_open())
-        log << redo.toString() << std::endl << std::endl;
-
-      this->Model::endUpdate();
-    }
-  }
-
-  //setProperty
-  template <typename Value>
-  void setProperty(String name, Value& new_value, const Value& old_value)
-  {
-    if (new_value == old_value) return;
-    pushAction(
-      StringTree("SetProperty").write("name", name).write("value", new_value),
-      StringTree("SetProperty").write("name", name).write("value", old_value));
-    new_value = new_value;
-    popAction();
-  }
-
-
-
-public:
-
-  //canRedo
-  bool canRedo() const {
-    return !undo_redo.empty() && n_undo_redo < undo_redo.size();
-  }
-
-  //canUndo
-  bool canUndo() const {
-    return !undo_redo.empty() && n_undo_redo>0;
-  }
-
-  //redo
-  bool redo() {
-    VisusAssert(VisusHasMessageLock());
-    VisusAssert(!bUndoing && !bRedoing);
-    if (!canRedo())  return false;
-    auto action = undo_redo[n_undo_redo++].first;
-    bRedoing = true;
-    executeAction(action);
-    bRedoing = false;
-    return true;
-  }
-
-  //undo
-  bool undo() {
-    VisusAssert(VisusHasMessageLock());
-    VisusAssert(!bUndoing && !bRedoing);
-    if (!canUndo()) return false;
-    auto action=undo_redo[--n_undo_redo].second;
-    bUndoing=true;
-    executeAction(action);
-    bUndoing=false;
-    return true;
-  }
-
-public:
-
-  //executeAction
-  virtual void executeAction(StringTree action)
-  {
-    if (action.name == "Transaction")
-    {
-      this->beginUpdate();
-      for (auto child : action.childs)
-      {
-        if (!child->isHashNode())
-          executeAction(*child);
-      }
-      this->endUpdate();
-      return;
-    }
-
-    ThrowException("internal error, unknown action " + action.name);
+  //encode
+  StringTree encode(String name = "") const {
+    if (name.empty()) name = getTypeName();
+    return Encode(*this, name);
   }
 
 private:
@@ -328,13 +253,10 @@ private:
   std::stack<StringTree>  redos;
   std::stack<StringTree>  undos;
   std::vector<UndoRedo>   undo_redo;
-  int                     n_undo_redo=0;
-  bool                    bUndoing=false;
-  bool                    bRedoing=false;
+  int                     n_undo_redo = 0;
+  bool                    bUndoingRedoing = false;
 
 };
-
-
 
 
 //////////////////////////////////////////////////////////
