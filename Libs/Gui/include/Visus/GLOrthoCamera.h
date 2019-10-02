@@ -136,6 +136,9 @@ public:
     translate(Point2d(0, -getOrthoParams().getHeight()));
   }
 
+  //rotate
+  void rotate(double quantity);
+
   //scale
   void scale(double vs,Point2d center);
 
@@ -158,9 +161,6 @@ public:
   void zoomOut() {
     scale(default_scale);
   }
-
-  //rotate
-  void rotate(double quantity);
 
   //getOrthoParams
   virtual GLOrthoParams getOrthoParams() const override {
@@ -226,7 +226,7 @@ public:
 
 private:
 
-  double                smooth=0.90;
+  double                smooth=0.90; //higher is smoother
   bool                  disable_rotation = false;
   double                default_scale;
   double                rotation_angle = 0;
@@ -260,6 +260,9 @@ private:
   StringTree fullUndo() {
     return EncodeObject(this, "Assign");
   }
+
+  //checkZoomRange
+  GLOrthoParams checkZoomRange(GLOrthoParams value) const;
 
 }; //end class
 

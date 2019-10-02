@@ -518,11 +518,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
       double W = glcamera->getViewport().width;
       double H = glcamera->getViewport().height;
 
-      GLOrthoParams ortho_params = glcamera->getOrthoParams();
-
-      double fix_aspect_ratio = W / H;
-      if (fix_aspect_ratio)
-        ortho_params.fixAspectRatio(fix_aspect_ratio);
+      GLOrthoParams ortho_params = glcamera->getOrthoParams().withAspectRatio(W,H);
 
       ortho_params = ortho_params.split(split_ortho);
       glcamera->setOrthoParams(ortho_params);
@@ -558,11 +554,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
 
       double W = glcamera->getViewport().width;
       double H = glcamera->getViewport().height;
-      if (W && H)
-      {
-        double fix_aspect_ratio = W / H;
-        ortho_params.fixAspectRatio(fix_aspect_ratio);
-      }
+      ortho_params=ortho_params.withAspectRatio(W,H);
 
       glcamera->setOrthoParams(ortho_params);
     }

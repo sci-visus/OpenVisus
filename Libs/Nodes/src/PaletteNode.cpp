@@ -145,21 +145,6 @@ void PaletteNode::exitFromDataflow() {
 }
 
 ///////////////////////////////////////////////////////////////////////
-void PaletteNode::writeTo(StringTree& out) const
-{
-  Node::writeTo(out);
-  out.writeObject("palette",*palette);
-}
-
-
-///////////////////////////////////////////////////////////////////////
-void PaletteNode::readFrom(StringTree& in) 
-{
-  Node::readFrom(in);
-  in.readObject("palette",*palette);
-}
-
-///////////////////////////////////////////////////////////////////////
 void PaletteNode::messageHasBeenPublished(DataflowMessage msg)
 {
   VisusAssert(VisusHasMessageLock());
@@ -175,6 +160,22 @@ void PaletteNode::messageHasBeenPublished(DataflowMessage msg)
     }
   }
 }
+
+///////////////////////////////////////////////////////////////////////
+void PaletteNode::writeTo(StringTree& out) const
+{
+  Node::writeTo(out);
+  out.writeObject("palette", *palette);
+}
+
+
+///////////////////////////////////////////////////////////////////////
+void PaletteNode::readFrom(StringTree& in)
+{
+  Node::readFrom(in);
+  in.readObject("palette", *palette);
+}
+
 
 } //namespace Visus
 

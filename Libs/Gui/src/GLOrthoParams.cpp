@@ -70,18 +70,31 @@ Matrix GLOrthoParams::getProjectionMatrix(bool bUseOrthoProjection) const
 }
 
 ////////////////////////////////////////////////////////////////////////
-void GLOrthoParams::fixAspectRatio(double ratio)
+GLOrthoParams GLOrthoParams::withAspectRatio(double W,double H) const
 {
-  if (ratio <= 0) return;
-  Point3d center = getCenter();
-  Point3d size = getSize();
-  if (!size[0] || !size[1] || !size[2]) return;
-  if (size[0] / size[1] <= ratio) size[0] = size[1] * ratio;
-  else                          size[1] = size[0] / ratio;
-  double coeffX = (left < right) ? +0.5 : -0.5;
-  double coeffY = (bottom < top) ? +0.5 : -0.5;
-  double coeffZ = (zNear < zFar) ? +0.5 : -0.5;
-  *this = GLOrthoParams(
+  if (!W || !H)
+    return *this;
+
+  double ratio = W / H;
+  if (ratio <= 0)
+    return *this;
+
+  auto center = getCenter();
+  auto size   = getSize();
+
+  if (!size[0] || !size[1] || !size[2]) 
+    return *this;
+  
+  if ((size[0] / size[1]) <= ratio) 
+    size[0] = size[1] * ratio;
+  else                          
+    size[1] = size[0] / ratio;
+
+  double coeffX = (left   < right) ? +0.5 : -0.5;
+  double coeffY = (bottom < top  ) ? +0.5 : -0.5;
+  double coeffZ = (zNear  < zFar ) ? +0.5 : -0.5;
+
+  return GLOrthoParams(
     center[0] - coeffX*size[0], center[0] + coeffX*size[0],
     center[1] - coeffY*size[1], center[1] + coeffY*size[1],
     center[2] - coeffZ*size[2], center[2] + coeffZ*size[2]);
@@ -103,18 +116,20 @@ GLOrthoParams GLOrthoParams::split(const Rectangle2d& S) const
 }
 
 ////////////////////////////////////////////////////////////////////////
-void GLOrthoParams::fixAspectRatio(const Viewport& old_value, const Viewport& new_value)
+GLOrthoParams GLOrthoParams::withAspectRatio(const Viewport& old_value, const Viewport& new_value) const
 {
   int OldW = old_value.width,  NewW = new_value.width;
   int OldH = old_value.height, NewH = new_value.height;
 
   if (!NewW || !NewH)
-    return;
+    return *this;
+
+  auto ret = *this;
 
   if (OldW && OldH)
-    scaleAroundCenter(Point3d(NewW / (double)OldW, NewH / (double)OldH, 1.0), getCenter());
+    ret.scaleAroundCenter(Point3d(NewW / (double)OldW, NewH / (double)OldH, 1.0), getCenter());
 
-  fixAspectRatio((double)NewW / (double)NewH);
+  return ret.withAspectRatio(NewW , NewH);
 }
 
 ////////////////////////////////////////////////////////////////////////

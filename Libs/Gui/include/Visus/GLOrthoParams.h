@@ -54,9 +54,9 @@ public:
   double left,right,bottom,top,zNear,zFar;
 
   //default constructor
-  inline GLOrthoParams(double left_=0,double right_=0,double bottom_=0,double top_=0,double zNear_=0,double zFar_=0) 
-    : left(left_),right(right_),bottom(bottom_),top(top_),zNear(zNear_),zFar(zFar_)
-  {}
+  GLOrthoParams(double left_=0,double right_=0,double bottom_=0,double top_=0,double zNear_=0,double zFar_=0) 
+    : left(left_),right(right_),bottom(bottom_),top(top_),zNear(zNear_),zFar(zFar_) {
+  }
 
   //fromString
   static GLOrthoParams fromString(String s)
@@ -131,14 +131,14 @@ public:
   //getProjectionMatrix
   Matrix getProjectionMatrix(bool bUseOrthoProjection = true) const;
 
-  //fixAspectRatio
-  void fixAspectRatio(double ratio);
+  //withAspectRatio
+  GLOrthoParams withAspectRatio(double W,double H) const;
+
+  //withAspectRatio
+  GLOrthoParams withAspectRatio(const Viewport& old_value, const Viewport& new_value) const;
 
   //split (rect in in the range [0,1])
   GLOrthoParams split(const Rectangle2d& S) const;
-
-  //fixAspectRatio
-  void fixAspectRatio(const Viewport& old_value, const Viewport& new_value);
 
   //toString
   String toString() const {

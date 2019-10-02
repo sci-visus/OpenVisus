@@ -53,6 +53,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(GLCamera)
 
+  //a signal needed when the GLCamera model does not change, but display params do
+  //(example: see GLOrthoCamera::refineToFinal)
 #if !SWIG
   Signal<void()> redisplay_needed;
 #endif
