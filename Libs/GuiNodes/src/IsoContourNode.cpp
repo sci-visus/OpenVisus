@@ -573,20 +573,20 @@ IsoContourNode::~IsoContourNode()
 {}
 
 ///////////////////////////////////////////////////////////////////////
-void IsoContourNode::executeAction(StringTree action)
+void IsoContourNode::executeAction(StringTree in)
 {
-  if (action.name == "SetProperty")
+  if (in.name == "set")
   {
-    auto name = action.readString("name");
+    auto target_id = in.readString("target_id");
 
-    if (name == "isovalue")
+    if (target_id == "isovalue")
     {
-      setIsoValue(action.readDouble("isovalue"));
+      setIsoValue(in.readDouble("isovalue"));
       return;
     }
   }
 
-  return Node::executeAction(action);
+  return Node::executeAction(in);
 }
 
 ///////////////////////////////////////////////////////////////////////

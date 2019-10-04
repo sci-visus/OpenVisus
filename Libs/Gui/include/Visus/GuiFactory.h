@@ -542,7 +542,7 @@ namespace GuiFactory
       {
         auto row=new QHBoxLayout();
         row->addStretch(1);
-        row->addWidget(widgets.btSet=GuiFactory::CreateButton("SetProperty",[this](bool){
+        row->addWidget(widgets.btSet=GuiFactory::CreateButton("set",[this](bool){
           setValue(getValue(),/*bForce*/true);
         }));
 
@@ -643,7 +643,7 @@ namespace GuiFactory
       {
         auto row = new QHBoxLayout();
         row->addStretch(1);
-        row->addWidget(widgets.btSet=GuiFactory::CreateButton("SetProperty",[this](bool) {
+        row->addWidget(widgets.btSet=GuiFactory::CreateButton("set",[this](bool) {
           setMatrix(getMatrix(),true); 
         }));
 

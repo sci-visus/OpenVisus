@@ -68,8 +68,8 @@ public:
   //glRender
   virtual void glRender(GLCanvas& gl) override;
    
-  //getNodeBounds
-  virtual Position getNodeBounds() override {
+  //getPosition
+  virtual Position getPosition() override {
     return isocontour? isocontour->field.bounds : Position::invalid();
   }
 

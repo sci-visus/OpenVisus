@@ -59,7 +59,7 @@ public:
   virtual ~DatasetNode();
 
   //executeAction
-  virtual void executeAction(StringTree action) override;
+  virtual void executeAction(StringTree in) override;
 
   //getDataset
   SharedPtr<Dataset> getDataset() const {
@@ -85,8 +85,8 @@ public:
     return dataset->getLogicBox();
   }
 
-  //getNodeBounds
-  virtual Position getNodeBounds() override {
+  //getPosition
+  virtual Position getPosition() override {
     return dataset? dataset->getDatasetBounds() : Position::invalid();
   }
 

@@ -73,26 +73,6 @@ public:
   StringTree(String name_ = "") : name(name_){
   }
 
-  //constructor
-  StringTree(String name, String k1, String v1) : StringTree(name) {
-    write(k1, v1);
-  }
-
-  //constructor
-  StringTree(String name, String k1, String v1, String k2, String v2) : StringTree(name, k1, v1) {
-    write(k2, v2);
-  }
-
-  //constructor
-  StringTree(String name, String k1, String v1, String k2, String v2, String k3, String v3) : StringTree(name, k1, v1, k2, v2) {
-    write(k3, v3);
-  }
-
-  //constructor
-  StringTree(String name, String k1, String v1, String k2, String v2, String k3, String v3, String k4, String v4) : StringTree(name, k1, v1, k2, v2, k3, v3) {
-    write(k4, v4);
-  }
-
   //copy constructor
   StringTree(const StringTree& other){
     operator=(other);
@@ -105,6 +85,11 @@ public:
   //valid
   bool valid() const {
     return !name.empty();
+  }
+
+  //bool()
+  operator bool() const {
+    return valid();
   }
 
   //fromString
@@ -150,6 +135,17 @@ public:
       }
     }
     attributes.push_back(std::make_pair(name,value));
+  }
+
+  //removeAttribute
+  void removeAttribute(String name)
+  {
+    for (auto it = attributes.begin(); it != attributes.end(); it++) {
+      if (it->first == name) {
+        attributes.erase(it);
+        return;
+      }
+    }
   }
 
   //getChilds
@@ -264,11 +260,14 @@ public:
   String readText() const;
 
   //writeText
-  StringTree& writeText(const String& text, bool bCData = false) {
-    if (bCData)
-      childs.push_back(std::make_shared<StringTree>("#cdata-section", "value", text));
-    else
-      childs.push_back(std::make_shared<StringTree>("#text", "value", text));
+  StringTree& writeText(const String& text) {
+    childs.push_back(std::make_shared<StringTree>(StringTree("#text").write("value",text)));
+    return *this;
+  }
+
+  //writeCode
+  StringTree& writeCode(const String& text) {
+    childs.push_back(std::make_shared<StringTree>(StringTree("#cdata-section").write("value", text)));
     return *this;
   }
 
@@ -281,10 +280,18 @@ public:
   }
 
   //writeText
-  StringTree& writeText(String name, const String& value, bool bCData = false) {
+  StringTree& writeText(String name, const String& value) {
 
     auto cursor = NormalizeW(this,name);
-    cursor->addChild(name)->writeText(value,bCData);
+    cursor->addChild(name)->writeText(value);
+    return *this;
+  }
+
+  //writeCode
+  StringTree& writeCode(String name, const String& value) {
+
+    auto cursor = NormalizeW(this, name);
+    cursor->addChild(name)->writeCode(value);
     return *this;
   }
 
@@ -370,7 +377,7 @@ public:
 
   //addCommentNode
   void addCommentNode(String text){
-    childs.push_back(std::make_shared<StringTree>("#comment", "value", text));
+    childs.push_back(std::make_shared<StringTree>(StringTree("#comment").write("value", text)));
   }
 
 public:
@@ -403,7 +410,7 @@ private:
 
 //////////////////////////////////////////////////////////////////////
 template <class Value>
-StringTree Encode(const Value& value, String root_name="Object")
+StringTree EncodeObject(const Value& value, String root_name="Object")
 {
   StringTree ret(root_name);
   value.writeTo(ret);
@@ -411,7 +418,7 @@ StringTree Encode(const Value& value, String root_name="Object")
 }
 
 template <class Value>
-inline SharedPtr<Value> Decode(StringTree in)
+inline SharedPtr<Value> DecodeObject(StringTree in)
 {
   auto ret = std::make_shared<Value>();
   ret->readFrom(in);

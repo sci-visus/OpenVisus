@@ -129,6 +129,30 @@ public:
   //destructor
   virtual ~Dataflow();
 
+  //guessNodeUIID
+  String guessNodeUIID(String base)
+  {
+    if (!findNodeByUUID(base))
+      return base;
+
+    for (int I=1;;I++)
+    {
+      auto maybe = base + cstring(I);
+      if (!findNodeByUUID(maybe))
+        return maybe;
+    }
+    
+    return "";
+  }
+
+  //createNode
+  template <class NodeClass, typename... Args>
+  NodeClass* createNode(String name, Args&& ... args) {
+    auto ret = new NodeClass(name, std::forward<Args>(args)...);
+    if (StringUtils::endsWith(name, "Node")) name = name.substr(0, name.size()-4);
+    ret->setUUID(guessNodeUIID(name));
+    return ret;
+  }
 
   //getRoot
   Node* getRoot() const {
@@ -184,7 +208,7 @@ public:
 
   //containsNode
   bool containsNode(Node* node) const{
-    return node && node->dataflow == this;
+    return node && node->getDataflow() == this;
   }
 
   //selection

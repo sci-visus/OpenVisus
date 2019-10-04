@@ -65,7 +65,7 @@ public:
   virtual ~ScriptingNode();
 
   //executeAction
-  virtual void executeAction(StringTree action) override;
+  virtual void executeAction(StringTree in) override;
 
   //getCode
   String getCode() {
@@ -111,8 +111,8 @@ public:
   //processInput
   virtual bool processInput() override;
 
-  //getNodeBounds
-  virtual Position getNodeBounds() override {
+  //getPosition
+  virtual Position getPosition() override {
     return this->bounds;
   }
 

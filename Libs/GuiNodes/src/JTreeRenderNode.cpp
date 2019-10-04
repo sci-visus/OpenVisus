@@ -72,64 +72,64 @@ JTreeRenderNode::~JTreeRenderNode()
 {
 }
 ////////////////////////////////////////////////////////////
-void JTreeRenderNode::executeAction(StringTree action)
+void JTreeRenderNode::executeAction(StringTree in)
 {
-  if (action.name == "SetProperty")
+  if (in.name == "set")
   {
-    auto name = action.readString("name");
+    auto target_id = in.readString("target_id");
 
-    if (name == "color_by_component") {
-      setColorByComponent(action.readBool("value"));
+    if (target_id == "color_by_component") {
+      setColorByComponent(in.readBool("value"));
       return;
     }
 
-    if (name == "draw_saddles") {
-      setDrawSaddles(action.readBool("value"));
+    if (target_id == "draw_saddles") {
+      setDrawSaddles(in.readBool("value"));
       return;
     }
 
-    if (name == "draw_extrema") {
-      setDrawExtrema(action.readBool("value"));
+    if (target_id == "draw_extrema") {
+      setDrawExtrema(in.readBool("value"));
       return;
     }
 
-    if (name == "draw_edges") {
-      setDrawEdges(action.readBool("value"));
+    if (target_id == "draw_edges") {
+      setDrawEdges(in.readBool("value"));
       return;
     }
 
-    if (name == "is_2d") {
-      set2d(action.readBool("value"));
+    if (target_id == "is_2d") {
+      set2d(in.readBool("value"));
       return;
     }
 
-    if (name == "radius") {
-      setRadius(action.readDouble("value"));
+    if (target_id == "radius") {
+      setRadius(in.readDouble("value"));
       return;
     }
 
-    if (name == "min_material") {
-      setMinMaterial(*Decode<GLMaterial>(*action.getFirstChild()));
+    if (target_id == "min_material") {
+      setMinMaterial(*DecodeObject<GLMaterial>(*in.getFirstChild()));
       return;
     }
 
-    if (name == "max_material") {
-      setMaxMaterial(*Decode<GLMaterial>(*action.getFirstChild()));
+    if (target_id == "max_material") {
+      setMaxMaterial(*DecodeObject<GLMaterial>(*in.getFirstChild()));
       return;
     }
 
-    if (name == "saddle_material") {
-      setSaddleMaterial(*Decode<GLMaterial>(*action.getFirstChild()));
+    if (target_id == "saddle_material") {
+      setSaddleMaterial(*DecodeObject<GLMaterial>(*in.getFirstChild()));
       return;
     }
   }
 
 
-  return Node::executeAction(action);
+  return Node::executeAction(in);
 }
 
 ////////////////////////////////////////////////////////////
-Position JTreeRenderNode::getNodeBounds() 
+Position JTreeRenderNode::getPosition() 
 {
   if (!graph) 
     return Position::invalid();

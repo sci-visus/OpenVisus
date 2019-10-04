@@ -182,43 +182,43 @@ RenderArrayNode::~RenderArrayNode()
 {}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RenderArrayNode::executeAction(StringTree action)
+void RenderArrayNode::executeAction(StringTree in)
 {
-  if (action.name == "SetProperty")
+  if (in.name == "set")
   {
-    auto name = action.readString("name");
+    auto target_id = in.readString("target_id");
 
-    if (name == "lighting_material") {
-      setLightingMaterial(*Decode<GLMaterial>(*action.getFirstChild()));
+    if (target_id == "lighting_material") {
+      setLightingMaterial(*DecodeObject<GLMaterial>(*in.getFirstChild()));
       return;
     }
-    if (name == "lighting_enabled") {
-      setLightingEnabled(action.readBool("value"));
+    if (target_id == "lighting_enabled") {
+      setLightingEnabled(in.readBool("value"));
       return;
     }
-    if (name == "palette_enabled") {
-      setPaletteEnabled(action.readBool("value"));
+    if (target_id == "palette_enabled") {
+      setPaletteEnabled(in.readBool("value"));
       return;
     }
-    if (name == "use_view_direction") {
-      setUseViewDirection(action.readBool("value"));
+    if (target_id == "use_view_direction") {
+      setUseViewDirection(in.readBool("value"));
       return;
     }
-    if (name == "max_num_slices") {
-      setMaxNumSlices(action.readInt("value"));
+    if (target_id == "max_num_slices") {
+      setMaxNumSlices(in.readInt("value"));
       return;
     }
-    if (name == "minify_filter") {
-      setMinifyFilter(action.readInt("value"));
+    if (target_id == "minify_filter") {
+      setMinifyFilter(in.readInt("value"));
       return;
     }
-    if (name == "magnify_filter") {
-      setMagnifyFilter(action.readInt("value"));
+    if (target_id == "magnify_filter") {
+      setMagnifyFilter(in.readInt("value"));
       return;
     }
   }
 
-  return Node::executeAction(action);
+  return Node::executeAction(in);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////

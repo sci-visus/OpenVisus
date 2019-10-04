@@ -85,7 +85,7 @@ public:
   }
 
   //executeAction
-  virtual void  executeAction(StringTree action) override;
+  virtual void  executeAction(StringTree in) override;
 
   //doSimplify
   bool doSimplify() const {

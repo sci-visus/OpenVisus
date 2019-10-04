@@ -305,18 +305,17 @@ void Position::writeTo(StringTree& out) const
     return;
 
   if (!T.isIdentity())
-    out.writeObject("T", T);
+    out.write("T", T);
   
-  out.writeObject("box", this->box);
+  out.write("box", this->box);
 }
 
 //////////////////////////////////////////////////
 void Position::readFrom(StringTree& in)
 {
   this->T= Matrix::identity(4);
-  in.readObject("T", this->T);
-  in.readObject("box", this->box);
-  
+  this->T=Matrix::fromString(in.read("T"));
+  this->box=BoxNd::fromString(in.read("box"));
 }
 
 } //namespace Visus

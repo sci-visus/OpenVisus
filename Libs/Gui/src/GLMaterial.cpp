@@ -60,37 +60,46 @@ GLMaterial GLMaterial::createRandom()
   return ret;
 }
 
+
+
 ///////////////////////////////////////////////
 void GLMaterial::writeTo(StringTree& out) const
 {
-  out.write("front/ambient", front.ambient.toString());
-  out.write("front/diffuse", front.diffuse.toString());
-  out.write("front/specular", front.specular.toString());
-  out.write("front/emission", front.emission.toString());
-  out.write("front/shininess", cstring(front.shininess));
+  String F = StringUtils::format()
+    << this->front.ambient.toString() << " "
+    << this->front.diffuse.toString() << " "
+    << this->front.specular.toString() << " "
+    << this->front.emission.toString() << " "
+    << this->front.shininess;
+  out.write("front", F);
 
-  out.write("back/ambient", back.ambient.toString());
-  out.write("back/diffuse", back.diffuse.toString());
-  out.write("back/specular", back.specular.toString());
-  out.write("back/emission", back.emission.toString());
-  out.write("back/shininess", cstring(back.shininess));
+  String B = StringUtils::format()
+    << this->back.ambient.toString() << " "
+    << this->back.diffuse.toString() << " "
+    << this->back.specular.toString() << " "
+    << this->back.emission.toString() << " "
+    << this->back.shininess;
+  out.write("back", B);
 }
 
 ///////////////////////////////////////////////
 void GLMaterial::readFrom(StringTree& in) 
 {
+  auto F= StringUtils::split(in.read("front")); 
+  F.resize(5);
+  this->front.ambient = Color::fromString(F[0]);
+  this->front.diffuse = Color::fromString(F[1]);
+  this->front.specular = Color::fromString(F[2]);
+  this->front.emission = Color::fromString(F[3]);
+  this->front.shininess = cint(F[4]);
 
-  this->front.ambient = Color::fromString(in.read("front/ambient"));
-  this->front.diffuse = Color::fromString(in.read("front/diffuse"));
-  this->front.specular = Color::fromString(in.read("front/specular"));
-  this->front.emission = Color::fromString(in.read("front/emission"));
-  this->front.shininess = cint(in.read("front/shininess"));
-
-  this->back.ambient = Color::fromString(in.read("back/ambient"));
-  this->back.diffuse = Color::fromString(in.read("back/diffuse"));
-  this->back.specular = Color::fromString(in.read("back/specular"));
-  this->back.emission = Color::fromString(in.read("back/emission"));
-  this->back.shininess = cint(in.read("back/shininess"));
+  auto B = StringUtils::split(in.read("back"));  
+  B.resize(5);
+  this->back.ambient = Color::fromString(B[0]);
+  this->back.diffuse = Color::fromString(B[1]);
+  this->back.specular = Color::fromString(B[2]);
+  this->back.emission = Color::fromString(B[3]);
+  this->back.shininess = cint(B[4]);
 }
 
 } //namespace

@@ -107,12 +107,11 @@ public:
   //destructor (please remove from the dataflow before destroying!)
   virtual ~Node();
 
-
   //getTypeName
   virtual String getTypeName() const override;
 
   //executeAction
-  virtual void executeAction(StringTree action) override;
+  virtual void executeAction(StringTree in) override;
 
   //getOsDependentTypeName
   virtual String getOsDependentTypeName() const {
@@ -130,6 +129,11 @@ public:
   //getUUID
   String getUUID() const {
     return uuid;
+  }
+
+  //setUUID
+  void setUUID(String value) {
+    setProperty("uuid", this->uuid, value);
   }
 
   //getParent
@@ -150,8 +154,8 @@ public:
     return childs;
   }
 
-  //getNodeBounds
-  virtual Position getNodeBounds() {
+  //getPosition
+  virtual Position getPosition() {
     return Position::invalid();
   }
 

@@ -339,17 +339,22 @@ public:
     update();
   }
 
-  //getSelectedFunctions
-  std::vector<int> getSelectedFunctions() const
+  //drawLine
+  void drawLine(Point2d p1,Point2d p2)
   {
-    std::vector<int> ret;
+    int N = model->getNumberOfSamples();
+    p1.x = Utils::clamp(p1.x, 0.0, 1.0); p1.y = Utils::clamp(p1.y, 0.0, 1.0);
+    p2.x = Utils::clamp(p2.x, 0.0, 1.0); p2.y = Utils::clamp(p2.y, 0.0, 1.0);
+
+    int x1 = Utils::clamp((int)(round(p1.x * (N - 1))), 0, N - 1);
+    int x2 = Utils::clamp((int)(round(p2.x * (N - 1))), 0, N - 1);
+
     for (auto F = 0; F < model->functions.size(); F++)
     {
       auto fn = model->functions[F];
       if (selection->isSelected(fn.get()))
-        ret.push_back(F);
+        model->drawLine(F, x1, p1.y, x2, p2.y);
     }
-    return ret;
   }
 
   //mousePressEvent
@@ -358,20 +363,19 @@ public:
     // painting functions
     if (model && evt->button()==Qt::LeftButton && model->functions.size())
     { 
-      model->beginTransaction();
-
+      model->beginUpdate(Transaction(), Transaction());
+      dragging.reset(new QTimer());
 #if 0
       //do not send too much updates
-      dragging.reset(new QTimer());
       connect(dragging.get(),&QTimer::timeout,[this](){
-        model->endTransaction();
-        model->beginTransaction(); 
+        model->endUpdate();
+        model->beginUpdate(Transaction(), Transaction());
       });
       dragging->start(500);
 #endif
 
       auto pos = QUtils::convert<Point2d>(unproject(evt->pos()));
-      model->drawLine(pos,pos, getSelectedFunctions());
+      drawLine(pos,pos);
       last_pos = pos;
     }
     else
@@ -388,7 +392,7 @@ public:
     if (dragging)
     {
       auto pos=QUtils::convert<Point2d>(unproject(evt->pos()));
-      model->drawLine(last_pos, pos, getSelectedFunctions());
+      drawLine(last_pos, pos);
       last_pos = pos;
     }
     else
@@ -405,7 +409,7 @@ public:
   {
     if (dragging)
     {
-      model->endTransaction();
+      model->endUpdate();
       dragging.reset();
     }
     else
@@ -543,8 +547,7 @@ private:
       return;
 
     String content = cstring(widgets.textedit->toPlainText());
-    auto other = TransferFunction::fromString(content);
-    (*this->model) = *other;
+    TransferFunction::copy(*model,*TransferFunction::fromString(content));
   }
 
   //doOpen
@@ -633,7 +636,7 @@ private:
       other->setOutputDType(isFloatRange ? DTypes::FLOAT32_RGBA : DTypes::UINT8_RGBA);
       other->setAttenutation(attenuation);
 
-      *this->model = *other;
+      TransferFunction::copy(*this->model,*other);
     }
     else
     {
@@ -643,7 +646,7 @@ private:
         VisusAssert(false);
         return;
       }
-      *this->model = *other;
+      TransferFunction::copy(*this->model,*other);
     }
   }
 
@@ -967,7 +970,7 @@ public:
         row->addWidget(new QLabel("Set default"));
         {
           auto combo=GuiFactory::CreateComboBox(TransferFunction::getDefaults()[0],TransferFunction::getDefaults(),[this](String name){
-            (*this->model)= *TransferFunction::getDefault(name);
+            TransferFunction::copy(*this->model,*TransferFunction::getDefault(name));
           });
           combo->setCurrentText(this->model->getDefaultName().c_str()); 
           row->addWidget(widgets.default_palette=combo);

@@ -53,13 +53,13 @@ public:
   VISUS_NON_COPYABLE_CLASS(GLCameraNode)
 
   //constructor 
-  GLCameraNode(SharedPtr<GLCamera> glcamera= SharedPtr<GLCamera>(),String name="glcamera");
+  GLCameraNode(String name = "glcamera", SharedPtr<GLCamera> glcamera= SharedPtr<GLCamera>());
 
   //destructor
   virtual ~GLCameraNode();
 
   //executeAction
-  virtual void executeAction(StringTree action) override;
+  virtual void executeAction(StringTree in) override;
 
   //getGLCamera
   SharedPtr<GLCamera> getGLCamera() const {

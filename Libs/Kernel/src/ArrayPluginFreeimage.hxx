@@ -329,7 +329,7 @@ private:
     }
 
     auto fields = std::make_shared<StringTree>("fields");
-    fields->addChild(StringTree("field", "dtype", dtype.toString()));
+    fields->addChild(StringTree("field").write("dtype",dtype.toString()));
     imginfo.addChild(fields);
   }
 

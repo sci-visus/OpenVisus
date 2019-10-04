@@ -44,6 +44,7 @@ namespace Visus {
 
 ///////////////////////////////////////////////////////////////
 Model::Model() {
+  clearHistory();
 }
 
 ///////////////////////////////////////////////////////////////
@@ -53,31 +54,30 @@ Model::~Model() {
 }
 
 ///////////////////////////////////////////////////////////////
-void Model::executeAction(StringTree action)
+void Model::executeAction(StringTree redo)
 {
-  if (action.name == "Assign")
+  if (redo.name == "copy")
   {
-    readFrom(action);
-    return;
+    return copy(*this, redo);
   }
 
-  if (action.name == "Transaction")
+  if (redo.name == "transaction")
   {
-    beginTransaction();
+    beginUpdate(redo, Transaction());
     {
-      for (auto sub_action : action.childs)
+      for (auto sub_action : redo.childs)
       {
         if (!sub_action->isHashNode())
           executeAction(*sub_action);
       }
     }
-    endTransaction();
+    endUpdate();
     return;
   }
 
-  if (action.name == "DiffAction")
+  if (redo.name == "diff")
   {
-    auto patch = action.readText("patch");
+    auto patch = redo.readText("patch");
     auto diff = Diff(StringUtils::getNonEmptyLines(patch));
     if (diff.empty())
       return;
@@ -98,46 +98,66 @@ void Model::executeAction(StringTree action)
       ThrowException(error_msg);
     }
 
-    beginUpdate();
-    readFrom(encoded);
+    beginUpdate(redo, StringTree("diff"));
+    {
+      readFrom(encoded);
+    }
     endUpdate();
   }
 
-  ThrowException("internal error, unknown action " + action.name);
+  ThrowException("internal error, unknown action " + redo.name);
 }
 
 
 ///////////////////////////////////////////////////////////////
-bool Model::enableLog(String filename)
+void Model::enableLog(String filename)
 {
-  if (log.is_open()) return true;
-  log.open(filename.c_str(), std::fstream::out);
-  log.rdbuf()->pubsetbuf(0, 0);
-  log.rdbuf()->pubsetbuf(0, 0);
-  return true;
+  if (log.is_open())
+    log.close();
+
+  this->log_filename = filename;
+
+  if (!filename.empty())
+  {
+    log.open(log_filename.c_str(), std::fstream::out);
+    log.rdbuf()->pubsetbuf(0, 0);
+    log.rdbuf()->pubsetbuf(0, 0);
+  }
 }
 
 ///////////////////////////////////////////////////////////////
 void Model::clearHistory()
 {
   this->history = StringTree();
-  this->log.close();
   this->redos = std::stack<StringTree>();
   this->undos = std::stack<StringTree>();
   this->undo_redo.clear();
   this->n_undo_redo = 0;
   this->bUndoingRedoing = false;
+  this->utc = Time::now().getUTCMilliseconds();
+  enableLog(this->log_filename);
 }
 
 ///////////////////////////////////////////////////////////////
 void Model::beginUpdate(StringTree redo, StringTree undo)
 {
-  //collect actions...
-  if (!redos.empty() && topRedo().name == "Transaction")
-  {
-    topRedo().childs.insert(topRedo().childs.end(), std::make_shared<StringTree>(redo)); //at the end 
-    topUndo().childs.insert(topUndo().childs.begin(), std::make_shared<StringTree>(undo)); //at the beginning
-  }
+  auto utc = Time::now().getUTCMilliseconds()-this->utc;
+  redo.write("utc", utc);
+  undo.write("utc", utc);
+
+  undo.write("is_undo", true);
+
+  //note only the root action is important
+  if (!isUpdating() && (redo.name == "diff" || undo.name == "diff"))
+    this->diff_begin = this->encode();
+
+  //collect at the end
+  if (!redos.empty() && topRedo().name == "transaction")
+    topRedo().childs.insert(topRedo().childs.end(), std::make_shared<StringTree>(redo)); 
+
+  //collect at the beginning
+  if (!undos.empty() && topUndo().name == "transaction")
+    topUndo().childs.insert(topUndo().childs.begin(), std::make_shared<StringTree>(undo));
 
   redos.push(redo);
   undos.push(undo);
@@ -156,18 +176,23 @@ void Model::endUpdate()
     auto& undo = topUndo();
 
     //special case for diff action
-    if (redo.name == "DiffAction")
+    if (redo.name == "diff" || undo.name=="diff")
     {
-      auto A = *redo.getFirstChild(); redo.childs.clear();
+      auto A = diff_begin;
       auto B = this->encode();
 
       auto diff = Diff(
         StringUtils::getNonEmptyLines(A.toXmlString()),
         StringUtils::getNonEmptyLines(B.toXmlString()));
 
-      redo.writeText("patch", diff.toString(),/*bCData*/true);
-      undo.writeText("patch", diff.inverted().toString(),/*bCData*/true);
+      if (redo.name == "diff")
+        redo.writeCode("patch", diff.toString());
+
+      if (undo.name == "diff")
+        undo.writeCode("patch", diff.inverted().toString());
     }
+
+    this->diff_begin = StringTree();
 
     this->history.addChild(redo);
 
@@ -178,7 +203,7 @@ void Model::endUpdate()
     }
 
     if (this->log.is_open())
-      this->log << redo.toString() << std::endl << std::endl;
+      this->log << redo.toString() << std::endl;
 
     this->modelChanged();
     this->end_update.emitSignal();

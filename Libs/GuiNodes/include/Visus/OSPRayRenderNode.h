@@ -86,8 +86,8 @@ public:
     return (data.clipping.valid() ? data.clipping : data.bounds);
   }
 
-  //getNodeBounds 
-  virtual Position getNodeBounds() override {
+  //getPosition 
+  virtual Position getPosition() override {
     return getDataBounds();
   }
 

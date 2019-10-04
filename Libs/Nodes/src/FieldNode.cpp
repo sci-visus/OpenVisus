@@ -41,9 +41,12 @@ For support : support@visus.net
 namespace Visus {
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-FieldNode::FieldNode(String name) : Node(name)
+FieldNode::FieldNode(String name,String fieldname) : Node(name)
 {
   addOutputPort("fieldname");
+
+  if (!fieldname.empty())
+    setFieldName(fieldname);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -52,20 +55,20 @@ FieldNode::~FieldNode()
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-void FieldNode::executeAction(StringTree action)
+void FieldNode::executeAction(StringTree in)
 {
-  if (action.name == "SetProperty")
+  if (in.name == "set")
   {
-    auto name = action.readString("name");
+    auto target_id = in.readString("target_id");
 
-    if (name == "fieldname") {
-      setFieldName(action.readString("value"));
+    if (target_id == "fieldname") {
+      setFieldName(in.readString("value"));
       return;
     }
 
   }
 
-  return Node::executeAction(action);
+  return Node::executeAction(in);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////

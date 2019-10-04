@@ -643,39 +643,39 @@ JTreeNode::~JTreeNode() {
 
 
 ////////////////////////////////////////////////////////////
-void JTreeNode::executeAction(StringTree action)
+void JTreeNode::executeAction(StringTree in)
 {
-  if (action.name == "SetProperty")
+  if (in.name == "set")
   {
-    auto name = action.readString("name");
+    auto target_id = in.readString("target_id");
 
-    if (name == "minima_tree") {
-      setMinimaTree(action.readBool("value"));
+    if (target_id == "minima_tree") {
+      setMinimaTree(in.readBool("value"));
       return;
     }
-    if (name == "min_persistence") {
-      setMinPersistence(action.readDouble("value"));
+    if (target_id == "min_persistence") {
+      setMinPersistence(in.readDouble("value"));
       return;
     }
-    if (name == "reduce_minmax") {
-      setReduceMinMax(action.readBool("value"));
+    if (target_id == "reduce_minmax") {
+      setReduceMinMax(in.readBool("value"));
       return;
     }
-    if (name == "threshold_min") {
-      setThresholdMin(action.readDouble("value"));
+    if (target_id == "threshold_min") {
+      setThresholdMin(in.readDouble("value"));
       return;
     }
-    if (name == "threshold_max") {
-      setThresholdMax(action.readDouble("value"));
+    if (target_id == "threshold_max") {
+      setThresholdMax(in.readDouble("value"));
       return;
     }
-    if (name == "auto_threshold") {
-      setAutoThreshold(action.readBool("value"));
+    if (target_id == "auto_threshold") {
+      setAutoThreshold(in.readBool("value"));
       return;
     }
   }
 
-  return Node::executeAction(action);
+  return Node::executeAction(in);
 }
 
 ////////////////////////////////////////////////////////////

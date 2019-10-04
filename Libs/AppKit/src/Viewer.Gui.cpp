@@ -207,41 +207,41 @@ void Viewer::createActions()
 
   addAction(actions.OpenFile = GuiFactory::CreateAction("Open file...", this, [this]() {
     bool bAdd=false;
-    openFile("", nullptr, bAdd); 
+    open("", nullptr, bAdd); 
   }));
 
   addAction(actions.SaveFile = GuiFactory::CreateAction("Save",this, [this]() {
-    saveFile(last_saved_filename);
+    save(last_saved_filename);
   }));
   actions.SaveFile->setEnabled(!last_saved_filename.empty());
   actions.SaveFile->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_S));
   actions.SaveFile->setToolTip("Save [CTRL+S]");
 
   addAction(actions.SaveFileAs = GuiFactory::CreateAction("Save as...",this, [this]() {
-    saveFile(""); 
+    save(""); 
   }));
   
   addAction(actions.SaveHistoryAs = GuiFactory::CreateAction("Save history as...",this, [this]() {
     bool bSaveHistory=true;
-    saveFile("",bSaveHistory); 
+    save("",bSaveHistory); 
   }));
 
   addAction(actions.AddFile = GuiFactory::CreateAction("Add file...", this, [this]() {
     auto parent=getRoot();
     bool bUrl=false;
-    openFile("",parent,bUrl); 
+    open("",parent,bUrl); 
   }));
 
   addAction(actions.OpenUrl = GuiFactory::CreateAction("Open url...", this, [this]() {
     Node* parent=nullptr;
     bool bUrl=true;
-    openFile("", parent, bUrl); 
+    open("", parent, bUrl); 
   }));
 
   addAction(actions.AddUrl = GuiFactory::CreateAction("Add url...", this, [this]() {
     auto parent=getRoot();
     bool bUrl=true;
-    openFile("", parent, true); 
+    open("", parent, true); 
   }));
 
   addAction(actions.ReloadVisusConfig = GuiFactory::CreateAction("Reload config", this, [this]() {
@@ -331,11 +331,9 @@ void Viewer::createActions()
   actions.RemoveNode->setShortcut(QKeySequence(Qt::Key_Delete));
   actions.RemoveNode->setToolTip("Remove Node [DEL]");
 
-  addAction(actions.RenameNode=GuiFactory::CreateAction("Rename Node",this, QIcon(":/rename.png"), [this]()
-  {
+  addAction(actions.RenameNode=GuiFactory::CreateAction("Rename Node",this, QIcon(":/rename.png"), [this]() {
     auto selection = getSelection();
     if (!selection) return;
-
     String name = cstring(QInputDialog::getText(this, "Insert the name:", "", QLineEdit::Normal, selection->getName().c_str()));
     if (name.empty()) return;
     setNodeName(selection, name);
@@ -344,94 +342,56 @@ void Viewer::createActions()
   addAction(actions.ShowHideNode=GuiFactory::CreateAction("Hide node",this, QIcon(":/eye.png"), [this]() {
     auto selection = getSelection();
     if (!selection) return;
-    setNodeVisible(selection, selection->isVisible());
+    setNodeVisible(selection, !selection->isVisible());
   }));
 
   addAction(actions.AddGroup=GuiFactory::CreateAction("Add Group",this, QIcon(":/group.png"), [this]() {
-    auto selection = getSelection();
-    if (!selection) return;
-    addGroupNode(selection);
+    addGroup(getSelection());
   }));
 
   addAction(actions.AddTransform=GuiFactory::CreateAction("Add Transform",this, QIcon(":/move.png"), [this]() {
-    auto selection = getSelection();
-    if (!selection) return;
-    addModelViewNode(selection);
+    addModelView(getSelection());
   }));
 
   addAction(actions.InsertTransform=GuiFactory::CreateAction("Insert transform",this, QIcon(":/move.png"), [this]() {
-    auto selection = getSelection();
-    if (!selection) return;
-    addModelViewNode(selection,/*bInsert*/true);
+    addModelView(getSelection(),/*bInsert*/true);
   }));
 
   addAction(actions.AddSlice=GuiFactory::CreateAction("Add Slice",this, QIcon(":/slice.png"), [this]() {
-    auto dataset_node = dynamic_cast<DatasetNode*>(getSelection());
-    if (!dataset_node) return;
-    int querydim = 2;
-    String render = "Slice";
-    addQueryNode(dataset_node, dataset_node, dataset_node->guessUniqueChildName("Slice"), querydim, "", 0, render);
+    addSlice(getSelection());
   }));
 
   addAction(actions.AddVolume=GuiFactory::CreateAction("Add Volume",this, QIcon(":/volume.png"), [this]() {
-    auto dataset_node = dynamic_cast<DatasetNode*>(getSelection());
-    if (!dataset_node) return;
-    int querydim = 3;
-    String render = "Volume";
-    addQueryNode(dataset_node, dataset_node, dataset_node->guessUniqueChildName("Volume"), querydim, "", 0, render);
+    addVolume(getSelection());
   }));
 
   addAction(actions.AddIsoContour=GuiFactory::CreateAction("Add IsoContour",this, QIcon(":/mesh.png"), [this]() {
-
-    auto selection = getSelection();
-    if (!selection) return;
-    if (auto dataset_node = dynamic_cast<DatasetNode*>(selection))
-    {
-      int querydim = 3;
-      String render = "IsoContour";
-      addQueryNode(dataset_node, dataset_node, dataset_node->guessUniqueChildName("IsoContour"), querydim, "", 0, render);
-    }
-    else if (selection && selection->hasOutputPort("data"))
-    {
-      addIsoContourNode(selection, selection);
-    }
+    addIsoContour(getSelection());
   }));
 
   addAction(actions.AddKdQuery=GuiFactory::CreateAction("Add KdQuery",this, QIcon(":/grid.png"), [this]() {
-    auto dataset_node = dynamic_cast<DatasetNode*>(getSelection());
-    if (!dataset_node) return;
-    addKdQueryNode(dataset_node, dataset_node);
+    addKdQuery(getSelection());
   }));
 
 
   addAction(actions.AddKdRender=GuiFactory::CreateAction("Add KdRender",this, QIcon(":/paint.png"), [this]() {
-    KdQueryNode* kdquery = dynamic_cast<KdQueryNode*>(getSelection());
-    if (!kdquery) return;
-    addKdRenderArrayNode(kdquery, kdquery);
+    addKdRender(getSelection());
   }));
  
   addAction(actions.AddRender=GuiFactory::CreateAction("Add Render",this, QIcon(":/paint.png"), [this]() {
-    auto selection = getSelection();
-    if (!selection || !selection->hasOutputPort("data")) return;
-    addRenderArrayNode(selection, selection);
+    addRender(getSelection());
   }));
 
   addAction(actions.AddScripting=GuiFactory::CreateAction("Add Scripting",this, QIcon(":/cpu.png"), [this]() {
-    auto selection = getSelection();
-    if (!selection || !selection->hasOutputPort("data")) return;
-    addScriptingNode(selection, selection);
+    addScripting(getSelection());
   }));
 
   addAction(actions.AddStatistics=GuiFactory::CreateAction("Add Statistics",this, QIcon(":/statistics.png"), [this]() {
-    auto selection = getSelection();
-    if (!selection || !selection->hasOutputPort("data")) return;
-    addStatisticsNode(selection, selection);
+    addStatistics(getSelection());
   }));
 
   addAction(actions.AddCpuTransferFunction=GuiFactory::CreateAction("Add CpuTransf",this, QIcon(":/cpu.png"), [this]() {
-    auto selection = getSelection();
-    if (!selection || !selection->hasOutputPort("data")) return;
-    addCpuTransferFunctionNode(selection, selection);
+    addCpuTransferFunction(getSelection());
   }));
 
   addAction(actions.ShowLicences = GuiFactory::CreateAction("Licences...", this, [this]() {
@@ -450,7 +410,7 @@ void Viewer::createBookmarks(QMenu* dst,const StringTree& src)
       String url=child->readString("name",child->readString("url"));
       VisusAssert(!url.empty());
       dst->addAction(GuiFactory::CreateAction(StringUtils::replaceAll(url, "&", "&&").c_str(), this, [this, url]() {
-        openFile(url); 
+        open(url); 
       }));
     }
     else if (child->name=="group")

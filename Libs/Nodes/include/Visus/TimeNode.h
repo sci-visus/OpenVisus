@@ -59,7 +59,7 @@ public:
   virtual ~TimeNode();
 
   //executeAction
-  virtual void executeAction(StringTree action) override;
+  virtual void executeAction(StringTree in) override;
 
   //getCurrentTime
   inline double getCurrentTime() const

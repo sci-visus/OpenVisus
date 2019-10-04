@@ -204,25 +204,25 @@ ScriptingNode::~ScriptingNode()
 
 
 //////////////////////////////////////////////////////////////////////////
-void ScriptingNode::executeAction(StringTree action)
+void ScriptingNode::executeAction(StringTree in)
 {
-  if (action.name == "SetProperty")
+  if (in.name == "set")
   {
-    auto name = action.readString("name");
+    auto target_id = in.readString("target_id");
 
-    if (name == "max_publish_msec") {
-      setMaxPublishMSec(action.readInt("max_publish_msec"));
+    if (target_id == "max_publish_msec") {
+      setMaxPublishMSec(in.readInt("max_publish_msec"));
       return;
     }
 
-    if (name == "code") {
-      setCode(action.readString("code"));
+    if (target_id == "code") {
+      setCode(in.readString("code"));
       return;
     }
 
   }
 
-  return Node::executeAction(action);
+  return Node::executeAction(in);
 }
 
 ///////////////////////////////////////////////////////////////////////

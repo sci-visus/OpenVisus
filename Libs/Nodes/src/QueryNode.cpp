@@ -217,52 +217,51 @@ QueryNode::~QueryNode(){
 
 
 ///////////////////////////////////////////////////////////////////////////
-void QueryNode::executeAction(StringTree action)
+void QueryNode::executeAction(StringTree in)
 {
-  if (action.name == "SetProperty")
+  if (in.name == "set")
   {
-    auto name = action.readString("name");
+    auto target_id = in.readString("target_id");
 
-
-    if (name == "verbose")
+    if (target_id == "verbose")
     {
-      setVerbose(action.readBool("value"));
+      setVerbose(in.readBool("value"));
       return;
     }
 
-    if (name == "accessindex")
+    if (target_id == "accessindex")
     {
-      setAccessIndex(action.readInt("value"));
+      setAccessIndex(in.readInt("value"));
       return;
     }
 
-    if (name == "view_dependent_enabled")
+    if (target_id == "view_dependent_enabled")
     {
-      setViewDependentEnabled(action.readBool("value"));
+      setViewDependentEnabled(in.readBool("value"));
       return;
     }
 
-    if (name == "progression")
+    if (target_id == "progression")
     {
-      setProgression(action.readInt("value"));
+      setProgression(in.readInt("value"));
       return;
     }
 
-    if (name == "quality")
+    if (target_id == "quality")
     {
-      setQuality(action.readInt("value"));
+      setQuality(in.readInt("value"));
       return;
     }
 
-    if (name == "node_bounds")
+    if (target_id == "position")
     {
-      setNodeBounds(*Decode<Position>(*action.getFirstChild()));
+      setPosition(*DecodeObject<Position>(*in.getFirstChild()));
       return;
     }
 
   }
 
-  return Node::executeAction(action);
+  return Node::executeAction(in);
 
 }
 
@@ -408,13 +407,13 @@ void QueryNode::writeTo(StringTree& out) const
 {
   Node::writeTo(out);
 
-  out.writeValue("verbose", cstring(verbose));
-  out.writeValue("accessindex",cstring(accessindex));
-  out.writeValue("view_dependent",cstring(view_dependent_enabled));
-  out.writeValue("progression",std::to_string(progression));
-  out.writeValue("quality",std::to_string(quality));
+  out.write("verbose", cstring(verbose));
+  out.write("accessindex",cstring(accessindex));
+  out.write("view_dependent",cstring(view_dependent_enabled));
+  out.write("progression",std::to_string(progression));
+  out.write("quality",std::to_string(quality));
 
-  out.writeObject("bounds", node_bounds);
+  out.writeObject("position", position);
 
   //position=fn(tree_position)
 }
@@ -424,13 +423,13 @@ void QueryNode::readFrom(StringTree& in)
 {
   Node::readFrom(in);
 
-  this->verbose = cint(in.readValue("verbose"));
-  this->accessindex=cint(in.readValue("accessindex"));
-  this->view_dependent_enabled =cbool(in.readValue("view_dependent"));
-  this->progression=cint(in.readValue("progression"));
-  this->quality=cint(in.readValue("quality"));
+  this->verbose = cint(in.read("verbose"));
+  this->accessindex=cint(in.read("accessindex"));
+  this->view_dependent_enabled =cbool(in.read("view_dependent"));
+  this->progression=cint(in.read("progression"));
+  this->quality=cint(in.read("quality"));
 
-  in.readObject("bounds", node_bounds);
+  in.readObject("position", position);
 
   //position=fn(tree_position)
 }

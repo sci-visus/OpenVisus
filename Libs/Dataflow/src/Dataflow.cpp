@@ -321,14 +321,17 @@ void Dataflow::addNode(Node* parent,Node* node,int index)
 {
   VisusAssert(VisusHasMessageLock());
 
-  VisusAssert(node && !node->dataflow && node->childs.empty() && !node->parent);
+  VisusAssert(node && !node->getDataflow() && node->getChilds().empty() && !node->parent);
+
+  if (node->getUUID().empty())
+    node->setUUID(guessNodeUIID(node->getTypeName()));
 
   if (selection)
     dropSelection();
 
   this->nodes.push_back(node);
   node->dataflow=this;
-  String uuid=node->uuid;
+  String uuid=node->getUUID();
   VisusAssert(uuids.find(uuid)==uuids.end());
   uuids[uuid]=node;
 
@@ -337,7 +340,7 @@ void Dataflow::addNode(Node* parent,Node* node,int index)
   //parent (if specified) must be already in the tree
   if (parent)
   {
-    VisusAssert(parent==getRoot() || parent->parent!=nullptr); 
+    VisusAssert(parent==getRoot() || parent->getParent()!=nullptr); 
     parent->addChild(node,index);
   }
 
@@ -373,15 +376,15 @@ void Dataflow::removeNode(Node* NODE)
       output.second->disconnect();
 
     VisusAssert(node->isOrphan());
-    VisusAssert(node->childs.empty());
+    VisusAssert(node->getChilds().empty());
 
-    String uuid=node->uuid;
+    String uuid=node->getUUID();
     VisusAssert(!uuid.empty() && uuids.find(uuid)!=uuids.end() && uuids[uuid]==node);
     node->exitFromDataflow();
 
     uuids.erase(uuid);
 
-    if (node->parent)
+    if (node->getParent())
     {
       node->parent->removeChild(node);
       node->parent=nullptr;

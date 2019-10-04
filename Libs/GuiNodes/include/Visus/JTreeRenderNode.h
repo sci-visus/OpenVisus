@@ -64,7 +64,7 @@ public:
   virtual ~JTreeRenderNode();
 
   //executeAction
-  virtual void executeAction(StringTree action) override;
+  virtual void executeAction(StringTree in) override;
 
   //getRadius
   double getRadius() const {
@@ -83,7 +83,7 @@ public:
 
   //setMinMaterial
   void setMinMaterial(GLMaterial value) {
-    setObjectProperty("min_material", this->min_material, value);
+    setEncodedProperty("min_material", this->min_material, value);
   }
 
   //getMaxMaterial
@@ -93,7 +93,7 @@ public:
 
   //setMaxMaterial
   void setMaxMaterial(GLMaterial value) {
-    setObjectProperty("max_material", this->max_material, value);
+    setEncodedProperty("max_material", this->max_material, value);
   }
 
   //getSaddleMaterial
@@ -103,7 +103,7 @@ public:
 
   //setSaddleMaterial
   void setSaddleMaterial(GLMaterial value) {
-    setObjectProperty("saddle_material", this->saddle_material, value);
+    setEncodedProperty("saddle_material", this->saddle_material, value);
   }
 
   //drawEdges
@@ -160,7 +160,7 @@ public:
   virtual void glRender(GLCanvas& gl) override;
 
   //getNodePosition
-  virtual Position getNodeBounds() override;
+  virtual Position getPosition() override;
 
   //from Node
   virtual bool processInput() override;

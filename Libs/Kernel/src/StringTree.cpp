@@ -412,13 +412,13 @@ StringTree* StringTree::NormalizeW(StringTree* cursor, String& key)
 String StringTree::readText() const
 {
   std::ostringstream out;
-  for (int I=0;I<childs.size();I++)
+  for (auto child : childs)
   {
-    if (childs[I]->name=="#text")         
-      out<<childs[I]->read("value");
+    if (child->name=="#text")
+      out<< child->read("value");
     
-    else if (childs[I]->name== "#cdata-section") 
-      out<<childs[I]->read("value");
+    if (child->name== "#cdata-section")
+      out<< child->read("value");
   }
   return out.str();
 }
@@ -631,7 +631,10 @@ static StringTree FromXmlElement(TiXmlElement* src)
     {
       if (const char* xml_text = child_text->Value())
       {
-        dst.writeText(xml_text, child_text->CDATA());
+        if (child_text->CDATA())
+          dst.writeCode(xml_text);
+        else
+          dst.writeText(xml_text);
       }
     }
     else if (const TiXmlComment* child_comment = child->ToComment())

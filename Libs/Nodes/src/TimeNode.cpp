@@ -56,30 +56,30 @@ TimeNode::~TimeNode()
 
 
 //////////////////////////////////////////////////////////////////////////
-void TimeNode::executeAction(StringTree action)
+void TimeNode::executeAction(StringTree in)
 {
-  if (action.name == "SetProperty")
+  if (in.name == "set")
   {
-    auto name = action.readString("name");
+    auto target_id = in.readString("target_id");
 
-    if (name == "current_time") {
-      setCurrentTime(action.readDouble("value"));
+    if (target_id == "current_time") {
+      setCurrentTime(in.readDouble("value"));
       return;
     }
 
-    if (name == "user_range") {
-      setUserRange(Range::fromString(action.readString("value")));
+    if (target_id == "user_range") {
+      setUserRange(Range::fromString(in.readString("value")));
       return;
     }
 
-    if (name == "play_msec") {
-      setPlayMsec(action.readInt("value"));
+    if (target_id == "play_msec") {
+      setPlayMsec(in.readInt("value"));
       return;
     }
 
   }
 
-  return Node::executeAction(action);
+  return Node::executeAction(in);
 }
 
 //////////////////////////////////////////////////

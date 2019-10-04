@@ -59,6 +59,9 @@ public:
   //destructor
   virtual ~PaletteNode();
 
+  //executeAction
+  virtual void executeAction(StringTree in) override;
+
   //getPalette
   SharedPtr<Palette> getPalette() const {
     return palette;

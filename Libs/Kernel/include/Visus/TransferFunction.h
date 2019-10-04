@@ -111,16 +111,9 @@ public:
   //writeTo
   void writeTo(StringTree& out) const
   {
-    std::ostringstream ss;
-    for (int I = 0; I < (int)this->values.size(); I++)
-    {
-      if (I % 16 == 0) ss << std::endl;
-      ss << this->values[I] << " ";
-    }
-
     out.writeValue("name", name);
     out.writeValue("color", color.toString());
-    out.writeText("values", ss.str());
+    out.writeText("values", StringUtils::join(this->values));
   }
 
   //readFrom
@@ -168,9 +161,9 @@ public:
   }
 
   //copy constructor
-  TransferFunction(const TransferFunction& other) {
-    operator=(other);
-  }
+  //TransferFunction(const TransferFunction& other) {
+  //  operator=(other);
+  //}
 
   //destructor
   virtual ~TransferFunction() {
@@ -225,7 +218,7 @@ public:
   virtual void executeAction(StringTree in) override;
 
   //operator=
-  TransferFunction& operator=(const TransferFunction& other);
+  //TransferFunction& operator=(const TransferFunction& other);
 
   //isDefault
   bool isDefault() const {
@@ -244,7 +237,7 @@ public:
 
   //setAttenutation
   void setAttenutation(double value) {
-    setProperty("attenuation", value, this->attenuation);
+    setProperty("attenuation", this->attenuation, value);
   }
 
   //getInputRange
@@ -262,7 +255,7 @@ public:
 
   //setOutputDType
   void setOutputDType(DType value) {
-    setProperty("output_dtype", value, this->output_dtype);
+    setProperty("output_dtype", this->output_dtype, value);
   }
 
   //getOutputRange
@@ -272,7 +265,7 @@ public:
 
   //setOutputRange
   void setOutputRange(Range value) {
-    setProperty("output_range", value, this->output_range);
+    setProperty("output_range", this->output_range, value);
   }
 
   //clearFunctions
@@ -287,8 +280,11 @@ public:
   //getDefaults
   static std::vector<String> getDefaults();
 
-  //drawLine (x and y in range [0,1])
-  void drawLine(Point2d p1, Point2d p2, std::vector<int> selected);
+  //drawValues
+  void drawValues(int function, int x1, std::vector<double> values);
+
+  //drawLine 
+  void drawLine(int function, int x1, double y1, int x2, double y2);
 
 public:
 
@@ -298,7 +294,7 @@ public:
 public:
 
   //importTransferFunction
-  static TransferFunction importTransferFunction(String content);
+  static SharedPtr<TransferFunction> importTransferFunction(String content);
 
   //exportTransferFunction
   bool exportTransferFunction(String filename);

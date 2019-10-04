@@ -62,8 +62,15 @@ public:
   }
 };
 
+inline StringTree Transaction(String description="") {
+  auto ret=StringTree("transaction");
+  if (!description.empty())
+    ret.write("description", description);
+  return ret;
+}
+
 //////////////////////////////////////////////////////////
-class VISUS_KERNEL_API Model 
+class VISUS_KERNEL_API Model
 {
 public:
 
@@ -87,12 +94,12 @@ public:
   virtual ~Model();
 
   //getTypeName
-  virtual String getTypeName() const  = 0;
+  virtual String getTypeName() const = 0;
 
 public:
 
   //enableLog
-  bool enableLog(String filename);
+  void enableLog(String filename);
 
   //clearHistory
   void clearHistory();
@@ -101,7 +108,7 @@ public:
   const StringTree& getHistory() const {
     return history;
   }
-  
+
 public:
 
   //isUpdating
@@ -125,64 +132,86 @@ public:
   //endUpdate
   void endUpdate();
 
-  //in case you do not want to use actions
-  void beginUpdate()
-  {
-    //note only the root action is important
-    beginUpdate(
-      StringTree("DiffAction").addChild(isUpdating()? StringTree() : this->encode()),
-      StringTree("DiffAction"));
-  }
-
-  //beginTransaction
-  void beginTransaction() {
-    beginUpdate(
-      StringTree("Transaction"),
-      StringTree("Transaction"));
-  }
-
-  //endTransaction
-  void endTransaction() {
-    endUpdate();
-  }
-
 public:
 
   //setProperty
   template <typename Value>
-  void setProperty(String name, Value& old_value, const Value& new_value)
+  void setProperty(String target_id, Value& old_value, const Value& new_value)
   {
-    if (old_value == new_value)
-      return;
-    
+    if (old_value == new_value) return;
     beginUpdate(
-      StringTree("SetProperty").write("name", name).write("value", new_value),
-      StringTree("SetProperty").write("name", name).write("value", old_value));
+      createPassThroughAction(StringTree("set"), target_id).write("value", new_value),
+      createPassThroughAction(StringTree("set"), target_id).write("value", old_value));
     {
       old_value = new_value;
     }
     endUpdate();
   }
 
-
-  //setObjectProperty
+  //setEncodedProperty
   template <typename Value>
-  void setObjectProperty(String name, Value& old_value, const Value& new_value)
+  void setEncodedProperty(String target_id, Value& old_value, const Value& new_value)
   {
-    if (old_value == new_value)
-      return;
-
+    if (old_value == new_value) return;
     beginUpdate(
-      StringTree("SetProperty").write("name", name).addChild(Encode(new_value, "Value")),
-      StringTree("SetProperty").write("name", name).addChild(Encode(old_value, "Value")));
+      createPassThroughAction(EncodeObject(new_value, "set"), target_id),
+      createPassThroughAction(EncodeObject(old_value, "set"), target_id));
     {
       old_value = new_value;
     }
     endUpdate();
   }
 
+
+  //popTargetId
+  String popTargetId(StringTree& action) {
+    auto v = StringUtils::split(action.readString("target_id"), "/");
+    if (v.empty()) return "";
+    auto left = v[0];
+    auto right=StringUtils::join(std::vector<String>(v.begin() + 1, v.end()), "/");
+    action.removeAttribute("target_id");  //i want the target_id at the beginning of attributes
+    action.attributes.insert(action.attributes.begin(), std::make_pair("target_id", right));
+    return left;
+  }
+
+  //pushTargetId
+  void pushTargetId(StringTree& action,String target_id) {
+    auto right = action.readString("target_id");
+    if (!right.empty()) target_id = target_id + "/" + right;
+    action.removeAttribute("target_id"); //i want the target_id at the beginning of attributes
+    action.attributes.insert(action.attributes.begin(), std::make_pair("target_id", target_id));
+  }
+
+  //createPassThroughAction
+  StringTree createPassThroughAction(StringTree action, String target_id) {
+    auto ret = action;
+    pushTargetId(ret, target_id);
+    return ret;
+  }
+
+  //getPassThroughAction
+  bool getPassThroughAction(StringTree& action, String match) {
+    auto v = StringUtils::split(action.readString("target_id"), "/");
+    if (v.empty() || v[0]!=match) return false;
+    popTargetId(action);
+    return true;
+  }
 
 public:
+
+  //copy
+  static void copy(Model& dst, StringTree redo)
+  {
+    auto undo = dst.encode("copy");
+    dst.beginUpdate(redo, undo);
+    dst.readFrom(redo);
+    dst.endUpdate();
+  }
+
+  //copy
+  static void copy(Model& dst, const Model& src) {
+    return copy(dst, src.encode("copy"));
+  }
 
     //executeAction
   virtual void executeAction(StringTree action);
@@ -227,11 +256,6 @@ public:
 
 protected:
 
-  //fullUndo
-  StringTree fullUndo() {
-    return this->encode("Assign");
-  }
-
   //modelChanged
   virtual void modelChanged() {
   }
@@ -241,20 +265,23 @@ public:
   //encode
   StringTree encode(String name = "") const {
     if (name.empty()) name = getTypeName();
-    return Encode(*this, name);
+    return EncodeObject(*this, name);
   }
 
 private:
 
   typedef std::pair<StringTree, StringTree> UndoRedo;
 
-  StringTree              history;
-  std::ofstream           log;
-  std::stack<StringTree>  redos;
-  std::stack<StringTree>  undos;
-  std::vector<UndoRedo>   undo_redo;
-  int                     n_undo_redo = 0;
-  bool                    bUndoingRedoing = false;
+  StringTree               history;
+  String                   log_filename;
+  std::ofstream            log;
+  std::stack<StringTree>   redos;
+  std::stack<StringTree>   undos;
+  std::vector<UndoRedo>    undo_redo;
+  int                      n_undo_redo = 0;
+  bool                     bUndoingRedoing = false;
+  Int64                    utc=0;
+  StringTree               diff_begin;
 
 };
 

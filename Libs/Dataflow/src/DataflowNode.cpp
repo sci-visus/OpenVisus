@@ -39,15 +39,13 @@ For support : support@visus.net
 #include <Visus/Dataflow.h>
 #include <Visus/DataflowNode.h>
 #include <Visus/Dataflow.h>
-#include <Visus/UUID.h>
 #include <Visus/ApplicationInfo.h>
 
 namespace Visus {
 
 ////////////////////////////////////////////////////////////
-Node::Node(String name) :  name(name),dataflow(nullptr),visible(true),parent(nullptr)
+Node::Node(String name) :  name(name),dataflow(nullptr),visible(true),parent(nullptr),uuid("")
 {
-  this->uuid=UUIDGenerator::getSingleton()->create();
 }
 
 ////////////////////////////////////////////////////////////
@@ -65,25 +63,25 @@ String Node::getTypeName() const
 }
 
 ////////////////////////////////////////////////////////////
-void Node::executeAction(StringTree action) {
+void Node::executeAction(StringTree in) {
   
-  if (action.name == "SetProperty")
+  if (in.name == "set")
   {
-    auto name = action.readString("name");
-    if (name == "name")
+    auto target_id = in.readString("target_id");
+    if (target_id == "name")
     {
-      setName(action.readString("value"));
+      setName(in.readString("value"));
       return;
     }
 
-    if (name == "visible")
+    if (target_id == "visible")
     {
-      setVisible(action.readBool("value"));
+      setVisible(in.readBool("value"));
       return;
     }
   }
   
-  return Model::executeAction(action);
+  return Model::executeAction(in);
 }
 
 

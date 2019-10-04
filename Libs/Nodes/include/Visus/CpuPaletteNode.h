@@ -59,7 +59,7 @@ public:
   virtual ~CpuPaletteNode();
 
   //executeAction
-  virtual void executeAction(StringTree action);
+  virtual void executeAction(StringTree in);
 
   //processInput
   virtual bool processInput() override;
@@ -72,8 +72,8 @@ public:
   //setTransferFunction
   void setTransferFunction(SharedPtr<TransferFunction> value);
 
-  //getNodeBounds
-  virtual Position getNodeBounds() override {
+  //getPosition
+  virtual Position getPosition() override {
     return this->bounds;
   }
 

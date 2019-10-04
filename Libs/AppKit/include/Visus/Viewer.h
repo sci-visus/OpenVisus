@@ -219,7 +219,7 @@ public:
   void showLicences();
 
   //executeAction
-  virtual void executeAction(StringTree action) override;
+  virtual void executeAction(StringTree in) override;
 
   //getModel
   Dataflow* getDataflow() {
@@ -345,7 +345,7 @@ public:
 
   //fastRendering
   bool fastRendering() const {
-    return bFastRendering;
+    return fast_rendering;
   }
 
   //writeConfigString
@@ -357,11 +357,11 @@ public:
   //setPreferences
   void setPreferences(Preferences value);
 
-  //openFile
-  bool openFile(String url, Node* parent = nullptr, bool bShowUrlDialogIfNeeded = false);
+  //open
+  bool open(String url, Node* parent = nullptr, bool bShowUrlDialogIfNeeded = false);
 
-  //saveFile
-  bool saveFile(String filename, bool bSaveHistory = false, bool bShowDialogs = true);
+  //save
+  bool save(String filename, bool bSaveHistory = false, bool bShowDialogs = true);
 
   //takeSnapshot
   bool takeSnapshot(bool bOnlyCanvas = false, String filename = "");
@@ -380,62 +380,20 @@ public:
   //refreshData
   void refreshData(Node* node = nullptr);
 
-  //addGLCameraNode
-  GLCameraNode* addGLCameraNode(SharedPtr<GLCamera> glcamera, Node* parent = nullptr);
-
-  //addGLCameraNode
-  GLCameraNode* addGLCameraNode(String type);
-
   //guessGLCameraPosition
   void guessGLCameraPosition(int ref_ = -1);
 
   //mirrorGLCamera
   void mirrorGLCamera(int ref = 0);
 
-  //addGroupNode
-  Node* addGroupNode(Node* parent, String name = "");
-
-  //addModelViewNode
-  ModelViewNode* addModelViewNode(Node* parent, bool bInsert = false);
-
-  //addDatasetNode
-  DatasetNode* addDatasetNode(SharedPtr<Dataset> dataset, Node* parent = nullptr);
-
-  //addQueryNode
-  QueryNode* addQueryNode(Node* parent, DatasetNode* dataset_node, String name = "", int dim = 0, String fieldname = "", int access_id = 0, String rendertype = "");
-
-  //addKdQueryNode
-  KdQueryNode* addKdQueryNode(Node* parent, DatasetNode* dataset_node, String name = "", String fieldname = "", int access_id = 0);
-
-  //addIsoContourNode
-  IsoContourNode* addIsoContourNode(Node* parent = nullptr, Node* data_provider = nullptr, double isovalue = 0.0);
-
-  //addRenderArrayNode
-  Node* addRenderArrayNode(Node* parent = nullptr, Node* data_provider = nullptr, String default_palette = "", String render_type="");
-
-  //addKdRenderArrayNode
-  KdRenderArrayNode* addKdRenderArrayNode(Node* parent, Node* data_provider = nullptr);
-
-  //addScriptingNode
-  ScriptingNode* addScriptingNode(Node* parent, Node* data_provider = nullptr);
-
-  //addCpuTransferFunctionNode
-  CpuPaletteNode* addCpuTransferFunctionNode(Node* parent, Node* data_provider = nullptr);
-
-  //addPaletteNode
-  PaletteNode* addPaletteNode(Node* parent, String palette = "GrayOpaque");
-
-  //addStatisticsNode
-  StatisticsNode* addStatisticsNode(Node* parent, Node* data_provider = nullptr);
-
   //getWorldDimension
   int getWorldDimension() const;
 
-  //getWorldBounds
-  BoxNd getWorldBounds() const;
+  //getWorldBox
+  BoxNd getWorldBox() const;
 
-  //getNodeBounds
-  Position getNodeBounds(Node* node, bool bRecursive = false) const;
+  //getPosition
+  Position getPosition(Node* node, bool bRecursive = false) const;
 
   //getGLCanvas
   GLCanvas* getGLCanvas() {
@@ -475,6 +433,61 @@ public:
 
   //showPopupWidget
   void showPopupWidget(QWidget* widget);
+
+public:
+
+  //addDataset
+  DatasetNode* addDataset(Node* parent, SharedPtr<Dataset> dataset);
+
+  //addDataset
+  DatasetNode* addDataset(Node* parent, String url,StringTree config = StringTree()) {
+    return addDataset(parent, LoadDatasetEx(url, config ? config : this->config));
+  }
+
+  //addGLCameraNode
+  GLCameraNode* addGLCamera(Node* parent, SharedPtr<GLCamera> glcamera);
+
+  //addGLCameraNode
+  GLCameraNode* addGLCamera(Node* parent, String type);
+
+  //addVolume
+  QueryNode* addVolume(Node* parent, String fieldname="", int access_id=0);
+
+  //addSlice
+  QueryNode* addSlice(Node* parent, String fieldname = "", int access_id = 0);
+
+  //addIsoContour
+  QueryNode* addIsoContour(Node* parent, String fieldname = "", int access_id = 0);
+
+  //addKdQuery
+  KdQueryNode* addKdQuery(Node* parent, String fieldname = "", int access_id = 0);
+
+  //addScripting
+  ScriptingNode* addScripting(Node* parent);
+
+  //addCpuTransferFunction
+  CpuPaletteNode* addCpuTransferFunction(Node* parent);
+
+  //addStatistics
+  StatisticsNode* addStatistics(Node* parent);
+
+  //addRender
+  Node* addRender(Node* parent, String palette = "");
+
+  //addKdRender
+  KdRenderArrayNode* addKdRender(Node* parent);
+
+  //addOSPRay
+  Node* addOSPRay(Node* parent, String palette = "");
+
+  //addGroup
+  Node* addGroup(Node* parent, String name = "");
+
+  //addModelView
+  ModelViewNode* addModelView(Node* parent, bool insert=false);
+
+  //addPalette
+  PaletteNode* addPalette(Node* parent, String palette);
 
 public:
 
@@ -800,7 +813,7 @@ private:
   //run time (i.e. don't need to be saved)
   UniquePtr<QTimer>                     idle_timer;
   UniquePtr<QTimer>                     save_session_timer;
-  bool                                  bFastRendering = false;
+  bool                                  fast_rendering = false;
   SharedPtr<FreeTransform>              free_transform;
   SharedPtr<Icons>                      icons;
   GuiActions                            actions;

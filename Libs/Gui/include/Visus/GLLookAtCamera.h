@@ -70,14 +70,6 @@ public:
     return "GLLookAtCamera";
   }
 
-  //getCenterOfRotation
-  Point3d getCenterOfRotation() const {
-    return center_of_rotation;
-  }
-
-  //set center of rotation
-  void setCenterOfRotation(Point3d value);
-
   //isUsingOrthoProjection
   inline bool isUsingOrthoProjection() const {
     return use_ortho_projection;
@@ -133,23 +125,30 @@ public:
   //glKeyPressEvent
   virtual void glKeyPressEvent(QKeyEvent* evt) override;
 
+  //setBounds
+  void setBounds(BoxNd new_value);
+
   //guessPosition
   virtual bool guessPosition(BoxNd value,int ref=-1) override;
 
-  //setBounds
-  void setBounds(BoxNd logic_box);
+  //getLookAt
+  void getLookAt(Point3d& pos, Point3d& center, Point3d& vup) {
+    pos = this->pos;
+    center = this->center;
+    vup = this->vup;
+  }
 
   //setLookAt
-  void setLookAt(Point3d pos,Point3d center,Point3d vup);
+  void setLookAt(Point3d pos,Point3d center,Point3d vup, Quaternion q=Quaternion());
 
   //moveInWorld
-  void moveInWorld(Point3d vt);
+  void walk(Point3d direction);
 
   //rotate
-  void rotateAroundScreenCenter(double angle, Point2d screen_center);
+  //void rotateAroundScreenCenter(double angle, Point2d screen_center);
 
-  //rotateAroundWorldAxis
-  void rotateAroundWorldAxis(double angle, Point3d axis);
+  //rotate
+  void rotate(double angle, Point3d axis);
 
 public:
 
@@ -173,9 +172,8 @@ private:
   bool                 ortho_params_fixed = false;
 
   //modelview
-  Point3d      pos,dir,vup;
+  Point3d      pos, center,vup;
   Quaternion   quaternion;
-  Point3d      center_of_rotation;
 
   //guessNearFarDistance
   std::pair<double,double> guessNearFarDistance() const;
@@ -184,8 +182,9 @@ private:
   double guessForwardFactor() const ;
 
   //guessOrthoParams
-  void guessOrthoParams();
- 
+  GLOrthoParams guessOrthoParams() const;
+
+
 
 };//end class
 

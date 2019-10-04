@@ -438,15 +438,15 @@ public:
   //writeTo`
   void writeTo(StringTree& out) const
   {
-    out.writeValue("p1", p1.toString());
-    out.writeValue("p2", p2.toString());
+    out.write("p1", p1.toString());
+    out.write("p2", p2.toString());
   }
 
   //writeTo
   void readFrom(StringTree& in) 
   {
-    p1 = Point::fromString(in.readValue("p1"));
-    p2 = Point::fromString(in.readValue("p2"));
+    p1 = Point::fromString(in.read("p1"));
+    p2 = Point::fromString(in.read("p2"));
   }
 
 

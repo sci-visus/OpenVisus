@@ -54,20 +54,20 @@ DatasetNode::~DatasetNode()
   
 
 //////////////////////////////////////////////////////////////////////////
-void DatasetNode::executeAction(StringTree action)
+void DatasetNode::executeAction(StringTree in)
 {
-  if (action.name == "SetProperty")
+  if (in.name == "set")
   {
-    auto name = action.readString("name");
+    auto target_id = in.readString("target_id");
 
-    if (name == "show_bounds") {
-      setShowBounds(action.readBool("value"));
+    if (target_id == "show_bounds") {
+      setShowBounds(in.readBool("value"));
       return;
     }
 
   }
 
-  return Node::executeAction(action);
+  return Node::executeAction(in);
 }
 
 //////////////////////////////////////////////////////////////////////////

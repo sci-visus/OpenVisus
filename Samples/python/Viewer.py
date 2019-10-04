@@ -100,7 +100,7 @@ if __name__ == '__main__':
 	VISUS_REGISTER_NODE_CLASS("MyPythonNode")
 	pynode=MyPythonNode()
 	pynode.glSetRenderQueue(999)
-	pynode.setNodeBounds(Position(world_box))
+	pynode.setPosition(Position(world_box))
 	viewer.addNode(root,pynode)
 
 	# pynode will get the data from the query

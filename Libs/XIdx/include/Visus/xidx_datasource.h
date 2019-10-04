@@ -83,7 +83,7 @@ private:
     //write the content in another file
     if (use_cdata)
     {
-      out.writeText(content, /*cdata*/true);
+      out.writeCode(content);
       return;
     }
 

@@ -67,6 +67,9 @@ public:
   virtual ~GLCamera() {
   }
 
+  //decode
+  static SharedPtr<GLCamera> decode(StringTree in);
+
   //getTypeName
   virtual String getTypeName() const override = 0;
 

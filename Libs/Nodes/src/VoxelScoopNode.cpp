@@ -1009,49 +1009,49 @@ VoxelScoopNode::VoxelScoopNode(String name) :  Node(name)
 }
 
 /////////////////////////////////////////////////////////////
-void VoxelScoopNode::executeAction(StringTree action)
+void VoxelScoopNode::executeAction(StringTree in)
 {
-  if (action.name == "SetProperty")
+  if (in.name == "set")
   {
-    auto name = action.readString("name");
+    auto target_id = in.readString("target_id");
 
-    if (name == "simplify") {
-      setSimplify(action.readBool("value"));
+    if (target_id == "simplify") {
+      setSimplify(in.readBool("value"));
       return;
     }
 
-    if (name == "min_length") {
-      setMinLength(action.readDouble("value"));
+    if (target_id == "min_length") {
+      setMinLength(in.readDouble("value"));
       return;
     }
 
-    if (name == "min_ratio") {
-      setMinRatio(action.readDouble("value"));
+    if (target_id == "min_ratio") {
+      setMinRatio(in.readDouble("value"));
       return;
     }
 
-    if (name == "threshold") {
-      setThreshold(action.readDouble("value"));
+    if (target_id == "threshold") {
+      setThreshold(in.readDouble("value"));
       return;
     }
 
-    if (name == "use_minima_as_seed") {
-      setUseMinimaAsSeed(action.readBool("value"));
+    if (target_id == "use_minima_as_seed") {
+      setUseMinimaAsSeed(in.readBool("value"));
       return;
     }
 
-    if (name == "use_maxima_as_seed") {
-      setUseMaximaAsSeed(action.readBool("value"));
+    if (target_id == "use_maxima_as_seed") {
+      setUseMaximaAsSeed(in.readBool("value"));
       return;
     }
 
-    if (name == "min_diam") {
-      setMinDiam(action.readDouble("value"));
+    if (target_id == "min_diam") {
+      setMinDiam(in.readDouble("value"));
       return;
     }
   }
 
-  return Node::executeAction(action);
+  return Node::executeAction(in);
 
 
 }

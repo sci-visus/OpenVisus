@@ -75,7 +75,7 @@ public:
   }
 
   //setLookAt
-  void setLookAt(Point3d pos, Point3d dir, Point3d vup);
+  void setLookAt(Point3d pos, Point3d dir, Point3d vup, double rotation = 0.0);
 
   //guessPosition
   virtual bool guessPosition(BoxNd bound, int ref = -1) override;
@@ -107,7 +107,7 @@ public:
 
   //setMinZoom
   void setMinZoom(double value) {
-    setProperty("min_zoom", min_zoom, value);
+    setProperty("min_zoom", this->min_zoom, value);
   }
 
   //mirror
@@ -135,9 +135,6 @@ public:
   void moveDown() {
     translate(Point2d(0, -getOrthoParams().getHeight()));
   }
-
-  //rotate
-  void rotate(double quantity);
 
   //scale
   void scale(double vs,Point2d center);
@@ -168,7 +165,12 @@ public:
   }
 
   //setOrthoParams
-  virtual void setOrthoParams(GLOrthoParams value) override;
+  void setOrthoParams(GLOrthoParams value, double smooth);
+
+  //setOrthoParams
+    virtual void setOrthoParams(GLOrthoParams value) override {
+    setOrthoParams(value, 0.0);
+  }
 
   //getViewport
   virtual Viewport getViewport() const override {
@@ -229,16 +231,16 @@ private:
   double                smooth=0.90; //higher is smoother
   bool                  disable_rotation = false;
   double                default_scale;
-  double                rotation_angle = 0;
   double                max_zoom = 0;
   double                min_zoom = 0;
   GLMouse               mouse;
   std::vector<Point2i>  last_mouse_pos;
   Viewport              viewport;
 
-  Point3d               pos = Point3d(0, 0, 0);
-  Point3d               dir = Point3d(0, 0,-1);
-  Point3d               vup = Point3d(0, 1, 0);
+  Point3d               pos    = Point3d(0, 0,  0);
+  Point3d               dir    = Point3d(0, 0, -1);
+  Point3d               vup    = Point3d(0, 1,  0);
+  double                rotation = 0.0;
 
   GLOrthoParams         ortho_params_current;
   GLOrthoParams         ortho_params_final;
@@ -252,9 +254,6 @@ private:
     temp.loadModelview(Matrix::identity(4)); // i don't want the modelview...
     return FrustumMap(temp);
   }
-
-  //interpolateToFinal
-  void interpolateToFinal();
 
   //checkZoomRange
   GLOrthoParams checkZoomRange(GLOrthoParams value) const;

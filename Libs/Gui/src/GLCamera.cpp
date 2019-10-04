@@ -38,8 +38,30 @@ For support : support@visus.net
 
 #include <Visus/GLCamera.h>
 #include <Visus/GLObjects.h>
+#include <Visus/GLOrthoCamera.h>
+#include <Visus/GLLookAtCamera.h>
 
 namespace Visus {
+
+  //////////////////////////////////////////////////
+SharedPtr<GLCamera> GLCamera::decode(StringTree in)
+{
+  auto TypeName = in.readString("TypeName", in.name);
+
+  SharedPtr<GLCamera> ret;
+
+  if (TypeName == "GLLookAtCamera")
+    ret =std::make_shared<GLLookAtCamera>();
+
+  else if (TypeName == "GLOrthoCamera")
+    ret =std::make_shared<GLOrthoCamera>();
+
+  else
+    ThrowException("internal error");
+
+  ret->readFrom(in);
+  return ret;
+}
 
 //////////////////////////////////////////////////
 void GLCamera::glRender(GLCanvas& gl) 

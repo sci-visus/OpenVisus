@@ -77,13 +77,13 @@ public:
     return false;
   }
 
-  //getNodeBounds
-  virtual Position getNodeBounds() override  {
+  //getPosition
+  virtual Position getPosition() override  {
     return node_bounds;
   }
 
-  //setNodeBounds
-  void setNodeBounds(Position value) {
+  //setPosition
+  void setPosition(Position value) {
     this->node_bounds = value;
   }
 

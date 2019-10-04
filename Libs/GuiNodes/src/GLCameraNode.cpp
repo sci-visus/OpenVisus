@@ -43,7 +43,7 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////
-GLCameraNode::GLCameraNode(SharedPtr<GLCamera> glcamera,String name) 
+GLCameraNode::GLCameraNode(String name, SharedPtr<GLCamera> glcamera)
   : Node(name)
 {
   setGLCamera(glcamera);
@@ -57,21 +57,15 @@ GLCameraNode::~GLCameraNode()
 
 
 //////////////////////////////////////////////////
-void GLCameraNode::executeAction(StringTree action) 
+void GLCameraNode::executeAction(StringTree in)
 {
-  if (action.name == "Change")
+  if (getPassThroughAction(in, "glcamera"))
   {
-    auto target = action.readString("target");
-
-    if (target == "glcamera")
-    {
-      auto camera_action = *action.getFirstChild();
-      getGLCamera()->executeAction(camera_action);
-      return;
-    }
+    getGLCamera()->executeAction(in);
+    return;
   }
 
-  return Node::executeAction(action);
+  return Node::executeAction(in);
 }
 //////////////////////////////////////////////////
 void GLCameraNode::setGLCamera(SharedPtr<GLCamera> value) 
@@ -88,15 +82,13 @@ void GLCameraNode::setGLCamera(SharedPtr<GLCamera> value)
   {
     this->glcamera->begin_update.connect(glcamera_begin_update_slot=[this](){
       beginUpdate(
-        StringTree("Change").write("target", "glcamera"),
-        StringTree("Change").write("target", "glcamera"));
+        StringTree("__change__"),
+        StringTree("__change__"));
     });
 
     this->glcamera->end_update.connect(glcamera_end_update_slot =[this](){
-      VisusAssert(topRedo().name == "Change" && topRedo().readString("target") == "glcamera");
-      VisusAssert(topUndo().name == "Change" && topUndo().readString("target") == "glcamera");
-      this->topRedo().addChild(glcamera->topRedo());
-      this->topUndo().addChild(glcamera->topUndo());
+      this->topRedo() = createPassThroughAction(glcamera->topRedo(), "glcamera");
+      this->topUndo() = createPassThroughAction(glcamera->topUndo(), "glcamera");
       endUpdate();
     });
   }
@@ -108,11 +100,7 @@ void GLCameraNode::writeTo(StringTree& out) const
   Node::writeTo(out);
 
   if (glcamera)
-  {
-    auto child = out.addChild(name);
-    child->write("TypeName", glcamera->getTypeName());
-    glcamera->writeTo(*child);
-  }
+    out.addChild(glcamera->encode());
 
   //bDebugFrustum
 }
@@ -122,26 +110,10 @@ void GLCameraNode::readFrom(StringTree& in)
 {
   Node::readFrom(in);
 
-  if (auto child = in.getChild("glcamera"))
-  {
-    auto TypeName = child->readString("TypeName");
-
-    if (!this->glcamera)
-    {
-      if (TypeName == "GLLookAtCamera")
-        setGLCamera(std::make_shared<GLLookAtCamera>());
-
-      else if (TypeName == "GLOrthoCamera")
-          setGLCamera(std::make_shared<GLOrthoCamera>());
-
-      else
-        VisusAssert(false);
-    }
-
-    VisusReleaseAssert(glcamera->getTypeName()==TypeName);
-
-    this->glcamera->readFrom(*child);
-  }
+  if (in.getNumberOfChilds())
+    this->glcamera = GLCamera::decode(*in.getFirstChild());
+  else
+    this->glcamera.reset();
 }
   
 } //namespace Visus

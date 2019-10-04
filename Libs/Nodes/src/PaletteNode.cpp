@@ -85,6 +85,19 @@ PaletteNode::~PaletteNode() {
   setPalette(nullptr);
 }
 
+
+///////////////////////////////////////////////////////////////////////
+void PaletteNode::executeAction(StringTree in)
+{
+  if (getPassThroughAction(in, "palette"))
+  {
+    palette->executeAction(in);
+    return;
+  }
+
+  return Node::executeAction(in);
+}
+
 ///////////////////////////////////////////////////////////////////////
 void PaletteNode::setPalette(SharedPtr<Palette> value) 
 {
@@ -101,15 +114,13 @@ void PaletteNode::setPalette(SharedPtr<Palette> value)
     // a change in the palette means a change in the node 
     this->palette->begin_update.connect(this->palette_begin_update_slot=[this](){
       beginUpdate(
-        StringTree("Change").write("target", "palette"),
-        StringTree("Change").write("target", "palette"));
+        StringTree("__change__"),
+        StringTree("__change__"));
     });
 
     this->palette->end_update.connect(this->palette_end_update_slot = [this]() {
-      VisusAssert(topRedo().name == "Change" && topRedo().readString("target") == "palette");
-      VisusAssert(topUndo().name == "Change" && topUndo().readString("target") == "palette");
-      topRedo().addChild(palette->topRedo());
-      topUndo().addChild(palette->topUndo());
+      topRedo() = createPassThroughAction(palette->topRedo(), "palette");
+      topUndo() = createPassThroughAction(palette->topUndo(), "palette");
       endUpdate();
     });
   }

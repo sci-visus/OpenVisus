@@ -73,7 +73,7 @@ public:
   virtual ~RenderArrayNode();
 
   //executeAction
-  virtual void executeAction(StringTree action) override;
+  virtual void executeAction(StringTree in) override;
 
   //getData
   Array getData() const {
@@ -95,8 +95,8 @@ public:
     return (data.clipping.valid() ? data.clipping : data.bounds);
   }
 
-  //getNodeBounds 
-  virtual Position getNodeBounds() override {
+  //getPosition 
+  virtual Position getPosition() override {
     return getDataBounds();
   }
 
@@ -107,7 +107,7 @@ public:
 
   //setLightingMaterial
   void setLightingMaterial(GLMaterial value) {
-    setObjectProperty("lighting_material", this->lighting_material, value);
+    setEncodedProperty("lighting_material", this->lighting_material, value);
   }
 
   //lightingEnabled

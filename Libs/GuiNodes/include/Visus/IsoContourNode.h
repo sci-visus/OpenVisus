@@ -105,7 +105,7 @@ public:
   virtual ~IsoContourNode();
 
   //executeAction
-  virtual void executeAction(StringTree action) override;
+  virtual void executeAction(StringTree in) override;
 
   //processInput
   virtual bool processInput() override;

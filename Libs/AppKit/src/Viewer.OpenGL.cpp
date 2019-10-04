@@ -77,7 +77,7 @@ public:
 void Viewer::guessGLCameraPosition(int ref)  
 {
   if (auto glcamera=getGLCamera())
-    glcamera->guessPosition(this->getWorldBounds(),ref);
+    glcamera->guessPosition(this->getWorldBox(),ref);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -411,7 +411,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
       if (auto globject = dynamic_cast<GLObject*>(node))
       {
         auto node_to_screen= computeNodeToScreen(getGLCamera()->getCurrentFrustum(),node);
-        Position bounds=getNodeBounds(node);
+        Position bounds= getPosition(node);
         bool bUseFarPoint=(nqueue==2);
         double distance= node_to_screen.computeZDistance(bounds,bUseFarPoint);
         if (bOrthoCamera || distance>=0)
@@ -423,7 +423,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
     {
       if (dataset_node->showBounds())
       {
-        auto bounds=getNodeBounds(dataset_node);
+        auto bounds= getPosition(dataset_node);
         GLBox(bounds,Colors::Transparent,Colors::Black.withAlpha(0.5)).glRender(gl);
       }
 
@@ -497,7 +497,7 @@ void Viewer::glRenderSelection(GLCanvas& gl)
 {
   if (Node* selection=getSelection())
   {
-    auto bounds=getNodeBounds(selection);
+    auto bounds= getPosition(selection);
     if (bounds.valid())
     {
       gl.pushFrustum();

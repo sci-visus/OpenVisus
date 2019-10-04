@@ -143,23 +143,24 @@ IsoContourRenderNode::~IsoContourRenderNode() {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-void IsoContourRenderNode::executeAction(StringTree action)
+void IsoContourRenderNode::executeAction(StringTree in)
 {
-  if (action.name == "SetProperty")
+  if (in.name == "set")
   {
-    auto name = action.readString("name");
-    if (name == "palette")
+    auto target_id = in.readString("target_id");
+
+    if (target_id == "palette")
     {
       SharedPtr<Palette> palette;
-      if (action.getNumberOfChilds() > 0)
-        palette = Decode<Palette>(*action.getFirstChild());
+      if (in.getNumberOfChilds() > 0)
+        palette = DecodeObject<Palette>(*in.getFirstChild());
       setPalette(palette);
       return;
     }
 
-    if (name == "material")
+    if (target_id == "material")
     {
-      setMaterial(*Decode<GLMaterial>(*action.getFirstChild()));
+      setMaterial(*DecodeObject<GLMaterial>(*in.getFirstChild()));
       return;
       return;
     }
@@ -168,7 +169,7 @@ void IsoContourRenderNode::executeAction(StringTree action)
 
 ///////////////////////////////////////////////////////////////////////////
 void IsoContourRenderNode::setMaterial(GLMaterial new_value) {
-  setObjectProperty("material", this->material, new_value);
+  setEncodedProperty("material", this->material, new_value);
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -179,21 +180,19 @@ void IsoContourRenderNode::setIsoContour(SharedPtr<IsoContour> value)
 
 
 ///////////////////////////////////////////////////////////////////////////
-void IsoContourRenderNode::setPalette(SharedPtr<Palette> value) {
-  if (this->palette == value)
+void IsoContourRenderNode::setPalette(SharedPtr<Palette> new_value) 
+{
+  auto& old_value = this->palette;
+  if (old_value == new_value)
     return;
 
-  value->texture.reset(); //force regeneration
+  new_value->texture.reset(); //force regeneration
 
-  auto redo = StringTree("SetProperty").write("name", "palette");
-  if (palette)
-    redo.addChild(palette->encode());
-
-  beginUpdate(
-    redo,
-    fullUndo());
+  auto redo = StringTree("set").write("target_id", "palette"); if (new_value) redo.addChild(new_value->encode());
+  auto undo = StringTree("set").write("target_id", "palette"); if (old_value) undo.addChild(old_value->encode());
+  beginUpdate(redo,undo);
   {
-    this->palette = value;
+    old_value = new_value;
   }
   endUpdate();
 }

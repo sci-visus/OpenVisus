@@ -59,7 +59,7 @@ public:
   virtual ~QueryNode();
 
   //executeAction
-  virtual void executeAction(StringTree action) override;
+  virtual void executeAction(StringTree in) override;
      
   //getDataset()
   SharedPtr<Dataset> getDataset();
@@ -83,7 +83,7 @@ public:
 
   //setVerbose
   void setVerbose(int value) {
-    this->setProperty("verbose", verbose, value);
+    this->setProperty("verbose", this->verbose, value);
   }
 
   //getAccessIndex
@@ -122,15 +122,15 @@ public:
     setProperty("quality", this->quality, value);
   }
 
-  //getNodeBounds
-  virtual Position getNodeBounds() override {
-    return node_bounds;
+  //getPosition
+  virtual Position getPosition() override {
+    return position;
   }
 
-  //setNodeBounds
-  void setNodeBounds(Position value,bool bForce=false) {
-    if (node_bounds ==value && !bForce) return;
-    setObjectProperty("node_bounds", this->node_bounds, value);
+  //setPosition
+  void setPosition(Position value,bool bForce=false) {
+    if (position ==value && !bForce) return;
+    setEncodedProperty("position", this->position, value);
   }
 
   //getQueryBounds
@@ -200,7 +200,7 @@ private:
   bool               view_dependent_enabled = false;
   int                progression = QueryGuessProgression;
   int                quality = QueryDefaultQuality;
-  Position           node_bounds = Position::invalid();
+  Position           position = Position::invalid();
 
   //run time derived properties
   Frustum            node_to_screen;

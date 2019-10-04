@@ -76,8 +76,8 @@ public:
     return kdarray;
   }
 
-  //getNodeBounds (in physic coordinates)
-  virtual Position getNodeBounds() override
+  //getPosition (in physic coordinates)
+  virtual Position getPosition() override
   {
     if (!kdarray) return Position::invalid();
     return (kdarray->clipping.valid())? kdarray->clipping : Position(kdarray->bounds);
