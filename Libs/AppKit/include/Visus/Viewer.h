@@ -343,13 +343,16 @@ public:
   //autoConnectPorts
   void autoConnectPorts();
 
-  //fastRendering
-  bool fastRendering() const {
-    return fast_rendering;
+  //isMouseDragging
+  bool isMouseDragging() const {
+    return mouse_dragging;
   }
 
-  //writeConfigString
-  void setFastRendering(bool value);
+  //setMouseDragging
+  void setMouseDragging(bool value);
+
+  //scheduleMouseDragging
+  void scheduleMouseDragging(bool value, int msec);
 
   //reloadVisusConfig
   void reloadVisusConfig(bool bChooseAFile = false);
@@ -813,7 +816,7 @@ private:
   //run time (i.e. don't need to be saved)
   UniquePtr<QTimer>                     idle_timer;
   UniquePtr<QTimer>                     save_session_timer;
-  bool                                  fast_rendering = false;
+  bool                                  mouse_dragging = false;
   SharedPtr<FreeTransform>              free_transform;
   SharedPtr<Icons>                      icons;
   GuiActions                            actions;

@@ -184,9 +184,9 @@ void Viewer::executeAction(StringTree in)
   {
     auto target_id = in.readString("target_id");
 
-    if (target_id == "fast_rendering")
+    if (target_id == "mouse_dragging")
     {
-      setFastRendering(in.readBool("value"));
+      setMouseDragging(in.readBool("value"));
       return;
     }
 
@@ -391,13 +391,13 @@ void Viewer::executeAction(StringTree in)
     auto nodes = StringUtils::split(in.readString("node"));
 
     if (nodes.size() > 1)
-      beginUpdate(Transaction("remove node"), Transaction("remove node"));
+      beginTransaction();
 
     for (auto node : nodes)
       removeNode(findNodeByUUID(node));
 
     if (nodes.size() > 1)
-      endUpdate();
+      endTransaction();
 
     return;
   }
@@ -1394,7 +1394,7 @@ bool Viewer::open(String url,Node* parent,bool bShowUrlDialogIfNeeded)
 
   beginUpdate(
     StringTree("open").write("url",dataset->getUrl()).write("parent",getUUID(parent)),
-    Transaction("open"));
+    Transaction());
   {
     //make sure there is a camera
     auto glcamera=getGLCamera();
@@ -1528,11 +1528,25 @@ void Viewer::dropProcessing()
 }
 
 ////////////////////////////////////////////////////////////////////
-void Viewer::setFastRendering(bool new_value)
+void Viewer::setMouseDragging(bool new_value)
 {
-  Model::setProperty("fast_rendering",this->fast_rendering,new_value);
+  Model::setProperty("mouse_dragging",this->mouse_dragging,new_value);
   postRedisplay();
 }
+
+
+////////////////////////////////////////////////////////////////////
+void Viewer::scheduleMouseDragging(bool value, int msec)
+{
+  //stop dragging: postpone a little the end-drag event for the camera
+  widgets.glcanvas->mouse_timer.reset(new QTimer());
+  connect(widgets.glcanvas->mouse_timer.get(), &QTimer::timeout, [this, value] {
+    widgets.glcanvas->mouse_timer.reset();
+    setMouseDragging(value);
+  });
+  widgets.glcanvas->mouse_timer->start(msec);
+}
+
 
 ////////////////////////////////////////////////////////////////////
 void Viewer::setSelection(Node* new_value)
@@ -1626,17 +1640,17 @@ void Viewer::addNode(Node* parent,Node* node,int index)
 
   dropSelection();
 
-  beginUpdate(Transaction(), Transaction());
+  beginTransaction();
   {
     beginUpdate(
-      StringTree("add").write("what","node").write("parent",getUUID(parent)).write("index",index).addChild(node->encode()),
+      StringTree("add").write("what","node").write("parent",getUUID(parent)).write("index",index).addChild(EncodeObject(*node)),
       StringTree("remove").write("node",getUUID(node)));
     {
       dataflow->addNode(parent, node, index);
     }
     endUpdate();
   }
-  endUpdate();
+  endTransaction();
   
   if (auto glcamera_node=dynamic_cast<GLCameraNode*>(node))
     attachGLCamera(glcamera_node->getGLCamera());
@@ -1650,11 +1664,13 @@ void Viewer::removeNode(Node* NODE)
   if (!NODE)
     return;
 
-  dropProcessing();
-  dropSelection();
-
-  beginUpdate(Transaction("remove node"), Transaction("remove node"));
+  beginUpdate(
+    StringTree("remove").write("node",getUUID(NODE)), 
+    Transaction());
   {
+    dropProcessing();
+    dropSelection();
+
     for (auto node : NODE->reversedBreadthFirstSearch())
     {
       VisusAssert(node->getChilds().empty());
@@ -1662,6 +1678,7 @@ void Viewer::removeNode(Node* NODE)
       if (auto glcamera_node = dynamic_cast<GLCameraNode*>(node))
         detachGLCamera();
 
+      //disconnect inputs
       for (auto input : node->inputs)
       {
         DataflowPort* iport = input.second; VisusAssert(iport->outputs.empty());//todo multi dataflow
@@ -1685,14 +1702,14 @@ void Viewer::removeNode(Node* NODE)
 
       VisusAssert(node->isOrphan());
 
-      beginUpdate(
-        StringTree("remove").write("node", getUUID(node)),
-        StringTree("add").write("what","node").write("parent", getUUID(node->getParent())).write("index", cstring(node->getIndexInParent())).addChild(node->encode()));
-      {
-        //don't care about disconnecting slots, the node is going to be deallocated
-        dataflow->removeNode(node);
-      }
-      endUpdate();
+      Utils::push_front(topUndo().childs,
+        std::make_shared<StringTree>(
+          StringTree("add")
+            .write("what", "node")
+            .write("parent", getUUID(node->getParent()))
+            .write("index", cstring(node->getIndexInParent())).addChild(EncodeObject(*node))));
+
+      dataflow->removeNode(node);
     }
 
     autoConnectPorts();
@@ -1731,7 +1748,7 @@ void Viewer::disconnectPorts(Node* from,String oport,String iport,Node* to)
 ////////////////////////////////////////////////////////////////////////
 void Viewer::autoConnectPorts()
 {
-  beginUpdate(Transaction("autoConnectPorts"), Transaction("autoConnectPorts"));
+  beginTransaction();
 
   for (auto node : getRoot()->breadthFirstSearch())
   {
@@ -1765,7 +1782,8 @@ void Viewer::autoConnectPorts()
     }
   }
 
-  endUpdate();
+  endTransaction();
+
   postRedisplay();
 }
 
@@ -1853,7 +1871,7 @@ GLCameraNode* Viewer::addGLCamera(Node* parent, SharedPtr<GLCamera> glcamera)
   dropSelection();
 
   beginUpdate(
-    StringTree("add").write("what","glcamera").write("parent", getUUID(parent)).addChild(glcamera->encode()),
+    StringTree("add").write("what","glcamera").write("parent", getUUID(parent)).addChild(EncodeObject(*glcamera)),
     StringTree("remove").write("node",getUUID(glcamera_node)));
   {
     addNode(parent, glcamera_node,/*index*/0);
@@ -2337,7 +2355,7 @@ ModelViewNode* Viewer::addModelView(Node* parent,bool insert)
 
   beginUpdate(
     StringTree("add").write("what","modelview").write("parent", getUUID(parent)).write("insert", insert),
-    insert? Transaction("add modelview") : StringTree("remove").write("node", getUUID(modelview_node)));
+    insert? Transaction() : StringTree("remove").write("node", getUUID(modelview_node)));
   {
     if (insert)
     {
@@ -2484,7 +2502,7 @@ void Viewer::writeTo(StringTree& out) const
   for (auto node : dataflow->getNodes())
   {
     if (node->getParent()) continue;
-    out.addChild(StringTree("add").write("what","node").addChild(node->encode()));
+    out.addChild(StringTree("add").write("what","node").addChild(EncodeObject(*node)));
   }
 
   //then the nodes in the tree...important the order! parents before childs
@@ -2495,7 +2513,7 @@ void Viewer::writeTo(StringTree& out) const
     out.addChild(StringTree("add")
       .write("what", "node")
       .write("parent", getUUID(node->getParent()))
-      .addChild(node->encode()));
+      .addChild(EncodeObject(*node)));
   }
 
   //ConnectPorts actions
@@ -2535,6 +2553,8 @@ void Viewer::readFrom(StringTree& in)
     this->executeAction(*child);
   }
 }
+
+
 
 } //namespace Visus
 

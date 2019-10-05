@@ -62,12 +62,6 @@ public:
   }
 };
 
-inline StringTree Transaction(String description="") {
-  auto ret=StringTree("transaction");
-  if (!description.empty())
-    ret.write("description", description);
-  return ret;
-}
 
 //////////////////////////////////////////////////////////
 class VISUS_KERNEL_API Model
@@ -113,17 +107,17 @@ public:
 
   //isUpdating
   inline bool isUpdating() const {
-    return redos.size() > 0;
+    return redo_stack.size() > 0;
   }
 
   //topRedo
   StringTree& topRedo() {
-    return redos.top();
+    return redo_stack.top();
   }
 
   //topUndo
   StringTree& topUndo() {
-    return undos.top();
+    return undo_stack.top();
   }
 
   //beginUpdate
@@ -131,6 +125,36 @@ public:
 
   //endUpdate
   void endUpdate();
+
+  //beginTransaction
+  void beginTransaction() {
+    beginUpdate(Transaction(),Transaction());
+  }
+
+  //endTransaction
+  void endTransaction() {
+    endUpdate();
+  }
+
+  //Transaction
+  static StringTree Transaction() {
+    return StringTree("transaction");
+  }
+
+  //isTransaction
+  bool isTransaction(const StringTree& action) const {
+    return action.name == "transaction";
+  }
+
+  //Diff
+  static StringTree Diff() {
+    return StringTree("diff");
+  }
+
+  //isDiff
+  bool isDiff(const StringTree& action) const {
+    return action.name == "diff";;
+  }
 
 public:
 
@@ -164,54 +188,24 @@ public:
 
 
   //popTargetId
-  String popTargetId(StringTree& action) {
-    auto v = StringUtils::split(action.readString("target_id"), "/");
-    if (v.empty()) return "";
-    auto left = v[0];
-    auto right=StringUtils::join(std::vector<String>(v.begin() + 1, v.end()), "/");
-    action.removeAttribute("target_id");  //i want the target_id at the beginning of attributes
-    action.attributes.insert(action.attributes.begin(), std::make_pair("target_id", right));
-    return left;
-  }
+  String popTargetId(StringTree& action);
 
   //pushTargetId
-  void pushTargetId(StringTree& action,String target_id) {
-    auto right = action.readString("target_id");
-    if (!right.empty()) target_id = target_id + "/" + right;
-    action.removeAttribute("target_id"); //i want the target_id at the beginning of attributes
-    action.attributes.insert(action.attributes.begin(), std::make_pair("target_id", target_id));
-  }
+  void pushTargetId(StringTree& action, String target_id);
 
   //createPassThroughAction
-  StringTree createPassThroughAction(StringTree action, String target_id) {
-    auto ret = action;
-    pushTargetId(ret, target_id);
-    return ret;
-  }
+  StringTree createPassThroughAction(StringTree action, String target_id);
 
   //getPassThroughAction
-  bool getPassThroughAction(StringTree& action, String match) {
-    auto v = StringUtils::split(action.readString("target_id"), "/");
-    if (v.empty() || v[0]!=match) return false;
-    popTargetId(action);
-    return true;
-  }
+  bool getPassThroughAction(StringTree& action, String match);
 
 public:
 
   //copy
-  static void copy(Model& dst, StringTree redo)
-  {
-    auto undo = dst.encode("copy");
-    dst.beginUpdate(redo, undo);
-    dst.readFrom(redo);
-    dst.endUpdate();
-  }
+  static void copy(Model& dst, StringTree redo);
 
   //copy
-  static void copy(Model& dst, const Model& src) {
-    return copy(dst, src.encode("copy"));
-  }
+  static void copy(Model& dst, const Model& src);
 
     //executeAction
   virtual void executeAction(StringTree action);
@@ -220,12 +214,12 @@ public:
 
   //canRedo
   bool canRedo() const {
-    return !undo_redo.empty() && n_undo_redo < undo_redo.size();
+    return !undo_redo.empty() && cursor_undo_redo < undo_redo.size();
   }
 
   //canUndo
   bool canUndo() const {
-    return !undo_redo.empty() && n_undo_redo > 0;
+    return !undo_redo.empty() && cursor_undo_redo > 0;
   }
 
   //redo
@@ -260,14 +254,6 @@ protected:
   virtual void modelChanged() {
   }
 
-public:
-
-  //encode
-  StringTree encode(String name = "") const {
-    if (name.empty()) name = getTypeName();
-    return EncodeObject(*this, name);
-  }
-
 private:
 
   typedef std::pair<StringTree, StringTree> UndoRedo;
@@ -275,16 +261,22 @@ private:
   StringTree               history;
   String                   log_filename;
   std::ofstream            log;
-  std::stack<StringTree>   redos;
-  std::stack<StringTree>   undos;
+  std::stack<StringTree>   redo_stack;
+  std::stack<StringTree>   undo_stack;
   std::vector<UndoRedo>    undo_redo;
-  int                      n_undo_redo = 0;
-  bool                     bUndoingRedoing = false;
+  int                      cursor_undo_redo = 0;
+  bool                     bUndoing = false;
+  bool                     bRedoing = false;
   Int64                    utc=0;
   StringTree               diff_begin;
 
 };
 
+
+//encode
+inline VISUS_KERNEL_API StringTree EncodeObject(Model& model, String root_name = "") {
+  return EncodeObject<Model>(model, root_name.empty() ? model.getTypeName() : root_name);
+}
 
 //////////////////////////////////////////////////////////
 template <class ModelClassArg>

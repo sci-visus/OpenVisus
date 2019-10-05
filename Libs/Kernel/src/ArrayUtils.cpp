@@ -838,7 +838,7 @@ static Array CastArray(Array src, DType dtype, Aborted& aborted)
 
   dst.shareProperties(src);
 
-  //what to do with the DTypeRange?
+  //what to do with the SingleComponentRange?
 
   Dtype* dst_p = (Dtype*)dst.c_ptr();
   Stype* src_p = (Stype*)src.c_ptr();
@@ -1180,7 +1180,7 @@ Array ArrayUtils::resample(PointNi target_dims,Array rbuffer, Aborted aborted)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-struct ComputeRangeOp
+struct ComputeSingleComponentRangeOp
 {
   template<class CppType>
   static bool execute(Range& range,Array src, int ncomponent, Aborted aborted)
@@ -1208,45 +1208,37 @@ struct ComputeRangeOp
   }
 };
 
-/////////////////////////////////////////////////////////////////////////////
-Range ComputeRange::doCompute(Array src, int C,Aborted aborted) 
-{
-  auto mode=this->mode;
 
+Range ArrayUtils::computeRange(Array src, int C, Aborted aborted)
+{
+  Range ret;
+  ComputeSingleComponentRangeOp op;
+  ExecuteOnCppSamples(op, src.dtype, ret, src, C, aborted);
+  return ret;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+Range ArrayUtils::computeRange(Array src, int C, int mode, Aborted aborted)
+{
   //not a valid component
   if (!(C >= 0 && C < src.dtype.ncomponents()))
     return Range::invalid();
 
-  if (mode==UseCustomRange)
-    return custom_range;
-
-  if (mode==UseArrayRange)
+  if (mode==UseDTypeRange)
   {
     Range ret = src.dtype.getDTypeRange(C);
-    if (ret.delta()>0)
-      return ret;
-
-    mode=PerComponentRange;
+    return ret.delta() > 0? ret : ArrayUtils::computeRange(src,C,aborted);
   }
 
-  if (mode==PerComponentRange)
-  {
-    Range ret;
-    ComputeRangeOp op;
-    ExecuteOnCppSamples(op,src.dtype,ret,src,C,aborted);
-    return ret;
+  if (mode == ComputeSingleComponentRange) {
+    return ArrayUtils::computeRange(src, C, aborted);
   }
 
-  if (mode==ComputeOverallRange)
-  {
-    Range ret=Range::invalid();
-    for (int C = 0; C < src.dtype.ncomponents(); C++)
-      ret = ret.getUnion(ComputeRange(PerComponentRange).doCompute(src,C,aborted));
-    return ret;
-  }
-
-  VisusAssert(false);
-  return Range::invalid();
+  VisusReleaseAssert(mode == ComputeAllComponentsRange);
+  Range ret=Range::invalid();
+  for (int C = 0; C < src.dtype.ncomponents(); C++)
+    ret = ret.getUnion(ArrayUtils::computeRange(src, C, aborted));
+  return ret;
 }
 
 
@@ -2575,7 +2567,7 @@ struct ConvolveOp
       return false;
     }
 
-    //what to do with (set|get)DTypeRange?
+    //what to do with (set|get)SingleComponentRange?
 
     //for each component...
     int ncomponents=src.dtype.ncomponents();
@@ -2998,7 +2990,9 @@ struct ApplyTransferFunctionOp2
       auto S = Utils::clamp(I, 0, src_ncomponents - 1); auto SRC = GetComponentSamples<SrcType>(src, S);
 
       dst.dtype = dst.dtype.withDTypeRange(tf.getOutputRange(), I);
-      auto  vs_t = tf.getInputRange().doCompute(src, SRC.C, aborted).getScaleTranslate();
+
+      auto input_range = tf.computeRange(src, SRC.C, aborted);
+      auto  vs_t = input_range.getScaleTranslate();
 
       Range dst_range = tf.getOutputRange();
 

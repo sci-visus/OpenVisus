@@ -194,7 +194,7 @@ void Viewer::glCanvasMousePressEvent(QMouseEvent* evt)
   //start dragging
   widgets.glcanvas->mouse_timer.reset();
   if (!widgets.glcanvas->mouse.getNumberOfButtonDown())
-    setFastRendering(true);
+    setMouseDragging(true);
 
   widgets.glcanvas->mouse.glMousePressEvent(evt);
   
@@ -249,7 +249,7 @@ void Viewer::glCanvasMouseReleaseEvent(QMouseEvent* evt)
     free_transform->glMouseReleaseEvent(FrustumMap(glcamera->getCurrentFrustum()),evt);
     if (evt->isAccepted()) 
     {
-      setFastRendering(false);
+      setMouseDragging(false);
 
       //need to get all levels now that mouse is not dragging anymore
       if (free_transform && getWorldDimension()==3)
@@ -262,16 +262,9 @@ void Viewer::glCanvasMouseReleaseEvent(QMouseEvent* evt)
 
   glcamera->glMouseReleaseEvent(evt);
 
-  //stop dragging: postpone a little the end-drag event for the camera
-  if (!widgets.glcanvas->mouse.getNumberOfButtonDown() && fastRendering())
-  {
-    widgets.glcanvas->mouse_timer.reset(new QTimer());
-    connect(widgets.glcanvas->mouse_timer.get(),&QTimer::timeout,[this](){
-      widgets.glcanvas->mouse_timer.reset();
-      setFastRendering(false);
-    });
-    widgets.glcanvas->mouse_timer->start(1000); 
-  }
+  //postpone a little the end-drag event for the camera
+  if (!widgets.glcanvas->mouse.getNumberOfButtonDown() && isMouseDragging())
+    scheduleMouseDragging(false, 1000);
 
   //click == change current selection
   if (evt->button()==Qt::LeftButton && widgets.glcanvas->mouse.wasSingleClick(evt->button()))
@@ -322,17 +315,11 @@ void Viewer::glCanvasWheelEvent(QWheelEvent* evt)
   widgets.glcanvas->mouse_timer.reset();
   if (!widgets.glcanvas->mouse.getNumberOfButtonDown())
   {
-    setFastRendering(true);
+    setMouseDragging(true);
 
     glcamera->glWheelEvent(evt);
 
-    //stop dragging: postpone a little the end-drag event for the camera
-    widgets.glcanvas->mouse_timer.reset(new QTimer());
-    connect(widgets.glcanvas->mouse_timer.get(),&QTimer::timeout,[this]{
-      widgets.glcanvas->mouse_timer.reset();
-      setFastRendering(false);      
-    });
-    widgets.glcanvas->mouse_timer->start(1000); 
+    scheduleMouseDragging(false, 1000);
   }
   else
   {
@@ -380,7 +367,6 @@ int Viewer::glGetRenderQueue(Node* node)
 
   return DoNotDisplay;
 }
-
 
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -482,7 +468,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
     if (auto obj=sorted_node.globject)
     {
       if (auto render=dynamic_cast<RenderArrayNode*>(obj))
-        render->bFastRendering=fastRendering();
+        render->bFastRendering=isMouseDragging();
 
       obj->glRender(gl);
     }

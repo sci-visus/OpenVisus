@@ -79,13 +79,6 @@ void GLOrthoCamera::executeAction(StringTree in)
       return;
     }
 
-    if (target_id == "viewport")
-    {
-      auto value = Viewport::fromString(in.readString("value"));
-      setViewport(value);
-      return;
-    }
-
     if (target_id == "min_zoom")
     {
       auto value = in.readDouble("value");
@@ -172,12 +165,12 @@ bool GLOrthoCamera::guessPosition(BoxNd bounds,int ref)
     params.zFar  = Z - 1;
   }
 
-  beginUpdate(Transaction(),Transaction());
+  beginTransaction();
   {
     setLookAt(pos, dir, vup, /*rotation*/0.0);
     setOrthoParams(params.withAspectRatio(W, H), /*smooth*/ 0.0);
   }
-  endUpdate();
+  endTransaction();
 
   return true;
 }
@@ -234,21 +227,15 @@ void GLOrthoCamera::setOrthoParams(GLOrthoParams new_value,double smooth)
 //////////////////////////////////////////////////
 void GLOrthoCamera::setViewport(Viewport new_value)
 {
-  auto old_value=this->viewport;
-  if (old_value == new_value)
-    return;
+  //NOTE the viewport is not part of the model
+  auto old_value = this->viewport;
+  if (old_value == new_value) return;
+  this->viewport = new_value;
 
   //try to keep the ortho params (if possible)
-  auto params=getOrthoParams().withAspectRatio(old_value, new_value);
-
-  beginUpdate(
-    StringTree("set").write("target_id", "viewport").write("value", new_value.toString()),
-    StringTree("set").write("target_id", "viewport").write("value", old_value.toString()));
-  {
-    this->viewport = new_value;
-    setOrthoParams(params, /*smoth*/0.0);
-  }
-  endUpdate();
+  auto params = getOrthoParams().withAspectRatio(old_value, new_value);
+  setOrthoParams(params, /*smoth*/0.0);
+  this->redisplay_needed.emitSignal();
 }
 
 ////////////////////////////////////////////////////////////////

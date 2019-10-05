@@ -210,6 +210,24 @@ public:
   //split
   static std::vector<String> split(String source, String separator = " ", bool bPurgeEmptyItems = true);
 
+  //parseInts
+  static std::vector<int> parseInts(String source, String separator = " ", bool bPurgeEmptyItems = true) {
+    std::vector<int> ret;
+    auto v = split(source, separator, bPurgeEmptyItems);
+    for (auto it : v)
+      ret.push_back(cint(it));
+    return ret;
+  }
+
+  //parseDoubles
+  static std::vector<double> parseDoubles(String source, String separator = " ", bool bPurgeEmptyItems = true) {
+    std::vector<double> ret;
+    auto v = split(source, separator, bPurgeEmptyItems);
+    for (auto it : v)
+      ret.push_back(cdouble(it));
+    return ret;
+  }
+
   //splitInChunks
   static std::vector<String> splitInChunks(String source, int chunk) {
     std::vector<String> ret;

@@ -363,13 +363,13 @@ public:
     // painting functions
     if (model && evt->button()==Qt::LeftButton && model->functions.size())
     { 
-      model->beginUpdate(Transaction(), Transaction());
+      model->beginTransaction();
       dragging.reset(new QTimer());
 #if 0
       //do not send too much updates
       connect(dragging.get(),&QTimer::timeout,[this](){
-        model->endUpdate();
-        model->beginUpdate(Transaction(), Transaction());
+        model->endTransaction();
+        model->beginTransaction();
       });
       dragging->start(500);
 #endif
@@ -409,7 +409,7 @@ public:
   {
     if (dragging)
     {
-      model->endUpdate();
+      model->endTransaction();
       dragging.reset();
     }
     else
@@ -632,7 +632,10 @@ private:
 
       auto other=TransferFunction::fromArray(src);
       if (useColorVarMax || useColorVarMin)
-        other->setInputRange(ComputeRange::createCustom(colorVarMin, colorVarMax));
+      {
+        other->setRange(Range(colorVarMin, colorVarMax, 0));
+        other->setInputNormalizationMode(ArrayUtils::UseFixedRange);
+      }
       other->setOutputDType(isFloatRange ? DTypes::FLOAT32_RGBA : DTypes::UINT8_RGBA);
       other->setAttenutation(attenuation);
 
@@ -692,23 +695,12 @@ public:
   class Widgets
   {
   public:
-    QLineEdit*  nsamples=nullptr;
-    struct 
-    {
-      struct 
-      {
-        QComboBox* mode=nullptr;
-        struct 
-        {
-          QLineEdit *from=nullptr;
-          QLineEdit *to=nullptr;
-        } 
-        custom_range;
-      }
-      normalization;
-    }
-    input;
+    QLineEdit* nsamples = nullptr;
+    QComboBox* input_normalization_mode = nullptr;
+    QLineEdit* range_from = nullptr;
+    QLineEdit* range_to = nullptr;
   };
+
   Widgets widgets;
 
   //constructor
@@ -739,30 +731,26 @@ public:
 
       layout->addWidget(new QLabel("X axis"));
 
-      auto normalization = model->getInputRange();
-      
       layout->addWidget(new QLabel("Num samples"));
       layout->addWidget(widgets.nsamples = GuiFactory::CreateIntegerTextBoxWidget((int)model->getNumberOfSamples(), [this](int nsamples) {
         model->setNumberOfSamples(nsamples);
       }));
 
-      std::vector<String> options={"Use Array Range","Compute Range Per Component", "Compute Overall Range","Use Custom Range"};
+      std::vector<String> options = { "DType Range", "Range Per Component", "Overall Range", "Use Custom Range" };
       layout->addWidget(new QLabel("Normalization mode"));
-      layout->addWidget(widgets.input.normalization.mode = GuiFactory::CreateComboBox(options[0],options,[this](String value) {
-        updateInputNormalization();
+      layout->addWidget(widgets.input_normalization_mode = GuiFactory::CreateComboBox(options[0],options,[this](String value) {
+        updateInputNormalizationMode();
       }));
       
       layout->addWidget(new QLabel("Custom Range from"));
-      layout->addWidget(widgets.input.normalization.custom_range.from = GuiFactory::CreateDoubleTextBoxWidget(normalization.custom_range.from, [this](double value) {
-        updateInputNormalization();
+      layout->addWidget(widgets.range_from = GuiFactory::CreateDoubleTextBoxWidget(model->getRange().from, [this](double value) {
+        updateRange();
       }));
-      widgets.input.normalization.custom_range.from->setEnabled(normalization.isCustom());
 
       layout->addWidget(new QLabel("Custom Range to"));
-      layout->addWidget(widgets.input.normalization.custom_range.to = GuiFactory::CreateDoubleTextBoxWidget(normalization.custom_range.to, [this](double value) {
-        updateInputNormalization();
+      layout->addWidget(widgets.range_to = GuiFactory::CreateDoubleTextBoxWidget(model->getRange().to, [this](double value) {
+        updateRange();
       }));
-      widgets.input.normalization.custom_range.to->setEnabled(normalization.isCustom());
 
       setLayout(layout);
       refreshGui();
@@ -771,29 +759,32 @@ public:
 
 private:
 
-  //updateInputNormalization
-  void updateInputNormalization()
+  //updateInputNormalizationMode
+  void updateInputNormalizationMode()
   {
-    auto value = model->getInputRange();
-    value.mode = (ComputeRange::Mode)widgets.input.normalization.mode->currentIndex();
-    value.custom_range.from = cdouble(widgets.input.normalization.custom_range.from->text());
-    value.custom_range.to = cdouble(widgets.input.normalization.custom_range.to->text());
-    value.custom_range.step = model->getOutputDType().isDecimal() ? 0.0 : 1.0;
-    model->setInputRange(value);
+    int value = widgets.input_normalization_mode->currentIndex();
+    model->setInputNormalizationMode(value);
+
+  }
+
+  //updateRange
+  void updateRange()
+  {
+    Range range;
+    range.from = cdouble(widgets.range_from->text());
+    range.to = cdouble(widgets.range_to->text());
+    range.step = model->getOutputDType().isDecimal() ? 0.0 : 1.0;
+    model->setRange(range);
   }
 
   //refreshGui
   void refreshGui()
   {
-    auto normalization = model->getInputRange();
     widgets.nsamples->setText(cstring(model->getNumberOfSamples()).c_str());
-    widgets.input.normalization.mode->setCurrentIndex(normalization.mode);
+    widgets.input_normalization_mode->setCurrentIndex(model->getInputNormalizationMode());
 
-    auto& dst = widgets.input.normalization.custom_range;
-    dst.from->setText(cstring(normalization.custom_range.from).c_str());
-    dst.to->setText(cstring(normalization.custom_range.to).c_str());
-    dst.from->setEnabled(normalization.isCustom());
-    dst.to->setEnabled  (normalization.isCustom());
+    widgets.range_from->setText(cstring(model->getRange().from).c_str());
+    widgets.range_to  ->setText(cstring(model->getRange().to).c_str());
   }
 
   //modelChanged

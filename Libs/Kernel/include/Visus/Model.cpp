@@ -54,6 +54,54 @@ Model::~Model() {
 }
 
 ///////////////////////////////////////////////////////////////
+String Model::popTargetId(StringTree& action) {
+  auto v = StringUtils::split(action.readString("target_id"), "/");
+  if (v.empty()) return "";
+  auto left = v[0];
+  auto right = StringUtils::join(std::vector<String>(v.begin() + 1, v.end()), "/");
+  action.removeAttribute("target_id");  //i want the target_id at the beginning of attributes
+  action.attributes.insert(action.attributes.begin(), std::make_pair("target_id", right));
+  return left;
+}
+
+///////////////////////////////////////////////////////////////
+void Model::pushTargetId(StringTree& action, String target_id) {
+  auto right = action.readString("target_id");
+  if (!right.empty()) target_id = target_id + "/" + right;
+  action.removeAttribute("target_id"); //i want the target_id at the beginning of attributes
+  action.attributes.insert(action.attributes.begin(), std::make_pair("target_id", target_id));
+}
+
+///////////////////////////////////////////////////////////////
+StringTree Model::createPassThroughAction(StringTree action, String target_id) {
+  auto ret = action;
+  pushTargetId(ret, target_id);
+  return ret;
+}
+
+///////////////////////////////////////////////////////////////
+bool Model::getPassThroughAction(StringTree& action, String match) {
+  auto v = StringUtils::split(action.readString("target_id"), "/");
+  if (v.empty() || v[0] != match) return false;
+  popTargetId(action);
+  return true;
+}
+
+///////////////////////////////////////////////////////////////
+void Model::copy(Model& dst, StringTree redo)
+{
+  auto undo = EncodeObject(dst,"copy");
+  dst.beginUpdate(redo, undo);
+  dst.readFrom(redo);
+  dst.endUpdate();
+}
+
+///////////////////////////////////////////////////////////////
+void Model::copy(Model& dst, const Model& src) {
+  return copy(dst, EncodeObject(src,"copy"));
+}
+
+///////////////////////////////////////////////////////////////
 void Model::executeAction(StringTree redo)
 {
   if (redo.name == "copy")
@@ -61,9 +109,9 @@ void Model::executeAction(StringTree redo)
     return copy(*this, redo);
   }
 
-  if (redo.name == "transaction")
+  if (isTransaction(redo))
   {
-    beginUpdate(redo, Transaction());
+    beginUpdate(Transaction(), Transaction());
     {
       for (auto sub_action : redo.childs)
       {
@@ -75,14 +123,14 @@ void Model::executeAction(StringTree redo)
     return;
   }
 
-  if (redo.name == "diff")
+  if (isDiff(redo))
   {
     auto patch = redo.readText("patch");
-    auto diff = Diff(StringUtils::getNonEmptyLines(patch));
+    auto diff = Visus::Diff(StringUtils::getNonEmptyLines(patch));
     if (diff.empty())
       return;
 
-    auto encoded = this->encode();
+    auto encoded = EncodeObject(*this);
 
     std::vector<String> curr = StringUtils::getNonEmptyLines(encoded.toXmlString());
     std::vector<String> next = diff.applyDirect(curr);
@@ -98,7 +146,7 @@ void Model::executeAction(StringTree redo)
       ThrowException(error_msg);
     }
 
-    beginUpdate(redo, StringTree("diff"));
+    beginUpdate(redo, Diff());
     {
       readFrom(encoded);
     }
@@ -128,12 +176,16 @@ void Model::enableLog(String filename)
 ///////////////////////////////////////////////////////////////
 void Model::clearHistory()
 {
+  VisusAssert(!isUpdating());
+  VisusAssert(!bUndoing);
+  VisusAssert(!bRedoing);
   this->history = StringTree();
-  this->redos = std::stack<StringTree>();
-  this->undos = std::stack<StringTree>();
+  this->redo_stack = std::stack<StringTree>();
+  this->undo_stack = std::stack<StringTree>();
   this->undo_redo.clear();
-  this->n_undo_redo = 0;
-  this->bUndoingRedoing = false;
+  this->cursor_undo_redo = 0;
+  this->bUndoing = false;
+  this->bRedoing = false;
   this->utc = Time::now().getUTCMilliseconds();
   enableLog(this->log_filename);
 }
@@ -141,99 +193,132 @@ void Model::clearHistory()
 ///////////////////////////////////////////////////////////////
 void Model::beginUpdate(StringTree redo, StringTree undo)
 {
-  auto utc = Time::now().getUTCMilliseconds()-this->utc;
-  redo.write("utc", utc);
-  undo.write("utc", utc);
+  bool bTopLevel = (redo_stack.size() == 0);
 
-  undo.write("is_undo", true);
+  //only top level (note: it's important to overwrite the utc in case of undo/redo)
+  if (bTopLevel)
+  {
+    auto utc = Time::now().getUTCMilliseconds() - this->utc;
+    redo.write("utc", utc);
+    undo.write("utc", utc);
+  }
 
-  //note only the root action is important
-  if (!isUpdating() && (redo.name == "diff" || undo.name == "diff"))
-    this->diff_begin = this->encode();
+  //take care of undo/redo
+  {
+    //note only the root action is important
+    if (!isUpdating() && (isDiff(redo) || isDiff(undo)))
+      this->diff_begin = EncodeObject(*this);
 
-  //collect at the end
-  if (!redos.empty() && topRedo().name == "transaction")
-    topRedo().childs.insert(topRedo().childs.end(), std::make_shared<StringTree>(redo)); 
+    //collect redo_stack at the end
+    if (!bTopLevel && isTransaction(topRedo()))
+      Utils::push_back(topRedo().childs, std::make_shared<StringTree>(redo));
 
-  //collect at the beginning
-  if (!undos.empty() && topUndo().name == "transaction")
-    topUndo().childs.insert(topUndo().childs.begin(), std::make_shared<StringTree>(undo));
+    //collect redo_stack at the begin (since they need to be executed in reverse order)
+    if (!bTopLevel && isTransaction(topUndo()))
+      Utils::push_front(topUndo().childs, std::make_shared<StringTree>(undo));
 
-  redos.push(redo);
-  undos.push(undo);
+    this->redo_stack.push(redo);
+    this->undo_stack.push(undo);
+  }
 
-  if (bool bBegin = (redos.size() == 1))
+  //emit signal
+  if (bTopLevel)
     begin_update.emitSignal();
 }
 
 ///////////////////////////////////////////////////////////////
 void Model::endUpdate()
 {
-  //final one?
-  if (redos.size() == 1)
+  bool bTopLevel = (redo_stack.size() == 1);
+
+  if (bTopLevel)
   {
-    auto& redo = topRedo();
-    auto& undo = topUndo();
-
-    //special case for diff action
-    if (redo.name == "diff" || undo.name=="diff")
+    //the redo/undo I've stored in my undo_redo vector be more sintetic than the new one
+    if (bRedoing)
     {
-      auto A = diff_begin;
-      auto B = this->encode();
+      topRedo() = undo_redo[cursor_undo_redo].first;
+      topUndo() = undo_redo[cursor_undo_redo].second;
+      cursor_undo_redo += 1;
+    }
+    else if (bUndoing)
+    {
+      cursor_undo_redo -= 1;
+      topRedo() = undo_redo[cursor_undo_redo].second;
+      topUndo() = undo_redo[cursor_undo_redo].first;
+    }
+    else
+    {
+      //special case for diff action, need to compute the diff
+      if (isDiff(topRedo()) || isDiff(topUndo()))
+      {
+        auto A = diff_begin;
+        auto B = EncodeObject(*this);
 
-      auto diff = Diff(
-        StringUtils::getNonEmptyLines(A.toXmlString()),
-        StringUtils::getNonEmptyLines(B.toXmlString()));
+        auto diff = Visus::Diff(
+          StringUtils::getNonEmptyLines(A.toXmlString()),
+          StringUtils::getNonEmptyLines(B.toXmlString()));
 
-      if (redo.name == "diff")
-        redo.writeCode("patch", diff.toString());
+        if (isDiff(topRedo()))
+          topRedo().writeCode("patch", diff.toString());
 
-      if (undo.name == "diff")
-        undo.writeCode("patch", diff.inverted().toString());
+        if (isDiff(topUndo()))
+          topUndo().writeCode("patch", diff.inverted().toString());
+      }
+
+      //do not touch the undo/redo history if in the middle of an undo/redo
+      this->undo_redo.resize(cursor_undo_redo);
+      this->cursor_undo_redo += 1;
+      this->undo_redo.push_back(std::make_pair(topRedo(), topUndo()));
     }
 
     this->diff_begin = StringTree();
 
-    this->history.addChild(redo);
+    this->history.addChild(topRedo());
 
-    if (!bUndoingRedoing)
+    //write the action
+    if (this->log.is_open())
     {
-      this->undo_redo.resize(n_undo_redo++);
-      this->undo_redo.push_back(std::make_pair(redo, undo));
+      this->log << std::endl;
+      this->log << "<!--REDO-->" << std::endl << topRedo().toString() << std::endl;
+      this->log << "<!--UNDO-->" << std::endl << topUndo().toString() << std::endl;
     }
 
-    if (this->log.is_open())
-      this->log << redo.toString() << std::endl;
-
+    //emit signals (before the top() in case someone whants to use topUndo()/topRedo()
     this->modelChanged();
     this->end_update.emitSignal();
   }
 
-  this->redos.pop();
-  this->undos.pop();
+  this->redo_stack.pop();
+  this->undo_stack.pop();
 }
 
 ///////////////////////////////////////////////////////////////
 bool Model::redo() {
   VisusAssert(VisusHasMessageLock());
-  VisusAssert(!bUndoingRedoing);
+  VisusAssert(!isUpdating());
+  VisusAssert(!bUndoing && !bRedoing);
   if (!canRedo())  return false;
-  auto action = undo_redo[n_undo_redo++].first;
-  bUndoingRedoing = true;
+  int num_actions = history.getNumberOfChilds();
+  auto action = undo_redo[cursor_undo_redo].first;
+  bRedoing = true;
   executeAction(action);
-  bUndoingRedoing = false;
+  bRedoing = false;
+  VisusReleaseAssert(history.getNumberOfChilds()==num_actions+1);
   return true;
 }
 
 ///////////////////////////////////////////////////////////////
 bool Model::undo() {
   VisusAssert(VisusHasMessageLock());
-  VisusAssert(!bUndoingRedoing);
+  VisusAssert(!isUpdating());
+  VisusAssert(!bUndoing && !bRedoing);
   if (!canUndo()) return false;
-  auto action = undo_redo[--n_undo_redo].second;
-  bUndoingRedoing = true;
+  int num_actions = history.getNumberOfChilds();
+  auto action = undo_redo[cursor_undo_redo - 1].second;
+  bUndoing = true;
   executeAction(action);
-  bUndoingRedoing = false;
+  bUndoing = false;
+  VisusReleaseAssert(history.getNumberOfChilds() == num_actions + 1);
   return true;
 }
 

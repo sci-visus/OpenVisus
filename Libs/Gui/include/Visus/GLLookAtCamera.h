@@ -131,24 +131,46 @@ public:
   //guessPosition
   virtual bool guessPosition(BoxNd value,int ref=-1) override;
 
-  //getLookAt
-  void getLookAt(Point3d& pos, Point3d& center, Point3d& vup) {
-    pos = this->pos;
-    center = this->center;
-    vup = this->vup;
+  //getPosition
+  Point3d getPosition() const {
+    return pos;
   }
 
-  //setLookAt
-  void setLookAt(Point3d pos,Point3d center,Point3d vup, Quaternion q=Quaternion());
+  //setPosition
+  void setPosition(Point3d value);
 
-  //moveInWorld
-  void walk(Point3d direction);
+  //getDirection
+  Point3d getDirection() const {
+    return dir;
+  }
 
-  //rotate
-  //void rotateAroundScreenCenter(double angle, Point2d screen_center);
+  //setDirection
+  void setDirection(Point3d value);
 
-  //rotate
-  void rotate(double angle, Point3d axis);
+  //getViewUp
+  Point3d getViewUp() const {
+    return vup;
+  }
+
+  //setViewUp
+  void setViewUp(Point3d value);
+
+  //getRotation
+  Quaternion getRotation() const {
+    return rotation;
+  }
+
+  //setRotation
+  void setRotation(Quaternion q);
+
+
+  //getRotationCenter
+  Point3d getRotationCenter() {
+    return rotation_center;
+  }
+
+  //setRotationCenter
+  void setRotationCenter(Point3d value);
 
 public:
 
@@ -172,8 +194,10 @@ private:
   bool                 ortho_params_fixed = false;
 
   //modelview
-  Point3d      pos, center,vup;
-  Quaternion   quaternion;
+  Point3d      pos, dir, vup;
+
+  Quaternion   rotation;
+  Point3d      rotation_center;
 
   //guessNearFarDistance
   std::pair<double,double> guessNearFarDistance() const;
@@ -183,6 +207,23 @@ private:
 
   //guessOrthoParams
   GLOrthoParams guessOrthoParams() const;
+
+  //setProperty
+  template <typename Value>
+  void setProperty(String target_id, Value& old_value, const Value& new_value)
+  {
+    if (old_value == new_value) return;
+    beginUpdate(
+      createPassThroughAction(StringTree("set"), target_id).write("value", new_value),
+      createPassThroughAction(StringTree("set"), target_id).write("value", old_value));
+    {
+      old_value = new_value;
+      if (target_id!= "ortho_params" && !ortho_params_fixed)
+        setOrthoParams(guessOrthoParams());
+    }
+    endUpdate();
+  }
+
 
 
 

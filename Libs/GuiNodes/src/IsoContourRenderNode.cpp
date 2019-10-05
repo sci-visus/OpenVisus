@@ -188,8 +188,8 @@ void IsoContourRenderNode::setPalette(SharedPtr<Palette> new_value)
 
   new_value->texture.reset(); //force regeneration
 
-  auto redo = StringTree("set").write("target_id", "palette"); if (new_value) redo.addChild(new_value->encode());
-  auto undo = StringTree("set").write("target_id", "palette"); if (old_value) undo.addChild(old_value->encode());
+  auto redo = StringTree("set").write("target_id", "palette"); if (new_value) redo.addChild(EncodeObject(*new_value));
+  auto undo = StringTree("set").write("target_id", "palette"); if (old_value) undo.addChild(EncodeObject(*old_value));
   beginUpdate(redo,undo);
   {
     old_value = new_value;

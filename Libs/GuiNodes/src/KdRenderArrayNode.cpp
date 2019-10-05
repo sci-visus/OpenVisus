@@ -214,13 +214,16 @@ bool KdRenderArrayNode::processInput()
 
       if (!dtype.isVectorOf(DTypes::UINT8))
       {
-        auto input_range=palette? palette->getInputRange() : ComputeRange();
-        for (int I=0;I<std::min(4,dtype.ncomponents());I++)
+        for (int C=0;C<std::min(4,dtype.ncomponents());C++)
         {
           //NOTE if I had to compute the dynamic range I will use only root data
-          auto vs_t=input_range.doCompute(kdarray->root->displaydata,I).getScaleTranslate();
-          vs[I]=vs_t.first;
-          vt[I]=vs_t.second; 
+          auto input_range = palette ? 
+            palette->computeRange(kdarray->root->displaydata, C) : 
+            ArrayUtils::computeRange(kdarray->root->displaydata, C);
+
+          auto vs_t = input_range.getScaleTranslate();
+          vs[C] = vs_t.first;
+          vt[C] = vs_t.second;
         }
       }
     }

@@ -622,62 +622,7 @@ inline bool ExecuteOnCppSamples(Operation& op,DType dtype,Args&&... args)
 #endif //if !SWIG
 
 
-/////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API ComputeRange
-{
-public:
 
-  VISUS_CLASS(ComputeRange)
-
-  //how to map input data to [0,1]
-  enum Mode
-  {
-    UseArrayRange,
-    PerComponentRange,
-    ComputeOverallRange,
-    UseCustomRange
-  };
-
-  Mode mode;
-
-  //used IIF mode==UseCustom
-  Range custom_range; 
-
-  //constructor
-  ComputeRange(Mode mode_=UseArrayRange, Range custom_range_=Range()) : mode(mode_),custom_range(custom_range_) {
-  }
-
-  //operator==
-  bool operator==(const ComputeRange& other) const {
-    return mode == other.mode && custom_range == other.custom_range;
-  }
-
-  //operator!=
-  bool operator!=(const ComputeRange& other) const {
-    return !(operator==(other));
-  }
-
-  //createCustom
-  static ComputeRange createCustom(Range range) {
-    ComputeRange ret(UseCustomRange);
-    ret.custom_range = range;
-    return ret;
-  }
-
-  //createCustom
-  static ComputeRange createCustom(double A, double B) {
-    return createCustom(Range(A, B, 0));
-  }
-
-  //isCustom
-  bool isCustom() const {
-    return mode == UseCustomRange;
-  }
-
-  //doCompute
-  Range doCompute(Array src, int ncomponent,Aborted aborted = Aborted());
-
-};
 } //namespace Visus
 
 #include <Visus/ArrayUtils.h>

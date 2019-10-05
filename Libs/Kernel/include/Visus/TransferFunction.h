@@ -111,20 +111,20 @@ public:
   //writeTo
   void writeTo(StringTree& out) const
   {
-    out.writeValue("name", name);
-    out.writeValue("color", color.toString());
-    out.writeText("values", StringUtils::join(this->values));
+    out.write("name", name);
+    out.write("color", color.toString());
+    out.writeText(StringUtils::join(this->values));
   }
 
   //readFrom
   void readFrom(StringTree& in)
   {
-    name = in.readValue("name");
-    color = Color::fromString(in.readValue("color"));
+    name = in.read("name");
+    color = Color::fromString(in.read("color"));
 
     this->values.clear();
 
-    std::istringstream ss(in.readText("values"));
+    std::istringstream ss(in.readText());
     double value;
     while (ss >> value)
       this->values.push_back(value);
@@ -240,13 +240,28 @@ public:
     setProperty("attenuation", this->attenuation, value);
   }
 
-  //getInputRange
-  ComputeRange getInputRange() const {
-    return input_range;
+  //computeRange
+  Range computeRange(Array src, int C, Aborted aborted = Aborted()) const;
+
+  //getInputNormalization
+  int getInputNormalizationMode() const {
+    return input_normalization_mode;
   }
 
   //setInputRange
-  void setInputRange(ComputeRange new_value);
+  void setInputNormalizationMode(int value) {
+    setProperty("input_normalization_mode", this->input_normalization_mode, value);
+  }
+
+  //getRange
+  Range getRange() {
+    return this->range;
+  }
+
+  //setInputRange
+  void setRange(Range range) {
+    setProperty("range", this->range, range);
+  }
 
   //getOutputDType
   DType getOutputDType() const {
@@ -281,7 +296,7 @@ public:
   static std::vector<String> getDefaults();
 
   //drawValues
-  void drawValues(int function, int x1, std::vector<double> values);
+  void drawValues(int function, int x1, int x2, std::vector<double> values);
 
   //drawLine 
   void drawLine(int function, int x1, double y1, int x2, double y2);
@@ -315,8 +330,11 @@ private:
   //see https://github.com/sci-visus/visus-issues/issues/260
   double attenuation = 0.0;
 
-  //input_range
-  ComputeRange input_range;
+  //input_normalization
+  int input_normalization_mode=ArrayUtils::UseDTypeRange;
+
+  //range
+  Range range;
 
   //what is the output (this must be atomic)
   DType output_dtype = DTypes::UINT8;

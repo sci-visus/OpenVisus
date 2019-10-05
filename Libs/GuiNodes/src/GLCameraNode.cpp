@@ -100,7 +100,7 @@ void GLCameraNode::writeTo(StringTree& out) const
   Node::writeTo(out);
 
   if (glcamera)
-    out.addChild(glcamera->encode());
+    out.addChild(EncodeObject(*glcamera));
 
   //bDebugFrustum
 }

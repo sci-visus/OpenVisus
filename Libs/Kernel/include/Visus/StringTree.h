@@ -410,7 +410,7 @@ private:
 
 //////////////////////////////////////////////////////////////////////
 template <class Value>
-StringTree EncodeObject(const Value& value, String root_name="Object")
+StringTree EncodeObject(const Value& value, String root_name)
 {
   StringTree ret(root_name);
   value.writeTo(ret);

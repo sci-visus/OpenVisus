@@ -61,7 +61,7 @@ bool FreeTransform::setObject(Position obj,bool bEmitSignal)
     obj.getTransformation().withSpaceDim(4), 
     obj.getBoxNd().withPointDim(3));
 
-  beginUpdate(StringTree("diff"), StringTree("diff"));
+  beginUpdate(Diff(), Diff());
   this->obj = obj;
   endUpdate();
 

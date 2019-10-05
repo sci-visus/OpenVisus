@@ -92,9 +92,18 @@ public:
   }
 
   //computeRange
-  static Range computeRange(Array src, int C, Aborted aborted = Aborted()) {
-    return ComputeRange(ComputeRange::PerComponentRange).doCompute(src, C, aborted);
-  }
+  static Range computeRange(Array src, int C, Aborted aborted = Aborted());
+
+  //how to map input data to [0,1]
+  enum ComputeRangeMode
+  {
+    UseDTypeRange,
+    ComputeSingleComponentRange,
+    ComputeAllComponentsRange,
+    UseFixedRange
+  };
+
+  static Range computeRange(Array src, int C, int mode, Aborted = Aborted());
 
   //interleave
   static Array interleave(std::vector<Array> v, Aborted aborted = Aborted());

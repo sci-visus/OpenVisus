@@ -67,6 +67,18 @@ namespace Utils
     v.erase(std::find(v.begin(), v.end(), value));
   }
 
+  //push_front
+  template <typename Vector, typename Value>
+  void push_front(Vector& v, Value value) {
+    v.insert(v.begin(),value);
+  }
+
+  //push_back
+  template <typename Vector, typename Value>
+  void push_back(Vector& v, Value value) {
+    v.push_back(value);
+  }
+
   //select
   template <typename T>
   inline std::vector<T> select(const std::vector<T>& v, std::function<bool(T)> predicate)

@@ -251,19 +251,20 @@ void RenderArrayNode::setData(Array value,SharedPtr<Palette> palette)
   if (!value.dtype.isVectorOf(DTypes::UINT8))
   {
     int ncomponents = value.dtype.ncomponents();
-    if (palette)
+    for (int C = 0; C < std::min(4, ncomponents); C++)
     {
-      for (int C = 0; C < std::min(4, ncomponents); C++)
-        vs_t[C] = palette->getInputRange().doCompute(value, C).getScaleTranslate();
-    }
-    else
-    {
-      //create a default input normalization
-      ComputeRange input_range;
-      vs_t[0] = ncomponents >= 1 ? input_range.doCompute(value, 0).getScaleTranslate() : std::make_pair(/*scale*/1.0, /*translate*/0.0);
-      vs_t[1] = ncomponents >= 3 ? input_range.doCompute(value, 1).getScaleTranslate() : vs_t[0];
-      vs_t[2] = ncomponents >= 3 ? input_range.doCompute(value, 2).getScaleTranslate() : vs_t[0];
-      vs_t[3] = ncomponents >= 4 ? input_range.doCompute(value, 3).getScaleTranslate() : vs_t[3];
+      Range range;
+
+      if (palette)
+        range = palette->computeRange(value, C);
+ 
+      if (!range.valid())
+        range = value.dtype.getDTypeRange(C);
+
+      if (!range.valid())
+        range = ArrayUtils::computeRange(value, C);
+      
+      vs_t[C] = range.getScaleTranslate();
     }
   }
 

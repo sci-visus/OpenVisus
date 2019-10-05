@@ -79,11 +79,15 @@ public:
   }
 
   //compute
-  static Statistics compute(Array src,ComputeRange histogram_range,int histogram_nbins=256,Aborted aborted=Aborted());
+  static Statistics compute(Array src,std::vector<Range> range_per_component,int histogram_nbins=256,Aborted aborted=Aborted());
 
   //compute
-  static Statistics compute(Array src,Aborted aborted=Aborted()) {
-    return compute(src,ComputeRange(ComputeRange::PerComponentRange),256,aborted);
+  static Statistics compute(Array src,Aborted aborted=Aborted()) 
+  {
+    std::vector<Range> range_per_component;
+    for (int C = 0; C < src.dtype.ncomponents(); C++)
+      range_per_component.push_back(ArrayUtils::computeRange(src,C));
+    return compute(src, range_per_component,256,aborted);
   }
 
 };

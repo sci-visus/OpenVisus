@@ -75,6 +75,16 @@ SharedPtr<TransferFunction> TransferFunction::fromString(String content)
   return ret;
 }
 
+
+StringTree DrawLine(int function, int x1, double y1, int x2, double y2) {
+  return StringTree("draw").write("what", "line").write("function", function).write("x1", x1).write("y1", y1).write("x2", x2).write("y2", y2);
+}
+
+StringTree DrawValues(int function, int x1, int x2, std::vector<double> values) {
+  return StringTree("draw").write("what", "values").write("function", function).write("x1", x1).write("x2", x2).writeText(StringUtils::join(values));
+}
+
+ 
   ////////////////////////////////////////////////////////////////////
 void TransferFunction::executeAction(StringTree in)
 {
@@ -105,22 +115,14 @@ void TransferFunction::executeAction(StringTree in)
 
     if (what == "line")
     {
-      auto function = in.readInt("function");
-      auto x1 = in.readInt("x1"); auto y1 = in.readDouble("y1");
-      auto x2 = in.readInt("x2"); auto y2 = in.readInt("y2");
-      drawLine(function, x1, y1, x2, y2);
+      drawLine(in.readInt("function"), in.readInt("x1"), in.readDouble("y1"), in.readInt("x2"), in.readDouble("y2"));
       return;
     }
 
     if (what == "values")
     {
-      auto function = in.readInt("function");
-      auto x1 = in.readInt("x1");
-      std::vector<double> values;
-      values.reserve(getNumberOfSamples());
-      for (auto it : StringUtils::split(in.readText("values")))
-        values.push_back(cdouble(it));
-      drawValues(function, x1, values);
+      std::vector<double> values = StringUtils::parseDoubles(in.readText());
+      drawValues(in.readInt("function"), in.readInt("x1"), in.readInt("x2"), values);
       return;
     }
   }
@@ -128,7 +130,6 @@ void TransferFunction::executeAction(StringTree in)
   if (in.name == "set")
   {
     auto target_id = in.readString("target_id");
-
 
     if (target_id == "num_samples")
     {
@@ -144,14 +145,18 @@ void TransferFunction::executeAction(StringTree in)
       return;
     }
 
-    if (target_id == "input_range")
+    if (target_id == "range")
     {
-      ComputeRange compute_range;
-      compute_range.mode = (ComputeRange::Mode)in.readInt("mode");
-      compute_range.custom_range = Range::fromString(in.readString("custom_range"));
-      setInputRange(compute_range);
+      setRange(Range::fromString(in.readString("value")));
       return;
     }
+
+    if (target_id == "input_normalization_mode")
+    {
+      setInputNormalizationMode(in.readInt("input_normalization_mode"));
+      return;
+    }
+
 
     if (target_id == "output_dtype")
     {
@@ -177,6 +182,15 @@ void TransferFunction::executeAction(StringTree in)
   }
 
   Model::executeAction(in);
+}
+
+////////////////////////////////////////////////////////////////////
+Range TransferFunction::computeRange(Array src, int C, Aborted aborted) const {
+
+  if (this->input_normalization_mode == ArrayUtils::UseFixedRange)
+    return this->range;
+  else
+    return ArrayUtils::computeRange(src, C, input_normalization_mode, aborted);
 }
 
 
@@ -219,12 +233,12 @@ void TransferFunction::clearFunctions()
   if (functions.empty())
     return;
 
-  beginUpdate(Transaction(),Transaction());
+  beginTransaction();
   {
     while (!functions.empty())
       removeFunction(0);
   }
-  endUpdate();
+  endTransaction();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -235,15 +249,18 @@ void TransferFunction::setNumberOfSamples(int new_value)
     return;
 
   beginUpdate(
-    StringTree("set").write("target_id","num_samples").write("value", cstring(new_value)),
+    StringTree("set").write("target_id", "num_samples").write("value", cstring(new_value)),
     Transaction());
   {
     topUndo().addChild(StringTree("set").write("target_id", "num_samples").write("value", cstring(old_value)));
 
+    int x1 = 0;
+    int x2 = getNumberOfSamples() - 1;
+
     for (int F = 0; F < getNumberOfFunctions(); F++)
     {
       auto fn = functions[F];
-      topUndo().addChild(StringTree("draw").write("what", "values").write("function", F).writeText(StringUtils::join(fn->values)));
+      topUndo().addChild(DrawValues(F, x1, x2, fn->values));
       fn->setNumberOfSamples(new_value);
     }
   }
@@ -260,7 +277,7 @@ void TransferFunction::setNumberOfFunctions(int value)
 
   beginUpdate(
     StringTree("setNumberOfFunctions").write("value",value),
-    Transaction("setNumberOfFunctions"));
+    Transaction());
   {
     while (getNumberOfFunctions() > value)
       removeFunction(getNumberOfFunctions()-1);
@@ -277,24 +294,31 @@ void TransferFunction::setNumberOfFunctions(int value)
   endUpdate();
 }
 
-
 ////////////////////////////////////////////////////////////////////
-void TransferFunction::drawValues(int function, int x1, std::vector<double> new_values)
+void TransferFunction::drawValues(int function, int x1, int x2, std::vector<double> new_values)
 {
-  VisusReleaseAssert(x1>=0 && x1+new_values.size()<getNumberOfSamples());
+  int N = (int)new_values.size();
+  VisusReleaseAssert(N==(1+x2-x1));
+  VisusReleaseAssert(0<=x1 && x1<=x2 && x2<getNumberOfSamples());
 
   auto fn = functions[function];
 
-  std::vector<double> old_values(fn->values.begin() + x1, fn->values.begin() + x1 + new_values.size());
+  std::vector<double> old_values;
+  for (int x = x1; x<=x2; x++)
+    old_values.push_back(fn->values[x]);
+
+  //useless call
+  if (new_values == old_values)
+    return;
 
   beginUpdate(
-    StringTree("drawValues").write("function", function).write("x1", x1).writeText("values", StringUtils::join(new_values)),
-    StringTree("drawValues").write("function", function).write("x1", x1).writeText("values", StringUtils::join(old_values)));
+    DrawValues(function, x1, x2, new_values),
+    DrawValues(function, x1, x2, old_values));
   {
     this->default_name = "";
 
-    for (int I = 0; I < new_values.size(); I++)
-      fn->values[x1 + I] = new_values[I];
+    for (int x = x1; x <=x2; x++)
+      fn->values[x] = new_values[x-x1];
   }
   endUpdate();
 }
@@ -314,43 +338,32 @@ void TransferFunction::drawLine(int function, int x1, double y1,int x2, double y
 
   auto fn = functions[function];
 
-  std::vector<double> old_values; old_values.reserve(x2 - x1 + 1);
-  std::vector<double> new_values; new_values.reserve(x2 - x1 + 1);
-  for (int K = x1; K <= x2; K++)
+  std::vector<double> new_values; 
+  for (int I=0; I < 1 + x2 - x1; I++)
   {
-    double beta  = (x1 == x2) ? 1.0 : (K - x1) / (double)(x2 - x1);
-    double alpha = (1 - beta);
-    old_values.push_back(fn->values[K]);
-    new_values.push_back(alpha * y1 + beta * y2);
+    double alpha  = (x1 == x2) ? 1.0 : I / (double)(x2 - x1);
+    new_values.push_back((1 - alpha) * y1 + alpha * y2);
   }
 
-  beginUpdate(
-    StringTree("draw").write("what","line"  ).write("function","function").write("x1", x1).write("y1", y1).write("x2", x2).write("y2", y2),
-    StringTree("draw").write("what","values").write("function","function").write("x1",x1).writeText(StringUtils::join(old_values)));
+  std::vector<double> old_values;
+  for (int I = 0; I < new_values.size(); I++)
+    old_values.push_back(fn->values[x1 + I]);
+
+  //useless call
+  if (old_values == new_values)
+    return;
+
+  beginUpdate(DrawLine(function, x1, y1, x2, y2), DrawValues(function, x1, x2, old_values));
   {
     this->default_name = "";
 
-    for (int I=0; I < new_values.size(); I++)
-      fn->values[x1+I] = new_values[I];
+    for (int I = 0; I < new_values.size(); I++)
+      fn->values[x1 + I] = new_values[I];
   }
   endUpdate();
 }
 
 
-////////////////////////////////////////////////////////////////////////////////
-void TransferFunction::setInputRange(ComputeRange new_value)
-{
-  auto old_value = this->input_range;
-  if (old_value == new_value) return;
-
-  beginUpdate(
-    StringTree("set").write("target_id", String("input_range")).write("mode", cstring(new_value.mode)).write("custom_range", new_value.custom_range.toString()),
-    StringTree("set").write("target_id", String("input_range")).write("mode", cstring(old_value.mode)).write("custom_range", old_value.custom_range.toString()));
-  {
-    this->input_range = new_value;
-  }
-  endUpdate();
-}
 
 /////////////////////////////////////////////////////////////////////
 Array TransferFunction::toArray() const
@@ -501,20 +514,13 @@ bool TransferFunction::exportTransferFunction(String filename="")
 /////////////////////////////////////////////////////////////////////
 void TransferFunction::writeTo(StringTree& out) const
 {
-  bool bDefault=default_name.empty()?false:true;
-
-  if (isDefault())
-    out.write("name", default_name);
-
+  out.write("name", this->default_name);
   out.write("nsamples", getNumberOfSamples());
-
   out.write("attenuation",cstring(attenuation));
-    
-  out.write("input/mode", cstring(input_range.mode));
-  out.write("input/custom_range", input_range.custom_range);
-
-  out.write("output/dtype", output_dtype.toString());
-  out.write("output/range", output_range);
+  out.write("range", this->range);
+  out.write("input_normalization_mode", cstring(input_normalization_mode));
+  out.write("output_dtype", output_dtype.toString());
+  out.write("output_range", output_range);
 
   if (!isDefault())
   {
@@ -529,23 +535,14 @@ void TransferFunction::readFrom(StringTree& in)
   this->functions.clear();
 
   this->default_name = in.readString("name");
-  bool is_default = default_name.empty() ? false : true;
-
   int nsamples = in.readInt("nsamples");
-
   this->attenuation=cdouble(in.readString("attenuation","0.0"));
+  this->range = Range::fromString(in.read("range"));
+  this->input_normalization_mode=cint(in.readString("input_normalization_mode"));
+  this->output_dtype=DType::fromString(in.readString("output_dtype"));
+  this->output_range=Range::fromString(in.read("output_range"));
 
-  this->input_range.mode=(ComputeRange::Mode)cint(in.readString("input/mode"));
-  this->input_range.custom_range=Range::fromString(in.read("input/custom_range"));
-
-  this->output_dtype=DType::fromString(in.readString("output/dtype"));
-  this->output_range=Range::fromString(in.read("output/range"));
-
-  if (is_default)
-  {
-    this->functions = getDefault(default_name, nsamples)->functions;
-  }
-  else
+  if (this->default_name.empty())
   {
     for (auto Function : in.getChilds("function"))
     {
@@ -553,6 +550,10 @@ void TransferFunction::readFrom(StringTree& in)
       single->readFrom(*Function);
       functions.push_back(single);
     }
+  }
+  else
+  {
+    this->functions = getDefault(default_name, nsamples)->functions;
   }
 }
 

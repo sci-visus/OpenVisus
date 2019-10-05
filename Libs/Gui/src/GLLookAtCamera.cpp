@@ -44,85 +44,55 @@ namespace Visus {
 //////////////////////////////////////////////////
 void GLLookAtCamera::executeAction(StringTree in)
 {
-  if (in.name == "setLookAt")
-  {
-    auto pos    = Point3d::fromString(in.readString("pos"));
-    auto center = Point3d::fromString(in.readString("center"));
-    auto vup    = Point3d::fromString(in.readString("vup"));
-    auto quaternion = Quaternion::fromString(in.readString("quaternion"));
-    setLookAt(pos, center, vup, quaternion);
-    return;
-  }
-
-  if (in.name == "walk")
-  {
-    auto direction = Point3d::fromString(in.readString("direction"));
-    walk(direction);
-    return;
-  }
-
-  if (in.name == "rotate")
-  {
-    auto angle = Utils::degreeToRadiant(in.readDouble("angle"));
-
-#if 0
-    if (in.hasAttribute("screen_center"))
-    {
-      auto screen_center = Point2d::fromString(in.readString("screen_center"));
-      rotateAroundScreenCenter(angle, screen_center);
-      return;
-    }
-#endif
-
-    auto axis = Point3d::fromString(in.readString("axis"));
-    rotate(angle, axis);
-    return;
-  }
-
-  if (in.name=="guessPosition")
-  {
-    auto bounds = BoxNd::fromString(in.readString("bounds"));
-    auto ref = in.readInt("ref");
-    guessPosition(bounds, ref);
-    return;
-  }
-
   if (in.name == "set")
   {
     auto target_id = in.read("target_id");
 
-    if (target_id == "viewport")
-    {
-      auto value = Viewport::fromString(in.read("value"));
-      setViewport(value);
+    if (target_id == "pos") {
+      setPosition(Point3d::fromString(in.readString("value")));
       return;
     }
 
-    if (target_id == "use_ortho_projection")
-    {
-      auto value = in.readBool("value");
-      setUseOrthoProjection(value);
+    if (target_id == "dir") {
+      setDirection(Point3d::fromString(in.readString("value")));
       return;
     }
 
-    if (target_id == "ortho_params")
-    {
-      auto value = GLOrthoParams::fromString(in.read("value"));
-      setOrthoParams(value);
+    if (target_id == "vup") {
+      setViewUp(Point3d::fromString(in.readString("value")));
       return;
     }
 
-    if (target_id == "ortho_params_fixed")
+    if (target_id == "rotation")
     {
-      auto value = in.readBool("value");
-      setOrthoParamsFixed(value);
+      auto angle = Utils::degreeToRadiant(in.readDouble("angle"));
+      auto axis = Point3d::fromString(in.readString("axis"));
+      setRotation(Quaternion(axis,angle));
       return;
     }
 
-    if (target_id == "bounds")
-    {
-      auto value = BoxNd::fromString(in.readString("value"));
-      setBounds(value);
+    if (target_id == "rotation_center") {
+      setRotationCenter(Point3d::fromString(in.readString("value")));
+      return;
+    }
+
+    if (target_id == "use_ortho_projection") {
+      setUseOrthoProjection(in.readBool("value"));
+      return;
+    }
+
+    if (target_id == "ortho_params") {
+      setOrthoParams(GLOrthoParams::fromString(in.read("value")));
+      return;
+    }
+
+    if (target_id == "ortho_params_fixed") {
+      setOrthoParamsFixed(in.readBool("value"));
+      return;
+    }
+
+    if (target_id == "bounds") {
+      setBounds(BoxNd::fromString(in.readString("value")));
       return;
     }
   }
@@ -134,7 +104,7 @@ void GLLookAtCamera::executeAction(StringTree in)
 //////////////////////////////////////////////////////////////////////
 std::pair<double, double> GLLookAtCamera::guessNearFarDistance() const
 {
-  auto dir= (this->center - this->pos).normalized();
+  auto dir= this->dir.normalized();
   Point3d far_point ((dir[0] >= 0) ? bounds.p2[0] : bounds.p1[0], (dir[1] >= 0) ? bounds.p2[1] : bounds.p1[1], (dir[2] >= 0) ? bounds.p2[2] : bounds.p1[2]);
   Point3d near_point((dir[0] >= 0) ? bounds.p1[0] : bounds.p2[0], (dir[1] >= 0) ? bounds.p1[1] : bounds.p2[1], (dir[2] >= 0) ? bounds.p1[2] : bounds.p2[2]);
   Plane camera_plane(dir, this->pos);
@@ -142,8 +112,6 @@ std::pair<double, double> GLLookAtCamera::guessNearFarDistance() const
   double far_dist = camera_plane.getDistance(far_point);
   return std::make_pair(near_dist, far_dist);
 }
-
-
 
 //////////////////////////////////////////////////////////////////////
 double GLLookAtCamera::guessForwardFactor() const
@@ -189,77 +157,66 @@ GLOrthoParams GLLookAtCamera::guessOrthoParams() const
   return ret;
 }
 
-
-//////////////////////////////////////////////////
-void GLLookAtCamera::setViewport(Viewport new_value)
+//////////////////////////////////////////////////////////////////////
+Frustum GLLookAtCamera::getFinalFrustum() const
 {
-  auto& old_value=this->viewport;
-  if (old_value == new_value)
-    return;
+  Frustum ret;
+  ret.setViewport(viewport);
 
-  beginUpdate(
-    StringTree("set").write("target_id", "viewport").write("value", new_value.toString()),
-    StringTree("set").write("target_id", "viewport").write("value", old_value.toString()));
-  {
-    old_value = new_value;
-    if (!ortho_params_fixed)
-      setOrthoParams(guessOrthoParams());
-  }
-  endUpdate();
+  ret.loadModelview(Matrix::lookAt(this->pos, this->pos + this->dir, this->vup));
+
+  if (rotation.getAngle())
+    ret.multModelview(Matrix::rotateAroundCenter(this->rotation_center, rotation.getAxis(), rotation.getAngle()));
+
+  ret.loadProjection(ortho_params.getProjectionMatrix(use_ortho_projection));
+  return ret;
+}
+
+void GLLookAtCamera::setBounds(BoxNd new_value){
+  setProperty("bounds", this->bounds, new_value);
+}
+
+void GLLookAtCamera::setPosition(Point3d new_value){
+  setProperty("pos", this->pos, new_value);
+}
+
+void GLLookAtCamera::setDirection(Point3d new_value){
+  setProperty("dir", this->dir, new_value);
+}
+
+void GLLookAtCamera::setViewUp(Point3d new_value){
+  setProperty("vup", this->vup, new_value);
+}
+
+void GLLookAtCamera::setRotation(Quaternion new_value){
+  setProperty("rotation", this->rotation, new_value);
+}
+
+void GLLookAtCamera::setRotationCenter(Point3d new_value){
+  setProperty("rotation_center", this->rotation_center, new_value);
 }
 
 
-
-//////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::setUseOrthoProjection(bool new_value)
-{
-  auto& old_value = this->use_ortho_projection;
-  if (new_value== old_value)
-    return;
- 
-  beginUpdate(
-    StringTree("set").write("target_id", "use_ortho_projection").write("value", cstring(new_value)),
-    StringTree("set").write("target_id", "use_ortho_projection").write("value", cstring(old_value)));
-  {
-    old_value = new_value;
-    if (!ortho_params_fixed)
-      setOrthoParams(guessOrthoParams());
-  }
-  endUpdate();
+//NOTE: the viewport is not part of the model
+void GLLookAtCamera::setViewport(Viewport value) {
+  if (this->viewport == value)  return;
+  if (!value.width || !value.height) return;
+  this->viewport = value;
+  if (!ortho_params_fixed)
+    setOrthoParams(guessOrthoParams());
+  this->redisplay_needed.emitSignal();
 }
 
-//////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::setOrthoParams(GLOrthoParams new_value) 
-{
-  auto& old_value = this->ortho_params;
-  if (old_value == new_value)
-    return;
-
-  beginUpdate(
-    StringTree("set").write("target_id", "ortho_params").write("value", new_value.toString()),
-    StringTree("set").write("target_id", "ortho_params").write("value", old_value.toString()));
-  {
-    old_value = new_value;
-  }
-  endUpdate();
+void GLLookAtCamera::setUseOrthoProjection(bool new_value) {
+  setProperty("use_ortho_projection", this->use_ortho_projection, new_value);
 }
 
-//////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::setOrthoParamsFixed(bool new_value) 
-{
-  auto& old_value = this->ortho_params_fixed;
-  if (new_value ==old_value)
-    return;
- 
-  beginUpdate(
-    StringTree("set").write("target_id", "ortho_params_fixed").write("value", cstring(new_value)),
-    StringTree("set").write("target_id", "ortho_params_fixed").write("value", cstring(old_value)));
-  {
-    old_value = new_value;
-    if (!ortho_params_fixed)
-      setOrthoParams(guessOrthoParams());
-  }
-  endUpdate();
+void GLLookAtCamera::setOrthoParams(GLOrthoParams new_value) {
+  setProperty("ortho_params", this->ortho_params, new_value);
+}
+
+void GLLookAtCamera::setOrthoParamsFixed(bool new_value) {
+  setProperty("ortho_params_fixed", this->ortho_params_fixed, new_value);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -300,10 +257,10 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt)
     Frustum temp;
     temp.setViewport(getViewport());
     temp.loadProjection(Matrix::perspective(60, W / (double)H, ortho_params.zNear, ortho_params.zFar));
-    temp.loadModelview(Matrix::lookAt(this->pos, this->center, this->vup));
+    temp.loadModelview(Matrix::lookAt(this->pos, this->pos+this->dir, this->vup));
 
     FrustumMap map(temp);
-    Point3d center = map.unprojectPointToEye(map.projectPoint(this->center));
+    Point3d center = map.unprojectPointToEye(map.projectPoint(this->pos+this->dir));
     Point3d p1 = map.unprojectPointToEye(screen_p1.castTo<Point2d>());
     Point3d p2 = map.unprojectPointToEye(screen_p2.castTo<Point2d>());
 
@@ -312,7 +269,7 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt)
     p1[2] = (l1 < R * R / 2) ? sqrt(R * R - l1) : R * R / 2 / sqrt(l1);
     p2[2] = (l2 < R * R / 2) ? sqrt(R * R - l2) : R * R / 2 / sqrt(l2);
 
-    auto M = Matrix::lookAt(this->pos, this->center, this->vup).invert();
+    auto M = Matrix::lookAt(this->pos, this->pos+this->dir, this->vup).invert();
     Point3d a = (M * p1 - M * center).normalized();
     Point3d b = (M * p2 - M * center).normalized();
 
@@ -325,8 +282,7 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt)
       return;
     }
 
-    rotate(angle, axis);
-
+    setRotation(Quaternion(axis, angle * rotation_factor) * getRotation());
     evt->accept();
     return;
   }
@@ -339,19 +295,22 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt)
     last_mouse_pos[button] = p2;
 
     Point3d vt;
-    vt.x = ((p1.x - p2.x) / getViewport().width ) * guessForwardFactor() * pan_factor;
-    vt.y = ((p1.y - p2.y) / getViewport().height) * guessForwardFactor() * pan_factor;
-    vt.z = 0.0;
+    auto dx = ((p1.x - p2.x) / getViewport().width ) * guessForwardFactor() * pan_factor;
+    auto dy = ((p1.y - p2.y) / getViewport().height) * guessForwardFactor() * pan_factor;
+    auto dz = 0.0;
 
-    walk(vt);
+    auto dir   = this->dir.normalized();
+    auto right = dir.cross(vup).normalized();
+    auto up    = right.cross(dir);
+
+    setPosition(this->pos + dx * right + dy * up);
+
     evt->accept();
     return;
   }
 
   last_mouse_pos[button] = Point2i(evt->x(),evt->y());
 }
-
-
 
 //////////////////////////////////////////////////////////////////////
 void GLLookAtCamera::glMouseReleaseEvent(QMouseEvent* evt)
@@ -364,11 +323,8 @@ void GLLookAtCamera::glMouseReleaseEvent(QMouseEvent* evt)
 //////////////////////////////////////////////////////////////////////
 void GLLookAtCamera::glWheelEvent(QWheelEvent* evt)
 {
-  Point3d vt;
-  vt.x = 0.0;
-  vt.y = 0.0;
-  vt.z = (evt->delta() < 0 ? -1 : +1) * guessForwardFactor();
-  walk(vt);
+  auto vt = (evt->delta() < 0 ? -1 : +1) * guessForwardFactor() * this->dir;
+  setPosition(this->pos + vt);
   evt->accept();
 }
 
@@ -413,19 +369,14 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
 
       RayBoxIntersection intersection(ray,bounds);
       if (intersection.valid)
-      {
-        Point3d pos, center, vup;
-        getLookAt(pos,center,vup);
-        center = ray.getPoint(0.5 * (std::max(intersection.tmin, 0.0) + intersection.tmax)).toPoint3();
-        setLookAt(pos, center, vup);
-      }
+        setRotationCenter(ray.getPoint(0.5 * (std::max(intersection.tmin, 0.0) + intersection.tmax)).toPoint3());
 
       evt->accept();
       return ;
     }
     case Qt::Key_P:
     {
-      VisusInfo() << this->encode().toString();
+      VisusInfo() << EncodeObject(*this).toString();
       evt->accept();
       return;
     }
@@ -439,137 +390,44 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
   }
 }
 
-
 //////////////////////////////////////////////////////////////////////
 bool GLLookAtCamera::guessPosition(BoxNd bounds,int ref) 
 {
   bounds.setPointDim(3);
 
-  Point3d pos, center, vup;
-  center = bounds.center().toPoint3();
+  Point3d pos, dir, vup;
+  Point3d center = bounds.center().toPoint3();
 
   if (ref < 0)
   {
     pos = center + 2.1 * bounds.size().toPoint3();
+    dir = (center - pos).normalized();
     vup = Point3d(0, 0, 1);
   }
   else
   {
     const std::vector<Point3d> Axis = { Point3d(1,0,0),Point3d(0,1,0),Point3d(0,0,1) };
     pos = center + 2.1f * bounds.maxsize() * Axis[ref];
+    dir = -Axis[ref];
     vup = std::vector<Point3d>({ Point3d(0,0,1),Point3d(0,0,1),Point3d(0,1,0) })[ref];
   }
 
-  beginUpdate(
-    StringTree("guessPosition").write("bounds", bounds.toString()).write("ref", cstring(ref)),
-    Transaction());
+  beginTransaction();
   {
     setBounds(bounds);
     setUseOrthoProjection(false);
-    setLookAt(pos, center, vup, Quaternion());
+    setPosition(pos);
+    setDirection(dir);
+    setViewUp(vup);
+    setRotation(Quaternion());
+    setRotationCenter(center);
     if (!ortho_params_fixed)
       setOrthoParams(guessOrthoParams());
   }
-  endUpdate();
+  endTransaction();
 
   return true;
 }
-
-
-//////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::setBounds(BoxNd new_value)
-{
-  new_value.setPointDim(3);
-
-  auto old_value = this->bounds;
-  if (old_value == new_value)
-    return;
-
-  beginUpdate(
-    StringTree("set").write("target_id", "bounds").write("value", new_value.toString()),
-    StringTree("set").write("target_id", "bounds").write("value", old_value.toString()));
-  {
-    this->bounds = new_value;
-    if (!ortho_params_fixed)
-      setOrthoParams(guessOrthoParams());
-  }
-  endUpdate();
-}
-
-
-//////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::setLookAt(Point3d pos, Point3d center, Point3d vup, Quaternion quaternion)
-{
-  beginUpdate(
-    StringTree("setLookAt").write("pos", pos.toString()).write("center", center.toString()).write("vup", vup.toString()).write("quaternion", quaternion.toString()),
-    StringTree("setLookAt").write("pos", this->pos.toString()).write("center", this->center.toString()).write("vup", this->vup.toString()).write("quaternion", this->quaternion.toString()));
-  {
-    this->pos=pos;
-    this->vup= vup;
-    this->center = center;
-    this->quaternion= Quaternion();
-
-    if (!ortho_params_fixed)
-      setOrthoParams(guessOrthoParams());
-  }
-  endUpdate();
-}
-
-
-//////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::walk(Point3d direction)
-{
-  auto dir = (this->center - this->pos).normalized();
-  auto right = dir.cross(vup).normalized();
-  auto up = right.cross(dir);
-
-  auto vt = direction.x * right +
-    direction.y * up +
-    direction.z * dir;
-
-  beginUpdate(
-    StringTree("walk").write("direction", (+direction).toString()),
-    StringTree("walk").write("direction", (-direction).toString()));
-  {
-    this->pos += vt;
-    this->center += vt;
-
-    if (!ortho_params_fixed)
-      setOrthoParams(guessOrthoParams());
-  }
-  endUpdate();
-}
-
-
-//////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::rotate(double angle, Point3d axis)
-{
-  if (!angle)
-    return;
-
-  beginUpdate(
-    StringTree("rotate").write("angle", Utils::radiantToDegree(+angle)).write("axis", axis.toString()),
-    StringTree("rotate").write("angle", Utils::radiantToDegree(-angle)).write("axis", axis.toString()));
-  {
-    this->quaternion = Quaternion(axis, angle * rotation_factor) * this->quaternion;
-    if (!ortho_params_fixed)
-      setOrthoParams(guessOrthoParams());
-  }
-  endUpdate();
-}
-
-//////////////////////////////////////////////////////////////////////
-Frustum GLLookAtCamera::getFinalFrustum() const
-{
-  Frustum ret;
-  ret.setViewport(viewport);
-  ret.loadModelview(Matrix::lookAt(this->pos,this->center,this->vup));
-  ret.multModelview(Matrix::rotateAroundCenter(center,quaternion.getAxis(),quaternion.getAngle()));
-  ret.loadProjection(ortho_params.getProjectionMatrix(use_ortho_projection));
-  return ret;
-}
-
-
 
 //////////////////////////////////////////////////////////////////////
 void GLLookAtCamera::writeTo(StringTree& out) const
@@ -579,10 +437,11 @@ void GLLookAtCamera::writeTo(StringTree& out) const
   out.writeValue("bounds", bounds.toString(/*bInterleave*/false));
 
   out.writeValue("pos",    pos.toString());
-  out.writeValue("center", center.toString());
+  out.writeValue("dir", dir.toString());
   out.writeValue("vup",    vup.toString());
 
-  out.writeValue("quaternion", quaternion.toString());
+  out.writeValue("rotation", rotation.toString());
+  out.writeValue("rotation_center", rotation_center.toString());
 
   out.writeValue("ortho_params", ortho_params.toString());
   out.writeValue("ortho_params_fixed", cstring(ortho_params_fixed));
@@ -602,10 +461,11 @@ void GLLookAtCamera::readFrom(StringTree& in)
   this->bounds.setPointDim(3);
 
   this->pos = Point3d::fromString(in.readValue("pos"));
-  this->center = Point3d::fromString(in.readValue("center"));
+  this->dir = Point3d::fromString(in.readValue("dir"));
   this->vup = Point3d::fromString(in.readValue("vup"));
 
-  this->quaternion = Quaternion::fromString(in.readValue("quaternion"));
+  this->rotation = Quaternion::fromString(in.readValue("rotation"));
+  this->rotation_center = Point3d::fromString(in.readValue("rotation_center"));
 
   this->ortho_params = GLOrthoParams::fromString(in.readValue("ortho_params", this->ortho_params.toString()));
   this->ortho_params_fixed = in.readBool("ortho_params_fixed", this->ortho_params_fixed);

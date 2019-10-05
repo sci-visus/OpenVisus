@@ -46,19 +46,23 @@ class ComputeStatsJob : public NodeJob
 {
 public:
 
-  Node*            node;
-  Array            data;
-  ComputeRange     compute_range;
+  Node* node;
+  Array              data;
+  SharedPtr<Palette> palette;
 
   //constructor
-  ComputeStatsJob(Node* node_,Array data_,ComputeRange compute_range_) 
-    : node(node_), data(data_),compute_range(compute_range_){
+  ComputeStatsJob(Node* node_,Array data_, SharedPtr<Palette> palette_)
+    : node(node_), data(data_), palette(palette_){
   }
 
   //runJob
   virtual void runJob() override
   {
-    if (auto stats = Statistics::compute(data, compute_range, 256, aborted))
+    std::vector<Range> ranges;
+    for (int C = 0; C < data.dtype.ncomponents(); C++)
+      ranges.push_back(palette->computeRange(data, C, aborted));
+
+    if (auto stats = Statistics::compute(data, ranges, 256, aborted))
     {
       DataflowMessage msg;
       msg.writeValue("statistics", stats);
@@ -145,7 +149,7 @@ bool PaletteNode::processInput()
   if (views.empty())
     return false;
 
-  addNodeJob(std::make_shared<ComputeStatsJob>(this,*data,palette->getInputRange()));
+  addNodeJob(std::make_shared<ComputeStatsJob>(this,*data,palette));
   return true;
 }
 

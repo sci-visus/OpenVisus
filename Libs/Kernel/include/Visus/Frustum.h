@@ -217,24 +217,6 @@ public:
     return getViewportInverseTransformation(viewport);
   }
 
-public:
-
-  //writeTo
-  void writeTo(StringTree& out) const
-  {
-    out.writeValue("modelview" ,getModelview ().toString());
-    out.writeValue("projection",getProjection().toString());
-    out.writeValue("viewport"  ,getViewport  ().toString());
-  }
-
-  //readFrom
-  void readFrom(StringTree& in) 
-  {
-    loadModelview (Matrix::fromString(4,in.readValue("modelview" )));
-    loadProjection(Matrix::fromString(4,in.readValue("projection")));
-    setViewport   (Viewport(in.readValue("viewport"  )));
-  }
-
 protected:
 
   Matrix   modelview = Matrix::identity(4);
