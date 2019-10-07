@@ -23,7 +23,7 @@ class PyViewer(Viewer):
 	def __init__(self):	
 		super(PyViewer, self).__init__()
 		self.setMinimal()
-		self.addGLCameraNode("lookat")	
+		self.addGLCamera(self.getRoot(),3)	
 		
 	# run
 	def run(self):

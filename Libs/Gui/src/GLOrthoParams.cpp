@@ -40,69 +40,7 @@ For support : support@visus.net
 
 namespace Visus {
 
-
-////////////////////////////////////////////////////////////////////////
-GLOrthoParams GLOrthoParams::translated(const Point3d& vt) const
-{
-  return GLOrthoParams(
-    this->left   + vt[0], this->right + vt[0], 
-    this->bottom + vt[1], this->top   + vt[1], 
-    this->zNear  + vt[2], this->zFar  + vt[2]);
-}
-
-////////////////////////////////////////////////////////////////////////
-GLOrthoParams GLOrthoParams::scaled(const Point3d& vs) const
-{
-  return GLOrthoParams(
-    vs[0] * left  , vs[0] * right, 
-    vs[1] * bottom, vs[1] * top, 
-    vs[2] * zNear , vs[2] * zFar);
-}
-
-
-////////////////////////////////////////////////////////////////////////
-Matrix GLOrthoParams::getProjectionMatrix(bool bUseOrthoProjection) const
-{
-  return bUseOrthoProjection ?
-    Matrix::ortho(left, right, bottom, top, zNear, zFar) :
-    Matrix::frustum(left, right, bottom, top, zNear, zFar);
-}
-
-////////////////////////////////////////////////////////////////////////
-GLOrthoParams GLOrthoParams::withAspectRatio(double ratio) const
-{
-  auto dx = right - left; auto cx = (left + right) * 0.5;
-  auto dy = top - bottom; auto cy = (bottom + top) * 0.5;
-  auto dz = zFar - zNear; auto cz = (zFar + zNear) * 0.5;
-
-  if ((dx / dy) <= ratio)
-    dx = dy * (ratio);
-  else                          
-    dy = dx * (1.0 / ratio);
-
-  return GLOrthoParams(
-    cx - 0.5 * dx, cx + 0.5 * dx,
-    cy - 0.5 * dy, cy + 0.5 * dy,
-    cz - 0.5 * dz, cz + 0.5 * dz);
-}
-
-////////////////////////////////////////////////////////////////////////
-GLOrthoParams GLOrthoParams::split(const Rectangle2d& S) const
-{
-  GLOrthoParams ret;
-  double W = this->right - this->left;
-  double H = this->top - this->bottom;
-  ret.left = this->left + S.x     * W;
-  ret.right = ret.left + S.width * W;
-  ret.bottom = this->bottom + S.y     * H;
-  ret.top = ret.bottom + S.height* H;
-  ret.zNear = this->zNear;
-  ret.zFar = this->zFar;
-  return ret;
-}
-
-
-
+  
 ////////////////////////////////////////////////////////////////////////
 void GLOrthoParams::writeTo(StringTree& out) const
 {

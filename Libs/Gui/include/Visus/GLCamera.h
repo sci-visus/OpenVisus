@@ -40,7 +40,6 @@ For support : support@visus.net
 #define VISUS_GL_CAMERA_H
 
 #include <Visus/Gui.h>
-#include <Visus/GLOrthoParams.h>
 #include <Visus/Frustum.h>
 #include <Visus/GLObject.h>
 
@@ -76,18 +75,15 @@ public:
   //getTypeName
   virtual String getTypeName() const override = 0;
 
-  //getOrthoParams
-  virtual GLOrthoParams getOrthoParams() const=0;
-
-  //setOrthoParams
-  virtual void setOrthoParams(GLOrthoParams value)=0;
-
   //mirror
   virtual void mirror(int ref) {
   }
 
   //guessPosition
   virtual bool guessPosition(BoxNd box, int ref = -1) = 0;
+
+  //splitProjectionFrustum
+  virtual void splitProjectionFrustum(Rectangle2d value)=0;
 
   //glRender
   virtual void glRender(GLCanvas& gl);

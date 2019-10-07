@@ -80,29 +80,192 @@ class KdQueryNode;
 class CpuPaletteNode;
 class StatisticsNode;
 
-//predeclaration
-class Viewer;
-
 ////////////////////////////////////////////////////////////////////
-class VISUS_APPKIT_API ViewerPlugin
+class VISUS_APPKIT_API ViewerPreferences
 {
 public:
 
-  VISUS_NON_COPYABLE_CLASS(ViewerPlugin)
+  VISUS_CLASS(ViewerPreferences)
 
-  Viewer* viewer;
+  static String default_panels;
+  static bool   default_show_logos;
+
+
+  String       title = "VisusViewer-" + ApplicationInfo::git_revision;
+  String       panels;
+  bool         bHideTitleBar = false;
+  bool         bHideMenus = false;
+  bool         bRightHanded = true;
+  Rectangle2d  screen_bounds;
+  bool         show_logos = true;
 
   //constructor
-  ViewerPlugin(Viewer* viewer_ = nullptr) : viewer(viewer_) {
+  ViewerPreferences() {
+    this->panels = default_panels;
+    this->show_logos = default_show_logos;
   }
 
-  //destructor
-  virtual ~ViewerPlugin() {
+  //writeTo
+  void writeTo(StringTree& out) const
+  {
+    out.writeValue("title", title);
+    out.writeValue("panels", panels);
+    out.writeValue("bHideTitleBar", cstring(bHideTitleBar));
+    out.writeValue("bHideMenus", cstring(bHideMenus));
+    out.writeValue("screen_bounds", screen_bounds.toString());
   }
 
-  //getPluginName
-  virtual String getPluginName() = 0;
+  //readFrom
+  void readFrom(StringTree& in)
+  {
+    title = in.readValue("title");
+    panels = in.readValue("panels");
+    bHideTitleBar = cbool(in.readValue("bHideTitleBar"));
+    bHideMenus = cbool(in.readValue("bHideMenus"));
+    screen_bounds = Rectangle2d::fromString(in.readValue("screen_bounds"));
+  }
 
+};
+
+////////////////////////////////////////////////////////////////////
+class VISUS_APPKIT_API ViewerAutoRefresh
+{
+public:
+  bool enabled = false;
+  int  msec = 0;
+};
+
+////////////////////////////////////////////////////////////////////
+class VISUS_APPKIT_API ViewerToolBarTab : public QHBoxLayout
+{
+public:
+
+  String name;
+
+  //constructor
+  ViewerToolBarTab(String name_) : name(name_) {
+  }
+
+  //constructor
+  virtual ~ViewerToolBarTab() {
+  }
+
+  //createButton
+  static QToolButton* createButton(QIcon icon, String name, std::function<void(bool)> clicked = std::function<void(bool)>())
+  {
+    auto ret = new QToolButton();
+
+    //ret->setIconSize(QSize(24, 24));
+    //ret->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+
+#if WIN32
+    ret->setStyleSheet(
+      "QToolButton       {background: transparent;} "
+      "QToolButton:hover {background: lightGray ; border: 1px solid #6593cf;} ");
+#endif
+    if (!icon.isNull())
+      ret->setIcon(icon);
+
+    if (!name.empty())
+      ret->setText(name.c_str());
+
+    if (clicked)
+      QObject::connect(ret, &QToolButton::clicked, clicked);
+
+    return ret;
+  }
+
+  //createButton
+  static QWidget* createButton(QAction* action)
+  {
+    auto ret = createButton(action->icon(), cstring(action->text()), [action](bool) {
+      action->trigger();
+    });
+
+    ret->setEnabled(action->isEnabled());
+
+    connect(action, &QAction::changed, [ret, action]() {
+      ret->setEnabled(action->isEnabled());
+      ret->setText(action->text());
+    });
+
+    ret->setToolTip(action->toolTip());
+    return ret;
+  }
+
+  //addAction
+  void addAction(QAction* action) {
+    addWidget(createButton(action));
+  }
+
+  //addMenu
+  QToolButton* addMenu(QIcon icon, String name, QMenu* menu)
+  {
+    auto button = createButton(icon, name + " ");
+    button->setMenu(menu);
+    button->setPopupMode(QToolButton::InstantPopup);
+    addWidget(button);
+    return button;
+  }
+
+  //addBlueMenu
+  QToolButton* addBlueMenu(QIcon icon, String name, QMenu* menu)
+  {
+    menu->setStyleSheet("QMenu { "
+      //"font-size:18px; "
+      "color:white;"
+      "background-color: rgb(43,87,184);"
+      "selection-background-color: rgb(43,87,140);}");
+
+    return addMenu(icon, name, menu);
+  }
+
+};
+
+////////////////////////////////////////////////////////////////////
+class VISUS_APPKIT_API ViewerToolBar : public QToolBar
+{
+public:
+
+  QMenu* file_menu = nullptr;
+  struct
+  {
+    QCheckBox* check = nullptr;
+    QLineEdit* msec = nullptr;
+  }
+  auto_refresh;
+
+  QToolButton* bookmarks_button = nullptr;
+
+  QTabWidget* tabs = nullptr;
+
+  //constructor
+  ViewerToolBar() 
+  {
+    QToolBar::addWidget(tabs = new QTabWidget());
+    QPalette p(this->palette());
+    p.setColor(QPalette::Base, Qt::darkGray);
+    this->setPalette(p);
+  }
+
+  //addTab
+  void addTab(QLayout* tab, String name) {
+    auto frame = new QFrame();
+    frame->setLayout(tab);
+    tabs->addTab(frame, name.c_str());
+  }
+
+};
+
+////////////////////////////////////////////////////////////////////
+class VISUS_APPKIT_API ViewerLogo
+{
+public:
+  String   filename;
+  Point2d  pos;
+  double   opacity = 0.5;
+  Point2d  border;
+  SharedPtr<GLTexture> tex;
 };
 
 
@@ -116,69 +279,6 @@ class VISUS_APPKIT_API Viewer :
 
 public:
 
-  //_____________________________________________________________
-  class VISUS_APPKIT_API AutoRefresh
-  {
-  public:
-    bool enabled = false;
-    int  msec = 0;
-  };
-
-  //_____________________________________________________________
-  class VISUS_APPKIT_API Defaults
-  {
-  public:
-    static String panels;
-    static bool   show_logos;
-  };
-
-  //_____________________________________________________________
-  class VISUS_APPKIT_API Preferences
-  {
-  public:
-
-    VISUS_CLASS(Preferences)
-
-    String       title = "VisusViewer-" + ApplicationInfo::git_revision;
-    String       panels;
-    bool         bHideTitleBar = false;
-    bool         bHideMenus = false;
-    bool         bRightHanded = true;
-    Rectangle2d  screen_bounds;
-    bool         show_logos=true;
-
-    //constructor
-    Preferences() {
-      this->panels = Defaults::panels;
-      this->show_logos = Defaults::show_logos;
-    }
-
-    //writeTo
-    void writeTo(StringTree& out) const
-    {
-      out.writeValue("title", title);
-      out.writeValue("panels", panels);
-      out.writeValue("bHideTitleBar", cstring(bHideTitleBar));
-      out.writeValue("bHideMenus", cstring(bHideMenus));
-      out.writeValue("screen_bounds", screen_bounds.toString());
-    }
-
-    //readFrom
-    void readFrom(StringTree& in)
-    {
-      title = in.readValue("title");
-      panels = in.readValue("panels");
-      bHideTitleBar = cbool(in.readValue("bHideTitleBar"));
-      bHideMenus = cbool(in.readValue("bHideMenus"));
-      screen_bounds = Rectangle2d(in.readValue("screen_bounds"));
-    }
-
-  };
-
-  typedef ViewerPlugin Plugin;
-
-  typedef std::vector< SharedPtr<Plugin> > Plugins;
-
   VISUS_NON_COPYABLE_CLASS(Viewer)
 
   //constructor
@@ -186,7 +286,6 @@ public:
 
   //destructor
   virtual ~Viewer();
-
 
   //getTypeName
   virtual String getTypeName() const override {
@@ -274,12 +373,12 @@ public:
   }
 
   //getAutoRefresh
-  const AutoRefresh& getAutoRefresh() const {
+  const ViewerAutoRefresh& getAutoRefresh() const {
     return this->auto_refresh;
   }
 
   //setAutoRefresh
-  void setAutoRefresh(AutoRefresh value);
+  void setAutoRefresh(ViewerAutoRefresh value);
 
   //beginFreeTransform
   void beginFreeTransform(QueryNode* node);
@@ -358,7 +457,7 @@ public:
   void reloadVisusConfig(bool bChooseAFile = false);
 
   //setPreferences
-  void setPreferences(Preferences value);
+  void setPreferences(ViewerPreferences value);
 
   //open
   bool open(String url, Node* parent = nullptr, bool bShowUrlDialogIfNeeded = false);
@@ -377,7 +476,7 @@ public:
 
   //getGLCamera
   SharedPtr<GLCamera> getGLCamera() const {
-    return widgets.glcanvas ? widgets.glcanvas->glcamera : nullptr;
+    return this->glcamera;
   }
 
   //refreshData
@@ -450,8 +549,8 @@ public:
   //addGLCameraNode
   GLCameraNode* addGLCamera(Node* parent, SharedPtr<GLCamera> glcamera);
 
-  //addGLCameraNode
-  GLCameraNode* addGLCamera(Node* parent, String type);
+  //addGLCamera
+  GLCameraNode* addGLCamera(Node* parent, int pdim);
 
   //addVolume
   QueryNode* addVolume(Node* parent, String fieldname="", int access_id=0);
@@ -508,157 +607,7 @@ public:
   //addNetSnd
   bool addNetSnd(String out_url, Rectangle2d split_ortho = Rectangle2d(0, 0, 1, 1), Rectangle2d screen_bounds = Rectangle2d(), double fix_aspect_ratio = 0);
 
-  //getPlugins
-  Plugins& getPlugins() {
-    return plugins;
-  }
-
 private:
-
-  //setBlueMenu
-  static void setBlueMenu(QMenu* menu)
-  {
-    menu->setStyleSheet("QMenu { "
-      //"font-size:18px; "
-      "color:white;"
-      "background-color: rgb(43,87,184);"
-      "selection-background-color: rgb(43,87,140);}");
-  }
-
-  //________________________________________________________
-  class ToolBar : public QToolBar
-  {
-  public:
-
-    QMenu * file_menu = nullptr;
-    struct
-    {
-      QCheckBox*   check = nullptr;
-      QLineEdit*   msec = nullptr;
-    }
-    auto_refresh;
-    QToolButton* bookmarks_button = nullptr;
-
-    //createButton
-    static QWidget* createButton(QAction* action)
-    {
-      auto ret = createButton(action->icon(), cstring(action->text()), [action](bool) {
-        action->trigger();
-      });
-
-      ret->setEnabled(action->isEnabled());
-
-      connect(action, &QAction::changed, [ret, action]() {
-        ret->setEnabled(action->isEnabled());
-        ret->setText(action->text());
-      });
-
-      ret->setToolTip(action->toolTip());
-      return ret;
-    }
-
-    //createButton
-    static QToolButton* createButton(QIcon icon, String name, std::function<void(bool)> clicked = std::function<void(bool)>())
-    {
-      auto ret = new QToolButton();
-
-      //ret->setIconSize(QSize(24, 24));
-      //ret->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-
-#if WIN32
-      ret->setStyleSheet(
-        "QToolButton       {background: transparent;} "
-        "QToolButton:hover {background: lightGray ; border: 1px solid #6593cf;} ");
-#endif
-      if (!icon.isNull())
-        ret->setIcon(icon);
-
-      if (!name.empty())
-        ret->setText(name.c_str());
-
-      if (clicked)
-        QObject::connect(ret, &QToolButton::clicked, clicked);
-
-      return ret;
-    }
-
-    //___________________________________________
-    class TabLayout : public QHBoxLayout
-    {
-    public:
-
-      String name;
-
-      //constructor
-      TabLayout(String name_) : name(name_) {
-      }
-
-      //constructor
-      virtual ~TabLayout() {
-      }
-
-      //addAction
-      void addAction(QAction* action) {
-        addWidget(createButton(action));
-      }
-
-      //addMenu
-      QToolButton* addMenu(QIcon icon, String name, QMenu* menu)
-      {
-        auto button = createButton(icon, name + " ");
-        button->setMenu(menu);
-        button->setPopupMode(QToolButton::InstantPopup);
-        addWidget(button);
-        return button;
-      }
-
-      //addBlueMenu
-      QToolButton* addBlueMenu(QIcon icon, String name, QMenu* menu)
-      {
-        setBlueMenu(menu);
-        return addMenu(icon, name, menu);
-      }
-
-    };
-
-    QTabWidget*  tabs = nullptr;
-
-    //constructor
-    ToolBar() {
-      QToolBar::addWidget(tabs = new QTabWidget());
-
-      QPalette p(this->palette());
-      p.setColor(QPalette::Base, Qt::darkGray);
-      this->setPalette(p);
-    }
-
-    //addTab
-    void addTab(TabLayout* tab) {
-      auto frame = new QFrame();
-      frame->setLayout(tab);
-      tabs->addTab(frame, tab->name.c_str());
-    }
-
-    //addTab
-    VISUS_NEWOBJECT(TabLayout*) addTab(String name)
-    {
-      auto tab = new TabLayout(name);
-      addTab(tab);
-      return tab;
-    }
-
-  };
-
-  //________________________________________________________
-  class Logo
-  {
-  public:
-    String   filename;
-    Point2d  pos;
-    double   opacity = 0.5;
-    Point2d  border;
-    SharedPtr<GLTexture> tex;
-  };
 
   //________________________________________________________
   class Icons
@@ -683,20 +632,6 @@ private:
     }
 
   };
-
-  //________________________________________________________
-  class MyGLCanvas : public GLCanvas
-  {
-  public:
-
-    GLMouse             mouse;
-    UniquePtr<QTimer>   mouse_timer;
-
-    SharedPtr<GLCamera> glcamera = nullptr;
-    Slot<void()>        glcamera_end_update_slot;
-    Slot<void()>        glcamera_redisplay_needed_slot;
-  };
-
   //________________________________________________________
   class Running
   {
@@ -765,14 +700,14 @@ private:
   public:
 
     //permantent
-    ToolBar * toolbar = nullptr;
-    QTextEdit*                           log = nullptr;
+    ViewerToolBar *    toolbar = nullptr;
+    QTextEdit*         log = nullptr;
 
     //non permanent
-    QTabWidget*                          tabs = nullptr;
-    DataflowTreeView*                    treeview = nullptr;
-    DataflowFrameView*                   frameview = nullptr;
-    MyGLCanvas*                          glcanvas = nullptr;
+    QTabWidget*        tabs = nullptr;
+    DataflowTreeView*  treeview = nullptr;
+    DataflowFrameView* frameview = nullptr;
+    GLCanvas*          glcanvas = nullptr;
   };
 
   //________________________________________________
@@ -822,26 +757,32 @@ private:
   GuiActions                            actions;
   Widgets                               widgets;
   Running                               running;
-  Plugins                               plugins;
   String                                last_saved_filename;
-  std::vector< SharedPtr<Logo> >        logos;
-  Preferences                           preferences;
+  std::vector< SharedPtr<ViewerLogo> >  logos;
+  ViewerPreferences                     preferences;
   Connections                           netrcv;
   Connections                           netsnd;
   Color                                 background_color;
-  AutoRefresh                           auto_refresh;
+  ViewerAutoRefresh                     auto_refresh;
   SharedPtr<QTimer>                     auto_refresh_timer;
   ConfigFile                            config;
 
+  GLMouse                               mouse;
+  UniquePtr<QTimer>                     mouse_timer;
+
+  SharedPtr<GLCamera>                   glcamera;
+  Slot<void()>                          glcamera_end_update_slot;
+  Slot<void()>                          glcamera_redisplay_needed_slot;
+
   struct
   {
-    CriticalSection                       lock;
-    std::vector<String>                   messages;
-    std::ofstream                         fstream;
+    CriticalSection                     lock;
+    std::vector<String>                 messages;
+    std::ofstream                       fstream;
   }
   log;
 
-  SharedPtr<Logo> openScreenLogo(String key, String default_logo);
+  SharedPtr<ViewerLogo> openScreenLogo(String key, String default_logo);
 
   //internalFlushMessages
   void internalFlushMessages();
@@ -862,7 +803,11 @@ private:
   QMenu* createBookmarks() {
     auto ret=new QMenu(this);
     createBookmarks(ret,this->config);
-    setBlueMenu(ret);
+    ret->setStyleSheet("QMenu { "
+      //"font-size:18px; "
+      "color:white;"
+      "background-color: rgb(43,87,184);"
+      "selection-background-color: rgb(43,87,140);}");
     return ret;
   }
 
@@ -917,7 +862,7 @@ private:
   DataflowTreeView* createTreeView();
 
   //createGLCanvas
-  MyGLCanvas* createGLCanvas();
+  GLCanvas* createGLCanvas();
 
   //createToolBar
   void createToolBar();

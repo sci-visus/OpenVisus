@@ -123,24 +123,57 @@ public:
   }
 
   //translate
-  GLOrthoParams translated(const Point3d& vt) const;
+  GLOrthoParams translated(const Point3d& vt) const
+  {
+    return GLOrthoParams(
+      this->left + vt[0], this->right + vt[0],
+      this->bottom + vt[1], this->top + vt[1],
+      this->zNear + vt[2], this->zFar + vt[2]);
+  }
 
   //scaled
-  GLOrthoParams scaled(const Point3d& vs) const;
+  GLOrthoParams scaled(const Point3d& vs) const
+  {
+    return GLOrthoParams(
+      vs[0] * left, vs[0] * right,
+      vs[1] * bottom, vs[1] * top,
+      vs[2] * zNear, vs[2] * zFar);
+  }
 
   //translate
   GLOrthoParams scaledAroundCenter(const Point3d& vs, const Point3d& center) const {
     return translated(-center).scaled(vs).translated(+center);
   }
 
-  //getProjectionMatrix
-  Matrix getProjectionMatrix(bool bUseOrthoProjection = true) const;
 
   //withAspectRatio
-  GLOrthoParams withAspectRatio(double value) const;
+  GLOrthoParams withAspectRatio(double ratio) const
+  {
+    auto dx = right - left; auto cx = (left + right) * 0.5;
+    auto dy = top - bottom; auto cy = (bottom + top) * 0.5;
+    auto dz = zFar - zNear; auto cz = (zFar + zNear) * 0.5;
 
-  //split (rect in in the range [0,1])
-  GLOrthoParams split(const Rectangle2d& S) const;
+    if ((dx / dy) <= ratio)
+      dx = dy * (ratio);
+    else
+      dy = dx * (1.0 / ratio);
+
+    return GLOrthoParams(
+      cx - 0.5 * dx, cx + 0.5 * dx,
+      cy - 0.5 * dy, cy + 0.5 * dy,
+      cz - 0.5 * dz, cz + 0.5 * dz);
+  }
+
+  //split
+  GLOrthoParams split(Rectangle2d r) const {
+    return GLOrthoParams(
+      this->left + r.p1().x * (this->right - this->left),
+      this->left + r.p2().x * (this->right - this->left),
+      this->bottom + r.p1().y * (this->top - this->bottom),
+      this->bottom + r.p2().y * (this->top - this->bottom),
+      this->zNear,
+      this->zFar);
+  }
 
   //toString
   String toString() const {

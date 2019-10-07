@@ -92,7 +92,7 @@ void Viewer::postRedisplay()
 }
 
 ////////////////////////////////////////////////////////////
-void Viewer::setPreferences(Preferences value)
+void Viewer::setPreferences(ViewerPreferences value)
 {
   //for debugging I prefer to have always title bar and menus (example: debugging powerwall)
 #ifdef VISUS_DEBUG
@@ -111,11 +111,12 @@ void Viewer::setPreferences(Preferences value)
 ////////////////////////////////////////////////////////////
 void Viewer::createToolBar()
 {
-  widgets.toolbar =new ToolBar();
+  widgets.toolbar =new ViewerToolBar();
 
   //MAIN tab
   {
-    auto tab= widgets.toolbar->addTab("MAIN");
+    auto tab = new ViewerToolBarTab("MAIN");
+    widgets.toolbar->addTab(tab, tab->name);
 
     tab->addBlueMenu(QIcon(), "File", widgets.toolbar->file_menu=GuiFactory::CreateMenu(this,{
       actions.New,

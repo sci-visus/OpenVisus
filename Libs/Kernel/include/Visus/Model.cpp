@@ -203,23 +203,12 @@ void Model::beginUpdate(StringTree redo, StringTree undo)
     undo.write("utc", utc);
   }
 
-  //take care of undo/redo
-  {
-    //note only the root action is important
-    if (!isUpdating() && (isDiff(redo) || isDiff(undo)))
-      this->diff_begin = EncodeObject(*this);
+  //note only the root action is important
+  if (bTopLevel && (isDiff(redo) || isDiff(undo)))
+    this->diff_begin = EncodeObject(*this);
 
-    //collect redo_stack at the end
-    if (!bTopLevel && isTransaction(topRedo()))
-      Utils::push_back(topRedo().childs, std::make_shared<StringTree>(redo));
-
-    //collect redo_stack at the begin (since they need to be executed in reverse order)
-    if (!bTopLevel && isTransaction(topUndo()))
-      Utils::push_front(topUndo().childs, std::make_shared<StringTree>(undo));
-
-    this->redo_stack.push(redo);
-    this->undo_stack.push(undo);
-  }
+  this->redo_stack.push(redo);
+  this->undo_stack.push(undo);
 
   //emit signal
   if (bTopLevel)
@@ -288,8 +277,23 @@ void Model::endUpdate()
     this->end_update.emitSignal();
   }
 
-  this->redo_stack.pop();
-  this->undo_stack.pop();
+  auto redo = this->topRedo(); this->redo_stack.pop();
+  auto undo = this->topUndo(); this->undo_stack.pop();
+
+  //collect for transaction
+  if (!bTopLevel && isTransaction(topRedo()))
+  {
+    VisusAssert(redo.name != "begin_update");
+    Utils::push_back(topRedo().childs, std::make_shared<StringTree>(redo));
+  }
+
+  //collect redo_stack at the begin (since they need to be executed in reverse order)
+  if (!bTopLevel && isTransaction(topUndo()))
+  {
+    VisusAssert(undo.name != "begin_update");
+    Utils::push_front(topUndo().childs, std::make_shared<StringTree>(undo));
+  }
+
 }
 
 ///////////////////////////////////////////////////////////////

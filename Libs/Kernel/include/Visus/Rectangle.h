@@ -198,11 +198,6 @@ public:
     height = fabs(p2[1] - p1[1]);
   }
 
-  //constructor from string
-  explicit Rectangle2d(String value) {
-    std::istringstream parser(value); parser >> x >> y >> width >> height;
-  }
-
   //fromString
   static Rectangle2d fromString(String s) {
     Rectangle2d ret;

@@ -74,8 +74,7 @@ void GLOrthoCamera::executeAction(StringTree in)
     if (target_id == "ortho_params")
     {
       auto value = GLOrthoParams::fromString(in.readString("value"));
-      auto smooth = in.readDouble("smooth");
-      setOrthoParams(value,smooth);
+      setOrthoParams(value);
       return;
     }
 
@@ -123,7 +122,7 @@ void GLOrthoCamera::mirror(int ref)
   else if (ref == 1) 
     std::swap(params.top, params.bottom);
 
-  setOrthoParams(params, /*smooth*/0.0);
+  setOrthoParams(params);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -167,7 +166,7 @@ bool GLOrthoCamera::guessPosition(BoxNd bounds,int ref)
   beginTransaction();
   {
     setLookAt(pos, dir, vup, /*rotation*/0.0);
-    setOrthoParams(params.withAspectRatio(aspect_ratio), /*smooth*/ 0.0);
+    setOrthoParams(params.withAspectRatio(aspect_ratio));
   }
   endTransaction();
 
@@ -175,19 +174,27 @@ bool GLOrthoCamera::guessPosition(BoxNd bounds,int ref)
 }
 
 //////////////////////////////////////////////////
+void GLOrthoCamera::splitProjectionFrustum(Rectangle2d r)
+{
+  GLOrthoParams params = this->ortho_params_final;
+  setOrthoParams(params.split(r));
+}
+
+
+//////////////////////////////////////////////////
 void GLOrthoCamera::setOrthoParams(GLOrthoParams new_value,double smooth)
 {
   VisusAssert(VisusHasMessageLock());
 
-  auto old_value = getOrthoParams();
+  auto& old_value = this->ortho_params_final;
   if (old_value  == new_value)
     return;
 
   beginUpdate(
-    StringTree("set").write("target_id", "ortho_params").write("value", new_value.toString()).write("smooth", smooth),
-    StringTree("set").write("target_id", "ortho_params").write("value", old_value.toString()).write("smooth", smooth));
+    StringTree("set").write("target_id", "ortho_params").write("value", new_value.toString()),
+    StringTree("set").write("target_id", "ortho_params").write("value", old_value.toString()));
   {
-    this->ortho_params_final   = new_value;
+    old_value = new_value;
   }
   endUpdate();
 
@@ -229,7 +236,7 @@ Frustum GLOrthoCamera::getCurrentFrustum(const Viewport& viewport) const
   ret.setViewport(viewport);
 
   auto params = (this->ortho_params_current).withAspectRatio(viewport.getAspectRatio());
-  ret.loadProjection(params.getProjectionMatrix(true));
+  ret.loadProjection(Matrix::ortho(params.left, params.right, params.bottom, params.top, params.zNear, params.zFar));
 
   if (this->rotation)
     ret.multProjection(Matrix::rotateAroundCenter(params.getCenter(),Point3d(0,0,1),rotation));
@@ -246,7 +253,7 @@ Frustum GLOrthoCamera::getFinalFrustum(const Viewport& viewport) const
   ret.setViewport(viewport);
 
   auto params = (this->ortho_params_final).withAspectRatio(viewport.getAspectRatio());
-  ret.loadProjection(params.getProjectionMatrix(true));
+  ret.loadProjection(Matrix::ortho(params.left, params.right, params.bottom, params.top, params.zNear, params.zFar));
 
   if (this->rotation)
     ret.multProjection(Matrix::rotateAroundCenter(ortho_params_final.getCenter(), Point3d(0, 0, 1), rotation));

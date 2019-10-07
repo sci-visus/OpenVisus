@@ -40,6 +40,7 @@ For support : support@visus.net
 #define VISUS_GL_ORTHO_CAMERA_H
 
 #include <Visus/GLCamera.h>
+#include <Visus/GLOrthoParams.h>
 #include <Visus/GLMouse.h>
 
 #include <QTimer>
@@ -79,6 +80,9 @@ public:
 
   //guessPosition
   virtual bool guessPosition(BoxNd bound, int ref = -1) override;
+
+  //splitProjectionFrustum
+  virtual void splitProjectionFrustum(Rectangle2d r) override;
 
   //setDisableRotation
   void setDisableRotation(bool value) {
@@ -160,7 +164,7 @@ public:
   }
 
   //getOrthoParams
-  virtual GLOrthoParams getOrthoParams() const override {
+  GLOrthoParams getOrthoParams() const  {
      return ortho_params_current; 
   }
 
@@ -168,10 +172,9 @@ public:
   void setOrthoParams(GLOrthoParams value, double smooth);
 
   //setOrthoParams
-    virtual void setOrthoParams(GLOrthoParams value) override {
+  void setOrthoParams(GLOrthoParams value) {
     setOrthoParams(value, 0.0);
   }
-
 
   //getSmooth
   double getSmooth() const {

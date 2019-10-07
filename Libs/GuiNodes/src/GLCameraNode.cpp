@@ -82,11 +82,12 @@ void GLCameraNode::setGLCamera(SharedPtr<GLCamera> value)
   {
     this->glcamera->begin_update.connect(glcamera_begin_update_slot=[this](){
       beginUpdate(
-        StringTree("__change__"),
-        StringTree("__change__"));
+        createPassThroughAction(StringTree("begin_update"), "glcamera"),
+        createPassThroughAction(StringTree("begin_update"), "glcamera"));
     });
 
     this->glcamera->end_update.connect(glcamera_end_update_slot =[this](){
+      //replace top action
       this->topRedo() = createPassThroughAction(glcamera->topRedo(), "glcamera");
       this->topUndo() = createPassThroughAction(glcamera->topUndo(), "glcamera");
       endUpdate();

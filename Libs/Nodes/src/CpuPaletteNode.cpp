@@ -126,11 +126,12 @@ void CpuPaletteNode::setTransferFunction(SharedPtr<TransferFunction> value)
   {
     this->transfer_function->begin_update.connect(this->transfer_function_begin_update_slot=[this](){
       beginUpdate(
-        StringTree("__change__"),
-        StringTree("__change__"));
+        createPassThroughAction(StringTree("begin_update"), "transfer_function"),
+        createPassThroughAction(StringTree("begin_update"), "transfer_function"));
     });
 
     this->transfer_function->end_update.connect(this->transfer_function_changed_slot=[this](){
+      //replace top action
       this->topUndo() = createPassThroughAction(transfer_function->topRedo(), "transfer_function");
       this->topUndo() = createPassThroughAction(transfer_function->topUndo(), "transfer_function");
       endUpdate();

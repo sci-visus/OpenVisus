@@ -40,6 +40,7 @@ For support : support@visus.net
 #define VISUS_GL_LOOKAT_CAMERA_H
 
 #include <Visus/GLCamera.h>
+#include <Visus/GLOrthoParams.h>
 #include <Visus/GLMouse.h>
 
 namespace Visus {
@@ -52,10 +53,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(GLLookAtCamera)
 
   //constructor
-  GLLookAtCamera(double rotation_factor_=5.2,double pan_factor_=30.0)
-    : rotation_factor(rotation_factor_),pan_factor(pan_factor_)
-  {
-    last_mouse_pos.resize(GLMouse::getNumberOfButtons());
+  GLLookAtCamera(){
   }
 
   //destructor
@@ -70,35 +68,18 @@ public:
     return "GLLookAtCamera";
   }
 
-  //isUsingOrthoProjection
-  inline bool isUsingOrthoProjection() const {
-    return use_ortho_projection;
-  }
-
-  //setUseOrthoProjection
-  void setUseOrthoProjection(bool value);
-
-  //isOrthoParamsFixed
-  bool isOrthoParamsFixed() const {
-    return ortho_params_fixed;
-  }
-
-  //setAutoOrthoParams
-  void setOrthoParamsFixed(bool value) ;
-
-  //getOrthoParams
-  virtual GLOrthoParams getOrthoParams() const override {
-     return ortho_params; 
-  }
-
-  //setOrthoParams
-  virtual void setOrthoParams(GLOrthoParams value) override;
-
   //setBounds
-  void setBounds(BoxNd new_value);
+  void setBounds(BoxNd value) {
+    setProperty("bounds", this->bounds, value);
+  }
 
   //guessPosition
   virtual bool guessPosition(BoxNd value,int ref=-1) override;
+
+  //splitProjectionFrustum
+  virtual void splitProjectionFrustum(Rectangle2d value) override {
+    setProperty("split_projection_frustum", this->split_projection_frustum, value);
+  }
 
   //getPosition
   Point3d getPosition() const {
@@ -106,7 +87,9 @@ public:
   }
 
   //setPosition
-  void setPosition(Point3d value);
+  void setPosition(Point3d value) {
+    setProperty("pos", this->pos, value);
+  }
 
   //getDirection
   Point3d getDirection() const {
@@ -114,7 +97,9 @@ public:
   }
 
   //setDirection
-  void setDirection(Point3d value);
+  void setDirection(Point3d value) {
+    setProperty("dir", this->dir, value);
+  }
 
   //getViewUp
   Point3d getViewUp() const {
@@ -122,8 +107,9 @@ public:
   }
 
   //setViewUp
-  void setViewUp(Point3d value);
-
+  void setViewUp(Point3d value) {
+    setProperty("vup", this->vup, value);
+  }
 
   //getLookAt
   virtual void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const override {
@@ -138,8 +124,9 @@ public:
   }
 
   //setRotation
-  void setRotation(Quaternion q);
-
+  void setRotation(Quaternion value) {
+    setProperty("rotation", this->rotation, value);
+  }
 
   //getRotationCenter
   Point3d getRotationCenter() {
@@ -147,7 +134,19 @@ public:
   }
 
   //setRotationCenter
-  void setRotationCenter(Point3d value);
+  void setRotationCenter(Point3d value) {
+    setProperty("rotation_center", this->rotation_center, value);
+  }
+
+  //getFov
+  double getFov() const {
+    return fov;
+  }
+
+  //setFov
+  void setFov(double value) {
+    setProperty("fov", this->fov, fov);
+  }
 
 public:
 
@@ -185,48 +184,30 @@ public:
 
 private:
 
-  BoxNd                bounds = BoxNd(3);
-  bool                 use_ortho_projection=false;
-  double               rotation_factor;
-  double               pan_factor;
-  bool                 disable_rotation=false;
-  std::vector<Point2i> last_mouse_pos;
-  GLMouse              mouse;
-  GLOrthoParams        ortho_params;
-  bool                 ortho_params_fixed = false;
+  std::vector<Point2i>   last_mouse_pos = std::vector<Point2i>(GLMouse::getNumberOfButtons());
+  GLMouse                mouse;
+
+  BoxNd                  bounds = BoxNd(3);
+
+  //projection
+  double                 fov = 60.0;
+  Rectangle2d            split_projection_frustum = Rectangle2d(0, 0, 1, 1);
 
   //modelview
-  Point3d      pos, dir, vup;
+  Point3d                pos, dir, vup;
+  Quaternion             rotation;
+  Point3d                rotation_center;
 
-  Quaternion   rotation;
-  Point3d      rotation_center;
-
-  //guessNearFarDistance
-  std::pair<double,double> guessNearFarDistance() const;
+  //properties
+  const double           rotation_factor=5.2;
+  const double           pan_factor=30;
+  const bool             disable_rotation = false;
 
   //guessForwardFactor
   double guessForwardFactor() const ;
 
-  //guessOrthoParams
-  GLOrthoParams guessOrthoParams() const;
-
-  //setProperty
-  template <typename Value>
-  void setProperty(String target_id, Value& old_value, const Value& new_value)
-  {
-    if (old_value == new_value) return;
-    beginUpdate(
-      createPassThroughAction(StringTree("set"), target_id).write("value", new_value),
-      createPassThroughAction(StringTree("set"), target_id).write("value", old_value));
-    {
-      old_value = new_value;
-      if (target_id!= "ortho_params" && !ortho_params_fixed)
-        setOrthoParams(guessOrthoParams());
-    }
-    endUpdate();
-  }
-
-
+  //guessNearFar
+  std::pair<double,double> guessNearFar() const;
 
 
 };//end class

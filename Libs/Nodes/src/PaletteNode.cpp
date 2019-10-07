@@ -118,11 +118,12 @@ void PaletteNode::setPalette(SharedPtr<Palette> value)
     // a change in the palette means a change in the node 
     this->palette->begin_update.connect(this->palette_begin_update_slot=[this](){
       beginUpdate(
-        StringTree("__change__"),
-        StringTree("__change__"));
+        createPassThroughAction(StringTree("begin_update"), "palette"),
+        createPassThroughAction(StringTree("begin_update"), "palette"));
     });
 
     this->palette->end_update.connect(this->palette_end_update_slot = [this]() {
+      //replace top action
       topRedo() = createPassThroughAction(palette->topRedo(), "palette");
       topUndo() = createPassThroughAction(palette->topUndo(), "palette");
       endUpdate();

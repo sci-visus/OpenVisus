@@ -43,8 +43,8 @@ For support : support@visus.net
 #include <Visus/GLCameraNode.h>
 #include <Visus/Model.h>
 #include <Visus/GuiFactory.h>
-
-
+#include <Visus/GLOrthoCamera.h>
+#include <Visus/GLLookAtCamera.h>
 
 namespace Visus {
 
@@ -157,12 +157,14 @@ private:
     widgets.vup.y->setText(std::to_string(vup[1]).c_str());
     widgets.vup.z->setText(std::to_string(vup[2]).c_str());
 
-    auto ortho_params=camera->getOrthoParams();
-
-    widgets.ortho_params.left  ->setText(std::to_string(ortho_params.left  ).c_str());
-    widgets.ortho_params.right ->setText(std::to_string(ortho_params.right ).c_str());
-    widgets.ortho_params.top   ->setText(std::to_string(ortho_params.top   ).c_str());
-    widgets.ortho_params.bottom->setText(std::to_string(ortho_params.bottom).c_str());
+    if (auto ortho = dynamic_cast<GLOrthoCamera*>(model))
+    {
+      auto ortho_params = ortho->getOrthoParams();
+      widgets.ortho_params.left->setText(std::to_string(ortho_params.left).c_str());
+      widgets.ortho_params.right->setText(std::to_string(ortho_params.right).c_str());
+      widgets.ortho_params.top->setText(std::to_string(ortho_params.top).c_str());
+      widgets.ortho_params.bottom->setText(std::to_string(ortho_params.bottom).c_str());
+    }
   }
 
   //modelChanged

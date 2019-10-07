@@ -88,9 +88,9 @@ void Viewer::mirrorGLCamera(int ref)
 }
 
 //////////////////////////////////////////////////////////////////////
-Viewer::MyGLCanvas* Viewer::createGLCanvas()
+GLCanvas* Viewer::createGLCanvas()
 {
-  auto ret=new MyGLCanvas();
+  auto ret=new GLCanvas();
   {
     connect(ret,&GLCanvas::glMouseMoveEvent     ,this,&Viewer::glCanvasMouseMoveEvent);
     connect(ret,&GLCanvas::glMousePressEvent    ,this,&Viewer::glCanvasMousePressEvent);
@@ -111,20 +111,20 @@ void Viewer::attachGLCamera(SharedPtr<GLCamera> value)
 
   detachGLCamera();
 
-  widgets.glcanvas->glcamera =value;
+  this->glcamera =value;
 
-  AutoRefresh auto_refresh;
+  ViewerAutoRefresh auto_refresh;
   auto_refresh.enabled = std::dynamic_pointer_cast<GLOrthoCamera>(value) ? true : false;
   auto_refresh.msec = 0;
   setAutoRefresh(auto_refresh);
 
   //for final frustum (which is part of the GLCamera model)
-  widgets.glcanvas->glcamera->end_update.connect(widgets.glcanvas->glcamera_end_update_slot=[this](){
+  this->glcamera->end_update.connect(this->glcamera_end_update_slot=[this](){
     glCameraChangeEvent();
   });
 
   //for interpolated frustum (which is not part of the GLCamera model)
-  widgets.glcanvas->glcamera->redisplay_needed.connect(widgets.glcanvas->glcamera_redisplay_needed_slot = [this]() {
+  this->glcamera->redisplay_needed.connect(this->glcamera_redisplay_needed_slot = [this]() {
     postRedisplay();
   });
 
@@ -134,12 +134,12 @@ void Viewer::attachGLCamera(SharedPtr<GLCamera> value)
 ////////////////////////////////////////////////////////////////////////////////
 void Viewer::detachGLCamera()
 {
-  if (!widgets.glcanvas->glcamera)
+  if (!this->glcamera)
     return;
   
-  widgets.glcanvas->glcamera->end_update.disconnect(widgets.glcanvas->glcamera_end_update_slot);
-  widgets.glcanvas->glcamera->redisplay_needed.disconnect(widgets.glcanvas->glcamera_redisplay_needed_slot);
-  widgets.glcanvas->glcamera=nullptr;
+  this->glcamera->end_update.disconnect(this->glcamera_end_update_slot);
+  this->glcamera->redisplay_needed.disconnect(this->glcamera_redisplay_needed_slot);
+  this->glcamera.reset();
 }
 
 
@@ -188,11 +188,11 @@ void Viewer::glCanvasMousePressEvent(QMouseEvent* evt)
     return;
 
   //start dragging
-  widgets.glcanvas->mouse_timer.reset();
-  if (!widgets.glcanvas->mouse.getNumberOfButtonDown())
+  this->mouse_timer.reset();
+  if (!this->mouse.getNumberOfButtonDown())
     setMouseDragging(true);
 
-  widgets.glcanvas->mouse.glMousePressEvent(evt);
+  this->mouse.glMousePressEvent(evt);
 
   auto viewport = widgets.glcanvas->getViewport();
   
@@ -219,7 +219,7 @@ void Viewer::glCanvasMouseMoveEvent(QMouseEvent* evt)
     return;
 
   auto viewport = widgets.glcanvas->getViewport();
-  widgets.glcanvas->mouse.glMouseMoveEvent(evt);
+  this->mouse.glMouseMoveEvent(evt);
 
   if (free_transform)
   {
@@ -241,8 +241,8 @@ void Viewer::glCanvasMouseReleaseEvent(QMouseEvent* evt)
     return;
 
   auto viewport = widgets.glcanvas->getViewport();
-  widgets.glcanvas->mouse_timer.reset();
-  widgets.glcanvas->mouse.glMouseReleaseEvent(evt);
+  this->mouse_timer.reset();
+  this->mouse.glMouseReleaseEvent(evt);
 
   if (free_transform)
   {
@@ -263,11 +263,11 @@ void Viewer::glCanvasMouseReleaseEvent(QMouseEvent* evt)
   glcamera->glMouseReleaseEvent(evt, viewport);
 
   //postpone a little the end-drag event for the camera
-  if (!widgets.glcanvas->mouse.getNumberOfButtonDown() && isMouseDragging())
+  if (!this->mouse.getNumberOfButtonDown() && isMouseDragging())
     scheduleMouseDragging(false, 1000);
 
   //click == change current selection
-  if (evt->button()==Qt::LeftButton && widgets.glcanvas->mouse.wasSingleClick(evt->button()))
+  if (evt->button()==Qt::LeftButton && this->mouse.wasSingleClick(evt->button()))
   {
     //disable selection for ortho glcamera
     if (!std::dynamic_pointer_cast<GLOrthoCamera>(getGLCamera()))
@@ -313,8 +313,8 @@ void Viewer::glCanvasWheelEvent(QWheelEvent* evt)
   if (!glcamera) return;
 
   auto viewport = widgets.glcanvas->getViewport();
-  widgets.glcanvas->mouse_timer.reset();
-  if (!widgets.glcanvas->mouse.getNumberOfButtonDown())
+  this->mouse_timer.reset();
+  if (!this->mouse.getNumberOfButtonDown())
   {
     setMouseDragging(true);
     glcamera->glWheelEvent(evt, viewport);
@@ -497,7 +497,7 @@ void Viewer::glRenderSelection(GLCanvas& gl)
 /////////////////////////////////////////////////////////////////////////////////////
 void Viewer::glRenderGestures(GLCanvas& gl)
 {
-  auto& mouse=widgets.glcanvas->mouse;
+  auto& mouse= this->mouse;
   if (mouse.getButton(Qt::LeftButton).isDown || mouse.getButton(Qt::MidButton).isDown)
   {
     GLMouse::ButtonStatus b1=mouse.getButton(Qt::LeftButton);

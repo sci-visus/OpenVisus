@@ -94,8 +94,8 @@ For support : support@visus.net
 
 namespace Visus {
 
-String Viewer::Defaults::panels = "left center";
-bool   Viewer::Defaults::show_logos = true;
+String ViewerPreferences::default_panels = "left center";
+bool   ViewerPreferences::default_show_logos = true;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 Viewer::Viewer(String title) : QMainWindow()
@@ -192,7 +192,7 @@ void Viewer::executeAction(StringTree in)
 
     if (target_id == "auto_refresh")
     {
-      AutoRefresh value = getAutoRefresh();
+      ViewerAutoRefresh value = getAutoRefresh();
       value.enabled = in.readBool("enabled");
       value.msec = in.readInt("msec");
       setAutoRefresh(value);
@@ -408,22 +408,22 @@ void Viewer::executeAction(StringTree in)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-SharedPtr<Viewer::Logo> Viewer::openScreenLogo(String key, String default_logo)
+SharedPtr<ViewerLogo> Viewer::openScreenLogo(String key, String default_logo)
 {
   String filename = config.readString(key + "/filename");
   if (filename.empty())
     filename = default_logo;
 
   if (filename.empty())
-    return SharedPtr<Logo>();
+    return SharedPtr<ViewerLogo>();
 
   auto img = QImage(filename.c_str());
   if (img.isNull()) {
     VisusInfo() << "Failed to load image " << filename;
-    return SharedPtr<Logo>();
+    return SharedPtr<ViewerLogo>();
   }
 
-  auto ret = std::make_shared<Logo>();
+  auto ret = std::make_shared<ViewerLogo>();
   ret->filename = filename;
   ret->tex = std::make_shared<GLTexture>(img);
   ret->tex->envmode = GL_MODULATE;
@@ -437,7 +437,7 @@ SharedPtr<Viewer::Logo> Viewer::openScreenLogo(String key, String default_logo)
 ////////////////////////////////////////////////////////////
 void Viewer::setMinimal()
 {
-  Viewer::Preferences preferences;
+  ViewerPreferences preferences;
   preferences.panels = "";
   preferences.bHideMenus = true;
   this->setPreferences(preferences);
@@ -485,8 +485,6 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   }
 
   typedef Visus::Rectangle2d Rectangle2d;
-  String arg_split_ortho;
-  String args_zoom_to;
 
   String open_filename;
   {
@@ -604,18 +602,10 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
     else if (args[I] == "--network-snd")
     {
       String url = args[++I];
-      Rectangle2d split_ortho = Rectangle2d(args[++I]);
-      Rectangle2d screen_bounds = Rectangle2d(args[++I]);
+      auto split_ortho = Rectangle2d::fromString(args[++I]);
+      auto screen_bounds = Rectangle2d::fromString(args[++I]);
       double fix_aspect_ratio = cdouble(args[++I]);
       this->addNetSnd(url, split_ortho, screen_bounds, fix_aspect_ratio);
-    }
-    else if (args[I] == "--split-ortho")
-    {
-      arg_split_ortho = args[++I];
-    }
-    else if (args[I] == "--zoom-to")
-    {
-      args_zoom_to = args[++I];
     }
     //last argment could be a filename. This facilitates OS-initiated launch (e.g. opening a .idx)
     else if (I == (args.size() - 1) && !StringUtils::startsWith(args[I], "--"))
@@ -633,52 +623,11 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   if (bMinimal)
     this->setMinimal();
 
-
   if (bFullScreen)
     this->showFullScreen();
 
   else if (geometry.width>0 && geometry.height>0)
     this->setGeometry(geometry.x, geometry.y, geometry.width, geometry.height);
-
-  if (!arg_split_ortho.empty())
-  {
-    auto split_ortho = Rectangle2d(arg_split_ortho);
-
-    if (auto glcamera = this->getGLCamera())
-    {
-      glcamera->setOrthoParams(glcamera->getOrthoParams().split(split_ortho));
-    }
-  }
-
-  if (!args_zoom_to.empty())
-  {
-    auto world_box = this->getWorldBox();
-
-    if (auto glcamera = this->getGLCamera())
-    {
-      GLOrthoParams ortho_params = glcamera->getOrthoParams();
-
-      double x1 = 0, y1 = 0, x2 = 1.0, y2 = 1.0;
-      std::istringstream parse(args_zoom_to);
-      parse >> x1 >> y1 >> x2 >> y2;
-
-      auto p1 = world_box.getAlphaPoint(PointNd(x1, y1, 0)).toPoint2();
-      auto p2 = world_box.getAlphaPoint(PointNd(x2, y2, 0)).toPoint2();
-
-      ortho_params = GLOrthoParams(p1[0], p2[0], p1[1], p2[1], ortho_params.zNear, ortho_params.zFar);
-
-      VisusInfo() << std::fixed << "Setting"
-        << " ortho_params("
-        << ortho_params.left << " " << ortho_params.right << " "
-        << ortho_params.bottom << " " << ortho_params.top << " "
-        << ortho_params.zNear << " " << ortho_params.zFar << ")"
-        << " world_box("
-        << world_box.p1[0] << " " << world_box.p1[1] << " " << world_box.p1[2] << " "
-        << world_box.p2[0] << " " << world_box.p2[1] << " " << world_box.p2[2] << ")";
-
-      glcamera->setOrthoParams(ortho_params);
-    }
-  }
 }
 
 ////////////////////////////////////////////////////////////
@@ -1378,39 +1327,30 @@ bool Viewer::open(String url,Node* parent,bool bShowUrlDialogIfNeeded)
     return false;
   }
 
-  if (!parent) {
+  SharedPtr<GLCamera> glcamera;
+  if (!parent) 
+  {
     New();
     parent = dataflow->getRoot();
+
+    if (dataset->getPointDim() == 3)
+      glcamera = std::make_shared<GLLookAtCamera>();
+    else
+      glcamera = std::make_shared<GLOrthoCamera>();
+
+    glcamera->guessPosition(dataset->getDatasetBounds().toAxisAlignedBox());
+    if (dataset && StringUtils::contains(dataset->getConfig().readString("mirror"), "x")) glcamera->mirror(0);
+    if (dataset && StringUtils::contains(dataset->getConfig().readString("mirror"), "y")) glcamera->mirror(1);
   }
 
-  beginUpdate(
-    StringTree("open").write("url",dataset->getUrl()).write("parent",getUUID(parent)),
-    Transaction());
+  beginTransaction();
   {
-    //make sure there is a camera
-    auto glcamera=getGLCamera();
-    if (!glcamera)
-    {
-      if (dataset->getPointDim() ==3)
-        glcamera=std::make_shared<GLLookAtCamera>();
-      else
-        glcamera=std::make_shared<GLOrthoCamera>();
-
+    if (glcamera)
       addGLCamera(parent, glcamera);
-    }
 
     addDataset(parent, dataset);
-
-    glcamera->guessPosition(getWorldBox());
-
-    if (dataset && StringUtils::contains(dataset->getConfig().readString("mirror"), "x"))
-      glcamera->mirror(0);
-
-    if (dataset && StringUtils::contains(dataset->getConfig().readString("mirror"), "y"))
-      glcamera->mirror(1);
-
   }
-  endUpdate();
+  endTransaction();
 
   if (widgets.treeview)
     widgets.treeview->expandAll();
@@ -1474,7 +1414,7 @@ bool Viewer::save(String url,bool bSaveHistory,bool bShowDialogs)
 }
   
 ////////////////////////////////////////////////////////////
-void Viewer::setAutoRefresh(AutoRefresh new_value)  {
+void Viewer::setAutoRefresh(ViewerAutoRefresh new_value)  {
 
   auto& old_value = this->auto_refresh;
 
@@ -1530,12 +1470,12 @@ void Viewer::setMouseDragging(bool new_value)
 void Viewer::scheduleMouseDragging(bool value, int msec)
 {
   //stop dragging: postpone a little the end-drag event for the camera
-  widgets.glcanvas->mouse_timer.reset(new QTimer());
-  connect(widgets.glcanvas->mouse_timer.get(), &QTimer::timeout, [this, value] {
-    widgets.glcanvas->mouse_timer.reset();
+  this->mouse_timer.reset(new QTimer());
+  connect(this->mouse_timer.get(), &QTimer::timeout, [this, value] {
+    this->mouse_timer.reset();
     setMouseDragging(value);
   });
-  widgets.glcanvas->mouse_timer->start(msec);
+  this->mouse_timer->start(msec);
 }
 
 
@@ -1611,11 +1551,12 @@ void Viewer::addNode(Node* parent,Node* node,int index)
 
   node->begin_update.connect([this,node](){
     beginUpdate(
-      StringTree("__change__"),
-      StringTree("__change__"));
+      createPassThroughAction(StringTree("begin_update"), "node"),
+      createPassThroughAction(StringTree("begin_update"), "node"));
   });
 
   node->end_update.connect([this,node](){
+    //replace top action
     this->topRedo() = createPassThroughAction(node->topRedo(),"nodes/" + getUUID(node));
     this->topUndo() = createPassThroughAction(node->topUndo(),"nodes/" + getUUID(node));
 
@@ -1873,19 +1814,14 @@ GLCameraNode* Viewer::addGLCamera(Node* parent, SharedPtr<GLCamera> glcamera)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-GLCameraNode* Viewer::addGLCamera(Node* parent, String type)
+GLCameraNode* Viewer::addGLCamera(Node* parent, int pdim)
 {
-  type = StringUtils::toLower(type);
-
-  if (type == "lookat" || type=="gllookatcamera")
+  if (pdim == 3)
     return addGLCamera(parent, std::make_shared<GLLookAtCamera>());
-
-  if (type == "ortho" || type=="glorthocamera")
+  else
     return addGLCamera(parent, std::make_shared<GLOrthoCamera>());
-
-  ThrowException("unknown glcamera type ");
-  return nullptr;
 }
+
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
