@@ -319,8 +319,9 @@ public:
 public:
 
   //getViewport
-  const Viewport& getViewport() const
-  {return this->viewport.top();}
+  Viewport getViewport() const {
+    return this->viewport.empty()? Viewport(0,0,width(),height()):this->viewport.top();
+  }
 
   //setViewport
   void setViewport(const Viewport& value,bool bForce=false);

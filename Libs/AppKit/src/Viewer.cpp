@@ -646,13 +646,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
 
     if (auto glcamera = this->getGLCamera())
     {
-      double W = glcamera->getViewport().width;
-      double H = glcamera->getViewport().height;
-
-      GLOrthoParams ortho_params = glcamera->getOrthoParams().withAspectRatio(W,H);
-
-      ortho_params = ortho_params.split(split_ortho);
-      glcamera->setOrthoParams(ortho_params);
+      glcamera->setOrthoParams(glcamera->getOrthoParams().split(split_ortho));
     }
   }
 
@@ -681,11 +675,6 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
         << " world_box("
         << world_box.p1[0] << " " << world_box.p1[1] << " " << world_box.p1[2] << " "
         << world_box.p2[0] << " " << world_box.p2[1] << " " << world_box.p2[2] << ")";
-
-
-      double W = glcamera->getViewport().width;
-      double H = glcamera->getViewport().height;
-      ortho_params=ortho_params.withAspectRatio(W,H);
 
       glcamera->setOrthoParams(ortho_params);
     }
@@ -979,11 +968,12 @@ Node* Viewer::findPick(Node* node,Point2d screen_point,bool bRecursive,double* o
 
   Node*  ret=nullptr;
   double best_distance=NumericLimits<double>::highest();
+  auto viewport = widgets.glcanvas->getViewport();
     
   //I allow the picking of only queries
   if (QueryNode* query=dynamic_cast<QueryNode*>(node))
   {
-    Frustum  node_to_screen = computeNodeToScreen(getGLCamera()->getCurrentFrustum(),node);
+    Frustum  node_to_screen = computeNodeToScreen(getGLCamera()->getCurrentFrustum(viewport),node);
     Position node_bounds  = getPosition(node);
 
     double query_distance= node_to_screen.computeDistance(node_bounds,screen_point,/*bUseFarPoint*/false);
@@ -1116,7 +1106,8 @@ void Viewer::dataflowBeforeProcessInput(Node* node)
 
     //overwrite the viewdep frustum, since QueryNode works in dataset reference space
     //NOTE: using the FINAL frusutm
-    auto node_to_screen=computeNodeToScreen(getGLCamera()->getFinalFrustum(),query_node->getDatasetNode());
+    auto viewport = widgets.glcanvas->getViewport();
+    auto node_to_screen=computeNodeToScreen(getGLCamera()->getFinalFrustum(viewport),query_node->getDatasetNode());
     query_node->setNodeToScreen(node_to_screen);
   }
 }

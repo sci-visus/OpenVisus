@@ -823,8 +823,9 @@ void Viewer::addDockWidget(String name,QWidget* widget)
 ////////////////////////////////////////////////////////////
 void Viewer::keyPressEvent(QKeyEvent* evt)
 {
+  auto viewport = widgets.glcanvas->getViewport();
   if (auto glcamera = getGLCamera())
-    glcamera->glKeyPressEvent(evt);
+    glcamera->glKeyPressEvent(evt,viewport);
 }
 
 

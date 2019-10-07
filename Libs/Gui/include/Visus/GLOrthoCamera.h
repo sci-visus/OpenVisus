@@ -68,7 +68,7 @@ public:
   virtual void executeAction(StringTree in) override;
 
   //getLookAt
-  void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const {
+  virtual void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const override {
     pos = this->pos;
     dir = this->dir;
     vup = this->vup;
@@ -172,19 +172,6 @@ public:
     setOrthoParams(value, 0.0);
   }
 
-  //getViewport
-  virtual Viewport getViewport() const override {
-    return this->viewport;
-  }
-
-  //setViewport
-  virtual void setViewport(Viewport value) override;
-
-  //getCurrentFrustum
-  virtual Frustum getCurrentFrustum() const override;
-
-  //getFinalFrustum
-  virtual Frustum getFinalFrustum() const override;
 
   //getSmooth
   double getSmooth() const {
@@ -203,20 +190,26 @@ public:
 
 public:
 
+  //getCurrentFrustum
+  virtual Frustum getCurrentFrustum(const Viewport& viewport) const override;
+
+  //getFinalFrustum
+  virtual Frustum getFinalFrustum(const Viewport& viewport) const override;
+
   //glMousePressEvent
-  virtual void glMousePressEvent(QMouseEvent* evt) override;
+  virtual void glMousePressEvent(QMouseEvent* evt, const Viewport& viewport) override;
 
   //glMouseReleaseEvent
-  virtual void glMouseReleaseEvent(QMouseEvent* evt) override;
+  virtual void glMouseReleaseEvent(QMouseEvent* evt, const Viewport& viewport) override;
 
   //glMouseMoveEvent
-  virtual void glMouseMoveEvent(QMouseEvent* evt) override;
+  virtual void glMouseMoveEvent(QMouseEvent* evt, const Viewport& viewport) override;
 
   //glWheelEvent
-  virtual void glWheelEvent(QWheelEvent* evt) override;
+  virtual void glWheelEvent(QWheelEvent* evt, const Viewport& viewport) override;
 
   //glKeyPressEvent
-  virtual void glKeyPressEvent(QKeyEvent* evt) override;
+  virtual void glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport) override;
 
 public:
 
@@ -235,7 +228,6 @@ private:
   double                min_zoom = 0;
   GLMouse               mouse;
   std::vector<Point2i>  last_mouse_pos;
-  Viewport              viewport;
 
   Point3d               pos    = Point3d(0, 0,  0);
   Point3d               dir    = Point3d(0, 0, -1);
@@ -248,15 +240,15 @@ private:
   SharedPtr<QTimer>     timer;
 
   //needUnproject
-  FrustumMap needUnprojectInScreenSpace()
+  FrustumMap needUnprojectInScreenSpace(const Viewport& viewport)
   {
-    Frustum temp(getCurrentFrustum());
+    Frustum temp(getCurrentFrustum(viewport));
     temp.loadModelview(Matrix::identity(4)); // i don't want the modelview...
     return FrustumMap(temp);
   }
 
   //checkZoomRange
-  GLOrthoParams checkZoomRange(GLOrthoParams value) const;
+  GLOrthoParams checkZoomRange(GLOrthoParams value, const Viewport& viewport) const;
 
 }; //end class
 

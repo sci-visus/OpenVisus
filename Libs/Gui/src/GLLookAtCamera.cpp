@@ -140,15 +140,15 @@ GLOrthoParams GLLookAtCamera::guessOrthoParams() const
   auto old_value = this->ortho_params;
 
   auto   pair = guessNearFarDistance();
-  double near_dist = pair.first;
-  double far_dist = pair.second;
+  double zNear = pair.first;
+  double zFar = pair.second;
 
-  double ratio = getViewport().width / (double)getViewport().height;
+  const double ratio = 4.0/3.0;
   const double fov = 60.0;
 
   auto ret = GLOrthoParams();
-  ret.zNear  = near_dist <= 0 ? 0.1 : near_dist;
-  ret.zFar   = far_dist + far_dist - near_dist;
+  ret.zNear  = zNear <= 0 ? 0.1 : zNear;
+  ret.zFar   = zFar + zFar - zNear;
   ret.top    = ret.zNear * tan(fov * Math::Pi / 360.0);
   ret.bottom = -ret.top;
   ret.left   = ret.bottom * ratio;
@@ -158,7 +158,7 @@ GLOrthoParams GLLookAtCamera::guessOrthoParams() const
 }
 
 //////////////////////////////////////////////////////////////////////
-Frustum GLLookAtCamera::getFinalFrustum() const
+Frustum GLLookAtCamera::getFinalFrustum(const Viewport& viewport) const
 {
   Frustum ret;
   ret.setViewport(viewport);
@@ -168,7 +168,8 @@ Frustum GLLookAtCamera::getFinalFrustum() const
   if (rotation.getAngle())
     ret.multModelview(Matrix::rotateAroundCenter(this->rotation_center, rotation.getAxis(), rotation.getAngle()));
 
-  ret.loadProjection(ortho_params.getProjectionMatrix(use_ortho_projection));
+  auto params = getOrthoParams().withAspectRatio(viewport.getAspectRatio());
+  ret.loadProjection(params.getProjectionMatrix(use_ortho_projection));
   return ret;
 }
 
@@ -196,17 +197,6 @@ void GLLookAtCamera::setRotationCenter(Point3d new_value){
   setProperty("rotation_center", this->rotation_center, new_value);
 }
 
-
-//NOTE: the viewport is not part of the model
-void GLLookAtCamera::setViewport(Viewport value) {
-  if (this->viewport == value)  return;
-  if (!value.width || !value.height) return;
-  this->viewport = value;
-  if (!ortho_params_fixed)
-    setOrthoParams(guessOrthoParams());
-  this->redisplay_needed.emitSignal();
-}
-
 void GLLookAtCamera::setUseOrthoProjection(bool new_value) {
   setProperty("use_ortho_projection", this->use_ortho_projection, new_value);
 }
@@ -219,8 +209,10 @@ void GLLookAtCamera::setOrthoParamsFixed(bool new_value) {
   setProperty("ortho_params_fixed", this->ortho_params_fixed, new_value);
 }
 
+
+
 //////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::glMousePressEvent(QMouseEvent* evt)
+void GLLookAtCamera::glMousePressEvent(QMouseEvent* evt,const Viewport& viewport)
 {
   this->mouse.glMousePressEvent(evt);
   evt->accept();
@@ -228,7 +220,7 @@ void GLLookAtCamera::glMousePressEvent(QMouseEvent* evt)
 }
 
 //////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt)
+void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt, const Viewport& viewport)
 {
   int button=
     (evt->buttons() & Qt::LeftButton  )? Qt::LeftButton  : 
@@ -241,8 +233,8 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt)
 
   this->mouse.glMouseMoveEvent(evt);
 
-  int W=getViewport().width;
-  int H=getViewport().height;
+  int W= viewport.width;
+  int H= viewport.height;
 
 
   if (this->mouse.getButton(Qt::LeftButton).isDown && button == Qt::LeftButton) 
@@ -255,7 +247,7 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt)
 
     // project the center of rotation to the screen
     Frustum temp;
-    temp.setViewport(getViewport());
+    temp.setViewport(viewport);
     temp.loadProjection(Matrix::perspective(60, W / (double)H, ortho_params.zNear, ortho_params.zFar));
     temp.loadModelview(Matrix::lookAt(this->pos, this->pos+this->dir, this->vup));
 
@@ -295,8 +287,8 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt)
     last_mouse_pos[button] = p2;
 
     Point3d vt;
-    auto dx = ((p1.x - p2.x) / getViewport().width ) * guessForwardFactor() * pan_factor;
-    auto dy = ((p1.y - p2.y) / getViewport().height) * guessForwardFactor() * pan_factor;
+    auto dx = ((p1.x - p2.x) / viewport.width ) * guessForwardFactor() * pan_factor;
+    auto dy = ((p1.y - p2.y) / viewport.height) * guessForwardFactor() * pan_factor;
     auto dz = 0.0;
 
     auto dir   = this->dir.normalized();
@@ -313,7 +305,7 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt)
 }
 
 //////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::glMouseReleaseEvent(QMouseEvent* evt)
+void GLLookAtCamera::glMouseReleaseEvent(QMouseEvent* evt, const Viewport& viewport)
 {
   this->mouse.glMouseReleaseEvent(evt);
   evt->accept();
@@ -321,7 +313,7 @@ void GLLookAtCamera::glMouseReleaseEvent(QMouseEvent* evt)
 }
 
 //////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::glWheelEvent(QWheelEvent* evt)
+void GLLookAtCamera::glWheelEvent(QWheelEvent* evt, const Viewport& viewport)
 {
   auto vt = (evt->delta() < 0 ? -1 : +1) * guessForwardFactor() * this->dir;
   setPosition(this->pos + vt);
@@ -329,7 +321,7 @@ void GLLookAtCamera::glWheelEvent(QWheelEvent* evt)
 }
 
 //////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt) 
+void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport)
 {
   int key=evt->key();
 
@@ -341,10 +333,7 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
     if (key==Qt::Key_Right) dx=+ortho_params.getWidth();
     if (key==Qt::Key_Up   ) dy=+ortho_params.getHeight();
     if (key==Qt::Key_Down ) dy=-ortho_params.getHeight();
-
-    auto ortho_params=this->ortho_params;
-    ortho_params.translate(Point3d(dx,dy));
-    setOrthoParams(ortho_params);
+    setOrthoParams(this->ortho_params.translated(Point3d(dx, dy)));
     evt->accept(); 
     return; 
   }
@@ -363,9 +352,9 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt)
       // sufficient (e.g. large volume/more complicated scene).
 
       // TODO: really want to use mouse position for center, not just center of screen.
-      int W=getViewport().width/2;
-      int H=getViewport().height/2;
-      auto ray=FrustumMap(getCurrentFrustum()).getRay(Point2d(W,H));
+      int W= viewport.width/2;
+      int H= viewport.height/2;
+      auto ray=FrustumMap(getCurrentFrustum(viewport)).getRay(Point2d(W,H));
 
       RayBoxIntersection intersection(ray,bounds);
       if (intersection.valid)

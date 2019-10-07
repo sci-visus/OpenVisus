@@ -70,41 +70,17 @@ public:
   //decode
   static SharedPtr<GLCamera> decode(StringTree in);
 
+  //getLookAt
+  virtual void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const =0 ;
+
   //getTypeName
   virtual String getTypeName() const override = 0;
-
-  //glMousePressEvent
-  virtual void glMousePressEvent(QMouseEvent* evt)=0;
-
-  //glMouseMoveEvent
-  virtual void glMouseMoveEvent(QMouseEvent* evt)=0;
-
-  //glMouseReleaseEvent
-  virtual void glMouseReleaseEvent(QMouseEvent* evt)=0;
-
-  //glWheelEvent
-  virtual void glWheelEvent(QWheelEvent* evt)=0;
-
-  //keyboard glKeyPressEvent
-  virtual void glKeyPressEvent(QKeyEvent* evt)=0;
-
-  //getCurrentFrustum
-  virtual Frustum getCurrentFrustum() const = 0;
-  
-  //getFinalFrustum
-  virtual Frustum getFinalFrustum() const = 0;
 
   //getOrthoParams
   virtual GLOrthoParams getOrthoParams() const=0;
 
   //setOrthoParams
   virtual void setOrthoParams(GLOrthoParams value)=0;
-
-  //getViewport
-  virtual Viewport getViewport() const=0;
-
-  //setViewport
-  virtual void setViewport(Viewport value)=0;
 
   //mirror
   virtual void mirror(int ref) {
@@ -115,6 +91,29 @@ public:
 
   //glRender
   virtual void glRender(GLCanvas& gl);
+
+public:
+
+  //glMousePressEvent
+  virtual void glMousePressEvent(QMouseEvent* evt, const Viewport& viewport) = 0;
+
+  //glMouseMoveEvent
+  virtual void glMouseMoveEvent(QMouseEvent* evt, const Viewport& viewport) = 0;
+
+  //glMouseReleaseEvent
+  virtual void glMouseReleaseEvent(QMouseEvent* evt, const Viewport& viewport) = 0;
+
+  //glWheelEvent
+  virtual void glWheelEvent(QWheelEvent* evt, const Viewport& viewport) = 0;
+
+  //keyboard glKeyPressEvent
+  virtual void glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport) = 0;
+
+  //getCurrentFrustum
+  virtual Frustum getCurrentFrustum(const Viewport& viewport) const = 0;
+
+  //getFinalFrustum
+  virtual Frustum getFinalFrustum(const Viewport& viewport) const = 0;
 
 public:
 

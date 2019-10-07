@@ -66,7 +66,7 @@ SharedPtr<GLCamera> GLCamera::decode(StringTree in)
 //////////////////////////////////////////////////
 void GLCamera::glRender(GLCanvas& gl) 
 {
-  GLBox(getCurrentFrustum(),Colors::Transparent,Colors::Black).glRender(gl);
+  GLBox(getCurrentFrustum(gl.getViewport()),Colors::Transparent,Colors::Black).glRender(gl);
 }
 
 } //namespace

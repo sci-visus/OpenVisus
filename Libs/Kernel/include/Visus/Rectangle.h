@@ -216,6 +216,11 @@ public:
     return width > 0 && height > 0;
   }
 
+  //getAspectRatio
+  double getAspectRatio() const {
+    return width / double(height);
+  }
+
   //containsPoint
   bool containsPoint(Point2d p) const {
     return valid() && p[0] >= x && p[0] < (x + width) && p[1] >= y && p[1] < (y + height);

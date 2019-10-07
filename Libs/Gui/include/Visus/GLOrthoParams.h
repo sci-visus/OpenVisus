@@ -123,19 +123,21 @@ public:
   }
 
   //translate
-  void translate(const Point3d& vt);
+  GLOrthoParams translated(const Point3d& vt) const;
+
+  //scaled
+  GLOrthoParams scaled(const Point3d& vs) const;
 
   //translate
-  void scaleAroundCenter(const Point3d& vs, const Point3d& center);
+  GLOrthoParams scaledAroundCenter(const Point3d& vs, const Point3d& center) const {
+    return translated(-center).scaled(vs).translated(+center);
+  }
 
   //getProjectionMatrix
   Matrix getProjectionMatrix(bool bUseOrthoProjection = true) const;
 
   //withAspectRatio
-  GLOrthoParams withAspectRatio(double W,double H) const;
-
-  //withAspectRatio
-  GLOrthoParams withAspectRatio(const Viewport& old_value, const Viewport& new_value) const;
+  GLOrthoParams withAspectRatio(double value) const;
 
   //split (rect in in the range [0,1])
   GLOrthoParams split(const Rectangle2d& S) const;

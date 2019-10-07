@@ -143,7 +143,7 @@ private:
   {
     auto camera=model->getGLCamera();
     Point3d pos,dir,vup;
-    camera->getFinalFrustum().getModelview().getLookAt(pos,dir,vup);
+    camera->getLookAt(pos,dir,vup);
 
     widgets.pos.x->setText(std::to_string(pos[0]).c_str());
     widgets.pos.y->setText(std::to_string(pos[1]).c_str());

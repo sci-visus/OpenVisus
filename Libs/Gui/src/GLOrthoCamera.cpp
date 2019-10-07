@@ -131,9 +131,6 @@ bool GLOrthoCamera::guessPosition(BoxNd bounds,int ref)
 {
   bounds.setPointDim(3);
 
-  int W = getViewport().width ; if (!W) W=800;
-  int H = getViewport().height; if (!H) H=800;
-
   auto size = bounds.size();
 
   Point3d pos(0, 0, 0), dir, vup;
@@ -165,10 +162,12 @@ bool GLOrthoCamera::guessPosition(BoxNd bounds,int ref)
     params.zFar  = Z - 1;
   }
 
+  const double aspect_ratio = 4.0 / 3.0;
+
   beginTransaction();
   {
     setLookAt(pos, dir, vup, /*rotation*/0.0);
-    setOrthoParams(params.withAspectRatio(W, H), /*smooth*/ 0.0);
+    setOrthoParams(params.withAspectRatio(aspect_ratio), /*smooth*/ 0.0);
   }
   endTransaction();
 
@@ -180,8 +179,6 @@ void GLOrthoCamera::setOrthoParams(GLOrthoParams new_value,double smooth)
 {
   VisusAssert(VisusHasMessageLock());
 
-  new_value = checkZoomRange(new_value);
-
   auto old_value = getOrthoParams();
   if (old_value  == new_value)
     return;
@@ -190,7 +187,7 @@ void GLOrthoCamera::setOrthoParams(GLOrthoParams new_value,double smooth)
     StringTree("set").write("target_id", "ortho_params").write("value", new_value.toString()).write("smooth", smooth),
     StringTree("set").write("target_id", "ortho_params").write("value", old_value.toString()).write("smooth", smooth));
   {
-    this->ortho_params_final   = checkZoomRange(new_value);
+    this->ortho_params_final   = new_value;
   }
   endUpdate();
 
@@ -224,31 +221,18 @@ void GLOrthoCamera::setOrthoParams(GLOrthoParams new_value,double smooth)
   }
 }
 
-//////////////////////////////////////////////////
-void GLOrthoCamera::setViewport(Viewport new_value)
-{
-  //NOTE the viewport is not part of the model
-  auto old_value = this->viewport;
-  if (old_value == new_value) return;
-  this->viewport = new_value;
-
-  //try to keep the ortho params (if possible)
-  auto params = getOrthoParams().withAspectRatio(old_value, new_value);
-  setOrthoParams(params, /*smoth*/0.0);
-  this->redisplay_needed.emitSignal();
-}
 
 ////////////////////////////////////////////////////////////////
-Frustum GLOrthoCamera::getCurrentFrustum() const
+Frustum GLOrthoCamera::getCurrentFrustum(const Viewport& viewport) const
 {
   Frustum ret;
+  ret.setViewport(viewport);
 
-  ret.setViewport(this->viewport);
-
-  ret.loadProjection(ortho_params_current.getProjectionMatrix(true));
+  auto params = (this->ortho_params_current).withAspectRatio(viewport.getAspectRatio());
+  ret.loadProjection(params.getProjectionMatrix(true));
 
   if (this->rotation)
-    ret.multProjection(Matrix::rotateAroundCenter(ortho_params_current.getCenter(),Point3d(0,0,1),rotation));
+    ret.multProjection(Matrix::rotateAroundCenter(params.getCenter(),Point3d(0,0,1),rotation));
 
   ret.loadModelview(Matrix::lookAt(pos,pos+dir,vup));
 
@@ -256,24 +240,26 @@ Frustum GLOrthoCamera::getCurrentFrustum() const
 }
 
 ////////////////////////////////////////////////////////////////
-Frustum GLOrthoCamera::getFinalFrustum() const
+Frustum GLOrthoCamera::getFinalFrustum(const Viewport& viewport) const
 {
   Frustum ret;
-  ret.loadProjection(ortho_params_final.getProjectionMatrix(true));
+  ret.setViewport(viewport);
+
+  auto params = (this->ortho_params_final).withAspectRatio(viewport.getAspectRatio());
+  ret.loadProjection(params.getProjectionMatrix(true));
 
   if (this->rotation)
     ret.multProjection(Matrix::rotateAroundCenter(ortho_params_final.getCenter(), Point3d(0, 0, 1), rotation));
 
   ret.loadModelview(Matrix::lookAt(pos, pos + dir, vup));
-  ret.setViewport(this->viewport);
   return ret;
 }
 
 ////////////////////////////////////////////////////////////////
-GLOrthoParams GLOrthoCamera::checkZoomRange(GLOrthoParams value) const
+GLOrthoParams GLOrthoCamera::checkZoomRange(GLOrthoParams value, const Viewport& viewport) const
 {
   //limit the zoom to actual pixels visible 
-  if (!getViewport().valid())
+  if (!viewport.valid())
     return value;
 
   // viewport_w/ortho_params_w=zoom 
@@ -283,30 +269,30 @@ GLOrthoParams GLOrthoCamera::checkZoomRange(GLOrthoParams value) const
   // ortho_params_w<= viewport_w/min_zoom
 
   double zoom = std::max(
-    (double)getViewport().width / value.getWidth(),
-    (double)getViewport().height / value.getHeight());
+    (double)viewport.width / value.getWidth(),
+    (double)viewport.height / value.getHeight());
 
   //example max_zoom=2.0 means value.getWidth can be 0.5*viewport_w
   if (max_zoom > 0 && zoom > max_zoom)
   {
-    auto ortho_params_w = (double)getViewport().width / max_zoom;
-    auto ortho_params_h = (double)getViewport().height / max_zoom;
+    auto ortho_params_w = (double)viewport.width / max_zoom;
+    auto ortho_params_h = (double)viewport.height / max_zoom;
 
     value = GLOrthoParams(
       value.getCenter().x - 0.5 * ortho_params_w, value.getCenter().x + 0.5 * ortho_params_w,
       value.getCenter().y - 0.5 * ortho_params_h, value.getCenter().y + 0.5 * ortho_params_h,
-      value.zNear, value.zFar).withAspectRatio((double)getViewport().width, (double)getViewport().height);
+      value.zNear, value.zFar).withAspectRatio((double)viewport.width / (double)viewport.height);
   }
 
   if (min_zoom > 0 && zoom < min_zoom)
   {
-    auto ortho_params_w = (double)getViewport().width / min_zoom;
-    auto ortho_params_h = (double)getViewport().height / min_zoom;
+    auto ortho_params_w = (double)viewport.width / min_zoom;
+    auto ortho_params_h = (double)viewport.height / min_zoom;
 
     value = GLOrthoParams(
       value.getCenter().x - 0.5 * ortho_params_w, value.getCenter().x + 0.5 * ortho_params_w,
       value.getCenter().y - 0.5 * ortho_params_h, value.getCenter().y + 0.5 * ortho_params_h,
-      value.zNear, value.zFar).withAspectRatio((double)getViewport().width, (double)getViewport().height);
+      value.zNear, value.zFar).withAspectRatio((double)viewport.width / (double)viewport.height);
   }
 
   return value;
@@ -332,9 +318,7 @@ void GLOrthoCamera::setLookAt(Point3d pos, Point3d dir, Point3d vup, double rota
 void GLOrthoCamera::translate(Point2d vt)
 {
   if (vt == Point2d()) return;
-  auto params = this->ortho_params_final;
-  params.translate(Point3d(vt));
-  setOrthoParams(params, this->smooth);
+  setOrthoParams(this->ortho_params_final.translated(Point3d(vt)), this->smooth);
 }
 
 
@@ -342,13 +326,12 @@ void GLOrthoCamera::translate(Point2d vt)
 void GLOrthoCamera::scale(double vs,Point2d center)
 {
   if (vs==1 || vs==0)  return;
-  auto params = this->ortho_params_final;
-  params.scaleAroundCenter(Point3d(vs, vs, 1.0), Point3d(center));
-  setOrthoParams(params, this->smooth);
+  setOrthoParams(this->ortho_params_final.scaledAroundCenter(Point3d(vs, vs, 1.0), Point3d(center)), this->smooth);
 }
 
+
 ////////////////////////////////////////////////////////////////
-void GLOrthoCamera::glMousePressEvent(QMouseEvent* evt)
+void GLOrthoCamera::glMousePressEvent(QMouseEvent* evt, const Viewport& viewport)
 {
   this->mouse.glMousePressEvent(evt);
   evt->accept();
@@ -356,7 +339,7 @@ void GLOrthoCamera::glMousePressEvent(QMouseEvent* evt)
 }
 
 ////////////////////////////////////////////////////////////////
-void GLOrthoCamera::glMouseMoveEvent(QMouseEvent* evt)
+void GLOrthoCamera::glMouseMoveEvent(QMouseEvent* evt, const Viewport& viewport)
 {
   int button =
     (evt->buttons() & Qt::LeftButton) ? Qt::LeftButton :
@@ -369,12 +352,12 @@ void GLOrthoCamera::glMouseMoveEvent(QMouseEvent* evt)
 
   this->mouse.glMouseMoveEvent(evt);
 
-  int W = getViewport().width;
-  int H = getViewport().height;
+  int W = viewport.width;
+  int H = viewport.height;
 
   if (this->mouse.getButton(Qt::LeftButton).isDown && button == Qt::LeftButton)
   {
-    FrustumMap map = needUnprojectInScreenSpace();
+    FrustumMap map = needUnprojectInScreenSpace(viewport);
     Point2i p1 = last_mouse_pos[button];
     Point2i p2 = this->mouse.getButton(button).pos;
     last_mouse_pos[button] = p2;
@@ -387,7 +370,7 @@ void GLOrthoCamera::glMouseMoveEvent(QMouseEvent* evt)
 }
 
 ////////////////////////////////////////////////////////////////
-void GLOrthoCamera::glMouseReleaseEvent(QMouseEvent* evt)
+void GLOrthoCamera::glMouseReleaseEvent(QMouseEvent* evt, const Viewport& viewport)
 {
   this->mouse.glMouseReleaseEvent(evt);
   evt->accept();
@@ -395,17 +378,21 @@ void GLOrthoCamera::glMouseReleaseEvent(QMouseEvent* evt)
 }
 
 ////////////////////////////////////////////////////////////////
-void GLOrthoCamera::glWheelEvent(QWheelEvent* evt)
+void GLOrthoCamera::glWheelEvent(QWheelEvent* evt, const Viewport& viewport)
 {
-  FrustumMap map = needUnprojectInScreenSpace();
+  FrustumMap map = needUnprojectInScreenSpace(viewport);
   Point2d center = map.unprojectPoint(Point2d(evt->x(), evt->y())).toPoint2();
   double  vs = evt->delta() > 0 ? (1.0 / default_scale) : (default_scale);
-  scale(vs, center);
+  if (!vs || vs == 1) return;
+  auto params = this->ortho_params_final;
+  params = params.scaledAroundCenter(Point3d(vs, vs, 1.0), Point3d(center));
+  params = checkZoomRange(params, viewport);
+  setOrthoParams(params);
   evt->accept();
 }
 
 ////////////////////////////////////////////////////////////////
-void GLOrthoCamera::glKeyPressEvent(QKeyEvent* evt)
+void GLOrthoCamera::glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport)
 {
   int key = evt->key();
 

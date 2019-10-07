@@ -94,37 +94,6 @@ public:
   //setOrthoParams
   virtual void setOrthoParams(GLOrthoParams value) override;
 
-  //getViewport
-  virtual Viewport getViewport() const override {
-    return viewport;
-  }
-
-  //setViewport
-  virtual void setViewport(Viewport value) override;
-
-  //getCurrentFrustum
-  virtual Frustum getFinalFrustum() const override;
-
-  //getCurrentFrustum
-  virtual Frustum getCurrentFrustum() const override {
-    return getFinalFrustum();
-  }
-
-  //glMousePressEvent
-  virtual void glMousePressEvent(QMouseEvent* evt) override;
-
-  //glMouseMoveEvent
-  virtual void glMouseMoveEvent(QMouseEvent* evt) override;
-
-  //glMouseReleaseEvent
-  virtual void glMouseReleaseEvent (QMouseEvent* evt) override;
-
-  //glWheelEvent
-  virtual void glWheelEvent(QWheelEvent* evt) override;
-
-  //glKeyPressEvent
-  virtual void glKeyPressEvent(QKeyEvent* evt) override;
-
   //setBounds
   void setBounds(BoxNd new_value);
 
@@ -155,6 +124,14 @@ public:
   //setViewUp
   void setViewUp(Point3d value);
 
+
+  //getLookAt
+  virtual void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const override {
+    pos = getPosition();
+    dir = getDirection();
+    vup = getViewUp();
+  }
+
   //getRotation
   Quaternion getRotation() const {
     return rotation;
@@ -174,6 +151,32 @@ public:
 
 public:
 
+  //getCurrentFrustum
+  virtual Frustum getFinalFrustum(const Viewport& viewport) const override;
+
+  //getCurrentFrustum
+  virtual Frustum getCurrentFrustum(const Viewport& viewport) const override {
+    return getFinalFrustum(viewport);
+  }
+
+  //glMousePressEvent
+  virtual void glMousePressEvent(QMouseEvent* evt, const Viewport& viewport) override;
+
+  //glMouseMoveEvent
+  virtual void glMouseMoveEvent(QMouseEvent* evt, const Viewport& viewport) override;
+
+  //glMouseReleaseEvent
+  virtual void glMouseReleaseEvent(QMouseEvent* evt, const Viewport& viewport) override;
+
+  //glWheelEvent
+  virtual void glWheelEvent(QWheelEvent* evt, const Viewport& viewport) override;
+
+  //glKeyPressEvent
+  virtual void glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport) override;
+
+
+public:
+
   //writeTo
   virtual void writeTo(StringTree& out) const override;
 
@@ -189,7 +192,6 @@ private:
   bool                 disable_rotation=false;
   std::vector<Point2i> last_mouse_pos;
   GLMouse              mouse;
-  Viewport             viewport;
   GLOrthoParams        ortho_params;
   bool                 ortho_params_fixed = false;
 

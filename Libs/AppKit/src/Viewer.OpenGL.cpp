@@ -118,10 +118,6 @@ void Viewer::attachGLCamera(SharedPtr<GLCamera> value)
   auto_refresh.msec = 0;
   setAutoRefresh(auto_refresh);
 
-  int W=widgets.glcanvas->width ();
-  int H=widgets.glcanvas->height();
-  widgets.glcanvas->glcamera->setViewport(Viewport(0, 0, W, H));
-
   //for final frustum (which is part of the GLCamera model)
   widgets.glcanvas->glcamera->end_update.connect(widgets.glcanvas->glcamera_end_update_slot=[this](){
     glCameraChangeEvent();
@@ -161,12 +157,14 @@ void Viewer::glCameraChangeEvent()
   if (auto_refresh.msec>0)
     return;
 
+  auto viewport = widgets.glcanvas->getViewport();
+
   for (auto node : getNodes())
   {
     if (auto query_node = dynamic_cast<QueryNode*>(node))
     {
       //IMPORTANT: refresh the data considering the FINAL frustum!
-      auto node_to_screen = computeNodeToScreen(getGLCamera()->getFinalFrustum(), query_node->getDatasetNode());
+      auto node_to_screen = computeNodeToScreen(getGLCamera()->getFinalFrustum(viewport), query_node->getDatasetNode());
 
       if (node_to_screen != query_node->nodeToScreen())
         dataflow->needProcessInput(query_node);
@@ -180,8 +178,6 @@ void Viewer::glCanvasResizeEvent(QResizeEvent* evt)
   auto glcamera=getGLCamera();
   if (!glcamera) 
     return;
-  
-  glcamera->setViewport(Viewport(0,0,widgets.glcanvas->width(),widgets.glcanvas->height()));
 }
 
 ////////////////////////////////////////////////////////////
@@ -197,17 +193,19 @@ void Viewer::glCanvasMousePressEvent(QMouseEvent* evt)
     setMouseDragging(true);
 
   widgets.glcanvas->mouse.glMousePressEvent(evt);
+
+  auto viewport = widgets.glcanvas->getViewport();
   
   if (free_transform)
   {
-    free_transform->glMousePressEvent(FrustumMap(glcamera->getCurrentFrustum()),evt);
+    free_transform->glMousePressEvent(FrustumMap(glcamera->getCurrentFrustum(viewport)),evt);
     if (evt->isAccepted()) {
       postRedisplay();
       return;
     }
   }
 
-  glcamera->glMousePressEvent(evt);
+  glcamera->glMousePressEvent(evt, viewport);
 
   //needed for gesture render
   postRedisplay();
@@ -220,18 +218,19 @@ void Viewer::glCanvasMouseMoveEvent(QMouseEvent* evt)
   if (!glcamera) 
     return;
 
+  auto viewport = widgets.glcanvas->getViewport();
   widgets.glcanvas->mouse.glMouseMoveEvent(evt);
 
   if (free_transform)
   {
-    free_transform->glMouseMoveEvent(FrustumMap(glcamera->getCurrentFrustum()),evt);
+    free_transform->glMouseMoveEvent(FrustumMap(glcamera->getCurrentFrustum(viewport)),evt);
     if (evt->isAccepted()) {
       postRedisplay();
       return;
     }
   }
 
-  glcamera->glMouseMoveEvent(evt);
+  glcamera->glMouseMoveEvent(evt, viewport);
 }
 
 ////////////////////////////////////////////////////////////
@@ -241,12 +240,13 @@ void Viewer::glCanvasMouseReleaseEvent(QMouseEvent* evt)
   if (!glcamera) 
     return;
 
+  auto viewport = widgets.glcanvas->getViewport();
   widgets.glcanvas->mouse_timer.reset();
   widgets.glcanvas->mouse.glMouseReleaseEvent(evt);
 
   if (free_transform)
   {
-    free_transform->glMouseReleaseEvent(FrustumMap(glcamera->getCurrentFrustum()),evt);
+    free_transform->glMouseReleaseEvent(FrustumMap(glcamera->getCurrentFrustum(viewport)),evt);
     if (evt->isAccepted()) 
     {
       setMouseDragging(false);
@@ -260,7 +260,7 @@ void Viewer::glCanvasMouseReleaseEvent(QMouseEvent* evt)
     }
   }
 
-  glcamera->glMouseReleaseEvent(evt);
+  glcamera->glMouseReleaseEvent(evt, viewport);
 
   //postpone a little the end-drag event for the camera
   if (!widgets.glcanvas->mouse.getNumberOfButtonDown() && isMouseDragging())
@@ -312,18 +312,17 @@ void Viewer::glCanvasWheelEvent(QWheelEvent* evt)
   auto glcamera=getGLCamera();
   if (!glcamera) return;
 
+  auto viewport = widgets.glcanvas->getViewport();
   widgets.glcanvas->mouse_timer.reset();
   if (!widgets.glcanvas->mouse.getNumberOfButtonDown())
   {
     setMouseDragging(true);
-
-    glcamera->glWheelEvent(evt);
-
+    glcamera->glWheelEvent(evt, viewport);
     scheduleMouseDragging(false, 1000);
   }
   else
   {
-    glcamera->glWheelEvent(evt);
+    glcamera->glWheelEvent(evt, viewport);
   }
 }
 
@@ -373,12 +372,12 @@ int Viewer::glGetRenderQueue(Node* node)
 void Viewer::glRenderNodes(GLCanvas& gl)
 {
   auto glcamera=getGLCamera();
+  auto viewport = gl.getViewport();
 
   bool bOrthoCamera=std::dynamic_pointer_cast<GLOrthoCamera>(glcamera)?true:false;
-
   std::vector<GLSortNode> sorted_nodes;
   std::stack< std::pair<Frustum,Node*> > stack;
-  stack.push(std::make_pair(glcamera->getCurrentFrustum(),getRoot()));
+  stack.push(std::make_pair(glcamera->getCurrentFrustum(viewport),getRoot()));
   while (!stack.empty())
   {
     Frustum frustum=stack.top().first;
@@ -396,7 +395,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
     {
       if (auto globject = dynamic_cast<GLObject*>(node))
       {
-        auto node_to_screen= computeNodeToScreen(getGLCamera()->getCurrentFrustum(),node);
+        auto node_to_screen= computeNodeToScreen(getGLCamera()->getCurrentFrustum(viewport),node);
         Position bounds= getPosition(node);
         bool bUseFarPoint=(nqueue==2);
         double distance= node_to_screen.computeZDistance(bounds,bUseFarPoint);
@@ -481,13 +480,14 @@ void Viewer::glRenderNodes(GLCanvas& gl)
 /////////////////////////////////////////////////////////////////////////////////////
 void Viewer::glRenderSelection(GLCanvas& gl)
 {
+  auto viewport = gl.getViewport();
   if (Node* selection=getSelection())
   {
     auto bounds= getPosition(selection);
     if (bounds.valid())
     {
       gl.pushFrustum();
-      gl.setFrustum(computeNodeToScreen(getGLCamera()->getCurrentFrustum(),selection));
+      gl.setFrustum(computeNodeToScreen(getGLCamera()->getCurrentFrustum(viewport),selection));
       GLBox(bounds,Colors::Transparent,Colors::Black.withAlpha(0.5)).glRender(gl);
       gl.popFrustum();
     }
@@ -571,9 +571,11 @@ void Viewer::glRenderLogos(GLCanvas& gl)
 /////////////////////////////////////////////////////////////////////////////////////
 void Viewer::glRender(GLCanvas& gl)
 {
+  auto viewport = widgets.glcanvas->getViewport();
+
   huds.clear();
 
-  gl.setViewport(Viewport(0,0,this->width(),this->height()));
+  gl.setViewport(viewport);
   gl.glClearColor(background_color);
   gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -581,7 +583,7 @@ void Viewer::glRender(GLCanvas& gl)
   if (!glcamera)
     return;
 
-  gl.setFrustum(glcamera->getCurrentFrustum());
+  gl.setFrustum(glcamera->getCurrentFrustum(viewport));
 
   glRenderNodes(gl);
   glRenderSelection(gl);

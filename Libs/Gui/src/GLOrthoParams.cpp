@@ -42,22 +42,21 @@ namespace Visus {
 
 
 ////////////////////////////////////////////////////////////////////////
-void GLOrthoParams::translate(const Point3d& vt)
+GLOrthoParams GLOrthoParams::translated(const Point3d& vt) const
 {
-  left   += vt[0]; right += vt[0];
-  bottom += vt[1]; top   += vt[1];
-  zNear   += vt[2]; zFar += vt[2];
+  return GLOrthoParams(
+    this->left   + vt[0], this->right + vt[0], 
+    this->bottom + vt[1], this->top   + vt[1], 
+    this->zNear  + vt[2], this->zFar  + vt[2]);
 }
 
 ////////////////////////////////////////////////////////////////////////
-void GLOrthoParams::scaleAroundCenter(const Point3d& vs, const Point3d& center)
+GLOrthoParams GLOrthoParams::scaled(const Point3d& vs) const
 {
-  left   = center[0] + vs[0] * (left   - center[0]);
-  right  = center[0] + vs[0] * (right  - center[0]);
-  bottom = center[1] + vs[1] * (bottom - center[1]);
-  top    = center[1] + vs[1] * (top    - center[1]);
-  zNear  = center[2] + vs[2] * (zNear  - center[2]);
-  zFar   = center[2] + vs[2] * (zFar   - center[2]);
+  return GLOrthoParams(
+    vs[0] * left  , vs[0] * right, 
+    vs[1] * bottom, vs[1] * top, 
+    vs[2] * zNear , vs[2] * zFar);
 }
 
 
@@ -70,34 +69,21 @@ Matrix GLOrthoParams::getProjectionMatrix(bool bUseOrthoProjection) const
 }
 
 ////////////////////////////////////////////////////////////////////////
-GLOrthoParams GLOrthoParams::withAspectRatio(double W,double H) const
+GLOrthoParams GLOrthoParams::withAspectRatio(double ratio) const
 {
-  if (!W || !H)
-    return *this;
+  auto dx = right - left; auto cx = (left + right) * 0.5;
+  auto dy = top - bottom; auto cy = (bottom + top) * 0.5;
+  auto dz = zFar - zNear; auto cz = (zFar + zNear) * 0.5;
 
-  double ratio = W / H;
-  if (ratio <= 0)
-    return *this;
-
-  auto center = getCenter();
-  auto size   = getSize();
-
-  if (!size[0] || !size[1] || !size[2]) 
-    return *this;
-  
-  if ((size[0] / size[1]) <= ratio) 
-    size[0] = size[1] * ratio;
+  if ((dx / dy) <= ratio)
+    dx = dy * (ratio);
   else                          
-    size[1] = size[0] / ratio;
-
-  double coeffX = (left   < right) ? +0.5 : -0.5;
-  double coeffY = (bottom < top  ) ? +0.5 : -0.5;
-  double coeffZ = (zNear  < zFar ) ? +0.5 : -0.5;
+    dy = dx * (1.0 / ratio);
 
   return GLOrthoParams(
-    center[0] - coeffX*size[0], center[0] + coeffX*size[0],
-    center[1] - coeffY*size[1], center[1] + coeffY*size[1],
-    center[2] - coeffZ*size[2], center[2] + coeffZ*size[2]);
+    cx - 0.5 * dx, cx + 0.5 * dx,
+    cy - 0.5 * dy, cy + 0.5 * dy,
+    cz - 0.5 * dz, cz + 0.5 * dz);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -115,22 +101,7 @@ GLOrthoParams GLOrthoParams::split(const Rectangle2d& S) const
   return ret;
 }
 
-////////////////////////////////////////////////////////////////////////
-GLOrthoParams GLOrthoParams::withAspectRatio(const Viewport& old_value, const Viewport& new_value) const
-{
-  int OldW = old_value.width,  NewW = new_value.width;
-  int OldH = old_value.height, NewH = new_value.height;
 
-  if (!NewW || !NewH)
-    return *this;
-
-  auto ret = *this;
-
-  if (OldW && OldH)
-    ret.scaleAroundCenter(Point3d(NewW / (double)OldW, NewH / (double)OldH, 1.0), getCenter());
-
-  return ret.withAspectRatio(NewW , NewH);
-}
 
 ////////////////////////////////////////////////////////////////////////
 void GLOrthoParams::writeTo(StringTree& out) const
