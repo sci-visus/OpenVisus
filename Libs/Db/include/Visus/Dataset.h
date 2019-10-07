@@ -378,7 +378,7 @@ public:
 
   //compressDataset
   virtual bool compressDataset(String compression) {
-    VisusInfo() << "compression not enabled";
+    ThrowException("compression not enabled");
     return false;
   }
 

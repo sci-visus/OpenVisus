@@ -84,7 +84,7 @@ public:
 
   //compressDataset
   virtual bool compressDataset(String compression) override {
-    VisusWarning()<<"compress not supported";
+    ThrowException("compress not supported");
     return false;
   }
 

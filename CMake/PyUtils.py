@@ -1,6 +1,7 @@
 import os,sys
 import numpy
 import cv2
+import glob
 
 from OpenVisus import *
 
@@ -8,8 +9,8 @@ WIN32=platform.system()=="Windows" or platform.system()=="win32"
 APPLE=platform.system()=="Darwin"
 
 # ////////////////////////////////////////////////////////////////////////////////
-def ThisDir():
-	return os.path.dirname(os.path.abspath(__file__))
+def ThisDir(file):
+	return os.path.dirname(os.path.abspath(file))
 
 # ////////////////////////////////////////////////////////////////////////////////
 def Assert(condition):

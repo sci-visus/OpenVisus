@@ -468,8 +468,7 @@ public:
     const BlockHeader& block_header = getBlockHeader(query->field, blockid);
     Int64 block_offset = block_header.getOffset();
     Int32 block_size   = block_header.getSize();
-    //String compression = block_header.getCompression();
-    String compression = query->field.default_compression;
+    String compression = block_header.getCompression();
     String layout      = block_header.getLayout();
 
     if (bVerbose)

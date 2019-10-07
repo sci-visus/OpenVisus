@@ -51,7 +51,7 @@ if __name__ == '__main__':
 	
 	# (3) view the idx in visus viewer...
 	viewer=Viewer()
-	viewer.openFile(idx_filename)	
+	viewer.open(idx_filename)	
 	viewer.setMinimal()
 		
 	# ... with some little python scripting

@@ -102,34 +102,27 @@ public:
     {
       glcanvas=new GLCanvas();
  
-      connect(glcanvas,&GLCanvas::glResizeEvent,[this](QResizeEvent* evt)
-      {
-        if (!this->glcamera) return;
-        this->glcamera->setViewport(Viewport(0,0,glcanvas->width(),glcanvas->height()));
-
-      });
-
       connect(glcanvas,&GLCanvas::glMousePressEvent,[this](QMouseEvent* evt){
-        this->glcamera->glMousePressEvent(evt);
+        this->glcamera->glMousePressEvent(evt,glcanvas->getViewport());
       });
 
       connect(glcanvas,&GLCanvas::glMouseMoveEvent,[this](QMouseEvent* evt){
-        this->glcamera->glMouseMoveEvent(evt);
+        this->glcamera->glMouseMoveEvent(evt, glcanvas->getViewport());
       });
 
       connect(glcanvas,&GLCanvas::glMouseReleaseEvent,[this](QMouseEvent* evt) {
-        this->glcamera->glMouseMoveEvent(evt);
+        this->glcamera->glMouseMoveEvent(evt, glcanvas->getViewport());
       });
 
       connect(glcanvas,&GLCanvas::glWheelEvent,[this](QWheelEvent* evt){
-        this->glcamera->glWheelEvent(evt);
+        this->glcamera->glWheelEvent(evt, glcanvas->getViewport());
       });
 
       connect(glcanvas,&GLCanvas::glRenderEvent,[this](GLCanvas& gl)
       {
         gl.glClearColor(0,0,0,1);
         gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        gl.setFrustum(glcamera->getCurrentFrustum());
+        gl.setFrustum(glcamera->getCurrentFrustum(glcanvas->getViewport()));
 
         if (render_node)
           render_node->glRender(gl);
@@ -163,10 +156,12 @@ public:
       glcamera=std::make_shared<GLOrthoCamera>();
       
       //this is for the "final" frustum
-      glcamera->end_update.connect([this](){
+      glcamera->end_update.connect([this]()
+      {
         if (query_node) 
         {
-          query_node->setNodeToScreen(Frustum(glcamera->getFinalFrustum()));
+          auto viewport = glcanvas->getViewport();
+          query_node->setNodeToScreen(Frustum(glcamera->getFinalFrustum(viewport)));
           dataflow->needProcessInput(query_node);
         }
         postRedisplay();
@@ -177,7 +172,6 @@ public:
       	postRedisplay();
       }); 
       
-      glcamera->setViewport(Viewport(0,0,glcanvas->width(),glcanvas->height()));
       glcamera->guessPosition(BoxNd());
       glcamera->setRotationDisabled(true);
     }

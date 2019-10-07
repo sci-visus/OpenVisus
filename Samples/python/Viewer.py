@@ -87,7 +87,7 @@ if __name__ == '__main__':
 	AppKitModule.attach()  
 
 	viewer=Viewer()
-	viewer.openFile("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1") 
+	viewer.open("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1") 
 
 	# example of adding a PyQt5 widget to C++ Qt
 	mywidget=MyWidget()

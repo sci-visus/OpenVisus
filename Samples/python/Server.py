@@ -58,7 +58,7 @@ if __name__ == '__main__':
 	# (2) view the idx in visus viewer...
 	if VISUS_GUI:
 		viewer=Viewer()
-		viewer.openFile("http://localhost:10000/mod_visus?dataset=cat1")	
+		viewer.open("http://localhost:10000/mod_visus?dataset=cat1")	
 		viewer.setMinimal()
 
 		GuiModule.execApplication()
