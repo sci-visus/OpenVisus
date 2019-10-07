@@ -972,7 +972,7 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
     free_transform=std::make_shared<FreeTransform>();
 
     //whenever free transform change....
-    free_transform->objectChanged.connect([this,query_node](Position query_bounds)
+    free_transform->object_changed.connect([this,query_node](Position query_bounds)
     {
       auto T  = query_bounds.getTransformation();
       auto box= query_bounds.getBoxNd().withPointDim(3);
@@ -1026,7 +1026,7 @@ void Viewer::beginFreeTransform(ModelViewNode* modelview_node)
   {
     free_transform=std::make_shared<FreeTransform>();
 
-    free_transform->objectChanged.connect([this,modelview_node,bounds](Position obj)
+    free_transform->object_changed.connect([this,modelview_node,bounds](Position obj)
     {
       auto T=obj.getTransformation() * bounds.getTransformation().invert();
       modelview_node->setModelview(T);
@@ -1345,7 +1345,7 @@ bool Viewer::open(String url,Node* parent,bool bShowUrlDialogIfNeeded)
 
   beginTransaction();
   {
-    if (glcamera)
+    if (!getGLCamera())
       addGLCamera(parent, glcamera);
 
     addDataset(parent, dataset);

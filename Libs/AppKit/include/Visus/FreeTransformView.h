@@ -48,9 +48,7 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////////////////
-class VISUS_APPKIT_API FreeTransformView : 
-  public View<FreeTransform>,
-  public QFrame
+class VISUS_APPKIT_API FreeTransformView : public QFrame
 {
 public:
 
@@ -84,6 +82,9 @@ public:
 
   Widgets widgets;
 
+  FreeTransform* model=nullptr;
+  Slot<void(Position)> object_changed_slot;
+
   //costructor
   FreeTransformView(FreeTransform* value) {
     bindModel(value);
@@ -95,18 +96,23 @@ public:
   }
 
   //bindModel
-  virtual void bindModel(FreeTransform* value) override
+  void bindModel(FreeTransform* value) 
   {
     if (this->model)
     {
       QUtils::clearQWidget(this);
       widgets=Widgets();
+      this->model->object_changed.disconnect(object_changed_slot);
     }
 
-    View<FreeTransform>::bindModel(value);
+    this->model = value;
 
     if (this->model)
     {
+      this->model->object_changed.connect(object_changed_slot = [this](Position) {
+        refreshGui();
+      });
+
       auto tabs=new QTabWidget();
       tabs->addTab(createTranslateRotateScaleWidget(),"Transform");
       tabs->addTab(createPositionWidget(),"Position");
@@ -118,10 +124,12 @@ public:
     }
   }
 
-
   //refreshGui
   void refreshGui()
   {
+    if (!model)
+      return;
+
     auto dragging=model->getDragging();
 
     //translate
@@ -183,11 +191,6 @@ public:
   }
 
 private:
-
-  //modelChanged
-  virtual void modelChanged() override{
-    refreshGui();
-  }
 
   //createTranslateRotateScaleWidget
   QFrame* createTranslateRotateScaleWidget()

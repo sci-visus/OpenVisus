@@ -61,15 +61,13 @@ bool FreeTransform::setObject(Position obj,bool bEmitSignal)
     obj.getTransformation().withSpaceDim(4), 
     obj.getBoxNd().withPointDim(3));
 
-  beginUpdate(Diff(), Diff());
   this->obj = obj;
-  endUpdate();
 
   if (!dragging.type)
     this->lcs=LocalCoordinateSystem(this->obj).toUniformSize();
 
   if (bEmitSignal)
-    objectChanged.emitSignal(obj);
+    object_changed.emitSignal(obj);
 
   return true;
 }
@@ -470,15 +468,6 @@ void FreeTransform::glRender(GLCanvas& gl)
   gl.popBlend();
 }
 
-
-////////////////////////////////////////////////////////////////////////////
-void FreeTransform::writeTo(StringTree& out) const {
-  out.writeObject("obj", this->obj);}
-
-////////////////////////////////////////////////////////////////////////////
-void FreeTransform::readFrom(StringTree& in) {
-  in.readObject("obj", this->obj);
-}
 
 } //namespace Visus
 

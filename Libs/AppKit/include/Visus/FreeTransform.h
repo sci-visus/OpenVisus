@@ -52,9 +52,7 @@ namespace Visus {
 
 
 //////////////////////////////////////////////////////////////////
-class VISUS_APPKIT_API FreeTransform : 
-  public Model,
-  public GLObject
+class VISUS_APPKIT_API FreeTransform : public GLObject
 {
 public:
 
@@ -82,7 +80,7 @@ public:
     LocalCoordinateSystem   lcs;
   };
 
-  Signal<void(Position)> objectChanged;
+  Signal<void(Position)> object_changed;
 
   //constructor
   FreeTransform() {
@@ -92,10 +90,6 @@ public:
   virtual ~FreeTransform() {
   }
 
-  //getTypeName
-  virtual String getTypeName() const override {
-    return "FreeTransform";
-  }
 
   //getObject
   const Position& getObject() const {
@@ -144,13 +138,6 @@ public:
   //glRender
   virtual void glRender(GLCanvas& gl) override;
 
-public:
-
-  //writeTo (to implement if needed!)
-  virtual void writeTo(StringTree& out) const override;
-
-  //readFrom (to implement if needed!)
-  virtual void readFrom(StringTree& in) override;
 
 private:
 
