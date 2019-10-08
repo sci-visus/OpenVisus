@@ -268,8 +268,10 @@ void Model::endUpdate()
     if (this->log.is_open())
     {
       this->log << std::endl;
-      this->log << "<!--REDO-->" << std::endl << topRedo().toString() << std::endl;
-      this->log << "<!--UNDO-->" << std::endl << topUndo().toString() << std::endl;
+      //this->log << "<!--REDO-->" << std::endl;
+      this->log << topRedo().toString() << std::endl;
+      //this->log << "<!--UNDO-->" << std::endl;
+      //this->log << topUndo().toString() << std::endl;
     }
 
     //emit signals (before the top() in case someone whants to use topUndo()/topRedo()

@@ -207,42 +207,34 @@ void Viewer::createActions()
   }));
 
   addAction(actions.OpenFile = GuiFactory::CreateAction("Open file...", this, [this]() {
-    bool bAdd=false;
-    open("", nullptr, bAdd); 
+    openFile("", nullptr);
   }));
 
   addAction(actions.SaveFile = GuiFactory::CreateAction("Save",this, [this]() {
-    save(last_saved_filename);
+    saveFile(last_saved_filename);
   }));
   actions.SaveFile->setEnabled(!last_saved_filename.empty());
   actions.SaveFile->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_S));
   actions.SaveFile->setToolTip("Save [CTRL+S]");
 
   addAction(actions.SaveFileAs = GuiFactory::CreateAction("Save as...",this, [this]() {
-    save(""); 
+    saveFile(""); 
   }));
   
   addAction(actions.SaveHistoryAs = GuiFactory::CreateAction("Save history as...",this, [this]() {
-    bool bSaveHistory=true;
-    save("",bSaveHistory); 
+    saveFile("", /*bSaveHistory*/true);
   }));
 
   addAction(actions.AddFile = GuiFactory::CreateAction("Add file...", this, [this]() {
-    auto parent=getRoot();
-    bool bUrl=false;
-    open("",parent,bUrl); 
+    openFile("", getRoot());
   }));
 
   addAction(actions.OpenUrl = GuiFactory::CreateAction("Open url...", this, [this]() {
-    Node* parent=nullptr;
-    bool bUrl=true;
-    open("", parent, bUrl); 
+    openUrl("", nullptr);
   }));
 
   addAction(actions.AddUrl = GuiFactory::CreateAction("Add url...", this, [this]() {
-    auto parent=getRoot();
-    bool bUrl=true;
-    open("", parent, true); 
+    openUrl("", getRoot());
   }));
 
   addAction(actions.ReloadVisusConfig = GuiFactory::CreateAction("Reload config", this, [this]() {

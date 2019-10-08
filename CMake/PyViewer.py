@@ -19,7 +19,6 @@ class PyViewer(Viewer):
 	# constructor
 	def __init__(self):	
 		super(PyViewer, self).__init__()
-		self.addGLCamera(self.getRoot(),3)	
 		
 	# run
 	def run(self):

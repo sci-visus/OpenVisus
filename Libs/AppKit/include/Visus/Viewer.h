@@ -473,10 +473,19 @@ public:
   void setPreferences(ViewerPreferences value);
 
   //open
-  bool open(String url, Node* parent = nullptr, bool bShowUrlDialogIfNeeded = false);
+  bool open(String url, Node* parent = nullptr);
+
+  //openFile
+  bool openFile(String filename, Node* parent = nullptr);
+
+  //openUrl
+  bool openUrl(String url, Node* parent = nullptr);
 
   //save
-  bool save(String filename, bool bSaveHistory = false, bool bShowDialogs = true);
+  bool save(String filename, bool bSaveHistory = false);
+
+  //saveFile
+  bool saveFile(String filename, bool bSaveHistory = false);
 
   //takeSnapshot
   bool takeSnapshot(bool bOnlyCanvas = false, String filename = "");
@@ -556,14 +565,12 @@ public:
 
   //addDataset
   DatasetNode* addDataset(Node* parent, String url,StringTree config = StringTree()) {
-    return addDataset(parent, LoadDatasetEx(url, config ? config : this->config));
+    auto dataset = LoadDatasetEx(url, config ? config : this->config);
+    return addDataset(parent, dataset);
   }
 
   //addGLCameraNode
-  GLCameraNode* addGLCamera(Node* parent, SharedPtr<GLCamera> glcamera);
-
-  //addGLCamera
-  GLCameraNode* addGLCamera(Node* parent, int pdim);
+  GLCameraNode* addGLCamera(Node* parent, String type="");
 
   //addVolume
   QueryNode* addVolume(Node* parent, String fieldname="", int access_id=0);

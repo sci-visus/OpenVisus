@@ -70,6 +70,7 @@ def VisibleMale():
 	#	cv2.waitKey()		
 	
 	viewer=PyViewer()
+	viewer.addGLCamera(viewer.getRoot(),"lookat")	
 	
 	#viewer.addIsoSurface(field=R, second_field=RGBA, isovalue=100.0, bounds=bounds)
 	viewer.addVolumeRender(RGBA, bounds)	
@@ -122,6 +123,7 @@ def VisibleFemale():
 	#	cv2.waitKey()		
 	
 	viewer=PyViewer()
+	viewer.addGLCamera(viewer.getRoot(),"lookat")
 	viewer.addIsoSurface(field=R, second_field=None, isovalue=100.0, bounds=bounds)
 	#viewer.addVolumeRender(RGBA, bounds)		
 	

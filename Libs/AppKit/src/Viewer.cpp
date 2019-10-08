@@ -168,7 +168,6 @@ Viewer::~Viewer()
 ////////////////////////////////////////////////////////////
 void Viewer::executeAction(StringTree in)
 {
-
   //action directed to nodes?
   if (getPassThroughAction(in, "nodes"))
   {
@@ -255,7 +254,7 @@ void Viewer::executeAction(StringTree in)
     return;
   }
 
-  if (in.name == "showNode") {
+  if (in.name == "setNodeVisible") {
     auto node = findNodeByUUID(in.readString("node"));
     auto value = in.readBool("value");
     setNodeVisible(node, value);
@@ -280,6 +279,27 @@ void Viewer::executeAction(StringTree in)
       return;
     }
 
+    if (what == "dataset") {
+      auto parent = findNodeByUUID(in.readString("parent"));
+      auto url = in.readString("url");
+      addDataset(parent, url, in.childs.empty() ? StringTree() : *in.getFirstChild());
+      return;
+    }
+
+    if (what == "group") {
+      auto parent = findNodeByUUID(in.readString("parent"));
+      auto name = in.readString("name");
+      addGroup(parent, name);
+      return;
+    }
+
+    if (what == "glcamera") {
+      auto parent = findNodeByUUID(in.readString("parent"));
+      auto type = in.readString("type");
+      addGLCamera(parent, type);
+      return;
+    }
+
     if (what == "volume") {
       auto parent = findNodeByUUID(in.readString("parent"));
       auto fieldname = in.readString("fieldname");
@@ -288,7 +308,8 @@ void Viewer::executeAction(StringTree in)
       return;
     }
 
-    if (what == "slice") {
+    if (what == "slice") 
+    {
       auto parent = findNodeByUUID(in.readString("parent"));
       auto fieldname = in.readString("fieldname");
       auto access_id = in.readInt("access_id");
@@ -310,13 +331,6 @@ void Viewer::executeAction(StringTree in)
       auto fieldname = in.readString("fieldname");
       auto access_id = in.readInt("access_id");
       addKdQuery(parent, fieldname, access_id);
-      return;
-    }
-
-    if (what == "dataset") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto url = in.readString("url");
-      addDataset(parent, url, in.childs.empty() ? StringTree() : *in.getFirstChild());
       return;
     }
 
@@ -349,20 +363,6 @@ void Viewer::executeAction(StringTree in)
     if (what == "statistics") {
       auto parent = findNodeByUUID(in.readString("parent"));
       addStatistics(parent);
-      return;
-    }
-
-    if (what == "group") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto name = in.readString("name");
-      addGroup(parent, name);
-      return;
-    }
-
-    if (what == "glcamera") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto glcamera = GLCamera::decode(*in.getFirstChild());
-      addGLCamera(parent, glcamera);
       return;
     }
 
@@ -692,7 +692,7 @@ void Viewer::enableSaveSession()
   VisusInfo() << "Configuration/VisusViewer/SaveSession/sec " << every_sec;
 
   connect(save_session_timer.get(),&QTimer::timeout,[this,filename](){
-    save(filename,/*bSaveHistory*/false,/*bShowDialogs*/false);
+    save(filename,/*bSaveHistory*/false);
   });
 
   if (every_sec>0 && !filename.empty())
@@ -1196,33 +1196,12 @@ void Viewer::reloadVisusConfig(bool bChooseAFile)
   widgets.toolbar->bookmarks_button->setMenu(createBookmarks());
 }
  
+
 //////////////////////////////////////////////////////////////////////
-bool Viewer::open(String url,Node* parent,bool bShowUrlDialogIfNeeded)
+bool Viewer::open(String url,Node* parent)
 {
   if (url.empty())
-  {
-    if (bShowUrlDialogIfNeeded)
-    {
-      static String last_url("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1");
-      url=cstring(QInputDialog::getText(this,"Enter the url:","",QLineEdit::Normal,last_url.c_str()));
-      if (url.empty()) return false;
-      last_url=url;
-    }
-    else
-    {
-      static String last_filename="";
-      url=cstring(QFileDialog::getOpenFileName(nullptr,"Choose a file to open...",last_filename.c_str(),
-                                 "All supported (*.idx *.midx *.gidx *.obj *.xml *.config *.scn);;IDX (*.idx *.midx *.gidx);;OBJ (*.obj);;XML files (*.xml *.config *.scn)"));
-      
-      if (url.empty()) return false;
-      last_filename=url;
-      url=StringUtils::replaceAll(url,"\\","/");
-      if (!StringUtils::startsWith(url,"/")) url="/"+url;
-      url="file://" + url;
-    }
-  }
-
-  VisusAssert(!url.empty());
+    return false;
 
   //config means a visus.config: merge bookmarks and load first entry (ignore configuration)
   if (StringUtils::endsWith(url,".config"))
@@ -1242,7 +1221,7 @@ bool Viewer::open(String url,Node* parent,bool bShowUrlDialogIfNeeded)
     if (!children.empty())
     {
       url=children[0]->readString("name",children[0]->readString("url"));VisusAssert(!url.empty());
-      return this->open(url,parent,false);
+      return this->open(url,parent);
     }
 
     return true;
@@ -1300,7 +1279,7 @@ bool Viewer::open(String url,Node* parent,bool bShowUrlDialogIfNeeded)
         continue;
 
       String dataset(child->readString("url"));
-      bool success = this->open(dataset, child == stree.childs.front() ? parent : getRoot(), false);
+      bool success = this->open(dataset, child == stree.childs.front() ? parent : getRoot());
       if (!success)
         VisusWarning() << "Unable to open " << dataset << " from " << url;
     }
@@ -1320,28 +1299,37 @@ bool Viewer::open(String url,Node* parent,bool bShowUrlDialogIfNeeded)
     return false;
   }
 
-  SharedPtr<GLCamera> glcamera;
+  //do I need to add a glcamera too?
   if (!parent) 
   {
     New();
     parent = dataflow->getRoot();
-
-    if (dataset->getPointDim() == 3)
-      glcamera = std::make_shared<GLLookAtCamera>();
-    else
-      glcamera = std::make_shared<GLOrthoCamera>();
-
-    glcamera->guessPosition(dataset->getDatasetBounds().toAxisAlignedBox());
-    if (dataset && StringUtils::contains(dataset->getConfig().readString("mirror"), "x")) glcamera->mirror(0);
-    if (dataset && StringUtils::contains(dataset->getConfig().readString("mirror"), "y")) glcamera->mirror(1);
   }
 
   beginTransaction();
   {
-    if (!getGLCamera())
-      addGLCamera(parent, glcamera);
+    auto dataset_node=addDataset(parent, dataset);
 
-    addDataset(parent, dataset);
+    if (bool bAddCameraNode = getGLCamera() ? false : true)
+      addGLCamera(parent);
+
+    //add a default render node
+    if (bool bAddRenderNode=true)
+    {
+      String rendertype = StringUtils::toLower(dataset->getConfig().readString("rendertype", ""));
+
+      if ((dataset->getKdQueryMode() != KdQueryMode::NotSpecified) || rendertype == "kdrender")
+        addKdQuery(dataset_node);
+
+      else if (dataset->getPointDim() == 3)
+        addVolume(dataset_node);
+
+      else
+        addSlice(dataset_node);
+    }
+
+    refreshData();
+
   }
   endTransaction();
 
@@ -1353,57 +1341,99 @@ bool Viewer::open(String url,Node* parent,bool bShowUrlDialogIfNeeded)
   return true;
 }
 
+
 //////////////////////////////////////////////////////////////////////
-bool Viewer::save(String url,bool bSaveHistory,bool bShowDialogs)
-{ 
-  if (url.empty() && bShowDialogs)
+bool Viewer::openFile(String url, Node* parent)
+{
+  if (url.empty())
   {
-    static String last_dir(KnownPaths::VisusHome.toString());
-    url=cstring(QFileDialog::getSaveFileName(nullptr,"Choose a file to save...",last_dir.c_str(),"*.xml"));
+    static String last_filename = "";
+    url = cstring(QFileDialog::getOpenFileName(nullptr, "Choose a file to open...", last_filename.c_str(),
+      "All supported (*.idx *.midx *.gidx *.obj *.xml *.config *.scn);;IDX (*.idx *.midx *.gidx);;OBJ (*.obj);;XML files (*.xml *.config *.scn)"));
+
     if (url.empty()) return false;
-    last_dir=Path(url).getParent();
+    last_filename = url;
+    url = StringUtils::replaceAll(url, "\\", "/");
+    if (!StringUtils::startsWith(url, "/")) url = "/" + url;
+    url = "file://" + url;
   }
+
+  return open(url, parent);
+}
+
+//////////////////////////////////////////////////////////////////////
+bool Viewer::openUrl(String url, Node* parent)
+{
+  if (url.empty())
+  {
+    static String last_url("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1");
+    url = cstring(QInputDialog::getText(this, "Enter the url:", "", QLineEdit::Normal, last_url.c_str()));
+    if (url.empty()) return false;
+    last_url = url;
+  }
+
+  return open(url, parent);
+}
+
+
+
+//////////////////////////////////////////////////////////////////////
+bool Viewer::save(String url,bool bSaveHistory)
+{ 
+  if (url.empty())
+    return false;
 
   //add default extension
   if (Path(url).getExtension().empty())
     url=url+".xml";
 
-  try
+
+  StringTree out;
+  if (bSaveHistory)
   {
-    if (bSaveHistory)
-    {
-      auto out = getHistory();
-      out.name = "Viewer";
-      out.writeString("version", cstring(ApplicationInfo::version));
-      out.writeString("git_revision", ApplicationInfo::git_revision);
-    }
-    else
-    {
-      StringTree out("Viewer");
-      this->writeTo(out);
-      if (!Utils::saveTextDocument(url, out.toString()))
-        ThrowException("saveTextDocument failed");
-    }
+    out = getHistory();
+    out.name = "Viewer";
+    out.writeString("version", cstring(ApplicationInfo::version));
+    out.writeString("git_revision", ApplicationInfo::git_revision);
   }
-  catch (std::exception ex)
+  else
   {
-    if (bShowDialogs) 
-    {
-      String errormsg=StringUtils::format()<<"Failed to save file " + url + "error("+ex.what()+")";
-      QMessageBox::information(this,"Error",errormsg.c_str());
-    }
+    out=StringTree("Viewer");
+    this->writeTo(out);
+  }
+
+  if (!Utils::saveTextDocument(url, out.toString()))
     return false;
-  }
 
   this->last_saved_filename=url;
+  return true;
+}
 
-  if (bShowDialogs) 
+////////////////////////////////////////////////////////////
+bool Viewer::saveFile(String url, bool bSaveHistory)
+{
+  if (url.empty())
   {
-    String errormsg=StringUtils::format()<<"File " + url+ " saved";
-    QMessageBox::information(this,"Info",errormsg.c_str());
+    static String last_dir(KnownPaths::VisusHome.toString());
+    url = cstring(QFileDialog::getSaveFileName(nullptr, "Choose a file to save...", last_dir.c_str(), "*.xml"));
+    if (url.empty()) return false;
+    last_dir = Path(url).getParent();
   }
 
-  return true;
+  bool ret = save(url, bSaveHistory);
+
+  if (ret)
+  {
+    String errormsg = StringUtils::format() << "Failed to save file " + url;
+    QMessageBox::information(this, "Error", errormsg.c_str());
+  }
+  else
+  {
+    String msg = StringUtils::format() << "File " + url + " saved";
+    QMessageBox::information(this, "Info", msg.c_str());
+  }
+
+  return save(url, bSaveHistory);
 }
   
 ////////////////////////////////////////////////////////////
@@ -1520,8 +1550,8 @@ void Viewer::setNodeVisible(Node* node,bool new_value)
     return;
 
   beginUpdate(
-    StringTree("showNode").writeString("node", getUUID(node)).write("value", new_value),
-    StringTree("showNode").writeString("node", getUUID(node)).write("value", old_value));
+    StringTree("setNodeVisible").writeString("node", getUUID(node)).write("value", new_value),
+    StringTree("setNodeVisible").writeString("node", getUUID(node)).write("value", old_value));
   {
     dropProcessing();
     for (auto it : node->breadthFirstSearch())
@@ -1786,17 +1816,34 @@ Node* Viewer::addGroup(Node* parent, String name)
 } 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-GLCameraNode* Viewer::addGLCamera(Node* parent, SharedPtr<GLCamera> glcamera)
+GLCameraNode* Viewer::addGLCamera(Node* parent, String type)
 {
   if (!parent)
     parent=getRoot();
+
+  type = StringUtils::toLower(type);
+  if (type.empty())
+  {
+    if (getWorldBox().toBox3().minsize() == 0)
+      type = "ortho";
+    else
+      type = "lookat";
+  }
+
+  SharedPtr<GLCamera> glcamera;
+  if (StringUtils::contains(type, "ortho") || type=="2" || type=="2d")
+    glcamera = std::make_shared<GLOrthoCamera>();
+  else 
+    glcamera = std::make_shared<GLLookAtCamera>();
+
+  glcamera->guessPosition(getWorldBox());
 
   auto glcamera_node=dataflow->createNode<GLCameraNode>("GLCamera", glcamera);
 
   dropSelection();
 
   beginUpdate(
-    StringTree("add").write("what","glcamera").write("parent", getUUID(parent)).addChild(EncodeObject(*glcamera)),
+    StringTree("add").write("what","glcamera").write("parent", getUUID(parent)).write("type",type),
     StringTree("remove").write("node",getUUID(glcamera_node)));
   {
     addNode(parent, glcamera_node,/*index*/0);
@@ -1806,14 +1853,6 @@ GLCameraNode* Viewer::addGLCamera(Node* parent, SharedPtr<GLCamera> glcamera)
   return glcamera_node;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-GLCameraNode* Viewer::addGLCamera(Node* parent, int pdim)
-{
-  if (pdim == 3)
-    return addGLCamera(parent, std::make_shared<GLLookAtCamera>());
-  else
-    return addGLCamera(parent, std::make_shared<GLOrthoCamera>());
-}
 
 
 
@@ -2230,7 +2269,10 @@ DatasetNode* Viewer::addDataset(Node* parent, SharedPtr<Dataset> dataset)
   if (!parent)
     parent=getRoot();
 
-  VisusAssert(dataset);
+  if (!dataset) {
+    VisusAssert(false);
+    return nullptr;
+  }
 
   auto dataset_node= dataflow->createNode<DatasetNode>("Dataset");
   dataset_node->setName(dataset->getUrl().toString());
@@ -2240,29 +2282,14 @@ DatasetNode* Viewer::addDataset(Node* parent, SharedPtr<Dataset> dataset)
   //time (this is for queries...)
   auto time_node= dataflow->createNode<TimeNode>("time",dataset->getDefaultTime(),dataset->getTimesteps());
 
-  auto config = dataset->getConfig();
-
   dropSelection();
 
   beginUpdate(
-    StringTree("add").write("what","dataset").write("parent",getUUID(parent)).write("url",dataset->getUrl()).addChild(config),
+    StringTree("add").write("what","dataset").write("parent",getUUID(parent)).write("url",dataset->getUrl()).addChild(dataset->getConfig()),
     StringTree("remove").write("node", getUUID(dataset_node)));
   {
     addNode(parent,dataset_node);
     addNode(dataset_node,time_node);
-
-    String rendertype = StringUtils::toLower(config.readString("rendertype", ""));
-
-    if ((dataset->getKdQueryMode() != KdQueryMode::NotSpecified) || rendertype == "kdrender")
-      addKdQuery(dataset_node);
-
-    else if (dataset->getPointDim() == 3)
-      addVolume(dataset_node);
-
-    else
-      addSlice(dataset_node);
-
-    this->refreshData();
   }
   endUpdate();
 

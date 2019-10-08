@@ -64,7 +64,7 @@ public:
   Datasets(const StringTree& config) 
   {
     StringTree datasets("datasets");
-    addDatasets(datasets, config, config);
+    addPublicDatasets(datasets, config, config);
     datasets_xml_body  = datasets.toXmlString();
     datasets_json_body = datasets.toJSONString();
   }
@@ -109,8 +109,8 @@ private:
   String            datasets_xml_body;
   String            datasets_json_body;
 
-  //addDataset
-  int addDataset(StringTree& dst, String name, SharedPtr<Dataset> dataset) 
+  //addPublicDataset
+  int addPublicDataset(StringTree& dst, String name, SharedPtr<Dataset> dataset) 
   {
     datasets_map[name] = dataset;
 
@@ -128,12 +128,12 @@ private:
     //automatically add the childs of a multiple datasets
     int ret = 1;
     for (auto it : dataset->getInnerDatasets())
-      ret += addDataset(*child, name + "/" + it.first, it.second);
+      ret += addPublicDataset(*child, name + "/" + it.first, it.second);
     return ret;
   }
 
-  //addDatasets
-  int addDatasets(StringTree& dst, const StringTree& config, const StringTree& cursor)
+  //addPublicDatasets
+  int addPublicDatasets(StringTree& dst, const StringTree& config, const StringTree& cursor)
   {
     int ret = 0;
 
@@ -143,7 +143,7 @@ private:
       StringTree group(cursor.name);
       group.attributes = cursor.attributes;
       for (auto child : cursor.getChilds())
-        ret += addDatasets(group, config, *child);
+        ret += addPublicDatasets(group, config, *child);
       if (ret)
         dst.addChild(group);
       return ret;
@@ -152,7 +152,7 @@ private:
     //flattening the hierarchy!
     if (cursor.name != "dataset") {
       for (auto child : cursor.getChilds())
-        ret += addDatasets(dst, config, *child);
+        ret += addPublicDatasets(dst, config, *child);
       return ret;
     }
 
@@ -173,30 +173,7 @@ private:
       return 0;
     }
 
-    return addDataset(dst, name, dataset);
-  }
-
-  //addScenes 
-  int addScenes(StringTree& dst, const StringTree& config, const StringTree& cursor)
-  {
-    int ret = 0;
-
-    //I want to maintain the group hierarchy!
-    if (cursor.name == "group")
-    {
-      auto group = StringTree(cursor.name);
-      group.attributes = cursor.attributes;
-      for (auto child : cursor.getChilds())
-        ret += addScenes(group, config, *child);
-      if (ret)
-        dst.addChild(group);
-      return ret;
-    }
-
-    //flattening the hierarchy!
-    for (auto child : cursor.getChilds())
-      ret += addScenes(dst, config, *child);
-    return ret;
+    return addPublicDataset(dst, name, dataset);
   }
 
 };
@@ -326,7 +303,7 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
 
   //add the dataset
   {
-    //need to use a file_lock to make sure I don't loose and addDataset 
+    //need to use a file_lock to make sure I don't loose any addPublicDataset 
     ScopedFileLock file_lock(this->config_filename);
 
     String name = stree.readString("name");
