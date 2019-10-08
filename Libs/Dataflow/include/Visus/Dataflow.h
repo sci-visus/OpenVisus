@@ -150,7 +150,7 @@ public:
   NodeClass* createNode(String name, Args&& ... args) {
     auto ret = new NodeClass(name, std::forward<Args>(args)...);
     if (StringUtils::endsWith(name, "Node")) name = name.substr(0, name.size()-4);
-    ret->setUUID(guessNodeUIID(name));
+    ret->setUUID(guessNodeUIID(name)); //use the name as the base for generating uuid
     return ret;
   }
 
@@ -172,15 +172,6 @@ public:
     return it == uuids.end() ? nullptr : it->second;
   }
 
-  //findNodeByName
-  Node* findNodeByName(const String& name) const {
-    for (auto it : nodes)
-    {
-      if (it->getName() == name)
-        return it;
-    }
-    return nullptr;
-  }
 
   //processInput
   void processInput(Node* node);

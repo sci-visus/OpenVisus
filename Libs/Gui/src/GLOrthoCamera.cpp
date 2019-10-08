@@ -46,12 +46,20 @@ GLOrthoCamera::GLOrthoCamera(double default_scale)
   : default_scale(default_scale)
 {
   last_mouse_pos.resize(GLMouse::getNumberOfButtons());
+
+  //this means that during mouse interaction it will take <n> msec to move from one place to another
+  this->default_smooth = 500;
+
+  ortho_params.timer.setInterval(10);
+  QObject::connect(&ortho_params.timer, &QTimer::timeout, [this]() {
+    refineToFinal();
+  });
 }
 
 //////////////////////////////////////////////////
 GLOrthoCamera::~GLOrthoCamera() {
   VisusAssert(VisusHasMessageLock());
-  timer.reset();
+  ortho_params.timer.stop();
 }
 
   //////////////////////////////////////////////////
@@ -74,7 +82,8 @@ void GLOrthoCamera::executeAction(StringTree in)
     if (target_id == "ortho_params")
     {
       auto value = GLOrthoParams::fromString(in.readString("value"));
-      setOrthoParams(value);
+      auto msec = in.readInt("msec");
+      setOrthoParams(value,msec);
       return;
     }
 
@@ -92,10 +101,10 @@ void GLOrthoCamera::executeAction(StringTree in)
       return;
     }
 
-    if (target_id == "smooth")
+    if (target_id == "default_smooth")
     {
-      auto value = in.readDouble("value");
-      setSmooth(value);
+      auto value = in.readInt("value");
+      setDefaultSmooth(value);
       return;
     }
 
@@ -176,54 +185,64 @@ bool GLOrthoCamera::guessPosition(BoxNd bounds,int ref)
 //////////////////////////////////////////////////
 void GLOrthoCamera::splitProjectionFrustum(Rectangle2d r)
 {
-  GLOrthoParams params = this->ortho_params_final;
+  GLOrthoParams params = this->ortho_params.final; 
   setOrthoParams(params.split(r));
 }
 
+//////////////////////////////////////////////////
+void GLOrthoCamera::refineToFinal()
+{
+  auto A = ortho_params.initial;
+  auto B = ortho_params.final;
+  auto alpha = Utils::clamp(ortho_params.t1.elapsedMsec() / double(ortho_params.msec), 0.0, 1.0);
+
+  auto value = A + (B - A) * pow(alpha, 1 / 2.0);
+
+  if (value == B || value == this->ortho_params.current)
+    value = B;
+
+  this->ortho_params.current = value;
+
+  //reached the end?
+  if (value == B)
+    ortho_params.timer.stop();
+
+  this->redisplay_needed.emitSignal();
+}
 
 //////////////////////////////////////////////////
-void GLOrthoCamera::setOrthoParams(GLOrthoParams new_value,double smooth)
+void GLOrthoCamera::setOrthoParams(GLOrthoParams new_value,int smooth)
 {
   VisusAssert(VisusHasMessageLock());
 
-  auto& old_value = this->ortho_params_final;
+  auto& old_value = this->ortho_params.final;
   if (old_value  == new_value)
     return;
 
   beginUpdate(
-    StringTree("set").write("target_id", "ortho_params").write("value", new_value.toString()),
-    StringTree("set").write("target_id", "ortho_params").write("value", old_value.toString()));
+    StringTree("set").write("target_id", "ortho_params").write("value", new_value).write("smooth", smooth),
+    StringTree("set").write("target_id", "ortho_params").write("value", old_value).write("smooth", smooth));
   {
     old_value = new_value;
   }
   endUpdate();
 
-
-  //technically ortho_params_current is not part of the "model" so I'm not
+  //technically ortho_params.current is not part of the "model" so I'm not
   //communicate the changes to the outside
   if (smooth)
   {
-    if (!timer)
+    if (!ortho_params.timer.isActive())
     {
-      this->timer = std::make_shared<QTimer>();
-      this->timer->setInterval(/*msec*/10);
-      QObject::connect(timer.get(), &QTimer::timeout, [this, smooth] 
-      {
-        this->ortho_params_current = GLOrthoParams::interpolate(smooth, this->ortho_params_current, 1 - smooth, this->ortho_params_final);
-
-        //reached the end?
-        if (this->ortho_params_current == this->ortho_params_final)
-          this->timer.reset();
-
-        this->redisplay_needed.emitSignal();
-      });
-      this->timer->start();
+      ortho_params.initial = ortho_params.current;
+      ortho_params.t1 = Time::now();
+      ortho_params.msec = smooth;
+      ortho_params.timer.start();
     }
   }
   else
   {
-    this->ortho_params_current = this->ortho_params_final;
-    timer.reset();
+    this->ortho_params.current = this->ortho_params.final;
+    ortho_params.timer.stop();
     this->redisplay_needed.emitSignal();
   }
 }
@@ -235,7 +254,7 @@ Frustum GLOrthoCamera::getCurrentFrustum(const Viewport& viewport) const
   Frustum ret;
   ret.setViewport(viewport);
 
-  auto params = (this->ortho_params_current).withAspectRatio(viewport.getAspectRatio());
+  auto params = (this->ortho_params.current).withAspectRatio(viewport.getAspectRatio());
   ret.loadProjection(Matrix::ortho(params.left, params.right, params.bottom, params.top, params.zNear, params.zFar));
 
   if (this->rotation)
@@ -252,11 +271,11 @@ Frustum GLOrthoCamera::getFinalFrustum(const Viewport& viewport) const
   Frustum ret;
   ret.setViewport(viewport);
 
-  auto params = (this->ortho_params_final).withAspectRatio(viewport.getAspectRatio());
+  auto params = (this->ortho_params.final).withAspectRatio(viewport.getAspectRatio());
   ret.loadProjection(Matrix::ortho(params.left, params.right, params.bottom, params.top, params.zNear, params.zFar));
 
   if (this->rotation)
-    ret.multProjection(Matrix::rotateAroundCenter(ortho_params_final.getCenter(), Point3d(0, 0, 1), rotation));
+    ret.multProjection(Matrix::rotateAroundCenter(ortho_params.final.getCenter(), Point3d(0, 0, 1), rotation));
 
   ret.loadModelview(Matrix::lookAt(pos, pos + dir, vup));
   return ret;
@@ -325,7 +344,7 @@ void GLOrthoCamera::setLookAt(Point3d pos, Point3d dir, Point3d vup, double rota
 void GLOrthoCamera::translate(Point2d vt)
 {
   if (vt == Point2d()) return;
-  setOrthoParams(this->ortho_params_final.translated(Point3d(vt)), this->smooth);
+  setOrthoParams(this->ortho_params.final.translated(Point3d(vt)), getDefaultSmooth());
 }
 
 
@@ -333,7 +352,7 @@ void GLOrthoCamera::translate(Point2d vt)
 void GLOrthoCamera::scale(double vs,Point2d center)
 {
   if (vs==1 || vs==0)  return;
-  setOrthoParams(this->ortho_params_final.scaledAroundCenter(Point3d(vs, vs, 1.0), Point3d(center)), this->smooth);
+  setOrthoParams(this->ortho_params.final.scaledAroundCenter(Point3d(vs, vs, 1.0), Point3d(center)), getDefaultSmooth());
 }
 
 
@@ -391,10 +410,10 @@ void GLOrthoCamera::glWheelEvent(QWheelEvent* evt, const Viewport& viewport)
   Point2d center = map.unprojectPoint(Point2d(evt->x(), evt->y())).toPoint2();
   double  vs = evt->delta() > 0 ? (1.0 / default_scale) : (default_scale);
   if (!vs || vs == 1) return;
-  auto params = this->ortho_params_final;
+  auto params = this->ortho_params.final;
   params = params.scaledAroundCenter(Point3d(vs, vs, 1.0), Point3d(center));
   params = checkZoomRange(params, viewport);
-  setOrthoParams(params);
+  setOrthoParams(params, getDefaultSmooth());
   evt->accept();
 }
 
@@ -448,7 +467,7 @@ void GLOrthoCamera::glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport)
 
   if (key == Qt::Key_M)
   {
-    toggleSmooth();
+    toggleDefaultSmooth();
     evt->accept();
     return;
   }
@@ -465,13 +484,13 @@ void GLOrthoCamera::writeTo(StringTree& out) const
   out.writeValue("vup",vup.toString());
   out.writeValue("rotation", cstring(rotation));
 
-  out.writeValue("ortho_params", ortho_params_final.toString());
+  out.writeValue("ortho_params", ortho_params.final.toString());
 
   out.writeValue("default_scale", cstring(default_scale));
   out.writeValue("disable_rotation", cstring(disable_rotation));
   out.writeValue("max_zoom", cstring(max_zoom));
   out.writeValue("min_zoom", cstring(min_zoom));
-  out.writeValue("smooth", cstring(smooth));
+  out.writeValue("default_smooth", cstring(default_smooth));
 }
 
 ////////////////////////////////////////////////////////////////
@@ -484,15 +503,13 @@ void GLOrthoCamera::readFrom(StringTree& in)
   this->vup=Point3d::fromString(in.readValue("vup","0  1  0"));
   this->rotation = cdouble(in.readValue("rotation"));
 
-  this->ortho_params_final = GLOrthoParams::fromString(in.readValue("ortho_params"));
+  this->ortho_params.final = this->ortho_params.current = GLOrthoParams::fromString(in.readValue("ortho_params"));
 
   this->default_scale=cdouble(in.readValue("default_scale"));
   this->disable_rotation=cbool(in.readValue("disable_rotation"));
   this->max_zoom=cdouble(in.readValue("max_zoom"));
   this->min_zoom=cdouble(in.readValue("min_zoom"));
-  this->smooth=cdouble(in.readValue("smooth"));
-
-  this->ortho_params_current = this->ortho_params_final;
+  this->default_smooth =cdouble(in.readValue("default_smooth"));
 
 }
   

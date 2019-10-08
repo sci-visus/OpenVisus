@@ -165,30 +165,25 @@ public:
 
   //getOrthoParams
   GLOrthoParams getOrthoParams() const  {
-     return ortho_params_current; 
+     return ortho_params.current; 
   }
 
   //setOrthoParams
-  void setOrthoParams(GLOrthoParams value, double smooth);
+  void setOrthoParams(GLOrthoParams value, int msec=0);
 
-  //setOrthoParams
-  void setOrthoParams(GLOrthoParams value) {
-    setOrthoParams(value, 0.0);
+  //getDefaultSmooth
+  int getDefaultSmooth() const {
+    return default_smooth;
   }
 
-  //getSmooth
-  double getSmooth() const {
-    return smooth;
+  //setDefaultSmooth
+  void setDefaultSmooth(int value) {
+    setProperty("smooth", this->default_smooth, value);
   }
 
-  //setSmooth
-  void setSmooth(double value) {
-    setProperty("smooth", this->smooth, value);
-  }
-
-  //toggleSmooth
-  void toggleSmooth() {
-    setSmooth(getSmooth()? 0.0 : 0.90);
+  //toggleDefaultSmooth
+  void toggleDefaultSmooth() {
+    setDefaultSmooth(getDefaultSmooth() ? 0 : 1300);
   }
 
 public:
@@ -224,7 +219,7 @@ public:
 
 private:
 
-  double                smooth=0.90; //higher is smoother
+ 
   bool                  disable_rotation = false;
   double                default_scale;
   double                max_zoom = 0;
@@ -237,10 +232,22 @@ private:
   Point3d               vup    = Point3d(0, 1,  0);
   double                rotation = 0.0;
 
-  GLOrthoParams         ortho_params_current;
-  GLOrthoParams         ortho_params_final;
+  //interpolate ortho params
+  struct
+  {
+    QTimer             timer;
+    Time               t1;
+    GLOrthoParams      initial;
+    GLOrthoParams      current;
+    GLOrthoParams      final;
+    int                msec;      
+  }
+  ortho_params;
 
-  SharedPtr<QTimer>     timer;
+  int default_smooth;
+
+  //refineToFinal
+  void refineToFinal();
 
   //needUnproject
   FrustumMap needUnprojectInScreenSpace(const Viewport& viewport)

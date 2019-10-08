@@ -439,14 +439,14 @@ void Viewer::setMinimal()
 ////////////////////////////////////////////////////////////
 void Viewer::setFieldName(String value)
 {
-  if (auto node = this->findNodeByType<FieldNode>())
+  if (auto node = this->findNode<FieldNode>())
     node->setFieldName(value);
 }
 
 ////////////////////////////////////////////////////////////
 void Viewer::setScriptingCode(String value)
 {
-  if (auto node = this->findNodeByType<ScriptingNode>())
+  if (auto node = this->findNode<ScriptingNode>())
     node->setCode(value);
 }
 
@@ -1160,7 +1160,7 @@ void Viewer::setDataflow(SharedPtr<Dataflow> value)
       addDockWidget(Qt::LeftDockWidgetArea, dock);
     }
 
-    if (auto glcamera_node= findNodeByType<GLCameraNode>())
+    if (auto glcamera_node= findNode<GLCameraNode>())
       attachGLCamera(glcamera_node->getGLCamera());
 
     enableSaveSession();
@@ -1956,14 +1956,14 @@ QueryNode* Viewer::addVolume(Node* parent, String fieldname, int access_id)
 {
   if (!parent)
   {
-    parent=findNodeByType<DatasetNode>();
+    parent= findNode<DatasetNode>();
     if (!parent)
       parent=getRoot();
   }
 
   auto* dataset_node= dynamic_cast<DatasetNode*>(parent);
   if (!dataset_node)
-    dataset_node= findNodeByType<DatasetNode>();
+    dataset_node= findNode<DatasetNode>();
   VisusReleaseAssert(dataset_node);
 
   auto dataset=dataset_node->getDataset();
@@ -2022,14 +2022,14 @@ QueryNode* Viewer::addSlice(Node* parent, String fieldname, int access_id)
 {
   if (!parent)
   {
-    parent = findNodeByType<DatasetNode>();
+    parent = findNode<DatasetNode>();
     if (!parent)
       parent = getRoot();
   }
 
   auto* dataset_node = dynamic_cast<DatasetNode*>(parent);
   if (!dataset_node)
-    dataset_node = findNodeByType<DatasetNode>();
+    dataset_node = findNode<DatasetNode>();
   VisusReleaseAssert(dataset_node);
 
   auto dataset = dataset_node->getDataset();
@@ -2098,14 +2098,14 @@ QueryNode* Viewer::addIsoContour(Node* parent, String fieldname, int access_id, 
 {
   if (!parent)
   {
-    parent = findNodeByType<DatasetNode>();
+    parent = findNode<DatasetNode>();
     if (!parent)
       parent = getRoot();
   }
 
   auto* dataset_node = dynamic_cast<DatasetNode*>(parent);
   if (!dataset_node)
-    dataset_node = findNodeByType<DatasetNode>();
+    dataset_node = findNode<DatasetNode>();
   VisusReleaseAssert(dataset_node);
 
   auto dataset = dataset_node->getDataset();
@@ -2197,14 +2197,14 @@ KdQueryNode* Viewer::addKdQuery(Node* parent,String fieldname,int access_id)
 {
   if (!parent)
   {
-    parent= findNodeByType<DatasetNode>();
+    parent= findNode<DatasetNode>();
     if (!parent)
       parent=getRoot();
   }
 
   auto* dataset_node = dynamic_cast<DatasetNode*>(parent);
   if (!dataset_node)
-    dataset_node = findNodeByType<DatasetNode>();
+    dataset_node = findNode<DatasetNode>();
   VisusReleaseAssert(dataset_node);
 
   auto dataset=dataset_node->getDataset();

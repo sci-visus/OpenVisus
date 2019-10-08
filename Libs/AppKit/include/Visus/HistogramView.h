@@ -93,8 +93,8 @@ public:
       return (x==0)? (0) : (1+log(x));
     };
 
-    VisusAssert(getOverallBox().width ==1.0);
-    VisusAssert(getOverallBox().height==1.0);
+    VisusAssert(getWorldBox().width ==1.0);
+    VisusAssert(getWorldBox().height==1.0);
 
     auto max_bin = 1.25*histogram.readBin(histogram.max);
     if (!max_bin)

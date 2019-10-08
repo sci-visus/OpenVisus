@@ -335,14 +335,9 @@ public:
     return dataflow->findNodeByUUID(uuid);
   }
 
-  //findNodeByName
-  Node* findNodeByName(const String& name) const {
-    return dataflow->findNodeByName(name);
-  }
-
   //findNodeByType
   template <class ClassName>
-  ClassName* findNodeByType() const
+  ClassName* findNode() const
   {
     for (auto node : getNodes()) {
       if (const ClassName* ret = dynamic_cast<const ClassName*>(node))
