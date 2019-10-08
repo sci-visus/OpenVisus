@@ -85,8 +85,8 @@ public:
     return dataset->getLogicBox();
   }
 
-  //getPosition
-  virtual Position getPosition() override {
+  //getBounds
+  virtual Position getBounds() override {
     return dataset? dataset->getDatasetBounds() : Position::invalid();
   }
 

@@ -163,7 +163,7 @@ void RenderArrayNode::releaseShaders()
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 RenderArrayNode::RenderArrayNode(String name) : Node(name)
 {
-  addInputPort("data");
+  addInputPort("array");
   addInputPort("palette");
 
   lighting_material.front.ambient=Colors::Black;
@@ -303,7 +303,7 @@ bool RenderArrayNode::processInput()
   //I want to sign the input return receipt only after the rendering
   auto return_receipt = createPassThroughtReceipt();
   auto palette        = readValue<Palette>("palette");
-  auto data           = readValue<Array>("data");
+  auto data           = readValue<Array>("array");
 
   this->return_receipt.reset();
 

@@ -68,9 +68,9 @@ public:
   //glRender
   virtual void glRender(GLCanvas& gl) override;
    
-  //getPosition
-  virtual Position getPosition() override {
-    return isocontour? isocontour->field.bounds : Position::invalid();
+  //getBounds
+  virtual Position getBounds() override {
+    return mesh? mesh->field.bounds : Position::invalid();
   }
 
   //getMaterial
@@ -81,14 +81,6 @@ public:
   //setMaterial
   void setMaterial(GLMaterial new_value);
 
-  //getIsoContour
-  SharedPtr<IsoContour> getIsoContour() const {
-    return isocontour;
-  }
-
-  //setIsoContour
-  void setIsoContour(SharedPtr<IsoContour> contour);
-
   //getPalette
   SharedPtr<Palette> getPalette() const {
     return palette;
@@ -96,6 +88,14 @@ public:
 
   //getPalette
   void setPalette(SharedPtr<Palette> value);
+
+  //getMesh
+  SharedPtr<IsoContour> getMesh() const {
+    return mesh;
+  }
+
+  //setMesh
+  void setMesh(SharedPtr<IsoContour> value);
 
   //dataflow
   virtual bool processInput() override;
@@ -117,10 +117,8 @@ public:
 
 private:
 
-  SharedPtr<IsoContour> isocontour;
-
-  GLMaterial            material = GLMaterial::createRandom();;
-
+  SharedPtr<IsoContour> mesh;
+  GLMaterial            material = GLMaterial::createRandom();
   SharedPtr<Palette>    palette=Palette::getDefault("grayopaque");
 
 };

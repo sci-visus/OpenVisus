@@ -67,7 +67,7 @@ public:
   void setHistogram(const Histogram& value) 
   {
     this->histogram=value;
-    this->setWorldBounds(0.0,0.0,1.0,1.0);
+    this->setWorldBox(0.0,0.0,1.0,1.0);
     this->update();
   }
 
@@ -93,8 +93,8 @@ public:
       return (x==0)? (0) : (1+log(x));
     };
 
-    VisusAssert(getWorldBounds().width ==1.0);
-    VisusAssert(getWorldBounds().height==1.0);
+    VisusAssert(getOverallBox().width ==1.0);
+    VisusAssert(getOverallBox().height==1.0);
 
     auto max_bin = 1.25*histogram.readBin(histogram.max);
     if (!max_bin)

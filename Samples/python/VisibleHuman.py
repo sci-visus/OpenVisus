@@ -8,18 +8,6 @@ from OpenVisus.PyViewer  import *
 
 
 # //////////////////////////////////////////////
-def ConvertVisibleFemale():
-	
-	SetCommandLine("__main__")
-	IdxModule.attach()	
-	CreateDatasetFromImages(
-		r"D:\GoogleSci\visus_dataset\female\visus.idx",
-		sorted(glob.glob(r"D:\GoogleSci\visus_dataset\female\70mm\4K_Tiff-Images\*.tif"))
-	)
-	IdxModule.detach()
-	sys.exit(0)
-	
-# //////////////////////////////////////////////
 def ExportSideBySideMovies(old_dataset,new_dataset):
 	
 	old_dataset.exportSlicesToMovie(PyMovie("All_z0.avi"), axis=2)
@@ -97,8 +85,9 @@ def VisibleFemale():
 
 	# ExportSideBySideMovies(old_dataset)
 	
-	full=(0,1, 0,1, 0,1)	
-	region=full
+	full=(0,1, 0,1, 0,1.0)	
+	head=(0,1, 0,1, 0,0.1)
+	region=head
 
 	RGB, bounds=dataset.readData(region,-6)	
 	R,G,B=PyUtils.SplitChannels(RGB)
@@ -133,7 +122,6 @@ def VisibleFemale():
 	#	cv2.waitKey()		
 	
 	viewer=PyViewer()
-	
 	viewer.addIsoSurface(field=R, second_field=None, isovalue=100.0, bounds=bounds)
 	#viewer.addVolumeRender(RGBA, bounds)		
 	

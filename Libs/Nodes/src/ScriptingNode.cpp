@@ -66,7 +66,7 @@ public:
     : node(node_), input(input_),return_receipt(return_receipt_)
   {
     this->engine = node->engine;
-    this->bDataOutputPortConnected=node->isOutputConnected("data");
+    this->bDataOutputPortConnected=node->isOutputConnected("array");
     this->max_publish_msec=node->max_publish_msec;
     this->code = node->getCode();
   }
@@ -130,7 +130,7 @@ public:
     if (!bIncremental && return_receipt)
       msg.setReturnReceipt(return_receipt);
 
-    msg.writeValue("data", output);
+    msg.writeValue("array", output);
     node->publish(msg);
   }
 
@@ -193,8 +193,8 @@ ScriptingNode::ScriptingNode(String name)  : Node(name)
   this->engine = std::make_shared<PythonEngine>(false);
 #endif
 
-  addInputPort("data");
-  addOutputPort("data");
+  addInputPort("array");
+  addOutputPort("array");
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -235,7 +235,7 @@ bool ScriptingNode::processInput()
 
   // important to do before readValue
   auto return_receipt=createPassThroughtReceipt();
-  auto input = readValue<Array>("data");
+  auto input = readValue<Array>("array");
   if (!input)
     return  false;
 
@@ -255,7 +255,7 @@ bool ScriptingNode::processInput()
 
   DataflowMessage msg;
   msg.setReturnReceipt(return_receipt);
-  msg.writeValue("data", input);
+  msg.writeValue("array", input);
   this->publish(msg);
 
 #endif

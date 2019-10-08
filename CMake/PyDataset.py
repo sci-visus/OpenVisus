@@ -5,8 +5,59 @@ import cv2,numpy
 from OpenVisus import *
 import OpenVisus.PyUtils
 
+
 # ////////////////////////////////////////////////////////////////////////////
-def CreateDatasetFromImages(idx_filename,filenames):
+def Create2DDatasetFromImage(idx_filename,filename):
+	
+	T1=Time.now()
+	os.environ["VISUS_DISABLE_WRITE_LOCK"]="1"
+	
+	img = cv2.imread(filename, -1)
+	img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+	# img=cv2.flip(img,0)	
+	#cv2.imshow('RGB Image',img )
+	#cv2.waitKey(0)
+
+	height,width,nchannels=img.shape[0],img.shape[1],img.shape[2] if len(img.shape)>2 else 1
+	img_bytesize=width*height*nchannels
+	MB=1024*1024
+	GB=MB*1024
+
+	print("Image",filename,"width",width,"height",height,"nchannels",nchannels,"bytesize",int(img_bytesize/MB),"MB")
+
+	field=Field()
+	field.name="DATA"
+	field.dtype=DType.fromString("uint8[%d]" % (nchannels,))
+	field.default_layout="rowmajor"
+
+	idxfile=IdxFile()
+	idxfile.fields.push_back(field)
+	idxfile.logic_box=BoxNi(PointNi(0,0),PointNi(width,height))
+	if not idxfile.save(idx_filename):
+		raise Exception("cannot save the idx filename")
+		
+	print("Idx file is the following:")
+	print("/////////////////////////////////////////////")
+	print(idxfile.toString())
+	print("/////////////////////////////////////////////")
+
+	dataset=LoadDataset(idx_filename)
+	if not dataset:
+		raise Exception("cannot load the idx filename")
+	access=dataset.createAccess()
+	field=dataset.getDefaultField()
+	time=dataset.getDefaultTime()
+	
+	print("\tWriting idx")
+	array=Array.fromNumPy(img,TargetDim=2,bShareMem=True)
+	if not dataset.writeFullResolutionData(access,field,time,array,idxfile.logic_box):
+		raise Exception("cannot write data")	
+
+	print("Conversion done in",T1.elapsedMsec(),"msec")	
+	
+
+# ////////////////////////////////////////////////////////////////////////////
+def Create3DDatasetFromImages(idx_filename,filenames):
 	
 	T1=Time.now()
 	os.environ["VISUS_DISABLE_WRITE_LOCK"]="1"
@@ -151,7 +202,7 @@ class PyDataset(object):
 			dims=[data.dims[I] for I in range(data.dims.getPointDim()) if data.dims[I]>1 ]
 			data.resize(PointNi(dims),data.dtype,__file__,0)
 			
-		print("done in %dmsec dims(%s) bounds(%s) dtype(%s)" % (t1.elapsedMsec(),data.dims.toString(),data.bounds.toString(),data.dtype.toString()))
+		print("done in %dmsec dims(%s) dtype(%s)" % (t1.elapsedMsec(),data.dims.toString(),data.dtype.toString()))
 		return Array.toNumPy(data),Position(data.bounds)	
 		
 	# readSlice

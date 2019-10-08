@@ -81,41 +81,41 @@ public:
     setProperty("split_projection_frustum", this->split_projection_frustum, value);
   }
 
-  //getPosition
-  Point3d getPosition() const {
+  //getPos
+  Point3d getPos() const {
     return pos;
   }
 
-  //setPosition
-  void setPosition(Point3d value) {
+  //setPos
+  void setPos(Point3d value) {
     setProperty("pos", this->pos, value);
   }
 
-  //getDirection
-  Point3d getDirection() const {
+  //getDir
+  Point3d getDir() const {
     return dir;
   }
 
-  //setDirection
-  void setDirection(Point3d value) {
+  //setDir
+  void setDir(Point3d value) {
     setProperty("dir", this->dir, value);
   }
 
-  //getViewUp
-  Point3d getViewUp() const {
+  //getVup
+  Point3d getVup() const {
     return vup;
   }
 
-  //setViewUp
-  void setViewUp(Point3d value) {
+  //setVup
+  void setVup(Point3d value) {
     setProperty("vup", this->vup, value);
   }
 
   //getLookAt
   virtual void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const override {
-    pos = getPosition();
-    dir = getDirection();
-    vup = getViewUp();
+    pos = getPos();
+    dir = getDir();
+    vup = getVup();
   }
 
   //getRotation

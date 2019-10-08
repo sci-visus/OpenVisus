@@ -117,7 +117,7 @@ public:
     if (data && data.getTotalNumberOfSamples())
     {
       idxfile.logic_box = BoxNi(PointNi(data.getPointDim()), data.dims);
-      idxfile.fields.push_back(Field("data", data.dtype));
+      idxfile.fields.push_back(Field("myfield", data.dtype));
     }
 
     for (int I = 2; I < (int)args.size(); I++)

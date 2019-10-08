@@ -68,8 +68,9 @@ public:
 };
 
 ////////////////////////////////////////////////////////
-StatisticsNode::StatisticsNode(String name) : Node(name) {
-  addInputPort("data");
+StatisticsNode::StatisticsNode(String name) : Node(name) 
+{
+  addInputPort("array");
 }
 
 ////////////////////////////////////////////////////////
@@ -80,7 +81,7 @@ StatisticsNode::~StatisticsNode() {
 bool StatisticsNode::processInput() 
 {
   abortProcessing();
-  auto data = readValue<Array>("data");
+  auto data = readValue<Array>("array");
   if (!data) return false;
   VisusInfo()<<"Statistics node got data "<<data->dims.toString();
   addNodeJob(std::make_shared<ComputeStatisticsJob>(this,*data));

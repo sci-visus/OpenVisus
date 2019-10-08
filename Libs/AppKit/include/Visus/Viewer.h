@@ -432,9 +432,22 @@ public:
   //connectPorts
   void connectPorts(Node* from, Node* to)
   {
-    if (from->outputs.size() == 1) { connectPorts(from, from->getFirstOutputPort()->getName(), to); return; }
-    if (to->inputs.size() == 1) { connectPorts(from, to->getFirstInputPort()->getName(), to); return; }
-    VisusAssert(false);
+    String oport, iport;
+    
+    if (oport.empty() && from->outputs.size() == 1)
+      oport = from->getFirstOutputPort()->getName();
+
+    if (iport.empty() && to->inputs.size() == 1)
+      iport = to->getFirstInputPort()->getName();
+
+    if (oport.empty() && !iport.empty() && from->hasOutputPort(iport))
+      oport = iport;
+
+    if (iport.empty() && !oport.empty() && to->hasInputPort(oport))
+      iport = oport;
+
+    VisusReleaseAssert(!iport.empty() && !oport.empty());
+    connectPorts(from, oport, iport, to);
   }
   //disconnectPorts
   void disconnectPorts(Node* from, String oport_name, String iport_name, Node* to);
@@ -494,8 +507,8 @@ public:
   //getWorldBox
   BoxNd getWorldBox() const;
 
-  //getPosition
-  Position getPosition(Node* node, bool bRecursive = false) const;
+  //getBounds
+  Position getBounds(Node* node, bool bRecursive = false) const;
 
   //getGLCanvas
   GLCanvas* getGLCanvas() {
@@ -559,7 +572,7 @@ public:
   QueryNode* addSlice(Node* parent, String fieldname = "", int access_id = 0);
 
   //addIsoContour
-  QueryNode* addIsoContour(Node* parent, String fieldname = "", int access_id = 0);
+  QueryNode* addIsoContour(Node* parent, String fieldname = "", int access_id = 0, String isovalue="");
 
   //addKdQuery
   KdQueryNode* addKdQuery(Node* parent, String fieldname = "", int access_id = 0);

@@ -129,7 +129,7 @@ void JTreeRenderNode::executeAction(StringTree in)
 }
 
 ////////////////////////////////////////////////////////////
-Position JTreeRenderNode::getPosition() 
+Position JTreeRenderNode::getBounds()
 {
   if (!graph) 
     return Position::invalid();

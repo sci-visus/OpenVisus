@@ -1,6 +1,5 @@
 import os,sys
 
-
 import PyQt5
 from   PyQt5.QtCore	import *
 from   PyQt5.QtWidgets import *
@@ -14,20 +13,17 @@ from VisusAppKitPy   import *
 
 from OpenVisus.PyUtils import *
 
-
-
 # ////////////////////////////////////////////////////////////////
 class PyViewer(Viewer):
 	
 	# constructor
 	def __init__(self):	
 		super(PyViewer, self).__init__()
-		self.setMinimal()
 		self.addGLCamera(self.getRoot(),3)	
 		
 	# run
 	def run(self):
-		bounds=self.getWorldBounds()
+		bounds=self.getWorldBox()
 		self.getGLCamera().guessPosition(bounds)	
 		GuiModule.execApplication()		
 		
@@ -40,7 +36,7 @@ class PyViewer(Viewer):
 		Assert(isinstance(data,numpy.ndarray))
 		data=Array.fromNumPy(data,TargetDim=3,bounds=bounds)
 		
-		node=RenderArrayNode()
+		node=RenderArrayNode("RenderVolume")
 		node.setLightingEnabled(False)
 		node.setPaletteEnabled(False)
 		node.setData(data)
@@ -58,14 +54,18 @@ class PyViewer(Viewer):
 
 		print("Extracting isocontour...")
 		t1=Time.now()
-		isocontour=MarchingCube(field,isovalue).run()
+		mesh=MarchingCube(field,isovalue).run()
 		print("done in ",t1.elapsedMsec(),"msec")
 		
 		if second_field is not None:
-			isocontour.second_field=Array.fromNumPy(second_field,TargetDim=3,bounds=bounds)
+			mesh.second_field=Array.fromNumPy(second_field,TargetDim=3,bounds=bounds)
 					
-		node=IsoContourRenderNode()	
-		node.setIsoContour(isocontour)
+		node=IsoContourRenderNode("RenderMesh")	
+		node.setMesh(mesh)
 		self.addNode(self.getRoot(),node)
 		
 		print("Added IsoContourRenderNode")	
+
+
+
+	

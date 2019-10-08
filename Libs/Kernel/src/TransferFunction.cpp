@@ -145,9 +145,10 @@ void TransferFunction::executeAction(StringTree in)
       return;
     }
 
-    if (target_id == "range")
+    if (target_id == "input_range")
     {
-      setRange(Range::fromString(in.readString("value")));
+      auto input_range = Range::fromString(in.readString("value"));
+      setInputRange(input_range);
       return;
     }
 
@@ -188,7 +189,7 @@ void TransferFunction::executeAction(StringTree in)
 Range TransferFunction::computeRange(Array src, int C, Aborted aborted) const {
 
   if (this->input_normalization_mode == ArrayUtils::UseFixedRange)
-    return this->range;
+    return this->input_range;
   else
     return ArrayUtils::computeRange(src, C, input_normalization_mode, aborted);
 }
@@ -517,7 +518,7 @@ void TransferFunction::writeTo(StringTree& out) const
   out.write("name", this->default_name);
   out.write("nsamples", getNumberOfSamples());
   out.write("attenuation",cstring(attenuation));
-  out.write("range", this->range);
+  out.write("input_range", this->input_range);
   out.write("input_normalization_mode", cstring(input_normalization_mode));
   out.write("output_dtype", output_dtype.toString());
   out.write("output_range", output_range);
@@ -537,7 +538,7 @@ void TransferFunction::readFrom(StringTree& in)
   this->default_name = in.readString("name");
   int nsamples = in.readInt("nsamples");
   this->attenuation=cdouble(in.readString("attenuation","0.0"));
-  this->range = Range::fromString(in.read("range"));
+  this->input_range = Range::fromString(in.read("input_range"));
   this->input_normalization_mode=cint(in.readString("input_normalization_mode"));
   this->output_dtype=DType::fromString(in.readString("output_dtype"));
   this->output_range=Range::fromString(in.read("output_range"));

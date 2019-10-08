@@ -72,8 +72,8 @@ public:
   //setTransferFunction
   void setTransferFunction(SharedPtr<TransferFunction> value);
 
-  //getPosition
-  virtual Position getPosition() override {
+  //getBounds
+  virtual Position getBounds() override {
     return this->bounds;
   }
 

@@ -122,15 +122,15 @@ public:
     setProperty("quality", this->quality, value);
   }
 
-  //getPosition
-  virtual Position getPosition() override {
-    return position;
+  //getBounds
+  virtual Position getBounds() override {
+    return node_bounds;
   }
 
-  //setPosition
-  void setPosition(Position value,bool bForce=false) {
-    if (position ==value && !bForce) return;
-    setEncodedProperty("position", this->position, value);
+  //setBounds
+  void setBounds(Position value,bool bForce=false) {
+    if (node_bounds ==value && !bForce) return;
+    setEncodedProperty("bounds", this->node_bounds, value);
   }
 
   //getQueryBounds
@@ -200,7 +200,7 @@ private:
   bool               view_dependent_enabled = false;
   int                progression = QueryGuessProgression;
   int                quality = QueryDefaultQuality;
-  Position           position = Position::invalid();
+  Position           node_bounds = Position::invalid();
 
   //run time derived properties
   Frustum            node_to_screen;

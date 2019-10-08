@@ -633,7 +633,7 @@ private:
       auto other=TransferFunction::fromArray(src);
       if (useColorVarMax || useColorVarMin)
       {
-        other->setRange(Range(colorVarMin, colorVarMax, 0));
+        other->setInputRange(Range(colorVarMin, colorVarMax, 0));
         other->setInputNormalizationMode(ArrayUtils::UseFixedRange);
       }
       other->setOutputDType(isFloatRange ? DTypes::FLOAT32_RGBA : DTypes::UINT8_RGBA);
@@ -743,12 +743,12 @@ public:
       }));
       
       layout->addWidget(new QLabel("Custom Range from"));
-      layout->addWidget(widgets.range_from = GuiFactory::CreateDoubleTextBoxWidget(model->getRange().from, [this](double value) {
+      layout->addWidget(widgets.range_from = GuiFactory::CreateDoubleTextBoxWidget(model->getInputRange().from, [this](double value) {
         updateRange();
       }));
 
       layout->addWidget(new QLabel("Custom Range to"));
-      layout->addWidget(widgets.range_to = GuiFactory::CreateDoubleTextBoxWidget(model->getRange().to, [this](double value) {
+      layout->addWidget(widgets.range_to = GuiFactory::CreateDoubleTextBoxWidget(model->getInputRange().to, [this](double value) {
         updateRange();
       }));
 
@@ -774,7 +774,7 @@ private:
     range.from = cdouble(widgets.range_from->text());
     range.to = cdouble(widgets.range_to->text());
     range.step = model->getOutputDType().isDecimal() ? 0.0 : 1.0;
-    model->setRange(range);
+    model->setInputRange(range);
   }
 
   //refreshGui
@@ -783,8 +783,8 @@ private:
     widgets.nsamples->setText(cstring(model->getNumberOfSamples()).c_str());
     widgets.input_normalization_mode->setCurrentIndex(model->getInputNormalizationMode());
 
-    widgets.range_from->setText(cstring(model->getRange().from).c_str());
-    widgets.range_to  ->setText(cstring(model->getRange().to).c_str());
+    widgets.range_from->setText(cstring(model->getInputRange().from).c_str());
+    widgets.range_to  ->setText(cstring(model->getInputRange().to).c_str());
   }
 
   //modelChanged

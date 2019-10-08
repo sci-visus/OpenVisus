@@ -616,7 +616,7 @@ public:
 
       DataflowMessage msg;
       msg.writeValue("graph", reduced_graph);
-      msg.writeValue("data",this->data);
+      msg.writeValue("array",this->data);
       msg.writeValue("branches",branches);
       msg.writeValue("full_graph",full_graph); //important to recycle the last graph
       node->publish(msg);
@@ -629,11 +629,11 @@ public:
 ////////////////////////////////////////////////////////////
 JTreeNode::JTreeNode(String name)  : Node(name)
 {
-  addInputPort("data");
+  addInputPort("array");
 
+  addOutputPort("array"); //if you do not need the original data, simply do not connect it!
   addOutputPort("graph");
   addOutputPort("branches"); // branch decomposition
-  addOutputPort("data"); //if you do not need the original data, simply do not connect it!
   addOutputPort("full_graph");
 }
 
@@ -727,8 +727,9 @@ bool JTreeNode::processInput()
 {
   abortProcessing();
 
-  bool bFull=getInputPort("data")->hasNewValue();
-  auto data = readValue<Array>("data");
+  bool bFull=getInputPort("array")->hasNewValue();
+
+  auto data = readValue<Array>("array");
   this->data=data? *data : Array();
   return recompute(bFull);
 }
@@ -738,7 +739,7 @@ void JTreeNode::messageHasBeenPublished(DataflowMessage msg)
 {
   if (auto full_graph=msg.readValue<BaseGraph>("full_graph"))
   {
-    auto data=msg.readValue<Array>("data"); VisusAssert(data);
+    auto data=msg.readValue<Array>("array"); VisusAssert(data);
     this->last_full_graph=full_graph; //recycling the last full graph
   }
 }

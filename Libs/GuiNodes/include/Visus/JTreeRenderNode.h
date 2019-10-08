@@ -159,8 +159,8 @@ public:
   //glRender
   virtual void glRender(GLCanvas& gl) override;
 
-  //getNodePosition
-  virtual Position getPosition() override;
+  //getBounds
+  virtual Position getBounds() override;
 
   //from Node
   virtual bool processInput() override;

@@ -110,7 +110,7 @@ public:
 
         DataflowMessage msg;
         output.bounds = dataset->logicToPhysic(query->logic_position);
-        msg.writeValue("data", output);
+        msg.writeValue("array", output);
         node->publish(msg);
       }
     }
@@ -186,7 +186,7 @@ public:
     }
 #endif
 
-    msg.writeValue("data", output);
+    msg.writeValue("array", output);
     node->publish(msg);
   }
 
@@ -207,7 +207,7 @@ QueryNode::QueryNode(String name) : Node(name)
   addInputPort("fieldname");
   addInputPort("time");
 
-  addOutputPort("data");
+  addOutputPort("array");
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -253,9 +253,9 @@ void QueryNode::executeAction(StringTree in)
       return;
     }
 
-    if (target_id == "position")
+    if (target_id == "bounds")
     {
-      setPosition(*DecodeObject<Position>(*in.getFirstChild()));
+      setBounds(*DecodeObject<Position>(*in.getFirstChild()));
       return;
     }
 
@@ -390,7 +390,7 @@ void QueryNode::publishDumbArray()
   buffer->bounds=Position::invalid();
 
   DataflowMessage msg;
-  msg.writeValue("data", buffer);
+  msg.writeValue("array", buffer);
   publish(msg);
 }
 
@@ -412,10 +412,9 @@ void QueryNode::writeTo(StringTree& out) const
   out.write("view_dependent",cstring(view_dependent_enabled));
   out.write("progression",std::to_string(progression));
   out.write("quality",std::to_string(quality));
+  out.writeObject("bounds", node_bounds);
 
-  out.writeObject("position", position);
-
-  //position=fn(tree_position)
+  //query_bounds is a runtime thingy
 }
 
 //////////////////////////////////////////////////////////////////
@@ -428,10 +427,9 @@ void QueryNode::readFrom(StringTree& in)
   this->view_dependent_enabled =cbool(in.read("view_dependent"));
   this->progression=cint(in.read("progression"));
   this->quality=cint(in.read("quality"));
+  in.readObject("bounds", node_bounds);
 
-  in.readObject("position", position);
-
-  //position=fn(tree_position)
+  //query_bounds is a runtime thingy
 }
 
 

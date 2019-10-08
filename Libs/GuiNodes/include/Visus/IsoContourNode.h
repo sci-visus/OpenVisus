@@ -49,22 +49,20 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////////////
-class VISUS_GUI_NODES_API IsoContour 
+class VISUS_GUI_NODES_API IsoContour : public GLMesh
 {
 public:
 
   VISUS_NON_COPYABLE_CLASS(IsoContour)
 
-  GLMesh                      mesh;
   Array                       field;
   Array                       second_field; //this is used to color the surface 
-  Range                       range; //field range
-  Array                       voxel_used; // 1 if a voxel contributes to the isosurface; 0 otherwise
+  Range                       range;        //field range
+  Array                       voxel_used;   // 1 if a voxel contributes to the isosurface; 0 otherwise
 
   //cosntructor
   IsoContour() {
   }
-
 
 };
 
@@ -87,7 +85,6 @@ public:
 
   //run
   SharedPtr<IsoContour> run();
-
 
 };
 
@@ -117,7 +114,7 @@ public:
 
   //setField
   void setField(Array value) {
-    getInputPort("data")->writeValue(std::make_shared<Array>(value));
+    getInputPort("array")->writeValue(std::make_shared<Array>(value));
     dataflow->needProcessInput(this);
   }
 

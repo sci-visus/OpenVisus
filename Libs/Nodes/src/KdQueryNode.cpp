@@ -90,7 +90,7 @@ public:
     if (bForce || last_publish.elapsedMsec() > publish_interval)
     {
       DataflowMessage msg;
-      msg.writeValue("data", kdarray);
+      msg.writeValue("array", kdarray);
       node->publish(msg);
       last_publish = Time::now();
     }

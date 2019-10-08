@@ -111,8 +111,8 @@ public:
   //processInput
   virtual bool processInput() override;
 
-  //getPosition
-  virtual Position getPosition() override {
+  //getBounds
+  virtual Position getBounds() override {
     return this->bounds;
   }
 

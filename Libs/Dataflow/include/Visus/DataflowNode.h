@@ -154,8 +154,8 @@ public:
     return childs;
   }
 
-  //getPosition
-  virtual Position getPosition() {
+  //getBounds
+  virtual Position getBounds() {
     return Position::invalid();
   }
 

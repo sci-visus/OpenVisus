@@ -173,7 +173,6 @@ public:
       }); 
       
       glcamera->guessPosition(BoxNd());
-      glcamera->setRotationDisabled(true);
     }
     
     auto central=new QWidget();
@@ -206,7 +205,7 @@ public:
 
     this->dataflow->addNode(this->dataset_node = new DatasetNode("Dataset node"));
     this->dataset_node->setDataset(dataset);
-    this->dataset_bounds=dataset_node->getNodeBounds();
+    this->dataset_bounds=dataset_node->getBounds();
 
     if (dataset->getKdQueryMode()!=0)
     {
@@ -231,7 +230,7 @@ public:
     this->query_node->setProgression(QueryGuessProgression);
     this->query_node->setViewDependentEnabled(true);
     this->query_node->setQuality(QueryDefaultQuality);
-    this->query_node->setNodeBounds(dataset_bounds);
+    this->query_node->setBounds(dataset_bounds);
     this->query_node->setQueryBounds(dataset_bounds);
 
     this->glcamera->setViewport(Viewport(0,0,glcanvas->width(),(int)glcanvas->height()));

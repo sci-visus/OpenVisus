@@ -666,7 +666,7 @@ StringTree StringTree::fromString(String content, bool bEnablePostProcessing)
       << " ErrorRow(" << xmldoc.ErrorRow() << ")"
       << " ErrorCol(" << xmldoc.ErrorCol() << ")"
       << " ErrorDesc(" << xmldoc.ErrorDesc() << ")";
-    return false;
+    return StringTree();
   }
 
   auto ret = FromXmlElement(xmldoc.FirstChildElement());

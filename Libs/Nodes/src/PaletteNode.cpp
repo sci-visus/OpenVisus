@@ -78,7 +78,7 @@ PaletteNode::PaletteNode(String name,String default_palette) : Node(name)
 {
   //in case you want to show statistics when you are editing the palette
   //to enable statistics, connect it
-  addInputPort("data"); 
+  addInputPort("array"); 
   addOutputPort("palette");
 
   setPalette(Palette::getDefault(default_palette));
@@ -138,7 +138,7 @@ bool PaletteNode::processInput()
   abortProcessing();
 
   //important to remove any input from the queue  
-  auto data = readValue<Array>("data");
+  auto data = readValue<Array>("array");
   if (!data) 
     return false;
 

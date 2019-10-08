@@ -145,9 +145,7 @@ Viewer::Viewer(String title) : QMainWindow()
     addDockWidget(Qt::BottomDockWidgetArea, dock);
   }
 
-#ifdef VISUS_DEBUG
-  enableLog("visusviewer.log.txt");
-#endif
+  enableLog("~visusviewer.history.txt");
 
   New();
 
@@ -272,9 +270,11 @@ void Viewer::executeAction(StringTree in)
     {
       auto parent = findNodeByUUID(in.readString("parent"));
       auto child = *in.getFirstChild();
+
       auto TypeName = child.name;
-      auto node = NodeFactory::getSingleton()->createInstance(TypeName);
+      auto node = NodeFactory::getSingleton()->createInstance(TypeName); VisusReleaseAssert(node);
       node->readFrom(child);
+
       auto index = in.readInt("index", -1);
       addNode(parent, node, index);
       return;
@@ -300,7 +300,8 @@ void Viewer::executeAction(StringTree in)
       auto parent = findNodeByUUID(in.readString("parent"));
       auto fieldname = in.readString("fieldname");
       auto access_id = in.readInt("access_id");
-      addIsoContour(parent, fieldname, access_id);
+      auto isovalue = in.readString("isovalue");
+      addIsoContour(parent, fieldname, access_id, isovalue);
       return;
     }
 
@@ -352,8 +353,8 @@ void Viewer::executeAction(StringTree in)
     }
 
     if (what == "group") {
-      auto name = in.readString("name");
       auto parent = findNodeByUUID(in.readString("parent"));
+      auto name = in.readString("name");
       addGroup(parent, name);
       return;
     }
@@ -389,20 +390,12 @@ void Viewer::executeAction(StringTree in)
   if (in.name == "remove")
   {
     auto nodes = StringUtils::split(in.readString("node"));
-
-    if (nodes.size() > 1)
-      beginTransaction();
-
+    if (nodes.size() > 1) beginTransaction();
     for (auto node : nodes)
       removeNode(findNodeByUUID(node));
-
-    if (nodes.size() > 1)
-      endTransaction();
-
+    if (nodes.size() > 1) endTransaction();
     return;
   }
-
-
 
   return Model::executeAction(in);
 }
@@ -788,21 +781,21 @@ int Viewer::getWorldDimension() const
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 BoxNd Viewer::getWorldBox() const
 {
-  return getPosition(getRoot()).toAxisAlignedBox();
+  return getBounds(getRoot()).toAxisAlignedBox();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Position Viewer::getPosition(Node* node,bool bRecursive) const
+Position Viewer::getBounds(Node* node,bool bRecursive) const
 {
   VisusAssert(node);
 
   //special case for QueryNode: its content is really its bounds
   if (auto query=dynamic_cast<QueryNode*>(node))
-    return query->getPosition();
+    return query->getBounds();
 
   //NOTE: the result in in local geometric coordinate system of node 
   {
-    Position ret=node->getPosition();
+    Position ret=node->getBounds();
     if (ret.valid()) 
       return ret;
   }
@@ -825,14 +818,14 @@ Position Viewer::getPosition(Node* node,bool bRecursive) const
   }
   if (childs.size()==1)
   {
-    return Position(T, getPosition(childs[0],true));
+    return Position(T, getBounds(childs[0],true));
   }
   else
   {
     auto box= BoxNd::invalid();
     for (auto child : childs)
     {
-      Position child_bounds= getPosition(child,true);
+      Position child_bounds= getBounds(child,true);
       if (child_bounds.valid())
         box=box.getUnion(child_bounds.toAxisAlignedBox());
     }
@@ -845,7 +838,7 @@ Position Viewer::computeNodeToNode(Node* dst,Node* src) const
 {
   VisusAssert(dst && src && dst!=src);
   
-  Position bounds= getPosition(src);
+  Position bounds= getBounds(src);
 
   bool bAlreadySimplified=false;
   std::deque<Node*> src2root;
@@ -923,7 +916,7 @@ Node* Viewer::findPick(Node* node,Point2d screen_point,bool bRecursive,double* o
   if (QueryNode* query=dynamic_cast<QueryNode*>(node))
   {
     Frustum  node_to_screen = computeNodeToScreen(getGLCamera()->getCurrentFrustum(viewport),node);
-    Position node_bounds  = getPosition(node);
+    Position node_bounds  = getBounds(node);
 
     double query_distance= node_to_screen.computeDistance(node_bounds,screen_point,/*bUseFarPoint*/false);
     if (query_distance>=0)
@@ -959,7 +952,7 @@ Node* Viewer::findPick(Node* node,Point2d screen_point,bool bRecursive,double* o
 void Viewer::beginFreeTransform(QueryNode* query_node)
 {
   //NOTE: this is different from query->getPositionInDatasetNode()
-  Position bounds=query_node->getPosition();
+  Position bounds=query_node->getBounds();
   if (!bounds.valid())
   {
     free_transform.reset();
@@ -999,7 +992,7 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
       }
 
       query_bounds=Position(T,box);
-      query_node->setPosition(query_bounds);
+      query_node->setBounds(query_bounds);
       free_transform->setObject(query_bounds);
     });
 
@@ -1013,7 +1006,7 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
 void Viewer::beginFreeTransform(ModelViewNode* modelview_node)
 {
   auto T=modelview_node->getModelview();
-  auto bounds= getPosition(modelview_node);
+  auto bounds= getBounds(modelview_node);
 
   if (!T.valid() || !bounds.valid()) 
   {
@@ -1730,7 +1723,7 @@ void Viewer::refreshData(Node* node)
   {
     if (auto query_node=dynamic_cast<QueryNode*>(node))
     {
-      query_node->setPosition(query_node->getPosition(),/*bForce*/true);
+      query_node->setBounds(query_node->getBounds(),/*bForce*/true);
     }
     else if (auto modelview_node=dynamic_cast<ModelViewNode*>(node))
     {
@@ -1830,7 +1823,7 @@ Node* Viewer::addRender(Node* parent,String palette)
   if (!parent)
     parent = getRoot();
 
-  VisusReleaseAssert(parent->hasOutputPort("data"));
+  VisusReleaseAssert(parent->hasOutputPort("array"));
 
   auto render_node = dataflow->createNode<RenderArrayNode>("Render");
   auto palette_node= palette.empty()? nullptr : dataflow->createNode<PaletteNode>("Palette", palette);
@@ -1843,12 +1836,12 @@ Node* Viewer::addRender(Node* parent,String palette)
   {
     addNode(parent, render_node);
 
-    connectPorts(parent,"data", render_node);
+    connectPorts(parent,"array", render_node);
 
     if (palette_node)
     {
       addNode(render_node, palette_node);
-      connectPorts(parent,"data",palette_node);
+      connectPorts(parent,"array",palette_node);
       connectPorts(palette_node,"palette", render_node);
     }
   }
@@ -1864,7 +1857,7 @@ Node* Viewer::addOSPRay(Node* parent, String palette)
   if (!parent)
     parent = getRoot();
 
-  VisusReleaseAssert(parent->hasOutputPort("data"));
+  VisusReleaseAssert(parent->hasOutputPort("array"));
 
   Node* render_node = dataflow->createNode<OSPRayRenderNode>("OSPrayRender");
 
@@ -1878,12 +1871,12 @@ Node* Viewer::addOSPRay(Node* parent, String palette)
   {
     addNode(parent, render_node);
 
-    connectPorts(parent, "data", render_node);
+    connectPorts(parent, "array", render_node);
 
     if (palette_node)
     {
       addNode(render_node, palette_node);
-      connectPorts(parent, "data", palette_node);
+      connectPorts(parent, "array", palette_node);
       connectPorts(palette_node, "palette", render_node);
     }
   }
@@ -1899,7 +1892,7 @@ KdRenderArrayNode* Viewer::addKdRender(Node* parent)
   if (!parent)
     parent = getRoot();
 
-  VisusReleaseAssert(parent->hasOutputPort("data"));
+  VisusReleaseAssert(parent->hasOutputPort("array"));
 
   auto render_node = dataflow->createNode<KdRenderArrayNode>("KdRender");
   auto palette_node= dataflow->createNode<PaletteNode>("Palette","GrayOpaque");
@@ -1952,7 +1945,7 @@ QueryNode* Viewer::addVolume(Node* parent, String fieldname, int access_id)
     query_node->setViewDependentEnabled(true);
     query_node->setProgression(QueryGuessProgression);
     query_node->setQuality(QueryDefaultQuality);
-    query_node->setPosition(dataset_node->getPosition());
+    query_node->setBounds(dataset_node->getBounds());
   }
 
   auto field_node= dataflow->createNode<FieldNode>("Field", fieldname);
@@ -1975,7 +1968,7 @@ QueryNode* Viewer::addVolume(Node* parent, String fieldname, int access_id)
     connectPorts(dataset_node,query_node);
     connectPorts(time_node,query_node);
     connectPorts(field_node,query_node);
-    connectPorts(query_node, "data", scripting_node);
+    connectPorts(query_node, "array", scripting_node);
 
     addRender(scripting_node, "GrayTransparent");
   }
@@ -2020,13 +2013,13 @@ QueryNode* Viewer::addSlice(Node* parent, String fieldname, int access_id)
 
     if (bool bPointQuery = dataset->getPointDim() == 3)
     {
-      auto box = dataset_node->getPosition().getBoxNd().withPointDim(3);
+      auto box = dataset_node->getBounds().getBoxNd().withPointDim(3);
       box.p1[2] = box.p2[2] = box.center()[2];
-      query_node->setPosition(Position(dataset_node->getPosition().getTransformation(), box));
+      query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), box));
     }
     else
     {
-      query_node->setPosition(dataset_node->getPosition());
+      query_node->setBounds(dataset_node->getBounds());
     }
   }
 
@@ -2050,7 +2043,7 @@ QueryNode* Viewer::addSlice(Node* parent, String fieldname, int access_id)
     connectPorts(dataset_node, query_node);
     connectPorts(time_node, query_node);
     connectPorts(field_node, query_node);
-    connectPorts(query_node, "data", scripting_node);
+    connectPorts(query_node, "array", scripting_node);
 
     addRender(scripting_node, "GrayOpaque");
   }
@@ -2062,7 +2055,7 @@ QueryNode* Viewer::addSlice(Node* parent, String fieldname, int access_id)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-QueryNode* Viewer::addIsoContour(Node* parent, String fieldname, int access_id)
+QueryNode* Viewer::addIsoContour(Node* parent, String fieldname, int access_id, String s_isovalue)
 {
   if (!parent)
   {
@@ -2089,7 +2082,7 @@ QueryNode* Viewer::addIsoContour(Node* parent, String fieldname, int access_id)
     query_node->setViewDependentEnabled(true);
     query_node->setProgression(QueryGuessProgression);
     query_node->setQuality(QueryDefaultQuality);
-    query_node->setPosition(dataset_node->getPosition());
+    query_node->setBounds(dataset_node->getBounds());
   }
 
   auto field_node = dataflow->createNode<FieldNode>("fieldnode", fieldname);
@@ -2103,23 +2096,27 @@ QueryNode* Viewer::addIsoContour(Node* parent, String fieldname, int access_id)
   auto build_isocontour = dataflow->createNode<IsoContourNode>("Marching cube");
   {
     double isovalue = 0.0;
-    Field field = dataset->getFieldByName(fieldname);
-    if (field.dtype.ncomponents() == 1)
+    
+    if (!s_isovalue.empty())
     {
-      Range range = field.dtype.getDTypeRange();
-      isovalue = 0.5 * (range.from + range.to);
+      isovalue = cdouble(s_isovalue);
+    }
+    else
+    {
+      Field field = dataset->getFieldByName(fieldname);
+      isovalue = field.valid() && field.dtype.isVectorOf(DTypes::UINT8)? 128.0 : 0.0;
     }
     build_isocontour->setIsoValue(isovalue);
   }
   
-  auto render_node = dataflow->createNode<IsoContourRenderNode>("Mesh Render");
+  auto iso_render_node = dataflow->createNode<IsoContourRenderNode>("Mesh Render");
   {
-    GLMaterial material = render_node->getMaterial();
+    GLMaterial material = iso_render_node->getMaterial();
     material.front.diffuse = Color::createFromUint32(0x3c6d3eff);
     material.front.specular = Color::createFromUint32(0xffffffff);
     material.back.diffuse = Color::createFromUint32(0x2a4b70ff);
     material.back.specular = Color::createFromUint32(0xffffffff);
-    render_node->setMaterial(material);
+    iso_render_node->setMaterial(material);
   }
 
   //this is useful if the data coming from the data provider has 2 components, first is used to compute the 
@@ -2129,7 +2126,7 @@ QueryNode* Viewer::addIsoContour(Node* parent, String fieldname, int access_id)
   dropSelection();
 
   beginUpdate(
-    StringTree("add").write("what", "isocontour").write("parent", getUUID(parent)).write("fieldname", fieldname).write("access_id", access_id),
+    StringTree("add").write("what", "isocontour").write("parent", getUUID(parent)).write("fieldname", fieldname).write("access_id", access_id).write("isovalue", s_isovalue),
     StringTree("remove").write("node", "query_node"));
   {
     addNode(parent, query_node);
@@ -2139,16 +2136,16 @@ QueryNode* Viewer::addIsoContour(Node* parent, String fieldname, int access_id)
 
     addNode(scripting_node, build_isocontour);
     addNode(scripting_node, palette_node);
-    addNode(scripting_node, render_node);
+    addNode(scripting_node, iso_render_node);
 
     connectPorts(dataset_node, query_node);
     connectPorts(time_node, query_node);
     connectPorts(field_node, query_node);
-    connectPorts(query_node, "data", scripting_node);
-    connectPorts(scripting_node, "data", build_isocontour);
-    connectPorts(build_isocontour, "data", render_node);
-    connectPorts(build_isocontour, "data", palette_node); //enable statistics
-    connectPorts(palette_node, "palette", render_node);
+    connectPorts(query_node,       "array",   scripting_node);
+    connectPorts(scripting_node,   "array",   build_isocontour);
+    connectPorts(scripting_node,   "array",   palette_node); //this is for statistics
+    connectPorts(build_isocontour, "mesh",    iso_render_node);
+    connectPorts(palette_node,     "palette", iso_render_node);
   }
   endUpdate();
 
@@ -2187,7 +2184,7 @@ KdQueryNode* Viewer::addKdQuery(Node* parent,String fieldname,int access_id)
     query_node->setAccessIndex(access_id);
     query_node->setViewDependentEnabled(true);
     query_node->setQuality(QueryDefaultQuality);
-    query_node->setPosition(dataset_node->getPosition());
+    query_node->setBounds(dataset_node->getBounds());
   }
 
   //TimeNode
@@ -2218,9 +2215,9 @@ KdQueryNode* Viewer::addKdQuery(Node* parent,String fieldname,int access_id)
     connectPorts(dataset_node,query_node);
     connectPorts(time_node,query_node);
     connectPorts(field_node,query_node);
-    //connectPorts(query_node,"data",palette_node); this enable statistics 
+    //connectPorts(query_node,"array",palette_node); this enable statistics 
     connectPorts(palette_node,"palette",render_node);
-    connectPorts(query_node,"data",render_node);
+    connectPorts(query_node,"array",render_node);
   }
   endUpdate();
 
@@ -2309,7 +2306,7 @@ ScriptingNode* Viewer::addScripting(Node* parent)
   if (!parent)
     parent=getRoot();
 
-  VisusAssert(parent->hasOutputPort("data"));
+  VisusAssert(parent->hasOutputPort("array"));
 
   auto scripting_node= dataflow->createNode<ScriptingNode>("Scripting");
   scripting_node->setMaxPublishMSec(cint(config.readString("Configuration/ScriptingNode/max_publish_msec", cstring(scripting_node->getMaxPublishMSec()))));
@@ -2322,7 +2319,7 @@ ScriptingNode* Viewer::addScripting(Node* parent)
   {
     addNode(parent,scripting_node);
     addRender(scripting_node,"GrayOpaque");
-    connectPorts(parent,"data",scripting_node);
+    connectPorts(parent,"array",scripting_node);
   }
   endUpdate();
 
@@ -2335,11 +2332,11 @@ CpuPaletteNode* Viewer::addCpuTransferFunction(Node* parent)
   if (!parent)
     parent=getRoot();
 
-  VisusAssert(parent->hasOutputPort("data"));
+  VisusAssert(parent->hasOutputPort("array"));
 
   //guess number of functions
   int num_functions = 1;
-  if (DataflowPortValue * last_published = dataflow->guessLastPublished(parent->getOutputPort("data")))
+  if (DataflowPortValue * last_published = dataflow->guessLastPublished(parent->getOutputPort("array")))
   {
     if (auto last_data = std::dynamic_pointer_cast<Array>(last_published->value))
       num_functions = last_data->dtype.ncomponents();
@@ -2361,7 +2358,7 @@ CpuPaletteNode* Viewer::addCpuTransferFunction(Node* parent)
   {
     addNode(parent, node);
     addRender(node,/*no need for a palette*/"");
-    connectPorts(parent,"data", node);
+    connectPorts(parent,"array", node);
   }
   endUpdate();
 
@@ -2385,8 +2382,8 @@ PaletteNode* Viewer::addPalette(Node* parent,String palette)
     addNode(parent,palette_node,1);
 
     //enable statistics
-    if (parent->hasOutputPort("data"))
-      connectPorts(parent,"data",palette_node);
+    if (parent->hasOutputPort("array"))
+      connectPorts(parent,"array",palette_node);
   }
   endUpdate();
 
@@ -2399,7 +2396,7 @@ StatisticsNode* Viewer::addStatistics(Node* parent)
   if (!parent)
     parent = getRoot();
 
-  VisusReleaseAssert(parent->hasOutputPort("data"));
+  VisusReleaseAssert(parent->hasOutputPort("array"));
 
   auto statistics_node= dataflow->createNode<StatisticsNode>("Statistics");
 
@@ -2410,7 +2407,7 @@ StatisticsNode* Viewer::addStatistics(Node* parent)
     StringTree("remove").write("node", getUUID(statistics_node)));
   {
     addNode(parent,statistics_node);
-    connectPorts(parent,"data",statistics_node);
+    connectPorts(parent,"array",statistics_node);
   }
   endUpdate();
 

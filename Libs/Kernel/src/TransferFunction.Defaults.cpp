@@ -788,6 +788,7 @@ SharedPtr<TransferFunction> TransferFunction::getDefault(String default_name, co
   if (default_name == "grayopaque")
   {
     auto ret=std::make_shared<TransferFunction>();
+    ret->default_name = default_name;
     int nfunctions = 4;
     for (int F = 0; F < nfunctions; F++)
       ret->functions.push_back(std::make_shared<SingleTransferFunction>(guessName(F), guessColor(F), std::vector<double>(nsamples, 0.0)));
@@ -807,6 +808,7 @@ SharedPtr<TransferFunction> TransferFunction::getDefault(String default_name, co
   if (default_name == "graytransparent")
   {
     auto ret = std::make_shared<TransferFunction>();
+    ret->default_name = default_name;
 
     int nfunctions = 4;
     for (int F = 0; F < nfunctions; F++)
@@ -828,6 +830,7 @@ SharedPtr<TransferFunction> TransferFunction::getDefault(String default_name, co
   if (default_name == "hsl")
   {
     auto ret = std::make_shared<TransferFunction>();
+    ret->default_name = default_name;
 
     int nfunctions = 4;
     for (int F = 0; F < nfunctions; F++)
@@ -847,7 +850,9 @@ SharedPtr<TransferFunction> TransferFunction::getDefault(String default_name, co
   }
 
   auto FromRGBA = [&](unsigned char* buffer) {
-    return TransferFunction::fromArray(Array(nsamples, DTypes::UINT8_RGBA, HeapMemory::createUnmanaged(buffer, sizeof(buffer))));
+    auto ret = TransferFunction::fromArray(Array(nsamples, DTypes::UINT8_RGBA, HeapMemory::createUnmanaged(buffer, sizeof(buffer))));
+    ret->default_name = default_name;
+    return ret;
   };
 
   if (default_name == "banded")  
@@ -885,7 +890,9 @@ SharedPtr<TransferFunction> TransferFunction::getDefault(String default_name, co
 
 
   auto fromRGBAColorMap = [&](const double* buffer) {
-    return TransferFunction::fromArray(RGBAColorMap(buffer, sizeof(buffer) / sizeof(double)).toArray(nsamples));
+    auto ret = TransferFunction::fromArray(RGBAColorMap(buffer, sizeof(buffer) / sizeof(double)).toArray(nsamples));
+    ret->default_name = default_name;
+    return ret;
   };
 
   if (default_name == "BlueGreenDivergent")

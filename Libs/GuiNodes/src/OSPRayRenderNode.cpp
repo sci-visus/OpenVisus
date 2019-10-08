@@ -347,7 +347,7 @@ OSPRayRenderNode::OSPRayRenderNode(String name) : Node(name)
 {
   pimpl = new Pimpl();
 
-  addInputPort("data");
+  addInputPort("array");
   addInputPort("palette");
 }
 
@@ -378,7 +378,7 @@ bool OSPRayRenderNode::processInput()
   //I want to sign the input return receipt only after the rendering
   auto return_receipt = createPassThroughtReceipt();
   auto palette = readValue<Palette>("palette");
-  auto data    = readValue<Array>("data");
+  auto data    = readValue<Array>("array");
 
   //request to flush all
   if (!data || !data->dims.innerProduct() || !data->dtype.valid())

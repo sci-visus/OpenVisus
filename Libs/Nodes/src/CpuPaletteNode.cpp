@@ -56,7 +56,7 @@ public:
     : node(node_), input(input_),return_receipt(return_receipt_)
   {
     this->tf = node->getTransferFunction();
-    this->bDataOutputPortConnected=node->isOutputConnected("data");
+    this->bDataOutputPortConnected=node->isOutputConnected("array");
   }
 
   //valid
@@ -77,7 +77,7 @@ public:
 
     DataflowMessage msg;
     msg.setReturnReceipt(return_receipt);
-    msg.writeValue("data",output);
+    msg.writeValue("array",output);
     node->publish(msg);
   }
 };
@@ -86,8 +86,8 @@ public:
 ///////////////////////////////////////////////////////////////////////
 CpuPaletteNode::CpuPaletteNode(String name,SharedPtr<TransferFunction> tf)  : Node(name)
 {
-  addInputPort("data");
-  addOutputPort("data");
+  addInputPort("array");
+  addOutputPort("array");
 
   if (tf)
     setTransferFunction(tf);
@@ -147,7 +147,7 @@ bool CpuPaletteNode::processInput()
   // important to do before readValue
   auto return_receipt=createPassThroughtReceipt();
 
-  auto data = readValue<Array>("data");
+  auto data = readValue<Array>("array");
   if (!data)
     return false;
 

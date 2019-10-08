@@ -991,7 +991,7 @@ public:
     DataflowMessage msg;
     msg.writeValue("graph", centerlines);
     msg.writeValue("graph_dbg",centerlines_untrimmed);
-    msg.writeValue("data",node->data);
+    msg.writeValue("array",node->data);
     node->publish(msg);
   }
 };
@@ -1001,11 +1001,11 @@ public:
 VoxelScoopNode::VoxelScoopNode(String name) :  Node(name)
 {
   addInputPort("graph");//use this to get seed points, always Graph<Point3f,float>
-  addInputPort("data");
+  addInputPort("array");
   
   addOutputPort("graph");//centerlines, a Graph<Sphere,float>
   addOutputPort("graph_dbg");//centerlines, a Graph<Sphere,float> (before trimming)
-  addOutputPort("data"); //if you do not need the original data, simply do not connect it!
+  addOutputPort("array"); //if you do not need the original data, simply do not connect it!
 }
 
 /////////////////////////////////////////////////////////////
@@ -1061,7 +1061,7 @@ bool VoxelScoopNode::processInput()
 {
   abortProcessing();
 
-  auto data=readValue<Array>("data");
+  auto data=readValue<Array>("array");
 
   //wrong input
   if (!data || data->dtype!=DTypes::UINT8)

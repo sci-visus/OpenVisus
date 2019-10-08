@@ -63,7 +63,7 @@ public:
   //constructor
   KdRenderArrayNode(String name="") : Node(name)
   {
-    addInputPort("data");
+    addInputPort("array");
     addInputPort("palette"); 
   }
 
@@ -76,8 +76,8 @@ public:
     return kdarray;
   }
 
-  //getPosition (in physic coordinates)
-  virtual Position getPosition() override
+  //getBounds (in physic coordinates)
+  virtual Position getBounds() override
   {
     if (!kdarray) return Position::invalid();
     return (kdarray->clipping.valid())? kdarray->clipping : Position(kdarray->bounds);

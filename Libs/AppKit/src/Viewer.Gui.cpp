@@ -614,13 +614,13 @@ void Viewer::refreshActions()
   actions.InsertTransform->setEnabled(selection && selection!=getRoot());
   actions.AddSlice->setEnabled(selection && dynamic_cast<DatasetNode*>(selection));
   actions.AddVolume->setEnabled(selection && dynamic_cast<DatasetNode*>(selection));
-  actions.AddIsoContour->setEnabled(selection && (dynamic_cast<DatasetNode*>(selection) || selection->hasOutputPort("data")));
+  actions.AddIsoContour->setEnabled(selection && (dynamic_cast<DatasetNode*>(selection) || selection->hasOutputPort("array")));
   actions.AddKdQuery->setEnabled(selection && dynamic_cast<DatasetNode*>(selection));
-  actions.AddRender->setEnabled(selection && selection->hasOutputPort("data"));
+  actions.AddRender->setEnabled(selection && selection->hasOutputPort("array"));
   actions.AddKdRender->setEnabled(selection && dynamic_cast<KdQueryMode*>(selection));
-  actions.AddScripting->setEnabled(selection && selection->hasOutputPort("data"));
-  actions.AddStatistics->setEnabled(selection && selection->hasOutputPort("data"));
-  actions.AddCpuTransferFunction->setEnabled(selection && selection->hasOutputPort("data"));
+  actions.AddScripting->setEnabled(selection && selection->hasOutputPort("array"));
+  actions.AddStatistics->setEnabled(selection && selection->hasOutputPort("array"));
+  actions.AddCpuTransferFunction->setEnabled(selection && selection->hasOutputPort("array"));
 }
 
 ////////////////////////////////////////////////////////////////////////////////

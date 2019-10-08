@@ -72,7 +72,7 @@ public:
 
   //areStatisticsEnabled
   bool areStatisticsEnabled() const {
-    return isInputConnected("data");
+    return isInputConnected("array");
   }
 
   //processInput

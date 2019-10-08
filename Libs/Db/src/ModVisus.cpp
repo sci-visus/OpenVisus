@@ -625,7 +625,7 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
       if (palette_min != palette_max)
       {
         tf->beginTransaction();
-        tf->setRange(Range(palette_min, palette_max, 0));
+        tf->setInputRange(Range(palette_min, palette_max, 0));
         tf->setInputNormalizationMode(ArrayUtils::UseFixedRange);
         tf->endTransaction();
       }
@@ -720,7 +720,7 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
       if (palette_min != palette_max)
       {
         tf->setInputNormalizationMode(ArrayUtils::UseFixedRange);
-        tf->setRange(Range(palette_min, palette_max, 0));
+        tf->setInputRange(Range(palette_min, palette_max, 0));
       }
 
       buffer = ArrayUtils::applyTransferFunction(tf, buffer);

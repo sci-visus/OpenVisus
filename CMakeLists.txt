@@ -287,6 +287,16 @@ if (VISUS_PYTHON)
 	# disabled: takes too much time, in case you modify some core IDX class you can run it manually
 	# AddOpenVisusTest(NAME VisusTestIdx COMMAND "$<TARGET_FILE:visus>"     "." --test-idx --max-seconds 300     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 	
+	macro(AddOpenVisusGuiTest Name Filename)
+		add_custom_target(${Name} COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=${InstallDir}/.." ${PYTHON_EXECUTABLE} -u \"${Filename}\" WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+		set_property(TARGET ${Name} PROPERTY FOLDER CMakePredefinedTargets)
+	endmacro()
+	
+	# cannot "Stop in Visual Studio"
+	# AddOpenVisusGuiTest(TestViewer1  Samples/python/TestViewer1.py)
+	# AddOpenVisusGuiTest(TestViewer2  Samples/python/TestViewer2.py)
+	# AddOpenVisusGuiTest(VisibleHuman Samples/python/VisibleHuman.py)
+	
 endif()
 
 # //////////////////////////////////////////////////////////////

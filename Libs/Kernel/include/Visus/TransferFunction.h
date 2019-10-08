@@ -253,14 +253,14 @@ public:
     setProperty("input_normalization_mode", this->input_normalization_mode, value);
   }
 
-  //getRange
-  Range getRange() {
-    return this->range;
+  //getInputRange
+  Range getInputRange() {
+    return this->input_range;
   }
 
   //setInputRange
-  void setRange(Range range) {
-    setProperty("range", this->range, range);
+  void setInputRange(Range range) {
+    setProperty("input_range", this->input_range, range);
   }
 
   //getOutputDType
@@ -333,8 +333,8 @@ private:
   //input_normalization
   int input_normalization_mode=ArrayUtils::UseDTypeRange;
 
-  //range
-  Range range;
+  //input_range
+  Range input_range;
 
   //what is the output (this must be atomic)
   DType output_dtype = DTypes::UINT8;
