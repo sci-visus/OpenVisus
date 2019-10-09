@@ -381,7 +381,7 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
         auto prefix = stack.top().first;
         auto stree  = stack.top().second; 
         stack.pop();
-        if (stree->name == "dataset" && stree->hasValue("name"))
+        if (stree->name == "dataset" && !stree->getAllChilds("name").empty())
         {
           prefix = prefix + (prefix.empty() ? "" : "/") + stree->readString("name");
           stree->writeString("url", datasets->getDatasetUrl(prefix));

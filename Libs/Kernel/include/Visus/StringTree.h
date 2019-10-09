@@ -148,6 +148,13 @@ public:
     }
   }
 
+public:
+
+  //getNumberOfChilds
+  int getNumberOfChilds() const {
+    return (int)childs.size();
+  }
+
   //getChilds
   const std::vector< SharedPtr<StringTree> >& getChilds() const {
     return childs;
@@ -168,23 +175,75 @@ public:
 
   //addChild
   SharedPtr<StringTree> addChild(String name) {
-    auto cursor = NormalizeW(this, name);
     auto child = std::make_shared<StringTree>(name);
-    cursor->addChild(child);
+    NormalizeW(this, name)->addChild(child);
     return child;
   }
 
-
-  //clear
-  void clear()
-  {
-    attributes.clear(); 
-    childs.clear();
+  //getChild
+  SharedPtr<StringTree> getChild(int I) const {
+    return childs[I];
   }
 
-  //hasValue
-  bool hasValue(String key) const {
-    return !readString(key).empty();
+  //getFirstChild
+  SharedPtr<StringTree> getFirstChild() const {
+    return childs.front();
+  }
+
+  //getFirstChild
+  SharedPtr<StringTree> getLastChild() const {
+    return childs.back();
+  }
+
+  //getChild
+  SharedPtr<StringTree> getChild(String name) const;
+
+  //getChild
+  std::vector< SharedPtr<StringTree> > getChilds(String name) const;
+
+  //getAllChilds
+  std::vector<StringTree*> getAllChilds(String name) const;
+
+
+  //isHashNode
+  bool isHashNode() const {
+    return !name.empty() && name[0] == '#';
+  }
+
+public:
+
+  //isComment
+  bool isComment() const {
+    return name == "#comment";
+  }
+
+  //addCommentNode
+  void addCommentNode(String value) {
+    childs.push_back(std::make_shared<StringTree>(StringTree("#comment").write("value", value)));
+  }
+
+public:
+
+  //isText
+  bool isText() const {
+    return name == "#text";
+  }
+
+  //addText
+  void addText(const String& value) {
+    childs.push_back(std::make_shared<StringTree>(StringTree("#text").write("value", value)));
+  }
+
+public:
+
+  //isCData
+  bool isCData() const {
+    return name == "#cdata-section";
+  }
+
+  //addCData
+  void addCData(const String& value) {
+    childs.push_back(std::make_shared<StringTree>(StringTree("#cdata-section").write("value", value)));
   }
 
 public:
@@ -256,58 +315,59 @@ public:
     return cdouble(read(key, cstring(default_value)));
   }
 
-  //readText
-  String readText() const;
+public:
 
   //writeText
   StringTree& writeText(const String& text) {
-    childs.push_back(std::make_shared<StringTree>(StringTree("#text").write("value",text)));
-    return *this;
-  }
-
-  //writeCode
-  StringTree& writeCode(const String& text) {
-    childs.push_back(std::make_shared<StringTree>(StringTree("#cdata-section").write("value", text)));
-    return *this;
-  }
-
-  //readText
-  String readText(String name) const {
-    if (auto child = getChild(name))
-      return child->readText();
-    else
-      return "";
+    addText(text); return *this;
   }
 
   //writeText
   StringTree& writeText(String name, const String& value) {
+    NormalizeW(this, name)->addChild(name)->writeText(value); return *this;
+  }
 
-    auto cursor = NormalizeW(this,name);
-    cursor->addChild(name)->writeText(value);
-    return *this;
+  //readText
+  String readText() const;
+
+  //readText
+  String readText(String name, String default_value = "") const {
+    auto child = getChild(name); return child? child->readText() : default_value;
+  }
+
+public:
+
+  //writeCode
+  StringTree& writeCode(const String& code) {
+    addCData(code); return *this;
   }
 
   //writeCode
   StringTree& writeCode(String name, const String& value) {
-
-    auto cursor = NormalizeW(this, name);
-    cursor->addChild(name)->writeCode(value);
-    return *this;
+    NormalizeW(this, name)->addChild(name)->writeCode(value); return *this;
   }
+
+  //readCode
+  String readCode() const;
+
+  //readCode
+  String readCode(String name, String default_value="") const {
+    auto child = getChild(name); return child ? child->readCode() : default_value;
+  }
+
+public:
 
   //write
   StringTree& writeValue(String name, String value) {
-    auto cursor = NormalizeW(this, name);
-    cursor->addChild(name)->writeString("value", value);
-    return *this;
+    NormalizeW(this, name)->addChild(name)->writeString("value", value); return *this;
   }
 
   //read
-  String readValue(String name, String default_value = "")
-  {
-    auto child = getChild(name);
-    return child ? child->readString("value", default_value) : default_value;
+  String readValue(String name, String default_value = "") {
+    auto child = getChild(name); return child ? child->readString("value", default_value) : default_value;
   }
+
+public:
 
   //readObject
   template <class Object>
@@ -321,66 +381,14 @@ public:
 
   //writeObject
   template <class Object>
-  StringTree& writeObject(String name, Object& obj)
-  {
-    auto cursor=NormalizeW(this,name);
-    auto child = cursor->addChild(name);
-    obj.writeTo(*child);
-    return *this;
+  StringTree& writeObject(String name, Object& obj) {
+    obj.writeTo(*NormalizeW(this, name)->addChild(name));return *this;
   }
 
 public:
-
-  //getNumberOfChilds
-  int getNumberOfChilds() const {
-    return (int)childs.size();
-  }
-
-  //getChild
-  SharedPtr<StringTree> getChild(int I) const {
-    return childs[I];
-  }
-
-  //getFirstChild
-  SharedPtr<StringTree> getFirstChild() const {
-    return childs.front();
-  }
-
-  //getFirstChild
-  SharedPtr<StringTree> getLastChild() const {
-    return childs.back();
-  }
-
-  //getChild
-  SharedPtr<StringTree> getChild(String name) const;
-
-  //getChild
-  std::vector< SharedPtr<StringTree> > getChilds(String name) const;
-
-  //getAllChilds
-  std::vector<StringTree*> getAllChilds(String name) const;
 
   //internal use only
   static StringTree postProcess(const StringTree& src);
-
-public:
-
-  //isHashNode
-  bool isHashNode() const{
-    return !name.empty() && name[0] == '#';
-  }
-
-  //isCommentNode
-  bool isCommentNode() const{
-    return name == "#comment";
-  }
-
-  //addCommentNode
-  void addCommentNode(String text){
-    childs.push_back(std::make_shared<StringTree>(StringTree("#comment").write("value", text)));
-  }
-
-public:
 
   //toXmlString
   String toXmlString() const;
@@ -395,7 +403,7 @@ public:
     return toXmlString();
   }
 
-private:
+protected:
 
   //toJSONString
   static String toJSONString(const StringTree& stree, int nrec);

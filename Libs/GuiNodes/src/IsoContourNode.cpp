@@ -581,7 +581,7 @@ void IsoContourNode::executeAction(StringTree in)
 
     if (target_id == "isovalue")
     {
-      setIsoValue(in.readDouble("isovalue"));
+      setIsoValue(in.readDouble("value"));
       return;
     }
   }

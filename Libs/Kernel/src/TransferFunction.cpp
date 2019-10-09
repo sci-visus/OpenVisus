@@ -154,7 +154,7 @@ void TransferFunction::executeAction(StringTree in)
 
     if (target_id == "input_normalization_mode")
     {
-      setInputNormalizationMode(in.readInt("input_normalization_mode"));
+      setInputNormalizationMode(in.readInt("value"));
       return;
     }
 

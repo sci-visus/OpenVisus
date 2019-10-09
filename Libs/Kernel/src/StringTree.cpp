@@ -423,6 +423,21 @@ String StringTree::readText() const
   return out.str();
 }
 
+/////////////////////////////////////////////////
+String StringTree::readCode() const
+{
+  std::ostringstream out;
+  for (auto child : childs)
+  {
+    if (child->name == "#text")
+      out << child->read("value");
+
+    if (child->name == "#cdata-section")
+      out << child->read("value");
+  }
+  return out.str();
+}
+
 
 /////////////////////////////////////////////////
 String StringTree::read(String key,String default_value) const

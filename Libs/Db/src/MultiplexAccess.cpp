@@ -59,7 +59,7 @@ MultiplexAccess::MultiplexAccess(Dataset* dataset,StringTree config)
     if (child_config->name!="access")
       continue;
 
-    if (!child_config->hasValue("url"))
+    if (child_config->getAttribute("url").empty())
       child_config->writeString("url",url.toString());
 
     auto child=dataset->createAccess(*child_config);

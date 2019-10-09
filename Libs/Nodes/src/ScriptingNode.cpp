@@ -211,12 +211,12 @@ void ScriptingNode::executeAction(StringTree in)
     auto target_id = in.readString("target_id");
 
     if (target_id == "max_publish_msec") {
-      setMaxPublishMSec(in.readInt("max_publish_msec"));
+      setMaxPublishMSec(in.readInt("value"));
       return;
     }
 
     if (target_id == "code") {
-      setCode(in.readString("code"));
+      setCode(in.readString("value"));
       return;
     }
 

@@ -53,7 +53,7 @@ FilterAccess::FilterAccess(Dataset* dataset,StringTree config)
 
   auto target_access = config.getChild("access");
 
-  if (!target_access->hasValue("url"))
+  if (target_access->getAttribute("url").empty())
     target_access->writeString("url",url.toString());
 
   this->target=dataset->createAccess(*target_access);
