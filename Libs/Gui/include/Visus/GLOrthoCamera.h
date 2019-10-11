@@ -61,7 +61,7 @@ public:
   virtual ~GLOrthoCamera();
 
   //getTypeName
-  virtual String getTypeName() const {
+  virtual String getTypeName() const override {
     return "GLOrthoCamera";
   }
 

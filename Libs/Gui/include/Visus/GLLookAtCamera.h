@@ -201,7 +201,6 @@ private:
   //properties
   const double           rotation_factor=5.2;
   const double           pan_factor=30;
-  const bool             disable_rotation = false;
 
   //guessForwardFactor
   double guessForwardFactor() const ;

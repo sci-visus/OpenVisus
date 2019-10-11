@@ -1537,7 +1537,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     {
       String name = child->readString("name");
       if (name.empty())
-        name = StringUtils::format() << "field_" + generate_name++;
+        name = StringUtils::format() << "field_" << generate_name++;
 
       //I expect to find here CData node or Text node...
       String code;

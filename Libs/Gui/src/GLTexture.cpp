@@ -88,7 +88,7 @@ GLTexture::~GLTexture()
 
   if (auto do_with_context = GLDoWithContext::getSingleton())
   {
-    do_with_context->push_back([size, texture_id]()
+    do_with_context->push_back([texture_id]()
     {
       //GLInfo::getSingleton()->freeOpenGLMemory(size);
       glDeleteTextures(1, &texture_id);

@@ -76,10 +76,9 @@ message(STATUS "VISUS_APPKIT      ${VISUS_APPKIT}")
 #    git submodule update --init Libs/Slam
 
 if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Libs/Slam/CMakeLists.txt)
-	set(VISUS_SLAM ON)
+	option(VISUS_SLAM "Enable slam" ON) 	
 	message(STATUS "VISUS_SLAM        ${VISUS_SLAM}")
 endif()
-
 
 if (VISUS_PYTHON)
 	FindPythonLibrary()
