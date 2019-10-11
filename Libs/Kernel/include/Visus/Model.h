@@ -177,9 +177,13 @@ public:
   void setEncodedProperty(String target_id, Value& old_value, const Value& new_value)
   {
     if (old_value == new_value) return;
+
+    StringTree new_encoded("set"); new_value.write(new_encoded);
+    StringTree old_encoded("set"); old_value.write(old_encoded);
+
     beginUpdate(
-      createPassThroughAction(EncodeObject(new_value, "set"), target_id),
-      createPassThroughAction(EncodeObject(old_value, "set"), target_id));
+      createPassThroughAction(new_encoded, target_id),
+      createPassThroughAction(old_encoded, target_id));
     {
       old_value = new_value;
     }
@@ -206,9 +210,6 @@ public:
 
   //copy
   static void copy(Model& dst, const Model& src);
-
-    //executeAction
-  virtual void executeAction(StringTree action);
 
 public:
 
@@ -242,11 +243,14 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const  = 0;
+  //execute
+  virtual void execute(Archive& action);
 
-  //readFrom
-  virtual void readFrom(StringTree& in) = 0;
+  //write
+  virtual void write(Archive& ar) const  = 0;
+
+  //read
+  virtual void read(Archive& ar) = 0;
 
 protected:
 
@@ -272,11 +276,6 @@ private:
 
 };
 
-
-//encode
-inline VISUS_KERNEL_API StringTree EncodeObject(Model& model, String root_name = "") {
-  return EncodeObject<Model>(model, root_name.empty() ? model.getTypeName() : root_name);
-}
 
 //////////////////////////////////////////////////////////
 template <class ModelClassArg>

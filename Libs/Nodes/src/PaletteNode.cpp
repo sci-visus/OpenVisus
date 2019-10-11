@@ -91,15 +91,15 @@ PaletteNode::~PaletteNode() {
 
 
 ///////////////////////////////////////////////////////////////////////
-void PaletteNode::executeAction(StringTree in)
+void PaletteNode::execute(Archive& ar)
 {
-  if (getPassThroughAction(in, "palette"))
+  if (getPassThroughAction(ar, "palette"))
   {
-    palette->executeAction(in);
+    palette->execute(ar);
     return;
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -184,18 +184,18 @@ void PaletteNode::messageHasBeenPublished(DataflowMessage msg)
 }
 
 ///////////////////////////////////////////////////////////////////////
-void PaletteNode::writeTo(StringTree& out) const
+void PaletteNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
-  out.writeObject("palette", *palette);
+  Node::write(ar);
+  ar.writeObject("palette", *palette);
 }
 
 
 ///////////////////////////////////////////////////////////////////////
-void PaletteNode::readFrom(StringTree& in)
+void PaletteNode::read(Archive& ar)
 {
-  Node::readFrom(in);
-  in.readObject("palette", *palette);
+  Node::read(ar);
+  ar.readObject("palette", *palette);
 }
 
 

@@ -71,7 +71,7 @@ SharedPtr<TransferFunction> TransferFunction::fromString(String content)
   }
 
   auto ret = std::make_shared<TransferFunction>();
-  ret->readFrom(in);
+  ret->read(in);
   return ret;
 }
 
@@ -81,108 +81,128 @@ StringTree DrawLine(int function, int x1, double y1, int x2, double y2) {
 }
 
 StringTree DrawValues(int function, int x1, int x2, std::vector<double> values) {
-  return StringTree("draw").write("what", "values").write("function", function).write("x1", x1).write("x2", x2).writeText(StringUtils::join(values));
+  return StringTree("draw").write("what", "values").write("function", function).write("x1", x1).write("x2", x2).write("values", values);
 }
 
  
   ////////////////////////////////////////////////////////////////////
-void TransferFunction::executeAction(StringTree in)
+void TransferFunction::execute(Archive& ar)
 {
-  if (in.name == "clearFunctions")
+  if (ar.name == "clearFunctions")
   {
     clearFunctions();
     return;
   }
 
-  if (in.name == "addFunction")
+  if (ar.name == "addFunction")
   {
     auto single = std::make_shared<SingleTransferFunction>();
-    single->readFrom(in);
+    single->read(ar);
     addFunction(single);
     return;
   }
 
-  if (in.name == "removeFunction")
+  if (ar.name == "removeFunction")
   {
-    int index = in.readInt("index");
-    removeFunction(index);
+    int value=-1;
+    ar.read("value", value);
+    removeFunction(value);
     return;
   }
 
-  if (in.name == "draw")
+  if (ar.name == "draw")
   {
-    auto what = in.readString("what");
+    String what;
+    ar.read("what", what);
 
     if (what == "line")
     {
-      drawLine(in.readInt("function"), in.readInt("x1"), in.readDouble("y1"), in.readInt("x2"), in.readDouble("y2"));
+      int function=-1, x1=0, x2 = 0; double y1 = 0, y2 = 0;
+      ar.read("function", function);
+      ar.read("x1", x1);
+      ar.read("y1", y1);
+      ar.read("x2", x2);
+      ar.read("y2", y2);
+      drawLine(function, x1, y1, x2, y2);
       return;
     }
 
     if (what == "values")
     {
-      std::vector<double> values = StringUtils::parseDoubles(in.readText());
-      drawValues(in.readInt("function"), in.readInt("x1"), in.readInt("x2"), values);
+      int function=-1, x1=0, x2 = 0; std::vector<double> values;
+      ar.read("function", function);
+      ar.read("x1", x1);
+      ar.read("x2", x2);
+      ar.read("values", values);
+      drawValues(function, x1, x2, values);
       return;
     }
   }
 
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.readString("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
 
     if (target_id == "num_samples")
     {
-      auto value = in.readInt("value");
+      int value=0;
+      ar.read("value", value);
       setNumberOfSamples(value);
       return;
     }
 
     if (target_id == "num_functions")
     {
-      auto value = in.readInt("value");
+      int value=-1;
+      ar.read("value", value);
       setNumberOfFunctions(value);
       return;
     }
 
     if (target_id == "input_range")
     {
-      auto input_range = Range::fromString(in.readString("value"));
+      Range value;
+      ar.read("value", value);
       setInputRange(input_range);
       return;
     }
 
     if (target_id == "input_normalization_mode")
     {
-      setInputNormalizationMode(in.readInt("value"));
+      int value= ArrayUtils::UseDTypeRange;
+      ar.read("value", value);
+      setInputNormalizationMode(value);
       return;
     }
 
-
     if (target_id == "output_dtype")
     {
-      auto value = DType::fromString(in.readString("value"));
+      DType value;
+      ar.read("value", value);
       setOutputDType(value);
       return;
     }
 
     if (target_id == "output_range")
     {
-      auto value = Range::fromString(in.readString("value"));
+      Range value;
+      ar.read("value", value);
       setOutputRange(value);
       return;
     }
 
     if (target_id == "attenuation")
     {
-      auto value = in.readDouble("value");
+      double value=0.0;
+      ar.read("value", value);
       setAttenutation(value);
       return;
     }
 
   }
 
-  Model::executeAction(in);
+  Model::execute(ar);
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -253,7 +273,9 @@ void TransferFunction::setNumberOfSamples(int new_value)
     StringTree("set").write("target_id", "num_samples").write("value", cstring(new_value)),
     Transaction());
   {
-    topUndo().addChild(StringTree("set").write("target_id", "num_samples").write("value", cstring(old_value)));
+    topUndo().addChild(StringTree("set")
+      .write("target_id", "num_samples")
+      .write("value", cstring(old_value)));
 
     int x1 = 0;
     int x2 = getNumberOfSamples() - 1;
@@ -513,42 +535,46 @@ bool TransferFunction::exportTransferFunction(String filename="")
 
 
 /////////////////////////////////////////////////////////////////////
-void TransferFunction::writeTo(StringTree& out) const
+void TransferFunction::write(Archive& ar) const
 {
-  out.write("name", this->default_name);
-  out.write("nsamples", getNumberOfSamples());
-  out.write("attenuation",cstring(attenuation));
-  out.write("input_range", this->input_range);
-  out.write("input_normalization_mode", cstring(input_normalization_mode));
-  out.write("output_dtype", output_dtype.toString());
-  out.write("output_range", output_range);
+  int nsamples = getNumberOfSamples();
+
+  ar.write("default_name", default_name);
+  ar.write("nsamples", nsamples);
+  ar.write("attenuation", attenuation);
+  ar.write("input_range", input_range);
+  ar.write("input_normalization_mode", input_normalization_mode);
+  ar.write("output_dtype", output_dtype);
+  ar.write("output_range", output_range);
 
   if (!isDefault())
   {
     for (auto fn : functions)
-      fn->writeTo(*out.addChild("function"));
+      fn->write(*ar.addChild("function"));
   }
 }
 
 /////////////////////////////////////////////////////////////////////
-void TransferFunction::readFrom(StringTree& in)
+void TransferFunction::read(Archive& ar)
 {
   this->functions.clear();
 
-  this->default_name = in.readString("name");
-  int nsamples = in.readInt("nsamples");
-  this->attenuation=cdouble(in.readString("attenuation","0.0"));
-  this->input_range = Range::fromString(in.read("input_range"));
-  this->input_normalization_mode=cint(in.readString("input_normalization_mode"));
-  this->output_dtype=DType::fromString(in.readString("output_dtype"));
-  this->output_range=Range::fromString(in.read("output_range"));
+  int nsamples;
+
+  ar.read("default_name", default_name);
+  ar.read("nsamples", nsamples);
+  ar.read("attenuation", attenuation);
+  ar.read("input_range", input_range);
+  ar.read("input_normalization_mode", input_normalization_mode);
+  ar.read("output_dtype", output_dtype);
+  ar.read("output_range", output_range);
 
   if (this->default_name.empty())
   {
-    for (auto Function : in.getChilds("function"))
+    for (auto Function : ar.getChilds("function"))
     {
       auto single = std::make_shared<SingleTransferFunction>();
-      single->readFrom(*Function);
+      single->read(*Function);
       functions.push_back(single);
     }
   }

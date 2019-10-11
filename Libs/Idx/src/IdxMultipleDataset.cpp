@@ -1335,21 +1335,23 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   auto DATASET = this;
 
   auto CONTENT = Utils::loadTextDocument(URL.toString());
-  StringTree in=StringTree::fromString(CONTENT);
-  if (!in.valid())
+  auto ar =StringTree::fromString(CONTENT);
+  if (!ar.valid())
     return false;
 
-  in.writeString("url", URL.toString());
+  ar.write("url", URL.toString());
 
   setUrl(URL);
-  setDatasetBody(in.toString());
+  setDatasetBody(ar.toString());
 
-  this->bMosaic = cbool(in.readString("mosaic"));
+  bool mosaic;
+  ar.read("mosaic", mosaic);
+  this->bMosaic = mosaic;
 
-  if (in.getChild("slam"))
+  if (ar.getChild("slam"))
     this->bSlam = true;
 
-  parseDatasets(&in,Matrix());
+  parseDatasets(&ar,Matrix());
 
   if (down_datasets.empty())
   {
@@ -1411,9 +1413,9 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   //set PHYSIC_BOX (union of physic boxes)
   auto PHYSIC_BOX = BoxNd::invalid();
-  if (in.hasAttribute("physic_box"))
+  if (ar.hasAttribute("physic_box"))
   {
-    PHYSIC_BOX = BoxNd::fromString(in.readString("physic_box"));
+    ar.read("physic_box", PHYSIC_BOX);
   }
   else
   {
@@ -1428,9 +1430,9 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   //LOGIC_BOX
   BoxNi LOGIC_BOX;
-  if (in.hasAttribute("logic_box"))
+  if (ar.hasAttribute("logic_box"))
   {
-    LOGIC_BOX = BoxNi::fromString(in.readString("logic_box"));
+    ar.read("LOGIC_BOX", LOGIC_BOX);
   }
   else if (down_datasets.size() == 1)
   {
@@ -1525,20 +1527,22 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   //if (pdim==2)
   //  this->kdquery_mode = KdQueryMode::UseBoxQuery;
 
-  if (in.getChild("field"))
+  if (ar.getChild("field"))
   {
     clearFields();
 
     int generate_name = 0;
 
-    for (auto child : in.getChilds("field"))
+    for (auto child : ar.getChilds("field"))
     {
       String name = child->readString("name");
       if (name.empty())
         name = StringUtils::format() << "field_" + generate_name++;
 
       //I expect to find here CData node or Text node...
-      String code = child->readText("code"); VisusAssert(!code.empty());
+      String code;
+      child->readText("code", code); 
+      VisusAssert(!code.empty());
 
       Field FIELD = getFieldByName(code);
       if (FIELD.valid())

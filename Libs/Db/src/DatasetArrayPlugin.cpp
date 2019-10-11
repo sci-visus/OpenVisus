@@ -131,20 +131,20 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
     return StringTree();
   }
 
-  StringTree out("stat");
-  
-  out.writeString("url",url);
-  out.writeString("format", dataset->getTypeName());
-  out.writeString("logic_box", dataset->getLogicBox().toOldFormatString());
-  out.writeString("logic_size", dataset->getLogicBox().size().toString());
-  out.writeString("timesteps",cstring(dataset->getTimesteps().getMin())+" " + cstring(dataset->getTimesteps().getMax()));
-  out.writeString("bitsperblock",cstring(dataset->getDefaultBitsPerBlock()));
-  out.writeString("bitmask",dataset->getBitmask().toString());
+  StringTree ar("stat");
+
+  ar.write("url",url);
+  ar.write("format", dataset->getTypeName());
+  ar.write("logic_box", dataset->getLogicBox().toOldFormatString());
+  ar.write("logic_size", dataset->getLogicBox().size());
+  ar.write("timesteps",cstring(dataset->getTimesteps().getMin())+" " + cstring(dataset->getTimesteps().getMax()));
+  ar.write("bitsperblock",dataset->getDefaultBitsPerBlock());
+  ar.write("bitmask",dataset->getBitmask());
 
   for (auto field : dataset->getFields())
-    out.writeObject("field", field);
+    ar.writeObject("field", field);
 
-  return out;
+  return ar;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

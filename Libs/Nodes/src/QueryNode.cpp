@@ -217,51 +217,64 @@ QueryNode::~QueryNode(){
 
 
 ///////////////////////////////////////////////////////////////////////////
-void QueryNode::executeAction(StringTree in)
+void QueryNode::execute(Archive& ar)
 {
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.readString("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
 
     if (target_id == "verbose")
     {
-      setVerbose(in.readBool("value"));
+      int value=0;
+      ar.read("value", value);
+      setVerbose(value);
       return;
     }
 
     if (target_id == "accessindex")
     {
-      setAccessIndex(in.readInt("value"));
+      int value=0;
+      ar.read("value", value);
+      setAccessIndex(value);
       return;
     }
 
     if (target_id == "view_dependent_enabled")
     {
-      setViewDependentEnabled(in.readBool("value"));
+      bool value=false;
+      ar.read("value", value);
+      setViewDependentEnabled(value);
       return;
     }
 
     if (target_id == "progression")
     {
-      setProgression(in.readInt("value"));
+      int value= QueryGuessProgression;
+      ar.read("value", value);
+      setProgression(value);
       return;
     }
 
     if (target_id == "quality")
     {
-      setQuality(in.readInt("value"));
+      int value= QueryDefaultQuality;
+      ar.read("value", value);
+      setQuality(value);
       return;
     }
 
     if (target_id == "bounds")
     {
-      setBounds(*DecodeObject<Position>(*in.getFirstChild()));
+      Position value;
+      value.read(*ar.getFirstChild());
+      setBounds(value);
       return;
     }
 
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 
 }
 
@@ -403,31 +416,33 @@ void QueryNode::exitFromDataflow()
 }
 
 //////////////////////////////////////////////////////////////////
-void QueryNode::writeTo(StringTree& out) const
+void QueryNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
+  Node::write(ar);
 
-  out.write("verbose", cstring(verbose));
-  out.write("accessindex",cstring(accessindex));
-  out.write("view_dependent",cstring(view_dependent_enabled));
-  out.write("progression",std::to_string(progression));
-  out.write("quality",std::to_string(quality));
-  out.writeObject("bounds", node_bounds);
+  ar.write("verbose", verbose);
+  ar.write("accessindex", accessindex);
+  ar.write("view_dependent_enabled", view_dependent_enabled);
+  ar.write("progression", progression);
+  ar.write("quality", quality);
+
+  ar.writeObject("node_bounds", node_bounds);
 
   //query_bounds is a runtime thingy
 }
 
 //////////////////////////////////////////////////////////////////
-void QueryNode::readFrom(StringTree& in) 
+void QueryNode::read(Archive& ar)
 {
-  Node::readFrom(in);
+  Node::read(ar);
 
-  this->verbose = cint(in.read("verbose"));
-  this->accessindex=cint(in.read("accessindex"));
-  this->view_dependent_enabled =cbool(in.read("view_dependent"));
-  this->progression=cint(in.read("progression"));
-  this->quality=cint(in.read("quality"));
-  in.readObject("bounds", node_bounds);
+  ar.read("verbose", verbose);
+  ar.read("accessindex", accessindex);
+  ar.read("view_dependent_enabled", view_dependent_enabled);
+  ar.read("progression", progression);
+  ar.read("quality", quality);
+
+  ar.readObject("node_bounds", node_bounds);
 
   //query_bounds is a runtime thingy
 }

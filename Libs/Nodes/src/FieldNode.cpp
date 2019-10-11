@@ -55,20 +55,23 @@ FieldNode::~FieldNode()
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-void FieldNode::executeAction(StringTree in)
+void FieldNode::execute(Archive& ar)
 {
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.readString("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
 
     if (target_id == "fieldname") {
-      setFieldName(in.readString("value"));
+      String value;
+      ar.read("value", value);
+      setFieldName(value);
       return;
     }
 
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -92,17 +95,17 @@ void FieldNode::doPublish()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-void FieldNode::writeTo(StringTree& out) const
+void FieldNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
-  out.writeText("fieldname",getFieldName());
+  Node::write(ar);
+  ar.writeText("fieldname", fieldname);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-void FieldNode::readFrom(StringTree& in)
+void FieldNode::read(Archive& ar)
 {
-  Node::readFrom(in);
-  this->fieldname = in.readText("fieldname");
+  Node::read(ar);
+  ar.readText("fieldname", fieldname);
 }
 
 

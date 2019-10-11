@@ -63,25 +63,31 @@ String Node::getTypeName() const
 }
 
 ////////////////////////////////////////////////////////////
-void Node::executeAction(StringTree in) {
+void Node::execute(Archive& ar) {
   
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.readString("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
+
     if (target_id == "name")
     {
-      setName(in.readString("value"));
+      String value;
+      ar.read("value", value);
+      setName(value);
       return;
     }
 
     if (target_id == "visible")
     {
-      setVisible(in.readBool("value"));
+      bool value=true;
+      ar.read("value", value);
+      setVisible(value);
       return;
     }
   }
   
-  return Model::executeAction(in);
+  return Model::execute(ar);
 }
 
 
@@ -438,24 +444,20 @@ SharedPtr<DataflowValue> Node::previewInput(String iport)
 }
 
 ////////////////////////////////////////////////////////////
-void Node::writeTo(StringTree& out) const
+void Node::write(Archive& ar) const
 {
-  if (!uuid.empty()) 
-    out.writeString("uuid",uuid);
-
-  if (!name.empty())
-    out.writeString("name",name);
-
-  if (!visible)
-    out.writeString("visible",cstring(visible));
+  ar.write("uuid", uuid);
+  ar.write("name", name);
+  ar.write("visible", visible);
 }
 
 ////////////////////////////////////////////////////////////
-void Node::readFrom(StringTree& in)
+void Node::read(Archive& ar)
 {
-  this->uuid=in.readString("uuid");
-  this->name=in.readString("name");
-  this->visible=in.readBool("visible",true);
+  this->visible = true;
+  ar.read("uuid", uuid);
+  ar.read("name", name);
+  ar.read("visible", visible);
 }
 
 //////////////////////////////////////////////////////////

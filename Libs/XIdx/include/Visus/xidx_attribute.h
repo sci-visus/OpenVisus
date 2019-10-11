@@ -51,16 +51,16 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override {
-    XIdxElement::writeTo(out);
-    out.writeString("Value", value);
+  //write
+  virtual void write(Archive& ar) const override {
+    XIdxElement::write(ar);
+    ar.write("Value", value);
   }
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override {
-    XIdxElement::readFrom(in);
-    this->value = in.readString("Value");
+  //read
+  virtual void read(Archive& ar) override {
+    XIdxElement::read(ar);
+    ar.read("Value", this->value);
   }
   
 };

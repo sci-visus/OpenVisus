@@ -88,49 +88,55 @@ bool Model::getPassThroughAction(StringTree& action, String match) {
 }
 
 ///////////////////////////////////////////////////////////////
-void Model::copy(Model& dst, StringTree redo)
+void Model::copy(Model& dst, StringTree encoded)
 {
-  auto undo = EncodeObject(dst,"copy");
-  dst.beginUpdate(redo, undo);
-  dst.readFrom(redo);
+  //before updating I need a backup
+  StringTree undo("copy");
+  dst.write(undo);
+
+  dst.beginUpdate(encoded, undo);
+  dst.read(encoded);
   dst.endUpdate();
 }
 
 ///////////////////////////////////////////////////////////////
 void Model::copy(Model& dst, const Model& src) {
-  return copy(dst, EncodeObject(src,"copy"));
+  StringTree encoded("copy");
+  src.write(encoded);
+  return copy(dst, encoded);
 }
 
 ///////////////////////////////////////////////////////////////
-void Model::executeAction(StringTree redo)
+void Model::execute(Archive& ar)
 {
-  if (redo.name == "copy")
+  if (ar.name == "copy")
   {
-    return copy(*this, redo);
+    return copy(*this, ar);
   }
 
-  if (isTransaction(redo))
+  if (isTransaction(ar))
   {
     beginUpdate(Transaction(), Transaction());
     {
-      for (auto sub_action : redo.childs)
+      for (auto sub_action : ar.childs)
       {
-        if (!sub_action->isHashNode())
-          executeAction(*sub_action);
+        if (!sub_action->isHash())
+          execute(*sub_action);
       }
     }
     endUpdate();
     return;
   }
 
-  if (isDiff(redo))
+  if (isDiff(ar))
   {
-    auto patch = redo.readText("patch");
+    String patch; ar.readText("patch", patch);
     auto diff = Visus::Diff(StringUtils::getNonEmptyLines(patch));
     if (diff.empty())
       return;
 
-    auto encoded = EncodeObject(*this);
+    StringTree encoded(this->getTypeName());
+    this->write(encoded);
 
     std::vector<String> curr = StringUtils::getNonEmptyLines(encoded.toXmlString());
     std::vector<String> next = diff.applyDirect(curr);
@@ -146,14 +152,14 @@ void Model::executeAction(StringTree redo)
       ThrowException(error_msg);
     }
 
-    beginUpdate(redo, Diff());
+    beginUpdate(ar, Diff());
     {
-      readFrom(encoded);
+      read(encoded);
     }
     endUpdate();
   }
 
-  ThrowException("internal error, unknown action " + redo.name);
+  ThrowException("internal error, unknown action " + ar.name);
 }
 
 
@@ -205,7 +211,11 @@ void Model::beginUpdate(StringTree redo, StringTree undo)
 
   //note only the root action is important
   if (bTopLevel && (isDiff(redo) || isDiff(undo)))
-    this->diff_begin = EncodeObject(*this);
+  {
+    StringTree encoded(this->getTypeName());
+    this->write(encoded);
+    this->diff_begin = encoded;
+  }
 
   this->redo_stack.push(redo);
   this->undo_stack.push(undo);
@@ -240,18 +250,19 @@ void Model::endUpdate()
       //special case for diff action, need to compute the diff
       if (isDiff(topRedo()) || isDiff(topUndo()))
       {
-        auto A = diff_begin;
-        auto B = EncodeObject(*this);
+        StringTree A = diff_begin;
+        StringTree B(this->getTypeName());
+        this->write(B);
 
         auto diff = Visus::Diff(
           StringUtils::getNonEmptyLines(A.toXmlString()),
           StringUtils::getNonEmptyLines(B.toXmlString()));
 
         if (isDiff(topRedo()))
-          topRedo().writeCode("patch", diff.toString());
+          topRedo().writeText("patch", diff.toString(), /*cdata*/true);
 
         if (isDiff(topUndo()))
-          topUndo().writeCode("patch", diff.inverted().toString());
+          topUndo().writeText("patch", diff.inverted().toString(), /*cdata*/true);
       }
 
       //do not touch the undo/redo history if in the middle of an undo/redo
@@ -307,7 +318,7 @@ bool Model::redo() {
   int num_actions = history.getNumberOfChilds();
   auto action = undo_redo[cursor_undo_redo].first;
   bRedoing = true;
-  executeAction(action);
+  execute(action);
   bRedoing = false;
   VisusReleaseAssert(history.getNumberOfChilds()==num_actions+1);
   return true;
@@ -322,7 +333,7 @@ bool Model::undo() {
   int num_actions = history.getNumberOfChilds();
   auto action = undo_redo[cursor_undo_redo - 1].second;
   bUndoing = true;
-  executeAction(action);
+  execute(action);
   bUndoing = false;
   VisusReleaseAssert(history.getNumberOfChilds() == num_actions + 1);
   return true;

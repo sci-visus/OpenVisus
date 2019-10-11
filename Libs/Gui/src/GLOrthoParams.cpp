@@ -42,25 +42,25 @@ namespace Visus {
 
   
 ////////////////////////////////////////////////////////////////////////
-void GLOrthoParams::writeTo(StringTree& out) const
+void GLOrthoParams::write(Archive& ar) const
 {
-  out.writeString("left", cstring(left));
-  out.writeString("right", cstring(right));
-  out.writeString("bottom", cstring(bottom));
-  out.writeString("top", cstring(top));
-  out.writeString("zNear", cstring(zNear));
-  out.writeString("zFar", cstring(zFar));
+  ar.write("left", left);
+  ar.write("right", right);
+  ar.write("bottom", bottom);
+  ar.write("top", top);
+  ar.write("zNear", zNear);
+  ar.write("zFar", zFar);
 }
 
 ////////////////////////////////////////////////////////////////////////
-void GLOrthoParams::readFrom(StringTree& in) 
+void GLOrthoParams::read(Archive& ar)
 {
-  left   = cdouble(in.readString("left"));
-  right  = cdouble(in.readString("right"));
-  bottom = cdouble(in.readString("bottom"));
-  top    = cdouble(in.readString("top"));
-  zNear  = cdouble(in.readString("zNear"));
-  zFar   = cdouble(in.readString("zFar"));
+  ar.read("left", left);
+  ar.read("right", right);
+  ar.read("bottom", bottom);
+  ar.read("top", top);
+  ar.read("zNear", zNear);
+  ar.read("zFar", zFar);
 }
 
 

@@ -218,13 +218,13 @@ public:
     VisusInfo()<< "wok(" << statistics.wok << ") wfail(" << statistics.wfail << ")";
   }
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const {
+  //write
+  virtual void write(Archive& ar) const {
     ThrowException("not supported");
   }
 
-  //readFrom
-  virtual void readFrom(StringTree& in) {
+  //read
+  virtual void read(Archive& ar) {
     ThrowException("not supported");
   }
 

@@ -482,14 +482,14 @@ void Dataflow::disconnectPorts(Node* from,String oport_name,String iport_name,No
 
 
 /////////////////////////////////////////////////////////
-void Dataflow::writeTo(StringTree& out) const
+void Dataflow::write(Archive& ar) const
 {
   VisusAssert(false);
 }
 
 
 /////////////////////////////////////////////////////////
-void Dataflow::readFrom(StringTree& in)
+void Dataflow::read(Archive& ar)
 {
   VisusAssert(false);
 }

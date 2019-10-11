@@ -63,60 +63,67 @@ GLOrthoCamera::~GLOrthoCamera() {
 }
 
   //////////////////////////////////////////////////
-void GLOrthoCamera::executeAction(StringTree in) 
+void GLOrthoCamera::execute(Archive& ar) 
 {
-  if (in.name == "setLookAt")
+  if (ar.name == "setLookAt")
   {
-    auto pos = Point3d::fromString(in.readString("pos"));
-    auto dir = Point3d::fromString(in.readString("dir"));
-    auto vup = Point3d::fromString(in.readString("vup"));
-    auto rotation = cdouble(in.readString("rotation"));
+    Point3d pos, dir, vup; double rotation=0.0;
+    ar.read("pos", pos);
+    ar.read("dir", dir);
+    ar.read("vup", vup);
+    ar.read("rotation", rotation);
     setLookAt(pos, dir, vup, rotation);
     return;
   }
 
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.readString("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
 
     if (target_id == "ortho_params")
     {
-      auto value = GLOrthoParams::fromString(in.readString("value"));
-      auto msec = in.readInt("msec");
+      GLOrthoParams value; int msec= 1300;
+      ar.read("value", value);
+      ar.read("msec", msec);
       setOrthoParams(value,msec);
       return;
     }
 
     if (target_id == "min_zoom")
     {
-      auto value = in.readDouble("value");
+      double value=0;
+      ar.read("value", value);
       setMinZoom(value);
       return;
     }
 
     if (target_id == "max_zoom")
     {
-      auto value = in.readDouble("value");
+      double value=0;
+      ar.read("value", value);
       setMaxZoom(value);
       return;
     }
 
     if (target_id == "default_smooth")
     {
-      auto value = in.readInt("value");
+      int value= 1300;
+      ar.read("value", value);
       setDefaultSmooth(value);
       return;
     }
 
     if (target_id == "disable_rotation")
     {
-      auto value = in.readDouble("value");
+      bool value=false;
+      ar.read("value", value);
       setDisableRotation(value);
       return;
     }
   }
 
-  return GLCamera::executeAction(in);
+  return GLCamera::execute(ar);
 }
 
 
@@ -183,7 +190,7 @@ bool GLOrthoCamera::guessPosition(BoxNd bounds,int ref)
 }
 
 //////////////////////////////////////////////////
-void GLOrthoCamera::splitProjectionFrustum(Rectangle2d r)
+void GLOrthoCamera::splitFrustum(Rectangle2d r)
 {
   GLOrthoParams params = this->ortho_params.final; 
   setOrthoParams(params.split(r));
@@ -475,41 +482,39 @@ void GLOrthoCamera::glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport)
 
 
  ////////////////////////////////////////////////////////////////
-void GLOrthoCamera::writeTo(StringTree& out) const
+void GLOrthoCamera::write(Archive& ar) const
 {
-  GLCamera::writeTo(out);
+  GLCamera::write(ar);
 
-  out.writeValue("pos",pos.toString());
-  out.writeValue("dir",dir.toString());
-  out.writeValue("vup",vup.toString());
-  out.writeValue("rotation", cstring(rotation));
-
-  out.writeValue("ortho_params", ortho_params.final.toString());
-
-  out.writeValue("default_scale", cstring(default_scale));
-  out.writeValue("disable_rotation", cstring(disable_rotation));
-  out.writeValue("max_zoom", cstring(max_zoom));
-  out.writeValue("min_zoom", cstring(min_zoom));
-  out.writeValue("default_smooth", cstring(default_smooth));
+  ar.write("pos", pos);
+  ar.write("dir", dir);
+  ar.write("vup", vup);
+  ar.write("rotation", rotation);
+  ar.write("ortho_params", ortho_params.final);
+  ar.write("default_scale", default_scale);
+  ar.write("disable_rotation", disable_rotation);
+  ar.write("max_zoom", max_zoom);
+  ar.write("min_zoom", min_zoom);
+  ar.write("default_smooth", default_smooth);
 }
 
 ////////////////////////////////////////////////////////////////
-void GLOrthoCamera::readFrom(StringTree& in) 
+void GLOrthoCamera::read(Archive& ar)
 {
-  GLCamera::readFrom(in);
+  GLCamera::read(ar);
 
-  this->pos=Point3d::fromString(in.readValue("pos","0  0  0"));
-  this->dir=Point3d::fromString(in.readValue("dir","0  0 -1"));
-  this->vup=Point3d::fromString(in.readValue("vup","0  1  0"));
-  this->rotation = cdouble(in.readValue("rotation"));
+  ar.read("pos", pos);
+  ar.read("dir", dir);
+  ar.read("vup", vup);
+  ar.read("rotation", rotation);
+  ar.read("ortho_params", ortho_params.final);
+  ar.read("default_scale", default_scale);
+  ar.read("disable_rotation", disable_rotation);
+  ar.read("max_zoom", max_zoom);
+  ar.read("min_zoom", min_zoom);
+  ar.read("default_smooth", default_smooth);
 
-  this->ortho_params.final = this->ortho_params.current = GLOrthoParams::fromString(in.readValue("ortho_params"));
-
-  this->default_scale=cdouble(in.readValue("default_scale"));
-  this->disable_rotation=cbool(in.readValue("disable_rotation"));
-  this->max_zoom=cdouble(in.readValue("max_zoom"));
-  this->min_zoom=cdouble(in.readValue("min_zoom"));
-  this->default_smooth =cdouble(in.readValue("default_smooth"));
+  this->ortho_params.current = this->ortho_params.final;
 
 }
   

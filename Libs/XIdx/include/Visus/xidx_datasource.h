@@ -56,43 +56,39 @@ public:
   
 public:
   
-  //writeTo
-  virtual void writeTo(StringTree& out) const override
+  //write
+  virtual void write(Archive& ar) const override
   {
-    XIdxElement::writeTo(out);
-    out.writeString("Url", url);
+    XIdxElement::write(ar);
+    ar.write("Url", url);
     // TODO write content only if datasource is "inline"
-    //writeUrlContent(out);
+    //writeUrlContent(ar);
   }
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override {
-    XIdxElement::readFrom(in);
-    this->url  = in.readString("Url");
+  //read
+  virtual void read(Archive& ar) override {
+    XIdxElement::read(ar);
+    this->url = ar.readString("Url");
   }
 
 private:
 
   //writeUrlContent
-  void writeUrlContent(StringTree& out)
+  void writeUrlContent(StringTree& ar)
   {
     auto content = Utils::loadTextDocument(this->url);
     if (content.empty())
       ThrowException(StringUtils::format() << "Unable to read file" << url);
 
     //write the content in another file
-    if (use_cdata)
-    {
-      out.writeCode(content);
-      return;
-    }
+    ar.writeText(content, use_cdata);
 
     //must be xml data
     StringTree stree = StringTree::fromString(content);
     if (!stree.valid())
       ThrowException("Invalid xml data");
 
-    out.addChild(stree);
+    ar.addChild(stree);
   }
 
 };

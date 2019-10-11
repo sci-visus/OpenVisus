@@ -41,61 +41,47 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////
-void Field::writeTo(StringTree& out) const
+void Field::write(Archive& ar) const
 {
-  out.writeValue("name",name);
-
-  if (!description.empty())
-    out.writeValue("description",description);
-
-  out.writeObject("dtype", dtype);
-
-  if (!index.empty())
-   out.writeValue("index",index);
-
-  if (!default_compression.empty())
-   out.writeValue("default_compression",default_compression);
-
-  if (!default_layout.empty())
-    out.writeValue("default_layout",default_layout);
-
-  if (default_value!=0)
-    out.writeValue("default_value",cstring(default_value));
-
-  if (!filter.empty())
-    out.writeValue("filter",filter);
+  ar.write("name", name);
+  ar.write("description", description);
+  ar.write("index", index);
+  ar.write("default_compression", default_compression);
+  ar.write("default_layout", default_layout);
+  ar.write("default_value", default_value);
+  ar.write("filter", filter);
+  ar.write("dtype", dtype);
 
   //params
   if (!params.empty())
   {
+    auto params = ar.addChild("params");
     for (auto it : this->params)
-      out.writeValue("params/" + it.first,it.second);
+      params->write(it.first, it.second);
   }
 }
 
 ////////////////////////////////////////////////////
-void Field::readFrom(StringTree& in)
+void Field::read(Archive& ar)
 {
-  this->name=in.readValue("name");
-  this->description=in.readValue("description");
-
-  in.readObject("dtype", this->dtype);
-
-  this->index=cint(in.readValue("index"));
-  this->default_compression=in.readValue("default_compression");
-  this->default_layout=in.readValue("default_layout");
-  this->default_value=cint(in.readValue("default_value","0"));
-  this->filter=in.readValue("filter");
+  ar.read("name", name);
+  ar.read("description", description);
+  ar.read("index", index);
+  ar.read("default_compression", default_compression);
+  ar.read("default_layout", default_layout);
+  ar.read("default_value", default_value);
+  ar.read("filter", filter);
+  ar.read("dtype", dtype);
 
   this->params.clear();
-
-  if (auto params=in.getChild("params"))
+  if (auto params= ar.getChild("params"))
   {
     for (auto param : params->childs)
     {
-      if (param->isHashNode()) continue;
-      String key= param->name;
-      String value= param->readValue(key);
+      if (param->isHash()) continue;
+      String key = param->name;
+      String value;
+      param->read(key,value);
       this->params.setValue(key,value);
     }
   }

@@ -62,11 +62,11 @@ public:
   //processInput
   virtual bool processInput() override;
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //write
+  virtual void write(Archive& ar) const override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //read
+  virtual void read(Archive& ar) override;
 
   static FunnelNode* castFrom(Node* obj) {
     return dynamic_cast<FunnelNode*>(obj);

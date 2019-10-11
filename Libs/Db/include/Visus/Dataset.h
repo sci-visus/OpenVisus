@@ -498,11 +498,11 @@ public:
     return getDatasetBody();
   }
 
-  //writeTo
-  void writeTo(StringTree& out) const;
+  //write
+  void write(Archive& ar) const;
 
-  //readFrom
-  void readFrom(StringTree& in);
+  //read
+  void read(Archive& ar);
 
 private:
 

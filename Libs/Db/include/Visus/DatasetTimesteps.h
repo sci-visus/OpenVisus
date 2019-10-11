@@ -189,17 +189,17 @@ public:
   String toString() const
   {
     StringTree out("DatasetTimesteps");
-    const_cast<DatasetTimesteps*>(this)->writeTo(out);
+    const_cast<DatasetTimesteps*>(this)->write(out);
     return out.toString();
   }
 
 public:
 
-  //writeTo
-  void writeTo(StringTree& out) const;
+  //write
+  void write(Archive& ar) const;
 
-  //readFrom
-  void readFrom(StringTree& in);
+  //read
+  void read(Archive& ar);
 
 private:
 

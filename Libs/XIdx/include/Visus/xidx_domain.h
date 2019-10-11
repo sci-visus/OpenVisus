@@ -155,44 +155,36 @@ public:
   
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override
+  //write
+  virtual void write(Archive& ar) const override
   {
-    XIdxElement::writeTo(out);
+    XIdxElement::write(ar);
 
-    out.writeString("Type", type.toString());
+    ar.write("Type", type.toString());
 
     for (auto child : data_items)
-      out.writeObject("DataItem",*child);
+      writeChild<DataItem>(ar, "DataItem", child);
 
     for (auto child : attributes)
-      out.writeObject("Attribute",*child);
+      writeChild<Attribute>(ar, "Attribute", child);
   }
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override
+  //read
+  virtual void read(Archive& ar) override
   {
-    XIdxElement::readFrom(in);
+    XIdxElement::read(ar);
 
-    this->type = DomainType::fromString(in.readString("Type"));
+    this->type = DomainType::fromString(ar.readString("Type"));
 
     // have to remove the default data_item created by the constructor
     // TODO improve this ensureDataItem() mechanism
     data_items.clear();
 
-    for (auto child : in.getChilds("DataItem"))
-    {
-      auto data_item = new DataItem();
-      data_item->readFrom(*child);
-      addDataItem(data_item);
-    }
+    for (auto child : readChilds<DataItem>(ar, "DataItem"))
+      addDataItem(child);
 
-    for (auto child : in.getChilds("Attribute"))
-    {
-      auto attribute = new Attribute();
-      attribute->readFrom(*child);
-      addAttribute(attribute);
-    }
+    for (auto child : readChilds<Attribute>(ar, "Attribute"))
+      addAttribute(child);
   }
 
 };

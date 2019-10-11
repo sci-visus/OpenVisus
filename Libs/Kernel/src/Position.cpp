@@ -299,23 +299,19 @@ Position Position::shrink(BoxNd dst_box,LinearMap& map,Position in_position)
 }
 
 //////////////////////////////////////////////////
-void Position::writeTo(StringTree& out) const
+void Position::write(Archive& ar) const
 {
-  if (!valid())
-    return;
-
-  if (!T.isIdentity())
-    out.write("T", T);
-  
-  out.write("box", this->box);
+  if (!valid()) return;
+  ar.write("T", T);
+  ar.write("box", box);
 }
 
 //////////////////////////////////////////////////
-void Position::readFrom(StringTree& in)
+void Position::read(Archive& ar)
 {
-  this->T= Matrix::identity(4);
-  this->T=Matrix::fromString(in.read("T"));
-  this->box=BoxNd::fromString(in.read("box"));
+  this->T = Matrix::identity(4);
+  ar.read("T", T);
+  ar.read("box", box);
 }
 
 } //namespace Visus

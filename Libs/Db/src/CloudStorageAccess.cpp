@@ -54,7 +54,7 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   this->compression = config.readString("compression", url.getParam("compression", "zip")); //zip compress more than lz4 for network.. 
   this->filename_template = config.readString("filename_template", url.getParam("filename_template", guessBlockFilenameTemplate()));
 
-  this->config.writeString("url", url.toString());
+  this->config.write("url", url.toString());
 
   bool disable_async = config.readBool("disable_async", dataset->isServerMode());
 

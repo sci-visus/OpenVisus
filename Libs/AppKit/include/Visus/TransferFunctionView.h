@@ -535,7 +535,7 @@ private:
   void refreshGui() {
 
     StringTree out("TransferFunction");
-    model->writeTo(out);
+    model->write(out);
     auto content= out.toXmlString();
     widgets.textedit->setText(content.c_str());
   }
@@ -588,8 +588,11 @@ private:
 
           VisusAssert(fields[0]->readString("name")=="colors");
           VisusAssert(fields[1]->readString("name")=="position");
-          Color color  = Color::fromString(fields[0]->readText());
-          double position=cdouble(fields[1]->readText());
+          String s_color, s_position;
+          fields[0]->readText(s_color);
+          fields[1]->readText(s_position);
+          auto color  = Color::fromString(s_color);
+          double position=cdouble(s_position);
           rgba_colormap.setColorAt(position, color);
         }
       }
@@ -604,8 +607,9 @@ private:
     
       for (auto child : in.childs)
       {
-        String name=child->readString("name");
-        String text=child->readText();
+        String name,text; 
+        child->read("name", name);
+        child->readText(text);
 
         if (name=="freeformOpacity")
         {

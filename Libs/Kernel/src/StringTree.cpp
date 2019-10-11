@@ -272,7 +272,7 @@ private:
       {
         String key   = it.first;
         String value = resolveAliases(it.second,aliases);
-        dst.writeString(key,value);
+        dst.write(key,value);
       }
 
       //childs
@@ -409,43 +409,20 @@ StringTree* StringTree::NormalizeW(StringTree* cursor, String& key)
 
 
 /////////////////////////////////////////////////
-String StringTree::readText() const
+void StringTree::readText(String& value) const
 {
   std::ostringstream out;
   for (auto child : childs)
   {
     if (child->name=="#text")
-      out<< child->read("value");
+      out<< child->readString("value");
     
     if (child->name== "#cdata-section")
-      out<< child->read("value");
+      out<< child->readString("value");
   }
-  return out.str();
+  value=out.str();
 }
 
-/////////////////////////////////////////////////
-String StringTree::readCode() const
-{
-  std::ostringstream out;
-  for (auto child : childs)
-  {
-    if (child->name == "#text")
-      out << child->read("value");
-
-    if (child->name == "#cdata-section")
-      out << child->read("value");
-  }
-  return out.str();
-}
-
-
-/////////////////////////////////////////////////
-String StringTree::read(String key,String default_value) const
-{
-  VisusAssert(!key.empty());
-  auto cursor=NormalizeR(this,key);
-  return cursor? cursor->getAttribute(key, default_value) : default_value;
-}
 
 /////////////////////////////////////////////////
 StringTree& StringTree::write(String key,String value)
@@ -637,28 +614,23 @@ static StringTree FromXmlElement(TiXmlElement* src)
   StringTree dst(src->Value());
 
   for (TiXmlAttribute* attr = src->FirstAttribute(); attr; attr = attr->Next())
-    dst.writeString(attr->Name(), attr->Value());
+    dst.write(attr->Name(), attr->Value());
 
   //xml_text                                              
-  if (const TiXmlNode* child = src->FirstChild())
+  if (auto child = src->FirstChild())
   {
-    if (const TiXmlText* child_text = child->ToText())
+    if (auto child_text = child->ToText())
     {
-      if (const char* xml_text = child_text->Value())
-      {
-        if (child_text->CDATA())
-          dst.writeCode(xml_text);
-        else
-          dst.writeText(xml_text);
-      }
+      if (auto xml_text = child_text->Value())
+        dst.writeText(xml_text, child_text->CDATA());
     }
-    else if (const TiXmlComment* child_comment = child->ToComment())
+    else if (auto child_comment = child->ToComment())
     {
-      dst.addCommentNode(child_comment->Value());
+      dst.addComment(child_comment->Value());
     }
   }
 
-  for (TiXmlElement* child = src->FirstChildElement(); child; child = child->NextSiblingElement())
+  for (auto child = src->FirstChildElement(); child; child = child->NextSiblingElement())
     dst.addChild(FromXmlElement(child));
 
   return dst;

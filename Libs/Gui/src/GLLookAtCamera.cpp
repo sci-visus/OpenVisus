@@ -42,58 +42,75 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////
-void GLLookAtCamera::executeAction(StringTree in)
+void GLLookAtCamera::execute(Archive& ar)
 {
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.read("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
 
     if (target_id == "bounds") {
-      setBounds(BoxNd::fromString(in.readString("value")));
+      BoxNd value;
+      ar.read("value", value);
+      setBounds(value);
       return;
     }
 
     if (target_id == "pos") {
-      setPos(Point3d::fromString(in.readString("value")));
+      Point3d value;
+      ar.read("value", value);
+      setPos(value);
       return;
     }
 
     if (target_id == "dir") {
-      setDir(Point3d::fromString(in.readString("value")));
+      Point3d value;
+      ar.read("value", value);
+      setDir(value);
       return;
     }
 
     if (target_id == "vup") {
-      setVup(Point3d::fromString(in.readString("value")));
+      Point3d value;
+      ar.read("value", value);
+      setVup(value);
       return;
     }
 
     if (target_id == "rotation")
     {
-      auto angle = Utils::degreeToRadiant(in.readDouble("angle"));
-      auto axis = Point3d::fromString(in.readString("axis"));
+      double angle=0.0; Point3d axis(0,0,1);
+      ar.read("angle", angle);
+      ar.read("axis", axis);
+      angle = Utils::degreeToRadiant(angle);
       setRotation(Quaternion(axis,angle));
       return;
     }
 
     if (target_id == "rotation_center") {
-      setRotationCenter(Point3d::fromString(in.readString("value")));
+      Point3d value;
+      ar.read("value", value);
+      setRotationCenter(value);
       return;
     }
 
     if (target_id == "fov") {
-      setFov(in.readDouble("fov"));
+      double value=60.0;
+      ar.read("value", value);
+      setFov(value);
       return;
     }
 
-    if (target_id == "split_projection_frustum") {
-      splitProjectionFrustum(Rectangle2d::fromString(in.readString("value")));
+    if (target_id == "split_frustum") {
+      Rectangle2d value;
+      ar.read("value", value);
+      splitFrustum(value);
       return;
     }
 
   }
 
-  return GLCamera::executeAction(in);
+  return GLCamera::execute(ar);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -173,7 +190,7 @@ Frustum GLLookAtCamera::getFinalFrustum(const Viewport& viewport) const
 
   auto p = guessNearFar();
   auto zNear = p.first, zFar = p.second;
-  if (split_projection_frustum == Rectangle2d(0, 0, 1, 1))
+  if (split_frustum == Rectangle2d(0, 0, 1, 1))
   {
     ret.loadProjection(Matrix::perspective(fov, aspect_ratio, zNear, zFar));
   }
@@ -186,7 +203,7 @@ Frustum GLLookAtCamera::getFinalFrustum(const Viewport& viewport) const
     params.left   = -params.top * aspect_ratio;
     params.zNear  = zNear;
     params.zFar   = zFar;
-    params = params.split(split_projection_frustum);
+    params = params.split(split_frustum);
     ret.loadProjection(Matrix::frustum(params.left, params.right, params.bottom, params.top, params.zNear, params.zFar));
   }
 
@@ -334,7 +351,9 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport)
     }
     case Qt::Key_P:
     {
-      VisusInfo() << EncodeObject(*this).toString();
+      StringTree ar(this->getTypeName());
+      this->write(ar);
+      VisusInfo() << ar.toString();
       evt->accept();
       return;
     }
@@ -342,45 +361,39 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport)
 }
 
 //////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::writeTo(StringTree& out) const
+void GLLookAtCamera::write(Archive& ar) const
 {
-  GLCamera::writeTo(out);
+  GLCamera::write(ar);
 
-  out.writeValue("bounds", bounds.toString(/*bInterleave*/false));
+  String bounds = this->bounds.toString(/*bInterleave*/false);
 
-  out.writeValue("pos",    pos.toString());
-  out.writeValue("dir", dir.toString());
-  out.writeValue("vup",    vup.toString());
-
-  out.writeValue("rotation", rotation.toString());
-  out.writeValue("rotation_center", rotation_center.toString());
-
-  out.writeValue("fov", cstring(this->fov));
-
-  if (split_projection_frustum!=Rectangle2d(0,0,1,1))
-    out.writeValue("split_projection_frustum", this->split_projection_frustum.toString());
+  ar.write("pos", pos);
+  ar.write("dir", dir);
+  ar.write("vup", vup);
+  ar.write("rotation", rotation);
+  ar.write("rotation_center", rotation_center);
+  ar.write("fov", fov);
+  ar.write("bounds", bounds);
+  ar.write("split_frustum", split_frustum);
 }
 
 //////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::readFrom(StringTree& in) 
+void GLLookAtCamera::read(Archive& ar)
 {
-  GLCamera::readFrom(in);
+  GLCamera::read(ar);
 
-  this->bounds = BoxNd::fromString(in.readValue("bounds"),/*bInterleave*/false);
+  String bounds;
+  ar.read("pos", pos);
+  ar.read("dir", dir);
+  ar.read("vup", vup);
+  ar.read("rotation", rotation);
+  ar.read("rotation_center", rotation_center);
+  ar.read("fov", fov);
+  ar.read("bounds", bounds);
+  ar.read("split_frustum", split_frustum);
+
+  this->bounds = BoxNd::fromString(bounds,/*bInterleave*/false);
   this->bounds.setPointDim(3);
-
-  this->pos = Point3d::fromString(in.readValue("pos"));
-  this->dir = Point3d::fromString(in.readValue("dir"));
-  this->vup = Point3d::fromString(in.readValue("vup"));
-
-  this->rotation = Quaternion::fromString(in.readValue("rotation"));
-  this->rotation_center = Point3d::fromString(in.readValue("rotation_center"));
-
-  this->fov = cdouble(in.readValue("fov"));
-
-  auto s = in.readValue("split_projection_frustum");
-  if (!s.empty())
-    this->split_projection_frustum = Rectangle2d::fromString(s);
 }
 
 } //namespace Visus

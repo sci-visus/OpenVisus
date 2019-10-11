@@ -166,238 +166,251 @@ Viewer::~Viewer()
 
 
 ////////////////////////////////////////////////////////////
-void Viewer::executeAction(StringTree in)
+void Viewer::execute(Archive& ar)
 {
   //action directed to nodes?
-  if (getPassThroughAction(in, "nodes"))
+  if (getPassThroughAction(ar, "nodes"))
   {
-    auto uuid=popTargetId(in);
+    auto uuid = popTargetId(ar);
     auto node = findNodeByUUID(uuid); VisusAssert(node);
-    node->executeAction(in);
+    node->execute(ar);
     return;
   }
 
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.readString("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
 
     if (target_id == "mouse_dragging")
     {
-      setMouseDragging(in.readBool("value"));
+      bool value = false;
+      ar.read("value", value);
+      setMouseDragging(value);
       return;
     }
 
     if (target_id == "auto_refresh")
     {
       ViewerAutoRefresh value = getAutoRefresh();
-      value.enabled = in.readBool("enabled");
-      value.msec = in.readInt("msec");
+      ar.read("enabled", value.enabled);
+      ar.read("msec", value.msec);
       setAutoRefresh(value);
       return;
     }
   }
 
-  if (in.name == "open")
+  if (ar.name == "open")
   {
-    auto parent = findNodeByUUID(in.readString("parent"));
-    auto url = in.readString("url");
-    open(url,parent);
+    String parent, url;
+    ar.read("parent", parent);
+    ar.read("url", url);
+    open(url, findNodeByUUID(parent));
     return;
   }
 
-  if (in.name == "moveNode")
+  if (ar.name == "moveNode")
   {
-    auto src = findNodeByUUID(in.readString("dst"));
-    auto dst = findNodeByUUID(in.readString("src"));
-    auto index = in.readInt("index", -1);
-    moveNode(dst, src, index);
+    String src, dst; int index = -1;
+    ar.read("src", src);
+    ar.read("dst", dst);
+    ar.read("index", index);
+    moveNode(findNodeByUUID(dst), findNodeByUUID(src), index);
     return;
   }
 
-  if (in.name == "setSelection")
+  if (ar.name == "setSelection")
   {
-    auto node = findNodeByUUID(in.readString("node"));
-    setSelection(node);
+    String node;
+    ar.read("node", node);
+    setSelection(findNodeByUUID(node));
     return;
   }
 
-  if (in.name == "connectPorts")
+  if (ar.name == "connectPorts")
   {
-    auto from = findNodeByUUID(in.readString("from"));
-    auto oport = in.readString("oport");
-    auto iport = in.readString("iport");
-    auto to = findNodeByUUID(in.readString("to"));
-    connectPorts(from, oport, iport, to);
+    String from, oport, iport, to;
+    ar.read("from", from);
+    ar.read("oport", oport);
+    ar.read("iport", iport);
+    ar.read("to", to);
+    connectPorts(findNodeByUUID(from), oport, iport, findNodeByUUID(to));
     return;
   }
 
-  if (in.name == "disconnectPorts")
+  if (ar.name == "disconnectPorts")
   {
-    auto from = findNodeByUUID(in.readString("from"));
-    auto oport = in.readString("oport");
-    auto iport = in.readString("iport");
-    auto to = findNodeByUUID(in.readString("to"));
-    disconnectPorts(from, oport, iport, to);
+    String from, oport, iport, to;
+    ar.read("from", from);
+    ar.read("oport", oport);
+    ar.read("iport", iport);
+    ar.read("to", to);
+    disconnectPorts(findNodeByUUID(from), oport, iport, findNodeByUUID(to));
     return;
   }
 
-  if (in.name == "refreshData")
+  if (ar.name == "refreshData")
   {
-    auto node = findNodeByUUID(in.readString("node"));
-    refreshData(node);
+    String node;
+    ar.read("node", node);
+    refreshData(findNodeByUUID(node));
     return;
   }
 
-  if (in.name == "dropProcessing")
+  if (ar.name == "dropProcessing")
   {
-    this->dropProcessing();
+    dropProcessing();
     return;
   }
 
-  if (in.name == "setNodeVisible") {
-    auto node = findNodeByUUID(in.readString("node"));
-    auto value = in.readBool("value");
-    setNodeVisible(node, value);
+  if (ar.name == "setNodeVisible") {
+    String node; bool value = true;
+    ar.read("node", node);
+    ar.read("value", value);
+    setNodeVisible(findNodeByUUID(node), value);
     return;
   }
 
-  if (in.name=="add")
+  if (ar.name == "add")
   {
-    auto what = in.readString("what");
+    String what;
+    ar.read("what", what);
+
+    String parent;
+    ar.read("parent", parent);
 
     if (what == "node")
     {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto child = *in.getFirstChild();
+      auto child = *ar.getFirstChild();
 
       auto TypeName = child.name;
       auto node = NodeFactory::getSingleton()->createInstance(TypeName); VisusReleaseAssert(node);
-      node->readFrom(child);
+      node->read(child);
 
-      auto index = in.readInt("index", -1);
-      addNode(parent, node, index);
+      int index = -1;
+      ar.read("index", index);
+      addNode(findNodeByUUID(parent), node, index);
       return;
     }
 
     if (what == "dataset") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto url = in.readString("url");
-      addDataset(parent, url, in.childs.empty() ? StringTree() : *in.getFirstChild());
+      String url;
+      ar.read("url", url);
+      addDataset(findNodeByUUID(parent), url, ar.childs.empty() ? StringTree() : *ar.getFirstChild());
       return;
     }
 
     if (what == "group") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto name = in.readString("name");
-      addGroup(parent, name);
+      String name;
+      ar.read("name", name);
+      addGroup(findNodeByUUID(parent), name);
       return;
     }
 
     if (what == "glcamera") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto type = in.readString("type");
-      addGLCamera(parent, type);
+      String type;
+      ar.read("type", type);
+      addGLCamera(findNodeByUUID(parent), type);
       return;
     }
 
     if (what == "volume") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto fieldname = in.readString("fieldname");
-      auto access_id = in.readInt("access_id");
-      addVolume(parent, fieldname, access_id);
+      String fieldname; int  access_id = 0;
+      ar.read("fieldname", fieldname);
+      ar.read("access_id", access_id);
+      addVolume(findNodeByUUID(parent), fieldname, access_id);
       return;
     }
 
-    if (what == "slice") 
+    if (what == "slice")
     {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto fieldname = in.readString("fieldname");
-      auto access_id = in.readInt("access_id");
-      addSlice(parent, fieldname, access_id);
+      String fieldname; int  access_id = 0;
+      ar.read("fieldname", fieldname);
+      ar.read("access_id", access_id);
+      addSlice(findNodeByUUID(parent), fieldname, access_id);
       return;
     }
 
     if (what == "isocontour") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto fieldname = in.readString("fieldname");
-      auto access_id = in.readInt("access_id");
-      auto isovalue = in.readString("isovalue");
-      addIsoContour(parent, fieldname, access_id, isovalue);
+      String fieldname; int  access_id = 0; String isovalue;
+      ar.read("fieldname", fieldname);
+      ar.read("access_id", access_id);
+      ar.read("isovalue", isovalue);
+      addIsoContour(findNodeByUUID(parent), fieldname, access_id, isovalue);
       return;
     }
 
     if (what == "kdquery") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto fieldname = in.readString("fieldname");
-      auto access_id = in.readInt("access_id");
-      addKdQuery(parent, fieldname, access_id);
+      String fieldname; int  access_id = 0;
+      ar.read("fieldname", fieldname);
+      ar.read("access_id", access_id);
+      addKdQuery(findNodeByUUID(parent), fieldname, access_id);
       return;
     }
 
     if (what == "modelview") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto insert = in.readBool("insert");
-      addModelView(parent, insert);
+      bool insert = false;
+      ar.read("insert", insert);
+      addModelView(findNodeByUUID(parent), insert);
       return;
     }
 
     if (what == "scripting") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      addScripting(parent);
+      addScripting(findNodeByUUID(parent));
       return;
     }
 
     if (what == "cpu_transfer_function") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      addCpuTransferFunction(parent);
+      addCpuTransferFunction(findNodeByUUID(parent));
       return;
     }
 
     if (what == "palette") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto palette = in.readString("palette");
-      addPalette(parent, palette);
+      String palette;
+      ar.read("palette", palette);
+      addPalette(findNodeByUUID(parent), palette);
       return;
     }
 
     if (what == "statistics") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      addStatistics(parent);
+      addStatistics(findNodeByUUID(parent));
       return;
     }
 
     if (what == "render") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto palette = in.readString("palette");
-      addRender(parent, palette);
+      String palette;
+      ar.read("palette", palette);
+      addRender(findNodeByUUID(parent), palette);
       return;
     }
 
     if (what == "ospray") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto palette = in.readString("palette");
-      addOSPRay(parent, palette);
+      String palette;
+      ar.read("palette", palette);
+      addOSPRay(findNodeByUUID(parent), palette);
       return;
     }
 
     if (what == "kdrender") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      addKdRender(parent);
+      addKdRender(findNodeByUUID(parent));
       return;
     }
   }
 
-  if (in.name == "remove")
+  if (ar.name == "remove")
   {
-    auto nodes = StringUtils::split(in.readString("node"));
-    if (nodes.size() > 1) beginTransaction();
-    for (auto node : nodes)
+    String node;
+    ar.read("node", node);
+    auto v = StringUtils::split(node);
+
+    if (v.size() > 1) beginTransaction();
+    for (auto node : v)
       removeNode(findNodeByUUID(node));
-    if (nodes.size() > 1) endTransaction();
+    if (v.size() > 1) endTransaction();
     return;
   }
 
-  return Model::executeAction(in);
+  return Model::execute(ar);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -1242,7 +1255,7 @@ bool Viewer::open(String url,Node* parent)
 
     try
     {
-      this->readFrom(in);
+      this->read(in);
     }
     catch (std::exception ex)
     {
@@ -1388,21 +1401,21 @@ bool Viewer::save(String url,bool bSaveHistory)
     url=url+".xml";
 
 
-  StringTree out;
+  StringTree ar;
   if (bSaveHistory)
   {
-    out = getHistory();
-    out.name = "Viewer";
-    out.writeString("version", cstring(ApplicationInfo::version));
-    out.writeString("git_revision", ApplicationInfo::git_revision);
+    ar = getHistory();
+    ar.name = "Viewer";
+    ar.write("version", ApplicationInfo::version);
+    ar.write("git_revision", ApplicationInfo::git_revision);
   }
   else
   {
-    out=StringTree("Viewer");
-    this->writeTo(out);
+    ar =StringTree("Viewer");
+    this->write(ar);
   }
 
-  if (!Utils::saveTextDocument(url, out.toString()))
+  if (!Utils::saveTextDocument(url, ar.toString()))
     return false;
 
   this->last_saved_filename=url;
@@ -1550,8 +1563,8 @@ void Viewer::setNodeVisible(Node* node,bool new_value)
     return;
 
   beginUpdate(
-    StringTree("setNodeVisible").writeString("node", getUUID(node)).write("value", new_value),
-    StringTree("setNodeVisible").writeString("node", getUUID(node)).write("value", old_value));
+    StringTree("setNodeVisible").write("node", getUUID(node)).write("value", new_value),
+    StringTree("setNodeVisible").write("node", getUUID(node)).write("value", old_value));
   {
     dropProcessing();
     for (auto it : node->breadthFirstSearch())
@@ -1597,8 +1610,11 @@ void Viewer::addNode(Node* parent,Node* node,int index)
 
   beginTransaction();
   {
+    StringTree encoded(node->getTypeName());
+    node->write(encoded);
+
     beginUpdate(
-      StringTree("add").write("what","node").write("parent",getUUID(parent)).write("index",index).addChild(EncodeObject(*node)),
+      StringTree("add").write("what","node").write("parent",getUUID(parent)).write("index",index).addChild(encoded),
       StringTree("remove").write("node",getUUID(node)));
     {
       dataflow->addNode(parent, node, index);
@@ -1657,12 +1673,16 @@ void Viewer::removeNode(Node* NODE)
 
       VisusAssert(node->isOrphan());
 
-      Utils::push_front(topUndo().childs,
+      StringTree encoded(node->getTypeName());
+      node->write(encoded);
+
+      Utils::push_front(
+        topUndo().childs,
         std::make_shared<StringTree>(
           StringTree("add")
             .write("what", "node")
             .write("parent", getUUID(node->getParent()))
-            .write("index", cstring(node->getIndexInParent())).addChild(EncodeObject(*node))));
+            .write("index", cstring(node->getIndexInParent())).addChild(encoded)));
 
       dataflow->removeNode(node);
     }
@@ -2442,10 +2462,10 @@ StatisticsNode* Viewer::addStatistics(Node* parent)
 }
 
 /////////////////////////////////////////////////////////////
-void Viewer::writeTo(StringTree& out) const
+void Viewer::write(Archive& ar) const
 {
-  out.writeString("version", cstring(ApplicationInfo::version));
-  out.writeString("git_revision", ApplicationInfo::git_revision);
+  ar.write("version", ApplicationInfo::version);
+  ar.write("git_revision", ApplicationInfo::git_revision);
 
   //first dump the nodes without parent... NOTE: the first one is always the getRoot()
   auto root = dataflow->getRoot();
@@ -2453,18 +2473,25 @@ void Viewer::writeTo(StringTree& out) const
   for (auto node : dataflow->getNodes())
   {
     if (node->getParent()) continue;
-    out.addChild(StringTree("add").write("what","node").addChild(EncodeObject(*node)));
+    StringTree encoded(node->getTypeName());
+    node->write(encoded);
+    ar.addChild(StringTree("add")
+      .write("what","node")
+      .addChild(encoded));
   }
 
   //then the nodes in the tree...important the order! parents before childs
   for (auto node : root->breadthFirstSearch())
   {
     if (node == root) continue;
+
+    StringTree encoded(node->getTypeName());
+    node->write(encoded);
     VisusAssert(node->getParent());
-    out.addChild(StringTree("add")
+    ar.addChild(StringTree("add")
       .write("what", "node")
       .write("parent", getUUID(node->getParent()))
-      .addChild(EncodeObject(*node)));
+      .addChild(encoded));
   }
 
   //ConnectPorts actions
@@ -2476,7 +2503,7 @@ void Viewer::writeTo(StringTree& out) const
       for (auto IT = oport->outputs.begin(); IT != oport->outputs.end(); IT++)
       {
         auto iport = (*IT);
-        out.addChild(StringTree("connectPorts")
+        ar.addChild(StringTree("connectPorts")
           .write("from", getUUID(oport->getNode()))
           .write("oport", oport->getName())
           .write("iport", iport->getName())
@@ -2487,21 +2514,22 @@ void Viewer::writeTo(StringTree& out) const
 
   //selection
   if (auto selection = getSelection())
-    out.addChild(StringTree("setSelection").write("node", getUUID(selection)));
+    ar.addChild(StringTree("setSelection")
+      .write("node", getUUID(selection)));
 }
 
 /////////////////////////////////////////////////////////////
-void Viewer::readFrom(StringTree& in)
+void Viewer::read(Archive& ar)
 {
-  double version = cdouble(in.readString("version"));
-  String git_revision = in.readString("git_revision");
+  double version=0.0; 
+  String git_revision;
+  ar.read("version", version);
+  ar.read("git_revision", git_revision);
 
-  for (auto child : in.childs)
+  for (auto action : ar.childs)
   {
-    if (child->isHashNode())
-      continue;
-
-    this->executeAction(*child);
+    if (action->isHash()) continue;
+    this->execute(*action);
   }
 }
 

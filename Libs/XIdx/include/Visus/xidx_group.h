@@ -282,114 +282,96 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override
+  //write
+  virtual void write(Archive& ar) const override
   {
-    XIdxElement::writeTo(out);
+    XIdxElement::write(ar);
 
-    out.writeString("Name", name);
-    out.writeString("Type", group_type.toString());
-    out.writeString("VariabilityType", variability_type.toString());
+    ar.write("Name", name);
+    ar.write("Type", group_type.toString());
+    ar.write("VariabilityType", variability_type.toString());
+    if (file_pattern.size())
+      ar.write("FilePattern", file_pattern.c_str());
 
-    if(!file_pattern.empty())
-      out.writeString("FilePattern", file_pattern.c_str());
+    if (variability_type.value != VariabilityType::STATIC_VARIABILITY_TYPE)
+      ar.write("DomainIndex", Visus::cstring(domain_index));
 
-    if (variability_type.value!=VariabilityType::STATIC_VARIABILITY_TYPE)
-      out.writeString("DomainIndex", Visus::cstring(domain_index));
+    for (auto child : data_sources)
+      writeChild<DataSource>(ar, "DataSource", child);
 
-    for (auto data_source : data_sources)
-      out.writeObject("DataSource", *data_source);
+    writeChild<Domain>(ar, "Domain", domain);
 
-    if (domain)
-      out.writeObject("Domain",*domain);
+    for (auto child : attributes)
+      writeChild<Attribute>(ar, "Attribute", child);
 
-    for (auto attribute : attributes)
-      out.writeObject("Attribute", *attribute);
+    for (auto child : variables)
+      writeChild<Variable>(ar, "Variable", child);
 
-    for (auto variable : variables)
-      out.writeObject("Variable", *variable);
-
-    for (auto group : groups) 
+    for (auto child : groups)
     {
       if (file_pattern.empty())
       {
-        out.writeObject("Group", *group);
+        writeChild<Group>(ar, "Group", child);
       }
       else
       {
-        String filename = XIdxFormatString(file_pattern + "/meta.xidx", group->domain_index);
+        String filename = XIdxFormatString(file_pattern + "/meta.xidx", child->domain_index);
 
-        if (auto xi_include = out.addChild("xi:include"))
-        {
-          xi_include->writeString("href", filename.c_str());
-          xi_include->writeString("xpointer", "xpointer(//Xidx/Group/Group)");
-        }
+        ar.addChild(StringTree("xi:include")
+          .write("href", filename)
+          .write("xpointer", "xpointer(//Xidx/Group/Group)"));
 
         {
-          StringTree out(group->getTypeName());
-          group->writeTo(out);
-          auto content = out.toString();
-          Utils::saveTextDocument(filename,content);
+          StringTree stree(child->getTypeName());
+          child->write(stree);
+          auto content = stree.toString();
+          Utils::saveTextDocument(filename, content);
         }
       }
     }
   };
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override
+  //read
+  virtual void read(Archive& ar) override
   {
-    XIdxElement::readFrom(in);
+    XIdxElement::read(ar);
 
-    this->group_type = GroupType::fromString(in.readString("Type"));
-    this->variability_type = VariabilityType::fromString(in.readString("VariabilityType"));
-    this->file_pattern = in.readString("FilePattern");
-    this->domain_index = cint(in.readString("DomainIndex"));
+    this->group_type = GroupType::fromString(ar.readString("Type"));
+    this->variability_type = VariabilityType::fromString(ar.readString("VariabilityType"));
+    this->file_pattern = ar.readString("FilePattern");
+    this->domain_index = cint(ar.readString("DomainIndex"));
 
-    for (auto child : in.getChilds("DataSource"))
+    for (auto child : readChilds<DataSource>(ar, "DataSource"))
+      addDataSource(child);
+
+    for (auto child : readChilds<Attribute>(ar, "Attribute"))
+      addAttribute(child);
+
+    for (auto child : readChilds<Variable>(ar, "Variable"))
+      addVariable(child);
+
+    if (auto it=ar.getChild("Domain"))
     {
-      auto data_source = new DataSource();
-      data_source->readFrom(*child);
-      addDataSource(data_source);
+      auto type = DomainType::fromString(it->readString("Type"));
+      auto domain = Domain::createDomain(type);
+      domain->read(*it);
+      setDomain(domain);
     }
 
-    for (auto child : in.getChilds("Attribute"))
-    {
-      auto attribute = new Attribute();
-      attribute->readFrom(*child);
-      addAttribute(attribute);
-    }
-
-    for (auto child : in.getChilds("Variable"))
-    {
-      auto variable = new Variable();
-      variable->readFrom(*child);
-      addVariable(variable);
-    }
-
-    if (auto Domain=in.getChild("Domain"))
-    {
-      auto type = DomainType::fromString(Domain->readString("Type"));
-      auto child=Domain::createDomain(type);
-      child->readFrom(*Domain);
-      setDomain(child);
-    }
-
-    for (auto child : in.getChilds("Group"))
-    {
-      auto group = new Group();
-      group->readFrom(*child);
-      addGroup(group);
-    }
-
-    for (auto xi_include : in.getChilds("xi:include"))
-    {
-      auto content = Utils::loadTextDocument(xi_include->readString("href"));
-      StringTree tmp = StringTree::fromString(content);
-      VisusAssert(tmp.valid());
-      auto child = new Group();
-      child->readFrom(tmp);
-
+    for (auto child : readChilds<Group>(ar, "Group"))
       addGroup(child);
+
+    for (auto it : ar.getChilds("xi:include"))
+    {
+      auto filename = it->readString("href");
+
+      auto stree=StringTree::fromString(Utils::loadTextDocument(filename));
+      if (!stree.valid())
+        ThrowException("internal error");
+
+      auto group = new Group();
+      group->read(stree);
+      addGroup(group);
     }
 
   };

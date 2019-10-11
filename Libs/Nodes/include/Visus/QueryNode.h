@@ -58,9 +58,6 @@ public:
   //destructor
   virtual ~QueryNode();
 
-  //executeAction
-  virtual void executeAction(StringTree in) override;
-     
   //getDataset()
   SharedPtr<Dataset> getDataset();
 
@@ -179,11 +176,14 @@ public:
   }
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 protected:
 

@@ -61,9 +61,6 @@ public:
   virtual ~ModelViewNode() {
   }
 
-  //executeAction
-  virtual void executeAction(StringTree in) override;
-
   //getModelview
   const Matrix& getModelview() const {
     return T;
@@ -78,16 +75,19 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override {
-    Node::writeTo(out);
-    out.writeValue("T",T.toString());
+  //execute
+  virtual void execute(Archive& ar) override;
+
+  //write
+  virtual void write(Archive& ar) const override {
+    Node::write(ar);
+    ar.write("T", T);
   }
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override {
-    Node::readFrom(in);
-    T= Matrix::fromString(4,in.readValue("T"));
+  //read
+  virtual void read(Archive& ar) override {
+    Node::read(ar);
+    ar.read("T", T);
   }
 
   static ModelViewNode* castFrom(Node* obj) {

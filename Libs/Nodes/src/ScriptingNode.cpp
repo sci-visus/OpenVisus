@@ -204,25 +204,30 @@ ScriptingNode::~ScriptingNode()
 
 
 //////////////////////////////////////////////////////////////////////////
-void ScriptingNode::executeAction(StringTree in)
+void ScriptingNode::execute(Archive& ar)
 {
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.readString("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
 
     if (target_id == "max_publish_msec") {
-      setMaxPublishMSec(in.readInt("value"));
+      int value=600;
+      ar.read("value", value);
+      setMaxPublishMSec(value);
       return;
     }
 
     if (target_id == "code") {
-      setCode(in.readString("value"));
+      String value;
+      ar.read("value", value);
+      setCode(value);
       return;
     }
 
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -461,23 +466,20 @@ void ScriptingNode::guessPresets(Array input)
 }
 
 ///////////////////////////////////////////////////////////////////////
-void ScriptingNode::writeTo(StringTree& out) const
+void ScriptingNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
-
-  out.writeValue("max_publish_msec", cstring(max_publish_msec));
-
-  if (!code.empty())
-    out.writeText("code", code);
+  Node::write(ar);
+  ar.write("max_publish_msec", max_publish_msec);
+  ar.writeText("code", code);
 }
 
 ///////////////////////////////////////////////////////////////////////
-void ScriptingNode::readFrom(StringTree& in)
+void ScriptingNode::read(Archive& ar)
 {
-  Node::readFrom(in);
-
-  max_publish_msec=cint(in.readValue("max_publish_msec", cstring(this->max_publish_msec)));
-  setCode(in.readText("code"));
+  Node::read(ar);
+  String code;
+  ar.read("max_publish_msec", max_publish_msec);
+  ar.readText("code", code);
 }
 
 } //namespace Visus

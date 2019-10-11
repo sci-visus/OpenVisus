@@ -1009,49 +1009,64 @@ VoxelScoopNode::VoxelScoopNode(String name) :  Node(name)
 }
 
 /////////////////////////////////////////////////////////////
-void VoxelScoopNode::executeAction(StringTree in)
+void VoxelScoopNode::execute(Archive& ar)
 {
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.readString("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
 
     if (target_id == "simplify") {
-      setSimplify(in.readBool("value"));
+      bool value=true;
+      ar.read("value", value);
+      setSimplify(value);
       return;
     }
 
     if (target_id == "min_length") {
-      setMinLength(in.readDouble("value"));
+      double value=10.0;
+      ar.read("value", value);
+      setMinLength(value);
       return;
     }
 
     if (target_id == "min_ratio") {
-      setMinRatio(in.readDouble("value"));
+      double value=1.0;
+      ar.read("value", value);
+      setMinRatio(value);
       return;
     }
 
     if (target_id == "threshold") {
-      setThreshold(in.readDouble("value"));
+      double value=42;
+      ar.read("value", value);
+      setThreshold(value);
       return;
     }
 
     if (target_id == "use_minima_as_seed") {
-      setUseMinimaAsSeed(in.readBool("value"));
+      bool value = false;
+      ar.read("value", value);
+      setUseMinimaAsSeed(value);
       return;
     }
 
     if (target_id == "use_maxima_as_seed") {
-      setUseMaximaAsSeed(in.readBool("value"));
+      bool value = false;
+      ar.read("value", value);
+      setUseMaximaAsSeed(value);
       return;
     }
 
     if (target_id == "min_diam") {
-      setMinDiam(in.readDouble("value"));
+      double value = 0.75;
+      ar.read("value", value);
+      setMinDiam(value);
       return;
     }
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 
 
 }
@@ -1100,29 +1115,31 @@ bool VoxelScoopNode::processInput()
 
 
 /////////////////////////////////////////////////////////////
-void VoxelScoopNode::writeTo(StringTree& out) const
+void VoxelScoopNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
-  out.writeValue("simplify",cstring(simplify));
-  out.writeValue("min_length",cstring(min_length));
-  out.writeValue("min_ratio",cstring(min_ratio)); 
-  out.writeValue("threshold",cstring(threshold));
-  out.writeValue("use_minima_as_seed",cstring(use_minima_as_seed));
-  out.writeValue("use_maxima_as_seed",cstring(use_maxima_as_seed));
-  out.writeValue("min_diam",cstring(min_diam));
+  Node::write(ar);
+
+  ar.write("simplify", simplify);
+  ar.write("min_length", min_length);
+  ar.write("min_ratio", min_ratio);
+  ar.write("threshold", threshold);
+  ar.write("use_minima_as_seed", use_minima_as_seed);
+  ar.write("use_maxima_as_seed", use_maxima_as_seed);
+  ar.write("min_diam", min_diam);
 }
 
 /////////////////////////////////////////////////////////////
-void VoxelScoopNode::readFrom(StringTree& in)
+void VoxelScoopNode::read(Archive& ar)
 {
-  Node::readFrom(in);
-  simplify=cbool(in.readValue("simplify"));
-  min_length=cdouble(in.readValue("min_length"));
-  min_ratio=cdouble(in.readValue("min_ratio"));
-  threshold=cdouble(in.readValue("threshold"));
-  use_minima_as_seed =cbool(in.readValue("use_minima_as_seed"));
-  use_maxima_as_seed =cbool(in.readValue("use_maxima_as_seed"));
-  min_diam=cdouble(in.readValue("min_diam"));
+  Node::read(ar);
+
+  ar.read("simplify", simplify);
+  ar.read("min_length", min_length);
+  ar.read("min_ratio", min_ratio);
+  ar.read("threshold", threshold);
+  ar.read("use_minima_as_seed", use_minima_as_seed);
+  ar.read("use_maxima_as_seed", use_maxima_as_seed);
+  ar.read("min_diam", min_diam);
 }
 
 } //namespace Visus

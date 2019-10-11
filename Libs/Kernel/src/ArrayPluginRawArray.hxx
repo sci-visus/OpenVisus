@@ -83,9 +83,9 @@ public:
       return StringTree();
 
     StringTree ret("info");
-    ret.writeString("format", "RAW");
-    ret.writeString("url", url_);
-    ret.writeString("filesize", cstring(filesize));
+    ret.write("format", "RAW");
+    ret.write("url", url_);
+    ret.write("filesize", filesize);
 
     return ret;
   }

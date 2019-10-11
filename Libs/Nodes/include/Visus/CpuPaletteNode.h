@@ -58,9 +58,6 @@ public:
   //destructor
   virtual ~CpuPaletteNode();
 
-  //executeAction
-  virtual void executeAction(StringTree in);
-
   //processInput
   virtual bool processInput() override;
 
@@ -77,11 +74,16 @@ public:
     return this->bounds;
   }
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+public:
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //execute
+  virtual void execute(Archive& ar);
+
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 

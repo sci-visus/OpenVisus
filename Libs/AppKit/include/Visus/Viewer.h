@@ -105,24 +105,24 @@ public:
     this->show_logos = default_show_logos;
   }
 
-  //writeTo
-  void writeTo(StringTree& out) const
+  //write
+  void write(Archive& ar) const
   {
-    out.writeValue("title", title);
-    out.writeValue("panels", panels);
-    out.writeValue("bHideTitleBar", cstring(bHideTitleBar));
-    out.writeValue("bHideMenus", cstring(bHideMenus));
-    out.writeValue("screen_bounds", screen_bounds.toString());
+    ar.write("title", title);
+    ar.write("panels", panels);
+    ar.write("bHideTitleBar", bHideTitleBar);
+    ar.write("bHideMenus", bHideMenus);
+    ar.write("screen_bounds", screen_bounds);
   }
 
-  //readFrom
-  void readFrom(StringTree& in)
+  //read
+  void read(Archive& ar)
   {
-    title = in.readValue("title");
-    panels = in.readValue("panels");
-    bHideTitleBar = cbool(in.readValue("bHideTitleBar"));
-    bHideMenus = cbool(in.readValue("bHideMenus"));
-    screen_bounds = Rectangle2d::fromString(in.readValue("screen_bounds"));
+    ar.read("title", title);
+    ar.read("panels", panels);
+    ar.read("bHideTitleBar", bHideTitleBar);
+    ar.read("bHideMenus", bHideMenus);
+    ar.read("screen_bounds", screen_bounds);
   }
 
 };
@@ -316,9 +316,6 @@ public:
 
   //showLicences
   void showLicences();
-
-  //executeAction
-  virtual void executeAction(StringTree in) override;
 
   //getModel
   Dataflow* getDataflow() {
@@ -608,11 +605,14 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& out) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 public:
 

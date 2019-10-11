@@ -64,7 +64,7 @@ public:
     this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
     this->url = config.readString("url",dataset->getUrl().toString()); VisusAssert(url.valid());
 
-    this->config.writeString("url", url.toString());
+    this->config.write("url", url.toString());
 
     bool disable_async = config.readBool("disable_async", dataset->isServerMode());
 

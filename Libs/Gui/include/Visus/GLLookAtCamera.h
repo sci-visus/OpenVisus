@@ -60,9 +60,6 @@ public:
   virtual ~GLLookAtCamera() {
   }
 
-  //executeAction
-  virtual void executeAction(StringTree in) override;
-
   //getTypeName
   virtual String getTypeName() const override {
     return "GLLookAtCamera";
@@ -76,9 +73,9 @@ public:
   //guessPosition
   virtual bool guessPosition(BoxNd value,int ref=-1) override;
 
-  //splitProjectionFrustum
-  virtual void splitProjectionFrustum(Rectangle2d value) override {
-    setProperty("split_projection_frustum", this->split_projection_frustum, value);
+  //splitFrustum
+  virtual void splitFrustum(Rectangle2d value) override {
+    setProperty("split_frustum", this->split_frustum, value);
   }
 
   //getPos
@@ -176,11 +173,14 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& in) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 
@@ -191,7 +191,7 @@ private:
 
   //projection
   double                 fov = 60.0;
-  Rectangle2d            split_projection_frustum = Rectangle2d(0, 0, 1, 1);
+  Rectangle2d            split_frustum = Rectangle2d(0, 0, 1, 1);
 
   //modelview
   Point3d                pos, dir, vup;

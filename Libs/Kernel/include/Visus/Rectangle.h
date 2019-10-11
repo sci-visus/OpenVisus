@@ -144,22 +144,22 @@ public:
     return !(operator==(other));
   }
 
-  //writeTo
-  void writeTo(StringTree& out) const
+  //write
+  void write(Archive& ar) const
   {
-    out.writeString("x", cstring(x));
-    out.writeString("y", cstring(y));
-    out.writeString("width", cstring(width));
-    out.writeString("height", cstring(height));
+    ar.write("x", x);
+    ar.write("y", y);
+    ar.write("width", width);
+    ar.write("height", height);
   }
 
-  //readFrom
-  void readFrom(StringTree& in) 
+  //read
+  void read(Archive& ar)
   {
-    x = cint(in.readString("x"));
-    y = cint(in.readString("y"));
-    width = cint(in.readString("width"));
-    height = cint(in.readString("height"));
+    ar.read("x", x);
+    ar.read("y", y);
+    ar.read("width", width);
+    ar.read("height", height);
   }
 
   //convert to string
@@ -271,22 +271,22 @@ public:
     return !(operator==(other));
   }
 
-  //writeTo
-  void writeTo(StringTree& out) const
+  //write
+  void write(Archive& ar) const
   {
-    out.writeString("x", cstring(x));
-    out.writeString("y", cstring(y));
-    out.writeString("width", cstring(width));
-    out.writeString("height", cstring(height));
+    ar.write("x", x);
+    ar.write("y", y);
+    ar.write("width", width);
+    ar.write("height", height);
   }
 
-  //readFrom
-  void readFrom(StringTree& in) 
+  //read
+  void read(Archive& ar)
   {
-    x = cdouble(in.readString("x"));
-    y = cdouble(in.readString("y"));
-    width = cdouble(in.readString("width"));
-    height = cdouble(in.readString("height"));
+    ar.read("x", x);
+    ar.read("y", y);
+    ar.read("width", width);
+    ar.read("height", height);
   }
 
   //convert to string

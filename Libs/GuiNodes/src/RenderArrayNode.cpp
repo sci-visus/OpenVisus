@@ -182,43 +182,58 @@ RenderArrayNode::~RenderArrayNode()
 {}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RenderArrayNode::executeAction(StringTree in)
+void RenderArrayNode::execute(Archive& ar)
 {
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.readString("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
 
     if (target_id == "lighting_material") {
-      setLightingMaterial(*DecodeObject<GLMaterial>(*in.getFirstChild()));
+      GLMaterial value;
+      value.read(*ar.getFirstChild());
+      setLightingMaterial(value);
       return;
     }
     if (target_id == "lighting_enabled") {
-      setLightingEnabled(in.readBool("value"));
+      bool value=false;
+      ar.read("value", value);
+      setLightingEnabled(value);
       return;
     }
     if (target_id == "palette_enabled") {
-      setPaletteEnabled(in.readBool("value"));
+      bool value = false;
+      ar.read("value", value);
+      setPaletteEnabled(value);
       return;
     }
     if (target_id == "use_view_direction") {
-      setUseViewDirection(in.readBool("value"));
+      bool value=false;
+      ar.read("value", value);
+      setUseViewDirection(value);
       return;
     }
     if (target_id == "max_num_slices") {
-      setMaxNumSlices(in.readInt("value"));
+      int value=0;
+      ar.read("value", value);
+      setMaxNumSlices(value);
       return;
     }
     if (target_id == "minify_filter") {
-      setMinifyFilter(in.readInt("value"));
+      int value= GL_LINEAR;
+      ar.read("value", value);
+      setMinifyFilter(value);
       return;
     }
     if (target_id == "magnify_filter") {
-      setMagnifyFilter(in.readInt("value"));
+      int value = GL_LINEAR;
+      ar.read("value", value);
+      setMagnifyFilter(value);
       return;
     }
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -447,29 +462,29 @@ void RenderArrayNode::glRender(GLCanvas& gl)
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RenderArrayNode::writeTo(StringTree& out) const
+void RenderArrayNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
+  Node::write(ar);
 
-  out.writeValue("lighting_enabled",cstring(lighting_enabled));
-  out.writeValue("palette_enabled",cstring(palette_enabled));
-  out.writeValue("use_view_direction",cstring(use_view_direction));
-  out.writeValue("max_num_slices",cstring(max_num_slices));
-  out.writeValue("magnify_filter",cstring(magnify_filter));
-  out.writeValue("minify_filter",cstring(minify_filter));
+  ar.write("lighting_enabled", lighting_enabled);
+  ar.write("palette_enabled", palette_enabled);
+  ar.write("use_view_direction", use_view_direction);
+  ar.write("max_num_slices", max_num_slices);
+  ar.write("magnify_filter", magnify_filter);
+  ar.write("minify_filter", minify_filter);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void RenderArrayNode::readFrom(StringTree& in)
+void RenderArrayNode::read(Archive& ar)
 {
-  Node::readFrom(in);
+  Node::read(ar);
 
-  this->lighting_enabled=cbool(in.readValue("lighting_enabled"));
-  this->palette_enabled=cbool(in.readValue("palette_enabled"));
-  this->use_view_direction=cbool(in.readValue("use_view_direction"));
-  this->max_num_slices=cint(in.readValue("max_num_slices"));
-  this->magnify_filter=cint(in.readValue("magnify_filter"));
-  this->minify_filter=cint(in.readValue("minify_filter"));
+  ar.read("lighting_enabled", lighting_enabled);
+  ar.read("palette_enabled", palette_enabled);
+  ar.read("use_view_direction", use_view_direction);
+  ar.read("max_num_slices", max_num_slices);
+  ar.read("magnify_filter", magnify_filter);
+  ar.read("minify_filter", minify_filter);
 }
  
 

@@ -58,9 +58,6 @@ public:
   //destructor
   virtual ~TimeNode();
 
-  //executeAction
-  virtual void executeAction(StringTree in) override;
-
   //getCurrentTime
   inline double getCurrentTime() const
   {return current_time;}
@@ -101,11 +98,14 @@ public:
   }
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  ///readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  ///read
+  virtual void read(Archive& ar) override;
 
 private:
 

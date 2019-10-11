@@ -44,9 +44,10 @@ For support : support@visus.net
 namespace Visus {
 
   //////////////////////////////////////////////////
-SharedPtr<GLCamera> GLCamera::decode(StringTree in)
+SharedPtr<GLCamera> GLCamera::decode(StringTree& ar)
 {
-  auto TypeName = in.readString("TypeName", in.name);
+  String TypeName=ar.name;
+  ar.read("TypeName", TypeName);
 
   SharedPtr<GLCamera> ret;
 
@@ -59,7 +60,7 @@ SharedPtr<GLCamera> GLCamera::decode(StringTree in)
   else
     ThrowException("internal error");
 
-  ret->readFrom(in);
+  ret->read(ar);
   return ret;
 }
 

@@ -246,6 +246,7 @@ void ThrowExceptionEx(String where, String what)
   std::ostringstream out;
   out << "Visus throwing exception where(" << where << ") what(" << what << ")";
   String msg = out.str();
+  VisusInfo() << msg;
   throw std::runtime_error(msg);
 }
 

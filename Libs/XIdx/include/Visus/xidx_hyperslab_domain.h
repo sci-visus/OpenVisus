@@ -78,24 +78,24 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override
+  //write
+  virtual void write(Archive& ar) const override
   {
-    ListDomain::writeTo(out);
+    ListDomain::write(ar);
   }
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override
+  //read
+  virtual void read(Archive& ar) override
   {
-    ListDomain::readFrom(in);
-
+    ListDomain::read(ar);
     // TODO generalize for many slabs
-    if(values.size()==3)
-    {
+    if (values.size() == 3) {
       start = values[0];
-      step  = values[1];
+      step = values[1];
       count = (int)values[2];
     }
+    //    std::istringstream parse(ar.readText());
+    //    parse >> start >> step >> count;
   }
 
 };

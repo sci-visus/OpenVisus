@@ -108,38 +108,32 @@ public:
 
 public:
 
-  //writeTo
-  void writeTo(StringTree& out) const
+  //write
+  void write(Archive& ar) const
   {
-    out.write("name", name);
-    out.write("color", color.toString());
-    out.writeText(StringUtils::join(this->values));
+    ar.write("name", name);
+    ar.write("color", color);
+    ar.write("values", values);
   }
 
-  //readFrom
-  void readFrom(StringTree& in)
+  //read
+  void read(Archive& ar)
   {
-    name = in.read("name");
-    color = Color::fromString(in.read("color"));
-
-    this->values.clear();
-
-    std::istringstream ss(in.readText());
-    double value;
-    while (ss >> value)
-      this->values.push_back(value);
+    ar.read("name", name);
+    ar.read("color", color);
+    ar.read("values", values);
   }
 
   //encode
   StringTree encode(String root_name) const {
     StringTree out(root_name);
-    writeTo(out);
+    write(out);
     return out;
   }
 
   //decode
   void decode(StringTree in) {
-    readFrom(in);
+    read(in);
   }
 
 };
@@ -213,9 +207,6 @@ public:
   bool valid() const {
     return getNumberOfSamples() > 0 && getNumberOfFunctions() >0;
   }
-
-  //executeAction
-  virtual void executeAction(StringTree in) override;
 
   //operator=
   //TransferFunction& operator=(const TransferFunction& other);
@@ -316,11 +307,14 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 

@@ -120,8 +120,8 @@ private:
     //for example kdquery=true could be maintained!
     child->attributes = dataset->getConfig().attributes;
 
-    child->writeString("name", name);
-    child->writeString("url", getDatasetUrl(name));
+    child->write("name", name);
+    child->write("url", getDatasetUrl(name));
 
     dataset->setServerMode(true);
 
@@ -289,9 +289,9 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
     auto url = request.url.getParam("url");
 
     stree = StringTree("dataset");
-    stree.writeString("name", name);
-    stree.writeString("url", url);
-    stree.writeString("permissions", "public");
+    stree.write("name", name);
+    stree.write("url", url);
+    stree.write("permissions", "public");
   }
   else if (request.url.hasParam("xml"))
   {
@@ -372,7 +372,7 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
     if (!stree.valid())
     {
       VisusReleaseAssert(stree.name=="dataset");
-      stree.writeString("name", dataset_name);
+      stree.write("name", dataset_name);
 
       std::stack< std::pair<String,StringTree*>> stack;
       stack.push(std::make_pair("",&stree));
@@ -384,7 +384,7 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
         if (stree->name == "dataset" && !stree->getAllChilds("name").empty())
         {
           prefix = prefix + (prefix.empty() ? "" : "/") + stree->readString("name");
-          stree->writeString("url", datasets->getDatasetUrl(prefix));
+          stree->write("url", datasets->getDatasetUrl(prefix));
         }
         for (auto child : stree->getChilds())
           stack.push(std::make_pair(prefix, child.get()));

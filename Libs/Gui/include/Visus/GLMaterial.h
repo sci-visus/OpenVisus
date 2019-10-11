@@ -70,6 +70,26 @@ public:
       return !operator==(other);
     }
 
+    //write
+    void write(Archive& ar) const
+    {
+      ar.write("ambient", ambient);
+      ar.write("diffuse", diffuse);
+      ar.write("specular", specular);
+      ar.write("emission", emission);
+      ar.write("shininess", shininess);
+    }
+
+    //writereadFromTo
+    void read(Archive& ar)
+    {
+      ar.read("ambient", ambient);
+      ar.read("diffuse", diffuse);
+      ar.read("specular", specular);
+      ar.read("emission", emission);
+      ar.read("shininess", shininess);
+    }
+
   };
   Side front,back;
 
@@ -108,11 +128,11 @@ public:
 
 public:
 
-  //writeTo
-  void writeTo(StringTree& out) const;
+  //write
+  void write(Archive& ar) const;
 
-  //readFrom
-  void readFrom(StringTree& in) ;
+  //read
+  void read(Archive& ar) ;
 
 
 }; //end class

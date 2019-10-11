@@ -72,60 +72,79 @@ JTreeRenderNode::~JTreeRenderNode()
 {
 }
 ////////////////////////////////////////////////////////////
-void JTreeRenderNode::executeAction(StringTree in)
+void JTreeRenderNode::execute(Archive& ar)
 {
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.readString("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
 
     if (target_id == "color_by_component") {
-      setColorByComponent(in.readBool("value"));
+      bool value=true;
+      ar.read("value", value);
+      setColorByComponent(value);
       return;
     }
 
     if (target_id == "draw_saddles") {
-      setDrawSaddles(in.readBool("value"));
+      bool value=false;
+      ar.read("value", value);
+      setDrawSaddles(value);
       return;
     }
 
     if (target_id == "draw_extrema") {
-      setDrawExtrema(in.readBool("value"));
+      bool value = false;
+      ar.read("value", value);
+      setDrawExtrema(value);
       return;
     }
 
     if (target_id == "draw_edges") {
-      setDrawEdges(in.readBool("value"));
+      bool value = false;
+      ar.read("value", value);
+      setDrawEdges(value);
       return;
     }
 
     if (target_id == "is_2d") {
-      set2d(in.readBool("value"));
+      bool value = false;
+      ar.read("value", value);
+      set2d(value);
       return;
     }
 
     if (target_id == "radius") {
-      setRadius(in.readDouble("value"));
+      double value=2.5;
+      ar.read("value", value);
+      setRadius(value);
       return;
     }
 
     if (target_id == "min_material") {
-      setMinMaterial(*DecodeObject<GLMaterial>(*in.getFirstChild()));
+      GLMaterial value;
+      value.read(*ar.getFirstChild());
+      setMinMaterial(value);
       return;
     }
 
     if (target_id == "max_material") {
-      setMaxMaterial(*DecodeObject<GLMaterial>(*in.getFirstChild()));
+      GLMaterial value;
+      value.read(*ar.getFirstChild());
+      setMaxMaterial(value);
       return;
     }
 
     if (target_id == "saddle_material") {
-      setSaddleMaterial(*DecodeObject<GLMaterial>(*in.getFirstChild()));
+      GLMaterial value;
+      value.read(*ar.getFirstChild());
+      setSaddleMaterial(value);
       return;
     }
   }
 
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 }
 
 ////////////////////////////////////////////////////////////
@@ -270,37 +289,37 @@ void JTreeRenderNode::glRender(GLCanvas& gl)
 
 
 /////////////////////////////////////////////////////////////
-void JTreeRenderNode::writeTo(StringTree& out) const
+void JTreeRenderNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
+  Node::write(ar);
 
-  out.writeValue("color_by_component",cstring(color_by_component));
-  out.writeValue("draw_saddles",cstring(draw_saddles));
-  out.writeValue("draw_extrema",cstring(draw_extrema));
-  out.writeValue("draw_edges",cstring(draw_edges));
-  out.writeValue("is_2d",cstring(is_2d));
-  out.writeValue("radius",cstring(radius));
+  ar.write("color_by_component", color_by_component);
+  ar.write("draw_saddles", draw_saddles);
+  ar.write("draw_extrema", draw_extrema);
+  ar.write("draw_edges", draw_edges);
+  ar.write("is_2d", is_2d);
+  ar.write("radius", radius);
 
-  out.writeObject("min_material", min_material);
-  out.writeObject("max_material", max_material);
-  out.writeObject("saddle_material", saddle_material);
+  ar.writeObject("min_material", min_material);
+  ar.writeObject("max_material", max_material);
+  ar.writeObject("saddle_material", saddle_material);
 }
 
 /////////////////////////////////////////////////////////////
-void JTreeRenderNode::readFrom(StringTree& in)
+void JTreeRenderNode::read(Archive& ar)
 {
-  Node::readFrom(in);
+  Node::read(ar);
 
-  color_by_component=cbool(in.readValue("color_by_component"));
-  draw_saddles=cbool(in.readValue("draw_saddles"));
-  draw_extrema=cbool(in.readValue("draw_extrema"));
-  draw_edges=cbool(in.readValue("draw_edges"));
-  is_2d =cbool(in.readValue("is_2d"));
-  radius=cdouble(in.readValue("radius"));
+  ar.read("color_by_component", color_by_component);
+  ar.read("draw_saddles", draw_saddles);
+  ar.read("draw_extrema", draw_extrema);
+  ar.read("draw_edges", draw_edges);
+  ar.read("is_2d", is_2d);
+  ar.read("radius", radius);
 
-  in.readObject("min_material", min_material);
-  in.readObject("max_material", max_material);
-  in.readObject("saddle_material", saddle_material);
+  ar.readObject("min_material", min_material);
+  ar.readObject("max_material", max_material);
+  ar.readObject("saddle_material", saddle_material);
 }
 
 

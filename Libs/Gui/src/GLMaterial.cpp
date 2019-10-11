@@ -63,43 +63,17 @@ GLMaterial GLMaterial::createRandom()
 
 
 ///////////////////////////////////////////////
-void GLMaterial::writeTo(StringTree& out) const
+void GLMaterial::write(Archive& ar) const
 {
-  String F = StringUtils::format()
-    << this->front.ambient.toString() << " "
-    << this->front.diffuse.toString() << " "
-    << this->front.specular.toString() << " "
-    << this->front.emission.toString() << " "
-    << this->front.shininess;
-  out.write("front", F);
-
-  String B = StringUtils::format()
-    << this->back.ambient.toString() << " "
-    << this->back.diffuse.toString() << " "
-    << this->back.specular.toString() << " "
-    << this->back.emission.toString() << " "
-    << this->back.shininess;
-  out.write("back", B);
+  ar.writeObject("front", front);
+  ar.writeObject("back", back);
 }
 
 ///////////////////////////////////////////////
-void GLMaterial::readFrom(StringTree& in) 
+void GLMaterial::read(Archive& ar)
 {
-  auto F= StringUtils::split(in.read("front")); 
-  F.resize(5);
-  this->front.ambient = Color::fromString(F[0]);
-  this->front.diffuse = Color::fromString(F[1]);
-  this->front.specular = Color::fromString(F[2]);
-  this->front.emission = Color::fromString(F[3]);
-  this->front.shininess = cint(F[4]);
-
-  auto B = StringUtils::split(in.read("back"));  
-  B.resize(5);
-  this->back.ambient = Color::fromString(B[0]);
-  this->back.diffuse = Color::fromString(B[1]);
-  this->back.specular = Color::fromString(B[2]);
-  this->back.emission = Color::fromString(B[3]);
-  this->back.shininess = cint(B[4]);
+  ar.readObject("front", front);
+  ar.readObject("back", back);
 }
 
 } //namespace

@@ -178,18 +178,6 @@ public:
     return ret;
   }
 
-public:
-
-  //writeTo
-  void writeTo(StringTree& out) const {
-    out.writeValue("description",this->description);
-  }
-
-  //readFrom
-  void readFrom(StringTree& in)  {
-    *this=DType::fromString(in.readValue("description"));
-  }
-
 private:
 
   String description;

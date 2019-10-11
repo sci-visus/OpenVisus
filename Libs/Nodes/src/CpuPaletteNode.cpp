@@ -100,15 +100,15 @@ CpuPaletteNode::~CpuPaletteNode()
 }
 
 ///////////////////////////////////////////////////////////////////////
-void CpuPaletteNode::executeAction(StringTree in)
+void CpuPaletteNode::execute(Archive& ar)
 {
-  if (getPassThroughAction(in, "transfer_function"))
+  if (getPassThroughAction(ar, "transfer_function"))
   {
-    transfer_function->executeAction(in);
+    transfer_function->execute(ar);
     return;
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -163,17 +163,17 @@ bool CpuPaletteNode::processInput()
 
 
 ///////////////////////////////////////////////////////////////////////
-void CpuPaletteNode::writeTo(StringTree& out) const
+void CpuPaletteNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
-  out.writeObject("transfer_function",*transfer_function);
+  Node::write(ar);
+  ar.writeObject("transfer_function", *transfer_function);
 }
 
 ///////////////////////////////////////////////////////////////////////
-void CpuPaletteNode::readFrom(StringTree& in)
+void CpuPaletteNode::read(Archive& ar)
 {
-  Node::readFrom(in);
-  in.readObject("transfer_function",*transfer_function);
+  Node::read(ar);
+  ar.readObject("transfer_function", *transfer_function);
 }
 
 

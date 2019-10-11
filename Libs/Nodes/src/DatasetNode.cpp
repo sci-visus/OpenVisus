@@ -54,20 +54,23 @@ DatasetNode::~DatasetNode()
   
 
 //////////////////////////////////////////////////////////////////////////
-void DatasetNode::executeAction(StringTree in)
+void DatasetNode::execute(Archive& ar)
 {
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.readString("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
 
     if (target_id == "show_bounds") {
-      setShowBounds(in.readBool("value"));
+      bool value=true;
+      ar.read("value", value);
+      setShowBounds(value);
       return;
     }
 
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -96,33 +99,33 @@ void DatasetNode::exitFromDataflow()
 {Node::exitFromDataflow();}
 
 //////////////////////////////////////////////////////////////////////////
-void DatasetNode::writeTo(StringTree& out) const
+void DatasetNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
+  Node::write(ar);
 
   if (dataset)
   {
-    auto child = out.addChild(name);
+    auto child = ar.addChild(name);
     child->write("TypeName", dataset->getTypeName());
-    dataset->writeTo(*child);
+    dataset->write(*child);
   }
 
-  out.writeValue("show_bounds",cstring(show_bounds));
+  ar.write("show_bounds", show_bounds);
 }
 
 //////////////////////////////////////////////////////////////////////////
-void DatasetNode::readFrom(StringTree& in) 
+void DatasetNode::read(Archive& ar)
 {
-  Node::readFrom(in);
+  Node::read(ar);
 
-  if (auto Dataset = in.getChild("dataset"))
+  if (auto Dataset = ar.getChild("dataset"))
   {
     auto TypeName = Dataset->readString("TypeName");
     dataset=DatasetFactory::getSingleton()->createInstance(TypeName);
-    dataset->readFrom(*Dataset);
+    dataset->read(*Dataset);
   }
 
-  show_bounds=cbool(in.readValue("show_bounds"));
+  ar.read("show_bounds", show_bounds);
 }
 
 } //namespace Visus

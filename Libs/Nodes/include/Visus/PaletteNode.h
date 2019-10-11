@@ -59,9 +59,6 @@ public:
   //destructor
   virtual ~PaletteNode();
 
-  //executeAction
-  virtual void executeAction(StringTree in) override;
-
   //getPalette
   SharedPtr<Palette> getPalette() const {
     return palette;
@@ -87,11 +84,14 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
   static PaletteNode* castFrom(Node* obj) {
     return dynamic_cast<PaletteNode*>(obj);

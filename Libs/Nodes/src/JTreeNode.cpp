@@ -643,39 +643,52 @@ JTreeNode::~JTreeNode() {
 
 
 ////////////////////////////////////////////////////////////
-void JTreeNode::executeAction(StringTree in)
+void JTreeNode::execute(Archive& ar)
 {
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.readString("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
 
     if (target_id == "minima_tree") {
-      setMinimaTree(in.readBool("value"));
+      bool value=false;
+      ar.read("value", value);
+      setMinimaTree(value);
       return;
     }
     if (target_id == "min_persistence") {
-      setMinPersistence(in.readDouble("value"));
+      double value=21;
+      ar.read("value", value);
+      setMinPersistence(value);
       return;
     }
     if (target_id == "reduce_minmax") {
-      setReduceMinMax(in.readBool("value"));
+      bool value = false;
+      ar.read("value", value);
+      setReduceMinMax(value);
       return;
     }
     if (target_id == "threshold_min") {
-      setThresholdMin(in.readDouble("value"));
+      double value=0;
+      ar.read("value", value);
+      setThresholdMin(value);
       return;
     }
     if (target_id == "threshold_max") {
-      setThresholdMax(in.readDouble("value"));
+      double value = 0;
+      ar.read("value", value);
+      setThresholdMax(value);
       return;
     }
     if (target_id == "auto_threshold") {
-      setAutoThreshold(in.readBool("value"));
+      bool value=true;
+      ar.read("value", value);
+      setAutoThreshold(value);
       return;
     }
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 }
 
 ////////////////////////////////////////////////////////////
@@ -770,29 +783,29 @@ void JTreeNode::updateAutoThreshold()
 
 
 ////////////////////////////////////////////////////////////
-void JTreeNode::writeTo(StringTree& out) const
+void JTreeNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
+  Node::write(ar);
 
-  out.writeValue("minima_tree",cstring(minima_tree));
-  out.writeValue("min_persistence",cstring(min_persistence));
-  out.writeValue("reduce_minmax",cstring(reduce_minmax));
-  out.writeValue("threshold_min",cstring(threshold_min));
-  out.writeValue("threshold_max",cstring(threshold_max));
-  out.writeValue("auto_threshold",cstring(auto_threshold));
+  ar.write("minima_tree", minima_tree);
+  ar.write("min_persistence", min_persistence);
+  ar.write("reduce_minmax", reduce_minmax);
+  ar.write("threshold_min", threshold_min);
+  ar.write("threshold_max", threshold_max);
+  ar.write("auto_threshold", auto_threshold);
 }
 
 ////////////////////////////////////////////////////////////
-void JTreeNode::readFrom(StringTree& in)
+void JTreeNode::read(Archive& ar)
 {
-  Node::readFrom(in);
+  Node::read(ar);
 
-  minima_tree=cbool(in.readValue("minima_tree"));
-  min_persistence=cdouble(in.readValue("min_persistence"));
-  reduce_minmax=cbool(in.readValue("reduce_minmax"));
-  threshold_min=cdouble(in.readValue("threshold_min"));
-  threshold_max=cdouble(in.readValue("threshold_max"));
-  auto_threshold=cbool(in.readValue("auto_threshold"));
+  ar.read("minima_tree", minima_tree);
+  ar.read("min_persistence", min_persistence);
+  ar.read("reduce_minmax", reduce_minmax);
+  ar.read("threshold_min", threshold_min);
+  ar.read("threshold_max", threshold_max);
+  ar.read("auto_threshold", auto_threshold);
 }
 
 } //namespace Visus

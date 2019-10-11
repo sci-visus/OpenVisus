@@ -172,20 +172,20 @@ public:
 
 public:
 
-  //writeTo
-  void writeTo(StringTree& out) const
+  //write
+  void write(Archive& ar) const
   {
-    out.writeValue("from", cstring(this->from));
-    out.writeValue("to", cstring(this->to));
-    out.writeValue("step", cstring(this->step));
+    ar.write("from", from);
+    ar.write("to", to);
+    ar.write("step", step);
   }
 
-  //readFrom
-  void readFrom(StringTree& in) 
+  //read
+  void read(Archive& ar)
   {
-    this->from = (double)cdouble(in.readValue("from"));
-    this->to = (double)cdouble(in.readValue("to"));
-    this->step = (double)cdouble(in.readValue("step"));
+    ar.read("from", from);
+    ar.read("to", to);
+    ar.read("step", step);
   }
 
 };

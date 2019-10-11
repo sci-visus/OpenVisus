@@ -180,30 +180,26 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override
+  //write
+  virtual void write(Archive& ar) const override
   {
-    XIdxElement::writeTo(out);
+    XIdxElement::write(ar);
 
-    out.writeString("Type", type.toString());
+    ar.write("Type", type.toString());
 
     for (auto child : this->data_items)
-      out.writeObject("DataItem",*child);
+      writeChild<DataItem>(ar, "DataItem", child);
   }
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override
+  //read
+  virtual void read(Archive& ar) override
   {
-    XIdxElement::readFrom(in);
+    XIdxElement::read(ar);
 
-    this->type = GeometryType::fromString(in.readString("Type"));
+    this->type = GeometryType::fromString(ar.readString("Type"));
 
-    for (auto child : in.getChilds("DataItem"))
-    {
-      auto data_item = new DataItem();
-      data_item->readFrom(*child);
-      addDataItem(data_item );
-    }
+    for (auto child : readChilds<DataItem>(ar, "DataItem"))
+      addDataItem(child);
   }
 
 };

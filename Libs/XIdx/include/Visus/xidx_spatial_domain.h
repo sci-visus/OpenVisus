@@ -101,36 +101,24 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override
+  //write
+  virtual void write(Archive& ar) const override
   {
-    Domain::writeTo(out);
-
-    if (topology)
-      out.writeObject("Topology",*topology);
-
-    if (geometry)
-      out.writeObject("Geometry", *geometry);
+    Domain::write(ar);
+    writeChild<Topology>(ar, "Topology", topology);
+    writeChild<Geometry>(ar, "Geometry", geometry);
   }
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override
+  //read
+  virtual void read(Archive& ar) override
   {
-    Domain::readFrom(in);
+    Domain::read(ar);
 
-    if (auto child = in.getChild("Topology"))
-    {
-      auto topology = new Topology();
-      topology->readFrom(*child);
+    if (auto topology = readChild<Topology>(ar, "Topology"))
       setTopology(topology);
-    }
 
-    if (auto child = in.getChild("Geometry"))
-    {
-      auto geometry = new Geometry();
-      geometry->readFrom(*child);
+    if (auto geometry = readChild<Geometry>(ar, "Geometry"))
       setGeometry(geometry);
-    } 
   }
 
 };

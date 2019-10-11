@@ -573,20 +573,23 @@ IsoContourNode::~IsoContourNode()
 {}
 
 ///////////////////////////////////////////////////////////////////////
-void IsoContourNode::executeAction(StringTree in)
+void IsoContourNode::execute(Archive& ar)
 {
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.readString("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
 
     if (target_id == "isovalue")
     {
-      setIsoValue(in.readDouble("value"));
+      double isovalue=0.0;
+      ar.read("isovalue", isovalue);
+      setIsoValue(isovalue);
       return;
     }
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -614,17 +617,17 @@ bool IsoContourNode::processInput()
 
 
 ///////////////////////////////////////////////////////////////////////
-void IsoContourNode::writeTo(StringTree& out) const
+void IsoContourNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
-  out.writeValue("isovalue",cstring(isovalue));
+  Node::write(ar);
+  ar.write("isovalue", isovalue);
 }
 
 ///////////////////////////////////////////////////////////////////////
-void IsoContourNode::readFrom(StringTree& in) 
+void IsoContourNode::read(Archive& ar)
 {
-  Node::readFrom(in);
-  isovalue=cdouble(in.readValue("isovalue"));
+  Node::read(ar);
+  ar.read("isovalue", isovalue);
 }
 
 } //namespace Visus

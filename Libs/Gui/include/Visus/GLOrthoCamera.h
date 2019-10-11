@@ -65,9 +65,6 @@ public:
     return "GLOrthoCamera";
   }
 
-  //executeAction
-  virtual void executeAction(StringTree in) override;
-
   //getLookAt
   virtual void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const override {
     pos = this->pos;
@@ -81,8 +78,8 @@ public:
   //guessPosition
   virtual bool guessPosition(BoxNd bound, int ref = -1) override;
 
-  //splitProjectionFrustum
-  virtual void splitProjectionFrustum(Rectangle2d r) override;
+  //splitFrustum
+  virtual void splitFrustum(Rectangle2d r) override;
 
   //setDisableRotation
   void setDisableRotation(bool value) {
@@ -211,11 +208,14 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 

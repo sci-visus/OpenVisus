@@ -53,10 +53,14 @@ class PyProducer(Node):
 	def __init__(self): 
 		Node.__init__(self)
 		self.addOutputPort("output")
+		
+	# getTypeName
+	def getTypeName(self):
+		return "PyProducer"
 
 	# getOsDependentTypeName
 	def getOsDependentTypeName(self):
-		return "Producer"
+		return "PyProducer"
 
 	# processInput (overriding from Node)
 	def processInput(self):
@@ -74,9 +78,13 @@ class PyReceiver(Node):
 		Node.__init__(self)
 		self.addInputPort("input")
 
+	# getTypeName
+	def getTypeName(self):
+		return "PyReceiver"
+
 	# getOsDependentTypeName
 	def getOsDependentTypeName(self):
-		return "Receiver"    
+		return "PyReceiver"    
 
 	# processInput (overriding from Node)
 	def processInput(self):

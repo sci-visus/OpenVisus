@@ -793,21 +793,23 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
 }
 
 //////////////////////////////////////////////////////////////////////////
-void Dataset::writeTo(StringTree& out) const
+void Dataset::write(Archive& ar) const
 {
-  out.writeValue("url",this->getUrl().toString());
+  auto url = getUrl();
+  ar.write("url", url);
 
   //I want to save it to retrieve it on a different computer
   if (config.valid())
-    out.addChild("config")->addChild(this->config);
+    ar.addChild("config")->addChild(this->config);
 }
 
 //////////////////////////////////////////////////////////////////////////
-void Dataset::readFrom(StringTree& in)
+void Dataset::read(Archive& ar)
 {
-  String url = in.readValue("url");
+  String url;
+  ar.read("url", url);
 
-  if (auto config=in.getChild("config"))
+  if (auto config= ar.getChild("config"))
   {
     VisusAssert(config->getNumberOfChilds() == 1);
     this->config = *config->getFirstChild();

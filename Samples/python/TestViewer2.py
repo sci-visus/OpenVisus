@@ -46,6 +46,10 @@ class MyPythonNode(PythonNode):
 		self.setName("MyPythonNode")
 		self.addInputPort("array")
     
+	# getTypeName
+	def getTypeName(self):    
+		return "MyPythonNode"
+    
 	# getOsDependentTypeName
 	def getOsDependentTypeName(self):
 		return "MyPythonNode"
@@ -89,28 +93,37 @@ def Main(argv):
 	
 	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
 	# c:\Python37\python.exe CMake/PyViewer.py	
-	
 	SetCommandLine("__main__")
 	GuiModule.createApplication()
-	AppKitModule.attach()  		
-
-	viewer=PyViewer()
-	viewer.open(r".\datasets\cat\gray.idx")
-	# ... with some little python scripting
-	viewer.setScriptingCode("""
-import cv2,numpy
-pdim=input.dims.getPointDim()
-img=Array.toNumPy(input,bShareMem=True)
-img=cv2.Laplacian(img,cv2.CV_64F)
-output=Array.fromNumPy(img,TargetDim=pdim)
-""".strip())	
-	viewer.run()
+	AppKitModule.attach()  
 	
+	VISUS_REGISTER_NODE_CLASS("MyPythonNode")
+
+	viewer=Viewer()
+	viewer.open("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1") 
+
+	# example of adding a PyQt5 widget to C++ Qt
+	mywidget=MyWidget()
+	viewer.addDockWidget("MyWidget",ToCppQtWidget(PyQt5.sip.unwrapinstance(mywidget)))
+
+	# example of adding a python node to the dataflow
+	root=viewer.getRoot()
+	world_box=viewer.getWorldBox()
+
+	pynode=MyPythonNode()
+	pynode.glSetRenderQueue(999)
+	pynode.setBounds(Position(world_box))
+	viewer.addNode(root,pynode)
+
+	# pynode will get the data from the query
+	query_node=viewer.findNodeByUUID("Volume")
+	viewer.connectPorts(query_node,"array","array",pynode)
+	 
 	GuiModule.execApplication()
 	viewer=None  
 	AppKitModule.detach()
 	print("All done")
-	sys.exit(0)		
+	sys.exit(0)
 
 
 # //////////////////////////////////////////////

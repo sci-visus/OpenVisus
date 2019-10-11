@@ -57,15 +57,15 @@ GLCameraNode::~GLCameraNode()
 
 
 //////////////////////////////////////////////////
-void GLCameraNode::executeAction(StringTree in)
+void GLCameraNode::execute(Archive& ar)
 {
-  if (getPassThroughAction(in, "glcamera"))
+  if (getPassThroughAction(ar, "glcamera"))
   {
-    getGLCamera()->executeAction(in);
+    getGLCamera()->execute(ar);
     return;
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 }
 //////////////////////////////////////////////////
 void GLCameraNode::setGLCamera(SharedPtr<GLCamera> value) 
@@ -96,23 +96,27 @@ void GLCameraNode::setGLCamera(SharedPtr<GLCamera> value)
 }
 
 //////////////////////////////////////////////////
-void GLCameraNode::writeTo(StringTree& out) const
+void GLCameraNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
+  Node::write(ar);
 
   if (glcamera)
-    out.addChild(EncodeObject(*glcamera));
+  {
+    StringTree ar(glcamera->getTypeName());
+    glcamera->write(ar);
+    ar.addChild(ar);
+  }
 
   //bDebugFrustum
 }
 
 //////////////////////////////////////////////////
-void GLCameraNode::readFrom(StringTree& in) 
+void GLCameraNode::read(Archive& ar)
 {
-  Node::readFrom(in);
+  Node::read(ar);
 
-  if (in.getNumberOfChilds())
-    this->glcamera = GLCamera::decode(*in.getFirstChild());
+  if (ar.getNumberOfChilds())
+    this->glcamera = GLCamera::decode(*ar.getFirstChild());
   else
     this->glcamera.reset();
 }

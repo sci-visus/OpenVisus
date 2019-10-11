@@ -56,30 +56,36 @@ TimeNode::~TimeNode()
 
 
 //////////////////////////////////////////////////////////////////////////
-void TimeNode::executeAction(StringTree in)
+void TimeNode::execute(Archive& ar)
 {
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.readString("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
 
     if (target_id == "current_time") {
-      setCurrentTime(in.readDouble("value"));
+      double value=0.0;
+      ar.read("value", value);
+      setCurrentTime(value);
       return;
     }
 
     if (target_id == "user_range") {
-      setUserRange(Range::fromString(in.readString("value")));
+      Range value;
+      ar.read("value", value);
+      setUserRange(value);
       return;
     }
 
     if (target_id == "play_msec") {
-      setPlayMsec(in.readInt("value"));
+      int value= 1000;
+      ar.read("value", value);
+      setPlayMsec(value);
       return;
     }
-
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 }
 
 //////////////////////////////////////////////////
@@ -139,33 +145,27 @@ void TimeNode::doPublish(SharedPtr<ReturnReceipt> return_receipt)
 }
 
 //////////////////////////////////////////////////
-void TimeNode::writeTo(StringTree& out) const
+void TimeNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
+  Node::write(ar);
 
-  out.writeValue("current_time",cstring(current_time));
+  ar.write("current_time", current_time);
+  ar.write("user_range", user_range);
+  ar.write("play_msec", play_msec);
 
-  out.writeObject("timesteps", timesteps);
-
-  if (user_range!=timesteps.getRange())
-    out.writeObject("user_range", user_range);
-
-  out.writeValue("play_msec",cstring(play_msec));
+  ar.writeObject("timesteps", timesteps);
 }
 
 //////////////////////////////////////////////////
-void TimeNode::readFrom(StringTree& in) 
+void TimeNode::read(Archive& ar)
 {
-  Node::readFrom(in);
+  Node::read(ar);
 
-  current_time=cdouble(in.readValue("current_time"));
+  ar.read("current_time", current_time);
+  ar.read("user_range", user_range);
+  ar.read("play_msec", play_msec);
 
-  in.readObject("timesteps", timesteps);
-
-  user_range=timesteps.getRange();
-  in.readObject("user_range", user_range);
-
-  play_msec=cint(in.readValue("play_msec","1000"));
+  ar.readObject("timesteps", timesteps);
 }
 
 

@@ -173,8 +173,8 @@ private:
       Array ret;
       if (info)
       {
-        info->writeString("format", "FreeImageArrayPlugin/remote");
-        info->writeString("url", url_);
+        info->write("format", "FreeImageArrayPlugin/remote");
+        info->write("url", url_);
         GetImageInfo(bitmap, *info);
       }
       else
@@ -227,8 +227,8 @@ private:
       int totpages = FreeImage_GetPageCount(multibitmap);
       if (info)
       {
-        info->writeString("totpages", cstring(totpages));
-        info->writeString("page", cstring(npage));
+        info->write("totpages", totpages);
+        info->write("page", npage);
       }
 
       if (!(npage >= 0 && npage<totpages))
@@ -244,8 +244,8 @@ private:
       Array ret;
       if (info)
       {
-        info->writeString("format", "FreeImageArrayPlugin/file/multipage");
-        info->writeString("url", url_);
+        info->write("format", "FreeImageArrayPlugin/file/multipage");
+        info->write("url", url_);
         GetImageInfo(bitmap, *info);
       }
       else
@@ -265,8 +265,8 @@ private:
       Array ret;
       if (info)
       {
-        info->writeString("format", "FreeImageArrayPlugin/file");
-        info->writeString("url", url_);
+        info->write("format", "FreeImageArrayPlugin/file");
+        info->write("url", url_);
         GetImageInfo(bitmap, *info);
       }
       else
@@ -298,7 +298,7 @@ private:
       PointNi dims = PointNi::one(2);
       dims[0] = width;
       dims[1] = height;
-      imginfo.writeString("dims", dims.toString());
+      imginfo.write("dims", dims);
     }
 
     //guess dtype
@@ -329,7 +329,8 @@ private:
     }
 
     auto fields = std::make_shared<StringTree>("fields");
-    fields->addChild(StringTree("field").write("dtype",dtype.toString()));
+    fields->addChild(StringTree("field")
+      .write("dtype",dtype));
     imginfo.addChild(fields);
   }
 

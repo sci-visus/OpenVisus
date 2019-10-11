@@ -100,21 +100,55 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const {
-    if(name.size())
-      out.writeString("Name", name);
+  //write
+  virtual void write(Archive& ar) const {
+    if (name.size())
+      ar.write("Name", name);
   }
 
-  //readFrom
-  virtual void readFrom(StringTree& in) {
-    name = in.readString("Name", name);
+  //read
+  virtual void read(Archive& ar) {
+    name = ar.readString("Name", name);
   }
+
+
+  //writeChilds
+  template <typename T>
+  static void writeChild(Archive& ar, String name, const T* child) {
+    if (!child) return;
+    child->write(*ar.addChild(name));
+  }
+
+  //readChilds
+  template <typename T>
+  static VISUS_NEWOBJECT(T*) readChild(Archive& ar, String name) {
+    auto child = ar.getChild(name);
+    if (!child) return nullptr;
+    auto ret = new T();
+    ret->read(*child);
+    return ret;
+  }
+
+  //readChilds
+  template <typename T>
+  static std::vector<T*> readChilds(Archive& ar, String name) {
+    std::vector<T*> ret;
+    for (auto it : ar.getChilds(name))
+    {
+      auto item = new T();
+      item->read(*it);
+      ret.push_back(item);
+    }
+    return ret;
+  }
+
+
 
 private:
 
   XIdxElement*              parent = nullptr;
   std::vector<XIdxElement*> childs;
+
 
 };
 

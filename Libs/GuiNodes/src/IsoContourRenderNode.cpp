@@ -143,15 +143,18 @@ IsoContourRenderNode::~IsoContourRenderNode() {
 }
 
 ///////////////////////////////////////////////////////////////////////////
-void IsoContourRenderNode::executeAction(StringTree in)
+void IsoContourRenderNode::execute(Archive& ar)
 {
-  if (in.name == "set")
+  if (ar.name == "set")
   {
-    auto target_id = in.readString("target_id");
+    String target_id;
+    ar.read("target_id", target_id);
 
     if (target_id == "material")
     {
-      setMaterial(*DecodeObject<GLMaterial>(*in.getFirstChild()));
+      GLMaterial value;
+      value.read(*ar.getFirstChild());
+      setMaterial(value);
       return;
       return;
     }
@@ -246,18 +249,18 @@ void IsoContourRenderNode::glRender(GLCanvas& gl)
 }
 
 /////////////////////////////////////////////////////////////
-void IsoContourRenderNode::writeTo(StringTree& out) const
+void IsoContourRenderNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
-  out.writeObject("material", material);
+  Node::write(ar);
+  ar.writeObject("material", material);
   //NOTE: the palette is a runtime value, and is not part of the model
 }
 
 /////////////////////////////////////////////////////////////
-void IsoContourRenderNode::readFrom(StringTree& in)
+void IsoContourRenderNode::read(Archive& ar)
 {
-  Node::readFrom(in);
-  in.readObject("material", material);
+  Node::read(ar);
+  ar.readObject("material", material);
   //NOTE: the palette is a runtime value, and is not part of the model
 }
 

@@ -110,9 +110,6 @@ public:
   //getTypeName
   virtual String getTypeName() const override;
 
-  //executeAction
-  virtual void executeAction(StringTree in) override;
-
   //getOsDependentTypeName
   virtual String getOsDependentTypeName() const {
     return typeid(*this).name();
@@ -304,11 +301,14 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 protected:
 

@@ -62,9 +62,6 @@ public:
   //destructor
   virtual ~IsoContourRenderNode();
 
-  //executeAction
-  virtual void executeAction(StringTree action);
-
   //glRender
   virtual void glRender(GLCanvas& gl) override;
    
@@ -109,11 +106,14 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar);
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 

@@ -298,26 +298,24 @@ public:
     return out.str();
   }
 
-
-
-  //writeTo
-  void writeTo(StringTree& out) const
+  //write
+  void write(Archive& ar) const
   {
     Color rgb=toRGB();
-    out.writeString("r",cstring((int)(255.0*rgb.get(0))));
-    out.writeString("g",cstring((int)(255.0*rgb.get(1))));
-    out.writeString("b",cstring((int)(255.0*rgb.get(2))));
-    out.writeString("a",cstring((int)(255.0*rgb.get(3))));
+    int r = (int)(255.0 * rgb.get(0)); ar.write("r", r);
+    int g = (int)(255.0 * rgb.get(1)); ar.write("g", g);
+    int b = (int)(255.0 * rgb.get(2)); ar.write("b", b);
+    int a = (int)(255.0 * rgb.get(3)); ar.write("a", a);
   }
   
-  //readFrom
-  void readFrom(StringTree& in) 
+  //read
+  void read(Archive& ar)
   {
-    int R=cint(in.readString("r"));
-    int G=cint(in.readString("g"));
-    int B=cint(in.readString("b"));
-    int A=cint(in.readString("a"));
-    (*this)=Color(R,G,B,A);
+    int r = 0; ar.read("r", r);
+    int g = 0; ar.read("g", g);
+    int b = 0; ar.read("b", b);
+    int a=255; ar.read("a", a);
+    (*this) = Color(r, g, b, a);
   }
 
 private:

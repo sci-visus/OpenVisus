@@ -654,10 +654,10 @@ public:
 
     VisusInfo() << "done fixFieldsRange";
 
-    StringTree out("fields");
+    Archive ar("fields");
     for (auto field : vf->getFields())
-      out.writeObject("field", field);
-    VisusInfo() << out.toString();
+      ar.writeObject("field", field);
+    VisusInfo() << ar.toString();
 
     return data;
   }
