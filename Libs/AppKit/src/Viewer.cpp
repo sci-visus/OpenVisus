@@ -148,11 +148,8 @@ Viewer::Viewer(String title) : QMainWindow()
   enableLog("~visusviewer.history.txt");
 
   New();
-
   refreshActions();
-  
   setFocusPolicy(Qt::StrongFocus);
-  
   showMaximized();
 }
 
@@ -296,7 +293,7 @@ void Viewer::execute(Archive& ar)
     if (what == "dataset") {
       String url;
       ar.read("url", url);
-      addDataset(findNodeByUUID(parent), url, ar.childs.empty() ? StringTree() : *ar.getFirstChild());
+      addDataset(findNodeByUUID(parent), url, /*config*/StringTree());
       return;
     }
 
@@ -507,6 +504,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   Rectangle2i geometry(0, 0, 0, 0);
   String fieldname;
   bool bMinimal = false;
+  String play_file;
 
   for (int I = 1; I<(int)args.size(); I++)
   {
@@ -531,6 +529,11 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
     {
       bMinimal = true;
     }
+    else if (args[I] == "--play-file")
+    {
+      play_file = args[++I];
+    }
+
     else if (args[I] == "--server")
     {
       auto modvisus = new ModVisus();
@@ -632,8 +635,11 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   if (bFullScreen)
     this->showFullScreen();
 
-  else if (geometry.width>0 && geometry.height>0)
+  if (geometry.width>0 && geometry.height>0)
     this->setGeometry(geometry.x, geometry.y, geometry.width, geometry.height);
+
+  if (!play_file.empty())
+    this->playFile(play_file);
 }
 
 ////////////////////////////////////////////////////////////
@@ -662,10 +668,12 @@ void Viewer::internalFlushMessages()
 }
 
 ////////////////////////////////////////////////////////////
-void Viewer::New()
+void Viewer::New(bool bCreateRoot)
 {
+  scheduled.timer.reset();
   setDataflow(std::make_shared<Dataflow>());
-  addNode(dataflow->createNode<Node>("World"));
+  if (bCreateRoot)
+    addNode(dataflow->createNode<Node>("World"));
   clearHistory();
 }
 
@@ -1183,7 +1191,8 @@ void Viewer::setDataflow(SharedPtr<Dataflow> value)
     connect(this->idle_timer.get(), &QTimer::timeout, [this]() {
       idle();
     });
-    this->idle_timer->start(1000/20);
+    const int fps = 20;
+    this->idle_timer->start(1000/ fps); 
 
     this->refreshData();
     this->postRedisplay();
@@ -1240,71 +1249,40 @@ bool Viewer::open(String url,Node* parent)
     return true;
   }
 
-  //xml means a Viewer dataflow
+  //xml means a Viewer scene
   if (StringUtils::endsWith(url,".xml"))
   {
-    StringTree in=StringTree::fromString(Utils::loadTextDocument(url));
-    if (!in.valid())
+    auto ar=StringTree::fromString(Utils::loadTextDocument(url));
+    if (!ar.valid())
     {
       VisusAssert(false);
       return false;
     }
 
+    New(false);
     setDataflow(std::make_shared<Dataflow>());
     clearHistory();
 
     try
     {
-      this->read(in);
+      read(ar);
     }
     catch (std::exception ex)
     {
       VisusAssert(false);
+      QMessageBox::information(this, "Error", ex.what());
       return false;
     }
 
-    //clearHistory();
-#ifdef VISUS_DEBUG
-    enableLog("visusviewer.log.txt");
-#endif
-
     VisusInfo() << "open(" << url << ") done";
-    widgets.treeview->expandAll();
+
+    if (widgets.treeview)
+      widgets.treeview->expandAll();
     refreshActions();
     return true;
   }
 
-  //gidx means group of idx: open them all
-  //scrgiorgio: does gidx makes sense with midx?
-#if 0
-  if (StringUtils::endsWith(url, ".gidx"))
-  {
-    StringTree stree = StringTree::fromString(Utils::loadTextDocument(url));
-    if (!stree.valid())
-    {
-      VisusAssert(false);
-      return false;
-    }
-
-    for (auto child : stree.childs)
-    {
-      if (child->name != "dataset")
-        continue;
-
-      String dataset(child->readString("url"));
-      bool success = this->open(dataset, child == stree.childs.front() ? parent : getRoot());
-      if (!success)
-        VisusWarning() << "Unable to open " << dataset << " from " << url;
-    }
-
-    widgets.treeview->expandAll();
-    refreshActions();
-    VisusInfo() << "open(" << url << ") done";
-    return true;
-  }
-#endif
-
-  //try to open a dataset
+  //open a dataset
   auto dataset = LoadDatasetEx(url,this->config);
   if (!dataset)
   {
@@ -1315,7 +1293,7 @@ bool Viewer::open(String url,Node* parent)
   //do I need to add a glcamera too?
   if (!parent) 
   {
-    New();
+    New(true);
     parent = dataflow->getRoot();
   }
 
@@ -1355,12 +1333,72 @@ bool Viewer::open(String url,Node* parent)
 }
 
 
+
+//////////////////////////////////////////////////////////////////////
+bool Viewer::playFile(String url)
+{
+  if (url.empty())
+  {
+    url = cstring(QFileDialog::getOpenFileName(nullptr, "Choose a file to open...", last_filename.c_str(),"XML files (*.xml)"));
+    if (url.empty()) return false;
+    this->last_filename = url;
+  }
+
+  auto ar = StringTree::fromString(Utils::loadTextDocument(url));
+  if (!ar.valid())
+  {
+    VisusAssert(false);
+    return false;
+  }
+
+  double version = 0.0;
+  ar.read("version", version);
+
+  String git_revision;
+  ar.read("git_revision", git_revision);
+
+  New(false);
+  Int64 first_utc=0;
+  scheduled.timer = std::make_shared<QTimer>();
+  QObject::connect(scheduled.timer.get(), &QTimer::timeout, [this]() {
+
+    scheduled.timer->stop();
+
+    //finished
+    if (scheduled.actions.empty())
+      return;
+
+    auto first = scheduled.actions.front();
+
+    scheduled.actions.pop_front();
+    if (!scheduled.actions.empty())
+    {
+      auto next = scheduled.actions.front();
+      Int64 t1, t2;
+      first.read("utc", t1);
+      next.read("utc", t2);
+      auto delta = std::max(t2 - t1,(Int64)0);
+      scheduled.timer->start(delta);
+    }
+
+    execute(first);
+  });
+
+  for (auto action : ar.childs)
+  {
+    if (action->isHash()) continue;
+    scheduled.actions.push_back(*action);
+  }
+  scheduled.timer->start(0);
+  
+  return true;
+}
+
 //////////////////////////////////////////////////////////////////////
 bool Viewer::openFile(String url, Node* parent)
 {
   if (url.empty())
   {
-    static String last_filename = "";
     url = cstring(QFileDialog::getOpenFileName(nullptr, "Choose a file to open...", last_filename.c_str(),
       "All supported (*.idx *.midx *.gidx *.obj *.xml *.config *.scn);;IDX (*.idx *.midx *.gidx);;OBJ (*.obj);;XML files (*.xml *.config *.scn)"));
 
@@ -2305,7 +2343,7 @@ DatasetNode* Viewer::addDataset(Node* parent, SharedPtr<Dataset> dataset)
   dropSelection();
 
   beginUpdate(
-    StringTree("add").write("what","dataset").write("parent",getUUID(parent)).write("url",dataset->getUrl()).addChild(dataset->getConfig()),
+    StringTree("add").write("what","dataset").write("parent",getUUID(parent)).write("url",dataset->getUrl()),
     StringTree("remove").write("node", getUUID(dataset_node)));
   {
     addNode(parent,dataset_node);
@@ -2522,8 +2560,9 @@ void Viewer::write(Archive& ar) const
 void Viewer::read(Archive& ar)
 {
   double version=0.0; 
-  String git_revision;
   ar.read("version", version);
+
+  String git_revision;
   ar.read("git_revision", git_revision);
 
   for (auto action : ar.childs)

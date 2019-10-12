@@ -129,6 +129,7 @@ void Viewer::createToolBar()
       actions.OpenUrl,
       actions.AddUrl,
       actions.ReloadVisusConfig,
+      actions.PlayFile, 
       actions.Close }));
     
     tab->addAction(actions.EditNode);
@@ -203,7 +204,7 @@ void Viewer::createToolBar()
 void Viewer::createActions()
 {
   addAction(actions.New = GuiFactory::CreateAction("New", this,[this]() {
-    New();
+    New(true);
   }));
 
   addAction(actions.OpenFile = GuiFactory::CreateAction("Open file...", this, [this]() {
@@ -239,6 +240,10 @@ void Viewer::createActions()
 
   addAction(actions.ReloadVisusConfig = GuiFactory::CreateAction("Reload config", this, [this]() {
     reloadVisusConfig();
+  }));
+
+  addAction(actions.PlayFile = GuiFactory::CreateAction("Play File", this, [this]() {
+    playFile("");
   }));
 
   addAction(actions.Close = GuiFactory::CreateAction("Close", this, QIcon(":/quit.png"),[this]() {

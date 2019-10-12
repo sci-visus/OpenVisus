@@ -281,8 +281,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(Viewer)
 
-  //constructor
-  Viewer(String title = "Visus Viewer");
+    //constructor
+    Viewer(String title = "Visus Viewer");
 
   //destructor
   virtual ~Viewer();
@@ -391,7 +391,7 @@ public:
   Frustum computeNodeToScreen(Frustum frustum, Node* node) const;
 
   //New
-  void New();
+  void New(bool bCreateRoot=true);
 
   //setNodeName
   void setNodeName(Node* node, String value);
@@ -425,7 +425,7 @@ public:
   void connectPorts(Node* from, Node* to)
   {
     String oport, iport;
-    
+
     if (oport.empty() && from->outputs.size() == 1)
       oport = from->getFirstOutputPort()->getName();
 
@@ -478,6 +478,9 @@ public:
 
   //saveFile
   bool saveFile(String filename, bool bSaveHistory = false);
+
+  //playFile
+  bool playFile(String filename);
 
   //takeSnapshot
   bool takeSnapshot(bool bOnlyCanvas = false, String filename = "");
@@ -532,7 +535,7 @@ public:
   }
 
   //showNodeContextMenu
-  virtual bool showNodeContextMenu(Node *node) {
+  virtual bool showNodeContextMenu(Node* node) {
     return false;
   }
 
@@ -543,7 +546,7 @@ public:
   void addDockWidget(String name, QWidget* widget);
 
   //addDockWidget
-  void addDockWidget(Qt::DockWidgetArea area, QDockWidget *dockwidget) {
+  void addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockwidget) {
     QMainWindow::addDockWidget(area, dockwidget);
   }
 
@@ -556,22 +559,22 @@ public:
   DatasetNode* addDataset(Node* parent, SharedPtr<Dataset> dataset);
 
   //addDataset
-  DatasetNode* addDataset(Node* parent, String url,StringTree config = StringTree()) {
+  DatasetNode* addDataset(Node* parent, String url, StringTree config = StringTree()) {
     auto dataset = LoadDatasetEx(url, config ? config : this->config);
     return addDataset(parent, dataset);
   }
 
   //addGLCameraNode
-  GLCameraNode* addGLCamera(Node* parent, String type="");
+  GLCameraNode* addGLCamera(Node* parent, String type = "");
 
   //addVolume
-  QueryNode* addVolume(Node* parent, String fieldname="", int access_id=0);
+  QueryNode* addVolume(Node* parent, String fieldname = "", int access_id = 0);
 
   //addSlice
   QueryNode* addSlice(Node* parent, String fieldname = "", int access_id = 0);
 
   //addIsoContour
-  QueryNode* addIsoContour(Node* parent, String fieldname = "", int access_id = 0, String isovalue="");
+  QueryNode* addIsoContour(Node* parent, String fieldname = "", int access_id = 0, String isovalue = "");
 
   //addKdQuery
   KdQueryNode* addKdQuery(Node* parent, String fieldname = "", int access_id = 0);
@@ -598,7 +601,7 @@ public:
   Node* addGroup(Node* parent, String name = "");
 
   //addModelView
-  ModelViewNode* addModelView(Node* parent, bool insert=false);
+  ModelViewNode* addModelView(Node* parent, bool insert = false);
 
   //addPalette
   PaletteNode* addPalette(Node* parent, String palette);
@@ -671,6 +674,7 @@ private:
     QAction* OpenUrl = nullptr;
     QAction* AddUrl = nullptr;
     QAction* ReloadVisusConfig = nullptr;
+    QAction* PlayFile = nullptr;
     QAction* Close = nullptr;
 
     QAction* RefreshData = nullptr;
@@ -789,6 +793,9 @@ private:
   Slot<void()>                          glcamera_end_update_slot;
   Slot<void()>                          glcamera_redisplay_needed_slot;
 
+  String                                last_filename = "";
+
+
   struct
   {
     CriticalSection                     lock;
@@ -796,6 +803,14 @@ private:
     std::ofstream                       fstream;
   }
   log;
+
+  struct
+  {
+    SharedPtr<QTimer> timer;
+    std::deque<StringTree> actions;
+  }
+  scheduled;
+
 
   SharedPtr<ViewerLogo> openScreenLogo(String key, String default_logo);
 
