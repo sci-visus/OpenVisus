@@ -181,7 +181,7 @@ void Viewer::execute(Archive& ar)
 
     if (target_id == "mouse_dragging")
     {
-      bool value = false;
+      bool value;
       ar.read("value", value);
       setMouseDragging(value);
       return;
@@ -208,10 +208,10 @@ void Viewer::execute(Archive& ar)
 
   if (ar.name == "moveNode")
   {
-    String src, dst; int index = -1;
+    String src, dst; int index;
     ar.read("src", src);
     ar.read("dst", dst);
-    ar.read("index", index);
+    ar.read("index", index, -1);
     moveNode(findNodeByUUID(dst), findNodeByUUID(src), index);
     return;
   }
@@ -261,7 +261,7 @@ void Viewer::execute(Archive& ar)
   }
 
   if (ar.name == "setNodeVisible") {
-    String node; bool value = true;
+    String node; bool value;
     ar.read("node", node);
     ar.read("value", value);
     setNodeVisible(findNodeByUUID(node), value);
@@ -284,8 +284,8 @@ void Viewer::execute(Archive& ar)
       auto node = NodeFactory::getSingleton()->createInstance(TypeName); VisusReleaseAssert(node);
       node->read(child);
 
-      int index = -1;
-      ar.read("index", index);
+      int index;
+      ar.read("index", index, -1);
       addNode(findNodeByUUID(parent), node, index);
       return;
     }
@@ -312,42 +312,42 @@ void Viewer::execute(Archive& ar)
     }
 
     if (what == "volume") {
-      String fieldname; int  access_id = 0;
+      String fieldname; int  access_id;
       ar.read("fieldname", fieldname);
-      ar.read("access_id", access_id);
+      ar.read("access_id", access_id, 0);
       addVolume(findNodeByUUID(parent), fieldname, access_id);
       return;
     }
 
     if (what == "slice")
     {
-      String fieldname; int  access_id = 0;
+      String fieldname; int  access_id;
       ar.read("fieldname", fieldname);
-      ar.read("access_id", access_id);
+      ar.read("access_id", access_id, 0);
       addSlice(findNodeByUUID(parent), fieldname, access_id);
       return;
     }
 
     if (what == "isocontour") {
-      String fieldname; int  access_id = 0; String isovalue;
+      String fieldname; int  access_id; String isovalue;
       ar.read("fieldname", fieldname);
-      ar.read("access_id", access_id);
+      ar.read("access_id", access_id, 0);
       ar.read("isovalue", isovalue);
       addIsoContour(findNodeByUUID(parent), fieldname, access_id, isovalue);
       return;
     }
 
     if (what == "kdquery") {
-      String fieldname; int  access_id = 0;
+      String fieldname; int  access_id;
       ar.read("fieldname", fieldname);
-      ar.read("access_id", access_id);
+      ar.read("access_id", access_id, 0);
       addKdQuery(findNodeByUUID(parent), fieldname, access_id);
       return;
     }
 
     if (what == "modelview") {
-      bool insert = false;
-      ar.read("insert", insert);
+      bool insert;
+      ar.read("insert", insert, false);
       addModelView(findNodeByUUID(parent), insert);
       return;
     }
@@ -1351,8 +1351,8 @@ bool Viewer::playFile(String url)
     return false;
   }
 
-  double version = 0.0;
-  ar.read("version", version);
+  double version;
+  ar.read("version", version, 0.0);
 
   String git_revision;
   ar.read("git_revision", git_revision);
@@ -2559,8 +2559,8 @@ void Viewer::write(Archive& ar) const
 /////////////////////////////////////////////////////////////
 void Viewer::read(Archive& ar)
 {
-  double version=0.0; 
-  ar.read("version", version);
+  double version; 
+  ar.read("version", version, 0.0);
 
   String git_revision;
   ar.read("git_revision", git_revision);

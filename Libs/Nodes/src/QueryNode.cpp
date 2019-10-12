@@ -226,7 +226,7 @@ void QueryNode::execute(Archive& ar)
 
     if (target_id == "verbose")
     {
-      int value=0;
+      int value;
       ar.read("value", value);
       setVerbose(value);
       return;
@@ -234,7 +234,7 @@ void QueryNode::execute(Archive& ar)
 
     if (target_id == "accessindex")
     {
-      int value=0;
+      int value;
       ar.read("value", value);
       setAccessIndex(value);
       return;
@@ -242,7 +242,7 @@ void QueryNode::execute(Archive& ar)
 
     if (target_id == "view_dependent_enabled")
     {
-      bool value=false;
+      bool value;
       ar.read("value", value);
       setViewDependentEnabled(value);
       return;
@@ -250,7 +250,7 @@ void QueryNode::execute(Archive& ar)
 
     if (target_id == "progression")
     {
-      int value= QueryGuessProgression;
+      int value;
       ar.read("value", value);
       setProgression(value);
       return;
@@ -258,7 +258,7 @@ void QueryNode::execute(Archive& ar)
 
     if (target_id == "quality")
     {
-      int value= QueryDefaultQuality;
+      int value;
       ar.read("value", value);
       setQuality(value);
       return;

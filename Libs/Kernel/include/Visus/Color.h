@@ -311,10 +311,10 @@ public:
   //read
   void read(Archive& ar)
   {
-    int r = 0; ar.read("r", r);
-    int g = 0; ar.read("g", g);
-    int b = 0; ar.read("b", b);
-    int a=255; ar.read("a", a);
+    int r; ar.read("r", r);
+    int g; ar.read("g", g);
+    int b; ar.read("b", b);
+    int a; ar.read("a", a, 255);
     (*this) = Color(r, g, b, a);
   }
 

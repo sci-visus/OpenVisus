@@ -582,7 +582,7 @@ void IsoContourNode::execute(Archive& ar)
 
     if (target_id == "isovalue")
     {
-      double isovalue=0.0;
+      double isovalue;
       ar.read("isovalue", isovalue);
       setIsoValue(isovalue);
       return;

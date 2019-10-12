@@ -293,61 +293,62 @@ public:
 public:
 
   //read
-  void read(String key, String& value) const
+  void read(String key, String& value, String default_value="") const
   {
     VisusAssert(!key.empty());
     auto cursor = NormalizeR(this, key);
-    if (!cursor || !cursor->hasAttribute(key)) return;
-    value = cursor->getAttribute(key);
+    value = cursor? cursor->getAttribute(key, default_value) : default_value;
   }
 
   //read
-  void read(const char* key, String& value) const {
-    read(String(key), value);
+  void read(const char* key, String& value, String default_value = "") const {
+    read(String(key), value, default_value);
   }
 
   //read
-  void read(String key, bool& value) const {
-    String s; read(key, s); if (s.empty()) return;
-    value = cbool(s);
+  void read(String key, bool& value, bool default_value=false) const {
+    auto cursor = NormalizeR(this, key);
+    value = cursor && cursor->hasAttribute(key) ? cbool(cursor->getAttribute(key)) : default_value;
   }
 
   //read
-  void read(String key, int& value) const {
-    String s; read(key, s); if (s.empty()) return;
-    value = cint(s);
+  void read(String key, int& value, int default_value=0) const {
+    auto cursor = NormalizeR(this, key);
+    value = cursor && cursor->hasAttribute(key) ? cint(cursor->getAttribute(key)) : default_value;
   }
 
   //read(
-  void read(String key, Int64& value) const {
-    String s; read(key, s); if (s.empty()) return;
-    value = cint64(s);
+  void read(String key, Int64& value, Int64 default_value=0) const {
+    auto cursor = NormalizeR(this, key);
+    value = cursor && cursor->hasAttribute(key) ? cint64(cursor->getAttribute(key)) : default_value;
   }
 
   //read
-  void read(String key, double& value) const {
-    String s; read(key, s); if (s.empty()) return;
-    value = cdouble(s);
+  void read(String key, double& value, double default_value=0.0) const {
+    auto cursor = NormalizeR(this, key);
+    value = cursor && cursor->hasAttribute(key) ? cdouble(cursor->getAttribute(key)) : default_value;
   }
 
   //read
   template <class Value>
-  void read(String key, Value& value) const {
-    String s; read(key, s); if (s.empty()) return;
-    value = Value::fromString(s);
+  void read(String key, Value& value, Value default_value=Value()) const {
+    auto cursor = NormalizeR(this, key);
+    value = cursor && cursor->hasAttribute(key) ? Value::fromString(cursor->getAttribute(key)) : default_value;
   }
 
   //read
   void read(String key, std::vector<int>& values) const {
     values.clear();
-    String text; readText(key,text);
+    String text; 
+    readText(key,text);
     values = StringUtils::parseInts(text);
   }
 
   //read
   void read(String key, std::vector<double>& values) const {
     values.clear();
-    String text; readText(key, text);
+    String text; 
+    readText(key, text);
     values=StringUtils::parseDoubles(text);
   }
 

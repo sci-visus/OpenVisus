@@ -104,7 +104,7 @@ void TransferFunction::execute(Archive& ar)
 
   if (ar.name == "removeFunction")
   {
-    int value=-1;
+    int value;
     ar.read("value", value);
     removeFunction(value);
     return;
@@ -117,7 +117,7 @@ void TransferFunction::execute(Archive& ar)
 
     if (what == "line")
     {
-      int function=-1, x1=0, x2 = 0; double y1 = 0, y2 = 0;
+      int function, x1, x2; double y1, y2;
       ar.read("function", function);
       ar.read("x1", x1);
       ar.read("y1", y1);
@@ -129,7 +129,7 @@ void TransferFunction::execute(Archive& ar)
 
     if (what == "values")
     {
-      int function=-1, x1=0, x2 = 0; std::vector<double> values;
+      int function, x1, x2; std::vector<double> values;
       ar.read("function", function);
       ar.read("x1", x1);
       ar.read("x2", x2);
@@ -146,7 +146,7 @@ void TransferFunction::execute(Archive& ar)
 
     if (target_id == "num_samples")
     {
-      int value=0;
+      int value;
       ar.read("value", value);
       setNumberOfSamples(value);
       return;
@@ -154,7 +154,7 @@ void TransferFunction::execute(Archive& ar)
 
     if (target_id == "num_functions")
     {
-      int value=-1;
+      int value;
       ar.read("value", value);
       setNumberOfFunctions(value);
       return;
@@ -194,7 +194,7 @@ void TransferFunction::execute(Archive& ar)
 
     if (target_id == "attenuation")
     {
-      double value=0.0;
+      double value;
       ar.read("value", value);
       setAttenutation(value);
       return;

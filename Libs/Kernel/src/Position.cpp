@@ -309,8 +309,7 @@ void Position::write(Archive& ar) const
 //////////////////////////////////////////////////
 void Position::read(Archive& ar)
 {
-  this->T = Matrix::identity(4);
-  ar.read("T", T);
+  ar.read("T", T, Matrix::identity(4));
   ar.read("box", box);
 }
 

@@ -67,11 +67,11 @@ void GLOrthoCamera::execute(Archive& ar)
 {
   if (ar.name == "setLookAt")
   {
-    Point3d pos, dir, vup; double rotation=0.0;
+    Point3d pos, dir, vup; double rotation;
     ar.read("pos", pos);
     ar.read("dir", dir);
     ar.read("vup", vup);
-    ar.read("rotation", rotation);
+    ar.read("rotation", rotation, 0.0);
     setLookAt(pos, dir, vup, rotation);
     return;
   }
@@ -83,16 +83,16 @@ void GLOrthoCamera::execute(Archive& ar)
 
     if (target_id == "ortho_params")
     {
-      GLOrthoParams value; int msec= 1300;
+      GLOrthoParams value; int msec;
       ar.read("value", value);
-      ar.read("msec", msec);
+      ar.read("msec", msec, 1300);
       setOrthoParams(value,msec);
       return;
     }
 
     if (target_id == "min_zoom")
     {
-      double value=0;
+      double value;
       ar.read("value", value);
       setMinZoom(value);
       return;
@@ -100,7 +100,7 @@ void GLOrthoCamera::execute(Archive& ar)
 
     if (target_id == "max_zoom")
     {
-      double value=0;
+      double value;
       ar.read("value", value);
       setMaxZoom(value);
       return;
@@ -108,15 +108,15 @@ void GLOrthoCamera::execute(Archive& ar)
 
     if (target_id == "default_smooth")
     {
-      int value= 1300;
-      ar.read("value", value);
+      int value;
+      ar.read("value", value, 1300);
       setDefaultSmooth(value);
       return;
     }
 
     if (target_id == "disable_rotation")
     {
-      bool value=false;
+      bool value;
       ar.read("value", value);
       setDisableRotation(value);
       return;
@@ -506,13 +506,13 @@ void GLOrthoCamera::read(Archive& ar)
   ar.read("pos", pos);
   ar.read("dir", dir);
   ar.read("vup", vup);
-  ar.read("rotation", rotation);
+  ar.read("rotation", rotation, this->rotation);
   ar.read("ortho_params", ortho_params.final);
-  ar.read("default_scale", default_scale);
-  ar.read("disable_rotation", disable_rotation);
-  ar.read("max_zoom", max_zoom);
-  ar.read("min_zoom", min_zoom);
-  ar.read("default_smooth", default_smooth);
+  ar.read("default_scale", default_scale, this->default_scale);
+  ar.read("disable_rotation", disable_rotation, this->disable_rotation);
+  ar.read("max_zoom", max_zoom, this->max_zoom);
+  ar.read("min_zoom", min_zoom, this->min_zoom);
+  ar.read("default_smooth", default_smooth, this->default_smooth);
 
   this->ortho_params.current = this->ortho_params.final;
 

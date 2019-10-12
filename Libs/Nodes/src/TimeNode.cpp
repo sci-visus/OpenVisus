@@ -64,7 +64,7 @@ void TimeNode::execute(Archive& ar)
     ar.read("target_id", target_id);
 
     if (target_id == "current_time") {
-      double value=0.0;
+      double value;
       ar.read("value", value);
       setCurrentTime(value);
       return;
@@ -78,7 +78,7 @@ void TimeNode::execute(Archive& ar)
     }
 
     if (target_id == "play_msec") {
-      int value= 1000;
+      int value;
       ar.read("value", value);
       setPlayMsec(value);
       return;

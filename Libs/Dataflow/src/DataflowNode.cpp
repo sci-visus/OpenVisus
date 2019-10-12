@@ -80,8 +80,8 @@ void Node::execute(Archive& ar) {
 
     if (target_id == "visible")
     {
-      bool value=true;
-      ar.read("value", value);
+      bool value;
+      ar.read("value", value, true);
       setVisible(value);
       return;
     }
@@ -454,10 +454,9 @@ void Node::write(Archive& ar) const
 ////////////////////////////////////////////////////////////
 void Node::read(Archive& ar)
 {
-  this->visible = true;
   ar.read("uuid", uuid);
   ar.read("name", name);
-  ar.read("visible", visible);
+  ar.read("visible", visible, true);
 }
 
 //////////////////////////////////////////////////////////

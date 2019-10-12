@@ -79,9 +79,9 @@ void GLLookAtCamera::execute(Archive& ar)
 
     if (target_id == "rotation")
     {
-      double angle=0.0; Point3d axis(0,0,1);
-      ar.read("angle", angle);
-      ar.read("axis", axis);
+      double angle=0.0;  Point3d axis;
+      ar.read("angle", angle, 0.0);
+      ar.read("axis", axis, Point3d(0, 0, 1));
       angle = Utils::degreeToRadiant(angle);
       setRotation(Quaternion(axis,angle));
       return;
@@ -95,8 +95,8 @@ void GLLookAtCamera::execute(Archive& ar)
     }
 
     if (target_id == "fov") {
-      double value=60.0;
-      ar.read("value", value);
+      double value;
+      ar.read("value", value, 60.0);
       setFov(value);
       return;
     }

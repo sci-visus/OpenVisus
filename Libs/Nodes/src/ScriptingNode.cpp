@@ -212,7 +212,7 @@ void ScriptingNode::execute(Archive& ar)
     ar.read("target_id", target_id);
 
     if (target_id == "max_publish_msec") {
-      int value=600;
+      int value;
       ar.read("value", value);
       setMaxPublishMSec(value);
       return;

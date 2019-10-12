@@ -196,37 +196,37 @@ void RenderArrayNode::execute(Archive& ar)
       return;
     }
     if (target_id == "lighting_enabled") {
-      bool value=false;
+      bool value;
       ar.read("value", value);
       setLightingEnabled(value);
       return;
     }
     if (target_id == "palette_enabled") {
-      bool value = false;
+      bool value;
       ar.read("value", value);
       setPaletteEnabled(value);
       return;
     }
     if (target_id == "use_view_direction") {
-      bool value=false;
+      bool value;
       ar.read("value", value);
       setUseViewDirection(value);
       return;
     }
     if (target_id == "max_num_slices") {
-      int value=0;
+      int value;
       ar.read("value", value);
       setMaxNumSlices(value);
       return;
     }
     if (target_id == "minify_filter") {
-      int value= GL_LINEAR;
+      int value;
       ar.read("value", value);
       setMinifyFilter(value);
       return;
     }
     if (target_id == "magnify_filter") {
-      int value = GL_LINEAR;
+      int value;
       ar.read("value", value);
       setMagnifyFilter(value);
       return;

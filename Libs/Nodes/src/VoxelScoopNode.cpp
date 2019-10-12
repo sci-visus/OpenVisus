@@ -1017,49 +1017,49 @@ void VoxelScoopNode::execute(Archive& ar)
     ar.read("target_id", target_id);
 
     if (target_id == "simplify") {
-      bool value=true;
+      bool value;
       ar.read("value", value);
       setSimplify(value);
       return;
     }
 
     if (target_id == "min_length") {
-      double value=10.0;
+      double value;
       ar.read("value", value);
       setMinLength(value);
       return;
     }
 
     if (target_id == "min_ratio") {
-      double value=1.0;
+      double value;
       ar.read("value", value);
       setMinRatio(value);
       return;
     }
 
     if (target_id == "threshold") {
-      double value=42;
+      double value;
       ar.read("value", value);
       setThreshold(value);
       return;
     }
 
     if (target_id == "use_minima_as_seed") {
-      bool value = false;
+      bool value;
       ar.read("value", value);
       setUseMinimaAsSeed(value);
       return;
     }
 
     if (target_id == "use_maxima_as_seed") {
-      bool value = false;
+      bool value;
       ar.read("value", value);
       setUseMaximaAsSeed(value);
       return;
     }
 
     if (target_id == "min_diam") {
-      double value = 0.75;
+      double value;
       ar.read("value", value);
       setMinDiam(value);
       return;

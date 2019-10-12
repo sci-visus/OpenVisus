@@ -80,42 +80,42 @@ void JTreeRenderNode::execute(Archive& ar)
     ar.read("target_id", target_id);
 
     if (target_id == "color_by_component") {
-      bool value=true;
+      bool value;
       ar.read("value", value);
       setColorByComponent(value);
       return;
     }
 
     if (target_id == "draw_saddles") {
-      bool value=false;
+      bool value;
       ar.read("value", value);
       setDrawSaddles(value);
       return;
     }
 
     if (target_id == "draw_extrema") {
-      bool value = false;
+      bool value;
       ar.read("value", value);
       setDrawExtrema(value);
       return;
     }
 
     if (target_id == "draw_edges") {
-      bool value = false;
+      bool value;
       ar.read("value", value);
       setDrawEdges(value);
       return;
     }
 
     if (target_id == "is_2d") {
-      bool value = false;
+      bool value;
       ar.read("value", value);
       set2d(value);
       return;
     }
 
     if (target_id == "radius") {
-      double value=2.5;
+      double value;
       ar.read("value", value);
       setRadius(value);
       return;

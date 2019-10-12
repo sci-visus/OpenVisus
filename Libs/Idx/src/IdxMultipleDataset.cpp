@@ -69,7 +69,7 @@ public:
   IdxMultipleAccess(IdxMultipleDataset* VF_, StringTree CONFIG_)
   : DATASET(VF_), CONFIG(CONFIG_)
   {
-    VisusAssert(!DATASET->bMosaic);
+    VisusAssert(!DATASET->is_mosaic);
 
     this->name = CONFIG.readString("name", "IdxMultipleAccess");
     this->can_read = true;
@@ -203,7 +203,7 @@ public:
   IdxMosaicAccess(IdxMultipleDataset* VF_, StringTree CONFIG = StringTree())
     : DATASET(VF_)
   {
-    VisusReleaseAssert(DATASET->bMosaic);
+    VisusReleaseAssert(DATASET->is_mosaic);
 
     if (!DATASET->valid())
       ThrowException("IdxDataset not valid");
@@ -411,7 +411,7 @@ public:
   QueryInputTerm(IdxMultipleDataset* VF_, BoxQuery* QUERY_, SharedPtr<Access> ACCESS_, Aborted aborted_)
     : DATASET(VF_), QUERY(QUERY_), ACCESS(ACCESS_), aborted(aborted_) {
 
-    VisusAssert(!DATASET->bMosaic);
+    VisusAssert(!DATASET->is_mosaic);
 
     this->engine = (!DATASET->isServerMode())? DATASET->python_engine_pool->createEngine() : std::make_shared<PythonEngine>();
 
@@ -943,7 +943,7 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
     //local disk access
     if (url.isFile())
     {
-      if (bMosaic)
+      if (is_mosaic)
         return std::make_shared<IdxMosaicAccess>(this,config);
       else
         return std::make_shared<IdxMultipleAccess>(this, config);
@@ -961,9 +961,9 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
   }
 
   //IdxMosaicAccess
-  if (type == "idxmosaicaccess" || (bMosaic && (!config.valid() || type.empty())))
+  if (type == "idxmosaicaccess" || (is_mosaic && (!config.valid() || type.empty())))
   {
-    VisusReleaseAssert(bMosaic);
+    VisusReleaseAssert(is_mosaic);
     return std::make_shared<IdxMosaicAccess>(this, config);
   }
     
@@ -978,7 +978,7 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
 ////////////////////////////////////////////////////////////////////////////////////
 Field IdxMultipleDataset::getFieldByNameThrowEx(String FIELDNAME) const
 {
-  if (bMosaic)
+  if (is_mosaic)
     return IdxDataset::getFieldByNameThrowEx(FIELDNAME);
 
   auto existing=IdxDataset::getFieldByNameThrowEx(FIELDNAME);
@@ -1145,7 +1145,7 @@ void IdxMultipleDataset::parseDataset(StringTree* cur,Matrix modelview)
 
   //if mosaic all datasets are the same, I just need to know the IDX filename template
   SharedPtr<Dataset> child;
-  if (this->bMosaic && !down_datasets.empty() && cur->hasAttribute("filename_template"))
+  if (this->is_mosaic && !down_datasets.empty() && cur->hasAttribute("filename_template"))
   {
     auto first = getFirstChild();
     auto other = std::dynamic_pointer_cast<IdxDataset>(first->clone());
@@ -1344,12 +1344,9 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   setUrl(URL);
   setDatasetBody(ar.toString());
 
-  bool mosaic;
-  ar.read("mosaic", mosaic);
-  this->bMosaic = mosaic;
+  ar.read("mosaic", this->is_mosaic);
 
-  if (ar.getChild("slam"))
-    this->bSlam = true;
+  this->is_slam = ar.getChild("slam")? true:false;
 
   parseDatasets(&ar,Matrix());
 
@@ -1367,7 +1364,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   IdxFile& IDXFILE = DATASET->idxfile;
 
   //for mosaic physic and logic are the same
-  if (bMosaic)
+  if (is_mosaic)
   {
     auto LOGIC_BOX = BoxNd::invalid();
     for (auto it : down_datasets)
@@ -1432,14 +1429,14 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   BoxNi LOGIC_BOX;
   if (ar.hasAttribute("logic_box"))
   {
-    ar.read("LOGIC_BOX", LOGIC_BOX);
+    ar.read("logic_box", LOGIC_BOX);
   }
   else if (down_datasets.size() == 1)
   {
     LOGIC_BOX = down_datasets.begin()->second->getLogicBox();
   }
   //backward compatible
-  else if (this->bSlam)
+  else if (this->is_slam)
   {
     LOGIC_BOX = PHYSIC_BOX.castTo<BoxNi>();
   }
@@ -1586,7 +1583,7 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuer
   }
 
   //execute N-Query (independentely) and blend them
-  if (!bMosaic)
+  if (!is_mosaic)
   {
     if (auto multiple_access = std::dynamic_pointer_cast<IdxMultipleAccess>(access))
     {

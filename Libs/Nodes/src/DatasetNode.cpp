@@ -62,7 +62,7 @@ void DatasetNode::execute(Archive& ar)
     ar.read("target_id", target_id);
 
     if (target_id == "show_bounds") {
-      bool value=true;
+      bool value;
       ar.read("value", value);
       setShowBounds(value);
       return;
