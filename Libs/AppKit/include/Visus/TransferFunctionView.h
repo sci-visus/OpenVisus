@@ -1016,7 +1016,7 @@ public:
           auto sync=[](Canvas* dst,Canvas* src) 
           {
             dst->blockSignals(true);
-            //dst->setOrthoParams(src->getOrthoParams());
+            //dst->setProjection(src->getProjection());
             dst->setCurrentPos(src->getCurrentPos());
             dst->blockSignals(false);
           };

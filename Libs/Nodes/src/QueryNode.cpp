@@ -219,59 +219,53 @@ QueryNode::~QueryNode(){
 ///////////////////////////////////////////////////////////////////////////
 void QueryNode::execute(Archive& ar)
 {
-  if (ar.name == "set")
+  if (ar.name == "SetVerbose")
   {
-    String target_id;
-    ar.read("target_id", target_id);
+    int value;
+    ar.read("value", value);
+    setVerbose(value);
+    return;
+  }
 
-    if (target_id == "verbose")
-    {
-      int value;
-      ar.read("value", value);
-      setVerbose(value);
-      return;
-    }
+  if (ar.name == "SetAccessIndex")
+  {
+    int value;
+    ar.read("value", value);
+    setAccessIndex(value);
+    return;
+  }
 
-    if (target_id == "accessindex")
-    {
-      int value;
-      ar.read("value", value);
-      setAccessIndex(value);
-      return;
-    }
+  if (ar.name == "SetViewDependentEnabled")
+  {
+    bool value;
+    ar.read("value", value);
+    setViewDependentEnabled(value);
+    return;
+  }
 
-    if (target_id == "view_dependent_enabled")
-    {
-      bool value;
-      ar.read("value", value);
-      setViewDependentEnabled(value);
-      return;
-    }
+  if (ar.name == "SetProgression")
+  {
+    int value;
+    ar.read("value", value);
+    setProgression(value);
+    return;
+  }
 
-    if (target_id == "progression")
-    {
-      int value;
-      ar.read("value", value);
-      setProgression(value);
-      return;
-    }
+  if (ar.name == "SetQuality")
+  {
+    int value;
+    ar.read("value", value);
+    setQuality(value);
+    return;
+  }
 
-    if (target_id == "quality")
-    {
-      int value;
-      ar.read("value", value);
-      setQuality(value);
-      return;
-    }
-
-    if (target_id == "bounds")
-    {
-      Position value;
-      value.read(*ar.getFirstChild());
-      setBounds(value);
-      return;
-    }
-
+  if (ar.name == "SetBounds")
+  {
+    Matrix T; BoxNd box;
+    ar.read("T", T);
+    ar.read("box", box);
+    setBounds(Position(T,box));
+    return;
   }
 
   return Node::execute(ar);
@@ -334,6 +328,22 @@ Frustum QueryNode::logicToScreen()
   return dataset->logicToScreen(physic_to_screen);
 }
 
+
+///////////////////////////////////////////////////////////////////////////
+void QueryNode::setBounds(Position new_value, bool bForce) 
+{
+  auto& old_value = this->node_bounds;
+  if (old_value == new_value && !bForce) 
+    return;
+
+  beginUpdate(
+    StringTree("SetBounds").writeIfNotDefault("T", new_value.getTransformation(), old_value.getTransformation()).write("box", new_value.getBoxNd()),
+    StringTree("SetBounds").writeIfNotDefault("T", old_value.getTransformation(), new_value.getTransformation()).write("box", old_value.getBoxNd()));
+  {
+    old_value = new_value;
+  }
+  endUpdate();
+}
 
 ///////////////////////////////////////////////////////////////////////////
 Position QueryNode::getQueryLogicPosition() 

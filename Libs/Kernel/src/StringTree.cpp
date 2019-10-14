@@ -656,7 +656,12 @@ StringTree StringTree::fromString(String content, bool bEnablePostProcessing)
     return StringTree();
   }
 
-  auto ret = FromXmlElement(xmldoc.FirstChildElement());
+  auto ret = StringTree("TiXmlDocument");
+  for (auto child = xmldoc.FirstChildElement(); child; child=child->NextSiblingElement())
+    ret.addChild(FromXmlElement(child));
+
+  if (ret.childs.size() == 1)
+    ret = *ret.getFirstChild();
 
   if (bEnablePostProcessing)
     ret = StringTree::postProcess(ret);

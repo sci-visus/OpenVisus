@@ -645,47 +645,46 @@ JTreeNode::~JTreeNode() {
 ////////////////////////////////////////////////////////////
 void JTreeNode::execute(Archive& ar)
 {
-  if (ar.name == "set")
-  {
-    String target_id;
-    ar.read("target_id", target_id);
+  if (ar.name == "SetMinimaTree") {
+    bool value;
+    ar.read("value", value);
+    setMinimaTree(value);
+    return;
+  }
 
-    if (target_id == "minima_tree") {
-      bool value;
-      ar.read("value", value);
-      setMinimaTree(value);
-      return;
-    }
-    if (target_id == "min_persistence") {
-      double value;
-      ar.read("value", value);
-      setMinPersistence(value);
-      return;
-    }
-    if (target_id == "reduce_minmax") {
-      bool value;
-      ar.read("value", value);
-      setReduceMinMax(value);
-      return;
-    }
-    if (target_id == "threshold_min") {
-      double value;
-      ar.read("value", value);
-      setThresholdMin(value);
-      return;
-    }
-    if (target_id == "threshold_max") {
-      double value;
-      ar.read("value", value);
-      setThresholdMax(value);
-      return;
-    }
-    if (target_id == "auto_threshold") {
-      bool value;
-      ar.read("value", value);
-      setAutoThreshold(value);
-      return;
-    }
+  if (ar.name == "SetMinPersistence") {
+    double value;
+    ar.read("value", value);
+    setMinPersistence(value);
+    return;
+  }
+
+  if (ar.name == "SetReduceMinMax") {
+    bool value;
+    ar.read("value", value);
+    setReduceMinMax(value);
+    return;
+  }
+
+  if (ar.name == "SetThresholdMin") {
+    double value;
+    ar.read("value", value);
+    setThresholdMin(value);
+    return;
+  }
+
+  if (ar.name == "SetThresholdMax") {
+    double value;
+    ar.read("value", value);
+    setThresholdMax(value);
+    return;
+  }
+
+  if (ar.name == "SetAutoThreshold") {
+    bool value;
+    ar.read("value", value);
+    setAutoThreshold(value);
+    return;
   }
 
   return Node::execute(ar);

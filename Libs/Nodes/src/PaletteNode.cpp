@@ -93,7 +93,7 @@ PaletteNode::~PaletteNode() {
 ///////////////////////////////////////////////////////////////////////
 void PaletteNode::execute(Archive& ar)
 {
-  if (getPassThroughAction(ar, "palette"))
+  if (popTargetId("palette", ar))
   {
     palette->execute(ar);
     return;
@@ -118,14 +118,14 @@ void PaletteNode::setPalette(SharedPtr<Palette> value)
     // a change in the palette means a change in the node 
     this->palette->begin_update.connect(this->palette_begin_update_slot=[this](){
       beginUpdate(
-        createPassThroughAction(StringTree("begin_update"), "palette"),
-        createPassThroughAction(StringTree("begin_update"), "palette"));
+        StringTree("BeginUpdate"),
+        StringTree("BeginUpdate"));
     });
 
     this->palette->end_update.connect(this->palette_end_update_slot = [this]() {
       //replace top action
-      topRedo() = createPassThroughAction(palette->topRedo(), "palette");
-      topUndo() = createPassThroughAction(palette->topUndo(), "palette");
+      topRedo() = pushTargetId("palette", palette->topRedo());
+      topUndo() = pushTargetId("palette", palette->topUndo());
       endUpdate();
     });
   }

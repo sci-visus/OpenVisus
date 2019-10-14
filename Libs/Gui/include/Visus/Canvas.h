@@ -127,13 +127,13 @@ public:
     setWorldBox(Rectangle2d(x,y,width,height));
   }
 
-  //getOrthoParams
-  Matrix getOrthoParams() const {
+  //getProjection
+  Matrix getProjection() const {
     return Tproject;
   }
 
-  //setOrthoParams
-  void setOrthoParams(Matrix value) {
+  //setProjection
+  void setProjection(Matrix value) {
     Tproject=value;
     emit repaintNeeded();
   }

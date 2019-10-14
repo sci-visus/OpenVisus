@@ -390,8 +390,10 @@ public:
   //computeNodeToScreen
   Frustum computeNodeToScreen(Frustum frustum, Node* node) const;
 
-  //New
-  void New(bool bCreateRoot=true);
+public:
+
+  //clearAll
+  void clearAll();
 
   //setNodeName
   void setNodeName(Node* node, String value);
@@ -413,39 +415,20 @@ public:
   //moveNode
   void moveNode(Node* dst, Node* src, int index = -1);
 
-  //connectPorts
-  void connectPorts(Node* from, String oport_name, String iport_name, Node* to);
+  //connectNodes
+  void connectNodes(Node* from, String oport_name, String iport_name, Node* to);
 
-  //connectPorts
-  void connectPorts(Node* from, String port_name, Node* to) {
-    connectPorts(from, port_name, port_name, to);
-  }
+  //connectNodes
+  void connectNodes(Node* from, String port, Node* to);
 
-  //connectPorts
-  void connectPorts(Node* from, Node* to)
-  {
-    String oport, iport;
+  //connectNodes
+  void connectNodes(Node* from, Node* to);
 
-    if (oport.empty() && from->outputs.size() == 1)
-      oport = from->getFirstOutputPort()->getName();
+  //disconnectNodes
+  void disconnectNodes(Node* from, String oport_name, String iport_name, Node* to);
 
-    if (iport.empty() && to->inputs.size() == 1)
-      iport = to->getFirstInputPort()->getName();
-
-    if (oport.empty() && !iport.empty() && from->hasOutputPort(iport))
-      oport = iport;
-
-    if (iport.empty() && !oport.empty() && to->hasInputPort(oport))
-      iport = oport;
-
-    VisusReleaseAssert(!iport.empty() && !oport.empty());
-    connectPorts(from, oport, iport, to);
-  }
-  //disconnectPorts
-  void disconnectPorts(Node* from, String oport_name, String iport_name, Node* to);
-
-  //autoConnectPorts
-  void autoConnectPorts();
+  //autoConnectNodes
+  void autoConnectNodes();
 
   //isMouseDragging
   bool isMouseDragging() const {
@@ -496,8 +479,13 @@ public:
     return this->glcamera;
   }
 
-  //refreshData
-  void refreshData(Node* node = nullptr);
+  //refreshNode
+  void refreshNode(Node* node = nullptr);
+
+  //refreshAll
+  void refreshAll() {
+    refreshNode(nullptr);
+  }
 
   //guessGLCameraPosition
   void guessGLCameraPosition(int ref_ = -1);
@@ -554,6 +542,9 @@ public:
   void showPopupWidget(QWidget* widget);
 
 public:
+
+  //addWorld
+  Node* addWorld();
 
   //addDataset
   DatasetNode* addDataset(Node* parent, SharedPtr<Dataset> dataset);
@@ -677,7 +668,7 @@ private:
     QAction* PlayFile = nullptr;
     QAction* Close = nullptr;
 
-    QAction* RefreshData = nullptr;
+    QAction* RefreshNode = nullptr;
     QAction* DropProcessing = nullptr;
     QAction* WindowSnapShot = nullptr;
     QAction* CanvasSnapShot = nullptr;

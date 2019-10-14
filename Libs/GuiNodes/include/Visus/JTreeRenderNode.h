@@ -70,7 +70,7 @@ public:
 
   //setRadius
   void setRadius(double value) {
-    setProperty("radius", this->radius, value);
+    setProperty("SetRadius", this->radius, value);
   }
 
   //getMinMaterial
@@ -80,7 +80,7 @@ public:
 
   //setMinMaterial
   void setMinMaterial(GLMaterial value) {
-    setEncodedProperty("min_material", this->min_material, value);
+    setEncodedProperty("SetMinMaterial", this->min_material, value);
   }
 
   //getMaxMaterial
@@ -90,7 +90,7 @@ public:
 
   //setMaxMaterial
   void setMaxMaterial(GLMaterial value) {
-    setEncodedProperty("max_material", this->max_material, value);
+    setEncodedProperty("SetMaxMaterial", this->max_material, value);
   }
 
   //getSaddleMaterial
@@ -100,7 +100,7 @@ public:
 
   //setSaddleMaterial
   void setSaddleMaterial(GLMaterial value) {
-    setEncodedProperty("saddle_material", this->saddle_material, value);
+    setEncodedProperty("SetSaddleMaterial", this->saddle_material, value);
   }
 
   //drawEdges
@@ -110,7 +110,7 @@ public:
 
   //setDrawEdges
   void setDrawEdges(bool value) {
-    setProperty("draw_edges", this->draw_edges, value);
+    setProperty("SetDrawEdges", this->draw_edges, value);
   }
 
   //drawExtrema
@@ -120,7 +120,7 @@ public:
 
   //setDrawExtrema
   void setDrawExtrema(bool value) {
-    setProperty("draw_extrema", this->draw_extrema, value);
+    setProperty("SetDrawExtrema", this->draw_extrema, value);
   }
 
   //drawSaddles
@@ -130,7 +130,7 @@ public:
 
   //setDrawSaddles
   void setDrawSaddles(bool value) {
-    setProperty("draw_saddles", this->draw_saddles, value);
+    setProperty("SetDrawSaddles", this->draw_saddles, value);
   }
 
   //is2d
@@ -140,7 +140,7 @@ public:
 
   //set2d
   void set2d(bool value) {
-    setProperty("is_2d", this->is_2d, value);
+    setProperty("Set2d", this->is_2d, value);
   }
 
   //colorByComponent
@@ -150,7 +150,7 @@ public:
 
   //setColorByComponent
   void setColorByComponent(bool value) {
-    setProperty("color_by_component", this->color_by_component, value);
+    setProperty("SetColorByComponent", this->color_by_component, value);
   }
 
   //glRender

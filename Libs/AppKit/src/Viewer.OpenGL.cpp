@@ -253,7 +253,7 @@ void Viewer::glCanvasMouseReleaseEvent(QMouseEvent* evt)
 
       //need to get all levels now that mouse is not dragging anymore
       if (free_transform && getWorldDimension()==3)
-        refreshData(getSelection());
+        refreshNode(getSelection());
 
       postRedisplay();
       return;
@@ -388,7 +388,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
       continue;
 
     if (auto modelview_node=dynamic_cast<ModelViewNode*>(node))
-      frustum.multModelview(modelview_node->getModelview());
+      frustum.multModelview(modelview_node->getModelView());
 
     int nqueue=glGetRenderQueue(node);
     if (nqueue>=0) 

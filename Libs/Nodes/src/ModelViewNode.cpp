@@ -43,22 +43,14 @@ namespace Visus {
 ////////////////////////////////////////////////////////////
 void ModelViewNode::execute(Archive& ar)
 {
-  if (ar.name == "set")
-  {
-    String target_id;
-    ar.read("target_id", target_id);
-    ar.read("target_id", target_id);
-
-    if (target_id == "T") {
-      Matrix value;
-      ar.read("value", value);
-      setModelview(value);
-      return;
-    }
+  if (ar.name == "SetModelView") {
+    Matrix value;
+    ar.read("value", value);
+    setModelView(value);
+    return;
   }
 
   return Node::execute(ar);
-
 }
 
 

@@ -80,7 +80,7 @@ public:
 
   //setVerbose
   void setVerbose(int value) {
-    this->setProperty("verbose", this->verbose, value);
+    this->setProperty("SetVerbose", this->verbose, value);
   }
 
   //getAccessIndex
@@ -90,7 +90,7 @@ public:
 
   //setAccessIndex
   void setAccessIndex(int value) {
-    this->setProperty("accessindex", this->accessindex, value);
+    this->setProperty("SetAccessIndex", this->accessindex, value);
     this->access.reset();
   }
 
@@ -106,7 +106,7 @@ public:
 
   //setProgression
   void setProgression(int value) {
-    setProperty("progression", this->progression, value);
+    setProperty("SetProgression", this->progression, value);
   }
 
   //getQuality
@@ -116,7 +116,7 @@ public:
 
   //setQuality
   void setQuality(int value) {
-    setProperty("quality", this->quality, value);
+    setProperty("SetQuality", this->quality, value);
   }
 
   //getBounds
@@ -125,10 +125,7 @@ public:
   }
 
   //setBounds
-  void setBounds(Position value,bool bForce=false) {
-    if (node_bounds ==value && !bForce) return;
-    setEncodedProperty("bounds", this->node_bounds, value);
-  }
+  void setBounds(Position value, bool bForce = false);
 
   //getQueryBounds
   Position getQueryBounds() const {
@@ -164,7 +161,7 @@ public:
   //setViewDependentEnabled
   void setViewDependentEnabled(bool value) {
     if (view_dependent_enabled ==value) return;
-    setProperty("view_dependent_enabled", this->view_dependent_enabled, value);
+    setProperty("SetViewDependentEnabled", this->view_dependent_enabled, value);
   }
 
   //exitFromDataflow (to avoid dataset stuck in memory)

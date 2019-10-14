@@ -106,7 +106,7 @@ class TestDataflow(unittest.TestCase):
 		# the dataflow is the owner of nodes!
 		dataflow.addNode(producer)
 		dataflow.addNode(receiver)
-		dataflow.connectPorts(producer,"output","input",receiver)
+		dataflow.connectNodes(producer,"output","input",receiver)
 
 		self.assertTrue(dataflow.containsNode(producer))
 		self.assertTrue(producer.hasOutputPort("output"))
@@ -121,7 +121,7 @@ class TestDataflow(unittest.TestCase):
 		value=receiver.published_value
 
 		self.assertEqual(value,"hello visus")
-		dataflow.disconnectPorts(producer,"output","input",receiver)
+		dataflow.disconnectNodes(producer,"output","input",receiver)
 		dataflow.removeNode(producer)
 		dataflow.removeNode(receiver)  
     

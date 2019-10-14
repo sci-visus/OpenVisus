@@ -83,7 +83,7 @@ public:
 
   //setDisableRotation
   void setDisableRotation(bool value) {
-    setProperty("disable_rotation", this->disable_rotation, value);
+    setProperty("SetDisableRotation", this->disable_rotation, value);
   }
 
   //isRotationDisabled
@@ -98,7 +98,7 @@ public:
 
   //setMaxZoom
   void setMaxZoom(double value) {
-    setProperty("max_zoom", this->max_zoom, value);
+    setProperty("SetMaxZoom", this->max_zoom, value);
   }
   
   //getMinZoom
@@ -108,7 +108,7 @@ public:
 
   //setMinZoom
   void setMinZoom(double value) {
-    setProperty("min_zoom", this->min_zoom, value);
+    setProperty("SetMinZoom", this->min_zoom, value);
   }
 
   //mirror
@@ -166,7 +166,7 @@ public:
   }
 
   //setOrthoParams
-  void setOrthoParams(GLOrthoParams value, int msec=0);
+  void setOrthoParams(GLOrthoParams value, int smooth=0);
 
   //getDefaultSmooth
   int getDefaultSmooth() const {
@@ -175,7 +175,7 @@ public:
 
   //setDefaultSmooth
   void setDefaultSmooth(int value) {
-    setProperty("smooth", this->default_smooth, value);
+    setProperty("SetDefaultSmooth", this->default_smooth, value);
   }
 
   //toggleDefaultSmooth

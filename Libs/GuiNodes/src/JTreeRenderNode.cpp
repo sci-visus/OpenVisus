@@ -74,75 +74,68 @@ JTreeRenderNode::~JTreeRenderNode()
 ////////////////////////////////////////////////////////////
 void JTreeRenderNode::execute(Archive& ar)
 {
-  if (ar.name == "set")
-  {
-    String target_id;
-    ar.read("target_id", target_id);
-
-    if (target_id == "color_by_component") {
-      bool value;
-      ar.read("value", value);
-      setColorByComponent(value);
-      return;
-    }
-
-    if (target_id == "draw_saddles") {
-      bool value;
-      ar.read("value", value);
-      setDrawSaddles(value);
-      return;
-    }
-
-    if (target_id == "draw_extrema") {
-      bool value;
-      ar.read("value", value);
-      setDrawExtrema(value);
-      return;
-    }
-
-    if (target_id == "draw_edges") {
-      bool value;
-      ar.read("value", value);
-      setDrawEdges(value);
-      return;
-    }
-
-    if (target_id == "is_2d") {
-      bool value;
-      ar.read("value", value);
-      set2d(value);
-      return;
-    }
-
-    if (target_id == "radius") {
-      double value;
-      ar.read("value", value);
-      setRadius(value);
-      return;
-    }
-
-    if (target_id == "min_material") {
-      GLMaterial value;
-      value.read(*ar.getFirstChild());
-      setMinMaterial(value);
-      return;
-    }
-
-    if (target_id == "max_material") {
-      GLMaterial value;
-      value.read(*ar.getFirstChild());
-      setMaxMaterial(value);
-      return;
-    }
-
-    if (target_id == "saddle_material") {
-      GLMaterial value;
-      value.read(*ar.getFirstChild());
-      setSaddleMaterial(value);
-      return;
-    }
+  if (ar.name == "SetColorByComponent") {
+    bool value;
+    ar.read("value", value);
+    setColorByComponent(value);
+    return;
   }
 
+  if (ar.name == "SetDrawSaddles") {
+    bool value;
+    ar.read("value", value);
+    setDrawSaddles(value);
+    return;
+  }
+
+  if (ar.name == "SetDrawExtrema") {
+    bool value;
+    ar.read("value", value);
+    setDrawExtrema(value);
+    return;
+  }
+
+  if (ar.name == "SetDrawEdges") {
+    bool value;
+    ar.read("value", value);
+    setDrawEdges(value);
+    return;
+  }
+
+  if (ar.name == "Set2d") {
+    bool value;
+    ar.read("value", value);
+    set2d(value);
+    return;
+  }
+
+  if (ar.name == "SetRadius") {
+    double value;
+    ar.read("value", value);
+    setRadius(value);
+    return;
+  }
+
+  if (ar.name == "SetMinMaterial") {
+    GLMaterial value;
+    value.read(*ar.getFirstChild());
+    setMinMaterial(value);
+    return;
+  }
+
+  if (ar.name == "SetMaxMaterial") {
+    GLMaterial value;
+    value.read(*ar.getFirstChild());
+    setMaxMaterial(value);
+    return;
+  }
+
+  if (ar.name == "SetSaddleMaterial") {
+    GLMaterial value;
+    value.read(*ar.getFirstChild());
+    setSaddleMaterial(value);
+    return;
+  }
 
   return Node::execute(ar);
 }

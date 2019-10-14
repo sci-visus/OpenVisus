@@ -76,12 +76,12 @@ public:
 
   //setMaxPublishMSec
   void setMaxPublishMSec(int value) {
-    setProperty("max_publish_msec", this->max_publish_msec, value);
+    setProperty("SetMaxPublishMSec", this->max_publish_msec, value);
   }
 
   //setCode
   void setCode(String code) {
-    setProperty("code", this->code, code);
+    setProperty("SetCode", this->code, code);
   }
 
   //addUserInput

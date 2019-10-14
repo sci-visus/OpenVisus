@@ -140,11 +140,11 @@ private:
   //dataflowSetSelection
   virtual void dataflowSetSelection(Node* old_selection,Node* new_selection) override;
 
-  //datafloConnectPorts
-  virtual void dataflowConnectPorts(Node* from,String oport,String iport,Node* to) override;
+  //datafloConnectNodes
+  virtual void dataflowConnectNodes(Node* from,String oport,String iport,Node* to) override;
 
-  //datafloConnectPorts
-  virtual void dataflowDisconnectPorts(Node* from,String oport,String iport,Node* to) override;
+  //datafloConnectNodes
+  virtual void dataflowDisconnectNodes(Node* from,String oport,String iport,Node* to) override;
 
   //paintEvent
   virtual void paintEvent(QPaintEvent * event) override;

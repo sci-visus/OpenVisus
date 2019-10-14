@@ -55,11 +55,10 @@ GLCameraNode::~GLCameraNode()
   setGLCamera(nullptr);
 }
 
-
 //////////////////////////////////////////////////
 void GLCameraNode::execute(Archive& ar)
 {
-  if (getPassThroughAction(ar, "glcamera"))
+  if (popTargetId("glcamera", ar))
   {
     getGLCamera()->execute(ar);
     return;
@@ -82,14 +81,14 @@ void GLCameraNode::setGLCamera(SharedPtr<GLCamera> value)
   {
     this->glcamera->begin_update.connect(glcamera_begin_update_slot=[this](){
       beginUpdate(
-        createPassThroughAction(StringTree("begin_update"), "glcamera"),
-        createPassThroughAction(StringTree("begin_update"), "glcamera"));
+        StringTree("BeginUpdate"),
+        StringTree("BeginUpdate"));
     });
 
     this->glcamera->end_update.connect(glcamera_end_update_slot =[this](){
       //replace top action
-      this->topRedo() = createPassThroughAction(glcamera->topRedo(), "glcamera");
-      this->topUndo() = createPassThroughAction(glcamera->topUndo(), "glcamera");
+      this->topRedo() = pushTargetId("glcamera", glcamera->topRedo());
+      this->topUndo() = pushTargetId("glcamera", glcamera->topUndo());
       endUpdate();
     });
   }

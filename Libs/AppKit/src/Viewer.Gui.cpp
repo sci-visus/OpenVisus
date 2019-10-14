@@ -143,7 +143,7 @@ void Viewer::createToolBar()
 
     tab->addAction(actions.Deselect);
 
-    tab->addAction(actions.RefreshData);
+    tab->addAction(actions.RefreshNode);
     tab->addWidget(widgets.toolbar->auto_refresh.check = GuiFactory::CreateCheckBox(false, "Auto refresh", [this](int value) {
       auto auto_refresh = getAutoRefresh();
       auto_refresh.enabled = value ? true : false;
@@ -204,7 +204,8 @@ void Viewer::createToolBar()
 void Viewer::createActions()
 {
   addAction(actions.New = GuiFactory::CreateAction("New", this,[this]() {
-    New(true);
+    clearAll();
+    addWorld();
   }));
 
   addAction(actions.OpenFile = GuiFactory::CreateAction("Open file...", this, [this]() {
@@ -250,11 +251,11 @@ void Viewer::createActions()
     close();
   }));
 
-  addAction(actions.RefreshData= GuiFactory::CreateAction("Refresh data",this, QIcon(":/refresh.png"), [this]() {
-    refreshData();
+  addAction(actions.RefreshNode= GuiFactory::CreateAction("Refresh node",this, QIcon(":/refresh.png"), [this]() {
+    refreshNode();
   }));
-  actions.RefreshData->setShortcut(Qt::Key_F5);
-  actions.RefreshData->setToolTip("Refresh data [F5]");
+  actions.RefreshNode->setShortcut(Qt::Key_F5);
+  actions.RefreshNode->setToolTip("Refresh data [F5]");
  
   addAction(actions.DropProcessing= GuiFactory::CreateAction("Drop processing",this, QIcon(":/stop.png"), [this]() {
     dropProcessing();

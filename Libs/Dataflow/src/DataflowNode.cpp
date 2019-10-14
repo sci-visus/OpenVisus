@@ -63,28 +63,22 @@ String Node::getTypeName() const
 }
 
 ////////////////////////////////////////////////////////////
-void Node::execute(Archive& ar) {
-  
-  if (ar.name == "set")
+void Node::execute(Archive& ar) 
+{  
+  if (ar.name == "SetName")
   {
-    String target_id;
-    ar.read("target_id", target_id);
+    String value;
+    ar.read("value", value);
+    setName(value);
+    return;
+  }
 
-    if (target_id == "name")
-    {
-      String value;
-      ar.read("value", value);
-      setName(value);
-      return;
-    }
-
-    if (target_id == "visible")
-    {
-      bool value;
-      ar.read("value", value, true);
-      setVisible(value);
-      return;
-    }
+  if (ar.name == "SetVisible")
+  {
+    bool value;
+    ar.read("value", value, true);
+    setVisible(value);
+    return;
   }
   
   return Model::execute(ar);
@@ -122,7 +116,7 @@ void Node::setName(String new_value)
   if (old_value==new_value)
     return;
 
-  setProperty("name", this->name, new_value);
+  setProperty("SetName", this->name, new_value);
 
   if (dataflow)
   {
@@ -140,7 +134,7 @@ void Node::setVisible(bool new_value)
   if (old_value==new_value)
     return;
 
-  setProperty("visible", this->visible, new_value);
+  setProperty("SetVisible", this->visible, new_value);
 
   if (dataflow)
   {

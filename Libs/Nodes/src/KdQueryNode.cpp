@@ -90,7 +90,7 @@ public:
     if (bForce || last_publish.elapsedMsec() > publish_interval)
     {
       DataflowMessage msg;
-      msg.writeValue("array", kdarray);
+      msg.writeValue("kdarray", kdarray);
       node->publish(msg);
       last_publish = Time::now();
     }
@@ -514,6 +514,17 @@ public:
   }
 
 };
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+KdQueryNode::KdQueryNode(String name) : QueryNode(name) {
+  removeOutputPort("array");
+  addOutputPort("kdarray");
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+KdQueryNode::~KdQueryNode() {
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 bool KdQueryNode::processInput()

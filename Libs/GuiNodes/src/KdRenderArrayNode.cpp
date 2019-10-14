@@ -191,8 +191,8 @@ static bool isNodeVisible(const SharedPtr<KdArray>& kdarray,KdArrayNode* node)
 bool KdRenderArrayNode::processInput()
 {
   //assign the input anyway, even if wrong
-  this->kdarray  = readValue<KdArray>("mesh");
-  auto  palette  = readValue<Palette>("palette");
+  this->kdarray  = readValue<KdArray>("kdarray");
+  auto  palette = readValue<Palette>("palette");
 
   this->palette.reset();
   this->palette_texture.reset();

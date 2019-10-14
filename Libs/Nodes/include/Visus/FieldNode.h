@@ -65,7 +65,9 @@ public:
   }
 
   //setFieldName
-  void setFieldName(String fieldname);
+  void setFieldName(String value) {
+    setProperty("SetFieldName", this->fieldname, value);
+  }
 
 public:
 

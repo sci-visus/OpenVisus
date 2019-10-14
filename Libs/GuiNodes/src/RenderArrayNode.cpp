@@ -184,53 +184,53 @@ RenderArrayNode::~RenderArrayNode()
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 void RenderArrayNode::execute(Archive& ar)
 {
-  if (ar.name == "set")
-  {
-    String target_id;
-    ar.read("target_id", target_id);
+  if (ar.name == "SetLightingMaterial") {
+    GLMaterial value;
+    value.read(*ar.getFirstChild());
+    setLightingMaterial(value);
+    return;
+  }
 
-    if (target_id == "lighting_material") {
-      GLMaterial value;
-      value.read(*ar.getFirstChild());
-      setLightingMaterial(value);
-      return;
-    }
-    if (target_id == "lighting_enabled") {
-      bool value;
-      ar.read("value", value);
-      setLightingEnabled(value);
-      return;
-    }
-    if (target_id == "palette_enabled") {
-      bool value;
-      ar.read("value", value);
-      setPaletteEnabled(value);
-      return;
-    }
-    if (target_id == "use_view_direction") {
-      bool value;
-      ar.read("value", value);
-      setUseViewDirection(value);
-      return;
-    }
-    if (target_id == "max_num_slices") {
-      int value;
-      ar.read("value", value);
-      setMaxNumSlices(value);
-      return;
-    }
-    if (target_id == "minify_filter") {
-      int value;
-      ar.read("value", value);
-      setMinifyFilter(value);
-      return;
-    }
-    if (target_id == "magnify_filter") {
-      int value;
-      ar.read("value", value);
-      setMagnifyFilter(value);
-      return;
-    }
+  if (ar.name == "SetLightingEnabled") {
+    bool value;
+    ar.read("value", value);
+    setLightingEnabled(value);
+    return;
+  }
+
+  if (ar.name == "SetPaletteEnabled") {
+    bool value;
+    ar.read("value", value);
+    setPaletteEnabled(value);
+    return;
+  }
+
+  if (ar.name == "SetUseViewDirection") {
+    bool value;
+    ar.read("value", value);
+    setUseViewDirection(value);
+    return;
+  }
+
+  if (ar.name == "SetMaxNumSlices") {
+    int value;
+    ar.read("value", value);
+    setMaxNumSlices(value);
+    return;
+  }
+
+  if (ar.name == "SetMinifyFilter") {
+    int value;
+    ar.read("value", value);
+    setMinifyFilter(value);
+    return;
+  }
+
+  if (ar.name == "SetMagnifyFilter") {
+    int value;
+    ar.read("value", value);
+    setMagnifyFilter(value);
+    return;
   }
 
   return Node::execute(ar);

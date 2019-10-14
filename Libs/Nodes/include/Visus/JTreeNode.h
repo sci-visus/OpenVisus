@@ -67,7 +67,7 @@ public:
   //setMinimaTree
   void setMinimaTree(bool value) {
     if (minima_tree==value) return;
-    setProperty("minima_tree", this->minima_tree, value);
+    setProperty("SetMinimaTree", this->minima_tree, value);
     recompute();
   }
 
@@ -79,7 +79,7 @@ public:
   //setMinPersistence
   void setMinPersistence(double value) {
     if (min_persistence==value) return;
-    setProperty("min_persistence", this->min_persistence, value);
+    setProperty("SetMinPersistence", this->min_persistence, value);
     recompute(false);
   }
 
@@ -91,7 +91,7 @@ public:
   //setReduceMinMax
   void setReduceMinMax(bool value) {
     if (reduce_minmax==value) return;
-    setProperty("reduce_minmax", this->reduce_minmax, value);
+    setProperty("SetReduceMinMax", this->reduce_minmax, value);
     recompute(false);
   }
 
@@ -103,7 +103,7 @@ public:
   //setThresholdMin
   void setThresholdMin(double value) {
     if (threshold_min==value) return;
-    setProperty("threshold_min", this->threshold_min, value);
+    setProperty("SetThresholdMin", this->threshold_min, value);
     recompute();
   }
 
@@ -116,7 +116,7 @@ public:
   //setThresholdMax
   void setThresholdMax(double value) {
     if (threshold_max==value) return;
-    setProperty("threshold_max", this->threshold_max, value);
+    setProperty("SetThresholdMax", this->threshold_max, value);
     recompute();
   }
 
@@ -128,7 +128,7 @@ public:
   //setAutoThreshold
   void setAutoThreshold(bool value) {
     if (auto_threshold==value) return;
-    setProperty("auto_threshold", this->auto_threshold, value);
+    setProperty("SetAutoThreshold", this->auto_threshold, value);
     recompute();
   }
 

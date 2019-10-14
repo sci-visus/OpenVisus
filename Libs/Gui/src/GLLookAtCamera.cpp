@@ -44,70 +44,63 @@ namespace Visus {
 //////////////////////////////////////////////////
 void GLLookAtCamera::execute(Archive& ar)
 {
-  if (ar.name == "set")
+  if (ar.name == "SetBounds") {
+    BoxNd value;
+    ar.read("value", value);
+    setBounds(value);
+    return;
+  }
+
+  if (ar.name == "SetPos") {
+    Point3d value;
+    ar.read("value", value);
+    setPos(value);
+    return;
+  }
+
+  if (ar.name == "SetDir") {
+    Point3d value;
+    ar.read("value", value);
+    setDir(value);
+    return;
+  }
+
+  if (ar.name == "SetVup") {
+    Point3d value;
+    ar.read("value", value);
+    setVup(value);
+    return;
+  }
+
+  if (ar.name == "SetRotation")
   {
-    String target_id;
-    ar.read("target_id", target_id);
+    double angle=0.0;  Point3d axis;
+    ar.read("axis", axis, Point3d(0, 0, 1));
+    ar.read("angle", angle, 0.0);
+    angle = Utils::degreeToRadiant(angle);
+    setRotation(Quaternion(axis,angle));
+    return;
+  }
 
-    if (target_id == "bounds") {
-      BoxNd value;
-      ar.read("value", value);
-      setBounds(value);
-      return;
-    }
+  if (ar.name == "SetRotationCenter") {
+    Point3d value;
+    ar.read("value", value);
+    setRotationCenter(value);
+    return;
+  }
 
-    if (target_id == "pos") {
-      Point3d value;
-      ar.read("value", value);
-      setPos(value);
-      return;
-    }
+  if (ar.name == "SetFov") {
+    double value;
+    ar.read("value", value, 60.0);
+    setFov(value);
+    return;
+  }
 
-    if (target_id == "dir") {
-      Point3d value;
-      ar.read("value", value);
-      setDir(value);
-      return;
-    }
-
-    if (target_id == "vup") {
-      Point3d value;
-      ar.read("value", value);
-      setVup(value);
-      return;
-    }
-
-    if (target_id == "rotation")
-    {
-      double angle=0.0;  Point3d axis;
-      ar.read("angle", angle, 0.0);
-      ar.read("axis", axis, Point3d(0, 0, 1));
-      angle = Utils::degreeToRadiant(angle);
-      setRotation(Quaternion(axis,angle));
-      return;
-    }
-
-    if (target_id == "rotation_center") {
-      Point3d value;
-      ar.read("value", value);
-      setRotationCenter(value);
-      return;
-    }
-
-    if (target_id == "fov") {
-      double value;
-      ar.read("value", value, 60.0);
-      setFov(value);
-      return;
-    }
-
-    if (target_id == "split_frustum") {
-      Rectangle2d value;
-      ar.read("value", value);
-      splitFrustum(value);
-      return;
-    }
-
+  if (ar.name == "SplitFrustum") {
+    Rectangle2d value;
+    ar.read("value", value);
+    splitFrustum(value);
+    return;
   }
 
   return GLCamera::execute(ar);
@@ -173,6 +166,20 @@ double GLLookAtCamera::guessForwardFactor() const
   auto zNear = p.first;
   auto zFar = p.second;
   return (zNear <= 0)? (zFar - zNear) / 64 : (zFar / 16);
+}
+
+
+//////////////////////////////////////////////////////////////////////
+void GLLookAtCamera::setRotation(Quaternion new_value) {
+  auto& old_value = this->rotation;
+  if (old_value == new_value) return;
+  beginUpdate(
+    StringTree("SetRotation").write("axis", new_value.getAxis()).write("angle", Utils::radiantToDegree(new_value.getAngle())),
+    StringTree("SetRotation").write("axis", old_value.getAxis()).write("angle", Utils::radiantToDegree(old_value.getAngle())));
+  {
+    old_value = new_value;
+  }
+  endUpdate();
 }
 
 //////////////////////////////////////////////////////////////////////

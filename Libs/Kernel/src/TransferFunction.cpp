@@ -77,32 +77,88 @@ SharedPtr<TransferFunction> TransferFunction::fromString(String content)
 
 
 StringTree DrawLine(int function, int x1, double y1, int x2, double y2) {
-  return StringTree("draw").write("what", "line").write("function", function).write("x1", x1).write("y1", y1).write("x2", x2).write("y2", y2);
+  return StringTree("DrawLine").write("function", function).write("x1", x1).write("y1", y1).write("x2", x2).write("y2", y2);
 }
 
 StringTree DrawValues(int function, int x1, int x2, std::vector<double> values) {
-  return StringTree("draw").write("what", "values").write("function", function).write("x1", x1).write("x2", x2).write("values", values);
+  return StringTree("DrawValues").write("function", function).write("x1", x1).write("x2", x2).write("values", values);
 }
 
  
   ////////////////////////////////////////////////////////////////////
 void TransferFunction::execute(Archive& ar)
 {
-  if (ar.name == "clearFunctions")
+  if (ar.name == "SetNumberOfSamples")
+  {
+    int value;
+    ar.read("value", value);
+    setNumberOfSamples(value);
+    return;
+  }
+
+  if (ar.name == "SetNumberOfFunctions")
+  {
+    int value;
+    ar.read("value", value);
+    setNumberOfFunctions(value);
+    return;
+  }
+
+  if (ar.name == "SetInputRange")
+  {
+    Range value;
+    ar.read("value", value);
+    setInputRange(input_range);
+    return;
+  }
+
+  if (ar.name == "SetInputNormalizationMode")
+  {
+    int value = ArrayUtils::UseDTypeRange;
+    ar.read("value", value);
+    setInputNormalizationMode(value);
+    return;
+  }
+
+  if (ar.name == "SetOutputDType")
+  {
+    DType value;
+    ar.read("value", value);
+    setOutputDType(value);
+    return;
+  }
+
+  if (ar.name == "SetOutputRange")
+  {
+    Range value;
+    ar.read("value", value);
+    setOutputRange(value);
+    return;
+  }
+
+  if (ar.name == "SetAttenutation")
+  {
+    double value;
+    ar.read("value", value);
+    setAttenutation(value);
+    return;
+  }
+
+  if (ar.name == "ClearFunctions")
   {
     clearFunctions();
     return;
   }
 
-  if (ar.name == "addFunction")
+  if (ar.name == "AddFunction")
   {
     auto single = std::make_shared<SingleTransferFunction>();
-    single->read(ar);
+    single->read(*ar.getFirstChild());
     addFunction(single);
     return;
   }
 
-  if (ar.name == "removeFunction")
+  if (ar.name == "RemoveFunction")
   {
     int value;
     ar.read("value", value);
@@ -110,97 +166,29 @@ void TransferFunction::execute(Archive& ar)
     return;
   }
 
-  if (ar.name == "draw")
+  if (ar.name == "DrawLine")
   {
-    String what;
-    ar.read("what", what);
-
-    if (what == "line")
-    {
-      int function, x1, x2; double y1, y2;
-      ar.read("function", function);
-      ar.read("x1", x1);
-      ar.read("y1", y1);
-      ar.read("x2", x2);
-      ar.read("y2", y2);
-      drawLine(function, x1, y1, x2, y2);
-      return;
-    }
-
-    if (what == "values")
-    {
-      int function, x1, x2; std::vector<double> values;
-      ar.read("function", function);
-      ar.read("x1", x1);
-      ar.read("x2", x2);
-      ar.read("values", values);
-      drawValues(function, x1, x2, values);
-      return;
-    }
+    int function, x1, x2; double y1, y2;
+    ar.read("function", function);
+    ar.read("x1", x1);
+    ar.read("y1", y1);
+    ar.read("x2", x2);
+    ar.read("y2", y2);
+    drawLine(function, x1, y1, x2, y2);
+    return;
   }
 
-  if (ar.name == "set")
+  if (ar.name == "DrawValues")
   {
-    String target_id;
-    ar.read("target_id", target_id);
-
-    if (target_id == "num_samples")
-    {
-      int value;
-      ar.read("value", value);
-      setNumberOfSamples(value);
-      return;
-    }
-
-    if (target_id == "num_functions")
-    {
-      int value;
-      ar.read("value", value);
-      setNumberOfFunctions(value);
-      return;
-    }
-
-    if (target_id == "input_range")
-    {
-      Range value;
-      ar.read("value", value);
-      setInputRange(input_range);
-      return;
-    }
-
-    if (target_id == "input_normalization_mode")
-    {
-      int value= ArrayUtils::UseDTypeRange;
-      ar.read("value", value);
-      setInputNormalizationMode(value);
-      return;
-    }
-
-    if (target_id == "output_dtype")
-    {
-      DType value;
-      ar.read("value", value);
-      setOutputDType(value);
-      return;
-    }
-
-    if (target_id == "output_range")
-    {
-      Range value;
-      ar.read("value", value);
-      setOutputRange(value);
-      return;
-    }
-
-    if (target_id == "attenuation")
-    {
-      double value;
-      ar.read("value", value);
-      setAttenutation(value);
-      return;
-    }
-
+    int function, x1, x2; std::vector<double> values;
+    ar.read("function", function);
+    ar.read("x1", x1);
+    ar.read("x2", x2);
+    ar.read("values", values);
+    drawValues(function, x1, x2, values);
+    return;
   }
+
 
   Model::execute(ar);
 }
@@ -222,8 +210,8 @@ void TransferFunction::addFunction(SharedPtr<SingleTransferFunction> fn)
     fn->setNumberOfSamples(getNumberOfSamples());
 
   beginUpdate(
-    fn->encode("addFunction"),
-    StringTree("removeFunction").write("index",(int)functions.size()));
+    StringTree("AddFunction").addChild(fn->encode("Function")),
+    StringTree("RemoveFunction").write("index",(int)functions.size()));
   {
     this->default_name = "";
     functions.push_back(fn);
@@ -239,8 +227,8 @@ void TransferFunction::removeFunction(int index)
   auto fn = functions[index];
 
   beginUpdate(
-    StringTree("removeFunction").write("index", index),
-    fn->encode("addFunction"));
+    StringTree("RemoveFunction").write("index", index),
+    StringTree("AddFunction").addChild(fn->encode("Function")));
   {
     this->default_name = "";
     Utils::remove(functions, fn);
@@ -270,12 +258,11 @@ void TransferFunction::setNumberOfSamples(int new_value)
     return;
 
   beginUpdate(
-    StringTree("set").write("target_id", "num_samples").write("value", cstring(new_value)),
+    StringTree("SetNumberOfSamples").write("value", cstring(new_value)),
     Transaction());
   {
-    topUndo().addChild(StringTree("set")
-      .write("target_id", "num_samples")
-      .write("value", cstring(old_value)));
+    //this will be executed at the end
+    topUndo().addChild(StringTree("SetNumberOfSamples").write("value", cstring(old_value)));
 
     int x1 = 0;
     int x2 = getNumberOfSamples() - 1;
@@ -298,23 +285,21 @@ void TransferFunction::setNumberOfFunctions(int value)
 
   int nsamples = functions.empty() ? 256 : getNumberOfSamples();
 
-  beginUpdate(
-    StringTree("setNumberOfFunctions").write("value",value),
-    Transaction());
+  beginTransaction();
   {
     while (getNumberOfFunctions() > value)
       removeFunction(getNumberOfFunctions()-1);
 
     while (getNumberOfFunctions() < value)
     {
-      auto name  = guessName(getNumberOfFunctions());
+      auto name = guessName(getNumberOfFunctions());
       auto color = guessColor(getNumberOfFunctions());
       auto values = std::vector<double>(nsamples, 0.0);
-      auto fn = std::make_shared<SingleTransferFunction>(name,color, values);
+      auto fn = std::make_shared<SingleTransferFunction>(name, color, values);
       addFunction(fn);
     }
   }
-  endUpdate();
+  endTransaction();
 }
 
 ////////////////////////////////////////////////////////////////////

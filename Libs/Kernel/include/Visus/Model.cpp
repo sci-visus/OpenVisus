@@ -53,45 +53,13 @@ Model::~Model() {
   VisusAssert(destroyed.empty());
 }
 
-///////////////////////////////////////////////////////////////
-String Model::popTargetId(StringTree& action) {
-  auto v = StringUtils::split(action.readString("target_id"), "/");
-  if (v.empty()) return "";
-  auto left = v[0];
-  auto right = StringUtils::join(std::vector<String>(v.begin() + 1, v.end()), "/");
-  action.removeAttribute("target_id");  //i want the target_id at the beginning of attributes
-  action.attributes.insert(action.attributes.begin(), std::make_pair("target_id", right));
-  return left;
-}
+
 
 ///////////////////////////////////////////////////////////////
-void Model::pushTargetId(StringTree& action, String target_id) {
-  auto right = action.readString("target_id");
-  if (!right.empty()) target_id = target_id + "/" + right;
-  action.removeAttribute("target_id"); //i want the target_id at the beginning of attributes
-  action.attributes.insert(action.attributes.begin(), std::make_pair("target_id", target_id));
-}
-
-///////////////////////////////////////////////////////////////
-StringTree Model::createPassThroughAction(StringTree action, String target_id) {
-  auto ret = action;
-  pushTargetId(ret, target_id);
-  return ret;
-}
-
-///////////////////////////////////////////////////////////////
-bool Model::getPassThroughAction(StringTree& action, String match) {
-  auto v = StringUtils::split(action.readString("target_id"), "/");
-  if (v.empty() || v[0] != match) return false;
-  popTargetId(action);
-  return true;
-}
-
-///////////////////////////////////////////////////////////////
-void Model::copy(Model& dst, StringTree encoded)
+void Model::decode(Model& dst, StringTree encoded)
 {
   //before updating I need a backup
-  StringTree undo("copy");
+  StringTree undo("Decode");
   dst.write(undo);
 
   dst.beginUpdate(encoded, undo);
@@ -101,17 +69,17 @@ void Model::copy(Model& dst, StringTree encoded)
 
 ///////////////////////////////////////////////////////////////
 void Model::copy(Model& dst, const Model& src) {
-  StringTree encoded("copy");
+  StringTree encoded("Decode");
   src.write(encoded);
-  return copy(dst, encoded);
+  return decode(dst, encoded);
 }
 
 ///////////////////////////////////////////////////////////////
 void Model::execute(Archive& ar)
 {
-  if (ar.name == "copy")
+  if (ar.name == "Decode")
   {
-    return copy(*this, ar);
+    return Model::decode(*this, ar);
   }
 
   if (isTransaction(ar))
@@ -278,7 +246,7 @@ void Model::endUpdate()
     //write the action
     if (this->log.is_open())
     {
-      this->log << std::endl;
+      //this->log << std::endl;
       //this->log << "<!--REDO-->" << std::endl;
       this->log << topRedo().toString() << std::endl;
       //this->log << "<!--UNDO-->" << std::endl;

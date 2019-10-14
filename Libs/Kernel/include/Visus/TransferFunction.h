@@ -228,7 +228,7 @@ public:
 
   //setAttenutation
   void setAttenutation(double value) {
-    setProperty("attenuation", this->attenuation, value);
+    setProperty("SetAttenutation", this->attenuation, value);
   }
 
   //computeRange
@@ -241,7 +241,7 @@ public:
 
   //setInputRange
   void setInputNormalizationMode(int value) {
-    setProperty("input_normalization_mode", this->input_normalization_mode, value);
+    setProperty("SetInputNormalizationMode", this->input_normalization_mode, value);
   }
 
   //getInputRange
@@ -251,7 +251,7 @@ public:
 
   //setInputRange
   void setInputRange(Range range) {
-    setProperty("input_range", this->input_range, range);
+    setProperty("SetInputRange", this->input_range, range);
   }
 
   //getOutputDType
@@ -261,7 +261,7 @@ public:
 
   //setOutputDType
   void setOutputDType(DType value) {
-    setProperty("output_dtype", this->output_dtype, value);
+    setProperty("SetOutputDType", this->output_dtype, value);
   }
 
   //getOutputRange
@@ -271,7 +271,7 @@ public:
 
   //setOutputRange
   void setOutputRange(Range value) {
-    setProperty("output_range", this->output_range, value);
+    setProperty("SetOutputRange", this->output_range, value);
   }
 
   //clearFunctions

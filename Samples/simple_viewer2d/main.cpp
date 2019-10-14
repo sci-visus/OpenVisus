@@ -213,8 +213,8 @@ public:
       auto render_node=new KdRenderArrayNode("KdRender");
       this->render_node=render_node;
       this->dataflow->addNode(render_node);
-      this->dataflow->connectPorts(dataset_node,"dataset",query_node);
-      this->dataflow->connectPorts(query_node,"data",render_node);
+      this->dataflow->connectNodes(dataset_node,query_node);
+      this->dataflow->connectNodes(query_node,"array",render_node);
     }
     else
     { 
@@ -222,8 +222,8 @@ public:
       auto render_node=new RenderArrayNode("Render Node");
       this->render_node=render_node;
       this->dataflow->addNode(render_node);
-      this->dataflow->connectPorts(dataset_node,"dataset",query_node);
-      this->dataflow->connectPorts(query_node,"data",render_node);
+      this->dataflow->connectNodes(dataset_node,query_node);
+      this->dataflow->connectNodes(query_node,"kdarray",render_node);
     }
 
     this->query_node->setAccessIndex(0);
@@ -232,9 +232,7 @@ public:
     this->query_node->setQuality(QueryDefaultQuality);
     this->query_node->setBounds(dataset_bounds);
     this->query_node->setQueryBounds(dataset_bounds);
-
-    this->glcamera->setViewport(Viewport(0,0,glcanvas->width(),(int)glcanvas->height()));
-    this->glcamera->guessPosition(dataset_bounds);
+    this->glcamera->guessPosition(dataset_bounds.toAxisAlignedBox());
 
     setTime(dataset->getDefaultTime());
     setFieldName(dataset->getDefaultField().name);

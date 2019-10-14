@@ -528,12 +528,12 @@ void DataflowFrameView::dataflowSetSelection(Node* old_selection,Node* new_selec
 
 }
 /////////////////////////////////////////////////////////////
-void DataflowFrameView::dataflowConnectPorts(Node* from,String oport,String iport,Node* to) {
+void DataflowFrameView::dataflowConnectNodes(Node* from,String oport,String iport,Node* to) {
   update();
 }
 
 /////////////////////////////////////////////////////////////
-void DataflowFrameView::dataflowDisconnectPorts(Node* from,String oport,String iport,Node* to) {
+void DataflowFrameView::dataflowDisconnectNodes(Node* from,String oport,String iport,Node* to) {
   update();
 }
 

@@ -57,31 +57,15 @@ FieldNode::~FieldNode()
 ///////////////////////////////////////////////////////////////////////////////////////////
 void FieldNode::execute(Archive& ar)
 {
-  if (ar.name == "set")
-  {
-    String target_id;
-    ar.read("target_id", target_id);
-
-    if (target_id == "fieldname") {
-      String value;
-      ar.read("value", value);
-      setFieldName(value);
-      return;
-    }
-
+  if (ar.name == "SetFieldName") {
+    String value;
+    ar.read("value", value);
+    setFieldName(value);
+    return;
   }
 
   return Node::execute(ar);
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////
-void FieldNode::setFieldName(String value)
-{
-  if (this->fieldname== value)
-    return;
-
-  setProperty("fieldname", this->fieldname, value);
-} 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 void FieldNode::doPublish()

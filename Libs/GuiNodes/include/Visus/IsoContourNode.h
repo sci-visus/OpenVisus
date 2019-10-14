@@ -122,7 +122,7 @@ public:
 
   //setIsoValue
   void setIsoValue(double value) {
-    setProperty("isovalue", this->isovalue, value);
+    setProperty("SetIsoValue", this->isovalue, value);
   }
 
 public:

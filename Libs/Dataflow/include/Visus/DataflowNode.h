@@ -130,7 +130,7 @@ public:
 
   //setUUID
   void setUUID(String value) {
-    setProperty("uuid", this->uuid, value);
+    setProperty("SetUUID", this->uuid, value);
   }
 
   //getParent

@@ -575,18 +575,12 @@ IsoContourNode::~IsoContourNode()
 ///////////////////////////////////////////////////////////////////////
 void IsoContourNode::execute(Archive& ar)
 {
-  if (ar.name == "set")
+  if (ar.name == "SetIsoValue")
   {
-    String target_id;
-    ar.read("target_id", target_id);
-
-    if (target_id == "isovalue")
-    {
-      double isovalue;
-      ar.read("isovalue", isovalue);
-      setIsoValue(isovalue);
-      return;
-    }
+    double value;
+    ar.read("value", value);
+    setIsoValue(value);
+    return;
   }
 
   return Node::execute(ar);

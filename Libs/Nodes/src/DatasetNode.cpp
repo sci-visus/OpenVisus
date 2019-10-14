@@ -56,18 +56,11 @@ DatasetNode::~DatasetNode()
 //////////////////////////////////////////////////////////////////////////
 void DatasetNode::execute(Archive& ar)
 {
-  if (ar.name == "set")
-  {
-    String target_id;
-    ar.read("target_id", target_id);
-
-    if (target_id == "show_bounds") {
-      bool value;
-      ar.read("value", value);
-      setShowBounds(value);
-      return;
-    }
-
+  if (ar.name == "SetShowBounds") {
+    bool value;
+    ar.read("value", value);
+    setShowBounds(value);
+    return;
   }
 
   return Node::execute(ar);

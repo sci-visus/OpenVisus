@@ -65,7 +65,48 @@ GLOrthoCamera::~GLOrthoCamera() {
   //////////////////////////////////////////////////
 void GLOrthoCamera::execute(Archive& ar) 
 {
-  if (ar.name == "setLookAt")
+  if (ar.name == "SetOrthoParams")
+  {
+    GLOrthoParams value; int smooth;
+    ar.read("value", value);
+    ar.read("smooth", smooth, false);
+    setOrthoParams(value, smooth);
+    return;
+  }
+
+  if (ar.name == "SetMinZoom")
+  {
+    double value;
+    ar.read("value", value);
+    setMinZoom(value);
+    return;
+  }
+
+  if (ar.name == "SetMaxZoom")
+  {
+    double value;
+    ar.read("value", value);
+    setMaxZoom(value);
+    return;
+  }
+
+  if (ar.name == "SetDefaultSmooth")
+  {
+    int value;
+    ar.read("value", value, 1300);
+    setDefaultSmooth(value);
+    return;
+  }
+
+  if (ar.name == "SetDisableRotation")
+  {
+    bool value;
+    ar.read("value", value);
+    setDisableRotation(value);
+    return;
+  }
+
+  if (ar.name == "SetLookAt")
   {
     Point3d pos, dir, vup; double rotation;
     ar.read("pos", pos);
@@ -74,53 +115,6 @@ void GLOrthoCamera::execute(Archive& ar)
     ar.read("rotation", rotation, 0.0);
     setLookAt(pos, dir, vup, rotation);
     return;
-  }
-
-  if (ar.name == "set")
-  {
-    String target_id;
-    ar.read("target_id", target_id);
-
-    if (target_id == "ortho_params")
-    {
-      GLOrthoParams value; int msec;
-      ar.read("value", value);
-      ar.read("msec", msec, 1300);
-      setOrthoParams(value,msec);
-      return;
-    }
-
-    if (target_id == "min_zoom")
-    {
-      double value;
-      ar.read("value", value);
-      setMinZoom(value);
-      return;
-    }
-
-    if (target_id == "max_zoom")
-    {
-      double value;
-      ar.read("value", value);
-      setMaxZoom(value);
-      return;
-    }
-
-    if (target_id == "default_smooth")
-    {
-      int value;
-      ar.read("value", value, 1300);
-      setDefaultSmooth(value);
-      return;
-    }
-
-    if (target_id == "disable_rotation")
-    {
-      bool value;
-      ar.read("value", value);
-      setDisableRotation(value);
-      return;
-    }
   }
 
   return GLCamera::execute(ar);
@@ -218,17 +212,17 @@ void GLOrthoCamera::refineToFinal()
 }
 
 //////////////////////////////////////////////////
-void GLOrthoCamera::setOrthoParams(GLOrthoParams new_value,int smooth)
+void GLOrthoCamera::setOrthoParams(GLOrthoParams new_value, int smooth)
 {
   VisusAssert(VisusHasMessageLock());
 
   auto& old_value = this->ortho_params.final;
-  if (old_value  == new_value)
+  if (old_value == new_value)
     return;
 
   beginUpdate(
-    StringTree("set").write("target_id", "ortho_params").write("value", new_value).write("smooth", smooth),
-    StringTree("set").write("target_id", "ortho_params").write("value", old_value).write("smooth", smooth));
+    StringTree("SetOrthoParams").write("value", new_value).write("smooth", smooth), 
+    StringTree("SetOrthoParams").write("value", old_value).write("smooth", smooth));
   {
     old_value = new_value;
   }
@@ -336,8 +330,8 @@ GLOrthoParams GLOrthoCamera::checkZoomRange(GLOrthoParams value, const Viewport&
 void GLOrthoCamera::setLookAt(Point3d pos, Point3d dir, Point3d vup, double rotation)
 {
   beginUpdate(
-    StringTree("setLookAt").write("pos", pos.toString()).write("dir", dir.toString()).write("vup", vup.toString()).write("rotation", rotation),
-    StringTree("setLookAt").write("pos", this->pos.toString()).write("dir", this->dir.toString()).write("vup", this->vup.toString()).write("rotation", this->rotation));
+    StringTree("SetLookAt").write("pos", pos.toString()).write("dir", dir.toString()).write("vup", vup.toString()).write("rotation", rotation),
+    StringTree("SetLookAt").write("pos", this->pos.toString()).write("dir", this->dir.toString()).write("vup", this->vup.toString()).write("rotation", this->rotation));
   {
     this->pos = pos;
     this->dir = dir;

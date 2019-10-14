@@ -102,12 +102,12 @@ public:
   virtual void dataflowSetSelection(Node* old_selection, Node* new_selection) {
   }
 
-  //datafloConnectPorts
-  virtual void dataflowConnectPorts(Node* from, String oport, String iport, Node* to) {
+  //datafloConnectNodes
+  virtual void dataflowConnectNodes(Node* from, String oport, String iport, Node* to) {
   }
 
-  //datafloConnectPorts
-  virtual void dataflowDisconnectPorts(Node* from, String oport, String iport, Node* to) {
+  //datafloConnectNodes
+  virtual void dataflowDisconnectNodes(Node* from, String oport, String iport, Node* to) {
   }
 
 };
@@ -232,24 +232,30 @@ public:
   //removeNode
   void removeNode(Node* node);
 
-  //connectPorts
-  void connectPorts(Node* from, String oport, String iport, Node* to);
+  //connectNodes
+  void connectNodes(Node* from, String oport, String iport, Node* to);
 
-  //connectPorts
-  void connectPorts(Node* from, String port_name, Node* to) {
-    connectPorts(from, port_name, port_name, to);
+  //connectNodes
+  void connectNodes(Node* from, String port_name, Node* to) {
+    connectNodes(from, port_name, port_name, to);
   }
 
-  //connectPorts
-  void connectPorts(Node* from, Node* to)
+  //connectNodes
+  void connectNodes(Node* from, Node* to)
   {
-    if (from->outputs.size() == 1) { connectPorts(from, from->getFirstOutputPort()->getName(), to); return; }
-    if (to->inputs.size() == 1) { connectPorts(from, to->getFirstInputPort()->getName(), to); return; }
-    VisusAssert(false);
+    std::vector<String> common;
+    for (auto oport : from->getOutputPortNames())
+    {
+      if (to->hasInputPort(oport))
+        common.push_back(oport);
+    }
+    if (common.size() != 1)
+      ThrowException("internal error");
+    return connectNodes(from, common[0], to);
   }
 
-  //disconnectPorts
-  void disconnectPorts(Node* from, String oport, String iport, Node* to);
+  //disconnectNodes
+  void disconnectNodes(Node* from, String oport, String iport, Node* to);
 
 public:
 

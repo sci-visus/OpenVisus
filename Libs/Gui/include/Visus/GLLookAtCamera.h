@@ -67,7 +67,7 @@ public:
 
   //setBounds
   void setBounds(BoxNd value) {
-    setProperty("bounds", this->bounds, value);
+    setProperty("SetBounds", this->bounds, value);
   }
 
   //guessPosition
@@ -75,7 +75,7 @@ public:
 
   //splitFrustum
   virtual void splitFrustum(Rectangle2d value) override {
-    setProperty("split_frustum", this->split_frustum, value);
+    setProperty("SplitFrustum", this->split_frustum, value);
   }
 
   //getPos
@@ -85,7 +85,7 @@ public:
 
   //setPos
   void setPos(Point3d value) {
-    setProperty("pos", this->pos, value);
+    setProperty("SetPos", this->pos, value);
   }
 
   //getDir
@@ -95,7 +95,7 @@ public:
 
   //setDir
   void setDir(Point3d value) {
-    setProperty("dir", this->dir, value);
+    setProperty("SetDir", this->dir, value);
   }
 
   //getVup
@@ -105,7 +105,7 @@ public:
 
   //setVup
   void setVup(Point3d value) {
-    setProperty("vup", this->vup, value);
+    setProperty("SetVup", this->vup, value);
   }
 
   //getLookAt
@@ -121,9 +121,7 @@ public:
   }
 
   //setRotation
-  void setRotation(Quaternion value) {
-    setProperty("rotation", this->rotation, value);
-  }
+  void setRotation(Quaternion new_value);
 
   //getRotationCenter
   Point3d getRotationCenter() {
@@ -132,7 +130,7 @@ public:
 
   //setRotationCenter
   void setRotationCenter(Point3d value) {
-    setProperty("rotation_center", this->rotation_center, value);
+    setProperty("SetRotationCenter", this->rotation_center, value);
   }
 
   //getFov
@@ -142,7 +140,7 @@ public:
 
   //setFov
   void setFov(double value) {
-    setProperty("fov", this->fov, fov);
+    setProperty("SetFov", this->fov, fov);
   }
 
 public:

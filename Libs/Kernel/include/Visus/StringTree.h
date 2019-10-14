@@ -290,66 +290,83 @@ public:
     return write(key, value.toString());
   }
 
+  //writeIfNotDefault
+  template <class Value>
+  StringTree& writeIfNotDefault (String key, const Value& value, const Value& default_value)
+  {
+    if (value!= default_value) write(key, value);
+    return *this;
+  }
+
 public:
 
   //read
-  void read(String key, String& value, String default_value="") const
+  const StringTree& read(String key, String& value, String default_value="") const
   {
     VisusAssert(!key.empty());
     auto cursor = NormalizeR(this, key);
     value = cursor? cursor->getAttribute(key, default_value) : default_value;
+    return *this;
   }
 
   //read
-  void read(const char* key, String& value, String default_value = "") const {
+  const StringTree& read(const char* key, String& value, String default_value = "") const {
     read(String(key), value, default_value);
+    return *this;
   }
 
   //read
-  void read(String key, bool& value, bool default_value=false) const {
+  const StringTree& read(String key, bool& value, bool default_value=false) const {
     auto cursor = NormalizeR(this, key);
     value = cursor && cursor->hasAttribute(key) ? cbool(cursor->getAttribute(key)) : default_value;
+    return *this;
   }
 
   //read
-  void read(String key, int& value, int default_value=0) const {
+  const StringTree& read(String key, int& value, int default_value=0) const {
     auto cursor = NormalizeR(this, key);
     value = cursor && cursor->hasAttribute(key) ? cint(cursor->getAttribute(key)) : default_value;
+    return *this;
   }
 
   //read(
-  void read(String key, Int64& value, Int64 default_value=0) const {
+  const StringTree& read(String key, Int64& value, Int64 default_value=0) const {
     auto cursor = NormalizeR(this, key);
     value = cursor && cursor->hasAttribute(key) ? cint64(cursor->getAttribute(key)) : default_value;
+    return *this;
   }
 
   //read
-  void read(String key, double& value, double default_value=0.0) const {
+  const StringTree& read(String key, double& value, double default_value=0.0) const {
     auto cursor = NormalizeR(this, key);
     value = cursor && cursor->hasAttribute(key) ? cdouble(cursor->getAttribute(key)) : default_value;
+    return *this;
   }
 
   //read
   template <class Value>
-  void read(String key, Value& value, Value default_value=Value()) const {
+  const StringTree& read(String key, Value& value, Value default_value=Value()) const {
     auto cursor = NormalizeR(this, key);
     value = cursor && cursor->hasAttribute(key) ? Value::fromString(cursor->getAttribute(key)) : default_value;
+    return *this;
   }
 
   //read
-  void read(String key, std::vector<int>& values) const {
+  const StringTree& read(String key, std::vector<int>& values) const {
     values.clear();
     String text; 
     readText(key,text);
     values = StringUtils::parseInts(text);
+    return *this;
   }
 
   //read
-  void read(String key, std::vector<double>& values) const {
+  const StringTree& read(String key, std::vector<double>& values) const {
     values.clear();
     String text; 
     readText(key, text);
     values=StringUtils::parseDoubles(text);
+    return *this;
   }
 
 public:

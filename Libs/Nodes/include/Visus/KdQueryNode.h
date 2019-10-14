@@ -53,12 +53,10 @@ public:
   VISUS_NON_COPYABLE_CLASS(KdQueryNode)
 
   //default constructor
-  KdQueryNode(String name = "") : QueryNode(name){
-  }
+  KdQueryNode(String name = "");
 
   //destructor
-  virtual ~KdQueryNode(){
-  }
+  virtual ~KdQueryNode();
 
   //processInput
   virtual bool processInput() override;

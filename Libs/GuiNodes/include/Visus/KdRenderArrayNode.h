@@ -63,8 +63,8 @@ public:
   //constructor
   KdRenderArrayNode(String name="") : Node(name)
   {
-    addInputPort("array");
-    addInputPort("palette"); 
+    addInputPort("palette");
+    addInputPort("kdarray");
   }
 
   //destructor

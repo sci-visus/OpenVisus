@@ -206,25 +206,18 @@ ScriptingNode::~ScriptingNode()
 //////////////////////////////////////////////////////////////////////////
 void ScriptingNode::execute(Archive& ar)
 {
-  if (ar.name == "set")
-  {
-    String target_id;
-    ar.read("target_id", target_id);
+  if (ar.name == "SetMaxPublishMSec") {
+    int value;
+    ar.read("value", value);
+    setMaxPublishMSec(value);
+    return;
+  }
 
-    if (target_id == "max_publish_msec") {
-      int value;
-      ar.read("value", value);
-      setMaxPublishMSec(value);
-      return;
-    }
-
-    if (target_id == "code") {
-      String value;
-      ar.read("value", value);
-      setCode(value);
-      return;
-    }
-
+  if (ar.name == "SetCode") {
+    String value;
+    ar.read("value", value);
+    setCode(value);
+    return;
   }
 
   return Node::execute(ar);

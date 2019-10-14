@@ -174,6 +174,9 @@ DataflowPortValue* Dataflow::guessLastPublished(DataflowPort* from)
 {
   VisusAssert(VisusHasMessageLock());
 
+  if (!from)
+    return nullptr;
+
   //this is the simple algorithm which covers 99% of the cases (mostly when I don't have multiple dataflow)
   if (DataflowPortValue* ret=from->previewValue())
     return ret;
@@ -441,7 +444,7 @@ void Dataflow::moveNode(Node* dst,Node* src,int index)
 }
 
 ////////////////////////////////////////////////////////////////////////
-void Dataflow::connectPorts(Node* from,String oport_name,String iport_name,Node* to)
+void Dataflow::connectNodes(Node* from,String oport_name,String iport_name,Node* to)
 {
   VisusAssert(VisusHasMessageLock());
 
@@ -457,14 +460,14 @@ void Dataflow::connectPorts(Node* from,String oport_name,String iport_name,Node*
   iport->inputs .insert(oport);
 
   for (auto listener : listeners)
-    listener->dataflowConnectPorts(from,oport_name,iport_name,to);
+    listener->dataflowConnectNodes(from,oport_name,iport_name,to);
 
   if (last_published)
     floodValueForward(iport,last_published->value,last_published->return_receipt);
 }
 
 ////////////////////////////////////////////////////////////////////////
-void Dataflow::disconnectPorts(Node* from,String oport_name,String iport_name,Node* to)
+void Dataflow::disconnectNodes(Node* from,String oport_name,String iport_name,Node* to)
 {
   DataflowPort* oport=from->getOutputPort(oport_name);
   DataflowPort* iport=to  ->getInputPort (iport_name);
@@ -477,7 +480,7 @@ void Dataflow::disconnectPorts(Node* from,String oport_name,String iport_name,No
   iport->inputs .erase(oport);
 
   for (auto listener : listeners)
-    listener->dataflowDisconnectPorts(from,oport_name,iport_name,to);
+    listener->dataflowDisconnectNodes(from,oport_name,iport_name,to);
 }
 
 

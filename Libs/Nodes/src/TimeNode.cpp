@@ -58,31 +58,25 @@ TimeNode::~TimeNode()
 //////////////////////////////////////////////////////////////////////////
 void TimeNode::execute(Archive& ar)
 {
-  if (ar.name == "set")
-  {
-    String target_id;
-    ar.read("target_id", target_id);
+  if (ar.name == "SetCurrentTime") {
+    double value;
+    ar.read("value", value);
+    setCurrentTime(value);
+    return;
+  }
 
-    if (target_id == "current_time") {
-      double value;
-      ar.read("value", value);
-      setCurrentTime(value);
-      return;
-    }
+  if (ar.name == "SetUserRange") {
+    Range value;
+    ar.read("value", value);
+    setUserRange(value);
+    return;
+  }
 
-    if (target_id == "user_range") {
-      Range value;
-      ar.read("value", value);
-      setUserRange(value);
-      return;
-    }
-
-    if (target_id == "play_msec") {
-      int value;
-      ar.read("value", value);
-      setPlayMsec(value);
-      return;
-    }
+  if (ar.name == "SetPlayMsec") {
+    int value;
+    ar.read("value", value);
+    setPlayMsec(value);
+    return;
   }
 
   return Node::execute(ar);
@@ -91,14 +85,13 @@ void TimeNode::execute(Archive& ar)
 //////////////////////////////////////////////////
 void TimeNode::setCurrentTime(double value,bool bDoPublish)
 {
-  //NOTE: I accept even value if not in timesteps...
-  if (this->current_time!=value)
-  {
-    setProperty("current_time", this->current_time, value);
+  if (this->current_time == value)
+    return;
 
-    if (bDoPublish)
-      doPublish();
-  }
+  setProperty("SetCurrentTime", this->current_time, value);
+
+  if (bDoPublish)
+    doPublish();
 }
 
 //////////////////////////////////////////////////
@@ -107,7 +100,7 @@ void TimeNode::setUserRange(const Range& value)
   if (this->user_range==value)
     return;
 
-  setProperty("user_range", this->user_range, value);
+  setProperty("SetUserRange", this->user_range, value);
   doPublish();
 }
 
@@ -115,7 +108,7 @@ void TimeNode::setUserRange(const Range& value)
 void TimeNode::setPlayMsec(int value)
 {
   if (this->play_msec==value) return;
-  setProperty("play_msec", this->play_msec, value);
+  setProperty("SetPlayMsec", this->play_msec, value);
   //doPublish();
 }
 

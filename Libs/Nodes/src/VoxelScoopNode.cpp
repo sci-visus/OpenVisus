@@ -1011,59 +1011,53 @@ VoxelScoopNode::VoxelScoopNode(String name) :  Node(name)
 /////////////////////////////////////////////////////////////
 void VoxelScoopNode::execute(Archive& ar)
 {
-  if (ar.name == "set")
-  {
-    String target_id;
-    ar.read("target_id", target_id);
+  if (ar.name == "SetSimplify") {
+    bool value;
+    ar.read("value", value);
+    setSimplify(value);
+    return;
+  }
 
-    if (target_id == "simplify") {
-      bool value;
-      ar.read("value", value);
-      setSimplify(value);
-      return;
-    }
+  if (ar.name == "SetMinLength") {
+    double value;
+    ar.read("value", value);
+    setMinLength(value);
+    return;
+  }
 
-    if (target_id == "min_length") {
-      double value;
-      ar.read("value", value);
-      setMinLength(value);
-      return;
-    }
+  if (ar.name == "SetMinRatio") {
+    double value;
+    ar.read("value", value);
+    setMinRatio(value);
+    return;
+  }
 
-    if (target_id == "min_ratio") {
-      double value;
-      ar.read("value", value);
-      setMinRatio(value);
-      return;
-    }
+  if (ar.name == "SetThreshold") {
+    double value;
+    ar.read("value", value);
+    setThreshold(value);
+    return;
+  }
 
-    if (target_id == "threshold") {
-      double value;
-      ar.read("value", value);
-      setThreshold(value);
-      return;
-    }
+  if (ar.name == "SetUseMinimaAsSeed") {
+    bool value;
+    ar.read("value", value);
+    setUseMinimaAsSeed(value);
+    return;
+  }
 
-    if (target_id == "use_minima_as_seed") {
-      bool value;
-      ar.read("value", value);
-      setUseMinimaAsSeed(value);
-      return;
-    }
+  if (ar.name == "SetUseMaximaAsSeed") {
+    bool value;
+    ar.read("value", value);
+    setUseMaximaAsSeed(value);
+    return;
+  }
 
-    if (target_id == "use_maxima_as_seed") {
-      bool value;
-      ar.read("value", value);
-      setUseMaximaAsSeed(value);
-      return;
-    }
-
-    if (target_id == "min_diam") {
-      double value;
-      ar.read("value", value);
-      setMinDiam(value);
-      return;
-    }
+  if (ar.name == "SetMinDiam") {
+    double value;
+    ar.read("value", value);
+    setMinDiam(value);
+    return;
   }
 
   return Node::execute(ar);

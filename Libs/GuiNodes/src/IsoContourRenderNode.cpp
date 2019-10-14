@@ -145,25 +145,20 @@ IsoContourRenderNode::~IsoContourRenderNode() {
 ///////////////////////////////////////////////////////////////////////////
 void IsoContourRenderNode::execute(Archive& ar)
 {
-  if (ar.name == "set")
+  if (ar.name == "SetMaterial")
   {
-    String target_id;
-    ar.read("target_id", target_id);
-
-    if (target_id == "material")
-    {
-      GLMaterial value;
-      value.read(*ar.getFirstChild());
-      setMaterial(value);
-      return;
-      return;
-    }
+    GLMaterial value;
+    value.read(*ar.getFirstChild());
+    setMaterial(value);
+    return;
   }
+
+  return Node::execute(ar);
 }
 
 ///////////////////////////////////////////////////////////////////////////
 void IsoContourRenderNode::setMaterial(GLMaterial new_value) {
-  setEncodedProperty("material", this->material, new_value);
+  setEncodedProperty("SetMaterial", this->material, new_value);
 }
 
 

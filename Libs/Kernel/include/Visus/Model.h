@@ -138,34 +138,34 @@ public:
 
   //Transaction
   static StringTree Transaction() {
-    return StringTree("transaction");
+    return StringTree("Transaction");
   }
 
   //isTransaction
   bool isTransaction(const StringTree& action) const {
-    return action.name == "transaction";
+    return action.name == Transaction().name;
   }
 
   //Diff
   static StringTree Diff() {
-    return StringTree("diff");
+    return StringTree("Diff");
   }
 
   //isDiff
   bool isDiff(const StringTree& action) const {
-    return action.name == "diff";;
+    return action.name == Diff().name;
   }
 
 public:
 
   //setProperty
   template <typename Value>
-  void setProperty(String target_id, Value& old_value, const Value& new_value)
+  void setProperty(String action_name, Value& old_value, const Value& new_value)
   {
     if (old_value == new_value) return;
     beginUpdate(
-      createPassThroughAction(StringTree("set"), target_id).write("value", new_value),
-      createPassThroughAction(StringTree("set"), target_id).write("value", old_value));
+      StringTree(action_name).write("value", new_value),
+      StringTree(action_name).write("value", old_value));
     {
       old_value = new_value;
     }
@@ -174,39 +174,53 @@ public:
 
   //setEncodedProperty
   template <typename Value>
-  void setEncodedProperty(String target_id, Value& old_value, const Value& new_value)
+  void setEncodedProperty(String action_name, Value& old_value, const Value& new_value)
   {
     if (old_value == new_value) return;
-
-    StringTree new_encoded("set"); new_value.write(new_encoded);
-    StringTree old_encoded("set"); old_value.write(old_encoded);
-
     beginUpdate(
-      createPassThroughAction(new_encoded, target_id),
-      createPassThroughAction(old_encoded, target_id));
+      EncodeObject(action_name, new_value),
+      EncodeObject(action_name, old_value));
     {
       old_value = new_value;
     }
     endUpdate();
   }
 
+  //pushTargetId
+  static StringTree pushTargetId(String left, const StringTree& action) {
+    //i want the target_id at the beginning of attributes
+    auto ret = action;
+    ret.removeAttribute("target_id");
+    ret.attributes.insert(ret.attributes.begin(), std::make_pair("target_id", action.readString("target_id").empty()? left : left + "/" + action.readString("target_id")));
+    return ret;
+  }
 
   //popTargetId
-  String popTargetId(StringTree& action);
+  static String popTargetId(StringTree& action)
+  {
+    auto v = StringUtils::split(action.readString("target_id"), "/");
+    if (v.empty()) return "";
+    auto left = v[0];
+    auto right = StringUtils::join(std::vector<String>(v.begin() + 1, v.end()), "/");
 
-  //pushTargetId
-  void pushTargetId(StringTree& action, String target_id);
+    //i want the target_id at the beginning of attributes
+    action.removeAttribute("target_id");  
+    action.attributes.insert(action.attributes.begin(), std::make_pair("target_id", right));
+    return left;
+  }
 
-  //createPassThroughAction
-  StringTree createPassThroughAction(StringTree action, String target_id);
-
-  //getPassThroughAction
-  bool getPassThroughAction(StringTree& action, String match);
+  //popTargetId
+  static bool popTargetId(String left, StringTree& action) {
+    auto v = StringUtils::split(action.readString("target_id"), "/");
+    if (v.empty() || v[0] != left) return false;
+    popTargetId(action);
+    return true;
+  }
 
 public:
 
-  //copy
-  static void copy(Model& dst, StringTree redo);
+  //decode
+  static void decode(Model& dst, StringTree encoded);
 
   //copy
   static void copy(Model& dst, const Model& src);
@@ -276,6 +290,15 @@ private:
 
 };
 
+
+
+template <class Value>
+inline StringTree EncodeObject(String name, const Value& value)
+{
+  StringTree ret(name);
+  value.write(ret);
+  return ret;
+}
 
 //////////////////////////////////////////////////////////
 template <class ModelClassArg>

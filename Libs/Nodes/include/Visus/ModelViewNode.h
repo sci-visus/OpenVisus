@@ -61,16 +61,16 @@ public:
   virtual ~ModelViewNode() {
   }
 
-  //getModelview
-  const Matrix& getModelview() const {
+  //getModelView
+  const Matrix& getModelView() const {
     return T;
   }
 
-  //setModelview
-  void setModelview(const Matrix& value) {
+  //setModelView
+  void setModelView(const Matrix& value) {
     if (this->T==value) return;
     VisusAssert(value.getSpaceDim() == 4);
-    setProperty("T", this->T, value);
+    setProperty("SetModelView", this->T, value);
   }
 
 public:
