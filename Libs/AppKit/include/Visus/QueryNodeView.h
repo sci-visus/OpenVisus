@@ -282,8 +282,8 @@ private:
           return;
         
         auto nsamples = query->getNumberOfSamples();
-        resLabel->setText(String(StringUtils::format() << "Est. Size:  " << StringUtils::getStringFromByteSize(widgets.selected_field.dtype.getByteSize(nsamples))).c_str());
-        dimsLabel->setText(String(StringUtils::format() << "[" + nsamples.toString("x") << "]").c_str());
+        resLabel->setText(cstring("Est. Size:",StringUtils::getStringFromByteSize(widgets.selected_field.dtype.getByteSize(nsamples))).c_str());
+        dimsLabel->setText(cstring("[",nsamples,"]").c_str());
     });
     
     emit(widgets.end_resolution->valueChanged(std::min(24, dataset->getMaxResolution())));
@@ -310,7 +310,7 @@ private:
         return false;
 
       auto nsamples = query->getNumberOfSamples();
-      String filename = StringUtils::format()<< widgets.fileEdit->text().toStdString() << nsamples.toString("_") << query->field.dtype.toString() << ".raw";
+      String filename = concatenate(widgets.fileEdit->text().toStdString(),nsamples.toString("_"),query->field.dtype.toString(),".raw");
 
       File data_file;
       if (data_file.createAndOpen(filename,"rw"))

@@ -125,8 +125,7 @@ def VisibleFemale():
 	viewer=PyViewer()
 	viewer.addGLCamera(viewer.getRoot(),"3d")
 	viewer.addIsoSurface(field=R, second_field=None, isovalue=100.0, bounds=bounds)
-	#viewer.addVolumeRender(RGBA, bounds)		
-	
+	#viewer.addVolumeRender(RGBA, bounds)	
 	
 	viewer.run()
 	

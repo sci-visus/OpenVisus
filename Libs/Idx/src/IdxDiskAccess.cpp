@@ -268,7 +268,7 @@ public:
 
     auto encoded = std::make_shared<HeapMemory>();
     if (!encoded->resize(block_size, __FILE__, __LINE__))
-      return failed(StringUtils::format() << "cannot resize block block_size(" << block_size << ")");
+      return failed(cstring("cannot resize block block_size",block_size));
 
     if (bVerbose)
       VisusInfo() << "Reading buffer: read block_offset(" << block_offset << ") encoded->c_size(" << encoded->c_size() << ")";
@@ -479,7 +479,7 @@ public:
 
     auto encoded = std::make_shared<HeapMemory>();
     if (!encoded->resize(block_size, __FILE__, __LINE__))
-      return failed(StringUtils::format() << "cannot resize block block_size(" << block_size << ")");
+      return failed(cstring("cannot resize block block_size",block_size));
 
     if (bVerbose)
       VisusInfo() << "Reading buffer: read block_offset(" << block_offset << ") encoded->c_size(" << encoded->c_size() << ")";
@@ -872,7 +872,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
 
   Url url=config.readString("url",dataset->getUrl().toString());
   if (!url.valid())
-    ThrowException(StringUtils::format()<<"cannot use "<<url.toString()<<" for IdxDiskAccess::create, reason wrong url");
+    ThrowException(cstring("cannot use",url,"for IdxDiskAccess::create, reason wrong url"));
 
   if (url.toString()!=dataset->getUrl().toString())
   {
@@ -887,7 +887,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
       local_idxfile.block_interleaving=0;
       local_idxfile.filename_template="";
       if (!local_idxfile.save(Path(url.getPath()).toString())) {
-        String msg=StringUtils::format()<<"cannot use "<<url.toString()<<" as cache location. save failed";
+        String msg=cstring("cannot use",url,"as cache location. save failed");
         VisusWarning()<<msg;
         ThrowException(msg);
       }
@@ -897,7 +897,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
     {
       IdxFile local_idxfile=IdxFile::load(url);
       if (!local_idxfile.valid()) {
-        String msg=StringUtils::format()<<"cannot use "<<url.toString()<<" as cache location. load failed";
+        String msg=cstring("cannot use",url," as cache location. load failed");
         VisusWarning()<<msg;
         ThrowException(msg);
       }

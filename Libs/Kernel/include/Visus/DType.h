@@ -61,9 +61,7 @@ public:
     : num(1),unsign(decimal_ || bitsize_ == 1? false : unsign_),decimal(decimal_),bitsize(bitsize_),ranges(1)
   {
     VisusAssert(bitsize > 0);
-    std::ostringstream out;
-    out << (unsign ? "u" : "") << (decimal ? "float" : "int") << (bitsize);
-    this->description= out.str();
+    this->description= concatenate(unsign ? "u" : "", decimal ? "float" : "int", bitsize);
   }
 
   //constructor for VectorType
@@ -71,9 +69,7 @@ public:
     : num(num_),unsign(other.unsign),decimal(other.decimal),bitsize(other.bitsize),ranges(num)
   {
     VisusAssert(num && other.ncomponents()==1);
-    std::ostringstream out;
-    out << other.description << (num > 1 ? "[" + cstring(num) + "]" : "");
-    this->description= out.str();
+    this->description= concatenate(other.description, num > 1 ? "[" + cstring(num) + "]" : "");
   }
 
   //use this if you have the value representation of dtype from string representation 
@@ -113,6 +109,11 @@ public:
   //ncomponents
   int ncomponents() const {
     return num;
+  }
+
+  //withNumberOfComponents
+  DType withNumberOfComponents(int N) const {
+    return DType(valid()? N : 0, get(0));
   }
 
   //getBitSize

@@ -235,6 +235,30 @@ public:
     return DataflowValue::unwrapValue<Value>(readValue(iport));
   }
 
+  //readInt
+  int readInt(String key) { 
+    auto ret = readValue<int>(key); 
+    return ret ? *ret : 0; 
+  }
+
+  //readDouble
+  double readDouble(String key) { 
+    auto ret = readValue<double>(key); 
+    return ret ? *ret : 0.0; 
+  }
+
+  //readString
+  String readString(String key) { 
+    auto ret = readValue<String>(key); 
+    return ret ? *ret : ""; 
+  }
+
+  //readArray
+  Array readArray(String key) { 
+    auto ret = readValue<Array>(key); 
+    return ret ? *ret : Array(); 
+  }
+
   //previewInput
   SharedPtr<DataflowValue> previewInput(String iport);
 

@@ -236,16 +236,18 @@ void VisusAssertFailed(const char* file,int line,const char* expr)
   if (ApplicationInfo::debug)
     Utils::breakInDebugger();
   else
-    ThrowExceptionEx(StringUtils::format()<<file << ":" << line,expr);
+    ThrowExceptionEx(file,line,expr);
+}
+
+String cnamed(String name, String value) {
+  return name + "(" + value + ")";
 }
 
 
 //////////////////////////////////////////////////////
-void ThrowExceptionEx(String where, String what)
+void ThrowExceptionEx(String file,int line, String what)
 {
-  std::ostringstream out;
-  out << "Visus throwing exception where(" << where << ") what(" << what << ")";
-  String msg = out.str();
+  String msg = cstring("Visus throwing exception", cnamed("where", file + ":" + cstring(line)), cnamed("what", what));
   VisusInfo() << msg;
   throw std::runtime_error(msg);
 }

@@ -112,10 +112,10 @@ void Model::execute(Archive& ar)
     encoded = StringTree::fromString(StringUtils::join(next, "\r\n"));
     if (!encoded.valid())
     {
-      String error_msg = StringUtils::format() << "Error ApplyPatch::applyPatch()\r\n"
-        << "diff:\r\n" << "[[" << diff.toString() << "]]\r\n"
-        << "curr:\r\n" << "[[" << StringUtils::join(curr, "\r\n") << "]]\r\n"
-        << "next:\r\n" << "[[" << StringUtils::join(next, "\r\n") << "]]\r\n\r\n";
+      String error_msg = cstring("Error ApplyPatch::applyPatch()\r\n"
+        "diff:\r\n", "[[", diff.toString(), "]]\r\n"
+        "curr:\r\n", "[[", StringUtils::join(curr, "\r\n"), "]]\r\n"
+        "next:\r\n", "[[", StringUtils::join(next, "\r\n"), "]]\r\n\r\n");
 
       ThrowException(error_msg);
     }

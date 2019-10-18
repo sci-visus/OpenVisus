@@ -100,7 +100,7 @@ def FindImages(template="./**/*.*",recursive=True,image_extensions=('.jpg','.png
 			
 		ret.append(filename)
 		
-	return sorted(ret)
+	return ret
 
 # ////////////////////////////////////////////////////////////////////////////////
 def MatrixToNumPy(value):
@@ -119,6 +119,15 @@ def SwapRedBlue(img):
 
 # //////////////////////////////////////////////
 def InterleaveChannels(channels):
+	
+	if len(channels)==1: 
+		return channels[0]
+		
+	flatten=[]
+	for channel in channels:
+		flatten+=SplitChannels(channel)
+	channels=flatten
+
 	shape=channels[0].shape + (len(channels),)
 	ret=numpy.zeros(shape,dtype=channels[0].dtype)
 	pdim=len(channels[0].shape)
@@ -134,6 +143,7 @@ def InterleaveChannels(channels):
 # //////////////////////////////////////////////
 def SplitChannels(data):
 	N=len(data.shape)
+	if N==2: return [data]
 	if N==3: return [data[  :,:,C] for C in range(data.shape[-1])]
 	if N==4: return [data[:,:,:,C] for C in range(data.shape[-1])]
 	raise Exception("internal error")	
@@ -172,7 +182,7 @@ def AddAlphaChannel(data):
 	return channels + [alpha,]
 
 # //////////////////////////////////////////////
-def ShowImage(img,max_preview_size=1024,win_name="img"):
+def ShowImage(img,max_preview_size=1024, win_name="img", wait_msec=1):
 	
 	if max_preview_size:	
 	
@@ -196,7 +206,7 @@ def ShowImage(img,max_preview_size=1024,win_name="img"):
 			numpy.multiply(img[:,:,2],A).astype(B.dtype)])
 	
 	cv2.imshow(win_name,img)
-	cv2.waitKey(1) # wait 1 msec just to allow the image to appear
+	cv2.waitKey(wait_msec) # wait 1 msec just to allow the image to appear
 
 
 		
@@ -239,14 +249,28 @@ def SaveImage(filename,img):
 	os.makedirs(os.path.dirname(filename), exist_ok=True)
 	if os.path.isfile(filename):
 		os.remove(filename)
+
+	if len(img.shape)>3:
+		raise Exception("cannot save 3d image")
+
+	num_channels=img.shape[2] if len(img.shape)==3 else 1
+
+	# opencv supports only grayscale, rgb and rgba
+	if num_channels>3:
+		img=img[:,:,0:3]
+		num_channels=3
+
+	# opencv does not support saving of 2 channel images
+	if num_channels==2:
+		R,G=img[:,:,0],img[:,:,1]
+		B=numpy.zeros(R.shape,dtype=R.dtype)
+		img=InterleaveChannels([R,G,B])
+
 	cv2.imwrite(filename, img)
 
 # ////////////////////////////////////////////////////////////////////////////////
 def SaveUint8Image(filename,img):
-	img=ConvertImageToUint8(img)
-	if len(img.shape)>3 and img.shape[2]>3:
-		img=img[:,:,0:3]
-	SaveImage(filename, img)	
+	SaveImage(filename, ConvertImageToUint8(img))	
 
 
 # //////////////////////////////////////////////

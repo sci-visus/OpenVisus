@@ -109,7 +109,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() < 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0],"syntax error");
 
     String filename = args[1];
 
@@ -255,7 +255,7 @@ public:
         continue;
       }
 
-      ThrowException(StringUtils::format() << args[0] <<"  Invalid argument " << args[I]);
+      ThrowException(args[0],"Invalid argument",args[I]);
     }
 
     auto modvisus=new ModVisus();
@@ -289,13 +289,13 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0],"syntax error");
 
     String filename = args[1];
 
     auto dataset = LoadDataset(filename);
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] <<"  LoadDataset(" << filename << ") failed");
+      ThrowException(args[0],"LoadDataset",filename,"failed");
 
     int window_size = 4096;
     double time = dataset->getDefaultTime();
@@ -311,7 +311,7 @@ public:
         window_size = cint(args[++I]);
 
         if (!Utils::isPowerOf2(window_size))
-          ThrowException(StringUtils::format() << args[0] <<" window size must be power of two");
+          ThrowException(args[0],"window size must be power of two");
 
         continue;
       }
@@ -321,7 +321,7 @@ public:
         String fieldname = args[++I];
         field = dataset->getFieldByName(fieldname);
         if (!field.valid())
-          ThrowException(StringUtils::format() << args[0] <<"  Invalid --field " << fieldname);
+          ThrowException(args[0],"Invalid --field",fieldname);
 
         continue;
       }
@@ -332,7 +332,7 @@ public:
         continue;
       }
       
-      ThrowException(StringUtils::format() << args[0] <<"  unknown argument: " << args[I]);
+      ThrowException(args[0],"unknown argument",args[I]);
     }
 
     //the filter will be applied using this sliding window
@@ -409,20 +409,20 @@ public:
     }
     else
     {
-      ThrowException(StringUtils::format() << args[0] << " syntax error, wrong arguments");
+      ThrowException(args[0], "syntax error, wrong arguments");
     }
 
     auto Svf = LoadDataset(Surl);
     auto Dvf = LoadDataset(Durl);
 
     if (!Svf)
-      ThrowException(StringUtils::format() << args[0] << "  LoadDataset(" << Surl << ") failed");
+      ThrowException(args[0],"LoadDataset", Surl,"failed");
 
     if (!Dvf)
-      ThrowException(StringUtils::format() << args[0] << "  LoadDataset(" << Durl << ") failed");
+      ThrowException(args[0], "LoadDataset", Durl, "failed");
 
     if (Svf->getTimesteps() != Dvf->getTimesteps())
-      ThrowException(StringUtils::format() << args[0] << " Time range not compatible");
+      ThrowException(args[0], "Time range not compatible");
 
     std::vector<double> timesteps = Svf->getTimesteps().asVector();
 
@@ -430,7 +430,7 @@ public:
     std::vector<Field> Dfields = Dvf->getFields();
 
     if (Sfields.size() != Dfields.size())
-      ThrowException(StringUtils::format() << args[0] << " Fieldnames not compatible");
+      ThrowException(args[0]," Fieldnames not compatible");
 
     auto Saccess = Svf->createAccessForBlockQuery(Sconfig);
     auto Daccess = Dvf->createAccessForBlockQuery(Dconfig);
@@ -468,17 +468,17 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 3)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed 3 arguments");
+      ThrowException(args[0],"syntax error, needed 3 arguments");
 
     String url = args[1]; 
     auto dataset = LoadDataset(url); 
     if (!dataset)  
-      ThrowException(StringUtils::format() << args[0] <<"  LoadDataset(" << url << ") failed");
+      ThrowException(args[0], "LoadDataset",url,"failed");
 
     String compression = args[2];
 
     if (!dataset->compressDataset(compression))
-      ThrowException(StringUtils::format() << args[0] <<" Compression failed");
+      ThrowException(args[0],"Compression failed");
 
     return data;
   }
@@ -506,14 +506,14 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed filename");
+      ThrowException(args[0],"syntax error, needed filename");
 
     VisusInfo() << "FixDatasetRange starting...";
 
     String filename = args[1];
     auto vf = LoadDataset<IdxDataset>(filename);
     if (!vf)
-      ThrowException(StringUtils::format() << args[0] <<"  failed to read IDX dataset (LoadDataset(" << filename << ") failed)");
+      ThrowException(args[0],"failed to read IDX dataset LoadDataset",filename,"failed");
 
     auto idxfile = vf->idxfile;
 
@@ -523,7 +523,7 @@ public:
 
     auto access = vf->createAccessForBlockQuery();
     if (!access)
-      ThrowException(StringUtils::format() << args[0] << " cannot create access (vf->createAccess() failed)");
+      ThrowException(args[0], "cannot create access vf->createAccess() failed");
 
     bool       filter_field = false; String field_filtered = "";
     bool       filter_time = false; double time_filtered = 0;
@@ -650,7 +650,7 @@ public:
 
     //finally save the file
     if (!idxfile.save(filename))
-      ThrowException(StringUtils::format() << args[0] <<"  cannot save the FINAL min-max in IDX dataset (IdxFile::save(" << filename << ") failed)");
+      ThrowException(args[0],"cannot save the FINAL min-max in IDX dataset IdxFile::save",filename,"failed");
 
     VisusInfo() << "done fixFieldsRange";
 
@@ -725,7 +725,7 @@ public:
 
       VisusInfo() << "done " << TileId << " of " << tiles.size() << " msec_read(" << msec_read << ") msec_write(" << msec_write << ")";
 
-      //ArrayUtils::saveImage(StringUtils::format() << "tile_" << TileId << ".png", read->buffer);
+      //ArrayUtils::saveImage(concatenate("tile_",TileId,".png"),read->buffer));
     }
 
     //finally compress
@@ -756,13 +756,13 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed filename");
+      ThrowException(args[0],"syntax error, needed filename");
 
     String filename = args[1];
 
     auto ret = ArrayUtils::loadImage(filename, args);
     if (!ret)
-      ThrowException(StringUtils::format() << args[0] <<"  cannot load image " << filename);
+      ThrowException(args[0],"cannot load image", filename);
 
     return ret;
   }
@@ -786,12 +786,12 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0],"syntax error");
 
     String filename = args[1];
 
     if (!ArrayUtils::saveImage(filename, data, args))
-      ThrowException(StringUtils::format() << args[0] <<"  saveImage failed " << filename);
+      ThrowException(args[0], "saveImage failed",filename);
 
     return data;
   }
@@ -818,13 +818,13 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0]<< " syntax error");
+      ThrowException(args[0], "syntax error");
 
     String filename = args[1];
 
     Array to_paste = ArrayUtils::loadImage(filename, args);
     if (!to_paste)
-      ThrowException(StringUtils::format() << args[0] <<"  Cannot load " << filename);
+      ThrowException(args[0], "Cannot load", filename);
 
     int pdim = data.getPointDim();
 
@@ -849,7 +849,7 @@ public:
     }
 
     if (!ArrayUtils::paste(data, Dbox, to_paste, Sbox))
-      ThrowException(StringUtils::format() << args[0] <<" paste of image failed");
+      ThrowException(args[0],"paste of image failed");
 
     return data;
   }
@@ -874,7 +874,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error");
+      ThrowException(args[0], "syntax error");
 
     int C = cint(args[1]);
     return data.getComponent(C);
@@ -899,7 +899,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error");
+      ThrowException(args[0], "syntax error");
 
     DType dtype = DType::fromString(args[1]);
     return ArrayUtils::cast(data, dtype);
@@ -924,7 +924,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error");
+      ThrowException(args[0], "syntax error");
 
     DType dtype = DType::fromString(args[1]);
     return ArrayUtils::smartCast(data, dtype);
@@ -950,7 +950,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error");
+      ThrowException(args[0], "syntax error");
 
     DType   dtype = data.dtype;
     PointNi dims = data.dims;
@@ -968,11 +968,11 @@ public:
         continue;
       }
       
-      ThrowException(StringUtils::format() << args[0] << " Invalid arguments " << args[I]);
+      ThrowException(args[0], "Invalid arguments", args[I]);
     }
 
     if (!data.resize(dims, dtype, __FILE__, __LINE__))
-      ThrowException(StringUtils::format() << args[0] << " resize failed");
+      ThrowException(args[0], "resize failed");
 
     return data;
   }
@@ -996,14 +996,14 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error");
+      ThrowException(args[0], "syntax error");
 
     int pdim = data.getPointDim();
     String sbox = args[1];
 
     BoxNi box = BoxNi::parseFromOldFormatString(pdim,sbox);
     if (!box.isFullDim())
-      ThrowException(StringUtils::format() << args[0] <<"  Invalid box " << sbox);
+      ThrowException(args[0], "Invalid box", sbox);
 
     return ArrayUtils::crop(data, box);
   }
@@ -1027,11 +1027,11 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
     int axis = cint(args[1]);
     if (axis<0)
-      ThrowException(StringUtils::format() << args[0] <<"  Invalid axis " << args[1]);
+      ThrowException(args[0], "Invalid axis", args[1]);
 
     return ArrayUtils::mirror(data, axis);
   }
@@ -1056,7 +1056,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
     int C = cint(args[1]);
     Range range = ArrayUtils::computeRange(data, C);
@@ -1084,10 +1084,10 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 1)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
     if (data.dtype.ncomponents()>1 && !Utils::isByteAligned(data.dtype.get(0).getBitSize()))
-      ThrowException(StringUtils::format() << args[0] <<" request to --interleave but a sample is not byte aligned");
+      ThrowException(args[0], "request to --interleave but a sample is not byte aligned");
 
     //need to interleave (the input for example is RRRRR...GGGGG...BBBBB and I really need RGBRGBRGB)
     return ArrayUtils::interleave(data);
@@ -1112,12 +1112,12 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
     String filename = args[1];
     StringTree info = ArrayUtils::statImage(filename);
     if (!info.valid())
-      ThrowException(StringUtils::format() << args[0] <<"  Could not open " << filename);
+      ThrowException(args[0], "Could not open",filename);
 
     VisusInfo() << std::endl << info.toString();
 
@@ -1144,7 +1144,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 1)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
     VisusInfo() << "Buffer dims(" << data.dims.toString() << ") dtype(" << data.dtype.toString() << ")";
 
@@ -1190,13 +1190,13 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
     String url = args[1];
 
     auto dataset = LoadDataset(url);
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] <<"  LoadDataset(" << url << ") failed");
+      ThrowException(args[0], "LoadDataset", url," failed");
 
     BigInt block_id = 0;
     Field  field = dataset->getDefaultField();
@@ -1215,7 +1215,7 @@ public:
         String fieldname = args[++I];
         field = dataset->getFieldByName(fieldname);
         if (!field.valid())
-          ThrowException(StringUtils::format() << args[0] <<"  specified field (" << fieldname << ") is wrong");
+          ThrowException(args[0], "specified field",fieldname,"is wrong");
         continue;
       }
 
@@ -1223,11 +1223,11 @@ public:
       {
         double time = cdouble(args[++I]);
         if (!dataset->getTimesteps().containsTimestep(time))
-          ThrowException(StringUtils::format() << args[0] <<"  specified time (" << time << ") is wrong");
+          ThrowException(args[0], "specified time",time,"is wrong");
         continue;
       }
 
-      ThrowException(StringUtils::format() << args[0] <<"  Invalid argument " << args[I]);
+      ThrowException(args[0], "Invalid argument",args[I]);
     }
 
     VisusInfo() << "url(" << url << ") block(" << block_id << ") field(" << field.name << ") time(" << time << ")";
@@ -1246,7 +1246,7 @@ public:
       bool bOk = dataset->executeBlockQueryAndWait(access, block_query);
       access->endWrite();
       if (!bOk)
-        ThrowException(StringUtils::format() << args[0] <<" Failed to write block");
+        ThrowException(args[0], "Failed to write block");
       ret=data;
     }
     else
@@ -1255,7 +1255,7 @@ public:
       bool bOk = dataset->executeBlockQueryAndWait(access, block_query);
       access->endRead();
       if (!bOk)
-        ThrowException(StringUtils::format() << args[0] <<" Failed to write block");
+        ThrowException(args[0], "Failed to write block");
       ret=block_query->buffer;
     }
 
@@ -1291,7 +1291,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 3)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
     String src_url = args[1];
     String dst_url = args[2];
@@ -1307,13 +1307,13 @@ public:
       auto blob_name = Url(src_url).getPath();
       blob = src_storage->getBlob(net, blob_name,Aborted()).get();
       if (!blob.valid())
-        ThrowException(StringUtils::format() << args[0] <<"  Cloud Storage getBlob(" << src_url << ") failed");
+        ThrowException(args[0], " Cloud Storage getBlob",src_url,"failed");
     }
     else
     {
       auto body = Utils::loadBinaryDocument(src_url);
       if (!body)
-        ThrowException(StringUtils::format() << args[0] <<"  Utils::loadBinaryDocument(" << src_url << ") failed");
+        ThrowException(args[0], "Utils::loadBinaryDocument", src_url,"failed");
 
       blob.body = body;
     }
@@ -1322,11 +1322,11 @@ public:
     {
       auto blob_name = Url(dst_url).getPath();
       if (!dst_storage->addBlob(net, blob_name, blob,Aborted()).get())
-        ThrowException(StringUtils::format() << args[0] <<"  Cloud Storage addBlob(" << dst_url << ") failed");
+        ThrowException(args[0], "Cloud Storage addBlob",dst_url,"failed");
     }
     else if (!Utils::saveBinaryDocument(dst_url, blob.body))
     {
-      ThrowException(StringUtils::format() << args[0] <<"  Utils::saveBinaryDocument(" << dst_url << ") failed");
+      ThrowException(args[0], "Utils::saveBinaryDocument",dst_url,"failed");
     }
 
     return data;
@@ -1352,14 +1352,14 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
     auto net = std::make_shared<NetService>(1);
 
     Url url = args[1];
     auto cloud=CloudStorage::createInstance(url);
     if (!cloud->deleteBlob(net,url.getPath(),Aborted()).get())
-      ThrowException(StringUtils::format() << args[0] <<"  cannot delete blob " << url.toString());
+      ThrowException(args[0], "cannot delete blob",url.toString());
     return data;
   }
 };
@@ -1387,7 +1387,7 @@ public:
     Url url(args[1]);
 
     if (!url.valid())
-      ThrowException(StringUtils::format() << args[0] << ", " << args[1] << " is not a valid url");
+      ThrowException(args[0],args[1]," is not a valid url");
 
     auto net = std::make_shared<NetService>(1);
 
@@ -1412,7 +1412,7 @@ public:
     Int64 MSEC_ADD = 0, MSEC_GET = 0;
     for (int I = 0; ; I++)
     {
-      String blob_name = StringUtils::format() << "/testing-cloud-storage/speed/" << "blob."<< std::setfill('0') << std::setw(4) << I <<".bin";
+      String blob_name = concatenate("/testing-cloud-storage/speed/","blob.",StringUtils::formatNumber("%04d",I),".bin");
       auto t1 = Time::now();
       bool bOk=cloud->addBlob(net, blob_name, blob, Aborted()).get();
       auto msec_add = t1.elapsedMsec(); MSEC_ADD += msec_add;
@@ -1451,13 +1451,13 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 3)
-      ThrowException(StringUtils::format() << args[0] << "  syntax error");
+      ThrowException(args[0] , "syntax error");
 
     String filename = args[1];
     auto dataset = LoadDataset(filename);
 
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] << "  failed to read dataset (LoadDataset(" << filename << ") failed)");
+      ThrowException(args[0], "failed to read dataset LoadDataset " ,filename,"failed");
 
     String compression = args[2];
 
@@ -1536,12 +1536,12 @@ public:
   virtual Array exec(Array data,std::vector<String> args) override
   {
     if (args.size() < 2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error");
+      ThrowException(args[0],"syntax error");
 
     String filename = args[1];
     auto dataset = LoadDataset(filename);
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] << "  cannot LoadDataset " << filename);
+      ThrowException(args[0], "cannot LoadDataset",filename);
 
     int    query_dim = dataset->getPointDim() == 2 ? 2048 : 512;
 
@@ -1552,12 +1552,12 @@ public:
         String s_query_dim = args[++I];
 
         if (!StringUtils::tryParse(s_query_dim,query_dim) || query_dim<=0)
-          ThrowException(StringUtils::format() << args[0] <<"  Invalid --query-dim " << s_query_dim);
+          ThrowException(args[0],"Invalid --query-dim ",s_query_dim);
 
         continue;
       }
 
-      ThrowException(StringUtils::format() << args[0] <<" Invalid args "<<args[I]);
+      ThrowException(args[0],"Invalid args",args[I]);
     }
 
     srand((unsigned int)Time::now().getTimeStamp());
@@ -1649,7 +1649,7 @@ public:
         continue;
       }
 
-      ThrowException(StringUtils::format() << "wrong argument "<<args[I]);
+      ThrowException("wrong argument ",args[I]);
     }
 
     if (bWriting)
@@ -1658,7 +1658,7 @@ public:
 
       File file;
       if(!file.createAndOpen(filename,"w"))
-        ThrowException(StringUtils::format() << args[0] <<" TestWriteIO, file.open"<<filename<<",\"wb\") failed");
+        ThrowException(args[0],"TestWriteIO, file.open(",filename, ",\"wb\")","failed");
 
       Array blockdata;
       bool bOk=blockdata.resize(blocksize,DTypes::UINT8,__FILE__,__LINE__);
@@ -1669,7 +1669,7 @@ public:
       for (nwritten=0;(nwritten+blocksize)<=filesize;nwritten+=blocksize)
       {
         if(!file.write(nwritten, blocksize, blockdata.c_ptr()))
-          ThrowException(StringUtils::format() << args[0] <<" TestWriteIO write(...) failed");
+          ThrowException(args[0],"TestWriteIO write(...) failed");
       }
       file.close();
       double elapsed=t1.elapsedSec();
@@ -1682,7 +1682,7 @@ public:
     {
       File file;
       if(!file.open(filename,"r"))
-        ThrowException(StringUtils::format() << args[0] <<" file.open("<<filename<<",'r') failed");
+        ThrowException(args[0]," file.open(",filename,",'r')","failed");
 
       Array blockdata;
       bool bOk=blockdata.resize(blocksize,DTypes::UINT8,__FILE__,__LINE__);
@@ -1738,7 +1738,7 @@ public:
         continue;
       }
 
-      ThrowException(StringUtils::format() << "wrong argument " << args[I]);
+      ThrowException("wrong argument",args[I]);
     }
 
     execTestIdx(max_seconds);
@@ -1775,12 +1775,12 @@ public:
   //exec
   virtual Array exec(Array data, std::vector<String> args) override
   {
-    String filename = StringUtils::format()<<"./temp/TestIdxSlabSpeed/visus.idx";
+    String filename = "./temp/TestIdxSlabSpeed/visus.idx";
 
     auto dirname = Path(filename).getParent();
     if (FileUtils::existsDirectory(dirname))
     {
-      ThrowException(StringUtils::format() << "Please empty the directory " << dirname.toString());
+      ThrowException("Please empty the directory",dirname);
       return Array(); 
     }
 
@@ -1821,7 +1821,7 @@ public:
         continue;
       }
 
-      ThrowException(StringUtils::format()<<"Wrong argument "<<args[I]);
+      ThrowException("Wrong argument ",args[I]);
     }
 
     int slices_per_slab = (int)dims[2] / num_slabs;
@@ -2097,12 +2097,7 @@ public:
       }
 
       if (parsed.empty())
-      {
-        std::ostringstream error_msg;
-        error_msg << "Wrong argument " << arg << std::endl;
-        error_msg << getHelp(args);
-        ThrowException(error_msg.str());
-      }
+        ThrowException("Wrong argument" ,"\n",getHelp(args));
 
       parsed.back().push_back(arg);
     }

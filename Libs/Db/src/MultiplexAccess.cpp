@@ -181,7 +181,7 @@ std::vector<String> MultiplexAccess::getNextMode(std::vector<Pending>& pendings)
   for (int index = 0; index < N; index++)
   {
     if (bRead[index] || bWrite[index])
-      ret[index]=StringUtils::format() << (bRead[index] ? "r" : "") << (bWrite[index] ? "w" : "");
+      ret[index]= concatenate(bRead[index] ? "r" : "",bWrite[index] ? "w" : "");
   }
 
   return ret;

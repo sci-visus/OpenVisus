@@ -121,7 +121,7 @@ public:
     if (!bIncremental)
     {
       ScopedAcquireGil acquire_gil;
-      engine->printMessage(StringUtils::format() << "Array " << output.dims.toString()<<"\n");
+      engine->printMessage(cstring("Array",output.dims,"\n"));
     }
 
     DataflowMessage msg;
@@ -327,7 +327,7 @@ void ScriptingNode::guessPresets(Array input)
   {
     std::vector<String> inputs;
     for (int I = 0; I<N; I++)
-      inputs.push_back(StringUtils::format() << "input[" << I << "]");
+      inputs.push_back(concatenate("input[",I,"]"));
 
     for (int I = 0; I<N; I++)
       addPreset(inputs[I], "output="+inputs[I]);

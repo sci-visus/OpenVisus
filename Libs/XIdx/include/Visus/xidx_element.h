@@ -85,7 +85,7 @@ public:
 
   //getXPathPrefix
   virtual String getXPathPrefix() {
-    return StringUtils::format()<<(getParent() ? getParent()->getXPathPrefix() : "/") << "/" << getTypeName();
+    return concatenate(getParent() ? getParent()->getXPathPrefix() : "/", "/",getTypeName());
   }
 
   //findChildWithName

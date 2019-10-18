@@ -116,7 +116,7 @@ public:
 
       //formatRange
       static String formatRange(Range value) {
-        return StringUtils::format() << "[" << value.from << " , " << value.to << "]";
+        return concatenate("[",value.from,",",value.to,"]");
       }
 
       //refresh

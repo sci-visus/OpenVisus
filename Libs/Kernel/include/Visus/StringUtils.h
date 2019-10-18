@@ -53,26 +53,15 @@ class VISUS_KERNEL_API StringUtils
 {
 public:
 
-  typedef FormatString format;
-
-  //formatToHexadecimal
-  static String formatToHexadecimal(int v)
-  {
-    std::ostringstream out;
-    out << std::showbase << std::internal << std::setfill('0') << std::hex << std::setw(6) << v;
-    return out.str();
-  }
-
-  //formatToHexadecimal
-  static String formatToHexadecimal(Int64 v) {
-    std::ostringstream out;
-    out << std::showbase << std::internal << std::setfill('0') << std::hex << std::setw(8) << v;
-    return out.str();
-  }
-
-  //formatToHexadecimal
-  static String formatToHexadecimal(void* v) {
-    return formatToHexadecimal((Int64)v);
+  //formatNumber
+  template <typename Value>
+  static String formatNumber(String format, Value number) {
+    char buffer[256];
+    int n=snprintf(buffer, sizeof(buffer), format.c_str(), number);
+    if (n >= sizeof(buffer))
+      ThrowException("cannot format number");
+    buffer[n] = 0; //windows in old version does not write the terminator
+    return String(buffer);
   }
 
   //convertDoubleToString

@@ -230,11 +230,14 @@ void PythonEngine::addSysPath(String value,bool bVerbose)
 
   const String crlf = "\r\n";
 
-  String cmd = StringUtils::format() <<
+  std::ostringstream out;
+  out <<
     "import os,sys" << crlf <<
     "value=os.path.realpath('" + value + "')" << crlf <<
     "if not value in sys.path:" << crlf <<
     "   sys.path.append(value)" << crlf;
+
+  String cmd = out.str();
 
   if (bVerbose)
     VisusInfo() << cmd;
@@ -247,7 +250,7 @@ static std::atomic<int> module_id(0);
   ///////////////////////////////////////////////////////////////////////////
 PythonEngine::PythonEngine(bool bVerbose) 
 {
-  this->module_name = StringUtils::format() << "__PythonEngine__" << (++module_id);
+  this->module_name = concatenate("__PythonEngine__",++module_id);
   //VisusInfo() << "Creating PythonEngine "<< module_name <<"...";
 
   ScopedAcquireGil acquire_gil;
@@ -450,13 +453,13 @@ Aborted PythonEngine::getModuleAbortedAttr(String name)
 
   auto py_object = getModuleAttr(name);
   if (!py_object)
-    ThrowException(StringUtils::format() << "cannot find '" << name << "' in module");
+    ThrowException("cannot find",name ,"in module");
 
   Aborted* ptr = nullptr;
   int res = SWIG_ConvertPtr(py_object, (void**)&ptr, typeinfo, 0);
 
   if (!SWIG_IsOK(res) || !ptr)
-    ThrowException(StringUtils::format() << "cannot case '" << name << "' to " << typeinfo->name);
+    ThrowException("cannot cast", name,"to",typeinfo->name);
 
   Aborted ret = *ptr;
 
@@ -479,7 +482,7 @@ Array PythonEngine::getModuleArrayAttr(String name)
 {
   auto py_object = getModuleAttr(name);
   if (!py_object)
-    ThrowException(StringUtils::format() << "cannot find '" << name << "' in module");
+    ThrowException("cannot find",name,"in module");
   return pythonObjectToArray(py_object);
 }
 
@@ -493,7 +496,7 @@ Array PythonEngine::pythonObjectToArray(PyObject* py_object)
   int res = SWIG_ConvertPtr(py_object, (void**)&ptr, typeinfo, 0);
 
   if (!SWIG_IsOK(res) || !ptr)
-    ThrowException(StringUtils::format() << "cannot convert to array");
+    ThrowException("cannot convert to array");
 
   Array ret = *ptr;
 
@@ -584,7 +587,7 @@ void PythonEngine::execCode(String s)
   {
     if (PyErr_Occurred())
     {
-      String error_msg = StringUtils::format() << "Python error code:\n" << s << "\nError:\n" << GetLastPythonErrorMessage(true);
+      String error_msg = cstring("Python error code:\n", s, "\nError:\n",GetLastPythonErrorMessage(true));
       VisusInfo() << error_msg;
       ThrowException(error_msg);
     }
@@ -608,7 +611,7 @@ PyObject* PythonEngine::evalCode(String s)
   {
     if (PyErr_Occurred())
     {
-      String error_msg = StringUtils::format() << "Python error code:\n" << s << "\nError:\n" << GetLastPythonErrorMessage(true);
+      String error_msg = cstring("Python error code:\n", s,"\nError:\n", GetLastPythonErrorMessage(true));
       VisusInfo() << error_msg;
       ThrowException(error_msg);
     }

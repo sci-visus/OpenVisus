@@ -123,11 +123,11 @@ public:
       this->access_token.value = "";
 
       NetRequest request(Url(this->url.toString() + "/oauth2/v3/token"), "POST");
-      request.setTextBody(StringUtils::format()
-        << "client_id=" << this->client_id
-        << "&client_secret=" << this->client_secret
-        << "&refresh_token=" << this->refresh_token
-        << "&grant_type=refresh_token");
+      request.setTextBody(concatenate(
+        "client_id=", this->client_id,
+        "&", "client_secret=", this->client_secret,
+        "&", "refresh_token=", this->refresh_token,
+        "&", "grant_type=refresh_token"));
 
       auto response = NetService::getNetResponse(request);
       if (response.isSuccessful())

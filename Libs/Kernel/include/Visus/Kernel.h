@@ -137,24 +137,71 @@ namespace Math {
 
 typedef std::string String;
 
-VISUS_KERNEL_API inline String     cstring(bool   v) { return v ? "True" : "False"; }
-VISUS_KERNEL_API inline String     cstring(int    v) { return std::to_string(v); }
-VISUS_KERNEL_API inline String     cstring(Uint32 v) { return std::to_string(v); }
-VISUS_KERNEL_API inline String     cstring(float  v) { return std::to_string(v); }
-VISUS_KERNEL_API inline String     cstring(double v) { return std::to_string(v); }
-VISUS_KERNEL_API inline String     cstring(Int64  v) { return std::to_string(v); }
-VISUS_KERNEL_API inline String     cstring(Uint64 v) { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring()                    { return ""; }
+VISUS_KERNEL_API inline String     cstring(bool   v)            { return v ? "True" : "False"; }
+VISUS_KERNEL_API inline String     cstring(int    v)            { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring(Uint32 v)            { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring(float  v)            { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring(double v)            { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring(Int64  v)            { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring(Uint64 v)            { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring(const String& value) { return value; }
+VISUS_KERNEL_API inline String     cstring(const char* value)   { return String(value); }
 
-VISUS_KERNEL_API        bool       cbool  (const String& s);
+template <typename Value>
+inline String cstring(const Value& value) { 
+  return value.toString(); 
+}
+
+template <typename Left, typename... Args>
+inline String cstring(Left left, Args&&... args) {
+  auto A = cstring(left);
+  auto B = cstring(std::forward<Args>(args)...);
+  return A + (A.empty() || B.empty() ? "" : " ") + B;
+}
+
+
+inline String concatenate() {
+  return String();
+}
+
+inline String concatenate(String a) {
+  return a;
+}
+
+template <typename Value>
+inline String concatenate(const Value& value) {
+  return cstring(value);
+}
+
+inline String concatenate(String a,String b) {
+  return a+b;
+}
+
+template <typename Left, typename... Args>
+inline String concatenate(Left left, Args&&... args) {
+  return concatenate(left) + concatenate(std::forward<Args>(args)...);
+}
+
+template <typename Value>
+inline String cnamed(String name, const Value& value) {
+  return concatenate(name,"(",value,")");
+}
+
+VISUS_KERNEL_API        bool       cbool  (String s);
 VISUS_KERNEL_API inline int        cint   (const String& s) { return s.empty() ? 0 : std::stoi(s); }
 VISUS_KERNEL_API inline float      cfloat (const String& s) { return s.empty() ? 0 : std::stof(s); }
 VISUS_KERNEL_API inline double     cdouble(const String& s) { return s.empty() ? 0 : std::stod(s); }
 VISUS_KERNEL_API inline Int64      cint64 (const String& s) { return s.empty() ? 0 : std::stoll(s); }
 VISUS_KERNEL_API inline Uint64     cuint64(const String& s) { return s.empty() ? 0 : std::stoull(s); }
 
-VISUS_KERNEL_API inline String     cstring(SharedPtr<String> v) { return v ? *v : ""; }
-VISUS_KERNEL_API inline double     cdouble(SharedPtr<double> v) { return v ? *v : 0.0; }
-
+template <typename Value>
+inline Value from_string(const std::string& s) {
+  std::istringstream parser(s);
+  Value ret;  
+  parser >> ret; 
+  return ret;
+}
 
 VISUS_KERNEL_API String cstring10(double value);
 
@@ -183,14 +230,14 @@ VISUS_KERNEL_API void PrintMessageToTerminal(const String& value);
 VISUS_KERNEL_API bool VisusHasMessageLock();
 
 //ThrowExceptionEx
-VISUS_KERNEL_API void ThrowExceptionEx(String where,String what);
+VISUS_KERNEL_API void ThrowExceptionEx(String file,int line,String what);
 
+template <typename... Args>
+inline void ThrowExceptionEx(String file, int line, Args&&... args) {
+  ThrowExceptionEx(file, line, cstring(std::forward<Args>(args)...));
+}
 
-#define __S1__(x) #x
-#define __S2__(x) __S1__(x)
-#define VisusHereInTheCode __FILE__ " : " __S2__(__LINE__)
-
-#define ThrowException(expr) (ThrowExceptionEx(VisusHereInTheCode,expr))
+#define ThrowException(...) (ThrowExceptionEx(__FILE__,__LINE__,__VA_ARGS__))
 
 #if !defined(SWIG) && !defined(VisusReleaseAssert)
 #  define VisusReleaseAssert(_Expression) { \
@@ -224,52 +271,8 @@ public:
 
 };
 
-///////////////////////////////////////////////////////////////////
-#if !SWIG
-class VISUS_KERNEL_API FormatString
-{
-public:
-
-  //constructor
-  FormatString() {
-  }
-
-  //constructor
-  FormatString(const FormatString& other) {
-    out << other.str();
-  }
-
-  //operator=
-  FormatString& operator=(const FormatString& other) {
-    out.clear(); out << other.str(); return *this;
-  }
-
-  //String()
-  operator String() const {
-    return out.str();
-  }
-
-  //str
-  String str() const {
-    return out.str();
-  }
-
-  //operator<<
-  template <typename Type>
-  FormatString& operator<<(Type value) {
-    out << value; return *this;
-  }
-
-private:
-
-  std::ostringstream out;
-
-};
-
-#endif
 
 #if !SWIG
-
 
 template <class ClassName>
 class DetectMemoryLeaks

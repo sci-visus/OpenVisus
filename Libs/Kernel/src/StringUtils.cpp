@@ -52,22 +52,18 @@ For support : support@visus.net
 namespace Visus {
 
 ///////////////////////////////////////////////////////////////////////////
-bool cbool(const String& s) 
+bool cbool(String s) 
 {
+  s = StringUtils::toLower(StringUtils::trim(s));
   if (s.empty())
     return false;
-
-  auto N=s.length();
-  
-  if (N==4 && std::tolower(s[0])=='t' && std::tolower(s[1])=='r' && std::tolower(s[2])=='u' && std::tolower(s[3])=='e')
+  else if (s == "true")
     return true;
-
-  if (N==5 && std::tolower(s[0])=='f' && std::tolower(s[1])=='a' && std::tolower(s[2])=='l' && std::tolower(s[3])=='s' && std::tolower(s[4])=='e')
+  else if (s == "false")
     return false;
-
-  return std::stoi(s)?true:false;
+  else
+    return std::stoi(s)?true:false;
 }
-
 
 
 ///////////////////////////////////////////////////////////////////////////
@@ -583,13 +579,19 @@ String StringUtils::getStringFromByteSize(Int64 size)
   const Int64 MB=1024*1024;
   const Int64 KB=1024;
 
-  std::ostringstream out;
-  if      (size==(Int64)-1)  out<<"-1";
-  else if (size>=GB)              out<< std::fixed << std::setprecision(1)<<((double)size/(double)GB)<<"GB";
-  else if (size>=MB)              out<< std::fixed << std::setprecision(1)<<((double)size/(double)MB)<<"MB";
-  else if (size>=KB)              out<< std::fixed << std::setprecision(1)<<((double)size/(double)KB)<<"KB";
-  else                            out<< size;
-  return out.str();
+  if (size==(Int64)-1)  
+    return cstring(-1);
+
+  if (size>=GB)         
+    return concatenate(convertDoubleToString(size / (double)GB, 1),"GB");
+
+  if (size>=MB)         
+    return concatenate(convertDoubleToString(size / (double)MB, 1),"MB");
+
+  if (size>=KB)         
+    return concatenate(convertDoubleToString(size / (double)KB, 1), "KB");
+  
+  return cstring(size);
 }
 
 

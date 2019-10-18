@@ -51,7 +51,7 @@ public:
   
   //getXPathPrefix
   virtual String getXPathPrefix() override {
-    return StringUtils::format() << XIdxElement::getXPathPrefix() << "[@Name=\"" + this->name + "\"]";
+    return concatenate(XIdxElement::getXPathPrefix(),"[@Name=\"",this->name,"\"]");
   };
   
 public:
@@ -78,7 +78,7 @@ private:
   {
     auto content = Utils::loadTextDocument(this->url);
     if (content.empty())
-      ThrowException(StringUtils::format() << "Unable to read file" << url);
+      ThrowException("Unable to read file", url);
 
     //write the content in another file
     ar.writeText(content, use_cdata);

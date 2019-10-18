@@ -105,6 +105,15 @@ public:
 
   static Range computeRange(Array src, int C, int mode, Aborted = Aborted());
 
+  //compactDims
+  static Array compactDims(Array src) 
+  {
+    auto dims = src.dims.compactDims();
+    if (dims.innerProduct() <= 0) return src;
+    src.resize(dims,src.dtype,__FILE__,__LINE__);
+    return src;
+  }
+
   //interleave
   static Array interleave(std::vector<Array> v, Aborted aborted = Aborted());
 
@@ -154,6 +163,11 @@ public:
 
   //cast
   static Array cast(Array src, DType dtype, Aborted aborted = Aborted());
+
+  //withNumberOfComponents
+  static Array withNumberOfComponents(Array src, int N, Aborted aborted = Aborted()) {
+    return cast(src, src.dtype.withNumberOfComponents(N), aborted);
+  }
 
   //sqrt
   static Array sqrt(Array src, Aborted aborted = Aborted());

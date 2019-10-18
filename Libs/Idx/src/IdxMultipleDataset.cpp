@@ -474,7 +474,7 @@ public:
     if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
     {
       static int cont = 0;
-      ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont++ << ".up.result.png", ret);
+      ArrayUtils::saveImage(concatenate("temp/",cont++,".up.result.png"), ret);
     }
 
     return ret;
@@ -509,7 +509,7 @@ public:
 
     auto dataset = DATASET->getChild(expr1);
     if (!dataset)
-      ThrowException(StringUtils::format() << "input['" << expr1 << "'] not found");
+      ThrowException("input['",expr1,"'] not found");
 
     auto ret = newDynamicObject([this, expr1](String expr2) {
       return getAttr2(expr1, expr2);
@@ -548,7 +548,7 @@ public:
     Field field = dataset->getFieldByName(expr2);
 
     if (!field.valid())
-      ThrowException(StringUtils::format() << "input['" << expr1 << "']['" << expr2 << "'] not found");
+      ThrowException("input['",expr1,"']['",expr2,"'] not found");
 
     int pdim = DATASET->getPointDim();
 
@@ -726,10 +726,10 @@ public:
       if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
       {
         static int cont = 0;
-        ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".dw." + name << "." << query->field.name << ".buffer.png", query->buffer);
-        ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".dw." + name << "." << query->field.name << ".alpha_.png", *query->buffer.alpha );
-        ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".up." + name << "." << query->field.name << ".buffer.png", query->down_info.BUFFER);
-        ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".up." + name << "." << query->field.name << ".alpha_.png", *query->down_info.BUFFER.alpha);
+        ArrayUtils::saveImage(concatenate("temp/", cont, ".dw." + name, ".", query->field.name, ".buffer.png"), query->buffer);
+        ArrayUtils::saveImage(concatenate("temp/", cont, ".dw." + name, ".", query->field.name, ".alpha_.png"), *query->buffer.alpha );
+        ArrayUtils::saveImage(concatenate("temp/", cont, ".up." + name, ".", query->field.name, ".buffer.png"), query->down_info.BUFFER);
+        ArrayUtils::saveImage(concatenate("temp/", cont, ".up." + name, ".", query->field.name, ".alpha_.png"), *query->down_info.BUFFER.alpha);
         //ArrayUtils::setBufferColor(query->BUFFER, DATASET->childs[name].color);
         cont++;
       }
@@ -1133,7 +1133,7 @@ void IdxMultipleDataset::parseDataset(StringTree* cur,Matrix modelview)
   String url = cur->getAttribute("url");
   VisusAssert(!url.empty());
 
-  String default_name = StringUtils::format() << "child_" << std::setw(4) << std::setfill('0') << cstring((int)this->down_datasets.size());
+  String default_name = concatenate("child_",StringUtils::formatNumber("%04d",(int)this->down_datasets.size()));
 
   String name = StringUtils::trim(cur->getAttribute("name", cur->getAttribute("id")));
   
@@ -1534,7 +1534,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     {
       String name = child->readString("name");
       if (name.empty())
-        name = StringUtils::format() << "field_" << generate_name++;
+        name = concatenate("field_",generate_name++);
 
       //I expect to find here CData node or Text node...
       String code;

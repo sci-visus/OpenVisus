@@ -48,21 +48,40 @@ For support : support@visus.net
 
 namespace Visus {
 
+#if !SWIG
+extern VISUS_KERNEL_API std::function<void(const String & msg)> RedirectLog;
+#endif
+
+enum 
+{
+  DebugPrintLevel   = 0,
+  InfoPrintLevel    = 1,
+  WarningPrintLevel = 2,
+  ErrorPrintLevel   = 3
+};
+
+VISUS_KERNEL_API void PrintEx(String file, int line, int level, String msg);
+
+#define PrintInfo(...) PrintEx(__FILE__,__LINE__,InfoPrintLevel, cstring(__VA_ARGS__))
+
 /////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API LogFormattedMessage 
 {
 public:
 
-  String file;
-  int    line = 0;
-  String level;
-  Time   time;
+  String     file;
+  int        line = 0;
+  int        level;
 
   //constructor
-  LogFormattedMessage(String file_ = "", int line_ = 0, String level_ = "");
+  LogFormattedMessage(String file_ = "", int line_ = 0, int level_ = InfoPrintLevel)
+    : file(file_), line(line_), level(level_){
+  }
 
   //destructor
-  ~LogFormattedMessage();
+  ~LogFormattedMessage() {
+    PrintEx(file, line, level, out.str());
+  }
 
   //get_stream
   std::ostringstream& get_stream() {
@@ -76,14 +95,11 @@ private:
 #endif
 };
 
-#define VisusError()    (Visus::LogFormattedMessage(__FILE__,__LINE__,"error"  ).get_stream())
-#define VisusWarning()  (Visus::LogFormattedMessage(__FILE__,__LINE__,"warning").get_stream())
-#define VisusInfo()     (Visus::LogFormattedMessage(__FILE__,__LINE__,"info"   ).get_stream()) 
-#define VisusDebug()    (Visus::LogFormattedMessage(__FILE__,__LINE__,"debug"  ).get_stream())
+#define VisusDebug()    (Visus::LogFormattedMessage(__FILE__,__LINE__,DebugPrintLevel  ).get_stream())
+#define VisusInfo()     (Visus::LogFormattedMessage(__FILE__,__LINE__,InfoPrintLevel   ).get_stream()) 
+#define VisusWarning()  (Visus::LogFormattedMessage(__FILE__,__LINE__,WarningPrintLevel).get_stream())
+#define VisusError()    (Visus::LogFormattedMessage(__FILE__,__LINE__,ErrorPrintLevel  ).get_stream())
 
-#if !SWIG
-extern VISUS_KERNEL_API std::function<void(const String& msg)> RedirectLog;
-#endif
 
 } //namespace Visus
 

@@ -532,8 +532,8 @@ bool KdQueryNode::processInput()
   abortProcessing();
    
   auto dataset         = readValue<Dataset>("dataset");
-  auto fieldname       = cstring(readValue<String>("fieldname"));
-  auto time            = cdouble(readValue<double>("time"));
+  auto fieldname       = readString("fieldname");
+  auto time            = readDouble("time");
 
   int kdquery_mode=dataset? dataset->getKdQueryMode() : KdQueryMode::NotSpecified;
   if (kdquery_mode==KdQueryMode::NotSpecified) 

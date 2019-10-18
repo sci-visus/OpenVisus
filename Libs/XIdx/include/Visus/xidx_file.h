@@ -66,7 +66,7 @@ public:
 
   //getXPathPrefix
   virtual String getXPathPrefix() override {
-    return StringUtils::format() << (getParent()? getParent()->getXPathPrefix() : "//Xidx") << "[@Name=\"" + name + "\"]";
+    return concatenate(getParent()? getParent()->getXPathPrefix() : "//Xidx", "[@Name=\"",name,"\"]");
   }
 
   //getGroup

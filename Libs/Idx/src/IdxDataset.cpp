@@ -713,8 +713,7 @@ bool IdxDataset::compressDataset(String compression)
 
           if (tmove.elapsedSec() > 5)
           {
-            String error_msg = StringUtils::format() << "Cannot std::rename(" + filename << "," << tmp_filename << ")";
-            std::perror(error_msg.c_str());
+            std::perror(cstring("Cannot std::rename" + filename,"to",tmp_filename).c_str());
             VisusAssert(false);
             return false;
           }
@@ -756,8 +755,7 @@ bool IdxDataset::compressDataset(String compression)
 
         if(std::remove(old_filename.c_str())!=0)  
         {
-          String error_msg=StringUtils::format()<<"Cannot std::remove("+old_filename<<"). ";
-          std::perror(error_msg.c_str()); 
+          std::perror(cstring("Cannot std::remove",old_filename).c_str());
           VisusAssert(false);
           return false;
         }

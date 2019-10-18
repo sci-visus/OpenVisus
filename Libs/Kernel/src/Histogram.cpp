@@ -51,7 +51,7 @@ struct ComputeHistogramOp
     if (aborted())
       return false;
 
-    if (!range.valid())
+    if (!range.delta())
       return false;
 
     Int64 Tot=src.getTotalNumberOfSamples();

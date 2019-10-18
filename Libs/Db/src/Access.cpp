@@ -48,7 +48,7 @@ String Access::guessBlockFilename(String prefix, Field field, double time, BigIn
   ret = StringUtils::replaceFirst(ret, "$(prefix)", prefix);
   ret = StringUtils::replaceFirst(ret, "$(time)", StringUtils::onlyAlNum(int(time) == time ? cstring((int)time) : cstring(time)));
   ret = StringUtils::replaceFirst(ret, "$(field)", fieldname.length() < 32 ? StringUtils::onlyAlNum(fieldname) : StringUtils::computeChecksum(fieldname));
-  ret = StringUtils::replaceFirst(ret, "$(block)", StringUtils::join(StringUtils::splitInChunks(StringUtils::format() << std::hex << std::setw(32) << std::setfill('0') << blockid, 4), "/"));
+  ret = StringUtils::replaceFirst(ret, "$(block)", StringUtils::join(StringUtils::splitInChunks(StringUtils::formatNumber("%032x", blockid) , 4), "/"));
   ret = StringUtils::replaceFirst(ret, "$(suffix)", suffix);
   return ret;
 }

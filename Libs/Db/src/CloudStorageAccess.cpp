@@ -76,12 +76,10 @@ String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid)
 
   //backward compatible
   if (StringUtils::contains(ret,"$(start_address)"))
-    ret = StringUtils::replaceFirst(ret, "$(start_address)", StringUtils::format() << std::setw(20) << std::setfill('0') << cstring(blockid << bitsperblock));
+    ret = StringUtils::replaceFirst(ret, "$(start_address)", StringUtils::formatNumber("%020d", blockid << bitsperblock));
 
   VisusAssert(!StringUtils::contains(ret, "$"));
   return ret;
-
-
 }
 
 

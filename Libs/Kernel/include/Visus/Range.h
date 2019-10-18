@@ -119,10 +119,6 @@ public:
     return Range(NumericLimits<double>::highest(), NumericLimits<double>::lowest(),0);
   }
 
-  //valid
-  inline bool valid() const {
-    return to >= from;
-  }
 
   //delta
   inline double delta() const {
@@ -136,9 +132,7 @@ public:
 
   //toString
   String toString() const {
-    std::ostringstream o; 
-    o << this->from << " " << this->to << " " << this->step; 
-    return o.str();
+    return cstring(this->from,this->to,this->step);
   }
 
   //getUnion
@@ -164,10 +158,8 @@ public:
   //range is equivalent to (value-from)/(from-to)=vs*value+vt where vs=1.0/(from-to) and vt=-from/vs
   std::pair<double, double> getScaleTranslate(Aborted aborted = Aborted()) const
   {
-    if (!valid()) return std::make_pair(1.0, 0.0);
-    double vs = 1.0 / delta();
-    double vt = -from*vs;
-    return std::make_pair(vs, vt);
+    double d = this->delta();
+    return d? std::make_pair(1.0 / d, -from / d) : std::make_pair(1.0, 0.0);
   }
 
 public:

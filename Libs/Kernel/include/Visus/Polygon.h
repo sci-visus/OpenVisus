@@ -266,20 +266,24 @@ public:
 
   //toString
   String toString(String coord_sep = " ", String point_sep = " ") const {
-    return StringUtils::format()
+    std::ostringstream out;
+    out
       << points[0][0] << coord_sep << points[0][1] << point_sep
       << points[1][0] << coord_sep << points[1][1] << point_sep
       << points[2][0] << coord_sep << points[2][1] << point_sep
       << points[3][0] << coord_sep << points[3][1];
+    return out.str();
   }
 
   //toString10
   String toString10(String coord_sep=" ",String point_sep=" ") const {
-    return StringUtils::format()
+    std::ostringstream out;
+    out
       << cstring10(points[0][0]) << coord_sep << cstring10(points[0][1]) << point_sep
       << cstring10(points[1][0]) << coord_sep << cstring10(points[1][1]) << point_sep
       << cstring10(points[2][0]) << coord_sep << cstring10(points[2][1]) << point_sep
       << cstring10(points[3][0]) << coord_sep << cstring10(points[3][1]);
+    return out.str();
   }
 
   //fromString

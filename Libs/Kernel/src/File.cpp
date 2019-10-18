@@ -366,7 +366,7 @@ private:
     case ENOENT:
       return"ENOENT File or path not found.";
     default:
-      return StringUtils::format() << "Unknown errno(" << errno << ")";
+      return cstring("Unknown errno",errno);
     }
   }
 
@@ -993,10 +993,7 @@ void FileUtils::unlock(Path path)
   String lock_filename = fullpath + ".lock";
   bool bRemoved = ::remove(lock_filename.c_str()) == 0 ? true : false;
   if (!bRemoved)
-  {
-    String msg = StringUtils::format() << "cannot remove lock file " << lock_filename;
-    ThrowException(msg);
-  }
+    ThrowException("cannot remove lock file",lock_filename);
 }
 
 

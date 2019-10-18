@@ -461,7 +461,7 @@ public:
 
       int    x=Utils::clamp((int)round(pos[0]*(nsamples -1)),0, nsamples -1);
       double y=pos[1];
-      painter.drawText(QPoint(2,this->height()-12),(StringUtils::format()<<"x("<<(int)x<<") y("<<y<<")").str().c_str());
+      painter.drawText(QPoint(2,this->height()-12),cstring("x",(int)x,"y",y).c_str());
     }
 
     renderBorders(painter);
@@ -565,7 +565,7 @@ private:
     String content = Utils::loadTextDocument(filename);
     if (content.empty())
     {
-      String errormsg=StringUtils::format()<<"Failed to open file "<<filename;
+      String errormsg=cstring("Failed to open file",filename);
       QMessageBox::information(this,"Error",errormsg.c_str());
       return;
     }
@@ -672,7 +672,7 @@ private:
       
     if (!Utils::saveTextDocument(filename, content))
     {
-      String errormsg=StringUtils::format()<<"Failed to save file "<<filename;
+      String errormsg=cstring("Failed to save file",filename);
       QMessageBox::information(this,"Error",errormsg.c_str());
       return;
     }

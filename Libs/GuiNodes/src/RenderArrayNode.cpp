@@ -252,63 +252,54 @@ void RenderArrayNode::setData(Array value,SharedPtr<Palette> palette)
     return;
   }
 
-  //compact dimension (example: 1 128 256 ->128 256 1)
-  if (value.getDepth() > 1 && (value.getWidth() == 1 || value.getHeight() == 1))
-  {
-    auto tmp = Array(PointNi(std::max(value.getWidth(), value.getHeight()), value.getDepth()), value.dtype, value.heap);
-    tmp.shareProperties(value);
-    value = tmp;
-  }
-
-  std::vector< std::pair<double, double> > vs_t(4, std::make_pair(1.0, 0.0));
-
-  //TODO: this range stuff can be slow and blocking...
-  if (!value.dtype.isVectorOf(DTypes::UINT8))
-  {
-    int ncomponents = value.dtype.ncomponents();
-    for (int C = 0; C < std::min(4, ncomponents); C++)
-    {
-      Range range;
-
-      if (palette)
-        range = palette->computeRange(value, C);
- 
-      if (!range.valid())
-        range = value.dtype.getDTypeRange(C);
-
-      if (!range.valid())
-        range = ArrayUtils::computeRange(value, C);
-      
-      vs_t[C] = range.getScaleTranslate();
-    }
-  }
-
-  bool bGotNewData = (value.heap != this->data.heap);
-
+  bool got_new_data = (value.heap != this->data.heap);
   this->data = value;
 
-  if (!this->data_texture || bGotNewData)
-    this->data_texture = std::make_shared<GLTexture>(value);
+  //automatically convert to RGB
+  int ncomponents = this->data.dtype.ncomponents();
+  if (ncomponents >= 5)
+    this->data = ArrayUtils::withNumberOfComponents(this->data, 3);
 
+  //create texture
+  if (!this->data_texture || got_new_data)
+    this->data_texture = std::make_shared<GLTexture>(this->data);
+
+  //overrule filter
   this->data_texture->minfilter = this->minifyFilter();
   this->data_texture->magfilter = this->magnifyFilter();
 
-  this->data_texture->vs = Point4d(vs_t[0].first,  vs_t[1].first,  vs_t[2].first,  vs_t[3].first);
-  this->data_texture->vt = Point4d(vs_t[0].second, vs_t[1].second, vs_t[2].second, vs_t[3].second);
+  //compute translate scale for texture values (to go in the color range 0,1)
+  //TODO: this range stuff can be slow and blocking...
+  this->data_texture->vs = Point4d(1, 1, 1, 1);
+  this->data_texture->vt = Point4d(0, 0, 0, 0);
+  if (!this->data.dtype.isVectorOf(DTypes::UINT8))
+  {
+    int ncomponents = this->data.dtype.ncomponents();
+    for (int C = 0; C < std::min(4, ncomponents); C++)
+    {
+      Range range;
+      if (palette)
+        range = palette->computeRange(this->data, C);
+      if (range.delta()<=0)
+        range = this->data.dtype.getDTypeRange(C);
+      if (range.delta() <= 0)
+        range = ArrayUtils::computeRange(this->data, C);
+      auto p = range.getScaleTranslate();
+      data_texture->vs[C] = p.first;
+      data_texture->vt[C] = p.second;
+    }
+  }
 
+  //palette
   this->palette = palette;
-
   if (palette)
     this->palette_texture = std::make_shared<GLTexture>(palette->toArray());
 
-  VisusInfo() << "got array"
-    << " texture("
-    << this->data_texture->dims.toString() << "/"
-    << this->data_texture->dtype.toString() << "/" \
-    << StringUtils::getStringFromByteSize(this->data_texture->dtype.getByteSize(this->data_texture->dims)) << "/"
-    << this->data_texture->dims.innerProduct() << ")"
-    << " bGotNewData(" << bGotNewData << ")"
-    << " msec(" << t1.elapsedMsec() << ")";
+  PrintInfo("got array",
+    "value",value.dims, value.dtype,
+    "texture" ,data_texture->dims, data_texture->dtype, StringUtils::getStringFromByteSize(data_texture->dtype.getByteSize(this->data_texture->dims))),
+    "got_new_data", got_new_data,
+    "msec",t1.elapsedMsec();
 }
 
 
@@ -355,9 +346,7 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   #if 0
   {
     static int cont=0;
-    std::ostringstream out;
-    out<<"temp."<<cont++<<".png";
-    ArrayUtils::saveImageUINT8(out.str(),Array::createView(*data,compact_dims,data->dtype));
+    ArrayUtils::saveImageUINT8(concatenate("temp.", cont++, ".png"),Array::createView(*data,compact_dims,data->dtype));
   }
   #endif
 

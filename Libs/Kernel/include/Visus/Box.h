@@ -415,7 +415,7 @@ public:
     //x1 y1 z1   x2 y2 z2
     else
     {
-      return StringUtils::format()<<p1.toString() << " " << p2.toString();
+      return cstring(p1,p2);
     }
   }
 

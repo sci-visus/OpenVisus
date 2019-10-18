@@ -227,7 +227,7 @@ bool Dataset::executeBoxQueryOnServer(SharedPtr<BoxQuery> query)
 
   if (!request.valid())
   {
-    query->setFailed((StringUtils::format() << "cannot create box query request").str());
+    query->setFailed("cannot create box query request");
     return false;
   }
 
@@ -235,13 +235,13 @@ bool Dataset::executeBoxQueryOnServer(SharedPtr<BoxQuery> query)
 
   if (!response.isSuccessful())
   {
-    query->setFailed((StringUtils::format() << "network request failed errormsg(" << response.getErrorMessage() << ")").str());
+    query->setFailed(cstring("network request failed",cnamed("errormsg",response.getErrorMessage())));
     return false;
   }
 
   auto buffer = response.getArrayBody();
   if (!buffer) {
-    query->setFailed((StringUtils::format() << "failed to decode body").str());
+    query->setFailed("failed to decode body");
     return false;
   }
 
@@ -258,7 +258,7 @@ bool Dataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
 
   if (!request.valid())
   {
-    query->setFailed((StringUtils::format() << "cannot create point query request").str());
+    query->setFailed("cannot create point query request");
     return false;
   }
 
@@ -266,13 +266,13 @@ bool Dataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
 
   if (!response.isSuccessful())
   {
-    query->setFailed((StringUtils::format() << "network request failed errormsg(" << response.getErrorMessage() << ")").str());
+    query->setFailed(cstring("network request failed ",cnamed("errormsg", response.getErrorMessage())));
     return false;
   }
 
   auto buffer = response.getArrayBody();
   if (!buffer) {
-    query->setFailed((StringUtils::format() << "failed to decode body").str());
+    query->setFailed("failed to decode body");
     return false;
   }
 
@@ -666,7 +666,7 @@ void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield,
                           Dataset* Rvf, SharedPtr<Access> Raccess, Field Rfield, double Rtime)
 {
   if (Rfield.dtype!=Wfield.dtype)
-    ThrowException(StringUtils::format()<<"Rfield("<<Rfield.name<<") and Wfield("<<Wfield.name<<") have different dtype");
+    ThrowException("Rfield",Rfield.name,"and","Wfield",Wfield.name,"have different dtype");
 
   if ((1<<Raccess->bitsperblock)!=(1<<Waccess->bitsperblock))
     ThrowException("nsamples per block of source and dest are not equal");
@@ -766,7 +766,7 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
 
     auto src = block_query->buffer;
 
-    ArrayUtils::saveImage(StringUtils::format() << "temp/block" << (block_query->start_address >> bitsperblock) << ".png", src);
+    ArrayUtils::saveImage(concatenate("temp/block",block_query->start_address >> bitsperblock,".png"), src);
 
     if (bool bDrawBorder = true)
     {
@@ -816,7 +816,7 @@ void Dataset::read(Archive& ar)
   }
 
   if (!this->openFromUrl(url))
-    ThrowException(StringUtils::format() << "Cannot open dataset from url " << url);
+    ThrowException("Cannot open dataset from url",url);
 }
 
 } //namespace Visus 

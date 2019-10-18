@@ -1296,7 +1296,7 @@ bool Viewer::open(String url,Node* parent)
   auto dataset = LoadDatasetEx(url,this->config);
   if (!dataset)
   {
-    QMessageBox::information(this, "Error", (StringUtils::format() << "open file(" << url << +") failed.").str().c_str());
+    QMessageBox::information(this, "Error", cstring("open file(" ,url, +") failed.").c_str());
     return false;
   }
 
@@ -1484,15 +1484,9 @@ bool Viewer::saveFile(String url, bool bSaveHistory)
   bool ret = save(url, bSaveHistory);
 
   if (ret)
-  {
-    String errormsg = StringUtils::format() << "Failed to save file " + url;
-    QMessageBox::information(this, "Error", errormsg.c_str());
-  }
+    QMessageBox::information(this, "Error", cstring("Failed to save file", url).c_str());
   else
-  {
-    String msg = StringUtils::format() << "File " + url + " saved";
-    QMessageBox::information(this, "Info", msg.c_str());
-  }
+    QMessageBox::information(this, "Info", cstring("File", url, "saved").c_str());
 
   return save(url, bSaveHistory);
 }

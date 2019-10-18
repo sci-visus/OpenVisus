@@ -163,11 +163,8 @@ public:
   }
 
   //convert to string
-  String toString() const 
-  {
-    std::ostringstream out;
-    out << this->x << " " << this->y << " " << this->width << " " << this->height;
-    return out.str();
+  String toString() const  {
+    return cstring(x, y, width, height);
   }
 
 }; //end class Reclangle2i
@@ -290,11 +287,8 @@ public:
   }
 
   //convert to string
-  String toString() const 
-  {
-    std::ostringstream out;
-    out << this->x << " " << this->y << " " << this->width << " " << this->height;
-    return out.str();
+  String toString() const {
+    return cstring(x, y, width, height);
   }
 
 }; //end class Rectangle2d

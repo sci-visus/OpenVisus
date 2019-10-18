@@ -50,45 +50,31 @@ For support : support@visus.net
 
 namespace Visus {
 
-std::function<void(const String& msg)> RedirectLog;
+std::function<void(const String & msg)> RedirectLog;
 
-//////////////////////////////////////////////////////////////////////////
-LogFormattedMessage::LogFormattedMessage(String file_, int line_, String level_)
-  : file(file_), line(line_), level(level_), time(Time::now())
+///////////////////////////////////////////////////////////////////////
+void PrintEx(String file, int line, int level, String msg)
 {
-  if (!file.empty())
-  {
-    this->file = this->file.substr(this->file.find_last_of("/\\") + 1);
-    this->file = this->file.substr(0, this->file.find_last_of('.'));
-  }
+  auto t1 = Time::now();
 
-  out
-    << "[" << file << ": " << line << "] [pid " << Utils::getPid() << ":tid " << Thread::getThreadId() << "] "
-    << std::setfill('0')
-    << "["
-    //<<std::setw(2)<<(time.getYear()-2000)<<"."
-    //<<std::setw(2)<<(time.getMonth()+1)<<"."
-    //<<std::setw(2)<<(time.getDayOfMonth())<<"|"
-    << std::setw(2) << (time.getHours()) << "."
-    << std::setw(2) << (time.getMinutes()) << "."
-    << std::setw(2) << (time.getSeconds()) << "."
-    << std::setw(3) << (time.getMilliseconds())
-    << "] ";
-}
+  file = file.substr(file.find_last_of("/\\") + 1);
+  file = file.substr(0, file.find_last_of('.'));
 
-//////////////////////////////////////////////////////////////////////////
-LogFormattedMessage::~LogFormattedMessage()
-{
-  out << std::endl;
+  std::ostringstream out;
+  out << std::setfill('0')
+    << std::setw(2) << t1.getHours()
+    << std::setw(2) << t1.getMinutes()
+    << std::setw(2) << t1.getSeconds()
+    << std::setw(3) << t1.getMilliseconds()
+    << " " << file << ":" << line
+    << " " << Utils::getPid() << ":" << Thread::getThreadId() 
+    << " " << msg << std::endl;
 
-  String msg = out.str();
-
+  msg = out.str();
   PrintMessageToTerminal(msg);
 
   if (RedirectLog)
     RedirectLog(msg);
 }
 
-
-} //namespace Visus
-
+} //namespace

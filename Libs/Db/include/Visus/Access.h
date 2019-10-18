@@ -124,10 +124,7 @@ public:
 
   //getMode
   String getMode() const {
-    std::ostringstream out;
-    if (isReading()) out << "r";
-    if (isWriting()) out << "w";
-    return out.str();
+    return concatenate(isReading()?"r":"", isWriting()?"w":"");
   }
 
   //isReading

@@ -63,7 +63,7 @@ public:
   {
     GLOrthoParams ret;
     std::istringstream parser(s);
-    parser >> ret.left >> ret.right >> ret.top >> ret.bottom >> ret.zNear >> ret.zFar;
+    parser >> ret.left >> ret.right >> ret.bottom >> ret.top >> ret.zNear >> ret.zFar;
     return ret;
   }
 
@@ -196,9 +196,7 @@ public:
 
   //toString
   String toString() const {
-    std::ostringstream out;
-    out << left << " " << right << " " << top << " " << bottom << " " << zNear << " " << zFar;
-    return out.str();
+    return cstring(left, right, bottom, top, zNear, zFar);
   }
 
 public:
