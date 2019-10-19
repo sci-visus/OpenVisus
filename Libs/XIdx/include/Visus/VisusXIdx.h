@@ -51,7 +51,6 @@
 #include <Visus/Kernel.h>
 #include <Visus/StringUtils.h>
 #include <Visus/DType.h>
-#include <Visus/Log.h>
 #include <Visus/File.h>
 
 namespace Visus {

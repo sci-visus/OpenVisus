@@ -101,11 +101,11 @@ void MultiplexAccess::addChild(SharedPtr<Access> child)
 ///////////////////////////////////////////////////////
 void MultiplexAccess::printStatistics()
 {
-  VisusInfo()<<"type(MultiplexAccess)";
+  PrintInfo("type","MultiplexAccess");
 
   Access::printStatistics();
 
-  VisusInfo()<<"nchilds("<<dw_access.size()<<")";
+  PrintInfo("nchilds",dw_access.size());
   for (int i=0;i<(int)dw_access.size();i++) 
     dw_access[i]->printStatistics();
 }

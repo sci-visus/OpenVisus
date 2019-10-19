@@ -42,7 +42,6 @@ For support : support@visus.net
 #if VISUS_PYTHON
 
 #include <Visus/Array.h>
-#include <Visus/Log.h>
 #include <Visus/StringUtils.h>
 
 #include <queue>

@@ -39,7 +39,6 @@ For support : support@visus.net
 #include <Visus/StringUtils.h>
 #include <Visus/Array.h>
 #include <Visus/Time.h>
-#include <Visus/Log.h>
 
 #include <iostream>
 #include <iomanip>

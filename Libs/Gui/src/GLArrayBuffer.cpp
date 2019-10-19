@@ -59,7 +59,7 @@ GLArrayBuffer::GLArrayBuffer(DType dtype,int nvertices,SharedPtr<HeapMemory> hea
   else if (atomic_dtype==DTypes::UINT16 ) gltype= GL_UNSIGNED_SHORT;
   else
   {
-    VisusInfo()<<"Unsupported dtype";
+    PrintInfo("Unsupported dtype");
     VisusAssert(false);
     return;
   }

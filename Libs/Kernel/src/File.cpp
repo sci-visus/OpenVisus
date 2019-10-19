@@ -40,6 +40,7 @@ For support : support@visus.net
 #include <Visus/Thread.h>
 #include <Visus/Utils.h>
 #include <Visus/ApplicationStats.h>
+#include <Visus/Time.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -182,8 +183,10 @@ public:
     if (!isOpen())
     {
       if (!(bMustCreate && errno == EEXIST) && !(!bMustCreate && errno == ENOENT))
-        VisusWarning() << "Thread[" << Thread::getThreadId() << "] ERROR opening file "<<filename<<" " << GetOpenErrorExplanation();
-
+      {
+        std::ostringstream out; out << Thread::getThreadId();
+        PrintWarning("Thread[", out.str(), "] ERROR opening file ", filename, GetOpenErrorExplanation());
+      }
       return false;
     }
 
@@ -966,7 +969,7 @@ void FileUtils::lock(Path path)
       file.close();
 
       if (bVerboseReturn)
-        VisusInfo()<<"[PID="<<pid<<"] got file lock "<<lock_filename;
+        PrintInfo("PID",pid,"got file lock",lock_filename);
 
       return;
     }
@@ -974,7 +977,7 @@ void FileUtils::lock(Path path)
     //let the user know that I'm still waiting
     if (last_info_time.elapsedMsec()>1000)
     {
-      VisusInfo()<<"[PID="<<pid<<"] waiting for lock on "<<lock_filename;
+      PrintInfo("PID",pid,"waiting for lock on",lock_filename);
       last_info_time=Time::now();
       bVerboseReturn =true;
     }
@@ -1003,7 +1006,7 @@ bool FileUtils::copyFile(String src_filename, String dst_filename, bool bFailIfE
 {
 #if 0
   if (CopyFile(src_filename.c_str(), dst_filename.c_str(), bFailIfExist) == 0) {
-    VisusWarning() << "Error copying file " << Win32FormatErrorMessage(GetLastError());
+    PrintWarning("Error copying file",Win32FormatErrorMessage(GetLastError()));
     return false;
   }
   return true;
@@ -1051,7 +1054,7 @@ bool FileUtils::createLink(String existing_file, String new_file)
 
   if (CreateHardLink(new_file.c_str(), existing_file.c_str(), nullptr) == 0)
   {
-    VisusWarning()<<"Error creating link "<< Win32FormatErrorMessage(GetLastError());
+    PrintWarning("Error creating link", Win32FormatErrorMessage(GetLastError()));
     return false;
   }
 

@@ -36,9 +36,7 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-
 #include <Visus/Statistics.h>
-#include <Visus/Log.h>
 
 namespace Visus {
 

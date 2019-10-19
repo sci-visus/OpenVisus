@@ -164,12 +164,12 @@ private:
 
     auto dataset = LoadDatasetEx(name,config);
     if (!dataset) {
-      VisusWarning() << "dataset name(" << name << ") load failed, skipping it";
+      PrintWarning("dataset name", name, "load failed, skipping it");
       return 0;
     }
 
     if (datasets_map.find(name) != datasets_map.end()) {
-      VisusWarning() << "dataset name(" << name << ")  already exists, skipping it";
+      PrintWarning("dataset name", name, "already exists, skipping it");
       return 0;
     }
 
@@ -212,7 +212,7 @@ bool ModVisus::configureDatasets(const ConfigFile& config)
   //for dynamic I need to reload the file
   if (config_filename.empty() && this->dynamic)
   {
-    VisusInfo() << "Switching ModVisus to non-dynamic content since the config file is not stored on disk";
+    PrintInfo("Switching ModVisus to non-dynamic content since the config file is not stored on disk");
     this->dynamic = false;
   }
 
@@ -242,8 +242,8 @@ bool ModVisus::configureDatasets(const ConfigFile& config)
     });
   }
 
-  VisusInfo() << "ModVisus::configure dynamic(" << dynamic << ") config_filename(" << config_filename << ")...";
-  VisusInfo() << "/mod_visus?action=list\n" << datasets->getDatasetsBody();
+  PrintInfo("ModVisus::configure dynamic",dynamic,"config_filename",config_filename,"...");
+  PrintInfo("/mod_visus?action=list\n",datasets->getDatasetsBody());
 
   return true;
 }
@@ -257,7 +257,7 @@ bool ModVisus::reload()
   ConfigFile config;
   if (!config.load(this->config_filename))
   {
-    VisusInfo() << "Reload modvisus config_filename(" << this->config_filename << ") failed";
+    PrintInfo("Reload modvisus config_filename", this->config_filename,"failed");
     return false;
   }
 
@@ -268,7 +268,7 @@ bool ModVisus::reload()
     this->config_timestamp = FileUtils::getTimeLastModified(this->config_filename);
   }
 
-  VisusInfo() << "modvisus config file changed config_filename(" << this->config_filename << ") #datasets(" << datasets->getNumberOfDatasets() << ")";
+  PrintInfo("modvisus config file changed config_filename",this->config_filename,"#datasets",datasets->getNumberOfDatasets());
   return true;
 }
 
@@ -317,7 +317,7 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
     ConfigFile config;
     if (!config.load(this->config_filename,/*bEnablePostProcessing*/false))
     {
-      VisusWarning() << "Cannot load " << this->config_filename;
+      PrintWarning("Cannot load",this->config_filename);
       VisusAssert(false);//TODO rollback
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
     }
@@ -326,12 +326,12 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
 
     if (!config.save())
     {
-      VisusWarning() << "Cannot save " << config.getFilename();
+      PrintWarning("Cannot save",config.getFilename());
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
     }
 
     if (!reload()) {
-      VisusWarning() << "Cannot reload modvisus config";
+      PrintWarning("Cannot reload modvisus config");
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Reload failed");
     }
   }
@@ -588,11 +588,11 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
     if (!tf)
     {
       VisusAssert(false);
-      VisusInfo() << "invalid palette specified: " << palette;
-      VisusInfo() << "use one of:";
+      PrintInfo("invalid palette specified",palette);
+      PrintInfo("use one of:");
       std::vector<String> tf_defaults = TransferFunction::getDefaults();
       for (int i = 0; i < tf_defaults.size(); i++)
-        VisusInfo() << "\t" << tf_defaults[i];
+        PrintInfo("\t",tf_defaults[i]);
     }
     else
     {
@@ -683,11 +683,11 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
     if (!tf)
     {
       VisusAssert(false);
-      VisusInfo() << "invalid palette specified: " << palette;
-      VisusInfo() << "use one of:";
+      PrintInfo("invalid palette specified",palette);
+      PrintInfo("use one of:");
       std::vector<String> tf_defaults = TransferFunction::getDefaults();
       for (int i = 0; i < tf_defaults.size(); i++)
-        VisusInfo() << "\t" << tf_defaults[i];
+        PrintInfo("\t",tf_defaults[i]);
     }
     else
     {
@@ -789,9 +789,9 @@ NetResponse ModVisus::handleRequest(NetRequest request)
   else
     response = NetResponseError(HttpStatus::STATUS_NOT_FOUND, "unknown action(" + action + ")");
 
-  VisusInfo()
-    << " request(" << request.url.toString() << ") "
-    << " status(" << response.getStatusDescription() << ") body(" << StringUtils::getStringFromByteSize(response.body ? response.body->c_size() : 0) << ") msec(" << t1.elapsedMsec() << ")";
+  PrintInfo(
+    "request", request.url,
+    "status", response.getStatusDescription(), "body", StringUtils::getStringFromByteSize(response.body ? response.body->c_size() : 0), "msec", t1.elapsedMsec());
 
   //add some standard header
   response.setHeader("git_revision", ApplicationInfo::git_revision);

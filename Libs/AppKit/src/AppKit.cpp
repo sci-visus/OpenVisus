@@ -62,7 +62,7 @@ void AppKitModule::attach()
   if (bAttached)  
     return;
   
-  VisusInfo() << "Attaching AppKitModule...";
+  PrintInfo("Attaching AppKitModule...");
 
   bAttached = true;
 
@@ -84,7 +84,7 @@ void AppKitModule::attach()
   ViewerPreferences::default_panels= config->readString("Configuration/VisusViewer/panels", "left center");
   ViewerPreferences::default_show_logos = cbool(config->readString("Configuration/VisusViewer/show_logos", "true"));
 
-  VisusInfo() << "Attached AppKitModule";
+  PrintInfo("Attached AppKitModule");
 
 }
 
@@ -94,7 +94,7 @@ void AppKitModule::detach()
   if (!bAttached)  
     return;
   
-  VisusInfo() << "Detaching AppKitModule...";
+  PrintInfo("Detaching AppKitModule...");
   
   bAttached = false;
 
@@ -104,7 +104,7 @@ void AppKitModule::detach()
   GuiNodesModule::detach();
 
 
-  VisusInfo() << "Detached AppKitModule";
+  PrintInfo("Detached AppKitModule");
 }
 
 } //namespace Visus

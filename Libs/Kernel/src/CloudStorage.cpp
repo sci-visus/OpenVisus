@@ -38,7 +38,6 @@ For support : support@visus.net
 
 #include <Visus/CloudStorage.h>
 #include <Visus/NetService.h>
-#include <Visus/Log.h>
 #include <Visus/Path.h>
 #include <Visus/UUID.h>
 

@@ -41,7 +41,6 @@ For support : support@visus.net
 
 #include <Visus/Db.h>
 #include <Visus/BlockQuery.h>
-#include <Visus/Log.h>
 
 namespace Visus {
 
@@ -210,9 +209,9 @@ public:
   //printStatistics
   virtual void printStatistics() 
   {
-    VisusInfo()<< "type(" << typeid(*this).name() << ") chdmod('" << (can_read ? "r" : "") << (can_write ? "w" : "") << "') bitsperblock(" << bitsperblock << ")";
-    VisusInfo()<< "rok(" << statistics.rok << ") rfail(" << statistics.rfail << ")";
-    VisusInfo()<< "wok(" << statistics.wok << ") wfail(" << statistics.wfail << ")";
+    PrintInfo("type", typeid(*this).name(), "chmod", can_read ? "r" : "", can_write ? "w" : "", "bitsperblock", bitsperblock);
+    PrintInfo("rok", statistics.rok, "rfail", statistics.rfail);
+    PrintInfo("wok", statistics.wok, "wfail", statistics.wfail);
   }
 
   //write

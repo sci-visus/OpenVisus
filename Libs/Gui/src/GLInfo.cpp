@@ -62,7 +62,7 @@ Int64 getTotalVideoMemoryBytes()
   CGLError e = CGLQueryRendererInfo(CGDisplayIDToOpenGLDisplayMask(CGMainDisplayID()), &info, &infoCount);
   if (e != kCGLNoError)
   {
-    VisusError()<<CGLErrorString(e);
+    PrintError(CGLErrorString(e));
     return -1;
   }
 
@@ -71,10 +71,10 @@ Int64 getTotalVideoMemoryBytes()
   {
     GLint mega;
     CGLDescribeRenderer(info, i, kCGLRPVideoMemoryMegabytes, &mega);
-    VisusInfo()<<"vid mem: "<<mega<<" MB";
+    PrintInfo("vid mem: ",mega,"MB");
     tot=mega;
     CGLDescribeRenderer(info, i, kCGLRPTextureMemoryMegabytes, &mega);
-    VisusInfo()<<"tex mem: "<<mega<<" MB";
+    PrintInfo("tex mem:",mega,"MB");
     if (tot > 0) break;  // software renderer always reports 0 bytes, so break when we find a renderer with memory
   }
 
@@ -122,7 +122,7 @@ static Int64 ReadPerfInt64Value(CFStringRef name)
 ///////////////////////////////////////////////
 GLInfo::GLInfo() : visus_used_memory(0),os_total_memory(0),extension_GL_NVX_gpu_memory_info(false)
 {
-  VisusInfo() << "GLCanvas::initOpenGL...";
+  PrintInfo("GLCanvas::initOpenGL...");
 
   GLNeedContext gl;
 
@@ -151,21 +151,21 @@ GLInfo::GLInfo() : visus_used_memory(0),os_total_memory(0),extension_GL_NVX_gpu_
   glGetIntegerv(GL_MAX_CLIP_PLANES, &this->max_clip_planes);
   #endif
 
-  VisusInfo()<<"gles_version "          <<this->gles_version;
-  VisusInfo()<<"GL_VENDOR "             <<this->vendor;
-  VisusInfo()<<"GL_RENDERER "           <<this->renderer;
-  VisusInfo()<<"GL_VERSION "            <<this->version;
-  //VisusInfo()<<"GL_EXTENSIONS "         <<this->extensions;
-  VisusInfo()<<"GL_RED_BITS "           <<this->red_bits;
-  VisusInfo()<<"GL_GREEN_BITS "         <<this->green_bits;
-  VisusInfo()<<"GL_BLUE_BITS "          <<this->blue_bits;
-  VisusInfo()<<"GL_ALPHA_BITS "         <<this->alpha_bits;
-  VisusInfo()<<"GL_DEPTH_BITS "         <<this->depth_bits;
-  VisusInfo()<<"GL_STENCIL_BITS "       <<this->stencil_bits;
-  VisusInfo()<<"GL_MAX_LIGHTS "         <<this->max_lights;
-  VisusInfo()<<"GL_MAX_TEXTURE_SIZE "   <<this->max_texture_size;
-  VisusInfo()<<"GL_MAX_3D_TEXTURE_SIZE "<<this->max_3d_texture_size;
-  VisusInfo()<<"GL_MAX_CLIP_PLANES "    <<this->max_clip_planes;
+  PrintInfo("gles_version", this->gles_version);
+  PrintInfo("GL_VENDOR", this->vendor);
+  PrintInfo("GL_RENDERER", this->renderer);
+  PrintInfo("GL_VERSION", this->version);
+  //PrintInfo("GL_EXTENSIONS", this->extensions);
+  PrintInfo("GL_RED_BITS", this->red_bits);
+  PrintInfo("GL_GREEN_BITS", this->green_bits);
+  PrintInfo("GL_BLUE_BITS", this->blue_bits);
+  PrintInfo("GL_ALPHA_BITS", this->alpha_bits);
+  PrintInfo("GL_DEPTH_BITS", this->depth_bits);
+  PrintInfo("GL_STENCIL_BITS", this->stencil_bits);
+  PrintInfo("GL_MAX_LIGHTS", this->max_lights);
+  PrintInfo("GL_MAX_TEXTURE_SIZE", this->max_texture_size);
+  PrintInfo("GL_MAX_3D_TEXTURE_SIZE", this->max_3d_texture_size);
+  PrintInfo("GL_MAX_CLIP_PLANES", this->max_clip_planes);
 
   #if __APPLE__
   {
@@ -186,7 +186,7 @@ GLInfo::GLInfo() : visus_used_memory(0),os_total_memory(0),extension_GL_NVX_gpu_
   }
   #endif
 
-  VisusInfo() << "...done";
+  PrintInfo("...done");
 }
 
 //////////////////////////////////////////////////////////
@@ -253,9 +253,9 @@ bool GLInfo::allocateOpenGLMemory(Int64 reqsize)
       Int64 os_free_memory=((Int64)(getOsTotalMemory()*0.80))-visus_used_memory;
       if (reqsize>os_free_memory)
       {
-        VisusWarning()<<"OpenGL out of memory "
-                      <<" reqsize("<<StringUtils::getStringFromByteSize(reqsize)<<")"
-                      <<" os_free_memory("<<StringUtils::getStringFromByteSize(os_free_memory)<<")";
+        PrintWarning("OpenGL out of memory",
+                      "reqsize",StringUtils::getStringFromByteSize(reqsize),
+                      "os_free_memory",StringUtils::getStringFromByteSize(os_free_memory));
 
         return false;
       }

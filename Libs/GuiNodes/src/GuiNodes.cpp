@@ -66,7 +66,7 @@ void GuiNodesModule::attach()
   if (bAttached)  
     return;
   
-  VisusInfo() << "Attaching GuiNodesModule...";
+  PrintInfo("Attaching GuiNodesModule...");
 
   bAttached = true;
 
@@ -90,7 +90,7 @@ void GuiNodesModule::attach()
 
   OSPRayRenderNode::initEngine();
 
-  VisusInfo() << "Attached GuiNodesModule";
+  PrintInfo("Attached GuiNodesModule");
 }
 
 //////////////////////////////////////////////
@@ -99,7 +99,7 @@ void GuiNodesModule::detach()
   if (!bAttached)  
     return;
 
-  VisusInfo() << "Detaching GuiNodesModule...";
+  PrintInfo("Detaching GuiNodesModule...");
   
   bAttached = false;
 
@@ -115,7 +115,7 @@ void GuiNodesModule::detach()
   OSPRayRenderNode::shutdownEngine();
 
 
-  VisusInfo() << "Detached GuiNodesModule";
+  PrintInfo("Detached GuiNodesModule");
 }
 
 } //namespace Visus

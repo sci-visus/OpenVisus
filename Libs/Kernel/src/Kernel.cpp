@@ -53,11 +53,11 @@ For support : support@visus.net
 #include <assert.h>
 #include <type_traits>
 #include <iomanip>
-
 #include <fstream>
 #include <iostream>
 #include <atomic>
 #include <clocale>
+#include <cctype>
 
 #if WIN32
 #  pragma warning(disable:4996)
@@ -140,6 +140,40 @@ void PrintMessageToTerminal(const String& value) {
 
   std::cout << value;
 }
+
+
+//////////////////////////////////////////////////////////////////
+static std::pair< void (*)(String msg, void*), void*> __redirect_log__;
+
+void RedirectLogTo(void(*callback)(String msg, void*), void* user_data) {
+  __redirect_log__ = std::make_pair(callback, user_data);
+}
+
+///////////////////////////////////////////////////////////////////////
+void PrintLine(String file, int line, int level, String msg)
+{
+  auto t1 = Time::now();
+
+  file = file.substr(file.find_last_of("/\\") + 1);
+  file = file.substr(0, file.find_last_of('.'));
+
+  std::ostringstream out;
+  out << std::setfill('0')
+    << std::setw(2) << t1.getHours()
+    << std::setw(2) << t1.getMinutes()
+    << std::setw(2) << t1.getSeconds()
+    << std::setw(3) << t1.getMilliseconds()
+    << " " << file << ":" << line
+    << " " << Utils::getPid() << ":" << Thread::getThreadId()
+    << " " << msg << std::endl;
+
+  msg = out.str();
+  PrintMessageToTerminal(msg);
+
+  if (__redirect_log__.first)
+    __redirect_log__.first(msg, __redirect_log__.second);
+}
+
 
 //check types
 static_assert(sizeof(Int8) == 1 && sizeof(Uint8) == 1 && sizeof(char) == 1, "internal error");
@@ -248,7 +282,7 @@ String cnamed(String name, String value) {
 void ThrowExceptionEx(String file,int line, String what)
 {
   String msg = cstring("Visus throwing exception", cnamed("where", file + ":" + cstring(line)), cnamed("what", what));
-  VisusInfo() << msg;
+  PrintInfo(msg);
   throw std::runtime_error(msg);
 }
 
@@ -324,7 +358,7 @@ void KernelModule::attach()
   if (bAttached)
     return;
 
-  VisusInfo() << "Attaching KernelModule...";
+  PrintInfo("Attaching KernelModule...");
 
   bAttached = true;
 
@@ -371,15 +405,15 @@ void KernelModule::attach()
       continue;
 
     bool bOk = config->load(filename);
-    VisusInfo() << "VisusConfig filename(" << filename << ") ok(" << (bOk ? "YES" : "NO") << ")";
+    PrintInfo("VisusConfig filename",filename,"ok",bOk ? "YES" : "NO");
     if (bOk)
       break;
   }
 
-  VisusInfo() << "git_revision            " << ApplicationInfo::git_revision;
-  VisusInfo() << "VisusHome               " << KnownPaths::VisusHome.toString();
-  VisusInfo() << "BinaryDirectory         " << KnownPaths::BinaryDirectory.toString();
-  VisusInfo() << "CurrentWorkingDirectory " << KnownPaths::CurrentWorkingDirectory().toString();
+  PrintInfo("git_revision            ",ApplicationInfo::git_revision);
+  PrintInfo("VisusHome               ",KnownPaths::VisusHome);
+  PrintInfo("BinaryDirectory         ",KnownPaths::BinaryDirectory);
+  PrintInfo("CurrentWorkingDirectory ",KnownPaths::CurrentWorkingDirectory());
 
   ArrayPlugins::allocSingleton();
   Encoders::allocSingleton();
@@ -419,7 +453,7 @@ void KernelModule::attach()
   }
 #endif
 
-  VisusInfo() << "Attached KernelModule";
+  PrintInfo("Attached KernelModule");
 }
 
 
@@ -431,7 +465,7 @@ void KernelModule::detach()
   
   bAttached = false;
 
-  VisusInfo() << "Detaching KernelModule...";
+  PrintInfo("Detaching KernelModule...");
 
   ArrayPlugins::releaseSingleton();
   Encoders::releaseSingleton();
@@ -450,7 +484,7 @@ void KernelModule::detach()
   DestroyAutoReleasePool();
 #endif
 
-  VisusInfo() << "Detached KernelModule...";
+  PrintInfo("Detached KernelModule...");
 
 }
 

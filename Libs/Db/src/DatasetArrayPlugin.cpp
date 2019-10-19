@@ -81,7 +81,7 @@ public:
         box= box.getIntersection(dataset->getLogicBox());
         if (!box.isFullDim())
         {
-          VisusWarning()<<"invalid --box "<<args[I] << " intersection with "<< dataset->getLogicBox().toOldFormatString();
+          PrintWarning("invalid --box",args[I]," intersection with",dataset->getLogicBox().toOldFormatString());
           return false;
         }
       }
@@ -91,7 +91,7 @@ public:
         field=dataset->getFieldByName(sfield);
         if (!field.valid())
         {
-          VisusWarning()<<"invalid --field "<<sfield;
+          PrintWarning("invalid --field",sfield);
           return false;
         }
       }
@@ -111,7 +111,7 @@ public:
 
     if (!(fromh<=toh && toh<=dataset->getMaxResolution()))
     {
-      VisusWarning()<<"invalid  --fromh "<<fromh<<" --toh "<<toh;
+      PrintWarning("invalid --fromh",fromh,"--toh",toh);
       return false;
     }
 
@@ -127,7 +127,7 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
 
   if (!dataset)
   {
-    VisusWarning()<<"Dataset::handleStatImage(\""<<url<<"\") failed";
+    PrintWarning("Dataset::handleStatImage",url," failed");
     return StringTree();
   }
 
@@ -167,7 +167,7 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
 
   if (args.bDisableFilters)
   {
-    VisusInfo()<<"DatasetFilter disabled.Reason: command line has --disable-filters option";
+    PrintInfo("DatasetFilter disabled.Reason: command line has --disable-filters option");
     query->filter.enabled=false;
   }
   else
@@ -180,7 +180,7 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
   auto access=dataset->createAccess();
   if (!dataset->executeQuery(access,query))
   {
-    VisusWarning()<<"!dataset->executeQuery()";
+    PrintWarning("!dataset->executeQuery()");
     return Array();
   }
 
@@ -191,14 +191,14 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
   if (auto filter=query->filter.dataset_filter)
     dst=filter->dropExtraComponentIfExists(dst);
 
-  VisusInfo()
-    <<"field("<<args.field.name<<")"
-    <<" original-size("<<StringUtils::getStringFromByteSize(dst.c_size())<<")";
+  PrintInfo(
+    "field",args.field.name,
+    "original-size",StringUtils::getStringFromByteSize(dst.c_size()));
 
   if (access)
     access->printStatistics();
 
-  VisusInfo()<<"DatasetArrayPlugin::handleLoadImage("<<url<<") done in "<<t1.elapsedSec()<<" seconds";  
+  PrintInfo("DatasetArrayPlugin::handleLoadImage(",url, ") done in ",t1.elapsedSec()," seconds");
   return dst;
 }
 
@@ -220,7 +220,7 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
     auto pdim = dataset->getPointDim();
     args.box = BoxNi(PointNi::zero(pdim), src.dims);
     if (dataset->getLogicBox()!=args.box)
-      VisusInfo() << "You did not specify logic box and input data has logic box !=dataset->getLogicBox()";
+      PrintInfo("You did not specify logic box and input data has logic box !=dataset->getLogicBox()");
   }
 
   auto query=std::make_shared<BoxQuery>(dataset.get(), args.field, args.time,'w');
@@ -232,7 +232,7 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
 
   if (!query->isRunning())
   {
-    VisusWarning()<<"dataset->beginQuery() failed";
+    PrintWarning("dataset->beginQuery() failed");
     return false;
   }
 
@@ -244,13 +244,13 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
 
   if (nsamples !=src.dims)
   {
-    VisusWarning()<<" query->dims returned ("<< nsamples.toString()<<") which is different from src.dims ("<<src.dims.toString()<<")";
+    PrintWarning(" query->dims returned",nsamples.toString(),"which is different from src.dims",src.dims.toString());
     return false;
   }
 
   if (args.field.dtype!=src.dtype)
   {
-    VisusWarning()<<" data not compatible, args field ("<<args.field.name<<" , current has type "<<src.dtype.toString();
+    PrintWarning(" data not compatible, args field", args.field.name, " current has type ", src.dtype);
     return false;
   }
 
@@ -260,18 +260,16 @@ bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String
   auto access=dataset->createAccess();
   if (!dataset->executeQuery(access,query))
   {
-    VisusWarning()<<"!dataset->executeQuery()";
+    PrintWarning("!dataset->executeQuery()");
     return false;
   }
 
-  VisusInfo()
-    <<"field("<<args.field.name<<") "
-    <<"original-size("<<StringUtils::getStringFromByteSize(src.c_size())<<") ";
+  PrintInfo("field",args.field.name,"original-size", StringUtils::getStringFromByteSize(src.c_size()));
 
   if (access)
     access->printStatistics();
 
-  VisusInfo()<<"DatasetArrayPlugin::handleSaveImage("<<url<<",..) done in "<<t1.elapsedSec()<<" seconds";  
+  PrintInfo("DatasetArrayPlugin::handleSaveImage", url, "done in",t1.elapsedSec(),"seconds");
   return true;
 }
 

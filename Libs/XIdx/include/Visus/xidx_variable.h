@@ -123,7 +123,7 @@ public:
     if(data_items.size() > axis)
       return data_items[axis]->values;
     else
-      VisusInfo()<<"Axis"<< axis<<" does not exist";
+      PrintInfo("Axis",axis,"does not exist");
     return std::vector<double>();
   }
   

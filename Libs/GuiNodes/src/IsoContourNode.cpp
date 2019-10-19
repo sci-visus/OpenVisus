@@ -499,7 +499,7 @@ public:
 
     isocontour.end();
 
-    VisusInfo() << "Marching cube on first(" << dims.toString() << ") ntriangles(" << ntriangles << ") done in " << t1.elapsedMsec() << "msec";
+    PrintInfo("Marching cube on first",dims,"ntriangles",ntriangles,"done in",t1.elapsedMsec(),"msec");
     return true;
   }
 };

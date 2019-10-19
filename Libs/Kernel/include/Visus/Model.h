@@ -42,7 +42,6 @@ For support : support@visus.net
 #include <Visus/Kernel.h>
 #include <Visus/Time.h>
 #include <Visus/StringUtils.h>
-#include <Visus/Log.h>
 #include <Visus/SignalSlot.h>
 #include <Visus/ApplicationInfo.h>
 

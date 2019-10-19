@@ -188,16 +188,16 @@ namespace Visus {}
     $action
   } 
   catch (Swig::DirectorMethodException& e) {
-	VisusInfo()<<"Error happened in swig director code: "<<e.what()<< " where("<< __FILE__<<":"<<__LINE__<<")";
-	VisusInfo()<<GetLastErrorMessage();
+	PrintInfo("Error happened in swig director code",e.what(),"where",__FILE__,":",__LINE__);
+	PrintInfo(GetLastErrorMessage());
     SWIG_fail;
   }
   catch (std::exception& e) {
-    VisusInfo()<<"Swig Catched std::exception: "<<e.what()<<" where("<< __FILE__<<":"<<__LINE__<<")";
+    PrintInfo("Error happened in swig director code",e.what(),"where",__FILE__,":",__LINE__);
     SWIG_exception_fail(SWIG_SystemError, e.what() );
   }
   catch (...) {
-    VisusInfo()<<"Swig Catched ... exception: unknown reason"  << " where("<< __FILE__<<":"<<__LINE__<<")";
+    PrintInfo("Error happened in swig director code","unknown error","where",__FILE__,":",__LINE__);
     SWIG_exception(SWIG_UnknownError, "Unknown exception");
   }
 

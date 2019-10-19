@@ -574,7 +574,7 @@ private:
     StringTree in=StringTree::fromString(content);
     if (in.valid() && in.name=="Object")
     {
-      VisusInfo()<<"Loading Visit transfer function";
+      PrintInfo("Loading Visit transfer function");
     
       RGBAColorMap rgba_colormap;
       if (auto controlpoints= in.getChild("Object/Object"))

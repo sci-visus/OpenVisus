@@ -386,7 +386,6 @@ public:
   //makeClusterFromSeed
   Cluster* makeClusterFromSeed(const Point3i &seed)
   {
-    //VisusInfo()<<"VoxelScoopNode::makeClusterFromSeed(%s)",seed.toString().c_str());
     typedef Uint8 Type;
 
     const Point3d dims = Data.dims.toPoint3().castTo<Point3d>();
@@ -396,8 +395,6 @@ public:
     
     TRSMatrixDecomposition trs(pixel_to_bounds);
 
-    //VisusInfo()<<"transforming seed, Tx=%s, Sx=%s, dims=%s",trs.translate.toString().c_str(),trs.scale.toString().c_str(),dims.toString().c_str());
-
     //get pointer to data at seed location
     Type *data=reinterpret_cast<Type*>(Data.c_ptr());
     Type *seedData=data+seed[2]*(unsigned)(dims[0]*dims[1])+seed[1]*(unsigned)dims[0]+seed[0];
@@ -406,7 +403,6 @@ public:
     //ignore already visited seeds
     if (visited[seedData].flag) 
     { 
-      //VisusInfo()<<"Seed %s already visited.",seed.toString().c_str()); 
       return nullptr; 
     }
 
@@ -436,7 +432,6 @@ public:
   //CALCULATE
   void calculate(Aborted& aborted)
   {
-    //VisusInfo()<<"VoxelScoopNode::calculate");
     typedef Uint8 Type;
 
     auto idims = Data.dims.toPoint3();
@@ -444,8 +439,6 @@ public:
     auto pixel_to_bounds = Position::computeTransformation(this->Data.bounds,Data.dims);
 
     TRSMatrixDecomposition trs(pixel_to_bounds);
-
-    //VisusInfo()<<"transforming vertices, Sx=%s, dims=%s",trs.scale.toString().c_str(),dims.toString().c_str());
 
     //get pointer to data
     Type *data=reinterpret_cast<Type*>(Data.c_ptr());
@@ -520,7 +513,6 @@ public:
       {
         Cluster &newcluster=*it->second;
         double inv_max=1.0/(double)newcluster.maxval;
-        //VisusInfo()<<"max=%lf, inv_max=%lf",(double)(newcluster.maxval),inv_max);
 
         //compute weighted avg pos and axis-aligned bounding box for cluster
         Point3d MinP( 1E34, 1E34, 1E34);
@@ -554,11 +546,8 @@ public:
         if (newcluster.aabbsize<=cluster.aabbsize) exp=1.0/exp;
         const Point3d &newpos=newcluster.nodepos=cluster.nodepos+pow(0.5,exp)*(wavg-cluster.nodepos);
 
-        //VisusInfo()<<"prevpos: %s, wavg: %s, exp: %lf, newpos: %s",cluster.nodepos.toString().c_str(),wavg.toString().c_str(),exp,newpos.toString().c_str());
-
         //create next centerline node and connect to prev node (edge weight is euclidian distance)
         double diam=std::max((double)min_diam,rayburst.getDiam2d(newpos,threshold));
-        //VisusInfo()<<"adding node at %s,d=%lf",newpos.toString().c_str(),diam);
         {
           ScopedLock lock(this->centerlines->lock);
           newcluster.nodeid=this->centerlines->mkVert(Sphere(newpos,diam/2));
@@ -874,23 +863,11 @@ public:
         }
 
         //remove too short branches or branches with low len/diam ratio
-        VisusDebug()<<"Trimming branches of vertex "<<i<<"...";
+        PrintInfo("Trimming branches of vertex",i,"...");
         for (int k=(v.out_degree()==0)?0:-1;k<v.in_degree();k++) // note: skips -1 if there is no out branch
         {
           float len =k==-1?v.data.max_in_length:v.data.max_out_lengths[k];
           float diam=(float)v.data.s.radius*2;
-          #if VISUS_DEBUG
-          {
-            if (max0==k||max1==k)
-              VisusDebug()<<"\t "<<k<<": NOT trimming because branch is one of longest pair (len="<<len<<").";
-            else if (len>=this->min_length && len/diam>=this->min_ratio)
-              VisusDebug()<<"\t "<<k<<": NOT trimming because branch len ("<<len<<") greater than min_length AND ratio of branch length to node diam ("<<diam<<") is greater than min_ratio (len/diam="<<(len/diam)<<").";
-            else if (k==-1)
-              VisusDebug()<<"\t "<<k<<": TRIMMING branch (len="<<len<<", len/diam="<<(len/diam)<<") to ROOT.";
-            else
-              VisusDebug()<<"\t "<<k<<": TRIMMING branch (len="<<len<<", len/diam="<<len/diam<<") to LEAF.";
-          }
-          #endif
           if (max0==k||max1==k||
               (len>=this->min_length && len/diam>this->min_ratio))
             continue;
@@ -965,7 +942,7 @@ public:
     }
 
     //Now trim the centerlines.
-     VisusInfo()<<"done calculating.";
+     PrintInfo("done calculating.");
       
     //<ctc> TODO: remove this when done.
     auto centerlines_untrimmed=std::make_shared<CGraph>(*builder->getResult());
@@ -975,7 +952,7 @@ public:
 
     if (this->simplify) 
     {
-      VisusInfo()<<"\tsimplifying...";
+      PrintInfo("\tsimplifying...");
        builder->simplify();
     }
 
@@ -986,7 +963,7 @@ public:
 
     //publish the results
     //tell that the output has changed (note, if the port is not connected, this is a NOP)
-    VisusInfo()<<"publishing centerlines...";
+    PrintInfo("publishing centerlines...");
 
     DataflowMessage msg;
     msg.writeValue("graph", centerlines);

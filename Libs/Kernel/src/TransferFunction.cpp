@@ -445,7 +445,7 @@ SharedPtr<TransferFunction> TransferFunction::importTransferFunction(String url)
   std::vector<String> lines = StringUtils::getNonEmptyLines(content);
   if (lines.empty())
   {
-    VisusWarning() << "content is empty";
+    PrintWarning("content is empty");
     return SharedPtr<TransferFunction>();
   }
 
@@ -454,7 +454,7 @@ SharedPtr<TransferFunction> TransferFunction::importTransferFunction(String url)
   lines.erase(lines.begin());
   if (lines.size() != nsamples)
   {
-    VisusWarning() << "content is of incorrect length";
+    PrintWarning("content is of incorrect length");
     return SharedPtr<TransferFunction>();
   }
 
@@ -511,7 +511,7 @@ bool TransferFunction::exportTransferFunction(String filename="")
 
   if (!Utils::saveTextDocument(filename,out.str()))
   {
-    VisusWarning()<<"file "<<filename<<" could not be opened for writing";
+    PrintWarning("file",filename,"could not be opened for writing");
     return false;
   }
 

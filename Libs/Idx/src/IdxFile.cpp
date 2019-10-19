@@ -127,7 +127,7 @@ void IdxFile::validate(Url url)
 
   if (version <= 0)
   {
-    VisusInfo() << "Wrong version(" << version << ")";
+    PrintInfo("Wrong version",version);
     this->version = -1;
     return;
   }
@@ -135,7 +135,7 @@ void IdxFile::validate(Url url)
   //box
   if (!logic_box.isFullDim())
   {
-    VisusWarning() << "wrong box(" << logic_box.toOldFormatString() << ")";
+    PrintWarning("wrong box",logic_box.toOldFormatString());
     this->version = -1;
     return;
   }
@@ -146,7 +146,7 @@ void IdxFile::validate(Url url)
 
   if (!bitmask.valid())
   {
-    VisusWarning() << "invalid bitmask";
+    PrintWarning("invalid bitmask");
     this->version = -1;
     return;
   }
@@ -158,7 +158,7 @@ void IdxFile::validate(Url url)
 
   if (bounds.getSpaceDim() != (pdim + 1) || bounds.getPointDim() != pdim)
   {
-    VisusWarning() << "invalid bounds";
+    PrintWarning("invalid bounds");
     this->version = -1;
     return;
   }
@@ -169,14 +169,14 @@ void IdxFile::validate(Url url)
 
   if (bitsperblock<=0)
   {
-    VisusWarning()<<"wrong bitsperblock("<<bitsperblock<<")";
+    PrintWarning("wrong bitsperblock", bitsperblock);
     this->version=-1;
     return;
   }
 
   if (bitsperblock>bitmask.getMaxResolution())
   {
-    VisusWarning()<<"bitsperblock="<<bitsperblock<<" is greater than max_resolution="<<bitmask.getMaxResolution();
+    PrintWarning("bitsperblock",bitsperblock,"is greater than max_resolution",bitmask.getMaxResolution());
     this->bitsperblock=bitmask.getMaxResolution();
   }
 
@@ -210,7 +210,7 @@ void IdxFile::validate(Url url)
 
   if (blocksperfile<=0)
   {
-    VisusWarning()<<"wrong blockperfile("<<blocksperfile<<")";
+    PrintWarning("wrong blockperfile",blocksperfile);
     this->version=-1;
     return;
   }
@@ -218,7 +218,7 @@ void IdxFile::validate(Url url)
   if (blocksperfile>(((BigInt)1)<<(bitmask.getMaxResolution()-bitsperblock)))
   {
     //this can happen with PIDX
-    //VisusWarning()<<"wrong blockperfile("<<blocksperfile<<"), with bitmask.getMaxResolution()="<<bitmask.getMaxResolution()<<" and bitsperblock("<<bitsperblock<<")";
+    //PrintWarning("wrong blockperfile",blocksperfile,"with bitmask.getMaxResolution()",bitmask.getMaxResolution(),"bitsperblock",bitsperblock);
     
     if (this->version<=6)
     {
@@ -235,7 +235,7 @@ void IdxFile::validate(Url url)
   //check fields
   if (fields.empty())
   {
-    VisusWarning()<<"no fields";
+    PrintWarning("no fields");
     this->version=-1;
     return;
   }
@@ -250,7 +250,7 @@ void IdxFile::validate(Url url)
 
     if (!field.valid())
     {
-      VisusWarning()<<"wrong field("<<field.name<<")";
+      PrintWarning("wrong field",field.name);
       this->version=-1;
       return;
     }
@@ -268,7 +268,7 @@ void IdxFile::validate(Url url)
     else
     {
       VisusAssert(false);
-      VisusWarning()<<"unknown field.default_layout("<<field.default_layout<<")";
+      PrintWarning("unknown field.default_layout",field.default_layout);
       field.default_layout="hzorder";
     }
   }
@@ -279,7 +279,7 @@ void IdxFile::validate(Url url)
 
   if (filename_template.empty())
   {
-    VisusWarning()<<"wrong filename_template("<<filename_template<<")";
+    PrintWarning("wrong filename_template",filename_template);
     this->version=-1;
     return;
   }
@@ -517,7 +517,7 @@ IdxFile IdxFile::fromString(String content, Url url)
       if (vtime[0] == "*")
       {
         bool bGood = vtime.size() == 3 && vtime[1] == "*";
-        if (!bGood) { VisusInfo() << "idx (time) is wrong"; VisusAssert(false); return IdxFile::invalid(); }
+        if (!bGood) { PrintInfo("idx (time) is wrong"); VisusAssert(false); return IdxFile::invalid(); }
         idxfile.time_template = vtime[2];
       }
       //old format
@@ -525,7 +525,7 @@ IdxFile IdxFile::fromString(String content, Url url)
       else if (StringUtils::tryParse(vtime[0], parse_time))
       {
         bool bGood = vtime.size() == 3 && StringUtils::tryParse(vtime[1], parse_time);
-        if (!bGood) { VisusInfo() << "idx (time) is wrong"; VisusAssert(false); return IdxFile::invalid(); }
+        if (!bGood) { PrintInfo("idx (time) is wrong"); VisusAssert(false); return IdxFile::invalid(); }
         double From = cdouble(vtime[0]);
         double To = cdouble(vtime[1]);
         idxfile.timesteps.addTimesteps(From, To, 1.0);
@@ -539,7 +539,7 @@ IdxFile IdxFile::fromString(String content, Url url)
         for (int I = 1; I < (int)vtime.size(); I++)
         {
           bool bGood = StringUtils::startsWith(vtime[I], "(") && StringUtils::find(vtime[I], ")");
-          if (!bGood) { VisusInfo() << "idx (time) is wrong"; VisusAssert(false); return IdxFile::invalid(); }
+          if (!bGood) { PrintInfo("idx (time) is wrong"); VisusAssert(false); return IdxFile::invalid(); }
           std::vector<String> vrange = StringUtils::split(vtime[I].substr(1, vtime[I].size() - 2), ",", true);
           double From = vrange.size() >= 1 ? cdouble(vrange[0]) : 0;
           double To = vrange.size() >= 2 ? cdouble(vrange[1]) : From;
@@ -557,7 +557,7 @@ IdxFile IdxFile::fromString(String content, Url url)
     StringTree in = StringTree::fromString(content);
     if (!in.valid())
     {
-      VisusInfo() << "idx file is wrong";
+      PrintInfo("idx file is wrong");
       VisusAssert(false);
       return IdxFile::invalid();
     }
@@ -566,7 +566,7 @@ IdxFile IdxFile::fromString(String content, Url url)
     idxfile.validate(url);
     if (!idxfile.valid())
     {
-      VisusInfo() << "idx file is wrong ";
+      PrintInfo("idx file is wrong");
       return IdxFile::invalid();
     }
   }
@@ -631,7 +631,7 @@ bool IdxFile::save(String filename)
 
     if (!bOk)
     {
-      VisusWarning()<<"Utils::saveTextDocument("<<filename<<",content) failed";
+      PrintWarning("Utils::saveTextDocument",filename," failed");
       return false;
     }
   }

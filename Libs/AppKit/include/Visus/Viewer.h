@@ -302,6 +302,9 @@ public:
     return this;
   }
 
+  //printInfo
+  void printInfo(String msg);
+
   //setMinimal
   void setMinimal();
 

@@ -242,7 +242,7 @@ public:
     auto failed = [&](String reason) {
 
       if (bVerbose)
-        VisusInfo() << "IdxDiskAccess::read blockid(" << blockid << ") failed " << reason;
+        PrintInfo("IdxDiskAccess::read blockid",blockid,"failed",reason);
 
       return owner->readFailed(query);
     };
@@ -261,7 +261,7 @@ public:
     String layout="hzorder";
 
     if (bVerbose)
-      VisusInfo() << "Block header contains the following: block_offset(" << block_offset << ") block_size(" << block_size << ") compression(" << compression << ") layout(" << layout << ")";
+      PrintInfo("Block header contains the following: block_offset",block_offset,"block_size",block_size,"compression",compression,"layout",layout);
 
     if (!block_offset || !block_size)
       return failed("the idx data seeems not stored in the file");
@@ -271,13 +271,13 @@ public:
       return failed(cstring("cannot resize block block_size",block_size));
 
     if (bVerbose)
-      VisusInfo() << "Reading buffer: read block_offset(" << block_offset << ") encoded->c_size(" << encoded->c_size() << ")";
+      PrintInfo("Reading buffer: read block_offset",block_offset,"encoded->c_size",encoded->c_size());
 
     if (!file.read(block_offset, encoded->c_size(), encoded->c_ptr()))
       return failed("cannot read encoded buffer");
 
     if (bVerbose)
-      VisusInfo() << "Decoding buffer";
+      PrintInfo("Decoding buffer");
 
     auto decoded = ArrayUtils::decodeArray(compression, query->getNumberOfSamples(), query->field.dtype, encoded);
     if (!decoded)
@@ -293,7 +293,7 @@ public:
     if (idxfile.version <= 2 && query->field.dtype.isVectorOf(DTypes::FLOAT32))
     {
       if (bVerbose)
-        VisusInfo() << "Swapping endian notation for Float32 type";
+        PrintInfo("Swapping endian notation for Float32 type");
 
       Float32* ptr = query->buffer.c_ptr<Float32*>();
 
@@ -302,10 +302,10 @@ public:
     }
 
     if (bVerbose)
-      VisusInfo() << "Read block(" << cstring(blockid) << ") from file(" << file.getFilename() << ") ok";
+      PrintInfo("Read block",blockid,"from file",file.getFilename(),"ok");
 
     if (bVerbose)
-      VisusInfo() << "IdxDiskAccess::read blockid(" << blockid << ") ok";
+      PrintInfo("IdxDiskAccess::read blockid",blockid,"ok");
 
     owner->readOk(query);
   }
@@ -364,12 +364,12 @@ private:
       closeFile("need to openFile");
 
     if (bVerbose)
-      VisusInfo() << "Opening file(" << filename << ") mode(" << mode << ")";
+      PrintInfo("Opening file",filename,"mode",mode);
 
 
     if (!this->file.open(filename,"r"))
     {
-      closeFile("Cannot open file(" + filename + ")");
+      closeFile(cstring("Cannot open file",filename));
       return false;
     }
 
@@ -395,7 +395,7 @@ private:
       return;
 
     if (bVerbose)
-      VisusInfo() << "Closing file(" << this->file.getFilename() << ") mode(" << this->file.getMode() << ") reason(" << reason << ")";
+      PrintInfo("Closing file",this->file.getFilename(),"mode",this->file.getMode(),"reason",reason);
 
     this->file.close();
   }
@@ -455,7 +455,7 @@ public:
     auto failed = [&](String reason) {
 
       if (bVerbose)
-        VisusInfo() << "IdxDiskAccess::read blockid(" << blockid << ") failed " << reason;
+        PrintInfo("IdxDiskAccess::read blockid",blockid,"failed ",reason);
 
       return owner->readFailed(query);
     };
@@ -472,7 +472,7 @@ public:
     String layout      = block_header.getLayout();
 
     if (bVerbose)
-      VisusInfo() << "Block header contains the following: block_offset(" << block_offset << ") block_size(" << block_size << ") compression(" << compression << ") layout(" << layout << ")";
+      PrintInfo("Block header contains the following: block_offset",block_offset,"block_size",block_size,"compression",compression,"layout",layout);
 
     if (!block_offset || !block_size)
       return failed("the idx data seeems not stored in the file");
@@ -482,13 +482,13 @@ public:
       return failed(cstring("cannot resize block block_size",block_size));
 
     if (bVerbose)
-      VisusInfo() << "Reading buffer: read block_offset(" << block_offset << ") encoded->c_size(" << encoded->c_size() << ")";
+      PrintInfo("Reading buffer: read block_offset",block_offset,"encoded->c_size",encoded->c_size());
 
     if (!file->read(block_offset, encoded->c_size(), encoded->c_ptr()))
       return failed("cannot read encoded buffer");
 
     if (bVerbose)
-      VisusInfo() << "Decoding buffer";
+      PrintInfo("Decoding buffer");
 
     auto decoded = ArrayUtils::decodeArray(compression, query->getNumberOfSamples(), query->field.dtype, encoded);
     if (!decoded)
@@ -500,7 +500,7 @@ public:
     query->buffer = decoded;
 
     if (bVerbose)
-      VisusInfo() << "Read block(" << cstring(blockid) << ") from file(" << file->getFilename() << ") ok";
+      PrintInfo("Read block",blockid,"from file",file->getFilename(),"ok");
 
     owner->readOk(query);
   }
@@ -513,7 +513,7 @@ public:
     auto failed = [&](String reason) {
 
       if (bVerbose)
-        VisusInfo() << "IdxDiskAccess::write blockid(" << blockid << ")  failed " << reason;
+        PrintInfo("IdxDiskAccess::write blockid",blockid,"failed",reason);
 
       return owner->writeFailed(query);
     };
@@ -584,7 +584,7 @@ public:
     getBlockHeader(query->field, blockid) =block_header;
 
     if (bVerbose)
-      VisusInfo() << "IdxDiskAccess::write blockid(" << blockid << ") ok";
+      PrintInfo("IdxDiskAccess::write blockid",blockid,"ok");
 
     return owner->writeOk(query);
   }
@@ -602,7 +602,7 @@ public:
       FileUtils::lock(filename);
 
       if (bVerbose)
-        VisusInfo() << "Locked file " << filename;
+        PrintInfo("Locked file",filename);
     }
   }
 
@@ -620,7 +620,7 @@ public:
       FileUtils::unlock(filename);
 
       if (bVerbose)
-        VisusInfo() << "Unlocked file " << filename;
+        PrintInfo("Unlocked file",filename);
     }
   }
 
@@ -777,7 +777,7 @@ private:
       closeFile("need to openFile");
 
     if (bVerbose)
-      VisusInfo() << "Opening file(" << filename << ") mode(" << mode << ")";
+      PrintInfo("Opening file",filename,"mode",mode);
 
     bool bWriting = StringUtils::contains(mode, "w");
 
@@ -837,7 +837,7 @@ private:
       return;
 
     if (bVerbose)
-      VisusInfo() << "Closing file(" << this->file->getFilename() << ") mode(" << this->file->getMode() << ") reason(" << reason << ")";
+      PrintInfo("Closing file",this->file->getFilename(),"mode",this->file->getMode(),"reason",reason);
 
     //need to write the headers
     if (this->file->canWrite())
@@ -850,7 +850,7 @@ private:
       {
         VisusAssert(false);
         if (bVerbose)
-          VisusInfo() << "cannot write headers";
+          PrintInfo("cannot write headers");
       }
     }
 
@@ -876,7 +876,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
 
   if (url.toString()!=dataset->getUrl().toString())
   {
-    VisusInfo()<<"Trying to use "<<url.toString()<<" as cache location...";
+    PrintInfo("Trying to use",url,"as cache location...");
 
     //can create the file if it does not exists, this is useful if you want
     //to create a disk cache for remote datasets
@@ -888,7 +888,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
       local_idxfile.filename_template="";
       if (!local_idxfile.save(Path(url.getPath()).toString())) {
         String msg=cstring("cannot use",url,"as cache location. save failed");
-        VisusWarning()<<msg;
+        PrintWarning(msg);
         ThrowException(msg);
       }
     }
@@ -898,7 +898,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
       IdxFile local_idxfile=IdxFile::load(url);
       if (!local_idxfile.valid()) {
         String msg=cstring("cannot use",url," as cache location. load failed");
-        VisusWarning()<<msg;
+        PrintWarning(msg);
         ThrowException(msg);
       }
 
@@ -944,7 +944,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
     this->bDisableWriteLocks = cbool(String(env));
 
   //if (this->bDisableWriteLocks)
-  //  VisusInfo() << "IdxDiskAccess::IdxDiskAccess disabling write locsk. be careful";
+  //  PrintInfo("IdxDiskAccess::IdxDiskAccess disabling write locsk. be careful");
 
   this->bDisableIO = config.readBool("disable_io")==true ||
     std::find(ApplicationInfo::args.begin(), ApplicationInfo::args.end(), "--idx-disk-access-disable-io") != ApplicationInfo::args.end();
@@ -959,14 +959,14 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
 #endif
 
   if (bVerbose)
-    VisusInfo()<<"IdxDiskAccess created url("<<url.toString()<<") async("<<(async_tpool?"yes":"no")<<")";
+    PrintInfo("IdxDiskAccess created url",url,"async",async_tpool?"yes":"no");
 }
 
 ////////////////////////////////////////////////////////////////////
 IdxDiskAccess::~IdxDiskAccess()
 {
   if (bVerbose)
-    VisusInfo()<<"IdxDiskAccess destroyed";
+    PrintInfo("IdxDiskAccess destroyed");
 
   VisusReleaseAssert(!isReading() && !isWriting());
 
@@ -1017,13 +1017,13 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
   BigInt blockid = query->getBlockNumber(bitsperblock);
 
   if (bVerbose)
-    VisusInfo() << "got request to read block blockid(" << blockid << ")";
+    PrintInfo("got request to read block blockid",blockid);
 
   //check that the current block and file descriptor is correct
   if (blockid < 0)
   {
     if (bVerbose)
-      VisusInfo() << "IdxDiskAccess::read blockid(" << blockid << ") failed blockid is wrong(" << blockid << ")";
+      PrintInfo("IdxDiskAccess::read blockid",blockid,"failed blockid is wrong",blockid);
 
     return readFailed(query);
   }
@@ -1033,7 +1033,7 @@ void IdxDiskAccess::readBlock(SharedPtr<BlockQuery> query)
   if (block_range.to>0 )
   {    
     if (bVerbose)
-      VisusInfo() << "IdxDiskAccess::read blockid(" << blockid << ") failed because out of range";
+      PrintInfo("IdxDiskAccess::read blockid",blockid,"failed because out of range");
 
     if (!(blockid >= block_range.from && blockid < block_range.to))
       return readFailed(query);
@@ -1069,12 +1069,12 @@ void IdxDiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   BigInt blockid = query->getBlockNumber(bitsperblock);
 
   if (bVerbose)
-    VisusInfo() << "got request to write block blockid(" << blockid << ")";
+    PrintInfo("got request to write block blockid",blockid);
 
   if (block_range.to>0 && !(blockid >= block_range.from && blockid < block_range.to))
   {
     if (bVerbose)
-      VisusInfo() << "IdxDiskAccess::write blockid(" << blockid << ") failed because out of range";
+      PrintInfo("IdxDiskAccess::write blockid",blockid,"failed because out of range");
 
     return writeFailed(query);
   }

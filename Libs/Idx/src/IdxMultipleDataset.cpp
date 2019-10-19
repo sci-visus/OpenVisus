@@ -318,7 +318,7 @@ public:
       //THIS IS GOING TO BE SLOW: i need to compose coarse blocks by executing "normal" query and merging them
       auto t1 = Time::now();
 
-      VisusInfo() << "IdxMosaicAccess is composing block " << BLOCK << " (slow)";
+      PrintInfo("IdxMosaicAccess is composing block",BLOCK ," (slow)");
 
       //row major
       QUERY->buffer.layout = "";
@@ -361,11 +361,11 @@ public:
 
       if (bool bPrintStats = false)
       {
-        VisusInfo() << "!!! BLOCK " << BLOCK << " inside " << (bBlockTotallyInsideSingle ? "yes" : "no")
-          << " nopen(" << (Int64)ApplicationStats::io.nopen << ")"
-          <<" rbytes(" << StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.rbytes) << ")"
-          <<" wbytes(" << StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.wbytes) << ")"
-          << " msec(" << t1.elapsedMsec() << ")";
+        PrintInfo("!!! BLOCK",BLOCK,"inside",(bBlockTotallyInsideSingle ? "yes" : "no"),
+          "nopen",(Int64)ApplicationStats::io.nopen),
+          "rbytes",StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.rbytes),
+          "wbytes",StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.wbytes),
+          "msec",t1.elapsedMsec();
         ApplicationStats::io.reset();
       }
 
@@ -632,7 +632,7 @@ public:
     //ignore missing timesteps
     if (!dataset->getTimesteps().containsTimestep(query->time))
     {
-      VisusInfo() << "Missing timestep(" << query->time << ") for input['" << name << "." << field.name << "']...ignoring it";
+      PrintInfo("Missing timestep",query->time, "for input['", concatenate(name, ".", field.name), "']...ignoring it");
       query->setFailed("missing timestep");
       return query;
     }
@@ -649,7 +649,7 @@ public:
   //executeDownQuery
   Array executeDownQuery(SharedPtr<BoxQuery> query)
   {
-    //VisusInfo() << Thread::getThreadId();
+    //PrintInfo(Thread::getThreadId());
 
     //already failed
     if (!query || query->failed())
@@ -680,7 +680,7 @@ public:
         }
       }
 
-      //VisusInfo() << "MIDX up nsamples(" << QUERY->nsamples.toString() << ") dw(" << name << "." << field.name << ") nsamples(" << query->buffer.dims.toString() << ")";
+      //PrintInfo("MIDX up nsamples",QUERY->nsamples,"dw",name,".",field.name,"nsamples",query->buffer.dims.toString());
 
       //force resampling
       query->down_info.BUFFER = Array();
@@ -799,7 +799,7 @@ public:
           queries.push_back(query);
       }
 
-      //VisusInfo() << "BLEND BUFFERS #queries " << queries.size() <<" LOGIC_BOX "<< QUERY->logic_box.toString();
+      //PrintInfo("BLEND BUFFERS #queries",queries.size(),"LOGIC_BOX",QUERY->logic_box);
 
       /*
 
@@ -841,7 +841,7 @@ public:
         //auto t1 = Time::now();
         executeDownQuery(query);
         //auto msec_execute = t1.elapsedMsec();
-        //VisusInfo() << "  " << I << " " << "query(" << query->getNumberOfSamples() << ") QUERY(" << QUERY->getNumberOfSamples() << ") msec_execute("<< msec_execute <<")";
+        //PrintInfo(" ",I,"query",query->getNumberOfSamples(),"QUERY",QUERY->getNumberOfSamples(),"msec_execute",msec_execute);
       }
 
       //blend (cannot be run in parallel)
@@ -855,7 +855,7 @@ public:
         //auto t1 = Time::now();
         blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.LOGIC_CENTROID);
         //auto msec_blend = t1.elapsedMsec();
-        //VisusInfo() << "  " << I << " " << "query(" << query->getNumberOfSamples() << ") QUERY(" << QUERY->getNumberOfSamples() << ") msec_blend(" << msec_blend << ")";
+        //PrintInfo(" ",I,"query",query->getNumberOfSamples(),"QUERY",QUERY->getNumberOfSamples(),"msec_blend",msec_blend);
       }
     }
     else
@@ -1402,7 +1402,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     IDXFILE.validate(DATASET->getUrl());
     VisusReleaseAssert(IDXFILE.valid());
 
-    //VisusInfo() << "MIDX idxfile is the following" << std::endl << IDXFILE.toString();
+    //PrintInfo("MIDX idxfile is the following","\n",IDXFILE.toString());
     setIdxFile(IDXFILE);
 
     return true;
@@ -1422,7 +1422,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       PHYSIC_BOX = PHYSIC_BOX.getUnion(dataset->getDatasetBounds().toAxisAlignedBox());
     }
   }
-  VisusInfo() << "MIDX physic_box " << PHYSIC_BOX.toString();
+  PrintInfo("MIDX physic_box",PHYSIC_BOX);
   IDXFILE.bounds = Position(PHYSIC_BOX);
 
   //LOGIC_BOX
@@ -1481,7 +1481,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   }
 
   IDXFILE.logic_box = LOGIC_BOX;
-  VisusInfo() << "MIDX logic_box " << IDXFILE.logic_box.toString();
+  PrintInfo("MIDX logic_box",IDXFILE.logic_box);
 
   //set logic_to_LOGIC
   for (auto it : down_datasets)
@@ -1496,7 +1496,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     auto LOGIC_PIXELS = Position(dataset->logic_to_LOGIC, logic_box).computeVolume();
     auto logic_pixels = Position(logic_box).computeVolume();
     auto ratio = logic_pixels / LOGIC_PIXELS; //ratio>1 means you are loosing pixels, ratio=1 is perfect, ratio<1 that you have more pixels than needed and you will interpolate
-    VisusInfo() << "  "<<it.first<<" logic_pixels("<< logic_pixels <<") LOGIC_PIXELS("<< LOGIC_PIXELS <<") logic_pixels/LOGIC_PIXELS("<< ratio <<")";
+    PrintInfo("  ",it.first,"logic_pixels", logic_pixels, "LOGIC_PIXELS", LOGIC_PIXELS, "logic_pixels/LOGIC_PIXELS", ratio);
   }
 
   //time
@@ -1517,7 +1517,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   IDXFILE.validate(URL);
   VisusReleaseAssert(IDXFILE.valid());
 
-  //VisusInfo() << "MIDX idxfile is the following" << std::endl << IDXFILE.toString();
+  //PrintInfo("MIDX idxfile is the following","\n",std::endl,IDXFILE.toString());
   setIdxFile(IDXFILE);
 
   //for non-mosaic I cannot use block query
@@ -1556,7 +1556,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     computeDefaultFields();
   }
 
-  VisusInfo() << ""; //empty line
+  PrintInfo(""); //empty line
   return true;
 }
 
@@ -1615,7 +1615,7 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuer
         }
         else
         {
-          //VisusInfo() << "Failed to execute box query: " << error_msg;
+          //PrintInfo("Failed to execute box query:",error_msg);
           QUERY->setFailed(error_msg);
           return false;
         }

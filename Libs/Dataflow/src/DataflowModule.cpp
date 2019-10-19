@@ -53,7 +53,7 @@ void DataflowModule::attach()
   if (bAttached)  
     return;
 
-  VisusInfo() << "Attacching DataflowModule...";
+  PrintInfo("Attacching DataflowModule...");
   
   bAttached = true;
   KernelModule::attach();
@@ -62,7 +62,7 @@ void DataflowModule::attach()
 
   VISUS_REGISTER_NODE_CLASS(Node);
 
-  VisusInfo() << "Attached DataflowModule";
+  PrintInfo("Attached DataflowModule");
 }
 
 
@@ -72,7 +72,7 @@ void DataflowModule::detach()
   if (!bAttached)  
     return;
 
-  VisusInfo() << "Detaching DataflowModule...";
+  PrintInfo("Detaching DataflowModule...");
 
   NodeFactory::getSingleton()->releaseSingleton();
   
@@ -80,7 +80,7 @@ void DataflowModule::detach()
 
   KernelModule::detach();
 
-  VisusInfo() << "Detached DataflowModule";
+  PrintInfo("Detached DataflowModule");
 }
 
 } //namespace Visus 

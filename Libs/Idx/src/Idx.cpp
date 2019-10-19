@@ -51,7 +51,7 @@ void IdxModule::attach()
   if (bAttached)  
     return;
   
-  VisusInfo() << "Attaching IdxModule...";
+  PrintInfo("Attaching IdxModule...");
 
   bAttached = true;
 
@@ -70,7 +70,7 @@ void IdxModule::attach()
       IdxDataset::tryRemoveLockAndCorruptedBinaryFiles(directory);
   }
 
-  VisusInfo() << "Attached IdxModule";
+  PrintInfo("Attached IdxModule");
 }
 
 
@@ -80,13 +80,13 @@ void IdxModule::detach()
   if (!bAttached)  
     return;
   
-  VisusInfo() << "Detaching IdxModule...";
+  PrintInfo("Detaching IdxModule...");
   
   bAttached = false;
 
   DbModule::detach();
 
-  VisusInfo() << "Detached IdxModule";
+  PrintInfo("Detached IdxModule");
 }
 
 } //namespace Visus

@@ -492,7 +492,7 @@ SharedPtr<DatasetFilter> IdxDataset::createFilter(const Field& field)
     if (field.dtype.isVectorOf(DTypes::FLOAT64)) return std::make_shared< Private::DeHaarContinuousFilter<Float64, Float64> >(this,field);
   }
 
-  VisusWarning()<<"Cannot create filter, wrong name("<<filter_name<<")";
+  PrintWarning("Cannot create filter, wrong name ", filter_name);
   return SharedPtr<DatasetFilter>();
 }
 

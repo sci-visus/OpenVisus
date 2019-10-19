@@ -117,7 +117,7 @@ public:
         dtype = DType::fromString(sdtype);
         if (!dtype.valid())
         {
-          VisusWarning() << "invalid --dtype " << sdtype;
+          PrintWarning("invalid --dtype",sdtype);
           return Array();
         }
       }
@@ -133,13 +133,13 @@ public:
 
     if (!dtype.valid())
     {
-      VisusWarning() << "please use --dtype for RawArrayPlugin";
+      PrintWarning("please use --dtype for RawArrayPlugin");
       return Array();
     }
 
     if (dims.innerProduct() <= 0)
     {
-      VisusWarning() << "please use --dims for RawArrayPlugin";
+      PrintWarning("please use --dims for RawArrayPlugin");
       return Array();
     }
 
@@ -147,7 +147,7 @@ public:
     File file;
     if (!file.open(filename, "r"))
     {
-      VisusWarning() << "file.open(" << filename << ",\"rb\") failed" << filename;
+      PrintWarning("file.open(",filename,",\"rb\") failed",filename);
       return Array();
     }
 
@@ -157,7 +157,7 @@ public:
 
     if (!file.read(offset, dst.c_size(), dst.c_ptr()))
     {
-      VisusWarning() << "file.read failed for file " << filename;
+      PrintWarning("file.read failed for file",filename);
       return Array();
     }
 
@@ -184,7 +184,7 @@ public:
     File file;
     if (!file.createAndOpen(filename, "w"))
     {
-      VisusWarning() << "RawArrayPlugin::handleSaveImage ERROR, failed to file.open(" << filename << ",\"wb\")";
+      PrintWarning("RawArrayPlugin::handleSaveImage ERROR, failed to file.open(",filename,",\"wb\")");
       return false;
     }
 
@@ -203,11 +203,11 @@ public:
 
     if (!file.write(offset, src.c_size(), src.c_ptr()))
     {
-      VisusWarning() << "write error on file " << filename;
+      PrintWarning("write error on file",filename);
       return false;
     }
 
-    VisusInfo() << "saved image " << filename;
+    PrintInfo("saved image",filename);
     return true;
   }
 };

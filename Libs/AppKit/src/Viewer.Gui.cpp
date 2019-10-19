@@ -847,13 +847,13 @@ bool Viewer::takeSnapshot(bool bOnlyCanvas,String filename)
     auto frame_buffer = widgets.glcanvas->grabFramebuffer();
     if (!frame_buffer.width() || !frame_buffer.height())
     {
-      VisusWarning() << "Failed to grabFramebuffer";
+      PrintWarning("Failed to grabFramebuffer");
       return false;
     }
     
     if (!frame_buffer.save(filename.c_str(), "PNG"))
     {
-      VisusWarning() << "Failed to save filename " << filename;
+      PrintWarning("Failed to save filename",filename);
       return false;
     }
   }
@@ -861,32 +861,32 @@ bool Viewer::takeSnapshot(bool bOnlyCanvas,String filename)
   {
     if (qApp->screens().size()!= 1)
     {
-      VisusWarning() << "Multiple screens snapshot is not supported";
+      PrintWarning("Multiple screens snapshot is not supported");
       return false;
     }
 
     auto main_screen = qApp->primaryScreen();
     if (!main_screen)
     {
-      VisusWarning() << "Primary screen does not exist";
+      PrintWarning("Primary screen does not exist");
       return false;
     }
 
     auto pixmap = main_screen->grabWindow(this->winId());
     if (!pixmap.width() || !pixmap.height())
     {
-      VisusWarning() << "Failed to grabWindow";
+      PrintWarning("Failed to grabWindow");
       return false;
     }
 
     if (!pixmap.save(filename.c_str(), "PNG"))
     {
-      VisusWarning() << "Failed to save filename " << filename;
+      PrintWarning("Failed to save filename", filename);
       return false;
     }
   }
 
-  VisusInfo() << "Saved snapshot " << filename;
+  PrintInfo("Saved snapshot",filename);
   return true;
 }
 

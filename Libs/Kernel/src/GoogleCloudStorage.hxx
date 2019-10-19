@@ -357,7 +357,7 @@ public:
 
         if (!response.isSuccessful())
         {
-          VisusWarning() << "ERROR. Cannot get blob status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+          PrintWarning("ERROR. Cannot get blob status",response.status,"errormsg",response.getErrorMessage());
           ret.get_promise()->set_value(Blob());
           return;
         }
@@ -378,7 +378,7 @@ public:
 
           if (!response.isSuccessful())
           {
-            VisusWarning() << "ERROR. Cannot get blob status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+            PrintWarning("ERROR. Cannot get blob status",response.status,"errormsg",response.getErrorMessage());
             ret.get_promise()->set_value(Blob());
             return;
           }
@@ -400,7 +400,7 @@ public:
 
             if (!response.isSuccessful())
             {
-              VisusWarning() << "ERROR. Cannot get blob status(" << response.status << "),errormsg(" << response.getErrorMessage() << ")";
+              PrintWarning("ERROR. Cannot get blob status",response.status,"errormsg",response.getErrorMessage());
               ret.get_promise()->set_value(Blob());
               return;
             }

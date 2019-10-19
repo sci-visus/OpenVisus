@@ -130,7 +130,7 @@ public:
 
     //if something wrong happens open a "telnet hostname 80", copy and paste what's the request made by curl (setting  CURLOPT_VERBOSE to 1)
     //and compare what azure is signing from what you are using
-    //VisusInfo() << signature;
+    //PrintInfo(signature);
 
     signature = StringUtils::base64Encode(StringUtils::hmac_sha256(signature, this->access_key));
 

@@ -133,7 +133,7 @@ GLShader::GLShader(String filename_) : filename(filename_),__program_id__(__PROG
 {
   this->source=QUtils::LoadTextFileFromResources(this->filename);
 
-  //VisusInfo() << this->source;
+  //PrintInfo(this->source);
 
   VisusAssert(!this->source.empty());
 

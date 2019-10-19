@@ -213,12 +213,11 @@ void Tutorial_6(String default_layout)
   for (int GrayScale=1;GrayScale>=0;GrayScale--)
   for (int Overall  =1;Overall  >=0;Overall--  )
   {
-    VisusInfo()
-      <<"running filter "<<filters[NFilter]<<" ("
-      <<(GrayScale?"GrayScale":"RGB")<<" "
-      <<(Discrete?"Discrete":"Continuous")<<" "
-      <<(Overall?"Overall":"Piece")
-      <<")";
+    PrintInfo(
+      "running filter",filters[NFilter],
+      GrayScale?"GrayScale":"RGB",
+      Discrete?"Discrete":"Continuous",
+      Overall?"Overall":"Piece");
 
     int ncomponents=GrayScale?1:3;
          if (filters[NFilter]=="min"     ) ncomponents++;

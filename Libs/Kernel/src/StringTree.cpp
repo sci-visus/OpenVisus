@@ -38,7 +38,6 @@ For support : support@visus.net
 
 #include <Visus/StringTree.h>
 #include <Visus/StringUtils.h>
-#include <Visus/Log.h>
 #include <Visus/Path.h>
 #include <Visus/Utils.h>
 #include <Visus/ApplicationInfo.h>
@@ -141,7 +140,7 @@ private:
     StringTree inplace=StringTree::fromString(Utils::loadTextDocument(url));
     if (!inplace.valid())
     {
-      VisusInfo()<<"cannot load document "<<url;
+      PrintInfo("cannot load document",url);
       VisusAssert(false);
       return;
     }
@@ -337,7 +336,7 @@ public:
 StringTree StringTree::postProcess(const StringTree& src)
 {
   auto dst=PostProcessStringTree::exec(const_cast<StringTree&>(src));
-  //VisusInfo() << dst.toString();
+  //PrintInfo(dst);
   return dst;
 }
 
@@ -641,7 +640,7 @@ StringTree StringTree::fromString(String content, bool bEnablePostProcessing)
 {
   if (content.empty())
   {
-    VisusWarning() << "StringTree::fromString failed because of empty content";
+    PrintWarning("StringTree::fromString failed because of empty content");
     return StringTree();
   }
 
@@ -649,10 +648,10 @@ StringTree StringTree::fromString(String content, bool bEnablePostProcessing)
   xmldoc.Parse(content.c_str());
   if (xmldoc.Error())
   {
-    VisusWarning() << "Failed StringTree::fromString failed"
-      << " ErrorRow(" << xmldoc.ErrorRow() << ")"
-      << " ErrorCol(" << xmldoc.ErrorCol() << ")"
-      << " ErrorDesc(" << xmldoc.ErrorDesc() << ")";
+    PrintWarning("Failed StringTree::fromString failed",
+      "ErrorRow(" ,xmldoc.ErrorRow(),
+      "ErrorCol(",xmldoc.ErrorCol(),
+      "ErrorDesc(",xmldoc.ErrorDesc());
     return StringTree();
   }
 
@@ -684,7 +683,7 @@ bool ConfigFile::load(String filename, bool bEnablePostProcessing)
   StringTree temp=StringTree::fromString(content, bEnablePostProcessing);
   if (!temp.valid())
   {
-    VisusWarning() << "visus config content is wrong or empty";
+    PrintWarning("visus config content is wrong or empty");
     return false;
   }
 

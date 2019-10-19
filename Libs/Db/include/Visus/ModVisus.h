@@ -42,7 +42,6 @@ For support : support@visus.net
 #include <Visus/Db.h>
 #include <Visus/NetMessage.h>
 #include <Visus/NetServer.h>
-#include <Visus/Log.h>
 #include <Visus/StringTree.h>
 #include <Visus/CriticalSection.h>
 

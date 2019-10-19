@@ -38,7 +38,6 @@ For support : support@visus.net
 
 #include <Visus/ArrayUtils.h>
 #include <Visus/Encoder.h>
-#include <Visus/Log.h>
 #include <Visus/Color.h>
 #include <Visus/Path.h>
 #include <Visus/File.h>
@@ -61,14 +60,14 @@ Array ArrayUtils::loadImage(String url,std::vector<String> args)
       ret.url=url;
 
       #ifdef VISUS_DEBUG
-      VisusInfo()<<url<<" loaded: "<<" dtype("<<ret.dtype.toString()<<") dims("<<ret.dims.toString()<<")";
+      PrintInfo(url,"loaded","dtype",ret.dtype,"dims",ret.dims);
       #endif
       
       return ret;
     }
   }
 
-  VisusInfo()<<"Cannot loadImage("<<url<<")";
+  PrintInfo("Cannot loadImage(",url);
   return Array();
 }
 
@@ -85,7 +84,7 @@ Array ArrayUtils::loadImageFromMemory(String url,SharedPtr<HeapMemory> heap,std:
     }
   }
 
-  VisusInfo()<<"Cannot loadImageFromMemory("<<url<<")";
+  PrintInfo("Cannot loadImageFromMemory",url);
   return Array();
 }
 
@@ -120,7 +119,7 @@ bool ArrayUtils::saveImage(String url,Array src,std::vector<String> args)
     }
   }
 
-  VisusInfo()<<"Cannot saveImage("<<url<<")";
+  PrintInfo("Cannot saveImage",url);
   return false;
 }
 
@@ -694,7 +693,7 @@ Array ArrayUtils::smartCast(Array src, DType dtype_, Aborted aborted)
           min = std::min(min, *src_p);
           max = std::max(max, *src_p);
         }
-        //VisusInfo() << "Range for component C(" << C << "): min(" << min << ") max(" << max << ")";
+        //PrintInfo("Range for component C",C,"min",min,"max",max);
       }
 
       {
@@ -794,7 +793,7 @@ Array ArrayUtils::smartCast(Array src, DType dtype_, Aborted aborted)
     return dst;
   }
 
-  VisusWarning() << "cannot smartCast from " << src.dtype.toString() << " to " << dst.dtype.toString();
+  PrintWarning("cannot smartCast from ",src.dtype,"to",dst.dtype);
   VisusAssert(false);
   return Array();
 }

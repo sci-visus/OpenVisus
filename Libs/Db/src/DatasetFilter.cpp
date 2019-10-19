@@ -130,7 +130,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
   //convert the dataset  FINE TO COARSE, this can be really time consuming!!!!
   for (int H=dataset->getMaxResolution();H>=1;H--)
   {
-    VisusInfo()<<"Applying filter to dataset resolution("<<H<<") ";
+    PrintInfo("Applying filter to dataset resolution",H);
     int bit=bitmask[H];
       
     Int64 FILTERSTEP=this->getFilterStep(H)[bit];
@@ -170,7 +170,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
       //if you want to debug step by step...
       #if 0
       {
-        VisusInfo()<<"Before";
+        PrintInfo("Before");
         int nx=(int)read->buffer->dims.x;
         int ny=(int)read->buffer->dims.y;
         Uint8* SRC=read->buffer->c_ptr();
@@ -184,7 +184,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
           out <<std::endl;
         }
         out <<std::endl;
-        VisusInfo() << "\n" << out.str();
+        PrintInfo("\n" << out.str();
       }
       #endif
 
@@ -194,7 +194,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
       //if you want to debug step by step...
       #if 0 
       {
-        VisusInfo()<<"After";
+        PrintInfo("After");
         int nx=(int)read->buffer->dims.x;
         int ny=(int)read->buffer->dims.y;
         Uint8* SRC=read->buffer->c_ptr();
@@ -208,7 +208,7 @@ bool DatasetFilter::computeFilter(double time,Field field,SharedPtr<Access> acce
           out <<std::endl;
         }
         out <<std::endl;
-        VisusInfo() << "\n" << out.str();
+        PrintInfo("\n",out.str());
       }
       #endif
 

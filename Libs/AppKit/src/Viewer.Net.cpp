@@ -69,7 +69,7 @@ bool Viewer::addNetRcv(int port)
   auto netrcv=std::make_shared<NetConnection>();
   if (!netrcv->socket->bind(url))
   {
-    VisusError() << "NetSocket::bind on url("<<url<<") failed";
+    PrintError("NetSocket::bind on url",url,"failed");
     VisusAssert(false);
     return false;
   }
@@ -93,7 +93,7 @@ bool Viewer::addNetRcv(int port)
 
     if (!netrcv->socket)
     {
-      VisusError() << "cannot accept connection";
+      PrintError("cannot accept connection");
       VisusAssert(false);
       return;
     }
@@ -103,7 +103,7 @@ bool Viewer::addNetRcv(int port)
       NetRequest request=netrcv->socket->receiveRequest();
       if (!request.valid())
       {
-        VisusError() << "Failed to receive action";
+        PrintError("Failed to receive action");
         break;
       }
       else
@@ -176,7 +176,7 @@ bool Viewer::addNetSnd(String url,Rectangle2d split_ortho,Rectangle2d screen_bou
   auto netsnd=std::make_shared<NetConnection>();
   if (!netsnd->socket->connect(url))
   {
-    VisusError() << "Failed to connect to " << url << ", closing the connection";
+    PrintError("Failed to connect to",url,"closing the connection");
     VisusAssert(false);
     return false;
   }
@@ -236,7 +236,7 @@ bool Viewer::addNetSnd(String url,Rectangle2d split_ortho,Rectangle2d screen_bou
         //hopefully this is non-blocking see http://stackoverflow.com/questions/3578650/c-socket-does-send-wait-for-recv-to-end
         if (!netsnd->socket->sendRequest(request))
         {
-          VisusError() << "Failed to send requests to " << netsnd->url << ". Closing the connection";
+          PrintError("Failed to send requests to",netsnd->url,"Closing the connection");
           VisusAssert(false);
           netsnd->socket.reset();
           return;

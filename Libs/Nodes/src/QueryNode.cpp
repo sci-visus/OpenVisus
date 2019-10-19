@@ -104,8 +104,8 @@ public:
 
         if (verbose)
         {
-          VisusInfo() << "PointQuery msec(" << t1.elapsedMsec() << ") " << "level(" << N << "/" << this->resolutions.size() << "/" << this->resolutions[N] << "/" << dataset->getMaxResolution() << ") "
-            << "dims(" << output.dims.toString() << ") dtype(" << output.dtype.toString() << ") access(" << (access ? "yes" : "nullptr") << ") url(" << dataset->getUrl().toString() << ") ";
+          PrintInfo("PointQuery msec",t1.elapsedMsec(),"level",N,"/",this->resolutions.size(),"/",this->resolutions[N],"/",dataset->getMaxResolution(),
+            "dims",output.dims,"dtype",output.dtype,"access",access ? "yes" : "nullptr","url",dataset->getUrl());
         }
 
         DataflowMessage msg;
@@ -142,9 +142,12 @@ public:
 
         if (verbose)
         {
-          VisusInfo()<< "BoxQuery msec(" << t1.elapsedMsec() << ") "
-            << "level(" << N << "/" << this->resolutions.size() << "/" << this->resolutions[N] << "/" << dataset->getMaxResolution() << ") "
-            << "dims(" << output.dims.toString() << ") dtype(" << output.dtype.toString() << ") access(" << (access ? "yes" : "nullptr") << ") url(" << dataset->getUrl().toString() << ") ";
+          PrintInfo("BoxQuery msec",t1.elapsedMsec(),
+            "level",N, "/", this->resolutions.size(), "/", this->resolutions[N], "/", dataset->getMaxResolution(),
+            "dims", output.dims, 
+            "dtype", output.dtype, 
+            "access", access ? "yes" : "nullptr", 
+            "url", dataset->getUrl());
         }
 
         doPublish(output, query);

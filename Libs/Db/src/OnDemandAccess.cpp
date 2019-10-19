@@ -173,7 +173,7 @@ public:
       url.setParam("field", field);
       url.setParam("time", cstring(timestep));
       url.setParam("box", block_logicbox.toString(/*bInterleave*/true));
-      VisusInfo() << url.toString();
+      PrintInfo(url);
 
       NetRequest request(url);
       request.aborted = query->aborted;
@@ -192,7 +192,7 @@ public:
       params += " --field " + field;
       params += " --time " + cstring(timestep);
       params += " --box \"" + block_logicbox.toString(/*bInterleave*/true) + "\"";
-      VisusInfo() << params;
+      PrintInfo(params);
 
 #if WIN32
       //blocking call
@@ -215,7 +215,7 @@ public:
       }
 #endif
 
-      VisusInfo() << "path(" << converter_url << ") time(" << t1.elapsedMsec() << ")";
+      PrintInfo("path",converter_url,"time",t1.elapsedMsec());
 
       // as noted above, this stage will return query failed, then depend on third layer of multiplex to get the data
       return owner->readFailed(query);

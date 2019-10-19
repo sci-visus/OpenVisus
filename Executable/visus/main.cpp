@@ -166,7 +166,7 @@ public:
 
     if (!idxfile.save(filename))
     {
-      VisusError() << "idxfile.save(" << filename << ") failed";
+      PrintError("idxfile.save",filename, "failed");
       return Array();
     }
 
@@ -341,7 +341,7 @@ public:
 
     auto access = dataset->createAccess();
     auto filter = dataset->createFilter(field);
-    VisusInfo() << "starting conversion...";
+    PrintInfo("starting conversion...");
     filter->computeFilter(time, field, access, sliding_box);
     return data;
   }
@@ -430,7 +430,7 @@ public:
     std::vector<Field> Dfields = Dvf->getFields();
 
     if (Sfields.size() != Dfields.size())
-      ThrowException(args[0]," Fieldnames not compatible");
+      ThrowException(args[0],"Fieldnames not compatible");
 
     auto Saccess = Svf->createAccessForBlockQuery(Sconfig);
     auto Daccess = Dvf->createAccessForBlockQuery(Dconfig);
@@ -508,7 +508,7 @@ public:
     if (args.size()<2)
       ThrowException(args[0],"syntax error, needed filename");
 
-    VisusInfo() << "FixDatasetRange starting...";
+    PrintInfo("FixDatasetRange starting...");
 
     String filename = args[1];
     auto vf = LoadDataset<IdxDataset>(filename);
@@ -537,9 +537,9 @@ public:
       else if (args[I] == "--to") { block_to = cint64(args[++I]); }
     }
 
-    VisusInfo() << "Calculating minmax for " << (filter_field ? "field(" + field_filtered + ")" : "all fields");
-    VisusInfo() << "Calculating minmax for " << (filter_time ? "time(" + cstring(time_filtered) + ")" : "all timesteps");
-    VisusInfo() << "Calculating minmax in the block range [" << block_from << "," << block_to << ")";
+    PrintInfo("Calculating minmax for",filter_field ? "field" + field_filtered  : String("all fields"));
+    PrintInfo("Calculating minmax for",filter_time ? "time" +  cstring(time_filtered) : String("all timesteps"));
+    PrintInfo("Calculating minmax in the block range [",block_from,",",block_to);
 
     Time t1 = Time::now();
 
@@ -553,7 +553,7 @@ public:
 
       if (filter_field && field.name != field_filtered)
       {
-        VisusInfo() << "ignoring field(" << field.name << "), does not match with --field argument";
+        PrintInfo("ignoring field",field.name,"does not match with --field argument");
         continue;
       }
 
@@ -561,13 +561,13 @@ public:
       DType dtype = field.dtype;
       if (dtype.isVectorOf(DTypes::INT8))
       {
-        VisusInfo() << "range for field(" << field.name << ") of type 'int8' quickly guessed (skipped the reading from disk)";
+        PrintInfo("range for field",field.name,"of type 'int8' quickly guessed (skipped the reading from disk)");
         continue;
       }
 
       if (dtype.isVectorOf(DTypes::UINT8))
       {
-        VisusInfo() << "range for field(" << field.name << ") of type 'uint8' quickly guessed (skipped the reading from disk)";
+        PrintInfo("range for field",field.name,"of type 'uint8' quickly guessed (skipped the reading from disk)");
         continue;
       }
 
@@ -592,7 +592,7 @@ public:
 
         if (filter_time && time != time_filtered)
         {
-          VisusInfo() << "ignoring timestep(" << time << ") ,does not match with --time argument";
+          PrintInfo("ignoring timestep",time,"does not match with --time argument");
           continue;
         }
 
@@ -618,21 +618,20 @@ public:
           //estimation
           if (t1.elapsedMsec()>5000)
           {
-            VisusInfo()
-              << "RANGE time(" << time << ")"
-              << " field(" << field.name << ")"
-              << " nblock/from/to(" << nblock << "/" << block_from << "/" << block_to << ")";
+            PrintInfo("RANGE time",time,
+              "field",field.name,
+              "nblock/from/to",nblock,"/",block_from,"/",block_to);
 
             for (int C = 0; C<field.dtype.ncomponents(); C++)
-              VisusInfo() << "  what(" << C << ") " << field.dtype.getDTypeRange(C).toString();
+              PrintInfo("  what",C,field.dtype.getDTypeRange(C));
 
             idxfile.fields[F] = field;
 
             //try to save the intermediate file (NOTE: internally using locks so it should be fine to run in parallel)
             if (!idxfile.save(filename))
             {
-              VisusWarning() << "cannot save the INTERMEDIATE min-max in IDX dataset (vf->idxfile.save(" << filename << ") failed)";
-              VisusWarning() << "Continuing anyway hoping to solve the problem saving the file later";
+              PrintWarning("cannot save the INTERMEDIATE min-max in IDX dataset (vf->idxfile.save",filename,"failed");
+              PrintWarning("Continuing anyway hoping to solve the problem saving the file later");
             }
 
             t1 = Time::now();
@@ -640,10 +639,10 @@ public:
         }
       }
 
-      VisusInfo() << "done minmax for field(" << field.name << ")";
+      PrintInfo("done minmax for field",field.name);
 
       for (int C = 0; C<field.dtype.ncomponents(); C++)
-        VisusInfo() << "  what(" << C << ") " << field.dtype.getDTypeRange(C).toString();
+        PrintInfo("  what",C,field.dtype.getDTypeRange(C));
     }
 
     access->endRead();
@@ -652,12 +651,12 @@ public:
     if (!idxfile.save(filename))
       ThrowException(args[0],"cannot save the FINAL min-max in IDX dataset IdxFile::save",filename,"failed");
 
-    VisusInfo() << "done fixFieldsRange";
+    PrintInfo("done fixFieldsRange");
 
     Archive ar("fields");
     for (auto field : vf->getFields())
       ar.writeObject("field", field);
-    VisusInfo() << ar.toString();
+    PrintInfo(ar);
 
     return data;
   }
@@ -723,7 +722,7 @@ public:
       idx->writeFullResolutionData(idx_access, idx->getDefaultField(),idx->getDefaultTime(), buffer, tile);
       int msec_write = (int)t1.elapsedMsec();
 
-      VisusInfo() << "done " << TileId << " of " << tiles.size() << " msec_read(" << msec_read << ") msec_write(" << msec_write << ")";
+      PrintInfo("done",TileId,"of",tiles.size(),"msec_read",msec_read,"msec_write",msec_write);
 
       //ArrayUtils::saveImage(concatenate("tile_",TileId,".png"),read->buffer));
     }
@@ -731,7 +730,7 @@ public:
     //finally compress
     idx->compressDataset("zip");
 
-    VisusInfo() << "ALL DONE IN " << T1.elapsedMsec();
+    PrintInfo("ALL DONE IN",T1.elapsedMsec());
     return data;
   }
 
@@ -1060,7 +1059,7 @@ public:
 
     int C = cint(args[1]);
     Range range = ArrayUtils::computeRange(data, C);
-    VisusInfo() << "Range of component " << C << " is " << range.toString();
+    PrintInfo("Range of component", C, "is", range);
 
     return data;
   }
@@ -1119,7 +1118,7 @@ public:
     if (!info.valid())
       ThrowException(args[0], "Could not open",filename);
 
-    VisusInfo() << std::endl << info.toString();
+    PrintInfo("\n",info);
 
     auto dataset = LoadDataset(filename);
     return data;
@@ -1146,7 +1145,7 @@ public:
     if (args.size() != 1)
       ThrowException(args[0], "syntax error");
 
-    VisusInfo() << "Buffer dims(" << data.dims.toString() << ") dtype(" << data.dtype.toString() << ")";
+    PrintInfo("Buffer dims",data.dims, "dtype",data.dtype);
 
     Uint8* SRC = data.c_ptr();
     Int64 N = data.c_size();
@@ -1160,7 +1159,7 @@ public:
     }
     out << std::endl;
     out << std::endl;
-    VisusInfo() << "\n" << out.str();
+    PrintInfo("\n");
     return data;
   }
 };
@@ -1196,7 +1195,7 @@ public:
 
     auto dataset = LoadDataset(url);
     if (!dataset)
-      ThrowException(args[0], "LoadDataset", url," failed");
+      ThrowException(args[0], "LoadDataset", url,"failed");
 
     BigInt block_id = 0;
     Field  field = dataset->getDefaultField();
@@ -1230,7 +1229,7 @@ public:
       ThrowException(args[0], "Invalid argument",args[I]);
     }
 
-    VisusInfo() << "url(" << url << ") block(" << block_id << ") field(" << field.name << ") time(" << time << ")";
+    PrintInfo("url",url, "block",block_id, "field",field.name, "time",time);
 
     auto access=dataset->createAccessForBlockQuery();
 
@@ -1259,10 +1258,14 @@ public:
       ret=block_query->buffer;
     }
 
-    VisusInfo() << (bWriting?"Wrote":"Read")<< " block("<<block_id<< ") in msec(" << t1.elapsedMsec() << ")"
-      <<" nopen(" << ApplicationStats::io.nopen << ")"
-      <<" rbytes(" << StringUtils::getStringFromByteSize(ApplicationStats::io.rbytes) << ")"
-      <<" wbytes(" << StringUtils::getStringFromByteSize(ApplicationStats::io.wbytes) << ")";
+    auto nopen  = (int)ApplicationStats::io.nopen;
+    auto rbytes = (int)ApplicationStats::io.rbytes;
+    auto wbytes = (int)ApplicationStats::io.wbytes;
+
+    PrintInfo(bWriting?"Wrote":"Read","block", block_id, "in msec",t1.elapsedMsec(),
+      "nopen", nopen,
+      "rbytes",StringUtils::getStringFromByteSize(rbytes),
+      "wbytes",StringUtils::getStringFromByteSize(wbytes));
     ApplicationStats::io.reset();
     return ret;
   }
@@ -1387,7 +1390,7 @@ public:
     Url url(args[1]);
 
     if (!url.valid())
-      ThrowException(args[0],args[1]," is not a valid url");
+      ThrowException(args[0],args[1],"is not a valid url");
 
     auto net = std::make_shared<NetService>(1);
 
@@ -1425,7 +1428,7 @@ public:
       check_blob.content_type = blob.content_type; //google changes the content_type
       VisusReleaseAssert(check_blob == blob);
 
-      VisusInfo() << "Average msec_add(" << (MSEC_ADD / (I+1)) << ") msec_get(" << (MSEC_GET / (I + 1)) << ")";
+      PrintInfo("Average msec_add",MSEC_ADD / (I+1), "msec_get",MSEC_GET / (I + 1));
     }
 
     return data;
@@ -1500,10 +1503,10 @@ public:
         auto decoded_mb = decoded_bytes / (1024 * 1024);
         auto ratio = 100.0*(encoded_mb / (double)decoded_mb);
 
-        VisusInfo() << "Ratio " << ratio <<"%";
-        VisusInfo() << "Encoding MByte(" << encoded_mb << ") sec(" << encode_sec << ") MByte/sec(" << (encoded_mb / encode_sec) << ")";
-        VisusInfo() << "Decoding MByte(" << decoded_mb << ") sec(" << decode_sec << ") MByte/sec(" << (decoded_mb / decode_sec) << ")";
-        VisusInfo();
+        PrintInfo("Ratio", ratio, "%");
+        PrintInfo("Encoding MByte", encoded_mb, "sec", encode_sec, "MByte/sec", encoded_mb / encode_sec);
+        PrintInfo("Decoding MByte", decoded_mb, "sec", decode_sec, "MByte/sec", decoded_mb / decode_sec);
+        PrintInfo("");
 
         T1 = Time::now();
         //decoded_bytes = 0; decode_sec = 0;
@@ -1562,7 +1565,7 @@ public:
 
     srand((unsigned int)Time::now().getTimeStamp());
 
-    VisusInfo() << "Testing query...";
+    PrintInfo("Testing query...");
     auto access = dataset->createAccess();
 
     auto tiles = dataset->generateTiles(query_dim);
@@ -1577,22 +1580,26 @@ public:
       if (!buffer)
         continue;
 
-      VisusInfo() << "Done " << TileId << " of "<<tiles.size();
+      PrintInfo("Done", TileId, "of", tiles.size());
 
       if (Tstats.elapsedSec() > 3.0)
       {
         auto sec = Tstats.elapsedSec();
-        VisusInfo()
-          << " ndone(" << TileId << "/" << tiles.size() << ")"
-          << " io.nopen(" << ApplicationStats::io.nopen << "/" << Int64(ApplicationStats::io.nopen / sec) << ") "
-          << " io.rbytes(" << StringUtils::getStringFromByteSize(ApplicationStats::io.rbytes) << "/" << StringUtils::getStringFromByteSize(Int64(ApplicationStats::io.rbytes / sec)) << "persec) "
-          << " io.wbytes(" << StringUtils::getStringFromByteSize(ApplicationStats::io.wbytes) << "/" << StringUtils::getStringFromByteSize(Int64(ApplicationStats::io.wbytes / sec)) << "persec) ";
+
+        auto nopen = (int)ApplicationStats::io.nopen;
+        auto rbytes = (int)ApplicationStats::io.rbytes;
+        auto wbytes = (int)ApplicationStats::io.wbytes;
+
+        PrintInfo("ndone",TileId,"/",tiles.size(),
+          "io.nopen",nopen,"/",Int64(nopen / sec),
+          "io.rbytes",StringUtils::getStringFromByteSize(rbytes),StringUtils::getStringFromByteSize(Int64(rbytes / sec)),
+          "io.wbytes", StringUtils::getStringFromByteSize(wbytes),StringUtils::getStringFromByteSize(Int64(wbytes / sec)));
         ApplicationStats::io.reset();
         Tstats = Time::now();
       }
     }
 
-    VisusInfo() << "Test done in " << T1.elapsedSec();
+    PrintInfo("Test done in", T1.elapsedSec());
     return data;
   }
 };
@@ -1676,13 +1683,13 @@ public:
       int mbpersec=(int)(nwritten/(1024.0*1024.0*elapsed));
       //do not remove, I can need it for read
       //remove(filename.c_str());
-      VisusInfo()<<"write("<<mbpersec<<" mb/sec) filesize("<<filesize<<") blocksize("<<blocksize<<") nwritten("<<nwritten<<") filename("<<filename<<")";
+      PrintInfo("write",mbpersec,"mb/sec filesize",filesize, "blocksize", blocksize, "nwritten", nwritten, "filename", filename);
     }
     else
     {
       File file;
       if(!file.open(filename,"r"))
-        ThrowException(args[0]," file.open(",filename,",'r')","failed");
+        ThrowException(args[0],"file.open(",filename,",'r')","failed");
 
       Array blockdata;
       bool bOk=blockdata.resize(blocksize,DTypes::UINT8,__FILE__,__LINE__);
@@ -1700,11 +1707,11 @@ public:
         if (!--cont)
         {
           cont=maxcont;
-          VisusInfo()<<"read("<<((nread/(1024*1024))/t1.elapsedSec())<<" mb/sec) blocksize("<<blocksize<<") nread("<<(nread/(1024*1024))<<" mb) filename("<<filename<<")";      
+          PrintInfo("read", (nread/(1024*1024))/t1.elapsedSec(), "mb/sec", "blocksize", blocksize, "nread", nread/(1024*1024), "mb","filename", filename);
         }
       }
       file.close();
-      VisusInfo()<<"read("<<((nread/(1024*1024))/t1.elapsedSec())<<" mb/sec) blocksize("<<blocksize<<") nread("<<(nread/(1024*1024))<<" mb) filename("<<filename<<")";  
+      PrintInfo("read", (nread/(1024*1024))/t1.elapsedSec(), " mb/sec", "blocksize", blocksize, "nread", nread/(1024*1024), "mb","filename",filename);
     }
 
     return data;
@@ -1826,10 +1833,10 @@ public:
 
     int slices_per_slab = (int)dims[2] / num_slabs;
 
-    VisusInfo() << "--dims            " << dims.toString();
-    VisusInfo() << "--num-slabs       " << num_slabs;
-    VisusInfo() << "--dtype           " << dtype;
-    VisusInfo() << "--slices-per-slab " << slices_per_slab;
+    PrintInfo("--dims            ",dims);
+    PrintInfo("--num-slabs       ",num_slabs);
+    PrintInfo("--dtype           ",dtype);
+    PrintInfo("--slices-per-slab ",slices_per_slab);
 
     //create the idx file
     {
@@ -1891,10 +1898,10 @@ public:
       auto t2 = clock();
       auto sec = (t2 - t1) / (float)CLOCKS_PER_SEC;
       SEC += sec;
-      VisusInfo() << "Done " << Slab << " of " << num_slabs << " bbox " << slice_box.toString(/*bInterleave*/true) <<" in "<< sec <<"sec";
+      PrintInfo("Done",Slab, "of",num_slabs, "bbox ",slice_box.toString(/*bInterleave*/true), "in",sec, "sec");
     }
 
-    VisusInfo()<<"Wrote all slabs in " << SEC << "sec";
+    PrintInfo("Wrote all slabs in",SEC,"sec");
 
     if (bool bVerify=true)
     {
@@ -1918,7 +1925,7 @@ public:
       for (int I = 0, N= (int)dims.innerProduct(); I < N; I++)
       {
         if (samples[I] != I)
-          VisusInfo() << "Reading verification failed sample "<<I<<" expecting "<< I <<" got "<< samples[I];
+          PrintInfo("Reading verification failed sample", I, "expecting", I, "got", samples[I]);
       }
     }
 
@@ -1935,11 +1942,9 @@ public:
   //getHelp
   virtual String getHelp(std::vector<String> args) override
   {
-    std::ostringstream out;
-    out << args[0]
-      << " [--c nconnections] [--n nrequests] (url)+" << std::endl
-      << "Example: " << args[0] << " --c 8 -n 1000 http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled";
-    return out.str();
+    return cstring(args[0],
+      "[--c nconnections] [--n nrequests] (url)+","\n",
+      "Example: ",args[0],"--c 8 -n 1000 http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled");
   }
 
   //exec
@@ -1961,11 +1966,11 @@ public:
         urls.push_back(args[I]);
     }
 
-    VisusInfo() << "Concurrency " << nconnections;
-    VisusInfo() << "nrequest " << nrequests;
-    VisusInfo() << "urls";
+    PrintInfo("Concurrency",nconnections);
+    PrintInfo("nrequest",nrequests);
+    PrintInfo("urls");
     for (auto url : urls)
-      VisusInfo() << "  " << url;
+      PrintInfo("  ",url);
 
     auto net = std::make_shared<NetService>(nconnections, false);
 
@@ -1978,10 +1983,10 @@ public:
       wait_async.pushRunning(NetService::push(net, request)).when_ready([Id](NetResponse response) {
 
         if (response.status != HttpStatus::STATUS_OK)
-          VisusInfo() << "one request failed";
+          PrintInfo("one request failed");
 
         if (Id && (Id % 100) == 0)
-          VisusInfo() << "Done " << Id << " request";
+          PrintInfo("Done ",Id,"request");
       });
     }
 
@@ -1989,11 +1994,11 @@ public:
 
     auto sec = t1.elapsedSec();
 
-    VisusInfo() << "All done in " << sec << "sec";
-    VisusInfo()
-      << " Num request/sec " << double(nrequests) / sec << ") "
-      << " read  " << StringUtils::getStringFromByteSize(ApplicationStats::net.rbytes) << " bytes/sec " << double(ApplicationStats::net.rbytes) / (sec) << ") "
-      << " write " << StringUtils::getStringFromByteSize(ApplicationStats::net.wbytes) << " bytes/sec " << double(ApplicationStats::net.wbytes) / (sec) << ") ";
+    PrintInfo("All done in",sec,"sec");
+    PrintInfo(
+      "Num request/sec",double(nrequests) / sec,
+      "read" ,StringUtils::getStringFromByteSize(ApplicationStats::net.rbytes),"bytes/sec",double(ApplicationStats::net.rbytes) / (sec),
+      "write",StringUtils::getStringFromByteSize(ApplicationStats::net.wbytes),"bytes/sec",double(ApplicationStats::net.wbytes) / (sec));
     ApplicationStats::net.reset();
 
     return data;
@@ -2061,7 +2066,7 @@ public:
   virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out << args[0] << "Syntax: " << std::endl << std::endl;
+    out << args[0] << "Syntax: "<< std::endl << std::endl;
     for (auto it : actions)
       out << "    " << it.first << std::endl;
     out << std::endl;
@@ -2075,7 +2080,7 @@ public:
   {
     if (args.size() <=1 || (args.size() == 2 && (args[1] == "help" || args[1] == "--help" || args[1] == "-h")))
     {
-      VisusInfo()<<getHelp(args);
+      PrintInfo(getHelp(args));
       return Array();
     }
 
@@ -2106,20 +2111,20 @@ public:
     {
       String name = args[0];
 
-      VisusInfo() << "// *** STEP "<< name<<" ***";
-      VisusInfo() << "Input dtype(" << data.dtype.toString() << ") " << "dims(" << data.dims.toString() << ") args("<<StringUtils::join(args," ")<<")";
+      PrintInfo("//*** STEP ",name,"***");
+      PrintInfo("Input dtype",data.dtype,"dims",data.dims,"args",StringUtils::join(args," "));
 
       auto action = actions[name]();
 
       if (args.size() == 2 && (args[1] == "help" || args[1] == "--help" || args[1] == "-h"))
       {
-        VisusInfo() << std::endl << args[0] << " " << name << " " << action->getHelp(args);
+        PrintInfo("\n",args[0],name,action->getHelp(args));
         return data;
       }
 
       Time t1 = Time::now();
       data = action->exec(data, args);
-      VisusInfo() << "STEP "<<name<<" done in " << t1.elapsedMsec() << "msec";
+      PrintInfo("STEP ",name,"done in",t1.elapsedMsec(),"msec");
     }
 
     return data;
@@ -2172,7 +2177,7 @@ int main(int argn, const char* argv[])
     }
   }
 
-  //VisusInfo() << StringUtils::join(args);
+  //PrintInfo(StringUtils::join(args));
   
   if (ApplicationInfo::debug)
   {
@@ -2186,13 +2191,13 @@ int main(int argn, const char* argv[])
     }
     catch (std::exception& ex)
     {
-      VisusInfo() << "ERROR: " << ex.what();
+      PrintInfo("ERROR:",ex.what());
       IdxModule::detach();
       return -1;
     }
   }
 
-  VisusInfo() << "All done in " << T1.elapsedSec()<< " seconds";
+  PrintInfo("All done in ",T1.elapsedSec(),",seconds");
 
   IdxModule::detach();
 

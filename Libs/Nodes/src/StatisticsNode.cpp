@@ -59,7 +59,7 @@ public:
     Time t1=Time::now();
     if (auto stats=Statistics::compute(data,aborted))
     {
-      VisusInfo()<<"Computed statistics done in "<<t1.elapsedMsec();
+      PrintInfo("Computed statistics done i", t1.elapsedMsec());
       DataflowMessage msg;
       msg.writeValue("statistics", stats);
       node->publish(msg);
@@ -83,7 +83,7 @@ bool StatisticsNode::processInput()
   abortProcessing();
   auto data = readValue<Array>("array");
   if (!data) return false;
-  VisusInfo()<<"Statistics node got data "<<data->dims.toString();
+  PrintInfo("Statistics node got data",data->dims);
   addNodeJob(std::make_shared<ComputeStatisticsJob>(this,*data));
   return true;
 }

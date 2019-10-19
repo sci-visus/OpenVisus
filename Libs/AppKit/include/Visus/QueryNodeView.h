@@ -317,17 +317,17 @@ private:
       {
         if (!data_file.write(0, query->buffer.c_size(), query->buffer.c_ptr()))
         {
-          VisusWarning() << "write error on file " << filename;
+          PrintWarning("write error on file",filename);
           return false;
         }
       }
       else
       {
-        VisusWarning() << "file.open(" << filename << ",\"rb\") failed";
+        PrintWarning("file.open",filename,"rb","failed");
       }
 
       QMessageBox::information(nullptr, "Success", "Data saved on disk");
-      VisusInfo() << "Wrote data size " << query->buffer.c_size() << " in raw file " << filename;
+      PrintInfo("Wrote data size",query->buffer.c_size(),"in raw file",filename);
       return true;
     });
 

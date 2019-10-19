@@ -148,6 +148,10 @@ VISUS_KERNEL_API inline String     cstring(Uint64 v)            { return std::to
 VISUS_KERNEL_API inline String     cstring(const String& value) { return value; }
 VISUS_KERNEL_API inline String     cstring(const char* value)   { return String(value); }
 
+#if !SWIG
+VISUS_KERNEL_API inline String     cstring(char* value)         { return String(value); }
+#endif
+
 template <typename Value>
 inline String cstring(const Value& value) { 
   return value.toString(); 
@@ -213,6 +217,16 @@ public:
   static const char** argv;
 };
 #endif
+
+
+VISUS_KERNEL_API void PrintLine(String file, int line, int severity, String msg);
+
+#define PrintDebug(...)   PrintLine(__FILE__,__LINE__, 0, cstring(__VA_ARGS__))
+#define PrintInfo(...)    PrintLine(__FILE__,__LINE__, 1, cstring(__VA_ARGS__))
+#define PrintWarning(...) PrintLine(__FILE__,__LINE__, 2, cstring(__VA_ARGS__))
+#define PrintError(...)   PrintLine(__FILE__,__LINE__, 3, cstring(__VA_ARGS__))
+
+VISUS_KERNEL_API void RedirectLogTo(void(*)(String msg, void*), void* user_data = nullptr);
 
 //(default values for swig)
 VISUS_KERNEL_API void SetCommandLine(int argn = 0, const char** argv = nullptr);

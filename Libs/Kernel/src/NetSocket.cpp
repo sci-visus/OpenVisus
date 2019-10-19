@@ -38,8 +38,6 @@ For support : support@visus.net
 
 #include <Visus/NetSocket.h>
 #include <Visus/StringTree.h>
-#include <Visus/Log.h>
-
 
 #if WIN32
 #pragma warning(disable:4996)
@@ -120,7 +118,7 @@ public:
     this->socketfd = (int)socket(AF_INET, SOCK_STREAM, 0);
     if (this->socketfd < 0)
     {
-      VisusError() << "connect failed, reason socket(AF_INET, SOCK_STREAM, 0) returned <0 (" << strerror(errno) << ")";
+      PrintError("connect failed, reason socket(AF_INET, SOCK_STREAM, 0) returned <0",strerror(errno));
       return false;
     }
 
@@ -135,7 +133,7 @@ public:
     serv_addr.sin_port = htons(url.getPort());
     if (::connect(this->socketfd, (struct sockaddr*) &serv_addr, sizeof(serv_addr)) < 0)
     {
-      VisusError() << "connect failed, cannot connect (" << strerror(errno) << ")";
+      PrintError("connect failed, cannot connect",strerror(errno));
       return false;
     }
 
@@ -153,7 +151,7 @@ public:
     this->socketfd = (int)socket(AF_INET, SOCK_STREAM, 0);
     if (this->socketfd<0)
     {
-      VisusError() << "bind failed (socketfd<0) a server-side socket (" << strerror(errno) << ")";
+      PrintError("bind failed (socketfd<0) a server-side socket", strerror(errno));
       return false;
     }
 
@@ -170,7 +168,7 @@ public:
     if (::bind(this->socketfd, (struct sockaddr*)(&sin), sizeof(struct sockaddr)))
     {
       close();
-      VisusError() << "bind failed. can't bind for server-side socket (" << strerror(errno) << ")";
+      PrintError("bind failed. can't bind for server-side socket",strerror(errno));
       return false;
     }
 
@@ -179,11 +177,11 @@ public:
     if (::listen(this->socketfd, max_connections))
     {
       close();
-      VisusError() << "listen failed. Can't listen (listen(...) method) for server-side socket (" << strerror(errno) << ")";
+      PrintError("listen failed. Can't listen (listen(...) method) for server-side socket",strerror(errno));
       return false;
     }
 
-    VisusInfo() << "NetSocket::bind ok url("<<url.toString()<<")";
+    PrintInfo("NetSocket::bind ok url",url);
     return true;
   }
 
@@ -201,13 +199,13 @@ public:
     pimpl->socketfd = (int)::accept(this->socketfd, (struct sockaddr*)(&client_addr), &sin_size);
     if (pimpl->socketfd < 0)
     {
-      VisusError() << "accept failed. (" << strerror(errno) << ")";
+      PrintError("accept failed ",strerror(errno));
       return SharedPtr<NetSocket>();
     }
 
     pimpl->configureOptions();
 
-    VisusInfo() << "NetSocket accepted new connection";
+    PrintInfo("NetSocket accepted new connection");
     return std::make_shared<NetSocket>(pimpl.release());
   }
 
@@ -362,7 +360,7 @@ private:
       int n = (int)::send(socketfd, (const char*)buf, len, flags);
       if (n <= 0)
       {
-        VisusError() << "Failed to send data to socket errdescr(" << getSocketErrorDescription(n) << ")";
+        PrintError("Failed to send data to socket errdescr",getSocketErrorDescription(n));
         return false;
       }
       buf += n;
@@ -384,7 +382,7 @@ private:
       int n = (int)::recv(socketfd, (char*)buf, len, flags);
       if (n <= 0)
       {
-        VisusError() << "Failed to recv data to socket errdescr(" << getSocketErrorDescription(n) << ")";
+        PrintError("Failed to recv data to socket errdescr",getSocketErrorDescription(n));
         return false;
       }
       buf += n;

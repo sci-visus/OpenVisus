@@ -74,7 +74,7 @@ public:
   //push
   void push(KdArrayNode* node)
   {
-    //VisusInfo()<<"push "<<(max_memory?"fine":"coarse")<<" ("<<node->id<<")";
+    //PrintInfo("push",max_memory?"fine":"coarse",node->id);
     VisusAssert(!contains(node));
 
     Cached cached;
@@ -106,7 +106,7 @@ public:
   //pop
   void pop(KdArrayNode* node)
   {
-    //VisusInfo()<<"pop "<<(max_memory?"fine":"coarse")<<" ("<<node->id<<")";
+    //PrintInfo("pop",max_memory?"fine":"coarse",node->id);
 
     auto it=map.find(node->id);
 

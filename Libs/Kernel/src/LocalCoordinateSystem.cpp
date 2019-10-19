@@ -37,7 +37,6 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/LocalCoordinateSystem.h>
-#include <Visus/Log.h>
 
 namespace Visus {
 

@@ -97,21 +97,18 @@ namespace Visus {
 String ViewerPreferences::default_panels = "left center";
 bool   ViewerPreferences::default_show_logos = true;
 
+static void RedirectLogToViewer(String msg, void* user_data)
+{
+  auto viewer = (Viewer*)user_data;
+  viewer->printInfo(msg);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 Viewer::Viewer(String title) : QMainWindow()
 {
   this->config = *AppKitModule::getModuleConfig();
 
-  RedirectLog=[this](const String& msg) {
-    {
-      ScopedLock lock(log.lock);
-      log.messages.push_back(msg);
-    };
-
-    //I can be here in different thread
-    //see //see http://stackoverflow.com/questions/37222069/start-qtimer-from-another-class
-    emit postFlushMessages();
-  };
+  RedirectLogTo(RedirectLogToViewer, this);
 
   connect(this, &Viewer::postFlushMessages, this, &Viewer::internalFlushMessages, Qt::QueuedConnection);
 
@@ -158,9 +155,22 @@ Viewer::Viewer(String title) : QMainWindow()
 ////////////////////////////////////////////////////////////
 Viewer::~Viewer()
 {
-  VisusInfo() << "destroying VisusViewer";
-  RedirectLog = nullptr;
+  PrintInfo("destroying VisusViewer");
+  RedirectLogTo(nullptr);
   setDataflow(nullptr);
+}
+
+////////////////////////////////////////////////////////////
+void Viewer::printInfo(String msg)
+{
+  {
+    ScopedLock lock(log.lock);
+    log.messages.push_back(msg);
+  };
+
+  //I can be here in different thread
+  //see //see http://stackoverflow.com/questions/37222069/start-qtimer-from-another-class
+  emit postFlushMessages();
 }
 
 
@@ -435,7 +445,7 @@ SharedPtr<ViewerLogo> Viewer::openScreenLogo(String key, String default_logo)
 
   auto img = QImage(filename.c_str());
   if (img.isNull()) {
-    VisusInfo() << "Failed to load image " << filename;
+    PrintInfo("Failed to load image",filename);
     return SharedPtr<ViewerLogo>();
   }
 
@@ -480,20 +490,20 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   {
     if (args[I] == "--help")
     {
-      VisusInfo() << std::endl
-        << "visusviewer help:" << std::endl
-        << "   --visus-config <path>                                                  - path to visus.config" << std::endl
-        << "   --open <url>                                                           - opens the specified url or .idx volume" << std::endl
-        << "   --server                                                               - starts a standalone ViSUS Server on port 10000" << std::endl
-        << "   --fullscseen                                                           - starts in fullscreen mode" << std::endl
-        << "   --geometry \"<x> <y> <width> <height>\"                                - specify viewer windows size and location" << std::endl
-        << "   --zoom-to \"x1 y1 x2 y2\"                                              - set glcamera ortho params" << std::endl
-        << "   --network-rcv <port>                                                   - run powerwall slave" << std::endl
-        << "   --network-snd <slave_url> <split_ortho> <screen_bounds> <aspect_ratio> - add a slave to a powerwall master" << std::endl
-        << "   --split-ortho \"x y width height\"                                     - for taking snapshots" << std::endl
-        << "   --internal-network-test-(11|12|14|111)                                 - internal use only" << std::endl
-        << std::endl
-        << std::endl;
+      PrintInfo("\n",
+        "visusviewer help:","\n",
+        "   --visus-config <path>                                                  - path to visus.config","\n",
+        "   --open <url>                                                           - opens the specified url or .idx volume", "\n",
+        "   --server                                                               - starts a standalone ViSUS Server on port 10000", "\n",
+        "   --fullscseen                                                           - starts in fullscreen mode", "\n",
+        "   --geometry \"<x> <y> <width> <height>\"                                - specify viewer windows size and location", "\n",
+        "   --zoom-to \"x1 y1 x2 y2\"                                              - set glcamera ortho params", "\n",
+        "   --network-rcv <port>                                                   - run powerwall slave", "\n",
+        "   --network-snd <slave_url> <split_ortho> <screen_bounds> <aspect_ratio> - add a slave to a powerwall master", "\n",
+        "   --split-ortho \"x y width height\"                                     - for taking snapshots", "\n",
+        "   --internal-network-test-(11|12|14|111)                                 - internal use only", "\n",
+        "\n",
+        "\n");
 
       AppKitModule::detach();
       exit(0);
@@ -720,8 +730,8 @@ void Viewer::enableSaveSession()
     filename=filename.substr(0,filename.size()-extension.size());  
   filename=filename+"."+Time::now().getFormattedLocalTime()+extension;
 
-  VisusInfo() << "Configuration/VisusViewer/SaveSession/filename " << filename;
-  VisusInfo() << "Configuration/VisusViewer/SaveSession/sec " << every_sec;
+  PrintInfo("Configuration/VisusViewer/SaveSession/filename",filename);
+  PrintInfo("Configuration/VisusViewer/SaveSession/sec",every_sec);
 
   connect(save_session_timer.get(),&QTimer::timeout,[this,filename](){
     save(filename,/*bSaveHistory*/false);
@@ -1284,7 +1294,7 @@ bool Viewer::open(String url,Node* parent)
       return false;
     }
 
-    VisusInfo() << "open(" << url << ") done";
+    PrintInfo("open",url,"done");
 
     if (widgets.treeview)
       widgets.treeview->expandAll();
@@ -1338,7 +1348,7 @@ bool Viewer::open(String url,Node* parent)
     widgets.treeview->expandAll();
   
   refreshActions();
-  VisusInfo()<<"open("<<url<<") done";
+  PrintInfo("open",url,"done");
   return true;
 }
 
@@ -2052,7 +2062,7 @@ QueryNode* Viewer::addVolume(Node* parent, String fieldname, int access_id)
   auto dataset=dataset_node->getDataset();
   if (!dataset) 
   {
-    VisusInfo()<<"Cannot find dataset";
+    PrintInfo("Cannot find dataset");
     return nullptr;
   }
 
@@ -2121,7 +2131,7 @@ QueryNode* Viewer::addSlice(Node* parent, String fieldname, int access_id)
   auto dataset = dataset_node->getDataset();
   if (!dataset)
   {
-    VisusInfo() << "Cannot find dataset";
+    PrintInfo("Cannot find dataset");
     return nullptr;
   }
 
@@ -2299,7 +2309,7 @@ KdQueryNode* Viewer::addKdQuery(Node* parent,String fieldname,int access_id)
   auto dataset=dataset_node->getDataset();
   if (!dataset)
   {
-    VisusInfo()<<"Cannot find dataset";
+    PrintInfo("Cannot find dataset");
     return nullptr;
   }
 

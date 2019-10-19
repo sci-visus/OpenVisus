@@ -166,19 +166,15 @@ public:
       if (!v.out_degree()) // it's a root
         queued.push_back(i);
     }
-    //VisusInfo()<<"(verifyTree) There are "<<queued.size()<<" roots";
-    //  for (int i=0;i<queued.size();i++) VisusInfo()<<"* "<<queued[i]<<" *";
 
     while (!queued.empty())
     {
       int i=queued.back(); queued.pop_back();
-      //VisusInfo()<<"(verifyTree) **** root="<<i<<" *****";
       std::vector<int> component;
       component.push_back(i);
       while (!component.empty())
       {
         int j=component.back(); component.pop_back();
-        //VisusInfo()<<"(verifyTree) "<<j;
         Vertex &v=vtree.verts[j];
         VisusAssert(!v.deleted);
         v.deleted=true; // mark as visited
@@ -200,7 +196,7 @@ public:
       if (!v.deleted) 
       {
         int k=0; k++;
-        VisusInfo()<<"(verifyTree) found an unvisited vertex: "<<i;
+        PrintInfo("(verifyTree) found an unvisited vertex",i);
         VisusAssert(false);
       }
     }  
@@ -358,7 +354,7 @@ public:
       }
       else if (v.in_degree()==0)
       {
-        //VisusDebug()<<"Removing solo vertex...";
+        //PrintDebug("Removing solo vertex...");
         graph.rmVert(danglers[i]);
       }
     }
@@ -370,14 +366,14 @@ public:
   static void printHeap(std::vector<int> heap,const MyGraph &g)
   {
     JTreeWeightComp ecomp(g);
-    VisusDebug()<<"heapsize: "<<heap.size()<<" =====/////=====/////=====";
+    PrintDebug("heapsize: ",heap.size()," =====/////=====/////=====");
     int cnt=0;
     while (!heap.empty())
     {
       int idx=heap.front(); 
       std::pop_heap(heap.begin(), heap.end(), ecomp); heap.pop_back();
       const Edge &e=g.edges[idx];
-      VisusDebug()<<cnt++<<": "<<(float)e.data<<" from "<<e.src<<"d to "<<e.dst;
+      PrintDebug(cnt++,":",(float)e.data,"from",e.src,"d to",e.dst);
     }
   }
 
@@ -391,7 +387,6 @@ public:
         return std::vector<int>();
 
       Edge &e=tree.edges[i];
-      //VisusDebug()<<"in reduce: ("<<i<<") deleted="<<(e.deleted?1:0)<<", data="<<data;
       if (e.deleted || e.data>=min_persist) continue;
       Vertex &s=tree.verts[e.src];
       Vertex &d=tree.verts[e.dst];
@@ -418,7 +413,7 @@ public:
     Aborted& aborted
   )
   {
-    VisusDebug()<<"reduceJoinTree(min_persist="<<min_persist<<",reduce_minmax="<<reduce_minmax<<")";
+    PrintDebug("reduceJoinTree","min_persist",min_persist,"reduce_minmax",reduce_minmax);
 
     // make a copy (in case I will need the full_graph later)
     //<ctc> this copy fails because of Data copy ctor and locks. Ugh. Manually copying for now...
@@ -461,9 +456,7 @@ public:
         // if newedge (from reduction) is also a low-persistence leaf branch, add it to the queue
         Edge &ne=tree.edges[newedge];
         VisusAssert(!ne.deleted);
-        //VisusDebug()<<"\tnewedge: ("<<newedge<<") data="<<ne.data;
         if (ne.data>=min_persist) continue;
-        //VisusDebug()<<"in reduce, ne.data="<<ne.data);
         Vertex &ns=tree.verts[ne.src];
         Vertex &nd=tree.verts[ne.dst];
         VisusAssert(!ns.deleted && !nd.deleted);
@@ -612,7 +605,7 @@ public:
         v.data[2]*=(ddims[2]==1?0.0f:(float)ddims[2]);
       }
 
-      VisusInfo()<<"Produced tree with "<<reduced_graph->verts.size()<<" verts and "<<reduced_graph->edges.size()<<" edges";
+      PrintInfo("Produced tree with",reduced_graph->verts.size(),"verts and",reduced_graph->edges.size(),"edges");
 
       DataflowMessage msg;
       msg.writeValue("graph", reduced_graph);
@@ -726,7 +719,7 @@ bool JTreeNode::recompute(bool bFull)
 
   if (!last_full_graph)
   {
-    VisusDebug()<<"Recomputing join tree full graph...";
+    PrintInfo("Recomputing join tree full graph...");
     updateAutoThreshold(); //NOTE I have to update here because I may need to update GUI stuff (i.e. views)
   }
 

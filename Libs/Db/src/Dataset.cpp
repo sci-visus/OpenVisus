@@ -347,7 +347,7 @@ SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config)
   Url url(config.readString("url", name));
   if (!url.valid())
   {
-    VisusWarning() << "LoadDataset(" << name << ") failed. Not a valid url";
+    PrintWarning("LoadDataset", name, "failed. Not a valid url");
     return SharedPtr<Dataset>();
   }
 
@@ -370,14 +370,14 @@ SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config)
     auto response = NetService::getNetResponse(url);
     if (!response.isSuccessful())
     {
-      VisusWarning() << "LoadDataset(" << url.toString() << ") failed errormsg(" << response.getErrorMessage() << ")";
+      PrintWarning("LoadDataset", url.toString(), "failed errormsg", response.getErrorMessage());
       return SharedPtr<Dataset>();
     }
 
     TypeName = response.getHeader("visus-typename", "IdxDataset");
     if (TypeName.empty())
     {
-      VisusWarning() << "LoadDataset(" << url.toString() << ") failed. Got empty TypeName";
+      PrintWarning("LoadDataset", url.toString(), "failed. Got empty TypeName");
       return SharedPtr<Dataset>();
     }
   }
@@ -399,7 +399,7 @@ SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config)
   auto ret= DatasetFactory::getSingleton()->createInstance(TypeName);
   if (!ret) 
   {
-    VisusWarning()<<"LoadDatasetEx("<<url.toString()<<") failed. Cannot DatasetFactory::getSingleton()->createInstance("<<TypeName<<")";
+    PrintWarning("LoadDatasetEx",url,"failed. Cannot DatasetFactory::getSingleton()->createInstance",TypeName);
     return SharedPtr<Dataset>();
   }
 
@@ -409,11 +409,11 @@ SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config)
 
   if (!ret->openFromUrl(url.toString())) 
   {
-    VisusWarning()<<TypeName<<"::openFromUrl("<<url.toString()<<") failed";
+    PrintWarning(TypeName,"openFromUrl",url,"failed");
     return SharedPtr<Dataset>();
   }
 
-  //VisusInfo()<<ret->getDatasetInfos();
+  //PrintInfo(ret->getDatasetInfos();
   return ret; 
 }
 
@@ -674,9 +674,9 @@ void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield,
   Time T1=Time::now();
   Time t1=T1;
 
-  VisusInfo()<<"Dataset::copyDataset";
-  VisusInfo()<<"  Destination Wurl("+Wvf->getUrl().toString() + ") Wfield("+Wfield.name+") Wtime("+cstring(Wtime)+")";
-  VisusInfo()<<"  Source      Rurl("+Rvf->getUrl().toString() + ") Rfield("+Rfield.name+") Rtime("+cstring(Rtime)+")";
+  PrintInfo("Dataset::copyDataset");
+  PrintInfo("  Destination Wurl", Wvf->getUrl(), "Wfield", Wfield.name, "Wtime", Wtime);
+  PrintInfo("  Source      Rurl", Rvf->getUrl(), "Rfield", Rfield.name, "Rtime", Rtime);
 
   auto num_blocks=std::min(
     Wvf->getTotalNumberOfBlocks(),
@@ -693,7 +693,7 @@ void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield,
     if (t1.elapsedSec()>5)
     {
       auto perc=(100.0*block_id)/(double)num_blocks;
-      VisusInfo()<<"block_id("<<block_id<<"/"<<num_blocks<<") "<<perc<<"%";
+      PrintInfo("block_id", block_id, "/",num_blocks,perc,"%");
       t1=Time::now();
     }
 
@@ -708,7 +708,7 @@ void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield,
 
     if (!Wvf->executeBlockQueryAndWait(Waccess, write_block))
     {
-      VisusInfo()<<"FAILED to write block("+cstring(block_id)<<")";
+      PrintInfo("FAILED to write block",block_id);
       continue;
     }
   }
@@ -716,7 +716,7 @@ void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield,
   Raccess->endRead();
   Waccess->endWrite();
 
-  VisusInfo()<<"Done in "<<T1.elapsedSec()<< "sec";
+  PrintInfo("Done in",T1.elapsedSec(),"sec");
 }
 
 

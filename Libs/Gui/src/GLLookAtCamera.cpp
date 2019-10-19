@@ -37,7 +37,6 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/GLLookAtCamera.h>
-#include <Visus/Log.h>
 
 namespace Visus {
 
@@ -360,7 +359,7 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport)
     {
       StringTree ar(this->getTypeName());
       this->write(ar);
-      VisusInfo() << ar.toString();
+      PrintInfo(ar.toString());
       evt->accept();
       return;
     }

@@ -146,6 +146,12 @@ BOOL WriteEventViewerLog(LPCSTR szBuffer[], WORD wNumStrings)
   return FALSE;
 }
 
+static void MyWriteLog(String msg, void*)
+{
+  LPCSTR szBuffer[1] = { msg.c_str() };
+  WriteEventViewerLog(szBuffer, 1);
+}
+
 ////////////////////////////////////////////////////
 class MyGlobalModule : public CGlobalModule
 {
@@ -162,12 +168,7 @@ public:
     SetCommandLine(argn, argv);
     IdxModule::attach();
 
-    RedirectLog = [](const String& msg)
-    {
-      LPCSTR szBuffer[1] = { msg.c_str() };
-      WriteEventViewerLog(szBuffer, 1);
-    };
-
+    RedirectLogTo(MyWriteLog, this);
     mod_visus = new ModVisus();
     mod_visus->configureDatasets();
   }
@@ -177,7 +178,7 @@ public:
   {
     delete mod_visus;
 
-    RedirectLog = nullptr;
+    RedirectLogTo(nullptr);
 
     // Test whether the handle for the Event Viewer is open.
     if (NULL != g_hEventLog)
@@ -301,7 +302,7 @@ public:
   //GetHttpModule
   virtual HRESULT GetHttpModule(OUT CHttpModule ** ppModule,IN IModuleAllocator * ) override
   {
-    VisusInfo() << "GetHttpModule";
+    PrintInfo("GetHttpModule");
 
     // Create a new instance.
     MyHttpModule * pModule = new MyHttpModule;
@@ -325,7 +326,7 @@ public:
   //Terminate
   virtual void Terminate() override
   {
-    VisusInfo() << "Terminate";
+    PrintInfo("Terminate");
     delete this;
   }
 };
@@ -584,6 +585,11 @@ public:
 
 static MimeTypes mime_types;
 
+static void MyWriteLog(String msg, void*)
+{
+  ap_log_perror(APLOG_MARK, APLOG_NOTICE, 0, NULL, "%s", msg.c_str());
+}
+
 /////////////////////////////////////////////////////////////////////////////
 class ApacheModVisus : public ModVisus
 {
@@ -600,11 +606,9 @@ public:
   //initialiseInCurrentProcess (to call only after the process has been forked)
   void initialiseInCurrentProcess()
   {
-    VisusInfo()<<"initialiseInCurrentProcess";
+    PrintInfo("initialiseInCurrentProcess");
 
-    RedirectLog=[](const String& msg) {
-      ap_log_perror(APLOG_MARK, APLOG_NOTICE, 0, NULL, "%s", msg.c_str());
-    };
+    RedirectLogTo(MyWriteLog, this);
 
     static int narg=1;
     static const char *argv[]={"mod_visus"};
@@ -617,9 +621,9 @@ public:
   //shutdownInCurrentProcess
   void shutdownInCurrentProcess()
   {
-    VisusInfo() << "shutdownInCurrentProcess";
+    PrintInfo("shutdownInCurrentProcess");
     IdxModule::detach();
-    RedirectLog=nullptr;
+    RedirectLogTo(nullptr);
   }
 
 
@@ -759,7 +763,7 @@ static int MyHookRequest(request_rec *apache_request)
       if (it!=mime_types.end()) 
         content_type=it->first.c_str();
       else
-        VisusInfo()<<"MIME TYPE NOT FOUND "<<temp << "! please add it as soon as possible";
+        PrintInfo("MIME TYPE NOT FOUND",temp,"! please add it as soon as possible");
     }
     else if (key=="Content-Length")
       ap_set_content_length(apache_request,cint(val)); 

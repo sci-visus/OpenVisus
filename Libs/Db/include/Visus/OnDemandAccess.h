@@ -159,13 +159,13 @@ public:
   //writeBlock
   virtual void writeBlock(SharedPtr<BlockQuery> query) override {
     VisusAssert(false);
-    VisusInfo() << "OnDemandAccess::write block not supported";
+    PrintInfo("OnDemandAccess::write block not supported");
     return writeFailed(query);
   }
 
   //printStatistics
   virtual void printStatistics() override {
-    VisusInfo() << "OnDemandAccess::printStatistics....";
+    PrintInfo("OnDemandAccess::printStatistics....");
   }
 
 private:

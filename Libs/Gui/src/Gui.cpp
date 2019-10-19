@@ -120,7 +120,7 @@ String QUtils::LoadTextFileFromResources(String name)
   if(!file.open(QFile::ReadOnly | QFile::Text))
   {
     VisusAssert(false);
-    VisusInfo() << " Could not open "<<name;
+    PrintInfo(" Could not open",name);
     return "";
   }
 
@@ -137,7 +137,7 @@ void GuiModule::attach()
   if (bAttached)  
     return;
   
-  VisusInfo() << "Attaching GuiModule...";
+  PrintInfo("Attaching GuiModule...");
 
   bAttached = true;
 
@@ -164,7 +164,7 @@ void GuiModule::attach()
   if (Int64 total = StringUtils::getByteSizeFromString(config->readString("Configuration/GLMemory/total", "0")))
     GLInfo::getSingleton()->setOsTotalMemory(total);
 
-  VisusInfo() << "Attached GuiModule";
+  PrintInfo("Attached GuiModule");
 }
 
 
@@ -174,7 +174,7 @@ void GuiModule::detach()
   if (!bAttached)  
     return;
   
-  VisusInfo() << "Detaching GuiModule...";
+  PrintInfo("Detaching GuiModule...");
   
   bAttached = false;
 
@@ -187,7 +187,7 @@ void GuiModule::detach()
 
   KernelModule::detach();
 
-  VisusInfo() << "Detached GuiModule";
+  PrintInfo("Detached GuiModule");
 }
 
 //////////////////////////////////////////////
