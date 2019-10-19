@@ -55,7 +55,7 @@ public:
 
   //constructor
   NodeWidget(DataflowFrameView* owner_,Node* node_) 
-    : owner(owner_),node(node_),titlebar(20),border(5),bDragging(false),mouse_cursor(Default),opacity(1.0f),title_color(getDefaultTitleColor())
+    : owner(owner_),node(node_),titlebar(20),border(5),bDragging(false),mouse_cursor(Default),title_color(getDefaultTitleColor())
   {
   }
 
@@ -254,7 +254,6 @@ private:
   int         titlebar;
   int         border;
   Rectangle2d original_bounds;
-  float       opacity;
 
   //refreshComponentBounds
   void refreshComponentBounds()

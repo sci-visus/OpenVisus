@@ -297,9 +297,9 @@ void RenderArrayNode::setData(Array value,SharedPtr<Palette> palette)
 
   PrintInfo("got array",
     "value",value.dims, value.dtype,
-    "texture" ,data_texture->dims, data_texture->dtype, StringUtils::getStringFromByteSize(data_texture->dtype.getByteSize(this->data_texture->dims))),
+    "texture" ,data_texture->dims, data_texture->dtype, StringUtils::getStringFromByteSize(data_texture->dtype.getByteSize(this->data_texture->dims)),
     "got_new_data", got_new_data,
-    "msec",t1.elapsedMsec();
+    "msec", t1.elapsedMsec());
 }
 
 

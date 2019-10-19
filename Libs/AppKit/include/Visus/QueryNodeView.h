@@ -298,7 +298,7 @@ private:
     
     widgets.saveButton = new QPushButton("Save");
     
-    connect(widgets.saveButton, &QPushButton::clicked, [this,dataset,time_node]()
+    connect(widgets.saveButton, &QPushButton::clicked, [this,dataset]()
     {
       int end_resolution = this->widgets.end_resolution->value();
       auto query = createQuery(model, end_resolution);

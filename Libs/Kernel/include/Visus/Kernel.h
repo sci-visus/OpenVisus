@@ -143,6 +143,7 @@ VISUS_KERNEL_API inline String     cstring(int    v)            { return std::to
 VISUS_KERNEL_API inline String     cstring(Uint32 v)            { return std::to_string(v); }
 VISUS_KERNEL_API inline String     cstring(float  v)            { return std::to_string(v); }
 VISUS_KERNEL_API inline String     cstring(double v)            { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring(size_t v)            { return std::to_string(v); }
 VISUS_KERNEL_API inline String     cstring(Int64  v)            { return std::to_string(v); }
 VISUS_KERNEL_API inline String     cstring(Uint64 v)            { return std::to_string(v); }
 VISUS_KERNEL_API inline String     cstring(const String& value) { return value; }
