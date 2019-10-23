@@ -137,15 +137,14 @@ namespace Math {
 
 typedef std::string String;
 
-VISUS_KERNEL_API inline String     cstring()                    { return ""; }
-VISUS_KERNEL_API inline String     cstring(bool   v)            { return v ? "True" : "False"; }
-VISUS_KERNEL_API inline String     cstring(int    v)            { return std::to_string(v); }
-VISUS_KERNEL_API inline String     cstring(Uint32 v)            { return std::to_string(v); }
-VISUS_KERNEL_API inline String     cstring(float  v)            { return std::to_string(v); }
-VISUS_KERNEL_API inline String     cstring(double v)            { return std::to_string(v); }
-VISUS_KERNEL_API inline String     cstring(size_t v)            { return std::to_string(v); }
-VISUS_KERNEL_API inline String     cstring(Int64  v)            { return std::to_string(v); }
-VISUS_KERNEL_API inline String     cstring(Uint64 v)            { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring()                     { return ""; }
+VISUS_KERNEL_API inline String     cstring(bool    v)            { return v ? "True" : "False"; }
+VISUS_KERNEL_API inline String     cstring(Int32   v)            { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring(Uint32  v)            { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring(Float32 v)            { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring(Float64 v)            { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring(Int64   v)            { return std::to_string(v); }
+VISUS_KERNEL_API inline String     cstring(Uint64  v)            { return std::to_string(v); }
 VISUS_KERNEL_API inline String     cstring(const String& value) { return value; }
 VISUS_KERNEL_API inline String     cstring(const char* value)   { return String(value); }
 

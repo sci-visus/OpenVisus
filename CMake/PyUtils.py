@@ -19,18 +19,24 @@ def Assert(condition):
 
 
 # ////////////////////////////////////////////////////////////////////////////////
-def ParseDouble(value):
+def ParseDouble(value,default_value=0.0):
+
+	if isinstance(value,str) and len(value)==0:
+		return default_value
 	try:
 		return float(value)
 	except:
-		return 0.0
+		return default_value
 
 # ////////////////////////////////////////////////////////////////////////////////
-def ParseInt(value):
+def ParseInt(value,default_value=0):
+
+	if isinstance(value,str) and len(value)==0:
+		return default_value
 	try:
 		return int(value)
 	except:
-		return 0			
+		return default_value			
 	
 # ////////////////////////////////////////////////////////////////////////////////
 def LoadTextDocument(filename):
@@ -169,8 +175,11 @@ def ConvertImageToGrayScale(img):
 		return img[:,:,0] 
 
 # ////////////////////////////////////////////////////////////////////////////////
-def ResizeImage(src,width,height=0):
-	return cv2.resize(src, (width,height if height>0 else int(src.shape[0] / float(src.shape[1]) * width)), interpolation=cv2.INTER_CUBIC)
+def ResizeImage(src,max_size):
+	H,W=src.shape[0:2]
+	vs=max_size/float(max([W,H]))
+	if vs>=1.0: return src
+	return cv2.resize(src, (int(vs*W),int(vs*H)), interpolation=cv2.INTER_CUBIC)
 
 
 # //////////////////////////////////////////////
