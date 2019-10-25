@@ -2,6 +2,8 @@ import os,sys
 import numpy
 import cv2
 import glob
+import threading
+import time
 
 from OpenVisus import *
 
@@ -83,6 +85,46 @@ def ExecuteCommand(cmd):
 	print(" ".join(cmd))
 	subprocess.Popen(cmd).wait()
 			
+
+
+
+
+# ///////////////////////////////////////////////////////////////////////
+def RunJobsInParallel(jobs, advance_callback=None, nthreads=8):
+
+	class MyThread(threading.Thread):
+
+		# constructor
+		def __init__(self):
+			super(MyThread, self).__init__()
+
+		# run
+		def run(self):
+			for job in self.jobs:
+				self.jobDone(job())
+
+	nthreads=min(nthreads,len(jobs))
+	threads,results=[],[]
+	for WorkerId in range(nthreads):
+		thread=MyThread()
+		threads.append(thread)
+		thread.jobs=[job for I,job in enumerate(jobs)  if (I % nthreads)==WorkerId]
+		thread.jobDone=lambda result: results.append(result)
+		thread.start()
+			
+	while True:
+
+		time.sleep(0.01)
+
+		if len(results)==len(jobs):
+			[thread.join() for thread in threads]
+			return results
+
+		if advance_callback:
+				advance_callback(len(results))
+
+
+
 # ////////////////////////////////////////////////////////////////////////////////
 def TryRemoveFiles(mask):
 
@@ -252,6 +294,21 @@ def ComputeGradientImage(src):
 def ConvertImageToUint8(img):
 	if img.dtype==numpy.uint8: return img
 	return (NormalizeImage32f(img) * 255).astype('uint8')
+
+# ////////////////////////////////////////////////////////////////////////////////
+def ComposeImage(images, axis):
+	H = [single.shape[0] for single in images]
+	W = [single.shape[1] for single in images]
+	W,H=[(sum(W),max(H)),(max(W), sum(H))][axis]
+	shape=list(images[0].shape)
+	shape[0],shape[1]=H,W
+	ret=numpy.zeros(shape=shape,dtype=images[0].dtype)
+	cur=[0,0]
+	for single in images:
+		H,W=single.shape[0],single.shape[1]
+		ret[cur[1]:cur[1]+H,cur[0]:cur[0]+W,:]=single
+		cur[axis]+=[W,H][axis]
+	return ret
 
 # ////////////////////////////////////////////////////////////////////////////////
 def SaveImage(filename,img):
