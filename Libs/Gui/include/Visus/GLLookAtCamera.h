@@ -78,24 +78,24 @@ public:
     setProperty("SplitFrustum", this->split_frustum, value);
   }
 
-  //getPos
-  Point3d getPos() const {
+  //getPosition
+  Point3d getPosition() const {
     return pos;
   }
 
-  //setPos
-  void setPos(Point3d value) {
-    setProperty("SetPos", this->pos, value);
+  //setPosition
+  void setPosition(Point3d value) {
+    setProperty("SetPosition", this->pos, value);
   }
 
-  //getDir
-  Point3d getDir() const {
+  //getDirection
+  Point3d getDirection() const {
     return dir;
   }
 
-  //setDir
-  void setDir(Point3d value) {
-    setProperty("SetDir", this->dir, value);
+  //setDirection
+  void setDirection(Point3d value) {
+    setProperty("SetDirection", this->dir, value);
   }
 
   //getVup
@@ -103,15 +103,15 @@ public:
     return vup;
   }
 
-  //setVup
-  void setVup(Point3d value) {
-    setProperty("SetVup", this->vup, value);
+  //setViewUp
+  void setViewUp(Point3d value) {
+    setProperty("SetViewUp", this->vup, value);
   }
 
   //getLookAt
   virtual void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const override {
-    pos = getPos();
-    dir = getDir();
+    pos = getPosition();
+    dir = getDirection();
     vup = getVup();
   }
 
@@ -172,7 +172,7 @@ public:
 public:
 
   //execute
-  virtual void execute(Archive& in) override;
+  virtual void execute(Archive& ar) override;
 
   //write
   virtual void write(Archive& ar) const override;

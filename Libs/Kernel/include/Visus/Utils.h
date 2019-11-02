@@ -76,17 +76,6 @@ namespace Utils
     return ret;
   }
 
-  //push_front
-  template <typename Vector, typename Value>
-  void push_front(Vector& v, Value value) {
-    v.insert(v.begin(),value);
-  }
-
-  //push_back
-  template <typename Vector, typename Value>
-  void push_back(Vector& v, Value value) {
-    v.push_back(value);
-  }
 
   //select
   template <typename T>

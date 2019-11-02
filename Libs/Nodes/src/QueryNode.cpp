@@ -333,10 +333,10 @@ Frustum QueryNode::logicToScreen()
 
 
 ///////////////////////////////////////////////////////////////////////////
-void QueryNode::setBounds(Position new_value, bool bForce) 
+void QueryNode::setBounds(Position new_value) 
 {
   auto& old_value = this->node_bounds;
-  if (old_value == new_value && !bForce) 
+  if (old_value == new_value) 
     return;
 
   beginUpdate(

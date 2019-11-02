@@ -257,22 +257,17 @@ void TransferFunction::setNumberOfSamples(int new_value)
   if (new_value == old_value || functions.empty())
     return;
 
+  auto undo = Transaction();
+  undo.addChild(StringTree("SetNumberOfSamples").write("value", cstring(old_value)));
+  for (int F = 0; F < getNumberOfFunctions(); F++)
+    undo.addChild(DrawValues(F, 0, getNumberOfSamples() - 1, functions[F]->values));
+
   beginUpdate(
     StringTree("SetNumberOfSamples").write("value", cstring(new_value)),
-    Transaction());
+    undo);
   {
-    //this will be executed at the end
-    topUndo().addChild(StringTree("SetNumberOfSamples").write("value", cstring(old_value)));
-
-    int x1 = 0;
-    int x2 = getNumberOfSamples() - 1;
-
     for (int F = 0; F < getNumberOfFunctions(); F++)
-    {
-      auto fn = functions[F];
-      topUndo().addChild(DrawValues(F, x1, x2, fn->values));
-      fn->setNumberOfSamples(new_value);
-    }
+      functions[F]->setNumberOfSamples(new_value);
   }
   endUpdate();
 }
@@ -361,7 +356,9 @@ void TransferFunction::drawLine(int function, int x1, double y1,int x2, double y
   if (old_values == new_values)
     return;
 
-  beginUpdate(DrawLine(function, x1, y1, x2, y2), DrawValues(function, x1, x2, old_values));
+  beginUpdate(
+    DrawLine(function, x1, y1, x2, y2), 
+    DrawValues(function, x1, x2, old_values));
   {
     this->default_name = "";
 

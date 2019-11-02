@@ -239,7 +239,7 @@ public:
     return input_normalization_mode;
   }
 
-  //setInputRange
+  //setInputNormalizationMode
   void setInputNormalizationMode(int value) {
     setProperty("SetInputNormalizationMode", this->input_normalization_mode, value);
   }

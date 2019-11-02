@@ -69,7 +69,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(Model)
 
-  Signal<void()> begin_update;
+  //begin_update
+  Signal<void()>  begin_update;
 
   //end_update
   Signal<void()> end_update;
@@ -98,25 +99,23 @@ public:
   void clearHistory();
 
   //getHistory
-  const StringTree& getHistory() const {
-    return history;
-  }
+  StringTree getHistory() const;
 
 public:
 
   //isUpdating
   inline bool isUpdating() const {
-    return redo_stack.size() > 0;
+    return stack.size() > 0;
   }
 
-  //topRedo
-  StringTree& topRedo() {
-    return redo_stack.top();
+  //lastRedo
+  StringTree lastRedo() const {
+    return history.back().redo;
   }
 
-  //topUndo
-  StringTree& topUndo() {
-    return undo_stack.top();
+  //lastUndo
+  StringTree lastUndo() const {
+    return history.back().undo;;
   }
 
   //beginUpdate
@@ -124,6 +123,12 @@ public:
 
   //endUpdate
   void endUpdate();
+
+  //addUpdate
+  void addUpdate(StringTree redo, StringTree undo) {
+    beginUpdate(redo, undo);
+    endUpdate();
+  }
 
   //beginTransaction
   void beginTransaction() {
@@ -140,20 +145,11 @@ public:
     return StringTree("Transaction");
   }
 
-  //isTransaction
-  bool isTransaction(const StringTree& action) const {
-    return action.name == Transaction().name;
-  }
+  //beginDiff
+  void beginDiff();
 
-  //Diff
-  static StringTree Diff() {
-    return StringTree("Diff");
-  }
-
-  //isDiff
-  bool isDiff(const StringTree& action) const {
-    return action.name == Diff().name;
-  }
+  //endDiff
+  void endDiff();
 
 public:
 
@@ -185,41 +181,7 @@ public:
     endUpdate();
   }
 
-  //pushTargetId
-  static StringTree pushTargetId(String left, const StringTree& action) {
-    //i want the target_id at the beginning of attributes
-    auto ret = action;
-    ret.removeAttribute("target_id");
-    ret.attributes.insert(ret.attributes.begin(), std::make_pair("target_id", action.readString("target_id").empty()? left : left + "/" + action.readString("target_id")));
-    return ret;
-  }
-
-  //popTargetId
-  static String popTargetId(StringTree& action)
-  {
-    auto v = StringUtils::split(action.readString("target_id"), "/");
-    if (v.empty()) return "";
-    auto left = v[0];
-    auto right = StringUtils::join(std::vector<String>(v.begin() + 1, v.end()), "/");
-
-    //i want the target_id at the beginning of attributes
-    action.removeAttribute("target_id");  
-    action.attributes.insert(action.attributes.begin(), std::make_pair("target_id", right));
-    return left;
-  }
-
-  //popTargetId
-  static bool popTargetId(String left, StringTree& action) {
-    auto v = StringUtils::split(action.readString("target_id"), "/");
-    if (v.empty() || v[0] != left) return false;
-    popTargetId(action);
-    return true;
-  }
-
 public:
-
-  //decode
-  static void decode(Model& dst, StringTree encoded);
 
   //copy
   static void copy(Model& dst, const Model& src);
@@ -242,6 +204,9 @@ public:
   //undo
   bool undo();
 
+  //applyPatch
+  void applyPatch(String text);
+
 public:
 
   //addView
@@ -257,7 +222,7 @@ public:
 public:
 
   //execute
-  virtual void execute(Archive& action);
+  virtual void execute(Archive& ar);
 
   //write
   virtual void write(Archive& ar) const  = 0;
@@ -273,23 +238,56 @@ protected:
 
 private:
 
-  typedef std::pair<StringTree, StringTree> UndoRedo;
+  typedef struct
+  {
+    StringTree redo;
+    StringTree undo;
+  }
+  UndoRedo;
 
-  StringTree               history;
+  Int64                    utc = 0;
+  std::vector<UndoRedo>    history;
   String                   log_filename;
   std::ofstream            log;
-  std::stack<StringTree>   redo_stack;
-  std::stack<StringTree>   undo_stack;
+  bool                     bUndoingRedoing = false;
+  std::stack<UndoRedo>     stack;
   std::vector<UndoRedo>    undo_redo;
   int                      cursor_undo_redo = 0;
-  bool                     bUndoing = false;
-  bool                     bRedoing = false;
-  Int64                    utc=0;
   StringTree               diff_begin;
+
+  //simplify
+  StringTree simplify(StringTree action);
 
 };
 
 
+inline StringTree CreatePassThroughAction(String left, const StringTree& action) {
+  //i want the target_id at the beginning of attributes
+  auto ret = action;
+  ret.removeAttribute("target_id");
+  ret.attributes.insert(ret.attributes.begin(), std::make_pair("target_id", action.readString("target_id").empty() ? left : left + "/" + action.readString("target_id")));
+  return ret;
+}
+
+inline String PopTargetId(StringTree& action)
+{
+  auto v = StringUtils::split(action.readString("target_id"), "/");
+  if (v.empty()) return "";
+  auto left = v[0];
+  auto right = StringUtils::join(std::vector<String>(v.begin() + 1, v.end()), "/");
+
+  //i want the target_id at the beginning of attributes
+  action.removeAttribute("target_id");
+  action.attributes.insert(action.attributes.begin(), std::make_pair("target_id", right));
+  return left;
+}
+
+inline bool GetPassThroughAction(String left, StringTree& action) {
+  auto v = StringUtils::split(action.readString("target_id"), "/");
+  if (v.empty() || v[0] != left) return false;
+  PopTargetId(action);
+  return true;
+}
 
 template <class Value>
 inline StringTree EncodeObject(String name, const Value& value)
@@ -340,7 +338,7 @@ public:
 
     if (this->model) 
     {
-      this->model->end_update.connect(changed_slot=Slot<void()>([this] {
+      this->model->end_update.connect(changed_slot=Slot<void()>([this]() {
         modelChanged();
       }));
 

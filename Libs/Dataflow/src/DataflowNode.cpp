@@ -64,7 +64,7 @@ String Node::getTypeName() const
 
 ////////////////////////////////////////////////////////////
 void Node::execute(Archive& ar) 
-{  
+{
   if (ar.name == "SetName")
   {
     String value;

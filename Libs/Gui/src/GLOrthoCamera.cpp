@@ -330,7 +330,7 @@ GLOrthoParams GLOrthoCamera::checkZoomRange(GLOrthoParams value, const Viewport&
 void GLOrthoCamera::setLookAt(Point3d pos, Point3d dir, Point3d vup, double rotation)
 {
   beginUpdate(
-    StringTree("SetLookAt").write("pos", pos.toString()).write("dir", dir.toString()).write("vup", vup.toString()).write("rotation", rotation),
+    StringTree("SetLookAt").write("pos",       pos.toString()).write("dir",       dir.toString()).write("vup",       vup.toString()).write("rotation",       rotation),
     StringTree("SetLookAt").write("pos", this->pos.toString()).write("dir", this->dir.toString()).write("vup", this->vup.toString()).write("rotation", this->rotation));
   {
     this->pos = pos;

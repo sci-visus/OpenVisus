@@ -102,7 +102,7 @@ CpuPaletteNode::~CpuPaletteNode()
 ///////////////////////////////////////////////////////////////////////
 void CpuPaletteNode::execute(Archive& ar)
 {
-  if (popTargetId("transfer_function", ar))
+  if (GetPassThroughAction("transfer_function", ar))
   {
     transfer_function->execute(ar);
     return;
@@ -117,7 +117,7 @@ void CpuPaletteNode::setTransferFunction(SharedPtr<TransferFunction> value)
   if (this->transfer_function)
   {
     this->transfer_function->begin_update.disconnect(this->transfer_function_begin_update_slot);
-    this->transfer_function->end_update.disconnect(this->transfer_function_changed_slot);
+    this->transfer_function->end_update  .disconnect(this->transfer_function_changed_slot);
   }
 
   this->transfer_function=value;
@@ -125,17 +125,16 @@ void CpuPaletteNode::setTransferFunction(SharedPtr<TransferFunction> value)
   if (this->transfer_function)
   {
     this->transfer_function->begin_update.connect(this->transfer_function_begin_update_slot=[this](){
-      beginUpdate(
-        StringTree("BeginUpdate"),
-        StringTree("BeginUpdate"));
+      beginTransaction();
     });
 
-    this->transfer_function->end_update.connect(this->transfer_function_changed_slot=[this](){
-      //replace top action
-      this->topUndo() = pushTargetId("transfer_function", transfer_function->topRedo());
-      this->topUndo() = pushTargetId("transfer_function", transfer_function->topUndo());
-      endUpdate();
+    this->transfer_function->end_update.connect(this->transfer_function_changed_slot = [this]() {
+      addUpdate(
+        CreatePassThroughAction("transfer_function", transfer_function->lastRedo()),
+        CreatePassThroughAction("transfer_function", transfer_function->lastUndo()));
+      endTransaction();
     });
+
   }
 }
 

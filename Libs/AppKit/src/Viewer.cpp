@@ -178,9 +178,9 @@ void Viewer::printInfo(String msg)
 void Viewer::execute(Archive& ar)
 {
   //action directed to nodes?
-  if (popTargetId("nodes", ar))
+  if (GetPassThroughAction("nodes", ar))
   {
-    auto uuid = popTargetId(ar);
+    auto uuid = PopTargetId(ar);
     auto node = findNodeByUUID(uuid); VisusAssert(node);
     node->execute(ar);
     return;
@@ -330,7 +330,6 @@ void Viewer::execute(Archive& ar)
     return;
   }
 
-
   if (ar.name == "AddSlice")
   {
     String parent, fieldname; int  access_id;
@@ -421,7 +420,7 @@ void Viewer::execute(Archive& ar)
     return;
   }
 
-  if (ar.name == "AddOSPray") {
+  if (ar.name == "AddOSPRay") {
     String parent, palette;
     ar.read("parent", parent);
     ar.read("palette", palette);
@@ -1646,25 +1645,25 @@ void Viewer::addNode(Node* parent,Node* node,int index)
     return;
 
   node->begin_update.connect([this](){
-    beginUpdate(
-      StringTree("BeginUpdate"),
-      StringTree("BeginUpdate"));
+    beginTransaction();
   });
 
   node->end_update.connect([this,node]()
   {
-    //replace top action
-    this->topRedo() = pushTargetId(String("nodes") + "/" + getUUID(node), node->topRedo());
-    this->topUndo() = pushTargetId(String("nodes") + "/" + getUUID(node), node->topUndo());
+    beginUpdate(
+      CreatePassThroughAction(concatenate("nodes", "/", getUUID(node)), node->lastRedo()),
+      CreatePassThroughAction(concatenate("nodes", "/", getUUID(node)), node->lastUndo()));
+    {
+      //if something changes in the query...
+      if (auto query_node = dynamic_cast<QueryNode*>(node))
+        refreshNode(query_node);
 
-    //if something changes in the query...
-    if (auto query_node = dynamic_cast<QueryNode*>(node))
-      refreshNode(query_node);
-
-    else if (auto modelview_node=dynamic_cast<ModelViewNode*>(node))
-      refreshNode(modelview_node);
-
+      else if (auto modelview_node = dynamic_cast<ModelViewNode*>(node))
+        refreshNode(modelview_node);
+    }
     endUpdate();
+
+    endTransaction();
   });
 
   dropSelection();
@@ -1703,14 +1702,16 @@ void Viewer::removeNode(Node* NODE)
     dropProcessing();
     dropSelection();
 
-    for (auto node : NODE->reversedBreadthFirstSearch())
+    auto rev = NODE->reversedBreadthFirstSearch();
+
+    //first disconnect all ports
+    for (auto node : rev)
     {
       VisusAssert(node->getChilds().empty());
 
       if (auto glcamera_node = dynamic_cast<GLCameraNode*>(node))
         detachGLCamera();
 
-      //disconnect inputs
       for (auto input : node->inputs)
       {
         DataflowPort* iport = input.second; VisusAssert(iport->outputs.empty());//todo multi dataflow
@@ -1721,7 +1722,6 @@ void Viewer::removeNode(Node* NODE)
         }
       }
 
-      //disconnect outputs
       for (auto output : node->outputs)
       {
         auto oport = output.second; VisusAssert(oport->inputs.empty());//todo multi dataflow
@@ -1731,20 +1731,23 @@ void Viewer::removeNode(Node* NODE)
           disconnectNodes(oport->getNode(), oport->getName(), iport->getName(), iport->getNode());
         }
       }
+    }
 
+    //then remove the nodes
+    for (auto node : rev)
+    {
       VisusAssert(node->isOrphan());
 
-      StringTree encoded(node->getTypeName());
-      node->write(encoded);
-
-      Utils::push_front(
-        topUndo().childs,
-        std::make_shared<StringTree>(
-          StringTree("AddNode")
-            .write("parent", getUUID(node->getParent()))
-            .write("index", cstring(node->getIndexInParent())).addChild(encoded)));
-
-      dataflow->removeNode(node);
+      beginUpdate(
+        StringTree(),
+        StringTree(StringTree("AddNode")
+          .write("parent", getUUID(node->getParent()))
+          .write("index", cstring(node->getIndexInParent()))
+          .addChild(EncodeObject(node->getTypeName(), *this))));
+      {
+        dataflow->removeNode(node);
+      }
+      endUpdate();
     }
 
     autoConnectNodes();
@@ -1855,7 +1858,7 @@ void Viewer::refreshNode(Node* node)
   {
     if (auto query_node=dynamic_cast<QueryNode*>(node))
     {
-      query_node->setBounds(query_node->getBounds(),/*bForce*/true);
+      dataflow->needProcessInput(query_node);
     }
     else if (auto modelview_node=dynamic_cast<ModelViewNode*>(node))
     {
@@ -1941,7 +1944,7 @@ GLCameraNode* Viewer::addGLCamera(Node* parent, String type)
 
   beginUpdate(
     StringTree("AddGLCamera")
-      .writeIfNotDefault("parent", getUUID(parent), getUUID(getRoot()))
+      .write("parent", getUUID(parent))
       .write("type",type),
     StringTree("RemoveNode").write("value",getUUID(glcamera_node)));
   {
@@ -2000,7 +2003,7 @@ Node* Viewer::addOSPRay(Node* parent, String palette)
   dropSelection();
 
   beginUpdate(
-    StringTree("AddOSPray").write("parent", getUUID(parent)).write("palette", palette),
+    StringTree("AddOSPRay").write("parent", getUUID(parent)).write("palette", palette),
     StringTree("RemoveNode").write("value",getUUID(render_node)));
   {
     addNode(parent, render_node);
@@ -2423,7 +2426,7 @@ ModelViewNode* Viewer::addModelView(Node* parent,bool insert)
 
   beginUpdate(
     StringTree("AddModelView").write("parent", getUUID(parent)).write("insert", insert),
-    insert? Transaction() : StringTree("RemoveNode").write("value", getUUID(modelview_node)));
+    Transaction());
   {
     if (insert)
     {
@@ -2581,7 +2584,7 @@ void Viewer::write(Archive& ar) const
       .addChild(encoded));
   }
 
-  //ConnectNodes actions
+  //connectNodes actions
   for (auto node : dataflow->getNodes())
   {
     for (auto OT = node->outputs.begin(); OT != node->outputs.end(); OT++)
@@ -2613,10 +2616,10 @@ void Viewer::read(Archive& ar)
   String git_revision;
   ar.read("git_revision", git_revision);
 
-  for (auto action : ar.childs)
+  for (auto child : ar.childs)
   {
-    if (action->isHash()) continue;
-    this->execute(*action);
+    if (!child->isHash())
+      this->execute(*child);
   }
 }
 

@@ -653,7 +653,7 @@ public:
 
     PrintInfo("done fixFieldsRange");
 
-    Archive ar("fields");
+    StringTree ar("fields");
     for (auto field : vf->getFields())
       ar.writeObject("field", field);
     PrintInfo(ar);

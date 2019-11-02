@@ -50,24 +50,24 @@ void GLLookAtCamera::execute(Archive& ar)
     return;
   }
 
-  if (ar.name == "SetPos") {
+  if (ar.name == "SetPosition") {
     Point3d value;
     ar.read("value", value);
-    setPos(value);
+    setPosition(value);
     return;
   }
 
-  if (ar.name == "SetDir") {
+  if (ar.name == "SetDirection") {
     Point3d value;
     ar.read("value", value);
-    setDir(value);
+    setDirection(value);
     return;
   }
 
-  if (ar.name == "SetVup") {
+  if (ar.name == "SetViewUp") {
     Point3d value;
     ar.read("value", value);
-    setVup(value);
+    setViewUp(value);
     return;
   }
 
@@ -142,9 +142,9 @@ bool GLLookAtCamera::guessPosition(BoxNd bounds, int ref)
   beginTransaction();
   {
     setBounds(bounds);
-    setPos(pos);
-    setDir(dir);
-    setVup(vup);
+    setPosition(pos);
+    setDirection(dir);
+    setViewUp(vup);
     setRotation(Quaternion());
     setRotationCenter(center);
     setFov(60.0);
@@ -300,7 +300,7 @@ void GLLookAtCamera::glMouseMoveEvent(QMouseEvent* evt, const Viewport& viewport
 
     auto dx = (((p1.x - p2.x) / viewport.width ) * pan_factor * guessForwardFactor()) * right;
     auto dy = (((p1.y - p2.y) / viewport.height) * pan_factor * guessForwardFactor()) * up;
-    setPos(this->pos + dx  + dy );
+    setPosition(this->pos + dx  + dy );
 
     evt->accept();
     return;
@@ -321,7 +321,7 @@ void GLLookAtCamera::glMouseReleaseEvent(QMouseEvent* evt, const Viewport& viewp
 void GLLookAtCamera::glWheelEvent(QWheelEvent* evt, const Viewport& viewport)
 {
   auto vt = (evt->delta() < 0 ? -1 : +1) * guessForwardFactor() * this->dir;
-  setPos(this->pos + vt);
+  setPosition(this->pos + vt);
   evt->accept();
 }
 

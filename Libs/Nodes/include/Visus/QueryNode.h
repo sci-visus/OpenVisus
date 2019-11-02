@@ -125,7 +125,7 @@ public:
   }
 
   //setBounds
-  void setBounds(Position value, bool bForce = false);
+  void setBounds(Position value);
 
   //getQueryBounds
   Position getQueryBounds() const {

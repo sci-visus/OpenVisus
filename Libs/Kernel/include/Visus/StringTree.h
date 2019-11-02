@@ -61,8 +61,8 @@ public:
 
   VISUS_CLASS(StringTree)
 
-    //name
-    String name;
+  //name
+  String name;
 
   //attributes
   std::vector< std::pair<String, String> > attributes;
@@ -71,7 +71,11 @@ public:
   std::vector< SharedPtr<StringTree> > childs;
 
   // constructor
-  StringTree(String name_ = "") : name(name_) {
+  StringTree() {
+  }
+
+  // constructor
+  explicit StringTree(String name_ ) : name(name_) {
   }
 
   //copy constructor
@@ -80,7 +84,7 @@ public:
   }
 
   //destructor
-  virtual ~StringTree() {
+  ~StringTree() {
   }
 
   //valid
