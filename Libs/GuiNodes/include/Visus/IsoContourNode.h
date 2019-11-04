@@ -96,7 +96,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(IsoContourNode)
 
   //constructor
-  IsoContourNode(String name="");
+  IsoContourNode();
 
   //destructor
   virtual ~IsoContourNode();

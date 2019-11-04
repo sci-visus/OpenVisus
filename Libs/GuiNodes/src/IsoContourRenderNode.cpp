@@ -132,7 +132,7 @@ void IsoContourRenderNode::releaseShaders()
 }
 
 ///////////////////////////////////////////////////////////////////////////
-IsoContourRenderNode::IsoContourRenderNode(String name) : Node(name) 
+IsoContourRenderNode::IsoContourRenderNode() 
 {
   addInputPort("mesh");
   addInputPort("palette"); //if provided, can color the vertices by (say) height

@@ -54,7 +54,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(FieldNode)
 
   //constructor
-  FieldNode(String name="", String fieldname="");
+  FieldNode();
 
   //destructor
   virtual ~FieldNode();

@@ -161,7 +161,7 @@ void RenderArrayNode::releaseShaders()
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-RenderArrayNode::RenderArrayNode(String name) : Node(name)
+RenderArrayNode::RenderArrayNode()
 {
   addInputPort("array");
   addInputPort("palette");

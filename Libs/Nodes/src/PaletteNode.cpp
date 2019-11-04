@@ -74,7 +74,7 @@ public:
 
 
 ///////////////////////////////////////////////////////////////////////
-PaletteNode::PaletteNode(String name,String default_palette) : Node(name)
+PaletteNode::PaletteNode(String default_palette) 
 {
   //in case you want to show statistics when you are editing the palette
   //to enable statistics, connect it

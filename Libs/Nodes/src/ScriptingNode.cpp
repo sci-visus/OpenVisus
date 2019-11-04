@@ -187,7 +187,7 @@ public:
 #endif //VISUS_PYTHON
 
 ///////////////////////////////////////////////////////////////////////
-ScriptingNode::ScriptingNode(String name)  : Node(name)
+ScriptingNode::ScriptingNode()  
 {
 #if VISUS_PYTHON
   this->engine = std::make_shared<PythonEngine>(false);

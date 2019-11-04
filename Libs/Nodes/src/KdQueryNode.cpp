@@ -517,7 +517,7 @@ public:
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-KdQueryNode::KdQueryNode(String name) : QueryNode(name) {
+KdQueryNode::KdQueryNode() {
   removeOutputPort("array");
   addOutputPort("kdarray");
 }

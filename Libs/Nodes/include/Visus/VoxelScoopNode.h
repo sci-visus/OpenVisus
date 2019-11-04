@@ -78,7 +78,7 @@ public:
   typedef Visus::Graph< GraphNode,GraphEdge > TrimGraph;
 
   //constructor
-  VoxelScoopNode(String name="");
+  VoxelScoopNode();
 
   //destructor
   ~VoxelScoopNode() {

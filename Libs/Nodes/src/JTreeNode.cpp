@@ -620,7 +620,7 @@ public:
 
 
 ////////////////////////////////////////////////////////////
-JTreeNode::JTreeNode(String name)  : Node(name)
+JTreeNode::JTreeNode()  
 {
   addInputPort("array");
 

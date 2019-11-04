@@ -44,7 +44,7 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////
-Node::Node(String name) :  name(name),dataflow(nullptr),visible(true),parent(nullptr),uuid("")
+Node::Node() :  dataflow(nullptr),visible(true),parent(nullptr),uuid("")
 {
 }
 

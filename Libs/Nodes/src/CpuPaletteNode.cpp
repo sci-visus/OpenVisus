@@ -84,7 +84,7 @@ public:
 
 
 ///////////////////////////////////////////////////////////////////////
-CpuPaletteNode::CpuPaletteNode(String name,SharedPtr<TransferFunction> tf)  : Node(name)
+CpuPaletteNode::CpuPaletteNode(SharedPtr<TransferFunction> tf)  
 {
   addInputPort("array");
   addOutputPort("array");

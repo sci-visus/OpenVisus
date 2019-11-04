@@ -335,7 +335,7 @@ void Dataflow::addNode(Node* parent,Node* node,int index)
   this->nodes.push_back(node);
   node->dataflow=this;
   String uuid=node->getUUID();
-  VisusAssert(uuids.find(uuid)==uuids.end());
+  VisusReleaseAssert(uuids.find(uuid)==uuids.end());
   uuids[uuid]=node;
 
   node->enterInDataflow();

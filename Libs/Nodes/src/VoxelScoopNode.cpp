@@ -975,7 +975,7 @@ public:
 
 
 ////////////////////////////////////////////////////////////
-VoxelScoopNode::VoxelScoopNode(String name) :  Node(name)
+VoxelScoopNode::VoxelScoopNode() 
 {
   addInputPort("graph");//use this to get seed points, always Graph<Point3f,float>
   addInputPort("array");

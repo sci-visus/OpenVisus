@@ -58,7 +58,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(JTreeRenderNode)
 
   // construct a join tree or a split tree
-  JTreeRenderNode(String name=""); 
+  JTreeRenderNode(); 
 
   //destructor
   virtual ~JTreeRenderNode();

@@ -42,8 +42,7 @@ namespace Visus {
 
 
 //////////////////////////////////////////////////////////////////////////
-DatasetNode::DatasetNode(String name) 
-  : Node(name),show_bounds(true)
+DatasetNode::DatasetNode() 
 {
   addOutputPort("dataset",DataflowPort::StoreOnlyOnePersistentValue);
 }

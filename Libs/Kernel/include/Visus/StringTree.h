@@ -83,6 +83,16 @@ public:
     operator=(other);
   }
 
+  //recursive
+#if !SWIG
+  template <typename Value, typename... Args>
+  explicit StringTree(String name, String key, Value value, Args&&... args) : StringTree(name) {
+    write(key, value);
+    for (auto it : StringTree(name, std::forward<Args>(args)...).attributes)
+      write(it.first, it.second);
+  }
+#endif
+
   //destructor
   ~StringTree() {
   }

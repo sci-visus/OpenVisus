@@ -58,7 +58,7 @@ public:
   VISUS_PIMPL_CLASS(OSPRayRenderNode)
 
   //constructor
-  OSPRayRenderNode(String name = "");
+  OSPRayRenderNode();
 
   //destructor
   virtual ~OSPRayRenderNode();

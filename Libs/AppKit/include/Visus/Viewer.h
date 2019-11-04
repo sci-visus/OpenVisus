@@ -547,58 +547,58 @@ public:
 public:
 
   //addWorld
-  Node* addWorld();
+  Node* addWorld(String uuid);
 
   //addDataset
-  DatasetNode* addDataset(Node* parent, SharedPtr<Dataset> dataset);
+  DatasetNode* addDataset(String uuid, Node* parent, SharedPtr<Dataset> dataset);
 
   //addDataset
-  DatasetNode* addDataset(Node* parent, String url, StringTree config = StringTree()) {
+  DatasetNode* addDataset(String uuid, Node* parent, String url, StringTree config = StringTree()) {
     auto dataset = LoadDatasetEx(url, config ? config : this->config);
-    return addDataset(parent, dataset);
+    return addDataset(uuid, parent, dataset);
   }
 
   //addGLCameraNode
-  GLCameraNode* addGLCamera(Node* parent, String type = "");
+  GLCameraNode* addGLCamera(String uuid, Node* parent, String type = "");
 
   //addVolume
-  QueryNode* addVolume(Node* parent, String fieldname = "", int access_id = 0);
+  QueryNode* addVolume(String uuid, Node* parent, String fieldname = "", int access_id = 0);
 
   //addSlice
-  QueryNode* addSlice(Node* parent, String fieldname = "", int access_id = 0);
+  QueryNode* addSlice(String uuid, Node* parent, String fieldname = "", int access_id = 0);
 
   //addIsoContour
-  QueryNode* addIsoContour(Node* parent, String fieldname = "", int access_id = 0, String isovalue = "");
+  QueryNode* addIsoContour(String uuid, Node* parent, String fieldname = "", int access_id = 0, String isovalue = "");
 
   //addKdQuery
-  KdQueryNode* addKdQuery(Node* parent, String fieldname = "", int access_id = 0);
+  KdQueryNode* addKdQuery(String uuid, Node* parent, String fieldname = "", int access_id = 0);
 
   //addScripting
-  ScriptingNode* addScripting(Node* parent);
+  ScriptingNode* addScripting(String uuid, Node* parent);
 
   //addCpuTransferFunction
-  CpuPaletteNode* addCpuTransferFunction(Node* parent);
+  CpuPaletteNode* addCpuTransferFunction(String uuid, Node* parent);
 
   //addStatistics
-  StatisticsNode* addStatistics(Node* parent);
+  StatisticsNode* addStatistics(String uuid, Node* parent);
 
   //addRender
-  Node* addRender(Node* parent, String palette = "");
+  Node* addRender(String uuid, Node* parent, String palette = "");
 
   //addKdRender
-  KdRenderArrayNode* addKdRender(Node* parent);
+  KdRenderArrayNode* addKdRender(String uuid, Node* parent, String palette = "");
 
   //addOSPRay
-  Node* addOSPRay(Node* parent, String palette = "");
+  Node* addOSPRay(String uuid, Node* parent, String palette = "");
 
   //addGroup
-  Node* addGroup(Node* parent, String name = "");
+  Node* addGroup(String uuid, Node* parent, String name = "");
 
   //addModelView
-  ModelViewNode* addModelView(Node* parent, bool insert = false);
+  ModelViewNode* addModelView(String uuid, Node* parent, bool insert = false);
 
   //addPalette
-  PaletteNode* addPalette(Node* parent, String palette);
+  PaletteNode* addPalette(String uuid, Node* parent, String palette);
 
 public:
 

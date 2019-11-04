@@ -68,7 +68,7 @@ public:
 };
 
 ////////////////////////////////////////////////////////
-StatisticsNode::StatisticsNode(String name) : Node(name) 
+StatisticsNode::StatisticsNode() 
 {
   addInputPort("array");
 }

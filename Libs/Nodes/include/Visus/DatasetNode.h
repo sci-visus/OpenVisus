@@ -53,7 +53,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(DatasetNode)
 
   //constructor
-  DatasetNode(String name="");
+  DatasetNode();
 
   //DatasetNode
   virtual ~DatasetNode();

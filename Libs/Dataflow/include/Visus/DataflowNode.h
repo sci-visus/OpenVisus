@@ -102,7 +102,7 @@ public:
   Rectangle2d frameview_bounds;
 
   //constructor
-  Node(String name="");
+  Node();
 
   //destructor (please remove from the dataflow before destroying!)
   virtual ~Node();
@@ -130,6 +130,8 @@ public:
 
   //setUUID
   void setUUID(String value) {
+    VisusReleaseAssert(!value.empty());
+    VisusReleaseAssert(!dataflow); //cannot change the uuid while inside the dataflow
     setProperty("SetUUID", this->uuid, value);
   }
 

@@ -54,7 +54,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(PaletteNode)
 
   //constructor
-  PaletteNode(String name="",String default_palette="GrayOpaque");
+  PaletteNode(String default_palette="GrayOpaque");
 
   //destructor
   virtual ~PaletteNode();

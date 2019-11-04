@@ -67,7 +67,7 @@ public:
   double opacity = 1.0;
 
   //constructor
-  RenderArrayNode(String name="");
+  RenderArrayNode();
 
   //destructor
   virtual ~RenderArrayNode();

@@ -57,7 +57,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(IsoContourRenderNode)
 
   //constructor
-  IsoContourRenderNode(String name="");
+  IsoContourRenderNode();
 
   //destructor
   virtual ~IsoContourRenderNode();

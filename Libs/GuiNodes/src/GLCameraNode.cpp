@@ -43,8 +43,7 @@ For support : support@visus.net
 namespace Visus {
 
 //////////////////////////////////////////////////
-GLCameraNode::GLCameraNode(String name, SharedPtr<GLCamera> glcamera)
-  : Node(name)
+GLCameraNode::GLCameraNode(SharedPtr<GLCamera> glcamera)
 {
   setGLCamera(glcamera);
 }

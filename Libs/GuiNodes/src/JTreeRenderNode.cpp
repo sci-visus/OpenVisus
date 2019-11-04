@@ -42,8 +42,7 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////
-JTreeRenderNode::JTreeRenderNode(String name) 
-  : Node(name) 
+JTreeRenderNode::JTreeRenderNode() 
 {
   // how many vertices/edges have been rendered so far  
   min_material.front.diffuse=Color(0.0f, 0.2f, 1.0f, 1.0f);

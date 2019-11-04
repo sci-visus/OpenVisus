@@ -42,10 +42,9 @@ namespace Visus {
 
 
 //////////////////////////////////////////////////
-TimeNode::TimeNode(String name,double current_time_,DatasetTimesteps timesteps_) 
-  : Node(name),current_time(current_time_),timesteps(timesteps_),play_msec(1000)
+TimeNode::TimeNode(double current_time_, const DatasetTimesteps& timesteps_) 
+  : current_time(current_time_),timesteps(timesteps_), user_range(timesteps_.getRange())
 {
-  this->user_range=timesteps.getRange();
   addOutputPort("time");
 }
 
@@ -53,7 +52,6 @@ TimeNode::TimeNode(String name,double current_time_,DatasetTimesteps timesteps_)
 TimeNode::~TimeNode()
 {
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 void TimeNode::execute(Archive& ar)
@@ -80,36 +78,6 @@ void TimeNode::execute(Archive& ar)
   }
 
   return Node::execute(ar);
-}
-
-//////////////////////////////////////////////////
-void TimeNode::setCurrentTime(double value,bool bDoPublish)
-{
-  if (this->current_time == value)
-    return;
-
-  setProperty("SetCurrentTime", this->current_time, value);
-
-  if (bDoPublish)
-    doPublish();
-}
-
-//////////////////////////////////////////////////
-void TimeNode::setUserRange(const Range& value)
-{
-  if (this->user_range==value)
-    return;
-
-  setProperty("SetUserRange", this->user_range, value);
-  doPublish();
-}
-
-//////////////////////////////////////////////////
-void TimeNode::setPlayMsec(int value)
-{
-  if (this->play_msec==value) return;
-  setProperty("SetPlayMsec", this->play_msec, value);
-  //doPublish();
 }
 
 //////////////////////////////////////////////////

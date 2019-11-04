@@ -559,8 +559,7 @@ public:
 
 
 ///////////////////////////////////////////////////////////////////////
-IsoContourNode::IsoContourNode(String name) 
-  : Node(name),isovalue(0)
+IsoContourNode::IsoContourNode() 
 {
   addInputPort("array");
 

@@ -139,7 +139,7 @@ public:
       for (int I=0;I<4;I++)
       {
         auto button = new QPushButton();
-        button->setText((StringUtils::format()<<"Time "<<I).str().c_str());
+        button->setText(cstring("Time",I).c_str());
         connect(button,&QPushButton::clicked,[this,I](){
           setTime((double)I);
         });
@@ -194,11 +194,11 @@ public:
     SharedPtr<Dataset> dataset(LoadDataset(david_url));
     if (!dataset)
     {
-      VisusInfo()<<"LoadDataset("<<david_url<<") failed.";
+      PrintInfo("LoadDataset", david_url, "failed.");
       return false;
     }
 
-    VisusInfo()<<"LoadDataset("<<david_url<<") done";
+    PrintInfo("LoadDataset", david_url, "done");
 
     this->dataflow=std::make_shared<Dataflow>();
     this->dataflow->listeners.push_back(this);

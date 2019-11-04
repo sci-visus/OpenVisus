@@ -145,15 +145,6 @@ public:
     return "";
   }
 
-  //createNode
-  template <class NodeClass, typename... Args>
-  NodeClass* createNode(String name, Args&& ... args) {
-    auto ret = new NodeClass(name, std::forward<Args>(args)...);
-    if (StringUtils::endsWith(name, "Node")) name = name.substr(0, name.size()-4);
-    ret->setUUID(guessNodeUIID(name)); //use the name as the base for generating uuid
-    return ret;
-  }
-
   //getRoot
   Node* getRoot() const {
     return nodes.empty() ? nullptr : const_cast<Node*>(nodes[0]);
@@ -272,11 +263,11 @@ private:
   Node*                         selection = nullptr;
 
   //use this variable only from the main thread.... I'm not using any lock for this!
-  std::set<Node*>                            need_processing;
+  std::set<Node*>               need_processing;
 
   //runtime
   CriticalSection               published_lock;
-  std::vector<DataflowMessage> published;
+  std::vector<DataflowMessage>  published;
 
   //floodValueForward
   void floodValueForward(DataflowPort* port, SharedPtr<DataflowValue> value, const SharedPtr<ReturnReceipt>& return_receipt);

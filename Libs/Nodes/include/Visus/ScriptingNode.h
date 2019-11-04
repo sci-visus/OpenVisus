@@ -59,7 +59,7 @@ public:
 
 
   //constructor
-  ScriptingNode(String name="");
+  ScriptingNode();
 
   //destructor
   virtual ~ScriptingNode();

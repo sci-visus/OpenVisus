@@ -54,7 +54,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(JTreeNode)
 
   // construct 
-  JTreeNode(String name=""); 
+  JTreeNode(); 
 
   //destructor
   ~JTreeNode();

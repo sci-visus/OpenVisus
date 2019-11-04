@@ -204,7 +204,7 @@ public:
 
 
 ///////////////////////////////////////////////////////////////////////////
-QueryNode::QueryNode(String name) : Node(name)
+QueryNode::QueryNode() 
 {
   addInputPort("dataset");
   addInputPort("fieldname");

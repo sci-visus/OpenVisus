@@ -53,7 +53,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(QueryNode)
 
   //constructor
-  QueryNode(String name="");
+  QueryNode();
 
   //destructor
   virtual ~QueryNode();

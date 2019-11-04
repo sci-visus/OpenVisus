@@ -343,7 +343,7 @@ public:
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-OSPRayRenderNode::OSPRayRenderNode(String name) : Node(name)
+OSPRayRenderNode::OSPRayRenderNode()
 {
   pimpl = new Pimpl();
 

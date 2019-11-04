@@ -61,7 +61,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(KdRenderArrayNode)
 
   //constructor
-  KdRenderArrayNode(String name="") : Node(name)
+  KdRenderArrayNode() 
   {
     addInputPort("palette");
     addInputPort("kdarray");

@@ -54,7 +54,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(ModelViewNode)
 
   //constructor
-  ModelViewNode(String name="") : Node(name) {
+  ModelViewNode() {
   }
 
   //destructor

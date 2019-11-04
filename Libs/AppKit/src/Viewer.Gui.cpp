@@ -205,7 +205,7 @@ void Viewer::createActions()
 {
   addAction(actions.New = GuiFactory::CreateAction("New", this,[this]() {
     clearAll();
-    addWorld();
+    addWorld("world");
   }));
 
   addAction(actions.OpenFile = GuiFactory::CreateAction("Open file...", this, [this]() {
@@ -345,52 +345,52 @@ void Viewer::createActions()
   }));
 
   addAction(actions.AddGroup=GuiFactory::CreateAction("Add Group",this, QIcon(":/group.png"), [this]() {
-    addGroup(getSelection());
+    addGroup("", getSelection());
   }));
 
   addAction(actions.AddTransform=GuiFactory::CreateAction("Add Transform",this, QIcon(":/move.png"), [this]() {
-    addModelView(getSelection());
+    addModelView("", getSelection());
   }));
 
   addAction(actions.InsertTransform=GuiFactory::CreateAction("Insert transform",this, QIcon(":/move.png"), [this]() {
-    addModelView(getSelection(),/*bInsert*/true);
+    addModelView("", getSelection(),/*bInsert*/true);
   }));
 
   addAction(actions.AddSlice=GuiFactory::CreateAction("Add Slice",this, QIcon(":/slice.png"), [this]() {
-    addSlice(getSelection());
+    addSlice("", getSelection());
   }));
 
   addAction(actions.AddVolume=GuiFactory::CreateAction("Add Volume",this, QIcon(":/volume.png"), [this]() {
-    addVolume(getSelection());
+    addVolume("", getSelection());
   }));
 
   addAction(actions.AddIsoContour=GuiFactory::CreateAction("Add IsoContour",this, QIcon(":/mesh.png"), [this]() {
-    addIsoContour(getSelection());
+    addIsoContour("", getSelection());
   }));
 
   addAction(actions.AddKdQuery=GuiFactory::CreateAction("Add KdQuery",this, QIcon(":/grid.png"), [this]() {
-    addKdQuery(getSelection());
+    addKdQuery("", getSelection());
   }));
 
 
   addAction(actions.AddKdRender=GuiFactory::CreateAction("Add KdRender",this, QIcon(":/paint.png"), [this]() {
-    addKdRender(getSelection());
+    addKdRender("", getSelection());
   }));
  
   addAction(actions.AddRender=GuiFactory::CreateAction("Add Render",this, QIcon(":/paint.png"), [this]() {
-    addRender(getSelection());
+    addRender("", getSelection());
   }));
 
   addAction(actions.AddScripting=GuiFactory::CreateAction("Add Scripting",this, QIcon(":/cpu.png"), [this]() {
-    addScripting(getSelection());
+    addScripting("", getSelection());
   }));
 
   addAction(actions.AddStatistics=GuiFactory::CreateAction("Add Statistics",this, QIcon(":/statistics.png"), [this]() {
-    addStatistics(getSelection());
+    addStatistics("", getSelection());
   }));
 
   addAction(actions.AddCpuTransferFunction=GuiFactory::CreateAction("Add CpuTransf",this, QIcon(":/cpu.png"), [this]() {
-    addCpuTransferFunction(getSelection());
+    addCpuTransferFunction("", getSelection());
   }));
 
   addAction(actions.ShowLicences = GuiFactory::CreateAction("Licences...", this, [this]() {
