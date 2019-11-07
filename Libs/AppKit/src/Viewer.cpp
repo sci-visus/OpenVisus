@@ -2224,7 +2224,7 @@ QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int acc
     connectNodes(query_node, scripting_node);
 
     //render
-    addRender(concatenate(uuid, "/scripting"), scripting_node, "GrayOpaque");
+    addRender(concatenate(uuid, "/render"), scripting_node, "GrayOpaque");
   }
   endUpdate();
 
