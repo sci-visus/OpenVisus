@@ -67,7 +67,7 @@ public:
   }
 
   //decode
-  static SharedPtr<GLCamera> decode(StringTree in);
+  static SharedPtr<GLCamera> decode(StringTree& ar);
 
   //getLookAt
   virtual void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const =0 ;
@@ -82,8 +82,8 @@ public:
   //guessPosition
   virtual bool guessPosition(BoxNd box, int ref = -1) = 0;
 
-  //splitProjectionFrustum
-  virtual void splitProjectionFrustum(Rectangle2d value)=0;
+  //splitFrustum
+  virtual void splitFrustum(Rectangle2d value)=0;
 
   //glRender
   virtual void glRender(GLCanvas& gl);
@@ -113,12 +113,12 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const  override {
+  //write
+  virtual void write(Archive& ar) const  override {
   }
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override  {
+  //read
+  virtual void read(Archive& ar) override  {
   }
 
 private:

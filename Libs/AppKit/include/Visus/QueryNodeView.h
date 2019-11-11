@@ -282,8 +282,8 @@ private:
           return;
         
         auto nsamples = query->getNumberOfSamples();
-        resLabel->setText(String(StringUtils::format() << "Est. Size:  " << StringUtils::getStringFromByteSize(widgets.selected_field.dtype.getByteSize(nsamples))).c_str());
-        dimsLabel->setText(String(StringUtils::format() << "[" + nsamples.toString("x") << "]").c_str());
+        resLabel->setText(cstring("Est. Size:",StringUtils::getStringFromByteSize(widgets.selected_field.dtype.getByteSize(nsamples))).c_str());
+        dimsLabel->setText(cstring("[",nsamples,"]").c_str());
     });
     
     emit(widgets.end_resolution->valueChanged(std::min(24, dataset->getMaxResolution())));
@@ -298,7 +298,7 @@ private:
     
     widgets.saveButton = new QPushButton("Save");
     
-    connect(widgets.saveButton, &QPushButton::clicked, [this,dataset,time_node]()
+    connect(widgets.saveButton, &QPushButton::clicked, [this,dataset]()
     {
       int end_resolution = this->widgets.end_resolution->value();
       auto query = createQuery(model, end_resolution);
@@ -310,24 +310,24 @@ private:
         return false;
 
       auto nsamples = query->getNumberOfSamples();
-      String filename = StringUtils::format()<< widgets.fileEdit->text().toStdString() << nsamples.toString("_") << query->field.dtype.toString() << ".raw";
+      String filename = concatenate(widgets.fileEdit->text().toStdString(),nsamples.toString("_"),query->field.dtype.toString(),".raw");
 
       File data_file;
       if (data_file.createAndOpen(filename,"rw"))
       {
         if (!data_file.write(0, query->buffer.c_size(), query->buffer.c_ptr()))
         {
-          VisusWarning() << "write error on file " << filename;
+          PrintWarning("write error on file",filename);
           return false;
         }
       }
       else
       {
-        VisusWarning() << "file.open(" << filename << ",\"rb\") failed";
+        PrintWarning("file.open",filename,"rb","failed");
       }
 
       QMessageBox::information(nullptr, "Success", "Data saved on disk");
-      VisusInfo() << "Wrote data size " << query->buffer.c_size() << " in raw file " << filename;
+      PrintInfo("Wrote data size",query->buffer.c_size(),"in raw file",filename);
       return true;
     });
 

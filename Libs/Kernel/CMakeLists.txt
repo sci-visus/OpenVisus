@@ -50,8 +50,6 @@ source_group("Core" FILES
 	./include/Visus/UUID.h
 	./src/HeapMemory.cpp
 	./include/Visus/ScopedVector.h
-	./include/Visus/Log.h
-	./src/Log.cpp
 	./include/Visus/Model.h
 	./include/Visus/Model.cpp
 	./include/Visus/NumericLimits.h

@@ -37,7 +37,6 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/LocalCoordinateSystem.h>
-#include <Visus/Log.h>
 
 namespace Visus {
 
@@ -109,21 +108,21 @@ LocalCoordinateSystem LocalCoordinateSystem::toUniformSize() const
 }
 
 ////////////////////////////////////////////////////////////////////
-void LocalCoordinateSystem::writeTo(StringTree& out) const
+void LocalCoordinateSystem::write(Archive& ar) const
 {
-  out.writeValue("x",x.toString());
-  out.writeValue("y",y.toString());
-  out.writeValue("z",z.toString());
-  out.writeValue("c",c.toString());
+  ar.write("x", x);
+  ar.write("y", y);
+  ar.write("z", z);
+  ar.write("c", c);
 }
 
 ////////////////////////////////////////////////////////////////////
-void LocalCoordinateSystem::readFrom(StringTree& in) 
+void LocalCoordinateSystem::read(Archive& ar) 
 {
-  x=Point3d::fromString(in.readValue("x"));
-  y=Point3d::fromString(in.readValue("y"));
-  z=Point3d::fromString(in.readValue("z"));
-  c=Point3d::fromString(in.readValue("c"));
+  ar.read("x", x);
+  ar.read("y", y);
+  ar.read("z", z);
+  ar.read("c", c);
 }
 
 

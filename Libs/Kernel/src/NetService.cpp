@@ -129,7 +129,7 @@ public:
 
       curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L);
 
-      //VisusInfo()<<"Disabling SSL verify peer , potential security hole";
+      //PrintInfo("Disabling SSL verify peer , potential security hole");
       curl_easy_setopt(this->handle, CURLOPT_SSL_VERIFYPEER, 0L);
 
       curl_easy_setopt(this->handle, CURLOPT_NOPROGRESS, 1L);
@@ -575,7 +575,7 @@ Future<NetResponse> NetService::push(SharedPtr<NetService> service, NetRequest r
     NetResponse response = future.get();
 
     if (!response.isSuccessful() && !request.aborted())
-      VisusWarning() << "request " << request.url.toString() << " failed (" << response.getErrorMessage() << ")";
+      PrintWarning("request",request.url,"failed",response.getErrorMessage());
 
     return future;
   }
@@ -587,15 +587,15 @@ void NetService::printStatistics(int connection_id,const NetRequest& request,con
   Int64 download = response.body ? response.body->c_size() : 0;
   Int64 upload = request.body ? request.body->c_size() : 0;
 
-  VisusInfo()  
-    << request.method 
-    <<" connection("<<connection_id<<")"
-    << " wait(" << (request.statistics.wait_msec) << ")"
-    << " running(" << (request.statistics.run_msec) << ")"
-    << (download ? " download(" + StringUtils::getStringFromByteSize(download) + " - " + cstring((int)(download / (request.statistics.run_msec / 1000.0) / 1024)) + "kb/sec)" : "")
-    << (upload ?   " updload("  + StringUtils::getStringFromByteSize(upload  ) + " - " + cstring((int)(upload   / (request.statistics.run_msec / 1000.0) / 1024)) + "kb/sec)" : "")
-    << " status(" << response.getStatusDescription() << ")"
-    << " url(" << request.url.toString() << ")";
+  PrintInfo(  
+    request.method,
+    "connection", connection_id,
+    "wait",request.statistics.wait_msec,
+    "running", request.statistics.run_msec,
+    download ? cstring("download",StringUtils::getStringFromByteSize(download)," - ",cstring((int)(download / (request.statistics.run_msec / 1000.0) / 1024)), "kb/sec)") : String(""),
+    upload ?   cstring("updload" ,StringUtils::getStringFromByteSize(upload  )," - ",cstring((int)(upload   / (request.statistics.run_msec / 1000.0) / 1024)), "kb/sec)") : String(""),
+    "status",response.getStatusDescription(),
+    "url",request.url);
 }
 
 } //namespace Visus

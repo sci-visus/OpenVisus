@@ -61,10 +61,10 @@ public:
   VISUS_NON_COPYABLE_CLASS(KdRenderArrayNode)
 
   //constructor
-  KdRenderArrayNode(String name="") : Node(name)
+  KdRenderArrayNode() 
   {
-    addInputPort("data");
-    addInputPort("palette"); 
+    addInputPort("palette");
+    addInputPort("kdarray");
   }
 
   //destructor
@@ -76,8 +76,8 @@ public:
     return kdarray;
   }
 
-  //getPosition (in physic coordinates)
-  virtual Position getPosition() override
+  //getBounds (in physic coordinates)
+  virtual Position getBounds() override
   {
     if (!kdarray) return Position::invalid();
     return (kdarray->clipping.valid())? kdarray->clipping : Position(kdarray->bounds);

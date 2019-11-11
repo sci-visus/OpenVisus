@@ -90,7 +90,7 @@ public:
     if (bForce || last_publish.elapsedMsec() > publish_interval)
     {
       DataflowMessage msg;
-      msg.writeValue("data", kdarray);
+      msg.writeValue("kdarray", kdarray);
       node->publish(msg);
       last_publish = Time::now();
     }
@@ -515,14 +515,25 @@ public:
 
 };
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+KdQueryNode::KdQueryNode() {
+  removeOutputPort("array");
+  addOutputPort("kdarray");
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+KdQueryNode::~KdQueryNode() {
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 bool KdQueryNode::processInput()
 {
   abortProcessing();
    
   auto dataset         = readValue<Dataset>("dataset");
-  auto fieldname       = cstring(readValue<String>("fieldname"));
-  auto time            = cdouble(readValue<double>("time"));
+  auto fieldname       = readString("fieldname");
+  auto time            = readDouble("time");
 
   int kdquery_mode=dataset? dataset->getKdQueryMode() : KdQueryMode::NotSpecified;
   if (kdquery_mode==KdQueryMode::NotSpecified) 

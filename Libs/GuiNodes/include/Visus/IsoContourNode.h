@@ -49,22 +49,20 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////////////
-class VISUS_GUI_NODES_API IsoContour 
+class VISUS_GUI_NODES_API IsoContour : public GLMesh
 {
 public:
 
   VISUS_NON_COPYABLE_CLASS(IsoContour)
 
-  GLMesh                      mesh;
   Array                       field;
   Array                       second_field; //this is used to color the surface 
-  Range                       range; //field range
-  Array                       voxel_used; // 1 if a voxel contributes to the isosurface; 0 otherwise
+  Range                       range;        //field range
+  Array                       voxel_used;   // 1 if a voxel contributes to the isosurface; 0 otherwise
 
   //cosntructor
   IsoContour() {
   }
-
 
 };
 
@@ -88,7 +86,6 @@ public:
   //run
   SharedPtr<IsoContour> run();
 
-
 };
 
 ////////////////////////////////////////////////////////////////////
@@ -99,13 +96,10 @@ public:
   VISUS_NON_COPYABLE_CLASS(IsoContourNode)
 
   //constructor
-  IsoContourNode(String name="");
+  IsoContourNode();
 
   //destructor
   virtual ~IsoContourNode();
-
-  //executeAction
-  virtual void executeAction(StringTree in) override;
 
   //processInput
   virtual bool processInput() override;
@@ -117,7 +111,7 @@ public:
 
   //setField
   void setField(Array value) {
-    getInputPort("data")->writeValue(std::make_shared<Array>(value));
+    getInputPort("array")->writeValue(std::make_shared<Array>(value));
     dataflow->needProcessInput(this);
   }
 
@@ -128,16 +122,19 @@ public:
 
   //setIsoValue
   void setIsoValue(double value) {
-    setProperty("isovalue", this->isovalue, value);
+    setProperty("SetIsoValue", this->isovalue, value);
   }
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 

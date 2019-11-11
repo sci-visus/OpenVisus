@@ -132,9 +132,7 @@ public:
 
   //convert to string
   String toString() const {
-    std::ostringstream out;
-    out << this->w << " " << this->x << " " << this->y << " " << this->z;
-    return out.str();
+    return cstring(w, x, y, z);
   }
 
   //return the main axis of rotation

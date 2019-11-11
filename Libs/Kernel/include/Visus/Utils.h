@@ -67,17 +67,15 @@ namespace Utils
     v.erase(std::find(v.begin(), v.end(), value));
   }
 
-  //push_front
-  template <typename Vector, typename Value>
-  void push_front(Vector& v, Value value) {
-    v.insert(v.begin(),value);
+  //filter
+  template <typename T>
+  std::vector<T> filter(const std::vector< T >& v, std::function<bool(T)> predicate) {
+    std::vector<T> ret;
+    ret.reserve(v.size());
+    std::copy_if(v.begin(), v.end(), std::back_inserter(ret), predicate);
+    return ret;
   }
 
-  //push_back
-  template <typename Vector, typename Value>
-  void push_back(Vector& v, Value value) {
-    v.push_back(value);
-  }
 
   //select
   template <typename T>

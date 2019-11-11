@@ -271,56 +271,48 @@ public:
 
 public:
   
-  //writeTo
-  virtual void writeTo(StringTree& out) const override
+  //write
+  virtual void write(Archive& ar) const override
   {
-    XIdxElement::writeTo(out);
-    out.writeString("Format", format_type.toString());
-    out.writeString("DType", dtype.toString());
-    out.writeString("Endian", endian_type.toString());
-    out.writeString("Dimensions", StringUtils::join(dimensions));
+    XIdxElement::write(ar);
+    ar.write("Format", format_type.toString());
+    ar.write("DType", dtype.toString());
+    ar.write("Endian", endian_type.toString());
+    ar.write("Dimensions", StringUtils::join(dimensions));
 
-    if (this->data_source)
-      out.writeObject("DataSource",*this->data_source);
+    writeChild<DataSource>(ar, "DataSource", this->data_source);
 
-    for (auto attribute : this->attributes)
-      out.writeObject("Attribute", *attribute);
+    for (auto child : this->attributes)
+      writeChild<Attribute>(ar, "Attribute", child);
 
     if (this->values.size())
-      out.writeText(StringUtils::join(this->values));
-
+      ar.writeText(StringUtils::join(this->values));
     if (this->text.size())
-      out.writeText(this->text);
+      ar.writeText(this->text);
   };
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override
+  //read
+  virtual void read(Archive& ar) override
   {
-    XIdxElement::readFrom(in);
+    XIdxElement::read(ar);
 
-    this->format_type = FormatType::fromString(in.readString("Format"));
-    this->dtype       =      DType::fromString(in.readString("DType"));
-    this->endian_type =  Endianess::fromString(in.readString("Endian"));
+    this->format_type = FormatType::fromString(ar.readString("Format"));
+    this->dtype = DType::fromString(ar.readString("DType"));
+    this->endian_type = Endianess::fromString(ar.readString("Endian"));
 
-    for (auto it : StringUtils::split(in.readString("Dimensions")))
+    for (auto it : StringUtils::split(ar.readString("Dimensions")))
       this->dimensions.push_back(cint(it));
 
-    for (auto it : StringUtils::split(in.readText()))
+    String s_values;
+    ar.readText(s_values);
+    for (auto it : StringUtils::split(s_values))
       this->values.push_back(cdouble(it));
 
-    if (auto child = in.getChild("DataSource"))
-    {
-      auto data_source = new DataSource();
-      data_source->readFrom(*child);
-      setDataSource(data_source);
-    }
+    if (auto child = readChild<DataSource>(ar, "DataSource"))
+      setDataSource(child);
 
-    for (auto child : in.getChilds("Attribute"))
-    {
-      auto attribute=new Attribute();
-      attribute->readFrom(*child);
-      addAttribute(attribute);
-    }
+    for (auto it : readChilds<Attribute>(ar, "Attribute"))
+      addAttribute(it);
   }
   
 };

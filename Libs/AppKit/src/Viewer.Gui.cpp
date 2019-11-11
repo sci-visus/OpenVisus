@@ -129,6 +129,7 @@ void Viewer::createToolBar()
       actions.OpenUrl,
       actions.AddUrl,
       actions.ReloadVisusConfig,
+      actions.PlayFile, 
       actions.Close }));
     
     tab->addAction(actions.EditNode);
@@ -142,7 +143,7 @@ void Viewer::createToolBar()
 
     tab->addAction(actions.Deselect);
 
-    tab->addAction(actions.RefreshData);
+    tab->addAction(actions.RefreshNode);
     tab->addWidget(widgets.toolbar->auto_refresh.check = GuiFactory::CreateCheckBox(false, "Auto refresh", [this](int value) {
       auto auto_refresh = getAutoRefresh();
       auto_refresh.enabled = value ? true : false;
@@ -203,61 +204,58 @@ void Viewer::createToolBar()
 void Viewer::createActions()
 {
   addAction(actions.New = GuiFactory::CreateAction("New", this,[this]() {
-    New();
+    clearAll();
+    addWorld("world");
   }));
 
   addAction(actions.OpenFile = GuiFactory::CreateAction("Open file...", this, [this]() {
-    bool bAdd=false;
-    open("", nullptr, bAdd); 
+    openFile("", nullptr);
   }));
 
   addAction(actions.SaveFile = GuiFactory::CreateAction("Save",this, [this]() {
-    save(last_saved_filename);
+    saveFile(last_saved_filename);
   }));
   actions.SaveFile->setEnabled(!last_saved_filename.empty());
   actions.SaveFile->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_S));
   actions.SaveFile->setToolTip("Save [CTRL+S]");
 
   addAction(actions.SaveFileAs = GuiFactory::CreateAction("Save as...",this, [this]() {
-    save(""); 
+    saveFile(""); 
   }));
   
   addAction(actions.SaveHistoryAs = GuiFactory::CreateAction("Save history as...",this, [this]() {
-    bool bSaveHistory=true;
-    save("",bSaveHistory); 
+    saveFile("", /*bSaveHistory*/true);
   }));
 
   addAction(actions.AddFile = GuiFactory::CreateAction("Add file...", this, [this]() {
-    auto parent=getRoot();
-    bool bUrl=false;
-    open("",parent,bUrl); 
+    openFile("", getRoot());
   }));
 
   addAction(actions.OpenUrl = GuiFactory::CreateAction("Open url...", this, [this]() {
-    Node* parent=nullptr;
-    bool bUrl=true;
-    open("", parent, bUrl); 
+    openUrl("", nullptr);
   }));
 
   addAction(actions.AddUrl = GuiFactory::CreateAction("Add url...", this, [this]() {
-    auto parent=getRoot();
-    bool bUrl=true;
-    open("", parent, true); 
+    openUrl("", getRoot());
   }));
 
   addAction(actions.ReloadVisusConfig = GuiFactory::CreateAction("Reload config", this, [this]() {
     reloadVisusConfig();
   }));
 
+  addAction(actions.PlayFile = GuiFactory::CreateAction("Play File", this, [this]() {
+    playFile("");
+  }));
+
   addAction(actions.Close = GuiFactory::CreateAction("Close", this, QIcon(":/quit.png"),[this]() {
     close();
   }));
 
-  addAction(actions.RefreshData= GuiFactory::CreateAction("Refresh data",this, QIcon(":/refresh.png"), [this]() {
-    refreshData();
+  addAction(actions.RefreshNode= GuiFactory::CreateAction("Refresh node",this, QIcon(":/refresh.png"), [this]() {
+    refreshNode();
   }));
-  actions.RefreshData->setShortcut(Qt::Key_F5);
-  actions.RefreshData->setToolTip("Refresh data [F5]");
+  actions.RefreshNode->setShortcut(Qt::Key_F5);
+  actions.RefreshNode->setToolTip("Refresh data [F5]");
  
   addAction(actions.DropProcessing= GuiFactory::CreateAction("Drop processing",this, QIcon(":/stop.png"), [this]() {
     dropProcessing();
@@ -347,52 +345,52 @@ void Viewer::createActions()
   }));
 
   addAction(actions.AddGroup=GuiFactory::CreateAction("Add Group",this, QIcon(":/group.png"), [this]() {
-    addGroup(getSelection());
+    addGroup("", getSelection());
   }));
 
   addAction(actions.AddTransform=GuiFactory::CreateAction("Add Transform",this, QIcon(":/move.png"), [this]() {
-    addModelView(getSelection());
+    addModelView("", getSelection());
   }));
 
   addAction(actions.InsertTransform=GuiFactory::CreateAction("Insert transform",this, QIcon(":/move.png"), [this]() {
-    addModelView(getSelection(),/*bInsert*/true);
+    addModelView("", getSelection(),/*bInsert*/true);
   }));
 
   addAction(actions.AddSlice=GuiFactory::CreateAction("Add Slice",this, QIcon(":/slice.png"), [this]() {
-    addSlice(getSelection());
+    addSlice("", getSelection());
   }));
 
   addAction(actions.AddVolume=GuiFactory::CreateAction("Add Volume",this, QIcon(":/volume.png"), [this]() {
-    addVolume(getSelection());
+    addVolume("", getSelection());
   }));
 
   addAction(actions.AddIsoContour=GuiFactory::CreateAction("Add IsoContour",this, QIcon(":/mesh.png"), [this]() {
-    addIsoContour(getSelection());
+    addIsoContour("", getSelection());
   }));
 
   addAction(actions.AddKdQuery=GuiFactory::CreateAction("Add KdQuery",this, QIcon(":/grid.png"), [this]() {
-    addKdQuery(getSelection());
+    addKdQuery("", getSelection());
   }));
 
 
   addAction(actions.AddKdRender=GuiFactory::CreateAction("Add KdRender",this, QIcon(":/paint.png"), [this]() {
-    addKdRender(getSelection());
+    addKdRender("", getSelection());
   }));
  
   addAction(actions.AddRender=GuiFactory::CreateAction("Add Render",this, QIcon(":/paint.png"), [this]() {
-    addRender(getSelection());
+    addRender("", getSelection());
   }));
 
   addAction(actions.AddScripting=GuiFactory::CreateAction("Add Scripting",this, QIcon(":/cpu.png"), [this]() {
-    addScripting(getSelection());
+    addScripting("", getSelection());
   }));
 
   addAction(actions.AddStatistics=GuiFactory::CreateAction("Add Statistics",this, QIcon(":/statistics.png"), [this]() {
-    addStatistics(getSelection());
+    addStatistics("", getSelection());
   }));
 
   addAction(actions.AddCpuTransferFunction=GuiFactory::CreateAction("Add CpuTransf",this, QIcon(":/cpu.png"), [this]() {
-    addCpuTransferFunction(getSelection());
+    addCpuTransferFunction("", getSelection());
   }));
 
   addAction(actions.ShowLicences = GuiFactory::CreateAction("Licences...", this, [this]() {
@@ -614,13 +612,13 @@ void Viewer::refreshActions()
   actions.InsertTransform->setEnabled(selection && selection!=getRoot());
   actions.AddSlice->setEnabled(selection && dynamic_cast<DatasetNode*>(selection));
   actions.AddVolume->setEnabled(selection && dynamic_cast<DatasetNode*>(selection));
-  actions.AddIsoContour->setEnabled(selection && (dynamic_cast<DatasetNode*>(selection) || selection->hasOutputPort("data")));
+  actions.AddIsoContour->setEnabled(selection && (dynamic_cast<DatasetNode*>(selection) || selection->hasOutputPort("array")));
   actions.AddKdQuery->setEnabled(selection && dynamic_cast<DatasetNode*>(selection));
-  actions.AddRender->setEnabled(selection && selection->hasOutputPort("data"));
+  actions.AddRender->setEnabled(selection && selection->hasOutputPort("array"));
   actions.AddKdRender->setEnabled(selection && dynamic_cast<KdQueryMode*>(selection));
-  actions.AddScripting->setEnabled(selection && selection->hasOutputPort("data"));
-  actions.AddStatistics->setEnabled(selection && selection->hasOutputPort("data"));
-  actions.AddCpuTransferFunction->setEnabled(selection && selection->hasOutputPort("data"));
+  actions.AddScripting->setEnabled(selection && selection->hasOutputPort("array"));
+  actions.AddStatistics->setEnabled(selection && selection->hasOutputPort("array"));
+  actions.AddCpuTransferFunction->setEnabled(selection && selection->hasOutputPort("array"));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -838,7 +836,7 @@ bool Viewer::takeSnapshot(bool bOnlyCanvas,String filename)
   {
     for (int I=0;;I++)
     {
-      filename = KnownPaths::VisusHome.getChild(StringUtils::format() << "visus_snapshot." << std::setfill('0') << std::setw(3) << cstring(I) << ".png");
+      filename = KnownPaths::VisusHome.getChild(concatenate("visus_snapshot.",StringUtils::formatNumber("%03d",I),".png"));
       if (!FileUtils::existsFile(filename))
         break;
     }
@@ -849,13 +847,13 @@ bool Viewer::takeSnapshot(bool bOnlyCanvas,String filename)
     auto frame_buffer = widgets.glcanvas->grabFramebuffer();
     if (!frame_buffer.width() || !frame_buffer.height())
     {
-      VisusWarning() << "Failed to grabFramebuffer";
+      PrintWarning("Failed to grabFramebuffer");
       return false;
     }
     
     if (!frame_buffer.save(filename.c_str(), "PNG"))
     {
-      VisusWarning() << "Failed to save filename " << filename;
+      PrintWarning("Failed to save filename",filename);
       return false;
     }
   }
@@ -863,32 +861,32 @@ bool Viewer::takeSnapshot(bool bOnlyCanvas,String filename)
   {
     if (qApp->screens().size()!= 1)
     {
-      VisusWarning() << "Multiple screens snapshot is not supported";
+      PrintWarning("Multiple screens snapshot is not supported");
       return false;
     }
 
     auto main_screen = qApp->primaryScreen();
     if (!main_screen)
     {
-      VisusWarning() << "Primary screen does not exist";
+      PrintWarning("Primary screen does not exist");
       return false;
     }
 
     auto pixmap = main_screen->grabWindow(this->winId());
     if (!pixmap.width() || !pixmap.height())
     {
-      VisusWarning() << "Failed to grabWindow";
+      PrintWarning("Failed to grabWindow");
       return false;
     }
 
     if (!pixmap.save(filename.c_str(), "PNG"))
     {
-      VisusWarning() << "Failed to save filename " << filename;
+      PrintWarning("Failed to save filename", filename);
       return false;
     }
   }
 
-  VisusInfo() << "Saved snapshot " << filename;
+  PrintInfo("Saved snapshot",filename);
   return true;
 }
 

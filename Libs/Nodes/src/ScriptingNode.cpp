@@ -66,7 +66,7 @@ public:
     : node(node_), input(input_),return_receipt(return_receipt_)
   {
     this->engine = node->engine;
-    this->bDataOutputPortConnected=node->isOutputConnected("data");
+    this->bDataOutputPortConnected=node->isOutputConnected("array");
     this->max_publish_msec=node->max_publish_msec;
     this->code = node->getCode();
   }
@@ -121,7 +121,7 @@ public:
     if (!bIncremental)
     {
       ScopedAcquireGil acquire_gil;
-      engine->printMessage(StringUtils::format() << "Array " << output.dims.toString()<<"\n");
+      engine->printMessage(cstring("Array",output.dims,"\n"));
     }
 
     DataflowMessage msg;
@@ -130,7 +130,7 @@ public:
     if (!bIncremental && return_receipt)
       msg.setReturnReceipt(return_receipt);
 
-    msg.writeValue("data", output);
+    msg.writeValue("array", output);
     node->publish(msg);
   }
 
@@ -187,14 +187,14 @@ public:
 #endif //VISUS_PYTHON
 
 ///////////////////////////////////////////////////////////////////////
-ScriptingNode::ScriptingNode(String name)  : Node(name)
+ScriptingNode::ScriptingNode()  
 {
 #if VISUS_PYTHON
   this->engine = std::make_shared<PythonEngine>(false);
 #endif
 
-  addInputPort("data");
-  addOutputPort("data");
+  addInputPort("array");
+  addOutputPort("array");
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -204,25 +204,23 @@ ScriptingNode::~ScriptingNode()
 
 
 //////////////////////////////////////////////////////////////////////////
-void ScriptingNode::executeAction(StringTree in)
+void ScriptingNode::execute(Archive& ar)
 {
-  if (in.name == "set")
-  {
-    auto target_id = in.readString("target_id");
-
-    if (target_id == "max_publish_msec") {
-      setMaxPublishMSec(in.readInt("max_publish_msec"));
-      return;
-    }
-
-    if (target_id == "code") {
-      setCode(in.readString("code"));
-      return;
-    }
-
+  if (ar.name == "SetMaxPublishMSec") {
+    int value;
+    ar.read("value", value);
+    setMaxPublishMSec(value);
+    return;
   }
 
-  return Node::executeAction(in);
+  if (ar.name == "SetCode") {
+    String value;
+    ar.read("value", value);
+    setCode(value);
+    return;
+  }
+
+  return Node::execute(ar);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -235,7 +233,7 @@ bool ScriptingNode::processInput()
 
   // important to do before readValue
   auto return_receipt=createPassThroughtReceipt();
-  auto input = readValue<Array>("data");
+  auto input = readValue<Array>("array");
   if (!input)
     return  false;
 
@@ -255,7 +253,7 @@ bool ScriptingNode::processInput()
 
   DataflowMessage msg;
   msg.setReturnReceipt(return_receipt);
-  msg.writeValue("data", input);
+  msg.writeValue("array", input);
   this->publish(msg);
 
 #endif
@@ -329,7 +327,7 @@ void ScriptingNode::guessPresets(Array input)
   {
     std::vector<String> inputs;
     for (int I = 0; I<N; I++)
-      inputs.push_back(StringUtils::format() << "input[" << I << "]");
+      inputs.push_back(concatenate("input[",I,"]"));
 
     for (int I = 0; I<N; I++)
       addPreset(inputs[I], "output="+inputs[I]);
@@ -461,23 +459,20 @@ void ScriptingNode::guessPresets(Array input)
 }
 
 ///////////////////////////////////////////////////////////////////////
-void ScriptingNode::writeTo(StringTree& out) const
+void ScriptingNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
-
-  out.writeValue("max_publish_msec", cstring(max_publish_msec));
-
-  if (!code.empty())
-    out.writeText("code", code);
+  Node::write(ar);
+  ar.write("max_publish_msec", max_publish_msec);
+  ar.writeText("code", code);
 }
 
 ///////////////////////////////////////////////////////////////////////
-void ScriptingNode::readFrom(StringTree& in)
+void ScriptingNode::read(Archive& ar)
 {
-  Node::readFrom(in);
-
-  max_publish_msec=cint(in.readValue("max_publish_msec", cstring(this->max_publish_msec)));
-  setCode(in.readText("code"));
+  Node::read(ar);
+  String code;
+  ar.read("max_publish_msec", max_publish_msec);
+  ar.readText("code", code);
 }
 
 } //namespace Visus

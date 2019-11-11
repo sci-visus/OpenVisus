@@ -58,7 +58,7 @@ public:
   VISUS_PIMPL_CLASS(OSPRayRenderNode)
 
   //constructor
-  OSPRayRenderNode(String name = "");
+  OSPRayRenderNode();
 
   //destructor
   virtual ~OSPRayRenderNode();
@@ -86,8 +86,8 @@ public:
     return (data.clipping.valid() ? data.clipping : data.bounds);
   }
 
-  //getPosition 
-  virtual Position getPosition() override {
+  //getBounds 
+  virtual Position getBounds() override {
     return getDataBounds();
   }
 
@@ -99,11 +99,11 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //write
+  virtual void write(Archive& ar) const override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 

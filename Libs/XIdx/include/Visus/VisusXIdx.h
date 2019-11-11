@@ -42,7 +42,7 @@
 
 #define VISUS_XIDX_CLASS(Name) \
   VISUS_CLASS(Name)\
-  virtual String getTypeName() {return #Name;} \
+  virtual String getTypeName() override {return #Name;} \
   /*--*/
 
 #include <vector>
@@ -51,7 +51,6 @@
 #include <Visus/Kernel.h>
 #include <Visus/StringUtils.h>
 #include <Visus/DType.h>
-#include <Visus/Log.h>
 #include <Visus/File.h>
 
 namespace Visus {

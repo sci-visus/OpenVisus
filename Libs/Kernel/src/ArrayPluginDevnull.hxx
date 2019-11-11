@@ -41,7 +41,6 @@ For support : support@visus.net
 
 #include <Visus/Kernel.h>
 #include <Visus/Array.h>
-#include <Visus/Log.h>
 
 namespace Visus {
 
@@ -86,7 +85,7 @@ public:
         dtype = DType::fromString(sdtype);
         if (!dtype.valid())
         {
-          VisusWarning() << "invalid --dtype " << sdtype;
+          PrintWarning("invalid --dtype",sdtype);
           return Array();
         }
       }
@@ -95,7 +94,7 @@ public:
         dims = PointNi::fromString(args[++I]);
         if (dims.innerProduct() <= 0)
         {
-          VisusWarning() << "invalid --dims " << args[I];
+          PrintWarning("invalid --dims", args[I]);
           return Array();
         }
       }
@@ -108,7 +107,7 @@ public:
     Array dst;
     if (!dst.resize(dims, dtype, __FILE__, __LINE__))
     {
-      VisusWarning() << " Cannot resize memory with dims(" << dims.toString() << ") and dtype(" << dtype.toString() << ")";
+      PrintWarning("Cannot resize memory with dims", dims, "and dtype", dtype);
       return Array();
     }
 

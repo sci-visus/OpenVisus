@@ -70,23 +70,24 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override
+  //write
+  virtual void write(Archive& ar) const override
   {
     data_items.back()->values = this->values;
-
     // TODO The user should set the dimensionality of the list (not here)
-    if(data_items.back()->dimensions.size() == 0)
+    if (data_items.back()->dimensions.size() == 0)
       data_items.back()->dimensions.push_back((int)this->values.size());
-
-    Domain::writeTo(out);
+    Domain::write(ar);
 
   }
   
-  //readFrom
-  virtual void readFrom(StringTree& in) override 
+  //read
+  virtual void read(Archive& ar) override
   {
-    Domain::readFrom(in);
+    Domain::read(ar);
+    //    for (auto it : StringUtils::split(ar.readText()))
+    //      this->values.push_back(cdouble(it));
+
     this->values = data_items.back()->values;
   }
 

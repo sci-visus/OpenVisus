@@ -97,7 +97,7 @@ int GLCanvas::flushGLErrors(bool bVerbose)
     if (bVerbose)
     {
       String error_str=getGLErrorMessage(glerr);
-      VisusInfo()<<"glGetError returned "<<glerr<<" ("<<error_str<<")";
+      PrintInfo("glGetError returned", glerr,error_str);
     }
   }
 

@@ -11,10 +11,11 @@ from OpenVisus       import *
 
 # on windows rememeber to INSTALL and CONFIGURE
 
+from OpenVisus.VisusGuiPy      import *
+from OpenVisus.VisusGuiNodesPy import *
+from OpenVisus.VisusAppKitPy   import *
 
-from VisusGuiPy      import *
-from VisusGuiNodesPy import *
-from VisusAppKitPy   import *
+from OpenVisus.PyViewer        import *
 
 import PyQt5
 from   PyQt5.QtCore    import *
@@ -43,7 +44,11 @@ class MyPythonNode(PythonNode):
 	def __init__(self):
 		PythonNode.__init__(self)
 		self.setName("MyPythonNode")
-		self.addInputPort("data")
+		self.addInputPort("array")
+    
+	# getTypeName
+	def getTypeName(self):    
+		return "MyPythonNode"
     
 	# getOsDependentTypeName
 	def getOsDependentTypeName(self):
@@ -78,13 +83,21 @@ class MyPythonNode(PythonNode):
 	def processInput(self):
 		return PythonNode.processInput(self)
 
-  
-# ///////////////////////////////////////////////////////////
-if __name__ == '__main__':
-
+		
+# //////////////////////////////////////////////
+def Main(argv):		
+	
+	"""
+	allow some python code inside scripting node
+	"""
+	
+	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
+	# c:\Python37\python.exe CMake/PyViewer.py	
 	SetCommandLine("__main__")
 	GuiModule.createApplication()
 	AppKitModule.attach()  
+	
+	VISUS_REGISTER_NODE_CLASS("MyPythonNode")
 
 	viewer=Viewer()
 	viewer.open("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1") 
@@ -95,20 +108,25 @@ if __name__ == '__main__':
 
 	# example of adding a python node to the dataflow
 	root=viewer.getRoot()
-	world_box=viewer.getWorldBounds()
-	
-	VISUS_REGISTER_NODE_CLASS("MyPythonNode")
+	world_box=viewer.getWorldBox()
+
 	pynode=MyPythonNode()
 	pynode.glSetRenderQueue(999)
-	pynode.setPosition(Position(world_box))
+	pynode.setBounds(Position(world_box))
 	viewer.addNode(root,pynode)
 
 	# pynode will get the data from the query
-	query_node=viewer.findNodeByName("Volume 1")
-	viewer.connectPorts(query_node,"data","data",pynode)
+	query_node=viewer.findNodeByUUID("Volume")
+	viewer.connectNodes(query_node, pynode)
 	 
 	GuiModule.execApplication()
 	viewer=None  
 	AppKitModule.detach()
 	print("All done")
 	sys.exit(0)
+
+
+# //////////////////////////////////////////////
+if __name__ == '__main__':
+	Main(sys.argv)
+

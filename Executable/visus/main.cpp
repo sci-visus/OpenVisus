@@ -109,7 +109,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() < 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0],"syntax error");
 
     String filename = args[1];
 
@@ -117,7 +117,7 @@ public:
     if (data && data.getTotalNumberOfSamples())
     {
       idxfile.logic_box = BoxNi(PointNi(data.getPointDim()), data.dims);
-      idxfile.fields.push_back(Field("data", data.dtype));
+      idxfile.fields.push_back(Field("myfield", data.dtype));
     }
 
     for (int I = 2; I < (int)args.size(); I++)
@@ -166,7 +166,7 @@ public:
 
     if (!idxfile.save(filename))
     {
-      VisusError() << "idxfile.save(" << filename << ") failed";
+      PrintError("idxfile.save",filename, "failed");
       return Array();
     }
 
@@ -255,7 +255,7 @@ public:
         continue;
       }
 
-      ThrowException(StringUtils::format() << args[0] <<"  Invalid argument " << args[I]);
+      ThrowException(args[0],"Invalid argument",args[I]);
     }
 
     auto modvisus=new ModVisus();
@@ -289,13 +289,13 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0],"syntax error");
 
     String filename = args[1];
 
     auto dataset = LoadDataset(filename);
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] <<"  LoadDataset(" << filename << ") failed");
+      ThrowException(args[0],"LoadDataset",filename,"failed");
 
     int window_size = 4096;
     double time = dataset->getDefaultTime();
@@ -311,7 +311,7 @@ public:
         window_size = cint(args[++I]);
 
         if (!Utils::isPowerOf2(window_size))
-          ThrowException(StringUtils::format() << args[0] <<" window size must be power of two");
+          ThrowException(args[0],"window size must be power of two");
 
         continue;
       }
@@ -321,7 +321,7 @@ public:
         String fieldname = args[++I];
         field = dataset->getFieldByName(fieldname);
         if (!field.valid())
-          ThrowException(StringUtils::format() << args[0] <<"  Invalid --field " << fieldname);
+          ThrowException(args[0],"Invalid --field",fieldname);
 
         continue;
       }
@@ -332,7 +332,7 @@ public:
         continue;
       }
       
-      ThrowException(StringUtils::format() << args[0] <<"  unknown argument: " << args[I]);
+      ThrowException(args[0],"unknown argument",args[I]);
     }
 
     //the filter will be applied using this sliding window
@@ -341,7 +341,7 @@ public:
 
     auto access = dataset->createAccess();
     auto filter = dataset->createFilter(field);
-    VisusInfo() << "starting conversion...";
+    PrintInfo("starting conversion...");
     filter->computeFilter(time, field, access, sliding_box);
     return data;
   }
@@ -409,20 +409,20 @@ public:
     }
     else
     {
-      ThrowException(StringUtils::format() << args[0] << " syntax error, wrong arguments");
+      ThrowException(args[0], "syntax error, wrong arguments");
     }
 
     auto Svf = LoadDataset(Surl);
     auto Dvf = LoadDataset(Durl);
 
     if (!Svf)
-      ThrowException(StringUtils::format() << args[0] << "  LoadDataset(" << Surl << ") failed");
+      ThrowException(args[0],"LoadDataset", Surl,"failed");
 
     if (!Dvf)
-      ThrowException(StringUtils::format() << args[0] << "  LoadDataset(" << Durl << ") failed");
+      ThrowException(args[0], "LoadDataset", Durl, "failed");
 
     if (Svf->getTimesteps() != Dvf->getTimesteps())
-      ThrowException(StringUtils::format() << args[0] << " Time range not compatible");
+      ThrowException(args[0], "Time range not compatible");
 
     std::vector<double> timesteps = Svf->getTimesteps().asVector();
 
@@ -430,7 +430,7 @@ public:
     std::vector<Field> Dfields = Dvf->getFields();
 
     if (Sfields.size() != Dfields.size())
-      ThrowException(StringUtils::format() << args[0] << " Fieldnames not compatible");
+      ThrowException(args[0],"Fieldnames not compatible");
 
     auto Saccess = Svf->createAccessForBlockQuery(Sconfig);
     auto Daccess = Dvf->createAccessForBlockQuery(Dconfig);
@@ -468,17 +468,17 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 3)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed 3 arguments");
+      ThrowException(args[0],"syntax error, needed 3 arguments");
 
     String url = args[1]; 
     auto dataset = LoadDataset(url); 
     if (!dataset)  
-      ThrowException(StringUtils::format() << args[0] <<"  LoadDataset(" << url << ") failed");
+      ThrowException(args[0], "LoadDataset",url,"failed");
 
     String compression = args[2];
 
     if (!dataset->compressDataset(compression))
-      ThrowException(StringUtils::format() << args[0] <<" Compression failed");
+      ThrowException(args[0],"Compression failed");
 
     return data;
   }
@@ -506,14 +506,14 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed filename");
+      ThrowException(args[0],"syntax error, needed filename");
 
-    VisusInfo() << "FixDatasetRange starting...";
+    PrintInfo("FixDatasetRange starting...");
 
     String filename = args[1];
     auto vf = LoadDataset<IdxDataset>(filename);
     if (!vf)
-      ThrowException(StringUtils::format() << args[0] <<"  failed to read IDX dataset (LoadDataset(" << filename << ") failed)");
+      ThrowException(args[0],"failed to read IDX dataset LoadDataset",filename,"failed");
 
     auto idxfile = vf->idxfile;
 
@@ -523,7 +523,7 @@ public:
 
     auto access = vf->createAccessForBlockQuery();
     if (!access)
-      ThrowException(StringUtils::format() << args[0] << " cannot create access (vf->createAccess() failed)");
+      ThrowException(args[0], "cannot create access vf->createAccess() failed");
 
     bool       filter_field = false; String field_filtered = "";
     bool       filter_time = false; double time_filtered = 0;
@@ -537,9 +537,9 @@ public:
       else if (args[I] == "--to") { block_to = cint64(args[++I]); }
     }
 
-    VisusInfo() << "Calculating minmax for " << (filter_field ? "field(" + field_filtered + ")" : "all fields");
-    VisusInfo() << "Calculating minmax for " << (filter_time ? "time(" + cstring(time_filtered) + ")" : "all timesteps");
-    VisusInfo() << "Calculating minmax in the block range [" << block_from << "," << block_to << ")";
+    PrintInfo("Calculating minmax for",filter_field ? "field" + field_filtered  : String("all fields"));
+    PrintInfo("Calculating minmax for",filter_time ? "time" +  cstring(time_filtered) : String("all timesteps"));
+    PrintInfo("Calculating minmax in the block range [",block_from,",",block_to);
 
     Time t1 = Time::now();
 
@@ -553,7 +553,7 @@ public:
 
       if (filter_field && field.name != field_filtered)
       {
-        VisusInfo() << "ignoring field(" << field.name << "), does not match with --field argument";
+        PrintInfo("ignoring field",field.name,"does not match with --field argument");
         continue;
       }
 
@@ -561,13 +561,13 @@ public:
       DType dtype = field.dtype;
       if (dtype.isVectorOf(DTypes::INT8))
       {
-        VisusInfo() << "range for field(" << field.name << ") of type 'int8' quickly guessed (skipped the reading from disk)";
+        PrintInfo("range for field",field.name,"of type 'int8' quickly guessed (skipped the reading from disk)");
         continue;
       }
 
       if (dtype.isVectorOf(DTypes::UINT8))
       {
-        VisusInfo() << "range for field(" << field.name << ") of type 'uint8' quickly guessed (skipped the reading from disk)";
+        PrintInfo("range for field",field.name,"of type 'uint8' quickly guessed (skipped the reading from disk)");
         continue;
       }
 
@@ -592,7 +592,7 @@ public:
 
         if (filter_time && time != time_filtered)
         {
-          VisusInfo() << "ignoring timestep(" << time << ") ,does not match with --time argument";
+          PrintInfo("ignoring timestep",time,"does not match with --time argument");
           continue;
         }
 
@@ -618,21 +618,20 @@ public:
           //estimation
           if (t1.elapsedMsec()>5000)
           {
-            VisusInfo()
-              << "RANGE time(" << time << ")"
-              << " field(" << field.name << ")"
-              << " nblock/from/to(" << nblock << "/" << block_from << "/" << block_to << ")";
+            PrintInfo("RANGE time",time,
+              "field",field.name,
+              "nblock/from/to",nblock,"/",block_from,"/",block_to);
 
             for (int C = 0; C<field.dtype.ncomponents(); C++)
-              VisusInfo() << "  what(" << C << ") " << field.dtype.getDTypeRange(C).toString();
+              PrintInfo("  what",C,field.dtype.getDTypeRange(C));
 
             idxfile.fields[F] = field;
 
             //try to save the intermediate file (NOTE: internally using locks so it should be fine to run in parallel)
             if (!idxfile.save(filename))
             {
-              VisusWarning() << "cannot save the INTERMEDIATE min-max in IDX dataset (vf->idxfile.save(" << filename << ") failed)";
-              VisusWarning() << "Continuing anyway hoping to solve the problem saving the file later";
+              PrintWarning("cannot save the INTERMEDIATE min-max in IDX dataset (vf->idxfile.save",filename,"failed");
+              PrintWarning("Continuing anyway hoping to solve the problem saving the file later");
             }
 
             t1 = Time::now();
@@ -640,24 +639,24 @@ public:
         }
       }
 
-      VisusInfo() << "done minmax for field(" << field.name << ")";
+      PrintInfo("done minmax for field",field.name);
 
       for (int C = 0; C<field.dtype.ncomponents(); C++)
-        VisusInfo() << "  what(" << C << ") " << field.dtype.getDTypeRange(C).toString();
+        PrintInfo("  what",C,field.dtype.getDTypeRange(C));
     }
 
     access->endRead();
 
     //finally save the file
     if (!idxfile.save(filename))
-      ThrowException(StringUtils::format() << args[0] <<"  cannot save the FINAL min-max in IDX dataset (IdxFile::save(" << filename << ") failed)");
+      ThrowException(args[0],"cannot save the FINAL min-max in IDX dataset IdxFile::save",filename,"failed");
 
-    VisusInfo() << "done fixFieldsRange";
+    PrintInfo("done fixFieldsRange");
 
-    StringTree out("fields");
+    StringTree ar("fields");
     for (auto field : vf->getFields())
-      out.writeObject("field", field);
-    VisusInfo() << out.toString();
+      ar.writeObject("field", field);
+    PrintInfo(ar);
 
     return data;
   }
@@ -723,15 +722,15 @@ public:
       idx->writeFullResolutionData(idx_access, idx->getDefaultField(),idx->getDefaultTime(), buffer, tile);
       int msec_write = (int)t1.elapsedMsec();
 
-      VisusInfo() << "done " << TileId << " of " << tiles.size() << " msec_read(" << msec_read << ") msec_write(" << msec_write << ")";
+      PrintInfo("done",TileId,"of",tiles.size(),"msec_read",msec_read,"msec_write",msec_write);
 
-      //ArrayUtils::saveImage(StringUtils::format() << "tile_" << TileId << ".png", read->buffer);
+      //ArrayUtils::saveImage(concatenate("tile_",TileId,".png"),read->buffer));
     }
 
     //finally compress
     idx->compressDataset("zip");
 
-    VisusInfo() << "ALL DONE IN " << T1.elapsedMsec();
+    PrintInfo("ALL DONE IN",T1.elapsedMsec());
     return data;
   }
 
@@ -756,13 +755,13 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error, needed filename");
+      ThrowException(args[0],"syntax error, needed filename");
 
     String filename = args[1];
 
     auto ret = ArrayUtils::loadImage(filename, args);
     if (!ret)
-      ThrowException(StringUtils::format() << args[0] <<"  cannot load image " << filename);
+      ThrowException(args[0],"cannot load image", filename);
 
     return ret;
   }
@@ -786,12 +785,12 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0],"syntax error");
 
     String filename = args[1];
 
     if (!ArrayUtils::saveImage(filename, data, args))
-      ThrowException(StringUtils::format() << args[0] <<"  saveImage failed " << filename);
+      ThrowException(args[0], "saveImage failed",filename);
 
     return data;
   }
@@ -818,13 +817,13 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0]<< " syntax error");
+      ThrowException(args[0], "syntax error");
 
     String filename = args[1];
 
     Array to_paste = ArrayUtils::loadImage(filename, args);
     if (!to_paste)
-      ThrowException(StringUtils::format() << args[0] <<"  Cannot load " << filename);
+      ThrowException(args[0], "Cannot load", filename);
 
     int pdim = data.getPointDim();
 
@@ -849,7 +848,7 @@ public:
     }
 
     if (!ArrayUtils::paste(data, Dbox, to_paste, Sbox))
-      ThrowException(StringUtils::format() << args[0] <<" paste of image failed");
+      ThrowException(args[0],"paste of image failed");
 
     return data;
   }
@@ -874,7 +873,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error");
+      ThrowException(args[0], "syntax error");
 
     int C = cint(args[1]);
     return data.getComponent(C);
@@ -899,7 +898,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error");
+      ThrowException(args[0], "syntax error");
 
     DType dtype = DType::fromString(args[1]);
     return ArrayUtils::cast(data, dtype);
@@ -924,7 +923,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error");
+      ThrowException(args[0], "syntax error");
 
     DType dtype = DType::fromString(args[1]);
     return ArrayUtils::smartCast(data, dtype);
@@ -950,7 +949,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error");
+      ThrowException(args[0], "syntax error");
 
     DType   dtype = data.dtype;
     PointNi dims = data.dims;
@@ -968,11 +967,11 @@ public:
         continue;
       }
       
-      ThrowException(StringUtils::format() << args[0] << " Invalid arguments " << args[I]);
+      ThrowException(args[0], "Invalid arguments", args[I]);
     }
 
     if (!data.resize(dims, dtype, __FILE__, __LINE__))
-      ThrowException(StringUtils::format() << args[0] << " resize failed");
+      ThrowException(args[0], "resize failed");
 
     return data;
   }
@@ -996,14 +995,14 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error");
+      ThrowException(args[0], "syntax error");
 
     int pdim = data.getPointDim();
     String sbox = args[1];
 
     BoxNi box = BoxNi::parseFromOldFormatString(pdim,sbox);
     if (!box.isFullDim())
-      ThrowException(StringUtils::format() << args[0] <<"  Invalid box " << sbox);
+      ThrowException(args[0], "Invalid box", sbox);
 
     return ArrayUtils::crop(data, box);
   }
@@ -1027,11 +1026,11 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
     int axis = cint(args[1]);
     if (axis<0)
-      ThrowException(StringUtils::format() << args[0] <<"  Invalid axis " << args[1]);
+      ThrowException(args[0], "Invalid axis", args[1]);
 
     return ArrayUtils::mirror(data, axis);
   }
@@ -1056,11 +1055,11 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
     int C = cint(args[1]);
     Range range = ArrayUtils::computeRange(data, C);
-    VisusInfo() << "Range of component " << C << " is " << range.toString();
+    PrintInfo("Range of component", C, "is", range);
 
     return data;
   }
@@ -1084,10 +1083,10 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 1)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
     if (data.dtype.ncomponents()>1 && !Utils::isByteAligned(data.dtype.get(0).getBitSize()))
-      ThrowException(StringUtils::format() << args[0] <<" request to --interleave but a sample is not byte aligned");
+      ThrowException(args[0], "request to --interleave but a sample is not byte aligned");
 
     //need to interleave (the input for example is RRRRR...GGGGG...BBBBB and I really need RGBRGBRGB)
     return ArrayUtils::interleave(data);
@@ -1112,14 +1111,14 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
     String filename = args[1];
     StringTree info = ArrayUtils::statImage(filename);
     if (!info.valid())
-      ThrowException(StringUtils::format() << args[0] <<"  Could not open " << filename);
+      ThrowException(args[0], "Could not open",filename);
 
-    VisusInfo() << std::endl << info.toString();
+    PrintInfo("\n",info);
 
     auto dataset = LoadDataset(filename);
     return data;
@@ -1144,9 +1143,9 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 1)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
-    VisusInfo() << "Buffer dims(" << data.dims.toString() << ") dtype(" << data.dtype.toString() << ")";
+    PrintInfo("Buffer dims",data.dims, "dtype",data.dtype);
 
     Uint8* SRC = data.c_ptr();
     Int64 N = data.c_size();
@@ -1160,7 +1159,7 @@ public:
     }
     out << std::endl;
     out << std::endl;
-    VisusInfo() << "\n" << out.str();
+    PrintInfo("\n");
     return data;
   }
 };
@@ -1190,13 +1189,13 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size()<2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
     String url = args[1];
 
     auto dataset = LoadDataset(url);
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] <<"  LoadDataset(" << url << ") failed");
+      ThrowException(args[0], "LoadDataset", url,"failed");
 
     BigInt block_id = 0;
     Field  field = dataset->getDefaultField();
@@ -1215,7 +1214,7 @@ public:
         String fieldname = args[++I];
         field = dataset->getFieldByName(fieldname);
         if (!field.valid())
-          ThrowException(StringUtils::format() << args[0] <<"  specified field (" << fieldname << ") is wrong");
+          ThrowException(args[0], "specified field",fieldname,"is wrong");
         continue;
       }
 
@@ -1223,14 +1222,14 @@ public:
       {
         double time = cdouble(args[++I]);
         if (!dataset->getTimesteps().containsTimestep(time))
-          ThrowException(StringUtils::format() << args[0] <<"  specified time (" << time << ") is wrong");
+          ThrowException(args[0], "specified time",time,"is wrong");
         continue;
       }
 
-      ThrowException(StringUtils::format() << args[0] <<"  Invalid argument " << args[I]);
+      ThrowException(args[0], "Invalid argument",args[I]);
     }
 
-    VisusInfo() << "url(" << url << ") block(" << block_id << ") field(" << field.name << ") time(" << time << ")";
+    PrintInfo("url",url, "block",block_id, "field",field.name, "time",time);
 
     auto access=dataset->createAccessForBlockQuery();
 
@@ -1246,7 +1245,7 @@ public:
       bool bOk = dataset->executeBlockQueryAndWait(access, block_query);
       access->endWrite();
       if (!bOk)
-        ThrowException(StringUtils::format() << args[0] <<" Failed to write block");
+        ThrowException(args[0], "Failed to write block");
       ret=data;
     }
     else
@@ -1255,14 +1254,18 @@ public:
       bool bOk = dataset->executeBlockQueryAndWait(access, block_query);
       access->endRead();
       if (!bOk)
-        ThrowException(StringUtils::format() << args[0] <<" Failed to write block");
+        ThrowException(args[0], "Failed to write block");
       ret=block_query->buffer;
     }
 
-    VisusInfo() << (bWriting?"Wrote":"Read")<< " block("<<block_id<< ") in msec(" << t1.elapsedMsec() << ")"
-      <<" nopen(" << ApplicationStats::io.nopen << ")"
-      <<" rbytes(" << StringUtils::getStringFromByteSize(ApplicationStats::io.rbytes) << ")"
-      <<" wbytes(" << StringUtils::getStringFromByteSize(ApplicationStats::io.wbytes) << ")";
+    auto nopen  = (int)ApplicationStats::io.nopen;
+    auto rbytes = (int)ApplicationStats::io.rbytes;
+    auto wbytes = (int)ApplicationStats::io.wbytes;
+
+    PrintInfo(bWriting?"Wrote":"Read","block", block_id, "in msec",t1.elapsedMsec(),
+      "nopen", nopen,
+      "rbytes",StringUtils::getStringFromByteSize(rbytes),
+      "wbytes",StringUtils::getStringFromByteSize(wbytes));
     ApplicationStats::io.reset();
     return ret;
   }
@@ -1291,7 +1294,7 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 3)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
     String src_url = args[1];
     String dst_url = args[2];
@@ -1307,13 +1310,13 @@ public:
       auto blob_name = Url(src_url).getPath();
       blob = src_storage->getBlob(net, blob_name,Aborted()).get();
       if (!blob.valid())
-        ThrowException(StringUtils::format() << args[0] <<"  Cloud Storage getBlob(" << src_url << ") failed");
+        ThrowException(args[0], " Cloud Storage getBlob",src_url,"failed");
     }
     else
     {
       auto body = Utils::loadBinaryDocument(src_url);
       if (!body)
-        ThrowException(StringUtils::format() << args[0] <<"  Utils::loadBinaryDocument(" << src_url << ") failed");
+        ThrowException(args[0], "Utils::loadBinaryDocument", src_url,"failed");
 
       blob.body = body;
     }
@@ -1322,11 +1325,11 @@ public:
     {
       auto blob_name = Url(dst_url).getPath();
       if (!dst_storage->addBlob(net, blob_name, blob,Aborted()).get())
-        ThrowException(StringUtils::format() << args[0] <<"  Cloud Storage addBlob(" << dst_url << ") failed");
+        ThrowException(args[0], "Cloud Storage addBlob",dst_url,"failed");
     }
     else if (!Utils::saveBinaryDocument(dst_url, blob.body))
     {
-      ThrowException(StringUtils::format() << args[0] <<"  Utils::saveBinaryDocument(" << dst_url << ") failed");
+      ThrowException(args[0], "Utils::saveBinaryDocument",dst_url,"failed");
     }
 
     return data;
@@ -1352,14 +1355,14 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 2)
-      ThrowException(StringUtils::format() << args[0] <<"  syntax error");
+      ThrowException(args[0], "syntax error");
 
     auto net = std::make_shared<NetService>(1);
 
     Url url = args[1];
     auto cloud=CloudStorage::createInstance(url);
     if (!cloud->deleteBlob(net,url.getPath(),Aborted()).get())
-      ThrowException(StringUtils::format() << args[0] <<"  cannot delete blob " << url.toString());
+      ThrowException(args[0], "cannot delete blob",url.toString());
     return data;
   }
 };
@@ -1387,7 +1390,7 @@ public:
     Url url(args[1]);
 
     if (!url.valid())
-      ThrowException(StringUtils::format() << args[0] << ", " << args[1] << " is not a valid url");
+      ThrowException(args[0],args[1],"is not a valid url");
 
     auto net = std::make_shared<NetService>(1);
 
@@ -1412,7 +1415,7 @@ public:
     Int64 MSEC_ADD = 0, MSEC_GET = 0;
     for (int I = 0; ; I++)
     {
-      String blob_name = StringUtils::format() << "/testing-cloud-storage/speed/" << "blob."<< std::setfill('0') << std::setw(4) << I <<".bin";
+      String blob_name = concatenate("/testing-cloud-storage/speed/","blob.",StringUtils::formatNumber("%04d",I),".bin");
       auto t1 = Time::now();
       bool bOk=cloud->addBlob(net, blob_name, blob, Aborted()).get();
       auto msec_add = t1.elapsedMsec(); MSEC_ADD += msec_add;
@@ -1425,7 +1428,7 @@ public:
       check_blob.content_type = blob.content_type; //google changes the content_type
       VisusReleaseAssert(check_blob == blob);
 
-      VisusInfo() << "Average msec_add(" << (MSEC_ADD / (I+1)) << ") msec_get(" << (MSEC_GET / (I + 1)) << ")";
+      PrintInfo("Average msec_add",MSEC_ADD / (I+1), "msec_get",MSEC_GET / (I + 1));
     }
 
     return data;
@@ -1451,13 +1454,13 @@ public:
   virtual Array exec(Array data, std::vector<String> args) override
   {
     if (args.size() != 3)
-      ThrowException(StringUtils::format() << args[0] << "  syntax error");
+      ThrowException(args[0] , "syntax error");
 
     String filename = args[1];
     auto dataset = LoadDataset(filename);
 
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] << "  failed to read dataset (LoadDataset(" << filename << ") failed)");
+      ThrowException(args[0], "failed to read dataset LoadDataset " ,filename,"failed");
 
     String compression = args[2];
 
@@ -1500,10 +1503,10 @@ public:
         auto decoded_mb = decoded_bytes / (1024 * 1024);
         auto ratio = 100.0*(encoded_mb / (double)decoded_mb);
 
-        VisusInfo() << "Ratio " << ratio <<"%";
-        VisusInfo() << "Encoding MByte(" << encoded_mb << ") sec(" << encode_sec << ") MByte/sec(" << (encoded_mb / encode_sec) << ")";
-        VisusInfo() << "Decoding MByte(" << decoded_mb << ") sec(" << decode_sec << ") MByte/sec(" << (decoded_mb / decode_sec) << ")";
-        VisusInfo();
+        PrintInfo("Ratio", ratio, "%");
+        PrintInfo("Encoding MByte", encoded_mb, "sec", encode_sec, "MByte/sec", encoded_mb / encode_sec);
+        PrintInfo("Decoding MByte", decoded_mb, "sec", decode_sec, "MByte/sec", decoded_mb / decode_sec);
+        PrintInfo("");
 
         T1 = Time::now();
         //decoded_bytes = 0; decode_sec = 0;
@@ -1536,12 +1539,12 @@ public:
   virtual Array exec(Array data,std::vector<String> args) override
   {
     if (args.size() < 2)
-      ThrowException(StringUtils::format() << args[0] << " syntax error");
+      ThrowException(args[0],"syntax error");
 
     String filename = args[1];
     auto dataset = LoadDataset(filename);
     if (!dataset)
-      ThrowException(StringUtils::format() << args[0] << "  cannot LoadDataset " << filename);
+      ThrowException(args[0], "cannot LoadDataset",filename);
 
     int    query_dim = dataset->getPointDim() == 2 ? 2048 : 512;
 
@@ -1552,17 +1555,17 @@ public:
         String s_query_dim = args[++I];
 
         if (!StringUtils::tryParse(s_query_dim,query_dim) || query_dim<=0)
-          ThrowException(StringUtils::format() << args[0] <<"  Invalid --query-dim " << s_query_dim);
+          ThrowException(args[0],"Invalid --query-dim ",s_query_dim);
 
         continue;
       }
 
-      ThrowException(StringUtils::format() << args[0] <<" Invalid args "<<args[I]);
+      ThrowException(args[0],"Invalid args",args[I]);
     }
 
     srand((unsigned int)Time::now().getTimeStamp());
 
-    VisusInfo() << "Testing query...";
+    PrintInfo("Testing query...");
     auto access = dataset->createAccess();
 
     auto tiles = dataset->generateTiles(query_dim);
@@ -1577,22 +1580,26 @@ public:
       if (!buffer)
         continue;
 
-      VisusInfo() << "Done " << TileId << " of "<<tiles.size();
+      PrintInfo("Done", TileId, "of", tiles.size());
 
       if (Tstats.elapsedSec() > 3.0)
       {
         auto sec = Tstats.elapsedSec();
-        VisusInfo()
-          << " ndone(" << TileId << "/" << tiles.size() << ")"
-          << " io.nopen(" << ApplicationStats::io.nopen << "/" << Int64(ApplicationStats::io.nopen / sec) << ") "
-          << " io.rbytes(" << StringUtils::getStringFromByteSize(ApplicationStats::io.rbytes) << "/" << StringUtils::getStringFromByteSize(Int64(ApplicationStats::io.rbytes / sec)) << "persec) "
-          << " io.wbytes(" << StringUtils::getStringFromByteSize(ApplicationStats::io.wbytes) << "/" << StringUtils::getStringFromByteSize(Int64(ApplicationStats::io.wbytes / sec)) << "persec) ";
+
+        auto nopen = (int)ApplicationStats::io.nopen;
+        auto rbytes = (int)ApplicationStats::io.rbytes;
+        auto wbytes = (int)ApplicationStats::io.wbytes;
+
+        PrintInfo("ndone",TileId,"/",tiles.size(),
+          "io.nopen",nopen,"/",Int64(nopen / sec),
+          "io.rbytes",StringUtils::getStringFromByteSize(rbytes),StringUtils::getStringFromByteSize(Int64(rbytes / sec)),
+          "io.wbytes", StringUtils::getStringFromByteSize(wbytes),StringUtils::getStringFromByteSize(Int64(wbytes / sec)));
         ApplicationStats::io.reset();
         Tstats = Time::now();
       }
     }
 
-    VisusInfo() << "Test done in " << T1.elapsedSec();
+    PrintInfo("Test done in", T1.elapsedSec());
     return data;
   }
 };
@@ -1649,7 +1656,7 @@ public:
         continue;
       }
 
-      ThrowException(StringUtils::format() << "wrong argument "<<args[I]);
+      ThrowException("wrong argument ",args[I]);
     }
 
     if (bWriting)
@@ -1658,7 +1665,7 @@ public:
 
       File file;
       if(!file.createAndOpen(filename,"w"))
-        ThrowException(StringUtils::format() << args[0] <<" TestWriteIO, file.open"<<filename<<",\"wb\") failed");
+        ThrowException(args[0],"TestWriteIO, file.open(",filename, ",\"wb\")","failed");
 
       Array blockdata;
       bool bOk=blockdata.resize(blocksize,DTypes::UINT8,__FILE__,__LINE__);
@@ -1669,20 +1676,20 @@ public:
       for (nwritten=0;(nwritten+blocksize)<=filesize;nwritten+=blocksize)
       {
         if(!file.write(nwritten, blocksize, blockdata.c_ptr()))
-          ThrowException(StringUtils::format() << args[0] <<" TestWriteIO write(...) failed");
+          ThrowException(args[0],"TestWriteIO write(...) failed");
       }
       file.close();
       double elapsed=t1.elapsedSec();
       int mbpersec=(int)(nwritten/(1024.0*1024.0*elapsed));
       //do not remove, I can need it for read
       //remove(filename.c_str());
-      VisusInfo()<<"write("<<mbpersec<<" mb/sec) filesize("<<filesize<<") blocksize("<<blocksize<<") nwritten("<<nwritten<<") filename("<<filename<<")";
+      PrintInfo("write",mbpersec,"mb/sec filesize",filesize, "blocksize", blocksize, "nwritten", nwritten, "filename", filename);
     }
     else
     {
       File file;
       if(!file.open(filename,"r"))
-        ThrowException(StringUtils::format() << args[0] <<" file.open("<<filename<<",'r') failed");
+        ThrowException(args[0],"file.open(",filename,",'r')","failed");
 
       Array blockdata;
       bool bOk=blockdata.resize(blocksize,DTypes::UINT8,__FILE__,__LINE__);
@@ -1700,11 +1707,11 @@ public:
         if (!--cont)
         {
           cont=maxcont;
-          VisusInfo()<<"read("<<((nread/(1024*1024))/t1.elapsedSec())<<" mb/sec) blocksize("<<blocksize<<") nread("<<(nread/(1024*1024))<<" mb) filename("<<filename<<")";      
+          PrintInfo("read", (nread/(1024*1024))/t1.elapsedSec(), "mb/sec", "blocksize", blocksize, "nread", nread/(1024*1024), "mb","filename", filename);
         }
       }
       file.close();
-      VisusInfo()<<"read("<<((nread/(1024*1024))/t1.elapsedSec())<<" mb/sec) blocksize("<<blocksize<<") nread("<<(nread/(1024*1024))<<" mb) filename("<<filename<<")";  
+      PrintInfo("read", (nread/(1024*1024))/t1.elapsedSec(), " mb/sec", "blocksize", blocksize, "nread", nread/(1024*1024), "mb","filename",filename);
     }
 
     return data;
@@ -1738,7 +1745,7 @@ public:
         continue;
       }
 
-      ThrowException(StringUtils::format() << "wrong argument " << args[I]);
+      ThrowException("wrong argument",args[I]);
     }
 
     execTestIdx(max_seconds);
@@ -1775,12 +1782,12 @@ public:
   //exec
   virtual Array exec(Array data, std::vector<String> args) override
   {
-    String filename = StringUtils::format()<<"./temp/TestIdxSlabSpeed/visus.idx";
+    String filename = "./temp/TestIdxSlabSpeed/visus.idx";
 
     auto dirname = Path(filename).getParent();
     if (FileUtils::existsDirectory(dirname))
     {
-      ThrowException(StringUtils::format() << "Please empty the directory " << dirname.toString());
+      ThrowException("Please empty the directory",dirname);
       return Array(); 
     }
 
@@ -1821,15 +1828,15 @@ public:
         continue;
       }
 
-      ThrowException(StringUtils::format()<<"Wrong argument "<<args[I]);
+      ThrowException("Wrong argument ",args[I]);
     }
 
     int slices_per_slab = (int)dims[2] / num_slabs;
 
-    VisusInfo() << "--dims            " << dims.toString();
-    VisusInfo() << "--num-slabs       " << num_slabs;
-    VisusInfo() << "--dtype           " << dtype;
-    VisusInfo() << "--slices-per-slab " << slices_per_slab;
+    PrintInfo("--dims            ",dims);
+    PrintInfo("--num-slabs       ",num_slabs);
+    PrintInfo("--dtype           ",dtype);
+    PrintInfo("--slices-per-slab ",slices_per_slab);
 
     //create the idx file
     {
@@ -1891,10 +1898,10 @@ public:
       auto t2 = clock();
       auto sec = (t2 - t1) / (float)CLOCKS_PER_SEC;
       SEC += sec;
-      VisusInfo() << "Done " << Slab << " of " << num_slabs << " bbox " << slice_box.toString(/*bInterleave*/true) <<" in "<< sec <<"sec";
+      PrintInfo("Done",Slab, "of",num_slabs, "bbox ",slice_box.toString(/*bInterleave*/true), "in",sec, "sec");
     }
 
-    VisusInfo()<<"Wrote all slabs in " << SEC << "sec";
+    PrintInfo("Wrote all slabs in",SEC,"sec");
 
     if (bool bVerify=true)
     {
@@ -1918,7 +1925,7 @@ public:
       for (int I = 0, N= (int)dims.innerProduct(); I < N; I++)
       {
         if (samples[I] != I)
-          VisusInfo() << "Reading verification failed sample "<<I<<" expecting "<< I <<" got "<< samples[I];
+          PrintInfo("Reading verification failed sample", I, "expecting", I, "got", samples[I]);
       }
     }
 
@@ -1935,11 +1942,9 @@ public:
   //getHelp
   virtual String getHelp(std::vector<String> args) override
   {
-    std::ostringstream out;
-    out << args[0]
-      << " [--c nconnections] [--n nrequests] (url)+" << std::endl
-      << "Example: " << args[0] << " --c 8 -n 1000 http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled";
-    return out.str();
+    return cstring(args[0],
+      "[--c nconnections] [--n nrequests] (url)+","\n",
+      "Example: ",args[0],"--c 8 -n 1000 http://atlantis.sci.utah.edu/mod_visus?from=0&to=65536&dataset=david_subsampled");
   }
 
   //exec
@@ -1961,11 +1966,11 @@ public:
         urls.push_back(args[I]);
     }
 
-    VisusInfo() << "Concurrency " << nconnections;
-    VisusInfo() << "nrequest " << nrequests;
-    VisusInfo() << "urls";
+    PrintInfo("Concurrency",nconnections);
+    PrintInfo("nrequest",nrequests);
+    PrintInfo("urls");
     for (auto url : urls)
-      VisusInfo() << "  " << url;
+      PrintInfo("  ",url);
 
     auto net = std::make_shared<NetService>(nconnections, false);
 
@@ -1978,10 +1983,10 @@ public:
       wait_async.pushRunning(NetService::push(net, request)).when_ready([Id](NetResponse response) {
 
         if (response.status != HttpStatus::STATUS_OK)
-          VisusInfo() << "one request failed";
+          PrintInfo("one request failed");
 
         if (Id && (Id % 100) == 0)
-          VisusInfo() << "Done " << Id << " request";
+          PrintInfo("Done ",Id,"request");
       });
     }
 
@@ -1989,11 +1994,11 @@ public:
 
     auto sec = t1.elapsedSec();
 
-    VisusInfo() << "All done in " << sec << "sec";
-    VisusInfo()
-      << " Num request/sec " << double(nrequests) / sec << ") "
-      << " read  " << StringUtils::getStringFromByteSize(ApplicationStats::net.rbytes) << " bytes/sec " << double(ApplicationStats::net.rbytes) / (sec) << ") "
-      << " write " << StringUtils::getStringFromByteSize(ApplicationStats::net.wbytes) << " bytes/sec " << double(ApplicationStats::net.wbytes) / (sec) << ") ";
+    PrintInfo("All done in",sec,"sec");
+    PrintInfo(
+      "Num request/sec",double(nrequests) / sec,
+      "read" ,StringUtils::getStringFromByteSize(ApplicationStats::net.rbytes),"bytes/sec",double(ApplicationStats::net.rbytes) / (sec),
+      "write",StringUtils::getStringFromByteSize(ApplicationStats::net.wbytes),"bytes/sec",double(ApplicationStats::net.wbytes) / (sec));
     ApplicationStats::net.reset();
 
     return data;
@@ -2061,7 +2066,7 @@ public:
   virtual String getHelp(std::vector<String> args) override
   {
     std::ostringstream out;
-    out << args[0] << "Syntax: " << std::endl << std::endl;
+    out << args[0] << "Syntax: "<< std::endl << std::endl;
     for (auto it : actions)
       out << "    " << it.first << std::endl;
     out << std::endl;
@@ -2075,7 +2080,7 @@ public:
   {
     if (args.size() <=1 || (args.size() == 2 && (args[1] == "help" || args[1] == "--help" || args[1] == "-h")))
     {
-      VisusInfo()<<getHelp(args);
+      PrintInfo(getHelp(args));
       return Array();
     }
 
@@ -2097,12 +2102,7 @@ public:
       }
 
       if (parsed.empty())
-      {
-        std::ostringstream error_msg;
-        error_msg << "Wrong argument " << arg << std::endl;
-        error_msg << getHelp(args);
-        ThrowException(error_msg.str());
-      }
+        ThrowException("Wrong argument" ,"\n",getHelp(args));
 
       parsed.back().push_back(arg);
     }
@@ -2111,20 +2111,20 @@ public:
     {
       String name = args[0];
 
-      VisusInfo() << "// *** STEP "<< name<<" ***";
-      VisusInfo() << "Input dtype(" << data.dtype.toString() << ") " << "dims(" << data.dims.toString() << ") args("<<StringUtils::join(args," ")<<")";
+      PrintInfo("//*** STEP ",name,"***");
+      PrintInfo("Input dtype",data.dtype,"dims",data.dims,"args",StringUtils::join(args," "));
 
       auto action = actions[name]();
 
       if (args.size() == 2 && (args[1] == "help" || args[1] == "--help" || args[1] == "-h"))
       {
-        VisusInfo() << std::endl << args[0] << " " << name << " " << action->getHelp(args);
+        PrintInfo("\n",args[0],name,action->getHelp(args));
         return data;
       }
 
       Time t1 = Time::now();
       data = action->exec(data, args);
-      VisusInfo() << "STEP "<<name<<" done in " << t1.elapsedMsec() << "msec";
+      PrintInfo("STEP ",name,"done in",t1.elapsedMsec(),"msec");
     }
 
     return data;
@@ -2177,7 +2177,7 @@ int main(int argn, const char* argv[])
     }
   }
 
-  //VisusInfo() << StringUtils::join(args);
+  //PrintInfo(StringUtils::join(args));
   
   if (ApplicationInfo::debug)
   {
@@ -2191,13 +2191,13 @@ int main(int argn, const char* argv[])
     }
     catch (std::exception& ex)
     {
-      VisusInfo() << "ERROR: " << ex.what();
+      PrintInfo("ERROR:",ex.what());
       IdxModule::detach();
       return -1;
     }
   }
 
-  VisusInfo() << "All done in " << T1.elapsedSec()<< " seconds";
+  PrintInfo("All done in ",T1.elapsedSec(),",seconds");
 
   IdxModule::detach();
 

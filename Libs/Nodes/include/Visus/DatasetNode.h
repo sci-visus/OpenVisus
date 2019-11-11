@@ -53,13 +53,10 @@ public:
   VISUS_NON_COPYABLE_CLASS(DatasetNode)
 
   //constructor
-  DatasetNode(String name="");
+  DatasetNode();
 
   //DatasetNode
   virtual ~DatasetNode();
-
-  //executeAction
-  virtual void executeAction(StringTree in) override;
 
   //getDataset
   SharedPtr<Dataset> getDataset() const {
@@ -85,8 +82,8 @@ public:
     return dataset->getLogicBox();
   }
 
-  //getPosition
-  virtual Position getPosition() override {
+  //getBounds
+  virtual Position getBounds() override {
     return dataset? dataset->getDatasetBounds() : Position::invalid();
   }
 
@@ -97,7 +94,7 @@ public:
 
   //setShowBounds
   void setShowBounds(bool value) {
-    setProperty("show_bounds", this->show_bounds, value);
+    setProperty("SetShowBounds", this->show_bounds, value);
   }
 
   static DatasetNode* castFrom(Node* obj) {
@@ -106,11 +103,14 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 

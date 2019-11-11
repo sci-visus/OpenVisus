@@ -54,7 +54,7 @@ public:
   VISUS_NON_COPYABLE_CLASS(StatisticsNode)
 
   //constructor
-  StatisticsNode(String name="");
+  StatisticsNode();
 
   //destructor
   virtual ~StatisticsNode();

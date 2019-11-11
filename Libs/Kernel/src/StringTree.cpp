@@ -38,7 +38,6 @@ For support : support@visus.net
 
 #include <Visus/StringTree.h>
 #include <Visus/StringUtils.h>
-#include <Visus/Log.h>
 #include <Visus/Path.h>
 #include <Visus/Utils.h>
 #include <Visus/ApplicationInfo.h>
@@ -141,7 +140,7 @@ private:
     StringTree inplace=StringTree::fromString(Utils::loadTextDocument(url));
     if (!inplace.valid())
     {
-      VisusInfo()<<"cannot load document "<<url;
+      PrintInfo("cannot load document",url);
       VisusAssert(false);
       return;
     }
@@ -272,7 +271,7 @@ private:
       {
         String key   = it.first;
         String value = resolveAliases(it.second,aliases);
-        dst.writeString(key,value);
+        dst.write(key,value);
       }
 
       //childs
@@ -337,7 +336,7 @@ public:
 StringTree StringTree::postProcess(const StringTree& src)
 {
   auto dst=PostProcessStringTree::exec(const_cast<StringTree&>(src));
-  //VisusInfo() << dst.toString();
+  //PrintInfo(dst);
   return dst;
 }
 
@@ -409,28 +408,20 @@ StringTree* StringTree::NormalizeW(StringTree* cursor, String& key)
 
 
 /////////////////////////////////////////////////
-String StringTree::readText() const
+void StringTree::readText(String& value) const
 {
   std::ostringstream out;
   for (auto child : childs)
   {
     if (child->name=="#text")
-      out<< child->read("value");
+      out<< child->readString("value");
     
     if (child->name== "#cdata-section")
-      out<< child->read("value");
+      out<< child->readString("value");
   }
-  return out.str();
+  value=out.str();
 }
 
-
-/////////////////////////////////////////////////
-String StringTree::read(String key,String default_value) const
-{
-  VisusAssert(!key.empty());
-  auto cursor=NormalizeR(this,key);
-  return cursor? cursor->getAttribute(key, default_value) : default_value;
-}
 
 /////////////////////////////////////////////////
 StringTree& StringTree::write(String key,String value)
@@ -622,28 +613,23 @@ static StringTree FromXmlElement(TiXmlElement* src)
   StringTree dst(src->Value());
 
   for (TiXmlAttribute* attr = src->FirstAttribute(); attr; attr = attr->Next())
-    dst.writeString(attr->Name(), attr->Value());
+    dst.write(attr->Name(), attr->Value());
 
   //xml_text                                              
-  if (const TiXmlNode* child = src->FirstChild())
+  if (auto child = src->FirstChild())
   {
-    if (const TiXmlText* child_text = child->ToText())
+    if (auto child_text = child->ToText())
     {
-      if (const char* xml_text = child_text->Value())
-      {
-        if (child_text->CDATA())
-          dst.writeCode(xml_text);
-        else
-          dst.writeText(xml_text);
-      }
+      if (auto xml_text = child_text->Value())
+        dst.writeText(xml_text, child_text->CDATA());
     }
-    else if (const TiXmlComment* child_comment = child->ToComment())
+    else if (auto child_comment = child->ToComment())
     {
-      dst.addCommentNode(child_comment->Value());
+      dst.addComment(child_comment->Value());
     }
   }
 
-  for (TiXmlElement* child = src->FirstChildElement(); child; child = child->NextSiblingElement())
+  for (auto child = src->FirstChildElement(); child; child = child->NextSiblingElement())
     dst.addChild(FromXmlElement(child));
 
   return dst;
@@ -654,7 +640,7 @@ StringTree StringTree::fromString(String content, bool bEnablePostProcessing)
 {
   if (content.empty())
   {
-    VisusWarning() << "StringTree::fromString failed because of empty content";
+    PrintWarning("StringTree::fromString failed because of empty content");
     return StringTree();
   }
 
@@ -662,14 +648,19 @@ StringTree StringTree::fromString(String content, bool bEnablePostProcessing)
   xmldoc.Parse(content.c_str());
   if (xmldoc.Error())
   {
-    VisusWarning() << "Failed StringTree::fromString failed"
-      << " ErrorRow(" << xmldoc.ErrorRow() << ")"
-      << " ErrorCol(" << xmldoc.ErrorCol() << ")"
-      << " ErrorDesc(" << xmldoc.ErrorDesc() << ")";
-    return false;
+    PrintWarning("Failed StringTree::fromString failed",
+      "ErrorRow(" ,xmldoc.ErrorRow(),
+      "ErrorCol(",xmldoc.ErrorCol(),
+      "ErrorDesc(",xmldoc.ErrorDesc());
+    return StringTree();
   }
 
-  auto ret = FromXmlElement(xmldoc.FirstChildElement());
+  auto ret = StringTree("TiXmlDocument");
+  for (auto child = xmldoc.FirstChildElement(); child; child=child->NextSiblingElement())
+    ret.addChild(FromXmlElement(child));
+
+  if (ret.childs.size() == 1)
+    ret = *ret.getFirstChild();
 
   if (bEnablePostProcessing)
     ret = StringTree::postProcess(ret);
@@ -692,7 +683,7 @@ bool ConfigFile::load(String filename, bool bEnablePostProcessing)
   StringTree temp=StringTree::fromString(content, bEnablePostProcessing);
   if (!temp.valid())
   {
-    VisusWarning() << "visus config content is wrong or empty";
+    PrintWarning("visus config content is wrong or empty");
     return false;
   }
 

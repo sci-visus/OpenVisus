@@ -2,7 +2,6 @@
 
 %{ 
 #include <Visus/Array.h>
-#include <Visus/Log.h>
 #include <Visus/StringTree.h>
 #include <Visus/NetServer.h>
 #include <Visus/Polygon.h>
@@ -44,7 +43,6 @@ using namespace Visus;
 %include <Visus/Kernel.h>
 	%template(VectorInt64)                     std::vector<Visus::Int64>;
 %include <Visus/StringMap.h>
-%include <Visus/Log.h>
 %include <Visus/HeapMemory.h>
 %include <Visus/Singleton.h>
 %include <Visus/Aborted.h>

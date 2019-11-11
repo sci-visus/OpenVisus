@@ -148,7 +148,7 @@ public:
       _stride*=num;
     }
 
-    VisusInfo()<<"Starting self test procedure on dataset pdim("<<dataset->getPointDim()<<")";
+    PrintInfo("Starting self test procedure on dataset pdim",dataset->getPointDim());
 
     if (bool bWriteData=true)
     {
@@ -252,11 +252,7 @@ public:
         nsample++;
       }
 
-       VisusInfo()<<"done query "<<
-        "first_resolution("<<firsth<<") "
-        <<"last_resolution("<<lasth<<") "
-        <<"delta_between_resolution("<<deltah<<") "
-        <<"merge_mode("<<(bInterpolate?"interpolate":"insert")<<")";
+       PrintInfo("done query","first_resolution",firsth,"last_resolution", lasth,"delta_between_resolution", deltah,"merge_mode",bInterpolate?"interpolate":"insert");
     }
   }
 
@@ -303,30 +299,30 @@ void execTestIdx(int max_seconds)
   {
     String default_layout=rowmajor?"rowmajor":"hzorder";
 
-    VisusInfo()<<"Running Tutorial_1...";
+    PrintInfo("Running Tutorial_1...");
     Tutorial_1(default_layout);
-    VisusInfo()<<"...done";
+    PrintInfo("...done");
 
-    VisusInfo()<<"Running Tutorial_2...";
+    PrintInfo("Running Tutorial_2...");
     Tutorial_2(default_layout);
-    VisusInfo()<<"...done";
+    PrintInfo("...done");
 
-    VisusInfo()<<"Running Tutorial_3...";
+    PrintInfo("Running Tutorial_3...");
     Tutorial_3(default_layout);
-    VisusInfo()<<"...done";
+    PrintInfo("...done");
 
     //remove data from tutorial_1
     if (auto dataset= LoadDataset<IdxDataset>("./temp/tutorial_1.idx"))
       dataset->removeFiles();
 
-    VisusInfo()<<"Running Tutorial_6...";
+    PrintInfo("Running Tutorial_6...");
     Tutorial_6(default_layout);
-    VisusInfo()<<"...done";
+    PrintInfo("...done");
   }
 #endif
 
   ////do self testing on random field
-  VisusInfo()<<"Running self test procedure (max_seconds "<<max_seconds<<")...";
+  PrintInfo("Running self test procedure max_seconds",max_seconds,"...");
 
   //test byte aligned query (the fast loop has special sample copy for byte aligned data)
   if (true)

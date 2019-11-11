@@ -41,12 +41,9 @@ For support : support@visus.net
 namespace Visus {
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-FieldNode::FieldNode(String name,String fieldname) : Node(name)
+FieldNode::FieldNode() 
 {
   addOutputPort("fieldname");
-
-  if (!fieldname.empty())
-    setFieldName(fieldname);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -55,30 +52,17 @@ FieldNode::~FieldNode()
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-void FieldNode::executeAction(StringTree in)
+void FieldNode::execute(Archive& ar)
 {
-  if (in.name == "set")
-  {
-    auto target_id = in.readString("target_id");
-
-    if (target_id == "fieldname") {
-      setFieldName(in.readString("value"));
-      return;
-    }
-
+  if (ar.name == "SetFieldName") {
+    String value;
+    ar.read("value", value);
+    setFieldName(value);
+    return;
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////
-void FieldNode::setFieldName(String value)
-{
-  if (this->fieldname== value)
-    return;
-
-  setProperty("fieldname", this->fieldname, value);
-} 
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 void FieldNode::doPublish()
@@ -92,17 +76,17 @@ void FieldNode::doPublish()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-void FieldNode::writeTo(StringTree& out) const
+void FieldNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
-  out.writeText("fieldname",getFieldName());
+  Node::write(ar);
+  ar.writeText("fieldname", fieldname);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-void FieldNode::readFrom(StringTree& in)
+void FieldNode::read(Archive& ar)
 {
-  Node::readFrom(in);
-  this->fieldname = in.readText("fieldname");
+  Node::read(ar);
+  ar.readText("fieldname", fieldname);
 }
 
 

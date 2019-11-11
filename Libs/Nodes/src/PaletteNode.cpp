@@ -74,11 +74,11 @@ public:
 
 
 ///////////////////////////////////////////////////////////////////////
-PaletteNode::PaletteNode(String name,String default_palette) : Node(name)
+PaletteNode::PaletteNode(String default_palette) 
 {
   //in case you want to show statistics when you are editing the palette
   //to enable statistics, connect it
-  addInputPort("data"); 
+  addInputPort("array"); 
   addOutputPort("palette");
 
   setPalette(Palette::getDefault(default_palette));
@@ -91,15 +91,15 @@ PaletteNode::~PaletteNode() {
 
 
 ///////////////////////////////////////////////////////////////////////
-void PaletteNode::executeAction(StringTree in)
+void PaletteNode::execute(Archive& ar)
 {
-  if (getPassThroughAction(in, "palette"))
+  if (GetPassThroughAction("palette", ar))
   {
-    palette->executeAction(in);
+    palette->execute(ar);
     return;
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -117,16 +117,14 @@ void PaletteNode::setPalette(SharedPtr<Palette> value)
   {
     // a change in the palette means a change in the node 
     this->palette->begin_update.connect(this->palette_begin_update_slot=[this](){
-      beginUpdate(
-        createPassThroughAction(StringTree("begin_update"), "palette"),
-        createPassThroughAction(StringTree("begin_update"), "palette"));
+      beginTransaction();
     });
 
     this->palette->end_update.connect(this->palette_end_update_slot = [this]() {
-      //replace top action
-      topRedo() = createPassThroughAction(palette->topRedo(), "palette");
-      topUndo() = createPassThroughAction(palette->topUndo(), "palette");
-      endUpdate();
+      addUpdate(
+        CreatePassThroughAction("palette", palette->lastRedo()),
+        CreatePassThroughAction("palette", palette->lastUndo()));
+      endTransaction();
     });
   }
 }
@@ -138,7 +136,7 @@ bool PaletteNode::processInput()
   abortProcessing();
 
   //important to remove any input from the queue  
-  auto data = readValue<Array>("data");
+  auto data = readValue<Array>("array");
   if (!data) 
     return false;
 
@@ -184,18 +182,18 @@ void PaletteNode::messageHasBeenPublished(DataflowMessage msg)
 }
 
 ///////////////////////////////////////////////////////////////////////
-void PaletteNode::writeTo(StringTree& out) const
+void PaletteNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
-  out.writeObject("palette", *palette);
+  Node::write(ar);
+  ar.writeObject("palette", *palette);
 }
 
 
 ///////////////////////////////////////////////////////////////////////
-void PaletteNode::readFrom(StringTree& in)
+void PaletteNode::read(Archive& ar)
 {
-  Node::readFrom(in);
-  in.readObject("palette", *palette);
+  Node::read(ar);
+  ar.readObject("palette", *palette);
 }
 
 

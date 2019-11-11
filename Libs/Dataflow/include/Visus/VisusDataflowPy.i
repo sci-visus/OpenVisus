@@ -38,30 +38,6 @@ using namespace Visus;
 %include <Visus/DataflowNode.h>
 %include <Visus/Dataflow.h>
 
-%extend Visus::DataflowMessage 
-{
-    void writeInt   (String key,int     value) {$self->writeValue(key,value);}
-    void writeDouble(String key,double  value) {$self->writeValue(key,value);}
-    void writeString(String key,String  value) {$self->writeValue(key,value);}
-    void writeArray (String key,Array   value) {$self->writeValue(key,value);}
-}
-
-%extend Visus::DataflowPort 
-{
-    void writeInt   (int     value) {$self->writeValue(value);}
-    void writeDouble(double  value) {$self->writeValue(value);}
-    void writeString(String  value) {$self->writeValue(value);}
-    void writeArray (Array   value) {$self->writeValue(value);}
-}
-
-%extend Visus::Node 
-{
-	int     readInt   (String key) {auto ret=$self->readValue<int>   (key); return ret? *ret : 0;}
-	double  readDouble(String key) {auto ret=$self->readValue<double>(key); return ret? *ret : 0.0;}
-	String  readString(String key) {auto ret=$self->readValue<String>(key); return ret? *ret : "";}
-	Array   readArray (String key) {auto ret=$self->readValue<Array> (key); return ret? *ret : Array();}
-}
-
 // _____________________________________________________
 // python code 
 %pythoncode %{

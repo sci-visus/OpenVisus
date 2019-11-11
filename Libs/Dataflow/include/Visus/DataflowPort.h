@@ -147,6 +147,11 @@ public:
     writeValue(DataflowValue::wrapValue<Value>(value), return_receipt);
   }
 
+  void writeInt   (int     value) { writeValue(value); }
+  void writeDouble(double  value) { writeValue(value); }
+  void writeString(String  value) { writeValue(value); }
+  void writeArray (Array   value) { writeValue(value); }
+
   //readWriteTimestamp
   Int64 readWriteTimestamp();
 

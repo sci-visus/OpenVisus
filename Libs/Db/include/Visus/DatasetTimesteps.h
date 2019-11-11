@@ -78,128 +78,143 @@ public:
     {return ((int)t==t) && (a<=t && t<=b) && (step==1 || (((int)t-a) % step)==0);}
   };
 
-
   //constructor
   DatasetTimesteps() 
   {}
 
   //constructor
-  DatasetTimesteps(double a,double b,double step=1.0) 
-  {addTimesteps(a,b,step);}
+  DatasetTimesteps(double a,double b,double step=1.0) {
+    addTimesteps(a,b,step);
+  }
 
   //destructor
-  ~DatasetTimesteps()
-  {}
+  ~DatasetTimesteps() {
+  }
 
   //star (*) 
-  static DatasetTimesteps star()
-  {DatasetTimesteps ret(NumericLimits<int>::lowest(),NumericLimits<int>::highest(),1);return ret;}
+  static DatasetTimesteps star() {
+    DatasetTimesteps ret(NumericLimits<int>::lowest(),NumericLimits<int>::highest(),1);
+    return ret;
+  }
 
   //clear
-  void clear()
-  {values.clear();}
+  void clear() {
+    values.clear();
+  }
 
   //empty
-  bool empty() const
-  {return values.empty();}
+  bool empty() const {
+    return values.empty();
+  }
 
   //size
-  inline int size() const
-  {return (int)values.size();}
+  int size() const {
+    return (int)values.size();
+  }
 
   //getAt
-  inline const IRange& getAt(int I) const
-  {return values[I];}
+  const IRange& getAt(int I) const {
+    return values[I];
+  }
 
 
   //operator==
-  inline bool operator==(const DatasetTimesteps& other) const
-  {return values==other.values;}
+  bool operator==(const DatasetTimesteps& other) const {
+    return values == other.values;
+  }
 
   //operator!=
-  bool operator!=(const DatasetTimesteps& other) const
-  {return !(operator==(other));}
+  bool operator!=(const DatasetTimesteps& other) const {
+    return !(operator==(other));
+  }
 
-    //containsTimestep
-  bool containsTimestep(double t) const
-  {
-    for (int I=0;I<size();I++)
+  //containsTimestep
+  bool containsTimestep(double t) const {
+    for (int I = 0; I < size(); I++)
       if (values[I].containsTimestep(t)) return true;
     return false;
   }
 
   //addTimesteps
-  void addTimesteps(const IRange& irange)
-  {values.push_back(irange);}
-
-  //addTimesteps
-  void addTimesteps(const DatasetTimesteps& other)
-  {for (int I=0;I<other.size();I++) addTimesteps(other.getAt(I));}
-
-  //addTimesteps
-  void addTimesteps(double from,double to,double step)
-  {
-    VisusAssert((int)from==from && (int)to==to && (int)step==step);
-    addTimesteps(IRange((int)from,(int)to,(int)step));
+  void addTimesteps(const IRange& irange) {
+    values.push_back(irange);
   }
 
-   //addTimestep
+  //addTimesteps
+  void addTimesteps(const DatasetTimesteps& other) {
+    for (int I = 0; I < other.size(); I++) 
+      addTimesteps(other.getAt(I));
+  }
+
+  //addTimesteps
+  void addTimesteps(double from, double to, double step)
+  {
+    VisusAssert((int)from == from && (int)to == to && (int)step == step);
+    addTimesteps(IRange((int)from, (int)to, (int)step));
+  }
+
+  //addTimestep
   void addTimestep(double t)
-  {VisusAssert((int)t==t);addTimesteps(IRange((int)t,(int)t,1));} 
+  {
+    VisusAssert((int)t == t); 
+    addTimesteps(IRange((int)t, (int)t, 1));
+  }
 
   //getDefault
   double getDefault() const
-  {return empty() || *this==star()? 0.0 : values.begin()->a;}
+  {
+    return empty() || *this == star() ? 0.0 : values.begin()->a;
+  }
 
   //getMin
   double getMin() const
   {
-    double ret=empty()? 0.0 : getAt(0).a;
-    for (int I=1;I<size();I++) ret=std::min(ret,(double)getAt(I).a);
+    double ret = empty() ? 0.0 : getAt(0).a;
+    for (int I = 1; I < size(); I++) ret = std::min(ret, (double)getAt(I).a);
     return ret;
   }
 
   //getMax
   double getMax() const
   {
-    double ret=empty()? 0.0 : getAt(0).b;
-    for (int I=1;I<size();I++) ret=std::max(ret,(double)getAt(I).b);
+    double ret = empty() ? 0.0 : getAt(0).b;
+    for (int I = 1; I < size(); I++) ret = std::max(ret, (double)getAt(I).b);
     return ret;
   }
 
   //getRange
   Range getRange() const {
-    double m=getMin(),M=getMax();
-    return Range(m,M,int(m)==m && int(M)==M? 1.0 : 0.0);
+    double m = getMin(), M = getMax();
+    return Range(m, M, int(m) == m && int(M) == M ? 1.0 : 0.0);
   }
 
   //asVector
   std::vector<double> asVector() const
   {
     std::set<double> ret;
-    for (int I=0;I<size();I++)
+    for (int I = 0; I < size(); I++)
     {
-      for (int T=getAt(I).a;T<=getAt(I).b;T+=getAt(I).step)
+      for (int T = getAt(I).a; T <= getAt(I).b; T += getAt(I).step)
         ret.insert((double)T);
     }
-    return std::vector<double>(ret.begin(), ret.end()); 
+    return std::vector<double>(ret.begin(), ret.end());
   }
 
   //toString
   String toString() const
   {
     StringTree out("DatasetTimesteps");
-    const_cast<DatasetTimesteps*>(this)->writeTo(out);
+    const_cast<DatasetTimesteps*>(this)->write(out);
     return out.toString();
   }
 
 public:
 
-  //writeTo
-  void writeTo(StringTree& out) const;
+  //write
+  void write(Archive& ar) const;
 
-  //readFrom
-  void readFrom(StringTree& in);
+  //read
+  void read(Archive& ar);
 
 private:
 

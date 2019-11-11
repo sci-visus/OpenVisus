@@ -67,7 +67,7 @@ public:
   void setHistogram(const Histogram& value) 
   {
     this->histogram=value;
-    this->setWorldBounds(0.0,0.0,1.0,1.0);
+    this->setWorldBox(0.0,0.0,1.0,1.0);
     this->update();
   }
 
@@ -93,8 +93,8 @@ public:
       return (x==0)? (0) : (1+log(x));
     };
 
-    VisusAssert(getWorldBounds().width ==1.0);
-    VisusAssert(getWorldBounds().height==1.0);
+    VisusAssert(getWorldBox().width ==1.0);
+    VisusAssert(getWorldBox().height==1.0);
 
     auto max_bin = 1.25*histogram.readBin(histogram.max);
     if (!max_bin)
@@ -128,11 +128,11 @@ public:
       //render bin explanation
       double alpha=histogram.getRange().from + pos[0]*histogram.getRange().delta();
       int    bin = histogram.findBin(alpha);
-      String description=StringUtils::format()
-        <<"value("<<alpha<<") "
-        <<"#bin("<<bin<<"/"<<histogram.getNumBins()<<") "
-        <<"bin_count("<<histogram.readBin(bin)<<") "
-        <<"bin_range("<<histogram.getBinRange(bin).from<<","<<histogram.getBinRange(bin).to<<")";
+      String description=cstring(
+        cnamed("value", alpha),
+        cnamed("#bin", cstring(bin,"/", histogram.getNumBins())),
+        cnamed("bin_count", histogram.readBin(bin)),
+        cnamed("bin_range", cstring(histogram.getBinRange(bin).from,",",histogram.getBinRange(bin).to)));
 
       painter.setPen(QColor(0,0,0));
       painter.drawText(2,12,description.c_str());

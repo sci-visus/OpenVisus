@@ -574,7 +574,7 @@ LogicSamples IdxDataset::getLevelSamples(int H)
 ///////////////////////////////////////////////////////////
 void IdxDataset::tryRemoveLockAndCorruptedBinaryFiles(String directory)
 {
-  VisusInfo()<<"Trying to remove locks and corrupted binary files in directory "<<directory<<"...";
+  PrintInfo("Trying to remove locks and corrupted binary files in directory",directory,"...");
 
   std::vector<String> lock_files;
   DirectoryIterator::findAllFilesEndingWith(lock_files,directory,".lock");
@@ -584,14 +584,14 @@ void IdxDataset::tryRemoveLockAndCorruptedBinaryFiles(String directory)
     String lock_filename=lock_files[I];
     {
       bool bOk=FileUtils::removeFile(lock_filename);
-      VisusInfo()<<"Removing lock_filename("<<lock_filename<<") "<<(bOk?"ok":"ERROR");
+      PrintInfo("Removing lock_filename", lock_filename,bOk?"ok":"ERROR");
     }
 
     String bin_filename =lock_files[I].substr(0,lock_filename.length()-5);
     if (FileUtils::existsFile(bin_filename)) 
     {
       bool bOk=FileUtils::removeFile(bin_filename);
-      VisusInfo() <<"Removing bin_filename("+bin_filename+") "<<(bOk?"ok":"ERROR");
+      PrintInfo("Removing bin_filename", bin_filename, bOk?"ok":"ERROR");
     }
   }
 }
@@ -646,7 +646,7 @@ bool IdxDataset::compressDataset(String compression)
 
     String filename=this->getUrl().getPath();
     if (!idxfile.save(filename)){
-      VisusError()<<"Cannot save the new idxfile "<<filename;
+      PrintError("Cannot save the new idxfile",filename);
       VisusAssert(false);
       return false;
     }
@@ -713,8 +713,7 @@ bool IdxDataset::compressDataset(String compression)
 
           if (tmove.elapsedSec() > 5)
           {
-            String error_msg = StringUtils::format() << "Cannot std::rename(" + filename << "," << tmp_filename << ")";
-            std::perror(error_msg.c_str());
+            std::perror(cstring("Cannot std::rename" + filename,"to",tmp_filename).c_str());
             VisusAssert(false);
             return false;
           }
@@ -737,7 +736,7 @@ bool IdxDataset::compressDataset(String compression)
 
             if (!executeBlockQueryAndWait(access, write_block))
             {
-              VisusError()<<"Fatal error writing field(" << F << ") block(" << blockid << ")";
+              PrintError("Fatal error writing field(", F, "block",blockid);
               VisusAssert(false);
               access->endIO();
               return false;
@@ -756,13 +755,12 @@ bool IdxDataset::compressDataset(String compression)
 
         if(std::remove(old_filename.c_str())!=0)  
         {
-          String error_msg=StringUtils::format()<<"Cannot std::remove("+old_filename<<"). ";
-          std::perror(error_msg.c_str()); 
+          std::perror(cstring("Cannot std::remove",old_filename).c_str());
           VisusAssert(false);
           return false;
         }
 
-        VisusInfo()<<"Done "<<filename<<" time("<<time<<"/"<<timesteps.size()<<" fileid("<<fileid<<"/"<<tot_files<<")";
+        PrintInfo("Done",filename,"time",time,"/",timesteps.size(),"fileid",fileid,"/",tot_files);
       }
     }
   }
@@ -774,10 +772,10 @@ bool IdxDataset::compressDataset(String compression)
 
   auto ratio = overall_file_size/double(original_bytesize);
 
-  VisusInfo()<<"Dataset compressed algorithm("<< compression <<") in "<<T1.elapsedSec()<<"sec"
-    <<" original_bytesize("<<StringUtils::getStringFromByteSize(original_bytesize)<<")"
-    <<" overall_file_size("<< StringUtils::getStringFromByteSize(overall_file_size)<<")"
-    <<" ratio("<< ratio<<")";
+  PrintInfo("Dataset compressed algorithm",compression,"in",T1.elapsedSec(),"sec",
+    "original_bytesize", StringUtils::getStringFromByteSize(original_bytesize),
+    "overall_file_size", StringUtils::getStringFromByteSize(overall_file_size),
+    "ratio", ratio);
   return true;
 }
 
@@ -1227,7 +1225,7 @@ NetRequest IdxDataset::createPointQueryRequest(SharedPtr<PointQuery> query)
   ret.url.setParam("matrix"  ,query->logic_position.getTransformation().toString());
   ret.url.setParam("box"     ,query->logic_position.getBoxNd().toBox3().toString(/*bInterleave*/false));
   ret.url.setParam("nsamples",query->getNumberOfSamples().toString());
-  VisusInfo() << ret.url.toString();  
+  PrintInfo(ret.url);  
   ret.aborted = query->aborted;
   return ret;
 }
@@ -1754,7 +1752,7 @@ bool IdxDataset::executeQuery(SharedPtr<Access> access,SharedPtr<PointQuery> que
   //if this is not available I use the slower conversion p->zaddress->Hz
   if (!this->hzaddress_conversion_pointquery)
   {
-    VisusWarning() << "The hzaddress_conversion_pointquery has not been created, so loc-by-loc queries will be a lot slower!!!!";
+    PrintWarning("The hzaddress_conversion_pointquery has not been created, so loc-by-loc queries will be a lot slower!!!!");
 
     //so you investigate why it's happening! .... I think only for the iphone could make sense....
 #if WIN32 && VISUS_DEBUG

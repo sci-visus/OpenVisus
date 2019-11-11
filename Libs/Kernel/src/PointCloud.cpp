@@ -164,7 +164,7 @@ public:
 	    if (inliers.size()<3)
 		    ThrowException("Not enough inliers");
 
-      //VisusInfo()<<"Found #"<<inliers.size()<<" inliers from #"<<points.size()<<" points";
+      //PrintInfo("Found #",inliers.size(),"inliers from #",points.size(),"points");
     }
 
     //this is the Singular value decomposition (SVD)

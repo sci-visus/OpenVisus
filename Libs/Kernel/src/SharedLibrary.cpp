@@ -37,7 +37,6 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/SharedLibrary.h>
-#include <Visus/Log.h>
 #include <Visus/Path.h>
 #include <Visus/File.h>
 

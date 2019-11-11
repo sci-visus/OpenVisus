@@ -55,7 +55,7 @@ void DbModule::attach()
   if (bAttached)  
     return;
   
-  VisusInfo() << "Attaching DbModule...";
+  PrintInfo("Attaching DbModule...");
   
   bAttached = true;
 
@@ -71,7 +71,7 @@ void DbModule::attach()
   if (auto value = config->readInt("Configuration/OnDemandAccess/External/nconnections", 8))
     OnDemandAccess::Defaults::nconnections = value;
 
-  VisusInfo() << "Attached DbModule";
+  PrintInfo("Attached DbModule");
 }
 
 //////////////////////////////////////////////
@@ -80,7 +80,7 @@ void DbModule::detach()
   if (!bAttached)  
     return;
   
-  VisusInfo() << "Detaching DbModule...";
+  PrintInfo("Detaching DbModule...");
   
   bAttached = false;
 
@@ -88,7 +88,7 @@ void DbModule::detach()
 
   KernelModule::detach();
 
-  VisusInfo() << "Detached DbModule.";
+  PrintInfo("Detached DbModule.");
 }
 
 } //namespace Visus 

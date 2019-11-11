@@ -16,5 +16,6 @@ TAGS
 .csearchindex
 \#*
 .\#*
+~*
 __pycache__
 visus.config

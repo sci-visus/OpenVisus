@@ -12,13 +12,13 @@ void XIdxModule::attach()
   if (bAttached)
     return;
 
-  VisusInfo() << "Attaching XIdxModule...";
+  PrintInfo("Attaching XIdxModule...");
 
   bAttached = true;
 
   KernelModule::attach();
 
-  VisusInfo() << "Attached XIdxModule";
+  PrintInfo("Attached XIdxModule");
 }
 
 
@@ -28,13 +28,13 @@ void XIdxModule::detach()
   if (!bAttached)
     return;
 
-  VisusInfo() << "Detaching XIdxModule...";
+  PrintInfo("Detaching XIdxModule...");
 
   bAttached = false;
 
   KernelModule::detach();
 
-  VisusInfo() << "Detached XIdxModule";
+  PrintInfo("Detached XIdxModule");
 }
 
 //////////////////////////////////////////////

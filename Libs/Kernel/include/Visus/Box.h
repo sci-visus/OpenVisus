@@ -415,7 +415,7 @@ public:
     //x1 y1 z1   x2 y2 z2
     else
     {
-      return StringUtils::format()<<p1.toString() << " " << p2.toString();
+      return cstring(p1,p2);
     }
   }
 
@@ -435,18 +435,18 @@ public:
     return ret;
   }
 
-  //writeTo`
-  void writeTo(StringTree& out) const
+  //write`
+  void write(Archive& ar) const
   {
-    out.write("p1", p1.toString());
-    out.write("p2", p2.toString());
+    ar.write("p1", p1);
+    ar.write("p2", p2);
   }
 
-  //writeTo
-  void readFrom(StringTree& in) 
+  //write
+  void read(Archive& ar)
   {
-    p1 = Point::fromString(in.read("p1"));
-    p2 = Point::fromString(in.read("p2"));
+    ar.read("p1", p1);
+    ar.read("p2", p2);
   }
 
 

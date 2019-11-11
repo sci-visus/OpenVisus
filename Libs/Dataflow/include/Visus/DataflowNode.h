@@ -102,16 +102,13 @@ public:
   Rectangle2d frameview_bounds;
 
   //constructor
-  Node(String name="");
+  Node();
 
   //destructor (please remove from the dataflow before destroying!)
   virtual ~Node();
 
   //getTypeName
   virtual String getTypeName() const override;
-
-  //executeAction
-  virtual void executeAction(StringTree in) override;
 
   //getOsDependentTypeName
   virtual String getOsDependentTypeName() const {
@@ -133,7 +130,9 @@ public:
 
   //setUUID
   void setUUID(String value) {
-    setProperty("uuid", this->uuid, value);
+    VisusReleaseAssert(!value.empty());
+    VisusReleaseAssert(!dataflow); //cannot change the uuid while inside the dataflow
+    setProperty("SetUUID", this->uuid, value);
   }
 
   //getParent
@@ -154,8 +153,8 @@ public:
     return childs;
   }
 
-  //getPosition
-  virtual Position getPosition() {
+  //getBounds
+  virtual Position getBounds() {
     return Position::invalid();
   }
 
@@ -238,6 +237,30 @@ public:
     return DataflowValue::unwrapValue<Value>(readValue(iport));
   }
 
+  //readInt
+  int readInt(String key) { 
+    auto ret = readValue<int>(key); 
+    return ret ? *ret : 0; 
+  }
+
+  //readDouble
+  double readDouble(String key) { 
+    auto ret = readValue<double>(key); 
+    return ret ? *ret : 0.0; 
+  }
+
+  //readString
+  String readString(String key) { 
+    auto ret = readValue<String>(key); 
+    return ret ? *ret : ""; 
+  }
+
+  //readArray
+  Array readArray(String key) { 
+    auto ret = readValue<Array>(key); 
+    return ret ? *ret : Array(); 
+  }
+
   //previewInput
   SharedPtr<DataflowValue> previewInput(String iport);
 
@@ -304,11 +327,14 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 protected:
 

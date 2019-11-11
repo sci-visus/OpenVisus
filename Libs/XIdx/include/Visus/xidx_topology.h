@@ -137,44 +137,36 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override
+  //write
+  virtual void write(Archive& ar) const override
   {
-    XIdxElement::writeTo(out);
+    XIdxElement::write(ar);
 
-    out.writeString("Type", type.toString());
-    out.writeString("Dimensions", StringUtils::join(dimensions));
+    ar.write("Type", type.toString());
+    ar.write("Dimensions", StringUtils::join(dimensions));
 
-    for (auto attribute : this->attributes)
-      out.writeObject("Attribute", *attribute);
+    for (auto child : this->attributes)
+      writeChild<Attribute>(ar, "Attribute", child);
 
-    for (auto data_item : this->data_items)
-      out.writeObject("DataItem", *data_item);
+    for (auto child : this->data_items)
+      writeChild<DataItem>(ar, "DataItem", child);
   }
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override
+  //read
+  virtual void read(Archive& ar) override
   {
-    XIdxElement::readFrom(in);
+    XIdxElement::read(ar);
 
-    this->type = TopologyType::fromString(in.readString("Type"));
+    this->type = TopologyType::fromString(ar.readString("Type"));
 
-    for (auto dim : StringUtils::split(in.readString("Dimensions")))
+    for (auto dim : StringUtils::split(ar.readString("Dimensions")))
       this->dimensions.push_back(cint(dim));
 
-    for (auto child : in.getChilds("Attribute"))
-    {
-      auto attribute = new Attribute();
-      attribute->readFrom(*child);
-      addAttribute(attribute);
-    }
+    for (auto child : readChilds<Attribute>(ar, "Attribute"))
+      addAttribute(child);
 
-    for (auto child : in.getChilds("DataItem"))
-    {
-      auto data_item = new DataItem();
-      data_item->readFrom(*child);
-      addDataItem(data_item);
-    }
+    for (auto child : readChilds<DataItem>(ar, "DataItem"))
+      addDataItem(child);
   }
   
 };

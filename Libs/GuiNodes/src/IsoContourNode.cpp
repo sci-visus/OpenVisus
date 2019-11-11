@@ -387,8 +387,7 @@ public:
     }
 
     // see http://local.wasp.uwa.edu.au/~pbourke/geometry/polygonise/
-    auto& mesh = isocontour.mesh;
-    mesh.begin(GL_TRIANGLES, vertices_per_batch);
+    isocontour.begin(GL_TRIANGLES, vertices_per_batch);
 
     const CppType* field = isocontour.field.c_ptr<CppType*>();
 
@@ -489,18 +488,18 @@ public:
 
           for (int i = 0; TriangleTable[L][i] != -1; i += 3)
           {
-            const double* p0 = v[TriangleTable[L][i]]; mesh.vertex(float(p0[0]), float(p0[1]), float(p0[2]));
-            const double* p1 = v[TriangleTable[L][i + 1]]; mesh.vertex(float(p1[0]), float(p1[1]), float(p1[2]));
-            const double* p2 = v[TriangleTable[L][i + 2]]; mesh.vertex(float(p2[0]), float(p2[1]), float(p2[2]));
+            const double* p0 = v[TriangleTable[L][i + 0]]; isocontour.vertex(float(p0[0]), float(p0[1]), float(p0[2]));
+            const double* p1 = v[TriangleTable[L][i + 1]]; isocontour.vertex(float(p1[0]), float(p1[1]), float(p1[2]));
+            const double* p2 = v[TriangleTable[L][i + 2]]; isocontour.vertex(float(p2[0]), float(p2[1]), float(p2[2]));
             ++ntriangles;
           }
         }
       }
     }
 
-    mesh.end();
+    isocontour.end();
 
-    VisusInfo() << "Marching cube on first(" << dims.toString() << ") ntriangles(" << ntriangles << ") done in " << t1.elapsedMsec() << "msec";
+    PrintInfo("Marching cube on first",dims,"ntriangles",ntriangles,"done in",t1.elapsedMsec(),"msec");
     return true;
   }
 };
@@ -551,7 +550,7 @@ public:
       isocontour->second_field = ArrayUtils::interleave(components, aborted);
 
       DataflowMessage msg;
-      msg.writeValue("data", isocontour);
+      msg.writeValue("mesh", isocontour);
       node->publish(msg);
     }
   }
@@ -560,11 +559,11 @@ public:
 
 
 ///////////////////////////////////////////////////////////////////////
-IsoContourNode::IsoContourNode(String name) 
-  : Node(name),isovalue(0)
+IsoContourNode::IsoContourNode() 
 {
-  addInputPort("data");
-  addOutputPort("data");
+  addInputPort("array");
+
+  addOutputPort("mesh");
   addOutputPort("cell_array");
 }
 
@@ -573,26 +572,23 @@ IsoContourNode::~IsoContourNode()
 {}
 
 ///////////////////////////////////////////////////////////////////////
-void IsoContourNode::executeAction(StringTree in)
+void IsoContourNode::execute(Archive& ar)
 {
-  if (in.name == "set")
+  if (ar.name == "SetIsoValue")
   {
-    auto target_id = in.readString("target_id");
-
-    if (target_id == "isovalue")
-    {
-      setIsoValue(in.readDouble("isovalue"));
-      return;
-    }
+    double value;
+    ar.read("value", value);
+    setIsoValue(value);
+    return;
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 }
 
 ///////////////////////////////////////////////////////////////////////
 void IsoContourNode::messageHasBeenPublished(DataflowMessage msg)
 {
-  auto isocontour= msg.readValue<IsoContour>("data");
+  auto isocontour= msg.readValue<IsoContour>("mesh");
   
   //avoid rehentrant code
   if (isocontour)
@@ -604,7 +600,7 @@ bool IsoContourNode::processInput()
 {
   abortProcessing();
 
-  auto data = readValue<Array>("data");
+  auto data = readValue<Array>("array");
   if (!data || !data->dtype.valid())
     return false;
   
@@ -614,17 +610,17 @@ bool IsoContourNode::processInput()
 
 
 ///////////////////////////////////////////////////////////////////////
-void IsoContourNode::writeTo(StringTree& out) const
+void IsoContourNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
-  out.writeValue("isovalue",cstring(isovalue));
+  Node::write(ar);
+  ar.write("isovalue", isovalue);
 }
 
 ///////////////////////////////////////////////////////////////////////
-void IsoContourNode::readFrom(StringTree& in) 
+void IsoContourNode::read(Archive& ar)
 {
-  Node::readFrom(in);
-  isovalue=cdouble(in.readValue("isovalue"));
+  Node::read(ar);
+  ar.read("isovalue", isovalue);
 }
 
 } //namespace Visus

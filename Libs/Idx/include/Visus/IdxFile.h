@@ -98,6 +98,9 @@ public:
     return IdxFile(-1);
   }
 
+  //fromString
+  static IdxFile fromString(String content, Url url);
+
   //load
   static IdxFile load(Url url);
 
@@ -133,11 +136,11 @@ public:
   //toString
   String toString() const ;
 
-  //writeTo
-  void writeTo(StringTree& out) const;
+  //write
+  void write(Archive& ar) const;
 
-  //readFrom
-  void readFrom(StringTree& in) ; 
+  //read
+  void read(Archive& ar) ;
 
 private:
 

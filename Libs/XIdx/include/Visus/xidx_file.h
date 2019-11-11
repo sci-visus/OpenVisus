@@ -66,7 +66,7 @@ public:
 
   //getXPathPrefix
   virtual String getXPathPrefix() override {
-    return StringUtils::format() << (getParent()? getParent()->getXPathPrefix() : "//Xidx") << "[@Name=\"" + name + "\"]";
+    return concatenate(getParent()? getParent()->getXPathPrefix() : "//Xidx", "[@Name=\"",name,"\"]");
   }
 
   //getGroup
@@ -86,7 +86,7 @@ public:
     StringTree in=StringTree::fromString(Utils::loadTextDocument(filename));
     if (!in.valid()) return nullptr;
     auto ret = new XIdxFile("");
-    ret->readFrom(in);
+    ret->read(in);
     return ret;
   }
 
@@ -94,67 +94,60 @@ public:
   bool save(String filename)
   {
     StringTree out(this->getTypeName());
-    this->writeTo(out);
+    this->write(out);
     Utils::saveTextDocument(filename, out.toString());
     return true;
   }
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override
+  //write
+  virtual void write(Archive& ar) const override
   {
-    XIdxElement::writeTo(out);
+    XIdxElement::write(ar);
 
-    //out.writeString("Name", name);
+    //ar.write("Name", name);
 
-    for (auto child : groups) 
+    for (auto child : groups)
     {
       if (file_pattern.empty())
       {
-        out.writeObject("Group",*child);
+        writeChild<Group>(ar, "Group", child);
       }
       else
       {
         String filename = XIdxFormatString(file_pattern + "/meta.xidx", child->domain_index);
 
-        if(auto xi_include = out.addChild("xi:include"))
-        {
-          xi_include->writeString("href", filename.c_str());
-          xi_include->writeString("xpointer", "xpointer(//Xidx/Group/Group)");
-        }
+        ar.addChild(StringTree("xi:include")
+          .write("href", filename)
+          .write("xpointer", "xpointer(//Xidx/Group/Group)"));
 
         {
-          StringTree out(child->getTypeName());
-          child->writeTo(out);
-          auto content = out.toString();
-          Utils::saveTextDocument(filename,content);
+          StringTree stree(child->getTypeName());
+          child->write(stree);
+          auto content = stree.toString();
+          Utils::saveTextDocument(filename, content);
         }
       }
     }
   };
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override
+  //read
+  virtual void read(Archive& ar) override
   {
-    XIdxElement::readFrom(in);
+    XIdxElement::read(ar);
 
-    for (auto child : in.getChilds("Group"))
-    {
-      auto group = new Group();
-      group->readFrom(*child);
-      addGroup(group);
-    }
+    for (auto child : readChilds<Group>(ar, "Group"))
+      addGroup(child);
 
-    for (auto xi_include : in.getChilds("xi:include"))
+    for (auto it : ar.getChilds("xi:include"))
     {
-      auto filename = xi_include->readString("href");
-      StringTree in=StringTree::fromString(Utils::loadTextDocument(filename));
-      if (!in.valid())
+      auto stree=StringTree::fromString(Utils::loadTextDocument(it->readString("href")));
+      if (!stree.valid())
         ThrowException("internal error");
 
       auto child = new Group();
-      child->readFrom(in);
+      child->read(stree);
       addGroup(child);
     }
 

@@ -227,7 +227,7 @@ bool Dataset::executeBoxQueryOnServer(SharedPtr<BoxQuery> query)
 
   if (!request.valid())
   {
-    query->setFailed((StringUtils::format() << "cannot create box query request").str());
+    query->setFailed("cannot create box query request");
     return false;
   }
 
@@ -235,13 +235,13 @@ bool Dataset::executeBoxQueryOnServer(SharedPtr<BoxQuery> query)
 
   if (!response.isSuccessful())
   {
-    query->setFailed((StringUtils::format() << "network request failed errormsg(" << response.getErrorMessage() << ")").str());
+    query->setFailed(cstring("network request failed",cnamed("errormsg",response.getErrorMessage())));
     return false;
   }
 
   auto buffer = response.getArrayBody();
   if (!buffer) {
-    query->setFailed((StringUtils::format() << "failed to decode body").str());
+    query->setFailed("failed to decode body");
     return false;
   }
 
@@ -258,7 +258,7 @@ bool Dataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
 
   if (!request.valid())
   {
-    query->setFailed((StringUtils::format() << "cannot create point query request").str());
+    query->setFailed("cannot create point query request");
     return false;
   }
 
@@ -266,13 +266,13 @@ bool Dataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
 
   if (!response.isSuccessful())
   {
-    query->setFailed((StringUtils::format() << "network request failed errormsg(" << response.getErrorMessage() << ")").str());
+    query->setFailed(cstring("network request failed ",cnamed("errormsg", response.getErrorMessage())));
     return false;
   }
 
   auto buffer = response.getArrayBody();
   if (!buffer) {
-    query->setFailed((StringUtils::format() << "failed to decode body").str());
+    query->setFailed("failed to decode body");
     return false;
   }
 
@@ -347,7 +347,7 @@ SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config)
   Url url(config.readString("url", name));
   if (!url.valid())
   {
-    VisusWarning() << "LoadDataset(" << name << ") failed. Not a valid url";
+    PrintWarning("LoadDataset", name, "failed. Not a valid url");
     return SharedPtr<Dataset>();
   }
 
@@ -370,14 +370,14 @@ SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config)
     auto response = NetService::getNetResponse(url);
     if (!response.isSuccessful())
     {
-      VisusWarning() << "LoadDataset(" << url.toString() << ") failed errormsg(" << response.getErrorMessage() << ")";
+      PrintWarning("LoadDataset", url.toString(), "failed errormsg", response.getErrorMessage());
       return SharedPtr<Dataset>();
     }
 
     TypeName = response.getHeader("visus-typename", "IdxDataset");
     if (TypeName.empty())
     {
-      VisusWarning() << "LoadDataset(" << url.toString() << ") failed. Got empty TypeName";
+      PrintWarning("LoadDataset", url.toString(), "failed. Got empty TypeName");
       return SharedPtr<Dataset>();
     }
   }
@@ -399,7 +399,7 @@ SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config)
   auto ret= DatasetFactory::getSingleton()->createInstance(TypeName);
   if (!ret) 
   {
-    VisusWarning()<<"LoadDatasetEx("<<url.toString()<<") failed. Cannot DatasetFactory::getSingleton()->createInstance("<<TypeName<<")";
+    PrintWarning("LoadDatasetEx",url,"failed. Cannot DatasetFactory::getSingleton()->createInstance",TypeName);
     return SharedPtr<Dataset>();
   }
 
@@ -409,11 +409,11 @@ SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config)
 
   if (!ret->openFromUrl(url.toString())) 
   {
-    VisusWarning()<<TypeName<<"::openFromUrl("<<url.toString()<<") failed";
+    PrintWarning(TypeName,"openFromUrl",url,"failed");
     return SharedPtr<Dataset>();
   }
 
-  //VisusInfo()<<ret->getDatasetInfos();
+  //PrintInfo(ret->getDatasetInfos();
   return ret; 
 }
 
@@ -666,7 +666,7 @@ void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield,
                           Dataset* Rvf, SharedPtr<Access> Raccess, Field Rfield, double Rtime)
 {
   if (Rfield.dtype!=Wfield.dtype)
-    ThrowException(StringUtils::format()<<"Rfield("<<Rfield.name<<") and Wfield("<<Wfield.name<<") have different dtype");
+    ThrowException("Rfield",Rfield.name,"and","Wfield",Wfield.name,"have different dtype");
 
   if ((1<<Raccess->bitsperblock)!=(1<<Waccess->bitsperblock))
     ThrowException("nsamples per block of source and dest are not equal");
@@ -674,9 +674,9 @@ void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield,
   Time T1=Time::now();
   Time t1=T1;
 
-  VisusInfo()<<"Dataset::copyDataset";
-  VisusInfo()<<"  Destination Wurl("+Wvf->getUrl().toString() + ") Wfield("+Wfield.name+") Wtime("+cstring(Wtime)+")";
-  VisusInfo()<<"  Source      Rurl("+Rvf->getUrl().toString() + ") Rfield("+Rfield.name+") Rtime("+cstring(Rtime)+")";
+  PrintInfo("Dataset::copyDataset");
+  PrintInfo("  Destination Wurl", Wvf->getUrl(), "Wfield", Wfield.name, "Wtime", Wtime);
+  PrintInfo("  Source      Rurl", Rvf->getUrl(), "Rfield", Rfield.name, "Rtime", Rtime);
 
   auto num_blocks=std::min(
     Wvf->getTotalNumberOfBlocks(),
@@ -693,7 +693,7 @@ void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield,
     if (t1.elapsedSec()>5)
     {
       auto perc=(100.0*block_id)/(double)num_blocks;
-      VisusInfo()<<"block_id("<<block_id<<"/"<<num_blocks<<") "<<perc<<"%";
+      PrintInfo("block_id", block_id, "/",num_blocks,perc,"%");
       t1=Time::now();
     }
 
@@ -708,7 +708,7 @@ void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield,
 
     if (!Wvf->executeBlockQueryAndWait(Waccess, write_block))
     {
-      VisusInfo()<<"FAILED to write block("+cstring(block_id)<<")";
+      PrintInfo("FAILED to write block",block_id);
       continue;
     }
   }
@@ -716,7 +716,7 @@ void Dataset::copyDataset(Dataset* Wvf, SharedPtr<Access> Waccess, Field Wfield,
   Raccess->endRead();
   Waccess->endWrite();
 
-  VisusInfo()<<"Done in "<<T1.elapsedSec()<< "sec";
+  PrintInfo("Done in",T1.elapsedSec(),"sec");
 }
 
 
@@ -766,7 +766,7 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
 
     auto src = block_query->buffer;
 
-    ArrayUtils::saveImage(StringUtils::format() << "temp/block" << (block_query->start_address >> bitsperblock) << ".png", src);
+    ArrayUtils::saveImage(concatenate("temp/block",block_query->start_address >> bitsperblock,".png"), src);
 
     if (bool bDrawBorder = true)
     {
@@ -793,28 +793,30 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
 }
 
 //////////////////////////////////////////////////////////////////////////
-void Dataset::writeTo(StringTree& out) const
+void Dataset::write(Archive& ar) const
 {
-  out.writeValue("url",this->getUrl().toString());
+  auto url = getUrl();
+  ar.write("url", url);
 
   //I want to save it to retrieve it on a different computer
   if (config.valid())
-    out.addChild("config")->addChild(this->config);
+    ar.addChild("config")->addChild(this->config);
 }
 
 //////////////////////////////////////////////////////////////////////////
-void Dataset::readFrom(StringTree& in)
+void Dataset::read(Archive& ar)
 {
-  String url = in.readValue("url");
+  String url;
+  ar.read("url", url);
 
-  if (auto config=in.getChild("config"))
+  if (auto config= ar.getChild("config"))
   {
     VisusAssert(config->getNumberOfChilds() == 1);
     this->config = *config->getFirstChild();
   }
 
   if (!this->openFromUrl(url))
-    ThrowException(StringUtils::format() << "Cannot open dataset from url " << url);
+    ThrowException("Cannot open dataset from url",url);
 }
 
 } //namespace Visus 

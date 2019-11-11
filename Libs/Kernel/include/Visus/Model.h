@@ -42,7 +42,6 @@ For support : support@visus.net
 #include <Visus/Kernel.h>
 #include <Visus/Time.h>
 #include <Visus/StringUtils.h>
-#include <Visus/Log.h>
 #include <Visus/SignalSlot.h>
 #include <Visus/ApplicationInfo.h>
 
@@ -70,7 +69,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(Model)
 
-  Signal<void()> begin_update;
+  //begin_update
+  Signal<void()>  begin_update;
 
   //end_update
   Signal<void()> end_update;
@@ -99,25 +99,23 @@ public:
   void clearHistory();
 
   //getHistory
-  const StringTree& getHistory() const {
-    return history;
-  }
+  StringTree getHistory() const;
 
 public:
 
   //isUpdating
   inline bool isUpdating() const {
-    return redo_stack.size() > 0;
+    return stack.size() > 0;
   }
 
-  //topRedo
-  StringTree& topRedo() {
-    return redo_stack.top();
+  //lastRedo
+  StringTree lastRedo() const {
+    return history.back().redo;
   }
 
-  //topUndo
-  StringTree& topUndo() {
-    return undo_stack.top();
+  //lastUndo
+  StringTree lastUndo() const {
+    return history.back().undo;;
   }
 
   //beginUpdate
@@ -125,6 +123,12 @@ public:
 
   //endUpdate
   void endUpdate();
+
+  //addUpdate
+  void addUpdate(StringTree redo, StringTree undo) {
+    beginUpdate(redo, undo);
+    endUpdate();
+  }
 
   //beginTransaction
   void beginTransaction() {
@@ -138,34 +142,25 @@ public:
 
   //Transaction
   static StringTree Transaction() {
-    return StringTree("transaction");
+    return StringTree("Transaction");
   }
 
-  //isTransaction
-  bool isTransaction(const StringTree& action) const {
-    return action.name == "transaction";
-  }
+  //beginDiff
+  void beginDiff();
 
-  //Diff
-  static StringTree Diff() {
-    return StringTree("diff");
-  }
-
-  //isDiff
-  bool isDiff(const StringTree& action) const {
-    return action.name == "diff";;
-  }
+  //endDiff
+  void endDiff();
 
 public:
 
   //setProperty
   template <typename Value>
-  void setProperty(String target_id, Value& old_value, const Value& new_value)
+  void setProperty(String action_name, Value& old_value, const Value& new_value)
   {
     if (old_value == new_value) return;
     beginUpdate(
-      createPassThroughAction(StringTree("set"), target_id).write("value", new_value),
-      createPassThroughAction(StringTree("set"), target_id).write("value", old_value));
+      StringTree(action_name).write("value", new_value),
+      StringTree(action_name).write("value", old_value));
     {
       old_value = new_value;
     }
@@ -174,41 +169,22 @@ public:
 
   //setEncodedProperty
   template <typename Value>
-  void setEncodedProperty(String target_id, Value& old_value, const Value& new_value)
+  void setEncodedProperty(String action_name, Value& old_value, const Value& new_value)
   {
     if (old_value == new_value) return;
     beginUpdate(
-      createPassThroughAction(EncodeObject(new_value, "set"), target_id),
-      createPassThroughAction(EncodeObject(old_value, "set"), target_id));
+      EncodeObject(action_name, new_value),
+      EncodeObject(action_name, old_value));
     {
       old_value = new_value;
     }
     endUpdate();
   }
 
-
-  //popTargetId
-  String popTargetId(StringTree& action);
-
-  //pushTargetId
-  void pushTargetId(StringTree& action, String target_id);
-
-  //createPassThroughAction
-  StringTree createPassThroughAction(StringTree action, String target_id);
-
-  //getPassThroughAction
-  bool getPassThroughAction(StringTree& action, String match);
-
 public:
 
   //copy
-  static void copy(Model& dst, StringTree redo);
-
-  //copy
   static void copy(Model& dst, const Model& src);
-
-    //executeAction
-  virtual void executeAction(StringTree action);
 
 public:
 
@@ -228,6 +204,9 @@ public:
   //undo
   bool undo();
 
+  //applyPatch
+  void applyPatch(String text);
+
 public:
 
   //addView
@@ -242,11 +221,14 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const  = 0;
+  //execute
+  virtual void execute(Archive& ar);
 
-  //readFrom
-  virtual void readFrom(StringTree& in) = 0;
+  //write
+  virtual void write(Archive& ar) const  = 0;
+
+  //read
+  virtual void read(Archive& ar) = 0;
 
 protected:
 
@@ -256,26 +238,63 @@ protected:
 
 private:
 
-  typedef std::pair<StringTree, StringTree> UndoRedo;
+  typedef struct
+  {
+    StringTree redo;
+    StringTree undo;
+  }
+  UndoRedo;
 
-  StringTree               history;
+  Int64                    utc = 0;
+  std::vector<UndoRedo>    history;
   String                   log_filename;
   std::ofstream            log;
-  std::stack<StringTree>   redo_stack;
-  std::stack<StringTree>   undo_stack;
+  bool                     bUndoingRedoing = false;
+  std::stack<UndoRedo>     stack;
   std::vector<UndoRedo>    undo_redo;
   int                      cursor_undo_redo = 0;
-  bool                     bUndoing = false;
-  bool                     bRedoing = false;
-  Int64                    utc=0;
   StringTree               diff_begin;
+
+  //simplify
+  StringTree simplify(StringTree action);
 
 };
 
 
-//encode
-inline VISUS_KERNEL_API StringTree EncodeObject(Model& model, String root_name = "") {
-  return EncodeObject<Model>(model, root_name.empty() ? model.getTypeName() : root_name);
+inline StringTree CreatePassThroughAction(String left, const StringTree& action) {
+  //i want the target_id at the beginning of attributes
+  auto ret = action;
+  ret.removeAttribute("target_id");
+  ret.attributes.insert(ret.attributes.begin(), std::make_pair("target_id", action.readString("target_id").empty() ? left : left + "/" + action.readString("target_id")));
+  return ret;
+}
+
+inline String PopTargetId(StringTree& action)
+{
+  auto v = StringUtils::split(action.readString("target_id"), "/");
+  if (v.empty()) return "";
+  auto left = v[0];
+  auto right = StringUtils::join(std::vector<String>(v.begin() + 1, v.end()), "/");
+
+  //i want the target_id at the beginning of attributes
+  action.removeAttribute("target_id");
+  action.attributes.insert(action.attributes.begin(), std::make_pair("target_id", right));
+  return left;
+}
+
+inline bool GetPassThroughAction(String left, StringTree& action) {
+  auto v = StringUtils::split(action.readString("target_id"), "/");
+  if (v.empty() || v[0] != left) return false;
+  PopTargetId(action);
+  return true;
+}
+
+template <class Value>
+inline StringTree EncodeObject(String name, const Value& value)
+{
+  StringTree ret(name);
+  value.write(ret);
+  return ret;
 }
 
 //////////////////////////////////////////////////////////
@@ -319,7 +338,7 @@ public:
 
     if (this->model) 
     {
-      this->model->end_update.connect(changed_slot=Slot<void()>([this] {
+      this->model->end_update.connect(changed_slot=Slot<void()>([this]() {
         modelChanged();
       }));
 

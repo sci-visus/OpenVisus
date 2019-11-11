@@ -79,16 +79,16 @@ bool FunnelNode::processInput()
 
 
 ////////////////////////////////////////////////////////////////////////
-void FunnelNode::writeTo(StringTree& out) const
+void FunnelNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
+  Node::write(ar);
   VisusAssert(false); //todo: i need to read write input output ports
 }
 
 ////////////////////////////////////////////////////////////////////////
-void FunnelNode::readFrom(StringTree& in)
+void FunnelNode::read(Archive& ar)
 {
-  Node::readFrom(in);
+  Node::read(ar);
   VisusAssert(false); //todo: i need to read write input output ports
 }
 

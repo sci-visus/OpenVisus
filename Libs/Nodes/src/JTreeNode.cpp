@@ -166,19 +166,15 @@ public:
       if (!v.out_degree()) // it's a root
         queued.push_back(i);
     }
-    //VisusInfo()<<"(verifyTree) There are "<<queued.size()<<" roots";
-    //  for (int i=0;i<queued.size();i++) VisusInfo()<<"* "<<queued[i]<<" *";
 
     while (!queued.empty())
     {
       int i=queued.back(); queued.pop_back();
-      //VisusInfo()<<"(verifyTree) **** root="<<i<<" *****";
       std::vector<int> component;
       component.push_back(i);
       while (!component.empty())
       {
         int j=component.back(); component.pop_back();
-        //VisusInfo()<<"(verifyTree) "<<j;
         Vertex &v=vtree.verts[j];
         VisusAssert(!v.deleted);
         v.deleted=true; // mark as visited
@@ -200,7 +196,7 @@ public:
       if (!v.deleted) 
       {
         int k=0; k++;
-        VisusInfo()<<"(verifyTree) found an unvisited vertex: "<<i;
+        PrintInfo("(verifyTree) found an unvisited vertex",i);
         VisusAssert(false);
       }
     }  
@@ -358,7 +354,7 @@ public:
       }
       else if (v.in_degree()==0)
       {
-        //VisusDebug()<<"Removing solo vertex...";
+        //PrintDebug("Removing solo vertex...");
         graph.rmVert(danglers[i]);
       }
     }
@@ -370,14 +366,14 @@ public:
   static void printHeap(std::vector<int> heap,const MyGraph &g)
   {
     JTreeWeightComp ecomp(g);
-    VisusDebug()<<"heapsize: "<<heap.size()<<" =====/////=====/////=====";
+    PrintDebug("heapsize: ",heap.size()," =====/////=====/////=====");
     int cnt=0;
     while (!heap.empty())
     {
       int idx=heap.front(); 
       std::pop_heap(heap.begin(), heap.end(), ecomp); heap.pop_back();
       const Edge &e=g.edges[idx];
-      VisusDebug()<<cnt++<<": "<<(float)e.data<<" from "<<e.src<<"d to "<<e.dst;
+      PrintDebug(cnt++,":",(float)e.data,"from",e.src,"d to",e.dst);
     }
   }
 
@@ -391,7 +387,6 @@ public:
         return std::vector<int>();
 
       Edge &e=tree.edges[i];
-      //VisusDebug()<<"in reduce: ("<<i<<") deleted="<<(e.deleted?1:0)<<", data="<<data;
       if (e.deleted || e.data>=min_persist) continue;
       Vertex &s=tree.verts[e.src];
       Vertex &d=tree.verts[e.dst];
@@ -418,7 +413,7 @@ public:
     Aborted& aborted
   )
   {
-    VisusDebug()<<"reduceJoinTree(min_persist="<<min_persist<<",reduce_minmax="<<reduce_minmax<<")";
+    PrintDebug("reduceJoinTree","min_persist",min_persist,"reduce_minmax",reduce_minmax);
 
     // make a copy (in case I will need the full_graph later)
     //<ctc> this copy fails because of Data copy ctor and locks. Ugh. Manually copying for now...
@@ -461,9 +456,7 @@ public:
         // if newedge (from reduction) is also a low-persistence leaf branch, add it to the queue
         Edge &ne=tree.edges[newedge];
         VisusAssert(!ne.deleted);
-        //VisusDebug()<<"\tnewedge: ("<<newedge<<") data="<<ne.data;
         if (ne.data>=min_persist) continue;
-        //VisusDebug()<<"in reduce, ne.data="<<ne.data);
         Vertex &ns=tree.verts[ne.src];
         Vertex &nd=tree.verts[ne.dst];
         VisusAssert(!ns.deleted && !nd.deleted);
@@ -612,11 +605,11 @@ public:
         v.data[2]*=(ddims[2]==1?0.0f:(float)ddims[2]);
       }
 
-      VisusInfo()<<"Produced tree with "<<reduced_graph->verts.size()<<" verts and "<<reduced_graph->edges.size()<<" edges";
+      PrintInfo("Produced tree with",reduced_graph->verts.size(),"verts and",reduced_graph->edges.size(),"edges");
 
       DataflowMessage msg;
       msg.writeValue("graph", reduced_graph);
-      msg.writeValue("data",this->data);
+      msg.writeValue("array",this->data);
       msg.writeValue("branches",branches);
       msg.writeValue("full_graph",full_graph); //important to recycle the last graph
       node->publish(msg);
@@ -627,13 +620,13 @@ public:
 
 
 ////////////////////////////////////////////////////////////
-JTreeNode::JTreeNode(String name)  : Node(name)
+JTreeNode::JTreeNode()  
 {
-  addInputPort("data");
+  addInputPort("array");
 
+  addOutputPort("array"); //if you do not need the original data, simply do not connect it!
   addOutputPort("graph");
   addOutputPort("branches"); // branch decomposition
-  addOutputPort("data"); //if you do not need the original data, simply do not connect it!
   addOutputPort("full_graph");
 }
 
@@ -643,39 +636,51 @@ JTreeNode::~JTreeNode() {
 
 
 ////////////////////////////////////////////////////////////
-void JTreeNode::executeAction(StringTree in)
+void JTreeNode::execute(Archive& ar)
 {
-  if (in.name == "set")
-  {
-    auto target_id = in.readString("target_id");
-
-    if (target_id == "minima_tree") {
-      setMinimaTree(in.readBool("value"));
-      return;
-    }
-    if (target_id == "min_persistence") {
-      setMinPersistence(in.readDouble("value"));
-      return;
-    }
-    if (target_id == "reduce_minmax") {
-      setReduceMinMax(in.readBool("value"));
-      return;
-    }
-    if (target_id == "threshold_min") {
-      setThresholdMin(in.readDouble("value"));
-      return;
-    }
-    if (target_id == "threshold_max") {
-      setThresholdMax(in.readDouble("value"));
-      return;
-    }
-    if (target_id == "auto_threshold") {
-      setAutoThreshold(in.readBool("value"));
-      return;
-    }
+  if (ar.name == "SetMinimaTree") {
+    bool value;
+    ar.read("value", value);
+    setMinimaTree(value);
+    return;
   }
 
-  return Node::executeAction(in);
+  if (ar.name == "SetMinPersistence") {
+    double value;
+    ar.read("value", value);
+    setMinPersistence(value);
+    return;
+  }
+
+  if (ar.name == "SetReduceMinMax") {
+    bool value;
+    ar.read("value", value);
+    setReduceMinMax(value);
+    return;
+  }
+
+  if (ar.name == "SetThresholdMin") {
+    double value;
+    ar.read("value", value);
+    setThresholdMin(value);
+    return;
+  }
+
+  if (ar.name == "SetThresholdMax") {
+    double value;
+    ar.read("value", value);
+    setThresholdMax(value);
+    return;
+  }
+
+  if (ar.name == "SetAutoThreshold") {
+    bool value;
+    ar.read("value", value);
+    setAutoThreshold(value);
+    return;
+  }
+
+  return Node::execute(ar);
 }
 
 ////////////////////////////////////////////////////////////
@@ -714,7 +719,7 @@ bool JTreeNode::recompute(bool bFull)
 
   if (!last_full_graph)
   {
-    VisusDebug()<<"Recomputing join tree full graph...";
+    PrintInfo("Recomputing join tree full graph...");
     updateAutoThreshold(); //NOTE I have to update here because I may need to update GUI stuff (i.e. views)
   }
 
@@ -727,8 +732,9 @@ bool JTreeNode::processInput()
 {
   abortProcessing();
 
-  bool bFull=getInputPort("data")->hasNewValue();
-  auto data = readValue<Array>("data");
+  bool bFull=getInputPort("array")->hasNewValue();
+
+  auto data = readValue<Array>("array");
   this->data=data? *data : Array();
   return recompute(bFull);
 }
@@ -738,7 +744,7 @@ void JTreeNode::messageHasBeenPublished(DataflowMessage msg)
 {
   if (auto full_graph=msg.readValue<BaseGraph>("full_graph"))
   {
-    auto data=msg.readValue<Array>("data"); VisusAssert(data);
+    auto data=msg.readValue<Array>("array"); VisusAssert(data);
     this->last_full_graph=full_graph; //recycling the last full graph
   }
 }
@@ -769,29 +775,29 @@ void JTreeNode::updateAutoThreshold()
 
 
 ////////////////////////////////////////////////////////////
-void JTreeNode::writeTo(StringTree& out) const
+void JTreeNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
+  Node::write(ar);
 
-  out.writeValue("minima_tree",cstring(minima_tree));
-  out.writeValue("min_persistence",cstring(min_persistence));
-  out.writeValue("reduce_minmax",cstring(reduce_minmax));
-  out.writeValue("threshold_min",cstring(threshold_min));
-  out.writeValue("threshold_max",cstring(threshold_max));
-  out.writeValue("auto_threshold",cstring(auto_threshold));
+  ar.write("minima_tree", minima_tree);
+  ar.write("min_persistence", min_persistence);
+  ar.write("reduce_minmax", reduce_minmax);
+  ar.write("threshold_min", threshold_min);
+  ar.write("threshold_max", threshold_max);
+  ar.write("auto_threshold", auto_threshold);
 }
 
 ////////////////////////////////////////////////////////////
-void JTreeNode::readFrom(StringTree& in)
+void JTreeNode::read(Archive& ar)
 {
-  Node::readFrom(in);
+  Node::read(ar);
 
-  minima_tree=cbool(in.readValue("minima_tree"));
-  min_persistence=cdouble(in.readValue("min_persistence"));
-  reduce_minmax=cbool(in.readValue("reduce_minmax"));
-  threshold_min=cdouble(in.readValue("threshold_min"));
-  threshold_max=cdouble(in.readValue("threshold_max"));
-  auto_threshold=cbool(in.readValue("auto_threshold"));
+  ar.read("minima_tree", minima_tree);
+  ar.read("min_persistence", min_persistence);
+  ar.read("reduce_minmax", reduce_minmax);
+  ar.read("threshold_min", threshold_min);
+  ar.read("threshold_max", threshold_max);
+  ar.read("auto_threshold", auto_threshold);
 }
 
 } //namespace Visus

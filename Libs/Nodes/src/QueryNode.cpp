@@ -104,13 +104,13 @@ public:
 
         if (verbose)
         {
-          VisusInfo() << "PointQuery msec(" << t1.elapsedMsec() << ") " << "level(" << N << "/" << this->resolutions.size() << "/" << this->resolutions[N] << "/" << dataset->getMaxResolution() << ") "
-            << "dims(" << output.dims.toString() << ") dtype(" << output.dtype.toString() << ") access(" << (access ? "yes" : "nullptr") << ") url(" << dataset->getUrl().toString() << ") ";
+          PrintInfo("PointQuery msec",t1.elapsedMsec(),"level",N,"/",this->resolutions.size(),"/",this->resolutions[N],"/",dataset->getMaxResolution(),
+            "dims",output.dims,"dtype",output.dtype,"access",access ? "yes" : "nullptr","url",dataset->getUrl());
         }
 
         DataflowMessage msg;
         output.bounds = dataset->logicToPhysic(query->logic_position);
-        msg.writeValue("data", output);
+        msg.writeValue("array", output);
         node->publish(msg);
       }
     }
@@ -142,9 +142,12 @@ public:
 
         if (verbose)
         {
-          VisusInfo()<< "BoxQuery msec(" << t1.elapsedMsec() << ") "
-            << "level(" << N << "/" << this->resolutions.size() << "/" << this->resolutions[N] << "/" << dataset->getMaxResolution() << ") "
-            << "dims(" << output.dims.toString() << ") dtype(" << output.dtype.toString() << ") access(" << (access ? "yes" : "nullptr") << ") url(" << dataset->getUrl().toString() << ") ";
+          PrintInfo("BoxQuery msec",t1.elapsedMsec(),
+            "level",N, "/", this->resolutions.size(), "/", this->resolutions[N], "/", dataset->getMaxResolution(),
+            "dims", output.dims, 
+            "dtype", output.dtype, 
+            "access", access ? "yes" : "nullptr", 
+            "url", dataset->getUrl());
         }
 
         doPublish(output, query);
@@ -186,7 +189,7 @@ public:
     }
 #endif
 
-    msg.writeValue("data", output);
+    msg.writeValue("array", output);
     node->publish(msg);
   }
 
@@ -201,13 +204,13 @@ public:
 
 
 ///////////////////////////////////////////////////////////////////////////
-QueryNode::QueryNode(String name) : Node(name)
+QueryNode::QueryNode() 
 {
   addInputPort("dataset");
   addInputPort("fieldname");
   addInputPort("time");
 
-  addOutputPort("data");
+  addOutputPort("array");
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -217,51 +220,58 @@ QueryNode::~QueryNode(){
 
 
 ///////////////////////////////////////////////////////////////////////////
-void QueryNode::executeAction(StringTree in)
+void QueryNode::execute(Archive& ar)
 {
-  if (in.name == "set")
+  if (ar.name == "SetVerbose")
   {
-    auto target_id = in.readString("target_id");
-
-    if (target_id == "verbose")
-    {
-      setVerbose(in.readBool("value"));
-      return;
-    }
-
-    if (target_id == "accessindex")
-    {
-      setAccessIndex(in.readInt("value"));
-      return;
-    }
-
-    if (target_id == "view_dependent_enabled")
-    {
-      setViewDependentEnabled(in.readBool("value"));
-      return;
-    }
-
-    if (target_id == "progression")
-    {
-      setProgression(in.readInt("value"));
-      return;
-    }
-
-    if (target_id == "quality")
-    {
-      setQuality(in.readInt("value"));
-      return;
-    }
-
-    if (target_id == "position")
-    {
-      setPosition(*DecodeObject<Position>(*in.getFirstChild()));
-      return;
-    }
-
+    int value;
+    ar.read("value", value);
+    setVerbose(value);
+    return;
   }
 
-  return Node::executeAction(in);
+  if (ar.name == "SetAccessIndex")
+  {
+    int value;
+    ar.read("value", value);
+    setAccessIndex(value);
+    return;
+  }
+
+  if (ar.name == "SetViewDependentEnabled")
+  {
+    bool value;
+    ar.read("value", value);
+    setViewDependentEnabled(value);
+    return;
+  }
+
+  if (ar.name == "SetProgression")
+  {
+    int value;
+    ar.read("value", value);
+    setProgression(value);
+    return;
+  }
+
+  if (ar.name == "SetQuality")
+  {
+    int value;
+    ar.read("value", value);
+    setQuality(value);
+    return;
+  }
+
+  if (ar.name == "SetBounds")
+  {
+    Matrix T; BoxNd box;
+    ar.read("T", T);
+    ar.read("box", box);
+    setBounds(Position(T,box));
+    return;
+  }
+
+  return Node::execute(ar);
 
 }
 
@@ -274,7 +284,7 @@ Field QueryNode::getField()
     return Field();
 
   auto fieldname = readValue<String>("fieldname");
-  return fieldname? dataset->getFieldByName(cstring(fieldname)) : dataset->getDefaultField();
+  return fieldname? dataset->getFieldByName(*fieldname) : dataset->getDefaultField();
 }
 
 
@@ -287,7 +297,7 @@ double QueryNode::getTime()
     return 0.0;
 
   auto time = readValue<double>("time");
-  return time ? cdouble(time) : dataset->getDefaultTime();
+  return time ? *time : dataset->getDefaultTime();
 }
 
 
@@ -321,6 +331,22 @@ Frustum QueryNode::logicToScreen()
   return dataset->logicToScreen(physic_to_screen);
 }
 
+
+///////////////////////////////////////////////////////////////////////////
+void QueryNode::setBounds(Position new_value) 
+{
+  auto& old_value = this->node_bounds;
+  if (old_value == new_value) 
+    return;
+
+  beginUpdate(
+    StringTree("SetBounds").writeIfNotDefault("T", new_value.getTransformation(), old_value.getTransformation()).write("box", new_value.getBoxNd()),
+    StringTree("SetBounds").writeIfNotDefault("T", old_value.getTransformation(), new_value.getTransformation()).write("box", old_value.getBoxNd()));
+  {
+    old_value = new_value;
+  }
+  endUpdate();
+}
 
 ///////////////////////////////////////////////////////////////////////////
 Position QueryNode::getQueryLogicPosition() 
@@ -390,7 +416,7 @@ void QueryNode::publishDumbArray()
   buffer->bounds=Position::invalid();
 
   DataflowMessage msg;
-  msg.writeValue("data", buffer);
+  msg.writeValue("array", buffer);
   publish(msg);
 }
 
@@ -403,35 +429,35 @@ void QueryNode::exitFromDataflow()
 }
 
 //////////////////////////////////////////////////////////////////
-void QueryNode::writeTo(StringTree& out) const
+void QueryNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
+  Node::write(ar);
 
-  out.write("verbose", cstring(verbose));
-  out.write("accessindex",cstring(accessindex));
-  out.write("view_dependent",cstring(view_dependent_enabled));
-  out.write("progression",std::to_string(progression));
-  out.write("quality",std::to_string(quality));
+  ar.write("verbose", verbose);
+  ar.write("accessindex", accessindex);
+  ar.write("view_dependent_enabled", view_dependent_enabled);
+  ar.write("progression", progression);
+  ar.write("quality", quality);
 
-  out.writeObject("position", position);
+  ar.writeObject("node_bounds", node_bounds);
 
-  //position=fn(tree_position)
+  //query_bounds is a runtime thingy
 }
 
 //////////////////////////////////////////////////////////////////
-void QueryNode::readFrom(StringTree& in) 
+void QueryNode::read(Archive& ar)
 {
-  Node::readFrom(in);
+  Node::read(ar);
 
-  this->verbose = cint(in.read("verbose"));
-  this->accessindex=cint(in.read("accessindex"));
-  this->view_dependent_enabled =cbool(in.read("view_dependent"));
-  this->progression=cint(in.read("progression"));
-  this->quality=cint(in.read("quality"));
+  ar.read("verbose", verbose);
+  ar.read("accessindex", accessindex);
+  ar.read("view_dependent_enabled", view_dependent_enabled);
+  ar.read("progression", progression);
+  ar.read("quality", quality);
 
-  in.readObject("position", position);
+  ar.readObject("node_bounds", node_bounds);
 
-  //position=fn(tree_position)
+  //query_bounds is a runtime thingy
 }
 
 

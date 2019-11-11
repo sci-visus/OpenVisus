@@ -39,7 +39,6 @@ For support : support@visus.net
 #include <Visus/NetServer.h>
 #include <Visus/StringTree.h>
 #include <Visus/ApplicationInfo.h>
-#include <Visus/Log.h>
 
 namespace Visus {
 
@@ -87,7 +86,7 @@ void NetServer::runInThisThread()
   auto server = std::make_shared<NetSocket>();
   if (!server->bind(url))
   {
-    VisusError() << "NetServer::entryProc bind on port(" << port << ") failed";
+    PrintError("NetServer::entryProc bind on port",port,"failed");
     return;
   }
 
@@ -121,14 +120,14 @@ void NetServer::runInThisThread()
               if (response.isSuccessful())
               {
                 if (!bWrote)
-                  VisusInfo() << "Error writing the netresponse to the client, maybe he just dropped the request?";
+                  PrintInfo("Error writing the netresponse to the client, maybe he just dropped the request?");
                 else
-                  VisusInfo() << "Wrote netresponse to the client";
+                  PrintInfo("Wrote netresponse to the client");
               }
               else
               {
                 if (verbose)
-                  VisusInfo() << "!response.isSuccessful()... skipping it";
+                  PrintInfo("!response.isSuccessful()... skipping it");
               }
             }
           }

@@ -90,7 +90,7 @@ public:
     // Read transfer function data from the palette and pass to OSPRay,
     // assuming an RGBA palette
     if (palette->functions.size() != 4) 
-      VisusInfo() << "WARNING: OSPRay palettes must be RGBA!";
+      PrintInfo("WARNING: OSPRay palettes must be RGBA!");
 
     const size_t npaletteSamples = 256;
     std::vector<float> tfnColors(3 * npaletteSamples, 0.f);
@@ -141,7 +141,7 @@ public:
     ospSetData(volume, "voxelData", volumeData);
     ospSetObject(volume, "transferFunction", transferFcn);
 
-    VisusInfo() << data.bounds.toString();
+    PrintInfo(data.bounds);
 
     auto grid = data.bounds.toAxisAlignedBox();
     grid.setPointDim(3);
@@ -174,7 +174,7 @@ public:
 
     // TODO: This should be done by setting the volume clip box instead
     if (data.clipping.valid()) {
-      VisusInfo() << "CLIPPING TODO";
+      PrintInfo("CLIPPING TODO");
       // This should set the volume parameters: volumeClippingBoxLower
       // and volumeClippingBoxUpper
     }
@@ -216,7 +216,7 @@ public:
     ospRenderFrame(framebuffer, renderer, OSP_FB_COLOR | OSP_FB_ACCUM);
 
     uint32_t *fb = (uint32_t*)ospMapFrameBuffer(framebuffer, OSP_FB_COLOR);
-    VisusInfo() << "OSPRay rendering total took: " << startRender.elapsedMsec() << "ms";
+    PrintInfo("OSPRay rendering total took:",startRender.elapsedMsec(),"ms");
 
     // Blit the rendered framebuffer from OSPRay
     {
@@ -247,7 +247,7 @@ public:
 
     ospUnmapFrameBuffer(fb, framebuffer);
 
-    VisusInfo() << "OSPRayNode total took: " << startRender.elapsedMsec() << "ms";
+    PrintInfo("OSPRayNode total took:",startRender.elapsedMsec(),"ms");
   }
 
 private:
@@ -343,11 +343,11 @@ public:
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-OSPRayRenderNode::OSPRayRenderNode(String name) : Node(name)
+OSPRayRenderNode::OSPRayRenderNode()
 {
   pimpl = new Pimpl();
 
-  addInputPort("data");
+  addInputPort("array");
   addInputPort("palette");
 }
 
@@ -378,7 +378,7 @@ bool OSPRayRenderNode::processInput()
   //I want to sign the input return receipt only after the rendering
   auto return_receipt = createPassThroughtReceipt();
   auto palette = readValue<Palette>("palette");
-  auto data    = readValue<Array>("data");
+  auto data    = readValue<Array>("array");
 
   //request to flush all
   if (!data || !data->dims.innerProduct() || !data->dtype.valid())
@@ -400,7 +400,7 @@ bool OSPRayRenderNode::processInput()
   this->data   = *data;
   this->palette = palette;
 
-  VisusInfo() << "got array"  << " data(" << this->data.dims.toString() << ")";
+  PrintInfo("got array","data",this->data.dims);
   return true;
 }
 
@@ -417,15 +417,15 @@ void OSPRayRenderNode::glRender(GLCanvas& gl)
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void OSPRayRenderNode::writeTo(StringTree& out) const
+void OSPRayRenderNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
+  Node::write(ar);
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-void OSPRayRenderNode::readFrom(StringTree& in)
+void OSPRayRenderNode::read(Archive& ar)
 {
-  Node::readFrom(in);
+  Node::read(ar);
 }
 
 } //namespace Visus

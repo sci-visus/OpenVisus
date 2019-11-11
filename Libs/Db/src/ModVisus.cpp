@@ -64,7 +64,7 @@ public:
   Datasets(const StringTree& config) 
   {
     StringTree datasets("datasets");
-    addDatasets(datasets, config, config);
+    addPublicDatasets(datasets, config, config);
     datasets_xml_body  = datasets.toXmlString();
     datasets_json_body = datasets.toJSONString();
   }
@@ -109,8 +109,8 @@ private:
   String            datasets_xml_body;
   String            datasets_json_body;
 
-  //addDataset
-  int addDataset(StringTree& dst, String name, SharedPtr<Dataset> dataset) 
+  //addPublicDataset
+  int addPublicDataset(StringTree& dst, String name, SharedPtr<Dataset> dataset) 
   {
     datasets_map[name] = dataset;
 
@@ -120,20 +120,20 @@ private:
     //for example kdquery=true could be maintained!
     child->attributes = dataset->getConfig().attributes;
 
-    child->writeString("name", name);
-    child->writeString("url", getDatasetUrl(name));
+    child->write("name", name);
+    child->write("url", getDatasetUrl(name));
 
     dataset->setServerMode(true);
 
     //automatically add the childs of a multiple datasets
     int ret = 1;
     for (auto it : dataset->getInnerDatasets())
-      ret += addDataset(*child, name + "/" + it.first, it.second);
+      ret += addPublicDataset(*child, name + "/" + it.first, it.second);
     return ret;
   }
 
-  //addDatasets
-  int addDatasets(StringTree& dst, const StringTree& config, const StringTree& cursor)
+  //addPublicDatasets
+  int addPublicDatasets(StringTree& dst, const StringTree& config, const StringTree& cursor)
   {
     int ret = 0;
 
@@ -143,7 +143,7 @@ private:
       StringTree group(cursor.name);
       group.attributes = cursor.attributes;
       for (auto child : cursor.getChilds())
-        ret += addDatasets(group, config, *child);
+        ret += addPublicDatasets(group, config, *child);
       if (ret)
         dst.addChild(group);
       return ret;
@@ -152,7 +152,7 @@ private:
     //flattening the hierarchy!
     if (cursor.name != "dataset") {
       for (auto child : cursor.getChilds())
-        ret += addDatasets(dst, config, *child);
+        ret += addPublicDatasets(dst, config, *child);
       return ret;
     }
 
@@ -164,39 +164,16 @@ private:
 
     auto dataset = LoadDatasetEx(name,config);
     if (!dataset) {
-      VisusWarning() << "dataset name(" << name << ") load failed, skipping it";
+      PrintWarning("dataset name", name, "load failed, skipping it");
       return 0;
     }
 
     if (datasets_map.find(name) != datasets_map.end()) {
-      VisusWarning() << "dataset name(" << name << ")  already exists, skipping it";
+      PrintWarning("dataset name", name, "already exists, skipping it");
       return 0;
     }
 
-    return addDataset(dst, name, dataset);
-  }
-
-  //addScenes 
-  int addScenes(StringTree& dst, const StringTree& config, const StringTree& cursor)
-  {
-    int ret = 0;
-
-    //I want to maintain the group hierarchy!
-    if (cursor.name == "group")
-    {
-      auto group = StringTree(cursor.name);
-      group.attributes = cursor.attributes;
-      for (auto child : cursor.getChilds())
-        ret += addScenes(group, config, *child);
-      if (ret)
-        dst.addChild(group);
-      return ret;
-    }
-
-    //flattening the hierarchy!
-    for (auto child : cursor.getChilds())
-      ret += addScenes(dst, config, *child);
-    return ret;
+    return addPublicDataset(dst, name, dataset);
   }
 
 };
@@ -235,7 +212,7 @@ bool ModVisus::configureDatasets(const ConfigFile& config)
   //for dynamic I need to reload the file
   if (config_filename.empty() && this->dynamic)
   {
-    VisusInfo() << "Switching ModVisus to non-dynamic content since the config file is not stored on disk";
+    PrintInfo("Switching ModVisus to non-dynamic content since the config file is not stored on disk");
     this->dynamic = false;
   }
 
@@ -265,8 +242,8 @@ bool ModVisus::configureDatasets(const ConfigFile& config)
     });
   }
 
-  VisusInfo() << "ModVisus::configure dynamic(" << dynamic << ") config_filename(" << config_filename << ")...";
-  VisusInfo() << "/mod_visus?action=list\n" << datasets->getDatasetsBody();
+  PrintInfo("ModVisus::configure dynamic",dynamic,"config_filename",config_filename,"...");
+  PrintInfo("/mod_visus?action=list\n",datasets->getDatasetsBody());
 
   return true;
 }
@@ -280,7 +257,7 @@ bool ModVisus::reload()
   ConfigFile config;
   if (!config.load(this->config_filename))
   {
-    VisusInfo() << "Reload modvisus config_filename(" << this->config_filename << ") failed";
+    PrintInfo("Reload modvisus config_filename", this->config_filename,"failed");
     return false;
   }
 
@@ -291,7 +268,7 @@ bool ModVisus::reload()
     this->config_timestamp = FileUtils::getTimeLastModified(this->config_filename);
   }
 
-  VisusInfo() << "modvisus config file changed config_filename(" << this->config_filename << ") #datasets(" << datasets->getNumberOfDatasets() << ")";
+  PrintInfo("modvisus config file changed config_filename",this->config_filename,"#datasets",datasets->getNumberOfDatasets());
   return true;
 }
 
@@ -312,9 +289,9 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
     auto url = request.url.getParam("url");
 
     stree = StringTree("dataset");
-    stree.writeString("name", name);
-    stree.writeString("url", url);
-    stree.writeString("permissions", "public");
+    stree.write("name", name);
+    stree.write("url", url);
+    stree.write("permissions", "public");
   }
   else if (request.url.hasParam("xml"))
   {
@@ -326,7 +303,7 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
 
   //add the dataset
   {
-    //need to use a file_lock to make sure I don't loose and addDataset 
+    //need to use a file_lock to make sure I don't loose any addPublicDataset 
     ScopedFileLock file_lock(this->config_filename);
 
     String name = stree.readString("name");
@@ -340,7 +317,7 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
     ConfigFile config;
     if (!config.load(this->config_filename,/*bEnablePostProcessing*/false))
     {
-      VisusWarning() << "Cannot load " << this->config_filename;
+      PrintWarning("Cannot load",this->config_filename);
       VisusAssert(false);//TODO rollback
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
     }
@@ -349,12 +326,12 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
 
     if (!config.save())
     {
-      VisusWarning() << "Cannot save " << config.getFilename();
+      PrintWarning("Cannot save",config.getFilename());
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
     }
 
     if (!reload()) {
-      VisusWarning() << "Cannot reload modvisus config";
+      PrintWarning("Cannot reload modvisus config");
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Reload failed");
     }
   }
@@ -395,7 +372,7 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
     if (!stree.valid())
     {
       VisusReleaseAssert(stree.name=="dataset");
-      stree.writeString("name", dataset_name);
+      stree.write("name", dataset_name);
 
       std::stack< std::pair<String,StringTree*>> stack;
       stack.push(std::make_pair("",&stree));
@@ -404,10 +381,10 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
         auto prefix = stack.top().first;
         auto stree  = stack.top().second; 
         stack.pop();
-        if (stree->name == "dataset" && stree->hasValue("name"))
+        if (stree->name == "dataset" && !stree->getAllChilds("name").empty())
         {
           prefix = prefix + (prefix.empty() ? "" : "/") + stree->readString("name");
-          stree->writeString("url", datasets->getDatasetUrl(prefix));
+          stree->write("url", datasets->getDatasetUrl(prefix));
         }
         for (auto child : stree->getChilds())
           stack.push(std::make_pair(prefix, child.get()));
@@ -611,11 +588,11 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
     if (!tf)
     {
       VisusAssert(false);
-      VisusInfo() << "invalid palette specified: " << palette;
-      VisusInfo() << "use one of:";
+      PrintInfo("invalid palette specified",palette);
+      PrintInfo("use one of:");
       std::vector<String> tf_defaults = TransferFunction::getDefaults();
       for (int i = 0; i < tf_defaults.size(); i++)
-        VisusInfo() << "\t" << tf_defaults[i];
+        PrintInfo("\t",tf_defaults[i]);
     }
     else
     {
@@ -625,7 +602,7 @@ NetResponse ModVisus::handleBoxQuery(const NetRequest& request)
       if (palette_min != palette_max)
       {
         tf->beginTransaction();
-        tf->setRange(Range(palette_min, palette_max, 0));
+        tf->setInputRange(Range(palette_min, palette_max, 0));
         tf->setInputNormalizationMode(ArrayUtils::UseFixedRange);
         tf->endTransaction();
       }
@@ -706,11 +683,11 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
     if (!tf)
     {
       VisusAssert(false);
-      VisusInfo() << "invalid palette specified: " << palette;
-      VisusInfo() << "use one of:";
+      PrintInfo("invalid palette specified",palette);
+      PrintInfo("use one of:");
       std::vector<String> tf_defaults = TransferFunction::getDefaults();
       for (int i = 0; i < tf_defaults.size(); i++)
-        VisusInfo() << "\t" << tf_defaults[i];
+        PrintInfo("\t",tf_defaults[i]);
     }
     else
     {
@@ -720,7 +697,7 @@ NetResponse ModVisus::handlePointQuery(const NetRequest& request)
       if (palette_min != palette_max)
       {
         tf->setInputNormalizationMode(ArrayUtils::UseFixedRange);
-        tf->setRange(Range(palette_min, palette_max, 0));
+        tf->setInputRange(Range(palette_min, palette_max, 0));
       }
 
       buffer = ArrayUtils::applyTransferFunction(tf, buffer);
@@ -812,9 +789,9 @@ NetResponse ModVisus::handleRequest(NetRequest request)
   else
     response = NetResponseError(HttpStatus::STATUS_NOT_FOUND, "unknown action(" + action + ")");
 
-  VisusInfo()
-    << " request(" << request.url.toString() << ") "
-    << " status(" << response.getStatusDescription() << ") body(" << StringUtils::getStringFromByteSize(response.body ? response.body->c_size() : 0) << ") msec(" << t1.elapsedMsec() << ")";
+  PrintInfo(
+    "request", request.url,
+    "status", response.getStatusDescription(), "body", StringUtils::getStringFromByteSize(response.body ? response.body->c_size() : 0), "msec", t1.elapsedMsec());
 
   //add some standard header
   response.setHeader("git_revision", ApplicationInfo::git_revision);

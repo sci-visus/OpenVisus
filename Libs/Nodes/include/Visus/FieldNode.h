@@ -54,13 +54,10 @@ public:
   VISUS_NON_COPYABLE_CLASS(FieldNode)
 
   //constructor
-  FieldNode(String name="", String fieldname="");
+  FieldNode();
 
   //destructor
   virtual ~FieldNode();
-
-  //executeAction
-  virtual void executeAction(StringTree in) override;
 
   //getFieldName
   String getFieldName() const {
@@ -68,15 +65,20 @@ public:
   }
 
   //setFieldName
-  void setFieldName(String fieldname);
+  void setFieldName(String value) {
+    setProperty("SetFieldName", this->fieldname, value);
+  }
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 

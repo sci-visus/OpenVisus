@@ -253,7 +253,7 @@ void Viewer::glCanvasMouseReleaseEvent(QMouseEvent* evt)
 
       //need to get all levels now that mouse is not dragging anymore
       if (free_transform && getWorldDimension()==3)
-        refreshData(getSelection());
+        refreshNode(getSelection());
 
       postRedisplay();
       return;
@@ -388,7 +388,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
       continue;
 
     if (auto modelview_node=dynamic_cast<ModelViewNode*>(node))
-      frustum.multModelview(modelview_node->getModelview());
+      frustum.multModelview(modelview_node->getModelView());
 
     int nqueue=glGetRenderQueue(node);
     if (nqueue>=0) 
@@ -396,7 +396,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
       if (auto globject = dynamic_cast<GLObject*>(node))
       {
         auto node_to_screen= computeNodeToScreen(getGLCamera()->getCurrentFrustum(viewport),node);
-        Position bounds= getPosition(node);
+        Position bounds= getBounds(node);
         bool bUseFarPoint=(nqueue==2);
         double distance= node_to_screen.computeZDistance(bounds,bUseFarPoint);
         if (bOrthoCamera || distance>=0)
@@ -408,7 +408,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
     {
       if (dataset_node->showBounds())
       {
-        auto bounds= getPosition(dataset_node);
+        auto bounds= getBounds(dataset_node);
         GLBox(bounds,Colors::Transparent,Colors::Black.withAlpha(0.5)).glRender(gl);
       }
 
@@ -483,7 +483,7 @@ void Viewer::glRenderSelection(GLCanvas& gl)
   auto viewport = gl.getViewport();
   if (Node* selection=getSelection())
   {
-    auto bounds= getPosition(selection);
+    auto bounds= getBounds(selection);
     if (bounds.valid())
     {
       gl.pushFrustum();

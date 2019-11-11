@@ -508,14 +508,17 @@ public:
     return o.str();
   }
 
-  //writeTo
-  void writeTo(StringTree& out) const  {
-    out.writeValue("matrix", this->toString());
+  //write
+  void write(Archive& ar) const  {
+    auto matrix = *this;
+    ar.write("matrix", matrix);
   }
 
-  //writeTo
-  void readFrom(StringTree& in) {
-    (*this) = Matrix::fromString(in.readValue("matrix"));
+  //write
+  void read(Archive& ar) {
+    Matrix matrix;
+    ar.read("matrix", matrix);
+    *this = matrix;
   }
 
 private:

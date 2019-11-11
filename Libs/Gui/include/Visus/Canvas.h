@@ -72,7 +72,7 @@ public:
     painter.setBrush(QColor(200,200,230));
     painter.drawRect(0,0,this->width()-1,this->height()-1);
     painter.setBrush(Qt::white);
-    painter.drawRect(project(QRectF(world_bounds.x,world_bounds.y,world_bounds.width,world_bounds.height)));
+    painter.drawRect(project(QRectF(world_box.x,world_box.y,world_box.width,world_box.height)));
   }
 
   //renderGrid
@@ -80,14 +80,14 @@ public:
   {
     for (int I=0;I<=num_x;I++)
     {
-      auto x=world_bounds.x+(I/(double)num_x)*world_bounds.width;
+      auto x=world_box.x+(I/(double)num_x)*world_box.width;
       painter.setPen(QColor(173,216,230,50));
       painter.drawLine(project(QPointF(x,0)), project(QPointF(x,1)));
     }
 
     for (int I=0;I<=num_y;I++)
     {
-      auto y=world_bounds.y+(I/(double)num_y)*world_bounds.height;
+      auto y=world_box.y+(I/(double)num_y)*world_box.height;
       painter.setPen(QColor(173,216,230,50));
       painter.drawLine(project(QPointF(0,y)), project(QPointF(1,y)));
     }
@@ -99,23 +99,23 @@ public:
     painter.setPen(QColor(0,0,0));
     painter.setBrush(Qt::NoBrush);
     painter.drawRect(0,0,this->width()-1,this->height()-1);
-    painter.drawRect(project(QRectF(world_bounds.x,world_bounds.y,world_bounds.width,world_bounds.height))); 
+    painter.drawRect(project(QRectF(world_box.x,world_box.y,world_box.width,world_box.height))); 
   }
 
-  //getWorldBounds
-  Rectangle2d getWorldBounds() const {
-    return world_bounds;
+  //getWorldBox
+  Rectangle2d getWorldBox() const {
+    return world_box;
   }
 
-  //setWorldBounds
-  void setWorldBounds(Rectangle2d world_bounds)
+  //setWorldBox
+  void setWorldBox(Rectangle2d value)
   {
-    this->world_bounds=world_bounds;
-    this->world_pos=world_bounds.p1();
+    this->world_box= value;
+    this->current_pos = value.p1();
 
     this->Tproject=
-      Matrix::scale(Point2d(1.0/world_bounds.width,1.0/world_bounds.height)) *
-      Matrix::translate(Point2d(-world_bounds.x,-world_bounds.y));
+      Matrix::scale(Point2d(1.0/ value.width,1.0/ value.height)) *
+      Matrix::translate(Point2d(-value.x,-value.y));
     this->Tunproject=Tproject.invert();
     
     update();
@@ -123,17 +123,17 @@ public:
   }
 
   //setWorldBounds
-  void setWorldBounds(double x,double y,double width,double height) {
-    setWorldBounds(Rectangle2d(x,y,width,height));
+  void setWorldBox(double x,double y,double width,double height) {
+    setWorldBox(Rectangle2d(x,y,width,height));
   }
 
-  //getOrthoParams
-  Matrix getOrthoParams() const {
+  //getProjection
+  Matrix getProjection() const {
     return Tproject;
   }
 
-  //setOrthoParams
-  void setOrthoParams(Matrix value) {
+  //setProjection
+  void setProjection(Matrix value) {
     Tproject=value;
     emit repaintNeeded();
   }
@@ -183,12 +183,12 @@ public:
 
   //getCurrentPos
   Point2d getCurrentPos() const {
-    return world_pos;
+    return current_pos;
   }
 
   //setCurrentPos
   void setCurrentPos(Point2d value) {
-    this->world_pos=value;
+    this->current_pos =value;
     update();
     emit repaintNeeded();
   }
@@ -209,13 +209,13 @@ public:
 
   //resizeEvent
   virtual void resizeEvent(QResizeEvent* evt) override {
-    setWorldBounds(getWorldBounds());
+    setWorldBox(getWorldBox());
   }
 
   //mouseDoubleClickEvent
   virtual void mouseDoubleClickEvent(QMouseEvent * e) override {
     if (e->button()==Qt::RightButton)
-      setWorldBounds(getWorldBounds());
+      setWorldBox(getWorldBox());
   }
 
   //mousePressEvent
@@ -227,7 +227,7 @@ public:
       evt->accept();
     }
     
-    world_pos  = QUtils::convert<Point2d>(unproject(evt->pos()));
+    current_pos = QUtils::convert<Point2d>(unproject(evt->pos()));
     update();
     emit repaintNeeded();
   }
@@ -237,14 +237,14 @@ public:
   {
     if (bPanning)
     {
-      auto w0=world_pos;
+      auto w0= current_pos;
       auto w1=QUtils::convert<Point2d>(unproject(evt->pos()));
       Tproject     = Tproject * Matrix::translate(w1-w0);
       Tunproject = Tproject.invert();
       evt->accept();
     }
     
-    world_pos = QUtils::convert<Point2d>(unproject(evt->pos()));
+    current_pos = QUtils::convert<Point2d>(unproject(evt->pos()));
     update();
     emit repaintNeeded();
   }
@@ -258,7 +258,7 @@ public:
       evt->accept();
     }
     
-    world_pos  = QUtils::convert<Point2d>(unproject(evt->pos()));
+    current_pos = QUtils::convert<Point2d>(unproject(evt->pos()));
     update();
     emit repaintNeeded();
   }
@@ -267,7 +267,7 @@ public:
   virtual void wheelEvent(QWheelEvent* evt) override
   {
     auto vs=1+0.2*(evt->delta()/120);
-    auto c0=world_pos;
+    auto c0= current_pos;
     Tproject   = Tproject * Matrix::scaleAroundCenter(c0,vs);
     Tunproject = Tproject.invert();
     update();
@@ -284,8 +284,8 @@ private:
   Matrix      Tproject =Matrix(3);
   Matrix      Tunproject = Matrix(3);
   //modelview is always identity
-  Rectangle2d world_bounds=Rectangle2d(0,0,1,1);
-  Point2d     world_pos;
+  Rectangle2d world_box=Rectangle2d(0,0,1,1);
+  Point2d     current_pos;
   bool        bPanning=false;
 
 };

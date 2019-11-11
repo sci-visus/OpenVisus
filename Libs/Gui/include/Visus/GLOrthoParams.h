@@ -63,22 +63,36 @@ public:
   {
     GLOrthoParams ret;
     std::istringstream parser(s);
-    parser >> ret.left >> ret.right >> ret.top >> ret.bottom >> ret.zNear >> ret.zFar;
+    parser >> ret.left >> ret.right >> ret.bottom >> ret.top >> ret.zNear >> ret.zFar;
     return ret;
   }
 
-  //interpolate
-  static GLOrthoParams interpolate(double alpha, GLOrthoParams A, double beta, GLOrthoParams B)
-  {
-    GLOrthoParams ret;
-    ret.left   = alpha * A.left   + beta * B.left;
-    ret.right  = alpha * A.right  + beta * B.right;
-    ret.bottom = alpha * A.bottom + beta * B.bottom;
-    ret.top    = alpha * A.top    + beta * B.top;
-    ret.zNear  = alpha * A.zNear  + beta * B.zNear;
-    ret.zFar   = alpha * A.zFar   + beta * B.zFar;
-    return ret;
+  //fromCenterAndSize
+  static GLOrthoParams fromCenterAndSize(Point3d center, Point3d size) {
+    return GLOrthoParams(
+      center.x - 0.5 * size.x, 
+      center.x + 0.5 * size.x,
+      center.y - 0.5 * size.y,
+      center.y + 0.5 * size.y,
+      center.z - 0.5 * size.z,
+      center.z + 0.5 * size.z);
   }
+
+  //operator*
+  GLOrthoParams operator*(double value) {
+    return GLOrthoParams(value * left, value * right, value * bottom, value * top, value * zNear, value * zFar);
+  }
+
+  //operator+
+  GLOrthoParams operator+(const GLOrthoParams other) {
+    return GLOrthoParams(left + other.left, right + other.right, bottom + other.bottom, top + other.top, zNear + other.zNear, zFar + other.zFar);
+  }
+
+  //operator+
+  GLOrthoParams operator-(const GLOrthoParams other) {
+    return GLOrthoParams(left - other.left, right - other.right, bottom - other.bottom, top - other.top, zNear - other.zNear, zFar - other.zFar);
+  }
+
 
   //operator==
   bool operator==(const GLOrthoParams& other) const
@@ -119,16 +133,21 @@ public:
 
   //getCenter
   inline Point3d getCenter() const {
-    return 0.5*Point3d(left + right, bottom + top, zNear + zFar);
+    return 0.5 * Point3d(left + right, bottom + top, zNear + zFar);
   }
 
-  //translate
+  //translated
   GLOrthoParams translated(const Point3d& vt) const
   {
     return GLOrthoParams(
       this->left + vt[0], this->right + vt[0],
       this->bottom + vt[1], this->top + vt[1],
       this->zNear + vt[2], this->zFar + vt[2]);
+  }
+
+  //translated
+  GLOrthoParams translated(const Point2d& vt) const {
+    return translated(Point3d(vt, 0));
   }
 
   //scaled
@@ -177,18 +196,16 @@ public:
 
   //toString
   String toString() const {
-    std::ostringstream out;
-    out << left << " " << right << " " << top << " " << bottom << " " << zNear << " " << zFar;
-    return out.str();
+    return cstring(left, right, bottom, top, zNear, zFar);
   }
 
 public:
 
-  //writeTo
-  void writeTo(StringTree& out) const;
+  //write
+  void write(Archive& ar) const;
 
-  //readFrom
-  void readFrom(StringTree& in) ;
+  //read
+  void read(Archive& ar) ;
 
 };
 

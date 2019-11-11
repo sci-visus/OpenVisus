@@ -52,7 +52,7 @@ GLTexture::GLTexture(Array src)
 
   if (!(src.dtype.valid() && ncomponents >= 1 && ncomponents <= 4))
   {
-    //VisusInfo() << "Failed to upload texture internal error";
+    //PrintInfo("Failed to upload texture internal error");
     //VisusAssert(false);
     return;
   }
@@ -88,7 +88,7 @@ GLTexture::~GLTexture()
 
   if (auto do_with_context = GLDoWithContext::getSingleton())
   {
-    do_with_context->push_back([size, texture_id]()
+    do_with_context->push_back([texture_id]()
     {
       //GLInfo::getSingleton()->freeOpenGLMemory(size);
       glDeleteTextures(1, &texture_id);
@@ -206,7 +206,7 @@ GLuint GLTexture::textureId(GLCanvas& gl)
 #if 0
   if (!GLInfo::getSingleton()->allocateOpenGLMemory(fullsize))
   {
-    VisusInfo() << "Failed to upload texture Failed to allocate gpu memory (" + StringUtils::getStringFromByteSize(fullsize) + "), GLCreateTexture::setArray failed";
+    PrintInfo("Failed to upload texture Failed to allocate gpu memory",StringUtils::getStringFromByteSize(fullsize),"GLCreateTexture::setArray failed");
     return 0;
   }
 #endif
@@ -246,7 +246,7 @@ GLuint GLTexture::textureId(GLCanvas& gl)
 
   if (!texture_id || gl.flushGLErrors(true))
   {
-    VisusInfo() << "Failed to create texture";
+    PrintInfo("Failed to create texture");
 
     //see not above for allocate Memory
 #if 0
@@ -273,10 +273,10 @@ GLuint GLTexture::textureId(GLCanvas& gl)
 
     GLInfo::getSingleton()->addVisusUsedMemory(gpusize);
 
-    VisusInfo() << (gpusize==fullsize?"Non compressed":"Compressed")<<" texture"
-      << " fullsize(" << StringUtils::getStringFromByteSize(fullsize) << ")"
-      << " gpusize(" << gpusize << ")"
-      << " ratio(" << (100.0 * double(gpusize) / double(fullsize)) << "%)";
+    PrintInfo(gpusize==fullsize?"Non compressed":"Compressed", "texture",
+      "fullsize", StringUtils::getStringFromByteSize(fullsize),
+      "gpusize", gpusize,
+      "ratio", (100.0 * double(gpusize) / double(fullsize)), "%");
   }
 
   if (save_original_alignment!=1)

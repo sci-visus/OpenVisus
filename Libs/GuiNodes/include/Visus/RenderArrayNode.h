@@ -67,13 +67,10 @@ public:
   double opacity = 1.0;
 
   //constructor
-  RenderArrayNode(String name="");
+  RenderArrayNode();
 
   //destructor
   virtual ~RenderArrayNode();
-
-  //executeAction
-  virtual void executeAction(StringTree in) override;
 
   //getData
   Array getData() const {
@@ -95,8 +92,8 @@ public:
     return (data.clipping.valid() ? data.clipping : data.bounds);
   }
 
-  //getPosition 
-  virtual Position getPosition() override {
+  //getBounds 
+  virtual Position getBounds() override {
     return getDataBounds();
   }
 
@@ -107,7 +104,7 @@ public:
 
   //setLightingMaterial
   void setLightingMaterial(GLMaterial value) {
-    setEncodedProperty("lighting_material", this->lighting_material, value);
+    setEncodedProperty("SetLightingMaterial", this->lighting_material, value);
   }
 
   //lightingEnabled
@@ -117,7 +114,7 @@ public:
 
   //setLightingEnabled
   void setLightingEnabled(bool value) {
-    setProperty("lighting_enabled", this->lighting_enabled, value);
+    setProperty("SetLightingEnabled", this->lighting_enabled, value);
   }
 
   //getPalette
@@ -133,7 +130,7 @@ public:
 
   //setPaletteEnabled
   void setPaletteEnabled(bool value) {
-    setProperty("palette_enabled", this->palette_enabled, value);
+    setProperty("SetPaletteEnabled", this->palette_enabled, value);
   }
 
   //useViewDirection
@@ -143,7 +140,7 @@ public:
 
   //setUseViewDirection
   void setUseViewDirection(bool value) {
-    setProperty("use_view_direction", this->use_view_direction, value);
+    setProperty("SetUseViewDirection", this->use_view_direction, value);
   }
 
   //maxNumSlices
@@ -153,7 +150,7 @@ public:
 
   //setMaxNumSlices
   void setMaxNumSlices(int value) {
-    setProperty("max_num_slices", this->max_num_slices, value);
+    setProperty("SetMaxNumSlices", this->max_num_slices, value);
   }
 
   //minifyFilter
@@ -163,7 +160,7 @@ public:
 
   //setMinifyFilter
   void setMinifyFilter(int value) {
-    setProperty("minify_filter", this->minify_filter, value);
+    setProperty("SetMinifyFilter", this->minify_filter, value);
   }
 
   //magnifyFilter
@@ -173,7 +170,7 @@ public:
 
   //setMagnifyFilter
   void setMagnifyFilter(int value) {
-    setProperty("magnify_filter", this->magnify_filter, value);
+    setProperty("SetMagnifyFilter", this->magnify_filter, value);
   }
 
   //glRender
@@ -190,11 +187,14 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 

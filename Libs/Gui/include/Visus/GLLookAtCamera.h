@@ -60,9 +60,6 @@ public:
   virtual ~GLLookAtCamera() {
   }
 
-  //executeAction
-  virtual void executeAction(StringTree in) override;
-
   //getTypeName
   virtual String getTypeName() const override {
     return "GLLookAtCamera";
@@ -70,15 +67,15 @@ public:
 
   //setBounds
   void setBounds(BoxNd value) {
-    setProperty("bounds", this->bounds, value);
+    setProperty("SetBounds", this->bounds, value);
   }
 
   //guessPosition
   virtual bool guessPosition(BoxNd value,int ref=-1) override;
 
-  //splitProjectionFrustum
-  virtual void splitProjectionFrustum(Rectangle2d value) override {
-    setProperty("split_projection_frustum", this->split_projection_frustum, value);
+  //splitFrustum
+  virtual void splitFrustum(Rectangle2d value) override {
+    setProperty("SplitFrustum", this->split_frustum, value);
   }
 
   //getPosition
@@ -88,7 +85,7 @@ public:
 
   //setPosition
   void setPosition(Point3d value) {
-    setProperty("pos", this->pos, value);
+    setProperty("SetPosition", this->pos, value);
   }
 
   //getDirection
@@ -98,24 +95,24 @@ public:
 
   //setDirection
   void setDirection(Point3d value) {
-    setProperty("dir", this->dir, value);
+    setProperty("SetDirection", this->dir, value);
   }
 
-  //getViewUp
-  Point3d getViewUp() const {
+  //getVup
+  Point3d getVup() const {
     return vup;
   }
 
   //setViewUp
   void setViewUp(Point3d value) {
-    setProperty("vup", this->vup, value);
+    setProperty("SetViewUp", this->vup, value);
   }
 
   //getLookAt
   virtual void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const override {
     pos = getPosition();
     dir = getDirection();
-    vup = getViewUp();
+    vup = getVup();
   }
 
   //getRotation
@@ -124,9 +121,7 @@ public:
   }
 
   //setRotation
-  void setRotation(Quaternion value) {
-    setProperty("rotation", this->rotation, value);
-  }
+  void setRotation(Quaternion new_value);
 
   //getRotationCenter
   Point3d getRotationCenter() {
@@ -135,7 +130,7 @@ public:
 
   //setRotationCenter
   void setRotationCenter(Point3d value) {
-    setProperty("rotation_center", this->rotation_center, value);
+    setProperty("SetRotationCenter", this->rotation_center, value);
   }
 
   //getFov
@@ -145,7 +140,7 @@ public:
 
   //setFov
   void setFov(double value) {
-    setProperty("fov", this->fov, fov);
+    setProperty("SetFov", this->fov, fov);
   }
 
 public:
@@ -176,11 +171,14 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 
@@ -191,7 +189,7 @@ private:
 
   //projection
   double                 fov = 60.0;
-  Rectangle2d            split_projection_frustum = Rectangle2d(0, 0, 1, 1);
+  Rectangle2d            split_frustum = Rectangle2d(0, 0, 1, 1);
 
   //modelview
   Point3d                pos, dir, vup;
@@ -201,7 +199,6 @@ private:
   //properties
   const double           rotation_factor=5.2;
   const double           pan_factor=30;
-  const bool             disable_rotation = false;
 
   //guessForwardFactor
   double guessForwardFactor() const ;

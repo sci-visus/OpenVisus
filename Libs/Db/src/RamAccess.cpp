@@ -256,8 +256,8 @@ void RamAccess::printStatistics()  {
 
   {
     ScopedLock lock(shared->lock);
-    VisusInfo() << "RAM used("      << StringUtils::getStringFromByteSize(shared->used) << ") ";
-    VisusInfo() << "RAM available(" << StringUtils::getStringFromByteSize(shared->available) << ")";
+    PrintInfo("RAM used", StringUtils::getStringFromByteSize(shared->used));
+    PrintInfo("RAM available", StringUtils::getStringFromByteSize(shared->available));
   }
 }
 

@@ -56,7 +56,7 @@ public:
     : node(node_), input(input_),return_receipt(return_receipt_)
   {
     this->tf = node->getTransferFunction();
-    this->bDataOutputPortConnected=node->isOutputConnected("data");
+    this->bDataOutputPortConnected=node->isOutputConnected("array");
   }
 
   //valid
@@ -77,17 +77,17 @@ public:
 
     DataflowMessage msg;
     msg.setReturnReceipt(return_receipt);
-    msg.writeValue("data",output);
+    msg.writeValue("array",output);
     node->publish(msg);
   }
 };
 
 
 ///////////////////////////////////////////////////////////////////////
-CpuPaletteNode::CpuPaletteNode(String name,SharedPtr<TransferFunction> tf)  : Node(name)
+CpuPaletteNode::CpuPaletteNode(SharedPtr<TransferFunction> tf)  
 {
-  addInputPort("data");
-  addOutputPort("data");
+  addInputPort("array");
+  addOutputPort("array");
 
   if (tf)
     setTransferFunction(tf);
@@ -100,15 +100,15 @@ CpuPaletteNode::~CpuPaletteNode()
 }
 
 ///////////////////////////////////////////////////////////////////////
-void CpuPaletteNode::executeAction(StringTree in)
+void CpuPaletteNode::execute(Archive& ar)
 {
-  if (getPassThroughAction(in, "transfer_function"))
+  if (GetPassThroughAction("transfer_function", ar))
   {
-    transfer_function->executeAction(in);
+    transfer_function->execute(ar);
     return;
   }
 
-  return Node::executeAction(in);
+  return Node::execute(ar);
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -117,7 +117,7 @@ void CpuPaletteNode::setTransferFunction(SharedPtr<TransferFunction> value)
   if (this->transfer_function)
   {
     this->transfer_function->begin_update.disconnect(this->transfer_function_begin_update_slot);
-    this->transfer_function->end_update.disconnect(this->transfer_function_changed_slot);
+    this->transfer_function->end_update  .disconnect(this->transfer_function_changed_slot);
   }
 
   this->transfer_function=value;
@@ -125,17 +125,16 @@ void CpuPaletteNode::setTransferFunction(SharedPtr<TransferFunction> value)
   if (this->transfer_function)
   {
     this->transfer_function->begin_update.connect(this->transfer_function_begin_update_slot=[this](){
-      beginUpdate(
-        createPassThroughAction(StringTree("begin_update"), "transfer_function"),
-        createPassThroughAction(StringTree("begin_update"), "transfer_function"));
+      beginTransaction();
     });
 
-    this->transfer_function->end_update.connect(this->transfer_function_changed_slot=[this](){
-      //replace top action
-      this->topUndo() = createPassThroughAction(transfer_function->topRedo(), "transfer_function");
-      this->topUndo() = createPassThroughAction(transfer_function->topUndo(), "transfer_function");
-      endUpdate();
+    this->transfer_function->end_update.connect(this->transfer_function_changed_slot = [this]() {
+      addUpdate(
+        CreatePassThroughAction("transfer_function", transfer_function->lastRedo()),
+        CreatePassThroughAction("transfer_function", transfer_function->lastUndo()));
+      endTransaction();
     });
+
   }
 }
 
@@ -147,7 +146,7 @@ bool CpuPaletteNode::processInput()
   // important to do before readValue
   auto return_receipt=createPassThroughtReceipt();
 
-  auto data = readValue<Array>("data");
+  auto data = readValue<Array>("array");
   if (!data)
     return false;
 
@@ -163,17 +162,17 @@ bool CpuPaletteNode::processInput()
 
 
 ///////////////////////////////////////////////////////////////////////
-void CpuPaletteNode::writeTo(StringTree& out) const
+void CpuPaletteNode::write(Archive& ar) const
 {
-  Node::writeTo(out);
-  out.writeObject("transfer_function",*transfer_function);
+  Node::write(ar);
+  ar.writeObject("transfer_function", *transfer_function);
 }
 
 ///////////////////////////////////////////////////////////////////////
-void CpuPaletteNode::readFrom(StringTree& in)
+void CpuPaletteNode::read(Archive& ar)
 {
-  Node::readFrom(in);
-  in.readObject("transfer_function",*transfer_function);
+  Node::read(ar);
+  ar.readObject("transfer_function", *transfer_function);
 }
 
 

@@ -105,24 +105,24 @@ public:
     this->show_logos = default_show_logos;
   }
 
-  //writeTo
-  void writeTo(StringTree& out) const
+  //write
+  void write(Archive& ar) const
   {
-    out.writeValue("title", title);
-    out.writeValue("panels", panels);
-    out.writeValue("bHideTitleBar", cstring(bHideTitleBar));
-    out.writeValue("bHideMenus", cstring(bHideMenus));
-    out.writeValue("screen_bounds", screen_bounds.toString());
+    ar.write("title", title);
+    ar.write("panels", panels);
+    ar.write("bHideTitleBar", bHideTitleBar);
+    ar.write("bHideMenus", bHideMenus);
+    ar.write("screen_bounds", screen_bounds);
   }
 
-  //readFrom
-  void readFrom(StringTree& in)
+  //read
+  void read(Archive& ar)
   {
-    title = in.readValue("title");
-    panels = in.readValue("panels");
-    bHideTitleBar = cbool(in.readValue("bHideTitleBar"));
-    bHideMenus = cbool(in.readValue("bHideMenus"));
-    screen_bounds = Rectangle2d::fromString(in.readValue("screen_bounds"));
+    ar.read("title", title);
+    ar.read("panels", panels);
+    ar.read("bHideTitleBar", bHideTitleBar);
+    ar.read("bHideMenus", bHideMenus);
+    ar.read("screen_bounds", screen_bounds);
   }
 
 };
@@ -281,8 +281,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(Viewer)
 
-  //constructor
-  Viewer(String title = "Visus Viewer");
+    //constructor
+    Viewer(String title = "Visus Viewer");
 
   //destructor
   virtual ~Viewer();
@@ -302,6 +302,9 @@ public:
     return this;
   }
 
+  //printInfo
+  void printInfo(String msg);
+
   //setMinimal
   void setMinimal();
 
@@ -316,9 +319,6 @@ public:
 
   //showLicences
   void showLicences();
-
-  //executeAction
-  virtual void executeAction(StringTree in) override;
 
   //getModel
   Dataflow* getDataflow() {
@@ -335,14 +335,9 @@ public:
     return dataflow->findNodeByUUID(uuid);
   }
 
-  //findNodeByName
-  Node* findNodeByName(const String& name) const {
-    return dataflow->findNodeByName(name);
-  }
-
   //findNodeByType
   template <class ClassName>
-  ClassName* findNodeByType() const
+  ClassName* findNode() const
   {
     for (auto node : getNodes()) {
       if (const ClassName* ret = dynamic_cast<const ClassName*>(node))
@@ -398,8 +393,10 @@ public:
   //computeNodeToScreen
   Frustum computeNodeToScreen(Frustum frustum, Node* node) const;
 
-  //New
-  void New();
+public:
+
+  //clearAll
+  void clearAll();
 
   //setNodeName
   void setNodeName(Node* node, String value);
@@ -421,26 +418,20 @@ public:
   //moveNode
   void moveNode(Node* dst, Node* src, int index = -1);
 
-  //connectPorts
-  void connectPorts(Node* from, String oport_name, String iport_name, Node* to);
+  //connectNodes
+  void connectNodes(Node* from, String oport_name, String iport_name, Node* to);
 
-  //connectPorts
-  void connectPorts(Node* from, String port_name, Node* to) {
-    connectPorts(from, port_name, port_name, to);
-  }
+  //connectNodes
+  void connectNodes(Node* from, String port, Node* to);
 
-  //connectPorts
-  void connectPorts(Node* from, Node* to)
-  {
-    if (from->outputs.size() == 1) { connectPorts(from, from->getFirstOutputPort()->getName(), to); return; }
-    if (to->inputs.size() == 1) { connectPorts(from, to->getFirstInputPort()->getName(), to); return; }
-    VisusAssert(false);
-  }
-  //disconnectPorts
-  void disconnectPorts(Node* from, String oport_name, String iport_name, Node* to);
+  //connectNodes
+  void connectNodes(Node* from, Node* to);
 
-  //autoConnectPorts
-  void autoConnectPorts();
+  //disconnectNodes
+  void disconnectNodes(Node* from, String oport_name, String iport_name, Node* to);
+
+  //autoConnectNodes
+  void autoConnectNodes();
 
   //isMouseDragging
   bool isMouseDragging() const {
@@ -460,10 +451,22 @@ public:
   void setPreferences(ViewerPreferences value);
 
   //open
-  bool open(String url, Node* parent = nullptr, bool bShowUrlDialogIfNeeded = false);
+  bool open(String url, Node* parent = nullptr);
+
+  //openFile
+  bool openFile(String filename, Node* parent = nullptr);
+
+  //openUrl
+  bool openUrl(String url, Node* parent = nullptr);
 
   //save
-  bool save(String filename, bool bSaveHistory = false, bool bShowDialogs = true);
+  bool save(String filename, bool bSaveHistory = false);
+
+  //saveFile
+  bool saveFile(String filename, bool bSaveHistory = false);
+
+  //playFile
+  bool playFile(String filename);
 
   //takeSnapshot
   bool takeSnapshot(bool bOnlyCanvas = false, String filename = "");
@@ -479,8 +482,13 @@ public:
     return this->glcamera;
   }
 
-  //refreshData
-  void refreshData(Node* node = nullptr);
+  //refreshNode
+  void refreshNode(Node* node = nullptr);
+
+  //refreshAll
+  void refreshAll() {
+    refreshNode(nullptr);
+  }
 
   //guessGLCameraPosition
   void guessGLCameraPosition(int ref_ = -1);
@@ -494,8 +502,8 @@ public:
   //getWorldBox
   BoxNd getWorldBox() const;
 
-  //getPosition
-  Position getPosition(Node* node, bool bRecursive = false) const;
+  //getBounds
+  Position getBounds(Node* node, bool bRecursive = false) const;
 
   //getGLCanvas
   GLCanvas* getGLCanvas() {
@@ -518,7 +526,7 @@ public:
   }
 
   //showNodeContextMenu
-  virtual bool showNodeContextMenu(Node *node) {
+  virtual bool showNodeContextMenu(Node* node) {
     return false;
   }
 
@@ -529,7 +537,7 @@ public:
   void addDockWidget(String name, QWidget* widget);
 
   //addDockWidget
-  void addDockWidget(Qt::DockWidgetArea area, QDockWidget *dockwidget) {
+  void addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockwidget) {
     QMainWindow::addDockWidget(area, dockwidget);
   }
 
@@ -538,66 +546,70 @@ public:
 
 public:
 
-  //addDataset
-  DatasetNode* addDataset(Node* parent, SharedPtr<Dataset> dataset);
+  //addWorld
+  Node* addWorld(String uuid);
 
   //addDataset
-  DatasetNode* addDataset(Node* parent, String url,StringTree config = StringTree()) {
-    return addDataset(parent, LoadDatasetEx(url, config ? config : this->config));
+  DatasetNode* addDataset(String uuid, Node* parent, SharedPtr<Dataset> dataset);
+
+  //addDataset
+  DatasetNode* addDataset(String uuid, Node* parent, String url, StringTree config = StringTree()) {
+    auto dataset = LoadDatasetEx(url, config ? config : this->config);
+    return addDataset(uuid, parent, dataset);
   }
 
   //addGLCameraNode
-  GLCameraNode* addGLCamera(Node* parent, SharedPtr<GLCamera> glcamera);
-
-  //addGLCamera
-  GLCameraNode* addGLCamera(Node* parent, int pdim);
+  GLCameraNode* addGLCamera(String uuid, Node* parent, String type = "");
 
   //addVolume
-  QueryNode* addVolume(Node* parent, String fieldname="", int access_id=0);
+  QueryNode* addVolume(String uuid, Node* parent, String fieldname = "", int access_id = 0);
 
   //addSlice
-  QueryNode* addSlice(Node* parent, String fieldname = "", int access_id = 0);
+  QueryNode* addSlice(String uuid, Node* parent, String fieldname = "", int access_id = 0);
 
   //addIsoContour
-  QueryNode* addIsoContour(Node* parent, String fieldname = "", int access_id = 0);
+  QueryNode* addIsoContour(String uuid, Node* parent, String fieldname = "", int access_id = 0, String isovalue = "");
 
   //addKdQuery
-  KdQueryNode* addKdQuery(Node* parent, String fieldname = "", int access_id = 0);
+  KdQueryNode* addKdQuery(String uuid, Node* parent, String fieldname = "", int access_id = 0);
 
   //addScripting
-  ScriptingNode* addScripting(Node* parent);
+  ScriptingNode* addScripting(String uuid, Node* parent);
 
   //addCpuTransferFunction
-  CpuPaletteNode* addCpuTransferFunction(Node* parent);
+  CpuPaletteNode* addCpuTransferFunction(String uuid, Node* parent);
 
   //addStatistics
-  StatisticsNode* addStatistics(Node* parent);
+  StatisticsNode* addStatistics(String uuid, Node* parent);
 
   //addRender
-  Node* addRender(Node* parent, String palette = "");
+  Node* addRender(String uuid, Node* parent, String palette = "");
 
   //addKdRender
-  KdRenderArrayNode* addKdRender(Node* parent);
+  KdRenderArrayNode* addKdRender(String uuid, Node* parent, String palette = "");
 
   //addOSPRay
-  Node* addOSPRay(Node* parent, String palette = "");
+  Node* addOSPRay(String uuid, Node* parent, String palette = "");
 
   //addGroup
-  Node* addGroup(Node* parent, String name = "");
+  Node* addGroup(String uuid, Node* parent, String name = "");
 
   //addModelView
-  ModelViewNode* addModelView(Node* parent, bool insert=false);
+  ModelViewNode* addModelView(String uuid, Node* parent, bool insert = false);
 
   //addPalette
-  PaletteNode* addPalette(Node* parent, String palette);
+  PaletteNode* addPalette(String uuid, Node* parent, String palette);
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& out) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 public:
 
@@ -656,9 +668,10 @@ private:
     QAction* OpenUrl = nullptr;
     QAction* AddUrl = nullptr;
     QAction* ReloadVisusConfig = nullptr;
+    QAction* PlayFile = nullptr;
     QAction* Close = nullptr;
 
-    QAction* RefreshData = nullptr;
+    QAction* RefreshNode = nullptr;
     QAction* DropProcessing = nullptr;
     QAction* WindowSnapShot = nullptr;
     QAction* CanvasSnapShot = nullptr;
@@ -774,6 +787,9 @@ private:
   Slot<void()>                          glcamera_end_update_slot;
   Slot<void()>                          glcamera_redisplay_needed_slot;
 
+  String                                last_filename = "";
+
+
   struct
   {
     CriticalSection                     lock;
@@ -781,6 +797,14 @@ private:
     std::ofstream                       fstream;
   }
   log;
+
+  struct
+  {
+    SharedPtr<QTimer> timer;
+    std::deque<StringTree> actions;
+  }
+  scheduled;
+
 
   SharedPtr<ViewerLogo> openScreenLogo(String key, String default_logo);
 

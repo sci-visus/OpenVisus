@@ -139,7 +139,7 @@ public:
       for (int I=0;I<4;I++)
       {
         auto button = new QPushButton();
-        button->setText((StringUtils::format()<<"Time "<<I).str().c_str());
+        button->setText(cstring("Time",I).c_str());
         connect(button,&QPushButton::clicked,[this,I](){
           setTime((double)I);
         });
@@ -173,7 +173,6 @@ public:
       }); 
       
       glcamera->guessPosition(BoxNd());
-      glcamera->setRotationDisabled(true);
     }
     
     auto central=new QWidget();
@@ -195,18 +194,18 @@ public:
     SharedPtr<Dataset> dataset(LoadDataset(david_url));
     if (!dataset)
     {
-      VisusInfo()<<"LoadDataset("<<david_url<<") failed.";
+      PrintInfo("LoadDataset", david_url, "failed.");
       return false;
     }
 
-    VisusInfo()<<"LoadDataset("<<david_url<<") done";
+    PrintInfo("LoadDataset", david_url, "done");
 
     this->dataflow=std::make_shared<Dataflow>();
     this->dataflow->listeners.push_back(this);
 
     this->dataflow->addNode(this->dataset_node = new DatasetNode("Dataset node"));
     this->dataset_node->setDataset(dataset);
-    this->dataset_bounds=dataset_node->getNodeBounds();
+    this->dataset_bounds=dataset_node->getBounds();
 
     if (dataset->getKdQueryMode()!=0)
     {
@@ -214,8 +213,8 @@ public:
       auto render_node=new KdRenderArrayNode("KdRender");
       this->render_node=render_node;
       this->dataflow->addNode(render_node);
-      this->dataflow->connectPorts(dataset_node,"dataset",query_node);
-      this->dataflow->connectPorts(query_node,"data",render_node);
+      this->dataflow->connectNodes(dataset_node,query_node);
+      this->dataflow->connectNodes(query_node,"array",render_node);
     }
     else
     { 
@@ -223,19 +222,17 @@ public:
       auto render_node=new RenderArrayNode("Render Node");
       this->render_node=render_node;
       this->dataflow->addNode(render_node);
-      this->dataflow->connectPorts(dataset_node,"dataset",query_node);
-      this->dataflow->connectPorts(query_node,"data",render_node);
+      this->dataflow->connectNodes(dataset_node,query_node);
+      this->dataflow->connectNodes(query_node,"kdarray",render_node);
     }
 
     this->query_node->setAccessIndex(0);
     this->query_node->setProgression(QueryGuessProgression);
     this->query_node->setViewDependentEnabled(true);
     this->query_node->setQuality(QueryDefaultQuality);
-    this->query_node->setNodeBounds(dataset_bounds);
+    this->query_node->setBounds(dataset_bounds);
     this->query_node->setQueryBounds(dataset_bounds);
-
-    this->glcamera->setViewport(Viewport(0,0,glcanvas->width(),(int)glcanvas->height()));
-    this->glcamera->guessPosition(dataset_bounds);
+    this->glcamera->guessPosition(dataset_bounds.toAxisAlignedBox());
 
     setTime(dataset->getDefaultTime());
     setFieldName(dataset->getDefaultField().name);

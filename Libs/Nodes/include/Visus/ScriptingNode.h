@@ -59,13 +59,10 @@ public:
 
 
   //constructor
-  ScriptingNode(String name="");
+  ScriptingNode();
 
   //destructor
   virtual ~ScriptingNode();
-
-  //executeAction
-  virtual void executeAction(StringTree in) override;
 
   //getCode
   String getCode() {
@@ -79,12 +76,12 @@ public:
 
   //setMaxPublishMSec
   void setMaxPublishMSec(int value) {
-    setProperty("max_publish_msec", this->max_publish_msec, value);
+    setProperty("SetMaxPublishMSec", this->max_publish_msec, value);
   }
 
   //setCode
   void setCode(String code) {
-    setProperty("code", this->code, code);
+    setProperty("SetCode", this->code, code);
   }
 
   //addUserInput
@@ -111,8 +108,8 @@ public:
   //processInput
   virtual bool processInput() override;
 
-  //getPosition
-  virtual Position getPosition() override {
+  //getBounds
+  virtual Position getBounds() override {
     return this->bounds;
   }
 
@@ -122,11 +119,14 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 

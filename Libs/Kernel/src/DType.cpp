@@ -37,7 +37,6 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/DType.h>
-#include <Visus/Log.h>
 #include <Visus/StringUtils.h>
 
 #include <cctype>
@@ -114,7 +113,7 @@ DType DType::fromString(String s)
   int  bitsize = 0;
 
   auto failed=[&]() {
-    VisusInfo()<<"error parsing dtype "<<s;
+    PrintInfo("error parsing dtype",s);
     VisusAssert(false);
     return DType();
   };

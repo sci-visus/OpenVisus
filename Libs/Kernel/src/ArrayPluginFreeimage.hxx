@@ -43,7 +43,6 @@ For support : support@visus.net
 #include <Visus/NetMessage.h>
 #include <Visus/Encoder.h>
 #include <Visus/NetService.h>
-#include <Visus/Log.h>
 
 #if WIN32
 #include <WinSock2.h>
@@ -111,13 +110,13 @@ public:
     if (!FreeImage_Save(fif, bitmap, filename.c_str(), 0))
     {
       FreeImage_Unload(bitmap);
-      VisusWarning() << "FreeImageArrayPlugin::handleSaveImage failed filename(" << filename << ")";
+      PrintWarning("FreeImageArrayPlugin::handleSaveImage failed filename",filename);
       return false;
     }
     else
     {
       FreeImage_Unload(bitmap);
-      VisusInfo() << "saved(" << filename << ") done (dtype=" << src.dtype.toString() << ")";
+      PrintInfo("saved",filename, "done dtype ",src.dtype);
       return true;
     }
   }
@@ -173,8 +172,8 @@ private:
       Array ret;
       if (info)
       {
-        info->writeString("format", "FreeImageArrayPlugin/remote");
-        info->writeString("url", url_);
+        info->write("format", "FreeImageArrayPlugin/remote");
+        info->write("url", url_);
         GetImageInfo(bitmap, *info);
       }
       else
@@ -199,7 +198,7 @@ private:
 
     if (fif == FIF_UNKNOWN)
     {
-      VisusWarning() << "does not know the file format of the filename(" << filename << ") (FIF_UNKNOWN)";
+      PrintWarning("does not know the file format of the filename",filename ,"(FIF_UNKNOWN)");
       return Array();
     }
 
@@ -218,7 +217,7 @@ private:
       FIMULTIBITMAP* multibitmap = FreeImage_OpenMultiBitmap(fif, filename.c_str(),/*create_new*/false,/*read_only*/true);
       if (!multibitmap)
       {
-        VisusWarning() << "FreeImage:: FreeImage_OpenMultiBitmap(" << filename << ") does not seems to be a multipage bitmap (you specified --page)";
+        PrintWarning("FreeImage:: FreeImage_OpenMultiBitmap",filename ,"does not seems to be a multipage bitmap (you specified --page)");
         return Array();
       }
 
@@ -227,13 +226,13 @@ private:
       int totpages = FreeImage_GetPageCount(multibitmap);
       if (info)
       {
-        info->writeString("totpages", cstring(totpages));
-        info->writeString("page", cstring(npage));
+        info->write("totpages", totpages);
+        info->write("page", npage);
       }
 
       if (!(npage >= 0 && npage<totpages))
       {
-        VisusWarning() << "FreeImage:: file(" << filename << ") --page " << npage << " wrong, use a range in [0," << (totpages - 1) << "]";
+        PrintWarning("FreeImage:: file",filename ,"--page ",npage,"wrong, use a range in [0,",(totpages - 1),"]");
         return Array();
       }
 
@@ -244,8 +243,8 @@ private:
       Array ret;
       if (info)
       {
-        info->writeString("format", "FreeImageArrayPlugin/file/multipage");
-        info->writeString("url", url_);
+        info->write("format", "FreeImageArrayPlugin/file/multipage");
+        info->write("url", url_);
         GetImageInfo(bitmap, *info);
       }
       else
@@ -265,8 +264,8 @@ private:
       Array ret;
       if (info)
       {
-        info->writeString("format", "FreeImageArrayPlugin/file");
-        info->writeString("url", url_);
+        info->write("format", "FreeImageArrayPlugin/file");
+        info->write("url", url_);
         GetImageInfo(bitmap, *info);
       }
       else
@@ -289,7 +288,7 @@ private:
     //something wrong
     if (!bpp || !width || !height)
     {
-      VisusWarning() << "FreeImage:: FreeImage returned wrong dimension (something is wrong)";
+      PrintWarning("FreeImage:: FreeImage returned wrong dimension (something is wrong)");
       return;
     }
 
@@ -298,7 +297,7 @@ private:
       PointNi dims = PointNi::one(2);
       dims[0] = width;
       dims[1] = height;
-      imginfo.writeString("dims", dims.toString());
+      imginfo.write("dims", dims);
     }
 
     //guess dtype
@@ -329,7 +328,8 @@ private:
     }
 
     auto fields = std::make_shared<StringTree>("fields");
-    fields->addChild(StringTree("field").write("dtype",dtype.toString()));
+    fields->addChild(StringTree("field")
+      .write("dtype",dtype));
     imginfo.addChild(fields);
   }
 
@@ -338,7 +338,7 @@ private:
     FIBITMAP* bitmap = (FIBITMAP*)bitmap_;
     if (!bitmap)
     {
-      VisusWarning() << "bitmap is nullptr probably FreeImage_Load failed";
+      PrintWarning("bitmap is nullptr probably FreeImage_Load failed");
       return Array();
     }
 
@@ -352,7 +352,7 @@ private:
     //something wrong
     if (!bpp || !width || !height)
     {
-      VisusWarning() << "FreeImage:: FreeImage returned wrong dimension ";
+      PrintWarning("FreeImage:: FreeImage returned wrong dimension ");
       return Array();
     }
 
@@ -362,7 +362,7 @@ private:
     {
       if (!dst.resize(width, height, dtype, __FILE__, __LINE__))
       {
-        VisusWarning() << "allocateArray failed, out of memory";
+        PrintWarning("allocateArray failed, out of memory");
         return false;
       }
       return true;
@@ -405,7 +405,7 @@ private:
         }
       }
 #ifdef VISUS_DEBUG
-      VisusInfo() << "load done (dtype=" << dst.dtype.toString() << ") FREE_IMAGE_TYPE(FIT_BITMAP/8) in " << cstring((int)t1.elapsedMsec()) << "msec";
+      PrintInfo("load done dtype",dst.dtype,"FREE_IMAGE_TYPE(FIT_BITMAP/8)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
     }
@@ -427,7 +427,7 @@ private:
         }
       }
 #ifdef VISUS_DEBUG
-      VisusInfo() << "load done (dtype=" << dst.dtype.toString() << ") FREE_IMAGE_TYPE(FIT_BITMAP/16) in " << cstring((int)t1.elapsedMsec()) << "msec";
+      PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_BITMAP/16)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
     }
@@ -452,7 +452,7 @@ private:
       }
 
 #ifdef VISUS_DEBUG
-      VisusInfo() << "load done (dtype=" << dst.dtype.toString() << ") FREE_IMAGE_TYPE(FIT_BITMAP/24) in " << cstring((int)t1.elapsedMsec()) << "msec";
+      PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_BITMAP/24)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
     }
@@ -478,7 +478,7 @@ private:
       }
 
 #ifdef VISUS_DEBUG
-      VisusInfo() << "load done (dtype=" << dst.dtype.toString() << ") FREE_IMAGE_TYPE(FIT_BITMAP/32) in " << cstring((int)t1.elapsedMsec()) << "msec";
+      PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_BITMAP/32)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
     }
@@ -499,7 +499,7 @@ private:
       }
 
 #ifdef VISUS_DEBUG
-      VisusInfo() << "load done (dtype=" << dst.dtype.toString() << ")  FREE_IMAGE_TYPE(FIT_UINT16) in " << cstring((int)t1.elapsedMsec()) << "msec";
+      PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_UINT16)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
     }
@@ -520,7 +520,7 @@ private:
       }
 
 #ifdef VISUS_DEBUG
-      VisusInfo() << "load done (dtype=" << dst.dtype.toString() << ")  FREE_IMAGE_TYPE(FIT_INT16) in " << cstring((int)t1.elapsedMsec()) << "msec";
+      PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_INT16)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
     }
@@ -541,7 +541,7 @@ private:
       }
 
 #ifdef VISUS_DEBUG
-      VisusInfo() << "load done (dtype=" << dst.dtype.toString() << ") FREE_IMAGE_TYPE(FIT_UINT32) in " << cstring((int)t1.elapsedMsec()) << "msec";
+      PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_UINT32)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
     }
@@ -561,7 +561,7 @@ private:
         }
       }
 #ifdef VISUS_DEBUG
-      VisusInfo() << "load done (dtype=" << dst.dtype.toString() << ") FREE_IMAGE_TYPE(FIT_INT32) in " << cstring((int)t1.elapsedMsec()) << "msec";
+      PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_INT32)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
     }
@@ -581,7 +581,7 @@ private:
         }
       }
 #ifdef VISUS_DEBUG
-      VisusInfo() << "load done (dtype=" << dst.dtype.toString() << ") FREE_IMAGE_TYPE(FIT_FLOAT) in " << cstring((int)t1.elapsedMsec()) << "msec";
+      PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_FLOAT)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
     }
@@ -601,7 +601,7 @@ private:
         }
       }
 #ifdef VISUS_DEBUG
-      VisusInfo() << "load done (dtype=" << dst.dtype.toString() << ") FREE_IMAGE_TYPE(FIT_DOUBLE) in " << cstring((int)t1.elapsedMsec()) << "msec";
+      PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_DOUBLE)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
     }
@@ -623,7 +623,7 @@ private:
         }
       }
 #ifdef VISUS_DEBUG
-      VisusInfo() << "load done (dtype=" << dst.dtype.toString() << ") FREE_IMAGE_TYPE(FIT_COMPLEX) in " << cstring((int)t1.elapsedMsec()) << "msec";
+      PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_COMPLEX)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
     }
@@ -646,7 +646,7 @@ private:
         }
       }
 #ifdef VISUS_DEBUG
-      VisusInfo() << "load done (dtype=" << dst.dtype.toString() << ") FREE_IMAGE_TYPE(FIT_RGB16) in " << cstring((int)t1.elapsedMsec()) << "msec";
+      PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_RGB16)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
     }
@@ -669,7 +669,7 @@ private:
         }
       }
 #ifdef VISUS_DEBUG
-      VisusInfo() << "load done (dtype=" << dst.dtype.toString() << ") FREE_IMAGE_TYPE(FIT_RGBF) in " << cstring((int)t1.elapsedMsec()) << "msec";
+      PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_RGBF)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
     }
@@ -693,7 +693,7 @@ private:
         }
       }
 #ifdef VISUS_DEBUG
-      VisusInfo() << "load done (dtype=" << dst.dtype.toString() << ") FREE_IMAGE_TYPE(FIT_RGBA16) in " << cstring((int)t1.elapsedMsec()) << "msec";
+      PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_RGBA16)","in",(int)t1.elapsedMsec(),"msec");
 #endif
       return dst;
     }
@@ -717,12 +717,12 @@ private:
         }
       }
 #ifdef VISUS_DEBUG
-      VisusInfo() << "load done (dtype=" << dst.dtype.toString() << ") FREE_IMAGE_TYPE(FIT_RGBAF) in " << cstring((int)t1.elapsedMsec()) << "msec";
+      PrintInfo("load done dtype",dst.dtype.toString() ,"FREE_IMAGE_TYPE(FIT_RGBAF)","in",(int)t1.elapsedMsec(),"msec");
 #endif 
       return dst;
     }
 
-    VisusWarning() << "load failed. unsupported FREE_IMAGE_TYPE(" << format << ")";
+    PrintWarning("load failed. unsupported FREE_IMAGE_TYPE",(int)format);
     return Array();
   }
 
@@ -733,7 +733,7 @@ private:
     DType dtype = src.dtype;
 
     if (src.dims.innerProduct() <= 0) {
-      VisusWarning() << "data input is not 2d, dims(" << src.dims.toString() << ")";
+      PrintWarning("data input is not 2d, dims",src.dims);
       return nullptr;
     }
 
@@ -776,14 +776,14 @@ private:
     else if (dtype == DTypes::FLOAT64_GA) { type = FIT_COMPLEX; bpp = 8; }
     else
     {
-      VisusWarning() << "FreeImage does not know how to handle dtype(" << dtype.toString() << ")";
+      PrintWarning("FreeImage does not know how to handle dtype",dtype.toString());
       return nullptr;
     }
 
     FIBITMAP* bitmap = FreeImage_AllocateT(type, (int)width, (int)height, bpp);
     if (!bitmap)
     {
-      VisusWarning() << "FreeImage_AllocateT(...) failed, probably out of memory";
+      PrintWarning("FreeImage_AllocateT(...) failed, probably out of memory");
       return nullptr;
     }
 

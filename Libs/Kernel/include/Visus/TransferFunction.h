@@ -108,38 +108,32 @@ public:
 
 public:
 
-  //writeTo
-  void writeTo(StringTree& out) const
+  //write
+  void write(Archive& ar) const
   {
-    out.write("name", name);
-    out.write("color", color.toString());
-    out.writeText(StringUtils::join(this->values));
+    ar.write("name", name);
+    ar.write("color", color);
+    ar.write("values", values);
   }
 
-  //readFrom
-  void readFrom(StringTree& in)
+  //read
+  void read(Archive& ar)
   {
-    name = in.read("name");
-    color = Color::fromString(in.read("color"));
-
-    this->values.clear();
-
-    std::istringstream ss(in.readText());
-    double value;
-    while (ss >> value)
-      this->values.push_back(value);
+    ar.read("name", name);
+    ar.read("color", color);
+    ar.read("values", values);
   }
 
   //encode
   StringTree encode(String root_name) const {
     StringTree out(root_name);
-    writeTo(out);
+    write(out);
     return out;
   }
 
   //decode
   void decode(StringTree in) {
-    readFrom(in);
+    read(in);
   }
 
 };
@@ -214,9 +208,6 @@ public:
     return getNumberOfSamples() > 0 && getNumberOfFunctions() >0;
   }
 
-  //executeAction
-  virtual void executeAction(StringTree in) override;
-
   //operator=
   //TransferFunction& operator=(const TransferFunction& other);
 
@@ -237,7 +228,7 @@ public:
 
   //setAttenutation
   void setAttenutation(double value) {
-    setProperty("attenuation", this->attenuation, value);
+    setProperty("SetAttenutation", this->attenuation, value);
   }
 
   //computeRange
@@ -248,19 +239,19 @@ public:
     return input_normalization_mode;
   }
 
-  //setInputRange
+  //setInputNormalizationMode
   void setInputNormalizationMode(int value) {
-    setProperty("input_normalization_mode", this->input_normalization_mode, value);
+    setProperty("SetInputNormalizationMode", this->input_normalization_mode, value);
   }
 
-  //getRange
-  Range getRange() {
-    return this->range;
+  //getInputRange
+  Range getInputRange() {
+    return this->input_range;
   }
 
   //setInputRange
-  void setRange(Range range) {
-    setProperty("range", this->range, range);
+  void setInputRange(Range range) {
+    setProperty("SetInputRange", this->input_range, range);
   }
 
   //getOutputDType
@@ -270,7 +261,7 @@ public:
 
   //setOutputDType
   void setOutputDType(DType value) {
-    setProperty("output_dtype", this->output_dtype, value);
+    setProperty("SetOutputDType", this->output_dtype, value);
   }
 
   //getOutputRange
@@ -280,7 +271,7 @@ public:
 
   //setOutputRange
   void setOutputRange(Range value) {
-    setProperty("output_range", this->output_range, value);
+    setProperty("SetOutputRange", this->output_range, value);
   }
 
   //clearFunctions
@@ -316,11 +307,14 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 
@@ -333,8 +327,8 @@ private:
   //input_normalization
   int input_normalization_mode=ArrayUtils::UseDTypeRange;
 
-  //range
-  Range range;
+  //input_range
+  Range input_range;
 
   //what is the output (this must be atomic)
   DType output_dtype = DTypes::UINT8;

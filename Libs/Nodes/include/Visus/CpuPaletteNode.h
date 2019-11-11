@@ -53,13 +53,10 @@ public:
   VISUS_NON_COPYABLE_CLASS(CpuPaletteNode)
 
   //constructor
-  CpuPaletteNode(String name="",SharedPtr<TransferFunction> fn=SharedPtr<TransferFunction>());
+  CpuPaletteNode(SharedPtr<TransferFunction> fn=SharedPtr<TransferFunction>());
 
   //destructor
   virtual ~CpuPaletteNode();
-
-  //executeAction
-  virtual void executeAction(StringTree in);
 
   //processInput
   virtual bool processInput() override;
@@ -72,16 +69,21 @@ public:
   //setTransferFunction
   void setTransferFunction(SharedPtr<TransferFunction> value);
 
-  //getPosition
-  virtual Position getPosition() override {
+  //getBounds
+  virtual Position getBounds() override {
     return this->bounds;
   }
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+public:
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //execute
+  virtual void execute(Archive& ar) override;
+
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 

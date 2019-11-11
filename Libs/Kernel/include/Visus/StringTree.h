@@ -44,6 +44,7 @@ For support : support@visus.net
 #include <Visus/BigInt.h>
 #include <Visus/StringMap.h>
 #include <Visus/Singleton.h>
+#include <Visus/StringUtils.h>
 
 #include <stack>
 #include <vector>
@@ -54,7 +55,7 @@ For support : support@visus.net
 namespace Visus {
 
 ///////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API StringTree 
+class VISUS_KERNEL_API StringTree
 {
 public:
 
@@ -70,16 +71,30 @@ public:
   std::vector< SharedPtr<StringTree> > childs;
 
   // constructor
-  StringTree(String name_ = "") : name(name_){
+  StringTree() {
+  }
+
+  // constructor
+  explicit StringTree(String name_ ) : name(name_) {
   }
 
   //copy constructor
-  StringTree(const StringTree& other){
+  StringTree(const StringTree& other) {
     operator=(other);
   }
 
+  //recursive
+#if !SWIG
+  template <typename Value, typename... Args>
+  explicit StringTree(String name, String key, Value value, Args&&... args) : StringTree(name) {
+    write(key, value);
+    for (auto it : StringTree(name, std::forward<Args>(args)...).attributes)
+      write(it.first, it.second);
+  }
+#endif
+
   //destructor
-  virtual ~StringTree(){
+  ~StringTree() {
   }
 
   //valid
@@ -116,7 +131,7 @@ public:
   }
 
   //getAttribute
-  String getAttribute(String name, String default_value="") const
+  String getAttribute(String name, String default_value = "") const
   {
     for (int I = 0; I < this->attributes.size(); I++) {
       if (attributes[I].first == name)
@@ -134,7 +149,7 @@ public:
         return;
       }
     }
-    attributes.push_back(std::make_pair(name,value));
+    attributes.push_back(std::make_pair(name, value));
   }
 
   //removeAttribute
@@ -146,6 +161,13 @@ public:
         return;
       }
     }
+  }
+
+public:
+
+  //getNumberOfChilds
+  int getNumberOfChilds() const {
+    return (int)childs.size();
   }
 
   //getChilds
@@ -168,172 +190,9 @@ public:
 
   //addChild
   SharedPtr<StringTree> addChild(String name) {
-    auto cursor = NormalizeW(this, name);
     auto child = std::make_shared<StringTree>(name);
-    cursor->addChild(child);
+    NormalizeW(this, name)->addChild(child);
     return child;
-  }
-
-
-  //clear
-  void clear()
-  {
-    attributes.clear(); 
-    childs.clear();
-  }
-
-  //hasValue
-  bool hasValue(String key) const {
-    return !readString(key).empty();
-  }
-
-public:
-
-  //write
-  StringTree& write(String key, String value);
-
-  //write
-  StringTree& write(String key, const char* value) {
-    return write(key, String(value));
-  }
-
-  //writeString
-  StringTree& writeString(String key, String value) {
-    return write(key, value);
-  }
-
-  //write
-  StringTree& write(String key, bool value) {
-    return write(key, cstring(value));
-  }
-
-  //write
-  StringTree& write(String key, int value) {
-    return write(key, cstring(value));
-  }
-
-  //write
-  StringTree& write(String key, Int64 value) {
-    return write(key, cstring(value));
-  }
-
-  //write
-  StringTree& write(String key, double value) {
-    return write(key, cstring(value));
-  }
-
-  //write
-  template <class Value>
-  StringTree& write(String key, const Value& value) {
-    return write(key, value.toString());
-  }
-
-  //read
-  String read(String key, String default_value = "") const;
-
-  //readString
-  String readString(String key, String default_value = "") const {
-    return read(key, default_value);
-  }
-
-  //readInt
-  bool readBool(String key, bool default_value = false) const {
-    return cbool(read(key, cstring(default_value)));
-  }
-
-  //readInt
-  int readInt(String key, int default_value = 0) const {
-    return cint(read(key, cstring(default_value)));
-  }
-
-  //readInt64
-  Int64 readInt64(String key, Int64 default_value = 0) const {
-    return cint64(read(key, cstring(default_value)));
-  }
-
-  //readDouble
-  double readDouble(String key, double default_value = 0) const {
-    return cdouble(read(key, cstring(default_value)));
-  }
-
-  //readText
-  String readText() const;
-
-  //writeText
-  StringTree& writeText(const String& text) {
-    childs.push_back(std::make_shared<StringTree>(StringTree("#text").write("value",text)));
-    return *this;
-  }
-
-  //writeCode
-  StringTree& writeCode(const String& text) {
-    childs.push_back(std::make_shared<StringTree>(StringTree("#cdata-section").write("value", text)));
-    return *this;
-  }
-
-  //readText
-  String readText(String name) const {
-    if (auto child = getChild(name))
-      return child->readText();
-    else
-      return "";
-  }
-
-  //writeText
-  StringTree& writeText(String name, const String& value) {
-
-    auto cursor = NormalizeW(this,name);
-    cursor->addChild(name)->writeText(value);
-    return *this;
-  }
-
-  //writeCode
-  StringTree& writeCode(String name, const String& value) {
-
-    auto cursor = NormalizeW(this, name);
-    cursor->addChild(name)->writeCode(value);
-    return *this;
-  }
-
-  //write
-  StringTree& writeValue(String name, String value) {
-    auto cursor = NormalizeW(this, name);
-    cursor->addChild(name)->writeString("value", value);
-    return *this;
-  }
-
-  //read
-  String readValue(String name, String default_value = "")
-  {
-    auto child = getChild(name);
-    return child ? child->readString("value", default_value) : default_value;
-  }
-
-  //readObject
-  template <class Object>
-  bool readObject(String name, Object& obj)
-  {
-    auto child = getChild(name);
-    if (!child) return false;
-    obj.readFrom(*child);
-    return true;
-  }
-
-  //writeObject
-  template <class Object>
-  StringTree& writeObject(String name, Object& obj)
-  {
-    auto cursor=NormalizeW(this,name);
-    auto child = cursor->addChild(name);
-    obj.writeTo(*child);
-    return *this;
-  }
-
-public:
-
-  //getNumberOfChilds
-  int getNumberOfChilds() const {
-    return (int)childs.size();
   }
 
   //getChild
@@ -360,27 +219,245 @@ public:
   //getAllChilds
   std::vector<StringTree*> getAllChilds(String name) const;
 
-  //internal use only
-  static StringTree postProcess(const StringTree& src);
-
 public:
 
-  //isHashNode
-  bool isHashNode() const{
+  //isHash
+  bool isHash() const {
     return !name.empty() && name[0] == '#';
   }
 
-  //isCommentNode
-  bool isCommentNode() const{
+  //isComment
+  bool isComment() const {
     return name == "#comment";
   }
 
-  //addCommentNode
-  void addCommentNode(String text){
-    childs.push_back(std::make_shared<StringTree>(StringTree("#comment").write("value", text)));
+  //isText
+  bool isText() const {
+    return name == "#text";
+  }
+
+  //isCData
+  bool isCData() const {
+    return name == "#cdata-section";
+  }
+
+  //addComment
+  void addComment(String value) {
+    childs.push_back(std::make_shared<StringTree>(StringTree("#comment").write("value", value)));
+  }
+
+  //addText
+  void addText(const String& value) {
+    childs.push_back(std::make_shared<StringTree>(StringTree("#text").write("value", value)));
+  }
+
+  //addCData
+  void addCData(const String& value) {
+    childs.push_back(std::make_shared<StringTree>(StringTree("#cdata-section").write("value", value)));
   }
 
 public:
+
+  //write
+  StringTree& write(String key, String value);
+
+  //write
+  StringTree& write(String key, const char* value) {
+    return write(key, String(value));
+  }
+
+  //write
+  StringTree& write(String key, bool value) {
+    return write(key, cstring(value));
+  }
+
+  //write
+  StringTree& write(String key, int value) {
+    return write(key, cstring(value));
+  }
+
+  //write
+  StringTree& write(String key, Int64 value) {
+    return write(key, cstring(value));
+  }
+
+  //write
+  StringTree& write(String key, double value) {
+    return write(key, cstring(value));
+  }
+
+  //write
+#if !SWIG
+  StringTree& write(String key, const std::vector<int>& values) {
+    return writeText(key, StringUtils::join(values));
+  }
+#endif
+
+  //write
+  StringTree& write(String key, const std::vector<double>& values) {
+    return writeText(key, StringUtils::join(values));
+  }
+
+  //write
+  template <class Value>
+  StringTree& write(String key, const Value& value) {
+    return write(key, value.toString());
+  }
+
+  //writeIfNotDefault
+  template <class Value>
+  StringTree& writeIfNotDefault (String key, const Value& value, const Value& default_value)
+  {
+    if (value!= default_value) write(key, value);
+    return *this;
+  }
+
+public:
+
+  //read
+  const StringTree& read(String key, String& value, String default_value="") const
+  {
+    VisusAssert(!key.empty());
+    auto cursor = NormalizeR(this, key);
+    value = cursor? cursor->getAttribute(key, default_value) : default_value;
+    return *this;
+  }
+
+  //read
+  const StringTree& read(const char* key, String& value, String default_value = "") const {
+    read(String(key), value, default_value);
+    return *this;
+  }
+
+  //read
+  const StringTree& read(String key, bool& value, bool default_value=false) const {
+    auto cursor = NormalizeR(this, key);
+    value = cursor && cursor->hasAttribute(key) ? cbool(cursor->getAttribute(key)) : default_value;
+    return *this;
+  }
+
+  //read
+  const StringTree& read(String key, int& value, int default_value=0) const {
+    auto cursor = NormalizeR(this, key);
+    value = cursor && cursor->hasAttribute(key) ? cint(cursor->getAttribute(key)) : default_value;
+    return *this;
+  }
+
+  //read(
+  const StringTree& read(String key, Int64& value, Int64 default_value=0) const {
+    auto cursor = NormalizeR(this, key);
+    value = cursor && cursor->hasAttribute(key) ? cint64(cursor->getAttribute(key)) : default_value;
+    return *this;
+  }
+
+  //read
+  const StringTree& read(String key, double& value, double default_value=0.0) const {
+    auto cursor = NormalizeR(this, key);
+    value = cursor && cursor->hasAttribute(key) ? cdouble(cursor->getAttribute(key)) : default_value;
+    return *this;
+  }
+
+  //read
+  template <class Value>
+  const StringTree& read(String key, Value& value, Value default_value=Value()) const {
+    auto cursor = NormalizeR(this, key);
+    value = cursor && cursor->hasAttribute(key) ? Value::fromString(cursor->getAttribute(key)) : default_value;
+    return *this;
+  }
+
+  //read
+  const StringTree& read(String key, std::vector<int>& values) const {
+    values.clear();
+    String text; 
+    readText(key,text);
+    values = StringUtils::parseInts(text);
+    return *this;
+  }
+
+  //read
+  const StringTree& read(String key, std::vector<double>& values) const {
+    values.clear();
+    String text; 
+    readText(key, text);
+    values=StringUtils::parseDoubles(text);
+    return *this;
+  }
+
+public:
+
+  //readString
+  String readString(String key, String default_value = "") const {
+
+    VisusAssert(!key.empty());
+    auto cursor = NormalizeR(this, key);
+    return cursor? cursor->getAttribute(key, default_value) : default_value;
+  }
+
+  //readInt
+  bool readBool(String key, bool default_value = false) const {
+    return cbool(readString(key, cstring(default_value)));
+  }
+
+  //readInt
+  int readInt(String key, int default_value = 0) const {
+    return cint(readString(key, cstring(default_value)));
+  }
+
+  //readInt64
+  Int64 readInt64(String key, Int64 default_value = 0) const {
+    return cint64(readString(key, cstring(default_value)));
+  }
+
+  //readDouble
+  double readDouble(String key, double default_value = 0) const {
+    return cdouble(readString(key, cstring(default_value)));
+  }
+
+public:
+
+  //writeText
+  StringTree& writeText(const String& text, bool bCData=false) {
+    bCData ? addCData(text) : addText(text);
+    return *this;
+  }
+
+  //writeText
+  StringTree& writeText(String name, const String& value, bool bCData = false) {
+    NormalizeW(this, name)->addChild(name)->writeText(value, bCData); return *this;
+  }
+
+  //readText
+  void readText(String& value) const;
+
+  //readText
+  void readText(String name, String& value) const {
+    auto child = getChild(name); 
+    if (!child) return;
+    child->readText(value);
+  }
+
+public:
+
+  //readObject
+  template <class Object>
+  bool readObject(String name, Object& obj)
+  {
+    auto child = getChild(name);
+    if (!child) return false;
+    obj.read(*child);
+    return true;
+  }
+
+  //writeObject
+  template <class Object>
+  StringTree& writeObject(String name, Object& obj) {
+    obj.write(*NormalizeW(this, name)->addChild(name)); return *this;
+  }
+
+public:
+
+  //internal use only
+  static StringTree postProcess(const StringTree& src);
 
   //toXmlString
   String toXmlString() const;
@@ -395,11 +472,11 @@ public:
     return toXmlString();
   }
 
-private:
+protected:
 
   //toJSONString
   static String toJSONString(const StringTree& stree, int nrec);
- 
+
   //NormalizeR
   static const StringTree* NormalizeR(const StringTree* cursor, String& key);
 
@@ -408,23 +485,9 @@ private:
 
 }; //end class
 
-//////////////////////////////////////////////////////////////////////
-template <class Value>
-StringTree EncodeObject(const Value& value, String root_name)
-{
-  StringTree ret(root_name);
-  value.writeTo(ret);
-  return ret;
-}
 
-template <class Value>
-inline SharedPtr<Value> DecodeObject(StringTree in)
-{
-  auto ret = std::make_shared<Value>();
-  ret->readFrom(in);
-  return ret;
-}
-
+typedef StringTree Archive;
+                  
 
 //////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API ConfigFile : public StringTree

@@ -215,7 +215,7 @@ public:
     if (!canEncode(encoder_name, dtype))
       return SharedPtr<HeapMemory>();
 
-    dims = compactDims(dims);
+    dims = dims.compactDims();
 
     int Width = (int)dims[0];
     int Height = (int)dims[1];
@@ -300,7 +300,7 @@ public:
     if (!canEncode(encoder_name, dtype))
       return SharedPtr<HeapMemory>();
 
-    dims = compactDims(dims);
+    dims = dims.compactDims();
 
     int Width = (int)dims[0];
     int Height = (int)dims[1];
@@ -438,26 +438,6 @@ private:
       }
     }
     return dst;
-  }
-
-
-  //compactDims
-  static PointNi compactDims(PointNi dims)
-  {
-    //"compact" dimension such that "1" are ignored
-    //for example if dims(128,1,256) -> (128,256,1)
-
-    if (dims.innerProduct() <= 0) {
-      VisusAssert(false);
-      return dims;
-    }
-
-    std::vector<Int64> ret;
-    for (int I = 0; I < dims.getPointDim(); I++)
-      if (dims[I] > 1)
-        ret.push_back(dims[I]);
-    return PointNi(ret);
-
   }
 
 };

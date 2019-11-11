@@ -255,17 +255,15 @@ public:
 public:
 
   //convert to string
-  String toString() const
-  {
-    std::ostringstream out;
-    out << this->x << " " << this->y;
-    return out.str();
+  String toString() const{
+    return cstring(x, y);
   }
 
   //operator<<
 #if !SWIG
   friend std::ostream& operator<<(std::ostream &out, const Point2& p) {
-    out << "<" << p.x << "," << p.y << ">"; return out;
+    out << "<" << p.x << "," << p.y << ">";
+    return out;
   }
 #endif
 
@@ -512,11 +510,8 @@ public:
 public:
 
   //convert to string
-  String toString() const
-  {
-    std::ostringstream out;
-    out << this->x << " " << this->y << " " << this->z;
-    return out.str();
+  String toString() const {
+    return cstring(x, y, z);
   }
 
 
@@ -744,11 +739,8 @@ public:
 public:
 
   //convert to string
-  String toString() const
-  {
-    std::ostringstream out;
-    out << this->x << " " << this->y << " " << this->z << " " << this->w;
-    return out.str();
+  String toString() const {
+    return cstring(x, y, z, w);
   }
 
 
@@ -1111,6 +1103,16 @@ public:
   //max_element
   const_iterator max_element() const {
     return std::max_element(begin(), end());
+  }
+
+  //compactDims
+  PointN compactDims() const
+  {
+    //"compact" dimension such that "1" are ignored
+    //for example if dims(128,1,256) -> (128,256,1)
+    if (innerProduct() <= 0) return *this;
+    std::function<bool(T)> predicate = [](T value) {return value > 1; };
+    return PointN(Utils::filter(toVector(), predicate));
   }
 
 #endif

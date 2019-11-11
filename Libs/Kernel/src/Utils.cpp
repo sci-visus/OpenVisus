@@ -38,7 +38,6 @@ For support : support@visus.net
 
 #include <Visus/Utils.h>
 #include <Visus/StringUtils.h>
-#include <Visus/Log.h>
 #include <Visus/Url.h>
 #include <Visus/Path.h>
 #include <Visus/NetService.h>
@@ -152,7 +151,7 @@ bool Utils::saveTextDocument(String filename,String content)
   Path path(filename);
   if (path.empty())
   {
-    VisusInfo() << "Failed to save text document " << filename << " , path is empty";
+    PrintInfo("Failed to save text document",filename,"path is empty");
     return false;
   }
 
@@ -167,7 +166,7 @@ bool Utils::saveTextDocument(String filename,String content)
 
     if (!file.is_open())
     {
-      VisusInfo() << "Failed to save text document " << filename <<" "<< strerror(errno);
+      PrintInfo("Failed to save text document",filename,strerror(errno));
       return false;
     }
   }

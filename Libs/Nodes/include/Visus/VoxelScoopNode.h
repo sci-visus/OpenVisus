@@ -78,14 +78,11 @@ public:
   typedef Visus::Graph< GraphNode,GraphEdge > TrimGraph;
 
   //constructor
-  VoxelScoopNode(String name="");
+  VoxelScoopNode();
 
   //destructor
   ~VoxelScoopNode() {
   }
-
-  //executeAction
-  virtual void  executeAction(StringTree in) override;
 
   //doSimplify
   bool doSimplify() const {
@@ -94,7 +91,7 @@ public:
 
   //setSimplify
   void setSimplify(bool value) {
-    setProperty("simplify", this->simplify, value);
+    setProperty("SetSimplify", this->simplify, value);
   }
 
   //getMinLength
@@ -104,7 +101,7 @@ public:
 
   //setMinLength
   void setMinLength(double value) {
-    setProperty("min_length", min_length, value);
+    setProperty("SetMinLength", min_length, value);
   }
 
   //getMinRatio
@@ -114,7 +111,7 @@ public:
 
   //setMinRatio
   void setMinRatio(double value) {
-    setProperty("min_ratio", this->min_ratio, value);
+    setProperty("SetMinRatio", this->min_ratio, value);
   }
 
   //getThreshold
@@ -124,7 +121,7 @@ public:
 
   //setMinRatio
   void setThreshold(double value) {
-    setProperty("threshold", this->threshold, value);
+    setProperty("SetThreshold", this->threshold, value);
   }
 
   //useMinimaAsSeed
@@ -134,7 +131,7 @@ public:
 
   //setUseMinimaAsSeed
   void setUseMinimaAsSeed(bool value) {
-    setProperty("use_minima_as_seed",this->use_minima_as_seed,value);
+    setProperty("SetUseMinimaAsSeed",this->use_minima_as_seed,value);
   }
 
   //useMaximaAsSeed
@@ -144,7 +141,7 @@ public:
 
   //setUseMaximaAsSeed
   void setUseMaximaAsSeed(bool value) {
-    setProperty("use_maxima_as_seed", this->use_maxima_as_seed, value);
+    setProperty("SetUseMaximaAsSeed", this->use_maxima_as_seed, value);
   }
 
   //getMinDiam
@@ -154,7 +151,7 @@ public:
 
   //setMinDiam
   void setMinDiam(double value) {
-    setProperty("min_diam", this->min_diam, value);
+    setProperty("SetMinDiam", this->min_diam, value);
   }
 
   //processInput
@@ -165,11 +162,14 @@ public:
   }
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 

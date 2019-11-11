@@ -2,6 +2,8 @@ import os,sys
 import numpy
 import cv2
 import glob
+import threading
+import time
 
 from OpenVisus import *
 
@@ -19,18 +21,24 @@ def Assert(condition):
 
 
 # ////////////////////////////////////////////////////////////////////////////////
-def ParseDouble(value):
+def ParseDouble(value,default_value=0.0):
+
+	if isinstance(value,str) and len(value)==0:
+		return default_value
 	try:
 		return float(value)
 	except:
-		return 0.0
+		return default_value
 
 # ////////////////////////////////////////////////////////////////////////////////
-def ParseInt(value):
+def ParseInt(value,default_value=0):
+
+	if isinstance(value,str) and len(value)==0:
+		return default_value
 	try:
 		return int(value)
 	except:
-		return 0			
+		return default_value			
 	
 # ////////////////////////////////////////////////////////////////////////////////
 def LoadTextDocument(filename):
@@ -77,6 +85,46 @@ def ExecuteCommand(cmd):
 	print(" ".join(cmd))
 	subprocess.Popen(cmd).wait()
 			
+
+
+
+
+# ///////////////////////////////////////////////////////////////////////
+def RunJobsInParallel(jobs, advance_callback=None, nthreads=8):
+
+	class MyThread(threading.Thread):
+
+		# constructor
+		def __init__(self):
+			super(MyThread, self).__init__()
+
+		# run
+		def run(self):
+			for job in self.jobs:
+				self.jobDone(job())
+
+	nthreads=min(nthreads,len(jobs))
+	threads,results=[],[]
+	for WorkerId in range(nthreads):
+		thread=MyThread()
+		threads.append(thread)
+		thread.jobs=[job for I,job in enumerate(jobs)  if (I % nthreads)==WorkerId]
+		thread.jobDone=lambda result: results.append(result)
+		thread.start()
+			
+	while True:
+
+		time.sleep(0.01)
+
+		if len(results)==len(jobs):
+			[thread.join() for thread in threads]
+			return results
+
+		if advance_callback:
+				advance_callback(len(results))
+
+
+
 # ////////////////////////////////////////////////////////////////////////////////
 def TryRemoveFiles(mask):
 
@@ -100,7 +148,7 @@ def FindImages(template="./**/*.*",recursive=True,image_extensions=('.jpg','.png
 			
 		ret.append(filename)
 		
-	return sorted(ret)
+	return ret
 
 # ////////////////////////////////////////////////////////////////////////////////
 def MatrixToNumPy(value):
@@ -119,6 +167,15 @@ def SwapRedBlue(img):
 
 # //////////////////////////////////////////////
 def InterleaveChannels(channels):
+	
+	if len(channels)==1: 
+		return channels[0]
+		
+	flatten=[]
+	for channel in channels:
+		flatten+=SplitChannels(channel)
+	channels=flatten
+
 	shape=channels[0].shape + (len(channels),)
 	ret=numpy.zeros(shape,dtype=channels[0].dtype)
 	pdim=len(channels[0].shape)
@@ -134,6 +191,7 @@ def InterleaveChannels(channels):
 # //////////////////////////////////////////////
 def SplitChannels(data):
 	N=len(data.shape)
+	if N==2: return [data]
 	if N==3: return [data[  :,:,C] for C in range(data.shape[-1])]
 	if N==4: return [data[:,:,:,C] for C in range(data.shape[-1])]
 	raise Exception("internal error")	
@@ -159,8 +217,11 @@ def ConvertImageToGrayScale(img):
 		return img[:,:,0] 
 
 # ////////////////////////////////////////////////////////////////////////////////
-def ResizeImage(src,width,height=0):
-	return cv2.resize(src, (width,height if height>0 else int(src.shape[0] / float(src.shape[1]) * width)), interpolation=cv2.INTER_CUBIC)
+def ResizeImage(src,max_size):
+	H,W=src.shape[0:2]
+	vs=max_size/float(max([W,H]))
+	if vs>=1.0: return src
+	return cv2.resize(src, (int(vs*W),int(vs*H)), interpolation=cv2.INTER_CUBIC)
 
 
 # //////////////////////////////////////////////
@@ -172,7 +233,7 @@ def AddAlphaChannel(data):
 	return channels + [alpha,]
 
 # //////////////////////////////////////////////
-def ShowImage(img,max_preview_size=1024,win_name="img"):
+def ShowImage(img,max_preview_size=1024, win_name="img", wait_msec=1):
 	
 	if max_preview_size:	
 	
@@ -196,7 +257,7 @@ def ShowImage(img,max_preview_size=1024,win_name="img"):
 			numpy.multiply(img[:,:,2],A).astype(B.dtype)])
 	
 	cv2.imshow(win_name,img)
-	cv2.waitKey(1) # wait 1 msec just to allow the image to appear
+	cv2.waitKey(wait_msec) # wait 1 msec just to allow the image to appear
 
 
 		
@@ -235,18 +296,47 @@ def ConvertImageToUint8(img):
 	return (NormalizeImage32f(img) * 255).astype('uint8')
 
 # ////////////////////////////////////////////////////////////////////////////////
+def ComposeImage(images, axis):
+	H = [single.shape[0] for single in images]
+	W = [single.shape[1] for single in images]
+	W,H=[(sum(W),max(H)),(max(W), sum(H))][axis]
+	shape=list(images[0].shape)
+	shape[0],shape[1]=H,W
+	ret=numpy.zeros(shape=shape,dtype=images[0].dtype)
+	cur=[0,0]
+	for single in images:
+		H,W=single.shape[0],single.shape[1]
+		ret[cur[1]:cur[1]+H,cur[0]:cur[0]+W,:]=single
+		cur[axis]+=[W,H][axis]
+	return ret
+
+# ////////////////////////////////////////////////////////////////////////////////
 def SaveImage(filename,img):
 	os.makedirs(os.path.dirname(filename), exist_ok=True)
 	if os.path.isfile(filename):
 		os.remove(filename)
+
+	if len(img.shape)>3:
+		raise Exception("cannot save 3d image")
+
+	num_channels=img.shape[2] if len(img.shape)==3 else 1
+
+	# opencv supports only grayscale, rgb and rgba
+	if num_channels>3:
+		img=img[:,:,0:3]
+		num_channels=3
+
+	# opencv does not support saving of 2 channel images
+	if num_channels==2:
+		R,G=img[:,:,0],img[:,:,1]
+		B=numpy.zeros(R.shape,dtype=R.dtype)
+		img=InterleaveChannels([R,G,B])
+
 	cv2.imwrite(filename, img)
 
 # ////////////////////////////////////////////////////////////////////////////////
 def SaveUint8Image(filename,img):
-	img=ConvertImageToUint8(img)
-	if len(img.shape)>3 and img.shape[2]>3:
-		img=img[:,:,0:3]
-	SaveImage(filename, img)	
+	SaveImage(filename, ConvertImageToUint8(img))	
 
 
 # //////////////////////////////////////////////

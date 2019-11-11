@@ -61,12 +61,9 @@ public:
   virtual ~GLOrthoCamera();
 
   //getTypeName
-  virtual String getTypeName() const {
+  virtual String getTypeName() const override {
     return "GLOrthoCamera";
   }
-
-  //executeAction
-  virtual void executeAction(StringTree in) override;
 
   //getLookAt
   virtual void getLookAt(Point3d& pos, Point3d& dir, Point3d& vup) const override {
@@ -81,12 +78,12 @@ public:
   //guessPosition
   virtual bool guessPosition(BoxNd bound, int ref = -1) override;
 
-  //splitProjectionFrustum
-  virtual void splitProjectionFrustum(Rectangle2d r) override;
+  //splitFrustum
+  virtual void splitFrustum(Rectangle2d r) override;
 
   //setDisableRotation
   void setDisableRotation(bool value) {
-    setProperty("disable_rotation", this->disable_rotation, value);
+    setProperty("SetDisableRotation", this->disable_rotation, value);
   }
 
   //isRotationDisabled
@@ -101,7 +98,7 @@ public:
 
   //setMaxZoom
   void setMaxZoom(double value) {
-    setProperty("max_zoom", this->max_zoom, value);
+    setProperty("SetMaxZoom", this->max_zoom, value);
   }
   
   //getMinZoom
@@ -111,7 +108,7 @@ public:
 
   //setMinZoom
   void setMinZoom(double value) {
-    setProperty("min_zoom", this->min_zoom, value);
+    setProperty("SetMinZoom", this->min_zoom, value);
   }
 
   //mirror
@@ -165,30 +162,25 @@ public:
 
   //getOrthoParams
   GLOrthoParams getOrthoParams() const  {
-     return ortho_params_current; 
+     return ortho_params.current; 
   }
 
   //setOrthoParams
-  void setOrthoParams(GLOrthoParams value, double smooth);
+  void setOrthoParams(GLOrthoParams value, int smooth=0);
 
-  //setOrthoParams
-  void setOrthoParams(GLOrthoParams value) {
-    setOrthoParams(value, 0.0);
+  //getDefaultSmooth
+  int getDefaultSmooth() const {
+    return default_smooth;
   }
 
-  //getSmooth
-  double getSmooth() const {
-    return smooth;
+  //setDefaultSmooth
+  void setDefaultSmooth(int value) {
+    setProperty("SetDefaultSmooth", this->default_smooth, value);
   }
 
-  //setSmooth
-  void setSmooth(double value) {
-    setProperty("smooth", this->smooth, value);
-  }
-
-  //toggleSmooth
-  void toggleSmooth() {
-    setSmooth(getSmooth()? 0.0 : 0.90);
+  //toggleDefaultSmooth
+  void toggleDefaultSmooth() {
+    setDefaultSmooth(getDefaultSmooth() ? 0 : 1300);
   }
 
 public:
@@ -216,15 +208,18 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 
-  double                smooth=0.90; //higher is smoother
+ 
   bool                  disable_rotation = false;
   double                default_scale;
   double                max_zoom = 0;
@@ -237,10 +232,22 @@ private:
   Point3d               vup    = Point3d(0, 1,  0);
   double                rotation = 0.0;
 
-  GLOrthoParams         ortho_params_current;
-  GLOrthoParams         ortho_params_final;
+  //interpolate ortho params
+  struct
+  {
+    QTimer             timer;
+    Time               t1;
+    GLOrthoParams      initial;
+    GLOrthoParams      current;
+    GLOrthoParams      final;
+    int                msec;      
+  }
+  ortho_params;
 
-  SharedPtr<QTimer>     timer;
+  int default_smooth;
+
+  //refineToFinal
+  void refineToFinal();
 
   //needUnproject
   FrustumMap needUnprojectInScreenSpace(const Viewport& viewport)

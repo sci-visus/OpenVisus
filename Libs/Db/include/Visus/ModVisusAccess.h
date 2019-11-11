@@ -83,7 +83,7 @@ public:
 
   //printStatistics
   virtual void printStatistics() override {
-    VisusInfo() << name << " hostname(" << url.getHostname() << ") port(" << url.getPort() << ") compression(" << compression << ") url(" << url.toString() << ")";
+    PrintInfo(name, "hostname", url.getHostname(), "port", url.getPort(), "compression", compression, "url", url.toString());
     Access::printStatistics();
   }
 

@@ -97,21 +97,18 @@ namespace Visus {
 String ViewerPreferences::default_panels = "left center";
 bool   ViewerPreferences::default_show_logos = true;
 
+static void RedirectLogToViewer(String msg, void* user_data)
+{
+  auto viewer = (Viewer*)user_data;
+  viewer->printInfo(msg);
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////
 Viewer::Viewer(String title) : QMainWindow()
 {
   this->config = *AppKitModule::getModuleConfig();
 
-  RedirectLog=[this](const String& msg) {
-    {
-      ScopedLock lock(log.lock);
-      log.messages.push_back(msg);
-    };
-
-    //I can be here in different thread
-    //see //see http://stackoverflow.com/questions/37222069/start-qtimer-from-another-class
-    emit postFlushMessages();
-  };
+  RedirectLogTo(RedirectLogToViewer, this);
 
   connect(this, &Viewer::postFlushMessages, this, &Viewer::internalFlushMessages, Qt::QueuedConnection);
 
@@ -145,266 +142,309 @@ Viewer::Viewer(String title) : QMainWindow()
     addDockWidget(Qt::BottomDockWidgetArea, dock);
   }
 
-#ifdef VISUS_DEBUG
-  enableLog("visusviewer.log.txt");
-#endif
+  enableLog("~visusviewer.history.txt");
 
-  New();
+  clearAll();
+  addWorld("world");
 
   refreshActions();
-  
   setFocusPolicy(Qt::StrongFocus);
-  
   showMaximized();
 }
 
 ////////////////////////////////////////////////////////////
 Viewer::~Viewer()
 {
-  VisusInfo() << "destroying VisusViewer";
-  RedirectLog = nullptr;
+  PrintInfo("destroying VisusViewer");
+  RedirectLogTo(nullptr);
   setDataflow(nullptr);
+}
+
+////////////////////////////////////////////////////////////
+void Viewer::printInfo(String msg)
+{
+  {
+    ScopedLock lock(log.lock);
+    log.messages.push_back(msg);
+  };
+
+  //I can be here in different thread
+  //see //see http://stackoverflow.com/questions/37222069/start-qtimer-from-another-class
+  emit postFlushMessages();
 }
 
 
 ////////////////////////////////////////////////////////////
-void Viewer::executeAction(StringTree in)
+void Viewer::execute(Archive& ar)
 {
-
   //action directed to nodes?
-  if (getPassThroughAction(in, "nodes"))
+  if (GetPassThroughAction("nodes", ar))
   {
-    auto uuid=popTargetId(in);
+    auto uuid = PopTargetId(ar);
     auto node = findNodeByUUID(uuid); VisusAssert(node);
-    node->executeAction(in);
+    node->execute(ar);
     return;
   }
 
-  if (in.name == "set")
+  if (ar.name == "Open")
   {
-    auto target_id = in.readString("target_id");
-
-    if (target_id == "mouse_dragging")
-    {
-      setMouseDragging(in.readBool("value"));
-      return;
-    }
-
-    if (target_id == "auto_refresh")
-    {
-      ViewerAutoRefresh value = getAutoRefresh();
-      value.enabled = in.readBool("enabled");
-      value.msec = in.readInt("msec");
-      setAutoRefresh(value);
-      return;
-    }
-  }
-
-  if (in.name == "open")
-  {
-    auto parent = findNodeByUUID(in.readString("parent"));
-    auto url = in.readString("url");
-    open(url,parent);
+    String parent, url;
+    ar.read("parent", parent);
+    ar.read("url", url);
+    open(url, findNodeByUUID(parent));
     return;
   }
 
-  if (in.name == "moveNode")
+  if (ar.name == "SetAutoRefresh")
   {
-    auto src = findNodeByUUID(in.readString("dst"));
-    auto dst = findNodeByUUID(in.readString("src"));
-    auto index = in.readInt("index", -1);
-    moveNode(dst, src, index);
+    ViewerAutoRefresh value = getAutoRefresh();
+    ar.read("enabled", value.enabled);
+    ar.read("msec", value.msec);
+    setAutoRefresh(value);
     return;
   }
 
-  if (in.name == "setSelection")
+  if (ar.name == "SetMouseDragging")
   {
-    auto node = findNodeByUUID(in.readString("node"));
-    setSelection(node);
+    bool value;
+    ar.read("value", value);
+    setMouseDragging(value);
     return;
   }
 
-  if (in.name == "connectPorts")
+  if (ar.name == "MoveNode")
   {
-    auto from = findNodeByUUID(in.readString("from"));
-    auto oport = in.readString("oport");
-    auto iport = in.readString("iport");
-    auto to = findNodeByUUID(in.readString("to"));
-    connectPorts(from, oport, iport, to);
+    String src, dst; int index;
+    ar.read("src", src);
+    ar.read("dst", dst);
+    ar.read("index", index, -1);
+    moveNode(findNodeByUUID(dst), findNodeByUUID(src), index);
     return;
   }
 
-  if (in.name == "disconnectPorts")
+  if (ar.name == "SetSelection")
   {
-    auto from = findNodeByUUID(in.readString("from"));
-    auto oport = in.readString("oport");
-    auto iport = in.readString("iport");
-    auto to = findNodeByUUID(in.readString("to"));
-    disconnectPorts(from, oport, iport, to);
+    String value;
+    ar.read("value", value);
+    setSelection(findNodeByUUID(value));
     return;
   }
 
-  if (in.name == "refreshData")
+  if (ar.name == "ConnectNodes")
   {
-    auto node = findNodeByUUID(in.readString("node"));
-    refreshData(node);
+    String from, oport, iport, to;
+    ar.read("from", from);
+    ar.read("oport", oport);
+    ar.read("iport", iport);
+    ar.read("to", to);
+    connectNodes(findNodeByUUID(from), oport, iport, findNodeByUUID(to));
     return;
   }
 
-  if (in.name == "dropProcessing")
+  if (ar.name == "DisconnectNodes")
   {
-    this->dropProcessing();
+    String from, oport, iport, to;
+    ar.read("from", from);
+    ar.read("oport", oport);
+    ar.read("iport", iport);
+    ar.read("to", to);
+    disconnectNodes(findNodeByUUID(from), oport, iport, findNodeByUUID(to));
     return;
   }
 
-  if (in.name == "showNode") {
-    auto node = findNodeByUUID(in.readString("node"));
-    auto value = in.readBool("value");
-    setNodeVisible(node, value);
+  if (ar.name == "RefreshNode")
+  {
+    String node;
+    ar.read("node", node);
+    refreshNode(findNodeByUUID(node));
     return;
   }
 
-  if (in.name=="add")
+  if (ar.name == "DropProcessing")
   {
-    auto what = in.readString("what");
-
-    if (what == "node")
-    {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto child = *in.getFirstChild();
-      auto TypeName = child.name;
-      auto node = NodeFactory::getSingleton()->createInstance(TypeName);
-      node->readFrom(child);
-      auto index = in.readInt("index", -1);
-      addNode(parent, node, index);
-      return;
-    }
-
-    if (what == "volume") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto fieldname = in.readString("fieldname");
-      auto access_id = in.readInt("access_id");
-      addVolume(parent, fieldname, access_id);
-      return;
-    }
-
-    if (what == "slice") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto fieldname = in.readString("fieldname");
-      auto access_id = in.readInt("access_id");
-      addSlice(parent, fieldname, access_id);
-      return;
-    }
-
-    if (what == "isocontour") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto fieldname = in.readString("fieldname");
-      auto access_id = in.readInt("access_id");
-      addIsoContour(parent, fieldname, access_id);
-      return;
-    }
-
-    if (what == "kdquery") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto fieldname = in.readString("fieldname");
-      auto access_id = in.readInt("access_id");
-      addKdQuery(parent, fieldname, access_id);
-      return;
-    }
-
-    if (what == "dataset") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto url = in.readString("url");
-      addDataset(parent, url, in.childs.empty() ? StringTree() : *in.getFirstChild());
-      return;
-    }
-
-    if (what == "modelview") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto insert = in.readBool("insert");
-      addModelView(parent, insert);
-      return;
-    }
-
-    if (what == "scripting") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      addScripting(parent);
-      return;
-    }
-
-    if (what == "cpu_transfer_function") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      addCpuTransferFunction(parent);
-      return;
-    }
-
-    if (what == "palette") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto palette = in.readString("palette");
-      addPalette(parent, palette);
-      return;
-    }
-
-    if (what == "statistics") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      addStatistics(parent);
-      return;
-    }
-
-    if (what == "group") {
-      auto name = in.readString("name");
-      auto parent = findNodeByUUID(in.readString("parent"));
-      addGroup(parent, name);
-      return;
-    }
-
-    if (what == "glcamera") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto glcamera = GLCamera::decode(*in.getFirstChild());
-      addGLCamera(parent, glcamera);
-      return;
-    }
-
-    if (what == "render") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto palette = in.readString("palette");
-      addRender(parent, palette);
-      return;
-    }
-
-    if (what == "ospray") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      auto palette = in.readString("palette");
-      addOSPRay(parent, palette);
-      return;
-    }
-
-    if (what == "kdrender") {
-      auto parent = findNodeByUUID(in.readString("parent"));
-      addKdRender(parent);
-      return;
-    }
+    dropProcessing();
+    return;
   }
 
-  if (in.name == "remove")
+  if (ar.name == "SetNodeVisible") {
+    String node; bool value;
+    ar.read("node", node);
+    ar.read("value", value);
+    setNodeVisible(findNodeByUUID(node), value);
+    return;
+  }
+
+  if (ar.name == "AddNode")
   {
-    auto nodes = StringUtils::split(in.readString("node"));
+    String parent;  int index;
+    ar.read("parent", parent);
+    ar.read("index", index, -1);
 
-    if (nodes.size() > 1)
-      beginTransaction();
+    auto child = *ar.getFirstChild();
+    auto TypeName = child.name;
+    auto node = NodeFactory::getSingleton()->createInstance(TypeName); VisusReleaseAssert(node);
+    node->read(child);
 
-    for (auto node : nodes)
+    addNode(findNodeByUUID(parent), node, index);
+    return;
+  }
+
+  if (ar.name == "RemoveNode")
+  {
+    beginTransaction();
+    for (auto node : StringUtils::split(ar.readString("uuid")))
       removeNode(findNodeByUUID(node));
+    endTransaction();
+    return;
+  }
 
-    if (nodes.size() > 1)
-      endTransaction();
+  if (ar.name == "AddWorld") {
+    String uuid;
+    ar.read("uuid", uuid);
+    addWorld(uuid);
+    return;
+  }
 
+  if (ar.name == "AddDataset") {
+    String uuid, url, parent;
+    ar.read("uuid", uuid);
+    ar.read("parent", parent);
+    ar.read("url", url);
+    addDataset(uuid, findNodeByUUID(parent), url, /*config*/StringTree());
+    return;
+  }
+
+  if (ar.name == "AddGroup") {
+    String uuid, name, parent;
+    ar.read("uuid", uuid);
+    ar.read("parent", parent);
+    ar.read("name", name);
+    addGroup(uuid, findNodeByUUID(parent), name);
+    return;
+  }
+
+  if (ar.name == "AddGLCamera") {
+    String uuid, type, parent;
+    ar.read("uuid", uuid);
+    ar.read("parent", parent);
+    ar.read("type", type);
+    addGLCamera(uuid, findNodeByUUID(parent), type);
+    return;
+  }
+
+  if (ar.name == "AddSlice")
+  {
+    String uuid, parent, fieldname; int  access_id;
+    ar.read("uuid", uuid);
+    ar.read("parent", parent);
+    ar.read("fieldname", fieldname);
+    ar.read("access_id", access_id, 0);
+    addSlice(uuid, findNodeByUUID(parent), fieldname, access_id);
+    return;
+  }
+  if (ar.name == "AddVolume") {
+    String uuid, parent, fieldname; int  access_id;
+    ar.read("uuid", uuid);
+    ar.read("parent", parent);
+    ar.read("fieldname", fieldname);
+    ar.read("access_id", access_id, 0);
+    addVolume(uuid, findNodeByUUID(parent), fieldname, access_id);
+    return;
+  }
+
+  if (ar.name == "AddIsoContour") {
+    String uuid, parent, fieldname; int  access_id; String isovalue;
+    ar.read("uuid", uuid);
+    ar.read("parent", parent);
+    ar.read("fieldname", fieldname);
+    ar.read("access_id", access_id, 0);
+    ar.read("isovalue", isovalue);
+    addIsoContour(uuid, findNodeByUUID(parent), fieldname, access_id, isovalue);
+    return;
+  }
+
+  if (ar.name == "AddKdQuery") {
+    String uuid, parent, fieldname; int  access_id;
+    ar.read("uuid", uuid);
+    ar.read("parent", parent);
+    ar.read("fieldname", fieldname);
+    ar.read("access_id", access_id, 0);
+    addKdQuery(uuid, findNodeByUUID(parent), fieldname, access_id);
+    return;
+  }
+
+  if (ar.name == "AddModelView") {
+    String uuid, parent;
+    bool insert;
+    ar.read("uuid", uuid);
+    ar.read("parent", parent);
+    ar.read("insert", insert, false);
+    addModelView(uuid, findNodeByUUID(parent), insert);
+    return;
+  }
+
+  if (ar.name == "AddScripting") {
+    String uuid, parent;
+    ar.read("uuid", uuid);
+    ar.read("parent", parent);
+    addScripting(uuid, findNodeByUUID(parent));
+    return;
+  }
+
+  if (ar.name == "AddCpuTransferFunction") {
+    String uuid, parent;
+    ar.read("uuid", uuid);
+    ar.read("parent", parent);
+    addCpuTransferFunction(uuid, findNodeByUUID(parent));
+    return;
+  }
+
+  if (ar.name == "AddPalette") {
+    String uuid, parent, palette;
+    ar.read("uuid", uuid);
+    ar.read("parent", parent);
+    ar.read("palette", palette);
+    addPalette(uuid, findNodeByUUID(parent), palette);
+    return;
+  }
+
+  if (ar.name == "AddStatistics") {
+    String uuid, parent;
+    ar.read("uuid", uuid);
+    ar.read("parent", parent);
+    addStatistics(uuid, findNodeByUUID(parent));
+    return;
+  }
+
+  if (ar.name == "AddRender") {
+    String uuid, parent, palette;
+    ar.read("uuid", uuid);
+    ar.read("parent", parent);
+    ar.read("palette", palette);
+    addRender(uuid, findNodeByUUID(parent), palette);
+    return;
+  }
+
+  if (ar.name == "AddKdRender") {
+    String uuid, parent, palette;
+    ar.read("uuid", uuid);
+    ar.read("parent", parent);
+    ar.read("palette", palette);
+    addKdRender(uuid, findNodeByUUID(parent), palette);
+    return;
+  }
+
+  if (ar.name == "AddOSPRay") {
+    String uuid, parent, palette;
+    ar.read("uuid", uuid);
+    ar.read("parent", parent);
+    ar.read("palette", palette);
+    addOSPRay(uuid, findNodeByUUID(parent), palette);
     return;
   }
 
 
-
-  return Model::executeAction(in);
+  return Model::execute(ar);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -419,7 +459,7 @@ SharedPtr<ViewerLogo> Viewer::openScreenLogo(String key, String default_logo)
 
   auto img = QImage(filename.c_str());
   if (img.isNull()) {
-    VisusInfo() << "Failed to load image " << filename;
+    PrintInfo("Failed to load image",filename);
     return SharedPtr<ViewerLogo>();
   }
 
@@ -446,14 +486,14 @@ void Viewer::setMinimal()
 ////////////////////////////////////////////////////////////
 void Viewer::setFieldName(String value)
 {
-  if (auto node = this->findNodeByType<FieldNode>())
+  if (auto node = this->findNode<FieldNode>())
     node->setFieldName(value);
 }
 
 ////////////////////////////////////////////////////////////
 void Viewer::setScriptingCode(String value)
 {
-  if (auto node = this->findNodeByType<ScriptingNode>())
+  if (auto node = this->findNode<ScriptingNode>())
     node->setCode(value);
 }
 
@@ -464,20 +504,20 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   {
     if (args[I] == "--help")
     {
-      VisusInfo() << std::endl
-        << "visusviewer help:" << std::endl
-        << "   --visus-config <path>                                                  - path to visus.config" << std::endl
-        << "   --open <url>                                                           - opens the specified url or .idx volume" << std::endl
-        << "   --server                                                               - starts a standalone ViSUS Server on port 10000" << std::endl
-        << "   --fullscseen                                                           - starts in fullscreen mode" << std::endl
-        << "   --geometry \"<x> <y> <width> <height>\"                                - specify viewer windows size and location" << std::endl
-        << "   --zoom-to \"x1 y1 x2 y2\"                                              - set glcamera ortho params" << std::endl
-        << "   --network-rcv <port>                                                   - run powerwall slave" << std::endl
-        << "   --network-snd <slave_url> <split_ortho> <screen_bounds> <aspect_ratio> - add a slave to a powerwall master" << std::endl
-        << "   --split-ortho \"x y width height\"                                     - for taking snapshots" << std::endl
-        << "   --internal-network-test-(11|12|14|111)                                 - internal use only" << std::endl
-        << std::endl
-        << std::endl;
+      PrintInfo("\n",
+        "visusviewer help:","\n",
+        "   --visus-config <path>                                                  - path to visus.config","\n",
+        "   --open <url>                                                           - opens the specified url or .idx volume", "\n",
+        "   --server                                                               - starts a standalone ViSUS Server on port 10000", "\n",
+        "   --fullscseen                                                           - starts in fullscreen mode", "\n",
+        "   --geometry \"<x> <y> <width> <height>\"                                - specify viewer windows size and location", "\n",
+        "   --zoom-to \"x1 y1 x2 y2\"                                              - set glcamera ortho params", "\n",
+        "   --network-rcv <port>                                                   - run powerwall slave", "\n",
+        "   --network-snd <slave_url> <split_ortho> <screen_bounds> <aspect_ratio> - add a slave to a powerwall master", "\n",
+        "   --split-ortho \"x y width height\"                                     - for taking snapshots", "\n",
+        "   --internal-network-test-(11|12|14|111)                                 - internal use only", "\n",
+        "\n",
+        "\n");
 
       AppKitModule::detach();
       exit(0);
@@ -501,6 +541,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   Rectangle2i geometry(0, 0, 0, 0);
   String fieldname;
   bool bMinimal = false;
+  String play_file;
 
   for (int I = 1; I<(int)args.size(); I++)
   {
@@ -525,6 +566,11 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
     {
       bMinimal = true;
     }
+    else if (args[I] == "--play-file")
+    {
+      play_file = args[++I];
+    }
+
     else if (args[I] == "--server")
     {
       auto modvisus = new ModVisus();
@@ -626,8 +672,11 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   if (bFullScreen)
     this->showFullScreen();
 
-  else if (geometry.width>0 && geometry.height>0)
+  if (geometry.width>0 && geometry.height>0)
     this->setGeometry(geometry.x, geometry.y, geometry.width, geometry.height);
+
+  if (!play_file.empty())
+    this->playFile(play_file);
 }
 
 ////////////////////////////////////////////////////////////
@@ -656,10 +705,10 @@ void Viewer::internalFlushMessages()
 }
 
 ////////////////////////////////////////////////////////////
-void Viewer::New()
+void Viewer::clearAll()
 {
+  scheduled.timer.reset();
   setDataflow(std::make_shared<Dataflow>());
-  addNode(dataflow->createNode<Node>("World"));
   clearHistory();
 }
 
@@ -670,8 +719,8 @@ void Viewer::moveNode(Node* dst, Node* src, int index)
     return;
 
   beginUpdate(
-    StringTree("moveNode").write("dst", getUUID(dst)             ).write("src", getUUID(src)).write("index",                   cstring(index)),
-    StringTree("moveNode").write("dst", getUUID(src->getParent())).write("src", getUUID(src)).write("index", cstring(src->getIndexInParent())));
+    StringTree("MoveNode","dst", getUUID(dst)             ,"src", getUUID(src),"index",                   cstring(index)),
+    StringTree("MoveNode","dst", getUUID(src->getParent()),"src", getUUID(src),"index", cstring(src->getIndexInParent())));
   {
     dataflow->moveNode(dst, src, index);
   }
@@ -695,11 +744,11 @@ void Viewer::enableSaveSession()
     filename=filename.substr(0,filename.size()-extension.size());  
   filename=filename+"."+Time::now().getFormattedLocalTime()+extension;
 
-  VisusInfo() << "Configuration/VisusViewer/SaveSession/filename " << filename;
-  VisusInfo() << "Configuration/VisusViewer/SaveSession/sec " << every_sec;
+  PrintInfo("Configuration/VisusViewer/SaveSession/filename",filename);
+  PrintInfo("Configuration/VisusViewer/SaveSession/sec",every_sec);
 
   connect(save_session_timer.get(),&QTimer::timeout,[this,filename](){
-    save(filename,/*bSaveHistory*/false,/*bShowDialogs*/false);
+    save(filename,/*bSaveHistory*/false);
   });
 
   if (every_sec>0 && !filename.empty())
@@ -788,21 +837,21 @@ int Viewer::getWorldDimension() const
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 BoxNd Viewer::getWorldBox() const
 {
-  return getPosition(getRoot()).toAxisAlignedBox();
+  return getBounds(getRoot()).toAxisAlignedBox();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Position Viewer::getPosition(Node* node,bool bRecursive) const
+Position Viewer::getBounds(Node* node,bool bRecursive) const
 {
   VisusAssert(node);
 
   //special case for QueryNode: its content is really its bounds
   if (auto query=dynamic_cast<QueryNode*>(node))
-    return query->getPosition();
+    return query->getBounds();
 
   //NOTE: the result in in local geometric coordinate system of node 
   {
-    Position ret=node->getPosition();
+    Position ret=node->getBounds();
     if (ret.valid()) 
       return ret;
   }
@@ -814,7 +863,7 @@ Position Viewer::getPosition(Node* node,bool bRecursive) const
   if (bRecursive)
   {
     if (auto modelview_node=dynamic_cast<ModelViewNode*>(node))
-      T=modelview_node->getModelview();
+      T=modelview_node->getModelView();
   }
 
   std::vector<Node*> childs=node->getChilds();
@@ -825,14 +874,14 @@ Position Viewer::getPosition(Node* node,bool bRecursive) const
   }
   if (childs.size()==1)
   {
-    return Position(T, getPosition(childs[0],true));
+    return Position(T, getBounds(childs[0],true));
   }
   else
   {
     auto box= BoxNd::invalid();
     for (auto child : childs)
     {
-      Position child_bounds= getPosition(child,true);
+      Position child_bounds= getBounds(child,true);
       if (child_bounds.valid())
         box=box.getUnion(child_bounds.toAxisAlignedBox());
     }
@@ -845,7 +894,7 @@ Position Viewer::computeNodeToNode(Node* dst,Node* src) const
 {
   VisusAssert(dst && src && dst!=src);
   
-  Position bounds= getPosition(src);
+  Position bounds= getBounds(src);
 
   bool bAlreadySimplified=false;
   std::deque<Node*> src2root;
@@ -876,13 +925,13 @@ Position Viewer::computeNodeToNode(Node* dst,Node* src) const
   for (auto it=src2root.begin();it!=src2root.end();it++)
   {
     if (auto modelview_node=dynamic_cast<ModelViewNode*>(*it))
-      bounds=Position(modelview_node->getModelview() , bounds);
+      bounds=Position(modelview_node->getModelView() , bounds);
   }
 
   for (auto it=root2dst.begin();it!=root2dst.end();it++) 
   {
     if (auto modelview_node=dynamic_cast<ModelViewNode*>(*it))
-      bounds=Position(modelview_node->getModelview().invert() , bounds);
+      bounds=Position(modelview_node->getModelView().invert() , bounds);
   }
 
   return bounds;
@@ -895,7 +944,7 @@ Frustum Viewer::computeNodeToScreen(Frustum frustum,Node* node) const
   {
     if (auto modelview_node=dynamic_cast<ModelViewNode*>(it))
     {
-      auto T=modelview_node->getModelview();
+      auto T=modelview_node->getModelView();
       frustum.multModelview(T);
     }
   }
@@ -923,7 +972,7 @@ Node* Viewer::findPick(Node* node,Point2d screen_point,bool bRecursive,double* o
   if (QueryNode* query=dynamic_cast<QueryNode*>(node))
   {
     Frustum  node_to_screen = computeNodeToScreen(getGLCamera()->getCurrentFrustum(viewport),node);
-    Position node_bounds  = getPosition(node);
+    Position node_bounds  = getBounds(node);
 
     double query_distance= node_to_screen.computeDistance(node_bounds,screen_point,/*bUseFarPoint*/false);
     if (query_distance>=0)
@@ -959,7 +1008,7 @@ Node* Viewer::findPick(Node* node,Point2d screen_point,bool bRecursive,double* o
 void Viewer::beginFreeTransform(QueryNode* query_node)
 {
   //NOTE: this is different from query->getPositionInDatasetNode()
-  Position bounds=query_node->getPosition();
+  Position bounds=query_node->getBounds();
   if (!bounds.valid())
   {
     free_transform.reset();
@@ -972,7 +1021,7 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
     free_transform=std::make_shared<FreeTransform>();
 
     //whenever free transform change....
-    free_transform->object_changed.connect([this,query_node](Position query_bounds)
+    free_transform->object_changed.connect([this, query_node](Position query_bounds)
     {
       auto T  = query_bounds.getTransformation();
       auto box= query_bounds.getBoxNd().withPointDim(3);
@@ -999,7 +1048,7 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
       }
 
       query_bounds=Position(T,box);
-      query_node->setPosition(query_bounds);
+      query_node->setBounds(query_bounds);
       free_transform->setObject(query_bounds);
     });
 
@@ -1012,8 +1061,8 @@ void Viewer::beginFreeTransform(QueryNode* query_node)
 ///////////////////////////////////////////////////////////////////////////////
 void Viewer::beginFreeTransform(ModelViewNode* modelview_node)
 {
-  auto T=modelview_node->getModelview();
-  auto bounds= getPosition(modelview_node);
+  auto T=modelview_node->getModelView();
+  auto bounds= getBounds(modelview_node);
 
   if (!T.valid() || !bounds.valid()) 
   {
@@ -1026,10 +1075,10 @@ void Viewer::beginFreeTransform(ModelViewNode* modelview_node)
   {
     free_transform=std::make_shared<FreeTransform>();
 
-    free_transform->object_changed.connect([this,modelview_node,bounds](Position obj)
+    free_transform->object_changed.connect([modelview_node,bounds](Position obj)
     {
       auto T=obj.getTransformation() * bounds.getTransformation().invert();
-      modelview_node->setModelview(T);
+      modelview_node->setModelView(T);
     });
   }
 
@@ -1167,7 +1216,7 @@ void Viewer::setDataflow(SharedPtr<Dataflow> value)
       addDockWidget(Qt::LeftDockWidgetArea, dock);
     }
 
-    if (auto glcamera_node= findNodeByType<GLCameraNode>())
+    if (auto glcamera_node= findNode<GLCameraNode>())
       attachGLCamera(glcamera_node->getGLCamera());
 
     enableSaveSession();
@@ -1177,9 +1226,10 @@ void Viewer::setDataflow(SharedPtr<Dataflow> value)
     connect(this->idle_timer.get(), &QTimer::timeout, [this]() {
       idle();
     });
-    this->idle_timer->start(1000/20);
+    const int fps = 20;
+    this->idle_timer->start(1000/ fps); 
 
-    this->refreshData();
+    this->refreshNode();
     this->postRedisplay();
   }
 }
@@ -1204,32 +1254,10 @@ void Viewer::reloadVisusConfig(bool bChooseAFile)
 }
  
 //////////////////////////////////////////////////////////////////////
-bool Viewer::open(String url,Node* parent,bool bShowUrlDialogIfNeeded)
+bool Viewer::open(String url,Node* parent)
 {
   if (url.empty())
-  {
-    if (bShowUrlDialogIfNeeded)
-    {
-      static String last_url("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1");
-      url=cstring(QInputDialog::getText(this,"Enter the url:","",QLineEdit::Normal,last_url.c_str()));
-      if (url.empty()) return false;
-      last_url=url;
-    }
-    else
-    {
-      static String last_filename="";
-      url=cstring(QFileDialog::getOpenFileName(nullptr,"Choose a file to open...",last_filename.c_str(),
-                                 "All supported (*.idx *.midx *.gidx *.obj *.xml *.config *.scn);;IDX (*.idx *.midx *.gidx);;OBJ (*.obj);;XML files (*.xml *.config *.scn)"));
-      
-      if (url.empty()) return false;
-      last_filename=url;
-      url=StringUtils::replaceAll(url,"\\","/");
-      if (!StringUtils::startsWith(url,"/")) url="/"+url;
-      url="file://" + url;
-    }
-  }
-
-  VisusAssert(!url.empty());
+    return false;
 
   //config means a visus.config: merge bookmarks and load first entry (ignore configuration)
   if (StringUtils::endsWith(url,".config"))
@@ -1249,106 +1277,83 @@ bool Viewer::open(String url,Node* parent,bool bShowUrlDialogIfNeeded)
     if (!children.empty())
     {
       url=children[0]->readString("name",children[0]->readString("url"));VisusAssert(!url.empty());
-      return this->open(url,parent,false);
+      return this->open(url,parent);
     }
 
     return true;
   }
 
-  //xml means a Viewer dataflow
+  //xml means a Viewer scene
   if (StringUtils::endsWith(url,".xml"))
   {
-    StringTree in=StringTree::fromString(Utils::loadTextDocument(url));
-    if (!in.valid())
+    auto ar=StringTree::fromString(Utils::loadTextDocument(url));
+    if (!ar.valid())
     {
       VisusAssert(false);
       return false;
     }
 
+    clearAll();
     setDataflow(std::make_shared<Dataflow>());
-    clearHistory();
 
     try
     {
-      this->readFrom(in);
+      read(ar);
     }
     catch (std::exception ex)
     {
       VisusAssert(false);
+      QMessageBox::information(this, "Error", ex.what());
       return false;
     }
 
-    //clearHistory();
-#ifdef VISUS_DEBUG
-    enableLog("visusviewer.log.txt");
-#endif
+    PrintInfo("open",url,"done");
 
-    VisusInfo() << "open(" << url << ") done";
-    widgets.treeview->expandAll();
+    if (widgets.treeview)
+      widgets.treeview->expandAll();
     refreshActions();
     return true;
   }
 
-  //gidx means group of idx: open them all
-  //scrgiorgio: does gidx makes sense with midx?
-#if 0
-  if (StringUtils::endsWith(url, ".gidx"))
-  {
-    StringTree stree = StringTree::fromString(Utils::loadTextDocument(url));
-    if (!stree.valid())
-    {
-      VisusAssert(false);
-      return false;
-    }
-
-    for (auto child : stree.childs)
-    {
-      if (child->name != "dataset")
-        continue;
-
-      String dataset(child->readString("url"));
-      bool success = this->open(dataset, child == stree.childs.front() ? parent : getRoot(), false);
-      if (!success)
-        VisusWarning() << "Unable to open " << dataset << " from " << url;
-    }
-
-    widgets.treeview->expandAll();
-    refreshActions();
-    VisusInfo() << "open(" << url << ") done";
-    return true;
-  }
-#endif
-
-  //try to open a dataset
+  //open a dataset
   auto dataset = LoadDatasetEx(url,this->config);
   if (!dataset)
   {
-    QMessageBox::information(this, "Error", (StringUtils::format() << "open file(" << url << +") failed.").str().c_str());
+    QMessageBox::information(this, "Error", cstring("open file(" ,url, +") failed.").c_str());
     return false;
   }
 
-  SharedPtr<GLCamera> glcamera;
+  //do I need to add a glcamera too?
   if (!parent) 
-  {
-    New();
-    parent = dataflow->getRoot();
-
-    if (dataset->getPointDim() == 3)
-      glcamera = std::make_shared<GLLookAtCamera>();
-    else
-      glcamera = std::make_shared<GLOrthoCamera>();
-
-    glcamera->guessPosition(dataset->getDatasetBounds().toAxisAlignedBox());
-    if (dataset && StringUtils::contains(dataset->getConfig().readString("mirror"), "x")) glcamera->mirror(0);
-    if (dataset && StringUtils::contains(dataset->getConfig().readString("mirror"), "y")) glcamera->mirror(1);
-  }
+    clearAll();
 
   beginTransaction();
   {
-    if (!getGLCamera())
-      addGLCamera(parent, glcamera);
+    if (!parent)
+      parent = addWorld("world");
 
-    addDataset(parent, dataset);
+    auto dataset_node=addDataset("",parent, dataset);
+
+    if (!getGLCamera())
+      addGLCamera("", parent);
+
+    //add a default render node
+    if (bool bAddRenderNode=true)
+    {
+      String rendertype = StringUtils::toLower(dataset->getConfig().readString("rendertype", ""));
+
+      if ((dataset->getKdQueryMode() != KdQueryMode::NotSpecified) || rendertype == "kdrender")
+        addKdQuery("", dataset_node);
+
+      else if (dataset->getPointDim() == 3)
+        addVolume("", dataset_node);
+
+      else
+        addSlice("", dataset_node);
+    }
+
+    refreshAll();
+
   }
   endTransaction();
 
@@ -1356,61 +1361,153 @@ bool Viewer::open(String url,Node* parent,bool bShowUrlDialogIfNeeded)
     widgets.treeview->expandAll();
   
   refreshActions();
-  VisusInfo()<<"open("<<url<<") done";
+  PrintInfo("open",url,"done");
   return true;
 }
 
 //////////////////////////////////////////////////////////////////////
-bool Viewer::save(String url,bool bSaveHistory,bool bShowDialogs)
-{ 
-  if (url.empty() && bShowDialogs)
+bool Viewer::playFile(String url)
+{
+  if (url.empty())
   {
-    static String last_dir(KnownPaths::VisusHome.toString());
-    url=cstring(QFileDialog::getSaveFileName(nullptr,"Choose a file to save...",last_dir.c_str(),"*.xml"));
+    url = cstring(QFileDialog::getOpenFileName(nullptr, "Choose a file to open...", last_filename.c_str(),"XML files (*.xml)"));
     if (url.empty()) return false;
-    last_dir=Path(url).getParent();
+    this->last_filename = url;
   }
+
+  auto ar = StringTree::fromString(Utils::loadTextDocument(url));
+  if (!ar.valid())
+  {
+    VisusAssert(false);
+    return false;
+  }
+
+  double version;
+  ar.read("version", version, 0.0);
+
+  String git_revision;
+  ar.read("git_revision", git_revision);
+
+  clearAll();
+  Int64 first_utc=0;
+  scheduled.timer = std::make_shared<QTimer>();
+  QObject::connect(scheduled.timer.get(), &QTimer::timeout, [this]() {
+
+    scheduled.timer->stop();
+
+    //finished
+    if (scheduled.actions.empty())
+      return;
+
+    auto first = scheduled.actions.front();
+
+    scheduled.actions.pop_front();
+    if (!scheduled.actions.empty())
+    {
+      auto next = scheduled.actions.front();
+      Int64 t1, t2;
+      first.read("utc", t1);
+      next.read("utc", t2);
+      auto delta = std::max(t2 - t1,(Int64)0);
+      scheduled.timer->start(delta);
+    }
+
+    execute(first);
+  });
+
+  for (auto action : ar.childs)
+  {
+    if (action->isHash()) continue;
+    scheduled.actions.push_back(*action);
+  }
+  scheduled.timer->start(0);
+  
+  return true;
+}
+
+//////////////////////////////////////////////////////////////////////
+bool Viewer::openFile(String url, Node* parent)
+{
+  if (url.empty())
+  {
+    url = cstring(QFileDialog::getOpenFileName(nullptr, "Choose a file to open...", last_filename.c_str(),
+      "All supported (*.idx *.midx *.gidx *.obj *.xml *.config *.scn);;IDX (*.idx *.midx *.gidx);;OBJ (*.obj);;XML files (*.xml *.config *.scn)"));
+
+    if (url.empty()) return false;
+    last_filename = url;
+    url = StringUtils::replaceAll(url, "\\", "/");
+    if (!StringUtils::startsWith(url, "/")) url = "/" + url;
+    url = "file://" + url;
+  }
+
+  return open(url, parent);
+}
+
+//////////////////////////////////////////////////////////////////////
+bool Viewer::openUrl(String url, Node* parent)
+{
+  if (url.empty())
+  {
+    static String last_url("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1");
+    url = cstring(QInputDialog::getText(this, "Enter the url:", "", QLineEdit::Normal, last_url.c_str()));
+    if (url.empty()) return false;
+    last_url = url;
+  }
+
+  return open(url, parent);
+}
+
+//////////////////////////////////////////////////////////////////////
+bool Viewer::save(String url,bool bSaveHistory)
+{ 
+  if (url.empty())
+    return false;
 
   //add default extension
   if (Path(url).getExtension().empty())
     url=url+".xml";
 
-  try
+
+  StringTree ar;
+  if (bSaveHistory)
   {
-    if (bSaveHistory)
-    {
-      auto out = getHistory();
-      out.name = "Viewer";
-      out.writeString("version", cstring(ApplicationInfo::version));
-      out.writeString("git_revision", ApplicationInfo::git_revision);
-    }
-    else
-    {
-      StringTree out("Viewer");
-      this->writeTo(out);
-      if (!Utils::saveTextDocument(url, out.toString()))
-        ThrowException("saveTextDocument failed");
-    }
+    ar = getHistory();
+    ar.name = "Viewer";
+    ar.write("version", ApplicationInfo::version);
+    ar.write("git_revision", ApplicationInfo::git_revision);
   }
-  catch (std::exception ex)
+  else
   {
-    if (bShowDialogs) 
-    {
-      String errormsg=StringUtils::format()<<"Failed to save file " + url + "error("+ex.what()+")";
-      QMessageBox::information(this,"Error",errormsg.c_str());
-    }
+    ar =StringTree("Viewer");
+    this->write(ar);
+  }
+
+  if (!Utils::saveTextDocument(url, ar.toString()))
     return false;
-  }
 
   this->last_saved_filename=url;
+  return true;
+}
 
-  if (bShowDialogs) 
+////////////////////////////////////////////////////////////
+bool Viewer::saveFile(String url, bool bSaveHistory)
+{
+  if (url.empty())
   {
-    String errormsg=StringUtils::format()<<"File " + url+ " saved";
-    QMessageBox::information(this,"Info",errormsg.c_str());
+    static String last_dir(KnownPaths::VisusHome.toString());
+    url = cstring(QFileDialog::getSaveFileName(nullptr, "Choose a file to save...", last_dir.c_str(), "*.xml"));
+    if (url.empty()) return false;
+    last_dir = Path(url).getParent();
   }
 
-  return true;
+  bool ret = save(url, bSaveHistory);
+
+  if (ret)
+    QMessageBox::information(this, "Error", cstring("Failed to save file", url).c_str());
+  else
+    QMessageBox::information(this, "Info", cstring("File", url, "saved").c_str());
+
+  return save(url, bSaveHistory);
 }
   
 ////////////////////////////////////////////////////////////
@@ -1423,8 +1520,8 @@ void Viewer::setAutoRefresh(ViewerAutoRefresh new_value)  {
     return;
 
   beginUpdate(
-    StringTree("set").write("target_id", "auto_refresh").write("enabled", new_value.enabled).write("msec", new_value.msec),
-    StringTree("set").write("target_id", "auto_refresh").write("enabled", old_value.enabled).write("msec", old_value.msec));
+    StringTree("SetAutoRefresh","enabled", new_value.enabled,"msec", new_value.msec),
+    StringTree("SetAutoRefresh","enabled", old_value.enabled,"msec", old_value.msec));
   {
     old_value = new_value;
     widgets.toolbar->auto_refresh.check->setChecked(new_value.enabled);
@@ -1436,7 +1533,7 @@ void Viewer::setAutoRefresh(ViewerAutoRefresh new_value)  {
   {
     this->auto_refresh_timer = std::make_shared<QTimer>();
     QObject::connect(this->auto_refresh_timer.get(), &QTimer::timeout, [this]() {
-      refreshData();
+      refreshAll();
     });
     this->auto_refresh_timer->start(this->auto_refresh.msec);
   }
@@ -1447,8 +1544,8 @@ void Viewer::setAutoRefresh(ViewerAutoRefresh new_value)  {
 void Viewer::dropProcessing()
 {
   beginUpdate(
-    StringTree("dropProcessing"),
-    StringTree("dropProcessing"));
+    StringTree("DropProcessing"),
+    StringTree("DropProcessing"));
   {
     dataflow->abortProcessing();
     dataflow->joinProcessing();
@@ -1461,10 +1558,17 @@ void Viewer::dropProcessing()
 ////////////////////////////////////////////////////////////////////
 void Viewer::setMouseDragging(bool new_value)
 {
-  Model::setProperty("mouse_dragging",this->mouse_dragging,new_value);
+  auto& old_value = this->mouse_dragging;
+  if (old_value == new_value) return;
+  beginUpdate(
+    StringTree("SetMouseDragging", "value", new_value),
+    StringTree("SetMouseDragging", "value", old_value));
+  {
+    old_value = new_value;
+  }
+  endUpdate();
   postRedisplay();
 }
-
 
 ////////////////////////////////////////////////////////////////////
 void Viewer::scheduleMouseDragging(bool value, int msec)
@@ -1478,7 +1582,6 @@ void Viewer::scheduleMouseDragging(bool value, int msec)
   this->mouse_timer->start(msec);
 }
 
-
 ////////////////////////////////////////////////////////////////////
 void Viewer::setSelection(Node* new_value)
 {
@@ -1487,8 +1590,8 @@ void Viewer::setSelection(Node* new_value)
     return;
 
   beginUpdate(
-    StringTree("setSelection").write("node", getUUID(new_value)),
-    StringTree("setSelection").write("node", getUUID(old_value)));
+    StringTree("SetSelection", "value", getUUID(new_value)),
+    StringTree("SetSelection", "value", getUUID(old_value)));
   {
     dataflow->setSelection(new_value);
   }
@@ -1527,8 +1630,8 @@ void Viewer::setNodeVisible(Node* node,bool new_value)
     return;
 
   beginUpdate(
-    StringTree("showNode").writeString("node", getUUID(node)).write("value", new_value),
-    StringTree("showNode").writeString("node", getUUID(node)).write("value", old_value));
+    StringTree("SetNodeVisible", "node", getUUID(node), "value", new_value),
+    StringTree("SetNodeVisible", "node", getUUID(node), "value", old_value));
   {
     dropProcessing();
     for (auto it : node->breadthFirstSearch())
@@ -1549,34 +1652,38 @@ void Viewer::addNode(Node* parent,Node* node,int index)
   if (dataflow->containsNode(node))
     return;
 
-  node->begin_update.connect([this,node](){
-    beginUpdate(
-      createPassThroughAction(StringTree("begin_update"), "node"),
-      createPassThroughAction(StringTree("begin_update"), "node"));
+  node->begin_update.connect([this](){
+    beginTransaction();
   });
 
-  node->end_update.connect([this,node](){
-    //replace top action
-    this->topRedo() = createPassThroughAction(node->topRedo(),"nodes/" + getUUID(node));
-    this->topUndo() = createPassThroughAction(node->topUndo(),"nodes/" + getUUID(node));
+  node->end_update.connect([this,node]()
+  {
+    beginUpdate(
+      CreatePassThroughAction(concatenate("nodes", "/", getUUID(node)), node->lastRedo()),
+      CreatePassThroughAction(concatenate("nodes", "/", getUUID(node)), node->lastUndo()));
+    {
+      //if something changes in the query...
+      if (auto query_node = dynamic_cast<QueryNode*>(node))
+        refreshNode(query_node);
 
-    //if something changes in the query...
-    if (auto query_node = dynamic_cast<QueryNode*>(node))
-      refreshData(query_node);
-
-    else if (auto modelview_node=dynamic_cast<ModelViewNode*>(node))
-      refreshData(modelview_node);
-
+      else if (auto modelview_node = dynamic_cast<ModelViewNode*>(node))
+        refreshNode(modelview_node);
+    }
     endUpdate();
+
+    endTransaction();
   });
 
   dropSelection();
 
   beginTransaction();
   {
+    StringTree encoded(node->getTypeName());
+    node->write(encoded);
+
     beginUpdate(
-      StringTree("add").write("what","node").write("parent",getUUID(parent)).write("index",index).addChild(EncodeObject(*node)),
-      StringTree("remove").write("node",getUUID(node)));
+      StringTree("AddNode", "parent", getUUID(parent), "index",index).addChild(encoded),
+      StringTree("RemoveNode", "uuid",getUUID(node)));
     {
       dataflow->addNode(parent, node, index);
     }
@@ -1597,54 +1704,61 @@ void Viewer::removeNode(Node* NODE)
     return;
 
   beginUpdate(
-    StringTree("remove").write("node",getUUID(NODE)), 
+    StringTree("RemoveNode", "uuid",getUUID(NODE)),
     Transaction());
   {
     dropProcessing();
     dropSelection();
 
-    for (auto node : NODE->reversedBreadthFirstSearch())
+    auto rev = NODE->reversedBreadthFirstSearch();
+
+    //first disconnect all ports
+    for (auto node : rev)
     {
       VisusAssert(node->getChilds().empty());
 
       if (auto glcamera_node = dynamic_cast<GLCameraNode*>(node))
         detachGLCamera();
 
-      //disconnect inputs
       for (auto input : node->inputs)
       {
         DataflowPort* iport = input.second; VisusAssert(iport->outputs.empty());//todo multi dataflow
         while (!iport->inputs.empty())
         {
           auto oport = *iport->inputs.begin();
-          disconnectPorts(oport->getNode(), oport->getName(), iport->getName(), iport->getNode());
+          disconnectNodes(oport->getNode(), oport->getName(), iport->getName(), iport->getNode());
         }
       }
 
-      //disconnect outputs
       for (auto output : node->outputs)
       {
         auto oport = output.second; VisusAssert(oport->inputs.empty());//todo multi dataflow
         while (!oport->outputs.empty())
         {
           auto iport = *oport->outputs.begin();
-          disconnectPorts(oport->getNode(), oport->getName(), iport->getName(), iport->getNode());
+          disconnectNodes(oport->getNode(), oport->getName(), iport->getName(), iport->getNode());
         }
       }
-
-      VisusAssert(node->isOrphan());
-
-      Utils::push_front(topUndo().childs,
-        std::make_shared<StringTree>(
-          StringTree("add")
-            .write("what", "node")
-            .write("parent", getUUID(node->getParent()))
-            .write("index", cstring(node->getIndexInParent())).addChild(EncodeObject(*node))));
-
-      dataflow->removeNode(node);
     }
 
-    autoConnectPorts();
+    //then remove the nodes
+    for (auto node : rev)
+    {
+      VisusAssert(node->isOrphan());
+
+      beginUpdate(
+        StringTree(),
+        StringTree(StringTree("AddNode")
+          .write("parent", getUUID(node->getParent()))
+          .write("index", cstring(node->getIndexInParent()))
+          .addChild(EncodeObject(node->getTypeName(), *this))));
+      {
+        dataflow->removeNode(node);
+      }
+      endUpdate();
+    }
+
+    autoConnectNodes();
   }
   endUpdate();
 
@@ -1652,33 +1766,54 @@ void Viewer::removeNode(Node* NODE)
 }
 
 ////////////////////////////////////////////////////////////////////
-void Viewer::connectPorts(Node* from,String oport,String iport,Node* to)
+void Viewer::connectNodes(Node* from,String oport,String iport,Node* to)
 {
   beginUpdate(
-    StringTree("connectPorts"   ).write("from", getUUID(from)).write("oport", oport).write("iport", iport).write("to", getUUID(to)),
-    StringTree("disconnectPorts").write("from", getUUID(from)).write("oport", oport).write("iport", iport).write("to", getUUID(to)));
+    StringTree("ConnectNodes",    "from", getUUID(from), "oport", oport, "iport", iport, "to", getUUID(to)),
+    StringTree("DisconnectNodes", "from", getUUID(from), "oport", oport, "iport", iport, "to", getUUID(to)));
   {
-    dataflow->connectPorts(from, oport, iport, to);
+    dataflow->connectNodes(from, oport, iport, to);
   }
   endUpdate();
   postRedisplay();
 }
 
 ////////////////////////////////////////////////////////////////////
-void Viewer::disconnectPorts(Node* from,String oport,String iport,Node* to)
+void Viewer::connectNodes(Node* from, String port, Node* to) {
+  VisusAssert(from->hasOutputPort(port));
+  VisusAssert(to->hasInputPort(port));
+  connectNodes(from, port, port, to);
+}
+
+////////////////////////////////////////////////////////////////////
+void Viewer::connectNodes(Node* from, Node* to)
+{
+  std::vector<String> common;
+  for (auto oport : from->getOutputPortNames())
+  {
+    if (to->hasInputPort(oport))
+      common.push_back(oport);
+  }
+  if (common.size() != 1)
+    ThrowException("internal error");
+  return connectNodes(from, common[0], to);
+}
+
+////////////////////////////////////////////////////////////////////
+void Viewer::disconnectNodes(Node* from,String oport,String iport,Node* to)
 {
   beginUpdate(
-    StringTree("disconnectPorts").write("from", getUUID(from)).write("oport", oport).write("iport", iport).write("to", getUUID(to)),
-    StringTree("connectPorts"   ).write("from", getUUID(from)).write("oport", oport).write("iport", iport).write("to", getUUID(to)));
+    StringTree("DisconnectNodes", "from", getUUID(from), "oport", oport, "iport", iport, "to", getUUID(to)),
+    StringTree("ConnectNodes"   , "from", getUUID(from), "oport", oport, "iport", iport, "to", getUUID(to)));
   {
-    dataflow->disconnectPorts(from, oport, iport, to);
+    dataflow->disconnectNodes(from, oport, iport, to);
   }
   endUpdate();
   postRedisplay();
 }
 
 ////////////////////////////////////////////////////////////////////////
-void Viewer::autoConnectPorts()
+void Viewer::autoConnectNodes()
 {
   beginTransaction();
 
@@ -1694,7 +1829,7 @@ void Viewer::autoConnectPorts()
 
       DataflowPort* oport = nullptr;
 
-      //I have a child with no input ports and an auto connected output port
+      //I have a child with no input ports and one output port
       for (auto child : node->getChilds())
       {
         if (child->inputs.empty() && (oport = child->getOutputPort(iport->getName())))
@@ -1710,7 +1845,7 @@ void Viewer::autoConnectPorts()
       }
 
       if (oport)
-        connectPorts(oport->getNode(), oport->getName(), iport->getName(), iport->getNode());
+        connectNodes(oport->getNode(), oport->getName(), iport->getName(), iport->getNode());
     }
   }
 
@@ -1720,17 +1855,17 @@ void Viewer::autoConnectPorts()
 }
 
 /////////////////////////////////////////////////////////////////
-void Viewer::refreshData(Node* node)
+void Viewer::refreshNode(Node* node)
 {
   beginUpdate(
-    StringTree("refreshData").write("node", getUUID(node)),
-    StringTree("refreshData").write("node", getUUID(node)));
+    StringTree("RefreshNode").writeIfNotDefault("node", getUUID(node), String("")),
+    StringTree("RefreshNode").writeIfNotDefault("node", getUUID(node), String("")));
 
   if (node)
   {
     if (auto query_node=dynamic_cast<QueryNode*>(node))
     {
-      query_node->setPosition(query_node->getPosition(),/*bForce*/true);
+      dataflow->needProcessInput(query_node);
     }
     else if (auto modelview_node=dynamic_cast<ModelViewNode*>(node))
     {
@@ -1763,527 +1898,88 @@ void Viewer::refreshData(Node* node)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-Node* Viewer::addGroup(Node* parent, String name)
+Node* Viewer::addWorld(String uuid)
+{
+  if (uuid.empty())
+    uuid = "world";
+
+  Node* ret = nullptr;
+  beginUpdate(
+    StringTree("AddWorld", "uuid", uuid),
+    StringTree("RemoveNode", "uuid", uuid));
+  {
+    //world
+    auto world = new Node();
+    ret = world;
+    world->setUUID(uuid);
+    world->setName("World");
+    addNode(world);
+  }
+  endUpdate();
+
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+DatasetNode* Viewer::addDataset(String uuid, Node* parent, SharedPtr<Dataset> dataset)
 {
   if (!parent)
     parent = getRoot();
 
-  if (name.empty())
-  {
-    name = cstring(QInputDialog::getText(this, "Insert the group name:", "", QLineEdit::Normal, ""));
-    if (name.empty())
-      return nullptr;
-  }
-
-  auto group_node = new Node(name);
-  group_node->setUUID(dataflow->guessNodeUIID("Group"));
-
-  dropSelection();
-
-  beginUpdate(
-    StringTree("add").write("what","group").write("parent",getUUID(parent)).write("name",name),
-    StringTree("remove").write("node",getUUID(group_node)));
-  {
-    
-    addNode(parent, group_node, /*index*/0);
-  }
-  endUpdate();
-
-  return group_node;
-} 
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-GLCameraNode* Viewer::addGLCamera(Node* parent, SharedPtr<GLCamera> glcamera)
-{
-  if (!parent)
-    parent=getRoot();
-
-  auto glcamera_node=dataflow->createNode<GLCameraNode>("GLCamera", glcamera);
-
-  dropSelection();
-
-  beginUpdate(
-    StringTree("add").write("what","glcamera").write("parent", getUUID(parent)).addChild(EncodeObject(*glcamera)),
-    StringTree("remove").write("node",getUUID(glcamera_node)));
-  {
-    addNode(parent, glcamera_node,/*index*/0);
-  }
-  endUpdate();
-
-  return glcamera_node;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-GLCameraNode* Viewer::addGLCamera(Node* parent, int pdim)
-{
-  if (pdim == 3)
-    return addGLCamera(parent, std::make_shared<GLLookAtCamera>());
-  else
-    return addGLCamera(parent, std::make_shared<GLOrthoCamera>());
-}
-
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Node* Viewer::addRender(Node* parent,String palette)  
-{
-  if (!parent)
-    parent = getRoot();
-
-  VisusReleaseAssert(parent->hasOutputPort("data"));
-
-  auto render_node = dataflow->createNode<RenderArrayNode>("Render");
-  auto palette_node= palette.empty()? nullptr : dataflow->createNode<PaletteNode>("Palette", palette);
-
-  dropSelection();
-
-  beginUpdate(
-    StringTree("add").write("what","render").write("parent", getUUID(parent)).write("palette", palette),
-    StringTree("remove").write("node","render_node"));
-  {
-    addNode(parent, render_node);
-
-    connectPorts(parent,"data", render_node);
-
-    if (palette_node)
-    {
-      addNode(render_node, palette_node);
-      connectPorts(parent,"data",palette_node);
-      connectPorts(palette_node,"palette", render_node);
-    }
-  }
-  endUpdate();
-
-  return render_node;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-Node* Viewer::addOSPRay(Node* parent, String palette)
-{
-  if (!parent)
-    parent = getRoot();
-
-  VisusReleaseAssert(parent->hasOutputPort("data"));
-
-  Node* render_node = dataflow->createNode<OSPRayRenderNode>("OSPrayRender");
-
-  auto palette_node = palette.empty() ? nullptr : dataflow->createNode<PaletteNode>("Palette", palette);
-
-  dropSelection();
-
-  beginUpdate(
-    StringTree("add").write("what", "ospray").write("parent", getUUID(parent)).write("palette", palette),
-    StringTree("remove").write("node",getUUID(render_node)));
-  {
-    addNode(parent, render_node);
-
-    connectPorts(parent, "data", render_node);
-
-    if (palette_node)
-    {
-      addNode(render_node, palette_node);
-      connectPorts(parent, "data", palette_node);
-      connectPorts(palette_node, "palette", render_node);
-    }
-  }
-  endUpdate();
-
-  return render_node;
-
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-KdRenderArrayNode* Viewer::addKdRender(Node* parent) 
-{
-  if (!parent)
-    parent = getRoot();
-
-  VisusReleaseAssert(parent->hasOutputPort("data"));
-
-  auto render_node = dataflow->createNode<KdRenderArrayNode>("KdRender");
-  auto palette_node= dataflow->createNode<PaletteNode>("Palette","GrayOpaque");
-
-  dropSelection();
-
-  beginUpdate(
-    StringTree("add").write("what","kdrender").write("parent", getUUID(parent)),
-    StringTree("remove").write("node",getUUID(render_node)));
-  {
-    addNode(parent,render_node);
-    addNode(render_node, palette_node);
-    connectPorts(palette_node,render_node);
-  }
-  endUpdate();
-
-  return render_node;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-QueryNode* Viewer::addVolume(Node* parent, String fieldname, int access_id)
-{
-  if (!parent)
-  {
-    parent=findNodeByType<DatasetNode>();
-    if (!parent)
-      parent=getRoot();
-  }
-
-  auto* dataset_node= dynamic_cast<DatasetNode*>(parent);
-  if (!dataset_node)
-    dataset_node= findNodeByType<DatasetNode>();
-  VisusReleaseAssert(dataset_node);
-
-  auto dataset=dataset_node->getDataset();
-  if (!dataset) 
-  {
-    VisusInfo()<<"Cannot find dataset";
+  if (!dataset) {
+    VisusAssert(false);
     return nullptr;
   }
 
-  if (fieldname.empty())
-    fieldname=dataset->getDefaultField().name;
-
-
-  auto query_node= dataflow->createNode<QueryNode>("Volume");
-  {
-    query_node->setVerbose(1);
-    query_node->setAccessIndex(access_id);
-    query_node->setViewDependentEnabled(true);
-    query_node->setProgression(QueryGuessProgression);
-    query_node->setQuality(QueryDefaultQuality);
-    query_node->setPosition(dataset_node->getPosition());
-  }
-
-  auto field_node= dataflow->createNode<FieldNode>("Field", fieldname);
-
-  auto scripting_node = dataflow->createNode<ScriptingNode>("Scripting");
-
-  auto time_node=dataset_node->findChild<TimeNode*>();
-  if (!time_node)
-    time_node= dataflow->createNode<TimeNode>("Time",dataset->getDefaultTime(),dataset->getTimesteps());
-
-  beginUpdate(
-    StringTree("add").write("what","volume").write("parent",getUUID(parent)).write("fieldname", fieldname).write("access_id", access_id),
-    StringTree("remove").write("node",getUUID(query_node)));
-  {
-    addNode(parent,query_node);
-    addNode(query_node, field_node);
-    addNode(query_node, scripting_node);
-    addNode(query_node, time_node); //this is a nope if time_node already exists
-
-    connectPorts(dataset_node,query_node);
-    connectPorts(time_node,query_node);
-    connectPorts(field_node,query_node);
-    connectPorts(query_node, "data", scripting_node);
-
-    addRender(scripting_node, "GrayTransparent");
-  }
-  endUpdate();
-
-  return query_node;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-QueryNode* Viewer::addSlice(Node* parent, String fieldname, int access_id)
-{
-  if (!parent)
-  {
-    parent = findNodeByType<DatasetNode>();
-    if (!parent)
-      parent = getRoot();
-  }
-
-  auto* dataset_node = dynamic_cast<DatasetNode*>(parent);
-  if (!dataset_node)
-    dataset_node = findNodeByType<DatasetNode>();
-  VisusReleaseAssert(dataset_node);
-
-  auto dataset = dataset_node->getDataset();
-  if (!dataset)
-  {
-    VisusInfo() << "Cannot find dataset";
-    return nullptr;
-  }
-
-  if (fieldname.empty())
-    fieldname = dataset->getDefaultField().name;
-
-  auto query_node = dataflow->createNode<QueryNode>("Slice");
-  {
-    query_node->setVerbose(1);
-    query_node->setAccessIndex(access_id);
-    query_node->setViewDependentEnabled(true);
-    query_node->setProgression(QueryGuessProgression);
-    query_node->setQuality(QueryDefaultQuality);
-
-    if (bool bPointQuery = dataset->getPointDim() == 3)
-    {
-      auto box = dataset_node->getPosition().getBoxNd().withPointDim(3);
-      box.p1[2] = box.p2[2] = box.center()[2];
-      query_node->setPosition(Position(dataset_node->getPosition().getTransformation(), box));
-    }
-    else
-    {
-      query_node->setPosition(dataset_node->getPosition());
-    }
-  }
-
-  auto field_node = dataflow->createNode<FieldNode>("fieldnode", fieldname);
-
-  auto scripting_node = dataflow->createNode<ScriptingNode>("Scripting");
-
-  auto time_node = dataset_node->findChild<TimeNode*>();
-  if (!time_node)
-    time_node = dataflow->createNode<TimeNode>("time", dataset->getDefaultTime(), dataset->getTimesteps());
-
-  beginUpdate(
-    StringTree("add").write("what", "slice").write("parent", getUUID(parent)).write("fieldname", fieldname).write("access_id", access_id),
-    StringTree("remove").write("node",getUUID(query_node)));
-  {
-    addNode(parent, query_node);
-    addNode(query_node, field_node);
-    addNode(query_node, scripting_node);
-    addNode(query_node, time_node);
-
-    connectPorts(dataset_node, query_node);
-    connectPorts(time_node, query_node);
-    connectPorts(field_node, query_node);
-    connectPorts(query_node, "data", scripting_node);
-
-    addRender(scripting_node, "GrayOpaque");
-  }
-  endUpdate();
-
-  return query_node;
-}
-
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-QueryNode* Viewer::addIsoContour(Node* parent, String fieldname, int access_id)
-{
-  if (!parent)
-  {
-    parent = findNodeByType<DatasetNode>();
-    if (!parent)
-      parent = getRoot();
-  }
-
-  auto* dataset_node = dynamic_cast<DatasetNode*>(parent);
-  if (!dataset_node)
-    dataset_node = findNodeByType<DatasetNode>();
-  VisusReleaseAssert(dataset_node);
-
-  auto dataset = dataset_node->getDataset();
-  VisusReleaseAssert(dataset);
-
-  if (fieldname.empty())
-    fieldname = dataset->getDefaultField().name;
-
-  auto query_node = dataflow->createNode<QueryNode>("IsoContour");
-  {
-    query_node->setVerbose(1);
-    query_node->setAccessIndex(access_id);
-    query_node->setViewDependentEnabled(true);
-    query_node->setProgression(QueryGuessProgression);
-    query_node->setQuality(QueryDefaultQuality);
-    query_node->setPosition(dataset_node->getPosition());
-  }
-
-  auto field_node = dataflow->createNode<FieldNode>("fieldnode", fieldname);
-
-  auto scripting_node = dataflow->createNode<ScriptingNode>("Scripting");
-
-  auto time_node = dataset_node->findChild<TimeNode*>();
-  if (!time_node)
-    time_node = dataflow->createNode<TimeNode>("time", dataset->getDefaultTime(), dataset->getTimesteps());
-
-  auto build_isocontour = dataflow->createNode<IsoContourNode>("Marching cube");
-  {
-    double isovalue = 0.0;
-    Field field = dataset->getFieldByName(fieldname);
-    if (field.dtype.ncomponents() == 1)
-    {
-      Range range = field.dtype.getDTypeRange();
-      isovalue = 0.5 * (range.from + range.to);
-    }
-    build_isocontour->setIsoValue(isovalue);
-  }
-  
-  auto render_node = dataflow->createNode<IsoContourRenderNode>("Mesh Render");
-  {
-    GLMaterial material = render_node->getMaterial();
-    material.front.diffuse = Color::createFromUint32(0x3c6d3eff);
-    material.front.specular = Color::createFromUint32(0xffffffff);
-    material.back.diffuse = Color::createFromUint32(0x2a4b70ff);
-    material.back.specular = Color::createFromUint32(0xffffffff);
-    render_node->setMaterial(material);
-  }
-
-  //this is useful if the data coming from the data provider has 2 components, first is used to compute the 
-  //marching cube, the second as a second field to color the vertices of the marching cube
-  auto palette_node = dataflow->createNode<PaletteNode>("Palette", "GrayOpaque");
+  if (uuid.empty())
+    uuid = dataflow->guessNodeUIID("dataset");
 
   dropSelection();
 
+  DatasetNode* ret = nullptr;
   beginUpdate(
-    StringTree("add").write("what", "isocontour").write("parent", getUUID(parent)).write("fieldname", fieldname).write("access_id", access_id),
-    StringTree("remove").write("node", "query_node"));
+    StringTree("AddDataset", "uuid", uuid, "parent", getUUID(parent), "url", dataset->getUrl()),
+    StringTree("RemoveNode", "uuid", uuid));
   {
-    addNode(parent, query_node);
-    addNode(query_node, field_node);
-    addNode(query_node, time_node);
-    addNode(query_node, scripting_node);
+    //dataset
+    auto dataset_node = new DatasetNode();
+    ret = dataset_node;
+    dataset_node->setUUID(uuid);
+    dataset_node->setName(dataset->getUrl().toString());
+    dataset_node->setDataset(dataset);
+    dataset_node->setShowBounds(true);
+    addNode(parent, dataset_node);
 
-    addNode(scripting_node, build_isocontour);
-    addNode(scripting_node, palette_node);
-    addNode(scripting_node, render_node);
-
-    connectPorts(dataset_node, query_node);
-    connectPorts(time_node, query_node);
-    connectPorts(field_node, query_node);
-    connectPorts(query_node, "data", scripting_node);
-    connectPorts(scripting_node, "data", build_isocontour);
-    connectPorts(build_isocontour, "data", render_node);
-    connectPorts(build_isocontour, "data", palette_node); //enable statistics
-    connectPorts(palette_node, "palette", render_node);
+    //time (this is for queries...)
+    auto time_node = new TimeNode(dataset->getDefaultTime(), dataset->getTimesteps());
+    time_node->setUUID(concatenate(uuid, "/time"));
+    time_node->setName("Time");
+    addNode(dataset_node, time_node);
   }
   endUpdate();
 
-  return query_node;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-KdQueryNode* Viewer::addKdQuery(Node* parent,String fieldname,int access_id) 
-{
-  if (!parent)
-  {
-    parent= findNodeByType<DatasetNode>();
-    if (!parent)
-      parent=getRoot();
-  }
-
-  auto* dataset_node = dynamic_cast<DatasetNode*>(parent);
-  if (!dataset_node)
-    dataset_node = findNodeByType<DatasetNode>();
-  VisusReleaseAssert(dataset_node);
-
-  auto dataset=dataset_node->getDataset();
-  if (!dataset)
-  {
-    VisusInfo()<<"Cannot find dataset";
-    return nullptr;
-  }
-
-  if (fieldname.empty())
-    fieldname=dataset->getDefaultField().name;
-
-  //KdQueryNode
-  auto query_node= dataflow->createNode<KdQueryNode>("KdQuery");
-  {
-    query_node->setAccessIndex(access_id);
-    query_node->setViewDependentEnabled(true);
-    query_node->setQuality(QueryDefaultQuality);
-    query_node->setPosition(dataset_node->getPosition());
-  }
-
-  //TimeNode
-  auto time_node=dataset_node->findChild<TimeNode*>();
-  if (!time_node)
-    time_node= dataflow->createNode<TimeNode>("time",dataset->getDefaultTime(),dataset->getTimesteps());
-
-  //FieldNode
-  auto field_node= dataflow->createNode<FieldNode>("fieldnode");
-  {
-    field_node->setFieldName(fieldname);
-  }
-
-  //render_node
-  auto render_node = dataflow->createNode<KdRenderArrayNode>("KdRender");
-  auto palette_node= dataflow->createNode<PaletteNode>("Palette","GrayOpaque");
-
-  beginUpdate(
-    StringTree("add").write("what","kdquery").write("parent", getUUID(parent)).write("fieldname", fieldname).write("access_id", access_id),
-    StringTree("remove").write("node", getUUID(query_node)));
-  {
-    addNode(parent,query_node);
-    addNode(query_node,field_node);
-    addNode(query_node,palette_node);
-    addNode(query_node,render_node);
-    addNode(query_node,time_node);
-
-    connectPorts(dataset_node,query_node);
-    connectPorts(time_node,query_node);
-    connectPorts(field_node,query_node);
-    //connectPorts(query_node,"data",palette_node); this enable statistics 
-    connectPorts(palette_node,"palette",render_node);
-    connectPorts(query_node,"data",render_node);
-  }
-  endUpdate();
-
-  return query_node;
+  return ret;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-DatasetNode* Viewer::addDataset(Node* parent, SharedPtr<Dataset> dataset)
-{
-  if (!parent)
-    parent=getRoot();
-
-  VisusAssert(dataset);
-
-  auto dataset_node= dataflow->createNode<DatasetNode>("Dataset");
-  dataset_node->setName(dataset->getUrl().toString());
-  dataset_node->setDataset(dataset);
-  dataset_node->setShowBounds(true);
-
-  //time (this is for queries...)
-  auto time_node= dataflow->createNode<TimeNode>("time",dataset->getDefaultTime(),dataset->getTimesteps());
-
-  auto config = dataset->getConfig();
-
-  dropSelection();
-
-  beginUpdate(
-    StringTree("add").write("what","dataset").write("parent",getUUID(parent)).write("url",dataset->getUrl()).addChild(config),
-    StringTree("remove").write("node", getUUID(dataset_node)));
-  {
-    addNode(parent,dataset_node);
-    addNode(dataset_node,time_node);
-
-    String rendertype = StringUtils::toLower(config.readString("rendertype", ""));
-
-    if ((dataset->getKdQueryMode() != KdQueryMode::NotSpecified) || rendertype == "kdrender")
-      addKdQuery(dataset_node);
-
-    else if (dataset->getPointDim() == 3)
-      addVolume(dataset_node);
-
-    else
-      addSlice(dataset_node);
-
-    this->refreshData();
-  }
-  endUpdate();
-
-  return dataset_node;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-ModelViewNode* Viewer::addModelView(Node* parent,bool insert)
+ModelViewNode* Viewer::addModelView(String uuid, Node* parent, bool insert)
 {
   if (!parent)
     parent = getRoot();
 
-  auto modelview_node = dataflow->createNode<ModelViewNode>("Transform");
+  if (uuid.empty())
+    uuid = dataflow->guessNodeUIID("modelview");
 
+  ModelViewNode* ret = nullptr;
   beginUpdate(
-    StringTree("add").write("what","modelview").write("parent", getUUID(parent)).write("insert", insert),
-    insert? Transaction() : StringTree("remove").write("node", getUUID(modelview_node)));
+    StringTree("AddModelView", "uuid", uuid, "parent", getUUID(parent), "insert", insert),
+    insert ? Transaction() : StringTree("RemoveNode", "uuid", uuid));
   {
+    //modelview
+    auto modelview_node = new ModelViewNode();
+    ret = modelview_node;
+    modelview_node->setUUID(uuid);
+    modelview_node->setName("ModelView");
     if (insert)
     {
       Node* A = parent->getParent(); VisusAssert(A);
@@ -2300,128 +1996,681 @@ ModelViewNode* Viewer::addModelView(Node* parent,bool insert)
   }
   endUpdate();
 
-  return modelview_node;
+  return ret;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-ScriptingNode* Viewer::addScripting(Node* parent) 
-{
-  if (!parent)
-    parent=getRoot();
-
-  VisusAssert(parent->hasOutputPort("data"));
-
-  auto scripting_node= dataflow->createNode<ScriptingNode>("Scripting");
-  scripting_node->setMaxPublishMSec(cint(config.readString("Configuration/ScriptingNode/max_publish_msec", cstring(scripting_node->getMaxPublishMSec()))));
-
-  dropSelection();
-
-  beginUpdate(
-    StringTree("add").write("what","scripting").write("parent", getUUID(parent)),
-    StringTree("remove"));
-  {
-    addNode(parent,scripting_node);
-    addRender(scripting_node,"GrayOpaque");
-    connectPorts(parent,"data",scripting_node);
-  }
-  endUpdate();
-
-  return scripting_node;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-CpuPaletteNode* Viewer::addCpuTransferFunction(Node* parent) 
-{
-  if (!parent)
-    parent=getRoot();
-
-  VisusAssert(parent->hasOutputPort("data"));
-
-  //guess number of functions
-  int num_functions = 1;
-  if (DataflowPortValue * last_published = dataflow->guessLastPublished(parent->getOutputPort("data")))
-  {
-    if (auto last_data = std::dynamic_pointer_cast<Array>(last_published->value))
-      num_functions = last_data->dtype.ncomponents();
-  }
-  
-  //CpuPaletteNode
-  auto node= dataflow->createNode<CpuPaletteNode>("CPU Palette");
-  {
-    auto palette = TransferFunction::getDefault("GrayOpaque");
-    palette->setNumberOfFunctions(num_functions);
-    node->setTransferFunction(palette);
-  }
-
-  dropSelection();
-
-  beginUpdate(
-    StringTree("add").write("what","cpu_transfer_function").write("parent", getUUID(parent)),
-    StringTree("remove").write("node", getUUID(node)));
-  {
-    addNode(parent, node);
-    addRender(node,/*no need for a palette*/"");
-    connectPorts(parent,"data", node);
-  }
-  endUpdate();
-
-  return node;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-PaletteNode* Viewer::addPalette(Node* parent,String palette) 
-{
-  if (!parent)
-    parent=getRoot();
-
-  auto palette_node= dataflow->createNode<PaletteNode>("Palette",palette);
-
-  dropSelection();
-
-  beginUpdate(
-    StringTree("add").write("what","palette").write("parent", getUUID(parent)).write("palette", palette),
-    StringTree("remove").write("node", getUUID(palette_node)));
-  {
-    addNode(parent,palette_node,1);
-
-    //enable statistics
-    if (parent->hasOutputPort("data"))
-      connectPorts(parent,"data",palette_node);
-  }
-  endUpdate();
-
-  return palette_node;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-StatisticsNode* Viewer::addStatistics(Node* parent)  
+Node* Viewer::addGroup(String uuid, Node* parent, String name)
 {
   if (!parent)
     parent = getRoot();
 
-  VisusReleaseAssert(parent->hasOutputPort("data"));
+  if (name.empty())
+  {
+    name = cstring(QInputDialog::getText(this, "Insert the group name:", "", QLineEdit::Normal, ""));
+    if (name.empty())
+      return nullptr;
+  }
 
-  auto statistics_node= dataflow->createNode<StatisticsNode>("Statistics");
+  if (uuid.empty())
+    uuid = dataflow->guessNodeUIID("group");
 
   dropSelection();
 
+  Node* ret = nullptr;
   beginUpdate(
-    StringTree("add").write("what","statistics").write("parent", getUUID(parent)),
-    StringTree("remove").write("node", getUUID(statistics_node)));
+    StringTree("AddGroup", "uuid", uuid, "parent", getUUID(parent), "name",name),
+    StringTree("RemoveNode", "uuid", uuid));
   {
-    addNode(parent,statistics_node);
-    connectPorts(parent,"data",statistics_node);
+    //group
+    auto group_node = new Node();
+    ret = group_node;
+    group_node->setUUID(uuid);
+    group_node->setName(name);
+    addNode(parent, group_node, /*index*/0);
   }
   endUpdate();
 
-  return statistics_node;
+  return ret;
+} 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+GLCameraNode* Viewer::addGLCamera(String uuid, Node* parent, String type)
+{
+  if (!parent)
+    parent=getRoot();
+
+  if (uuid.empty())
+    uuid = dataflow->guessNodeUIID("glcamera");
+
+  type = StringUtils::toLower(type);
+  if (type.empty())
+    type = getWorldBox().toBox3().minsize() == 0? "ortho" : "lookat";
+
+  dropSelection();
+
+  GLCameraNode* ret = nullptr;
+  beginUpdate(
+    StringTree("AddGLCamera", "uuid", uuid, "parent", getUUID(parent), "type", type),
+    StringTree("RemoveNode", "uuid", uuid));
+  {
+    //glcamera
+    SharedPtr<GLCamera> glcamera;
+    if (StringUtils::contains(type, "ortho"))
+      glcamera = std::make_shared<GLOrthoCamera>();
+    else
+      glcamera = std::make_shared<GLLookAtCamera>();
+    glcamera->guessPosition(getWorldBox());
+
+    auto glcamera_node = new GLCameraNode(glcamera);
+    ret = glcamera_node;
+    glcamera_node->setUUID(uuid);
+    glcamera_node->setName("GLCamera");
+    addNode(parent, glcamera_node,/*index*/0);
+  }
+  endUpdate();
+
+  return ret;
 }
 
-/////////////////////////////////////////////////////////////
-void Viewer::writeTo(StringTree& out) const
+////////////////////////////////////////////////////////////////////////////////////////////////////
+QueryNode* Viewer::addVolume(String uuid, Node* parent, String fieldname, int access_id)
 {
-  out.writeString("version", cstring(ApplicationInfo::version));
-  out.writeString("git_revision", ApplicationInfo::git_revision);
+  if (!parent)
+  {
+    parent = findNode<DatasetNode>();
+    if (!parent)
+      parent = getRoot();
+  }
+
+  if (uuid.empty())
+    uuid = dataflow->guessNodeUIID("volume");
+
+  auto* dataset_node = dynamic_cast<DatasetNode*>(parent);
+  if (!dataset_node)
+    dataset_node = findNode<DatasetNode>();
+  VisusReleaseAssert(dataset_node);
+  auto dataset = dataset_node->getDataset();
+
+  if (fieldname.empty())
+    fieldname = dataset->getDefaultField().name;
+
+  QueryNode* ret = nullptr;
+  beginUpdate(
+    StringTree("AddVolume", "uuid", uuid, "parent", getUUID(parent), "fieldname", fieldname, "access_id", access_id),
+    StringTree("RemoveNode", "uuid", uuid));
+  {
+    //query
+    auto query_node = new QueryNode();
+    ret = query_node;
+    query_node->setUUID(uuid);
+    query_node->setName("Volume");
+    query_node->setVerbose(1);
+    query_node->setAccessIndex(access_id);
+    query_node->setViewDependentEnabled(true);
+    query_node->setProgression(QueryGuessProgression);
+    query_node->setQuality(QueryDefaultQuality);
+    query_node->setBounds(dataset_node->getBounds());
+    addNode(parent, query_node);
+    connectNodes(dataset_node, query_node);
+
+    //time
+    auto time_node = dataset_node->findChild<TimeNode*>();
+    if (!time_node) {
+      time_node = new TimeNode(dataset->getDefaultTime(), dataset->getTimesteps());
+      time_node->setUUID(concatenate(uuid, "/time"));
+      time_node->setName("Time");
+      addNode(query_node, time_node);
+    }
+    connectNodes(time_node, query_node);
+
+    //field
+    auto field_node = new FieldNode();
+    field_node->setUUID(concatenate(uuid, "/field"));
+    field_node->setName("Field");
+    field_node->setFieldName(fieldname);
+    addNode(query_node, field_node);
+    connectNodes(field_node, query_node);
+
+    //scripting
+    auto scripting_node = new ScriptingNode();
+    scripting_node->setUUID(concatenate(uuid, "/scripting"));
+    scripting_node->setName("Scripting");
+    addNode(query_node, scripting_node);
+    connectNodes(query_node, scripting_node);
+
+    //render
+    addRender(concatenate(uuid, "/render"), scripting_node, "GrayTransparent");
+  }
+  endUpdate();
+
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int access_id)
+{
+  if (!parent)
+  {
+    parent = findNode<DatasetNode>();
+    if (!parent)
+      parent = getRoot();
+  }
+
+  if (uuid.empty())
+    uuid = dataflow->guessNodeUIID("slice");
+
+  auto* dataset_node = dynamic_cast<DatasetNode*>(parent);
+  if (!dataset_node)
+    dataset_node = findNode<DatasetNode>();
+  VisusReleaseAssert(dataset_node);
+  auto dataset = dataset_node->getDataset();
+
+  if (fieldname.empty())
+    fieldname = dataset->getDefaultField().name;
+
+  QueryNode* ret = nullptr;
+  beginUpdate(
+    StringTree("AddSlice", "uuid", uuid, "parent", getUUID(parent), "fieldname", fieldname, "access_id", access_id),
+    StringTree("RemoveNode", "uuid", uuid));
+  {
+    //query
+    auto query_node = new QueryNode();
+    ret = query_node;
+    query_node->setUUID(uuid);
+    query_node->setName("Slice");
+    query_node->setVerbose(1);
+    query_node->setAccessIndex(access_id);
+    query_node->setViewDependentEnabled(true);
+    query_node->setProgression(QueryGuessProgression);
+    query_node->setQuality(QueryDefaultQuality);
+    if (bool bPointQuery = dataset->getPointDim() == 3)
+    {
+      auto box = dataset_node->getBounds().getBoxNd().withPointDim(3);
+      box.p1[2] = box.p2[2] = box.center()[2];
+      query_node->setBounds(Position(dataset_node->getBounds().getTransformation(), box));
+    }
+    else
+    {
+      query_node->setBounds(dataset_node->getBounds());
+    }
+    addNode(parent, query_node);
+    connectNodes(dataset_node, query_node);
+
+    //time
+    auto time_node = dataset_node->findChild<TimeNode*>();
+    if (!time_node)
+    {
+      time_node = new TimeNode(dataset->getDefaultTime(), dataset->getTimesteps());
+      time_node->setUUID(concatenate(uuid, "/time"));
+      time_node->setName("Time");
+      addNode(query_node, time_node);
+    }
+    connectNodes(time_node, query_node);
+
+    //field
+    auto field_node = new FieldNode();
+    field_node->setUUID(concatenate(uuid, "/field"));
+    field_node->setName("Field");
+    field_node->setFieldName(fieldname);
+    addNode(query_node, field_node);
+    connectNodes(field_node, query_node);
+
+    //scripting
+    auto scripting_node = new ScriptingNode();
+    scripting_node->setUUID(concatenate(uuid, "/scripting"));
+    scripting_node->setName("Scripting");
+    addNode(query_node, scripting_node);
+    connectNodes(query_node, scripting_node);
+
+    //render
+    addRender(concatenate(uuid, "/render"), scripting_node, "GrayOpaque");
+  }
+  endUpdate();
+
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+QueryNode* Viewer::addIsoContour(String uuid, Node* parent, String fieldname, int access_id, String s_isovalue)
+{
+  if (!parent)
+  {
+    parent = findNode<DatasetNode>();
+    if (!parent)
+      parent = getRoot();
+  }
+
+  if (uuid.empty())
+    uuid = dataflow->guessNodeUIID("isocontour");
+
+  auto* dataset_node = dynamic_cast<DatasetNode*>(parent);
+  if (!dataset_node)
+    dataset_node = findNode<DatasetNode>();
+  VisusReleaseAssert(dataset_node);
+  auto dataset = dataset_node->getDataset();
+  VisusReleaseAssert(dataset);
+
+  if (fieldname.empty())
+    fieldname = dataset->getDefaultField().name;
+
+  dropSelection();
+
+  QueryNode* ret = nullptr;
+  beginUpdate(
+    StringTree("AddIsoContour", "uuid", uuid, "parent", getUUID(parent), "fieldname", fieldname, "access_id", access_id, "isovalue", s_isovalue),
+    StringTree("RemoveNode", "uuid", uuid));
+  {
+    //query
+    auto query_node = new QueryNode();
+    ret = query_node;
+    query_node->setUUID(uuid);
+    query_node->setName("IsoContour");
+    query_node->setVerbose(1);
+    query_node->setAccessIndex(access_id);
+    query_node->setViewDependentEnabled(true);
+    query_node->setProgression(QueryGuessProgression);
+    query_node->setQuality(QueryDefaultQuality);
+    query_node->setBounds(dataset_node->getBounds());
+    addNode(parent, query_node);
+    connectNodes(dataset_node, query_node);
+
+    //time
+    auto time_node = dataset_node->findChild<TimeNode*>();
+    if (!time_node) {
+      time_node = new TimeNode(dataset->getDefaultTime(), dataset->getTimesteps());
+      time_node->setUUID(concatenate(uuid, "/time"));
+      time_node->setName("Time");
+      addNode(query_node, time_node);
+    }
+    connectNodes(time_node, query_node);
+
+    //field
+    auto field_node = new FieldNode();
+    field_node->setUUID(concatenate(uuid, "/field"));
+    field_node->setName("Field");
+    field_node->setFieldName(fieldname);
+    addNode(query_node, field_node);
+    connectNodes(field_node, query_node);
+
+    //scripting
+    auto scripting_node = new ScriptingNode();
+    scripting_node->setUUID(concatenate(uuid, "/scripting"));
+    scripting_node->setName("Scripting");
+    connectNodes(query_node, scripting_node);
+    addNode(query_node, scripting_node);
+
+    //build isocontour
+    auto build_isocontour = new IsoContourNode();
+    build_isocontour->setUUID(concatenate(uuid, "/isocontour"));
+    build_isocontour->setName("IsoContour");
+    double isovalue = 0.0;
+    if (!s_isovalue.empty()) {
+      isovalue = cdouble(s_isovalue);
+    }
+    else {
+      Field field = dataset->getFieldByName(fieldname);
+      isovalue = field.valid() && field.dtype.isVectorOf(DTypes::UINT8) ? 128.0 : 0.0;
+    }
+    build_isocontour->setIsoValue(isovalue);
+    addNode(scripting_node, build_isocontour);
+    connectNodes(scripting_node, build_isocontour);
+
+    //palette
+    //this is useful if the data coming from the data provider has 2 components, first is used to compute the 
+    //marching cube, the second as a second field to color the vertices of the marching cube
+    auto palette_node = new PaletteNode("GrayOpaque");
+    palette_node->setUUID(concatenate(uuid, "/palette"));
+    palette_node->setName("Palette");
+    addNode(scripting_node, palette_node);
+    connectNodes(scripting_node, palette_node); //this is for statistics
+
+    //render
+    auto render_node = new IsoContourRenderNode();
+    render_node->setUUID(concatenate(uuid, "/render"));
+    render_node->setName("MeshRender");
+    GLMaterial material = render_node->getMaterial();
+    material.front.diffuse = Color::createFromUint32(0x3c6d3eff);
+    material.front.specular = Color::createFromUint32(0xffffffff);
+    material.back.diffuse = Color::createFromUint32(0x2a4b70ff);
+    material.back.specular = Color::createFromUint32(0xffffffff);
+    render_node->setMaterial(material);
+    addNode(scripting_node, render_node);
+    connectNodes(build_isocontour, render_node);
+    connectNodes(palette_node, render_node);
+  }
+  endUpdate();
+
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+KdQueryNode* Viewer::addKdQuery(String uuid, Node* parent,String fieldname,int access_id)
+{
+  if (!parent)
+  {
+    parent = findNode<DatasetNode>();
+    if (!parent)
+      parent = getRoot();
+  }
+
+  if (uuid.empty())
+    uuid = dataflow->guessNodeUIID("kdquery");
+
+  auto* dataset_node = dynamic_cast<DatasetNode*>(parent);
+  if (!dataset_node)
+    dataset_node = findNode<DatasetNode>();
+  VisusReleaseAssert(dataset_node);
+  auto dataset = dataset_node->getDataset();
+
+  if (fieldname.empty())
+    fieldname = dataset->getDefaultField().name;
+
+  KdQueryNode* ret = nullptr;
+  beginUpdate(
+    StringTree("AddKdQuery", "uuid", uuid, "parent", getUUID(parent), "fieldname", fieldname, "access_id", access_id),
+    StringTree("RemoveNode", "uuid", uuid));
+  {
+    //query
+    auto query_node = new KdQueryNode();
+    ret = query_node;
+    query_node->setUUID(uuid);
+    query_node->setName("KdQuery");
+    query_node->setAccessIndex(access_id);
+    query_node->setViewDependentEnabled(true);
+    query_node->setQuality(QueryDefaultQuality);
+    query_node->setBounds(dataset_node->getBounds());
+    addNode(parent, query_node);
+    connectNodes(dataset_node, query_node);
+
+    //time
+    auto time_node = dataset_node->findChild<TimeNode*>();
+    if (!time_node) {
+      time_node = new TimeNode(dataset->getDefaultTime(), dataset->getTimesteps());
+      time_node->setUUID(concatenate(uuid, "/time"));
+      time_node->setName("Time");
+      addNode(query_node, time_node);
+    }
+    connectNodes(time_node, query_node);
+
+    //field
+    auto field_node = new FieldNode();
+    field_node->setUUID(concatenate(uuid, "/field"));
+    field_node->setName("Field");
+    field_node->setFieldName(fieldname);
+    addNode(query_node, field_node);
+    connectNodes(field_node, query_node);
+
+    addKdRender(concatenate(uuid, "/parent"), query_node, "GrayOpaque");
+  }
+  endUpdate();
+
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+ScriptingNode* Viewer::addScripting(String uuid, Node* parent)
+{
+  if (!parent)
+    parent = getRoot();
+
+  if (uuid.empty())
+    uuid = dataflow->guessNodeUIID("scripting");
+
+  dropSelection();
+
+  ScriptingNode* ret = nullptr;
+  beginUpdate(
+    StringTree("AddScripting", "uuid", uuid, "parent", getUUID(parent)),
+    StringTree("RemoveNode", "uuid", uuid));
+  {
+    //scripting
+    auto scripting = new ScriptingNode();
+    scripting->setUUID(uuid);
+    scripting->setName("Scripting");
+    addNode(parent, scripting);
+    connectNodes(parent, scripting);
+
+    //render
+    addRender(concatenate(uuid, "/scripting"), scripting, "GrayOpaque");
+  }
+  endUpdate();
+
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+CpuPaletteNode* Viewer::addCpuTransferFunction(String uuid, Node* parent)
+{
+  if (!parent)
+    parent = getRoot();
+
+  if (uuid.empty())
+    uuid = dataflow->guessNodeUIID("cpu_tf");
+
+  //guess number of functions
+  int num_functions = 1;
+  if (DataflowPortValue* last_published = dataflow->guessLastPublished(parent->getOutputPort("array")))
+  {
+    if (auto last_data = std::dynamic_pointer_cast<Array>(last_published->value))
+      num_functions = last_data->dtype.ncomponents();
+  }
+
+  dropSelection();
+
+  CpuPaletteNode* ret = nullptr;
+  beginUpdate(
+    StringTree("AddCpuTransferFunction", "uuid", uuid, "parent", getUUID(parent)),
+    StringTree("RemoveNode", "uuid", uuid));
+  {
+    //node
+    auto node = new CpuPaletteNode();
+    ret = node;
+    node->setUUID(uuid);
+    node->setName("CpuPalette");
+    auto palette = TransferFunction::getDefault("GrayOpaque");
+    palette->setNumberOfFunctions(num_functions);
+    node->setTransferFunction(palette);
+    addNode(parent, node);
+    connectNodes(parent, node);
+
+    //render
+    addRender(concatenate(uuid, "/render"), node,/*no need for a palette*/"");
+
+  }
+  endUpdate();
+
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+StatisticsNode* Viewer::addStatistics(String uuid, Node* parent)
+{
+  if (!parent)
+    parent = getRoot();
+
+  if (uuid.empty())
+    uuid = dataflow->guessNodeUIID("statistics");
+
+  dropSelection();
+
+  StatisticsNode* ret = nullptr;
+  beginUpdate(
+    StringTree("AddStatistics", "uuid", uuid, "parent", getUUID(parent)),
+    StringTree("RemoveNode", "uuid", uuid));
+  {
+    //statistics
+    auto statistics_node = new StatisticsNode();
+    ret = statistics_node;
+    statistics_node->setUUID(uuid);
+    statistics_node->setName("Statistics");
+    addNode(parent, statistics_node);
+    connectNodes(parent, statistics_node);
+  }
+  endUpdate();
+
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+PaletteNode* Viewer::addPalette(String uuid, Node* parent,String palette)
+{
+  if (!parent)
+    parent = getRoot();
+
+  if (uuid.empty())
+    uuid = dataflow->guessNodeUIID("palette");
+
+  dropSelection();
+
+  PaletteNode* ret = nullptr;
+  beginUpdate(
+    StringTree("AddPalette", "uuid", uuid, "parent", getUUID(parent), "palette", palette),
+    StringTree("RemoveNode", "uuid", uuid));
+  {
+    auto palette_node = new PaletteNode(palette);
+    ret = palette_node;
+    palette_node->setUUID(uuid);
+    palette_node->setName("Palette");
+    addNode(parent, palette_node, 1);
+
+    //enable statistics
+    if (parent->hasOutputPort("array"))
+      connectNodes(parent, palette_node);
+  }
+  endUpdate();
+
+  return ret;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+Node* Viewer::addRender(String uuid, Node* parent, String palette)
+{
+  if (!parent)
+    parent = getRoot();
+
+  if (uuid.empty())
+    uuid = dataflow->guessNodeUIID("render");
+
+  dropSelection();
+
+  Node* ret = nullptr;
+  beginUpdate(
+    StringTree("AddRender", "uuid", uuid, "parent", getUUID(parent), "palette", palette),
+    StringTree("RemoveNode", "uuid", uuid));
+  {
+    //render
+    auto render_node = new RenderArrayNode();
+    ret = render_node;
+    render_node->setUUID(uuid);
+    render_node->setName("RenderArray");
+    addNode(parent, render_node);
+    connectNodes(parent, render_node);
+
+    //palette
+    if (!palette.empty())
+    {
+      auto palette_node = new PaletteNode(palette);
+      palette_node->setUUID(concatenate(uuid, "/palette"));
+      palette_node->setName("Palette");
+      addNode(render_node, palette_node);
+      connectNodes(parent, palette_node); //this is for statistics
+      connectNodes(palette_node, render_node);
+    }
+  }
+  endUpdate();
+
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+Node* Viewer::addOSPRay(String uuid, Node* parent, String palette)
+{
+  if (!parent)
+    parent = getRoot();
+
+  if (uuid.empty())
+    uuid = dataflow->guessNodeUIID("ospray");
+
+  dropSelection();
+
+  Node* ret = nullptr;
+  beginUpdate(
+    StringTree("AddOSPRay", "uuid", uuid, "parent", getUUID(parent), "palette", palette),
+    StringTree("RemoveNode", "uuid", uuid));
+  {
+    //render
+    auto render_node = new OSPRayRenderNode();
+    ret = render_node;
+    render_node->setUUID(uuid);
+    render_node->setName("OSPrayRender");
+    addNode(parent, render_node);
+    connectNodes(parent, render_node);
+
+    //palette
+    if (!palette.empty())
+    {
+      auto palette_node = new PaletteNode(palette);
+      palette_node->setUUID(concatenate(uuid, "/palette"));
+      palette_node->setName("Palette");
+      addNode(render_node, palette_node);
+      connectNodes(parent, palette_node); //this is for statistics
+      connectNodes(palette_node, render_node);
+    }
+
+  }
+  endUpdate();
+
+  return ret;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+KdRenderArrayNode* Viewer::addKdRender(String uuid, Node* parent, String palette)
+{
+  if (!parent)
+    parent = getRoot();
+
+  if (uuid.empty())
+    uuid = dataflow->guessNodeUIID("kdrender");
+
+  dropSelection();
+
+  KdRenderArrayNode* ret = nullptr;
+  beginUpdate(
+    StringTree("AddKdRender", "uuid", uuid, "parent", getUUID(parent)),
+    StringTree("RemoveNode", "uuid", uuid));
+  {
+    //render
+    auto render_node = new KdRenderArrayNode();
+    ret = render_node;
+    render_node->setName("KdRender");
+    render_node->setUUID(uuid);
+    addNode(parent, render_node);
+    connectNodes(parent, render_node);
+
+    //palette
+    if (!palette.empty())
+    {
+      auto palette_node = new PaletteNode(palette);
+      palette_node->setUUID(concatenate(uuid, "/palette"));
+      palette_node->setName("Palette");
+      addNode(render_node, palette_node);
+      connectNodes(palette_node, render_node);
+    }
+
+  }
+  endUpdate();
+
+  return ret;
+}
+
+
+/////////////////////////////////////////////////////////////
+void Viewer::write(Archive& ar) const
+{
+  ar.write("version", ApplicationInfo::version);
+  ar.write("git_revision", ApplicationInfo::git_revision);
 
   //first dump the nodes without parent... NOTE: the first one is always the getRoot()
   auto root = dataflow->getRoot();
@@ -2429,21 +2678,23 @@ void Viewer::writeTo(StringTree& out) const
   for (auto node : dataflow->getNodes())
   {
     if (node->getParent()) continue;
-    out.addChild(StringTree("add").write("what","node").addChild(EncodeObject(*node)));
+    StringTree encoded(node->getTypeName());
+    node->write(encoded);
+    ar.addChild(StringTree("AddNode").addChild(encoded));
   }
 
   //then the nodes in the tree...important the order! parents before childs
   for (auto node : root->breadthFirstSearch())
   {
     if (node == root) continue;
+
+    StringTree encoded(node->getTypeName());
+    node->write(encoded);
     VisusAssert(node->getParent());
-    out.addChild(StringTree("add")
-      .write("what", "node")
-      .write("parent", getUUID(node->getParent()))
-      .addChild(EncodeObject(*node)));
+    ar.addChild(StringTree("AddNode", "parent", getUUID(node->getParent())).addChild(encoded));
   }
 
-  //ConnectPorts actions
+  //connectNodes actions
   for (auto node : dataflow->getNodes())
   {
     for (auto OT = node->outputs.begin(); OT != node->outputs.end(); OT++)
@@ -2452,32 +2703,29 @@ void Viewer::writeTo(StringTree& out) const
       for (auto IT = oport->outputs.begin(); IT != oport->outputs.end(); IT++)
       {
         auto iport = (*IT);
-        out.addChild(StringTree("connectPorts")
-          .write("from", getUUID(oport->getNode()))
-          .write("oport", oport->getName())
-          .write("iport", iport->getName())
-          .write("to", getUUID(iport->getNode())));
+        ar.addChild(StringTree("ConnectNodes", "from", getUUID(oport->getNode()), "oport", oport->getName(), "iport", iport->getName(), "to", getUUID(iport->getNode())));
       }
     }
   }
 
   //selection
   if (auto selection = getSelection())
-    out.addChild(StringTree("setSelection").write("node", getUUID(selection)));
+    ar.addChild(StringTree("SetSelection", "value", getUUID(selection)));
 }
 
 /////////////////////////////////////////////////////////////
-void Viewer::readFrom(StringTree& in)
+void Viewer::read(Archive& ar)
 {
-  double version = cdouble(in.readString("version"));
-  String git_revision = in.readString("git_revision");
+  double version;
+  ar.read("version", version, 0.0);
 
-  for (auto child : in.childs)
+  String git_revision;
+  ar.read("git_revision", git_revision);
+
+  for (auto child : ar.childs)
   {
-    if (child->isHashNode())
-      continue;
-
-    this->executeAction(*child);
+    if (!child->isHash())
+      this->execute(*child);
   }
 }
 

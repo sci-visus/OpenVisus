@@ -54,13 +54,10 @@ public:
   VISUS_NON_COPYABLE_CLASS(PaletteNode)
 
   //constructor
-  PaletteNode(String name="",String default_palette="GrayOpaque");
+  PaletteNode(String default_palette="GrayOpaque");
 
   //destructor
   virtual ~PaletteNode();
-
-  //executeAction
-  virtual void executeAction(StringTree in) override;
 
   //getPalette
   SharedPtr<Palette> getPalette() const {
@@ -72,7 +69,7 @@ public:
 
   //areStatisticsEnabled
   bool areStatisticsEnabled() const {
-    return isInputConnected("data");
+    return isInputConnected("array");
   }
 
   //processInput
@@ -87,21 +84,23 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
   static PaletteNode* castFrom(Node* obj) {
     return dynamic_cast<PaletteNode*>(obj);
   }
 private:
 
-  SharedPtr<Palette> palette;
-
-  Slot<void()>       palette_begin_update_slot;
-  Slot<void()>       palette_end_update_slot;
+  SharedPtr<Palette>  palette;
+  Slot<void()>        palette_begin_update_slot;
+  Slot<void()>        palette_end_update_slot;
 
   //doPublish
   void doPublish() 

@@ -40,7 +40,6 @@ For support : support@visus.net
 
 #include <Visus/Python.h>
 #include <Visus/Thread.h>
-#include <Visus/Log.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/Path.h>
 #include <Visus/File.h>
@@ -148,11 +147,11 @@ void InitPython()
 {
   if (runningInsidePyMain())
   {
-    VisusInfo() << "Visus is running (i.e. extending) python";
+    PrintInfo("Visus is running (i.e. extending) python");
   }
   else
   {
-  	VisusInfo() << "Initializing embedded python...";
+  	PrintInfo("Initializing embedded python...");
   	
 	  Py_VerboseFlag = 0;
 	  auto& args = ApplicationInfo::args;
@@ -187,7 +186,7 @@ void InitPython()
     __main__thread_state__ = PyEval_SaveThread();
 	}
 	
-  VisusInfo() << "Python initialization done";
+  PrintInfo("Python initialization done");
 }
 
 
@@ -197,11 +196,11 @@ void ShutdownPython()
   if (runningInsidePyMain())
     return;
 
-  //VisusInfo() << "Shutting down python...";
+  //PrintInfo("Shutting down python...");
   PyEval_RestoreThread(__main__thread_state__);
   Py_Finalize();
 
-  //VisusInfo() << "Python shutting down done";
+  //PrintInfo("Python shutting down done");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -230,14 +229,17 @@ void PythonEngine::addSysPath(String value,bool bVerbose)
 
   const String crlf = "\r\n";
 
-  String cmd = StringUtils::format() <<
+  std::ostringstream out;
+  out <<
     "import os,sys" << crlf <<
     "value=os.path.realpath('" + value + "')" << crlf <<
     "if not value in sys.path:" << crlf <<
     "   sys.path.append(value)" << crlf;
 
+  String cmd = out.str();
+
   if (bVerbose)
-    VisusInfo() << cmd;
+    PrintInfo(cmd);
 
   execCode(cmd);
 }
@@ -247,8 +249,8 @@ static std::atomic<int> module_id(0);
   ///////////////////////////////////////////////////////////////////////////
 PythonEngine::PythonEngine(bool bVerbose) 
 {
-  this->module_name = StringUtils::format() << "__PythonEngine__" << (++module_id);
-  //VisusInfo() << "Creating PythonEngine "<< module_name <<"...";
+  this->module_name = concatenate("__PythonEngine__",++module_id);
+  //PrintInfo("Creating PythonEngine",module_name,"...");
 
   ScopedAcquireGil acquire_gil;
   this->module  = PyImport_AddModule(module_name.c_str()); 
@@ -263,12 +265,12 @@ PythonEngine::PythonEngine(bool bVerbose)
   {
     //thing to do, OpenVisus package has already been found
     if (bVerbose)
-      VisusInfo() << "Visus is extending Python";
+      PrintInfo("Visus is extending Python");
   }
   else
   {
     if (bVerbose)
-      VisusInfo() << "Visus is embedding Python";
+      PrintInfo("Visus is embedding Python");
 
     //add value PYTHONPATH in order to find the OpenVisus directory
     addSysPath(KnownPaths::BinaryDirectory.toString() + "/../..", bVerbose);
@@ -276,19 +278,19 @@ PythonEngine::PythonEngine(bool bVerbose)
 
 
 	if (bVerbose)
-    VisusInfo() << "Trying to import OpenVisus...";
+    PrintInfo("Trying to import OpenVisus...");
 
   execCode("from OpenVisus import *");
 
   if (bVerbose)
-    VisusInfo() << "...imported OpenVisus";
+    PrintInfo("...imported OpenVisus");
 }
 
 
 ///////////////////////////////////////////////////////////////////////////
 PythonEngine::~PythonEngine()
 {
-  //VisusInfo() << "Destroying PythonEngine " << this->module_name << "...";
+  //PrintInfo("Destroying PythonEngine",this->module_name,"...");
 
   // Delete the module from sys.modules
   {
@@ -450,13 +452,13 @@ Aborted PythonEngine::getModuleAbortedAttr(String name)
 
   auto py_object = getModuleAttr(name);
   if (!py_object)
-    ThrowException(StringUtils::format() << "cannot find '" << name << "' in module");
+    ThrowException("cannot find",name ,"in module");
 
   Aborted* ptr = nullptr;
   int res = SWIG_ConvertPtr(py_object, (void**)&ptr, typeinfo, 0);
 
   if (!SWIG_IsOK(res) || !ptr)
-    ThrowException(StringUtils::format() << "cannot case '" << name << "' to " << typeinfo->name);
+    ThrowException("cannot cast", name,"to",typeinfo->name);
 
   Aborted ret = *ptr;
 
@@ -479,7 +481,7 @@ Array PythonEngine::getModuleArrayAttr(String name)
 {
   auto py_object = getModuleAttr(name);
   if (!py_object)
-    ThrowException(StringUtils::format() << "cannot find '" << name << "' in module");
+    ThrowException("cannot find",name,"in module");
   return pythonObjectToArray(py_object);
 }
 
@@ -493,7 +495,7 @@ Array PythonEngine::pythonObjectToArray(PyObject* py_object)
   int res = SWIG_ConvertPtr(py_object, (void**)&ptr, typeinfo, 0);
 
   if (!SWIG_IsOK(res) || !ptr)
-    ThrowException(StringUtils::format() << "cannot convert to array");
+    ThrowException("cannot convert to array");
 
   Array ret = *ptr;
 
@@ -584,8 +586,8 @@ void PythonEngine::execCode(String s)
   {
     if (PyErr_Occurred())
     {
-      String error_msg = StringUtils::format() << "Python error code:\n" << s << "\nError:\n" << GetLastPythonErrorMessage(true);
-      VisusInfo() << error_msg;
+      String error_msg = cstring("Python error code:\n", s, "\nError:\n",GetLastPythonErrorMessage(true));
+      PrintInfo(error_msg);
       ThrowException(error_msg);
     }
   }
@@ -608,8 +610,8 @@ PyObject* PythonEngine::evalCode(String s)
   {
     if (PyErr_Occurred())
     {
-      String error_msg = StringUtils::format() << "Python error code:\n" << s << "\nError:\n" << GetLastPythonErrorMessage(true);
-      VisusInfo() << error_msg;
+      String error_msg = cstring("Python error code:\n", s,"\nError:\n", GetLastPythonErrorMessage(true));
+      PrintInfo(error_msg);
       ThrowException(error_msg);
     }
   }

@@ -141,7 +141,7 @@ void ReturnReceipt::addSignature(Signer* signer)
 ///////////////////////////////////////////////////////////////////////////////
 SharedPtr<ReturnReceipt> ReturnReceipt::createPassThroughtReceipt(Node* node)
 {
-  // next message to publish will depend on "data" input
+  // next message to publish will depend on "array" input
   auto B=std::make_shared<ReturnReceipt>();
 
   for (auto it=node->inputs.begin();it!=node->inputs.end();it++)

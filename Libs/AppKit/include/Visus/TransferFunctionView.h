@@ -461,7 +461,7 @@ public:
 
       int    x=Utils::clamp((int)round(pos[0]*(nsamples -1)),0, nsamples -1);
       double y=pos[1];
-      painter.drawText(QPoint(2,this->height()-12),(StringUtils::format()<<"x("<<(int)x<<") y("<<y<<")").str().c_str());
+      painter.drawText(QPoint(2,this->height()-12),cstring("x",(int)x,"y",y).c_str());
     }
 
     renderBorders(painter);
@@ -535,7 +535,7 @@ private:
   void refreshGui() {
 
     StringTree out("TransferFunction");
-    model->writeTo(out);
+    model->write(out);
     auto content= out.toXmlString();
     widgets.textedit->setText(content.c_str());
   }
@@ -565,7 +565,7 @@ private:
     String content = Utils::loadTextDocument(filename);
     if (content.empty())
     {
-      String errormsg=StringUtils::format()<<"Failed to open file "<<filename;
+      String errormsg=cstring("Failed to open file",filename);
       QMessageBox::information(this,"Error",errormsg.c_str());
       return;
     }
@@ -574,7 +574,7 @@ private:
     StringTree in=StringTree::fromString(content);
     if (in.valid() && in.name=="Object")
     {
-      VisusInfo()<<"Loading Visit transfer function";
+      PrintInfo("Loading Visit transfer function");
     
       RGBAColorMap rgba_colormap;
       if (auto controlpoints= in.getChild("Object/Object"))
@@ -588,8 +588,11 @@ private:
 
           VisusAssert(fields[0]->readString("name")=="colors");
           VisusAssert(fields[1]->readString("name")=="position");
-          Color color  = Color::fromString(fields[0]->readText());
-          double position=cdouble(fields[1]->readText());
+          String s_color, s_position;
+          fields[0]->readText(s_color);
+          fields[1]->readText(s_position);
+          auto color  = Color::fromString(s_color);
+          double position=cdouble(s_position);
           rgba_colormap.setColorAt(position, color);
         }
       }
@@ -604,8 +607,9 @@ private:
     
       for (auto child : in.childs)
       {
-        String name=child->readString("name");
-        String text=child->readText();
+        String name,text; 
+        child->read("name", name);
+        child->readText(text);
 
         if (name=="freeformOpacity")
         {
@@ -633,7 +637,7 @@ private:
       auto other=TransferFunction::fromArray(src);
       if (useColorVarMax || useColorVarMin)
       {
-        other->setRange(Range(colorVarMin, colorVarMax, 0));
+        other->setInputRange(Range(colorVarMin, colorVarMax, 0));
         other->setInputNormalizationMode(ArrayUtils::UseFixedRange);
       }
       other->setOutputDType(isFloatRange ? DTypes::FLOAT32_RGBA : DTypes::UINT8_RGBA);
@@ -668,7 +672,7 @@ private:
       
     if (!Utils::saveTextDocument(filename, content))
     {
-      String errormsg=StringUtils::format()<<"Failed to save file "<<filename;
+      String errormsg=cstring("Failed to save file",filename);
       QMessageBox::information(this,"Error",errormsg.c_str());
       return;
     }
@@ -743,12 +747,12 @@ public:
       }));
       
       layout->addWidget(new QLabel("Custom Range from"));
-      layout->addWidget(widgets.range_from = GuiFactory::CreateDoubleTextBoxWidget(model->getRange().from, [this](double value) {
+      layout->addWidget(widgets.range_from = GuiFactory::CreateDoubleTextBoxWidget(model->getInputRange().from, [this](double value) {
         updateRange();
       }));
 
       layout->addWidget(new QLabel("Custom Range to"));
-      layout->addWidget(widgets.range_to = GuiFactory::CreateDoubleTextBoxWidget(model->getRange().to, [this](double value) {
+      layout->addWidget(widgets.range_to = GuiFactory::CreateDoubleTextBoxWidget(model->getInputRange().to, [this](double value) {
         updateRange();
       }));
 
@@ -774,7 +778,7 @@ private:
     range.from = cdouble(widgets.range_from->text());
     range.to = cdouble(widgets.range_to->text());
     range.step = model->getOutputDType().isDecimal() ? 0.0 : 1.0;
-    model->setRange(range);
+    model->setInputRange(range);
   }
 
   //refreshGui
@@ -783,8 +787,8 @@ private:
     widgets.nsamples->setText(cstring(model->getNumberOfSamples()).c_str());
     widgets.input_normalization_mode->setCurrentIndex(model->getInputNormalizationMode());
 
-    widgets.range_from->setText(cstring(model->getRange().from).c_str());
-    widgets.range_to  ->setText(cstring(model->getRange().to).c_str());
+    widgets.range_from->setText(cstring(model->getInputRange().from).c_str());
+    widgets.range_to  ->setText(cstring(model->getInputRange().to).c_str());
   }
 
   //modelChanged
@@ -1012,7 +1016,7 @@ public:
           auto sync=[](Canvas* dst,Canvas* src) 
           {
             dst->blockSignals(true);
-            //dst->setOrthoParams(src->getOrthoParams());
+            //dst->setProjection(src->getProjection());
             dst->setCurrentPos(src->getCurrentPos());
             dst->blockSignals(false);
           };

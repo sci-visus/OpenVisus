@@ -51,6 +51,10 @@ void Query::setStatus(QueryStatus value)
 
   switch (value)
   {
+    case QueryCreated:
+      VisusAssert(false);
+      return;
+      
     case QueryRunning:
       VisusReleaseAssert(old_status == QueryCreated);
       this->status = value;

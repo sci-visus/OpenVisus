@@ -39,6 +39,8 @@ For support : support@visus.net
 #include <Visus/IdxDataset.h>
 #include <Visus/ApplicationInfo.h>
 
+#include <fstream>
+
 #ifdef WIN32
 #pragma warning(disable:4996)
 #endif
@@ -100,14 +102,14 @@ int main(int argc, const char* argv[])
 
     else if(cmd=="help")
     {
-      VisusInfo() << " example_query " << std::endl
-      << "   [--dataset dataset_url]" << std::endl
-      << "   [--field <string>]" << std::endl
-      << "   [--res <int>]" << std::endl
-      << "   [--p1 XXxYYxZZ]" << std::endl
-      << "   [--p2 XXxYYxZZ]" << std::endl
-      << "   [--time <int>]" << std::endl
-      << "   [--out <string>]" << std::endl;
+      PrintInfo(" example_query \n",
+        "   [--dataset dataset_url]\n",
+        "   [--field <string>]\n",
+        "   [--res <int>]\n",
+        "   [--p1 XXxYYxZZ]\n",
+        "   [--p2 XXxYYxZZ]\n",
+        "   [--time <int>]\n",
+        "   [--out <string>]\n");
       return 0;
     }
   }
@@ -121,14 +123,14 @@ int main(int argc, const char* argv[])
   if(end_resolution ==-1) 
     end_resolution =max_resolution;
 
-  VisusInfo() << "Data size: " << world_box.p1.toString() << " " << world_box.p2.toString() << " max res: " << end_resolution;
+  PrintInfo("Data size:",world_box.p1.toString(),world_box.p2.toString(), "max res:", end_resolution);
 
   //any time you need to read/write data from/to a Dataset create an Access
   auto access=dataset->createAccess();
 
   BoxNi logic_box(p1_in, p2_in);
 
-  VisusInfo() << "Box query " << logic_box.p1.toString() << " p2 " << logic_box.p2.toString() << " variable " << fieldname << " time " << timestate;
+  PrintInfo("Box query",logic_box.p1,"p2",logic_box.p2,"variable",fieldname,"time",timestate);
 
   auto field = !fieldname.empty() ? dataset->getFieldByName(fieldname) : dataset->getDefaultField();
   auto query=std::make_shared<BoxQuery>(dataset.get(), field, timestate,'r');
@@ -155,7 +157,7 @@ int main(int argc, const char* argv[])
   Array data = query->buffer;
 
   // Here we dump the data on disk in a .raw file
-  VisusInfo() << "Dumping data bytes " << data.c_size();
+  PrintInfo("Dumping data bytes" , data.c_size());
 
   std::stringstream ss;
   ss << outname << "_" << query->buffer.getWidth() << "_" << query->buffer.getHeight() << "_" << query->buffer.getDepth() << "_" << query->field.dtype.toString() << ".raw";

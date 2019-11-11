@@ -53,14 +53,11 @@ public:
   VISUS_NON_COPYABLE_CLASS(QueryNode)
 
   //constructor
-  QueryNode(String name="");
+  QueryNode();
 
   //destructor
   virtual ~QueryNode();
 
-  //executeAction
-  virtual void executeAction(StringTree in) override;
-     
   //getDataset()
   SharedPtr<Dataset> getDataset();
 
@@ -83,7 +80,7 @@ public:
 
   //setVerbose
   void setVerbose(int value) {
-    this->setProperty("verbose", this->verbose, value);
+    this->setProperty("SetVerbose", this->verbose, value);
   }
 
   //getAccessIndex
@@ -93,7 +90,7 @@ public:
 
   //setAccessIndex
   void setAccessIndex(int value) {
-    this->setProperty("accessindex", this->accessindex, value);
+    this->setProperty("SetAccessIndex", this->accessindex, value);
     this->access.reset();
   }
 
@@ -109,7 +106,7 @@ public:
 
   //setProgression
   void setProgression(int value) {
-    setProperty("progression", this->progression, value);
+    setProperty("SetProgression", this->progression, value);
   }
 
   //getQuality
@@ -119,19 +116,16 @@ public:
 
   //setQuality
   void setQuality(int value) {
-    setProperty("quality", this->quality, value);
+    setProperty("SetQuality", this->quality, value);
   }
 
-  //getPosition
-  virtual Position getPosition() override {
-    return position;
+  //getBounds
+  virtual Position getBounds() override {
+    return node_bounds;
   }
 
-  //setPosition
-  void setPosition(Position value,bool bForce=false) {
-    if (position ==value && !bForce) return;
-    setEncodedProperty("position", this->position, value);
-  }
+  //setBounds
+  void setBounds(Position value);
 
   //getQueryBounds
   Position getQueryBounds() const {
@@ -167,7 +161,7 @@ public:
   //setViewDependentEnabled
   void setViewDependentEnabled(bool value) {
     if (view_dependent_enabled ==value) return;
-    setProperty("view_dependent_enabled", this->view_dependent_enabled, value);
+    setProperty("SetViewDependentEnabled", this->view_dependent_enabled, value);
   }
 
   //exitFromDataflow (to avoid dataset stuck in memory)
@@ -179,11 +173,14 @@ public:
   }
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 protected:
 
@@ -200,7 +197,7 @@ private:
   bool               view_dependent_enabled = false;
   int                progression = QueryGuessProgression;
   int                quality = QueryDefaultQuality;
-  Position           position = Position::invalid();
+  Position           node_bounds = Position::invalid();
 
   //run time derived properties
   Frustum            node_to_screen;

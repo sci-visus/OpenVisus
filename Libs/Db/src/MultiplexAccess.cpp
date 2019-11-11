@@ -59,8 +59,8 @@ MultiplexAccess::MultiplexAccess(Dataset* dataset,StringTree config)
     if (child_config->name!="access")
       continue;
 
-    if (!child_config->hasValue("url"))
-      child_config->writeString("url",url.toString());
+    if (child_config->getAttribute("url").empty())
+      child_config->write("url",url.toString());
 
     auto child=dataset->createAccess(*child_config);
     if (!child)
@@ -101,11 +101,11 @@ void MultiplexAccess::addChild(SharedPtr<Access> child)
 ///////////////////////////////////////////////////////
 void MultiplexAccess::printStatistics()
 {
-  VisusInfo()<<"type(MultiplexAccess)";
+  PrintInfo("type","MultiplexAccess");
 
   Access::printStatistics();
 
-  VisusInfo()<<"nchilds("<<dw_access.size()<<")";
+  PrintInfo("nchilds",dw_access.size());
   for (int i=0;i<(int)dw_access.size();i++) 
     dw_access[i]->printStatistics();
 }
@@ -181,7 +181,7 @@ std::vector<String> MultiplexAccess::getNextMode(std::vector<Pending>& pendings)
   for (int index = 0; index < N; index++)
   {
     if (bRead[index] || bWrite[index])
-      ret[index]=StringUtils::format() << (bRead[index] ? "r" : "") << (bWrite[index] ? "w" : "");
+      ret[index]= concatenate(bRead[index] ? "r" : "",bWrite[index] ? "w" : "");
   }
 
   return ret;

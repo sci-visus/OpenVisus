@@ -235,6 +235,7 @@ public:
     content[key] = value;
   }
 
+
   //readValue
   template <class Value>
   SharedPtr<Value> readValue(String key) {
@@ -246,6 +247,11 @@ public:
   void writeValue(String key, Value value) {
     writeValue(key, DataflowValue::wrapValue<Value>(value));
   }
+
+  void writeInt   (String key, int     value) { writeValue(key, value); }
+  void writeDouble(String key, double  value) { writeValue(key, value); }
+  void writeString(String key, String  value) { writeValue(key, value); }
+  void writeArray (String key, Array   value) { writeValue(key, value); }
 
 private:
 

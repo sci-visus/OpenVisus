@@ -41,7 +41,6 @@ For support : support@visus.net
 
 #include <Visus/Db.h>
 #include <Visus/BlockQuery.h>
-#include <Visus/Log.h>
 
 namespace Visus {
 
@@ -124,10 +123,7 @@ public:
 
   //getMode
   String getMode() const {
-    std::ostringstream out;
-    if (isReading()) out << "r";
-    if (isWriting()) out << "w";
-    return out.str();
+    return concatenate(isReading()?"r":"", isWriting()?"w":"");
   }
 
   //isReading
@@ -213,18 +209,18 @@ public:
   //printStatistics
   virtual void printStatistics() 
   {
-    VisusInfo()<< "type(" << typeid(*this).name() << ") chdmod('" << (can_read ? "r" : "") << (can_write ? "w" : "") << "') bitsperblock(" << bitsperblock << ")";
-    VisusInfo()<< "rok(" << statistics.rok << ") rfail(" << statistics.rfail << ")";
-    VisusInfo()<< "wok(" << statistics.wok << ") wfail(" << statistics.wfail << ")";
+    PrintInfo("type", typeid(*this).name(), "chmod", can_read ? "r" : "", can_write ? "w" : "", "bitsperblock", bitsperblock);
+    PrintInfo("rok", statistics.rok, "rfail", statistics.rfail);
+    PrintInfo("wok", statistics.wok, "wfail", statistics.wfail);
   }
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const {
+  //write
+  virtual void write(Archive& ar) const {
     ThrowException("not supported");
   }
 
-  //readFrom
-  virtual void readFrom(StringTree& in) {
+  //read
+  virtual void read(Archive& ar) {
     ThrowException("not supported");
   }
 

@@ -212,14 +212,14 @@ void DataflowTreeView::dataflowSetSelection(Node* old_selection,Node* new_select
 
 
 /////////////////////////////////////////////////////////////////////////
-void DataflowTreeView::dataflowConnectPorts(Node* from,String oport,String iport,Node* to) 
+void DataflowTreeView::dataflowConnectNodes(Node* from,String oport,String iport,Node* to)
 {
   //don't care
 }
 
 
 /////////////////////////////////////////////////////////////////////////
-void DataflowTreeView::dataflowDisconnectPorts(Node* from,String oport,String iport,Node* to) 
+void DataflowTreeView::dataflowDisconnectNodes(Node* from,String oport,String iport,Node* to)
 {
   //don't care
 }

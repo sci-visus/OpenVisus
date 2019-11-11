@@ -44,7 +44,7 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////
-Node::Node(String name) :  name(name),dataflow(nullptr),visible(true),parent(nullptr),uuid("")
+Node::Node() :  dataflow(nullptr),visible(true),parent(nullptr),uuid("")
 {
 }
 
@@ -63,25 +63,25 @@ String Node::getTypeName() const
 }
 
 ////////////////////////////////////////////////////////////
-void Node::executeAction(StringTree in) {
-  
-  if (in.name == "set")
+void Node::execute(Archive& ar) 
+{
+  if (ar.name == "SetName")
   {
-    auto target_id = in.readString("target_id");
-    if (target_id == "name")
-    {
-      setName(in.readString("value"));
-      return;
-    }
+    String value;
+    ar.read("value", value);
+    setName(value);
+    return;
+  }
 
-    if (target_id == "visible")
-    {
-      setVisible(in.readBool("value"));
-      return;
-    }
+  if (ar.name == "SetVisible")
+  {
+    bool value;
+    ar.read("value", value, true);
+    setVisible(value);
+    return;
   }
   
-  return Model::executeAction(in);
+  return Model::execute(ar);
 }
 
 
@@ -116,7 +116,7 @@ void Node::setName(String new_value)
   if (old_value==new_value)
     return;
 
-  setProperty("name", this->name, new_value);
+  setProperty("SetName", this->name, new_value);
 
   if (dataflow)
   {
@@ -134,7 +134,7 @@ void Node::setVisible(bool new_value)
   if (old_value==new_value)
     return;
 
-  setProperty("visible", this->visible, new_value);
+  setProperty("SetVisible", this->visible, new_value);
 
   if (dataflow)
   {
@@ -438,24 +438,19 @@ SharedPtr<DataflowValue> Node::previewInput(String iport)
 }
 
 ////////////////////////////////////////////////////////////
-void Node::writeTo(StringTree& out) const
+void Node::write(Archive& ar) const
 {
-  if (!uuid.empty()) 
-    out.writeString("uuid",uuid);
-
-  if (!name.empty())
-    out.writeString("name",name);
-
-  if (!visible)
-    out.writeString("visible",cstring(visible));
+  ar.write("uuid", uuid);
+  ar.write("name", name);
+  ar.write("visible", visible);
 }
 
 ////////////////////////////////////////////////////////////
-void Node::readFrom(StringTree& in)
+void Node::read(Archive& ar)
 {
-  this->uuid=in.readString("uuid");
-  this->name=in.readString("name");
-  this->visible=in.readBool("visible",true);
+  ar.read("uuid", uuid);
+  ar.read("name", name);
+  ar.read("visible", visible, true);
 }
 
 //////////////////////////////////////////////////////////

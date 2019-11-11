@@ -37,63 +37,72 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/GLLookAtCamera.h>
-#include <Visus/Log.h>
 
 namespace Visus {
 
 //////////////////////////////////////////////////
-void GLLookAtCamera::executeAction(StringTree in)
+void GLLookAtCamera::execute(Archive& ar)
 {
-  if (in.name == "set")
-  {
-    auto target_id = in.read("target_id");
-
-    if (target_id == "bounds") {
-      setBounds(BoxNd::fromString(in.readString("value")));
-      return;
-    }
-
-    if (target_id == "pos") {
-      setPosition(Point3d::fromString(in.readString("value")));
-      return;
-    }
-
-    if (target_id == "dir") {
-      setDirection(Point3d::fromString(in.readString("value")));
-      return;
-    }
-
-    if (target_id == "vup") {
-      setViewUp(Point3d::fromString(in.readString("value")));
-      return;
-    }
-
-    if (target_id == "rotation")
-    {
-      auto angle = Utils::degreeToRadiant(in.readDouble("angle"));
-      auto axis = Point3d::fromString(in.readString("axis"));
-      setRotation(Quaternion(axis,angle));
-      return;
-    }
-
-    if (target_id == "rotation_center") {
-      setRotationCenter(Point3d::fromString(in.readString("value")));
-      return;
-    }
-
-    if (target_id == "fov") {
-      setFov(in.readDouble("fov"));
-      return;
-    }
-
-    if (target_id == "split_projection_frustum") {
-      splitProjectionFrustum(Rectangle2d::fromString(in.readString("value")));
-      return;
-    }
-
+  if (ar.name == "SetBounds") {
+    BoxNd value;
+    ar.read("value", value);
+    setBounds(value);
+    return;
   }
 
-  return GLCamera::executeAction(in);
+  if (ar.name == "SetPosition") {
+    Point3d value;
+    ar.read("value", value);
+    setPosition(value);
+    return;
+  }
+
+  if (ar.name == "SetDirection") {
+    Point3d value;
+    ar.read("value", value);
+    setDirection(value);
+    return;
+  }
+
+  if (ar.name == "SetViewUp") {
+    Point3d value;
+    ar.read("value", value);
+    setViewUp(value);
+    return;
+  }
+
+  if (ar.name == "SetRotation")
+  {
+    double angle=0.0;  Point3d axis;
+    ar.read("axis", axis, Point3d(0, 0, 1));
+    ar.read("angle", angle, 0.0);
+    angle = Utils::degreeToRadiant(angle);
+    setRotation(Quaternion(axis,angle));
+    return;
+  }
+
+  if (ar.name == "SetRotationCenter") {
+    Point3d value;
+    ar.read("value", value);
+    setRotationCenter(value);
+    return;
+  }
+
+  if (ar.name == "SetFov") {
+    double value;
+    ar.read("value", value, 60.0);
+    setFov(value);
+    return;
+  }
+
+  if (ar.name == "SplitFrustum") {
+    Rectangle2d value;
+    ar.read("value", value);
+    splitFrustum(value);
+    return;
+  }
+
+  return GLCamera::execute(ar);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -158,6 +167,20 @@ double GLLookAtCamera::guessForwardFactor() const
   return (zNear <= 0)? (zFar - zNear) / 64 : (zFar / 16);
 }
 
+
+//////////////////////////////////////////////////////////////////////
+void GLLookAtCamera::setRotation(Quaternion new_value) {
+  auto& old_value = this->rotation;
+  if (old_value == new_value) return;
+  beginUpdate(
+    StringTree("SetRotation").write("axis", new_value.getAxis()).write("angle", Utils::radiantToDegree(new_value.getAngle())),
+    StringTree("SetRotation").write("axis", old_value.getAxis()).write("angle", Utils::radiantToDegree(old_value.getAngle())));
+  {
+    old_value = new_value;
+  }
+  endUpdate();
+}
+
 //////////////////////////////////////////////////////////////////////
 Frustum GLLookAtCamera::getFinalFrustum(const Viewport& viewport) const
 {
@@ -173,7 +196,7 @@ Frustum GLLookAtCamera::getFinalFrustum(const Viewport& viewport) const
 
   auto p = guessNearFar();
   auto zNear = p.first, zFar = p.second;
-  if (split_projection_frustum == Rectangle2d(0, 0, 1, 1))
+  if (split_frustum == Rectangle2d(0, 0, 1, 1))
   {
     ret.loadProjection(Matrix::perspective(fov, aspect_ratio, zNear, zFar));
   }
@@ -186,7 +209,7 @@ Frustum GLLookAtCamera::getFinalFrustum(const Viewport& viewport) const
     params.left   = -params.top * aspect_ratio;
     params.zNear  = zNear;
     params.zFar   = zFar;
-    params = params.split(split_projection_frustum);
+    params = params.split(split_frustum);
     ret.loadProjection(Matrix::frustum(params.left, params.right, params.bottom, params.top, params.zNear, params.zFar));
   }
 
@@ -334,7 +357,9 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport)
     }
     case Qt::Key_P:
     {
-      VisusInfo() << EncodeObject(*this).toString();
+      StringTree ar(this->getTypeName());
+      this->write(ar);
+      PrintInfo(ar.toString());
       evt->accept();
       return;
     }
@@ -342,45 +367,39 @@ void GLLookAtCamera::glKeyPressEvent(QKeyEvent* evt, const Viewport& viewport)
 }
 
 //////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::writeTo(StringTree& out) const
+void GLLookAtCamera::write(Archive& ar) const
 {
-  GLCamera::writeTo(out);
+  GLCamera::write(ar);
 
-  out.writeValue("bounds", bounds.toString(/*bInterleave*/false));
+  String bounds = this->bounds.toString(/*bInterleave*/false);
 
-  out.writeValue("pos",    pos.toString());
-  out.writeValue("dir", dir.toString());
-  out.writeValue("vup",    vup.toString());
-
-  out.writeValue("rotation", rotation.toString());
-  out.writeValue("rotation_center", rotation_center.toString());
-
-  out.writeValue("fov", cstring(this->fov));
-
-  if (split_projection_frustum!=Rectangle2d(0,0,1,1))
-    out.writeValue("split_projection_frustum", this->split_projection_frustum.toString());
+  ar.write("pos", pos);
+  ar.write("dir", dir);
+  ar.write("vup", vup);
+  ar.write("rotation", rotation);
+  ar.write("rotation_center", rotation_center);
+  ar.write("fov", fov);
+  ar.write("bounds", bounds);
+  ar.write("split_frustum", split_frustum);
 }
 
 //////////////////////////////////////////////////////////////////////
-void GLLookAtCamera::readFrom(StringTree& in) 
+void GLLookAtCamera::read(Archive& ar)
 {
-  GLCamera::readFrom(in);
+  GLCamera::read(ar);
 
-  this->bounds = BoxNd::fromString(in.readValue("bounds"),/*bInterleave*/false);
+  String bounds;
+  ar.read("pos", pos);
+  ar.read("dir", dir);
+  ar.read("vup", vup);
+  ar.read("rotation", rotation);
+  ar.read("rotation_center", rotation_center);
+  ar.read("fov", fov);
+  ar.read("bounds", bounds);
+  ar.read("split_frustum", split_frustum);
+
+  this->bounds = BoxNd::fromString(bounds,/*bInterleave*/false);
   this->bounds.setPointDim(3);
-
-  this->pos = Point3d::fromString(in.readValue("pos"));
-  this->dir = Point3d::fromString(in.readValue("dir"));
-  this->vup = Point3d::fromString(in.readValue("vup"));
-
-  this->rotation = Quaternion::fromString(in.readValue("rotation"));
-  this->rotation_center = Point3d::fromString(in.readValue("rotation_center"));
-
-  this->fov = cdouble(in.readValue("fov"));
-
-  auto s = in.readValue("split_projection_frustum");
-  if (!s.empty())
-    this->split_projection_frustum = Rectangle2d::fromString(s);
 }
 
 } //namespace Visus

@@ -172,18 +172,18 @@ private:
     {
       VisusAssert(dataset);
       Field field=dataset->getFieldByNameThrowEx(fieldname);
-      msg=StringUtils::format()<<"DTYPE "<<field.dtype.toString();
+      msg=cstring("DTYPE",field.dtype);
     }
     catch (std::exception ex)
     {
-      msg=StringUtils::format()<<"Error\n"<<ex.what();
+      msg=String("Error\n") + ex.what();
     }
 
     widgets.txtOutput->clear();
     widgets.txtOutput->setTextColor(QUtils::convert<QColor>(Colors::Red));
-    widgets.txtOutput->append((StringUtils::format()<<"["<<Time::now().getFormattedLocalTime()<<"]").str().c_str());
+    widgets.txtOutput->append(cstring("[",Time::now().getFormattedLocalTime(),"]").c_str());
     widgets.txtOutput->setTextColor(QUtils::convert<QColor>(Colors::Red));
-    widgets.txtOutput->append((StringUtils::format()<<msg).str().c_str());
+    widgets.txtOutput->append(msg.c_str());
   }
 
   //modelChanged

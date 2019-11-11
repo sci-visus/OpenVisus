@@ -54,7 +54,7 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   this->compression = config.readString("compression", url.getParam("compression", "zip")); //zip compress more than lz4 for network.. 
   this->filename_template = config.readString("filename_template", url.getParam("filename_template", guessBlockFilenameTemplate()));
 
-  this->config.writeString("url", url.toString());
+  this->config.write("url", url.toString());
 
   bool disable_async = config.readBool("disable_async", dataset->isServerMode());
 
@@ -76,12 +76,10 @@ String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid)
 
   //backward compatible
   if (StringUtils::contains(ret,"$(start_address)"))
-    ret = StringUtils::replaceFirst(ret, "$(start_address)", StringUtils::format() << std::setw(20) << std::setfill('0') << cstring(blockid << bitsperblock));
+    ret = StringUtils::replaceFirst(ret, "$(start_address)", StringUtils::formatNumber("%020d", blockid << bitsperblock));
 
   VisusAssert(!StringUtils::contains(ret, "$"));
   return ret;
-
-
 }
 
 

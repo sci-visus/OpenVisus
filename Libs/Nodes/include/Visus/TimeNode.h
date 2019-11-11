@@ -53,38 +53,54 @@ public:
   VISUS_NON_COPYABLE_CLASS(TimeNode)
 
   //constructor 
-  TimeNode(String name="",double current_time=0.0,DatasetTimesteps timesteps=DatasetTimesteps());
+  TimeNode(double current_time=0.0, const DatasetTimesteps& timesteps= DatasetTimesteps());
 
   //destructor
   virtual ~TimeNode();
 
-  //executeAction
-  virtual void executeAction(StringTree in) override;
-
   //getCurrentTime
-  inline double getCurrentTime() const
-  {return current_time;}
+  double getCurrentTime() const {
+    return current_time;
+  }
 
   //setCurrentTime
-  void setCurrentTime(double value,bool bPublish=true);
+  void setCurrentTime(double value, bool bPublish = true)
+  {
+    if (this->current_time == value) return;
+    setProperty("SetCurrentTime", this->current_time, value);
+    if (bPublish) doPublish();
+  }
 
   //getTimesteps
-  const DatasetTimesteps& getTimesteps() const
-  {return timesteps;}
+  const DatasetTimesteps& getTimesteps() const { 
+    return timesteps; 
+  }
 
   //getUserRange
-  const Range& getUserRange() const
-  {return user_range;}
+  const Range& getUserRange() const {
+    return user_range;
+  }
 
   //setUserRange
-  void setUserRange(const Range& value);
+  void setUserRange(const Range& value)
+  {
+    if (this->user_range == value) return;
+    setProperty("SetUserRange", this->user_range, value);
+    doPublish();
+  }
 
   //getPlayMsec
-  int getPlayMsec() const
-  {return play_msec;}
+  int getPlayMsec() const {
+    return play_msec;
+  }
 
   //setPlayMsec
-  void setPlayMsec(int value);
+  void setPlayMsec(int value)
+  {
+    if (this->play_msec == value) return;
+    setProperty("SetPlayMsec", this->play_msec, value);
+    //doPublish();
+  }
 
   //enterInDataflow
   virtual void enterInDataflow() override;
@@ -93,26 +109,29 @@ public:
   virtual void exitFromDataflow() override;
 
   //doPublish
-  void doPublish(SharedPtr<ReturnReceipt> value=SharedPtr<ReturnReceipt>());
+  void doPublish(SharedPtr<ReturnReceipt> value = SharedPtr<ReturnReceipt>());
 
-
+  //castFrom
   static TimeNode* castFrom(Node* obj) {
     return dynamic_cast<TimeNode*>(obj);
   }
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  ///readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  ///read
+  virtual void read(Archive& ar) override;
 
 private:
 
   double            current_time;
   DatasetTimesteps  timesteps;
   Range             user_range;//the user can decide to have a range different from timesteps.getRange
-  int               play_msec;
+  int               play_msec = 1000;
 
   //modelChanged
   virtual void modelChanged() override {

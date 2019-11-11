@@ -55,10 +55,10 @@ class VISUS_IDX_API IdxMultipleDataset  : public IdxDataset
 public:
 
   //bMosaic
-  bool bMosaic = false;
+  bool is_mosaic = false;
 
   //bSlam
-  bool bSlam = false;
+  bool is_slam = false;
 
   //constructor
   IdxMultipleDataset();

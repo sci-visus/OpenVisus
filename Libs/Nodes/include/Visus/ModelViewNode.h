@@ -54,40 +54,40 @@ public:
   VISUS_NON_COPYABLE_CLASS(ModelViewNode)
 
   //constructor
-  ModelViewNode(String name="") : Node(name) {
+  ModelViewNode() {
   }
 
   //destructor
   virtual ~ModelViewNode() {
   }
 
-  //executeAction
-  virtual void executeAction(StringTree in) override;
-
-  //getModelview
-  const Matrix& getModelview() const {
+  //getModelView
+  const Matrix& getModelView() const {
     return T;
   }
 
-  //setModelview
-  void setModelview(const Matrix& value) {
+  //setModelView
+  void setModelView(const Matrix& value) {
     if (this->T==value) return;
     VisusAssert(value.getSpaceDim() == 4);
-    setProperty("T", this->T, value);
+    setProperty("SetModelView", this->T, value);
   }
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override {
-    Node::writeTo(out);
-    out.writeValue("T",T.toString());
+  //execute
+  virtual void execute(Archive& ar) override;
+
+  //write
+  virtual void write(Archive& ar) const override {
+    Node::write(ar);
+    ar.write("T", T);
   }
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override {
-    Node::readFrom(in);
-    T= Matrix::fromString(4,in.readValue("T"));
+  //read
+  virtual void read(Archive& ar) override {
+    Node::read(ar);
+    ar.read("T", T);
   }
 
   static ModelViewNode* castFrom(Node* obj) {

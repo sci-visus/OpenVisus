@@ -210,9 +210,9 @@ void ScriptingNodeView::flushOutputs()
     widgets.txtOutput->moveCursor(QTextCursor::End);
 #else
     widgets.txtOutput->setTextColor(QUtils::convert<QColor>(Colors::Red));
-    widgets.txtOutput->append((StringUtils::format() << "[" << Time::now().getFormattedLocalTime() << "]").str().c_str());
+    widgets.txtOutput->append(cstring("[",Time::now().getFormattedLocalTime(),"]").c_str());
     widgets.txtOutput->setTextColor(QUtils::convert<QColor>(Colors::Black));
-    widgets.txtOutput->append((StringUtils::format() << output).str().c_str());
+    widgets.txtOutput->append(output.c_str());
 #endif
   }
 

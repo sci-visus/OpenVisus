@@ -123,7 +123,7 @@ public:
     if(data_items.size() > axis)
       return data_items[axis]->values;
     else
-      VisusInfo()<<"Axis"<< axis<<" does not exist";
+      PrintInfo("Axis",axis,"does not exist");
     return std::vector<double>();
   }
   
@@ -166,40 +166,32 @@ public:
 
 public:
   
-  //writeTo
-  virtual void writeTo(StringTree& out) const override
+  //write
+  virtual void write(Archive& ar) const override
   {
-    XIdxElement::writeTo(out);
+    XIdxElement::write(ar);
 
-    out.writeString("Center", center_type.toString());
+    ar.write("Center", center_type.toString());
 
-    for (auto data_item : data_items)
-      out.writeObject("DataItem", *data_item);
+    for (auto child : data_items)
+      writeChild<DataItem>(ar, "DataItem", child);
 
-    for (auto attribute : attributes)
-      out.writeObject("Attribute", *attribute);
+    for (auto child : attributes)
+      writeChild<Attribute>(ar, "Attribute", child);
   }
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override
+  //read
+  virtual void read(Archive& ar) override
   {
-    XIdxElement::readFrom(in);
+    XIdxElement::read(ar);
 
-    this->center_type = CenterType::fromString(in.readString("Center"));
+    this->center_type = CenterType::fromString(ar.readString("Center"));
 
-    for (auto child : in.getChilds("DataItem"))
-    {
-      auto data_item = new DataItem();
-      data_item->readFrom(*child);
-      addDataItem(data_item);
-    }
+    for (auto child : readChilds<DataItem>(ar, "DataItem"))
+      addDataItem(child);
 
-    for (auto child : in.getChilds("Attribute"))
-    {
-      auto attribute = new Attribute();
-      attribute->readFrom(*child);
-      addAttribute(attribute);
-    }
+    for (auto child : readChilds<Attribute>(ar, "Attribute"))
+      addAttribute(child);
   }
 
 private:

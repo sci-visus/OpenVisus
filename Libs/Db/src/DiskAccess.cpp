@@ -133,7 +133,7 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   auto layout=query->buffer.layout;
   if (!layout.empty())
   {
-    VisusInfo()<<"Failed to write block, only RowMajor format is supported";
+    PrintInfo("Failed to write block, only RowMajor format is supported");
     return writeFailed(query);
   }
 
@@ -145,7 +145,7 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   File file;
   if (!file.createAndOpen(filename,"w"))
   {
-    VisusInfo()<<"Failed to write block filename("<<filename<<") cannot create file and/or directory";
+    PrintInfo("Failed to write block filename", filename, "cannot create file and/or directory");
     return writeFailed(query);
   }
 
@@ -153,13 +153,13 @@ void DiskAccess::writeBlock(SharedPtr<BlockQuery> query)
   auto encoded=ArrayUtils::encodeArray(this->compression,decoded);
   if (!encoded)
   {
-    VisusInfo()<<"Failed to write block filename("<<filename<<") file.write failed";
+    PrintInfo("Failed to write block filename", filename, "file.write failed");
     return writeFailed(query);
   }
 
   if (!file.write(0, encoded->c_size(), encoded->c_ptr()))
   {
-    VisusInfo()<<"Failed to write block filename("<<filename<<") compression or file.write failed";
+    PrintInfo("Failed to write block filename", filename, "compression or file.write failed");
     return writeFailed(query);
   }
 

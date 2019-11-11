@@ -69,7 +69,7 @@ public:
   IdxMultipleAccess(IdxMultipleDataset* VF_, StringTree CONFIG_)
   : DATASET(VF_), CONFIG(CONFIG_)
   {
-    VisusAssert(!DATASET->bMosaic);
+    VisusAssert(!DATASET->is_mosaic);
 
     this->name = CONFIG.readString("name", "IdxMultipleAccess");
     this->can_read = true;
@@ -203,7 +203,7 @@ public:
   IdxMosaicAccess(IdxMultipleDataset* VF_, StringTree CONFIG = StringTree())
     : DATASET(VF_)
   {
-    VisusReleaseAssert(DATASET->bMosaic);
+    VisusReleaseAssert(DATASET->is_mosaic);
 
     if (!DATASET->valid())
       ThrowException("IdxDataset not valid");
@@ -318,7 +318,7 @@ public:
       //THIS IS GOING TO BE SLOW: i need to compose coarse blocks by executing "normal" query and merging them
       auto t1 = Time::now();
 
-      VisusInfo() << "IdxMosaicAccess is composing block " << BLOCK << " (slow)";
+      PrintInfo("IdxMosaicAccess is composing block",BLOCK ," (slow)");
 
       //row major
       QUERY->buffer.layout = "";
@@ -361,11 +361,11 @@ public:
 
       if (bool bPrintStats = false)
       {
-        VisusInfo() << "!!! BLOCK " << BLOCK << " inside " << (bBlockTotallyInsideSingle ? "yes" : "no")
-          << " nopen(" << (Int64)ApplicationStats::io.nopen << ")"
-          <<" rbytes(" << StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.rbytes) << ")"
-          <<" wbytes(" << StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.wbytes) << ")"
-          << " msec(" << t1.elapsedMsec() << ")";
+        PrintInfo("!!! BLOCK",BLOCK,"inside",(bBlockTotallyInsideSingle ? "yes" : "no"),
+          "nopen",(Int64)ApplicationStats::io.nopen),
+          "rbytes",StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.rbytes),
+          "wbytes",StringUtils::getStringFromByteSize((Int64)ApplicationStats::io.wbytes),
+          "msec",t1.elapsedMsec();
         ApplicationStats::io.reset();
       }
 
@@ -411,7 +411,7 @@ public:
   QueryInputTerm(IdxMultipleDataset* VF_, BoxQuery* QUERY_, SharedPtr<Access> ACCESS_, Aborted aborted_)
     : DATASET(VF_), QUERY(QUERY_), ACCESS(ACCESS_), aborted(aborted_) {
 
-    VisusAssert(!DATASET->bMosaic);
+    VisusAssert(!DATASET->is_mosaic);
 
     this->engine = (!DATASET->isServerMode())? DATASET->python_engine_pool->createEngine() : std::make_shared<PythonEngine>();
 
@@ -474,7 +474,7 @@ public:
     if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
     {
       static int cont = 0;
-      ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont++ << ".up.result.png", ret);
+      ArrayUtils::saveImage(concatenate("temp/",cont++,".up.result.png"), ret);
     }
 
     return ret;
@@ -509,7 +509,7 @@ public:
 
     auto dataset = DATASET->getChild(expr1);
     if (!dataset)
-      ThrowException(StringUtils::format() << "input['" << expr1 << "'] not found");
+      ThrowException("input['",expr1,"'] not found");
 
     auto ret = newDynamicObject([this, expr1](String expr2) {
       return getAttr2(expr1, expr2);
@@ -548,7 +548,7 @@ public:
     Field field = dataset->getFieldByName(expr2);
 
     if (!field.valid())
-      ThrowException(StringUtils::format() << "input['" << expr1 << "']['" << expr2 << "'] not found");
+      ThrowException("input['",expr1,"']['",expr2,"'] not found");
 
     int pdim = DATASET->getPointDim();
 
@@ -632,7 +632,7 @@ public:
     //ignore missing timesteps
     if (!dataset->getTimesteps().containsTimestep(query->time))
     {
-      VisusInfo() << "Missing timestep(" << query->time << ") for input['" << name << "." << field.name << "']...ignoring it";
+      PrintInfo("Missing timestep",query->time, "for input['", concatenate(name, ".", field.name), "']...ignoring it");
       query->setFailed("missing timestep");
       return query;
     }
@@ -649,7 +649,7 @@ public:
   //executeDownQuery
   Array executeDownQuery(SharedPtr<BoxQuery> query)
   {
-    //VisusInfo() << Thread::getThreadId();
+    //PrintInfo(Thread::getThreadId());
 
     //already failed
     if (!query || query->failed())
@@ -680,7 +680,7 @@ public:
         }
       }
 
-      //VisusInfo() << "MIDX up nsamples(" << QUERY->nsamples.toString() << ") dw(" << name << "." << field.name << ") nsamples(" << query->buffer.dims.toString() << ")";
+      //PrintInfo("MIDX up nsamples",QUERY->nsamples,"dw",name,".",field.name,"nsamples",query->buffer.dims.toString());
 
       //force resampling
       query->down_info.BUFFER = Array();
@@ -726,10 +726,10 @@ public:
       if (DATASET->debug_mode & IdxMultipleDataset::DebugSaveImages)
       {
         static int cont = 0;
-        ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".dw." + name << "." << query->field.name << ".buffer.png", query->buffer);
-        ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".dw." + name << "." << query->field.name << ".alpha_.png", *query->buffer.alpha );
-        ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".up." + name << "." << query->field.name << ".buffer.png", query->down_info.BUFFER);
-        ArrayUtils::saveImage(StringUtils::format() << "temp/" << cont << ".up." + name << "." << query->field.name << ".alpha_.png", *query->down_info.BUFFER.alpha);
+        ArrayUtils::saveImage(concatenate("temp/", cont, ".dw." + name, ".", query->field.name, ".buffer.png"), query->buffer);
+        ArrayUtils::saveImage(concatenate("temp/", cont, ".dw." + name, ".", query->field.name, ".alpha_.png"), *query->buffer.alpha );
+        ArrayUtils::saveImage(concatenate("temp/", cont, ".up." + name, ".", query->field.name, ".buffer.png"), query->down_info.BUFFER);
+        ArrayUtils::saveImage(concatenate("temp/", cont, ".up." + name, ".", query->field.name, ".alpha_.png"), *query->down_info.BUFFER.alpha);
         //ArrayUtils::setBufferColor(query->BUFFER, DATASET->childs[name].color);
         cont++;
       }
@@ -799,7 +799,7 @@ public:
           queries.push_back(query);
       }
 
-      //VisusInfo() << "BLEND BUFFERS #queries " << queries.size() <<" LOGIC_BOX "<< QUERY->logic_box.toString();
+      //PrintInfo("BLEND BUFFERS #queries",queries.size(),"LOGIC_BOX",QUERY->logic_box);
 
       /*
 
@@ -841,7 +841,7 @@ public:
         //auto t1 = Time::now();
         executeDownQuery(query);
         //auto msec_execute = t1.elapsedMsec();
-        //VisusInfo() << "  " << I << " " << "query(" << query->getNumberOfSamples() << ") QUERY(" << QUERY->getNumberOfSamples() << ") msec_execute("<< msec_execute <<")";
+        //PrintInfo(" ",I,"query",query->getNumberOfSamples(),"QUERY",QUERY->getNumberOfSamples(),"msec_execute",msec_execute);
       }
 
       //blend (cannot be run in parallel)
@@ -855,7 +855,7 @@ public:
         //auto t1 = Time::now();
         blend.addBlendArg(query->down_info.BUFFER, query->down_info.PIXEL_TO_LOGIC, query->down_info.LOGIC_CENTROID);
         //auto msec_blend = t1.elapsedMsec();
-        //VisusInfo() << "  " << I << " " << "query(" << query->getNumberOfSamples() << ") QUERY(" << QUERY->getNumberOfSamples() << ") msec_blend(" << msec_blend << ")";
+        //PrintInfo(" ",I,"query",query->getNumberOfSamples(),"QUERY",QUERY->getNumberOfSamples(),"msec_blend",msec_blend);
       }
     }
     else
@@ -943,7 +943,7 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
     //local disk access
     if (url.isFile())
     {
-      if (bMosaic)
+      if (is_mosaic)
         return std::make_shared<IdxMosaicAccess>(this,config);
       else
         return std::make_shared<IdxMultipleAccess>(this, config);
@@ -961,9 +961,9 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
   }
 
   //IdxMosaicAccess
-  if (type == "idxmosaicaccess" || (bMosaic && (!config.valid() || type.empty())))
+  if (type == "idxmosaicaccess" || (is_mosaic && (!config.valid() || type.empty())))
   {
-    VisusReleaseAssert(bMosaic);
+    VisusReleaseAssert(is_mosaic);
     return std::make_shared<IdxMosaicAccess>(this, config);
   }
     
@@ -978,7 +978,7 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
 ////////////////////////////////////////////////////////////////////////////////////
 Field IdxMultipleDataset::getFieldByNameThrowEx(String FIELDNAME) const
 {
-  if (bMosaic)
+  if (is_mosaic)
     return IdxDataset::getFieldByNameThrowEx(FIELDNAME);
 
   auto existing=IdxDataset::getFieldByNameThrowEx(FIELDNAME);
@@ -1133,7 +1133,7 @@ void IdxMultipleDataset::parseDataset(StringTree* cur,Matrix modelview)
   String url = cur->getAttribute("url");
   VisusAssert(!url.empty());
 
-  String default_name = StringUtils::format() << "child_" << std::setw(4) << std::setfill('0') << cstring((int)this->down_datasets.size());
+  String default_name = concatenate("child_",StringUtils::formatNumber("%04d",(int)this->down_datasets.size()));
 
   String name = StringUtils::trim(cur->getAttribute("name", cur->getAttribute("id")));
   
@@ -1145,7 +1145,7 @@ void IdxMultipleDataset::parseDataset(StringTree* cur,Matrix modelview)
 
   //if mosaic all datasets are the same, I just need to know the IDX filename template
   SharedPtr<Dataset> child;
-  if (this->bMosaic && !down_datasets.empty() && cur->hasAttribute("filename_template"))
+  if (this->is_mosaic && !down_datasets.empty() && cur->hasAttribute("filename_template"))
   {
     auto first = getFirstChild();
     auto other = std::dynamic_pointer_cast<IdxDataset>(first->clone());
@@ -1335,21 +1335,20 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   auto DATASET = this;
 
   auto CONTENT = Utils::loadTextDocument(URL.toString());
-  StringTree in=StringTree::fromString(CONTENT);
-  if (!in.valid())
+  auto ar =StringTree::fromString(CONTENT);
+  if (!ar.valid())
     return false;
 
-  in.writeString("url", URL.toString());
+  ar.write("url", URL.toString());
 
   setUrl(URL);
-  setDatasetBody(in.toString());
+  setDatasetBody(ar.toString());
 
-  this->bMosaic = cbool(in.readString("mosaic"));
+  ar.read("mosaic", this->is_mosaic);
 
-  if (in.getChild("slam"))
-    this->bSlam = true;
+  this->is_slam = ar.getChild("slam")? true:false;
 
-  parseDatasets(&in,Matrix());
+  parseDatasets(&ar,Matrix());
 
   if (down_datasets.empty())
   {
@@ -1365,7 +1364,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   IdxFile& IDXFILE = DATASET->idxfile;
 
   //for mosaic physic and logic are the same
-  if (bMosaic)
+  if (is_mosaic)
   {
     auto LOGIC_BOX = BoxNd::invalid();
     for (auto it : down_datasets)
@@ -1403,7 +1402,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     IDXFILE.validate(DATASET->getUrl());
     VisusReleaseAssert(IDXFILE.valid());
 
-    //VisusInfo() << "MIDX idxfile is the following" << std::endl << IDXFILE.toString();
+    //PrintInfo("MIDX idxfile is the following","\n",IDXFILE.toString());
     setIdxFile(IDXFILE);
 
     return true;
@@ -1411,9 +1410,9 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   //set PHYSIC_BOX (union of physic boxes)
   auto PHYSIC_BOX = BoxNd::invalid();
-  if (in.hasAttribute("physic_box"))
+  if (ar.hasAttribute("physic_box"))
   {
-    PHYSIC_BOX = BoxNd::fromString(in.readString("physic_box"));
+    ar.read("physic_box", PHYSIC_BOX);
   }
   else
   {
@@ -1423,21 +1422,21 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
       PHYSIC_BOX = PHYSIC_BOX.getUnion(dataset->getDatasetBounds().toAxisAlignedBox());
     }
   }
-  VisusInfo() << "MIDX physic_box " << PHYSIC_BOX.toString();
+  PrintInfo("MIDX physic_box",PHYSIC_BOX);
   IDXFILE.bounds = Position(PHYSIC_BOX);
 
   //LOGIC_BOX
   BoxNi LOGIC_BOX;
-  if (in.hasAttribute("logic_box"))
+  if (ar.hasAttribute("logic_box"))
   {
-    LOGIC_BOX = BoxNi::fromString(in.readString("logic_box"));
+    ar.read("logic_box", LOGIC_BOX);
   }
   else if (down_datasets.size() == 1)
   {
     LOGIC_BOX = down_datasets.begin()->second->getLogicBox();
   }
   //backward compatible
-  else if (this->bSlam)
+  else if (this->is_slam)
   {
     LOGIC_BOX = PHYSIC_BOX.castTo<BoxNi>();
   }
@@ -1482,7 +1481,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   }
 
   IDXFILE.logic_box = LOGIC_BOX;
-  VisusInfo() << "MIDX logic_box " << IDXFILE.logic_box.toString();
+  PrintInfo("MIDX logic_box",IDXFILE.logic_box);
 
   //set logic_to_LOGIC
   for (auto it : down_datasets)
@@ -1497,7 +1496,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     auto LOGIC_PIXELS = Position(dataset->logic_to_LOGIC, logic_box).computeVolume();
     auto logic_pixels = Position(logic_box).computeVolume();
     auto ratio = logic_pixels / LOGIC_PIXELS; //ratio>1 means you are loosing pixels, ratio=1 is perfect, ratio<1 that you have more pixels than needed and you will interpolate
-    VisusInfo() << "  "<<it.first<<" logic_pixels("<< logic_pixels <<") LOGIC_PIXELS("<< LOGIC_PIXELS <<") logic_pixels/LOGIC_PIXELS("<< ratio <<")";
+    PrintInfo("  ",it.first,"logic_pixels", logic_pixels, "LOGIC_PIXELS", LOGIC_PIXELS, "logic_pixels/LOGIC_PIXELS", ratio);
   }
 
   //time
@@ -1518,27 +1517,29 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   IDXFILE.validate(URL);
   VisusReleaseAssert(IDXFILE.valid());
 
-  //VisusInfo() << "MIDX idxfile is the following" << std::endl << IDXFILE.toString();
+  //PrintInfo("MIDX idxfile is the following","\n",std::endl,IDXFILE.toString());
   setIdxFile(IDXFILE);
 
   //for non-mosaic I cannot use block query
   //if (pdim==2)
   //  this->kdquery_mode = KdQueryMode::UseBoxQuery;
 
-  if (in.getChild("field"))
+  if (ar.getChild("field"))
   {
     clearFields();
 
     int generate_name = 0;
 
-    for (auto child : in.getChilds("field"))
+    for (auto child : ar.getChilds("field"))
     {
       String name = child->readString("name");
       if (name.empty())
-        name = StringUtils::format() << "field_" + generate_name++;
+        name = concatenate("field_",generate_name++);
 
       //I expect to find here CData node or Text node...
-      String code = child->readText("code"); VisusAssert(!code.empty());
+      String code;
+      child->readText("code", code); 
+      VisusAssert(!code.empty());
 
       Field FIELD = getFieldByName(code);
       if (FIELD.valid())
@@ -1555,7 +1556,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     computeDefaultFields();
   }
 
-  VisusInfo() << ""; //empty line
+  PrintInfo(""); //empty line
   return true;
 }
 
@@ -1582,7 +1583,7 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuer
   }
 
   //execute N-Query (independentely) and blend them
-  if (!bMosaic)
+  if (!is_mosaic)
   {
     if (auto multiple_access = std::dynamic_pointer_cast<IdxMultipleAccess>(access))
     {
@@ -1614,7 +1615,7 @@ bool IdxMultipleDataset::executeQuery(SharedPtr<Access> access,SharedPtr<BoxQuer
         }
         else
         {
-          //VisusInfo() << "Failed to execute box query: " << error_msg;
+          //PrintInfo("Failed to execute box query:",error_msg);
           QUERY->setFailed(error_msg);
           return false;
         }

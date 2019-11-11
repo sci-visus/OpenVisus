@@ -53,10 +53,14 @@ class PyProducer(Node):
 	def __init__(self): 
 		Node.__init__(self)
 		self.addOutputPort("output")
+		
+	# getTypeName
+	def getTypeName(self):
+		return "PyProducer"
 
 	# getOsDependentTypeName
 	def getOsDependentTypeName(self):
-		return "Producer"
+		return "PyProducer"
 
 	# processInput (overriding from Node)
 	def processInput(self):
@@ -74,9 +78,13 @@ class PyReceiver(Node):
 		Node.__init__(self)
 		self.addInputPort("input")
 
+	# getTypeName
+	def getTypeName(self):
+		return "PyReceiver"
+
 	# getOsDependentTypeName
 	def getOsDependentTypeName(self):
-		return "Receiver"    
+		return "PyReceiver"    
 
 	# processInput (overriding from Node)
 	def processInput(self):
@@ -98,7 +106,7 @@ class TestDataflow(unittest.TestCase):
 		# the dataflow is the owner of nodes!
 		dataflow.addNode(producer)
 		dataflow.addNode(receiver)
-		dataflow.connectPorts(producer,"output","input",receiver)
+		dataflow.connectNodes(producer,"output","input",receiver)
 
 		self.assertTrue(dataflow.containsNode(producer))
 		self.assertTrue(producer.hasOutputPort("output"))
@@ -113,7 +121,7 @@ class TestDataflow(unittest.TestCase):
 		value=receiver.published_value
 
 		self.assertEqual(value,"hello visus")
-		dataflow.disconnectPorts(producer,"output","input",receiver)
+		dataflow.disconnectNodes(producer,"output","input",receiver)
 		dataflow.removeNode(producer)
 		dataflow.removeNode(receiver)  
     

@@ -57,20 +57,17 @@ public:
   VISUS_NON_COPYABLE_CLASS(IsoContourRenderNode)
 
   //constructor
-  IsoContourRenderNode(String name="");
+  IsoContourRenderNode();
 
   //destructor
   virtual ~IsoContourRenderNode();
 
-  //executeAction
-  virtual void executeAction(StringTree action);
-
   //glRender
   virtual void glRender(GLCanvas& gl) override;
    
-  //getPosition
-  virtual Position getPosition() override {
-    return isocontour? isocontour->field.bounds : Position::invalid();
+  //getBounds
+  virtual Position getBounds() override {
+    return mesh? mesh->field.bounds : Position::invalid();
   }
 
   //getMaterial
@@ -81,14 +78,6 @@ public:
   //setMaterial
   void setMaterial(GLMaterial new_value);
 
-  //getIsoContour
-  SharedPtr<IsoContour> getIsoContour() const {
-    return isocontour;
-  }
-
-  //setIsoContour
-  void setIsoContour(SharedPtr<IsoContour> contour);
-
   //getPalette
   SharedPtr<Palette> getPalette() const {
     return palette;
@@ -96,6 +85,14 @@ public:
 
   //getPalette
   void setPalette(SharedPtr<Palette> value);
+
+  //getMesh
+  SharedPtr<IsoContour> getMesh() const {
+    return mesh;
+  }
+
+  //setMesh
+  void setMesh(SharedPtr<IsoContour> value);
 
   //dataflow
   virtual bool processInput() override;
@@ -109,18 +106,19 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override;
+  //execute
+  virtual void execute(Archive& ar) override;
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override;
+  //write
+  virtual void write(Archive& ar) const override;
+
+  //read
+  virtual void read(Archive& ar) override;
 
 private:
 
-  SharedPtr<IsoContour> isocontour;
-
-  GLMaterial            material = GLMaterial::createRandom();;
-
+  SharedPtr<IsoContour> mesh;
+  GLMaterial            material = GLMaterial::createRandom();
   SharedPtr<Palette>    palette=Palette::getDefault("grayopaque");
 
 };

@@ -39,7 +39,6 @@ For support : support@visus.net
 #include <Visus/Array.h>
 #include <Visus/Color.h>
 #include <Visus/Utils.h>
-#include <Visus/Log.h>
 
 #ifdef WIN32
 #pragma warning(disable:4244)
@@ -114,7 +113,7 @@ bool Array::setComponent(int C, Array src, Aborted aborted)
   {
     VisusAssert(aborted());
     if (!aborted())
-      VisusWarning() << "cannot copy, dtype or dims not compatible!";
+      PrintWarning("cannot copy, dtype or dims not compatible!)");
     return false;
   }
 

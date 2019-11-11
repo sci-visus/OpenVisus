@@ -54,7 +54,7 @@ ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
   this->url = config.readString("url", dataset->getUrl().toString()); VisusAssert(url.valid());
   this->compression = config.readString("compression", url.getParam("compression", "zip"));  //TODO: should I swith to lz4?
 
-  this->config.writeString("url", url.toString());
+  this->config.write("url", url.toString());
 
   this->num_queries_per_request = cint(this->config.readString("num_queries_per_request", "8"));
 
@@ -68,7 +68,7 @@ ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
     bool bSupportAggregation = cbool(response.getHeader("block-query-support-aggregation", "0"));
     if (!bSupportAggregation)
     {
-      VisusInfo() << "Server does not support block-query-support-aggregation, so I'm overriding num_queries_per_request to be 1";
+      PrintInfo("Server does not support block-query-support-aggregation, so I'm overriding num_queries_per_request to be 1");
       num_queries_per_request = 1;
     }
   }

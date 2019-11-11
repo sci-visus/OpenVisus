@@ -127,7 +127,7 @@ void IdxFile::validate(Url url)
 
   if (version <= 0)
   {
-    VisusInfo() << "Wrong version(" << version << ")";
+    PrintInfo("Wrong version",version);
     this->version = -1;
     return;
   }
@@ -135,7 +135,7 @@ void IdxFile::validate(Url url)
   //box
   if (!logic_box.isFullDim())
   {
-    VisusWarning() << "wrong box(" << logic_box.toOldFormatString() << ")";
+    PrintWarning("wrong box",logic_box.toOldFormatString());
     this->version = -1;
     return;
   }
@@ -146,7 +146,7 @@ void IdxFile::validate(Url url)
 
   if (!bitmask.valid())
   {
-    VisusWarning() << "invalid bitmask";
+    PrintWarning("invalid bitmask");
     this->version = -1;
     return;
   }
@@ -158,7 +158,7 @@ void IdxFile::validate(Url url)
 
   if (bounds.getSpaceDim() != (pdim + 1) || bounds.getPointDim() != pdim)
   {
-    VisusWarning() << "invalid bounds";
+    PrintWarning("invalid bounds");
     this->version = -1;
     return;
   }
@@ -169,14 +169,14 @@ void IdxFile::validate(Url url)
 
   if (bitsperblock<=0)
   {
-    VisusWarning()<<"wrong bitsperblock("<<bitsperblock<<")";
+    PrintWarning("wrong bitsperblock", bitsperblock);
     this->version=-1;
     return;
   }
 
   if (bitsperblock>bitmask.getMaxResolution())
   {
-    VisusWarning()<<"bitsperblock="<<bitsperblock<<" is greater than max_resolution="<<bitmask.getMaxResolution();
+    PrintWarning("bitsperblock",bitsperblock,"is greater than max_resolution",bitmask.getMaxResolution());
     this->bitsperblock=bitmask.getMaxResolution();
   }
 
@@ -210,7 +210,7 @@ void IdxFile::validate(Url url)
 
   if (blocksperfile<=0)
   {
-    VisusWarning()<<"wrong blockperfile("<<blocksperfile<<")";
+    PrintWarning("wrong blockperfile",blocksperfile);
     this->version=-1;
     return;
   }
@@ -218,7 +218,7 @@ void IdxFile::validate(Url url)
   if (blocksperfile>(((BigInt)1)<<(bitmask.getMaxResolution()-bitsperblock)))
   {
     //this can happen with PIDX
-    //VisusWarning()<<"wrong blockperfile("<<blocksperfile<<"), with bitmask.getMaxResolution()="<<bitmask.getMaxResolution()<<" and bitsperblock("<<bitsperblock<<")";
+    //PrintWarning("wrong blockperfile",blocksperfile,"with bitmask.getMaxResolution()",bitmask.getMaxResolution(),"bitsperblock",bitsperblock);
     
     if (this->version<=6)
     {
@@ -235,7 +235,7 @@ void IdxFile::validate(Url url)
   //check fields
   if (fields.empty())
   {
-    VisusWarning()<<"no fields";
+    PrintWarning("no fields");
     this->version=-1;
     return;
   }
@@ -250,7 +250,7 @@ void IdxFile::validate(Url url)
 
     if (!field.valid())
     {
-      VisusWarning()<<"wrong field("<<field.name<<")";
+      PrintWarning("wrong field",field.name);
       this->version=-1;
       return;
     }
@@ -268,7 +268,7 @@ void IdxFile::validate(Url url)
     else
     {
       VisusAssert(false);
-      VisusWarning()<<"unknown field.default_layout("<<field.default_layout<<")";
+      PrintWarning("unknown field.default_layout",field.default_layout);
       field.default_layout="hzorder";
     }
   }
@@ -279,7 +279,7 @@ void IdxFile::validate(Url url)
 
   if (filename_template.empty())
   {
-    VisusWarning()<<"wrong filename_template("<<filename_template<<")";
+    PrintWarning("wrong filename_template",filename_template);
     this->version=-1;
     return;
   }
@@ -425,32 +425,9 @@ IdxFile::IdxFile(int version_) : version(version_)
   timesteps.addTimestep(0); //default is to have one timestep with 0 value
 }
 
-
 //////////////////////////////////////////////////////////////////////////////
-IdxFile IdxFile::load(Url url)
+IdxFile IdxFile::fromString(String content, Url url)
 {
-  String content;
-  {
-    //special case for cloud storage, I need to sign the request
-    if (url.isRemote() && !StringUtils::contains(url.toString(),"mod_visus"))
-    {
-      if (auto cloud_storage = CloudStorage::createInstance(url))
-      {
-        auto blob_name = url.getPath();
-        auto blob=cloud_storage->getBlob(SharedPtr<NetService>(), blob_name, Aborted()).get();
-        if (blob.valid())
-          content = String((char*)blob.body->c_ptr(), (size_t)blob.body->c_size());
-      }
-    }
-    else
-    {
-      content=Utils::loadTextDocument(url.toString());
-    }
-  }
-
-  if (content.empty())
-    return IdxFile::invalid();
-
   IdxFile idxfile;
 
   //old text format
@@ -477,7 +454,7 @@ IdxFile IdxFile::load(Url url)
         if (!key.empty())
           map.setValue(key, StringUtils::trim(value));
 
-        key   = StringUtils::trim(line);
+        key = StringUtils::trim(line);
         value = String();
       }
       else
@@ -486,23 +463,23 @@ IdxFile IdxFile::load(Url url)
       }
     }
 
-    if (!key.empty()) 
-      map.setValue(key,StringUtils::trim(value));
+    if (!key.empty())
+      map.setValue(key, StringUtils::trim(value));
 
     //trim the values
-    for (auto it=map.begin();it!=map.end();it++)
-      it->second=StringUtils::trim(it->second);
+    for (auto it = map.begin(); it != map.end(); it++)
+      it->second = StringUtils::trim(it->second);
 
-    idxfile.version     = cint(map.getValue("(version)")); VisusAssert(idxfile.version>=1 && idxfile.version<=6);
-    idxfile.bitmask     = DatasetBitmask::fromString(map.getValue("(bits)"));
-    idxfile.logic_box   = BoxNi::parseFromOldFormatString(idxfile.bitmask.getPointDim(),map.getValue("(box)"));
+    idxfile.version = cint(map.getValue("(version)")); VisusAssert(idxfile.version >= 1 && idxfile.version <= 6);
+    idxfile.bitmask = DatasetBitmask::fromString(map.getValue("(bits)"));
+    idxfile.logic_box = BoxNi::parseFromOldFormatString(idxfile.bitmask.getPointDim(), map.getValue("(box)"));
 
     auto pdim = idxfile.bitmask.getPointDim();
 
     if (map.hasValue("(physic_box)"))
     {
       idxfile.bounds = BoxNd::fromString(map.getValue("(physic_box)"));
-      idxfile.bounds.setSpaceDim(pdim+1);
+      idxfile.bounds.setSpaceDim(pdim + 1);
     }
 
     else if (map.hasValue("(logic_to_physic)"))
@@ -518,56 +495,56 @@ IdxFile IdxFile::load(Url url)
 
     //parse fields
     if (map.hasValue("(fields)"))
-      idxfile.fields=parseFields(map.getValue("(fields)"));
+      idxfile.fields = parseFields(map.getValue("(fields)"));
 
-    idxfile.bitsperblock      = cint(map.getValue("(bitsperblock)"));
-    idxfile.blocksperfile     = cint(map.getValue("(blocksperfile)"));
+    idxfile.bitsperblock = cint(map.getValue("(bitsperblock)"));
+    idxfile.blocksperfile = cint(map.getValue("(blocksperfile)"));
     idxfile.filename_template = map.getValue("(filename_template)");
 
     if (map.hasValue("(interleave)"))
-      idxfile.block_interleaving=cint(map.getValue("(interleave)"));
-  
+      idxfile.block_interleaving = cint(map.getValue("(interleave)"));
+
     if (map.hasValue("(time)"))
     {
-      std::vector<String> vtime=StringUtils::split(map.getValue("(time)")," "); 
-      VisusAssert(vtime.size()>=2);
+      std::vector<String> vtime = StringUtils::split(map.getValue("(time)"), " ");
+      VisusAssert(vtime.size() >= 2);
 
-      idxfile.timesteps=DatasetTimesteps();
-      double parse_time=0;
+      idxfile.timesteps = DatasetTimesteps();
+      double parse_time = 0;
 
       ///star format (means I don't know in advance the timesteps)
       //* * time_template 
-      if (vtime[0]=="*")
+      if (vtime[0] == "*")
       {
-        bool bGood=vtime.size()==3 && vtime[1]=="*";
-        if (!bGood) {VisusInfo()<<"idx (time) is wrong";VisusAssert(false);return IdxFile::invalid();}
-        idxfile.time_template =vtime[2];
+        bool bGood = vtime.size() == 3 && vtime[1] == "*";
+        if (!bGood) { PrintInfo("idx (time) is wrong"); VisusAssert(false); return IdxFile::invalid(); }
+        idxfile.time_template = vtime[2];
       }
       //old format
       //From To time_template
-      else if (StringUtils::tryParse(vtime[0],parse_time))
+      else if (StringUtils::tryParse(vtime[0], parse_time))
       {
-        bool bGood=vtime.size()==3 && StringUtils::tryParse(vtime[1],parse_time);
-        if (!bGood) {VisusInfo()<<"idx (time) is wrong";VisusAssert(false);return IdxFile::invalid();}
-        double From=cdouble(vtime[0]);
-        double To  =cdouble(vtime[1]);
-        idxfile.timesteps.addTimesteps(From,To,1.0);
-        idxfile.time_template =vtime[2];
+        bool bGood = vtime.size() == 3 && StringUtils::tryParse(vtime[1], parse_time);
+        if (!bGood) { PrintInfo("idx (time) is wrong"); VisusAssert(false); return IdxFile::invalid(); }
+        double From = cdouble(vtime[0]);
+        double To = cdouble(vtime[1]);
+        idxfile.timesteps.addTimesteps(From, To, 1.0);
+        idxfile.time_template = vtime[2];
       }
       //new format
       //time_template (From,To,Step) (From,To,Step) (From,To,Step)
       else
       {
-        idxfile.time_template =vtime[0];
-        for (int I=1;I<(int)vtime.size();I++)
+        idxfile.time_template = vtime[0];
+        for (int I = 1; I < (int)vtime.size(); I++)
         {
-          bool bGood=StringUtils::startsWith(vtime[I],"(") && StringUtils::find(vtime[I],")");
-          if (!bGood) {VisusInfo()<<"idx (time) is wrong";VisusAssert(false);return IdxFile::invalid();}
-          std::vector<String> vrange=StringUtils::split(vtime[I].substr(1,vtime[I].size()-2),",",true);
-          double From=vrange.size()>=1? cdouble(vrange[0]) : 0;
-          double To  =vrange.size()>=2? cdouble(vrange[1]) : From;
-          double Step=vrange.size()>=3? cdouble(vrange[2]) : 1;
-          idxfile.timesteps.addTimesteps(From,To,Step);
+          bool bGood = StringUtils::startsWith(vtime[I], "(") && StringUtils::find(vtime[I], ")");
+          if (!bGood) { PrintInfo("idx (time) is wrong"); VisusAssert(false); return IdxFile::invalid(); }
+          std::vector<String> vrange = StringUtils::split(vtime[I].substr(1, vtime[I].size() - 2), ",", true);
+          double From = vrange.size() >= 1 ? cdouble(vrange[0]) : 0;
+          double To = vrange.size() >= 2 ? cdouble(vrange[1]) : From;
+          double Step = vrange.size() >= 3 ? cdouble(vrange[2]) : 1;
+          idxfile.timesteps.addTimesteps(From, To, Step);
         }
       }
     }
@@ -577,24 +554,53 @@ IdxFile IdxFile::load(Url url)
   //new xml format
   else
   {
-    StringTree in=StringTree::fromString(content);
+    StringTree in = StringTree::fromString(content);
     if (!in.valid())
     {
-      VisusInfo()<<"idx file is wrong";
+      PrintInfo("idx file is wrong");
       VisusAssert(false);
       return IdxFile::invalid();
     }
 
-    idxfile.readFrom(in);
+    idxfile.read(in);
     idxfile.validate(url);
     if (!idxfile.valid())
     {
-      VisusInfo()<<"idx file is wrong ";
+      PrintInfo("idx file is wrong");
       return IdxFile::invalid();
     }
   }
 
   return idxfile;
+
+}
+
+//////////////////////////////////////////////////////////////////////////////
+IdxFile IdxFile::load(Url url)
+{
+  String content;
+  {
+    //special case for cloud storage, I need to sign the request
+    if (url.isRemote() && !StringUtils::contains(url.toString(),"mod_visus"))
+    {
+      if (auto cloud_storage = CloudStorage::createInstance(url))
+      {
+        auto blob_name = url.getPath();
+        auto blob=cloud_storage->getBlob(SharedPtr<NetService>(), blob_name, Aborted()).get();
+        if (blob.valid())
+          content = String((char*)blob.body->c_ptr(), (size_t)blob.body->c_size());
+      }
+    }
+    else
+    {
+      content=Utils::loadTextDocument(url.toString());
+    }
+  }
+
+  if (content.empty())
+    return IdxFile::invalid();
+
+  return IdxFile::fromString(content, url);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -625,7 +631,7 @@ bool IdxFile::save(String filename)
 
     if (!bOk)
     {
-      VisusWarning()<<"Utils::saveTextDocument("<<filename<<",content) failed";
+      PrintWarning("Utils::saveTextDocument",filename," failed");
       return false;
     }
   }
@@ -750,85 +756,30 @@ String IdxFile::toString() const
   else
   {
     StringTree out("IdxFile");
-    const_cast<IdxFile*>(this)->writeTo(out);
+    const_cast<IdxFile*>(this)->write(out);
     return out.toString();
   }
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void IdxFile::writeTo(StringTree& out) const
+void IdxFile::write(Archive& ar) const
 {
   if (!this->valid())
     ThrowException("internal error");
 
-  out.writeValue("version", cstring(this->version));
-  out.writeValue("bitmask", this->bitmask.toString());
+  auto idx = toString();
+  ar.writeText("idx", idx);
 
-  out.writeValue("box", logic_box.toOldFormatString());
-
-  auto logic_to_physic = Position::computeTransformation(this->bounds, this->logic_box);
-  if (!logic_to_physic.isIdentity())
-    out.writeValue("logic_to_physic", logic_to_physic.toString());
-
-  out.writeValue("bitsperblock", cstring(this->bitsperblock));
-  out.writeValue("blocksperfile", cstring(this->blocksperfile));
-  out.writeValue("block_interleaving", cstring(this->block_interleaving));
-  out.writeValue("filename_template", filename_template);
-
-  if (!this->fields.empty())
-  {
-    auto Fields = *out.addChild("fields");
-    for (auto field : this->fields)
-      Fields.writeObject("field", field);
-  }
-
-  if (!this->time_template.empty())
-  {
-    auto TimeSteps = *out.addChild("TimeSteps");
-    TimeSteps.write("filename_template", this->time_template);
-    timesteps.writeTo(TimeSteps);
-  }
 }
 
 
 //////////////////////////////////////////////////////////////////////////////
-void IdxFile::readFrom(StringTree& in)
+void IdxFile::read(Archive& ar)
 {
-  this->version           = cint(in.readValue("version"));
-  this->bitmask = DatasetBitmask::fromString(in.readValue("bitmask"));
-  this->logic_box          = BoxNi::parseFromOldFormatString(this->bitmask.getPointDim(),in.readValue("box"));
+  String idx;
+  ar.readText("idx",idx );
+  (*this) = IdxFile::fromString(idx, Url());
 
-  auto pdim = this->bitmask.getPointDim();
-
-  if (in.hasAttribute("logic_to_physic"))
-  {
-    auto logic_to_physic = Matrix::fromString(in.readValue("logic_to_physic", Matrix::identity(pdim + 1).toString()));
-    this->bounds = Position(logic_to_physic, this->logic_box);
-  }
-
-  this->bitsperblock      = cint(in.readValue("bitsperblock"));
-  this->blocksperfile     = cint(in.readValue("blocksperfile"));
-  this->block_interleaving= cint(in.readValue("block_interleaving"));
-  this->filename_template = in.readValue("filename_template");
-
-  this->fields.clear();
-
-  if (auto fields = in.getChild("fields"))
-  {
-    for (auto child : fields->getChilds("field"))
-    {
-      Field field;
-      field.readFrom(*child);
-      VisusReleaseAssert(field.valid());
-      this->fields.push_back(field);
-    }
-  }
-
-  if (auto Timesteps = in.getChild("Timesteps"))
-  {
-    this->time_template= Timesteps->readValue("filename_template");
-    this->timesteps.readFrom(*Timesteps);
-  }
 }
 
 

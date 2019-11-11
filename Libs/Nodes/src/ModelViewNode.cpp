@@ -41,21 +41,16 @@ For support : support@visus.net
 namespace Visus {
 
 ////////////////////////////////////////////////////////////
-void ModelViewNode::executeAction(StringTree in)
+void ModelViewNode::execute(Archive& ar)
 {
-  if (in.name == "set")
-  {
-    auto target_id = in.readString("target_id");
-
-    if (target_id == "T") {
-      setModelview(Matrix::fromString(in.readString("value")));
-      return;
-    }
-
+  if (ar.name == "SetModelView") {
+    Matrix value;
+    ar.read("value", value);
+    setModelView(value);
+    return;
   }
 
-  return Node::executeAction(in);
-
+  return Node::execute(ar);
 }
 
 

@@ -102,12 +102,12 @@ public:
   virtual void dataflowSetSelection(Node* old_selection, Node* new_selection) {
   }
 
-  //datafloConnectPorts
-  virtual void dataflowConnectPorts(Node* from, String oport, String iport, Node* to) {
+  //datafloConnectNodes
+  virtual void dataflowConnectNodes(Node* from, String oport, String iport, Node* to) {
   }
 
-  //datafloConnectPorts
-  virtual void dataflowDisconnectPorts(Node* from, String oport, String iport, Node* to) {
+  //datafloConnectNodes
+  virtual void dataflowDisconnectNodes(Node* from, String oport, String iport, Node* to) {
   }
 
 };
@@ -145,15 +145,6 @@ public:
     return "";
   }
 
-  //createNode
-  template <class NodeClass, typename... Args>
-  NodeClass* createNode(String name, Args&& ... args) {
-    auto ret = new NodeClass(name, std::forward<Args>(args)...);
-    if (StringUtils::endsWith(name, "Node")) name = name.substr(0, name.size()-4);
-    ret->setUUID(guessNodeUIID(name));
-    return ret;
-  }
-
   //getRoot
   Node* getRoot() const {
     return nodes.empty() ? nullptr : const_cast<Node*>(nodes[0]);
@@ -172,15 +163,6 @@ public:
     return it == uuids.end() ? nullptr : it->second;
   }
 
-  //findNodeByName
-  Node* findNodeByName(const String& name) const {
-    for (auto it : nodes)
-    {
-      if (it->getName() == name)
-        return it;
-    }
-    return nullptr;
-  }
 
   //processInput
   void processInput(Node* node);
@@ -241,32 +223,38 @@ public:
   //removeNode
   void removeNode(Node* node);
 
-  //connectPorts
-  void connectPorts(Node* from, String oport, String iport, Node* to);
+  //connectNodes
+  void connectNodes(Node* from, String oport, String iport, Node* to);
 
-  //connectPorts
-  void connectPorts(Node* from, String port_name, Node* to) {
-    connectPorts(from, port_name, port_name, to);
+  //connectNodes
+  void connectNodes(Node* from, String port_name, Node* to) {
+    connectNodes(from, port_name, port_name, to);
   }
 
-  //connectPorts
-  void connectPorts(Node* from, Node* to)
+  //connectNodes
+  void connectNodes(Node* from, Node* to)
   {
-    if (from->outputs.size() == 1) { connectPorts(from, from->getFirstOutputPort()->getName(), to); return; }
-    if (to->inputs.size() == 1) { connectPorts(from, to->getFirstInputPort()->getName(), to); return; }
-    VisusAssert(false);
+    std::vector<String> common;
+    for (auto oport : from->getOutputPortNames())
+    {
+      if (to->hasInputPort(oport))
+        common.push_back(oport);
+    }
+    if (common.size() != 1)
+      ThrowException("internal error");
+    return connectNodes(from, common[0], to);
   }
 
-  //disconnectPorts
-  void disconnectPorts(Node* from, String oport, String iport, Node* to);
+  //disconnectNodes
+  void disconnectNodes(Node* from, String oport, String iport, Node* to);
 
 public:
 
-  //writeTo
-  void writeTo(StringTree& out) const;
+  //write
+  void write(Archive& ar) const;
 
-  //readFrom
-  void readFrom(StringTree& in) ;
+  //read
+  void read(Archive& ar) ;
 
 private:
 
@@ -275,11 +263,11 @@ private:
   Node*                         selection = nullptr;
 
   //use this variable only from the main thread.... I'm not using any lock for this!
-  std::set<Node*>                            need_processing;
+  std::set<Node*>               need_processing;
 
   //runtime
   CriticalSection               published_lock;
-  std::vector<DataflowMessage> published;
+  std::vector<DataflowMessage>  published;
 
   //floodValueForward
   void floodValueForward(DataflowPort* port, SharedPtr<DataflowValue> value, const SharedPtr<ReturnReceipt>& return_receipt);

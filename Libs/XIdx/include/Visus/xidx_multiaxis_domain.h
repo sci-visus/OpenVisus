@@ -76,26 +76,20 @@ public:
 
 public:
 
-  //writeTo
-  virtual void writeTo(StringTree& out) const override
+  //write
+  virtual void write(Archive& ar) const override
   {
-    Domain::writeTo(out);
-
-    for (auto axis : this->axis)
-      out.writeObject("Axis", *axis);
+    Domain::write(ar);
+    for (auto child : this->axis)
+      writeChild<Axis>(ar, "Axis", child);
   }
 
-  //readFrom
-  virtual void readFrom(StringTree& in) override
+  //read
+  virtual void read(Archive& ar) override
   {
-    Domain::readFrom(in);
-
-    for (auto child : in.getChilds("Axis"))
-    {
-      auto axis = new Axis();
-      axis->readFrom(*child);
-      addAxis(axis);
-    }
+    Domain::read(ar);
+    for (auto child : readChilds<Axis>(ar, "Axis"))
+      addAxis(child);
   }
 };
 
