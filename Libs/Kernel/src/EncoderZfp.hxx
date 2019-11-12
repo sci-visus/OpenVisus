@@ -321,11 +321,11 @@ namespace Visus {
                 nbitplanes = 8 + d + 1;
               int8_t n = 0;
               if (dtype.getBitSize() / nc > 32) {
-                for (int bp = nbitplanes - 1, b = 0; bp >= 0 && b < num_bit_planes; --bp, ++b)
+                for (int bp = nbitplanes - 1; bp >= 0 && BitSize(bs) < encoded->c_size() * 8; --bp)
                   mg::Decode(d, u64block, bp, encoded->c_size() * 8, n, &bs);
               }
               else {
-                for (int bp = nbitplanes - 1, b = 0; bp >= 0 && b < num_bit_planes; --bp, ++b)
+                for (int bp = nbitplanes - 1; bp >= 0 && BitSize(bs) < encoded->c_size() * 8; --bp)
                   mg::Decode(d, u32block, bp, encoded->c_size() * 8, n, &bs);
               }
               /* zfp inverse transform */
