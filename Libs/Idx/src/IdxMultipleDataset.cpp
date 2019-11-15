@@ -1202,13 +1202,17 @@ void IdxMultipleDataset::parseDataset(StringTree* cur,Matrix modelview)
   child->setDatasetBounds(Position(modelview, bounds));
 
   //update annotation positions by modelview
-  if (!child->annotations.empty())
+  if (child->annotations && child->annotations->enabled)
   {
-    for (auto annotation : child->annotations)
+    for (auto annotation : *child->annotations)
     {
       auto ANNOTATION = annotation->clone();
       ANNOTATION->prependModelview(modelview);
-      this->annotations.push_back(ANNOTATION);
+
+      if (!this->annotations)
+        this->annotations = std::make_shared<Annotations>();
+
+      this->annotations->push_back(ANNOTATION);
     }
   }
 
@@ -1229,9 +1233,10 @@ void IdxMultipleDataset::parseDatasets(StringTree* cur, Matrix MODELVIEW)
 
     if (child->name == "svg")
     {
-      this->annotations=ParseAnnotations(child.get());
+      this->annotations = std::make_shared<Annotations>();
+      this->annotations->read(*child);
 
-      for (auto& annotation : this->annotations)
+      for (auto& annotation : *this->annotations)
         annotation->prependModelview(modelview);
 
       continue;

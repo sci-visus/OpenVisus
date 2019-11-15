@@ -424,9 +424,9 @@ bool GoogleMapsDataset::openFromUrl(Url url)
 {
   this->tile_nsamples[0]  = cint(url.getParam("tile_width" ,"256")); 
   this->tile_nsamples[1]  = cint(url.getParam("tile_height","256")); 
-  int   nlevels          = cint(url.getParam("nlevels","0"))    ; 
-  this->tile_compression = url.getParam("compression","jpg")     ; 
-  this->dtype            = DType::fromString(url.getParam("dtype","uint8[3]")); 
+  int   nlevels           = cint(url.getParam("nlevels","22"))    ; 
+  this->tile_compression  = url.getParam("compression","jpg")     ; 
+  this->dtype             = DType::fromString(url.getParam("dtype","uint8[3]")); 
 
   if (tile_nsamples[0]<=0 || tile_nsamples[1]<=0 || !nlevels || !dtype.valid() || tile_compression.empty())
   {

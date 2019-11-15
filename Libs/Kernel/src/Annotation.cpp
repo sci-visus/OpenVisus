@@ -46,110 +46,109 @@ class SVGParser
 {
 public:
 
-  StringTree* tree;
-  std::vector< SharedPtr< Annotation> > annotations;
+  Annotations& dst;
 
   //constructor
-  SVGParser(StringTree* tree_) : tree(tree_){
+  SVGParser(Annotations& dst_) : dst(dst_){
   }
 
-  //doParse
-  void doParse()
+  //read
+  void read(Archive& ar)
   {
-    for (auto child : tree->childs)
-      acceptGeneric(child.get(), StringMap());
+    for (auto child : ar.childs)
+      readGeneric(*child, StringMap());
   }
 
-  //parsePoint
-  static Point2d parsePoint(String s)
+private:
+
+  //readPoint
+  static Point2d readPoint(String s)
   {
     auto v = StringUtils::split(s, ",");
     v.resize(2, "0.0");
     return Point2d(cdouble(v[0]), cdouble(v[1]));
   }
 
-  //parsePoints
-  static std::vector<Point2d> parsePoints(String s)
+  //readPoints
+  static std::vector<Point2d> readPoints(String s)
   {
     std::vector<Point2d> ret;
     for (auto it : StringUtils::split(s, " "))
-      ret.push_back(parsePoint(it));
+      ret.push_back(readPoint(it));
     return ret;
   }
 
-  //parseColor
-  static Color parseColor(const StringMap& attributes, String name)
+  //readColor
+  static Color readColor(const StringMap& attributes, String name)
   {
     auto color = Color::fromString(attributes.getValue(name));
     auto A = cdouble(attributes.getValue(name + "-opacity", "1.0"));
     return color.withAlpha(float(A));
   }
 
-  //acceptGeneric
-  void acceptGeneric(StringTree* cur, StringMap attributes)
+  //readGeneric
+  void readGeneric(Archive& ar, StringMap attributes)
   {
-    if (cur->name == "#comment")
+    if (ar.name == "#comment")
       return;
 
-    //attributes
-    for (auto it : cur->attributes)
+    // accumulate attributes
+    for (auto it : ar.attributes)
     {
       auto key = it.first;
       auto value = it.second;
       attributes.setValue(key, value);
     }
 
-    if (cur->name == "g")
-      return acceptGroup(cur, attributes);
+    if (ar.name == "g")
+      return readGroup(ar, attributes);
 
-    if (cur->name == "poi")
-      return acceptPoi(cur, attributes);
+    if (ar.name == "poi")
+      return readPoi(ar, attributes);
 
-    if (cur->name == "polygon")
-      return acceptPolygon(cur, attributes);
+    if (ar.name == "polygon")
+      return readPolygon(ar, attributes);
 
     ThrowException("not supported");
   }
 
-  //acceptGroup
-  void acceptGroup(StringTree* cur, const StringMap& attributes)
+  //readGroup
+  void readGroup(Archive& ar, const StringMap& attributes)
   {
-    for (auto child : cur->childs)
-      acceptGeneric(child.get(), attributes);
+    for (auto child : ar.childs)
+      readGeneric(*child, attributes);
   }
 
-  //acceptPoi
-  void acceptPoi(StringTree* cur, const StringMap& attributes)
+  //readPoi
+  void readPoi(Archive& ar, const StringMap& attributes)
   {
     auto poi = std::make_shared<PointOfInterest>();
-    poi->point = parsePoint(attributes.getValue("point"));
+    poi->point = readPoint(attributes.getValue("point"));
     poi->text = attributes.getValue("text");
     poi->magnet_size = cint(attributes.getValue("magnet-size", "20"));
-    poi->stroke = parseColor(attributes, "stroke");
+    poi->stroke = readColor(attributes, "stroke");
     poi->stroke_width = cint(attributes.getValue("stroke-width"));
-    poi->fill = parseColor(attributes, "fill");
-    this->annotations.push_back(poi);
+    poi->fill = readColor(attributes, "fill");
+    dst.push_back(poi);
   }
 
-  //acceptPolygon
-  void acceptPolygon(StringTree* cur, const StringMap& attributes)
+  //readPolygon
+  void readPolygon(Archive& ar, const StringMap& attributes)
   {
     auto polygon = std::make_shared<PolygonAnnotation>();
-    polygon->points = parsePoints(attributes.getValue("points"));
-    polygon->stroke = parseColor(attributes, "stroke");
+    polygon->points = readPoints(attributes.getValue("points"));
+    polygon->stroke = readColor(attributes, "stroke");
     polygon->stroke_width = cint(attributes.getValue("stroke-width"));
-    polygon->fill = parseColor(attributes, "fill");
-    this->annotations.push_back(polygon);
+    polygon->fill = readColor(attributes, "fill");
+    dst.push_back(polygon);
   }
 
 };
 
 
-std::vector< SharedPtr< Annotation> > ParseAnnotations(StringTree* cur)
+void Annotations::read(Archive& ar)
 {
-  SVGParser parser(cur);
-  parser.doParse();
-  return parser.annotations;
+  SVGParser(*this).read(ar);
 }
 
 } //namespace Visus

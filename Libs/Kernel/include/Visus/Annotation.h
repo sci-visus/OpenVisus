@@ -67,6 +67,69 @@ public:
   virtual void prependModelview(Matrix T) = 0;
 };
 
+//////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API Annotations
+{
+public:
+
+  typedef std::vector< SharedPtr<Annotation> >::iterator       iterator;
+  typedef std::vector< SharedPtr<Annotation> >::const_iterator const_iterator;
+
+  bool enabled = true;
+
+  //constructor
+  Annotations() {
+  }
+
+  //destructor
+  ~Annotations() {
+  }
+
+
+
+  //empty
+  bool empty() const {
+    return v.empty();
+  }
+
+  //size
+  size_t size() const {
+    return v.size();
+  }
+
+  //push_back
+  void push_back(SharedPtr<Annotation> value) {
+    v.push_back(value);
+  }
+
+  //begin
+  iterator begin() {
+    return v.begin();
+  }
+
+  //end
+  iterator end() {
+    return v.end();
+  }
+
+  //begin
+  const_iterator begin() const {
+    return v.begin();
+  }
+
+  //end
+  const_iterator end() const {
+    return v.end();
+  }
+
+  //read
+  void read(Archive& ar);
+
+private:
+
+  std::vector< SharedPtr<Annotation> > v;
+};
+
 ///////////////////////////////////////////////////////
 class VISUS_KERNEL_API PointOfInterest : public Annotation
 {
@@ -120,7 +183,7 @@ public:
 };
 
 
-VISUS_KERNEL_API std::vector< SharedPtr< Annotation> > ParseAnnotations(StringTree* cur);
+
 
 
 } //namespace Visus

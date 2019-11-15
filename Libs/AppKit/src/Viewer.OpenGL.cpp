@@ -415,14 +415,14 @@ void Viewer::glRenderNodes(GLCanvas& gl)
       auto dataset = dataset_node->getDataset();
 
       //render annotations
-#if 0
-      if (!dataset->annotations.empty())
+      if (dataset->annotations && dataset->annotations->enabled)
       {
-        auto frustum = computeNodeToScreen(getGLCamera()->getFrustum(), dataset_node);
+        auto frustum = computeNodeToScreen(getGLCamera()->getCurrentFrustum(viewport), dataset_node);
         auto map = FrustumMap(frustum);
 
-        for (auto annotation : dataset->annotations)
+        for (auto annotation : *dataset->annotations)
         {
+          //poi
           if (auto poi = std::dynamic_pointer_cast<PointOfInterest>(annotation))
           {
             auto screen_pos = map.projectPoint(Point3d(poi->point));
@@ -432,6 +432,7 @@ void Viewer::glRenderNodes(GLCanvas& gl)
               poi->fill, poi->stroke, poi->stroke_width);
             huds.push_back(obj);
           }
+          //polygon
           else if (auto polygon = std::dynamic_pointer_cast<PolygonAnnotation>(annotation))
           {
             std::vector<Point2d> screen_points;
@@ -446,7 +447,6 @@ void Viewer::glRenderNodes(GLCanvas& gl)
           }
         }
       }
-#endif
     }
 
     for (auto child : node->getChilds())

@@ -122,7 +122,7 @@ public:
   Matrix logic_to_LOGIC;
 
   //annotations
-  std::vector< SharedPtr< Annotation> > annotations;
+  SharedPtr<Annotations> annotations;
 
   //constructor
   Dataset() {

@@ -193,7 +193,7 @@ public:
   }
 
   static GLMesh Quad(const Point2d& p1, const Point2d& p2, const Point2d& p3, const Point2d& p4, bool bNormal = false, bool bTexCoord = false) {
-    return Quad<Point2d>(p1, p1, p2, p3, bNormal, bTexCoord);
+    return Quad<Point2d>(p1, p2, p3, p4, bNormal, bTexCoord);
   }
 
   static GLMesh Quad(const Point2d& p1,const Point2d& p2,bool bNormal=false,bool bTexCoord=false) {
