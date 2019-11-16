@@ -239,14 +239,13 @@ bool Dataset::executeBoxQueryOnServer(SharedPtr<BoxQuery> query)
     return false;
   }
 
-  auto buffer = response.getArrayBody();
-  if (!buffer) {
+  auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
+  if (!decoded) {
     query->setFailed("failed to decode body");
     return false;
   }
 
-  VisusAssert(buffer.dims == query->getNumberOfSamples());
-  query->buffer = buffer;
+  query->buffer = decoded;
   query->setCurrentResolution(query->end_resolution);
   return true;
 }
@@ -270,15 +269,13 @@ bool Dataset::executePointQueryOnServer(SharedPtr<PointQuery> query)
     return false;
   }
 
-  auto buffer = response.getArrayBody();
-  if (!buffer) {
+  auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
+  if (!decoded) {
     query->setFailed("failed to decode body");
     return false;
   }
 
-  buffer.dims.setPointDim(3, 1);
-  VisusAssert(buffer.dims == query->getNumberOfSamples());
-  query->buffer = buffer;
+  query->buffer = decoded;
   query->setOk();
   return true;
 }

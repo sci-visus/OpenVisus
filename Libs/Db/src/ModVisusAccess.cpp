@@ -161,15 +161,13 @@ void ModVisusAccess::flushBatch()
         continue;
       }
 
-      auto decoded = response.getArrayBody();
+      auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
       if (!decoded)
       {
         readFailed(query);
         continue;
       }
 
-      VisusAssert(decoded.dims  == query->getNumberOfSamples());
-      VisusAssert(decoded.dtype == query->field.dtype);
       query->buffer = decoded;
 
       readOk(query);

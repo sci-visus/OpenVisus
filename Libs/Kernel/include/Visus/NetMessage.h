@@ -227,6 +227,21 @@ public:
     return ArrayUtils::decodeArray(this->headers, this->body);
   }
 
+  //getCompatibleArrayBody
+  Array getCompatibleArrayBody(PointNi requested_dims, DType requested_dtype) {
+    Array ret = getArrayBody();
+
+    if (ret.dtype != requested_dtype)
+      return Array();
+
+    //backward compatible
+    if (ret.dims.innerProduct() != requested_dims.innerProduct())
+      return Array();
+
+    ret.resize(requested_dims, requested_dtype, __FILE__, __LINE__);
+    return ret;
+  }
+
 public:
 
   //hasContentLength

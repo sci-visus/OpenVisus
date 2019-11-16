@@ -116,12 +116,10 @@ public:
       if (query->aborted() || !response.isSuccessful())
         return readFailed(query);
 
-      auto decoded = response.getArrayBody();
+      auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
       if (!decoded)
         return readFailed(query);
 
-      VisusAssert(decoded.dims  == query->getNumberOfSamples());
-      VisusAssert(decoded.dtype == query->field.dtype);
       query->buffer = decoded;
 
       return readOk(query);

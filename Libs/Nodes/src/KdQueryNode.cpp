@@ -462,21 +462,19 @@ public:
           if (this->aborted() || !response.isSuccessful())
             return;
 
-          auto array = response.getArrayBody();
-          if (!array)
+          auto decoded = response.getCompatibleArrayBody(query->getNumberOfSamples(), query->field.dtype);
+          if (!decoded)
             return;
-
-          VisusAssert(!node->fullres);
 
           //need the write lock here
           {
             ScopedWriteLock wlock(rlock);
-            node->fullres = array;
-            node->displaydata = array;
+            VisusAssert(!node->fullres);
+            node->fullres     = decoded;
+            node->displaydata = decoded;
           }
 
           this->publish(false);
-
         });
       }
 
