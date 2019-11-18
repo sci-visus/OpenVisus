@@ -62,7 +62,7 @@ void DbModule::attach()
   KernelModule::attach();
 
   DatasetFactory::allocSingleton();
-  DatasetFactory::getSingleton()->registerDatasetType(".gmaps", "GoogleMapsDataset", []() {return std::make_shared<GoogleMapsDataset>(); });
+  DatasetFactory::getSingleton()->registerDatasetType("GoogleMapsDataset", []() {return std::make_shared<GoogleMapsDataset>(); });
 
   ArrayPlugins::getSingleton()->values.push_back(std::make_shared<DatasetArrayPlugin>());
 

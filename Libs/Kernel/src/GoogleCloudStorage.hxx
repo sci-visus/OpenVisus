@@ -248,7 +248,7 @@ public:
 
 
   // addBlobRequest 
-  virtual Future<bool> addBlob(SharedPtr<NetService> service, String blob_name, Blob blob, Aborted aborted = Aborted()) override
+  virtual Future<bool> addBlob(SharedPtr<NetService> service, String blob_name, CloudStorageBlob blob, Aborted aborted = Aborted()) override
   {
     auto ret = Promise<bool>().get_future();
 
@@ -325,15 +325,15 @@ public:
   }
 
   // getBlob 
-  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
+  virtual Future<CloudStorageBlob> getBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
   {
-    auto ret = Promise<Blob>().get_future();
+    auto ret = Promise<CloudStorageBlob>().get_future();
 
     auto index = blob_name.rfind('/');
     if (index == String::npos)
     {
       VisusAssert(false);
-      ret.get_promise()->set_value(Blob());
+      ret.get_promise()->set_value(CloudStorageBlob());
       return ret;
     }
     auto container_name = blob_name.substr(0, index);
@@ -343,7 +343,7 @@ public:
 
       if (container_id.empty())
       {
-        ret.get_promise()->set_value(Blob());
+        ret.get_promise()->set_value(CloudStorageBlob());
         return;
       }
 
@@ -358,7 +358,7 @@ public:
         if (!response.isSuccessful())
         {
           PrintWarning("ERROR. Cannot get blob status",response.status,"errormsg",response.getErrorMessage());
-          ret.get_promise()->set_value(Blob());
+          ret.get_promise()->set_value(CloudStorageBlob());
           return;
         }
 
@@ -366,7 +366,7 @@ public:
         auto blob_id = json["files"].size() ? json["files"].at(0)["id"].get<std::string>() : String();
         if (blob_id.empty())
         {
-          ret.get_promise()->set_value(Blob());
+          ret.get_promise()->set_value(CloudStorageBlob());
           return;
         }
 
@@ -379,7 +379,7 @@ public:
           if (!response.isSuccessful())
           {
             PrintWarning("ERROR. Cannot get blob status",response.status,"errormsg",response.getErrorMessage());
-            ret.get_promise()->set_value(Blob());
+            ret.get_promise()->set_value(CloudStorageBlob());
             return;
           }
 
@@ -401,13 +401,13 @@ public:
             if (!response.isSuccessful())
             {
               PrintWarning("ERROR. Cannot get blob status",response.status,"errormsg",response.getErrorMessage());
-              ret.get_promise()->set_value(Blob());
+              ret.get_promise()->set_value(CloudStorageBlob());
               return;
             }
 
             auto content_type = response.getContentType();
 
-            Blob blob;
+            CloudStorageBlob blob;
             blob.metadata = metadata;
             blob.body = response.body;
             if (!content_type.empty())

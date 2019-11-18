@@ -78,8 +78,8 @@ public:
     return (int)datasets_map.size();
   }
 
-  //getDatasetUrl
-  String getDatasetUrl(String name) const {
+  //createPublicUrl
+  String createPublicUrl(String name) const {
     return "$(protocol)://$(hostname):$(port)/mod_visus?action=readdataset&dataset=" + name;
   }
 
@@ -112,23 +112,19 @@ private:
   //addPublicDataset
   int addPublicDataset(StringTree& dst, String name, SharedPtr<Dataset> dataset) 
   {
+    int ret = 1;
     datasets_map[name] = dataset;
-
-    auto child = std::make_shared<StringTree>("dataset");
+    dataset->setServerMode(true);
+    
+    auto child = std::make_shared<StringTree>(dataset->getDatasetBody());
+    child->write("name", name);
+    child->write("url", createPublicUrl(name));
     dst.addChild(child);
 
-    //for example kdquery=true could be maintained!
-    child->attributes = dataset->getConfig().attributes;
-
-    child->write("name", name);
-    child->write("url", getDatasetUrl(name));
-
-    dataset->setServerMode(true);
-
     //automatically add the childs of a multiple datasets
-    int ret = 1;
     for (auto it : dataset->getInnerDatasets())
       ret += addPublicDataset(*child, name + "/" + it.first, it.second);
+
     return ret;
   }
 
@@ -365,35 +361,41 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
 
   auto body = dataset->getDatasetBody();
 
-  //fix urls (this is needed for midx where I need to remap urls)
-  if (bool bIsXml = StringUtils::startsWith(body, "<"))
+  //backward compatible, send back the old idx format
+  if (body.name == "dataset"
+    && body.attributes.size() == 1 && body.getAttribute("typename") == "IdxDataset"
+    && body.childs.size() == 1 && body.getChild("idx"))
   {
-    StringTree stree=StringTree::fromString(body);
-    if (!stree.valid())
-    {
-      VisusReleaseAssert(stree.name=="dataset");
-      stree.write("name", dataset_name);
-
-      std::stack< std::pair<String,StringTree*>> stack;
-      stack.push(std::make_pair("",&stree));
-      while (!stack.empty())
-      {
-        auto prefix = stack.top().first;
-        auto stree  = stack.top().second; 
-        stack.pop();
-        if (stree->name == "dataset" && !stree->getAllChilds("name").empty())
-        {
-          prefix = prefix + (prefix.empty() ? "" : "/") + stree->readString("name");
-          stree->write("url", datasets->getDatasetUrl(prefix));
-        }
-        for (auto child : stree->getChilds())
-          stack.push(std::make_pair(prefix, child.get()));
-      }
-      body = stree.toString();
-    }
+    String idx;
+    body.readText("idx", idx);
+    response.setTextBody(idx,/*bHasBinary*/true);
+    return response;
   }
 
-  response.setTextBody(body,/*bHasBinary*/true);
+  //fix urls (this is needed for midx where I need to remap urls)
+  if (dataset->getInnerDatasets().size())
+  {
+    body.write("name", dataset_name);
+
+    std::stack< std::pair<String,StringTree*>> stack;
+    stack.push(std::make_pair("",&body));
+    while (!stack.empty())
+    {
+      auto prefix = stack.top().first;
+      auto cur    = stack.top().second; 
+      stack.pop();
+      if (cur->name == "dataset" && !cur->readString("name").empty())
+      {
+        prefix += prefix.empty() ? "" : "/";
+        prefix += cur->readString("name");
+        cur->write("url", datasets->createPublicUrl(prefix));
+      }
+      for (auto child : cur->getChilds())
+        stack.push(std::make_pair(prefix, child.get()));
+    }
+    response.setTextBody(body.toString(),/*bHasBinary*/true);
+  }
+
   return response;
 }
 

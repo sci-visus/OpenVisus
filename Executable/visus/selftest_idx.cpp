@@ -346,7 +346,7 @@ void execTestIdx(int max_seconds)
           VisusReleaseAssert(idxfile.save("./temp/temp.idx"));
 
           auto dataset=LoadDataset<IdxDataset>("./temp/temp.idx");
-          VisusReleaseAssert(dataset && dataset->valid());
+          VisusReleaseAssert(dataset);
 
           {
             SelfTest selftest(dataset.get());
@@ -384,7 +384,7 @@ void execTestIdx(int max_seconds)
       VisusReleaseAssert(idxfile.save(idxfilename));
 
       auto dataset=LoadDataset<IdxDataset>(idxfilename);
-      VisusReleaseAssert(dataset && dataset->valid());
+      VisusReleaseAssert(dataset);
       
       {
         SelfTest selftest(dataset.get());

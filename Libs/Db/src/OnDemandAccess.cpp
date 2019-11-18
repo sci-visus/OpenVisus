@@ -161,9 +161,8 @@ public:
 
     Time t1 = Time::now();
 
-    auto dataset_url   = dataset->getUrl(); VisusAssert(dataset_url.isFile());
     auto converter_url = owner->getPath();
-    auto path          = dataset_url.getPath();
+    auto path          = Url(dataset->getUrl()).getPath();
 
     if (bool bRemote = StringUtils::startsWith(converter_url, "http://"))
     {
@@ -284,11 +283,9 @@ public:
 
       //url contains the file in which to cache results
       //helpful: export PATH=/Users/cam/code/nvisus/Samples/visusconvert:`pwd`/Release/visusconvert.app/Contents/MacOS:$PATH
-      Url  url = dataset->getUrl();
-      VisusAssert(url.isFile());
       String params("google_earth_ondemand.sh"); params += " ";
       params += "visusconvert"; params += " ";
-      params += url.getPath(); params += " ";
+      params += Url(dataset->getUrl()).getPath(); params += " ";
       params += cstring(logic_pos[0]); params += " ";
       params += cstring(logic_pos[1]); params += " ";
       params += cstring(z); params += " ";

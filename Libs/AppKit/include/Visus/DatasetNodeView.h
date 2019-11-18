@@ -87,7 +87,7 @@ public:
       if (auto dataset=model->getDataset())
       {
         std::ostringstream out;
-        out<< dataset->toString()<<std::endl<<std::endl;
+        out<< dataset->getDatasetBody().toString()<<std::endl<<std::endl;
         out<<"//Infos"<<std::endl;
         out<<model->getDataset()->getDatasetInfos();
 

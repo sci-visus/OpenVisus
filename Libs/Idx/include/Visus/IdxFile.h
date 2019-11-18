@@ -43,7 +43,6 @@ For support : support@visus.net
 #include <Visus/DatasetBitmask.h>
 #include <Visus/Field.h>
 #include <Visus/DatasetTimesteps.h>
-#include <Visus/Url.h>
 #include <Visus/Matrix.h>
 #include <Visus/Position.h>
 
@@ -98,11 +97,8 @@ public:
     return IdxFile(-1);
   }
 
-  //fromString
-  static IdxFile fromString(String content, Url url);
-
   //load
-  static IdxFile load(Url url);
+  static IdxFile load(String url);
 
   //valid
   bool valid() const {
@@ -129,26 +125,19 @@ public:
     return blockid - std::max(1, this->block_interleaving)*getBlockPositionInFile(blockid);
   }
 
+  //guessFilenameTemplate
+  String guessFilenameTemplate();
 
   //validate
-  void validate(Url url);
+  void validate(String url);
 
-  //toString
-  String toString() const ;
+public:
 
-  //write
-  void write(Archive& ar) const;
+  //fromOldFormatString
+  static IdxFile fromOldFormatString(String content);
 
-  //read
-  void read(Archive& ar) ;
-
-private:
-
-  //guessFilenameTemplate
-  String guessFilenameTemplate(Url url);
-
-  //saving_filename
-  String saving_filename;
+  //toOldFormatString
+  String toOldFormatString() const;
 
 };
 

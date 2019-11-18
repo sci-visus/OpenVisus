@@ -143,23 +143,13 @@ public:
     Dataset* Dvf, SharedPtr<Access> Daccess, Field Dfield, double Dtime,
     Dataset* Svf, SharedPtr<Access> Saccess, Field Sfield, double Stime);
 
-  //valid
-  bool valid() const {
-    return getUrl().valid();
-  }
-
-  //invalidate
-  void invalidate() {
-    this->url = Url();
-  }
-
   //getUrl
-  Url getUrl() const {
+  String getUrl() const {
     return url;
   }
 
   //setUrl (internal use only)
-  void setUrl(Url value) {
+  void setUrl(String value) {
     this->url = value;
   }
 
@@ -183,27 +173,14 @@ public:
     this->timesteps = value;
   }
 
-  //getConfig
-  const StringTree& getConfig() const {
-    return config;
-  }
-
-  //setConfig
-  void setConfig(const StringTree& value) {
-    this->config = value;
-  }
-
   //getDefaultTime
-  double getDefaultTime() const
-  {
-    Url url = getUrl();
-    if (url.hasParam("time")) return cdouble(url.getParam("time"));
+  double getDefaultTime() const {
     return getTimesteps().getDefault();
   }
 
   //getAccessConfigs
   std::vector< SharedPtr<StringTree> > getAccessConfigs() const {
-    return config.getChilds("access");
+    return getDatasetBody().getChilds("access");
   }
 
   //getDefaultAccessConfig
@@ -228,12 +205,12 @@ public:
   }
   
   //getDatasetBody
-  String getDatasetBody() const {
-    return dataset_body.empty() ? getUrl().toString() : dataset_body;
+  const StringTree& getDatasetBody() const {
+    return dataset_body;
   } 
 
   //setDatasetBody
-  void setDatasetBody(String value) {
+  void setDatasetBody(const StringTree& value) {
     this->dataset_body = value;
   }
 
@@ -374,7 +351,7 @@ public:
 public:
 
   //openFromUrl 
-  virtual bool openFromUrl(Url url) = 0;
+  virtual void openFromUrl(Archive& ar, String url) = 0;
 
   //compressDataset
   virtual bool compressDataset(String compression) {
@@ -491,24 +468,10 @@ public:
   //extractLevelImage
   Array extractLevelImage(SharedPtr<Access> access, Field field, double time, int H);
 
-public:
-  
-  //toString
-  String toString() const {
-    return getDatasetBody();
-  }
-
-  //write
-  void write(Archive& ar) const;
-
-  //read
-  void read(Archive& ar);
-
 private:
 
-  Url                     url;
-  String                  dataset_body;
-  StringTree              config;
+  String                  url;
+  StringTree              dataset_body;
   DatasetTimesteps        timesteps;
   std::vector<Field>      fields;
   std::map<String, Field> find_field;
@@ -534,29 +497,18 @@ public:
   class VISUS_DB_API RegisteredDataset
   {
   public:
-    String extension; 
     String TypeName;
     CreateInstance createInstance;
 
   };
 
   //registerDatasetType
-  void registerDatasetType(String extension,String TypeName, CreateInstance createInstance)
+  void registerDatasetType(String TypeName, CreateInstance createInstance)
   {
     RegisteredDataset item;
-    item.extension = extension;
     item.TypeName = TypeName;
     item.createInstance = createInstance;
     v.push_back(item);
-  }
-
-  //getDatasetTypeNameFromExtension
-  String getDatasetTypeNameFromExtension(String extension) {
-    for (const auto& it : v) {
-      if (it.extension == extension)
-        return it.TypeName;
-    }
-    return "";
   }
 
   //createInstance
@@ -570,7 +522,6 @@ public:
 
 private:
 
-  //extension -> TypeName
   std::vector<RegisteredDataset> v;
 
   DatasetFactory(){}

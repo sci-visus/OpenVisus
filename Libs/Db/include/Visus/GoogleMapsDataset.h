@@ -50,9 +50,12 @@ class VISUS_DB_API GoogleMapsDataset : public Dataset
 {
 public:
 
+  String           tiles;
   DType            dtype;
-  Point2i          tile_nsamples;
-  String           tile_compression;
+  Int64            tile_width=0;
+  Int64            tile_height = 0;
+  int              nlevels = 22;
+  String           compression;
 
   //constructor
   GoogleMapsDataset() {
@@ -80,7 +83,7 @@ public:
 public:
 
   //openFromUrl 
-  virtual bool openFromUrl(Url url) override;
+  virtual void openFromUrl(Archive& ar, String url) override;
 
   //compressDataset
   virtual bool compressDataset(String compression) override {

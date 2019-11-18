@@ -205,9 +205,6 @@ public:
   {
     VisusReleaseAssert(DATASET->is_mosaic);
 
-    if (!DATASET->valid())
-      ThrowException("IdxDataset not valid");
-
     this->name = CONFIG.readString("name", "IdxMosaicAccess");
     this->CONFIG = CONFIG;
     this->can_read = StringUtils::find(CONFIG.readString("chmod", "rw"), "r") >= 0;
@@ -926,8 +923,6 @@ IdxMultipleDataset::~IdxMultipleDataset() {
 ///////////////////////////////////////////////////////////////////////////////////
 SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForBlockQuery)
 {
-  VisusAssert(this->valid());
-
   if (!config.valid())
     config = getDefaultAccessConfig();
 
@@ -938,7 +933,7 @@ SharedPtr<Access> IdxMultipleDataset::createAccess(StringTree config, bool bForB
 
   if (type.empty())
   {
-    Url url = config.readString("url",this->getUrl().toString());
+    Url url = config.readString("url",this->getUrl());
 
     //local disk access
     if (url.isFile())
@@ -1065,17 +1060,20 @@ Field IdxMultipleDataset::createField(String operation_name)
 String IdxMultipleDataset::removeAliases(String url)
 {
   //replace some alias
-  auto URL = this->getUrl();
+  Url URL = this->getUrl();
 
-  String cfd = URL.isFile() ? Path(URL.getPath()).getParent().toString() : "";
-
-  if (URL.isFile() && !cfd.empty())
+  if (URL.isFile())
   {
+    String dir = Path(URL.getPath()).getParent().toString();
+    if (dir.empty())
+      return url;
+
     if (Url(url).isFile() && StringUtils::startsWith(Url(url).getPath(), "./"))
-      url = cfd + Url(url).getPath().substr(1);
+      url = dir + Url(url).getPath().substr(1);
 
     if (StringUtils::contains(url, "$(CurrentFileDirectory)"))
-      url = StringUtils::replaceAll(url, "$(CurrentFileDirectory)", cfd);
+      url = StringUtils::replaceAll(url, "$(CurrentFileDirectory)", dir);
+
   }
   else if (URL.isRemote())
   {
@@ -1128,14 +1126,14 @@ void IdxMultipleDataset::computeDefaultFields()
 
 
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDataset(StringTree* cur,Matrix modelview)
+void IdxMultipleDataset::parseDataset(StringTree& cur,Matrix modelview)
 {
-  String url = cur->getAttribute("url");
+  String url = cur.getAttribute("url");
   VisusAssert(!url.empty());
 
   String default_name = concatenate("child_",StringUtils::formatNumber("%04d",(int)this->down_datasets.size()));
 
-  String name = StringUtils::trim(cur->getAttribute("name", cur->getAttribute("id")));
+  String name = StringUtils::trim(cur.getAttribute("name", cur.getAttribute("id")));
   
   //override name if exist
   if (name.empty() || this->down_datasets.find(name) != this->down_datasets.end())
@@ -1145,7 +1143,7 @@ void IdxMultipleDataset::parseDataset(StringTree* cur,Matrix modelview)
 
   //if mosaic all datasets are the same, I just need to know the IDX filename template
   SharedPtr<Dataset> child;
-  if (this->is_mosaic && !down_datasets.empty() && cur->hasAttribute("filename_template"))
+  if (this->is_mosaic && !down_datasets.empty() && cur.hasAttribute("filename_template"))
   {
     auto first = getFirstChild();
     auto other = std::dynamic_pointer_cast<IdxDataset>(first->clone());
@@ -1153,7 +1151,7 @@ void IdxMultipleDataset::parseDataset(StringTree* cur,Matrix modelview)
     VisusReleaseAssert(other);
 
     //all the idx files are the same except for the IDX path
-    String mosaic_filename_template = cur->getAttribute("filename_template");
+    String mosaic_filename_template = cur.getAttribute("filename_template");
 
     VisusReleaseAssert(!mosaic_filename_template.empty());
     mosaic_filename_template = removeAliases(mosaic_filename_template);
@@ -1165,7 +1163,7 @@ void IdxMultipleDataset::parseDataset(StringTree* cur,Matrix modelview)
   }
   else
   {
-    child = LoadDatasetEx(url,this->getConfig());
+    child = LoadDatasetEx(url,cur);
   }
 
   if (!child) {
@@ -1173,22 +1171,22 @@ void IdxMultipleDataset::parseDataset(StringTree* cur,Matrix modelview)
     return;
   }
 
-  child->color = Color::fromString(cur->getAttribute("color", Color::random().toString()));;
+  child->color = Color::fromString(cur.getAttribute("color", Color::random().toString()));;
   auto sdim = child->getPointDim() + 1;
 
   //override physic_box 
-  if (cur->hasAttribute("physic_box"))
+  if (cur.hasAttribute("physic_box"))
   {
-    auto physic_box = BoxNd::fromString(cur->getAttribute("physic_box"));
+    auto physic_box = BoxNd::fromString(cur.getAttribute("physic_box"));
     child->setDatasetBounds(physic_box);
   }
-  else if (cur->hasAttribute("quad"))
+  else if (cur.hasAttribute("quad"))
   {
     //in midx physic coordinates
     VisusReleaseAssert(child->getPointDim() == 2);
     auto W = (int)child->getLogicBox().size()[0];
     auto H = (int)child->getLogicBox().size()[1];
-    auto dst = Quad::fromString(cur->getAttribute("quad"));
+    auto dst = Quad::fromString(cur.getAttribute("quad"));
     auto src = Quad(W,H);
     auto T   = Quad::findQuadHomography(dst, src);
     child->setDatasetBounds(Position(T,BoxNd(PointNd(0,0),PointNd(W,H))));
@@ -1222,151 +1220,88 @@ void IdxMultipleDataset::parseDataset(StringTree* cur,Matrix modelview)
 
 
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::parseDatasets(StringTree* cur, Matrix MODELVIEW)
+void IdxMultipleDataset::parseDatasets(StringTree& ar, Matrix modelview)
 {
-  for (auto child : cur->getChilds())
+  if (!cbool(ar.getAttribute("enabled", "1")))
+    return;
+
+  //final
+  if (ar.name == "svg")
   {
-    if (!cbool(child->getAttribute("enabled","1")))
-      continue;
+    this->annotations = std::make_shared<Annotations>();
+    this->annotations->read(ar);
 
-    auto modelview = MODELVIEW;
+    for (auto& annotation : *this->annotations)
+      annotation->prependModelview(modelview);
 
-    if (child->name == "svg")
-    {
-      this->annotations = std::make_shared<Annotations>();
-      this->annotations->read(*child);
-
-      for (auto& annotation : *this->annotations)
-        annotation->prependModelview(modelview);
-
-      continue;
-    }
-
-    if (child->name == "translate")
-    {
-      double tx = cdouble(child->getAttribute("x"));
-      double ty = cdouble(child->getAttribute("y"));
-      double tz = cdouble(child->getAttribute("z"));
-      modelview *= Matrix::translate(PointNd(tx, ty, tz));
-      parseDatasets(child.get(), modelview);
-      continue;
-    }
-
-    if (child->name == "scale")
-    {
-      double sx = cdouble(child->getAttribute("x"));
-      double sy = cdouble(child->getAttribute("y"));
-      double sz = cdouble(child->getAttribute("z"));
-      modelview *= Matrix::nonZeroScale(PointNd(sx, sy, sz));
-      parseDatasets(child.get(), modelview);
-      continue;
-    }
-
-    if (child->name == "rotate")
-    {
-      double rx = Utils::degreeToRadiant(cdouble(child->getAttribute("x")));
-      double ry = Utils::degreeToRadiant(cdouble(child->getAttribute("y")));
-      double rz = Utils::degreeToRadiant(cdouble(child->getAttribute("z")));
-      modelview *= Matrix::rotate(Quaternion::fromEulerAngles(rx, ry, rz));
-      parseDatasets(child.get(), modelview);
-      continue;
-    }
-
-    if (child->name == "transform" || child->name=="M")
-    {
-      modelview *= Matrix::fromString(child->getAttribute("value"));
-      parseDatasets(child.get(), modelview);
-      continue;
-    }
-
-    if (child->name == "dataset")
-    {
-      //this is for mosaic
-      if (child->hasAttribute("offset"))
-      {
-        auto vt = PointNd::fromString(cur->getAttribute("offset"));
-        modelview *= Matrix::translate(vt);
-      }
-
-      //this applies "before the dataset
-      if (auto tranform = child->getChild("M"))
-      {
-        if (tranform->hasAttribute("value"))
-          modelview *= Matrix::fromString(tranform->getAttribute("value"));
-
-        for (auto it : tranform->getChilds())
-        {
-          if (it->name == "translate")
-          {
-            double tx = cdouble(it->getAttribute("x"));
-            double ty = cdouble(it->getAttribute("y"));
-            double tz = cdouble(it->getAttribute("z"));
-            modelview *= Matrix::translate(PointNd(tx, ty, tz));
-          }
-
-          else if (it->name == "rotate")
-          {
-            double rx = Utils::degreeToRadiant(cdouble(child->getAttribute("x")));
-            double ry = Utils::degreeToRadiant(cdouble(child->getAttribute("y")));
-            double rz = Utils::degreeToRadiant(cdouble(child->getAttribute("z")));
-            modelview *= Matrix::rotate(Quaternion::fromEulerAngles(rx, ry, rz));
-          }
-
-          else if (it->name == "scale")
-          {
-            double sx = cdouble(it->getAttribute("x"));
-            double sy = cdouble(it->getAttribute("y"));
-            double sz = cdouble(it->getAttribute("z"));
-            modelview *= Matrix::nonZeroScale(PointNd(sx, sy, sz));
-          }
-
-          else if (it->name == "transform" || it->name=="M")
-          {
-            modelview *= Matrix::fromString(it->getAttribute("value"));
-          }
-        }
-      }
-
-      parseDataset(child.get(),modelview);
-      continue;
-    }
+    return;
   }
+
+  //final
+  if (ar.name == "dataset")
+  {
+    //this is for mosaic
+    if (ar.hasAttribute("offset"))
+    {
+      auto vt = PointNd::fromString(ar.getAttribute("offset"));
+      modelview *= Matrix::translate(vt);
+    }
+
+    parseDataset(ar, modelview);
+    return;
+  }
+
+  if (ar.name == "translate")
+  {
+    double tx = cdouble(ar.getAttribute("x"));
+    double ty = cdouble(ar.getAttribute("y"));
+    double tz = cdouble(ar.getAttribute("z"));
+    modelview *= Matrix::translate(PointNd(tx, ty, tz));
+  }
+  else if (ar.name == "scale")
+  {
+    double sx = cdouble(ar.getAttribute("x"));
+    double sy = cdouble(ar.getAttribute("y"));
+    double sz = cdouble(ar.getAttribute("z"));
+    modelview *= Matrix::nonZeroScale(PointNd(sx, sy, sz));
+  }
+
+  else if (ar.name == "rotate")
+  {
+    double rx = Utils::degreeToRadiant(cdouble(ar.getAttribute("x")));
+    double ry = Utils::degreeToRadiant(cdouble(ar.getAttribute("y")));
+    double rz = Utils::degreeToRadiant(cdouble(ar.getAttribute("z")));
+    modelview *= Matrix::rotate(Quaternion::fromEulerAngles(rx, ry, rz));
+  }
+  else if (ar.name == "transform" || ar.name == "M")
+  {
+    modelview *= Matrix::fromString(ar.getAttribute("value"));
+  }
+
+  //recursive
+  for (auto child : ar.getChilds())
+    parseDatasets(*child, modelview);
 }
 
 
 ///////////////////////////////////////////////////////////
-bool IdxMultipleDataset::openFromUrl(Url URL)
+void IdxMultipleDataset::openFromUrl(Archive& AR, String URL)
 {
-  auto DATASET = this;
-
-  auto CONTENT = Utils::loadTextDocument(URL.toString());
-  auto ar =StringTree::fromString(CONTENT);
-  if (!ar.valid())
-    return false;
-
-  ar.write("url", URL.toString());
+  AR.read("mosaic", this->is_mosaic);
 
   setUrl(URL);
-  setDatasetBody(ar.toString());
+  setDatasetBody(AR);
+  setKdQueryMode(KdQueryMode::fromString(AR.readString("kdquery")));
 
-  ar.read("mosaic", this->is_mosaic);
-
-  this->is_slam = ar.getChild("slam")? true:false;
-
-  parseDatasets(&ar,Matrix());
-
+  parseDatasets(AR,Matrix());
   if (down_datasets.empty())
-  {
-    VisusAssert(false);
-    this->invalidate();
-    return false;
-  }
+    ThrowException("empty childs");
 
   auto first = getFirstChild();
   int pdim = first->getPointDim();
   int sdim = pdim + 1;
 
-  IdxFile& IDXFILE = DATASET->idxfile;
+  IdxFile& IDXFILE = this->idxfile;
 
   //for mosaic physic and logic are the same
   if (is_mosaic)
@@ -1404,20 +1339,20 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     IDXFILE.fields = first->getFields();
     IDXFILE.bitsperblock = first->getDefaultBitsPerBlock();
 
-    IDXFILE.validate(DATASET->getUrl());
+    IDXFILE.validate(this->getUrl());
     VisusReleaseAssert(IDXFILE.valid());
 
-    //PrintInfo("MIDX idxfile is the following","\n",IDXFILE.toString());
+    //PrintInfo("MIDX idxfile is the following","\n",IDXFILE);
     setIdxFile(IDXFILE);
 
-    return true;
+    return;
   }
 
   //set PHYSIC_BOX (union of physic boxes)
   auto PHYSIC_BOX = BoxNd::invalid();
-  if (ar.hasAttribute("physic_box"))
+  if (AR.hasAttribute("physic_box"))
   {
-    ar.read("physic_box", PHYSIC_BOX);
+    AR.read("physic_box", PHYSIC_BOX);
   }
   else
   {
@@ -1432,18 +1367,13 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
 
   //LOGIC_BOX
   BoxNi LOGIC_BOX;
-  if (ar.hasAttribute("logic_box"))
+  if (AR.hasAttribute("logic_box"))
   {
-    ar.read("logic_box", LOGIC_BOX);
+    AR.read("logic_box", LOGIC_BOX);
   }
   else if (down_datasets.size() == 1)
   {
     LOGIC_BOX = down_datasets.begin()->second->getLogicBox();
-  }
-  //backward compatible
-  else if (this->is_slam)
-  {
-    LOGIC_BOX = PHYSIC_BOX.castTo<BoxNi>();
   }
   else if (bool bAssumeUniformScaling = false)
   {
@@ -1486,7 +1416,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   }
 
   IDXFILE.logic_box = LOGIC_BOX;
-  PrintInfo("MIDX logic_box",IDXFILE.logic_box);
+  PrintInfo("MIDX logic_box", IDXFILE.logic_box);
 
   //set logic_to_LOGIC
   for (auto it : down_datasets)
@@ -1501,7 +1431,7 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
     auto LOGIC_PIXELS = Position(dataset->logic_to_LOGIC, logic_box).computeVolume();
     auto logic_pixels = Position(logic_box).computeVolume();
     auto ratio = logic_pixels / LOGIC_PIXELS; //ratio>1 means you are loosing pixels, ratio=1 is perfect, ratio<1 that you have more pixels than needed and you will interpolate
-    PrintInfo("  ",it.first,"logic_pixels", logic_pixels, "LOGIC_PIXELS", LOGIC_PIXELS, "logic_pixels/LOGIC_PIXELS", ratio);
+    PrintInfo("  ",it.first,"volume(logic_pixels)", logic_pixels, "volume(LOGIC_PIXELS)", LOGIC_PIXELS, "ratio==logic_pixels/LOGIC_PIXELS", ratio);
   }
 
   //time
@@ -1522,20 +1452,20 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   IDXFILE.validate(URL);
   VisusReleaseAssert(IDXFILE.valid());
 
-  //PrintInfo("MIDX idxfile is the following","\n",std::endl,IDXFILE.toString());
+  PrintInfo("MIDX idxfile is the following","\n",IDXFILE.toOldFormatString());
   setIdxFile(IDXFILE);
 
   //for non-mosaic I cannot use block query
   //if (pdim==2)
   //  this->kdquery_mode = KdQueryMode::UseBoxQuery;
 
-  if (ar.getChild("field"))
+  if (AR.getChild("field"))
   {
     clearFields();
 
     int generate_name = 0;
 
-    for (auto child : ar.getChilds("field"))
+    for (auto child : AR.getChilds("field"))
     {
       String name = child->readString("name");
       if (name.empty())
@@ -1562,7 +1492,6 @@ bool IdxMultipleDataset::openFromUrl(Url URL)
   }
 
   PrintInfo(""); //empty line
-  return true;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -1684,14 +1613,10 @@ bool IdxMultipleDataset::createIdxFile(String idx_filename, Field idx_field) con
 {
   auto idxfile = this->idxfile;
 
-  idxfile.filename_template = "";
-  idxfile.time_template = "";
+  idxfile.filename_template = ""; //force guess
+  idxfile.time_template = ""; //force guess
   idxfile.fields.clear();
   idxfile.fields.push_back(idx_field);
-  idxfile.validate(Url(idx_filename));
-
-  if (!idxfile.valid())
-    return false;
 
   if (!idxfile.save(idx_filename))
     return false;

@@ -93,16 +93,13 @@ void DatasetNode::exitFromDataflow()
 //////////////////////////////////////////////////////////////////////////
 void DatasetNode::write(Archive& ar) const
 {
+  VisusReleaseAssert(dataset);
   Node::write(ar);
-
-  if (dataset)
-  {
-    auto child = ar.addChild(name);
-    child->write("TypeName", dataset->getTypeName());
-    dataset->write(*child);
-  }
-
+  ar.write("url", dataset->getUrl());
   ar.write("show_bounds", show_bounds);
+
+  auto& child=ar.addChild(dataset->getDatasetBody());
+  child.write("typename", dataset->getTypeName());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -110,14 +107,16 @@ void DatasetNode::read(Archive& ar)
 {
   Node::read(ar);
 
-  if (auto Dataset = ar.getChild("dataset"))
-  {
-    auto TypeName = Dataset->readString("TypeName");
-    dataset=DatasetFactory::getSingleton()->createInstance(TypeName);
-    dataset->read(*Dataset);
-  }
-
+  String url;
+  ar.read("url", url);
   ar.read("show_bounds", show_bounds);
+
+  String TypeName;
+  auto child = *ar.getChild(0);
+  child.read("typename", TypeName);
+
+  this->dataset = DatasetFactory::getSingleton()->createInstance(TypeName);
+  dataset->openFromUrl(child,url);
 }
 
 } //namespace Visus

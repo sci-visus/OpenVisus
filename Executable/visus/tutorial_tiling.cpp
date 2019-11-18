@@ -129,7 +129,7 @@ void Tutorial_Tiling(String default_layout)
   VisusReleaseAssert(idxfile.save(filename));
 
   auto dataset= LoadDataset<IdxDataset>(filename);
-  VisusReleaseAssert(dataset && dataset->valid());
+  VisusReleaseAssert(dataset);
 
   TilingExample(dataset.get());
 }

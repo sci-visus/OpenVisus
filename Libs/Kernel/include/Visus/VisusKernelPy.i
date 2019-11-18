@@ -9,7 +9,8 @@
 #include <Visus/Time.h>
 #include <Visus/TransferFunction.h>
 #include <Visus/StringTree.h>
-#include <Visus/StringTree.h>
+#include <Visus/Ray.h>
+#include <Visus/Frustum.h>
 
 using namespace Visus;
 %}
@@ -83,6 +84,10 @@ using namespace Visus;
 %include <Visus/Quaternion.h>
 %include <Visus/Polygon.h>
    %template(VectorPoint2d)  std::vector<Visus::Point2d>;
+  
+%include <Visus/Ray.h>
+%include <Visus/Rectangle.h>
+%include <Visus/Frustum.h>
 
 %include <Visus/Range.h>
 %include <Visus/DType.h>

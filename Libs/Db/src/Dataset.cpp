@@ -168,8 +168,6 @@ SharedPtr<Access> Dataset::createRamAccess(Int64 available, bool can_read, bool 
 ////////////////////////////////////////////////////////////////////
 SharedPtr<Access> Dataset::createAccess(StringTree config,bool bForBlockQuery)
 {
-  VisusAssert(this->valid());
-
   if (!config.valid())
     config = getDefaultAccessConfig();
 
@@ -333,65 +331,60 @@ static StringTree* FindDataset(String name, const StringTree& stree)
 
 
 /////////////////////////////////////////////////////////////////////////
-SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config)
+SharedPtr<Dataset> LoadDatasetEx(String name, StringTree ar)
 {
   if (name.empty())
     return SharedPtr<Dataset>();
 
-  auto it=FindDataset(name, config);
-  config = it ? *it : StringTree();
+  auto it = FindDataset(name, ar);
+  ar = it ? *it : StringTree();
 
-  Url url(config.readString("url", name));
+  Url url = ar.readString("url", name);
   if (!url.valid())
   {
     PrintWarning("LoadDataset", name, "failed. Not a valid url");
     return SharedPtr<Dataset>();
   }
 
-  String TypeName;
-
-  //local
-  if (url.isFile())
-  {
-    String extension = Path(url.getPath()).getExtension();
-    TypeName = DatasetFactory::getSingleton()->getDatasetTypeNameFromExtension(extension);
-
-    //probably not even an idx dataset
-    if (TypeName.empty())
-      return SharedPtr<Dataset>();
-  }
-  else if (StringUtils::contains(url.toString(), "mod_visus"))
-  {
+  if (Url(url).isRemote() && StringUtils::contains(url.toString(), "mod_visus"))
     url.setParam("action", "readdataset");
 
-    auto response = NetService::getNetResponse(url);
-    if (!response.isSuccessful())
-    {
-      PrintWarning("LoadDataset", url.toString(), "failed errormsg", response.getErrorMessage());
-      return SharedPtr<Dataset>();
-    }
+  auto content = StringUtils::trim(Utils::loadTextDocument(url.toString()));
 
-    TypeName = response.getHeader("visus-typename", "IdxDataset");
-    if (TypeName.empty())
+  if (bool bXml = StringUtils::trim(content)[0] == '<') 
+  {
+    auto doc = StringTree::fromString(content);
+    if (doc.valid())
     {
-      PrintWarning("LoadDataset", url.toString(), "failed. Got empty TypeName");
-      return SharedPtr<Dataset>();
+      // merge
+      for (auto it : doc.attributes) {
+        if (!ar.hasAttribute(it.first))
+          ar.setAttribute(it.first, it.second);
+      }
+
+      // merge
+      for (auto it : doc.childs)
+        ar.addChild(*it);
     }
   }
-  //legacy dataset (example google maps)
-  else if (StringUtils::endsWith(url.getHostname(), ".google.com"))
-  {
-    TypeName = "GoogleMapsDataset";
-  }
-  //cloud storage
   else
   {
-    TypeName = "IdxDataset"; //using cloud storage only for IDX dataset (in fact MultiDataset must have some run-time processing)
+    //backward compatible, old idx non-xml format
+    ar.setAttribute("typename", "IdxDataset");
+    ar.writeText("idx",content);
   }
 
-  // backward compatible 
+  auto TypeName = ar.getAttribute("typename", "IdxDataset");
+
+  // backward compatible
   if (TypeName == "MultipleDataset")
     TypeName = "IdxMultipleDataset";
+
+  if (TypeName.empty())
+  {
+    PrintWarning("LoadDataset", url.toString(), "failed. Got empty TypeName");
+    return SharedPtr<Dataset>();
+  }
 
   auto ret= DatasetFactory::getSingleton()->createInstance(TypeName);
   if (!ret) 
@@ -400,13 +393,13 @@ SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config)
     return SharedPtr<Dataset>();
   }
 
-  ret->setUrl(url);
-  ret->setConfig(config);
-  ret->setKdQueryMode(KdQueryMode::fromString(config.readString("kdquery", url.getParam("kdquery"))));
-
-  if (!ret->openFromUrl(url.toString())) 
+  try
   {
-    PrintWarning(TypeName,"openFromUrl",url,"failed");
+    ret->openFromUrl(ar, url.toString());
+  }
+  catch (std::exception)
+  {
+    PrintWarning(TypeName, "openFromUrl", url, "failed");
     return SharedPtr<Dataset>();
   }
 
@@ -489,11 +482,6 @@ Future<Void> Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<Block
   //auto allocate buffer
   if (!query->allocateBufferIfNeeded())
     return failed();
-
-  // override time  from dataset url
-  Url url = this->getUrl();
-  if (url.hasParam("time"))
-    query->time = cdouble(url.getParam("time"));
 
   // override time  from from field
   if (query->field.hasParam("time"))
@@ -789,31 +777,6 @@ Array Dataset::extractLevelImage(SharedPtr<Access> access, Field field, double t
   return ret;
 }
 
-//////////////////////////////////////////////////////////////////////////
-void Dataset::write(Archive& ar) const
-{
-  auto url = getUrl();
-  ar.write("url", url);
 
-  //I want to save it to retrieve it on a different computer
-  if (config.valid())
-    ar.addChild("config")->addChild(this->config);
-}
-
-//////////////////////////////////////////////////////////////////////////
-void Dataset::read(Archive& ar)
-{
-  String url;
-  ar.read("url", url);
-
-  if (auto config= ar.getChild("config"))
-  {
-    VisusAssert(config->getNumberOfChilds() == 1);
-    this->config = *config->getFirstChild();
-  }
-
-  if (!this->openFromUrl(url))
-    ThrowException("Cannot open dataset from url",url);
-}
 
 } //namespace Visus 

@@ -276,6 +276,7 @@ if (VISUS_PYTHON)
 	endmacro()
 	
 	AddOpenVisusTest(VisusTestPyDataflow   COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Dataflow.py"        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+	AddOpenVisusTest(VisusTestPyDataflow2  COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Dataflow2.py"       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 	AddOpenVisusTest(VisusTestPyArray      COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Array.py"           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 	AddOpenVisusTest(VisusTestPyIdx        COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/Idx.py"             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 	AddOpenVisusTest(VisusTestPyXIdx       COMMAND "${PYTHON_EXECUTABLE}"    "Samples/python/XIdx.py"            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

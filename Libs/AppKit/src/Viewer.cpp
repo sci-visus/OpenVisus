@@ -1283,36 +1283,34 @@ bool Viewer::open(String url,Node* parent)
     return true;
   }
 
-  //xml means a Viewer scene
+  //could be a Viewer scene?
   if (StringUtils::endsWith(url,".xml"))
   {
-    auto ar=StringTree::fromString(Utils::loadTextDocument(url));
-    if (!ar.valid())
+    auto content = StringUtils::trim(Utils::loadTextDocument(url));
+    if (StringUtils::startsWith(content, "<Viewer"))
     {
-      VisusAssert(false);
-      return false;
+      clearAll();
+      setDataflow(std::make_shared<Dataflow>());
+
+      try
+      {
+        auto ar = StringTree::fromString(content);
+        read(ar);
+      }
+      catch (std::exception ex)
+      {
+        VisusAssert(false);
+        QMessageBox::information(this, "Error", ex.what());
+        return false;
+      }
+
+      PrintInfo("open", url, "done");
+
+      if (widgets.treeview)
+        widgets.treeview->expandAll();
+      refreshActions();
+      return true;
     }
-
-    clearAll();
-    setDataflow(std::make_shared<Dataflow>());
-
-    try
-    {
-      read(ar);
-    }
-    catch (std::exception ex)
-    {
-      VisusAssert(false);
-      QMessageBox::information(this, "Error", ex.what());
-      return false;
-    }
-
-    PrintInfo("open",url,"done");
-
-    if (widgets.treeview)
-      widgets.treeview->expandAll();
-    refreshActions();
-    return true;
   }
 
   //open a dataset
@@ -1340,7 +1338,7 @@ bool Viewer::open(String url,Node* parent)
     //add a default render node
     if (bool bAddRenderNode=true)
     {
-      String rendertype = StringUtils::toLower(dataset->getConfig().readString("rendertype", ""));
+      String rendertype = StringUtils::toLower(dataset->getDatasetBody().readString("rendertype", ""));
 
       if ((dataset->getKdQueryMode() != KdQueryMode::NotSpecified) || rendertype == "kdrender")
         addKdQuery("", dataset_node);
@@ -1945,7 +1943,7 @@ DatasetNode* Viewer::addDataset(String uuid, Node* parent, SharedPtr<Dataset> da
     auto dataset_node = new DatasetNode();
     ret = dataset_node;
     dataset_node->setUUID(uuid);
-    dataset_node->setName(dataset->getUrl().toString());
+    dataset_node->setName(dataset->getUrl());
     dataset_node->setDataset(dataset);
     dataset_node->setShowBounds(true);
     addNode(parent, dataset_node);

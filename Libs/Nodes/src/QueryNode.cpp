@@ -135,7 +135,13 @@ public:
       {
         Time t1 = Time::now();
 
-        if (aborted() || !query->isRunning() || !dataset->executeQuery(access, query) || aborted())
+        if (aborted() || !query->isRunning())
+          return;
+
+        if (!dataset->executeQuery(access, query))
+          return;
+
+        if (aborted())
           return;
 
         auto output = query->buffer;

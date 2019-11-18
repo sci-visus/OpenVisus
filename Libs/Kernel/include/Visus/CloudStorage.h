@@ -45,6 +45,42 @@ For support : support@visus.net
 namespace Visus {
 
 
+
+  ////////////////////////////////////////////////////////////////////////////////
+class VISUS_KERNEL_API CloudStorageBlob
+{
+public:
+  SharedPtr<HeapMemory> body;
+  StringMap metadata;
+  String content_type;
+
+  //constructor
+  CloudStorageBlob(SharedPtr<HeapMemory> body_ = SharedPtr<HeapMemory>(), StringMap metadata_ = StringMap(), String content_type_ = "application/octet-stream")
+    : metadata(metadata_), body(body_), content_type(content_type_) {
+  }
+
+  //valid
+  bool valid() const {
+    return body ? true : false;
+  }
+
+  //operator==
+  bool operator==(const CloudStorageBlob& b) const
+  {
+    const CloudStorageBlob& a = *this;
+    return
+      (a.content_type == b.content_type) &&
+      (a.metadata == b.metadata) &&
+      ((!a.body && !b.body) || (a.body && b.body && a.body->c_size() == b.body->c_size() && memcmp(a.body->c_ptr(), b.body->c_ptr(), (size_t)a.body->c_size()) == 0));
+  }
+
+  //operator==
+  bool operator!=(const CloudStorageBlob& b) const {
+    return !(operator==(b));
+  }
+
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 class VISUS_KERNEL_API CloudStorage 
 {
@@ -59,40 +95,6 @@ public:
   //  <blob>      = block0001.bin
 
 
-  //_____________________________________________________
-  class VISUS_KERNEL_API Blob
-  {
-  public:
-    SharedPtr<HeapMemory> body;
-    StringMap metadata; 
-    String content_type;
-
-    //constructor
-    Blob(SharedPtr<HeapMemory> body_= SharedPtr<HeapMemory>(), StringMap metadata_ = StringMap(), String content_type_= "application/octet-stream")
-    : metadata(metadata_), body(body_), content_type(content_type_) {
-    }
-
-    //valid
-    bool valid() const { 
-      return body ? true : false; 
-    }
-
-    //operator==
-    bool operator==(const Blob& b) const
-    {
-      const Blob& a = *this;
-      return 
-        (a.content_type == b.content_type) &&
-        (a.metadata == b.metadata) &&
-        ((!a.body && !b.body) || (a.body && b.body && a.body->c_size() == b.body->c_size() && memcmp(a.body->c_ptr(), b.body->c_ptr(), (size_t)a.body->c_size()) == 0));
-    }
-    
-    //operator==
-    bool operator!=(const Blob& b) const {
-      return !(operator==(b));
-    }
-
-  };
 
   //constructor
   CloudStorage(){
@@ -106,10 +108,10 @@ public:
   static SharedPtr<CloudStorage> createInstance(Url url);
   
   //addBlob
-  virtual Future<bool> addBlob(SharedPtr<NetService> service, String name, Blob blob, Aborted aborted = Aborted())=0;
+  virtual Future<bool> addBlob(SharedPtr<NetService> service, String name, CloudStorageBlob blob, Aborted aborted = Aborted())=0;
 
   //getBlob
-  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) = 0;
+  virtual Future<CloudStorageBlob> getBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) = 0;
 
   // deleteBlob
   virtual Future<bool> deleteBlob(SharedPtr<NetService> service, String name, Aborted aborted = Aborted()) = 0;

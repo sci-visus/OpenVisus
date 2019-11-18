@@ -56,14 +56,20 @@ DiskAccess::DiskAccess(Dataset* dataset,StringTree config)
   this->path              = Path(config.readString("dir","."));
   this->bitsperblock      = default_bitsperblock;
   this->compression       = config.readString("compression", "lz4");
-  this->filename_template = config.readString("filename_template", guessBlockFilenameTemplate());
+  this->filename_template = config.readString("filename_template", "$(prefix)/time_$(time)/$(field)/$(block).$(compression)");
 }
 
 
 ////////////////////////////////////////////////////////////////////
 String DiskAccess::getFilename(Field field,double time,BigInt blockid) const
 {
-  auto ret = guessBlockFilename(this->path.toString(), field, time, blockid, "." + this->compression, this->filename_template);
+  String fieldname = StringUtils::removeSpaces(field.name);
+  String ret = filename_template;
+  ret = StringUtils::replaceFirst(ret, "$(prefix)", this->path.toString());
+  ret = StringUtils::replaceFirst(ret, "$(time)", StringUtils::onlyAlNum(int(time) == time ? cstring((int)time) : cstring(time)));
+  ret = StringUtils::replaceFirst(ret, "$(field)", fieldname.length() < 32 ? StringUtils::onlyAlNum(fieldname) : StringUtils::computeChecksum(fieldname));
+  ret = StringUtils::replaceFirst(ret, "$(block)", StringUtils::join(StringUtils::splitInChunks(StringUtils::formatNumber("%032x", blockid), 4), "/"));
+  ret = StringUtils::replaceFirst(ret, "$(compression)", this->compression);
   VisusAssert(!StringUtils::contains(ret, "$"));
   return ret;
 }

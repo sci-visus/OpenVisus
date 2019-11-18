@@ -164,7 +164,7 @@ public:
   }
 
   // addBlob 
-  virtual Future<bool> addBlob(SharedPtr<NetService> service, String blob_name, Blob blob, Aborted aborted = Aborted()) override
+  virtual Future<bool> addBlob(SharedPtr<NetService> service, String blob_name, CloudStorageBlob blob, Aborted aborted = Aborted()) override
   {
     auto ret = Promise<bool>().get_future();
 
@@ -205,9 +205,9 @@ public:
   }
 
   // getBlob 
-  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
+  virtual Future<CloudStorageBlob> getBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
   {
-    auto ret = Promise<Blob>().get_future();
+    auto ret = Promise<CloudStorageBlob>().get_future();
 
     //NOTE blob_name already contains the container name
     NetRequest request(this->protocol + "://" + this->hostname + blob_name, "GET");
@@ -216,7 +216,7 @@ public:
 
     NetService::push(service, request).when_ready([ret](NetResponse response) {
 
-      Blob blob;
+      CloudStorageBlob blob;
 
       if (response.isSuccessful())
       {

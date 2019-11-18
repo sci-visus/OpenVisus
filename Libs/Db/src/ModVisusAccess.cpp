@@ -51,7 +51,7 @@ ModVisusAccess::ModVisusAccess(Dataset* dataset,StringTree config_)
   this->can_read = StringUtils::find(config.readString("chmod", "rw"), "r") >= 0;
   this->can_write = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
   this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
-  this->url = config.readString("url", dataset->getUrl().toString()); VisusAssert(url.valid());
+  this->url = config.readString("url", dataset->getUrl()); VisusAssert(url.valid());
   this->compression = config.readString("compression", url.getParam("compression", "zip"));  //TODO: should I swith to lz4?
 
   this->config.write("url", url.toString());

@@ -4,12 +4,8 @@
 		<code>output=voronoi()</code>
 	</field>
 
-	<!-- logic dimensions 1073741824^2 -->
-	<dataset name='google'  url='http://mt1.google.com/vt/lyrs=s?nlevels=22'  physic_box="0.0 1.0 0.0 1.0" />
-		
-	
-	<!-- already in 0,1 range  -->
-	<dataset name='slam' url='D:/GoogleSci/visus_slam/Alfalfa/VisusSlamFiles/visus.midx' />
+	<dataset name='google'  url='./google.xml' />
+	<dataset name='slam' url='D:/GoogleSci/visus_slam/TaylorGrant/VisusSlamFiles/visus.midx' />
 	
 </dataset>
 

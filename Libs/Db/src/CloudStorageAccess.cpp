@@ -50,9 +50,9 @@ CloudStorageAccess::CloudStorageAccess(Dataset* dataset,StringTree config_)
   this->can_read = StringUtils::find(config.readString("chmod", "rw"), "r") >= 0;
   this->can_write = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
   this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
-  this->url = config.readString("url", dataset->getUrl().toString()); VisusAssert(url.valid());
-  this->compression = config.readString("compression", url.getParam("compression", "zip")); //zip compress more than lz4 for network.. 
-  this->filename_template = config.readString("filename_template", url.getParam("filename_template", guessBlockFilenameTemplate()));
+  this->url = config.readString("url", dataset->getUrl()); VisusAssert(url.valid());
+  this->compression = config.readString("compression", "zip"); //zip compress more than lz4 for network.. 
+  this->filename_template = config.readString("filename_template", "$(prefix)/time_$(time)/$(field)/$(block).$(compression)");
 
   this->config.write("url", url.toString());
 
@@ -72,7 +72,13 @@ CloudStorageAccess::~CloudStorageAccess()
 ///////////////////////////////////////////////////////////////////////////////////////
 String CloudStorageAccess::getFilename(Field field, double time, BigInt blockid) const
 {
-  auto ret=guessBlockFilename(this->url.getPath(), field, time, blockid, "." + compression, this->filename_template);
+  String fieldname = StringUtils::removeSpaces(field.name);
+  String ret = filename_template;
+  ret = StringUtils::replaceFirst(ret, "$(prefix)", this->url.getPath());
+  ret = StringUtils::replaceFirst(ret, "$(time)", StringUtils::onlyAlNum(int(time) == time ? cstring((int)time) : cstring(time)));
+  ret = StringUtils::replaceFirst(ret, "$(field)", fieldname.length() < 32 ? StringUtils::onlyAlNum(fieldname) : StringUtils::computeChecksum(fieldname));
+  ret = StringUtils::replaceFirst(ret, "$(block)", StringUtils::join(StringUtils::splitInChunks(StringUtils::formatNumber("%032x", blockid), 4), "/"));
+  ret = StringUtils::replaceFirst(ret, "$(compression)", compression);
 
   //backward compatible
   if (StringUtils::contains(ret,"$(start_address)"))
@@ -88,7 +94,7 @@ void CloudStorageAccess::readBlock(SharedPtr<BlockQuery> query)
 {
   VisusAssert((int)query->getNumberOfSamples().innerProduct()==(1<<bitsperblock));
 
-  cloud_storage->getBlob(netservice, Access::getFilename(query), query->aborted).when_ready([this, query](CloudStorage::Blob blob) {
+  cloud_storage->getBlob(netservice, Access::getFilename(query), query->aborted).when_ready([this, query](CloudStorageBlob blob) {
 
     if (!blob.metadata.hasValue("visus-compression"))
       blob.metadata.setValue("visus-compression", this->compression);
@@ -126,7 +132,7 @@ void CloudStorageAccess::writeBlock(SharedPtr<BlockQuery> query)
   if (!encoded)
     return writeFailed(query);
 
-  CloudStorage::Blob blob;
+  CloudStorageBlob blob;
   blob.body = encoded;
 
   blob.metadata.setValue("visus-compression", compression);

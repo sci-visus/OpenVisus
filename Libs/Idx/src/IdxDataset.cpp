@@ -644,7 +644,7 @@ bool IdxDataset::compressDataset(String compression)
     for (auto& field : idxfile.fields)
       field.default_compression =compression;
 
-    String filename=this->getUrl().getPath();
+    String filename=Url(this->getUrl()).getPath();
     if (!idxfile.save(filename)){
       PrintError("Cannot save the new idxfile",filename);
       VisusAssert(false);
@@ -917,8 +917,6 @@ bool IdxDataset::convertBlockQueryToRowMajor(SharedPtr<BlockQuery> block_query)
 ////////////////////////////////////////////////////////////////////
 SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuery)
 {
-  VisusAssert(this->valid());
-
   if (!config.valid())
     config = getDefaultAccessConfig();
 
@@ -927,7 +925,7 @@ SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuer
   //no type, create default
   if (type.empty()) 
   {
-    Url url = config.readString("url", getUrl().toString());
+    Url url = config.readString("url", getUrl());
 
     //local disk access
     if (url.isFile())
@@ -962,18 +960,18 @@ SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuer
 }
 
 ////////////////////////////////////////////////////////////////////
-bool IdxDataset::openFromUrl(Url url)
+void IdxDataset::openFromUrl(Archive& ar, String url)
 {
-  auto idxfile = IdxFile::load(url);
-  if (!idxfile.valid()) {
-    this->invalidate();
-    return false;
-  }
+  String idx;
+  ar.readText("idx", idx);
+  auto idxfile = IdxFile::fromOldFormatString(idx);
+  idxfile.validate(url);
+  VisusReleaseAssert(idxfile.valid());
 
   setUrl(url);
-  setDatasetBody(idxfile.toString());
+  setDatasetBody(ar);
+  setKdQueryMode(KdQueryMode::fromString(ar.readString("kdquery", Url(url).getParam("kdquery"))));
   setIdxFile(idxfile);
-  return true;
 }
 
 
@@ -1184,7 +1182,6 @@ NetRequest IdxDataset::createBoxQueryRequest(SharedPtr<BoxQuery> query)
 
   VisusAssert(query->mode == 'r');
 
-  //important for IdxMultipleDataset... the url can be different
   Url url = this->getUrl();
 
   NetRequest ret;
@@ -1208,7 +1205,6 @@ NetRequest IdxDataset::createPointQueryRequest(SharedPtr<PointQuery> query)
 {
   VisusAssert(query->mode == 'r');
 
-  //important for IdxMultipleDataset... the url can be different
   Url url=this->getUrl();
 
   NetRequest ret;
@@ -1295,9 +1291,6 @@ void IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
   if (query->getStatus() != QueryCreated)
     return;
 
-  if (!this->valid())
-    return query->setFailed("query not valid");
-
   if (query->aborted())
     return query->setFailed("query aborted");
 
@@ -1310,10 +1303,6 @@ void IdxDataset::beginQuery(SharedPtr<BoxQuery> query)
   // override time from field
   if (query->field.hasParam("time"))
     query->time = cdouble(query->field.getParam("time"));
-
-  // override time from dataset url
-  if (this->getUrl().hasParam("time"))
-    query->time = cdouble(this->getUrl().getParam("time"));
 
   if (!getTimesteps().containsTimestep(query->time))
     return query->setFailed("missing timestep");
@@ -1660,9 +1649,6 @@ void IdxDataset::beginQuery(SharedPtr<PointQuery> query)
   //if you want to set a buffer for 'w' queries, please do it after begin
   VisusAssert(!query->buffer);
 
-  if (!this->valid())
-    return query->setFailed("query not valid");
-
   if (getPointDim() != 3)
     return query->setFailed("pointquery supported only in 3d so far");
 
@@ -1675,10 +1661,6 @@ void IdxDataset::beginQuery(SharedPtr<PointQuery> query)
   // override time from field
   if (query->field.hasParam("time"))
     query->time = cdouble(query->field.getParam("time"));
-
-  // override time from dataset url
-  if (this->getUrl().hasParam("time"))
-    query->time = cdouble(this->getUrl().getParam("time"));
 
   if (!getTimesteps().containsTimestep(query->time))
     return query->setFailed("missing timestep");

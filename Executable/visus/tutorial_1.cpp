@@ -72,7 +72,7 @@ void Tutorial_1(String default_layout)
 
   //now create a Dataset, save it and reopen from disk
   auto dataset=LoadDataset(filename);
-  VisusReleaseAssert(dataset && dataset->valid());
+  VisusReleaseAssert(dataset);
 
   //any time you need to read/write data from/to a Dataset I need a Access
   auto access=dataset->createAccess();

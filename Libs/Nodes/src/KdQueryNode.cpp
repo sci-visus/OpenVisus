@@ -387,7 +387,7 @@ public:
 
     //execute remote queries in async way
     SharedPtr<NetService> netservice;
-    if (!access && dataset->getUrl().isRemote())
+    if (!access && Url(dataset->getUrl()).isRemote())
       netservice = std::make_shared<NetService>(8);
 
     WaitAsync< Future<NetResponse> >  wait_async;

@@ -54,72 +54,29 @@ namespace Visus {
 
   
 ////////////////////////////////////////////////////////////////////
-String IdxFile::guessFilenameTemplate(Url url)
+String IdxFile::guessFilenameTemplate()
 {
-  if (!url.valid())
-    return "";
-
-  if (this->version!=6) 
-  {
-    VisusAssert(false);
-    return "";
-  }
-
-  auto maxh=this->bitmask.getMaxResolution();
-
   //this is the bits for block number
-  int nbits_blocknumber = (maxh - bitsperblock);
+  int nbits_blocknumber = (this->bitmask.getMaxResolution() - bitsperblock);
 
   //"./" means where the directory where there is the idx
   //note: for remote I really don't care what's the template
-  String ret = url.isFile()? "./" + Path(url.getPath()).getFileNameWithoutExtension() : "./visus_data";
+  
+  std::ostringstream out;
 
-  //can happen if I have only only one block
-  if (nbits_blocknumber==0)
+  while (nbits_blocknumber > 16)
   {
-    ret += "/%01x.bin";
-  }
-  else
-  {
-    //approximate to 4 bits
-    if (nbits_blocknumber % 4)
-    {
-      nbits_blocknumber += (4 - (nbits_blocknumber % 4));
-      VisusAssert(!(nbits_blocknumber % 4));
-    }
-
-    if (nbits_blocknumber <= 8)
-    {
-      ret += "/%02x.bin";  //no directories, 256 files
-    }
-    else if (nbits_blocknumber <= 12)
-    {
-      ret += "/%03x.bin"; //no directories, 4096 files
-    }
-    else if (nbits_blocknumber <= 16)
-    {
-      ret += "/%04x.bin"; //no directories, 65536  files
-    }
-    else
-    {
-      while (nbits_blocknumber > 16)
-      {
-        ret += "/%02x";  //256 subdirectories
-        nbits_blocknumber -= 8;
-      }
-
-      ret += "/%04x.bin"; //max 65536  files
-      nbits_blocknumber -= 16;
-      VisusAssert(nbits_blocknumber <= 0);
-    }
+    out << "/%02x";  //256 subdirectories
+    nbits_blocknumber -= 8;
   }
 
-  return ret;
+  out << "/%04x.bin"; //max 65536  files
+  return out.str();
     
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void IdxFile::validate(Url url)
+void IdxFile::validate(String s_url)
 {
   //version
   if (this->version == 0)
@@ -274,28 +231,12 @@ void IdxFile::validate(Url url)
   }
 
   //filename_template
-  if (filename_template.empty())
-    filename_template=guessFilenameTemplate(url);
-
+  Url url = s_url;
   if (filename_template.empty())
   {
-    PrintWarning("wrong filename_template",filename_template);
-    this->version=-1;
-    return;
+    filename_template = (url.isFile()? "./" + Path(url.getPath()).getFileNameWithoutExtension() : "./visus_data");
+    filename_template += guessFilenameTemplate();
   }
-
-  //replace some alias
-  if (url.valid() && url.isFile() && (StringUtils::contains(filename_template,"$(CurrentFileDirectory)") || StringUtils::startsWith(filename_template,"./")))
-  {
-    String cfd=Path(url.getPath()).getParent().toString();
-    if (!cfd.empty())
-    {
-      if (StringUtils::startsWith(this->filename_template,"./"))
-        this->filename_template = StringUtils::replaceFirst(this->filename_template,"./", cfd + "/");
-
-      this->filename_template = StringUtils::replaceAll(this->filename_template,"$(CurrentFileDirectory)", cfd);
-    }
-  }  
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -426,181 +367,140 @@ IdxFile::IdxFile(int version_) : version(version_)
 }
 
 //////////////////////////////////////////////////////////////////////////////
-IdxFile IdxFile::fromString(String content, Url url)
+IdxFile IdxFile::fromOldFormatString(String content)
 {
   IdxFile idxfile;
 
-  //old text format
-  if (StringUtils::startsWith(content, "(version)"))
+  //parse the idx text format
+  StringMap map;
+
+  std::vector<String> v = StringUtils::getLinesAndPurgeComments(content, "#");
+  String key, value;
+  for (int I = 0; I < (int)v.size(); I++)
   {
-    //parse the idx text format
-    StringMap map;
+    String line = StringUtils::trim(v[I]);
+    if (line.empty())
+      continue;
 
-    std::vector<String> v = StringUtils::getLinesAndPurgeComments(content, "#");
-    String key, value;
-    for (int I = 0; I < (int)v.size(); I++)
+    //comment
+    if (StringUtils::startsWith(line, "#"))
+      continue;
+
+    if (bool bIsKey = StringUtils::startsWith(line, "("))
     {
-      String line = StringUtils::trim(v[I]);
-      if (line.empty())
-        continue;
+      //flush previous
+      if (!key.empty())
+        map.setValue(key, StringUtils::trim(value));
 
-      //comment
-      if (StringUtils::startsWith(line, "#"))
-        continue;
-
-      if (bool bIsKey = StringUtils::startsWith(line, "("))
-      {
-        //flush previous
-        if (!key.empty())
-          map.setValue(key, StringUtils::trim(value));
-
-        key = StringUtils::trim(line);
-        value = String();
-      }
-      else
-      {
-        value = value + " " + line;
-      }
-    }
-
-    if (!key.empty())
-      map.setValue(key, StringUtils::trim(value));
-
-    //trim the values
-    for (auto it = map.begin(); it != map.end(); it++)
-      it->second = StringUtils::trim(it->second);
-
-    idxfile.version = cint(map.getValue("(version)")); VisusAssert(idxfile.version >= 1 && idxfile.version <= 6);
-    idxfile.bitmask = DatasetBitmask::fromString(map.getValue("(bits)"));
-    idxfile.logic_box = BoxNi::parseFromOldFormatString(idxfile.bitmask.getPointDim(), map.getValue("(box)"));
-
-    auto pdim = idxfile.bitmask.getPointDim();
-
-    if (map.hasValue("(physic_box)"))
-    {
-      idxfile.bounds = BoxNd::fromString(map.getValue("(physic_box)"));
-      idxfile.bounds.setSpaceDim(pdim + 1);
-    }
-
-    else if (map.hasValue("(logic_to_physic)"))
-    {
-      auto logic_to_physic = Matrix::fromString(map.getValue("(logic_to_physic)"));
-      idxfile.bounds = Position(logic_to_physic, idxfile.logic_box);
-      idxfile.bounds.setSpaceDim(pdim + 1);
+      key = StringUtils::trim(line);
+      value = String();
     }
     else
     {
-      idxfile.bounds = idxfile.logic_box;
+      value = value + " " + line;
     }
-
-    //parse fields
-    if (map.hasValue("(fields)"))
-      idxfile.fields = parseFields(map.getValue("(fields)"));
-
-    idxfile.bitsperblock = cint(map.getValue("(bitsperblock)"));
-    idxfile.blocksperfile = cint(map.getValue("(blocksperfile)"));
-    idxfile.filename_template = map.getValue("(filename_template)");
-
-    if (map.hasValue("(interleave)"))
-      idxfile.block_interleaving = cint(map.getValue("(interleave)"));
-
-    if (map.hasValue("(time)"))
-    {
-      std::vector<String> vtime = StringUtils::split(map.getValue("(time)"), " ");
-      VisusAssert(vtime.size() >= 2);
-
-      idxfile.timesteps = DatasetTimesteps();
-      double parse_time = 0;
-
-      ///star format (means I don't know in advance the timesteps)
-      //* * time_template 
-      if (vtime[0] == "*")
-      {
-        bool bGood = vtime.size() == 3 && vtime[1] == "*";
-        if (!bGood) { PrintInfo("idx (time) is wrong"); VisusAssert(false); return IdxFile::invalid(); }
-        idxfile.time_template = vtime[2];
-      }
-      //old format
-      //From To time_template
-      else if (StringUtils::tryParse(vtime[0], parse_time))
-      {
-        bool bGood = vtime.size() == 3 && StringUtils::tryParse(vtime[1], parse_time);
-        if (!bGood) { PrintInfo("idx (time) is wrong"); VisusAssert(false); return IdxFile::invalid(); }
-        double From = cdouble(vtime[0]);
-        double To = cdouble(vtime[1]);
-        idxfile.timesteps.addTimesteps(From, To, 1.0);
-        idxfile.time_template = vtime[2];
-      }
-      //new format
-      //time_template (From,To,Step) (From,To,Step) (From,To,Step)
-      else
-      {
-        idxfile.time_template = vtime[0];
-        for (int I = 1; I < (int)vtime.size(); I++)
-        {
-          bool bGood = StringUtils::startsWith(vtime[I], "(") && StringUtils::find(vtime[I], ")");
-          if (!bGood) { PrintInfo("idx (time) is wrong"); VisusAssert(false); return IdxFile::invalid(); }
-          std::vector<String> vrange = StringUtils::split(vtime[I].substr(1, vtime[I].size() - 2), ",", true);
-          double From = vrange.size() >= 1 ? cdouble(vrange[0]) : 0;
-          double To = vrange.size() >= 2 ? cdouble(vrange[1]) : From;
-          double Step = vrange.size() >= 3 ? cdouble(vrange[2]) : 1;
-          idxfile.timesteps.addTimesteps(From, To, Step);
-        }
-      }
-    }
-
-    idxfile.validate(url);
   }
-  //new xml format
+
+  if (!key.empty())
+    map.setValue(key, StringUtils::trim(value));
+
+  //trim the values
+  for (auto it = map.begin(); it != map.end(); it++)
+    it->second = StringUtils::trim(it->second);
+
+  idxfile.version = cint(map.getValue("(version)")); VisusAssert(idxfile.version >= 1 && idxfile.version <= 6);
+  idxfile.bitmask = DatasetBitmask::fromString(map.getValue("(bits)"));
+  idxfile.logic_box = BoxNi::parseFromOldFormatString(idxfile.bitmask.getPointDim(), map.getValue("(box)"));
+
+  auto pdim = idxfile.bitmask.getPointDim();
+
+  if (map.hasValue("(physic_box)"))
+  {
+    idxfile.bounds = BoxNd::fromString(map.getValue("(physic_box)"));
+    idxfile.bounds.setSpaceDim(pdim + 1);
+  }
+
+  else if (map.hasValue("(logic_to_physic)"))
+  {
+    auto logic_to_physic = Matrix::fromString(map.getValue("(logic_to_physic)"));
+    idxfile.bounds = Position(logic_to_physic, idxfile.logic_box);
+    idxfile.bounds.setSpaceDim(pdim + 1);
+  }
   else
   {
-    StringTree in = StringTree::fromString(content);
-    if (!in.valid())
-    {
-      PrintInfo("idx file is wrong");
-      VisusAssert(false);
-      return IdxFile::invalid();
-    }
+    idxfile.bounds = idxfile.logic_box;
+  }
 
-    idxfile.read(in);
-    idxfile.validate(url);
-    if (!idxfile.valid())
+  //parse fields
+  if (map.hasValue("(fields)"))
+    idxfile.fields = parseFields(map.getValue("(fields)"));
+
+  idxfile.bitsperblock = cint(map.getValue("(bitsperblock)"));
+  idxfile.blocksperfile = cint(map.getValue("(blocksperfile)"));
+  idxfile.filename_template = map.getValue("(filename_template)");
+
+  if (map.hasValue("(interleave)"))
+    idxfile.block_interleaving = cint(map.getValue("(interleave)"));
+
+  if (map.hasValue("(time)"))
+  {
+    std::vector<String> vtime = StringUtils::split(map.getValue("(time)"), " ");
+    VisusAssert(vtime.size() >= 2);
+
+    idxfile.timesteps = DatasetTimesteps();
+    double parse_time = 0;
+
+    ///star format (means I don't know in advance the timesteps)
+    //* * time_template 
+    if (vtime[0] == "*")
     {
-      PrintInfo("idx file is wrong");
-      return IdxFile::invalid();
+      bool bGood = vtime.size() == 3 && vtime[1] == "*";
+      if (!bGood) { PrintInfo("idx (time) is wrong"); VisusAssert(false); return IdxFile::invalid(); }
+      idxfile.time_template = vtime[2];
+    }
+    //old format
+    //From To time_template
+    else if (StringUtils::tryParse(vtime[0], parse_time))
+    {
+      bool bGood = vtime.size() == 3 && StringUtils::tryParse(vtime[1], parse_time);
+      if (!bGood) { PrintInfo("idx (time) is wrong"); VisusAssert(false); return IdxFile::invalid(); }
+      double From = cdouble(vtime[0]);
+      double To = cdouble(vtime[1]);
+      idxfile.timesteps.addTimesteps(From, To, 1.0);
+      idxfile.time_template = vtime[2];
+    }
+    //new format
+    //time_template (From,To,Step) (From,To,Step) (From,To,Step)
+    else
+    {
+      idxfile.time_template = vtime[0];
+      for (int I = 1; I < (int)vtime.size(); I++)
+      {
+        bool bGood = StringUtils::startsWith(vtime[I], "(") && StringUtils::find(vtime[I], ")");
+        if (!bGood) { PrintInfo("idx (time) is wrong"); VisusAssert(false); return IdxFile::invalid(); }
+        std::vector<String> vrange = StringUtils::split(vtime[I].substr(1, vtime[I].size() - 2), ",", true);
+        double From = vrange.size() >= 1 ? cdouble(vrange[0]) : 0;
+        double To = vrange.size() >= 2 ? cdouble(vrange[1]) : From;
+        double Step = vrange.size() >= 3 ? cdouble(vrange[2]) : 1;
+        idxfile.timesteps.addTimesteps(From, To, Step);
+      }
     }
   }
 
   return idxfile;
-
 }
 
 //////////////////////////////////////////////////////////////////////////////
-IdxFile IdxFile::load(Url url)
+IdxFile IdxFile::load(String url)
 {
-  String content;
-  {
-    //special case for cloud storage, I need to sign the request
-    if (url.isRemote() && !StringUtils::contains(url.toString(),"mod_visus"))
-    {
-      if (auto cloud_storage = CloudStorage::createInstance(url))
-      {
-        auto blob_name = url.getPath();
-        auto blob=cloud_storage->getBlob(SharedPtr<NetService>(), blob_name, Aborted()).get();
-        if (blob.valid())
-          content = String((char*)blob.body->c_ptr(), (size_t)blob.body->c_size());
-      }
-    }
-    else
-    {
-      content=Utils::loadTextDocument(url.toString());
-    }
-  }
+  String content=Utils::loadTextDocument(url);
 
   if (content.empty())
     return IdxFile::invalid();
 
-  return IdxFile::fromString(content, url);
+  auto idxfile=IdxFile::fromOldFormatString(content);
+  idxfile.validate(url);
+  return idxfile;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -611,14 +511,13 @@ bool IdxFile::save(String filename)
 
   //the user is trying to create a new IdxFile... help him by guessing and checking some values
   if (version==0)
-    validate(Url(filename));
+    validate(filename);
 
   if (!valid())
     return false;
 
-  this->saving_filename=filename;
-  String content=toString();
-  this->saving_filename="";
+
+  auto content=toOldFormatString();
   if (content.empty()) 
     return false;
 
@@ -642,144 +541,102 @@ bool IdxFile::save(String filename)
 
 
 /////////////////////////////////////////////////////////////////////////////
-String IdxFile::toString() const
+String IdxFile::toOldFormatString() const
 {
   if (!valid())
     return "";
 
-  //old idx file format
-  if (version>=1 && version<=6)
+  std::ostringstream out;
+
+  out<<"(version)\n"<<this->version<<"\n";
+  out<<"(box)\n"<< this->logic_box.toOldFormatString()<<"\n";
+
+  auto logic_to_physic = Position::computeTransformation(this->bounds,this->logic_box);
+  if (!logic_to_physic.isIdentity())
+    out << "(logic_to_physic)\n" << logic_to_physic.toString() << "\n";
+  
+  //dump fields
+  out<<"(fields)\n";
+  for (int i=0;i<(int)this->fields.size();i++) 
   {
-    std::ostringstream out;
+    const Field& field=this->fields[i];
 
-    out<<"(version)\n"<<this->version<<"\n";
-    out<<"(box)\n"<< this->logic_box.toOldFormatString()<<"\n";
+    out<<(i?"+ ":"");
+    out<<field.name<<" ";
+    out<<field.dtype.toString()<<" ";
 
-    auto logic_to_physic = Position::computeTransformation(this->bounds,this->logic_box);
-    if (!logic_to_physic.isIdentity())
-      out << "(logic_to_physic)\n" << logic_to_physic.toString() << "\n";
-  
-    //dump fields
-    out<<"(fields)\n";
-    for (int i=0;i<(int)this->fields.size();i++) 
+    //compression
+    if (!field.default_compression.empty())
     {
-      const Field& field=this->fields[i];
-
-      out<<(i?"+ ":"");
-      out<<field.name<<" ";
-      out<<field.dtype.toString()<<" ";
-
-      //compression
-      if (!field.default_compression.empty())
-      {
-        if (version<6)
-          out<<"compressed"<<" "; //old format, compressed means zip, consider that v12345 only supports zip
-        else
-          out<<"default_compression("<<field.default_compression <<")"<<" ";
-      }
-
-      //format(...)
-      out<<"format("<<(field.default_layout.empty()?"1":"0")<<")"<<" ";
-
-      //default_value
-      out<<"default_value("<<field.default_value<<")"<<" ";
-
-      //filter(...)
-      if (!field.filter.empty())
-        out<<"filter("<<field.filter<<")"<<" ";
-
-      //min/max
-      std::vector<String> vmin,vmax;
-      for (int C=0;C<field.dtype.ncomponents();C++)
-      {
-        Range range=field.dtype.getDTypeRange(C);
-        vmin.push_back(range.delta()>0? cstring(range.from) : "0");
-        vmax.push_back(range.delta()>0? cstring(range.to  ) : "0");
-      }
-      out<<"min("<<StringUtils::join(vmin," ")<<") ";
-      out<<"max("<<StringUtils::join(vmax," ")<<") ";
-
-      out<<"\n";
+      if (version<6)
+        out<<"compressed"<<" "; //old format, compressed means zip, consider that v12345 only supports zip
+      else
+        out<<"default_compression("<<field.default_compression <<")"<<" ";
     }
-      
-    out<<"(bits)\n"<<this->bitmask.toString()<<"\n";
-    out<<"(bitsperblock)\n"<<this->bitsperblock<<"\n";
-    out<<"(blocksperfile)\n"<<this->blocksperfile<<"\n";
-    out<<"(interleave block)\n"<<this->block_interleaving<<"\n";
-  
-    if (!this->time_template.empty())
+
+    //format(...)
+    out<<"format("<<(field.default_layout.empty()?"1":"0")<<")"<<" ";
+
+    //default_value
+    out<<"default_value("<<field.default_value<<")"<<" ";
+
+    //filter(...)
+    if (!field.filter.empty())
+      out<<"filter("<<field.filter<<")"<<" ";
+
+    //min/max
+    std::vector<String> vmin,vmax;
+    for (int C=0;C<field.dtype.ncomponents();C++)
     {
-      //star format
-      //* * time_template 
-      if (this->timesteps==DatasetTimesteps::star())
+      Range range=field.dtype.getDTypeRange(C);
+      vmin.push_back(range.delta()>0? cstring(range.from) : "0");
+      vmax.push_back(range.delta()>0? cstring(range.to  ) : "0");
+    }
+    out<<"min("<<StringUtils::join(vmin," ")<<") ";
+    out<<"max("<<StringUtils::join(vmax," ")<<") ";
+
+    out<<"\n";
+  }
+      
+  out<<"(bits)\n"<<this->bitmask.toString()<<"\n";
+  out<<"(bitsperblock)\n"<<this->bitsperblock<<"\n";
+  out<<"(blocksperfile)\n"<<this->blocksperfile<<"\n";
+  out<<"(interleave block)\n"<<this->block_interleaving<<"\n";
+  
+  if (!this->time_template.empty())
+  {
+    //star format
+    //* * time_template 
+    if (this->timesteps==DatasetTimesteps::star())
+    {
+      out<<"(time)\n"<<"*"<<" "<<"*"<<" "<<this->time_template<<"\n";
+    }
+    else
+    {
+      //old format
+      //From To time_template
+      if (this->timesteps==DatasetTimesteps(this->timesteps.getMin(),this->timesteps.getMax(),1.0))
       {
-        out<<"(time)\n"<<"*"<<" "<<"*"<<" "<<this->time_template<<"\n";
+        out<<"(time)\n"<<this->timesteps.getMin()<<" "<<this->timesteps.getMax()<<" "<<this->time_template<<"\n";
       }
+      //new format
+      //time_template (From,To,Step) (From,To,Step) (From,To,Step)
       else
       {
-        //old format
-        //From To time_template
-        if (this->timesteps==DatasetTimesteps(this->timesteps.getMin(),this->timesteps.getMax(),1.0))
+        out<<"(time)\n"<<this->time_template<<" ";
+        for (int N=0;N<this->timesteps.size();N++)
         {
-          out<<"(time)\n"<<this->timesteps.getMin()<<" "<<this->timesteps.getMax()<<" "<<this->time_template<<"\n";
+          const DatasetTimesteps::IRange& irange=this->timesteps.getAt(N);
+          out<<"("<<irange.a<<","<<irange.b<<","<<irange.step<<") ";
         }
-        //new format
-        //time_template (From,To,Step) (From,To,Step) (From,To,Step)
-        else
-        {
-          out<<"(time)\n"<<this->time_template<<" ";
-          for (int N=0;N<this->timesteps.size();N++)
-          {
-            const DatasetTimesteps::IRange& irange=this->timesteps.getAt(N);
-            out<<"("<<irange.a<<","<<irange.b<<","<<irange.step<<") ";
-          }
-          out<<"\n";
-        }
-        
+        out<<"\n";
       }
+        
     }
-
-    String filename_template=this->filename_template;
-
-    //fix absolute path -> ./
-    if (!saving_filename.empty())
-    {
-      String saving_directory=Path(saving_filename).getParent().toString();
-      if (StringUtils::startsWith(filename_template,saving_directory))
-        filename_template=StringUtils::replaceFirst(filename_template,saving_directory,".");
-    }
-  
-    out<<"(filename_template)\n"<<filename_template<<"\n";
-
-    return out.str();
   }
-  else
-  {
-    StringTree out("IdxFile");
-    const_cast<IdxFile*>(this)->write(out);
-    return out.toString();
-  }
-}
 
-//////////////////////////////////////////////////////////////////////////////
-void IdxFile::write(Archive& ar) const
-{
-  if (!this->valid())
-    ThrowException("internal error");
-
-  auto idx = toString();
-  ar.writeText("idx", idx);
-
-}
-
-
-//////////////////////////////////////////////////////////////////////////////
-void IdxFile::read(Archive& ar)
-{
-  String idx;
-  ar.readText("idx",idx );
-  (*this) = IdxFile::fromString(idx, Url());
-
+  out<<"(filename_template)\n"<<filename_template<<"\n";
+  return out.str();
 }
 
 

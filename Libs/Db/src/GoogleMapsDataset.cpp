@@ -51,7 +51,7 @@ public:
   GoogleMapsDataset* dataset;
 
   StringTree             config;
-  Url                    url;
+  Url                    tiles;
   SharedPtr<NetService>  netservice;
 
   //constructor
@@ -62,9 +62,8 @@ public:
     this->can_read = StringUtils::find(config.readString("chmod", "rw"), "r") >= 0;
     this->can_write = StringUtils::find(config.readString("chmod", "rw"), "w") >= 0;
     this->bitsperblock = cint(config.readString("bitsperblock", cstring(dataset->getDefaultBitsPerBlock()))); VisusAssert(this->bitsperblock>0);
-    this->url = config.readString("url",dataset->getUrl().toString()); VisusAssert(url.valid());
+    this->tiles = dataset->tiles; 
 
-    this->config.write("url", url.toString());
 
     bool disable_async = config.readBool("disable_async", dataset->isServerMode());
 
@@ -88,8 +87,7 @@ public:
     //mirror along Y
     Y=(int)((Int64(1)<<Z)-Y-1);
       
-    Url url=dataset->getUrl();
-    url.params.clear();
+    auto url=Url(this->tiles);
     url.setParam("x",cstring(X));
     url.setParam("y",cstring(Y));
     url.setParam("z",cstring(Z));
@@ -105,10 +103,10 @@ public:
     NetService::push(netservice, request).when_ready([this, query](NetResponse response) {
 
       PointNi nsamples = PointNi::one(2);
-      nsamples[0] = dataset->tile_nsamples[0];
-      nsamples[1] = dataset->tile_nsamples[1];
+      nsamples[0] = dataset->tile_width;
+      nsamples[1] = dataset->tile_height;
 
-      response.setHeader("visus-compression", dataset->tile_compression);
+      response.setHeader("visus-compression", dataset->compression);
       response.setHeader("visus-nsamples", nsamples.toString());
       response.setHeader("visus-dtype", query->field.dtype.toString());
       response.setHeader("visus-layout", "");
@@ -135,7 +133,7 @@ public:
 
   //printStatistics
   virtual void printStatistics() override {
-    PrintInfo(name, "hostname", url.getHostname(), "port", url.getPort(), "url", url);
+    PrintInfo(name, "url", dataset->getUrl());
     Access::printStatistics();
   }
 
@@ -173,9 +171,6 @@ void GoogleMapsDataset::beginQuery(SharedPtr<BoxQuery> query)
 
   if (query->getStatus() != QueryCreated)
     return;
-
-  if (!this->valid())
-    return query->setFailed("Dataset url not valid");
 
   if (query->mode == 'w')
     return query->setFailed("Writing mode not suppoted");
@@ -347,8 +342,6 @@ bool GoogleMapsDataset::mergeBoxQueryWithBlock(SharedPtr<BoxQuery> query,SharedP
 //////////////////////////////////////////////////////////////
 SharedPtr<Access> GoogleMapsDataset::createAccess(StringTree config, bool bForBlockQuery)
 {
-  VisusAssert(this->valid());
-
   if (!config.valid())
     config = getDefaultAccessConfig();
 
@@ -407,8 +400,8 @@ LogicSamples GoogleMapsDataset::getAddressRangeSamples(BigInt start_address,BigI
   int tile_height=(int)(this->getLogicBox().p2[1])>>Z;
 
   PointNi delta=PointNi::one(2);
-  delta[0]=tile_width /this->tile_nsamples[0];
-  delta[1]=tile_height/this->tile_nsamples[1];
+  delta[0]=tile_width /this->tile_width;
+  delta[1]=tile_height/this->tile_height;
 
   BoxNi box(PointNi(2), PointNi::one(2));
   box.p1[0] = tile_width  * (X + 0); box.p2[0] = tile_width  * (X + 1);
@@ -418,39 +411,41 @@ LogicSamples GoogleMapsDataset::getAddressRangeSamples(BigInt start_address,BigI
 }
 
 //////////////////////////////////////////////////////////////
-bool GoogleMapsDataset::openFromUrl(Url url)
+void GoogleMapsDataset::openFromUrl(Archive& ar, String url)
 {
-  this->tile_nsamples[0]  = cint(url.getParam("tile_width" ,"256")); 
-  this->tile_nsamples[1]  = cint(url.getParam("tile_height","256")); 
-  int   nlevels           = cint(url.getParam("nlevels","22"))    ; 
-  this->tile_compression  = url.getParam("compression","jpg")     ; 
-  this->dtype             = DType::fromString(url.getParam("dtype","uint8[3]")); 
+  ar.read("tiles", this->tiles, "http://mt1.google.com/vt/lyrs=s");
+  ar.read("tile_width", tile_width, 256);
+  ar.read("tile_height", tile_height, 256);
+  ar.read("nlevels", this->nlevels, 22);
+  ar.read("compression", this->compression, "jpg");
+  ar.read("dtype",this->dtype,DTypes::UINT8_RGB);
 
-  if (tile_nsamples[0]<=0 || tile_nsamples[1]<=0 || !nlevels || !dtype.valid() || tile_compression.empty())
-  {
-    VisusAssert(false);
-    this->invalidate();
-    return false;
-  }
+  VisusReleaseAssert(tile_width>0 && tile_height>0);
+  VisusAssert(nlevels > 0);
+  VisusAssert(dtype.valid());
+  VisusAssert(!compression.empty());
 
   //any google level double the dimensions in x and y (i.e. i don't have even resolutions)
-  PointNi overall_dims=PointNi::one(2);
-  overall_dims[0]=tile_nsamples[0] * (((Int64)1)<<nlevels);
-  overall_dims[1]=tile_nsamples[1] * (((Int64)1)<<nlevels);
+  auto W= this->tile_width  * (((Int64)1)<<nlevels);
+  auto H= this->tile_height * (((Int64)1)<<nlevels);
 
-  this->setUrl(url.toString());
-  this->setBitmask(DatasetBitmask::guess(overall_dims));
-  this->setDefaultBitsPerBlock(Utils::getLog2(tile_nsamples[0]*tile_nsamples[1]));
-  this->setLogicBox(BoxNi(PointNi(0,0),overall_dims));
+  this->setUrl(url);
+  this->setDatasetBody(ar);
+  this->setKdQueryMode(KdQueryMode::fromString(ar.readString("kdquery")));
+  this->setBitmask(DatasetBitmask::guess(PointNi(W,H)));
+  this->setDefaultBitsPerBlock(Utils::getLog2(tile_width*tile_height));
+  this->setLogicBox(BoxNi(PointNi(0,0), PointNi(W, H)));
 
-
-#if 1
-  this->setDatasetBounds(BoxNi(PointNi(0, 0), overall_dims));
-#else
-  //using latitude [-90,+90] longiture [-180,+180]  
-  //see //http://www.satsig.net/lat_long.htm
-  this->setDatasetBounds(BoxNd(PointNd(-180, -90), PointNd(+180, +90)));
-#endif
+  //using longiture [-180,+180]  latitude [-90,+90]  
+  if (ar.hasAttribute("physic_box"))
+  {
+    auto physic_box = BoxNd::fromString(ar.getAttribute("physic_box"));
+    setDatasetBounds(physic_box);
+  }
+  else
+  {
+    setDatasetBounds(BoxNi(PointNi(0, 0), PointNi(W,H)));
+  }
 
   auto timesteps = DatasetTimesteps();
   timesteps.addTimestep(0);
@@ -461,8 +456,6 @@ bool GoogleMapsDataset::openFromUrl(Url url)
   //UseBoxQuery not supported? actually yes, but it's a nonsense since a query it's really a block query
   if (getKdQueryMode() == KdQueryMode::UseBoxQuery)
     setKdQueryMode(KdQueryMode::UseBlockQuery);
-
-  return true;
 }
 
 
@@ -481,8 +474,8 @@ LogicSamples GoogleMapsDataset::getLevelSamples(int H)
   int ntiles_y=(int)(1<<Z);
 
   PointNi delta=PointNi::one(2);
-  delta[0]=tile_width /this->tile_nsamples[0];
-  delta[1]=tile_height/this->tile_nsamples[1];
+  delta[0]=tile_width /this->tile_width;
+  delta[1]=tile_height/this->tile_height;
     
   BoxNi box(PointNi(0,0), PointNi(1,1));
   box.p2[0] = ntiles_x*tile_width;

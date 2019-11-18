@@ -69,7 +69,7 @@ static SharedPtr<IdxDataset> createDatasetFromImage(String filename,Array img,DT
   VisusReleaseAssert(idxfile.save(filename));
 
   auto dataset= LoadDataset<IdxDataset>(filename);
-  VisusReleaseAssert(dataset && dataset->valid());
+  VisusReleaseAssert(dataset);
 
   auto access=dataset->createAccess();
   

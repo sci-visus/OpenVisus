@@ -57,8 +57,8 @@ void IdxModule::attach()
 
   DbModule::attach();
 
-  DatasetFactory::getSingleton()->registerDatasetType(".idx" ,"IdxDataset"        , []() {return std::make_shared<IdxDataset>(); });
-  DatasetFactory::getSingleton()->registerDatasetType(".midx","IdxMultipleDataset", []() {return std::make_shared<IdxMultipleDataset>(); });
+  DatasetFactory::getSingleton()->registerDatasetType("IdxDataset"        , []() {return std::make_shared<IdxDataset>(); });
+  DatasetFactory::getSingleton()->registerDatasetType("IdxMultipleDataset", []() {return std::make_shared<IdxMultipleDataset>(); });
 
   //remove broken files
 

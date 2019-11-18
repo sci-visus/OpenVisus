@@ -192,7 +192,7 @@ public:
   }
 
   // addBlob
-  virtual Future<bool> addBlob(SharedPtr<NetService> service, String blob_name, Blob blob, Aborted aborted = Aborted()) override
+  virtual Future<bool> addBlob(SharedPtr<NetService> service, String blob_name, CloudStorageBlob blob, Aborted aborted = Aborted()) override
   {
     auto ret = Promise<bool>().get_future();
 
@@ -245,9 +245,9 @@ public:
   }
 
   // getBlob 
-  virtual Future<Blob> getBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
+  virtual Future<CloudStorageBlob> getBlob(SharedPtr<NetService> service, String blob_name, Aborted aborted = Aborted()) override
   {
-    auto ret = Promise<Blob>().get_future();
+    auto ret = Promise<CloudStorageBlob>().get_future();
 
     NetRequest request(this->url.toString() + blob_name, "GET");
     request.aborted = aborted;
@@ -257,12 +257,12 @@ public:
 
       if (!response.isSuccessful())
       {
-        ret.get_promise()->set_value(Blob());
+        ret.get_promise()->set_value(CloudStorageBlob());
         return;
       }
 
       //parse metadata
-      Blob blob;
+      CloudStorageBlob blob;
       String metatata_prefix = "x-ms-meta-";
       for (auto it = response.headers.begin(); it != response.headers.end(); it++)
       {

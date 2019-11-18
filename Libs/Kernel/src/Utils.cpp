@@ -42,6 +42,7 @@ For support : support@visus.net
 #include <Visus/Path.h>
 #include <Visus/NetService.h>
 #include <Visus/File.h>
+#include <Visus/CloudStorage.h>
 
 #include <cctype>
 #include <iomanip>
@@ -104,9 +105,9 @@ void Utils::breakInDebugger()
 
 
 //////////////////////////////////////////////////////////////////
-String Utils::loadTextDocument(String url_)
+String Utils::loadTextDocument(String s_url)
 {
-  Url url(url_);
+  Url url(s_url);
 
   if (url.isFile())
   {
@@ -137,6 +138,14 @@ String Utils::loadTextDocument(String url_)
   }
   else
   {
+    if (auto cloud_storage = CloudStorage::createInstance(url))
+    {
+      auto blob_name = url.getPath();
+      auto blob = cloud_storage->getBlob(SharedPtr<NetService>(), blob_name, Aborted()).get();
+      if (blob.valid())
+        return String((char*)blob.body->c_ptr(), (size_t)blob.body->c_size());
+    }
+
     auto net_response=NetService::getNetResponse(url);
     if (!net_response.isSuccessful()) return "";
     return net_response.getTextBody();

@@ -1304,7 +1304,7 @@ public:
 
     auto net = std::make_shared<NetService>(1);
 
-    CloudStorage::Blob blob;
+    CloudStorageBlob blob;
     if (src_storage)
     {
       auto blob_name = Url(src_url).getPath();
@@ -1397,7 +1397,7 @@ public:
     auto cloud = CloudStorage::createInstance(url);
 
     //simple blob for testing
-    auto blob = CloudStorage::Blob();
+    auto blob = CloudStorageBlob();
     blob.body = Utils::loadBinaryDocument("datasets/cat/gray.png"); VisusReleaseAssert(blob.body);
     blob.metadata.setValue("example-meta-data", "visus-meta-data");
 
@@ -1853,7 +1853,7 @@ public:
 
     //now create a Dataset, save it and reopen from disk
     auto dataset = LoadDataset(filename);
-    VisusReleaseAssert(dataset && dataset->valid());
+    VisusReleaseAssert(dataset);
 
     //any time you need to read/write data from/to a Dataset I need a Access
     auto access = dataset->createAccess();

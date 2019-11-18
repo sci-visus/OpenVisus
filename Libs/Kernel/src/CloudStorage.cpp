@@ -57,6 +57,9 @@ namespace Visus {
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 SharedPtr<CloudStorage> CloudStorage::createInstance(Url url)
 {
+  if (!url.valid())
+    return SharedPtr<CloudStorage>();
+
   if (StringUtils::contains(url.getHostname(), "core.windows"))
     return std::make_shared<AzureCloudStorage>(url);
 

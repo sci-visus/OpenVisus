@@ -45,7 +45,6 @@ namespace Visus {
 ///////////////////////////////////////////////////////
 MultiplexAccess::MultiplexAccess(Dataset* dataset,StringTree config) 
 {
-  Url url= config.readString("url",dataset->getUrl().toString());
   String chmod=config.readString("chmod","rw");
 
   this->name=config.readString("name");
@@ -58,9 +57,6 @@ MultiplexAccess::MultiplexAccess(Dataset* dataset,StringTree config)
   {
     if (child_config->name!="access")
       continue;
-
-    if (child_config->getAttribute("url").empty())
-      child_config->write("url",url.toString());
 
     auto child=dataset->createAccess(*child_config);
     if (!child)

@@ -129,9 +129,21 @@ public:
   //destructor
   virtual ~Dataflow();
 
+  //addListener
+  void addListener(Listener* value) {
+    listeners.push_back(value);
+  }
+
+  //removeListener
+  void removeListener(Listener* value) {
+    Utils::remove(listeners, value);
+  }
+
   //guessNodeUIID
   String guessNodeUIID(String base)
   {
+    VisusReleaseAssert(!base.empty());
+
     if (!findNodeByUUID(base))
       return base;
 
@@ -165,7 +177,7 @@ public:
 
 
   //processInput
-  void processInput(Node* node);
+  virtual void processInput(Node* node);
 
   //needProcessInput
   void needProcessInput(Node* node) {

@@ -57,9 +57,6 @@ public:
   //bMosaic
   bool is_mosaic = false;
 
-  //bSlam
-  bool is_slam = false;
-
   //constructor
   IdxMultipleDataset();
 
@@ -102,7 +99,7 @@ public:
 public:
 
   //openFromUrl 
-  virtual bool openFromUrl(Url URL) override;
+  virtual void openFromUrl(Archive& ar, String URL) override;
 
   //getInnerDatasets
   virtual std::map<String, SharedPtr<Dataset> > getInnerDatasets() const override {
@@ -162,10 +159,10 @@ private:
   String removeAliases(String url);
 
   //parseDataset
-  void parseDataset(StringTree* cur, Matrix T);
+  void parseDataset(StringTree& cur, Matrix T);
 
   //parseDatasets
-  void parseDatasets(StringTree* cur,Matrix T);
+  void parseDatasets(StringTree& cur,Matrix T);
 
 
 };

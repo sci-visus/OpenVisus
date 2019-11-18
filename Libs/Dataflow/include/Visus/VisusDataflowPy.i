@@ -21,6 +21,7 @@ using namespace Visus;
 
 %feature("director") Visus::Node;
 %feature("director") Visus::NodeCreator;
+%feature("director") Visus::DataflowListener;
 
 //VISUS_DISOWN | DISOWN_FOR_DIRECTOR
 %apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::Node* disown };
