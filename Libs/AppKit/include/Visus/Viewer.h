@@ -281,8 +281,8 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(Viewer)
 
-    //constructor
-    Viewer(String title = "Visus Viewer");
+  //constructor
+  Viewer(String title = "Visus Viewer");
 
   //destructor
   virtual ~Viewer();
@@ -292,10 +292,8 @@ public:
     return "Viewer";
   }
 
-  //getUUID
-  String getUUID(Node* node) const {
-    return node ? node->getUUID() : "";
-  }
+  //configureFromCommandLine
+  void configureFromCommandLine(std::vector<String> args);
 
   //this is needed for swig
   void* c_ptr() {
@@ -305,24 +303,115 @@ public:
   //printInfo
   void printInfo(String msg);
 
-  //setMinimal
-  void setMinimal();
-
-  //setFieldName
-  void setFieldName(String value);
-
-  //setScriptingCode
-  void setScriptingCode(String value);
-
-  //configureFromCommandLine
-  void configureFromCommandLine(std::vector<String> args);
-
   //showLicences
   void showLicences();
 
   //getModel
   Dataflow* getDataflow() {
     return dataflow.get();
+  }
+
+  //getGLCanvas
+  GLCanvas* getGLCanvas() {
+    return widgets.glcanvas;
+  }
+
+  //getGLCamera
+  SharedPtr<GLCamera> getGLCamera() const {
+    return this->glcamera;
+  }
+
+  //getTreeView
+  DataflowTreeView* getTreeView() const {
+    return widgets.treeview;
+  }
+
+  //getFrameView
+  DataflowFrameView* getFrameView() const {
+    return widgets.frameview;
+  }
+
+  //getLog
+  QTextEdit* getLog() const {
+    return widgets.log;
+  }
+
+  //addDockWidget
+  void addDockWidget(String name, QWidget* widget);
+
+  //addDockWidget
+  void addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockwidget) {
+    QMainWindow::addDockWidget(area, dockwidget);
+  }
+
+  //showNodeContextMenu
+  virtual bool showNodeContextMenu(Node* node) {
+    return false;
+  }
+
+  //showPopupWidget
+  void showPopupWidget(QWidget* widget);
+
+  //openFile
+  bool openFile(String filename, Node* parent = nullptr);
+
+  //openUrl
+  bool openUrl(String url, Node* parent = nullptr);
+
+  //saveFile
+  void saveFile(String filename, bool bSaveHistory = false);
+
+  //postRedisplay
+  void postRedisplay();
+
+  //playFile
+  bool playFile(String filename);
+
+  //takeSnapshot
+  bool takeSnapshot(bool bOnlyCanvas = false, String filename = "");
+
+  //editNode
+  void editNode(Node* node = nullptr);
+
+  //beginFreeTransform
+  void beginFreeTransform(QueryNode* node);
+
+  //beginFreeTransform
+  void beginFreeTransform(ModelViewNode* node);
+
+  //endFreeTransform
+  void endFreeTransform();
+
+  //refreshActions
+  void refreshActions();
+
+  //idle
+  void idle();
+
+  //modelChanged
+  virtual void modelChanged() override {
+    postRedisplay();
+  }
+
+  //enableSaveSession
+  void enableSaveSession();
+
+  //dataflowBeforeProcessInput
+  virtual void dataflowBeforeProcessInput(Node* node) override;
+
+  //dataflowAfterProcessInput
+  virtual void dataflowAfterProcessInput(Node* node) override;
+
+public:
+
+  //getRoot
+  Node* getRoot() const {
+    return dataflow->getRoot();
+  }
+
+  //getUUID
+  String getUUID(Node* node) const {
+    return node ? node->getUUID() : "";
   }
 
   //getNodes
@@ -346,13 +435,90 @@ public:
     return nullptr;
   }
 
+  //findPick
+  Node* findPick(Node* node, Point2d screen_point, bool bRecursive, double* distance = nullptr) const;
+
+  //getBounds
+  Position getBounds(Node* node, bool bRecursive = false) const;
+
+  //getWorldDimension
+  int getWorldDimension() const;
+
+  //getWorldBox
+  BoxNd getWorldBox() const;
+
+  //computeNodeToNode
+  Position computeNodeToNode(Node* dst, Node* src) const;
+
+  //computeQueryBounds
+  Position computeQueryBounds(QueryNode* query_node) const;
+
+  //computeNodeToScreen
+  Frustum computeNodeToScreen(Frustum frustum, Node* node) const;
+
+
+public:
+
+  //attachGLCamera
+  void attachGLCamera(SharedPtr<GLCamera> value);
+
+  //detachGLCamera
+  void detachGLCamera();
+
+  //glGetRenderQueue
+  int glGetRenderQueue(Node* node);
+
+  //glCameraChangeEvent
+  void glCameraChangeEvent();
+
+  //glCanvasResizeEvent
+  void glCanvasResizeEvent(QResizeEvent* evt);
+
+  //glCanvasMousePressEvent
+  void glCanvasMousePressEvent(QMouseEvent* evt);
+
+  //glCanvasMouseMoveEvent
+  void glCanvasMouseMoveEvent(QMouseEvent* evt);
+
+  //glCanvasMouseReleaseEvent
+  void glCanvasMouseReleaseEvent(QMouseEvent* evt);
+
+  //glCanvasWheelEvent
+  void glCanvasWheelEvent(QWheelEvent* evt);
+
+  //keyPressEvent
+  virtual void keyPressEvent(QKeyEvent* evt) override;
+
+  //glRender
+  void glRender(GLCanvas& gl);
+
+  //glRenderNodes
+  void glRenderNodes(GLCanvas& gl);
+
+  //glRenderSelection
+  void glRenderSelection(GLCanvas& gl);
+
+  //glRenderGestures
+  void glRenderGestures(GLCanvas& gl);
+
+  //glRenderLogos
+  void glRenderLogos(GLCanvas& gl);
+
+public:
+
+  //clearAll
+  void clearAll();
+
   //dropProcessing
   void dropProcessing();
 
-  //getRoot
-  Node* getRoot() const {
-    return dataflow->getRoot();
+  //getAutoRefresh
+  const ViewerAutoRefresh& getAutoRefresh() const {
+    return this->auto_refresh;
   }
+
+  //setAutoRefresh
+  void setAutoRefresh(ViewerAutoRefresh value);
 
   //getSelection
   Node* getSelection() const {
@@ -367,36 +533,14 @@ public:
     setSelection(nullptr);
   }
 
-  //getAutoRefresh
-  const ViewerAutoRefresh& getAutoRefresh() const {
-    return this->auto_refresh;
+  //setMinimal
+  void setMinimal()
+  {
+    ViewerPreferences preferences;
+    preferences.panels = "";
+    preferences.bHideMenus = true;
+    this->setPreferences(preferences);
   }
-
-  //setAutoRefresh
-  void setAutoRefresh(ViewerAutoRefresh value);
-
-  //beginFreeTransform
-  void beginFreeTransform(QueryNode* node);
-
-  //beginFreeTransform
-  void beginFreeTransform(ModelViewNode* node);
-
-  //endFreeTransform
-  void endFreeTransform();
-
-  //computeNodeToNode
-  Position computeNodeToNode(Node* dst, Node* src) const;
-
-  //computeQueryBounds
-  Position computeQueryBounds(QueryNode* query_node) const;
-
-  //computeNodeToScreen
-  Frustum computeNodeToScreen(Frustum frustum, Node* node) const;
-
-public:
-
-  //clearAll
-  void clearAll();
 
   //setNodeName
   void setNodeName(Node* node, String value);
@@ -453,34 +597,11 @@ public:
   //open
   bool open(String url, Node* parent = nullptr);
 
-  //openFile
-  bool openFile(String filename, Node* parent = nullptr);
-
-  //openUrl
-  bool openUrl(String url, Node* parent = nullptr);
-
   //save
   void save(String filename, bool bSaveHistory = false);
 
-  //saveFile
-  void saveFile(String filename, bool bSaveHistory = false);
-
-  //playFile
-  bool playFile(String filename);
-
-  //takeSnapshot
-  bool takeSnapshot(bool bOnlyCanvas = false, String filename = "");
-
-  //editNode
-  void editNode(Node* node = nullptr);
-
   //setDataflow
   void setDataflow(SharedPtr<Dataflow> dataflow);
-
-  //getGLCamera
-  SharedPtr<GLCamera> getGLCamera() const {
-    return this->glcamera;
-  }
 
   //refreshNode
   void refreshNode(Node* node = nullptr);
@@ -495,56 +616,6 @@ public:
 
   //mirrorGLCamera
   void mirrorGLCamera(int ref = 0);
-
-  //getWorldDimension
-  int getWorldDimension() const;
-
-  //getWorldBox
-  BoxNd getWorldBox() const;
-
-  //getBounds
-  Position getBounds(Node* node, bool bRecursive = false) const;
-
-  //getGLCanvas
-  GLCanvas* getGLCanvas() {
-    return widgets.glcanvas;
-  }
-
-  //getTreeView
-  DataflowTreeView* getTreeView() const {
-    return widgets.treeview;
-  }
-
-  //getFrameView
-  DataflowFrameView* getFrameView() const {
-    return widgets.frameview;
-  }
-
-  //getLog
-  QTextEdit* getLog() const {
-    return widgets.log;
-  }
-
-  //showNodeContextMenu
-  virtual bool showNodeContextMenu(Node* node) {
-    return false;
-  }
-
-  //postRedisplay
-  void postRedisplay();
-
-  //addDockWidget
-  void addDockWidget(String name, QWidget* widget);
-
-  //addDockWidget
-  void addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockwidget) {
-    QMainWindow::addDockWidget(area, dockwidget);
-  }
-
-  //showPopupWidget
-  void showPopupWidget(QWidget* widget);
-
-public:
 
   //addWorld
   Node* addWorld(String uuid);
@@ -561,14 +632,21 @@ public:
   //addSlice
   QueryNode* addSlice(String uuid, Node* parent, String fieldname = "", int access_id = 0);
 
-  //addIsoContour
-  QueryNode* addIsoContour(String uuid, Node* parent, String fieldname = "", int access_id = 0, String isovalue = "");
+  //setFieldName
+  void setFieldName(String value);
 
   //addKdQuery
   KdQueryNode* addKdQuery(String uuid, Node* parent, String fieldname = "", int access_id = 0);
 
+  //addIsoContour
+  QueryNode* addIsoContour(String uuid, Node* parent, String fieldname = "", int access_id = 0, String isovalue = "");
+
+
   //addScripting
   ScriptingNode* addScripting(String uuid, Node* parent);
+
+  //setScriptingCode
+  void setScriptingCode(String value);
 
   //addCpuTransferFunction
   CpuPaletteNode* addCpuTransferFunction(String uuid, Node* parent);
@@ -784,6 +862,9 @@ private:
   String                                last_filename = "";
 
 
+  std::vector< SharedPtr<GLObject> >    huds;
+  SharedPtr<NetServer>                  server;
+
   struct
   {
     CriticalSection                     lock;
@@ -799,7 +880,7 @@ private:
   }
   scheduled;
 
-
+  //openScreenLogo
   SharedPtr<ViewerLogo> openScreenLogo(String key, String default_logo);
 
   //internalFlushMessages
@@ -811,70 +892,11 @@ private:
   //createActions
   void createActions();
 
-  //refreshActions
-  void refreshActions();
+  //createBookmarks
+  void createBookmarks(QMenu* dst, const StringTree& src);
 
   //createBookmarks
-  void createBookmarks(QMenu* dst,const StringTree& src);
-
-  //createBookmarks
-  QMenu* createBookmarks() {
-    auto ret=new QMenu(this);
-    createBookmarks(ret,this->config);
-    ret->setStyleSheet("QMenu { "
-      //"font-size:18px; "
-      "color:white;"
-      "background-color: rgb(43,87,184);"
-      "selection-background-color: rgb(43,87,140);}");
-    return ret;
-  }
-
-  //idle
-  void idle();
-
-  //modelChanged
-  virtual void modelChanged() override {
-    postRedisplay();
-  }
-
-  //findPick
-  Node* findPick(Node* node,Point2d screen_point,bool bRecursive,double* distance=nullptr) const;
-
-  //attachGLCamera
-  void attachGLCamera(SharedPtr<GLCamera> value);
-
-  //detachGLCamera
-  void detachGLCamera();
-
-  //glGetRenderQueue
-  int glGetRenderQueue(Node* node);
-
-  //glCameraChangeEvent
-  void glCameraChangeEvent();
-
-  //glCanvasResizeEvent
-  void glCanvasResizeEvent(QResizeEvent* evt);
-
-  //glCanvasMousePressEvent
-  void glCanvasMousePressEvent(QMouseEvent* evt);
-
-  //glCanvasMouseMoveEvent
-  void glCanvasMouseMoveEvent(QMouseEvent* evt);
-
-  //glCanvasMouseReleaseEvent
-  void glCanvasMouseReleaseEvent(QMouseEvent* evt);
-
-  //glCanvasWheelEvent
-  void glCanvasWheelEvent(QWheelEvent* evt);
-
-  //glRender
-  void glRender(GLCanvas& gl);
-
-  //keyPressEvent
-  virtual void keyPressEvent(QKeyEvent* evt) override;
-
-  //enableSaveSession
-  void enableSaveSession();
+  QMenu* createBookmarks();
 
   //createTreeView
   DataflowTreeView* createTreeView();
@@ -885,33 +907,9 @@ private:
   //createToolBar
   void createToolBar();
 
-  //dataflowBeforeProcessInput
-  virtual void dataflowBeforeProcessInput(Node* node) override;
-
-  //dataflowAfterProcessInput
-  virtual void dataflowAfterProcessInput(Node* node) override;
-
-  //glRenderNodes
-  void glRenderNodes(GLCanvas& gl);
-
-  //glRenderSelection
-  void glRenderSelection(GLCanvas& gl);
-
-  //glRenderGestures
-  void glRenderGestures(GLCanvas& gl);
-
-  //glRenderLogos
-  void glRenderLogos(GLCanvas& gl);
-
 signals:
 
   void postFlushMessages();
-
-private:
-
-  std::vector< SharedPtr<GLObject> > huds;
-  SharedPtr<NetServer> server;
-
 
 }; //end class
 

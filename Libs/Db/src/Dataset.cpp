@@ -311,7 +311,7 @@ Field Dataset::getFieldByName(String name) const {
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-static StringTree FindDatasetConfig(StringTree ar, String url)
+StringTree FindDatasetConfig(StringTree ar, String url)
 {
   auto all_datasets = ar.getAllChilds("dataset");
   for (auto it : all_datasets)
@@ -347,6 +347,13 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
   auto doc = StringTree::fromString(content);
   if (doc.valid())
   {
+    //backward compatible
+    if (doc.name == "midx")
+    {
+      doc.name == "dataset";
+      doc.write("typename","IdxMultipleDataset");
+    }
+
     StringTree::merge(ar, doc); //example <dataset tyname="IdxMultipleDataset">...</dataset>
     VisusReleaseAssert(ar.hasAttribute("typename"));
   }

@@ -398,6 +398,19 @@ void Viewer::createActions()
   }));
 }
 
+
+////////////////////////////////////////////////////////////
+QMenu* Viewer::createBookmarks() {
+  auto ret = new QMenu(this);
+  createBookmarks(ret, this->config);
+  ret->setStyleSheet("QMenu { "
+    //"font-size:18px; "
+    "color:white;"
+    "background-color: rgb(43,87,184);"
+    "selection-background-color: rgb(43,87,140);}");
+  return ret;
+}
+
 ////////////////////////////////////////////////////////////
 void Viewer::createBookmarks(QMenu* dst,const StringTree& src)
 {

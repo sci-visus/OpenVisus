@@ -651,9 +651,9 @@ StringTree StringTree::fromString(String content, bool bEnablePostProcessing)
   if (xmldoc.Error())
   {
     PrintWarning("Failed StringTree::fromString failed",
-      "ErrorRow(" ,xmldoc.ErrorRow(),
-      "ErrorCol(",xmldoc.ErrorCol(),
-      "ErrorDesc(",xmldoc.ErrorDesc());
+      "xmldoc.ErrorRow" ,xmldoc.ErrorRow(),
+      "xmldoc.ErrorCol",xmldoc.ErrorCol(),
+      "xmldoc.ErrorDesc",xmldoc.ErrorDesc());
     return StringTree();
   }
 

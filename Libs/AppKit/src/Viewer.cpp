@@ -475,15 +475,6 @@ SharedPtr<ViewerLogo> Viewer::openScreenLogo(String key, String default_logo)
 };
 
 ////////////////////////////////////////////////////////////
-void Viewer::setMinimal()
-{
-  ViewerPreferences preferences;
-  preferences.panels = "";
-  preferences.bHideMenus = true;
-  this->setPreferences(preferences);
-}
-
-////////////////////////////////////////////////////////////
 void Viewer::setFieldName(String value)
 {
   if (auto node = this->findNode<FieldNode>())
