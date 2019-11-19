@@ -434,6 +434,21 @@ public:
     return Matrix::scale(vs);
   }
 
+  //getDiagonal
+  PointNd getDiagonal() const {
+    auto dim = getSpaceDim();
+    PointNd ret(dim);
+    for (int I = 0; I < dim; I++)
+      ret[I] = get(I, I);
+    return ret;
+  }
+
+  //isOnlyScale
+  bool isOnlyScale() const {
+    auto v = getDiagonal();
+    return v.back() == 1.0 && Matrix::scale(v.withoutBack()) == (*this);
+  }
+
   // rotate
   static Matrix rotate(int dim, int i, int j, double angle)
   {

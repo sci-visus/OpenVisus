@@ -638,11 +638,13 @@ static StringTree FromXmlElement(TiXmlElement* src)
 ////////////////////////////////////////////////////////////
 StringTree StringTree::fromString(String content, bool bEnablePostProcessing)
 {
+  content = StringUtils::trim(content);
+
   if (content.empty())
-  {
-    PrintWarning("StringTree::fromString failed because of empty content");
     return StringTree();
-  }
+
+  if (!StringUtils::startsWith(content, "<"))
+    return StringTree();
 
   TiXmlDocument xmldoc;
   xmldoc.Parse(content.c_str());
@@ -696,15 +698,9 @@ bool ConfigFile::load(String filename, bool bEnablePostProcessing)
 }
 
 //////////////////////////////////////////////////////////////
-bool ConfigFile::save()
+void ConfigFile::save()
 {
-  if (this->filename.empty())
-    return false;
-
-  if (!Utils::saveTextDocument(filename, this->StringTree::toXmlString()))
-    return false;
-
-  return true;
+  Utils::saveTextDocument(filename, this->StringTree::toXmlString());
 }
 
 } //namespace Visus

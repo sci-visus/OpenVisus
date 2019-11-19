@@ -42,8 +42,6 @@ def Create2DDatasetFromImage(idx_filename,filename):
 	print("/////////////////////////////////////////////")
 
 	dataset=LoadDataset(idx_filename)
-	if not dataset:
-		raise Exception("cannot load the idx filename")
 	access=dataset.createAccess()
 	field=dataset.getDefaultField()
 	time=dataset.getDefaultTime()
@@ -103,8 +101,6 @@ def Create3DDatasetFromImages(idx_filename,filenames):
 	print("/////////////////////////////////////////////")
 
 	dataset=LoadDataset(idx_filename)
-	if not dataset:
-		raise Exception("cannot load the idx filename")
 	access=dataset.createAccess()
 	field=dataset.getDefaultField()
 	time=dataset.getDefaultTime()

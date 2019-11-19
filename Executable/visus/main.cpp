@@ -164,11 +164,7 @@ public:
       }
     }
 
-    if (!idxfile.save(filename))
-    {
-      PrintError("idxfile.save",filename, "failed");
-      return Array();
-    }
+    idxfile.save(filename);
 
     //no need to write data
     if (!data)
@@ -176,8 +172,6 @@ public:
 
     //try to write data
     auto dataset = LoadDataset<IdxDataset>(filename);
-    if (!dataset)
-      ThrowException("cannot load dataset");
 
     //write all data to RAM
     auto ram_access = dataset->createRamAccess(/* no memory limit*/0);
@@ -188,8 +182,7 @@ public:
     for (auto& field : dataset->getFields())
       field.default_compression = "zip";
 
-    if (!dataset->idxfile.save(filename))
-      ThrowException("Failed to save idx file");
+    dataset->idxfile.save(filename);
 
     //read all data from RAM and write to DISK
     //for each timestep...
@@ -294,8 +287,6 @@ public:
     String filename = args[1];
 
     auto dataset = LoadDataset(filename);
-    if (!dataset)
-      ThrowException(args[0],"LoadDataset",filename,"failed");
 
     int window_size = 4096;
     double time = dataset->getDefaultTime();
@@ -415,12 +406,6 @@ public:
     auto Svf = LoadDataset(Surl);
     auto Dvf = LoadDataset(Durl);
 
-    if (!Svf)
-      ThrowException(args[0],"LoadDataset", Surl,"failed");
-
-    if (!Dvf)
-      ThrowException(args[0], "LoadDataset", Durl, "failed");
-
     if (Svf->getTimesteps() != Dvf->getTimesteps())
       ThrowException(args[0], "Time range not compatible");
 
@@ -472,8 +457,6 @@ public:
 
     String url = args[1]; 
     auto dataset = LoadDataset(url); 
-    if (!dataset)  
-      ThrowException(args[0], "LoadDataset",url,"failed");
 
     String compression = args[2];
 
@@ -512,8 +495,6 @@ public:
 
     String filename = args[1];
     auto vf = LoadDataset<IdxDataset>(filename);
-    if (!vf)
-      ThrowException(args[0],"failed to read IDX dataset LoadDataset",filename,"failed");
 
     auto idxfile = vf->idxfile;
 
@@ -628,7 +609,11 @@ public:
             idxfile.fields[F] = field;
 
             //try to save the intermediate file (NOTE: internally using locks so it should be fine to run in parallel)
-            if (!idxfile.save(filename))
+            try
+            {
+              idxfile.save(filename);
+            }
+            catch (std::runtime_error)
             {
               PrintWarning("cannot save the INTERMEDIATE min-max in IDX dataset (vf->idxfile.save",filename,"failed");
               PrintWarning("Continuing anyway hoping to solve the problem saving the file later");
@@ -648,8 +633,7 @@ public:
     access->endRead();
 
     //finally save the file
-    if (!idxfile.save(filename))
-      ThrowException(args[0],"cannot save the FINAL min-max in IDX dataset IdxFile::save",filename,"failed");
+    idxfile.save(filename);
 
     PrintInfo("done fixFieldsRange");
 
@@ -696,11 +680,10 @@ public:
         fieldname = args[++I];
     }
 
-    auto midx = std::dynamic_pointer_cast<IdxMultipleDataset>(LoadDataset(midx_filename)); VisusReleaseAssert(midx);
+    auto midx = std::dynamic_pointer_cast<IdxMultipleDataset>(LoadDataset(midx_filename)); 
     auto midx_access = midx->createAccess();
 
-    bool bOk = midx->createIdxFile(idx_filename, Field("DATA", midx->getFieldByName(fieldname).dtype, "rowmajor"));
-    VisusReleaseAssert(bOk);
+    midx->createIdxFile(idx_filename, Field("DATA", midx->getFieldByName(fieldname).dtype, "rowmajor"));
 
     auto idx = LoadDataset<IdxDataset>(idx_filename);
     auto idx_access = idx->createAccess();
@@ -1194,8 +1177,6 @@ public:
     String url = args[1];
 
     auto dataset = LoadDataset(url);
-    if (!dataset)
-      ThrowException(args[0], "LoadDataset", url,"failed");
 
     BigInt block_id = 0;
     Field  field = dataset->getDefaultField();
@@ -1327,9 +1308,9 @@ public:
       if (!dst_storage->addBlob(net, blob_name, blob,Aborted()).get())
         ThrowException(args[0], "Cloud Storage addBlob",dst_url,"failed");
     }
-    else if (!Utils::saveBinaryDocument(dst_url, blob.body))
+    else
     {
-      ThrowException(args[0], "Utils::saveBinaryDocument",dst_url,"failed");
+      Utils::saveBinaryDocument(dst_url, blob.body);
     }
 
     return data;
@@ -1459,9 +1440,6 @@ public:
     String filename = args[1];
     auto dataset = LoadDataset(filename);
 
-    if (!dataset)
-      ThrowException(args[0], "failed to read dataset LoadDataset " ,filename,"failed");
-
     String compression = args[2];
 
     auto access = dataset->createAccessForBlockQuery();
@@ -1543,8 +1521,6 @@ public:
 
     String filename = args[1];
     auto dataset = LoadDataset(filename);
-    if (!dataset)
-      ThrowException(args[0], "cannot LoadDataset",filename);
 
     int    query_dim = dataset->getPointDim() == 2 ? 2048 : 512;
 
@@ -1848,12 +1824,11 @@ public:
         field.default_layout = layout; 
         idxfile.fields.push_back(field);
       }
-      VisusReleaseAssert(idxfile.save(filename));
+      idxfile.save(filename);
     }
 
     //now create a Dataset, save it and reopen from disk
     auto dataset = LoadDataset(filename);
-    VisusReleaseAssert(dataset);
 
     //any time you need to read/write data from/to a Dataset I need a Access
     auto access = dataset->createAccess();

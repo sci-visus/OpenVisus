@@ -442,13 +442,13 @@ namespace Utils
   VISUS_KERNEL_API String loadTextDocument(String url);
 
   //saveTextDocument
-  VISUS_KERNEL_API bool saveTextDocument(String url, String content);
+  VISUS_KERNEL_API void saveTextDocument(String url, String content);
 
   //loadTextDocument
   VISUS_KERNEL_API SharedPtr<HeapMemory> loadBinaryDocument(String url);
 
-  //saveTextDocument
-  VISUS_KERNEL_API bool saveBinaryDocument(String url, SharedPtr<HeapMemory> src);
+  //saveBinaryDocument
+  VISUS_KERNEL_API void saveBinaryDocument(String url, SharedPtr<HeapMemory> src);
 
   //LLtoUTM
   VISUS_KERNEL_API void LLtoUTM(const double Lat, const double Long, double &UTMNorthing, double &UTMEasting);

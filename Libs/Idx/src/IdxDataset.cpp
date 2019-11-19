@@ -645,11 +645,7 @@ bool IdxDataset::compressDataset(String compression)
       field.default_compression =compression;
 
     String filename=Url(this->getUrl()).getPath();
-    if (!idxfile.save(filename)){
-      PrintError("Cannot save the new idxfile",filename);
-      VisusAssert(false);
-      return false;
-    }
+    idxfile.save(filename);
   }
 
   Time T1=Time::now();
@@ -960,15 +956,25 @@ SharedPtr<Access> IdxDataset::createAccess(StringTree config, bool bForBlockQuer
 }
 
 ////////////////////////////////////////////////////////////////////
-void IdxDataset::openFromUrl(Archive& ar, String url)
+void IdxDataset::read(Archive& ar)
 {
-  String idx;
-  ar.readText("idx", idx);
-  auto idxfile = IdxFile::fromOldFormatString(idx);
-  idxfile.validate(url);
-  VisusReleaseAssert(idxfile.valid());
+  String url = ar.readString("url");
 
-  setUrl(url);
+  //old *.idx format
+  if (auto child=ar.getChild("content"))
+  {
+    String content;
+    ar.readText("content",content);
+    IdxFile old;
+    old.readFromOldFormat(content);
+    Utils::remove(ar.childs, child);
+    ar.writeObject("idxfile", old);
+  }
+
+  IdxFile idxfile;
+  ar.readObject("idxfile", idxfile);
+  idxfile.validate(url);
+
   setDatasetBody(ar);
   setKdQueryMode(KdQueryMode::fromString(ar.readString("kdquery", Url(url).getParam("kdquery"))));
   setIdxFile(idxfile);
@@ -985,7 +991,6 @@ static std::map<std::pair<String,int> , SharedPtr<IdxPointQueryHzAddressConversi
 ////////////////////////////////////////////////////////////
 void IdxDataset::setIdxFile(IdxFile value)
 {
-  VisusAssert(value.valid());
   this->idxfile=value;
 
   auto bitmask = value.bitmask;

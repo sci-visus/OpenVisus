@@ -72,11 +72,9 @@ if __name__ == '__main__':
 	            print("\tfield",field.name,field.dtype.toString())
 	            idx_file.fields.push_back(field)
 	        
-	        if not idx_file.save(idx_filename):
-	        	raise Exception("Cannot save idx")   
+	        idx_file.save(idx_filename)  
 	        	
 	        dataset = LoadDataset(idx_filename)
-	        if not dataset: raise Exception("Cannot load idx")
 	        	
 	        access = dataset.createAccess()
 	        if not access: raise Exception("Cannot create access")

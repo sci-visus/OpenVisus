@@ -48,7 +48,6 @@ void Tutorial_2(String default_layout)
 {
   //read Dataset from tutorial 1
   auto dataset= LoadDataset("temp/tutorial_1.idx");
-  VisusReleaseAssert(dataset);
 
   BoxNi world_box=dataset->getLogicBox();
 

@@ -82,8 +82,8 @@ public:
 
 public:
 
-  //openFromUrl 
-  virtual void openFromUrl(Archive& ar, String url) override;
+  //read 
+  virtual void read(Archive& ar) override;
 
   //compressDataset
   virtual bool compressDataset(String compression) override {

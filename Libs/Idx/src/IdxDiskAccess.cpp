@@ -59,40 +59,40 @@ namespace Visus {
 
 
 //////////////////////////////////////////////////////////////////////////////
-static String GetFilenameV1234(const IdxFile& idxfile, String Template, Field field, double time, BigInt blockid)
+static String GetFilenameV1234(const IdxFile& idxfile, String TimeTemplate, String FilenameTemplate, Field field, double time, BigInt blockid)
 {
   //not really a template... one file contains all blocks
-  if (StringUtils::find(Template, "%")<0)
-    return Template;
+  if (StringUtils::find(FilenameTemplate, "%")<0)
+    return FilenameTemplate;
 
   char temp[2048] = { 0 };
 
-  if (idxfile.time_template.empty())
+  if (TimeTemplate.empty())
   {
-    int nwritten = sprintf(temp, Template.c_str(), (int)cint64(idxfile.getFirstBlockInFile(blockid)));
+    int nwritten = sprintf(temp, FilenameTemplate.c_str(), (int)cint64(idxfile.getFirstBlockInFile(blockid)));
     VisusAssert(nwritten<(sizeof(temp) - 1));
     return temp;
   }
 
   //before string-block-template 
-  int n = StringUtils::find(Template, "%");
+  int n = StringUtils::find(FilenameTemplate, "%");
   VisusAssert(n >= 0);
 
   std::ostringstream out;
 
   //add what is before the first block template
-  out << Template.substr(0, n);
+  out << FilenameTemplate.substr(0, n);
 
   //add the string-timestep template
   {
-    int nwritten = sprintf(temp, idxfile.time_template.c_str(), (int)time);
+    int nwritten = sprintf(temp, TimeTemplate.c_str(), (int)time);
     VisusAssert(nwritten<(sizeof(temp) - 1));
     out << temp;
   }
 
   //apply the string template with  block id
   {
-    int nwritten = sprintf(temp, Template.c_str() + n, (int)cint64(idxfile.getFirstBlockInFile(blockid)));
+    int nwritten = sprintf(temp, FilenameTemplate.c_str() + n, (int)cint64(idxfile.getFirstBlockInFile(blockid)));
     VisusAssert(nwritten<(sizeof(temp) - 1));
     out << temp;
   }
@@ -101,11 +101,11 @@ static String GetFilenameV1234(const IdxFile& idxfile, String Template, Field fi
 }
 
 //////////////////////////////////////////////////////////////////////////////
-static String GetFilenameV56(const IdxFile& idxfile, String Template, Field field, double time, BigInt blockid)
+static String GetFilenameV56(const IdxFile& idxfile, String TimeTemplate, String FilenameTemplate, Field field, double time, BigInt blockid)
 {
   //not really a template... one file contains all blocks
-  if (StringUtils::find(Template, "%")<0)
-    return Template;
+  if (StringUtils::find(FilenameTemplate, "%")<0)
+    return FilenameTemplate;
 
   /*
   this version can be a little slower, but I don't think it could be the bottleneck
@@ -128,7 +128,7 @@ static String GetFilenameV56(const IdxFile& idxfile, String Template, Field fiel
   BigInt address = idxfile.getFirstBlockInFile(blockid), partial_address;
   char  filename[MaxFilenameLen];
   int   N = MaxFilenameLen - 1;
-  int   S = (int)Template.length() - 1;
+  int   S = (int)FilenameTemplate.length() - 1;
   int   C = S;
   int   LastC = -1;
 
@@ -139,15 +139,15 @@ static String GetFilenameV56(const IdxFile& idxfile, String Template, Field fiel
   filename[N--] = 0;
   for (; C >= 0; C--) //going from right to left
   {
-    if (Template[C] != '%') continue;
+    if (FilenameTemplate[C] != '%') continue;
     LastC = C;
-    digit = Template[C + 2] - '0';
+    digit = FilenameTemplate[C + 2] - '0';
     numbits = digit * 4;
     len = 1 + S - (C + 4);
     partial_address = address & ((((BigInt)1) << numbits) - 1);
 
     //IMPORTANT NOTE: do not use _snprintf or snprintf since they have different behaviour on windows and macosx (with the terminating zero!)
-    memcpy(filename + 1 + N - len, Template.c_str() + C + 4, len); N -= len;
+    memcpy(filename + 1 + N - len, FilenameTemplate.c_str() + C + 4, len); N -= len;
     for (k = 0; k<digit; k++, partial_address >>= 4) filename[N--] = hexdigits[cint64(partial_address & 0xf)];
     address >>= numbits;
     S = C - 1;
@@ -157,7 +157,7 @@ static String GetFilenameV56(const IdxFile& idxfile, String Template, Field fiel
   {
     C = LastC;
     VisusAssert(LastC >= 0);
-    digit = Template[C + 2] - '0';
+    digit = FilenameTemplate[C + 2] - '0';
     numbits = digit * 4;
     partial_address = address & ((((BigInt)1) << numbits) - 1);
     filename[N--] = '/'; //ignore what is in the template, use a simple separator!
@@ -166,21 +166,20 @@ static String GetFilenameV56(const IdxFile& idxfile, String Template, Field fiel
   }
 
   //time template
-  String time_template = idxfile.time_template;
-  if (!time_template.empty())
+  if (!TimeTemplate.empty())
   {
     char temp[1024] = { 0 }; //1024 seems enough only for the time!
-    int nwritten = sprintf(temp, time_template.c_str(), (int)time);
+    int nwritten = sprintf(temp, TimeTemplate.c_str(), (int)time);
     VisusAssert(nwritten<(sizeof(temp) - 1));
-    time_template = temp;
+    TimeTemplate = temp;
 
-    int len = (int)time_template.length();
-    memcpy(filename + 1 + N - len, time_template.c_str(), len);
+    int len = (int)TimeTemplate.length();
+    memcpy(filename + 1 + N - len, TimeTemplate.c_str(), len);
     N -= len;
   }
 
   //dump what is remained on the right
-  memcpy(filename + 1 + N - (1 + S), Template.c_str(), 1 + S);
+  memcpy(filename + 1 + N - (1 + S), FilenameTemplate.c_str(), 1 + S);
   return String(filename + N - S);
 }
 
@@ -194,8 +193,8 @@ public:
   VISUS_NON_COPYABLE_CLASS(IdxDiskAccessV5)
 
   //constructor
-  IdxDiskAccessV5(IdxDiskAccess* owner_, const IdxFile& idxfile_, String filename_template_, bool bVerbose)
-    : owner(owner_), idxfile(idxfile_), filename_template(filename_template_)
+  IdxDiskAccessV5(IdxDiskAccess* owner_, const IdxFile& idxfile_, String time_template_,String filename_template_, bool bVerbose)
+    : owner(owner_), idxfile(idxfile_), time_template(time_template_), filename_template(filename_template_)
   {
     this->bVerbose = bVerbose;
     this->bitsperblock = idxfile.bitsperblock;
@@ -214,9 +213,9 @@ public:
   virtual String getFilename(Field field, double time, BigInt blockid) const override
   {
     if (idxfile.version < 5)
-      return GetFilenameV1234(idxfile, filename_template, field, time, blockid);
+      return GetFilenameV1234(idxfile, time_template, filename_template, field, time, blockid);
     else
-      return GetFilenameV56(idxfile, filename_template, field, time, blockid);
+      return GetFilenameV56(idxfile, time_template, filename_template, field, time, blockid);
   }
 
   //beginIO
@@ -345,6 +344,7 @@ private:
   IdxDiskAccess* owner;
   IdxFile        idxfile;
   String         filename_template;
+  String         time_template;
   HeapMemory     headers;
   BlockHeader*   block_headers=nullptr;
   File           file;
@@ -409,8 +409,8 @@ public:
   VISUS_NON_COPYABLE_CLASS(IdxDiskAccessV6)
 
   //constructor
-    IdxDiskAccessV6(IdxDiskAccess* owner_, const IdxFile& idxfile_, String filename_template_, bool bVerbose)
-    : owner(owner_), idxfile(idxfile_), filename_template(filename_template_)
+    IdxDiskAccessV6(IdxDiskAccess* owner_, const IdxFile& idxfile_, String time_template_, String filename_template_, bool bVerbose)
+    : owner(owner_), idxfile(idxfile_), time_template(time_template_), filename_template(filename_template_)
   {
     this->bVerbose = bVerbose;
     this->bitsperblock = idxfile.bitsperblock;
@@ -430,7 +430,7 @@ public:
   //getFilename
   virtual String getFilename(Field field, double time, BigInt blockid) const override
   {
-    return GetFilenameV56(idxfile, filename_template, field, time, blockid);
+    return GetFilenameV56(idxfile, time_template, filename_template, field, time, blockid);
   }
 
   //beginIO
@@ -749,6 +749,7 @@ private:
 
   IdxDiskAccess*  owner;
   IdxFile         idxfile;
+  String          time_template;
   String          filename_template;
   HeapMemory      headers;
   FileHeader*     file_header=nullptr;
@@ -882,17 +883,16 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
     //to create a disk cache for remote datasets
     if (url.isFile() && !FileUtils::existsFile(url.getPath()))
     {
-      idxfile.version = 0;
-      idxfile.block_interleaving = 0;
-      idxfile.filename_template = "";
-      if (!idxfile.save(Path(url.getPath()).toString()))
-        ThrowException("cannot use", url, "as cache location. save failed");
+      auto filename = Path(url.getPath()).toString();
+      auto new_idxfile = idxfile;
+      new_idxfile.version = 6;
+      new_idxfile.block_interleaving = 0;
+      new_idxfile.filename_template = new_idxfile.guessFilenameTemplate(filename);
+      new_idxfile.save(filename);
     }
 
-    //need to load it again since it can be different
-    idxfile = IdxFile::load(url.toString());
-    if (!idxfile.valid())
-      ThrowException("cannot use", url, " as cache location. load failed");
+    //need to load it again since it can be different 
+    idxfile.load(url.toString());
   }
 
   VisusAssert(idxfile.version>=1 && idxfile.version<=6);
@@ -904,30 +904,29 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
   this->bitsperblock = idxfile.bitsperblock;
   this->bVerbose = config.readInt("verbose", 0);
 
-  auto filename_template = idxfile.filename_template;
-
   //special case, a "./" at the beginning means a reference to the url
-  {
+  auto resoveAlias = [&](String value) {
+
     String dir = Path(url.getPath()).getParent().toString();
-    if (!dir.empty())
-    {
-      if (StringUtils::startsWith(filename_template, "./")) 
-        filename_template = StringUtils::replaceFirst(filename_template, ".", dir);
+    if (dir.empty())
+      return value;
 
-      filename_template = StringUtils::replaceAll(filename_template, "$(CurrentFileDirectory)", dir);
-    }
-  }
+    if (StringUtils::startsWith(value, "./"))
+      value = StringUtils::replaceFirst(value, ".", dir);
 
-  if (idxfile.version < 6)
-  {
-    this-> sync.reset(new IdxDiskAccessV5(this, idxfile, filename_template, bVerbose));
-    this->async.reset(new IdxDiskAccessV5(this, idxfile, filename_template, bVerbose));
-  }
-  else
-  {
-    this-> sync.reset(new IdxDiskAccessV6(this, idxfile, filename_template, bVerbose));
-    this->async.reset(new IdxDiskAccessV6(this, idxfile, filename_template, bVerbose));
-  }
+    value = StringUtils::replaceAll(value, "$(CurrentFileDirectory)", dir);
+    return value;
+  };
+
+  auto createAccess = [&]()->Access*{
+    if (idxfile.version < 6)
+      return new IdxDiskAccessV5(this, idxfile, resoveAlias(idxfile.time_template), resoveAlias(idxfile.filename_template), bVerbose);
+    else
+      return new IdxDiskAccessV6(this, idxfile, resoveAlias(idxfile.time_template), resoveAlias(idxfile.filename_template), bVerbose);
+  };
+
+  this-> sync.reset(createAccess());
+  this->async.reset(createAccess());
 
   //special case for caching stuff (example range="0 2048" means that all block >=0 && block<2048 will pass throught)
   auto block_range=config.readString("range");

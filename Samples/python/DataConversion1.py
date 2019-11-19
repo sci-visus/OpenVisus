@@ -44,9 +44,7 @@ if __name__ == '__main__':
 	idx_file = IdxFile()
 	idx_file.logic_box=BoxNi(PointNi(0,0,0),dims)
 	idx_file.fields.push_back(Field('channel0',dtype))
-	success = idx_file.save(idx_name)
-	if not success:
-		raise Exception("Assert failed")	
+	idx_file.save(idx_name)
 			
 	print("Created IDX file")
 	

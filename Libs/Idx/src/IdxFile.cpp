@@ -54,7 +54,7 @@ namespace Visus {
 
   
 ////////////////////////////////////////////////////////////////////
-String IdxFile::guessFilenameTemplate()
+String IdxFile::guessFilenameTemplate(String url)
 {
   //this is the bits for block number
   int nbits_blocknumber = (this->bitmask.getMaxResolution() - bitsperblock);
@@ -63,6 +63,17 @@ String IdxFile::guessFilenameTemplate()
   //note: for remote I really don't care what's the template
   
   std::ostringstream out;
+
+  String basename;
+  
+  Url __url__(url);
+  if (__url__.valid() && __url__.isFile())
+    basename=Path(__url__.getPath()).getFileNameWithoutExtension();
+
+  if (basename.empty())
+    basename = "visus_data";
+
+  out << "./" + basename;
 
   while (nbits_blocknumber > 16)
   {
@@ -76,7 +87,7 @@ String IdxFile::guessFilenameTemplate()
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void IdxFile::validate(String s_url)
+void IdxFile::validate(String url)
 {
   //version
   if (this->version == 0)
@@ -231,12 +242,8 @@ void IdxFile::validate(String s_url)
   }
 
   //filename_template
-  Url url = s_url;
   if (filename_template.empty())
-  {
-    filename_template = (url.isFile()? "./" + Path(url.getPath()).getFileNameWithoutExtension() : "./visus_data");
-    filename_template += guessFilenameTemplate();
-  }
+    filename_template = guessFilenameTemplate(url);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -367,185 +374,56 @@ IdxFile::IdxFile(int version_) : version(version_)
 }
 
 //////////////////////////////////////////////////////////////////////////////
-IdxFile IdxFile::fromOldFormatString(String content)
-{
-  IdxFile idxfile;
-
-  //parse the idx text format
-  StringMap map;
-
-  std::vector<String> v = StringUtils::getLinesAndPurgeComments(content, "#");
-  String key, value;
-  for (int I = 0; I < (int)v.size(); I++)
-  {
-    String line = StringUtils::trim(v[I]);
-    if (line.empty())
-      continue;
-
-    //comment
-    if (StringUtils::startsWith(line, "#"))
-      continue;
-
-    if (bool bIsKey = StringUtils::startsWith(line, "("))
-    {
-      //flush previous
-      if (!key.empty())
-        map.setValue(key, StringUtils::trim(value));
-
-      key = StringUtils::trim(line);
-      value = String();
-    }
-    else
-    {
-      value = value + " " + line;
-    }
-  }
-
-  if (!key.empty())
-    map.setValue(key, StringUtils::trim(value));
-
-  //trim the values
-  for (auto it = map.begin(); it != map.end(); it++)
-    it->second = StringUtils::trim(it->second);
-
-  idxfile.version = cint(map.getValue("(version)")); VisusAssert(idxfile.version >= 1 && idxfile.version <= 6);
-  idxfile.bitmask = DatasetBitmask::fromString(map.getValue("(bits)"));
-  idxfile.logic_box = BoxNi::parseFromOldFormatString(idxfile.bitmask.getPointDim(), map.getValue("(box)"));
-
-  auto pdim = idxfile.bitmask.getPointDim();
-
-  if (map.hasValue("(physic_box)"))
-  {
-    idxfile.bounds = BoxNd::fromString(map.getValue("(physic_box)"));
-    idxfile.bounds.setSpaceDim(pdim + 1);
-  }
-
-  else if (map.hasValue("(logic_to_physic)"))
-  {
-    auto logic_to_physic = Matrix::fromString(map.getValue("(logic_to_physic)"));
-    idxfile.bounds = Position(logic_to_physic, idxfile.logic_box);
-    idxfile.bounds.setSpaceDim(pdim + 1);
-  }
-  else
-  {
-    idxfile.bounds = idxfile.logic_box;
-  }
-
-  //parse fields
-  if (map.hasValue("(fields)"))
-    idxfile.fields = parseFields(map.getValue("(fields)"));
-
-  idxfile.bitsperblock = cint(map.getValue("(bitsperblock)"));
-  idxfile.blocksperfile = cint(map.getValue("(blocksperfile)"));
-  idxfile.filename_template = map.getValue("(filename_template)");
-
-  if (map.hasValue("(interleave)"))
-    idxfile.block_interleaving = cint(map.getValue("(interleave)"));
-
-  if (map.hasValue("(time)"))
-  {
-    std::vector<String> vtime = StringUtils::split(map.getValue("(time)"), " ");
-    VisusAssert(vtime.size() >= 2);
-
-    idxfile.timesteps = DatasetTimesteps();
-    double parse_time = 0;
-
-    ///star format (means I don't know in advance the timesteps)
-    //* * time_template 
-    if (vtime[0] == "*")
-    {
-      bool bGood = vtime.size() == 3 && vtime[1] == "*";
-      if (!bGood) { PrintInfo("idx (time) is wrong"); VisusAssert(false); return IdxFile::invalid(); }
-      idxfile.time_template = vtime[2];
-    }
-    //old format
-    //From To time_template
-    else if (StringUtils::tryParse(vtime[0], parse_time))
-    {
-      bool bGood = vtime.size() == 3 && StringUtils::tryParse(vtime[1], parse_time);
-      if (!bGood) { PrintInfo("idx (time) is wrong"); VisusAssert(false); return IdxFile::invalid(); }
-      double From = cdouble(vtime[0]);
-      double To = cdouble(vtime[1]);
-      idxfile.timesteps.addTimesteps(From, To, 1.0);
-      idxfile.time_template = vtime[2];
-    }
-    //new format
-    //time_template (From,To,Step) (From,To,Step) (From,To,Step)
-    else
-    {
-      idxfile.time_template = vtime[0];
-      for (int I = 1; I < (int)vtime.size(); I++)
-      {
-        bool bGood = StringUtils::startsWith(vtime[I], "(") && StringUtils::find(vtime[I], ")");
-        if (!bGood) { PrintInfo("idx (time) is wrong"); VisusAssert(false); return IdxFile::invalid(); }
-        std::vector<String> vrange = StringUtils::split(vtime[I].substr(1, vtime[I].size() - 2), ",", true);
-        double From = vrange.size() >= 1 ? cdouble(vrange[0]) : 0;
-        double To = vrange.size() >= 2 ? cdouble(vrange[1]) : From;
-        double Step = vrange.size() >= 3 ? cdouble(vrange[2]) : 1;
-        idxfile.timesteps.addTimesteps(From, To, Step);
-      }
-    }
-  }
-
-  return idxfile;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-IdxFile IdxFile::load(String url)
+void IdxFile::load(String url,String& TypeName)
 {
   String content=Utils::loadTextDocument(url);
 
   if (content.empty())
-    return IdxFile::invalid();
+    ThrowException("empty content");
 
-  auto idxfile=IdxFile::fromOldFormatString(content);
-  idxfile.validate(url);
-  return idxfile;
+  auto ar = StringTree::fromString(content);
+  if (ar.valid())
+  {
+    ar.read("typename",TypeName);
+    ar.readObject("idxfile",*this);
+  }
+  else
+  {
+    TypeName = "IdxDataset";
+    this->readFromOldFormat(content);
+  }
+
+  this->validate(url);
 }
 
 //////////////////////////////////////////////////////////////////////////////
-bool IdxFile::save(String filename)
+void IdxFile::save(String filename, String TypeName)
 {
   if (filename.empty())
-    return false;
+    ThrowException("invalid name");
 
   //the user is trying to create a new IdxFile... help him by guessing and checking some values
   if (version==0)
     validate(filename);
 
-  if (!valid())
-    return false;
 
-
-  auto content=toOldFormatString();
-  if (content.empty()) 
-    return false;
+  Archive ar("dataset");
+  ar.write("typename", TypeName);
+  ar.writeObject("idxfile",*this);
+  auto content = ar.toString();
 
   //save the file (using file locks... there could be tons of visus running!)
   {
     FileUtils::lock(filename);
-
-    bool bOk = Utils::saveTextDocument(filename, content);
+    Utils::saveTextDocument(filename, content);
     FileUtils::unlock(filename);
-
-    if (!bOk)
-    {
-      PrintWarning("Utils::saveTextDocument",filename," failed");
-      return false;
-    }
   }
-
-  return true;
 }
 
 
-
 /////////////////////////////////////////////////////////////////////////////
-String IdxFile::toOldFormatString() const
+void IdxFile::writeToOldFormat(String& content) const
 {
-  if (!valid())
-    return "";
-
   std::ostringstream out;
 
   out<<"(version)\n"<<this->version<<"\n";
@@ -605,7 +483,7 @@ String IdxFile::toOldFormatString() const
   
   if (!this->time_template.empty())
   {
-    //star format
+    //STAR FORMAT
     //* * time_template 
     if (this->timesteps==DatasetTimesteps::star())
     {
@@ -613,13 +491,13 @@ String IdxFile::toOldFormatString() const
     }
     else
     {
-      //old format
+      //OLD FORMAT
       //From To time_template
       if (this->timesteps==DatasetTimesteps(this->timesteps.getMin(),this->timesteps.getMax(),1.0))
       {
         out<<"(time)\n"<<this->timesteps.getMin()<<" "<<this->timesteps.getMax()<<" "<<this->time_template<<"\n";
       }
-      //new format
+      //NEW FORMAT
       //time_template (From,To,Step) (From,To,Step) (From,To,Step)
       else
       {
@@ -631,12 +509,210 @@ String IdxFile::toOldFormatString() const
         }
         out<<"\n";
       }
-        
     }
   }
 
   out<<"(filename_template)\n"<<filename_template<<"\n";
-  return out.str();
+  content=out.str();
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+void IdxFile::readFromOldFormat(String& content)
+{
+  //parse the idx text format
+  StringMap map;
+
+  std::vector<String> v = StringUtils::getLinesAndPurgeComments(content, "#");
+  String key, value;
+  for (int I = 0; I < (int)v.size(); I++)
+  {
+    String line = StringUtils::trim(v[I]);
+    if (line.empty())
+      continue;
+
+    //comment
+    if (StringUtils::startsWith(line, "#"))
+      continue;
+
+    if (bool bIsKey = StringUtils::startsWith(line, "("))
+    {
+      //flush previous
+      if (!key.empty())
+        map.setValue(key, StringUtils::trim(value));
+
+      key = StringUtils::trim(line);
+      value = String();
+    }
+    else
+    {
+      value = value + " " + line;
+    }
+  }
+
+  if (!key.empty())
+    map.setValue(key, StringUtils::trim(value));
+
+  //trim the values
+  for (auto it = map.begin(); it != map.end(); it++)
+    it->second = StringUtils::trim(it->second);
+
+  this->version = cint(map.getValue("(version)"));
+  if (!(this->version >= 1 && this->version <= 6))
+    ThrowException("invalid version");
+
+  this->bitmask = DatasetBitmask::fromString(map.getValue("(bits)"));
+  this->logic_box = BoxNi::parseFromOldFormatString(this->bitmask.getPointDim(), map.getValue("(box)"));
+
+  auto pdim = this->bitmask.getPointDim();
+
+  if (map.hasValue("(physic_box)"))
+  {
+    this->bounds = BoxNd::fromString(map.getValue("(physic_box)"));
+    this->bounds.setSpaceDim(pdim + 1);
+  }
+
+  else if (map.hasValue("(logic_to_physic)"))
+  {
+    auto logic_to_physic = Matrix::fromString(map.getValue("(logic_to_physic)"));
+    this->bounds = Position(logic_to_physic, this->logic_box);
+    this->bounds.setSpaceDim(pdim + 1);
+  }
+  else
+  {
+    this->bounds = this->logic_box;
+  }
+
+  //parse fields
+  if (map.hasValue("(fields)"))
+    this->fields = parseFields(map.getValue("(fields)"));
+
+  this->bitsperblock = cint(map.getValue("(bitsperblock)"));
+  this->blocksperfile = cint(map.getValue("(blocksperfile)"));
+  this->filename_template = map.getValue("(filename_template)");
+
+  if (map.hasValue("(interleave)"))
+    this->block_interleaving = cint(map.getValue("(interleave)"));
+
+  if (map.hasValue("(time)"))
+  {
+    std::vector<String> vtime = StringUtils::split(map.getValue("(time)"), " ");
+    if (vtime.size() < 2)
+      ThrowException("invalid (time)");
+
+    this->timesteps = DatasetTimesteps();
+    double parse_time = 0;
+
+    ///star format (means I don't know in advance the timesteps)
+    //* * time_template 
+    if (vtime[0] == "*")
+    {
+      bool bGood = vtime.size() == 3 && vtime[1] == "*";
+      if (!bGood)
+        ThrowException("idx (time) is wrong");
+
+      this->time_template = vtime[2];
+    }
+    //old format
+    //From To time_template
+    else if (StringUtils::tryParse(vtime[0], parse_time))
+    {
+      bool bGood = vtime.size() == 3 && StringUtils::tryParse(vtime[1], parse_time);
+      if (!bGood)
+        ThrowException("idx (time) is wrong");
+      double From = cdouble(vtime[0]);
+      double To = cdouble(vtime[1]);
+      this->timesteps.addTimesteps(From, To, 1.0);
+      this->time_template = vtime[2];
+    }
+    //new format
+    //time_template (From,To,Step) (From,To,Step) (From,To,Step)
+    else
+    {
+      this->time_template = vtime[0];
+      for (int I = 1; I < (int)vtime.size(); I++)
+      {
+        bool bGood = StringUtils::startsWith(vtime[I], "(") && StringUtils::find(vtime[I], ")");
+        if (!bGood)
+          ThrowException("idx (time) is wrong");
+
+        std::vector<String> vrange = StringUtils::split(vtime[I].substr(1, vtime[I].size() - 2), ",", true);
+        double From = vrange.size() >= 1 ? cdouble(vrange[0]) : 0;
+        double To = vrange.size() >= 2 ? cdouble(vrange[1]) : From;
+        double Step = vrange.size() >= 3 ? cdouble(vrange[2]) : 1;
+        this->timesteps.addTimesteps(From, To, Step);
+      }
+    }
+  }
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+void IdxFile::write(Archive& ar) const
+{
+  ar.addChild("version")->write("value", version);
+  ar.addChild("bitmask")->write("value", bitmask);
+  ar.addChild("box")->write("value", logic_box);
+  ar.addChild("bitsperblock")->write("value", bitsperblock);
+  ar.addChild("blocksperfile")->write("value", blocksperfile);
+  ar.addChild("block_interleaving")->write("value", block_interleaving);
+  ar.addChild("filename_template")->write("value", filename_template);
+  ar.addChild("time_template")->write("value", time_template);
+
+  auto logic_to_physic = Position::computeTransformation(this->bounds, this->logic_box);
+  if (logic_to_physic.isIdentity())
+    ;
+  else if (logic_to_physic.isOnlyScale())
+    ar.addChild("physic_box")->write("value", this->bounds.toAxisAlignedBox());
+  else
+    ar.addChild("logic_to_physic")->write("value", logic_to_physic);
+
+  for (auto field : fields)
+    ar.writeObject("field", field);
+
+  timesteps.write(ar);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+void IdxFile::read(Archive& ar)
+{
+  ar.getChild("version")->read("value", version);
+  ar.getChild("bitmask")->read("value", bitmask);
+  ar.getChild("box")->read("value", logic_box);
+  ar.getChild("bitsperblock")->read("value", bitsperblock);
+  ar.getChild("blocksperfile")->read("value", blocksperfile);
+  ar.getChild("block_interleaving")->read("value", block_interleaving);
+  ar.getChild("filename_template")->read("value", filename_template);
+  ar.getChild("time_template")->read("value", time_template);
+
+  if (auto child = ar.getChild("physic_box"))
+  {
+    BoxNd physic_box;
+    child->read("value", physic_box);
+    this->bounds = Position(physic_box);
+  }
+  else if (auto child=ar.getChild("logic_to_physic"))
+  {
+    Matrix logic_to_physic;
+    child->read("value", logic_to_physic);
+    this->bounds = Position(logic_to_physic, logic_box);
+  }
+  else
+  {
+    this->bounds = Position(logic_box);
+  }
+
+  for (auto child : ar.getChilds("field"))
+  {
+    Field field;
+    field.read(*child);
+    VisusReleaseAssert(field.valid());
+    this->fields.push_back(field);
+  }
+
+  this->timesteps.read(ar);
 }
 
 

@@ -411,8 +411,10 @@ LogicSamples GoogleMapsDataset::getAddressRangeSamples(BigInt start_address,BigI
 }
 
 //////////////////////////////////////////////////////////////
-void GoogleMapsDataset::openFromUrl(Archive& ar, String url)
+void GoogleMapsDataset::read(Archive& ar)
 {
+  String url = ar.readString("url");
+
   ar.read("tiles", this->tiles, "http://mt1.google.com/vt/lyrs=s");
   ar.read("tile_width", tile_width, 256);
   ar.read("tile_height", tile_height, 256);
@@ -429,7 +431,6 @@ void GoogleMapsDataset::openFromUrl(Archive& ar, String url)
   auto W= this->tile_width  * (((Int64)1)<<nlevels);
   auto H= this->tile_height * (((Int64)1)<<nlevels);
 
-  this->setUrl(url);
   this->setDatasetBody(ar);
   this->setKdQueryMode(KdQueryMode::fromString(ar.readString("kdquery")));
   this->setBitmask(DatasetBitmask::guess(PointNi(W,H)));

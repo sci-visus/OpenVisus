@@ -303,7 +303,7 @@ public:
   static SharedPtr<TransferFunction> importTransferFunction(String content);
 
   //exportTransferFunction
-  bool exportTransferFunction(String filename);
+  void exportTransferFunction(String filename);
 
 public:
 

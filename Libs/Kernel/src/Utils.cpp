@@ -153,18 +153,13 @@ String Utils::loadTextDocument(String s_url)
 }
 
 //////////////////////////////////////////////////////////////////
-bool Utils::saveTextDocument(String filename,String content)
+void Utils::saveTextDocument(String filename,String content)
 {
-  VisusAssert(Url(filename).isFile());
+  if (filename.empty())
+    ThrowException("invalid filename");
 
   Path path(filename);
-  if (path.empty())
-  {
-    PrintInfo("Failed to save text document",filename,"path is empty");
-    return false;
-  }
-
-  String fullpath=path.toString();
+  String fullpath= path.toString();
   std::ofstream file(fullpath.c_str(), std::ios::binary);
 
   if (!file.is_open())
@@ -174,15 +169,11 @@ bool Utils::saveTextDocument(String filename,String content)
     file.open(fullpath.c_str(), std::ios::binary);
 
     if (!file.is_open())
-    {
-      PrintInfo("Failed to save text document",filename,strerror(errno));
-      return false;
-    }
+      ThrowException("Failed to save text document",filename,strerror(errno));
   }
 
   file.write(content.c_str(),content.size());
   file.close();
-  return true;
 }
 
 
@@ -238,16 +229,13 @@ SharedPtr<HeapMemory> Utils::loadBinaryDocument(String url_)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
-bool Utils::saveBinaryDocument(String filename,SharedPtr<HeapMemory> src)
+void Utils::saveBinaryDocument(String filename,SharedPtr<HeapMemory> src)
 {
   if (!src)
-    return false;
+    ThrowException("src is empty()");
 
   //TODO!
-  VisusAssert(Url(filename).isFile()); 
-
   Path path(filename);
-  if (path.empty()) return false;
   String fullpath=path.toString();
   std::ofstream file(fullpath.c_str(), std::ios::binary);
 
@@ -256,16 +244,17 @@ bool Utils::saveBinaryDocument(String filename,SharedPtr<HeapMemory> src)
   {
     FileUtils::createDirectory(path.getParent());
     file.open(fullpath.c_str(), std::ios::binary);
-    if (!file.is_open()) return false;
+    if (!file.is_open())
+      ThrowException("cannot open file for writing");
   }
+
 
   if (!file.write((char*)src->c_ptr(),src->c_size())) {
     file.close();
-    return false;
+    ThrowException("cannot write binary buffer");
   }
 
   file.close();
-  return true;
 }
 
 

@@ -91,12 +91,11 @@ public:
   }
 
   //save
-  bool save(String filename)
+  void save(String filename)
   {
     StringTree out(this->getTypeName());
     this->write(out);
     Utils::saveTextDocument(filename, out.toString());
-    return true;
   }
 
 public:

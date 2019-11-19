@@ -48,14 +48,14 @@ void DatasetTimesteps::write(Archive& ar)  const
   {
     if (getAt(I).a==getAt(I).b)
     {
-      ar.addChild(StringTree("Timestep")
+      ar.addChild(StringTree("timestep")
         .write("when", getAt(I).a));
     }
     else
     {
-      ar.addChild(StringTree("IRange")
-        .write("a", getAt(I).a)
-        .write("b", getAt(I).b)
+      ar.addChild(StringTree("timestep")
+        .write("from", getAt(I).a)
+        .write("to",   getAt(I).b)
         .write("step", getAt(I).step));
     }
   }
@@ -66,22 +66,17 @@ void DatasetTimesteps::read(Archive& ar)
 {
   this->values.clear();
 
-  for (auto child : ar.childs)
+  for (auto child : ar.getChilds("timestep"))
   {
-    if (child->name =="Timestep")
-    {
-      int t;
-      child->read("when", t);
-      values.push_back(IRange(t,t,1));
-    }
-    else if (child->name =="IRange")
-    {
-      int a, b, step;
-      child->read("a", a);
-      child->read("b", b);
-      child->read("step", step);
-      values.push_back(IRange(a,b,step));
-    }
+    int a, b, step;
+    if (child->hasAttribute("when"))
+      child->read("when",a);
+    else
+      child->read("from", a);
+
+    child->read("to", b, a);
+    child->read("step", step, 1);
+    values.push_back(IRange(a, b, step));
   }
 
 }

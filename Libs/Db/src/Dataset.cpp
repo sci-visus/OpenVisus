@@ -311,98 +311,59 @@ Field Dataset::getFieldByName(String name) const {
 
 
 ////////////////////////////////////////////////////////////////////////////////////
-static StringTree* FindDataset(String name, const StringTree& stree)
+static StringTree FindDatasetConfig(StringTree ar, String url)
 {
-  auto all_datasets = stree.getAllChilds("dataset");
+  auto all_datasets = ar.getAllChilds("dataset");
   for (auto it : all_datasets)
   {
-    if (it->readString("name") == name)
-      return it;
+    if (it->readString("name") == url) {
+      VisusAssert(it->hasAttribute("url"));
+      return *it;
+    }
   }
 
   for (auto it : all_datasets)
   {
-    if (it->readString("url") == name)
-      return it;
+    if (it->readString("url") == url)
+      return *it;
   }
 
-  return nullptr;
+  auto ret = StringTree("dataset");
+  ret.write("url", url);
+  return ret;
 }
 
 
 /////////////////////////////////////////////////////////////////////////
-SharedPtr<Dataset> LoadDatasetEx(String name, StringTree ar)
+SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
 {
-  if (name.empty())
-    return SharedPtr<Dataset>();
+  String url = ar.readString("url");
+  if (!Url(url).valid())
+    ThrowException("LoadDataset", url, "failed. Not a valid url");
 
-  auto it = FindDataset(name, ar);
-  ar = it ? *it : StringTree();
+  auto content = Utils::loadTextDocument(url);
 
-  Url url = ar.readString("url", name);
-  if (!url.valid())
+  //enrich ar by loaded document (ar has precedence)
+  auto doc = StringTree::fromString(content);
+  if (doc.valid())
   {
-    PrintWarning("LoadDataset", name, "failed. Not a valid url");
-    return SharedPtr<Dataset>();
-  }
-
-  if (Url(url).isRemote() && StringUtils::contains(url.toString(), "mod_visus"))
-    url.setParam("action", "readdataset");
-
-  auto content = StringUtils::trim(Utils::loadTextDocument(url.toString()));
-
-  if (bool bXml = StringUtils::trim(content)[0] == '<') 
-  {
-    auto doc = StringTree::fromString(content);
-    if (doc.valid())
-    {
-      // merge
-      for (auto it : doc.attributes) {
-        if (!ar.hasAttribute(it.first))
-          ar.setAttribute(it.first, it.second);
-      }
-
-      // merge
-      for (auto it : doc.childs)
-        ar.addChild(*it);
-    }
+    StringTree::merge(ar, doc); //example <dataset tyname="IdxMultipleDataset">...</dataset>
+    VisusReleaseAssert(ar.hasAttribute("typename"));
   }
   else
   {
-    //backward compatible, old idx non-xml format
-    ar.setAttribute("typename", "IdxDataset");
-    ar.writeText("idx",content);
+    // backward compatible, old *.idx format (version)6...
+    ar.write("typename", "IdxDataset");
+    ar.writeText("content",content);
   }
 
-  auto TypeName = ar.getAttribute("typename", "IdxDataset");
-
-  // backward compatible
-  if (TypeName == "MultipleDataset")
-    TypeName = "IdxMultipleDataset";
-
-  if (TypeName.empty())
-  {
-    PrintWarning("LoadDataset", url.toString(), "failed. Got empty TypeName");
-    return SharedPtr<Dataset>();
-  }
-
+  auto TypeName = ar.getAttribute("typename");
+  VisusReleaseAssert(!TypeName.empty());
   auto ret= DatasetFactory::getSingleton()->createInstance(TypeName);
-  if (!ret) 
-  {
-    PrintWarning("LoadDatasetEx",url,"failed. Cannot DatasetFactory::getSingleton()->createInstance",TypeName);
-    return SharedPtr<Dataset>();
-  }
+  if (!ret)
+    ThrowException("LoadDataset",url,"failed. Cannot DatasetFactory::getSingleton()->createInstance",TypeName);
 
-  try
-  {
-    ret->openFromUrl(ar, url.toString());
-  }
-  catch (std::exception)
-  {
-    PrintWarning(TypeName, "openFromUrl", url, "failed");
-    return SharedPtr<Dataset>();
-  }
-
+ ret->read(ar);
   //PrintInfo(ret->getDatasetInfos();
   return ret; 
 }
@@ -441,14 +402,15 @@ String Dataset::getDatasetInfos() const
 
 ////////////////////////////////////////////////
 SharedPtr<Dataset> LoadDataset(String url) {
-  return LoadDatasetEx(url, *DbModule::getModuleConfig());
+  auto ar = FindDatasetConfig(*DbModule::getModuleConfig(), url);
+  return LoadDatasetEx(ar);
 }
 
 
 ////////////////////////////////////////////////
 Future<Void> Dataset::executeBlockQuery(SharedPtr<Access> access,SharedPtr<BlockQuery> query)
 {
-  VisusAssert(access->isReading());
+  VisusAssert(access->isReading() || access->isWriting());
 
   int mode = query->mode; 
   auto failed = [&]() {

@@ -98,8 +98,8 @@ public:
 
 public:
 
-  //openFromUrl 
-  virtual void openFromUrl(Archive& ar, String URL) override;
+  //read 
+  virtual void read(Archive& ar) override;
 
   //getInnerDatasets
   virtual std::map<String, SharedPtr<Dataset> > getInnerDatasets() const override {
@@ -129,7 +129,7 @@ public:
 public:
 
   //createIdxFile
-  bool createIdxFile(String idx_filename, Field idx_field) const;
+  void createIdxFile(String idx_filename, Field idx_field) const;
 
 private:
 

@@ -670,8 +670,11 @@ private:
     last_filename = filename;
     filename = StringUtils::replaceAll(filename, "\\", "/");
       
-    if (!Utils::saveTextDocument(filename, content))
+    try
     {
+      Utils::saveTextDocument(filename, content);
+    }
+    catch(...){
       String errormsg=cstring("Failed to save file",filename);
       QMessageBox::information(this,"Error",errormsg.c_str());
       return;

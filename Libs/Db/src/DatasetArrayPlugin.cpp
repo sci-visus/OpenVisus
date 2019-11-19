@@ -125,12 +125,6 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
 {
   auto dataset=LoadDataset(url);
 
-  if (!dataset)
-  {
-    PrintWarning("Dataset::handleStatImage",url," failed");
-    return StringTree();
-  }
-
   StringTree ar("stat");
 
   ar.write("url",url);
@@ -151,9 +145,6 @@ StringTree DatasetArrayPlugin::handleStatImage(String url)
 Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
 {
   auto dataset= LoadDataset(url);
-
-  if (!dataset)
-    return Array();
 
   DatasetArrayPluginParseArguments args(dataset.get());
   if (!args.exec(args_))
@@ -207,9 +198,6 @@ Array DatasetArrayPlugin::handleLoadImage(String url,std::vector<String> args_)
 bool DatasetArrayPlugin::handleSaveImage(String url,Array src,std::vector<String> args_)
 {
   auto dataset= LoadDataset(url);
-
-  if (!dataset)
-    return false;
 
   DatasetArrayPluginParseArguments args(dataset.get());
   if (!args.exec(args_))

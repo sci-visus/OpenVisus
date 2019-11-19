@@ -92,21 +92,15 @@ public:
   //constructor
   IdxFile(int version_=0);
 
-  //invalid
-  static IdxFile invalid() {
-    return IdxFile(-1);
-  }
-
   //load
-  static IdxFile load(String url);
+  void load(String url,String& TypeName);
 
-  //valid
-  bool valid() const {
-    return this->version>0;
+  void load(String url) {
+    String Typename; return load(url, Typename);
   }
 
   //save
-  bool save(String filename);
+  void save(String filename, String TypeName="IdxDataset");
 
   //parseFields
   static std::vector<Field> parseFields(String content);
@@ -126,18 +120,31 @@ public:
   }
 
   //guessFilenameTemplate
-  String guessFilenameTemplate();
+  String guessFilenameTemplate(String url);
 
   //validate
   void validate(String url);
 
 public:
 
-  //fromOldFormatString
-  static IdxFile fromOldFormatString(String content);
+  //read
+  void read(Archive& ar);
 
-  //toOldFormatString
-  String toOldFormatString() const;
+  //write
+  void write(Archive& ar) const;
+
+  //toString
+  String toString() const {
+    Archive ar("idxfile");
+    write(ar);
+    return ar.toString();
+  }
+
+  //readFromOldFormat
+  void readFromOldFormat(String& content);
+
+  //writeToOldFormat
+  void writeToOldFormat(String& content) const;
 
 };
 

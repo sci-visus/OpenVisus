@@ -107,8 +107,8 @@ public:
 
 public:
 
-  //openFromUrl
-  virtual void openFromUrl(Archive& ar, String url) override;
+  //read
+  virtual void read(Archive& ar) override;
 
   //createAccess
   virtual SharedPtr<Access> createAccess(StringTree config=StringTree(), bool bForBlockQuery = false) override;

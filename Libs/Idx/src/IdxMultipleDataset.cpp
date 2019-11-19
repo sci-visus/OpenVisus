@@ -1156,19 +1156,15 @@ void IdxMultipleDataset::parseDataset(StringTree& cur,Matrix modelview)
     VisusReleaseAssert(!mosaic_filename_template.empty());
     mosaic_filename_template = removeAliases(mosaic_filename_template);
 
-    other->setUrl(url);
+    other->getDatasetBody().write("url", url);
     other->idxfile.filename_template = mosaic_filename_template;
-    other->idxfile.validate(url); VisusAssert(other->idxfile.valid());
+    other->idxfile.validate(url); 
     child = other;
   }
   else
   {
-    child = LoadDatasetEx(url,cur);
-  }
-
-  if (!child) {
-    VisusReleaseAssert(false);
-    return;
+    cur.write("url",url);
+    child = LoadDatasetEx(cur);
   }
 
   child->color = Color::fromString(cur.getAttribute("color", Color::random().toString()));;
@@ -1285,15 +1281,18 @@ void IdxMultipleDataset::parseDatasets(StringTree& ar, Matrix modelview)
 
 
 ///////////////////////////////////////////////////////////
-void IdxMultipleDataset::openFromUrl(Archive& AR, String URL)
+void IdxMultipleDataset::read(Archive& AR)
 {
+  String URL = AR.readString("url");
+
   AR.read("mosaic", this->is_mosaic);
 
-  setUrl(URL);
   setDatasetBody(AR);
   setKdQueryMode(KdQueryMode::fromString(AR.readString("kdquery")));
 
-  parseDatasets(AR,Matrix());
+  for (auto it : AR.childs)
+    parseDatasets(*it,Matrix());
+
   if (down_datasets.empty())
     ThrowException("empty childs");
 
@@ -1340,7 +1339,6 @@ void IdxMultipleDataset::openFromUrl(Archive& AR, String URL)
     IDXFILE.bitsperblock = first->getDefaultBitsPerBlock();
 
     IDXFILE.validate(this->getUrl());
-    VisusReleaseAssert(IDXFILE.valid());
 
     //PrintInfo("MIDX idxfile is the following","\n",IDXFILE);
     setIdxFile(IDXFILE);
@@ -1450,9 +1448,7 @@ void IdxMultipleDataset::openFromUrl(Archive& AR, String URL)
   //this is to pass the validation, an midx has infinite run-time fields 
   IDXFILE.fields.push_back(Field("DATA", DTypes::UINT8));
   IDXFILE.validate(URL);
-  VisusReleaseAssert(IDXFILE.valid());
-
-  PrintInfo("MIDX idxfile is the following","\n",IDXFILE.toOldFormatString());
+  PrintInfo("MIDX idxfile is the following","\n",IDXFILE);
   setIdxFile(IDXFILE);
 
   //for non-mosaic I cannot use block query
@@ -1609,7 +1605,7 @@ void IdxMultipleDataset::nextQuery(SharedPtr<BoxQuery> QUERY)
 }
 
 ////////////////////////////////////////////////////////////////////////
-bool IdxMultipleDataset::createIdxFile(String idx_filename, Field idx_field) const
+void IdxMultipleDataset::createIdxFile(String idx_filename, Field idx_field) const
 {
   auto idxfile = this->idxfile;
 
@@ -1617,11 +1613,7 @@ bool IdxMultipleDataset::createIdxFile(String idx_filename, Field idx_field) con
   idxfile.time_template = ""; //force guess
   idxfile.fields.clear();
   idxfile.fields.push_back(idx_field);
-
-  if (!idxfile.save(idx_filename))
-    return false;
-
-  return true;
+  idxfile.save(idx_filename);
 }
 
 } //namespace Visus

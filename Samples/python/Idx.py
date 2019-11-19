@@ -66,10 +66,8 @@ class TestIdx(unittest.TestCase):
 		idxfile.logic_box=BoxNi(dataset_box)
 		idxfile.fields.push_back(Field("myfield",DType.fromString("uint32")))
 
-		bSaved=idxfile.save(self.filename)
-		self.assertTrue(bSaved)
+		idxfile.save(self.filename)
 		dataset=LoadDataset(self.filename)
-		self.assertIsNotNone(dataset)
 		access=dataset.createAccess()
 		
 		sampleid=0
@@ -98,7 +96,6 @@ class TestIdx(unittest.TestCase):
 	def ReadIdx(self): 
 		
 		dataset=LoadDataset(self.filename)
-		self.assertIsNotNone(dataset)
 		box=dataset.getLogicBox()
 		field=dataset.getDefaultField()
 		access=dataset.createAccess()
@@ -124,7 +121,6 @@ class TestIdx(unittest.TestCase):
 	def MergeIdx(self): 
 		
 		dataset=LoadDataset(self.filename)
-		self.assertIsNotNone(dataset)
 		
 		box=dataset.getLogicBox()
 		access=dataset.createAccess()

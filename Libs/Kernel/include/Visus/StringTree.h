@@ -436,6 +436,16 @@ public:
     child->readText(value);
   }
 
+  //merge
+  static void merge(StringTree& dst, StringTree& src) {
+    for (auto it : src.attributes) 
+      if (!dst.hasAttribute(it.first))
+        dst.setAttribute(it.first, it.second);
+
+    for (auto it : src.childs)
+      dst.addChild(*it);
+  }
+
 public:
 
   //readObject
@@ -516,7 +526,7 @@ public:
   }
 
   //save
-  bool save();
+  void save();
 
 
 private:

@@ -310,7 +310,7 @@ void Viewer::execute(Archive& ar)
     ar.read("uuid", uuid);
     ar.read("parent", parent);
     ar.read("url", url);
-    addDataset(uuid, findNodeByUUID(parent), url, /*config*/StringTree());
+    addDataset(uuid, findNodeByUUID(parent), url);
     return;
   }
 
@@ -1314,8 +1314,12 @@ bool Viewer::open(String url,Node* parent)
   }
 
   //open a dataset
-  auto dataset = LoadDatasetEx(url,this->config);
-  if (!dataset)
+  SharedPtr<Dataset> dataset;
+  try
+  {
+    dataset = LoadDatasetEx(FindDatasetConfig(this->config, url));
+  } 
+  catch(...)
   {
     QMessageBox::information(this, "Error", cstring("open file(" ,url, +") failed.").c_str());
     return false;
@@ -1330,7 +1334,7 @@ bool Viewer::open(String url,Node* parent)
     if (!parent)
       parent = addWorld("world");
 
-    auto dataset_node=addDataset("",parent, dataset);
+    auto dataset_node=addDataset("",parent, url);
 
     if (!getGLCamera())
       addGLCamera("", parent);
@@ -1456,15 +1460,14 @@ bool Viewer::openUrl(String url, Node* parent)
 }
 
 //////////////////////////////////////////////////////////////////////
-bool Viewer::save(String url,bool bSaveHistory)
+void Viewer::save(String url,bool bSaveHistory)
 { 
   if (url.empty())
-    return false;
+    ThrowException("invalid url");
 
   //add default extension
   if (Path(url).getExtension().empty())
     url=url+".xml";
-
 
   StringTree ar;
   if (bSaveHistory)
@@ -1480,32 +1483,30 @@ bool Viewer::save(String url,bool bSaveHistory)
     this->write(ar);
   }
 
-  if (!Utils::saveTextDocument(url, ar.toString()))
-    return false;
-
+  Utils::saveTextDocument(url, ar.toString());
   this->last_saved_filename=url;
-  return true;
 }
 
 ////////////////////////////////////////////////////////////
-bool Viewer::saveFile(String url, bool bSaveHistory)
+void Viewer::saveFile(String url, bool bSaveHistory)
 {
   if (url.empty())
   {
     static String last_dir(KnownPaths::VisusHome.toString());
     url = cstring(QFileDialog::getSaveFileName(nullptr, "Choose a file to save...", last_dir.c_str(), "*.xml"));
-    if (url.empty()) return false;
+    if (url.empty()) return ;
     last_dir = Path(url).getParent();
   }
 
-  bool ret = save(url, bSaveHistory);
-
-  if (ret)
+  try
+  {
+    save(url, bSaveHistory);
+  }
+  catch (...)
+  {
     QMessageBox::information(this, "Error", cstring("Failed to save file", url).c_str());
-  else
-    QMessageBox::information(this, "Info", cstring("File", url, "saved").c_str());
-
-  return save(url, bSaveHistory);
+    return;
+  }
 }
   
 ////////////////////////////////////////////////////////////
@@ -1919,15 +1920,12 @@ Node* Viewer::addWorld(String uuid)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-DatasetNode* Viewer::addDataset(String uuid, Node* parent, SharedPtr<Dataset> dataset)
+DatasetNode* Viewer::addDataset(String uuid, Node* parent, String url)
 {
   if (!parent)
     parent = getRoot();
 
-  if (!dataset) {
-    VisusAssert(false);
-    return nullptr;
-  }
+  auto dataset = LoadDatasetEx(FindDatasetConfig(this->config, url));
 
   if (uuid.empty())
     uuid = dataflow->guessNodeUIID("dataset");
@@ -1936,14 +1934,14 @@ DatasetNode* Viewer::addDataset(String uuid, Node* parent, SharedPtr<Dataset> da
 
   DatasetNode* ret = nullptr;
   beginUpdate(
-    StringTree("AddDataset", "uuid", uuid, "parent", getUUID(parent), "url", dataset->getUrl()),
+    StringTree("AddDataset", "uuid", uuid, "parent", getUUID(parent), "url", url),
     StringTree("RemoveNode", "uuid", uuid));
   {
     //dataset
     auto dataset_node = new DatasetNode();
     ret = dataset_node;
     dataset_node->setUUID(uuid);
-    dataset_node->setName(dataset->getUrl());
+    dataset_node->setName(url);
     dataset_node->setDataset(dataset);
     dataset_node->setShowBounds(true);
     addNode(parent, dataset_node);

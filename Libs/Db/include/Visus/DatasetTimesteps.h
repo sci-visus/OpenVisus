@@ -136,8 +136,12 @@ public:
   }
 
   //addTimesteps
-  void addTimesteps(const IRange& irange) {
-    values.push_back(irange);
+  void addTimesteps(const IRange& value) {
+    for (auto it : this->values)
+      if (it == value)
+        return;
+
+    this->values.push_back(value);
   }
 
   //addTimesteps

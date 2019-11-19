@@ -143,16 +143,6 @@ public:
     Dataset* Dvf, SharedPtr<Access> Daccess, Field Dfield, double Dtime,
     Dataset* Svf, SharedPtr<Access> Saccess, Field Sfield, double Stime);
 
-  //getUrl
-  String getUrl() const {
-    return url;
-  }
-
-  //setUrl (internal use only)
-  void setUrl(String value) {
-    this->url = value;
-  }
-
   //isServerMode
   bool isServerMode() const {
     return bServerMode;
@@ -205,13 +195,23 @@ public:
   }
   
   //getDatasetBody
-  const StringTree& getDatasetBody() const {
+  StringTree& getDatasetBody() {
     return dataset_body;
   } 
+
+  //getDatasetBody
+  const StringTree& getDatasetBody() const {
+    return dataset_body;
+  }
 
   //setDatasetBody
   void setDatasetBody(const StringTree& value) {
     this->dataset_body = value;
+  }
+
+  //getUrl
+  String getUrl() const {
+    return getDatasetBody().getAttribute("url");
   }
 
   // getDatasetInfos
@@ -350,8 +350,8 @@ public:
 
 public:
 
-  //openFromUrl 
-  virtual void openFromUrl(Archive& ar, String url) = 0;
+  //read 
+  virtual void read(Archive& ar) = 0;
 
   //compressDataset
   virtual bool compressDataset(String compression) {
@@ -470,7 +470,6 @@ public:
 
 private:
 
-  String                  url;
   StringTree              dataset_body;
   DatasetTimesteps        timesteps;
   std::vector<Field>      fields;
@@ -513,6 +512,9 @@ public:
 
   //createInstance
   SharedPtr<Dataset> createInstance(String TypeName) {
+    if (TypeName.empty())
+      return SharedPtr<Dataset>();
+
     for (const auto& it : v) {
       if (it.TypeName == TypeName)
         return it.createInstance();
@@ -528,8 +530,10 @@ private:
 
 };
 
+VISUS_DB_API StringTree FindDatasetConfig(StringTree ar, String url);
+
 //LoadDatasetEx
-VISUS_DB_API SharedPtr<Dataset> LoadDatasetEx(String name,StringTree config);
+VISUS_DB_API SharedPtr<Dataset> LoadDatasetEx(StringTree ar);
 
 VISUS_DB_API SharedPtr<Dataset> LoadDataset(String url);
 

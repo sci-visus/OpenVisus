@@ -460,10 +460,10 @@ public:
   bool openUrl(String url, Node* parent = nullptr);
 
   //save
-  bool save(String filename, bool bSaveHistory = false);
+  void save(String filename, bool bSaveHistory = false);
 
   //saveFile
-  bool saveFile(String filename, bool bSaveHistory = false);
+  void saveFile(String filename, bool bSaveHistory = false);
 
   //playFile
   bool playFile(String filename);
@@ -550,13 +550,7 @@ public:
   Node* addWorld(String uuid);
 
   //addDataset
-  DatasetNode* addDataset(String uuid, Node* parent, SharedPtr<Dataset> dataset);
-
-  //addDataset
-  DatasetNode* addDataset(String uuid, Node* parent, String url, StringTree config = StringTree()) {
-    auto dataset = LoadDatasetEx(url, config ? config : this->config);
-    return addDataset(uuid, parent, dataset);
-  }
+  DatasetNode* addDataset(String uuid, Node* parent, String url);
 
   //addGLCameraNode
   GLCameraNode* addGLCamera(String uuid, Node* parent, String type = "");

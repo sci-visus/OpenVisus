@@ -480,7 +480,7 @@ SharedPtr<TransferFunction> TransferFunction::importTransferFunction(String url)
 
 
 ///////////////////////////////////////////////////////////
-bool TransferFunction::exportTransferFunction(String filename="")
+void TransferFunction::exportTransferFunction(String filename="")
 {
   /*
   <nsamples>
@@ -491,8 +491,8 @@ bool TransferFunction::exportTransferFunction(String filename="")
 
   int nsamples = getNumberOfSamples();
 
-  if (!nsamples) 
-    return false;
+  if (!nsamples)
+    ThrowException("invalid nsamples");
 
   std::ostringstream out;
   out<<nsamples<<std::endl;
@@ -506,13 +506,7 @@ bool TransferFunction::exportTransferFunction(String filename="")
     out<<std::endl;
   }
 
-  if (!Utils::saveTextDocument(filename,out.str()))
-  {
-    PrintWarning("file",filename,"could not be opened for writing");
-    return false;
-  }
-
-  return true;
+  Utils::saveTextDocument(filename, out.str());
 }
 
 

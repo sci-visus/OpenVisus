@@ -62,7 +62,7 @@ GLProgram::GLProgram(QOpenGLWidget* gl,const GLShader& shader)
     {
       String url = concatenate("GLshader.vertex_shader.", shader.__program_id__ , ".error.txt");
       Utils::saveTextDocument(url, content);
-      VisusAssert(false);
+      VisusReleaseAssert(false);
     }
   }
   
@@ -78,7 +78,7 @@ GLProgram::GLProgram(QOpenGLWidget* gl,const GLShader& shader)
     {
       String url = concatenate("GLshader.fragment_shader.",shader.__program_id__,".error.txt");
       Utils::saveTextDocument(url, content);
-      VisusAssert(false);
+      VisusReleaseAssert(false);
     }
   }
 

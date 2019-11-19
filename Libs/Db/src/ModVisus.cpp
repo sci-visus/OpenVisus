@@ -64,7 +64,7 @@ public:
   Datasets(const StringTree& config) 
   {
     StringTree datasets("datasets");
-    addPublicDatasets(datasets, config, config);
+    addPublicDatasets(datasets, config);
     datasets_xml_body  = datasets.toXmlString();
     datasets_json_body = datasets.toJSONString();
   }
@@ -129,7 +129,7 @@ private:
   }
 
   //addPublicDatasets
-  int addPublicDatasets(StringTree& dst, const StringTree& config, const StringTree& cursor)
+  int addPublicDatasets(StringTree& dst, const StringTree& cursor)
   {
     int ret = 0;
 
@@ -139,27 +139,33 @@ private:
       StringTree group(cursor.name);
       group.attributes = cursor.attributes;
       for (auto child : cursor.getChilds())
-        ret += addPublicDatasets(group, config, *child);
+        ret += addPublicDatasets(group, *child);
       if (ret)
         dst.addChild(group);
       return ret;
     }
 
     //flattening the hierarchy!
-    if (cursor.name != "dataset") {
+    if (cursor.name != "dataset") 
+    {
       for (auto child : cursor.getChilds())
-        ret += addPublicDatasets(dst, config, *child);
+        ret += addPublicDatasets(dst, *child);
       return ret;
     }
 
     //just ignore those with empty names or not public
     String name = cursor.readString("name");
+    String url  = cursor.readString("url");
     bool is_public = StringUtils::contains(cursor.readString("permissions"), "public");
-    if (name.empty() || !is_public)
+    if (name.empty() || !is_public || !Url(url).valid())
       return 0;
 
-    auto dataset = LoadDatasetEx(name,config);
-    if (!dataset) {
+    SharedPtr<Dataset> dataset;
+    try
+    {
+      dataset = LoadDatasetEx(cursor);
+    }
+    catch(...) {
       PrintWarning("dataset name", name, "load failed, skipping it");
       return 0;
     }
@@ -320,9 +326,13 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
 
     config.addChild(stree);
 
-    if (!config.save())
+    try
     {
-      PrintWarning("Cannot save",config.getFilename());
+      config.save();
+    }
+    catch (...)
+    {
+      PrintWarning("Cannot save", config.getFilename());
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
     }
 
@@ -360,17 +370,6 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
   response.setHeader("visus-typename", dataset->getTypeName());
 
   auto body = dataset->getDatasetBody();
-
-  //backward compatible, send back the old idx format
-  if (body.name == "dataset"
-    && body.attributes.size() == 1 && body.getAttribute("typename") == "IdxDataset"
-    && body.childs.size() == 1 && body.getChild("idx"))
-  {
-    String idx;
-    body.readText("idx", idx);
-    response.setTextBody(idx,/*bHasBinary*/true);
-    return response;
-  }
 
   //fix urls (this is needed for midx where I need to remap urls)
   if (dataset->getInnerDatasets().size())
