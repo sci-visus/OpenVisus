@@ -35,7 +35,8 @@ class PyViewer(Viewer):
 		Assert(isinstance(data,numpy.ndarray))
 		data=Array.fromNumPy(data,TargetDim=3,bounds=bounds)
 		
-		node=RenderArrayNode("RenderVolume")
+		node=RenderArrayNode()
+		node.setName("RenderVolume")
 		node.setLightingEnabled(False)
 		node.setPaletteEnabled(False)
 		node.setData(data)
@@ -59,7 +60,8 @@ class PyViewer(Viewer):
 		if second_field is not None:
 			mesh.second_field=Array.fromNumPy(second_field,TargetDim=3,bounds=bounds)
 					
-		node=IsoContourRenderNode("RenderMesh")	
+		node=IsoContourRenderNode()	
+		node.setName("RenderMesh")
 		node.setMesh(mesh)
 		self.addNode(self.getRoot(),node)
 		

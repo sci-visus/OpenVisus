@@ -116,7 +116,7 @@ def Main(argv):
 	viewer.addNode(root,pynode)
 
 	# pynode will get the data from the query
-	query_node=viewer.findNodeByUUID("Volume")
+	query_node=viewer.findNodeByUUID("volume")
 	viewer.connectNodes(query_node, pynode)
 	 
 	GuiModule.execApplication()
