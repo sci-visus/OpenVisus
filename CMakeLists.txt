@@ -140,12 +140,13 @@ else()
 endif()
 
 if (CMAKE_CONFIGURATION_TYPES)
-	set(InstallDir ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus)
+	set(InstallDir ${CMAKE_BINARY_DIR}/$<CONFIG>/${PROJECT_NAME})
 else()
-	set(InstallDir ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus)
+	set(InstallDir ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${PROJECT_NAME})
 endif()
 
 if (VISUS_PYTHON)
+
 	file(GENERATE OUTPUT ${InstallDir}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
 
 	file(GLOB __py_files__ CMake/*.py)
@@ -160,8 +161,40 @@ if (VISUS_GUI)
 	file(GENERATE OUTPUT ${InstallDir}/QT_VERSION       CONTENT "${Qt5Core_VERSION_STRING}")
 endif()	
 
-# create scripts
-GenerateScript("${CMAKE_CURRENT_SOURCE_DIR}/CMake/script" ${InstallDir}/visus       ${InstallDir}/bin/visus)
+
+# ///////////////////////////////////////////////////
+macro(GenerateScript template_filename script_filename target_filename)
+
+	if (VISUS_GUI)
+		set(__gui__  1)
+	else()
+		set(__gui__  0)
+	endif()
+
+	if (WIN32)
+		file(READ "${template_filename}.bat" content) 
+		string(REPLACE "\${PYTHON_EXECUTABLE}" "${PYTHON_EXECUTABLE}" content "${content}")
+		string(REPLACE "\${VISUS_GUI}" "${__gui__}" content "${content}")
+		string(REPLACE "\${TARGET_FILENAME}" "${target_filename}.exe" content  "${content}")
+		file(GENERATE OUTPUT "${script_filename}.bat" CONTENT "${content}")
+	
+	elseif (APPLE)
+		file(READ "${template_filename}.command" content) 
+		string(REPLACE "\${PYTHON_EXECUTABLE}" "${PYTHON_EXECUTABLE}" content "${content}")
+		string(REPLACE "\${VISUS_GUI}" "${__gui__}" content "${content}")
+		get_filename_component(__name_we__ ${target_filename} NAME_WE)
+		string(REPLACE "\${TARGET_FILENAME}" "${target_filename}.app/Contents/MacOS/${__name_we__}" content  "${content}")
+		file(GENERATE OUTPUT "${script_filename}.command" CONTENT "${content}")
+	else()
+		file(READ "${template_filename}.sh" content) 
+		string(REPLACE "\${PYTHON_EXECUTABLE}" "${PYTHON_EXECUTABLE}" content "${content}")
+		string(REPLACE "\${VISUS_GUI}" "${__gui__}" content "${content}")
+		string(REPLACE "\${TARGET_FILENAME}" "${target_filename}" content  "${content}")
+		file(GENERATE OUTPUT "${script_filename}.sh" CONTENT "${content}")
+	endif()
+	
+endmacro()
+GenerateScript("${CMAKE_CURRENT_SOURCE_DIR}/CMake/script" ${InstallDir}/visus ${InstallDir}/bin/visus)
 
 if (VISUS_GUI)
 	GenerateScript(${CMAKE_CURRENT_SOURCE_DIR}/CMake/script ${InstallDir}/visusviewer ${InstallDir}/bin/visusviewer)
@@ -175,11 +208,6 @@ add_subdirectory(Executable)
 # install
 if (1)
 
-	# avoid problem about permission denied
-	#if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-	#	set (CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install " CACHE PATH "default install path" FORCE )
-	#endif()
-	
 	install(FILES           LICENSE                                       DESTINATION ${InstallDir}/)
 	install(FILES           README.md                                     DESTINATION ${InstallDir}/)
 	install(FILES           CMake/OpenVisusConfig.cmake                   DESTINATION ${InstallDir}/)
@@ -309,24 +337,23 @@ if (1)
 		get_filename_component(Name ${SourceDir} NAME_WE )
 
 		if (CMAKE_CONFIGURATION_TYPES)
-			set(CMAKE_GENERATOR_ARGUMENT -G"${CMAKE_GENERATOR}")
-			set(BinaryDir ${CMAKE_BINARY_DIR}/$<CONFIG>/ExternalApps/${Name})
+			set(__generator__ -G"${CMAKE_GENERATOR}")
 		else()
-			set(CMAKE_GENERATOR_ARGUMENT -G"\"${CMAKE_GENERATOR}\"")
-			set(BinaryDir ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/ExternalApps/${Name})
+			set(__generator__ -G"\"${CMAKE_GENERATOR}\"")
 		endif()
-
+		
+		set(__binary_dir__ ${InstallDir}/../ExternalApps/${Name})
 		add_custom_target(${Name} 
 			COMMAND "${CMAKE_COMMAND}" 
-				"${CMAKE_GENERATOR_ARGUMENT}"  
+				"${__generator__}"  
 				-H"${SourceDir}/" 
-				-B"${BinaryDir}/" 
+				-B"${__binary_dir__}/" 
 				-DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE} 
 				-DPYTHON_LIBRARY=${PYTHON_LIBRARY}
 				-DPYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIRS}
 				-DQt5_DIR="${Qt5_DIR}" 
 				-DOpenVisus_DIR=${InstallDir}
-			COMMAND "${CMAKE_COMMAND}"  --build "${BinaryDir}/"  --config ${CMAKE_BUILD_TYPE})
+			COMMAND "${CMAKE_COMMAND}"  --build "${__binary_dir__}/"  --config ${CMAKE_BUILD_TYPE})
 
 		set_target_properties(${Name} PROPERTIES FOLDER CMakeTargets/)
 
