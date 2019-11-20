@@ -161,7 +161,7 @@ void GuiModule::attach()
   auto config = getModuleConfig();
 
   //simulate that the graphic card has a certain memory 
-  if (Int64 total = StringUtils::getByteSizeFromString(config->readString("Configuration/GLMemory/total", "0")))
+  if (Int64 total = StringUtils::getByteSizeFromString(config->storage.readString("Configuration/GLMemory/total", "0")))
     GLInfo::getSingleton()->setOsTotalMemory(total);
 
   PrintInfo("Attached GuiModule");

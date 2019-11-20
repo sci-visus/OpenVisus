@@ -76,6 +76,16 @@ public:
   //destructor
   virtual ~NetServer();
 
+  //getPort
+  int getPort() const {
+    return port;
+  }
+
+  //getNumberOfThreads
+  int getNumberOfThreads() const {
+    return nthreads;
+  }
+
   //setVerbose
   void setVerbose(int value) {
     this->verbose = value;

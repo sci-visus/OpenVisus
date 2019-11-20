@@ -124,7 +124,7 @@ source_group("Geometry" FILES
 source_group("Net" FILES
 	./include/Visus/CloudStorage.h
 	./src/CloudStorage.cpp
-	./src/AmazonCloudStorage.hxx
+	./src/AmazonCloudStorage.hxx 
 	./src/AzureCloudStorage.hxx
 	./src/GoogleCloudStorage.hxx
 	./include/Visus/NetMessage.h

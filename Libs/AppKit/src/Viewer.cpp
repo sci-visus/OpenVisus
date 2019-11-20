@@ -116,7 +116,7 @@ Viewer::Viewer(String title) : QMainWindow()
 
   setWindowTitle(title.c_str());
 
-  this->background_color=Color::fromString(config.readString("Configuration/VisusViewer/background_color", Colors::DarkBlue.toString()));
+  this->background_color=Color::fromString(config.storage.readString("Configuration/VisusViewer/background_color", Colors::DarkBlue.toString()));
 
   //logos
   {
@@ -450,7 +450,7 @@ void Viewer::execute(Archive& ar)
 ///////////////////////////////////////////////////////////////////////////////////////////////
 SharedPtr<ViewerLogo> Viewer::openScreenLogo(String key, String default_logo)
 {
-  String filename = config.readString(key + "/filename");
+  String filename = config.storage.readString(key + "/filename");
   if (filename.empty())
     filename = default_logo;
 
@@ -469,7 +469,7 @@ SharedPtr<ViewerLogo> Viewer::openScreenLogo(String key, String default_logo)
   ret->tex->envmode = GL_MODULATE;
   ret->pos[0] = StringUtils::contains(key, "Left") ? 0 : 1;
   ret->pos[1] = StringUtils::contains(key, "Bottom") ? 0 : 1;
-  ret->opacity = cdouble(config.readString(key + "/alpha", "0.5"));
+  ret->opacity = cdouble(config.storage.readString(key + "/alpha", "0.5"));
   ret->border = Point2d(10, 10);
   return ret;
 };
@@ -519,7 +519,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
 
   String open_filename;
   {
-    auto configs = config.getAllChilds("dataset");
+    auto configs = config.storage.getAllChilds("dataset");
     if (!configs.empty())
     {
       String dataset_url = configs[0]->readString("url"); VisusAssert(!dataset_url.empty());
@@ -725,9 +725,9 @@ void Viewer::enableSaveSession()
 {
   save_session_timer.reset(new QTimer());
   
-  String filename = config.readString("Configuration/VisusViewer/SaveSession/filename", KnownPaths::VisusHome.getChild("viewer_session.xml"));
+  String filename = config.storage.readString("Configuration/VisusViewer/SaveSession/filename", KnownPaths::VisusHome.getChild("viewer_session.xml"));
   
-  int every_sec    =cint(config.readString("Configuration/VisusViewer/SaveSession/sec","60")); //1 min!
+  int every_sec    =cint(config.storage.readString("Configuration/VisusViewer/SaveSession/sec","60")); //1 min!
 
   //make sure I create a unique filename
   String extension=Path(filename).getExtension();
@@ -1261,7 +1261,7 @@ bool Viewer::open(String url,Node* parent)
     }
 
     for (int i=0;i<stree.getNumberOfChilds();i++)
-      config.addChild(stree.getChild(i));
+      config.storage.addChild(stree.getChild(i));
 
     //load first bookmark from new config
     auto children=stree.getAllChilds("dataset");
@@ -1308,7 +1308,7 @@ bool Viewer::open(String url,Node* parent)
   SharedPtr<Dataset> dataset;
   try
   {
-    dataset = LoadDatasetEx(FindDatasetConfig(this->config, url));
+    dataset = LoadDatasetEx(FindDatasetConfig(this->config.storage, url));
   } 
   catch(...)
   {
@@ -1916,7 +1916,7 @@ DatasetNode* Viewer::addDataset(String uuid, Node* parent, String url)
   if (!parent)
     parent = getRoot();
 
-  auto dataset = LoadDatasetEx(FindDatasetConfig(this->config, url));
+  auto dataset = LoadDatasetEx(FindDatasetConfig(this->config.storage, url));
 
   if (uuid.empty())
     uuid = dataflow->guessNodeUIID("dataset");

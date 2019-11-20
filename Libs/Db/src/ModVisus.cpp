@@ -116,14 +116,14 @@ private:
     datasets_map[name] = dataset;
     dataset->setServerMode(true);
     
-    auto child = std::make_shared<StringTree>(dataset->getDatasetBody());
-    child->write("name", name);
-    child->write("url", createPublicUrl(name));
-    dst.addChild(child);
+    StringTree public_dataset("dataset");
+    public_dataset.write("name", name);
+    public_dataset.write("url", createPublicUrl(name));
+    dst.addChild(public_dataset);
 
     //automatically add the childs of a multiple datasets
     for (auto it : dataset->getInnerDatasets())
-      ret += addPublicDataset(*child, name + "/" + it.first, it.second);
+      ret += addPublicDataset(public_dataset, name + "/" + it.first, it.second);
 
     return ret;
   }
@@ -208,7 +208,7 @@ SharedPtr<ModVisus::Datasets> ModVisus::getDatasets()
 ////////////////////////////////////////////////////////////////////////////////
 bool ModVisus::configureDatasets(const ConfigFile& config)
 {
-  this->dynamic = config.readBool("Configuration/ModVisus/dynamic", false);
+  this->dynamic = config.storage.readBool("Configuration/ModVisus/dynamic", false);
   this->config_filename = config.getFilename();
 
   //for dynamic I need to reload the file
@@ -218,7 +218,7 @@ bool ModVisus::configureDatasets(const ConfigFile& config)
     this->dynamic = false;
   }
 
-  SharedPtr<Datasets> datasets = std::make_shared<Datasets>(config);
+  SharedPtr<Datasets> datasets = std::make_shared<Datasets>(config.storage);
   this->m_datasets = datasets;
   
   if (dynamic)
@@ -263,7 +263,7 @@ bool ModVisus::reload()
     return false;
   }
 
-  auto datasets = std::make_shared<Datasets>(config);
+  auto datasets = std::make_shared<Datasets>(config.storage);
   {
     ScopedWriteLock lock(this->rw_lock);
     this->m_datasets = datasets;
@@ -324,7 +324,7 @@ NetResponse ModVisus::handleAddDataset(const NetRequest& request)
       return NetResponseError(HttpStatus::STATUS_BAD_REQUEST, "Add dataset failed");
     }
 
-    config.addChild(stree);
+    config.storage.addChild(stree);
 
     try
     {
@@ -371,11 +371,8 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
 
   auto body = dataset->getDatasetBody();
 
-  //fix urls (this is needed for midx where I need to remap urls)
-  if (dataset->getInnerDatasets().size())
+  //remap urls...
   {
-    body.write("name", dataset_name);
-
     std::stack< std::pair<String,StringTree*>> stack;
     stack.push(std::make_pair("",&body));
     while (!stack.empty())
@@ -383,18 +380,20 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
       auto prefix = stack.top().first;
       auto cur    = stack.top().second; 
       stack.pop();
+
       if (cur->name == "dataset" && !cur->readString("name").empty())
       {
-        prefix += prefix.empty() ? "" : "/";
-        prefix += cur->readString("name");
+        prefix += (prefix.empty() ? "" : "/") + cur->readString("name");
         cur->write("url", datasets->createPublicUrl(prefix));
       }
+
       for (auto child : cur->getChilds())
         stack.push(std::make_pair(prefix, child.get()));
     }
-    response.setTextBody(body.toString(),/*bHasBinary*/true);
   }
 
+  //PrintInfo(body.toString());
+  response.setTextBody(body.toString(),/*bHasBinary*/true);
   return response;
 }
 

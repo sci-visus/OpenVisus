@@ -575,7 +575,7 @@ Future<NetResponse> NetService::push(SharedPtr<NetService> service, NetRequest r
     NetResponse response = future.get();
 
     if (!response.isSuccessful() && !request.aborted())
-      PrintWarning("request",request.url,"failed",response.getErrorMessage());
+      PrintInfo("request",request.url,"failed",response.getErrorMessage());
 
     return future;
   }
