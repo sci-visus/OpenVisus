@@ -182,35 +182,45 @@ macro(AddExecutable Name)
 endmacro()
 
 
+
 # ///////////////////////////////////////////////////
-macro(AddSwigLibrary Name CppLib SwigFile)
+macro(AddSwigLibrary Name CppName SwigFile)
 	find_package(SWIG 3.0 REQUIRED)
 	include(${SWIG_USE_FILE})
+
 	string(REPLACE "\$<CONFIG>" "${CMAKE_CFG_INTDIR}" SwigInstallDir "${InstallDir}")
 	set(CMAKE_SWIG_OUTDIR ${SwigInstallDir})
 	set(SWIG_OUTFILE_DIR  ${SwigInstallDir}/../swig)
+	set(CMAKE_SWIG_FLAGS "")
+	set_property(SOURCE ${SwigFile} PROPERTY SWIG_MODULE_NAME ${Name})
 	set_source_files_properties(${SwigFile} PROPERTIES CPLUSPLUS ON)
 	set_source_files_properties(${SwigFile} PROPERTIES SWIG_FLAGS  "-threads;-extranative;${ARGN}")
-
+	
 	if (CMAKE_VERSION VERSION_LESS "3.8")
 		swig_add_module(${Name} python ${SwigFile})
 	else()
 		swig_add_library(${Name} LANGUAGE python SOURCES ${SwigFile})
 	endif()
+			
 	if (TARGET _${Name})
-		set(Name _${Name})
+		set(PyName _${Name})
+	else()
+		set(PyName ${Name})
+
 	endif()
-	LinkPythonToLibrary(${Name})
-	DisableTargetWarnings(${Name})
-	SetupCommonTargetOptions(${Name})
-	DisableIncrementalLinking(${Name})
-	target_compile_definitions(${Name}  PRIVATE SWIG_TYPE_TABLE=${PROJECT_NAME})
-	target_compile_definitions(${Name}  PRIVATE VISUS_PYTHON=1)
-	set_target_properties(${Name} PROPERTIES 
-		LIBRARY_OUTPUT_DIRECTORY ${InstallDir}
-		RUNTIME_OUTPUT_DIRECTORY ${InstallDir}
-		ARCHIVE_OUTPUT_DIRECTORY ${InstallDir}/../swig) 
-	target_link_libraries(${Name} PUBLIC ${CppLib})
-	set_target_properties(${Name} PROPERTIES FOLDER Swig/)
+
+	target_compile_definitions(${PyName} PRIVATE SWIG_TYPE_TABLE=${PROJECT_NAME})
+	target_compile_definitions(${PyName} PRIVATE VISUS_PYTHON=1)
+	LinkPythonToLibrary(${PyName})
+	DisableTargetWarnings(${PyName})
+	SetupCommonTargetOptions(${PyName})
+	DisableIncrementalLinking(${PyName})
+	set_target_properties(${PyName} PROPERTIES 
+		LIBRARY_OUTPUT_DIRECTORY     ${InstallDir}
+		RUNTIME_OUTPUT_DIRECTORY     ${InstallDir}
+		ARCHIVE_OUTPUT_DIRECTORY     ${InstallDir}/../swig) 
+	target_link_libraries(${PyName} PUBLIC ${CppName})
+	set_target_properties(${PyName} PROPERTIES FOLDER Swig/)
+	
 endmacro()
 
