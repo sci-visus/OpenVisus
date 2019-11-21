@@ -689,10 +689,10 @@ bool ConfigFile::load(String filename, bool bEnablePostProcessing)
     return false;
   }
 
-  auto keep_name = this->storage.name;
+  auto keep_name = this->name;
   this->filename = filename;
-  this->storage = temp;
-  this->storage.name = keep_name;
+  this->StringTree::operator=(temp);
+  this->name= keep_name;
 
   return true;
 }
@@ -700,7 +700,7 @@ bool ConfigFile::load(String filename, bool bEnablePostProcessing)
 //////////////////////////////////////////////////////////////
 void ConfigFile::save()
 {
-  Utils::saveTextDocument(filename, this->storage.toString());
+  Utils::saveTextDocument(filename, this->StringTree::toXmlString());
 }
 
 } //namespace Visus

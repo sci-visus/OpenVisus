@@ -62,9 +62,6 @@ file(GLOB Sources include/Visus/*.h src/*.cpp)
 
 AddLibrary(VisusDb SHARED ${Sources})
 target_link_libraries(VisusDb PUBLIC VisusKernel)
-target_compile_definitions(VisusDb  PUBLIC VISUS_DB=1 PRIVATE VISUS_BUILDING_DB=1) 
-target_include_directories(VisusDb PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
-install(DIRECTORY ./include/Visus DESTINATION ${InstallDir}/include/Db/)
 
 
 if (VISUS_PYTHON)

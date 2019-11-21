@@ -46,7 +46,7 @@ namespace Visus {
 #if SWIG || VISUS_STATIC_DB_LIB
   #define VISUS_DB_API
 #else
-  #if VISUS_BUILDING_DB
+  #if VISUS_BUILDING_VISUSDB
     #define VISUS_DB_API VISUS_SHARED_EXPORT
   #else
     #define VISUS_DB_API VISUS_SHARED_IMPORT

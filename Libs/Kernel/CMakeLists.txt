@@ -124,7 +124,7 @@ source_group("Geometry" FILES
 source_group("Net" FILES
 	./include/Visus/CloudStorage.h
 	./src/CloudStorage.cpp
-	./src/AmazonCloudStorage.hxx 
+	./src/AmazonCloudStorage.hxx
 	./src/AzureCloudStorage.hxx
 	./src/GoogleCloudStorage.hxx
 	./include/Visus/NetMessage.h
@@ -238,10 +238,8 @@ AddLibrary(VisusKernel SHARED ${Sources})
 
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_include_directories(VisusKernel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../ExternalLibs)
-target_compile_definitions(VisusKernel  PUBLIC VISUS_KERNEL=1 PRIVATE VISUS_BUILDING_KERNEL=1) 
+
 target_link_libraries(VisusKernel PRIVATE cryptlite dtl lz4 tinyxml zlib zfp)
-target_include_directories(VisusKernel PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
-install(DIRECTORY ./include/Visus DESTINATION ${InstallDir}/include/Kernel/)
 
 
 # openmp
@@ -278,7 +276,7 @@ endif()
 
 if (VISUS_PYTHON)
 	target_compile_definitions(VisusKernel  PUBLIC  -DVISUS_PYTHON=1)
-	target_compile_definitions(VisusKernel  PRIVATE SWIG_TYPE_TABLE=${PROJECT_NAME})
+	target_compile_definitions(VisusKernel  PRIVATE SWIG_TYPE_TABLE=OpenVisus)
 else()
 	target_compile_definitions(VisusKernel PUBLIC -DVISUS_PYTHON=0)
 endif()

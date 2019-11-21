@@ -500,14 +500,12 @@ typedef StringTree Archive;
                   
 
 //////////////////////////////////////////////////////////////////////
-class VISUS_KERNEL_API ConfigFile
+class VISUS_KERNEL_API ConfigFile : public StringTree
 {
 public:
 
-  StringTree storage;
-
   //constructor
-  ConfigFile(String name = "ConfigFile") : storage(name) {
+  ConfigFile(String name = "ConfigFile") : StringTree(name) {
   }
 
   //destructor

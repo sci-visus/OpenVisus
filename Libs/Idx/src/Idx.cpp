@@ -65,7 +65,7 @@ void IdxModule::attach()
   auto config = getModuleConfig();
 
   {
-    auto directory = config->storage.readString("Configuration/IdxDataset/RemoveLockFiles/directory");
+    auto directory = config->readString("Configuration/IdxDataset/RemoveLockFiles/directory");
     if (!directory.empty())
       IdxDataset::tryRemoveLockAndCorruptedBinaryFiles(directory);
   }

@@ -147,8 +147,7 @@ String Utils::loadTextDocument(String s_url)
     }
 
     auto net_response=NetService::getNetResponse(url);
-    if (!net_response.isSuccessful()) 
-      return "";
+    if (!net_response.isSuccessful()) return "";
     return net_response.getTextBody();
   }
 }

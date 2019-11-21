@@ -402,7 +402,7 @@ void Viewer::createActions()
 ////////////////////////////////////////////////////////////
 QMenu* Viewer::createBookmarks() {
   auto ret = new QMenu(this);
-  createBookmarks(ret, this->config.storage);
+  createBookmarks(ret, this->config);
   ret->setStyleSheet("QMenu { "
     //"font-size:18px; "
     "color:white;"

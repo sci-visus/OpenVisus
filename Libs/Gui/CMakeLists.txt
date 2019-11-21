@@ -15,10 +15,6 @@ AddLibrary(VisusGui SHARED ${Sources})
 
 target_link_libraries(VisusGui PUBLIC VisusKernel)
 target_link_libraries(VisusGui PUBLIC Qt5::Core Qt5::Widgets Qt5::Gui Qt5::OpenGL)
-target_compile_definitions(VisusGui  PUBLIC VISUS_GUI=1  PRIVATE VISUS_BUILDING_GUI=1) 
-target_include_directories(VisusGui PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
-install(DIRECTORY ./include/Visus DESTINATION ${InstallDir}/include/Gui/)
-
 
 if (WIN32)
 	target_link_libraries(VisusGui PUBLIC opengl32.lib glu32.lib)

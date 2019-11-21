@@ -431,15 +431,15 @@ void KernelModule::attach()
 #endif
 
   //in case the user whant to simulate I have a certain amount of RAM
-  if (Int64 total = StringUtils::getByteSizeFromString(config->storage.readString("Configuration/RamResource/total", "0")))
+  if (Int64 total = StringUtils::getByteSizeFromString(config->readString("Configuration/RamResource/total", "0")))
     RamResource::getSingleton()->setOsTotalMemory(total);
 
-  NetService::Defaults::proxy = config->storage.readString("Configuration/NetService/proxy");
-  NetService::Defaults::proxy_port = cint(config->storage.readString("Configuration/NetService/proxyport"));
+  NetService::Defaults::proxy = config->readString("Configuration/NetService/proxy");
+  NetService::Defaults::proxy_port = cint(config->readString("Configuration/NetService/proxyport"));
 
-  NetSocket::Defaults::send_buffer_size = config->storage.readInt("Configuration/NetSocket/send_buffer_size");
-  NetSocket::Defaults::recv_buffer_size = config->storage.readInt("Configuration/NetSocket/recv_buffer_size");
-  NetSocket::Defaults::tcp_no_delay = config->storage.readBool("Configuration/NetSocket/tcp_no_delay", "1");
+  NetSocket::Defaults::send_buffer_size = config->readInt("Configuration/NetSocket/send_buffer_size");
+  NetSocket::Defaults::recv_buffer_size = config->readInt("Configuration/NetSocket/recv_buffer_size");
+  NetSocket::Defaults::tcp_no_delay = config->readBool("Configuration/NetSocket/tcp_no_delay", "1");
 
   //test plugin
 #if 0

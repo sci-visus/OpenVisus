@@ -68,7 +68,7 @@ void DbModule::attach()
 
   auto config = getModuleConfig();
 
-  if (auto value = config->storage.readInt("Configuration/OnDemandAccess/External/nconnections", 8))
+  if (auto value = config->readInt("Configuration/OnDemandAccess/External/nconnections", 8))
     OnDemandAccess::Defaults::nconnections = value;
 
   PrintInfo("Attached DbModule");
