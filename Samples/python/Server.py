@@ -12,10 +12,9 @@ def ASSERT(cond):
 	if not cond: raise Exception("Assert failed")	
 	
 # ////////////////////////////////////////////////////////
-def runSingleDatasetServer(name,idx_filename,port=10000,dynamic=False):
+def RunServer(name,idx_filename,port=10000,dynamic=False):
 	
-	config=ConfigFile()
-	bOk=config.fromString("""
+	config=ConfigFile.fromString("""
 <visus>
 	<Configuration>
 		<ModVisus dynamic="{}" />
@@ -25,7 +24,6 @@ def runSingleDatasetServer(name,idx_filename,port=10000,dynamic=False):
 	</datasets>
 </visus>
 """.format(dynamic,name,idx_filename).strip())
-	ASSERT(bOk)
 
 	modvisus=ModVisus()
 	modvisus.configureDatasets(config)
@@ -49,28 +47,25 @@ if __name__ == '__main__':
 	
 	if VISUS_GUI:
 		AppKitModule.attach()
-	else:
-		IdxModule.attach()
+
+	IdxModule.attach()
 	
-	srv1=runSingleDatasetServer("cat1","file://datasets/cat/rgb.idx",port=10000,dynamic=False)
-	srv2=runSingleDatasetServer("cat2","file://datasets/cat/rgb.idx",port=10001,dynamic=False)
+	srv1=RunServer("cat_rgb", "file://datasets/cat/rgb.idx" , port=10000, dynamic=False)
+	srv2=RunServer("cat_gray","file://datasets/cat/gray.idx", port=10001, dynamic=False)
 	
 	# (2) view the idx in visus viewer...
 	if VISUS_GUI:
 		viewer=Viewer()
-		viewer.open("http://localhost:10000/mod_visus?dataset=cat1")	
+		viewer.open("http://localhost:10000/mod_visus?dataset=cat_rgb")	
 		viewer.setMinimal()
-
 		GuiModule.execApplication()
 		
-	srv1=None
-	srv2=None
+	srv1, srv2 = None, None
 	
 	if VISUS_GUI:
 		AppKitModule.detach()
-	else:
-		IdxModule.detach()
-
+	
+	IdxModule.detach()
 	sys.exit(0)
 	
 	

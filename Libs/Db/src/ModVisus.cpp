@@ -116,14 +116,14 @@ private:
     datasets_map[name] = dataset;
     dataset->setServerMode(true);
     
-    auto child = std::make_shared<StringTree>(dataset->getDatasetBody());
-    child->write("name", name);
-    child->write("url", createPublicUrl(name));
-    dst.addChild(child);
+    StringTree public_dataset("dataset");
+    public_dataset.write("name", name);
+    public_dataset.write("url", createPublicUrl(name));
+    dst.addChild(public_dataset);
 
     //automatically add the childs of a multiple datasets
     for (auto it : dataset->getInnerDatasets())
-      ret += addPublicDataset(*child, name + "/" + it.first, it.second);
+      ret += addPublicDataset(public_dataset, name + "/" + it.first, it.second);
 
     return ret;
   }
@@ -371,11 +371,8 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
 
   auto body = dataset->getDatasetBody();
 
-  //fix urls (this is needed for midx where I need to remap urls)
-  if (dataset->getInnerDatasets().size())
+  //remap urls...
   {
-    body.write("name", dataset_name);
-
     std::stack< std::pair<String,StringTree*>> stack;
     stack.push(std::make_pair("",&body));
     while (!stack.empty())
@@ -392,9 +389,9 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
       for (auto child : cur->getChilds())
         stack.push(std::make_pair(prefix, child.get()));
     }
-    response.setTextBody(body.toString(),/*bHasBinary*/true);
   }
 
+  response.setTextBody(body.toString(),/*bHasBinary*/true);
   return response;
 }
 

@@ -343,6 +343,9 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
 
   auto content = Utils::loadTextDocument(url);
 
+  if (content.empty())
+    ThrowException("empty content");
+
   //enrich ar by loaded document (ar has precedence)
   auto doc = StringTree::fromString(content);
   if (doc.valid())

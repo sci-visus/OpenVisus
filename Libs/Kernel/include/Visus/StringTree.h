@@ -508,10 +508,19 @@ public:
   ConfigFile(String name = "ConfigFile") : StringTree(name) {
   }
 
+  //constructor
+  ConfigFile(const StringTree& tree) : StringTree(tree) {
+  }
+
   //destructor
   ~ConfigFile() {
   }
 
+  //fromString
+  static ConfigFile fromString(String content, bool bEnablePostProcessing = true) {
+    return ConfigFile(StringTree::fromString(content, bEnablePostProcessing));
+  }
+   
   //getFilename
   String getFilename() const {
     return filename;
