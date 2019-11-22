@@ -80,65 +80,6 @@ if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/Libs/Slam/CMakeLists.txt)
 	message(STATUS "VISUS_SLAM        ${VISUS_SLAM}")
 endif()
 
-if (VISUS_PYTHON)
-	FindPythonLibrary()
-endif()
-
-if (VISUS_OSPRAY)
-	find_package(ospray REQUIRED)
-endif()
-
-if (VISUS_GUI)
-	if (DEFINED Qt5_DIR)
-		if (WIN32)
-			string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
-		endif()	
-		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS ${Qt5_DIR} NO_DEFAULT_PATH)
-		
-	elseif (APPLE AND EXISTS /usr/local/opt/qt/lib/cmake/Qt5)
-		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS /usr/local/opt/qt/lib/cmake/Qt5 NO_DEFAULT_PATH)
-		
-	else()
-		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED)
-		
- 	endif()
-
-	mark_as_advanced(Qt5Core_DIR)
-	mark_as_advanced(Qt5Gui_DIR)
-	mark_as_advanced(Qt5OpenGL_DIR)
-	mark_as_advanced(Qt5Widgets_DIR)	
-
-	get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." REALPATH)
-
-	if (EXISTS "${Qt5_HOME}/plugins")
-		set(Qt5_PLUGIN_PATH "${Qt5_HOME}/plugins")
-	elseif (EXISTS "${Qt5_HOME}/lib/qt5/plugin")
-		set(Qt5_PLUGIN_PATH "${Qt5_HOME}/lib/qt5/plugin")
-	else()
-		MESSAGE(WARNING "cannot find Qt5 plugins")
-		ForceUnset(Qt5_PLUGIN_PATH)
-	endif()
-	
-	if (WIN32)
-		string(REPLACE "\\" "/" Qt5_DIR         "${Qt5_DIR}")
-		string(REPLACE "\\" "/" Qt5_HOME        "${Qt5_HOME}")
-		string(REPLACE "\\" "/" Qt5_PLUGIN_PATH "${Qt5_PLUGIN_PATH}")
-	endif()	
-
-	MESSAGE(STATUS "Qt5_DIR        ${Qt5_DIR}")
-	MESSAGE(STATUS "Qt5_HOME       ${Qt5_HOME}")
-	MESSAGE(STATUS "Qt5_PLUGIN_PATH ${Qt5_PLUGIN_PATH}")
-
-endif()
-
-if (WIN32)
-	set(SCRIPT_EXT ".bat")
-elseif (APPLE)	
-	set(SCRIPT_EXT ".command")
-else()
-	set(SCRIPT_EXT ".sh")
-endif()
-
 if (CMAKE_CONFIGURATION_TYPES)
 	set(InstallDir ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus)
 else()
@@ -146,22 +87,21 @@ else()
 endif()
 
 if (VISUS_PYTHON)
+	FindPythonLibrary()
 	file(GENERATE OUTPUT ${InstallDir}/PYTHON_VERSION CONTENT "${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}")
-
-	file(GLOB __py_files__ CMake/*.py)
-	foreach(__it__ ${__py_files__})
-		get_filename_component(__base_name__ ${__it__} NAME)
-		file(GENERATE   OUTPUT ${InstallDir}/${__base_name__}  INPUT ${__it__})
-	endforeach()
-
 endif()
 
 if (VISUS_GUI)
-	file(GENERATE OUTPUT ${InstallDir}/QT_VERSION       CONTENT "${Qt5Core_VERSION_STRING}")
-endif()	
+	FindQtLibrary()
+	file(GENERATE OUTPUT ${InstallDir}/QT_VERSION CONTENT "${Qt5Core_VERSION_STRING}")
+endif()
 
-# create scripts
-GenerateScript("${CMAKE_CURRENT_SOURCE_DIR}/CMake/script" ${InstallDir}/visus       ${InstallDir}/bin/visus)
+if (VISUS_OSPRAY)
+	find_package(ospray REQUIRED)
+endif()
+
+
+GenerateScript("${CMAKE_CURRENT_SOURCE_DIR}/CMake/script" ${InstallDir}/visus         ${InstallDir}/bin/visus)
 
 if (VISUS_GUI)
 	GenerateScript(${CMAKE_CURRENT_SOURCE_DIR}/CMake/script ${InstallDir}/visusviewer ${InstallDir}/bin/visusviewer)
@@ -175,19 +115,24 @@ add_subdirectory(Executable)
 # install
 if (1)
 
-	# avoid problem about permission denied
-	#if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-	#	set (CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install " CACHE PATH "default install path" FORCE )
-	#endif()
-	
-	install(FILES           LICENSE                                       DESTINATION ${InstallDir}/)
-	install(FILES           README.md                                     DESTINATION ${InstallDir}/)
-	install(FILES           CMake/OpenVisusConfig.cmake                   DESTINATION ${InstallDir}/)
-	install(DIRECTORY       Copyrights                                    DESTINATION ${InstallDir}/)
-	install(DIRECTORY       Samples                                       DESTINATION ${InstallDir}/)
-	install(DIRECTORY       CMake                                         DESTINATION ${InstallDir}/)
-	install(DIRECTORY       datasets                                      DESTINATION ${InstallDir}/)
-	install(FILES           datasets/visus.config                         DESTINATION ${InstallDir}/)
+	InstallFile(LICENSE                                       .)
+	InstallFile(README.md                                     .)
+	InstallFile(CMake/OpenVisusConfig.cmake                   .)
+	InstallFile(datasets/visus.config                         .)
+
+	InstallDirectory(Copyrights                               .)
+	InstallDirectory(Samples                                  .)
+	InstallDirectory(CMake                                    .)
+	InstallDirectory(datasets                                 .)
+
+	if (VISUS_PYTHON)
+		InstallFile(./CMake/__init__.py  .)
+		InstallFile(./CMake/__main__.py  .)
+		InstallFile(./CMake/PyDataset.py .)
+		InstallFile(./CMake/PyDeploy.py  .)
+		InstallFile(./CMake/PyUtils.py   .)
+		InstallFile(./CMake/PyViewer.py  .)
+	endif()
 
 	# copy needed windows *.dll
 	if (WIN32)
@@ -198,7 +143,6 @@ if (1)
 		include(InstallRequiredSystemLibraries)
 		install(FILES ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS} DESTINATION ${InstallDir}/bin)	
 	endif()
-
 
 	# ____________________________________________
 	macro(CMakePostInstall)

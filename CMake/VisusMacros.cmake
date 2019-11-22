@@ -33,6 +33,14 @@ macro(DownloadAndUncompress url check_exist working_directory)
 	endif()
 endmacro()
 
+# ///////////////////////////////////////////////////////////////
+macro(GitUpdateSubmodules)
+	find_package(Git REQUIRED)
+        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} RESULT_VARIABLE __result__)
+        if(NOT __result__ EQUAL "0")
+            message(FATAL_ERROR "git submodule update --init failed with ${__result__}, please checkout submodules")
+        endif()
+endmacro()
 
 
 # /////////////////////////////////////////////////////////////
@@ -53,13 +61,28 @@ macro(DisableIncrementalLinking Name)
 	endif()
 endmacro()
 
+# /////////////////////////////////////////////////////////////
+macro(InstallFile src dst_dir)
+	get_filename_component(__name__ ${src} NAME)
+	file(GENERATE OUTPUT ${InstallDir}/${dst_dir}/${__name__} INPUT ${CMAKE_CURRENT_SOURCE_DIR}/${src})
+endmacro()
+
+# /////////////////////////////////////////////////////////////
+macro(InstallDirectory src dst_dir)
+	install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${src} DESTINATION ${InstallDir}/${dst_dir})
+endmacro()
+
+# ///////////////////////////////////////////////////
+macro(InstallDirectoryIfExists src dst) 
+	if (EXISTS "${src}")
+		install(DIRECTORY "${src}" DESTINATION ${dst})
+	endif()
+endmacro()
 
 # //////////////////////////////////////////////////////////////////////////
 macro(SetupCommonTargetOptions Name)
-
 	set_target_properties(${Name} PROPERTIES CXX_STANDARD 11)
 	set_target_properties(${Name} PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
-
 	if (CMAKE_CONFIGURATION_TYPES)
 		target_compile_options(${Name} PRIVATE "$<$<CONFIG:Debug>:-DVISUS_DEBUG=1>")	
 	else()
@@ -67,38 +90,20 @@ macro(SetupCommonTargetOptions Name)
 			target_compile_options(${Name} PRIVATE -DVISUS_DEBUG=1)
 		endif()
 	endif()
-
 	if (WIN32)
-
-		# this seem to block windows 10
-		# target_compile_options(${Name} PRIVATE /MP)
-
 		target_compile_options(${Name} PRIVATE /bigobj)		
-		# see http://msdn.microsoft.com/en-us/library/windows/desktop/ms683219(v=vs.85).aspx
 		target_compile_options(${Name} PRIVATE -DPSAPI_VERSION=1)
 		target_compile_options(${Name} PRIVATE -DFD_SETSIZE=4096)
 		target_compile_options(${Name} PRIVATE -D_CRT_SECURE_NO_WARNINGS)
 		target_compile_options(${Name} PRIVATE -DWIN32_LEAN_AND_MEAN)		
-		
 	elseif (APPLE)
-	
-		# suppress some warnings
 		target_compile_options(${Name} PRIVATE -Wno-unused-variable -Wno-unused-parameter -Wno-reorder)
-
 		set_target_properties(${Name} PROPERTIES MACOSX_BUNDLE TRUE) 
 		set_target_properties(${Name} PROPERTIES MACOSX_RPATH 0) # disable rpath
-
 	else()
-	
-		# enable 64 bit file support (see http://learn-from-the-guru.blogspot.it/2008/02/large-file-support-in-linux-for-cc.html)
 		target_compile_options(${Name} PRIVATE -D_FILE_OFFSET_BITS=64)
-
-		# -Wno-attributes to suppress spurious "type attributes ignored after type is already defined" messages 
-		# see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39159
 		target_compile_options(${Name} PRIVATE -Wno-attributes)	
-	
 	endif()
-
 endmacro()
 
 # ///////////////////////////////////////////////////
@@ -138,33 +143,6 @@ macro(FindPythonLibrary)
 endmacro()
 
 
-# ///////////////////////////////////////////////////
-macro(AddExternalLibrary Name)
-
-	add_library(${Name} STATIC ${ARGN})
-
-	SetupCommonTargetOptions(${Name})
-
-	# see https://stackoverflow.com/questions/56514533/how-to-specify-the-output-directory-of-a-given-dll
-	if (CMAKE_CONFIGURATION_TYPES)
-		set_target_properties(${Name} PROPERTIES  	
-			ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/ExternalLib )
-	else()
-		set_target_properties(${Name} PROPERTIES	
-			ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/ExternalLib ) 
-	endif()
-
-	# this fixes the problem of static symbols conflicting with dynamic lib
-	# example: dynamic libcrypto conflicting with internal static libcrypto
-	if (NOT WIN32)
-		target_compile_options(${Name} PRIVATE -fvisibility=hidden)
-	endif()
-
-	DisableTargetWarnings(${Name})
-	
-	set_target_properties(${Name} PROPERTIES FOLDER "ExternalLibs/")
-
-endmacro()
 
 # ///////////////////////////////////////////////////
 macro(LinkPythonToLibrary Name)
@@ -190,6 +168,95 @@ endmacro()
 
 
 # ///////////////////////////////////////////////////
+macro(LinkPythonToExecutable Name)
+
+	if (VISUS_PYTHON)
+		if (WIN32)
+			# already linked
+		elseif (APPLE)
+			target_link_libraries(${Name} PUBLIC OpenVisus::Python)
+		else()
+			# for nix is trickier since the linking order is important
+			# the "-Wl,--start-group" does not always work (for example in travis)
+			# see http://cmake.3232098.n2.nabble.com/Link-order-Ubuntu-tt7598592.html
+			# i found this trick: VisusKernel should appear always before python 
+			target_link_libraries(${Name} PUBLIC $<TARGET_FILE:VisusKernel> OpenVisus::Python)
+		endif()
+	endif()
+		
+endmacro()
+
+
+# ///////////////////////////////////////////////////
+macro(FindQtLibrary)
+	if (DEFINED Qt5_DIR)
+		if (WIN32)
+			string(REPLACE "\\" "/" Qt5_DIR "${Qt5_DIR}")
+		endif()	
+		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS ${Qt5_DIR} NO_DEFAULT_PATH)
+		
+	elseif (APPLE AND EXISTS /usr/local/opt/qt/lib/cmake/Qt5)
+		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED PATHS /usr/local/opt/qt/lib/cmake/Qt5 NO_DEFAULT_PATH)
+		
+	else()
+		find_package(Qt5 COMPONENTS Core Widgets Gui OpenGL REQUIRED)
+		
+ 	endif()
+
+	mark_as_advanced(Qt5Core_DIR)
+	mark_as_advanced(Qt5Gui_DIR)
+	mark_as_advanced(Qt5OpenGL_DIR)
+	mark_as_advanced(Qt5Widgets_DIR)	
+
+	get_filename_component(Qt5_HOME "${Qt5_DIR}/../../.." REALPATH)
+
+	if (EXISTS "${Qt5_HOME}/plugins")
+		set(Qt5_PLUGIN_PATH "${Qt5_HOME}/plugins")
+	elseif (EXISTS "${Qt5_HOME}/lib/qt5/plugin")
+		set(Qt5_PLUGIN_PATH "${Qt5_HOME}/lib/qt5/plugin")
+	else()
+		MESSAGE(WARNING "cannot find Qt5 plugins")
+		ForceUnset(Qt5_PLUGIN_PATH)
+	endif()
+	
+	if (WIN32)
+		string(REPLACE "\\" "/" Qt5_DIR         "${Qt5_DIR}")
+		string(REPLACE "\\" "/" Qt5_HOME        "${Qt5_HOME}")
+		string(REPLACE "\\" "/" Qt5_PLUGIN_PATH "${Qt5_PLUGIN_PATH}")
+	endif()	
+
+	MESSAGE(STATUS "Qt5_DIR        ${Qt5_DIR}")
+	MESSAGE(STATUS "Qt5_HOME       ${Qt5_HOME}")
+	MESSAGE(STATUS "Qt5_PLUGIN_PATH ${Qt5_PLUGIN_PATH}")
+endmacro()
+
+# ///////////////////////////////////////////////////
+macro(AddExternalLibrary Name)
+
+	add_library(${Name} STATIC ${ARGN})
+
+	SetupCommonTargetOptions(${Name})
+
+	# see https://stackoverflow.com/questions/56514533/how-to-specify-the-output-directory-of-a-given-dll
+	if (CMAKE_CONFIGURATION_TYPES)
+		set_target_properties(${Name} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/ExternalLib )
+	else()
+		set_target_properties(${Name} PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/ExternalLib ) 
+	endif()
+
+	# this fixes the problem of static symbols conflicting with dynamic lib
+	# example: dynamic libcrypto conflicting with internal static libcrypto
+	if (NOT WIN32)
+		target_compile_options(${Name} PRIVATE -fvisibility=hidden)
+	endif()
+
+	DisableTargetWarnings(${Name})
+	
+	set_target_properties(${Name} PROPERTIES FOLDER "ExternalLibs/")
+
+endmacro()
+
+# ///////////////////////////////////////////////////
 macro(AddLibrary Name LibraryType)
 
 	add_library(${Name} ${LibraryType} ${ARGN})
@@ -197,22 +264,14 @@ macro(AddLibrary Name LibraryType)
 	LinkPythonToLibrary(${Name})
 	SetupCommonTargetOptions(${Name})
 
-	if (CMAKE_CONFIGURATION_TYPES)
-		set_target_properties(${Name} PROPERTIES 
-			LIBRARY_OUTPUT_DIRECTORY     ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/bin
-			RUNTIME_OUTPUT_DIRECTORY     ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/bin
-			ARCHIVE_OUTPUT_DIRECTORY     ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/lib) 		
-	else()
-		set_target_properties(${Name} PROPERTIES 
-			LIBRARY_OUTPUT_DIRECTORY      ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/bin
-			RUNTIME_OUTPUT_DIRECTORY      ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/bin	
-			ARCHIVE_OUTPUT_DIRECTORY      ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/lib) 
-	endif()
-
+	set_target_properties(${Name} PROPERTIES 
+		LIBRARY_OUTPUT_DIRECTORY     ${InstallDir}/bin
+		RUNTIME_OUTPUT_DIRECTORY     ${InstallDir}/bin
+		ARCHIVE_OUTPUT_DIRECTORY     ${InstallDir}/lib) 	
 
 	if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/include)
 		string(REPLACE "Visus" "" __tmp__ ${Name})
-		install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus DESTINATION ${InstallDir}/include/${__tmp__}/)
+		InstallDirectory(./include/Visus ./include/${__tmp__}/)
 	endif()
 
 	string(TOUPPER ${Name} __NAME__)
@@ -237,39 +296,11 @@ macro(AddLibrary Name LibraryType)
 endmacro()
 
 # ///////////////////////////////////////////////////
-macro(LinkPythonToExecutable Name)
-
-	if (VISUS_PYTHON)
-		if (WIN32)
-			# already linked
-		elseif (APPLE)
-			target_link_libraries(${Name} PUBLIC OpenVisus::Python)
-		else()
-			# for nix is trickier since the linking order is important
-			# the "-Wl,--start-group" does not always work (for example in travis)
-			# see http://cmake.3232098.n2.nabble.com/Link-order-Ubuntu-tt7598592.html
-			# i found this trick: VisusKernel should appear always before python 
-			target_link_libraries(${Name} PUBLIC $<TARGET_FILE:VisusKernel> OpenVisus::Python)
-		endif()
-	endif()
-		
-endmacro()
-
-# ///////////////////////////////////////////////////
 macro(AddExecutable Name)
 	add_executable(${Name} ${ARGN})
-
 	LinkPythonToExecutable(${Name})
 	SetupCommonTargetOptions(${Name})
-
-	if (CMAKE_CONFIGURATION_TYPES)
-		set_target_properties(${Name} PROPERTIES  
-			RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus/bin) 		
-	else()
-		set_target_properties(${Name} PROPERTIES
-			RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus/bin) 
-	endif()
-
+	set_target_properties(${Name} PROPERTIES  RUNTIME_OUTPUT_DIRECTORY ${InstallDir}//bin) 	
 	set_target_properties(${Name} PROPERTIES FOLDER "Executable/")
 endmacro()
 
@@ -281,20 +312,13 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 	find_package(SWIG 3.0 REQUIRED)
 	include(${SWIG_USE_FILE})
 	
-	# this is for *.py generated files
 	if (CMAKE_CONFIGURATION_TYPES)
-		set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/OpenVisus)
-	else()
-		set(CMAKE_SWIG_OUTDIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus)
-	endif()
-	
-	# this is for generated C++ and header files
-	if (CMAKE_CONFIGURATION_TYPES)
-		set(SWIG_OUTFILE_DIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR})
+		set(SWIG_OUTFILE_DIR ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}) # this is for generated C++ and header files
 	else()
 		set(SWIG_OUTFILE_DIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
-	
 	endif()
+	
+	set(CMAKE_SWIG_OUTDIR ${SWIG_OUTFILE_DIR}/OpenVisus) # this is for *.py generated files
 	
 	set(CMAKE_SWIG_FLAGS "")
 	set(SWIG_FLAGS "${ARGN}")
@@ -339,13 +363,13 @@ macro(AddSwigLibrary NamePy WrappedLib SwigFile)
 
 	if (CMAKE_CONFIGURATION_TYPES)
 		set_target_properties(${Name} PROPERTIES 
-			LIBRARY_OUTPUT_DIRECTORY     ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus
-			RUNTIME_OUTPUT_DIRECTORY     ${CMAKE_BINARY_DIR}/$<CONFIG>/OpenVisus 
+			LIBRARY_OUTPUT_DIRECTORY     ${InstallDir}
+			RUNTIME_OUTPUT_DIRECTORY     ${InstallDir}
 			ARCHIVE_OUTPUT_DIRECTORY     ${CMAKE_BINARY_DIR}/$<CONFIG>/swig) 		
 	else()
 		set_target_properties(${Name} PROPERTIES 
-			LIBRARY_OUTPUT_DIRECTORY      ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus 
-			RUNTIME_OUTPUT_DIRECTORY      ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/OpenVisus
+			LIBRARY_OUTPUT_DIRECTORY      ${InstallDir} 
+			RUNTIME_OUTPUT_DIRECTORY      ${InstallDir}
 			ARCHIVE_OUTPUT_DIRECTORY      ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/swig) 
 	endif()
 
@@ -390,23 +414,6 @@ macro(GenerateScript template_filename script_filename target_filename)
 	endif()
 	
 	file(GENERATE OUTPUT "${script_filename}${SCRIPT_EXT}" CONTENT "${content}")
-endmacro()
-
-# ///////////////////////////////////////////////////
-macro(InstallDirectoryIfExists src dst) 
-	if (EXISTS "${src}")
-		install(DIRECTORY "${src}" DESTINATION ${dst})
-	endif()
-endmacro()
-
-
-# ///////////////////////////////////////////////////////////////
-macro(GitUpdateSubmodules)
-	find_package(Git REQUIRED)
-        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} RESULT_VARIABLE __result__)
-        if(NOT __result__ EQUAL "0")
-            message(FATAL_ERROR "git submodule update --init failed with ${__result__}, please checkout submodules")
-        endif()
 endmacro()
 
 
