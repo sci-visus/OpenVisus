@@ -132,6 +132,7 @@ if (1)
 		InstallFile(./CMake/PyDeploy.py  .)
 		InstallFile(./CMake/PyUtils.py   .)
 		InstallFile(./CMake/PyViewer.py  .)
+		InstallFile(./CMake/setup.py     .)
 	endif()
 
 	# copy needed windows *.dll
