@@ -849,84 +849,88 @@ SharedPtr<TransferFunction> TransferFunction::getDefault(String default_name, co
     return ret;
   }
 
-  auto FromRGBA = [&](unsigned char* buffer) {
-    auto ret = TransferFunction::fromArray(Array(nsamples, DTypes::UINT8_RGBA, HeapMemory::createUnmanaged(buffer, sizeof(buffer))));
-    ret->default_name = default_name;
-    return ret;
-  };
+  {
+    auto FromRGBA = [&](unsigned char* buffer, size_t buffer_size) {
+      auto ret = TransferFunction::fromArray(Array(nsamples, DTypes::UINT8_RGBA, HeapMemory::createUnmanaged(buffer, buffer_size)));
+      ret->default_name = default_name;
+      return ret;
+    };
 
-  if (default_name == "banded")  
-    return FromRGBA(banded_data);
+    if (default_name == "banded")
+      return FromRGBA(banded_data, sizeof(banded_data));
 
-  if (default_name == "bry")  
-    return FromRGBA(bry_data);
+    if (default_name == "bry")
+      return FromRGBA(bry_data, sizeof(bry_data));
 
-  if (default_name == "bgry")  
-    return FromRGBA(bgry_data);
+    if (default_name == "bgry")
+      return FromRGBA(bgry_data, sizeof(bgry_data));
 
-  if (default_name == "gamma")  
-    return FromRGBA(gamma_data);
+    if (default_name == "gamma")
+      return FromRGBA(gamma_data, sizeof(gamma_data));
 
-  if (default_name == "hot1")  
-    return FromRGBA(hot1_data);
+    if (default_name == "hot1")
+      return FromRGBA(hot1_data, sizeof(hot1_data));
 
-  if (default_name == "hot2")  
-    return FromRGBA(hot2_data);
+    if (default_name == "hot2")
+      return FromRGBA(hot2_data, sizeof(hot2_data));
 
-  if (default_name == "ice")  
-    return FromRGBA(ice_data);
+    if (default_name == "ice")
+      return FromRGBA(ice_data, sizeof(ice_data));
 
-  if (default_name == "lighthues")  
-    return FromRGBA(lighthues_data);
+    if (default_name == "lighthues")
+      return FromRGBA(lighthues_data, sizeof(lighthues_data));
 
-  if (default_name == "rich")  
-    return FromRGBA(rich_data);
+    if (default_name == "rich")
+      return FromRGBA(rich_data, sizeof(rich_data));
 
-  if (default_name == "smoothrich")  
-    return FromRGBA(smoothrich_data);
+    if (default_name == "smoothrich")
+      return FromRGBA(smoothrich_data, sizeof(smoothrich_data));
 
-  if (default_name == "lut16")  
-    return FromRGBA(lut16_data);
+    if (default_name == "lut16")
+      return FromRGBA(lut16_data, sizeof(lut16_data));
+  }
 
 
-  auto fromRGBAColorMap = [&](const double* buffer) {
-    auto ret = TransferFunction::fromArray(RGBAColorMap(buffer, sizeof(buffer) / sizeof(double)).toArray(nsamples));
-    ret->default_name = default_name;
-    return ret;
-  };
+  {
+    auto fromRGBAColorMap = [&](const double* buffer, size_t buffer_size) {
+      auto ret = TransferFunction::fromArray(RGBAColorMap(buffer, buffer_size).toArray(nsamples));
+      ret->default_name = default_name;
+      return ret;
+    };
 
-  if (default_name == "BlueGreenDivergent")
-    return fromRGBAColorMap(BlueGreenDivergent);
+    if (default_name == "BlueGreenDivergent")
+      return fromRGBAColorMap(BlueGreenDivergent, sizeof(BlueGreenDivergent) / sizeof(double));
 
-  if (default_name == "AsymmetricBlueGreenDivergent")
-    return fromRGBAColorMap(AsymmetricBlueGreenDivergent);
+    if (default_name == "AsymmetricBlueGreenDivergent")
+      return fromRGBAColorMap(AsymmetricBlueGreenDivergent, sizeof(AsymmetricBlueGreenDivergent) / sizeof(double));
 
-  if (default_name == "GreenGold")
-    return fromRGBAColorMap(GreenGold);
+    if (default_name == "GreenGold")
+      return fromRGBAColorMap(GreenGold, sizeof(GreenGold) / sizeof(double));
 
-  if (default_name == "LinearGreen")
-    return fromRGBAColorMap(LinearGreen);
+    if (default_name == "LinearGreen")
+      return fromRGBAColorMap(LinearGreen, sizeof(LinearGreen) / sizeof(double));
 
-  if (default_name == "LinearTurquois")
-    return fromRGBAColorMap(LinearTurquois);
+    if (default_name == "LinearTurquois")
+      return fromRGBAColorMap(LinearTurquois, sizeof(LinearTurquois) / sizeof(double));
 
-  if (default_name == "MutedBlueGreen")
-    return fromRGBAColorMap(MutedBlueGreen);
+    if (default_name == "MutedBlueGreen")
+      return fromRGBAColorMap(MutedBlueGreen, sizeof(MutedBlueGreen) / sizeof(double));
 
-  if (default_name == "ExtendedCoolWarm")
-    return fromRGBAColorMap(ExtendedCoolWarm);
+    if (default_name == "ExtendedCoolWarm")
+      return fromRGBAColorMap(ExtendedCoolWarm, sizeof(ExtendedCoolWarm) / sizeof(double));
 
-  if (default_name == "AsymmetricBlueOrangeDivergent")
-    return fromRGBAColorMap(AsymmetricBlueOrangeDivergent);
+    if (default_name == "AsymmetricBlueOrangeDivergent")
+      return fromRGBAColorMap(AsymmetricBlueOrangeDivergent, sizeof(AsymmetricBlueOrangeDivergent) / sizeof(double));
 
-  if (default_name == "LinearYellow")
-    return fromRGBAColorMap(LinearYellow);
+    if (default_name == "LinearYellow")
+      return fromRGBAColorMap(LinearYellow, sizeof(LinearYellow) / sizeof(double));
 
-  if (default_name == "LinearGray5")
-    return fromRGBAColorMap(LinearGray5);
+    if (default_name == "LinearGray5")
+      return fromRGBAColorMap(LinearGray5, sizeof(LinearGray5) / sizeof(double));
 
-  if (default_name == "LinearGray4")
-    return fromRGBAColorMap(LinearGray4);
+    if (default_name == "LinearGray4")
+      return fromRGBAColorMap(LinearGray4, sizeof(LinearGray4) / sizeof(double));
+  }
 
   //not found
   VisusAssert(false);
