@@ -1,0 +1,45 @@
+<data>
+	<project>
+		<projName>AG1</projName>
+		<dir>/Users/amygooch/GIT/SCI/DATA/FromDale/ag1</dir>
+	</project>
+	<project>
+		<projName>TaylorGrant</projName>
+		<dir>/Users/amygooch/GIT/SCI/DATA/TaylorGrant/rgb/</dir>
+	</project>
+		<project>
+	<projName>AG2</projName>
+		<dir>/Users/amygooch/GIT/SCI/DATA/FromDale/ag2</dir>
+	</project>
+
+	<project>
+		<projName>AG3</projName>
+		<dir>/Users/amygooch/GIT/SCI/DATA/FromDale/ag3</dir>
+	</project>
+
+	<project>
+		<projName>AG4</projName>
+		<dir>/Users/amygooch/GIT/SCI/DATA/FromDale/ag4</dir>
+	</project>
+
+	<project>
+		<projName>AG5</projName>
+		<dir>/Users/amygooch/GIT/SCI/DATA/FromDale/ag5</dir>
+	</project>
+
+	<project>
+		<projName>AG6</projName>
+		<dir>/Users/amygooch/GIT/SCI/DATA/FromDale/ag6</dir>
+	</project>
+
+	<project>
+		<projName>AG17</projName>
+		<dir>/Users/amygooch/GIT/SCI/DATA/FromDale/ag17</dir>
+	</project>
+
+	<project>
+		<projName>AG1</projName>
+		<dir>/Users/amygooch/GIT/SCI/DATA/FromDale/ag1</dir>
+	</project>
+
+<project><projName>Test3</projName><projDir>/Users/amygooch/GIT/ViSUS/SLAM/Giorgio_SLAM_Nov212019/OpenVisus/Samples/python/ViSOARAgExplorer</projDir></project></data>

@@ -1,0 +1,16 @@
+<dataset typename="IdxDataset">
+	<idxfile>
+		<version value="6" />
+		<bitmask value="V000012012" />
+		<box value="0 22 0 3 0 4" />
+		<bitsperblock value="9" />
+		<blocksperfile value="1" />
+		<block_interleaving value="0" />
+		<filename_template value="./visus/%04x.bin" />
+		<time_template value="" />
+		<field name="channel_0" description="" index="0" default_compression="" default_layout="hzorder" default_value="0" filter="" dtype="uint8" />
+		<field name="channel_1" description="" index="1" default_compression="" default_layout="hzorder" default_value="0" filter="" dtype="uint8" />
+		<field name="channel_2" description="" index="2" default_compression="" default_layout="hzorder" default_value="0" filter="" dtype="uint8" />
+		<timestep when="0" />
+	</idxfile>
+</dataset>
