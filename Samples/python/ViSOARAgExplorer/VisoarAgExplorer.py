@@ -392,7 +392,7 @@ class MyTabWidget(QWidget):
 	def loadMIDX(self, projectDir):
 		print("NYI")
 		print('Run visus viewer with: '+ projectDir + '/VisusSlamFiles/visus.midx')
-		viewer=PyViewer()
+		
 		viewer.open(projectDir + '/VisusSlamFiles/visus.midx' ) 
 		viewer.run()
 
@@ -506,6 +506,8 @@ if __name__ == '__main__':
 
 	window.show()
 
+	viewer=PyViewer()
+	
 	splash.finish(window)
 
 	GuiModule.execApplication()
