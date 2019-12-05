@@ -502,12 +502,14 @@ if __name__ == '__main__':
 	print('ERROR: not sure how to set the font in ViSUS')
 	#app.setFont(font);
 
+	viewer=PyViewer()
+	
 	window = StartWindow()
 
 	window.show()
 
-	viewer=PyViewer()
 	
+
 	splash.finish(window)
 
 	GuiModule.execApplication()
