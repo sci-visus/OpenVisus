@@ -25,6 +25,12 @@ from PyQt5.QtWidgets                  import QWidget
 from PyQt5.QtWebEngineWidgets         import QWebEngineView	
 from PyQt5.QtWidgets                  import QTableWidget,QTableWidgetItem
 
+from OpenVisus.VisusGuiPy      import *
+from OpenVisus.VisusGuiNodesPy import *
+from OpenVisus.VisusAppKitPy   import *
+
+from OpenVisus.PyViewer        import *
+
 # IMPORTANT for WIndows
 # Mixing C++ Qt5 and PyQt5 won't work in Windows/DEBUG mode
 # because forcing the use of PyQt5 means to use only release libraries (example: Qt5Core.dll)
@@ -32,9 +38,6 @@ from PyQt5.QtWidgets                  import QTableWidget,QTableWidgetItem
 # as you know, python (release) does not work with debugging versions, unless you recompile all from scratch
 
 # on windows rememeber to INSTALL and CONFIGURE
-
- 
-
 
 
 class StartWindow(QMainWindow):
@@ -89,8 +92,6 @@ class StartWindow(QMainWindow):
 
 		self.central_widget = QFrame()
 		self.central_widget.setFrameShape(QFrame.NoFrame)
-		#self.setCentralWidget(self.central_widget)
-		#self.layout = QVBoxLayout(self.central_widget)
 
 		self.tab_widget = MyTabWidget(self)
 		self.setCentralWidget(self.tab_widget)
@@ -118,11 +119,9 @@ class MyTabWidget(QWidget):
 		self.logo.setIcon(QIcon('./icons/visoar_logo.png') )
 		self.logo.setIconSize(QtCore.QSize(480, 214))
 
-
 		#self.button_analytics_label.setIconSize(pixmap.rect().size())
 		#self.button_analytics_label.setFixedSize(pixmap.rect().size())
 		self.logo.setText('')
-	
 
 		#Initialize tab screen
 		self.tabs = QTabWidget()
@@ -198,15 +197,31 @@ class MyTabWidget(QWidget):
 		self.projNametextbox.setStyleSheet("padding:10px; background-color: #e6e6e6; color: rgb(0, 0, 0);  border: 2px solid #09cab8;")
 		self.sublayoutForm.addRow(self.projNameLabel,self.projNametextbox )
 
+
+		self.buttonAddImages = QPushButton('Add Images', self)
+		self.buttonAddImages.resize(180,40)
+		self.buttonAddImages.clicked.connect( self.addImages)
+		self.buttonAddImages.setStyleSheet("""QPushButton {
+			max-width:300px;
+			border-radius: 7;
+			border-style: outset; 
+			border-width: 0px;
+			color: #045951;
+			background-color: #e6e6e6;
+			padding: 10px;
+		}
+		QPushButton:pressed { 
+			background-color:  #e6e6e6;
+
+		}""")
+
 		#Ability to change location
 		self.projDir= os.getcwd()
-		self.curDir = QLabel('Current Directory:')
+		self.curDir = QLabel('Save Project To:')
 		self.curDir2 = QLabel(self.projDir)
-		self.curDir2.setStyleSheet("""
-		font-family: Roboto;font-style: normal;font-size: 14pt; """)
-
+		self.curDir2.setStyleSheet("""font-family: Roboto;font-style: normal;font-size: 14pt; """)
 		self.curDir.resize(280,40)
-		self.buttonChangeDir = QPushButton('Change Location', self)
+		self.buttonChangeDir = QPushButton('Change Project Location', self)
 		self.buttonChangeDir.resize(180,40)
 		self.buttonChangeDir.clicked.connect( self.getDirectoryLocation)
 		self.buttonChangeDir.setStyleSheet("""QPushButton {
@@ -225,7 +240,7 @@ class MyTabWidget(QWidget):
 		self.spaceLabel = QLabel('')
 		self.spaceLabel.resize(380,40)
 		self.sublayoutForm.addRow(self.curDir,self.curDir2)
-		self.sublayoutForm.addRow(self.spaceLabel, self.buttonChangeDir )
+		self.sublayoutForm.addRow(self.buttonAddImages, self.buttonChangeDir )
 
 		#Button that says: "Create Project"
 		self.buttons.create_project = QPushButton('Create Project', self)
@@ -259,11 +274,6 @@ class MyTabWidget(QWidget):
 		
 	def tabLoadUI(self):
 		self.sublayoutTabLoad= QVBoxLayout(self)
-		# self.buttons.load_proj=GuiUtils.createPushButton("Load",
-		# 	lambda: self.LoadFromFile())
-		# self.buttons.load_proj.setIcon(QIcon('./icons/open_dir.png') )
-		# self.buttons.load_proj.setIconSize(QtCore.QSize(180, 180))
-		# self.sublayoutTabLoad.addWidget(self.buttons.load_proj)
 		self.sublayoutGrid = QGridLayout()
 		self.sublayoutGrid.setSpacing(10)
 
@@ -272,14 +282,8 @@ class MyTabWidget(QWidget):
 
 		self.tabLoad.setLayout( self.sublayoutTabLoad)
 		self.tabLoad.setStyleSheet("""background-color: #045951""")
-		
 
-	def startNew(self):
-		print('NYI:')
-
-		
-
-
+	#User has specified location for data and the project name, launch ViSUS SLAM
 	def createProject(self):
 		projName = self.projNametextbox.text()
 		projDir = self.curDir2.text()
@@ -295,10 +299,14 @@ class MyTabWidget(QWidget):
 		element = ET.Element('project')
 		ET.SubElement(element, 'projName').text = projName
 		ET.SubElement(element, 'projDir').text =  projDir
+		ET.SubElement(element, 'srcDir').text =  self.srcDir
 		root.append(element)
 		print(ET.tostring(element ))
 		tree.write('userFileHistory.xml')
 
+		self.startViSUSSLAM(projDir, self.srcDir)
+
+	#If user changes the tab (from New to Load), then refresh to have new project
 	def onTabChange(self):
 		for i in reversed(range(self.sublayoutGrid.count())): 
 			widgetToRemove = self.sublayoutGrid.itemAt(i).widget()
@@ -312,10 +320,9 @@ class MyTabWidget(QWidget):
 
 		self.LoadFromFile()
 
+	#User wants to load a project that has already been stitched (this is a hope that the midx files exists)
 	def LoadFromFile(self):
 
-		#self.layout.setColumnStretch(1, 4)
-		#self.layout.setColumnStretch(2, 4)
 		#Parse users history file, contains files they have loaded before
 		tree = ET.ElementTree(file="userFileHistory.xml")
 		print (tree.getroot())
@@ -324,20 +331,13 @@ class MyTabWidget(QWidget):
 		y = 0
 		width = 4
 
-		#self.loadBtn_group = QButtonGroup(self)
-		#group.setStyleSheet("""background-color: #045951""")
-		 
-
 		for project in root.iterfind('project'):
 
 			projName = project.find('projName').text
 			projDir = project.find('projDir').text
 			print(projName + " "+ projDir)
 			
-			#sublayoutProjFrame = QFrame()
-			#sublayoutProjFrame.setFrameShape(QFrame.NoFrame)
 			sublayoutProj = QVBoxLayout()
-			#sublayoutProjFrame.setStyleSheet("background-color:white;");
 
 			projMapButton = QToolButton(self)
 			projMapButton.setToolButtonStyle(Qt.ToolButtonTextUnderIcon);
@@ -345,35 +345,15 @@ class MyTabWidget(QWidget):
 			projMapButton.setIcon(QIcon('./icons/genericmap.png') )
 			projMapButton.setIconSize(QtCore.QSize(180, 180))
 			projMapButton.setText(projName)
-			#projMapButton.setCheckable(True)
-
-			font = QFont("Roboto");
-			font.setStyleHint(QFont.Monospace);
-			font.setPointSize(20)
-			#projMapButton.setFont(font)
 			projMapButton.setStyleSheet("QToolButton{font-size: 20px;font-family: Roboto;color: rgb(38,56,76);background-color: rgb(255, 255, 255);}");
-
-			#projMapButton.move(20,80)
 			projMapButton.resize(180,180)
 			projMapButton.setSizePolicy( QSizePolicy.Preferred, QSizePolicy.Expanding)
 
 			self.btnCallback = partial(self.triggerButton, projName)
 			projMapButton.clicked.connect(self.btnCallback)
 
-			#projMapButton.clicked.connect(lambda: self.triggerButton(projMapButton))
-
-			#self.loadBtn_group.addButton(projMapButton)
-			#self.loadBtn_group.buttonReleased['QAbstractButton *'].connect(self.button_clicked)
-			 
-
-			# projLabel = QPushButton(projName, self)
-			# projLabel.resize(480,40)
-			#projLabel.clicked.connect( lambda: self.openProject(projMapButton))
-
 			sublayoutProj.addWidget( projMapButton)
-			# sublayoutProj.addWidget( projLabel)
-
-			#sublayoutProjFrame.addLayout( sublayoutProj)
+			
 			self.sublayoutGrid.addLayout( sublayoutProj, x,y)
 			if (y < width):
 				y = y + 1
@@ -381,56 +361,22 @@ class MyTabWidget(QWidget):
 				y = 0
 				x = x+1
 
-		
-
-
 	def saveUserFileHistory(self):
-
 		tree = ET.ElementTree(file="userFileHistory.xml")
 		print (tree.getroot())
 		root = tree.getroot()
-		 
-
-		# with open("userFileHistory.xml") as f:
-		# 	content = f.read()
-
-		# soup = BeautifulSoup(content, "xml")
-		# f.write(soup.prettify())
-		# f.close()
 
 		tree = ET.ElementTree(root)
 		with open("updated.xml", "w") as f:
 			tree.write(f)
 
-	def getDirectoryLocation(self):
-	 
+	def getDirectoryLocation(self): 
 		self.projDir = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
 		self.curDir2.setText(self.projDir)
 
-	def openProject(self):
-		#Open project at dir with ViSUS SLAM
-
-		tree = ET.ElementTree(file="userFileHistory.xml")
-		print (tree.getroot())
-		root = tree.getroot()
-		print(b.text)
-		for project in root.iterfind('project'):
-			projName = project.find('projName').text
-			projDir = project.find('projDir').text
-			if (projDir == b.text()):
-				print('NYI '+ projDir)
-			else:
-				print('NYI: didnot find button and database match?')
-
-
-	def button_clicked(self, button_or_id):
-		# btn_pressed = self.loadBtn_group.checkedButton()
-		# print(btn_pressed.text())
-		if isinstance(button_or_id, QAbstractButton):
-			print('"{}" was clicked'.format(button_or_id.text()))
-			self.triggerButton(button_or_id.text())
-		# elif isinstance(button_or_id, int):
-		# 	print('"Id {}" was clicked'.format(button_or_id))
+	def addImages(self):
+		self.srcDir = str(QFileDialog.getExistingDirectory(self, "Select Directory containing Images"))
+		#self.curDir2.setText(self.projDir)
 
 	def triggerButton(self, projName):
 		tree = ET.ElementTree(file="userFileHistory.xml")
@@ -440,11 +386,21 @@ class MyTabWidget(QWidget):
 			if ( project.find('projName').text == projName):
 				projectDir = project.find('projDir').text
 				print(projectDir)
-				self.loadSLAM(projectDir)
+				self.loadMIDX(projectDir)
+				print('Need to run visus viewer with projDir + /VisusSlamFiles/visus.midx')
 
-	def loadSLAM(self, projectDir):
+	def loadMIDX(self, projectDir):
 		print("NYI")
+		print('Run visus viewer with: '+ projectDir + '/VisusSlamFiles/visus.midx')
+		viewer=PyViewer()
+		viewer.open(projectDir + '/VisusSlamFiles/visus.midx' ) 
+		viewer.run()
 
+	#projectDir is where to save the files
+	#srcDir is the location of initial images
+	def startViSUSSLAM(self, projectDir, srcDir):
+		print("NYI")
+		print('Need to run visusslam with projDir and srcDir')
 
  
  
