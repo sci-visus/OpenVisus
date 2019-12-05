@@ -228,7 +228,7 @@ class MyTabWidget(QWidget):
 		fieldname="output=ArrayUtils.interleave(ArrayUtils.split(voronoi())[0:3])"
 		print("Showing NDVI for Red and IR channels")
 		print(self.projDir)
-		self.viewer.open(self.projDir + '/VisusSlamFiles/visus.midx' ) 
+		#self.viewer.open(self.projDir + '/VisusSlamFiles/visus.midx' ) 
 		# make sure the RenderNode get almost RGB components
 		self.viewer.setFieldName(fieldname)		
 
@@ -275,7 +275,7 @@ output=Array.fromNumPy(out,TargetDim=pdim)
 		print("Showing NDVI for Red and IR channels")
 		print(self.projDir)
 		#url=self.projDir+"/VisusSlamFiles/visus.midx"
-		self.viewer.open(self.projDir + '/VisusSlamFiles/visus.midx' ) 
+		#self.viewer.open(self.projDir + '/VisusSlamFiles/visus.midx' ) 
 		# make sure the RenderNode get almost RGB components
 		self.viewer.setFieldName(fieldname)		
 
@@ -321,7 +321,7 @@ output=Array.fromNumPy(out,TargetDim=pdim)
 	def showRGB(self):
 		fieldname="output=ArrayUtils.interleave(ArrayUtils.split(voronoi())[0:3])"
 		print("Showing img src")
-		self.viewer.open(self.projDir + '/VisusSlamFiles/visus.midx' ) 
+		#self.viewer.open(self.projDir + '/VisusSlamFiles/visus.midx' ) 
 		# make sure the RenderNode get almost RGB components
 		self.viewer.setFieldName(fieldname)		
 
@@ -332,7 +332,7 @@ output=Array.fromNumPy(out,TargetDim=pdim)
 output=input
 
 """);
-		
+
 	def tabStitcherUI(self):
 		# self.sublayoutTabViewer= QVBoxLayout(self)
 		# viewer_subwin = sip.wrapinstance(FromCppQtWidget(self.viewer.c_ptr()), QtWidgets.QMainWindow)	
@@ -377,6 +377,7 @@ output=input
 
 		#Ability to change location
 		self.projDir= os.getcwd()
+		self.srcDir = os.getcwd()
 		self.curDir = QLabel('Save Project To:')
 		self.curDir2 = QLabel(self.projDir)
 		self.curDir2.setStyleSheet("""font-family: Roboto;font-style: normal;font-size: 14pt; """)
@@ -436,7 +437,8 @@ output=input
 		self.sublayoutTabLoad= QVBoxLayout(self)
 		self.sublayoutGrid = QGridLayout()
 		self.sublayoutGrid.setSpacing(10)
-
+		self.sublayoutGrid.setRowStretch(0, 6)
+		self.sublayoutGrid.setRowStretch(1, 4)
 		self.LoadFromFile()
 		self.sublayoutTabLoad.addLayout(self.sublayoutGrid)
 
@@ -564,6 +566,8 @@ output=input
 		print("NYI")
 		print('Need to run visusslam with projDir and srcDir')
 		self.tabs.setCurrentIndex(2) 
+		os.system('cd ~/GIT/ViSUS/SLAM/Giorgio_SLAM_Nov212019/OpenVisus')
+		os.system('python -m Slam '+srcDir)
 
  
  
