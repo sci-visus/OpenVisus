@@ -197,10 +197,142 @@ class MyTabWidget(QWidget):
 
 	def tabViewerUI(self):
 		self.sublayoutTabViewer= QVBoxLayout(self)
+
+		#Toolbar
+		toolbar=QHBoxLayout()
+		self.buttons.show_ndvi=GuiUtils.createPushButton("NDVI",
+			lambda: self.showNDVI())
+
+		self.buttons.show_tgi=GuiUtils.createPushButton("TGI",
+			lambda: self.showTGI())
+				
+		self.buttons.show_rgb=GuiUtils.createPushButton("RGB",
+			lambda: self.showRGB())
+				
+		toolbar.addWidget(self.buttons.show_ndvi)
+		toolbar.addWidget(self.buttons.show_tgi)
+		toolbar.addWidget(self.buttons.show_rgb)
+		toolbar.addStretch(1)
+
+		self.sublayoutTabViewer.addLayout(toolbar)
+
+
+		#Viewer
 		viewer_subwin = sip.wrapinstance(FromCppQtWidget(self.viewer.c_ptr()), QtWidgets.QMainWindow)	
 		self.sublayoutTabViewer.addWidget(viewer_subwin )
 		self.tabViewer.setLayout( self.sublayoutTabViewer)
 
+
+			# showNDVI
+	def showNDVI(self):
+		fieldname="output=ArrayUtils.interleave(ArrayUtils.split(voronoi())[0:3])"
+		print("Showing NDVI for Red and IR channels")
+		print(self.projDir)
+		self.viewer.open(self.projDir + '/VisusSlamFiles/visus.midx' ) 
+		# make sure the RenderNode get almost RGB components
+		self.viewer.setFieldName(fieldname)		
+
+		# for Amy: example about processing
+		#if False:
+		self.viewer.setScriptingCode(
+"""
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import cv2,numpy
+
+#Convert ViSUS array to numpy
+pdim=input.dims.getPointDim()
+img=Array.toNumPy(input,bShareMem=True)
+
+RED = img[:,:,0]   
+green = img[:,:,1]
+NIR = img[:,:,2]
+ 
+NDVI_u = (NIR - RED) 
+NDVI_d = (NIR + RED)
+NDVI = NDVI_u / NDVI_d
+
+NDVI = cv2.normalize(NDVI, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F) #  normalize data [0,1]
+
+NDVI =numpy.uint8(NDVI * 255)  #color map requires 8bit.. ugh, convert again
+
+gray = NDVI
+ 
+cdict=[(.2, .4,0), (.2, .4,0), (.94, .83, 0), (.286,.14,.008), (.56,.019,.019)]
+cmap = mpl.colors.LinearSegmentedColormap.from_list(name='my_colormap',colors=cdict,N=1000)
+
+out = cmap(gray)
+
+output=Array.fromNumPy(out,TargetDim=pdim)
+
+""");
+
+	# showTGI (for RGB datasets)
+	def showTGI(self):
+		fieldname="output=ArrayUtils.interleave(ArrayUtils.split(voronoi())[0:3])"
+		print("Showing TGI for RGB images")
+		print("Showing NDVI for Red and IR channels")
+		print(self.projDir)
+		#url=self.projDir+"/VisusSlamFiles/visus.midx"
+		self.viewer.open(self.projDir + '/VisusSlamFiles/visus.midx' ) 
+		# make sure the RenderNode get almost RGB components
+		self.viewer.setFieldName(fieldname)		
+
+		# for Amy: example about processing
+		#if False:
+		self.viewer.setScriptingCode(
+"""
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import cv2,numpy
+
+#COnvert ViSUS array to numpy
+pdim=input.dims.getPointDim()
+img=Array.toNumPy(input,bShareMem=True)
+
+red = img[:,:,0]   
+green = img[:,:,1]
+blue = img[:,:,2]
+
+# #TGI – Triangular Greenness Index - RGB index for chlorophyll sensitivity. TGI index relies on reflectance values at visible wavelengths. It #is a fairly good proxy for chlorophyll content in areas of high leaf cover.
+# #TGI = −0.5 * ((190 * (redData − greeData)) − (120*(redData − blueData)))
+scaleRed  = (0.39 * red)
+scaleBlue = (.61 * blue)
+TGI =  green - scaleRed - scaleBlue
+TGI = cv2.normalize(TGI, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F) #  normalize data [0,1]
+
+gray = TGI
+ 
+#cdict=[(.2, .4,0), (.2, .4,0), (.94, .83, 0), (.286,.14,.008), (.56,.019,.019)]
+cdict=[ (.56,.019,.019),  (.286,.14,.008), (.94, .83, 0),(.2, .4,0), (.2, .4,0)]
+cmap = mpl.colors.LinearSegmentedColormap.from_list(name='my_colormap',colors=cdict,N=1000)
+
+out = cmap(gray)
+
+#out =  numpy.float32(out) 
+
+output=Array.fromNumPy(out,TargetDim=pdim) 
+
+""".strip())
+
+
+	def showRGB(self):
+		fieldname="output=ArrayUtils.interleave(ArrayUtils.split(voronoi())[0:3])"
+		print("Showing img src")
+		self.viewer.open(self.projDir + '/VisusSlamFiles/visus.midx' ) 
+		# make sure the RenderNode get almost RGB components
+		self.viewer.setFieldName(fieldname)		
+
+		# for Amy: example about processing
+		#if False:
+		self.viewer.setScriptingCode(
+"""
+output=input
+
+""");
+		
 	def tabStitcherUI(self):
 		# self.sublayoutTabViewer= QVBoxLayout(self)
 		# viewer_subwin = sip.wrapinstance(FromCppQtWidget(self.viewer.c_ptr()), QtWidgets.QMainWindow)	
