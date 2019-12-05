@@ -90,6 +90,7 @@ class StartWindow(QMainWindow):
 
 		""")
 
+		
 		self.central_widget = QFrame()
 		self.central_widget.setFrameShape(QFrame.NoFrame)
 
@@ -111,6 +112,12 @@ class MyTabWidget(QWidget):
 		super(QWidget, self).__init__(parent)
 		self.layout = QVBoxLayout(self)
 		
+
+		self.viewer=Viewer()
+		#self.viewer.hide()
+		self.viewer.setMinimal()
+		
+
 		class Buttons : pass
 		self.buttons=Buttons
 
@@ -127,21 +134,28 @@ class MyTabWidget(QWidget):
 		self.tabs = QTabWidget()
 		self.tabNew = QWidget()
 		self.tabLoad = QWidget()
+		self.tabStitcher = QWidget()
+		self.tabViewer = QWidget()
 		self.tabs.resize(600,600)
 
 		self.mySetTabStyle()
 		self.tabNewUI()
 		self.tabLoadUI()
+		self.tabStitcherUI()
+		self.tabViewerUI()
 
 		# Add tabs
 		self.tabs.addTab(self.tabNew,"New Project")
 		self.tabs.addTab(self.tabLoad,"Load Project")
+		self.tabs.addTab(self.tabStitcher,"Stitcher")
+		self.tabs.addTab(self.tabViewer,"Viewer")
 		self.tabs.currentChanged.connect(self.onTabChange) #changed!
 		#self.tabs.setTabShape(QTabWidget.Triangular.)
 		# Add layout of tabs to self
 		self.layout.addWidget(self.tabs) #, row, 1,4)
 
 		self.tabs.setCurrentIndex(0) 
+
 
 	def mySetTabStyle(self):
 		self.tabs.setStyleSheet  ( """
@@ -180,6 +194,20 @@ class MyTabWidget(QWidget):
 		QTabBar::tab:!selected {
 			margin-top: 2px; /* make non-selected tabs look smaller */
 		}""");
+
+	def tabViewerUI(self):
+		self.sublayoutTabViewer= QVBoxLayout(self)
+		viewer_subwin = sip.wrapinstance(FromCppQtWidget(self.viewer.c_ptr()), QtWidgets.QMainWindow)	
+		self.sublayoutTabViewer.addWidget(viewer_subwin )
+		self.tabViewer.setLayout( self.sublayoutTabViewer)
+
+	def tabStitcherUI(self):
+		# self.sublayoutTabViewer= QVBoxLayout(self)
+		# viewer_subwin = sip.wrapinstance(FromCppQtWidget(self.viewer.c_ptr()), QtWidgets.QMainWindow)	
+		# self.sublayoutTabViewer.addWidget(viewer_subwin )
+		# self.tabViewer.setLayout( self.sublayoutTabViewer)
+		pass
+
 
 	def tabNewUI(self):
 		#Create New Tab:
@@ -393,14 +421,17 @@ class MyTabWidget(QWidget):
 		print("NYI")
 		print('Run visus viewer with: '+ projectDir + '/VisusSlamFiles/visus.midx')
 		
-		viewer.open(projectDir + '/VisusSlamFiles/visus.midx' ) 
-		viewer.run()
+		self.viewer.open(projectDir + '/VisusSlamFiles/visus.midx' ) 
+		#self.viewer.run()
+		#self.viewer.hide()
+		self.tabs.setCurrentIndex(3) 
 
 	#projectDir is where to save the files
 	#srcDir is the location of initial images
 	def startViSUSSLAM(self, projectDir, srcDir):
 		print("NYI")
 		print('Need to run visusslam with projDir and srcDir')
+		self.tabs.setCurrentIndex(2) 
 
  
  
@@ -418,7 +449,7 @@ def MainOld(argv):
 	allow some python code inside scripting node
 	"""
 
-	viewer=PyViewer()
+	viewer=Viewer()
 	#viewer.open(r".\datasets\cat\gray.idx")
 
 	viewer.open("/Users/amygooch/GIT/ViSUS/SLAM/Giorgio_SLAM/OpenVisus/Samples/python/../../datasets/cat/rgb.idx") 
@@ -502,8 +533,8 @@ if __name__ == '__main__':
 	print('ERROR: not sure how to set the font in ViSUS')
 	#app.setFont(font);
 
-	viewer=PyViewer()
 	
+
 	window = StartWindow()
 
 	window.show()
