@@ -39,6 +39,13 @@ from OpenVisus.PyViewer        import *
 
 # on windows rememeber to INSTALL and CONFIGURE
 
+#Color Scheme:  https://www.colorhexa.com/045951
+visoarGreen = '#045951'
+visoarRed = '#59040c'
+visoarBlue = '#043759'
+visoarLightGreen = '#067f73'
+visoarDarkGreen = '#02332f'
+visoarGreenWebSafe = '#006666'
 
 class StartWindow(QMainWindow):
 	def __init__(self):
@@ -111,13 +118,12 @@ class MyTabWidget(QWidget):
 	def __init__(self, parent):
 		super(QWidget, self).__init__(parent)
 		self.layout = QVBoxLayout(self)
-		
 
+		self.cellsAcross = 6
 		self.viewer=Viewer()
 		#self.viewer.hide()
 		self.viewer.setMinimal()
 		
-
 		class Buttons : pass
 		self.buttons=Buttons
 
@@ -349,6 +355,10 @@ output=input
 		self.sublayoutForm = QFormLayout()
 		self.sublayoutTabNew.addLayout(self.sublayoutForm) #, row, 1,4)
 
+		self.createErrorLabel = QLabel('')
+		self.sublayoutTabNew.addWidget(  self.createErrorLabel, alignment=Qt.AlignCenter    )
+		self.createErrorLabel.setStyleSheet( 'color: ##59040c')
+
 		#Ask for Project Name
 		self.projNameLabel = QLabel('New Project Name:')
 		self.projNametextbox = QLineEdit(self)
@@ -366,42 +376,53 @@ output=input
 			border-radius: 7;
 			border-style: outset; 
 			border-width: 0px;
-			color: #045951;
-			background-color: #e6e6e6;
-			padding: 10px;
+			color: #ffffff;
+			background-color: #045951;
+			padding-left: 40px;
+			padding-right: 40px;
+			padding-top: 10px;
+			padding-bottom: 10px;
 		}
 		QPushButton:pressed { 
 			background-color:  #e6e6e6;
+
 
 		}""")
 
 		#Ability to change location
-		self.projDir= os.getcwd()
-		self.srcDir = os.getcwd()
-		self.curDir = QLabel('Save Project To:')
+		self.projDir= '' #os.getcwd()
+		self.srcDir = '' #os.getcwd()
+		self.curDir = QLabel('Image Directory: ')
 		self.curDir2 = QLabel(self.projDir)
 		self.curDir2.setStyleSheet("""font-family: Roboto;font-style: normal;font-size: 14pt; """)
 		self.curDir.resize(280,40)
-		self.buttonChangeDir = QPushButton('Change Project Location', self)
-		self.buttonChangeDir.resize(180,40)
-		self.buttonChangeDir.clicked.connect( self.getDirectoryLocation)
-		self.buttonChangeDir.setStyleSheet("""QPushButton {
-			max-width:300px;
-			border-radius: 7;
-			border-style: outset; 
-			border-width: 0px;
-			color: #045951;
-			background-color: #e6e6e6;
-			padding: 10px;
-		}
-		QPushButton:pressed { 
-			background-color:  #e6e6e6;
+		# self.buttonChangeDir = QPushButton('Change Project Location', self)
+		# self.buttonChangeDir.resize(180,40)
+		# self.buttonChangeDir.clicked.connect( self.getDirectoryLocation)
+		# self.buttonChangeDir.setStyleSheet("""QPushButton {
+		# 	max-width:300px;
+		# 	border-radius: 7;
+		# 	border-style: outset; 
+		# 	border-width: 0px;
+		# 	color: #045951;
+		# 	background-color: #e6e6e6;
+		# 	padding: 10px;
+		# }
+		# QPushButton:pressed { 
+		# 	background-color:  #e6e6e6;
 
-		}""")
-		self.spaceLabel = QLabel('')
-		self.spaceLabel.resize(380,40)
+		# }""")
+		# self.spaceLabel = QLabel('')
+		# self.spaceLabel.resize(380,40)
 		self.sublayoutForm.addRow(self.curDir,self.curDir2)
-		self.sublayoutForm.addRow(self.buttonAddImages, self.buttonChangeDir )
+		#self.sublayoutForm.addRow(self.spaceLabel, self.buttonChangeDir )
+
+# #https://pythonprogramminglanguage.com/pyqt-checkbox/
+# Amy fix this: adding check box
+# 		self.checkboxSrcImgs = QCheckBox("Use location as source of images",self)
+#         self.checkboxSrcImgs.stateChanged.connect(self.clickBox)
+#         self.checkboxSrcImgs.move(20,20)
+#         self.checkboxSrcImgs.resize(320,40)
 
 		#Button that says: "Create Project"
 		self.buttons.create_project = QPushButton('Create Project', self)
@@ -425,8 +446,11 @@ output=input
 		}""")
 		self.spaceLabel2 = QLabel('')
 		self.spaceLabel2.resize(380,40)
-		self.sublayoutTabNew.addWidget(  self.buttons.create_project, alignment=Qt.AlignCenter    )
+		
+		self.sublayoutTabNew.addWidget(  self.buttonAddImages, alignment=Qt.AlignCenter    )
 
+		self.sublayoutTabNew.addWidget(  self.buttons.create_project, alignment=Qt.AlignCenter    )
+		self.buttons.create_project.hide()
 		# connect button to function on_click
 		self.buttons.create_project.clicked.connect(  self.createProject)
 
@@ -437,8 +461,10 @@ output=input
 		self.sublayoutTabLoad= QVBoxLayout(self)
 		self.sublayoutGrid = QGridLayout()
 		self.sublayoutGrid.setSpacing(10)
-		self.sublayoutGrid.setRowStretch(0, 6)
+		self.sublayoutGrid.setRowStretch(0, self.cellsAcross)
 		self.sublayoutGrid.setRowStretch(1, 4)
+		#self.sublayoutGrid.setColumnStretch(0, self.cellsAcross)
+		#self.sublayoutGrid.setColumnStretch(1, 4)
 		self.LoadFromFile()
 		self.sublayoutTabLoad.addLayout(self.sublayoutGrid)
 
@@ -447,26 +473,37 @@ output=input
 
 	#User has specified location for data and the project name, launch ViSUS SLAM
 	def createProject(self):
+		self.createErrorLabel.setText('')
 		projName = self.projNametextbox.text()
 		projDir = self.curDir2.text()
-		print('Create Proj')
 		print(projName)
 		print(projDir)
+		if ((not projDir.strip()== "") and (not projName.strip()=="")): 
+			print('Create Proj')
+			print(projName)
+			print(projDir)
 
-		tree = ET.parse('userFileHistory.xml')
-		print (tree.getroot())
-		root = tree.getroot()
+			tree = ET.parse('userFileHistory.xml')
+			print (tree.getroot())
+			root = tree.getroot()
 
-		#etree.SubElement(item, 'Date').text = '2014-01-01'
-		element = ET.Element('project')
-		ET.SubElement(element, 'projName').text = projName
-		ET.SubElement(element, 'projDir').text =  projDir
-		ET.SubElement(element, 'srcDir').text =  self.srcDir
-		root.append(element)
-		print(ET.tostring(element ))
-		tree.write('userFileHistory.xml')
+			#etree.SubElement(item, 'Date').text = '2014-01-01'
+			element = ET.Element('project')
+			ET.SubElement(element, 'projName').text = projName
+			ET.SubElement(element, 'projDir').text =  projDir
+			ET.SubElement(element, 'srcDir').text =  self.srcDir
+			root.append(element)
+			print(ET.tostring(element ))
+			tree.write('userFileHistory.xml')
 
-		self.startViSUSSLAM(projDir, self.srcDir)
+			self.startViSUSSLAM(projDir, self.srcDir)
+		else:
+			errorStr = ''
+			if not projDir.strip():
+				errorStr = 'Please Provide a directory of images or click on the load tab to load a dataset you\'ve already stitched\n'
+			if not projName.strip():
+			 	errorStr = errorStr + 'Please provide a unique name for your project'
+			self.createErrorLabel.setText(errorStr)
 
 	#If user changes the tab (from New to Load), then refresh to have new project
 	def onTabChange(self):
@@ -491,7 +528,7 @@ output=input
 		root = tree.getroot()
 		x = 0
 		y = 0
-		width = 4
+		width = self.cellsAcross -1
 
 		for project in root.iterfind('project'):
 
@@ -508,13 +545,15 @@ output=input
 			projMapButton.setIconSize(QtCore.QSize(180, 180))
 			projMapButton.setText(projName)
 			projMapButton.setStyleSheet("QToolButton{font-size: 20px;font-family: Roboto;color: rgb(38,56,76);background-color: rgb(255, 255, 255);}");
-			projMapButton.resize(180,180)
-			projMapButton.setSizePolicy( QSizePolicy.Preferred, QSizePolicy.Expanding)
+			projMapButton.setFixedSize(180,180)
+			#projMapButton.setSizePolicy( QSizePolicy.Preferred, QSizePolicy.Expanding)
 
 			self.btnCallback = partial(self.triggerButton, projName)
 			projMapButton.clicked.connect(self.btnCallback)
 
 			sublayoutProj.addWidget( projMapButton)
+
+
 			
 			self.sublayoutGrid.addLayout( sublayoutProj, x,y)
 			if (y < width):
@@ -538,7 +577,22 @@ output=input
 
 	def addImages(self):
 		self.srcDir = str(QFileDialog.getExistingDirectory(self, "Select Directory containing Images"))
-		#self.curDir2.setText(self.projDir)
+		self.projDir = self.srcDir
+		self.curDir2.setText(self.projDir) 
+		self.buttons.create_project.show()
+		self.buttonAddImages.setStyleSheet("""QPushButton {
+			max-width:300px;
+			border-radius: 7;
+			border-style: outset; 
+			border-width: 0px;
+			color: #045951;
+			background-color: #e6e6e6;
+			padding: 10px;
+		}
+		QPushButton:pressed { 
+			background-color:  #e6e6e6;
+
+		}""")
 
 	def triggerButton(self, projName):
 		tree = ET.ElementTree(file="userFileHistory.xml")
@@ -567,86 +621,12 @@ output=input
 		print('Need to run visusslam with projDir and srcDir')
 		self.tabs.setCurrentIndex(2) 
 		os.system('cd ~/GIT/ViSUS/SLAM/Giorgio_SLAM_Nov212019/OpenVisus')
+		print('cd ~/GIT/ViSUS/SLAM/Giorgio_SLAM_Nov212019/OpenVisus; python -m Slam '+srcDir)
 		os.system('python -m Slam '+srcDir)
 
- 
- 
-# //////////////////////////////////////////////
-def MainOld(argv):
-	
-	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
-	# c:\Python37\python.exe CMake/PyViewer.py	
-	
-	SetCommandLine("__main__")
-	GuiModule.createApplication()
-	AppKitModule.attach()  	
-	
-	"""
-	allow some python code inside scripting node
-	"""
-
-	viewer=Viewer()
-	#viewer.open(r".\datasets\cat\gray.idx")
-
-	viewer.open("/Users/amygooch/GIT/ViSUS/SLAM/Giorgio_SLAM/OpenVisus/Samples/python/../../datasets/cat/rgb.idx") 
-
-	#viewer.open("/Users/amygooch/GIT/SCI/DATA/TaylorGrant/VisusSlamFiles/visus.midx") 
-
-	# ... with some little python scripting
-# 	viewer.setScriptingCode("""
-# import cv2,numpy
-# pdim=input.dims.getPointDim()
-# img=Array.toNumPy(input,bShareMem=True)
-# img=cv2.Laplacian(img,cv2.CV_64F)
-# output=Array.fromNumPy(img,TargetDim=pdim)
-# """.strip())	
-
-
-
-# 	viewer.setScriptingCode("""
-# import cv2,numpy
-# pdim=input.dims.getPointDim()
-# red = input[0]
-# green = input[1]
-# blue = input[2]
-# #TGI – Triangular Greenness Index - RGB index for chlorophyll sensitivity. TGI index relies on reflectance values at visible wavelengths. It #is a fairly good proxy for chlorophyll content in areas of high leaf cover.
-# #TGI = −0.5 * ((190 * (redData − greeData)) − (120*(redData − blueData)))
-# scaleRed  = (0.39 * red)
-# scaleBlue = (.61 * blue)
-# TGI =  green - scaleRed - scaleBlue
-# output=Array.fromNumPy(TGI,TargetDim=pdim)
-# """.strip())	
-
-
-	viewer.setScriptingCode("""
-import cv2,numpy
-pdim=input.dims.getPointDim()
-red = input[0]
-green = input[1]
-blue = input[2]
-# #TGI – Triangular Greenness Index - RGB index for chlorophyll sensitivity. TGI index relies on reflectance values at visible wavelengths. It #is a fairly good proxy for chlorophyll content in areas of high leaf cover.
-# #TGI = −0.5 * ((190 * (redData − greeData)) − (120*(redData − blueData)))
-scaleRed  = (0.39 * red)
-scaleBlue = (.61 * blue)
-TGI =  green - scaleRed - scaleBlue
-#output=Array.fromNumPy(scaleRed,TargetDim=pdim)
-output= TGI
-""".strip())	
-
-	viewer.run()
-	
-	GuiModule.execApplication()
-	viewer=None  
-	AppKitModule.detach()
-	print("All done")
-	sys.exit(0)	
-	
 
 # //////////////////////////////////////////////
 if __name__ == '__main__':
-	#Main(sys.argv)
-
-
 
 	GuiModule.createApplication()
 	AppKitModule.attach()  	
@@ -669,13 +649,9 @@ if __name__ == '__main__':
 	print('ERROR: not sure how to set the font in ViSUS')
 	#app.setFont(font);
 
-	
-
 	window = StartWindow()
 
-	window.show()
-
-	
+	window.show()	
 
 	splash.finish(window)
 
