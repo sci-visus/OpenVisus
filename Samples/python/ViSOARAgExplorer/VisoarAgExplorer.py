@@ -520,7 +520,7 @@ output=input
 		self.srcDir = str(QFileDialog.getExistingDirectory(self, "Select Directory containing Images"))
 		self.projDir = self.srcDir
 		self.curDir2.setText(self.projDir) 
-		if ((not self.projDir.strip()== "") and (not self.projName.strip()=="")): 
+		if ((not (self.projDir.strip()== "")) and (not (self.projName.strip()==""))): 
 			self.tabs.setTabEnabled(2,True)		
 			#self.tabs.setTabEnabled(3,True)
 			self.tabs.setCurrentIndex(2) 
