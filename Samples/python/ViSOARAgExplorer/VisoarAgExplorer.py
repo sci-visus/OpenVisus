@@ -76,15 +76,20 @@ class StartWindow(QMainWindow):
 
 
 
+# //////////////////////////////////////////////////////////////////////////////
+
 class MyTabWidget(QWidget):
 	def __init__(self, parent):
 		super(QWidget, self).__init__(parent)
 		self.layout = QVBoxLayout(self)
 
 		self.cellsAcross = 6
+		self.inputMode =  "R G B"
 		self.viewer=Viewer()
 		#self.viewer.hide()
 		self.viewer.setMinimal()
+
+		self.slam_widget = Slam2DWidget(self)
 		
 		class Buttons : pass
 		self.buttons=Buttons
@@ -136,15 +141,30 @@ class MyTabWidget(QWidget):
 
 		#Toolbar
 		toolbar=QHBoxLayout()
+
+		self.inputModeLabel = QLabel("Image Mode:", self)
+
+		self.comboBox = QComboBox(self)
+		self.comboBox.addItem("R G B")
+		self.comboBox.addItem("R G NIR")
+		self.comboBox.setStyleSheet(MY_COMBOX)
+		#self.comboBox.move(50, 250)
+
+		#self.styleChoice.move(50,150)
+		#self.comboBox.activated[str].connect(self.inputMode)
+		self.comboBox.currentIndexChanged.connect(self.inputModeChanged)
+
 		self.buttons.show_ndvi=GuiUtils.createPushButton("NDVI",
 			lambda: self.showNDVI())
 
 		self.buttons.show_tgi=GuiUtils.createPushButton("TGI",
 			lambda: self.showTGI())
 				
-		self.buttons.show_rgb=GuiUtils.createPushButton("RGB",
+		self.buttons.show_rgb=GuiUtils.createPushButton("Original",
 			lambda: self.showRGB())
 				
+		toolbar.addWidget(self.inputModeLabel)
+		toolbar.addWidget(self.comboBox)
 		toolbar.addWidget(self.buttons.show_ndvi)
 		toolbar.addWidget(self.buttons.show_tgi)
 		toolbar.addWidget(self.buttons.show_rgb)
@@ -152,10 +172,33 @@ class MyTabWidget(QWidget):
 
 		self.sublayoutTabViewer.addLayout(toolbar)
 
+		self.inputModeChanged()
+
 		#Viewer
 		viewer_subwin = sip.wrapinstance(FromCppQtWidget(self.viewer.c_ptr()), QtWidgets.QMainWindow)	
 		self.sublayoutTabViewer.addWidget(viewer_subwin )
 		self.tabViewer.setLayout( self.sublayoutTabViewer)
+
+	def inputModeChanged(self):
+		#self.inputModeLabel.setText(self.comboBox.currentText())
+		self.inputMode = self.comboBox.currentText()
+		print(self.inputMode)
+		#QtGui.QApplication.setStyle(QtGui.QStyleFactory.create(text))
+		if (self.inputMode == "R G B"):
+			self.buttons.show_ndvi.setEnabled(False)
+			self.buttons.show_ndvi.setStyleSheet(DISABLED_PUSH_BUTTON)
+			self.buttons.show_tgi.setEnabled(True)
+			self.buttons.show_tgi.setStyleSheet(GREEN_PUSH_BUTTON)
+			self.buttons.show_rgb.setEnabled(True)
+			self.buttons.show_rgb.setStyleSheet(GREEN_PUSH_BUTTON)
+		if (self.inputMode == "R G NIR"):
+			self.buttons.show_ndvi.setEnabled(True)
+			self.buttons.show_ndvi.setStyleSheet(GREEN_PUSH_BUTTON)
+			self.buttons.show_tgi.setEnabled(False)
+			self.buttons.show_tgi.setStyleSheet(DISABLED_PUSH_BUTTON)
+			self.buttons.show_rgb.setEnabled(True)
+			self.buttons.show_rgb.setStyleSheet(GREEN_PUSH_BUTTON)
+
 
 	# showNDVI
 	def showNDVI(self):
@@ -203,7 +246,41 @@ output=input
 
 	def tabStitcherUI(self):
 		self.sublayoutTabStitcher= QVBoxLayout(self)
-		self.slam_widget = Slam2DWidget(self)
+
+		# toolbar
+		toolbar=QHBoxLayout()
+		# self.buttons.load_midx=GuiUtils.createPushButton("Load Prev Solution",
+		# 	lambda: self.loadPrevSolution())
+
+		self.buttons.run_slam=GuiUtils.createPushButton("Stitch it!",
+			lambda: self.run())
+		self.buttons.goToAnalytics=GuiUtils.createPushButton("Analytics",
+			lambda: self.goToAnalyticsTab())
+		
+		self.buttons.run_slam.setStyleSheet(GREEN_PUSH_BUTTON)
+		self.buttons.goToAnalytics.setStyleSheet(DISABLED_PUSH_BUTTON)
+		self.buttons.goToAnalytics.setEnabled(False)
+
+		# self.buttons.show_ndvi=GuiUtils.createPushButton("NDVI",
+		# 	lambda: self.showNDVI())
+
+		# self.buttons.show_tgi=GuiUtils.createPushButton("TGI",
+		# 	lambda: self.showTGI())
+				
+		# self.buttons.show_rgb=GuiUtils.createPushButton("RGB",
+		# 	lambda: self.showRGB())
+				
+#		toolbar.addWidget(self.buttons.load_midx)
+		toolbar.addWidget(self.buttons.run_slam)
+		toolbar.addWidget(self.buttons.goToAnalytics)
+		# toolbar.addWidget(self.buttons.show_ndvi)
+		# toolbar.addWidget(self.buttons.show_tgi)
+		# toolbar.addWidget(self.buttons.show_rgb)
+ 
+
+		toolbar.addStretch(1)
+		self.sublayoutTabStitcher.addLayout(toolbar)
+		
 		self.sublayoutTabStitcher.addWidget(self.slam_widget )
 		self.tabStitcher.setLayout( self.sublayoutTabStitcher)
 
@@ -214,6 +291,29 @@ output=input
 
 		sys.stdout = logger
 		sys.stderr = logger
+
+	def goToAnalyticsTab(self):
+		print('---->Loading midx from: '+self.projDir)
+		try:
+			self.loadMIDX(self.projDir)
+		except IOError as e:
+			print("I/O error({0}): {1}".format(e.errno, e.strerror))
+		except ValueError:
+			print("Could not convert data to an integer.")
+		except AttributeError as error:
+			print('AttributError: '+ error+ sys.exc_info()[0])
+			raise
+		except:
+			print("Unexpected error:", sys.exc_info()[0])
+			raise
+
+		self.tabs.setCurrentIndex(3) 
+
+	def run(self):
+		self.slam_widget.run()
+		self.buttons.goToAnalytics.setEnabled(True)
+		self.buttons.goToAnalytics.setStyleSheet(GREEN_PUSH_BUTTON)
+		self.buttons.run_slam.setStyleSheet(GRAY_PUSH_BUTTON)
 
 	def tabNewUI(self):
 		#Create New Tab:
@@ -416,8 +516,12 @@ output=input
 		self.srcDir = str(QFileDialog.getExistingDirectory(self, "Select Directory containing Images"))
 		self.projDir = self.srcDir
 		self.curDir2.setText(self.projDir) 
+		self.tabs.setTabEnabled(2,True)		
+		#self.tabs.setTabEnabled(3,True)
+		self.tabs.setCurrentIndex(2) 
 		self.buttons.create_project.show()
 		self.buttonAddImages.setStyleSheet(GRAY_PUSH_BUTTON)
+		self.createProject()
 
 	def triggerButton(self, projName):
 		tree = ET.ElementTree(file=userFileHistory)
@@ -448,9 +552,8 @@ output=input
 		print('Need to run visusslam with projDir and srcDir')
 		
 		self.slam_widget.setCurrentDir(srcDir)
-		self.tabs.setTabEnabled(2,False)		
-		#self.tabs.setTabEnabled(3,True)
-		self.tabs.setCurrentIndex(2) 
+		
+		self.showFullScreen()
 		#os.system('cd ~/GIT/ViSUS/SLAM/Giorgio_SLAM_Nov212019/OpenVisus')
 		#print('cd ~/GIT/ViSUS/SLAM/Giorgio_SLAM_Nov212019/OpenVisus; python -m Slam '+srcDir)
 		#os.system('python -m Slam '+srcDir)

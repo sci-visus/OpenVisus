@@ -38,6 +38,7 @@ from lookAndFeel  				import *
 
 
 # //////////////////////////////////////////////////////////////////////////////
+
 class Logger(QtCore.QObject):
 
         """Redirects console output to text widget."""
@@ -81,6 +82,8 @@ class ExceptionHandler(QtCore.QObject):
 
 
 # //////////////////////////////////////////////////////////////////////////////
+
+		 
 class Slam2DWidget(QWidget):
 	
 	# constructor
@@ -127,10 +130,14 @@ class Slam2DWidget(QWidget):
 		# self.buttons.load_midx=GuiUtils.createPushButton("Load Prev Solution",
 		# 	lambda: self.loadPrevSolution())
 
-		self.buttons.run_slam=GuiUtils.createPushButton("Stitch it!",
-			lambda: self.run())
-
-		self.buttons.run_slam.setStyleSheet(GREEN_PUSH_BUTTON)
+		# self.buttons.run_slam=GuiUtils.createPushButton("Stitch it!",
+		# 	lambda: self.run())
+		# self.buttons.goToAnalytics=GuiUtils.createPushButton("Analytics",
+		# 	lambda: self.goToAnalyticsTab())
+		
+		# self.buttons.run_slam.setStyleSheet(GREEN_PUSH_BUTTON)
+		# self.buttons.goToAnalytics.setStyleSheet(DISABLED_PUSH_BUTTON)
+		# self.buttons.goToAnalytics.setEnabled(False)
 
 		# self.buttons.show_ndvi=GuiUtils.createPushButton("NDVI",
 		# 	lambda: self.showNDVI())
@@ -142,7 +149,8 @@ class Slam2DWidget(QWidget):
 		# 	lambda: self.showRGB())
 				
 #		toolbar.addWidget(self.buttons.load_midx)
-		toolbar.addWidget(self.buttons.run_slam)
+		# toolbar.addWidget(self.buttons.run_slam)
+		# toolbar.addWidget(self.buttons.goToAnalytics)
 		# toolbar.addWidget(self.buttons.show_ndvi)
 		# toolbar.addWidget(self.buttons.show_tgi)
 		# toolbar.addWidget(self.buttons.show_rgb)
@@ -282,18 +290,6 @@ class Slam2DWidget(QWidget):
 		# make sure the RenderNode get almost RGB components
 		self.viewer.setFieldName(fieldname)		
 
-# 		# for Amy: example about processing
-# 		if False:
-# 			self.viewer.setScriptingCode(
-# """
-# import numpy
-# import cv2
-# pdim=input.dims.getPointDim()
-# img=Array.toNumPy(input,bShareMem=True)
-# img=cv2.Laplacian(img,cv2.CV_64F)
-# output=Array.fromNumPy(img,TargetDim=pdim)
-# """);
-
 	# showNDVI
 	def showNDVI(self):
 		fieldname="output=ArrayUtils.interleave(ArrayUtils.split(voronoi())[0:3])"
@@ -395,5 +391,8 @@ output=input
 		self.slam.refineSolution()
 		self.preview.hide()
 		self.refreshViewer()
+		
 
-		 
+
+
+#///////////////////////////////////////////////////////////////////////////////		

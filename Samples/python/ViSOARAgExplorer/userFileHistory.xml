@@ -9,4 +9,10 @@
 		<projDir>/Users/amygooch/GIT/SCI/DATA/TaylorGrant/rgb/</projDir>
 		<srcDir>/Users/amygooch/GIT/SCI/DATA/TaylorGrant/rgb/</srcDir>
 	</project>
-<project><projName>TestTaylor</projName><projDir>/Users/amygooch/GIT/SCI/DATA/TaylorGrant</projDir><srcDir>/Users/amygooch/GIT/SCI/DATA/TaylorGrant</srcDir></project><project><projName>TestT</projName><projDir>/Users/amygooch/GIT/SCI/DATA/TaylorGrant</projDir><srcDir>/Users/amygooch/GIT/SCI/DATA/TaylorGrant</srcDir></project><project><projName>Test4</projName><projDir>/Users/amygooch/GIT/SCI/DATA/TaylorGrant</projDir><srcDir>/Users/amygooch/GIT/SCI/DATA/TaylorGrant</srcDir></project></data>
+
+<project>
+	<projName>tinyTaylor</projName>
+	<projDir>/Users/amygooch/GIT/SCI/DATA/tinyTaylorGrant</projDir>
+	<srcDir>/Users/amygooch/GIT/SCI/DATA/tinyTaylorGrant</srcDir>
+</project>
+<project><projName>sdfsfs</projName><projDir>/Users/amygooch/GIT/SCI/DATA/tinyTaylorGrant</projDir><srcDir>/Users/amygooch/GIT/SCI/DATA/tinyTaylorGrant</srcDir></project><project><projName>tets</projName><projDir>/Users/amygooch/GIT/SCI/DATA/tinyTaylorGrant</projDir><srcDir>/Users/amygooch/GIT/SCI/DATA/tinyTaylorGrant</srcDir></project></data>
