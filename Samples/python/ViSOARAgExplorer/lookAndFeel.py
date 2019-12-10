@@ -50,7 +50,7 @@ LOOK_AND_FEEL = """
 		}
 		QLineEdit { background-color: #e6e6e6; border-color: #045951 }
 
-		"""
+		""".strip()
 
 TAB_LOOK = """
 			/* Style the tab using the tab sub-control. Note that
@@ -87,7 +87,7 @@ TAB_LOOK = """
 
 		QTabBar::tab:!selected {
 			margin-top: 2px; /* make non-selected tabs look smaller */
-		}"""
+		}""".strip()
 
 
 GREEN_PUSH_BUTTON = """QPushButton {
@@ -105,7 +105,7 @@ GREEN_PUSH_BUTTON = """QPushButton {
 		QPushButton:pressed { 
 			background-color:  #e6e6e6;
 
-		}"""
+		}""".strip()
 
 
 GRAY_PUSH_BUTTON = """QPushButton {
@@ -134,7 +134,7 @@ DISABLED_PUSH_BUTTON = """QPushButton {
 QPushButton:pressed { 
 	background-color:  #e6e6e6;
 
-}"""
+}""".strip()
 
 
 MY_COMBOX = """QComboBox {
@@ -154,7 +154,6 @@ QComboBox:!editable, QComboBox::drop-down:editable {
                                  stop: 0.5 #D8D8D8, stop: 1.0 #D3D3D3);
 }
 
-/* QComboBox gets the "on" state when the popup is open */
 QComboBox:!editable:on, QComboBox::drop-down:editable:on {
     background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
                                 stop: 0 #D3D3D3, stop: 0.4 #D8D8D8,
@@ -178,16 +177,13 @@ QComboBox::drop-down {
     border-top-right-radius: 3px; /* same radius as the QComboBox */
     border-bottom-right-radius: 3px;
 }
-QComboBox::drop-down:button{
-background-color: #045951;
-}
 
-#QComboBox::down-arrow {
-#    image: url(/usr/share/icons/crystalsvg/16x16/actions/1downarrow.png);
-#}
+QComboBox::drop-down:button{
+	background-color: #045951;
+}
 
 QComboBox::down-arrow:on { /* shift the arrow when popup is open */
     top: 1px;
     left: 1px;
 }
-"""
+""".strip()

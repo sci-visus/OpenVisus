@@ -85,6 +85,8 @@ class MyTabWidget(QWidget):
 
 		self.cellsAcross = 6
 		self.inputMode =  "R G B"
+		self.projDir = ''
+		self.projName = ''
 		self.viewer=Viewer()
 		#self.viewer.hide()
 		self.viewer.setMinimal()
@@ -432,7 +434,9 @@ output=input
 			root.append(element)
 			print(ET.tostring(element ))
 			tree.write(userFileHistory)
-
+			self.tabs.setTabEnabled(2,True)		
+			#self.tabs.setTabEnabled(3,True)
+			self.tabs.setCurrentIndex(2) 
 			self.startViSUSSLAM(projDir, self.srcDir)
 		else:
 			errorStr = ''
@@ -516,12 +520,22 @@ output=input
 		self.srcDir = str(QFileDialog.getExistingDirectory(self, "Select Directory containing Images"))
 		self.projDir = self.srcDir
 		self.curDir2.setText(self.projDir) 
-		self.tabs.setTabEnabled(2,True)		
-		#self.tabs.setTabEnabled(3,True)
-		self.tabs.setCurrentIndex(2) 
+		if ((not self.projDir.strip()== "") and (not self.projName.strip()=="")): 
+			self.tabs.setTabEnabled(2,True)		
+			#self.tabs.setTabEnabled(3,True)
+			self.tabs.setCurrentIndex(2) 
+			self.createProject()
+		else:
+			errorStr = ''
+			if not self.projDir.strip():
+				errorStr = 'Please Provide a directory of images or click on the load tab to load a dataset you\'ve already stitched\n'
+			if not self.projName.strip():
+			 	errorStr = errorStr + 'Please provide a unique name for your project'
+			self.createErrorLabel.setText(errorStr)
+
 		self.buttons.create_project.show()
 		self.buttonAddImages.setStyleSheet(GRAY_PUSH_BUTTON)
-		self.createProject()
+		
 
 	def triggerButton(self, projName):
 		tree = ET.ElementTree(file=userFileHistory)

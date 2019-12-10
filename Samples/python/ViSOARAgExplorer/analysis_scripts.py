@@ -67,7 +67,7 @@ out = cmap(gray)
 
 output=Array.fromNumPy(out,TargetDim=pdim)
 
-"""
+""".strip()
 
 
 
