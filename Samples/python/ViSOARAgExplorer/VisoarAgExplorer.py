@@ -47,7 +47,6 @@ from lookAndFeel  				import *
 
 # on windows rememeber to INSTALL and CONFIGURE
 
-userFileHistory = '/Users/amygooch/GIT/ViSUS/SLAM/Giorgio_SLAM_Nov212019/OpenVisus/Samples/python/ViSOARAgExplorer/userFileHistory.xml'
 
 class StartWindow(QMainWindow):
 	def __init__(self):
@@ -87,6 +86,7 @@ class MyTabWidget(QWidget):
 		self.inputMode =  "R G B"
 		self.projDir = ''
 		self.projName = ''
+		self.userFileHistory = os.getcwd()+'/userFileHistory.xml'
 		self.viewer=Viewer()
 		#self.viewer.hide()
 		self.viewer.setMinimal()
@@ -101,8 +101,6 @@ class MyTabWidget(QWidget):
 		self.logo.setIcon(QIcon('./icons/visoar_logo.png') )
 		self.logo.setIconSize(QtCore.QSize(480, 214))
 
-		#self.button_analytics_label.setIconSize(pixmap.rect().size())
-		#self.button_analytics_label.setFixedSize(pixmap.rect().size())
 		self.logo.setText('')
 
 		#Initialize tab screen
@@ -150,10 +148,6 @@ class MyTabWidget(QWidget):
 		self.comboBox.addItem("R G B")
 		self.comboBox.addItem("R G NIR")
 		self.comboBox.setStyleSheet(MY_COMBOX)
-		#self.comboBox.move(50, 250)
-
-		#self.styleChoice.move(50,150)
-		#self.comboBox.activated[str].connect(self.inputMode)
 		self.comboBox.currentIndexChanged.connect(self.inputModeChanged)
 
 		self.buttons.show_ndvi=GuiUtils.createPushButton("NDVI",
@@ -182,10 +176,8 @@ class MyTabWidget(QWidget):
 		self.tabViewer.setLayout( self.sublayoutTabViewer)
 
 	def inputModeChanged(self):
-		#self.inputModeLabel.setText(self.comboBox.currentText())
 		self.inputMode = self.comboBox.currentText()
-		print(self.inputMode)
-		#QtGui.QApplication.setStyle(QtGui.QStyleFactory.create(text))
+		print(self.inputMode) 
 		if (self.inputMode == "R G B"):
 			self.buttons.show_ndvi.setEnabled(False)
 			self.buttons.show_ndvi.setStyleSheet(DISABLED_PUSH_BUTTON)
@@ -210,9 +202,6 @@ class MyTabWidget(QWidget):
 		#self.viewer.open(self.projDir + '/VisusSlamFiles/visus.midx' ) 
 		# make sure the RenderNode get almost RGB components
 		self.viewer.setFieldName(fieldname)		
-
-		# for Amy: example about processing
-		#if False:
 		self.viewer.setScriptingCode(NDVI_SCRIPT);
 
 	# showTGI (for RGB datasets)
@@ -225,9 +214,6 @@ class MyTabWidget(QWidget):
 		#self.viewer.open(self.projDir + '/VisusSlamFiles/visus.midx' ) 
 		# make sure the RenderNode get almost RGB components
 		self.viewer.setFieldName(fieldname)		
-
-		# for Amy: example about processing
-		#if False:
 		self.viewer.setScriptingCode(TGI_script)
 
 
@@ -237,9 +223,6 @@ class MyTabWidget(QWidget):
 		#self.viewer.open(self.projDir + '/VisusSlamFiles/visus.midx' ) 
 		# make sure the RenderNode get almost RGB components
 		self.viewer.setFieldName(fieldname)		
-
-		# for Amy: example about processing
-		#if False:
 		self.viewer.setScriptingCode(
 """
 output=input
@@ -422,7 +405,7 @@ output=input
 			print(projName)
 			print(projDir)
 
-			tree = ET.parse(userFileHistory)
+			tree = ET.parse(self.userFileHistory)
 			print (tree.getroot())
 			root = tree.getroot()
 
@@ -433,7 +416,7 @@ output=input
 			ET.SubElement(element, 'srcDir').text =  self.srcDir
 			root.append(element)
 			print(ET.tostring(element ))
-			tree.write(userFileHistory)
+			tree.write(self.userFileHistory)
 			self.tabs.setTabEnabled(2,True)		
 			#self.tabs.setTabEnabled(3,True)
 			self.tabs.setCurrentIndex(2) 
@@ -464,7 +447,7 @@ output=input
 	def LoadFromFile(self):
 
 		#Parse users history file, contains files they have loaded before
-		tree = ET.ElementTree(file=userFileHistory)
+		tree = ET.ElementTree(file=self.userFileHistory)
 		print (tree.getroot())
 		root = tree.getroot()
 		x = 0
@@ -504,7 +487,7 @@ output=input
 				x = x+1
 
 	def saveUserFileHistory(self):
-		tree = ET.ElementTree(file=userFileHistory)
+		tree = ET.ElementTree(file=self.userFileHistory)
 		print (tree.getroot())
 		root = tree.getroot()
 
@@ -538,7 +521,7 @@ output=input
 		
 
 	def triggerButton(self, projName):
-		tree = ET.ElementTree(file=userFileHistory)
+		tree = ET.ElementTree(file=self.userFileHistory)
 		#print (tree.getroot())
 		root = tree.getroot()
 		for project in root.iterfind('project'):
