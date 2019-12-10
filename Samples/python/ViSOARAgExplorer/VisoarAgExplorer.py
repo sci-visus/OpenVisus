@@ -15,6 +15,7 @@ from Slam.ImageProvider               import *
 from Slam.ExtractKeyPoints            import *
 from Slam.FindMatches                 import *
 from Slam.GuiUtils                    import *
+from Slam.Slam2D                   	  import Slam2D
 
 
 from PyQt5.QtGui 					  import QFont
@@ -31,6 +32,13 @@ from OpenVisus.VisusAppKitPy   import *
 
 from OpenVisus.PyViewer        import *
 
+from slam2dWidget 				import *
+
+from analysis_scripts			import *
+from lookAndFeel  				import *
+
+
+
 # IMPORTANT for WIndows
 # Mixing C++ Qt5 and PyQt5 won't work in Windows/DEBUG mode
 # because forcing the use of PyQt5 means to use only release libraries (example: Qt5Core.dll)
@@ -39,63 +47,15 @@ from OpenVisus.PyViewer        import *
 
 # on windows rememeber to INSTALL and CONFIGURE
 
-#Color Scheme:  https://www.colorhexa.com/045951
-visoarGreen = '#045951'
-visoarRed = '#59040c'
-visoarBlue = '#043759'
-visoarLightGreen = '#067f73'
-visoarDarkGreen = '#02332f'
-visoarGreenWebSafe = '#006666'
+userFileHistory = '/Users/amygooch/GIT/ViSUS/SLAM/Giorgio_SLAM_Nov212019/OpenVisus/Samples/python/ViSOARAgExplorer/userFileHistory.xml'
 
 class StartWindow(QMainWindow):
 	def __init__(self):
 		super().__init__()
-		self.setWindowTitle('ViSOAR Ag Explorer Analytics Prototype')
+		self.setWindowTitle('ViSOAR Ag Explorer Prototype')
 		
 		self.setMinimumSize(QSize(600, 600))  
-		self.setStyleSheet("""
-		font-family: Roboto;font-style: normal;font-size: 20pt; 
-		background-color: #ffffff;
-		color: #7A7A7A;
-		QTabBar::tab:selected {
-		background: #045951;
-		}
-		QMainWindow {
-			#background-color: #7A7A7A;
-			#color: #ffffff;
-			background-color: #ffffff;
-			color: #7A7A7A;
-			
-			}
-			QLabel {
-			background-color: #7A7A7A;
-			color: #ffffff;
-			}
-		QToolTip {
-			border: 1px solid #76797C;
-			background-color: rgb(90, 102, 117);
-			color: white;
-			padding: 5px;
-			opacity: 200;
-		}
-		QLabel {
-			font: 20pt Roboto
-		}
-		QPushButton {
-			border-radius: 7;
-			border-style: outset; 
-			border-width: 0px;
-			color: #ffffff;
-			background-color: #045951;
-			padding: 10px;
-		}
-		QPushButton:pressed { 
-			background-color:  #e6e6e6;
-
-		}
-		QLineEdit { background-color: #e6e6e6; border-color: #045951 }
-
-		""")
+		self.setStyleSheet(LOOK_AND_FEEL)
 
 		
 		self.central_widget = QFrame()
@@ -113,7 +73,9 @@ class StartWindow(QMainWindow):
 		QMessageBox.information(self,
 			"Tab Index Changed!",
 			"Current Tab Index: ");
-		 
+
+
+
 class MyTabWidget(QWidget):
 	def __init__(self, parent):
 		super(QWidget, self).__init__(parent)
@@ -154,9 +116,12 @@ class MyTabWidget(QWidget):
 		self.tabs.addTab(self.tabNew,"New Project")
 		self.tabs.addTab(self.tabLoad,"Load Project")
 		self.tabs.addTab(self.tabStitcher,"Stitcher")
-		self.tabs.addTab(self.tabViewer,"Viewer")
+		self.tabs.addTab(self.tabViewer,"Analytics")
 		self.tabs.currentChanged.connect(self.onTabChange) #changed!
-		#self.tabs.setTabShape(QTabWidget.Triangular.)
+		
+		self.tabs.setTabEnabled(2,False)
+		self.tabs.setTabEnabled(3,False)
+
 		# Add layout of tabs to self
 		self.layout.addWidget(self.tabs) #, row, 1,4)
 
@@ -164,42 +129,7 @@ class MyTabWidget(QWidget):
 
 
 	def mySetTabStyle(self):
-		self.tabs.setStyleSheet  ( """
-			/* Style the tab using the tab sub-control. Note that
-		it reads QTabBar _not_ QTabWidget */
-		QTabBar::tab {
-			background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-			stop: 0 #E1E1E1, stop: 0.4 #DDDDDD,
-			stop: 0.5 #D8D8D8, stop: 1.0 #D3D3D3);
-			border: 2px solid #C4C4C3;
-			border-bottom-color: #C2C7CB; /* same as the pane color */
-			border-top-left-radius: 4px;
-			border-top-right-radius: 4px;
-			min-width: 200px;
-			padding: 2px;
-		}
-
-		QTabBar::tab:selected {
-			background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-			stop: 0 #045951, stop: 0.4 #045951,
-			stop: 0.5 #034640, stop: 1.0 #045951);
-			color: #ffffff;
-		}
-		QTabBar::tab:hover  {
-			background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-			stop: 0 #07a294, stop: 0.4 #07a294,
-			stop: 0.5 #045951, stop: 1.0 #07a294);
-			color: #ffffff;
-		}
-
-		QTabBar::tab:selected {
-			border-color: #9B9B9B;
-			border-bottom-color: #C2C7CB; /* same as pane color */
-		}
-
-		QTabBar::tab:!selected {
-			margin-top: 2px; /* make non-selected tabs look smaller */
-		}""");
+		self.tabs.setStyleSheet  ( TAB_LOOK);
 
 	def tabViewerUI(self):
 		self.sublayoutTabViewer= QVBoxLayout(self)
@@ -222,14 +152,12 @@ class MyTabWidget(QWidget):
 
 		self.sublayoutTabViewer.addLayout(toolbar)
 
-
 		#Viewer
 		viewer_subwin = sip.wrapinstance(FromCppQtWidget(self.viewer.c_ptr()), QtWidgets.QMainWindow)	
 		self.sublayoutTabViewer.addWidget(viewer_subwin )
 		self.tabViewer.setLayout( self.sublayoutTabViewer)
 
-
-			# showNDVI
+	# showNDVI
 	def showNDVI(self):
 		fieldname="output=ArrayUtils.interleave(ArrayUtils.split(voronoi())[0:3])"
 		print("Showing NDVI for Red and IR channels")
@@ -240,39 +168,7 @@ class MyTabWidget(QWidget):
 
 		# for Amy: example about processing
 		#if False:
-		self.viewer.setScriptingCode(
-"""
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import cv2,numpy
-
-#Convert ViSUS array to numpy
-pdim=input.dims.getPointDim()
-img=Array.toNumPy(input,bShareMem=True)
-
-RED = img[:,:,0]   
-green = img[:,:,1]
-NIR = img[:,:,2]
- 
-NDVI_u = (NIR - RED) 
-NDVI_d = (NIR + RED)
-NDVI = NDVI_u / NDVI_d
-
-NDVI = cv2.normalize(NDVI, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F) #  normalize data [0,1]
-
-NDVI =numpy.uint8(NDVI * 255)  #color map requires 8bit.. ugh, convert again
-
-gray = NDVI
- 
-cdict=[(.2, .4,0), (.2, .4,0), (.94, .83, 0), (.286,.14,.008), (.56,.019,.019)]
-cmap = mpl.colors.LinearSegmentedColormap.from_list(name='my_colormap',colors=cdict,N=1000)
-
-out = cmap(gray)
-
-output=Array.fromNumPy(out,TargetDim=pdim)
-
-""");
+		self.viewer.setScriptingCode(NDVI_SCRIPT);
 
 	# showTGI (for RGB datasets)
 	def showTGI(self):
@@ -287,41 +183,7 @@ output=Array.fromNumPy(out,TargetDim=pdim)
 
 		# for Amy: example about processing
 		#if False:
-		self.viewer.setScriptingCode(
-"""
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import cv2,numpy
-
-#COnvert ViSUS array to numpy
-pdim=input.dims.getPointDim()
-img=Array.toNumPy(input,bShareMem=True)
-
-red = img[:,:,0]   
-green = img[:,:,1]
-blue = img[:,:,2]
-
-# #TGI – Triangular Greenness Index - RGB index for chlorophyll sensitivity. TGI index relies on reflectance values at visible wavelengths. It #is a fairly good proxy for chlorophyll content in areas of high leaf cover.
-# #TGI = −0.5 * ((190 * (redData − greeData)) − (120*(redData − blueData)))
-scaleRed  = (0.39 * red)
-scaleBlue = (.61 * blue)
-TGI =  green - scaleRed - scaleBlue
-TGI = cv2.normalize(TGI, None, alpha=0, beta=1, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_32F) #  normalize data [0,1]
-
-gray = TGI
- 
-#cdict=[(.2, .4,0), (.2, .4,0), (.94, .83, 0), (.286,.14,.008), (.56,.019,.019)]
-cdict=[ (.56,.019,.019),  (.286,.14,.008), (.94, .83, 0),(.2, .4,0), (.2, .4,0)]
-cmap = mpl.colors.LinearSegmentedColormap.from_list(name='my_colormap',colors=cdict,N=1000)
-
-out = cmap(gray)
-
-#out =  numpy.float32(out) 
-
-output=Array.fromNumPy(out,TargetDim=pdim) 
-
-""".strip())
+		self.viewer.setScriptingCode(TGI_script)
 
 
 	def showRGB(self):
@@ -340,12 +202,18 @@ output=input
 """);
 
 	def tabStitcherUI(self):
-		# self.sublayoutTabViewer= QVBoxLayout(self)
-		# viewer_subwin = sip.wrapinstance(FromCppQtWidget(self.viewer.c_ptr()), QtWidgets.QMainWindow)	
-		# self.sublayoutTabViewer.addWidget(viewer_subwin )
-		# self.tabViewer.setLayout( self.sublayoutTabViewer)
-		pass
+		self.sublayoutTabStitcher= QVBoxLayout(self)
+		self.slam_widget = Slam2DWidget(self)
+		self.sublayoutTabStitcher.addWidget(self.slam_widget )
+		self.tabStitcher.setLayout( self.sublayoutTabStitcher)
 
+		_stdout = sys.stdout
+		_stderr = sys.stderr
+
+		logger=Logger(terminal=sys.stdout, filename="~visusslam.log", qt_callback=self.slam_widget.printLog)
+
+		sys.stdout = logger
+		sys.stderr = logger
 
 	def tabNewUI(self):
 		#Create New Tab:
@@ -371,23 +239,7 @@ output=input
 		self.buttonAddImages = QPushButton('Add Images', self)
 		self.buttonAddImages.resize(180,40)
 		self.buttonAddImages.clicked.connect( self.addImages)
-		self.buttonAddImages.setStyleSheet("""QPushButton {
-			max-width:300px;
-			border-radius: 7;
-			border-style: outset; 
-			border-width: 0px;
-			color: #ffffff;
-			background-color: #045951;
-			padding-left: 40px;
-			padding-right: 40px;
-			padding-top: 10px;
-			padding-bottom: 10px;
-		}
-		QPushButton:pressed { 
-			background-color:  #e6e6e6;
-
-
-		}""")
+		self.buttonAddImages.setStyleSheet(GREEN_PUSH_BUTTON)
 
 		#Ability to change location
 		self.projDir= '' #os.getcwd()
@@ -428,22 +280,7 @@ output=input
 		self.buttons.create_project = QPushButton('Create Project', self)
 		self.buttons.create_project.move(20,80)
 		self.buttons.create_project.resize(180,80) 
-		self.buttons.create_project.setStyleSheet("""QPushButton {
-			max-width:300px;
-			border-radius: 7;
-			border-style: outset; 
-			border-width: 0px;
-			color: #ffffff;
-			background-color: #045951;
-			padding-left: 40px;
-			padding-right: 40px;
-			padding-top: 10px;
-			padding-bottom: 10px;
-		}
-		QPushButton:pressed { 
-			background-color:  #e6e6e6;
-
-		}""")
+		self.buttons.create_project.setStyleSheet(GREEN_PUSH_BUTTON)
 		self.spaceLabel2 = QLabel('')
 		self.spaceLabel2.resize(380,40)
 		
@@ -483,7 +320,7 @@ output=input
 			print(projName)
 			print(projDir)
 
-			tree = ET.parse('userFileHistory.xml')
+			tree = ET.parse(userFileHistory)
 			print (tree.getroot())
 			root = tree.getroot()
 
@@ -494,7 +331,7 @@ output=input
 			ET.SubElement(element, 'srcDir').text =  self.srcDir
 			root.append(element)
 			print(ET.tostring(element ))
-			tree.write('userFileHistory.xml')
+			tree.write(userFileHistory)
 
 			self.startViSUSSLAM(projDir, self.srcDir)
 		else:
@@ -523,7 +360,7 @@ output=input
 	def LoadFromFile(self):
 
 		#Parse users history file, contains files they have loaded before
-		tree = ET.ElementTree(file="userFileHistory.xml")
+		tree = ET.ElementTree(file=userFileHistory)
 		print (tree.getroot())
 		root = tree.getroot()
 		x = 0
@@ -563,7 +400,7 @@ output=input
 				x = x+1
 
 	def saveUserFileHistory(self):
-		tree = ET.ElementTree(file="userFileHistory.xml")
+		tree = ET.ElementTree(file=userFileHistory)
 		print (tree.getroot())
 		root = tree.getroot()
 
@@ -580,22 +417,10 @@ output=input
 		self.projDir = self.srcDir
 		self.curDir2.setText(self.projDir) 
 		self.buttons.create_project.show()
-		self.buttonAddImages.setStyleSheet("""QPushButton {
-			max-width:300px;
-			border-radius: 7;
-			border-style: outset; 
-			border-width: 0px;
-			color: #045951;
-			background-color: #e6e6e6;
-			padding: 10px;
-		}
-		QPushButton:pressed { 
-			background-color:  #e6e6e6;
-
-		}""")
+		self.buttonAddImages.setStyleSheet(GRAY_PUSH_BUTTON)
 
 	def triggerButton(self, projName):
-		tree = ET.ElementTree(file="userFileHistory.xml")
+		tree = ET.ElementTree(file=userFileHistory)
 		#print (tree.getroot())
 		root = tree.getroot()
 		for project in root.iterfind('project'):
@@ -612,6 +437,8 @@ output=input
 		self.viewer.open(projectDir + '/VisusSlamFiles/visus.midx' ) 
 		#self.viewer.run()
 		#self.viewer.hide()
+			
+		self.tabs.setTabEnabled(3,True)
 		self.tabs.setCurrentIndex(3) 
 
 	#projectDir is where to save the files
@@ -619,10 +446,14 @@ output=input
 	def startViSUSSLAM(self, projectDir, srcDir):
 		print("NYI")
 		print('Need to run visusslam with projDir and srcDir')
+		
+		self.slam_widget.setCurrentDir(srcDir)
+		self.tabs.setTabEnabled(2,False)		
+		#self.tabs.setTabEnabled(3,True)
 		self.tabs.setCurrentIndex(2) 
-		os.system('cd ~/GIT/ViSUS/SLAM/Giorgio_SLAM_Nov212019/OpenVisus')
-		print('cd ~/GIT/ViSUS/SLAM/Giorgio_SLAM_Nov212019/OpenVisus; python -m Slam '+srcDir)
-		os.system('python -m Slam '+srcDir)
+		#os.system('cd ~/GIT/ViSUS/SLAM/Giorgio_SLAM_Nov212019/OpenVisus')
+		#print('cd ~/GIT/ViSUS/SLAM/Giorgio_SLAM_Nov212019/OpenVisus; python -m Slam '+srcDir)
+		#os.system('python -m Slam '+srcDir)
 
 
 # //////////////////////////////////////////////
