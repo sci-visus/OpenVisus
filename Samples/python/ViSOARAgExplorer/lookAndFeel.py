@@ -34,7 +34,7 @@ LOOK_AND_FEEL = """
 			opacity: 200;
 		}
 		QLabel {
-			font: 20pt Roboto
+			font: 20pt Roboto;
 		}
 		QPushButton {
 			border-radius: 7;
@@ -119,7 +119,6 @@ GRAY_PUSH_BUTTON = """QPushButton {
 		}
 		QPushButton:pressed { 
 			background-color:  #e6e6e6;
-
 		}"""
 
 DISABLED_PUSH_BUTTON = """QPushButton {

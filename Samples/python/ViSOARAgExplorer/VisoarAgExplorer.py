@@ -1,6 +1,8 @@
 import sys, os
 
 import xml.etree.ElementTree as ET
+import xml.dom.minidom
+
 from functools import partial
 
 from OpenVisus       import *
@@ -15,7 +17,7 @@ from Slam.ImageProvider               import *
 from Slam.ExtractKeyPoints            import *
 from Slam.FindMatches                 import *
 from Slam.GuiUtils                    import *
-from Slam.Slam2D                   	  import Slam2D
+#from Slam.Slam2D                   	  import Slam2D
 
 
 from PyQt5.QtGui 					  import QFont
@@ -81,7 +83,7 @@ class MyTabWidget(QWidget):
 	def __init__(self, parent):
 		super(QWidget, self).__init__(parent)
 		self.layout = QVBoxLayout(self)
-
+		self.app_dir = os.getcwd()
 		self.cellsAcross = 6
 		self.inputMode =  "R G B"
 		self.projDir = ''
@@ -98,7 +100,7 @@ class MyTabWidget(QWidget):
 
 		self.logo = QPushButton('', self)
 		self.logo.setStyleSheet("QPushButton {border-style: outset; border-width: 0px;color:#ffffff;}");
-		self.logo.setIcon(QIcon('./icons/visoar_logo.png') )
+		self.logo.setIcon(QIcon(self.app_dir+'/icons/visoar_logo.png') )
 		self.logo.setIconSize(QtCore.QSize(480, 214))
 
 		self.logo.setText('')
@@ -128,7 +130,7 @@ class MyTabWidget(QWidget):
 		self.tabs.setTabEnabled(3,False)
 
 		# Add layout of tabs to self
-		self.layout.addWidget(self.tabs) #, row, 1,4)
+		self.layout.addWidget(self.tabs)  
 
 		self.tabs.setCurrentIndex(0) 
 
@@ -354,13 +356,6 @@ output=input
 		self.sublayoutForm.addRow(self.curDir,self.curDir2)
 		#self.sublayoutForm.addRow(self.spaceLabel, self.buttonChangeDir )
 
-# #https://pythonprogramminglanguage.com/pyqt-checkbox/
-# Amy fix this: adding check box
-# 		self.checkboxSrcImgs = QCheckBox("Use location as source of images",self)
-#         self.checkboxSrcImgs.stateChanged.connect(self.clickBox)
-#         self.checkboxSrcImgs.move(20,20)
-#         self.checkboxSrcImgs.resize(320,40)
-
 		#Button that says: "Create Project"
 		self.buttons.create_project = QPushButton('Create Project', self)
 		self.buttons.create_project.move(20,80)
@@ -384,26 +379,48 @@ output=input
 		self.sublayoutGrid = QGridLayout()
 		self.sublayoutGrid.setSpacing(10)
 		self.sublayoutGrid.setRowStretch(0, self.cellsAcross)
-		self.sublayoutGrid.setRowStretch(1, 4)
-		#self.sublayoutGrid.setColumnStretch(0, self.cellsAcross)
-		#self.sublayoutGrid.setColumnStretch(1, 4)
+		self.sublayoutGrid.setRowStretch(1, 4) 
 		self.LoadFromFile()
 		self.sublayoutTabLoad.addLayout(self.sublayoutGrid)
 
 		self.tabLoad.setLayout( self.sublayoutTabLoad)
 		self.tabLoad.setStyleSheet("""background-color: #045951""")
 
+	def indent(elem, level=0, more_sibs=False):
+		i = "\n"
+		if level:
+			i += (level-1) * '  '
+		num_kids = len(elem)
+		if num_kids:
+			if not elem.text or not elem.text.strip():
+				elem.text = i + "  "
+				if level:
+					elem.text += '  '
+			count = 0
+			for kid in elem:
+				indent(kid, level+1, count < num_kids - 1)
+				count += 1
+			if not elem.tail or not elem.tail.strip():
+				elem.tail = i
+				if more_sibs:
+					elem.tail += '  '
+		else:
+			if level and (not elem.tail or not elem.tail.strip()):
+				elem.tail = i
+				if more_sibs:
+					elem.tail += '  '
+
 	#User has specified location for data and the project name, launch ViSUS SLAM
 	def createProject(self):
 		self.createErrorLabel.setText('')
-		projName = self.projNametextbox.text()
-		projDir = self.curDir2.text()
-		print(projName)
-		print(projDir)
-		if ((not projDir.strip()== "") and (not projName.strip()=="")): 
+		self.projName = self.projNametextbox.text()
+		self.projDir = self.curDir2.text()
+		print(self.projName)
+		print(self.projDir)
+		if ((not self.projDir.strip()== "") and (not self.projName.strip()=="")): 
 			print('Create Proj')
-			print(projName)
-			print(projDir)
+			print(self.projName)
+			print(self.projDir)
 
 			tree = ET.parse(self.userFileHistory)
 			print (tree.getroot())
@@ -411,22 +428,27 @@ output=input
 
 			#etree.SubElement(item, 'Date').text = '2014-01-01'
 			element = ET.Element('project')
-			ET.SubElement(element, 'projName').text = projName
-			ET.SubElement(element, 'projDir').text =  projDir
+			ET.SubElement(element, 'projName').text = self.projName
+			ET.SubElement(element, 'projDir').text =  self.projDir
 			ET.SubElement(element, 'srcDir').text =  self.srcDir
 			root.append(element)
-			print(ET.tostring(element ))
+			#print(ET.tostring(element ))
+
+			#indent(tree)
 			tree.write(self.userFileHistory)
+			print('Wrote new project to history')
 			self.tabs.setTabEnabled(2,True)		
 			#self.tabs.setTabEnabled(3,True)
 			self.tabs.setCurrentIndex(2) 
-			self.startViSUSSLAM(projDir, self.srcDir)
+			print('Change tabs')
+			self.startViSUSSLAM()
+			print('started slam')
 		else:
 			errorStr = ''
-			if not projDir.strip():
+			if not self.projDir.strip():
 				errorStr = 'Please Provide a directory of images or click on the load tab to load a dataset you\'ve already stitched\n'
-			if not projName.strip():
-			 	errorStr = errorStr + 'Please provide a unique name for your project'
+			if not self.projName.strip():
+				errorStr = errorStr + 'Please provide a unique name for your project'
 			self.createErrorLabel.setText(errorStr)
 
 	#If user changes the tab (from New to Load), then refresh to have new project
@@ -465,8 +487,8 @@ output=input
 			projMapButton = QToolButton(self)
 			projMapButton.setToolButtonStyle(Qt.ToolButtonTextUnderIcon);
 			projMapButton.setStyleSheet("background-color: #045951; QPushButton {background-color: #045951; border-style: outset; border-width: 0px;color:#ffffff;}");
-			projMapButton.setIcon(QIcon('./icons/genericmap.png') )
-			projMapButton.setIconSize(QtCore.QSize(180, 180))
+			projMapButton.setIcon(QIcon(self.app_dir + '/icons/genericmap.png') )
+			projMapButton.setIconSize(QtCore.QSize(100, 100))
 			projMapButton.setText(projName)
 			projMapButton.setStyleSheet("QToolButton{font-size: 20px;font-family: Roboto;color: rgb(38,56,76);background-color: rgb(255, 255, 255);}");
 			projMapButton.setFixedSize(180,180)
@@ -477,8 +499,6 @@ output=input
 
 			sublayoutProj.addWidget( projMapButton)
 
-
-			
 			self.sublayoutGrid.addLayout( sublayoutProj, x,y)
 			if (y < width):
 				y = y + 1
@@ -493,6 +513,7 @@ output=input
 
 		tree = ET.ElementTree(root)
 		with open("updated.xml", "w") as f:
+			indent(root)
 			tree.write(f)
 
 	def getDirectoryLocation(self): 
@@ -500,6 +521,7 @@ output=input
 		self.curDir2.setText(self.projDir)
 
 	def addImages(self):
+		self.projName = self.projNametextbox.text()
 		self.srcDir = str(QFileDialog.getExistingDirectory(self, "Select Directory containing Images"))
 		self.projDir = self.srcDir
 		self.curDir2.setText(self.projDir) 
@@ -511,9 +533,11 @@ output=input
 		else:
 			errorStr = ''
 			if not self.projDir.strip():
+				print(self.projDir)
 				errorStr = 'Please Provide a directory of images or click on the load tab to load a dataset you\'ve already stitched\n'
 			if not self.projName.strip():
-			 	errorStr = errorStr + 'Please provide a unique name for your project'
+				print(self.projName)
+				errorStr = errorStr + 'Please provide a unique name for your project'
 			self.createErrorLabel.setText(errorStr)
 
 		self.buttons.create_project.show()
@@ -544,13 +568,13 @@ output=input
 
 	#projectDir is where to save the files
 	#srcDir is the location of initial images
-	def startViSUSSLAM(self, projectDir, srcDir):
+	def startViSUSSLAM(self ):
 		print("NYI")
 		print('Need to run visusslam with projDir and srcDir')
 		
-		self.slam_widget.setCurrentDir(srcDir)
+		self.slam_widget.setCurrentDir(self.srcDir)
 		
-		self.showFullScreen()
+		#self.showFullScreen()
 		#os.system('cd ~/GIT/ViSUS/SLAM/Giorgio_SLAM_Nov212019/OpenVisus')
 		#print('cd ~/GIT/ViSUS/SLAM/Giorgio_SLAM_Nov212019/OpenVisus; python -m Slam '+srcDir)
 		#os.system('python -m Slam '+srcDir)
