@@ -75,6 +75,7 @@ using namespace Visus;
 %include <Visus/Box.h>
    %template(BoxNd)    Visus::BoxN<double>;
    %template(BoxNi)    Visus::BoxN<Visus::Int64>;
+   %template (VectorBoxNi) std::vector<Visus::BoxNi>;
 
 
 %include <Visus/Quaternion.h> 
