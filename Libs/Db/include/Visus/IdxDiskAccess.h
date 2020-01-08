@@ -36,10 +36,10 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_IDX_DISKACCESS_H
-#define __VISUS_IDX_DISKACCESS_H
+#ifndef __VISUS_DB_IDX_DISKACCESS_H
+#define __VISUS_DB_IDX_DISKACCESS_H
 
-#include <Visus/Idx.h>
+#include <Visus/Db.h>
 #include <Visus/ThreadPool.h>
 #include <Visus/Access.h>
 #include <Visus/IdxFile.h>
@@ -52,7 +52,7 @@ class IdxDataset;
 
 
 //////////////////////////////////////////////////////////////////////////////
-class VISUS_IDX_API IdxDiskAccess : public Access
+class VISUS_DB_API IdxDiskAccess : public Access
 {
 public:
 
@@ -103,7 +103,7 @@ private:
 } //namespace Visus
 
 
-#endif //__VISUS_IDX_DISKACCESS_H
+#endif //__VISUS_DB_IDX_DISKACCESS_H
 
 
 

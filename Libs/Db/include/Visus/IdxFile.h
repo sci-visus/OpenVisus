@@ -36,10 +36,10 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_IDX_FILE_H
-#define __VISUS_IDX_FILE_H
+#ifndef __VISUS_DB_IDXFILE_H
+#define __VISUS_DB_IDXFILE_H
 
-#include <Visus/Idx.h>
+#include <Visus/Db.h>
 #include <Visus/DatasetBitmask.h>
 #include <Visus/Field.h>
 #include <Visus/DatasetTimesteps.h>
@@ -50,7 +50,7 @@ namespace Visus {
 
 
 //////////////////////////////////////////////////////////////////////
-class VISUS_IDX_API IdxFile 
+class VISUS_DB_API IdxFile 
 {
 public:
 
@@ -150,5 +150,5 @@ public:
 
 } //namespace Visus
 
-#endif //__VISUS_IDX_FILE_H
+#endif //__VISUS_DB_IDXFILE_H
 

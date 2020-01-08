@@ -11,6 +11,12 @@
 #include <Visus/DatasetFilter.h>
 #include <Visus/Dataset.h>
 #include <Visus/ModVisus.h>
+#include <Visus/Db.h>
+#include <Visus/IdxFile.h>
+#include <Visus/IdxDataset.h>
+#include <Visus/IdxMultipleDataset.h>
+#include <Visus/StringTree.h>
+
 #include <Visus/StringTree.h>
 
 using namespace Visus;
@@ -41,3 +47,13 @@ using namespace Visus;
 %include <Visus/DatasetFilter.h>
 %include <Visus/Dataset.h>
 %include <Visus/ModVisus.h>
+
+%shared_ptr(Visus::IdxDataset)
+%shared_ptr(Visus::IdxMultipleDataset)
+
+%include <Visus/Db.h>
+%include <Visus/IdxFile.h>
+%include <Visus/IdxDataset.h>
+%include <Visus/IdxMultipleDataset.h>
+
+

@@ -4,37 +4,37 @@
 
 namespace Visus {
 
-bool XIdxModule::bAttached = false;
+bool XDbModule::bAttached = false;
 
 //////////////////////////////////////////////////////////////////
-void XIdxModule::attach()
+void XDbModule::attach()
 {
   if (bAttached)
     return;
 
-  PrintInfo("Attaching XIdxModule...");
+  PrintInfo("Attaching XDbModule...");
 
   bAttached = true;
 
   KernelModule::attach();
 
-  PrintInfo("Attached XIdxModule");
+  PrintInfo("Attached XDbModule");
 }
 
 
 //////////////////////////////////////////////
-void XIdxModule::detach()
+void XDbModule::detach()
 {
   if (!bAttached)
     return;
 
-  PrintInfo("Detaching XIdxModule...");
+  PrintInfo("Detaching XDbModule...");
 
   bAttached = false;
 
   KernelModule::detach();
 
-  PrintInfo("Detached XIdxModule");
+  PrintInfo("Detached XDbModule");
 }
 
 //////////////////////////////////////////////

@@ -20,9 +20,6 @@ if os.path.isfile(os.path.join(this_dir,"VisusXIdxPy.py")) :
 if os.path.isfile(os.path.join(this_dir,"VisusDbPy.py")) :
 	from VisusDbPy import *
 
-if os.path.isfile(os.path.join(this_dir,"VisusIdxPy.py")) :
-	from VisusIdxPy import *
-
 if os.path.isfile(os.path.join(this_dir,"VisusDataflowPy.py")) :
 	from VisusDataflowPy import *
 

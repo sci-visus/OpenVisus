@@ -48,7 +48,7 @@ For support : support@visus.net
 #include <Visus/NetService.h>
 #include <Visus/StringTree.h>
 
-#define VISUS_IDX_FILE_DEFAULT_VERSION 6
+#define IDX_FILE_DEFAULT_VERSION 6
 
 namespace Visus {
 
@@ -91,7 +91,7 @@ void IdxFile::validate(String url)
 {
   //version
   if (this->version == 0)
-    this->version = VISUS_IDX_FILE_DEFAULT_VERSION;
+    this->version = IDX_FILE_DEFAULT_VERSION;
 
   if (version <= 0)
   {
@@ -405,7 +405,6 @@ void IdxFile::save(String filename, String TypeName)
   //the user is trying to create a new IdxFile... help him by guessing and checking some values
   if (version==0)
     validate(filename);
-
 
   Archive ar("dataset");
   ar.write("typename", TypeName);

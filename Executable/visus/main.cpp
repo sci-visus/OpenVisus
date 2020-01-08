@@ -44,7 +44,7 @@ For support : support@visus.net
 #include <Visus/IdxDataset.h>
 #include <Visus/File.h>
 #include <Visus/Encoder.h>
-#include <Visus/Idx.h>
+#include <Visus/Db.h>
 #include <Visus/Array.h>
 #include <Visus/ModVisus.h>
 #include <Visus/Path.h>
@@ -2123,7 +2123,7 @@ int main(int argn, const char* argv[])
   Time T1 = Time::now();
 
   SetCommandLine(argn, argv);
-  IdxModule::attach();
+  DbModule::attach();
 
   if (argn >= 2 && String(argv[1]) == "--server")
   {
@@ -2167,14 +2167,14 @@ int main(int argn, const char* argv[])
     catch (std::exception& ex)
     {
       PrintInfo("ERROR:",ex.what());
-      IdxModule::detach();
+      DbModule::detach();
       return -1;
     }
   }
 
   PrintInfo("All done in ",T1.elapsedSec(),",seconds");
 
-  IdxModule::detach();
+  DbModule::detach();
 
   return 0;
 }

@@ -36,10 +36,10 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_IDX_DATASET_H
-#define __VISUS_IDX_DATASET_H
+#ifndef __VISUS_DB_IDX_DATASET_H
+#define __VISUS_DB_IDX_DATASET_H
 
-#include <Visus/Idx.h>
+#include <Visus/Db.h>
 #include <Visus/Dataset.h>
 #include <Visus/IdxFile.h>
 #include <Visus/IdxHzOrder.h>
@@ -52,7 +52,7 @@ class IdxPointQueryHzAddressConversion;
 #endif
 
   //////////////////////////////////////////////////////////////////////
-class VISUS_IDX_API IdxDataset  : public Dataset 
+class VISUS_DB_API IdxDataset  : public Dataset 
 {
 public:
 
@@ -159,5 +159,5 @@ public:
 } //namespace Visus
 
 
-#endif //__VISUS_IDX_DATASET_H
+#endif //__VISUS_DB_IDX_DATASET_H
 

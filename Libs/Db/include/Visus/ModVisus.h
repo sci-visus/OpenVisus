@@ -89,7 +89,6 @@ private:
   //getDatasets
   SharedPtr<Datasets> getDatasets();
 
-
   //reload
   bool reload();
 
@@ -98,7 +97,6 @@ private:
   NetResponse handleReadDataset      (const NetRequest& request);
   NetResponse handleGetListOfDatasets(const NetRequest& request);
   NetResponse handleAddDataset       (const NetRequest& request);
-  NetResponse handleHtmlForPlugin    (const NetRequest& request);
   NetResponse handleBlockQuery       (const NetRequest& request);
   NetResponse handleBoxQuery         (const NetRequest& request);
   NetResponse handlePointQuery       (const NetRequest& request);

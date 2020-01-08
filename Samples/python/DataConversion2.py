@@ -21,7 +21,7 @@ if __name__ == '__main__':
 	"""
 
 	SetCommandLine("__main__")
-	IdxModule.attach()
+	DbModule.attach()
 
 	# trick to speed up the conversion
 	os.environ["VISUS_DISABLE_WRITE_LOCK"]="1"
@@ -115,6 +115,6 @@ if __name__ == '__main__':
 	        	raise Exception("Cannot execute query")
 	        	
 
-	IdxModule.detach()
+	DbModule.detach()
 	print("Done with conversion")
 	sys.exit(0)

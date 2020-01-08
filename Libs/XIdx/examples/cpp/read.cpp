@@ -37,7 +37,7 @@ using namespace Visus;
 int main(int argn, const char** argv) {
 
   SetCommandLine(argn, argv);
-  XIdxModule::attach();
+  XDbModule::attach();
 
   if (argn < 2) {
     VisusInfo()<<"Usage: read file_path [debug]";
@@ -109,7 +109,7 @@ int main(int argn, const char** argv) {
 
   VisusInfo() << "output saved into verify.xidx";
 
-  XIdxModule::detach();
+  XDbModule::detach();
 
   return 0; 
 }

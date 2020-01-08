@@ -38,7 +38,7 @@ For support : support@visus.net
 
 #include <Visus/Nodes.h>
 
-#include <Visus/Idx.h>
+#include <Visus/Db.h>
 
 #include <Visus/CpuPaletteNode.h>
 #include <Visus/DatasetNode.h>
@@ -70,7 +70,7 @@ void NodesModule::attach()
 
   bAttached = true;
 
-  IdxModule::attach();
+  DbModule::attach();
   DataflowModule::attach();
 
   VISUS_REGISTER_NODE_CLASS(CpuPaletteNode);
@@ -103,7 +103,7 @@ void NodesModule::detach()
 
   bAttached = false;
 
-  IdxModule::detach();
+  DbModule::detach();
   DataflowModule::detach();
 
   PrintInfo("Detached NodesModule");

@@ -36,38 +36,43 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef VISUS_IDX_H__
-#define VISUS_IDX_H__
-
-#include <Visus/Kernel.h>
+#include <Visus/Idx.h>
+#include <Visus/IdxDataset.h>  
+#include <Visus/IdxMultipleDataset.h>
+#include <Visus/StringTree.h>
 
 namespace Visus {
 
-#if SWIG || VISUS_STATIC_IDX_LIB
-  #define VISUS_IDX_API
-#else
-  #if VISUS_BUILDING_VISUSIDX
-    #define VISUS_IDX_API VISUS_SHARED_EXPORT
-  #else
-    #define VISUS_IDX_API VISUS_SHARED_IMPORT
-  #endif
-#endif
+bool DbModule::bAttached = false;
 
-class VISUS_IDX_API IdxModule : public VisusModule
+//////////////////////////////////////////////////////////////////
+void DbModule::attach()
 {
-public:
 
-  static bool bAttached;
 
-  //attach
-  static void attach();
+  bAttached = true;
 
-  //detach
-  static void detach();
-};
+  DbModule::attach();
+
+
+  PrintInfo("Attached DbModule");
+}
+
+
+//////////////////////////////////////////////
+void DbModule::detach()
+{
+  if (!bAttached)  
+    return;
+  
+  PrintInfo("Detaching DbModule...");
+  
+  bAttached = false;
+
+  DbModule::detach();
+
+  PrintInfo("Detached DbModule");
+}
 
 } //namespace Visus
-
-
-#endif //VISUS_IDX_H__
 

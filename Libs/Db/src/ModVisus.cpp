@@ -44,6 +44,8 @@ For support : support@visus.net
 #include <Visus/NetService.h>
 #include <Visus/StringTree.h>
 #include <Visus/ApplicationInfo.h>
+#include <Visus/IdxDataset.h>
+#include <Visus/IdxMultipleDataset.h>
 
 namespace Visus {
 
@@ -371,14 +373,23 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
 
   auto body = dataset->getDatasetBody();
 
-  //remap urls...
+  bool bPreferOldIdxFormat = true;
+  if (dataset->getTypeName()=="IdxDataset" && bPreferOldIdxFormat)
   {
-    std::stack< std::pair<String,StringTree*>> stack;
-    stack.push(std::make_pair("",&body));
+    auto idxfile = std::dynamic_pointer_cast<IdxDataset>(dataset)->idxfile;
+    String content;
+    idxfile.writeToOldFormat(content);
+    response.setTextBody(content,/*bHasBinary*/true);
+  }
+  else 
+  {
+    //remap urls...
+    std::stack< std::pair<String, StringTree*> > stack;
+    stack.push(std::make_pair("", &body));
     while (!stack.empty())
     {
       auto prefix = stack.top().first;
-      auto cur    = stack.top().second; 
+      auto cur = stack.top().second;
       stack.pop();
       if (cur->name == "dataset" && !cur->readString("name").empty())
       {
@@ -389,9 +400,10 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
       for (auto child : cur->getChilds())
         stack.push(std::make_pair(prefix, child.get()));
     }
+
+    response.setTextBody(body.toString(),/*bHasBinary*/true);
   }
 
-  response.setTextBody(body.toString(),/*bHasBinary*/true);
   return response;
 }
 
@@ -423,6 +435,8 @@ NetResponse ModVisus::handleGetListOfDatasets(const NetRequest& request)
 }
 
 ///////////////////////////////////////////////////////////////////////////
+//deprecated
+#if 0
 NetResponse ModVisus::handleHtmlForPlugin(const NetRequest& request)
 {
   String htmlcontent =
@@ -442,6 +456,7 @@ NetResponse ModVisus::handleHtmlForPlugin(const NetRequest& request)
   response.setHtmlBody(htmlcontent);
   return response;
 }
+#endif
 
 
 ///////////////////////////////////////////////////////////////////////////
@@ -722,31 +737,16 @@ NetResponse ModVisus::handleRequest(NetRequest request)
     String user_agent = StringUtils::toLower(request.getHeader("User-Agent"));
 
     bool bSpecifyDataset = request.url.hasParam("dataset");
-    bool bCommercialBrower = !user_agent.empty() && !StringUtils::contains(user_agent, "visus");
+    //bool bCommercialBrower = !user_agent.empty() && !StringUtils::contains(user_agent, "visus");
 
-    if (bCommercialBrower)
+    if (bSpecifyDataset)
     {
-      if (bSpecifyDataset)
-      {
-        request.url.setParam("action", "plugin");
-      }
-      else
-      {
-        request.url.setParam("action", "list");
-        request.url.setParam("format", "html");
-      }
+      request.url.setParam("action", "readdataset");
     }
     else
     {
-      if (bSpecifyDataset)
-      {
-        request.url.setParam("action", "readdataset");
-      }
-      else
-      {
-        request.url.setParam("action", "list");
-        request.url.setParam("format", "xml");
-      }
+      request.url.setParam("action", "list");
+      request.url.setParam("format", "xml"); //"html"
     }
   }
 
@@ -765,9 +765,6 @@ NetResponse ModVisus::handleRequest(NetRequest request)
 
   else if (action == "readdataset" || action == "read_dataset")
     response = handleReadDataset(request);
-
-  else if (action == "plugin")
-    response = handleHtmlForPlugin(request);
 
   else if (action == "list")
     response = handleGetListOfDatasets(request);

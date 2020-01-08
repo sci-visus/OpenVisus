@@ -1,7 +1,7 @@
 
 if (WIN32)
 	AddLibrary(mod_visus SHARED mod_visus.cpp)
-	target_link_libraries(mod_visus PUBLIC VisusIdx)
+	target_link_libraries(mod_visus PUBLIC VisusDb)
 	LinkPythonToExecutable(mod_visus)
 	set_target_properties(mod_visus PROPERTIES FOLDER Executable/)
 
@@ -71,7 +71,7 @@ else()
 
 	if (VISUS_MODVISUS)
 		AddLibrary(mod_visus SHARED mod_visus.cpp)
-		target_link_libraries(mod_visus PUBLIC VisusIdx)
+		target_link_libraries(mod_visus PUBLIC VisusDb)
 		LinkPythonToExecutable(mod_visus)
 		set_target_properties(mod_visus PROPERTIES FOLDER Executable/)
 		target_include_directories(mod_visus PRIVATE ${APACHE_INCLUDE_DIRS})

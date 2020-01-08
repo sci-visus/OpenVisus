@@ -36,10 +36,10 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_IDX_HZORDER_H
-#define __VISUS_IDX_HZORDER_H
+#ifndef __VISUS_DB_IDX_HZORDER_H
+#define __VISUS_DB_IDX_HZORDER_H
 
-#include <Visus/Idx.h>
+#include <Visus/Db.h>
 #include <Visus/DatasetBitmask.h>
 
 namespace Visus {
@@ -60,7 +60,7 @@ LOW-LEVEL mapping functions. Remember this schema
    H=6  xxxxx1              1xxxxx
 * ------------------------------------------------------- */
 
-class VISUS_IDX_API HzOrder
+class VISUS_DB_API HzOrder
 {
 public:
 
@@ -305,4 +305,4 @@ private:
 
 } //namespace Visus
 
-#endif //__VISUS_IDX_HZORDER_H
+#endif //__VISUS_DB_IDX_HZORDER_H

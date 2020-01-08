@@ -28,7 +28,6 @@ using namespace Visus;
 %import <Visus/VisusKernelPy.i>
 %import <Visus/VisusDataflowPy.i>
 %import <Visus/VisusDbPy.i>
-%import <Visus/VisusIdxPy.i>
 
 %include <Visus/Nodes.h>
 %include <Visus/CpuPaletteNode.h>

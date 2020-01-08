@@ -162,6 +162,6 @@ class TestIdx(unittest.TestCase):
 # ////////////////////////////////////////////////////////
 if __name__ == '__main__':
 	SetCommandLine("__main__")
-	IdxModule.attach()
+	DbModule.attach()
 	unittest.main(exit=True)
-	IdxModule.detach()
+	DbModule.detach()

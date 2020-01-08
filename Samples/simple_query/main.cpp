@@ -55,10 +55,10 @@ int main(int argc, const char* argv[])
 {
 
   SetCommandLine(argc,argv);
-  IdxModule::attach();
+  DbModule::attach();
 
   DoAtExit do_at_exit([]{
-    IdxModule::detach();
+    DbModule::detach();
   });
 
   auto args=ApplicationInfo::args;

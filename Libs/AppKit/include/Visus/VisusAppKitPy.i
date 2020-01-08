@@ -26,7 +26,6 @@ using namespace Visus;
 %import  <Visus/VisusDataflowPy.i>
 %import  <Visus/VisusDbPy.i>
 %import  <Visus/VisusNodesPy.i>
-%import  <Visus/VisusIdxPy.i>
 %import  <Visus/VisusGuiPy.i>
 %import  <Visus/VisusGuiNodesPy.i>
 

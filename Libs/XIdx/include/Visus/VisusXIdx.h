@@ -56,7 +56,7 @@
 namespace Visus {
 
 //////////////////////////////////////////////////////////////////////////////
-class VISUS_XIDX_API XIdxModule : public VisusModule
+class VISUS_XIDX_API XDbModule : public VisusModule
 {
 public:
 

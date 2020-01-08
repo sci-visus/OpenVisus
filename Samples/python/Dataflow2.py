@@ -87,7 +87,7 @@ class MyDataflow(Dataflow):
 
 if __name__ == '__main__':
     SetCommandLine("__main__")
-    IdxModule.attach()
+    DbModule.attach()
     NodesModule.attach()
     VISUS_REGISTER_NODE_CLASS("MyReceiverNode")
 
@@ -99,4 +99,4 @@ if __name__ == '__main__':
     dataflow.joinProcessing() 
 
     NodesModule.detach()
-    IdxModule.detach()
+    DbModule.detach()

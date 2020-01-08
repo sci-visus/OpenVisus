@@ -318,7 +318,7 @@ int write_time_varying(const char* filepath, int n_attributes, int n_timesteps){
 int main(int argn, const char** argv)
 {
   SetCommandLine(argn, argv);
-  XIdxModule::attach();
+  XDbModule::attach();
 
   if(argn == 2 && strncmp(argv[1],"help",4)==0)
   {
@@ -348,7 +348,7 @@ int main(int argn, const char** argv)
 
   VisusInfo()<<"Time taken "<< t1.elapsedSec();
 
-  XIdxModule::detach();
+  XDbModule::detach();
 
   return ret;
 }

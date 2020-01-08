@@ -1,8 +1,8 @@
 
 SET(RootSources
 	./include/Visus/Db.h
-	./include/Visus/ModVisus.h
 	./src/Db.cpp
+	./include/Visus/ModVisus.h
 	./src/ModVisus.cpp
 )
 
@@ -53,10 +53,27 @@ SET(AccessSources
 	./src/OnDemandAccess.cpp
 )
 
+
+SET(IdxSources
+	include/Visus/IdxDataset.h
+	include/Visus/IdxDiskAccess.h
+	include/Visus/IdxFile.h
+	include/Visus/IdxHzOrder.h
+	include/Visus/IdxMultipleDataset.h              
+	src/IdxDataset.cpp        
+	src/IdxDiskAccess.cpp     
+	src/IdxFile.cpp           
+	src/IdxFilter.cpp         
+	src/IdxHzOrder.cpp        
+	src/IdxMultipleDataset.cpp
+	src/LogicSamples.cpp  
+)
+
 source_group(""         FILES ${RootSources})
 source_group("Access"   FILES ${AccessSources})
 source_group("Dataset"  FILES ${DatasetSources})
 source_group("Query"    FILES ${QuerySources})
+source_group("Idx"      FILES ${IdxSources})
 
 file(GLOB Sources include/Visus/*.h src/*.cpp)
 

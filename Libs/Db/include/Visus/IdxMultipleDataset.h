@@ -36,21 +36,21 @@ For additional information about this project contact : pascucci@acm.org
 For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
-#ifndef __VISUS_IDX_MULTIPLE_DATASET_H
-#define __VISUS_IDX_MULTIPLE_DATASET_H
+#ifndef __VISUS_DB_IDX_MULTIPLE_DATASET_H
+#define __VISUS_DB_IDX_MULTIPLE_DATASET_H
 
-#include <Visus/Idx.h>
+#include <Visus/Db.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/Color.h>
 
 namespace Visus {
 
 #if VISUS_PYTHON
-class VISUS_IDX_API PythonEnginePool;
+class VISUS_DB_API PythonEnginePool;
 #endif
 
 //////////////////////////////////////////////////////////////////////
-class VISUS_IDX_API IdxMultipleDataset  : public IdxDataset
+class VISUS_DB_API IdxMultipleDataset  : public IdxDataset
 {
 public:
 
@@ -169,5 +169,5 @@ private:
 
 } //namespace Visus
 
-#endif //__VISUS_IDX_MULTIPLE_DATASET_H
+#endif //__VISUS_DB_IDX_MULTIPLE_DATASET_H
 

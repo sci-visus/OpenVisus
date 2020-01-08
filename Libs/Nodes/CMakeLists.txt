@@ -2,7 +2,7 @@
 file(GLOB Sources include/Visus/*.h src/*.cpp)
 source_group("" FILES ${Sources})
 AddLibrary(VisusNodes SHARED ${Sources})
-target_link_libraries(VisusNodes PUBLIC VisusIdx VisusDataflow)
+target_link_libraries(VisusNodes PUBLIC VisusDb VisusDataflow)
 
 if (VISUS_PYTHON)
 	AddSwigLibrary(VisusNodesPy VisusNodes ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusNodesPy.i 

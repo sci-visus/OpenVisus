@@ -1,9 +1,9 @@
 
-if (VISUS_IDX)
+if (VISUS_DB)
 	add_subdirectory(visus)
 endif()
 
-if (VISUS_IDX)
+if (VISUS_DB)
 	add_subdirectory(mod_visus)
 endif()
 

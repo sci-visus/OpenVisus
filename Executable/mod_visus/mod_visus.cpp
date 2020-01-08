@@ -39,7 +39,7 @@ For support : support@visus.net
 #include <Visus/Kernel.h>
 #include <Visus/ModVisus.h>
 #include <Visus/Path.h>
-#include <Visus/Idx.h>
+#include <Visus/Db.h>
 #include <Visus/ApplicationInfo.h>
 #include <Visus/StringTree.h>
 
@@ -166,7 +166,7 @@ public:
     static int argn = 3;
     static const char* argv[] = { "mod_visus.dll", "--visus-config", "/inetpub/wwwroot/visus/visus.config" };
     SetCommandLine(argn, argv);
-    IdxModule::attach();
+    DbModule::attach();
 
     RedirectLogTo(MyWriteLog, this);
     mod_visus = new ModVisus();
@@ -613,7 +613,7 @@ public:
     static int narg=1;
     static const char *argv[]={"mod_visus"};
     SetCommandLine(narg,argv);
-    IdxModule::attach();
+    DbModule::attach();
 
     this->configureDatasets();
   }
@@ -622,7 +622,7 @@ public:
   void shutdownInCurrentProcess()
   {
     PrintInfo("shutdownInCurrentProcess");
-    IdxModule::detach();
+    DbModule::detach();
     RedirectLogTo(nullptr);
   }
 

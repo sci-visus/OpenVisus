@@ -960,17 +960,6 @@ void IdxDataset::read(Archive& ar)
 {
   String url = ar.readString("url");
 
-  //old *.idx format
-  if (auto child=ar.getChild("content"))
-  {
-    String content;
-    ar.readText("content",content);
-    IdxFile old;
-    old.readFromOldFormat(content);
-    Utils::remove(ar.childs, child);
-    ar.writeObject("idxfile", old);
-  }
-
   IdxFile idxfile;
   ar.readObject("idxfile", idxfile);
   idxfile.validate(url);

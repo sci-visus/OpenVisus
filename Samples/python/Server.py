@@ -48,7 +48,7 @@ if __name__ == '__main__':
 	if VISUS_GUI:
 		AppKitModule.attach()
 
-	IdxModule.attach()
+	DbModule.attach()
 	
 	srv1=RunServer("cat_rgb", "file://datasets/cat/rgb.idx" , port=10000, dynamic=False)
 	srv2=RunServer("cat_gray","file://datasets/cat/gray.idx", port=10001, dynamic=False)
@@ -65,7 +65,7 @@ if __name__ == '__main__':
 	if VISUS_GUI:
 		AppKitModule.detach()
 	
-	IdxModule.detach()
+	DbModule.detach()
 	sys.exit(0)
 	
 	

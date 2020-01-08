@@ -44,6 +44,8 @@ For support : support@visus.net
 #include <Visus/DatasetArrayPlugin.h>
 #include <Visus/OnDemandAccess.h>
 #include <Visus/StringTree.h>
+#include <Visus/IdxDataset.h>
+#include <Visus/IdxMultipleDataset.h>
 
 namespace Visus {
 
@@ -63,6 +65,8 @@ void DbModule::attach()
 
   DatasetFactory::allocSingleton();
   DatasetFactory::getSingleton()->registerDatasetType("GoogleMapsDataset", []() {return std::make_shared<GoogleMapsDataset>(); });
+  DatasetFactory::getSingleton()->registerDatasetType("IdxDataset", []() {return std::make_shared<IdxDataset>(); });
+  DatasetFactory::getSingleton()->registerDatasetType("IdxMultipleDataset", []() {return std::make_shared<IdxMultipleDataset>(); });
 
   ArrayPlugins::getSingleton()->values.push_back(std::make_shared<DatasetArrayPlugin>());
 
@@ -70,6 +74,17 @@ void DbModule::attach()
 
   if (auto value = config->readInt("Configuration/OnDemandAccess/External/nconnections", 8))
     OnDemandAccess::Defaults::nconnections = value;
+
+
+  //remove broken files
+  {
+    auto config = getModuleConfig();
+    {
+      auto directory = config->readString("Configuration/IdxDataset/RemoveLockFiles/directory");
+      if (!directory.empty())
+        IdxDataset::tryRemoveLockAndCorruptedBinaryFiles(directory);
+    }
+  }
 
   PrintInfo("Attached DbModule");
 }
@@ -90,6 +105,8 @@ void DbModule::detach()
 
   PrintInfo("Detached DbModule.");
 }
+
+
 
 } //namespace Visus 
 

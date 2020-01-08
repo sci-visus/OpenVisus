@@ -5,10 +5,6 @@ if (VISUS_DB)
 	add_subdirectory(Db)
 endif()
 
-if (VISUS_IDX)
-	add_subdirectory(Idx)
-endif()
-
 if (VISUS_XIDX)
 	add_subdirectory(XIdx)
 endif()

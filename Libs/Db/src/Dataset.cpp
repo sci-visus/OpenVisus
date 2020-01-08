@@ -46,6 +46,7 @@ For support : support@visus.net
 #include <Visus/NetService.h>
 #include <Visus/StringTree.h>
 #include <Visus/Polygon.h>
+#include <Visus/IdxFile.h>
 
 
 namespace Visus {
@@ -362,9 +363,12 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
   }
   else
   {
-    // backward compatible, old *.idx format (version)6...
+    // backward compatible, old idx text format 
     ar.write("typename", "IdxDataset");
-    ar.writeText("content",content);
+
+    IdxFile old_format;
+    old_format.readFromOldFormat(content);
+    ar.writeObject("idxfile", old_format);
   }
 
   auto TypeName = ar.getAttribute("typename");
@@ -373,7 +377,7 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
   if (!ret)
     ThrowException("LoadDataset",url,"failed. Cannot DatasetFactory::getSingleton()->createInstance",TypeName);
 
- ret->read(ar);
+  ret->read(ar);
   //PrintInfo(ret->getDatasetInfos();
   return ret; 
 }

@@ -19,7 +19,7 @@ if __name__ == '__main__':
 	"""
 
 	SetCommandLine("__main__")
-	IdxModule.attach()
+	DbModule.attach()
 	
 	# trick to speed up the conversion
 	os.environ["VISUS_DISABLE_WRITE_LOCK"]="1"
@@ -86,6 +86,6 @@ if __name__ == '__main__':
 		# ArrayUtils.saveImageUINT8("tmp/slice%d.orig.png" % (Z,),Array.fromNumPy(data))
 		# ArrayUtils.saveImageUINT8("tmp/slice%d.offset.png" % (Z,),Array.fromNumPy(fill))
 	
-	IdxModule.detach()
+	DbModule.detach()
 	print("Done with conversion")
 	sys.exit(0)
