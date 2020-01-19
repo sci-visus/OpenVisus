@@ -100,7 +100,7 @@ public:
   }
 
   //save
-  void save(String filename, String TypeName="IdxDataset");
+  void save(String filename);
 
   //parseFields
   static std::vector<Field> parseFields(String content);
@@ -141,10 +141,10 @@ public:
   }
 
   //readFromOldFormat
-  void readFromOldFormat(String& content);
+  void readFromOldFormat(const String& content);
 
   //writeToOldFormat
-  void writeToOldFormat(String& content) const;
+  String writeToOldFormat() const;
 
 };
 

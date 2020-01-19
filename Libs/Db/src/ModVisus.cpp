@@ -373,12 +373,13 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
 
   auto body = dataset->getDatasetBody();
 
+  //backward compatible
   bool bPreferOldIdxFormat = true;
+
   if (dataset->getTypeName()=="IdxDataset" && bPreferOldIdxFormat)
   {
     auto idxfile = std::dynamic_pointer_cast<IdxDataset>(dataset)->idxfile;
-    String content;
-    idxfile.writeToOldFormat(content);
+    String content=idxfile.writeToOldFormat();
     response.setTextBody(content,/*bHasBinary*/true);
   }
   else 

@@ -397,19 +397,30 @@ void IdxFile::load(String url,String& TypeName)
 }
 
 //////////////////////////////////////////////////////////////////////////////
-void IdxFile::save(String filename, String TypeName)
+void IdxFile::save(String filename)
 {
   if (filename.empty())
     ThrowException("invalid name");
 
   //the user is trying to create a new IdxFile... help him by guessing and checking some values
-  if (version==0)
+  if (version == 0)
     validate(filename);
 
-  Archive ar("dataset");
-  ar.write("typename", TypeName);
-  ar.writeObject("idxfile",*this);
-  auto content = ar.toString();
+  String content;
+
+  //backward compatible
+  bool bPreferOldFormat = true;
+
+  if (bPreferOldFormat)
+  {
+    content=writeToOldFormat();
+  }
+  else
+  {
+    Archive ar("dataset");
+    ar.writeObject("idxfile", *this);
+    content = ar.toString();
+  } 
 
   //save the file (using file locks... there could be tons of visus running!)
   {
@@ -421,7 +432,7 @@ void IdxFile::save(String filename, String TypeName)
 
 
 /////////////////////////////////////////////////////////////////////////////
-void IdxFile::writeToOldFormat(String& content) const
+String IdxFile::writeToOldFormat() const
 {
   std::ostringstream out;
 
@@ -512,13 +523,13 @@ void IdxFile::writeToOldFormat(String& content) const
   }
 
   out<<"(filename_template)\n"<<filename_template<<"\n";
-  content=out.str();
+  return out.str();
 }
 
 
 
 //////////////////////////////////////////////////////////////////////////////
-void IdxFile::readFromOldFormat(String& content)
+void IdxFile::readFromOldFormat(const String& content)
 {
   //parse the idx text format
   StringMap map;
