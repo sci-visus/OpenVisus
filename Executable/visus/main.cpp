@@ -221,6 +221,54 @@ public:
 
 };
 
+
+///////////////////////////////////////////////////////////
+class Zeros : public ConvertStep
+{
+public:
+
+  //getHelp
+  virtual String getHelp(std::vector<String> args) override
+  {
+    std::ostringstream out;
+    out << args[0]
+      << "   [--dims <BoxNi>]" << std::endl
+      << "   [--dtype <dtype>]" << std::endl;
+    return out.str();
+  }
+
+  //exec
+  virtual Array exec(Array data, std::vector<String> args) override
+  {
+    if (args.size() < 2)
+      ThrowException(args[0], "syntax error");
+
+    auto dims = data.dims;
+    auto dtype = data.dtype;
+
+    for (int I = 1; I < (int)args.size(); I++)
+    {
+      if (args[I] == "--dims")
+      {
+        dims = PointNi::fromString(args[++I]);
+        continue;
+      }
+
+      if (args[I] == "--dtype")
+      {
+        dtype = DType::fromString(args[++I]);
+        continue;
+      }
+
+      ThrowException(args[0], "Invalid arguments", args[I]);
+    }
+
+    data = Array(dims, dtype);
+    return data;
+  }
+
+};
+
 ///////////////////////////////////////////////////////////////////////
 class StartVisusServer : public ConvertStep
 {
@@ -445,7 +493,7 @@ public:
   {
     std::ostringstream out;
     out << args[0]
-      << " <dataset.xml> <compression>" << std::endl;
+      << " <dataset_filename> <compression>" << std::endl;
     return out.str();
   }
 
@@ -957,6 +1005,44 @@ public:
       ThrowException(args[0], "resize failed");
 
     return data;
+  }
+};
+
+
+///////////////////////////////////////////////////////////
+class ResampleData : public ConvertStep
+{
+public:
+
+  //getHelp
+  virtual String getHelp(std::vector<String> args) override
+  {
+    std::ostringstream out;
+    out << args[0]
+      << "   [--dims <PointNi>]" << std::endl;
+    return out.str();
+  }
+
+  //exec
+  virtual Array exec(Array data, std::vector<String> args) override
+  {
+    if (args.size() < 2)
+      ThrowException(args[0], "syntax error");
+
+
+    PointNi target_dims = data.dims;
+    for (int I = 1; I < (int)args.size(); I++)
+    {
+      if (args[I] == "--dims")
+      {
+        target_dims = PointNi::fromString(args[++I]);
+        continue;
+      }
+
+      ThrowException(args[0], "Invalid arguments", args[I]);
+    }
+
+    return ArrayUtils::resample(target_dims, data);
   }
 };
 
@@ -1993,6 +2079,7 @@ public:
   DoConvert()
   {
     addAction("create", []() {return std::make_shared<CreateIdx>(); });
+    addAction("zeros", []() {return std::make_shared<Zeros>(); });
     addAction("server", []() {return std::make_shared<StartVisusServer>();});
     addAction("minmax", []() {return std::make_shared<FixDatasetRange>(); });
     addAction("copy-dataset", []() {return std::make_shared<CopyDataset>(); });
@@ -2012,6 +2099,7 @@ public:
     addAction("info", []() {return std::make_shared<PrintInfo>(); });
     addAction("interleave", []() {return std::make_shared<InterleaveData>(); });
     addAction("resize", []() {return std::make_shared<ResizeData>(); });
+    addAction("resample", []() {return std::make_shared<ResampleData>(); });
     addAction("get-component", []() {return std::make_shared<GetComponent>(); });
     addAction("write-block", []() {return std::make_shared<ReadWriteBlock>(true); });
     addAction("read-block", []() {return std::make_shared<ReadWriteBlock>(false); });
