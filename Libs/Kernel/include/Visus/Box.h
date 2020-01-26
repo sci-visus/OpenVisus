@@ -455,6 +455,136 @@ public:
 typedef BoxN<double> BoxNd;
 typedef BoxN<Int64 > BoxNi;
 
+
+
+///////////////////////////////////////////////////////////////////
+//backward compatible (for VisusWeaving)
+class VISUS_KERNEL_API Box3d
+{
+public:
+
+  typedef Point3d Point;
+
+  //points (see valid() function)
+  Point p1, p2;
+
+  //constructor
+  Box3d() {
+  }
+
+  //constructor
+  Box3d(Point p1_, Point p2_) : p1(p1_), p2(p2_) {
+  }
+
+  //return an invalid box
+  static Box3d invalid()
+  {
+    double L = -std::numeric_limits<double>::max();
+    double H = +std::numeric_limits<double>::max();
+    return Box3d(Point(H, H, H), Point(L, L, L));
+  }
+
+  //valid (note: an axis can have zero dimension, trick to store slices too)
+  bool valid() const {
+    return p1.valid() && p2.valid() && p1.x <= p2.x && p1.y <= p2.y  && p1.z <= p2.z;
+  }
+
+  //center
+  Point center() const {
+    return 0.5*(p1 + p2);
+  }
+
+  //size
+  Point size() const {
+    return p2 - p1;
+  }
+
+  //middle
+  Point middle() const {
+    return 0.5*(p1 + p2);
+  }
+
+  //addPoint
+  void addPoint(Point p) {
+    this->p1 = Point::min(this->p1, p);
+    this->p2 = Point::max(this->p2, p);
+  }
+
+  //getPoint
+  Point getPoint(double alpha, double beta, double gamma) const {
+    return p1 + Point(alpha*(p2.x - p1.x), beta*(p2.y - p1.y), gamma*(p2.z - p1.z));
+  }
+
+  //test if a point is inside the box
+  bool containsPoint(Point p) const {
+    return this->p1 <= p && p <= this->p2;
+  }
+
+  //test if two box are equal
+  bool operator==(const Box3d& b) const {
+    return p1 == b.p1 && p2 == b.p2;
+  }
+
+  //test equality
+  bool operator!=(const Box3d& b) const {
+    return !(this->operator==(b));
+  }
+
+  //intersect
+  bool intersect(const Box3d& other) const {
+    return valid() && other.valid() ? (p1 <= other.p2 && p2 >= other.p1) : false;
+  }
+
+  //get intersection of two boxes
+  Box3d getIntersection(const Box3d& b) const {
+    Box3d ret;
+    ret.p1 = Point::max(this->p1, b.p1);
+    ret.p2 = Point::min(this->p2, b.p2);
+    return ret;
+  }
+
+  //get union of two boxes
+  Box3d getUnion(const Box3d& b) const {
+    Box3d ret;
+    ret.p1 = Point::min(this->p1, b.p1);
+    ret.p2 = Point::max(this->p2, b.p2);
+    return ret;
+  }
+
+  //construct to string
+  String toString() const {
+    return p1.toString() + " " + p2.toString();
+  }
+
+  //toBoxNd
+  BoxNd toBoxNd() const {
+    return BoxNd(PointNd(p1.x,p1.y,p1.z),PointNd(p2.x, p2.y, p2.z));
+  }
+
+  //toBoxNd
+  BoxNi toBoxNi() const {
+    return BoxNi(PointNi((int)p1.x, (int)p1.y, (int)p1.z), PointNi((int)p2.x, (int)p2.y, (int)p2.z));
+  }
+
+  //fromBoxNi
+  static Box3d fromBoxNi(const BoxNd src) {
+    auto dim = src.getPointDim();
+    return Box3d(
+      Point3d(dim >= 1 ? src.p1[0] : 0, dim >= 2 ? src.p1[1] : 0, dim >= 3 ? src.p1[2] : 0),
+      Point3d(dim >= 1 ? src.p2[0] : 0, dim >= 2 ? src.p2[1] : 0, dim >= 3 ? src.p2[2] : 0));
+  }
+
+  //fromBoxNd
+  static Box3d fromBoxNd(const BoxNd src) {
+    auto dim = src.getPointDim();
+    return Box3d(
+      Point3d(dim >= 1 ? src.p1[0] : 0, dim >= 2 ? src.p1[1] : 0, dim >= 3 ? src.p1[2] : 0),
+      Point3d(dim >= 1 ? src.p2[0] : 0, dim >= 2 ? src.p2[1] : 0, dim >= 3 ? src.p2[2] : 0));
+  }
+
+};
+
+
 } //namespace Visus
 
 #endif //VISUS_BOX_H

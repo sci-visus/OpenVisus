@@ -110,8 +110,10 @@ public:
     push(building.texcoords3f, Point3f((float)x, (float)y, (float)z)); 
   }
 
+  void vertex(const Point2i& p) { vertex(p[0], p[1], 0); }
   void vertex(const Point2f& p) { vertex(p[0], p[1], 0); }
   void vertex(const Point2d& p) { vertex(p[0], p[1], 0); }
+  void vertex(const Point3i& p) { vertex(p[0], p[1], p[2]); }
   void vertex(const Point3f& p) { vertex(p[0], p[1], p[2]); }
   void vertex(const Point3d& p) { vertex(p[0], p[1], p[2]); }
   void vertex(const PointNd& p) { vertex(p.toPoint3()); }

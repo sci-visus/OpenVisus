@@ -242,6 +242,11 @@ public:
   GLLineStrip(const std::vector<PointNd>& vertices_, const Color& color_, int line_width_ = 1)
     : GLPhongObject(GLMesh::LineStrip(vertices_), color_, line_width_) {}
 
+  //constructor
+  GLLineStrip(const std::vector<Point2i>& vertices_, const Color& color_, int line_width_ = 1)
+    : GLPhongObject(GLMesh::LineStrip(vertices_), color_, line_width_) {}
+
+
   //destructor
   virtual ~GLLineStrip() {
   }

@@ -77,6 +77,15 @@ public:
   Color(int C0,int C1,int C2,int Alpha=255) : color_model(RGBType),v({{C0/255.0f,C1/255.0f,C2/255.0f,Alpha/255.0f}}) {
     clampToRange(0.0f,1.0f);
   }
+
+  //constructor
+  Color(std::vector<float> v) : Color(
+    v.size() >= 1 ? v[0] : 0,
+    v.size() >= 2 ? v[1] : 0,
+    v.size() >= 3 ? v[2] : 0,
+    v.size() >= 4 ? v[3] : 1) {
+
+  }
   
   //destructor
   virtual ~Color()

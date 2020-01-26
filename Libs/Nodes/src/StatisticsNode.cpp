@@ -57,7 +57,7 @@ public:
   virtual void runJob() override
   {
     Time t1=Time::now();
-    if (auto stats=Statistics::compute(data,aborted))
+    if (auto stats=Statistics::compute(data,256,aborted))
     {
       PrintInfo("Computed statistics done i", t1.elapsedMsec());
       DataflowMessage msg;
