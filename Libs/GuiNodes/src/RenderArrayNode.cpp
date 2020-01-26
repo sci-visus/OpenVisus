@@ -270,24 +270,31 @@ void RenderArrayNode::setData(Array value,SharedPtr<Palette> palette)
 
   //compute translate scale for texture values (to go in the color range 0,1)
   //TODO: this range stuff can be slow and blocking...
-  this->data_texture->vs = Point4d(1, 1, 1, 1);
-  this->data_texture->vt = Point4d(0, 0, 0, 0);
+  auto& vs = this->data_texture->vs; vs = Point4d(1, 1, 1, 1);
+  auto& vt = this->data_texture->vt; vt = Point4d(0, 0, 0, 0);
+
   if (!this->data.dtype.isVectorOf(DTypes::UINT8))
   {
     int ncomponents = this->data.dtype.ncomponents();
+
     for (int C = 0; C < std::min(4, ncomponents); C++)
     {
       Range range;
-      if (palette)
-        range = palette->computeRange(this->data, C);
-      if (range.delta()<=0)
-        range = this->data.dtype.getDTypeRange(C);
-      if (range.delta() <= 0)
-        range = ArrayUtils::computeRange(this->data, C);
+      if (palette) range = palette->computeRange(this->data, C);
+      if (range.delta() <= 0) range = this->data.dtype.getDTypeRange(C);
+      if (range.delta() <= 0) range = ArrayUtils::computeRange(this->data, C);
       auto p = range.getScaleTranslate();
-      data_texture->vs[C] = p.first;
-      data_texture->vt[C] = p.second;
+      vs[C] = p.first;
+      vt[C] = p.second;
     }
+
+    //1 component will end up in texture RGB, I want all channels to be the same (as it was gray)
+    if (ncomponents == 1)
+    {
+      vs[1] = vs[2] = vs[0]; vs[3] = 1.0;
+      vt[1] = vt[2] = vs[0]; vt[3] = 0.0;
+    }
+
   }
 
   //palette
@@ -340,7 +347,10 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   this->return_receipt.reset();
 
   //need to upload a new palette?
-  bool b3D          = data.getDepth()>1;
+  bool b3D = 
+    data.dims[0] > 1 && 
+    data.dims[1] > 1 && 
+    data.dims[2] > 1;
 
   //if you want to see what's going on...
   #if 0
@@ -437,7 +447,6 @@ void RenderArrayNode::glRender(GLCanvas& gl)
   else
   {
     shader->setOpacity(gl, opacity);
-
     gl.glRenderMesh(GLMesh::Quad(Point2d(0,0),Point2d(1,1),/*bNormal*/shader->config.lighting_enabled,/*bTexCoord*/true));
   }
 
