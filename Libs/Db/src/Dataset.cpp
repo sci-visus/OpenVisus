@@ -618,6 +618,12 @@ PointNi Dataset::guessPointQueryNumberOfSamples(const Frustum& logic_to_screen, 
     nsamples[2] = std::min(view_dependent_dims[2], nsamples[2]);
   }
 
+  //important
+#if 1
+  nsamples = nsamples.compactDims(); 
+  nsamples.setPointDim(3, 1);
+#endif
+
   return nsamples;
 }
 

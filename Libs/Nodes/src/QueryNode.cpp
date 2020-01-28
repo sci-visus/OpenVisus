@@ -95,6 +95,7 @@ public:
         query->end_resolution = this->resolutions[N];
         auto nsamples = dataset->guessPointQueryNumberOfSamples(logic_to_screen, logic_position, query->end_resolution);
         query->setPoints(nsamples);
+
         dataset->beginQuery(query);
 
         if (!dataset->executeQuery(access, query))
@@ -102,7 +103,7 @@ public:
         
         auto output = query->buffer;
 
-        if (verbose)
+        if (true)
         {
           PrintInfo("PointQuery msec",t1.elapsedMsec(),"level",N,"/",this->resolutions.size(),"/",this->resolutions[N],"/",dataset->getMaxResolution(),
             "dims",output.dims,"dtype",output.dtype,"access",access ? "yes" : "nullptr","url",dataset->getUrl());
@@ -146,7 +147,7 @@ public:
 
         auto output = query->buffer;
 
-        if (verbose)
+        if (true)
         {
           PrintInfo("BoxQuery msec",t1.elapsedMsec(),
             "level",N, "/", this->resolutions.size(), "/", this->resolutions[N], "/", dataset->getMaxResolution(),
@@ -411,7 +412,6 @@ bool QueryNode::processInput()
   }
  
   addNodeJob(std::make_shared<MyJob>(this, dataset, access));
-
   return true;
 }
 

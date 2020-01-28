@@ -253,6 +253,7 @@ void RenderArrayNode::setData(Array value,SharedPtr<Palette> palette)
   }
 
   bool got_new_data = (value.heap != this->data.heap);
+
   this->data = value;
 
   //automatically convert to RGB
@@ -291,8 +292,8 @@ void RenderArrayNode::setData(Array value,SharedPtr<Palette> palette)
     //1 component will end up in texture RGB, I want all channels to be the same (as it was gray)
     if (ncomponents == 1)
     {
-      vs[1] = vs[2] = vs[0]; vs[3] = 1.0;
-      vt[1] = vt[2] = vs[0]; vt[3] = 0.0;
+      vs = Point4d(vs[0], vs[0], vs[0], 1.0);
+      vt = Point4d(vt[0], vt[0], vt[0], 0.0);
     }
 
   }
@@ -301,6 +302,14 @@ void RenderArrayNode::setData(Array value,SharedPtr<Palette> palette)
   this->palette = palette;
   if (palette)
     this->palette_texture = std::make_shared<GLTexture>(palette->toArray());
+
+  //if you want to see what's going on...
+#if 0
+  {
+    static int cont = 0;
+    ArrayUtils::saveImageUINT8(concatenate("temp.", cont++, ".png"), *data);
+  }
+#endif
 
   PrintInfo("got array",
     "value",value.dims, value.dtype,
@@ -334,6 +343,7 @@ bool RenderArrayNode::processInput()
 
   this->return_receipt = return_receipt;
   setData(*data, palette);
+
   return true;
 }
 
@@ -351,14 +361,6 @@ void RenderArrayNode::glRender(GLCanvas& gl)
     data.dims[0] > 1 && 
     data.dims[1] > 1 && 
     data.dims[2] > 1;
-
-  //if you want to see what's going on...
-  #if 0
-  {
-    static int cont=0;
-    ArrayUtils::saveImageUINT8(concatenate("temp.", cont++, ".png"),Array::createView(*data,compact_dims,data->dtype));
-  }
-  #endif
 
   RenderArrayNodeShader::Config config;
   config.texture_dim                    = b3D?3:2;

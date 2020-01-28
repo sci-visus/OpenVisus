@@ -273,10 +273,13 @@ GLuint GLTexture::textureId(GLCanvas& gl)
 
     GLInfo::getSingleton()->addVisusUsedMemory(gpusize);
 
-    PrintInfo(gpusize==fullsize?"Non compressed":"Compressed", "texture",
-      "fullsize", StringUtils::getStringFromByteSize(fullsize),
-      "gpusize", gpusize,
-      "ratio", (100.0 * double(gpusize) / double(fullsize)), "%");
+    if (false)
+    {
+      PrintInfo(gpusize == fullsize ? "Non compressed" : "Compressed", "texture",
+        "fullsize", StringUtils::getStringFromByteSize(fullsize),
+        "gpusize", gpusize,
+        "ratio", (100.0 * double(gpusize) / double(fullsize)), "%");
+    }
   }
 
   if (save_original_alignment!=1)

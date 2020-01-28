@@ -202,6 +202,7 @@ namespace GuiFactory
   inline QSlider* CreateIntegerSliderWidget(int value,int From,int To,std::function<void(int)> callback=std::function<void(int)>())
   {
     auto ret=new QSlider();
+    ret->setStyleSheet("QSlider {height: 20px;}");
     ret->setOrientation(Qt::Horizontal);
     ret->setValue(value);
     if (callback)
