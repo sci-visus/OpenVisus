@@ -112,6 +112,7 @@ void PaletteNode::setPalette(SharedPtr<Palette> value)
   }
 
   this->palette=value;
+  doPublish();
 
   if (this->palette)
   {
