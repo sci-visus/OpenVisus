@@ -95,8 +95,32 @@ public:
   //findDataset
   SharedPtr<Dataset> findDataset(String name) const
   {
+    // return dataset from visus.config, if it exists
     auto it = datasets_map.find(name);
-    return (it != datasets_map.end()) ? it->second : SharedPtr<Dataset>();
+    if (it != datasets_map.end())
+      return it->second;
+
+    // search the filesystem for the dataset
+    auto idxPath = KnownPaths::VisusHome.getChild("converted/"+name+"/visus.idx");
+    if (FileUtils::existsFile(idxPath)) {
+      PrintInfo("creating temp dataset", name, idxPath.toString());
+      
+      StringTree stree("dataset");
+      stree.write("name", name);
+      stree.write("url", "file://" + idxPath.toString());
+      stree.write("permissions", "public");
+
+      try
+      {
+        return LoadDatasetEx(stree);
+      }
+      catch(...) {
+        PrintWarning("dataset name", name, "load failed");
+      }
+    }
+
+    // couldn't find the dataset
+    return SharedPtr<Dataset>();
   }
 
 private:
