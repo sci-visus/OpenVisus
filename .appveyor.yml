@@ -59,16 +59,17 @@ build_script:
 
 test: off
 
-artifacts:
-    - path: build\%CMAKE_BUILD_TYPE%\OpenVisus\dist\*.zip
-      name: GitHubReleasesArtifact
+# commented, too big
+#artifacts:
+#    - path: build\%CMAKE_BUILD_TYPE%\OpenVisus\dist\*.zip
+#      name: GitHubReleasesArtifact
  
-deploy:
-  - provider: GitHub
-    auth_token:
-      secure: nwK8bGTRUynj+58b7E8Rgur5/0YvfIivBflFb5AaUrpC5BSTpcLbA4Ac+cCF6L4/
-    artifact: GitHubReleasesArtifact
-    on:
-      appveyor_repo_tag: true
+#deploy:
+#  - provider: GitHub
+#    auth_token:
+#      secure: nwK8bGTRUynj+58b7E8Rgur5/0YvfIivBflFb5AaUrpC5BSTpcLbA4Ac+cCF6L4/
+#    artifact: GitHubReleasesArtifact
+#    on:
+#      appveyor_repo_tag: true
 
 
