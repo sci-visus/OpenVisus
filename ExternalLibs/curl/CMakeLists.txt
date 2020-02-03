@@ -8,3 +8,7 @@ if (WIN32)
 endif()
 
 add_subdirectory(lib)
+
+
+set_target_properties(curl PROPERTIES FOLDER "ExternalLibs/VISUS_NET")
+

@@ -201,3 +201,7 @@ add_subdirectory(crypto)
 add_subdirectory(ssl)
 add_subdirectory(tls)
 
+set_target_properties(crypto PROPERTIES FOLDER "ExternalLibs/VISUS_NET/libressl")
+set_target_properties(ssl    PROPERTIES FOLDER "ExternalLibs/VISUS_NET/libressl")
+set_target_properties(tls    PROPERTIES FOLDER "ExternalLibs/VISUS_NET/libressl")
+
