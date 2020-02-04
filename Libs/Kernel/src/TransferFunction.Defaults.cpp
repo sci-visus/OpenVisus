@@ -898,37 +898,37 @@ SharedPtr<TransferFunction> TransferFunction::getDefault(String default_name, co
       return ret;
     };
 
-    if (default_name == "BlueGreenDivergent")
+    if (default_name == "bluegreendivergent")
       return fromRGBAColorMap(BlueGreenDivergent, sizeof(BlueGreenDivergent) / sizeof(double));
 
-    if (default_name == "AsymmetricBlueGreenDivergent")
+    if (default_name == "asymmetricbluegreendivergent")
       return fromRGBAColorMap(AsymmetricBlueGreenDivergent, sizeof(AsymmetricBlueGreenDivergent) / sizeof(double));
 
-    if (default_name == "GreenGold")
+    if (default_name == "greengold")
       return fromRGBAColorMap(GreenGold, sizeof(GreenGold) / sizeof(double));
 
-    if (default_name == "LinearGreen")
+    if (default_name == "lineargreen")
       return fromRGBAColorMap(LinearGreen, sizeof(LinearGreen) / sizeof(double));
 
-    if (default_name == "LinearTurquois")
+    if (default_name == "linearturquois")
       return fromRGBAColorMap(LinearTurquois, sizeof(LinearTurquois) / sizeof(double));
 
-    if (default_name == "MutedBlueGreen")
+    if (default_name == "mutedbluegreen")
       return fromRGBAColorMap(MutedBlueGreen, sizeof(MutedBlueGreen) / sizeof(double));
 
-    if (default_name == "ExtendedCoolWarm")
+    if (default_name == "extendedcoolwarm")
       return fromRGBAColorMap(ExtendedCoolWarm, sizeof(ExtendedCoolWarm) / sizeof(double));
 
-    if (default_name == "AsymmetricBlueOrangeDivergent")
+    if (default_name == "asymmetricblueorangedivergent")
       return fromRGBAColorMap(AsymmetricBlueOrangeDivergent, sizeof(AsymmetricBlueOrangeDivergent) / sizeof(double));
 
-    if (default_name == "LinearYellow")
+    if (default_name == "linearyellow")
       return fromRGBAColorMap(LinearYellow, sizeof(LinearYellow) / sizeof(double));
 
-    if (default_name == "LinearGray5")
+    if (default_name == "lineargray5")
       return fromRGBAColorMap(LinearGray5, sizeof(LinearGray5) / sizeof(double));
 
-    if (default_name == "LinearGray4")
+    if (default_name == "lineargray4")
       return fromRGBAColorMap(LinearGray4, sizeof(LinearGray4) / sizeof(double));
   }
 
