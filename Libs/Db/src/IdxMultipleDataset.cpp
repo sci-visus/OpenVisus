@@ -503,12 +503,12 @@ public:
       auto py_input = newDynamicObject([this](String expr1) {
         return getAttr1(expr1);
       });
-      engine->setModuleAttr("input", py_input);
+      engine->setGlobalAttr("input", py_input);
       Py_DECREF(py_input);
 
       //for fieldname=function_of(QUERY->time) 
       //NOTE: for getFieldByName(), I think I can use the default timestep since I just want to know the dtype
-      engine->setModuleAttr("query_time", QUERY ? QUERY->time : DATASET->getTimesteps().getDefault());
+      engine->setGlobalAttr("query_time", engine->wrapDouble(QUERY ? QUERY->time : DATASET->getTimesteps().getDefault()));
 
       engine->addModuleFunction("doPublish", [this](PyObject* self, PyObject* args) {
         return doIncrementalPublish(self, args);
@@ -525,12 +525,12 @@ public:
   {
     {
       ScopedAcquireGil acquire_gil;
-      engine->delModuleAttr("query_time");
-      engine->delModuleAttr("doPublish");
-      engine->delModuleAttr("voronoiBlend");
-      engine->delModuleAttr("averageBlend");
-      engine->delModuleAttr("noBlend");
-      engine->delModuleAttr("input");
+      engine->delGlobalAttr("query_time");
+      engine->delGlobalAttr("doPublish");
+      engine->delGlobalAttr("voronoiBlend");
+      engine->delGlobalAttr("averageBlend");
+      engine->delGlobalAttr("noBlend");
+      engine->delGlobalAttr("input");
     }
 
     if (!DATASET->isServerMode())
@@ -543,7 +543,7 @@ public:
     ScopedAcquireGil acquire_gil;
     engine->execCode(FIELDNAME);
 
-    auto ret = engine->getModuleArrayAttr("output");
+    auto ret = engine->unwrapArray(engine->getGlobalAttr("output"));
     if (!ret && !aborted())
       ThrowException("empty 'output' value");
 
@@ -561,14 +561,14 @@ public:
   {
     auto ret = engine->evalCode("DynamicObject()");  //new reference
     VisusAssert(ret);
-    engine->addObjectMethod(ret, "forwardGetAttr", [getattr](PyObject*, PyObject* args) {
+    engine->addObjectMethod(ret, "forwardGetAttr", [getattr, this](PyObject*, PyObject* args) {
 
       VisusAssert(PyTuple_Check(args));
       VisusAssert(PyTuple_Size(args) == 1);
       auto arg0 = PyTuple_GetItem(args, 0); VisusAssert(arg0);//borrowed
-      auto expr = PythonEngine::convertToString(arg0); VisusAssert(!expr.empty());
+      auto expr = PythonEngine::unwrapString(arg0); VisusAssert(!expr.empty());
       if (!getattr) {
-        PythonEngine::setError("getattr is null");
+        engine->setError("getattr is null");
         return (PyObject*)nullptr;
       }
       return getattr(expr);
@@ -580,8 +580,10 @@ public:
   PyObject* getAttr1(String expr1)
   {
     //example: input.timesteps
+#if 0
     if (expr1 == "timesteps")
-      return engine->newPyObject(DATASET->getTimesteps().asVector());
+      return engine->unwrapObject(DATASET->getTimesteps().asVector());
+#endif
 
     auto dataset = DATASET->getChild(expr1);
     if (!dataset)
@@ -600,8 +602,10 @@ public:
     VisusAssert(dataset);
 
     //example: input.datasetname.timesteps
+#if 0
     if (expr2 == "timesteps")
-      return engine->newPyObject(dataset->getTimesteps().asVector());
+      return engine->wrapObject(dataset->getTimesteps().asVector());
+#endif
 
     //see https://github.com/sci-visus/visus-issues/issues/367 
     //specify a dataset  (see midxofmidx.midx)
@@ -630,7 +634,7 @@ public:
 
     //only getting dtype for field name
     if (!QUERY)
-      return engine->newPyObject(Array(PointNi(pdim), field.dtype));
+      return engine->wrapArray(Array(PointNi(pdim), field.dtype));
 
     {
       ScopedReleaseGil release_gil;
@@ -638,7 +642,7 @@ public:
       ret = DATASET->executeDownQuery(QUERY, down_query);
     }
 
-    return engine->newPyObject(ret);
+    return engine->wrapArray(ret);
   }
 
   //blendBuffers
@@ -666,24 +670,24 @@ public:
         PyObject* arg0 = nullptr;
         if (!PyArg_ParseTuple(args, "O:blendBuffers", &arg0))
         {
-          PythonEngine::setError("invalid argument");
+          engine->setError("invalid argument");
           return (PyObject*)nullptr;
         }
 
         if (!PyList_Check(arg0))
         {
-          PythonEngine::setError("invalid argument");
+          engine->setError("invalid argument");
           return (PyObject*)nullptr;
         }
 
         for (int I = 0, N = (int)PyList_Size(arg0); I < N; I++)
         {
-          auto arg = engine->pythonObjectToArray(PyList_GetItem(arg0, I));
+          auto arg = engine->unwrapArray(PyList_GetItem(arg0, I));
           blend.addBlendArg(arg);
         }
       }
 
-      return engine->newPyObject(blend.result);
+      return engine->wrapArray(blend.result);
     }
 
     //special case: empty argument means all default fields of midx
@@ -780,15 +784,15 @@ public:
 
     //empty result
     if (!blend.getNumberOfArgs())
-      return engine->newPyObject(Array());
+      return engine->wrapArray(Array());
     else
-      return engine->newPyObject(blend.result);
+      return engine->wrapArray(blend.result);
   }
 
   //doIncrementalPublish
   PyObject* doIncrementalPublish(PyObject* self, PyObject* args)
   {
-    auto output = engine->getModuleArrayAttr("output");
+    auto output = engine->unwrapArray(engine->getGlobalAttr("output"));
 
     if (!output || !QUERY || !QUERY->incrementalPublish)
       return nullptr;
@@ -821,6 +825,32 @@ Array IdxMultipleDataset::computeOutput(BoxQuery* QUERY, SharedPtr<Access> ACCES
 
 
 ////////////////////////////////////////////////////////////////////////////////////
+static bool IsGoodVariableName(String name)
+{
+  const std::set<String> ReservedWords =
+  {
+    "and", "del","from","not","while","as","elif","global","or","with","assert", "else","if",
+    "pass","yield","break","except","import","print", "class","exec""in","raise","continue",
+    "finally","is","return","def","for","lambda","try"
+  };
+
+  if (name.empty() || ReservedWords.count(name))
+    return false;
+
+  if (!std::isalpha(name[0]))
+    return false;
+
+  for (int I = 1; I < (int)name.length(); I++)
+  {
+    if (!(std::isalnum(name[I]) || name[I] == '_'))
+      return false;
+  }
+
+  return true;
+};
+
+
+////////////////////////////////////////////////////////////////////////////////////
 String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
 {
 #if VISUS_PYTHON
@@ -828,7 +858,7 @@ String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
   std::ostringstream out;
   out << "input";
 
-  if (PythonEngine::isGoodVariableName(dataset_name))
+  if (IsGoodVariableName(dataset_name))
   {
     out << "." << dataset_name;
   }
@@ -837,7 +867,7 @@ String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
     out << "['" << dataset_name << "']";
   }
 
-  if (PythonEngine::isGoodVariableName(fieldname))
+  if (IsGoodVariableName(fieldname))
   {
     out << "." << fieldname;
   }

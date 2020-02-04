@@ -45,17 +45,7 @@ For support : support@visus.net
 #include <Visus/StringUtils.h>
 
 #include <queue>
-
-#ifdef WIN32
-#pragma warning( push )
-#pragma warning (disable:4996)
-#endif
-
 #include <functional>
-
-#ifdef WIN32
-#pragma warning( pop )
-#endif
 
 #pragma push_macro("slots")
 #undef slots
@@ -80,8 +70,6 @@ public:
 
   VISUS_CLASS(PythonEngine)
 
-public:
-
   typedef std::function<PyObject*(PyObject*, PyObject*)> Function;
 
   //constructor
@@ -90,83 +78,81 @@ public:
   //destructor
   virtual ~PythonEngine();
 
-  //setMainThread
-  static void setMainThread();
+public:
 
-  //main
-  static int main(std::vector<String> args);
+  //getAttr (borrowed)
+  PyObject* getAttr(PyObject* self, String name);
 
-  //isGoodVariableName
-  static bool isGoodVariableName(String name);
+  //hasAttr
+  bool hasAttr(PyObject* self, String name);
 
-  //incrRef
-  static void incrRef(PyObject* value);
+  //setAttr
+  void setAttr(PyObject* self, String name, PyObject* value);
 
-  //decrRef
-  static void decrRef(PyObject* value);
+  //delAttr
+  void delAttr(PyObject* self, String name);
 
-  //execCode
-  void execCode(String s);
+public:
 
-  //evalCode
-  PyObject* evalCode(String s);
-
-  //newPyObject
-  PyObject* newPyObject(double value);
-
-  //newPyObject
-  PyObject* newPyObject(int value);
-
-  //newPyObject
-  PyObject* newPyObject(String s);
-
-  //newPyObject
-  PyObject* newPyObject(Aborted value);
-
-  //newPyObject
-  PyObject* newPyObject(Array value);
-
-  //newPyObject
-  template <typename T>
-  PyObject* newPyObject(const std::vector<T>& values)
-  {
-    auto ret = PyTuple_New(values.size());
-    if (!ret)
-      return nullptr;
-
-    for (int i = 0; i < values.size(); i++) {
-      auto value = newPyObject(values[i]);
-      if (!value) {
-        decrRef(ret);
-        return nullptr;
-      }
-      PyTuple_SetItem(ret, i, value);
-    }
-    return ret;
+  //getGlobals
+  PyObject* getGlobals() {
+    return globals;
   }
 
-  //setModuleAttr
-  void setModuleAttr(String name, PyObject* value);
-
-  //setModuleAttr
-  template <typename Value>
-  void setModuleAttr(String name, Value value) {
-    auto obj = newPyObject(value);
-    setModuleAttr(name, obj);
-    decrRef(obj);
+  //getGlobalAttr
+  PyObject* getGlobalAttr(String name) {
+    return getAttr(getGlobals(), name.c_str());
   }
 
-  //getModuleAttr
-  PyObject* getModuleAttr(String name);
+  //setGlobalAttr
+  void setGlobalAttr(String name, PyObject* value) {
+    setAttr(getGlobals(), name.c_str(), value);
+  }
 
-  //hasModuleAttr
-  bool hasModuleAttr(String name);
+  //hasGlobalAttr
+  bool hasGlobalAttr(String name) {
+    return hasAttr(getGlobals(), name) ? true : false;
+  }
 
-  //delModuleAttr
-  void delModuleAttr(String name);
+  //delGlobalAttr
+  void delGlobalAttr(String name) {
+    delAttr(getGlobals(), name);
+  }
 
-  //setError (to call when you return nullpptr in Function)
-  static void setError(String explanation, PyObject* err= nullptr);
+public:
+
+  //wrapDouble
+  PyObject* wrapDouble(double value);
+
+  //unwrapDouble
+  double unwrapDouble(PyObject* obj);
+
+  //wrapInt
+  PyObject* wrapInt(int value);
+
+  //unwrapInt
+  int unwrapInt(PyObject* obj);
+
+  //wrapString
+  PyObject* wrapString(String s);
+
+  //unwrapString
+  static String unwrapString(PyObject* value);
+
+  //wrapAborted
+  PyObject* wrapAborted(Aborted value);
+
+  //unwrapAborted
+  Aborted unwrapAborted(PyObject* py_object);
+
+  //wrapArray
+  PyObject* wrapArray(Array value);
+
+  //unwrapArray
+  Array unwrapArray(PyObject* py_object);
+
+  //internalNewPyFunction
+  PyObject* wrapFunction(PyObject* self, String name, Function fn, PyObject* module);
 
   //addModuleFunction
   void addModuleFunction(String name,Function fn);
@@ -174,17 +160,7 @@ public:
   //addObjectMethod
   void addObjectMethod(PyObject* self, String name, Function fn);
 
-  //getModuleAbortedAttr
-  Aborted getModuleAbortedAttr(String name);
-
-  //getModuleArrayAttr
-  Array getModuleArrayAttr(String name);
-
-  //pythonObjectToArray
-  Array pythonObjectToArray(PyObject* py_object);
-
-  //convertToString
-  static String convertToString(PyObject* value);
+public:
 
   //addSysPath
   void addSysPath(String value,bool bVerbose=true);
@@ -192,18 +168,26 @@ public:
   //printMessage (must have the GIL)
   void printMessage(String message);
 
+  //setError 
+  void setError(String explanation);
+
+  //execCode
+  void execCode(String s);
+
+  //evalCode
+  PyObject* evalCode(String s);
+
+  //main
+  static int main(std::vector<String> args);
+
 private:
 
-  String  module_name;
+  String     module_name;
+  PyObject*  module = nullptr;
+  PyObject*  globals = nullptr;
 
-  PyObject* module = nullptr;
-  PyObject* globals = nullptr;
-
-  //fixPath
-  static String fixPath(String value);
-
-  //internalNewPyFunction
-  PyObject* internalNewPyFunction(PyObject* self, String name, Function fn);
+  //getLastPythonErrorMessage
+  String getLastPythonErrorMessage(bool bClear);
 
 };
 
@@ -224,8 +208,6 @@ public:
   ~ScopedAcquireGil();
 };
 
-typedef ScopedAcquireGil PythonThreadBlock;
-
 /////////////////////////////////////////////////////
 class VISUS_KERNEL_API ScopedReleaseGil {
 
@@ -239,8 +221,6 @@ public:
   //destructor
   ~ScopedReleaseGil();
 };
-
-typedef ScopedReleaseGil PythonThreadAllow;
 
 
 /////////////////////////////////////////////////////

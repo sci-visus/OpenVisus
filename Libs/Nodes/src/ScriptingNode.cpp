@@ -133,10 +133,10 @@ public:
 
   //clearModuleAttrs
   void clearModuleAttrs(ScopedAcquireGil&) {
-    engine->delModuleAttr("input");
-    engine->delModuleAttr("aborted");
-    engine->delModuleAttr("output");
-    engine->delModuleAttr("doPublish");
+    engine->delGlobalAttr("input");
+    engine->delGlobalAttr("aborted");
+    engine->delGlobalAttr("output");
+    engine->delGlobalAttr("doPublish");
   }
 
   //runJob
@@ -156,17 +156,17 @@ public:
     try 
     {
       ScopedAcquireGil acquire_gil;
-      engine->setModuleAttr("input", input);
-      engine->setModuleAttr("aborted", aborted);
+      engine->setGlobalAttr("input", engine->wrapArray(input));
+      engine->setGlobalAttr("aborted", engine->wrapAborted(aborted));
       engine->addModuleFunction("doPublish", [this](PyObject *self, PyObject *args)
       {
-        auto output = engine->getModuleArrayAttr("output");
+        auto output = engine->unwrapArray(engine->getGlobalAttr("output"));
         doPublish(output,true);
         return (PyObject*)nullptr;
       });
 
       engine->execCode(code);
-      output = engine->getModuleArrayAttr("output");
+      output = engine->unwrapArray(engine->getGlobalAttr("output"));
       clearModuleAttrs(acquire_gil);
     }
     catch (std::exception ex)
@@ -262,18 +262,10 @@ bool ScriptingNode::processInput()
 void ScriptingNode::addUserInput(String key, Array value) 
 {
 #if VISUS_PYTHON
-  try {
-    ScopedAcquireGil acquire_gil;
-    engine->setModuleAttr(key, value);
-  }
-  catch (std::exception ex)
   {
     ScopedAcquireGil acquire_gil;
-    engine->printMessage(ex.what());
-    return;
+    engine->setGlobalAttr(key, engine->wrapArray(value));
   }
-#else
-  ThrowException(" not supported");
 #endif
 }
 

@@ -68,10 +68,6 @@ For support : support@visus.net
 
 namespace Visus {
 
-//note for shared_ptr swig enabled types, you always need to use the shared_ptr typename
-static String SwigAbortedTypeName = "Visus::Aborted *";
-static String SwigArrayTypeName   = "Visus::Array *";
-
 static PyThreadState* __main__thread_state__=nullptr;
 
 ///////////////////////////////////////////////////////////////////////////
@@ -102,36 +98,6 @@ ScopedReleaseGil::ScopedReleaseGil()
 ScopedReleaseGil::~ScopedReleaseGil() {
   PyEval_RestoreThread(state);
 }
-
-///////////////////////////////////////////////////////////////////////////
-void PythonEngine::setMainThread()
-{
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-bool PythonEngine::isGoodVariableName(String name)
-{
-  const std::set<String> ReservedWords =
-  {
-    "and", "del","from","not","while","as","elif","global","or","with","assert", "else","if",
-    "pass","yield","break","except","import","print", "class","exec""in","raise","continue",
-    "finally","is","return","def","for","lambda","try"
-  };
-
-  if (name.empty() || ReservedWords.count(name))
-    return false;
-
-  if (!std::isalpha(name[0]))
-    return false;
-
-  for (int I = 1; I<(int)name.length(); I++)
-  {
-    if (!(std::isalnum(name[I]) || name[I] == '_'))
-      return false;
-  }
-
-  return true;
-};
 
 ///////////////////////////////////////////////////////////////////////////
 static bool runningInsidePyMain() 
@@ -211,29 +177,15 @@ void ShutdownPython()
   //PrintInfo("Python shutting down done");
 }
 
-////////////////////////////////////////////////////////////////////////////////////
-void PythonEngine::incrRef(PyObject* value) {
-  Py_INCREF(value);
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-void PythonEngine::decrRef(PyObject* value) {
-  Py_DECREF(value);
-}
-
-////////////////////////////////////////////////////////////////////////////////////
-String PythonEngine::fixPath(String value) {
-#if WIN32
-  return StringUtils::replaceAll(value, "/", "\\\\");
-#else
-  return StringUtils::replaceAll(value, "\\\\", "/");
-#endif
-}
 
 ////////////////////////////////////////////////////////////////////////////////////
 void PythonEngine::addSysPath(String value,bool bVerbose)
 {
-  value = fixPath(value);
+#if WIN32
+  value = StringUtils::replaceAll(value, "/", "\\\\");
+#else
+  value = StringUtils::replaceAll(value, "\\\\", "/");
+#endif
 
   const String crlf = "\r\n";
 
@@ -267,7 +219,7 @@ PythonEngine::PythonEngine(bool bVerbose)
   this->globals = PyModule_GetDict(module); //borrowed
 
   auto builtins = PyEval_GetBuiltins(); VisusAssert(builtins);
-  PyDict_SetItemString(this->globals, "__builtins__", builtins);
+  PyDict_SetItemString(getGlobals(), "__builtins__", builtins);
 
   if (runningInsidePyMain())
   {
@@ -341,39 +293,37 @@ int PythonEngine::main(std::vector<String> args)
   return ret;
 }
 
-///////////////////////////////////////////////////////////////////////////
-void PythonEngine::setModuleAttr(String name, PyObject* value) {
-  PyDict_SetItemString(globals, name.c_str(), value);
-}
-
 
 ///////////////////////////////////////////////////////////////////////////
-PyObject* PythonEngine::getModuleAttr(String name) {
-  return PyDict_GetItemString(globals, name.c_str()); //borrowed
+PyObject* PythonEngine::getAttr(PyObject* self, String name) {
+  return PyDict_GetItemString(self, name.c_str()); //borrowed
 }
 
 ///////////////////////////////////////////////////////////////////////////
-bool PythonEngine::hasModuleAttr(String name) {
-  return getModuleAttr(name) ? true : false;
+void PythonEngine::setAttr(PyObject* self, String name, PyObject* value) {
+  PyDict_SetItemString(self, name.c_str(), value);
 }
 
 ///////////////////////////////////////////////////////////////////////////
-void PythonEngine::delModuleAttr(String name) {
-  if (hasModuleAttr(name))
-    PyDict_DelItemString(globals, name.c_str());
+bool PythonEngine::hasAttr(PyObject* self, String name) {
+  return getAttr(self, name) ? true : false;
 }
 
 ///////////////////////////////////////////////////////////////////////////
-void PythonEngine::setError(String explanation, PyObject* err)
+void PythonEngine::delAttr(PyObject* self, String name) {
+
+  if (!hasAttr(self, name)) return;
+  PyDict_DelItemString(self, name.c_str());
+}
+
+///////////////////////////////////////////////////////////////////////////
+void PythonEngine::setError(String explanation)
 {
-  if (!err)
-    err = PyExc_SystemError;
-
-  PyErr_SetString(err, explanation.c_str());
+  PyErr_SetString(PyExc_SystemError, explanation.c_str());
 }
 
 ///////////////////////////////////////////////////////////////////////////
-PyObject* PythonEngine::internalNewPyFunction(PyObject* self, String name, Function fn)
+PyObject* PythonEngine::wrapFunction(PyObject* self, String name, Function fn, PyObject* module)
 {
   //see http://code.activestate.com/recipes/54352-defining-python-class-methods-in-c/
   //see http://bannalia.blogspot.it/2016/07/passing-capturing-c-lambda-functions-as.html
@@ -404,7 +354,7 @@ PyObject* PythonEngine::internalNewPyFunction(PyObject* self, String name, Funct
     delete info;
   });
 
-  auto ret = PyCFunction_NewEx(/*method definition*/info->mdef.get(), /*self*/py_capsule,/*module*/self ? nullptr : this->module);
+  auto ret = PyCFunction_NewEx(/*method definition*/info->mdef.get(), /*self*/py_capsule, module);
   Py_DECREF(py_capsule);
   return ret;
 }
@@ -412,15 +362,15 @@ PyObject* PythonEngine::internalNewPyFunction(PyObject* self, String name, Funct
 ///////////////////////////////////////////////////////////////////////////
 void PythonEngine::addModuleFunction(String name, Function fn)
 {
-  auto py_fn = internalNewPyFunction(/*self*/nullptr, name, fn);
-  setModuleAttr(name, py_fn);
-  Py_DECREF(py_fn);
+  auto wrapped = wrapFunction(nullptr, name, fn,this->module);
+  setGlobalAttr(name, wrapped);
+  Py_DECREF(wrapped);
 }
 
 ///////////////////////////////////////////////////////////////////////////
 void PythonEngine::addObjectMethod(PyObject* self, String name, Function fn)
 {
-  auto py_fn = internalNewPyFunction(self, name, fn);
+  auto py_fn = wrapFunction(self, name, fn, nullptr);
   auto py_name = PyString_FromString(name.c_str());
   PyObject_SetAttr(self, py_name, py_fn);
   Py_DECREF(py_fn);
@@ -428,24 +378,49 @@ void PythonEngine::addObjectMethod(PyObject* self, String name, Function fn)
 }
 
 ///////////////////////////////////////////////////////////////////////////
-PyObject* PythonEngine::newPyObject(double value) {
+PyObject* PythonEngine::wrapDouble(double value) {
   return PyFloat_FromDouble(value);;
 }
 
 ///////////////////////////////////////////////////////////////////////////
-PyObject* PythonEngine::newPyObject(int value) {
+double PythonEngine::unwrapDouble(PyObject* obj) {
+  return PyFloat_AsDouble(obj);;
+}
+
+///////////////////////////////////////////////////////////////////////////
+PyObject* PythonEngine::wrapInt(int value) {
   return PyLong_FromLong(value);
 }
 
 ///////////////////////////////////////////////////////////////////////////
-PyObject* PythonEngine::newPyObject(String s) {
-  return PyString_FromString(s.c_str());
+int PythonEngine::unwrapInt(PyObject* obj) {
+  return PyLong_AsLong(obj);;
 }
 
 ///////////////////////////////////////////////////////////////////////////
-PyObject* PythonEngine::newPyObject(Aborted value) 
+PyObject* PythonEngine::wrapString(String s) {
+  return PyString_FromString(s.c_str());
+}
+
+
+///////////////////////////////////////////////////////////////////////////
+String PythonEngine::unwrapString(PyObject* value)
 {
-  auto typeinfo = SWIG_TypeQuery(SwigAbortedTypeName.c_str());
+  if (!value)
+    return "";
+
+  PyObject* py_str = PyObject_Str(value);
+  auto tmp = SWIG_Python_str_AsChar(py_str);
+  String ret = tmp ? tmp : "";
+  SWIG_Python_str_DelForPy3(tmp);
+  Py_DECREF(py_str);
+  return ret;
+}
+
+///////////////////////////////////////////////////////////////////////////
+PyObject* PythonEngine::wrapAborted(Aborted value) 
+{
+  auto typeinfo = SWIG_TypeQuery("Visus::Aborted *");
   VisusAssert(typeinfo);
   Aborted* ptr = new Aborted(value);
   return SWIG_NewPointerObj(ptr, typeinfo, SWIG_POINTER_OWN);
@@ -453,20 +428,16 @@ PyObject* PythonEngine::newPyObject(Aborted value)
 
 
 ///////////////////////////////////////////////////////////////////////////
-Aborted PythonEngine::getModuleAbortedAttr(String name) 
+Aborted PythonEngine::unwrapAborted(PyObject* py_object) 
 {
-  auto typeinfo = SWIG_TypeQuery(SwigAbortedTypeName.c_str());
+  auto typeinfo = SWIG_TypeQuery("Visus::Aborted *");
   VisusAssert(typeinfo);
-
-  auto py_object = getModuleAttr(name);
-  if (!py_object)
-    ThrowException("cannot find",name ,"in module");
 
   Aborted* ptr = nullptr;
   int res = SWIG_ConvertPtr(py_object, (void**)&ptr, typeinfo, 0);
 
   if (!SWIG_IsOK(res) || !ptr)
-    ThrowException("cannot cast", name,"to",typeinfo->name);
+    ThrowException("cannot convert to aborted");
 
   Aborted ret = *ptr;
 
@@ -477,26 +448,19 @@ Aborted PythonEngine::getModuleAbortedAttr(String name)
 }
 
 ///////////////////////////////////////////////////////////////////////////
-PyObject* PythonEngine::newPyObject(Array value) 
+PyObject* PythonEngine::wrapArray(Array value) 
 {
-  auto typeinfo = SWIG_TypeQuery(SwigArrayTypeName.c_str());
+  auto typeinfo = SWIG_TypeQuery("Visus::Array *");
   VisusAssert(typeinfo);
   auto ptr = new Array(value);
   return SWIG_NewPointerObj(ptr, typeinfo, SWIG_POINTER_OWN);
 }
-///////////////////////////////////////////////////////////////////////////
-Array PythonEngine::getModuleArrayAttr(String name) 
-{
-  auto py_object = getModuleAttr(name);
-  if (!py_object)
-    ThrowException("cannot find",name,"in module");
-  return pythonObjectToArray(py_object);
-}
+
 
 ///////////////////////////////////////////////////////////////////////////
-Array PythonEngine::pythonObjectToArray(PyObject* py_object) 
+Array PythonEngine::unwrapArray(PyObject* py_object) 
 {
-  auto typeinfo = SWIG_TypeQuery(SwigArrayTypeName.c_str());
+  auto typeinfo = SWIG_TypeQuery("Visus::Array *");
   VisusAssert(typeinfo);
 
   Array* ptr = nullptr;
@@ -513,22 +477,9 @@ Array PythonEngine::pythonObjectToArray(PyObject* py_object)
   return ret;
 }
 
-///////////////////////////////////////////////////////////////////////////
-String PythonEngine::convertToString(PyObject* value)
-{
-  if (!value) 
-    return "";
-  
-  PyObject *py_str = PyObject_Str(value);
-  auto tmp = SWIG_Python_str_AsChar(py_str);
-  String ret = tmp ? tmp : "";
-  SWIG_Python_str_DelForPy3(tmp);
-  Py_DECREF(py_str);
-  return ret;
-}
 
 ///////////////////////////////////////////////////////////////////////////
-static String GetLastPythonErrorMessage(bool bClear)
+String PythonEngine::getLastPythonErrorMessage(bool bClear)
 {
   //see http://www.solutionscan.org/154789-python
   auto err = PyErr_Occurred();
@@ -541,8 +492,8 @@ static String GetLastPythonErrorMessage(bool bClear)
   std::ostringstream out;
 
   out << "Python error: " 
-    << PythonEngine::convertToString(type) << " "
-    << PythonEngine::convertToString(value) << " ";
+    << PythonEngine::unwrapString(type) << " "
+    << PythonEngine::unwrapString(value) << " ";
 
   auto module_name = PyString_FromString("traceback");
   auto module = PyImport_Import(module_name);
@@ -553,7 +504,7 @@ static String GetLastPythonErrorMessage(bool bClear)
   {
     if (auto descr = PyObject_CallFunctionObjArgs(fn, type, value, traceback, NULL))
     {
-      out << PythonEngine::convertToString(descr);
+      out << PythonEngine::unwrapString(descr);
       Py_DECREF(descr);
     }
   }
@@ -587,14 +538,14 @@ static void PythonPrintCrLfIfNeeded()
 ///////////////////////////////////////////////////////////////////////////
 void PythonEngine::execCode(String s)
 {
-  auto obj = PyRun_StringFlags(s.c_str(), Py_file_input, globals, globals, nullptr);
+  auto obj = PyRun_StringFlags(s.c_str(), Py_file_input, getGlobals(), getGlobals(), nullptr);
   bool bError = (obj == nullptr);
 
   if (bError)
   {
     if (PyErr_Occurred())
     {
-      String error_msg = cstring("Python error code:\n", s, "\nError:\n",GetLastPythonErrorMessage(true));
+      String error_msg = cstring("Python error code:\n", s, "\nError:\n",getLastPythonErrorMessage(true));
       PrintInfo(error_msg);
       ThrowException(error_msg);
     }
@@ -612,13 +563,13 @@ PyObject* PythonEngine::evalCode(String s)
 {
   //see https://bugs.python.org/issue405837
   //Return value: New reference.
-  auto obj = PyRun_StringFlags(s.c_str(), Py_eval_input, globals, globals, nullptr);
+  auto obj = PyRun_StringFlags(s.c_str(), Py_eval_input, getGlobals(), getGlobals(), nullptr);
 
   if (bool bMaybeError = (obj == nullptr))
   {
     if (PyErr_Occurred())
     {
-      String error_msg = cstring("Python error code:\n", s,"\nError:\n", GetLastPythonErrorMessage(true));
+      String error_msg = cstring("Python error code:\n", s,"\nError:\n", getLastPythonErrorMessage(true));
       PrintInfo(error_msg);
       ThrowException(error_msg);
     }

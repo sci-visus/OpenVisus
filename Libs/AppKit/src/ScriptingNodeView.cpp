@@ -56,7 +56,7 @@ static PyObject* WriteMethod(PyObject* self, PyObject* args)
     ScopedLock lock(outputs_lock);
     for (int I = 0, N = (int)PyTuple_Size(args); I < N; I++) {
       auto obj = PyTuple_GetItem(args, I);
-      auto s = PythonEngine::convertToString(obj);
+      auto s = PythonEngine::unwrapString(obj);
       outputs.push_back(s);
     }
   }
