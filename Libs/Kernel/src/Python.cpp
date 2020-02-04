@@ -187,6 +187,14 @@ void InitPython()
 	}
 	
   PrintInfo("Python initialization done");
+
+
+  if (auto engine = std::make_shared<PythonEngine>(true))
+  {
+    ScopedAcquireGil acquire_gil;
+    engine->execCode("print('PythonEngine is working fine')");
+  }
+
 }
 
 

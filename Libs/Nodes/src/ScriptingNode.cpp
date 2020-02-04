@@ -38,10 +38,7 @@ For support : support@visus.net
 
 #include <Visus/ScriptingNode.h>
 #include <Visus/StringTree.h>
-
-#if VISUS_PYTHON
 #include <Visus/Python.h>
-#endif
 
 namespace Visus {
 

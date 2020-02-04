@@ -55,10 +55,7 @@ For support : support@visus.net
 #include <Visus/IdxDiskAccess.h>
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/MultiplexAccess.h>
-
-#if VISUS_PYTHON
 #include <Visus/Python.h>
-#endif
 
 using namespace Visus;
 

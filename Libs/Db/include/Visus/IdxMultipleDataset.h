@@ -57,6 +57,19 @@ public:
   //bMosaic
   bool is_mosaic = false;
 
+  enum DebugMode
+  {
+    DebugSaveImages = 0x01,
+    DebugSkipReading = 0x02,
+    DebugAll = 0xff
+  };
+
+  int debug_mode = 0;
+
+#if VISUS_PYTHON
+  SharedPtr<PythonEnginePool> python_engine_pool;
+#endif
+
   //constructor
   IdxMultipleDataset();
 
@@ -66,13 +79,6 @@ public:
   //getTypeName
   virtual String getTypeName() const override {
     return "IdxMultipleDataset";
-  }
-
-  //clone
-  virtual SharedPtr<Dataset> clone() const override {
-    auto ret = std::make_shared<IdxMultipleDataset>();
-    *ret = *this;
-    return ret;
   }
 
   //getChild
@@ -131,22 +137,16 @@ public:
   //createIdxFile
   void createIdxFile(String idx_filename, Field idx_field) const;
 
+  //createDownQuery
+  SharedPtr<BoxQuery> createDownQuery(BoxQuery* QUERY, SharedPtr<Access> ACCESS, String name, String fieldname) const;
+
+  //executeDownQuery
+  Array executeDownQuery(BoxQuery* QUERY, SharedPtr<BoxQuery> query) const;
+
+  //computeOutput
+  Array computeOutput(BoxQuery* QUERY, SharedPtr<Access> ACCESS, String FIELDNAME, Aborted ABORTED) const;
+
 private:
-
-  friend class QueryInputTerm;
-
-  enum DebugMode
-  {
-    DebugSaveImages = 0x01,
-    DebugSkipReading=0x02,
-    DebugAll=0xff
-  };
-
-  int debug_mode = 0;
-
-#if VISUS_PYTHON
-  SharedPtr<PythonEnginePool> python_engine_pool;
-#endif
 
   //getInputName
   String getInputName(String name, String fieldname);
@@ -163,7 +163,6 @@ private:
 
   //parseDatasets
   void parseDatasets(StringTree& cur,Matrix T);
-
 
 };
 

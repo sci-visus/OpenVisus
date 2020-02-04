@@ -70,13 +70,6 @@ public:
     return "GoogleMapsDataset";
   }
 
-  //clone
-  virtual SharedPtr<Dataset> clone() const override {
-    auto ret = std::make_shared<GoogleMapsDataset>();
-    *ret = *this;
-    return ret;
-  }
-
   //getTileCoordinate
   Point3i getTileCoordinate(BigInt start_address,BigInt end_address);
 

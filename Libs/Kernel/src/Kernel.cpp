@@ -89,10 +89,7 @@ For support : support@visus.net
 #include <Visus/TransferFunction.h>
 #include <Visus/Statistics.h>
 #include <Visus/Array.h>
-
-#if VISUS_PYTHON
 #include <Visus/Python.h>
-#endif
 
 #include <clocale>
 
@@ -423,11 +420,6 @@ void KernelModule::attach()
   //this is to make sure PythonEngine works
 #if VISUS_PYTHON
   InitPython();
-  if (auto engine = std::make_shared<PythonEngine>(true))
-  {
-    ScopedAcquireGil acquire_gil;
-    engine->execCode("print('PythonEngine is working fine')");
-  }
 #endif
 
   //in case the user whant to simulate I have a certain amount of RAM

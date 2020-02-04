@@ -110,9 +110,10 @@ class VISUS_DB_API Dataset
 {
 public:
 
+  VISUS_NON_COPYABLE_CLASS(Dataset)
+
   //this is needed for midx
   Color color;
-
 
   //this is needed for midx
   std::map<String, SharedPtr<Dataset> > down_datasets;
@@ -134,9 +135,6 @@ public:
 
   //getTypeName
   virtual String getTypeName() const = 0;
-
-  //cloneclone
-  virtual SharedPtr<Dataset> clone() const = 0;
 
   //copyDataset
   static void copyDataset(
