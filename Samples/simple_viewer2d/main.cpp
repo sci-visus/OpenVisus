@@ -279,20 +279,20 @@ public:
 ///////////////////////////////////////
 int main(int argn,const char* argv[])
 {
-  SetCommandLine(argn, argv);
-  GuiModule::createApplication();
+  VisusSetCommandLine(argn, argv);
+  CreateQtApplication(argn, argv);
   AppKitModule::attach();
 
   {
     auto win = new DavidWindow();
     win->resize(1024, 768);
     win->show();
-    GuiModule::execApplication();
+    ExecQtApplication();
     delete win;
   }
   
   AppKitModule::detach();
-  GuiModule::destroyApplication();
+  DestroyQtApplication();
 
   return 0;
 }

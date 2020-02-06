@@ -23,7 +23,7 @@
 using namespace Visus;
 %}
 
-%include <Visus/VisusPy.i>
+%include <Visus/VisusCommonPy.i>
 
 %import <Visus/VisusKernelPy.i>
 %import <Visus/VisusDataflowPy.i>
@@ -42,3 +42,6 @@ using namespace Visus;
 %include <Visus/KdQueryNode.h>
 
 //not exposing anything, don't know if we need it
+
+%pythoncode %{
+%}

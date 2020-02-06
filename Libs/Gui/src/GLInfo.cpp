@@ -234,58 +234,6 @@ void GLInfo::setOsTotalMemory(Int64 value)
   os_total_memory=value;
 }
 
-///////////////////////////////////////////////
-#if 0
-bool GLInfo::allocateOpenGLMemory(Int64 reqsize)
-{
-  VisusAssert(reqsize>=0);
-
-  if (!reqsize) 
-  {
-    return true;
-  }
-  else
-  {
-    ScopedLock lock(this->lock);
-
-    if (os_total_memory>0)
-    {
-      Int64 os_free_memory=((Int64)(getOsTotalMemory()*0.80))-visus_used_memory;
-      if (reqsize>os_free_memory)
-      {
-        PrintWarning("OpenGL out of memory",
-                      "reqsize",StringUtils::getStringFromByteSize(reqsize),
-                      "os_free_memory",StringUtils::getStringFromByteSize(os_free_memory));
-
-        return false;
-      }
-    }
-
-    this->visus_used_memory+=reqsize;
-    return true;
-  }
-}
-#endif
-
-///////////////////////////////////////////////
-#if 0
-bool GLInfo::freeOpenGLMemory(Int64 reqsize)
-{
-  VisusAssert(reqsize>=0);
-
-  if (!reqsize)
-  {
-    return true;
-  }
-  else
-  {
-    ScopedLock lock(this->lock);
-    this->visus_used_memory-=reqsize;
-    return true;
-  }
-}
-#endif
-
 
 ///////////////////////////////////////////////
 void GLInfo::addVisusUsedMemory(Int64 reqsize)

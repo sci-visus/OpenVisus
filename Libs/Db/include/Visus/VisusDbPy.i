@@ -22,7 +22,7 @@
 using namespace Visus;
 %}
 
-%include <Visus/VisusPy.i>
+%include <Visus/VisusCommonPy.i>
 
 %import <Visus/VisusKernelPy.i>
 
@@ -56,4 +56,5 @@ using namespace Visus;
 %include <Visus/IdxDataset.h>
 %include <Visus/IdxMultipleDataset.h>
 
-
+%pythoncode %{
+%}

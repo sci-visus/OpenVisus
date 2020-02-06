@@ -74,8 +74,6 @@ source_group("Core" FILES
 	./src/UUID.cpp
 	./include/Visus/ApplicationStats.h
 	./src/ApplicationStats.cpp
-	./include/Visus/ApplicationInfo.h
-	./src/ApplicationInfo.cpp
 	./include/Visus/SharedLibrary.h
 	./src/SharedLibrary.cpp
 	./include/Visus/json.hpp)

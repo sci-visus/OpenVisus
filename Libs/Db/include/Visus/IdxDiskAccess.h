@@ -58,6 +58,9 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(IdxDiskAccess)
 
+  static bool bDefaultDisableIO;
+  static bool bDefaultDisableWriteLock;
+
   //constructor
   IdxDiskAccess(IdxDataset* dataset, StringTree config = StringTree());
 

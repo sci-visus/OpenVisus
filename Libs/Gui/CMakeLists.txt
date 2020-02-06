@@ -7,7 +7,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-file(GLOB Sources include/Visus/*.h src/*.cpp resources/*.glsl resources/*.qrc)
+file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp resources/*.glsl resources/*.qrc)
 
 source_group("" FILES ${Sources})
 

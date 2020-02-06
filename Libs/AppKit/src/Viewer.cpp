@@ -484,6 +484,7 @@ void Viewer::setFieldName(String value)
 ////////////////////////////////////////////////////////////
 void Viewer::setScriptingCode(String value)
 {
+
   if (auto node = this->findNode<ScriptingNode>())
     node->setCode(value);
 }
@@ -798,14 +799,6 @@ void Viewer::idle()
     << StringUtils::getStringFromByteSize(RamResource::getSingleton()->getVisusUsedMemory()) + "/"
     << StringUtils::getStringFromByteSize(RamResource::getSingleton()->getOsUsedMemory()) + "/"
     << StringUtils::getStringFromByteSize(RamResource::getSingleton()->getOsTotalMemory()) << ") ";
-
-  //this seems to slow down OpenGL a lot!
-#if 0
-  out << "GPU("
-    << StringUtils::getStringFromByteSize(GLInfo::getSingleton()->getVisusUsedMemory()) + "/"
-    << StringUtils::getStringFromByteSize(GLInfo::getSingleton()->getGpuUsedMemory()) + "/"
-    << StringUtils::getStringFromByteSize(GLInfo::getSingleton()->getOsTotalMemory()) << ") ";
-#endif
 
   statusBar()->showMessage(out.str().c_str());
 }
@@ -1465,8 +1458,7 @@ void Viewer::save(String url,bool bSaveHistory)
   {
     ar = getHistory();
     ar.name = "Viewer";
-    ar.write("version", ApplicationInfo::version);
-    ar.write("git_revision", ApplicationInfo::git_revision);
+    ar.write("git_revision", VisusGetGitRevision());
   }
   else
   {
@@ -2120,7 +2112,8 @@ QueryNode* Viewer::addVolume(String uuid, Node* parent, String fieldname, int ac
     connectNodes(field_node, query_node);
 
     //scripting
-    auto scripting_node = new ScriptingNode();
+    auto scripting_node = NodeFactory::getSingleton()->createInstance("ScriptingNode");
+
     scripting_node->setUUID(concatenate(uuid, "/scripting"));
     scripting_node->setName("Scripting");
     addNode(query_node, scripting_node);
@@ -2204,7 +2197,7 @@ QueryNode* Viewer::addSlice(String uuid, Node* parent, String fieldname, int acc
     connectNodes(field_node, query_node);
 
     //scripting
-    auto scripting_node = new ScriptingNode();
+    auto scripting_node = NodeFactory::getSingleton()->createInstance("ScriptingNode");
     scripting_node->setUUID(concatenate(uuid, "/scripting"));
     scripting_node->setName("Scripting");
     addNode(query_node, scripting_node);
@@ -2281,7 +2274,7 @@ QueryNode* Viewer::addIsoContour(String uuid, Node* parent, String fieldname, in
     connectNodes(field_node, query_node);
 
     //scripting
-    auto scripting_node = new ScriptingNode();
+    auto scripting_node = NodeFactory::getSingleton()->createInstance("ScriptingNode");
     scripting_node->setUUID(concatenate(uuid, "/scripting"));
     scripting_node->setName("Scripting");
     connectNodes(query_node, scripting_node);
@@ -2412,7 +2405,7 @@ ScriptingNode* Viewer::addScripting(String uuid, Node* parent)
     StringTree("RemoveNode", "uuid", uuid));
   {
     //scripting
-    auto scripting = new ScriptingNode();
+    auto scripting = NodeFactory::getSingleton()->createInstance("ScriptingNode");
     scripting->setUUID(uuid);
     scripting->setName("Scripting");
     addNode(parent, scripting);
@@ -2656,8 +2649,7 @@ KdRenderArrayNode* Viewer::addKdRender(String uuid, Node* parent, String palette
 /////////////////////////////////////////////////////////////
 void Viewer::write(Archive& ar) const
 {
-  ar.write("version", ApplicationInfo::version);
-  ar.write("git_revision", ApplicationInfo::git_revision);
+  ar.write("git_revision", VisusGetGitRevision());
 
   //first dump the nodes without parent... NOTE: the first one is always the getRoot()
   auto root = dataflow->getRoot();

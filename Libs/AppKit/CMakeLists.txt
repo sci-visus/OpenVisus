@@ -29,8 +29,6 @@ set(ViewSources
 	./include/Visus/PaletteNodeView.h
 	./include/Visus/QueryNodeView.h
 	./include/Visus/RenderArrayNodeView.h
-	./include/Visus/ScriptingNodeView.h
-	./src/ScriptingNodeView.cpp
 	./include/Visus/StatisticsNodeView.h
 	./include/Visus/TimeNodeView.h
 	./include/Visus/TransferFunctionView.h 
@@ -44,7 +42,7 @@ set(ViewSources
 
 source_group(""     FILES ${RootSources})
 source_group("View" FILES ${ViewSources})
-file(GLOB Sources include/Visus/*.h src/*.cpp resources/*.glsl resources/*.qrc)
+file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp resources/*.glsl resources/*.qrc)
 AddLibrary(VisusAppKit SHARED ${Sources})
 target_link_libraries(VisusAppKit PUBLIC VisusNodes VisusGuiNodes)
 

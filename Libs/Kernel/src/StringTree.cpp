@@ -40,7 +40,6 @@ For support : support@visus.net
 #include <Visus/StringUtils.h>
 #include <Visus/Path.h>
 #include <Visus/Utils.h>
-#include <Visus/ApplicationInfo.h>
 
 #include <tinyxml/tinyxml.h>
 
@@ -182,14 +181,23 @@ private:
     
     //TODO: mini parser here?
     bool bCondition = false;
-    if      (condition_expr ==  "win"  ) bCondition = ApplicationInfo::platform_name == "win";
-    else if (condition_expr == "!win"  ) bCondition = ApplicationInfo::platform_name != "win";
-    else if (condition_expr ==  "osx"  ) bCondition = ApplicationInfo::platform_name == "osx";
-    else if (condition_expr == "!osx"  ) bCondition = ApplicationInfo::platform_name != "osx";
-    else if (condition_expr ==  "ios"  ) bCondition = ApplicationInfo::platform_name == "ios";
-    else if (condition_expr == "!ios"  ) bCondition = ApplicationInfo::platform_name != "ios";
-    else if (condition_expr ==  "linux") bCondition = ApplicationInfo::platform_name == "linux";
-    else if (condition_expr == "!linux") bCondition = ApplicationInfo::platform_name != "linux";
+
+#if WIN32
+    String platform_name = "win";
+#elif __APPLE__
+    String platform_name = "osx";
+#else
+    String platform_name = "unix";
+#endif
+
+    if      (condition_expr ==  "win"  ) bCondition = platform_name == "win";
+    else if (condition_expr == "!win"  ) bCondition = platform_name != "win";
+    else if (condition_expr ==  "osx"  ) bCondition = platform_name == "osx";
+    else if (condition_expr == "!osx"  ) bCondition = platform_name != "osx";
+    else if (condition_expr ==  "ios"  ) bCondition = platform_name == "ios";
+    else if (condition_expr == "!ios"  ) bCondition = platform_name != "ios";
+    else if (condition_expr ==  "linux") bCondition = platform_name == "linux";
+    else if (condition_expr == "!linux") bCondition = platform_name != "linux";
     else bCondition = cbool(condition_expr);
 
     for (auto child : src.childs)

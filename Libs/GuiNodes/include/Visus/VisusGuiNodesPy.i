@@ -18,7 +18,7 @@
 using namespace Visus;
 %}
 
-%include <Visus/VisusPy.i>
+%include <Visus/VisusCommonPy.i>
 %import  <Visus/VisusKernelPy.i>
 %import  <Visus/VisusDataflowPy.i>
 %import  <Visus/VisusGuiPy.i>
@@ -43,3 +43,6 @@ using namespace Visus;
 //allow rendering inside main GLCanvas (problem of multi-inheritance Node and GLObject)
 %feature("director") Visus::PythonNode; 
 %include <Visus/PythonNode.h>
+
+%pythoncode %{
+%}

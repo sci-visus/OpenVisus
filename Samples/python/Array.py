@@ -102,9 +102,7 @@ class MyTestCase(unittest.TestCase):
 
 # ////////////////////////////////////////////////////////
 if __name__ == '__main__':
-	SetCommandLine("__main__")
-	KernelModule.attach()
+	DbModule.attach()
 	unittest.main(exit=True)
-	KernelModule.detach()
 
 

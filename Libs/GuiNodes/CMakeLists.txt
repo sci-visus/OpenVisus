@@ -7,7 +7,7 @@ if (VISUS_OSPRAY)
 	target_compile_definitions(VisusKernel PUBLIC -DVISUS_OSPRAY=1)
 endif()
 
-file(GLOB Sources include/Visus/*.h src/*.cpp resources/*.glsl resources/*.qrc)
+file(GLOB Sources include/Visus/*.h include/Visus/*.i src/*.cpp resources/*.glsl resources/*.qrc)
 source_group("" FILES ${Sources})
 AddLibrary(VisusGuiNodes SHARED ${Sources})
 target_link_libraries(VisusGuiNodes PUBLIC VisusGui VisusDataflow)

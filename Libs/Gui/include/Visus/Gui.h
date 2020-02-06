@@ -77,16 +77,15 @@ public:
 
   //detach
   static void detach();
-
-  //createApplication
-  static void createApplication();
-
-  //execApplication
-  static void execApplication();
-
-  //destroyApplication
-  static void destroyApplication();
 };
+
+VISUS_GUI_API void CreateQtApplication(int argn,const char** argv);
+
+VISUS_GUI_API void CreateQtApplication();
+
+VISUS_GUI_API void ExecQtApplication();
+
+VISUS_GUI_API void DestroyQtApplication();
 
 //having the same function name between two modules seems not to work (one will overwrite the second)
 #if !SWIG

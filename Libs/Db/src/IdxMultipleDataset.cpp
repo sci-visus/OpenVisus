@@ -40,7 +40,6 @@ For support : support@visus.net
 #include <Visus/ModVisusAccess.h>
 #include <Visus/Path.h>
 #include <Visus/ThreadPool.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/Polygon.h>
 #include <Visus/Python.h>
 
@@ -811,17 +810,22 @@ public:
   }
 
 };
-#endif //VISUS_PYTHON
 
 Array IdxMultipleDataset::computeOutput(BoxQuery* QUERY, SharedPtr<Access> ACCESS, String FIELDNAME, Aborted ABORTED) const
 {
-#if VISUS_PYTHON
-  ;
   return ComputeOutput(this, QUERY, ACCESS, FIELDNAME, ABORTED).doCompute();
-#else
-  return Array();
-#endif
 }
+#else
+
+Array IdxMultipleDataset::computeOutput(BoxQuery* QUERY, SharedPtr<Access> ACCESS, String FIELDNAME, Aborted ABORTED) const
+{
+  //todo: I probably can parse dataset.field and return it
+  return Array();
+}
+
+#endif
+
+
 
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -853,8 +857,6 @@ static bool IsGoodVariableName(String name)
 ////////////////////////////////////////////////////////////////////////////////////
 String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
 {
-#if VISUS_PYTHON
-
   std::ostringstream out;
   out << "input";
 
@@ -887,9 +889,6 @@ String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
   }
 
   return out.str();
-#else
-  return FormatString() << "input." << dataset_name << "." << fieldname;
-#endif
 };
 
 ////////////////////////////////////////////////////////////////////////////////////

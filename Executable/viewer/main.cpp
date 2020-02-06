@@ -37,24 +37,23 @@ For support : support@visus.net
 -----------------------------------------------------------------------------*/
 
 #include <Visus/Viewer.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/ModVisus.h>
 
 ////////////////////////////////////////////////////////////////////////
 int main(int argn,const char* argv[])
 {
   using namespace Visus;
-  SetCommandLine(argn, argv);
-  GuiModule::createApplication();
+  VisusSetCommandLine(argn, argv);
+  CreateQtApplication(argn,argv);
   AppKitModule::attach();
 
   {
     UniquePtr<Viewer> viewer(new Viewer());
-    viewer->configureFromCommandLine(ApplicationInfo::args);
-    GuiModule::execApplication();
+    viewer->configureFromCommandLine(VisusGetCommandLine());
+    ExecQtApplication();
   }
   AppKitModule::detach();
-  GuiModule::destroyApplication();
+  DestroyQtApplication();
   return 0;
 }
 

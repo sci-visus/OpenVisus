@@ -14,8 +14,8 @@ from OpenVisus       import *
 from OpenVisus.VisusGuiPy      import *
 from OpenVisus.VisusGuiNodesPy import *
 from OpenVisus.VisusAppKitPy   import *
-
 from OpenVisus.PyViewer        import *
+from OpenVisus.PyScriptingNode import *
 
 
 # //////////////////////////////////////////////
@@ -24,29 +24,27 @@ def Main(argv):
 	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
 	# c:\Python37\python.exe CMake/PyViewer.py	
 	
-	SetCommandLine("__main__")
-	GuiModule.createApplication()
-	AppKitModule.attach()  	
+	CreateQtApplication()
 	
-	"""
-	allow some python code inside scripting node
-	"""
-
+	AppKitModule.attach()
+	
+	VISUS_REGISTER_NODE_CLASS("ScriptingNode", "PyScriptingNode", lambda : PyScriptingNode())
+	
+	# allow some python code inside scripting node
 	viewer=PyViewer()
 	viewer.open(r".\datasets\cat\gray.idx")
-	# ... with some little python scripting
-	viewer.setScriptingCode("""
-import cv2,numpy
-pdim=input.dims.getPointDim()
-img=Array.toNumPy(input,bShareMem=True)
-img=cv2.Laplacian(img,cv2.CV_64F)
-output=Array.fromNumPy(img,TargetDim=pdim)
-""".strip())	
+	
+	code="\n".join([
+		"import numpy,cv2",
+		"print(type(input),input.shape,input.dtype)",
+		"output=cv2.Laplacian(input,cv2.CV_64F)"
+		])
+	
+	viewer.setScriptingCode(code)
 	viewer.run()
 	
-	GuiModule.execApplication()
+	ExecQtApplication()
 	viewer=None  
-	AppKitModule.detach()
 	print("All done")
 	sys.exit(0)	
 	

@@ -136,16 +136,13 @@ def Main(argv):
 	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
 	# c:\Python37\python.exe Samples\python\ExtractSlices.py
 	
-	SetCommandLine("__main__")
-	GuiModule.createApplication()
-	AppKitModule.attach()  	
+	CreateQtApplication()
 	
 	#VisibleMale()
 	
 	# ConvertVisibleFemale
 	VisibleFemale()
 	
-	AppKitModule.detach()
 	print("ALL DONE")
 	sys.stdin.read(1)
 	sys.exit(0)	
@@ -153,6 +150,7 @@ def Main(argv):
 
 # //////////////////////////////////////////////
 if __name__ == '__main__':
+	AppKitModule.attach()
 	Main(sys.argv)
 
 

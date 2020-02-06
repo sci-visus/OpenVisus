@@ -63,7 +63,6 @@ For support : support@visus.net
 #include <Visus/TimeNodeView.h>
 #include <Visus/GLCameraNodeView.h>
 #include <Visus/FieldNodeView.h>
-#include <Visus/ScriptingNodeView.h>
 #include <Visus/CpuTransferFunctionNodeView.h>
 #include <Visus/PaletteNodeView.h>
 #include <Visus/RenderArrayNodeView.h>
@@ -729,13 +728,6 @@ void Viewer::editNode(Node* node)
     return;
   }
 
-  //ScriptingNode
-  if (auto model=dynamic_cast<ScriptingNode*>(node))
-  {
-    addDockWidget(node->getName(),new ScriptingNodeView(model));
-    return;
-  }
-
  //CpuPaletteNode
   if (auto model=dynamic_cast<CpuPaletteNode*>(node))
   {
@@ -756,8 +748,6 @@ void Viewer::editNode(Node* node)
     addDockWidget(node->getName(),new RenderArrayNodeView(model));
     return;
   }
-
-
 
   //RenderArrayNode
   if (auto model = dynamic_cast<OSPRayRenderNode*>(node))

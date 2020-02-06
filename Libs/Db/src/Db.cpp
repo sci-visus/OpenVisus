@@ -46,6 +46,7 @@ For support : support@visus.net
 #include <Visus/StringTree.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/IdxMultipleDataset.h>
+#include <Visus/IdxDiskAccess.h>
 
 namespace Visus {
 
@@ -85,6 +86,9 @@ void DbModule::attach()
         IdxDataset::tryRemoveLockAndCorruptedBinaryFiles(directory);
     }
   }
+
+  IdxDiskAccess::bDefaultDisableWriteLock = Utils::contains(VisusGetCommandLine(), String("--disable-write-locks"));
+  IdxDiskAccess::bDefaultDisableIO        = Utils::contains(VisusGetCommandLine(), String("--disable-io"));
 
   PrintInfo("Attached DbModule");
 }

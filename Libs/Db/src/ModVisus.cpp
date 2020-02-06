@@ -43,7 +43,6 @@ For support : support@visus.net
 #include <Visus/TransferFunction.h>
 #include <Visus/NetService.h>
 #include <Visus/StringTree.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/IdxDataset.h>
 #include <Visus/IdxMultipleDataset.h>
 
@@ -368,7 +367,7 @@ NetResponse ModVisus::handleReadDataset(const NetRequest& request)
     return NetResponseError(HttpStatus::STATUS_NOT_FOUND, "Cannot find dataset(" + dataset_name + ")");
 
   NetResponse response(HttpStatus::STATUS_OK);
-  response.setHeader("visus-git-revision", ApplicationInfo::git_revision);
+  response.setHeader("visus-git-revision", VisusGetGitRevision());
   response.setHeader("visus-typename", dataset->getTypeName());
 
   auto body = dataset->getDatasetBody();
@@ -790,8 +789,7 @@ NetResponse ModVisus::handleRequest(NetRequest request)
     "status", response.getStatusDescription(), "body", StringUtils::getStringFromByteSize(response.body ? response.body->c_size() : 0), "msec", t1.elapsedMsec());
 
   //add some standard header
-  response.setHeader("git_revision", ApplicationInfo::git_revision);
-  response.setHeader("version", cstring(ApplicationInfo::version));
+  response.setHeader("git_revision", VisusGetGitRevision());
 
   //expose visus headers (for javascript access)
   //see https://stackoverflow.com/questions/35240520/fetch-answer-empty-due-to-the-preflight

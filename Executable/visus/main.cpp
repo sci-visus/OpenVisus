@@ -51,16 +51,13 @@ For support : support@visus.net
 #include <Visus/ThreadPool.h>
 #include <Visus/NetService.h>
 #include <Visus/Utils.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/IdxDiskAccess.h>
 #include <Visus/IdxMultipleDataset.h>
 #include <Visus/MultiplexAccess.h>
-#include <Visus/Python.h>
 
 using namespace Visus;
 
 void execTestIdx(int max_seconds);
-
 
 ///////////////////////////////////////////////////////////
 class ConvertStep
@@ -2130,7 +2127,7 @@ public:
     for (auto it : actions)
       out << "    " << it.first << std::endl;
     out << std::endl;
-    out << "For specific help: " << ApplicationInfo::args[0] << " <action-name> help";
+    out << "For specific help: " << VisusGetCommandLine()[0] << " <action-name> help";
     out << std::endl;
     return out.str();
   }
@@ -2194,20 +2191,9 @@ public:
 //////////////////////////////////////////////////////////////////////////////
 int main(int argn, const char* argv[])
 {
-  //python main
-  #if VISUS_PYTHON
-  if (argn >= 2 && (String(argv[1]) == "--python" || String(argv[1]) == "-python"))
-  {
-    std::vector<String> args;
-    for (int I = 0; I < argn; I++)
-      if (I != 1) args.push_back(argv[I]);
-    return PythonEngine::main(args);
-  }
-  #endif
-
   Time T1 = Time::now();
 
-  SetCommandLine(argn, argv);
+  VisusSetCommandLine(argn, argv);
   DbModule::attach();
 
   if (argn >= 2 && String(argv[1]) == "--server")
@@ -2225,25 +2211,28 @@ int main(int argn, const char* argv[])
 
   //ignores all starting arguments not in actions (they will be global arguments such as --disable-write-locks)
   std::vector<String> args;
-  args.push_back(ApplicationInfo::args[0]);
 
-  for (auto it=ApplicationInfo::args.begin(); it!=ApplicationInfo::args.end();it++)
+  auto command_line = VisusGetCommandLine();
+
+  args.push_back(command_line[0]);
+
+  for (auto it= command_line.begin(); it!= command_line.end();it++)
   {
     auto arg = *it;
     if (convert.actions.find(arg) != convert.actions.end())
     {
-      args.insert(args.end(), it, ApplicationInfo::args.end());
+      args.insert(args.end(), it, command_line.end());
       break;
     }
   }
 
   //PrintInfo(StringUtils::join(args));
   
-  if (ApplicationInfo::debug)
+#ifdef _DEBUG
   {
     data = convert.exec(data, args);
   }
-  else
+#else
   {
     try
     {
@@ -2256,6 +2245,7 @@ int main(int argn, const char* argv[])
       return -1;
     }
   }
+#endif
 
   PrintInfo("All done in ",T1.elapsedSec(),",seconds");
 

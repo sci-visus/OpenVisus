@@ -46,6 +46,7 @@ For support : support@visus.net
 #include <sstream>
 #include <atomic>
 #include <exception>
+#include <vector>
 
 //__________________________________________________________
 #if WIN32
@@ -213,14 +214,10 @@ inline Value from_string(const std::string& s) {
 
 VISUS_KERNEL_API String cstring10(double value);
 
-#if !SWIG
-class VISUS_KERNEL_API CommandLine
-{
-public:
-  static int argn;
-  static const char** argv;
-};
-#endif
+
+VISUS_KERNEL_API String VisusGetGitRevision();
+
+VISUS_KERNEL_API String GetPythonErrorMessage();
 
 
 VISUS_KERNEL_API void PrintLine(String file, int line, int severity, String msg);
@@ -232,11 +229,12 @@ VISUS_KERNEL_API void PrintLine(String file, int line, int severity, String msg)
 
 VISUS_KERNEL_API void RedirectLogTo(void(*)(String msg, void*), void* user_data = nullptr);
 
-//(default values for swig)
-VISUS_KERNEL_API void SetCommandLine(int argn = 0, const char** argv = nullptr);
+#if !SWIG
+VISUS_KERNEL_API void VisusSetCommandLine(int argn = 0, const char** argv = nullptr);
+#endif
 
-//for swig
-VISUS_KERNEL_API void SetCommandLine(String value);
+//VisusGetCommandLine
+VISUS_KERNEL_API std::vector<String> VisusGetCommandLine();
 
 //VisusAssertFailed
 VISUS_KERNEL_API void VisusAssertFailed(const char* file, int line, const char* expr);

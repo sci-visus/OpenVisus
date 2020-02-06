@@ -51,7 +51,7 @@ class PyProducer(Node):
 	
 	# constructor
 	def __init__(self): 
-		Node.__init__(self)
+		super().__init__()
 		self.addOutputPort("output")
 		
 	# getTypeName
@@ -75,7 +75,7 @@ class PyReceiver(Node):
 
 	# constructor
 	def __init__(self): 
-		Node.__init__(self)
+		super().__init__()
 		self.addInputPort("input")
 
 	# getTypeName
@@ -117,21 +117,19 @@ class TestDataflow(unittest.TestCase):
 
 		while dataflow.dispatchPublishedMessages():
 			pass
-      
+
 		value=receiver.published_value
 
 		self.assertEqual(value,"hello visus")
 		dataflow.disconnectNodes(producer,"output","input",receiver)
 		dataflow.removeNode(producer)
 		dataflow.removeNode(receiver)  
-    
+
 
 # ////////////////////////////////////////////////////////
 if __name__ == '__main__':
-	SetCommandLine("__main__")
-	DataflowModule.attach()
-	VISUS_REGISTER_NODE_CLASS("PyProducer")
-	VISUS_REGISTER_NODE_CLASS("PyReceiver")
+	NodesModule.attach()
+	VISUS_REGISTER_NODE_CLASS("PyProducer", "PyProducer", lambda : PyProducer())
+	VISUS_REGISTER_NODE_CLASS("PyReceiver", "PyReceiver", lambda : PyReceiver())
 	unittest.main(exit=True)
-	DataflowModule.detach()
 

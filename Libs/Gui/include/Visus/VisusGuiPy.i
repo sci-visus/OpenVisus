@@ -25,7 +25,7 @@ namespace Visus {
 using namespace Visus;
 %}
 
-%include <Visus/VisusPy.i>
+%include <Visus/VisusCommonPy.i>
 
 //__________________________________________________________
 %pythonbegin %{
@@ -56,6 +56,8 @@ else:
 #define slots   
 
 %include <Visus/Gui.h>
+
+
 %include <Visus/GLObject.h>
 
 %shared_ptr(Visus::GLMesh)
@@ -78,3 +80,6 @@ namespace Visus {
 	PyObject* FromCppQtWidget (void*     widget);
 }
 
+
+%pythoncode %{
+%}

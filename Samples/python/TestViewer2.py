@@ -93,11 +93,9 @@ def Main(argv):
 	
 	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
 	# c:\Python37\python.exe CMake/PyViewer.py	
-	SetCommandLine("__main__")
-	GuiModule.createApplication()
-	AppKitModule.attach()  
+	CreateQtApplication() 
 	
-	VISUS_REGISTER_NODE_CLASS("MyPythonNode")
+	VISUS_REGISTER_NODE_CLASS("MyPythonNode", "MyPythonNode", lambda : MyPythonNode())
 
 	viewer=Viewer()
 	viewer.open("http://atlantis.sci.utah.edu/mod_visus?dataset=2kbit1") 
@@ -119,14 +117,14 @@ def Main(argv):
 	query_node=viewer.findNodeByUUID("volume")
 	viewer.connectNodes(query_node, pynode)
 	 
-	GuiModule.execApplication()
+	ExecQtApplication()
 	viewer=None  
-	AppKitModule.detach()
 	print("All done")
 	sys.exit(0)
 
 
 # //////////////////////////////////////////////
 if __name__ == '__main__':
+	AppKitModule.attach()
 	Main(sys.argv)
 

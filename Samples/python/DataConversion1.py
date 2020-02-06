@@ -18,9 +18,8 @@ if __name__ == '__main__':
 		...
 	"""
 
-	SetCommandLine("__main__")
 	DbModule.attach()
-	
+
 	# trick to speed up the conversion
 	os.environ["VISUS_DISABLE_WRITE_LOCK"]="1"
 	
@@ -71,7 +70,7 @@ if __name__ == '__main__':
 		buffer=Array(query.getNumberOfSamples(),query.field.dtype)
 		buffer.fillWithValue(0)
 		
-		fill=Array.toNumPy(buffer,bSqueeze=True,bShareMem=True)
+		fill=Array.toNumPy(buffer,bShareMem=True)
 		y1=0
 		y2=height
 		x1=offset_x*Z
@@ -86,6 +85,5 @@ if __name__ == '__main__':
 		# ArrayUtils.saveImageUINT8("tmp/slice%d.orig.png" % (Z,),Array.fromNumPy(data))
 		# ArrayUtils.saveImageUINT8("tmp/slice%d.offset.png" % (Z,),Array.fromNumPy(fill))
 	
-	DbModule.detach()
 	print("Done with conversion")
 	sys.exit(0)

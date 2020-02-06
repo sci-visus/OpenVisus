@@ -46,9 +46,9 @@ For support : support@visus.net
 #include <Visus/Encoder.h>
 #include <Visus/UUID.h>
 #include <Visus/StringTree.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/NetService.h>
 #include <Visus/SharedLibrary.h>
+#include <Visus/Python.h>
 
 #include <assert.h>
 #include <type_traits>
@@ -89,7 +89,6 @@ For support : support@visus.net
 #include <Visus/TransferFunction.h>
 #include <Visus/Statistics.h>
 #include <Visus/Array.h>
-#include <Visus/Python.h>
 
 #include <clocale>
 
@@ -108,6 +107,22 @@ For support : support@visus.net
 
 namespace Visus {
 
+static PyThreadState* __main__thread_state__ = nullptr;
+
+String VisusGetGitRevision()
+{
+  #ifdef GIT_REVISION
+    #define __str__(s) #s
+    #define __xstr__(s) __str__(s)
+    return __xstr__(GIT_REVISION);
+    #undef __str__
+    #undef __xstr__
+  #else
+    return "";
+  #endif
+}
+
+
 #if __APPLE__
   
 //see Kernel.mm
@@ -117,11 +132,6 @@ void InitAutoReleasePool();
   
 void DestroyAutoReleasePool();
   
-#endif
-
-#if VISUS_PYTHON
-void InitPython();
-void ShutdownPython();
 #endif
 
 ConfigFile* VisusModule::getModuleConfig() {
@@ -206,8 +216,9 @@ static_assert(sizeof(S133) == 133, "internal error");
 static_assert(sizeof(off_t) == 8, "internal error");
 #endif
 
-int          CommandLine::argn=0;
-const char** CommandLine::argv ;
+static int                      __argn__;
+static std::vector<const char*> __argv__;
+static std::vector<String>      __args__;
 
 static String visus_config_commandline_filename;
 
@@ -219,39 +230,50 @@ String cstring10(double value) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void SetCommandLine(int argn, const char** argv)
+void VisusSetCommandLine(int argn, const char** argv)
 {
-  CommandLine::argn = argn;
-  CommandLine::argv = argv;
+  __argn__ = 0;
+  __argv__.clear();
+  __args__.clear();
 
-  // parse command line
   for (int I = 0; I < argn; I++)
   {
+    auto arg = argv[I];
+
     //override visus.config
-    if (argv[I] == String("--visus-config") && I < (argn - 1))
+    if (arg == String("--visus-config") && I < (argn - 1))
     {
       visus_config_commandline_filename = argv[++I];
       continue;
     }
 
     //xcode debugger always passes this; just ignore it
-    if (argv[I] == String("-NSDocumentRevisionsDebugMode") && I < (argn - 1))
+    if (arg == String("-NSDocumentRevisionsDebugMode") && I < (argn - 1))
     {
       String ignoring_enabled = argv[++I];
       continue;
     }
 
-    ApplicationInfo::args.push_back(argv[I]);
+    if (StringUtils::startsWith(arg, "-v")) {
+      int value = (int)String(arg).size() - 1;
+      PythonEngine::setVerboseFlag(value);
+      continue;
+    }
+
+
+    __argn__++;
+    __argv__.push_back(arg);
+    __args__.push_back(arg);
   }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void SetCommandLine(String value)
+std::vector<String> VisusGetCommandLine()
 {
-  static String keep_in_memory = value;
-  static const int argn = 1;
-  static const char* argv[] = { keep_in_memory.c_str()};
-  SetCommandLine(argn, argv);
+  if (__args__.empty())
+    return {"__main__.py"};
+  else
+    return __args__;
 }
 
 /////////////////////////////////////////////////////
@@ -264,10 +286,11 @@ bool VisusHasMessageLock()
 //////////////////////////////////////////////////////
 void VisusAssertFailed(const char* file,int line,const char* expr)
 {
-  if (ApplicationInfo::debug)
+#ifdef _DEBUG
     Utils::breakInDebugger();
-  else
+#else
     ThrowExceptionEx(file,line,expr);
+#endif
 }
 
 String cnamed(String name, String value) {
@@ -359,8 +382,6 @@ void KernelModule::attach()
 
   bAttached = true;
 
-  ApplicationInfo::start = Time::now();
-
 #if __APPLE__
   InitAutoReleasePool();
 #endif
@@ -407,7 +428,7 @@ void KernelModule::attach()
       break;
   }
 
-  PrintInfo("git_revision            ",ApplicationInfo::git_revision);
+  PrintInfo("git_revision            ",VisusGetGitRevision());
   PrintInfo("VisusHome               ",KnownPaths::VisusHome);
   PrintInfo("BinaryDirectory         ",KnownPaths::BinaryDirectory);
   PrintInfo("CurrentWorkingDirectory ",KnownPaths::CurrentWorkingDirectory());
@@ -419,7 +440,63 @@ void KernelModule::attach()
 
   //this is to make sure PythonEngine works
 #if VISUS_PYTHON
-  InitPython();
+  {
+    if (Py_IsInitialized())
+    {
+      PrintInfo("Visus is running (i.e. extending) python");
+    }
+    else
+    {
+      PrintInfo("Initializing embedded python...");
+
+      PythonEngine::setProgramName(VisusGetCommandLine()[0]);
+
+      //IMPORTANT: if you want to avoid the usual sys.path initialization
+      //you can copy the python shared library (example: python36.dll) and create a file with the same name and _pth extension
+      //(example python36_d._pth). in that you specify the directories to include. you can also for example a python36.zip file
+      //or maybe you can set PYTHONHOME
+
+      //skips initialization registration of signal handlers
+      Py_InitializeEx(0);
+
+      // acquire the gil
+      PyEval_InitThreads();
+
+      //add value PYTHONPATH in order to find the OpenVisus directory
+      {
+        auto path = KnownPaths::BinaryDirectory.toString() + "/../..";
+        #if WIN32
+        path = StringUtils::replaceAll(path, "/", "\\\\");
+        #else
+        path = StringUtils::replaceAll(path, "\\\\", "/");
+        #endif
+
+        auto cmd = StringUtils::join({
+          "import os,sys",
+          "value=os.path.realpath('" + path + "')",
+          "if not value in sys.path: sys.path.append(value)"
+          }, "\r\n");
+
+        PyRun_SimpleString(cmd.c_str());
+      }
+
+      //NOTE if you try to have multiple interpreters (Py_NewInterpreter) I get deadlock
+      //see https://issues.apache.org/jira/browse/MODPYTHON-217https://stackoverflow.com/questions/23706573/embedded-python-extern-pyrun-simplestring-expected-identifier
+      //see https://trac.xapian.org/ticket/185
+      __main__thread_state__ = PyEval_SaveThread();
+    }
+
+    PrintInfo("Python initialization done");
+
+    //this is important to import swig libraries
+#if 1
+    if (auto engine = std::make_shared<PythonEngine>(true))
+    {
+      ScopedAcquireGil acquire_gil;
+      engine->execCode("print('PythonEngine is working fine')");
+    }
+#endif
+  }
 #endif
 
   //in case the user whant to simulate I have a certain amount of RAM
@@ -432,18 +509,6 @@ void KernelModule::attach()
   NetSocket::Defaults::send_buffer_size = config->readInt("Configuration/NetSocket/send_buffer_size");
   NetSocket::Defaults::recv_buffer_size = config->readInt("Configuration/NetSocket/recv_buffer_size");
   NetSocket::Defaults::tcp_no_delay = config->readBool("Configuration/NetSocket/tcp_no_delay", "1");
-
-  //test plugin
-#if 0
-  auto lib = std::make_shared<SharedLibrary>();
-  if (lib->load(SharedLibrary::getFilenameInBinaryDirectory("MyPlugin")))
-  {
-    auto get_instance = (SharedPlugin* (*)())example.findSymbol("GetSharedPluginInstance");
-    VisusReleaseAssert(get_instance);
-    auto plugin = get_instance();
-    plugin->lib = lib;
-  }
-#endif
 
   PrintInfo("Attached KernelModule");
 }
@@ -465,7 +530,12 @@ void KernelModule::detach()
   UUIDGenerator::releaseSingleton();
 
 #if VISUS_PYTHON
-  ShutdownPython();
+  if (__main__thread_state__)
+  {
+    //PrintInfo("Shutting down python...");
+    PyEval_RestoreThread(__main__thread_state__);
+    Py_Finalize();
+  }
 #endif
 
   NetService::detach();

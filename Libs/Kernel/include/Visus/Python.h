@@ -99,6 +99,12 @@ public:
     return globals;
   }
 
+  //setProgramName
+  static void setProgramName(String value);
+
+  //setVerboseFlag
+  static void setVerboseFlag(int value);
+
   //getGlobalAttr
   PyObject* getGlobalAttr(String name) {
     return getAttr(getGlobals(), name.c_str());
@@ -162,9 +168,6 @@ public:
 
 public:
 
-  //addSysPath
-  void addSysPath(String value,bool bVerbose=true);
-
   //printMessage (must have the GIL)
   void printMessage(String message);
 
@@ -185,12 +188,7 @@ private:
   String     module_name;
   PyObject*  module = nullptr;
   PyObject*  globals = nullptr;
-
-  //getLastPythonErrorMessage
-  String getLastPythonErrorMessage(bool bClear);
-
 };
-
 
 /////////////////////////////////////////////////////
 class VISUS_KERNEL_API ScopedAcquireGil

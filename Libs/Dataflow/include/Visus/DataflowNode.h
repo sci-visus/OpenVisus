@@ -169,7 +169,14 @@ public:
   virtual void exitFromDataflow();
 
   //addNodeJob
+#if !SWIG
   virtual void addNodeJob(SharedPtr<NodeJob> job);
+#endif
+
+  //addNodeJob (needed for swig)
+  virtual void addNodeJob(NodeJob* VISUS_DISOWN(job)) {
+    addNodeJob(SharedPtr<NodeJob>(job));
+  }
 
   //abortProcessing
   virtual void abortProcessing();
@@ -404,7 +411,7 @@ public:
 
   //registerClass
   void registerClass(String portable_typename, String os_typename, NodeCreator* VISUS_DISOWN(creator)) {
-    VisusAssert(creators.find(portable_typename) == creators.end());
+    PrintInfo("Registering class", portable_typename, os_typename);
     creators[portable_typename] = creator;
     portable_typenames.setValue(os_typename, portable_typename);
   }
@@ -416,18 +423,18 @@ public:
   }
 
   //createInstance
-  VISUS_NEWOBJECT(Node*) createInstance(String portable_typename, bool bCanFail = false)
+  VISUS_NEWOBJECT(Node*) createInstance(String portable_typename)
   {
     auto it = creators.find(portable_typename);
-    if (it == creators.end()) { VisusAssert(bCanFail); return nullptr; }
+    if (it == creators.end()) return nullptr;
     return it->second->createInstance();
   }
 
   //createInstance
   template <class NodeClass>
-  VISUS_NEWOBJECT(NodeClass*) createInstance(String portable_typename, bool bCanFail = false)
+  VISUS_NEWOBJECT(NodeClass*) createInstance(String portable_typename)
   {
-    Node* obj = createInstance(portable_typename, bCanFail);
+    Node* obj = createInstance(portable_typename);
     if (NodeClass* ret = dynamic_cast<NodeClass*>(obj)) return ret;
     if (obj) delete obj;
     return nullptr;

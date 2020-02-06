@@ -43,7 +43,6 @@ For support : support@visus.net
 #include <Visus/NetService.h>
 #include <Visus/FieldNode.h>
 #include <Visus/StringTree.h>
-#include <Visus/ApplicationInfo.h>
 
 namespace Visus {
 

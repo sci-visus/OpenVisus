@@ -43,7 +43,6 @@ For support : support@visus.net
 #include <Visus/DataflowNode.h>
 #include <Visus/Dataflow.h>
 #include <Visus/Array.h>
-#include <Visus/Python.h>
 
 namespace Visus {
 
@@ -54,62 +53,33 @@ public:
 
   VISUS_NON_COPYABLE_CLASS(ScriptingNode)
 
-
   //constructor
   ScriptingNode();
 
   //destructor
   virtual ~ScriptingNode();
 
-  //getCode
-  String getCode() {
-    return code;
-  }
-
-  //getMaxPublishMSec
-  int getMaxPublishMSec() const {
-    return max_publish_msec;
-  }
-
-  //setMaxPublishMSec
-  void setMaxPublishMSec(int value) {
-    setProperty("SetMaxPublishMSec", this->max_publish_msec, value);
-  }
-
-  //setCode
-  void setCode(String code) {
-    setProperty("SetCode", this->code, code);
-  }
-
-  //addUserInput
-  void addUserInput(String key, Array value);
-
-  //clearPresets
-  void clearPresets();
-
-  //getPresets
-  std::vector<String> getPresets() const {
-    return presets.keys;
-  }
-
-  //addPreset
-  void addPreset(String key, String code);
-
-  //getPresetCode
-  String getPresetCode(String key, String default_value = "") {
-
-    int index = Utils::find(presets.keys,key);
-    return index >= 0 ? presets.code[index] : default_value;
-  }
-
-  //processInput
-  virtual bool processInput() override;
-
   //getBounds
   virtual Position getBounds() override {
     return this->bounds;
   }
 
+  //getCode
+  virtual String getCode() {
+    return code;
+  }
+
+  //setCode
+  virtual void setCode(String code) {
+    setProperty("SetCode", this->code, code);
+  }
+
+  //processInput
+  virtual bool processInput() override;
+
+public:
+
+  //castFrom
   static ScriptingNode* castFrom(Node* obj) {
     return dynamic_cast<ScriptingNode*>(obj);
   }
@@ -127,33 +97,8 @@ public:
 
 private:
 
-#if VISUS_PYTHON
-  class MyJob;  
-  friend class MyJob;
-#endif
-
-  String    code;
-
-  int max_publish_msec = 600;
-
-  struct
-  {
-    std::vector<String> keys;
-    std::vector<String> code;
-  }
-  presets;
-
-
-  DType     last_dtype;
-
-  Position  bounds;
-
-#if VISUS_PYTHON
-  SharedPtr<PythonEngine> engine;
-#endif
-
-  //guessPresets
-  void guessPresets(Array data);
+  Position bounds;
+  String   code;
 
   //modelChanged
   virtual void modelChanged() override {
@@ -162,6 +107,7 @@ private:
   }
 
 };
+
 
 
 ////////////////////////////////////////////////////////////

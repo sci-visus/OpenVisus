@@ -63,8 +63,12 @@ endmacro()
 
 # /////////////////////////////////////////////////////////////
 macro(InstallFile src dst_dir)
+	# see https://stackoverflow.com/questions/44054266/cmake-custom-command-copy-changed-file-even-if-dont-build-target-and-only-if
 	get_filename_component(__name__ ${src} NAME)
-	file(GENERATE OUTPUT ${InstallDir}/${dst_dir}/${__name__} INPUT ${CMAKE_CURRENT_SOURCE_DIR}/${src})
+	set(__src__ ${CMAKE_CURRENT_SOURCE_DIR}/${src})
+	set(__dst__ ${InstallDir}/${dst_dir}/${__name__})
+	# configure_file(${__src__} ${__dst__} COPYONLY)
+	file(GENERATE OUTPUT ${__dst__} INPUT ${__src__})
 endmacro()
 
 # /////////////////////////////////////////////////////////////

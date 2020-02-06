@@ -20,7 +20,6 @@ if __name__ == '__main__':
 	
 	"""
 
-	SetCommandLine("__main__")
 	DbModule.attach()
 
 	# trick to speed up the conversion
@@ -114,7 +113,5 @@ if __name__ == '__main__':
 	        if not dataset.executeQuery(access,query):
 	        	raise Exception("Cannot execute query")
 	        	
-
-	DbModule.detach()
 	print("Done with conversion")
 	sys.exit(0)

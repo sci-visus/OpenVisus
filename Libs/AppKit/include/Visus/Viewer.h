@@ -49,7 +49,6 @@ For support : support@visus.net
 #include <Visus/DataflowTreeView.h>
 #include <Visus/Thread.h>
 #include <Visus/NetSocket.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/StringTree.h>
 #include <Visus/NetServer.h>
 
@@ -91,7 +90,7 @@ public:
   static bool   default_show_logos;
 
 
-  String       title = "VisusViewer-" + ApplicationInfo::git_revision;
+  String       title = "VisusViewer-" + VisusGetGitRevision();
   String       panels;
   bool         bHideTitleBar = false;
   bool         bHideMenus = false;
@@ -640,7 +639,6 @@ public:
 
   //addIsoContour
   QueryNode* addIsoContour(String uuid, Node* parent, String fieldname = "", int access_id = 0, String isovalue = "");
-
 
   //addScripting
   ScriptingNode* addScripting(String uuid, Node* parent);

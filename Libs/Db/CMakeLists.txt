@@ -75,7 +75,7 @@ source_group("Dataset"  FILES ${DatasetSources})
 source_group("Query"    FILES ${QuerySources})
 source_group("Idx"      FILES ${IdxSources})
 
-file(GLOB Sources include/Visus/*.h src/*.cpp)
+file(GLOB Sources include/Visus/*.h include/Visus/* src/*.cpp)
 
 AddLibrary(VisusDb SHARED ${Sources})
 target_link_libraries(VisusDb PUBLIC VisusKernel)

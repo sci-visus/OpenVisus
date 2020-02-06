@@ -45,7 +45,6 @@ For support : support@visus.net
 #include <Visus/Encoder.h>
 #include <Visus/IdxHzOrder.h>
 #include <Visus/StringTree.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/ByteOrder.h>
 
 #include <sys/types.h>
@@ -56,6 +55,9 @@ For support : support@visus.net
 #include <Visus/IdxMultipleDataset.h>
 
 namespace Visus {
+
+bool IdxDiskAccess::bDefaultDisableIO = false;
+bool IdxDiskAccess::bDefaultDisableWriteLock = false;
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -939,8 +941,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
 
   //set this only if you know what you are doing (example visus convert with only one process)
   this->bDisableWriteLocks = 
-    config.readBool("disable_write_locks") == true ||
-    std::find(ApplicationInfo::args.begin(), ApplicationInfo::args.end(), "--disable-write-locks") != ApplicationInfo::args.end();
+    config.readBool("disable_write_locks") == true || bDefaultDisableWriteLock;
 
   if (auto env = getenv("VISUS_DISABLE_WRITE_LOCK"))
     this->bDisableWriteLocks = cbool(String(env));
@@ -949,7 +950,7 @@ IdxDiskAccess::IdxDiskAccess(IdxDataset* dataset,StringTree config)
   //  PrintInfo("IdxDiskAccess::IdxDiskAccess disabling write locsk. be careful");
 
   this->bDisableIO = config.readBool("disable_io")==true ||
-    std::find(ApplicationInfo::args.begin(), ApplicationInfo::args.end(), "--idx-disk-access-disable-io") != ApplicationInfo::args.end();
+    bDefaultDisableIO;
 
   // important!number of threads must be <=1 
 #if 1

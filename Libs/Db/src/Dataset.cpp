@@ -354,7 +354,7 @@ SharedPtr<Dataset> LoadDatasetEx(StringTree ar)
     //backward compatible
     if (doc.name == "midx")
     {
-      doc.name == "dataset";
+      doc.name = "dataset";
       doc.write("typename","IdxMultipleDataset");
     }
 

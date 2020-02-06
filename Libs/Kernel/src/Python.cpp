@@ -40,7 +40,6 @@ For support : support@visus.net
 
 #include <Visus/Python.h>
 #include <Visus/Thread.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/Path.h>
 #include <Visus/File.h>
 
@@ -52,10 +51,10 @@ For support : support@visus.net
 #include <Visus/swigpyrun.h>
 
 #if PY_MAJOR_VERSION <3
-  #define char2wchar(arg) ((char*)arg)
+  #define CharToWideChar(arg) ((char*)arg)
 #else
 
-  static wchar_t* char2wchar(const char* value) 
+  static wchar_t* CharToWideChar(const char* value) 
   {
   #if PY_MINOR_VERSION<=4
     return _Py_char2wchar((char*)value, NULL);
@@ -68,7 +67,7 @@ For support : support@visus.net
 
 namespace Visus {
 
-static PyThreadState* __main__thread_state__=nullptr;
+
 
 ///////////////////////////////////////////////////////////////////////////
 ScopedAcquireGil::ScopedAcquireGil() 
@@ -99,109 +98,10 @@ ScopedReleaseGil::~ScopedReleaseGil() {
   PyEval_RestoreThread(state);
 }
 
-///////////////////////////////////////////////////////////////////////////
-static bool runningInsidePyMain() 
-{
-  //no one has already callset SetCommandLine
-  const auto& args = ApplicationInfo::args;
-  return args.empty() || args[0].empty() || args[0] == "__main__";
-}
-
-
-///////////////////////////////////////////////////////////////////////////
-void InitPython()
-{
-  if (runningInsidePyMain())
-  {
-    PrintInfo("Visus is running (i.e. extending) python");
-  }
-  else
-  {
-  	PrintInfo("Initializing embedded python...");
-  	
-	  Py_VerboseFlag = 0;
-	  auto& args = ApplicationInfo::args;
-	  std::vector<String> new_args;
-	  for (int I = 0; I < args.size(); I++)
-	  {
-	    if (StringUtils::startsWith(args[I],"-v")) {
-	      Py_VerboseFlag = (int)args[I].size()-1;
-	      continue;
-	    }
-	    new_args.push_back(args[I]);
-	  }
-	  args = new_args;  	
-  	
-	  const char* arg0 = ApplicationInfo::args[0].c_str();
-	  Py_SetProgramName(char2wchar(arg0));
-	
-	  //IMPORTANT: if you want to avoid the usual sys.path initialization
-	  //you can copy the python shared library (example: python36.dll) and create a file with the same name and _pth extension
-	  //(example python36_d._pth). in that you specify the directories to include. you can also for example a python36.zip file
-	  //or maybe you can set PYTHONHOME
-	
-	  //skips initialization registration of signal handlers
-	  Py_InitializeEx(0);
-
-	  // acquire the gil
-	  PyEval_InitThreads();
-
-	  //NOTE if you try to have multiple interpreters (Py_NewInterpreter) I get deadlock
-	  //see https://issues.apache.org/jira/browse/MODPYTHON-217
-	  //see https://trac.xapian.org/ticket/185
-    __main__thread_state__ = PyEval_SaveThread();
-	}
-	
-  PrintInfo("Python initialization done");
-
-
-  if (auto engine = std::make_shared<PythonEngine>(true))
-  {
-    ScopedAcquireGil acquire_gil;
-    engine->execCode("print('PythonEngine is working fine')");
-  }
-
-}
-
-
-///////////////////////////////////////////////////////////////////////////
-void ShutdownPython()
-{
-  if (runningInsidePyMain())
-    return;
-
-  //PrintInfo("Shutting down python...");
-  PyEval_RestoreThread(__main__thread_state__);
-  Py_Finalize();
-
-  //PrintInfo("Python shutting down done");
-}
-
-
 ////////////////////////////////////////////////////////////////////////////////////
-void PythonEngine::addSysPath(String value,bool bVerbose)
+void PythonEngine::setVerboseFlag(int value)
 {
-#if WIN32
-  value = StringUtils::replaceAll(value, "/", "\\\\");
-#else
-  value = StringUtils::replaceAll(value, "\\\\", "/");
-#endif
-
-  const String crlf = "\r\n";
-
-  std::ostringstream out;
-  out <<
-    "import os,sys" << crlf <<
-    "value=os.path.realpath('" + value + "')" << crlf <<
-    "if not value in sys.path:" << crlf <<
-    "   sys.path.append(value)" << crlf;
-
-  String cmd = out.str();
-
-  if (bVerbose)
-    PrintInfo(cmd);
-
-  execCode(cmd);
+  Py_VerboseFlag = value;
 }
 
 static std::atomic<int> module_id(0);
@@ -220,22 +120,6 @@ PythonEngine::PythonEngine(bool bVerbose)
 
   auto builtins = PyEval_GetBuiltins(); VisusAssert(builtins);
   PyDict_SetItemString(getGlobals(), "__builtins__", builtins);
-
-  if (runningInsidePyMain())
-  {
-    //thing to do, OpenVisus package has already been found
-    if (bVerbose)
-      PrintInfo("Visus is extending Python");
-  }
-  else
-  {
-    if (bVerbose)
-      PrintInfo("Visus is embedding Python");
-
-    //add value PYTHONPATH in order to find the OpenVisus directory
-    addSysPath(KnownPaths::BinaryDirectory.toString() + "/../..", bVerbose);
-  }
-
 
 	if (bVerbose)
     PrintInfo("Trying to import OpenVisus...");
@@ -260,39 +144,11 @@ PythonEngine::~PythonEngine()
   }
 }
 
-
 ///////////////////////////////////////////////////////////////////////////
-int PythonEngine::main(std::vector<String> args)
+void PythonEngine::setProgramName(String value)
 {
-#if PY_MAJOR_VERSION>=3
-  typedef wchar_t* ArgType;
-  #define PyNewArg(arg)  char2wchar(arg.c_str())
-  #define PyFreeArg(arg) PyMem_RawFree(arg)
-#else
-  typedef char* ArgType;
-  #define PyNewArg(arg) ((char*)arg.c_str())
-  #define PyFreeArg(arg)
-#endif
-
-  static int     py_argn = 0;
-  static ArgType py_argv[1024];
-  for (auto arg : args)
-    py_argv[py_argn++] = PyNewArg(arg);
-
-  Py_SetProgramName(py_argv[0]);
-  //Py_Initialize();
-  int ret = Py_Main(py_argn, py_argv);
-  Py_Finalize();
-
-  for (int I = 0; I < py_argn; I++)
-    PyFreeArg(py_argv[I]);
-
-  #undef NewPyArg
-  #undef FreePyArg
-
-  return ret;
+  Py_SetProgramName(CharToWideChar(value.c_str()));
 }
-
 
 ///////////////////////////////////////////////////////////////////////////
 PyObject* PythonEngine::getAttr(PyObject* self, String name) {
@@ -402,13 +258,10 @@ PyObject* PythonEngine::wrapString(String s) {
   return PyString_FromString(s.c_str());
 }
 
-
 ///////////////////////////////////////////////////////////////////////////
 String PythonEngine::unwrapString(PyObject* value)
 {
-  if (!value)
-    return "";
-
+  if (!value) return "";
   PyObject* py_str = PyObject_Str(value);
   auto tmp = SWIG_Python_str_AsChar(py_str);
   String ret = tmp ? tmp : "";
@@ -479,7 +332,7 @@ Array PythonEngine::unwrapArray(PyObject* py_object)
 
 
 ///////////////////////////////////////////////////////////////////////////
-String PythonEngine::getLastPythonErrorMessage(bool bClear)
+String GetPythonErrorMessage()
 {
   //see http://www.solutionscan.org/154789-python
   auto err = PyErr_Occurred();
@@ -493,7 +346,7 @@ String PythonEngine::getLastPythonErrorMessage(bool bClear)
 
   out << "Python error: " 
     << PythonEngine::unwrapString(type) << " "
-    << PythonEngine::unwrapString(value) << " ";
+    << PythonEngine::unwrapString(value) << " "<<std::endl;
 
   auto module_name = PyString_FromString("traceback");
   auto module = PyImport_Import(module_name);
@@ -502,15 +355,18 @@ String PythonEngine::getLastPythonErrorMessage(bool bClear)
   auto fn = module? PyObject_GetAttrString(module, "format_exception") : nullptr;
   if (fn && PyCallable_Check(fn))
   {
-    if (auto descr = PyObject_CallFunctionObjArgs(fn, type, value, traceback, NULL))
+    if (auto lines = PyObject_CallFunctionObjArgs(fn, type, value, traceback, NULL))
     {
-      out << PythonEngine::unwrapString(descr);
-      Py_DECREF(descr);
+      for (int i=0; i < PyList_GET_SIZE(lines); i++) 
+      {
+        auto line = PyList_GET_ITEM(lines, i);
+        if (line != NULL)
+          out<<PythonEngine::unwrapString(line);
+      }
+
+      Py_DECREF(lines);
     }
   }
-
-  if (bClear)
-    PyErr_Clear();
 
   return out.str();
 }
@@ -519,20 +375,6 @@ String PythonEngine::getLastPythonErrorMessage(bool bClear)
 void PythonEngine::printMessage(String message)
 {
   PySys_WriteStdout("%s", message.c_str());
-}
-
-
-///////////////////////////////////////////////////////////////////////////
-static void PythonPrintCrLfIfNeeded()
-{
-#if PY_MAJOR_VERSION < 3
-
-  //this returns !=1 in case of errors
-  if (Py_FlushLine()) 
-    PyErr_Clear();
-
-#endif
-
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -545,17 +387,19 @@ void PythonEngine::execCode(String s)
   {
     if (PyErr_Occurred())
     {
-      String error_msg = cstring("Python error code:\n", s, "\nError:\n",getLastPythonErrorMessage(true));
+      String error_msg = cstring("Python error code:\n", s, "\nError:\n", GetPythonErrorMessage());
+      PyErr_Clear();
       PrintInfo(error_msg);
       ThrowException(error_msg);
     }
   }
 
   Py_DECREF(obj);
-  PythonPrintCrLfIfNeeded();
+
+#if PY_MAJOR_VERSION < 3
+  if (Py_FlushLine())  PyErr_Clear();
+#endif
 };
-
-
 
 
 ///////////////////////////////////////////////////////////////////////////
@@ -569,13 +413,17 @@ PyObject* PythonEngine::evalCode(String s)
   {
     if (PyErr_Occurred())
     {
-      String error_msg = cstring("Python error code:\n", s,"\nError:\n", getLastPythonErrorMessage(true));
+      String error_msg = cstring("Python error code:\n", s,"\nError:\n", GetPythonErrorMessage());
+      PyErr_Clear();
       PrintInfo(error_msg);
       ThrowException(error_msg);
     }
   }
 
-  PythonPrintCrLfIfNeeded();
+#if PY_MAJOR_VERSION < 3
+  if (Py_FlushLine())  PyErr_Clear();
+#endif
+
   return obj;
 };
 

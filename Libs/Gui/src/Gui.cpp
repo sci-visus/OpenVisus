@@ -193,12 +193,12 @@ void GuiModule::detach()
 //////////////////////////////////////////////
 static QApplication* qapp = nullptr;
 
-void GuiModule::createApplication()
+void CreateQtApplication(int argn,const char** argv)
 {
   QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
 
-  VisusAssert(!qapp && CommandLine::argn != 0);
-  qapp=new QApplication(CommandLine::argn, (char**)CommandLine::argv);
+  VisusAssert(!qapp);
+  qapp=new QApplication(argn, (char**)argv);
   qapp->setAttribute(Qt::AA_UseHighDpiPixmaps, true);
 
   //otherwise volume render looks bad on my old macbook pro
@@ -209,14 +209,22 @@ void GuiModule::createApplication()
 #endif
 }
 
+void CreateQtApplication()
+{
+  static int argn = 0;
+  static const char* argv[] = {"dumb"};
+  CreateQtApplication(argn, argv);
+}
+
+
 //////////////////////////////////////////////
-void GuiModule::execApplication()
+void ExecQtApplication()
 {
   QApplication::exec();
 }
 
 
-void GuiModule::destroyApplication()
+void DestroyQtApplication()
 {
   delete qapp;
   qapp = nullptr;

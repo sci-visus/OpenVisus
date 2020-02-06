@@ -84,7 +84,7 @@ class TestIdx(unittest.TestCase):
 			buffer=Array(query.getNumberOfSamples(),query.field.dtype)
 			query.buffer=buffer
 			
-			fill=Array.toNumPy(buffer,bSqueeze=True,bShareMem=True)
+			fill=Array.toNumPy(buffer,bShareMem=True)
 			for Y in range(16):
 				for X in range(16):
 					fill[Y,X]=sampleid
@@ -111,7 +111,7 @@ class TestIdx(unittest.TestCase):
 			self.assertEqual(query.getNumberOfSamples().innerProduct(),16*16)
 			self.assertTrue(dataset.executeQuery(access,query))
 			
-			check=Array.toNumPy(query.buffer,bSqueeze=True,bShareMem=True)
+			check=Array.toNumPy(query.buffer,bShareMem=True)
 			
 			for Y in range(16):
 				for X in range(16):
@@ -151,7 +151,7 @@ class TestIdx(unittest.TestCase):
 		self.assertEqual(query.getCurrentResolution(),12)
 		
 		#verify the data is correct
-		check=Array.toNumPy(query.buffer,bSqueeze=True,bShareMem=True)
+		check=Array.toNumPy(query.buffer,bShareMem=True)
 		sampleid=0
 		for Y in range(0,16):
 			for X in range(0,16):
@@ -161,7 +161,5 @@ class TestIdx(unittest.TestCase):
 
 # ////////////////////////////////////////////////////////
 if __name__ == '__main__':
-	SetCommandLine("__main__")
 	DbModule.attach()
 	unittest.main(exit=True)
-	DbModule.detach()

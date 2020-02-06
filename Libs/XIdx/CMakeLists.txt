@@ -1,5 +1,5 @@
 
-file(GLOB Sources  include/Visus/*.h  src/*.cpp)
+file(GLOB Sources  include/Visus/*.h  src/*.cpp include/Visus/*.i)
 	
 source_group("" FILES ${Sources})
 AddLibrary(VisusXIdx SHARED ${Sources})

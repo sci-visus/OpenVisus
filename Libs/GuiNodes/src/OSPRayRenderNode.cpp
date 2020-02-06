@@ -359,8 +359,17 @@ OSPRayRenderNode::~OSPRayRenderNode()
 
 void OSPRayRenderNode::initEngine()
 {
+  static int __argn__;
+  static std::vector<const char*> __argv__;
+
+  __argn__ = 0;
+  __argv__.clear();
+
+  for (auto arg : VisusGetCommandLine())
+    __argv__.push_back(arg.c_str());
+
 #if VISUS_OSPRAY
-  if (ospInit(&CommandLine::argn, CommandLine::argv) != OSP_NO_ERROR)
+  if (ospInit(&__argn__, __argv__) != OSP_NO_ERROR)
     ThrowException("Failed to initialize OSPRay");
 #endif
 }

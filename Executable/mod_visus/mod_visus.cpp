@@ -40,7 +40,6 @@ For support : support@visus.net
 #include <Visus/ModVisus.h>
 #include <Visus/Path.h>
 #include <Visus/Db.h>
-#include <Visus/ApplicationInfo.h>
 #include <Visus/StringTree.h>
 
 #if WIN32
@@ -165,7 +164,7 @@ public:
 
     static int argn = 3;
     static const char* argv[] = { "mod_visus.dll", "--visus-config", "/inetpub/wwwroot/visus/visus.config" };
-    SetCommandLine(argn, argv);
+    VisusSetCommandLine(argn, argv);
     DbModule::attach();
 
     RedirectLogTo(MyWriteLog, this);
@@ -612,7 +611,7 @@ public:
 
     static int narg=1;
     static const char *argv[]={"mod_visus"};
-    SetCommandLine(narg,argv);
+    VisusSetCommandLine(narg,argv);
     DbModule::attach();
 
     this->configureDatasets();

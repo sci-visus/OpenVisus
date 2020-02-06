@@ -12,19 +12,30 @@ from VisusGuiNodesPy import *
 from VisusAppKitPy   import *
 
 from OpenVisus.PyUtils import *
+from OpenVisus.PyScriptingNode import *
 
 # ////////////////////////////////////////////////////////////////
 class PyViewer(Viewer):
 	
 	# constructor
 	def __init__(self):	
-		super(PyViewer, self).__init__()
+		super().__init__()
+		
+	# editNode
+	def editNode(self,node):
+		
+		if type(node) is PyScriptingNode: 
+			win=PyScriptingNodeView(node)
+			win.show()
+			return
+		
+		return super().editNode(node)
 		
 	# run
 	def run(self):
 		bounds=self.getWorldBox()
 		self.getGLCamera().guessPosition(bounds)	
-		GuiModule.execApplication()		
+		ExecQtApplication()		
 		
 	# addVolumeRender
 	def addVolumeRender(self, data, bounds):
@@ -33,7 +44,8 @@ class PyViewer(Viewer):
 		print("Adding Volume render...")	
 		
 		Assert(isinstance(data,numpy.ndarray))
-		data=Array.fromNumPy(data,TargetDim=3,bounds=bounds)
+		data=Array.fromNumPy(data,TargetDim=3)
+		data.bounds=bounds
 		
 		node=RenderArrayNode()
 		node.setName("RenderVolume")
@@ -50,7 +62,8 @@ class PyViewer(Viewer):
 
 		Assert(isinstance(field,numpy.ndarray))
 		
-		field=Array.fromNumPy(field,TargetDim=3,bounds=bounds)
+		field=Array.fromNumPy(field,TargetDim=3)
+		field.bounds=bounds
 
 		print("Extracting isocontour...")
 		t1=Time.now()
@@ -58,7 +71,8 @@ class PyViewer(Viewer):
 		print("done in ",t1.elapsedMsec(),"msec")
 		
 		if second_field is not None:
-			mesh.second_field=Array.fromNumPy(second_field,TargetDim=3,bounds=bounds)
+			mesh.second_field=Array.fromNumPy(second_field,TargetDim=3)
+			mesh.second_field.bounds=bounds
 					
 		node=IsoContourRenderNode()	
 		node.setName("RenderMesh")

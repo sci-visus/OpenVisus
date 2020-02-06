@@ -3,10 +3,10 @@ import sys
 import cv2
 from OpenVisus import *
 
-if VISUS_GUI:
-	from VisusGuiPy      import *
-	from VisusGuiNodesPy import *
-	from VisusAppKitPy   import *
+i
+from VisusGuiPy      import *
+from VisusGuiNodesPy import *
+from VisusAppKitPy   import *
 
 def ASSERT(cond):
 	if not cond: raise Exception("Assert failed")	
@@ -42,30 +42,22 @@ if __name__ == '__main__':
 	(2) Open a viewer which connect to the server in order to show some idx files
 	"""
 	
-	SetCommandLine("__main__")
-	GuiModule.createApplication()
-	
-	if VISUS_GUI:
-		AppKitModule.attach()
+	CreateQtApplication()
 
 	DbModule.attach()
+	GuiModule.attach()
 	
 	srv1=RunServer("cat_rgb", "file://datasets/cat/rgb.idx" , port=10000, dynamic=False)
 	srv2=RunServer("cat_gray","file://datasets/cat/gray.idx", port=10001, dynamic=False)
 	
 	# (2) view the idx in visus viewer...
-	if VISUS_GUI:
-		viewer=Viewer()
-		viewer.open("http://localhost:10000/mod_visus?dataset=cat_rgb")	
-		viewer.setMinimal()
-		GuiModule.execApplication()
+	viewer=Viewer()
+	viewer.open("http://localhost:10000/mod_visus?dataset=cat_rgb")	
+	viewer.setMinimal()
+	ExecQtApplication()
 		
 	srv1, srv2 = None, None
 	
-	if VISUS_GUI:
-		AppKitModule.detach()
-	
-	DbModule.detach()
 	sys.exit(0)
 	
 	
