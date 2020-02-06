@@ -1031,8 +1031,10 @@ String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
 
   return out.str();
 #else
-  return FormatString() << "input." << dataset_name << "." << fieldname;
+  return concatenate("input.", dataset_name, ".", fieldname);
 #endif
+
+
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
