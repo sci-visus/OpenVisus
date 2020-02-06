@@ -40,6 +40,11 @@ matrix:
     # sudo docker run -ti -v $(pwd):/home/OpenVisus quay.io/pypa/manylinux1_x86_64 /bin/bash
     # cd /home/OpenVisus 
     # PYTHON_VERSION=3.6.1 BUILD_DIR=$(pwd)/build/manylinux ./CMake/build.sh     
+
+    - os: linux
+      dist: trusty
+      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.8.1']   
+      if: tag IS present 
     
     - os: linux
       dist: trusty
@@ -55,32 +60,37 @@ matrix:
       env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=3.5.1']
       if: tag IS present 
 
-    - os: linux
-      dist: trusty  
-      env: ['DOCKER_IMAGE=quay.io/pypa/manylinux1_x86_64','PYTHON_VERSION=2.7.15']
-      if: tag IS present 
-          
 
-    # ///////////////////////////////// ubuntu:trusty | ubuntu:xenial | opensuse:leap 
+
+    # ///////////////////////////////// ubuntu:trusty
 
     # Example to compile by hand
     # sudo docker run -ti  -v $(pwd):/home/OpenVisus $DOCKER_IMAGE /bin/bash
     # cd /home/OpenVisus && PYTHON_VERSION=3.61 ./CMake/build.sh 
-
+    
     - os: linux
       dist: trusty
       env: ['DOCKER_IMAGE=ubuntu:trusty','PYTHON_VERSION=3.6.1']   
+   
+    # ///////////////////////////////// ubuntu:xenial  
    
     - os: linux
       dist: xenial
       env: ['DOCKER_IMAGE=ubuntu:xenial','PYTHON_VERSION=3.6.1']
 
+		# ///////////////////////////////// opensuse:leap 
     #- os: linux
     #  dist: trusty
     #  env: ['DOCKER_IMAGE=opensuse:leap','PYTHON_VERSION=3.6.6']  
 
 
     # ///////////////////////////////// osx1014
+   
+    - os: osx
+      osx_image: xcode10.2
+      compiler: clang
+      env: ['OSX_VERSION=1014','PYTHON_VERSION=3.8.1']  
+      if: tag IS present    
    
     - os: osx
       osx_image: xcode10.2
@@ -92,15 +102,14 @@ matrix:
       osx_image: xcode10.2
       compiler: clang
       env: ['OSX_VERSION=1014','PYTHON_VERSION=3.6.5']  
-     
-    - os: osx
-      osx_image: xcode10.2
-      compiler: clang
-      env: ['OSX_VERSION=1014','PYTHON_VERSION=2.7.15']    
-      if: tag IS present 
+
      
     # ///////////////////////////////// osx1013
-    
+    - os: osx
+      osx_image: xcode9.4
+      compiler: clang
+      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.8.1'] 
+      if: tag IS present 
 
     - os: osx
       osx_image: xcode9.4
@@ -113,13 +122,14 @@ matrix:
       compiler: clang
       env: ['OSX_VERSION=1013','PYTHON_VERSION=3.6.5']
 
-    - os: osx
-      osx_image: xcode9.4 
-      compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=2.7.15']   
-      if: tag IS present 
       
     # ///////////////////////////////// osx1012
+    
+    - os: osx
+      osx_image: xcode8.3
+      compiler: clang
+      env: ['OSX_VERSION=1012','PYTHON_VERSION=3.8.1'] 
+      if: tag IS present     
     
     - os: osx
       osx_image: xcode8.3
@@ -131,18 +141,17 @@ matrix:
       osx_image: xcode8.3
       compiler: clang 
       env: ['OSX_VERSION=1012','PYTHON_VERSION=3.6.1']   
-      
-    - os: osx
-      osx_image: xcode8.3
-      compiler: clang
-      env: ['OSX_VERSION=1012','PYTHON_VERSION=2.7.14'] 
-      if: tag IS present 
 
 
     # ///////////////////////////////// trusty:conda
 
     # Example to compile by hand
     # USE_CONDA=1 PYTHON_VERSION=3.6 ./CMake/build.sh
+    
+    - os: linux
+      dist: trusty
+      env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=3.8','USE_CONDA=1', 'INSTALL_CONDA=1']     
+      if: tag IS present     
 
     - os: linux
       dist: trusty
@@ -152,17 +161,18 @@ matrix:
     - os: linux
       dist: trusty
       env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=3.6','USE_CONDA=1', 'INSTALL_CONDA=1']
-     
-    - os: linux
-      dist: trusty
-      env: ['UBUNTU_VERSION=trusty','PYTHON_VERSION=2.7','USE_CONDA=1', 'INSTALL_CONDA=1']   
-      if: tag IS present  
-          
+
 
 
     # ///////////////////////////////// osx:conda 
     # Example to compile by hand
     # USE_CONDA=1 PYTHON_VERSION=3.6 ./CMake/build.sh
+    
+    - os: osx
+      osx_image: xcode9.4
+      compiler: clang
+      env: ['OSX_VERSION=1013','PYTHON_VERSION=3.8','USE_CONDA=1', 'INSTALL_CONDA=1']  
+      if: tag IS present     
 
     - os: osx
       osx_image: xcode9.4
@@ -174,12 +184,6 @@ matrix:
       osx_image: xcode9.4 
       compiler: clang
       env: ['OSX_VERSION=1013','PYTHON_VERSION=3.6','USE_CONDA=1', 'INSTALL_CONDA=1']
-
-    - os: osx
-      osx_image: xcode9.4 
-      compiler: clang
-      env: ['OSX_VERSION=1013','PYTHON_VERSION=2.7','USE_CONDA=1', 'INSTALL_CONDA=1']
-      if: tag IS present 
 
 script:
    - |
