@@ -12,19 +12,19 @@ set -o pipefail
 
 # forward to Docker (rehentrant)
 if [[ "${DOCKER_IMAGE}" != "" ]] ; then
-	./CMake/build_docker.sh
+	source ./CMake/build_docker.sh
 	exit 0
 fi
 
 # forward to conda (non rehentrant)
 if [[ "${USE_CONDA}" == "1" ]] ; then 
-	./CMake/build_conda.sh
+	source ./CMake/build_conda.sh
 	exit 0
 fi
 
 # forward to osx (non rehentrant)
 if [ "$(uname)" == "Darwin" ]; then
-	./CMake/build_osx.sh
+	source ./CMake/build_osx.sh
 	exit 0
 fi
 
