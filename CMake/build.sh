@@ -252,7 +252,7 @@ function NeedPython {
 	PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.so
 
 	${PYTHON_EXECUTABLE} -m pip install -q --upgrade pip
-	${PYTHON_EXECUTABLE} -m pip install -q numpy setuptools wheel twine auditwheel	
+	${PYTHON_EXECUTABLE} -m pip install -q numpy setuptools wheel twine 	
 }
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////
