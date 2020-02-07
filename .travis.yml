@@ -90,7 +90,6 @@ matrix:
       osx_image: xcode10.2
       compiler: clang
       env: ['OSX_VERSION=1014','PYTHON_VERSION=3.8.1']  
-      if: tag IS present    
    
     - os: osx
       osx_image: xcode10.2
