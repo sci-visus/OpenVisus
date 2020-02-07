@@ -59,7 +59,7 @@ function NeedPython {
 	if (( 1 == 1 )) ; then
 
 		PYTHON_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
-		package_name=python${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}
+		package_name=python@${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}
 		brew install sashkab/python/${package_name} 1>/dev/null && :
 		package_dir=$(brew --prefix ${package_name})
 
