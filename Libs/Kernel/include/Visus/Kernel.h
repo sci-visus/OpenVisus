@@ -229,9 +229,7 @@ VISUS_KERNEL_API void PrintLine(String file, int line, int severity, String msg)
 
 VISUS_KERNEL_API void RedirectLogTo(void(*)(String msg, void*), void* user_data = nullptr);
 
-#if !SWIG
-VISUS_KERNEL_API void VisusSetCommandLine(int argn = 0, const char** argv = nullptr);
-#endif
+VISUS_KERNEL_API void VisusSetCommandLine(int argn, const char** argv);
 
 //VisusGetCommandLine
 VISUS_KERNEL_API std::vector<String> VisusGetCommandLine();

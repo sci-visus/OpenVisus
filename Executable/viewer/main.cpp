@@ -49,7 +49,7 @@ int main(int argn,const char* argv[])
 
   {
     UniquePtr<Viewer> viewer(new Viewer());
-    viewer->configureFromCommandLine(VisusGetCommandLine());
+    viewer->configureFromCommandLine(argn,argv);
     ExecQtApplication();
   }
   AppKitModule::detach();

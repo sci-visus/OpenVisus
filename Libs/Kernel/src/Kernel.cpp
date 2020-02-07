@@ -267,6 +267,7 @@ void VisusSetCommandLine(int argn, const char** argv)
   }
 }
 
+
 ///////////////////////////////////////////////////////////////////////////////
 std::vector<String> VisusGetCommandLine()
 {

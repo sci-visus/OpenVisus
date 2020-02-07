@@ -23,7 +23,6 @@ using namespace Visus;
 %feature("director") Visus::NodeJob;
 %feature("director") Visus::NodeCreator;
 %feature("director") Visus::DataflowListener;
-%feature("director") Visus::ScriptingNode;
 
 //VISUS_DISOWN -> DISOWN | DISOWN_FOR_DIRECTOR
 %apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::Node* disown };
@@ -35,6 +34,25 @@ using namespace Visus;
 //VISUS_NEWOBJECT
 %newobject_director(Visus::Node *,Visus::NodeCreator::createInstance);
 %newobject_director(Visus::Node *,Visus::NodeFactory::createInstance);
+
+//NOTE I don't think this will help since I don't know all the classes in advance
+//https://github.com/swig/swig/blob/master/Examples/test-suite/dynamic_cast.i
+
+//see https://stackoverflow.com/questions/42349170/passing-java-object-to-c-using-swig-then-back-to-java
+%extend Visus::Node {
+PyObject* swigGetSelf() {
+    if (auto director = dynamic_cast<Swig::Director*>($self)) 
+        return director->swig_get_self();
+    else
+        return nullptr;
+}
+
+%pythoncode %{
+   # asPythonObject
+   def asPythonObject(self):
+    return self.swigGetSelf() 
+%}
+}
 
 %include <Visus/DataflowModule.h>
 %include <Visus/DataflowMessage.h>

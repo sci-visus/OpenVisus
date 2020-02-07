@@ -136,7 +136,7 @@ def Main(argv):
 	# set PYTHONPATH=D:/projects/OpenVisus/build/RelWithDebInfo
 	# c:\Python37\python.exe Samples\python\ExtractSlices.py
 	
-	CreateQtApplication()
+	CreateQtApplication(["__main__.py"])
 	
 	#VisibleMale()
 	

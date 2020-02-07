@@ -19,7 +19,7 @@ using namespace Visus;
 //VISUS_DISOWN -> DISOWN | DISOWN_FOR_DIRECTOR
 %apply SWIGTYPE *DISOWN_FOR_DIRECTOR { Visus::Node* disown };
 
-%feature("director") Visus::VisusViewer;
+%feature("director") Visus::Viewer;
 
 %import  <Visus/VisusKernelPy.i>
 

@@ -81,7 +81,6 @@ public:
 
 VISUS_GUI_API void CreateQtApplication(int argn,const char** argv);
 
-VISUS_GUI_API void CreateQtApplication();
 
 VISUS_GUI_API void ExecQtApplication();
 

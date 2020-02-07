@@ -209,12 +209,6 @@ void CreateQtApplication(int argn,const char** argv)
 #endif
 }
 
-void CreateQtApplication()
-{
-  static int argn = 0;
-  static const char* argv[] = {"dumb"};
-  CreateQtApplication(argn, argv);
-}
 
 
 //////////////////////////////////////////////

@@ -109,6 +109,15 @@ namespace Visus {}
 
 
 //__________________________________________________________
+//argn argv
+
+%include <argcargv.i>
+
+%apply (int ARGC, char **ARGV) { (int argn, const char **argv) }
+
+
+
+//__________________________________________________________
 //RENAME
 
 %rename(From)                              *::from;

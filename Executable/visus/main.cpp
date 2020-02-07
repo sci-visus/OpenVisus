@@ -2127,7 +2127,7 @@ public:
     for (auto it : actions)
       out << "    " << it.first << std::endl;
     out << std::endl;
-    out << "For specific help: " << VisusGetCommandLine()[0] << " <action-name> help";
+    out << "For specific help: <action-name> help";
     out << std::endl;
     return out.str();
   }
@@ -2211,17 +2211,13 @@ int main(int argn, const char* argv[])
 
   //ignores all starting arguments not in actions (they will be global arguments such as --disable-write-locks)
   std::vector<String> args;
-
-  auto command_line = VisusGetCommandLine();
-
-  args.push_back(command_line[0]);
-
-  for (auto it= command_line.begin(); it!= command_line.end();it++)
+  args.push_back(argv[0]);
+  for (int I=1;I<argn;I++)
   {
-    auto arg = *it;
-    if (convert.actions.find(arg) != convert.actions.end())
+    if (convert.actions.find(argv[I]) != convert.actions.end())
     {
-      args.insert(args.end(), it, command_line.end());
+      while (I < argn)
+        args.push_back(argv[I++]);
       break;
     }
   }

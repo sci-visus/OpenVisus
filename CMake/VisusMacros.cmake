@@ -61,15 +61,29 @@ macro(DisableIncrementalLinking Name)
 	endif()
 endmacro()
 
+
+
 # /////////////////////////////////////////////////////////////
-macro(InstallFile src dst_dir)
-	# see https://stackoverflow.com/questions/44054266/cmake-custom-command-copy-changed-file-even-if-dont-build-target-and-only-if
-	get_filename_component(__name__ ${src} NAME)
-	set(__src__ ${CMAKE_CURRENT_SOURCE_DIR}/${src})
-	set(__dst__ ${InstallDir}/${dst_dir}/${__name__})
-	# configure_file(${__src__} ${__dst__} COPYONLY)
-	file(GENERATE OUTPUT ${__dst__} INPUT ${__src__})
+macro(InstallFiles SrcPattern DstDir)
+	SET(__deps__ "")
+	file (GLOB __sources__  ${CMAKE_CURRENT_SOURCE_DIR}/${SrcPattern})
+	string(MD5 __target__  "${__sources__}")
+	foreach(__src__ ${__sources__})
+	    get_filename_component(__name__ ${__src__} NAME)
+	    set(__dst__ "${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/OpenVisus/${DstDir}/${__name__}")
+	    set(__dep__ ${__target__}_${__name__})
+	    string(REPLACE "." "_" __dep__ "${__dep__}")
+	    ADD_CUSTOM_COMMAND(
+	        OUTPUT  ${__dst__}
+	        DEPENDS "${__src__}"
+	        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${__src__} ${__dst__})
+	    SET(__deps__ ${__deps__} ${__dst__})
+	endforeach()
+	add_custom_target(${__target__} ALL DEPENDS ${__deps__})
 endmacro()
+
+
+
 
 # /////////////////////////////////////////////////////////////
 macro(InstallDirectory src dst_dir)

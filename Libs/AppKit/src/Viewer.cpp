@@ -490,11 +490,12 @@ void Viewer::setScriptingCode(String value)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
-void Viewer::configureFromCommandLine(std::vector<String> args)
+void Viewer::configureFromCommandLine(int argn,const char** argv)
 {
-  for (int I = 1; I<(int)args.size(); I++)
+  for (int I = 1; I<(int)argn; I++)
   {
-    if (args[I] == "--help")
+    String arg = argv[I];
+    if (arg == "--help")
     {
       PrintInfo("\n",
         "visusviewer help:","\n",
@@ -535,42 +536,43 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
   bool bMinimal = false;
   String play_file;
 
-  for (int I = 1; I<(int)args.size(); I++)
+  for (int I = 1; I<argn; I++)
   {
-    if (args[I] == "--open")
+    String arg = argv[I];
+    if (arg == "--open")
     {
-      open_filename = args[++I];
+      open_filename = argv[++I];
     }
 
-    else if (args[I] == "--fullscreen")
+    else if (arg == "--fullscreen")
     {
       bFullScreen = true;
     }
-    else if (args[I] == "--geometry")
+    else if (arg == "--geometry")
     {
-      geometry = Rectangle2i(args[++I]);
+      geometry = Rectangle2i(argv[++I]);
     }
-    else if (args[I] == "--fieldname")
+    else if (arg == "--fieldname")
     {
-      fieldname = args[++I];
+      fieldname = argv[++I];
     }
-    else if (args[I] == "--minimal")
+    else if (arg == "--minimal")
     {
       bMinimal = true;
     }
-    else if (args[I] == "--play-file")
+    else if (arg == "--play-file")
     {
-      play_file = args[++I];
+      play_file = argv[++I];
     }
 
-    else if (args[I] == "--server")
+    else if (arg == "--server")
     {
       auto modvisus = new ModVisus();
       modvisus->configureDatasets();
       this->server = std::make_shared<NetServer>(10000, modvisus);
       this->server->runInBackground();
     }
-    else if (args[I] == "--internal-network-test-11")
+    else if (arg == "--internal-network-test-11")
     {
       auto master = this;
       int X = 50;
@@ -583,7 +585,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
       double fix_aspect_ratio = (double)(W) / (double)(H);
       master->addNetSnd("http://localhost:3333", Rectangle2d(0.0, 0.0, 0.5, 1.0), Rectangle2d(X + W, Y, W, H), fix_aspect_ratio);
     }
-    else if (args[I] == "--internal-network-test-12")
+    else if (arg == "--internal-network-test-12")
     {
       auto master = this;
       int W = 1024;
@@ -597,7 +599,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
       master->addNetSnd("http://localhost:3333", Rectangle2d(0.0, 0.0, 0.5, 1.0), Rectangle2d(ox, oy, w, h), fix_aspect_ratio);
       master->addNetSnd("http://localhost:3334", Rectangle2d(0.5, 0.0, 0.5, 1.0), Rectangle2d(ox + w, oy, w, h), fix_aspect_ratio);
     }
-    else if (args[I] == "--internal-network-test-14")
+    else if (arg == "--internal-network-test-14")
     {
       int W = (int)(0.8*QApplication::desktop()->width());
       int H = (int)(0.8*QApplication::desktop()->height());
@@ -618,7 +620,7 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
       master->addNetSnd("http://localhost:3335", Rectangle2d(0.5, 0.5, 0.5, 0.5), Rectangle2d(ox + w, oy, w, h), fix_aspect_ratio);
       master->addNetSnd("http://localhost:3336", Rectangle2d(0.0, 0.5, 0.5, 0.5), Rectangle2d(ox, oy, w, h), fix_aspect_ratio);
     }
-    else if (args[I] == "--internal-network-test-111")
+    else if (arg == "--internal-network-test-111")
     {
       auto master = this;
       master->setGeometry(650, 50, 600, 400);
@@ -632,23 +634,27 @@ void Viewer::configureFromCommandLine(std::vector<String> args)
       master->addNetSnd("http://localhost:3333", Rectangle2d(0, 0, 1, 1), Rectangle2d(50, 500, 600, 400), 0.0);
       middle->addNetSnd("http://localhost:3334", Rectangle2d(0, 0, 1, 1), Rectangle2d(650, 500, 600, 400), 0.0);
     }
-    else if (args[I] == "--network-rcv")
+    else if (arg == "--network-rcv")
     {
-      int port = cint(args[++I]);
+      int port = cint(String(argv[++I]));
       this->addNetRcv(port);
     }
-    else if (args[I] == "--network-snd")
+    else if (arg == "--network-snd")
     {
-      String url = args[++I];
-      auto split_ortho = Rectangle2d::fromString(args[++I]);
-      auto screen_bounds = Rectangle2d::fromString(args[++I]);
-      double fix_aspect_ratio = cdouble(args[++I]);
+      String url = argv[++I];
+      auto split_ortho = Rectangle2d::fromString(argv[++I]);
+      auto screen_bounds = Rectangle2d::fromString(argv[++I]);
+      double fix_aspect_ratio = cdouble(String(argv[++I]));
       this->addNetSnd(url, split_ortho, screen_bounds, fix_aspect_ratio);
     }
     //last argment could be a filename. This facilitates OS-initiated launch (e.g. opening a .idx)
-    else if (I == (args.size() - 1) && !StringUtils::startsWith(args[I], "--"))
+    else if (I == (argn - 1) && !StringUtils::startsWith(arg, "--"))
     {
-      open_filename = args[I];
+      open_filename = arg;
+    }
+    else
+    {
+      //just ignore
     }
   }
 

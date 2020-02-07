@@ -42,7 +42,7 @@ if __name__ == '__main__':
 	(2) Open a viewer which connect to the server in order to show some idx files
 	"""
 	
-	CreateQtApplication()
+	CreateQtApplication(["__main__.py"])
 
 	DbModule.attach()
 	GuiModule.attach()

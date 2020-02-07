@@ -1,7 +1,6 @@
 from OpenVisus import *
 import numpy
 
-
 # //////////////////////////////////////////////////////////////////////////
 class PyScriptingNodeJob(NodeJob):
 	
@@ -82,8 +81,7 @@ class PyScriptingNode(ScriptingNode):
 	# getOsDependentTypeName
 	def getOsDependentTypeName(self):
 		return "PyScriptingNode"
-		
-
+	
 	# setCode
 	def setCode(self,code):
 		super().setCode(code)

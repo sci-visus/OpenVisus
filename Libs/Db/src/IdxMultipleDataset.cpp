@@ -857,6 +857,7 @@ static bool IsGoodVariableName(String name)
 ////////////////////////////////////////////////////////////////////////////////////
 String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
 {
+#if VISUS_PYTHON
   std::ostringstream out;
   out << "input";
 
@@ -875,7 +876,7 @@ String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
   }
   else
   {
-    if (StringUtils::contains(fieldname, "\n"))
+    if (bool bMultiLine=StringUtils::contains(fieldname, "\n"))
     {
       const String triple = "\"\"\"";
       out << "[" + triple + "\n" + fieldname + triple + "]";
@@ -889,6 +890,10 @@ String IdxMultipleDataset::getInputName(String dataset_name, String fieldname)
   }
 
   return out.str();
+
+#else
+  return concatenate("input.", dataset_name, ".", fieldname);
+#endif
 };
 
 ////////////////////////////////////////////////////////////////////////////////////

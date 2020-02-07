@@ -165,6 +165,7 @@ Visus::Array& operator/= (double coeff)              {*self=ArrayUtils::div(*sel
       return ret
    fromNumPy = staticmethod(fromNumPy)
 %}
+
 }; //%extend Visus::Array {
 
 	

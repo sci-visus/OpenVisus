@@ -292,7 +292,7 @@ public:
   }
 
   //configureFromCommandLine
-  void configureFromCommandLine(std::vector<String> args);
+  void configureFromCommandLine(int argn,const char** argv);
 
   //this is needed for swig
   void* c_ptr() {
@@ -370,7 +370,7 @@ public:
   bool takeSnapshot(bool bOnlyCanvas = false, String filename = "");
 
   //editNode
-  void editNode(Node* node = nullptr);
+  virtual void editNode(Node* node = nullptr);
 
   //beginFreeTransform
   void beginFreeTransform(QueryNode* node);
