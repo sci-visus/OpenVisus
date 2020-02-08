@@ -60,12 +60,33 @@ public:
   Pimpl() 
   {
     using namespace ospray;
+    using namespace ospcommon;
+
     world = cpp::World();
     camera = cpp::Camera("perspective");
-    renderer = cpp::Renderer("scivis");
+    // TODO: Need a way to tell visus to keep calling render even if the camera isn't moving
+    // so we can do progressive refinement
+    if (VisusModule::getModuleConfig()->readString("Configuration/VisusViewer/DefaultRenderNode/ospray_renderer") == "pathtracer") {
+      renderer = cpp::Renderer("pathtracer");
+    } else {
+      renderer = cpp::Renderer("scivis");
+    }
 
-    // TODO: Set it to whatever visus viewer uses for clear color
-    renderer.setParam("backgroundColor", ospcommon::math::vec3f(0.5f));
+    // create and setup an ambient light
+    cpp::Light ambient_light("ambient");
+    ambient_light.commit();
+
+    cpp::Light directional_light("distant");
+    directional_light.setParam("direction", math::vec3f(0.5f, -1.f, 0.25f));
+    directional_light.commit();
+    std::vector<cpp::Light> lights = {ambient_light, directional_light};
+    world.setParam("light", cpp::Data(lights));
+
+    // This is the Colors::DarkBlue color but pre-transformed srgb -> linear
+    // so that when it's converted to srgb for display it will match the
+    // regular render node (which doesn't seem to do srgb?)
+    const math::vec3f bgColor(0.021219f, 0.0423114f, 0.093059f);
+    renderer.setParam("backgroundColor", bgColor);
     renderer.commit();
   }
 
@@ -104,8 +125,8 @@ public:
     }
 
     cpp::TransferFunction transferFcn("piecewiseLinear");
-    transferFcn.setParam("color", cpp::Data(tfnColors.size()));
-    transferFcn.setParam("opacity", cpp::Data(tfnOpacities.size()));
+    transferFcn.setParam("color", cpp::Data(tfnColors));
+    transferFcn.setParam("opacity", cpp::Data(tfnOpacities));
     // TODO: Somehow get the value range of the array
     transferFcn.setParam("valueRange", math::vec2f(0.f, 255.f));
     transferFcn.commit();
@@ -169,13 +190,9 @@ public:
   {
     using namespace ospray;
     using namespace ospcommon;
-    Time startRender = Time::now();
 
-    // TODO: This should be done by setting the volume clip box instead
     if (data.clipping.valid()) {
       PrintInfo("CLIPPING TODO");
-      // This should set the volume parameters: volumeClippingBoxLower
-      // and volumeClippingBoxUpper
     }
 
     // Extract camera parameters from model view matrix
@@ -203,15 +220,11 @@ public:
     }
     camera.commit();
 
-    // TODO: We can use progressive accumulation if we know the camera didn't move
-    // and the scene hasn't changed. But it looks like this render function is only
-    // called if the data, camera, etc. has changed.
     framebuffer.clear();
 
     framebuffer.renderFrame(renderer, camera, world);
 
     uint32_t *fb = (uint32_t*)framebuffer.map(OSP_FB_COLOR);
-    PrintInfo("OSPRay rendering total took:",startRender.elapsedMsec(),"ms");
 
     // Blit the rendered framebuffer from OSPRay
     {
@@ -241,8 +254,6 @@ public:
     }
 
     framebuffer.unmap(fb);
-
-    PrintInfo("OSPRayNode total took:",startRender.elapsedMsec(),"ms");
   }
 
 private:

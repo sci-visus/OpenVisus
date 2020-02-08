@@ -2548,7 +2548,12 @@ Node* Viewer::addRender(String uuid, Node* parent, String palette)
     StringTree("RemoveNode", "uuid", uuid));
   {
     //render
-    auto render_node = new RenderArrayNode();
+    Node *render_node = nullptr;
+    if (VisusModule::getModuleConfig()->readString("Configuration/VisusViewer/DefaultRenderNode/value") == "ospray") {
+      render_node = new OSPRayRenderNode();
+    } else {
+      render_node = new RenderArrayNode();
+    }
     ret = render_node;
     render_node->setUUID(uuid);
     render_node->setName("RenderArray");
