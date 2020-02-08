@@ -45,6 +45,8 @@ For support : support@visus.net
 
 #if VISUS_OSPRAY
 #include <ospray/ospray.h>
+#include <ospray/ospray_cpp.h>
+
 #endif
 
 namespace Visus {
@@ -57,33 +59,25 @@ public:
   //constructor
   Pimpl() 
   {
-    this->world = ospNewModel();
-    this->camera = ospNewCamera("perspective");
-    this->renderer = ospNewRenderer("scivis");
+    using namespace ospray;
+    world = cpp::World();
+    camera = cpp::Camera("perspective");
+    renderer = cpp::Renderer("scivis");
 
     // TODO: Set it to whatever visus viewer uses for clear color
-    ospSet3f(this->renderer, "bgColor", 0.05f, 0.05f, 0.05f);
-
-    ospSetObject(this->renderer, "model", this->world);
-    ospSetObject(this->renderer, "camera", this->camera);
-
-    this->transferFcn = ospNewTransferFunction("piecewise_linear");
+    renderer.setParam("backgroundColor", ospcommon::math::vec3f(0.5f));
+    renderer.commit();
   }
 
   //destructor
-  ~Pimpl() {
-    ospRelease(volume);
-    ospRelease(volumeData);
-    ospRelease(transferFcn);
-    ospRelease(world);
-    ospRelease(camera);
-    ospRelease(renderer);
-    ospRelease(framebuffer);
-  }
+  ~Pimpl() = default;
 
   //setData
   void setData(Array data,SharedPtr<Palette> palette)
   {
+    using namespace ospcommon;
+    using namespace ospray;
+
     if (!data || data.getPointDim() != 3) 
       ThrowException("OSPRay Volume must be 3D");
 
@@ -93,7 +87,7 @@ public:
       PrintInfo("WARNING: OSPRay palettes must be RGBA!");
 
     const size_t npaletteSamples = 256;
-    std::vector<float> tfnColors(3 * npaletteSamples, 0.f);
+    std::vector<math::vec3f> tfnColors(npaletteSamples, math::vec3f(0.f));
     std::vector<float> tfnOpacities(npaletteSamples, 0.f);
 
     for (size_t i = 0; i < npaletteSamples; ++i) 
@@ -101,75 +95,80 @@ public:
       const float x = static_cast<float>(i) / npaletteSamples;
 
       // Assumes functions = {R, G, B, A}
-      for (size_t j = 0; j < 3; ++j) 
-        tfnColors[i * 3 + j] = palette->functions[j]->getValue(x);
+      for (size_t j = 0; j < 3; ++j)
+      {
+        tfnColors[i][j] = palette->functions[j]->getValue(x);
+      }
 
       tfnOpacities[i] = palette->functions[3]->getValue(x);
     }
 
-    OSPData colorsData = ospNewData(tfnColors.size() / 3, OSP_FLOAT3, tfnColors.data());
-    ospCommit(colorsData);
-
-    OSPData opacityData = ospNewData(tfnOpacities.size(), OSP_FLOAT, tfnOpacities.data());
-    ospCommit(opacityData);
-
-    ospSetData(transferFcn, "colors", colorsData);
-    ospSetData(transferFcn, "opacities", opacityData);
-
+    cpp::TransferFunction transferFcn("piecewiseLinear");
+    transferFcn.setParam("color", cpp::Data(tfnColors.size()));
+    transferFcn.setParam("opacity", cpp::Data(tfnOpacities.size()));
     // TODO: Somehow get the value range of the array
-    ospSet2f(transferFcn, "valueRange", 0.f, 255.f);
-    ospCommit(transferFcn);
+    transferFcn.setParam("valueRange", math::vec2f(0.f, 255.f));
+    transferFcn.commit();
 
-    if (volume) 
-    {
-      ospRemoveVolume(world, volume);
-      ospRelease(volume);
-      // Not actually releasing the Array, just OSPRay's Data struct
-      ospRelease(volumeData);
+    const OSPDataType ospDType = dtypeToOSPDtype(data.dtype);
+    const math::vec3ul volumeDims(data.getWidth(), data.getHeight(), data.getDepth());
+
+    cpp::Volume volume = cpp::Volume("structuredRegular");
+    volume.setParam("dimensions", volumeDims);
+
+    // OSPRay shares the data pointer with us, does not copy internally
+    cpp::Data volumeData;
+    if (ospDType == OSP_UCHAR) {
+        volumeData = cpp::Data(volumeDims, reinterpret_cast<uint8_t*>(data.c_ptr()), true);
+    } else if (ospDType == OSP_USHORT) {
+        volumeData = cpp::Data(volumeDims, reinterpret_cast<uint16_t*>(data.c_ptr()), true);
+    } else if (ospDType == OSP_FLOAT) {
+        volumeData = cpp::Data(volumeDims, reinterpret_cast<float*>(data.c_ptr()), true);
+    } else if (ospDType == OSP_DOUBLE) {
+        volumeData = cpp::Data(volumeDims, reinterpret_cast<double*>(data.c_ptr()), true);
+    } else {
+        throw std::runtime_error("Unsupported voxel type for OSPRay volume rendr node");
     }
 
-    volume = ospNewVolume("shared_structured_volume");
-    const OSPDataType ospDType = dtypeToOSPDtype(data.dtype);
-
-    // The OSP_DATA_SHARED_BUFFER flag tells OSPRay to not copy the data , but to just share the pointer with us.
-    volumeData = ospNewData(data.getTotalNumberOfSamples(), ospDType,data.c_ptr(), OSP_DATA_SHARED_BUFFER);
-
-    // TODO: How to get the value range of the array?
-    ospSet2f(volume, "voxelRange", 0.f, 255.f);
-    ospSetString(volume, "voxelType", ospDTypeStr(ospDType).c_str()); //scrgiorgio: seems ospray does not support multi-channel VR
-    ospSet3i(volume, "dimensions", data.getWidth(), data.getHeight(), data.getDepth());
-    ospSetData(volume, "voxelData", volumeData);
-    ospSetObject(volume, "transferFunction", transferFcn);
-
-    PrintInfo(data.bounds);
+    volume.setParam("data", volumeData);
+    volume.setParam("voxelType", int(ospDType));
 
     auto grid = data.bounds.toAxisAlignedBox();
     grid.setPointDim(3);
 
     // Scale the smaller volumes we get while loading progressively to fill the true bounds
     // of the full dataset
-    ospSet3f(volume, "gridSpacing",
+    const math::vec3f gridSpacing(
       (grid.p2[0] - grid.p1[0]) / data.getWidth(),
       (grid.p2[1] - grid.p1[1]) / data.getHeight(),
       (grid.p2[2] - grid.p1[2]) / data.getDepth());
+    volume.setParam("gridSpacing", gridSpacing);
+    volume.commit();
 
-    // TODO: This parameter should be exposed in the UI
-    // Sampling rate will adjust the quality and cost of rendering,
-    // lower: faster, poorer quality, higher: slower, better quality
-    ospSet1f(volume, "samplingRate", 0.125f);
+    // TODO setup group/instance/world
+    cpp::VolumetricModel volumeModel(volume);
+    volumeModel.setParam("transferFunction", transferFcn);
+    volumeModel.commit();
 
-    ospCommit(volume);
+    cpp::Group group;
+    group.setParam("volume", cpp::Data(volumeModel));
+    group.commit();
 
-    ospAddVolume(world, volume);
-    ospCommit(world);
+    cpp::Instance instance(group);
+    instance.commit();
 
-    this->data    = data;
+    world.setParam("instance", cpp::Data(instance));
+    // TODO some lights?
+    world.commit();
+
     this->palette = palette;
   }
 
   //glRender
   void glRender(GLCanvas& gl)
   {
+    using namespace ospray;
+    using namespace ospcommon;
     Time startRender = Time::now();
 
     // TODO: This should be done by setting the volume clip box instead
@@ -180,14 +179,15 @@ public:
     }
 
     // Extract camera parameters from model view matrix
+    // TODO track camera position to see if it changed and reset accum only if that changed
     const auto invCamera = gl.getModelview().invert();
     const auto eyePos = invCamera * Point4d(0.f, 0.f, 0.f, 1.f);
     const auto eyeDir = invCamera * Point4d(0.f, 0.f, -1.f, 0.f);
     const auto upDir  = invCamera * Point4d(0.f, 1.f, 0.f, 0.f);
 
-    ospSet3f(camera, "pos", eyePos.x, eyePos.y, eyePos.z);
-    ospSet3f(camera, "dir", eyeDir.x, eyeDir.y, eyeDir.z);
-    ospSet3f(camera, "up", upDir.x, upDir.y, upDir.z);
+    camera.setParam("position", math::vec3f(eyePos.x, eyePos.y, eyePos.z));
+    camera.setParam("direction", math::vec3f(eyeDir.x, eyeDir.y, eyeDir.z));
+    camera.setParam("up", math::vec3f(upDir.x, upDir.y, upDir.z));
 
     // Get window dimensions for framebuffer
     const auto viewport = gl.getViewport();
@@ -196,26 +196,21 @@ public:
     {
       imgDims[0] = viewport.width;
       imgDims[1] = viewport.height;
-      ospSetf(camera, "aspect", imgDims[0] / static_cast<float>(imgDims[1]));
+      camera.setParam("aspect", imgDims[0] / static_cast<float>(imgDims[1]));
 
-      if (framebuffer) {
-        ospRelease(framebuffer);
-      }
-      osp::vec2i dims{ imgDims[0], imgDims[1] };
-      framebuffer = ospNewFrameBuffer(dims, OSP_FB_SRGBA, OSP_FB_COLOR | OSP_FB_ACCUM);
+      framebuffer = cpp::FrameBuffer(math::vec2i(imgDims[0], imgDims[1]), OSP_FB_SRGBA,
+              OSP_FB_COLOR | OSP_FB_ACCUM);
     }
-
-    ospCommit(camera);
-    ospCommit(renderer);
+    camera.commit();
 
     // TODO: We can use progressive accumulation if we know the camera didn't move
     // and the scene hasn't changed. But it looks like this render function is only
     // called if the data, camera, etc. has changed.
-    ospFrameBufferClear(framebuffer, OSP_FB_COLOR | OSP_FB_ACCUM);
+    framebuffer.clear();
 
-    ospRenderFrame(framebuffer, renderer, OSP_FB_COLOR | OSP_FB_ACCUM);
+    framebuffer.renderFrame(renderer, camera, world);
 
-    uint32_t *fb = (uint32_t*)ospMapFrameBuffer(framebuffer, OSP_FB_COLOR);
+    uint32_t *fb = (uint32_t*)framebuffer.map(OSP_FB_COLOR);
     PrintInfo("OSPRay rendering total took:",startRender.elapsedMsec(),"ms");
 
     // Blit the rendered framebuffer from OSPRay
@@ -245,7 +240,7 @@ public:
       gl.popModelview();
     }
 
-    ospUnmapFrameBuffer(fb, framebuffer);
+    framebuffer.unmap(fb);
 
     PrintInfo("OSPRayNode total took:",startRender.elapsedMsec(),"ms");
   }
@@ -255,13 +250,14 @@ private:
   Array data;
   SharedPtr<Palette> palette;
 
-  OSPVolume volume = nullptr;
-  OSPData volumeData = nullptr;
-  OSPTransferFunction transferFcn = nullptr;
-  OSPModel world = nullptr;
-  OSPCamera camera = nullptr;
-  OSPRenderer renderer = nullptr;
-  OSPFrameBuffer framebuffer = nullptr;
+  // Note: The C++ wrappers automatically manage life time tracking and reference
+  // counting for the OSPRay objects, and OSPRay internally tracks references to
+  // parameters
+  ospray::cpp::Instance instance;
+  ospray::cpp::World world;
+  ospray::cpp::Camera camera;
+  ospray::cpp::Renderer renderer;
+  ospray::cpp::FrameBuffer framebuffer;
 
   std::array<int, 2>  imgDims = { -1,-1 };
 
@@ -271,9 +267,9 @@ private:
     if (dtype == DTypes::INT8) return OSP_CHAR;
 
     if (dtype == DTypes::UINT8     ) return OSP_UCHAR;
-    if (dtype == DTypes::UINT8_GA  ) return OSP_UCHAR2;
-    if (dtype == DTypes::UINT8_RGB ) return OSP_UCHAR3;
-    if (dtype == DTypes::UINT8_RGBA) return OSP_UCHAR4;
+    if (dtype == DTypes::UINT8_GA  ) return OSP_VEC2UC;
+    if (dtype == DTypes::UINT8_RGB ) return OSP_VEC3UC;
+    if (dtype == DTypes::UINT8_RGBA) return OSP_VEC4UC;
 
     if (dtype == DTypes::UINT16) return OSP_SHORT;
     if (dtype == DTypes::INT16 ) return OSP_USHORT;
@@ -285,9 +281,9 @@ private:
     if (dtype == DTypes::UINT64 ) return OSP_ULONG;
 
     if (dtype == DTypes::FLOAT32     ) return OSP_FLOAT;
-    if (dtype == DTypes::FLOAT32_GA  ) return OSP_FLOAT2;
-    if (dtype == DTypes::FLOAT32_RGB ) return OSP_FLOAT3;
-    if (dtype == DTypes::FLOAT32_RGBA) return OSP_FLOAT4;
+    if (dtype == DTypes::FLOAT32_GA  ) return OSP_VEC2F;
+    if (dtype == DTypes::FLOAT32_RGB ) return OSP_VEC3F;
+    if (dtype == DTypes::FLOAT32_RGBA) return OSP_VEC4F;
 
     if (dtype == DTypes::FLOAT64) return OSP_DOUBLE;
 
