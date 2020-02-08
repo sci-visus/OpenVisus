@@ -15,6 +15,9 @@ set -e
 # stop of the first command that fails with pipe (|)
 set -o pipefail
 
+# python enabled by default
+VISUS_PYTHON=${VISUS_PYTHON:-1}
+
 DOCKER_IMAGE=${DOCKER_IMAGE:-quay.io/pypa/manylinux1_x86_64}
 
 BUILD_DIR=$(pwd)/build_docker
