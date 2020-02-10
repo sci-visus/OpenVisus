@@ -12,19 +12,19 @@ set -o pipefail
 
 # forward to Docker (rehentrant)
 if [[ "${DOCKER_IMAGE}" != "" ]] ; then
-	./CMake/build_docker.sh
+	source ./CMake/build_docker.sh
 	exit 0
 fi
 
 # forward to conda (non rehentrant)
 if [[ "${USE_CONDA}" == "1" ]] ; then 
-	./CMake/build_conda.sh
+	source ./CMake/build_conda.sh
 	exit 0
 fi
 
 # forward to osx (non rehentrant)
 if [ "$(uname)" == "Darwin" ]; then
-	./CMake/build_osx.sh
+	source ./CMake/build_osx.sh
 	exit 0
 fi
 
@@ -181,8 +181,6 @@ function NeedSwig {
 }
 
 
-
-
 # ///////////////////////////////////////////////////////////////////////////////////////////////
 function NeedPython {
 
@@ -244,15 +242,13 @@ function NeedPython {
 	pyenv global ${PYTHON_VERSION}
 	pyenv rehash
 
-	PYTHON_M_VERSION=${PYTHON_VERSION:0:1}.${PYTHON_VERSION:2:1}
-	if (( ${PYTHON_VERSION:0:1} > 2 )) ; then PYTHON_M_VERSION=${PYTHON_M_VERSION}m ; fi
-
+	PYTHON_VERSION=${PYTHON_VERSION:0:1}.${PYTHON_VERSION:2:1}
 	PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python
-	PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_M_VERSION}
-	PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.so
+	PYTHON_INCLUDE_DIR=$(${PYTHON_EXECUTABLE} -c "import sysconfig;print(sysconfig.get_paths()['include'])" )
+	PYTHON_LIBRARY=$(${PYTHON_EXECUTABLE}     -c "import sysconfig,os;print(os.path.join(sysconfig.get_config_var('LIBDIR'), sysconfig.get_config_var('LDLIBRARY')))")
 
 	${PYTHON_EXECUTABLE} -m pip install -q --upgrade pip
-	${PYTHON_EXECUTABLE} -m pip install -q numpy setuptools wheel twine auditwheel	
+	${PYTHON_EXECUTABLE} -m pip install -q numpy setuptools wheel twine 	
 }
 
 # ///////////////////////////////////////////////////////////////////////////////////////////////

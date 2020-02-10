@@ -3,7 +3,6 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 if (VISUS_OSPRAY)
-	include_directories(${OSPRAY_INCLUDE_DIR})
 	target_compile_definitions(VisusKernel PUBLIC -DVISUS_OSPRAY=1)
 endif()
 
@@ -13,7 +12,7 @@ AddLibrary(VisusGuiNodes SHARED ${Sources})
 target_link_libraries(VisusGuiNodes PUBLIC VisusGui VisusDataflow)
 
 if (VISUS_OSPRAY)
-	target_link_libraries(VisusGuiNodes PUBLIC ${OSPRAY_LIBRARIES})
+	target_link_libraries(VisusGuiNodes PUBLIC ospray::ospray)
 endif()
 
 AddSwigLibrary(VisusGuiNodesPy VisusGuiNodes ${CMAKE_CURRENT_SOURCE_DIR}/include/Visus/VisusGuiNodesPy.i 

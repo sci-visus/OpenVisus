@@ -46,49 +46,25 @@ function NeedPython {
 
 	PYTHON_MAJOR_VERSION=${PYTHON_VERSION:0:1}
 	PYTHON_MINOR_VERSION=${PYTHON_VERSION:2:1}
+	PYTHON_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
 
-	if (( PYTHON_MAJOR_VERSION > 2 )) ; then 
-		PYTHON_M_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}m 
-	else
-		PYTHON_M_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
-	fi
+	package_name=python@${PYTHON_VERSION}
+	brew install sashkab/python/${package_name} 1>/dev/null && :
+	package_dir=$(brew --prefix ${package_name})
 
-	# pyenv does not support 3.7.x  maxosx 10.(12|13)
-	#if (( PYTHON_MAJOR_VERSION > 2 )); then
-	# scrgiorgio: since I'm having problems with pyenv and python2.7 and libssh I switched to these precompiled homebrew formula
-	if (( 1 == 1 )) ; then
-
-		PYTHON_VERSION=${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
-		package_name=python${PYTHON_MAJOR_VERSION}${PYTHON_MINOR_VERSION}
-		brew install sashkab/python/${package_name} 1>/dev/null && :
-		package_dir=$(brew --prefix ${package_name})
-
-		PYTHON_EXECUTABLE=${package_dir}/bin/python${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}
-		PYTHON_INCLUDE_DIR=${package_dir}/Frameworks/Python.framework/Versions/${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}/include/python${PYTHON_M_VERSION}
-		PYTHON_LIBRARY=${package_dir}/Frameworks/Python.framework/Versions/${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}/lib/libpython${PYTHON_M_VERSION}.dylib
-		
-	else
-
-		brew install readline zlib openssl openssl@1.1 pyenv libffi 1>/dev/null && :
-
-		eval "$(pyenv init -)"
-		CONFIGURE_OPTS="--enable-shared" \
-		CFLAGS="   -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include -I$(brew --prefix openssl@1.1)/include" \
-		CPPFLAGS=" -I$(brew --prefix readline)/include -I$(brew --prefix zlib)/include -I$(brew --prefix openssl@1.1)/include" \
-		LDFLAGS="  -L$(brew --prefix readline)/lib     -L$(brew --prefix zlib)/lib     -L$(brew --prefix openssl@1.1)/lib" \
-		pyenv install --skip-existing ${PYTHON_VERSION} 
-		pyenv global ${PYTHON_VERSION}
-		pyenv rehash
+	PYTHON_EXECUTABLE=${package_dir}/bin/python${PYTHON_VERSION}
+	PYTHON_INCLUDE_DIR=$(${PYTHON_EXECUTABLE} -c "import sysconfig;print(sysconfig.get_paths()['include'])" )
+	PYTHON_LIBDIR=$(${PYTHON_EXECUTABLE}      -c "import sysconfig;print(sysconfig.get_config_var('LIBDIR'))" )
 	
-		PYTHON_EXECUTABLE=$(pyenv prefix)/bin/python
-		PYTHON_INCLUDE_DIR=$(pyenv prefix)/include/python${PYTHON_M_VERSION}
-		PYTHON_LIBRARY=$(pyenv prefix)/lib/libpython${PYTHON_M_VERSION}.dylib 	
-		
-	fi	
-
+	# is there a way to get the full path of python *.dylib? the 'm' is a ABI tagging
+	if test -f "${PYTHON_LIBDIR}/libpython${PYTHON_VERSION}m.dylib"; then
+		PYTHON_LIBRARY=${PYTHON_LIBDIR}/libpython${PYTHON_VERSION}m.dylib
+	else
+		PYTHON_LIBRARY=${PYTHON_LIBDIR}/libpython${PYTHON_VERSION}.dylib
+	fi
+	
 	${PYTHON_EXECUTABLE} -m pip install -q --upgrade pip
-	${PYTHON_EXECUTABLE} -m pip install -q numpy setuptools wheel twine auditwheel
-
+	${PYTHON_EXECUTABLE} -m pip install -q numpy setuptools wheel twine
 }
 
 # /////////////////////////////////////////////////////////////////////
