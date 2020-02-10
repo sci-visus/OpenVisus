@@ -356,6 +356,9 @@ OSPRayRenderNode::OSPRayRenderNode()
 
   addInputPort("array");
   addInputPort("palette");
+#ifndef VISUS_OSPRAY
+  ThrowException("Requested to use OSPRayRenderNode, but OSPRay support was not compiled in!");
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
