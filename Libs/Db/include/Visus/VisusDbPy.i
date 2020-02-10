@@ -22,7 +22,7 @@
 using namespace Visus;
 %}
 
-%include <Visus/VisusCommonPy.i>
+%include <Visus/VisusPy.i>
 
 %import <Visus/VisusKernelPy.i>
 

@@ -18,7 +18,7 @@ using namespace Visus;
 //Returning a pointer or reference in a director method is not recommended
 //%warnfilter(473) Visus::NodeCreator;
 
-%include <Visus/VisusCommonPy.i>
+%include <Visus/VisusPy.i>
 
 %shared_ptr(Visus::HeapMemory)
 %shared_ptr(Visus::StringTree)

@@ -26,19 +26,15 @@ class PyViewer(Viewer):
 		
 		if not node:
 			node=self.getSelection()
-			
 		
-		print("Editing"*10,type(node))
-		
-		py_node=node.asPythonObject()
-		print(py_node)
+		node=node.asPythonObject()
 		
 		if type(node) is PyScriptingNode: 
 			win=PyScriptingNodeView(node)
 			win.show()
 			return
-		
-		return super().editNode(node)
+			
+		super().editNode(node)
 		
 	# run
 	def run(self):

@@ -46,6 +46,8 @@ For support : support@visus.net
 #include <cctype>
 
 #include <pydebug.h>
+#include <frameobject.h>
+
 
 //see SWIG_TYPE_TABLE necessary to share type info
 #include <Visus/swigpyrun.h>
@@ -330,6 +332,55 @@ Array PythonEngine::unwrapArray(PyObject* py_object)
   return ret;
 }
 
+static int tb_displayline(PyObject* f, PyObject* filename, int lineno, PyObject* name)
+{
+  int err;
+  PyObject* line;
+
+  if (filename == NULL || name == NULL)
+    return -1;
+
+  line = PyUnicode_FromFormat("  File \"%U\", line %d, in %U\n",
+    filename, lineno, name);
+
+  if (line == NULL)
+    return -1;
+
+  err = PyFile_WriteObject(line, f, Py_PRINT_RAW);
+  Py_DECREF(line);
+
+  if (err != 0)
+    return err;
+
+  /* ignore errors since we can't report them, can we? */
+  if (_Py_DisplaySourceLine(f, filename, lineno, 4))
+    PyErr_Clear();
+
+  return err;
+}
+
+static int tb_printinternal(PyTracebackObject* tb, PyObject* f, long limit)
+{
+  int err = 0;
+  long depth = 0;
+  PyTracebackObject* tb1 = tb;
+  while (tb1 != NULL) {
+    depth++;
+    tb1 = tb1->tb_next;
+  }
+  while (tb != NULL && err == 0) 
+  {
+    if (depth <= limit) {
+      err = tb_displayline(f, tb->tb_frame->f_code->co_filename, tb->tb_lineno, tb->tb_frame->f_code->co_name);
+    }
+    depth--;
+    tb = tb->tb_next;
+    if (err == 0)
+      err = PyErr_CheckSignals();
+  }
+  return err;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////
 String GetPythonErrorMessage()
@@ -339,6 +390,10 @@ String GetPythonErrorMessage()
   if (!err)
     return "";
 
+  //PyErr_Print();
+  
+  //TODO: the following does not provice the same infos as PyErr_Print
+#if 1
   PyObject *type, *value, *traceback;
   PyErr_Fetch(&type, &value, &traceback);
 
@@ -367,6 +422,7 @@ String GetPythonErrorMessage()
       Py_DECREF(lines);
     }
   }
+#endif
 
   return out.str();
 }

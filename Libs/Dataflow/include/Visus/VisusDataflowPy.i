@@ -10,7 +10,7 @@
 using namespace Visus;
 %}
 
-%include <Visus/VisusCommonPy.i>
+%include <Visus/VisusPy.i>
 
 %import <Visus/VisusKernelPy.i>
 
@@ -39,20 +39,30 @@ using namespace Visus;
 //https://github.com/swig/swig/blob/master/Examples/test-suite/dynamic_cast.i
 
 //see https://stackoverflow.com/questions/42349170/passing-java-object-to-c-using-swig-then-back-to-java
+//see https://cta-redmine.irap.omp.eu/issues/287
 %extend Visus::Node {
-PyObject* swigGetSelf() {
+PyObject* __asPythonObject() {
     if (auto director = dynamic_cast<Swig::Director*>($self)) 
-        return director->swig_get_self();
+    {
+        auto ret=director->swig_get_self();
+        director->swig_incref(); //if python is owner this will increase the counter
+        return ret;
+    }
     else
+    {
         return nullptr;
+    }
 }
 
 %pythoncode %{
-   # asPythonObject
+   # asPythonObject (whenever you have a director and need to access the python object)
    def asPythonObject(self):
-    return self.swigGetSelf() 
+    py_object=self.__asPythonObject()
+    return py_object if py_object else self 
 %}
 }
+
+
 
 %include <Visus/DataflowModule.h>
 %include <Visus/DataflowMessage.h>

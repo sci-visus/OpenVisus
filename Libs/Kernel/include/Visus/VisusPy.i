@@ -203,7 +203,10 @@ namespace Visus {}
 #define VISUS_NEWOBJECT(typename) typename
 
 
-//use this when using directors
+//use this when using directors 
+// IMPORTANT NOTE: directorout is a typemape which is used when C++ code call Python code
+// in this case (for example see c++ NodeFactory calling one Python createInstance function)
+// C++ , after the call to python, owns the object
 %define %newobject_director(ReturnType,Function)
 
     %newobject Function;

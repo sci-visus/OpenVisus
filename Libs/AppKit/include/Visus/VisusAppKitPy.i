@@ -1,6 +1,6 @@
 %module(directors="1") VisusAppKitPy
 
-%include <Visus/VisusCommonPy.i>
+%include <Visus/VisusPy.i>
 
 %{ 
 #include <Visus/PythonNode.h>

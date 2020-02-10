@@ -25,7 +25,7 @@ namespace Visus {
 using namespace Visus;
 %}
 
-%include <Visus/VisusCommonPy.i>
+%include <Visus/VisusPy.i>
 
 //__________________________________________________________
 %pythonbegin %{

@@ -18,7 +18,7 @@
 using namespace Visus;
 %}
 
-%include <Visus/VisusCommonPy.i>
+%include <Visus/VisusPy.i>
 %import  <Visus/VisusKernelPy.i>
 %import  <Visus/VisusDataflowPy.i>
 %import  <Visus/VisusGuiPy.i>
