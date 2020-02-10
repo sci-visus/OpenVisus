@@ -95,7 +95,7 @@ if (VISUS_GUI)
 endif()
 
 if (VISUS_OSPRAY)
-	find_package(ospray REQUIRED)
+	find_package(ospray 2.0 REQUIRED)
 endif()
 
 
