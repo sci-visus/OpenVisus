@@ -74,10 +74,12 @@ public:
 
     // create and setup an ambient light
     cpp::Light ambient_light("ambient");
+    ambient_light.setParam("intensity", 0.25f);
     ambient_light.commit();
 
     cpp::Light directional_light("distant");
-    directional_light.setParam("direction", math::vec3f(0.5f, -1.f, 0.25f));
+    directional_light.setParam("direction", math::vec3f(0.5f, 1.f, 0.25f));
+    directional_light.setParam("intensity", 10.f);
     directional_light.commit();
     std::vector<cpp::Light> lights = {ambient_light, directional_light};
     world.setParam("light", cpp::Data(lights));
@@ -87,6 +89,9 @@ public:
     // regular render node (which doesn't seem to do srgb?)
     const math::vec3f bgColor(0.021219f, 0.0423114f, 0.093059f);
     renderer.setParam("backgroundColor", bgColor);
+    renderer.setParam("varianceThreshold", varianceThreshold);
+    renderer.setParam("maxPathLength", int(8));
+    renderer.setParam("volumeSamplingRate", 0.25f);
     renderer.commit();
   }
 
@@ -107,7 +112,9 @@ public:
     if (palette->functions.size() != 4) 
       PrintInfo("WARNING: OSPRay palettes must be RGBA!");
 
-    const size_t npaletteSamples = 256;
+    sceneChanged = true;
+
+    const size_t npaletteSamples = 128;
     std::vector<math::vec3f> tfnColors(npaletteSamples, math::vec3f(0.f));
     std::vector<float> tfnOpacities(npaletteSamples, 0.f);
 
@@ -202,30 +209,44 @@ public:
     const auto eyeDir = invCamera * Point4d(0.f, 0.f, -1.f, 0.f);
     const auto upDir  = invCamera * Point4d(0.f, 1.f, 0.f, 0.f);
 
-    camera.setParam("position", math::vec3f(eyePos.x, eyePos.y, eyePos.z));
-    camera.setParam("direction", math::vec3f(eyeDir.x, eyeDir.y, eyeDir.z));
-    camera.setParam("up", math::vec3f(upDir.x, upDir.y, upDir.z));
+    if (eyePos != prevEyePos || eyeDir != prevEyeDir || upDir != prevUpDir) {
+      camera.setParam("position", math::vec3f(eyePos.x, eyePos.y, eyePos.z));
+      camera.setParam("direction", math::vec3f(eyeDir.x, eyeDir.y, eyeDir.z));
+      camera.setParam("up", math::vec3f(upDir.x, upDir.y, upDir.z));
+      camera.commit();
+      sceneChanged = true;
+    }
+    prevEyePos = eyePos;
+    prevEyeDir = eyeDir;
+    prevUpDir = upDir;
 
     // Get window dimensions for framebuffer
     const auto viewport = gl.getViewport();
 
     if (viewport.width != imgDims[0] || viewport.height != imgDims[1]) 
     {
+      // On windows it seems like the ref-counting doesn't quite work and we leak?
+      ospRelease(framebuffer.handle());
+      sceneChanged = true;
+
       imgDims[0] = viewport.width;
       imgDims[1] = viewport.height;
+
       camera.setParam("aspect", imgDims[0] / static_cast<float>(imgDims[1]));
+      camera.commit();
 
       framebuffer = cpp::FrameBuffer(math::vec2i(imgDims[0], imgDims[1]), OSP_FB_SRGBA,
-              OSP_FB_COLOR | OSP_FB_ACCUM);
+              OSP_FB_COLOR | OSP_FB_ACCUM | OSP_FB_VARIANCE);
     }
-    camera.commit();
 
-    framebuffer.clear();
+    if (sceneChanged) {
+        sceneChanged = false;
+        framebuffer.clear();
+    }
 
     framebuffer.renderFrame(renderer, camera, world);
 
     uint32_t *fb = (uint32_t*)framebuffer.map(OSP_FB_COLOR);
-
     // Blit the rendered framebuffer from OSPRay
     {
       auto fbArray = Array(imgDims[0], imgDims[1], DTypes::UINT8_RGBA,HeapMemory::createUnmanaged(fb, imgDims[0] * imgDims[1] * 4));
@@ -252,8 +273,11 @@ public:
       gl.popProjection();
       gl.popModelview();
     }
-
     framebuffer.unmap(fb);
+
+    if (ospGetVariance(framebuffer.handle()) > varianceThreshold) {
+        gl.postRedisplay();
+    }
   }
 
 private:
@@ -270,7 +294,14 @@ private:
   ospray::cpp::Renderer renderer;
   ospray::cpp::FrameBuffer framebuffer;
 
-  std::array<int, 2>  imgDims = { -1,-1 };
+  Point4d prevEyePos = Point4d(0.f, 0.f, 0.f, 0.f);
+  Point4d prevEyeDir = Point4d(0.f, 0.f, 0.f, 0.f);
+  Point4d prevUpDir = Point4d(0.f, 0.f, 0.f, 0.f);
+  bool sceneChanged = true;
+
+  float varianceThreshold = 15.f;
+
+  std::array<int, 2> imgDims = { -1,-1 };
 
   //dtypeToOSPDtype
   static OSPDataType dtypeToOSPDtype(const DType& dtype) {
@@ -410,7 +441,6 @@ bool OSPRayRenderNode::processInput()
   this->data   = *data;
   this->palette = palette;
 
-  PrintInfo("got array","data",this->data.dims);
   return true;
 }
 
